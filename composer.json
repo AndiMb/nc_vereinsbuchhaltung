@@ -1,0 +1,18 @@
+{
+	"name": "vereinsbuchhaltung/vereinsbuchhaltung",
+	"description": "Vereinsbuchhaltung für Nextcloud",
+	"type": "project",
+	"license": "AGPL-3.0-or-later",
+	"require": {
+		"php": ">=8.1"
+	},
+	"autoload": {
+		"psr-4": {
+			"OCA\\Vereinsbuchhaltung\\": "lib/"
+		}
+	},
+	"config": {
+		"optimize-autoloader": true,
+		"classmap-authoritative": true
+	}
+}

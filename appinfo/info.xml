@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
+	<id>vereinsbuchhaltung</id>
+	<name>Vereinsbuchhaltung</name>
+	<summary>Buchhaltung für Vereine: CSV-CAMT-Import, Kontenrahmen und doppelte Buchführung</summary>
+	<description><![CDATA[
+Eine schlanke Buchhaltungs-App für Vereine direkt in Nextcloud.
+
+Funktionen:
+- Import von Kontoumsätzen aus dem Onlinebanking im CSV-CAMT-Format
+- Dublettenprüfung: es werden nur neue Buchungen übernommen
+- Frei definierbarer Kontenrahmen (Konten/Kategorien)
+- Zuordnung von Bankbuchungen zu Konten und damit zu Kategorien
+- Doppelte Buchführung (Soll/Haben, Journal)
+- Optionale Regeln zur automatischen Zuordnung wiederkehrender Buchungen
+	]]></description>
+	<version>0.1.0</version>
+	<licence>agpl</licence>
+	<author mail="hauffe.andreas@googlemail.com">Andreas Hauffe</author>
+	<namespace>Vereinsbuchhaltung</namespace>
+	<category>office</category>
+	<category>organization</category>
+	<bugs>https://github.com/</bugs>
+	<dependencies>
+		<php min-version="8.1" max-version="8.4"/>
+		<nextcloud min-version="28" max-version="31"/>
+	</dependencies>
+	<navigations>
+		<navigation>
+			<name>Vereinsbuchhaltung</name>
+			<route>vereinsbuchhaltung.page.index</route>
+			<order>10</order>
+			<icon>app.svg</icon>
+		</navigation>
+	</navigations>
+</info>

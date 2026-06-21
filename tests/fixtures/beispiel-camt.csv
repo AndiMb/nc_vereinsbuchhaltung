@@ -1,0 +1,6 @@
+Auftragskonto;Buchungstag;Valutadatum;Buchungstext;Verwendungszweck;Glaeubiger ID;Mandatsreferenz;Kundenreferenz (End-to-End);Sammlerreferenz;Lastschrift Ursprungsbetrag;Auslagenersatz Ruecklastschrift;Beguenstigter/Zahlungspflichtiger;Kontonummer/IBAN;BIC (SWIFT-Code);Betrag;Waehrung;Info
+DE12500105170648489890;02.01.2026;02.01.2026;GUTSCHRIFT;Mitgliedsbeitrag 2026 Max Mustermann;;;;;;;Max Mustermann;DE02120300000000202051;BYLADEM1001;60,00;EUR;Umsatz gebucht
+DE12500105170648489890;05.01.2026;05.01.2026;FOLGELASTSCHRIFT;Miete Vereinsheim Januar;;;;;;;Stadtwerke Musterstadt;DE89370400440532013000;COBADEFFXXX;-250,00;EUR;Umsatz gebucht
+DE12500105170648489890;10.01.2026;10.01.2026;GUTSCHRIFT;Spende Weihnachtskonzert;;;;;;;Erika Beispiel;DE44500105175407324931;INGDDEFFXXX;1.250,50;EUR;Umsatz gebucht
+DE12500105170648489890;15.01.2026;15.01.2026;ENTGELTABSCHLUSS;Kontofuehrungsentgelt;;;;;;;Sparkasse Musterstadt;DE12500105170648489890;SOLADEST600;-8,90;EUR;Umsatz gebucht
+DE12500105170648489890;20.01.2026;20.01.2026;GUTSCHRIFT;Mitgliedsbeitrag 2026 Anna Schmidt;;;;;;;Anna Schmidt;DE02500105170137075030;SOLADEST600;60,00;EUR;Umsatz gebucht
