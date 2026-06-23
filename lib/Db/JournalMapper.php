@@ -25,6 +25,46 @@ class JournalMapper extends QBMapper {
 		return $this->findEntity($qb);
 	}
 
+	public const OPENING_REF = 'EB';
+
+	public function deleteAllForUser(string $userId): void {
+		$qb = $this->db->getQueryBuilder();
+		$qb->delete($this->getTableName())
+			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)));
+		$qb->executeStatement();
+	}
+
+	/**
+	 * Nächste fortlaufende Buchungsnummer für den Nutzer.
+	 */
+	public function getNextEntryNo(string $userId): int {
+		$qb = $this->db->getQueryBuilder();
+		$qb->selectAlias($qb->func()->max('entry_no'), 'm')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)));
+		$res = $qb->executeQuery();
+		$max = $res->fetchOne();
+		$res->closeCursor();
+		return (int)$max + 1;
+	}
+
+	/**
+	 * Findet die Eröffnungsbuchung (document_ref = 'EB'), die das angegebene
+	 * Konto berührt – falls vorhanden.
+	 */
+	public function findOpeningForAccount(string $userId, int $accountId): ?Journal {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('j.*')
+			->from($this->getTableName(), 'j')
+			->innerJoin('j', 'vbh_journal_line', 'l', $qb->expr()->eq('l.journal_id', 'j.id'))
+			->where($qb->expr()->eq('j.user_id', $qb->createNamedParameter($userId)))
+			->andWhere($qb->expr()->eq('j.document_ref', $qb->createNamedParameter(self::OPENING_REF)))
+			->andWhere($qb->expr()->eq('l.account_id', $qb->createNamedParameter($accountId, IQueryBuilder::PARAM_INT)))
+			->setMaxResults(1);
+		$rows = $this->findEntities($qb);
+		return $rows[0] ?? null;
+	}
+
 	/**
 	 * @return Journal[]
 	 */

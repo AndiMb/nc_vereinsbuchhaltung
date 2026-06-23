@@ -26,7 +26,7 @@ class RuleController extends Controller {
 	}
 
 	private function userId(): string {
-		return $this->userSession->getUser()->getUID();
+		return Application::BOOK;
 	}
 
 	#[NoAdminRequired]

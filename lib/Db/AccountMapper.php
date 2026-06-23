@@ -37,6 +37,24 @@ class AccountMapper extends QBMapper {
 		return $this->findEntity($qb);
 	}
 
+	public function findByNumber(string $userId, string $number): ?Account {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+			->andWhere($qb->expr()->eq('number', $qb->createNamedParameter($number)))
+			->setMaxResults(1);
+		$rows = $this->findEntities($qb);
+		return $rows[0] ?? null;
+	}
+
+	public function deleteAllForUser(string $userId): void {
+		$qb = $this->db->getQueryBuilder();
+		$qb->delete($this->getTableName())
+			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)));
+		$qb->executeStatement();
+	}
+
 	public function countForUser(string $userId): int {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select($qb->func()->count('*', 'cnt'))

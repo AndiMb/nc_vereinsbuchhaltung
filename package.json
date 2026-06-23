@@ -10,6 +10,7 @@
 		"watch": "webpack --node-env development --progress --watch"
 	},
 	"dependencies": {
+		"22": "^0.0.0",
 		"@nextcloud/axios": "^2.5.0",
 		"@nextcloud/dialogs": "^5.3.5",
 		"@nextcloud/router": "^3.0.1",

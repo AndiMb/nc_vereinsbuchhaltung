@@ -27,11 +27,11 @@ class TransactionController extends Controller {
 	}
 
 	private function userId(): string {
-		return $this->userSession->getUser()->getUID();
+		return Application::BOOK;
 	}
 
 	#[NoAdminRequired]
-	public function index(?string $status = null, int $limit = 500, int $offset = 0): DataResponse {
+	public function index(?string $status = null, int $limit = 10000, int $offset = 0): DataResponse {
 		$items = $this->txMapper->findFiltered($this->userId(), $status, $limit, $offset);
 		return new DataResponse($items);
 	}

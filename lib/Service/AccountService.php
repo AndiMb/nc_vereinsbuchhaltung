@@ -52,7 +52,7 @@ class AccountService {
 		return $this->mapper->find($id, $userId);
 	}
 
-	public function create(string $userId, string $number, string $name, string $type, ?string $category, bool $isBank): Account {
+	public function create(string $userId, string $number, string $name, string $type, ?string $category, bool $isBank, ?int $parentId = null): Account {
 		$account = new Account();
 		$account->setUserId($userId);
 		$account->setNumber(trim($number));
@@ -61,6 +61,11 @@ class AccountService {
 		$account->setCategory($category !== null ? trim($category) : null);
 		$account->setIsBank($isBank);
 		$account->setActive(true);
+		if ($parentId !== null && $parentId > 0) {
+			// Überkonto muss existieren und demselben Bestand gehören.
+			$this->mapper->find($parentId, $userId);
+			$account->setParentId($parentId);
+		}
 		return $this->mapper->insert($account);
 	}
 
@@ -84,7 +89,41 @@ class AccountService {
 		if (isset($data['active'])) {
 			$account->setActive((bool)$data['active']);
 		}
+		if (array_key_exists('parentId', $data)) {
+			$account->setParentId($this->resolveParent($id, $userId, (int)$data['parentId']));
+		}
 		return $this->mapper->update($account);
+	}
+
+	/**
+	 * Prüft ein gewünschtes Überkonto und liefert die zu setzende parent_id
+	 * (oder null für Wurzel). Verhindert Selbst- und Zyklus-Zuordnungen.
+	 */
+	private function resolveParent(int $id, string $userId, int $parentId): ?int {
+		if ($parentId <= 0) {
+			return null;
+		}
+		if ($parentId === $id) {
+			throw new \InvalidArgumentException('Ein Konto kann nicht sein eigenes Überkonto sein.');
+		}
+		$byId = [];
+		foreach ($this->mapper->findAll($userId) as $acc) {
+			$byId[$acc->getId()] = $acc;
+		}
+		if (!isset($byId[$parentId])) {
+			throw new \InvalidArgumentException('Überkonto nicht gefunden.');
+		}
+		// Würde das gewählte Überkonto unter diesem Konto hängen? → Zyklus.
+		$cursor = $byId[$parentId];
+		$guard = 0;
+		while ($cursor !== null && $guard++ < 1000) {
+			if ($cursor->getId() === $id) {
+				throw new \InvalidArgumentException('Ungültige Zuordnung: Das gewählte Überkonto ist ein Unterkonto dieses Kontos.');
+			}
+			$pid = $cursor->getParentId();
+			$cursor = $pid && isset($byId[$pid]) ? $byId[$pid] : null;
+		}
+		return $parentId;
 	}
 
 	public function delete(int $id, string $userId): void {
@@ -124,6 +163,36 @@ class AccountService {
 			}
 		}
 		throw new DoesNotExistException('Kein Bankkonto im Kontenrahmen definiert.');
+	}
+
+	/**
+	 * Liefert das Eigenkapitalkonto für Eröffnungsbuchungen – legt es bei
+	 * Bedarf an.
+	 */
+	public function getOpeningEquityAccount(string $userId): Account {
+		foreach ($this->mapper->findAll($userId) as $account) {
+			if ($account->getType() === 'equity') {
+				return $account;
+			}
+		}
+		foreach (['0800', '9000', '9001'] as $number) {
+			try {
+				return $this->create($userId, $number, 'Vereinsvermögen (Eröffnung)', 'equity', 'Eigenkapital', false);
+			} catch (\Throwable) {
+				continue;
+			}
+		}
+		throw new \RuntimeException('Eigenkapitalkonto für Eröffnung konnte nicht angelegt werden.');
+	}
+
+	/**
+	 * Setzt Eröffnungssaldo und -datum eines Kontos (Cent).
+	 */
+	public function setOpeningFields(int $id, string $userId, int $amountCents, ?string $date): Account {
+		$account = $this->mapper->find($id, $userId);
+		$account->setOpeningBalanceCents($amountCents);
+		$account->setOpeningDate($date !== null && $date !== '' ? $date : null);
+		return $this->mapper->update($account);
 	}
 
 	private function validateType(string $type): string {

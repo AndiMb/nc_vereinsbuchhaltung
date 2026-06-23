@@ -9,6 +9,8 @@ use OCP\AppFramework\Db\Entity;
 /**
  * @method string getUserId()
  * @method void setUserId(string $userId)
+ * @method int|null getEntryNo()
+ * @method void setEntryNo(?int $entryNo)
  * @method string getDate()
  * @method void setDate(string $date)
  * @method string|null getDescription()
@@ -22,6 +24,7 @@ use OCP\AppFramework\Db\Entity;
  */
 class Journal extends Entity implements \JsonSerializable {
 	protected $userId;
+	protected $entryNo;
 	protected $date;
 	protected $description;
 	protected $documentRef;
@@ -29,12 +32,14 @@ class Journal extends Entity implements \JsonSerializable {
 	protected $createdAt;
 
 	public function __construct() {
+		$this->addType('entryNo', 'integer');
 		$this->addType('bankTxId', 'integer');
 	}
 
 	public function jsonSerialize(): array {
 		return [
 			'id' => $this->id,
+			'entryNo' => $this->entryNo,
 			'date' => $this->date,
 			'description' => $this->description,
 			'documentRef' => $this->documentRef,

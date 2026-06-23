@@ -7,6 +7,8 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\ImportLogMapper;
 use OCA\Vereinsbuchhaltung\Service\ImportService;
+use OCA\Vereinsbuchhaltung\Service\ResetService;
+use OCA\Vereinsbuchhaltung\Service\XbucImportService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -19,6 +21,8 @@ class ImportController extends Controller {
 	public function __construct(
 		IRequest $request,
 		private ImportService $importService,
+		private XbucImportService $xbucService,
+		private ResetService $resetService,
 		private ImportLogMapper $importMapper,
 		private IUserSession $userSession,
 	) {
@@ -26,7 +30,7 @@ class ImportController extends Controller {
 	}
 
 	private function userId(): string {
-		return $this->userSession->getUser()->getUID();
+		return Application::BOOK;
 	}
 
 	/**
@@ -80,5 +84,39 @@ class ImportController extends Controller {
 	#[NoAdminRequired]
 	public function index(): DataResponse {
 		return new DataResponse($this->importMapper->findAll($this->userId()));
+	}
+
+	#[NoAdminRequired]
+	public function xbucPreview(): DataResponse {
+		$upload = $this->readUpload();
+		if ($upload === null) {
+			return new DataResponse(['message' => 'Keine Datei empfangen'], Http::STATUS_BAD_REQUEST);
+		}
+		try {
+			return new DataResponse($this->xbucService->preview($upload['content']));
+		} catch (\RuntimeException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		}
+	}
+
+	#[NoAdminRequired]
+	public function xbucCommit(): DataResponse {
+		$upload = $this->readUpload();
+		if ($upload === null) {
+			return new DataResponse(['message' => 'Keine Datei empfangen'], Http::STATUS_BAD_REQUEST);
+		}
+		$reset = filter_var($this->request->getParam('reset', true), FILTER_VALIDATE_BOOLEAN);
+		try {
+			$result = $this->xbucService->import($this->userId(), $upload['content'], $reset);
+			return new DataResponse($result, Http::STATUS_CREATED);
+		} catch (\RuntimeException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		}
+	}
+
+	#[NoAdminRequired]
+	public function reset(): DataResponse {
+		$this->resetService->resetAll($this->userId());
+		return new DataResponse([]);
 	}
 }

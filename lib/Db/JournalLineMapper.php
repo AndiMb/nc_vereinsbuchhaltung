@@ -17,6 +17,33 @@ class JournalLineMapper extends QBMapper {
 	}
 
 	/**
+	 * Distinct Journal-IDs, die mindestens eine Zeile auf einem der Konten haben.
+	 *
+	 * @param int[] $accountIds
+	 * @return int[]
+	 */
+	public function findJournalIdsForAccounts(string $userId, array $accountIds): array {
+		if (count($accountIds) === 0) {
+			return [];
+		}
+		$ids = [];
+		foreach (array_chunk($accountIds, 500) as $chunk) {
+			$qb = $this->db->getQueryBuilder();
+			$qb->selectDistinct('l.journal_id')
+				->from($this->getTableName(), 'l')
+				->innerJoin('l', 'vbh_journal', 'j', $qb->expr()->eq('l.journal_id', 'j.id'))
+				->where($qb->expr()->eq('j.user_id', $qb->createNamedParameter($userId)))
+				->andWhere($qb->expr()->in('l.account_id', $qb->createNamedParameter($chunk, IQueryBuilder::PARAM_INT_ARRAY)));
+			$res = $qb->executeQuery();
+			while (($row = $res->fetch()) !== false) {
+				$ids[] = (int)$row['journal_id'];
+			}
+			$res->closeCursor();
+		}
+		return $ids;
+	}
+
+	/**
 	 * @return JournalLine[]
 	 */
 	public function findByJournal(int $journalId): array {
@@ -25,6 +52,26 @@ class JournalLineMapper extends QBMapper {
 			->from($this->getTableName())
 			->where($qb->expr()->eq('journal_id', $qb->createNamedParameter($journalId, IQueryBuilder::PARAM_INT)));
 		return $this->findEntities($qb);
+	}
+
+	public function deleteAllForUser(string $userId): void {
+		// Journal-IDs des Nutzers ermitteln und Zeilen blockweise löschen
+		$sel = $this->db->getQueryBuilder();
+		$sel->select('id')->from('vbh_journal')
+			->where($sel->expr()->eq('user_id', $sel->createNamedParameter($userId)));
+		$res = $sel->executeQuery();
+		$ids = [];
+		while (($row = $res->fetch()) !== false) {
+			$ids[] = (int)$row['id'];
+		}
+		$res->closeCursor();
+
+		foreach (array_chunk($ids, 500) as $chunk) {
+			$qb = $this->db->getQueryBuilder();
+			$qb->delete($this->getTableName())
+				->where($qb->expr()->in('journal_id', $qb->createNamedParameter($chunk, IQueryBuilder::PARAM_INT_ARRAY)));
+			$qb->executeStatement();
+		}
 	}
 
 	public function deleteByJournal(int $journalId): void {

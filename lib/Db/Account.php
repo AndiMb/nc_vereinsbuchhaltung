@@ -21,6 +21,12 @@ use OCP\AppFramework\Db\Entity;
  * @method void setIsBank(bool $isBank)
  * @method bool getActive()
  * @method void setActive(bool $active)
+ * @method int getOpeningBalanceCents()
+ * @method void setOpeningBalanceCents(int $openingBalanceCents)
+ * @method string|null getOpeningDate()
+ * @method void setOpeningDate(?string $openingDate)
+ * @method int|null getParentId()
+ * @method void setParentId(?int $parentId)
  */
 class Account extends Entity implements \JsonSerializable {
 	protected $userId;
@@ -30,10 +36,15 @@ class Account extends Entity implements \JsonSerializable {
 	protected $category;
 	protected $isBank = false;
 	protected $active = true;
+	protected $openingBalanceCents = 0;
+	protected $openingDate;
+	protected $parentId;
 
 	public function __construct() {
 		$this->addType('isBank', 'boolean');
 		$this->addType('active', 'boolean');
+		$this->addType('openingBalanceCents', 'integer');
+		$this->addType('parentId', 'integer');
 	}
 
 	public function jsonSerialize(): array {
@@ -45,6 +56,10 @@ class Account extends Entity implements \JsonSerializable {
 			'category' => $this->category,
 			'isBank' => $this->isBank,
 			'active' => $this->active,
+			'openingBalanceCents' => $this->openingBalanceCents,
+			'openingBalance' => $this->openingBalanceCents / 100,
+			'openingDate' => $this->openingDate,
+			'parentId' => $this->parentId,
 		];
 	}
 }

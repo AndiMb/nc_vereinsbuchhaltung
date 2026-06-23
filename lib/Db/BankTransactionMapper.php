@@ -50,6 +50,30 @@ class BankTransactionMapper extends QBMapper {
 		return $found;
 	}
 
+	public function deleteAllForUser(string $userId): void {
+		$qb = $this->db->getQueryBuilder();
+		$qb->delete($this->getTableName())
+			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)));
+		$qb->executeStatement();
+	}
+
+	/**
+	 * Summe aller importierten Umsätze (in Cent), optional je Status.
+	 */
+	public function sumAmount(string $userId, ?string $status = null): int {
+		$qb = $this->db->getQueryBuilder();
+		$qb->selectAlias($qb->func()->sum('amount_cents'), 'total')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)));
+		if ($status !== null && $status !== '') {
+			$qb->andWhere($qb->expr()->eq('status', $qb->createNamedParameter($status)));
+		}
+		$result = $qb->executeQuery();
+		$total = $result->fetchOne();
+		$result->closeCursor();
+		return (int)$total;
+	}
+
 	/**
 	 * @return BankTransaction[]
 	 */

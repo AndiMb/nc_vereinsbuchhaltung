@@ -15,6 +15,13 @@ class ImportLogMapper extends QBMapper {
 		parent::__construct($db, 'vbh_imports', ImportLog::class);
 	}
 
+	public function deleteAllForUser(string $userId): void {
+		$qb = $this->db->getQueryBuilder();
+		$qb->delete($this->getTableName())
+			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)));
+		$qb->executeStatement();
+	}
+
 	/**
 	 * @return ImportLog[]
 	 */
