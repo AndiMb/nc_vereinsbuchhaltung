@@ -47,7 +47,8 @@ class BookingService {
 
 		$journal = new Journal();
 		$journal->setUserId($userId);
-		$journal->setEntryNo($this->journalMapper->getNextEntryNo($userId));
+		$year = (int)substr((string)$tx->getBookingDate(), 0, 4);
+		$journal->setEntryNo($this->journalMapper->getNextEntryNoForYear($userId, $year));
 		$journal->setDate($tx->getBookingDate());
 		$journal->setDescription($this->buildDescription($tx));
 		$journal->setBankTxId($tx->getId());

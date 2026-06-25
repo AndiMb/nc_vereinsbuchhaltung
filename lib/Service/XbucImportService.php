@@ -7,9 +7,13 @@ namespace OCA\Vereinsbuchhaltung\Service;
 use OCA\Vereinsbuchhaltung\Db\Account;
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\CostCenterMapper;
+use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 
 /**
  * Importiert eine „zero Buchhaltung"-Datei (.xbuc): Kontenbaum + Buchungen.
+ *
+ * Merge-Modus (reset=false): Konten werden nur angelegt wenn sie fehlen;
+ * Buchungen werden per Fingerprint (Datum|Betrag|Soll|Haben|Beleg) dedupliziert.
  */
 class XbucImportService {
 
@@ -20,6 +24,7 @@ class XbucImportService {
 		private XbucParser $parser,
 		private AccountMapper $accountMapper,
 		private CostCenterMapper $costCenterMapper,
+		private JournalMapper $journalMapper,
 		private JournalService $journalService,
 		private ResetService $resetService,
 	) {
@@ -41,7 +46,11 @@ class XbucImportService {
 	/**
 	 * Importiert Konten und Buchungen.
 	 *
-	 * @return array{accounts:int, bookings:int, reset:bool}
+	 * Im Merge-Modus (reset=false):
+	 * – Konten werden nur angelegt, wenn die Nummer noch nicht existiert.
+	 * – Buchungen werden per Fingerprint dedupliziert (Datum|Betrag|Soll-ID|Haben-ID|Belegnummer).
+	 *
+	 * @return array{accounts:int, accountsNew:int, bookings:int, skipped:int, reset:bool}
 	 */
 	public function import(string $userId, string $content, bool $reset = true): array {
 		$data = $this->parser->parse($content);
@@ -52,7 +61,7 @@ class XbucImportService {
 
 		// --- Kostenstellen (feste + aus Klassifizierung) ---
 		foreach (self::BUILTIN_COST_CENTERS as $code => $name) {
-			$this->costCenterMapper->upsert($userId, $code, $name);
+			$this->costCenterMapper->upsert($userId, (string)$code, $name);
 		}
 		foreach ($data['costCenters'] as $cc) {
 			$this->costCenterMapper->upsert($userId, $cc['code'], $cc['name']);
@@ -60,6 +69,7 @@ class XbucImportService {
 
 		// --- Konten (Eltern zuerst – Reihenfolge des Parsers) ---
 		$byNumber = [];
+		$accountsNew = 0;
 		foreach ($data['accounts'] as $a) {
 			$number = $a['number'];
 			$existing = $this->accountMapper->findByNumber($userId, $number);
@@ -81,15 +91,37 @@ class XbucImportService {
 			}
 			$account = $this->accountMapper->insert($account);
 			$byNumber[$number] = $account->getId();
+			$accountsNew++;
 		}
 
-		// --- Buchungen (nach Quell-ID sortiert) ---
-		$entryNo = 0;
+		// --- Fingerprints vorhandener Buchungen (nur im Merge-Modus) ---
+		$seen = $reset ? [] : $this->journalMapper->findFingerprintsForUser($userId);
+
+		// Buchungsnummern je Kalenderjahr (starten bei 1; im Merge-Modus ab MAX+1 des jeweiligen Jahres)
+		/** @var array<int,int> $nextEntryByYear  Jahr → nächste freie Nummer */
+		$nextEntryByYear = [];
+
+		// --- Buchungen ---
 		$count = 0;
+		$skipped = 0;
 		foreach ($data['bookings'] as $b) {
-			$entryNo++;
-			$debitId = $this->ensureAccount($userId, $b['sollNumber'], $b['sollName'], $byNumber);
+			$debitId  = $this->ensureAccount($userId, $b['sollNumber'],  $b['sollName'],  $byNumber);
 			$creditId = $this->ensureAccount($userId, $b['habenNumber'], $b['habenName'], $byNumber);
+
+			$fp = $b['date'] . '|' . abs($b['amountCents']) . '|' . $debitId . '|' . $creditId . '|' . $b['docRef'];
+			if (isset($seen[$fp])) {
+				$skipped++;
+				continue;
+			}
+			$seen[$fp] = true;
+
+			$year = (int)substr((string)$b['date'], 0, 4);
+			if (!isset($nextEntryByYear[$year])) {
+				$nextEntryByYear[$year] = $reset ? 1 : $this->journalMapper->getNextEntryNoForYear($userId, $year);
+			} else {
+				$nextEntryByYear[$year]++;
+			}
+
 			$this->journalService->createBooking(
 				$userId,
 				$b['date'],
@@ -98,12 +130,18 @@ class XbucImportService {
 				$debitId,
 				$creditId,
 				$b['amountCents'],
-				$entryNo,
+				$nextEntryByYear[$year],
 			);
 			$count++;
 		}
 
-		return ['accounts' => count($byNumber), 'bookings' => $count, 'reset' => $reset];
+		return [
+			'accounts'    => count($byNumber),
+			'accountsNew' => $accountsNew,
+			'bookings'    => $count,
+			'skipped'     => $skipped,
+			'reset'       => $reset,
+		];
 	}
 
 	/**

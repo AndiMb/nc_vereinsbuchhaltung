@@ -14,6 +14,7 @@ use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IGroupManager;
 use OCP\IRequest;
+use OCP\IUserManager;
 
 class PermissionController extends Controller {
 
@@ -22,6 +23,7 @@ class PermissionController extends Controller {
 		private PermissionService $permissions,
 		private PermissionMapper $mapper,
 		private IGroupManager $groupManager,
+		private IUserManager $userManager,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -45,6 +47,16 @@ class PermissionController extends Controller {
 			$groups[] = ['id' => $group->getGID(), 'displayName' => $group->getDisplayName()];
 		}
 		return new DataResponse($groups);
+	}
+
+	/** Liste der Nextcloud-Nutzer für die Auswahl. */
+	#[NoAdminRequired]
+	public function users(): DataResponse {
+		$users = [];
+		foreach ($this->userManager->search('') as $user) {
+			$users[] = ['id' => $user->getUID(), 'displayName' => $user->getDisplayName()];
+		}
+		return new DataResponse($users);
 	}
 
 	#[NoAdminRequired]

@@ -32,6 +32,7 @@ return [
 
 		// Journal / reports
 		['name' => 'journal#index', 'url' => '/api/journal', 'verb' => 'GET'],
+		['name' => 'journal#years', 'url' => '/api/journal/years', 'verb' => 'GET'],
 		['name' => 'journal#balances', 'url' => '/api/journal/balances', 'verb' => 'GET'],
 		['name' => 'journal#create', 'url' => '/api/journal', 'verb' => 'POST'],
 		['name' => 'journal#update', 'url' => '/api/journal/{id}', 'verb' => 'PUT'],
@@ -41,10 +42,15 @@ return [
 		['name' => 'report#costCenters', 'url' => '/api/report/costcenters', 'verb' => 'GET'],
 		['name' => 'report#rename', 'url' => '/api/report/costcenters', 'verb' => 'PUT'],
 
+		// Finanzplan / Budget
+		['name' => 'budget#index', 'url' => '/api/budget', 'verb' => 'GET'],
+		['name' => 'budget#set', 'url' => '/api/budget', 'verb' => 'POST'],
+
 		// Berechtigungen
 		['name' => 'permission#me', 'url' => '/api/permissions/me', 'verb' => 'GET'],
 		['name' => 'permission#index', 'url' => '/api/permissions', 'verb' => 'GET'],
 		['name' => 'permission#groups', 'url' => '/api/permissions/groups', 'verb' => 'GET'],
+		['name' => 'permission#users', 'url' => '/api/permissions/users', 'verb' => 'GET'],
 		['name' => 'permission#setRole', 'url' => '/api/permissions', 'verb' => 'POST'],
 		['name' => 'permission#destroy', 'url' => '/api/permissions/{id}', 'verb' => 'DELETE'],
 

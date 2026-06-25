@@ -13,7 +13,7 @@ export default {
 	deleteAccount: id => axios.delete(url(`/accounts/${id}`)),
 	seedAccounts: () => axios.post(url('/accounts/seed')),
 	setOpening: (id, amount, date) => axios.post(url(`/accounts/${id}/opening`), { amount, date }),
-	accountJournal: (id, includeChildren) => axios.get(url(`/accounts/${id}/journal`), { params: { includeChildren: includeChildren ? 1 : 0 } }),
+	accountJournal: (id, includeChildren, year) => axios.get(url(`/accounts/${id}/journal`), { params: { includeChildren: includeChildren ? 1 : 0, year: year || undefined } }),
 
 	// Buchungen (Bankumsätze)
 	listTransactions: status => axios.get(url('/transactions'), { params: { status } }),
@@ -31,17 +31,22 @@ export default {
 	reset: () => axios.post(url('/reset')),
 
 	// Journal / Buchungssätze
-	journal: () => axios.get(url('/journal')),
+	journal: year => axios.get(url('/journal'), { params: { year: year || undefined } }),
+	journalYears: () => axios.get(url('/journal/years')),
 	createBooking: data => axios.post(url('/journal'), data),
 	updateBooking: (id, data) => axios.put(url(`/journal/${id}`), data),
 	deleteBooking: id => axios.delete(url(`/journal/${id}`)),
 
 	// Auswertung
-	balances: () => axios.get(url('/journal/balances')),
+	balances: year => axios.get(url('/journal/balances'), { params: { year: year || undefined } }),
 
 	// Berichte / Kostenstellen
-	costCenterReport: () => axios.get(url('/report/costcenters')),
+	costCenterReport: year => axios.get(url('/report/costcenters'), { params: { year: year || undefined } }),
 	renameCostCenter: (code, name) => axios.put(url('/report/costcenters'), { code, name }),
+
+	// Finanzplan / Budget
+	budget: year => axios.get(url('/budget'), { params: { year: year || undefined } }),
+	setBudget: (accountId, year, amount) => axios.post(url('/budget'), { accountId, year, amount }),
 
 	// Regeln
 	listRules: () => axios.get(url('/rules')),
@@ -52,6 +57,7 @@ export default {
 	me: () => axios.get(url('/permissions/me')),
 	listPermissions: () => axios.get(url('/permissions')),
 	listGroups: () => axios.get(url('/permissions/groups')),
+	listUsers: () => axios.get(url('/permissions/users')),
 	setPermission: data => axios.post(url('/permissions'), data),
 	deletePermission: id => axios.delete(url(`/permissions/${id}`)),
 }

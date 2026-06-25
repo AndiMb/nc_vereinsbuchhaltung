@@ -84,9 +84,15 @@ class JournalLineMapper extends QBMapper {
 	/**
 	 * Summen Soll/Haben je Konto für die Saldenliste.
 	 *
+	 * Optional auf einen Datumsbereich (Geschäftsjahr) eingegrenzt. Das Datum
+	 * ist als ISO-String (YYYY-MM-DD) gespeichert, daher ist der lexikografische
+	 * Vergleich identisch mit dem chronologischen.
+	 *
+	 * @param string|null $from inklusive untere Datumsgrenze (z.B. 2026-01-01)
+	 * @param string|null $to   inklusive obere Datumsgrenze (z.B. 2026-12-31)
 	 * @return array<int, array{debit:int, credit:int}>
 	 */
-	public function sumByAccount(string $userId): array {
+	public function sumByAccount(string $userId, ?string $from = null, ?string $to = null): array {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('l.account_id')
 			->selectAlias($qb->func()->sum('l.debit_cents'), 'debit')
@@ -95,6 +101,12 @@ class JournalLineMapper extends QBMapper {
 			->innerJoin('l', 'vbh_journal', 'j', $qb->expr()->eq('l.journal_id', 'j.id'))
 			->where($qb->expr()->eq('j.user_id', $qb->createNamedParameter($userId)))
 			->groupBy('l.account_id');
+		if ($from !== null) {
+			$qb->andWhere($qb->expr()->gte('j.date', $qb->createNamedParameter($from)));
+		}
+		if ($to !== null) {
+			$qb->andWhere($qb->expr()->lte('j.date', $qb->createNamedParameter($to)));
+		}
 		$result = $qb->executeQuery();
 		$out = [];
 		while (($row = $result->fetch()) !== false) {

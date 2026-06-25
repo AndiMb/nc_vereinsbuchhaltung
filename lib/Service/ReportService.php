@@ -47,9 +47,15 @@ class ReportService {
 	 *
 	 * @return array{costCenters: array<int, array<string,mixed>>, totals: array<string,float>}
 	 */
-	public function costCenterReport(string $userId): array {
+	public function costCenterReport(string $userId, ?int $year = null): array {
 		$accounts = $this->accountMapper->findAll($userId);
-		$sums = $this->lineMapper->sumByAccount($userId);
+		$from = null;
+		$to = null;
+		if ($year !== null && $year > 0) {
+			$from = sprintf('%04d-01-01', $year);
+			$to = sprintf('%04d-12-31', $year);
+		}
+		$sums = $this->lineMapper->sumByAccount($userId, $from, $to);
 
 		$names = [];
 		foreach ($this->costCenterMapper->findAll($userId) as $cc) {

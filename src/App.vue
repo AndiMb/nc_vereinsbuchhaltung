@@ -8,12 +8,27 @@
 					<span class="vbh-bankchip-value">{{ formatMoney(primaryBank.balance) }}</span>
 					<span v-if="Math.abs(primaryBank.open) > 0.005" class="vbh-bankchip-hint">{{ formatMoney(primaryBank.open) }} offen</span>
 				</div>
+				<NcLoadingIcon v-if="busy" :size="24" name="Wird geladen…" />
 			</div>
 			<div v-if="canRead" class="vbh-navbar">
 				<nav class="vbh-tabs">
-					<button v-for="tab in visibleTabs" :key="tab.id" :class="{ active: activeTab === tab.id }" @click="activeTab = tab.id">{{ tab.label }}</button>
+					<button v-for="tab in visibleTabs" :key="tab.id" :class="{ active: activeTab === tab.id }" @click="activeTab = tab.id">
+						{{ tab.label }}
+						<span v-if="tab.id === 'bookings' && unassignedCount > 0" class="vbh-badge vbh-badge--alert">{{ unassignedCount }}</span>
+					</button>
 				</nav>
-				<button v-if="canWrite" class="vbh-databtn" :class="{ active: activeTab === 'import' }" title="Daten importieren, exportieren oder zurücksetzen" @click="activeTab = 'import'">⚙ Daten / Import</button>
+				<div class="vbh-navright">
+					<label class="vbh-yearsel" title="Geschäftsjahr (Kalenderjahr)">
+						<span>Jahr</span>
+						<select v-model="selectedYear">
+							<option :value="null">Alle Jahre</option>
+							<option v-for="y in years" :key="y" :value="y">{{ y }}</option>
+						</select>
+					</label>
+					<NcButton v-if="canWrite" variant="tertiary" aria-label="Einstellungen & Import" title="Einstellungen & Import" @click="openSettings">
+						<template #icon><NcIconSvgWrapper :path="mdiCog" :size="20" /></template>
+					</NcButton>
+				</div>
 			</div>
 		</header>
 
@@ -23,20 +38,511 @@
 		</div>
 
 		<main v-show="canRead" class="vbh-main">
-			<!-- ============ IMPORT ============ -->
-			<section v-show="activeTab === 'import'" class="vbh-section scroll">
-				<div class="vbh-sectionhead">
-					<h3>Daten / Import</h3>
-					<button class="vbh-btnlink" @click="activeTab = 'accounts'">‹ zurück zur Buchhaltung</button>
+			<!-- ============ ÜBERSICHT (DASHBOARD) ============ -->
+			<section v-show="activeTab === 'dashboard'" class="vbh-section scroll">
+				<div v-if="balances" class="vbh-totals">
+					<div class="vbh-total pos">
+						<span>Einnahmen{{ selectedYear ? ' ' + selectedYear : '' }}</span>
+						<strong>{{ formatMoney(balances.totals.income) }}</strong>
+					</div>
+					<div class="vbh-total neg">
+						<span>Ausgaben</span>
+						<strong>{{ formatMoney(balances.totals.expense) }}</strong>
+					</div>
+					<div class="vbh-total" :class="balances.totals.result >= 0 ? 'pos' : 'neg'">
+						<span>Ergebnis</span>
+						<strong>{{ formatMoney(balances.totals.result) }}</strong>
+					</div>
+					<div v-if="unassignedCount > 0" class="vbh-total vbh-total--warn">
+						<span>Nicht zugeordnet</span>
+						<strong>{{ unassignedCount }} Buchungen</strong>
+						<NcButton variant="primary" size="small" @click="goToUnassigned">Jetzt zuordnen</NcButton>
+					</div>
 				</div>
 
+				<template v-if="balances && balances.bankReconciliation && balances.bankReconciliation.length">
+					<h4>Geldkonten</h4>
+					<div class="vbh-tablecard">
+						<table class="vbh-table">
+							<thead><tr><th>Konto</th><th class="num">Kontostand</th><th class="num">Offen (nicht zugeordnet)</th></tr></thead>
+							<tbody>
+								<tr v-for="b in balances.bankReconciliation" :key="b.accountId">
+									<td>{{ b.number }} {{ b.name }}</td>
+									<td class="num strong">{{ formatMoney(b.balance) }}</td>
+									<td class="num" :class="Math.abs(b.open) > 0.005 ? 'neg' : ''">{{ formatMoney(b.open) }}</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</template>
+
+				<template v-if="recentJournal.length">
+					<div class="vbh-sectionhead">
+						<h4>Letzte Buchungen</h4>
+						<NcButton variant="tertiary" @click="activeTab = 'bookings'">Alle anzeigen</NcButton>
+					</div>
+					<div class="vbh-tablecard">
+						<table class="vbh-table">
+							<thead>
+								<tr>
+									<th class="num vbh-col-hide-sm">Nr.</th>
+									<th class="nowrap">Datum</th>
+									<th>Beschreibung</th>
+									<th class="vbh-col-hide-sm">Soll</th>
+									<th class="vbh-col-hide-sm">Haben</th>
+									<th class="num">Betrag</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr v-for="r in recentJournal" :key="r.id">
+									<td class="num vbh-col-hide-sm">{{ r.entryNo }}</td>
+									<td class="nowrap">{{ formatDate(r.date) }}</td>
+									<td class="vbh-purpose" :title="r.description">{{ r.description }}</td>
+									<td class="vbh-col-hide-sm">{{ r.soll }}</td>
+									<td class="vbh-col-hide-sm">{{ r.haben }}</td>
+									<td class="num strong">{{ formatMoney(r.amount) }}</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</template>
+				<NcEmptyContent v-else-if="!busy" name="Noch keine Buchungen" description="Importiere Kontoumsätze oder lege manuell Buchungssätze an." />
+
+				<div class="vbh-chart-grid">
+					<div class="vbh-chart-card vbh-chart-card--wide">
+						<h4>Einnahmen &amp; Ausgaben{{ selectedYear ? ' ' + selectedYear : '' }} (monatlich)</h4>
+						<div class="vbh-chart-wrap">
+							<canvas ref="monthlyChart"></canvas>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- ============ BUCHUNGEN (JOURNAL + TRANSAKTIONEN) ============ -->
+			<section v-show="activeTab === 'bookings'" class="vbh-section vbh-flex-col">
+				<div class="vbh-sectiontop">
+					<div class="vbh-subtabs">
+						<button :class="{ active: bookingView === 'journal' }" @click="bookingView = 'journal'">Journal</button>
+						<button :class="{ active: bookingView === 'unassigned' }" @click="bookingView = 'unassigned'">
+							Zuzuordnen
+							<span v-if="unassignedCount > 0" class="vbh-badge vbh-badge--alert">{{ unassignedCount }}</span>
+						</button>
+						<button :class="{ active: bookingView === 'assigned' }" @click="bookingView = 'assigned'">Zugeordnet</button>
+					</div>
+					<NcButton v-if="canWrite && bookingView === 'journal'" variant="primary" @click="openNewBooking">＋ Neue Buchung</NcButton>
+				</div>
+
+				<div class="vbh-filterbar">
+					<input v-model="bookingSearch" type="search" placeholder="Suche…" class="vbh-search">
+					<NcSelect
+						v-if="bookingView === 'journal'"
+						v-model="bookingFilterAccountOption"
+						:options="accountOptionsList"
+						label="label"
+						:clearable="true"
+						placeholder="Konto filtern"
+						class="vbh-filter-select"
+					/>
+				</div>
+
+				<div class="vbh-sectionbody">
+					<!-- JOURNAL VIEW -->
+					<template v-if="bookingView === 'journal'">
+						<div v-if="filteredJournalRows.length" class="vbh-tablecard">
+							<div class="vbh-tablecount">{{ filteredJournalRows.length }}<template v-if="filteredJournalRows.length !== sortedJournalRows.length"> von {{ sortedJournalRows.length }}</template> Buchungssätze</div>
+							<table class="vbh-table">
+								<thead>
+									<tr>
+										<th class="sortable num vbh-col-hide-sm" @click="toggleSort('journal','entryNo')">Nr.{{ sortArrow('journal','entryNo') }}</th>
+										<th class="sortable nowrap" @click="toggleSort('journal','date')">Datum{{ sortArrow('journal','date') }}</th>
+										<th class="sortable" @click="toggleSort('journal','description')">Beschreibung{{ sortArrow('journal','description') }}</th>
+										<th class="sortable vbh-col-hide-sm" @click="toggleSort('journal','soll')">Soll{{ sortArrow('journal','soll') }}</th>
+										<th class="sortable vbh-col-hide-sm" @click="toggleSort('journal','haben')">Haben{{ sortArrow('journal','haben') }}</th>
+										<th class="sortable num" @click="toggleSort('journal','amount')">Betrag{{ sortArrow('journal','amount') }}</th>
+										<th></th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr v-for="r in filteredJournalRows" :key="r.id">
+										<td class="num strong vbh-col-hide-sm">{{ r.entryNo }}</td>
+										<td class="nowrap">{{ formatDate(r.date) }}</td>
+										<td class="vbh-purpose" :title="r.description">{{ r.description }}</td>
+										<td class="vbh-col-hide-sm">{{ r.soll }}</td>
+										<td class="vbh-col-hide-sm">{{ r.haben }}</td>
+										<td class="num strong">{{ formatMoney(r.amount) }}</td>
+										<td class="nowrap right">
+											<NcButton v-if="canWrite" variant="tertiary" aria-label="Bearbeiten" @click="editBooking(r)">
+												<template #icon><NcIconSvgWrapper :path="mdiPencil" :size="20" /></template>
+											</NcButton>
+											<NcButton v-if="canWrite" variant="error" aria-label="Löschen" @click="removeBooking(r)">
+												<template #icon><NcIconSvgWrapper :path="mdiDelete" :size="20" /></template>
+											</NcButton>
+										</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+						<NcEmptyContent v-else-if="bookingSearch || bookingFilterAccountId" name="Keine Treffer" description="Suchfilter anpassen oder löschen." />
+						<NcEmptyContent v-else name="Noch keine Buchungssätze" description="Lege mit ‛Neue Buchung' einen ersten Buchungssatz an." />
+					</template>
+
+					<!-- TRANSACTIONS VIEW (unassigned / assigned) -->
+					<template v-else>
+						<div v-if="currentTransactions.length" class="vbh-tablecard">
+							<div class="vbh-tablecount">{{ currentTransactions.length }} Buchungen</div>
+							<table class="vbh-table">
+								<thead>
+									<tr>
+										<th class="sortable nowrap" @click="toggleSort('transactions','bookingDate')">Datum{{ sortArrow('transactions','bookingDate') }}</th>
+										<th class="sortable" @click="toggleSort('transactions','counterparty')">Empfänger/Zahler{{ sortArrow('transactions','counterparty') }}</th>
+										<th class="vbh-col-hide-sm">Verwendungszweck</th>
+										<th class="sortable num" @click="toggleSort('transactions','amount')">Betrag{{ sortArrow('transactions','amount') }}</th>
+										<th>Konto / Kategorie</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr v-for="tx in currentTransactions" :key="tx.id" :class="{ assigned: tx.status === 'assigned' }">
+										<td class="nowrap">{{ formatDate(tx.bookingDate) }}</td>
+										<td>{{ tx.counterparty }}</td>
+										<td class="vbh-purpose vbh-col-hide-sm" :title="tx.purpose">{{ tx.purpose }}</td>
+										<td class="num" :class="amountClass(tx.amount)">{{ formatMoney(tx.amount) }}</td>
+										<td class="vbh-assign-cell">
+											<NcSelect
+												:model-value="accountOptionFor(tx.contraAccountId)"
+												:options="accountOptionsList"
+												:clearable="!!tx.contraAccountId"
+												:disabled="!canWrite"
+												label="label"
+												placeholder="– nicht zugeordnet –"
+												class="vbh-assign-select"
+												@update:model-value="v => onAssign(tx, v ? v.id : '')"
+											/>
+										</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+						<NcEmptyContent v-else-if="bookingSearch" name="Keine Treffer" description="Suchfilter anpassen." />
+						<NcEmptyContent v-else-if="bookingView === 'unassigned'" name="Alle Buchungen zugeordnet" description="Keine offenen Bankbuchungen – alles erledigt." />
+						<NcEmptyContent v-else name="Keine zugeordneten Buchungen" description="Noch keine Bankbuchungen einem Konto zugeordnet." />
+					</template>
+				</div>
+			</section>
+
+			<!-- ============ KONTEN ============ -->
+			<section v-show="activeTab === 'accounts'" class="vbh-section split">
+				<div class="vbh-tree">
+					<div class="vbh-treehead">
+						<NcButton v-if="canWrite" variant="primary" size="small" @click="openNewAccount">＋ Konto</NcButton>
+						<span v-else></span>
+						<div class="vbh-treeactions">
+							<NcButton variant="tertiary" @click="expandAll">alle auf</NcButton>
+							<NcButton variant="tertiary" @click="collapseAll">alle zu</NcButton>
+						</div>
+					</div>
+
+					<div class="vbh-treesearch">
+						<input v-model="accountSearch" type="search" placeholder="Konto suchen…" class="vbh-search vbh-search--full">
+					</div>
+
+					<p v-if="accounts.length === 0" class="vbh-hint">
+						Noch keine Konten.<br>
+						<NcButton v-if="canWrite" variant="primary" @click="seedAccounts">Standard-Kontenrahmen anlegen</NcButton>
+					</p>
+
+					<div class="vbh-treelist">
+						<div v-for="node in currentTree" :key="node.id"
+							class="vbh-treenode" :class="{ selected: node.id === selectedAccountId, group: node.hasChildren }"
+							:style="{ paddingLeft: (8 + node.depth * 18) + 'px' }"
+							@click="selectAccount(node)">
+							<button v-if="node.hasChildren && !accountSearch" class="vbh-caret" :class="{ open: expanded[node.id] }" @click.stop="toggleExpand(node.id)">›</button>
+							<span v-else class="vbh-caret empty">·</span>
+							<span class="vbh-treenum">{{ node.number }}</span>
+							<span class="vbh-treename">{{ node.name }}</span>
+							<span class="vbh-treesaldo" :class="[amountClass(balanceFor(node.id)), { zero: !balanceFor(node.id) }]">{{ formatMoney(balanceFor(node.id)) }}</span>
+						</div>
+					</div>
+				</div>
+
+				<div class="vbh-detail">
+					<p v-if="!selectedAccount" class="vbh-empty vbh-detailhint">Konto links auswählen, um Buchungen anzuzeigen.</p>
+
+					<template v-else>
+						<div class="vbh-detailhead">
+							<div>
+								<h3>{{ selectedAccount.number }} · {{ selectedAccount.name }}</h3>
+								<span class="vbh-typetag" :class="selectedAccount.type">{{ typeLabel(selectedAccount.type) }}</span>
+								<span v-if="selectedAccount.category" class="vbh-cat">{{ selectedAccount.category }}</span>
+							</div>
+							<span v-if="canWrite" class="nowrap">
+								<NcButton variant="tertiary" aria-label="Konto bearbeiten" @click="openEditAccount(selectedAccount)">
+									<template #icon><NcIconSvgWrapper :path="mdiPencil" :size="20" /></template>
+								</NcButton>
+								<NcButton variant="error" aria-label="Konto löschen" @click="deleteAccount(selectedAccount)">
+									<template #icon><NcIconSvgWrapper :path="mdiDelete" :size="20" /></template>
+								</NcButton>
+							</span>
+						</div>
+
+						<div v-if="canWrite && (selectedAccount.isBank || selectedAccount.type === 'asset')" class="vbh-opening">
+							<span>Eröffnungssaldo:</span>
+							<input v-model.number="openingForm[selectedAccount.id].amount" type="number" step="0.01" class="vbh-num">
+							<input v-model="openingForm[selectedAccount.id].date" type="date" class="vbh-date">
+							<NcButton variant="primary" size="small" @click="saveOpening(selectedAccount)">Speichern</NcButton>
+						</div>
+
+						<div v-if="statement" class="vbh-statementbar">
+							<NcCheckboxRadioSwitch v-model="statementIncludeChildren" @update:model-value="reloadStatement">inkl. Unterkonten</NcCheckboxRadioSwitch>
+							<div class="vbh-previewsummary">
+								<span class="vbh-badge muted">{{ statement.totals.count }} Buchungen</span>
+								<span class="vbh-badge muted">Soll {{ formatMoney(statement.totals.debit) }}</span>
+								<span class="vbh-badge muted">Haben {{ formatMoney(statement.totals.credit) }}</span>
+								<span class="vbh-badge pos">Saldo {{ formatMoney(statement.totals.balance) }}</span>
+							</div>
+						</div>
+
+						<div v-if="statementRows.length" class="vbh-tablecard">
+							<table class="vbh-table">
+								<thead><tr><th class="num vbh-col-hide-sm">Nr.</th><th class="nowrap">Datum</th><th>Beschreibung</th><th class="vbh-col-hide-sm">Gegenkonto</th><th class="num vbh-col-hide-sm">Soll</th><th class="num vbh-col-hide-sm">Haben</th><th class="num">Saldo</th></tr></thead>
+								<tbody>
+									<tr v-if="statement.carry" class="vbh-carryrow">
+										<td class="vbh-col-hide-sm"></td>
+										<td class="nowrap">{{ formatDate(selectedYear + '-01-01') }}</td>
+										<td><em>Saldovortrag aus Vorjahr</em></td>
+										<td class="vbh-col-hide-sm"></td>
+										<td class="num vbh-col-hide-sm"></td>
+										<td class="num vbh-col-hide-sm"></td>
+										<td class="num strong" :class="amountClass(statement.carry)">{{ formatMoney(statement.carry) }}</td>
+									</tr>
+									<tr v-for="(row, i) in statementRows" :key="i">
+										<td class="num vbh-col-hide-sm">{{ row.entryNo }}</td>
+										<td class="nowrap">{{ formatDate(row.date) }}</td>
+										<td class="vbh-purpose" :title="row.description">{{ row.description }}</td>
+										<td class="vbh-col-hide-sm">{{ row.contra }}</td>
+										<td class="num vbh-col-hide-sm">{{ row.debit ? formatMoney(row.debit) : '' }}</td>
+										<td class="num vbh-col-hide-sm">{{ row.credit ? formatMoney(row.credit) : '' }}</td>
+										<td class="num strong" :class="amountClass(row.saldo)">{{ formatMoney(row.saldo) }}</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+						<p v-else-if="statement" class="vbh-empty">Keine Buchungen auf diesem Konto{{ statementIncludeChildren ? ' (inkl. Unterkonten)' : '' }}.</p>
+					</template>
+				</div>
+			</section>
+
+			<!-- ============ BERICHTE (AUSWERTUNG + KOSTENSTELLEN + FINANZPLAN) ============ -->
+			<section v-show="activeTab === 'reports'" class="vbh-section vbh-flex-col">
+				<div class="vbh-sectiontop">
+					<div class="vbh-subtabs">
+						<button :class="{ active: reportView === 'summary' }" @click="reportView = 'summary'">Auswertung</button>
+						<button :class="{ active: reportView === 'costcenters' }" @click="reportView = 'costcenters'">Kostenstellen</button>
+						<button :class="{ active: reportView === 'budget' }" @click="reportView = 'budget'">Finanzplan</button>
+					</div>
+				</div>
+
+				<div class="vbh-sectionbody" :class="{ 'is-split': reportView === 'costcenters' }">
+					<!-- AUSWERTUNG -->
+					<div v-show="reportView === 'summary'">
+						<div v-if="balances" class="vbh-totals">
+							<div class="vbh-total pos"><span>Einnahmen</span><strong>{{ formatMoney(balances.totals.income) }}</strong></div>
+							<div class="vbh-total neg"><span>Ausgaben</span><strong>{{ formatMoney(balances.totals.expense) }}</strong></div>
+							<div class="vbh-total" :class="balances.totals.result >= 0 ? 'pos' : 'neg'"><span>Ergebnis</span><strong>{{ formatMoney(balances.totals.result) }}</strong></div>
+						</div>
+
+						<template v-if="balances && balances.bankReconciliation && balances.bankReconciliation.length">
+							<h4>Geldkonten</h4>
+							<div class="vbh-tablecard">
+								<table class="vbh-table">
+									<thead><tr><th>Konto</th><th class="num">Kontostand</th><th class="num">Offen (nicht zugeordnet)</th></tr></thead>
+									<tbody>
+										<tr v-for="b in balances.bankReconciliation" :key="b.accountId">
+											<td>{{ b.number }} {{ b.name }}</td>
+											<td class="num strong">{{ formatMoney(b.balance) }}</td>
+											<td class="num" :class="Math.abs(b.open) > 0.005 ? 'neg' : 'pos'">{{ formatMoney(b.open) }}</td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+						</template>
+
+						<div class="vbh-sectionhead">
+							<h4>Saldenliste</h4>
+							<NcCheckboxRadioSwitch v-model="balancesIncludeChildren">Werte inkl. Unterkonten</NcCheckboxRadioSwitch>
+						</div>
+						<div v-if="balances" class="vbh-tablecard">
+							<table class="vbh-table">
+								<thead>
+									<tr>
+										<th class="sortable nowrap vbh-col-hide-sm" @click="toggleSort('balances','number')">Nr.{{ sortArrow('balances','number') }}</th>
+										<th class="sortable" @click="toggleSort('balances','name')">Konto{{ sortArrow('balances','name') }}</th>
+										<th class="sortable vbh-col-hide-sm" @click="toggleSort('balances','category')">Kategorie{{ sortArrow('balances','category') }}</th>
+										<th class="sortable num vbh-col-hide-sm" @click="toggleSort('balances','debit')">Soll{{ sortArrow('balances','debit') }}</th>
+										<th class="sortable num vbh-col-hide-sm" @click="toggleSort('balances','credit')">Haben{{ sortArrow('balances','credit') }}</th>
+										<th class="sortable num" @click="toggleSort('balances','balance')">Saldo{{ sortArrow('balances','balance') }}</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr v-for="row in sortedBalances" :key="row.accountId">
+										<td class="nowrap vbh-col-hide-sm">{{ row.number }}</td>
+										<td>{{ row.name }}</td>
+										<td class="vbh-col-hide-sm">{{ row.category }}</td>
+										<td class="num vbh-col-hide-sm">{{ formatMoney(row.debit) }}</td>
+										<td class="num vbh-col-hide-sm">{{ formatMoney(row.credit) }}</td>
+										<td class="num strong">{{ formatMoney(row.balance) }}</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</div>
+
+					<!-- KOSTENSTELLEN (split layout) -->
+					<div v-show="reportView === 'costcenters'" class="vbh-splitinner">
+						<div class="vbh-tree">
+							<div class="vbh-treehead"><strong>Kostenstellen</strong></div>
+							<div v-if="reportData" class="vbh-ccsummary">
+								<span>Gesamtergebnis</span>
+								<strong :class="amountClass(reportData.totals.result)">{{ formatMoney(reportData.totals.result) }}</strong>
+							</div>
+							<div v-if="reportData" class="vbh-treelist">
+								<div v-for="cc in reportData.costCenters" :key="cc.code === null ? 'none' : cc.code"
+									class="vbh-treenode" :class="{ selected: isCCSelected(cc) }" @click="selectCC(cc)">
+									<span class="vbh-treenum">{{ cc.code || '–' }}</span>
+									<span class="vbh-treename">{{ cc.name }}</span>
+									<span class="vbh-treesaldo" :class="[amountClass(cc.result), { zero: !cc.result }]">{{ formatMoney(cc.result) }}</span>
+								</div>
+							</div>
+							<p v-else class="vbh-hint">Keine Daten. Importiere oder erfasse zuerst Buchungen.</p>
+						</div>
+
+						<div class="vbh-detail">
+							<p v-if="!selectedCC" class="vbh-empty vbh-detailhint">Kostenstelle links auswählen.</p>
+							<template v-else>
+								<div class="vbh-detailhead"><div><h3>{{ selectedCC.code ? selectedCC.code + ' · ' : '' }}{{ selectedCC.name }}</h3></div></div>
+
+								<div v-if="canWrite && selectedCC.code" class="vbh-opening">
+									<span>Name:</span>
+									<input v-model="renameName" class="vbh-rename">
+									<NcButton variant="primary" size="small" @click="saveRename">Umbenennen</NcButton>
+								</div>
+
+								<div class="vbh-totals">
+									<div class="vbh-total pos"><span>Einnahmen</span><strong>{{ formatMoney(selectedCC.income) }}</strong></div>
+									<div class="vbh-total neg"><span>Ausgaben</span><strong>{{ formatMoney(selectedCC.expense) }}</strong></div>
+									<div class="vbh-total" :class="selectedCC.result >= 0 ? 'pos' : 'neg'"><span>Ergebnis</span><strong>{{ formatMoney(selectedCC.result) }}</strong></div>
+								</div>
+
+								<h4>Beteiligte Konten <span class="vbh-hint">(Konto anklicken für Buchungen)</span></h4>
+								<div v-if="selectedCC.accounts.length" class="vbh-tablecard">
+									<table class="vbh-table">
+										<thead><tr><th class="nowrap">Nr.</th><th>Konto</th><th>Art</th><th class="num">Betrag</th></tr></thead>
+										<tbody>
+											<template v-for="(a, i) in selectedCC.accounts" :key="i">
+												<tr class="vbh-ccrow" @click="toggleCCAccount(a.accountId)">
+													<td class="nowrap"><span class="vbh-caret" :class="{ open: ccExpanded[a.accountId] }">›</span> {{ a.number }}</td>
+													<td>{{ a.name }}</td>
+													<td><span class="vbh-typetag" :class="a.type">{{ typeLabel(a.type) }}</span></td>
+													<td class="num" :class="amountClass(a.balance)">{{ formatMoney(a.balance) }}</td>
+												</tr>
+												<tr v-if="ccExpanded[a.accountId]" class="vbh-ccdetail">
+													<td colspan="4">
+														<table v-if="ccBookings[a.accountId] && ccBookings[a.accountId].length" class="vbh-table vbh-subtable">
+															<thead><tr><th class="num">Nr.</th><th class="nowrap">Datum</th><th>Beschreibung</th><th>Gegenkonto</th><th class="num">Soll</th><th class="num">Haben</th></tr></thead>
+															<tbody>
+																<tr v-for="(r, j) in ccBookings[a.accountId]" :key="j">
+																	<td class="num">{{ r.entryNo }}</td>
+																	<td class="nowrap">{{ formatDate(r.date) }}</td>
+																	<td class="vbh-purpose" :title="r.description">{{ r.description }}</td>
+																	<td>{{ r.contra }}</td>
+																	<td class="num">{{ r.debit ? formatMoney(r.debit) : '' }}</td>
+																	<td class="num">{{ r.credit ? formatMoney(r.credit) : '' }}</td>
+																</tr>
+															</tbody>
+														</table>
+														<p v-else class="vbh-empty">Keine Buchungen.</p>
+													</td>
+												</tr>
+											</template>
+										</tbody>
+									</table>
+								</div>
+								<p v-else class="vbh-empty">Keine Buchungen mit Betrag in dieser Kostenstelle.</p>
+							</template>
+						</div>
+					</div>
+
+					<!-- FINANZPLAN -->
+					<div v-show="reportView === 'budget'">
+						<div class="vbh-sectionhead">
+							<h4>Finanzplan &amp; Soll-Ist-Vergleich{{ budgetData ? ' ' + budgetData.year : '' }}</h4>
+							<form v-if="canWrite" class="vbh-addyear" @submit.prevent="addBudgetYear">
+								<input v-model="newBudgetYear" type="number" min="2000" max="2099" placeholder="Jahr" class="vbh-addyear-input">
+								<NcButton type="submit" variant="secondary">Jahr hinzufügen</NcButton>
+							</form>
+						</div>
+						<p class="vbh-hint">
+							Plane je Konto die erwarteten Einnahmen und Ausgaben (Spalte „Plan"). Die Spalte „Ist" zeigt
+							die tatsächlichen Buchungen des gewählten Geschäftsjahres, „Differenz" den Abstand zum Plan.
+						</p>
+
+						<div v-if="budgetData" class="vbh-totals">
+							<div class="vbh-total pos">
+								<span>Einnahmen (Plan / Ist)</span>
+								<strong>{{ formatMoney(budgetData.totals.planIncome) }} / {{ formatMoney(budgetData.totals.actualIncome) }}</strong>
+							</div>
+							<div class="vbh-total neg">
+								<span>Ausgaben (Plan / Ist)</span>
+								<strong>{{ formatMoney(budgetData.totals.planExpense) }} / {{ formatMoney(budgetData.totals.actualExpense) }}</strong>
+							</div>
+							<div class="vbh-total" :class="budgetData.totals.actualResult >= 0 ? 'pos' : 'neg'">
+								<span>Ergebnis (Plan / Ist)</span>
+								<strong>{{ formatMoney(budgetData.totals.planResult) }} / {{ formatMoney(budgetData.totals.actualResult) }}</strong>
+							</div>
+						</div>
+
+						<div v-if="budgetData && budgetData.rows.length" class="vbh-tablecard">
+							<table class="vbh-table">
+								<thead>
+									<tr>
+										<th class="nowrap">Nr.</th>
+										<th>Konto</th>
+										<th>Art</th>
+										<th class="num">Plan (Soll)</th>
+										<th class="num">Ist</th>
+										<th class="num">Differenz</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr v-for="row in budgetData.rows" :key="row.accountId">
+										<td class="nowrap">{{ row.number }}</td>
+										<td>{{ row.name }}</td>
+										<td><span class="vbh-typetag" :class="row.type">{{ typeLabel(row.type) }}</span></td>
+										<td class="num">
+											<input v-if="canWrite" v-model.number="row.plan" type="number" step="0.01" class="vbh-num vbh-planinput" @change="saveBudget(row)">
+											<span v-else>{{ formatMoney(row.plan) }}</span>
+										</td>
+										<td class="num strong" :class="amountClass(row.actual)">{{ formatMoney(row.actual) }}</td>
+										<td class="num strong" :class="budgetDiffClass(row)">{{ formatMoney(row.diff) }}</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+						<p v-else-if="budgetData" class="vbh-empty">Keine Einnahmen-/Ausgabenkonten vorhanden.</p>
+					</div>
+				</div>
+			</section>
+		</main>
+
+		<!-- ============ EINSTELLUNGEN MODAL ============ -->
+		<NcModal :show.sync="showSettings" name="Einstellungen & Import" size="large" @close="showSettings = false">
+			<div class="vbh-modal-inner">
+				<h3>Kontoumsätze importieren (CSV-CAMT)</h3>
 				<div class="vbh-card">
-					<h4>Kontoumsätze (CSV-CAMT)</h4>
 					<p class="vbh-hint">Bankexport im CSV-CAMT-Format. Nur neue Buchungen werden übernommen (Dublettenprüfung).</p>
 					<div class="vbh-uploadrow">
 						<label class="vbh-filebtn">Datei wählen<input ref="fileInput" type="file" accept=".csv,text/csv" hidden @change="onFileSelected"></label>
 						<span class="vbh-filename">{{ selectedFile ? selectedFile.name : 'keine Datei gewählt' }}</span>
-						<label class="vbh-check"><input v-model="applyRules" type="checkbox"> Auto-Zuordnungsregeln anwenden</label>
+						<NcCheckboxRadioSwitch v-model="applyRules">Auto-Zuordnungsregeln anwenden</NcCheckboxRadioSwitch>
 					</div>
 					<div v-if="previewResult" class="vbh-preview">
 						<p class="vbh-previewsummary">
@@ -44,32 +550,26 @@
 							<span class="vbh-badge muted">{{ previewResult.duplicate }} Dubletten</span>
 							<span class="vbh-badge muted">{{ previewResult.total }} gesamt</span>
 						</p>
-						<button class="primary" :disabled="busy || previewResult.new === 0" @click="commit">{{ previewResult.new }} Buchungen importieren</button>
+						<NcButton variant="primary" :disabled="busy || previewResult.new === 0" @click="commit">{{ previewResult.new }} Buchungen importieren</NcButton>
 					</div>
 				</div>
 
+				<h3>Aus „zero Buchhaltung" (.xbuc)</h3>
 				<div class="vbh-card">
-					<h4>Aus „zero Buchhaltung" (.xbuc)</h4>
 					<p class="vbh-hint">Übernimmt Kontenbaum und alle Buchungen aus einer .xbuc-Datei.</p>
 					<div class="vbh-uploadrow">
 						<label class="vbh-filebtn">Datei wählen<input ref="xbucInput" type="file" accept=".xbuc,application/xml,text/xml" hidden @change="onXbucSelected"></label>
 						<span class="vbh-filename">{{ xbucFile ? xbucFile.name : 'keine Datei gewählt' }}</span>
-						<label class="vbh-check"><input v-model="xbucReset" type="checkbox"> Vorher alle Daten löschen (frisch starten)</label>
+						<NcCheckboxRadioSwitch v-model="xbucReset">Vorher alle Daten löschen (frisch starten)</NcCheckboxRadioSwitch>
 					</div>
 					<div v-if="xbucPreviewResult" class="vbh-preview">
 						<p class="vbh-previewsummary">
 							<span class="vbh-badge pos">{{ xbucPreviewResult.accounts }} Konten</span>
 							<span class="vbh-badge pos">{{ xbucPreviewResult.bookings }} Buchungen</span>
 						</p>
-						<button class="primary" :disabled="busy" @click="xbucImport">Importieren</button>
+						<NcButton variant="primary" :disabled="busy" @click="xbucImport">Importieren</NcButton>
 						<span v-if="xbucReset" class="vbh-warn-inline">Achtung: bestehende Daten werden gelöscht.</span>
 					</div>
-				</div>
-
-				<div class="vbh-card">
-					<h4>Zurücksetzen</h4>
-					<p class="vbh-hint">Löscht alle Konten, Buchungen und Importe dieses Kontos unwiderruflich.</p>
-					<button class="danger" :disabled="busy" @click="resetAll">Alle Daten löschen</button>
 				</div>
 
 				<h4>Bisherige CSV-Importe</h4>
@@ -86,366 +586,74 @@
 						</tbody>
 					</table>
 				</div>
-				<p v-else class="vbh-empty">Noch keine CSV-Importe.</p>
-			</section>
+				<NcEmptyContent v-else name="Noch keine CSV-Importe" description="Importiere oben eine CSV-CAMT-Datei." />
 
-			<!-- ============ BUCHUNGEN ============ -->
-			<section v-show="activeTab === 'transactions'" class="vbh-section scroll">
-				<div class="vbh-sectionhead">
-					<h3>Bankbuchungen zuordnen</h3>
-					<label class="vbh-filter">Filter:
-						<select v-model="txFilter" @change="onTxFilterChange">
-							<option value="">Alle</option>
-							<option value="unassigned">Nur offene</option>
-							<option value="assigned">Nur zugeordnete</option>
-						</select>
-					</label>
-				</div>
-				<div v-if="sortedTransactions.length" class="vbh-tablecard">
-					<div class="vbh-tablecount">{{ sortedTransactions.length }} Buchungen</div>
-					<table class="vbh-table">
-						<thead>
-							<tr>
-								<th class="sortable nowrap" @click="toggleSort('transactions','bookingDate')">Datum{{ sortArrow('transactions','bookingDate') }}</th>
-								<th class="sortable" @click="toggleSort('transactions','counterparty')">Empfänger/Zahler{{ sortArrow('transactions','counterparty') }}</th>
-								<th>Verwendungszweck</th>
-								<th class="sortable num" @click="toggleSort('transactions','amount')">Betrag{{ sortArrow('transactions','amount') }}</th>
-								<th>Konto / Kategorie</th>
-							</tr>
-						</thead>
-						<tbody>
-							<tr v-for="tx in sortedTransactions" :key="tx.id" :class="{ assigned: tx.status === 'assigned' }">
-								<td class="nowrap">{{ formatDate(tx.bookingDate) }}</td>
-								<td>{{ tx.counterparty }}</td>
-								<td class="vbh-purpose" :title="tx.purpose">{{ tx.purpose }}</td>
-								<td class="num" :class="amountClass(tx.amount)">{{ formatMoney(tx.amount) }}</td>
-								<td>
-									<select class="vbh-assign" :class="{ unassigned: !tx.contraAccountId }" :value="tx.contraAccountId || ''" :disabled="!canWrite" @change="onAssign(tx, $event.target.value)">
-										<option value="">– nicht zugeordnet –</option>
-										<optgroup v-for="(group, cat) in accountsByCategory" :key="cat" :label="cat">
-											<option v-for="acc in group" :key="acc.id" :value="acc.id">{{ acc.number }} {{ acc.name }}</option>
-										</optgroup>
-									</select>
-								</td>
-							</tr>
-						</tbody>
-					</table>
-				</div>
-				<p v-else class="vbh-empty">Keine Bankumsätze. Importiere zuerst Kontoumsätze.</p>
-			</section>
-
-			<!-- ============ JOURNAL ============ -->
-			<section v-show="activeTab === 'journal'" class="vbh-section scroll">
-				<div class="vbh-sectionhead">
-					<h3>Journal (Buchungssätze)</h3>
-					<button v-if="canWrite" class="primary" @click="openNewBooking">＋ Neue Buchung</button>
-				</div>
-
-				<div v-if="sortedJournalRows.length" class="vbh-tablecard">
-					<div class="vbh-tablecount">{{ sortedJournalRows.length }} Buchungssätze</div>
-					<table class="vbh-table">
-						<thead>
-							<tr>
-								<th class="sortable num" @click="toggleSort('journal','entryNo')">Nr.{{ sortArrow('journal','entryNo') }}</th>
-								<th class="sortable nowrap" @click="toggleSort('journal','date')">Datum{{ sortArrow('journal','date') }}</th>
-								<th class="sortable" @click="toggleSort('journal','description')">Beschreibung{{ sortArrow('journal','description') }}</th>
-								<th class="sortable" @click="toggleSort('journal','soll')">Soll{{ sortArrow('journal','soll') }}</th>
-								<th class="sortable" @click="toggleSort('journal','haben')">Haben{{ sortArrow('journal','haben') }}</th>
-								<th class="sortable num" @click="toggleSort('journal','amount')">Betrag{{ sortArrow('journal','amount') }}</th>
-								<th></th>
-							</tr>
-						</thead>
-						<tbody>
-							<tr v-for="r in sortedJournalRows" :key="r.id">
-								<td class="num strong">{{ r.entryNo }}</td>
-								<td class="nowrap">{{ formatDate(r.date) }}</td>
-								<td class="vbh-purpose" :title="r.description">{{ r.description }}</td>
-								<td>{{ r.soll }}</td>
-								<td>{{ r.haben }}</td>
-								<td class="num strong">{{ formatMoney(r.amount) }}</td>
-								<td class="nowrap right">
-									<button v-if="canWrite" class="vbh-iconbtn edit" title="Bearbeiten" @click="editBooking(r)">✎</button>
-									<button v-if="canWrite" class="vbh-iconbtn del" title="Löschen" @click="removeBooking(r)">🗑</button>
-								</td>
-							</tr>
-						</tbody>
-					</table>
-				</div>
-				<p v-else class="vbh-empty">Noch keine Buchungssätze.</p>
-			</section>
-
-			<!-- ============ KONTENRAHMEN (Master-Detail) ============ -->
-			<section v-show="activeTab === 'accounts'" class="vbh-section split">
-				<div class="vbh-tree">
-					<div class="vbh-treehead">
-						<button v-if="canWrite" class="primary small" @click="openNewAccount">＋ Konto</button>
-						<span v-else></span>
-						<div class="vbh-treeactions">
-							<button class="vbh-btnlink" @click="expandAll">alle auf</button>
-							<button class="vbh-btnlink" @click="collapseAll">alle zu</button>
-						</div>
-					</div>
-
-					<p v-if="accounts.length === 0" class="vbh-hint">
-						Noch keine Konten.<br>
-						<button v-if="canWrite" class="primary" @click="seedAccounts">Standard-Kontenrahmen anlegen</button>
+				<template v-if="isAdmin">
+					<h3 class="vbh-section-divider">Berechtigungen</h3>
+					<p class="vbh-hint">
+						<strong>Verwalter</strong> dürfen alles inkl. Rechtevergabe, <strong>Buchhalter</strong> lesen und schreiben,
+						<strong>Revisor</strong> nur lesen. Nextcloud-Administratoren sind immer Verwalter.
 					</p>
 
-					<div class="vbh-treelist">
-						<div v-for="node in visibleTree" :key="node.id"
-							class="vbh-treenode" :class="{ selected: node.id === selectedAccountId, group: node.hasChildren }"
-							:style="{ paddingLeft: (8 + node.depth * 18) + 'px' }"
-							@click="selectAccount(node)">
-							<button v-if="node.hasChildren" class="vbh-caret" :class="{ open: expanded[node.id] }" @click.stop="toggleExpand(node.id)">›</button>
-							<span v-else class="vbh-caret empty">·</span>
-							<span class="vbh-treenum">{{ node.number }}</span>
-							<span class="vbh-treename">{{ node.name }}</span>
-							<span class="vbh-treesaldo" :class="[amountClass(balanceFor(node.id)), { zero: !balanceFor(node.id) }]">{{ formatMoney(balanceFor(node.id)) }}</span>
+					<div class="vbh-card">
+						<h4>Neue Berechtigung</h4>
+						<div class="vbh-form">
+							<label>Typ
+								<select v-model="permForm.principalType">
+									<option value="group">Gruppe</option>
+									<option value="user">Nutzer</option>
+								</select>
+							</label>
+							<label class="vbh-grow">{{ permForm.principalType === 'group' ? 'Gruppe' : 'Nutzer' }}
+								<NcSelect
+									v-model="permFormPrincipalOption"
+									:options="permForm.principalType === 'group' ? groupOptions : userOptions"
+									label="label"
+									:placeholder="permForm.principalType === 'group' ? '– Gruppe wählen –' : '– Nutzer wählen –'"
+								/>
+							</label>
+							<label>Rolle
+								<select v-model="permForm.role">
+									<option value="revisor">Revisor (nur lesen)</option>
+									<option value="buchhalter">Buchhalter (lesen+schreiben)</option>
+									<option value="verwalter">Verwalter (alles)</option>
+								</select>
+							</label>
+							<NcButton variant="primary" @click="savePermission">Hinzufügen</NcButton>
 						</div>
 					</div>
 
-				</div>
-
-				<div class="vbh-detail">
-					<p v-if="!selectedAccount" class="vbh-empty vbh-detailhint">Konto links auswählen, um Buchungen anzuzeigen.</p>
-
-					<template v-else>
-						<div class="vbh-detailhead">
-							<div>
-								<h3>{{ selectedAccount.number }} · {{ selectedAccount.name }}</h3>
-								<span class="vbh-typetag" :class="selectedAccount.type">{{ typeLabel(selectedAccount.type) }}</span>
-								<span v-if="selectedAccount.category" class="vbh-cat">{{ selectedAccount.category }}</span>
-							</div>
-							<span v-if="canWrite" class="nowrap">
-								<button class="vbh-iconbtn edit" title="Konto bearbeiten" @click="openEditAccount(selectedAccount)">✎</button>
-								<button class="vbh-iconbtn del" title="Konto löschen" @click="deleteAccount(selectedAccount)">🗑</button>
-							</span>
-						</div>
-
-						<div v-if="canWrite && (selectedAccount.isBank || selectedAccount.type === 'asset')" class="vbh-opening">
-							<span>Eröffnungssaldo:</span>
-							<input v-model.number="openingForm[selectedAccount.id].amount" type="number" step="0.01" class="vbh-num">
-							<input v-model="openingForm[selectedAccount.id].date" type="date" class="vbh-date">
-							<button class="primary small" @click="saveOpening(selectedAccount)">Speichern</button>
-						</div>
-
-						<div v-if="statement" class="vbh-statementbar">
-							<label class="vbh-check"><input v-model="statementIncludeChildren" type="checkbox" @change="reloadStatement"> inkl. Unterkonten</label>
-							<div class="vbh-previewsummary">
-								<span class="vbh-badge muted">{{ statement.totals.count }} Buchungen</span>
-								<span class="vbh-badge muted">Soll {{ formatMoney(statement.totals.debit) }}</span>
-								<span class="vbh-badge muted">Haben {{ formatMoney(statement.totals.credit) }}</span>
-								<span class="vbh-badge pos">Saldo {{ formatMoney(statement.totals.balance) }}</span>
-							</div>
-						</div>
-
-						<div v-if="statementRows.length" class="vbh-tablecard">
-							<table class="vbh-table">
-								<thead><tr><th class="num">Nr.</th><th class="nowrap">Datum</th><th>Beschreibung</th><th>Gegenkonto</th><th class="num">Soll</th><th class="num">Haben</th><th class="num">Saldo</th></tr></thead>
-								<tbody>
-									<tr v-for="(row, i) in statementRows" :key="i">
-										<td class="num">{{ row.entryNo }}</td>
-										<td class="nowrap">{{ formatDate(row.date) }}</td>
-										<td class="vbh-purpose" :title="row.description">{{ row.description }}</td>
-										<td>{{ row.contra }}</td>
-										<td class="num">{{ row.debit ? formatMoney(row.debit) : '' }}</td>
-										<td class="num">{{ row.credit ? formatMoney(row.credit) : '' }}</td>
-										<td class="num strong" :class="amountClass(row.saldo)">{{ formatMoney(row.saldo) }}</td>
-									</tr>
-								</tbody>
-							</table>
-						</div>
-						<p v-else-if="statement" class="vbh-empty">Keine Buchungen auf diesem Konto{{ statementIncludeChildren ? ' (inkl. Unterkonten)' : '' }}.</p>
-					</template>
-				</div>
-			</section>
-
-			<!-- ============ AUSWERTUNG ============ -->
-			<section v-show="activeTab === 'report'" class="vbh-section scroll">
-				<h3>Auswertung</h3>
-				<div v-if="balances" class="vbh-totals">
-					<div class="vbh-total pos"><span>Einnahmen</span><strong>{{ formatMoney(balances.totals.income) }}</strong></div>
-					<div class="vbh-total neg"><span>Ausgaben</span><strong>{{ formatMoney(balances.totals.expense) }}</strong></div>
-					<div class="vbh-total" :class="balances.totals.result >= 0 ? 'pos' : 'neg'"><span>Ergebnis</span><strong>{{ formatMoney(balances.totals.result) }}</strong></div>
-				</div>
-
-				<template v-if="balances && balances.bankReconciliation && balances.bankReconciliation.length">
-					<h4>Geldkonten</h4>
-					<div class="vbh-tablecard">
+					<div v-if="permissions.length" class="vbh-tablecard">
 						<table class="vbh-table">
-							<thead><tr><th>Konto</th><th class="num">Kontostand</th><th class="num">Offen (nicht zugeordnet)</th></tr></thead>
+							<thead><tr><th>Typ</th><th>Nutzer / Gruppe</th><th>Rolle</th><th></th></tr></thead>
 							<tbody>
-								<tr v-for="b in balances.bankReconciliation" :key="b.accountId">
-									<td>{{ b.number }} {{ b.name }}</td>
-									<td class="num strong">{{ formatMoney(b.balance) }}</td>
-									<td class="num" :class="Math.abs(b.open) > 0.005 ? 'neg' : 'pos'">{{ formatMoney(b.open) }}</td>
+								<tr v-for="p in permissions" :key="p.id">
+									<td>{{ p.principalType === 'group' ? 'Gruppe' : 'Nutzer' }}</td>
+									<td>{{ p.principalId }}</td>
+									<td><span class="vbh-typetag">{{ roleLabel(p.role) }}</span></td>
+									<td class="right">
+										<NcButton variant="error" aria-label="Berechtigung entfernen" @click="removePermission(p)">
+											<template #icon><NcIconSvgWrapper :path="mdiDelete" :size="20" /></template>
+										</NcButton>
+									</td>
 								</tr>
 							</tbody>
 						</table>
 					</div>
+					<NcEmptyContent v-else name="Keine Berechtigungen" description="Nextcloud-Administratoren haben immer Zugriff." />
+
+					<div class="vbh-card vbh-card--danger">
+						<h4>Alle Daten löschen</h4>
+						<p class="vbh-hint">Löscht alle Konten, Buchungen und Importe dieses Kontos unwiderruflich.</p>
+						<NcButton variant="error" :disabled="busy" @click="resetAll">Alle Daten löschen</NcButton>
+					</div>
 				</template>
-
-				<h4>Saldenliste</h4>
-				<div v-if="balances" class="vbh-tablecard">
-					<table class="vbh-table">
-						<thead>
-							<tr>
-								<th class="sortable nowrap" @click="toggleSort('balances','number')">Nr.{{ sortArrow('balances','number') }}</th>
-								<th class="sortable" @click="toggleSort('balances','name')">Konto{{ sortArrow('balances','name') }}</th>
-								<th class="sortable" @click="toggleSort('balances','category')">Kategorie{{ sortArrow('balances','category') }}</th>
-								<th class="sortable num" @click="toggleSort('balances','debit')">Soll{{ sortArrow('balances','debit') }}</th>
-								<th class="sortable num" @click="toggleSort('balances','credit')">Haben{{ sortArrow('balances','credit') }}</th>
-								<th class="sortable num" @click="toggleSort('balances','balance')">Saldo{{ sortArrow('balances','balance') }}</th>
-							</tr>
-						</thead>
-						<tbody>
-							<tr v-for="row in sortedBalances" :key="row.accountId">
-								<td class="nowrap">{{ row.number }}</td>
-								<td>{{ row.name }}</td>
-								<td>{{ row.category }}</td>
-								<td class="num">{{ formatMoney(row.debit) }}</td>
-								<td class="num">{{ formatMoney(row.credit) }}</td>
-								<td class="num strong">{{ formatMoney(row.balance) }}</td>
-							</tr>
-						</tbody>
-					</table>
-				</div>
-			</section>
-
-			<!-- ============ BERICHTE (Kostenstellen) ============ -->
-			<section v-show="activeTab === 'reports'" class="vbh-section split">
-				<div class="vbh-tree">
-					<div class="vbh-treehead"><strong>Kostenstellen</strong></div>
-					<div v-if="reportData" class="vbh-ccsummary">
-						<span>Gesamtergebnis</span>
-						<strong :class="amountClass(reportData.totals.result)">{{ formatMoney(reportData.totals.result) }}</strong>
-					</div>
-					<div v-if="reportData" class="vbh-treelist">
-						<div v-for="cc in reportData.costCenters" :key="cc.code === null ? 'none' : cc.code"
-							class="vbh-treenode" :class="{ selected: isCCSelected(cc) }" @click="selectCC(cc)">
-							<span class="vbh-treenum">{{ cc.code || '–' }}</span>
-							<span class="vbh-treename">{{ cc.name }}</span>
-							<span class="vbh-treesaldo" :class="[amountClass(cc.result), { zero: !cc.result }]">{{ formatMoney(cc.result) }}</span>
-						</div>
-					</div>
-					<p v-else class="vbh-hint">Keine Daten. Importiere oder erfasse zuerst Buchungen.</p>
-				</div>
-
-				<div class="vbh-detail">
-					<p v-if="!selectedCC" class="vbh-empty vbh-detailhint">Kostenstelle links auswählen.</p>
-					<template v-else>
-						<div class="vbh-detailhead"><div><h3>{{ selectedCC.code ? selectedCC.code + ' · ' : '' }}{{ selectedCC.name }}</h3></div></div>
-
-						<div v-if="canWrite && selectedCC.code" class="vbh-opening">
-							<span>Name:</span>
-							<input v-model="renameName" class="vbh-rename">
-							<button class="primary small" @click="saveRename">Umbenennen</button>
-						</div>
-
-						<div class="vbh-totals">
-							<div class="vbh-total pos"><span>Einnahmen</span><strong>{{ formatMoney(selectedCC.income) }}</strong></div>
-							<div class="vbh-total neg"><span>Ausgaben</span><strong>{{ formatMoney(selectedCC.expense) }}</strong></div>
-							<div class="vbh-total" :class="selectedCC.result >= 0 ? 'pos' : 'neg'"><span>Ergebnis</span><strong>{{ formatMoney(selectedCC.result) }}</strong></div>
-						</div>
-
-						<h4>Beteiligte Konten <span class="vbh-hint">(Konto anklicken für Buchungen)</span></h4>
-						<div v-if="selectedCC.accounts.length" class="vbh-tablecard">
-							<table class="vbh-table">
-								<thead><tr><th class="nowrap">Nr.</th><th>Konto</th><th>Art</th><th class="num">Betrag</th></tr></thead>
-								<tbody>
-									<template v-for="(a, i) in selectedCC.accounts">
-										<tr :key="'a' + i" class="vbh-ccrow" @click="toggleCCAccount(a.accountId)">
-											<td class="nowrap"><span class="vbh-caret" :class="{ open: ccExpanded[a.accountId] }">›</span> {{ a.number }}</td>
-											<td>{{ a.name }}</td>
-											<td><span class="vbh-typetag" :class="a.type">{{ typeLabel(a.type) }}</span></td>
-											<td class="num" :class="amountClass(a.balance)">{{ formatMoney(a.balance) }}</td>
-										</tr>
-										<tr v-if="ccExpanded[a.accountId]" :key="'d' + i" class="vbh-ccdetail">
-											<td colspan="4">
-												<table v-if="ccBookings[a.accountId] && ccBookings[a.accountId].length" class="vbh-table vbh-subtable">
-													<thead><tr><th class="num">Nr.</th><th class="nowrap">Datum</th><th>Beschreibung</th><th>Gegenkonto</th><th class="num">Soll</th><th class="num">Haben</th></tr></thead>
-													<tbody>
-														<tr v-for="(r, j) in ccBookings[a.accountId]" :key="j">
-															<td class="num">{{ r.entryNo }}</td>
-															<td class="nowrap">{{ formatDate(r.date) }}</td>
-															<td class="vbh-purpose" :title="r.description">{{ r.description }}</td>
-															<td>{{ r.contra }}</td>
-															<td class="num">{{ r.debit ? formatMoney(r.debit) : '' }}</td>
-															<td class="num">{{ r.credit ? formatMoney(r.credit) : '' }}</td>
-														</tr>
-													</tbody>
-												</table>
-												<p v-else class="vbh-empty">Keine Buchungen.</p>
-											</td>
-										</tr>
-									</template>
-								</tbody>
-							</table>
-						</div>
-						<p v-else class="vbh-empty">Keine Buchungen mit Betrag in dieser Kostenstelle.</p>
-					</template>
-				</div>
-			</section>
-
-			<!-- ============ BERECHTIGUNGEN ============ -->
-			<section v-show="activeTab === 'permissions'" class="vbh-section scroll">
-				<h3>Berechtigungen</h3>
-				<p class="vbh-hint">
-					Lege fest, welche Nextcloud-Nutzer oder -Gruppen Zugriff haben.
-					<strong>Verwalter</strong> dürfen alles inkl. Rechtevergabe, <strong>Buchhalter</strong> lesen und schreiben,
-					<strong>Revisor</strong> nur lesen. Nextcloud-Administratoren sind immer Verwalter.
-				</p>
-
-				<div class="vbh-card">
-					<h4>Neue Berechtigung</h4>
-					<div class="vbh-form">
-						<label>Typ
-							<select v-model="permForm.principalType">
-								<option value="group">Gruppe</option>
-								<option value="user">Nutzer</option>
-							</select>
-						</label>
-						<label v-if="permForm.principalType === 'group'">Gruppe
-							<select v-model="permForm.principalId">
-								<option value="">– wählen –</option>
-								<option v-for="g in groups" :key="g.id" :value="g.id">{{ g.displayName }}</option>
-							</select>
-						</label>
-						<label v-else>Nutzer (Benutzername)
-							<input v-model="permForm.principalId" placeholder="z.B. erika">
-						</label>
-						<label>Rolle
-							<select v-model="permForm.role">
-								<option value="revisor">Revisor (nur lesen)</option>
-								<option value="buchhalter">Buchhalter (lesen+schreiben)</option>
-								<option value="verwalter">Verwalter (alles)</option>
-							</select>
-						</label>
-						<button class="primary" @click="savePermission">Hinzufügen</button>
-					</div>
-				</div>
-
-				<div v-if="permissions.length" class="vbh-tablecard">
-					<table class="vbh-table">
-						<thead><tr><th>Typ</th><th>Nutzer / Gruppe</th><th>Rolle</th><th></th></tr></thead>
-						<tbody>
-							<tr v-for="p in permissions" :key="p.id">
-								<td>{{ p.principalType === 'group' ? 'Gruppe' : 'Nutzer' }}</td>
-								<td>{{ p.principalId }}</td>
-								<td><span class="vbh-typetag">{{ roleLabel(p.role) }}</span></td>
-								<td class="right"><button class="vbh-iconbtn del" title="Entfernen" @click="removePermission(p)">🗑</button></td>
-							</tr>
-						</tbody>
-					</table>
-				</div>
-				<p v-else class="vbh-empty">Noch keine Berechtigungen vergeben (außer Nextcloud-Administratoren).</p>
-			</section>
-		</main>
+			</div>
+		</NcModal>
 
 		<!-- ============ BUCHUNGS-DIALOG ============ -->
-		<div v-if="showBooking" class="vbh-modal-overlay" @click.self="closeBooking">
-			<div class="vbh-modal">
-				<h3>{{ bookingForm.id ? 'Buchung bearbeiten #' + bookingForm.entryNo : 'Neue Buchung' }}</h3>
+		<NcModal :show.sync="showBooking" :name="bookingForm.id ? 'Buchung bearbeiten #' + bookingForm.entryNo : 'Neue Buchung'" size="normal" @close="closeBooking">
+			<div class="vbh-modal-inner">
 				<div class="vbh-form">
 					<label>Datum<input v-model="bookingForm.date" type="date"></label>
 					<label>Beleg-Nr.<input v-model="bookingForm.documentRef" class="vbh-short" placeholder="optional"></label>
@@ -453,32 +661,35 @@
 				</div>
 				<div class="vbh-form">
 					<label class="vbh-grow">Soll (Aufwand/Aktiv)
-						<select v-model.number="bookingForm.debitAccountId">
-							<option :value="null">– wählen –</option>
-							<option v-for="acc in accountsSorted" :key="acc.id" :value="acc.id">{{ acc.number }} {{ acc.name }}</option>
-						</select>
+						<NcSelect
+							v-model="bookingFormDebitOption"
+							:options="accountOptionsList"
+							label="label"
+							placeholder="– wählen –"
+						/>
 					</label>
 					<label class="vbh-grow">Haben (Ertrag/Passiv)
-						<select v-model.number="bookingForm.creditAccountId">
-							<option :value="null">– wählen –</option>
-							<option v-for="acc in accountsSorted" :key="acc.id" :value="acc.id">{{ acc.number }} {{ acc.name }}</option>
-						</select>
+						<NcSelect
+							v-model="bookingFormCreditOption"
+							:options="accountOptionsList"
+							label="label"
+							placeholder="– wählen –"
+						/>
 					</label>
 				</div>
 				<div class="vbh-form">
 					<label class="vbh-grow">Buchungstext<input v-model="bookingForm.description" placeholder="Beschreibung"></label>
 				</div>
 				<div class="vbh-modal-actions">
-					<button class="vbh-btnlink" @click="closeBooking">Abbrechen</button>
-					<button class="primary" @click="saveBooking">{{ bookingForm.id ? 'Speichern' : 'Buchen' }}</button>
+					<NcButton variant="tertiary" @click="closeBooking">Abbrechen</NcButton>
+					<NcButton variant="primary" @click="saveBooking">{{ bookingForm.id ? 'Speichern' : 'Buchen' }}</NcButton>
 				</div>
 			</div>
-		</div>
+		</NcModal>
 
 		<!-- ============ KONTO-DIALOG ============ -->
-		<div v-if="showAccount" class="vbh-modal-overlay" @click.self="closeAccount">
-			<div class="vbh-modal">
-				<h3>{{ accountEditId ? 'Konto bearbeiten' : 'Neues Konto' }}</h3>
+		<NcModal :show.sync="showAccount" :name="accountEditId ? 'Konto bearbeiten' : 'Neues Konto'" size="normal" @close="closeAccount">
+			<div class="vbh-modal-inner">
 				<div class="vbh-form">
 					<label>Nummer<input v-model="newAccount.number" class="vbh-short" placeholder="z.B. 4000"></label>
 					<label class="vbh-grow">Bezeichnung<input v-model="newAccount.name" placeholder="Kontoname"></label>
@@ -494,58 +705,112 @@
 						</select>
 					</label>
 					<label class="vbh-grow">Überkonto
-						<select v-model.number="newAccount.parentId">
-							<option :value="null">– kein Überkonto –</option>
-							<option v-for="acc in parentOptions" :key="acc.id" :value="acc.id">{{ acc.number }} {{ acc.name }}</option>
-						</select>
+						<NcSelect
+							v-model="accountParentOption"
+							:options="accountParentOptions"
+							label="label"
+							placeholder="– kein Überkonto –"
+							:clearable="true"
+						/>
 					</label>
 				</div>
 				<div class="vbh-form">
 					<label>Kategorie<input v-model="newAccount.category" placeholder="optional"></label>
-					<label class="vbh-check"><input v-model="newAccount.isBank" type="checkbox"> Bankkonto</label>
+					<NcCheckboxRadioSwitch v-model="newAccount.isBank">Bankkonto</NcCheckboxRadioSwitch>
 				</div>
 				<div class="vbh-modal-actions">
-					<button class="vbh-btnlink" @click="closeAccount">Abbrechen</button>
-					<button class="primary" @click="saveAccount">{{ accountEditId ? 'Speichern' : 'Anlegen' }}</button>
+					<NcButton variant="tertiary" @click="closeAccount">Abbrechen</NcButton>
+					<NcButton variant="primary" @click="saveAccount">{{ accountEditId ? 'Speichern' : 'Anlegen' }}</NcButton>
 				</div>
 			</div>
-		</div>
+		</NcModal>
+
+		<!-- ============ BESTÄTIGUNGS-DIALOG ============ -->
+		<NcDialog
+			v-if="confirmDialog.open"
+			:name="confirmDialog.title"
+			:message="confirmDialog.message"
+			:no-close="true"
+			:buttons="confirmDialogButtonList"
+			@update:open="closeConfirm(false)"
+		/>
 	</div>
 </template>
 
 <script>
 import { showError, showSuccess } from '@nextcloud/dialogs'
+import {
+	NcButton,
+	NcCheckboxRadioSwitch,
+	NcDialog,
+	NcEmptyContent,
+	NcIconSvgWrapper,
+	NcLoadingIcon,
+	NcModal,
+	NcSelect,
+} from '@nextcloud/vue'
+import { mdiCog, mdiDelete, mdiPencil } from '@mdi/js'
 import api from './api.js'
+import {
+	Chart,
+	BarController,
+	BarElement,
+	CategoryScale,
+	LinearScale,
+	Tooltip,
+	Legend,
+} from 'chart.js'
+
+Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend)
 
 export default {
 	name: 'App',
+	components: {
+		NcButton,
+		NcCheckboxRadioSwitch,
+		NcDialog,
+		NcEmptyContent,
+		NcIconSvgWrapper,
+		NcLoadingIcon,
+		NcModal,
+		NcSelect,
+	},
 	data() {
 		return {
-			activeTab: 'accounts',
+			activeTab: 'dashboard',
 			allTabs: [
-				{ id: 'transactions', label: 'Buchungen', need: 'read' },
-				{ id: 'journal', label: 'Journal', need: 'read' },
-				{ id: 'accounts', label: 'Kontenrahmen', need: 'read' },
-				{ id: 'report', label: 'Auswertung', need: 'read' },
+				{ id: 'dashboard', label: 'Übersicht', need: 'read' },
+				{ id: 'bookings', label: 'Buchungen', need: 'read' },
+				{ id: 'accounts', label: 'Konten', need: 'read' },
 				{ id: 'reports', label: 'Berichte', need: 'read' },
-				{ id: 'permissions', label: 'Berechtigungen', need: 'admin' },
 			],
+			bookingView: 'journal',
+			reportView: 'summary',
+			showSettings: false,
+			bookingSearch: '',
+			bookingFilterAccountId: null,
+			accountSearch: '',
+			selectedYear: null,
+			years: [],
+			newBudgetYear: '',
+			budgetData: null,
 			me: null,
 			permissions: [],
 			groups: [],
+			users: [],
 			permForm: { principalType: 'group', principalId: '', role: 'revisor' },
 			busy: false,
 			selectedFile: null,
 			applyRules: true,
 			previewResult: null,
 			xbucFile: null,
-			xbucReset: true,
+			xbucReset: false,
 			xbucPreviewResult: null,
 			imports: [],
 			transactions: [],
-			txFilter: 'unassigned',
 			accounts: [],
 			balances: null,
+			balancesIncludeChildren: false,
 			reportData: null,
 			selectedCCCode: false,
 			renameName: '',
@@ -567,6 +832,11 @@ export default {
 				balances: { key: 'number', dir: 'asc' },
 				journal: { key: 'entryNo', dir: 'desc' },
 			},
+			confirmDialog: { open: false, title: '', message: '', confirmLabel: 'Löschen', confirmVariant: 'error', resolve: null },
+			mdiCog,
+			mdiDelete,
+			mdiPencil,
+			chartInstances: {},
 		}
 	},
 	computed: {
@@ -580,6 +850,101 @@ export default {
 				return this.canRead
 			})
 		},
+		unassignedCount() {
+			return this.transactions.filter(t => t.status === 'unassigned').length
+		},
+		currentTransactions() {
+			const status = this.bookingView === 'unassigned' ? 'unassigned' : 'assigned'
+			let txs = this.applySort(
+				this.transactions.filter(t => t.status === status),
+				this.sort.transactions,
+			)
+			const s = this.bookingSearch.trim().toLowerCase()
+			if (s) {
+				txs = txs.filter(t =>
+					(t.counterparty || '').toLowerCase().includes(s) ||
+					(t.purpose || '').toLowerCase().includes(s) ||
+					(t.bookingDate || '').includes(s),
+				)
+			}
+			return txs
+		},
+		filteredJournalRows() {
+			let rows = this.sortedJournalRows
+			const s = this.bookingSearch.trim().toLowerCase()
+			if (s) {
+				rows = rows.filter(r =>
+					(r.description || '').toLowerCase().includes(s) ||
+					String(r.entryNo || '').includes(s) ||
+					(r.soll || '').toLowerCase().includes(s) ||
+					(r.haben || '').toLowerCase().includes(s),
+				)
+			}
+			if (this.bookingFilterAccountId) {
+				rows = rows.filter(r =>
+					r.debitAccountId === this.bookingFilterAccountId ||
+					r.creditAccountId === this.bookingFilterAccountId,
+				)
+			}
+			return rows
+		},
+		recentJournal() {
+			return this.sortedJournalRows.slice(0, 5)
+		},
+		monthlyChartData() {
+			const labels = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez']
+			const income = new Array(12).fill(0)
+			const expense = new Array(12).fill(0)
+			for (const item of this.journalData) {
+				const date = item.journal && item.journal.date
+				if (!date) continue
+				const m = parseInt(String(date).slice(5, 7), 10) - 1
+				if (m < 0 || m > 11) continue
+				for (const line of (item.lines || [])) {
+					const acc = this.accountsById[line.accountId]
+					if (!acc) continue
+					if (acc.type === 'income' && line.creditCents > 0) income[m] += line.creditCents / 100
+					else if (acc.type === 'expense' && line.debitCents > 0) expense[m] += line.debitCents / 100
+				}
+			}
+			return { labels, income, expense }
+		},
+		currentTree() {
+			return this.accountSearch.trim() ? this.filteredVisibleTree : this.visibleTree
+		},
+		filteredVisibleTree() {
+			const s = this.accountSearch.trim().toLowerCase()
+			if (!s) return this.visibleTree
+			const matchingIds = new Set(
+				this.accounts
+					.filter(a => a.name.toLowerCase().includes(s) || String(a.number).includes(s))
+					.map(a => a.id),
+			)
+			const addAncestors = (id) => {
+				const acc = this.accountsById[id]
+				if (acc && acc.parentId && !matchingIds.has(acc.parentId)) {
+					matchingIds.add(acc.parentId)
+					addAncestors(acc.parentId)
+				}
+			}
+			for (const id of [...matchingIds]) addAncestors(id)
+			const byNum = list => list.slice().sort((a, b) => String(a.number).localeCompare(String(b.number), 'de', { numeric: true }))
+			const out = []
+			const walk = (acc, depth) => {
+				const kids = (this.childrenOf[acc.id] || []).filter(k => matchingIds.has(k.id))
+				out.push({ id: acc.id, number: acc.number, name: acc.name, type: acc.type, depth, hasChildren: kids.length > 0 })
+				for (const k of byNum(kids)) walk(k, depth + 1)
+			}
+			for (const r of byNum(this.accounts.filter(a => !a.parentId && matchingIds.has(a.id)))) walk(r, 0)
+			return out
+		},
+		bookingFilterAccountOption: {
+			get() {
+				if (!this.bookingFilterAccountId) return null
+				return this.accountOptionsList.find(o => o.id === this.bookingFilterAccountId) ?? null
+			},
+			set(v) { this.bookingFilterAccountId = v ? v.id : null },
+		},
 		accountsById() {
 			const map = {}
 			for (const acc of this.accounts) map[acc.id] = acc
@@ -589,7 +954,6 @@ export default {
 			return this.accounts.slice().sort((a, b) => String(a.number).localeCompare(String(b.number), 'de', { numeric: true }))
 		},
 		parentOptions() {
-			// Beim Bearbeiten das Konto selbst nicht als eigenes Überkonto anbieten.
 			return this.accountsSorted.filter(a => a.id !== this.accountEditId)
 		},
 		accountsByCategory() {
@@ -601,6 +965,49 @@ export default {
 				groups[cat].push(acc)
 			}
 			return groups
+		},
+		accountOptionsList() {
+			const opts = []
+			for (const [cat, accounts] of Object.entries(this.accountsByCategory)) {
+				opts.push({ id: null, label: cat, $isDisabled: true })
+				for (const acc of accounts) {
+					opts.push({ id: acc.id, label: `${acc.number} ${acc.name}` })
+				}
+			}
+			return opts
+		},
+		bookingFormDebitOption: {
+			get() { return this.accountOptionsList.find(o => o.id === this.bookingForm.debitAccountId) ?? null },
+			set(v) { this.bookingForm.debitAccountId = v ? v.id : null },
+		},
+		bookingFormCreditOption: {
+			get() { return this.accountOptionsList.find(o => o.id === this.bookingForm.creditAccountId) ?? null },
+			set(v) { this.bookingForm.creditAccountId = v ? v.id : null },
+		},
+		accountParentOptions() {
+			return [
+				{ id: null, label: '– kein Überkonto –' },
+				...this.parentOptions.map(a => ({ id: a.id, label: `${a.number} ${a.name}` })),
+			]
+		},
+		accountParentOption: {
+			get() { return this.accountParentOptions.find(o => o.id === this.newAccount.parentId) ?? null },
+			set(v) { this.newAccount.parentId = v ? v.id : null },
+		},
+		groupOptions() { return this.groups.map(g => ({ id: g.id, label: g.displayName })) },
+		userOptions() { return this.users.map(u => ({ id: u.id, label: `${u.displayName} (${u.id})` })) },
+		permFormPrincipalOption: {
+			get() {
+				const list = this.permForm.principalType === 'group' ? this.groupOptions : this.userOptions
+				return list.find(o => o.id === this.permForm.principalId) ?? null
+			},
+			set(v) { this.permForm.principalId = v ? v.id : '' },
+		},
+		confirmDialogButtonList() {
+			return [
+				{ label: 'Abbrechen', type: 'secondary', callback: () => this.closeConfirm(false) },
+				{ label: this.confirmDialog.confirmLabel, type: this.confirmDialog.confirmVariant, callback: () => this.closeConfirm(true) },
+			]
 		},
 		childrenOf() {
 			const map = {}
@@ -647,7 +1054,7 @@ export default {
 		statementRows() {
 			if (!this.statement) return []
 			const isCredit = ['income', 'liability', 'equity'].includes(this.statement.account.type)
-			let run = 0
+			let run = this.statement.carry || 0
 			return this.statement.rows.map(r => {
 				run += isCredit ? (r.credit - r.debit) : (r.debit - r.credit)
 				return { ...r, saldo: run }
@@ -657,29 +1064,101 @@ export default {
 			if (this.selectedCCCode === false || !this.reportData) return null
 			return this.reportData.costCenters.find(c => c.code === this.selectedCCCode) || null
 		},
-		sortedTransactions() { return this.applySort(this.transactions, this.sort.transactions) },
-		sortedBalances() { return this.applySort(this.balances ? this.balances.accounts : [], this.sort.balances) },
+		balanceRows() {
+			const base = this.balances ? this.balances.accounts : []
+			if (!this.balancesIncludeChildren) return base
+			const rowById = {}
+			for (const r of base) rowById[r.accountId] = r
+			const agg = id => {
+				const r = rowById[id]
+				let debit = r ? r.debit : 0
+				let credit = r ? r.credit : 0
+				for (const child of (this.childrenOf[id] || [])) {
+					const sub = agg(child.id)
+					debit += sub.debit; credit += sub.credit
+				}
+				return { debit, credit }
+			}
+			return base.map(r => {
+				const a = agg(r.accountId)
+				const balance = ['income', 'liability', 'equity'].includes(r.type) ? a.credit - a.debit : a.debit - a.credit
+				return { ...r, debit: a.debit, credit: a.credit, balance }
+			})
+		},
+		sortedBalances() { return this.applySort(this.balanceRows, this.sort.balances, ['number']) },
 		sortedJournalRows() { return this.applySort(this.journalRows, this.sort.journal) },
 	},
 	watch: {
 		activeTab(tab) {
-			if (tab === 'transactions') this.loadTransactions()
-			if (tab === 'report') this.loadBalances()
-			if (tab === 'accounts') { this.loadAccounts(); this.loadBalances() }
-			if (tab === 'journal') this.loadJournal()
-			if (tab === 'reports') this.loadReport()
-			if (tab === 'permissions') this.loadPermissions()
+			this.loadTab(tab)
+			if (tab === 'dashboard') this.$nextTick(() => this.renderDashboardCharts())
+		},
+		journalData() {
+			if (this.activeTab === 'dashboard') this.$nextTick(() => this.renderMonthlyChart())
+		},
+		bookingView(v) {
+			this.bookingSearch = ''
+			if (v === 'journal') this.loadJournal()
+		},
+		reportView(v) {
+			if (v === 'summary') this.loadBalances()
+			else if (v === 'costcenters') this.loadReport()
+			else if (v === 'budget') this.loadBudget()
+		},
+		selectedYear() {
+			this.loadBalances()
+			this.loadJournal()
+			const tab = this.activeTab
+			if (tab === 'accounts') this.loadAccounts()
+			else if (tab === 'reports') {
+				if (this.reportView === 'costcenters') this.loadReport()
+				else if (this.reportView === 'budget') this.loadBudget()
+			}
 		},
 	},
 	async mounted() {
 		await this.loadMe()
 		if (this.canRead) {
-			await this.loadAccounts()
-			await this.loadImports()
-			await this.loadBalances()
+			await this.loadYears()
+			await Promise.all([
+				this.loadAccounts(),
+				this.loadImports(),
+				this.loadBalances(),
+				this.loadJournal(),
+				this.loadTransactions(),
+			])
+			this.$nextTick(() => setTimeout(() => this.renderDashboardCharts(), 50))
 		}
 	},
+	beforeDestroy() {
+		Object.values(this.chartInstances).forEach(c => c && c.destroy())
+	},
 	methods: {
+		loadTab(tab) {
+			if (tab === 'bookings' && this.bookingView === 'journal') this.loadJournal()
+			else if (tab === 'accounts') { this.loadAccounts(); this.loadBalances() }
+			else if (tab === 'reports') {
+				if (this.reportView === 'summary') this.loadBalances()
+				else if (this.reportView === 'costcenters') this.loadReport()
+				else if (this.reportView === 'budget') this.loadBudget()
+			}
+		},
+		goToUnassigned() {
+			this.activeTab = 'bookings'
+			this.bookingView = 'unassigned'
+		},
+		openSettings() {
+			this.showSettings = true
+			this.loadImports()
+			if (this.isAdmin) this.loadPermissions()
+		},
+		async loadYears() {
+			try {
+				const { data } = await api.journalYears()
+				this.years = data
+				if (this.selectedYear === null && data.length) this.selectedYear = data[0]
+			} catch (e) { /* Jahre optional */ }
+		},
 		emptyBookingForm() {
 			return { id: null, entryNo: null, date: new Date().toISOString().slice(0, 10), documentRef: '', amount: null, debitAccountId: null, creditAccountId: null, description: '' }
 		},
@@ -693,6 +1172,11 @@ export default {
 		formatDateTime(s) { return s ? String(s).replace('T', ' ').slice(0, 16) : '' },
 		typeLabel(t) { return { income: 'Ertrag', expense: 'Aufwand', asset: 'Aktiv', liability: 'Passiv', equity: 'Eigenkapital' }[t] || t },
 		amountClass(v) { return v < 0 ? 'neg' : '' },
+		budgetDiffClass(row) {
+			if (!row.diff) return ''
+			const good = row.type === 'income' ? row.diff > 0 : row.diff < 0
+			return good ? 'good' : 'bad'
+		},
 		accountLabel(id) {
 			const acc = this.accountsById[id]
 			return acc ? `${acc.number} ${acc.name}` : `#${id}`
@@ -701,6 +1185,20 @@ export default {
 			if (!this.balances) return 0
 			const row = this.balances.accounts.find(a => a.accountId === accountId)
 			return row ? row.balance : 0
+		},
+		accountOptionFor(id) {
+			return id ? (this.accountOptionsList.find(o => o.id === id) ?? null) : null
+		},
+
+		// --- Confirm-Dialog ---
+		askConfirm(title, message, confirmLabel = 'Löschen', confirmVariant = 'error') {
+			return new Promise(resolve => {
+				this.confirmDialog = { open: true, title, message, confirmLabel, confirmVariant, resolve }
+			})
+		},
+		closeConfirm(result) {
+			this.confirmDialog.open = false
+			this.confirmDialog.resolve?.(result)
 		},
 
 		// --- Sortierung ---
@@ -713,13 +1211,18 @@ export default {
 			const s = this.sort[table]
 			return s.key !== key ? '' : (s.dir === 'asc' ? ' ▲' : ' ▼')
 		},
-		applySort(rows, state) {
+		applySort(rows, state, lexKeys = []) {
 			if (!state || !state.key) return rows
 			const f = state.dir === 'asc' ? 1 : -1
+			const lex = lexKeys.includes(state.key)
 			return rows.slice().sort((a, b) => {
 				let x = a[state.key]; let y = b[state.key]
 				if (x === null || x === undefined) x = ''
 				if (y === null || y === undefined) y = ''
+				if (lex) {
+					const sx = String(x); const sy = String(y)
+					return (sx < sy ? -1 : sx > sy ? 1 : 0) * f
+				}
 				if (typeof x === 'number' && typeof y === 'number') return (x - y) * f
 				return String(x).localeCompare(String(y), 'de', { numeric: true, sensitivity: 'base' }) * f
 			})
@@ -736,7 +1239,7 @@ export default {
 		},
 		async reloadStatement() { if (this.selectedAccountId) await this.loadStatement(this.selectedAccountId) },
 		async loadStatement(accountId) {
-			try { const { data } = await api.accountJournal(accountId, this.statementIncludeChildren); this.statement = data } catch (e) { showError(this.errMsg(e, 'Kontoauszug konnte nicht geladen werden')) }
+			try { const { data } = await api.accountJournal(accountId, this.statementIncludeChildren, this.selectedYear); this.statement = data } catch (e) { showError(this.errMsg(e, 'Kontoauszug konnte nicht geladen werden')) }
 		},
 
 		// --- CSV-Import ---
@@ -755,7 +1258,7 @@ export default {
 				showSuccess(`${data.new} Buchungen importiert (${data.autoAssigned} automatisch zugeordnet).`)
 				this.previewResult = null; this.selectedFile = null
 				if (this.$refs.fileInput) this.$refs.fileInput.value = ''
-				await this.loadImports(); await this.loadBalances()
+				await this.loadImports(); await this.loadBalances(); await this.loadTransactions()
 			} catch (e) { showError(this.errMsg(e, 'Import fehlgeschlagen')) } finally { this.busy = false }
 		},
 		async loadImports() { try { const { data } = await api.listImports(); this.imports = data } catch (e) { /* still */ } },
@@ -769,19 +1272,21 @@ export default {
 		},
 		async xbucImport() {
 			if (!this.xbucFile) return
-			if (this.xbucReset && !confirm('Alle vorhandenen Daten werden gelöscht und ersetzt. Fortfahren?')) return
+			if (this.xbucReset && !await this.askConfirm('xbuc Import', 'Alle vorhandenen Daten werden gelöscht und ersetzt. Fortfahren?', 'Importieren', 'primary')) return
 			this.busy = true
 			try {
 				const fd = new FormData(); fd.append('file', this.xbucFile); fd.append('reset', this.xbucReset ? '1' : '0')
 				const { data } = await api.commitXbuc(fd)
-				showSuccess(`${data.accounts} Konten und ${data.bookings} Buchungen importiert.`)
+				const skippedMsg = data.skipped > 0 ? `, ${data.skipped} übersprungen (bereits vorhanden)` : ''
+				const newAccMsg = data.accountsNew > 0 ? `, ${data.accountsNew} neue Konten` : ''
+				showSuccess(`${data.bookings} Buchungen importiert${skippedMsg}${newAccMsg}.`)
 				this.xbucPreviewResult = null; this.xbucFile = null
 				if (this.$refs.xbucInput) this.$refs.xbucInput.value = ''
-				await this.loadAccounts(); await this.loadBalances(); await this.loadImports()
+				await this.loadYears(); await this.loadAccounts(); await this.loadBalances(); await this.loadImports(); await this.loadJournal(); await this.loadTransactions()
 			} catch (e) { showError(this.errMsg(e, 'Import fehlgeschlagen')) } finally { this.busy = false }
 		},
 		async resetAll() {
-			if (!confirm('Wirklich ALLE Konten, Buchungen und Importe löschen?')) return
+			if (!await this.askConfirm('Alle Daten löschen', 'Wirklich ALLE Konten, Buchungen und Importe löschen?')) return
 			this.busy = true
 			try {
 				await api.reset(); showSuccess('Alle Daten gelöscht.')
@@ -791,8 +1296,7 @@ export default {
 		},
 
 		// --- Bankbuchungen ---
-		onTxFilterChange() { this.loadTransactions() },
-		async loadTransactions() { try { const { data } = await api.listTransactions(this.txFilter); this.transactions = data } catch (e) { showError(this.errMsg(e, 'Buchungen konnten nicht geladen werden')) } },
+		async loadTransactions() { try { const { data } = await api.listTransactions(''); this.transactions = data } catch (e) { showError(this.errMsg(e, 'Buchungen konnten nicht geladen werden')) } },
 		async onAssign(tx, value) {
 			try {
 				if (value === '') await api.unassignTransaction(tx.id)
@@ -802,7 +1306,7 @@ export default {
 		},
 
 		// --- Journal ---
-		async loadJournal() { try { const { data } = await api.journal(); this.journalData = data } catch (e) { showError(this.errMsg(e, 'Journal konnte nicht geladen werden')) } },
+		async loadJournal() { try { const { data } = await api.journal(this.selectedYear); this.journalData = data } catch (e) { showError(this.errMsg(e, 'Journal konnte nicht geladen werden')) } },
 		openNewBooking() { this.bookingForm = this.emptyBookingForm(); this.showBooking = true },
 		editBooking(r) {
 			this.bookingForm = { id: r.id, entryNo: r.entryNo, date: r.date, documentRef: r.documentRef || '', amount: r.amount, debitAccountId: r.debitAccountId, creditAccountId: r.creditAccountId, description: r.description || '' }
@@ -823,7 +1327,7 @@ export default {
 			} catch (e) { showError(this.errMsg(e, 'Buchung konnte nicht gespeichert werden')) }
 		},
 		async removeBooking(r) {
-			if (!confirm(`Buchung #${r.entryNo} löschen?`)) return
+			if (!await this.askConfirm('Buchung löschen', `Buchung #${r.entryNo} löschen?`)) return
 			try { await api.deleteBooking(r.id); await this.loadJournal(); await this.loadBalances() } catch (e) { showError(this.errMsg(e, 'Löschen fehlgeschlagen')) }
 		},
 
@@ -840,7 +1344,6 @@ export default {
 		async seedAccounts() { try { await api.seedAccounts(); await this.loadAccounts(); showSuccess('Standard-Kontenrahmen angelegt.') } catch (e) { showError(this.errMsg(e, 'Anlegen fehlgeschlagen')) } },
 		openNewAccount() {
 			this.accountEditId = null
-			// Vorbelegung: aktuell gewähltes Konto als Überkonto (praktisch beim Anlegen von Unterkonten).
 			const parent = this.selectedAccount
 			this.newAccount = {
 				number: '', name: '',
@@ -882,7 +1385,7 @@ export default {
 			} catch (e) { showError(this.errMsg(e, 'Konto konnte nicht gespeichert werden')) }
 		},
 		async deleteAccount(acc) {
-			if (!confirm(`Konto "${acc.number} ${acc.name}" löschen?`)) return
+			if (!await this.askConfirm('Konto löschen', `Konto "${acc.number} ${acc.name}" löschen?`)) return
 			try {
 				await api.deleteAccount(acc.id)
 				if (this.selectedAccountId === acc.id) { this.selectedAccountId = null; this.statement = null }
@@ -900,12 +1403,12 @@ export default {
 		},
 
 		// --- Auswertung ---
-		async loadBalances() { try { const { data } = await api.balances(); this.balances = data } catch (e) { showError(this.errMsg(e, 'Auswertung konnte nicht geladen werden')) } },
+		async loadBalances() { try { const { data } = await api.balances(this.selectedYear); this.balances = data } catch (e) { showError(this.errMsg(e, 'Auswertung konnte nicht geladen werden')) } },
 
 		// --- Berichte / Kostenstellen ---
 		async loadReport() {
 			try {
-				const { data } = await api.costCenterReport()
+				const { data } = await api.costCenterReport(this.selectedYear)
 				this.reportData = data
 				if (this.selectedCCCode !== false && !data.costCenters.some(c => c.code === this.selectedCCCode)) this.selectedCCCode = false
 			} catch (e) { showError(this.errMsg(e, 'Bericht konnte nicht geladen werden')) }
@@ -917,7 +1420,7 @@ export default {
 			const open = !this.ccExpanded[accountId]
 			this.$set(this.ccExpanded, accountId, open)
 			if (open && !this.ccBookings[accountId]) {
-				try { const { data } = await api.accountJournal(accountId, false); this.$set(this.ccBookings, accountId, data.rows) } catch (e) { showError(this.errMsg(e, 'Buchungen konnten nicht geladen werden')) }
+				try { const { data } = await api.accountJournal(accountId, false, this.selectedYear); this.$set(this.ccBookings, accountId, data.rows) } catch (e) { showError(this.errMsg(e, 'Buchungen konnten nicht geladen werden')) }
 			}
 		},
 		async saveRename() {
@@ -926,13 +1429,37 @@ export default {
 			try { await api.renameCostCenter(cc.code, this.renameName); await this.loadReport(); showSuccess('Kostenstelle umbenannt.') } catch (e) { showError(this.errMsg(e, 'Umbenennen fehlgeschlagen')) }
 		},
 
+		// --- Finanzplan / Budget ---
+		async loadBudget() {
+			try {
+				const { data } = await api.budget(this.selectedYear)
+				this.budgetData = data
+			} catch (e) { showError(this.errMsg(e, 'Finanzplan konnte nicht geladen werden')) }
+		},
+		async saveBudget(row) {
+			if (!this.budgetData) return
+			try {
+				await api.setBudget(row.accountId, this.budgetData.year, Number(row.plan) || 0)
+				await this.loadBudget()
+			} catch (e) { showError(this.errMsg(e, 'Planwert konnte nicht gespeichert werden')) }
+		},
+		addBudgetYear() {
+			const y = parseInt(this.newBudgetYear, 10)
+			if (!y || y < 2000 || y > 2099) return
+			this.newBudgetYear = ''
+			if (!this.years.includes(y)) {
+				this.years = [y, ...this.years].sort((a, b) => b - a)
+			}
+			this.selectedYear = y
+		},
+
 		// --- Berechtigungen ---
 		async loadMe() {
 			try {
 				const { data } = await api.me()
 				this.me = data
 				if (!this.visibleTabs.some(t => t.id === this.activeTab)) {
-					this.activeTab = this.visibleTabs.length ? this.visibleTabs[0].id : 'import'
+					this.activeTab = this.visibleTabs.length ? this.visibleTabs[0].id : 'dashboard'
 				}
 			} catch (e) {
 				this.me = { role: 'none', canRead: false, canWrite: false, isAdmin: false }
@@ -940,9 +1467,10 @@ export default {
 		},
 		async loadPermissions() {
 			try {
-				const [p, g] = await Promise.all([api.listPermissions(), api.listGroups()])
+				const [p, g, u] = await Promise.all([api.listPermissions(), api.listGroups(), api.listUsers()])
 				this.permissions = p.data
 				this.groups = g.data
+				this.users = u.data
 			} catch (e) { showError(this.errMsg(e, 'Berechtigungen konnten nicht geladen werden')) }
 		},
 		async savePermission() {
@@ -955,12 +1483,81 @@ export default {
 			} catch (e) { showError(this.errMsg(e, 'Speichern fehlgeschlagen')) }
 		},
 		async removePermission(p) {
-			if (!confirm(`Berechtigung für "${p.principalId}" entfernen?`)) return
+			if (!await this.askConfirm('Berechtigung entfernen', `Berechtigung für "${p.principalId}" entfernen?`)) return
 			try { await api.deletePermission(p.id); await this.loadPermissions() } catch (e) { showError(this.errMsg(e, 'Entfernen fehlgeschlagen')) }
 		},
 		roleLabel(r) { return { verwalter: 'Verwalter', buchhalter: 'Buchhalter', revisor: 'Revisor' }[r] || r },
 
 		errMsg(e, fallback) { return (e && e.response && e.response.data && e.response.data.message) || fallback },
+
+		// --- Charts ---
+		destroyChart(key) {
+			if (this.chartInstances[key]) {
+				this.chartInstances[key].destroy()
+				this.$set(this.chartInstances, key, null)
+			}
+		},
+		renderDashboardCharts() {
+			this.renderMonthlyChart()
+		},
+		renderMonthlyChart() {
+			const canvas = this.$refs.monthlyChart
+			if (!canvas) return
+			this.destroyChart('monthly')
+			const { labels, income, expense } = this.monthlyChartData
+			const isDark = document.documentElement.classList.contains('theme--dark')
+			const textColor = isDark ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.7)'
+			const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'
+			this.$set(this.chartInstances, 'monthly', new Chart(canvas, {
+				type: 'bar',
+				data: {
+					labels,
+					datasets: [
+						{
+							label: 'Einnahmen',
+							data: income,
+							backgroundColor: 'rgba(45,125,70,0.72)',
+							borderColor: 'rgba(45,125,70,0.9)',
+							borderWidth: 1,
+							borderRadius: 4,
+						},
+						{
+							label: 'Ausgaben',
+							data: expense,
+							backgroundColor: 'rgba(199,60,60,0.72)',
+							borderColor: 'rgba(199,60,60,0.9)',
+							borderWidth: 1,
+							borderRadius: 4,
+						},
+					],
+				},
+				options: {
+					responsive: true,
+					maintainAspectRatio: false,
+					plugins: {
+						legend: { labels: { color: textColor, font: { size: 12 } } },
+						tooltip: {
+							callbacks: {
+								label: ctx => ` ${ctx.dataset.label}: ${new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(ctx.raw)}`,
+							},
+						},
+					},
+					scales: {
+						x: {
+							ticks: { color: textColor },
+							grid: { color: gridColor },
+						},
+						y: {
+							ticks: {
+								color: textColor,
+								callback: v => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(v),
+							},
+							grid: { color: gridColor },
+						},
+					},
+				},
+			}))
+		},
 	},
 }
 </script>
@@ -969,11 +1566,11 @@ export default {
 .vbh { width: 100%; flex: 1 1 auto; min-width: 0; height: 100%; display: flex; flex-direction: column; overflow: hidden; background-color: var(--color-main-background); color: var(--color-main-text); }
 
 .vbh-header { flex: 0 0 auto; padding: 12px 24px 0; border-bottom: 1px solid var(--color-border); }
-.vbh-noaccess { padding: 48px 24px; text-align: center; color: var(--color-main-text); }
+.vbh-noaccess { padding: 48px 24px; text-align: center; }
 .vbh-noaccess h3 { margin-bottom: 8px; }
 .vbh-titlebar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 .vbh-titlebar h2 { margin: 0; }
-.vbh-bankchip { display: inline-flex; align-items: baseline; gap: 8px; margin-left: auto; padding: 6px 14px; border-radius: var(--border-radius-large, 12px); color: var(--color-main-text); background-color: rgba(45, 125, 70, 0.16); border: 1px solid rgba(45, 125, 70, 0.55); }
+.vbh-bankchip { display: inline-flex; align-items: baseline; gap: 8px; margin-left: auto; padding: 6px 14px; border-radius: var(--border-radius-large, 12px); background-color: rgba(45, 125, 70, 0.16); border: 1px solid rgba(45, 125, 70, 0.55); }
 .vbh-bankchip.warn { background-color: rgba(201, 135, 10, 0.18); border-color: rgba(201, 135, 10, 0.65); }
 .vbh-bankchip-label { font-size: 0.82em; opacity: 0.9; }
 .vbh-bankchip-value { font-size: 1.2em; font-weight: 700; }
@@ -981,10 +1578,10 @@ export default {
 
 .vbh-navbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .vbh-tabs { display: inline-flex; gap: 4px; margin: 12px 0 -1px; padding: 4px; background-color: var(--color-background-dark); border-radius: 12px; }
-.vbh-databtn { margin: 12px 0 -1px; padding: 7px 16px; border: 1px solid var(--color-border); background-color: var(--color-main-background); border-radius: 10px; cursor: pointer; color: var(--color-main-text); font-weight: 600; font-size: 0.9em; }
-.vbh-databtn:hover { background-color: var(--color-background-hover); }
-.vbh-databtn.active { background-color: var(--color-primary-element); color: var(--color-primary-element-text); border-color: var(--color-primary-element); }
-.vbh-tabs button { border: none; background: transparent; padding: 7px 18px; border-radius: 8px; cursor: pointer; color: var(--color-main-text); font-weight: 600; font-size: 0.95em; }
+.vbh-navright { display: inline-flex; align-items: center; gap: 6px; }
+.vbh-yearsel { display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; font-weight: 600; }
+.vbh-yearsel select { padding: 5px 8px; border-radius: 8px; }
+.vbh-tabs button { border: none; background: transparent; padding: 7px 16px; border-radius: 8px; cursor: pointer; color: var(--color-main-text); font-weight: 600; font-size: 0.9em; display: inline-flex; align-items: center; gap: 6px; }
 .vbh-tabs button:hover { background-color: var(--color-background-hover); }
 .vbh-tabs button.active { background-color: var(--color-primary-element); color: var(--color-primary-element-text); box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
 
@@ -992,25 +1589,49 @@ export default {
 .vbh-section { flex: 1 1 auto; min-height: 0; min-width: 0; width: 100%; }
 .vbh-section.scroll { overflow-y: auto; padding: 16px 24px 48px; }
 .vbh-section.split { overflow: hidden; display: flex; }
+.vbh-flex-col { display: flex; flex-direction: column; overflow: hidden; }
 
+/* Sub-tabs + filterbar (for bookings + reports sections) */
+.vbh-sectiontop { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 16px; border-bottom: 1px solid var(--color-border); flex-wrap: wrap; }
+.vbh-subtabs { display: inline-flex; gap: 2px; }
+.vbh-subtabs button { padding: 5px 14px; border: none; border-bottom: 3px solid transparent; background: none; cursor: pointer; color: var(--color-main-text); font-weight: 600; font-size: 0.9em; border-radius: 6px 6px 0 0; display: inline-flex; align-items: center; gap: 6px; }
+.vbh-subtabs button:hover { background: var(--color-background-hover); }
+.vbh-subtabs button.active { color: var(--color-primary-element); border-bottom-color: var(--color-primary-element); }
+.vbh-filterbar { flex: 0 0 auto; display: flex; gap: 8px; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--color-border); flex-wrap: wrap; background: var(--color-main-background); }
+.vbh-search { height: 34px; border: 1px solid var(--color-border); border-radius: var(--border-radius, 6px); padding: 0 10px; background: var(--color-main-background); color: var(--color-main-text); min-width: 160px; }
+.vbh-search--full { width: 100%; box-sizing: border-box; }
+.vbh-filter-select { min-width: 200px; max-width: 280px; }
+.vbh-sectionbody { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 12px 16px 48px; }
+.vbh-sectionbody.is-split { overflow: hidden; display: flex; padding: 0; }
+.vbh-splitinner { display: flex; flex: 1 1 auto; min-height: 0; min-width: 0; overflow: hidden; }
+
+/* Account tree search */
+.vbh-treesearch { padding: 8px; border-bottom: 1px solid var(--color-border); }
+
+/* Section headings */
 .vbh-section h3 { margin-top: 0; }
-.vbh-section h4 { margin: 18px 0 6px; }
+.vbh-section h4 { margin: 16px 0 6px; }
 .vbh-sectionhead { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.vbh-section-divider { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--color-border); }
+.vbh-addyear { display: flex; align-items: center; gap: 6px; }
+.vbh-addyear-input { width: 80px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--color-border); }
 .vbh-hint { color: var(--color-main-text); opacity: 0.8; max-width: 80ch; }
 .vbh-empty { color: var(--color-main-text); opacity: 0.65; font-style: italic; }
 .vbh-warn-inline { color: #b35900; font-weight: 600; margin-left: 10px; }
 
-.vbh-card { border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); padding: 16px; margin: 12px 0; background-color: var(--color-background-hover); }
+/* Cards */
+.vbh-card { border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); padding: 14px 16px; margin: 10px 0; background-color: var(--color-background-hover); }
 .vbh-card > h4 { margin-top: 0; }
-.vbh-card summary { cursor: pointer; font-weight: bold; }
-.vbh-uploadrow { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-.vbh-filebtn { display: inline-block; background: var(--color-background-dark); border: 1px solid var(--color-border); border-radius: var(--border-radius-element, 8px); padding: 7px 14px; cursor: pointer; font-weight: 600; }
+.vbh-card--danger { border-color: rgba(199, 60, 60, 0.5); }
+.vbh-uploadrow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.vbh-filebtn { display: inline-block; background: var(--color-background-dark); border: 1px solid var(--color-border); border-radius: var(--border-radius-element, 8px); padding: 6px 14px; cursor: pointer; font-weight: 600; }
 .vbh-filebtn:hover { background: var(--color-primary-element); color: var(--color-primary-element-text); }
 .vbh-filename { opacity: 0.8; font-size: 0.9em; }
 
-.vbh-tablecard { border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); margin: 10px 0; }
+/* Tables */
+.vbh-tablecard { border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); margin: 8px 0; }
 .vbh-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.92em; }
-.vbh-table th, .vbh-table td { text-align: left; padding: 7px 12px; border-bottom: 1px solid var(--color-border); }
+.vbh-table th, .vbh-table td { text-align: left; padding: 5px 10px; border-bottom: 1px solid var(--color-border); }
 .vbh-table tbody tr:last-child td { border-bottom: none; }
 .vbh-table thead th { position: sticky; top: 0; z-index: 2; background-color: var(--color-background-dark); color: var(--color-main-text); font-weight: 700; box-shadow: inset 0 -2px 0 var(--color-border); white-space: nowrap; }
 .vbh-table thead th.sortable { cursor: pointer; user-select: none; }
@@ -1018,29 +1639,48 @@ export default {
 .vbh-table tbody tr:nth-child(even) { background-color: var(--color-background-hover); }
 .vbh-table tbody tr:hover { background-color: var(--color-background-dark); }
 .vbh-table th.num, .vbh-table td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.vbh-table .right { text-align: right; }
+.vbh-table .right { text-align: right; white-space: nowrap; }
 .vbh-table .nowrap { white-space: nowrap; }
 .vbh-table .strong { font-weight: 600; }
-.vbh-purpose { max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vbh-purpose { max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .num.neg { color: #cc1f1f; font-weight: 700; }
-.num.pos { color: var(--color-main-text); }
+.num.good { color: #1f7a3d; font-weight: 700; }
+.num.bad { color: #cc1f1f; font-weight: 700; }
+.vbh-planinput { width: 110px; }
+.vbh-carryrow td { background-color: var(--color-background-hover); font-style: italic; }
 tr.assigned td { opacity: 0.85; }
+.vbh-tablecount { padding: 4px 10px; font-size: 0.82em; opacity: 0.7; }
 
-.vbh-tablecount { padding: 6px 12px; font-size: 0.82em; opacity: 0.7; }
+/* Badges */
+.vbh-badge { padding: 2px 8px; border-radius: 10px; font-size: 0.82em; background-color: var(--color-background-dark); color: var(--color-main-text); }
+.vbh-badge.pos { background-color: #1f7a3d; color: #fff; }
+.vbh-badge.muted { opacity: 0.9; }
+.vbh-badge--alert { background-color: #c73c3c; color: #fff; font-weight: 700; }
 
+/* Tags */
 .vbh-typetag { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 0.82em; background-color: var(--color-background-dark); color: var(--color-main-text); }
 .vbh-typetag.income { background-color: rgba(45, 125, 70, 0.25); }
 .vbh-typetag.expense { background-color: rgba(199, 60, 60, 0.25); }
 
-.vbh-assign { max-width: 280px; }
-.vbh-assign.unassigned { border-color: var(--color-warning, #c7870a); }
+/* KPI cards */
+.vbh-totals { display: flex; gap: 12px; margin: 12px 0; flex-wrap: wrap; }
+.vbh-total { border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); padding: 10px 16px; display: flex; flex-direction: column; gap: 4px; min-width: 140px; background-color: var(--color-background-hover); }
+.vbh-total span { opacity: 0.8; font-size: 0.82em; }
+.vbh-total strong { font-size: 1.3em; }
+.vbh-total.pos strong { color: #1f7a3d; }
+.vbh-total.neg strong { color: #cc1f1f; }
+.vbh-total--warn { border-color: rgba(201, 135, 10, 0.65); background-color: rgba(201, 135, 10, 0.1); }
 
-/* Master-Detail */
-.vbh-tree { flex: 0 0 480px; min-width: 320px; overflow-y: auto; border-right: 1px solid var(--color-border); padding: 12px 10px 24px; }
-.vbh-treehead { display: flex; align-items: center; justify-content: space-between; padding: 0 4px 8px; }
-.vbh-treeactions { display: flex; gap: 8px; }
-.vbh-treelist { display: flex; flex-direction: column; }
-.vbh-treenode { display: flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 8px; cursor: pointer; }
+/* Assignment select */
+.vbh-assign-cell { min-width: 180px; }
+.vbh-assign-select { min-width: 160px; max-width: 280px; }
+
+/* Master-Detail layout */
+.vbh-tree { flex: 0 0 440px; min-width: 280px; overflow-y: auto; border-right: 1px solid var(--color-border); display: flex; flex-direction: column; }
+.vbh-treehead { display: flex; align-items: center; justify-content: space-between; padding: 10px 10px 8px; flex: 0 0 auto; }
+.vbh-treeactions { display: flex; gap: 4px; }
+.vbh-treelist { flex: 1 1 auto; overflow-y: auto; display: flex; flex-direction: column; }
+.vbh-treenode { display: flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: 6px; cursor: pointer; }
 .vbh-treenode:hover { background-color: var(--color-background-hover); }
 .vbh-treenode.group { font-weight: 700; }
 .vbh-treenode.selected { background-color: var(--color-primary-element); color: var(--color-primary-element-text); }
@@ -1048,11 +1688,11 @@ tr.assigned td { opacity: 0.85; }
 .vbh-caret { display: inline-block; flex: 0 0 16px; width: 16px; height: 16px; line-height: 16px; text-align: center; border: none; background: transparent; cursor: pointer; color: inherit; opacity: 0.7; transition: transform 0.12s; font-size: 1em; padding: 0; }
 .vbh-caret.open { transform: rotate(90deg); }
 .vbh-caret.empty { cursor: default; color: var(--color-border); opacity: 0.6; }
-.vbh-treenum { flex: 0 0 auto; min-width: 58px; font-variant-numeric: tabular-nums; opacity: 0.7; font-size: 0.85em; font-weight: 400; }
+.vbh-treenum { flex: 0 0 auto; min-width: 54px; font-variant-numeric: tabular-nums; opacity: 0.7; font-size: 0.85em; font-weight: 400; }
 .vbh-treename { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .vbh-treesaldo { flex: 0 0 auto; font-variant-numeric: tabular-nums; font-size: 0.88em; font-weight: 400; }
 .vbh-treesaldo.zero { opacity: 0.3; }
-.vbh-ccsummary { display: flex; align-items: center; justify-content: space-between; padding: 8px; margin: 0 0 8px; border-radius: 8px; background-color: var(--color-background-hover); }
+.vbh-ccsummary { display: flex; align-items: center; justify-content: space-between; padding: 8px; margin: 0 8px 6px; border-radius: 8px; background-color: var(--color-background-hover); flex: 0 0 auto; }
 .vbh-ccsummary span { opacity: 0.8; font-size: 0.85em; }
 .vbh-ccsummary strong { font-variant-numeric: tabular-nums; }
 .vbh-rename { flex: 1 1 240px; }
@@ -1062,60 +1702,111 @@ tr.assigned td { opacity: 0.85; }
 .vbh-subtable { width: 100%; margin: 6px 0; font-size: 0.95em; border: 1px solid var(--color-border); border-radius: 8px; }
 .vbh-subtable thead th { position: static; box-shadow: inset 0 -1px 0 var(--color-border); background-color: var(--color-background-hover); }
 
-.vbh-detail { flex: 1 1 auto; min-width: 0; overflow-y: auto; padding: 16px 24px 48px; }
+.vbh-detail { flex: 1 1 auto; min-width: 0; overflow-y: auto; padding: 14px 20px 48px; }
 .vbh-detailhint { margin-top: 40px; text-align: center; }
 .vbh-detailhead { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .vbh-detailhead h3 { margin: 0 0 6px; }
 .vbh-cat { margin-left: 8px; opacity: 0.7; font-size: 0.9em; }
-.vbh-opening { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 14px 0; padding: 12px; border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); background-color: var(--color-background-hover); }
-.vbh-statementbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+.vbh-opening { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 12px 0; padding: 10px 14px; border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); background-color: var(--color-background-hover); }
+.vbh-statementbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
 
+/* Forms */
 .vbh-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-top: 10px; }
-.vbh-form.vbh-form-stack { flex-direction: column; align-items: stretch; }
 .vbh-form label { display: flex; flex-direction: column; font-size: 0.85em; gap: 3px; }
 .vbh-form .vbh-grow { flex: 1 1 220px; }
 .vbh-form .vbh-grow input, .vbh-form .vbh-grow select { width: 100%; }
-.vbh-check { display: inline-flex; align-items: center; gap: 6px; }
-.vbh-filter select { margin-left: 6px; }
-.vbh-num { width: 130px; text-align: right; }
-.vbh-short { width: 120px; }
+.vbh-num { width: 120px; text-align: right; }
+.vbh-short { width: 110px; }
 .vbh-date { width: 150px; }
 
-button.primary { background: var(--color-primary-element); color: var(--color-primary-element-text); border: none; border-radius: var(--border-radius-element, 8px); padding: 8px 14px; cursor: pointer; font-weight: 600; }
-button.primary.small { padding: 5px 10px; }
-button.primary:hover { background: var(--color-primary-element-hover); }
-button.primary:disabled { opacity: 0.5; cursor: default; }
-button.danger { background: #c1121f; color: #fff; border: none; border-radius: var(--border-radius-element, 8px); padding: 8px 14px; cursor: pointer; font-weight: 600; }
-button.danger:disabled { opacity: 0.5; cursor: default; }
-.vbh-btnlink { background: none; border: none; color: var(--color-primary-element); cursor: pointer; padding: 2px 6px; font-weight: 600; }
-.vbh-iconbtn { background: none; border: 1px solid var(--color-border); border-radius: 6px; cursor: pointer; padding: 2px 7px; margin-left: 4px; font-size: 0.95em; color: var(--color-main-text); }
-.vbh-iconbtn:hover { background-color: var(--color-background-dark); }
-.vbh-iconbtn.del:hover { background-color: #c1121f; color: #fff; border-color: #c1121f; }
+/* Modals */
+.vbh-modal-inner { padding: 4px 16px 20px; }
+.vbh-modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
 
+/* Preview */
 .vbh-previewsummary { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 10px; }
-.vbh-badge { padding: 3px 10px; border-radius: 10px; font-size: 0.85em; background-color: var(--color-background-dark); color: var(--color-main-text); }
-.vbh-badge.pos { background-color: #1f7a3d; color: #fff; }
-.vbh-badge.muted { opacity: 0.9; }
+.vbh-preview { margin-top: 10px; }
 
-.vbh-totals { display: flex; gap: 16px; margin: 12px 0; flex-wrap: wrap; }
-.vbh-total { border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); padding: 12px 18px; display: flex; flex-direction: column; min-width: 150px; background-color: var(--color-background-hover); }
-.vbh-total span { opacity: 0.8; font-size: 0.85em; }
-.vbh-total strong { font-size: 1.4em; }
-.vbh-total.pos strong { color: #1f7a3d; }
-.vbh-total.neg strong { color: #cc1f1f; }
+/* Icon fix + button layout */
+::v-deep .button-vue { display: inline-flex !important; }
+::v-deep .button-vue__icon { display: flex !important; align-items: center; justify-content: center; }
+::v-deep .button-vue__icon svg { display: block !important; }
+.vbh-table td.right { white-space: nowrap; }
+.vbh-actions { display: inline-flex; gap: 2px; align-items: center; }
 
-/* Modal */
-.vbh-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 10000; }
-.vbh-modal { background: var(--color-main-background); color: var(--color-main-text); border-radius: var(--border-radius-large, 12px); padding: 20px 24px; width: min(640px, 92vw); max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.4); }
-.vbh-modal h3 { margin-top: 0; }
-.vbh-modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+/* Chart grid */
+.vbh-chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px; }
+.vbh-chart-card { background-color: var(--color-background-hover); border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); padding: 14px 16px; }
+.vbh-chart-card--wide { grid-column: 1 / -1; }
+.vbh-chart-card h4 { margin: 0 0 10px; font-size: 0.88em; opacity: 0.8; }
+.vbh-chart-wrap { height: 260px; }
+.vbh-chart-wrap canvas { display: block; width: 100% !important; height: 100% !important; }
+
+/* Tables always scroll horizontally */
+.vbh-tablecard { overflow-x: auto; }
+
+/* Responsive: Tablet (≤ 760px) */
+@media (max-width: 760px) {
+	.vbh-chart-grid { grid-template-columns: 1fr; }
+	.vbh-chart-card--wide { grid-column: 1; }
+}
+
+/* Responsive: Mobile (≤ 640px) */
+@media (max-width: 640px) {
+	/* Header kompakter */
+	.vbh-header { padding: 8px 12px 0; }
+	.vbh-titlebar h2 { font-size: 1.05em; }
+	.vbh-bankchip { margin-left: 0; padding: 4px 10px; }
+	.vbh-bankchip-value { font-size: 1em; }
+
+	/* Tabs: scrollbar, kleinere Schrift */
+	.vbh-navbar { gap: 4px; flex-wrap: nowrap; align-items: center; }
+	.vbh-tabs { overflow-x: auto; scrollbar-width: none; flex-shrink: 1; min-width: 0; }
+	.vbh-tabs::-webkit-scrollbar { display: none; }
+	.vbh-tabs button { padding: 5px 10px; font-size: 0.82em; white-space: nowrap; }
+	.vbh-navright { flex-shrink: 0; gap: 2px; }
+	.vbh-yearsel { font-size: 0.8em; gap: 3px; }
+	.vbh-yearsel select { padding: 3px 4px; }
+	.vbh-yearsel > span { display: none; }
+
+	/* Weniger Außenabstand im Hauptbereich */
+	.vbh-section.scroll { padding: 10px 10px 48px; }
+	.vbh-sectionbody { padding: 8px 8px 48px; }
+	.vbh-sectiontop { padding: 6px 8px; gap: 8px; }
+	.vbh-filterbar { padding: 6px 8px; flex-direction: column; align-items: stretch; }
+	.vbh-search { width: 100%; box-sizing: border-box; min-width: 0; }
+	.vbh-filter-select { min-width: 0; max-width: none; width: 100%; }
+
+	/* Konten + Kostenstellen: Split-Layout stapeln statt nebeneinander */
+	.vbh-section.split { flex-direction: column; overflow-y: auto; }
+	.vbh-splitinner { flex-direction: column; overflow-y: auto; overflow-x: hidden; }
+	.vbh-sectionbody.is-split { overflow-y: auto; overflow-x: hidden; display: block; }
+	.vbh-tree { flex: 0 0 auto; max-height: 240px; min-width: 0; border-right: none; border-bottom: 1px solid var(--color-border); }
+	.vbh-detail { overflow-y: visible; min-width: 0; padding: 10px 10px 32px; }
+
+	/* Zuordnungs-Dropdown kompakter */
+	.vbh-assign-cell { min-width: 120px; }
+	.vbh-assign-select { min-width: 120px; max-width: 200px; }
+
+	/* KPI-Karten: kleiner, aber noch 2 nebeneinander */
+	.vbh-total { min-width: 110px; padding: 8px 12px; }
+	.vbh-total strong { font-size: 1.1em; }
+
+	/* Textabschneidung */
+	.vbh-purpose { max-width: 180px; }
+
+	/* Spalten auf Mobilgeräten ausblenden */
+	.vbh-col-hide-sm { display: none; }
+}
 
 @media (prefers-color-scheme: dark) {
-	.num.neg { color: #ff7a7a; }
+	.num.neg, .num.bad { color: #ff7a7a; }
+	.num.good { color: #6fcf97; }
 	.vbh-bankchip-hint, .vbh-warn-inline { color: #ffb060; }
 	.vbh-total.pos strong { color: #6fcf97; }
 	.vbh-total.neg strong { color: #ff7a7a; }
 	.vbh-treesaldo.neg, .vbh-ccsummary strong.neg { color: #ff7a7a; }
 	.vbh-badge.pos { background-color: #2d7d46; }
+	.vbh-badge--alert { background-color: #9b2a2a; }
 }
 </style>

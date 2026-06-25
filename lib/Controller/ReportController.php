@@ -30,8 +30,8 @@ class ReportController extends Controller {
 	}
 
 	#[NoAdminRequired]
-	public function costCenters(): DataResponse {
-		return new DataResponse($this->reportService->costCenterReport($this->userId()));
+	public function costCenters(?int $year = null): DataResponse {
+		return new DataResponse($this->reportService->costCenterReport($this->userId(), $year));
 	}
 
 	/**

@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\BankTransactionMapper;
+use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Service\JournalService;
@@ -26,6 +27,7 @@ class JournalController extends Controller {
 		private JournalLineMapper $lineMapper,
 		private AccountMapper $accountMapper,
 		private BankTransactionMapper $txMapper,
+		private BudgetMapper $budgetMapper,
 		private JournalService $journalService,
 		private IUserSession $userSession,
 	) {
@@ -36,10 +38,38 @@ class JournalController extends Controller {
 		return Application::BOOK;
 	}
 
+	/**
+	 * Datumsgrenzen für ein Geschäftsjahr (= Kalenderjahr) oder [null, null]
+	 * für „alle Jahre".
+	 *
+	 * @return array{0: ?string, 1: ?string}
+	 */
+	private function yearRange(?int $year): array {
+		if ($year === null || $year <= 0) {
+			return [null, null];
+		}
+		return [sprintf('%04d-01-01', $year), sprintf('%04d-12-31', $year)];
+	}
+
+	/** Geschäftsjahre mit Buchungen oder Planwerten (+ laufendes Jahr). */
 	#[NoAdminRequired]
-	public function index(int $limit = 10000, int $offset = 0): DataResponse {
+	public function years(): DataResponse {
 		$userId = $this->userId();
-		$journals = $this->journalMapper->findAll($userId, $limit, $offset);
+		$all = array_merge(
+			$this->journalMapper->distinctYears($userId),
+			$this->budgetMapper->distinctYears($userId),
+			[(int)date('Y')],
+		);
+		$all = array_values(array_unique($all));
+		rsort($all);
+		return new DataResponse($all);
+	}
+
+	#[NoAdminRequired]
+	public function index(int $limit = 10000, int $offset = 0, ?int $year = null): DataResponse {
+		$userId = $this->userId();
+		[$from, $to] = $this->yearRange($year);
+		$journals = $this->journalMapper->findAll($userId, $limit, $offset, $from, $to);
 		$out = [];
 		foreach ($journals as $journal) {
 			$lines = $this->lineMapper->findByJournal($journal->getId());
@@ -55,26 +85,39 @@ class JournalController extends Controller {
 	 * Saldenliste je Konto, gruppierbar nach Kategorie.
 	 */
 	#[NoAdminRequired]
-	public function balances(): DataResponse {
+	public function balances(?int $year = null): DataResponse {
 		$userId = $this->userId();
-		$sums = $this->lineMapper->sumByAccount($userId);
+		[$from, $to] = $this->yearRange($year);
 		$accounts = $this->accountMapper->findAll($userId);
+
+		// Bewegungssummen (Erfolgskonten = Jahr; ohne Jahr = alles).
+		$moveSums = $this->lineMapper->sumByAccount($userId, $from, $to);
+		// Bestandssummen (Bestandskonten = kumulativ bis Jahresende = Kontostand).
+		$balSums = $from !== null ? $this->lineMapper->sumByAccount($userId, null, $to) : $moveSums;
+
+		$isCreditNature = static fn (string $t): bool => in_array($t, ['income', 'liability', 'equity'], true);
+		$isStock = static fn (string $t): bool => in_array($t, ['asset', 'liability', 'equity'], true);
 
 		$rows = [];
 		foreach ($accounts as $account) {
 			$id = $account->getId();
-			$debit = $sums[$id]['debit'] ?? 0;
-			$credit = $sums[$id]['credit'] ?? 0;
-			// Saldo nach Kontonatur
-			$balance = match ($account->getType()) {
-				'income', 'liability', 'equity' => $credit - $debit,
-				default => $debit - $credit, // asset, expense
-			};
+			$type = $account->getType();
+			// Bewegung im Zeitraum (Spalten Soll/Haben).
+			$debit = $moveSums[$id]['debit'] ?? 0;
+			$credit = $moveSums[$id]['credit'] ?? 0;
+			// Saldo: Bestandskonten kumulativ (Kontostand), Erfolgskonten = Bewegung.
+			if ($isStock($type)) {
+				$bd = $balSums[$id]['debit'] ?? 0;
+				$bc = $balSums[$id]['credit'] ?? 0;
+				$balance = $isCreditNature($type) ? $bc - $bd : $bd - $bc;
+			} else {
+				$balance = $isCreditNature($type) ? $credit - $debit : $debit - $credit;
+			}
 			$rows[] = [
 				'accountId' => $id,
 				'number' => $account->getNumber(),
 				'name' => $account->getName(),
-				'type' => $account->getType(),
+				'type' => $type,
 				'category' => $account->getCategory(),
 				'debit' => $debit / 100,
 				'credit' => $credit / 100,
@@ -82,11 +125,22 @@ class JournalController extends Controller {
 			];
 		}
 
-		$income = array_sum(array_map(static fn ($r) => $r['type'] === 'income' ? $r['balance'] : 0, $rows));
-		$expense = array_sum(array_map(static fn ($r) => $r['type'] === 'expense' ? $r['balance'] : 0, $rows));
+		// Ergebnis: Einnahmen/Ausgaben nur aus den Bewegungen des Zeitraums.
+		$income = 0;
+		$expense = 0;
+		foreach ($accounts as $account) {
+			$id = $account->getId();
+			$d = $moveSums[$id]['debit'] ?? 0;
+			$c = $moveSums[$id]['credit'] ?? 0;
+			if ($account->getType() === 'income') {
+				$income += ($c - $d);
+			} elseif ($account->getType() === 'expense') {
+				$expense += ($d - $c);
+			}
+		}
 
 		// --- Bank-Abstimmung ---------------------------------------------
-		// Kontostand = Saldo aus dem Journal (inkl. Eröffnung + aller Buchungen).
+		// Kontostand = kumulativer Saldo (inkl. Eröffnung) bis Jahresende.
 		// "Offen" = Summe noch nicht zugeordneter CSV-Bankumsätze (nur Standard-Bankkonto).
 		$openUnassigned = $this->txMapper->sumAmount($userId, 'unassigned');
 		$defaultBankId = null;
@@ -103,7 +157,7 @@ class JournalController extends Controller {
 				continue;
 			}
 			$id = $account->getId();
-			$balance = ($sums[$id]['debit'] ?? 0) - ($sums[$id]['credit'] ?? 0);
+			$balance = ($balSums[$id]['debit'] ?? 0) - ($balSums[$id]['credit'] ?? 0);
 			$open = ($id === $defaultBankId) ? $openUnassigned : 0;
 			$bankReconciliation[] = [
 				'accountId' => $id,
@@ -115,11 +169,12 @@ class JournalController extends Controller {
 		}
 
 		return new DataResponse([
+			'year' => $year,
 			'accounts' => $rows,
 			'totals' => [
-				'income' => $income,
-				'expense' => $expense,
-				'result' => $income - $expense,
+				'income' => $income / 100,
+				'expense' => $expense / 100,
+				'result' => ($income - $expense) / 100,
 			],
 			'bankReconciliation' => $bankReconciliation,
 		]);
@@ -169,8 +224,9 @@ class JournalController extends Controller {
 	 * Kontoauszug eines Kontos – optional inklusive aller Unterkonten.
 	 */
 	#[NoAdminRequired]
-	public function byAccount(int $id, int $includeChildren = 1): DataResponse {
+	public function byAccount(int $id, int $includeChildren = 1, ?int $year = null): DataResponse {
 		$userId = $this->userId();
+		[$from, $to] = $this->yearRange($year);
 		$accounts = $this->accountMapper->findAll($userId);
 		$labels = [];
 		$childrenByParent = [];
@@ -193,10 +249,19 @@ class JournalController extends Controller {
 		$rows = [];
 		$sumDebit = 0;
 		$sumCredit = 0;
+		// Saldovortrag: Bewegung auf diesen Konten vor Beginn des Geschäftsjahres.
+		$carryDebit = 0;
+		$carryCredit = 0;
 		foreach ($journalIds as $jid) {
 			try {
 				$journal = $this->journalMapper->find($jid, $userId);
 			} catch (DoesNotExistException) {
+				continue;
+			}
+			$date = (string)$journal->getDate();
+			$beforePeriod = $from !== null && $date < $from;
+			$afterPeriod = $to !== null && $date > $to;
+			if ($afterPeriod) {
 				continue;
 			}
 			$lines = $this->lineMapper->findByJournal($jid);
@@ -208,6 +273,11 @@ class JournalController extends Controller {
 			}
 			foreach ($lines as $line) {
 				if (!isset($idSet[$line->getAccountId()])) {
+					continue;
+				}
+				if ($beforePeriod) {
+					$carryDebit += $line->getDebitCents();
+					$carryCredit += $line->getCreditCents();
 					continue;
 				}
 				$sumDebit += $line->getDebitCents();
@@ -231,14 +301,22 @@ class JournalController extends Controller {
 		});
 
 		$account = $this->accountMapper->find($id, $userId);
-		$balanceCents = $sumDebit - $sumCredit;
-		if (in_array($account->getType(), ['income', 'liability', 'equity'], true)) {
-			$balanceCents = $sumCredit - $sumDebit;
+		$isCreditNature = in_array($account->getType(), ['income', 'liability', 'equity'], true);
+		$isStock = in_array($account->getType(), ['asset', 'liability', 'equity'], true);
+
+		// Saldovortrag nur für Bestandskonten und nur bei aktivem Jahresfilter.
+		$carryCents = 0;
+		if ($from !== null && $isStock) {
+			$carryCents = $isCreditNature ? ($carryCredit - $carryDebit) : ($carryDebit - $carryCredit);
 		}
+		$periodNet = $isCreditNature ? ($sumCredit - $sumDebit) : ($sumDebit - $sumCredit);
+		$balanceCents = $carryCents + $periodNet;
 
 		return new DataResponse([
 			'account' => $account,
 			'includeChildren' => (bool)$includeChildren,
+			'year' => $year,
+			'carry' => $carryCents / 100,
 			'rows' => $rows,
 			'totals' => [
 				'debit' => $sumDebit / 100,

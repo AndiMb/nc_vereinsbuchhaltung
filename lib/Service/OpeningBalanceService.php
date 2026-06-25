@@ -54,8 +54,9 @@ class OpeningBalanceService {
 
 		$journal = new Journal();
 		$journal->setUserId($userId);
-		$journal->setEntryNo($this->journalMapper->getNextEntryNo($userId));
-		$journal->setDate($account->getOpeningDate() ?? (new \DateTime())->format('Y-m-d'));
+		$date = $account->getOpeningDate() ?? (new \DateTime())->format('Y-m-d');
+		$journal->setEntryNo($this->journalMapper->getNextEntryNoForYear($userId, (int)substr($date, 0, 4)));
+		$journal->setDate($date);
 		$journal->setDescription('Eröffnungsbuchung ' . $account->getNumber() . ' ' . $account->getName());
 		$journal->setDocumentRef(JournalMapper::OPENING_REF);
 		$journal->setBankTxId(null);

@@ -61,7 +61,7 @@ class ImportController extends Controller {
 		}
 		try {
 			return new DataResponse($this->importService->preview($this->userId(), $upload['content']));
-		} catch (\RuntimeException $e) {
+		} catch (\Throwable $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		}
 	}
@@ -76,7 +76,7 @@ class ImportController extends Controller {
 		try {
 			$result = $this->importService->commit($this->userId(), $upload['filename'], $upload['content'], $applyRules);
 			return new DataResponse($result, Http::STATUS_CREATED);
-		} catch (\RuntimeException $e) {
+		} catch (\Throwable $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		}
 	}
@@ -94,7 +94,7 @@ class ImportController extends Controller {
 		}
 		try {
 			return new DataResponse($this->xbucService->preview($upload['content']));
-		} catch (\RuntimeException $e) {
+		} catch (\Throwable $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		}
 	}
@@ -109,7 +109,7 @@ class ImportController extends Controller {
 		try {
 			$result = $this->xbucService->import($this->userId(), $upload['content'], $reset);
 			return new DataResponse($result, Http::STATUS_CREATED);
-		} catch (\RuntimeException $e) {
+		} catch (\Throwable $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		}
 	}

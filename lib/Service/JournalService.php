@@ -39,7 +39,8 @@ class JournalService {
 
 		$journal = new Journal();
 		$journal->setUserId($userId);
-		$journal->setEntryNo($entryNo ?? $this->journalMapper->getNextEntryNo($userId));
+		$year = (int)substr($date, 0, 4);
+		$journal->setEntryNo($entryNo ?? $this->journalMapper->getNextEntryNoForYear($userId, $year));
 		$journal->setDate($date);
 		$journal->setDescription(mb_substr($description, 0, 255));
 		$journal->setDocumentRef($docRef !== null ? mb_substr($docRef, 0, 64) : null);

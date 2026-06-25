@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\BankTransactionMapper;
+use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\CostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\ImportLogMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
@@ -25,6 +26,7 @@ class ResetService {
 		private RuleMapper $ruleMapper,
 		private AccountMapper $accountMapper,
 		private CostCenterMapper $costCenterMapper,
+		private BudgetMapper $budgetMapper,
 	) {
 	}
 
@@ -36,5 +38,6 @@ class ResetService {
 		$this->ruleMapper->deleteAllForUser($userId);
 		$this->accountMapper->deleteAllForUser($userId);
 		$this->costCenterMapper->deleteAllForUser($userId);
+		$this->budgetMapper->deleteAllForUser($userId);
 	}
 }
