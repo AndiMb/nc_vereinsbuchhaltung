@@ -96,7 +96,10 @@ class JournalController extends Controller {
 		$balSums = $from !== null ? $this->lineMapper->sumByAccount($userId, null, $to) : $moveSums;
 
 		$isCreditNature = static fn (string $t): bool => in_array($t, ['income', 'liability', 'equity'], true);
-		$isStock = static fn (string $t): bool => in_array($t, ['asset', 'liability', 'equity'], true);
+		// Kumulativ nur echte Bestandskonten (Bank/Kasse, Verbindlichkeiten).
+		// Eigenkapital (EB-Konto) wird jahresbezogen gezeigt, sonst stünde dort
+		// in jedem Folgejahr unverändert die Eröffnungssumme des ersten Jahres.
+		$isStock = static fn (string $t): bool => in_array($t, ['asset', 'liability'], true);
 
 		$rows = [];
 		foreach ($accounts as $account) {
@@ -302,7 +305,8 @@ class JournalController extends Controller {
 
 		$account = $this->accountMapper->find($id, $userId);
 		$isCreditNature = in_array($account->getType(), ['income', 'liability', 'equity'], true);
-		$isStock = in_array($account->getType(), ['asset', 'liability', 'equity'], true);
+		// Saldovortrag nur für echte Bestandskonten – nicht für Eigenkapital (EB).
+		$isStock = in_array($account->getType(), ['asset', 'liability'], true);
 
 		// Saldovortrag nur für Bestandskonten und nur bei aktivem Jahresfilter.
 		$carryCents = 0;

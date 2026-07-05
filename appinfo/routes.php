@@ -58,5 +58,22 @@ return [
 		['name' => 'rule#index', 'url' => '/api/rules', 'verb' => 'GET'],
 		['name' => 'rule#create', 'url' => '/api/rules', 'verb' => 'POST'],
 		['name' => 'rule#destroy', 'url' => '/api/rules/{id}', 'verb' => 'DELETE'],
+
+		// Export (CSV-Download)
+		['name' => 'export#journal',  'url' => '/api/export/journal',  'verb' => 'GET'],
+		['name' => 'export#balances', 'url' => '/api/export/balances', 'verb' => 'GET'],
+		['name' => 'export#report',   'url' => '/api/export/report',   'verb' => 'GET'],
+
+		// Einstellungen
+		['name' => 'settings#index',  'url' => '/api/settings', 'verb' => 'GET'],
+		['name' => 'settings#update', 'url' => '/api/settings', 'verb' => 'POST'],
+
+		// Belegablage
+		['name' => 'attachment#counts',   'url' => '/api/attachments/counts',              'verb' => 'GET'],
+		['name' => 'attachment#index',    'url' => '/api/journal/{journalId}/attachments', 'verb' => 'GET'],
+		['name' => 'attachment#create',   'url' => '/api/journal/{journalId}/attachments', 'verb' => 'POST'],
+		['name' => 'attachment#view',     'url' => '/api/attachments/{id}/view',          'verb' => 'GET'],
+		['name' => 'attachment#download', 'url' => '/api/attachments/{id}/download',       'verb' => 'GET'],
+		['name' => 'attachment#destroy',  'url' => '/api/attachments/{id}',                'verb' => 'DELETE'],
 	],
 ];

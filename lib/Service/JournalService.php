@@ -17,6 +17,7 @@ class JournalService {
 	public function __construct(
 		private JournalMapper $journalMapper,
 		private JournalLineMapper $lineMapper,
+		private AttachmentStorageService $attachmentStorage,
 	) {
 	}
 
@@ -80,6 +81,7 @@ class JournalService {
 
 	public function deleteBooking(int $id, string $userId): void {
 		$journal = $this->journalMapper->find($id, $userId);
+		$this->attachmentStorage->deleteForJournal($journal->getId());
 		$this->lineMapper->deleteByJournal($journal->getId());
 		$this->journalMapper->delete($journal);
 	}

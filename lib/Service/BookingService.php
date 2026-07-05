@@ -25,6 +25,7 @@ class BookingService {
 		private JournalLineMapper $lineMapper,
 		private BankTransactionMapper $txMapper,
 		private AccountService $accountService,
+		private AttachmentStorageService $attachmentStorage,
 	) {
 	}
 
@@ -88,6 +89,7 @@ class BookingService {
 		} catch (\Throwable) {
 			return;
 		}
+		$this->attachmentStorage->deleteForJournal($journal->getId());
 		$this->lineMapper->deleteByJournal($journal->getId());
 		$this->journalMapper->delete($journal);
 	}

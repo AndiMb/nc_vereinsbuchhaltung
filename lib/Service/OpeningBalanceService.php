@@ -23,6 +23,7 @@ class OpeningBalanceService {
 		private JournalMapper $journalMapper,
 		private JournalLineMapper $lineMapper,
 		private AccountService $accountService,
+		private AttachmentStorageService $attachmentStorage,
 	) {
 	}
 
@@ -37,6 +38,7 @@ class OpeningBalanceService {
 		// bestehende Eröffnungsbuchung dieses Kontos entfernen
 		$existing = $this->journalMapper->findOpeningForAccount($userId, $account->getId());
 		if ($existing !== null) {
+			$this->attachmentStorage->deleteForJournal($existing->getId());
 			$this->lineMapper->deleteByJournal($existing->getId());
 			$this->journalMapper->delete($existing);
 		}

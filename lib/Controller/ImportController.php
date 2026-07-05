@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\ImportLogMapper;
 use OCA\Vereinsbuchhaltung\Service\ImportService;
+use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCA\Vereinsbuchhaltung\Service\ResetService;
 use OCA\Vereinsbuchhaltung\Service\XbucImportService;
 use OCP\AppFramework\Controller;
@@ -25,6 +26,7 @@ class ImportController extends Controller {
 		private ResetService $resetService,
 		private ImportLogMapper $importMapper,
 		private IUserSession $userSession,
+		private PermissionService $permissionService,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -86,6 +88,16 @@ class ImportController extends Controller {
 		return new DataResponse($this->importMapper->findAll($this->userId()));
 	}
 
+	/** Optionaler year-Parameter: manuell gewähltes Geschäftsjahr (2000–2099). */
+	private function yearOverride(): ?int {
+		$raw = $this->request->getParam('year');
+		if (!is_numeric($raw)) {
+			return null;
+		}
+		$year = (int)$raw;
+		return ($year >= 2000 && $year <= 2099) ? $year : null;
+	}
+
 	#[NoAdminRequired]
 	public function xbucPreview(): DataResponse {
 		$upload = $this->readUpload();
@@ -93,7 +105,7 @@ class ImportController extends Controller {
 			return new DataResponse(['message' => 'Keine Datei empfangen'], Http::STATUS_BAD_REQUEST);
 		}
 		try {
-			return new DataResponse($this->xbucService->preview($upload['content']));
+			return new DataResponse($this->xbucService->preview($this->userId(), $upload['content'], $this->yearOverride()));
 		} catch (\Throwable $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		}
@@ -105,9 +117,13 @@ class ImportController extends Controller {
 		if ($upload === null) {
 			return new DataResponse(['message' => 'Keine Datei empfangen'], Http::STATUS_BAD_REQUEST);
 		}
-		$reset = filter_var($this->request->getParam('reset', true), FILTER_VALIDATE_BOOLEAN);
+		$reset = filter_var($this->request->getParam('reset', false), FILTER_VALIDATE_BOOLEAN);
+		$clampDates = filter_var($this->request->getParam('clampDates', false), FILTER_VALIDATE_BOOLEAN);
+		if ($reset && !$this->permissionService->isAdmin()) {
+			return new DataResponse(['message' => 'Nur Verwalter dürfen beim Import alle Daten löschen.'], Http::STATUS_FORBIDDEN);
+		}
 		try {
-			$result = $this->xbucService->import($this->userId(), $upload['content'], $reset);
+			$result = $this->xbucService->import($this->userId(), $upload['content'], $reset, $clampDates, $this->yearOverride());
 			return new DataResponse($result, Http::STATUS_CREATED);
 		} catch (\Throwable $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
@@ -116,6 +132,9 @@ class ImportController extends Controller {
 
 	#[NoAdminRequired]
 	public function reset(): DataResponse {
+		if (!$this->permissionService->isAdmin()) {
+			return new DataResponse(['message' => 'Nur Verwalter dürfen alle Daten zurücksetzen.'], Http::STATUS_FORBIDDEN);
+		}
 		$this->resetService->resetAll($this->userId());
 		return new DataResponse([]);
 	}

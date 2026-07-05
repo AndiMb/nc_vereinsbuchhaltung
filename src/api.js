@@ -53,6 +53,23 @@ export default {
 	createRule: data => axios.post(url('/rules'), data),
 	deleteRule: id => axios.delete(url(`/rules/${id}`)),
 
+	// Export (CSV-Download – Browser-Navigation, kein Axios)
+	exportJournalUrl:  year => generateUrl(base + '/export/journal')  + (year ? `?year=${year}` : ''),
+	exportBalancesUrl: year => generateUrl(base + '/export/balances') + (year ? `?year=${year}` : ''),
+	exportReportUrl:   year => generateUrl(base + '/export/report')   + (year ? `?year=${year}` : ''),
+
+	// Belegablage
+	attachmentCounts:     () => axios.get(url('/attachments/counts')),
+	listAttachments:      journalId => axios.get(url(`/journal/${journalId}/attachments`)),
+	uploadAttachment:     (journalId, formData) => axios.post(url(`/journal/${journalId}/attachments`), formData),
+	deleteAttachment:     id => axios.delete(url(`/attachments/${id}`)),
+	attachmentViewUrl:     id => generateUrl(base + `/attachments/${id}/view`),
+	attachmentDownloadUrl: id => generateUrl(base + `/attachments/${id}/download`),
+
+	// Einstellungen (Belegablage)
+	getSettings: () => axios.get(url('/settings')),
+	saveSettings: data => axios.post(url('/settings'), data),
+
 	// Berechtigungen
 	me: () => axios.get(url('/permissions/me')),
 	listPermissions: () => axios.get(url('/permissions')),

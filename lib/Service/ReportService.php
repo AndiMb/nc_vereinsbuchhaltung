@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service;
 
+use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\CostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
+use OCP\IConfig;
 
 /**
  * Auswertungen, insbesondere nach Kostenstellen.
@@ -28,7 +30,17 @@ class ReportService {
 		private AccountMapper $accountMapper,
 		private JournalLineMapper $lineMapper,
 		private CostCenterMapper $costCenterMapper,
+		private IConfig $config,
 	) {
+	}
+
+	/**
+	 * Kostenstellen-Modus: 'group' (2. Zahlengruppe der Kontonummer, Standard)
+	 * oder 'account' (jedes Erfolgskonto ist seine eigene Kostenstelle).
+	 */
+	public function costCenterMode(): string {
+		$mode = $this->config->getAppValue(Application::APP_ID, 'cost_center_mode', 'group');
+		return $mode === 'account' ? 'account' : 'group';
 	}
 
 	/**
@@ -56,6 +68,7 @@ class ReportService {
 			$to = sprintf('%04d-12-31', $year);
 		}
 		$sums = $this->lineMapper->sumByAccount($userId, $from, $to);
+		$mode = $this->costCenterMode();
 
 		$names = [];
 		foreach ($this->costCenterMapper->findAll($userId) as $cc) {
@@ -68,8 +81,27 @@ class ReportService {
 			if ($type !== 'income' && $type !== 'expense') {
 				continue;
 			}
-			$code = self::costCode($a->getNumber());
-			$key = $code ?? '';
+			if ($mode === 'account') {
+				// Jedes Erfolgskonto mit Bewegung ist seine eigene Kostenstelle.
+				$id = $a->getId();
+				if (($sums[$id]['debit'] ?? 0) === 0 && ($sums[$id]['credit'] ?? 0) === 0) {
+					continue;
+				}
+				$code = $a->getNumber();
+				$key = 'acc-' . $id;
+				if (!isset($groups[$key])) {
+					$groups[$key] = [
+						'code' => $code,
+						'name' => mb_substr($a->getName(), 0, 255),
+						'incomeCents' => 0,
+						'expenseCents' => 0,
+						'accounts' => [],
+					];
+				}
+			} else {
+				$code = self::costCode($a->getNumber());
+				$key = $code ?? '';
+			}
 			if (!isset($groups[$key])) {
 				$groups[$key] = [
 					'code' => $code,
@@ -89,7 +121,7 @@ class ReportService {
 				$balCents = $debit - $credit;
 				$groups[$key]['expenseCents'] += $balCents;
 			}
-			if ($balCents !== 0) {
+			if ($balCents !== 0 || $mode === 'account') {
 				$groups[$key]['accounts'][] = [
 					'accountId' => $id,
 					'number' => $a->getNumber(),
@@ -125,6 +157,7 @@ class ReportService {
 		}
 
 		return [
+			'mode' => $mode,
 			'costCenters' => $result,
 			'totals' => [
 				'income' => $totalIncome / 100,

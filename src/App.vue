@@ -13,11 +13,16 @@
 			<div v-if="canRead" class="vbh-navbar">
 				<nav class="vbh-tabs">
 					<button v-for="tab in visibleTabs" :key="tab.id" :class="{ active: activeTab === tab.id }" @click="activeTab = tab.id">
+						<NcIconSvgWrapper :path="tab.icon" :size="18" inline />
 						{{ tab.label }}
 						<span v-if="tab.id === 'bookings' && unassignedCount > 0" class="vbh-badge vbh-badge--alert">{{ unassignedCount }}</span>
 					</button>
 				</nav>
 				<div class="vbh-navright">
+					<NcButton v-if="canWrite" variant="primary" class="vbh-newbooking-btn" title="Neue Buchung anlegen (von überall)" @click="openNewBooking">
+						<template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>
+						<span class="vbh-newbooking-label">Buchung</span>
+					</NcButton>
 					<label class="vbh-yearsel" title="Geschäftsjahr (Kalenderjahr)">
 						<span>Jahr</span>
 						<select v-model="selectedYear">
@@ -39,19 +44,22 @@
 
 		<main v-show="canRead" class="vbh-main">
 			<!-- ============ ÜBERSICHT (DASHBOARD) ============ -->
-			<section v-show="activeTab === 'dashboard'" class="vbh-section scroll">
+			<section v-show="activeTab === 'dashboard'" class="vbh-section scroll" :class="{ 'vbh-fadein': sectionFade }">
 				<div v-if="balances" class="vbh-totals">
 					<div class="vbh-total pos">
 						<span>Einnahmen{{ selectedYear ? ' ' + selectedYear : '' }}</span>
 						<strong>{{ formatMoney(balances.totals.income) }}</strong>
+						<small v-if="kpiDeltas && kpiDeltas.income" class="vbh-total-delta" :class="kpiDeltas.income.up ? 'good' : 'bad'">{{ kpiDeltas.income.text }}</small>
 					</div>
 					<div class="vbh-total neg">
 						<span>Ausgaben</span>
 						<strong>{{ formatMoney(balances.totals.expense) }}</strong>
+						<small v-if="kpiDeltas && kpiDeltas.expense" class="vbh-total-delta" :class="kpiDeltas.expense.up ? 'bad' : 'good'">{{ kpiDeltas.expense.text }}</small>
 					</div>
 					<div class="vbh-total" :class="balances.totals.result >= 0 ? 'pos' : 'neg'">
 						<span>Ergebnis</span>
 						<strong>{{ formatMoney(balances.totals.result) }}</strong>
+						<small v-if="kpiDeltas && kpiDeltas.result" class="vbh-total-delta" :class="kpiDeltas.result.up ? 'good' : 'bad'">{{ kpiDeltas.result.text }}</small>
 					</div>
 					<div v-if="unassignedCount > 0" class="vbh-total vbh-total--warn">
 						<span>Nicht zugeordnet</span>
@@ -119,17 +127,23 @@
 			</section>
 
 			<!-- ============ BUCHUNGEN (JOURNAL + TRANSAKTIONEN) ============ -->
-			<section v-show="activeTab === 'bookings'" class="vbh-section vbh-flex-col">
+			<section v-show="activeTab === 'bookings'" class="vbh-section vbh-flex-col" :class="{ 'vbh-fadein': sectionFade }">
 				<div class="vbh-sectiontop">
 					<div class="vbh-subtabs">
-						<button :class="{ active: bookingView === 'journal' }" @click="bookingView = 'journal'">Journal</button>
+						<button :class="{ active: bookingView === 'journal' }" @click="bookingView = 'journal'">Alle Buchungen</button>
 						<button :class="{ active: bookingView === 'unassigned' }" @click="bookingView = 'unassigned'">
 							Zuzuordnen
 							<span v-if="unassignedCount > 0" class="vbh-badge vbh-badge--alert">{{ unassignedCount }}</span>
 						</button>
 						<button :class="{ active: bookingView === 'assigned' }" @click="bookingView = 'assigned'">Zugeordnet</button>
 					</div>
-					<NcButton v-if="canWrite && bookingView === 'journal'" variant="primary" @click="openNewBooking">＋ Neue Buchung</NcButton>
+					<div class="vbh-sectiontop-actions">
+						<a v-if="bookingView === 'journal'" :href="exportJournalUrl" download class="vbh-export-btn" title="Journal als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> CSV</a>
+						<NcButton v-if="canWrite" variant="secondary" @click="openImport">
+							<template #icon><NcIconSvgWrapper :path="mdiUpload" :size="18" /></template>
+							Umsätze importieren
+						</NcButton>
+					</div>
 				</div>
 
 				<div class="vbh-filterbar">
@@ -138,6 +152,7 @@
 						v-if="bookingView === 'journal'"
 						v-model="bookingFilterAccountOption"
 						:options="accountOptionsList"
+						:filter-by="accountFilterBy"
 						label="label"
 						:clearable="true"
 						placeholder="Konto filtern"
@@ -171,12 +186,21 @@
 										<td class="vbh-col-hide-sm">{{ r.haben }}</td>
 										<td class="num strong">{{ formatMoney(r.amount) }}</td>
 										<td class="nowrap right">
-											<NcButton v-if="canWrite" variant="tertiary" aria-label="Bearbeiten" @click="editBooking(r)">
-												<template #icon><NcIconSvgWrapper :path="mdiPencil" :size="20" /></template>
-											</NcButton>
-											<NcButton v-if="canWrite" variant="error" aria-label="Löschen" @click="removeBooking(r)">
-												<template #icon><NcIconSvgWrapper :path="mdiDelete" :size="20" /></template>
-											</NcButton>
+											<div class="vbh-actions">
+												<NcButton v-if="attachmentCountMap[r.id]"
+													variant="tertiary"
+													:title="attachmentCountMap[r.id].count === 1 ? 'Beleg anzeigen' : attachmentCountMap[r.id].count + ' Belege'"
+													:aria-label="attachmentCountMap[r.id].count + ' Beleg(e)'"
+													@click="clickPaperclip(r)">
+													<template #icon><NcIconSvgWrapper :path="mdiPaperclip" :size="16" /></template>
+												</NcButton>
+												<NcButton v-if="canWrite" variant="tertiary" aria-label="Bearbeiten" @click="editBooking(r)">
+													<template #icon><NcIconSvgWrapper :path="mdiPencil" :size="20" /></template>
+												</NcButton>
+												<NcButton v-if="canWrite" variant="error" aria-label="Löschen" @click="removeBooking(r)">
+													<template #icon><NcIconSvgWrapper :path="mdiDelete" :size="20" /></template>
+												</NcButton>
+											</div>
 										</td>
 									</tr>
 								</tbody>
@@ -188,6 +212,10 @@
 
 					<!-- TRANSACTIONS VIEW (unassigned / assigned) -->
 					<template v-else>
+						<div v-if="bookingView === 'unassigned' && assignProgress.total > 0" class="vbh-progress">
+							<span class="vbh-progress-label">{{ assignProgress.done }} von {{ assignProgress.total }} Bankbuchungen zugeordnet</span>
+							<div class="vbh-progress-bar"><div class="vbh-progress-fill" :style="{ width: assignProgress.pct + '%' }"></div></div>
+						</div>
 						<div v-if="currentTransactions.length" class="vbh-tablecard">
 							<div class="vbh-tablecount">{{ currentTransactions.length }} Buchungen</div>
 							<table class="vbh-table">
@@ -200,40 +228,70 @@
 										<th>Konto / Kategorie</th>
 									</tr>
 								</thead>
-								<tbody>
-									<tr v-for="tx in currentTransactions" :key="tx.id" :class="{ assigned: tx.status === 'assigned' }">
+								<transition-group tag="tbody" name="vbh-row">
+									<tr v-for="tx in currentTransactions" :key="tx.id" :class="{ assigned: tx.status === 'assigned', open: tx.status !== 'assigned' }">
 										<td class="nowrap">{{ formatDate(tx.bookingDate) }}</td>
 										<td>{{ tx.counterparty }}</td>
 										<td class="vbh-purpose vbh-col-hide-sm" :title="tx.purpose">{{ tx.purpose }}</td>
 										<td class="num" :class="amountClass(tx.amount)">{{ formatMoney(tx.amount) }}</td>
 										<td class="vbh-assign-cell">
-											<NcSelect
-												:model-value="accountOptionFor(tx.contraAccountId)"
-												:options="accountOptionsList"
-												:clearable="!!tx.contraAccountId"
-												:disabled="!canWrite"
-												label="label"
-												placeholder="– nicht zugeordnet –"
-												class="vbh-assign-select"
-												@update:model-value="v => onAssign(tx, v ? v.id : '')"
-											/>
+											<div class="vbh-assign-row">
+												<NcSelect
+													:model-value="accountOptionFor(tx.contraAccountId)"
+													:options="accountOptionsList"
+													:filter-by="accountFilterBy"
+													:clearable="!!tx.contraAccountId"
+													:disabled="!canWrite"
+													label="label"
+													placeholder="– nicht zugeordnet –"
+													class="vbh-assign-select"
+													@update:model-value="v => onAssign(tx, v ? v.id : '')"
+												/>
+												<NcButton
+													v-if="canWrite && tx.status === 'assigned' && tx.counterparty && tx.contraAccountId"
+													variant="tertiary"
+													:title="'Regel anlegen: ' + tx.counterparty + ' künftig automatisch zuordnen'"
+													:aria-label="'Zuordnungsregel anlegen'"
+													@click="createRuleFromTx(tx)"
+												>
+													<template #icon><NcIconSvgWrapper :path="mdiFlash" :size="16" /></template>
+												</NcButton>
+											</div>
+											<button
+												v-if="canWrite && !tx.contraAccountId && suggestionsById[tx.id]"
+												class="vbh-suggest-chip"
+												:title="'Vorschlag übernehmen: ' + suggestionsById[tx.id].label"
+												@click="applySuggestion(tx)"
+											>
+												✓ Vorschlag: {{ suggestionsById[tx.id].label }}
+											</button>
 										</td>
 									</tr>
-								</tbody>
+								</transition-group>
 							</table>
 						</div>
 						<NcEmptyContent v-else-if="bookingSearch" name="Keine Treffer" description="Suchfilter anpassen." />
-						<NcEmptyContent v-else-if="bookingView === 'unassigned'" name="Alle Buchungen zugeordnet" description="Keine offenen Bankbuchungen – alles erledigt." />
+						<NcEmptyContent v-else-if="bookingView === 'unassigned'" name="Alle Buchungen zugeordnet" description="Keine offenen Bankbuchungen – alles erledigt.">
+							<template v-if="canWrite" #action>
+								<NcButton variant="secondary" @click="openImport">
+									<template #icon><NcIconSvgWrapper :path="mdiUpload" :size="18" /></template>
+									Neue Umsätze importieren
+								</NcButton>
+							</template>
+						</NcEmptyContent>
 						<NcEmptyContent v-else name="Keine zugeordneten Buchungen" description="Noch keine Bankbuchungen einem Konto zugeordnet." />
 					</template>
 				</div>
 			</section>
 
 			<!-- ============ KONTEN ============ -->
-			<section v-show="activeTab === 'accounts'" class="vbh-section split">
+			<section v-show="activeTab === 'accounts'" class="vbh-section split" :class="{ 'vbh-fadein': sectionFade }">
 				<div class="vbh-tree">
 					<div class="vbh-treehead">
-						<NcButton v-if="canWrite" variant="primary" size="small" @click="openNewAccount">＋ Konto</NcButton>
+						<NcButton v-if="canWrite" variant="primary" size="small" @click="openNewAccount">
+							<template #icon><NcIconSvgWrapper :path="mdiPlus" :size="18" /></template>
+							Konto
+						</NcButton>
 						<span v-else></span>
 						<div class="vbh-treeactions">
 							<NcButton variant="tertiary" @click="expandAll">alle auf</NcButton>
@@ -332,12 +390,16 @@
 			</section>
 
 			<!-- ============ BERICHTE (AUSWERTUNG + KOSTENSTELLEN + FINANZPLAN) ============ -->
-			<section v-show="activeTab === 'reports'" class="vbh-section vbh-flex-col">
+			<section v-show="activeTab === 'reports'" class="vbh-section vbh-flex-col" :class="{ 'vbh-fadein': sectionFade }">
 				<div class="vbh-sectiontop">
 					<div class="vbh-subtabs">
 						<button :class="{ active: reportView === 'summary' }" @click="reportView = 'summary'">Auswertung</button>
 						<button :class="{ active: reportView === 'costcenters' }" @click="reportView = 'costcenters'">Kostenstellen</button>
 						<button :class="{ active: reportView === 'budget' }" @click="reportView = 'budget'">Finanzplan</button>
+					</div>
+					<div class="vbh-sectiontop-actions">
+						<a v-if="reportView === 'summary'" :href="exportBalancesUrl" download class="vbh-export-btn" title="Saldenliste als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> Saldenliste</a>
+						<a v-if="reportView === 'summary'" :href="exportReportUrl" download class="vbh-export-btn" title="E/A-Übersicht als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> E/A-Übersicht</a>
 					</div>
 				</div>
 
@@ -383,9 +445,11 @@
 									</tr>
 								</thead>
 								<tbody>
-									<tr v-for="row in sortedBalances" :key="row.accountId">
+									<tr v-for="row in sortedBalances" :key="row.accountId" :class="{ 'vbh-parentrow': row.isParent }">
 										<td class="nowrap vbh-col-hide-sm">{{ row.number }}</td>
-										<td>{{ row.name }}</td>
+										<td :style="{ paddingLeft: (10 + (row.depth || 0) * 18) + 'px' }">
+											<span v-if="row.depth" class="vbh-treeglyph">└</span>{{ row.name }}
+										</td>
 										<td class="vbh-col-hide-sm">{{ row.category }}</td>
 										<td class="num vbh-col-hide-sm">{{ formatMoney(row.debit) }}</td>
 										<td class="num vbh-col-hide-sm">{{ formatMoney(row.credit) }}</td>
@@ -420,7 +484,7 @@
 							<template v-else>
 								<div class="vbh-detailhead"><div><h3>{{ selectedCC.code ? selectedCC.code + ' · ' : '' }}{{ selectedCC.name }}</h3></div></div>
 
-								<div v-if="canWrite && selectedCC.code" class="vbh-opening">
+								<div v-if="canWrite && selectedCC.code && reportData && reportData.mode !== 'account'" class="vbh-opening">
 									<span>Name:</span>
 									<input v-model="renameName" class="vbh-rename">
 									<NcButton variant="primary" size="small" @click="saveRename">Umbenennen</NcButton>
@@ -538,20 +602,11 @@
 			<div class="vbh-modal-inner">
 				<h3>Kontoumsätze importieren (CSV-CAMT)</h3>
 				<div class="vbh-card">
-					<p class="vbh-hint">Bankexport im CSV-CAMT-Format. Nur neue Buchungen werden übernommen (Dublettenprüfung).</p>
-					<div class="vbh-uploadrow">
-						<label class="vbh-filebtn">Datei wählen<input ref="fileInput" type="file" accept=".csv,text/csv" hidden @change="onFileSelected"></label>
-						<span class="vbh-filename">{{ selectedFile ? selectedFile.name : 'keine Datei gewählt' }}</span>
-						<NcCheckboxRadioSwitch v-model="applyRules">Auto-Zuordnungsregeln anwenden</NcCheckboxRadioSwitch>
-					</div>
-					<div v-if="previewResult" class="vbh-preview">
-						<p class="vbh-previewsummary">
-							<span class="vbh-badge pos">{{ previewResult.new }} neu</span>
-							<span class="vbh-badge muted">{{ previewResult.duplicate }} Dubletten</span>
-							<span class="vbh-badge muted">{{ previewResult.total }} gesamt</span>
-						</p>
-						<NcButton variant="primary" :disabled="busy || previewResult.new === 0" @click="commit">{{ previewResult.new }} Buchungen importieren</NcButton>
-					</div>
+					<p class="vbh-hint">Der CSV-Import ist direkt im Tab „Buchungen" erreichbar.</p>
+					<NcButton variant="secondary" @click="showSettings = false; openImport()">
+						<template #icon><NcIconSvgWrapper :path="mdiUpload" :size="18" /></template>
+						Kontoumsätze importieren…
+					</NcButton>
 				</div>
 
 				<h3>Aus „zero Buchhaltung" (.xbuc)</h3>
@@ -567,6 +622,39 @@
 							<span class="vbh-badge pos">{{ xbucPreviewResult.accounts }} Konten</span>
 							<span class="vbh-badge pos">{{ xbucPreviewResult.bookings }} Buchungen</span>
 						</p>
+						<div class="vbh-form vbh-yearedit">
+							<label>Geschäftsjahr
+								<input v-model.number="xbucYear" type="number" min="2000" max="2099" placeholder="z. B. 2025" class="vbh-addyear-input" @change="xbucPreview()">
+							</label>
+							<span v-if="!xbucPreviewResult.fileYear && !xbucYear" class="vbh-hint">Kein Geschäftsjahr in der Datei hinterlegt – Jahr eintragen, um die Datumsprüfung zu aktivieren.</span>
+							<span v-else-if="xbucPreviewResult.fileYear && xbucYear && xbucYear !== xbucPreviewResult.fileYear" class="vbh-warn-inline">Weicht vom Jahr der Datei ab ({{ xbucPreviewResult.fileYear }}).</span>
+						</div>
+						<div v-if="!xbucReset && xbucPreviewResult.openings && xbucPreviewResult.openings.length" class="vbh-openinfo">
+							<p class="vbh-openinfo-title">Anfangsbestände in der Datei:</p>
+							<ul class="vbh-yearwarn-list">
+								<li v-for="(o, i) in xbucPreviewResult.openings" :key="i">
+									{{ o.account }}: {{ formatMoney(o.amount) }} ({{ formatDate(o.date) }}) –
+									<template v-if="o.action === 'import'">wird übernommen (keine Vorjahresbuchungen vorhanden)</template>
+									<template v-else-if="o.matches">wird übersprungen, stimmt mit dem Vorjahres-Endstand überein ✓</template>
+									<template v-else><span class="vbh-warn-inline">wird übersprungen – ⚠ Vorjahres-Endstand ist {{ formatMoney(o.priorBalance) }} (Differenz {{ formatMoney(o.amount - o.priorBalance) }})</span></template>
+								</li>
+							</ul>
+						</div>
+						<div v-if="xbucPreviewResult.outsideYear > 0" class="vbh-yearwarn">
+							<p class="vbh-warn-inline">
+								⚠ {{ xbucPreviewResult.outsideYear }} Buchung(en) liegen außerhalb des Geschäftsjahres {{ xbucPreviewResult.year }}
+								und würden in der App einem anderen Jahr zugeordnet:
+							</p>
+							<ul class="vbh-yearwarn-list">
+								<li v-for="(s, i) in xbucPreviewResult.outsideSamples" :key="i">
+									{{ formatDate(s.date) }} · {{ formatMoney(s.amount) }} · {{ s.text }}
+								</li>
+								<li v-if="xbucPreviewResult.outsideYear > xbucPreviewResult.outsideSamples.length">…</li>
+							</ul>
+							<NcCheckboxRadioSwitch v-model="xbucClampDates">
+								Diese Buchungen auf das Geschäftsjahr {{ xbucPreviewResult.year }} datieren (01.01. bzw. 31.12.)
+							</NcCheckboxRadioSwitch>
+						</div>
 						<NcButton variant="primary" :disabled="busy" @click="xbucImport">Importieren</NcButton>
 						<span v-if="xbucReset" class="vbh-warn-inline">Achtung: bestehende Daten werden gelöscht.</span>
 					</div>
@@ -642,6 +730,46 @@
 					</div>
 					<NcEmptyContent v-else name="Keine Berechtigungen" description="Nextcloud-Administratoren haben immer Zugriff." />
 
+					<h3 class="vbh-section-divider">Kostenstellen</h3>
+					<div class="vbh-card">
+						<p class="vbh-hint">
+							Bestimmt, wie der Bericht „Kostenstellen" die Konten gruppiert. Der Modus hängt vom
+							Kontenrahmen des Vereins ab.
+						</p>
+						<div class="vbh-form">
+							<label class="vbh-grow">Modus
+								<select v-model="costCenterMode">
+									<option value="group">2. Zahlengruppe der Kontonummer (z. B. „111 51" → Kostenstelle 51)</option>
+									<option value="account">Jedes Einnahmen-/Ausgabenkonto ist eine eigene Kostenstelle</option>
+								</select>
+							</label>
+							<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings">Speichern</NcButton>
+						</div>
+					</div>
+
+					<h3 class="vbh-section-divider">Belegablage</h3>
+					<div class="vbh-card">
+						<p class="vbh-hint">
+							Belege können intern (AppData, nicht in der Nextcloud-Oberfläche sichtbar) oder in einem
+							Ordner eines Nextcloud-Nutzers gespeichert werden. Wenn kein Nutzer gewählt ist, wird die interne Ablage verwendet.
+						</p>
+						<div class="vbh-form">
+							<label class="vbh-grow">Nextcloud-Nutzer
+								<select v-model="storageUser">
+									<option value="">— intern (AppData) —</option>
+									<option v-for="u in users" :key="u.id" :value="u.id">{{ u.displayName }} ({{ u.id }})</option>
+								</select>
+							</label>
+							<label class="vbh-grow">Ordnerpfad im Nutzer-Home
+								<input v-model="storagePath" type="text" placeholder="Vereinsbuchhaltung/Belege">
+							</label>
+							<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings">Speichern</NcButton>
+						</div>
+						<p v-if="storageUser" class="vbh-hint vbh-hint--info">
+							Belege werden unter <code>{{ storageUser }}/{{ storagePath || 'Vereinsbuchhaltung/Belege' }}/&lt;BuchungsID&gt;/</code> abgelegt.
+						</p>
+					</div>
+
 					<div class="vbh-card vbh-card--danger">
 						<h4>Alle Daten löschen</h4>
 						<p class="vbh-hint">Löscht alle Konten, Buchungen und Importe dieses Kontos unwiderruflich.</p>
@@ -651,35 +779,145 @@
 			</div>
 		</NcModal>
 
+		<!-- ============ IMPORT-DIALOG (CSV-CAMT) ============ -->
+		<NcModal :show.sync="showImport" name="Kontoumsätze importieren (CSV-CAMT)" size="normal" @close="closeImport">
+			<div class="vbh-modal-inner">
+				<template v-if="!importDone">
+					<div
+						class="vbh-dropzone"
+						:class="{ dragging: importDragging, 'has-file': !!selectedFile }"
+						@dragover.prevent="importDragging = true"
+						@dragleave.self="importDragging = false"
+						@drop.prevent="onImportDrop"
+					>
+						<NcIconSvgWrapper :path="mdiUpload" :size="36" class="vbh-dropzone-icon" />
+						<p class="vbh-dropzone-text">
+							CSV-Datei der Bank hierher ziehen<br>
+							<span class="vbh-dropzone-or">oder</span>
+						</p>
+						<label class="vbh-filebtn">Datei wählen<input ref="fileInput" type="file" accept=".csv,text/csv" hidden @change="onFileSelected"></label>
+						<p v-if="selectedFile" class="vbh-filename">{{ selectedFile.name }}</p>
+					</div>
+					<p class="vbh-hint">Nur neue Buchungen werden übernommen – bereits importierte werden automatisch erkannt (Dublettenprüfung).</p>
+					<NcCheckboxRadioSwitch v-model="applyRules">Auto-Zuordnungsregeln anwenden</NcCheckboxRadioSwitch>
+					<div v-if="previewResult" class="vbh-preview">
+						<p class="vbh-previewsummary">
+							<span class="vbh-badge pos">{{ previewResult.new }} neu</span>
+							<span class="vbh-badge muted">{{ previewResult.duplicate }} Dubletten</span>
+							<span class="vbh-badge muted">{{ previewResult.total }} gesamt</span>
+						</p>
+						<NcButton variant="primary" :disabled="busy || previewResult.new === 0" @click="commit">{{ previewResult.new }} Buchungen importieren</NcButton>
+						<p v-if="previewResult.new === 0" class="vbh-hint">Alle Buchungen dieser Datei wurden bereits importiert.</p>
+					</div>
+				</template>
+				<template v-else>
+					<div class="vbh-import-done">
+						<NcIconSvgWrapper :path="mdiCheckCircle" :size="48" class="vbh-import-done-icon" />
+						<h3>{{ importDone.new }} Buchungen importiert</h3>
+						<p v-if="importDone.autoAssigned > 0" class="vbh-hint">{{ importDone.autoAssigned }} davon wurden automatisch zugeordnet.</p>
+						<p v-if="importDone.new - importDone.autoAssigned > 0" class="vbh-hint">
+							{{ importDone.new - importDone.autoAssigned }} Buchungen warten auf die Zuordnung zu einem Konto.
+						</p>
+						<div class="vbh-modal-actions">
+							<NcButton variant="tertiary" @click="closeImport">Schließen</NcButton>
+							<NcButton v-if="importDone.new - importDone.autoAssigned > 0" variant="primary" @click="goAssignAfterImport">Jetzt zuordnen</NcButton>
+						</div>
+					</div>
+				</template>
+			</div>
+		</NcModal>
+
 		<!-- ============ BUCHUNGS-DIALOG ============ -->
 		<NcModal :show.sync="showBooking" :name="bookingForm.id ? 'Buchung bearbeiten #' + bookingForm.entryNo : 'Neue Buchung'" size="normal" @close="closeBooking">
 			<div class="vbh-modal-inner">
+				<div v-if="bookingMode === 'simple'" class="vbh-kindtoggle" role="radiogroup" aria-label="Buchungsart">
+					<button type="button" class="vbh-kindbtn income" :class="{ active: bookingForm.kind === 'income' }" @click="setBookingKind('income')">Einnahme</button>
+					<button type="button" class="vbh-kindbtn expense" :class="{ active: bookingForm.kind === 'expense' }" @click="setBookingKind('expense')">Ausgabe</button>
+				</div>
 				<div class="vbh-form">
 					<label>Datum<input v-model="bookingForm.date" type="date"></label>
 					<label>Beleg-Nr.<input v-model="bookingForm.documentRef" class="vbh-short" placeholder="optional"></label>
-					<label>Betrag (€)<input v-model.number="bookingForm.amount" type="number" step="0.01" class="vbh-num"></label>
+					<label>Betrag (€)<input v-model.number="bookingForm.amount" type="number" step="0.01" min="0.01" class="vbh-num"></label>
 				</div>
+				<template v-if="bookingMode === 'simple'">
+					<div class="vbh-form">
+						<label class="vbh-grow">{{ bookingForm.kind === 'income' ? 'Wofür? (Einnahme-Kategorie)' : 'Wofür? (Ausgabe-Kategorie)' }}
+							<NcSelect
+								v-model="bookingFormCategoryOption"
+								:options="simpleCategoryOptions"
+								:filter-by="accountFilterBy"
+								label="label"
+								placeholder="– Kategorie wählen –"
+							/>
+						</label>
+						<label class="vbh-grow">Geldkonto (Bank/Kasse)
+							<NcSelect
+								v-model="bookingFormMoneyOption"
+								:options="moneyAccountOptions"
+								:filter-by="accountFilterBy"
+								label="label"
+								placeholder="– wählen –"
+							/>
+						</label>
+					</div>
+				</template>
+				<template v-else>
+					<div class="vbh-form">
+						<label class="vbh-grow">Soll (Aufwand/Aktiv)
+							<NcSelect
+								v-model="bookingFormDebitOption"
+								:options="accountOptionsList"
+								:filter-by="accountFilterBy"
+								label="label"
+								placeholder="– wählen –"
+							/>
+						</label>
+						<label class="vbh-grow">Haben (Ertrag/Passiv)
+							<NcSelect
+								v-model="bookingFormCreditOption"
+								:options="accountOptionsList"
+								:filter-by="accountFilterBy"
+								label="label"
+								placeholder="– wählen –"
+							/>
+						</label>
+					</div>
+				</template>
 				<div class="vbh-form">
-					<label class="vbh-grow">Soll (Aufwand/Aktiv)
-						<NcSelect
-							v-model="bookingFormDebitOption"
-							:options="accountOptionsList"
-							label="label"
-							placeholder="– wählen –"
-						/>
-					</label>
-					<label class="vbh-grow">Haben (Ertrag/Passiv)
-						<NcSelect
-							v-model="bookingFormCreditOption"
-							:options="accountOptionsList"
-							label="label"
-							placeholder="– wählen –"
-						/>
-					</label>
+					<label class="vbh-grow">Buchungstext<input v-model="bookingForm.description" placeholder="z. B. Mitgliedsbeitrag Max Mustermann"></label>
 				</div>
-				<div class="vbh-form">
-					<label class="vbh-grow">Buchungstext<input v-model="bookingForm.description" placeholder="Beschreibung"></label>
+				<div class="vbh-expertrow">
+					<NcCheckboxRadioSwitch v-model="bookingModeExpert" type="switch">
+						Experten-Modus (Soll/Haben direkt wählen)
+					</NcCheckboxRadioSwitch>
 				</div>
+
+				<!-- Belegablage (nur bei bestehenden Buchungen verfügbar) -->
+				<div v-if="bookingForm.id" class="vbh-attachments">
+					<div class="vbh-attachments-header">
+						<span class="vbh-attachments-title">Belege</span>
+						<label v-if="canWrite" class="vbh-upload-label" :class="{ 'is-uploading': attachmentUploading }">
+							<input type="file" accept="image/*,application/pdf" multiple :disabled="attachmentUploading" hidden @change="uploadAttachment">
+							<span class="vbh-upload-btn">
+								<NcIconSvgWrapper :path="mdiPaperclip" :size="16" />
+								{{ attachmentUploading ? 'Lädt hoch…' : 'Anhängen' }}
+							</span>
+						</label>
+					</div>
+					<ul v-if="bookingAttachments.length" class="vbh-attachment-list">
+						<li v-for="a in bookingAttachments" :key="a.id" class="vbh-attachment-item">
+							<NcIconSvgWrapper :path="mdiPaperclip" :size="14" class="vbh-attachment-icon" />
+							<button class="vbh-attachment-name" :title="'Anzeigen: ' + a.fileName" @click="openViewer(a)">{{ a.fileName }}</button>
+							<span class="vbh-attachment-size">{{ formatFileSize(a.fileSize) }}</span>
+							<a :href="attachmentDownloadUrl(a.id)" class="vbh-attachment-dl" title="Herunterladen" download>↓</a>
+							<NcButton v-if="canWrite" variant="tertiary" :aria-label="'Beleg löschen'" @click="deleteAttachment(a.id)">
+								<template #icon><NcIconSvgWrapper :path="mdiDelete" :size="14" /></template>
+							</NcButton>
+						</li>
+					</ul>
+					<p v-else class="vbh-attachment-empty">Noch kein Beleg angehängt.</p>
+				</div>
+
 				<div class="vbh-modal-actions">
 					<NcButton variant="tertiary" @click="closeBooking">Abbrechen</NcButton>
 					<NcButton variant="primary" @click="saveBooking">{{ bookingForm.id ? 'Speichern' : 'Buchen' }}</NcButton>
@@ -708,6 +946,7 @@
 						<NcSelect
 							v-model="accountParentOption"
 							:options="accountParentOptions"
+							:filter-by="accountFilterBy"
 							label="label"
 							placeholder="– kein Überkonto –"
 							:clearable="true"
@@ -738,7 +977,7 @@
 </template>
 
 <script>
-import { showError, showSuccess } from '@nextcloud/dialogs'
+import { showError, showSuccess, showUndo } from '@nextcloud/dialogs'
 import {
 	NcButton,
 	NcCheckboxRadioSwitch,
@@ -749,7 +988,7 @@ import {
 	NcModal,
 	NcSelect,
 } from '@nextcloud/vue'
-import { mdiCog, mdiDelete, mdiPencil } from '@mdi/js'
+import { mdiCog, mdiDelete, mdiPaperclip, mdiPencil, mdiPlus, mdiUpload, mdiCheckCircle, mdiDownload, mdiFlash, mdiViewDashboardOutline, mdiSwapHorizontal, mdiFileTreeOutline, mdiChartBar } from '@mdi/js'
 import api from './api.js'
 import {
 	Chart,
@@ -779,10 +1018,10 @@ export default {
 		return {
 			activeTab: 'dashboard',
 			allTabs: [
-				{ id: 'dashboard', label: 'Übersicht', need: 'read' },
-				{ id: 'bookings', label: 'Buchungen', need: 'read' },
-				{ id: 'accounts', label: 'Konten', need: 'read' },
-				{ id: 'reports', label: 'Berichte', need: 'read' },
+				{ id: 'dashboard', label: 'Übersicht', need: 'read', icon: mdiViewDashboardOutline },
+				{ id: 'bookings', label: 'Buchungen', need: 'read', icon: mdiSwapHorizontal },
+				{ id: 'accounts', label: 'Konten', need: 'read', icon: mdiFileTreeOutline },
+				{ id: 'reports', label: 'Berichte', need: 'read', icon: mdiChartBar },
 			],
 			bookingView: 'journal',
 			reportView: 'summary',
@@ -805,6 +1044,8 @@ export default {
 			previewResult: null,
 			xbucFile: null,
 			xbucReset: false,
+			xbucClampDates: false,
+			xbucYear: null,
 			xbucPreviewResult: null,
 			imports: [],
 			transactions: [],
@@ -826,6 +1067,13 @@ export default {
 			statementIncludeChildren: true,
 			showBooking: false,
 			showAccount: false,
+			bookingMode: 'simple',
+			showImport: false,
+			importDragging: false,
+			importDone: null,
+			rules: [],
+			prevBalances: null,
+			sectionFade: true,
 			bookingForm: this.emptyBookingForm(),
 			sort: {
 				transactions: { key: 'bookingDate', dir: 'desc' },
@@ -835,14 +1083,30 @@ export default {
 			confirmDialog: { open: false, title: '', message: '', confirmLabel: 'Löschen', confirmVariant: 'error', resolve: null },
 			mdiCog,
 			mdiDelete,
+			mdiPaperclip,
 			mdiPencil,
+			mdiPlus,
+			mdiUpload,
+			mdiCheckCircle,
+			mdiDownload,
+			mdiFlash,
 			chartInstances: {},
+			bookingAttachments: [],
+			attachmentUploading: false,
+			attachmentCountMap: {},
+			storageUser: '',
+			storagePath: '',
+			costCenterMode: 'group',
+			storageSaving: false,
 		}
 	},
 	computed: {
 		canRead() { return !!(this.me && this.me.canRead) },
 		canWrite() { return !!(this.me && this.me.canWrite) },
 		isAdmin() { return !!(this.me && this.me.isAdmin) },
+		exportJournalUrl()  { return api.exportJournalUrl(this.selectedYear) },
+		exportBalancesUrl() { return api.exportBalancesUrl(this.selectedYear) },
+		exportReportUrl()   { return api.exportReportUrl(this.selectedYear) },
 		visibleTabs() {
 			return this.allTabs.filter(t => {
 				if (t.need === 'admin') return this.isAdmin
@@ -966,28 +1230,136 @@ export default {
 			}
 			return groups
 		},
+		accountUsageCounts() {
+			const counts = {}
+			for (const item of this.journalData) {
+				for (const l of (item.lines || [])) {
+					counts[l.accountId] = (counts[l.accountId] || 0) + 1
+				}
+			}
+			return counts
+		},
+		frequentAccounts() {
+			const counts = this.accountUsageCounts
+			return this.accounts
+				.filter(a => a.active && counts[a.id])
+				.sort((a, b) => counts[b.id] - counts[a.id])
+				.slice(0, 5)
+		},
 		accountOptionsList() {
 			const opts = []
+			if (this.frequentAccounts.length >= 2) {
+				opts.push({ id: null, label: '★ Häufig verwendet', $isDisabled: true })
+				for (const acc of this.frequentAccounts) {
+					opts.push({ id: acc.id, label: `${acc.number} ${acc.name}`, number: acc.number })
+				}
+			}
 			for (const [cat, accounts] of Object.entries(this.accountsByCategory)) {
 				opts.push({ id: null, label: cat, $isDisabled: true })
 				for (const acc of accounts) {
-					opts.push({ id: acc.id, label: `${acc.number} ${acc.name}` })
+					opts.push({ id: acc.id, label: `${acc.number} ${acc.name}`, number: acc.number })
 				}
 			}
 			return opts
 		},
+		// Optionen für den Einfach-Modus des Buchungsdialogs
+		simpleCategoryOptions() {
+			const type = this.bookingForm.kind === 'income' ? 'income' : 'expense'
+			const counts = this.accountUsageCounts
+			return this.accounts
+				.filter(a => a.active && a.type === type)
+				.sort((a, b) => (counts[b.id] || 0) - (counts[a.id] || 0)
+					|| String(a.number).localeCompare(String(b.number), 'de', { numeric: true }))
+				.map(a => ({ id: a.id, label: `${a.number} ${a.name}`, number: a.number }))
+		},
+		moneyAccountOptions() {
+			return this.accounts
+				.filter(a => a.active && (a.isBank || a.type === 'asset'))
+				.sort((a, b) => (b.isBank ? 1 : 0) - (a.isBank ? 1 : 0)
+					|| String(a.number).localeCompare(String(b.number), 'de', { numeric: true }))
+				.map(a => ({ id: a.id, label: `${a.number} ${a.name}`, number: a.number }))
+		},
+		defaultMoneyAccountId() {
+			const bank = this.accounts.find(a => a.active && a.isBank)
+			if (bank) return bank.id
+			const asset = this.accounts.find(a => a.active && a.type === 'asset')
+			return asset ? asset.id : null
+		},
+		bookingFormCategoryOption: {
+			get() {
+				if (this.bookingForm.categoryId == null) return null
+				return this.simpleCategoryOptions.find(o => o.id === this.bookingForm.categoryId) ?? null
+			},
+			set(v) { this.bookingForm.categoryId = v ? v.id : null },
+		},
+		bookingFormMoneyOption: {
+			get() {
+				if (this.bookingForm.moneyAccountId == null) return null
+				return this.moneyAccountOptions.find(o => o.id === this.bookingForm.moneyAccountId) ?? null
+			},
+			set(v) { this.bookingForm.moneyAccountId = v ? v.id : null },
+		},
+		bookingModeExpert: {
+			get() { return this.bookingMode === 'expert' },
+			set(v) { this.setBookingMode(v ? 'expert' : 'simple') },
+		},
+		// Frühere Zuordnungen je Zahlungspartner (für Vorschläge)
+		assignmentHistory() {
+			const map = {}
+			for (const tx of this.transactions) {
+				if (tx.status === 'assigned' && tx.contraAccountId && tx.counterparty) {
+					const key = tx.counterparty.trim().toLowerCase()
+					if (!map[key]) map[key] = {}
+					map[key][tx.contraAccountId] = (map[key][tx.contraAccountId] || 0) + 1
+				}
+			}
+			return map
+		},
+		// Zuordnungs-Vorschlag je offener Bankbuchung (Regeln zuerst, dann Historie)
+		suggestionsById() {
+			const out = {}
+			for (const tx of this.transactions) {
+				if (tx.status === 'assigned') continue
+				const s = this.computeSuggestion(tx)
+				if (s) out[tx.id] = s
+			}
+			return out
+		},
+		assignProgress() {
+			const total = this.transactions.length
+			const done = this.transactions.filter(t => t.status === 'assigned').length
+			return { total, done, pct: total ? Math.round((done / total) * 100) : 0 }
+		},
+		// Vorjahresvergleich für die KPI-Kacheln (nur bei gewähltem Jahr)
+		kpiDeltas() {
+			if (!this.balances || !this.prevBalances || !this.selectedYear) return null
+			const mk = key => {
+				const cur = this.balances.totals[key]
+				const prev = this.prevBalances.totals[key]
+				if (!prev || Math.abs(prev) < 0.005) return null
+				const pct = Math.round(((cur - prev) / Math.abs(prev)) * 100)
+				return { pct, up: pct >= 0, text: (pct >= 0 ? '+' : '') + pct + ' % ggü. ' + (this.selectedYear - 1) }
+			}
+			return { income: mk('income'), expense: mk('expense'), result: mk('result') }
+		},
 		bookingFormDebitOption: {
-			get() { return this.accountOptionsList.find(o => o.id === this.bookingForm.debitAccountId) ?? null },
+			get() {
+				if (this.bookingForm.debitAccountId == null) return null
+				return this.accountOptionsList.find(o => o.id === this.bookingForm.debitAccountId) ?? null
+			},
 			set(v) { this.bookingForm.debitAccountId = v ? v.id : null },
 		},
 		bookingFormCreditOption: {
-			get() { return this.accountOptionsList.find(o => o.id === this.bookingForm.creditAccountId) ?? null },
+			get() {
+				if (this.bookingForm.creditAccountId == null) return null
+				return this.accountOptionsList.find(o => o.id === this.bookingForm.creditAccountId) ?? null
+			},
 			set(v) { this.bookingForm.creditAccountId = v ? v.id : null },
 		},
 		accountParentOptions() {
 			return [
 				{ id: null, label: '– kein Überkonto –' },
-				...this.parentOptions.map(a => ({ id: a.id, label: `${a.number} ${a.name}` })),
+				...this.parentOptions.map(a => ({ id: a.id, label: `${a.number} ${a.name}`, number: a.number })),
 			]
 		},
 		accountParentOption: {
@@ -1047,6 +1419,7 @@ export default {
 					haben: cl.map(l => this.accountLabel(l.accountId)).join(', '),
 					debitAccountId: dl.length ? dl[0].accountId : null,
 					creditAccountId: cl.length ? cl[0].accountId : null,
+					isSplit: dl.length > 1 || cl.length > 1,
 					amount: lines.reduce((s, l) => s + (l.debitCents || 0), 0) / 100,
 				}
 			})
@@ -1064,9 +1437,30 @@ export default {
 			if (this.selectedCCCode === false || !this.reportData) return null
 			return this.reportData.costCenters.find(c => c.code === this.selectedCCCode) || null
 		},
+		// Hierarchie-Tiefe je Konto (für die Einrückung in der Saldenliste)
+		accountDepth() {
+			const out = {}
+			for (const a of this.accounts) {
+				let depth = 0
+				let cur = a
+				const seen = new Set([a.id])
+				while (cur && cur.parentId != null && this.accountsById[cur.parentId] && !seen.has(cur.parentId) && depth < 8) {
+					cur = this.accountsById[cur.parentId]
+					seen.add(cur.id)
+					depth++
+				}
+				out[a.id] = depth
+			}
+			return out
+		},
 		balanceRows() {
 			const base = this.balances ? this.balances.accounts : []
-			if (!this.balancesIncludeChildren) return base
+			const enrich = r => ({
+				...r,
+				depth: this.accountDepth[r.accountId] || 0,
+				isParent: (this.childrenOf[r.accountId] || []).length > 0,
+			})
+			if (!this.balancesIncludeChildren) return base.map(enrich)
 			const rowById = {}
 			for (const r of base) rowById[r.accountId] = r
 			const agg = id => {
@@ -1082,7 +1476,7 @@ export default {
 			return base.map(r => {
 				const a = agg(r.accountId)
 				const balance = ['income', 'liability', 'equity'].includes(r.type) ? a.credit - a.debit : a.debit - a.credit
-				return { ...r, debit: a.debit, credit: a.credit, balance }
+				return { ...enrich(r), debit: a.debit, credit: a.credit, balance }
 			})
 		},
 		sortedBalances() { return this.applySort(this.balanceRows, this.sort.balances, ['number']) },
@@ -1092,6 +1486,9 @@ export default {
 		activeTab(tab) {
 			this.loadTab(tab)
 			if (tab === 'dashboard') this.$nextTick(() => this.renderDashboardCharts())
+			// Einblend-Animation der Sektion neu starten
+			this.sectionFade = false
+			this.$nextTick(() => requestAnimationFrame(() => { this.sectionFade = true }))
 		},
 		journalData() {
 			if (this.activeTab === 'dashboard') this.$nextTick(() => this.renderMonthlyChart())
@@ -1105,18 +1502,27 @@ export default {
 			else if (v === 'costcenters') this.loadReport()
 			else if (v === 'budget') this.loadBudget()
 		},
-		selectedYear() {
-			this.loadBalances()
-			this.loadJournal()
-			const tab = this.activeTab
-			if (tab === 'accounts') this.loadAccounts()
-			else if (tab === 'reports') {
-				if (this.reportView === 'costcenters') this.loadReport()
-				else if (this.reportView === 'budget') this.loadBudget()
-			}
+		async selectedYear() {
+			// Jahresbezogene Caches invalidieren
+			this.ccBookings = {}
+			this.ccExpanded = {}
+			this.busy = true
+			try {
+				const jobs = [this.loadBalances(), this.loadJournal()]
+				const tab = this.activeTab
+				if (tab === 'accounts') {
+					jobs.push(this.loadAccounts())
+					if (this.selectedAccountId) jobs.push(this.loadStatement(this.selectedAccountId))
+				} else if (tab === 'reports') {
+					if (this.reportView === 'costcenters') jobs.push(this.loadReport())
+					else if (this.reportView === 'budget') jobs.push(this.loadBudget())
+				}
+				await Promise.all(jobs)
+			} finally { this.busy = false }
 		},
 	},
 	async mounted() {
+		document.addEventListener('keydown', this.onGlobalKeydown)
 		await this.loadMe()
 		if (this.canRead) {
 			await this.loadYears()
@@ -1126,22 +1532,47 @@ export default {
 				this.loadBalances(),
 				this.loadJournal(),
 				this.loadTransactions(),
+				this.loadRules(),
 			])
 			this.$nextTick(() => setTimeout(() => this.renderDashboardCharts(), 50))
 		}
 	},
 	beforeDestroy() {
+		document.removeEventListener('keydown', this.onGlobalKeydown)
 		Object.values(this.chartInstances).forEach(c => c && c.destroy())
 	},
 	methods: {
-		loadTab(tab) {
-			if (tab === 'bookings' && this.bookingView === 'journal') this.loadJournal()
-			else if (tab === 'accounts') { this.loadAccounts(); this.loadBalances() }
-			else if (tab === 'reports') {
-				if (this.reportView === 'summary') this.loadBalances()
-				else if (this.reportView === 'costcenters') this.loadReport()
-				else if (this.reportView === 'budget') this.loadBudget()
+		// --- Tastaturkürzel: N = neue Buchung, / = Suche fokussieren ---
+		onGlobalKeydown(e) {
+			if (e.ctrlKey || e.metaKey || e.altKey) return
+			const tag = (e.target.tagName || '').toLowerCase()
+			if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable) return
+			if (this.showBooking || this.showAccount || this.showImport || this.showSettings || this.confirmDialog.open) return
+			if ((e.key === 'n' || e.key === 'N') && this.canWrite) {
+				e.preventDefault()
+				this.openNewBooking()
+			} else if (e.key === '/') {
+				e.preventDefault()
+				if (this.activeTab === 'accounts') {
+					this.$el.querySelector('.vbh-treesearch input')?.focus()
+				} else {
+					this.activeTab = 'bookings'
+					this.$nextTick(() => this.$el.querySelector('.vbh-filterbar input[type=search]')?.focus())
+				}
 			}
+		},
+		async loadTab(tab) {
+			const jobs = []
+			if (tab === 'bookings' && this.bookingView === 'journal') jobs.push(this.loadJournal())
+			else if (tab === 'accounts') { jobs.push(this.loadAccounts(), this.loadBalances()) }
+			else if (tab === 'reports') {
+				if (this.reportView === 'summary') jobs.push(this.loadBalances())
+				else if (this.reportView === 'costcenters') jobs.push(this.loadReport())
+				else if (this.reportView === 'budget') jobs.push(this.loadBudget())
+			}
+			if (!jobs.length) return
+			this.busy = true
+			try { await Promise.all(jobs) } finally { this.busy = false }
 		},
 		goToUnassigned() {
 			this.activeTab = 'bookings'
@@ -1150,7 +1581,29 @@ export default {
 		openSettings() {
 			this.showSettings = true
 			this.loadImports()
-			if (this.isAdmin) this.loadPermissions()
+			if (this.isAdmin) {
+				this.loadPermissions()
+				this.loadStorageSettings()
+			}
+		},
+		async loadStorageSettings() {
+			try {
+				const { data } = await api.getSettings()
+				this.storageUser = data.storage_user || ''
+				this.storagePath = data.storage_path || 'Vereinsbuchhaltung/Belege'
+				this.costCenterMode = data.cost_center_mode || 'group'
+			} catch (e) { /* ignorieren */ }
+		},
+		async saveStorageSettings() {
+			this.storageSaving = true
+			try {
+				await api.saveSettings({ storage_user: this.storageUser, storage_path: this.storagePath || 'Vereinsbuchhaltung/Belege', cost_center_mode: this.costCenterMode })
+				showSuccess('Einstellungen gespeichert.')
+				this.reportData = null
+			} catch (e) {
+				const msg = (e?.response?.data?.message) || `Speichern fehlgeschlagen (HTTP ${e?.response?.status ?? 'Netzwerkfehler'})`
+				showError(msg)
+			} finally { this.storageSaving = false }
 		},
 		async loadYears() {
 			try {
@@ -1160,7 +1613,41 @@ export default {
 			} catch (e) { /* Jahre optional */ }
 		},
 		emptyBookingForm() {
-			return { id: null, entryNo: null, date: new Date().toISOString().slice(0, 10), documentRef: '', amount: null, debitAccountId: null, creditAccountId: null, description: '' }
+			return { id: null, entryNo: null, date: new Date().toISOString().slice(0, 10), documentRef: '', amount: null, debitAccountId: null, creditAccountId: null, description: '', kind: 'expense', moneyAccountId: null, categoryId: null }
+		},
+		// --- Einfach-Modus: Einnahme/Ausgabe <-> Soll/Haben ---
+		deriveSimpleAccounts() {
+			const f = this.bookingForm
+			if (!f.categoryId || !f.moneyAccountId) return null
+			// Einnahme: Soll Geldkonto / Haben Ertragskonto — Ausgabe: Soll Aufwandskonto / Haben Geldkonto
+			return f.kind === 'income'
+				? { debit: f.moneyAccountId, credit: f.categoryId }
+				: { debit: f.categoryId, credit: f.moneyAccountId }
+		},
+		mapToSimple(debitId, creditId) {
+			const d = this.accountsById[debitId]
+			const c = this.accountsById[creditId]
+			if (!d || !c) return null
+			const isMoney = a => a.isBank || a.type === 'asset'
+			if (isMoney(d) && c.type === 'income') return { kind: 'income', moneyAccountId: d.id, categoryId: c.id }
+			if (d.type === 'expense' && isMoney(c)) return { kind: 'expense', moneyAccountId: c.id, categoryId: d.id }
+			return null
+		},
+		setBookingKind(kind) {
+			if (this.bookingForm.kind === kind) return
+			this.bookingForm.kind = kind
+			this.bookingForm.categoryId = null
+		},
+		setBookingMode(mode) {
+			if (mode === this.bookingMode) return
+			if (mode === 'expert') {
+				const d = this.deriveSimpleAccounts()
+				if (d) { this.bookingForm.debitAccountId = d.debit; this.bookingForm.creditAccountId = d.credit }
+			} else {
+				const m = this.mapToSimple(this.bookingForm.debitAccountId, this.bookingForm.creditAccountId)
+				if (m) Object.assign(this.bookingForm, m)
+			}
+			this.bookingMode = mode
 		},
 		formatMoney(v) { return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(v || 0) },
 		formatDate(s) {
@@ -1188,6 +1675,23 @@ export default {
 		},
 		accountOptionFor(id) {
 			return id ? (this.accountOptionsList.find(o => o.id === id) ?? null) : null
+		},
+		/**
+		 * Suchfilter für Konto-Dropdowns: Ziffern-Eingabe filtert als Präfix
+		 * der Kontonummer (Leerzeichen werden ignoriert, z.B. "11101" trifft
+		 * "111 01"), Text-Eingabe sucht wie gewohnt im gesamten Label.
+		 */
+		accountFilterBy(option, label, search) {
+			const s = String(search || '').trim().toLowerCase()
+			if (!s) return true
+			// Kategorie-Überschriften während der Suche ausblenden
+			if (option && option.$isDisabled) return false
+			if (/^[\d\s]+$/.test(s)) {
+				const digits = s.replace(/\s+/g, '')
+				const num = String((option && option.number) || '').replace(/\s+/g, '').toLowerCase()
+				return num.startsWith(digits)
+			}
+			return String(label || '').toLowerCase().includes(s)
 		},
 
 		// --- Confirm-Dialog ---
@@ -1243,6 +1747,26 @@ export default {
 		},
 
 		// --- CSV-Import ---
+		openImport() {
+			this.showImport = true
+			this.importDone = null
+			this.previewResult = null
+			this.selectedFile = null
+		},
+		closeImport() {
+			this.showImport = false
+			this.importDragging = false
+		},
+		onImportDrop(e) {
+			this.importDragging = false
+			const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]
+			if (f) { this.selectedFile = f; this.previewResult = null; this.preview() }
+		},
+		goAssignAfterImport() {
+			this.closeImport()
+			this.activeTab = 'bookings'
+			this.bookingView = 'unassigned'
+		},
 		onFileSelected(e) { this.selectedFile = e.target.files[0] || null; this.previewResult = null; if (this.selectedFile) this.preview() },
 		async preview() {
 			if (!this.selectedFile) return
@@ -1256,6 +1780,7 @@ export default {
 				const fd = new FormData(); fd.append('file', this.selectedFile); fd.append('applyRules', this.applyRules ? '1' : '0')
 				const { data } = await api.commitImport(fd)
 				showSuccess(`${data.new} Buchungen importiert (${data.autoAssigned} automatisch zugeordnet).`)
+				this.importDone = data
 				this.previewResult = null; this.selectedFile = null
 				if (this.$refs.fileInput) this.$refs.fileInput.value = ''
 				await this.loadImports(); await this.loadBalances(); await this.loadTransactions()
@@ -1264,22 +1789,43 @@ export default {
 		async loadImports() { try { const { data } = await api.listImports(); this.imports = data } catch (e) { /* still */ } },
 
 		// --- xbuc ---
-		onXbucSelected(e) { this.xbucFile = e.target.files[0] || null; this.xbucPreviewResult = null; if (this.xbucFile) this.xbucPreview() },
+		onXbucSelected(e) { this.xbucFile = e.target.files[0] || null; this.xbucPreviewResult = null; this.xbucYear = null; if (this.xbucFile) this.xbucPreview() },
+		xbucYearParam() {
+			const y = Number(this.xbucYear)
+			return Number.isInteger(y) && y >= 2000 && y <= 2099 ? y : null
+		},
 		async xbucPreview() {
 			if (!this.xbucFile) return
 			this.busy = true
-			try { const fd = new FormData(); fd.append('file', this.xbucFile); const { data } = await api.previewXbuc(fd); this.xbucPreviewResult = data } catch (e) { showError(this.errMsg(e, 'Vorschau fehlgeschlagen')) } finally { this.busy = false }
+			try {
+				const fd = new FormData(); fd.append('file', this.xbucFile)
+				const year = this.xbucYearParam()
+				if (year) fd.append('year', String(year))
+				const { data } = await api.previewXbuc(fd)
+				this.xbucPreviewResult = data
+				// Effektives Geschäftsjahr ins Eingabefeld übernehmen
+				this.xbucYear = data.year || this.xbucYear
+				// Standard: Ausreißer auf das Geschäftsjahr datieren
+				this.xbucClampDates = (data.outsideYear || 0) > 0
+			} catch (e) { showError(this.errMsg(e, 'Vorschau fehlgeschlagen')) } finally { this.busy = false }
 		},
 		async xbucImport() {
 			if (!this.xbucFile) return
 			if (this.xbucReset && !await this.askConfirm('xbuc Import', 'Alle vorhandenen Daten werden gelöscht und ersetzt. Fortfahren?', 'Importieren', 'primary')) return
 			this.busy = true
 			try {
-				const fd = new FormData(); fd.append('file', this.xbucFile); fd.append('reset', this.xbucReset ? '1' : '0')
+				const fd = new FormData(); fd.append('file', this.xbucFile); fd.append('reset', this.xbucReset ? '1' : '0'); fd.append('clampDates', this.xbucClampDates ? '1' : '0')
+				const importYear = this.xbucYearParam()
+				if (importYear) fd.append('year', String(importYear))
 				const { data } = await api.commitXbuc(fd)
 				const skippedMsg = data.skipped > 0 ? `, ${data.skipped} übersprungen (bereits vorhanden)` : ''
 				const newAccMsg = data.accountsNew > 0 ? `, ${data.accountsNew} neue Konten` : ''
-				showSuccess(`${data.bookings} Buchungen importiert${skippedMsg}${newAccMsg}.`)
+				const clampMsg = data.clamped > 0 ? `, ${data.clamped} auf das Geschäftsjahr ${data.year} datiert` : ''
+				const openMsg = data.openingsSkipped > 0 ? `, ${data.openingsSkipped} Anfangsbestände übersprungen (über Vorjahressalden abgedeckt)` : ''
+				showSuccess(`${data.bookings} Buchungen importiert${skippedMsg}${newAccMsg}${clampMsg}${openMsg}.`)
+				for (const m of (data.openingMismatches || [])) {
+					showError(`Achtung: Anfangsbestand ${m.account} laut Datei ${this.formatMoney(m.fileAmount)}, Vorjahres-Endstand in der App ${this.formatMoney(m.priorBalance)} – bitte Vorjahresbuchungen prüfen.`, { timeout: -1 })
+				}
 				this.xbucPreviewResult = null; this.xbucFile = null
 				if (this.$refs.xbucInput) this.$refs.xbucInput.value = ''
 				await this.loadYears(); await this.loadAccounts(); await this.loadBalances(); await this.loadImports(); await this.loadJournal(); await this.loadTransactions()
@@ -1291,30 +1837,159 @@ export default {
 			try {
 				await api.reset(); showSuccess('Alle Daten gelöscht.')
 				this.selectedAccountId = null; this.statement = null; this.journalData = []; this.transactions = []
-				await this.loadAccounts(); await this.loadBalances(); await this.loadImports()
+				this.selectedYear = null
+				await this.loadYears(); await this.loadAccounts(); await this.loadBalances(); await this.loadImports()
 			} catch (e) { showError(this.errMsg(e, 'Zurücksetzen fehlgeschlagen')) } finally { this.busy = false }
 		},
 
 		// --- Bankbuchungen ---
 		async loadTransactions() { try { const { data } = await api.listTransactions(''); this.transactions = data } catch (e) { showError(this.errMsg(e, 'Buchungen konnten nicht geladen werden')) } },
+		async loadRules() { try { const { data } = await api.listRules(); this.rules = data } catch (e) { /* Regeln optional */ } },
 		async onAssign(tx, value) {
+			const prevContra = tx.contraAccountId
 			try {
-				if (value === '') await api.unassignTransaction(tx.id)
-				else await api.assignTransaction(tx.id, Number(value))
-				await this.loadTransactions(); await this.loadBalances()
+				if (value === '') {
+					await api.unassignTransaction(tx.id)
+					if (prevContra) {
+						showUndo('Zuordnung entfernt', async () => {
+							try {
+								await api.assignTransaction(tx.id, prevContra)
+								await this.loadTransactions(); await this.loadBalances(); await this.loadJournal()
+							} catch (e) { showError(this.errMsg(e, 'Wiederherstellen fehlgeschlagen')) }
+						})
+					}
+				} else {
+					await api.assignTransaction(tx.id, Number(value))
+				}
+				await this.loadTransactions(); await this.loadBalances(); await this.loadJournal()
 			} catch (e) { showError(this.errMsg(e, 'Zuordnung fehlgeschlagen')) }
+		},
+		// Vorschlag: passende Regel, sonst häufigste frühere Zuordnung desselben Zahlungspartners
+		computeSuggestion(tx) {
+			for (const rule of this.rules) {
+				const haystack = { counterparty: tx.counterparty, purpose: tx.purpose, iban: tx.iban }[rule.matchField]
+				if (haystack && rule.matchValue && haystack.toLowerCase().includes(rule.matchValue.toLowerCase())) {
+					const acc = this.accountsById[rule.contraAccountId]
+					if (acc && acc.active) return { accountId: acc.id, label: `${acc.number} ${acc.name}` }
+				}
+			}
+			if (tx.counterparty) {
+				const hist = this.assignmentHistory[tx.counterparty.trim().toLowerCase()]
+				if (hist) {
+					const best = Object.entries(hist).sort((a, b) => b[1] - a[1])[0]
+					const acc = this.accountsById[Number(best[0])]
+					if (acc && acc.active) return { accountId: acc.id, label: `${acc.number} ${acc.name}` }
+				}
+			}
+			return null
+		},
+		applySuggestion(tx) {
+			const s = this.suggestionsById[tx.id]
+			if (s) this.onAssign(tx, s.accountId)
+		},
+		async createRuleFromTx(tx) {
+			if (!tx.counterparty || !tx.contraAccountId) return
+			const value = tx.counterparty.trim()
+			const exists = this.rules.some(r => r.matchField === 'counterparty' && r.matchValue.toLowerCase() === value.toLowerCase())
+			if (exists) { showSuccess('Für diesen Zahlungspartner existiert bereits eine Regel.'); return }
+			try {
+				await api.createRule({ matchField: 'counterparty', matchValue: value, contraAccountId: tx.contraAccountId })
+				await this.loadRules()
+				showSuccess(`Regel angelegt: „${value}" wird künftig automatisch ${this.accountLabel(tx.contraAccountId)} zugeordnet.`)
+			} catch (e) { showError(this.errMsg(e, 'Regel konnte nicht angelegt werden')) }
 		},
 
 		// --- Journal ---
-		async loadJournal() { try { const { data } = await api.journal(this.selectedYear); this.journalData = data } catch (e) { showError(this.errMsg(e, 'Journal konnte nicht geladen werden')) } },
-		openNewBooking() { this.bookingForm = this.emptyBookingForm(); this.showBooking = true },
-		editBooking(r) {
-			this.bookingForm = { id: r.id, entryNo: r.entryNo, date: r.date, documentRef: r.documentRef || '', amount: r.amount, debitAccountId: r.debitAccountId, creditAccountId: r.creditAccountId, description: r.description || '' }
+		async loadJournal() {
+			try { const { data } = await api.journal(this.selectedYear); this.journalData = data } catch (e) { showError(this.errMsg(e, 'Journal konnte nicht geladen werden')) }
+			this.loadAttachmentCounts()
+		},
+		async loadAttachmentCounts() {
+			try { const { data } = await api.attachmentCounts(); this.attachmentCountMap = data } catch (e) { /* ignorieren */ }
+		},
+		async loadAttachments(journalId) {
+			if (!journalId) { this.bookingAttachments = []; return }
+			try { const { data } = await api.listAttachments(journalId); this.bookingAttachments = data } catch (e) { this.bookingAttachments = [] }
+		},
+		async uploadAttachment(event) {
+			const files = event.target.files
+			if (!files || !files.length || !this.bookingForm.id) return
+			this.attachmentUploading = true
+			try {
+				for (const file of Array.from(files)) {
+					const fd = new FormData()
+					fd.append('file', file)
+					await api.uploadAttachment(this.bookingForm.id, fd)
+				}
+				await this.loadAttachments(this.bookingForm.id)
+				this.loadAttachmentCounts()
+			} catch (e) { showError(this.errMsg(e, 'Upload fehlgeschlagen')) }
+			finally { this.attachmentUploading = false; event.target.value = '' }
+		},
+		async deleteAttachment(id) {
+			if (!await this.askConfirm('Beleg löschen', 'Diesen Beleg wirklich unwiderruflich löschen?')) return
+			try {
+				await api.deleteAttachment(id)
+				await this.loadAttachments(this.bookingForm.id)
+				this.loadAttachmentCounts()
+			} catch (e) { showError(this.errMsg(e, 'Beleg konnte nicht gelöscht werden')) }
+		},
+		attachmentDownloadUrl(id) { return api.attachmentDownloadUrl(id) },
+		openViewer(attachment) {
+			if (attachment.ncPath && window.OCA?.Viewer) {
+				OCA.Viewer.open({ path: attachment.ncPath })
+			} else {
+				window.open(api.attachmentViewUrl(attachment.id), '_blank')
+			}
+		},
+		clickPaperclip(r) {
+			// Splittbuchungen haben kein Bearbeiten-Modal → Beleg direkt öffnen
+			if (r.isSplit || this.attachmentCountMap[r.id]?.count === 1) this.openQuickViewer(r)
+			else this.editBooking(r)
+		},
+		async openQuickViewer(r) {
+			try {
+				const { data } = await api.listAttachments(r.id)
+				if (data.length) this.openViewer(data[0])
+			} catch (e) { this.editBooking(r) }
+		},
+		formatFileSize(bytes) {
+			if (bytes < 1024) return bytes + ' B'
+			if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+			return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+		},
+		openNewBooking() {
+			this.bookingAttachments = []
+			this.bookingForm = this.emptyBookingForm()
+			this.bookingForm.moneyAccountId = this.defaultMoneyAccountId
 			this.showBooking = true
 		},
-		closeBooking() { this.showBooking = false; this.bookingForm = this.emptyBookingForm() },
+		editBooking(r) {
+			if (r.isSplit) {
+				showError('Splittbuchung (mehrere Soll-/Haben-Zeilen) – Bearbeitung würde Zeilen verwerfen und wird daher nicht unterstützt.')
+				return
+			}
+			this.bookingForm = { ...this.emptyBookingForm(), id: r.id, entryNo: r.entryNo, date: r.date, documentRef: r.documentRef || '', amount: r.amount, debitAccountId: r.debitAccountId, creditAccountId: r.creditAccountId, description: r.description || '' }
+			const m = this.mapToSimple(r.debitAccountId, r.creditAccountId)
+			if (m) {
+				Object.assign(this.bookingForm, m)
+				this.bookingMode = 'simple'
+			} else {
+				this.bookingMode = 'expert'
+			}
+			this.loadAttachments(r.id)
+			this.showBooking = true
+		},
+		closeBooking() { this.showBooking = false; this.bookingForm = this.emptyBookingForm(); this.bookingAttachments = [] },
 		async saveBooking() {
 			const f = this.bookingForm
+			if (this.bookingMode === 'simple') {
+				if (!f.date || !f.amount || !f.categoryId || !f.moneyAccountId) { showError('Datum, Betrag, Kategorie und Geldkonto sind Pflicht.'); return }
+				if (f.categoryId === f.moneyAccountId) { showError('Kategorie und Geldkonto müssen unterschiedlich sein.'); return }
+				const d = this.deriveSimpleAccounts()
+				f.debitAccountId = d.debit
+				f.creditAccountId = d.credit
+			}
 			if (!f.date || !f.debitAccountId || !f.creditAccountId || !f.amount) { showError('Datum, Soll, Haben und Betrag sind Pflicht.'); return }
 			if (f.debitAccountId === f.creditAccountId) { showError('Soll- und Habenkonto müssen unterschiedlich sein.'); return }
 			const payload = { date: f.date, description: f.description, documentRef: f.documentRef || null, debitAccountId: f.debitAccountId, creditAccountId: f.creditAccountId, amount: Number(f.amount) }
@@ -1323,7 +1998,7 @@ export default {
 				else await api.createBooking(payload)
 				showSuccess('Buchung gespeichert.')
 				this.closeBooking()
-				await this.loadJournal(); await this.loadBalances()
+				await this.loadJournal(); await this.loadBalances(); await this.loadYears()
 			} catch (e) { showError(this.errMsg(e, 'Buchung konnte nicht gespeichert werden')) }
 		},
 		async removeBooking(r) {
@@ -1403,7 +2078,15 @@ export default {
 		},
 
 		// --- Auswertung ---
-		async loadBalances() { try { const { data } = await api.balances(this.selectedYear); this.balances = data } catch (e) { showError(this.errMsg(e, 'Auswertung konnte nicht geladen werden')) } },
+		async loadBalances() {
+			try { const { data } = await api.balances(this.selectedYear); this.balances = data } catch (e) { showError(this.errMsg(e, 'Auswertung konnte nicht geladen werden')) }
+			// Vorjahr für den KPI-Vergleich (still im Hintergrund, Fehler ignorieren)
+			if (this.selectedYear) {
+				try { const { data } = await api.balances(this.selectedYear - 1); this.prevBalances = data } catch (e) { this.prevBalances = null }
+			} else {
+				this.prevBalances = null
+			}
+		},
 
 		// --- Berichte / Kostenstellen ---
 		async loadReport() {
@@ -1563,7 +2246,7 @@ export default {
 </script>
 
 <style scoped>
-.vbh { width: 100%; flex: 1 1 auto; min-width: 0; height: 100%; display: flex; flex-direction: column; overflow: hidden; background-color: var(--color-main-background); color: var(--color-main-text); }
+.vbh { width: 100%; flex: 1 1 auto; min-width: 0; height: calc(100dvh - var(--header-height, 50px)); display: flex; flex-direction: column; overflow: hidden; background-color: var(--color-main-background); color: var(--color-main-text); }
 
 .vbh-header { flex: 0 0 auto; padding: 12px 24px 0; border-bottom: 1px solid var(--color-border); }
 .vbh-noaccess { padding: 48px 24px; text-align: center; }
@@ -1585,23 +2268,52 @@ export default {
 .vbh-tabs button:hover { background-color: var(--color-background-hover); }
 .vbh-tabs button.active { background-color: var(--color-primary-element); color: var(--color-primary-element-text); box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
 
-.vbh-main { flex: 1 1 auto; min-height: 0; display: flex; }
+.vbh-main { flex: 1 1 auto; min-height: 0; min-width: 0; display: flex; }
 .vbh-section { flex: 1 1 auto; min-height: 0; min-width: 0; width: 100%; }
-.vbh-section.scroll { overflow-y: auto; padding: 16px 24px 48px; }
+.vbh-section.scroll { overflow-x: auto; overflow-y: auto; padding: 16px 24px 48px; }
 .vbh-section.split { overflow: hidden; display: flex; }
-.vbh-flex-col { display: flex; flex-direction: column; overflow: hidden; }
+.vbh-flex-col { display: flex; flex-direction: column; }
 
 /* Sub-tabs + filterbar (for bookings + reports sections) */
-.vbh-sectiontop { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 16px; border-bottom: 1px solid var(--color-border); flex-wrap: wrap; }
+.vbh-sectiontop { flex: 0 0 auto; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 16px; border-bottom: 1px solid var(--color-border); flex-wrap: wrap; }
+.vbh-sectiontop-actions { display: inline-flex; align-items: center; gap: 8px; }
+.vbh-export-btn { display: inline-flex; align-items: center; height: 34px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: var(--border-radius, 6px); background: var(--color-main-background); color: var(--color-main-text); font-size: 0.85em; font-weight: 600; text-decoration: none; white-space: nowrap; cursor: pointer; }
+.vbh-export-btn:hover { background: var(--color-background-hover); border-color: var(--color-border-dark, #ccc); }
+
+/* Download-Pfeil in der Belegliste (Modal) */
+.vbh-attachment-dl { color: var(--color-text-lighter); font-size: 0.9em; padding: 0 4px; text-decoration: none; flex-shrink: 0; }
+.vbh-attachment-dl:hover { color: var(--color-main-text); }
+
+/* Dateiname als klickbarer Button */
+.vbh-attachment-name { background: none; border: none; padding: 0; cursor: pointer; color: var(--color-primary-element); text-align: left; font-size: inherit; font-family: inherit; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 0; min-width: 0; }
+.vbh-attachment-name:hover { text-decoration: underline; }
+
+
+
+/* Belegablage im Buchungs-Modal */
+.vbh-attachments { border-top: 1px solid var(--color-border); margin-top: 12px; padding-top: 12px; }
+.vbh-attachments-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.vbh-attachments-title { font-weight: 600; font-size: 0.9em; color: var(--color-text-lighter); text-transform: uppercase; letter-spacing: 0.04em; }
+.vbh-upload-label { cursor: pointer; }
+.vbh-upload-label.is-uploading { opacity: 0.6; pointer-events: none; }
+.vbh-upload-btn { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border: 1px solid var(--color-border); border-radius: var(--border-radius, 6px); font-size: 0.85em; background: var(--color-main-background); color: var(--color-main-text); }
+.vbh-upload-btn:hover { background: var(--color-background-hover); }
+.vbh-attachment-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.vbh-attachment-item { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 4px; background: var(--color-background-hover); }
+.vbh-attachment-icon { flex-shrink: 0; color: var(--color-text-lighter); }
+.vbh-attachment-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9em; color: var(--color-primary-element); text-decoration: none; }
+.vbh-attachment-name:hover { text-decoration: underline; }
+.vbh-attachment-size { font-size: 0.8em; color: var(--color-text-lighter); white-space: nowrap; flex-shrink: 0; }
+.vbh-attachment-empty { font-size: 0.9em; color: var(--color-text-lighter); margin: 4px 0 0; }
 .vbh-subtabs { display: inline-flex; gap: 2px; }
 .vbh-subtabs button { padding: 5px 14px; border: none; border-bottom: 3px solid transparent; background: none; cursor: pointer; color: var(--color-main-text); font-weight: 600; font-size: 0.9em; border-radius: 6px 6px 0 0; display: inline-flex; align-items: center; gap: 6px; }
 .vbh-subtabs button:hover { background: var(--color-background-hover); }
 .vbh-subtabs button.active { color: var(--color-primary-element); border-bottom-color: var(--color-primary-element); }
-.vbh-filterbar { flex: 0 0 auto; display: flex; gap: 8px; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--color-border); flex-wrap: wrap; background: var(--color-main-background); }
+.vbh-filterbar { flex: 0 0 auto; min-width: 0; display: flex; gap: 8px; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--color-border); flex-wrap: wrap; background: var(--color-main-background); }
 .vbh-search { height: 34px; border: 1px solid var(--color-border); border-radius: var(--border-radius, 6px); padding: 0 10px; background: var(--color-main-background); color: var(--color-main-text); min-width: 160px; }
 .vbh-search--full { width: 100%; box-sizing: border-box; }
 .vbh-filter-select { min-width: 200px; max-width: 280px; }
-.vbh-sectionbody { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 12px 16px 48px; }
+.vbh-sectionbody { flex: 1 1 auto; min-height: 0; min-width: 0; overflow: auto; padding: 12px 16px 48px; }
 .vbh-sectionbody.is-split { overflow: hidden; display: flex; padding: 0; }
 .vbh-splitinner { display: flex; flex: 1 1 auto; min-height: 0; min-width: 0; overflow: hidden; }
 
@@ -1630,7 +2342,7 @@ export default {
 
 /* Tables */
 .vbh-tablecard { border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); margin: 8px 0; }
-.vbh-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.92em; }
+.vbh-table { width: auto; min-width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.92em; }
 .vbh-table th, .vbh-table td { text-align: left; padding: 5px 10px; border-bottom: 1px solid var(--color-border); }
 .vbh-table tbody tr:last-child td { border-bottom: none; }
 .vbh-table thead th { position: sticky; top: 0; z-index: 2; background-color: var(--color-background-dark); color: var(--color-main-text); font-weight: 700; box-shadow: inset 0 -2px 0 var(--color-border); white-space: nowrap; }
@@ -1642,7 +2354,7 @@ export default {
 .vbh-table .right { text-align: right; white-space: nowrap; }
 .vbh-table .nowrap { white-space: nowrap; }
 .vbh-table .strong { font-weight: 600; }
-.vbh-purpose { max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vbh-purpose { max-width: min(320px, 30vw); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .num.neg { color: #cc1f1f; font-weight: 700; }
 .num.good { color: #1f7a3d; font-weight: 700; }
 .num.bad { color: #cc1f1f; font-weight: 700; }
@@ -1723,6 +2435,85 @@ tr.assigned td { opacity: 0.85; }
 .vbh-modal-inner { padding: 4px 16px 20px; }
 .vbh-modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
 
+/* Einnahme/Ausgabe-Umschalter (Einfach-Modus) */
+.vbh-kindtoggle { display: flex; gap: 0; margin: 4px 0 14px; border: 1px solid var(--color-border); border-radius: var(--border-radius-element, 8px); overflow: hidden; }
+.vbh-kindbtn { flex: 1 1 50%; padding: 10px 16px; border: none; background: var(--color-main-background); color: var(--color-main-text); font-size: 1em; font-weight: 600; cursor: pointer; transition: background-color 0.15s, color 0.15s; }
+.vbh-kindbtn + .vbh-kindbtn { border-left: 1px solid var(--color-border); }
+.vbh-kindbtn:hover { background: var(--color-background-hover); }
+.vbh-kindbtn.income.active { background: var(--color-success, #2d7d46); color: #fff; }
+.vbh-kindbtn.expense.active { background: var(--color-error, #b23636); color: #fff; }
+.vbh-expertrow { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--color-border); opacity: 0.85; }
+
+/* Drag-&-Drop-Zone (CSV-Import) */
+.vbh-dropzone { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 28px 16px; margin: 8px 0 12px; border: 2px dashed var(--color-border-maxcontrast, var(--color-border)); border-radius: var(--border-radius-large, 12px); text-align: center; transition: border-color 0.15s, background-color 0.15s; }
+.vbh-dropzone.dragging { border-color: var(--color-primary-element); background: var(--color-primary-element-light, var(--color-background-hover)); }
+.vbh-dropzone.has-file { border-style: solid; border-color: var(--color-success, #2d7d46); }
+.vbh-dropzone-icon { opacity: 0.5; }
+.vbh-dropzone-text { margin: 0; opacity: 0.8; }
+.vbh-dropzone-or { font-size: 0.85em; opacity: 0.6; }
+.vbh-dropzone .vbh-filename { margin: 4px 0 0; font-weight: 600; }
+
+/* Import-Erfolg */
+.vbh-import-done { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 20px 8px 8px; }
+.vbh-import-done-icon { color: var(--color-success, #2d7d46); }
+.vbh-import-done h3 { margin: 10px 0 4px; }
+.vbh-import-done .vbh-modal-actions { justify-content: center; width: 100%; }
+
+/* Tab-Icons */
+.vbh-tabs button { display: inline-flex; align-items: center; gap: 6px; }
+.vbh-export-btn { gap: 4px; }
+
+/* Sektions-Einblendung beim Tab-Wechsel */
+.vbh-fadein { animation: vbhFadeIn 0.18s ease-out; }
+@keyframes vbhFadeIn {
+	from { opacity: 0; transform: translateY(4px); }
+	to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+	.vbh-fadein { animation: none; }
+}
+
+/* Zeilen-Übergänge in der Zuordnungstabelle */
+.vbh-row-leave-active { transition: opacity 0.22s ease; }
+.vbh-row-leave-to { opacity: 0; }
+.vbh-row-move { transition: transform 0.22s ease; }
+
+/* Status-Akzent: offene vs. zugeordnete Bankbuchungen */
+.vbh-table tr.open td:first-child { box-shadow: inset 3px 0 0 var(--color-warning, #d9a411); }
+.vbh-table tr.assigned td:first-child { box-shadow: inset 3px 0 0 var(--color-success, #2d7d46); }
+
+/* Zuordnungs-Fortschritt */
+.vbh-progress { display: flex; flex-direction: column; gap: 4px; margin: 4px 0 10px; }
+.vbh-progress-label { font-size: 0.85em; opacity: 0.75; }
+.vbh-progress-bar { height: 6px; border-radius: 3px; background: var(--color-background-dark); overflow: hidden; }
+.vbh-progress-fill { height: 100%; border-radius: 3px; background: var(--color-success, #2d7d46); transition: width 0.35s ease; }
+
+/* Vorschlag-Chip */
+.vbh-assign-row { display: flex; align-items: center; gap: 4px; }
+.vbh-suggest-chip { display: inline-block; margin-top: 4px; padding: 3px 10px; border: 1px solid var(--color-primary-element); border-radius: 12px; background: transparent; color: var(--color-primary-element); font-size: 0.82em; cursor: pointer; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: background-color 0.15s, color 0.15s; }
+.vbh-suggest-chip:hover { background: var(--color-primary-element); color: var(--color-primary-element-text); }
+
+.vbh-yearedit { align-items: center; gap: 10px; margin: 6px 0; }
+
+/* Warnung: Buchungen außerhalb des Geschäftsjahres (xbuc-Import) */
+.vbh-yearwarn { margin: 8px 0; padding: 8px 12px; border: 1px solid var(--color-warning, #d9a411); border-radius: var(--border-radius, 6px); }
+.vbh-yearwarn-list { margin: 4px 0 8px; padding-left: 20px; font-size: 0.88em; opacity: 0.85; }
+
+/* Saldenliste: Konten-Hierarchie */
+.vbh-treeglyph { opacity: 0.45; margin-right: 5px; font-size: 0.9em; }
+.vbh-parentrow td { font-weight: 600; }
+.vbh-parentrow td .vbh-treeglyph { font-weight: 400; }
+
+/* Info: Anfangsbestände (xbuc-Import) */
+.vbh-openinfo { margin: 8px 0; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: var(--border-radius, 6px); background: var(--color-background-hover); }
+.vbh-openinfo-title { margin: 0 0 4px; font-weight: 600; font-size: 0.9em; }
+
+/* KPI-Vorjahresvergleich: Badge mit farbigem Hintergrund + weißer Schrift,
+   damit die Lesbarkeit unabhängig vom Nextcloud-Theme (hell/dunkel) gegeben ist */
+.vbh-total-delta { align-self: flex-start; padding: 2px 9px; border-radius: 10px; font-size: 0.75em; font-weight: 600; color: #fff; white-space: nowrap; }
+.vbh-total-delta.good { background-color: var(--color-success, #2d7d46); }
+.vbh-total-delta.bad { background-color: var(--color-error, #b23636); }
+
 /* Preview */
 .vbh-previewsummary { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 10px; }
 .vbh-preview { margin-top: 10px; }
@@ -1741,9 +2532,6 @@ tr.assigned td { opacity: 0.85; }
 .vbh-chart-card h4 { margin: 0 0 10px; font-size: 0.88em; opacity: 0.8; }
 .vbh-chart-wrap { height: 260px; }
 .vbh-chart-wrap canvas { display: block; width: 100% !important; height: 100% !important; }
-
-/* Tables always scroll horizontally */
-.vbh-tablecard { overflow-x: auto; }
 
 /* Responsive: Tablet (≤ 760px) */
 @media (max-width: 760px) {
@@ -1765,6 +2553,7 @@ tr.assigned td { opacity: 0.85; }
 	.vbh-tabs::-webkit-scrollbar { display: none; }
 	.vbh-tabs button { padding: 5px 10px; font-size: 0.82em; white-space: nowrap; }
 	.vbh-navright { flex-shrink: 0; gap: 2px; }
+	.vbh-newbooking-label { display: none; }
 	.vbh-yearsel { font-size: 0.8em; gap: 3px; }
 	.vbh-yearsel select { padding: 3px 4px; }
 	.vbh-yearsel > span { display: none; }

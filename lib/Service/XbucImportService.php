@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Service;
 use OCA\Vereinsbuchhaltung\Db\Account;
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\CostCenterMapper;
+use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 
 /**
@@ -25,6 +26,7 @@ class XbucImportService {
 		private AccountMapper $accountMapper,
 		private CostCenterMapper $costCenterMapper,
 		private JournalMapper $journalMapper,
+		private JournalLineMapper $lineMapper,
 		private JournalService $journalService,
 		private ResetService $resetService,
 	) {
@@ -33,14 +35,105 @@ class XbucImportService {
 	/**
 	 * Analysiert die Datei ohne zu speichern.
 	 *
-	 * @return array{accounts:int, bookings:int}
+	 * @param int|null $yearOverride manuell gewähltes Geschäftsjahr (hat Vorrang
+	 *                               vor dem in der Datei hinterlegten Jahr)
+	 * @return array{accounts:int, bookings:int, year:?int, fileYear:?int, outsideYear:int, outsideSamples:array<int,array<string,mixed>>, openings:array<int,array<string,mixed>>}
 	 */
-	public function preview(string $content): array {
+	public function preview(string $userId, string $content, ?int $yearOverride = null): array {
 		$data = $this->parser->parse($content);
+		$year = $yearOverride ?? $data['year'];
+		$outside = $this->findOutsideYear($data['bookings'], $year);
+		$openings = $this->analyzeOpenings($userId, $data['bookings'], $year);
 		return [
 			'accounts' => count($data['accounts']),
 			'bookings' => count($data['bookings']),
+			'year' => $year,
+			'fileYear' => $data['year'],
+			'outsideYear' => count($outside),
+			'outsideSamples' => array_map(static fn ($b) => [
+				'date' => $b['date'],
+				'text' => mb_substr($b['text'], 0, 60),
+				'amount' => $b['amountCents'] / 100,
+				'docRef' => $b['docRef'],
+			], array_slice($outside, 0, 5)),
+			'openings' => array_map(static function ($o) {
+				unset($o['index']);
+				return $o;
+			}, $openings),
 		];
+	}
+
+	/**
+	 * Analysiert Eröffnungsbuchungen (Buchungen gegen ein Eigenkapital-/EB-Konto).
+	 *
+	 * Bestandskonten werden in der App KUMULATIV über alle Jahre berechnet.
+	 * Existieren bereits Buchungen aus Vorjahren, würde der Anfangsbestand einer
+	 * weiteren Jahres-Datei doppelt zählen – solche Eröffnungsbuchungen werden
+	 * übersprungen und stattdessen gegen den Vorjahres-Endstand abgeglichen.
+	 *
+	 * @param array<int, array<string,mixed>> $bookings
+	 * @return array<int, array<string,mixed>> je Eröffnungsbuchung:
+	 *         index, account, date, amount (EUR, erwarteter Anfangsbestand),
+	 *         action ('import'|'skip'), priorBalance (EUR|null), matches (bool|null)
+	 */
+	private function analyzeOpenings(string $userId, array $bookings, ?int $year): array {
+		$result = [];
+		$priorSumsByTo = [];
+		foreach ($bookings as $idx => $b) {
+			if (($b['equitySide'] ?? null) === null) {
+				continue;
+			}
+			// Konto = die Nicht-EB-Seite; Vorzeichen des Anfangsbestands je nach Seite
+			$accountOnDebit = $b['equitySide'] === 'haben';
+			$number = $accountOnDebit ? $b['sollNumber'] : $b['habenNumber'];
+			$name = $accountOnDebit ? $b['sollName'] : $b['habenName'];
+			$expectedCents = $accountOnDebit ? $b['amountCents'] : -$b['amountCents'];
+
+			$bookingYear = $year ?? (int)substr((string)$b['date'], 0, 4);
+			$priorTo = sprintf('%04d-12-31', $bookingYear - 1);
+
+			$entry = [
+				'index' => $idx,
+				'account' => trim($number . ' ' . $name),
+				'date' => $b['date'],
+				'amount' => $expectedCents / 100,
+				'action' => 'import',
+				'priorBalance' => null,
+				'matches' => null,
+			];
+
+			$account = $this->accountMapper->findByNumber($userId, $number);
+			if ($account !== null) {
+				if (!isset($priorSumsByTo[$priorTo])) {
+					$priorSumsByTo[$priorTo] = $this->lineMapper->sumByAccount($userId, null, $priorTo);
+				}
+				$sums = $priorSumsByTo[$priorTo];
+				if (isset($sums[$account->getId()])) {
+					// Vorjahresbuchungen vorhanden → Anfangsbestand nicht erneut buchen
+					$priorCents = ($sums[$account->getId()]['debit'] ?? 0) - ($sums[$account->getId()]['credit'] ?? 0);
+					$entry['action'] = 'skip';
+					$entry['priorBalance'] = $priorCents / 100;
+					$entry['matches'] = ($priorCents === $expectedCents);
+				}
+			}
+			$result[] = $entry;
+		}
+		return $result;
+	}
+
+	/**
+	 * Buchungen, deren Datum außerhalb des Geschäftsjahres der Datei liegt.
+	 *
+	 * @param array<int, array<string,mixed>> $bookings
+	 * @return array<int, array<string,mixed>>
+	 */
+	private function findOutsideYear(array $bookings, ?int $year): array {
+		if ($year === null) {
+			return [];
+		}
+		$from = sprintf('%04d-01-01', $year);
+		$to = sprintf('%04d-12-31', $year);
+		return array_values(array_filter($bookings, static fn ($b) => $b['date'] < $from || $b['date'] > $to));
 	}
 
 	/**
@@ -50,10 +143,55 @@ class XbucImportService {
 	 * – Konten werden nur angelegt, wenn die Nummer noch nicht existiert.
 	 * – Buchungen werden per Fingerprint dedupliziert (Datum|Betrag|Soll-ID|Haben-ID|Belegnummer).
 	 *
-	 * @return array{accounts:int, accountsNew:int, bookings:int, skipped:int, reset:bool}
+	 * @param bool $clampDates Buchungen außerhalb des Geschäftsjahres
+	 *                         auf den 01.01. bzw. 31.12. dieses Jahres datieren
+	 * @param int|null $yearOverride manuell gewähltes Geschäftsjahr (hat Vorrang
+	 *                               vor dem in der Datei hinterlegten Jahr)
+	 * @return array{accounts:int, accountsNew:int, bookings:int, skipped:int, reset:bool, year:?int, outsideYear:int, clamped:int, openingsSkipped:int, openingMismatches:array<int,array<string,mixed>>}
 	 */
-	public function import(string $userId, string $content, bool $reset = true): array {
+	public function import(string $userId, string $content, bool $reset = true, bool $clampDates = false, ?int $yearOverride = null): array {
 		$data = $this->parser->parse($content);
+
+		// Buchungen außerhalb des Geschäftsjahres erkennen und optional
+		// auf die Jahresgrenzen datieren, damit sie in der App nicht in
+		// einem anderen Jahr landen als in der xbuc-Datei.
+		$year = $yearOverride ?? $data['year'];
+		$outsideCount = count($this->findOutsideYear($data['bookings'], $year));
+		$clamped = 0;
+		if ($clampDates && $year !== null && $outsideCount > 0) {
+			$from = sprintf('%04d-01-01', $year);
+			$to = sprintf('%04d-12-31', $year);
+			foreach ($data['bookings'] as &$booking) {
+				if ($booking['date'] < $from) {
+					$booking['date'] = $from;
+					$clamped++;
+				} elseif ($booking['date'] > $to) {
+					$booking['date'] = $to;
+					$clamped++;
+				}
+			}
+			unset($booking);
+		}
+
+		// Eröffnungsbuchungen: im Merge-Modus überspringen, wenn das Konto
+		// bereits Vorjahresbuchungen hat (der kumulative Saldo deckt den
+		// Anfangsbestand dann schon ab); Abweichungen werden gemeldet.
+		$openingSkipIdx = [];
+		$openingMismatches = [];
+		if (!$reset) {
+			foreach ($this->analyzeOpenings($userId, $data['bookings'], $year) as $o) {
+				if ($o['action'] === 'skip') {
+					$openingSkipIdx[$o['index']] = true;
+					if ($o['matches'] === false) {
+						$openingMismatches[] = [
+							'account' => $o['account'],
+							'fileAmount' => $o['amount'],
+							'priorBalance' => $o['priorBalance'],
+						];
+					}
+				}
+			}
+		}
 
 		if ($reset) {
 			$this->resetService->resetAll($userId);
@@ -104,7 +242,12 @@ class XbucImportService {
 		// --- Buchungen ---
 		$count = 0;
 		$skipped = 0;
-		foreach ($data['bookings'] as $b) {
+		$openingsSkipped = 0;
+		foreach ($data['bookings'] as $idx => $b) {
+			if (isset($openingSkipIdx[$idx])) {
+				$openingsSkipped++;
+				continue;
+			}
 			$debitId  = $this->ensureAccount($userId, $b['sollNumber'],  $b['sollName'],  $byNumber);
 			$creditId = $this->ensureAccount($userId, $b['habenNumber'], $b['habenName'], $byNumber);
 
@@ -136,11 +279,16 @@ class XbucImportService {
 		}
 
 		return [
-			'accounts'    => count($byNumber),
-			'accountsNew' => $accountsNew,
-			'bookings'    => $count,
-			'skipped'     => $skipped,
-			'reset'       => $reset,
+			'accounts'          => count($byNumber),
+			'accountsNew'       => $accountsNew,
+			'bookings'          => $count,
+			'skipped'           => $skipped,
+			'reset'             => $reset,
+			'year'              => $year,
+			'outsideYear'       => $outsideCount,
+			'clamped'           => $clamped,
+			'openingsSkipped'   => $openingsSkipped,
+			'openingMismatches' => $openingMismatches,
 		];
 	}
 

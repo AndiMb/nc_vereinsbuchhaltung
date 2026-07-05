@@ -57,7 +57,8 @@ class JournalMapper extends QBMapper {
 		$qb->selectAlias($qb->func()->max('entry_no'), 'm')
 			->from($this->getTableName())
 			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
-			->andWhere($qb->expr()->like('date', $qb->createNamedParameter($year . '-%')));
+			->andWhere($qb->expr()->gte('date', $qb->createNamedParameter(sprintf('%04d-01-01', $year))))
+			->andWhere($qb->expr()->lte('date', $qb->createNamedParameter(sprintf('%04d-12-31', $year))));
 		$res = $qb->executeQuery();
 		$max = $res->fetchOne();
 		$res->closeCursor();

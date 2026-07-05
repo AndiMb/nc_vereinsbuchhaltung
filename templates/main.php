@@ -2,4 +2,4 @@
 declare(strict_types=1);
 // Einstiegspunkt: der Vue-Bundle hängt sich an #vereinsbuchhaltung-app
 ?>
-<div id="vereinsbuchhaltung-app"></div>
+<div id="vereinsbuchhaltung-app" style="height: 100%;"></div>

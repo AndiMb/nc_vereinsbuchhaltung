@@ -13,7 +13,7 @@ namespace OCA\Vereinsbuchhaltung\Service;
 class XbucParser {
 
 	/**
-	 * @return array{accounts: array<int, array<string,mixed>>, bookings: array<int, array<string,mixed>>, costCenters: array<int, array{code:string, name:string}>}
+	 * @return array{accounts: array<int, array<string,mixed>>, bookings: array<int, array<string,mixed>>, costCenters: array<int, array{code:string, name:string}>, year: ?int}
 	 * @throws \RuntimeException
 	 */
 	public function parse(string $content): array {
@@ -41,11 +41,23 @@ class XbucParser {
 		// längste zuerst, damit "546 01 01" vor "546" greift
 		usort($numbers, static fn ($a, $b) => strlen($b) <=> strlen($a));
 
+		// Eigenkapital-/Eröffnungsbilanzkonten: Buchungen dagegen sind
+		// Anfangsbestände. Das erste dient als Gegenkonto für einseitige
+		// Buchungen (zero Buchhaltung lässt bei "Kontostand 01.01." das
+		// Gegenkonto leer).
+		$equityNumbers = [];
+		foreach ($accounts as $a) {
+			if ($a['type'] === 'equity') {
+				$equityNumbers[$a['number']] = true;
+			}
+		}
+		$openingContra = array_key_first($equityNumbers);
+
 		$bookings = [];
 		if ($projekt->Ordner_Buchungen) {
 			foreach ($projekt->Ordner_Buchungen->Buchungsgruppe as $gruppe) {
 				foreach ($gruppe->Buchung as $b) {
-					$booking = $this->parseBooking($b, $numbers);
+					$booking = $this->parseBooking($b, $numbers, $openingContra, $equityNumbers);
 					if ($booking !== null) {
 						$bookings[] = $booking;
 					}
@@ -67,7 +79,27 @@ class XbucParser {
 			}
 		}
 
-		return ['accounts' => $accounts, 'bookings' => $bookings, 'costCenters' => $costCenters];
+		return [
+			'accounts' => $accounts,
+			'bookings' => $bookings,
+			'costCenters' => $costCenters,
+			'year' => $this->projectYear($projekt),
+		];
+	}
+
+	/**
+	 * Geschäftsjahr der Datei aus den Projekt-Attributen min__Datum/max__Datum.
+	 * Nur wenn beide auf dasselbe Kalenderjahr zeigen, sonst null.
+	 */
+	private function projectYear(\SimpleXMLElement $projekt): ?int {
+		$from = $this->parseDate((string)$projekt['min__Datum']);
+		$to = $this->parseDate((string)$projekt['max__Datum']);
+		if ($from === null || $to === null) {
+			return null;
+		}
+		$yearFrom = (int)substr($from, 0, 4);
+		$yearTo = (int)substr($to, 0, 4);
+		return $yearFrom === $yearTo ? $yearFrom : null;
 	}
 
 	/**
@@ -95,13 +127,15 @@ class XbucParser {
 			$name = $isRoot ? $category : ('Konto ' . $number);
 		}
 
+		[$type, $isBank] = $this->classify($number, $name);
+
 		$out[] = [
 			'number' => mb_substr($number, 0, 20),
 			'name' => mb_substr($name, 0, 255),
 			'parentNumber' => $parentNumber,
-			'type' => $this->determineType($number),
+			'type' => $type,
 			'category' => $category !== null ? mb_substr($category, 0, 255) : null,
-			'isBank' => in_array($number, ['001', '002'], true),
+			'isBank' => $isBank,
 		];
 
 		foreach ($konto->Konto as $child) {
@@ -111,9 +145,10 @@ class XbucParser {
 
 	/**
 	 * @param string[] $numbers längste zuerst
+	 * @param array<string,true> $equityNumbers Kontonummern der Eigenkapitalkonten
 	 * @return array<string,mixed>|null
 	 */
-	private function parseBooking(\SimpleXMLElement $b, array $numbers): ?array {
+	private function parseBooking(\SimpleXMLElement $b, array $numbers, ?string $openingContra = null, array $equityNumbers = []): ?array {
 		$date = $this->parseDate((string)$b['Datum']);
 		$amount = $this->parseAmount((string)$b->Betrag_als_Zahl);
 		if ($date === null || $amount === null) {
@@ -123,8 +158,27 @@ class XbucParser {
 		$habenRaw = $this->decode((string)$b->Haben);
 		[$sollNo, $sollName] = $this->resolveAccount($sollRaw, $numbers);
 		[$habenNo, $habenName] = $this->resolveAccount($habenRaw, $numbers);
+		// Einseitige Anfangsbestands-Buchung: fehlende Seite = Eröffnungsbilanzkonto
+		if ($openingContra !== null && $sollNo !== $openingContra && $habenNo !== $openingContra) {
+			if ($sollNo !== null && $habenNo === null) {
+				$habenNo = $openingContra;
+				$habenName = '';
+			} elseif ($habenNo !== null && $sollNo === null) {
+				$sollNo = $openingContra;
+				$sollName = '';
+			}
+		}
 		if ($sollNo === null || $habenNo === null) {
 			return null;
+		}
+
+		// Anfangsbestand: eine Seite ist ein Eigenkapital-/EB-Konto.
+		// equitySide = Seite, auf der das EB-Konto steht (null = normale Buchung).
+		$equitySide = null;
+		if (isset($equityNumbers[$habenNo])) {
+			$equitySide = 'haben';
+		} elseif (isset($equityNumbers[$sollNo])) {
+			$equitySide = 'soll';
 		}
 
 		return [
@@ -137,6 +191,7 @@ class XbucParser {
 			'sollName' => $sollName,
 			'habenNumber' => $habenNo,
 			'habenName' => $habenName,
+			'equitySide' => $equitySide,
 		];
 	}
 
@@ -162,6 +217,31 @@ class XbucParser {
 		$num = mb_substr($parts[0], 0, 20);
 		$name = isset($parts[1]) ? mb_substr($parts[1], 0, 255) : $raw;
 		return [$num, $name];
+	}
+
+	/**
+	 * Kontotyp + Bank-Flag bestimmen. Der Kontoname hat Vorrang vor der
+	 * Nummern-Heuristik, damit auch Kontenrahmen ohne SCV-Nummernschema
+	 * (z.B. 100=Bank, 200=Kasse, 300=Einnahmen) korrekt eingestuft werden.
+	 *
+	 * @return array{0: string, 1: bool}
+	 */
+	private function classify(string $number, string $name): array {
+		$isBank = in_array($number, ['001', '002'], true);
+		$lower = mb_strtolower($name);
+		if (str_contains($lower, 'bankkonto') || str_contains($lower, 'girokonto') || str_contains($lower, 'sparbuch') || $lower === 'bank') {
+			return ['asset', true];
+		}
+		if ($lower === 'kasse' || str_starts_with($lower, 'barkasse') || str_starts_with($lower, 'handkasse')) {
+			return ['asset', $isBank];
+		}
+		if (str_contains($lower, 'eröffnungsbilanz')) {
+			return ['equity', $isBank];
+		}
+		if (str_contains($lower, 'durchlauf')) {
+			return ['asset', $isBank];
+		}
+		return [$this->determineType($number), $isBank];
 	}
 
 	private function determineType(string $number): string {
@@ -220,6 +300,10 @@ class XbucParser {
 	 */
 	private function decode(string $s): string {
 		$s = preg_replace('/&?#(\d+);/', '&#$1;', $s) ?? $s;
+		// Referenzen auf Steuerzeichen (&#0; bis &#31;, z.B. "#20;" als
+		// Leerzeichen-Ersatz von zero Buchhaltung) zu Leerzeichen machen –
+		// html_entity_decode lässt sie sonst als Literal stehen.
+		$s = preg_replace('/&#(?:\d|[12]\d|3[01]);/', ' ', $s) ?? $s;
 		$s = html_entity_decode($s, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 		// Steuerzeichen (außer Tab/Zeilenumbruch) entfernen
 		$s = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/u', '', $s) ?? $s;
