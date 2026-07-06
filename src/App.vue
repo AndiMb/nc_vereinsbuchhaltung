@@ -135,7 +135,6 @@
 							Zuzuordnen
 							<span v-if="unassignedCount > 0" class="vbh-badge vbh-badge--alert">{{ unassignedCount }}</span>
 						</button>
-						<button :class="{ active: bookingView === 'assigned' }" @click="bookingView = 'assigned'">Zugeordnet</button>
 					</div>
 					<div class="vbh-sectiontop-actions">
 						<a v-if="bookingView === 'journal'" :href="exportJournalUrl" download class="vbh-export-btn" title="Journal als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> CSV</a>
@@ -197,6 +196,13 @@
 												<NcButton v-if="canWrite" variant="tertiary" aria-label="Bearbeiten" @click="editBooking(r)">
 													<template #icon><NcIconSvgWrapper :path="mdiPencil" :size="20" /></template>
 												</NcButton>
+												<NcButton v-if="canWrite && txByJournalId[r.id]"
+													variant="tertiary"
+													:title="'Regel anlegen: ' + txByJournalId[r.id].counterparty + ' künftig automatisch zuordnen'"
+													aria-label="Zuordnungsregel anlegen"
+													@click="createRuleFromTx(txByJournalId[r.id])">
+													<template #icon><NcIconSvgWrapper :path="mdiFlash" :size="16" /></template>
+												</NcButton>
 												<NcButton v-if="canWrite" variant="error" aria-label="Löschen" @click="removeBooking(r)">
 													<template #icon><NcIconSvgWrapper :path="mdiDelete" :size="20" /></template>
 												</NcButton>
@@ -248,15 +254,6 @@
 													class="vbh-assign-select"
 													@update:model-value="v => onAssign(tx, v ? v.id : '')"
 												/>
-												<NcButton
-													v-if="canWrite && tx.status === 'assigned' && tx.counterparty && tx.contraAccountId"
-													variant="tertiary"
-													:title="'Regel anlegen: ' + tx.counterparty + ' künftig automatisch zuordnen'"
-													:aria-label="'Zuordnungsregel anlegen'"
-													@click="createRuleFromTx(tx)"
-												>
-													<template #icon><NcIconSvgWrapper :path="mdiFlash" :size="16" /></template>
-												</NcButton>
 											</div>
 											<button
 												v-if="canWrite && !tx.contraAccountId && suggestionsById[tx.id]"
@@ -281,7 +278,6 @@
 								</NcButton>
 							</template>
 						</NcEmptyContent>
-						<NcEmptyContent v-else name="Keine zugeordneten Buchungen" description="Noch keine Bankbuchungen einem Konto zugeordnet." />
 					</template>
 				</div>
 			</section>
@@ -1120,7 +1116,7 @@ export default {
 			return this.transactions.filter(t => t.status === 'unassigned').length
 		},
 		currentTransactions() {
-			const status = this.bookingView === 'unassigned' ? 'unassigned' : 'assigned'
+			const status = 'unassigned' // "Zugeordnet"-Ansicht entfernt; hier nur offene Umsätze
 			let txs = this.applySort(
 				this.transactions.filter(t => t.status === status),
 				this.sort.transactions,
@@ -1134,6 +1130,18 @@ export default {
 				)
 			}
 			return txs
+		},
+		// Verknüpft Journal-Zeilen mit ihrer bankstämmigen Buchung, damit in
+		// "Alle Buchungen" direkt eine Zuordnungsregel angelegt werden kann
+		// (nur zugeordnete Umsätze mit Zahlungspartner und Zielkonto).
+		txByJournalId() {
+			const map = {}
+			for (const t of this.transactions) {
+				if (t.journalId && t.status === 'assigned' && t.counterparty && t.contraAccountId) {
+					map[t.journalId] = t
+				}
+			}
+			return map
 		},
 		filteredJournalRows() {
 			let rows = this.sortedJournalRows
@@ -2389,9 +2397,9 @@ export default {
    das ist selbst auf schmalen Handys der Fall, da dort Nebenspalten ausblenden. */
 .vbh-table thead th.num { width: 100px; }
 .vbh-table thead th.nowrap { width: 96px; }
-/* Aktionsspalte (leere Kopfzelle): breit genug für bis zu 3 Icon-Buttons
-   à 44px + Abstände + Zellenpadding (3×44 + 2×2 + 20 ≈ 156), sonst überlappen
-   die Buttons den Betrag bzw. brechen in eine zweite Zeile um */
+/* Aktionsspalte (leere Kopfzelle): breit genug für 3 Icon-Buttons (Bearbeiten,
+   Regel, Löschen) à 44px + Abstände + Zellenpadding (3×44 + 2×2 + 20 ≈ 156).
+   Ein optionales 4. Beleg-Icon bricht per flex-wrap sauber in eine zweite Zeile um. */
 .vbh-table thead th:empty { width: 160px; }
 /* "Nr." ist immer die erste Zahlenspalte und braucht wenig Platz (Beträge nie) */
 .vbh-table thead th.num:first-child { width: 56px; }
