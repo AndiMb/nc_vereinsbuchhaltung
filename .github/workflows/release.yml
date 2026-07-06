@@ -1,0 +1,83 @@
+name: Build & Release
+
+# Baut die App bei jedem Versions-Tag (z. B. v0.10.18) und haengt das
+# fertige Installations-Tarball an ein GitHub Release. Die Produktivserver
+# ziehen dieses Tarball dann per vbh-deploy.sh.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write   # zum Anlegen des Releases
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Version aus Tag ableiten
+        id: ver
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Version gegen info.xml pruefen
+        run: |
+          xml_ver=$(grep -oP '(?<=<version>)[^<]+' appinfo/info.xml)
+          if [ "$xml_ver" != "${{ steps.ver.outputs.version }}" ]; then
+            echo "::error::Tag v$xml_ver erwartet, aber info.xml hat $xml_ver vs Tag ${{ steps.ver.outputs.version }}"
+            echo "Tag ${{ github.ref_name }} passt nicht zu info.xml-Version $xml_ver"
+            exit 1
+          fi
+
+      - name: Node einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Frontend bauen
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+
+      - name: PHP einrichten
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer
+
+      - name: Composer-Autoloader (ohne Dev)
+        run: composer install --no-dev --optimize-autoloader --no-interaction
+
+      - name: Paket schnueren
+        run: |
+          set -e
+          APP=vereinsbuchhaltung
+          VER=${{ steps.ver.outputs.version }}
+          STAGE="$RUNNER_TEMP/stage/$APP"
+          mkdir -p "$STAGE"
+          # Alles kopieren ausser Entwicklungs-/Build-Ballast
+          rsync -a --delete \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='deploy' \
+            --exclude='node_modules' \
+            --exclude='src' \
+            --exclude='tests' \
+            --exclude='composer.phar' \
+            --exclude='*.map' \
+            --exclude='*.log' \
+            ./ "$STAGE/"
+          tar -czf "$RUNNER_TEMP/$APP-$VER.tar.gz" -C "$RUNNER_TEMP/stage" "$APP"
+          ( cd "$RUNNER_TEMP" && sha256sum "$APP-$VER.tar.gz" > "$APP-$VER.tar.gz.sha256" )
+
+      - name: Release veroeffentlichen
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ runner.temp }}/vereinsbuchhaltung-${{ steps.ver.outputs.version }}.tar.gz
+            ${{ runner.temp }}/vereinsbuchhaltung-${{ steps.ver.outputs.version }}.tar.gz.sha256
+          generate_release_notes: true

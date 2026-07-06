@@ -1,0 +1,2 @@
+# Shell-Skripte laufen auf Linux — niemals CRLF, sonst schlaegt die Ausfuehrung fehl
+*.sh text eol=lf
