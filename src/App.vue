@@ -804,6 +804,7 @@
 							<span class="vbh-badge muted">{{ previewResult.duplicate }} Dubletten</span>
 							<span class="vbh-badge muted">{{ previewResult.total }} gesamt</span>
 						</p>
+						<p v-if="previewResult.existingBookings > 0" class="vbh-hint">Davon {{ previewResult.existingBookings }} bereits als vorhandene Buchung erkannt (z. B. aus einem XBUC-Import) und daher übersprungen.</p>
 						<NcButton variant="primary" :disabled="busy || previewResult.new === 0" @click="commit">{{ previewResult.new }} Buchungen importieren</NcButton>
 						<p v-if="previewResult.new === 0" class="vbh-hint">Alle Buchungen dieser Datei wurden bereits importiert.</p>
 					</div>

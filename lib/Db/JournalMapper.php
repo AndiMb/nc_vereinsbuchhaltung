@@ -143,6 +143,35 @@ class JournalMapper extends QBMapper {
 	}
 
 	/**
+	 * Datum, Betrag (absolut, Cent) und Beschreibung aller Buchungen OHNE
+	 * verknüpfte Bankbuchung (bank_tx_id IS NULL) – also XBUC-/manuell erfasste.
+	 * Dient dem CSV-Import als zusätzliche Dublettenprüfung: eine CSV-Zeile, die
+	 * bereits als solche Buchung existiert, wird beim Import übersprungen.
+	 *
+	 * @return array<int, array{date:string, amount:int, description:string}>
+	 */
+	public function findManualBookingKeys(string $userId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('j.id', 'j.date', 'j.description', 'l.debit_cents')
+			->from($this->getTableName(), 'j')
+			->innerJoin('j', 'vbh_journal_line', 'l', $qb->expr()->eq('l.journal_id', 'j.id'))
+			->where($qb->expr()->eq('j.user_id', $qb->createNamedParameter($userId)))
+			->andWhere($qb->expr()->isNull('j.bank_tx_id'));
+		$res = $qb->executeQuery();
+
+		$byId = [];
+		while (($row = $res->fetch()) !== false) {
+			$id = (int)$row['id'];
+			if (!isset($byId[$id])) {
+				$byId[$id] = ['date' => (string)$row['date'], 'description' => (string)($row['description'] ?? ''), 'amount' => 0];
+			}
+			$byId[$id]['amount'] += (int)$row['debit_cents'];
+		}
+		$res->closeCursor();
+		return array_values($byId);
+	}
+
+	/**
 	 * Liste der Geschäftsjahre (Kalenderjahre), in denen Buchungen existieren –
 	 * absteigend sortiert.
 	 *

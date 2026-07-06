@@ -8,6 +8,7 @@ use OCA\Vereinsbuchhaltung\Db\BankTransaction;
 use OCA\Vereinsbuchhaltung\Db\BankTransactionMapper;
 use OCA\Vereinsbuchhaltung\Db\ImportLog;
 use OCA\Vereinsbuchhaltung\Db\ImportLogMapper;
+use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\Rule;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
 
@@ -19,6 +20,7 @@ class ImportService {
 		private ImportLogMapper $importMapper,
 		private RuleMapper $ruleMapper,
 		private BookingService $bookingService,
+		private JournalMapper $journalMapper,
 	) {
 	}
 
@@ -29,7 +31,7 @@ class ImportService {
 	 */
 	public function preview(string $userId, string $content): array {
 		$rows = $this->parser->parse($content);
-		[$new, $duplicate] = $this->splitNewAndDuplicate($userId, $rows);
+		[$new, $duplicate, $existingBookings] = $this->splitNewAndDuplicate($userId, $rows);
 
 		$sample = array_map(static function (array $r): array {
 			return [
@@ -44,6 +46,8 @@ class ImportService {
 			'total' => count($rows),
 			'new' => count($new),
 			'duplicate' => count($duplicate),
+			// davon: bereits als vorhandene Buchung erkannt (z. B. aus XBUC-Import)
+			'existingBookings' => $existingBookings,
 			'sample' => $sample,
 		];
 	}
@@ -55,7 +59,7 @@ class ImportService {
 	 */
 	public function commit(string $userId, string $filename, string $content, bool $applyRules = true): array {
 		$rows = $this->parser->parse($content);
-		[$new] = $this->splitNewAndDuplicate($userId, $rows);
+		[$new, , $existingBookings] = $this->splitNewAndDuplicate($userId, $rows);
 
 		$log = new ImportLog();
 		$log->setUserId($userId);
@@ -91,23 +95,35 @@ class ImportService {
 			'total' => count($rows),
 			'new' => count($new),
 			'duplicate' => count($rows) - count($new),
+			'existingBookings' => $existingBookings,
 			'autoAssigned' => $autoAssigned,
 		];
 	}
 
 	/**
-	 * Teilt geparste Zeilen in neue und bereits vorhandene (per Hash).
-	 * Behandelt auch Dubletten innerhalb derselben Datei.
+	 * Teilt geparste Zeilen in neue und bereits vorhandene.
+	 *
+	 * Zwei Dublettenquellen:
+	 *  1. Hash gegen bereits importierte Bankbuchungen (und Dubletten in derselben Datei).
+	 *  2. Datum + Betrag + normalisierter Text gegen bestehende Buchungen OHNE
+	 *     Bankbezug (XBUC-/manuell erfasst). So werden Umsätze, die schon über
+	 *     einen XBUC-Import gebucht sind, nicht ein zweites Mal angelegt. Die
+	 *     Normalisierung entfernt Trennzeichen/Groß-Kleinschreibung, sodass
+	 *     "Empfänger: Verwendungszweck" (XBUC) und "Empfänger – Verwendungszweck"
+	 *     (Bankzuordnung) als gleich gelten.
 	 *
 	 * @param array<int, array<string,mixed>> $rows
-	 * @return array{0: array<int, array<string,mixed>>, 1: array<int, array<string,mixed>>}
+	 * @return array{0: array<int, array<string,mixed>>, 1: array<int, array<string,mixed>>, 2: int}
+	 *         [neue Zeilen, Dubletten, davon bereits als Buchung vorhanden]
 	 */
 	private function splitNewAndDuplicate(string $userId, array $rows): array {
 		$hashes = array_column($rows, 'hash');
 		$existing = array_flip($this->txMapper->findExistingHashes($userId, $hashes));
+		$bookingKeys = $this->existingBookingKeys($userId);
 
 		$new = [];
 		$duplicate = [];
+		$existingBookings = 0;
 		$seen = [];
 		foreach ($rows as $row) {
 			$h = $row['hash'];
@@ -115,10 +131,53 @@ class ImportService {
 				$duplicate[] = $row;
 				continue;
 			}
+			$bk = $this->bookingKey($row);
+			if ($bk !== null && isset($bookingKeys[$bk])) {
+				$duplicate[] = $row;
+				$existingBookings++;
+				continue;
+			}
 			$seen[$h] = true;
 			$new[] = $row;
 		}
-		return [$new, $duplicate];
+		return [$new, $duplicate, $existingBookings];
+	}
+
+	/**
+	 * Dublettenschlüssel aller Buchungen ohne Bankbezug (XBUC/manuell):
+	 * "datum|betragAbsCents|normalisierterText".
+	 *
+	 * @return array<string, true>
+	 */
+	private function existingBookingKeys(string $userId): array {
+		$keys = [];
+		foreach ($this->journalMapper->findManualBookingKeys($userId) as $k) {
+			$norm = $this->normalizeText($k['description']);
+			if ($norm === '') {
+				continue;
+			}
+			$keys[$k['date'] . '|' . abs((int)$k['amount']) . '|' . $norm] = true;
+		}
+		return $keys;
+	}
+
+	/**
+	 * Dublettenschlüssel einer CSV-Zeile passend zu {@see existingBookingKeys};
+	 * null, wenn kein aussagekräftiger Text vorhanden ist (dann kein Abgleich).
+	 *
+	 * @param array<string,mixed> $row
+	 */
+	private function bookingKey(array $row): ?string {
+		$norm = $this->normalizeText((string)($row['counterparty'] ?? '') . (string)($row['purpose'] ?? ''));
+		if ($norm === '') {
+			return null;
+		}
+		return $row['bookingDate'] . '|' . abs((int)$row['amountCents']) . '|' . $norm;
+	}
+
+	/** Klein, ohne Trennzeichen/Leer-/Sonderzeichen – nur Buchstaben und Ziffern. */
+	private function normalizeText(string $s): string {
+		return preg_replace('/[^\p{L}\p{N}]+/u', '', mb_strtolower($s)) ?? '';
 	}
 
 	/**
