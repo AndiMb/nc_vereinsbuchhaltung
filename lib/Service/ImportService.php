@@ -105,9 +105,10 @@ class ImportService {
 	 *
 	 * Zwei Dublettenquellen:
 	 *  1. Hash gegen bereits importierte Bankbuchungen (und Dubletten in derselben Datei).
-	 *  2. Datum + Betrag + normalisierter Text gegen bestehende Buchungen OHNE
-	 *     Bankbezug (XBUC-/manuell erfasst). So werden Umsätze, die schon über
-	 *     einen XBUC-Import gebucht sind, nicht ein zweites Mal angelegt. Die
+	 *  2. Datum (Buchungs- ODER Valutadatum) + Betrag + normalisierter Text gegen
+	 *     bestehende Buchungen OHNE Bankbezug (XBUC-/manuell erfasst). So werden
+	 *     Umsätze, die schon über einen XBUC-Import gebucht sind, nicht ein
+	 *     zweites Mal angelegt (die Alt-Software nutzte teils das Valutadatum). Die
 	 *     Normalisierung entfernt Trennzeichen/Groß-Kleinschreibung, sodass
 	 *     "Empfänger: Verwendungszweck" (XBUC) und "Empfänger – Verwendungszweck"
 	 *     (Bankzuordnung) als gleich gelten.
@@ -131,8 +132,7 @@ class ImportService {
 				$duplicate[] = $row;
 				continue;
 			}
-			$bk = $this->bookingKey($row);
-			if ($bk !== null && isset($bookingKeys[$bk])) {
+			if ($this->matchesExistingBooking($row, $bookingKeys)) {
 				$duplicate[] = $row;
 				$existingBookings++;
 				continue;
@@ -162,17 +162,29 @@ class ImportService {
 	}
 
 	/**
-	 * Dublettenschlüssel einer CSV-Zeile passend zu {@see existingBookingKeys};
-	 * null, wenn kein aussagekräftiger Text vorhanden ist (dann kein Abgleich).
+	 * Prüft, ob eine CSV-Zeile bereits als Buchung ohne Bankbezug existiert
+	 * (Betrag + normalisierter Text gegen {@see existingBookingKeys}).
+	 *
+	 * Datumsseitig wird sowohl das Buchungs- ALS AUCH das Valutadatum geprüft:
+	 * die Alt-Software (xbuc-Export) hat teils das Valutadatum als Buchungsdatum
+	 * gespeichert, sodass ein Abgleich nur über das Buchungsdatum fehlschlüge.
+	 * Ohne aussagekräftigen Text findet kein Abgleich statt.
 	 *
 	 * @param array<string,mixed> $row
+	 * @param array<string, true> $bookingKeys
 	 */
-	private function bookingKey(array $row): ?string {
+	private function matchesExistingBooking(array $row, array $bookingKeys): bool {
 		$norm = $this->normalizeText((string)($row['counterparty'] ?? '') . (string)($row['purpose'] ?? ''));
 		if ($norm === '') {
-			return null;
+			return false;
 		}
-		return $row['bookingDate'] . '|' . abs((int)$row['amountCents']) . '|' . $norm;
+		$amount = abs((int)$row['amountCents']);
+		foreach ([$row['bookingDate'] ?? null, $row['valueDate'] ?? null] as $date) {
+			if (is_string($date) && $date !== '' && isset($bookingKeys[$date . '|' . $amount . '|' . $norm])) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/** Klein, ohne Trennzeichen/Leer-/Sonderzeichen – nur Buchstaben und Ziffern. */
