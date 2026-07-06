@@ -25,14 +25,14 @@ class CamtCsvParser {
 	 * @var array<string, string[]>
 	 */
 	private const FIELD_SYNONYMS = [
-		'ownAccount' => ['auftragskonto', 'kontonummerauftraggeber', 'iban'],
+		'ownAccount' => ['auftragskonto', 'bezeichnungauftragskonto', 'ibanauftragskonto', 'kontonummerauftraggeber', 'iban'],
 		'bookingDate' => ['buchungstag', 'buchungsdatum'],
 		'valueDate' => ['valutadatum', 'wertstellung', 'valuta'],
 		'bookingText' => ['buchungstext', 'umsatzart', 'transaktionstyp'],
 		'purpose' => ['verwendungszweck', 'vwz'],
-		'counterparty' => ['beguenstigterzahlungspflichtiger', 'beguenstigter', 'zahlungspflichtiger', 'name', 'empfaengerzahlungspflichtiger', 'auftraggeberempfaenger'],
-		'counterpartyIban' => ['kontonummeriban', 'kontonummer', 'ibankontonummer', 'kontoiban'],
-		'counterpartyBic' => ['bicswiftcode', 'bic', 'swift'],
+		'counterparty' => ['beguenstigterzahlungspflichtiger', 'beguenstigter', 'zahlungspflichtiger', 'name', 'namezahlungsbeteiligter', 'empfaengerzahlungspflichtiger', 'auftraggeberempfaenger'],
+		'counterpartyIban' => ['kontonummeriban', 'kontonummer', 'ibankontonummer', 'kontoiban', 'ibanzahlungsbeteiligter'],
+		'counterpartyBic' => ['bicswiftcode', 'bic', 'swift', 'bicswiftcodezahlungsbeteiligter', 'biczahlungsbeteiligter'],
 		'amount' => ['betrag', 'umsatz'],
 		'currency' => ['waehrung', 'whrg', 'currency'],
 	];
