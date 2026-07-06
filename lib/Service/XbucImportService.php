@@ -6,6 +6,8 @@ namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\Db\Account;
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
+use OCA\Vereinsbuchhaltung\Db\BankTransaction;
+use OCA\Vereinsbuchhaltung\Db\BankTransactionMapper;
 use OCA\Vereinsbuchhaltung\Db\CostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
@@ -29,6 +31,7 @@ class XbucImportService {
 		private JournalLineMapper $lineMapper,
 		private JournalService $journalService,
 		private ResetService $resetService,
+		private BankTransactionMapper $txMapper,
 	) {
 	}
 
@@ -47,6 +50,8 @@ class XbucImportService {
 		return [
 			'accounts' => count($data['accounts']),
 			'bookings' => count($data['bookings']),
+			// Buchungen ohne Gegenkonto → werden als offene Bankbuchungen übernommen
+			'openBankTx' => count(array_filter($data['bookings'], static fn ($b) => !empty($b['openContra']))),
 			'year' => $year,
 			'fileYear' => $data['year'],
 			'outsideYear' => count($outside),
@@ -235,6 +240,17 @@ class XbucImportService {
 		// --- Fingerprints vorhandener Buchungen (nur im Merge-Modus) ---
 		$seen = $reset ? [] : $this->journalMapper->findFingerprintsForUser($userId);
 
+		// --- Offene Bankbuchungen (Buchung ohne Gegenkonto): Hash-Dedup wie CSV ---
+		$openHashes = [];
+		foreach ($data['bookings'] as $b) {
+			if (!empty($b['openContra'])) {
+				$openHashes[] = $this->openTxHash($b);
+			}
+		}
+		$existingTxHash = $reset ? [] : array_flip($this->txMapper->findExistingHashes($userId, $openHashes));
+		$seenTxHash = [];
+		$openBankTx = 0;
+
 		// Buchungsnummern je Kalenderjahr (starten bei 1; im Merge-Modus ab MAX+1 des jeweiligen Jahres)
 		/** @var array<int,int> $nextEntryByYear  Jahr → nächste freie Nummer */
 		$nextEntryByYear = [];
@@ -246,6 +262,19 @@ class XbucImportService {
 		foreach ($data['bookings'] as $idx => $b) {
 			if (isset($openingSkipIdx[$idx])) {
 				$openingsSkipped++;
+				continue;
+			}
+			// Buchung ohne Gegenkonto → als unzugeordnete Bankbuchung anlegen
+			// (erscheint im Tab „Zuzuordnen"), Dedup per stabilem Hash.
+			if (!empty($b['openContra'])) {
+				$h = $this->openTxHash($b);
+				if (isset($existingTxHash[$h]) || isset($seenTxHash[$h])) {
+					$skipped++;
+					continue;
+				}
+				$seenTxHash[$h] = true;
+				$this->insertOpenBankTx($userId, $b, $h);
+				$openBankTx++;
 				continue;
 			}
 			$debitId  = $this->ensureAccount($userId, $b['sollNumber'],  $b['sollName'],  $byNumber);
@@ -282,6 +311,7 @@ class XbucImportService {
 			'accounts'          => count($byNumber),
 			'accountsNew'       => $accountsNew,
 			'bookings'          => $count,
+			'openBankTx'        => $openBankTx,
 			'skipped'           => $skipped,
 			'reset'             => $reset,
 			'year'              => $year,
@@ -326,5 +356,64 @@ class XbucImportService {
 			return 'income';
 		}
 		return 'expense';
+	}
+
+	/**
+	 * Vorzeichenbehafteter Betrag einer offenen Buchung aus Sicht des Geldkontos:
+	 * present-Seite Soll (Geld fließt zu) → positiv, Haben (Geld fließt ab) → negativ.
+	 *
+	 * @param array<string,mixed> $b
+	 */
+	private function openTxAmount(array $b): int {
+		$abs = abs((int)$b['amountCents']);
+		return $b['presentSide'] === 'soll' ? $abs : -$abs;
+	}
+
+	/**
+	 * Stabiler Dedup-Hash für offene Bankbuchungen, damit ein erneuter xbuc-Import
+	 * dieselbe Buchung nicht ein zweites Mal anlegt.
+	 *
+	 * @param array<string,mixed> $b
+	 */
+	private function openTxHash(array $b): string {
+		$norm = preg_replace('/[^\p{L}\p{N}]+/u', '', mb_strtolower((string)$b['text'])) ?? '';
+		return hash('sha256', 'xbuc-open|' . $b['date'] . '|' . $this->openTxAmount($b) . '|' . $norm . '|' . $b['docRef']);
+	}
+
+	/**
+	 * Legt eine offene Buchung als unzugeordnete Bankbuchung an. Der Buchungstext
+	 * folgt i.d.R. dem Muster "Empfänger: Verwendungszweck" (aus der Alt-Software)
+	 * und wird am ersten ": " in Empfänger + Zweck aufgeteilt.
+	 *
+	 * @param array<string,mixed> $b
+	 */
+	private function insertOpenBankTx(string $userId, array $b, string $hash): void {
+		$text = (string)$b['text'];
+		$counterparty = null;
+		$purpose = $text;
+		$pos = mb_strpos($text, ': ');
+		if ($pos !== false) {
+			$counterparty = trim(mb_substr($text, 0, $pos));
+			$purpose = trim(mb_substr($text, $pos + 2));
+		}
+
+		$tx = new BankTransaction();
+		$tx->setUserId($userId);
+		$tx->setImportId(null);
+		$tx->setBookingDate($b['date']);
+		$tx->setValueDate(null);
+		$tx->setAmountCents($this->openTxAmount($b));
+		$tx->setCurrency('EUR');
+		$tx->setBookingText(null);
+		$tx->setPurpose($purpose !== '' ? mb_substr($purpose, 0, 255) : null);
+		$tx->setCounterparty(($counterparty !== null && $counterparty !== '') ? mb_substr($counterparty, 0, 255) : null);
+		$tx->setCounterpartyIban(null);
+		$tx->setCounterpartyBic(null);
+		$tx->setOwnAccount(null);
+		$tx->setHash($hash);
+		$tx->setStatus('unassigned');
+		$tx->setContraAccountId(null);
+		$tx->setJournalId(null);
+		$this->txMapper->insert($tx);
 	}
 }

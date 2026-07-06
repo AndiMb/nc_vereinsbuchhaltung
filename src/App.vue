@@ -619,7 +619,9 @@
 						<p class="vbh-previewsummary">
 							<span class="vbh-badge pos">{{ xbucPreviewResult.accounts }} Konten</span>
 							<span class="vbh-badge pos">{{ xbucPreviewResult.bookings }} Buchungen</span>
+							<span v-if="xbucPreviewResult.openBankTx > 0" class="vbh-badge muted">{{ xbucPreviewResult.openBankTx }} ohne Gegenkonto → offen</span>
 						</p>
+						<p v-if="xbucPreviewResult.openBankTx > 0" class="vbh-hint">{{ xbucPreviewResult.openBankTx }} Buchung(en) ohne Gegenkonto werden als offene Bankbuchungen übernommen und erscheinen im Tab „Buchungen → Zuzuordnen".</p>
 						<div class="vbh-form vbh-yearedit">
 							<label>Geschäftsjahr
 								<input v-model.number="xbucYear" type="number" min="2000" max="2099" placeholder="z. B. 2025" class="vbh-addyear-input" @change="xbucPreview()">
@@ -1833,7 +1835,8 @@ export default {
 				const newAccMsg = data.accountsNew > 0 ? `, ${data.accountsNew} neue Konten` : ''
 				const clampMsg = data.clamped > 0 ? `, ${data.clamped} auf das Geschäftsjahr ${data.year} datiert` : ''
 				const openMsg = data.openingsSkipped > 0 ? `, ${data.openingsSkipped} Anfangsbestände übersprungen (über Vorjahressalden abgedeckt)` : ''
-				showSuccess(`${data.bookings} Buchungen importiert${skippedMsg}${newAccMsg}${clampMsg}${openMsg}.`)
+				const openTxMsg = data.openBankTx > 0 ? `, ${data.openBankTx} ohne Gegenkonto → offen (Tab „Zuzuordnen")` : ''
+				showSuccess(`${data.bookings} Buchungen importiert${openTxMsg}${skippedMsg}${newAccMsg}${clampMsg}${openMsg}.`)
 				for (const m of (data.openingMismatches || [])) {
 					showError(`Achtung: Anfangsbestand ${m.account} laut Datei ${this.formatMoney(m.fileAmount)}, Vorjahres-Endstand in der App ${this.formatMoney(m.priorBalance)} – bitte Vorjahresbuchungen prüfen.`, { timeout: -1 })
 				}

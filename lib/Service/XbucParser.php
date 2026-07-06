@@ -46,9 +46,13 @@ class XbucParser {
 		// Buchungen (zero Buchhaltung lässt bei "Kontostand 01.01." das
 		// Gegenkonto leer).
 		$equityNumbers = [];
+		$bestandNumbers = [];
 		foreach ($accounts as $a) {
 			if ($a['type'] === 'equity') {
 				$equityNumbers[$a['number']] = true;
+			}
+			if (in_array($a['type'], ['asset', 'equity', 'liability'], true)) {
+				$bestandNumbers[$a['number']] = true;
 			}
 		}
 		$openingContra = array_key_first($equityNumbers);
@@ -57,7 +61,7 @@ class XbucParser {
 		if ($projekt->Ordner_Buchungen) {
 			foreach ($projekt->Ordner_Buchungen->Buchungsgruppe as $gruppe) {
 				foreach ($gruppe->Buchung as $b) {
-					$booking = $this->parseBooking($b, $numbers, $openingContra, $equityNumbers);
+					$booking = $this->parseBooking($b, $numbers, $openingContra, $equityNumbers, $bestandNumbers);
 					if ($booking !== null) {
 						$bookings[] = $booking;
 					}
@@ -148,26 +152,58 @@ class XbucParser {
 	 * @param array<string,true> $equityNumbers Kontonummern der Eigenkapitalkonten
 	 * @return array<string,mixed>|null
 	 */
-	private function parseBooking(\SimpleXMLElement $b, array $numbers, ?string $openingContra = null, array $equityNumbers = []): ?array {
+	private function parseBooking(\SimpleXMLElement $b, array $numbers, ?string $openingContra = null, array $equityNumbers = [], array $bestandNumbers = []): ?array {
 		$date = $this->parseDate((string)$b['Datum']);
 		$amount = $this->parseAmount((string)$b->Betrag_als_Zahl);
 		if ($date === null || $amount === null) {
 			return null;
 		}
+		$text = mb_substr($this->decode((string)$b->Buchungstext), 0, 255);
+		$docRef = mb_substr($this->decode((string)$b->Belegnummer), 0, 64);
 		$sollRaw = $this->decode((string)$b->Soll);
 		$habenRaw = $this->decode((string)$b->Haben);
 		[$sollNo, $sollName] = $this->resolveAccount($sollRaw, $numbers);
 		[$habenNo, $habenName] = $this->resolveAccount($habenRaw, $numbers);
-		// Einseitige Anfangsbestands-Buchung: fehlende Seite = Eröffnungsbilanzkonto
-		if ($openingContra !== null && $sollNo !== $openingContra && $habenNo !== $openingContra) {
-			if ($sollNo !== null && $habenNo === null) {
-				$habenNo = $openingContra;
-				$habenName = '';
-			} elseif ($habenNo !== null && $sollNo === null) {
-				$sollNo = $openingContra;
-				$sollName = '';
+
+		// Genau eine Kontoseite leer? Zwei Fälle unterscheiden:
+		//  a) Anfangsbestand ("Kontostand/KB 01.01." auf einem Bestandskonto) →
+		//     fehlende Seite = Eröffnungsbilanzkonto (wie bisher).
+		//  b) Reguläre Bankbewegung, deren Gegenkonto beim Erstellen der xbuc-Datei
+		//     (z.B. aus CSV) nicht gesetzt wurde → als OFFENE Buchung übernehmen
+		//     (openContra); der Import legt sie als unzugeordnete Bankbuchung an.
+		if (($sollNo === null) xor ($habenNo === null)) {
+			$presentNo = $sollNo ?? $habenNo;
+			$presentSide = $sollNo !== null ? 'soll' : 'haben';
+			$isOpening = $openingContra !== null
+				&& $presentNo !== $openingContra
+				&& isset($bestandNumbers[$presentNo])
+				&& $this->looksLikeOpening($text);
+			if ($isOpening) {
+				if ($presentSide === 'soll') {
+					$habenNo = $openingContra;
+					$habenName = '';
+				} else {
+					$sollNo = $openingContra;
+					$sollName = '';
+				}
+			} else {
+				return [
+					'sourceId' => (int)$b['ID'],
+					'date' => $date,
+					'text' => $text,
+					'docRef' => $docRef,
+					'amountCents' => $amount,
+					'sollNumber' => $sollNo,
+					'sollName' => $sollName,
+					'habenNumber' => $habenNo,
+					'habenName' => $habenName,
+					'equitySide' => null,
+					'openContra' => true,
+					'presentSide' => $presentSide,
+				];
 			}
 		}
+
 		if ($sollNo === null || $habenNo === null) {
 			return null;
 		}
@@ -184,8 +220,8 @@ class XbucParser {
 		return [
 			'sourceId' => (int)$b['ID'],
 			'date' => $date,
-			'text' => mb_substr($this->decode((string)$b->Buchungstext), 0, 255),
-			'docRef' => mb_substr($this->decode((string)$b->Belegnummer), 0, 64),
+			'text' => $text,
+			'docRef' => $docRef,
 			'amountCents' => $amount,
 			'sollNumber' => $sollNo,
 			'sollName' => $sollName,
@@ -193,6 +229,15 @@ class XbucParser {
 			'habenName' => $habenName,
 			'equitySide' => $equitySide,
 		];
+	}
+
+	/** Text-Heuristik für Anfangsbestands-Buchungen (Kontostand/Kassenbestand/Eröffnung …). */
+	private function looksLikeOpening(string $text): bool {
+		$t = mb_strtolower($text);
+		if (preg_match('/kontostand|kassenbestand|anfangsbestand|er[öo]ffnung|saldovortrag|vortrag/u', $t)) {
+			return true;
+		}
+		return (bool)preg_match('/^(kb|eb)\b/u', $t);
 	}
 
 	/**
