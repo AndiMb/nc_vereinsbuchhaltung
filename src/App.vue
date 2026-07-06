@@ -52,12 +52,12 @@
 						<small v-if="kpiDeltas && kpiDeltas.income" class="vbh-total-delta" :class="kpiDeltas.income.up ? 'good' : 'bad'">{{ kpiDeltas.income.text }}</small>
 					</div>
 					<div class="vbh-total neg">
-						<span>Ausgaben</span>
+						<span>Ausgaben{{ selectedYear ? ' ' + selectedYear : '' }}</span>
 						<strong>{{ formatMoney(balances.totals.expense) }}</strong>
 						<small v-if="kpiDeltas && kpiDeltas.expense" class="vbh-total-delta" :class="kpiDeltas.expense.up ? 'bad' : 'good'">{{ kpiDeltas.expense.text }}</small>
 					</div>
 					<div class="vbh-total" :class="balances.totals.result >= 0 ? 'pos' : 'neg'">
-						<span>Ergebnis</span>
+						<span>Ergebnis{{ selectedYear ? ' ' + selectedYear : '' }}</span>
 						<strong>{{ formatMoney(balances.totals.result) }}</strong>
 						<small v-if="kpiDeltas && kpiDeltas.result" class="vbh-total-delta" :class="kpiDeltas.result.up ? 'good' : 'bad'">{{ kpiDeltas.result.text }}</small>
 					</div>
@@ -105,7 +105,7 @@
 								<tr v-for="r in recentJournal" :key="r.id">
 									<td class="num vbh-col-hide-sm">{{ r.entryNo }}</td>
 									<td class="nowrap">{{ formatDate(r.date) }}</td>
-									<td class="vbh-purpose" :title="r.description">{{ r.description }}</td>
+									<td class="vbh-purpose" :title="r.description"><span class="vbh-clamp">{{ r.description }}</span></td>
 									<td class="vbh-col-hide-sm">{{ r.soll }}</td>
 									<td class="vbh-col-hide-sm">{{ r.haben }}</td>
 									<td class="num strong">{{ formatMoney(r.amount) }}</td>
@@ -181,7 +181,7 @@
 									<tr v-for="r in filteredJournalRows" :key="r.id">
 										<td class="num strong vbh-col-hide-sm">{{ r.entryNo }}</td>
 										<td class="nowrap">{{ formatDate(r.date) }}</td>
-										<td class="vbh-purpose" :title="r.description">{{ r.description }}</td>
+										<td class="vbh-purpose" :title="r.description"><span class="vbh-clamp">{{ r.description }}</span></td>
 										<td class="vbh-col-hide-sm">{{ r.soll }}</td>
 										<td class="vbh-col-hide-sm">{{ r.haben }}</td>
 										<td class="num strong">{{ formatMoney(r.amount) }}</td>
@@ -232,9 +232,10 @@
 									<tr v-for="tx in currentTransactions" :key="tx.id" :class="{ assigned: tx.status === 'assigned', open: tx.status !== 'assigned' }">
 										<td class="nowrap">{{ formatDate(tx.bookingDate) }}</td>
 										<td>{{ tx.counterparty }}</td>
-										<td class="vbh-purpose vbh-col-hide-sm" :title="tx.purpose">{{ tx.purpose }}</td>
+										<td class="vbh-purpose vbh-col-hide-sm" :title="tx.purpose"><span class="vbh-clamp">{{ tx.purpose }}</span></td>
 										<td class="num" :class="amountClass(tx.amount)">{{ formatMoney(tx.amount) }}</td>
 										<td class="vbh-assign-cell">
+											<div class="vbh-assign-inner">
 											<div class="vbh-assign-row">
 												<NcSelect
 													:model-value="accountOptionFor(tx.contraAccountId)"
@@ -265,6 +266,7 @@
 											>
 												✓ Vorschlag: {{ suggestionsById[tx.id].label }}
 											</button>
+											</div>
 										</td>
 									</tr>
 								</transition-group>
@@ -375,7 +377,7 @@
 									<tr v-for="(row, i) in statementRows" :key="i">
 										<td class="num vbh-col-hide-sm">{{ row.entryNo }}</td>
 										<td class="nowrap">{{ formatDate(row.date) }}</td>
-										<td class="vbh-purpose" :title="row.description">{{ row.description }}</td>
+										<td class="vbh-purpose" :title="row.description"><span class="vbh-clamp">{{ row.description }}</span></td>
 										<td class="vbh-col-hide-sm">{{ row.contra }}</td>
 										<td class="num vbh-col-hide-sm">{{ row.debit ? formatMoney(row.debit) : '' }}</td>
 										<td class="num vbh-col-hide-sm">{{ row.credit ? formatMoney(row.credit) : '' }}</td>
@@ -511,13 +513,13 @@
 												<tr v-if="ccExpanded[a.accountId]" class="vbh-ccdetail">
 													<td colspan="4">
 														<table v-if="ccBookings[a.accountId] && ccBookings[a.accountId].length" class="vbh-table vbh-subtable">
-															<thead><tr><th class="num">Nr.</th><th class="nowrap">Datum</th><th>Beschreibung</th><th>Gegenkonto</th><th class="num">Soll</th><th class="num">Haben</th></tr></thead>
+															<thead><tr><th class="num vbh-col-hide-sm">Nr.</th><th class="nowrap">Datum</th><th>Beschreibung</th><th class="vbh-col-hide-sm">Gegenkonto</th><th class="num">Soll</th><th class="num">Haben</th></tr></thead>
 															<tbody>
 																<tr v-for="(r, j) in ccBookings[a.accountId]" :key="j">
-																	<td class="num">{{ r.entryNo }}</td>
+																	<td class="num vbh-col-hide-sm">{{ r.entryNo }}</td>
 																	<td class="nowrap">{{ formatDate(r.date) }}</td>
-																	<td class="vbh-purpose" :title="r.description">{{ r.description }}</td>
-																	<td>{{ r.contra }}</td>
+																	<td class="vbh-purpose" :title="r.description"><span class="vbh-clamp">{{ r.description }}</span></td>
+																	<td class="vbh-col-hide-sm">{{ r.contra }}</td>
 																	<td class="num">{{ r.debit ? formatMoney(r.debit) : '' }}</td>
 																	<td class="num">{{ r.credit ? formatMoney(r.credit) : '' }}</td>
 																</tr>
@@ -568,9 +570,9 @@
 							<table class="vbh-table">
 								<thead>
 									<tr>
-										<th class="nowrap">Nr.</th>
+										<th class="nowrap vbh-col-hide-sm">Nr.</th>
 										<th>Konto</th>
-										<th>Art</th>
+										<th class="vbh-col-hide-sm">Art</th>
 										<th class="num">Plan (Soll)</th>
 										<th class="num">Ist</th>
 										<th class="num">Differenz</th>
@@ -578,9 +580,9 @@
 								</thead>
 								<tbody>
 									<tr v-for="row in budgetData.rows" :key="row.accountId">
-										<td class="nowrap">{{ row.number }}</td>
+										<td class="nowrap vbh-col-hide-sm">{{ row.number }}</td>
 										<td>{{ row.name }}</td>
-										<td><span class="vbh-typetag" :class="row.type">{{ typeLabel(row.type) }}</span></td>
+										<td class="vbh-col-hide-sm"><span class="vbh-typetag" :class="row.type">{{ typeLabel(row.type) }}</span></td>
 										<td class="num">
 											<input v-if="canWrite" v-model.number="row.plan" type="number" step="0.01" class="vbh-num vbh-planinput" @change="saveBudget(row)">
 											<span v-else>{{ formatMoney(row.plan) }}</span>
@@ -2246,7 +2248,10 @@ export default {
 </script>
 
 <style scoped>
-.vbh { width: 100%; flex: 1 1 auto; min-width: 0; height: calc(100dvh - var(--header-height, 50px)); display: flex; flex-direction: column; overflow: hidden; background-color: var(--color-main-background); color: var(--color-main-text); }
+/* Wurzel: direktes Flex-Item von Nextclouds #content (Vue ersetzt das Mount-Div).
+   width/flex/min-width/max-width verhindern, dass die App inhaltsbestimmt breiter
+   als der Viewport wird — Tabellenbreite hängt sonst an dieser Kette. */
+.vbh { width: 100%; max-width: 100%; flex: 1 1 auto; min-width: 0; height: calc(100dvh - var(--header-height, 50px)); display: flex; flex-direction: column; overflow: hidden; background-color: var(--color-main-background); color: var(--color-main-text); }
 
 .vbh-header { flex: 0 0 auto; padding: 12px 24px 0; border-bottom: 1px solid var(--color-border); }
 .vbh-noaccess { padding: 48px 24px; text-align: center; }
@@ -2340,21 +2345,57 @@ export default {
 .vbh-filebtn:hover { background: var(--color-primary-element); color: var(--color-primary-element-text); }
 .vbh-filename { opacity: 0.8; font-size: 0.9em; }
 
-/* Tables */
+/* Tables
+   GRUNDPRINZIP: table-layout: fixed. Damit ist die Tabellenbreite exakt 100 %
+   des Containers — der Zelleninhalt kann die Tabelle NICHT mehr breiter machen
+   (im Gegensatz zum Default table-layout: auto, wo width:100% nur eine Untergrenze
+   ist und lange Inhalte die Tabelle über den Viewport schieben). Spaltenbreiten
+   ergeben sich allein aus der Kopfzeile; ausgeblendete Kopfzellen (vbh-col-hide-sm)
+   fallen sauber heraus und die sichtbaren Spalten teilen den Platz neu auf.
+   Zahl-/Datums-Spalten bekommen feste Prozentbreiten, Textspalten (Beschreibung,
+   Konto, Empfänger …) teilen sich den Rest. Prozente summieren sich nie über
+   100 %, deshalb ist Überlauf strukturell ausgeschlossen. */
 .vbh-tablecard { border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); margin: 8px 0; }
-.vbh-table { width: auto; min-width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.92em; }
-.vbh-table th, .vbh-table td { text-align: left; padding: 5px 10px; border-bottom: 1px solid var(--color-border); }
+/* WICHTIG: white-space: normal überschreibt Nextclouds Core-Regel
+   `table { white-space: nowrap }` (core/css/server.css). Ohne dies erben ALLE
+   Zellen nowrap → Text bricht nicht um und ragt bei table-layout: fixed in die
+   Nachbarspalte. Der Klassenselektor .vbh-table schlägt den Element-Selektor
+   `table`. Spalten, die einzeilig bleiben sollen (Zahl/Datum/Aktionen), setzen
+   nowrap weiter unten explizit wieder. */
+.vbh-table { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0; font-size: 0.92em; white-space: normal; }
+.vbh-table th, .vbh-table td { text-align: left; padding: 5px 10px; border-bottom: 1px solid var(--color-border); white-space: normal; }
+.vbh-table td { overflow-wrap: anywhere; word-break: break-word; }
 .vbh-table tbody tr:last-child td { border-bottom: none; }
-.vbh-table thead th { position: sticky; top: 0; z-index: 2; background-color: var(--color-background-dark); color: var(--color-main-text); font-weight: 700; box-shadow: inset 0 -2px 0 var(--color-border); white-space: nowrap; }
+.vbh-table thead th { position: sticky; top: 0; z-index: 2; background-color: var(--color-background-dark); color: var(--color-main-text); font-weight: 700; box-shadow: inset 0 -2px 0 var(--color-border); overflow-wrap: anywhere; }
 .vbh-table thead th.sortable { cursor: pointer; user-select: none; }
 .vbh-table thead th.sortable:hover { color: var(--color-primary-element); }
 .vbh-table tbody tr:nth-child(even) { background-color: var(--color-background-hover); }
 .vbh-table tbody tr:hover { background-color: var(--color-background-dark); }
-.vbh-table th.num, .vbh-table td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.vbh-table th.num, .vbh-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.vbh-table td.num { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .vbh-table .right { text-align: right; white-space: nowrap; }
 .vbh-table .nowrap { white-space: nowrap; }
+/* nowrap-Textzellen (Datum, Nr.) kürzen mit … statt in die Nachbarspalte zu
+   ragen; die Aktionsspalte (.right) ist ausgenommen, ihre Buttons dürfen nicht
+   beschnitten werden – dafür ist die Spalte breit genug (th:empty unten). */
+.vbh-table td.nowrap:not(.right) { overflow: hidden; text-overflow: ellipsis; }
 .vbh-table .strong { font-weight: 600; }
-.vbh-purpose { max-width: min(320px, 30vw); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Spaltenbreiten (nur Kopfzeile zählt bei table-layout: fixed).
+   Feste px-Breiten für Zahl-/Datums-/Aktionsspalten, damit Beträge in JEDER
+   Fensterbreite lesbar bleiben (Prozente würden bei schmalen Fenstern zu klein
+   und den Betrag abschneiden). Textspalten haben keine Breite und teilen sich
+   den Rest. Bei table-layout: fixed bleibt die Tabelle trotzdem genau 100 %
+   breit, solange die festen Spalten zusammen unter die Containerbreite passen —
+   das ist selbst auf schmalen Handys der Fall, da dort Nebenspalten ausblenden. */
+.vbh-table thead th.num { width: 100px; }
+.vbh-table thead th.nowrap { width: 96px; }
+/* Aktionsspalte (leere Kopfzelle): breit genug für bis zu 3 Icon-Buttons
+   à 44px + Abstände + Zellenpadding (3×44 + 2×2 + 20 ≈ 156), sonst überlappen
+   die Buttons den Betrag bzw. brechen in eine zweite Zeile um */
+.vbh-table thead th:empty { width: 160px; }
+/* "Nr." ist immer die erste Zahlenspalte und braucht wenig Platz (Beträge nie) */
+.vbh-table thead th.num:first-child { width: 56px; }
+.vbh-purpose .vbh-clamp { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .num.neg { color: #cc1f1f; font-weight: 700; }
 .num.good { color: #1f7a3d; font-weight: 700; }
 .num.bad { color: #cc1f1f; font-weight: 700; }
@@ -2384,11 +2425,19 @@ tr.assigned td { opacity: 0.85; }
 .vbh-total--warn { border-color: rgba(201, 135, 10, 0.65); background-color: rgba(201, 135, 10, 0.1); }
 
 /* Assignment select */
-.vbh-assign-cell { min-width: 180px; }
-.vbh-assign-select { min-width: 160px; max-width: 280px; }
+/* Zuordnungs-Spalte: feste Zielbreite; NcSelect bringt min-width:260px mit,
+   das die Tabelle über den Viewport drücken würde → per ::v-deep neutralisieren */
+.vbh-assign-cell { width: min(320px, 36vw); min-width: 140px; }
+/* contain:inline-size entkoppelt die Spaltenbreite hart vom Zelleninhalt (NcSelect`s
+   NcEllipsisedOption nutzt white-space:pre und wuerde sonst die Mindestbreite sprengen) */
+.vbh-assign-inner { contain: inline-size; }
+.vbh-assign-row { min-width: 0; }
+::v-deep .vbh-assign-select.v-select { min-width: 0 !important; width: 100%; max-width: none; }
+::v-deep .vbh-assign-select .vs__selected-options { min-width: 0; }
+::v-deep .vbh-assign-select .vs__selected { white-space: normal; overflow-wrap: anywhere; }
 
 /* Master-Detail layout */
-.vbh-tree { flex: 0 0 440px; min-width: 280px; overflow-y: auto; border-right: 1px solid var(--color-border); display: flex; flex-direction: column; }
+.vbh-tree { flex: 0 0 clamp(280px, 32vw, 440px); min-width: 280px; overflow-y: auto; border-right: 1px solid var(--color-border); display: flex; flex-direction: column; }
 .vbh-treehead { display: flex; align-items: center; justify-content: space-between; padding: 10px 10px 8px; flex: 0 0 auto; }
 .vbh-treeactions { display: flex; gap: 4px; }
 .vbh-treelist { flex: 1 1 auto; overflow-y: auto; display: flex; flex-direction: column; }
@@ -2414,7 +2463,12 @@ tr.assigned td { opacity: 0.85; }
 .vbh-subtable { width: 100%; margin: 6px 0; font-size: 0.95em; border: 1px solid var(--color-border); border-radius: 8px; }
 .vbh-subtable thead th { position: static; box-shadow: inset 0 -1px 0 var(--color-border); background-color: var(--color-background-hover); }
 
-.vbh-detail { flex: 1 1 auto; min-width: 0; overflow-y: auto; padding: 14px 20px 48px; }
+.vbh-detail { flex: 1 1 auto; min-width: 0; overflow-y: auto; padding: 14px 20px 48px; container-type: inline-size; }
+/* Split-Ansichten (Konten/Kostenstellen): Nebenspalten ausblenden, wenn die
+   DETAILSPALTE schmal ist - unabhaengig von der Fensterbreite (Container-Query) */
+@container (max-width: 620px) {
+	.vbh-col-hide-sm { display: none; }
+}
 .vbh-detailhint { margin-top: 40px; text-align: center; }
 .vbh-detailhead { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .vbh-detailhead h3 { margin: 0 0 6px; }
@@ -2490,7 +2544,7 @@ tr.assigned td { opacity: 0.85; }
 
 /* Vorschlag-Chip */
 .vbh-assign-row { display: flex; align-items: center; gap: 4px; }
-.vbh-suggest-chip { display: inline-block; margin-top: 4px; padding: 3px 10px; border: 1px solid var(--color-primary-element); border-radius: 12px; background: transparent; color: var(--color-primary-element); font-size: 0.82em; cursor: pointer; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: background-color 0.15s, color 0.15s; }
+.vbh-suggest-chip { display: inline-block; margin-top: 4px; padding: 3px 10px; border: 1px solid var(--color-primary-element); border-radius: 12px; background: transparent; color: var(--color-primary-element); font-size: 0.82em; cursor: pointer; max-width: 100%; text-align: left; overflow-wrap: anywhere; transition: background-color 0.15s, color 0.15s; }
 .vbh-suggest-chip:hover { background: var(--color-primary-element); color: var(--color-primary-element-text); }
 
 .vbh-yearedit { align-items: center; gap: 10px; margin: 6px 0; }
@@ -2508,11 +2562,12 @@ tr.assigned td { opacity: 0.85; }
 .vbh-openinfo { margin: 8px 0; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: var(--border-radius, 6px); background: var(--color-background-hover); }
 .vbh-openinfo-title { margin: 0 0 4px; font-weight: 600; font-size: 0.9em; }
 
-/* KPI-Vorjahresvergleich: Badge mit farbigem Hintergrund + weißer Schrift,
-   damit die Lesbarkeit unabhängig vom Nextcloud-Theme (hell/dunkel) gegeben ist */
+/* KPI-Vorjahresvergleich: Badge mit fest kodiertem dunklem Hintergrund + weißer Schrift.
+   Bewusst NICHT --color-success/--color-error verwenden: diese Theme-Variablen lösen in
+   manchen Nextcloud-Themes zu hellen Pastelltönen auf, auf denen weiße Schrift unlesbar ist. */
 .vbh-total-delta { align-self: flex-start; padding: 2px 9px; border-radius: 10px; font-size: 0.75em; font-weight: 600; color: #fff; white-space: nowrap; }
-.vbh-total-delta.good { background-color: var(--color-success, #2d7d46); }
-.vbh-total-delta.bad { background-color: var(--color-error, #b23636); }
+.vbh-total-delta.good { background-color: #2d7d46; }
+.vbh-total-delta.bad { background-color: #b23636; }
 
 /* Preview */
 .vbh-previewsummary { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 10px; }
@@ -2523,11 +2578,13 @@ tr.assigned td { opacity: 0.85; }
 ::v-deep .button-vue__icon { display: flex !important; align-items: center; justify-content: center; }
 ::v-deep .button-vue__icon svg { display: block !important; }
 .vbh-table td.right { white-space: nowrap; }
-.vbh-actions { display: inline-flex; gap: 2px; align-items: center; }
+.vbh-actions { display: inline-flex; gap: 2px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
 
-/* Chart grid */
-.vbh-chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px; }
-.vbh-chart-card { background-color: var(--color-background-hover); border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); padding: 14px 16px; }
+/* Chart grid — minmax(0,1fr) + min-width:0: verhindert, dass die Canvas-
+   Attributbreite (Chart.js setzt Breite × devicePixelRatio) das Grid und damit
+   das Layout aufzieht (Resize-Feedback-Schleife) */
+.vbh-chart-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 20px; }
+.vbh-chart-card { background-color: var(--color-background-hover); border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); padding: 14px 16px; min-width: 0; overflow: hidden; }
 .vbh-chart-card--wide { grid-column: 1 / -1; }
 .vbh-chart-card h4 { margin: 0 0 10px; font-size: 0.88em; opacity: 0.8; }
 .vbh-chart-wrap { height: 260px; }
@@ -2535,7 +2592,7 @@ tr.assigned td { opacity: 0.85; }
 
 /* Responsive: Tablet (≤ 760px) */
 @media (max-width: 760px) {
-	.vbh-chart-grid { grid-template-columns: 1fr; }
+	.vbh-chart-grid { grid-template-columns: minmax(0, 1fr); }
 	.vbh-chart-card--wide { grid-column: 1; }
 }
 
@@ -2574,8 +2631,7 @@ tr.assigned td { opacity: 0.85; }
 	.vbh-detail { overflow-y: visible; min-width: 0; padding: 10px 10px 32px; }
 
 	/* Zuordnungs-Dropdown kompakter */
-	.vbh-assign-cell { min-width: 120px; }
-	.vbh-assign-select { min-width: 120px; max-width: 200px; }
+	.vbh-assign-cell { width: 48vw; min-width: 120px; }
 
 	/* KPI-Karten: kleiner, aber noch 2 nebeneinander */
 	.vbh-total { min-width: 110px; padding: 8px 12px; }
@@ -2583,6 +2639,8 @@ tr.assigned td { opacity: 0.85; }
 
 	/* Textabschneidung */
 	.vbh-purpose { max-width: 180px; }
+	.vbh-planinput { width: 84px; }
+	.vbh-num { width: 90px; }
 
 	/* Spalten auf Mobilgeräten ausblenden */
 	.vbh-col-hide-sm { display: none; }
