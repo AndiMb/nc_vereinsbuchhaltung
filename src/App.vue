@@ -2509,4 +2509,11 @@ export default {
 }
 </script>
 
-<style scoped src="./App.styles.css"></style>
+<style scoped>
+/* Nur noch Regeln, die per ::v-deep in NcButton-Internas eingreifen und daher
+   scoped bleiben MUESSEN, damit sie nicht in Nextclouds eigene .button-vue
+   (Header/Sidebar) lecken. Alle .vbh-*-Utilities liegen global in styles.css. */
+::v-deep .button-vue { display: inline-flex !important; }
+::v-deep .button-vue__icon { display: flex !important; align-items: center; justify-content: center; }
+::v-deep .button-vue__icon svg { display: block !important; }
+</style>

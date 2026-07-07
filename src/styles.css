@@ -148,9 +148,12 @@
 /* "Nr." ist immer die erste Zahlenspalte und braucht wenig Platz (Beträge nie) */
 .vbh-table thead th.num:first-child { width: 56px; }
 .vbh-purpose .vbh-clamp { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
-.num.neg { color: #cc1f1f; font-weight: 700; }
-.num.good { color: #1f7a3d; font-weight: 700; }
-.num.bad { color: #cc1f1f; font-weight: 700; }
+/* Mit .vbh-table qualifiziert, damit dieses global geladene Stylesheet nicht
+   ueber ein evtl. fremdes .num in der Nextcloud-UI leckt (Farbklassen sitzen
+   immer auf td.num innerhalb einer .vbh-table). */
+.vbh-table .num.neg { color: #cc1f1f; font-weight: 700; }
+.vbh-table .num.good { color: #1f7a3d; font-weight: 700; }
+.vbh-table .num.bad { color: #cc1f1f; font-weight: 700; }
 /* Plan-Eingabefeld fuellt seine Zelle. Hohe Spezifitaet (0,3,1) ist noetig,
    damit die weiter unten definierte Regel `.vbh-num { width:120px }` (bzw. 90px
    mobil) es nicht per Quellreihenfolge ueberschreibt. */
@@ -164,7 +167,7 @@
 .vbh-table thead th.num.vbh-col-plan { width: 180px; }
 .vbh-table td.num.vbh-col-plan { overflow: visible; }
 .vbh-carryrow td { background-color: var(--color-background-hover); font-style: italic; }
-tr.assigned td { opacity: 0.85; }
+.vbh-table tr.assigned td { opacity: 0.85; }
 .vbh-tablecount { padding: 4px 10px; font-size: 0.82em; opacity: 0.7; }
 
 /* Badges */
@@ -195,9 +198,12 @@ tr.assigned td { opacity: 0.85; }
    NcEllipsisedOption nutzt white-space:pre und wuerde sonst die Mindestbreite sprengen) */
 .vbh-assign-inner { contain: inline-size; }
 .vbh-assign-row { min-width: 0; }
-::v-deep .vbh-assign-select.v-select { min-width: 0 !important; width: 100%; max-width: none; }
-::v-deep .vbh-assign-select .vs__selected-options { min-width: 0; }
-::v-deep .vbh-assign-select .vs__selected { white-space: normal; overflow-wrap: anywhere; }
+/* global unbedenklich: .vbh-assign-select ist unser Klassenname; kein ::v-deep
+   noetig, da dieses Stylesheet global geladen wird und NcSelect-Internes so ohnehin
+   erreicht. */
+.vbh-assign-select.v-select { min-width: 0 !important; width: 100%; max-width: none; }
+.vbh-assign-select .vs__selected-options { min-width: 0; }
+.vbh-assign-select .vs__selected { white-space: normal; overflow-wrap: anywhere; }
 
 /* Master-Detail layout */
 .vbh-tree { flex: 0 0 clamp(280px, 32vw, 440px); min-width: 280px; overflow-y: auto; border-right: 1px solid var(--color-border); display: flex; flex-direction: column; }
@@ -338,10 +344,9 @@ tr.assigned td { opacity: 0.85; }
 .vbh-previewsummary { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 10px; }
 .vbh-preview { margin-top: 10px; }
 
-/* Icon fix + button layout */
-::v-deep .button-vue { display: inline-flex !important; }
-::v-deep .button-vue__icon { display: flex !important; align-items: center; justify-content: center; }
-::v-deep .button-vue__icon svg { display: block !important; }
+/* Icon-/Button-Layout-Fixes fuer NcButton stehen als scoped ::v-deep-Block in
+   App.vue (nicht hier global), damit sie nicht in Nextclouds eigene .button-vue
+   im Header/Sidebar lecken. */
 .vbh-table td.right { white-space: nowrap; }
 .vbh-actions { display: inline-flex; gap: 2px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
 
@@ -413,8 +418,8 @@ tr.assigned td { opacity: 0.85; }
 }
 
 @media (prefers-color-scheme: dark) {
-	.num.neg, .num.bad { color: #ff7a7a; }
-	.num.good { color: #6fcf97; }
+	.vbh-table .num.neg, .vbh-table .num.bad { color: #ff7a7a; }
+	.vbh-table .num.good { color: #6fcf97; }
 	.vbh-bankchip-hint, .vbh-warn-inline { color: #ffb060; }
 	.vbh-total.pos strong { color: #6fcf97; }
 	.vbh-total.neg strong { color: #ff7a7a; }
