@@ -92,24 +92,75 @@ class CamtCsvParser {
 
 		$bookingDate = $this->parseDate($get('bookingDate'));
 		$amountCents = $this->parseAmount($get('amount'));
-		if ($bookingDate === null || $amountCents === null) {
-			return null; // Summen-/Leerzeilen überspringen
+		// Summen-/Leerzeilen und 0,00-EUR-Buchungen (z. B. Kontoabschluss ohne
+		// Zinsen) überspringen – Letztere sind in doppelter Buchführung nicht
+		// buchbar und würden die Zuordnungsliste nur zumüllen.
+		if ($bookingDate === null || $amountCents === null || $amountCents === 0) {
+			return null;
+		}
+
+		$ownAccount = $get('ownAccount');
+		$bookingText = $this->limit($get('bookingText'), 255);
+		$counterparty = $this->limit($get('counterparty'), 255);
+		// Bank-interne Buchungen (Entgeltabschluss, Stornorechnung …) haben keinen
+		// Zahlungsbeteiligten. Damit die Zeile in „Zuzuordnen" lesbar bleibt und
+		// per Regel kategorisiert werden kann, wird der Buchungstext als Label
+		// eingesetzt.
+		if (($counterparty === null || $counterparty === '') && $bookingText !== null && $bookingText !== '') {
+			$counterparty = $bookingText;
 		}
 
 		$row = [
-			'ownAccount' => $get('ownAccount'),
+			'ownAccount' => $ownAccount,
 			'bookingDate' => $bookingDate,
 			'valueDate' => $this->parseDate($get('valueDate')),
-			'bookingText' => $this->limit($get('bookingText'), 255),
+			'bookingText' => $bookingText,
 			'purpose' => $get('purpose'),
-			'counterparty' => $this->limit($get('counterparty'), 255),
-			'counterpartyIban' => $this->limit($get('counterpartyIban'), 40),
-			'counterpartyBic' => $this->limit($get('counterpartyBic'), 16),
+			'counterparty' => $counterparty,
+			'counterpartyIban' => $this->cleanIban($get('counterpartyIban'), $ownAccount),
+			'counterpartyBic' => $this->cleanBic($get('counterpartyBic')),
 			'amountCents' => $amountCents,
 			'currency' => $get('currency') ?: 'EUR',
 		];
 		$row['hash'] = $this->computeHash($row);
 		return $row;
+	}
+
+	/**
+	 * Übernimmt eine Gegenkonto-IBAN nur, wenn sie wie eine echte IBAN aussieht
+	 * und nicht das eigene Konto ist. Bank-interne Buchungen tragen in dieser
+	 * Spalte oft die eigene Kontonummer oder Nullen ("3200015160", "0000000000")
+	 * – die haben als Gegenkonto keinen Wert und werden verworfen.
+	 */
+	private function cleanIban(?string $value, ?string $ownAccount): ?string {
+		if ($value === null) {
+			return null;
+		}
+		$v = strtoupper(preg_replace('/\s+/', '', $value) ?? '');
+		if ($v === '' || !preg_match('/^[A-Z]{2}\d{2}[A-Z0-9]{6,30}$/', $v)) {
+			return null; // keine echte IBAN (reine Kontonummer, Nullen …)
+		}
+		$own = strtoupper(preg_replace('/\s+/', '', (string)$ownAccount) ?? '');
+		if ($own !== '' && $v === $own) {
+			return null; // eigenes Konto ist kein Gegenkonto
+		}
+		return $this->limit($v, 40);
+	}
+
+	/**
+	 * Übernimmt einen BIC nur, wenn er dem BIC-Muster entspricht (4 Buchstaben
+	 * Bankcode + 2 Buchstaben Land + 2–5 alphanumerisch). Eine reine Zahl ist
+	 * eine BLZ, kein BIC ("85050300") → verworfen.
+	 */
+	private function cleanBic(?string $value): ?string {
+		if ($value === null) {
+			return null;
+		}
+		$v = strtoupper(preg_replace('/\s+/', '', $value) ?? '');
+		if (!preg_match('/^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2,5}$/', $v)) {
+			return null;
+		}
+		return $this->limit($v, 16);
 	}
 
 	/**
