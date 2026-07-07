@@ -1,0 +1,424 @@
+/* Wurzel: direktes Flex-Item von Nextclouds #content (Vue ersetzt das Mount-Div).
+   width/flex/min-width/max-width verhindern, dass die App inhaltsbestimmt breiter
+   als der Viewport wird — Tabellenbreite hängt sonst an dieser Kette. */
+.vbh { width: 100%; max-width: 100%; flex: 1 1 auto; min-width: 0; height: calc(100dvh - var(--header-height, 50px)); display: flex; flex-direction: column; overflow: hidden; background-color: var(--color-main-background); color: var(--color-main-text); }
+
+.vbh-header { flex: 0 0 auto; padding: 12px 24px 0; border-bottom: 1px solid var(--color-border); }
+.vbh-noaccess { padding: 48px 24px; text-align: center; }
+.vbh-noaccess h3 { margin-bottom: 8px; }
+.vbh-titlebar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.vbh-titlebar h2 { margin: 0; }
+.vbh-bankchip { display: inline-flex; align-items: baseline; gap: 8px; margin-left: auto; padding: 6px 14px; border-radius: var(--border-radius-large, 12px); background-color: rgba(45, 125, 70, 0.16); border: 1px solid rgba(45, 125, 70, 0.55); }
+.vbh-bankchip.warn { background-color: rgba(201, 135, 10, 0.18); border-color: rgba(201, 135, 10, 0.65); }
+.vbh-bankchip-label { font-size: 0.82em; opacity: 0.9; }
+.vbh-bankchip-value { font-size: 1.2em; font-weight: 700; }
+.vbh-bankchip-hint { font-size: 0.82em; font-weight: 600; color: #b35900; }
+
+.vbh-navbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.vbh-tabs { display: inline-flex; gap: 4px; margin: 12px 0 -1px; padding: 4px; background-color: var(--color-background-dark); border-radius: 12px; }
+.vbh-navright { display: inline-flex; align-items: center; gap: 6px; }
+.vbh-yearsel { display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; font-weight: 600; }
+.vbh-yearsel select { padding: 5px 8px; border-radius: 8px; }
+.vbh-tabs button { border: none; background: transparent; padding: 7px 16px; border-radius: 8px; cursor: pointer; color: var(--color-main-text); font-weight: 600; font-size: 0.9em; display: inline-flex; align-items: center; gap: 6px; }
+.vbh-tabs button:hover { background-color: var(--color-background-hover); }
+.vbh-tabs button.active { background-color: var(--color-primary-element); color: var(--color-primary-element-text); box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+
+.vbh-main { flex: 1 1 auto; min-height: 0; min-width: 0; display: flex; }
+.vbh-section { flex: 1 1 auto; min-height: 0; min-width: 0; width: 100%; }
+.vbh-section.scroll { overflow-x: auto; overflow-y: auto; padding: 16px 24px 48px; }
+.vbh-section.split { overflow: hidden; display: flex; }
+.vbh-flex-col { display: flex; flex-direction: column; }
+
+/* Sub-tabs + filterbar (for bookings + reports sections) */
+.vbh-sectiontop { flex: 0 0 auto; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 16px; border-bottom: 1px solid var(--color-border); flex-wrap: wrap; }
+.vbh-sectiontop-actions { display: inline-flex; align-items: center; gap: 8px; }
+.vbh-export-btn { display: inline-flex; align-items: center; height: 34px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: var(--border-radius, 6px); background: var(--color-main-background); color: var(--color-main-text); font-size: 0.85em; font-weight: 600; text-decoration: none; white-space: nowrap; cursor: pointer; }
+.vbh-export-btn:hover { background: var(--color-background-hover); border-color: var(--color-border-dark, #ccc); }
+
+/* Download-Pfeil in der Belegliste (Modal) */
+.vbh-attachment-dl { color: var(--color-text-lighter); font-size: 0.9em; padding: 0 4px; text-decoration: none; flex-shrink: 0; }
+.vbh-attachment-dl:hover { color: var(--color-main-text); }
+
+/* Dateiname als klickbarer Button */
+.vbh-attachment-name { background: none; border: none; padding: 0; cursor: pointer; color: var(--color-primary-element); text-align: left; font-size: inherit; font-family: inherit; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 0; min-width: 0; }
+.vbh-attachment-name:hover { text-decoration: underline; }
+
+
+
+/* Belegablage im Buchungs-Modal */
+.vbh-attachments { border-top: 1px solid var(--color-border); margin-top: 12px; padding-top: 12px; }
+.vbh-attachments-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.vbh-attachments-title { font-weight: 600; font-size: 0.9em; color: var(--color-text-lighter); text-transform: uppercase; letter-spacing: 0.04em; }
+.vbh-upload-label { cursor: pointer; }
+.vbh-upload-label.is-uploading { opacity: 0.6; pointer-events: none; }
+.vbh-upload-btn { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border: 1px solid var(--color-border); border-radius: var(--border-radius, 6px); font-size: 0.85em; background: var(--color-main-background); color: var(--color-main-text); }
+.vbh-upload-btn:hover { background: var(--color-background-hover); }
+.vbh-attachment-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.vbh-attachment-item { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 4px; background: var(--color-background-hover); }
+.vbh-attachment-icon { flex-shrink: 0; color: var(--color-text-lighter); }
+.vbh-attachment-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9em; color: var(--color-primary-element); text-decoration: none; }
+.vbh-attachment-name:hover { text-decoration: underline; }
+.vbh-attachment-size { font-size: 0.8em; color: var(--color-text-lighter); white-space: nowrap; flex-shrink: 0; }
+.vbh-attachment-empty { font-size: 0.9em; color: var(--color-text-lighter); margin: 4px 0 0; }
+.vbh-subtabs { display: inline-flex; gap: 2px; }
+.vbh-subtabs button { padding: 5px 14px; border: none; border-bottom: 3px solid transparent; background: none; cursor: pointer; color: var(--color-main-text); font-weight: 600; font-size: 0.9em; border-radius: 6px 6px 0 0; display: inline-flex; align-items: center; gap: 6px; }
+.vbh-subtabs button:hover { background: var(--color-background-hover); }
+.vbh-subtabs button.active { color: var(--color-primary-element); border-bottom-color: var(--color-primary-element); }
+.vbh-filterbar { flex: 0 0 auto; min-width: 0; display: flex; gap: 8px; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--color-border); flex-wrap: wrap; background: var(--color-main-background); }
+.vbh-search { height: 34px; border: 1px solid var(--color-border); border-radius: var(--border-radius, 6px); padding: 0 10px; background: var(--color-main-background); color: var(--color-main-text); min-width: 160px; }
+.vbh-search--full { width: 100%; box-sizing: border-box; }
+.vbh-filter-select { min-width: 200px; max-width: 280px; }
+.vbh-sectionbody { flex: 1 1 auto; min-height: 0; min-width: 0; overflow: auto; padding: 12px 16px 48px; }
+.vbh-sectionbody.is-split { overflow: hidden; display: flex; padding: 0; }
+.vbh-splitinner { display: flex; flex: 1 1 auto; min-height: 0; min-width: 0; overflow: hidden; }
+
+/* Account tree search */
+.vbh-treesearch { padding: 8px; border-bottom: 1px solid var(--color-border); }
+
+/* Section headings */
+.vbh-section h3 { margin-top: 0; }
+.vbh-section h4 { margin: 16px 0 6px; }
+.vbh-sectionhead { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.vbh-section-divider { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--color-border); }
+.vbh-addyear { display: flex; align-items: center; gap: 6px; }
+.vbh-addyear-input { width: 80px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--color-border); }
+.vbh-snaplabel-input { width: 200px; max-width: 60vw; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--color-border); }
+.vbh-snapblock { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--color-border); }
+.vbh-hint { color: var(--color-main-text); opacity: 0.8; max-width: 80ch; }
+.vbh-empty { color: var(--color-main-text); opacity: 0.65; font-style: italic; }
+.vbh-warn-inline { color: #b35900; font-weight: 600; margin-left: 10px; }
+
+/* Cards */
+.vbh-card { border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); padding: 14px 16px; margin: 10px 0; background-color: var(--color-background-hover); }
+.vbh-card > h4 { margin-top: 0; }
+.vbh-card--danger { border-color: rgba(199, 60, 60, 0.5); }
+.vbh-uploadrow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.vbh-filebtn { display: inline-block; background: var(--color-background-dark); border: 1px solid var(--color-border); border-radius: var(--border-radius-element, 8px); padding: 6px 14px; cursor: pointer; font-weight: 600; }
+.vbh-filebtn:hover { background: var(--color-primary-element); color: var(--color-primary-element-text); }
+.vbh-filename { opacity: 0.8; font-size: 0.9em; }
+
+/* Tables
+   GRUNDPRINZIP: table-layout: fixed. Damit ist die Tabellenbreite exakt 100 %
+   des Containers — der Zelleninhalt kann die Tabelle NICHT mehr breiter machen
+   (im Gegensatz zum Default table-layout: auto, wo width:100% nur eine Untergrenze
+   ist und lange Inhalte die Tabelle über den Viewport schieben). Spaltenbreiten
+   ergeben sich allein aus der Kopfzeile; ausgeblendete Kopfzellen (vbh-col-hide-sm)
+   fallen sauber heraus und die sichtbaren Spalten teilen den Platz neu auf.
+   Zahl-/Datums-Spalten bekommen feste Prozentbreiten, Textspalten (Beschreibung,
+   Konto, Empfänger …) teilen sich den Rest. Prozente summieren sich nie über
+   100 %, deshalb ist Überlauf strukturell ausgeschlossen. */
+.vbh-tablecard { border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); margin: 8px 0; }
+/* WICHTIG: white-space: normal überschreibt Nextclouds Core-Regel
+   `table { white-space: nowrap }` (core/css/server.css). Ohne dies erben ALLE
+   Zellen nowrap → Text bricht nicht um und ragt bei table-layout: fixed in die
+   Nachbarspalte. Der Klassenselektor .vbh-table schlägt den Element-Selektor
+   `table`. Spalten, die einzeilig bleiben sollen (Zahl/Datum/Aktionen), setzen
+   nowrap weiter unten explizit wieder. */
+.vbh-table { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0; font-size: 0.92em; white-space: normal; }
+.vbh-table th, .vbh-table td { text-align: left; padding: 5px 10px; border-bottom: 1px solid var(--color-border); white-space: normal; }
+.vbh-table td { overflow-wrap: anywhere; word-break: break-word; }
+.vbh-table tbody tr:last-child td { border-bottom: none; }
+.vbh-table thead th { position: sticky; top: 0; z-index: 2; background-color: var(--color-background-dark); color: var(--color-main-text); font-weight: 700; box-shadow: inset 0 -2px 0 var(--color-border); overflow-wrap: anywhere; }
+.vbh-table thead th.sortable { cursor: pointer; user-select: none; }
+.vbh-table thead th.sortable:hover { color: var(--color-primary-element); }
+.vbh-table tbody tr:nth-child(even) { background-color: var(--color-background-hover); }
+.vbh-table tbody tr:hover { background-color: var(--color-background-dark); }
+.vbh-table th.num, .vbh-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.vbh-table td.num { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vbh-table .right { text-align: right; white-space: nowrap; }
+.vbh-table .nowrap { white-space: nowrap; }
+/* nowrap-Textzellen (Datum, Nr.) kürzen mit … statt in die Nachbarspalte zu
+   ragen; die Aktionsspalte (.right) ist ausgenommen, ihre Buttons dürfen nicht
+   beschnitten werden – dafür ist die Spalte breit genug (th:empty unten). */
+.vbh-table td.nowrap:not(.right) { overflow: hidden; text-overflow: ellipsis; }
+.vbh-table .strong { font-weight: 600; }
+/* Spaltenbreiten (nur Kopfzeile zählt bei table-layout: fixed).
+   Feste px-Breiten für Zahl-/Datums-/Aktionsspalten, damit Beträge in JEDER
+   Fensterbreite lesbar bleiben (Prozente würden bei schmalen Fenstern zu klein
+   und den Betrag abschneiden). Textspalten haben keine Breite und teilen sich
+   den Rest. Bei table-layout: fixed bleibt die Tabelle trotzdem genau 100 %
+   breit, solange die festen Spalten zusammen unter die Containerbreite passen —
+   das ist selbst auf schmalen Handys der Fall, da dort Nebenspalten ausblenden. */
+.vbh-table thead th.num { width: 100px; }
+.vbh-table thead th.nowrap { width: 96px; }
+/* Aktionsspalte (leere Kopfzelle): breit genug für 3 Icon-Buttons (Bearbeiten,
+   Regel, Löschen) à 44px + Abstände + Zellenpadding (3×44 + 2×2 + 20 ≈ 156).
+   Ein optionales 4. Beleg-Icon bricht per flex-wrap sauber in eine zweite Zeile um. */
+.vbh-table thead th:empty { width: 160px; }
+/* "Nr." ist immer die erste Zahlenspalte und braucht wenig Platz (Beträge nie) */
+.vbh-table thead th.num:first-child { width: 56px; }
+.vbh-purpose .vbh-clamp { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.num.neg { color: #cc1f1f; font-weight: 700; }
+.num.good { color: #1f7a3d; font-weight: 700; }
+.num.bad { color: #cc1f1f; font-weight: 700; }
+/* Plan-Eingabefeld fuellt seine Zelle. Hohe Spezifitaet (0,3,1) ist noetig,
+   damit die weiter unten definierte Regel `.vbh-num { width:120px }` (bzw. 90px
+   mobil) es nicht per Quellreihenfolge ueberschreibt. */
+.vbh-table td.vbh-col-plan .vbh-planinput { width: 100%; box-sizing: border-box; }
+/* Plan-Spalte breiter als normale Zahlenspalten, damit auch fuenfstellige
+   Betraege mit zwei Nachkommastellen (12345.67) inkl. Spin-Buttons ganz sichtbar
+   sind. WICHTIG: der Selektor muss spezifischer sein als `.vbh-table thead th.num`
+   (0,2,2) — sonst gewinnt dessen width:100px und die Spalte bleibt zu schmal
+   (genau das war der Bug bis 0.10.20). Bei table-layout:fixed zaehlt nur die
+   Kopfzelle fuer die Spaltenbreite. */
+.vbh-table thead th.num.vbh-col-plan { width: 180px; }
+.vbh-table td.num.vbh-col-plan { overflow: visible; }
+.vbh-carryrow td { background-color: var(--color-background-hover); font-style: italic; }
+tr.assigned td { opacity: 0.85; }
+.vbh-tablecount { padding: 4px 10px; font-size: 0.82em; opacity: 0.7; }
+
+/* Badges */
+.vbh-badge { padding: 2px 8px; border-radius: 10px; font-size: 0.82em; background-color: var(--color-background-dark); color: var(--color-main-text); }
+.vbh-badge.pos { background-color: #1f7a3d; color: #fff; }
+.vbh-badge.muted { opacity: 0.9; }
+.vbh-badge--alert { background-color: #c73c3c; color: #fff; font-weight: 700; }
+
+/* Tags */
+.vbh-typetag { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 0.82em; background-color: var(--color-background-dark); color: var(--color-main-text); }
+.vbh-typetag.income { background-color: rgba(45, 125, 70, 0.25); }
+.vbh-typetag.expense { background-color: rgba(199, 60, 60, 0.25); }
+
+/* KPI cards */
+.vbh-totals { display: flex; gap: 12px; margin: 12px 0; flex-wrap: wrap; }
+.vbh-total { border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); padding: 10px 16px; display: flex; flex-direction: column; gap: 4px; min-width: 140px; background-color: var(--color-background-hover); }
+.vbh-total span { opacity: 0.8; font-size: 0.82em; }
+.vbh-total strong { font-size: 1.3em; }
+.vbh-total.pos strong { color: #1f7a3d; }
+.vbh-total.neg strong { color: #cc1f1f; }
+.vbh-total--warn { border-color: rgba(201, 135, 10, 0.65); background-color: rgba(201, 135, 10, 0.1); }
+
+/* Assignment select */
+/* Zuordnungs-Spalte: feste Zielbreite; NcSelect bringt min-width:260px mit,
+   das die Tabelle über den Viewport drücken würde → per ::v-deep neutralisieren */
+.vbh-assign-cell { width: min(320px, 36vw); min-width: 140px; }
+/* contain:inline-size entkoppelt die Spaltenbreite hart vom Zelleninhalt (NcSelect`s
+   NcEllipsisedOption nutzt white-space:pre und wuerde sonst die Mindestbreite sprengen) */
+.vbh-assign-inner { contain: inline-size; }
+.vbh-assign-row { min-width: 0; }
+::v-deep .vbh-assign-select.v-select { min-width: 0 !important; width: 100%; max-width: none; }
+::v-deep .vbh-assign-select .vs__selected-options { min-width: 0; }
+::v-deep .vbh-assign-select .vs__selected { white-space: normal; overflow-wrap: anywhere; }
+
+/* Master-Detail layout */
+.vbh-tree { flex: 0 0 clamp(280px, 32vw, 440px); min-width: 280px; overflow-y: auto; border-right: 1px solid var(--color-border); display: flex; flex-direction: column; }
+.vbh-treehead { display: flex; align-items: center; justify-content: space-between; padding: 10px 10px 8px; flex: 0 0 auto; }
+.vbh-treeactions { display: flex; gap: 4px; }
+.vbh-treelist { flex: 1 1 auto; overflow-y: auto; display: flex; flex-direction: column; }
+.vbh-treenode { display: flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: 6px; cursor: pointer; }
+.vbh-treenode:hover { background-color: var(--color-background-hover); }
+.vbh-treenode.group { font-weight: 700; }
+.vbh-treenode.selected { background-color: var(--color-primary-element); color: var(--color-primary-element-text); }
+.vbh-treenode.selected .vbh-treenum, .vbh-treenode.selected .vbh-treesaldo, .vbh-treenode.selected .num.neg { color: var(--color-primary-element-text); }
+.vbh-caret { display: inline-block; flex: 0 0 16px; width: 16px; height: 16px; line-height: 16px; text-align: center; border: none; background: transparent; cursor: pointer; color: inherit; opacity: 0.7; transition: transform 0.12s; font-size: 1em; padding: 0; }
+.vbh-caret.open { transform: rotate(90deg); }
+.vbh-caret.empty { cursor: default; color: var(--color-border); opacity: 0.6; }
+.vbh-treenum { flex: 0 0 auto; min-width: 54px; font-variant-numeric: tabular-nums; opacity: 0.7; font-size: 0.85em; font-weight: 400; }
+.vbh-treename { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vbh-treesaldo { flex: 0 0 auto; font-variant-numeric: tabular-nums; font-size: 0.88em; font-weight: 400; }
+.vbh-treesaldo.zero { opacity: 0.3; }
+.vbh-ccsummary { display: flex; align-items: center; justify-content: space-between; padding: 8px; margin: 0 8px 6px; border-radius: 8px; background-color: var(--color-background-hover); flex: 0 0 auto; }
+.vbh-ccsummary span { opacity: 0.8; font-size: 0.85em; }
+.vbh-ccsummary strong { font-variant-numeric: tabular-nums; }
+.vbh-rename { flex: 1 1 240px; }
+.vbh-treesaldo.neg, .vbh-ccsummary strong.neg { color: #cc1f1f; }
+.vbh-ccrow { cursor: pointer; }
+.vbh-ccdetail > td { padding: 0 8px 8px 28px; background-color: var(--color-main-background); }
+.vbh-subtable { width: 100%; margin: 6px 0; font-size: 0.95em; border: 1px solid var(--color-border); border-radius: 8px; }
+.vbh-subtable thead th { position: static; box-shadow: inset 0 -1px 0 var(--color-border); background-color: var(--color-background-hover); }
+
+.vbh-detail { flex: 1 1 auto; min-width: 0; overflow-y: auto; padding: 14px 20px 48px; container-type: inline-size; }
+/* Split-Ansichten (Konten/Kostenstellen): Nebenspalten ausblenden, wenn die
+   DETAILSPALTE schmal ist - unabhaengig von der Fensterbreite (Container-Query) */
+@container (max-width: 620px) {
+	.vbh-col-hide-sm { display: none; }
+}
+.vbh-detailhint { margin-top: 40px; text-align: center; }
+.vbh-detailhead { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.vbh-detailhead h3 { margin: 0 0 6px; }
+.vbh-cat { margin-left: 8px; opacity: 0.7; font-size: 0.9em; }
+.vbh-opening { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 12px 0; padding: 10px 14px; border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); background-color: var(--color-background-hover); }
+.vbh-statementbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+
+/* Forms */
+.vbh-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-top: 10px; }
+.vbh-form label { display: flex; flex-direction: column; font-size: 0.85em; gap: 3px; }
+.vbh-form .vbh-grow { flex: 1 1 220px; }
+.vbh-form .vbh-grow input, .vbh-form .vbh-grow select { width: 100%; }
+.vbh-rule-prio input { width: 80px; }
+.vbh-row-editing td { background-color: var(--color-primary-element-light, var(--color-background-hover)); }
+.vbh-num { width: 120px; text-align: right; }
+.vbh-short { width: 110px; }
+.vbh-date { width: 150px; }
+
+/* Modals */
+.vbh-modal-inner { padding: 4px 16px 20px; }
+.vbh-modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+
+/* Einnahme/Ausgabe-Umschalter (Einfach-Modus) */
+.vbh-kindtoggle { display: flex; gap: 0; margin: 4px 0 14px; border: 1px solid var(--color-border); border-radius: var(--border-radius-element, 8px); overflow: hidden; }
+.vbh-kindbtn { flex: 1 1 50%; padding: 10px 16px; border: none; background: var(--color-main-background); color: var(--color-main-text); font-size: 1em; font-weight: 600; cursor: pointer; transition: background-color 0.15s, color 0.15s; }
+.vbh-kindbtn + .vbh-kindbtn { border-left: 1px solid var(--color-border); }
+.vbh-kindbtn:hover { background: var(--color-background-hover); }
+.vbh-kindbtn.income.active { background: var(--color-success, #2d7d46); color: #fff; }
+.vbh-kindbtn.expense.active { background: var(--color-error, #b23636); color: #fff; }
+.vbh-expertrow { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--color-border); opacity: 0.85; }
+
+/* Drag-&-Drop-Zone (CSV-Import) */
+.vbh-dropzone { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 28px 16px; margin: 8px 0 12px; border: 2px dashed var(--color-border-maxcontrast, var(--color-border)); border-radius: var(--border-radius-large, 12px); text-align: center; transition: border-color 0.15s, background-color 0.15s; }
+.vbh-dropzone.dragging { border-color: var(--color-primary-element); background: var(--color-primary-element-light, var(--color-background-hover)); }
+.vbh-dropzone.has-file { border-style: solid; border-color: var(--color-success, #2d7d46); }
+.vbh-dropzone-icon { opacity: 0.5; }
+.vbh-dropzone-text { margin: 0; opacity: 0.8; }
+.vbh-dropzone-or { font-size: 0.85em; opacity: 0.6; }
+.vbh-dropzone .vbh-filename { margin: 4px 0 0; font-weight: 600; }
+
+/* Import-Erfolg */
+.vbh-import-done { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 20px 8px 8px; }
+.vbh-import-done-icon { color: var(--color-success, #2d7d46); }
+.vbh-import-done h3 { margin: 10px 0 4px; }
+.vbh-import-done .vbh-modal-actions { justify-content: center; width: 100%; }
+
+/* Tab-Icons */
+.vbh-tabs button { display: inline-flex; align-items: center; gap: 6px; }
+.vbh-export-btn { gap: 4px; }
+
+/* Sektions-Einblendung beim Tab-Wechsel */
+.vbh-fadein { animation: vbhFadeIn 0.18s ease-out; }
+@keyframes vbhFadeIn {
+	from { opacity: 0; transform: translateY(4px); }
+	to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+	.vbh-fadein { animation: none; }
+}
+
+/* Zeilen-Übergänge in der Zuordnungstabelle */
+.vbh-row-leave-active { transition: opacity 0.22s ease; }
+.vbh-row-leave-to { opacity: 0; }
+.vbh-row-move { transition: transform 0.22s ease; }
+
+/* Status-Akzent: offene vs. zugeordnete Bankbuchungen */
+.vbh-table tr.open td:first-child { box-shadow: inset 3px 0 0 var(--color-warning, #d9a411); }
+.vbh-table tr.assigned td:first-child { box-shadow: inset 3px 0 0 var(--color-success, #2d7d46); }
+
+/* Zuordnungs-Fortschritt */
+.vbh-progress { display: flex; flex-direction: column; gap: 4px; margin: 4px 0 10px; }
+.vbh-progress-label { font-size: 0.85em; opacity: 0.75; }
+.vbh-progress-bar { height: 6px; border-radius: 3px; background: var(--color-background-dark); overflow: hidden; }
+.vbh-progress-fill { height: 100%; border-radius: 3px; background: var(--color-success, #2d7d46); transition: width 0.35s ease; }
+
+/* Vorschlag-Chip */
+.vbh-assign-row { display: flex; align-items: center; gap: 4px; }
+.vbh-suggest-chip { display: inline-block; margin-top: 4px; padding: 3px 10px; border: 1px solid var(--color-primary-element); border-radius: 12px; background: transparent; color: var(--color-primary-element); font-size: 0.82em; cursor: pointer; max-width: 100%; text-align: left; overflow-wrap: anywhere; transition: background-color 0.15s, color 0.15s; }
+.vbh-suggest-chip:hover { background: var(--color-primary-element); color: var(--color-primary-element-text); }
+
+.vbh-yearedit { align-items: center; gap: 10px; margin: 6px 0; }
+
+/* Warnung: Buchungen außerhalb des Geschäftsjahres (xbuc-Import) */
+.vbh-yearwarn { margin: 8px 0; padding: 8px 12px; border: 1px solid var(--color-warning, #d9a411); border-radius: var(--border-radius, 6px); }
+.vbh-yearwarn-list { margin: 4px 0 8px; padding-left: 20px; font-size: 0.88em; opacity: 0.85; }
+
+/* Saldenliste: Konten-Hierarchie */
+.vbh-treeglyph { opacity: 0.45; margin-right: 5px; font-size: 0.9em; }
+.vbh-parentrow td { font-weight: 600; }
+.vbh-parentrow td .vbh-treeglyph { font-weight: 400; }
+
+/* Info: Anfangsbestände (xbuc-Import) */
+.vbh-openinfo { margin: 8px 0; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: var(--border-radius, 6px); background: var(--color-background-hover); }
+.vbh-openinfo-title { margin: 0 0 4px; font-weight: 600; font-size: 0.9em; }
+
+/* KPI-Vorjahresvergleich: Badge mit fest kodiertem dunklem Hintergrund + weißer Schrift.
+   Bewusst NICHT --color-success/--color-error verwenden: diese Theme-Variablen lösen in
+   manchen Nextcloud-Themes zu hellen Pastelltönen auf, auf denen weiße Schrift unlesbar ist. */
+.vbh-total-delta { align-self: flex-start; padding: 2px 9px; border-radius: 10px; font-size: 0.75em; font-weight: 600; color: #fff; white-space: nowrap; }
+.vbh-total-delta.good { background-color: #2d7d46; }
+.vbh-total-delta.bad { background-color: #b23636; }
+
+/* Preview */
+.vbh-previewsummary { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 10px; }
+.vbh-preview { margin-top: 10px; }
+
+/* Icon fix + button layout */
+::v-deep .button-vue { display: inline-flex !important; }
+::v-deep .button-vue__icon { display: flex !important; align-items: center; justify-content: center; }
+::v-deep .button-vue__icon svg { display: block !important; }
+.vbh-table td.right { white-space: nowrap; }
+.vbh-actions { display: inline-flex; gap: 2px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+
+/* Chart grid — minmax(0,1fr) + min-width:0: verhindert, dass die Canvas-
+   Attributbreite (Chart.js setzt Breite × devicePixelRatio) das Grid und damit
+   das Layout aufzieht (Resize-Feedback-Schleife) */
+.vbh-chart-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 20px; }
+.vbh-chart-card { background-color: var(--color-background-hover); border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); padding: 14px 16px; min-width: 0; overflow: hidden; }
+.vbh-chart-card--wide { grid-column: 1 / -1; }
+.vbh-chart-card h4 { margin: 0 0 10px; font-size: 0.88em; opacity: 0.8; }
+.vbh-chart-wrap { height: 260px; }
+.vbh-chart-wrap canvas { display: block; width: 100% !important; height: 100% !important; }
+
+/* Responsive: Tablet (≤ 760px) */
+@media (max-width: 760px) {
+	.vbh-chart-grid { grid-template-columns: minmax(0, 1fr); }
+	.vbh-chart-card--wide { grid-column: 1; }
+}
+
+/* Responsive: Mobile (≤ 640px) */
+@media (max-width: 640px) {
+	/* Header kompakter */
+	.vbh-header { padding: 8px 12px 0; }
+	.vbh-titlebar h2 { font-size: 1.05em; }
+	.vbh-bankchip { margin-left: 0; padding: 4px 10px; }
+	.vbh-bankchip-value { font-size: 1em; }
+
+	/* Tabs: scrollbar, kleinere Schrift */
+	.vbh-navbar { gap: 4px; flex-wrap: nowrap; align-items: center; }
+	.vbh-tabs { overflow-x: auto; scrollbar-width: none; flex-shrink: 1; min-width: 0; }
+	.vbh-tabs::-webkit-scrollbar { display: none; }
+	.vbh-tabs button { padding: 5px 10px; font-size: 0.82em; white-space: nowrap; }
+	.vbh-navright { flex-shrink: 0; gap: 2px; }
+	.vbh-newbooking-label { display: none; }
+	.vbh-yearsel { font-size: 0.8em; gap: 3px; }
+	.vbh-yearsel select { padding: 3px 4px; }
+	.vbh-yearsel > span { display: none; }
+
+	/* Weniger Außenabstand im Hauptbereich */
+	.vbh-section.scroll { padding: 10px 10px 48px; }
+	.vbh-sectionbody { padding: 8px 8px 48px; }
+	.vbh-sectiontop { padding: 6px 8px; gap: 8px; }
+	.vbh-filterbar { padding: 6px 8px; flex-direction: column; align-items: stretch; }
+	.vbh-search { width: 100%; box-sizing: border-box; min-width: 0; }
+	.vbh-filter-select { min-width: 0; max-width: none; width: 100%; }
+
+	/* Konten + Kostenstellen: Split-Layout stapeln statt nebeneinander */
+	.vbh-section.split { flex-direction: column; overflow-y: auto; }
+	.vbh-splitinner { flex-direction: column; overflow-y: auto; overflow-x: hidden; }
+	.vbh-sectionbody.is-split { overflow-y: auto; overflow-x: hidden; display: block; }
+	.vbh-tree { flex: 0 0 auto; max-height: 240px; min-width: 0; border-right: none; border-bottom: 1px solid var(--color-border); }
+	.vbh-detail { overflow-y: visible; min-width: 0; padding: 10px 10px 32px; }
+
+	/* Zuordnungs-Dropdown kompakter */
+	.vbh-assign-cell { width: 48vw; min-width: 120px; }
+
+	/* KPI-Karten: kleiner, aber noch 2 nebeneinander */
+	.vbh-total { min-width: 110px; padding: 8px 12px; }
+	.vbh-total strong { font-size: 1.1em; }
+
+	/* Textabschneidung */
+	.vbh-purpose { max-width: 180px; }
+	.vbh-num { width: 90px; }
+	/* Plan-Spalte mobil etwas schmaler; das Feld selbst fuellt sie (width:100%). */
+	.vbh-table thead th.num.vbh-col-plan { width: 130px; }
+
+	/* Spalten auf Mobilgeräten ausblenden */
+	.vbh-col-hide-sm { display: none; }
+}
+
+@media (prefers-color-scheme: dark) {
+	.num.neg, .num.bad { color: #ff7a7a; }
+	.num.good { color: #6fcf97; }
+	.vbh-bankchip-hint, .vbh-warn-inline { color: #ffb060; }
+	.vbh-total.pos strong { color: #6fcf97; }
+	.vbh-total.neg strong { color: #ff7a7a; }
+	.vbh-treesaldo.neg, .vbh-ccsummary strong.neg { color: #ff7a7a; }
+	.vbh-badge.pos { background-color: #2d7d46; }
+	.vbh-badge--alert { background-color: #9b2a2a; }
+}
