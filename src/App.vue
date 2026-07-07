@@ -2545,10 +2545,11 @@ export default {
 .num.neg { color: #cc1f1f; font-weight: 700; }
 .num.good { color: #1f7a3d; font-weight: 700; }
 .num.bad { color: #cc1f1f; font-weight: 700; }
-.vbh-planinput { width: 110px; box-sizing: border-box; max-width: 100%; }
+.vbh-planinput { width: 150px; box-sizing: border-box; max-width: 100%; }
 /* Plan-Spalte etwas breiter als normale Zahlenspalten, damit das Eingabefeld
-   (inkl. Spin-Buttons) nicht am rechten Zellenrand abgeschnitten wird. */
-.vbh-table th.vbh-col-plan, .vbh-table td.vbh-col-plan { width: 132px; }
+   (inkl. Spin-Buttons) nicht am rechten Zellenrand abgeschnitten wird und
+   auch fuenfstellige Betraege mit zwei Nachkommastellen ganz sichtbar sind. */
+.vbh-table th.vbh-col-plan, .vbh-table td.vbh-col-plan { width: 172px; }
 .vbh-table td.vbh-col-plan { overflow: visible; }
 .vbh-carryrow td { background-color: var(--color-background-hover); font-style: italic; }
 tr.assigned td { opacity: 0.85; }
@@ -2789,7 +2790,7 @@ tr.assigned td { opacity: 0.85; }
 
 	/* Textabschneidung */
 	.vbh-purpose { max-width: 180px; }
-	.vbh-planinput { width: 84px; }
+	.vbh-planinput { width: 120px; }
 	.vbh-num { width: 90px; }
 
 	/* Spalten auf Mobilgeräten ausblenden */
