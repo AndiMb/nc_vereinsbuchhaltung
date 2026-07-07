@@ -61,6 +61,7 @@ return [
 		// Rules
 		['name' => 'rule#index', 'url' => '/api/rules', 'verb' => 'GET'],
 		['name' => 'rule#create', 'url' => '/api/rules', 'verb' => 'POST'],
+		['name' => 'rule#update', 'url' => '/api/rules/{id}', 'verb' => 'PUT'],
 		['name' => 'rule#destroy', 'url' => '/api/rules/{id}', 'verb' => 'DELETE'],
 
 		// Export (CSV-Download)

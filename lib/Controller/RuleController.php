@@ -36,8 +36,8 @@ class RuleController extends Controller {
 
 	#[NoAdminRequired]
 	public function create(string $matchField, string $matchValue, int $contraAccountId, int $priority = 0): DataResponse {
-		if (!in_array($matchField, ['counterparty', 'purpose', 'iban'], true)) {
-			return new DataResponse(['message' => 'Ungültiges Feld'], Http::STATUS_BAD_REQUEST);
+		if (!$this->isValid($matchField, $matchValue, $contraAccountId)) {
+			return new DataResponse(['message' => 'Ungültige Regel (Feld, Suchtext oder Gegenkonto fehlt).'], Http::STATUS_BAD_REQUEST);
 		}
 		$rule = new Rule();
 		$rule->setUserId($this->userId());
@@ -46,6 +46,29 @@ class RuleController extends Controller {
 		$rule->setContraAccountId($contraAccountId);
 		$rule->setPriority($priority);
 		return new DataResponse($this->mapper->insert($rule), Http::STATUS_CREATED);
+	}
+
+	#[NoAdminRequired]
+	public function update(int $id, string $matchField, string $matchValue, int $contraAccountId, int $priority = 0): DataResponse {
+		if (!$this->isValid($matchField, $matchValue, $contraAccountId)) {
+			return new DataResponse(['message' => 'Ungültige Regel (Feld, Suchtext oder Gegenkonto fehlt).'], Http::STATUS_BAD_REQUEST);
+		}
+		try {
+			$rule = $this->mapper->find($id, $this->userId());
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => 'Regel nicht gefunden'], Http::STATUS_NOT_FOUND);
+		}
+		$rule->setMatchField($matchField);
+		$rule->setMatchValue(trim($matchValue));
+		$rule->setContraAccountId($contraAccountId);
+		$rule->setPriority($priority);
+		return new DataResponse($this->mapper->update($rule));
+	}
+
+	private function isValid(string $matchField, string $matchValue, int $contraAccountId): bool {
+		return in_array($matchField, ['counterparty', 'purpose', 'iban'], true)
+			&& trim($matchValue) !== ''
+			&& $contraAccountId > 0;
 	}
 
 	#[NoAdminRequired]

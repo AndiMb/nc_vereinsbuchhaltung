@@ -57,6 +57,7 @@ export default {
 	// Regeln
 	listRules: () => axios.get(url('/rules')),
 	createRule: data => axios.post(url('/rules'), data),
+	updateRule: (id, data) => axios.put(url(`/rules/${id}`), data),
 	deleteRule: id => axios.delete(url(`/rules/${id}`)),
 
 	// Export (CSV-Download – Browser-Navigation, kein Axios)
