@@ -25,6 +25,7 @@ class ResetService {
 		private AccountMapper $accountMapper,
 		private CostCenterMapper $costCenterMapper,
 		private BudgetMapper $budgetMapper,
+		private BudgetSnapshotService $snapshotService,
 		private AttachmentMapper $attachmentMapper,
 		private AttachmentStorageService $storageService,
 	) {
@@ -42,5 +43,6 @@ class ResetService {
 		$this->accountMapper->deleteAllForUser($userId);
 		$this->costCenterMapper->deleteAllForUser($userId);
 		$this->budgetMapper->deleteAllForUser($userId);
+		$this->snapshotService->deleteAllForUser($userId);
 	}
 }

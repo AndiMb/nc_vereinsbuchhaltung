@@ -48,6 +48,12 @@ export default {
 	budget: year => axios.get(url('/budget'), { params: { year: year || undefined } }),
 	setBudget: (accountId, year, amount) => axios.post(url('/budget'), { accountId, year, amount }),
 
+	// Finanzplan-Stände (Snapshots)
+	budgetSnapshots: year => axios.get(url('/budget/snapshots'), { params: { year: year || undefined } }),
+	createBudgetSnapshot: (year, label) => axios.post(url('/budget/snapshots'), { year, label }),
+	budgetSnapshot: id => axios.get(url(`/budget/snapshots/${id}`)),
+	deleteBudgetSnapshot: id => axios.delete(url(`/budget/snapshots/${id}`)),
+
 	// Regeln
 	listRules: () => axios.get(url('/rules')),
 	createRule: data => axios.post(url('/rules'), data),

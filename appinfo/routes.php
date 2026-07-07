@@ -45,6 +45,10 @@ return [
 		// Finanzplan / Budget
 		['name' => 'budget#index', 'url' => '/api/budget', 'verb' => 'GET'],
 		['name' => 'budget#set', 'url' => '/api/budget', 'verb' => 'POST'],
+		['name' => 'budget#snapshots', 'url' => '/api/budget/snapshots', 'verb' => 'GET'],
+		['name' => 'budget#createSnapshot', 'url' => '/api/budget/snapshots', 'verb' => 'POST'],
+		['name' => 'budget#snapshot', 'url' => '/api/budget/snapshots/{id}', 'verb' => 'GET'],
+		['name' => 'budget#deleteSnapshot', 'url' => '/api/budget/snapshots/{id}', 'verb' => 'DELETE'],
 
 		// Berechtigungen
 		['name' => 'permission#me', 'url' => '/api/permissions/me', 'verb' => 'GET'],

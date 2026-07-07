@@ -569,7 +569,7 @@
 										<th class="nowrap vbh-col-hide-sm">Nr.</th>
 										<th>Konto</th>
 										<th class="vbh-col-hide-sm">Art</th>
-										<th class="num">Plan (Soll)</th>
+										<th class="num vbh-col-plan">Plan (Soll)</th>
 										<th class="num">Ist</th>
 										<th class="num">Differenz</th>
 									</tr>
@@ -579,7 +579,7 @@
 										<td class="nowrap vbh-col-hide-sm">{{ row.number }}</td>
 										<td>{{ row.name }}</td>
 										<td class="vbh-col-hide-sm"><span class="vbh-typetag" :class="row.type">{{ typeLabel(row.type) }}</span></td>
-										<td class="num">
+										<td class="num vbh-col-plan">
 											<input v-if="canWrite" v-model.number="row.plan" type="number" step="0.01" class="vbh-num vbh-planinput" @change="saveBudget(row)">
 											<span v-else>{{ formatMoney(row.plan) }}</span>
 										</td>
@@ -590,6 +590,51 @@
 							</table>
 						</div>
 						<p v-else-if="budgetData" class="vbh-empty">Keine Einnahmen-/Ausgabenkonten vorhanden.</p>
+
+						<!-- PLAN-STÄNDE (Snapshots) -->
+						<div v-if="budgetData" class="vbh-snapblock">
+							<div class="vbh-sectionhead">
+								<h4>Plan-Stände {{ budgetData.year }}</h4>
+								<form v-if="canWrite" class="vbh-addyear" @submit.prevent="saveBudgetSnapshot">
+									<input v-model="newSnapshotLabel" type="text" maxlength="128" placeholder="z.B. Beschluss MV" class="vbh-snaplabel-input">
+									<NcButton type="submit" variant="secondary">Aktuellen Plan speichern</NcButton>
+								</form>
+							</div>
+							<p class="vbh-hint">
+								Friere den aktuellen Finanzplan als benannten, datierten Stand ein (z.B. den in der
+								Mitgliederversammlung beschlossenen Haushalt). Spätere Planänderungen lassen den Stand unberührt.
+							</p>
+							<div v-if="budgetSnapshots.length" class="vbh-tablecard">
+								<table class="vbh-table">
+									<thead>
+										<tr>
+											<th>Stand</th>
+											<th class="nowrap vbh-col-hide-sm">Gespeichert</th>
+											<th class="num vbh-col-hide-sm">Einnahmen</th>
+											<th class="num vbh-col-hide-sm">Ausgaben</th>
+											<th class="num">Ergebnis</th>
+											<th></th>
+										</tr>
+									</thead>
+									<tbody>
+										<tr v-for="snap in budgetSnapshots" :key="snap.id">
+											<td><strong>{{ snap.label }}</strong></td>
+											<td class="nowrap vbh-col-hide-sm">{{ formatDateTime(snap.createdAt) }}</td>
+											<td class="num vbh-col-hide-sm">{{ formatMoney(snap.planIncome) }}</td>
+											<td class="num vbh-col-hide-sm">{{ formatMoney(snap.planExpense) }}</td>
+											<td class="num strong" :class="snap.planResult >= 0 ? 'good' : 'bad'">{{ formatMoney(snap.planResult) }}</td>
+											<td class="right nowrap">
+												<NcButton variant="tertiary" @click="openSnapshot(snap)">Ansehen</NcButton>
+												<NcButton v-if="canWrite" variant="tertiary" @click="deleteBudgetSnapshot(snap)" title="Stand löschen">
+													<template #icon><NcIconSvgWrapper :path="mdiDelete" :size="18" /></template>
+												</NcButton>
+											</td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+							<p v-else class="vbh-empty">Noch keine Stände für dieses Jahr gespeichert.</p>
+						</div>
 					</div>
 				</div>
 			</section>
@@ -965,6 +1010,51 @@
 			</div>
 		</NcModal>
 
+		<!-- ============ PLAN-STAND DETAIL ============ -->
+		<NcModal v-if="snapshotView.open" :show.sync="snapshotView.open" :name="'Plan-Stand: ' + (snapshotView.data ? snapshotView.data.label : '')" size="normal" @close="closeSnapshot">
+			<div v-if="snapshotView.data" class="vbh-modal-inner">
+				<p class="vbh-hint">
+					Eingefroren am {{ formatDateTime(snapshotView.data.createdAt) }} · Geschäftsjahr {{ snapshotView.data.year }}.
+					Die Spalte „Aktuell" zeigt den heutigen Planwert, „Δ" die Abweichung des aktuellen Plans zum Stand.
+				</p>
+				<div v-if="snapshotView.data.items && snapshotView.data.items.length" class="vbh-tablecard">
+					<table class="vbh-table">
+						<thead>
+							<tr>
+								<th class="nowrap vbh-col-hide-sm">Nr.</th>
+								<th>Konto</th>
+								<th class="num">Stand</th>
+								<th class="num vbh-col-hide-sm">Aktuell</th>
+								<th class="num">Δ</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr v-for="it in snapshotView.data.items" :key="it.id">
+								<td class="nowrap vbh-col-hide-sm">{{ it.number }}</td>
+								<td>{{ it.name }}</td>
+								<td class="num strong">{{ formatMoney(it.amount) }}</td>
+								<td class="num vbh-col-hide-sm">{{ formatMoney(currentPlanForAccount(it.accountId)) }}</td>
+								<td class="num strong" :class="amountClass(currentPlanForAccount(it.accountId) - it.amount)">{{ formatMoney(currentPlanForAccount(it.accountId) - it.amount) }}</td>
+							</tr>
+						</tbody>
+						<tfoot>
+							<tr>
+								<td class="vbh-col-hide-sm"></td>
+								<td><strong>Ergebnis (Plan)</strong></td>
+								<td class="num strong" :class="snapshotView.data.planResult >= 0 ? 'good' : 'bad'">{{ formatMoney(snapshotView.data.planResult) }}</td>
+								<td class="vbh-col-hide-sm"></td>
+								<td></td>
+							</tr>
+						</tfoot>
+					</table>
+				</div>
+				<p v-else class="vbh-empty">Dieser Stand enthält keine Planwerte.</p>
+				<div class="vbh-modal-actions">
+					<NcButton variant="primary" @click="closeSnapshot">Schließen</NcButton>
+				</div>
+			</div>
+		</NcModal>
+
 		<!-- ============ BESTÄTIGUNGS-DIALOG ============ -->
 		<NcDialog
 			v-if="confirmDialog.open"
@@ -1034,6 +1124,9 @@ export default {
 			years: [],
 			newBudgetYear: '',
 			budgetData: null,
+			budgetSnapshots: [],
+			newSnapshotLabel: '',
+			snapshotView: { open: false, data: null },
 			me: null,
 			permissions: [],
 			groups: [],
@@ -2131,6 +2224,7 @@ export default {
 			try {
 				const { data } = await api.budget(this.selectedYear)
 				this.budgetData = data
+				await this.loadBudgetSnapshots()
 			} catch (e) { showError(this.errMsg(e, 'Finanzplan konnte nicht geladen werden')) }
 		},
 		async saveBudget(row) {
@@ -2139,6 +2233,44 @@ export default {
 				await api.setBudget(row.accountId, this.budgetData.year, Number(row.plan) || 0)
 				await this.loadBudget()
 			} catch (e) { showError(this.errMsg(e, 'Planwert konnte nicht gespeichert werden')) }
+		},
+
+		// --- Finanzplan-Stände (Snapshots) ---
+		async loadBudgetSnapshots() {
+			try {
+				const { data } = await api.budgetSnapshots(this.selectedYear)
+				this.budgetSnapshots = data
+			} catch (e) { showError(this.errMsg(e, 'Plan-Stände konnten nicht geladen werden')) }
+		},
+		async saveBudgetSnapshot() {
+			if (!this.budgetData) return
+			const label = this.newSnapshotLabel.trim()
+			try {
+				await api.createBudgetSnapshot(this.budgetData.year, label)
+				this.newSnapshotLabel = ''
+				await this.loadBudgetSnapshots()
+				showSuccess('Plan-Stand gespeichert.')
+			} catch (e) { showError(this.errMsg(e, 'Plan-Stand konnte nicht gespeichert werden')) }
+		},
+		async openSnapshot(snap) {
+			try {
+				const { data } = await api.budgetSnapshot(snap.id)
+				this.snapshotView = { open: true, data }
+			} catch (e) { showError(this.errMsg(e, 'Plan-Stand konnte nicht geladen werden')) }
+		},
+		closeSnapshot() { this.snapshotView = { open: false, data: null } },
+		async deleteBudgetSnapshot(snap) {
+			if (!await this.askConfirm('Plan-Stand löschen', `Stand „${snap.label}" wirklich löschen?`)) return
+			try {
+				await api.deleteBudgetSnapshot(snap.id)
+				await this.loadBudgetSnapshots()
+				showSuccess('Plan-Stand gelöscht.')
+			} catch (e) { showError(this.errMsg(e, 'Plan-Stand konnte nicht gelöscht werden')) }
+		},
+		/** Planwert eines Kontos im aktuellen Plan (für Vergleich im Stand-Detail). */
+		currentPlanForAccount(accountId) {
+			const row = this.budgetData && this.budgetData.rows.find(r => r.accountId === accountId)
+			return row ? row.plan : 0
 		},
 		addBudgetYear() {
 			const y = parseInt(this.newBudgetYear, 10)
@@ -2344,6 +2476,8 @@ export default {
 .vbh-section-divider { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--color-border); }
 .vbh-addyear { display: flex; align-items: center; gap: 6px; }
 .vbh-addyear-input { width: 80px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--color-border); }
+.vbh-snaplabel-input { width: 200px; max-width: 60vw; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--color-border); }
+.vbh-snapblock { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--color-border); }
 .vbh-hint { color: var(--color-main-text); opacity: 0.8; max-width: 80ch; }
 .vbh-empty { color: var(--color-main-text); opacity: 0.65; font-style: italic; }
 .vbh-warn-inline { color: #b35900; font-weight: 600; margin-left: 10px; }
@@ -2411,7 +2545,11 @@ export default {
 .num.neg { color: #cc1f1f; font-weight: 700; }
 .num.good { color: #1f7a3d; font-weight: 700; }
 .num.bad { color: #cc1f1f; font-weight: 700; }
-.vbh-planinput { width: 110px; }
+.vbh-planinput { width: 110px; box-sizing: border-box; max-width: 100%; }
+/* Plan-Spalte etwas breiter als normale Zahlenspalten, damit das Eingabefeld
+   (inkl. Spin-Buttons) nicht am rechten Zellenrand abgeschnitten wird. */
+.vbh-table th.vbh-col-plan, .vbh-table td.vbh-col-plan { width: 132px; }
+.vbh-table td.vbh-col-plan { overflow: visible; }
 .vbh-carryrow td { background-color: var(--color-background-hover); font-style: italic; }
 tr.assigned td { opacity: 0.85; }
 .vbh-tablecount { padding: 4px 10px; font-size: 0.82em; opacity: 0.7; }

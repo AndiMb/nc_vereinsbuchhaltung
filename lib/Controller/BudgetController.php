@@ -8,7 +8,9 @@ use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
+use OCA\Vereinsbuchhaltung\Service\BudgetSnapshotService;
 use OCP\AppFramework\Controller;
+use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IRequest;
@@ -20,6 +22,7 @@ class BudgetController extends Controller {
 		private AccountMapper $accountMapper,
 		private BudgetMapper $budgetMapper,
 		private JournalLineMapper $lineMapper,
+		private BudgetSnapshotService $snapshotService,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -100,5 +103,46 @@ class BudgetController extends Controller {
 		$cents = (int)round($amount * 100);
 		$this->budgetMapper->upsert($this->userId(), $accountId, $year, $cents);
 		return new DataResponse(['accountId' => $accountId, 'year' => $year, 'amount' => $cents / 100]);
+	}
+
+	/**
+	 * Gespeicherte Finanzplan-Stände eines Jahres (neueste zuerst).
+	 */
+	#[NoAdminRequired]
+	public function snapshots(?int $year = null): DataResponse {
+		$year = ($year === null || $year <= 0) ? (int)date('Y') : $year;
+		return new DataResponse($this->snapshotService->listForYear($this->userId(), $year));
+	}
+
+	/**
+	 * Ein Stand mit allen eingefrorenen Positionen.
+	 */
+	#[NoAdminRequired]
+	public function snapshot(int $id): DataResponse {
+		$detail = $this->snapshotService->getDetail($this->userId(), $id);
+		if ($detail === null) {
+			return new DataResponse(['message' => 'Stand nicht gefunden.'], Http::STATUS_NOT_FOUND);
+		}
+		return new DataResponse($detail);
+	}
+
+	/**
+	 * Aktuellen Finanzplan eines Jahres als neuen Stand einfrieren.
+	 */
+	#[NoAdminRequired]
+	public function createSnapshot(int $year, string $label = ''): DataResponse {
+		$snapshot = $this->snapshotService->create($this->userId(), $year, $label);
+		return new DataResponse($snapshot);
+	}
+
+	/**
+	 * Einen Stand löschen.
+	 */
+	#[NoAdminRequired]
+	public function deleteSnapshot(int $id): DataResponse {
+		if (!$this->snapshotService->delete($this->userId(), $id)) {
+			return new DataResponse(['message' => 'Stand nicht gefunden.'], Http::STATUS_NOT_FOUND);
+		}
+		return new DataResponse(['id' => $id]);
 	}
 }
