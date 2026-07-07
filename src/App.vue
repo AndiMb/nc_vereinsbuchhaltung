@@ -398,6 +398,7 @@
 					<div class="vbh-sectiontop-actions">
 						<a v-if="reportView === 'summary'" :href="exportBalancesUrl" download class="vbh-export-btn" title="Saldenliste als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> Saldenliste</a>
 						<a v-if="reportView === 'summary'" :href="exportReportUrl" download class="vbh-export-btn" title="E/A-Übersicht als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> E/A-Übersicht</a>
+						<a v-if="reportView === 'budget'" :href="exportBudgetUrl" download class="vbh-export-btn" title="Soll-Ist-Vergleich als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> Soll-Ist-Vergleich</a>
 					</div>
 				</div>
 
@@ -1201,6 +1202,7 @@ export default {
 		exportJournalUrl()  { return api.exportJournalUrl(this.selectedYear) },
 		exportBalancesUrl() { return api.exportBalancesUrl(this.selectedYear) },
 		exportReportUrl()   { return api.exportReportUrl(this.selectedYear) },
+		exportBudgetUrl()   { return api.exportBudgetUrl(this.selectedYear) },
 		visibleTabs() {
 			return this.allTabs.filter(t => {
 				if (t.need === 'admin') return this.isAdmin
@@ -2545,12 +2547,18 @@ export default {
 .num.neg { color: #cc1f1f; font-weight: 700; }
 .num.good { color: #1f7a3d; font-weight: 700; }
 .num.bad { color: #cc1f1f; font-weight: 700; }
-.vbh-planinput { width: 150px; box-sizing: border-box; max-width: 100%; }
-/* Plan-Spalte etwas breiter als normale Zahlenspalten, damit das Eingabefeld
-   (inkl. Spin-Buttons) nicht am rechten Zellenrand abgeschnitten wird und
-   auch fuenfstellige Betraege mit zwei Nachkommastellen ganz sichtbar sind. */
-.vbh-table th.vbh-col-plan, .vbh-table td.vbh-col-plan { width: 172px; }
-.vbh-table td.vbh-col-plan { overflow: visible; }
+/* Plan-Eingabefeld fuellt seine Zelle. Hohe Spezifitaet (0,3,1) ist noetig,
+   damit die weiter unten definierte Regel `.vbh-num { width:120px }` (bzw. 90px
+   mobil) es nicht per Quellreihenfolge ueberschreibt. */
+.vbh-table td.vbh-col-plan .vbh-planinput { width: 100%; box-sizing: border-box; }
+/* Plan-Spalte breiter als normale Zahlenspalten, damit auch fuenfstellige
+   Betraege mit zwei Nachkommastellen (12345.67) inkl. Spin-Buttons ganz sichtbar
+   sind. WICHTIG: der Selektor muss spezifischer sein als `.vbh-table thead th.num`
+   (0,2,2) — sonst gewinnt dessen width:100px und die Spalte bleibt zu schmal
+   (genau das war der Bug bis 0.10.20). Bei table-layout:fixed zaehlt nur die
+   Kopfzelle fuer die Spaltenbreite. */
+.vbh-table thead th.num.vbh-col-plan { width: 180px; }
+.vbh-table td.num.vbh-col-plan { overflow: visible; }
 .vbh-carryrow td { background-color: var(--color-background-hover); font-style: italic; }
 tr.assigned td { opacity: 0.85; }
 .vbh-tablecount { padding: 4px 10px; font-size: 0.82em; opacity: 0.7; }
@@ -2790,8 +2798,9 @@ tr.assigned td { opacity: 0.85; }
 
 	/* Textabschneidung */
 	.vbh-purpose { max-width: 180px; }
-	.vbh-planinput { width: 120px; }
 	.vbh-num { width: 90px; }
+	/* Plan-Spalte mobil etwas schmaler; das Feld selbst fuellt sie (width:100%). */
+	.vbh-table thead th.num.vbh-col-plan { width: 130px; }
 
 	/* Spalten auf Mobilgeräten ausblenden */
 	.vbh-col-hide-sm { display: none; }

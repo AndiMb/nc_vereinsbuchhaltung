@@ -63,6 +63,7 @@ export default {
 	exportJournalUrl:  year => generateUrl(base + '/export/journal')  + (year ? `?year=${year}` : ''),
 	exportBalancesUrl: year => generateUrl(base + '/export/balances') + (year ? `?year=${year}` : ''),
 	exportReportUrl:   year => generateUrl(base + '/export/report')   + (year ? `?year=${year}` : ''),
+	exportBudgetUrl:   year => generateUrl(base + '/export/budget')   + (year ? `?year=${year}` : ''),
 
 	// Belegablage
 	attachmentCounts:     () => axios.get(url('/attachments/counts')),

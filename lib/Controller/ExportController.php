@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
+use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCP\AppFramework\Controller;
@@ -28,6 +29,7 @@ class ExportController extends Controller {
 		private JournalMapper $journalMapper,
 		private JournalLineMapper $lineMapper,
 		private AccountMapper $accountMapper,
+		private BudgetMapper $budgetMapper,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -235,5 +237,78 @@ class ExportController extends Controller {
 		$csv .= $this->csvLine(['Ergebnis', '', '', '', $this->fmtMoney($result / 100)]);
 
 		return new DataDownloadResponse($csv, "einnahmen_ausgaben_{$yearLabel}.csv", 'text/csv; charset=utf-8');
+	}
+
+	/**
+	 * Finanzplan / Soll-Ist-Vergleich eines Jahres als CSV.
+	 * Format: Typ;Nr.;Konto;Kategorie;Plan (EUR);Ist (EUR);Differenz (EUR)
+	 *
+	 * Spiegelt die Berechnung aus BudgetController::index() (Plan aus der
+	 * Budget-Tabelle, Ist aus den Journalzeilen des Jahres).
+	 */
+	#[NoAdminRequired]
+	#[NoCSRFRequired]
+	public function budget(?int $year = null): DataDownloadResponse {
+		$userId = $this->userId();
+		$year = ($year === null || $year <= 0) ? (int)date('Y') : $year;
+		$from = sprintf('%04d-01-01', $year);
+		$to   = sprintf('%04d-12-31', $year);
+
+		$accounts   = $this->accountMapper->findAll($userId);
+		$plan       = $this->budgetMapper->findByYear($userId, $year);
+		$actualSums = $this->lineMapper->sumByAccount($userId, $from, $to);
+
+		$typeLabel = static fn (string $t): string => $t === 'income' ? 'Einnahmen' : 'Ausgaben';
+
+		$rows = [];
+		$planIncome = 0; $actualIncome = 0;
+		$planExpense = 0; $actualExpense = 0;
+		foreach ($accounts as $account) {
+			$type = $account->getType();
+			if ($type !== 'income' && $type !== 'expense') {
+				continue;
+			}
+			$id     = $account->getId();
+			$debit  = $actualSums[$id]['debit'] ?? 0;
+			$credit = $actualSums[$id]['credit'] ?? 0;
+			$actualCents = $type === 'income' ? ($credit - $debit) : ($debit - $credit);
+			$planCents   = $plan[$id] ?? 0;
+			$rows[] = [
+				'number'   => (string)$account->getNumber(),
+				'label'    => $typeLabel($type),
+				'name'     => (string)$account->getName(),
+				'category' => (string)$account->getCategory(),
+				'plan'     => $planCents,
+				'actual'   => $actualCents,
+				'diff'     => $actualCents - $planCents,
+			];
+			if ($type === 'income') {
+				$planIncome += $planCents; $actualIncome += $actualCents;
+			} else {
+				$planExpense += $planCents; $actualExpense += $actualCents;
+			}
+		}
+
+		usort($rows, static fn ($a, $b) => strcmp($a['number'], $b['number']));
+
+		$csv = "\xEF\xBB\xBF";
+		$csv .= $this->csvLine(['Typ', 'Nr.', 'Konto', 'Kategorie', 'Plan (EUR)', 'Ist (EUR)', 'Differenz (EUR)']);
+		foreach ($rows as $r) {
+			$csv .= $this->csvLine([
+				$r['label'], $r['number'], $r['name'], $r['category'],
+				$this->fmtMoney($r['plan'] / 100),
+				$this->fmtMoney($r['actual'] / 100),
+				$this->fmtMoney($r['diff'] / 100),
+			]);
+		}
+
+		$csv .= $this->csvLine(['', '', '', '', '', '', '']);
+		$csv .= $this->csvLine(['Einnahmen (Plan/Ist)', '', '', '', $this->fmtMoney($planIncome / 100), $this->fmtMoney($actualIncome / 100), $this->fmtMoney(($actualIncome - $planIncome) / 100)]);
+		$csv .= $this->csvLine(['Ausgaben (Plan/Ist)', '', '', '', $this->fmtMoney($planExpense / 100), $this->fmtMoney($actualExpense / 100), $this->fmtMoney(($actualExpense - $planExpense) / 100)]);
+		$planResult   = $planIncome - $planExpense;
+		$actualResult = $actualIncome - $actualExpense;
+		$csv .= $this->csvLine(['Ergebnis (Plan/Ist)', '', '', '', $this->fmtMoney($planResult / 100), $this->fmtMoney($actualResult / 100), $this->fmtMoney(($actualResult - $planResult) / 100)]);
+
+		return new DataDownloadResponse($csv, "finanzplan_soll_ist_{$year}.csv", 'text/csv; charset=utf-8');
 	}
 }
