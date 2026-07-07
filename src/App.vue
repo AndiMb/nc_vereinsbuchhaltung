@@ -1144,6 +1144,7 @@ import {
 } from '@nextcloud/vue'
 import { mdiCog, mdiDelete, mdiPaperclip, mdiPencil, mdiPlus, mdiUpload, mdiCheckCircle, mdiDownload, mdiFlash, mdiViewDashboardOutline, mdiSwapHorizontal, mdiFileTreeOutline, mdiChartBar } from '@mdi/js'
 import api from './api.js'
+import { formatMoney, formatDate, formatDateTime, typeLabel, roleLabel, amountClass, budgetDiffClass, errMsg } from './lib/format.js'
 import {
 	Chart,
 	BarController,
@@ -1828,21 +1829,14 @@ export default {
 			}
 			this.bookingMode = mode
 		},
-		formatMoney(v) { return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(v || 0) },
-		formatDate(s) {
-			if (!s) return ''
-			const d = String(s).slice(0, 10)
-			const m = d.match(/^(\d{4})-(\d{2})-(\d{2})$/)
-			return m ? `${m[3]}.${m[2]}.${m[1]}` : d
-		},
-		formatDateTime(s) { return s ? String(s).replace('T', ' ').slice(0, 16) : '' },
-		typeLabel(t) { return { income: 'Ertrag', expense: 'Aufwand', asset: 'Aktiv', liability: 'Passiv', equity: 'Eigenkapital' }[t] || t },
-		amountClass(v) { return v < 0 ? 'neg' : '' },
-		budgetDiffClass(row) {
-			if (!row.diff) return ''
-			const good = row.type === 'income' ? row.diff > 0 : row.diff < 0
-			return good ? 'good' : 'bad'
-		},
+		// Formatier-/Label-Helfer aus ./lib/format.js (zustandslos, als Methoden
+		// eingebunden, damit das Template sie unveraendert aufrufen kann).
+		formatMoney,
+		formatDate,
+		formatDateTime,
+		typeLabel,
+		amountClass,
+		budgetDiffClass,
 		accountLabel(id) {
 			const acc = this.accountsById[id]
 			return acc ? `${acc.number} ${acc.name}` : `#${id}`
@@ -2439,9 +2433,9 @@ export default {
 			if (!await this.askConfirm('Berechtigung entfernen', `Berechtigung für "${p.principalId}" entfernen?`)) return
 			try { await api.deletePermission(p.id); await this.loadPermissions() } catch (e) { showError(this.errMsg(e, 'Entfernen fehlgeschlagen')) }
 		},
-		roleLabel(r) { return { verwalter: 'Verwalter', buchhalter: 'Buchhalter', revisor: 'Revisor' }[r] || r },
+		roleLabel,
 
-		errMsg(e, fallback) { return (e && e.response && e.response.data && e.response.data.message) || fallback },
+		errMsg,
 
 		// --- Charts ---
 		destroyChart(key) {
