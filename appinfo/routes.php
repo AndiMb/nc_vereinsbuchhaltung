@@ -69,6 +69,7 @@ return [
 		['name' => 'export#balances', 'url' => '/api/export/balances', 'verb' => 'GET'],
 		['name' => 'export#report',   'url' => '/api/export/report',   'verb' => 'GET'],
 		['name' => 'export#budget',   'url' => '/api/export/budget',   'verb' => 'GET'],
+		['name' => 'export#multiyear', 'url' => '/api/export/multiyear', 'verb' => 'GET'],
 
 		// Einstellungen
 		['name' => 'settings#index',  'url' => '/api/settings', 'verb' => 'GET'],

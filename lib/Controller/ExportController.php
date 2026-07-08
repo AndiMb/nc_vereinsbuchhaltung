@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
+use OCA\Vereinsbuchhaltung\Service\ReportService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
@@ -30,6 +31,7 @@ class ExportController extends Controller {
 		private JournalLineMapper $lineMapper,
 		private AccountMapper $accountMapper,
 		private BudgetMapper $budgetMapper,
+		private ReportService $reportService,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -312,5 +314,170 @@ class ExportController extends Controller {
 		$csv .= $this->csvLine(['Ergebnis (Plan/Ist)', '', '', '', $this->fmtMoney($planResult / 100), $this->fmtMoney($actualResult / 100), $this->fmtMoney(($actualResult - $planResult) / 100), '']);
 
 		return new DataDownloadResponse($csv, "finanzplan_soll_ist_{$year}.csv", 'text/csv; charset=utf-8');
+	}
+
+	/**
+	 * Mehrjahresübersicht als CSV-Matrix (Spalten = Geschäftsjahre):
+	 *  1. Erfolgsrechnung nach Konten (Einnahmen, Ausgaben, Ergebnis) je Jahr,
+	 *     plus Vermögen (kumulierter Bestand asset − liability zum 31.12.).
+	 *  2. Auswertung nach Kostenstellen/Projekten (Ergebnis je Kostenstelle) je Jahr.
+	 *
+	 * Ausgaben werden mit negativem Vorzeichen dargestellt, sodass sich das
+	 * Ergebnis je Spalte als Summe von Einnahmen + Ausgaben ergibt.
+	 */
+	#[NoAdminRequired]
+	#[NoCSRFRequired]
+	public function multiyear(): DataDownloadResponse {
+		$userId = $this->userId();
+		$accounts = $this->accountMapper->findAll($userId);
+
+		$years = $this->journalMapper->distinctYears($userId);
+		sort($years); // aufsteigend für die Spaltenreihenfolge
+
+		// Bewegungen je Jahr und kumulierter Bestand bis Jahresende je Konto.
+		$movByYear = [];
+		$cumByYear = [];
+		foreach ($years as $y) {
+			$movByYear[$y] = $this->lineMapper->sumByAccount($userId, sprintf('%04d-01-01', $y), sprintf('%04d-12-31', $y));
+			$cumByYear[$y] = $this->lineMapper->sumByAccount($userId, null, sprintf('%04d-12-31', $y));
+		}
+
+		$byNumberSort = static fn ($a, $b) => strcmp((string)$a->getNumber(), (string)$b->getNumber());
+		usort($accounts, $byNumberSort);
+
+		// Vorzeichenbehafteter Jahreswert eines Erfolgskontos (Einnahme +, Ausgabe −).
+		$yearValueCents = static function (array $sums, int $accId, string $type): int {
+			$debit = $sums[$accId]['debit'] ?? 0;
+			$credit = $sums[$accId]['credit'] ?? 0;
+			return $type === 'income' ? ($credit - $debit) : -($debit - $credit);
+		};
+
+		$header = array_merge([''], array_map(static fn ($y) => (string)$y, $years));
+
+		$csv = "\xEF\xBB\xBF";
+		$csv .= $this->csvLine(['Mehrjahresübersicht — Erfolgsrechnung nach Konten']);
+		$csv .= $this->csvLine($header);
+
+		// --- Einnahmen ---
+		$incomeTotals = array_fill_keys($years, 0);
+		$csv .= $this->csvLine(array_merge(['EINNAHMEN'], array_fill(0, count($years), '')));
+		foreach ($accounts as $a) {
+			if ($a->getType() !== 'income') {
+				continue;
+			}
+			[$row, $any] = $this->accountYearRow($a, $years, $movByYear, $yearValueCents, $incomeTotals);
+			if ($any) {
+				$csv .= $row;
+			}
+		}
+		$csv .= $this->totalsLine('Summe Einnahmen', $years, $incomeTotals);
+
+		// --- Ausgaben (negativ dargestellt) ---
+		$expenseTotals = array_fill_keys($years, 0);
+		$csv .= $this->csvLine(array_merge(['AUSGABEN'], array_fill(0, count($years), '')));
+		foreach ($accounts as $a) {
+			if ($a->getType() !== 'expense') {
+				continue;
+			}
+			[$row, $any] = $this->accountYearRow($a, $years, $movByYear, $yearValueCents, $expenseTotals);
+			if ($any) {
+				$csv .= $row;
+			}
+		}
+		$csv .= $this->totalsLine('Summe Ausgaben', $years, $expenseTotals);
+
+		// --- Ergebnis + Vermögen ---
+		$resultCells = ['Ergebnis'];
+		$wealthCells = ['Vermögen (31.12.)'];
+		foreach ($years as $y) {
+			$resultCells[] = $this->fmtMoney(($incomeTotals[$y] + $expenseTotals[$y]) / 100);
+			$wealthCents = 0;
+			foreach ($accounts as $a) {
+				$id = $a->getId();
+				$debit = $cumByYear[$y][$id]['debit'] ?? 0;
+				$credit = $cumByYear[$y][$id]['credit'] ?? 0;
+				if ($a->getType() === 'asset') {
+					$wealthCents += $debit - $credit;
+				} elseif ($a->getType() === 'liability') {
+					$wealthCents -= $credit - $debit;
+				}
+			}
+			$wealthCells[] = $this->fmtMoney($wealthCents / 100);
+		}
+		$csv .= $this->csvLine($resultCells);
+		$csv .= $this->csvLine(array_fill(0, count($years) + 1, ''));
+		$csv .= $this->csvLine($wealthCells);
+
+		// --- Kostenstellen / Projekte ---
+		$csv .= $this->csvLine(array_fill(0, count($years) + 1, ''));
+		$csv .= $this->csvLine(['Auswertung nach Kostenstellen / Projekten (Ergebnis)']);
+		$csv .= $this->csvLine($header);
+
+		$ccResultByKey = [];
+		$ccNameByKey = [];
+		$ccTotals = array_fill_keys($years, 0.0);
+		foreach ($years as $y) {
+			$report = $this->reportService->costCenterReport($userId, $y);
+			foreach ($report['costCenters'] as $cc) {
+				$key = ($cc['code'] ?? '') . '|' . $cc['name'];
+				$ccNameByKey[$key] = trim(($cc['code'] ? $cc['code'] . ' ' : '') . $cc['name']);
+				$ccResultByKey[$key][$y] = $cc['result'];
+				$ccTotals[$y] += $cc['result'];
+			}
+		}
+		ksort($ccResultByKey);
+		foreach ($ccResultByKey as $key => $byYear) {
+			$cells = [$ccNameByKey[$key]];
+			foreach ($years as $y) {
+				$cells[] = $this->fmtMoney((float)($byYear[$y] ?? 0));
+			}
+			$csv .= $this->csvLine($cells);
+		}
+		$sumCells = ['Summe Kostenstellen'];
+		foreach ($years as $y) {
+			$sumCells[] = $this->fmtMoney($ccTotals[$y]);
+		}
+		$csv .= $this->csvLine($sumCells);
+
+		return new DataDownloadResponse($csv, 'mehrjahresuebersicht.csv', 'text/csv; charset=utf-8');
+	}
+
+	/**
+	 * Baut eine Kontozeile (Nr. Name + Jahreswerte) und summiert die Werte in
+	 * $totals auf. Gibt [csvZeile, hatWerte] zurück – Konten ohne jeglichen Wert
+	 * werden vom Aufrufer ausgelassen.
+	 *
+	 * @param int[] $years
+	 * @param array<int, array<int, array{debit:int, credit:int}>> $movByYear
+	 * @param callable(array,int,string):int $yearValueCents
+	 * @param array<int,int> $totals
+	 * @return array{0:string, 1:bool}
+	 */
+	private function accountYearRow($account, array $years, array $movByYear, callable $yearValueCents, array &$totals): array {
+		$id = $account->getId();
+		$type = $account->getType();
+		$cells = [trim($account->getNumber() . ' ' . $account->getName())];
+		$any = false;
+		foreach ($years as $y) {
+			$v = $yearValueCents($movByYear[$y], $id, $type);
+			if ($v !== 0) {
+				$any = true;
+			}
+			$totals[$y] += $v;
+			$cells[] = $this->fmtMoney($v / 100);
+		}
+		return [$this->csvLine($cells), $any];
+	}
+
+	/**
+	 * @param int[] $years
+	 * @param array<int,int> $totalsCents
+	 */
+	private function totalsLine(string $label, array $years, array $totalsCents): string {
+		$cells = [$label];
+		foreach ($years as $y) {
+			$cells[] = $this->fmtMoney(($totalsCents[$y] ?? 0) / 100);
+		}
+		return $this->csvLine($cells);
 	}
 }

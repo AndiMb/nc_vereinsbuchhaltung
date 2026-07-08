@@ -398,6 +398,7 @@
 					<div class="vbh-sectiontop-actions">
 						<a v-if="reportView === 'summary'" :href="exportBalancesUrl" download class="vbh-export-btn" title="Saldenliste als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> Saldenliste</a>
 						<a v-if="reportView === 'summary'" :href="exportReportUrl" download class="vbh-export-btn" title="E/A-Übersicht als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> E/A-Übersicht</a>
+						<a v-if="reportView === 'summary'" :href="exportMultiyearUrl" download class="vbh-export-btn" title="Mehrjahresübersicht (alle Jahre) als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> Mehrjahresübersicht</a>
 						<a v-if="reportView === 'budget'" :href="exportBudgetUrl" download class="vbh-export-btn" title="Soll-Ist-Vergleich als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> Soll-Ist-Vergleich</a>
 					</div>
 				</div>
@@ -1265,6 +1266,7 @@ export default {
 		exportBalancesUrl() { return api.exportBalancesUrl(this.selectedYear) },
 		exportReportUrl()   { return api.exportReportUrl(this.selectedYear) },
 		exportBudgetUrl()   { return api.exportBudgetUrl(this.selectedYear) },
+		exportMultiyearUrl() { return api.exportMultiyearUrl() },
 		// Rückwärts-Import mit inkonsistentem Jahresübergang → Import gesperrt
 		// (außer bei „alle Daten löschen", da entfällt der Abgleich).
 		xbucImportBlocked() {
