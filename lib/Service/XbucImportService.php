@@ -153,14 +153,25 @@ class XbucImportService {
 			}
 		}
 
-		// Vergleich über Bestandskonten (asset/liability).
+		// Vergleich über Bestandskonten (asset/liability). Durchlauf-/Verrechnungs-
+		// konten sind Wash-Konten: sie tragen keinen echten Bestand über den
+		// Jahreswechsel und werden von der Alt-Software am Jahresende i.d.R. nicht
+		// als Anfangsbestand fortgeschrieben → aus dem Abgleich ausschließen, sonst
+		// blockiert ein harmloser Rest den Import.
 		$isStock = static fn (string $t): bool => in_array($t, ['asset', 'liability'], true);
+		$isTransit = static function (string $name): bool {
+			$n = mb_strtolower($name);
+			return str_contains($n, 'durchlauf') || str_contains($n, 'verrechnung');
+		};
 		$numbers = array_unique(array_merge(array_keys($storedByNumber), array_keys($closingByNumber)));
 		sort($numbers);
 		$comparisons = [];
 		$hasMismatch = false;
 		foreach ($numbers as $num) {
 			if (!$isStock($typeByNumber[$num] ?? '')) {
+				continue;
+			}
+			if ($isTransit($nameByNumber[$num] ?? '')) {
 				continue;
 			}
 			$closing = $closingByNumber[$num] ?? 0;
