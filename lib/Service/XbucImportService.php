@@ -32,6 +32,7 @@ class XbucImportService {
 		private JournalService $journalService,
 		private ResetService $resetService,
 		private BankTransactionMapper $txMapper,
+		private AttachmentStorageService $attachmentStorage,
 	) {
 	}
 
@@ -47,6 +48,7 @@ class XbucImportService {
 		$year = $yearOverride ?? $data['year'];
 		$outside = $this->findOutsideYear($data['bookings'], $year);
 		$openings = $this->analyzeOpenings($userId, $data['bookings'], $year);
+		$transition = $this->analyzeYearTransition($userId, $data, $year);
 		return [
 			'accounts' => count($data['accounts']),
 			'bookings' => count($data['bookings']),
@@ -65,6 +67,124 @@ class XbucImportService {
 				unset($o['index']);
 				return $o;
 			}, $openings),
+			'yearTransition' => $transition === null ? null : [
+				'targetYear' => $transition['targetYear'],
+				'removalCount' => count($transition['removeJournalIds']),
+				'hasMismatch' => $transition['hasMismatch'],
+				'comparisons' => $transition['comparisons'],
+			],
+		];
+	}
+
+	/**
+	 * Rückwärts-Import (frühere Jahres-Datei als bereits vorhandene): prüft, ob
+	 * der Endstand der Datei je Bestandskonto dem gespeicherten Anfangsbestand
+	 * des bisher frühesten Jahres entspricht, und ermittelt dessen nun
+	 * überflüssige Eröffnungsbuchungen (die sonst den kumulativen Saldo doppelt
+	 * zählen würden). Nur relevant, wenn das Datei-Jahr UNTER dem kleinsten
+	 * vorhandenen Buchungsjahr liegt.
+	 *
+	 * @param array<string,mixed> $data Parser-Ergebnis
+	 * @return array{targetYear:int, removeJournalIds:int[], comparisons:array<int,array<string,mixed>>, hasMismatch:bool}|null
+	 */
+	private function analyzeYearTransition(string $userId, array $data, ?int $year): ?array {
+		if ($year === null) {
+			return null;
+		}
+		$existingYears = $this->journalMapper->distinctYears($userId);
+		if (count($existingYears) === 0) {
+			return null;
+		}
+		$targetYear = min($existingYears);
+		if ($year >= $targetYear) {
+			// Kein Rückwärts-Import → normale (Vorwärts-)Logik greift.
+			return null;
+		}
+
+		// Kontostammdaten (Nummer → Typ/Name/Id) aus DB und Datei zusammenführen.
+		$accById = [];
+		$typeByNumber = [];
+		$nameByNumber = [];
+		$equityIds = [];
+		foreach ($this->accountMapper->findAll($userId) as $a) {
+			$accById[$a->getId()] = $a;
+			$typeByNumber[$a->getNumber()] = $a->getType();
+			$nameByNumber[$a->getNumber()] = $a->getName();
+			if ($a->getType() === 'equity') {
+				$equityIds[] = $a->getId();
+			}
+		}
+		foreach ($data['accounts'] as $a) {
+			if (!isset($typeByNumber[$a['number']])) {
+				$typeByNumber[$a['number']] = $a['type'];
+			}
+			if (!isset($nameByNumber[$a['number']])) {
+				$nameByNumber[$a['number']] = $a['name'];
+			}
+		}
+
+		// Endstand der Datei je Kontonummer (nur journalrelevante Buchungen; Soll +, Haben −).
+		$closingByNumber = [];
+		foreach ($data['bookings'] as $b) {
+			if (!empty($b['openContra'])) {
+				continue;
+			}
+			$closingByNumber[$b['sollNumber']]  = ($closingByNumber[$b['sollNumber']]  ?? 0) + $b['amountCents'];
+			$closingByNumber[$b['habenNumber']] = ($closingByNumber[$b['habenNumber']] ?? 0) - $b['amountCents'];
+		}
+
+		// Gespeicherter Anfangsbestand des Zieljahres: Eröffnungsbuchungen (die ein
+		// EK-Konto berühren) in diesem Jahr; je Bestandskonto Soll − Haben.
+		$openingJournalIds = $this->journalMapper->findBookingIdsTouchingAccountsInYear($userId, $equityIds, $targetYear);
+		$equityIdSet = array_flip($equityIds);
+		$storedByNumber = [];
+		foreach ($openingJournalIds as $jid) {
+			foreach ($this->lineMapper->findByJournal($jid) as $line) {
+				$aid = $line->getAccountId();
+				if (isset($equityIdSet[$aid])) {
+					continue; // Eigenkapital-Gegenseite ignorieren
+				}
+				$acc = $accById[$aid] ?? null;
+				if ($acc === null) {
+					continue;
+				}
+				$num = $acc->getNumber();
+				$storedByNumber[$num] = ($storedByNumber[$num] ?? 0) + $line->getDebitCents() - $line->getCreditCents();
+			}
+		}
+
+		// Vergleich über Bestandskonten (asset/liability).
+		$isStock = static fn (string $t): bool => in_array($t, ['asset', 'liability'], true);
+		$numbers = array_unique(array_merge(array_keys($storedByNumber), array_keys($closingByNumber)));
+		sort($numbers);
+		$comparisons = [];
+		$hasMismatch = false;
+		foreach ($numbers as $num) {
+			if (!$isStock($typeByNumber[$num] ?? '')) {
+				continue;
+			}
+			$closing = $closingByNumber[$num] ?? 0;
+			$stored = $storedByNumber[$num] ?? 0;
+			if ($closing === 0 && $stored === 0) {
+				continue;
+			}
+			$matches = ($closing === $stored);
+			if (!$matches) {
+				$hasMismatch = true;
+			}
+			$comparisons[] = [
+				'account' => trim($num . ' ' . ($nameByNumber[$num] ?? '')),
+				'fileClosing' => $closing / 100,
+				'storedOpening' => $stored / 100,
+				'matches' => $matches,
+			];
+		}
+
+		return [
+			'targetYear' => $targetYear,
+			'removeJournalIds' => $openingJournalIds,
+			'comparisons' => $comparisons,
+			'hasMismatch' => $hasMismatch,
 		];
 	}
 
@@ -198,6 +318,14 @@ class XbucImportService {
 			}
 		}
 
+		// Rückwärts-Import: Jahresübergang prüfen (VOR jeglichem Schreibvorgang).
+		// Stimmt der Endstand der Datei nicht mit dem gespeicherten Anfangsbestand
+		// des Folgejahres überein, wird der Import blockiert (nichts wird geändert).
+		$transition = $reset ? null : $this->analyzeYearTransition($userId, $data, $year);
+		if ($transition !== null && $transition['hasMismatch']) {
+			throw new \RuntimeException($this->transitionErrorMessage($transition));
+		}
+
 		if ($reset) {
 			$this->resetService->resetAll($userId);
 		}
@@ -307,6 +435,18 @@ class XbucImportService {
 			$count++;
 		}
 
+		// Rückwärts-Import: nun überflüssige Eröffnungsbuchungen des Folgejahres
+		// entfernen (der Anfangsbestand kommt jetzt aus der frisch importierten,
+		// früheren Jahres-Datei). Der Übergang wurde oben bereits geprüft.
+		$openingsRemoved = 0;
+		if ($transition !== null) {
+			foreach ($transition['removeJournalIds'] as $jid) {
+				if ($this->deleteJournalById($userId, $jid)) {
+					$openingsRemoved++;
+				}
+			}
+		}
+
 		return [
 			'accounts'          => count($byNumber),
 			'accountsNew'       => $accountsNew,
@@ -319,7 +459,46 @@ class XbucImportService {
 			'clamped'           => $clamped,
 			'openingsSkipped'   => $openingsSkipped,
 			'openingMismatches' => $openingMismatches,
+			'openingsRemoved'   => $openingsRemoved,
+			'transitionYear'    => $transition['targetYear'] ?? null,
 		];
+	}
+
+	/**
+	 * Baut die (blockierende) Fehlermeldung bei inkonsistentem Jahresübergang.
+	 *
+	 * @param array{targetYear:int, comparisons:array<int,array<string,mixed>>} $transition
+	 */
+	private function transitionErrorMessage(array $transition): string {
+		$lines = [];
+		foreach ($transition['comparisons'] as $c) {
+			if (($c['matches'] ?? true) === false) {
+				$lines[] = sprintf(
+					'%s: Endstand Datei %s € ≠ gespeicherter Anfangsbestand %s €',
+					$c['account'],
+					number_format((float)$c['fileClosing'], 2, ',', '.'),
+					number_format((float)$c['storedOpening'], 2, ',', '.'),
+				);
+			}
+		}
+		return 'Import blockiert: Der Jahresübergang zu ' . $transition['targetYear']
+			. ' stimmt nicht überein. Bitte die Beträge in den Dateien prüfen.' . "\n" . implode("\n", $lines);
+	}
+
+	/**
+	 * Löscht einen Buchungssatz samt Zeilen und Belegen. Gibt false zurück, wenn
+	 * er (dem Nutzer) nicht gehört/nicht existiert.
+	 */
+	private function deleteJournalById(string $userId, int $journalId): bool {
+		try {
+			$journal = $this->journalMapper->find($journalId, $userId);
+		} catch (\Throwable) {
+			return false;
+		}
+		$this->attachmentStorage->deleteForJournal($journalId);
+		$this->lineMapper->deleteByJournal($journalId);
+		$this->journalMapper->delete($journal);
+		return true;
 	}
 
 	/**

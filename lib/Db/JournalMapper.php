@@ -83,6 +83,39 @@ class JournalMapper extends QBMapper {
 	}
 
 	/**
+	 * Distinct Journal-IDs, die in einem Kalenderjahr mindestens eine Zeile auf
+	 * einem der angegebenen Konten haben (z.B. Eigenkapital-/EB-Konten, um
+	 * Eröffnungsbuchungen eines Jahres zu finden).
+	 *
+	 * @param int[] $accountIds
+	 * @return int[]
+	 */
+	public function findBookingIdsTouchingAccountsInYear(string $userId, array $accountIds, int $year): array {
+		if (count($accountIds) === 0) {
+			return [];
+		}
+		$from = sprintf('%04d-01-01', $year);
+		$to = sprintf('%04d-12-31', $year);
+		$ids = [];
+		foreach (array_chunk($accountIds, 500) as $chunk) {
+			$qb = $this->db->getQueryBuilder();
+			$qb->selectDistinct('j.id')
+				->from($this->getTableName(), 'j')
+				->innerJoin('j', 'vbh_journal_line', 'l', $qb->expr()->eq('l.journal_id', 'j.id'))
+				->where($qb->expr()->eq('j.user_id', $qb->createNamedParameter($userId)))
+				->andWhere($qb->expr()->gte('j.date', $qb->createNamedParameter($from)))
+				->andWhere($qb->expr()->lte('j.date', $qb->createNamedParameter($to)))
+				->andWhere($qb->expr()->in('l.account_id', $qb->createNamedParameter($chunk, IQueryBuilder::PARAM_INT_ARRAY)));
+			$res = $qb->executeQuery();
+			while (($row = $res->fetch()) !== false) {
+				$ids[] = (int)$row['id'];
+			}
+			$res->closeCursor();
+		}
+		return $ids;
+	}
+
+	/**
 	 * @return Journal[]
 	 */
 	public function findAll(string $userId, int $limit = 500, int $offset = 0, ?string $from = null, ?string $to = null): array {

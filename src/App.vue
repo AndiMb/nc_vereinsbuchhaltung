@@ -731,7 +731,24 @@
 								Diese Buchungen auf das Geschäftsjahr {{ xbucPreviewResult.year }} datieren (01.01. bzw. 31.12.)
 							</NcCheckboxRadioSwitch>
 						</div>
-						<NcButton variant="primary" :disabled="busy" @click="xbucImport">Importieren</NcButton>
+						<div v-if="!xbucReset && xbucPreviewResult.yearTransition" class="vbh-yearwarn" :class="{ 'vbh-yearwarn--block': xbucPreviewResult.yearTransition.hasMismatch }">
+							<p :class="xbucPreviewResult.yearTransition.hasMismatch ? 'vbh-warn-inline' : 'vbh-openinfo-title'">
+								Rückwärts-Import (früheres Jahr): Abgleich mit dem Jahresübergang zu {{ xbucPreviewResult.yearTransition.targetYear }}.
+							</p>
+							<ul class="vbh-yearwarn-list">
+								<li v-for="(c, i) in xbucPreviewResult.yearTransition.comparisons" :key="i">
+									<template v-if="c.matches">{{ c.account }}: {{ formatMoney(c.storedOpening) }} stimmt überein ✓</template>
+									<template v-else><span class="vbh-warn-inline">{{ c.account }}: Endstand {{ formatMoney(c.fileClosing) }} ≠ gespeicherter Anfangsbestand {{ formatMoney(c.storedOpening) }} (Differenz {{ formatMoney(c.fileClosing - c.storedOpening) }})</span></template>
+								</li>
+							</ul>
+							<p v-if="xbucPreviewResult.yearTransition.hasMismatch" class="vbh-warn-inline">
+								⛔ Import blockiert, bis die Beträge am Jahresübergang übereinstimmen.
+							</p>
+							<p v-else class="vbh-hint">
+								{{ xbucPreviewResult.yearTransition.removalCount }} überflüssige Eröffnungsbuchung(en) aus {{ xbucPreviewResult.yearTransition.targetYear }} werden beim Import entfernt (der Anfangsbestand kommt dann aus diesem früheren Jahr).
+							</p>
+						</div>
+						<NcButton variant="primary" :disabled="busy || xbucImportBlocked" @click="xbucImport">Importieren</NcButton>
 						<span v-if="xbucReset" class="vbh-warn-inline">Achtung: bestehende Daten werden gelöscht.</span>
 					</div>
 				</div>
@@ -1248,6 +1265,12 @@ export default {
 		exportBalancesUrl() { return api.exportBalancesUrl(this.selectedYear) },
 		exportReportUrl()   { return api.exportReportUrl(this.selectedYear) },
 		exportBudgetUrl()   { return api.exportBudgetUrl(this.selectedYear) },
+		// Rückwärts-Import mit inkonsistentem Jahresübergang → Import gesperrt
+		// (außer bei „alle Daten löschen", da entfällt der Abgleich).
+		xbucImportBlocked() {
+			const t = this.xbucPreviewResult && this.xbucPreviewResult.yearTransition
+			return !this.xbucReset && !!t && t.hasMismatch
+		},
 		visibleTabs() {
 			return this.allTabs.filter(t => {
 				if (t.need === 'admin') return this.isAdmin
@@ -1969,7 +1992,8 @@ export default {
 				const clampMsg = data.clamped > 0 ? `, ${data.clamped} auf das Geschäftsjahr ${data.year} datiert` : ''
 				const openMsg = data.openingsSkipped > 0 ? `, ${data.openingsSkipped} Anfangsbestände übersprungen (über Vorjahressalden abgedeckt)` : ''
 				const openTxMsg = data.openBankTx > 0 ? `, ${data.openBankTx} ohne Gegenkonto → offen (Tab „Zuzuordnen")` : ''
-				showSuccess(`${data.bookings} Buchungen importiert${openTxMsg}${skippedMsg}${newAccMsg}${clampMsg}${openMsg}.`)
+				const removedMsg = data.openingsRemoved > 0 ? `, ${data.openingsRemoved} überflüssige Eröffnungsbuchung(en) aus ${data.transitionYear} entfernt` : ''
+				showSuccess(`${data.bookings} Buchungen importiert${openTxMsg}${skippedMsg}${newAccMsg}${clampMsg}${openMsg}${removedMsg}.`)
 				for (const m of (data.openingMismatches || [])) {
 					showError(`Achtung: Anfangsbestand ${m.account} laut Datei ${this.formatMoney(m.fileAmount)}, Vorjahres-Endstand in der App ${this.formatMoney(m.priorBalance)} – bitte Vorjahresbuchungen prüfen.`, { timeout: -1 })
 				}
