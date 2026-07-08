@@ -17,6 +17,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setYear(int $year)
  * @method int getAmountCents()
  * @method void setAmountCents(int $amountCents)
+ * @method ?string getNote()
+ * @method void setNote(?string $note)
  */
 class Budget extends Entity implements \JsonSerializable {
 
@@ -24,6 +26,7 @@ class Budget extends Entity implements \JsonSerializable {
 	protected $accountId;
 	protected $year;
 	protected $amountCents;
+	protected $note;
 
 	public function __construct() {
 		$this->addType('accountId', 'integer');
@@ -38,6 +41,7 @@ class Budget extends Entity implements \JsonSerializable {
 			'year' => $this->year,
 			'amountCents' => $this->amountCents,
 			'amount' => ($this->amountCents ?? 0) / 100,
+			'note' => (string)($this->note ?? ''),
 		];
 	}
 }

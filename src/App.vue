@@ -571,22 +571,52 @@
 										<th>Konto</th>
 										<th class="vbh-col-hide-sm">Art</th>
 										<th class="num vbh-col-plan">Plan (Soll)</th>
+										<th class="vbh-col-note" title="Notiz zur Planzahl"></th>
 										<th class="num">Ist</th>
 										<th class="num">Differenz</th>
 									</tr>
 								</thead>
 								<tbody>
-									<tr v-for="row in budgetData.rows" :key="row.accountId">
-										<td class="nowrap vbh-col-hide-sm">{{ row.number }}</td>
-										<td>{{ row.name }}</td>
-										<td class="vbh-col-hide-sm"><span class="vbh-typetag" :class="row.type">{{ typeLabel(row.type) }}</span></td>
-										<td class="num vbh-col-plan">
-											<input v-if="canWrite" v-model.number="row.plan" type="number" step="0.01" class="vbh-num vbh-planinput" @change="saveBudget(row)">
-											<span v-else>{{ formatMoney(row.plan) }}</span>
-										</td>
-										<td class="num strong" :class="amountClass(row.actual)">{{ formatMoney(row.actual) }}</td>
-										<td class="num strong" :class="budgetDiffClass(row)">{{ formatMoney(row.diff) }}</td>
-									</tr>
+									<template v-for="row in budgetData.rows">
+										<tr :key="row.accountId">
+											<td class="nowrap vbh-col-hide-sm">{{ row.number }}</td>
+											<td>{{ row.name }}</td>
+											<td class="vbh-col-hide-sm"><span class="vbh-typetag" :class="row.type">{{ typeLabel(row.type) }}</span></td>
+											<td class="num vbh-col-plan">
+												<input v-if="canWrite" v-model.number="row.plan" type="number" step="0.01" class="vbh-num vbh-planinput" @change="saveBudget(row)">
+												<span v-else>{{ formatMoney(row.plan) }}</span>
+											</td>
+											<td class="vbh-col-note">
+												<NcButton
+													v-if="canWrite || row.note"
+													variant="tertiary"
+													:aria-label="row.note ? 'Notiz zur Planzahl anzeigen' : 'Notiz zur Planzahl hinzufügen'"
+													:title="row.note || 'Notiz hinzufügen'"
+													@click="toggleBudgetNote(row)">
+													<template #icon>
+														<NcIconSvgWrapper :path="row.note ? mdiCommentText : mdiCommentPlusOutline" :size="18" :class="{ 'vbh-noteicon--set': row.note }" />
+													</template>
+												</NcButton>
+											</td>
+											<td class="num strong" :class="amountClass(row.actual)">{{ formatMoney(row.actual) }}</td>
+											<td class="num strong" :class="budgetDiffClass(row)">{{ formatMoney(row.diff) }}</td>
+										</tr>
+										<tr v-if="budgetNoteOpen[row.accountId]" :key="'note-' + row.accountId" class="vbh-note-row">
+											<td colspan="7">
+												<label class="vbh-note-label">Notiz zu {{ row.number }} {{ row.name }}
+													<textarea
+														v-if="canWrite"
+														v-model="row.note"
+														maxlength="1000"
+														rows="2"
+														class="vbh-note-textarea"
+														placeholder="z. B. Herleitung: 40 Mitglieder × 25 € Beitrag"
+														@change="saveBudget(row)"></textarea>
+													<p v-else class="vbh-note-text">{{ row.note }}</p>
+												</label>
+											</td>
+										</tr>
+									</template>
 								</tbody>
 							</table>
 						</div>
@@ -1089,7 +1119,7 @@ import {
 	NcModal,
 	NcSelect,
 } from '@nextcloud/vue'
-import { mdiCog, mdiDelete, mdiPaperclip, mdiPencil, mdiPlus, mdiUpload, mdiCheckCircle, mdiDownload, mdiFlash, mdiViewDashboardOutline, mdiSwapHorizontal, mdiFileTreeOutline, mdiChartBar } from '@mdi/js'
+import { mdiCog, mdiCommentPlusOutline, mdiCommentText, mdiDelete, mdiPaperclip, mdiPencil, mdiPlus, mdiUpload, mdiCheckCircle, mdiDownload, mdiFlash, mdiViewDashboardOutline, mdiSwapHorizontal, mdiFileTreeOutline, mdiChartBar } from '@mdi/js'
 import api from './api.js'
 import { formatMoney, formatDate, formatDateTime, typeLabel, roleLabel, amountClass, budgetDiffClass, errMsg } from './lib/format.js'
 import SettingsRules from './components/SettingsRules.vue'
@@ -1137,6 +1167,7 @@ export default {
 			years: [],
 			newBudgetYear: '',
 			budgetData: null,
+			budgetNoteOpen: {},
 			budgetSnapshots: [],
 			newSnapshotLabel: '',
 			snapshotView: { open: false, data: null },
@@ -1189,6 +1220,8 @@ export default {
 			},
 			confirmDialog: { open: false, title: '', message: '', confirmLabel: 'Löschen', confirmVariant: 'error', resolve: null },
 			mdiCog,
+			mdiCommentPlusOutline,
+			mdiCommentText,
 			mdiDelete,
 			mdiPaperclip,
 			mdiPencil,
@@ -2237,9 +2270,12 @@ export default {
 		async saveBudget(row) {
 			if (!this.budgetData) return
 			try {
-				await api.setBudget(row.accountId, this.budgetData.year, Number(row.plan) || 0)
+				await api.setBudget(row.accountId, this.budgetData.year, Number(row.plan) || 0, (row.note || '').trim())
 				await this.loadBudget()
 			} catch (e) { showError(this.errMsg(e, 'Planwert konnte nicht gespeichert werden')) }
+		},
+		toggleBudgetNote(row) {
+			this.$set(this.budgetNoteOpen, row.accountId, !this.budgetNoteOpen[row.accountId])
 		},
 
 		// --- Finanzplan-Stände (Snapshots) ---

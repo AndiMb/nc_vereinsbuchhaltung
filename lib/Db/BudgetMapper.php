@@ -18,31 +18,36 @@ class BudgetMapper extends QBMapper {
 	}
 
 	/**
-	 * Planwerte (Cent) eines Geschäftsjahres je Konto.
+	 * Planwerte (Cent) und Notizen eines Geschäftsjahres je Konto.
 	 *
-	 * @return array<int, int> accountId => amountCents
+	 * @return array<int, array{amount: int, note: string}> accountId => Planwert
 	 */
 	public function findByYear(string $userId, int $year): array {
 		$qb = $this->db->getQueryBuilder();
-		$qb->select('account_id', 'amount_cents')
+		$qb->select('account_id', 'amount_cents', 'note')
 			->from($this->getTableName())
 			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
 			->andWhere($qb->expr()->eq('year', $qb->createNamedParameter($year, IQueryBuilder::PARAM_INT)));
 		$res = $qb->executeQuery();
 		$out = [];
 		while (($row = $res->fetch()) !== false) {
-			$out[(int)$row['account_id']] = (int)$row['amount_cents'];
+			$out[(int)$row['account_id']] = [
+				'amount' => (int)$row['amount_cents'],
+				'note' => (string)($row['note'] ?? ''),
+			];
 		}
 		$res->closeCursor();
 		return $out;
 	}
 
 	/**
-	 * Setzt (oder aktualisiert) einen Planwert. Bei 0 wird der Eintrag entfernt.
+	 * Setzt (oder aktualisiert) einen Planwert samt Notiz. Sind Betrag UND Notiz
+	 * leer, wird der Eintrag entfernt (eine Notiz allein hält ihn am Leben,
+	 * z. B. „bewusst 0 geplant, weil …").
 	 */
-	public function upsert(string $userId, int $accountId, int $year, int $amountCents): void {
+	public function upsert(string $userId, int $accountId, int $year, int $amountCents, string $note = ''): void {
 		$existing = $this->findOne($userId, $accountId, $year);
-		if ($amountCents === 0) {
+		if ($amountCents === 0 && $note === '') {
 			if ($existing !== null) {
 				$this->delete($existing);
 			}
@@ -50,6 +55,7 @@ class BudgetMapper extends QBMapper {
 		}
 		if ($existing !== null) {
 			$existing->setAmountCents($amountCents);
+			$existing->setNote($note);
 			$this->update($existing);
 			return;
 		}
@@ -58,6 +64,7 @@ class BudgetMapper extends QBMapper {
 		$budget->setAccountId($accountId);
 		$budget->setYear($year);
 		$budget->setAmountCents($amountCents);
+		$budget->setNote($note);
 		$this->insert($budget);
 	}
 

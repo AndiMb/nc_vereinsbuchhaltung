@@ -272,7 +272,7 @@ class ExportController extends Controller {
 			$debit  = $actualSums[$id]['debit'] ?? 0;
 			$credit = $actualSums[$id]['credit'] ?? 0;
 			$actualCents = $type === 'income' ? ($credit - $debit) : ($debit - $credit);
-			$planCents   = $plan[$id] ?? 0;
+			$planCents   = $plan[$id]['amount'] ?? 0;
 			$rows[] = [
 				'number'   => (string)$account->getNumber(),
 				'label'    => $typeLabel($type),
@@ -281,6 +281,7 @@ class ExportController extends Controller {
 				'plan'     => $planCents,
 				'actual'   => $actualCents,
 				'diff'     => $actualCents - $planCents,
+				'note'     => $plan[$id]['note'] ?? '',
 			];
 			if ($type === 'income') {
 				$planIncome += $planCents; $actualIncome += $actualCents;
@@ -292,22 +293,23 @@ class ExportController extends Controller {
 		usort($rows, static fn ($a, $b) => strcmp($a['number'], $b['number']));
 
 		$csv = "\xEF\xBB\xBF";
-		$csv .= $this->csvLine(['Typ', 'Nr.', 'Konto', 'Kategorie', 'Plan (EUR)', 'Ist (EUR)', 'Differenz (EUR)']);
+		$csv .= $this->csvLine(['Typ', 'Nr.', 'Konto', 'Kategorie', 'Plan (EUR)', 'Ist (EUR)', 'Differenz (EUR)', 'Notiz']);
 		foreach ($rows as $r) {
 			$csv .= $this->csvLine([
 				$r['label'], $r['number'], $r['name'], $r['category'],
 				$this->fmtMoney($r['plan'] / 100),
 				$this->fmtMoney($r['actual'] / 100),
 				$this->fmtMoney($r['diff'] / 100),
+				$r['note'],
 			]);
 		}
 
-		$csv .= $this->csvLine(['', '', '', '', '', '', '']);
-		$csv .= $this->csvLine(['Einnahmen (Plan/Ist)', '', '', '', $this->fmtMoney($planIncome / 100), $this->fmtMoney($actualIncome / 100), $this->fmtMoney(($actualIncome - $planIncome) / 100)]);
-		$csv .= $this->csvLine(['Ausgaben (Plan/Ist)', '', '', '', $this->fmtMoney($planExpense / 100), $this->fmtMoney($actualExpense / 100), $this->fmtMoney(($actualExpense - $planExpense) / 100)]);
+		$csv .= $this->csvLine(['', '', '', '', '', '', '', '']);
+		$csv .= $this->csvLine(['Einnahmen (Plan/Ist)', '', '', '', $this->fmtMoney($planIncome / 100), $this->fmtMoney($actualIncome / 100), $this->fmtMoney(($actualIncome - $planIncome) / 100), '']);
+		$csv .= $this->csvLine(['Ausgaben (Plan/Ist)', '', '', '', $this->fmtMoney($planExpense / 100), $this->fmtMoney($actualExpense / 100), $this->fmtMoney(($actualExpense - $planExpense) / 100), '']);
 		$planResult   = $planIncome - $planExpense;
 		$actualResult = $actualIncome - $actualExpense;
-		$csv .= $this->csvLine(['Ergebnis (Plan/Ist)', '', '', '', $this->fmtMoney($planResult / 100), $this->fmtMoney($actualResult / 100), $this->fmtMoney(($actualResult - $planResult) / 100)]);
+		$csv .= $this->csvLine(['Ergebnis (Plan/Ist)', '', '', '', $this->fmtMoney($planResult / 100), $this->fmtMoney($actualResult / 100), $this->fmtMoney(($actualResult - $planResult) / 100), '']);
 
 		return new DataDownloadResponse($csv, "finanzplan_soll_ist_{$year}.csv", 'text/csv; charset=utf-8');
 	}

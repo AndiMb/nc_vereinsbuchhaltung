@@ -59,7 +59,7 @@ class BudgetController extends Controller {
 			$debit = $actualSums[$id]['debit'] ?? 0;
 			$credit = $actualSums[$id]['credit'] ?? 0;
 			$actualCents = $type === 'income' ? ($credit - $debit) : ($debit - $credit);
-			$planCents = $plan[$id] ?? 0;
+			$planCents = $plan[$id]['amount'] ?? 0;
 			$rows[] = [
 				'accountId' => $id,
 				'number' => $account->getNumber(),
@@ -67,6 +67,7 @@ class BudgetController extends Controller {
 				'type' => $type,
 				'category' => $account->getCategory(),
 				'plan' => $planCents / 100,
+				'note' => $plan[$id]['note'] ?? '',
 				'actual' => $actualCents / 100,
 				'diff' => ($actualCents - $planCents) / 100,
 			];
@@ -96,13 +97,15 @@ class BudgetController extends Controller {
 	}
 
 	/**
-	 * Planwert eines Kontos für ein Jahr setzen (Betrag in Euro; 0 entfernt ihn).
+	 * Planwert eines Kontos für ein Jahr setzen (Betrag in Euro), optional mit
+	 * Notiz. Sind Betrag UND Notiz leer, wird der Eintrag entfernt.
 	 */
 	#[NoAdminRequired]
-	public function set(int $accountId, int $year, float $amount = 0): DataResponse {
+	public function set(int $accountId, int $year, float $amount = 0, string $note = ''): DataResponse {
 		$cents = (int)round($amount * 100);
-		$this->budgetMapper->upsert($this->userId(), $accountId, $year, $cents);
-		return new DataResponse(['accountId' => $accountId, 'year' => $year, 'amount' => $cents / 100]);
+		$note = mb_substr(trim($note), 0, 1000);
+		$this->budgetMapper->upsert($this->userId(), $accountId, $year, $cents, $note);
+		return new DataResponse(['accountId' => $accountId, 'year' => $year, 'amount' => $cents / 100, 'note' => $note]);
 	}
 
 	/**

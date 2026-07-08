@@ -46,7 +46,7 @@ export default {
 
 	// Finanzplan / Budget
 	budget: year => axios.get(url('/budget'), { params: { year: year || undefined } }),
-	setBudget: (accountId, year, amount) => axios.post(url('/budget'), { accountId, year, amount }),
+	setBudget: (accountId, year, amount, note = '') => axios.post(url('/budget'), { accountId, year, amount, note }),
 
 	// Finanzplan-Stände (Snapshots)
 	budgetSnapshots: year => axios.get(url('/budget/snapshots'), { params: { year: year || undefined } }),

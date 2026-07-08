@@ -64,7 +64,10 @@ class BudgetSnapshotService {
 		}
 
 		$items = [];
-		foreach ($plan as $accountId => $cents) {
+		foreach ($plan as $accountId => $entry) {
+			// Nur der Betrag wird eingefroren; die Notiz ist Arbeitsstand des
+			// laufenden Plans und gehört nicht zum beschlossenen Zahlenwerk.
+			$cents = (int)$entry['amount'];
 			$account = $accounts[$accountId] ?? null;
 			if ($account === null) {
 				continue;
@@ -73,7 +76,7 @@ class BudgetSnapshotService {
 			if ($type !== 'income' && $type !== 'expense') {
 				continue;
 			}
-			if ((int)$cents === 0) {
+			if ($cents === 0) {
 				continue;
 			}
 			$item = new BudgetSnapshotItem();

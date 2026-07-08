@@ -166,6 +166,17 @@
    Kopfzelle fuer die Spaltenbreite. */
 .vbh-table thead th.num.vbh-col-plan { width: 180px; }
 .vbh-table td.num.vbh-col-plan { overflow: visible; }
+/* Notiz-Spalte im Finanzplan: nur ein Icon-Button (44px Klickflaeche + Padding).
+   Die Kopfzelle ist leer → MUSS nach `thead th:empty { width:160px }` stehen
+   (gleiche Spezifitaet 0,2,2, Quellreihenfolge entscheidet). */
+.vbh-table thead th.vbh-col-note { width: 52px; }
+.vbh-table td.vbh-col-note { overflow: visible; }
+.vbh-noteicon--set { color: var(--color-primary-element); }
+/* Aufgeklappte Notiz-Zeile unter der Plan-Zeile */
+.vbh-note-row td { background-color: var(--color-background-hover); }
+.vbh-note-label { display: flex; flex-direction: column; gap: 3px; font-size: 0.85em; font-weight: 600; }
+.vbh-note-textarea { width: 100%; box-sizing: border-box; min-height: 52px; resize: vertical; font: inherit; font-weight: normal; padding: 6px 8px; border: 1px solid var(--color-border); border-radius: var(--border-radius, 6px); background: var(--color-main-background); color: var(--color-main-text); }
+.vbh-note-text { margin: 0; font-weight: normal; white-space: pre-wrap; overflow-wrap: anywhere; }
 .vbh-carryrow td { background-color: var(--color-background-hover); font-style: italic; }
 .vbh-table tr.assigned td { opacity: 0.85; }
 .vbh-tablecount { padding: 4px 10px; font-size: 0.82em; opacity: 0.7; }
