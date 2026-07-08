@@ -722,67 +722,14 @@
 				</div>
 				<NcEmptyContent v-else name="Noch keine CSV-Importe" description="Importiere oben eine CSV-CAMT-Datei." />
 
-				<template v-if="canWrite">
-					<h3 class="vbh-section-divider">Automatische Zuordnung (Regeln)</h3>
-					<p class="vbh-hint">
-						Regeln ordnen offenen Bankbuchungen automatisch ein Gegenkonto zu: Enthält das gewählte Feld
-						(Zahlungspartner, Verwendungszweck oder IBAN) den Suchtext, wird das Gegenkonto vorgeschlagen und
-						beim Import direkt gesetzt. Bei mehreren Treffern gewinnt die höhere Priorität.
-					</p>
-
-					<div class="vbh-card">
-						<h4>{{ ruleEditId ? 'Regel bearbeiten' : 'Neue Regel' }}</h4>
-						<div class="vbh-form">
-							<label>Feld
-								<select v-model="ruleForm.matchField">
-									<option value="counterparty">Zahlungspartner</option>
-									<option value="purpose">Verwendungszweck</option>
-									<option value="iban">IBAN</option>
-								</select>
-							</label>
-							<label class="vbh-grow">enthält (Suchtext)
-								<input v-model="ruleForm.matchValue" type="text" placeholder="z. B. Stadtwerke" @keyup.enter="saveRule">
-							</label>
-							<label class="vbh-grow">Gegenkonto
-								<NcSelect
-									v-model="ruleFormContraOption"
-									:options="accountOptionsList"
-									:filter-by="accountFilterBy"
-									label="label"
-									placeholder="– Konto wählen –"
-								/>
-							</label>
-							<label class="vbh-rule-prio">Priorität
-								<input v-model.number="ruleForm.priority" type="number" step="1">
-							</label>
-							<NcButton variant="primary" @click="saveRule">{{ ruleEditId ? 'Speichern' : 'Hinzufügen' }}</NcButton>
-							<NcButton v-if="ruleEditId" variant="tertiary" @click="resetRuleForm">Abbrechen</NcButton>
-						</div>
-					</div>
-
-					<div v-if="rules.length" class="vbh-tablecard">
-						<table class="vbh-table">
-							<thead><tr><th>Feld</th><th>Suchtext</th><th>Gegenkonto</th><th class="num">Prio.</th><th></th></tr></thead>
-							<tbody>
-								<tr v-for="rule in rules" :key="rule.id" :class="{ 'vbh-row-editing': ruleEditId === rule.id }">
-									<td>{{ matchFieldLabel(rule.matchField) }}</td>
-									<td>{{ rule.matchValue }}</td>
-									<td>{{ accountLabel(rule.contraAccountId) }}</td>
-									<td class="num">{{ rule.priority }}</td>
-									<td class="right nowrap">
-										<NcButton variant="tertiary" aria-label="Regel bearbeiten" title="Bearbeiten" @click="editRule(rule)">
-											<template #icon><NcIconSvgWrapper :path="mdiPencil" :size="20" /></template>
-										</NcButton>
-										<NcButton variant="error" aria-label="Regel löschen" title="Löschen" @click="deleteRule(rule)">
-											<template #icon><NcIconSvgWrapper :path="mdiDelete" :size="20" /></template>
-										</NcButton>
-									</td>
-								</tr>
-							</tbody>
-						</table>
-					</div>
-					<NcEmptyContent v-else name="Keine Regeln" description="Lege oben eine Regel an – oder erzeuge sie im Tab „Buchungen“ direkt aus einer Bankbuchung." />
-				</template>
+				<SettingsRules
+					v-if="canWrite"
+					:rules="rules"
+					:accounts-by-id="accountsById"
+					:account-options-list="accountOptionsList"
+					:ask-confirm="askConfirm"
+					@changed="loadRules"
+				/>
 
 				<template v-if="isAdmin">
 					<h3 class="vbh-section-divider">Berechtigungen</h3>
@@ -1145,6 +1092,7 @@ import {
 import { mdiCog, mdiDelete, mdiPaperclip, mdiPencil, mdiPlus, mdiUpload, mdiCheckCircle, mdiDownload, mdiFlash, mdiViewDashboardOutline, mdiSwapHorizontal, mdiFileTreeOutline, mdiChartBar } from '@mdi/js'
 import api from './api.js'
 import { formatMoney, formatDate, formatDateTime, typeLabel, roleLabel, amountClass, budgetDiffClass, errMsg } from './lib/format.js'
+import SettingsRules from './components/SettingsRules.vue'
 import {
 	Chart,
 	BarController,
@@ -1168,6 +1116,7 @@ export default {
 		NcLoadingIcon,
 		NcModal,
 		NcSelect,
+		SettingsRules,
 	},
 	data() {
 		return {
@@ -1230,8 +1179,6 @@ export default {
 			importDragging: false,
 			importDone: null,
 			rules: [],
-			ruleForm: { matchField: 'counterparty', matchValue: '', contraAccountId: null, priority: 0 },
-			ruleEditId: null,
 			prevBalances: null,
 			sectionFade: true,
 			bookingForm: this.emptyBookingForm(),
@@ -1528,13 +1475,6 @@ export default {
 				return this.accountOptionsList.find(o => o.id === this.bookingForm.creditAccountId) ?? null
 			},
 			set(v) { this.bookingForm.creditAccountId = v ? v.id : null },
-		},
-		ruleFormContraOption: {
-			get() {
-				if (this.ruleForm.contraAccountId == null) return null
-				return this.accountOptionsList.find(o => o.id === this.ruleForm.contraAccountId) ?? null
-			},
-			set(v) { this.ruleForm.contraAccountId = v ? v.id : null },
 		},
 		accountParentOptions() {
 			return [
@@ -2071,57 +2011,6 @@ export default {
 				await this.loadRules()
 				showSuccess(`Regel angelegt: „${value}" wird künftig automatisch ${this.accountLabel(tx.contraAccountId)} zugeordnet.`)
 			} catch (e) { showError(this.errMsg(e, 'Regel konnte nicht angelegt werden')) }
-		},
-		// --- Regelverwaltung (Einstellungen) ---
-		matchFieldLabel(field) {
-			return { counterparty: 'Zahlungspartner', purpose: 'Verwendungszweck', iban: 'IBAN' }[field] || field
-		},
-		resetRuleForm() {
-			this.ruleEditId = null
-			this.ruleForm = { matchField: 'counterparty', matchValue: '', contraAccountId: null, priority: 0 }
-		},
-		editRule(rule) {
-			this.ruleEditId = rule.id
-			this.ruleForm = {
-				matchField: rule.matchField,
-				matchValue: rule.matchValue,
-				contraAccountId: rule.contraAccountId,
-				priority: rule.priority || 0,
-			}
-		},
-		async saveRule() {
-			const payload = {
-				matchField: this.ruleForm.matchField,
-				matchValue: (this.ruleForm.matchValue || '').trim(),
-				contraAccountId: this.ruleForm.contraAccountId,
-				priority: Number(this.ruleForm.priority) || 0,
-			}
-			if (!payload.matchValue) { showError('Bitte einen Suchtext eingeben.'); return }
-			if (!payload.contraAccountId) { showError('Bitte ein Gegenkonto wählen.'); return }
-			try {
-				if (this.ruleEditId) {
-					await api.updateRule(this.ruleEditId, payload)
-					showSuccess('Regel gespeichert.')
-				} else {
-					await api.createRule(payload)
-					showSuccess('Regel angelegt.')
-				}
-				await this.loadRules()
-				this.resetRuleForm()
-			} catch (e) { showError(this.errMsg(e, 'Regel konnte nicht gespeichert werden')) }
-		},
-		async deleteRule(rule) {
-			const ok = await this.askConfirm(
-				'Regel löschen',
-				`Regel „${this.matchFieldLabel(rule.matchField)} enthält ${rule.matchValue} → ${this.accountLabel(rule.contraAccountId)}" wirklich löschen?`,
-			)
-			if (!ok) return
-			try {
-				await api.deleteRule(rule.id)
-				if (this.ruleEditId === rule.id) this.resetRuleForm()
-				await this.loadRules()
-				showSuccess('Regel gelöscht.')
-			} catch (e) { showError(this.errMsg(e, 'Regel konnte nicht gelöscht werden')) }
 		},
 
 		// --- Journal ---
