@@ -20,7 +20,13 @@ REPO="${VBH_REPO:-AndiMb/nc_vereinsbuchhaltung}"
 NC_ROOT="${VBH_NC_ROOT:-/var/www/nextcloud}"   # Nextcloud-Installationsverzeichnis
 WEB_USER="${VBH_WEB_USER:-www-data}"           # PHP-/Webserver-Nutzer
 APPS_DIRNAME="${VBH_APPS_DIRNAME:-apps}"       # 'apps' oder 'custom_apps'
+BACKUP_DIR="${VBH_BACKUP_DIR:-/var/backups/vereinsbuchhaltung}"  # Ablage der App-Backups
+KEEP_BACKUPS="${VBH_KEEP_BACKUPS:-5}"          # so viele alte Staende aufheben
 # -----------------------------------------------------------------------------
+# WICHTIG: BACKUP_DIR muss AUSSERHALB von <nextcloud>/<apps> liegen! Nextcloud
+# behandelt beim occ upgrade JEDEN Unterordner des Apps-Verzeichnisses als App;
+# ein Backup wie apps/vereinsbuchhaltung.bak-<stamp> laesst den Code-
+# Integritaetscheck mit "AppPathNotFoundException ... Update failed" abbrechen.
 
 APP="vereinsbuchhaltung"
 APPS_DIR="$NC_ROOT/$APPS_DIRNAME"
@@ -88,7 +94,16 @@ tar -xzf "$TMP/$TARBALL" -C "$TMP"
 
 # ---- Ausrollen (mit Backup + Rollback) --------------------------------------
 STAMP=$(date +%Y%m%d-%H%M%S)
-BACKUP="$APPS_DIR/$APP.bak-$STAMP"
+BACKUP="$BACKUP_DIR/$APP.bak-$STAMP"
+mkdir -p "$BACKUP_DIR"
+
+# Streu-Backups frueherer Skriptversionen aus dem Apps-Verzeichnis wegraeumen —
+# sie liessen jeden occ-upgrade-Integritaetscheck fehlschlagen (s. o.).
+for stray in "$APPS_DIR/$APP".bak-*; do
+  [ -d "$stray" ] || continue
+  log "Verschiebe altes Backup $(basename "$stray") aus dem Apps-Verzeichnis nach $BACKUP_DIR ..."
+  mv "$stray" "$BACKUP_DIR/"
+done
 
 log "Wartungsmodus an ..."
 "${OCC[@]}" maintenance:mode --on
@@ -124,5 +139,16 @@ trap - ERR
 log "Wartungsmodus aus ..."
 "${OCC[@]}" maintenance:mode --off
 
+# ---- Backup-Rotation: nur die letzten $KEEP_BACKUPS Staende aufheben ---------
+OLD_BACKUPS=$(ls -1dt "$BACKUP_DIR/$APP".bak-* 2>/dev/null | tail -n +$((KEEP_BACKUPS + 1)) || true)
+if [ -n "$OLD_BACKUPS" ]; then
+  log "Backup-Rotation: entferne alte Staende (behalte $KEEP_BACKUPS) ..."
+  echo "$OLD_BACKUPS" | while IFS= read -r old; do
+    rm -rf "$old"
+  done
+fi
+
 log "Fertig: $APP $WANT_VER ist aktiv."
-log "Backup des Vorgaengers: $BACKUP  (nach Kontrolle loeschbar)"
+if [ -d "$BACKUP" ]; then
+  log "Backup des Vorgaengers: $BACKUP"
+fi
