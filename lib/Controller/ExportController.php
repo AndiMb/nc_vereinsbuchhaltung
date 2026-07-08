@@ -352,6 +352,16 @@ class ExportController extends Controller {
 			return $type === 'income' ? ($credit - $debit) : -($debit - $credit);
 		};
 
+		// Durchlauf-/Verrechnungskonten sind Wash-Konten (kein echter Bestand über
+		// den Jahreswechsel, von der Alt-Software nicht als Anfangsbestand
+		// fortgeschrieben). Ihre kumulierten Bewegungen "von Anfang an" verfälschen
+		// sonst das Vermögen — daher hier ausgenommen, wie beim Jahresübergangs-
+		// Abgleich in XbucImportService::analyzeYearTransition().
+		$isTransit = static function (string $name): bool {
+			$n = mb_strtolower($name);
+			return str_contains($n, 'durchlauf') || str_contains($n, 'verrechnung');
+		};
+
 		$header = array_merge([''], array_map(static fn ($y) => (string)$y, $years));
 
 		$csv = "\xEF\xBB\xBF";
@@ -393,6 +403,9 @@ class ExportController extends Controller {
 			$resultCells[] = $this->fmtMoney(($incomeTotals[$y] + $expenseTotals[$y]) / 100);
 			$wealthCents = 0;
 			foreach ($accounts as $a) {
+				if ($isTransit((string)$a->getName())) {
+					continue;
+				}
 				$id = $a->getId();
 				$debit = $cumByYear[$y][$id]['debit'] ?? 0;
 				$credit = $cumByYear[$y][$id]['credit'] ?? 0;
