@@ -329,6 +329,7 @@
 								<h3>{{ selectedAccount.number }} · {{ selectedAccount.name }}</h3>
 								<span class="vbh-typetag" :class="selectedAccount.type">{{ typeLabel(selectedAccount.type) }}</span>
 								<span v-if="selectedAccount.category" class="vbh-cat">{{ selectedAccount.category }}</span>
+								<span v-if="selectedAccount.transitory" class="vbh-cat" title="Kein Bestand über den Jahreswechsel">durchlaufend</span>
 							</div>
 							<span v-if="canWrite" class="nowrap">
 								<NcButton variant="tertiary" aria-label="Konto bearbeiten" @click="openEditAccount(selectedAccount)">
@@ -1060,6 +1061,7 @@
 				<div class="vbh-form">
 					<label>Kategorie<input v-model="newAccount.category" placeholder="optional"></label>
 					<NcCheckboxRadioSwitch v-model="newAccount.isBank">Bankkonto</NcCheckboxRadioSwitch>
+					<NcCheckboxRadioSwitch v-model="newAccount.transitory">Durchlaufend (kein Bestand über Jahre)</NcCheckboxRadioSwitch>
 				</div>
 				<div class="vbh-modal-actions">
 					<NcButton variant="tertiary" @click="closeAccount">Abbrechen</NcButton>
@@ -1214,7 +1216,7 @@ export default {
 			ccExpanded: {},
 			ccBookings: {},
 			journalData: [],
-			newAccount: { number: '', name: '', type: 'income', category: '', isBank: false, parentId: null },
+			newAccount: { number: '', name: '', type: 'income', category: '', isBank: false, transitory: false, parentId: null },
 			accountEditId: null,
 			openingForm: {},
 			expanded: {},
@@ -2198,6 +2200,7 @@ export default {
 				type: parent ? parent.type : 'income',
 				category: parent ? (parent.category || '') : '',
 				isBank: false,
+				transitory: false,
 				parentId: this.selectedAccountId || null,
 			}
 			this.showAccount = true
@@ -2207,6 +2210,7 @@ export default {
 			this.newAccount = {
 				number: acc.number, name: acc.name, type: acc.type,
 				category: acc.category || '', isBank: !!acc.isBank,
+				transitory: !!acc.transitory,
 				parentId: acc.parentId || null,
 			}
 			this.showAccount = true
@@ -2220,6 +2224,7 @@ export default {
 					await api.updateAccount(this.accountEditId, {
 						number: f.number, name: f.name, type: f.type,
 						category: f.category || null, isBank: f.isBank,
+						transitory: f.transitory,
 						parentId: f.parentId || 0,
 					})
 				} else {
@@ -2227,7 +2232,7 @@ export default {
 				}
 				this.showAccount = false
 				this.accountEditId = null
-				this.newAccount = { number: '', name: '', type: 'income', category: '', isBank: false, parentId: null }
+				this.newAccount = { number: '', name: '', type: 'income', category: '', isBank: false, transitory: false, parentId: null }
 				await this.loadAccounts(); await this.loadBalances()
 				showSuccess('Konto gespeichert.')
 			} catch (e) { showError(this.errMsg(e, 'Konto konnte nicht gespeichert werden')) }

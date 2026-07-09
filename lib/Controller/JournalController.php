@@ -97,9 +97,9 @@ class JournalController extends Controller {
 
 		$isCreditNature = static fn (string $t): bool => in_array($t, ['income', 'liability', 'equity'], true);
 		// Kumulativ nur echte Bestandskonten (Bank/Kasse, Verbindlichkeiten).
-		// Eigenkapital (EB-Konto) wird jahresbezogen gezeigt, sonst stünde dort
-		// in jedem Folgejahr unverändert die Eröffnungssumme des ersten Jahres.
-		$isStock = static fn (string $t): bool => in_array($t, ['asset', 'liability'], true);
+		// Eigenkapital (EB-Konto) und durchlaufende Konten werden jahresbezogen
+		// gezeigt (siehe Account::isStockAccount()), sonst stünde dort in jedem
+		// Folgejahr unverändert die Eröffnungs- bzw. Durchlaufsumme des ersten Jahres.
 
 		$rows = [];
 		foreach ($accounts as $account) {
@@ -108,8 +108,8 @@ class JournalController extends Controller {
 			// Bewegung im Zeitraum (Spalten Soll/Haben).
 			$debit = $moveSums[$id]['debit'] ?? 0;
 			$credit = $moveSums[$id]['credit'] ?? 0;
-			// Saldo: Bestandskonten kumulativ (Kontostand), Erfolgskonten = Bewegung.
-			if ($isStock($type)) {
+			// Saldo: Bestandskonten kumulativ (Kontostand), sonst = Bewegung.
+			if ($account->isStockAccount()) {
 				$bd = $balSums[$id]['debit'] ?? 0;
 				$bc = $balSums[$id]['credit'] ?? 0;
 				$balance = $isCreditNature($type) ? $bc - $bd : $bd - $bc;
@@ -305,8 +305,9 @@ class JournalController extends Controller {
 
 		$account = $this->accountMapper->find($id, $userId);
 		$isCreditNature = in_array($account->getType(), ['income', 'liability', 'equity'], true);
-		// Saldovortrag nur für echte Bestandskonten – nicht für Eigenkapital (EB).
-		$isStock = in_array($account->getType(), ['asset', 'liability'], true);
+		// Saldovortrag nur für echte Bestandskonten – nicht für Eigenkapital (EB)
+		// und nicht für durchlaufende Konten (kein Bestand über den Jahreswechsel).
+		$isStock = $account->isStockAccount();
 
 		// Saldovortrag nur für Bestandskonten und nur bei aktivem Jahresfilter.
 		$carryCents = 0;

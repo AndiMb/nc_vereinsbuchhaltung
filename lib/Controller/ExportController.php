@@ -142,8 +142,8 @@ class ExportController extends Controller {
 		$balSums  = $from !== null ? $this->lineMapper->sumByAccount($userId, null, $to) : $moveSums;
 
 		$isCreditNature = static fn (string $t): bool => in_array($t, ['income', 'liability', 'equity'], true);
-		// Wie JournalController::balances(): Eigenkapital jahresbezogen, nicht kumulativ.
-		$isStock        = static fn (string $t): bool => in_array($t, ['asset', 'liability'], true);
+		// Wie JournalController::balances(): Eigenkapital und durchlaufende Konten
+		// jahresbezogen, nicht kumulativ (siehe Account::isStockAccount()).
 		$typeLabel      = static fn (string $t): string => match ($t) {
 			'income'    => 'Einnahmen',
 			'expense'   => 'Ausgaben',
@@ -162,7 +162,7 @@ class ExportController extends Controller {
 			$type   = $account->getType();
 			$debit  = $moveSums[$id]['debit'] ?? 0;
 			$credit = $moveSums[$id]['credit'] ?? 0;
-			if ($isStock($type)) {
+			if ($account->isStockAccount()) {
 				$bd = $balSums[$id]['debit'] ?? 0;
 				$bc = $balSums[$id]['credit'] ?? 0;
 				$balance = $isCreditNature($type) ? $bc - $bd : $bd - $bc;
@@ -352,16 +352,6 @@ class ExportController extends Controller {
 			return $type === 'income' ? ($credit - $debit) : -($debit - $credit);
 		};
 
-		// Durchlauf-/Verrechnungskonten sind Wash-Konten (kein echter Bestand über
-		// den Jahreswechsel, von der Alt-Software nicht als Anfangsbestand
-		// fortgeschrieben). Ihre kumulierten Bewegungen "von Anfang an" verfälschen
-		// sonst das Vermögen — daher hier ausgenommen, wie beim Jahresübergangs-
-		// Abgleich in XbucImportService::analyzeYearTransition().
-		$isTransit = static function (string $name): bool {
-			$n = mb_strtolower($name);
-			return str_contains($n, 'durchlauf') || str_contains($n, 'verrechnung');
-		};
-
 		$header = array_merge([''], array_map(static fn ($y) => (string)$y, $years));
 
 		$csv = "\xEF\xBB\xBF";
@@ -403,7 +393,9 @@ class ExportController extends Controller {
 			$resultCells[] = $this->fmtMoney(($incomeTotals[$y] + $expenseTotals[$y]) / 100);
 			$wealthCents = 0;
 			foreach ($accounts as $a) {
-				if ($isTransit((string)$a->getName())) {
+				// Nur echte Bestandskonten tragen zum Vermögen bei; durchlaufende
+				// Konten (transitory) sind kein Bestand über den Jahreswechsel.
+				if (!$a->isStockAccount()) {
 					continue;
 				}
 				$id = $a->getId();

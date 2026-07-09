@@ -140,6 +140,7 @@ class XbucParser {
 			'type' => $type,
 			'category' => $category !== null ? mb_substr($category, 0, 255) : null,
 			'isBank' => $isBank,
+			'transitory' => $this->isTransitoryName($name),
 		];
 
 		foreach ($konto->Konto as $child) {
@@ -287,6 +288,15 @@ class XbucParser {
 			return ['asset', $isBank];
 		}
 		return [$this->determineType($number), $isBank];
+	}
+
+	/**
+	 * Durchlaufendes/technisches Konto anhand des Namens (Durchlauf, Verrechnung,
+	 * Übertrag). '%bertrag%' erfasst Übertrag/Uebertrag umlautunabhängig.
+	 */
+	private function isTransitoryName(string $name): bool {
+		$n = mb_strtolower($name);
+		return str_contains($n, 'durchlauf') || str_contains($n, 'verrechnung') || str_contains($n, 'bertrag');
 	}
 
 	private function determineType(string $number): string {

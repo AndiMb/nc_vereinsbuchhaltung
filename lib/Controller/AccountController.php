@@ -46,9 +46,9 @@ class AccountController extends Controller {
 	}
 
 	#[NoAdminRequired]
-	public function create(string $number, string $name, string $type, ?string $category = null, bool $isBank = false, ?int $parentId = null): DataResponse {
+	public function create(string $number, string $name, string $type, ?string $category = null, bool $isBank = false, ?int $parentId = null, bool $transitory = false): DataResponse {
 		try {
-			$account = $this->service->create($this->userId(), $number, $name, $type, $category, $isBank, $parentId);
+			$account = $this->service->create($this->userId(), $number, $name, $type, $category, $isBank, $parentId, $transitory);
 			return new DataResponse($account, Http::STATUS_CREATED);
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
@@ -60,13 +60,14 @@ class AccountController extends Controller {
 	 *                       Die Account-Bearbeitung sendet das Feld immer mit.
 	 */
 	#[NoAdminRequired]
-	public function update(int $id, ?string $number = null, ?string $name = null, ?string $type = null, ?string $category = null, ?bool $isBank = null, ?bool $active = null, int $parentId = 0): DataResponse {
+	public function update(int $id, ?string $number = null, ?string $name = null, ?string $type = null, ?string $category = null, ?bool $isBank = null, ?bool $transitory = null, ?bool $active = null, int $parentId = 0): DataResponse {
 		$data = array_filter([
 			'number' => $number,
 			'name' => $name,
 			'type' => $type,
 			'category' => $category,
 			'isBank' => $isBank,
+			'transitory' => $transitory,
 			'active' => $active,
 		], static fn ($v) => $v !== null);
 		// parentId immer übernehmen (0 = Wurzel), damit Umhängen/Lösen möglich ist.
