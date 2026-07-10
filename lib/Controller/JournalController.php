@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\BankTransactionMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
+use OCA\Vereinsbuchhaltung\Exception\ConflictException;
 use OCA\Vereinsbuchhaltung\Service\JournalService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -205,16 +206,18 @@ class JournalController extends Controller {
 	}
 
 	#[NoAdminRequired]
-	public function update(int $id, string $date, string $description, int $debitAccountId, int $creditAccountId, float $amount, ?string $documentRef = null): DataResponse {
+	public function update(int $id, string $date, string $description, int $debitAccountId, int $creditAccountId, float $amount, ?string $documentRef = null, ?string $updatedAt = null): DataResponse {
 		$cents = (int)round($amount * 100);
 		if ($cents <= 0 || $debitAccountId === $creditAccountId) {
 			return new DataResponse(['message' => 'Ungültige Buchung'], Http::STATUS_BAD_REQUEST);
 		}
 		try {
-			$journal = $this->journalService->updateBooking($id, $this->userId(), $date, $description, $documentRef, $debitAccountId, $creditAccountId, $cents);
+			$journal = $this->journalService->updateBooking($id, $this->userId(), $date, $description, $documentRef, $debitAccountId, $creditAccountId, $cents, $updatedAt);
 			return new DataResponse($journal);
 		} catch (DoesNotExistException) {
 			return new DataResponse(['message' => 'Buchung nicht gefunden'], Http::STATUS_NOT_FOUND);
+		} catch (ConflictException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_CONFLICT);
 		}
 	}
 

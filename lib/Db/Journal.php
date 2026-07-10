@@ -21,6 +21,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setBankTxId(?int $bankTxId)
  * @method string getCreatedAt()
  * @method void setCreatedAt(string $createdAt)
+ * @method string|null getUpdatedAt()
+ * @method void setUpdatedAt(?string $updatedAt)
  */
 class Journal extends Entity implements \JsonSerializable {
 	protected $userId;
@@ -30,6 +32,7 @@ class Journal extends Entity implements \JsonSerializable {
 	protected $documentRef;
 	protected $bankTxId;
 	protected $createdAt;
+	protected $updatedAt;
 
 	public function __construct() {
 		$this->addType('entryNo', 'integer');
@@ -45,6 +48,7 @@ class Journal extends Entity implements \JsonSerializable {
 			'documentRef' => $this->documentRef,
 			'bankTxId' => $this->bankTxId,
 			'createdAt' => $this->createdAt,
+			'updatedAt' => $this->updatedAt,
 		];
 	}
 }

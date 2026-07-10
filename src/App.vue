@@ -1127,7 +1127,7 @@
 </template>
 
 <script>
-import { showError, showSuccess, showUndo } from '@nextcloud/dialogs'
+import { showError, showInfo, showSuccess, showUndo } from '@nextcloud/dialogs'
 import {
 	NcButton,
 	NcCheckboxRadioSwitch,
@@ -1253,6 +1253,9 @@ export default {
 			bookingAttachments: [],
 			attachmentUploading: false,
 			attachmentCountMap: {},
+			// Kollaboration: zuletzt gesehener Änderungsstand + Poll-Timer
+			syncRevision: null,
+			syncTimer: null,
 			storageUser: '',
 			storagePath: '',
 			costCenterMode: 'group',
@@ -1602,6 +1605,7 @@ export default {
 					creditAccountId: cl.length ? cl[0].accountId : null,
 					isSplit: dl.length > 1 || cl.length > 1,
 					amount: lines.reduce((s, l) => s + (l.debitCents || 0), 0) / 100,
+					updatedAt: j.updatedAt || null,
 				}
 			})
 		},
@@ -1719,10 +1723,16 @@ export default {
 				this.loadRules(),
 			])
 			this.$nextTick(() => setTimeout(() => this.renderDashboardCharts(), 50))
+			// Kollaboration: Änderungen anderer Personen per Polling mitbekommen
+			this.checkRevision(true)
+			this.syncTimer = setInterval(() => this.checkRevision(), 20000)
+			window.addEventListener('focus', this.onWindowFocus)
 		}
 	},
 	beforeDestroy() {
 		document.removeEventListener('keydown', this.onGlobalKeydown)
+		if (this.syncTimer) clearInterval(this.syncTimer)
+		window.removeEventListener('focus', this.onWindowFocus)
 		Object.values(this.chartInstances).forEach(c => c && c.destroy())
 	},
 	methods: {
@@ -1762,6 +1772,35 @@ export default {
 			this.activeTab = 'bookings'
 			this.bookingView = 'unassigned'
 		},
+		// --- Kollaboration: Änderungen anderer Browser erkennen -------------
+		onWindowFocus() { this.checkRevision() },
+		async checkRevision(init = false) {
+			if (!this.canRead) return
+			if (!init && document.hidden) return
+			let rev
+			try { rev = (await api.revision()).data.revision } catch (e) { return }
+			if (init || this.syncRevision === null) { this.syncRevision = rev; return }
+			if (rev === this.syncRevision) return
+			// Import o. Ä. läuft gerade – Stand nicht übernehmen, nächster Poll holt nach.
+			if (this.busy) return
+			this.syncRevision = rev
+			// Nach eigener Schreibaktion still aktualisieren (die Handler haben schon
+			// nachgeladen, aber eine zeitgleiche Fremdänderung darf nicht verloren gehen).
+			const ownWrite = Date.now() - api.lastWriteAt() < 15000
+			await this.refreshAfterRemoteChange()
+			if (!ownWrite) showInfo('Die Buchhaltung wurde von einer anderen Person geändert – Ansicht aktualisiert.')
+		},
+		async refreshAfterRemoteChange() {
+			this.ccBookings = {}
+			this.ccExpanded = {}
+			const jobs = [this.loadYears(), this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions()]
+			if (this.activeTab === 'accounts' && this.selectedAccountId) jobs.push(this.loadStatement(this.selectedAccountId))
+			if (this.activeTab === 'reports') {
+				if (this.reportView === 'costcenters') jobs.push(this.loadReport())
+				else if (this.reportView === 'budget') jobs.push(this.loadBudget())
+			}
+			try { await Promise.all(jobs) } catch (e) { /* nächster Poll versucht es erneut */ }
+		},
 		openSettings() {
 			this.showSettings = true
 			this.loadImports()
@@ -1797,7 +1836,7 @@ export default {
 			} catch (e) { /* Jahre optional */ }
 		},
 		emptyBookingForm() {
-			return { id: null, entryNo: null, date: new Date().toISOString().slice(0, 10), documentRef: '', amount: null, debitAccountId: null, creditAccountId: null, description: '', kind: 'expense', moneyAccountId: null, categoryId: null }
+			return { id: null, entryNo: null, date: new Date().toISOString().slice(0, 10), documentRef: '', amount: null, debitAccountId: null, creditAccountId: null, description: '', kind: 'expense', moneyAccountId: null, categoryId: null, updatedAt: null }
 		},
 		// --- Einfach-Modus: Einnahme/Ausgabe <-> Soll/Haben ---
 		deriveSimpleAccounts() {
@@ -2148,7 +2187,7 @@ export default {
 				showError('Splittbuchung (mehrere Soll-/Haben-Zeilen) – Bearbeitung würde Zeilen verwerfen und wird daher nicht unterstützt.')
 				return
 			}
-			this.bookingForm = { ...this.emptyBookingForm(), id: r.id, entryNo: r.entryNo, date: r.date, documentRef: r.documentRef || '', amount: r.amount, debitAccountId: r.debitAccountId, creditAccountId: r.creditAccountId, description: r.description || '' }
+			this.bookingForm = { ...this.emptyBookingForm(), id: r.id, entryNo: r.entryNo, date: r.date, documentRef: r.documentRef || '', amount: r.amount, debitAccountId: r.debitAccountId, creditAccountId: r.creditAccountId, description: r.description || '', updatedAt: r.updatedAt || null }
 			const m = this.mapToSimple(r.debitAccountId, r.creditAccountId)
 			if (m) {
 				Object.assign(this.bookingForm, m)
@@ -2173,12 +2212,20 @@ export default {
 			if (f.debitAccountId === f.creditAccountId) { showError('Soll- und Habenkonto müssen unterschiedlich sein.'); return }
 			const payload = { date: f.date, description: f.description, documentRef: f.documentRef || null, debitAccountId: f.debitAccountId, creditAccountId: f.creditAccountId, amount: Number(f.amount) }
 			try {
-				if (f.id) await api.updateBooking(f.id, payload)
+				if (f.id) await api.updateBooking(f.id, { ...payload, updatedAt: f.updatedAt || null })
 				else await api.createBooking(payload)
 				showSuccess('Buchung gespeichert.')
 				this.closeBooking()
 				await this.loadJournal(); await this.loadBalances(); await this.loadYears()
-			} catch (e) { showError(this.errMsg(e, 'Buchung konnte nicht gespeichert werden')) }
+			} catch (e) {
+				if (e?.response?.status === 409) {
+					showError('Diese Buchung wurde zwischenzeitlich von einer anderen Person geändert. Die Ansicht wurde aktualisiert – bitte erneut bearbeiten.')
+					this.closeBooking()
+					await this.loadJournal(); await this.loadBalances()
+					return
+				}
+				showError(this.errMsg(e, 'Buchung konnte nicht gespeichert werden'))
+			}
 		},
 		async removeBooking(r) {
 			if (!await this.askConfirm('Buchung löschen', `Buchung #${r.entryNo} löschen?`)) return

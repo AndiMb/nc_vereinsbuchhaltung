@@ -38,6 +38,9 @@ return [
 		['name' => 'journal#update', 'url' => '/api/journal/{id}', 'verb' => 'PUT'],
 		['name' => 'journal#destroy', 'url' => '/api/journal/{id}', 'verb' => 'DELETE'],
 
+		// Kollaboration: Änderungsstand für das Polling anderer Browser
+		['name' => 'sync#revision', 'url' => '/api/revision', 'verb' => 'GET'],
+
 		// Berichte / Kostenstellen
 		['name' => 'report#costCenters', 'url' => '/api/report/costcenters', 'verb' => 'GET'],
 		['name' => 'report#rename', 'url' => '/api/report/costcenters', 'verb' => 'PUT'],

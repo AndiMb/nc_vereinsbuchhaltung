@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\AppInfo;
 
 use OCA\Vereinsbuchhaltung\Middleware\PermissionMiddleware;
+use OCA\Vereinsbuchhaltung\Middleware\RevisionMiddleware;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
@@ -22,6 +23,7 @@ class Application extends App implements IBootstrap {
 
 	public function register(IRegistrationContext $context): void {
 		$context->registerMiddleware(PermissionMiddleware::class);
+		$context->registerMiddleware(RevisionMiddleware::class);
 	}
 
 	public function boot(IBootContext $context): void {

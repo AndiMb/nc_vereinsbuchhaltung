@@ -8,6 +8,7 @@ use OCA\Vereinsbuchhaltung\Db\Journal;
 use OCA\Vereinsbuchhaltung\Db\JournalLine;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
+use OCA\Vereinsbuchhaltung\Exception\ConflictException;
 
 /**
  * Erstellt und pflegt allgemeine Buchungssätze (Soll an Haben).
@@ -47,6 +48,7 @@ class JournalService {
 		$journal->setDocumentRef($docRef !== null ? mb_substr($docRef, 0, 64) : null);
 		$journal->setBankTxId(null);
 		$journal->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s'));
+		$journal->setUpdatedAt(self::now());
 		$journal = $this->journalMapper->insert($journal);
 
 		$this->addLine($journal->getId(), $debitAccountId, $amount, 0);
@@ -55,6 +57,12 @@ class JournalService {
 		return $journal;
 	}
 
+	/**
+	 * @param string|null $expectedUpdatedAt updatedAt-Stand, den der Client beim
+	 *        Laden gesehen hat (optimistisches Locking); weicht er vom aktuellen
+	 *        Stand ab, hat zwischenzeitlich jemand anderes gespeichert.
+	 * @throws ConflictException bei zwischenzeitlicher Fremdänderung
+	 */
 	public function updateBooking(
 		int $id,
 		string $userId,
@@ -64,11 +72,16 @@ class JournalService {
 		int $debitAccountId,
 		int $creditAccountId,
 		int $amountCents,
+		?string $expectedUpdatedAt = null,
 	): Journal {
 		$journal = $this->journalMapper->find($id, $userId);
+		if (($journal->getUpdatedAt() ?? '') !== ($expectedUpdatedAt ?? '')) {
+			throw new ConflictException('Die Buchung wurde zwischenzeitlich von einer anderen Person geändert.');
+		}
 		$journal->setDate($date);
 		$journal->setDescription(mb_substr($description, 0, 255));
 		$journal->setDocumentRef($docRef !== null ? mb_substr($docRef, 0, 64) : null);
+		$journal->setUpdatedAt(self::now());
 		$journal = $this->journalMapper->update($journal);
 
 		$this->lineMapper->deleteByJournal($journal->getId());
@@ -84,6 +97,11 @@ class JournalService {
 		$this->attachmentStorage->deleteForJournal($journal->getId());
 		$this->lineMapper->deleteByJournal($journal->getId());
 		$this->journalMapper->delete($journal);
+	}
+
+	/** Änderungszeitstempel mit Mikrosekunden (Sekundenauflösung reicht dem Konfliktvergleich nicht). */
+	private static function now(): string {
+		return (new \DateTime())->format('Y-m-d H:i:s.u');
 	}
 
 	private function addLine(int $journalId, int $accountId, int $debit, int $credit): void {

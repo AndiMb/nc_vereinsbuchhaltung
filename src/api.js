@@ -5,7 +5,24 @@ const base = '/apps/vereinsbuchhaltung/api'
 
 const url = path => generateUrl(base + path)
 
+// Kollaboration: Zeitpunkt des letzten eigenen Schreibzugriffs, damit das
+// Revision-Polling eigene Änderungen (die Handler laden selbst nach) von
+// fremden unterscheiden kann.
+let lastWriteTs = 0
+axios.interceptors.response.use(response => {
+	const method = ((response.config && response.config.method) || 'get').toLowerCase()
+	const requestUrl = (response.config && response.config.url) || ''
+	if (method !== 'get' && method !== 'head' && requestUrl.includes('/apps/vereinsbuchhaltung/')) {
+		lastWriteTs = Date.now()
+	}
+	return response
+})
+
 export default {
+	// Kollaboration (Änderungsstand)
+	revision: () => axios.get(url('/revision')),
+	lastWriteAt: () => lastWriteTs,
+
 	// Konten
 	listAccounts: () => axios.get(url('/accounts')),
 	createAccount: data => axios.post(url('/accounts'), data),
