@@ -52,7 +52,7 @@ class AccountService {
 		return $this->mapper->find($id, $userId);
 	}
 
-	public function create(string $userId, string $number, string $name, string $type, ?string $category, bool $isBank, ?int $parentId = null, bool $transitory = false): Account {
+	public function create(string $userId, string $number, string $name, string $type, ?string $category, bool $isBank, ?int $parentId = null): Account {
 		$account = new Account();
 		$account->setUserId($userId);
 		$account->setNumber(trim($number));
@@ -60,7 +60,6 @@ class AccountService {
 		$account->setType($this->validateType($type));
 		$account->setCategory($category !== null ? trim($category) : null);
 		$account->setIsBank($isBank);
-		$account->setTransitory($transitory);
 		$account->setActive(true);
 		if ($parentId !== null && $parentId > 0) {
 			// Überkonto muss existieren und demselben Bestand gehören.
@@ -86,9 +85,6 @@ class AccountService {
 		}
 		if (isset($data['isBank'])) {
 			$account->setIsBank((bool)$data['isBank']);
-		}
-		if (isset($data['transitory'])) {
-			$account->setTransitory((bool)$data['transitory']);
 		}
 		if (isset($data['active'])) {
 			$account->setActive((bool)$data['active']);

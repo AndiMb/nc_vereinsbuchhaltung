@@ -329,7 +329,6 @@
 								<h3>{{ selectedAccount.number }} · {{ selectedAccount.name }}</h3>
 								<span class="vbh-typetag" :class="selectedAccount.type">{{ typeLabel(selectedAccount.type) }}</span>
 								<span v-if="selectedAccount.category" class="vbh-cat">{{ selectedAccount.category }}</span>
-								<span v-if="selectedAccount.transitory" class="vbh-cat" title="Kein Bestand über den Jahreswechsel">durchlaufend</span>
 							</div>
 							<span v-if="canWrite" class="nowrap">
 								<NcButton variant="tertiary" aria-label="Konto bearbeiten" @click="openEditAccount(selectedAccount)">
@@ -341,7 +340,8 @@
 							</span>
 						</div>
 
-						<div v-if="canWrite && (selectedAccount.isBank || selectedAccount.type === 'asset')" class="vbh-opening">
+						<!-- Eröffnungssaldo nur für Geldkonten: nur deren Bestand geht über Jahresgrenzen. -->
+					<div v-if="canWrite && selectedAccount.isBank" class="vbh-opening">
 							<span>Eröffnungssaldo:</span>
 							<input v-model.number="openingForm[selectedAccount.id].amount" type="number" step="0.01" class="vbh-num">
 							<input v-model="openingForm[selectedAccount.id].date" type="date" class="vbh-date">
@@ -1060,8 +1060,7 @@
 				</div>
 				<div class="vbh-form">
 					<label>Kategorie<input v-model="newAccount.category" placeholder="optional"></label>
-					<NcCheckboxRadioSwitch v-model="newAccount.isBank">Bankkonto</NcCheckboxRadioSwitch>
-					<NcCheckboxRadioSwitch v-model="newAccount.transitory">Durchlaufend (kein Bestand über Jahre)</NcCheckboxRadioSwitch>
+					<NcCheckboxRadioSwitch v-model="newAccount.isBank">Geldkonto (Bank/Kasse) – Bestand geht über Jahresgrenzen</NcCheckboxRadioSwitch>
 				</div>
 				<div class="vbh-modal-actions">
 					<NcButton variant="tertiary" @click="closeAccount">Abbrechen</NcButton>
@@ -1216,7 +1215,7 @@ export default {
 			ccExpanded: {},
 			ccBookings: {},
 			journalData: [],
-			newAccount: { number: '', name: '', type: 'income', category: '', isBank: false, transitory: false, parentId: null },
+			newAccount: { number: '', name: '', type: 'income', category: '', isBank: false, parentId: null },
 			accountEditId: null,
 			openingForm: {},
 			expanded: {},
@@ -1460,10 +1459,10 @@ export default {
 				.map(a => ({ id: a.id, label: `${a.number} ${a.name}`, number: a.number }))
 		},
 		defaultMoneyAccountId() {
+			// Nur echte Geldkonten automatisch vorauswählen – sonst könnte z.B. ein
+			// Durchlaufkonto unbemerkt zum Standard-Geldkonto werden.
 			const bank = this.accounts.find(a => a.active && a.isBank)
-			if (bank) return bank.id
-			const asset = this.accounts.find(a => a.active && a.type === 'asset')
-			return asset ? asset.id : null
+			return bank ? bank.id : null
 		},
 		bookingFormCategoryOption: {
 			get() {
@@ -1647,16 +1646,19 @@ export default {
 				const r = rowById[id]
 				let debit = r ? r.debit : 0
 				let credit = r ? r.credit : 0
+				// Saldo aus den Backend-Werten summieren statt aus der Bewegung
+				// nachzurechnen: für Geldkonten ist der Backend-Saldo der kumulierte
+				// Kontostand, der bei reiner Soll/Haben-Summe verloren ginge.
+				let balance = r ? r.balance : 0
 				for (const child of (this.childrenOf[id] || [])) {
 					const sub = agg(child.id)
-					debit += sub.debit; credit += sub.credit
+					debit += sub.debit; credit += sub.credit; balance += sub.balance
 				}
-				return { debit, credit }
+				return { debit, credit, balance }
 			}
 			return base.map(r => {
 				const a = agg(r.accountId)
-				const balance = ['income', 'liability', 'equity'].includes(r.type) ? a.credit - a.debit : a.debit - a.credit
-				return { ...enrich(r), debit: a.debit, credit: a.credit, balance }
+				return { ...enrich(r), debit: a.debit, credit: a.credit, balance: a.balance }
 			})
 		},
 		sortedBalances() { return this.applySort(this.balanceRows, this.sort.balances, ['number']) },
@@ -2200,7 +2202,6 @@ export default {
 				type: parent ? parent.type : 'income',
 				category: parent ? (parent.category || '') : '',
 				isBank: false,
-				transitory: false,
 				parentId: this.selectedAccountId || null,
 			}
 			this.showAccount = true
@@ -2210,7 +2211,6 @@ export default {
 			this.newAccount = {
 				number: acc.number, name: acc.name, type: acc.type,
 				category: acc.category || '', isBank: !!acc.isBank,
-				transitory: !!acc.transitory,
 				parentId: acc.parentId || null,
 			}
 			this.showAccount = true
@@ -2224,7 +2224,6 @@ export default {
 					await api.updateAccount(this.accountEditId, {
 						number: f.number, name: f.name, type: f.type,
 						category: f.category || null, isBank: f.isBank,
-						transitory: f.transitory,
 						parentId: f.parentId || 0,
 					})
 				} else {
@@ -2232,7 +2231,7 @@ export default {
 				}
 				this.showAccount = false
 				this.accountEditId = null
-				this.newAccount = { number: '', name: '', type: 'income', category: '', isBank: false, transitory: false, parentId: null }
+				this.newAccount = { number: '', name: '', type: 'income', category: '', isBank: false, parentId: null }
 				await this.loadAccounts(); await this.loadBalances()
 				showSuccess('Konto gespeichert.')
 			} catch (e) { showError(this.errMsg(e, 'Konto konnte nicht gespeichert werden')) }

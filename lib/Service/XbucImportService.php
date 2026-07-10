@@ -103,28 +103,24 @@ class XbucImportService {
 
 		// Kontostammdaten (Nummer → Typ/Name/Id) aus DB und Datei zusammenführen.
 		$accById = [];
-		$typeByNumber = [];
 		$nameByNumber = [];
-		$transitoryByNumber = [];
+		$isBankByNumber = [];
 		$equityIds = [];
 		foreach ($this->accountMapper->findAll($userId) as $a) {
 			$accById[$a->getId()] = $a;
-			$typeByNumber[$a->getNumber()] = $a->getType();
 			$nameByNumber[$a->getNumber()] = $a->getName();
-			$transitoryByNumber[$a->getNumber()] = $a->getTransitory();
+			$isBankByNumber[$a->getNumber()] = $a->getIsBank();
 			if ($a->getType() === 'equity') {
 				$equityIds[] = $a->getId();
 			}
 		}
 		foreach ($data['accounts'] as $a) {
-			if (!isset($typeByNumber[$a['number']])) {
-				$typeByNumber[$a['number']] = $a['type'];
-			}
 			if (!isset($nameByNumber[$a['number']])) {
 				$nameByNumber[$a['number']] = $a['name'];
 			}
-			if (!isset($transitoryByNumber[$a['number']])) {
-				$transitoryByNumber[$a['number']] = !empty($a['transitory']);
+			// Datei-Wert nur ergänzend; ein vorhandenes DB-Konto ist maßgeblich.
+			if (!isset($isBankByNumber[$a['number']])) {
+				$isBankByNumber[$a['number']] = !empty($a['isBank']);
 			}
 		}
 
@@ -158,21 +154,16 @@ class XbucImportService {
 			}
 		}
 
-		// Vergleich über Bestandskonten (asset/liability). Durchlaufende Konten
-		// (transitory) sind Wash-Konten: sie tragen keinen echten Bestand über den
-		// Jahreswechsel und werden von der Alt-Software am Jahresende i.d.R. nicht
-		// als Anfangsbestand fortgeschrieben → aus dem Abgleich ausschließen, sonst
-		// blockiert ein harmloser Rest den Import.
-		$isStock = static fn (string $t): bool => in_array($t, ['asset', 'liability'], true);
+		// Vergleich ausschließlich über Geldkonten (Bank/Kasse): nur deren Bestand
+		// kumuliert über Jahresgrenzen und wird von der Alt-Software am Jahresende
+		// als Anfangsbestand fortgeschrieben (siehe Account::isStockAccount()).
+		// Alle anderen Konten sind jahresbezogen und haben keinen Anfangsbestand.
 		$numbers = array_unique(array_merge(array_keys($storedByNumber), array_keys($closingByNumber)));
 		sort($numbers);
 		$comparisons = [];
 		$hasMismatch = false;
 		foreach ($numbers as $num) {
-			if (!$isStock($typeByNumber[$num] ?? '')) {
-				continue;
-			}
-			if ($transitoryByNumber[$num] ?? false) {
+			if (!($isBankByNumber[$num] ?? false)) {
 				continue;
 			}
 			$closing = $closingByNumber[$num] ?? 0;
@@ -247,10 +238,15 @@ class XbucImportService {
 				$sums = $priorSumsByTo[$priorTo];
 				if (isset($sums[$account->getId()])) {
 					// Vorjahresbuchungen vorhanden → Anfangsbestand nicht erneut buchen
-					$priorCents = ($sums[$account->getId()]['debit'] ?? 0) - ($sums[$account->getId()]['credit'] ?? 0);
 					$entry['action'] = 'skip';
-					$entry['priorBalance'] = $priorCents / 100;
-					$entry['matches'] = ($priorCents === $expectedCents);
+					// Der Abgleich gegen den kumulierten Vorjahresstand ist nur für
+					// Geldkonten sinnvoll – alle anderen Konten sind jahresbezogen
+					// und haben keinen fortgeschriebenen Anfangsbestand.
+					if ($account->isStockAccount()) {
+						$priorCents = ($sums[$account->getId()]['debit'] ?? 0) - ($sums[$account->getId()]['credit'] ?? 0);
+						$entry['priorBalance'] = $priorCents / 100;
+						$entry['matches'] = ($priorCents === $expectedCents);
+					}
 				}
 			}
 			$result[] = $entry;
@@ -367,7 +363,6 @@ class XbucImportService {
 			$account->setType($a['type']);
 			$account->setCategory($a['category']);
 			$account->setIsBank((bool)$a['isBank']);
-			$account->setTransitory(!empty($a['transitory']));
 			$account->setActive(true);
 			$parentNumber = $a['parentNumber'];
 			if ($parentNumber !== null && isset($byNumber[$parentNumber])) {
@@ -530,20 +525,10 @@ class XbucImportService {
 		$account->setType($this->guessType($number));
 		$account->setCategory('Importiert');
 		$account->setIsBank(in_array($number, ['001', '002'], true));
-		$account->setTransitory($this->isTransitoryName($name));
 		$account->setActive(true);
 		$account = $this->accountMapper->insert($account);
 		$byNumber[$number] = $account->getId();
 		return $account->getId();
-	}
-
-	/**
-	 * Durchlaufendes/technisches Konto anhand des Namens (Durchlauf, Verrechnung,
-	 * Übertrag). '%bertrag%' erfasst Übertrag/Uebertrag umlautunabhängig.
-	 */
-	private function isTransitoryName(string $name): bool {
-		$n = mb_strtolower($name);
-		return str_contains($n, 'durchlauf') || str_contains($n, 'verrechnung') || str_contains($n, 'bertrag');
 	}
 
 	private function guessType(string $number): string {

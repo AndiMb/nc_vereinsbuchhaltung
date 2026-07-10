@@ -142,8 +142,8 @@ class ExportController extends Controller {
 		$balSums  = $from !== null ? $this->lineMapper->sumByAccount($userId, null, $to) : $moveSums;
 
 		$isCreditNature = static fn (string $t): bool => in_array($t, ['income', 'liability', 'equity'], true);
-		// Wie JournalController::balances(): Eigenkapital und durchlaufende Konten
-		// jahresbezogen, nicht kumulativ (siehe Account::isStockAccount()).
+		// Wie JournalController::balances(): kumulativ nur Geldkonten (Bank/Kasse,
+		// siehe Account::isStockAccount()), alle anderen Konten jahresbezogen.
 		$typeLabel      = static fn (string $t): string => match ($t) {
 			'income'    => 'Einnahmen',
 			'expense'   => 'Ausgaben',
@@ -391,21 +391,20 @@ class ExportController extends Controller {
 		$wealthCells = ['Vermögen (31.12.)'];
 		foreach ($years as $y) {
 			$resultCells[] = $this->fmtMoney(($incomeTotals[$y] + $expenseTotals[$y]) / 100);
+			// Vermögen = kumulierte Bestände der Geldkonten (Bank/Kasse, debit-Natur).
+			// Hinweis: hält ein jahresbezogenes Konto (z.B. Durchlauf/Übertrag) am
+			// 31.12. einen Restsaldo, gilt bewusst Vermögen(J) ≠ Vermögen(J−1) +
+			// Ergebnis(J) um genau diesen Rest – Folge der gewünschten Regel, dass
+			// nur Geldkonten ihren Stand über die Jahresgrenze behalten.
 			$wealthCents = 0;
 			foreach ($accounts as $a) {
-				// Nur echte Bestandskonten tragen zum Vermögen bei; durchlaufende
-				// Konten (transitory) sind kein Bestand über den Jahreswechsel.
 				if (!$a->isStockAccount()) {
 					continue;
 				}
 				$id = $a->getId();
 				$debit = $cumByYear[$y][$id]['debit'] ?? 0;
 				$credit = $cumByYear[$y][$id]['credit'] ?? 0;
-				if ($a->getType() === 'asset') {
-					$wealthCents += $debit - $credit;
-				} elseif ($a->getType() === 'liability') {
-					$wealthCents -= $credit - $debit;
-				}
+				$wealthCents += $debit - $credit;
 			}
 			$wealthCells[] = $this->fmtMoney($wealthCents / 100);
 		}

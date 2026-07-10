@@ -140,7 +140,6 @@ class XbucParser {
 			'type' => $type,
 			'category' => $category !== null ? mb_substr($category, 0, 255) : null,
 			'isBank' => $isBank,
-			'transitory' => $this->isTransitoryName($name),
 		];
 
 		foreach ($konto->Konto as $child) {
@@ -279,24 +278,20 @@ class XbucParser {
 			return ['asset', true];
 		}
 		if ($lower === 'kasse' || str_starts_with($lower, 'barkasse') || str_starts_with($lower, 'handkasse')) {
-			return ['asset', $isBank];
+			// Kasse ist ein Geldkonto: nur Geldkonten kumulieren über Jahresgrenzen.
+			return ['asset', true];
 		}
 		if (str_contains($lower, 'eröffnungsbilanz')) {
 			return ['equity', $isBank];
 		}
-		if (str_contains($lower, 'durchlauf')) {
+		// Technische Wash-Konten (Durchlauf/Verrechnung/Übertrag) als asset
+		// einstufen: so landen ihre Bewegungen nicht in der Erfolgsrechnung,
+		// und da sie keine Geldkonten sind, sind sie automatisch jahresbezogen.
+		// 'bertrag' erfasst Übertrag/Uebertrag umlautunabhängig.
+		if (str_contains($lower, 'durchlauf') || str_contains($lower, 'verrechnung') || str_contains($lower, 'bertrag')) {
 			return ['asset', $isBank];
 		}
 		return [$this->determineType($number), $isBank];
-	}
-
-	/**
-	 * Durchlaufendes/technisches Konto anhand des Namens (Durchlauf, Verrechnung,
-	 * Übertrag). '%bertrag%' erfasst Übertrag/Uebertrag umlautunabhängig.
-	 */
-	private function isTransitoryName(string $name): bool {
-		$n = mb_strtolower($name);
-		return str_contains($n, 'durchlauf') || str_contains($n, 'verrechnung') || str_contains($n, 'bertrag');
 	}
 
 	private function determineType(string $number): string {

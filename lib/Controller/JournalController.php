@@ -96,10 +96,9 @@ class JournalController extends Controller {
 		$balSums = $from !== null ? $this->lineMapper->sumByAccount($userId, null, $to) : $moveSums;
 
 		$isCreditNature = static fn (string $t): bool => in_array($t, ['income', 'liability', 'equity'], true);
-		// Kumulativ nur echte Bestandskonten (Bank/Kasse, Verbindlichkeiten).
-		// Eigenkapital (EB-Konto) und durchlaufende Konten werden jahresbezogen
-		// gezeigt (siehe Account::isStockAccount()), sonst stünde dort in jedem
-		// Folgejahr unverändert die Eröffnungs- bzw. Durchlaufsumme des ersten Jahres.
+		// Kumulativ (Kontostand) ausschließlich Geldkonten (Bank/Kasse, siehe
+		// Account::isStockAccount()); alle anderen Konten – auch sonstige Aktiv-/
+		// Passivkonten und Eigenkapital – werden jahresbezogen gezeigt.
 
 		$rows = [];
 		foreach ($accounts as $account) {
@@ -247,6 +246,17 @@ class JournalController extends Controller {
 		}
 		$idSet = array_flip($ids);
 
+		// Saldovortrag je Zeile anhand des Zeilen-Kontos: nur Geldkonten tragen
+		// einen Bestand über die Jahresgrenze. So verfälscht bei "inkl. Unterkonten"
+		// weder ein jahresbezogenes Unterkonto den Vortrag des Überkontos, noch
+		// verliert ein Geldkonto seinen Vortrag unter einem jahresbezogenen Parent.
+		$stockIdSet = [];
+		foreach ($accounts as $a) {
+			if ($a->isStockAccount()) {
+				$stockIdSet[$a->getId()] = true;
+			}
+		}
+
 		$journalIds = $this->lineMapper->findJournalIdsForAccounts($userId, $ids);
 
 		$rows = [];
@@ -279,8 +289,10 @@ class JournalController extends Controller {
 					continue;
 				}
 				if ($beforePeriod) {
-					$carryDebit += $line->getDebitCents();
-					$carryCredit += $line->getCreditCents();
+					if (isset($stockIdSet[$line->getAccountId()])) {
+						$carryDebit += $line->getDebitCents();
+						$carryCredit += $line->getCreditCents();
+					}
 					continue;
 				}
 				$sumDebit += $line->getDebitCents();
@@ -305,14 +317,12 @@ class JournalController extends Controller {
 
 		$account = $this->accountMapper->find($id, $userId);
 		$isCreditNature = in_array($account->getType(), ['income', 'liability', 'equity'], true);
-		// Saldovortrag nur für echte Bestandskonten – nicht für Eigenkapital (EB)
-		// und nicht für durchlaufende Konten (kein Bestand über den Jahreswechsel).
-		$isStock = $account->isStockAccount();
 
-		// Saldovortrag nur für Bestandskonten und nur bei aktivem Jahresfilter.
+		// Saldovortrag nur bei aktivem Jahresfilter; beigetragen haben oben ohnehin
+		// nur Zeilen von Geldkonten (debit-Natur), daher Soll − Haben.
 		$carryCents = 0;
-		if ($from !== null && $isStock) {
-			$carryCents = $isCreditNature ? ($carryCredit - $carryDebit) : ($carryDebit - $carryCredit);
+		if ($from !== null) {
+			$carryCents = $carryDebit - $carryCredit;
 		}
 		$periodNet = $isCreditNature ? ($sumCredit - $sumDebit) : ($sumDebit - $sumCredit);
 		$balanceCents = $carryCents + $periodNet;

@@ -19,8 +19,6 @@ use OCP\AppFramework\Db\Entity;
  * @method void setCategory(?string $category)
  * @method bool getIsBank()
  * @method void setIsBank(bool $isBank)
- * @method bool getTransitory()
- * @method void setTransitory(bool $transitory)
  * @method bool getActive()
  * @method void setActive(bool $active)
  * @method int getOpeningBalanceCents()
@@ -37,7 +35,6 @@ class Account extends Entity implements \JsonSerializable {
 	protected $type;
 	protected $category;
 	protected $isBank = false;
-	protected $transitory = false;
 	protected $active = true;
 	protected $openingBalanceCents = 0;
 	protected $openingDate;
@@ -45,20 +42,21 @@ class Account extends Entity implements \JsonSerializable {
 
 	public function __construct() {
 		$this->addType('isBank', 'boolean');
-		$this->addType('transitory', 'boolean');
 		$this->addType('active', 'boolean');
 		$this->addType('openingBalanceCents', 'integer');
 		$this->addType('parentId', 'integer');
 	}
 
 	/**
-	 * Echtes Bestandskonto: kumuliert seinen Saldo ueber Jahresgrenzen
-	 * (Kontostand, Saldovortrag, Teil des Vermoegens). Durchlaufende Konten
-	 * (transitory) sind davon ausgenommen – sie tragen keinen Bestand ueber den
-	 * Jahreswechsel und werden jahresbezogen wie Erfolgskonten behandelt.
+	 * Bestandskonto: kumuliert seinen Saldo ueber Jahresgrenzen (Kontostand,
+	 * Saldovortrag, Teil des Vermoegens). Das sind ausschliesslich die
+	 * Geldkonten (Bank/Kasse, isBank). Alle anderen Konten – auch Aktiv-/
+	 * Passivkonten wie Durchlauf-, Verrechnungs- oder Uebertragskonten –
+	 * werden jahresbezogen ausgewertet; es gibt keine namens- oder
+	 * flagbasierte Sonderbehandlung.
 	 */
 	public function isStockAccount(): bool {
-		return in_array($this->type, ['asset', 'liability'], true) && !$this->transitory;
+		return (bool)$this->isBank;
 	}
 
 	public function jsonSerialize(): array {
@@ -69,7 +67,6 @@ class Account extends Entity implements \JsonSerializable {
 			'type' => $this->type,
 			'category' => $this->category,
 			'isBank' => $this->isBank,
-			'transitory' => $this->transitory,
 			'active' => $this->active,
 			'openingBalanceCents' => $this->openingBalanceCents,
 			'openingBalance' => $this->openingBalanceCents / 100,
