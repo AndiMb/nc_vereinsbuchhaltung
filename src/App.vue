@@ -1345,9 +1345,11 @@ export default {
 				if (m < 0 || m > 11) continue
 				for (const line of (item.lines || [])) {
 					const acc = this.accountsById[line.accountId]
-					if (!acc) continue
-					if (acc.type === 'income' && line.creditCents > 0) income[m] += line.creditCents / 100
-					else if (acc.type === 'expense' && line.debitCents > 0) expense[m] += line.debitCents / 100
+					// Erfolgswirksam wie im Backend (Account::isResultRelevant):
+					// alle Nicht-Geldkonten außer Eigenkapital, netto nach Kontonatur.
+					if (!acc || acc.isBank || acc.type === 'equity') continue
+					if (['income', 'liability'].includes(acc.type)) income[m] += (line.creditCents - line.debitCents) / 100
+					else expense[m] += (line.debitCents - line.creditCents) / 100
 				}
 			}
 			return { labels, income, expense }

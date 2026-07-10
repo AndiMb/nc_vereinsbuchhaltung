@@ -204,17 +204,22 @@ class ExportController extends Controller {
 		$totalIncome = 0;
 		$totalExpense = 0;
 
+		// Erfolgswirksam sind alle Nicht-Geldkonten außer Eigenkapital; die Seite
+		// ergibt sich aus der Kontonatur (siehe Account::isResultRelevant()).
 		foreach ($accounts as $account) {
+			if (!$account->isResultRelevant()) {
+				continue;
+			}
 			$id = $account->getId();
 			$d  = $moveSums[$id]['debit'] ?? 0;
 			$c  = $moveSums[$id]['credit'] ?? 0;
-			if ($account->getType() === 'income') {
+			if ($account->isCreditNature()) {
 				$amount = $c - $d;
 				if ($amount !== 0) {
 					$income[]     = [$account->getNumber(), $account->getName(), (string)$account->getCategory(), $amount];
 					$totalIncome += $amount;
 				}
-			} elseif ($account->getType() === 'expense') {
+			} else {
 				$amount = $d - $c;
 				if ($amount !== 0) {
 					$expense[]     = [$account->getNumber(), $account->getName(), (string)$account->getCategory(), $amount];
@@ -345,11 +350,14 @@ class ExportController extends Controller {
 		$byNumberSort = static fn ($a, $b) => strcmp((string)$a->getNumber(), (string)$b->getNumber());
 		usort($accounts, $byNumberSort);
 
-		// Vorzeichenbehafteter Jahreswert eines Erfolgskontos (Einnahme +, Ausgabe −).
-		$yearValueCents = static function (array $sums, int $accId, string $type): int {
+		// Vorzeichenbehafteter Jahreswert nach Kontonatur (Einnahme +, Ausgabe −).
+		// Erfolgswirksam sind ALLE Nicht-Geldkonten außer Eigenkapital (siehe
+		// Account::isResultRelevant()) – auch z.B. Durchlauf-/Übertragskonten
+		// erscheinen mit ihrer Netto-Jahresbewegung wie jedes andere Konto.
+		$yearValueCents = static function (array $sums, int $accId, bool $creditNature): int {
 			$debit = $sums[$accId]['debit'] ?? 0;
 			$credit = $sums[$accId]['credit'] ?? 0;
-			return $type === 'income' ? ($credit - $debit) : -($debit - $credit);
+			return $creditNature ? ($credit - $debit) : -($debit - $credit);
 		};
 
 		$header = array_merge([''], array_map(static fn ($y) => (string)$y, $years));
@@ -358,11 +366,11 @@ class ExportController extends Controller {
 		$csv .= $this->csvLine(['Mehrjahresübersicht — Erfolgsrechnung nach Konten']);
 		$csv .= $this->csvLine($header);
 
-		// --- Einnahmen ---
+		// --- Einnahmen (Haben-Natur: income + liability) ---
 		$incomeTotals = array_fill_keys($years, 0);
 		$csv .= $this->csvLine(array_merge(['EINNAHMEN'], array_fill(0, count($years), '')));
 		foreach ($accounts as $a) {
-			if ($a->getType() !== 'income') {
+			if (!$a->isResultRelevant() || !$a->isCreditNature()) {
 				continue;
 			}
 			[$row, $any] = $this->accountYearRow($a, $years, $movByYear, $yearValueCents, $incomeTotals);
@@ -372,11 +380,11 @@ class ExportController extends Controller {
 		}
 		$csv .= $this->totalsLine('Summe Einnahmen', $years, $incomeTotals);
 
-		// --- Ausgaben (negativ dargestellt) ---
+		// --- Ausgaben (Soll-Natur: expense + asset ohne Geldkonten, negativ dargestellt) ---
 		$expenseTotals = array_fill_keys($years, 0);
 		$csv .= $this->csvLine(array_merge(['AUSGABEN'], array_fill(0, count($years), '')));
 		foreach ($accounts as $a) {
-			if ($a->getType() !== 'expense') {
+			if (!$a->isResultRelevant() || $a->isCreditNature()) {
 				continue;
 			}
 			[$row, $any] = $this->accountYearRow($a, $years, $movByYear, $yearValueCents, $expenseTotals);
@@ -392,10 +400,9 @@ class ExportController extends Controller {
 		foreach ($years as $y) {
 			$resultCells[] = $this->fmtMoney(($incomeTotals[$y] + $expenseTotals[$y]) / 100);
 			// Vermögen = kumulierte Bestände der Geldkonten (Bank/Kasse, debit-Natur).
-			// Hinweis: hält ein jahresbezogenes Konto (z.B. Durchlauf/Übertrag) am
-			// 31.12. einen Restsaldo, gilt bewusst Vermögen(J) ≠ Vermögen(J−1) +
-			// Ergebnis(J) um genau diesen Rest – Folge der gewünschten Regel, dass
-			// nur Geldkonten ihren Stand über die Jahresgrenze behalten.
+			// Da alle übrigen Konten außer Eigenkapital erfolgswirksam sind, gilt
+			// per doppelter Buchführung: Vermögen(J) = Vermögen(J−1) + Ergebnis(J)
+			// (abweichend nur in Jahren mit Eröffnungsbuchungen gegen Eigenkapital).
 			$wealthCents = 0;
 			foreach ($accounts as $a) {
 				if (!$a->isStockAccount()) {
@@ -453,17 +460,17 @@ class ExportController extends Controller {
 	 *
 	 * @param int[] $years
 	 * @param array<int, array<int, array{debit:int, credit:int}>> $movByYear
-	 * @param callable(array,int,string):int $yearValueCents
+	 * @param callable(array,int,bool):int $yearValueCents
 	 * @param array<int,int> $totals
 	 * @return array{0:string, 1:bool}
 	 */
 	private function accountYearRow($account, array $years, array $movByYear, callable $yearValueCents, array &$totals): array {
 		$id = $account->getId();
-		$type = $account->getType();
+		$creditNature = $account->isCreditNature();
 		$cells = [trim($account->getNumber() . ' ' . $account->getName())];
 		$any = false;
 		foreach ($years as $y) {
-			$v = $yearValueCents($movByYear[$y], $id, $type);
+			$v = $yearValueCents($movByYear[$y], $id, $creditNature);
 			if ($v !== 0) {
 				$any = true;
 			}

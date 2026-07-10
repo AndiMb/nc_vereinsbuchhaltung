@@ -127,16 +127,22 @@ class JournalController extends Controller {
 			];
 		}
 
-		// Ergebnis: Einnahmen/Ausgaben nur aus den Bewegungen des Zeitraums.
+		// Ergebnis: Einnahmen/Ausgaben aus den Bewegungen des Zeitraums.
+		// Erfolgswirksam sind alle Nicht-Geldkonten außer Eigenkapital (siehe
+		// Account::isResultRelevant()); die Seite ergibt sich aus der Kontonatur.
+		// Damit gilt: Änderung des Vermögens (Bank/Kasse) = Ergebnis.
 		$income = 0;
 		$expense = 0;
 		foreach ($accounts as $account) {
+			if (!$account->isResultRelevant()) {
+				continue;
+			}
 			$id = $account->getId();
 			$d = $moveSums[$id]['debit'] ?? 0;
 			$c = $moveSums[$id]['credit'] ?? 0;
-			if ($account->getType() === 'income') {
+			if ($account->isCreditNature()) {
 				$income += ($c - $d);
-			} elseif ($account->getType() === 'expense') {
+			} else {
 				$expense += ($d - $c);
 			}
 		}

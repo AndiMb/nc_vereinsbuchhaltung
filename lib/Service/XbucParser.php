@@ -284,13 +284,8 @@ class XbucParser {
 		if (str_contains($lower, 'eröffnungsbilanz')) {
 			return ['equity', $isBank];
 		}
-		// Technische Wash-Konten (Durchlauf/Verrechnung/Übertrag) als asset
-		// einstufen: so landen ihre Bewegungen nicht in der Erfolgsrechnung,
-		// und da sie keine Geldkonten sind, sind sie automatisch jahresbezogen.
-		// 'bertrag' erfasst Übertrag/Uebertrag umlautunabhängig.
-		if (str_contains($lower, 'durchlauf') || str_contains($lower, 'verrechnung') || str_contains($lower, 'bertrag')) {
-			return ['asset', $isBank];
-		}
+		// Keine weiteren Namensregeln: außer Geldkonten (Bank/Kasse) und dem
+		// EB-Konto gibt es keine Sonderkonten; der Typ folgt der Nummer.
 		return [$this->determineType($number), $isBank];
 	}
 

@@ -59,6 +59,25 @@ class Account extends Entity implements \JsonSerializable {
 		return (bool)$this->isBank;
 	}
 
+	/**
+	 * Haben-Natur (Einnahmen-Seite): income/liability/equity.
+	 * Soll-Natur (Ausgaben-Seite): expense/asset.
+	 */
+	public function isCreditNature(): bool {
+		return in_array($this->type, ['income', 'liability', 'equity'], true);
+	}
+
+	/**
+	 * Erfolgswirksam in Auswertungen: alle Konten ausser Geldkonten (Bestand,
+	 * siehe isStockAccount()) und Eigenkapital (Eroeffnungsmechanik). Auch
+	 * Aktiv-/Passivkonten ohne Geldkonto-Flag (z.B. Durchlauf-/Uebertrags-
+	 * konten) zaehlen mit ihrer Jahresbewegung wie normale Einnahmen-/
+	 * Ausgabenkonten: es gibt keine Sonderkonten ausser Bank/Kasse.
+	 */
+	public function isResultRelevant(): bool {
+		return !$this->isStockAccount() && $this->type !== 'equity';
+	}
+
 	public function jsonSerialize(): array {
 		return [
 			'id' => $this->id,

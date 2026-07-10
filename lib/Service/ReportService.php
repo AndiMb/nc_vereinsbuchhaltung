@@ -77,10 +77,12 @@ class ReportService {
 
 		$groups = [];
 		foreach ($accounts as $a) {
-			$type = $a->getType();
-			if ($type !== 'income' && $type !== 'expense') {
+			// Erfolgswirksam sind alle Nicht-Geldkonten außer Eigenkapital
+			// (siehe Account::isResultRelevant()); Seite nach Kontonatur.
+			if (!$a->isResultRelevant()) {
 				continue;
 			}
+			$type = $a->getType();
 			if ($mode === 'account') {
 				// Jedes Erfolgskonto mit Bewegung ist seine eigene Kostenstelle.
 				$id = $a->getId();
@@ -114,7 +116,7 @@ class ReportService {
 			$id = $a->getId();
 			$debit = $sums[$id]['debit'] ?? 0;
 			$credit = $sums[$id]['credit'] ?? 0;
-			if ($type === 'income') {
+			if ($a->isCreditNature()) {
 				$balCents = $credit - $debit;
 				$groups[$key]['incomeCents'] += $balCents;
 			} else {
