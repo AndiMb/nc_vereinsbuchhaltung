@@ -26,6 +26,8 @@ class BookingService {
 		private BankTransactionMapper $txMapper,
 		private AccountService $accountService,
 		private AttachmentStorageService $attachmentStorage,
+		private YearCloseService $yearClose,
+		private AuditService $audit,
 	) {
 	}
 
@@ -34,6 +36,7 @@ class BookingService {
 	 */
 	public function assign(BankTransaction $tx, int $contraAccountId): BankTransaction {
 		$userId = $tx->getUserId();
+		$this->yearClose->assertOpen((string)$tx->getBookingDate());
 		// Gegenkonto validieren (gehört dem Nutzer)
 		$contra = $this->accountService->find($contraAccountId, $userId);
 		$bank = $this->accountService->getDefaultBankAccount($userId);
@@ -67,20 +70,32 @@ class BookingService {
 		$tx->setContraAccountId($contraAccountId);
 		$tx->setJournalId($journal->getId());
 		$tx->setStatus('assigned');
-		return $this->txMapper->update($tx);
+		$tx = $this->txMapper->update($tx);
+		$this->audit->log('Umsatz zugeordnet', 'transaction', $tx->getId(), [
+			'date' => $tx->getBookingDate(),
+			'amount' => $tx->getAmountCents() / 100,
+			'contra' => $contra->getNumber() . ' ' . $contra->getName(),
+		]);
+		return $tx;
 	}
 
 	/**
 	 * Hebt eine Zuordnung wieder auf und löscht den Buchungssatz.
 	 */
 	public function unassign(BankTransaction $tx): BankTransaction {
+		$this->yearClose->assertOpen((string)$tx->getBookingDate());
 		if ($tx->getJournalId() !== null) {
 			$this->removeJournal($tx->getJournalId(), $tx->getUserId());
 		}
 		$tx->setContraAccountId(null);
 		$tx->setJournalId(null);
 		$tx->setStatus('unassigned');
-		return $this->txMapper->update($tx);
+		$tx = $this->txMapper->update($tx);
+		$this->audit->log('Zuordnung entfernt', 'transaction', $tx->getId(), [
+			'date' => $tx->getBookingDate(),
+			'amount' => $tx->getAmountCents() / 100,
+		]);
+		return $tx;
 	}
 
 	private function removeJournal(int $journalId, string $userId): void {

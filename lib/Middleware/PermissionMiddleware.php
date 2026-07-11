@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Middleware;
 use OCA\Vereinsbuchhaltung\Controller\PageController;
 use OCA\Vereinsbuchhaltung\Controller\PermissionController;
 use OCA\Vereinsbuchhaltung\Exception\ForbiddenException;
+use OCA\Vereinsbuchhaltung\Exception\YearClosedException;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
@@ -57,6 +58,10 @@ class PermissionMiddleware extends Middleware {
 	public function afterException(Controller $controller, string $methodName, \Exception $exception): JSONResponse {
 		if ($exception instanceof ForbiddenException) {
 			return new JSONResponse(['message' => $exception->getMessage()], Http::STATUS_FORBIDDEN);
+		}
+		// Festschreibung: Schreibversuch auf ein abgeschlossenes Geschäftsjahr.
+		if ($exception instanceof YearClosedException) {
+			return new JSONResponse(['message' => $exception->getMessage()], Http::STATUS_LOCKED);
 		}
 		throw $exception;
 	}

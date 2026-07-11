@@ -19,6 +19,8 @@ class JournalService {
 		private JournalMapper $journalMapper,
 		private JournalLineMapper $lineMapper,
 		private AttachmentStorageService $attachmentStorage,
+		private YearCloseService $yearClose,
+		private AuditService $audit,
 	) {
 	}
 
@@ -26,6 +28,8 @@ class JournalService {
 	 * Legt einen Buchungssatz "Soll an Haben" an.
 	 *
 	 * @param int|null $entryNo vorgegebene Buchungsnummer (z.B. beim Massenimport)
+	 * @param bool $audit Einzeleintrag im Änderungsprotokoll (beim Massenimport
+	 *                    abschalten – der Import protokolliert sich als Ganzes)
 	 */
 	public function createBooking(
 		string $userId,
@@ -36,7 +40,9 @@ class JournalService {
 		int $creditAccountId,
 		int $amountCents,
 		?int $entryNo = null,
+		bool $audit = true,
 	): Journal {
+		$this->yearClose->assertOpen($date);
 		$amount = abs($amountCents);
 
 		$journal = new Journal();
@@ -54,6 +60,14 @@ class JournalService {
 		$this->addLine($journal->getId(), $debitAccountId, $amount, 0);
 		$this->addLine($journal->getId(), $creditAccountId, 0, $amount);
 
+		if ($audit) {
+			$this->audit->log('Buchung angelegt', 'journal', $journal->getId(), [
+				'entryNo' => $journal->getEntryNo(),
+				'date' => $date,
+				'description' => $journal->getDescription(),
+				'amount' => $amount / 100,
+			]);
+		}
 		return $journal;
 	}
 
@@ -75,6 +89,11 @@ class JournalService {
 		?string $expectedUpdatedAt = null,
 	): Journal {
 		$journal = $this->journalMapper->find($id, $userId);
+		// Sowohl das bisherige als auch das neue Jahr müssen offen sein
+		// (sonst ließe sich eine Buchung aus einem abgeschlossenen Jahr
+		// herausziehen oder in eines hineinschieben).
+		$this->yearClose->assertOpen((string)$journal->getDate());
+		$this->yearClose->assertOpen($date);
 		if (($journal->getUpdatedAt() ?? '') !== ($expectedUpdatedAt ?? '')) {
 			throw new ConflictException('Die Buchung wurde zwischenzeitlich von einer anderen Person geändert.');
 		}
@@ -89,14 +108,26 @@ class JournalService {
 		$this->addLine($journal->getId(), $debitAccountId, $amount, 0);
 		$this->addLine($journal->getId(), $creditAccountId, 0, $amount);
 
+		$this->audit->log('Buchung geändert', 'journal', $journal->getId(), [
+			'entryNo' => $journal->getEntryNo(),
+			'date' => $date,
+			'description' => $journal->getDescription(),
+			'amount' => $amount / 100,
+		]);
 		return $journal;
 	}
 
 	public function deleteBooking(int $id, string $userId): void {
 		$journal = $this->journalMapper->find($id, $userId);
+		$this->yearClose->assertOpen((string)$journal->getDate());
 		$this->attachmentStorage->deleteForJournal($journal->getId());
 		$this->lineMapper->deleteByJournal($journal->getId());
 		$this->journalMapper->delete($journal);
+		$this->audit->log('Buchung gelöscht', 'journal', $id, [
+			'entryNo' => $journal->getEntryNo(),
+			'date' => $journal->getDate(),
+			'description' => $journal->getDescription(),
+		]);
 	}
 
 	/** Änderungszeitstempel mit Mikrosekunden (Sekundenauflösung reicht dem Konfliktvergleich nicht). */

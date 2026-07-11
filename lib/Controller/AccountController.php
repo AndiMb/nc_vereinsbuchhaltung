@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Service\AccountService;
+use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\OpeningBalanceService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -22,6 +23,7 @@ class AccountController extends Controller {
 		private AccountService $service,
 		private OpeningBalanceService $openingService,
 		private IUserSession $userSession,
+		private AuditService $audit,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -104,6 +106,11 @@ class AccountController extends Controller {
 			$cents = (int)round($amount * 100);
 			$account = $this->service->setOpeningFields($id, $this->userId(), $cents, $date);
 			$this->openingService->sync($account);
+			$this->audit->log('Eröffnungssaldo gesetzt', 'account', $id, [
+				'konto' => $account->getNumber() . ' ' . $account->getName(),
+				'amount' => $cents / 100,
+				'date' => $account->getOpeningDate(),
+			]);
 			return new DataResponse($account);
 		} catch (DoesNotExistException) {
 			return new DataResponse(['message' => 'Konto nicht gefunden'], Http::STATUS_NOT_FOUND);

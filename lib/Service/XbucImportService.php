@@ -33,6 +33,7 @@ class XbucImportService {
 		private ResetService $resetService,
 		private BankTransactionMapper $txMapper,
 		private AttachmentStorageService $attachmentStorage,
+		private YearCloseService $yearCloseService,
 	) {
 	}
 
@@ -334,6 +335,23 @@ class XbucImportService {
 			throw new \RuntimeException($this->transitionErrorMessage($transition));
 		}
 
+		// Festschreibung: der Merge-Import darf kein abgeschlossenes Jahr
+		// berühren – geprüft VOR jeglichem Schreibvorgang. Beim reset-Import
+		// wird ohnehin alles inkl. der Abschluss-Marker gelöscht (Verwalter-only).
+		if (!$reset) {
+			$touchedYears = [];
+			foreach ($data['bookings'] as $b) {
+				$touchedYears[(int)substr((string)$b['date'], 0, 4)] = true;
+			}
+			if ($transition !== null && !empty($transition['removeJournalIds']) && $year !== null) {
+				// Der Jahresübergang entfernt Eröffnungsbuchungen des Folgejahres.
+				$touchedYears[$year + 1] = true;
+			}
+			foreach (array_keys($touchedYears) as $y) {
+				$this->yearCloseService->assertOpen(sprintf('%04d-01-01', $y));
+			}
+		}
+
 		if ($reset) {
 			$this->resetService->resetAll($userId);
 		}
@@ -439,6 +457,7 @@ class XbucImportService {
 				$creditId,
 				$b['amountCents'],
 				$nextEntryByYear[$year],
+				false, // Import protokolliert sich als Ganzes, nicht je Buchung
 			);
 			$count++;
 		}

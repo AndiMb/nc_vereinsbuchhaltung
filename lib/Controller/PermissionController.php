@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\PermissionMapper;
+use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -24,6 +25,7 @@ class PermissionController extends Controller {
 		private PermissionMapper $mapper,
 		private IGroupManager $groupManager,
 		private IUserManager $userManager,
+		private AuditService $audit,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -71,13 +73,24 @@ class PermissionController extends Controller {
 		if ($principalId === '') {
 			return new DataResponse(['message' => 'Nutzer/Gruppe fehlt'], Http::STATUS_BAD_REQUEST);
 		}
-		return new DataResponse($this->mapper->upsert($principalType, $principalId, $role), Http::STATUS_CREATED);
+		$entry = $this->mapper->upsert($principalType, $principalId, $role);
+		$this->audit->log('Berechtigung gesetzt', 'permission', null, [
+			'typ' => $principalType,
+			'wer' => $principalId,
+			'rolle' => $role,
+		]);
+		return new DataResponse($entry, Http::STATUS_CREATED);
 	}
 
 	#[NoAdminRequired]
 	public function destroy(int $id): DataResponse {
 		try {
-			$this->mapper->delete($this->mapper->find($id));
+			$perm = $this->mapper->find($id);
+			$this->mapper->delete($perm);
+			$this->audit->log('Berechtigung entfernt', 'permission', $id, [
+				'typ' => $perm->getPrincipalType(),
+				'wer' => $perm->getPrincipalId(),
+			]);
 			return new DataResponse([]);
 		} catch (DoesNotExistException) {
 			return new DataResponse(['message' => 'Eintrag nicht gefunden'], Http::STATUS_NOT_FOUND);

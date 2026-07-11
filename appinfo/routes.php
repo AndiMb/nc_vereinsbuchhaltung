@@ -41,6 +41,12 @@ return [
 		// Kollaboration: Änderungsstand für das Polling anderer Browser
 		['name' => 'sync#revision', 'url' => '/api/revision', 'verb' => 'GET'],
 
+		// Jahresabschluss (Festschreibung) + Änderungsprotokoll
+		['name' => 'year#closed', 'url' => '/api/years/closed', 'verb' => 'GET'],
+		['name' => 'year#close',  'url' => '/api/years/{year}/close', 'verb' => 'POST'],
+		['name' => 'year#reopen', 'url' => '/api/years/{year}/close', 'verb' => 'DELETE'],
+		['name' => 'audit#index', 'url' => '/api/audit', 'verb' => 'GET'],
+
 		// Berichte / Kostenstellen
 		['name' => 'report#costCenters', 'url' => '/api/report/costcenters', 'verb' => 'GET'],
 		['name' => 'report#rename', 'url' => '/api/report/costcenters', 'verb' => 'PUT'],

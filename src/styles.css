@@ -532,3 +532,6 @@
 	.vbh-badge.pos { background-color: #2d7d46; }
 	.vbh-badge--alert { background-color: #9b2a2a; }
 }
+
+/* Änderungsprotokoll: „Ältere Einträge laden" */
+.vbh-loadmore { display: flex; justify-content: center; padding: 12px 0 4px; }

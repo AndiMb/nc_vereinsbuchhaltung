@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\ImportLogMapper;
+use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\ImportService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCA\Vereinsbuchhaltung\Service\ResetService;
@@ -27,6 +28,7 @@ class ImportController extends Controller {
 		private ImportLogMapper $importMapper,
 		private IUserSession $userSession,
 		private PermissionService $permissionService,
+		private AuditService $audit,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -77,6 +79,11 @@ class ImportController extends Controller {
 		$applyRules = filter_var($this->request->getParam('applyRules', true), FILTER_VALIDATE_BOOLEAN);
 		try {
 			$result = $this->importService->commit($this->userId(), $upload['filename'], $upload['content'], $applyRules);
+			$this->audit->log('CSV-Import', 'import', null, [
+				'filename' => $upload['filename'],
+				'neu' => $result['new'] ?? null,
+				'duplikate' => $result['duplicate'] ?? null,
+			]);
 			return new DataResponse($result, Http::STATUS_CREATED);
 		} catch (\Throwable $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
@@ -124,6 +131,11 @@ class ImportController extends Controller {
 		}
 		try {
 			$result = $this->xbucService->import($this->userId(), $upload['content'], $reset, $clampDates, $this->yearOverride());
+			$this->audit->log('xbuc-Import', 'import', null, [
+				'jahr' => $result['year'] ?? null,
+				'buchungen' => $result['bookings'] ?? null,
+				'reset' => $reset,
+			]);
 			return new DataResponse($result, Http::STATUS_CREATED);
 		} catch (\Throwable $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
@@ -135,6 +147,8 @@ class ImportController extends Controller {
 		if (!$this->permissionService->isAdmin()) {
 			return new DataResponse(['message' => 'Nur Verwalter dürfen alle Daten zurücksetzen.'], Http::STATUS_FORBIDDEN);
 		}
+		// Vor dem Löschen protokollieren – das Protokoll überlebt den Reset bewusst.
+		$this->audit->log('Alle Daten zurückgesetzt');
 		$this->resetService->resetAll($this->userId());
 		return new DataResponse([]);
 	}

@@ -13,6 +13,7 @@ use OCA\Vereinsbuchhaltung\Db\ImportLogMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
+use OCA\Vereinsbuchhaltung\Db\YearCloseMapper;
 
 class ResetService {
 
@@ -28,6 +29,7 @@ class ResetService {
 		private BudgetSnapshotService $snapshotService,
 		private AttachmentMapper $attachmentMapper,
 		private AttachmentStorageService $storageService,
+		private YearCloseMapper $yearCloseMapper,
 	) {
 	}
 
@@ -44,5 +46,8 @@ class ResetService {
 		$this->costCenterMapper->deleteAllForUser($userId);
 		$this->budgetMapper->deleteAllForUser($userId);
 		$this->snapshotService->deleteAllForUser($userId);
+		// Abschluss-Marker gehören zum Datenbestand; das Änderungsprotokoll
+		// bleibt bewusst erhalten (der Reset selbst wird protokolliert).
+		$this->yearCloseMapper->deleteAll();
 	}
 }

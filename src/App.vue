@@ -23,11 +23,11 @@
 						<template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>
 						<span class="vbh-newbooking-label">Buchung</span>
 					</NcButton>
-					<label class="vbh-yearsel" title="Geschäftsjahr (Kalenderjahr)">
+					<label class="vbh-yearsel" :title="yearClosed ? 'Geschäftsjahr abgeschlossen (festgeschrieben)' : 'Geschäftsjahr (Kalenderjahr)'">
 						<span>Jahr</span>
 						<select v-model="selectedYear">
 							<option :value="null">Alle Jahre</option>
-							<option v-for="y in years" :key="y" :value="y">{{ y }}</option>
+							<option v-for="y in years" :key="y" :value="y">{{ y }}{{ closedYearSet[y] ? ' 🔒' : '' }}</option>
 						</select>
 					</label>
 					<NcButton v-if="canWrite" variant="tertiary" aria-label="Einstellungen & Import" title="Einstellungen & Import" @click="openSettings">
@@ -238,7 +238,7 @@
 													@click="createRuleFromTx(txByJournalId[r.id])">
 													<template #icon><NcIconSvgWrapper :path="mdiFlash" :size="16" /></template>
 												</NcButton>
-												<NcButton v-if="canWrite" variant="error" aria-label="Löschen" @click="removeBooking(r)">
+												<NcButton v-if="canWrite && !isYearClosed(r.date)" variant="error" aria-label="Löschen" @click="removeBooking(r)">
 													<template #icon><NcIconSvgWrapper :path="mdiDelete" :size="20" /></template>
 												</NcButton>
 											</div>
@@ -267,14 +267,14 @@
 								<div class="vbh-mcard-title">{{ tx.counterparty }}</div>
 								<div v-if="tx.purpose" class="vbh-mcard-purpose">{{ tx.purpose }}</div>
 								<button
-									v-if="canWrite && !tx.contraAccountId && suggestionsById[tx.id]"
+									v-if="canWrite && !tx.contraAccountId && suggestionsById[tx.id] && !isYearClosed(tx.bookingDate)"
 									type="button"
 									class="vbh-suggest-chip vbh-suggest-chip--big"
 									@click="applySuggestion(tx)"
 								>
 									✓ Vorschlag übernehmen: {{ suggestionsById[tx.id].label }}
 								</button>
-								<button type="button" class="vbh-fieldbtn" :disabled="!canWrite" @click="openAccountPicker('assign', tx)">
+								<button type="button" class="vbh-fieldbtn" :disabled="!canWrite || isYearClosed(tx.bookingDate)" @click="openAccountPicker('assign', tx)">
 									<span class="vbh-fieldbtn-text">
 										<span class="vbh-fieldbtn-lab">Konto / Kategorie</span>
 										<span class="vbh-fieldbtn-val" :class="{ placeholder: !tx.contraAccountId }">{{ tx.contraAccountId ? accountLabel(tx.contraAccountId) : 'Konto wählen…' }}</span>
@@ -309,7 +309,7 @@
 													:options="accountOptionsList"
 													:filter-by="accountFilterBy"
 													:clearable="!!tx.contraAccountId"
-													:disabled="!canWrite"
+													:disabled="!canWrite || isYearClosed(tx.bookingDate)"
 													label="label"
 													placeholder="– nicht zugeordnet –"
 													class="vbh-assign-select"
@@ -317,7 +317,7 @@
 												/>
 											</div>
 											<button
-												v-if="canWrite && !tx.contraAccountId && suggestionsById[tx.id]"
+												v-if="canWrite && !tx.contraAccountId && suggestionsById[tx.id] && !isYearClosed(tx.bookingDate)"
 												class="vbh-suggest-chip"
 												:title="'Vorschlag übernehmen: ' + suggestionsById[tx.id].label"
 												@click="applySuggestion(tx)"
@@ -487,6 +487,7 @@
 						<button :class="{ active: reportView === 'summary' }" @click="reportView = 'summary'">Auswertung</button>
 						<button :class="{ active: reportView === 'costcenters' }" @click="reportView = 'costcenters'">Kostenstellen</button>
 						<button :class="{ active: reportView === 'budget' }" @click="reportView = 'budget'">Finanzplan</button>
+						<button :class="{ active: reportView === 'audit' }" @click="reportView = 'audit'">Protokoll</button>
 					</div>
 					<div class="vbh-sectiontop-actions">
 						<a v-if="reportView === 'summary'" :href="exportBalancesUrl" download class="vbh-export-btn" title="Saldenliste als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> Saldenliste</a>
@@ -808,6 +809,31 @@
 							<p v-else class="vbh-empty">Noch keine Stände für dieses Jahr gespeichert.</p>
 						</div>
 					</div>
+
+					<!-- ÄNDERUNGSPROTOKOLL -->
+					<div v-show="reportView === 'audit'">
+						<p class="vbh-hint">
+							Wer hat wann was geändert – z. B. für die Kassenprüfung. Das Protokoll wird
+							automatisch geführt und bleibt auch beim Zurücksetzen aller Daten erhalten.
+						</p>
+						<div v-if="auditEntries.length" class="vbh-tablecard">
+							<table class="vbh-table">
+								<thead><tr><th class="nowrap">Zeitpunkt</th><th>Wer</th><th>Aktion</th><th>Details</th></tr></thead>
+								<tbody>
+									<tr v-for="a in auditEntries" :key="a.id">
+										<td class="nowrap">{{ formatDateTime(a.ts) }}</td>
+										<td class="nowrap">{{ a.userId }}</td>
+										<td class="nowrap">{{ a.action }}</td>
+										<td class="vbh-purpose"><span class="vbh-clamp">{{ auditDetailText(a) }}</span></td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+						<NcEmptyContent v-else-if="!auditLoading" name="Noch keine Protokolleinträge" description="Änderungen ab Version 0.10.41 werden hier aufgezeichnet." />
+						<div v-if="auditEntries.length && !auditEnd" class="vbh-loadmore">
+							<NcButton variant="secondary" :disabled="auditLoading" @click="loadAudit(true)">Ältere Einträge laden</NcButton>
+						</div>
+					</div>
 				</div>
 			</section>
 		</main>
@@ -1021,6 +1047,38 @@
 						</p>
 					</div>
 
+					<h3 class="vbh-section-divider">Jahresabschluss</h3>
+					<div class="vbh-card">
+						<p class="vbh-hint">
+							Ein abgeschlossenes Geschäftsjahr ist <strong>festgeschrieben</strong>: Buchungen, Belege und
+							Zuordnungen dieses Jahres können nicht mehr geändert oder gelöscht werden – z. B. nach der
+							Kassenprüfung und Entlastung. Nur Verwalter können ein Jahr abschließen oder wiedereröffnen;
+							beides wird im Protokoll (Berichte → Protokoll) festgehalten.
+						</p>
+						<div v-if="years.length" class="vbh-tablecard">
+							<table class="vbh-table">
+								<thead><tr><th>Jahr</th><th>Status</th><th class="right"></th></tr></thead>
+								<tbody>
+									<tr v-for="y in years" :key="'yc' + y">
+										<td class="strong">{{ y }}</td>
+										<td>
+											<template v-if="closedYearSet[y]">
+												🔒 abgeschlossen am {{ formatDate(String(closedYearSet[y].closedAt).slice(0, 10)) }}
+												von {{ closedYearSet[y].closedBy }}
+											</template>
+											<template v-else>offen</template>
+										</td>
+										<td class="right">
+											<NcButton v-if="!closedYearSet[y]" variant="primary" size="small" @click="closeYear(y)">Abschließen</NcButton>
+											<NcButton v-else variant="tertiary" size="small" @click="reopenYear(y)">Wiedereröffnen</NcButton>
+										</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+						<p v-else class="vbh-hint">Noch keine Geschäftsjahre mit Buchungen vorhanden.</p>
+					</div>
+
 					<div class="vbh-card vbh-card--danger">
 						<h4>Alle Daten löschen</h4>
 						<p class="vbh-hint">Löscht alle Konten, Buchungen und Importe dieses Kontos unwiderruflich.</p>
@@ -1082,9 +1140,13 @@
 		<!-- ============ BUCHUNGS-DIALOG ============ -->
 		<NcModal :show.sync="showBooking" :name="bookingForm.id ? 'Buchung bearbeiten #' + bookingForm.entryNo : 'Neue Buchung'" :size="isMobile ? 'full' : 'normal'" @close="closeBooking">
 			<div class="vbh-modal-inner">
+				<p v-if="bookingLocked" class="vbh-hint vbh-hint--info">
+					🔒 Das Geschäftsjahr {{ String(bookingForm.date).slice(0, 4) }} ist abgeschlossen –
+					diese Buchung kann nur noch angesehen werden.
+				</p>
 				<div v-if="bookingMode === 'simple'" class="vbh-kindtoggle" role="radiogroup" aria-label="Buchungsart">
-					<button type="button" class="vbh-kindbtn income" :class="{ active: bookingForm.kind === 'income' }" @click="setBookingKind('income')">Einnahme</button>
-					<button type="button" class="vbh-kindbtn expense" :class="{ active: bookingForm.kind === 'expense' }" @click="setBookingKind('expense')">Ausgabe</button>
+					<button type="button" class="vbh-kindbtn income" :class="{ active: bookingForm.kind === 'income' }" :disabled="bookingLocked" @click="setBookingKind('income')">Einnahme</button>
+					<button type="button" class="vbh-kindbtn expense" :class="{ active: bookingForm.kind === 'expense' }" :disabled="bookingLocked" @click="setBookingKind('expense')">Ausgabe</button>
 				</div>
 
 				<!-- Mobil: Betrag zuerst und groß, Kontenwahl über Auswahl-Sheets -->
@@ -1092,19 +1154,20 @@
 					<div class="vbh-bigamount">
 						<input v-model.number="bookingForm.amount"
 							type="number" step="0.01" min="0.01" inputmode="decimal"
-							placeholder="0,00" class="vbh-bigamount-input" aria-label="Betrag in Euro">
+							placeholder="0,00" class="vbh-bigamount-input" aria-label="Betrag in Euro"
+							:disabled="bookingLocked">
 						<span class="vbh-bigamount-cur">€</span>
 					</div>
 					<div class="vbh-mfields">
 						<template v-if="bookingMode === 'simple'">
-							<button type="button" class="vbh-fieldbtn" @click="openAccountPicker('category')">
+							<button type="button" class="vbh-fieldbtn" :disabled="bookingLocked" @click="openAccountPicker('category')">
 								<span class="vbh-fieldbtn-text">
 									<span class="vbh-fieldbtn-lab">{{ bookingForm.kind === 'income' ? 'Wofür? (Einnahme-Kategorie)' : 'Wofür? (Ausgabe-Kategorie)' }}</span>
 									<span class="vbh-fieldbtn-val" :class="{ placeholder: !bookingForm.categoryId }">{{ bookingForm.categoryId ? accountLabel(bookingForm.categoryId) : 'Kategorie wählen…' }}</span>
 								</span>
 								<span class="vbh-fieldbtn-chev" aria-hidden="true">›</span>
 							</button>
-							<button type="button" class="vbh-fieldbtn" @click="openAccountPicker('money')">
+							<button type="button" class="vbh-fieldbtn" :disabled="bookingLocked" @click="openAccountPicker('money')">
 								<span class="vbh-fieldbtn-text">
 									<span class="vbh-fieldbtn-lab">Geldkonto (Bank/Kasse)</span>
 									<span class="vbh-fieldbtn-val" :class="{ placeholder: !bookingForm.moneyAccountId }">{{ bookingForm.moneyAccountId ? accountLabel(bookingForm.moneyAccountId) : 'wählen…' }}</span>
@@ -1113,14 +1176,14 @@
 							</button>
 						</template>
 						<template v-else>
-							<button type="button" class="vbh-fieldbtn" @click="openAccountPicker('debit')">
+							<button type="button" class="vbh-fieldbtn" :disabled="bookingLocked" @click="openAccountPicker('debit')">
 								<span class="vbh-fieldbtn-text">
 									<span class="vbh-fieldbtn-lab">Soll (Aufwand/Aktiv)</span>
 									<span class="vbh-fieldbtn-val" :class="{ placeholder: !bookingForm.debitAccountId }">{{ bookingForm.debitAccountId ? accountLabel(bookingForm.debitAccountId) : 'wählen…' }}</span>
 								</span>
 								<span class="vbh-fieldbtn-chev" aria-hidden="true">›</span>
 							</button>
-							<button type="button" class="vbh-fieldbtn" @click="openAccountPicker('credit')">
+							<button type="button" class="vbh-fieldbtn" :disabled="bookingLocked" @click="openAccountPicker('credit')">
 								<span class="vbh-fieldbtn-text">
 									<span class="vbh-fieldbtn-lab">Haben (Ertrag/Passiv)</span>
 									<span class="vbh-fieldbtn-val" :class="{ placeholder: !bookingForm.creditAccountId }">{{ bookingForm.creditAccountId ? accountLabel(bookingForm.creditAccountId) : 'wählen…' }}</span>
@@ -1128,9 +1191,9 @@
 								<span class="vbh-fieldbtn-chev" aria-hidden="true">›</span>
 							</button>
 						</template>
-						<label class="vbh-mfield">Datum<input v-model="bookingForm.date" type="date"></label>
-						<label class="vbh-mfield">Buchungstext<input v-model="bookingForm.description" placeholder="z. B. Mitgliedsbeitrag Max Mustermann"></label>
-						<label class="vbh-mfield">Beleg-Nr.<input v-model="bookingForm.documentRef" placeholder="optional"></label>
+						<label class="vbh-mfield">Datum<input v-model="bookingForm.date" type="date" :disabled="bookingLocked"></label>
+						<label class="vbh-mfield">Buchungstext<input v-model="bookingForm.description" placeholder="z. B. Mitgliedsbeitrag Max Mustermann" :disabled="bookingLocked"></label>
+						<label class="vbh-mfield">Beleg-Nr.<input v-model="bookingForm.documentRef" placeholder="optional" :disabled="bookingLocked"></label>
 						<!-- Beleg schon beim Anlegen: Dateien werden lokal gesammelt und
 						     nach dem Speichern an die neue Buchung gehängt. -->
 						<div v-if="canWrite && !bookingForm.id" class="vbh-mfield">
@@ -1162,9 +1225,9 @@
 				<!-- Desktop: bisheriges Formular-Layout -->
 				<template v-else>
 					<div class="vbh-form">
-						<label>Datum<input v-model="bookingForm.date" type="date"></label>
-						<label>Beleg-Nr.<input v-model="bookingForm.documentRef" class="vbh-short" placeholder="optional"></label>
-						<label>Betrag (€)<input v-model.number="bookingForm.amount" type="number" step="0.01" min="0.01" class="vbh-num"></label>
+						<label>Datum<input v-model="bookingForm.date" type="date" :disabled="bookingLocked"></label>
+						<label>Beleg-Nr.<input v-model="bookingForm.documentRef" class="vbh-short" placeholder="optional" :disabled="bookingLocked"></label>
+						<label>Betrag (€)<input v-model.number="bookingForm.amount" type="number" step="0.01" min="0.01" class="vbh-num" :disabled="bookingLocked"></label>
 					</div>
 					<template v-if="bookingMode === 'simple'">
 						<div class="vbh-form">
@@ -1173,6 +1236,7 @@
 									v-model="bookingFormCategoryOption"
 									:options="simpleCategoryOptions"
 									:filter-by="accountFilterBy"
+									:disabled="bookingLocked"
 									label="label"
 									placeholder="– Kategorie wählen –"
 								/>
@@ -1182,6 +1246,7 @@
 									v-model="bookingFormMoneyOption"
 									:options="moneyAccountOptions"
 									:filter-by="accountFilterBy"
+									:disabled="bookingLocked"
 									label="label"
 									placeholder="– wählen –"
 								/>
@@ -1195,6 +1260,7 @@
 									v-model="bookingFormDebitOption"
 									:options="accountOptionsList"
 									:filter-by="accountFilterBy"
+									:disabled="bookingLocked"
 									label="label"
 									placeholder="– wählen –"
 								/>
@@ -1204,6 +1270,7 @@
 									v-model="bookingFormCreditOption"
 									:options="accountOptionsList"
 									:filter-by="accountFilterBy"
+									:disabled="bookingLocked"
 									label="label"
 									placeholder="– wählen –"
 								/>
@@ -1211,7 +1278,7 @@
 						</div>
 					</template>
 					<div class="vbh-form">
-						<label class="vbh-grow">Buchungstext<input v-model="bookingForm.description" placeholder="z. B. Mitgliedsbeitrag Max Mustermann"></label>
+						<label class="vbh-grow">Buchungstext<input v-model="bookingForm.description" placeholder="z. B. Mitgliedsbeitrag Max Mustermann" :disabled="bookingLocked"></label>
 					</div>
 				</template>
 				<div class="vbh-expertrow">
@@ -1224,7 +1291,7 @@
 				<div v-if="bookingForm.id" class="vbh-attachments">
 					<div class="vbh-attachments-header">
 						<span class="vbh-attachments-title">Belege</span>
-						<label v-if="canWrite" class="vbh-upload-label" :class="{ 'is-uploading': attachmentUploading }">
+						<label v-if="canWrite && !bookingLocked" class="vbh-upload-label" :class="{ 'is-uploading': attachmentUploading }">
 							<input type="file" accept="image/*,application/pdf" multiple :disabled="attachmentUploading" hidden @change="uploadAttachment">
 							<span class="vbh-upload-btn">
 								<NcIconSvgWrapper :path="mdiPaperclip" :size="16" />
@@ -1238,7 +1305,7 @@
 							<button class="vbh-attachment-name" :title="'Anzeigen: ' + a.fileName" @click="openViewer(a)">{{ a.fileName }}</button>
 							<span class="vbh-attachment-size">{{ formatFileSize(a.fileSize) }}</span>
 							<a :href="attachmentDownloadUrl(a.id)" class="vbh-attachment-dl" title="Herunterladen" download>↓</a>
-							<NcButton v-if="canWrite" variant="tertiary" :aria-label="'Beleg löschen'" @click="deleteAttachment(a.id)">
+							<NcButton v-if="canWrite && !bookingLocked" variant="tertiary" :aria-label="'Beleg löschen'" @click="deleteAttachment(a.id)">
 								<template #icon><NcIconSvgWrapper :path="mdiDelete" :size="14" /></template>
 							</NcButton>
 						</li>
@@ -1247,9 +1314,9 @@
 				</div>
 
 				<div class="vbh-modal-actions">
-					<NcButton v-if="isMobile && bookingForm.id && canWrite" variant="error" @click="deleteBookingFromDialog">Löschen</NcButton>
-					<NcButton variant="tertiary" @click="closeBooking">Abbrechen</NcButton>
-					<NcButton variant="primary" @click="saveBooking">{{ bookingForm.id ? 'Speichern' : 'Buchen' }}</NcButton>
+					<NcButton v-if="isMobile && bookingForm.id && canWrite && !bookingLocked" variant="error" @click="deleteBookingFromDialog">Löschen</NcButton>
+					<NcButton variant="tertiary" @click="closeBooking">{{ bookingLocked ? 'Schließen' : 'Abbrechen' }}</NcButton>
+					<NcButton v-if="!bookingLocked" variant="primary" @click="saveBooking">{{ bookingForm.id ? 'Speichern' : 'Buchen' }}</NcButton>
 				</div>
 			</div>
 		</NcModal>
@@ -1506,6 +1573,12 @@ export default {
 			pendingFiles: [],
 			// Zuletzt im Auswahl-Sheet gewählte Konten (localStorage, max. 5)
 			recentAccountIds: [],
+			// Jahresabschluss: festgeschriebene Jahre [{year, closedAt, closedBy}]
+			closedYears: [],
+			// Änderungsprotokoll (Berichte → Protokoll)
+			auditEntries: [],
+			auditLoading: false,
+			auditEnd: false,
 			storageUser: '',
 			storagePath: '',
 			costCenterMode: 'group',
@@ -1516,6 +1589,15 @@ export default {
 		canRead() { return !!(this.me && this.me.canRead) },
 		canWrite() { return !!(this.me && this.me.canWrite) },
 		isAdmin() { return !!(this.me && this.me.isAdmin) },
+		// Jahresabschluss: Jahr → Abschluss-Info (schneller Lookup)
+		closedYearSet() {
+			const s = {}
+			for (const c of this.closedYears) s[c.year] = c
+			return s
+		},
+		yearClosed() { return this.selectedYear !== null && !!this.closedYearSet[this.selectedYear] },
+		// Bearbeiten-Dialog einer Buchung aus einem abgeschlossenen Jahr → nur ansehen
+		bookingLocked() { return !!(this.bookingForm.id && this.isYearClosed(this.bookingForm.date)) },
 		exportJournalUrl()  { return api.exportJournalUrl(this.selectedYear) },
 		exportBalancesUrl() { return api.exportBalancesUrl(this.selectedYear) },
 		exportReportUrl()   { return api.exportReportUrl(this.selectedYear) },
@@ -1987,6 +2069,7 @@ export default {
 			if (v === 'summary') this.loadBalances()
 			else if (v === 'costcenters') this.loadReport()
 			else if (v === 'budget') this.loadBudget()
+			else if (v === 'audit') this.loadAudit()
 		},
 		async selectedYear() {
 			// Jahresbezogene Caches invalidieren
@@ -2026,6 +2109,7 @@ export default {
 				this.loadJournal(),
 				this.loadTransactions(),
 				this.loadRules(),
+				this.loadClosedYears(),
 			])
 			this.$nextTick(() => setTimeout(() => this.renderDashboardCharts(), 50))
 			// Kollaboration: Änderungen anderer Personen per Polling mitbekommen
@@ -2072,6 +2156,7 @@ export default {
 				if (this.reportView === 'summary') jobs.push(this.loadBalances())
 				else if (this.reportView === 'costcenters') jobs.push(this.loadReport())
 				else if (this.reportView === 'budget') jobs.push(this.loadBudget())
+				else if (this.reportView === 'audit') jobs.push(this.loadAudit())
 			}
 			if (!jobs.length) return
 			this.busy = true
@@ -2102,7 +2187,7 @@ export default {
 		async refreshAfterRemoteChange() {
 			this.ccBookings = {}
 			this.ccExpanded = {}
-			const jobs = [this.loadYears(), this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions()]
+			const jobs = [this.loadYears(), this.loadClosedYears(), this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions()]
 			if (this.activeTab === 'accounts' && this.selectedAccountId) jobs.push(this.loadStatement(this.selectedAccountId))
 			if (this.activeTab === 'reports') {
 				if (this.reportView === 'costcenters') jobs.push(this.loadReport())
@@ -2143,6 +2228,69 @@ export default {
 				this.years = data
 				if (this.selectedYear === null && data.length) this.selectedYear = data[0]
 			} catch (e) { /* Jahre optional */ }
+		},
+		// --- Jahresabschluss (Festschreibung) -------------------------------
+		isYearClosed(date) {
+			if (!date) return false
+			return !!this.closedYearSet[parseInt(String(date).slice(0, 4), 10)]
+		},
+		async loadClosedYears() {
+			try { const { data } = await api.closedYears(); this.closedYears = data } catch (e) { /* optional */ }
+		},
+		async closeYear(year) {
+			if (!await this.askConfirm(
+				`Jahr ${year} abschließen`,
+				`Das Geschäftsjahr ${year} wird festgeschrieben: Buchungen, Belege und Zuordnungen dieses Jahres können danach nicht mehr geändert werden. Ein Verwalter kann das Jahr bei Bedarf wiedereröffnen.`,
+				'Abschließen', 'primary')) return
+			try {
+				await api.closeYear(year)
+				await this.loadClosedYears()
+				showSuccess(`Geschäftsjahr ${year} abgeschlossen.`)
+			} catch (e) { showError(this.errMsg(e, 'Abschließen fehlgeschlagen')) }
+		},
+		async reopenYear(year) {
+			if (!await this.askConfirm(
+				`Jahr ${year} wiedereröffnen`,
+				`Das Geschäftsjahr ${year} wird wieder änderbar. Das sollte nur in Ausnahmefällen geschehen (z. B. Korrektur vor der Kassenprüfung) und wird protokolliert.`,
+				'Wiedereröffnen', 'error')) return
+			try {
+				await api.reopenYear(year)
+				await this.loadClosedYears()
+				showSuccess(`Geschäftsjahr ${year} wiedereröffnet.`)
+			} catch (e) { showError(this.errMsg(e, 'Wiedereröffnen fehlgeschlagen')) }
+		},
+		// --- Änderungsprotokoll ----------------------------------------------
+		async loadAudit(more = false) {
+			if (this.auditLoading) return
+			this.auditLoading = true
+			try {
+				const offset = more ? this.auditEntries.length : 0
+				const { data } = await api.auditLog(100, offset)
+				this.auditEnd = data.length < 100
+				this.auditEntries = more ? this.auditEntries.concat(data) : data
+			} catch (e) {
+				showError(this.errMsg(e, 'Protokoll konnte nicht geladen werden'))
+			} finally { this.auditLoading = false }
+		},
+		auditDetailText(a) {
+			if (!a.details) return ''
+			const d = a.details
+			const parts = []
+			if (d.entryNo != null) parts.push('#' + d.entryNo)
+			if (d.date) parts.push(this.formatDate(d.date))
+			if (d.konto) parts.push(d.konto)
+			if (d.contra) parts.push(d.contra)
+			if (d.description) parts.push(d.description)
+			if (d.fileName) parts.push(d.fileName)
+			if (d.filename) parts.push(d.filename)
+			if (d.wer) parts.push((d.typ === 'group' ? 'Gruppe ' : '') + d.wer + (d.rolle ? ' → ' + this.roleLabel(d.rolle) : ''))
+			if (d.amount != null) parts.push(this.formatMoney(d.amount))
+			if (d.jahr != null) parts.push('Jahr ' + d.jahr)
+			if (d.buchungen != null) parts.push(d.buchungen + ' Buchungen')
+			if (d.neu != null) parts.push(d.neu + ' neu')
+			if (d.duplikate != null) parts.push(d.duplikate + ' Dubletten')
+			if (d.reset) parts.push('mit Zurücksetzen')
+			return parts.join(' · ')
 		},
 		emptyBookingForm() {
 			return { id: null, entryNo: null, date: new Date().toISOString().slice(0, 10), documentRef: '', amount: null, debitAccountId: null, creditAccountId: null, description: '', kind: 'expense', moneyAccountId: null, categoryId: null, updatedAt: null }

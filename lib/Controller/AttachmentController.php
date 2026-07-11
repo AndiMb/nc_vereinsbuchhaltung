@@ -7,7 +7,10 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Attachment;
 use OCA\Vereinsbuchhaltung\Db\AttachmentMapper;
+use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
+use OCA\Vereinsbuchhaltung\Service\AuditService;
+use OCA\Vereinsbuchhaltung\Service\YearCloseService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
@@ -34,6 +37,9 @@ class AttachmentController extends Controller {
 		IRequest $request,
 		private AttachmentMapper $attachmentMapper,
 		private AttachmentStorageService $storageService,
+		private JournalMapper $journalMapper,
+		private YearCloseService $yearClose,
+		private AuditService $audit,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -63,6 +69,14 @@ class AttachmentController extends Controller {
 
 	#[NoAdminRequired]
 	public function create(int $journalId): DataResponse {
+		// Festschreibung: Belege eines abgeschlossenen Jahres sind Teil des Abschlusses.
+		try {
+			$journal = $this->journalMapper->find($journalId, $this->userId());
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => 'Buchung nicht gefunden'], Http::STATUS_NOT_FOUND);
+		}
+		$this->yearClose->assertOpen((string)$journal->getDate());
+
 		$upload = $this->request->getUploadedFile('file');
 		if ($upload === null || !isset($upload['tmp_name']) || !is_uploaded_file($upload['tmp_name'])) {
 			return new DataResponse(['message' => 'Keine Datei empfangen'], Http::STATUS_BAD_REQUEST);
@@ -101,6 +115,10 @@ class AttachmentController extends Controller {
 			return new DataResponse(['message' => 'Datei konnte nicht gespeichert werden: ' . $e->getMessage()], Http::STATUS_INTERNAL_SERVER_ERROR);
 		}
 
+		$this->audit->log('Beleg hinzugefügt', 'attachment', $attachment->getId(), [
+			'journalId' => $journalId,
+			'fileName' => $attachment->getFileName(),
+		]);
 		return new DataResponse($attachment, Http::STATUS_CREATED);
 	}
 
@@ -150,8 +168,20 @@ class AttachmentController extends Controller {
 			return new DataResponse(['message' => 'Nicht gefunden'], Http::STATUS_NOT_FOUND);
 		}
 
+		// Festschreibung: Belege eines abgeschlossenen Jahres bleiben unangetastet.
+		try {
+			$journal = $this->journalMapper->find($attachment->getJournalId(), $this->userId());
+			$this->yearClose->assertOpen((string)$journal->getDate());
+		} catch (DoesNotExistException) {
+			// Buchung existiert nicht mehr → verwaister Beleg darf immer weg.
+		}
+
 		$this->storageService->deleteFile($id, $attachment->getJournalId(), $attachment->getFileName());
 		$this->attachmentMapper->delete($attachment);
+		$this->audit->log('Beleg gelöscht', 'attachment', $id, [
+			'journalId' => $attachment->getJournalId(),
+			'fileName' => $attachment->getFileName(),
+		]);
 		return new DataResponse([]);
 	}
 }

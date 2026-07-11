@@ -23,6 +23,12 @@ export default {
 	revision: () => axios.get(url('/revision')),
 	lastWriteAt: () => lastWriteTs,
 
+	// Jahresabschluss (Festschreibung) + Änderungsprotokoll
+	closedYears: () => axios.get(url('/years/closed')),
+	closeYear: year => axios.post(url(`/years/${year}/close`)),
+	reopenYear: year => axios.delete(url(`/years/${year}/close`)),
+	auditLog: (limit = 100, offset = 0) => axios.get(url('/audit'), { params: { limit, offset } }),
+
 	// Konten
 	listAccounts: () => axios.get(url('/accounts')),
 	createAccount: data => axios.post(url('/accounts'), data),

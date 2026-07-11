@@ -24,6 +24,7 @@ class OpeningBalanceService {
 		private JournalLineMapper $lineMapper,
 		private AccountService $accountService,
 		private AttachmentStorageService $attachmentStorage,
+		private YearCloseService $yearClose,
 	) {
 	}
 
@@ -35,8 +36,18 @@ class OpeningBalanceService {
 	public function sync(Account $account): void {
 		$userId = $account->getUserId();
 
-		// bestehende Eröffnungsbuchung dieses Kontos entfernen
+		// Festschreibung: weder eine bestehende Eröffnungsbuchung eines
+		// abgeschlossenen Jahres entfernen noch eine neue dort anlegen.
 		$existing = $this->journalMapper->findOpeningForAccount($userId, $account->getId());
+		if ($existing !== null) {
+			$this->yearClose->assertOpen((string)$existing->getDate());
+		}
+		$newDate = $account->getOpeningDate() ?? (new \DateTime())->format('Y-m-d');
+		if ($account->getOpeningBalanceCents() !== 0) {
+			$this->yearClose->assertOpen($newDate);
+		}
+
+		// bestehende Eröffnungsbuchung dieses Kontos entfernen
 		if ($existing !== null) {
 			$this->attachmentStorage->deleteForJournal($existing->getId());
 			$this->lineMapper->deleteByJournal($existing->getId());
