@@ -535,3 +535,7 @@
 
 /* Änderungsprotokoll: „Ältere Einträge laden" */
 .vbh-loadmore { display: flex; justify-content: center; padding: 12px 0 4px; }
+
+/* Kassenprüfung: Checkbox „nur ohne Beleg" in der Filterleiste */
+.vbh-checkinline { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; cursor: pointer; font-size: 0.95em; }
+.vbh-checkinline input { margin: 0; }

@@ -80,6 +80,7 @@ return [
 		['name' => 'export#budget',   'url' => '/api/export/budget',   'verb' => 'GET'],
 		['name' => 'export#multiyear', 'url' => '/api/export/multiyear', 'verb' => 'GET'],
 		['name' => 'export#kassenbericht', 'url' => '/api/export/kassenbericht', 'verb' => 'GET'],
+		['name' => 'export#attachments', 'url' => '/api/export/attachments', 'verb' => 'GET'],
 
 		// Einstellungen
 		['name' => 'settings#index',  'url' => '/api/settings', 'verb' => 'GET'],

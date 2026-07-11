@@ -6,10 +6,12 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
+use OCA\Vereinsbuchhaltung\Db\AttachmentMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\YearCloseMapper;
+use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\ReportService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -20,6 +22,7 @@ use OCP\AppFramework\Http\DataDisplayResponse;
 use OCP\AppFramework\Http\DataDownloadResponse;
 use OCP\IConfig;
 use OCP\IRequest;
+use OCP\ITempManager;
 
 /**
  * CSV-Exporte für Journal, Saldenliste und Einnahmen-/Ausgaben-Übersicht.
@@ -39,6 +42,9 @@ class ExportController extends Controller {
 		private ReportService $reportService,
 		private YearCloseMapper $yearCloseMapper,
 		private IConfig $config,
+		private AttachmentMapper $attachmentMapper,
+		private AttachmentStorageService $storageService,
+		private ITempManager $tempManager,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -501,6 +507,73 @@ class ExportController extends Controller {
 
 	private function esc(string $s): string {
 		return htmlspecialchars($s, ENT_QUOTES);
+	}
+
+	/** Dateisystem-tauglicher Name für ZIP-Einträge (Umlaute bleiben erhalten). */
+	private function zipName(string $s, int $maxLen = 48): string {
+		$s = preg_replace('/[\\\\\/:*?"<>|[:cntrl:]]/u', '_', $s) ?? '_';
+		$s = trim(preg_replace('/\s+/u', ' ', $s) ?? '', ' ._');
+		if ($s === '') {
+			$s = '_';
+		}
+		return mb_substr($s, 0, $maxLen);
+	}
+
+	/**
+	 * Alle Belege eines Geschäftsjahres als ZIP – für die Kassenprüfung.
+	 * Ordner je Buchung: "NNNN_Datum_Beschreibung/<BelegID>_<Dateiname>".
+	 * Nicht auffindbare Dateien brechen den Export nicht ab, sondern werden
+	 * in fehlende_dateien.txt aufgelistet.
+	 */
+	#[NoAdminRequired]
+	#[NoCSRFRequired]
+	public function attachments(?int $year = null): DataDownloadResponse {
+		$userId = $this->userId();
+		[$from, $to] = $this->yearRange($year);
+		$yearLabel = $year ? (string)$year : 'alle_jahre';
+
+		$zipPath = $this->tempManager->getTemporaryFile('.zip');
+		$zip = new \ZipArchive();
+		if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+			throw new \RuntimeException('ZIP-Datei konnte nicht erstellt werden.');
+		}
+
+		$count = 0;
+		$problems = [];
+		foreach ($this->journalMapper->findAll($userId, 100000, 0, $from, $to) as $journal) {
+			$atts = $this->attachmentMapper->findAllByJournal($journal->getId());
+			if ($atts === []) {
+				continue;
+			}
+			$folder = $this->zipName(sprintf(
+				'%04d_%s_%s',
+				(int)($journal->getEntryNo() ?? 0),
+				(string)$journal->getDate(),
+				(string)$journal->getDescription(),
+			), 80);
+			foreach ($atts as $att) {
+				try {
+					$content = $this->storageService->getFileContent($att->getId(), $att->getJournalId(), $att->getFileName());
+				} catch (\Throwable) {
+					$problems[] = sprintf('Buchung #%s (%s): Datei "%s" (Beleg %d) nicht gefunden.',
+						(string)($journal->getEntryNo() ?? '?'), (string)$journal->getDate(), $att->getFileName(), $att->getId());
+					continue;
+				}
+				$zip->addFromString($folder . '/' . $att->getId() . '_' . $this->zipName($att->getFileName(), 100), $content);
+				$count++;
+			}
+		}
+
+		if ($count === 0) {
+			$zip->addFromString('hinweis.txt', "Keine Belege im gewählten Zeitraum gefunden.\n");
+		}
+		if ($problems !== []) {
+			$zip->addFromString('fehlende_dateien.txt', implode("\n", $problems) . "\n");
+		}
+		$zip->close();
+
+		$data = (string)file_get_contents($zipPath);
+		return new DataDownloadResponse($data, "belege_{$yearLabel}.zip", 'application/zip');
 	}
 
 	/**

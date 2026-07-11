@@ -178,11 +178,23 @@
 						placeholder="Konto filtern"
 						class="vbh-filter-select"
 					/>
+					<label v-if="bookingView === 'journal'" class="vbh-checkinline" title="Nur Buchungen ohne angehängten Beleg zeigen (z. B. vor der Kassenprüfung)">
+						<input v-model="journalOnlyNoAttachment" type="checkbox">
+						nur ohne Beleg
+					</label>
 				</div>
 
 				<div class="vbh-sectionbody">
 					<!-- JOURNAL VIEW -->
 					<template v-if="bookingView === 'journal'">
+						<div v-if="journalNumberIssues" class="vbh-yearwarn">
+							<p class="vbh-warn-inline">
+								⚠ Buchungsnummern {{ selectedYear }} nicht lückenlos:
+								<template v-if="journalNumberIssues.missing.length">fehlend {{ journalNumberIssues.missing.slice(0, 20).join(', ') }}<template v-if="journalNumberIssues.missing.length > 20"> …</template></template>
+								<template v-if="journalNumberIssues.missing.length && journalNumberIssues.duplicates.length"> · </template>
+								<template v-if="journalNumberIssues.duplicates.length">doppelt {{ journalNumberIssues.duplicates.join(', ') }}</template>
+							</p>
+						</div>
 						<div v-if="filteredJournalRows.length && isMobile" class="vbh-cardlist">
 							<div class="vbh-tablecount">{{ filteredJournalRows.length }}<template v-if="filteredJournalRows.length !== sortedJournalRows.length"> von {{ sortedJournalRows.length }}</template> Buchungssätze</div>
 							<template v-for="g in journalCardGroups">
@@ -491,6 +503,7 @@
 					</div>
 					<div class="vbh-sectiontop-actions">
 						<a v-if="reportView === 'summary' && selectedYear" :href="kassenberichtUrl" target="_blank" rel="noopener" class="vbh-export-btn" title="Druckfertiger Kassenbericht für die Mitgliederversammlung (öffnet in neuem Tab, dort drucken oder als PDF speichern)"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> Kassenbericht</a>
+						<a v-if="reportView === 'summary' && selectedYear" :href="attachmentsZipUrl" download class="vbh-export-btn" title="Alle Belege des Jahres als ZIP herunterladen (für die Kassenprüfung)"><NcIconSvgWrapper :path="mdiPaperclip" :size="16" inline /> Beleg-ZIP</a>
 						<a v-if="reportView === 'summary'" :href="exportBalancesUrl" download class="vbh-export-btn" title="Saldenliste als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> Saldenliste</a>
 						<a v-if="reportView === 'summary'" :href="exportReportUrl" download class="vbh-export-btn" title="E/A-Übersicht als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> E/A-Übersicht</a>
 						<a v-if="reportView === 'summary'" :href="exportMultiyearUrl" download class="vbh-export-btn" title="Mehrjahresübersicht (alle Jahre) als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> Mehrjahresübersicht</a>
@@ -1591,6 +1604,8 @@ export default {
 			auditEntries: [],
 			auditLoading: false,
 			auditEnd: false,
+			// Kassenprüfung: Journal auf Buchungen ohne Beleg einschränken
+			journalOnlyNoAttachment: false,
 			storageUser: '',
 			storagePath: '',
 			costCenterMode: 'group',
@@ -1617,6 +1632,7 @@ export default {
 		exportBudgetUrl()   { return api.exportBudgetUrl(this.selectedYear) },
 		exportMultiyearUrl() { return api.exportMultiyearUrl() },
 		kassenberichtUrl() { return api.kassenberichtUrl(this.selectedYear) },
+		attachmentsZipUrl() { return api.exportAttachmentsUrl(this.selectedYear) },
 		// Rückwärts-Import mit inkonsistentem Jahresübergang → Import gesperrt
 		// (außer bei „alle Daten löschen", da entfällt der Abgleich).
 		xbucImportBlocked() {
@@ -1678,7 +1694,29 @@ export default {
 					r.creditAccountId === this.bookingFilterAccountId,
 				)
 			}
+			if (this.journalOnlyNoAttachment) {
+				rows = rows.filter(r => !this.attachmentCountMap[r.id])
+			}
 			return rows
+		},
+		// Kassenprüfung: fehlende/doppelte Buchungsnummern im gewählten Jahr
+		// (bei „Alle Jahre" nicht sinnvoll, da je Jahr nummeriert wird).
+		journalNumberIssues() {
+			if (!this.selectedYear) return null
+			const nos = this.journalRows
+				.map(r => r.entryNo)
+				.filter(n => n != null)
+				.map(Number)
+				.sort((a, b) => a - b)
+			if (!nos.length) return null
+			const missing = []
+			const duplicates = []
+			for (let i = 1; i < nos.length; i++) {
+				if (nos[i] === nos[i - 1]) { duplicates.push(nos[i]); continue }
+				for (let n = nos[i - 1] + 1; n < nos[i] && missing.length <= 20; n++) missing.push(n)
+			}
+			if (!missing.length && !duplicates.length) return null
+			return { missing, duplicates: [...new Set(duplicates)] }
 		},
 		recentJournal() {
 			return this.sortedJournalRows.slice(0, 5)
