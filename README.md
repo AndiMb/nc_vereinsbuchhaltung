@@ -2,6 +2,8 @@
 
 Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kontenrahmen und Buchungen können aus einer **„zero Buchhaltung"-.xbuc-Datei** importiert werden, Kontoumsätze kommen als **CSV-CAMT** von der Bank. Die App arbeitet nach den Regeln der **doppelten Buchführung** (Soll/Haben) mit frei definierbarem Kontenrahmen.
 
+> 📖 **Einsteiger-Leitfaden:** Das beiliegende **[HANDBUCH.md](HANDBUCH.md)** führt Schatzmeisterinnen Schritt für Schritt durch die App – von der Ersteinrichtung über die laufende Buchung bis zum Jahresabschluss und der Kassenprüfung.
+
 ## Funktionsumfang
 
 ### Import
