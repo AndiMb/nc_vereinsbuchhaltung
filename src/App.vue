@@ -3,15 +3,15 @@
 		<header class="vbh-header">
 			<div class="vbh-titlebar">
 				<h2>Vereinsbuchhaltung</h2>
-				<div v-if="primaryBank" class="vbh-bankchip" :class="{ warn: Math.abs(primaryBank.open) > 0.005 }">
+				<div v-if="primaryBank && !isMobile" class="vbh-bankchip" :class="{ warn: Math.abs(primaryBank.open) > 0.005 }">
 					<span class="vbh-bankchip-label">{{ primaryBank.name }}</span>
 					<span class="vbh-bankchip-value">{{ formatMoney(primaryBank.balance) }}</span>
 					<span v-if="Math.abs(primaryBank.open) > 0.005" class="vbh-bankchip-hint">{{ formatMoney(primaryBank.open) }} offen</span>
 				</div>
 				<NcLoadingIcon v-if="busy" :size="24" name="Wird geladen…" />
 			</div>
-			<div v-if="canRead" class="vbh-navbar">
-				<nav class="vbh-tabs">
+			<div v-if="canRead" class="vbh-navbar" :class="{ 'vbh-navbar--mobile': isMobile }">
+				<nav v-if="!isMobile" class="vbh-tabs">
 					<button v-for="tab in visibleTabs" :key="tab.id" :class="{ active: activeTab === tab.id }" @click="activeTab = tab.id">
 						<NcIconSvgWrapper :path="tab.icon" :size="18" inline />
 						{{ tab.label }}
@@ -19,7 +19,7 @@
 					</button>
 				</nav>
 				<div class="vbh-navright">
-					<NcButton v-if="canWrite" variant="primary" class="vbh-newbooking-btn" title="Neue Buchung anlegen (von überall)" @click="openNewBooking">
+					<NcButton v-if="canWrite && !isMobile" variant="primary" class="vbh-newbooking-btn" title="Neue Buchung anlegen (von überall)" @click="openNewBooking">
 						<template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>
 						<span class="vbh-newbooking-label">Buchung</span>
 					</NcButton>
@@ -70,7 +70,7 @@
 
 				<template v-if="balances && balances.bankReconciliation && balances.bankReconciliation.length">
 					<h4>Geldkonten</h4>
-					<div class="vbh-tablecard">
+					<div v-if="!isMobile" class="vbh-tablecard">
 						<table class="vbh-table">
 							<thead><tr><th>Konto</th><th class="num">Kontostand</th><th class="num">Offen (nicht zugeordnet)</th></tr></thead>
 							<tbody>
@@ -82,6 +82,17 @@
 							</tbody>
 						</table>
 					</div>
+					<div v-else class="vbh-cardlist">
+						<div v-for="b in balances.bankReconciliation" :key="'m' + b.accountId" class="vbh-mcard">
+							<div class="vbh-mcard-top">
+								<span class="vbh-mcard-title">{{ b.number }} {{ b.name }}</span>
+								<span class="vbh-mcard-amount">{{ formatMoney(b.balance) }}</span>
+							</div>
+							<div v-if="Math.abs(b.open) > 0.005" class="vbh-mcard-bottom">
+								<span class="vbh-mcard-accounts">{{ formatMoney(b.open) }} nicht zugeordnet</span>
+							</div>
+						</div>
+					</div>
 				</template>
 
 				<template v-if="recentJournal.length">
@@ -89,7 +100,7 @@
 						<h4>Letzte Buchungen</h4>
 						<NcButton variant="tertiary" @click="activeTab = 'bookings'">Alle anzeigen</NcButton>
 					</div>
-					<div class="vbh-tablecard">
+					<div v-if="!isMobile" class="vbh-tablecard">
 						<table class="vbh-table">
 							<thead>
 								<tr>
@@ -112,6 +123,16 @@
 								</tr>
 							</tbody>
 						</table>
+					</div>
+					<div v-else class="vbh-cardlist">
+						<BookingCard v-for="r in recentJournal"
+							:key="'m' + r.id"
+							:row="r"
+							:attachment-count="attachmentCountMap[r.id] ? attachmentCountMap[r.id].count : 0"
+							:flow="rowFlow(r)"
+							:tappable="canWrite || !!attachmentCountMap[r.id]"
+							@open="openBookingCard(r)"
+							@paperclip="clickPaperclip(r)" />
 					</div>
 				</template>
 				<NcEmptyContent v-else-if="!busy" name="Noch keine Buchungen" description="Importiere Kontoumsätze oder lege manuell Buchungssätze an." />
@@ -162,7 +183,21 @@
 				<div class="vbh-sectionbody">
 					<!-- JOURNAL VIEW -->
 					<template v-if="bookingView === 'journal'">
-						<div v-if="filteredJournalRows.length" class="vbh-tablecard">
+						<div v-if="filteredJournalRows.length && isMobile" class="vbh-cardlist">
+							<div class="vbh-tablecount">{{ filteredJournalRows.length }}<template v-if="filteredJournalRows.length !== sortedJournalRows.length"> von {{ sortedJournalRows.length }}</template> Buchungssätze</div>
+							<template v-for="g in journalCardGroups">
+								<div :key="g.key" class="vbh-monthdivider">{{ g.label }}</div>
+								<BookingCard v-for="r in g.rows"
+									:key="g.key + '-' + r.id"
+									:row="r"
+									:attachment-count="attachmentCountMap[r.id] ? attachmentCountMap[r.id].count : 0"
+									:flow="rowFlow(r)"
+									:tappable="canWrite || !!attachmentCountMap[r.id]"
+									@open="openBookingCard(r)"
+									@paperclip="clickPaperclip(r)" />
+							</template>
+						</div>
+						<div v-else-if="filteredJournalRows.length" class="vbh-tablecard">
 							<div class="vbh-tablecount">{{ filteredJournalRows.length }}<template v-if="filteredJournalRows.length !== sortedJournalRows.length"> von {{ sortedJournalRows.length }}</template> Buchungssätze</div>
 							<table class="vbh-table">
 								<thead>
@@ -222,7 +257,37 @@
 							<span class="vbh-progress-label">{{ assignProgress.done }} von {{ assignProgress.total }} Bankbuchungen zugeordnet</span>
 							<div class="vbh-progress-bar"><div class="vbh-progress-fill" :style="{ width: assignProgress.pct + '%' }"></div></div>
 						</div>
-						<div v-if="currentTransactions.length" class="vbh-tablecard">
+						<div v-if="currentTransactions.length && isMobile" class="vbh-cardlist">
+							<div class="vbh-tablecount">{{ currentTransactions.length }} Buchungen</div>
+							<div v-for="tx in currentTransactions" :key="'m' + tx.id" class="vbh-mcard" :class="tx.status === 'assigned' ? '' : 'open'">
+								<div class="vbh-mcard-top">
+									<span class="vbh-mcard-meta">{{ formatDate(tx.bookingDate) }}</span>
+									<span class="vbh-mcard-amount" :class="tx.amount < 0 ? 'neg' : 'pos'">{{ formatMoney(tx.amount) }}</span>
+								</div>
+								<div class="vbh-mcard-title">{{ tx.counterparty }}</div>
+								<div v-if="tx.purpose" class="vbh-mcard-purpose">{{ tx.purpose }}</div>
+								<button
+									v-if="canWrite && !tx.contraAccountId && suggestionsById[tx.id]"
+									type="button"
+									class="vbh-suggest-chip vbh-suggest-chip--big"
+									@click="applySuggestion(tx)"
+								>
+									✓ Vorschlag übernehmen: {{ suggestionsById[tx.id].label }}
+								</button>
+								<NcSelect
+									:model-value="accountOptionFor(tx.contraAccountId)"
+									:options="accountOptionsList"
+									:filter-by="accountFilterBy"
+									:clearable="!!tx.contraAccountId"
+									:disabled="!canWrite"
+									label="label"
+									placeholder="– nicht zugeordnet –"
+									class="vbh-assign-select vbh-assign-select--mobile"
+									@update:model-value="v => onAssign(tx, v ? v.id : '')"
+								/>
+							</div>
+						</div>
+						<div v-else-if="currentTransactions.length" class="vbh-tablecard">
 							<div class="vbh-tablecount">{{ currentTransactions.length }} Buchungen</div>
 							<table class="vbh-table">
 								<thead>
@@ -673,6 +738,14 @@
 			</section>
 		</main>
 
+		<MobileNav v-if="canRead && isMobile"
+			:tabs="visibleTabs"
+			:active-tab="activeTab"
+			:unassigned-count="unassignedCount"
+			:can-write="canWrite"
+			@select="id => { activeTab = id }"
+			@new-booking="openNewBooking" />
+
 		<!-- ============ EINSTELLUNGEN MODAL ============ -->
 		<NcModal :show.sync="showSettings" name="Einstellungen & Import" size="large" @close="showSettings = false">
 			<div class="vbh-modal-inner">
@@ -1024,6 +1097,7 @@
 				</div>
 
 				<div class="vbh-modal-actions">
+					<NcButton v-if="isMobile && bookingForm.id && canWrite" variant="error" @click="deleteBookingFromDialog">Löschen</NcButton>
 					<NcButton variant="tertiary" @click="closeBooking">Abbrechen</NcButton>
 					<NcButton variant="primary" @click="saveBooking">{{ bookingForm.id ? 'Speichern' : 'Buchen' }}</NcButton>
 				</div>
@@ -1142,6 +1216,8 @@ import { mdiCog, mdiCommentPlusOutline, mdiCommentText, mdiDelete, mdiPaperclip,
 import api from './api.js'
 import { formatMoney, formatDate, formatDateTime, typeLabel, roleLabel, amountClass, budgetDiffClass, errMsg } from './lib/format.js'
 import SettingsRules from './components/SettingsRules.vue'
+import MobileNav from './components/MobileNav.vue'
+import BookingCard from './components/BookingCard.vue'
 import {
 	Chart,
 	BarController,
@@ -1166,6 +1242,8 @@ export default {
 		NcModal,
 		NcSelect,
 		SettingsRules,
+		MobileNav,
+		BookingCard,
 	},
 	data() {
 		return {
@@ -1256,6 +1334,8 @@ export default {
 			// Kollaboration: zuletzt gesehener Änderungsstand + Poll-Timer
 			syncRevision: null,
 			syncTimer: null,
+			// Mobil-Layout (≤ 640px): schaltet Bottom-Nav, Kartenlisten etc.
+			isMobile: false,
 			storageUser: '',
 			storagePath: '',
 			costCenterMode: 'group',
@@ -1336,6 +1416,25 @@ export default {
 		},
 		recentJournal() {
 			return this.sortedJournalRows.slice(0, 5)
+		},
+		// Mobil: Journal fest nach Datum absteigend, gruppiert nach Monat
+		// (die Spaltenkopf-Sortierung der Tabelle entfällt auf Karten).
+		journalCardGroups() {
+			const rows = [...this.filteredJournalRows].sort((a, b) =>
+				String(b.date || '').localeCompare(String(a.date || '')) || (b.entryNo || 0) - (a.entryNo || 0))
+			const names = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
+			const groups = []
+			let cur = null
+			for (const r of rows) {
+				const key = String(r.date || '').slice(0, 7)
+				if (!cur || cur.key !== key) {
+					const m = parseInt(key.slice(5, 7), 10)
+					cur = { key, label: (names[m - 1] || '?') + ' ' + key.slice(0, 4), rows: [] }
+					groups.push(cur)
+				}
+				cur.rows.push(r)
+			}
+			return groups
 		},
 		monthlyChartData() {
 			const labels = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez']
@@ -1711,6 +1810,12 @@ export default {
 	},
 	async mounted() {
 		document.addEventListener('keydown', this.onGlobalKeydown)
+		// Mobil-Layout reaktiv am selben Breakpoint wie das CSS (640px)
+		this.vbhMql = window.matchMedia('(max-width: 640px)')
+		this.isMobile = this.vbhMql.matches
+		this.onMqChange = e => { this.isMobile = e.matches }
+		if (this.vbhMql.addEventListener) this.vbhMql.addEventListener('change', this.onMqChange)
+		else this.vbhMql.addListener(this.onMqChange)
 		await this.loadMe()
 		if (this.canRead) {
 			await this.loadYears()
@@ -1731,6 +1836,10 @@ export default {
 	},
 	beforeDestroy() {
 		document.removeEventListener('keydown', this.onGlobalKeydown)
+		if (this.vbhMql) {
+			if (this.vbhMql.removeEventListener) this.vbhMql.removeEventListener('change', this.onMqChange)
+			else this.vbhMql.removeListener(this.onMqChange)
+		}
 		if (this.syncTimer) clearInterval(this.syncTimer)
 		window.removeEventListener('focus', this.onWindowFocus)
 		Object.values(this.chartInstances).forEach(c => c && c.destroy())
@@ -2181,6 +2290,39 @@ export default {
 			this.bookingForm = this.emptyBookingForm()
 			this.bookingForm.moneyAccountId = this.defaultMoneyAccountId
 			this.showBooking = true
+		},
+		// Mobil: Geldfluss-Richtung einer Buchung für die Betrags-Färbung der
+		// Karte – nur eindeutige Fälle (genau eine Seite ist ein Geldkonto).
+		rowFlow(r) {
+			if (r.isSplit) return ''
+			const d = this.accountsById[r.debitAccountId]
+			const c = this.accountsById[r.creditAccountId]
+			const dIn = !!(d && d.isBank)
+			const cOut = !!(c && c.isBank)
+			if (dIn && !cOut) return 'in'
+			if (cOut && !dIn) return 'out'
+			return ''
+		},
+		// Mobil: Tippen auf eine Buchungskarte
+		openBookingCard(r) {
+			if (this.canWrite) {
+				this.editBooking(r)
+				return
+			}
+			if (this.attachmentCountMap[r.id]) this.openQuickViewer(r)
+		},
+		// Mobil: Löschen aus dem Bearbeiten-Dialog (die Karten haben keinen
+		// eigenen Löschen-Knopf; am Desktop bleibt der Knopf in der Zeile).
+		async deleteBookingFromDialog() {
+			const id = this.bookingForm.id
+			const entryNo = this.bookingForm.entryNo
+			if (!id) return
+			if (!await this.askConfirm('Buchung löschen', `Buchung #${entryNo} löschen?`)) return
+			try {
+				await api.deleteBooking(id)
+				this.closeBooking()
+				await this.loadJournal(); await this.loadBalances()
+			} catch (e) { showError(this.errMsg(e, 'Löschen fehlgeschlagen')) }
 		},
 		editBooking(r) {
 			if (r.isSplit) {

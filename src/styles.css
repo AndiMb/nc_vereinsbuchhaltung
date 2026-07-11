@@ -372,6 +372,38 @@
 .vbh-chart-wrap { height: 260px; }
 .vbh-chart-wrap canvas { display: block; width: 100% !important; height: 100% !important; }
 
+/* ---- Mobil: Bottom-Navigation + FAB (nur bei isMobile gerendert) ---- */
+.vbh-bottomnav { position: relative; flex: 0 0 auto; display: flex; align-items: stretch; border-top: 1px solid var(--color-border); background-color: var(--color-main-background); padding: 4px 4px calc(4px + env(safe-area-inset-bottom, 0px)); z-index: 20; }
+.vbh-bottomnav-item { flex: 1 1 0; min-width: 0; min-height: 48px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; border: none; background: none; margin: 0; padding: 4px 2px; font-size: 0.7em; font-weight: 600; color: var(--color-text-maxcontrast); border-radius: 8px; cursor: pointer; }
+.vbh-bottomnav-item.active { color: var(--color-primary-element); }
+.vbh-bottomnav-icon { position: relative; display: inline-flex; }
+.vbh-bottomnav-badge { position: absolute; top: -4px; right: -12px; }
+.vbh-bottomnav-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vbh-fab { position: absolute; right: 14px; bottom: calc(100% + 14px); width: 52px; height: 52px; border-radius: 50%; border: none; margin: 0; padding: 0; background-color: var(--color-primary-element); color: var(--color-primary-element-text); display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3); cursor: pointer; z-index: 21; }
+.vbh-fab:active { transform: scale(0.95); }
+
+/* ---- Mobil: Kartenlisten (Journal, Umsätze, Dashboard) ---- */
+.vbh-cardlist { display: flex; flex-direction: column; gap: 8px; }
+.vbh-monthdivider { margin: 8px 2px 0; font-size: 0.72em; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text-maxcontrast); }
+.vbh-mcard { background-color: var(--color-main-background); border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); padding: 10px 12px; display: flex; flex-direction: column; gap: 3px; }
+.vbh-mcard.tappable { cursor: pointer; }
+.vbh-mcard.tappable:active { background-color: var(--color-background-hover); }
+.vbh-mcard.open { box-shadow: inset 3px 0 0 var(--color-warning, #d9a411); }
+.vbh-mcard-top { display: flex; align-items: baseline; gap: 8px; }
+.vbh-mcard-top .vbh-mcard-title { flex: 1 1 auto; min-width: 0; }
+.vbh-mcard-meta { font-size: 0.78em; color: var(--color-text-maxcontrast); white-space: nowrap; }
+.vbh-mcard-amount { margin-left: auto; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.vbh-mcard-amount.pos { color: #2d7d46; }
+.vbh-mcard-amount.neg { color: #b23636; }
+.vbh-mcard-title { font-weight: 600; overflow-wrap: anywhere; }
+.vbh-mcard-purpose { font-size: 0.85em; color: var(--color-text-maxcontrast); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.vbh-mcard-bottom { display: flex; align-items: center; gap: 8px; }
+.vbh-mcard-accounts { flex: 1 1 auto; min-width: 0; font-size: 0.78em; color: var(--color-text-maxcontrast); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vbh-mcard-clip { border: none; background: none; margin: 0; padding: 4px 6px; font-size: 0.8em; color: var(--color-text-maxcontrast); cursor: pointer; display: inline-flex; align-items: center; gap: 2px; }
+/* Zuordnen mobil: Vorschlag als große Primärtaste, Kontoauswahl volle Breite */
+.vbh-suggest-chip--big { display: block; width: 100%; margin-top: 6px; padding: 10px 12px; font-size: 0.9em; text-align: center; border-radius: 8px; background: var(--color-primary-element); color: var(--color-primary-element-text); }
+.vbh-assign-select--mobile { width: 100%; margin-top: 4px; }
+
 /* Responsive: Tablet (≤ 760px) */
 @media (max-width: 760px) {
 	.vbh-chart-grid { grid-template-columns: minmax(0, 1fr); }
@@ -388,6 +420,8 @@
 
 	/* Tabs: scrollbar, kleinere Schrift */
 	.vbh-navbar { gap: 4px; flex-wrap: nowrap; align-items: center; }
+	/* Mobil ersetzt die Bottom-Nav die Tab-Leiste: rechts nur Jahr + Zahnrad */
+	.vbh-navbar--mobile { justify-content: flex-end; margin: 4px 0 8px; }
 	.vbh-tabs { overflow-x: auto; scrollbar-width: none; flex-shrink: 1; min-width: 0; }
 	.vbh-tabs::-webkit-scrollbar { display: none; }
 	.vbh-tabs button { padding: 5px 10px; font-size: 0.82em; white-space: nowrap; }
@@ -397,9 +431,9 @@
 	.vbh-yearsel select { padding: 3px 4px; }
 	.vbh-yearsel > span { display: none; }
 
-	/* Weniger Außenabstand im Hauptbereich */
-	.vbh-section.scroll { padding: 10px 10px 48px; }
-	.vbh-sectionbody { padding: 8px 8px 48px; }
+	/* Weniger Außenabstand im Hauptbereich; unten Platz für den FAB */
+	.vbh-section.scroll { padding: 10px 10px 84px; }
+	.vbh-sectionbody { padding: 8px 8px 84px; }
 	.vbh-sectiontop { padding: 6px 8px; gap: 8px; }
 	.vbh-filterbar { padding: 6px 8px; flex-direction: column; align-items: stretch; }
 	.vbh-search { width: 100%; box-sizing: border-box; min-width: 0; }
@@ -432,6 +466,8 @@
 @media (prefers-color-scheme: dark) {
 	.vbh-table .num.neg, .vbh-table .num.bad { color: #ff7a7a; }
 	.vbh-table .num.good { color: #6fcf97; }
+	.vbh-mcard-amount.pos { color: #6fcf97; }
+	.vbh-mcard-amount.neg { color: #ff7a7a; }
 	.vbh-bankchip-hint, .vbh-warn-inline { color: #ffb060; }
 	.vbh-total.pos strong { color: #6fcf97; }
 	.vbh-total.neg strong { color: #ff7a7a; }
