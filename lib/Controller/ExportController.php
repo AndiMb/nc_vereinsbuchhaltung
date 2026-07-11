@@ -9,11 +9,16 @@ use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
+use OCA\Vereinsbuchhaltung\Db\YearCloseMapper;
 use OCA\Vereinsbuchhaltung\Service\ReportService;
 use OCP\AppFramework\Controller;
+use OCP\AppFramework\Db\DoesNotExistException;
+use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
+use OCP\AppFramework\Http\DataDisplayResponse;
 use OCP\AppFramework\Http\DataDownloadResponse;
+use OCP\IConfig;
 use OCP\IRequest;
 
 /**
@@ -32,6 +37,8 @@ class ExportController extends Controller {
 		private AccountMapper $accountMapper,
 		private BudgetMapper $budgetMapper,
 		private ReportService $reportService,
+		private YearCloseMapper $yearCloseMapper,
+		private IConfig $config,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -490,5 +497,254 @@ class ExportController extends Controller {
 			$cells[] = $this->fmtMoney(($totalsCents[$y] ?? 0) / 100);
 		}
 		return $this->csvLine($cells);
+	}
+
+	private function esc(string $s): string {
+		return htmlspecialchars($s, ENT_QUOTES);
+	}
+
+	/**
+	 * Druckfertiger Kassenbericht für die Mitgliederversammlung als
+	 * eigenständige HTML-Seite (Drucken/Als-PDF-speichern über den Browser).
+	 * Kein Server-PDF nötig, kein JavaScript (Nextcloud-CSP), Print-CSS inline.
+	 */
+	#[NoAdminRequired]
+	#[NoCSRFRequired]
+	public function kassenbericht(?int $year = null): DataDisplayResponse {
+		$userId = $this->userId();
+		$year = ($year === null || $year <= 0) ? (int)date('Y') : $year;
+		$from = sprintf('%04d-01-01', $year);
+		$to = sprintf('%04d-12-31', $year);
+		$prevTo = sprintf('%04d-12-31', $year - 1);
+
+		$accounts = $this->accountMapper->findAll($userId);
+		$moveSums = $this->lineMapper->sumByAccount($userId, $from, $to);
+		$cumEnd = $this->lineMapper->sumByAccount($userId, null, $to);
+		$cumStart = $this->lineMapper->sumByAccount($userId, null, $prevTo);
+
+		// --- Einnahmen / Ausgaben (wie report()) ---
+		$income = [];
+		$expense = [];
+		$totalIncome = 0;
+		$totalExpense = 0;
+		foreach ($accounts as $account) {
+			if (!$account->isResultRelevant()) {
+				continue;
+			}
+			$id = $account->getId();
+			$d = $moveSums[$id]['debit'] ?? 0;
+			$c = $moveSums[$id]['credit'] ?? 0;
+			if ($account->isCreditNature()) {
+				$amount = $c - $d;
+				if ($amount !== 0) {
+					$income[] = [$account->getNumber(), $account->getName(), $amount];
+					$totalIncome += $amount;
+				}
+			} else {
+				$amount = $d - $c;
+				if ($amount !== 0) {
+					$expense[] = [$account->getNumber(), $account->getName(), $amount];
+					$totalExpense += $amount;
+				}
+			}
+		}
+		$result = $totalIncome - $totalExpense;
+
+		// --- Vermögensübersicht: Geldkonten (Bank/Kasse), Bestand kumulativ ---
+		$wealthRows = [];
+		$wealthStart = 0;
+		$wealthEnd = 0;
+		foreach ($accounts as $account) {
+			if (!$account->isStockAccount()) {
+				continue;
+			}
+			$id = $account->getId();
+			$start = ($cumStart[$id]['debit'] ?? 0) - ($cumStart[$id]['credit'] ?? 0);
+			$end = ($cumEnd[$id]['debit'] ?? 0) - ($cumEnd[$id]['credit'] ?? 0);
+			if ($start === 0 && $end === 0) {
+				continue;
+			}
+			$wealthRows[] = [$account->getNumber(), $account->getName(), $start, $end];
+			$wealthStart += $start;
+			$wealthEnd += $end;
+		}
+
+		// --- Soll-Ist (nur wenn Planwerte existieren, wie budget()) ---
+		$plan = $this->budgetMapper->findByYear($userId, $year);
+		$planRows = [];
+		$planIncome = 0; $actualIncome = 0;
+		$planExpense = 0; $actualExpense = 0;
+		if ($plan !== []) {
+			foreach ($accounts as $account) {
+				$type = $account->getType();
+				if ($type !== 'income' && $type !== 'expense') {
+					continue;
+				}
+				$id = $account->getId();
+				$d = $moveSums[$id]['debit'] ?? 0;
+				$c = $moveSums[$id]['credit'] ?? 0;
+				$actualCents = $type === 'income' ? ($c - $d) : ($d - $c);
+				$planCents = $plan[$id]['amount'] ?? 0;
+				if ($planCents === 0 && $actualCents === 0) {
+					continue;
+				}
+				$planRows[] = [$account->getNumber(), $account->getName(), $type, $planCents, $actualCents];
+				if ($type === 'income') {
+					$planIncome += $planCents; $actualIncome += $actualCents;
+				} else {
+					$planExpense += $planCents; $actualExpense += $actualCents;
+				}
+			}
+			usort($planRows, static fn ($a, $b) => strcmp((string)$a[0], (string)$b[0]));
+		}
+
+		// --- Buchungszahl + Lückenprüfung der Buchungsnummern ---
+		$entryNos = [];
+		foreach ($this->journalMapper->findAll($userId, 100000, 0, $from, $to) as $journal) {
+			$no = $journal->getEntryNo();
+			if ($no !== null) {
+				$entryNos[] = (int)$no;
+			}
+		}
+		sort($entryNos);
+		$bookingCount = count($entryNos);
+		$missing = [];
+		$duplicates = [];
+		if ($bookingCount > 0) {
+			$prev = null;
+			foreach ($entryNos as $no) {
+				if ($prev !== null) {
+					if ($no === $prev) {
+						$duplicates[] = $no;
+					}
+					for ($i = $prev + 1; $i < $no && count($missing) <= 20; $i++) {
+						$missing[] = $i;
+					}
+				}
+				$prev = $no;
+			}
+		}
+		$numbering = $bookingCount === 0
+			? 'Keine Buchungen im Geschäftsjahr.'
+			: sprintf('%d Buchungen (Nr. %d–%d)', $bookingCount, $entryNos[0], $entryNos[$bookingCount - 1]);
+		if ($bookingCount > 0 && !$missing && !$duplicates) {
+			$numbering .= ', Buchungsnummern lückenlos.';
+		} elseif ($missing || $duplicates) {
+			$hints = [];
+			if ($missing) {
+				$hints[] = 'fehlende Nummern: ' . implode(', ', array_slice($missing, 0, 20)) . (count($missing) > 20 ? ' …' : '');
+			}
+			if ($duplicates) {
+				$hints[] = 'doppelte Nummern: ' . implode(', ', array_unique($duplicates));
+			}
+			$numbering .= ' – ⚠ ' . implode('; ', $hints);
+		}
+
+		// --- Abschlussvermerk ---
+		try {
+			$close = $this->yearCloseMapper->findByYear($year);
+			$closeNote = sprintf(
+				'Das Geschäftsjahr %d wurde am %s von %s abgeschlossen (festgeschrieben).',
+				$year,
+				$this->fmtDate(substr((string)$close->getClosedAt(), 0, 10)),
+				$close->getClosedBy(),
+			);
+		} catch (DoesNotExistException) {
+			$closeNote = sprintf('Das Geschäftsjahr %d ist noch nicht abgeschlossen.', $year);
+		}
+
+		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '');
+		$title = ($clubName !== '' ? $clubName . ' – ' : '') . 'Kassenbericht ' . $year;
+
+		$m = fn (int $cents): string => $this->fmtMoney($cents / 100) . ' €';
+		$h = '';
+
+		$h .= '<div class="noprint">Zum Drucken oder Als-PDF-Speichern: <strong>Strg+P</strong> (Mac: ⌘P) im Browser.</div>';
+		$h .= '<header>';
+		if ($clubName !== '') {
+			$h .= '<div class="club">' . $this->esc($clubName) . '</div>';
+		}
+		$h .= '<h1>Kassenbericht für das Geschäftsjahr ' . $year . '</h1>';
+		$h .= '<div class="meta">Erstellt am ' . $this->fmtDate(date('Y-m-d')) . ' · ' . $this->esc($closeNote) . '</div>';
+		$h .= '</header>';
+
+		// Vermögensübersicht
+		$h .= '<section><h2>Vermögensübersicht (Geldkonten)</h2><table>';
+		$h .= '<tr><th>Konto</th><th class="num">Bestand 01.01.</th><th class="num">Bestand 31.12.</th><th class="num">Veränderung</th></tr>';
+		foreach ($wealthRows as [$nr, $name, $start, $end]) {
+			$h .= '<tr><td>' . $this->esc(trim($nr . ' ' . $name)) . '</td><td class="num">' . $m($start) . '</td><td class="num">' . $m($end) . '</td><td class="num">' . $m($end - $start) . '</td></tr>';
+		}
+		$h .= '<tr class="sum"><td>Gesamtvermögen</td><td class="num">' . $m($wealthStart) . '</td><td class="num">' . $m($wealthEnd) . '</td><td class="num">' . $m($wealthEnd - $wealthStart) . '</td></tr>';
+		$h .= '</table></section>';
+
+		// Einnahmen / Ausgaben
+		$h .= '<section><h2>Einnahmen-/Ausgaben-Rechnung</h2><table>';
+		$h .= '<tr><th colspan="2">Einnahmen</th><th class="num">Betrag</th></tr>';
+		foreach ($income as [$nr, $name, $amount]) {
+			$h .= '<tr><td class="nr">' . $this->esc((string)$nr) . '</td><td>' . $this->esc((string)$name) . '</td><td class="num">' . $m($amount) . '</td></tr>';
+		}
+		$h .= '<tr class="sum"><td colspan="2">Summe Einnahmen</td><td class="num">' . $m($totalIncome) . '</td></tr>';
+		$h .= '<tr><th colspan="2">Ausgaben</th><th class="num">Betrag</th></tr>';
+		foreach ($expense as [$nr, $name, $amount]) {
+			$h .= '<tr><td class="nr">' . $this->esc((string)$nr) . '</td><td>' . $this->esc((string)$name) . '</td><td class="num">' . $m($amount) . '</td></tr>';
+		}
+		$h .= '<tr class="sum"><td colspan="2">Summe Ausgaben</td><td class="num">' . $m($totalExpense) . '</td></tr>';
+		$h .= '<tr class="result"><td colspan="2">Jahresergebnis</td><td class="num">' . $m($result) . '</td></tr>';
+		$h .= '</table></section>';
+
+		// Soll-Ist
+		if ($planRows !== []) {
+			$h .= '<section><h2>Soll-Ist-Vergleich (Finanzplan)</h2><table>';
+			$h .= '<tr><th colspan="2">Konto</th><th class="num">Plan</th><th class="num">Ist</th><th class="num">Differenz</th></tr>';
+			foreach ($planRows as [$nr, $name, $type, $planCents, $actualCents]) {
+				$h .= '<tr><td class="nr">' . $this->esc((string)$nr) . '</td><td>' . $this->esc((string)$name)
+					. '</td><td class="num">' . $m($planCents) . '</td><td class="num">' . $m($actualCents)
+					. '</td><td class="num">' . $m($actualCents - $planCents) . '</td></tr>';
+			}
+			$h .= '<tr class="sum"><td colspan="2">Einnahmen</td><td class="num">' . $m($planIncome) . '</td><td class="num">' . $m($actualIncome) . '</td><td class="num">' . $m($actualIncome - $planIncome) . '</td></tr>';
+			$h .= '<tr class="sum"><td colspan="2">Ausgaben</td><td class="num">' . $m($planExpense) . '</td><td class="num">' . $m($actualExpense) . '</td><td class="num">' . $m($actualExpense - $planExpense) . '</td></tr>';
+			$h .= '<tr class="result"><td colspan="2">Ergebnis</td><td class="num">' . $m($planIncome - $planExpense) . '</td><td class="num">' . $m($actualIncome - $actualExpense) . '</td><td class="num">' . $m(($actualIncome - $actualExpense) - ($planIncome - $planExpense)) . '</td></tr>';
+			$h .= '</table></section>';
+		}
+
+		// Vollständigkeit
+		$h .= '<section><h2>Vollständigkeit</h2><p>' . $this->esc($numbering) . '</p></section>';
+
+		// Unterschriften
+		$h .= '<section class="signatures">';
+		$h .= '<div><div class="line"></div>Ort, Datum · Schatzmeister/in</div>';
+		$h .= '<div><div class="line"></div>Ort, Datum · Kassenprüfer/in</div>';
+		$h .= '<div><div class="line"></div>Ort, Datum · Kassenprüfer/in</div>';
+		$h .= '</section>';
+
+		$css = '
+			* { box-sizing: border-box; }
+			body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #222; margin: 0 auto; padding: 24px; max-width: 210mm; font-size: 11pt; }
+			header { border-bottom: 2px solid #222; margin-bottom: 18px; padding-bottom: 10px; }
+			.club { font-size: 13pt; font-weight: 600; }
+			h1 { font-size: 16pt; margin: 4px 0; }
+			h2 { font-size: 12pt; margin: 0 0 6px; border-bottom: 1px solid #999; padding-bottom: 3px; }
+			.meta { color: #555; font-size: 9pt; }
+			section { margin-bottom: 20px; page-break-inside: avoid; }
+			table { width: 100%; border-collapse: collapse; }
+			th, td { text-align: left; padding: 3px 6px; border-bottom: 1px solid #ddd; vertical-align: top; }
+			th { border-bottom: 1px solid #999; padding-top: 8px; }
+			td.nr, th.nr { width: 60px; color: #555; }
+			.num { text-align: right; white-space: nowrap; }
+			tr.sum td { font-weight: 600; border-top: 1px solid #999; }
+			tr.result td { font-weight: 700; border-top: 2px solid #222; border-bottom: 2px solid #222; }
+			.signatures { display: flex; gap: 24px; margin-top: 60px; page-break-inside: avoid; }
+			.signatures > div { flex: 1; font-size: 9pt; color: #555; }
+			.signatures .line { border-bottom: 1px solid #222; height: 40px; margin-bottom: 4px; }
+			.noprint { background: #fffbe6; border: 1px solid #e0d8a0; padding: 8px 12px; margin-bottom: 16px; font-size: 10pt; }
+			@media print { .noprint { display: none; } body { padding: 0; } }
+			@page { margin: 18mm 15mm; }
+		';
+
+		$html = '<!DOCTYPE html><html lang="de"><head><meta charset="utf-8">'
+			. '<title>' . $this->esc($title) . '</title>'
+			. '<style>' . $css . '</style></head><body>' . $h . '</body></html>';
+
+		return new DataDisplayResponse($html, Http::STATUS_OK, ['Content-Type' => 'text/html; charset=utf-8']);
 	}
 }

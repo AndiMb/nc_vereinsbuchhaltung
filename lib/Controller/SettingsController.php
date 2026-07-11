@@ -29,6 +29,7 @@ class SettingsController extends Controller {
 			'storage_user' => $this->config->getAppValue(Application::APP_ID, 'storage_user', ''),
 			'storage_path' => $this->config->getAppValue(Application::APP_ID, 'storage_path', 'Vereinsbuchhaltung/Belege'),
 			'cost_center_mode' => $this->config->getAppValue(Application::APP_ID, 'cost_center_mode', 'group'),
+			'club_name' => $this->config->getAppValue(Application::APP_ID, 'club_name', ''),
 		]);
 	}
 
@@ -47,15 +48,18 @@ class SettingsController extends Controller {
 		if (!in_array($ccMode, ['group', 'account'], true)) {
 			$ccMode = 'group';
 		}
+		$clubName = mb_substr(trim((string)($this->request->getParam('club_name') ?? '')), 0, 128);
 
 		$this->config->setAppValue(Application::APP_ID, 'storage_user', $storageUser);
 		$this->config->setAppValue(Application::APP_ID, 'storage_path', $storagePath);
 		$this->config->setAppValue(Application::APP_ID, 'cost_center_mode', $ccMode);
+		$this->config->setAppValue(Application::APP_ID, 'club_name', $clubName);
 
 		return new DataResponse([
 			'storage_user' => $storageUser,
 			'storage_path' => $storagePath,
 			'cost_center_mode' => $ccMode,
+			'club_name' => $clubName,
 		]);
 	}
 }

@@ -89,6 +89,7 @@ export default {
 	exportReportUrl:   year => generateUrl(base + '/export/report')   + (year ? `?year=${year}` : ''),
 	exportBudgetUrl:   year => generateUrl(base + '/export/budget')   + (year ? `?year=${year}` : ''),
 	exportMultiyearUrl: () => generateUrl(base + '/export/multiyear'),
+	kassenberichtUrl: year => generateUrl(base + '/export/kassenbericht') + (year ? `?year=${year}` : ''),
 
 	// Belegablage
 	attachmentCounts:     () => axios.get(url('/attachments/counts')),

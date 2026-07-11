@@ -490,6 +490,7 @@
 						<button :class="{ active: reportView === 'audit' }" @click="reportView = 'audit'">Protokoll</button>
 					</div>
 					<div class="vbh-sectiontop-actions">
+						<a v-if="reportView === 'summary' && selectedYear" :href="kassenberichtUrl" target="_blank" rel="noopener" class="vbh-export-btn" title="Druckfertiger Kassenbericht für die Mitgliederversammlung (öffnet in neuem Tab, dort drucken oder als PDF speichern)"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> Kassenbericht</a>
 						<a v-if="reportView === 'summary'" :href="exportBalancesUrl" download class="vbh-export-btn" title="Saldenliste als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> Saldenliste</a>
 						<a v-if="reportView === 'summary'" :href="exportReportUrl" download class="vbh-export-btn" title="E/A-Übersicht als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> E/A-Übersicht</a>
 						<a v-if="reportView === 'summary'" :href="exportMultiyearUrl" download class="vbh-export-btn" title="Mehrjahresübersicht (alle Jahre) als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> Mehrjahresübersicht</a>
@@ -1007,6 +1008,16 @@
 					</div>
 					<NcEmptyContent v-else name="Keine Berechtigungen" description="Nextcloud-Administratoren haben immer Zugriff." />
 
+					<h3 class="vbh-section-divider">Verein</h3>
+					<div class="vbh-card">
+						<div class="vbh-form">
+							<label class="vbh-grow">Vereinsname (erscheint im Kopf des Kassenberichts)
+								<input v-model="clubName" type="text" placeholder="z. B. Musterverein e. V.">
+							</label>
+							<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings">Speichern</NcButton>
+						</div>
+					</div>
+
 					<h3 class="vbh-section-divider">Kostenstellen</h3>
 					<div class="vbh-card">
 						<p class="vbh-hint">
@@ -1441,7 +1452,7 @@ import {
 	NcModal,
 	NcSelect,
 } from '@nextcloud/vue'
-import { mdiCamera, mdiCog, mdiCommentPlusOutline, mdiCommentText, mdiDelete, mdiPaperclip, mdiPencil, mdiPlus, mdiUpload, mdiCheckCircle, mdiDownload, mdiFlash, mdiViewDashboardOutline, mdiSwapHorizontal, mdiFileTreeOutline, mdiChartBar } from '@mdi/js'
+import { mdiCamera, mdiCog, mdiCommentPlusOutline, mdiCommentText, mdiDelete, mdiPaperclip, mdiPencil, mdiPlus, mdiUpload, mdiCheckCircle, mdiDownload, mdiFlash, mdiPrinter, mdiViewDashboardOutline, mdiSwapHorizontal, mdiFileTreeOutline, mdiChartBar } from '@mdi/js'
 import api from './api.js'
 import { formatMoney, formatDate, formatDateTime, typeLabel, roleLabel, amountClass, budgetDiffClass, errMsg } from './lib/format.js'
 import SettingsRules from './components/SettingsRules.vue'
@@ -1558,6 +1569,7 @@ export default {
 			mdiCheckCircle,
 			mdiDownload,
 			mdiFlash,
+			mdiPrinter,
 			chartInstances: {},
 			bookingAttachments: [],
 			attachmentUploading: false,
@@ -1582,6 +1594,7 @@ export default {
 			storageUser: '',
 			storagePath: '',
 			costCenterMode: 'group',
+			clubName: '',
 			storageSaving: false,
 		}
 	},
@@ -1603,6 +1616,7 @@ export default {
 		exportReportUrl()   { return api.exportReportUrl(this.selectedYear) },
 		exportBudgetUrl()   { return api.exportBudgetUrl(this.selectedYear) },
 		exportMultiyearUrl() { return api.exportMultiyearUrl() },
+		kassenberichtUrl() { return api.kassenberichtUrl(this.selectedYear) },
 		// Rückwärts-Import mit inkonsistentem Jahresübergang → Import gesperrt
 		// (außer bei „alle Daten löschen", da entfällt der Abgleich).
 		xbucImportBlocked() {
@@ -2209,12 +2223,13 @@ export default {
 				this.storageUser = data.storage_user || ''
 				this.storagePath = data.storage_path || 'Vereinsbuchhaltung/Belege'
 				this.costCenterMode = data.cost_center_mode || 'group'
+				this.clubName = data.club_name || ''
 			} catch (e) { /* ignorieren */ }
 		},
 		async saveStorageSettings() {
 			this.storageSaving = true
 			try {
-				await api.saveSettings({ storage_user: this.storageUser, storage_path: this.storagePath || 'Vereinsbuchhaltung/Belege', cost_center_mode: this.costCenterMode })
+				await api.saveSettings({ storage_user: this.storageUser, storage_path: this.storagePath || 'Vereinsbuchhaltung/Belege', cost_center_mode: this.costCenterMode, club_name: this.clubName })
 				showSuccess('Einstellungen gespeichert.')
 				this.reportData = null
 			} catch (e) {
