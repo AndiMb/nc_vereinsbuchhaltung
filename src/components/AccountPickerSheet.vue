@@ -1,11 +1,17 @@
 <template>
 	<div v-if="open" class="vbh-sheetwrap" role="dialog" aria-modal="true" :aria-label="title">
 		<div class="vbh-sheet-scrim" @click="$emit('close')"></div>
-		<div class="vbh-sheet">
-			<div class="vbh-sheet-grabber" aria-hidden="true"></div>
-			<div class="vbh-sheet-head">
-				<span class="vbh-sheet-title">{{ title }}</span>
-				<button type="button" class="vbh-sheet-close" aria-label="Schließen" @click="$emit('close')">✕</button>
+		<div class="vbh-sheet" :style="dragY ? { transform: 'translateY(' + dragY + 'px)', transition: 'none' } : null">
+			<div class="vbh-sheet-dragzone"
+				@touchstart.passive="onTouchStart"
+				@touchmove.passive="onTouchMove"
+				@touchend="onTouchEnd"
+				@touchcancel="onTouchEnd">
+				<div class="vbh-sheet-grabber" aria-hidden="true"></div>
+				<div class="vbh-sheet-head">
+					<span class="vbh-sheet-title">{{ title }}</span>
+					<button type="button" class="vbh-sheet-close" aria-label="Schließen" @click="$emit('close')">✕</button>
+				</div>
 			</div>
 			<button v-if="suggestion"
 				type="button"
@@ -18,6 +24,17 @@
 				class="vbh-search vbh-search--full vbh-sheet-search"
 				placeholder="Konto suchen (Nummer oder Name)…">
 			<div class="vbh-sheet-list">
+				<template v-if="!searching && recent.length">
+					<div class="vbh-sheet-group">Zuletzt verwendet</div>
+					<button v-for="opt in recent"
+						:key="'r' + opt.id"
+						type="button"
+						class="vbh-sheet-item"
+						:class="{ current: opt.id === currentId }"
+						@click="$emit('pick', opt)">
+						{{ opt.label }}
+					</button>
+				</template>
 				<template v-for="(opt, i) in filteredOptions">
 					<div v-if="opt.id === null" :key="'h' + i" class="vbh-sheet-group">{{ opt.label }}</div>
 					<button v-else
@@ -39,10 +56,12 @@
 /**
  * Bottom-Sheet zur Kontoauswahl auf Mobilgeräten: durchsuchbare Liste mit
  * Kategorie-Gruppen (Optionen mit id === null sind Überschriften), optional
- * mit Zuordnungs-Vorschlag als großer Primärtaste. Ein Sheet, mehrere
- * Einsätze: Umsatz zuordnen, Kategorie/Geldkonto bzw. Soll/Haben im
- * Buchungsdialog.
+ * mit Zuordnungs-Vorschlag als großer Primärtaste und den zuletzt gewählten
+ * Konten als eigener Gruppe. Ein Sheet, mehrere Einsätze: Umsatz zuordnen,
+ * Kategorie/Geldkonto bzw. Soll/Haben im Buchungsdialog.
  *
+ * Schließen: Scrim-Tipp, ✕ oder Wisch nach unten am Sheet-Kopf (die Liste
+ * selbst muss scrollbar bleiben, daher hängt die Geste nur an der Dragzone).
  * Das Suchfeld wird bewusst nicht automatisch fokussiert: die aufspringende
  * Tastatur würde das halbe Sheet verdecken, bevor man die Liste gesehen hat.
  */
@@ -53,14 +72,19 @@ export default {
 		title: { type: String, default: 'Konto wählen' },
 		/** Einträge {id, label}; id === null markiert Gruppen-Überschriften */
 		options: { type: Array, default: () => [] },
+		/** Zuletzt gewählte Konten {id, label} – eigene Gruppe über der Liste */
+		recent: { type: Array, default: () => [] },
 		/** {id, label} oder null – erscheint als Primärtaste über der Suche */
 		suggestion: { type: Object, default: null },
 		currentId: { type: [Number, String], default: null },
 	},
 	data() {
-		return { search: '' }
+		return { search: '', dragStartY: null, dragY: 0 }
 	},
 	computed: {
+		searching() {
+			return this.search.trim() !== ''
+		},
 		filteredOptions() {
 			const s = this.search.trim().toLowerCase()
 			if (!s) return this.options
@@ -70,7 +94,26 @@ export default {
 	},
 	watch: {
 		open(v) {
-			if (v) this.search = ''
+			if (v) {
+				this.search = ''
+				this.dragStartY = null
+				this.dragY = 0
+			}
+		},
+	},
+	methods: {
+		onTouchStart(e) {
+			this.dragStartY = e.touches[0].clientY
+			this.dragY = 0
+		},
+		onTouchMove(e) {
+			if (this.dragStartY === null) return
+			this.dragY = Math.max(0, e.touches[0].clientY - this.dragStartY)
+		},
+		onTouchEnd() {
+			if (this.dragY > 70) this.$emit('close')
+			this.dragStartY = null
+			this.dragY = 0
 		},
 	},
 }

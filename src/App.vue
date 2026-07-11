@@ -422,7 +422,35 @@
 							</div>
 						</div>
 
-						<div v-if="statementRows.length" class="vbh-tablecard">
+						<div v-if="statementRows.length && isMobile" class="vbh-cardlist">
+							<div v-if="statement.carry" class="vbh-mcard">
+								<div class="vbh-mcard-top">
+									<span class="vbh-mcard-title">Saldovortrag aus Vorjahr</span>
+									<span class="vbh-mcard-amount" :class="amountClass(statement.carry)">{{ formatMoney(statement.carry) }}</span>
+								</div>
+							</div>
+							<div v-for="(row, i) in statementRows" :key="'m' + i" class="vbh-mcard">
+								<div class="vbh-mcard-top">
+									<span class="vbh-mcard-meta">#{{ row.entryNo }} · {{ formatDate(row.date) }}</span>
+									<span class="vbh-mcard-amount" :class="statementRowNet(row) < 0 ? 'neg' : 'pos'">{{ formatMoney(statementRowNet(row)) }}</span>
+								</div>
+								<div class="vbh-mcard-title">{{ row.description }}</div>
+								<div class="vbh-mcard-bottom">
+									<span class="vbh-mcard-accounts">{{ row.contra }}</span>
+									<span class="vbh-mcard-meta">Saldo {{ formatMoney(row.saldo) }}</span>
+								</div>
+							</div>
+							<div class="vbh-mcard vbh-mcard--sum">
+								<div class="vbh-mcard-top">
+									<span class="vbh-mcard-title">Saldo{{ selectedYear ? ' ' + selectedYear : '' }}</span>
+									<span class="vbh-mcard-amount" :class="amountClass(statement.totals.balance)">{{ formatMoney(statement.totals.balance) }}</span>
+								</div>
+								<div class="vbh-mcard-bottom">
+									<span class="vbh-mcard-accounts">{{ statement.totals.count }} Buchungen · Soll {{ formatMoney(statement.totals.debit) }} · Haben {{ formatMoney(statement.totals.credit) }}</span>
+								</div>
+							</div>
+						</div>
+						<div v-else-if="statementRows.length" class="vbh-tablecard">
 							<table class="vbh-table">
 								<thead><tr><th class="num vbh-col-hide-sm">Nr.</th><th class="nowrap">Datum</th><th>Beschreibung</th><th class="vbh-col-hide-sm">Gegenkonto</th><th class="num vbh-col-hide-sm">Soll</th><th class="num vbh-col-hide-sm">Haben</th><th class="num">Saldo</th></tr></thead>
 								<tbody>
@@ -479,7 +507,7 @@
 
 						<template v-if="balances && balances.bankReconciliation && balances.bankReconciliation.length">
 							<h4>Geldkonten</h4>
-							<div class="vbh-tablecard">
+							<div v-if="!isMobile" class="vbh-tablecard">
 								<table class="vbh-table">
 									<thead><tr><th>Konto</th><th class="num">Kontostand</th><th class="num">Offen (nicht zugeordnet)</th></tr></thead>
 									<tbody>
@@ -491,13 +519,37 @@
 									</tbody>
 								</table>
 							</div>
+							<div v-else class="vbh-cardlist">
+								<div v-for="b in balances.bankReconciliation" :key="'m' + b.accountId" class="vbh-mcard">
+									<div class="vbh-mcard-top">
+										<span class="vbh-mcard-title">{{ b.number }} {{ b.name }}</span>
+										<span class="vbh-mcard-amount">{{ formatMoney(b.balance) }}</span>
+									</div>
+									<div v-if="Math.abs(b.open) > 0.005" class="vbh-mcard-bottom">
+										<span class="vbh-mcard-accounts">{{ formatMoney(b.open) }} nicht zugeordnet</span>
+									</div>
+								</div>
+							</div>
 						</template>
 
 						<div class="vbh-sectionhead">
 							<h4>Saldenliste</h4>
 							<NcCheckboxRadioSwitch v-model="balancesIncludeChildren">Werte inkl. Unterkonten</NcCheckboxRadioSwitch>
 						</div>
-						<div v-if="balances" class="vbh-tablecard">
+						<div v-if="balances && isMobile" class="vbh-cardlist">
+							<div v-for="row in sortedBalances" :key="'m' + row.accountId"
+								class="vbh-mcard" :class="{ 'vbh-mcard--parent': row.isParent }"
+								:style="row.depth ? { marginLeft: (Math.min(row.depth, 3) * 14) + 'px' } : null">
+								<div class="vbh-mcard-top">
+									<span class="vbh-mcard-title">{{ row.number }} {{ row.name }}</span>
+									<span class="vbh-mcard-amount" :class="amountClass(row.balance)">{{ formatMoney(row.balance) }}</span>
+								</div>
+								<div class="vbh-mcard-bottom">
+									<span class="vbh-mcard-accounts">{{ row.category || typeLabel(row.type) }} · Soll {{ formatMoney(row.debit) }} · Haben {{ formatMoney(row.credit) }}</span>
+								</div>
+							</div>
+						</div>
+						<div v-else-if="balances" class="vbh-tablecard">
 							<table class="vbh-table">
 								<thead>
 									<tr>
@@ -525,9 +577,9 @@
 						</div>
 					</div>
 
-					<!-- KOSTENSTELLEN (split layout) -->
-					<div v-show="reportView === 'costcenters'" class="vbh-splitinner">
-						<div class="vbh-tree">
+					<!-- KOSTENSTELLEN (split layout; mobil Drilldown) -->
+					<div v-show="reportView === 'costcenters'" class="vbh-splitinner" :class="{ 'vbh-drill': isMobile }">
+						<div v-if="!isMobile || !selectedCC" class="vbh-tree">
 							<div class="vbh-treehead"><strong>Kostenstellen</strong></div>
 							<div v-if="reportData" class="vbh-ccsummary">
 								<span>Gesamtergebnis</span>
@@ -544,7 +596,10 @@
 							<p v-else class="vbh-hint">Keine Daten. Importiere oder erfasse zuerst Buchungen.</p>
 						</div>
 
-						<div class="vbh-detail">
+						<div v-if="!isMobile || selectedCC" class="vbh-detail">
+							<div v-if="isMobile" class="vbh-backbar">
+								<button type="button" class="vbh-backbtn" @click="selectedCCCode = false">‹ Kostenstellen</button>
+							</div>
 							<p v-if="!selectedCC" class="vbh-empty vbh-detailhint">Kostenstelle links auswählen.</p>
 							<template v-else>
 								<div class="vbh-detailhead"><div><h3>{{ selectedCC.code ? selectedCC.code + ' · ' : '' }}{{ selectedCC.name }}</h3></div></div>
@@ -562,7 +617,27 @@
 								</div>
 
 								<h4>Beteiligte Konten <span class="vbh-hint">(Konto anklicken für Buchungen)</span></h4>
-								<div v-if="selectedCC.accounts.length" class="vbh-tablecard">
+								<div v-if="selectedCC.accounts.length && isMobile" class="vbh-cardlist">
+									<div v-for="(a, i) in selectedCC.accounts" :key="'m' + i"
+										class="vbh-mcard tappable" role="button" tabindex="0"
+										@click="toggleCCAccount(a.accountId)" @keyup.enter="toggleCCAccount(a.accountId)">
+										<div class="vbh-mcard-top">
+											<span class="vbh-mcard-title"><span class="vbh-caret" :class="{ open: ccExpanded[a.accountId] }">›</span> {{ a.number }} {{ a.name }}</span>
+											<span class="vbh-mcard-amount" :class="amountClass(a.balance)">{{ formatMoney(a.balance) }}</span>
+										</div>
+										<div v-if="ccExpanded[a.accountId]" class="vbh-cclist" @click.stop>
+											<template v-if="ccBookings[a.accountId] && ccBookings[a.accountId].length">
+												<div v-for="(r, j) in ccBookings[a.accountId]" :key="j" class="vbh-ccbooking">
+													<span class="vbh-mcard-meta">{{ formatDate(r.date) }}</span>
+													<span class="vbh-ccbooking-desc">{{ r.description }}</span>
+													<span class="vbh-ccbooking-amount">{{ r.debit ? formatMoney(r.debit) : formatMoney(r.credit) }}</span>
+												</div>
+											</template>
+											<p v-else class="vbh-empty">Keine Buchungen.</p>
+										</div>
+									</div>
+								</div>
+								<div v-else-if="selectedCC.accounts.length" class="vbh-tablecard">
 									<table class="vbh-table">
 										<thead><tr><th class="nowrap">Nr.</th><th>Konto</th><th>Art</th><th class="num">Betrag</th></tr></thead>
 										<tbody>
@@ -1269,6 +1344,7 @@
 			:open="accountPicker.open"
 			:title="accountPicker.title"
 			:options="accountPickerOptions"
+			:recent="recentAccountOptions"
 			:suggestion="accountPickerSuggestion"
 			:current-id="accountPickerCurrentId"
 			@close="closeAccountPicker"
@@ -1428,6 +1504,8 @@ export default {
 			accountPicker: { open: false, target: null, title: '', tx: null },
 			// Belege, die beim Anlegen gesammelt und nach dem Speichern hochgeladen werden
 			pendingFiles: [],
+			// Zuletzt im Auswahl-Sheet gewählte Konten (localStorage, max. 5)
+			recentAccountIds: [],
 			storageUser: '',
 			storagePath: '',
 			costCenterMode: 'group',
@@ -1689,6 +1767,14 @@ export default {
 			const p = this.accountPicker
 			return (p.target === 'assign' && p.tx && this.suggestionsById[p.tx.id]) || null
 		},
+		recentAccountOptions() {
+			const out = []
+			for (const id of this.recentAccountIds) {
+				const a = this.accountsById[id]
+				if (a && a.active) out.push({ id: a.id, label: `${a.number} ${a.name}`, number: a.number })
+			}
+			return out
+		},
 		accountPickerCurrentId() {
 			const t = this.accountPicker.target
 			const f = this.bookingForm
@@ -1929,6 +2015,7 @@ export default {
 		this.onMqChange = e => { this.isMobile = e.matches }
 		if (this.vbhMql.addEventListener) this.vbhMql.addEventListener('change', this.onMqChange)
 		else this.vbhMql.addListener(this.onMqChange)
+		this.loadRecentAccounts()
 		await this.loadMe()
 		if (this.canRead) {
 			await this.loadYears()
@@ -2438,12 +2525,33 @@ export default {
 			else if (p.target === 'debit') this.bookingForm.debitAccountId = opt.id
 			else if (p.target === 'credit') this.bookingForm.creditAccountId = opt.id
 			else if (p.target === 'assign' && p.tx) this.onAssign(p.tx, opt.id)
+			this.pushRecentAccount(opt.id)
 			this.closeAccountPicker()
 		},
 		onAccountPickerSuggest() {
 			const p = this.accountPicker
-			if (p.target === 'assign' && p.tx) this.applySuggestion(p.tx)
+			if (p.target === 'assign' && p.tx) {
+				const s = this.suggestionsById[p.tx.id]
+				if (s) this.pushRecentAccount(s.id)
+				this.applySuggestion(p.tx)
+			}
 			this.closeAccountPicker()
+		},
+		loadRecentAccounts() {
+			try {
+				const list = JSON.parse(localStorage.getItem('vbh_recent_accounts') || '[]')
+				this.recentAccountIds = Array.isArray(list) ? list : []
+			} catch (e) { this.recentAccountIds = [] }
+		},
+		pushRecentAccount(id) {
+			if (!id) return
+			this.recentAccountIds = [id, ...this.recentAccountIds.filter(x => x !== id)].slice(0, 5)
+			try { localStorage.setItem('vbh_recent_accounts', JSON.stringify(this.recentAccountIds)) } catch (e) { /* voll/gesperrt – dann eben ohne */ }
+		},
+		// Kontoauszug mobil: Bewegung der Zeile aus Sicht der Kontonatur
+		statementRowNet(row) {
+			const isCredit = this.statement && ['income', 'liability', 'equity'].includes(this.statement.account.type)
+			return isCredit ? (row.credit - row.debit) : (row.debit - row.credit)
 		},
 		// Mobil: Konten-Drilldown zurück zur Liste
 		closeAccountDetail() {

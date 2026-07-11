@@ -445,6 +445,17 @@
 .vbh-backbar { margin-bottom: 6px; }
 .vbh-backbtn { border: none; background: none; margin: 0; padding: 10px 10px 10px 0; font-size: 1em; font-weight: 700; color: var(--color-primary-element); cursor: pointer; }
 
+/* ---- Mobil: Karten-Varianten (Saldenliste, Kostenstellen, Kontoauszug) ---- */
+.vbh-mcard--parent .vbh-mcard-title { font-weight: 700; }
+.vbh-mcard--sum { background-color: var(--color-background-hover); border-color: transparent; }
+.vbh-sheet { transition: transform 0.15s ease; }
+@media (prefers-reduced-motion: reduce) { .vbh-sheet { transition: none; } }
+.vbh-sheet-dragzone { flex: 0 0 auto; touch-action: pan-y; }
+.vbh-cclist { margin-top: 6px; }
+.vbh-ccbooking { display: flex; align-items: baseline; gap: 8px; padding: 6px 0; border-top: 1px solid var(--color-border); font-size: 0.88em; }
+.vbh-ccbooking-desc { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vbh-ccbooking-amount { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
 /* Responsive: Tablet (≤ 760px) */
 @media (max-width: 760px) {
 	.vbh-chart-grid { grid-template-columns: minmax(0, 1fr); }
@@ -487,8 +498,10 @@
 	.vbh-tree { flex: 0 0 auto; max-height: 240px; min-width: 0; border-right: none; border-bottom: 1px solid var(--color-border); }
 	.vbh-detail { overflow-y: visible; min-width: 0; padding: 10px 10px 32px; }
 	/* Drilldown (isMobile): Baum ODER Detail – der Baum bekommt die volle Höhe */
-	.vbh-section.split.vbh-drill .vbh-tree { max-height: none; flex: 1 1 auto; border-bottom: none; }
-	.vbh-section.split.vbh-drill .vbh-detail { padding-bottom: 84px; }
+	.vbh-section.split.vbh-drill .vbh-tree,
+	.vbh-splitinner.vbh-drill .vbh-tree { max-height: none; flex: 1 1 auto; border-bottom: none; }
+	.vbh-section.split.vbh-drill .vbh-detail,
+	.vbh-splitinner.vbh-drill .vbh-detail { padding-bottom: 84px; }
 
 	/* Zuordnungs-Dropdown kompakter */
 	.vbh-assign-cell { width: 48vw; min-width: 120px; }
