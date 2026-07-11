@@ -274,17 +274,13 @@
 								>
 									✓ Vorschlag übernehmen: {{ suggestionsById[tx.id].label }}
 								</button>
-								<NcSelect
-									:model-value="accountOptionFor(tx.contraAccountId)"
-									:options="accountOptionsList"
-									:filter-by="accountFilterBy"
-									:clearable="!!tx.contraAccountId"
-									:disabled="!canWrite"
-									label="label"
-									placeholder="– nicht zugeordnet –"
-									class="vbh-assign-select vbh-assign-select--mobile"
-									@update:model-value="v => onAssign(tx, v ? v.id : '')"
-								/>
+								<button type="button" class="vbh-fieldbtn" :disabled="!canWrite" @click="openAccountPicker('assign', tx)">
+									<span class="vbh-fieldbtn-text">
+										<span class="vbh-fieldbtn-lab">Konto / Kategorie</span>
+										<span class="vbh-fieldbtn-val" :class="{ placeholder: !tx.contraAccountId }">{{ tx.contraAccountId ? accountLabel(tx.contraAccountId) : 'Konto wählen…' }}</span>
+									</span>
+									<span class="vbh-fieldbtn-chev" aria-hidden="true">›</span>
+								</button>
 							</div>
 						</div>
 						<div v-else-if="currentTransactions.length" class="vbh-tablecard">
@@ -348,8 +344,8 @@
 			</section>
 
 			<!-- ============ KONTEN ============ -->
-			<section v-show="activeTab === 'accounts'" class="vbh-section split" :class="{ 'vbh-fadein': sectionFade }">
-				<div class="vbh-tree">
+			<section v-show="activeTab === 'accounts'" class="vbh-section split" :class="{ 'vbh-fadein': sectionFade, 'vbh-drill': isMobile }">
+				<div v-if="!isMobile || !selectedAccountId" class="vbh-tree">
 					<div class="vbh-treehead">
 						<NcButton v-if="canWrite" variant="primary" size="small" @click="openNewAccount">
 							<template #icon><NcIconSvgWrapper :path="mdiPlus" :size="18" /></template>
@@ -385,7 +381,10 @@
 					</div>
 				</div>
 
-				<div class="vbh-detail">
+				<div v-if="!isMobile || selectedAccountId" class="vbh-detail">
+					<div v-if="isMobile" class="vbh-backbar">
+						<button type="button" class="vbh-backbtn" @click="closeAccountDetail">‹ Konten</button>
+					</div>
 					<p v-if="!selectedAccount" class="vbh-empty vbh-detailhint">Konto links auswählen, um Buchungen anzuzeigen.</p>
 
 					<template v-else>
@@ -1006,64 +1005,140 @@
 		</NcModal>
 
 		<!-- ============ BUCHUNGS-DIALOG ============ -->
-		<NcModal :show.sync="showBooking" :name="bookingForm.id ? 'Buchung bearbeiten #' + bookingForm.entryNo : 'Neue Buchung'" size="normal" @close="closeBooking">
+		<NcModal :show.sync="showBooking" :name="bookingForm.id ? 'Buchung bearbeiten #' + bookingForm.entryNo : 'Neue Buchung'" :size="isMobile ? 'full' : 'normal'" @close="closeBooking">
 			<div class="vbh-modal-inner">
 				<div v-if="bookingMode === 'simple'" class="vbh-kindtoggle" role="radiogroup" aria-label="Buchungsart">
 					<button type="button" class="vbh-kindbtn income" :class="{ active: bookingForm.kind === 'income' }" @click="setBookingKind('income')">Einnahme</button>
 					<button type="button" class="vbh-kindbtn expense" :class="{ active: bookingForm.kind === 'expense' }" @click="setBookingKind('expense')">Ausgabe</button>
 				</div>
-				<div class="vbh-form">
-					<label>Datum<input v-model="bookingForm.date" type="date"></label>
-					<label>Beleg-Nr.<input v-model="bookingForm.documentRef" class="vbh-short" placeholder="optional"></label>
-					<label>Betrag (€)<input v-model.number="bookingForm.amount" type="number" step="0.01" min="0.01" class="vbh-num"></label>
-				</div>
-				<template v-if="bookingMode === 'simple'">
-					<div class="vbh-form">
-						<label class="vbh-grow">{{ bookingForm.kind === 'income' ? 'Wofür? (Einnahme-Kategorie)' : 'Wofür? (Ausgabe-Kategorie)' }}
-							<NcSelect
-								v-model="bookingFormCategoryOption"
-								:options="simpleCategoryOptions"
-								:filter-by="accountFilterBy"
-								label="label"
-								placeholder="– Kategorie wählen –"
-							/>
-						</label>
-						<label class="vbh-grow">Geldkonto (Bank/Kasse)
-							<NcSelect
-								v-model="bookingFormMoneyOption"
-								:options="moneyAccountOptions"
-								:filter-by="accountFilterBy"
-								label="label"
-								placeholder="– wählen –"
-							/>
-						</label>
+
+				<!-- Mobil: Betrag zuerst und groß, Kontenwahl über Auswahl-Sheets -->
+				<template v-if="isMobile">
+					<div class="vbh-bigamount">
+						<input v-model.number="bookingForm.amount"
+							type="number" step="0.01" min="0.01" inputmode="decimal"
+							placeholder="0,00" class="vbh-bigamount-input" aria-label="Betrag in Euro">
+						<span class="vbh-bigamount-cur">€</span>
+					</div>
+					<div class="vbh-mfields">
+						<template v-if="bookingMode === 'simple'">
+							<button type="button" class="vbh-fieldbtn" @click="openAccountPicker('category')">
+								<span class="vbh-fieldbtn-text">
+									<span class="vbh-fieldbtn-lab">{{ bookingForm.kind === 'income' ? 'Wofür? (Einnahme-Kategorie)' : 'Wofür? (Ausgabe-Kategorie)' }}</span>
+									<span class="vbh-fieldbtn-val" :class="{ placeholder: !bookingForm.categoryId }">{{ bookingForm.categoryId ? accountLabel(bookingForm.categoryId) : 'Kategorie wählen…' }}</span>
+								</span>
+								<span class="vbh-fieldbtn-chev" aria-hidden="true">›</span>
+							</button>
+							<button type="button" class="vbh-fieldbtn" @click="openAccountPicker('money')">
+								<span class="vbh-fieldbtn-text">
+									<span class="vbh-fieldbtn-lab">Geldkonto (Bank/Kasse)</span>
+									<span class="vbh-fieldbtn-val" :class="{ placeholder: !bookingForm.moneyAccountId }">{{ bookingForm.moneyAccountId ? accountLabel(bookingForm.moneyAccountId) : 'wählen…' }}</span>
+								</span>
+								<span class="vbh-fieldbtn-chev" aria-hidden="true">›</span>
+							</button>
+						</template>
+						<template v-else>
+							<button type="button" class="vbh-fieldbtn" @click="openAccountPicker('debit')">
+								<span class="vbh-fieldbtn-text">
+									<span class="vbh-fieldbtn-lab">Soll (Aufwand/Aktiv)</span>
+									<span class="vbh-fieldbtn-val" :class="{ placeholder: !bookingForm.debitAccountId }">{{ bookingForm.debitAccountId ? accountLabel(bookingForm.debitAccountId) : 'wählen…' }}</span>
+								</span>
+								<span class="vbh-fieldbtn-chev" aria-hidden="true">›</span>
+							</button>
+							<button type="button" class="vbh-fieldbtn" @click="openAccountPicker('credit')">
+								<span class="vbh-fieldbtn-text">
+									<span class="vbh-fieldbtn-lab">Haben (Ertrag/Passiv)</span>
+									<span class="vbh-fieldbtn-val" :class="{ placeholder: !bookingForm.creditAccountId }">{{ bookingForm.creditAccountId ? accountLabel(bookingForm.creditAccountId) : 'wählen…' }}</span>
+								</span>
+								<span class="vbh-fieldbtn-chev" aria-hidden="true">›</span>
+							</button>
+						</template>
+						<label class="vbh-mfield">Datum<input v-model="bookingForm.date" type="date"></label>
+						<label class="vbh-mfield">Buchungstext<input v-model="bookingForm.description" placeholder="z. B. Mitgliedsbeitrag Max Mustermann"></label>
+						<label class="vbh-mfield">Beleg-Nr.<input v-model="bookingForm.documentRef" placeholder="optional"></label>
+						<!-- Beleg schon beim Anlegen: Dateien werden lokal gesammelt und
+						     nach dem Speichern an die neue Buchung gehängt. -->
+						<div v-if="canWrite && !bookingForm.id" class="vbh-mfield">
+							<span>Beleg</span>
+							<div class="vbh-pendingbtns">
+								<label class="vbh-upload-label">
+									<input type="file" accept="image/*" capture="environment" hidden @change="addPendingFiles">
+									<span class="vbh-upload-btn"><NcIconSvgWrapper :path="mdiCamera" :size="16" /> Fotografieren</span>
+								</label>
+								<label class="vbh-upload-label">
+									<input type="file" accept="image/*,application/pdf" multiple hidden @change="addPendingFiles">
+									<span class="vbh-upload-btn"><NcIconSvgWrapper :path="mdiPaperclip" :size="16" /> Datei…</span>
+								</label>
+							</div>
+							<ul v-if="pendingFiles.length" class="vbh-attachment-list">
+								<li v-for="(pf, i) in pendingFiles" :key="i" class="vbh-attachment-item">
+									<NcIconSvgWrapper :path="mdiPaperclip" :size="14" class="vbh-attachment-icon" />
+									<span class="vbh-attachment-name">{{ pf.name }}</span>
+									<span class="vbh-attachment-size">{{ formatFileSize(pf.size) }}</span>
+									<NcButton variant="tertiary" aria-label="Beleg entfernen" @click="pendingFiles.splice(i, 1)">
+										<template #icon><NcIconSvgWrapper :path="mdiDelete" :size="14" /></template>
+									</NcButton>
+								</li>
+							</ul>
+						</div>
 					</div>
 				</template>
+
+				<!-- Desktop: bisheriges Formular-Layout -->
 				<template v-else>
 					<div class="vbh-form">
-						<label class="vbh-grow">Soll (Aufwand/Aktiv)
-							<NcSelect
-								v-model="bookingFormDebitOption"
-								:options="accountOptionsList"
-								:filter-by="accountFilterBy"
-								label="label"
-								placeholder="– wählen –"
-							/>
-						</label>
-						<label class="vbh-grow">Haben (Ertrag/Passiv)
-							<NcSelect
-								v-model="bookingFormCreditOption"
-								:options="accountOptionsList"
-								:filter-by="accountFilterBy"
-								label="label"
-								placeholder="– wählen –"
-							/>
-						</label>
+						<label>Datum<input v-model="bookingForm.date" type="date"></label>
+						<label>Beleg-Nr.<input v-model="bookingForm.documentRef" class="vbh-short" placeholder="optional"></label>
+						<label>Betrag (€)<input v-model.number="bookingForm.amount" type="number" step="0.01" min="0.01" class="vbh-num"></label>
+					</div>
+					<template v-if="bookingMode === 'simple'">
+						<div class="vbh-form">
+							<label class="vbh-grow">{{ bookingForm.kind === 'income' ? 'Wofür? (Einnahme-Kategorie)' : 'Wofür? (Ausgabe-Kategorie)' }}
+								<NcSelect
+									v-model="bookingFormCategoryOption"
+									:options="simpleCategoryOptions"
+									:filter-by="accountFilterBy"
+									label="label"
+									placeholder="– Kategorie wählen –"
+								/>
+							</label>
+							<label class="vbh-grow">Geldkonto (Bank/Kasse)
+								<NcSelect
+									v-model="bookingFormMoneyOption"
+									:options="moneyAccountOptions"
+									:filter-by="accountFilterBy"
+									label="label"
+									placeholder="– wählen –"
+								/>
+							</label>
+						</div>
+					</template>
+					<template v-else>
+						<div class="vbh-form">
+							<label class="vbh-grow">Soll (Aufwand/Aktiv)
+								<NcSelect
+									v-model="bookingFormDebitOption"
+									:options="accountOptionsList"
+									:filter-by="accountFilterBy"
+									label="label"
+									placeholder="– wählen –"
+								/>
+							</label>
+							<label class="vbh-grow">Haben (Ertrag/Passiv)
+								<NcSelect
+									v-model="bookingFormCreditOption"
+									:options="accountOptionsList"
+									:filter-by="accountFilterBy"
+									label="label"
+									placeholder="– wählen –"
+								/>
+							</label>
+						</div>
+					</template>
+					<div class="vbh-form">
+						<label class="vbh-grow">Buchungstext<input v-model="bookingForm.description" placeholder="z. B. Mitgliedsbeitrag Max Mustermann"></label>
 					</div>
 				</template>
-				<div class="vbh-form">
-					<label class="vbh-grow">Buchungstext<input v-model="bookingForm.description" placeholder="z. B. Mitgliedsbeitrag Max Mustermann"></label>
-				</div>
 				<div class="vbh-expertrow">
 					<NcCheckboxRadioSwitch v-model="bookingModeExpert" type="switch">
 						Experten-Modus (Soll/Haben direkt wählen)
@@ -1189,6 +1264,17 @@
 		</NcModal>
 
 		<!-- ============ BESTÄTIGUNGS-DIALOG ============ -->
+		<!-- ============ KONTOAUSWAHL-SHEET (mobil) ============ -->
+		<AccountPickerSheet
+			:open="accountPicker.open"
+			:title="accountPicker.title"
+			:options="accountPickerOptions"
+			:suggestion="accountPickerSuggestion"
+			:current-id="accountPickerCurrentId"
+			@close="closeAccountPicker"
+			@pick="onAccountPicked"
+			@suggest="onAccountPickerSuggest" />
+
 		<NcDialog
 			v-if="confirmDialog.open"
 			:name="confirmDialog.title"
@@ -1212,12 +1298,13 @@ import {
 	NcModal,
 	NcSelect,
 } from '@nextcloud/vue'
-import { mdiCog, mdiCommentPlusOutline, mdiCommentText, mdiDelete, mdiPaperclip, mdiPencil, mdiPlus, mdiUpload, mdiCheckCircle, mdiDownload, mdiFlash, mdiViewDashboardOutline, mdiSwapHorizontal, mdiFileTreeOutline, mdiChartBar } from '@mdi/js'
+import { mdiCamera, mdiCog, mdiCommentPlusOutline, mdiCommentText, mdiDelete, mdiPaperclip, mdiPencil, mdiPlus, mdiUpload, mdiCheckCircle, mdiDownload, mdiFlash, mdiViewDashboardOutline, mdiSwapHorizontal, mdiFileTreeOutline, mdiChartBar } from '@mdi/js'
 import api from './api.js'
 import { formatMoney, formatDate, formatDateTime, typeLabel, roleLabel, amountClass, budgetDiffClass, errMsg } from './lib/format.js'
 import SettingsRules from './components/SettingsRules.vue'
 import MobileNav from './components/MobileNav.vue'
 import BookingCard from './components/BookingCard.vue'
+import AccountPickerSheet from './components/AccountPickerSheet.vue'
 import {
 	Chart,
 	BarController,
@@ -1244,6 +1331,7 @@ export default {
 		SettingsRules,
 		MobileNav,
 		BookingCard,
+		AccountPickerSheet,
 	},
 	data() {
 		return {
@@ -1336,6 +1424,10 @@ export default {
 			syncTimer: null,
 			// Mobil-Layout (≤ 640px): schaltet Bottom-Nav, Kartenlisten etc.
 			isMobile: false,
+			// Kontoauswahl-Sheet (mobil): target = category|money|debit|credit|assign
+			accountPicker: { open: false, target: null, title: '', tx: null },
+			// Belege, die beim Anlegen gesammelt und nach dem Speichern hochgeladen werden
+			pendingFiles: [],
 			storageUser: '',
 			storagePath: '',
 			costCenterMode: 'group',
@@ -1585,6 +1677,27 @@ export default {
 		bookingModeExpert: {
 			get() { return this.bookingMode === 'expert' },
 			set(v) { this.setBookingMode(v ? 'expert' : 'simple') },
+		},
+		// Kontoauswahl-Sheet (mobil): Optionen/Vorschlag/Auswahl je nach Ziel
+		accountPickerOptions() {
+			const t = this.accountPicker.target
+			if (t === 'category') return this.simpleCategoryOptions
+			if (t === 'money') return this.moneyAccountOptions
+			return this.accountOptionsList
+		},
+		accountPickerSuggestion() {
+			const p = this.accountPicker
+			return (p.target === 'assign' && p.tx && this.suggestionsById[p.tx.id]) || null
+		},
+		accountPickerCurrentId() {
+			const t = this.accountPicker.target
+			const f = this.bookingForm
+			if (t === 'category') return f.categoryId
+			if (t === 'money') return f.moneyAccountId
+			if (t === 'debit') return f.debitAccountId
+			if (t === 'credit') return f.creditAccountId
+			if (t === 'assign' && this.accountPicker.tx) return this.accountPicker.tx.contraAccountId
+			return null
 		},
 		// Frühere Zuordnungen je Zahlungspartner (für Vorschläge)
 		assignmentHistory() {
@@ -2287,6 +2400,7 @@ export default {
 		},
 		openNewBooking() {
 			this.bookingAttachments = []
+			this.pendingFiles = []
 			this.bookingForm = this.emptyBookingForm()
 			this.bookingForm.moneyAccountId = this.defaultMoneyAccountId
 			this.showBooking = true
@@ -2302,6 +2416,58 @@ export default {
 			if (dIn && !cOut) return 'in'
 			if (cOut && !dIn) return 'out'
 			return ''
+		},
+		// --- Mobil: Kontoauswahl-Sheet -------------------------------------
+		openAccountPicker(target, tx = null) {
+			const titles = {
+				category: 'Kategorie wählen',
+				money: 'Geldkonto wählen',
+				debit: 'Sollkonto wählen',
+				credit: 'Habenkonto wählen',
+				assign: 'Konto / Kategorie zuordnen',
+			}
+			this.accountPicker = { open: true, target, title: titles[target] || 'Konto wählen', tx }
+		},
+		closeAccountPicker() {
+			this.accountPicker = { open: false, target: null, title: '', tx: null }
+		},
+		onAccountPicked(opt) {
+			const p = this.accountPicker
+			if (p.target === 'category') this.bookingForm.categoryId = opt.id
+			else if (p.target === 'money') this.bookingForm.moneyAccountId = opt.id
+			else if (p.target === 'debit') this.bookingForm.debitAccountId = opt.id
+			else if (p.target === 'credit') this.bookingForm.creditAccountId = opt.id
+			else if (p.target === 'assign' && p.tx) this.onAssign(p.tx, opt.id)
+			this.closeAccountPicker()
+		},
+		onAccountPickerSuggest() {
+			const p = this.accountPicker
+			if (p.target === 'assign' && p.tx) this.applySuggestion(p.tx)
+			this.closeAccountPicker()
+		},
+		// Mobil: Konten-Drilldown zurück zur Liste
+		closeAccountDetail() {
+			this.selectedAccountId = null
+			this.statement = null
+		},
+		// Mobil: Belege beim Anlegen sammeln, Upload folgt nach dem Speichern
+		addPendingFiles(event) {
+			const files = event.target.files
+			if (files && files.length) this.pendingFiles.push(...Array.from(files))
+			event.target.value = ''
+		},
+		async uploadPendingFiles(journalId) {
+			const files = this.pendingFiles
+			this.pendingFiles = []
+			if (!journalId || !files.length) return
+			try {
+				for (const file of files) {
+					const fd = new FormData()
+					fd.append('file', file)
+					await api.uploadAttachment(journalId, fd)
+				}
+				this.loadAttachmentCounts()
+			} catch (e) { showError(this.errMsg(e, 'Buchung gespeichert, aber der Beleg-Upload ist fehlgeschlagen')) }
 		},
 		// Mobil: Tippen auf eine Buchungskarte
 		openBookingCard(r) {
@@ -2340,7 +2506,7 @@ export default {
 			this.loadAttachments(r.id)
 			this.showBooking = true
 		},
-		closeBooking() { this.showBooking = false; this.bookingForm = this.emptyBookingForm(); this.bookingAttachments = [] },
+		closeBooking() { this.showBooking = false; this.bookingForm = this.emptyBookingForm(); this.bookingAttachments = []; this.pendingFiles = [] },
 		async saveBooking() {
 			const f = this.bookingForm
 			if (this.bookingMode === 'simple') {
@@ -2354,8 +2520,12 @@ export default {
 			if (f.debitAccountId === f.creditAccountId) { showError('Soll- und Habenkonto müssen unterschiedlich sein.'); return }
 			const payload = { date: f.date, description: f.description, documentRef: f.documentRef || null, debitAccountId: f.debitAccountId, creditAccountId: f.creditAccountId, amount: Number(f.amount) }
 			try {
-				if (f.id) await api.updateBooking(f.id, { ...payload, updatedAt: f.updatedAt || null })
-				else await api.createBooking(payload)
+				if (f.id) {
+					await api.updateBooking(f.id, { ...payload, updatedAt: f.updatedAt || null })
+				} else {
+					const { data } = await api.createBooking(payload)
+					await this.uploadPendingFiles(data && data.id)
+				}
 				showSuccess('Buchung gespeichert.')
 				this.closeBooking()
 				await this.loadJournal(); await this.loadBalances(); await this.loadYears()

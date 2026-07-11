@@ -400,9 +400,50 @@
 .vbh-mcard-bottom { display: flex; align-items: center; gap: 8px; }
 .vbh-mcard-accounts { flex: 1 1 auto; min-width: 0; font-size: 0.78em; color: var(--color-text-maxcontrast); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .vbh-mcard-clip { border: none; background: none; margin: 0; padding: 4px 6px; font-size: 0.8em; color: var(--color-text-maxcontrast); cursor: pointer; display: inline-flex; align-items: center; gap: 2px; }
-/* Zuordnen mobil: Vorschlag als große Primärtaste, Kontoauswahl volle Breite */
+/* Zuordnen mobil: Vorschlag als große Primärtaste */
 .vbh-suggest-chip--big { display: block; width: 100%; margin-top: 6px; padding: 10px 12px; font-size: 0.9em; text-align: center; border-radius: 8px; background: var(--color-primary-element); color: var(--color-primary-element-text); }
-.vbh-assign-select--mobile { width: 100%; margin-top: 4px; }
+
+/* ---- Mobil: Feld-Knopf (öffnet ein Auswahl-Sheet) ---- */
+.vbh-fieldbtn { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 48px; margin: 6px 0 0; padding: 7px 10px; border: 1px solid var(--color-border); border-radius: 10px; background-color: var(--color-main-background); color: var(--color-main-text); text-align: left; cursor: pointer; }
+.vbh-fieldbtn:disabled { opacity: 0.6; cursor: default; }
+.vbh-fieldbtn-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.vbh-fieldbtn-lab { font-size: 0.75em; color: var(--color-text-maxcontrast); }
+.vbh-fieldbtn-val { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.vbh-fieldbtn-val.placeholder { color: var(--color-text-maxcontrast); font-weight: 500; }
+.vbh-fieldbtn-chev { flex: 0 0 auto; color: var(--color-text-maxcontrast); font-size: 1.2em; }
+
+/* ---- Mobil: Kontoauswahl als Bottom-Sheet ---- */
+.vbh-sheetwrap { position: fixed; inset: 0; z-index: 12000; }
+.vbh-sheet-scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.45); }
+.vbh-sheet { position: absolute; left: 0; right: 0; bottom: 0; max-height: 78vh; display: flex; flex-direction: column; background-color: var(--color-main-background); border-radius: 16px 16px 0 0; padding: 4px 14px calc(10px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -6px 30px rgba(0, 0, 0, 0.3); }
+.vbh-sheet-grabber { flex: 0 0 auto; width: 36px; height: 4px; border-radius: 2px; background-color: var(--color-border-dark, var(--color-border)); margin: 6px auto 8px; }
+.vbh-sheet-head { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.vbh-sheet-title { flex: 1 1 auto; font-weight: 700; }
+.vbh-sheet-close { border: none; background: none; margin: 0; padding: 8px 10px; font-size: 1em; color: var(--color-text-maxcontrast); cursor: pointer; }
+.vbh-sheet-suggest { flex: 0 0 auto; margin: 0 0 8px; }
+.vbh-sheet-search { flex: 0 0 auto; margin-bottom: 6px; font-size: 16px; }
+.vbh-sheet-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.vbh-sheet-group { padding: 10px 4px 4px; font-size: 0.72em; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text-maxcontrast); }
+.vbh-sheet-item { display: block; width: 100%; min-height: 44px; margin: 0; padding: 11px 8px; border: none; border-radius: 8px; background: none; color: var(--color-main-text); font-size: 1em; text-align: left; cursor: pointer; }
+.vbh-sheet-item:hover, .vbh-sheet-item:active { background-color: var(--color-background-hover); }
+.vbh-sheet-item.current { background-color: var(--color-primary-element-light, var(--color-background-hover)); font-weight: 700; }
+.vbh-sheet-empty { padding: 12px 4px; color: var(--color-text-maxcontrast); }
+
+/* ---- Mobil: Buchungsdialog (Vollbild) ---- */
+.vbh-bigamount { display: flex; align-items: baseline; justify-content: center; gap: 6px; margin: 12px 0 6px; }
+.vbh-bigamount-input { width: 62%; max-width: 240px; border: none; border-bottom: 2px solid var(--color-border-dark, var(--color-border)); border-radius: 0; background: transparent; color: var(--color-main-text); font-size: 30px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; -moz-appearance: textfield; appearance: textfield; }
+.vbh-bigamount-input::-webkit-outer-spin-button, .vbh-bigamount-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.vbh-bigamount-input:focus { outline: none; border-bottom-color: var(--color-primary-element); }
+.vbh-bigamount-cur { font-size: 18px; color: var(--color-text-maxcontrast); }
+.vbh-mfields { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+.vbh-mfields .vbh-fieldbtn { margin-top: 0; }
+.vbh-mfield { display: flex; flex-direction: column; gap: 3px; font-size: 0.85em; color: var(--color-text-maxcontrast); }
+.vbh-mfield input { width: 100%; box-sizing: border-box; min-height: 44px; font-size: 16px; color: var(--color-main-text); }
+.vbh-pendingbtns { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ---- Mobil: Konten-Drilldown (Zurück-Leiste) ---- */
+.vbh-backbar { margin-bottom: 6px; }
+.vbh-backbtn { border: none; background: none; margin: 0; padding: 10px 10px 10px 0; font-size: 1em; font-weight: 700; color: var(--color-primary-element); cursor: pointer; }
 
 /* Responsive: Tablet (≤ 760px) */
 @media (max-width: 760px) {
@@ -445,6 +486,9 @@
 	.vbh-sectionbody.is-split { overflow-y: auto; overflow-x: hidden; display: block; }
 	.vbh-tree { flex: 0 0 auto; max-height: 240px; min-width: 0; border-right: none; border-bottom: 1px solid var(--color-border); }
 	.vbh-detail { overflow-y: visible; min-width: 0; padding: 10px 10px 32px; }
+	/* Drilldown (isMobile): Baum ODER Detail – der Baum bekommt die volle Höhe */
+	.vbh-section.split.vbh-drill .vbh-tree { max-height: none; flex: 1 1 auto; border-bottom: none; }
+	.vbh-section.split.vbh-drill .vbh-detail { padding-bottom: 84px; }
 
 	/* Zuordnungs-Dropdown kompakter */
 	.vbh-assign-cell { width: 48vw; min-width: 120px; }
