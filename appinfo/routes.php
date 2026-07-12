@@ -86,6 +86,9 @@ return [
 		['name' => 'settings#index',  'url' => '/api/settings', 'verb' => 'GET'],
 		['name' => 'settings#update', 'url' => '/api/settings', 'verb' => 'POST'],
 
+		// Hilfe (Handbuch als lesbare Seite)
+		['name' => 'help#handbuch', 'url' => '/api/help/handbuch', 'verb' => 'GET'],
+
 		// Belegablage
 		['name' => 'attachment#counts',   'url' => '/api/attachments/counts',              'verb' => 'GET'],
 		['name' => 'attachment#index',    'url' => '/api/journal/{journalId}/attachments', 'verb' => 'GET'],

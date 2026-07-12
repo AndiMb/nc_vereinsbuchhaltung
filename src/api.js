@@ -92,6 +92,9 @@ export default {
 	kassenberichtUrl: year => generateUrl(base + '/export/kassenbericht') + (year ? `?year=${year}` : ''),
 	exportAttachmentsUrl: year => generateUrl(base + '/export/attachments') + (year ? `?year=${year}` : ''),
 
+	// Hilfe (Handbuch als lesbare Seite, optional mit Kapitel-Anker)
+	handbuchUrl: anchor => generateUrl(base + '/help/handbuch') + (anchor ? `#${anchor}` : ''),
+
 	// Belegablage
 	attachmentCounts:     () => axios.get(url('/attachments/counts')),
 	listAttachments:      journalId => axios.get(url(`/journal/${journalId}/attachments`)),

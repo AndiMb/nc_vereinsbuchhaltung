@@ -30,6 +30,9 @@
 							<option v-for="y in years" :key="y" :value="y">{{ y }}{{ closedYearSet[y] ? ' 🔒' : '' }}</option>
 						</select>
 					</label>
+					<NcButton variant="tertiary" aria-label="Hilfe" title="Hilfe" @click="openHelp()">
+						<template #icon><NcIconSvgWrapper :path="mdiHelpCircleOutline" :size="20" /></template>
+					</NcButton>
 					<NcButton v-if="canWrite" variant="tertiary" aria-label="Einstellungen & Import" title="Einstellungen & Import" @click="openSettings">
 						<template #icon><NcIconSvgWrapper :path="mdiCog" :size="20" /></template>
 					</NcButton>
@@ -42,9 +45,28 @@
 			<p>Du hast keine Berechtigung für die Vereinsbuchhaltung. Bitte wende dich an eine Verwalterin oder einen Verwalter.</p>
 		</div>
 
+		<div v-if="showRevisorIntro" class="vbh-revisorintro">
+			<h3>Willkommen als Kassenprüfer/in</h3>
+			<ul>
+				<li>Buchungen einsehen (Tab „Buchungen")</li>
+				<li>Kontoauszug und Saldenliste prüfen (Tabs „Konten" und „Berichte")</li>
+				<li>Kassenbericht drucken (Tab „Berichte" → Auswertung)</li>
+			</ul>
+			<p>Ändern ist mit dieser Rolle nicht möglich.</p>
+			<NcButton variant="tertiary" @click="dismissRevisorIntro">Verstanden</NcButton>
+		</div>
+
 		<main v-show="canRead" class="vbh-main">
 			<!-- ============ ÜBERSICHT (DASHBOARD) ============ -->
 			<section v-show="activeTab === 'dashboard'" class="vbh-section scroll" :class="{ 'vbh-fadein': sectionFade }">
+				<SetupChecklist
+					v-if="isAdmin"
+					:accounts="accounts"
+					:permissions="permissions"
+					:journal-count="journalData.length"
+					:club-name="clubName"
+					@navigate="onSetupNavigate" />
+
 				<div v-if="balances" class="vbh-totals">
 					<div class="vbh-total pos">
 						<span>Einnahmen{{ selectedYear ? ' ' + selectedYear : '' }}</span>
@@ -135,7 +157,11 @@
 							@paperclip="clickPaperclip(r)" />
 					</div>
 				</template>
-				<NcEmptyContent v-else-if="!busy" name="Noch keine Buchungen" description="Importiere Kontoumsätze oder lege manuell Buchungssätze an." />
+				<NcEmptyContent v-else-if="!busy" name="Noch keine Buchungen" description="Importiere Kontoumsätze oder lege manuell Buchungssätze an.">
+				<template #action>
+					<NcButton variant="tertiary" @click="openHelp('bookings')">Mehr dazu</NcButton>
+				</template>
+			</NcEmptyContent>
 
 				<div class="vbh-chart-grid">
 					<div class="vbh-chart-card vbh-chart-card--wide">
@@ -260,7 +286,11 @@
 							</table>
 						</div>
 						<NcEmptyContent v-else-if="bookingSearch || bookingFilterAccountId" name="Keine Treffer" description="Suchfilter anpassen oder löschen." />
-						<NcEmptyContent v-else name="Noch keine Buchungssätze" description="Lege mit ‛Neue Buchung' einen ersten Buchungssatz an." />
+						<NcEmptyContent v-else name="Noch keine Buchungssätze" description="Lege mit ‛Neue Buchung' einen ersten Buchungssatz an.">
+						<template #action>
+							<NcButton variant="tertiary" @click="openHelp('bookings')">Mehr dazu</NcButton>
+						</template>
+					</NcEmptyContent>
 					</template>
 
 					<!-- TRANSACTIONS VIEW (unassigned / assigned) -->
@@ -377,6 +407,7 @@
 					<p v-if="accounts.length === 0" class="vbh-hint">
 						Noch keine Konten.<br>
 						<NcButton v-if="canWrite" variant="primary" @click="seedAccounts">Standard-Kontenrahmen anlegen</NcButton>
+					<NcButton variant="tertiary" @click="openHelp('accounts')">Mehr dazu</NcButton>
 					</p>
 
 					<div class="vbh-treelist">
@@ -843,7 +874,11 @@
 								</tbody>
 							</table>
 						</div>
-						<NcEmptyContent v-else-if="!auditLoading" name="Noch keine Protokolleinträge" description="Änderungen ab Version 0.10.41 werden hier aufgezeichnet." />
+						<NcEmptyContent v-else-if="!auditLoading" name="Noch keine Protokolleinträge" description="Änderungen ab Version 0.10.41 werden hier aufgezeichnet.">
+						<template #action>
+							<NcButton variant="tertiary" @click="openHelp('reports')">Mehr dazu</NcButton>
+						</template>
+					</NcEmptyContent>
 						<div v-if="auditEntries.length && !auditEnd" class="vbh-loadmore">
 							<NcButton variant="secondary" :disabled="auditLoading" @click="loadAudit(true)">Ältere Einträge laden</NcButton>
 						</div>
@@ -956,7 +991,11 @@
 						</tbody>
 					</table>
 				</div>
-				<NcEmptyContent v-else name="Noch keine CSV-Importe" description="Importiere oben eine CSV-CAMT-Datei." />
+				<NcEmptyContent v-else name="Noch keine CSV-Importe" description="Importiere oben eine CSV-CAMT-Datei.">
+				<template #action>
+					<NcButton variant="tertiary" @click="openHelp('bookings')">Mehr dazu</NcButton>
+				</template>
+			</NcEmptyContent>
 
 				<SettingsRules
 					v-if="canWrite"
@@ -1019,7 +1058,11 @@
 							</tbody>
 						</table>
 					</div>
-					<NcEmptyContent v-else name="Keine Berechtigungen" description="Nextcloud-Administratoren haben immer Zugriff." />
+					<NcEmptyContent v-else name="Keine Berechtigungen" description="Nextcloud-Administratoren haben immer Zugriff.">
+					<template #action>
+						<NcButton variant="tertiary" @click="openHelp('setup')">Mehr dazu</NcButton>
+					</template>
+				</NcEmptyContent>
 
 					<h3 class="vbh-section-divider">Verein</h3>
 					<div class="vbh-card">
@@ -1442,6 +1485,9 @@
 			@pick="onAccountPicked"
 			@suggest="onAccountPickerSuggest" />
 
+		<!-- ============ HILFE ============ -->
+		<HelpModal :show="showHelp" :topic="helpTopic" @close="closeHelp" @update:show="showHelp = $event" />
+
 		<NcDialog
 			v-if="confirmDialog.open"
 			:name="confirmDialog.title"
@@ -1465,13 +1511,15 @@ import {
 	NcModal,
 	NcSelect,
 } from '@nextcloud/vue'
-import { mdiCamera, mdiCog, mdiCommentPlusOutline, mdiCommentText, mdiDelete, mdiPaperclip, mdiPencil, mdiPlus, mdiUpload, mdiCheckCircle, mdiDownload, mdiFlash, mdiPrinter, mdiViewDashboardOutline, mdiSwapHorizontal, mdiFileTreeOutline, mdiChartBar } from '@mdi/js'
+import { mdiCamera, mdiCog, mdiCommentPlusOutline, mdiCommentText, mdiDelete, mdiPaperclip, mdiPencil, mdiPlus, mdiUpload, mdiCheckCircle, mdiDownload, mdiFlash, mdiPrinter, mdiViewDashboardOutline, mdiSwapHorizontal, mdiFileTreeOutline, mdiChartBar, mdiHelpCircleOutline } from '@mdi/js'
 import api from './api.js'
 import { formatMoney, formatDate, formatDateTime, typeLabel, roleLabel, amountClass, budgetDiffClass, errMsg } from './lib/format.js'
 import SettingsRules from './components/SettingsRules.vue'
 import MobileNav from './components/MobileNav.vue'
 import BookingCard from './components/BookingCard.vue'
 import AccountPickerSheet from './components/AccountPickerSheet.vue'
+import HelpModal from './components/HelpModal.vue'
+import SetupChecklist from './components/SetupChecklist.vue'
 import {
 	Chart,
 	BarController,
@@ -1499,6 +1547,8 @@ export default {
 		MobileNav,
 		BookingCard,
 		AccountPickerSheet,
+		HelpModal,
+		SetupChecklist,
 	},
 	data() {
 		return {
@@ -1611,6 +1661,13 @@ export default {
 			costCenterMode: 'group',
 			clubName: '',
 			storageSaving: false,
+			// Hilfe-Modal (HelpModal.vue): Kapitel folgt standardmäßig dem aktiven Tab,
+			// kann aber gezielt überschrieben werden (z. B. Links aus Leerzuständen).
+			showHelp: false,
+			helpForcedTopic: null,
+			// Einmaliger Willkommenshinweis für die Rolle „Revisor" (localStorage, dauerhaft ausblendbar)
+			revisorIntroDismissed: true,
+			mdiHelpCircleOutline,
 		}
 	},
 	computed: {
@@ -1645,6 +1702,15 @@ export default {
 				if (t.need === 'write') return this.canWrite
 				return this.canRead
 			})
+		},
+		// Hilfe-Kapitel, das zum gerade aktiven Tab passt (HelpModal-Default)
+		helpTopic() {
+			if (this.helpForcedTopic) return this.helpForcedTopic
+			const map = { dashboard: 'setup', bookings: 'bookings', accounts: 'accounts', reports: 'reports' }
+			return map[this.activeTab] || 'setup'
+		},
+		showRevisorIntro() {
+			return !!(this.me && this.me.role === 'revisor' && !this.revisorIntroDismissed)
 		},
 		unassignedCount() {
 			return this.transactions.filter(t => t.status === 'unassigned').length
@@ -2164,6 +2230,8 @@ export default {
 				this.loadClosedYears(),
 			])
 			this.$nextTick(() => setTimeout(() => this.renderDashboardCharts(), 50))
+			// Für die Setup-Checkliste (nur Verwalter) ohne vorheriges Öffnen der Einstellungen verfügbar
+			if (this.isAdmin) { this.loadPermissions(); this.loadStorageSettings() }
 			// Kollaboration: Änderungen anderer Personen per Polling mitbekommen
 			this.checkRevision(true)
 			this.syncTimer = setInterval(() => this.checkRevision(), 20000)
@@ -3033,9 +3101,31 @@ export default {
 				if (!this.visibleTabs.some(t => t.id === this.activeTab)) {
 					this.activeTab = this.visibleTabs.length ? this.visibleTabs[0].id : 'dashboard'
 				}
+				if (data.role === 'revisor') {
+					try { this.revisorIntroDismissed = localStorage.getItem('vbh_revisor_intro_dismissed') === '1' } catch (e) { this.revisorIntroDismissed = false }
+				}
 			} catch (e) {
 				this.me = { role: 'none', canRead: false, canWrite: false, isAdmin: false }
 			}
+		},
+		dismissRevisorIntro() {
+			this.revisorIntroDismissed = true
+			try { localStorage.setItem('vbh_revisor_intro_dismissed', '1') } catch (e) { /* voll/gesperrt – dann eben ohne */ }
+		},
+		// --- Hilfe-Modal --------------------------------------------------
+		openHelp(topic = null) {
+			this.helpForcedTopic = topic
+			this.showHelp = true
+		},
+		closeHelp() {
+			this.showHelp = false
+			this.helpForcedTopic = null
+		},
+		// --- Setup-Checkliste: Sprung zur jeweiligen Aktion ----------------
+		onSetupNavigate(action) {
+			if (action === 'accounts') this.activeTab = 'accounts'
+			else if (action === 'settings') this.openSettings()
+			else if (action === 'booking') this.openNewBooking()
 		},
 		async loadPermissions() {
 			try {
