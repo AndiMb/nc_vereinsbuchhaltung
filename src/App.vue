@@ -1038,53 +1038,14 @@
 		</NcModal>
 
 		<!-- ============ IMPORT-DIALOG (CSV-CAMT) ============ -->
-		<NcModal :show.sync="showImport" name="Kontoumsätze importieren (CSV-CAMT)" size="normal" @close="closeImport">
-			<div class="vbh-modal-inner">
-				<template v-if="!importDone">
-					<div
-						class="vbh-dropzone"
-						:class="{ dragging: importDragging, 'has-file': !!selectedFile }"
-						@dragover.prevent="importDragging = true"
-						@dragleave.self="importDragging = false"
-						@drop.prevent="onImportDrop"
-					>
-						<NcIconSvgWrapper :path="mdiUpload" :size="36" class="vbh-dropzone-icon" />
-						<p class="vbh-dropzone-text">
-							CSV-Datei der Bank hierher ziehen<br>
-							<span class="vbh-dropzone-or">oder</span>
-						</p>
-						<label class="vbh-filebtn">Datei wählen<input ref="fileInput" type="file" accept=".csv,text/csv" hidden @change="onFileSelected"></label>
-						<p v-if="selectedFile" class="vbh-filename">{{ selectedFile.name }}</p>
-					</div>
-					<p class="vbh-hint">Nur neue Buchungen werden übernommen – bereits importierte werden automatisch erkannt (Dublettenprüfung).</p>
-					<NcCheckboxRadioSwitch v-model="applyRules">Auto-Zuordnungsregeln anwenden</NcCheckboxRadioSwitch>
-					<div v-if="previewResult" class="vbh-preview">
-						<p class="vbh-previewsummary">
-							<span class="vbh-badge pos">{{ previewResult.new }} neu</span>
-							<span class="vbh-badge muted">{{ previewResult.duplicate }} Dubletten</span>
-							<span class="vbh-badge muted">{{ previewResult.total }} gesamt</span>
-						</p>
-						<p v-if="previewResult.existingBookings > 0" class="vbh-hint">Davon {{ previewResult.existingBookings }} bereits als vorhandene Buchung erkannt (z. B. aus einem XBUC-Import) und daher übersprungen.</p>
-						<NcButton variant="primary" :disabled="busy || previewResult.new === 0" @click="commit">{{ previewResult.new }} Buchungen importieren</NcButton>
-						<p v-if="previewResult.new === 0" class="vbh-hint">Alle Buchungen dieser Datei wurden bereits importiert.</p>
-					</div>
-				</template>
-				<template v-else>
-					<div class="vbh-import-done">
-						<NcIconSvgWrapper :path="mdiCheckCircle" :size="48" class="vbh-import-done-icon" />
-						<h3>{{ importDone.new }} Buchungen importiert</h3>
-						<p v-if="importDone.autoAssigned > 0" class="vbh-hint">{{ importDone.autoAssigned }} davon wurden automatisch zugeordnet.</p>
-						<p v-if="importDone.new - importDone.autoAssigned > 0" class="vbh-hint">
-							{{ importDone.new - importDone.autoAssigned }} Buchungen warten auf die Zuordnung zu einem Konto.
-						</p>
-						<div class="vbh-modal-actions">
-							<NcButton variant="tertiary" @click="closeImport">Schließen</NcButton>
-							<NcButton v-if="importDone.new - importDone.autoAssigned > 0" variant="primary" @click="goAssignAfterImport">Jetzt zuordnen</NcButton>
-						</div>
-					</div>
-				</template>
-			</div>
-		</NcModal>
+		<ImportDialog
+			:show="showImport"
+			:busy.sync="busy"
+			@update:show="showImport = $event"
+			@close="closeImport"
+			@go-assign="goAssignAfterImport"
+			@imported="onImported"
+		/>
 
 		<!-- ============ BUCHUNGS-DIALOG ============ -->
 		<NcModal :show.sync="showBooking" :name="bookingForm.id ? 'Buchung bearbeiten #' + bookingForm.entryNo : 'Neue Buchung'" :size="isMobile ? 'full' : 'normal'" @close="closeBooking">
@@ -1429,7 +1390,7 @@ import {
 	NcModal,
 	NcSelect,
 } from '@nextcloud/vue'
-import { mdiCamera, mdiCog, mdiCommentPlusOutline, mdiCommentText, mdiDelete, mdiPaperclip, mdiPencil, mdiPlus, mdiUpload, mdiCheckCircle, mdiDownload, mdiFlash, mdiPrinter, mdiViewDashboardOutline, mdiSwapHorizontal, mdiFileTreeOutline, mdiChartBar, mdiHelpCircleOutline } from '@mdi/js'
+import { mdiCamera, mdiCog, mdiCommentPlusOutline, mdiCommentText, mdiDelete, mdiPaperclip, mdiPencil, mdiPlus, mdiUpload, mdiDownload, mdiFlash, mdiPrinter, mdiViewDashboardOutline, mdiSwapHorizontal, mdiFileTreeOutline, mdiChartBar, mdiHelpCircleOutline } from '@mdi/js'
 import api from './api.js'
 import { formatMoney, formatDate, formatDateTime, typeLabel, roleLabel, amountClass, budgetDiffClass, errMsg } from './lib/format.js'
 import SettingsRules from './components/SettingsRules.vue'
@@ -1438,6 +1399,7 @@ import SettingsXbucImport from './components/SettingsXbucImport.vue'
 import SettingsPermissions from './components/SettingsPermissions.vue'
 import SettingsGeneral from './components/SettingsGeneral.vue'
 import SettingsYearClose from './components/SettingsYearClose.vue'
+import ImportDialog from './components/ImportDialog.vue'
 import MobileNav from './components/MobileNav.vue'
 import BookingCard from './components/BookingCard.vue'
 import AccountPickerSheet from './components/AccountPickerSheet.vue'
@@ -1480,6 +1442,7 @@ export default {
 		SettingsPermissions,
 		SettingsGeneral,
 		SettingsYearClose,
+		ImportDialog,
 		MobileNav,
 		BookingCard,
 		AccountPickerSheet,
@@ -1557,9 +1520,6 @@ export default {
 			newSnapshotLabel: '',
 			snapshotView: { open: false, data: null },
 			busy: false,
-			selectedFile: null,
-			applyRules: true,
-			previewResult: null,
 			imports: [],
 			balancesIncludeChildren: false,
 			reportData: null,
@@ -1579,8 +1539,6 @@ export default {
 			showAccount: false,
 			bookingMode: 'simple',
 			showImport: false,
-			importDragging: false,
-			importDone: null,
 			rules: [],
 			sectionFade: true,
 			bookingForm: this.emptyBookingForm(),
@@ -1598,7 +1556,6 @@ export default {
 			mdiPencil,
 			mdiPlus,
 			mdiUpload,
-			mdiCheckCircle,
 			mdiDownload,
 			mdiFlash,
 			mdiPrinter,
@@ -2430,46 +2387,15 @@ export default {
 			try { const { data } = await api.accountJournal(accountId, this.statementIncludeChildren, this.selectedYear); this.statement = data } catch (e) { showError(this.errMsg(e, 'Kontoauszug konnte nicht geladen werden')) }
 		},
 
-		// --- CSV-Import ---
-		openImport() {
-			this.showImport = true
-			this.importDone = null
-			this.previewResult = null
-			this.selectedFile = null
-		},
-		closeImport() {
-			this.showImport = false
-			this.importDragging = false
-		},
-		onImportDrop(e) {
-			this.importDragging = false
-			const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]
-			if (f) { this.selectedFile = f; this.previewResult = null; this.preview() }
-		},
+		// --- CSV-Import (ImportDialog.vue) ---
+		openImport() { this.showImport = true },
+		closeImport() { this.showImport = false },
 		goAssignAfterImport() {
 			this.closeImport()
 			this.activeTab = 'bookings'
 			this.bookingView = 'unassigned'
 		},
-		onFileSelected(e) { this.selectedFile = e.target.files[0] || null; this.previewResult = null; if (this.selectedFile) this.preview() },
-		async preview() {
-			if (!this.selectedFile) return
-			this.busy = true
-			try { const fd = new FormData(); fd.append('file', this.selectedFile); const { data } = await api.previewImport(fd); this.previewResult = data } catch (e) { showError(this.errMsg(e, 'Vorschau fehlgeschlagen')) } finally { this.busy = false }
-		},
-		async commit() {
-			if (!this.selectedFile) return
-			this.busy = true
-			try {
-				const fd = new FormData(); fd.append('file', this.selectedFile); fd.append('applyRules', this.applyRules ? '1' : '0')
-				const { data } = await api.commitImport(fd)
-				showSuccess(`${data.new} Buchungen importiert (${data.autoAssigned} automatisch zugeordnet).`)
-				this.importDone = data
-				this.previewResult = null; this.selectedFile = null
-				if (this.$refs.fileInput) this.$refs.fileInput.value = ''
-				await this.loadImports(); await this.loadBalances(); await this.loadTransactions()
-			} catch (e) { showError(this.errMsg(e, 'Import fehlgeschlagen')) } finally { this.busy = false }
-		},
+		async onImported() { await this.loadImports(); await this.loadBalances(); await this.loadTransactions() },
 		async loadImports() { try { const { data } = await api.listImports(); this.imports = data } catch (e) { /* still */ } },
 
 		// SettingsXbucImport.vue meldet einen erfolgreichen Import; die Nachlade-
