@@ -204,6 +204,7 @@
 </template>
 
 <script>
+import { toRefs } from 'vue'
 import { NcModal, NcButton, NcSelect, NcCheckboxRadioSwitch, NcIconSvgWrapper } from '@nextcloud/vue'
 import { mdiCamera, mdiPaperclip, mdiDelete } from '@mdi/js'
 import { useAccounts } from '../composables/useAccounts.js'
@@ -251,7 +252,7 @@ export default {
 		return {
 			accountsSorted: accounts.accountsSorted,
 			accountsById: accounts.accountsById,
-			journalData: journal.state.journalData,
+			...toRefs(journal.state),
 		}
 	},
 	data() {
