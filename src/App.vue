@@ -1017,57 +1017,18 @@
 					@help="openHelp('setup')"
 				/>
 
+				<SettingsGeneral
+					v-if="isAdmin"
+					:club-name.sync="clubName"
+					:cost-center-mode.sync="costCenterMode"
+					:storage-user.sync="storageUser"
+					:storage-path.sync="storagePath"
+					:users="users"
+					:storage-saving="storageSaving"
+					:save-storage-settings="saveStorageSettings"
+				/>
+
 				<template v-if="isAdmin">
-					<h3 class="vbh-section-divider">Verein</h3>
-					<div class="vbh-card">
-						<div class="vbh-form">
-							<label class="vbh-grow">Vereinsname (erscheint im Kopf des Kassenberichts)
-								<input v-model="clubName" type="text" placeholder="z. B. Musterverein e. V.">
-							</label>
-							<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings">Speichern</NcButton>
-						</div>
-					</div>
-
-					<h3 class="vbh-section-divider">Kostenstellen</h3>
-					<div class="vbh-card">
-						<p class="vbh-hint">
-							Bestimmt, wie der Bericht „Kostenstellen" die Konten gruppiert. Der Modus hängt vom
-							Kontenrahmen des Vereins ab.
-						</p>
-						<div class="vbh-form">
-							<label class="vbh-grow">Modus
-								<select v-model="costCenterMode">
-									<option value="group">2. Zahlengruppe der Kontonummer (z. B. „111 51" → Kostenstelle 51)</option>
-									<option value="account">Jedes Einnahmen-/Ausgabenkonto ist eine eigene Kostenstelle</option>
-								</select>
-							</label>
-							<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings">Speichern</NcButton>
-						</div>
-					</div>
-
-					<h3 class="vbh-section-divider">Belegablage</h3>
-					<div class="vbh-card">
-						<p class="vbh-hint">
-							Belege können intern (AppData, nicht in der Nextcloud-Oberfläche sichtbar) oder in einem
-							Ordner eines Nextcloud-Nutzers gespeichert werden. Wenn kein Nutzer gewählt ist, wird die interne Ablage verwendet.
-						</p>
-						<div class="vbh-form">
-							<label class="vbh-grow">Nextcloud-Nutzer
-								<select v-model="storageUser">
-									<option value="">— intern (AppData) —</option>
-									<option v-for="u in users" :key="u.id" :value="u.id">{{ u.displayName }} ({{ u.id }})</option>
-								</select>
-							</label>
-							<label class="vbh-grow">Ordnerpfad im Nutzer-Home
-								<input v-model="storagePath" type="text" placeholder="Vereinsbuchhaltung/Belege">
-							</label>
-							<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings">Speichern</NcButton>
-						</div>
-						<p v-if="storageUser" class="vbh-hint vbh-hint--info">
-							Belege werden unter <code>{{ storageUser }}/{{ storagePath || 'Vereinsbuchhaltung/Belege' }}/&lt;BuchungsID&gt;/</code> abgelegt.
-						</p>
-					</div>
-
 					<h3 class="vbh-section-divider">Jahresabschluss</h3>
 					<div class="vbh-card">
 						<p class="vbh-hint">
@@ -1508,6 +1469,7 @@ import SettingsRules from './components/SettingsRules.vue'
 import SettingsSpheres from './components/SettingsSpheres.vue'
 import SettingsXbucImport from './components/SettingsXbucImport.vue'
 import SettingsPermissions from './components/SettingsPermissions.vue'
+import SettingsGeneral from './components/SettingsGeneral.vue'
 import MobileNav from './components/MobileNav.vue'
 import BookingCard from './components/BookingCard.vue'
 import AccountPickerSheet from './components/AccountPickerSheet.vue'
@@ -1548,6 +1510,7 @@ export default {
 		SettingsSpheres,
 		SettingsXbucImport,
 		SettingsPermissions,
+		SettingsGeneral,
 		MobileNav,
 		BookingCard,
 		AccountPickerSheet,
