@@ -287,49 +287,13 @@
 		/>
 
 		<!-- ============ PLAN-STAND DETAIL ============ -->
-		<NcModal v-if="snapshotView.open" :show.sync="snapshotView.open" :name="'Plan-Stand: ' + (snapshotView.data ? snapshotView.data.label : '')" size="normal" @close="closeSnapshot">
-			<div v-if="snapshotView.data" class="vbh-modal-inner">
-				<p class="vbh-hint">
-					Eingefroren am {{ formatDateTime(snapshotView.data.createdAt) }} · Geschäftsjahr {{ snapshotView.data.year }}.
-					Die Spalte „Aktuell" zeigt den heutigen Planwert, „Δ" die Abweichung des aktuellen Plans zum Stand.
-				</p>
-				<div v-if="snapshotView.data.items && snapshotView.data.items.length" class="vbh-tablecard">
-					<table class="vbh-table">
-						<thead>
-							<tr>
-								<th class="nowrap vbh-col-hide-sm">Nr.</th>
-								<th>Konto</th>
-								<th class="num">Stand</th>
-								<th class="num vbh-col-hide-sm">Aktuell</th>
-								<th class="num">Δ</th>
-							</tr>
-						</thead>
-						<tbody>
-							<tr v-for="it in snapshotView.data.items" :key="it.id">
-								<td class="nowrap vbh-col-hide-sm">{{ it.number }}</td>
-								<td>{{ it.name }}</td>
-								<td class="num strong">{{ formatMoney(it.amount) }}</td>
-								<td class="num vbh-col-hide-sm">{{ formatMoney(currentPlanForAccount(it.accountId)) }}</td>
-								<td class="num strong" :class="amountClass(currentPlanForAccount(it.accountId) - it.amount)">{{ formatMoney(currentPlanForAccount(it.accountId) - it.amount) }}</td>
-							</tr>
-						</tbody>
-						<tfoot>
-							<tr>
-								<td class="vbh-col-hide-sm"></td>
-								<td><strong>Ergebnis (Plan)</strong></td>
-								<td class="num strong" :class="snapshotView.data.planResult >= 0 ? 'good' : 'bad'">{{ formatMoney(snapshotView.data.planResult) }}</td>
-								<td class="vbh-col-hide-sm"></td>
-								<td></td>
-							</tr>
-						</tfoot>
-					</table>
-				</div>
-				<p v-else class="vbh-empty">Dieser Stand enthält keine Planwerte.</p>
-				<div class="vbh-modal-actions">
-					<NcButton variant="primary" @click="closeSnapshot">Schließen</NcButton>
-				</div>
-			</div>
-		</NcModal>
+		<BudgetSnapshotModal
+			:show="snapshotView.open"
+			:snapshot="snapshotView.data"
+			:current-plan-for-account="currentPlanForAccount"
+			@update:show="snapshotView.open = $event"
+			@close="closeSnapshot"
+		/>
 
 		<!-- ============ BESTÄTIGUNGS-DIALOG ============ -->
 		<!-- ============ KONTOAUSWAHL-SHEET (mobil) ============ -->
@@ -386,6 +350,7 @@ import SettingsYearClose from './components/SettingsYearClose.vue'
 import ImportDialog from './components/ImportDialog.vue'
 import AccountDialog from './components/AccountDialog.vue'
 import BookingDialog from './components/BookingDialog.vue'
+import BudgetSnapshotModal from './components/BudgetSnapshotModal.vue'
 import DashboardTab from './components/DashboardTab.vue'
 import AccountsTab from './components/AccountsTab.vue'
 import BookingsTab from './components/BookingsTab.vue'
@@ -423,6 +388,7 @@ export default {
 		ImportDialog,
 		AccountDialog,
 		BookingDialog,
+		BudgetSnapshotModal,
 		DashboardTab,
 		AccountsTab,
 		BookingsTab,
