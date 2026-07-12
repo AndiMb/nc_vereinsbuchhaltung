@@ -2,8 +2,8 @@
 	<div style="display: contents;">
 		<div class="vbh-sectiontop">
 			<div class="vbh-subtabs">
-				<button :class="{ active: bookingView === 'journal' }" @click="$emit('update:bookingView', 'journal')">Alle Buchungen</button>
-				<button :class="{ active: bookingView === 'unassigned' }" @click="$emit('update:bookingView', 'unassigned')">
+				<button :class="{ active: bookingView === 'journal' }" @click="$emit('update:booking-view', 'journal')">Alle Buchungen</button>
+				<button :class="{ active: bookingView === 'unassigned' }" @click="$emit('update:booking-view', 'unassigned')">
 					Zuzuordnen
 					<span v-if="unassignedCount > 0" class="vbh-badge vbh-badge--alert">{{ unassignedCount }}</span>
 				</button>
