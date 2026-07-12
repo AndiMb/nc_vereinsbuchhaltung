@@ -13,6 +13,7 @@
 				<span v-else class="vbh-setupstep vbh-setupstep--done">{{ s.label }}</span>
 			</li>
 		</ul>
+		<button v-if="accounts.length === 0" class="vbh-setupstep vbh-setupwizardlink" @click="$emit('open-wizard')">Setup-Assistenten öffnen</button>
 	</div>
 </template>
 

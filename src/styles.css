@@ -106,6 +106,36 @@
 .vbh-setuplist li.done { opacity: 0.6; }
 .vbh-setupstep { background: none; border: none; padding: 0; margin: 0; font: inherit; color: var(--color-main-text); cursor: pointer; text-align: left; text-decoration: underline; text-decoration-style: dotted; }
 .vbh-setupstep--done { cursor: default; text-decoration: line-through; }
+.vbh-setupwizardlink { display: block; margin-top: 10px; }
+
+/* Setup-Assistent (SetupWizard.vue) – .modal-container__content hat kein
+   eigenes Padding, siehe Lehre bei .vbh-help oben. */
+.vbh-wizard { padding: 44px 28px 24px; }
+.vbh-wizard h3 { margin-top: 0; }
+.vbh-wizard-choices { display: flex; flex-direction: column; gap: 12px; margin: 20px 0; }
+.vbh-wizard-choice { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; padding: 16px 18px; border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); background: var(--color-main-background); cursor: pointer; color: var(--color-main-text); }
+.vbh-wizard-choice:hover { background-color: var(--color-background-hover); border-color: var(--color-primary-element); }
+.vbh-wizard-choice strong { font-size: 1.05em; }
+.vbh-wizard-choice span { opacity: 0.75; font-size: 0.9em; }
+.vbh-wizard-skip { background: none; border: none; color: var(--color-text-maxcontrast); cursor: pointer; text-decoration: underline; padding: 0; font-size: 0.9em; }
+
+/* Erste-Buchung-Tour (App.vue, Buchungsdialog Einfach-Modus Desktop) */
+.vbh-tour-target { outline: 2px solid var(--color-primary-element); outline-offset: 3px; border-radius: var(--border-radius, 6px); }
+.vbh-tour-tip { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 6px 0 14px; padding: 10px 14px; border-radius: var(--border-radius-large, 12px); background: #eaf2ff; border: 1px solid #b8d4ff; color: #1c3d6e; flex-wrap: wrap; }
+.vbh-tour-actions { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+.vbh-tour-skip { background: none; border: none; color: inherit; opacity: 0.75; cursor: pointer; text-decoration: underline; padding: 0; font-size: 0.9em; }
+@media (prefers-color-scheme: dark) {
+	.vbh-tour-tip { background: #16273f; border-color: #2c4a72; color: #cfe1ff; }
+}
+
+/* Demo-Modus-Banner (App.vue) – feste Farben statt Theme-Variablen, siehe
+   Ergänzung v0.10.12 (Vorjahres-Delta-Badges): NC-Themes machen
+   var(--color-warning)-artige Kombinationen unzuverlässig lesbar. */
+.vbh-demobanner { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 16px 12px; padding: 10px 16px; border-radius: var(--border-radius-large, 12px); background: #fff3cd; border: 1px solid #e6d29e; color: #664d03; flex-wrap: wrap; }
+.vbh-demobanner strong { margin-right: 6px; }
+@media (prefers-color-scheme: dark) {
+	.vbh-demobanner { background: #4a3c14; border-color: #6b5a24; color: #f0d98c; }
+}
 
 /* Revisor-Willkommenshinweis (App.vue) */
 .vbh-revisorintro { margin: 12px 16px; padding: 14px 18px; border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); background-color: var(--color-background-hover); max-width: 640px; }

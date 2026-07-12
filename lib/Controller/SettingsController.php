@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Service\DemoDataService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
@@ -19,6 +20,7 @@ class SettingsController extends Controller {
 		IRequest $request,
 		private IConfig $config,
 		private PermissionService $permissionService,
+		private DemoDataService $demoService,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -30,6 +32,7 @@ class SettingsController extends Controller {
 			'storage_path' => $this->config->getAppValue(Application::APP_ID, 'storage_path', 'Vereinsbuchhaltung/Belege'),
 			'cost_center_mode' => $this->config->getAppValue(Application::APP_ID, 'cost_center_mode', 'group'),
 			'club_name' => $this->config->getAppValue(Application::APP_ID, 'club_name', ''),
+			'demo_active' => $this->demoService->isActive(),
 		]);
 	}
 

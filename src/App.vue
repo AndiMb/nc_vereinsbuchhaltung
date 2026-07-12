@@ -45,6 +45,11 @@
 			<p>Du hast keine Berechtigung für die Vereinsbuchhaltung. Bitte wende dich an eine Verwalterin oder einen Verwalter.</p>
 		</div>
 
+		<div v-if="demoActive" class="vbh-demobanner">
+			<span><strong>Beispieldaten aktiv.</strong> Das ist ein Beispielverein zum Ausprobieren, keine echten Daten.</span>
+			<NcButton variant="secondary" :disabled="busy" @click="resetAll">Zurücksetzen &amp; mit echten Daten starten</NcButton>
+		</div>
+
 		<div v-if="showRevisorIntro" class="vbh-revisorintro">
 			<h3>Willkommen als Kassenprüfer/in</h3>
 			<ul>
@@ -53,7 +58,10 @@
 				<li>Kassenbericht drucken (Tab „Berichte" → Auswertung)</li>
 			</ul>
 			<p>Ändern ist mit dieser Rolle nicht möglich.</p>
-			<NcButton variant="tertiary" @click="dismissRevisorIntro">Verstanden</NcButton>
+			<div class="vbh-modal-actions">
+				<a :href="pruefleitfadenUrl" target="_blank" rel="noopener" class="vbh-export-btn"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> Prüfleitfaden</a>
+				<NcButton variant="tertiary" @click="dismissRevisorIntro">Verstanden</NcButton>
+			</div>
 		</div>
 
 		<main v-show="canRead" class="vbh-main">
@@ -65,7 +73,8 @@
 					:permissions="permissions"
 					:journal-count="journalData.length"
 					:club-name="clubName"
-					@navigate="onSetupNavigate" />
+					@navigate="onSetupNavigate"
+					@open-wizard="showSetupWizard = true" />
 
 				<div v-if="balances" class="vbh-totals">
 					<div class="vbh-total pos">
@@ -535,6 +544,7 @@
 					<div class="vbh-sectiontop-actions">
 						<a v-if="reportView === 'summary' && selectedYear" :href="kassenberichtUrl" target="_blank" rel="noopener" class="vbh-export-btn" title="Druckfertiger Kassenbericht für die Mitgliederversammlung (öffnet in neuem Tab, dort drucken oder als PDF speichern)"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> Kassenbericht</a>
 						<a v-if="reportView === 'summary' && selectedYear" :href="attachmentsZipUrl" download class="vbh-export-btn" title="Alle Belege des Jahres als ZIP herunterladen (für die Kassenprüfung)"><NcIconSvgWrapper :path="mdiPaperclip" :size="16" inline /> Beleg-ZIP</a>
+					<a v-if="reportView === 'summary'" :href="pruefleitfadenUrl" target="_blank" rel="noopener" class="vbh-export-btn" title="Druckfertige 1-Seiten-Kurzanleitung für Kassenprüfer/innen (öffnet in neuem Tab)"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> Prüfleitfaden</a>
 						<a v-if="reportView === 'summary'" :href="exportBalancesUrl" download class="vbh-export-btn" title="Saldenliste als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> Saldenliste</a>
 						<a v-if="reportView === 'summary'" :href="exportReportUrl" download class="vbh-export-btn" title="E/A-Übersicht als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> E/A-Übersicht</a>
 						<a v-if="reportView === 'summary'" :href="exportMultiyearUrl" download class="vbh-export-btn" title="Mehrjahresübersicht (alle Jahre) als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> Mehrjahresübersicht</a>
@@ -1211,9 +1221,16 @@
 					🔒 Das Geschäftsjahr {{ String(bookingForm.date).slice(0, 4) }} ist abgeschlossen –
 					diese Buchung kann nur noch angesehen werden.
 				</p>
-				<div v-if="bookingMode === 'simple'" class="vbh-kindtoggle" role="radiogroup" aria-label="Buchungsart">
+				<div v-if="bookingMode === 'simple'" class="vbh-kindtoggle" :class="{ 'vbh-tour-target': bookingTour.active && bookingTour.step === 0 }" role="radiogroup" aria-label="Buchungsart">
 					<button type="button" class="vbh-kindbtn income" :class="{ active: bookingForm.kind === 'income' }" :disabled="bookingLocked" @click="setBookingKind('income')">Einnahme</button>
 					<button type="button" class="vbh-kindbtn expense" :class="{ active: bookingForm.kind === 'expense' }" :disabled="bookingLocked" @click="setBookingKind('expense')">Ausgabe</button>
+				</div>
+				<div v-if="bookingTour.active && bookingTour.step === 0" class="vbh-tour-tip">
+					<span>Wähle zuerst, ob Geld reinkommt oder rausgeht – Schritt 1 von 3.</span>
+					<div class="vbh-tour-actions">
+						<button type="button" class="vbh-tour-skip" @click="endTour">Überspringen</button>
+						<NcButton variant="primary" @click="nextTourStep">Weiter</NcButton>
+					</div>
 				</div>
 
 				<!-- Mobil: Betrag zuerst und groß, Kontenwahl über Auswahl-Sheets -->
@@ -1297,7 +1314,7 @@
 						<label>Betrag (€)<input v-model.number="bookingForm.amount" type="number" step="0.01" min="0.01" class="vbh-num" :disabled="bookingLocked"></label>
 					</div>
 					<template v-if="bookingMode === 'simple'">
-						<div class="vbh-form">
+						<div class="vbh-form" :class="{ 'vbh-tour-target': bookingTour.active && bookingTour.step === 1 }">
 							<label class="vbh-grow">{{ bookingForm.kind === 'income' ? 'Wofür? (Einnahme-Kategorie)' : 'Wofür? (Ausgabe-Kategorie)' }}
 								<NcSelect
 									v-model="bookingFormCategoryOption"
@@ -1318,6 +1335,13 @@
 									placeholder="– wählen –"
 								/>
 							</label>
+						</div>
+						<div v-if="bookingTour.active && bookingTour.step === 1" class="vbh-tour-tip">
+							<span>Wähle die Kategorie (z. B. „Mitgliedsbeiträge") und das Geldkonto – die App bucht Soll/Haben automatisch richtig. Schritt 2 von 3.</span>
+							<div class="vbh-tour-actions">
+								<button type="button" class="vbh-tour-skip" @click="endTour">Überspringen</button>
+								<NcButton variant="primary" @click="nextTourStep">Weiter</NcButton>
+							</div>
 						</div>
 					</template>
 					<template v-else>
@@ -1344,8 +1368,14 @@
 							</label>
 						</div>
 					</template>
-					<div class="vbh-form">
+					<div class="vbh-form" :class="{ 'vbh-tour-target': bookingTour.active && bookingTour.step === 2 }">
 						<label class="vbh-grow">Buchungstext<input v-model="bookingForm.description" placeholder="z. B. Mitgliedsbeitrag Max Mustermann" :disabled="bookingLocked"></label>
+					</div>
+					<div v-if="bookingTour.active && bookingTour.step === 2" class="vbh-tour-tip">
+						<span>Ein kurzer Text erklärt später, worum es ging – fertig! Schritt 3 von 3.</span>
+						<div class="vbh-tour-actions">
+							<NcButton variant="primary" @click="endTour">Verstanden</NcButton>
+						</div>
 					</div>
 				</template>
 				<div class="vbh-expertrow">
@@ -1488,6 +1518,9 @@
 		<!-- ============ HILFE ============ -->
 		<HelpModal :show="showHelp" :topic="helpTopic" @close="closeHelp" @update:show="showHelp = $event" />
 
+		<!-- ============ SETUP-ASSISTENT (erster Verwalter-Login) ============ -->
+		<SetupWizard :show="showSetupWizard" @close="closeSetupWizard" @update:show="showSetupWizard = $event" @choose="onWizardChoice" />
+
 		<NcDialog
 			v-if="confirmDialog.open"
 			:name="confirmDialog.title"
@@ -1520,6 +1553,7 @@ import BookingCard from './components/BookingCard.vue'
 import AccountPickerSheet from './components/AccountPickerSheet.vue'
 import HelpModal from './components/HelpModal.vue'
 import SetupChecklist from './components/SetupChecklist.vue'
+import SetupWizard from './components/SetupWizard.vue'
 import {
 	Chart,
 	BarController,
@@ -1549,6 +1583,7 @@ export default {
 		AccountPickerSheet,
 		HelpModal,
 		SetupChecklist,
+		SetupWizard,
 	},
 	data() {
 		return {
@@ -1667,6 +1702,12 @@ export default {
 			helpForcedTopic: null,
 			// Einmaliger Willkommenshinweis für die Rolle „Revisor" (localStorage, dauerhaft ausblendbar)
 			revisorIntroDismissed: true,
+			// Geführter Setup-Assistent (SetupWizard.vue) beim allerersten Verwalter-Login
+			showSetupWizard: false,
+			// Beispieldaten (DemoDataService) aktiv – Banner mit Zurücksetzen-Hinweis
+			demoActive: false,
+			// Erste-Buchung-Tour (Feld-Hervorhebung im Einfach-Modus, Desktop, einmalig)
+			bookingTour: { active: false, step: 0 },
 			mdiHelpCircleOutline,
 		}
 	},
@@ -1689,6 +1730,7 @@ export default {
 		exportBudgetUrl()   { return api.exportBudgetUrl(this.selectedYear) },
 		exportMultiyearUrl() { return api.exportMultiyearUrl() },
 		kassenberichtUrl() { return api.kassenberichtUrl(this.selectedYear) },
+		pruefleitfadenUrl() { return api.pruefleitfadenUrl() },
 		attachmentsZipUrl() { return api.exportAttachmentsUrl(this.selectedYear) },
 		// Rückwärts-Import mit inkonsistentem Jahresübergang → Import gesperrt
 		// (außer bei „alle Daten löschen", da entfällt der Abgleich).
@@ -2230,8 +2272,13 @@ export default {
 				this.loadClosedYears(),
 			])
 			this.$nextTick(() => setTimeout(() => this.renderDashboardCharts(), 50))
-			// Für die Setup-Checkliste (nur Verwalter) ohne vorheriges Öffnen der Einstellungen verfügbar
-			if (this.isAdmin) { this.loadPermissions(); this.loadStorageSettings() }
+			// storage/demo-Status betrifft alle Leseberechtigten (Demo-Banner); Berechtigungsliste nur Verwalter (Backend-Gate)
+			this.loadStorageSettings()
+			if (this.isAdmin) {
+				this.loadPermissions()
+				// Setup-Assistent beim allerersten Login eines Verwalters (leerer Verein, noch nicht gesehen)
+				if (this.accounts.length === 0 && !this.setupWizardSeen()) this.showSetupWizard = true
+			}
 			// Kollaboration: Änderungen anderer Personen per Polling mitbekommen
 			this.checkRevision(true)
 			this.syncTimer = setInterval(() => this.checkRevision(), 20000)
@@ -2330,6 +2377,7 @@ export default {
 				this.storagePath = data.storage_path || 'Vereinsbuchhaltung/Belege'
 				this.costCenterMode = data.cost_center_mode || 'group'
 				this.clubName = data.club_name || ''
+				this.demoActive = !!data.demo_active
 			} catch (e) { /* ignorieren */ }
 		},
 		async saveStorageSettings() {
@@ -2634,8 +2682,35 @@ export default {
 				await api.reset(); showSuccess('Alle Daten gelöscht.')
 				this.selectedAccountId = null; this.statement = null; this.journalData = []; this.transactions = []
 				this.selectedYear = null
+				this.demoActive = false
 				await this.loadYears(); await this.loadAccounts(); await this.loadBalances(); await this.loadImports()
 			} catch (e) { showError(this.errMsg(e, 'Zurücksetzen fehlgeschlagen')) } finally { this.busy = false }
+		},
+		// --- Beispieldaten (Onboarding) ---
+		async seedDemoData() {
+			this.busy = true
+			try {
+				await api.seedDemo()
+				this.demoActive = true
+				await Promise.all([this.loadYears(), this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions()])
+				showSuccess('Beispielverein angelegt – schau dich gern um. Zum Starten mit echten Daten: Zurücksetzen.')
+			} catch (e) { showError(this.errMsg(e, 'Beispieldaten konnten nicht angelegt werden')) } finally { this.busy = false }
+		},
+		setupWizardSeen() {
+			try { return localStorage.getItem('vbh_setup_wizard_seen') === '1' } catch (e) { return false }
+		},
+		markSetupWizardSeen() {
+			try { localStorage.setItem('vbh_setup_wizard_seen', '1') } catch (e) { /* voll/gesperrt – dann eben ohne */ }
+		},
+		closeSetupWizard() {
+			this.showSetupWizard = false
+			this.markSetupWizardSeen()
+		},
+		onWizardChoice(choice) {
+			this.closeSetupWizard()
+			if (choice === 'xbuc') this.openSettings()
+			else if (choice === 'fresh') this.seedAccounts()
+			else if (choice === 'demo') this.seedDemoData()
 		},
 
 		// --- Bankbuchungen ---
@@ -2760,7 +2835,20 @@ export default {
 			this.bookingForm = this.emptyBookingForm()
 			this.bookingForm.moneyAccountId = this.defaultMoneyAccountId
 			this.showBooking = true
+			this.startBookingTour()
 		},
+		// --- Erste-Buchung-Tour: einmalige Feld-Hervorhebung im Einfach-Modus (Desktop) ---
+		startBookingTour() {
+			if (this.isMobile || this.bookingMode !== 'simple') return
+			try { if (localStorage.getItem('vbh_booking_tour_seen') === '1') return } catch (e) { return }
+			this.bookingTour = { active: true, step: 0 }
+			try { localStorage.setItem('vbh_booking_tour_seen', '1') } catch (e) { /* voll/gesperrt – dann eben ohne */ }
+		},
+		nextTourStep() {
+			if (this.bookingTour.step >= 2) { this.endTour(); return }
+			this.bookingTour.step++
+		},
+		endTour() { this.bookingTour = { active: false, step: 0 } },
 		// Mobil: Geldfluss-Richtung einer Buchung für die Betrags-Färbung der
 		// Karte – nur eindeutige Fälle (genau eine Seite ist ein Geldkonto).
 		rowFlow(r) {
@@ -2883,7 +2971,7 @@ export default {
 			this.loadAttachments(r.id)
 			this.showBooking = true
 		},
-		closeBooking() { this.showBooking = false; this.bookingForm = this.emptyBookingForm(); this.bookingAttachments = []; this.pendingFiles = [] },
+		closeBooking() { this.showBooking = false; this.bookingForm = this.emptyBookingForm(); this.bookingAttachments = []; this.pendingFiles = []; this.endTour() },
 		async saveBooking() {
 			const f = this.bookingForm
 			if (this.bookingMode === 'simple') {

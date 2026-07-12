@@ -86,8 +86,12 @@ return [
 		['name' => 'settings#index',  'url' => '/api/settings', 'verb' => 'GET'],
 		['name' => 'settings#update', 'url' => '/api/settings', 'verb' => 'POST'],
 
-		// Hilfe (Handbuch als lesbare Seite)
+		// Hilfe (Handbuch als lesbare Seite, druckfertige Kassenprüfer-Kurzanleitung)
 		['name' => 'help#handbuch', 'url' => '/api/help/handbuch', 'verb' => 'GET'],
+		['name' => 'help#pruefleitfaden', 'url' => '/api/help/pruefleitfaden', 'verb' => 'GET'],
+
+		// Beispieldaten (Onboarding: risikolos ausprobieren)
+		['name' => 'demo#seed', 'url' => '/api/demo/seed', 'verb' => 'POST'],
 
 		// Belegablage
 		['name' => 'attachment#counts',   'url' => '/api/attachments/counts',              'verb' => 'GET'],

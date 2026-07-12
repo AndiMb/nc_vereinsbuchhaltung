@@ -34,6 +34,7 @@ class XbucImportService {
 		private BankTransactionMapper $txMapper,
 		private AttachmentStorageService $attachmentStorage,
 		private YearCloseService $yearCloseService,
+		private DemoDataService $demoService,
 	) {
 	}
 
@@ -354,6 +355,7 @@ class XbucImportService {
 
 		if ($reset) {
 			$this->resetService->resetAll($userId);
+			$this->demoService->clearFlag();
 		}
 
 		// --- Kostenstellen (feste + aus Klassifizierung) ---

@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\ImportLogMapper;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
+use OCA\Vereinsbuchhaltung\Service\DemoDataService;
 use OCA\Vereinsbuchhaltung\Service\ImportService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCA\Vereinsbuchhaltung\Service\ResetService;
@@ -29,6 +30,7 @@ class ImportController extends Controller {
 		private IUserSession $userSession,
 		private PermissionService $permissionService,
 		private AuditService $audit,
+		private DemoDataService $demoService,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -150,6 +152,7 @@ class ImportController extends Controller {
 		// Vor dem Löschen protokollieren – das Protokoll überlebt den Reset bewusst.
 		$this->audit->log('Alle Daten zurückgesetzt');
 		$this->resetService->resetAll($this->userId());
+		$this->demoService->clearFlag();
 		return new DataResponse([]);
 	}
 }

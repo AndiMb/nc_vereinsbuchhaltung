@@ -52,6 +52,7 @@ export default {
 	previewXbuc: formData => axios.post(url('/import/xbuc/preview'), formData),
 	commitXbuc: formData => axios.post(url('/import/xbuc'), formData),
 	reset: () => axios.post(url('/reset')),
+	seedDemo: () => axios.post(url('/demo/seed')),
 
 	// Journal / Buchungssätze
 	journal: year => axios.get(url('/journal'), { params: { year: year || undefined } }),
@@ -92,8 +93,9 @@ export default {
 	kassenberichtUrl: year => generateUrl(base + '/export/kassenbericht') + (year ? `?year=${year}` : ''),
 	exportAttachmentsUrl: year => generateUrl(base + '/export/attachments') + (year ? `?year=${year}` : ''),
 
-	// Hilfe (Handbuch als lesbare Seite, optional mit Kapitel-Anker)
+	// Hilfe (Handbuch als lesbare Seite, optional mit Kapitel-Anker; druckfertige Kassenprüfer-Kurzanleitung)
 	handbuchUrl: anchor => generateUrl(base + '/help/handbuch') + (anchor ? `#${anchor}` : ''),
+	pruefleitfadenUrl: () => generateUrl(base + '/help/pruefleitfaden'),
 
 	// Belegablage
 	attachmentCounts:     () => axios.get(url('/attachments/counts')),

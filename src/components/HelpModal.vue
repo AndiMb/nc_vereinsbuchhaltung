@@ -70,6 +70,7 @@ const TOPICS = [
 			'Dashboard: Einnahmen/Ausgaben/Ergebnis des gewählten Jahres mit Vorjahresvergleich.',
 			'Saldenliste: alle Konten mit Soll, Haben und Saldo, optional inklusive Unterkonten.',
 			'Kassenbericht (Berichte → Auswertung): druckfertige Zusammenfassung für die Mitgliederversammlung.',
+			'Prüfleitfaden (Berichte → Auswertung): druckfertige Kurzanleitung für Kassenprüfer/innen.',
 			'Kostenstellen und Finanzplan: Auswertung je Projekt bzw. Soll-Ist-Vergleich.',
 		],
 	},
