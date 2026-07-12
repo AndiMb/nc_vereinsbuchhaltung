@@ -1647,6 +1647,8 @@ import SetupChecklist from './components/SetupChecklist.vue'
 import SetupWizard from './components/SetupWizard.vue'
 import { useAuth } from './composables/useAuth.js'
 import { useYears } from './composables/useYears.js'
+import { useAccounts } from './composables/useAccounts.js'
+import { useBalances } from './composables/useBalances.js'
 import {
 	Chart,
 	BarController,
@@ -1682,6 +1684,8 @@ export default {
 	setup() {
 		const auth = useAuth()
 		const years = useYears()
+		const accounts = useAccounts()
+		const balances = useBalances()
 		return {
 			...toRefs(auth.state),
 			canRead: auth.canRead,
@@ -1696,6 +1700,19 @@ export default {
 			isYearClosed: years.isYearClosed,
 			loadYears: years.loadYears,
 			loadClosedYears: years.loadClosedYears,
+			...toRefs(accounts.state),
+			accountsById: accounts.accountsById,
+			accountsSorted: accounts.accountsSorted,
+			childrenOf: accounts.childrenOf,
+			// eigene Namen, da App.vue-eigene loadAccounts()/seedAccounts() noch
+			// das lokale openingForm nachziehen bzw. eine Erfolgsmeldung zeigen.
+			accountsLoad: accounts.loadAccounts,
+			accountsSeedDefaults: accounts.seedDefaults,
+			...toRefs(balances.state),
+			loadBalances: balances.loadBalances,
+			// eigener Name, damit App.vue seine eigene loadSphereReport()-Methode
+			// mit Zusatzlogik (selectedSphereCode zurücksetzen) behalten kann.
+			balancesLoadSphereReport: balances.loadSphereReport,
 		}
 	},
 	data() {
@@ -1734,12 +1751,9 @@ export default {
 			xbucPreviewResult: null,
 			imports: [],
 			transactions: [],
-			accounts: [],
-			balances: null,
 			balancesIncludeChildren: false,
 			reportData: null,
 			selectedCCCode: false,
-			sphereData: null,
 			selectedSphereCode: false,
 			renameName: '',
 			ccExpanded: {},
@@ -1759,7 +1773,6 @@ export default {
 			importDragging: false,
 			importDone: null,
 			rules: [],
-			prevBalances: null,
 			sectionFade: true,
 			bookingForm: this.emptyBookingForm(),
 			sort: {
@@ -2005,14 +2018,7 @@ export default {
 			},
 			set(v) { this.bookingFilterAccountId = v ? v.id : null },
 		},
-		accountsById() {
-			const map = {}
-			for (const acc of this.accounts) map[acc.id] = acc
-			return map
-		},
-		accountsSorted() {
-			return this.accounts.slice().sort((a, b) => String(a.number).localeCompare(String(b.number), 'de', { numeric: true }))
-		},
+		// accountsById/accountsSorted/childrenOf kommen aus setup() (useAccounts).
 		parentOptions() {
 			return this.accountsSorted.filter(a => a.id !== this.accountEditId)
 		},
@@ -2205,13 +2211,6 @@ export default {
 				{ label: 'Abbrechen', type: 'secondary', callback: () => this.closeConfirm(false) },
 				{ label: this.confirmDialog.confirmLabel, type: this.confirmDialog.confirmVariant, callback: () => this.closeConfirm(true) },
 			]
-		},
-		childrenOf() {
-			const map = {}
-			for (const acc of this.accounts) {
-				if (acc.parentId) (map[acc.parentId] = map[acc.parentId] || []).push(acc)
-			}
-			return map
 		},
 		visibleTree() {
 			const byNum = list => list.slice().sort((a, b) => String(a.number).localeCompare(String(b.number), 'de', { numeric: true }))
@@ -3106,16 +3105,22 @@ export default {
 		},
 
 		// --- Konten ---
+		// Eigene Wrapper um useAccounts (accountsLoad/accountsSeedDefaults), da hier
+		// zusätzlich das lokale openingForm nachgezogen bzw. eine Erfolgsmeldung gezeigt wird.
 		async loadAccounts() {
-			try {
-				const { data } = await api.listAccounts()
-				this.accounts = data
-				const form = {}
-				for (const acc of data) form[acc.id] = { amount: acc.openingBalance || 0, date: acc.openingDate || '' }
-				this.openingForm = form
-			} catch (e) { showError(this.errMsg(e, 'Konten konnten nicht geladen werden')) }
+			const data = await this.accountsLoad()
+			if (!data) return
+			const form = {}
+			for (const acc of data) form[acc.id] = { amount: acc.openingBalance || 0, date: acc.openingDate || '' }
+			this.openingForm = form
 		},
-		async seedAccounts() { try { await api.seedAccounts(); await this.loadAccounts(); showSuccess('Standard-Kontenrahmen angelegt.') } catch (e) { showError(this.errMsg(e, 'Anlegen fehlgeschlagen')) } },
+		async seedAccounts() {
+			try {
+				await this.accountsSeedDefaults()
+				await this.loadAccounts()
+				showSuccess('Standard-Kontenrahmen angelegt.')
+			} catch (e) { showError(this.errMsg(e, 'Anlegen fehlgeschlagen')) }
+		},
 		openNewAccount() {
 			this.accountEditId = null
 			const parent = this.selectedAccount
@@ -3180,15 +3185,7 @@ export default {
 		},
 
 		// --- Auswertung ---
-		async loadBalances() {
-			try { const { data } = await api.balances(this.selectedYear); this.balances = data } catch (e) { showError(this.errMsg(e, 'Auswertung konnte nicht geladen werden')) }
-			// Vorjahr für den KPI-Vergleich (still im Hintergrund, Fehler ignorieren)
-			if (this.selectedYear) {
-				try { const { data } = await api.balances(this.selectedYear - 1); this.prevBalances = data } catch (e) { this.prevBalances = null }
-			} else {
-				this.prevBalances = null
-			}
-		},
+		// loadBalances kommt aus setup() (useBalances).
 
 		// --- Berichte / Kostenstellen ---
 		async loadReport() {
@@ -3200,12 +3197,11 @@ export default {
 		},
 		selectCC(cc) { this.selectedCCCode = cc.code; this.renameName = cc.name; this.ccExpanded = {} },
 		isCCSelected(cc) { return this.selectedCCCode !== false && cc.code === this.selectedCCCode },
+		// Eigener Wrapper um useBalances.loadSphereReport (balancesLoadSphereReport),
+		// da hier zusätzlich die lokale Sphären-Auswahl (Reports-Tab) zurückgesetzt wird.
 		async loadSphereReport() {
-			try {
-				const { data } = await api.sphereReport(this.selectedYear)
-				this.sphereData = data
-				if (this.selectedSphereCode !== false && !data.spheres.some(s => s.code === this.selectedSphereCode)) this.selectedSphereCode = false
-			} catch (e) { showError(this.errMsg(e, 'Sphären-Bericht konnte nicht geladen werden')) }
+			const data = await this.balancesLoadSphereReport()
+			if (data && this.selectedSphereCode !== false && !data.spheres.some(s => s.code === this.selectedSphereCode)) this.selectedSphereCode = false
 		},
 		selectSphere(s) { this.selectedSphereCode = s.code },
 		isSphereSelected(s) { return this.selectedSphereCode !== false && s.code === this.selectedSphereCode },
