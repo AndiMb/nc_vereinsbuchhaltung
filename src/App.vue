@@ -1651,6 +1651,7 @@ import { useAccounts } from './composables/useAccounts.js'
 import { useBalances } from './composables/useBalances.js'
 import { useJournal } from './composables/useJournal.js'
 import { usePermissions } from './composables/usePermissions.js'
+import { useSync } from './composables/useSync.js'
 import {
 	Chart,
 	BarController,
@@ -1690,6 +1691,7 @@ export default {
 		const balances = useBalances()
 		const journal = useJournal()
 		const permissions = usePermissions()
+		const sync = useSync()
 		return {
 			...toRefs(auth.state),
 			canRead: auth.canRead,
@@ -1726,6 +1728,8 @@ export default {
 			loadTransactions: journal.loadTransactions,
 			...toRefs(permissions.state),
 			loadPermissions: permissions.loadPermissions,
+			...toRefs(sync.state),
+			checkRemoteRevision: sync.checkRemoteRevision,
 		}
 	},
 	data() {
@@ -1805,8 +1809,7 @@ export default {
 			bookingAttachments: [],
 			attachmentUploading: false,
 			attachmentCountMap: {},
-			// Kollaboration: zuletzt gesehener Änderungsstand + Poll-Timer
-			syncRevision: null,
+			// Kollaboration: Poll-Timer (Änderungsstand selbst kommt aus useSync)
 			syncTimer: null,
 			// Mobil-Layout (≤ 640px): schaltet Bottom-Nav, Kartenlisten etc.
 			isMobile: false,
@@ -2434,13 +2437,8 @@ export default {
 		async checkRevision(init = false) {
 			if (!this.canRead) return
 			if (!init && document.hidden) return
-			let rev
-			try { rev = (await api.revision()).data.revision } catch (e) { return }
-			if (init || this.syncRevision === null) { this.syncRevision = rev; return }
-			if (rev === this.syncRevision) return
-			// Import o. Ä. läuft gerade – Stand nicht übernehmen, nächster Poll holt nach.
-			if (this.busy) return
-			this.syncRevision = rev
+			const result = await this.checkRemoteRevision(init, this.busy)
+			if (result !== 'changed') return
 			// Nach eigener Schreibaktion still aktualisieren (die Handler haben schon
 			// nachgeladen, aber eine zeitgleiche Fremdänderung darf nicht verloren gehen).
 			const ownWrite = Date.now() - api.lastWriteAt() < 15000
