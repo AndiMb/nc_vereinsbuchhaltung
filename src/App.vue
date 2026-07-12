@@ -1252,55 +1252,15 @@
 		</NcModal>
 
 		<!-- ============ KONTO-DIALOG ============ -->
-		<NcModal :show.sync="showAccount" :name="accountEditId ? 'Konto bearbeiten' : 'Neues Konto'" size="normal" @close="closeAccount">
-			<div class="vbh-modal-inner">
-				<div class="vbh-form">
-					<label>Nummer<input v-model="newAccount.number" class="vbh-short" placeholder="z.B. 4000"></label>
-					<label class="vbh-grow">Bezeichnung<input v-model="newAccount.name" placeholder="Kontoname"></label>
-				</div>
-				<div class="vbh-form">
-					<label>Typ
-						<select v-model="newAccount.type">
-							<option value="income">Ertrag (Einnahme)</option>
-							<option value="expense">Aufwand (Ausgabe)</option>
-							<option value="asset">Aktiv (Vermögen)</option>
-							<option value="liability">Passiv (Verbindlichkeit)</option>
-							<option value="equity">Eigenkapital</option>
-						</select>
-					</label>
-					<label class="vbh-grow">Überkonto
-						<NcSelect
-							v-model="accountParentOption"
-							:options="accountParentOptions"
-							:filter-by="accountFilterBy"
-							label="label"
-							placeholder="– kein Überkonto –"
-							:clearable="true"
-						/>
-					</label>
-				</div>
-				<div class="vbh-form">
-					<label>Kategorie<input v-model="newAccount.category" placeholder="optional"></label>
-					<NcCheckboxRadioSwitch v-model="newAccount.isBank">Geldkonto (Bank/Kasse) – Bestand geht über Jahresgrenzen</NcCheckboxRadioSwitch>
-				</div>
-				<div v-if="newAccount.type !== 'equity' && !newAccount.isBank" class="vbh-form">
-					<label class="vbh-grow">Steuerliche Sphäre
-						<select v-model="newAccount.sphere">
-							<option value="">– nicht zugeordnet –</option>
-							<option value="ideell">Ideeller Bereich</option>
-							<option value="vermoegensverwaltung">Vermögensverwaltung</option>
-							<option value="zweckbetrieb">Zweckbetrieb</option>
-							<option value="wirtschaftlich">Wirtschaftlicher Geschäftsbetrieb</option>
-						</select>
-					</label>
-					<button type="button" class="vbh-sphere-help" title="Was bedeutet das?" @click="openHelp('spheres')">?</button>
-				</div>
-				<div class="vbh-modal-actions">
-					<NcButton variant="tertiary" @click="closeAccount">Abbrechen</NcButton>
-					<NcButton variant="primary" @click="saveAccount">{{ accountEditId ? 'Speichern' : 'Anlegen' }}</NcButton>
-				</div>
-			</div>
-		</NcModal>
+		<AccountDialog
+			:show="showAccount"
+			:account-edit-id="accountEditId"
+			:initial-form="newAccount"
+			@update:show="showAccount = $event"
+			@close="closeAccount"
+			@save="saveAccount"
+			@help="openHelp('spheres')"
+		/>
 
 		<!-- ============ PLAN-STAND DETAIL ============ -->
 		<NcModal v-if="snapshotView.open" :show.sync="snapshotView.open" :name="'Plan-Stand: ' + (snapshotView.data ? snapshotView.data.label : '')" size="normal" @close="closeSnapshot">
@@ -1400,6 +1360,7 @@ import SettingsPermissions from './components/SettingsPermissions.vue'
 import SettingsGeneral from './components/SettingsGeneral.vue'
 import SettingsYearClose from './components/SettingsYearClose.vue'
 import ImportDialog from './components/ImportDialog.vue'
+import AccountDialog from './components/AccountDialog.vue'
 import MobileNav from './components/MobileNav.vue'
 import BookingCard from './components/BookingCard.vue'
 import AccountPickerSheet from './components/AccountPickerSheet.vue'
@@ -1443,6 +1404,7 @@ export default {
 		SettingsGeneral,
 		SettingsYearClose,
 		ImportDialog,
+		AccountDialog,
 		MobileNav,
 		BookingCard,
 		AccountPickerSheet,
@@ -1776,9 +1738,8 @@ export default {
 			set(v) { this.bookingFilterAccountId = v ? v.id : null },
 		},
 		// accountsById/accountsSorted/childrenOf kommen aus setup() (useAccounts).
-		parentOptions() {
-			return this.accountsSorted.filter(a => a.id !== this.accountEditId)
-		},
+		// parentOptions/accountParentOptions/accountParentOption sind jetzt Teil
+		// von AccountDialog.vue (eigenes setup() mit useAccounts()).
 		accountsByCategory() {
 			const groups = {}
 			for (const acc of this.accountsSorted) {
@@ -1943,16 +1904,6 @@ export default {
 				return this.accountOptionsList.find(o => o.id === this.bookingForm.creditAccountId) ?? null
 			},
 			set(v) { this.bookingForm.creditAccountId = v ? v.id : null },
-		},
-		accountParentOptions() {
-			return [
-				{ id: null, label: '– kein Überkonto –' },
-				...this.parentOptions.map(a => ({ id: a.id, label: `${a.number} ${a.name}`, number: a.number })),
-			]
-		},
-		accountParentOption: {
-			get() { return this.accountParentOptions.find(o => o.id === this.newAccount.parentId) ?? null },
-			set(v) { this.newAccount.parentId = v ? v.id : null },
 		},
 		confirmDialogButtonList() {
 			return [
@@ -2781,9 +2732,10 @@ export default {
 			this.showAccount = true
 		},
 		closeAccount() { this.showAccount = false; this.accountEditId = null },
-		async saveAccount() {
-			if (!this.newAccount.number || !this.newAccount.name) { showError('Nummer und Bezeichnung sind Pflicht.'); return }
-			const f = this.newAccount
+		// f kommt jetzt als @save-Payload von AccountDialog.vue (eigene lokale
+		// Formularkopie dort, kein direktes Mutieren von this.newAccount mehr).
+		async saveAccount(f) {
+			if (!f.number || !f.name) { showError('Nummer und Bezeichnung sind Pflicht.'); return }
 			try {
 				if (this.accountEditId) {
 					await api.updateAccount(this.accountEditId, {
