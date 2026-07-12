@@ -71,7 +71,18 @@ const TOPICS = [
 			'Saldenliste: alle Konten mit Soll, Haben und Saldo, optional inklusive Unterkonten.',
 			'Kassenbericht (Berichte → Auswertung): druckfertige Zusammenfassung für die Mitgliederversammlung.',
 			'Prüfleitfaden (Berichte → Auswertung): druckfertige Kurzanleitung für Kassenprüfer/innen.',
-			'Kostenstellen und Finanzplan: Auswertung je Projekt bzw. Soll-Ist-Vergleich.',
+			'Kostenstellen, Sphären und Finanzplan: Auswertung je Projekt, je Steuerkategorie bzw. Soll-Ist-Vergleich.',
+		],
+	},
+	{
+		id: 'spheres',
+		label: 'Sphären',
+		anchor: '5-6-steuerliche-sphaeren',
+		bullets: [
+			'Vier steuerliche Sphären: ideeller Bereich, Vermögensverwaltung, Zweckbetrieb, wirtschaftlicher Geschäftsbetrieb.',
+			'Zuordnen im Konto-Dialog (Feld „Steuerliche Sphäre") oder für mehrere Konten auf einmal unter Einstellungen → „Steuerliche Sphären".',
+			'Tab Berichte → „Sphären" zeigt Einnahmen/Ausgaben/Ergebnis je Sphäre.',
+			'Freigrenze wirtschaftlicher Geschäftsbetrieb: aktuell 45.000 € Bruttoeinnahmen/Jahr – das Dashboard warnt per Ampel, sobald es dort Einnahmen gibt. Ersetzt keine steuerliche Beratung.',
 		],
 	},
 ]

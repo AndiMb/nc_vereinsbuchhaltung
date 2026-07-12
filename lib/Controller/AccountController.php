@@ -48,9 +48,9 @@ class AccountController extends Controller {
 	}
 
 	#[NoAdminRequired]
-	public function create(string $number, string $name, string $type, ?string $category = null, bool $isBank = false, ?int $parentId = null): DataResponse {
+	public function create(string $number, string $name, string $type, ?string $category = null, bool $isBank = false, ?int $parentId = null, ?string $sphere = null): DataResponse {
 		try {
-			$account = $this->service->create($this->userId(), $number, $name, $type, $category, $isBank, $parentId);
+			$account = $this->service->create($this->userId(), $number, $name, $type, $category, $isBank, $parentId, $sphere);
 			return new DataResponse($account, Http::STATUS_CREATED);
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
@@ -60,9 +60,10 @@ class AccountController extends Controller {
 	/**
 	 * @param int $parentId 0 = kein Überkonto (Wurzel); >0 = ID des Überkontos.
 	 *                       Die Account-Bearbeitung sendet das Feld immer mit.
+	 * @param string|null $sphere '' = nicht zugeordnet (löscht eine ggf. gesetzte Sphäre).
 	 */
 	#[NoAdminRequired]
-	public function update(int $id, ?string $number = null, ?string $name = null, ?string $type = null, ?string $category = null, ?bool $isBank = null, ?bool $active = null, int $parentId = 0): DataResponse {
+	public function update(int $id, ?string $number = null, ?string $name = null, ?string $type = null, ?string $category = null, ?bool $isBank = null, ?bool $active = null, int $parentId = 0, ?string $sphere = null): DataResponse {
 		$data = array_filter([
 			'number' => $number,
 			'name' => $name,
@@ -70,6 +71,7 @@ class AccountController extends Controller {
 			'category' => $category,
 			'isBank' => $isBank,
 			'active' => $active,
+			'sphere' => $sphere,
 		], static fn ($v) => $v !== null);
 		// parentId immer übernehmen (0 = Wurzel), damit Umhängen/Lösen möglich ist.
 		$data['parentId'] = $parentId;
@@ -79,6 +81,23 @@ class AccountController extends Controller {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		} catch (DoesNotExistException) {
 			return new DataResponse(['message' => 'Konto nicht gefunden'], Http::STATUS_NOT_FOUND);
+		}
+	}
+
+	/**
+	 * Mehrere Konten auf einmal einer Sphäre zuordnen (Bulk-Zuordnung, siehe
+	 * SettingsSpheres.vue) – erspart bei Bestandsvereinen das Konto-für-Konto-Bearbeiten.
+	 *
+	 * @param int[] $accountIds
+	 */
+	#[NoAdminRequired]
+	public function bulkSphere(array $accountIds, string $sphere): DataResponse {
+		try {
+			$count = $this->service->bulkSetSphere($this->userId(), $accountIds, $sphere);
+			$this->audit->log('Sphären zugeordnet', 'account', null, ['anzahl' => $count, 'sphere' => $sphere]);
+			return new DataResponse(['updated' => $count]);
+		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		}
 	}
 

@@ -27,6 +27,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setOpeningDate(?string $openingDate)
  * @method int|null getParentId()
  * @method void setParentId(?int $parentId)
+ * @method string|null getSphere()
+ * @method void setSphere(?string $sphere)
  */
 class Account extends Entity implements \JsonSerializable {
 	protected $userId;
@@ -39,6 +41,10 @@ class Account extends Entity implements \JsonSerializable {
 	protected $openingBalanceCents = 0;
 	protected $openingDate;
 	protected $parentId;
+	protected $sphere;
+
+	/** Gültige Werte für die steuerliche Sphäre (Account::$sphere). */
+	public const SPHERES = ['ideell', 'vermoegensverwaltung', 'zweckbetrieb', 'wirtschaftlich'];
 
 	public function __construct() {
 		$this->addType('isBank', 'boolean');
@@ -78,6 +84,14 @@ class Account extends Entity implements \JsonSerializable {
 		return !$this->isStockAccount() && $this->type !== 'equity';
 	}
 
+	/**
+	 * Wirtschaftlicher Geschäftsbetrieb: die steuerlich sensibelste Sphäre
+	 * (Freigrenze, siehe ReportService::sphereReport()).
+	 */
+	public function isCommercialSphere(): bool {
+		return $this->sphere === 'wirtschaftlich';
+	}
+
 	public function jsonSerialize(): array {
 		return [
 			'id' => $this->id,
@@ -91,6 +105,7 @@ class Account extends Entity implements \JsonSerializable {
 			'openingBalance' => $this->openingBalanceCents / 100,
 			'openingDate' => $this->openingDate,
 			'parentId' => $this->parentId,
+			'sphere' => $this->sphere,
 		];
 	}
 }

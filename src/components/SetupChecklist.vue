@@ -49,6 +49,8 @@ export default {
 					{ id: 'opening', label: 'Geldkonto mit Anfangsbestand eintragen', action: 'accounts', done: this.journalCount > 0 || this.accounts.some(a => a.isBank && a.openingDate) },
 				{ id: 'permissions', label: 'Berechtigungen vergeben', action: 'settings', done: this.permissions.length > 0 },
 				{ id: 'booking', label: 'Erste Buchung erfassen', action: 'booking', done: this.journalCount > 0 },
+				// Entspricht Account::isResultRelevant() im Backend (alles außer Geldkonten/Eigenkapital).
+				{ id: 'spheres', label: 'Sphären zuordnen (steuerlich)', action: 'settings', done: this.accounts.filter(a => a.type !== 'equity' && !a.isBank).every(a => a.sphere) },
 			]
 		},
 		remaining() {

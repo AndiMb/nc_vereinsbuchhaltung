@@ -67,6 +67,8 @@ export default {
 	// Berichte / Kostenstellen
 	costCenterReport: year => axios.get(url('/report/costcenters'), { params: { year: year || undefined } }),
 	renameCostCenter: (code, name) => axios.put(url('/report/costcenters'), { code, name }),
+	sphereReport: year => axios.get(url('/report/spheres'), { params: { year: year || undefined } }),
+	bulkSphere: (accountIds, sphere) => axios.post(url('/accounts/sphere-bulk'), { accountIds, sphere }),
 
 	// Finanzplan / Budget
 	budget: year => axios.get(url('/budget'), { params: { year: year || undefined } }),

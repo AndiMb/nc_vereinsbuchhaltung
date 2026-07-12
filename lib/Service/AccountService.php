@@ -21,18 +21,19 @@ class AccountService {
 		['number' => '1200', 'name' => 'Bankkonto', 'type' => 'asset', 'category' => 'Geldkonten', 'isBank' => true],
 		['number' => '1000', 'name' => 'Kasse', 'type' => 'asset', 'category' => 'Geldkonten', 'isBank' => true],
 		['number' => '0800', 'name' => 'Vereinsvermögen', 'type' => 'equity', 'category' => 'Eigenkapital'],
-		// Erträge
-		['number' => '4000', 'name' => 'Mitgliedsbeiträge', 'type' => 'income', 'category' => 'Einnahmen'],
-		['number' => '4100', 'name' => 'Spenden', 'type' => 'income', 'category' => 'Einnahmen'],
-		['number' => '4200', 'name' => 'Zuschüsse / Fördermittel', 'type' => 'income', 'category' => 'Einnahmen'],
-		['number' => '4300', 'name' => 'Veranstaltungseinnahmen', 'type' => 'income', 'category' => 'Einnahmen'],
+		// Erträge – Vorbelegung „ideell", da der schlanke Standardrahmen keine
+		// wirtschaftliche Tätigkeit vorsieht; bei Bedarf im Konto-Dialog anpassen.
+		['number' => '4000', 'name' => 'Mitgliedsbeiträge', 'type' => 'income', 'category' => 'Einnahmen', 'sphere' => 'ideell'],
+		['number' => '4100', 'name' => 'Spenden', 'type' => 'income', 'category' => 'Einnahmen', 'sphere' => 'ideell'],
+		['number' => '4200', 'name' => 'Zuschüsse / Fördermittel', 'type' => 'income', 'category' => 'Einnahmen', 'sphere' => 'ideell'],
+		['number' => '4300', 'name' => 'Veranstaltungseinnahmen', 'type' => 'income', 'category' => 'Einnahmen', 'sphere' => 'zweckbetrieb'],
 		['number' => '4900', 'name' => 'Sonstige Einnahmen', 'type' => 'income', 'category' => 'Einnahmen'],
 		// Aufwendungen
-		['number' => '5000', 'name' => 'Raum- / Mietkosten', 'type' => 'expense', 'category' => 'Ausgaben'],
-		['number' => '5100', 'name' => 'Versicherungen / Beiträge', 'type' => 'expense', 'category' => 'Ausgaben'],
-		['number' => '5200', 'name' => 'Veranstaltungskosten', 'type' => 'expense', 'category' => 'Ausgaben'],
-		['number' => '5300', 'name' => 'Büro- / Verwaltungskosten', 'type' => 'expense', 'category' => 'Ausgaben'],
-		['number' => '5400', 'name' => 'Bankgebühren', 'type' => 'expense', 'category' => 'Ausgaben'],
+		['number' => '5000', 'name' => 'Raum- / Mietkosten', 'type' => 'expense', 'category' => 'Ausgaben', 'sphere' => 'ideell'],
+		['number' => '5100', 'name' => 'Versicherungen / Beiträge', 'type' => 'expense', 'category' => 'Ausgaben', 'sphere' => 'ideell'],
+		['number' => '5200', 'name' => 'Veranstaltungskosten', 'type' => 'expense', 'category' => 'Ausgaben', 'sphere' => 'zweckbetrieb'],
+		['number' => '5300', 'name' => 'Büro- / Verwaltungskosten', 'type' => 'expense', 'category' => 'Ausgaben', 'sphere' => 'ideell'],
+		['number' => '5400', 'name' => 'Bankgebühren', 'type' => 'expense', 'category' => 'Ausgaben', 'sphere' => 'ideell'],
 		['number' => '5900', 'name' => 'Sonstige Ausgaben', 'type' => 'expense', 'category' => 'Ausgaben'],
 	];
 
@@ -52,7 +53,7 @@ class AccountService {
 		return $this->mapper->find($id, $userId);
 	}
 
-	public function create(string $userId, string $number, string $name, string $type, ?string $category, bool $isBank, ?int $parentId = null): Account {
+	public function create(string $userId, string $number, string $name, string $type, ?string $category, bool $isBank, ?int $parentId = null, ?string $sphere = null): Account {
 		$account = new Account();
 		$account->setUserId($userId);
 		$account->setNumber(trim($number));
@@ -61,6 +62,7 @@ class AccountService {
 		$account->setCategory($category !== null ? trim($category) : null);
 		$account->setIsBank($isBank);
 		$account->setActive(true);
+		$account->setSphere($this->validateSphere($sphere));
 		if ($parentId !== null && $parentId > 0) {
 			// Überkonto muss existieren und demselben Bestand gehören.
 			$this->mapper->find($parentId, $userId);
@@ -88,6 +90,9 @@ class AccountService {
 		}
 		if (isset($data['active'])) {
 			$account->setActive((bool)$data['active']);
+		}
+		if (array_key_exists('sphere', $data)) {
+			$account->setSphere($this->validateSphere((string)$data['sphere']));
 		}
 		if (array_key_exists('parentId', $data)) {
 			$account->setParentId($this->resolveParent($id, $userId, (int)$data['parentId']));
@@ -148,9 +153,34 @@ class AccountService {
 				$def['type'],
 				$def['category'] ?? null,
 				$def['isBank'] ?? false,
+				null,
+				$def['sphere'] ?? null,
 			);
 		}
 		return $this->mapper->findAll($userId);
+	}
+
+	/**
+	 * Ordnet mehrere Konten auf einmal einer Sphäre zu (Bulk-Zuordnung für
+	 * Bestandsvereine mit vielen Konten).
+	 *
+	 * @param int[] $accountIds
+	 * @return int Anzahl tatsächlich geänderter Konten (fremde/unbekannte IDs werden übersprungen)
+	 */
+	public function bulkSetSphere(string $userId, array $accountIds, string $sphere): int {
+		$validated = $this->validateSphere($sphere);
+		$count = 0;
+		foreach ($accountIds as $id) {
+			try {
+				$account = $this->mapper->find((int)$id, $userId);
+			} catch (DoesNotExistException) {
+				continue;
+			}
+			$account->setSphere($validated);
+			$this->mapper->update($account);
+			$count++;
+		}
+		return $count;
 	}
 
 	/**
@@ -201,5 +231,16 @@ class AccountService {
 			throw new \InvalidArgumentException('Ungültiger Kontotyp: ' . $type);
 		}
 		return $type;
+	}
+
+	/** '' und null bedeuten beide „nicht zugeordnet" (gespeichert als NULL). */
+	private function validateSphere(?string $sphere): ?string {
+		if ($sphere === null || $sphere === '') {
+			return null;
+		}
+		if (!in_array($sphere, Account::SPHERES, true)) {
+			throw new \InvalidArgumentException('Ungültige Sphäre: ' . $sphere);
+		}
+		return $sphere;
 	}
 }

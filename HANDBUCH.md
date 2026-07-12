@@ -297,6 +297,36 @@ Im Dashboard und in der Auswertung: **Kontostand** (aus dem Journal) vs.
 „Mein Bankkontostand stimmt, aber es gibt noch X € unzugeordnete Umsätze,
 die ich noch bearbeiten muss."
 
+### 5.6 Steuerliche Sphären
+
+Gemeinnützige Vereine müssen ihre Einnahmen und Ausgaben in bis zu vier
+steuerliche Sphären trennen. Davon hängt ab, ob Steuern anfallen und ob die
+Gemeinnützigkeit selbst gefährdet ist. Die App hilft, diese Trennung
+sichtbar zu machen – **sie ersetzt keine steuerliche Beratung.**
+
+| Sphäre | Beispiele | Steuerlich |
+|---|---|---|
+| **Ideeller Bereich** | Mitgliedsbeiträge, echte Spenden, Zuschüsse ohne Gegenleistung | nicht steuerbar |
+| **Vermögensverwaltung** | Zinsen, Mieteinnahmen aus Vereinsräumen, Erträge aus Geldanlagen | grundsätzlich nicht steuerbar |
+| **Zweckbetrieb** | Eintritt zu Konzerten/Sportveranstaltungen, Kursgebühren | steuerbegünstigt trotz „Geschäft" |
+| **Wirtschaftlicher Geschäftsbetrieb** | Vereinsgaststätte, Werbung mit Gegenleistung, Warenverkauf | grundsätzlich steuerpflichtig oberhalb der Freigrenze |
+
+**Zuordnen:** Im Konto-Dialog (Tab Konten) gibt es das Feld „Steuerliche
+Sphäre" – für alle Einnahmen-/Ausgaben-Konten (Geldkonten und Eigenkapital
+sind ausgenommen). Für viele Konten auf einmal: Einstellungen →
+„Steuerliche Sphären" bietet eine Mehrfachauswahl mit Namensvorschlägen.
+
+**Auswerten:** Tab Berichte → „Sphären" zeigt Einnahmen/Ausgaben/Ergebnis je
+Sphäre inkl. eines Buckets „nicht zugeordnet". Der Kassenbericht enthält
+denselben Abschnitt, die Mehrjahresübersicht eine zusätzliche Matrix.
+
+> **Freigrenze wirtschaftlicher Geschäftsbetrieb:** aktuell 45.000 €
+> Bruttoeinnahmen pro Jahr (§ 64 Abs. 3 AO, Stand seit 2020) – als Summe über
+> alle wirtschaftlichen Aktivitäten zusammen. Wird sie überschritten, wird
+> der **gesamte** wirtschaftliche Geschäftsbetrieb steuerpflichtig, nicht nur
+> der übersteigende Teil. Das Dashboard zeigt eine Ampel (grün/gelb/rot),
+> sobald es Einnahmen im wirtschaftlichen Geschäftsbetrieb gibt.
+
 ---
 
 ## 6. Finanzplan (Budget)

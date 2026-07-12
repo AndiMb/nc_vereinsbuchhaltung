@@ -463,6 +463,36 @@ class ExportController extends Controller {
 		}
 		$csv .= $this->csvLine($sumCells);
 
+		// --- Steuerliche Sphären (Ergebnis) ---
+		$csv .= $this->csvLine(array_fill(0, count($years) + 1, ''));
+		$csv .= $this->csvLine(['Auswertung nach steuerlichen Sphären (Ergebnis) — ersetzt keine steuerliche Beratung']);
+		$csv .= $this->csvLine($header);
+
+		$sphereResultByCode = [];
+		$sphereNameByCode = [];
+		$sphereTotals = array_fill_keys($years, 0.0);
+		foreach ($years as $y) {
+			$report = $this->reportService->sphereReport($userId, $y);
+			foreach ($report['spheres'] as $s) {
+				$code = $s['code'] ?? '';
+				$sphereNameByCode[$code] = $s['name'];
+				$sphereResultByCode[$code][$y] = $s['result'];
+				$sphereTotals[$y] += $s['result'];
+			}
+		}
+		foreach ($sphereNameByCode as $code => $name) {
+			$cells = [$name];
+			foreach ($years as $y) {
+				$cells[] = $this->fmtMoney((float)($sphereResultByCode[$code][$y] ?? 0));
+			}
+			$csv .= $this->csvLine($cells);
+		}
+		$sphereSumCells = ['Summe Sphären'];
+		foreach ($years as $y) {
+			$sphereSumCells[] = $this->fmtMoney($sphereTotals[$y]);
+		}
+		$csv .= $this->csvLine($sphereSumCells);
+
 		return new DataDownloadResponse($csv, 'mehrjahresuebersicht.csv', 'text/csv; charset=utf-8');
 	}
 
@@ -764,6 +794,24 @@ class ExportController extends Controller {
 		$h .= '<tr class="sum"><td colspan="2">Summe Ausgaben</td><td class="num">' . $m($totalExpense) . '</td></tr>';
 		$h .= '<tr class="result"><td colspan="2">Jahresergebnis</td><td class="num">' . $m($result) . '</td></tr>';
 		$h .= '</table></section>';
+
+		// Sphärenübersicht (steuerlich)
+		$sphereReport = $this->reportService->sphereReport($userId, $year);
+		$h .= '<section><h2>Sphärenübersicht (steuerlich)</h2><table>';
+		$h .= '<tr><th>Sphäre</th><th class="num">Einnahmen</th><th class="num">Ausgaben</th><th class="num">Ergebnis</th></tr>';
+		foreach ($sphereReport['spheres'] as $s) {
+			$h .= '<tr><td>' . $this->esc((string)$s['name']) . '</td><td class="num">' . $this->fmtMoney((float)$s['income']) . ' €</td><td class="num">'
+				. $this->fmtMoney((float)$s['expense']) . ' €</td><td class="num">' . $this->fmtMoney((float)$s['result']) . ' €</td></tr>';
+		}
+		$h .= '</table>';
+		$fg = $sphereReport['freigrenze'];
+		if ($fg['incomeCents'] > 0) {
+			$levelText = $fg['level'] === 'over' ? 'überschritten' : ($fg['level'] === 'warn' ? 'nähert sich der Grenze' : 'im grünen Bereich');
+			$h .= '<p>Wirtschaftlicher Geschäftsbetrieb: ' . $this->fmtMoney((float)$fg['income']) . ' € von ' . $this->fmtMoney((float)$fg['threshold'])
+				. ' € Freigrenze (' . round(((float)$fg['ratio']) * 100) . ' % – ' . $levelText . ').</p>';
+		}
+		$h .= '<p class="meta">Ersetzt keine steuerliche Beratung.</p>';
+		$h .= '</section>';
 
 		// Soll-Ist
 		if ($planRows !== []) {

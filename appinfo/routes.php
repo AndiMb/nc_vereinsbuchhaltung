@@ -15,6 +15,7 @@ return [
 		['name' => 'account#destroy', 'url' => '/api/accounts/{id}', 'verb' => 'DELETE'],
 		['name' => 'account#seedDefaults', 'url' => '/api/accounts/seed', 'verb' => 'POST'],
 		['name' => 'account#setOpening', 'url' => '/api/accounts/{id}/opening', 'verb' => 'POST'],
+		['name' => 'account#bulkSphere', 'url' => '/api/accounts/sphere-bulk', 'verb' => 'POST'],
 		['name' => 'journal#byAccount', 'url' => '/api/accounts/{id}/journal', 'verb' => 'GET'],
 
 		// Bank transactions
@@ -47,9 +48,10 @@ return [
 		['name' => 'year#reopen', 'url' => '/api/years/{year}/close', 'verb' => 'DELETE'],
 		['name' => 'audit#index', 'url' => '/api/audit', 'verb' => 'GET'],
 
-		// Berichte / Kostenstellen
+		// Berichte / Kostenstellen / Sphären
 		['name' => 'report#costCenters', 'url' => '/api/report/costcenters', 'verb' => 'GET'],
 		['name' => 'report#rename', 'url' => '/api/report/costcenters', 'verb' => 'PUT'],
+		['name' => 'report#spheres', 'url' => '/api/report/spheres', 'verb' => 'GET'],
 
 		// Finanzplan / Budget
 		['name' => 'budget#index', 'url' => '/api/budget', 'verb' => 'GET'],

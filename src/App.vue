@@ -99,6 +99,17 @@
 					</div>
 				</div>
 
+				<div v-if="sphereData && sphereData.freigrenze.incomeCents > 0" class="vbh-freigrenzecard" :class="sphereData.freigrenze.level">
+					<div class="vbh-freigrenzecard-text">
+						<strong>Wirtschaftlicher Geschäftsbetrieb{{ selectedYear ? ' ' + selectedYear : '' }}:</strong>
+						{{ formatMoney(sphereData.freigrenze.income) }} von {{ formatMoney(sphereData.freigrenze.threshold) }} Freigrenze
+						({{ Math.round(sphereData.freigrenze.ratio * 100) }} %)
+						<span v-if="sphereData.freigrenze.level === 'over'"> – Freigrenze überschritten, bitte mit Steuerberatung klären.</span>
+						<span v-else-if="sphereData.freigrenze.level === 'warn'"> – nähert sich der Freigrenze.</span>
+					</div>
+					<button type="button" class="vbh-sphere-help" title="Was bedeutet das?" @click="openHelp('spheres')">?</button>
+				</div>
+
 				<template v-if="balances && balances.bankReconciliation && balances.bankReconciliation.length">
 					<h4>Geldkonten</h4>
 					<div v-if="!isMobile" class="vbh-tablecard">
@@ -538,6 +549,7 @@
 					<div class="vbh-subtabs">
 						<button :class="{ active: reportView === 'summary' }" @click="reportView = 'summary'">Auswertung</button>
 						<button :class="{ active: reportView === 'costcenters' }" @click="reportView = 'costcenters'">Kostenstellen</button>
+					<button :class="{ active: reportView === 'spheres' }" @click="reportView = 'spheres'">Sphären</button>
 						<button :class="{ active: reportView === 'budget' }" @click="reportView = 'budget'">Finanzplan</button>
 						<button :class="{ active: reportView === 'audit' }" @click="reportView = 'audit'">Protokoll</button>
 					</div>
@@ -552,7 +564,7 @@
 					</div>
 				</div>
 
-				<div class="vbh-sectionbody" :class="{ 'is-split': reportView === 'costcenters' }">
+				<div class="vbh-sectionbody" :class="{ 'is-split': reportView === 'costcenters' || reportView === 'spheres' }">
 					<!-- AUSWERTUNG -->
 					<div v-show="reportView === 'summary'">
 						<div v-if="balances" class="vbh-totals">
@@ -727,6 +739,64 @@
 									</table>
 								</div>
 								<p v-else class="vbh-empty">Keine Buchungen mit Betrag in dieser Kostenstelle.</p>
+							</template>
+						</div>
+					</div>
+
+					<!-- SPHÄREN -->
+					<div v-show="reportView === 'spheres'" class="vbh-splitinner" :class="{ 'vbh-drill': isMobile }">
+						<div v-if="!isMobile || !selectedSphere" class="vbh-tree">
+							<div class="vbh-treehead">
+								<strong>Sphären</strong>
+								<button type="button" class="vbh-sphere-help" title="Was bedeutet das?" @click="openHelp('spheres')">?</button>
+							</div>
+							<div v-if="sphereData" class="vbh-ccsummary">
+								<span>Gesamtergebnis</span>
+								<strong :class="amountClass(sphereData.totals.result)">{{ formatMoney(sphereData.totals.result) }}</strong>
+							</div>
+							<div v-if="sphereData && sphereData.freigrenze.incomeCents > 0" class="vbh-freigrenzemini" :class="sphereData.freigrenze.level">
+								Wirtschaftlicher Geschäftsbetrieb: {{ formatMoney(sphereData.freigrenze.income) }} von {{ formatMoney(sphereData.freigrenze.threshold) }}
+								({{ Math.round(sphereData.freigrenze.ratio * 100) }} %)
+							</div>
+							<div v-if="sphereData" class="vbh-treelist">
+								<div v-for="s in sphereData.spheres" :key="s.code || 'none'"
+									class="vbh-treenode" :class="{ selected: isSphereSelected(s) }" @click="selectSphere(s)">
+									<span class="vbh-treename">{{ s.name }}</span>
+									<span class="vbh-treesaldo" :class="[amountClass(s.result), { zero: !s.result }]">{{ formatMoney(s.result) }}</span>
+								</div>
+							</div>
+							<p v-else class="vbh-hint">Keine Daten. Importiere oder erfasse zuerst Buchungen.</p>
+						</div>
+
+						<div v-if="!isMobile || selectedSphere" class="vbh-detail">
+							<div v-if="isMobile" class="vbh-backbar">
+								<button type="button" class="vbh-backbtn" @click="selectedSphereCode = false">‹ Sphären</button>
+							</div>
+							<p v-if="!selectedSphere" class="vbh-empty vbh-detailhint">Sphäre links auswählen.</p>
+							<template v-else>
+								<div class="vbh-detailhead"><div><h3>{{ selectedSphere.name }}</h3></div></div>
+
+								<div class="vbh-totals">
+									<div class="vbh-total pos"><span>Einnahmen</span><strong>{{ formatMoney(selectedSphere.income) }}</strong></div>
+									<div class="vbh-total neg"><span>Ausgaben</span><strong>{{ formatMoney(selectedSphere.expense) }}</strong></div>
+									<div class="vbh-total" :class="selectedSphere.result >= 0 ? 'pos' : 'neg'"><span>Ergebnis</span><strong>{{ formatMoney(selectedSphere.result) }}</strong></div>
+								</div>
+
+								<h4>Beteiligte Konten</h4>
+								<div v-if="selectedSphere.accounts.length" class="vbh-tablecard">
+									<table class="vbh-table">
+										<thead><tr><th class="nowrap">Nr.</th><th>Konto</th><th>Art</th><th class="num">Betrag</th></tr></thead>
+										<tbody>
+											<tr v-for="a in selectedSphere.accounts" :key="a.accountId">
+												<td class="nowrap">{{ a.number }}</td>
+												<td>{{ a.name }}</td>
+												<td><span class="vbh-typetag" :class="a.type">{{ typeLabel(a.type) }}</span></td>
+												<td class="num" :class="amountClass(a.balance)">{{ formatMoney(a.balance) }}</td>
+											</tr>
+										</tbody>
+									</table>
+								</div>
+								<p v-else class="vbh-empty">Keine Buchungen mit Betrag in dieser Sphäre.</p>
 							</template>
 						</div>
 					</div>
@@ -1014,6 +1084,13 @@
 					:account-options-list="accountOptionsList"
 					:ask-confirm="askConfirm"
 					@changed="loadRules"
+				/>
+
+				<SettingsSpheres
+					v-if="canWrite"
+					:accounts="accounts"
+					@changed="onSpheresChanged"
+					@help="openHelp('spheres')"
 				/>
 
 				<template v-if="isAdmin">
@@ -1450,6 +1527,18 @@
 					<label>Kategorie<input v-model="newAccount.category" placeholder="optional"></label>
 					<NcCheckboxRadioSwitch v-model="newAccount.isBank">Geldkonto (Bank/Kasse) – Bestand geht über Jahresgrenzen</NcCheckboxRadioSwitch>
 				</div>
+				<div v-if="newAccount.type !== 'equity' && !newAccount.isBank" class="vbh-form">
+					<label class="vbh-grow">Steuerliche Sphäre
+						<select v-model="newAccount.sphere">
+							<option value="">– nicht zugeordnet –</option>
+							<option value="ideell">Ideeller Bereich</option>
+							<option value="vermoegensverwaltung">Vermögensverwaltung</option>
+							<option value="zweckbetrieb">Zweckbetrieb</option>
+							<option value="wirtschaftlich">Wirtschaftlicher Geschäftsbetrieb</option>
+						</select>
+					</label>
+					<button type="button" class="vbh-sphere-help" title="Was bedeutet das?" @click="openHelp('spheres')">?</button>
+				</div>
 				<div class="vbh-modal-actions">
 					<NcButton variant="tertiary" @click="closeAccount">Abbrechen</NcButton>
 					<NcButton variant="primary" @click="saveAccount">{{ accountEditId ? 'Speichern' : 'Anlegen' }}</NcButton>
@@ -1548,6 +1637,7 @@ import { mdiCamera, mdiCog, mdiCommentPlusOutline, mdiCommentText, mdiDelete, md
 import api from './api.js'
 import { formatMoney, formatDate, formatDateTime, typeLabel, roleLabel, amountClass, budgetDiffClass, errMsg } from './lib/format.js'
 import SettingsRules from './components/SettingsRules.vue'
+import SettingsSpheres from './components/SettingsSpheres.vue'
 import MobileNav from './components/MobileNav.vue'
 import BookingCard from './components/BookingCard.vue'
 import AccountPickerSheet from './components/AccountPickerSheet.vue'
@@ -1578,6 +1668,7 @@ export default {
 		NcModal,
 		NcSelect,
 		SettingsRules,
+		SettingsSpheres,
 		MobileNav,
 		BookingCard,
 		AccountPickerSheet,
@@ -1629,11 +1720,13 @@ export default {
 			balancesIncludeChildren: false,
 			reportData: null,
 			selectedCCCode: false,
+			sphereData: null,
+			selectedSphereCode: false,
 			renameName: '',
 			ccExpanded: {},
 			ccBookings: {},
 			journalData: [],
-			newAccount: { number: '', name: '', type: 'income', category: '', isBank: false, parentId: null },
+			newAccount: { number: '', name: '', type: 'income', category: '', isBank: false, parentId: null, sphere: '' },
 			accountEditId: null,
 			openingForm: {},
 			expanded: {},
@@ -2162,6 +2255,10 @@ export default {
 			if (this.selectedCCCode === false || !this.reportData) return null
 			return this.reportData.costCenters.find(c => c.code === this.selectedCCCode) || null
 		},
+		selectedSphere() {
+			if (this.selectedSphereCode === false || !this.sphereData) return null
+			return this.sphereData.spheres.find(s => s.code === this.selectedSphereCode) || null
+		},
 		// Hierarchie-Tiefe je Konto (für die Einrückung in der Saldenliste)
 		accountDepth() {
 			const out = {}
@@ -2228,6 +2325,7 @@ export default {
 		reportView(v) {
 			if (v === 'summary') this.loadBalances()
 			else if (v === 'costcenters') this.loadReport()
+			else if (v === 'spheres') this.loadSphereReport()
 			else if (v === 'budget') this.loadBudget()
 			else if (v === 'audit') this.loadAudit()
 		},
@@ -2237,7 +2335,7 @@ export default {
 			this.ccExpanded = {}
 			this.busy = true
 			try {
-				const jobs = [this.loadBalances(), this.loadJournal()]
+				const jobs = [this.loadBalances(), this.loadJournal(), this.loadSphereReport()]
 				const tab = this.activeTab
 				if (tab === 'accounts') {
 					jobs.push(this.loadAccounts())
@@ -2270,6 +2368,7 @@ export default {
 				this.loadTransactions(),
 				this.loadRules(),
 				this.loadClosedYears(),
+				this.loadSphereReport(),
 			])
 			this.$nextTick(() => setTimeout(() => this.renderDashboardCharts(), 50))
 			// storage/demo-Status betrifft alle Leseberechtigten (Demo-Banner); Berechtigungsliste nur Verwalter (Backend-Gate)
@@ -2322,6 +2421,7 @@ export default {
 			else if (tab === 'reports') {
 				if (this.reportView === 'summary') jobs.push(this.loadBalances())
 				else if (this.reportView === 'costcenters') jobs.push(this.loadReport())
+				else if (this.reportView === 'spheres') jobs.push(this.loadSphereReport())
 				else if (this.reportView === 'budget') jobs.push(this.loadBudget())
 				else if (this.reportView === 'audit') jobs.push(this.loadAudit())
 			}
@@ -2354,7 +2454,7 @@ export default {
 		async refreshAfterRemoteChange() {
 			this.ccBookings = {}
 			this.ccExpanded = {}
-			const jobs = [this.loadYears(), this.loadClosedYears(), this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions()]
+			const jobs = [this.loadYears(), this.loadClosedYears(), this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions(), this.loadSphereReport()]
 			if (this.activeTab === 'accounts' && this.selectedAccountId) jobs.push(this.loadStatement(this.selectedAccountId))
 			if (this.activeTab === 'reports') {
 				if (this.reportView === 'costcenters') jobs.push(this.loadReport())
@@ -2716,6 +2816,7 @@ export default {
 		// --- Bankbuchungen ---
 		async loadTransactions() { try { const { data } = await api.listTransactions(''); this.transactions = data } catch (e) { showError(this.errMsg(e, 'Buchungen konnten nicht geladen werden')) } },
 		async loadRules() { try { const { data } = await api.listRules(); this.rules = data } catch (e) { /* Regeln optional */ } },
+		async onSpheresChanged() { await this.loadAccounts(); await this.loadSphereReport() },
 		async onAssign(tx, value) {
 			const prevContra = tx.contraAccountId
 			try {
@@ -2725,14 +2826,14 @@ export default {
 						showUndo('Zuordnung entfernt', async () => {
 							try {
 								await api.assignTransaction(tx.id, prevContra)
-								await this.loadTransactions(); await this.loadBalances(); await this.loadJournal()
+								await this.loadTransactions(); await this.loadBalances(); await this.loadJournal(); await this.loadSphereReport()
 							} catch (e) { showError(this.errMsg(e, 'Wiederherstellen fehlgeschlagen')) }
 						})
 					}
 				} else {
 					await api.assignTransaction(tx.id, Number(value))
 				}
-				await this.loadTransactions(); await this.loadBalances(); await this.loadJournal()
+				await this.loadTransactions(); await this.loadBalances(); await this.loadJournal(); await this.loadSphereReport()
 			} catch (e) { showError(this.errMsg(e, 'Zuordnung fehlgeschlagen')) }
 		},
 		// Vorschlag: passende Regel, sonst häufigste frühere Zuordnung desselben Zahlungspartners
@@ -2993,7 +3094,7 @@ export default {
 				}
 				showSuccess('Buchung gespeichert.')
 				this.closeBooking()
-				await this.loadJournal(); await this.loadBalances(); await this.loadYears()
+				await this.loadJournal(); await this.loadBalances(); await this.loadYears(); await this.loadSphereReport()
 			} catch (e) {
 				if (e?.response?.status === 409) {
 					showError('Diese Buchung wurde zwischenzeitlich von einer anderen Person geändert. Die Ansicht wurde aktualisiert – bitte erneut bearbeiten.')
@@ -3006,7 +3107,7 @@ export default {
 		},
 		async removeBooking(r) {
 			if (!await this.askConfirm('Buchung löschen', `Buchung #${r.entryNo} löschen?`)) return
-			try { await api.deleteBooking(r.id); await this.loadJournal(); await this.loadBalances() } catch (e) { showError(this.errMsg(e, 'Löschen fehlgeschlagen')) }
+			try { await api.deleteBooking(r.id); await this.loadJournal(); await this.loadBalances(); await this.loadSphereReport() } catch (e) { showError(this.errMsg(e, 'Löschen fehlgeschlagen')) }
 		},
 
 		// --- Konten ---
@@ -3029,6 +3130,7 @@ export default {
 				category: parent ? (parent.category || '') : '',
 				isBank: false,
 				parentId: this.selectedAccountId || null,
+				sphere: parent ? (parent.sphere || '') : '',
 			}
 			this.showAccount = true
 		},
@@ -3038,6 +3140,7 @@ export default {
 				number: acc.number, name: acc.name, type: acc.type,
 				category: acc.category || '', isBank: !!acc.isBank,
 				parentId: acc.parentId || null,
+				sphere: acc.sphere || '',
 			}
 			this.showAccount = true
 		},
@@ -3051,14 +3154,15 @@ export default {
 						number: f.number, name: f.name, type: f.type,
 						category: f.category || null, isBank: f.isBank,
 						parentId: f.parentId || 0,
+						sphere: f.sphere || '',
 					})
 				} else {
-					await api.createAccount({ ...f, parentId: f.parentId || null })
+					await api.createAccount({ ...f, parentId: f.parentId || null, sphere: f.sphere || null })
 				}
 				this.showAccount = false
 				this.accountEditId = null
-				this.newAccount = { number: '', name: '', type: 'income', category: '', isBank: false, parentId: null }
-				await this.loadAccounts(); await this.loadBalances()
+				this.newAccount = { number: '', name: '', type: 'income', category: '', isBank: false, parentId: null, sphere: '' }
+				await this.loadAccounts(); await this.loadBalances(); await this.loadSphereReport()
 				showSuccess('Konto gespeichert.')
 			} catch (e) { showError(this.errMsg(e, 'Konto konnte nicht gespeichert werden')) }
 		},
@@ -3067,14 +3171,14 @@ export default {
 			try {
 				await api.deleteAccount(acc.id)
 				if (this.selectedAccountId === acc.id) { this.selectedAccountId = null; this.statement = null }
-				await this.loadAccounts(); await this.loadBalances()
+				await this.loadAccounts(); await this.loadBalances(); await this.loadSphereReport()
 			} catch (e) { showError(this.errMsg(e, 'Löschen fehlgeschlagen')) }
 		},
 		async saveOpening(acc) {
 			const form = this.openingForm[acc.id] || { amount: 0, date: '' }
 			try {
 				await api.setOpening(acc.id, Number(form.amount) || 0, form.date || null)
-				await this.loadAccounts(); await this.loadBalances()
+				await this.loadAccounts(); await this.loadBalances(); await this.loadSphereReport()
 				if (this.selectedAccountId === acc.id) await this.loadStatement(acc.id)
 				showSuccess(`Eröffnungssaldo für ${acc.name} gespeichert.`)
 			} catch (e) { showError(this.errMsg(e, 'Eröffnungssaldo konnte nicht gespeichert werden')) }
@@ -3101,6 +3205,15 @@ export default {
 		},
 		selectCC(cc) { this.selectedCCCode = cc.code; this.renameName = cc.name; this.ccExpanded = {} },
 		isCCSelected(cc) { return this.selectedCCCode !== false && cc.code === this.selectedCCCode },
+		async loadSphereReport() {
+			try {
+				const { data } = await api.sphereReport(this.selectedYear)
+				this.sphereData = data
+				if (this.selectedSphereCode !== false && !data.spheres.some(s => s.code === this.selectedSphereCode)) this.selectedSphereCode = false
+			} catch (e) { showError(this.errMsg(e, 'Sphären-Bericht konnte nicht geladen werden')) }
+		},
+		selectSphere(s) { this.selectedSphereCode = s.code },
+		isSphereSelected(s) { return this.selectedSphereCode !== false && s.code === this.selectedSphereCode },
 		async toggleCCAccount(accountId) {
 			if (!accountId) return
 			const open = !this.ccExpanded[accountId]
