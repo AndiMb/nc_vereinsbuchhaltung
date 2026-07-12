@@ -15,7 +15,7 @@ Funktionen:
 - Doppelte Buchführung (Soll/Haben, Journal)
 - Optionale Regeln zur automatischen Zuordnung wiederkehrender Buchungen
 	]]></description>
-	<version>0.10.46</version>
+	<version>0.10.47</version>
 	<licence>agpl</licence>
 	<author mail="hauffe.andreas@googlemail.com">Andreas Hauffe</author>
 	<namespace>Vereinsbuchhaltung</namespace>

@@ -1622,6 +1622,7 @@
 </template>
 
 <script>
+import { toRefs } from 'vue'
 import { showError, showInfo, showSuccess, showUndo } from '@nextcloud/dialogs'
 import {
 	NcButton,
@@ -1644,6 +1645,8 @@ import AccountPickerSheet from './components/AccountPickerSheet.vue'
 import HelpModal from './components/HelpModal.vue'
 import SetupChecklist from './components/SetupChecklist.vue'
 import SetupWizard from './components/SetupWizard.vue'
+import { useAuth } from './composables/useAuth.js'
+import { useYears } from './composables/useYears.js'
 import {
 	Chart,
 	BarController,
@@ -1676,6 +1679,25 @@ export default {
 		SetupChecklist,
 		SetupWizard,
 	},
+	setup() {
+		const auth = useAuth()
+		const years = useYears()
+		return {
+			...toRefs(auth.state),
+			canRead: auth.canRead,
+			canWrite: auth.canWrite,
+			isAdmin: auth.isAdmin,
+			// eigener Name, damit App.vue seine eigene loadMe()-Methode mit
+			// Zusatzlogik (Tab-Umschalten, Revisor-Hinweis) behalten kann.
+			authLoadMe: auth.loadMe,
+			...toRefs(years.state),
+			closedYearSet: years.closedYearSet,
+			yearClosed: years.yearClosed,
+			isYearClosed: years.isYearClosed,
+			loadYears: years.loadYears,
+			loadClosedYears: years.loadClosedYears,
+		}
+	},
 	data() {
 		return {
 			activeTab: 'dashboard',
@@ -1691,15 +1713,12 @@ export default {
 			bookingSearch: '',
 			bookingFilterAccountId: null,
 			accountSearch: '',
-			selectedYear: null,
-			years: [],
 			newBudgetYear: '',
 			budgetData: null,
 			budgetNoteOpen: {},
 			budgetSnapshots: [],
 			newSnapshotLabel: '',
 			snapshotView: { open: false, data: null },
-			me: null,
 			permissions: [],
 			groups: [],
 			users: [],
@@ -1776,8 +1795,6 @@ export default {
 			pendingFiles: [],
 			// Zuletzt im Auswahl-Sheet gewählte Konten (localStorage, max. 5)
 			recentAccountIds: [],
-			// Jahresabschluss: festgeschriebene Jahre [{year, closedAt, closedBy}]
-			closedYears: [],
 			// Änderungsprotokoll (Berichte → Protokoll)
 			auditEntries: [],
 			auditLoading: false,
@@ -1805,16 +1822,7 @@ export default {
 		}
 	},
 	computed: {
-		canRead() { return !!(this.me && this.me.canRead) },
-		canWrite() { return !!(this.me && this.me.canWrite) },
-		isAdmin() { return !!(this.me && this.me.isAdmin) },
-		// Jahresabschluss: Jahr → Abschluss-Info (schneller Lookup)
-		closedYearSet() {
-			const s = {}
-			for (const c of this.closedYears) s[c.year] = c
-			return s
-		},
-		yearClosed() { return this.selectedYear !== null && !!this.closedYearSet[this.selectedYear] },
+		// canRead/canWrite/isAdmin/closedYearSet/yearClosed kommen aus setup() (useAuth/useYears).
 		// Bearbeiten-Dialog einer Buchung aus einem abgeschlossenen Jahr → nur ansehen
 		bookingLocked() { return !!(this.bookingForm.id && this.isYearClosed(this.bookingForm.date)) },
 		exportJournalUrl()  { return api.exportJournalUrl(this.selectedYear) },
@@ -2491,21 +2499,8 @@ export default {
 				showError(msg)
 			} finally { this.storageSaving = false }
 		},
-		async loadYears() {
-			try {
-				const { data } = await api.journalYears()
-				this.years = data
-				if (this.selectedYear === null && data.length) this.selectedYear = data[0]
-			} catch (e) { /* Jahre optional */ }
-		},
+		// loadYears/loadClosedYears/isYearClosed kommen aus setup() (useYears).
 		// --- Jahresabschluss (Festschreibung) -------------------------------
-		isYearClosed(date) {
-			if (!date) return false
-			return !!this.closedYearSet[parseInt(String(date).slice(0, 4), 10)]
-		},
-		async loadClosedYears() {
-			try { const { data } = await api.closedYears(); this.closedYears = data } catch (e) { /* optional */ }
-		},
 		async closeYear(year) {
 			if (!await this.askConfirm(
 				`Jahr ${year} abschließen`,
@@ -3296,17 +3291,12 @@ export default {
 
 		// --- Berechtigungen ---
 		async loadMe() {
-			try {
-				const { data } = await api.me()
-				this.me = data
-				if (!this.visibleTabs.some(t => t.id === this.activeTab)) {
-					this.activeTab = this.visibleTabs.length ? this.visibleTabs[0].id : 'dashboard'
-				}
-				if (data.role === 'revisor') {
-					try { this.revisorIntroDismissed = localStorage.getItem('vbh_revisor_intro_dismissed') === '1' } catch (e) { this.revisorIntroDismissed = false }
-				}
-			} catch (e) {
-				this.me = { role: 'none', canRead: false, canWrite: false, isAdmin: false }
+			const data = await this.authLoadMe()
+			if (!this.visibleTabs.some(t => t.id === this.activeTab)) {
+				this.activeTab = this.visibleTabs.length ? this.visibleTabs[0].id : 'dashboard'
+			}
+			if (data.role === 'revisor') {
+				try { this.revisorIntroDismissed = localStorage.getItem('vbh_revisor_intro_dismissed') === '1' } catch (e) { this.revisorIntroDismissed = false }
 			}
 		},
 		dismissRevisorIntro() {
