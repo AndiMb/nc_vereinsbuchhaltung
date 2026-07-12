@@ -67,130 +67,21 @@
 		<main v-show="canRead" class="vbh-main">
 			<!-- ============ ÜBERSICHT (DASHBOARD) ============ -->
 			<section v-show="activeTab === 'dashboard'" class="vbh-section scroll" :class="{ 'vbh-fadein': sectionFade }">
-				<SetupChecklist
-					v-if="isAdmin"
-					:accounts="accounts"
-					:permissions="permissions"
-					:journal-count="journalData.length"
+				<DashboardTab
+					:is-active="activeTab === 'dashboard'"
+					:is-mobile="isMobile"
+					:busy="busy"
 					:club-name="clubName"
+					:attachment-count-map="attachmentCountMap"
+					:recent-journal="recentJournal"
+					:click-paperclip="clickPaperclip"
+					:open-booking-card="openBookingCard"
 					@navigate="onSetupNavigate"
-					@open-wizard="showSetupWizard = true" />
-
-				<div v-if="balances" class="vbh-totals">
-					<div class="vbh-total pos">
-						<span>Einnahmen{{ selectedYear ? ' ' + selectedYear : '' }}</span>
-						<strong>{{ formatMoney(balances.totals.income) }}</strong>
-						<small v-if="kpiDeltas && kpiDeltas.income" class="vbh-total-delta" :class="kpiDeltas.income.up ? 'good' : 'bad'">{{ kpiDeltas.income.text }}</small>
-					</div>
-					<div class="vbh-total neg">
-						<span>Ausgaben{{ selectedYear ? ' ' + selectedYear : '' }}</span>
-						<strong>{{ formatMoney(balances.totals.expense) }}</strong>
-						<small v-if="kpiDeltas && kpiDeltas.expense" class="vbh-total-delta" :class="kpiDeltas.expense.up ? 'bad' : 'good'">{{ kpiDeltas.expense.text }}</small>
-					</div>
-					<div class="vbh-total" :class="balances.totals.result >= 0 ? 'pos' : 'neg'">
-						<span>Ergebnis{{ selectedYear ? ' ' + selectedYear : '' }}</span>
-						<strong>{{ formatMoney(balances.totals.result) }}</strong>
-						<small v-if="kpiDeltas && kpiDeltas.result" class="vbh-total-delta" :class="kpiDeltas.result.up ? 'good' : 'bad'">{{ kpiDeltas.result.text }}</small>
-					</div>
-					<div v-if="unassignedCount > 0" class="vbh-total vbh-total--warn">
-						<span>Nicht zugeordnet</span>
-						<strong>{{ unassignedCount }} Buchungen</strong>
-						<NcButton variant="primary" size="small" @click="goToUnassigned">Jetzt zuordnen</NcButton>
-					</div>
-				</div>
-
-				<div v-if="sphereData && sphereData.freigrenze.incomeCents > 0" class="vbh-freigrenzecard" :class="sphereData.freigrenze.level">
-					<div class="vbh-freigrenzecard-text">
-						<strong>Wirtschaftlicher Geschäftsbetrieb{{ selectedYear ? ' ' + selectedYear : '' }}:</strong>
-						{{ formatMoney(sphereData.freigrenze.income) }} von {{ formatMoney(sphereData.freigrenze.threshold) }} Freigrenze
-						({{ Math.round(sphereData.freigrenze.ratio * 100) }} %)
-						<span v-if="sphereData.freigrenze.level === 'over'"> – Freigrenze überschritten, bitte mit Steuerberatung klären.</span>
-						<span v-else-if="sphereData.freigrenze.level === 'warn'"> – nähert sich der Freigrenze.</span>
-					</div>
-					<button type="button" class="vbh-sphere-help" title="Was bedeutet das?" @click="openHelp('spheres')">?</button>
-				</div>
-
-				<template v-if="balances && balances.bankReconciliation && balances.bankReconciliation.length">
-					<h4>Geldkonten</h4>
-					<div v-if="!isMobile" class="vbh-tablecard">
-						<table class="vbh-table">
-							<thead><tr><th>Konto</th><th class="num">Kontostand</th><th class="num">Offen (nicht zugeordnet)</th></tr></thead>
-							<tbody>
-								<tr v-for="b in balances.bankReconciliation" :key="b.accountId">
-									<td>{{ b.number }} {{ b.name }}</td>
-									<td class="num strong">{{ formatMoney(b.balance) }}</td>
-									<td class="num" :class="Math.abs(b.open) > 0.005 ? 'neg' : ''">{{ formatMoney(b.open) }}</td>
-								</tr>
-							</tbody>
-						</table>
-					</div>
-					<div v-else class="vbh-cardlist">
-						<div v-for="b in balances.bankReconciliation" :key="'m' + b.accountId" class="vbh-mcard">
-							<div class="vbh-mcard-top">
-								<span class="vbh-mcard-title">{{ b.number }} {{ b.name }}</span>
-								<span class="vbh-mcard-amount">{{ formatMoney(b.balance) }}</span>
-							</div>
-							<div v-if="Math.abs(b.open) > 0.005" class="vbh-mcard-bottom">
-								<span class="vbh-mcard-accounts">{{ formatMoney(b.open) }} nicht zugeordnet</span>
-							</div>
-						</div>
-					</div>
-				</template>
-
-				<template v-if="recentJournal.length">
-					<div class="vbh-sectionhead">
-						<h4>Letzte Buchungen</h4>
-						<NcButton variant="tertiary" @click="activeTab = 'bookings'">Alle anzeigen</NcButton>
-					</div>
-					<div v-if="!isMobile" class="vbh-tablecard">
-						<table class="vbh-table">
-							<thead>
-								<tr>
-									<th class="num vbh-col-hide-sm">Nr.</th>
-									<th class="nowrap">Datum</th>
-									<th>Beschreibung</th>
-									<th class="vbh-col-hide-sm">Soll</th>
-									<th class="vbh-col-hide-sm">Haben</th>
-									<th class="num">Betrag</th>
-								</tr>
-							</thead>
-							<tbody>
-								<tr v-for="r in recentJournal" :key="r.id">
-									<td class="num vbh-col-hide-sm">{{ r.entryNo }}</td>
-									<td class="nowrap">{{ formatDate(r.date) }}</td>
-									<td class="vbh-purpose" :title="r.description"><span class="vbh-clamp">{{ r.description }}</span></td>
-									<td class="vbh-col-hide-sm">{{ r.soll }}</td>
-									<td class="vbh-col-hide-sm">{{ r.haben }}</td>
-									<td class="num strong">{{ formatMoney(r.amount) }}</td>
-								</tr>
-							</tbody>
-						</table>
-					</div>
-					<div v-else class="vbh-cardlist">
-						<BookingCard v-for="r in recentJournal"
-							:key="'m' + r.id"
-							:row="r"
-							:attachment-count="attachmentCountMap[r.id] ? attachmentCountMap[r.id].count : 0"
-							:flow="rowFlow(r)"
-							:tappable="canWrite || !!attachmentCountMap[r.id]"
-							@open="openBookingCard(r)"
-							@paperclip="clickPaperclip(r)" />
-					</div>
-				</template>
-				<NcEmptyContent v-else-if="!busy" name="Noch keine Buchungen" description="Importiere Kontoumsätze oder lege manuell Buchungssätze an.">
-				<template #action>
-					<NcButton variant="tertiary" @click="openHelp('bookings')">Mehr dazu</NcButton>
-				</template>
-			</NcEmptyContent>
-
-				<div class="vbh-chart-grid">
-					<div class="vbh-chart-card vbh-chart-card--wide">
-						<h4>Einnahmen &amp; Ausgaben{{ selectedYear ? ' ' + selectedYear : '' }} (monatlich)</h4>
-						<div class="vbh-chart-wrap">
-							<canvas ref="monthlyChart"></canvas>
-						</div>
-					</div>
-				</div>
+					@open-wizard="showSetupWizard = true"
+					@help="openHelp"
+					@go-unassigned="goToUnassigned"
+					@show-all-bookings="activeTab = 'bookings'"
+				/>
 			</section>
 
 			<!-- ============ BUCHUNGEN (JOURNAL + TRANSAKTIONEN) ============ -->
@@ -1186,11 +1077,11 @@ import SettingsYearClose from './components/SettingsYearClose.vue'
 import ImportDialog from './components/ImportDialog.vue'
 import AccountDialog from './components/AccountDialog.vue'
 import BookingDialog from './components/BookingDialog.vue'
+import DashboardTab from './components/DashboardTab.vue'
 import MobileNav from './components/MobileNav.vue'
 import BookingCard from './components/BookingCard.vue'
 import AccountPickerSheet from './components/AccountPickerSheet.vue'
 import HelpModal from './components/HelpModal.vue'
-import SetupChecklist from './components/SetupChecklist.vue'
 import SetupWizard from './components/SetupWizard.vue'
 import { useAuth } from './composables/useAuth.js'
 import { useYears } from './composables/useYears.js'
@@ -1199,17 +1090,6 @@ import { useBalances } from './composables/useBalances.js'
 import { useJournal } from './composables/useJournal.js'
 import { usePermissions } from './composables/usePermissions.js'
 import { useSync } from './composables/useSync.js'
-import {
-	Chart,
-	BarController,
-	BarElement,
-	CategoryScale,
-	LinearScale,
-	Tooltip,
-	Legend,
-} from 'chart.js'
-
-Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend)
 
 export default {
 	name: 'App',
@@ -1231,11 +1111,11 @@ export default {
 		ImportDialog,
 		AccountDialog,
 		BookingDialog,
+		DashboardTab,
 		MobileNav,
 		BookingCard,
 		AccountPickerSheet,
 		HelpModal,
-		SetupChecklist,
 		SetupWizard,
 	},
 	setup() {
@@ -1347,7 +1227,6 @@ export default {
 			mdiDownload,
 			mdiFlash,
 			mdiPrinter,
-			chartInstances: {},
 			bookingAttachments: [],
 			attachmentUploading: false,
 			attachmentCountMap: {},
@@ -1506,26 +1385,6 @@ export default {
 				cur.rows.push(r)
 			}
 			return groups
-		},
-		monthlyChartData() {
-			const labels = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez']
-			const income = new Array(12).fill(0)
-			const expense = new Array(12).fill(0)
-			for (const item of this.journalData) {
-				const date = item.journal && item.journal.date
-				if (!date) continue
-				const m = parseInt(String(date).slice(5, 7), 10) - 1
-				if (m < 0 || m > 11) continue
-				for (const line of (item.lines || [])) {
-					const acc = this.accountsById[line.accountId]
-					// Erfolgswirksam wie im Backend (Account::isResultRelevant):
-					// alle Nicht-Geldkonten außer Eigenkapital, netto nach Kontonatur.
-					if (!acc || acc.isBank || acc.type === 'equity') continue
-					if (['income', 'liability'].includes(acc.type)) income[m] += (line.creditCents - line.debitCents) / 100
-					else expense[m] += (line.debitCents - line.creditCents) / 100
-				}
-			}
-			return { labels, income, expense }
 		},
 		currentTree() {
 			return this.accountSearch.trim() ? this.filteredVisibleTree : this.visibleTree
@@ -1689,18 +1548,6 @@ export default {
 			const done = this.transactions.filter(t => t.status === 'assigned').length
 			return { total, done, pct: total ? Math.round((done / total) * 100) : 0 }
 		},
-		// Vorjahresvergleich für die KPI-Kacheln (nur bei gewähltem Jahr)
-		kpiDeltas() {
-			if (!this.balances || !this.prevBalances || !this.selectedYear) return null
-			const mk = key => {
-				const cur = this.balances.totals[key]
-				const prev = this.prevBalances.totals[key]
-				if (!prev || Math.abs(prev) < 0.005) return null
-				const pct = Math.round(((cur - prev) / Math.abs(prev)) * 100)
-				return { pct, up: pct >= 0, text: (pct >= 0 ? '+' : '') + pct + ' % ggü. ' + (this.selectedYear - 1) }
-			}
-			return { income: mk('income'), expense: mk('expense'), result: mk('result') }
-		},
 		confirmDialogButtonList() {
 			return [
 				{ label: 'Abbrechen', type: 'secondary', callback: () => this.closeConfirm(false) },
@@ -1795,14 +1642,12 @@ export default {
 	watch: {
 		activeTab(tab) {
 			this.loadTab(tab)
-			if (tab === 'dashboard') this.$nextTick(() => this.renderDashboardCharts())
 			// Einblend-Animation der Sektion neu starten
 			this.sectionFade = false
 			this.$nextTick(() => requestAnimationFrame(() => { this.sectionFade = true }))
 		},
-		journalData() {
-			if (this.activeTab === 'dashboard') this.$nextTick(() => this.renderMonthlyChart())
-		},
+		// journalData-Watcher fuer den Monatschart-Redraw ist jetzt Teil von
+		// DashboardTab.vue (eigener Watcher auf sein eigenes journalData).
 		bookingView(v) {
 			this.bookingSearch = ''
 			if (v === 'journal') this.loadJournal()
@@ -1855,7 +1700,6 @@ export default {
 				this.loadClosedYears(),
 				this.loadSphereReport(),
 			])
-			this.$nextTick(() => setTimeout(() => this.renderDashboardCharts(), 50))
 			// storage/demo-Status betrifft alle Leseberechtigten (Demo-Banner); Berechtigungsliste nur Verwalter (Backend-Gate)
 			this.loadStorageSettings()
 			if (this.isAdmin) {
@@ -1877,7 +1721,6 @@ export default {
 		}
 		if (this.syncTimer) clearInterval(this.syncTimer)
 		window.removeEventListener('focus', this.onWindowFocus)
-		Object.values(this.chartInstances).forEach(c => c && c.destroy())
 	},
 	methods: {
 		// --- Tastaturkürzel: N = neue Buchung, / = Suche fokussieren ---
@@ -2701,75 +2544,7 @@ export default {
 		roleLabel,
 
 		errMsg,
-
-		// --- Charts ---
-		destroyChart(key) {
-			if (this.chartInstances[key]) {
-				this.chartInstances[key].destroy()
-				this.$set(this.chartInstances, key, null)
-			}
-		},
-		renderDashboardCharts() {
-			this.renderMonthlyChart()
-		},
-		renderMonthlyChart() {
-			const canvas = this.$refs.monthlyChart
-			if (!canvas) return
-			this.destroyChart('monthly')
-			const { labels, income, expense } = this.monthlyChartData
-			const isDark = document.documentElement.classList.contains('theme--dark')
-			const textColor = isDark ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.7)'
-			const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'
-			this.$set(this.chartInstances, 'monthly', new Chart(canvas, {
-				type: 'bar',
-				data: {
-					labels,
-					datasets: [
-						{
-							label: 'Einnahmen',
-							data: income,
-							backgroundColor: 'rgba(45,125,70,0.72)',
-							borderColor: 'rgba(45,125,70,0.9)',
-							borderWidth: 1,
-							borderRadius: 4,
-						},
-						{
-							label: 'Ausgaben',
-							data: expense,
-							backgroundColor: 'rgba(199,60,60,0.72)',
-							borderColor: 'rgba(199,60,60,0.9)',
-							borderWidth: 1,
-							borderRadius: 4,
-						},
-					],
-				},
-				options: {
-					responsive: true,
-					maintainAspectRatio: false,
-					plugins: {
-						legend: { labels: { color: textColor, font: { size: 12 } } },
-						tooltip: {
-							callbacks: {
-								label: ctx => ` ${ctx.dataset.label}: ${new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(ctx.raw)}`,
-							},
-						},
-					},
-					scales: {
-						x: {
-							ticks: { color: textColor },
-							grid: { color: gridColor },
-						},
-						y: {
-							ticks: {
-								color: textColor,
-								callback: v => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(v),
-							},
-							grid: { color: gridColor },
-						},
-					},
-				},
-			}))
-		},
+		// Chart-Rendering (Monatschart) ist jetzt Teil von DashboardTab.vue.
 	},
 }
 </script>
