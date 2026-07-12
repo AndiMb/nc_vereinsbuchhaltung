@@ -1649,6 +1649,8 @@ import { useAuth } from './composables/useAuth.js'
 import { useYears } from './composables/useYears.js'
 import { useAccounts } from './composables/useAccounts.js'
 import { useBalances } from './composables/useBalances.js'
+import { useJournal } from './composables/useJournal.js'
+import { usePermissions } from './composables/usePermissions.js'
 import {
 	Chart,
 	BarController,
@@ -1686,6 +1688,8 @@ export default {
 		const years = useYears()
 		const accounts = useAccounts()
 		const balances = useBalances()
+		const journal = useJournal()
+		const permissions = usePermissions()
 		return {
 			...toRefs(auth.state),
 			canRead: auth.canRead,
@@ -1713,6 +1717,15 @@ export default {
 			// eigener Name, damit App.vue seine eigene loadSphereReport()-Methode
 			// mit Zusatzlogik (selectedSphereCode zurücksetzen) behalten kann.
 			balancesLoadSphereReport: balances.loadSphereReport,
+			...toRefs(journal.state),
+			journalRows: journal.journalRows,
+			unassignedCount: journal.unassignedCount,
+			// eigener Name, da App.vue seine eigene loadJournal()-Methode mit
+			// Zusatzlogik (Beleg-Zähler nachladen) behalten kann.
+			journalLoad: journal.loadJournal,
+			loadTransactions: journal.loadTransactions,
+			...toRefs(permissions.state),
+			loadPermissions: permissions.loadPermissions,
 		}
 	},
 	data() {
@@ -1736,9 +1749,6 @@ export default {
 			budgetSnapshots: [],
 			newSnapshotLabel: '',
 			snapshotView: { open: false, data: null },
-			permissions: [],
-			groups: [],
-			users: [],
 			permForm: { principalType: 'group', principalId: '', role: 'revisor' },
 			busy: false,
 			selectedFile: null,
@@ -1750,7 +1760,6 @@ export default {
 			xbucYear: null,
 			xbucPreviewResult: null,
 			imports: [],
-			transactions: [],
 			balancesIncludeChildren: false,
 			reportData: null,
 			selectedCCCode: false,
@@ -1758,7 +1767,6 @@ export default {
 			renameName: '',
 			ccExpanded: {},
 			ccBookings: {},
-			journalData: [],
 			newAccount: { number: '', name: '', type: 'income', category: '', isBank: false, parentId: null, sphere: '' },
 			accountEditId: null,
 			openingForm: {},
@@ -1868,9 +1876,7 @@ export default {
 		showRevisorIntro() {
 			return !!(this.me && this.me.role === 'revisor' && !this.revisorIntroDismissed)
 		},
-		unassignedCount() {
-			return this.transactions.filter(t => t.status === 'unassigned').length
-		},
+		// unassignedCount kommt aus setup() (useJournal).
 		currentTransactions() {
 			const status = 'unassigned' // "Zugeordnet"-Ansicht entfernt; hier nur offene Umsätze
 			let txs = this.applySort(
@@ -2231,24 +2237,7 @@ export default {
 			const list = this.balances && this.balances.bankReconciliation
 			return list && list.length ? list[0] : null
 		},
-		journalRows() {
-			return this.journalData.map(item => {
-				const j = item.journal
-				const lines = item.lines || []
-				const dl = lines.filter(l => l.debitCents > 0)
-				const cl = lines.filter(l => l.creditCents > 0)
-				return {
-					id: j.id, entryNo: j.entryNo, date: j.date, description: j.description, documentRef: j.documentRef,
-					soll: dl.map(l => this.accountLabel(l.accountId)).join(', '),
-					haben: cl.map(l => this.accountLabel(l.accountId)).join(', '),
-					debitAccountId: dl.length ? dl[0].accountId : null,
-					creditAccountId: cl.length ? cl[0].accountId : null,
-					isSplit: dl.length > 1 || cl.length > 1,
-					amount: lines.reduce((s, l) => s + (l.debitCents || 0), 0) / 100,
-					updatedAt: j.updatedAt || null,
-				}
-			})
-		},
+		// journalRows kommt aus setup() (useJournal).
 		statementRows() {
 			if (!this.statement) return []
 			const isCredit = ['income', 'liability', 'equity'].includes(this.statement.account.type)
@@ -2808,7 +2797,7 @@ export default {
 		},
 
 		// --- Bankbuchungen ---
-		async loadTransactions() { try { const { data } = await api.listTransactions(''); this.transactions = data } catch (e) { showError(this.errMsg(e, 'Buchungen konnten nicht geladen werden')) } },
+		// loadTransactions kommt aus setup() (useJournal).
 		async loadRules() { try { const { data } = await api.listRules(); this.rules = data } catch (e) { /* Regeln optional */ } },
 		async onSpheresChanged() { await this.loadAccounts(); await this.loadSphereReport() },
 		async onAssign(tx, value) {
@@ -2866,8 +2855,10 @@ export default {
 		},
 
 		// --- Journal ---
+		// Eigener Wrapper um useJournal.loadJournal (journalLoad), da hier
+		// zusätzlich die Beleg-Zähler nachgeladen werden.
 		async loadJournal() {
-			try { const { data } = await api.journal(this.selectedYear); this.journalData = data } catch (e) { showError(this.errMsg(e, 'Journal konnte nicht geladen werden')) }
+			await this.journalLoad()
 			this.loadAttachmentCounts()
 		},
 		async loadAttachmentCounts() {
@@ -3314,14 +3305,7 @@ export default {
 			else if (action === 'settings') this.openSettings()
 			else if (action === 'booking') this.openNewBooking()
 		},
-		async loadPermissions() {
-			try {
-				const [p, g, u] = await Promise.all([api.listPermissions(), api.listGroups(), api.listUsers()])
-				this.permissions = p.data
-				this.groups = g.data
-				this.users = u.data
-			} catch (e) { showError(this.errMsg(e, 'Berechtigungen konnten nicht geladen werden')) }
-		},
+		// loadPermissions kommt aus setup() (usePermissions).
 		async savePermission() {
 			if (!this.permForm.principalId) { showError('Bitte Nutzer oder Gruppe angeben.'); return }
 			try {
