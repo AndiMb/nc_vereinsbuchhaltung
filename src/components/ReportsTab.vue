@@ -164,14 +164,16 @@
 							<table class="vbh-table">
 								<thead><tr><th class="nowrap">Nr.</th><th>Konto</th><th>Art</th><th class="num">Betrag</th></tr></thead>
 								<tbody>
-									<template v-for="(a, i) in selectedCC.accounts" :key="i">
-										<tr class="vbh-ccrow" @click="toggleCCAccount(a.accountId)">
+									<!-- :key gehoert auf die echten <tr>, nicht aufs <template>
+									     (Vue 2 ignoriert Template-Keys stillschweigend, Muster wie beim Finanzplan unten) -->
+									<template v-for="(a, i) in selectedCC.accounts">
+										<tr :key="'cc-' + i" class="vbh-ccrow" @click="toggleCCAccount(a.accountId)">
 											<td class="nowrap"><span class="vbh-caret" :class="{ open: ccExpanded[a.accountId] }">›</span> {{ a.number }}</td>
 											<td>{{ a.name }}</td>
 											<td><span class="vbh-typetag" :class="a.type">{{ typeLabel(a.type) }}</span></td>
 											<td class="num" :class="amountClass(a.balance)">{{ formatMoney(a.balance) }}</td>
 										</tr>
-										<tr v-if="ccExpanded[a.accountId]" class="vbh-ccdetail">
+										<tr v-if="ccExpanded[a.accountId]" :key="'ccd-' + i" class="vbh-ccdetail">
 											<td colspan="4">
 												<table v-if="ccBookings[a.accountId] && ccBookings[a.accountId].length" class="vbh-table vbh-subtable">
 													<thead><tr><th class="num vbh-col-hide-sm">Nr.</th><th class="nowrap">Datum</th><th>Beschreibung</th><th class="vbh-col-hide-sm">Gegenkonto</th><th class="num">Soll</th><th class="num">Haben</th></tr></thead>
@@ -479,7 +481,7 @@ export default {
 		return {
 			canWrite: auth.canWrite,
 			...toRefs(years.state),
-			accounts: accounts.state.accounts,
+			...toRefs(accounts.state),
 			accountsById: accounts.accountsById,
 			childrenOf: accounts.childrenOf,
 			...toRefs(balances.state),
@@ -582,7 +584,8 @@ export default {
 					const sx = String(x); const sy = String(y)
 					return (sx < sy ? -1 : sx > sy ? 1 : 0) * f
 				}
-				return (x < y ? -1 : x > y ? 1 : 0) * f
+				if (typeof x === 'number' && typeof y === 'number') return (x - y) * f
+				return String(x).localeCompare(String(y), 'de', { numeric: true, sensitivity: 'base' }) * f
 			})
 		},
 		auditDetailText(a) {

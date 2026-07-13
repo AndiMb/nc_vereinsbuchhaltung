@@ -470,7 +470,8 @@ export default {
 					const sx = String(x); const sy = String(y)
 					return (sx < sy ? -1 : sx > sy ? 1 : 0) * f
 				}
-				return (x < y ? -1 : x > y ? 1 : 0) * f
+				if (typeof x === 'number' && typeof y === 'number') return (x - y) * f
+				return String(x).localeCompare(String(y), 'de', { numeric: true, sensitivity: 'base' }) * f
 			})
 		},
 	},

@@ -330,15 +330,12 @@ import { toRefs } from 'vue'
 import { showError, showInfo, showSuccess, showUndo } from '@nextcloud/dialogs'
 import {
 	NcButton,
-	NcCheckboxRadioSwitch,
 	NcDialog,
-	NcEmptyContent,
 	NcIconSvgWrapper,
 	NcLoadingIcon,
 	NcModal,
-	NcSelect,
 } from '@nextcloud/vue'
-import { mdiCog, mdiDelete, mdiPaperclip, mdiPencil, mdiPlus, mdiUpload, mdiDownload, mdiFlash, mdiPrinter, mdiViewDashboardOutline, mdiSwapHorizontal, mdiFileTreeOutline, mdiChartBar, mdiHelpCircleOutline } from '@mdi/js'
+import { mdiCog, mdiPlus, mdiUpload, mdiPrinter, mdiViewDashboardOutline, mdiSwapHorizontal, mdiFileTreeOutline, mdiChartBar, mdiHelpCircleOutline } from '@mdi/js'
 import api from './api.js'
 import { formatMoney, formatDate, formatDateTime, typeLabel, amountClass, budgetDiffClass, errMsg } from './lib/format.js'
 import SettingsRules from './components/SettingsRules.vue'
@@ -356,7 +353,6 @@ import AccountsTab from './components/AccountsTab.vue'
 import BookingsTab from './components/BookingsTab.vue'
 import ReportsTab from './components/ReportsTab.vue'
 import MobileNav from './components/MobileNav.vue'
-import BookingCard from './components/BookingCard.vue'
 import AccountPickerSheet from './components/AccountPickerSheet.vue'
 import HelpModal from './components/HelpModal.vue'
 import SetupWizard from './components/SetupWizard.vue'
@@ -372,13 +368,10 @@ export default {
 	name: 'App',
 	components: {
 		NcButton,
-		NcCheckboxRadioSwitch,
 		NcDialog,
-		NcEmptyContent,
 		NcIconSvgWrapper,
 		NcLoadingIcon,
 		NcModal,
-		NcSelect,
 		SettingsRules,
 		SettingsSpheres,
 		SettingsXbucImport,
@@ -394,7 +387,6 @@ export default {
 		BookingsTab,
 		ReportsTab,
 		MobileNav,
-		BookingCard,
 		AccountPickerSheet,
 		HelpModal,
 		SetupWizard,
@@ -490,13 +482,8 @@ export default {
 			},
 			confirmDialog: { open: false, title: '', message: '', confirmLabel: 'Löschen', confirmVariant: 'error', resolve: null },
 			mdiCog,
-			mdiDelete,
-			mdiPaperclip,
-			mdiPencil,
 			mdiPlus,
 			mdiUpload,
-			mdiDownload,
-			mdiFlash,
 			mdiPrinter,
 			bookingAttachments: [],
 			attachmentUploading: false,
