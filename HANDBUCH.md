@@ -2,7 +2,7 @@
 
 Ein Praxis-Handbuch für Schatzmeisterinnen und Schatzmeister – von der
 Ersteinrichtung bis zum Jahresabschluss. Es beschreibt die App-Version
-**0.10.43** und orientiert sich am tatsächlichen Jahresablauf, nicht an
+**0.10.67** und orientiert sich am tatsächlichen Jahresablauf, nicht an
 Menüstrukturen: Was muss ich wann tun, und worauf ist dabei zu achten?
 
 ---
@@ -123,6 +123,14 @@ Belege.
 Einstellungen → *Verein* → Vereinsname eintragen. Er erscheint im Kopf des
 Kassenberichts (Kapitel 7). Kleine Sache, großer Effekt auf der
 Mitgliederversammlung.
+
+### 2.6 Corporate Design (optional)
+
+Einstellungen → *Corporate Design*: ein **Vereinslogo** (PNG, JPG, SVG oder
+WebP) hochladen und eine **Akzentfarbe** wählen. Beides erscheint
+automatisch im **Kurzbericht für Vorstandssitzungen** (Kapitel 7.3) – der
+Kassenbericht selbst bleibt bewusst schlicht/neutral. Ganz optional: ohne
+Logo funktioniert der Kurzbericht genauso gut, nur ohne Wiedererkennung.
 
 ---
 
@@ -250,6 +258,28 @@ stillen Überschreibung (Kapitel 10). Splittbuchungen (mehrere Soll-/Haben-
 Zeilen, z. B. aus xbuc-Import) können derzeit **angezeigt, aber nicht
 bearbeitet** werden – die App warnt dann.
 
+### 4.5 Offene Posten (unbezahlte Forderungen)
+
+Tab **Buchungen → Offene Posten**. Eine schlanke Liste für Forderungen, die
+noch nicht bezahlt sind – z. B. ein ausstehender Mitgliedsbeitrag oder eine
+gestellte Rechnung. **Wichtig: Das ist keine Mitgliederverwaltung** – der
+Debitor (Name der zahlungspflichtigen Person oder Stelle) wird als
+Freitext eingetragen, es gibt keine Mitglieder-Stammdaten dahinter.
+
+Ein neuer Posten braucht: **Debitor**, **Betrag**, optional **Fälligkeit**
+und ein **Konto** (für die spätere Buchung). Ist die Fälligkeit
+überschritten, markiert die App den Posten als „überfällig" – das
+Dashboard zeigt dann zusätzlich eine Kachel „Überfällige offene Posten"
+mit Direktsprung zur Liste.
+
+Sobald das Geld eingegangen ist, wird der Posten manuell **als bezahlt
+markiert** (Button „Bezahlt"). Der eigentliche Zahlungseingang wird wie
+gewohnt als Bankbuchung importiert und zugeordnet (Kapitel 4.1) oder
+manuell gebucht (Kapitel 4.2) – die App gleicht offene Posten aktuell
+**nicht automatisch** gegen Bankbuchungen ab. Ein Posten lässt sich auch
+**stornieren** (erledigt sich anders, z. B. Beitragsbefreiung) oder bei
+Bedarf **wieder öffnen**.
+
 ---
 
 ## 5. Auswertungen verstehen
@@ -327,6 +357,31 @@ denselben Abschnitt, die Mehrjahresübersicht eine zusätzliche Matrix.
 > der übersteigende Teil. Das Dashboard zeigt eine Ampel (grün/gelb/rot),
 > sobald es Einnahmen im wirtschaftlichen Geschäftsbetrieb gibt.
 
+### 5.7 Rücklagen
+
+Gemeinnützige Vereine dürfen (und sollen) einen Teil ihrer Mittel als
+**Rücklage** zurücklegen, statt alles im selben Jahr auszugeben (§ 62 AO).
+Die App unterscheidet drei Arten:
+
+| Rücklagen-Art | Zweck |
+|---|---|
+| **Freie Rücklage** | allgemeine Reserve, gesetzlich begrenzt zulässig |
+| **Zweckgebundene Rücklage** | für ein konkretes, noch nicht umgesetztes Vorhaben (z. B. „Rücklage Vereinsheim-Sanierung") |
+| **Wiederbeschaffungsrücklage** | für den absehbaren Ersatz von Anlagegütern (z. B. Vereinsbus) |
+
+**Einrichten:** Für die Rücklage wird ein eigenes **Eigenkapital-Konto**
+angelegt (Tab Konten → Typ „Eigenkapital") und im Konto-Dialog die
+gewünschte **Rücklagen-Art** ausgewählt.
+
+**Zuweisen:** Es gibt dafür keinen eigenen Knopf – eine Rücklagenzuweisung
+ist eine ganz normale Buchung im **Experten-Modus** (Kapitel 4.2): Soll das
+Rücklage-Konto, Haben das Konto, von dem die Mittel kommen (meist das
+allgemeine Eigenkapitalkonto).
+
+**Auswerten:** Tab Berichte → „Rücklagen" zeigt den aktuellen Saldo je Art
+sowie die beteiligten Konten – so ist auf einen Blick sichtbar, wie viel
+bereits zurückgelegt wurde.
+
 ---
 
 ## 6. Finanzplan (Budget)
@@ -363,6 +418,11 @@ Die CSV-Dateien eignen sich für die Weitergabe an Steuerberatung oder
 Kassenprüfung oder für die eigene Analyse in Excel. Format: Semikolon-
 getrennt, UTF-8 mit BOM (Excel-tauglich), deutsches Zahlenformat.
 
+> **Mehrjahres-Trend als Diagramm:** In Berichte → Auswertung zeigt ein
+> Liniendiagramm Einnahmen, Ausgaben und Ergebnis über alle Jahre – auf
+> einen Blick statt als Tabelle. Praktisch für die Präsentation vor dem
+> Vorstand oder der Mitgliederversammlung.
+
 ### 7.2 Kassenbericht (druckfertig)
 
 Tab **Berichte → Auswertung** → Button **„Kassenbericht"** (nur bei
@@ -383,6 +443,21 @@ Drucken oder „Als PDF speichern" über den Browser (**Strg+P** bzw. **⌘+P**
 auf dem Mac). Dieser Bericht ist das Dokument für die
 Mitgliederversammlung.
 
+### 7.3 Kurzbericht für Vorstandssitzungen (druckfertig)
+
+Tab **Berichte → Auswertung** → Button **„Kurzbericht"**. Anders als der
+Kassenbericht (Kapitel 7.2, immer ein volles Kalenderjahr) bezieht sich der
+Kurzbericht auf einen frei wählbaren **Zeitraum „seit …"** – typischerweise
+seit der letzten Vorstandssitzung. Die App merkt sich das zuletzt gewählte
+Datum geräte-lokal als Vorschlag für das nächste Mal.
+
+Inhalt: Kontostände der Geldkonten zum Stichtag und heute, Bewegungen seit
+dem Stichtag (Einnahmen/Ausgaben/Ergebnis) sowie eine kurze
+Finanzplan-Kurzfassung des laufenden Jahres (Plan vs. bisheriges Ist). Ist
+unter Einstellungen → *Corporate Design* (Kapitel 2.6) ein Logo und eine
+Akzentfarbe hinterlegt, erscheinen beide automatisch im Kopf des Berichts.
+Wie beim Kassenbericht: Drucken oder „Als PDF speichern" über den Browser.
+
 ---
 
 ## 8. Jahresabschluss und Festschreibung
@@ -398,7 +473,7 @@ Einstellungen → *Jahresabschluss* (nur Verwalter). Liste aller Jahre mit
 Status. Bei Bedarf „Abschließen" bestätigen. Das Jahr ist danach mit einem
 🔒 im Jahres-Dropdown markiert.
 
-### 8.1 Was gesperrt ist – und was nicht
+### 8.2 Was gesperrt ist – und was nicht
 
 Nach dem Abschluss sind im betreffenden Jahr **nicht mehr möglich**:
 Buchungen anlegen/ändern/löschen, Bankbuchungen zuordnen oder Zuordnungen
@@ -410,13 +485,13 @@ lesend an; Schreibversuche werden mit einer klaren Meldung abgewiesen.
 Kassenbericht. Auch der CSV-Import *roher* Bankumsätze geht weiterhin –
 erst die Zuordnung wäre gesperrt.
 
-### 8.2 Jahr wiedereröffnen (Ausnahmefall)
+### 8.3 Jahr wiedereröffnen (Ausnahmefall)
 
 Nur Verwalter, nur in Ausnahmefällen (z. B. Korrektur vor der
 Kassenprüfung). Der Vorgang wird im **Änderungsprotokoll** festgehalten.
 Im Normalfall schließt man ein Jahr endgültig ab.
 
-### 8.3 Wann abschließen?
+### 8.4 Wann abschließen?
 
 Typischer Reihenfolge:
 
@@ -538,9 +613,9 @@ unwiderruflich – also nur nach Rücksprache und nie aus Versehen.
 Solange das Jahr offen ist: Buchung öffnen (Stift) und korrigieren, oder
 löschen und neu anlegen. Bei Konflikten mit einer anderen Person: neu
 öffnen und erneut speichern. Ein abgeschlossenes Jahr lässt sich nur nach
-Wiedereröffnung (Verwalter, Kapitel 8.2) korrigieren.
+Wiedereröffnung (Verwalter, Kapitel 8.3) korrigieren.
 
-### 13.3 Datenbank-Backup vor Updates
+### 12.3 Datenbank-Backup vor Updates
 
 Vor jedem Update, das eine Datenbank-Migration enthält, sollte ein
 Datenbank-Backup (mysqldump) gemacht werden – das App-Deployment
@@ -596,7 +671,12 @@ nur Geldkonten (Bank-Flag).
 - **Snapshot (Plan-Stand)** – eingefrorener Stand des Finanzplans zu einem
   Zeitpunkt (z. B. „Beschluss MV").
 - **Protokoll (Audit-Log)** – manipulationssichere Chronik aller Änderungen.
+- **Offener Posten** – eine noch nicht bezahlte Forderung (z. B. Beitrag,
+  Rechnung) mit Fälligkeit; keine Buchung, sondern eine Merkliste bis zur
+  Zahlung.
+- **Rücklage** – zurückgelegte Vereinsmittel (frei, zweckgebunden oder für
+  Wiederbeschaffung), als gekennzeichnetes Eigenkapital-Konto geführt.
 
 ---
 
-*Stand: App-Version 0.10.43. Bei Fragen an die verwaltende Person wenden.*
+*Stand: App-Version 0.10.67. Bei Fragen an die verwaltende Person wenden.*
