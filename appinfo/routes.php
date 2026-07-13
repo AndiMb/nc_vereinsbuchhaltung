@@ -84,11 +84,17 @@ return [
 		['name' => 'export#budget',   'url' => '/api/export/budget',   'verb' => 'GET'],
 		['name' => 'export#multiyear', 'url' => '/api/export/multiyear', 'verb' => 'GET'],
 		['name' => 'export#kassenbericht', 'url' => '/api/export/kassenbericht', 'verb' => 'GET'],
+		['name' => 'export#kurzbericht', 'url' => '/api/export/kurzbericht', 'verb' => 'GET'],
 		['name' => 'export#attachments', 'url' => '/api/export/attachments', 'verb' => 'GET'],
 
 		// Einstellungen
 		['name' => 'settings#index',  'url' => '/api/settings', 'verb' => 'GET'],
 		['name' => 'settings#update', 'url' => '/api/settings', 'verb' => 'POST'],
+
+		// Corporate Design (Vereins-Logo für den Kurzbericht)
+		['name' => 'branding#view', 'url' => '/api/settings/logo', 'verb' => 'GET'],
+		['name' => 'branding#upload', 'url' => '/api/settings/logo', 'verb' => 'POST'],
+		['name' => 'branding#destroy', 'url' => '/api/settings/logo', 'verb' => 'DELETE'],
 
 		// Hilfe (Handbuch als lesbare Seite, druckfertige Kassenprüfer-Kurzanleitung)
 		['name' => 'help#handbuch', 'url' => '/api/help/handbuch', 'verb' => 'GET'],

@@ -11,6 +11,10 @@
 			</div>
 			<div class="vbh-sectiontop-actions">
 				<a v-if="reportView === 'summary' && selectedYear" :href="kassenberichtUrl" target="_blank" rel="noopener" class="vbh-export-btn" title="Druckfertiger Kassenbericht für die Mitgliederversammlung (öffnet in neuem Tab, dort drucken oder als PDF speichern)"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> Kassenbericht</a>
+				<span v-if="reportView === 'summary'" class="vbh-kurzbericht-picker">
+					<input v-model="kurzberichtSince" type="date" class="vbh-kurzbericht-date" title="Kurzbericht: Bewegungen seit diesem Datum">
+					<a :href="kurzberichtUrl" target="_blank" rel="noopener" class="vbh-export-btn" title="Kurzbericht für die nächste Vorstandssitzung (öffnet in neuem Tab, dort drucken oder als PDF speichern)"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> Kurzbericht</a>
+				</span>
 				<a v-if="reportView === 'summary' && selectedYear" :href="attachmentsZipUrl" download class="vbh-export-btn" title="Alle Belege des Jahres als ZIP herunterladen (für die Kassenprüfung)"><NcIconSvgWrapper :path="mdiPaperclip" :size="16" inline /> Beleg-ZIP</a>
 				<a v-if="reportView === 'summary'" :href="pruefleitfadenUrl" target="_blank" rel="noopener" class="vbh-export-btn" title="Druckfertige 1-Seiten-Kurzanleitung für Kassenprüfer/innen (öffnet in neuem Tab)"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> Prüfleitfaden</a>
 				<a v-if="reportView === 'summary'" :href="exportBalancesUrl" download class="vbh-export-btn" title="Saldenliste als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> Saldenliste</a>
@@ -554,6 +558,7 @@ export default {
 			chartInstances: {},
 			multiyearTrendData: null,
 			reserveData: null,
+			kurzberichtSince: this.defaultKurzberichtSince(),
 			newBudgetYear: '',
 			budgetNoteOpen: {},
 			newSnapshotLabel: '',
@@ -618,6 +623,7 @@ export default {
 			})
 		},
 		sortedBalances() { return this.applySort(this.balanceRows, this.sort.balances, ['number']) },
+		kurzberichtUrl() { return api.kurzberichtUrl(this.kurzberichtSince) },
 		// steuert Laden+Redraw des Mehrjahres-Trend-Diagramms (nur in der
 		// Auswertung sichtbar, und nur wenn der Berichte-Tab selbst aktiv ist).
 		trendChartVisible() { return this.isActive && this.reportView === 'summary' },
@@ -638,6 +644,11 @@ export default {
 		reportView(v) {
 			if (v === 'reserves') this.loadReserveReport()
 		},
+		// Komfort: zuletzt gewaehltes "seit"-Datum geraetelokal merken (Muster
+		// wie vbh_recent_accounts), reine UI-Vorbelegung, kein Pflichtfeld.
+		kurzberichtSince(v) {
+			try { localStorage.setItem('vbh_kurzbericht_since', v) } catch (e) { /* voll/gesperrt - dann eben ohne */ }
+		},
 	},
 	mounted() {
 		if (this.trendChartVisible) this.loadMultiyearTrend()
@@ -656,6 +667,17 @@ export default {
 		roleLabel,
 		errMsg(e, fallback) {
 			return (e?.response?.data?.message) || fallback
+		},
+		// Vorbelegung fuer das Kurzbericht-"seit"-Feld: letztes gemerktes Datum,
+		// sonst 30 Tage vor heute (typischer Sitzungsabstand).
+		defaultKurzberichtSince() {
+			try {
+				const saved = localStorage.getItem('vbh_kurzbericht_since')
+				if (saved) return saved
+			} catch (e) { /* voll/gesperrt - dann eben Default */ }
+			const d = new Date()
+			d.setDate(d.getDate() - 30)
+			return d.toISOString().slice(0, 10)
 		},
 		async loadReserveReport() {
 			try { const { data } = await api.reserveReport(); this.reserveData = data } catch (e) { showError(this.errMsg(e, 'Rücklagen-Bericht konnte nicht geladen werden')) }

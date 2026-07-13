@@ -95,6 +95,7 @@ export default {
 	exportBudgetUrl:   year => generateUrl(base + '/export/budget')   + (year ? `?year=${year}` : ''),
 	exportMultiyearUrl: () => generateUrl(base + '/export/multiyear'),
 	kassenberichtUrl: year => generateUrl(base + '/export/kassenbericht') + (year ? `?year=${year}` : ''),
+	kurzberichtUrl: since => generateUrl(base + '/export/kurzbericht') + (since ? `?since=${since}` : ''),
 	exportAttachmentsUrl: year => generateUrl(base + '/export/attachments') + (year ? `?year=${year}` : ''),
 
 	// Hilfe (Handbuch als lesbare Seite, optional mit Kapitel-Anker; druckfertige Kassenprüfer-Kurzanleitung)
@@ -112,6 +113,11 @@ export default {
 	// Einstellungen (Belegablage)
 	getSettings: () => axios.get(url('/settings')),
 	saveSettings: data => axios.post(url('/settings'), data),
+
+	// Corporate Design (Vereins-Logo für den Kurzbericht)
+	logoUrl: () => generateUrl(base + '/settings/logo'),
+	uploadLogo: formData => axios.post(url('/settings/logo'), formData),
+	deleteLogo: () => axios.delete(url('/settings/logo')),
 
 	// Berechtigungen
 	me: () => axios.get(url('/permissions/me')),

@@ -32,6 +32,8 @@ class SettingsController extends Controller {
 			'storage_path' => $this->config->getAppValue(Application::APP_ID, 'storage_path', 'Vereinsbuchhaltung/Belege'),
 			'cost_center_mode' => $this->config->getAppValue(Application::APP_ID, 'cost_center_mode', 'group'),
 			'club_name' => $this->config->getAppValue(Application::APP_ID, 'club_name', ''),
+			'brand_color' => $this->config->getAppValue(Application::APP_ID, 'brand_color', ''),
+			'has_logo' => $this->config->getAppValue(Application::APP_ID, 'brand_logo_mime', '') !== '',
 			'demo_active' => $this->demoService->isActive(),
 		]);
 	}
@@ -52,17 +54,23 @@ class SettingsController extends Controller {
 			$ccMode = 'group';
 		}
 		$clubName = mb_substr(trim((string)($this->request->getParam('club_name') ?? '')), 0, 128);
+		$brandColor = trim((string)($this->request->getParam('brand_color') ?? ''));
+		if ($brandColor !== '' && !preg_match('/^#[0-9a-fA-F]{6}$/', $brandColor)) {
+			return new DataResponse(['message' => 'Ungültige Akzentfarbe (Format #RRGGBB erwartet)'], Http::STATUS_BAD_REQUEST);
+		}
 
 		$this->config->setAppValue(Application::APP_ID, 'storage_user', $storageUser);
 		$this->config->setAppValue(Application::APP_ID, 'storage_path', $storagePath);
 		$this->config->setAppValue(Application::APP_ID, 'cost_center_mode', $ccMode);
 		$this->config->setAppValue(Application::APP_ID, 'club_name', $clubName);
+		$this->config->setAppValue(Application::APP_ID, 'brand_color', $brandColor);
 
 		return new DataResponse([
 			'storage_user' => $storageUser,
 			'storage_path' => $storagePath,
 			'cost_center_mode' => $ccMode,
 			'club_name' => $clubName,
+			'brand_color' => $brandColor,
 		]);
 	}
 }

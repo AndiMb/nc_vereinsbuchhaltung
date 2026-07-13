@@ -224,9 +224,12 @@
 					:cost-center-mode.sync="costCenterMode"
 					:storage-user.sync="storageUser"
 					:storage-path.sync="storagePath"
+					:brand-color.sync="brandColor"
+					:has-logo="hasLogo"
 					:users="users"
 					:storage-saving="storageSaving"
 					:save-storage-settings="saveStorageSettings"
+					@changed="loadStorageSettings"
 				/>
 
 				<SettingsYearClose
@@ -507,6 +510,8 @@ export default {
 			storagePath: '',
 			costCenterMode: 'group',
 			clubName: '',
+			brandColor: '',
+			hasLogo: false,
 			storageSaving: false,
 			// Hilfe-Modal (HelpModal.vue): Kapitel folgt standardmäßig dem aktiven Tab,
 			// kann aber gezielt überschrieben werden (z. B. Links aus Leerzuständen).
@@ -866,13 +871,15 @@ export default {
 				this.storagePath = data.storage_path || 'Vereinsbuchhaltung/Belege'
 				this.costCenterMode = data.cost_center_mode || 'group'
 				this.clubName = data.club_name || ''
+				this.brandColor = data.brand_color || ''
+				this.hasLogo = !!data.has_logo
 				this.demoActive = !!data.demo_active
 			} catch (e) { /* ignorieren */ }
 		},
 		async saveStorageSettings() {
 			this.storageSaving = true
 			try {
-				await api.saveSettings({ storage_user: this.storageUser, storage_path: this.storagePath || 'Vereinsbuchhaltung/Belege', cost_center_mode: this.costCenterMode, club_name: this.clubName })
+				await api.saveSettings({ storage_user: this.storageUser, storage_path: this.storagePath || 'Vereinsbuchhaltung/Belege', cost_center_mode: this.costCenterMode, club_name: this.clubName, brand_color: this.brandColor })
 				showSuccess('Einstellungen gespeichert.')
 				this.reportData = null
 			} catch (e) {

@@ -12,6 +12,7 @@ use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\YearCloseMapper;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
+use OCA\Vereinsbuchhaltung\Service\BrandingService;
 use OCA\Vereinsbuchhaltung\Service\ReportService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -23,6 +24,7 @@ use OCP\AppFramework\Http\DataDownloadResponse;
 use OCP\IConfig;
 use OCP\IRequest;
 use OCP\ITempManager;
+use OCP\IURLGenerator;
 
 /**
  * CSV-Exporte für Journal, Saldenliste und Einnahmen-/Ausgaben-Übersicht.
@@ -45,6 +47,8 @@ class ExportController extends Controller {
 		private AttachmentMapper $attachmentMapper,
 		private AttachmentStorageService $storageService,
 		private ITempManager $tempManager,
+		private BrandingService $branding,
+		private IURLGenerator $urlGenerator,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -860,6 +864,189 @@ class ExportController extends Controller {
 			.noprint { background: #fffbe6; border: 1px solid #e0d8a0; padding: 8px 12px; margin-bottom: 16px; font-size: 10pt; }
 			@media print { .noprint { display: none; } body { padding: 0; } }
 			@page { margin: 18mm 15mm; }
+		';
+
+		$html = '<!DOCTYPE html><html lang="de"><head><meta charset="utf-8">'
+			. '<title>' . $this->esc($title) . '</title>'
+			. '<style>' . $css . '</style></head><body>' . $h . '</body></html>';
+
+		return new DataDisplayResponse($html, Http::STATUS_OK, ['Content-Type' => 'text/html; charset=utf-8']);
+	}
+
+	/**
+	 * Kurzbericht für die nächste Vorstandssitzung: Kontostände + Bewegungen
+	 * seit einem wählbaren Stichtag, optional im Corporate Design (Logo +
+	 * Akzentfarbe, siehe BrandingService). Bewusst eine eigenständige Methode
+	 * statt Verzweigung in kassenbericht() – gleiche Risikominimierung wie
+	 * bei den anderen neuen Berichten dieser Session.
+	 */
+	#[NoAdminRequired]
+	#[NoCSRFRequired]
+	public function kurzbericht(?string $since = null): DataDisplayResponse {
+		$userId = $this->userId();
+		$today = date('Y-m-d');
+		if ($since === null || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $since) || $since >= $today) {
+			$since = sprintf('%04d-01-01', (int)date('Y'));
+		}
+		$beforeSince = date('Y-m-d', strtotime($since . ' -1 day'));
+
+		$accounts = $this->accountMapper->findAll($userId);
+		$moveSums = $this->lineMapper->sumByAccount($userId, $since, $today);
+		$cumStart = $this->lineMapper->sumByAccount($userId, null, $beforeSince);
+		$cumEnd = $this->lineMapper->sumByAccount($userId, null, $today);
+
+		// --- Kontostände (Geldkonten) ---
+		$wealthRows = [];
+		$wealthStart = 0;
+		$wealthEnd = 0;
+		foreach ($accounts as $account) {
+			if (!$account->isStockAccount()) {
+				continue;
+			}
+			$id = $account->getId();
+			$start = ($cumStart[$id]['debit'] ?? 0) - ($cumStart[$id]['credit'] ?? 0);
+			$end = ($cumEnd[$id]['debit'] ?? 0) - ($cumEnd[$id]['credit'] ?? 0);
+			if ($start === 0 && $end === 0) {
+				continue;
+			}
+			$wealthRows[] = [$account->getNumber(), $account->getName(), $start, $end];
+			$wealthStart += $start;
+			$wealthEnd += $end;
+		}
+
+		// --- Bewegungen seit dem Stichtag ---
+		$income = [];
+		$expense = [];
+		$totalIncome = 0;
+		$totalExpense = 0;
+		foreach ($accounts as $account) {
+			if (!$account->isResultRelevant()) {
+				continue;
+			}
+			$id = $account->getId();
+			$d = $moveSums[$id]['debit'] ?? 0;
+			$c = $moveSums[$id]['credit'] ?? 0;
+			if ($account->isCreditNature()) {
+				$amount = $c - $d;
+				if ($amount !== 0) {
+					$income[] = [$account->getNumber(), $account->getName(), $amount];
+					$totalIncome += $amount;
+				}
+			} else {
+				$amount = $d - $c;
+				if ($amount !== 0) {
+					$expense[] = [$account->getNumber(), $account->getName(), $amount];
+					$totalExpense += $amount;
+				}
+			}
+		}
+		$result = $totalIncome - $totalExpense;
+
+		// --- Finanzplan des laufenden Jahres, nur die Summenzeile (kein Kurzbericht mehr, wenn hier die volle Tabelle steht) ---
+		$currentYear = (int)date('Y');
+		$plan = $this->budgetMapper->findByYear($userId, $currentYear);
+		$planIncome = 0; $planExpense = 0; $actualIncome = 0; $actualExpense = 0;
+		if ($plan !== []) {
+			$yearMoveSums = $this->lineMapper->sumByAccount($userId, sprintf('%04d-01-01', $currentYear), $today);
+			foreach ($accounts as $account) {
+				$type = $account->getType();
+				if ($type !== 'income' && $type !== 'expense') {
+					continue;
+				}
+				$id = $account->getId();
+				$d = $yearMoveSums[$id]['debit'] ?? 0;
+				$c = $yearMoveSums[$id]['credit'] ?? 0;
+				$actualCents = $type === 'income' ? ($c - $d) : ($d - $c);
+				$planCents = $plan[$id]['amount'] ?? 0;
+				if ($type === 'income') {
+					$planIncome += $planCents; $actualIncome += $actualCents;
+				} else {
+					$planExpense += $planCents; $actualExpense += $actualCents;
+				}
+			}
+		}
+
+		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '');
+		$brandColorRaw = $this->config->getAppValue(Application::APP_ID, 'brand_color', '');
+		$brandColor = preg_match('/^#[0-9a-fA-F]{6}$/', $brandColorRaw) ? $brandColorRaw : '#2d7d46';
+		$logoUrl = $this->branding->hasLogo() ? $this->urlGenerator->linkToRoute('vereinsbuchhaltung.branding.view') : null;
+		$title = ($clubName !== '' ? $clubName . ' – ' : '') . 'Kurzbericht zur Vorstandssitzung';
+
+		$m = fn (int $cents): string => $this->fmtMoney($cents / 100) . ' €';
+		$h = '';
+
+		$h .= '<div class="noprint">Zum Drucken oder Als-PDF-Speichern: <strong>Strg+P</strong> (Mac: ⌘P) im Browser.</div>';
+		$h .= '<header>';
+		if ($logoUrl !== null) {
+			$h .= '<img class="logo" src="' . $this->esc($logoUrl) . '" alt="Logo">';
+		}
+		if ($clubName !== '') {
+			$h .= '<div class="club">' . $this->esc($clubName) . '</div>';
+		}
+		$h .= '<h1>Kurzbericht zur Vorstandssitzung</h1>';
+		$h .= '<div class="meta">Zeitraum seit ' . $this->fmtDate($since) . ' · Erstellt am ' . $this->fmtDate($today) . '</div>';
+		$h .= '</header>';
+
+		$h .= '<section><h2>Kontostände (Geldkonten)</h2><table>';
+		$h .= '<tr><th>Konto</th><th class="num">Bestand ' . $this->fmtDate($beforeSince) . '</th><th class="num">Bestand heute</th><th class="num">Veränderung</th></tr>';
+		foreach ($wealthRows as [$nr, $name, $start, $end]) {
+			$h .= '<tr><td>' . $this->esc(trim($nr . ' ' . $name)) . '</td><td class="num">' . $m($start) . '</td><td class="num">' . $m($end) . '</td><td class="num">' . $m($end - $start) . '</td></tr>';
+		}
+		$h .= '<tr class="sum"><td>Gesamt</td><td class="num">' . $m($wealthStart) . '</td><td class="num">' . $m($wealthEnd) . '</td><td class="num">' . $m($wealthEnd - $wealthStart) . '</td></tr>';
+		$h .= '</table></section>';
+
+		$h .= '<section><h2>Bewegungen seit ' . $this->fmtDate($since) . '</h2><table>';
+		$h .= '<tr><th colspan="2">Einnahmen</th><th class="num">Betrag</th></tr>';
+		foreach ($income as [$nr, $name, $amount]) {
+			$h .= '<tr><td class="nr">' . $this->esc((string)$nr) . '</td><td>' . $this->esc((string)$name) . '</td><td class="num">' . $m($amount) . '</td></tr>';
+		}
+		$h .= '<tr class="sum"><td colspan="2">Summe Einnahmen</td><td class="num">' . $m($totalIncome) . '</td></tr>';
+		$h .= '<tr><th colspan="2">Ausgaben</th><th class="num">Betrag</th></tr>';
+		foreach ($expense as [$nr, $name, $amount]) {
+			$h .= '<tr><td class="nr">' . $this->esc((string)$nr) . '</td><td>' . $this->esc((string)$name) . '</td><td class="num">' . $m($amount) . '</td></tr>';
+		}
+		$h .= '<tr class="sum"><td colspan="2">Summe Ausgaben</td><td class="num">' . $m($totalExpense) . '</td></tr>';
+		$h .= '<tr class="result"><td colspan="2">Ergebnis seit Stichtag</td><td class="num">' . $m($result) . '</td></tr>';
+		$h .= '</table></section>';
+
+		if ($plan !== []) {
+			$h .= '<section><h2>Finanzplan ' . $currentYear . ' (Kurzfassung)</h2><table>';
+			$h .= '<tr><th></th><th class="num">Plan</th><th class="num">Ist (bisher)</th></tr>';
+			$h .= '<tr><td>Einnahmen</td><td class="num">' . $m($planIncome) . '</td><td class="num">' . $m($actualIncome) . '</td></tr>';
+			$h .= '<tr><td>Ausgaben</td><td class="num">' . $m($planExpense) . '</td><td class="num">' . $m($actualExpense) . '</td></tr>';
+			$h .= '<tr class="result"><td>Ergebnis</td><td class="num">' . $m($planIncome - $planExpense) . '</td><td class="num">' . $m($actualIncome - $actualExpense) . '</td></tr>';
+			$h .= '</table></section>';
+		}
+
+		$css = '
+			* { box-sizing: border-box; }
+			body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #222; margin: 0 auto; padding: 24px; max-width: 210mm; font-size: 11pt; }
+			header { border-bottom: 2px solid ' . $brandColor . '; margin-bottom: 18px; padding-bottom: 10px; }
+			.logo { max-height: 48px; max-width: 240px; display: block; margin-bottom: 8px; }
+			.club { font-size: 13pt; font-weight: 600; }
+			h1 { font-size: 16pt; margin: 4px 0; color: ' . $brandColor . '; }
+			h2 { font-size: 12pt; margin: 0 0 6px; border-bottom: 1px solid #999; padding-bottom: 3px; }
+			.meta { color: #555; font-size: 9pt; }
+			section { margin-bottom: 20px; page-break-inside: avoid; }
+			table { width: 100%; border-collapse: collapse; }
+			th, td { text-align: left; padding: 3px 6px; border-bottom: 1px solid #ddd; vertical-align: top; }
+			th { border-bottom: 1px solid #999; padding-top: 8px; }
+			td.nr, th.nr { width: 60px; color: #555; }
+			.num { text-align: right; white-space: nowrap; }
+			tr.sum td { font-weight: 600; border-top: 1px solid #999; }
+			tr.result td { font-weight: 700; border-top: 2px solid ' . $brandColor . '; border-bottom: 2px solid ' . $brandColor . '; }
+			.noprint { background: #fffbe6; border: 1px solid #e0d8a0; padding: 8px 12px; margin-bottom: 16px; font-size: 10pt; }
+			@media print { .noprint { display: none; } body { padding: 0; } }
+			@page { margin: 18mm 15mm; }
+			@media (prefers-color-scheme: dark) {
+				body { background: #1b1b1b; color: #ddd; }
+				h2 { border-color: #444; }
+				th, td { border-color: #3a3a3a; }
+				th { border-color: #555; }
+				tr.sum td { border-color: #555; }
+				.meta { color: #aaa; }
+				.noprint { background: #3a341a; border-color: #6b6130; color: #eee; }
+			}
 		';
 
 		$html = '<!DOCTYPE html><html lang="de"><head><meta charset="utf-8">'
