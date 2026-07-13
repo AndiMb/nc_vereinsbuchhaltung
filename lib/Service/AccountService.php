@@ -53,7 +53,7 @@ class AccountService {
 		return $this->mapper->find($id, $userId);
 	}
 
-	public function create(string $userId, string $number, string $name, string $type, ?string $category, bool $isBank, ?int $parentId = null, ?string $sphere = null): Account {
+	public function create(string $userId, string $number, string $name, string $type, ?string $category, bool $isBank, ?int $parentId = null, ?string $sphere = null, ?string $reserveKind = null): Account {
 		$account = new Account();
 		$account->setUserId($userId);
 		$account->setNumber(trim($number));
@@ -63,6 +63,7 @@ class AccountService {
 		$account->setIsBank($isBank);
 		$account->setActive(true);
 		$account->setSphere($this->validateSphere($sphere));
+		$account->setReserveKind($this->validateReserveKind($reserveKind));
 		if ($parentId !== null && $parentId > 0) {
 			// Überkonto muss existieren und demselben Bestand gehören.
 			$this->mapper->find($parentId, $userId);
@@ -93,6 +94,9 @@ class AccountService {
 		}
 		if (array_key_exists('sphere', $data)) {
 			$account->setSphere($this->validateSphere((string)$data['sphere']));
+		}
+		if (array_key_exists('reserveKind', $data)) {
+			$account->setReserveKind($this->validateReserveKind((string)$data['reserveKind']));
 		}
 		if (array_key_exists('parentId', $data)) {
 			$account->setParentId($this->resolveParent($id, $userId, (int)$data['parentId']));
@@ -242,5 +246,16 @@ class AccountService {
 			throw new \InvalidArgumentException('Ungültige Sphäre: ' . $sphere);
 		}
 		return $sphere;
+	}
+
+	/** '' und null bedeuten beide „keine Rücklage" (gespeichert als NULL). */
+	private function validateReserveKind(?string $reserveKind): ?string {
+		if ($reserveKind === null || $reserveKind === '') {
+			return null;
+		}
+		if (!in_array($reserveKind, Account::RESERVE_KINDS, true)) {
+			throw new \InvalidArgumentException('Ungültige Rücklagen-Art: ' . $reserveKind);
+		}
+		return $reserveKind;
 	}
 }

@@ -70,6 +70,7 @@ export default {
 	sphereReport: year => axios.get(url('/report/spheres'), { params: { year: year || undefined } }),
 	bulkSphere: (accountIds, sphere) => axios.post(url('/accounts/sphere-bulk'), { accountIds, sphere }),
 	multiyearTrend: () => axios.get(url('/report/multiyear-trend')),
+	reserveReport: () => axios.get(url('/report/reserves')),
 
 	// Finanzplan / Budget
 	budget: year => axios.get(url('/budget'), { params: { year: year || undefined } }),

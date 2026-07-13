@@ -5,6 +5,7 @@
 				<button :class="{ active: reportView === 'summary' }" @click="$emit('update:report-view', 'summary')">Auswertung</button>
 				<button :class="{ active: reportView === 'costcenters' }" @click="$emit('update:report-view', 'costcenters')">Kostenstellen</button>
 				<button :class="{ active: reportView === 'spheres' }" @click="$emit('update:report-view', 'spheres')">Sphären</button>
+				<button :class="{ active: reportView === 'reserves' }" @click="$emit('update:report-view', 'reserves')">Rücklagen</button>
 				<button :class="{ active: reportView === 'budget' }" @click="$emit('update:report-view', 'budget')">Finanzplan</button>
 				<button :class="{ active: reportView === 'audit' }" @click="$emit('update:report-view', 'audit')">Protokoll</button>
 			</div>
@@ -267,6 +268,36 @@
 				</div>
 			</div>
 
+			<!-- RÜCKLAGEN -->
+			<div v-show="reportView === 'reserves'">
+				<p class="vbh-hint">
+					Rücklagen sind Eigenkapital-Konten mit festgelegter Rücklagen-Art (§ 62 AO). Zuweisungen
+					erfolgen als normale Buchung (Experten-Modus im Buchungsdialog, Eigenkapital-zu-Eigenkapital-
+					Umbuchung) – hier siehst du nur den aktuellen Stand je Art.
+				</p>
+				<div v-if="reserveData" class="vbh-totals">
+					<div class="vbh-total" :class="reserveData.total >= 0 ? 'pos' : 'neg'"><span>Rücklagen gesamt</span><strong>{{ formatMoney(reserveData.total) }}</strong></div>
+				</div>
+				<div v-if="reserveData && reserveData.reserves.some(r => r.accounts.length)" class="vbh-tablecard">
+					<table class="vbh-table">
+						<thead><tr><th>Rücklagen-Art</th><th class="num">Saldo</th></tr></thead>
+						<tbody>
+							<template v-for="r in reserveData.reserves">
+								<tr :key="r.kind" class="vbh-parentrow">
+									<td><strong>{{ r.name }}</strong></td>
+									<td class="num strong" :class="amountClass(r.balance)">{{ formatMoney(r.balance) }}</td>
+								</tr>
+								<tr v-for="a in r.accounts" :key="r.kind + '-' + a.accountId">
+									<td class="nowrap" style="padding-left: 24px;">{{ a.number }} {{ a.name }}</td>
+									<td class="num">{{ formatMoney(a.balance) }}</td>
+								</tr>
+							</template>
+						</tbody>
+					</table>
+				</div>
+				<p v-else class="vbh-empty">Noch keinem Konto eine Rücklagen-Art zugewiesen. Im Konto-Dialog eines Eigenkapital-Kontos festlegen (Tab Konten).</p>
+			</div>
+
 			<!-- FINANZPLAN -->
 			<div v-show="reportView === 'budget'">
 				<div class="vbh-sectionhead">
@@ -522,6 +553,7 @@ export default {
 			balancesIncludeChildren: false,
 			chartInstances: {},
 			multiyearTrendData: null,
+			reserveData: null,
 			newBudgetYear: '',
 			budgetNoteOpen: {},
 			newSnapshotLabel: '',
@@ -603,9 +635,13 @@ export default {
 		trendChartVisible(v) {
 			if (v) this.loadMultiyearTrend()
 		},
+		reportView(v) {
+			if (v === 'reserves') this.loadReserveReport()
+		},
 	},
 	mounted() {
 		if (this.trendChartVisible) this.loadMultiyearTrend()
+		if (this.reportView === 'reserves') this.loadReserveReport()
 	},
 	beforeDestroy() {
 		Object.values(this.chartInstances).forEach(c => c && c.destroy())
@@ -620,6 +656,9 @@ export default {
 		roleLabel,
 		errMsg(e, fallback) {
 			return (e?.response?.data?.message) || fallback
+		},
+		async loadReserveReport() {
+			try { const { data } = await api.reserveReport(); this.reserveData = data } catch (e) { showError(this.errMsg(e, 'Rücklagen-Bericht konnte nicht geladen werden')) }
 		},
 		async loadMultiyearTrend() {
 			try {

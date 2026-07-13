@@ -44,6 +44,13 @@ class ReportService {
 		'wirtschaftlich' => 'Wirtschaftlicher Geschäftsbetrieb',
 	];
 
+	/** Anzeigenamen der drei Rücklagen-Arten, siehe Account::RESERVE_KINDS. */
+	private const RESERVE_LABELS = [
+		'frei' => 'Freie Rücklage',
+		'zweckgebunden' => 'Zweckgebundene Rücklage',
+		'wiederbeschaffung' => 'Wiederbeschaffungsrücklage',
+	];
+
 	public function __construct(
 		private AccountMapper $accountMapper,
 		private JournalLineMapper $lineMapper,
@@ -283,6 +290,67 @@ class ReportService {
 				'ratio' => $ratio,
 				'level' => $level,
 			],
+		];
+	}
+
+	/**
+	 * Rücklagen-Salden je Art (§ 62 AO: frei/zweckgebunden/Wiederbeschaffung).
+	 * Rücklagen sind Eigenkapital-Konten mit gesetztem `reserveKind` – die
+	 * Zuweisung selbst ist eine normale Buchung (Experten-Modus, Eigenkapital-
+	 * zu-Eigenkapital-Umbuchung), kein eigener Mechanismus. Bestandsgröße wie
+	 * jedes Eigenkapitalkonto, daher kumulierter Saldo ohne Jahresfilter.
+	 *
+	 * @return array{reserves: array<int, array<string,mixed>>, total: float}
+	 */
+	public function reserveReport(string $userId): array {
+		$accounts = $this->accountMapper->findAll($userId);
+		$sums = $this->lineMapper->sumByAccount($userId);
+
+		$groups = [];
+		foreach (Account::RESERVE_KINDS as $kind) {
+			$groups[$kind] = [
+				'kind' => $kind,
+				'name' => self::RESERVE_LABELS[$kind],
+				'balanceCents' => 0,
+				'accounts' => [],
+			];
+		}
+
+		foreach ($accounts as $a) {
+			$kind = $a->getReserveKind();
+			if ($kind === null || $a->getType() !== 'equity') {
+				continue;
+			}
+			$id = $a->getId();
+			$debit = $sums[$id]['debit'] ?? 0;
+			$credit = $sums[$id]['credit'] ?? 0;
+			// Eigenkapital ist Haben-Natur.
+			$balCents = $credit - $debit;
+			$groups[$kind]['balanceCents'] += $balCents;
+			$groups[$kind]['accounts'][] = [
+				'accountId' => $id,
+				'number' => $a->getNumber(),
+				'name' => $a->getName(),
+				'balance' => $balCents / 100,
+			];
+		}
+
+		$result = [];
+		$totalCents = 0;
+		foreach ($groups as $g) {
+			$totalCents += $g['balanceCents'];
+			usort($g['accounts'], static fn ($x, $y) => strcmp($x['number'], $y['number']));
+			$result[] = [
+				'kind' => $g['kind'],
+				'name' => $g['name'],
+				'balance' => $g['balanceCents'] / 100,
+				'accounts' => $g['accounts'],
+			];
+		}
+
+		return [
+			'reserves' => $result,
+			'total' => $totalCents / 100,
 		];
 	}
 

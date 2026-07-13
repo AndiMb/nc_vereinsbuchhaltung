@@ -44,6 +44,11 @@ class ReportController extends Controller {
 		return new DataResponse($this->reportService->multiyearTrend($this->userId()));
 	}
 
+	#[NoAdminRequired]
+	public function reserves(): DataResponse {
+		return new DataResponse($this->reportService->reserveReport($this->userId()));
+	}
+
 	/**
 	 * Kostenstelle umbenennen (Code + neuer Name).
 	 */

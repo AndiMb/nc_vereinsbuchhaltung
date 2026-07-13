@@ -29,6 +29,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setParentId(?int $parentId)
  * @method string|null getSphere()
  * @method void setSphere(?string $sphere)
+ * @method string|null getReserveKind()
+ * @method void setReserveKind(?string $reserveKind)
  */
 class Account extends Entity implements \JsonSerializable {
 	protected $userId;
@@ -42,9 +44,13 @@ class Account extends Entity implements \JsonSerializable {
 	protected $openingDate;
 	protected $parentId;
 	protected $sphere;
+	protected $reserveKind;
 
 	/** Gültige Werte für die steuerliche Sphäre (Account::$sphere). */
 	public const SPHERES = ['ideell', 'vermoegensverwaltung', 'zweckbetrieb', 'wirtschaftlich'];
+
+	/** Gültige Werte für die Rücklagen-Art (Account::$reserveKind, § 62 AO). */
+	public const RESERVE_KINDS = ['frei', 'zweckgebunden', 'wiederbeschaffung'];
 
 	public function __construct() {
 		$this->addType('isBank', 'boolean');
@@ -106,6 +112,7 @@ class Account extends Entity implements \JsonSerializable {
 			'openingDate' => $this->openingDate,
 			'parentId' => $this->parentId,
 			'sphere' => $this->sphere,
+			'reserveKind' => $this->reserveKind,
 		];
 	}
 }

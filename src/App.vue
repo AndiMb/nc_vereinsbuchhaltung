@@ -1364,6 +1364,7 @@ export default {
 				isBank: false,
 				parentId: this.selectedAccountId || null,
 				sphere: parent ? (parent.sphere || '') : '',
+				reserveKind: parent ? (parent.reserveKind || '') : '',
 			}
 			this.showAccount = true
 		},
@@ -1374,6 +1375,7 @@ export default {
 				category: acc.category || '', isBank: !!acc.isBank,
 				parentId: acc.parentId || null,
 				sphere: acc.sphere || '',
+				reserveKind: acc.reserveKind || '',
 			}
 			this.showAccount = true
 		},
@@ -1389,13 +1391,14 @@ export default {
 						category: f.category || null, isBank: f.isBank,
 						parentId: f.parentId || 0,
 						sphere: f.sphere || '',
+						reserveKind: f.reserveKind || '',
 					})
 				} else {
-					await api.createAccount({ ...f, parentId: f.parentId || null, sphere: f.sphere || null })
+					await api.createAccount({ ...f, parentId: f.parentId || null, sphere: f.sphere || null, reserveKind: f.reserveKind || null })
 				}
 				this.showAccount = false
 				this.accountEditId = null
-				this.newAccount = { number: '', name: '', type: 'income', category: '', isBank: false, parentId: null, sphere: '' }
+				this.newAccount = { number: '', name: '', type: 'income', category: '', isBank: false, parentId: null, sphere: '', reserveKind: '' }
 				await this.loadAccounts(); await this.loadBalances(); await this.loadSphereReport()
 				showSuccess('Konto gespeichert.')
 			} catch (e) { showError(this.errMsg(e, 'Konto konnte nicht gespeichert werden')) }

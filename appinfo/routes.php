@@ -53,6 +53,7 @@ return [
 		['name' => 'report#rename', 'url' => '/api/report/costcenters', 'verb' => 'PUT'],
 		['name' => 'report#spheres', 'url' => '/api/report/spheres', 'verb' => 'GET'],
 		['name' => 'report#multiyearTrend', 'url' => '/api/report/multiyear-trend', 'verb' => 'GET'],
+		['name' => 'report#reserves', 'url' => '/api/report/reserves', 'verb' => 'GET'],
 
 		// Finanzplan / Budget
 		['name' => 'budget#index', 'url' => '/api/budget', 'verb' => 'GET'],

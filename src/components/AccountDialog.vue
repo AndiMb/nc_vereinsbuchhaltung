@@ -42,6 +42,16 @@
 				</label>
 				<button type="button" class="vbh-sphere-help" title="Was bedeutet das?" @click="$emit('help')">?</button>
 			</div>
+			<div v-if="form.type === 'equity'" class="vbh-form">
+				<label class="vbh-grow">Rücklagen-Art
+					<select v-model="form.reserveKind">
+						<option value="">– keine Rücklage –</option>
+						<option value="frei">Freie Rücklage</option>
+						<option value="zweckgebunden">Zweckgebundene Rücklage</option>
+						<option value="wiederbeschaffung">Wiederbeschaffungsrücklage</option>
+					</select>
+				</label>
+			</div>
 			<div class="vbh-modal-actions">
 				<NcButton variant="tertiary" @click="$emit('close')">Abbrechen</NcButton>
 				<NcButton variant="primary" @click="save">{{ accountEditId ? 'Speichern' : 'Anlegen' }}</NcButton>
@@ -55,7 +65,7 @@ import { NcModal, NcButton, NcSelect, NcCheckboxRadioSwitch } from '@nextcloud/v
 import { useAccounts } from '../composables/useAccounts.js'
 
 function emptyForm() {
-	return { number: '', name: '', type: 'income', category: '', isBank: false, parentId: null, sphere: '' }
+	return { number: '', name: '', type: 'income', category: '', isBank: false, parentId: null, sphere: '', reserveKind: '' }
 }
 
 export default {
