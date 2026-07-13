@@ -34,12 +34,13 @@ Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kon
 - **Saldenliste**: alle Konten mit Soll/Haben/Saldo, hierarchische Darstellung, optional inkl. Unterkonten
 - **Kontoauszug**: Buchungshistorie je Konto inkl. laufendem Saldo und Saldovortrag
 - **Kostenstellen**: Einnahmen/Ausgaben/Ergebnis je Kostenstelle mit Buchungs-Drilldown; zwei Modi (2. Zahlengruppe der Kontonummer oder je Konto), Namen per UI änderbar
+- **Steuerliche Sphären** (ideeller Bereich, Vermögensverwaltung, Zweckbetrieb, wirtschaftlicher Geschäftsbetrieb): je Konto zuweisbar (Einzeln oder per Mehrfachauswahl), eigener Bericht mit Einnahmen/Ausgaben/Ergebnis je Sphäre; Dashboard-Warnleiste bei Annäherung an die Freigrenze für den wirtschaftlichen Geschäftsbetrieb (§ 64 Abs. 3 AO) – ersetzt keine steuerliche Beratung
 - **Finanzplan**: geplante Beträge je Konto und Jahr, Soll-Ist-Vergleich mit farbiger Abweichung
   - **Notizen je Planzahl** (z. B. Herleitung „40 Mitglieder × 25 €")
   - **Plan-Stände**: kompletten Plan als benannten, datierten Stand einfrieren (z. B. „Beschluss MV") und später mit dem aktuellen Plan vergleichen
-- **Kassenbericht (druckfertig)**: eigenständige Druckseite für die Mitgliederversammlung – Vereinsname, Vermögensübersicht der Geldkonten (Bestand 01.01./31.12.), Einnahmen-/Ausgaben-Rechnung, Soll-Ist-Vergleich, Vollständigkeitsvermerk, Abschlussvermerk und Unterschriftszeilen; Drucken/Als-PDF-speichern über den Browser
+- **Kassenbericht (druckfertig)**: eigenständige Druckseite für die Mitgliederversammlung – Vereinsname, Vermögensübersicht der Geldkonten (Bestand 01.01./31.12.), Einnahmen-/Ausgaben-Rechnung, Soll-Ist-Vergleich, Sphärenübersicht (steuerlich) mit Freigrenzen-Hinweis, Vollständigkeitsvermerk, Abschlussvermerk und Unterschriftszeilen; Drucken/Als-PDF-speichern über den Browser
 - **CSV-Exporte** (für Kassenprüfung/Excel): Journal, Saldenliste, Einnahmen-/Ausgaben-Übersicht, Soll-Ist-Vergleich (inkl. Notizen)
-- **Mehrjahresübersicht** (CSV-Matrix, Spalten = Jahre): Erfolgsrechnung nach Konten (Einnahmen/Ausgaben/Ergebnis) + Vermögen zum Jahresende sowie Auswertung nach Kostenstellen/Projekten über alle Jahre
+- **Mehrjahresübersicht** (CSV-Matrix, Spalten = Jahre): Erfolgsrechnung nach Konten (Einnahmen/Ausgaben/Ergebnis) + Vermögen zum Jahresende sowie Auswertung nach Kostenstellen/Projekten und nach steuerlichen Sphären über alle Jahre
 - **Geldkonten-Abstimmung**: Kontostand (Journal) vs. offene (nicht zugeordnete) Bankbuchungen
 
 ### Kassenprüfung
@@ -82,10 +83,19 @@ vereinsbuchhaltung/
 │                      PermissionService, AttachmentStorageService,
 │                      BudgetSnapshotService, RevisionService,
 │                      YearCloseService, AuditService
-├── src/               Vue 2.7-Frontend
-│   ├── App.vue        Hauptkomponente (Tabs, Dialoge)
-│   ├── components/    ausgelagerte Kindkomponenten (SettingsRules.vue, MobileNav.vue,
-│   │                  BookingCard.vue, AccountPickerSheet.vue)
+├── src/               Vue 2.7-Frontend (Composition API via setup(), reactive() als
+│   │                  Composable-Singletons statt Vuex/Pinia)
+│   ├── App.vue        Shell: Header/Navigation/Jahresauswahl, Tab-Router,
+│   │                  Top-Level-Modals, Composable-Bootstrap in mounted()
+│   ├── composables/   geteilter Zustand als reactive()-Singletons je Fachbereich
+│   │                  (useAuth, useYears, useAccounts, useBalances, useJournal,
+│   │                  usePermissions, useSync)
+│   ├── components/    Tabs (DashboardTab/BookingsTab/AccountsTab/ReportsTab),
+│   │                  Dialoge (BookingDialog/AccountDialog/ImportDialog/
+│   │                  BudgetSnapshotModal/HelpModal/SetupWizard), Settings-*
+│   │                  (Rules/Spheres/XbucImport/Permissions/General/YearClose),
+│   │                  Mobil (MobileNav/BookingCard/AccountPickerSheet),
+│   │                  SetupChecklist
 │   ├── lib/           zustandslose Helfer (format.js)
 │   ├── styles.css     globale .vbh-* Utility-Styles
 │   ├── api.js         API-Client (axios + @nextcloud/router)
