@@ -88,6 +88,14 @@ export default {
 	updateRule: (id, data) => axios.put(url(`/rules/${id}`), data),
 	deleteRule: id => axios.delete(url(`/rules/${id}`)),
 
+	// Offene Posten
+	listOpenItems: () => axios.get(url('/open-items')),
+	createOpenItem: data => axios.post(url('/open-items'), data),
+	markOpenItemPaid: (id, journalId) => axios.post(url(`/open-items/${id}/pay`), { journalId: journalId || undefined }),
+	cancelOpenItem: id => axios.post(url(`/open-items/${id}/cancel`)),
+	reopenOpenItem: id => axios.post(url(`/open-items/${id}/reopen`)),
+	deleteOpenItem: id => axios.delete(url(`/open-items/${id}`)),
+
 	// Export (CSV-Download – Browser-Navigation, kein Axios)
 	exportJournalUrl:  year => generateUrl(base + '/export/journal')  + (year ? `?year=${year}` : ''),
 	exportBalancesUrl: year => generateUrl(base + '/export/balances') + (year ? `?year=${year}` : ''),

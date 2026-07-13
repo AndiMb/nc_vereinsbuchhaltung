@@ -7,6 +7,10 @@
 					Zuzuordnen
 					<span v-if="unassignedCount > 0" class="vbh-badge vbh-badge--alert">{{ unassignedCount }}</span>
 				</button>
+				<button :class="{ active: bookingView === 'openitems' }" @click="$emit('update:booking-view', 'openitems')">
+					Offene Posten
+					<span v-if="overdueOpenItemsCount > 0" class="vbh-badge vbh-badge--alert">{{ overdueOpenItemsCount }}</span>
+				</button>
 			</div>
 			<div class="vbh-sectiontop-actions">
 				<a v-if="bookingView === 'journal'" :href="exportJournalUrl" download class="vbh-export-btn" title="Journal als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> CSV</a>
@@ -119,8 +123,8 @@
 			</template>
 
 			<!-- TRANSACTIONS VIEW (unassigned / assigned) -->
-			<template v-else>
-				<div v-if="bookingView === 'unassigned' && assignProgress.total > 0" class="vbh-progress">
+			<template v-else-if="bookingView === 'unassigned'">
+				<div v-if="assignProgress.total > 0" class="vbh-progress">
 					<span class="vbh-progress-label">{{ assignProgress.done }} von {{ assignProgress.total }} Bankbuchungen zugeordnet</span>
 					<div class="vbh-progress-bar"><div class="vbh-progress-fill" :style="{ width: assignProgress.pct + '%' }"></div></div>
 				</div>
@@ -198,7 +202,7 @@
 					</table>
 				</div>
 				<NcEmptyContent v-else-if="bookingSearch" name="Keine Treffer" description="Suchfilter anpassen." />
-				<NcEmptyContent v-else-if="bookingView === 'unassigned'" name="Alle Buchungen zugeordnet" description="Keine offenen Bankbuchungen – alles erledigt.">
+				<NcEmptyContent v-else name="Alle Buchungen zugeordnet" description="Keine offenen Bankbuchungen – alles erledigt.">
 					<template v-if="canWrite" #action>
 						<NcButton variant="secondary" @click="openImport">
 							<template #icon><NcIconSvgWrapper :path="mdiUpload" :size="18" /></template>
@@ -206,6 +210,73 @@
 						</NcButton>
 					</template>
 				</NcEmptyContent>
+			</template>
+
+			<!-- OFFENE POSTEN -->
+			<template v-else-if="bookingView === 'openitems'">
+				<div v-if="canWrite" class="vbh-card">
+					<h4>Neuer offener Posten</h4>
+					<div class="vbh-form">
+						<label class="vbh-grow">Debitor<input v-model="openItemForm.debtor" placeholder="z. B. Max Mustermann"></label>
+						<label>Betrag (€)<input v-model.number="openItemForm.amount" type="number" step="0.01" min="0.01" class="vbh-num"></label>
+						<label>Fällig am<input v-model="openItemForm.dueDate" type="date"></label>
+					</div>
+					<div class="vbh-form">
+						<label class="vbh-grow">Konto (für die spätere Buchung)
+							<NcSelect
+								v-model="openItemAccountOption"
+								:options="accountOptionsList"
+								:filter-by="accountFilterBy"
+								label="label"
+								placeholder="optional"
+								:clearable="true"
+							/>
+						</label>
+						<label class="vbh-grow">Notiz<input v-model="openItemForm.description" placeholder="optional"></label>
+						<NcButton variant="primary" :disabled="!openItemForm.debtor || !openItemForm.amount" @click="createOpenItem">Anlegen</NcButton>
+					</div>
+				</div>
+
+				<div class="vbh-filterbar">
+					<button v-for="f in openItemFilterOptions" :key="f.key" type="button" class="vbh-chip" :class="{ active: openItemFilter === f.key }" @click="openItemFilter = f.key">{{ f.label }}</button>
+				</div>
+
+				<div v-if="filteredOpenItems.length" class="vbh-tablecard">
+					<table class="vbh-table">
+						<thead>
+							<tr>
+								<th>Debitor</th>
+								<th class="vbh-col-hide-sm">Notiz</th>
+								<th class="nowrap">Fällig</th>
+								<th class="num">Betrag</th>
+								<th class="vbh-col-hide-sm">Konto</th>
+								<th>Status</th>
+								<th></th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr v-for="o in filteredOpenItems" :key="o.id">
+								<td>{{ o.debtor }}</td>
+								<td class="vbh-col-hide-sm vbh-purpose"><span class="vbh-clamp">{{ o.description }}</span></td>
+								<td class="nowrap">
+									{{ o.dueDate ? formatDate(o.dueDate) : '–' }}
+									<span v-if="o.overdue" class="vbh-warn-inline">überfällig</span>
+								</td>
+								<td class="num strong">{{ formatMoney(o.amount) }}</td>
+								<td class="vbh-col-hide-sm">{{ o.accountId ? accountLabel(o.accountId) : '' }}</td>
+								<td><span class="vbh-typetag" :class="o.status">{{ openItemStatusLabel(o.status) }}</span></td>
+								<td class="right nowrap">
+									<template v-if="canWrite && o.status === 'open'">
+										<NcButton variant="tertiary" @click="markOpenItemPaid(o)">Bezahlt</NcButton>
+										<NcButton variant="tertiary" @click="cancelOpenItem(o)">Stornieren</NcButton>
+									</template>
+									<NcButton v-else-if="canWrite" variant="tertiary" @click="reopenOpenItem(o)">Wieder öffnen</NcButton>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+				<NcEmptyContent v-else name="Keine offenen Posten" description="Lege oben einen neuen offenen Posten an, z. B. einen unbezahlten Mitgliedsbeitrag." />
 			</template>
 		</div>
 	</div>
@@ -215,13 +286,15 @@
 import { toRefs } from 'vue'
 import { NcButton, NcSelect, NcEmptyContent, NcIconSvgWrapper } from '@nextcloud/vue'
 import { mdiDownload, mdiUpload, mdiPaperclip, mdiPencil, mdiFlash, mdiDelete } from '@mdi/js'
+import { showError, showSuccess } from '@nextcloud/dialogs'
 import BookingCard from './BookingCard.vue'
 import api from '../api.js'
-import { formatMoney, formatDate, amountClass } from '../lib/format.js'
+import { formatMoney, formatDate, amountClass, errMsg } from '../lib/format.js'
 import { useAuth } from '../composables/useAuth.js'
 import { useYears } from '../composables/useYears.js'
 import { useAccounts } from '../composables/useAccounts.js'
 import { useJournal } from '../composables/useJournal.js'
+import { useOpenItems } from '../composables/useOpenItems.js'
 
 export default {
 	name: 'BookingsTab',
@@ -253,6 +326,7 @@ export default {
 		const years = useYears()
 		const accounts = useAccounts()
 		const journal = useJournal()
+		const openItemsC = useOpenItems()
 		return {
 			canWrite: auth.canWrite,
 			...toRefs(years.state),
@@ -262,6 +336,9 @@ export default {
 			journalRows: journal.journalRows,
 			...toRefs(journal.state),
 			unassignedCount: journal.unassignedCount,
+			...toRefs(openItemsC.state),
+			overdueOpenItemsCount: openItemsC.overdueCount,
+			loadOpenItems: openItemsC.loadOpenItems,
 		}
 	},
 	data() {
@@ -275,12 +352,26 @@ export default {
 			bookingSearch: '',
 			bookingFilterAccountId: null,
 			journalOnlyNoAttachment: false,
+			openItemForm: { debtor: '', description: '', amount: '', dueDate: '', accountId: null },
+			openItemFilter: 'open',
+			openItemFilterOptions: [
+				{ key: 'open', label: 'Offen' },
+				{ key: 'paid', label: 'Bezahlt' },
+				{ key: 'cancelled', label: 'Storniert' },
+				{ key: 'all', label: 'Alle' },
+			],
 		}
 	},
 	watch: {
 		// Suchfeld beim Wechsel zwischen "Alle Buchungen"/"Zuzuordnen" leeren
 		// (Original-Verhalten aus App.vue's bookingView-Watcher).
-		bookingView() { this.bookingSearch = '' },
+		bookingView(v) {
+			this.bookingSearch = ''
+			if (v === 'openitems') this.loadOpenItems()
+		},
+	},
+	mounted() {
+		if (this.bookingView === 'openitems') this.loadOpenItems()
 	},
 	computed: {
 		exportJournalUrl() { return api.exportJournalUrl(this.selectedYear) },
@@ -425,11 +516,46 @@ export default {
 			const done = this.transactions.filter(t => t.status === 'assigned').length
 			return { total, done, pct: total ? Math.round((done / total) * 100) : 0 }
 		},
+		openItemAccountOption: {
+			get() { return this.accountOptionFor(this.openItemForm.accountId) },
+			set(v) { this.openItemForm.accountId = v ? v.id : null },
+		},
+		filteredOpenItems() {
+			if (this.openItemFilter === 'all') return this.openItems
+			return this.openItems.filter(o => o.status === this.openItemFilter)
+		},
 	},
 	methods: {
 		formatMoney,
 		formatDate,
 		amountClass,
+		openItemStatusLabel(status) {
+			return { open: 'Offen', paid: 'Bezahlt', cancelled: 'Storniert' }[status] || status
+		},
+		async createOpenItem() {
+			if (!this.openItemForm.debtor || !this.openItemForm.amount) return
+			try {
+				await api.createOpenItem({
+					debtor: this.openItemForm.debtor,
+					description: this.openItemForm.description || null,
+					amount: Number(this.openItemForm.amount),
+					dueDate: this.openItemForm.dueDate || null,
+					accountId: this.openItemForm.accountId,
+				})
+				this.openItemForm = { debtor: '', description: '', amount: '', dueDate: '', accountId: null }
+				await this.loadOpenItems()
+				showSuccess('Offener Posten angelegt.')
+			} catch (e) { showError(errMsg(e, 'Offener Posten konnte nicht angelegt werden')) }
+		},
+		async markOpenItemPaid(o) {
+			try { await api.markOpenItemPaid(o.id); await this.loadOpenItems(); showSuccess('Als bezahlt markiert.') } catch (e) { showError(errMsg(e, 'Konnte nicht als bezahlt markiert werden')) }
+		},
+		async cancelOpenItem(o) {
+			try { await api.cancelOpenItem(o.id); await this.loadOpenItems(); showSuccess('Storniert.') } catch (e) { showError(errMsg(e, 'Konnte nicht storniert werden')) }
+		},
+		async reopenOpenItem(o) {
+			try { await api.reopenOpenItem(o.id); await this.loadOpenItems(); showSuccess('Wieder geöffnet.') } catch (e) { showError(errMsg(e, 'Konnte nicht wieder geöffnet werden')) }
+		},
 		accountLabel(id) {
 			const acc = this.accountsById[id]
 			return acc ? `${acc.number} ${acc.name}` : `#${id}`

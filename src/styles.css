@@ -285,6 +285,12 @@
 .vbh-typetag { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 0.82em; background-color: var(--color-background-dark); color: var(--color-main-text); }
 .vbh-typetag.income { background-color: rgba(45, 125, 70, 0.25); }
 .vbh-typetag.expense { background-color: rgba(199, 60, 60, 0.25); }
+.vbh-typetag.paid { background-color: rgba(45, 125, 70, 0.25); }
+.vbh-typetag.cancelled { background-color: rgba(150, 150, 150, 0.25); }
+
+.vbh-chip { display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: 15px; background: var(--color-main-background); color: var(--color-main-text); font-size: 0.85em; cursor: pointer; }
+.vbh-chip:hover { background: var(--color-background-hover); }
+.vbh-chip.active { background: var(--color-primary-element); color: var(--color-primary-element-text); border-color: var(--color-primary-element); }
 
 /* KPI cards */
 .vbh-totals { display: flex; gap: 12px; margin: 12px 0; flex-wrap: wrap; }

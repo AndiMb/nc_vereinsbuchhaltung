@@ -26,11 +26,13 @@ Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kon
   - **Zuordnungs-Vorschläge** aus Regeln und der bisherigen Zuordnungshistorie, per Klick übernehmbar
   - **Auto-Zuordnungsregeln** (Zahlungspartner / Verwendungszweck / IBAN enthält Suchtext → Gegenkonto): verwaltbar unter Einstellungen, oder per Blitz-Button direkt aus einer gebuchten Bankbuchung
 - **Belege** (PDF/Bilder, max. 20 MB) an Buchungssätze anhängen – Ablage intern (AppData) oder in einem konfigurierbaren Nextcloud-Ordner; auf Mobilgeräten direkt beim Anlegen fotografieren
+- **Offene Posten** (Tab Buchungen → Offene Posten): schlanke Ad-hoc-Liste unbezahlter Forderungen (z. B. Mitgliedsbeiträge, Rechnungen) mit Debitor, Betrag, Fälligkeit und optionalem Konto; Status offen/bezahlt/storniert, Dashboard-Hinweis bei überfälligen Posten – bewusst keine vollständige Mitgliederverwaltung
+- **Rücklagen** (§ 62 AO: freie / zweckgebundene / Wiederbeschaffungsrücklage): Eigenkapital-Konten entsprechend kennzeichenbar, eigener Bericht mit Saldo je Art; Zuweisungen sind normale Buchungen (Experten-Modus)
 - **Jahresfilter**: alle Auswertungen beziehen sich auf das im Header gewählte Kalenderjahr; Bestandskonten kumulativ, Erfolgskonten jahresbezogen
 - **Jahresabschluss (Festschreibung)**: Verwalter schließen ein Geschäftsjahr ab – Buchungen, Belege und Zuordnungen dieses Jahres sind danach unveränderlich (Schreibversuche liefern HTTP 423); Wiedereröffnen nur durch Verwalter, beides wird protokolliert
 
 ### Auswertungen & Export
-- **Übersicht (Dashboard)**: KPI-Kacheln mit Vorjahresvergleich, Hinweis auf nicht zugeordnete Buchungen, monatliches Einnahmen-/Ausgaben-Diagramm
+- **Übersicht (Dashboard)**: KPI-Kacheln mit Vorjahresvergleich, Hinweis auf nicht zugeordnete Buchungen und überfällige offene Posten, monatliches Einnahmen-/Ausgaben-Diagramm
 - **Saldenliste**: alle Konten mit Soll/Haben/Saldo, hierarchische Darstellung, optional inkl. Unterkonten
 - **Kontoauszug**: Buchungshistorie je Konto inkl. laufendem Saldo und Saldovortrag
 - **Kostenstellen**: Einnahmen/Ausgaben/Ergebnis je Kostenstelle mit Buchungs-Drilldown; zwei Modi (2. Zahlengruppe der Kontonummer oder je Konto), Namen per UI änderbar
@@ -39,8 +41,9 @@ Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kon
   - **Notizen je Planzahl** (z. B. Herleitung „40 Mitglieder × 25 €")
   - **Plan-Stände**: kompletten Plan als benannten, datierten Stand einfrieren (z. B. „Beschluss MV") und später mit dem aktuellen Plan vergleichen
 - **Kassenbericht (druckfertig)**: eigenständige Druckseite für die Mitgliederversammlung – Vereinsname, Vermögensübersicht der Geldkonten (Bestand 01.01./31.12.), Einnahmen-/Ausgaben-Rechnung, Soll-Ist-Vergleich, Sphärenübersicht (steuerlich) mit Freigrenzen-Hinweis, Vollständigkeitsvermerk, Abschlussvermerk und Unterschriftszeilen; Drucken/Als-PDF-speichern über den Browser
+- **Kurzbericht für Vorstandssitzungen (druckfertig)**: kompakte Druckseite mit wählbarem Stichtag – Kontostände seither, Bewegungen, Finanzplan-Kurzfassung; optional im Corporate Design (Vereinslogo + Akzentfarbe, unter Einstellungen hinterlegbar)
 - **CSV-Exporte** (für Kassenprüfung/Excel): Journal, Saldenliste, Einnahmen-/Ausgaben-Übersicht, Soll-Ist-Vergleich (inkl. Notizen)
-- **Mehrjahresübersicht** (CSV-Matrix, Spalten = Jahre): Erfolgsrechnung nach Konten (Einnahmen/Ausgaben/Ergebnis) + Vermögen zum Jahresende sowie Auswertung nach Kostenstellen/Projekten und nach steuerlichen Sphären über alle Jahre
+- **Mehrjahresübersicht** (CSV-Matrix, Spalten = Jahre): Erfolgsrechnung nach Konten (Einnahmen/Ausgaben/Ergebnis) + Vermögen zum Jahresende sowie Auswertung nach Kostenstellen/Projekten und nach steuerlichen Sphären über alle Jahre; zusätzlich als Liniendiagramm (Berichte → Auswertung) für Sitzungspräsentationen
 - **Geldkonten-Abstimmung**: Kontostand (Journal) vs. offene (nicht zugeordnete) Bankbuchungen
 
 ### Kassenprüfung
@@ -176,7 +179,7 @@ Das Projekt verwendet Vue 2.7 mit `@nextcloud/webpack-vue-config`. Damit der Bui
 - Splittbuchungen im UI anlegen und bearbeiten (eine Zahlung auf mehrere Gegenkonten; importierte Splittbuchungen werden bereits angezeigt)
 - Mehrere Bankkonten per IBAN automatisch zuordnen (CSV-Import)
 - Budget-Ampel („Wie stehen wir zum Plan?") auf dem Dashboard
-- Offene-Posten-Verwaltung (unbezahlte Beiträge/Rechnungen mit Fälligkeit)
+- Automatischer Zahlungsabgleich für offene Posten (Vorschläge per Zahlungspartner-Abgleich wie bei den Auto-Zuordnungsregeln)
 
 ## Lizenz
 

@@ -77,6 +77,14 @@ return [
 		['name' => 'rule#update', 'url' => '/api/rules/{id}', 'verb' => 'PUT'],
 		['name' => 'rule#destroy', 'url' => '/api/rules/{id}', 'verb' => 'DELETE'],
 
+		// Offene Posten
+		['name' => 'openItem#index', 'url' => '/api/open-items', 'verb' => 'GET'],
+		['name' => 'openItem#create', 'url' => '/api/open-items', 'verb' => 'POST'],
+		['name' => 'openItem#markPaid', 'url' => '/api/open-items/{id}/pay', 'verb' => 'POST'],
+		['name' => 'openItem#cancel', 'url' => '/api/open-items/{id}/cancel', 'verb' => 'POST'],
+		['name' => 'openItem#reopen', 'url' => '/api/open-items/{id}/reopen', 'verb' => 'POST'],
+		['name' => 'openItem#destroy', 'url' => '/api/open-items/{id}', 'verb' => 'DELETE'],
+
 		// Export (CSV-Download)
 		['name' => 'export#journal',  'url' => '/api/export/journal',  'verb' => 'GET'],
 		['name' => 'export#balances', 'url' => '/api/export/balances', 'verb' => 'GET'],

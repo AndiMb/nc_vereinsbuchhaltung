@@ -30,6 +30,11 @@
 				<strong>{{ unassignedCount }} Buchungen</strong>
 				<NcButton variant="primary" size="small" @click="$emit('go-unassigned')">Jetzt zuordnen</NcButton>
 			</div>
+			<div v-if="overdueOpenItemsCount > 0" class="vbh-total vbh-total--warn">
+				<span>Überfällige offene Posten</span>
+				<strong>{{ overdueOpenItemsCount }}</strong>
+				<NcButton variant="primary" size="small" @click="$emit('go-open-items')">Ansehen</NcButton>
+			</div>
 		</div>
 
 		<div v-if="sphereData && sphereData.freigrenze.incomeCents > 0" class="vbh-freigrenzecard" :class="sphereData.freigrenze.level">
@@ -148,6 +153,7 @@ import { useAccounts } from '../composables/useAccounts.js'
 import { useBalances } from '../composables/useBalances.js'
 import { useJournal } from '../composables/useJournal.js'
 import { usePermissions } from '../composables/usePermissions.js'
+import { useOpenItems } from '../composables/useOpenItems.js'
 
 Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend)
 
@@ -176,6 +182,7 @@ export default {
 		const balances = useBalances()
 		const journal = useJournal()
 		const permissions = usePermissions()
+		const openItems = useOpenItems()
 		return {
 			canWrite: auth.canWrite,
 			isAdmin: auth.isAdmin,
@@ -186,6 +193,7 @@ export default {
 			...toRefs(journal.state),
 			unassignedCount: journal.unassignedCount,
 			...toRefs(permissions.state),
+			overdueOpenItemsCount: openItems.overdueCount,
 		}
 	},
 	data() {

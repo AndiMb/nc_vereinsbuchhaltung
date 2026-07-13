@@ -80,6 +80,7 @@
 					@open-wizard="showSetupWizard = true"
 					@help="openHelp"
 					@go-unassigned="goToUnassigned"
+					@go-open-items="goToOpenItems"
 					@show-all-bookings="activeTab = 'bookings'"
 				/>
 			</section>
@@ -367,6 +368,7 @@ import { useBalances } from './composables/useBalances.js'
 import { useJournal } from './composables/useJournal.js'
 import { usePermissions } from './composables/usePermissions.js'
 import { useSync } from './composables/useSync.js'
+import { useOpenItems } from './composables/useOpenItems.js'
 
 export default {
 	name: 'App',
@@ -403,7 +405,9 @@ export default {
 		const journal = useJournal()
 		const permissions = usePermissions()
 		const sync = useSync()
+		const openItems = useOpenItems()
 		return {
+			loadOpenItems: openItems.loadOpenItems,
 			...toRefs(auth.state),
 			canRead: auth.canRead,
 			canWrite: auth.canWrite,
@@ -770,6 +774,7 @@ export default {
 				this.loadRules(),
 				this.loadClosedYears(),
 				this.loadSphereReport(),
+				this.loadOpenItems(),
 			])
 			// storage/demo-Status betrifft alle Leseberechtigten (Demo-Banner); Berechtigungsliste nur Verwalter (Backend-Gate)
 			this.loadStorageSettings()
@@ -832,6 +837,10 @@ export default {
 			this.activeTab = 'bookings'
 			this.bookingView = 'unassigned'
 		},
+		goToOpenItems() {
+			this.activeTab = 'bookings'
+			this.bookingView = 'openitems'
+		},
 		// --- Kollaboration: Änderungen anderer Browser erkennen -------------
 		onWindowFocus() { this.checkRevision() },
 		async checkRevision(init = false) {
@@ -848,7 +857,7 @@ export default {
 		async refreshAfterRemoteChange() {
 			this.ccBookings = {}
 			this.ccExpanded = {}
-			const jobs = [this.loadYears(), this.loadClosedYears(), this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions(), this.loadSphereReport()]
+			const jobs = [this.loadYears(), this.loadClosedYears(), this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions(), this.loadSphereReport(), this.loadOpenItems()]
 			if (this.activeTab === 'accounts' && this.selectedAccountId) jobs.push(this.loadStatement(this.selectedAccountId))
 			if (this.activeTab === 'reports') {
 				if (this.reportView === 'costcenters') jobs.push(this.loadReport())
