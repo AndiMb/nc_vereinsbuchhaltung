@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\Account;
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\CostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
+use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCP\IConfig;
 
 /**
@@ -47,6 +48,7 @@ class ReportService {
 		private AccountMapper $accountMapper,
 		private JournalLineMapper $lineMapper,
 		private CostCenterMapper $costCenterMapper,
+		private JournalMapper $journalMapper,
 		private IConfig $config,
 	) {
 	}
@@ -282,6 +284,48 @@ class ReportService {
 				'level' => $level,
 			],
 		];
+	}
+
+	/**
+	 * Einnahmen/Ausgaben/Ergebnis je Jahr, für ein Mehrjahres-Trend-Diagramm
+	 * (Sitzungspräsentation). Bewusst eine eigene, schlanke Methode statt
+	 * Wiederverwendung von ExportController::multiyear() – die CSV-Methode
+	 * bleibt unangetastet, um deren Regressionsrisiko nicht zu erhöhen.
+	 *
+	 * @return array{years: array<int, array{year:int,income:float,expense:float,result:float}>}
+	 */
+	public function multiyearTrend(string $userId): array {
+		$years = $this->journalMapper->distinctYears($userId);
+		sort($years);
+		$accounts = $this->accountMapper->findAll($userId);
+
+		$rows = [];
+		foreach ($years as $y) {
+			$sums = $this->lineMapper->sumByAccount($userId, sprintf('%04d-01-01', $y), sprintf('%04d-12-31', $y));
+			$incomeCents = 0;
+			$expenseCents = 0;
+			foreach ($accounts as $a) {
+				if (!$a->isResultRelevant()) {
+					continue;
+				}
+				$id = $a->getId();
+				$debit = $sums[$id]['debit'] ?? 0;
+				$credit = $sums[$id]['credit'] ?? 0;
+				if ($a->isCreditNature()) {
+					$incomeCents += $credit - $debit;
+				} else {
+					$expenseCents += $debit - $credit;
+				}
+			}
+			$rows[] = [
+				'year' => $y,
+				'income' => $incomeCents / 100,
+				'expense' => $expenseCents / 100,
+				'result' => ($incomeCents - $expenseCents) / 100,
+			];
+		}
+
+		return ['years' => $rows];
 	}
 
 	/**

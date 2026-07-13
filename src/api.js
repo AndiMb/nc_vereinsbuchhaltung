@@ -69,6 +69,7 @@ export default {
 	renameCostCenter: (code, name) => axios.put(url('/report/costcenters'), { code, name }),
 	sphereReport: year => axios.get(url('/report/spheres'), { params: { year: year || undefined } }),
 	bulkSphere: (accountIds, sphere) => axios.post(url('/accounts/sphere-bulk'), { accountIds, sphere }),
+	multiyearTrend: () => axios.get(url('/report/multiyear-trend')),
 
 	// Finanzplan / Budget
 	budget: year => axios.get(url('/budget'), { params: { year: year || undefined } }),

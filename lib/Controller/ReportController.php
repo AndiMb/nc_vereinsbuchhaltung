@@ -39,6 +39,11 @@ class ReportController extends Controller {
 		return new DataResponse($this->reportService->sphereReport($this->userId(), $year));
 	}
 
+	#[NoAdminRequired]
+	public function multiyearTrend(): DataResponse {
+		return new DataResponse($this->reportService->multiyearTrend($this->userId()));
+	}
+
 	/**
 	 * Kostenstelle umbenennen (Code + neuer Name).
 	 */

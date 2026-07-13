@@ -28,6 +28,15 @@
 					<div class="vbh-total" :class="balances.totals.result >= 0 ? 'pos' : 'neg'"><span>Ergebnis</span><strong>{{ formatMoney(balances.totals.result) }}</strong></div>
 				</div>
 
+				<div v-if="trendChartData.labels.length" class="vbh-chart-grid">
+					<div class="vbh-chart-card vbh-chart-card--wide">
+						<h4>Mehrjahres-Trend (Einnahmen, Ausgaben, Ergebnis)</h4>
+						<div class="vbh-chart-wrap">
+							<canvas ref="trendChart"></canvas>
+						</div>
+					</div>
+				</div>
+
 				<template v-if="balances && balances.bankReconciliation && balances.bankReconciliation.length">
 					<h4>Geldkonten</h4>
 					<div v-if="!isMobile" class="vbh-tablecard">
@@ -426,6 +435,16 @@
 
 <script>
 import { toRefs } from 'vue'
+import {
+	Chart,
+	LineController,
+	LineElement,
+	PointElement,
+	CategoryScale,
+	LinearScale,
+	Tooltip,
+	Legend,
+} from 'chart.js'
 import { NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper } from '@nextcloud/vue'
 import { mdiPrinter, mdiPaperclip, mdiDownload, mdiDelete, mdiCommentText, mdiCommentPlusOutline } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
@@ -436,10 +455,15 @@ import { useYears } from '../composables/useYears.js'
 import { useAccounts } from '../composables/useAccounts.js'
 import { useBalances } from '../composables/useBalances.js'
 
+Chart.register(LineController, LineElement, PointElement, CategoryScale, LinearScale, Tooltip, Legend)
+
 export default {
 	name: 'ReportsTab',
 	components: { NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper },
 	props: {
+		// steuert (zusammen mit reportView==='summary') den Chart-Redraw des
+		// Mehrjahres-Trend-Diagramms, gleiches Muster wie DashboardTab.vue.
+		isActive: { type: Boolean, required: true },
 		isMobile: { type: Boolean, required: true },
 		reportView: { type: String, required: true },
 		// reportData/budgetData/budgetSnapshots/auditEntries/auditLoading/auditEnd
@@ -496,6 +520,8 @@ export default {
 			mdiCommentText,
 			mdiCommentPlusOutline,
 			balancesIncludeChildren: false,
+			chartInstances: {},
+			multiyearTrendData: null,
 			newBudgetYear: '',
 			budgetNoteOpen: {},
 			newSnapshotLabel: '',
@@ -560,6 +586,29 @@ export default {
 			})
 		},
 		sortedBalances() { return this.applySort(this.balanceRows, this.sort.balances, ['number']) },
+		// steuert Laden+Redraw des Mehrjahres-Trend-Diagramms (nur in der
+		// Auswertung sichtbar, und nur wenn der Berichte-Tab selbst aktiv ist).
+		trendChartVisible() { return this.isActive && this.reportView === 'summary' },
+		trendChartData() {
+			const rows = (this.multiyearTrendData && this.multiyearTrendData.years) || []
+			return {
+				labels: rows.map(r => String(r.year)),
+				income: rows.map(r => r.income),
+				expense: rows.map(r => r.expense),
+				result: rows.map(r => r.result),
+			}
+		},
+	},
+	watch: {
+		trendChartVisible(v) {
+			if (v) this.loadMultiyearTrend()
+		},
+	},
+	mounted() {
+		if (this.trendChartVisible) this.loadMultiyearTrend()
+	},
+	beforeDestroy() {
+		Object.values(this.chartInstances).forEach(c => c && c.destroy())
 	},
 	methods: {
 		formatMoney,
@@ -571,6 +620,72 @@ export default {
 		roleLabel,
 		errMsg(e, fallback) {
 			return (e?.response?.data?.message) || fallback
+		},
+		async loadMultiyearTrend() {
+			try {
+				const { data } = await api.multiyearTrend()
+				this.multiyearTrendData = data
+				this.$nextTick(() => setTimeout(() => this.renderTrendChart(), 50))
+			} catch (e) { /* Diagramm ist eine Zusatzansicht, kein harter Fehler */ }
+		},
+		destroyChart(key) {
+			if (this.chartInstances[key]) {
+				this.chartInstances[key].destroy()
+				this.$set(this.chartInstances, key, null)
+			}
+		},
+		renderTrendChart() {
+			const canvas = this.$refs.trendChart
+			if (!canvas) return
+			this.destroyChart('trend')
+			const { labels, income, expense, result } = this.trendChartData
+			if (!labels.length) return
+			const isDark = document.documentElement.classList.contains('theme--dark')
+			const textColor = isDark ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.7)'
+			const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'
+			const eur = v => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(v)
+			this.$set(this.chartInstances, 'trend', new Chart(canvas, {
+				type: 'line',
+				data: {
+					labels,
+					datasets: [
+						{
+							label: 'Einnahmen',
+							data: income,
+							borderColor: 'rgba(45,125,70,0.9)',
+							backgroundColor: 'rgba(45,125,70,0.15)',
+							tension: 0.2,
+						},
+						{
+							label: 'Ausgaben',
+							data: expense,
+							borderColor: 'rgba(199,60,60,0.9)',
+							backgroundColor: 'rgba(199,60,60,0.15)',
+							tension: 0.2,
+						},
+						{
+							label: 'Ergebnis',
+							data: result,
+							borderColor: 'rgba(70,100,199,0.9)',
+							backgroundColor: 'rgba(70,100,199,0.15)',
+							borderDash: [5, 4],
+							tension: 0.2,
+						},
+					],
+				},
+				options: {
+					responsive: true,
+					maintainAspectRatio: false,
+					plugins: {
+						legend: { labels: { color: textColor, font: { size: 12 } } },
+						tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${eur(ctx.raw)}` } },
+					},
+					scales: {
+						x: { ticks: { color: textColor }, grid: { color: gridColor } },
+						y: { ticks: { color: textColor, callback: v => eur(v) }, grid: { color: gridColor } },
+					},
+				},
+			}))
 		},
 		applySort(rows, state, lexKeys = []) {
 			if (!state || !state.key) return rows

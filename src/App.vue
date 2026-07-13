@@ -131,6 +131,7 @@
 			<!-- ============ BERICHTE (AUSWERTUNG + KOSTENSTELLEN + FINANZPLAN) ============ -->
 			<section v-show="activeTab === 'reports'" class="vbh-section vbh-flex-col" :class="{ 'vbh-fadein': sectionFade }">
 				<ReportsTab
+					:is-active="activeTab === 'reports'"
 					:is-mobile="isMobile"
 					:report-view="reportView"
 					:report-data="reportData"
