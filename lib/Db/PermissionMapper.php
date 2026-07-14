@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Db;
 
 use OCP\AppFramework\Db\QBMapper;
+use OCP\DB\Exception as DbException;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 
@@ -58,21 +59,40 @@ class PermissionMapper extends QBMapper {
 	}
 
 	public function upsert(string $type, string $id, string $role): Permission {
+		$existing = $this->findByPrincipal($type, $id);
+		if ($existing !== null) {
+			$existing->setRole($role);
+			return $this->update($existing);
+		}
+		$p = new Permission();
+		$p->setPrincipalType($type);
+		$p->setPrincipalId($id);
+		$p->setRole($role);
+		try {
+			return $this->insert($p);
+		} catch (DbException $e) {
+			if ($e->getReason() !== DbException::REASON_UNIQUE_CONSTRAINT_VIOLATION) {
+				throw $e;
+			}
+			// Race: zwischen der obigen Pruefung und diesem Insert hat ein anderer, zeitgleicher
+			// Request denselben Prinzipal bereits angelegt (Unique-Index vbh_perm_principal) -
+			// jetzt aktualisieren statt den Aufrufer mit einem 500er scheitern zu lassen.
+			$existing = $this->findByPrincipal($type, $id);
+			if ($existing === null) {
+				throw $e;
+			}
+			$existing->setRole($role);
+			return $this->update($existing);
+		}
+	}
+
+	private function findByPrincipal(string $type, string $id): ?Permission {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')->from($this->getTableName())
 			->where($qb->expr()->eq('principal_type', $qb->createNamedParameter($type)))
 			->andWhere($qb->expr()->eq('principal_id', $qb->createNamedParameter($id)))
 			->setMaxResults(1);
 		$rows = $this->findEntities($qb);
-		if (count($rows) > 0) {
-			$p = $rows[0];
-			$p->setRole($role);
-			return $this->update($p);
-		}
-		$p = new Permission();
-		$p->setPrincipalType($type);
-		$p->setPrincipalId($id);
-		$p->setRole($role);
-		return $this->insert($p);
+		return $rows[0] ?? null;
 	}
 }
