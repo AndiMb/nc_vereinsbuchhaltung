@@ -53,11 +53,12 @@ jobs:
       - name: Syntaxpruefung aller PHP-Dateien
         run: find lib appinfo tests -name '*.php' -print0 | xargs -0 -n1 -P4 php -l
 
-      - name: Autoloader erzeugen
-        # Keine Fremdpakete - erzeugt nur vendor/autoload.php fuer die Tests.
-        run: composer install --no-interaction --no-progress
+      - name: composer.json/lock validieren
+        run: composer validate --strict --no-check-publish
 
       - name: PHPUnit
+        # Braucht keinen composer-Autoloader: tests/bootstrap.php laedt die
+        # Klassen per PSR-4 direkt aus lib/ (siehe Kommentar dort).
         run: phpunit --configuration phpunit.xml
 
   appinfo:

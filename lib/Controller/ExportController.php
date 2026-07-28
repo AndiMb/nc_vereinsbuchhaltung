@@ -13,6 +13,7 @@ use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\YearCloseMapper;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\BrandingService;
+use OCA\Vereinsbuchhaltung\Service\CsvFormatter;
 use OCA\Vereinsbuchhaltung\Service\ReportService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -107,13 +108,15 @@ class ExportController extends Controller {
 			: $iso;
 	}
 
-	/** Formatiert eine CSV-Zeile mit Semikolon und doppelt-quoted Feldern. */
+	/**
+	 * Formatiert eine CSV-Zeile (siehe {@see CsvFormatter} – dort steckt auch
+	 * die Absicherung gegen Felder, die eine Tabellenkalkulation als Formel
+	 * auffassen würde).
+	 *
+	 * @param array<int, string> $fields
+	 */
 	private function csvLine(array $fields): string {
-		$escaped = array_map(
-			static fn (string $f): string => '"' . str_replace('"', '""', $f) . '"',
-			$fields,
-		);
-		return implode(';', $escaped) . "\r\n";
+		return CsvFormatter::line($fields);
 	}
 
 	/**
