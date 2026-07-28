@@ -4,3 +4,7 @@
 /build/
 *.log
 .DS_Store
+.phpunit.cache/
+.phpunit.result.cache
+# Rohmaterial fuer das README-Video u.ae. gehoert nicht ins Repo
+*.mp3

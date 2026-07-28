@@ -10,6 +10,60 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
 
 ## [Unreleased]
 
+## [0.11.0] – 2026-07-28
+
+Ergebnis eines Code-Reviews. Schwerpunkt: Datenintegrität der Buchführung.
+
+### Behoben
+- **Buchungsnummern bleiben lückenlos.** Bisher hinterließ jede gelöschte
+  Buchung eine dauerhafte Lücke in der Nummerierung, die Journal und
+  Kassenbericht anschließend als „fehlende Nummern" bemängelten. Solange ein
+  Geschäftsjahr offen ist, rücken die nachfolgenden Nummern jetzt automatisch
+  auf; mit dem Jahresabschluss werden sie endgültig festgeschrieben. Beim
+  Update werden vorhandene Lücken einmalig geschlossen – bereits
+  abgeschlossene Jahre bleiben dabei bewusst unangetastet (ihre Nummern
+  stehen womöglich schon auf einem archivierten Kassenbericht).
+- **Buchungsnummern können nicht mehr doppelt vergeben werden.** Zwei
+  gleichzeitig gespeicherte Buchungen ermittelten dieselbe freie Nummer. Ein
+  Unique-Index verhindert das jetzt; die zweite Buchung wird automatisch mit
+  der nächsten Nummer wiederholt.
+- **Buchungen entstehen und verschwinden nur noch vollständig.** Alle
+  mehrstufigen Schreibvorgänge (Buchen, Ändern, Löschen, Bankzuordnung,
+  Eröffnungssaldo, CSV- und xbuc-Import, Beispieldaten, Zurücksetzen) laufen
+  in einer Datenbank-Transaktion. Ein Abbruch mittendrin – Zeitüberschreitung,
+  Verbindungsabriss – konnte vorher eine einseitige, unausgeglichene Buchung
+  hinterlassen.
+- **Konten mit Buchungen lassen sich nicht mehr löschen.** Das Löschen
+  hinterließ Buchungszeilen ohne Konto: deren Beträge verschwanden aus
+  Saldenliste und Kassenbericht, blieben in der Datenbank aber stehen. Konten
+  mit Buchungen oder Unterkonten werden jetzt mit einem erklärenden Hinweis
+  abgelehnt (stattdessen: auf „inaktiv" setzen).
+- **Buchungen prüfen ihre Eingaben.** Soll- und Habenkonto müssen existieren,
+  das Datum muss ein gültiger Kalendertag zwischen 2000 und 2099 sein. Auch
+  der CSV-Import verwirft nicht existierende Daten wie den 31. Februar.
+- Beleg-Dateien werden erst gelöscht, wenn der zugehörige Datensatz
+  tatsächlich verschwunden ist – ein Rollback hätte sonst die Buchung
+  zurückgeholt, den Beleg aber nicht.
+
+### Geändert
+- **SVG als Vereinslogo wird nicht mehr angenommen** (PNG, JPG und WebP
+  bleiben). Ein SVG ist ein aktives Dokument und wäre unter der eigenen
+  Nextcloud-Adresse ausgeliefert worden. Bereits hochgeladene SVG-Logos
+  bleiben funktionsfähig, sollten aber ersetzt werden.
+- **Belegablage:** der eingestellte Nextcloud-Nutzer muss existieren, der
+  Ordnerpfad wird geprüft. Beim Zurücksetzen entfernt die App nur noch die
+  ihr bekannten Beleg-Dateien statt des gesamten Ablageordners.
+- Journal, Kontoauszug und die Exporte laden ihre Daten gebündelt statt je
+  Buchung einzeln – bei größeren Beständen deutlich weniger Datenbankabfragen.
+
+### Sonstiges
+- CI-Workflow (`.github/workflows/ci.yml`): ESLint, Produktions-Build,
+  PHP-Syntaxprüfung auf 8.1 und 8.4, PHPUnit und die info.xml-Schemaprüfung
+  laufen jetzt bei jedem Push und Pull Request – nicht erst beim Release.
+- `@mdi/js` als direkte Abhängigkeit eingetragen (war nur zufällig über
+  `@nextcloud/vue` verfügbar).
+- Unit-Tests für die Nachnummerierung und die Datumsprüfung ergänzt.
+
 ## [0.10.69] – 2026-07-28
 
 ### Behoben

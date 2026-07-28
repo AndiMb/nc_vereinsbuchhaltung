@@ -126,7 +126,7 @@ Mitgliederversammlung.
 
 ### 2.6 Corporate Design (optional)
 
-Einstellungen → *Corporate Design*: ein **Vereinslogo** (PNG, JPG, SVG oder
+Einstellungen → *Corporate Design*: ein **Vereinslogo** (PNG, JPG oder
 WebP) hochladen und eine **Akzentfarbe** wählen. Beides erscheint
 automatisch im **Kurzbericht für Vorstandssitzungen** (Kapitel 7.3) – der
 Kassenbericht selbst bleibt bewusst schlicht/neutral. Ganz optional: ohne
@@ -520,7 +520,10 @@ etwas zu verändern.
   Prüfung Rückfragen.
 - **Lückenprüfung:** Über dem Journal erscheint automatisch ein
   Warnhinweis, falls Buchungsnummern fehlen oder doppelt sind. Im
-  Kassenbericht steht dasselbe als Vollständigkeitszeile.
+  Kassenbericht steht dasselbe als Vollständigkeitszeile. In einem offenen
+  Geschäftsjahr hält die App die Nummerierung selbst lückenlos (gelöschte
+  Buchungen lassen die nachfolgenden Nummern aufrücken); ein Hinweis hier
+  bedeutet also, dass am Datenbestand vorbei etwas verändert wurde.
 - **Offene Bankbuchungen:** Dashboard → „nicht zugeordnet" – sollte vor
   der Prüfung bei 0 stehen.
 
@@ -662,7 +665,11 @@ nur Geldkonten (Bank-Flag).
 - **Gegenkonto** – das Konto, dem eine Bankbuchung zugeordnet wird (die
   „andere Seite" neben dem Bankkonto).
 - **Buchungsnummer** – fortlaufende Nummer je Buchung, beginnt jedes
-  Kalenderjahr neu bei 1. Wichtig für die Lückenprüfung.
+  Kalenderjahr neu bei 1. Wichtig für die Lückenprüfung. Solange ein Jahr
+  noch offen ist, sind die Nummern vorläufig: wird eine Buchung gelöscht,
+  rücken die nachfolgenden Nummern automatisch auf, damit keine Lücke
+  entsteht. Mit dem Jahresabschluss werden sie endgültig und ändern sich
+  nicht mehr.
 - **Eröffnungssaldo** – Anfangsbestand eines Kontos (z. B. Kontostand zum
   01.01.).
 - **Kostenstelle** – eine Gruppierung (Abteilung, Projekt), getrennt

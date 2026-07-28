@@ -92,6 +92,8 @@ jobs:
             --exclude='tests' \
             --exclude='composer.phar' \
             --exclude='webpack.config.js' \
+            --exclude='phpunit.xml' \
+            --exclude='.phpunit.cache' \
             --exclude='package.json' \
             --exclude='package-lock.json' \
             --exclude='*.map' \
