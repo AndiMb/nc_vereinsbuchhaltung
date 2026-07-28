@@ -131,9 +131,16 @@ class ExportController extends Controller {
 			$accountMap[$a->getId()] = ['number' => $a->getNumber(), 'name' => $a->getName()];
 		}
 
+		$journals = $this->journalMapper->findAll($userId, 100000, 0, $from, $to);
+		// Alle Zeilen gebündelt laden – sonst eine Abfrage je Buchung.
+		$linesByJournal = $this->lineMapper->findByJournals(array_map(
+			static fn ($j): int => $j->getId(),
+			$journals,
+		));
+
 		$rows = [];
-		foreach ($this->journalMapper->findAll($userId, 100000, 0, $from, $to) as $journal) {
-			$lines = $this->lineMapper->findByJournal($journal->getId());
+		foreach ($journals as $journal) {
+			$lines = $linesByJournal[$journal->getId()] ?? [];
 			$debitAcc = null;
 			$creditAcc = null;
 			$amountCents = 0;
@@ -571,6 +578,16 @@ class ExportController extends Controller {
 		return htmlspecialchars($s, ENT_QUOTES);
 	}
 
+	/** Ist das Geschäftsjahr bereits festgeschrieben? */
+	private function isYearClosed(int $year): bool {
+		try {
+			$this->yearCloseMapper->findByYear($year);
+			return true;
+		} catch (DoesNotExistException) {
+			return false;
+		}
+	}
+
 	/** Dateisystem-tauglicher Name für ZIP-Einträge (Umlaute bleiben erhalten). */
 	private function zipName(string $s, int $maxLen = 48): string {
 		$s = preg_replace('/[\\\\\/:*?"<>|[:cntrl:]]/u', '_', $s) ?? '_';
@@ -602,8 +619,14 @@ class ExportController extends Controller {
 
 		$count = 0;
 		$problems = [];
-		foreach ($this->journalMapper->findAll($userId, 100000, 0, $from, $to) as $journal) {
-			$atts = $this->attachmentMapper->findAllByJournal($journal->getId());
+		$journals = $this->journalMapper->findAll($userId, 100000, 0, $from, $to);
+		// Belegliste gebündelt laden statt je Buchung.
+		$attsByJournal = $this->attachmentMapper->findByJournals(array_map(
+			static fn ($j): int => $j->getId(),
+			$journals,
+		));
+		foreach ($journals as $journal) {
+			$atts = $attsByJournal[$journal->getId()] ?? [];
 			if ($atts === []) {
 				continue;
 			}
@@ -773,6 +796,15 @@ class ExportController extends Controller {
 				$hints[] = 'doppelte Nummern: ' . implode(', ', array_unique($duplicates));
 			}
 			$numbering .= ' – ⚠ ' . implode('; ', $hints);
+			// Seit der Nachnummerierung (EntryNumberService) schließt die App
+			// Lücken beim Löschen selbst; in einem offenen Jahr kann hier also
+			// eigentlich nichts mehr stehen. Bleibt eine Lücke in einem bereits
+			// festgeschriebenen Jahr, stammt sie aus einer älteren Version –
+			// dann hilft nur Wiedereröffnen und erneut Abschließen.
+			if ($missing && $this->isYearClosed($year)) {
+				$numbering .= ' (Lücken aus einer früheren Programmversion; sie verschwinden, '
+					. 'wenn das Jahr einmal wiedereröffnet und erneut abgeschlossen wird)';
+			}
 		}
 
 		// --- Abschlussvermerk ---

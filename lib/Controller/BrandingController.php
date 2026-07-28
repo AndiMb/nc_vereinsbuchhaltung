@@ -13,6 +13,7 @@ use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\DataDisplayResponse;
 use OCP\AppFramework\Http\DataResponse;
+use OCP\AppFramework\Http\EmptyContentSecurityPolicy;
 use OCP\IRequest;
 
 /**
@@ -30,7 +31,15 @@ class BrandingController extends Controller {
 		parent::__construct(Application::APP_ID, $request);
 	}
 
-	/** Logo ausliefern (<img src="...">, daher NoCSRFRequired wie andere Druckseiten-Assets). */
+	/**
+	 * Logo ausliefern (<img src="...">, daher NoCSRFRequired wie andere
+	 * Druckseiten-Assets).
+	 *
+	 * Zusätzlich abgesichert, obwohl BrandingService nur Rastergrafiken
+	 * annimmt: nosniff verhindert, dass der Browser den Inhalt gegen den
+	 * deklarierten Typ umdeutet, und die leere CSP macht die Antwort selbst
+	 * dann harmlos, wenn doch einmal aktiver Inhalt hier landet.
+	 */
 	#[NoAdminRequired]
 	#[NoCSRFRequired]
 	public function view(): DataDisplayResponse|DataResponse {
@@ -38,7 +47,11 @@ class BrandingController extends Controller {
 		if ($logo === null) {
 			return new DataResponse(['message' => 'Kein Logo hinterlegt'], Http::STATUS_NOT_FOUND);
 		}
-		$response = new DataDisplayResponse($logo['content'], Http::STATUS_OK, ['Content-Type' => $logo['mimeType']]);
+		$response = new DataDisplayResponse($logo['content'], Http::STATUS_OK, [
+			'Content-Type' => $logo['mimeType'],
+			'X-Content-Type-Options' => 'nosniff',
+		]);
+		$response->setContentSecurityPolicy(new EmptyContentSecurityPolicy());
 		$response->cacheFor(300);
 		return $response;
 	}
@@ -56,12 +69,13 @@ class BrandingController extends Controller {
 			return new DataResponse(['message' => 'Datei-Upload fehlgeschlagen (Fehlercode: ' . ($upload['error'] ?? -1) . ')'], Http::STATUS_BAD_REQUEST);
 		}
 
+		// Ausschließlich der erkannte Typ zählt. Früher wurde bei text/plain
+		// anhand der Dateiendung auf image/svg+xml "nachgeholfen" - damit
+		// bestimmte der vom Client gelieferte Dateiname den Content-Type, unter
+		// dem die Datei später ausgeliefert wird. SVG ist inzwischen ohnehin
+		// nicht mehr erlaubt (siehe BrandingService::ALLOWED_MIMES).
 		$finfo = new \finfo(FILEINFO_MIME_TYPE);
 		$detectedMime = $finfo->file($upload['tmp_name']);
-		// SVG wird von finfo oft als text/plain erkannt - anhand der Dateiendung nachhelfen.
-		if ($detectedMime === 'text/plain' && str_ends_with(strtolower((string)$upload['name']), '.svg')) {
-			$detectedMime = 'image/svg+xml';
-		}
 		$content = file_get_contents($upload['tmp_name']);
 		if ($content === false) {
 			return new DataResponse(['message' => 'Datei konnte nicht gelesen werden'], Http::STATUS_INTERNAL_SERVER_ERROR);

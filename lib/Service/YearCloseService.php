@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service;
 
+use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Db\YearClose;
 use OCA\Vereinsbuchhaltung\Db\YearCloseMapper;
 use OCA\Vereinsbuchhaltung\Exception\YearClosedException;
@@ -22,6 +24,8 @@ class YearCloseService {
 	public function __construct(
 		private YearCloseMapper $mapper,
 		private AuditService $audit,
+		private EntryNumberService $entryNumbers,
+		private TransactionRunner $transaction,
 	) {
 	}
 
@@ -57,19 +61,39 @@ class YearCloseService {
 		}
 	}
 
+	/**
+	 * Schreibt ein Geschäftsjahr fest.
+	 *
+	 * Unmittelbar davor wird die Buchungsnummerierung des Jahres ein letztes Mal
+	 * lückenlos durchnummeriert. Bis hierher sind die Nummern vorläufig (es darf
+	 * ja noch gebucht und gelöscht werden); ab der Festschreibung sind sie
+	 * unveränderlich – assertOpen() lässt danach keine Änderung mehr zu. So ist
+	 * garantiert, dass genau der Stand archiviert wird, den der Kassenbericht
+	 * als „Buchungsnummern lückenlos" ausweist.
+	 *
+	 * Beides zusammen in einer Transaktion: entweder ist das Jahr nummeriert
+	 * UND festgeschrieben, oder nichts von beidem.
+	 */
 	public function close(int $year, string $uid): YearClose {
-		try {
-			return $this->mapper->findByYear($year); // bereits abgeschlossen
-		} catch (DoesNotExistException) {
-		}
-		$close = new YearClose();
-		$close->setYear($year);
-		$close->setClosedAt((new \DateTime())->format('Y-m-d H:i:s'));
-		$close->setClosedBy($uid);
-		$close = $this->mapper->insert($close);
-		$this->closedCache = null;
-		$this->audit->log('Jahr abgeschlossen', 'year', $year);
-		return $close;
+		return $this->transaction->run(function () use ($year, $uid): YearClose {
+			try {
+				return $this->mapper->findByYear($year); // bereits abgeschlossen
+			} catch (DoesNotExistException) {
+			}
+
+			$renumbered = $this->entryNumbers->renumberYear(Application::BOOK, $year);
+
+			$close = new YearClose();
+			$close->setYear($year);
+			$close->setClosedAt((new \DateTime())->format('Y-m-d H:i:s'));
+			$close->setClosedBy($uid);
+			$close = $this->mapper->insert($close);
+			$this->closedCache = null;
+			$this->audit->log('Jahr abgeschlossen', 'year', $year, $renumbered > 0
+				? ['nachnummeriert' => $renumbered]
+				: []);
+			return $close;
+		});
 	}
 
 	public function reopen(int $year): void {

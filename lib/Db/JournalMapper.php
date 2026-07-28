@@ -57,12 +57,48 @@ class JournalMapper extends QBMapper {
 		$qb->selectAlias($qb->func()->max('entry_no'), 'm')
 			->from($this->getTableName())
 			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
-			->andWhere($qb->expr()->gte('date', $qb->createNamedParameter(sprintf('%04d-01-01', $year))))
-			->andWhere($qb->expr()->lte('date', $qb->createNamedParameter(sprintf('%04d-12-31', $year))));
+			->andWhere($qb->expr()->eq('year', $qb->createNamedParameter($year, IQueryBuilder::PARAM_INT)));
 		$res = $qb->executeQuery();
 		$max = $res->fetchOne();
 		$res->closeCursor();
 		return (int)$max + 1;
+	}
+
+	/**
+	 * ID und aktuelle Buchungsnummer aller Buchungen eines Geschäftsjahres,
+	 * aufsteigend nach bisheriger Nummer (dann ID) sortiert – Grundlage der
+	 * Nachnummerierung in {@see \OCA\Vereinsbuchhaltung\Service\EntryNumberService}.
+	 *
+	 * Sortiert wird in PHP: bei Alt-Daten kann entry_no NULL sein, und die
+	 * Datenbanken ordnen NULL unterschiedlich ein (MySQL zuerst, PostgreSQL
+	 * zuletzt).
+	 *
+	 * @return array<int, array{id:int, entryNo:int}>
+	 */
+	public function findEntryNosForYear(string $userId, int $year): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('id', 'entry_no')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+			->andWhere($qb->expr()->eq('year', $qb->createNamedParameter($year, IQueryBuilder::PARAM_INT)));
+		$res = $qb->executeQuery();
+		$rows = [];
+		while (($row = $res->fetch()) !== false) {
+			$rows[] = ['id' => (int)$row['id'], 'entryNo' => (int)($row['entry_no'] ?? 0)];
+		}
+		$res->closeCursor();
+
+		usort($rows, static fn (array $a, array $b): int => [$a['entryNo'], $a['id']] <=> [$b['entryNo'], $b['id']]);
+		return $rows;
+	}
+
+	/** Setzt die Buchungsnummer eines einzelnen Buchungssatzes. */
+	public function setEntryNo(int $id, int $entryNo): void {
+		$qb = $this->db->getQueryBuilder();
+		$qb->update($this->getTableName())
+			->set('entry_no', $qb->createNamedParameter($entryNo, IQueryBuilder::PARAM_INT))
+			->where($qb->expr()->eq('id', $qb->createNamedParameter($id, IQueryBuilder::PARAM_INT)));
+		$qb->executeStatement();
 	}
 
 	/**
@@ -113,6 +149,31 @@ class JournalMapper extends QBMapper {
 			$res->closeCursor();
 		}
 		return $ids;
+	}
+
+	/**
+	 * Mehrere Buchungssätze auf einmal – ersetzt das Nachladen je ID (N+1)
+	 * im Kontoauszug.
+	 *
+	 * @param int[] $ids
+	 * @return array<int, Journal> id => Buchungssatz
+	 */
+	public function findByIds(string $userId, array $ids): array {
+		if ($ids === []) {
+			return [];
+		}
+		$out = [];
+		foreach (array_chunk(array_values(array_unique($ids)), 500) as $chunk) {
+			$qb = $this->db->getQueryBuilder();
+			$qb->select('*')
+				->from($this->getTableName())
+				->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+				->andWhere($qb->expr()->in('id', $qb->createNamedParameter($chunk, IQueryBuilder::PARAM_INT_ARRAY)));
+			foreach ($this->findEntities($qb) as $journal) {
+				$out[$journal->getId()] = $journal;
+			}
+		}
+		return $out;
 	}
 
 	/**
@@ -212,13 +273,13 @@ class JournalMapper extends QBMapper {
 	 */
 	public function distinctYears(string $userId): array {
 		$qb = $this->db->getQueryBuilder();
-		$qb->selectDistinct('date')
+		$qb->selectDistinct('year')
 			->from($this->getTableName())
 			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)));
 		$res = $qb->executeQuery();
 		$years = [];
 		while (($row = $res->fetch()) !== false) {
-			$year = (int)substr((string)$row['date'], 0, 4);
+			$year = (int)$row['year'];
 			if ($year > 0) {
 				$years[$year] = true;
 			}

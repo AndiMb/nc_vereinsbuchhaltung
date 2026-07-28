@@ -232,13 +232,17 @@ class CamtCsvParser {
 			if ($year < 100) {
 				$year += 2000;
 			}
-			if ($month < 1 || $month > 12 || $day < 1 || $day > 31) {
+			// checkdate statt einer Bereichsprüfung: sonst käme aus "31.02.2026"
+			// das Datum 2026-02-31, das es nicht gibt. Als String ginge es
+			// durch, MySQL im Strict Mode lehnt es dagegen erst beim Speichern ab.
+			if (!checkdate($month, $day, $year)) {
 				return null;
 			}
 			return sprintf('%04d-%02d-%02d', $year, $month, $day);
 		}
 		// ISO-Format direkt akzeptieren
-		if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+		if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $value, $m)
+			&& checkdate((int)$m[2], (int)$m[3], (int)$m[1])) {
 			return $value;
 		}
 		return null;

@@ -16,7 +16,13 @@ use OCP\IConfig;
  */
 class BrandingService {
 
-	private const ALLOWED_MIMES = ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp'];
+	/**
+	 * Bewusst OHNE image/svg+xml: ein SVG ist ein aktives Dokument (Skripte,
+	 * javascript:-Links). Es würde unter der eigenen Nextcloud-Domain
+	 * ausgeliefert und wäre damit ein Einfallstor für gespeichertes XSS – für
+	 * ein Vereinslogo ein völlig unnötiges Risiko. PNG/JPG/WebP genügen.
+	 */
+	private const ALLOWED_MIMES = ['image/png', 'image/jpeg', 'image/webp'];
 	private const MAX_SIZE = 2 * 1024 * 1024; // 2 MB – ein Logo, kein Beleg-Upload
 	private const FOLDER = 'branding';
 	private const FILE = 'logo';

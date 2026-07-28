@@ -13,6 +13,7 @@ use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IConfig;
 use OCP\IRequest;
+use OCP\IUserManager;
 
 class SettingsController extends Controller {
 
@@ -21,8 +22,48 @@ class SettingsController extends Controller {
 		private IConfig $config,
 		private PermissionService $permissionService,
 		private DemoDataService $demoService,
+		private IUserManager $userManager,
 	) {
 		parent::__construct(Application::APP_ID, $request);
+	}
+
+	/**
+	 * Prüft den Zielort der Belegablage.
+	 *
+	 * Beides muss eng geführt werden: die App legt in dem konfigurierten Ordner
+	 * Dateien im Home eines echten Nextcloud-Nutzers an und räumt dort beim
+	 * Zurücksetzen wieder auf. Ohne Prüfung könnte ein Verwalter der App – der
+	 * kein Nextcloud-Administrator sein muss – einen beliebigen fremden Nutzer
+	 * und einen beliebigen Pfad eintragen und so in dessen Dateien schreiben.
+	 * (Gelöscht werden beim Reset nur noch die bekannten Beleg-Dateien, siehe
+	 * AttachmentStorageService::deleteAllFiles() – die Pfadprüfung bleibt
+	 * trotzdem die erste Verteidigungslinie.)
+	 *
+	 * @return string|null Fehlermeldung oder null, wenn alles in Ordnung ist
+	 */
+	private function validateStorage(string $storageUser, string $storagePath): ?string {
+		if ($storageUser !== '' && !$this->userManager->userExists($storageUser)) {
+			return 'Der angegebene Nextcloud-Nutzer für die Belegablage existiert nicht.';
+		}
+
+		$normalized = trim(str_replace('\\', '/', $storagePath), '/');
+		if ($normalized === '') {
+			return null; // leer -> Standardpfad, wird vom Aufrufer gesetzt
+		}
+		foreach (explode('/', $normalized) as $segment) {
+			if ($segment === '' || $segment === '.' || $segment === '..') {
+				return 'Ungültiger Ablagepfad: "." und ".." sind nicht erlaubt.';
+			}
+		}
+		// Nextcloud verbietet diese Zeichen in Dateinamen; ein Pfad damit wäre
+		// nicht anlegbar und der Fehler erst beim ersten Beleg-Upload sichtbar.
+		if (preg_match('/[\\\\:*?"<>|]/', $normalized) === 1) {
+			return 'Ungültiger Ablagepfad: enthält unzulässige Zeichen.';
+		}
+		if (mb_strlen($normalized) > 200) {
+			return 'Der Ablagepfad ist zu lang (max. 200 Zeichen).';
+		}
+		return null;
 	}
 
 	#[NoAdminRequired]
@@ -46,6 +87,11 @@ class SettingsController extends Controller {
 
 		$storageUser = trim((string)($this->request->getParam('storage_user') ?? ''));
 		$storagePath = trim((string)($this->request->getParam('storage_path') ?? ''));
+		$storageError = $this->validateStorage($storageUser, $storagePath);
+		if ($storageError !== null) {
+			return new DataResponse(['message' => $storageError], Http::STATUS_BAD_REQUEST);
+		}
+		$storagePath = trim(str_replace('\\', '/', $storagePath), '/');
 		if ($storagePath === '') {
 			$storagePath = 'Vereinsbuchhaltung/Belege';
 		}

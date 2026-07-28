@@ -110,6 +110,9 @@ class AccountController extends Controller {
 			return new DataResponse([]);
 		} catch (DoesNotExistException) {
 			return new DataResponse(['message' => 'Konto nicht gefunden'], Http::STATUS_NOT_FOUND);
+		} catch (\InvalidArgumentException $e) {
+			// Konto noch in Verwendung (Buchungen/Unterkonten) – siehe AccountService::delete().
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_CONFLICT);
 		}
 	}
 

@@ -6,6 +6,13 @@
 	"require": {
 		"php": ">=8.1"
 	},
+	"//": [
+		"Bewusst ohne require-dev: die App hat keine einzige Produktivabhaengigkeit,",
+		"composer dient hier nur dem Autoloader. PHPUnit wird als eigenstaendiges",
+		"PHAR benutzt (CI: shivammathur/setup-php mit tools: phpunit), damit die",
+		"composer.lock leer und das Release-Tarball frei von Fremdcode bleibt.",
+		"Lokal: 'phpunit --configuration phpunit.xml' nach 'composer install'."
+	],
 	"autoload": {
 		"psr-4": {
 			"OCA\\Vereinsbuchhaltung\\": "lib/"

@@ -11,12 +11,18 @@ use OCA\Vereinsbuchhaltung\Db\BankTransactionMapper;
 use OCA\Vereinsbuchhaltung\Db\CostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
+use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 
 /**
  * Importiert eine „zero Buchhaltung"-Datei (.xbuc): Kontenbaum + Buchungen.
  *
  * Merge-Modus (reset=false): Konten werden nur angelegt wenn sie fehlen;
  * Buchungen werden per Fingerprint (Datum|Betrag|Soll|Haben|Beleg) dedupliziert.
+ *
+ * Der eigentliche Import läuft komplett in einer Transaktion: er legt Konten,
+ * Kostenstellen und hunderte Buchungen an, die nur gemeinsam einen stimmigen
+ * Bestand ergeben. Insbesondere im reset-Modus wäre ein Abbruch nach dem
+ * Löschen fatal – dann wären die Altdaten weg und die neuen nur zur Hälfte da.
  */
 class XbucImportService {
 
@@ -35,6 +41,8 @@ class XbucImportService {
 		private AttachmentStorageService $attachmentStorage,
 		private YearCloseService $yearCloseService,
 		private DemoDataService $demoService,
+		private EntryNumberService $entryNumbers,
+		private TransactionRunner $transaction,
 	) {
 	}
 
@@ -141,8 +149,9 @@ class XbucImportService {
 		$openingJournalIds = $this->journalMapper->findBookingIdsTouchingAccountsInYear($userId, $equityIds, $targetYear);
 		$equityIdSet = array_flip($equityIds);
 		$storedByNumber = [];
+		$linesByJournal = $this->lineMapper->findByJournals($openingJournalIds);
 		foreach ($openingJournalIds as $jid) {
-			foreach ($this->lineMapper->findByJournal($jid) as $line) {
+			foreach ($linesByJournal[$jid] ?? [] as $line) {
 				$aid = $line->getAccountId();
 				if (isset($equityIdSet[$aid])) {
 					continue; // Eigenkapital-Gegenseite ignorieren
@@ -285,6 +294,13 @@ class XbucImportService {
 	 * @return array{accounts:int, accountsNew:int, bookings:int, skipped:int, reset:bool, year:?int, outsideYear:int, clamped:int, openingsSkipped:int, openingMismatches:array<int,array<string,mixed>>}
 	 */
 	public function import(string $userId, string $content, bool $reset = true, bool $clampDates = false, ?int $yearOverride = null): array {
+		return $this->transaction->run(fn (): array => $this->doImport($userId, $content, $reset, $clampDates, $yearOverride));
+	}
+
+	/**
+	 * @return array<string, mixed>
+	 */
+	private function doImport(string $userId, string $content, bool $reset, bool $clampDates, ?int $yearOverride): array {
 		$data = $this->parser->parse($content);
 
 		// Buchungen außerhalb des Geschäftsjahres erkennen und optional
@@ -524,9 +540,12 @@ class XbucImportService {
 		} catch (\Throwable) {
 			return false;
 		}
+		$year = $journal->getYear();
 		$this->attachmentStorage->deleteForJournal($journalId);
 		$this->lineMapper->deleteByJournal($journalId);
 		$this->journalMapper->delete($journal);
+		// Lücke in der Buchungsnummerierung schließen (siehe EntryNumberService).
+		$this->entryNumbers->renumberYear($userId, $year);
 		return true;
 	}
 

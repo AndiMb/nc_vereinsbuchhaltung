@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\Journal;
 use OCA\Vereinsbuchhaltung\Db\JournalLine;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
+use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 
 /**
  * Pflegt die Eröffnungsbuchung eines Kontos (z.B. Anfangsbestand des Bankkontos)
@@ -16,6 +17,10 @@ use OCA\Vereinsbuchhaltung\Db\JournalMapper;
  *
  *  Aktivkonto, positiver Saldo:  Soll Konto / Haben Eigenkapital
  *  Aktivkonto, negativer Saldo:  Soll Eigenkapital / Haben Konto
+ *
+ * Läuft in einer Transaktion: die alte Eröffnungsbuchung wird entfernt und die
+ * neue angelegt – ein Abbruch dazwischen ließe das Konto ohne Anfangsbestand
+ * zurück.
  */
 class OpeningBalanceService {
 
@@ -25,6 +30,8 @@ class OpeningBalanceService {
 		private AccountService $accountService,
 		private AttachmentStorageService $attachmentStorage,
 		private YearCloseService $yearClose,
+		private EntryNumberService $entryNumbers,
+		private TransactionRunner $transaction,
 	) {
 	}
 
@@ -34,6 +41,15 @@ class OpeningBalanceService {
 	 * erzeugt; bei Saldo 0 wird keine Buchung angelegt.
 	 */
 	public function sync(Account $account): void {
+		$run = fn () => $this->transaction->run(fn () => $this->doSync($account));
+		if ($this->transaction->isActive()) {
+			$run();
+			return;
+		}
+		$this->transaction->runWithRetry($run);
+	}
+
+	private function doSync(Account $account): void {
 		$userId = $account->getUserId();
 
 		// Festschreibung: weder eine bestehende Eröffnungsbuchung eines
@@ -49,9 +65,12 @@ class OpeningBalanceService {
 
 		// bestehende Eröffnungsbuchung dieses Kontos entfernen
 		if ($existing !== null) {
+			$existingYear = $existing->getYear();
 			$this->attachmentStorage->deleteForJournal($existing->getId());
 			$this->lineMapper->deleteByJournal($existing->getId());
 			$this->journalMapper->delete($existing);
+			// Lücke in der Nummerierung schließen (siehe EntryNumberService).
+			$this->entryNumbers->renumberYear($userId, $existingYear);
 		}
 
 		$amount = $account->getOpeningBalanceCents();
@@ -68,8 +87,8 @@ class OpeningBalanceService {
 		$journal = new Journal();
 		$journal->setUserId($userId);
 		$date = $account->getOpeningDate() ?? (new \DateTime())->format('Y-m-d');
-		$journal->setEntryNo($this->journalMapper->getNextEntryNoForYear($userId, (int)substr($date, 0, 4)));
-		$journal->setDate($date);
+		$journal->setDateWithYear($date);
+		$journal->setEntryNo($this->entryNumbers->next($userId, $journal->getYear()));
 		$journal->setDescription('Eröffnungsbuchung ' . $account->getNumber() . ' ' . $account->getName());
 		$journal->setDocumentRef(JournalMapper::OPENING_REF);
 		$journal->setBankTxId(null);

@@ -39,4 +39,27 @@ class CamtCsvParserTest extends TestCase {
 		$this->expectException(\RuntimeException::class);
 		$this->parser->parse("nur eine zeile");
 	}
+
+	/**
+	 * Ein nicht existierendes Datum darf nicht als Buchungsdatum durchgehen –
+	 * es käme sonst als "2026-02-31" in die Datenbank.
+	 */
+	public function testUngueltigesDatumWirdVerworfen(): void {
+		$csv = "Buchungstag;Betrag;Beguenstigter/Zahlungspflichtiger\n"
+			. "31.02.2026;10,00;Max Mustermann\n"
+			. "15.03.2026;20,00;Erika Musterfrau\n";
+		$rows = $this->parser->parse($csv);
+
+		$this->assertCount(1, $rows, 'Die Zeile mit dem 31. Februar muss übersprungen werden');
+		$this->assertSame('2026-03-15', $rows[0]['bookingDate']);
+	}
+
+	public function testZweistelligeJahreszahlWirdErgaenzt(): void {
+		$csv = "Buchungstag;Betrag;Beguenstigter/Zahlungspflichtiger\n"
+			. "05.01.26;10,00;Max Mustermann\n";
+		$rows = $this->parser->parse($csv);
+
+		$this->assertCount(1, $rows);
+		$this->assertSame('2026-01-05', $rows[0]['bookingDate']);
+	}
 }

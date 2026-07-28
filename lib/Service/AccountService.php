@@ -6,6 +6,10 @@ namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\Db\Account;
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
+use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
+use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
+use OCA\Vereinsbuchhaltung\Db\RuleMapper;
+use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCP\AppFramework\Db\DoesNotExistException;
 
 class AccountService {
@@ -39,6 +43,10 @@ class AccountService {
 
 	public function __construct(
 		private AccountMapper $mapper,
+		private JournalLineMapper $lineMapper,
+		private RuleMapper $ruleMapper,
+		private BudgetMapper $budgetMapper,
+		private TransactionRunner $transaction,
 	) {
 	}
 
@@ -135,9 +143,58 @@ class AccountService {
 		return $parentId;
 	}
 
+	/**
+	 * Löscht ein Konto – aber nur, wenn dadurch nichts kaputtgeht.
+	 *
+	 * Es gibt keine Fremdschlüssel im Schema, ein gelöschtes Konto würde also
+	 * Buchungszeilen mit toter account_id zurücklassen. Deren Beträge
+	 * verschwänden aus Saldenliste und Kassenbericht (die iterieren über die
+	 * vorhandenen Konten), blieben in der Datenbank aber stehen – Soll und
+	 * Haben stimmten in der Auswertung nicht mehr überein, ohne dass es
+	 * jemandem auffällt. Ebenso hingen Unterkonten anschließend an einer
+	 * nicht mehr existierenden parent_id.
+	 *
+	 * Deshalb: bebuchte Konten und Konten mit Unterkonten werden nicht
+	 * gelöscht. Wer sie loswerden will, setzt sie inaktiv (active = false) –
+	 * dann verschwinden sie aus den Auswahllisten, die Historie bleibt aber
+	 * vollständig. Reine Verweise ohne Buchungswert (Regeln, Planwerte) werden
+	 * mitgelöscht.
+	 *
+	 * @throws \InvalidArgumentException wenn das Konto noch in Verwendung ist
+	 */
 	public function delete(int $id, string $userId): void {
-		$account = $this->mapper->find($id, $userId);
-		$this->mapper->delete($account);
+		$this->transaction->run(function () use ($id, $userId): void {
+			$account = $this->mapper->find($id, $userId);
+
+			$bookings = $this->lineMapper->countByAccount($userId, $id);
+			if ($bookings > 0) {
+				throw new \InvalidArgumentException(sprintf(
+					'Das Konto "%s %s" ist in %d Buchungszeile%s verwendet und kann nicht gelöscht werden. '
+					. 'Setze es stattdessen auf „inaktiv" – dann taucht es nicht mehr in den Auswahllisten auf, '
+					. 'die bisherigen Buchungen bleiben aber erhalten.',
+					$account->getNumber(),
+					$account->getName(),
+					$bookings,
+					$bookings === 1 ? '' : 'n',
+				));
+			}
+
+			$children = $this->mapper->countChildren($userId, $id);
+			if ($children > 0) {
+				throw new \InvalidArgumentException(sprintf(
+					'Das Konto "%s %s" hat %d Unterkonto%s. Bitte diese zuerst löschen oder umhängen.',
+					$account->getNumber(),
+					$account->getName(),
+					$children,
+					$children === 1 ? '' : 'en',
+				));
+			}
+
+			// Verweise ohne eigenen Buchungswert räumen wir mit ab.
+			$this->ruleMapper->deleteByAccount($userId, $id);
+			$this->budgetMapper->deleteByAccount($userId, $id);
+			$this->mapper->delete($account);
+		});
 	}
 
 	/**

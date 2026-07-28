@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+	Unit-Tests ohne laufende Nextcloud-Instanz: getestet werden ausschließlich
+	Klassen ohne Nextcloud-Abhängigkeiten (Parser, Rechenlogik). Alles, was
+	Mapper oder OCP-Dienste braucht, gehört in Integrationstests gegen eine
+	echte Instanz und ist hier bewusst nicht abgedeckt.
+-->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+	bootstrap="vendor/autoload.php"
+	colors="true"
+	cacheDirectory=".phpunit.cache"
+	failOnWarning="true"
+	failOnRisky="true">
+	<testsuites>
+		<testsuite name="unit">
+			<directory>tests/unit</directory>
+		</testsuite>
+	</testsuites>
+	<source>
+		<include>
+			<directory suffix=".php">lib</directory>
+		</include>
+	</source>
+</phpunit>

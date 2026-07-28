@@ -8,6 +8,7 @@ use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\BankTransaction;
 use OCA\Vereinsbuchhaltung\Db\BankTransactionMapper;
+use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCP\IConfig;
 
 /**
@@ -25,6 +26,7 @@ class DemoDataService {
 		private JournalService $journalService,
 		private BankTransactionMapper $txMapper,
 		private IConfig $config,
+		private TransactionRunner $transaction,
 	) {
 	}
 
@@ -36,6 +38,16 @@ class DemoDataService {
 	 * @return array{accounts:int, bookings:int, openTransactions:int}
 	 */
 	public function seed(string $userId): array {
+		// Ganz oder gar nicht: ein halb angelegter Beispielverein wäre schlimmer
+		// als gar keiner – seed() verweigert danach den Dienst („bereits Konten
+		// vorhanden"), und Zurücksetzen wäre der einzige Ausweg.
+		return $this->transaction->run(fn (): array => $this->doSeed($userId));
+	}
+
+	/**
+	 * @return array{accounts:int, bookings:int, openTransactions:int}
+	 */
+	private function doSeed(string $userId): array {
 		if (!$this->isEmpty($userId)) {
 			throw new \RuntimeException('Es sind bereits Konten vorhanden – Beispieldaten lassen sich nur in einem leeren Verein anlegen.');
 		}

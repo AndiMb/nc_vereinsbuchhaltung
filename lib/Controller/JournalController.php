@@ -71,12 +71,18 @@ class JournalController extends Controller {
 		$userId = $this->userId();
 		[$from, $to] = $this->yearRange($year);
 		$journals = $this->journalMapper->findAll($userId, $limit, $offset, $from, $to);
+		// Zeilen aller Buchungen in einem Rutsch statt einer Abfrage je Buchung –
+		// bei mehreren tausend Buchungen ist das der Unterschied zwischen zwei
+		// und zweitausend Datenbankabfragen pro Aufruf.
+		$linesByJournal = $this->lineMapper->findByJournals(array_map(
+			static fn ($journal): int => $journal->getId(),
+			$journals,
+		));
 		$out = [];
 		foreach ($journals as $journal) {
-			$lines = $this->lineMapper->findByJournal($journal->getId());
 			$out[] = [
 				'journal' => $journal,
-				'lines' => $lines,
+				'lines' => $linesByJournal[$journal->getId()] ?? [],
 			];
 		}
 		return new DataResponse($out);
@@ -190,16 +196,53 @@ class JournalController extends Controller {
 	}
 
 	/**
+	 * Prüft die gemeinsamen Eingaben von {@see create()} und {@see update()}.
+	 *
+	 * Wichtig sind vor allem Datum und Kontoexistenz: ohne diese Prüfung landen
+	 * Buchungszeilen mit einer account_id, zu der es kein Konto gibt (die Zeile
+	 * taucht dann in keiner Auswertung mehr auf), bzw. Buchungen mit einem
+	 * Datum, aus dem sich kein Geschäftsjahr ableiten lässt – dann greift auch
+	 * die Festschreibungsprüfung nicht mehr.
+	 *
+	 * @return string|null Fehlermeldung oder null, wenn alles in Ordnung ist
+	 */
+	private function validateBooking(string $date, int $cents, int $debitAccountId, int $creditAccountId): ?string {
+		if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+			return 'Ungültiges Datum (erwartet wird JJJJ-MM-TT).';
+		}
+		[$y, $m, $d] = array_map('intval', explode('-', $date));
+		if (!checkdate($m, $d, $y)) {
+			return 'Dieses Datum gibt es nicht.';
+		}
+		if ($y < 2000 || $y > 2099) {
+			return 'Das Buchungsdatum muss zwischen 2000 und 2099 liegen.';
+		}
+		if ($cents <= 0) {
+			return 'Betrag muss größer als 0 sein';
+		}
+		if ($debitAccountId === $creditAccountId) {
+			return 'Soll- und Habenkonto müssen unterschiedlich sein';
+		}
+		$userId = $this->userId();
+		foreach (['Sollkonto' => $debitAccountId, 'Habenkonto' => $creditAccountId] as $label => $accountId) {
+			try {
+				$this->accountMapper->find($accountId, $userId);
+			} catch (DoesNotExistException) {
+				return $label . ' nicht gefunden.';
+			}
+		}
+		return null;
+	}
+
+	/**
 	 * Buchungssatz "Soll an Haben" anlegen.
 	 */
 	#[NoAdminRequired]
 	public function create(string $date, string $description, int $debitAccountId, int $creditAccountId, float $amount, ?string $documentRef = null): DataResponse {
 		$cents = (int)round($amount * 100);
-		if ($cents <= 0) {
-			return new DataResponse(['message' => 'Betrag muss größer als 0 sein'], Http::STATUS_BAD_REQUEST);
-		}
-		if ($debitAccountId === $creditAccountId) {
-			return new DataResponse(['message' => 'Soll- und Habenkonto müssen unterschiedlich sein'], Http::STATUS_BAD_REQUEST);
+		$error = $this->validateBooking($date, $cents, $debitAccountId, $creditAccountId);
+		if ($error !== null) {
+			return new DataResponse(['message' => $error], Http::STATUS_BAD_REQUEST);
 		}
 		$journal = $this->journalService->createBooking($this->userId(), $date, $description, $documentRef, $debitAccountId, $creditAccountId, $cents);
 		return new DataResponse($journal, Http::STATUS_CREATED);
@@ -208,8 +251,9 @@ class JournalController extends Controller {
 	#[NoAdminRequired]
 	public function update(int $id, string $date, string $description, int $debitAccountId, int $creditAccountId, float $amount, ?string $documentRef = null, ?string $updatedAt = null): DataResponse {
 		$cents = (int)round($amount * 100);
-		if ($cents <= 0 || $debitAccountId === $creditAccountId) {
-			return new DataResponse(['message' => 'Ungültige Buchung'], Http::STATUS_BAD_REQUEST);
+		$error = $this->validateBooking($date, $cents, $debitAccountId, $creditAccountId);
+		if ($error !== null) {
+			return new DataResponse(['message' => $error], Http::STATUS_BAD_REQUEST);
 		}
 		try {
 			$journal = $this->journalService->updateBooking($id, $this->userId(), $date, $description, $documentRef, $debitAccountId, $creditAccountId, $cents, $updatedAt);
@@ -267,6 +311,9 @@ class JournalController extends Controller {
 		}
 
 		$journalIds = $this->lineMapper->findJournalIdsForAccounts($userId, $ids);
+		// Buchungsköpfe und -zeilen gebündelt laden statt je Buchung einzeln.
+		$journalsById = $this->journalMapper->findByIds($userId, $journalIds);
+		$linesByJournal = $this->lineMapper->findByJournals($journalIds);
 
 		$rows = [];
 		$sumDebit = 0;
@@ -275,9 +322,8 @@ class JournalController extends Controller {
 		$carryDebit = 0;
 		$carryCredit = 0;
 		foreach ($journalIds as $jid) {
-			try {
-				$journal = $this->journalMapper->find($jid, $userId);
-			} catch (DoesNotExistException) {
+			$journal = $journalsById[$jid] ?? null;
+			if ($journal === null) {
 				continue;
 			}
 			$date = (string)$journal->getDate();
@@ -286,7 +332,7 @@ class JournalController extends Controller {
 			if ($afterPeriod) {
 				continue;
 			}
-			$lines = $this->lineMapper->findByJournal($jid);
+			$lines = $linesByJournal[$jid] ?? [];
 			$contra = [];
 			foreach ($lines as $line) {
 				if (!isset($idSet[$line->getAccountId()])) {

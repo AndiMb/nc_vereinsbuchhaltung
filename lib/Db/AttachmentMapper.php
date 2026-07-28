@@ -77,6 +77,46 @@ class AttachmentMapper extends QBMapper {
 		return $this->findEntities($qb);
 	}
 
+	/**
+	 * Anhänge mehrerer Buchungssätze auf einmal – ersetzt im ZIP-Export das
+	 * Nachladen je Buchung (N+1).
+	 *
+	 * @param int[] $journalIds
+	 * @return array<int, Attachment[]> journalId => Anhänge
+	 */
+	public function findByJournals(array $journalIds): array {
+		if ($journalIds === []) {
+			return [];
+		}
+		$out = [];
+		foreach (array_chunk(array_values(array_unique($journalIds)), 500) as $chunk) {
+			$qb = $this->db->getQueryBuilder();
+			$qb->select('*')
+				->from($this->getTableName())
+				->where($qb->expr()->in('journal_id', $qb->createNamedParameter($chunk, IQueryBuilder::PARAM_INT_ARRAY)))
+				->orderBy('id', 'ASC');
+			foreach ($this->findEntities($qb) as $attachment) {
+				$out[$attachment->getJournalId()][] = $attachment;
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * Alle Anhänge des Bestands – gebraucht vom Zurücksetzen, um genau die
+	 * bekannten Beleg-Dateien zu entfernen (statt den Ablageordner als Ganzes
+	 * zu löschen, in dem auch fremde Dateien liegen könnten).
+	 *
+	 * @return Attachment[]
+	 */
+	public function findAllForUser(string $userId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)));
+		return $this->findEntities($qb);
+	}
+
 	public function deleteAllForUser(string $userId): void {
 		$qb = $this->db->getQueryBuilder();
 		$qb->delete($this->getTableName())

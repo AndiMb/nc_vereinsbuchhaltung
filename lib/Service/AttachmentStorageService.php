@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\AttachmentMapper;
+use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCP\Files\AppData\IAppDataFactory;
 use OCP\Files\Folder;
 use OCP\Files\IRootFolder;
@@ -20,6 +21,7 @@ class AttachmentStorageService {
 		private IRootFolder $rootFolder,
 		private IConfig $config,
 		private AttachmentMapper $attachmentMapper,
+		private TransactionRunner $transaction,
 	) {
 		$this->appData = $appDataFactory->get(Application::APP_ID);
 	}
@@ -28,11 +30,21 @@ class AttachmentStorageService {
 	 * Löscht alle Anhänge (DB-Zeilen und Dateien) eines Buchungssatzes.
 	 * Muss von jedem Pfad aufgerufen werden, der Buchungssätze löscht,
 	 * damit keine verwaisten Belege zurückbleiben.
+	 *
+	 * Die Datei selbst wird erst nach dem Commit entfernt: Wird die umgebende
+	 * Transaktion zurückgerollt, ist der Buchungssatz samt Beleg-Datensatz
+	 * wieder da – die Datei wäre andernfalls schon weg und nicht
+	 * wiederherstellbar (siehe TransactionRunner::afterCommit()).
 	 */
 	public function deleteForJournal(int $journalId): void {
 		foreach ($this->attachmentMapper->findAllByJournal($journalId) as $attachment) {
-			$this->deleteFile($attachment->getId(), $attachment->getJournalId(), $attachment->getFileName());
+			$id = $attachment->getId();
+			$attachmentJournalId = $attachment->getJournalId();
+			$fileName = $attachment->getFileName();
 			$this->attachmentMapper->delete($attachment);
+			$this->transaction->afterCommit(function () use ($id, $attachmentJournalId, $fileName): void {
+				$this->deleteFile($id, $attachmentJournalId, $fileName);
+			});
 		}
 	}
 
@@ -136,19 +148,64 @@ class AttachmentStorageService {
 		}
 	}
 
-	public function deleteAllFiles(): void {
-		try {
-			if ($this->isNcMode()) {
-				$userFolder = $this->rootFolder->getUserFolder($this->storageUser());
-				$path = $this->storagePath();
-				if ($userFolder->nodeExists($path)) {
-					$userFolder->get($path)->delete();
-				}
-			} else {
+	/**
+	 * Entfernt beim Zurücksetzen die Dateien der übergebenen Anhänge.
+	 *
+	 * Bewusst dateiweise statt den Ablageordner rekursiv zu löschen: der Ordner
+	 * liegt im Home eines echten Nextcloud-Nutzers und kann – gerade wenn der
+	 * Pfad einmal falsch konfiguriert war – auch fremde Dateien enthalten, die
+	 * ein Reset der Buchhaltung nicht mitnehmen darf. Im appdata-Modus gehört
+	 * der Ordner ausschließlich dieser App, dort wird er weiterhin als Ganzes
+	 * entfernt.
+	 *
+	 * @param array<int, \OCA\Vereinsbuchhaltung\Db\Attachment> $attachments
+	 */
+	public function deleteAllFiles(array $attachments): void {
+		if (!$this->isNcMode()) {
+			try {
 				$this->appData->getFolder('attachments')->delete();
+			} catch (\Throwable) {
+				// Ordner existiert nicht – kein Fehler.
 			}
+			return;
+		}
+
+		foreach ($attachments as $attachment) {
+			$this->deleteFile($attachment->getId(), $attachment->getJournalId(), $attachment->getFileName());
+		}
+		$this->removeEmptyJournalFolders($attachments);
+	}
+
+	/**
+	 * Räumt die je Buchung angelegten Unterordner ab, sofern sie nach dem
+	 * Löschen der Belege leer sind. Der Ablage-Wurzelordner selbst bleibt
+	 * stehen – ihn hat die Nutzerin bewusst angelegt.
+	 *
+	 * @param array<int, \OCA\Vereinsbuchhaltung\Db\Attachment> $attachments
+	 */
+	private function removeEmptyJournalFolders(array $attachments): void {
+		$journalIds = [];
+		foreach ($attachments as $attachment) {
+			$journalIds[$attachment->getJournalId()] = true;
+		}
+		try {
+			$userFolder = $this->rootFolder->getUserFolder($this->storageUser());
 		} catch (\Throwable) {
-			// Ordner existiert nicht – kein Fehler.
+			return;
+		}
+		foreach (array_keys($journalIds) as $journalId) {
+			try {
+				$path = $this->storagePath() . '/' . $journalId;
+				if (!$userFolder->nodeExists($path)) {
+					continue;
+				}
+				$node = $userFolder->get($path);
+				if ($node instanceof Folder && $node->getDirectoryListing() === []) {
+					$node->delete();
+				}
+			} catch (\Throwable) {
+				// Ordner schon weg oder nicht löschbar – kein Grund abzubrechen.
+			}
 		}
 	}
 }

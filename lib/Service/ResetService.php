@@ -14,11 +14,13 @@ use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
+use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Db\YearCloseMapper;
 
 class ResetService {
 
 	public function __construct(
+		private TransactionRunner $transaction,
 		private JournalLineMapper $lineMapper,
 		private JournalMapper $journalMapper,
 		private BankTransactionMapper $txMapper,
@@ -35,25 +37,45 @@ class ResetService {
 	) {
 	}
 
+	/**
+	 * Löscht den gesamten Buchungsbestand.
+	 *
+	 * Die Datenbank-Anteile laufen in einer Transaktion – ein Abbruch mittendrin
+	 * hinterließe sonst einen halb gelöschten Bestand (z.B. Journalzeilen ohne
+	 * Konten), aus dem heraus sich weder sinnvoll weiterarbeiten noch sauber
+	 * neu importieren lässt.
+	 *
+	 * Die Dateien der Belegablage liegen außerhalb der Datenbank und werden
+	 * daher erst nach dem erfolgreichen Commit entfernt: bricht die
+	 * Datenbank-Seite ab, sind die Dateien noch da und passen weiter zu den
+	 * erhaltenen Datensätzen.
+	 */
 	public function resetAll(string $userId): void {
-		$this->storageService->deleteAllFiles();
-		$this->attachmentMapper->deleteAllForUser($userId);
+		// Vor dem Löschen der Datensätze merken, welche Dateien dazugehören –
+		// danach ist die Zuordnung weg.
+		$attachments = $this->attachmentMapper->findAllForUser($userId);
 
-		$this->lineMapper->deleteAllForUser($userId);
-		$this->journalMapper->deleteAllForUser($userId);
-		$this->txMapper->deleteAllForUser($userId);
-		$this->importMapper->deleteAllForUser($userId);
-		$this->ruleMapper->deleteAllForUser($userId);
-		$this->accountMapper->deleteAllForUser($userId);
-		$this->costCenterMapper->deleteAllForUser($userId);
-		$this->budgetMapper->deleteAllForUser($userId);
-		$this->snapshotService->deleteAllForUser($userId);
-		// Offene Posten enthalten Namen von Mitgliedern und Forderungsbeträge –
-		// sie müssen beim Zurücksetzen mit verschwinden, sonst bleiben
-		// personenbezogene Daten mit Verweisen auf gelöschte Konten zurück.
-		$this->openItemMapper->deleteAll();
-		// Abschluss-Marker gehören zum Datenbestand; das Änderungsprotokoll
-		// bleibt bewusst erhalten (der Reset selbst wird protokolliert).
-		$this->yearCloseMapper->deleteAll();
+		$this->transaction->run(function () use ($userId): void {
+			$this->attachmentMapper->deleteAllForUser($userId);
+
+			$this->lineMapper->deleteAllForUser($userId);
+			$this->journalMapper->deleteAllForUser($userId);
+			$this->txMapper->deleteAllForUser($userId);
+			$this->importMapper->deleteAllForUser($userId);
+			$this->ruleMapper->deleteAllForUser($userId);
+			$this->accountMapper->deleteAllForUser($userId);
+			$this->costCenterMapper->deleteAllForUser($userId);
+			$this->budgetMapper->deleteAllForUser($userId);
+			$this->snapshotService->deleteAllForUser($userId);
+			// Offene Posten enthalten Namen von Mitgliedern und Forderungsbeträge –
+			// sie müssen beim Zurücksetzen mit verschwinden, sonst bleiben
+			// personenbezogene Daten mit Verweisen auf gelöschte Konten zurück.
+			$this->openItemMapper->deleteAll();
+			// Abschluss-Marker gehören zum Datenbestand; das Änderungsprotokoll
+			// bleibt bewusst erhalten (der Reset selbst wird protokolliert).
+			$this->yearCloseMapper->deleteAll();
+		});
+
+		$this->storageService->deleteAllFiles($attachments);
 	}
 }

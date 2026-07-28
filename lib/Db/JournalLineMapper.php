@@ -44,6 +44,50 @@ class JournalLineMapper extends QBMapper {
 	}
 
 	/**
+	 * Anzahl Buchungszeilen auf einem Konto – die Prüfung, ob ein Konto noch
+	 * bebucht ist. Ohne sie hinterließe das Löschen eines Kontos verwaiste
+	 * Zeilen, deren Beträge aus allen Auswertungen verschwinden (die iterieren
+	 * über die vorhandenen Konten), während sie in der Datenbank stehen bleiben.
+	 */
+	public function countByAccount(string $userId, int $accountId): int {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select($qb->func()->count('*', 'cnt'))
+			->from($this->getTableName(), 'l')
+			->innerJoin('l', 'vbh_journal', 'j', $qb->expr()->eq('l.journal_id', 'j.id'))
+			->where($qb->expr()->eq('j.user_id', $qb->createNamedParameter($userId)))
+			->andWhere($qb->expr()->eq('l.account_id', $qb->createNamedParameter($accountId, IQueryBuilder::PARAM_INT)));
+		$res = $qb->executeQuery();
+		$count = (int)$res->fetchOne();
+		$res->closeCursor();
+		return $count;
+	}
+
+	/**
+	 * Alle Zeilen der angegebenen Buchungssätze auf einmal – ersetzt das
+	 * Nachladen je Buchung (N+1) in Journal-Liste, Kontoauszug und Export.
+	 *
+	 * @param int[] $journalIds
+	 * @return array<int, JournalLine[]> journalId => Zeilen
+	 */
+	public function findByJournals(array $journalIds): array {
+		if ($journalIds === []) {
+			return [];
+		}
+		$out = [];
+		foreach (array_chunk(array_values(array_unique($journalIds)), 500) as $chunk) {
+			$qb = $this->db->getQueryBuilder();
+			$qb->select('*')
+				->from($this->getTableName())
+				->where($qb->expr()->in('journal_id', $qb->createNamedParameter($chunk, IQueryBuilder::PARAM_INT_ARRAY)))
+				->orderBy('id', 'ASC');
+			foreach ($this->findEntities($qb) as $line) {
+				$out[$line->getJournalId()][] = $line;
+			}
+		}
+		return $out;
+	}
+
+	/**
 	 * @return JournalLine[]
 	 */
 	public function findByJournal(int $journalId): array {

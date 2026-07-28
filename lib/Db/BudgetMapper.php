@@ -108,4 +108,13 @@ class BudgetMapper extends QBMapper {
 			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)));
 		$qb->executeStatement();
 	}
+
+	/** Entfernt die Planwerte eines gelöschten Kontos (sonst verwaiste Zeilen). */
+	public function deleteByAccount(string $userId, int $accountId): void {
+		$qb = $this->db->getQueryBuilder();
+		$qb->delete($this->getTableName())
+			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+			->andWhere($qb->expr()->eq('account_id', $qb->createNamedParameter($accountId, IQueryBuilder::PARAM_INT)));
+		$qb->executeStatement();
+	}
 }

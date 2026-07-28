@@ -18,6 +18,7 @@ use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\DataDownloadResponse;
 use OCP\AppFramework\Http\DataResponse;
+use OCP\AppFramework\Http\EmptyContentSecurityPolicy;
 use OCP\Files\NotFoundException;
 use OCP\IRequest;
 
@@ -138,6 +139,10 @@ class AttachmentController extends Controller {
 		}
 		$response = new DataDownloadResponse($content, $attachment->getFileName(), $attachment->getMimeType());
 		$response->addHeader('Content-Disposition', 'inline; filename="' . addslashes($attachment->getFileName()) . '"');
+		// Inline ausgelieferte Fremdinhalte (PDFs können Skripte enthalten)
+		// dürfen im eigenen Ursprung nichts ausführen.
+		$response->addHeader('X-Content-Type-Options', 'nosniff');
+		$response->setContentSecurityPolicy(new EmptyContentSecurityPolicy());
 		return $response;
 	}
 

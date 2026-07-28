@@ -11,6 +11,7 @@ use OCA\Vereinsbuchhaltung\Db\ImportLogMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\Rule;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
+use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 
 class ImportService {
 
@@ -21,6 +22,7 @@ class ImportService {
 		private RuleMapper $ruleMapper,
 		private BookingService $bookingService,
 		private JournalMapper $journalMapper,
+		private TransactionRunner $transaction,
 	) {
 	}
 
@@ -58,6 +60,16 @@ class ImportService {
 	 * @return array{import:ImportLog, total:int, new:int, duplicate:int, autoAssigned:int}
 	 */
 	public function commit(string $userId, string $filename, string $content, bool $applyRules = true): array {
+		// Ganz oder gar nicht: bricht der Import in der Mitte ab (Timeout,
+		// fehlerhafte Zeile), bleibt sonst ein halb eingelesener Kontoauszug
+		// zurück, dessen Rest beim zweiten Versuch als Dublette gilt.
+		return $this->transaction->run(fn (): array => $this->doCommit($userId, $filename, $content, $applyRules));
+	}
+
+	/**
+	 * @return array{import:ImportLog, total:int, new:int, duplicate:int, autoAssigned:int}
+	 */
+	private function doCommit(string $userId, string $filename, string $content, bool $applyRules): array {
 		$rows = $this->parser->parse($content);
 		[$new, , $existingBookings] = $this->splitNewAndDuplicate($userId, $rows);
 
