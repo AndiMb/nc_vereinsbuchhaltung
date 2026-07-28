@@ -44,8 +44,16 @@ Ergebnis eines Code-Reviews. Schwerpunkt: Datenintegrität der Buchführung.
 - Beleg-Dateien werden erst gelöscht, wenn der zugehörige Datensatz
   tatsächlich verschwunden ist – ein Rollback hätte sonst die Buchung
   zurückgeholt, den Beleg aber nicht.
+- **CSV-Exporte können keine Tabellenkalkulations-Formeln mehr einschleusen.**
+  Ein Verwendungszweck stammt aus einer fremden Überweisung; beginnt er mit
+  `=`, `+`, `-` oder `@`, führte Excel ihn beim Öffnen des Exports als Formel
+  aus. Solche Felder werden jetzt als Text markiert – Beträge bleiben
+  ausgenommen und damit rechenbar.
 
 ### Geändert
+- **Das Änderungsprotokoll wird erst nach dem Commit geschrieben.** Ein
+  abgebrochener Vorgang hinterlässt dadurch keinen Protokolleintrag mehr:
+  festgehalten wird, was tatsächlich passiert ist.
 - **SVG als Vereinslogo wird nicht mehr angenommen** (PNG, JPG und WebP
   bleiben). Ein SVG ist ein aktives Dokument und wäre unter der eigenen
   Nextcloud-Adresse ausgeliefert worden. Bereits hochgeladene SVG-Logos
@@ -62,7 +70,9 @@ Ergebnis eines Code-Reviews. Schwerpunkt: Datenintegrität der Buchführung.
   laufen jetzt bei jedem Push und Pull Request – nicht erst beim Release.
 - `@mdi/js` als direkte Abhängigkeit eingetragen (war nur zufällig über
   `@nextcloud/vue` verfügbar).
-- Unit-Tests für die Nachnummerierung und die Datumsprüfung ergänzt.
+- Unit-Tests für Nachnummerierung, Datumsprüfung und CSV-Formatierung ergänzt
+  (32 Tests). Sie bringen einen eigenen Autoloader mit und laufen ohne
+  `composer install`.
 
 ## [0.10.69] – 2026-07-28
 
