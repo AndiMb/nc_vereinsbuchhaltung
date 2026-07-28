@@ -25,7 +25,7 @@ const childrenOf = computed(() => {
 	return map
 })
 
-/** @returns {Promise<Array|null>} die geladenen Konten, oder null bei Fehler (bereits als Toast gemeldet) */
+/** @return {Promise<Array|null>} die geladenen Konten, oder null bei Fehler (bereits als Toast gemeldet) */
 async function loadAccounts() {
 	try {
 		const { data } = await api.listAccounts()

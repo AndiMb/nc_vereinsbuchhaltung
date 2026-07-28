@@ -1,6 +1,8 @@
 <template>
 	<div>
-		<h3 class="vbh-section-divider">Automatische Zuordnung (Regeln)</h3>
+		<h3 class="vbh-section-divider">
+			Automatische Zuordnung (Regeln)
+		</h3>
 		<p class="vbh-hint">
 			Regeln ordnen offenen Bankbuchungen automatisch ein Gegenkonto zu: Enthält das gewählte Feld
 			(Zahlungspartner, Verwendungszweck oder IBAN) den Suchtext, wird das Gegenkonto vorgeschlagen und
@@ -18,40 +20,63 @@
 					</select>
 				</label>
 				<label class="vbh-grow">enthält (Suchtext)
-					<input v-model="ruleForm.matchValue" type="text" placeholder="z. B. Stadtwerke" @keyup.enter="saveRule">
+					<input v-model="ruleForm.matchValue"
+						type="text"
+						placeholder="z. B. Stadtwerke"
+						@keyup.enter="saveRule">
 				</label>
 				<label class="vbh-grow">Gegenkonto
-					<NcSelect
-						v-model="ruleFormContraOption"
+					<NcSelect v-model="ruleFormContraOption"
 						:options="accountOptionsList"
 						:filter-by="accountFilterBy"
 						label="label"
-						placeholder="– Konto wählen –"
-					/>
+						placeholder="– Konto wählen –" />
 				</label>
 				<label class="vbh-rule-prio">Priorität
 					<input v-model.number="ruleForm.priority" type="number" step="1">
 				</label>
-				<NcButton variant="primary" @click="saveRule">{{ ruleEditId ? 'Speichern' : 'Hinzufügen' }}</NcButton>
-				<NcButton v-if="ruleEditId" variant="tertiary" @click="resetRuleForm">Abbrechen</NcButton>
+				<NcButton variant="primary" @click="saveRule">
+					{{ ruleEditId ? 'Speichern' : 'Hinzufügen' }}
+				</NcButton>
+				<NcButton v-if="ruleEditId" variant="tertiary" @click="resetRuleForm">
+					Abbrechen
+				</NcButton>
 			</div>
 		</div>
 
 		<div v-if="rules.length" class="vbh-tablecard">
 			<table class="vbh-table">
-				<thead><tr><th>Feld</th><th>Suchtext</th><th>Gegenkonto</th><th class="num">Prio.</th><th></th></tr></thead>
+				<thead>
+					<tr>
+						<th>Feld</th><th>Suchtext</th><th>Gegenkonto</th><th class="num">
+							Prio.
+						</th><th />
+					</tr>
+				</thead>
 				<tbody>
 					<tr v-for="rule in rules" :key="rule.id" :class="{ 'vbh-row-editing': ruleEditId === rule.id }">
 						<td>{{ matchFieldLabel(rule.matchField) }}</td>
 						<td>{{ rule.matchValue }}</td>
 						<td>{{ accountLabel(rule.contraAccountId) }}</td>
-						<td class="num">{{ rule.priority }}</td>
+						<td class="num">
+							{{ rule.priority }}
+						</td>
 						<td class="right nowrap">
-							<NcButton variant="tertiary" aria-label="Regel bearbeiten" title="Bearbeiten" @click="editRule(rule)">
-								<template #icon><NcIconSvgWrapper :path="mdiPencil" :size="20" /></template>
+							<NcButton variant="tertiary"
+								aria-label="Regel bearbeiten"
+								title="Bearbeiten"
+								@click="editRule(rule)">
+								<template #icon>
+									<NcIconSvgWrapper :path="mdiPencil" :size="20" />
+								</template>
 							</NcButton>
-							<NcButton variant="error" aria-label="Regel löschen" title="Löschen" @click="deleteRule(rule)">
-								<template #icon><NcIconSvgWrapper :path="mdiDelete" :size="20" /></template>
+							<NcButton variant="error"
+								aria-label="Regel löschen"
+								title="Löschen"
+								@click="deleteRule(rule)">
+								<template #icon>
+									<NcIconSvgWrapper :path="mdiDelete" :size="20" />
+								</template>
 							</NcButton>
 						</td>
 					</tr>

@@ -97,10 +97,10 @@ export default {
 	deleteOpenItem: id => axios.delete(url(`/open-items/${id}`)),
 
 	// Export (CSV-Download – Browser-Navigation, kein Axios)
-	exportJournalUrl:  year => generateUrl(base + '/export/journal')  + (year ? `?year=${year}` : ''),
+	exportJournalUrl: year => generateUrl(base + '/export/journal') + (year ? `?year=${year}` : ''),
 	exportBalancesUrl: year => generateUrl(base + '/export/balances') + (year ? `?year=${year}` : ''),
-	exportReportUrl:   year => generateUrl(base + '/export/report')   + (year ? `?year=${year}` : ''),
-	exportBudgetUrl:   year => generateUrl(base + '/export/budget')   + (year ? `?year=${year}` : ''),
+	exportReportUrl: year => generateUrl(base + '/export/report') + (year ? `?year=${year}` : ''),
+	exportBudgetUrl: year => generateUrl(base + '/export/budget') + (year ? `?year=${year}` : ''),
 	exportMultiyearUrl: () => generateUrl(base + '/export/multiyear'),
 	kassenberichtUrl: year => generateUrl(base + '/export/kassenbericht') + (year ? `?year=${year}` : ''),
 	kurzberichtUrl: since => generateUrl(base + '/export/kurzbericht') + (since ? `?since=${since}` : ''),
@@ -111,11 +111,11 @@ export default {
 	pruefleitfadenUrl: () => generateUrl(base + '/help/pruefleitfaden'),
 
 	// Belegablage
-	attachmentCounts:     () => axios.get(url('/attachments/counts')),
-	listAttachments:      journalId => axios.get(url(`/journal/${journalId}/attachments`)),
-	uploadAttachment:     (journalId, formData) => axios.post(url(`/journal/${journalId}/attachments`), formData),
-	deleteAttachment:     id => axios.delete(url(`/attachments/${id}`)),
-	attachmentViewUrl:     id => generateUrl(base + `/attachments/${id}/view`),
+	attachmentCounts: () => axios.get(url('/attachments/counts')),
+	listAttachments: journalId => axios.get(url(`/journal/${journalId}/attachments`)),
+	uploadAttachment: (journalId, formData) => axios.post(url(`/journal/${journalId}/attachments`), formData),
+	deleteAttachment: id => axios.delete(url(`/attachments/${id}`)),
+	attachmentViewUrl: id => generateUrl(base + `/attachments/${id}/view`),
 	attachmentDownloadUrl: id => generateUrl(base + `/attachments/${id}/download`),
 
 	// Einstellungen (Belegablage)

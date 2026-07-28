@@ -2,25 +2,74 @@
 	<div style="display: contents;">
 		<div class="vbh-sectiontop">
 			<div class="vbh-subtabs">
-				<button :class="{ active: reportView === 'summary' }" @click="$emit('update:report-view', 'summary')">Auswertung</button>
-				<button :class="{ active: reportView === 'costcenters' }" @click="$emit('update:report-view', 'costcenters')">Kostenstellen</button>
-				<button :class="{ active: reportView === 'spheres' }" @click="$emit('update:report-view', 'spheres')">Sphären</button>
-				<button :class="{ active: reportView === 'reserves' }" @click="$emit('update:report-view', 'reserves')">Rücklagen</button>
-				<button :class="{ active: reportView === 'budget' }" @click="$emit('update:report-view', 'budget')">Finanzplan</button>
-				<button :class="{ active: reportView === 'audit' }" @click="$emit('update:report-view', 'audit')">Protokoll</button>
+				<button :class="{ active: reportView === 'summary' }" @click="$emit('update:report-view', 'summary')">
+					Auswertung
+				</button>
+				<button :class="{ active: reportView === 'costcenters' }" @click="$emit('update:report-view', 'costcenters')">
+					Kostenstellen
+				</button>
+				<button :class="{ active: reportView === 'spheres' }" @click="$emit('update:report-view', 'spheres')">
+					Sphären
+				</button>
+				<button :class="{ active: reportView === 'reserves' }" @click="$emit('update:report-view', 'reserves')">
+					Rücklagen
+				</button>
+				<button :class="{ active: reportView === 'budget' }" @click="$emit('update:report-view', 'budget')">
+					Finanzplan
+				</button>
+				<button :class="{ active: reportView === 'audit' }" @click="$emit('update:report-view', 'audit')">
+					Protokoll
+				</button>
 			</div>
 			<div class="vbh-sectiontop-actions">
-				<a v-if="reportView === 'summary' && selectedYear" :href="kassenberichtUrl" target="_blank" rel="noopener" class="vbh-export-btn" title="Druckfertiger Kassenbericht für die Mitgliederversammlung (öffnet in neuem Tab, dort drucken oder als PDF speichern)"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> Kassenbericht</a>
+				<a v-if="reportView === 'summary' && selectedYear"
+					:href="kassenberichtUrl"
+					target="_blank"
+					rel="noopener"
+					class="vbh-export-btn"
+					title="Druckfertiger Kassenbericht für die Mitgliederversammlung (öffnet in neuem Tab, dort drucken oder als PDF speichern)"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> Kassenbericht</a>
 				<span v-if="reportView === 'summary'" class="vbh-kurzbericht-picker">
-					<input v-model="kurzberichtSince" type="date" class="vbh-kurzbericht-date" title="Kurzbericht: Bewegungen seit diesem Datum">
-					<a :href="kurzberichtUrl" target="_blank" rel="noopener" class="vbh-export-btn" title="Kurzbericht für die nächste Vorstandssitzung (öffnet in neuem Tab, dort drucken oder als PDF speichern)"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> Kurzbericht</a>
+					<input v-model="kurzberichtSince"
+						type="date"
+						class="vbh-kurzbericht-date"
+						title="Kurzbericht: Bewegungen seit diesem Datum">
+					<a :href="kurzberichtUrl"
+						target="_blank"
+						rel="noopener"
+						class="vbh-export-btn"
+						title="Kurzbericht für die nächste Vorstandssitzung (öffnet in neuem Tab, dort drucken oder als PDF speichern)"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> Kurzbericht</a>
 				</span>
-				<a v-if="reportView === 'summary' && selectedYear" :href="attachmentsZipUrl" download class="vbh-export-btn" title="Alle Belege des Jahres als ZIP herunterladen (für die Kassenprüfung)"><NcIconSvgWrapper :path="mdiPaperclip" :size="16" inline /> Beleg-ZIP</a>
-				<a v-if="reportView === 'summary'" :href="pruefleitfadenUrl" target="_blank" rel="noopener" class="vbh-export-btn" title="Druckfertige 1-Seiten-Kurzanleitung für Kassenprüfer/innen (öffnet in neuem Tab)"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> Prüfleitfaden</a>
-				<a v-if="reportView === 'summary'" :href="exportBalancesUrl" download class="vbh-export-btn" title="Saldenliste als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> Saldenliste</a>
-				<a v-if="reportView === 'summary'" :href="exportReportUrl" download class="vbh-export-btn" title="E/A-Übersicht als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> E/A-Übersicht</a>
-				<a v-if="reportView === 'summary'" :href="exportMultiyearUrl" download class="vbh-export-btn" title="Mehrjahresübersicht (alle Jahre) als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> Mehrjahresübersicht</a>
-				<a v-if="reportView === 'budget'" :href="exportBudgetUrl" download class="vbh-export-btn" title="Soll-Ist-Vergleich als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> Soll-Ist-Vergleich</a>
+				<a v-if="reportView === 'summary' && selectedYear"
+					:href="attachmentsZipUrl"
+					download
+					class="vbh-export-btn"
+					title="Alle Belege des Jahres als ZIP herunterladen (für die Kassenprüfung)"><NcIconSvgWrapper :path="mdiPaperclip" :size="16" inline /> Beleg-ZIP</a>
+				<a v-if="reportView === 'summary'"
+					:href="pruefleitfadenUrl"
+					target="_blank"
+					rel="noopener"
+					class="vbh-export-btn"
+					title="Druckfertige 1-Seiten-Kurzanleitung für Kassenprüfer/innen (öffnet in neuem Tab)"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> Prüfleitfaden</a>
+				<a v-if="reportView === 'summary'"
+					:href="exportBalancesUrl"
+					download
+					class="vbh-export-btn"
+					title="Saldenliste als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> Saldenliste</a>
+				<a v-if="reportView === 'summary'"
+					:href="exportReportUrl"
+					download
+					class="vbh-export-btn"
+					title="E/A-Übersicht als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> E/A-Übersicht</a>
+				<a v-if="reportView === 'summary'"
+					:href="exportMultiyearUrl"
+					download
+					class="vbh-export-btn"
+					title="Mehrjahresübersicht (alle Jahre) als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> Mehrjahresübersicht</a>
+				<a v-if="reportView === 'budget'"
+					:href="exportBudgetUrl"
+					download
+					class="vbh-export-btn"
+					title="Soll-Ist-Vergleich als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> Soll-Ist-Vergleich</a>
 			</div>
 		</div>
 
@@ -28,16 +77,22 @@
 			<!-- AUSWERTUNG -->
 			<div v-show="reportView === 'summary'">
 				<div v-if="balances" class="vbh-totals">
-					<div class="vbh-total pos"><span>Einnahmen</span><strong>{{ formatMoney(balances.totals.income) }}</strong></div>
-					<div class="vbh-total neg"><span>Ausgaben</span><strong>{{ formatMoney(balances.totals.expense) }}</strong></div>
-					<div class="vbh-total" :class="balances.totals.result >= 0 ? 'pos' : 'neg'"><span>Ergebnis</span><strong>{{ formatMoney(balances.totals.result) }}</strong></div>
+					<div class="vbh-total pos">
+						<span>Einnahmen</span><strong>{{ formatMoney(balances.totals.income) }}</strong>
+					</div>
+					<div class="vbh-total neg">
+						<span>Ausgaben</span><strong>{{ formatMoney(balances.totals.expense) }}</strong>
+					</div>
+					<div class="vbh-total" :class="balances.totals.result >= 0 ? 'pos' : 'neg'">
+						<span>Ergebnis</span><strong>{{ formatMoney(balances.totals.result) }}</strong>
+					</div>
 				</div>
 
 				<div v-if="trendChartData.labels.length" class="vbh-chart-grid">
 					<div class="vbh-chart-card vbh-chart-card--wide">
 						<h4>Mehrjahres-Trend (Einnahmen, Ausgaben, Ergebnis)</h4>
 						<div class="vbh-chart-wrap">
-							<canvas ref="trendChart"></canvas>
+							<canvas ref="trendChart" />
 						</div>
 					</div>
 				</div>
@@ -46,12 +101,24 @@
 					<h4>Geldkonten</h4>
 					<div v-if="!isMobile" class="vbh-tablecard">
 						<table class="vbh-table">
-							<thead><tr><th>Konto</th><th class="num">Kontostand</th><th class="num">Offen (nicht zugeordnet)</th></tr></thead>
+							<thead>
+								<tr>
+									<th>Konto</th><th class="num">
+										Kontostand
+									</th><th class="num">
+										Offen (nicht zugeordnet)
+									</th>
+								</tr>
+							</thead>
 							<tbody>
 								<tr v-for="b in balances.bankReconciliation" :key="b.accountId">
 									<td>{{ b.number }} {{ b.name }}</td>
-									<td class="num strong">{{ formatMoney(b.balance) }}</td>
-									<td class="num" :class="Math.abs(b.open) > 0.005 ? 'neg' : 'pos'">{{ formatMoney(b.open) }}</td>
+									<td class="num strong">
+										{{ formatMoney(b.balance) }}
+									</td>
+									<td class="num" :class="Math.abs(b.open) > 0.005 ? 'neg' : 'pos'">
+										{{ formatMoney(b.open) }}
+									</td>
 								</tr>
 							</tbody>
 						</table>
@@ -71,11 +138,15 @@
 
 				<div class="vbh-sectionhead">
 					<h4>Saldenliste</h4>
-					<NcCheckboxRadioSwitch v-model="balancesIncludeChildren">Werte inkl. Unterkonten</NcCheckboxRadioSwitch>
+					<NcCheckboxRadioSwitch v-model="balancesIncludeChildren">
+						Werte inkl. Unterkonten
+					</NcCheckboxRadioSwitch>
 				</div>
 				<div v-if="balances && isMobile" class="vbh-cardlist">
-					<div v-for="row in sortedBalances" :key="'m' + row.accountId"
-						class="vbh-mcard" :class="{ 'vbh-mcard--parent': row.isParent }"
+					<div v-for="row in sortedBalances"
+						:key="'m' + row.accountId"
+						class="vbh-mcard"
+						:class="{ 'vbh-mcard--parent': row.isParent }"
 						:style="row.depth ? { marginLeft: (Math.min(row.depth, 3) * 14) + 'px' } : null">
 						<div class="vbh-mcard-top">
 							<span class="vbh-mcard-title">{{ row.number }} {{ row.name }}</span>
@@ -90,24 +161,46 @@
 					<table class="vbh-table">
 						<thead>
 							<tr>
-								<th class="sortable nowrap vbh-col-hide-sm" @click="toggleSort('balances','number')">Nr.{{ sortArrow('balances','number') }}</th>
-								<th class="sortable" @click="toggleSort('balances','name')">Konto{{ sortArrow('balances','name') }}</th>
-								<th class="sortable vbh-col-hide-sm" @click="toggleSort('balances','category')">Kategorie{{ sortArrow('balances','category') }}</th>
-								<th class="sortable num vbh-col-hide-sm" @click="toggleSort('balances','debit')">Soll{{ sortArrow('balances','debit') }}</th>
-								<th class="sortable num vbh-col-hide-sm" @click="toggleSort('balances','credit')">Haben{{ sortArrow('balances','credit') }}</th>
-								<th class="sortable num" @click="toggleSort('balances','balance')">Saldo{{ sortArrow('balances','balance') }}</th>
+								<th class="sortable nowrap vbh-col-hide-sm" @click="toggleSort('balances','number')">
+									Nr.{{ sortArrow('balances','number') }}
+								</th>
+								<th class="sortable" @click="toggleSort('balances','name')">
+									Konto{{ sortArrow('balances','name') }}
+								</th>
+								<th class="sortable vbh-col-hide-sm" @click="toggleSort('balances','category')">
+									Kategorie{{ sortArrow('balances','category') }}
+								</th>
+								<th class="sortable num vbh-col-hide-sm" @click="toggleSort('balances','debit')">
+									Soll{{ sortArrow('balances','debit') }}
+								</th>
+								<th class="sortable num vbh-col-hide-sm" @click="toggleSort('balances','credit')">
+									Haben{{ sortArrow('balances','credit') }}
+								</th>
+								<th class="sortable num" @click="toggleSort('balances','balance')">
+									Saldo{{ sortArrow('balances','balance') }}
+								</th>
 							</tr>
 						</thead>
 						<tbody>
 							<tr v-for="row in sortedBalances" :key="row.accountId" :class="{ 'vbh-parentrow': row.isParent }">
-								<td class="nowrap vbh-col-hide-sm">{{ row.number }}</td>
+								<td class="nowrap vbh-col-hide-sm">
+									{{ row.number }}
+								</td>
 								<td :style="{ paddingLeft: (10 + (row.depth || 0) * 18) + 'px' }">
 									<span v-if="row.depth" class="vbh-treeglyph">└</span>{{ row.name }}
 								</td>
-								<td class="vbh-col-hide-sm">{{ row.category }}</td>
-								<td class="num vbh-col-hide-sm">{{ formatMoney(row.debit) }}</td>
-								<td class="num vbh-col-hide-sm">{{ formatMoney(row.credit) }}</td>
-								<td class="num strong">{{ formatMoney(row.balance) }}</td>
+								<td class="vbh-col-hide-sm">
+									{{ row.category }}
+								</td>
+								<td class="num vbh-col-hide-sm">
+									{{ formatMoney(row.debit) }}
+								</td>
+								<td class="num vbh-col-hide-sm">
+									{{ formatMoney(row.credit) }}
+								</td>
+								<td class="num strong">
+									{{ formatMoney(row.balance) }}
+								</td>
 							</tr>
 						</tbody>
 					</table>
@@ -117,47 +210,72 @@
 			<!-- KOSTENSTELLEN (split layout; mobil Drilldown) -->
 			<div v-show="reportView === 'costcenters'" class="vbh-splitinner" :class="{ 'vbh-drill': isMobile }">
 				<div v-if="!isMobile || !selectedCC" class="vbh-tree">
-					<div class="vbh-treehead"><strong>Kostenstellen</strong></div>
+					<div class="vbh-treehead">
+						<strong>Kostenstellen</strong>
+					</div>
 					<div v-if="reportData" class="vbh-ccsummary">
 						<span>Gesamtergebnis</span>
 						<strong :class="amountClass(reportData.totals.result)">{{ formatMoney(reportData.totals.result) }}</strong>
 					</div>
 					<div v-if="reportData" class="vbh-treelist">
-						<div v-for="cc in reportData.costCenters" :key="cc.code === null ? 'none' : cc.code"
-							class="vbh-treenode" :class="{ selected: isCCSelected(cc) }" @click="selectCC(cc)">
+						<div v-for="cc in reportData.costCenters"
+							:key="cc.code === null ? 'none' : cc.code"
+							class="vbh-treenode"
+							:class="{ selected: isCCSelected(cc) }"
+							@click="selectCC(cc)">
 							<span class="vbh-treenum">{{ cc.code || '–' }}</span>
 							<span class="vbh-treename">{{ cc.name }}</span>
 							<span class="vbh-treesaldo" :class="[amountClass(cc.result), { zero: !cc.result }]">{{ formatMoney(cc.result) }}</span>
 						</div>
 					</div>
-					<p v-else class="vbh-hint">Keine Daten. Importiere oder erfasse zuerst Buchungen.</p>
+					<p v-else class="vbh-hint">
+						Keine Daten. Importiere oder erfasse zuerst Buchungen.
+					</p>
 				</div>
 
 				<div v-if="!isMobile || selectedCC" class="vbh-detail">
 					<div v-if="isMobile" class="vbh-backbar">
-						<button type="button" class="vbh-backbtn" @click="$emit('update:selected-c-c-code', false)">‹ Kostenstellen</button>
+						<button type="button" class="vbh-backbtn" @click="$emit('update:selected-c-c-code', false)">
+							‹ Kostenstellen
+						</button>
 					</div>
-					<p v-if="!selectedCC" class="vbh-empty vbh-detailhint">Kostenstelle links auswählen.</p>
+					<p v-if="!selectedCC" class="vbh-empty vbh-detailhint">
+						Kostenstelle links auswählen.
+					</p>
 					<template v-else>
-						<div class="vbh-detailhead"><div><h3>{{ selectedCC.code ? selectedCC.code + ' · ' : '' }}{{ selectedCC.name }}</h3></div></div>
+						<div class="vbh-detailhead">
+							<div><h3>{{ selectedCC.code ? selectedCC.code + ' · ' : '' }}{{ selectedCC.name }}</h3></div>
+						</div>
 
 						<div v-if="canWrite && selectedCC.code && reportData && reportData.mode !== 'account'" class="vbh-opening">
 							<span>Name:</span>
 							<input :value="renameName" class="vbh-rename" @input="$emit('update:rename-name', $event.target.value)">
-							<NcButton variant="primary" size="small" @click="saveRename">Umbenennen</NcButton>
+							<NcButton variant="primary" size="small" @click="saveRename">
+								Umbenennen
+							</NcButton>
 						</div>
 
 						<div class="vbh-totals">
-							<div class="vbh-total pos"><span>Einnahmen</span><strong>{{ formatMoney(selectedCC.income) }}</strong></div>
-							<div class="vbh-total neg"><span>Ausgaben</span><strong>{{ formatMoney(selectedCC.expense) }}</strong></div>
-							<div class="vbh-total" :class="selectedCC.result >= 0 ? 'pos' : 'neg'"><span>Ergebnis</span><strong>{{ formatMoney(selectedCC.result) }}</strong></div>
+							<div class="vbh-total pos">
+								<span>Einnahmen</span><strong>{{ formatMoney(selectedCC.income) }}</strong>
+							</div>
+							<div class="vbh-total neg">
+								<span>Ausgaben</span><strong>{{ formatMoney(selectedCC.expense) }}</strong>
+							</div>
+							<div class="vbh-total" :class="selectedCC.result >= 0 ? 'pos' : 'neg'">
+								<span>Ergebnis</span><strong>{{ formatMoney(selectedCC.result) }}</strong>
+							</div>
 						</div>
 
 						<h4>Beteiligte Konten <span class="vbh-hint">(Konto anklicken für Buchungen)</span></h4>
 						<div v-if="selectedCC.accounts.length && isMobile" class="vbh-cardlist">
-							<div v-for="(a, i) in selectedCC.accounts" :key="'m' + i"
-								class="vbh-mcard tappable" role="button" tabindex="0"
-								@click="toggleCCAccount(a.accountId)" @keyup.enter="toggleCCAccount(a.accountId)">
+							<div v-for="(a, i) in selectedCC.accounts"
+								:key="'m' + i"
+								class="vbh-mcard tappable"
+								role="button"
+								tabindex="0"
+								@click="toggleCCAccount(a.accountId)"
+								@keyup.enter="toggleCCAccount(a.accountId)">
 								<div class="vbh-mcard-top">
 									<span class="vbh-mcard-title"><span class="vbh-caret" :class="{ open: ccExpanded[a.accountId] }">›</span> {{ a.number }} {{ a.name }}</span>
 									<span class="vbh-mcard-amount" :class="amountClass(a.balance)">{{ formatMoney(a.balance) }}</span>
@@ -170,46 +288,90 @@
 											<span class="vbh-ccbooking-amount">{{ r.debit ? formatMoney(r.debit) : formatMoney(r.credit) }}</span>
 										</div>
 									</template>
-									<p v-else class="vbh-empty">Keine Buchungen.</p>
+									<p v-else class="vbh-empty">
+										Keine Buchungen.
+									</p>
 								</div>
 							</div>
 						</div>
 						<div v-else-if="selectedCC.accounts.length" class="vbh-tablecard">
 							<table class="vbh-table">
-								<thead><tr><th class="nowrap">Nr.</th><th>Konto</th><th>Art</th><th class="num">Betrag</th></tr></thead>
+								<thead>
+									<tr>
+										<th class="nowrap">
+											Nr.
+										</th><th>Konto</th><th>Art</th><th class="num">
+											Betrag
+										</th>
+									</tr>
+								</thead>
 								<tbody>
 									<!-- :key gehoert auf die echten <tr>, nicht aufs <template>
 									     (Vue 2 ignoriert Template-Keys stillschweigend, Muster wie beim Finanzplan unten) -->
 									<template v-for="(a, i) in selectedCC.accounts">
 										<tr :key="'cc-' + i" class="vbh-ccrow" @click="toggleCCAccount(a.accountId)">
-											<td class="nowrap"><span class="vbh-caret" :class="{ open: ccExpanded[a.accountId] }">›</span> {{ a.number }}</td>
+											<td class="nowrap">
+												<span class="vbh-caret" :class="{ open: ccExpanded[a.accountId] }">›</span> {{ a.number }}
+											</td>
 											<td>{{ a.name }}</td>
 											<td><span class="vbh-typetag" :class="a.type">{{ typeLabel(a.type) }}</span></td>
-											<td class="num" :class="amountClass(a.balance)">{{ formatMoney(a.balance) }}</td>
+											<td class="num" :class="amountClass(a.balance)">
+												{{ formatMoney(a.balance) }}
+											</td>
 										</tr>
 										<tr v-if="ccExpanded[a.accountId]" :key="'ccd-' + i" class="vbh-ccdetail">
 											<td colspan="4">
 												<table v-if="ccBookings[a.accountId] && ccBookings[a.accountId].length" class="vbh-table vbh-subtable">
-													<thead><tr><th class="num vbh-col-hide-sm">Nr.</th><th class="nowrap">Datum</th><th>Beschreibung</th><th class="vbh-col-hide-sm">Gegenkonto</th><th class="num">Soll</th><th class="num">Haben</th></tr></thead>
+													<thead>
+														<tr>
+															<th class="num vbh-col-hide-sm">
+																Nr.
+															</th><th class="nowrap">
+																Datum
+															</th><th>Beschreibung</th><th class="vbh-col-hide-sm">
+																Gegenkonto
+															</th><th class="num">
+																Soll
+															</th><th class="num">
+																Haben
+															</th>
+														</tr>
+													</thead>
 													<tbody>
 														<tr v-for="(r, j) in ccBookings[a.accountId]" :key="j">
-															<td class="num vbh-col-hide-sm">{{ r.entryNo }}</td>
-															<td class="nowrap">{{ formatDate(r.date) }}</td>
-															<td class="vbh-purpose" :title="r.description"><span class="vbh-clamp">{{ r.description }}</span></td>
-															<td class="vbh-col-hide-sm">{{ r.contra }}</td>
-															<td class="num">{{ r.debit ? formatMoney(r.debit) : '' }}</td>
-															<td class="num">{{ r.credit ? formatMoney(r.credit) : '' }}</td>
+															<td class="num vbh-col-hide-sm">
+																{{ r.entryNo }}
+															</td>
+															<td class="nowrap">
+																{{ formatDate(r.date) }}
+															</td>
+															<td class="vbh-purpose" :title="r.description">
+																<span class="vbh-clamp">{{ r.description }}</span>
+															</td>
+															<td class="vbh-col-hide-sm">
+																{{ r.contra }}
+															</td>
+															<td class="num">
+																{{ r.debit ? formatMoney(r.debit) : '' }}
+															</td>
+															<td class="num">
+																{{ r.credit ? formatMoney(r.credit) : '' }}
+															</td>
 														</tr>
 													</tbody>
 												</table>
-												<p v-else class="vbh-empty">Keine Buchungen.</p>
+												<p v-else class="vbh-empty">
+													Keine Buchungen.
+												</p>
 											</td>
 										</tr>
 									</template>
 								</tbody>
 							</table>
 						</div>
-						<p v-else class="vbh-empty">Keine Buchungen mit Betrag in dieser Kostenstelle.</p>
+						<p v-else class="vbh-empty">
+							Keine Buchungen mit Betrag in dieser Kostenstelle.
+						</p>
 					</template>
 				</div>
 			</div>
@@ -219,7 +381,12 @@
 				<div v-if="!isMobile || !selectedSphere" class="vbh-tree">
 					<div class="vbh-treehead">
 						<strong>Sphären</strong>
-						<button type="button" class="vbh-sphere-help" title="Was bedeutet das?" @click="$emit('help', 'spheres')">?</button>
+						<button type="button"
+							class="vbh-sphere-help"
+							title="Was bedeutet das?"
+							@click="$emit('help', 'spheres')">
+							?
+						</button>
 					</div>
 					<div v-if="sphereData" class="vbh-ccsummary">
 						<span>Gesamtergebnis</span>
@@ -230,44 +397,75 @@
 						({{ Math.round(sphereData.freigrenze.ratio * 100) }} %)
 					</div>
 					<div v-if="sphereData" class="vbh-treelist">
-						<div v-for="s in sphereData.spheres" :key="s.code || 'none'"
-							class="vbh-treenode" :class="{ selected: isSphereSelected(s) }" @click="selectSphere(s)">
+						<div v-for="s in sphereData.spheres"
+							:key="s.code || 'none'"
+							class="vbh-treenode"
+							:class="{ selected: isSphereSelected(s) }"
+							@click="selectSphere(s)">
 							<span class="vbh-treename">{{ s.name }}</span>
 							<span class="vbh-treesaldo" :class="[amountClass(s.result), { zero: !s.result }]">{{ formatMoney(s.result) }}</span>
 						</div>
 					</div>
-					<p v-else class="vbh-hint">Keine Daten. Importiere oder erfasse zuerst Buchungen.</p>
+					<p v-else class="vbh-hint">
+						Keine Daten. Importiere oder erfasse zuerst Buchungen.
+					</p>
 				</div>
 
 				<div v-if="!isMobile || selectedSphere" class="vbh-detail">
 					<div v-if="isMobile" class="vbh-backbar">
-						<button type="button" class="vbh-backbtn" @click="$emit('update:selected-sphere-code', false)">‹ Sphären</button>
+						<button type="button" class="vbh-backbtn" @click="$emit('update:selected-sphere-code', false)">
+							‹ Sphären
+						</button>
 					</div>
-					<p v-if="!selectedSphere" class="vbh-empty vbh-detailhint">Sphäre links auswählen.</p>
+					<p v-if="!selectedSphere" class="vbh-empty vbh-detailhint">
+						Sphäre links auswählen.
+					</p>
 					<template v-else>
-						<div class="vbh-detailhead"><div><h3>{{ selectedSphere.name }}</h3></div></div>
+						<div class="vbh-detailhead">
+							<div><h3>{{ selectedSphere.name }}</h3></div>
+						</div>
 
 						<div class="vbh-totals">
-							<div class="vbh-total pos"><span>Einnahmen</span><strong>{{ formatMoney(selectedSphere.income) }}</strong></div>
-							<div class="vbh-total neg"><span>Ausgaben</span><strong>{{ formatMoney(selectedSphere.expense) }}</strong></div>
-							<div class="vbh-total" :class="selectedSphere.result >= 0 ? 'pos' : 'neg'"><span>Ergebnis</span><strong>{{ formatMoney(selectedSphere.result) }}</strong></div>
+							<div class="vbh-total pos">
+								<span>Einnahmen</span><strong>{{ formatMoney(selectedSphere.income) }}</strong>
+							</div>
+							<div class="vbh-total neg">
+								<span>Ausgaben</span><strong>{{ formatMoney(selectedSphere.expense) }}</strong>
+							</div>
+							<div class="vbh-total" :class="selectedSphere.result >= 0 ? 'pos' : 'neg'">
+								<span>Ergebnis</span><strong>{{ formatMoney(selectedSphere.result) }}</strong>
+							</div>
 						</div>
 
 						<h4>Beteiligte Konten</h4>
 						<div v-if="selectedSphere.accounts.length" class="vbh-tablecard">
 							<table class="vbh-table">
-								<thead><tr><th class="nowrap">Nr.</th><th>Konto</th><th>Art</th><th class="num">Betrag</th></tr></thead>
+								<thead>
+									<tr>
+										<th class="nowrap">
+											Nr.
+										</th><th>Konto</th><th>Art</th><th class="num">
+											Betrag
+										</th>
+									</tr>
+								</thead>
 								<tbody>
 									<tr v-for="a in selectedSphere.accounts" :key="a.accountId">
-										<td class="nowrap">{{ a.number }}</td>
+										<td class="nowrap">
+											{{ a.number }}
+										</td>
 										<td>{{ a.name }}</td>
 										<td><span class="vbh-typetag" :class="a.type">{{ typeLabel(a.type) }}</span></td>
-										<td class="num" :class="amountClass(a.balance)">{{ formatMoney(a.balance) }}</td>
+										<td class="num" :class="amountClass(a.balance)">
+											{{ formatMoney(a.balance) }}
+										</td>
 									</tr>
 								</tbody>
 							</table>
 						</div>
-						<p v-else class="vbh-empty">Keine Buchungen mit Betrag in dieser Sphäre.</p>
+						<p v-else class="vbh-empty">
+							Keine Buchungen mit Betrag in dieser Sphäre.
+						</p>
 					</template>
 				</div>
 			</div>
@@ -280,26 +478,42 @@
 					Umbuchung) – hier siehst du nur den aktuellen Stand je Art.
 				</p>
 				<div v-if="reserveData" class="vbh-totals">
-					<div class="vbh-total" :class="reserveData.total >= 0 ? 'pos' : 'neg'"><span>Rücklagen gesamt</span><strong>{{ formatMoney(reserveData.total) }}</strong></div>
+					<div class="vbh-total" :class="reserveData.total >= 0 ? 'pos' : 'neg'">
+						<span>Rücklagen gesamt</span><strong>{{ formatMoney(reserveData.total) }}</strong>
+					</div>
 				</div>
 				<div v-if="reserveData && reserveData.reserves.some(r => r.accounts.length)" class="vbh-tablecard">
 					<table class="vbh-table">
-						<thead><tr><th>Rücklagen-Art</th><th class="num">Saldo</th></tr></thead>
+						<thead>
+							<tr>
+								<th>Rücklagen-Art</th><th class="num">
+									Saldo
+								</th>
+							</tr>
+						</thead>
 						<tbody>
 							<template v-for="r in reserveData.reserves">
 								<tr :key="r.kind" class="vbh-parentrow">
 									<td><strong>{{ r.name }}</strong></td>
-									<td class="num strong" :class="amountClass(r.balance)">{{ formatMoney(r.balance) }}</td>
+									<td class="num strong" :class="amountClass(r.balance)">
+										{{ formatMoney(r.balance) }}
+									</td>
 								</tr>
 								<tr v-for="a in r.accounts" :key="r.kind + '-' + a.accountId">
-									<td class="nowrap" style="padding-left: 24px;">{{ a.number }} {{ a.name }}</td>
-									<td class="num">{{ formatMoney(a.balance) }}</td>
+									<td class="nowrap" style="padding-left: 24px;">
+										{{ a.number }} {{ a.name }}
+									</td>
+									<td class="num">
+										{{ formatMoney(a.balance) }}
+									</td>
 								</tr>
 							</template>
 						</tbody>
 					</table>
 				</div>
-				<p v-else class="vbh-empty">Noch keinem Konto eine Rücklagen-Art zugewiesen. Im Konto-Dialog eines Eigenkapital-Kontos festlegen (Tab Konten).</p>
+				<p v-else class="vbh-empty">
+					Noch keinem Konto eine Rücklagen-Art zugewiesen. Im Konto-Dialog eines Eigenkapital-Kontos festlegen (Tab Konten).
+				</p>
 			</div>
 
 			<!-- FINANZPLAN -->
@@ -307,8 +521,15 @@
 				<div class="vbh-sectionhead">
 					<h4>Finanzplan &amp; Soll-Ist-Vergleich{{ budgetData ? ' ' + budgetData.year : '' }}</h4>
 					<form v-if="canWrite" class="vbh-addyear" @submit.prevent="addBudgetYear">
-						<input v-model="newBudgetYear" type="number" min="2000" max="2099" placeholder="Jahr" class="vbh-addyear-input">
-						<NcButton type="submit" variant="secondary">Jahr hinzufügen</NcButton>
+						<input v-model="newBudgetYear"
+							type="number"
+							min="2000"
+							max="2099"
+							placeholder="Jahr"
+							class="vbh-addyear-input">
+						<NcButton type="submit" variant="secondary">
+							Jahr hinzufügen
+						</NcButton>
 					</form>
 				</div>
 				<p class="vbh-hint">
@@ -335,28 +556,46 @@
 					<table class="vbh-table">
 						<thead>
 							<tr>
-								<th class="nowrap vbh-col-hide-sm">Nr.</th>
+								<th class="nowrap vbh-col-hide-sm">
+									Nr.
+								</th>
 								<th>Konto</th>
-								<th class="vbh-col-hide-sm">Art</th>
-								<th class="num vbh-col-plan">Plan (Soll)</th>
-								<th class="vbh-col-note" title="Notiz zur Planzahl"></th>
-								<th class="num">Ist</th>
-								<th class="num">Differenz</th>
+								<th class="vbh-col-hide-sm">
+									Art
+								</th>
+								<th class="num vbh-col-plan">
+									Plan (Soll)
+								</th>
+								<th class="vbh-col-note" title="Notiz zur Planzahl" />
+								<th class="num">
+									Ist
+								</th>
+								<th class="num">
+									Differenz
+								</th>
 							</tr>
 						</thead>
 						<tbody>
 							<template v-for="row in budgetData.rows">
 								<tr :key="row.accountId">
-									<td class="nowrap vbh-col-hide-sm">{{ row.number }}</td>
+									<td class="nowrap vbh-col-hide-sm">
+										{{ row.number }}
+									</td>
 									<td>{{ row.name }}</td>
-									<td class="vbh-col-hide-sm"><span class="vbh-typetag" :class="row.type">{{ typeLabel(row.type) }}</span></td>
+									<td class="vbh-col-hide-sm">
+										<span class="vbh-typetag" :class="row.type">{{ typeLabel(row.type) }}</span>
+									</td>
 									<td class="num vbh-col-plan">
-										<input v-if="canWrite" v-model.number="row.plan" type="number" step="0.01" class="vbh-num vbh-planinput" @change="saveBudget(row)">
+										<input v-if="canWrite"
+											v-model.number="row.plan"
+											type="number"
+											step="0.01"
+											class="vbh-num vbh-planinput"
+											@change="saveBudget(row)">
 										<span v-else>{{ formatMoney(row.plan) }}</span>
 									</td>
 									<td class="vbh-col-note">
-										<NcButton
-											v-if="canWrite || row.note"
+										<NcButton v-if="canWrite || row.note"
 											variant="tertiary"
 											:aria-label="row.note ? 'Notiz zur Planzahl anzeigen' : 'Notiz zur Planzahl hinzufügen'"
 											:title="row.note || 'Notiz hinzufügen'"
@@ -366,20 +605,23 @@
 											</template>
 										</NcButton>
 									</td>
-									<td class="num strong" :class="amountClass(row.actual)">{{ formatMoney(row.actual) }}</td>
-									<td class="num strong" :class="budgetDiffClass(row)">{{ formatMoney(row.diff) }}</td>
+									<td class="num strong" :class="amountClass(row.actual)">
+										{{ formatMoney(row.actual) }}
+									</td>
+									<td class="num strong" :class="budgetDiffClass(row)">
+										{{ formatMoney(row.diff) }}
+									</td>
 								</tr>
 								<tr v-if="budgetNoteOpen[row.accountId]" :key="'note-' + row.accountId" class="vbh-note-row">
 									<td colspan="7">
 										<label class="vbh-note-label">Notiz zu {{ row.number }} {{ row.name }}
-											<textarea
-												v-if="canWrite"
+											<textarea v-if="canWrite"
 												v-model="row.note"
 												maxlength="1000"
 												rows="2"
 												class="vbh-note-textarea"
 												placeholder="z. B. Herleitung: 40 Mitglieder × 25 € Beitrag"
-												@change="saveBudget(row)"></textarea>
+												@change="saveBudget(row)" />
 											<p v-else class="vbh-note-text">{{ row.note }}</p>
 										</label>
 									</td>
@@ -388,15 +630,23 @@
 						</tbody>
 					</table>
 				</div>
-				<p v-else-if="budgetData" class="vbh-empty">Keine Einnahmen-/Ausgabenkonten vorhanden.</p>
+				<p v-else-if="budgetData" class="vbh-empty">
+					Keine Einnahmen-/Ausgabenkonten vorhanden.
+				</p>
 
 				<!-- PLAN-STÄNDE (Snapshots) -->
 				<div v-if="budgetData" class="vbh-snapblock">
 					<div class="vbh-sectionhead">
 						<h4>Plan-Stände {{ budgetData.year }}</h4>
 						<form v-if="canWrite" class="vbh-addyear" @submit.prevent="saveBudgetSnapshot">
-							<input v-model="newSnapshotLabel" type="text" maxlength="128" placeholder="z.B. Beschluss MV" class="vbh-snaplabel-input">
-							<NcButton type="submit" variant="secondary">Aktuellen Plan speichern</NcButton>
+							<input v-model="newSnapshotLabel"
+								type="text"
+								maxlength="128"
+								placeholder="z.B. Beschluss MV"
+								class="vbh-snaplabel-input">
+							<NcButton type="submit" variant="secondary">
+								Aktuellen Plan speichern
+							</NcButton>
 						</form>
 					</div>
 					<p class="vbh-hint">
@@ -408,31 +658,56 @@
 							<thead>
 								<tr>
 									<th>Stand</th>
-									<th class="nowrap vbh-col-hide-sm">Gespeichert</th>
-									<th class="num vbh-col-hide-sm">Einnahmen</th>
-									<th class="num vbh-col-hide-sm">Ausgaben</th>
-									<th class="num">Ergebnis</th>
-									<th></th>
+									<th class="nowrap vbh-col-hide-sm">
+										Gespeichert
+									</th>
+									<th class="num vbh-col-hide-sm">
+										Einnahmen
+									</th>
+									<th class="num vbh-col-hide-sm">
+										Ausgaben
+									</th>
+									<th class="num">
+										Ergebnis
+									</th>
+									<th />
 								</tr>
 							</thead>
 							<tbody>
 								<tr v-for="snap in budgetSnapshots" :key="snap.id">
 									<td><strong>{{ snap.label }}</strong></td>
-									<td class="nowrap vbh-col-hide-sm">{{ formatDateTime(snap.createdAt) }}</td>
-									<td class="num vbh-col-hide-sm">{{ formatMoney(snap.planIncome) }}</td>
-									<td class="num vbh-col-hide-sm">{{ formatMoney(snap.planExpense) }}</td>
-									<td class="num strong" :class="snap.planResult >= 0 ? 'good' : 'bad'">{{ formatMoney(snap.planResult) }}</td>
+									<td class="nowrap vbh-col-hide-sm">
+										{{ formatDateTime(snap.createdAt) }}
+									</td>
+									<td class="num vbh-col-hide-sm">
+										{{ formatMoney(snap.planIncome) }}
+									</td>
+									<td class="num vbh-col-hide-sm">
+										{{ formatMoney(snap.planExpense) }}
+									</td>
+									<td class="num strong" :class="snap.planResult >= 0 ? 'good' : 'bad'">
+										{{ formatMoney(snap.planResult) }}
+									</td>
 									<td class="right nowrap">
-										<NcButton variant="tertiary" @click="openSnapshot(snap)">Ansehen</NcButton>
-										<NcButton v-if="canWrite" variant="tertiary" @click="deleteBudgetSnapshot(snap)" title="Stand löschen">
-											<template #icon><NcIconSvgWrapper :path="mdiDelete" :size="18" /></template>
+										<NcButton variant="tertiary" @click="openSnapshot(snap)">
+											Ansehen
+										</NcButton>
+										<NcButton v-if="canWrite"
+											variant="tertiary"
+											title="Stand löschen"
+											@click="deleteBudgetSnapshot(snap)">
+											<template #icon>
+												<NcIconSvgWrapper :path="mdiDelete" :size="18" />
+											</template>
 										</NcButton>
 									</td>
 								</tr>
 							</tbody>
 						</table>
 					</div>
-					<p v-else class="vbh-empty">Noch keine Stände für dieses Jahr gespeichert.</p>
+					<p v-else class="vbh-empty">
+						Noch keine Stände für dieses Jahr gespeichert.
+					</p>
 				</div>
 			</div>
 
@@ -444,24 +719,42 @@
 				</p>
 				<div v-if="auditEntries.length" class="vbh-tablecard">
 					<table class="vbh-table">
-						<thead><tr><th class="nowrap">Zeitpunkt</th><th>Wer</th><th>Aktion</th><th>Details</th></tr></thead>
+						<thead>
+							<tr>
+								<th class="nowrap">
+									Zeitpunkt
+								</th><th>Wer</th><th>Aktion</th><th>Details</th>
+							</tr>
+						</thead>
 						<tbody>
 							<tr v-for="a in auditEntries" :key="a.id">
-								<td class="nowrap">{{ formatDateTime(a.ts) }}</td>
-								<td class="nowrap">{{ a.userId }}</td>
-								<td class="nowrap">{{ a.action }}</td>
-								<td class="vbh-purpose"><span class="vbh-clamp">{{ auditDetailText(a) }}</span></td>
+								<td class="nowrap">
+									{{ formatDateTime(a.ts) }}
+								</td>
+								<td class="nowrap">
+									{{ a.userId }}
+								</td>
+								<td class="nowrap">
+									{{ a.action }}
+								</td>
+								<td class="vbh-purpose">
+									<span class="vbh-clamp">{{ auditDetailText(a) }}</span>
+								</td>
 							</tr>
 						</tbody>
 					</table>
 				</div>
 				<NcEmptyContent v-else-if="!auditLoading" name="Noch keine Protokolleinträge" description="Änderungen ab Version 0.10.41 werden hier aufgezeichnet.">
 					<template #action>
-						<NcButton variant="tertiary" @click="$emit('help', 'reports')">Mehr dazu</NcButton>
+						<NcButton variant="tertiary" @click="$emit('help', 'reports')">
+							Mehr dazu
+						</NcButton>
 					</template>
 				</NcEmptyContent>
 				<div v-if="auditEntries.length && !auditEnd" class="vbh-loadmore">
-					<NcButton variant="secondary" :disabled="auditLoading" @click="loadAudit(true)">Ältere Einträge laden</NcButton>
+					<NcButton variant="secondary" :disabled="auditLoading" @click="loadAudit(true)">
+						Ältere Einträge laden
+					</NcButton>
 				</div>
 			</div>
 		</div>

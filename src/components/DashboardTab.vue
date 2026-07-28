@@ -1,7 +1,6 @@
 <template>
 	<div>
-		<SetupChecklist
-			v-if="isAdmin"
+		<SetupChecklist v-if="isAdmin"
 			:accounts="accounts"
 			:permissions="permissions"
 			:journal-count="journalData.length"
@@ -28,12 +27,16 @@
 			<div v-if="unassignedCount > 0" class="vbh-total vbh-total--warn">
 				<span>Nicht zugeordnet</span>
 				<strong>{{ unassignedCount }} Buchungen</strong>
-				<NcButton variant="primary" size="small" @click="$emit('go-unassigned')">Jetzt zuordnen</NcButton>
+				<NcButton variant="primary" size="small" @click="$emit('go-unassigned')">
+					Jetzt zuordnen
+				</NcButton>
 			</div>
 			<div v-if="overdueOpenItemsCount > 0" class="vbh-total vbh-total--warn">
 				<span>Überfällige offene Posten</span>
 				<strong>{{ overdueOpenItemsCount }}</strong>
-				<NcButton variant="primary" size="small" @click="$emit('go-open-items')">Ansehen</NcButton>
+				<NcButton variant="primary" size="small" @click="$emit('go-open-items')">
+					Ansehen
+				</NcButton>
 			</div>
 		</div>
 
@@ -45,19 +48,36 @@
 				<span v-if="sphereData.freigrenze.level === 'over'"> – Freigrenze überschritten, bitte mit Steuerberatung klären.</span>
 				<span v-else-if="sphereData.freigrenze.level === 'warn'"> – nähert sich der Freigrenze.</span>
 			</div>
-			<button type="button" class="vbh-sphere-help" title="Was bedeutet das?" @click="$emit('help', 'spheres')">?</button>
+			<button type="button"
+				class="vbh-sphere-help"
+				title="Was bedeutet das?"
+				@click="$emit('help', 'spheres')">
+				?
+			</button>
 		</div>
 
 		<template v-if="balances && balances.bankReconciliation && balances.bankReconciliation.length">
 			<h4>Geldkonten</h4>
 			<div v-if="!isMobile" class="vbh-tablecard">
 				<table class="vbh-table">
-					<thead><tr><th>Konto</th><th class="num">Kontostand</th><th class="num">Offen (nicht zugeordnet)</th></tr></thead>
+					<thead>
+						<tr>
+							<th>Konto</th><th class="num">
+								Kontostand
+							</th><th class="num">
+								Offen (nicht zugeordnet)
+							</th>
+						</tr>
+					</thead>
 					<tbody>
 						<tr v-for="b in balances.bankReconciliation" :key="b.accountId">
 							<td>{{ b.number }} {{ b.name }}</td>
-							<td class="num strong">{{ formatMoney(b.balance) }}</td>
-							<td class="num" :class="Math.abs(b.open) > 0.005 ? 'neg' : ''">{{ formatMoney(b.open) }}</td>
+							<td class="num strong">
+								{{ formatMoney(b.balance) }}
+							</td>
+							<td class="num" :class="Math.abs(b.open) > 0.005 ? 'neg' : ''">
+								{{ formatMoney(b.open) }}
+							</td>
 						</tr>
 					</tbody>
 				</table>
@@ -78,28 +98,52 @@
 		<template v-if="recentJournal.length">
 			<div class="vbh-sectionhead">
 				<h4>Letzte Buchungen</h4>
-				<NcButton variant="tertiary" @click="$emit('show-all-bookings')">Alle anzeigen</NcButton>
+				<NcButton variant="tertiary" @click="$emit('show-all-bookings')">
+					Alle anzeigen
+				</NcButton>
 			</div>
 			<div v-if="!isMobile" class="vbh-tablecard">
 				<table class="vbh-table">
 					<thead>
 						<tr>
-							<th class="num vbh-col-hide-sm">Nr.</th>
-							<th class="nowrap">Datum</th>
+							<th class="num vbh-col-hide-sm">
+								Nr.
+							</th>
+							<th class="nowrap">
+								Datum
+							</th>
 							<th>Beschreibung</th>
-							<th class="vbh-col-hide-sm">Soll</th>
-							<th class="vbh-col-hide-sm">Haben</th>
-							<th class="num">Betrag</th>
+							<th class="vbh-col-hide-sm">
+								Soll
+							</th>
+							<th class="vbh-col-hide-sm">
+								Haben
+							</th>
+							<th class="num">
+								Betrag
+							</th>
 						</tr>
 					</thead>
 					<tbody>
 						<tr v-for="r in recentJournal" :key="r.id">
-							<td class="num vbh-col-hide-sm">{{ r.entryNo }}</td>
-							<td class="nowrap">{{ formatDate(r.date) }}</td>
-							<td class="vbh-purpose" :title="r.description"><span class="vbh-clamp">{{ r.description }}</span></td>
-							<td class="vbh-col-hide-sm">{{ r.soll }}</td>
-							<td class="vbh-col-hide-sm">{{ r.haben }}</td>
-							<td class="num strong">{{ formatMoney(r.amount) }}</td>
+							<td class="num vbh-col-hide-sm">
+								{{ r.entryNo }}
+							</td>
+							<td class="nowrap">
+								{{ formatDate(r.date) }}
+							</td>
+							<td class="vbh-purpose" :title="r.description">
+								<span class="vbh-clamp">{{ r.description }}</span>
+							</td>
+							<td class="vbh-col-hide-sm">
+								{{ r.soll }}
+							</td>
+							<td class="vbh-col-hide-sm">
+								{{ r.haben }}
+							</td>
+							<td class="num strong">
+								{{ formatMoney(r.amount) }}
+							</td>
 						</tr>
 					</tbody>
 				</table>
@@ -117,7 +161,9 @@
 		</template>
 		<NcEmptyContent v-else-if="!busy" name="Noch keine Buchungen" description="Importiere Kontoumsätze oder lege manuell Buchungssätze an.">
 			<template #action>
-				<NcButton variant="tertiary" @click="$emit('help', 'bookings')">Mehr dazu</NcButton>
+				<NcButton variant="tertiary" @click="$emit('help', 'bookings')">
+					Mehr dazu
+				</NcButton>
 			</template>
 		</NcEmptyContent>
 
@@ -125,7 +171,7 @@
 			<div class="vbh-chart-card vbh-chart-card--wide">
 				<h4>Einnahmen &amp; Ausgaben{{ selectedYear ? ' ' + selectedYear : '' }} (monatlich)</h4>
 				<div class="vbh-chart-wrap">
-					<canvas ref="monthlyChart"></canvas>
+					<canvas ref="monthlyChart" />
 				</div>
 			</div>
 		</div>

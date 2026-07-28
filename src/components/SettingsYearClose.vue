@@ -1,6 +1,8 @@
 <template>
 	<div>
-		<h3 class="vbh-section-divider">Jahresabschluss</h3>
+		<h3 class="vbh-section-divider">
+			Jahresabschluss
+		</h3>
 		<div class="vbh-card">
 			<p class="vbh-hint">
 				Ein abgeschlossenes Geschäftsjahr ist <strong>festgeschrieben</strong>: Buchungen, Belege und
@@ -10,32 +12,52 @@
 			</p>
 			<div v-if="years.length" class="vbh-tablecard">
 				<table class="vbh-table">
-					<thead><tr><th>Jahr</th><th>Status</th><th class="right"></th></tr></thead>
+					<thead><tr><th>Jahr</th><th>Status</th><th class="right" /></tr></thead>
 					<tbody>
 						<tr v-for="y in years" :key="'yc' + y">
-							<td class="strong">{{ y }}</td>
+							<td class="strong">
+								{{ y }}
+							</td>
 							<td>
 								<template v-if="closedYearSet[y]">
 									🔒 abgeschlossen am {{ formatDate(String(closedYearSet[y].closedAt).slice(0, 10)) }}
 									von {{ closedYearSet[y].closedBy }}
 								</template>
-								<template v-else>offen</template>
+								<template v-else>
+									offen
+								</template>
 							</td>
 							<td class="right">
-								<NcButton v-if="!closedYearSet[y]" variant="primary" size="small" @click="closeYear(y)">Abschließen</NcButton>
-								<NcButton v-else variant="tertiary" size="small" @click="reopenYear(y)">Wiedereröffnen</NcButton>
+								<NcButton v-if="!closedYearSet[y]"
+									variant="primary"
+									size="small"
+									@click="closeYear(y)">
+									Abschließen
+								</NcButton>
+								<NcButton v-else
+									variant="tertiary"
+									size="small"
+									@click="reopenYear(y)">
+									Wiedereröffnen
+								</NcButton>
 							</td>
 						</tr>
 					</tbody>
 				</table>
 			</div>
-			<p v-else class="vbh-hint">Noch keine Geschäftsjahre mit Buchungen vorhanden.</p>
+			<p v-else class="vbh-hint">
+				Noch keine Geschäftsjahre mit Buchungen vorhanden.
+			</p>
 		</div>
 
 		<div class="vbh-card vbh-card--danger">
 			<h4>Alle Daten löschen</h4>
-			<p class="vbh-hint">Löscht alle Konten, Buchungen und Importe dieses Kontos unwiderruflich.</p>
-			<NcButton variant="error" :disabled="busy" @click="resetAll">Alle Daten löschen</NcButton>
+			<p class="vbh-hint">
+				Löscht alle Konten, Buchungen und Importe dieses Kontos unwiderruflich.
+			</p>
+			<NcButton variant="error" :disabled="busy" @click="resetAll">
+				Alle Daten löschen
+			</NcButton>
 		</div>
 	</div>
 </template>

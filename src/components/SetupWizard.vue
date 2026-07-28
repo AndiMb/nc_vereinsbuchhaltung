@@ -1,8 +1,14 @@
 <template>
-	<NcModal :show="show" name="Willkommen" size="normal" @close="$emit('close')" @update:show="$emit('update:show', $event)">
+	<NcModal :show="show"
+		name="Willkommen"
+		size="normal"
+		@close="$emit('close')"
+		@update:show="$emit('update:show', $event)">
 		<div class="vbh-wizard">
 			<h3>Willkommen bei der Vereinsbuchhaltung!</h3>
-			<p class="vbh-hint">Womit möchtest du starten? Das lässt sich jederzeit später ändern.</p>
+			<p class="vbh-hint">
+				Womit möchtest du starten? Das lässt sich jederzeit später ändern.
+			</p>
 
 			<div class="vbh-wizard-choices">
 				<button class="vbh-wizard-choice" @click="$emit('choose', 'xbuc')">
@@ -22,7 +28,9 @@
 				</button>
 			</div>
 
-			<button class="vbh-wizard-skip" @click="$emit('close')">Überspringen, ich schaue mich selbst um</button>
+			<button class="vbh-wizard-skip" @click="$emit('close')">
+				Überspringen, ich schaue mich selbst um
+			</button>
 		</div>
 	</NcModal>
 </template>

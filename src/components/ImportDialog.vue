@@ -1,46 +1,70 @@
 <template>
-	<NcModal :show="show" name="Kontoumsätze importieren (CSV-CAMT)" size="normal" @close="$emit('close')" @update:show="$emit('update:show', $event)">
+	<NcModal :show="show"
+		name="Kontoumsätze importieren (CSV-CAMT)"
+		size="normal"
+		@close="$emit('close')"
+		@update:show="$emit('update:show', $event)">
 		<div class="vbh-modal-inner">
 			<template v-if="!importDone">
-				<div
-					class="vbh-dropzone"
+				<div class="vbh-dropzone"
 					:class="{ dragging: importDragging, 'has-file': !!selectedFile }"
 					@dragover.prevent="importDragging = true"
 					@dragleave.self="importDragging = false"
-					@drop.prevent="onImportDrop"
-				>
+					@drop.prevent="onImportDrop">
 					<NcIconSvgWrapper :path="mdiUpload" :size="36" class="vbh-dropzone-icon" />
 					<p class="vbh-dropzone-text">
 						CSV-Datei der Bank hierher ziehen<br>
 						<span class="vbh-dropzone-or">oder</span>
 					</p>
-					<label class="vbh-filebtn">Datei wählen<input ref="fileInput" type="file" accept=".csv,text/csv" hidden @change="onFileSelected"></label>
-					<p v-if="selectedFile" class="vbh-filename">{{ selectedFile.name }}</p>
+					<label class="vbh-filebtn">Datei wählen<input ref="fileInput"
+						type="file"
+						accept=".csv,text/csv"
+						hidden
+						@change="onFileSelected"></label>
+					<p v-if="selectedFile" class="vbh-filename">
+						{{ selectedFile.name }}
+					</p>
 				</div>
-				<p class="vbh-hint">Nur neue Buchungen werden übernommen – bereits importierte werden automatisch erkannt (Dublettenprüfung).</p>
-				<NcCheckboxRadioSwitch v-model="applyRules">Auto-Zuordnungsregeln anwenden</NcCheckboxRadioSwitch>
+				<p class="vbh-hint">
+					Nur neue Buchungen werden übernommen – bereits importierte werden automatisch erkannt (Dublettenprüfung).
+				</p>
+				<NcCheckboxRadioSwitch v-model="applyRules">
+					Auto-Zuordnungsregeln anwenden
+				</NcCheckboxRadioSwitch>
 				<div v-if="previewResult" class="vbh-preview">
 					<p class="vbh-previewsummary">
 						<span class="vbh-badge pos">{{ previewResult.new }} neu</span>
 						<span class="vbh-badge muted">{{ previewResult.duplicate }} Dubletten</span>
 						<span class="vbh-badge muted">{{ previewResult.total }} gesamt</span>
 					</p>
-					<p v-if="previewResult.existingBookings > 0" class="vbh-hint">Davon {{ previewResult.existingBookings }} bereits als vorhandene Buchung erkannt (z. B. aus einem XBUC-Import) und daher übersprungen.</p>
-					<NcButton variant="primary" :disabled="busy || previewResult.new === 0" @click="commit">{{ previewResult.new }} Buchungen importieren</NcButton>
-					<p v-if="previewResult.new === 0" class="vbh-hint">Alle Buchungen dieser Datei wurden bereits importiert.</p>
+					<p v-if="previewResult.existingBookings > 0" class="vbh-hint">
+						Davon {{ previewResult.existingBookings }} bereits als vorhandene Buchung erkannt (z. B. aus einem XBUC-Import) und daher übersprungen.
+					</p>
+					<NcButton variant="primary" :disabled="busy || previewResult.new === 0" @click="commit">
+						{{ previewResult.new }} Buchungen importieren
+					</NcButton>
+					<p v-if="previewResult.new === 0" class="vbh-hint">
+						Alle Buchungen dieser Datei wurden bereits importiert.
+					</p>
 				</div>
 			</template>
 			<template v-else>
 				<div class="vbh-import-done">
 					<NcIconSvgWrapper :path="mdiCheckCircle" :size="48" class="vbh-import-done-icon" />
 					<h3>{{ importDone.new }} Buchungen importiert</h3>
-					<p v-if="importDone.autoAssigned > 0" class="vbh-hint">{{ importDone.autoAssigned }} davon wurden automatisch zugeordnet.</p>
+					<p v-if="importDone.autoAssigned > 0" class="vbh-hint">
+						{{ importDone.autoAssigned }} davon wurden automatisch zugeordnet.
+					</p>
 					<p v-if="importDone.new - importDone.autoAssigned > 0" class="vbh-hint">
 						{{ importDone.new - importDone.autoAssigned }} Buchungen warten auf die Zuordnung zu einem Konto.
 					</p>
 					<div class="vbh-modal-actions">
-						<NcButton variant="tertiary" @click="$emit('update:show', false)">Schließen</NcButton>
-						<NcButton v-if="importDone.new - importDone.autoAssigned > 0" variant="primary" @click="$emit('go-assign')">Jetzt zuordnen</NcButton>
+						<NcButton variant="tertiary" @click="$emit('update:show', false)">
+							Schließen
+						</NcButton>
+						<NcButton v-if="importDone.new - importDone.autoAssigned > 0" variant="primary" @click="$emit('go-assign')">
+							Jetzt zuordnen
+						</NcButton>
 					</div>
 				</div>
 			</template>

@@ -1,5 +1,9 @@
 <template>
-	<NcModal :show="show" :name="accountEditId ? 'Konto bearbeiten' : 'Neues Konto'" size="normal" @close="$emit('close')" @update:show="$emit('update:show', $event)">
+	<NcModal :show="show"
+		:name="accountEditId ? 'Konto bearbeiten' : 'Neues Konto'"
+		size="normal"
+		@close="$emit('close')"
+		@update:show="$emit('update:show', $event)">
 		<div class="vbh-modal-inner">
 			<div class="vbh-form">
 				<label>Nummer<input v-model="form.number" class="vbh-short" placeholder="z.B. 4000"></label>
@@ -16,19 +20,19 @@
 					</select>
 				</label>
 				<label class="vbh-grow">Überkonto
-					<NcSelect
-						v-model="accountParentOption"
+					<NcSelect v-model="accountParentOption"
 						:options="accountParentOptions"
 						:filter-by="accountFilterBy"
 						label="label"
 						placeholder="– kein Überkonto –"
-						:clearable="true"
-					/>
+						:clearable="true" />
 				</label>
 			</div>
 			<div class="vbh-form">
 				<label>Kategorie<input v-model="form.category" placeholder="optional"></label>
-				<NcCheckboxRadioSwitch v-model="form.isBank">Geldkonto (Bank/Kasse) – Bestand geht über Jahresgrenzen</NcCheckboxRadioSwitch>
+				<NcCheckboxRadioSwitch v-model="form.isBank">
+					Geldkonto (Bank/Kasse) – Bestand geht über Jahresgrenzen
+				</NcCheckboxRadioSwitch>
 			</div>
 			<div v-if="form.type !== 'equity' && !form.isBank" class="vbh-form">
 				<label class="vbh-grow">Steuerliche Sphäre
@@ -40,7 +44,12 @@
 						<option value="wirtschaftlich">Wirtschaftlicher Geschäftsbetrieb</option>
 					</select>
 				</label>
-				<button type="button" class="vbh-sphere-help" title="Was bedeutet das?" @click="$emit('help')">?</button>
+				<button type="button"
+					class="vbh-sphere-help"
+					title="Was bedeutet das?"
+					@click="$emit('help')">
+					?
+				</button>
 			</div>
 			<div v-if="form.type === 'equity'" class="vbh-form">
 				<label class="vbh-grow">Rücklagen-Art
@@ -53,8 +62,12 @@
 				</label>
 			</div>
 			<div class="vbh-modal-actions">
-				<NcButton variant="tertiary" @click="$emit('close')">Abbrechen</NcButton>
-				<NcButton variant="primary" @click="save">{{ accountEditId ? 'Speichern' : 'Anlegen' }}</NcButton>
+				<NcButton variant="tertiary" @click="$emit('close')">
+					Abbrechen
+				</NcButton>
+				<NcButton variant="primary" @click="save">
+					{{ accountEditId ? 'Speichern' : 'Anlegen' }}
+				</NcButton>
 			</div>
 		</div>
 	</NcModal>
@@ -64,6 +77,9 @@
 import { NcModal, NcButton, NcSelect, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { useAccounts } from '../composables/useAccounts.js'
 
+/**
+ *
+ */
 function emptyForm() {
 	return { number: '', name: '', type: 'income', category: '', isBank: false, parentId: null, sphere: '', reserveKind: '' }
 }

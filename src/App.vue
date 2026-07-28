@@ -12,15 +12,24 @@
 			</div>
 			<div v-if="canRead" class="vbh-navbar" :class="{ 'vbh-navbar--mobile': isMobile }">
 				<nav v-if="!isMobile" class="vbh-tabs">
-					<button v-for="tab in visibleTabs" :key="tab.id" :class="{ active: activeTab === tab.id }" @click="activeTab = tab.id">
+					<button v-for="tab in visibleTabs"
+						:key="tab.id"
+						:class="{ active: activeTab === tab.id }"
+						@click="activeTab = tab.id">
 						<NcIconSvgWrapper :path="tab.icon" :size="18" inline />
 						{{ tab.label }}
 						<span v-if="tab.id === 'bookings' && unassignedCount > 0" class="vbh-badge vbh-badge--alert">{{ unassignedCount }}</span>
 					</button>
 				</nav>
 				<div class="vbh-navright">
-					<NcButton v-if="canWrite && !isMobile" variant="primary" class="vbh-newbooking-btn" title="Neue Buchung anlegen (von überall)" @click="openNewBooking">
-						<template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>
+					<NcButton v-if="canWrite && !isMobile"
+						variant="primary"
+						class="vbh-newbooking-btn"
+						title="Neue Buchung anlegen (von überall)"
+						@click="openNewBooking">
+						<template #icon>
+							<NcIconSvgWrapper :path="mdiPlus" :size="20" />
+						</template>
 						<span class="vbh-newbooking-label">Buchung</span>
 					</NcButton>
 					<label class="vbh-yearsel" :title="yearClosed ? 'Geschäftsjahr abgeschlossen (festgeschrieben)' : 'Geschäftsjahr (Kalenderjahr)'">
@@ -30,11 +39,22 @@
 							<option v-for="y in years" :key="y" :value="y">{{ y }}{{ closedYearSet[y] ? ' 🔒' : '' }}</option>
 						</select>
 					</label>
-					<NcButton variant="tertiary" aria-label="Hilfe" title="Hilfe" @click="openHelp()">
-						<template #icon><NcIconSvgWrapper :path="mdiHelpCircleOutline" :size="20" /></template>
+					<NcButton variant="tertiary"
+						aria-label="Hilfe"
+						title="Hilfe"
+						@click="openHelp()">
+						<template #icon>
+							<NcIconSvgWrapper :path="mdiHelpCircleOutline" :size="20" />
+						</template>
 					</NcButton>
-					<NcButton v-if="canWrite" variant="tertiary" aria-label="Einstellungen & Import" title="Einstellungen & Import" @click="openSettings">
-						<template #icon><NcIconSvgWrapper :path="mdiCog" :size="20" /></template>
+					<NcButton v-if="canWrite"
+						variant="tertiary"
+						aria-label="Einstellungen & Import"
+						title="Einstellungen & Import"
+						@click="openSettings">
+						<template #icon>
+							<NcIconSvgWrapper :path="mdiCog" :size="20" />
+						</template>
 					</NcButton>
 				</div>
 			</div>
@@ -47,7 +67,9 @@
 
 		<div v-if="demoActive" class="vbh-demobanner">
 			<span><strong>Beispieldaten aktiv.</strong> Das ist ein Beispielverein zum Ausprobieren, keine echten Daten.</span>
-			<NcButton variant="secondary" :disabled="busy" @click="resetAll">Zurücksetzen &amp; mit echten Daten starten</NcButton>
+			<NcButton variant="secondary" :disabled="busy" @click="resetAll">
+				Zurücksetzen &amp; mit echten Daten starten
+			</NcButton>
 		</div>
 
 		<div v-if="showRevisorIntro" class="vbh-revisorintro">
@@ -59,16 +81,20 @@
 			</ul>
 			<p>Ändern ist mit dieser Rolle nicht möglich.</p>
 			<div class="vbh-modal-actions">
-				<a :href="pruefleitfadenUrl" target="_blank" rel="noopener" class="vbh-export-btn"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> Prüfleitfaden</a>
-				<NcButton variant="tertiary" @click="dismissRevisorIntro">Verstanden</NcButton>
+				<a :href="pruefleitfadenUrl"
+					target="_blank"
+					rel="noopener"
+					class="vbh-export-btn"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> Prüfleitfaden</a>
+				<NcButton variant="tertiary" @click="dismissRevisorIntro">
+					Verstanden
+				</NcButton>
 			</div>
 		</div>
 
 		<main v-show="canRead" class="vbh-main">
 			<!-- ============ ÜBERSICHT (DASHBOARD) ============ -->
 			<section v-show="activeTab === 'dashboard'" class="vbh-section scroll" :class="{ 'vbh-fadein': sectionFade }">
-				<DashboardTab
-					:is-active="activeTab === 'dashboard'"
+				<DashboardTab :is-active="activeTab === 'dashboard'"
 					:is-mobile="isMobile"
 					:busy="busy"
 					:club-name="clubName"
@@ -81,14 +107,12 @@
 					@help="openHelp"
 					@go-unassigned="goToUnassigned"
 					@go-open-items="goToOpenItems"
-					@show-all-bookings="activeTab = 'bookings'"
-				/>
+					@show-all-bookings="activeTab = 'bookings'" />
 			</section>
 
 			<!-- ============ BUCHUNGEN (JOURNAL + TRANSAKTIONEN) ============ -->
 			<section v-show="activeTab === 'bookings'" class="vbh-section vbh-flex-col" :class="{ 'vbh-fadein': sectionFade }">
-				<BookingsTab
-					:is-mobile="isMobile"
+				<BookingsTab :is-mobile="isMobile"
 					:booking-view="bookingView"
 					:attachment-count-map="attachmentCountMap"
 					:suggestions-by-id="suggestionsById"
@@ -105,14 +129,12 @@
 					:toggle-sort="toggleSort"
 					:sort-arrow="sortArrow"
 					@update:booking-view="bookingView = $event"
-					@help="openHelp('bookings')"
-				/>
+					@help="openHelp('bookings')" />
 			</section>
 
 			<!-- ============ KONTEN ============ -->
 			<section v-show="activeTab === 'accounts'" class="vbh-section split" :class="{ 'vbh-fadein': sectionFade, 'vbh-drill': isMobile }">
-				<AccountsTab
-					:is-mobile="isMobile"
+				<AccountsTab :is-mobile="isMobile"
 					:selected-account-id="selectedAccountId"
 					:statement="statement"
 					:statement-include-children.sync="statementIncludeChildren"
@@ -125,14 +147,12 @@
 					:delete-account="deleteAccount"
 					:save-opening="saveOpening"
 					:seed-accounts="seedAccounts"
-					@help="openHelp('accounts')"
-				/>
+					@help="openHelp('accounts')" />
 			</section>
 
 			<!-- ============ BERICHTE (AUSWERTUNG + KOSTENSTELLEN + FINANZPLAN) ============ -->
 			<section v-show="activeTab === 'reports'" class="vbh-section vbh-flex-col" :class="{ 'vbh-fadein': sectionFade }">
-				<ReportsTab
-					:is-active="activeTab === 'reports'"
+				<ReportsTab :is-active="activeTab === 'reports'"
 					:is-mobile="isMobile"
 					:report-view="reportView"
 					:report-data="reportData"
@@ -164,8 +184,7 @@
 					@update:rename-name="renameName = $event"
 					@help="openHelp"
 					@budget-changed="loadBudget"
-					@snapshots-changed="loadBudgetSnapshots"
-				/>
+					@snapshots-changed="loadBudgetSnapshots" />
 			</section>
 		</main>
 
@@ -178,49 +197,47 @@
 			@new-booking="openNewBooking" />
 
 		<!-- ============ EINSTELLUNGEN MODAL ============ -->
-		<NcModal :show.sync="showSettings" name="Einstellungen & Import" size="large" @close="showSettings = false">
+		<NcModal :show.sync="showSettings"
+			name="Einstellungen & Import"
+			size="large"
+			@close="showSettings = false">
 			<div class="vbh-modal-inner">
 				<h3>Kontoumsätze importieren (CSV-CAMT)</h3>
 				<div class="vbh-card">
-					<p class="vbh-hint">Der CSV-Import ist direkt im Tab „Buchungen" erreichbar.</p>
+					<p class="vbh-hint">
+						Der CSV-Import ist direkt im Tab „Buchungen" erreichbar.
+					</p>
 					<NcButton variant="secondary" @click="showSettings = false; openImport()">
-						<template #icon><NcIconSvgWrapper :path="mdiUpload" :size="18" /></template>
+						<template #icon>
+							<NcIconSvgWrapper :path="mdiUpload" :size="18" />
+						</template>
 						Kontoumsätze importieren…
 					</NcButton>
 				</div>
 
-				<SettingsXbucImport
-					:imports="imports"
+				<SettingsXbucImport :imports="imports"
 					:busy.sync="busy"
 					:ask-confirm="askConfirm"
 					@changed="onXbucImported"
-					@help="openHelp('bookings')"
-				/>
+					@help="openHelp('bookings')" />
 
-				<SettingsRules
-					v-if="canWrite"
+				<SettingsRules v-if="canWrite"
 					:rules="rules"
 					:accounts-by-id="accountsById"
 					:account-options-list="accountOptionsList"
 					:ask-confirm="askConfirm"
-					@changed="loadRules"
-				/>
+					@changed="loadRules" />
 
-				<SettingsSpheres
-					v-if="canWrite"
+				<SettingsSpheres v-if="canWrite"
 					:accounts="accounts"
 					@changed="onSpheresChanged"
-					@help="openHelp('spheres')"
-				/>
+					@help="openHelp('spheres')" />
 
-				<SettingsPermissions
-					v-if="isAdmin"
+				<SettingsPermissions v-if="isAdmin"
 					:ask-confirm="askConfirm"
-					@help="openHelp('setup')"
-				/>
+					@help="openHelp('setup')" />
 
-				<SettingsGeneral
-					v-if="isAdmin"
+				<SettingsGeneral v-if="isAdmin"
 					:club-name.sync="clubName"
 					:cost-center-mode.sync="costCenterMode"
 					:storage-user.sync="storageUser"
@@ -230,31 +247,25 @@
 					:users="users"
 					:storage-saving="storageSaving"
 					:save-storage-settings="saveStorageSettings"
-					@changed="loadStorageSettings"
-				/>
+					@changed="loadStorageSettings" />
 
-				<SettingsYearClose
-					v-if="isAdmin"
+				<SettingsYearClose v-if="isAdmin"
 					:ask-confirm="askConfirm"
 					:busy="busy"
-					:reset-all="resetAll"
-				/>
+					:reset-all="resetAll" />
 			</div>
 		</NcModal>
 
 		<!-- ============ IMPORT-DIALOG (CSV-CAMT) ============ -->
-		<ImportDialog
-			:show="showImport"
+		<ImportDialog :show="showImport"
 			:busy.sync="busy"
 			@update:show="showImport = $event"
 			@close="closeImport"
 			@go-assign="goAssignAfterImport"
-			@imported="onImported"
-		/>
+			@imported="onImported" />
 
 		<!-- ============ BUCHUNGS-DIALOG ============ -->
-		<BookingDialog
-			:show="showBooking"
+		<BookingDialog :show="showBooking"
 			:booking-form="bookingForm"
 			:booking-mode="bookingMode"
 			:booking-locked="bookingLocked"
@@ -277,33 +288,27 @@
 			@update:show="showBooking = $event"
 			@close="closeBooking"
 			@save="saveBooking"
-			@delete="deleteBookingFromDialog"
-		/>
+			@delete="deleteBookingFromDialog" />
 
 		<!-- ============ KONTO-DIALOG ============ -->
-		<AccountDialog
-			:show="showAccount"
+		<AccountDialog :show="showAccount"
 			:account-edit-id="accountEditId"
 			:initial-form="newAccount"
 			@update:show="showAccount = $event"
 			@close="closeAccount"
 			@save="saveAccount"
-			@help="openHelp('spheres')"
-		/>
+			@help="openHelp('spheres')" />
 
 		<!-- ============ PLAN-STAND DETAIL ============ -->
-		<BudgetSnapshotModal
-			:show="snapshotView.open"
+		<BudgetSnapshotModal :show="snapshotView.open"
 			:snapshot="snapshotView.data"
 			:current-plan-for-account="currentPlanForAccount"
 			@update:show="snapshotView.open = $event"
-			@close="closeSnapshot"
-		/>
+			@close="closeSnapshot" />
 
 		<!-- ============ BESTÄTIGUNGS-DIALOG ============ -->
 		<!-- ============ KONTOAUSWAHL-SHEET (mobil) ============ -->
-		<AccountPickerSheet
-			:open="accountPicker.open"
+		<AccountPickerSheet :open="accountPicker.open"
 			:title="accountPicker.title"
 			:options="accountPickerOptions"
 			:recent="recentAccountOptions"
@@ -314,19 +319,23 @@
 			@suggest="onAccountPickerSuggest" />
 
 		<!-- ============ HILFE ============ -->
-		<HelpModal :show="showHelp" :topic="helpTopic" @close="closeHelp" @update:show="showHelp = $event" />
+		<HelpModal :show="showHelp"
+			:topic="helpTopic"
+			@close="closeHelp"
+			@update:show="showHelp = $event" />
 
 		<!-- ============ SETUP-ASSISTENT (erster Verwalter-Login) ============ -->
-		<SetupWizard :show="showSetupWizard" @close="closeSetupWizard" @update:show="showSetupWizard = $event" @choose="onWizardChoice" />
+		<SetupWizard :show="showSetupWizard"
+			@close="closeSetupWizard"
+			@update:show="showSetupWizard = $event"
+			@choose="onWizardChoice" />
 
-		<NcDialog
-			v-if="confirmDialog.open"
+		<NcDialog v-if="confirmDialog.open"
 			:name="confirmDialog.title"
 			:message="confirmDialog.message"
 			:no-close="true"
 			:buttons="confirmDialogButtonList"
-			@update:open="closeConfirm(false)"
-		/>
+			@update:open="closeConfirm(false)" />
 	</div>
 </template>
 
@@ -821,8 +830,7 @@ export default {
 		async loadTab(tab) {
 			const jobs = []
 			if (tab === 'bookings' && this.bookingView === 'journal') jobs.push(this.loadJournal())
-			else if (tab === 'accounts') { jobs.push(this.loadAccounts(), this.loadBalances()) }
-			else if (tab === 'reports') {
+			else if (tab === 'accounts') { jobs.push(this.loadAccounts(), this.loadBalances()) } else if (tab === 'reports') {
 				if (this.reportView === 'summary') jobs.push(this.loadBalances())
 				else if (this.reportView === 'costcenters') jobs.push(this.loadReport())
 				else if (this.reportView === 'spheres') jobs.push(this.loadSphereReport())
@@ -1153,8 +1161,7 @@ export default {
 				}
 				await this.loadAttachments(this.bookingForm.id)
 				this.loadAttachmentCounts()
-			} catch (e) { showError(this.errMsg(e, 'Upload fehlgeschlagen')) }
-			finally { this.attachmentUploading = false; event.target.value = '' }
+			} catch (e) { showError(this.errMsg(e, 'Upload fehlgeschlagen')) } finally { this.attachmentUploading = false; event.target.value = '' }
 		},
 		async deleteAttachment(id) {
 			if (!await this.askConfirm('Beleg löschen', 'Diesen Beleg wirklich unwiderruflich löschen?')) return
@@ -1374,7 +1381,8 @@ export default {
 			this.accountEditId = null
 			const parent = this.selectedAccount
 			this.newAccount = {
-				number: '', name: '',
+				number: '',
+				name: '',
 				type: parent ? parent.type : 'income',
 				category: parent ? (parent.category || '') : '',
 				isBank: false,
@@ -1387,8 +1395,11 @@ export default {
 		openEditAccount(acc) {
 			this.accountEditId = acc.id
 			this.newAccount = {
-				number: acc.number, name: acc.name, type: acc.type,
-				category: acc.category || '', isBank: !!acc.isBank,
+				number: acc.number,
+				name: acc.name,
+				type: acc.type,
+				category: acc.category || '',
+				isBank: !!acc.isBank,
 				parentId: acc.parentId || null,
 				sphere: acc.sphere || '',
 				reserveKind: acc.reserveKind || '',
@@ -1403,8 +1414,11 @@ export default {
 			try {
 				if (this.accountEditId) {
 					await api.updateAccount(this.accountEditId, {
-						number: f.number, name: f.name, type: f.type,
-						category: f.category || null, isBank: f.isBank,
+						number: f.number,
+						name: f.name,
+						type: f.type,
+						category: f.category || null,
+						isBank: f.isBank,
 						parentId: f.parentId || 0,
 						sphere: f.sphere || '',
 						reserveKind: f.reserveKind || '',
@@ -1497,7 +1511,10 @@ export default {
 			} catch (e) { showError(this.errMsg(e, 'Plan-Stand konnte nicht geladen werden')) }
 		},
 		closeSnapshot() { this.snapshotView = { open: false, data: null } },
-		/** Planwert eines Kontos im aktuellen Plan (für Vergleich im Stand-Detail). */
+		/**
+		 * Planwert eines Kontos im aktuellen Plan (für Vergleich im Stand-Detail).
+		 * @param accountId
+		 */
 		currentPlanForAccount(accountId) {
 			const row = this.budgetData && this.budgetData.rows.find(r => r.accountId === accountId)
 			return row ? row.plan : 0

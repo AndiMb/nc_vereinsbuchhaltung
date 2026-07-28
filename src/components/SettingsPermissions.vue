@@ -1,6 +1,8 @@
 <template>
 	<div>
-		<h3 class="vbh-section-divider">Berechtigungen</h3>
+		<h3 class="vbh-section-divider">
+			Berechtigungen
+		</h3>
 		<p class="vbh-hint">
 			<strong>Verwalter</strong> dürfen alles inkl. Rechtevergabe, <strong>Buchhalter</strong> lesen und schreiben,
 			<strong>Revisor</strong> nur lesen. Nextcloud-Administratoren sind immer Verwalter.
@@ -16,12 +18,10 @@
 					</select>
 				</label>
 				<label class="vbh-grow">{{ permForm.principalType === 'group' ? 'Gruppe' : 'Nutzer' }}
-					<NcSelect
-						v-model="permFormPrincipalOption"
+					<NcSelect v-model="permFormPrincipalOption"
 						:options="permForm.principalType === 'group' ? groupOptions : userOptions"
 						label="label"
-						:placeholder="permForm.principalType === 'group' ? '– Gruppe wählen –' : '– Nutzer wählen –'"
-					/>
+						:placeholder="permForm.principalType === 'group' ? '– Gruppe wählen –' : '– Nutzer wählen –'" />
 				</label>
 				<label>Rolle
 					<select v-model="permForm.role">
@@ -30,13 +30,15 @@
 						<option value="verwalter">Verwalter (alles)</option>
 					</select>
 				</label>
-				<NcButton variant="primary" @click="savePermission">Hinzufügen</NcButton>
+				<NcButton variant="primary" @click="savePermission">
+					Hinzufügen
+				</NcButton>
 			</div>
 		</div>
 
 		<div v-if="permissions.length" class="vbh-tablecard">
 			<table class="vbh-table">
-				<thead><tr><th>Typ</th><th>Nutzer / Gruppe</th><th>Rolle</th><th></th></tr></thead>
+				<thead><tr><th>Typ</th><th>Nutzer / Gruppe</th><th>Rolle</th><th /></tr></thead>
 				<tbody>
 					<tr v-for="p in permissions" :key="p.id">
 						<td>{{ p.principalType === 'group' ? 'Gruppe' : 'Nutzer' }}</td>
@@ -44,7 +46,9 @@
 						<td><span class="vbh-typetag">{{ roleLabel(p.role) }}</span></td>
 						<td class="right">
 							<NcButton variant="error" aria-label="Berechtigung entfernen" @click="removePermission(p)">
-								<template #icon><NcIconSvgWrapper :path="mdiDelete" :size="20" /></template>
+								<template #icon>
+									<NcIconSvgWrapper :path="mdiDelete" :size="20" />
+								</template>
 							</NcButton>
 						</td>
 					</tr>
@@ -53,7 +57,9 @@
 		</div>
 		<NcEmptyContent v-else name="Keine Berechtigungen" description="Nextcloud-Administratoren haben immer Zugriff.">
 			<template #action>
-				<NcButton variant="tertiary" @click="$emit('help')">Mehr dazu</NcButton>
+				<NcButton variant="tertiary" @click="$emit('help')">
+					Mehr dazu
+				</NcButton>
 			</template>
 		</NcEmptyContent>
 	</div>

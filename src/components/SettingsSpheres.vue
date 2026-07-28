@@ -1,14 +1,23 @@
 <template>
 	<div>
-		<h3 class="vbh-section-divider">Steuerliche Sphären</h3>
+		<h3 class="vbh-section-divider">
+			Steuerliche Sphären
+		</h3>
 		<p class="vbh-hint">
 			Ordnet Einnahmen-/Ausgaben-Konten einer Sphäre zu (ideeller Bereich, Vermögensverwaltung, Zweckbetrieb,
 			wirtschaftlicher Geschäftsbetrieb) – wichtig für die Gemeinnützigkeit und die Freigrenze des
 			wirtschaftlichen Geschäftsbetriebs. Ersetzt keine steuerliche Beratung.
-			<button type="button" class="vbh-sphere-help" title="Was bedeutet das?" @click="$emit('help')">?</button>
+			<button type="button"
+				class="vbh-sphere-help"
+				title="Was bedeutet das?"
+				@click="$emit('help')">
+				?
+			</button>
 		</p>
 
-		<div v-if="relevantAccounts.length === 0" class="vbh-hint">Noch keine Einnahmen-/Ausgaben-Konten vorhanden.</div>
+		<div v-if="relevantAccounts.length === 0" class="vbh-hint">
+			Noch keine Einnahmen-/Ausgaben-Konten vorhanden.
+		</div>
 		<template v-else>
 			<div class="vbh-sphere-bulkbar">
 				<label class="vbh-checkinline">
@@ -16,11 +25,21 @@
 					{{ selected.length }} von {{ relevantAccounts.length }} ausgewählt
 				</label>
 				<select v-model="bulkSphere">
-					<option value="">– Sphäre wählen –</option>
-					<option value="ideell">Ideeller Bereich</option>
-					<option value="vermoegensverwaltung">Vermögensverwaltung</option>
-					<option value="zweckbetrieb">Zweckbetrieb</option>
-					<option value="wirtschaftlich">Wirtschaftlicher Geschäftsbetrieb</option>
+					<option value="">
+						– Sphäre wählen –
+					</option>
+					<option value="ideell">
+						Ideeller Bereich
+					</option>
+					<option value="vermoegensverwaltung">
+						Vermögensverwaltung
+					</option>
+					<option value="zweckbetrieb">
+						Zweckbetrieb
+					</option>
+					<option value="wirtschaftlich">
+						Wirtschaftlicher Geschäftsbetrieb
+					</option>
 				</select>
 				<NcButton variant="primary" :disabled="!selected.length || !bulkSphere || bulkSaving" @click="applyBulk">
 					Zuweisen
@@ -32,19 +51,37 @@
 
 			<div class="vbh-tablecard">
 				<table class="vbh-table">
-					<thead><tr><th></th><th class="nowrap">Nr.</th><th>Konto</th><th>Sphäre</th></tr></thead>
+					<thead>
+						<tr>
+							<th /><th class="nowrap">
+								Nr.
+							</th><th>Konto</th><th>Sphäre</th>
+						</tr>
+					</thead>
 					<tbody>
 						<tr v-for="a in relevantAccounts" :key="a.id">
 							<td><input type="checkbox" :checked="selected.includes(a.id)" @change="toggleOne(a.id, $event.target.checked)"></td>
-							<td class="nowrap">{{ a.number }}</td>
+							<td class="nowrap">
+								{{ a.number }}
+							</td>
 							<td>{{ a.name }}</td>
 							<td>
 								<select :value="a.sphere || ''" @change="saveOne(a, $event.target.value)">
-									<option value="">– nicht zugeordnet –</option>
-									<option value="ideell">Ideeller Bereich</option>
-									<option value="vermoegensverwaltung">Vermögensverwaltung</option>
-									<option value="zweckbetrieb">Zweckbetrieb</option>
-									<option value="wirtschaftlich">Wirtschaftlicher Geschäftsbetrieb</option>
+									<option value="">
+										– nicht zugeordnet –
+									</option>
+									<option value="ideell">
+										Ideeller Bereich
+									</option>
+									<option value="vermoegensverwaltung">
+										Vermögensverwaltung
+									</option>
+									<option value="zweckbetrieb">
+										Zweckbetrieb
+									</option>
+									<option value="wirtschaftlich">
+										Wirtschaftlicher Geschäftsbetrieb
+									</option>
 								</select>
 								<span v-if="showSuggestions && !a.sphere && suggestSphere(a.name)" class="vbh-sphere-suggest">
 									Vorschlag: {{ sphereLabel(suggestSphere(a.name)) }}
@@ -127,9 +164,13 @@ export default {
 		async saveOne(account, sphere) {
 			try {
 				await api.updateAccount(account.id, {
-					number: account.number, name: account.name, type: account.type,
-					category: account.category || null, isBank: account.isBank,
-					parentId: account.parentId || 0, sphere,
+					number: account.number,
+					name: account.name,
+					type: account.type,
+					category: account.category || null,
+					isBank: account.isBank,
+					parentId: account.parentId || 0,
+					sphere,
 				})
 				this.$emit('changed')
 			} catch (e) { showError(this.errMsg(e, 'Sphäre konnte nicht gespeichert werden')) }

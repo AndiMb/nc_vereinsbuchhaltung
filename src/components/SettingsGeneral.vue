@@ -1,33 +1,57 @@
 <template>
 	<div>
-		<h3 class="vbh-section-divider">Verein</h3>
+		<h3 class="vbh-section-divider">
+			Verein
+		</h3>
 		<div class="vbh-card">
 			<div class="vbh-form">
 				<label class="vbh-grow">Vereinsname (erscheint im Kopf des Kassenberichts)
 					<input v-model="clubNameModel" type="text" placeholder="z. B. Musterverein e. V.">
 				</label>
-				<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings">Speichern</NcButton>
+				<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings">
+					Speichern
+				</NcButton>
 			</div>
 		</div>
 
-		<h3 class="vbh-section-divider">Corporate Design</h3>
+		<h3 class="vbh-section-divider">
+			Corporate Design
+		</h3>
 		<div class="vbh-card">
-			<p class="vbh-hint">Logo und Akzentfarbe erscheinen im Kurzbericht für Vorstandssitzungen (Berichte → Auswertung).</p>
+			<p class="vbh-hint">
+				Logo und Akzentfarbe erscheinen im Kurzbericht für Vorstandssitzungen (Berichte → Auswertung).
+			</p>
 			<div class="vbh-uploadrow">
-				<label class="vbh-filebtn">Logo wählen<input ref="logoInput" type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" hidden @change="onLogoSelected"></label>
-				<img v-if="hasLogo" :src="logoPreviewUrl" alt="Vereinslogo" class="vbh-logopreview">
+				<label class="vbh-filebtn">Logo wählen<input ref="logoInput"
+					type="file"
+					accept="image/png,image/jpeg,image/webp"
+					hidden
+					@change="onLogoSelected"></label>
+				<img v-if="hasLogo"
+					:src="logoPreviewUrl"
+					alt="Vereinslogo"
+					class="vbh-logopreview">
 				<span v-else class="vbh-filename">kein Logo hinterlegt</span>
-				<NcButton v-if="hasLogo" variant="tertiary" :disabled="logoBusy" @click="removeLogo">Entfernen</NcButton>
+				<NcButton v-if="hasLogo"
+					variant="tertiary"
+					:disabled="logoBusy"
+					@click="removeLogo">
+					Entfernen
+				</NcButton>
 			</div>
 			<div class="vbh-form">
 				<label>Akzentfarbe
 					<input v-model="brandColorModel" type="color">
 				</label>
-				<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings">Speichern</NcButton>
+				<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings">
+					Speichern
+				</NcButton>
 			</div>
 		</div>
 
-		<h3 class="vbh-section-divider">Kostenstellen</h3>
+		<h3 class="vbh-section-divider">
+			Kostenstellen
+		</h3>
 		<div class="vbh-card">
 			<p class="vbh-hint">
 				Bestimmt, wie der Bericht „Kostenstellen" die Konten gruppiert. Der Modus hängt vom
@@ -40,11 +64,15 @@
 						<option value="account">Jedes Einnahmen-/Ausgabenkonto ist eine eigene Kostenstelle</option>
 					</select>
 				</label>
-				<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings">Speichern</NcButton>
+				<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings">
+					Speichern
+				</NcButton>
 			</div>
 		</div>
 
-		<h3 class="vbh-section-divider">Belegablage</h3>
+		<h3 class="vbh-section-divider">
+			Belegablage
+		</h3>
 		<div class="vbh-card">
 			<p class="vbh-hint">
 				Belege können intern (AppData, nicht in der Nextcloud-Oberfläche sichtbar) oder in einem
@@ -60,7 +88,9 @@
 				<label class="vbh-grow">Ordnerpfad im Nutzer-Home
 					<input v-model="storagePathModel" type="text" placeholder="Vereinsbuchhaltung/Belege">
 				</label>
-				<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings">Speichern</NcButton>
+				<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings">
+					Speichern
+				</NcButton>
 			</div>
 			<p v-if="storageUser" class="vbh-hint vbh-hint--info">
 				Belege werden unter <code>{{ storageUser }}/{{ storagePath || 'Vereinsbuchhaltung/Belege' }}/&lt;BuchungsID&gt;/</code> abgelegt.

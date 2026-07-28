@@ -28,7 +28,7 @@ async function loadBalances() {
 	}
 }
 
-/** @returns {Promise<object|null>} der Sphären-Bericht, oder null bei Fehler (bereits als Toast gemeldet) */
+/** @return {Promise<object|null>} der Sphären-Bericht, oder null bei Fehler (bereits als Toast gemeldet) */
 async function loadSphereReport() {
 	try {
 		const { data } = await api.sphereReport(years.state.selectedYear)

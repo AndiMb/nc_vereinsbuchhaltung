@@ -24,7 +24,11 @@ const journalRows = computed(() => state.journalData.map(item => {
 	const dl = lines.filter(l => l.debitCents > 0)
 	const cl = lines.filter(l => l.creditCents > 0)
 	return {
-		id: j.id, entryNo: j.entryNo, date: j.date, description: j.description, documentRef: j.documentRef,
+		id: j.id,
+		entryNo: j.entryNo,
+		date: j.date,
+		description: j.description,
+		documentRef: j.documentRef,
 		soll: dl.map(l => accountLabel(l.accountId)).join(', '),
 		haben: cl.map(l => accountLabel(l.accountId)).join(', '),
 		debitAccountId: dl.length ? dl[0].accountId : null,

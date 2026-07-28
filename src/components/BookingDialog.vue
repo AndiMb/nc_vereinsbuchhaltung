@@ -1,19 +1,43 @@
 <template>
-	<NcModal :show="show" :name="bookingForm.id ? 'Buchung bearbeiten #' + bookingForm.entryNo : 'Neue Buchung'" :size="isMobile ? 'full' : 'normal'" @close="$emit('close')" @update:show="$emit('update:show', $event)">
+	<NcModal :show="show"
+		:name="bookingForm.id ? 'Buchung bearbeiten #' + bookingForm.entryNo : 'Neue Buchung'"
+		:size="isMobile ? 'full' : 'normal'"
+		@close="$emit('close')"
+		@update:show="$emit('update:show', $event)">
 		<div class="vbh-modal-inner">
 			<p v-if="bookingLocked" class="vbh-hint vbh-hint--info">
 				🔒 Das Geschäftsjahr {{ String(bookingForm.date).slice(0, 4) }} ist abgeschlossen –
 				diese Buchung kann nur noch angesehen werden.
 			</p>
-			<div v-if="bookingMode === 'simple'" class="vbh-kindtoggle" :class="{ 'vbh-tour-target': bookingTour.active && bookingTour.step === 0 }" role="radiogroup" aria-label="Buchungsart">
-				<button type="button" class="vbh-kindbtn income" :class="{ active: bookingForm.kind === 'income' }" :disabled="bookingLocked" @click="setBookingKind('income')">Einnahme</button>
-				<button type="button" class="vbh-kindbtn expense" :class="{ active: bookingForm.kind === 'expense' }" :disabled="bookingLocked" @click="setBookingKind('expense')">Ausgabe</button>
+			<div v-if="bookingMode === 'simple'"
+				class="vbh-kindtoggle"
+				:class="{ 'vbh-tour-target': bookingTour.active && bookingTour.step === 0 }"
+				role="radiogroup"
+				aria-label="Buchungsart">
+				<button type="button"
+					class="vbh-kindbtn income"
+					:class="{ active: bookingForm.kind === 'income' }"
+					:disabled="bookingLocked"
+					@click="setBookingKind('income')">
+					Einnahme
+				</button>
+				<button type="button"
+					class="vbh-kindbtn expense"
+					:class="{ active: bookingForm.kind === 'expense' }"
+					:disabled="bookingLocked"
+					@click="setBookingKind('expense')">
+					Ausgabe
+				</button>
 			</div>
 			<div v-if="bookingTour.active && bookingTour.step === 0" class="vbh-tour-tip">
 				<span>Wähle zuerst, ob Geld reinkommt oder rausgeht – Schritt 1 von 3.</span>
 				<div class="vbh-tour-actions">
-					<button type="button" class="vbh-tour-skip" @click="endTour">Überspringen</button>
-					<NcButton variant="primary" @click="nextTourStep">Weiter</NcButton>
+					<button type="button" class="vbh-tour-skip" @click="endTour">
+						Überspringen
+					</button>
+					<NcButton variant="primary" @click="nextTourStep">
+						Weiter
+					</NcButton>
 				</div>
 			</div>
 
@@ -21,21 +45,32 @@
 			<template v-if="isMobile">
 				<div class="vbh-bigamount">
 					<input v-model.number="bookingForm.amount"
-						type="number" step="0.01" min="0.01" inputmode="decimal"
-						placeholder="0,00" class="vbh-bigamount-input" aria-label="Betrag in Euro"
+						type="number"
+						step="0.01"
+						min="0.01"
+						inputmode="decimal"
+						placeholder="0,00"
+						class="vbh-bigamount-input"
+						aria-label="Betrag in Euro"
 						:disabled="bookingLocked">
 					<span class="vbh-bigamount-cur">€</span>
 				</div>
 				<div class="vbh-mfields">
 					<template v-if="bookingMode === 'simple'">
-						<button type="button" class="vbh-fieldbtn" :disabled="bookingLocked" @click="openAccountPicker('category')">
+						<button type="button"
+							class="vbh-fieldbtn"
+							:disabled="bookingLocked"
+							@click="openAccountPicker('category')">
 							<span class="vbh-fieldbtn-text">
 								<span class="vbh-fieldbtn-lab">{{ bookingForm.kind === 'income' ? 'Wofür? (Einnahme-Kategorie)' : 'Wofür? (Ausgabe-Kategorie)' }}</span>
 								<span class="vbh-fieldbtn-val" :class="{ placeholder: !bookingForm.categoryId }">{{ bookingForm.categoryId ? accountLabel(bookingForm.categoryId) : 'Kategorie wählen…' }}</span>
 							</span>
 							<span class="vbh-fieldbtn-chev" aria-hidden="true">›</span>
 						</button>
-						<button type="button" class="vbh-fieldbtn" :disabled="bookingLocked" @click="openAccountPicker('money')">
+						<button type="button"
+							class="vbh-fieldbtn"
+							:disabled="bookingLocked"
+							@click="openAccountPicker('money')">
 							<span class="vbh-fieldbtn-text">
 								<span class="vbh-fieldbtn-lab">Geldkonto (Bank/Kasse)</span>
 								<span class="vbh-fieldbtn-val" :class="{ placeholder: !bookingForm.moneyAccountId }">{{ bookingForm.moneyAccountId ? accountLabel(bookingForm.moneyAccountId) : 'wählen…' }}</span>
@@ -44,14 +79,20 @@
 						</button>
 					</template>
 					<template v-else>
-						<button type="button" class="vbh-fieldbtn" :disabled="bookingLocked" @click="openAccountPicker('debit')">
+						<button type="button"
+							class="vbh-fieldbtn"
+							:disabled="bookingLocked"
+							@click="openAccountPicker('debit')">
 							<span class="vbh-fieldbtn-text">
 								<span class="vbh-fieldbtn-lab">Soll (Aufwand/Aktiv)</span>
 								<span class="vbh-fieldbtn-val" :class="{ placeholder: !bookingForm.debitAccountId }">{{ bookingForm.debitAccountId ? accountLabel(bookingForm.debitAccountId) : 'wählen…' }}</span>
 							</span>
 							<span class="vbh-fieldbtn-chev" aria-hidden="true">›</span>
 						</button>
-						<button type="button" class="vbh-fieldbtn" :disabled="bookingLocked" @click="openAccountPicker('credit')">
+						<button type="button"
+							class="vbh-fieldbtn"
+							:disabled="bookingLocked"
+							@click="openAccountPicker('credit')">
 							<span class="vbh-fieldbtn-text">
 								<span class="vbh-fieldbtn-lab">Haben (Ertrag/Passiv)</span>
 								<span class="vbh-fieldbtn-val" :class="{ placeholder: !bookingForm.creditAccountId }">{{ bookingForm.creditAccountId ? accountLabel(bookingForm.creditAccountId) : 'wählen…' }}</span>
@@ -68,11 +109,19 @@
 						<span>Beleg</span>
 						<div class="vbh-pendingbtns">
 							<label class="vbh-upload-label">
-								<input type="file" accept="image/*" capture="environment" hidden @change="addPendingFiles">
+								<input type="file"
+									accept="image/*"
+									capture="environment"
+									hidden
+									@change="addPendingFiles">
 								<span class="vbh-upload-btn"><NcIconSvgWrapper :path="mdiCamera" :size="16" /> Fotografieren</span>
 							</label>
 							<label class="vbh-upload-label">
-								<input type="file" accept="image/*,application/pdf" multiple hidden @change="addPendingFiles">
+								<input type="file"
+									accept="image/*,application/pdf"
+									multiple
+									hidden
+									@change="addPendingFiles">
 								<span class="vbh-upload-btn"><NcIconSvgWrapper :path="mdiPaperclip" :size="16" /> Datei…</span>
 							</label>
 						</div>
@@ -82,7 +131,9 @@
 								<span class="vbh-attachment-name">{{ pf.name }}</span>
 								<span class="vbh-attachment-size">{{ formatFileSize(pf.size) }}</span>
 								<NcButton variant="tertiary" aria-label="Beleg entfernen" @click="pendingFiles.splice(i, 1)">
-									<template #icon><NcIconSvgWrapper :path="mdiDelete" :size="14" /></template>
+									<template #icon>
+										<NcIconSvgWrapper :path="mdiDelete" :size="14" />
+									</template>
 								</NcButton>
 							</li>
 						</ul>
@@ -94,61 +145,65 @@
 			<template v-else>
 				<div class="vbh-form">
 					<label>Datum<input v-model="bookingForm.date" type="date" :disabled="bookingLocked"></label>
-					<label>Beleg-Nr.<input v-model="bookingForm.documentRef" class="vbh-short" placeholder="optional" :disabled="bookingLocked"></label>
-					<label>Betrag (€)<input v-model.number="bookingForm.amount" type="number" step="0.01" min="0.01" class="vbh-num" :disabled="bookingLocked"></label>
+					<label>Beleg-Nr.<input v-model="bookingForm.documentRef"
+						class="vbh-short"
+						placeholder="optional"
+						:disabled="bookingLocked"></label>
+					<label>Betrag (€)<input v-model.number="bookingForm.amount"
+						type="number"
+						step="0.01"
+						min="0.01"
+						class="vbh-num"
+						:disabled="bookingLocked"></label>
 				</div>
 				<template v-if="bookingMode === 'simple'">
 					<div class="vbh-form" :class="{ 'vbh-tour-target': bookingTour.active && bookingTour.step === 1 }">
 						<label class="vbh-grow">{{ bookingForm.kind === 'income' ? 'Wofür? (Einnahme-Kategorie)' : 'Wofür? (Ausgabe-Kategorie)' }}
-							<NcSelect
-								v-model="bookingFormCategoryOption"
+							<NcSelect v-model="bookingFormCategoryOption"
 								:options="simpleCategoryOptions"
 								:filter-by="accountFilterBy"
 								:disabled="bookingLocked"
 								label="label"
-								placeholder="– Kategorie wählen –"
-							/>
+								placeholder="– Kategorie wählen –" />
 						</label>
 						<label class="vbh-grow">Geldkonto (Bank/Kasse)
-							<NcSelect
-								v-model="bookingFormMoneyOption"
+							<NcSelect v-model="bookingFormMoneyOption"
 								:options="moneyAccountOptions"
 								:filter-by="accountFilterBy"
 								:disabled="bookingLocked"
 								label="label"
-								placeholder="– wählen –"
-							/>
+								placeholder="– wählen –" />
 						</label>
 					</div>
 					<div v-if="bookingTour.active && bookingTour.step === 1" class="vbh-tour-tip">
 						<span>Wähle die Kategorie (z. B. „Mitgliedsbeiträge") und das Geldkonto – die App bucht Soll/Haben automatisch richtig. Schritt 2 von 3.</span>
 						<div class="vbh-tour-actions">
-							<button type="button" class="vbh-tour-skip" @click="endTour">Überspringen</button>
-							<NcButton variant="primary" @click="nextTourStep">Weiter</NcButton>
+							<button type="button" class="vbh-tour-skip" @click="endTour">
+								Überspringen
+							</button>
+							<NcButton variant="primary" @click="nextTourStep">
+								Weiter
+							</NcButton>
 						</div>
 					</div>
 				</template>
 				<template v-else>
 					<div class="vbh-form">
 						<label class="vbh-grow">Soll (Aufwand/Aktiv)
-							<NcSelect
-								v-model="bookingFormDebitOption"
+							<NcSelect v-model="bookingFormDebitOption"
 								:options="accountOptionsList"
 								:filter-by="accountFilterBy"
 								:disabled="bookingLocked"
 								label="label"
-								placeholder="– wählen –"
-							/>
+								placeholder="– wählen –" />
 						</label>
 						<label class="vbh-grow">Haben (Ertrag/Passiv)
-							<NcSelect
-								v-model="bookingFormCreditOption"
+							<NcSelect v-model="bookingFormCreditOption"
 								:options="accountOptionsList"
 								:filter-by="accountFilterBy"
 								:disabled="bookingLocked"
 								label="label"
-								placeholder="– wählen –"
-							/>
+								placeholder="– wählen –" />
 						</label>
 					</div>
 				</template>
@@ -158,7 +213,9 @@
 				<div v-if="bookingTour.active && bookingTour.step === 2" class="vbh-tour-tip">
 					<span>Ein kurzer Text erklärt später, worum es ging – fertig! Schritt 3 von 3.</span>
 					<div class="vbh-tour-actions">
-						<NcButton variant="primary" @click="endTour">Verstanden</NcButton>
+						<NcButton variant="primary" @click="endTour">
+							Verstanden
+						</NcButton>
 					</div>
 				</div>
 			</template>
@@ -173,7 +230,12 @@
 				<div class="vbh-attachments-header">
 					<span class="vbh-attachments-title">Belege</span>
 					<label v-if="canWrite && !bookingLocked" class="vbh-upload-label" :class="{ 'is-uploading': attachmentUploading }">
-						<input type="file" accept="image/*,application/pdf" multiple :disabled="attachmentUploading" hidden @change="uploadAttachment">
+						<input type="file"
+							accept="image/*,application/pdf"
+							multiple
+							:disabled="attachmentUploading"
+							hidden
+							@change="uploadAttachment">
 						<span class="vbh-upload-btn">
 							<NcIconSvgWrapper :path="mdiPaperclip" :size="16" />
 							{{ attachmentUploading ? 'Lädt hoch…' : 'Anhängen' }}
@@ -183,21 +245,39 @@
 				<ul v-if="bookingAttachments.length" class="vbh-attachment-list">
 					<li v-for="a in bookingAttachments" :key="a.id" class="vbh-attachment-item">
 						<NcIconSvgWrapper :path="mdiPaperclip" :size="14" class="vbh-attachment-icon" />
-						<button class="vbh-attachment-name" :title="'Anzeigen: ' + a.fileName" @click="openViewer(a)">{{ a.fileName }}</button>
+						<button class="vbh-attachment-name" :title="'Anzeigen: ' + a.fileName" @click="openViewer(a)">
+							{{ a.fileName }}
+						</button>
 						<span class="vbh-attachment-size">{{ formatFileSize(a.fileSize) }}</span>
-						<a :href="attachmentDownloadUrl(a.id)" class="vbh-attachment-dl" title="Herunterladen" download>↓</a>
-						<NcButton v-if="canWrite && !bookingLocked" variant="tertiary" :aria-label="'Beleg löschen'" @click="deleteAttachment(a.id)">
-							<template #icon><NcIconSvgWrapper :path="mdiDelete" :size="14" /></template>
+						<a :href="attachmentDownloadUrl(a.id)"
+							class="vbh-attachment-dl"
+							title="Herunterladen"
+							download>↓</a>
+						<NcButton v-if="canWrite && !bookingLocked"
+							variant="tertiary"
+							:aria-label="'Beleg löschen'"
+							@click="deleteAttachment(a.id)">
+							<template #icon>
+								<NcIconSvgWrapper :path="mdiDelete" :size="14" />
+							</template>
 						</NcButton>
 					</li>
 				</ul>
-				<p v-else class="vbh-attachment-empty">Noch kein Beleg angehängt.</p>
+				<p v-else class="vbh-attachment-empty">
+					Noch kein Beleg angehängt.
+				</p>
 			</div>
 
 			<div class="vbh-modal-actions">
-				<NcButton v-if="isMobile && bookingForm.id && canWrite && !bookingLocked" variant="error" @click="$emit('delete')">Löschen</NcButton>
-				<NcButton variant="tertiary" @click="$emit('close')">{{ bookingLocked ? 'Schließen' : 'Abbrechen' }}</NcButton>
-				<NcButton v-if="!bookingLocked" variant="primary" @click="$emit('save')">{{ bookingForm.id ? 'Speichern' : 'Buchen' }}</NcButton>
+				<NcButton v-if="isMobile && bookingForm.id && canWrite && !bookingLocked" variant="error" @click="$emit('delete')">
+					Löschen
+				</NcButton>
+				<NcButton variant="tertiary" @click="$emit('close')">
+					{{ bookingLocked ? 'Schließen' : 'Abbrechen' }}
+				</NcButton>
+				<NcButton v-if="!bookingLocked" variant="primary" @click="$emit('save')">
+					{{ bookingForm.id ? 'Speichern' : 'Buchen' }}
+				</NcButton>
 			</div>
 		</div>
 	</NcModal>

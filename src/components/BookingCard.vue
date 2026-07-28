@@ -9,7 +9,9 @@
 			<span class="vbh-mcard-meta">#{{ row.entryNo }} · {{ formatDate(row.date) }}</span>
 			<span class="vbh-mcard-amount" :class="flowClass">{{ amountLabel }}</span>
 		</div>
-		<div class="vbh-mcard-title">{{ row.description || '(ohne Beschreibung)' }}</div>
+		<div class="vbh-mcard-title">
+			{{ row.description || '(ohne Beschreibung)' }}
+		</div>
 		<div class="vbh-mcard-bottom">
 			<span class="vbh-mcard-accounts">
 				<template v-if="row.isSplit">Splittbuchung (mehrere Zeilen)</template>

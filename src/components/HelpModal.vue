@@ -1,9 +1,13 @@
 <template>
-	<NcModal :show="show" name="Hilfe" size="normal" @close="$emit('close')" @update:show="$emit('update:show', $event)">
+	<NcModal :show="show"
+		name="Hilfe"
+		size="normal"
+		@close="$emit('close')"
+		@update:show="$emit('update:show', $event)">
 		<div class="vbh-help">
 			<nav class="vbh-help-nav">
-				<button
-					v-for="t in topics" :key="t.id"
+				<button v-for="t in topics"
+					:key="t.id"
 					:class="{ active: t.id === currentTopic }"
 					@click="currentTopic = t.id">
 					{{ t.label }}
@@ -12,9 +16,14 @@
 			<div class="vbh-help-body">
 				<h4>{{ current.label }}</h4>
 				<ul>
-					<li v-for="(b, i) in current.bullets" :key="i">{{ b }}</li>
+					<li v-for="(b, i) in current.bullets" :key="i">
+						{{ b }}
+					</li>
 				</ul>
-				<a :href="handbuchLink" target="_blank" rel="noopener noreferrer" class="vbh-help-full">
+				<a :href="handbuchLink"
+					target="_blank"
+					rel="noopener noreferrer"
+					class="vbh-help-full">
 					Vollständiges Handbuch öffnen ↗
 				</a>
 			</div>

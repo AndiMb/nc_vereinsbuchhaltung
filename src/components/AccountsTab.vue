@@ -2,33 +2,56 @@
 	<div style="display: contents;">
 		<div v-if="!isMobile || !selectedAccountId" class="vbh-tree">
 			<div class="vbh-treehead">
-				<NcButton v-if="canWrite" variant="primary" size="small" @click="openNewAccount">
-					<template #icon><NcIconSvgWrapper :path="mdiPlus" :size="18" /></template>
+				<NcButton v-if="canWrite"
+					variant="primary"
+					size="small"
+					@click="openNewAccount">
+					<template #icon>
+						<NcIconSvgWrapper :path="mdiPlus" :size="18" />
+					</template>
 					Konto
 				</NcButton>
-				<span v-else></span>
+				<span v-else />
 				<div class="vbh-treeactions">
-					<NcButton variant="tertiary" @click="expandAll">alle auf</NcButton>
-					<NcButton variant="tertiary" @click="collapseAll">alle zu</NcButton>
+					<NcButton variant="tertiary" @click="expandAll">
+						alle auf
+					</NcButton>
+					<NcButton variant="tertiary" @click="collapseAll">
+						alle zu
+					</NcButton>
 				</div>
 			</div>
 
 			<div class="vbh-treesearch">
-				<input v-model="accountSearch" type="search" placeholder="Konto suchen…" class="vbh-search vbh-search--full">
+				<input v-model="accountSearch"
+					type="search"
+					placeholder="Konto suchen…"
+					class="vbh-search vbh-search--full">
 			</div>
 
 			<p v-if="accounts.length === 0" class="vbh-hint">
 				Noch keine Konten.<br>
-				<NcButton v-if="canWrite" variant="primary" @click="seedAccounts">Standard-Kontenrahmen anlegen</NcButton>
-				<NcButton variant="tertiary" @click="$emit('help')">Mehr dazu</NcButton>
+				<NcButton v-if="canWrite" variant="primary" @click="seedAccounts">
+					Standard-Kontenrahmen anlegen
+				</NcButton>
+				<NcButton variant="tertiary" @click="$emit('help')">
+					Mehr dazu
+				</NcButton>
 			</p>
 
 			<div class="vbh-treelist">
-				<div v-for="node in currentTree" :key="node.id"
-					class="vbh-treenode" :class="{ selected: node.id === selectedAccountId, group: node.hasChildren }"
+				<div v-for="node in currentTree"
+					:key="node.id"
+					class="vbh-treenode"
+					:class="{ selected: node.id === selectedAccountId, group: node.hasChildren }"
 					:style="{ paddingLeft: (8 + node.depth * 18) + 'px' }"
 					@click="selectAccount(node)">
-					<button v-if="node.hasChildren && !accountSearch" class="vbh-caret" :class="{ open: expanded[node.id] }" @click.stop="toggleExpand(node.id)">›</button>
+					<button v-if="node.hasChildren && !accountSearch"
+						class="vbh-caret"
+						:class="{ open: expanded[node.id] }"
+						@click.stop="toggleExpand(node.id)">
+						›
+					</button>
 					<span v-else class="vbh-caret empty">·</span>
 					<span class="vbh-treenum">{{ node.number }}</span>
 					<span class="vbh-treename">{{ node.name }}</span>
@@ -39,9 +62,13 @@
 
 		<div v-if="!isMobile || selectedAccountId" class="vbh-detail">
 			<div v-if="isMobile" class="vbh-backbar">
-				<button type="button" class="vbh-backbtn" @click="closeAccountDetail">‹ Konten</button>
+				<button type="button" class="vbh-backbtn" @click="closeAccountDetail">
+					‹ Konten
+				</button>
 			</div>
-			<p v-if="!selectedAccount" class="vbh-empty vbh-detailhint">Konto links auswählen, um Buchungen anzuzeigen.</p>
+			<p v-if="!selectedAccount" class="vbh-empty vbh-detailhint">
+				Konto links auswählen, um Buchungen anzuzeigen.
+			</p>
 
 			<template v-else>
 				<div class="vbh-detailhead">
@@ -63,13 +90,20 @@
 				<!-- Eröffnungssaldo nur für Geldkonten: nur deren Bestand geht über Jahresgrenzen. -->
 				<div v-if="canWrite && selectedAccount.isBank" class="vbh-opening">
 					<span>Eröffnungssaldo:</span>
-					<input v-model.number="openingForm[selectedAccount.id].amount" type="number" step="0.01" class="vbh-num">
+					<input v-model.number="openingForm[selectedAccount.id].amount"
+						type="number"
+						step="0.01"
+						class="vbh-num">
 					<input v-model="openingForm[selectedAccount.id].date" type="date" class="vbh-date">
-					<NcButton variant="primary" size="small" @click="saveOpening(selectedAccount)">Speichern</NcButton>
+					<NcButton variant="primary" size="small" @click="saveOpening(selectedAccount)">
+						Speichern
+					</NcButton>
 				</div>
 
 				<div v-if="statement" class="vbh-statementbar">
-					<NcCheckboxRadioSwitch :model-value="statementIncludeChildren" @update:model-value="onIncludeChildrenChange">inkl. Unterkonten</NcCheckboxRadioSwitch>
+					<NcCheckboxRadioSwitch :model-value="statementIncludeChildren" @update:model-value="onIncludeChildrenChange">
+						inkl. Unterkonten
+					</NcCheckboxRadioSwitch>
 					<div class="vbh-previewsummary">
 						<span class="vbh-badge muted">{{ statement.totals.count }} Buchungen</span>
 						<span class="vbh-badge muted">Soll {{ formatMoney(statement.totals.debit) }}</span>
@@ -90,7 +124,9 @@
 							<span class="vbh-mcard-meta">#{{ row.entryNo }} · {{ formatDate(row.date) }}</span>
 							<span class="vbh-mcard-amount" :class="statementRowNet(row) < 0 ? 'neg' : 'pos'">{{ formatMoney(statementRowNet(row)) }}</span>
 						</div>
-						<div class="vbh-mcard-title">{{ row.description }}</div>
+						<div class="vbh-mcard-title">
+							{{ row.description }}
+						</div>
 						<div class="vbh-mcard-bottom">
 							<span class="vbh-mcard-accounts">{{ row.contra }}</span>
 							<span class="vbh-mcard-meta">Saldo {{ formatMoney(row.saldo) }}</span>
@@ -108,30 +144,66 @@
 				</div>
 				<div v-else-if="statementRows.length" class="vbh-tablecard">
 					<table class="vbh-table">
-						<thead><tr><th class="num vbh-col-hide-sm">Nr.</th><th class="nowrap">Datum</th><th>Beschreibung</th><th class="vbh-col-hide-sm">Gegenkonto</th><th class="num vbh-col-hide-sm">Soll</th><th class="num vbh-col-hide-sm">Haben</th><th class="num">Saldo</th></tr></thead>
+						<thead>
+							<tr>
+								<th class="num vbh-col-hide-sm">
+									Nr.
+								</th><th class="nowrap">
+									Datum
+								</th><th>Beschreibung</th><th class="vbh-col-hide-sm">
+									Gegenkonto
+								</th><th class="num vbh-col-hide-sm">
+									Soll
+								</th><th class="num vbh-col-hide-sm">
+									Haben
+								</th><th class="num">
+									Saldo
+								</th>
+							</tr>
+						</thead>
 						<tbody>
 							<tr v-if="statement.carry" class="vbh-carryrow">
-								<td class="vbh-col-hide-sm"></td>
-								<td class="nowrap">{{ formatDate(selectedYear + '-01-01') }}</td>
+								<td class="vbh-col-hide-sm" />
+								<td class="nowrap">
+									{{ formatDate(selectedYear + '-01-01') }}
+								</td>
 								<td><em>Saldovortrag aus Vorjahr</em></td>
-								<td class="vbh-col-hide-sm"></td>
-								<td class="num vbh-col-hide-sm"></td>
-								<td class="num vbh-col-hide-sm"></td>
-								<td class="num strong" :class="amountClass(statement.carry)">{{ formatMoney(statement.carry) }}</td>
+								<td class="vbh-col-hide-sm" />
+								<td class="num vbh-col-hide-sm" />
+								<td class="num vbh-col-hide-sm" />
+								<td class="num strong" :class="amountClass(statement.carry)">
+									{{ formatMoney(statement.carry) }}
+								</td>
 							</tr>
 							<tr v-for="(row, i) in statementRows" :key="i">
-								<td class="num vbh-col-hide-sm">{{ row.entryNo }}</td>
-								<td class="nowrap">{{ formatDate(row.date) }}</td>
-								<td class="vbh-purpose" :title="row.description"><span class="vbh-clamp">{{ row.description }}</span></td>
-								<td class="vbh-col-hide-sm">{{ row.contra }}</td>
-								<td class="num vbh-col-hide-sm">{{ row.debit ? formatMoney(row.debit) : '' }}</td>
-								<td class="num vbh-col-hide-sm">{{ row.credit ? formatMoney(row.credit) : '' }}</td>
-								<td class="num strong" :class="amountClass(row.saldo)">{{ formatMoney(row.saldo) }}</td>
+								<td class="num vbh-col-hide-sm">
+									{{ row.entryNo }}
+								</td>
+								<td class="nowrap">
+									{{ formatDate(row.date) }}
+								</td>
+								<td class="vbh-purpose" :title="row.description">
+									<span class="vbh-clamp">{{ row.description }}</span>
+								</td>
+								<td class="vbh-col-hide-sm">
+									{{ row.contra }}
+								</td>
+								<td class="num vbh-col-hide-sm">
+									{{ row.debit ? formatMoney(row.debit) : '' }}
+								</td>
+								<td class="num vbh-col-hide-sm">
+									{{ row.credit ? formatMoney(row.credit) : '' }}
+								</td>
+								<td class="num strong" :class="amountClass(row.saldo)">
+									{{ formatMoney(row.saldo) }}
+								</td>
 							</tr>
 						</tbody>
 					</table>
 				</div>
-				<p v-else-if="statement" class="vbh-empty">Keine Buchungen auf diesem Konto{{ statementIncludeChildren ? ' (inkl. Unterkonten)' : '' }}.</p>
+				<p v-else-if="statement" class="vbh-empty">
+					Keine Buchungen auf diesem Konto{{ statementIncludeChildren ? ' (inkl. Unterkonten)' : '' }}.
+				</p>
 			</template>
 		</div>
 	</div>

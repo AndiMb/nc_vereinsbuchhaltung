@@ -1,16 +1,25 @@
 <template>
-	<div v-if="open" class="vbh-sheetwrap" role="dialog" aria-modal="true" :aria-label="title">
-		<div class="vbh-sheet-scrim" @click="$emit('close')"></div>
+	<div v-if="open"
+		class="vbh-sheetwrap"
+		role="dialog"
+		aria-modal="true"
+		:aria-label="title">
+		<div class="vbh-sheet-scrim" @click="$emit('close')" />
 		<div class="vbh-sheet" :style="dragY ? { transform: 'translateY(' + dragY + 'px)', transition: 'none' } : null">
 			<div class="vbh-sheet-dragzone"
 				@touchstart.passive="onTouchStart"
 				@touchmove.passive="onTouchMove"
 				@touchend="onTouchEnd"
 				@touchcancel="onTouchEnd">
-				<div class="vbh-sheet-grabber" aria-hidden="true"></div>
+				<div class="vbh-sheet-grabber" aria-hidden="true" />
 				<div class="vbh-sheet-head">
 					<span class="vbh-sheet-title">{{ title }}</span>
-					<button type="button" class="vbh-sheet-close" aria-label="Schließen" @click="$emit('close')">✕</button>
+					<button type="button"
+						class="vbh-sheet-close"
+						aria-label="Schließen"
+						@click="$emit('close')">
+						✕
+					</button>
 				</div>
 			</div>
 			<button v-if="suggestion"
@@ -25,7 +34,9 @@
 				placeholder="Konto suchen (Nummer oder Name)…">
 			<div class="vbh-sheet-list">
 				<template v-if="!searching && recent.length">
-					<div class="vbh-sheet-group">Zuletzt verwendet</div>
+					<div class="vbh-sheet-group">
+						Zuletzt verwendet
+					</div>
 					<button v-for="opt in recent"
 						:key="'r' + opt.id"
 						type="button"
@@ -36,7 +47,9 @@
 					</button>
 				</template>
 				<template v-for="(opt, i) in filteredOptions">
-					<div v-if="opt.id === null" :key="'h' + i" class="vbh-sheet-group">{{ opt.label }}</div>
+					<div v-if="opt.id === null" :key="'h' + i" class="vbh-sheet-group">
+						{{ opt.label }}
+					</div>
 					<button v-else
 						:key="'o' + i"
 						type="button"
@@ -46,7 +59,9 @@
 						{{ opt.label }}
 					</button>
 				</template>
-				<p v-if="!filteredOptions.length" class="vbh-sheet-empty">Kein Konto gefunden.</p>
+				<p v-if="!filteredOptions.length" class="vbh-sheet-empty">
+					Kein Konto gefunden.
+				</p>
 			</div>
 		</div>
 	</div>
