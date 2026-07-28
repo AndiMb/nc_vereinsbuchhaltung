@@ -10,6 +10,7 @@ use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\DataDisplayResponse;
+use OCP\AppFramework\Http\EmptyContentSecurityPolicy;
 use OCP\IConfig;
 use OCP\IRequest;
 
@@ -30,6 +31,25 @@ class HelpController extends Controller {
 		parent::__construct(Application::APP_ID, $request);
 	}
 
+	/**
+	 * Antwort für die HTML-Ansichten mit eingebettetem Stylesheet.
+	 *
+	 * Ohne eigene Richtlinie gilt Nextclouds Vorgabe `default-src 'none'`, und
+	 * der Browser verwirft das <style>-Element – Handbuch und Prüfleitfaden
+	 * erscheinen dann unformatiert.
+	 */
+	private function printableResponse(string $html): DataDisplayResponse {
+		$response = new DataDisplayResponse(
+			$html,
+			Http::STATUS_OK,
+			['Content-Type' => 'text/html; charset=utf-8'],
+		);
+		$policy = new EmptyContentSecurityPolicy();
+		$policy->allowInlineStyle(true);
+		$response->setContentSecurityPolicy($policy);
+		return $response;
+	}
+
 	#[NoAdminRequired]
 	#[NoCSRFRequired]
 	public function handbuch(): DataDisplayResponse {
@@ -43,7 +63,7 @@ class HelpController extends Controller {
 			. $this->render((string)$md)
 			. '</body></html>';
 
-		return new DataDisplayResponse($html, Http::STATUS_OK, ['Content-Type' => 'text/html; charset=utf-8']);
+		return $this->printableResponse($html);
 	}
 
 	/**
@@ -109,7 +129,7 @@ class HelpController extends Controller {
 			. '<title>' . $title . '</title>'
 			. '<style>' . $css . '</style></head><body>' . $h . '</body></html>';
 
-		return new DataDisplayResponse($html, Http::STATUS_OK, ['Content-Type' => 'text/html; charset=utf-8']);
+		return $this->printableResponse($html);
 	}
 
 	private function render(string $md): string {

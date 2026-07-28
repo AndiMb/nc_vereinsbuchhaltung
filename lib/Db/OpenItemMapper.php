@@ -34,6 +34,17 @@ class OpenItemMapper extends QBMapper {
 		return $this->findEntity($qb);
 	}
 
+	/**
+	 * Löscht alle offenen Posten. Anders als die übrigen Tabellen trägt
+	 * `vbh_open_items` keine `user_id` – die Liste gehört wie der restliche
+	 * Datenbestand dem gemeinsamen Vereins-Nutzer, daher ohne Filter.
+	 */
+	public function deleteAll(): void {
+		$qb = $this->db->getQueryBuilder();
+		$qb->delete($this->getTableName());
+		$qb->executeStatement();
+	}
+
 	/** Anzahl überfälliger offener Posten (für die Dashboard-KPI). */
 	public function countOverdue(): int {
 		$qb = $this->db->getQueryBuilder();

@@ -12,6 +12,7 @@ use OCA\Vereinsbuchhaltung\Db\CostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\ImportLogMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
+use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
 use OCA\Vereinsbuchhaltung\Db\YearCloseMapper;
 
@@ -30,6 +31,7 @@ class ResetService {
 		private AttachmentMapper $attachmentMapper,
 		private AttachmentStorageService $storageService,
 		private YearCloseMapper $yearCloseMapper,
+		private OpenItemMapper $openItemMapper,
 	) {
 	}
 
@@ -46,6 +48,10 @@ class ResetService {
 		$this->costCenterMapper->deleteAllForUser($userId);
 		$this->budgetMapper->deleteAllForUser($userId);
 		$this->snapshotService->deleteAllForUser($userId);
+		// Offene Posten enthalten Namen von Mitgliedern und Forderungsbeträge –
+		// sie müssen beim Zurücksetzen mit verschwinden, sonst bleiben
+		// personenbezogene Daten mit Verweisen auf gelöschte Konten zurück.
+		$this->openItemMapper->deleteAll();
 		// Abschluss-Marker gehören zum Datenbestand; das Änderungsprotokoll
 		// bleibt bewusst erhalten (der Reset selbst wird protokolliert).
 		$this->yearCloseMapper->deleteAll();

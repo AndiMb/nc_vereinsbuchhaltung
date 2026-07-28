@@ -21,6 +21,7 @@ use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\DataDisplayResponse;
 use OCP\AppFramework\Http\DataDownloadResponse;
+use OCP\AppFramework\Http\EmptyContentSecurityPolicy;
 use OCP\IConfig;
 use OCP\IRequest;
 use OCP\ITempManager;
@@ -34,6 +35,33 @@ use OCP\IURLGenerator;
  * Die Session-Authentifizierung bleibt aktiv.
  */
 class ExportController extends Controller {
+
+	/**
+	 * Antwort für die druckfertigen HTML-Ansichten.
+	 *
+	 * Diese Seiten bringen ihr Stylesheet inline mit. Ohne eigene Richtlinie
+	 * gilt Nextclouds Vorgabe `default-src 'none'`; der Browser verwirft das
+	 * <style>-Element dann stillschweigend und der Bericht erscheint völlig
+	 * unformatiert – ohne A4-Breite, Tabellenlinien und Unterschriftszeilen.
+	 *
+	 * Bewusst von EmptyContentSecurityPolicy aus aufgebaut: erlaubt wird nur
+	 * das Nötigste, Skripte und fremde Quellen bleiben gesperrt.
+	 */
+	private function printableResponse(string $html, bool $withImages = false): DataDisplayResponse {
+		$response = new DataDisplayResponse(
+			$html,
+			Http::STATUS_OK,
+			['Content-Type' => 'text/html; charset=utf-8'],
+		);
+		$policy = new EmptyContentSecurityPolicy();
+		$policy->allowInlineStyle(true);
+		if ($withImages) {
+			// Kurzbericht: Vereinslogo aus der eigenen Instanz.
+			$policy->addAllowedImageDomain("'self'");
+		}
+		$response->setContentSecurityPolicy($policy);
+		return $response;
+	}
 
 	public function __construct(
 		IRequest $request,
@@ -870,7 +898,7 @@ class ExportController extends Controller {
 			. '<title>' . $this->esc($title) . '</title>'
 			. '<style>' . $css . '</style></head><body>' . $h . '</body></html>';
 
-		return new DataDisplayResponse($html, Http::STATUS_OK, ['Content-Type' => 'text/html; charset=utf-8']);
+		return $this->printableResponse($html);
 	}
 
 	/**
@@ -1053,6 +1081,6 @@ class ExportController extends Controller {
 			. '<title>' . $this->esc($title) . '</title>'
 			. '<style>' . $css . '</style></head><body>' . $h . '</body></html>';
 
-		return new DataDisplayResponse($html, Http::STATUS_OK, ['Content-Type' => 'text/html; charset=utf-8']);
+		return $this->printableResponse($html, true);
 	}
 }
