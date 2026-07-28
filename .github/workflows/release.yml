@@ -3,6 +3,12 @@ name: Build & Release
 # Baut die App bei jedem Versions-Tag (z. B. v0.10.18) und haengt das
 # fertige Installations-Tarball an ein GitHub Release. Die Produktivserver
 # ziehen dieses Tarball dann per vbh-deploy.sh.
+#
+# Sind die Secrets APP_PRIVATE_KEY / APP_PUBLIC_CRT gesetzt, wird die App
+# zusaetzlich signiert (appinfo/signature.json). Ist ausserdem APPSTORE_TOKEN
+# gesetzt, wird das Release an den Nextcloud App Store gemeldet.
+# Fehlen die Secrets, laeuft der Build unveraendert durch - nur eben unsigniert
+# und ohne Store-Upload.
 
 on:
   push:
@@ -11,6 +17,9 @@ on:
 
 permissions:
   contents: write   # zum Anlegen des Releases
+
+env:
+  APP_ID: vereinsbuchhaltung
 
 jobs:
   build:
@@ -27,10 +36,23 @@ jobs:
         run: |
           xml_ver=$(grep -oP '(?<=<version>)[^<]+' appinfo/info.xml)
           if [ "$xml_ver" != "${{ steps.ver.outputs.version }}" ]; then
-            echo "::error::Tag v$xml_ver erwartet, aber info.xml hat $xml_ver vs Tag ${{ steps.ver.outputs.version }}"
-            echo "Tag ${{ github.ref_name }} passt nicht zu info.xml-Version $xml_ver"
+            echo "::error::Tag ${{ github.ref_name }} passt nicht zu info.xml-Version $xml_ver"
             exit 1
           fi
+
+      - name: CHANGELOG-Eintrag pruefen
+        # Der App Store zieht die Release-Notes aus dem passenden Abschnitt.
+        run: |
+          if ! grep -qF "## [${{ steps.ver.outputs.version }}]" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md hat keinen Abschnitt '## [${{ steps.ver.outputs.version }}]'"
+            exit 1
+          fi
+
+      - name: info.xml gegen App-Store-Schema validieren
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq libxml2-utils
+          curl -fsSL https://apps.nextcloud.com/schema/apps/info.xsd -o /tmp/info.xsd
+          xmllint --noout --schema /tmp/info.xsd appinfo/info.xml
 
       - name: Node einrichten
         uses: actions/setup-node@v4
@@ -52,27 +74,76 @@ jobs:
       - name: Composer-Autoloader (ohne Dev)
         run: composer install --no-dev --optimize-autoloader --no-interaction
 
-      - name: Paket schnueren
+      - name: App-Verzeichnis zusammenstellen
         run: |
           set -e
-          APP=vereinsbuchhaltung
-          VER=${{ steps.ver.outputs.version }}
-          STAGE="$RUNNER_TEMP/stage/$APP"
+          STAGE="$RUNNER_TEMP/stage/$APP_ID"
           mkdir -p "$STAGE"
           # Alles kopieren ausser Entwicklungs-/Build-Ballast
           rsync -a --delete \
             --exclude='.git' \
             --exclude='.github' \
+            --exclude='.gitattributes' \
+            --exclude='.gitignore' \
+            --exclude='.eslintrc.cjs' \
             --exclude='deploy' \
             --exclude='node_modules' \
             --exclude='src' \
             --exclude='tests' \
             --exclude='composer.phar' \
+            --exclude='webpack.config.js' \
+            --exclude='package.json' \
+            --exclude='package-lock.json' \
             --exclude='*.map' \
             --exclude='*.log' \
+            --exclude='*.mp3' \
             ./ "$STAGE/"
-          tar -czf "$RUNNER_TEMP/$APP-$VER.tar.gz" -C "$RUNNER_TEMP/stage" "$APP"
-          ( cd "$RUNNER_TEMP" && sha256sum "$APP-$VER.tar.gz" > "$APP-$VER.tar.gz.sha256" )
+
+      - name: Signaturschluessel bereitstellen
+        id: certs
+        env:
+          APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+          APP_PUBLIC_CRT: ${{ secrets.APP_PUBLIC_CRT }}
+        run: |
+          set -e
+          if [ -z "$APP_PRIVATE_KEY" ] || [ -z "$APP_PUBLIC_CRT" ]; then
+            echo "::warning::APP_PRIVATE_KEY/APP_PUBLIC_CRT fehlen - Release wird unsigniert gebaut."
+            echo "signing=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          CERTS="$RUNNER_TEMP/certs"
+          mkdir -p "$CERTS" && chmod 700 "$CERTS"
+          printf '%s\n' "$APP_PRIVATE_KEY" > "$CERTS/$APP_ID.key"
+          printf '%s\n' "$APP_PUBLIC_CRT"  > "$CERTS/$APP_ID.crt"
+          chmod 600 "$CERTS/$APP_ID.key" "$CERTS/$APP_ID.crt"
+          echo "signing=true" >> "$GITHUB_OUTPUT"
+
+      - name: App signieren (appinfo/signature.json)
+        if: steps.certs.outputs.signing == 'true'
+        run: |
+          set -e
+          # occ aus dem offiziellen Nextcloud-Image: integrity:sign-app braucht
+          # keine installierte Instanz, nur den Server-Quellcode.
+          docker run --rm \
+            -v "$RUNNER_TEMP/stage:/stage" \
+            -v "$RUNNER_TEMP/certs:/certs:ro" \
+            nextcloud:stable \
+            php /usr/src/nextcloud/occ integrity:sign-app \
+              --path="/stage/$APP_ID" \
+              --privateKey="/certs/$APP_ID.key" \
+              --certificate="/certs/$APP_ID.crt"
+          if [ ! -f "$RUNNER_TEMP/stage/$APP_ID/appinfo/signature.json" ]; then
+            echo "::error::signature.json wurde nicht erzeugt"
+            exit 1
+          fi
+          sudo chown -R "$(id -u):$(id -g)" "$RUNNER_TEMP/stage/$APP_ID"
+
+      - name: Paket schnueren
+        run: |
+          set -e
+          VER=${{ steps.ver.outputs.version }}
+          tar -czf "$RUNNER_TEMP/$APP_ID-$VER.tar.gz" -C "$RUNNER_TEMP/stage" "$APP_ID"
+          ( cd "$RUNNER_TEMP" && sha256sum "$APP_ID-$VER.tar.gz" > "$APP_ID-$VER.tar.gz.sha256" )
 
       - name: Release veroeffentlichen
         uses: softprops/action-gh-release@v2
@@ -81,3 +152,25 @@ jobs:
             ${{ runner.temp }}/vereinsbuchhaltung-${{ steps.ver.outputs.version }}.tar.gz
             ${{ runner.temp }}/vereinsbuchhaltung-${{ steps.ver.outputs.version }}.tar.gz.sha256
           generate_release_notes: true
+
+      - name: Store-Upload vorbereiten
+        id: store
+        env:
+          APPSTORE_TOKEN: ${{ secrets.APPSTORE_TOKEN }}
+        run: |
+          if [ "${{ steps.certs.outputs.signing }}" = "true" ] && [ -n "$APPSTORE_TOKEN" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Kein Store-Upload (APPSTORE_TOKEN oder Signierung fehlt)."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: An Nextcloud App Store melden
+        if: steps.store.outputs.publish == 'true'
+        uses: R0Wi/nextcloud-appstore-push-action@v1
+        with:
+          app_name: vereinsbuchhaltung
+          appstore_token: ${{ secrets.APPSTORE_TOKEN }}
+          app_private_key: ${{ secrets.APP_PRIVATE_KEY }}
+          download_url: https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/vereinsbuchhaltung-${{ steps.ver.outputs.version }}.tar.gz
+          nightly: false

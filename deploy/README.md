@@ -6,6 +6,7 @@ Ablauf: **Du taggst lokal → GitHub Actions baut & veröffentlicht → jeder Se
 
 ```bash
 # info.xml-<version> ist bereits gebumpt und committet
+# CHANGELOG.md hat einen Abschnitt "## [0.10.18]"
 git tag v0.10.18          # Tag == info.xml-Version, mit führendem "v"
 git push origin main --tags
 ```
@@ -50,6 +51,34 @@ Systemd-Timer oder Cron, z. B. wöchentlich:
 # /etc/cron.d/vbh-deploy
 30 4 * * 1 root /usr/local/sbin/vbh-deploy >> /var/log/vbh-deploy.log 2>&1
 ```
+
+## Veröffentlichung im Nextcloud App Store
+
+Derselbe Workflow signiert die App und meldet das Release an den Store – aber nur,
+wenn die passenden GitHub-Secrets hinterlegt sind. Fehlen sie, wird wie bisher ein
+unsigniertes Tarball gebaut und der `vbh-deploy.sh`-Weg funktioniert unverändert.
+
+Benötigte Secrets (Repo → Settings → Secrets and variables → Actions):
+
+| Secret | Inhalt | Wirkung |
+| --- | --- | --- |
+| `APP_PRIVATE_KEY` | kompletter Inhalt von `~/.nextcloud/certificates/vereinsbuchhaltung.key` | erzeugt `appinfo/signature.json` |
+| `APP_PUBLIC_CRT` | kompletter Inhalt von `vereinsbuchhaltung.crt` | dito |
+| `APPSTORE_TOKEN` | Token von https://apps.nextcloud.com/account/token | Upload ins Store-Verzeichnis |
+
+Voraussetzung ist ein von Nextcloud signiertes Zertifikat – dafür einen CSR
+(`openssl req -nodes -newkey rsa:4096 -keyout vereinsbuchhaltung.key -out
+vereinsbuchhaltung.csr -subj "/CN=vereinsbuchhaltung"`) als Pull Request bei
+[nextcloud/app-certificate-requests](https://github.com/nextcloud/app-certificate-requests)
+einreichen und die App danach einmalig unter
+https://apps.nextcloud.com/developer/apps/new registrieren.
+
+**Die `.key` gehört nicht ins Repo** – sie ist der einzige Weg, künftige Updates
+zu veröffentlichen. Geht sie verloren, muss ein neues Zertifikat beantragt werden.
+
+Der Workflow bricht vor dem Bauen ab, wenn Tag und `info.xml` nicht zusammenpassen,
+der `CHANGELOG.md`-Abschnitt zur Version fehlt oder die `info.xml` nicht gegen das
+App-Store-Schema validiert.
 
 ## Wichtig
 

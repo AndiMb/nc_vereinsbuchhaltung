@@ -1,6 +1,8 @@
 <?xml version="1.0"?>
 <info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
+	<!-- Die Reihenfolge der Elemente ist durch die XSD fest vorgegeben und darf
+	     nicht veraendert werden, sonst lehnt der App Store das Release ab. -->
 	<id>vereinsbuchhaltung</id>
 	<name>Vereinsbuchhaltung</name>
 	<summary>Buchhaltung für Vereine: CSV-CAMT-Import, Kontenrahmen und doppelte Buchführung</summary>
@@ -19,8 +21,21 @@ Funktionen:
 	<licence>agpl</licence>
 	<author mail="hauffe.andreas@googlemail.com">Andreas Hauffe</author>
 	<namespace>Vereinsbuchhaltung</namespace>
+	<documentation>
+		<user>https://github.com/AndiMb/nc_vereinsbuchhaltung/blob/main/HANDBUCH.md</user>
+		<admin>https://github.com/AndiMb/nc_vereinsbuchhaltung/blob/main/README.md</admin>
+	</documentation>
 	<category>office</category>
 	<category>organization</category>
+	<website>https://github.com/AndiMb/nc_vereinsbuchhaltung</website>
+	<bugs>https://github.com/AndiMb/nc_vereinsbuchhaltung/issues</bugs>
+	<repository type="git">https://github.com/AndiMb/nc_vereinsbuchhaltung.git</repository>
+	<!-- Screenshots: PNG/JPG unter img/screenshots/ ablegen, committen und pushen,
+	     dann hier eintragen. Pflicht sind HTTPS-URLs, max. 2 MiB pro Bild.
+	<screenshot>https://raw.githubusercontent.com/AndiMb/nc_vereinsbuchhaltung/main/img/screenshots/dashboard.png</screenshot>
+	<screenshot>https://raw.githubusercontent.com/AndiMb/nc_vereinsbuchhaltung/main/img/screenshots/buchungen.png</screenshot>
+	<screenshot>https://raw.githubusercontent.com/AndiMb/nc_vereinsbuchhaltung/main/img/screenshots/auswertungen.png</screenshot>
+	-->
 	<dependencies>
 		<php min-version="8.1" max-version="8.4"/>
 		<database>sqlite</database>
@@ -32,8 +47,8 @@ Funktionen:
 		<navigation>
 			<name>Vereinsbuchhaltung</name>
 			<route>vereinsbuchhaltung.page.index</route>
-			<order>10</order>
 			<icon>app.svg</icon>
+			<order>10</order>
 		</navigation>
 	</navigations>
 </info>
