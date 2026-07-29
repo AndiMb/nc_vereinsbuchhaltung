@@ -123,12 +123,28 @@ jobs:
           # Struktur, kein Schluesselmaterial: Groesse, Kopf-/Fusszeile und ob
           # Windows-Zeilenenden enthalten sind. Genau daran scheitert eine
           # PEM-Datei am haeufigsten.
-          # Als ::warning:: ausgegeben, damit die Angaben auch ueber die
-          # GitHub-API sichtbar sind - der reine Schritt-Log ist ohne
-          # Authentifizierung nicht abrufbar.
-          echo "::warning::Schluessel: $(wc -c < "$CERTS/$APP_ID.key") Byte / $(wc -l < "$CERTS/$APP_ID.key") Zeilen, Kopf: [$(head -1 "$CERTS/$APP_ID.key" | tr -d '\r')], Fuss: [$(tail -1 "$CERTS/$APP_ID.key" | tr -d '\r')], CR: $(grep -c $'\r' "$CERTS/$APP_ID.key" || true)"
-          echo "::warning::Zertifikat: $(wc -c < "$CERTS/$APP_ID.crt") Byte / $(wc -l < "$CERTS/$APP_ID.crt") Zeilen, Kopf: [$(head -1 "$CERTS/$APP_ID.crt" | tr -d '\r')], CR: $(grep -c $'\r' "$CERTS/$APP_ID.crt" || true)"
+          # Diagnose ueber die Form der Secrets. GitHub maskiert jede Zeile
+          # eines mehrzeiligen Secrets, deshalb helfen woertliche Ausgaben
+          # nicht weiter ("***"). Stattdessen abgeleitete Kennzahlen: die sind
+          # kein Schluesselmaterial und werden nicht maskiert.
+          marker() { grep -c -- "$1" "$2" 2>/dev/null || echo 0; }
+          K="$CERTS/$APP_ID.key"; C="$CERTS/$APP_ID.crt"
+          echo "::warning::SCHLUESSEL-Secret: $(wc -c < "$K") Byte, $(wc -l < "$K") Zeilen | BEGIN PRIVATE KEY=$(marker 'BEGIN PRIVATE KEY' "$K") BEGIN RSA PRIVATE KEY=$(marker 'BEGIN RSA PRIVATE KEY' "$K") BEGIN ENCRYPTED=$(marker 'BEGIN ENCRYPTED' "$K") BEGIN CERTIFICATE=$(marker 'BEGIN CERTIFICATE' "$K") BEGIN CERTIFICATE REQUEST=$(marker 'BEGIN CERTIFICATE REQUEST' "$K") | erstes Byte=$(head -c 1 "$K" | od -An -tx1 | tr -d ' ')"
+          echo "::warning::ZERTIFIKAT-Secret: $(wc -c < "$C") Byte, $(wc -l < "$C") Zeilen | BEGIN CERTIFICATE=$(marker 'BEGIN CERTIFICATE' "$C") END CERTIFICATE=$(marker 'END CERTIFICATE' "$C") BEGIN CERTIFICATE REQUEST=$(marker 'BEGIN CERTIFICATE REQUEST' "$C") BEGIN PRIVATE KEY=$(marker 'BEGIN PRIVATE KEY' "$C") | erstes Byte=$(head -c 1 "$C" | od -An -tx1 | tr -d ' ')"
           echo "::warning::openssl auf dem Runner: $(openssl version)"
+
+          # Gehoeren Schluessel und Zertifikat zusammen? Ueber PHP, weil das
+          # openssl des Runners die Dateien nicht einliest. Nur ein Vergleich
+          # der oeffentlichen Schluessel - kein Geheimnis in der Ausgabe.
+          MATCH=$(php -r '
+            $k = @openssl_pkey_get_private(file_get_contents($argv[1]));
+            $c = @openssl_pkey_get_public(file_get_contents($argv[2]));
+            if ($k === false) { echo "SCHLUESSEL_NICHT_LESBAR"; exit; }
+            if ($c === false) { echo "ZERTIFIKAT_NICHT_LESBAR"; exit; }
+            $kd = openssl_pkey_get_details($k); $cd = openssl_pkey_get_details($c);
+            echo ($kd["key"] === $cd["key"]) ? "PASSEN_ZUSAMMEN" : "PASSEN_NICHT_ZUSAMMEN";
+          ' "$K" "$C" 2>/dev/null || echo "PHP_FEHLER")
+          echo "::warning::Schluessel/Zertifikat: $MATCH"
 
           # CR entfernen, falls vorhanden - schadet einer sauberen Datei nicht.
           sed -i 's/\r$//' "$CERTS/$APP_ID.key" "$CERTS/$APP_ID.crt"
