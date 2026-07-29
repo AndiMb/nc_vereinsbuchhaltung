@@ -123,15 +123,12 @@ jobs:
           # Struktur, kein Schluesselmaterial: Groesse, Kopf-/Fusszeile und ob
           # Windows-Zeilenenden enthalten sind. Genau daran scheitert eine
           # PEM-Datei am haeufigsten.
-          echo "Schluesseldatei: $(wc -c < "$CERTS/$APP_ID.key") Byte, $(wc -l < "$CERTS/$APP_ID.key") Zeilen"
-          echo "  erste Zeile: $(head -1 "$CERTS/$APP_ID.key" | tr -d '\r')"
-          echo "  letzte Zeile: $(grep -c . "$CERTS/$APP_ID.key" >/dev/null && tail -1 "$CERTS/$APP_ID.key" | tr -d '\r')"
-          if grep -q $'\r' "$CERTS/$APP_ID.key"; then
-            echo "::warning::Der Schluessel enthaelt Windows-Zeilenenden (CR) - openssl kann daran scheitern."
-          fi
-          echo "Zertifikatsdatei: $(wc -c < "$CERTS/$APP_ID.crt") Byte"
-          echo "  erste Zeile: $(head -1 "$CERTS/$APP_ID.crt" | tr -d '\r')"
-          echo "openssl-Version: $(openssl version)"
+          # Als ::warning:: ausgegeben, damit die Angaben auch ueber die
+          # GitHub-API sichtbar sind - der reine Schritt-Log ist ohne
+          # Authentifizierung nicht abrufbar.
+          echo "::warning::Schluessel: $(wc -c < "$CERTS/$APP_ID.key") Byte / $(wc -l < "$CERTS/$APP_ID.key") Zeilen, Kopf: [$(head -1 "$CERTS/$APP_ID.key" | tr -d '\r')], Fuss: [$(tail -1 "$CERTS/$APP_ID.key" | tr -d '\r')], CR: $(grep -c $'\r' "$CERTS/$APP_ID.key" || true)"
+          echo "::warning::Zertifikat: $(wc -c < "$CERTS/$APP_ID.crt") Byte / $(wc -l < "$CERTS/$APP_ID.crt") Zeilen, Kopf: [$(head -1 "$CERTS/$APP_ID.crt" | tr -d '\r')], CR: $(grep -c $'\r' "$CERTS/$APP_ID.crt" || true)"
+          echo "::warning::openssl auf dem Runner: $(openssl version)"
 
           # CR entfernen, falls vorhanden - schadet einer sauberen Datei nicht.
           sed -i 's/\r$//' "$CERTS/$APP_ID.key" "$CERTS/$APP_ID.crt"
@@ -225,23 +222,33 @@ jobs:
           [ -s "$TARBALL" ] || { echo "::error::Tarball fehlt: $TARBALL"; exit 1; }
 
           # Signatur ueber genau das Paket, das unter DOWNLOAD_URL liegt.
-          # Zuerst per openssl; klappt das nicht, ueber PHP - dieselbe
-          # Bibliothek, die auch occ integrity:sign-app benutzt und die mit
-          # diesem Schluessel nachweislich zurechtkommt.
-          SIGNATURE=$(openssl dgst -sha512 -sign "$KEY" "$TARBALL" 2>/dev/null | openssl base64 -A || true)
-          if [ -z "$SIGNATURE" ]; then
-            echo "::warning::openssl konnte nicht signieren - weiche auf PHP aus."
-            SIGNATURE=$(php -r '
-              $key = openssl_pkey_get_private(file_get_contents($argv[1]));
+          #
+          # Erzeugt im selben Container, der auch signature.json erstellt hat:
+          # das openssl des Runners kann diesen Schluessel nicht lesen ("Could
+          # not read key"), das PHP im nextcloud-Image dagegen nachweislich
+          # schon - occ integrity:sign-app laeuft damit im Schritt davor
+          # erfolgreich durch. Statt an der Ursache im Secret-Format zu raten,
+          # nutzen wir schlicht die Umgebung, die funktioniert.
+          # Kein 2>&1: docker schreibt Pull-Fortschritt auf stderr, der landete
+          # sonst mitten in der "Signatur". Fehlermeldungen bleiben im Log
+          # sichtbar, stdout traegt ausschliesslich das Base64.
+          SIGNATURE=$(docker run --rm \
+            -v "$RUNNER_TEMP/certs:/certs:ro" \
+            -v "$TARBALL:/paket.tar.gz:ro" \
+            nextcloud:stable \
+            php -r '
+              $key = openssl_pkey_get_private(file_get_contents("/certs/'"$APP_ID"'.key"));
               if ($key === false) { fwrite(STDERR, "Schluessel nicht lesbar: " . openssl_error_string() . "\n"); exit(1); }
-              if (!openssl_sign(file_get_contents($argv[2]), $sig, $key, OPENSSL_ALGO_SHA512)) {
+              if (!openssl_sign(file_get_contents("/paket.tar.gz"), $sig, $key, OPENSSL_ALGO_SHA512)) {
                 fwrite(STDERR, "Signieren fehlgeschlagen: " . openssl_error_string() . "\n"); exit(1);
               }
               echo base64_encode($sig);
-            ' "$KEY" "$TARBALL")
-          fi
-          if [ -z "$SIGNATURE" ]; then
-            echo "::error::Signatur ist leer - der Store wuerde sie ablehnen."
+            ' | tr -d '\r\n') || true
+
+          # Nur Base64 durchlassen - eine Fehlermeldung aus dem Container waere
+          # sonst als "Signatur" an den Store gegangen.
+          if ! printf '%s' "$SIGNATURE" | grep -qE '^[A-Za-z0-9+/]{100,}={0,2}$'; then
+            echo "::error::Es kam keine gueltige Signatur heraus. Ausgabe war: $SIGNATURE"
             exit 1
           fi
           echo "Signatur erzeugt (${#SIGNATURE} Zeichen)."
