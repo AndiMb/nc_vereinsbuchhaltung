@@ -2,7 +2,7 @@
 
 Ein Praxis-Handbuch für Schatzmeisterinnen und Schatzmeister – von der
 Ersteinrichtung bis zum Jahresabschluss. Es beschreibt die App-Version
-**0.10.67** und orientiert sich am tatsächlichen Jahresablauf, nicht an
+**0.11.2** und orientiert sich am tatsächlichen Jahresablauf, nicht an
 Menüstrukturen: Was muss ich wann tun, und worauf ist dabei zu achten?
 
 ---
@@ -59,6 +59,32 @@ prüffähig dokumentiert.
 Die Ersteinrichtung macht einmal eine **Verwalterin oder ein Verwalter**.
 Ohne diese Rolle ist nur Lesen oder Buchen möglich (siehe Anhang 13.1).
 
+### 2.0 Der Start-Assistent und die Checkliste
+
+Beim allerersten Öffnen – solange noch kein einziges Konto existiert –
+begrüßt Sie ein kleiner **Assistent** mit drei Wegen:
+
+- **„Ich habe Daten aus ‚zero Buchhaltung'"** → öffnet direkt den
+  xbuc-Import (Kapitel 3.1).
+- **„Ich fange neu an"** → legt den erprobten Standard-Kontenrahmen an
+  (Kapitel 2.2, Weg B).
+- **„Erst mit Beispieldaten ausprobieren"** → legt einen kompletten
+  **Beispielverein** an: Konten, Buchungen, Belege, Planwerte. Alles lässt
+  sich gefahrlos durchklicken. Solange die Beispieldaten aktiv sind, steht
+  oben ein Banner *„Beispieldaten aktiv"* mit dem Knopf **„Zurücksetzen &
+  mit echten Daten starten"** – der räumt alles wieder ab (Kapitel 12.1).
+
+Der Assistent erscheint nur einmal je Gerät; „Überspringen" ist jederzeit
+möglich. Danach übernimmt die **Einrichtungs-Checkliste** auf dem Dashboard:
+Sie listet die noch offenen Schritte (Verein benennen, Kontenrahmen,
+Anfangsbestand, Berechtigungen, erste Buchung, Sphären zuordnen), hakt
+Erledigtes automatisch ab und springt per Klick an die richtige Stelle. Wer
+sie nicht braucht, blendet sie aus.
+
+> **Tipp:** Die Beispieldaten sind der schnellste Weg, die App kennenzulernen –
+> gerade vor der Übergabe an eine Nachfolgerin oder einen Nachfolger im
+> Schatzmeisteramt.
+
 ### 2.1 Berechtigungen vergeben
 
 Zahnrad-Symbol (Einstellungen) → Abschnitt **Berechtigungen**. Dort werden
@@ -96,6 +122,13 @@ Jedes Konto hat:
   die Jahresgrenze),
 - einen **Eröffnungssaldo** (Anfangsbestand, z. B. der Kontostand zum
   01.01.).
+
+> **Konten löschen:** Nur solange auf ihnen **nichts gebucht** ist und sie
+> keine Unterkonten haben. Sonst lehnt die App das Löschen mit einer
+> Erklärung ab – sonst verschwänden die gebuchten Beträge aus Saldenliste
+> und Kassenbericht, ohne dass es jemandem auffiele. Ein nicht mehr
+> benötigtes, aber bebuchtes Konto lässt man am besten stehen: es stört
+> nur in den Auswahllisten, und die Historie bleibt vollständig.
 
 ### 2.3 Eröffnungssalden eintragen
 
@@ -229,6 +262,11 @@ sind (z. B. interne Umbuchungen Bank → Tagesgeld, Rückstellungen).
 
 Jeder Buchung lässt sich eine **Belegnummer** zuordnen (z. B. die
 Rechnungsnummer) – optional, aber für die Kassenprüfung hilfreich.
+
+> Beim allerersten Öffnen des Buchungsdialogs am Desktop führt eine kurze
+> **Drei-Schritte-Tour** durch die wichtigsten Felder (Einnahme/Ausgabe,
+> Kategorie, Geldkonto). Sie erscheint nur einmal und lässt sich
+> überspringen.
 
 ### 4.3 Belege anhängen
 
@@ -412,7 +450,7 @@ Download-Buttons (Pfeil-nach-unten-Symbol):
 - **Einnahmen-/Ausgaben-Übersicht**
 - **Soll-Ist-Vergleich** (Finanzplan, inkl. Notizen)
 - **Mehrjahresübersicht** (Matrix: Erfolgsrechnung + Vermögen + Kostenstellen
-  über alle Jahre)
+  + steuerliche Sphären über alle Jahre)
 
 Die CSV-Dateien eignen sich für die Weitergabe an Steuerberatung oder
 Kassenprüfung oder für die eigene Analyse in Excel. Format: Semikolon-
@@ -511,7 +549,17 @@ Typischer Reihenfolge:
 
 Die App unterstützt die Kassenprüfung gezielt. Kassenprüfer bekommen die
 Rolle **Revisor** (nur Lesen) und können alles einsehen, ohne versehentlich
-etwas zu verändern.
+etwas zu verändern. Beim ersten Login mit dieser Rolle erscheint ein kurzer
+Willkommenshinweis, der die wichtigsten drei Stellen nennt.
+
+### 9.0 Der Prüfleitfaden zum Mitgeben
+
+Berichte → Auswertung → Button **„Prüfleitfaden"**. Das ist eine
+druckfertige **einseitige Kurzanleitung für Kassenprüfer/innen** – mit dem
+Vereinsnamen im Kopf, der Erklärung der Revisor-Rolle, den empfohlenen
+Prüfschritten und der Angabe, wo was zu finden ist. Ausdrucken oder als PDF
+mitgeben (Strg+P bzw. ⌘P) erspart der Prüfperson, sich in dieses ganze
+Handbuch einzulesen.
 
 ### 9.1 Vor der Prüfung: Vollständigkeit herstellen
 
@@ -603,6 +651,15 @@ nur am Desktop erreichbar – dort gehört es hin.
 
 ## 12. Wenn etwas schiefgeht – Hilfe und Sicherheit
 
+### 12.0 Hilfe direkt in der App
+
+Oben im Kopf sitzt ein **Hilfe-Knopf (?)**. Er öffnet ein kleines
+Hilfe-Fenster mit Kurzinfos zum gerade geöffneten Tab (Ersteinrichtung,
+Buchen & zuordnen, Konten, Berichte, Sphären); in den einzelnen Ansichten
+führen ebenfalls Hilfe-Symbole genau dorthin. Von jedem Kapitel führt ein
+Link **direkt in dieses Handbuch** – die App liefert es selbst als lesbare
+Seite aus, es muss also nichts auf GitHub gesucht werden.
+
 ### 12.1 „Alle Daten löschen" / Reset
 
 Einstellungen → *Alle Daten löschen* (nur Verwalter, mit
@@ -610,6 +667,10 @@ Bestätigungsdialog) entfernt Konten, Buchungen, Importe, Belege und die
 Jahresabschluss-Marker. **Das Änderungsprotokoll bleibt erhalten.**
 Gleiches gilt für den Reset-Modus beim xbuc-Import. Beides ist
 unwiderruflich – also nur nach Rücksprache und nie aus Versehen.
+
+Derselbe Knopf ist der harmlose Weg aus den **Beispieldaten** heraus
+(Kapitel 2.0): Solange das Banner „Beispieldaten aktiv" steht, gibt es
+nichts zu verlieren.
 
 ### 12.2 Falsche Buchung – was tun?
 
@@ -686,4 +747,4 @@ nur Geldkonten (Bank-Flag).
 
 ---
 
-*Stand: App-Version 0.10.67. Bei Fragen an die verwaltende Person wenden.*
+*Stand: App-Version 0.11.2. Bei Fragen an die verwaltende Person wenden.*

@@ -172,7 +172,10 @@ Ergebnis eines Code-Reviews. Schwerpunkt: Datenintegrität der Buchführung.
   frei definierbarer Kontenrahmen, doppelte Buchführung (Soll/Haben, Journal),
   Zuordnung von Bankbuchungen und optionale Auto-Zuordnungsregeln
 
-[Unreleased]: https://github.com/AndiMb/nc_vereinsbuchhaltung/compare/v0.10.69...HEAD
+[Unreleased]: https://github.com/AndiMb/nc_vereinsbuchhaltung/compare/v0.11.2...HEAD
+[0.11.2]: https://github.com/AndiMb/nc_vereinsbuchhaltung/compare/v0.11.1...v0.11.2
+[0.11.1]: https://github.com/AndiMb/nc_vereinsbuchhaltung/compare/v0.11.0...v0.11.1
+[0.11.0]: https://github.com/AndiMb/nc_vereinsbuchhaltung/compare/v0.10.69...v0.11.0
 [0.10.69]: https://github.com/AndiMb/nc_vereinsbuchhaltung/compare/v0.10.68...v0.10.69
 [0.10.68]: https://github.com/AndiMb/nc_vereinsbuchhaltung/compare/v0.10.63...v0.10.68
 [0.10.63]: https://github.com/AndiMb/nc_vereinsbuchhaltung/compare/v0.10.46...v0.10.63

@@ -12,6 +12,14 @@ Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kon
 
 ## Funktionsumfang
 
+### Einstieg & Hilfe
+- **Setup-Assistent** beim ersten Start (noch keine Konten vorhanden): drei Wege zur Auswahl – xbuc-Datei übernehmen, Standard-Kontenrahmen anlegen oder erst mit Beispieldaten ausprobieren
+- **Beispielverein** (Verwalter): vollständiger Datenbestand zum gefahrlosen Ausprobieren, mit Hinweisbanner und Zurücksetzen-Knopf; „Alle Daten löschen" macht daraus wieder eine leere Buchhaltung
+- **Einrichtungs-Checkliste** auf dem Dashboard: offene Schritte (Verein benennen, Kontenrahmen, Anfangsbestand, Berechtigungen, erste Buchung, Sphären) mit Direktsprung, ausblendbar
+- **Hilfe im Programm**: Hilfe-Knopf im Header öffnet das passende Kapitel zum aktiven Tab; von dort führt ein Link ins beiliegende Handbuch, das die App selbst als lesbare Seite ausliefert (`/api/help/handbuch`)
+- **Erste-Buchung-Tour**: einmalige Drei-Schritte-Hervorhebung der Felder im Buchungsdialog (Desktop, Einfach-Modus)
+- **Willkommenshinweis für Revisoren** beim ersten Login mit der Rolle, inkl. Prüfleitfaden zum Ausdrucken
+
 ### Import
 - **xbuc-Import** (zero Buchhaltung): übernimmt Kontenbaum und alle Buchungen aus einer `.xbuc`-Datei
   - **Merge-Modus** (Standard): nur fehlende Konten werden angelegt, bereits vorhandene Buchungen werden per Fingerprint übersprungen – mehrere Jahres-Dateien lassen sich nacheinander importieren
@@ -56,7 +64,8 @@ Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kon
 - **Änderungsprotokoll** (Berichte → Protokoll, für alle Leseberechtigten): wer hat wann Buchungen angelegt/geändert/gelöscht, zugeordnet, importiert, Belege oder Berechtigungen geändert, Jahre abgeschlossen; übersteht bewusst auch „Alle Daten löschen"
 - **Beleg-ZIP**: alle Belege eines Jahres als ZIP-Download, ein Ordner je Buchung (`NNNN_Datum_Beschreibung/`); fehlende Dateien werden aufgelistet statt den Export abzubrechen
 - **Filter „nur ohne Beleg"** im Journal: zeigt Buchungen ohne angehängten Beleg
-- **Lückenprüfung**: Warnhinweis über dem Journal bei fehlenden oder doppelten Buchungsnummern im gewählten Jahr (zusätzlich als Vollständigkeitszeile im Kassenbericht)
+- **Lückenprüfung**: Warnhinweis über dem Journal bei fehlenden oder doppelten Buchungsnummern im gewählten Jahr (zusätzlich als Vollständigkeitszeile im Kassenbericht). In einem offenen Geschäftsjahr hält die App die Nummerierung selbst lückenlos – gelöschte Buchungen lassen die nachfolgenden Nummern aufrücken, mit dem Jahresabschluss werden sie festgeschrieben
+- **Prüfleitfaden** (Berichte → Auswertung): druckfertige 1-Seiten-Kurzanleitung für Kassenprüfer/innen – Rolle, Prüfschritte, wo was zu finden ist; mit Vereinsname im Kopf
 
 ### Organisation & Sicherheit
 - **Berechtigungsrollen**: Verwalter – Buchhalter – Revisor (nur Lesen); NC-Admins sind immer Verwalter; Rollen für Nutzer und Gruppen
@@ -79,26 +88,31 @@ vereinsbuchhaltung/
 │   ├── AppInfo/       Application.php (DI, Middleware-Registrierung)
 │   ├── Controller/    Page, Account, Transaction, Import, Journal, Report,
 │   │                  Budget, Permission, Rule, Export, Settings, Attachment,
+│   │                  OpenItem, Branding (Logo/Farbe), Help (Handbuch,
+│   │                  Prüfleitfaden), Demo (Beispielverein),
 │   │                  Sync (Kollaboration), Year (Jahresabschluss), Audit
 │   ├── Db/            Entities + QBMapper (accounts, bank_tx, journal, journal_line,
-│   │                  imports, costcenters, budgets, budget_snapshots, permissions,
-│   │                  rules, attachments, year_close, audit_log)
+│   │                  imports, costcenters, budgets, budget_snapshots, open_items,
+│   │                  permissions, rules, attachments, year_close, audit_log)
+│   │                  + TransactionRunner (DB-Transaktionsklammer)
 │   ├── Middleware/    PermissionMiddleware (Rechteprüfung, 403/423),
-│   │                  RevisionMiddleware (Änderungsstand für das Polling)
+│   │                  RevisionMiddleware (Änderungsstand für das Polling),
+│   │                  RequiresRole (Attribut zur Rechteprüfung je Methode)
 │   ├── Migration/     Schema-Migrationen (vbh_* Tabellen)
 │   └── Service/       CamtCsvParser, ImportService, XbucParser, XbucImportService,
 │                      AccountService, BookingService, JournalService,
-│                      OpeningBalanceService, ReportService, ResetService,
-│                      PermissionService, AttachmentStorageService,
-│                      BudgetSnapshotService, RevisionService,
-│                      YearCloseService, AuditService
+│                      EntryNumberService, OpeningBalanceService, ReportService,
+│                      ResetService, PermissionService, AttachmentStorageService,
+│                      BudgetSnapshotService, OpenItemService, RevisionService,
+│                      YearCloseService, AuditService, BrandingService,
+│                      CsvFormatter, DemoDataService
 ├── src/               Vue 2.7-Frontend (Composition API via setup(), reactive() als
 │   │                  Composable-Singletons statt Vuex/Pinia)
 │   ├── App.vue        Shell: Header/Navigation/Jahresauswahl, Tab-Router,
 │   │                  Top-Level-Modals, Composable-Bootstrap in mounted()
 │   ├── composables/   geteilter Zustand als reactive()-Singletons je Fachbereich
 │   │                  (useAuth, useYears, useAccounts, useBalances, useJournal,
-│   │                  usePermissions, useSync)
+│   │                  useOpenItems, usePermissions, useSync)
 │   ├── components/    Tabs (DashboardTab/BookingsTab/AccountsTab/ReportsTab),
 │   │                  Dialoge (BookingDialog/AccountDialog/ImportDialog/
 │   │                  BudgetSnapshotModal/HelpModal/SetupWizard), Settings-*
@@ -111,7 +125,11 @@ vereinsbuchhaltung/
 │   └── main.js        Einstieg
 ├── templates/         main.php
 ├── tests/             Unit-Tests + Beispiel-Dateien
-└── .github/workflows/ Release-Build (Tag v* → GitHub Release mit Tarball)
+├── deploy/            vbh-deploy.sh (Server-Update aus dem GitHub-Release)
+├── img/               app.svg + Screenshots für den App Store
+└── .github/workflows/ ci.yml (Lint, Build, PHPUnit, Schemaprüfung bei jedem Push),
+                       release.yml (Tag v* → signiertes Paket, GitHub-Release,
+                       Meldung an den App Store)
 ```
 
 ### Datenmodell
@@ -127,6 +145,7 @@ vereinsbuchhaltung/
 | `vbh_budgets` | Finanzplan (Konto × Jahr × Betrag in Cent + Notiz) |
 | `vbh_budget_snapshots` | eingefrorene Plan-Stände (Jahr, Label, Zeitpunkt) |
 | `vbh_budget_snap_items` | Positionen eines Plan-Stands (inkl. eingefrorener Konto-Stammdaten) |
+| `vbh_open_items` | offene Posten (Debitor, Betrag, Fälligkeit, Status, optional Konto/Buchung) |
 | `vbh_rules` | Auto-Zuordnungsregeln (Feld, Suchtext, Gegenkonto, Priorität) |
 | `vbh_attachments` | Belege je Buchungssatz (Dateiname, MIME, Größe) |
 | `vbh_permissions` | Berechtigungen (principal_type, principal_id, Rolle) |
@@ -135,7 +154,15 @@ vereinsbuchhaltung/
 
 Beträge werden durchgängig als **Integer in Cent** gespeichert (keine Float-Rundungsfehler).
 
-## Installation / Entwicklung
+## Installation
+
+Die App ist im **Nextcloud App Store** veröffentlicht (signiert): in Nextcloud unter *Apps → Deine Apps / Büro* nach „Vereinsbuchhaltung" suchen und installieren. Das ist der empfohlene Weg – Updates kommen dann über den üblichen App-Store-Mechanismus.
+
+Alternativ lässt sich das Tarball eines [GitHub-Releases](https://github.com/AndiMb/nc_vereinsbuchhaltung/releases) nach `<nextcloud>/apps/` entpacken (siehe auch [`deploy/README.md`](deploy/README.md) für die Server-Automatisierung).
+
+**Unterstützt:** Nextcloud 28–34, PHP 8.1–8.4, SQLite/MySQL/PostgreSQL.
+
+## Entwicklung
 
 **Voraussetzungen:** PHP ≥ 8.1, Node ≥ 20 / npm ≥ 10, eine Nextcloud-Instanz (≥ 28).
 
@@ -160,15 +187,25 @@ php occ upgrade         # oder: php occ migrations:migrate vereinsbuchhaltung
 > ```
 > Anschließend `http://localhost:8080` aufrufen, einrichten, App aktivieren.
 
+### CI
+
+`.github/workflows/ci.yml` läuft bei jedem Push und Pull Request: ESLint, Produktions-Build, PHP-Syntaxprüfung auf 8.1 und 8.4, `composer validate`, PHPUnit und die Validierung der `info.xml` gegen das App-Store-Schema.
+
 ### Release & Deployment
 
-Ein Git-Tag `v<version>` (muss der `<version>` in `appinfo/info.xml` entsprechen) stößt den GitHub-Actions-Workflow an, der das Frontend baut und ein fertiges `vereinsbuchhaltung-<version>.tar.gz` (+ SHA-256) als GitHub-Release veröffentlicht. Auf den Servern holt ein Deploy-Skript das neueste Release, prüft die Prüfsumme und führt `occ upgrade` aus. **Vor Releases mit Datenbank-Migration: Datenbank-Backup anlegen** – das Skript-Rollback stellt nur den App-Ordner wieder her, nicht das Schema.
+Ein Git-Tag `v<version>` (muss der `<version>` in `appinfo/info.xml` entsprechen und einen Abschnitt `## [x.y.z]` in der [CHANGELOG.md](CHANGELOG.md) haben) stößt `release.yml` an. Der Workflow baut das Frontend, signiert die App mit dem von Nextcloud ausgestellten Zertifikat (`appinfo/signature.json`), veröffentlicht `vereinsbuchhaltung-<version>.tar.gz` (+ SHA-256) als GitHub-Release und meldet es dem Nextcloud App Store.
+
+Die im App Store gezeigten Screenshots werden per URL aus `img/screenshots/` auf `main` geladen – neue Bilder müssen also **vor** dem Release gepusht sein.
+
+Auf eigenen Servern holt `deploy/vbh-deploy.sh` das neueste Release, prüft die Prüfsumme und führt `occ upgrade` aus. **Vor Releases mit Datenbank-Migration: Datenbank-Backup anlegen** – das Skript-Rollback stellt nur den App-Ordner wieder her, nicht das Schema.
 
 ### Build-Hinweis (vue-loader)
 
 Das Projekt verwendet Vue 2.7 mit `@nextcloud/webpack-vue-config`. Damit der Build funktioniert, müssen `vue-loader@15` und `vue-template-compiler` explizit in `devDependencies` stehen – neuere `vue-loader`-Versionen erzeugen Vue-3-Render-Funktionen, die mit der Vue-2.7-Runtime inkompatibel sind.
 
 ## Erste Schritte
+
+Beim allerersten Start begrüßt ein **Setup-Assistent** mit drei Wegen (xbuc übernehmen / neu anfangen / Beispieldaten). Wer ihn überspringt, arbeitet die folgenden Schritte ab – die **Einrichtungs-Checkliste** auf dem Dashboard zeigt dabei laufend, was noch offen ist.
 
 1. **Berechtigungen** (Gear-Icon → Einstellungen) → Nutzer oder Gruppen als Buchhalter oder Verwalter eintragen.
 2. **Einstellungen → Aus „zero Buchhaltung" importieren** → `.xbuc`-Datei wählen → Vorschau prüfen → Importieren.
@@ -177,7 +214,7 @@ Das Projekt verwendet Vue 2.7 mit `@nextcloud/webpack-vue-config`. Damit der Bui
 3. Tab **Buchungen** → *Kontoumsätze importieren* → CSV-CAMT-Datei der Bank hochladen.
 4. Tab **Buchungen → Zuzuordnen** → jede Bankbuchung einem Gegenkonto zuordnen (Vorschläge per Klick übernehmen; Regeln automatisieren wiederkehrende Buchungen).
 5. Tab **Übersicht** → Dashboard mit KPI-Kacheln und Monatschart.
-6. Tab **Berichte** → Auswertung (inkl. Kassenbericht und Beleg-ZIP), Kostenstellen, Finanzplan (inkl. Plan-Notizen, Plan-Ständen und CSV-Export), Protokoll.
+6. Tab **Berichte** → Auswertung (inkl. Kassenbericht, Kurzbericht, Beleg-ZIP und Prüfleitfaden), Kostenstellen, Finanzplan (inkl. Plan-Notizen, Plan-Ständen und CSV-Export), Sphären, Rücklagen, Protokoll.
 7. Nach Kassenprüfung und Entlastung: **Einstellungen → Jahresabschluss** → Jahr abschließen (festschreiben).
 
 ## Roadmap
