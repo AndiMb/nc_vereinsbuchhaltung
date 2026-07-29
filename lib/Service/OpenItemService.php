@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service;
 
+use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
+use OCP\AppFramework\Db\DoesNotExistException;
 
 /**
  * Offene-Posten-Verwaltung: schlanke Ad-hoc-Liste unbezahlter Forderungen
@@ -17,6 +20,7 @@ class OpenItemService {
 
 	public function __construct(
 		private OpenItemMapper $mapper,
+		private JournalMapper $journalMapper,
 	) {
 	}
 
@@ -52,8 +56,22 @@ class OpenItemService {
 		return $this->mapper->insert($item);
 	}
 
+	/**
+	 * @param int|null $journalId optionale Verknüpfung mit der Buchung, die den
+	 *        Posten bezahlt hat
+	 * @throws \InvalidArgumentException wenn es diese Buchung nicht gibt
+	 */
 	public function markPaid(int $id, ?int $journalId): OpenItem {
 		$item = $this->mapper->find($id);
+		if ($journalId !== null) {
+			// Ohne Prüfung stünde im Posten eine Buchungsnummer, die ins Leere
+			// zeigt - der Beleg für die Zahlung wäre nicht auffindbar.
+			try {
+				$this->journalMapper->find($journalId, Application::BOOK);
+			} catch (DoesNotExistException) {
+				throw new \InvalidArgumentException('Die angegebene Buchung existiert nicht.');
+			}
+		}
 		$item->setStatus('paid');
 		$item->setPaidJournalId($journalId);
 		return $this->mapper->update($item);

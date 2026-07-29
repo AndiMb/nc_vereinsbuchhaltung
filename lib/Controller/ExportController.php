@@ -23,6 +23,7 @@ use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\DataDisplayResponse;
 use OCP\AppFramework\Http\DataDownloadResponse;
 use OCP\AppFramework\Http\EmptyContentSecurityPolicy;
+use OCP\AppFramework\Http\StreamResponse;
 use OCP\IConfig;
 use OCP\IRequest;
 use OCP\ITempManager;
@@ -609,7 +610,7 @@ class ExportController extends Controller {
 	 */
 	#[NoAdminRequired]
 	#[NoCSRFRequired]
-	public function attachments(?int $year = null): DataDownloadResponse {
+	public function attachments(?int $year = null): StreamResponse|DataDownloadResponse {
 		$userId = $this->userId();
 		[$from, $to] = $this->yearRange($year);
 		$yearLabel = $year ? (string)$year : 'alle_jahre';
@@ -622,6 +623,8 @@ class ExportController extends Controller {
 
 		$count = 0;
 		$problems = [];
+		/** @var list<resource> $openStreams bis zum close() offen zu haltende Dateiströme */
+		$openStreams = [];
 		$journals = $this->journalMapper->findAll($userId, 100000, 0, $from, $to);
 		// Belegliste gebündelt laden statt je Buchung.
 		$attsByJournal = $this->attachmentMapper->findByJournals(array_map(
@@ -640,14 +643,23 @@ class ExportController extends Controller {
 				(string)$journal->getDescription(),
 			), 80);
 			foreach ($atts as $att) {
+				$entryName = $folder . '/' . $att->getId() . '_' . $this->zipName($att->getFileName(), 100);
 				try {
-					$content = $this->storageService->getFileContent($att->getId(), $att->getJournalId(), $att->getFileName());
+					// Belegweise als Datenstrom in das Archiv geben, statt den
+					// Inhalt vorher komplett in eine Variable zu laden. Bei
+					// einem Jahr voller PDFs (bis 20 MB je Beleg) lief der
+					// Export sonst gegen das memory_limit - ausgerechnet die
+					// Funktion, die die Kassenprüfung braucht.
+					$stream = $this->storageService->getFileStream($att->getId(), $att->getJournalId(), $att->getFileName());
 				} catch (\Throwable) {
 					$problems[] = sprintf('Buchung #%s (%s): Datei "%s" (Beleg %d) nicht gefunden.',
 						(string)($journal->getEntryNo() ?? '?'), (string)$journal->getDate(), $att->getFileName(), $att->getId());
 					continue;
 				}
-				$zip->addFromString($folder . '/' . $att->getId() . '_' . $this->zipName($att->getFileName(), 100), $content);
+				$zip->addStream($stream, $entryName);
+				// ZipArchive liest den Strom erst beim close() aus, deshalb
+				// bleiben die Handles bis dahin offen.
+				$openStreams[] = $stream;
 				$count++;
 			}
 		}
@@ -659,9 +671,19 @@ class ExportController extends Controller {
 			$zip->addFromString('fehlende_dateien.txt', implode("\n", $problems) . "\n");
 		}
 		$zip->close();
+		foreach ($openStreams as $stream) {
+			if (is_resource($stream)) {
+				fclose($stream);
+			}
+		}
 
-		$data = (string)file_get_contents($zipPath);
-		return new DataDownloadResponse($data, "belege_{$yearLabel}.zip", 'application/zip');
+		// Die fertige Datei ausliefern, ohne sie noch einmal komplett in den
+		// Speicher zu lesen. Der Temp-Ordner wird von Nextcloud aufgeräumt.
+		$response = new StreamResponse($zipPath);
+		$response->addHeader('Content-Type', 'application/zip');
+		$response->addHeader('Content-Length', (string)(filesize($zipPath) ?: 0));
+		$response->addHeader('Content-Disposition', 'attachment; filename="belege_' . $yearLabel . '.zip"');
+		return $response;
 	}
 
 	/**

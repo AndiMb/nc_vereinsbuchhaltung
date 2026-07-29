@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Service\BrandingService;
+use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
@@ -57,6 +58,7 @@ class BrandingController extends Controller {
 	}
 
 	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_ADMIN)]
 	public function upload(): DataResponse {
 		if (!$this->permissionService->isAdmin()) {
 			return new DataResponse(['message' => 'Zugriff verweigert'], Http::STATUS_FORBIDDEN);
@@ -90,6 +92,7 @@ class BrandingController extends Controller {
 	}
 
 	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_ADMIN)]
 	public function destroy(): DataResponse {
 		if (!$this->permissionService->isAdmin()) {
 			return new DataResponse(['message' => 'Zugriff verweigert'], Http::STATUS_FORBIDDEN);

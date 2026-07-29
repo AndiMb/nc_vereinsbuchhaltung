@@ -8,3 +8,5 @@
 .phpunit.result.cache
 # Rohmaterial fuer das README-Video u.ae. gehoert nicht ins Repo
 *.mp3
+# Lokales Composer-Binary - nicht versionieren
+composer.phar

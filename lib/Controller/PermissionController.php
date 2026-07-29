@@ -73,6 +73,15 @@ class PermissionController extends Controller {
 		if ($principalId === '') {
 			return new DataResponse(['message' => 'Nutzer/Gruppe fehlt'], Http::STATUS_BAD_REQUEST);
 		}
+		// Existenz prüfen: ein Tippfehler legte sonst eine Berechtigung an, die
+		// zu niemandem gehört. Sie stünde dauerhaft in der Rechteliste, ohne je
+		// zu greifen - und niemand käme darauf, dass der Name falsch ist.
+		if ($principalType === 'user' && !$this->userManager->userExists($principalId)) {
+			return new DataResponse(['message' => 'Diesen Nextcloud-Nutzer gibt es nicht: ' . $principalId], Http::STATUS_BAD_REQUEST);
+		}
+		if ($principalType === 'group' && !$this->groupManager->groupExists($principalId)) {
+			return new DataResponse(['message' => 'Diese Nextcloud-Gruppe gibt es nicht: ' . $principalId], Http::STATUS_BAD_REQUEST);
+		}
 		$entry = $this->mapper->upsert($principalType, $principalId, $role);
 		$this->audit->log('Berechtigung gesetzt', 'permission', null, [
 			'typ' => $principalType,

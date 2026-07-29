@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Service\DemoDataService;
+use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
@@ -80,6 +81,7 @@ class SettingsController extends Controller {
 	}
 
 	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_ADMIN)]
 	public function update(): DataResponse {
 		if (PermissionService::RANK[$this->permissionService->getRole()] < PermissionService::RANK[PermissionService::ROLE_ADMIN]) {
 			return new DataResponse(['message' => 'Zugriff verweigert'], Http::STATUS_FORBIDDEN);

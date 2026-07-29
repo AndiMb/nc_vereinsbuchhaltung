@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCA\Vereinsbuchhaltung\Service\YearCloseService;
 use OCP\AppFramework\Controller;
@@ -35,7 +36,11 @@ class YearController extends Controller {
 	}
 
 	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_ADMIN)]
 	public function close(int $year): DataResponse {
+		// Die Middleware hat die Rolle bereits geprüft; die Prüfung hier bleibt
+		// als zweite Schicht stehen, damit ein Fehler in der Verdrahtung nicht
+		// gleich die Festschreibung öffnet.
 		if (!$this->permissionService->isAdmin()) {
 			return new DataResponse(['message' => 'Nur Verwalter dürfen Jahre abschließen.'], Http::STATUS_FORBIDDEN);
 		}
@@ -47,6 +52,7 @@ class YearController extends Controller {
 	}
 
 	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_ADMIN)]
 	public function reopen(int $year): DataResponse {
 		if (!$this->permissionService->isAdmin()) {
 			return new DataResponse(['message' => 'Nur Verwalter dürfen Jahre wiedereröffnen.'], Http::STATUS_FORBIDDEN);

@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\DemoDataService;
+use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
@@ -31,6 +32,7 @@ class DemoController extends Controller {
 
 	/** Legt den Beispielverein an – nur Verwalter, nur wenn noch keine Konten existieren. */
 	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_ADMIN)]
 	public function seed(): DataResponse {
 		if (!$this->permissionService->isAdmin()) {
 			return new DataResponse(['message' => 'Nur Verwalter dürfen Beispieldaten anlegen.'], Http::STATUS_FORBIDDEN);

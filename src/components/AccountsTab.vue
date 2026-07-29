@@ -90,11 +90,11 @@
 				<!-- Eröffnungssaldo nur für Geldkonten: nur deren Bestand geht über Jahresgrenzen. -->
 				<div v-if="canWrite && selectedAccount.isBank" class="vbh-opening">
 					<span>Eröffnungssaldo:</span>
-					<input v-model.number="openingForm[selectedAccount.id].amount"
+					<input v-model.number="openingAmount"
 						type="number"
 						step="0.01"
 						class="vbh-num">
-					<input v-model="openingForm[selectedAccount.id].date" type="date" class="vbh-date">
+					<input v-model="openingDate" type="date" class="vbh-date">
 					<NcButton variant="primary" size="small" @click="saveOpening(selectedAccount)">
 						Speichern
 					</NcButton>
@@ -270,6 +270,22 @@ export default {
 		selectedAccount() {
 			return this.selectedAccountId ? this.accountsById[this.selectedAccountId] : null
 		},
+		// Eroeffnungssaldo des gewaehlten Kontos. Der Zustand liegt beim
+		// Elternteil (App.vue zieht ihn nach dem Speichern nach), deshalb
+		// meldet das Kind Aenderungen per Event zurueck statt direkt in die
+		// Prop zu schreiben - siehe :opening-form.sync in App.vue.
+		openingEntry() {
+			const id = this.selectedAccount ? this.selectedAccount.id : null
+			return (id && this.openingForm[id]) || { amount: 0, date: '' }
+		},
+		openingAmount: {
+			get() { return this.openingEntry.amount },
+			set(v) { this.updateOpening({ amount: v }) },
+		},
+		openingDate: {
+			get() { return this.openingEntry.date },
+			set(v) { this.updateOpening({ date: v }) },
+		},
 		visibleTree() {
 			const byNum = list => list.slice().sort((a, b) => String(a.number).localeCompare(String(b.number), 'de', { numeric: true }))
 			const roots = byNum(this.accounts.filter(a => !a.parentId))
@@ -326,6 +342,15 @@ export default {
 		formatDate,
 		typeLabel,
 		amountClass,
+		/** Aenderung am Eroeffnungssaldo an den Elternteil zurueckmelden. */
+		updateOpening(patch) {
+			if (!this.selectedAccount) return
+			const id = this.selectedAccount.id
+			this.$emit('update:openingForm', {
+				...this.openingForm,
+				[id]: { ...this.openingEntry, ...patch },
+			})
+		},
 		toggleExpand(id) { this.$set(this.expanded, id, !this.expanded[id]) },
 		expandAll() { const e = {}; for (const acc of this.accounts) if ((this.childrenOf[acc.id] || []).length) e[acc.id] = true; this.expanded = e },
 		collapseAll() { this.expanded = {} },

@@ -10,14 +10,5 @@ module.exports = {
 		'jsdoc/require-param': 'off',
 		'jsdoc/require-param-type': 'off',
 		'jsdoc/require-param-description': 'off',
-
-		// Bekannte technische Schuld: BookingDialog.vue und AccountsTab.vue
-		// bearbeiten das Formular-Objekt des Elternteils direkt, statt Aenderungen
-		// per Event zurueckzumelden. In Vue 2 funktioniert das (Objekt-Props sind
-		// Referenzen), es koppelt Kind und Elternteil aber fest aneinander und
-		// muesste vor einer Vue-3-Migration aufgeloest werden. Bewusst als
-		// Warnung sichtbar gehalten statt abgeschaltet - aber kein Grund, die
-		// CI rot zu faerben, solange der Umbau noch aussteht.
-		'vue/no-mutating-props': 'warn',
 	},
 }

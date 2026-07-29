@@ -47,24 +47,20 @@ class CamtCsvParser {
 		$content = $this->toUtf8($content);
 		$content = preg_replace('/^\xEF\xBB\xBF/', '', $content); // BOM entfernen
 
-		$lines = preg_split('/\r\n|\r|\n/', $content) ?: [];
-		$lines = array_values(array_filter($lines, static fn ($l) => trim($l) !== ''));
-		if (count($lines) < 2) {
+		$records = $this->readRecords($content);
+		if (count($records) < 2) {
 			throw new \RuntimeException('Die Datei enthält keine Buchungszeilen.');
 		}
 
-		$delimiter = $this->detectDelimiter($lines[0]);
-		$header = str_getcsv($lines[0], $delimiter, '"', '\\');
-		$map = $this->mapHeader($header);
-
+		$map = $this->mapHeader($records[0]);
 		if (!isset($map['bookingDate']) || !isset($map['amount'])) {
 			throw new \RuntimeException('Pflichtspalten (Buchungstag, Betrag) konnten in der Kopfzeile nicht gefunden werden.');
 		}
 
 		$rows = [];
-		for ($i = 1; $i < count($lines); $i++) {
-			$cols = str_getcsv($lines[$i], $delimiter, '"', '\\');
-			if (count($cols) === 1 && trim($cols[0]) === '') {
+		for ($i = 1; $i < count($records); $i++) {
+			$cols = $records[$i];
+			if (count($cols) === 1 && trim((string)$cols[0]) === '') {
 				continue;
 			}
 			$row = $this->buildRow($cols, $map);
@@ -74,6 +70,46 @@ class CamtCsvParser {
 		}
 
 		return $rows;
+	}
+
+	/**
+	 * Zerlegt den Dateiinhalt in CSV-Datensätze.
+	 *
+	 * Bewusst über einen Stream und fgetcsv() statt zuerst an Zeilenumbrüchen
+	 * zu trennen: ein Verwendungszweck darf laut CSV einen Zeilenumbruch
+	 * enthalten, solange er in Anführungszeichen steht. Beim zeilenweisen
+	 * Vorgehen zerriss so ein Feld – die Buchung ging entweder verloren oder
+	 * bekam verschobene Spalten, und beides fiel erst beim Abgleich der Salden
+	 * auf.
+	 *
+	 * @return array<int, array<int, string|null>>
+	 */
+	private function readRecords(string $content): array {
+		$firstLine = strtok($content, "\r\n");
+		$delimiter = $this->detectDelimiter($firstLine === false ? '' : $firstLine);
+
+		$handle = fopen('php://temp', 'r+');
+		if ($handle === false) {
+			throw new \RuntimeException('Die Datei konnte nicht gelesen werden.');
+		}
+		fwrite($handle, $content);
+		rewind($handle);
+
+		$records = [];
+		while (($cols = fgetcsv($handle, 0, $delimiter, '"', '\\')) !== false) {
+			// Vollständig leere Zeilen überspringen (fgetcsv liefert [null]).
+			if ($cols === [null]) {
+				continue;
+			}
+			$joined = trim(implode('', array_map(static fn ($c) => (string)$c, $cols)));
+			if ($joined === '') {
+				continue;
+			}
+			$records[] = $cols;
+		}
+		fclose($handle);
+
+		return $records;
 	}
 
 	/**
@@ -87,7 +123,8 @@ class CamtCsvParser {
 				return null;
 			}
 			$idx = $map[$field];
-			return isset($cols[$idx]) ? trim($cols[$idx]) : null;
+			// fgetcsv liefert für leere Felder null.
+			return isset($cols[$idx]) ? trim((string)$cols[$idx]) : null;
 		};
 
 		$bookingDate = $this->parseDate($get('bookingDate'));
@@ -190,7 +227,8 @@ class CamtCsvParser {
 	private function mapHeader(array $header): array {
 		$normalized = [];
 		foreach ($header as $idx => $name) {
-			$normalized[$idx] = $this->normalizeKey($name);
+			// fgetcsv liefert für leere Felder null.
+			$normalized[$idx] = $this->normalizeKey((string)$name);
 		}
 		$map = [];
 		foreach (self::FIELD_SYNONYMS as $field => $synonyms) {

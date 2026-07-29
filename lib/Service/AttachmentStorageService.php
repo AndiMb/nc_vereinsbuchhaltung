@@ -131,6 +131,29 @@ class AttachmentStorageService {
 		}
 	}
 
+	/**
+	 * Wie {@see getFileContent()}, liefert die Datei aber als Lesestrom.
+	 *
+	 * Für den ZIP-Export der Belege: dort werden potenziell hunderte Dateien zu
+	 * je bis zu 20 MB verarbeitet, die nicht alle gleichzeitig in den Speicher
+	 * passen müssen.
+	 *
+	 * @return resource
+	 */
+	public function getFileStream(int $id, int $journalId, string $fileName) {
+		if ($this->isNcMode()) {
+			$folder = $this->getNcFolder($journalId);
+			$node = $folder->get($this->ncFileName($id, $fileName));
+		} else {
+			$node = $this->appDataFolder()->getFile((string)$id);
+		}
+		$stream = $node->fopen('r');
+		if (!is_resource($stream)) {
+			throw new \RuntimeException('Beleg-Datei konnte nicht geöffnet werden.');
+		}
+		return $stream;
+	}
+
 	public function deleteFile(int $id, int $journalId, string $fileName): void {
 		try {
 			if ($this->isNcMode()) {

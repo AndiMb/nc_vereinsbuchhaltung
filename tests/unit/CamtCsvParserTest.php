@@ -54,6 +54,26 @@ class CamtCsvParserTest extends TestCase {
 		$this->assertSame('2026-03-15', $rows[0]['bookingDate']);
 	}
 
+	/**
+	 * Ein Verwendungszweck darf laut CSV Zeilenumbrüche enthalten, solange er
+	 * in Anführungszeichen steht – manche Banken exportieren mehrzeilige
+	 * Verwendungszwecke genau so. Beim früheren zeilenweisen Einlesen zerriss
+	 * so ein Datensatz.
+	 */
+	public function testMehrzeiligerVerwendungszweck(): void {
+		$csv = "Buchungstag;Betrag;Verwendungszweck;Beguenstigter/Zahlungspflichtiger\n"
+			. "02.01.2026;60,00;\"Mitgliedsbeitrag 2026\nRechnung 4711\";Max Mustermann\n"
+			. "03.01.2026;25,00;Spende;Erika Musterfrau\n";
+		$rows = $this->parser->parse($csv);
+
+		$this->assertCount(2, $rows, 'Der mehrzeilige Datensatz darf nicht zerrissen werden');
+		$this->assertSame('2026-01-02', $rows[0]['bookingDate']);
+		$this->assertSame(6000, $rows[0]['amountCents']);
+		$this->assertStringContainsString('Rechnung 4711', (string)$rows[0]['purpose']);
+		$this->assertSame('Max Mustermann', $rows[0]['counterparty']);
+		$this->assertSame('Erika Musterfrau', $rows[1]['counterparty']);
+	}
+
 	public function testZweistelligeJahreszahlWirdErgaenzt(): void {
 		$csv = "Buchungstag;Betrag;Beguenstigter/Zahlungspflichtiger\n"
 			. "05.01.26;10,00;Max Mustermann\n";

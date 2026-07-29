@@ -49,6 +49,13 @@ Ergebnis eines Code-Reviews. Schwerpunkt: Datenintegrität der Buchführung.
   `=`, `+`, `-` oder `@`, führte Excel ihn beim Öffnen des Exports als Formel
   aus. Solche Felder werden jetzt als Text markiert – Beträge bleiben
   ausgenommen und damit rechenbar.
+- **Mehrzeilige Verwendungszwecke im CSV-Import.** Ein Verwendungszweck darf
+  Zeilenumbrüche enthalten, solange er in Anführungszeichen steht; solche
+  Zeilen wurden bisher zerrissen und gingen verloren oder bekamen verschobene
+  Spalten.
+- Beim Markieren eines offenen Postens als bezahlt muss die verknüpfte Buchung
+  existieren; bei der Rechtevergabe müssen Nutzer bzw. Gruppe existieren.
+  Tippfehler erzeugten vorher stille Verweise ins Leere.
 
 ### Geändert
 - **Das Änderungsprotokoll wird erst nach dem Commit geschrieben.** Ein
@@ -63,6 +70,9 @@ Ergebnis eines Code-Reviews. Schwerpunkt: Datenintegrität der Buchführung.
   ihr bekannten Beleg-Dateien statt des gesamten Ablageordners.
 - Journal, Kontoauszug und die Exporte laden ihre Daten gebündelt statt je
   Buchung einzeln – bei größeren Beständen deutlich weniger Datenbankabfragen.
+- **Der Beleg-Export als ZIP läuft nicht mehr über den Arbeitsspeicher.** Bei
+  einem Jahr voller PDF-Belege konnte er vorher am `memory_limit` scheitern –
+  ausgerechnet die Funktion, die für die Kassenprüfung gebraucht wird.
 
 ### Sonstiges
 - CI-Workflow (`.github/workflows/ci.yml`): ESLint, Produktions-Build,
@@ -71,8 +81,17 @@ Ergebnis eines Code-Reviews. Schwerpunkt: Datenintegrität der Buchführung.
 - `@mdi/js` als direkte Abhängigkeit eingetragen (war nur zufällig über
   `@nextcloud/vue` verfügbar).
 - Unit-Tests für Nachnummerierung, Datumsprüfung und CSV-Formatierung ergänzt
-  (32 Tests). Sie bringen einen eigenen Autoloader mit und laufen ohne
+  (33 Tests). Sie bringen einen eigenen Autoloader mit und laufen ohne
   `composer install`.
+- Dialoge schreiben nicht mehr direkt in die Formularobjekte der Elternansicht,
+  sondern melden Änderungen als Ereignis zurück – Voraussetzung für eine
+  spätere Vue-3-Migration. Damit läuft ESLint jetzt vollständig ohne Ausnahmen.
+- Rechteprüfungen können per Attribut an der Methode festgelegt werden, statt
+  sie allein aus dem HTTP-Verb abzuleiten. Die besonders heiklen Endpunkte
+  (Zurücksetzen, Jahresabschluss, Einstellungen, Logo, Beispieldaten) sind so
+  gekennzeichnet.
+- Der überflüssig gewordene Index `vbh_jrn_user_entry` entfällt (Migration 121).
+- `composer.phar` ist nicht mehr Teil des Repositorys.
 
 ## [0.10.69] – 2026-07-28
 

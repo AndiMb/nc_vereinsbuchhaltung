@@ -51,6 +51,8 @@ class OpenItemController extends Controller {
 			$item = $this->service->markPaid($id, $journalId);
 		} catch (DoesNotExistException) {
 			return new DataResponse(['message' => 'Offener Posten nicht gefunden'], Http::STATUS_NOT_FOUND);
+		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		}
 		$this->audit->log('Offener Posten als bezahlt markiert', 'open_item', $id, [
 			'debtor' => $item->getDebtor(),

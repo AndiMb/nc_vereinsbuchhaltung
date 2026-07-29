@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\ImportLogMapper;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\DemoDataService;
 use OCA\Vereinsbuchhaltung\Service\ImportService;
+use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCA\Vereinsbuchhaltung\Service\ResetService;
 use OCA\Vereinsbuchhaltung\Service\XbucImportService;
@@ -145,7 +146,10 @@ class ImportController extends Controller {
 	}
 
 	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_ADMIN)]
 	public function reset(): DataResponse {
+		// Zweite Schicht neben der Middleware – hier hängt der gesamte
+		// Datenbestand dran.
 		if (!$this->permissionService->isAdmin()) {
 			return new DataResponse(['message' => 'Nur Verwalter dürfen alle Daten zurücksetzen.'], Http::STATUS_FORBIDDEN);
 		}

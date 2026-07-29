@@ -44,7 +44,7 @@
 			<!-- Mobil: Betrag zuerst und groß, Kontenwahl über Auswahl-Sheets -->
 			<template v-if="isMobile">
 				<div class="vbh-bigamount">
-					<input v-model.number="bookingForm.amount"
+					<input v-model.number="formAmount"
 						type="number"
 						step="0.01"
 						min="0.01"
@@ -100,9 +100,9 @@
 							<span class="vbh-fieldbtn-chev" aria-hidden="true">›</span>
 						</button>
 					</template>
-					<label class="vbh-mfield">Datum<input v-model="bookingForm.date" type="date" :disabled="bookingLocked"></label>
-					<label class="vbh-mfield">Buchungstext<input v-model="bookingForm.description" placeholder="z. B. Mitgliedsbeitrag Max Mustermann" :disabled="bookingLocked"></label>
-					<label class="vbh-mfield">Beleg-Nr.<input v-model="bookingForm.documentRef" placeholder="optional" :disabled="bookingLocked"></label>
+					<label class="vbh-mfield">Datum<input v-model="formDate" type="date" :disabled="bookingLocked"></label>
+					<label class="vbh-mfield">Buchungstext<input v-model="formDescription" placeholder="z. B. Mitgliedsbeitrag Max Mustermann" :disabled="bookingLocked"></label>
+					<label class="vbh-mfield">Beleg-Nr.<input v-model="formDocumentRef" placeholder="optional" :disabled="bookingLocked"></label>
 					<!-- Beleg schon beim Anlegen: Dateien werden lokal gesammelt und
 					     nach dem Speichern an die neue Buchung gehängt. -->
 					<div v-if="canWrite && !bookingForm.id" class="vbh-mfield">
@@ -130,7 +130,7 @@
 								<NcIconSvgWrapper :path="mdiPaperclip" :size="14" class="vbh-attachment-icon" />
 								<span class="vbh-attachment-name">{{ pf.name }}</span>
 								<span class="vbh-attachment-size">{{ formatFileSize(pf.size) }}</span>
-								<NcButton variant="tertiary" aria-label="Beleg entfernen" @click="pendingFiles.splice(i, 1)">
+								<NcButton variant="tertiary" aria-label="Beleg entfernen" @click="removePendingFile(i)">
 									<template #icon>
 										<NcIconSvgWrapper :path="mdiDelete" :size="14" />
 									</template>
@@ -144,12 +144,12 @@
 			<!-- Desktop: bisheriges Formular-Layout -->
 			<template v-else>
 				<div class="vbh-form">
-					<label>Datum<input v-model="bookingForm.date" type="date" :disabled="bookingLocked"></label>
-					<label>Beleg-Nr.<input v-model="bookingForm.documentRef"
+					<label>Datum<input v-model="formDate" type="date" :disabled="bookingLocked"></label>
+					<label>Beleg-Nr.<input v-model="formDocumentRef"
 						class="vbh-short"
 						placeholder="optional"
 						:disabled="bookingLocked"></label>
-					<label>Betrag (€)<input v-model.number="bookingForm.amount"
+					<label>Betrag (€)<input v-model.number="formAmount"
 						type="number"
 						step="0.01"
 						min="0.01"
@@ -208,7 +208,7 @@
 					</div>
 				</template>
 				<div class="vbh-form" :class="{ 'vbh-tour-target': bookingTour.active && bookingTour.step === 2 }">
-					<label class="vbh-grow">Buchungstext<input v-model="bookingForm.description" placeholder="z. B. Mitgliedsbeitrag Max Mustermann" :disabled="bookingLocked"></label>
+					<label class="vbh-grow">Buchungstext<input v-model="formDescription" placeholder="z. B. Mitgliedsbeitrag Max Mustermann" :disabled="bookingLocked"></label>
 				</div>
 				<div v-if="bookingTour.active && bookingTour.step === 2" class="vbh-tour-tip">
 					<span>Ein kurzer Text erklärt später, worum es ging – fertig! Schritt 3 von 3.</span>
@@ -339,6 +339,30 @@ export default {
 		return { mdiCamera, mdiPaperclip, mdiDelete }
 	},
 	computed: {
+		// --- Formularfelder -------------------------------------------------
+		// Das Formular gehoert dem Elternteil (App.vue braucht es auch beim
+		// Speichern und beim Anhaengen der Belege). Frueher hat diese Komponente
+		// direkt in das uebergebene Objekt geschrieben - in Vue 2 funktioniert
+		// das, weil Objekt-Props Referenzen sind, koppelt Kind und Elternteil
+		// aber fest aneinander und faellt bei einer Vue-3-Migration auf die
+		// Fuesse. Jetzt meldet jedes Feld seine Aenderung per Event zurueck
+		// (:booking-form.sync in App.vue).
+		formAmount: {
+			get() { return this.bookingForm.amount },
+			set(v) { this.updateForm({ amount: v }) },
+		},
+		formDate: {
+			get() { return this.bookingForm.date },
+			set(v) { this.updateForm({ date: v }) },
+		},
+		formDescription: {
+			get() { return this.bookingForm.description },
+			set(v) { this.updateForm({ description: v }) },
+		},
+		formDocumentRef: {
+			get() { return this.bookingForm.documentRef },
+			set(v) { this.updateForm({ documentRef: v }) },
+		},
 		accountUsageCounts() {
 			const counts = {}
 			for (const item of this.journalData) {
@@ -401,28 +425,28 @@ export default {
 				if (this.bookingForm.categoryId == null) return null
 				return this.simpleCategoryOptions.find(o => o.id === this.bookingForm.categoryId) ?? null
 			},
-			set(v) { this.bookingForm.categoryId = v ? v.id : null },
+			set(v) { this.updateForm({ categoryId: v ? v.id : null }) },
 		},
 		bookingFormMoneyOption: {
 			get() {
 				if (this.bookingForm.moneyAccountId == null) return null
 				return this.moneyAccountOptions.find(o => o.id === this.bookingForm.moneyAccountId) ?? null
 			},
-			set(v) { this.bookingForm.moneyAccountId = v ? v.id : null },
+			set(v) { this.updateForm({ moneyAccountId: v ? v.id : null }) },
 		},
 		bookingFormDebitOption: {
 			get() {
 				if (this.bookingForm.debitAccountId == null) return null
 				return this.accountOptionsList.find(o => o.id === this.bookingForm.debitAccountId) ?? null
 			},
-			set(v) { this.bookingForm.debitAccountId = v ? v.id : null },
+			set(v) { this.updateForm({ debitAccountId: v ? v.id : null }) },
 		},
 		bookingFormCreditOption: {
 			get() {
 				if (this.bookingForm.creditAccountId == null) return null
 				return this.accountOptionsList.find(o => o.id === this.bookingForm.creditAccountId) ?? null
 			},
-			set(v) { this.bookingForm.creditAccountId = v ? v.id : null },
+			set(v) { this.updateForm({ creditAccountId: v ? v.id : null }) },
 		},
 		bookingModeExpert: {
 			get() { return this.bookingMode === 'expert' },
@@ -430,6 +454,18 @@ export default {
 		},
 	},
 	methods: {
+		/**
+		 * Meldet geaenderte Formularfelder an den Elternteil zurueck. Bewusst
+		 * ein neues Objekt statt einer Mutation des uebergebenen - so bleibt
+		 * der Datenfluss in eine Richtung.
+		 */
+		updateForm(patch) {
+			this.$emit('update:bookingForm', { ...this.bookingForm, ...patch })
+		},
+		/** Einen noch nicht hochgeladenen Beleg aus der Warteliste nehmen. */
+		removePendingFile(index) {
+			this.$emit('update:pendingFiles', this.pendingFiles.filter((_, i) => i !== index))
+		},
 		accountLabel(id) {
 			const acc = this.accountsById[id]
 			return acc ? `${acc.number} ${acc.name}` : `#${id}`
