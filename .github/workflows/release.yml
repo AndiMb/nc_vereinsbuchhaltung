@@ -118,6 +118,27 @@ jobs:
           printf '%s\n' "$APP_PRIVATE_KEY" > "$CERTS/$APP_ID.key"
           printf '%s\n' "$APP_PUBLIC_CRT"  > "$CERTS/$APP_ID.crt"
           chmod 600 "$CERTS/$APP_ID.key" "$CERTS/$APP_ID.crt"
+
+          # Schluessel und Zertifikat sofort pruefen, nicht erst wenn drei
+          # Schritte spaeter eine leere Signatur beim App Store auflaeuft.
+          if ! openssl rsa -in "$CERTS/$APP_ID.key" -check -noout >/dev/null 2>&1 \
+             && ! openssl pkey -in "$CERTS/$APP_ID.key" -noout >/dev/null 2>&1; then
+            echo "::error::APP_PRIVATE_KEY ist kein lesbarer privater Schluessel (PEM erwartet)."
+            exit 1
+          fi
+          if ! openssl x509 -in "$CERTS/$APP_ID.crt" -noout >/dev/null 2>&1; then
+            echo "::error::APP_PUBLIC_CRT ist kein lesbares Zertifikat (PEM erwartet)."
+            exit 1
+          fi
+          # Gehoeren die beiden zusammen? Sonst signiert man gegen ein
+          # Zertifikat, das der Store nicht akzeptiert.
+          KEY_MOD=$(openssl pkey -in "$CERTS/$APP_ID.key" -pubout -outform der 2>/dev/null | openssl dgst -sha256 | awk '{print $2}')
+          CRT_MOD=$(openssl x509 -in "$CERTS/$APP_ID.crt" -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 | awk '{print $2}')
+          if [ "$KEY_MOD" != "$CRT_MOD" ]; then
+            echo "::error::APP_PRIVATE_KEY und APP_PUBLIC_CRT gehoeren nicht zusammen."
+            exit 1
+          fi
+          echo "Schluessel und Zertifikat sind lesbar und passen zueinander."
           echo "signing=true" >> "$GITHUB_OUTPUT"
 
       - name: App signieren (appinfo/signature.json)
@@ -167,12 +188,53 @@ jobs:
             echo "publish=false" >> "$GITHUB_OUTPUT"
           fi
 
+      # Bewusst ein direkter Aufruf statt einer fertigen Action:
+      # R0Wi/nextcloud-appstore-push-action schrieb den privaten Schluessel per
+      # `echo "${{ inputs.app_private_key }}"` aus einer Template-Ersetzung in
+      # eine Datei. openssl konnte die anschliessend nicht lesen ("Could not
+      # read private key"), die Action schickte daraufhin eine LEERE Signatur -
+      # und der Store lehnte mit 400 {"signature":["This field may not be
+      # blank."]} ab. Schlimm daran: der fehlgeschlagene Signaturschritt brach
+      # nicht ab, der Fehler fiel erst beim Store auf.
+      # Der Schluessel liegt hier ohnehin schon entpackt (Schritt "Signatur-
+      # schluessel bereitstellen") und hat dort nachweislich funktioniert - also
+      # verwenden wir genau diese Datei.
       - name: An Nextcloud App Store melden
         if: steps.store.outputs.publish == 'true'
-        uses: R0Wi/nextcloud-appstore-push-action@v1
-        with:
-          app_name: vereinsbuchhaltung
-          appstore_token: ${{ secrets.APPSTORE_TOKEN }}
-          app_private_key: ${{ secrets.APP_PRIVATE_KEY }}
-          download_url: https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/vereinsbuchhaltung-${{ steps.ver.outputs.version }}.tar.gz
-          nightly: false
+        env:
+          APPSTORE_TOKEN: ${{ secrets.APPSTORE_TOKEN }}
+          VER: ${{ steps.ver.outputs.version }}
+          DOWNLOAD_URL: https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/vereinsbuchhaltung-${{ steps.ver.outputs.version }}.tar.gz
+        run: |
+          set -euo pipefail
+          KEY="$RUNNER_TEMP/certs/$APP_ID.key"
+          TARBALL="$RUNNER_TEMP/$APP_ID-$VER.tar.gz"
+          [ -s "$KEY" ]     || { echo "::error::Schluesseldatei fehlt oder ist leer: $KEY"; exit 1; }
+          [ -s "$TARBALL" ] || { echo "::error::Tarball fehlt: $TARBALL"; exit 1; }
+
+          # Signatur ueber genau das Paket, das unter DOWNLOAD_URL liegt.
+          SIGNATURE=$(openssl dgst -sha512 -sign "$KEY" "$TARBALL" | openssl base64 -A)
+          if [ -z "$SIGNATURE" ]; then
+            echo "::error::Signatur ist leer - der Store wuerde sie ablehnen."
+            exit 1
+          fi
+          echo "Signatur erzeugt (${#SIGNATURE} Zeichen)."
+
+          # Antwortkoerper mit ausgeben: die Fehlermeldung des Stores ist die
+          # einzige brauchbare Diagnose, wenn etwas nicht passt.
+          PAYLOAD=$(mktemp)
+          printf '{"download":"%s","signature":"%s","nightly":false}' "$DOWNLOAD_URL" "$SIGNATURE" > "$PAYLOAD"
+          BODY=$(mktemp)
+          STATUS=$(curl -sS -o "$BODY" -w '%{http_code}' -X POST \
+            https://apps.nextcloud.com/api/v1/apps/releases \
+            -H "Authorization: Token $APPSTORE_TOKEN" \
+            -H 'Content-Type: application/json' \
+            --data-binary "@$PAYLOAD")
+          rm -f "$PAYLOAD"
+
+          echo "App Store antwortete mit HTTP $STATUS"
+          cat "$BODY"; echo
+          case "$STATUS" in
+            200|201) echo "::notice::$APP_ID $VER im Nextcloud App Store veroeffentlicht." ;;
+            *) echo "::error::Store-Upload fehlgeschlagen (HTTP $STATUS)."; exit 1 ;;
+          esac
