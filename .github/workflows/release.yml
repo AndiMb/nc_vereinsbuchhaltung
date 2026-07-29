@@ -119,51 +119,39 @@ jobs:
           printf '%s\n' "$APP_PUBLIC_CRT"  > "$CERTS/$APP_ID.crt"
           chmod 600 "$CERTS/$APP_ID.key" "$CERTS/$APP_ID.crt"
 
-          # Diagnose ueber die Form der hinterlegten Secrets. Bewusst nur
-          # Struktur, kein Schluesselmaterial: Groesse, Kopf-/Fusszeile und ob
-          # Windows-Zeilenenden enthalten sind. Genau daran scheitert eine
-          # PEM-Datei am haeufigsten.
-          # Diagnose ueber die Form der Secrets. GitHub maskiert jede Zeile
-          # eines mehrzeiligen Secrets, deshalb helfen woertliche Ausgaben
-          # nicht weiter ("***"). Stattdessen abgeleitete Kennzahlen: die sind
-          # kein Schluesselmaterial und werden nicht maskiert.
-          marker() { grep -c -- "$1" "$2" 2>/dev/null || echo 0; }
-          K="$CERTS/$APP_ID.key"; C="$CERTS/$APP_ID.crt"
-          echo "::warning::SCHLUESSEL-Secret: $(wc -c < "$K") Byte, $(wc -l < "$K") Zeilen | BEGIN PRIVATE KEY=$(marker 'BEGIN PRIVATE KEY' "$K") BEGIN RSA PRIVATE KEY=$(marker 'BEGIN RSA PRIVATE KEY' "$K") BEGIN ENCRYPTED=$(marker 'BEGIN ENCRYPTED' "$K") BEGIN CERTIFICATE=$(marker 'BEGIN CERTIFICATE' "$K") BEGIN CERTIFICATE REQUEST=$(marker 'BEGIN CERTIFICATE REQUEST' "$K") | erstes Byte=$(head -c 1 "$K" | od -An -tx1 | tr -d ' ')"
-          echo "::warning::ZERTIFIKAT-Secret: $(wc -c < "$C") Byte, $(wc -l < "$C") Zeilen | BEGIN CERTIFICATE=$(marker 'BEGIN CERTIFICATE' "$C") END CERTIFICATE=$(marker 'END CERTIFICATE' "$C") BEGIN CERTIFICATE REQUEST=$(marker 'BEGIN CERTIFICATE REQUEST' "$C") BEGIN PRIVATE KEY=$(marker 'BEGIN PRIVATE KEY' "$C") | erstes Byte=$(head -c 1 "$C" | od -An -tx1 | tr -d ' ')"
-          echo "::warning::openssl auf dem Runner: $(openssl version)"
-
-          # Gehoeren Schluessel und Zertifikat zusammen? Ueber PHP, weil das
-          # openssl des Runners die Dateien nicht einliest. Nur ein Vergleich
-          # der oeffentlichen Schluessel - kein Geheimnis in der Ausgabe.
-          MATCH=$(php -r '
-            $k = @openssl_pkey_get_private(file_get_contents($argv[1]));
-            $c = @openssl_pkey_get_public(file_get_contents($argv[2]));
-            if ($k === false) { echo "SCHLUESSEL_NICHT_LESBAR"; exit; }
-            if ($c === false) { echo "ZERTIFIKAT_NICHT_LESBAR"; exit; }
-            $kd = openssl_pkey_get_details($k); $cd = openssl_pkey_get_details($c);
-            echo ($kd["key"] === $cd["key"]) ? "PASSEN_ZUSAMMEN" : "PASSEN_NICHT_ZUSAMMEN";
-          ' "$K" "$C" 2>/dev/null || echo "PHP_FEHLER")
-          echo "::warning::Schluessel/Zertifikat: $MATCH"
-
-          # CR entfernen, falls vorhanden - schadet einer sauberen Datei nicht.
+          # Windows-Zeilenenden entfernen - schadet einer sauberen Datei nicht.
           sed -i 's/\r$//' "$CERTS/$APP_ID.key" "$CERTS/$APP_ID.crt"
 
-          # Kann openssl den Schluessel lesen? Fehlermeldung sichtbar machen,
-          # aber NICHT abbrechen: massgeblich ist, ob am Ende eine Signatur
-          # herauskommt (das prueft der Store-Schritt hart). Ein zu strenger
-          # Vorab-Test hier hat bereits einmal ein funktionierendes Release
-          # blockiert.
-          if openssl pkey -in "$CERTS/$APP_ID.key" -noout 2>/tmp/keyerr; then
-            echo "openssl kann den privaten Schluessel lesen."
-          else
-            echo "::warning::openssl konnte den Schluessel nicht lesen: $(tr -d '\n' < /tmp/keyerr)"
+          # Beide Secrets pruefen, BEVOR irgendetwas signiert wird.
+          #
+          # Der Grund fuer diese Strenge: occ integrity:sign-app meldet Erfolg
+          # und schreibt eine signature.json auch dann, wenn es weder Schluessel
+          # noch Zertifikat lesen konnte. Die Signatur ist dann wertlos, und das
+          # faellt erst beim App Store oder beim Integritaetscheck einer
+          # Instanz auf - weit weg von der Ursache. Beim ersten
+          # Veroeffentlichungsversuch waren in beiden Secrets die
+          # -----BEGIN ...----- / -----END ...-----Zeilen nicht mitkopiert
+          # worden; die Fehlersuche kostete mehrere Release-Laeufe.
+          fehler=0
+          if ! openssl pkey -in "$CERTS/$APP_ID.key" -noout 2>/dev/null; then
+            echo "::error::APP_PRIVATE_KEY ist kein lesbarer PEM-Schluessel. Enthaelt das Secret die Zeilen -----BEGIN PRIVATE KEY----- und -----END PRIVATE KEY-----?"
+            fehler=1
           fi
-          if openssl x509 -in "$CERTS/$APP_ID.crt" -noout 2>/tmp/crterr; then
-            echo "openssl kann das Zertifikat lesen."
-          else
-            echo "::warning::openssl konnte das Zertifikat nicht lesen: $(tr -d '\n' < /tmp/crterr)"
+          if ! openssl x509 -in "$CERTS/$APP_ID.crt" -noout 2>/dev/null; then
+            echo "::error::APP_PUBLIC_CRT ist kein lesbares PEM-Zertifikat. Enthaelt das Secret die Zeilen -----BEGIN CERTIFICATE----- und -----END CERTIFICATE-----?"
+            fehler=1
           fi
+          [ "$fehler" -eq 0 ] || exit 1
+
+          # Gehoeren die beiden zusammen? Sonst entstuende eine Signatur, die
+          # gegen das mitgelieferte Zertifikat nicht aufgeht.
+          KEY_PUB=$(openssl pkey -in "$CERTS/$APP_ID.key" -pubout)
+          CRT_PUB=$(openssl x509 -in "$CERTS/$APP_ID.crt" -pubkey -noout)
+          if [ "$KEY_PUB" != "$CRT_PUB" ]; then
+            echo "::error::APP_PRIVATE_KEY und APP_PUBLIC_CRT gehoeren nicht zusammen."
+            exit 1
+          fi
+          echo "Schluessel und Zertifikat sind lesbar und gehoeren zusammen."
           echo "signing=true" >> "$GITHUB_OUTPUT"
 
       - name: App signieren (appinfo/signature.json)
@@ -213,17 +201,11 @@ jobs:
             echo "publish=false" >> "$GITHUB_OUTPUT"
           fi
 
-      # Bewusst ein direkter Aufruf statt einer fertigen Action:
-      # R0Wi/nextcloud-appstore-push-action schrieb den privaten Schluessel per
-      # `echo "${{ inputs.app_private_key }}"` aus einer Template-Ersetzung in
-      # eine Datei. openssl konnte die anschliessend nicht lesen ("Could not
-      # read private key"), die Action schickte daraufhin eine LEERE Signatur -
-      # und der Store lehnte mit 400 {"signature":["This field may not be
-      # blank."]} ab. Schlimm daran: der fehlgeschlagene Signaturschritt brach
-      # nicht ab, der Fehler fiel erst beim Store auf.
-      # Der Schluessel liegt hier ohnehin schon entpackt (Schritt "Signatur-
-      # schluessel bereitstellen") und hat dort nachweislich funktioniert - also
-      # verwenden wir genau diese Datei.
+      # Direkter Aufruf statt einer fertigen Action: die zuvor benutzte
+      # R0Wi/nextcloud-appstore-push-action schrieb den Schluessel ueber eine
+      # Template-Ersetzung in eine Datei, konnte ihn danach nicht lesen und
+      # schickte kommentarlos eine LEERE Signatur an den Store. Der Aufruf ist
+      # ohnehin nur eine Signatur plus ein curl.
       - name: An Nextcloud App Store melden
         if: steps.store.outputs.publish == 'true'
         env:
@@ -234,37 +216,13 @@ jobs:
           set -euo pipefail
           KEY="$RUNNER_TEMP/certs/$APP_ID.key"
           TARBALL="$RUNNER_TEMP/$APP_ID-$VER.tar.gz"
-          [ -s "$KEY" ]     || { echo "::error::Schluesseldatei fehlt oder ist leer: $KEY"; exit 1; }
           [ -s "$TARBALL" ] || { echo "::error::Tarball fehlt: $TARBALL"; exit 1; }
 
           # Signatur ueber genau das Paket, das unter DOWNLOAD_URL liegt.
-          #
-          # Erzeugt im selben Container, der auch signature.json erstellt hat:
-          # das openssl des Runners kann diesen Schluessel nicht lesen ("Could
-          # not read key"), das PHP im nextcloud-Image dagegen nachweislich
-          # schon - occ integrity:sign-app laeuft damit im Schritt davor
-          # erfolgreich durch. Statt an der Ursache im Secret-Format zu raten,
-          # nutzen wir schlicht die Umgebung, die funktioniert.
-          # Kein 2>&1: docker schreibt Pull-Fortschritt auf stderr, der landete
-          # sonst mitten in der "Signatur". Fehlermeldungen bleiben im Log
-          # sichtbar, stdout traegt ausschliesslich das Base64.
-          SIGNATURE=$(docker run --rm \
-            -v "$RUNNER_TEMP/certs:/certs:ro" \
-            -v "$TARBALL:/paket.tar.gz:ro" \
-            nextcloud:stable \
-            php -r '
-              $key = openssl_pkey_get_private(file_get_contents("/certs/'"$APP_ID"'.key"));
-              if ($key === false) { fwrite(STDERR, "Schluessel nicht lesbar: " . openssl_error_string() . "\n"); exit(1); }
-              if (!openssl_sign(file_get_contents("/paket.tar.gz"), $sig, $key, OPENSSL_ALGO_SHA512)) {
-                fwrite(STDERR, "Signieren fehlgeschlagen: " . openssl_error_string() . "\n"); exit(1);
-              }
-              echo base64_encode($sig);
-            ' | tr -d '\r\n') || true
-
-          # Nur Base64 durchlassen - eine Fehlermeldung aus dem Container waere
-          # sonst als "Signatur" an den Store gegangen.
+          SIGNATURE=$(openssl dgst -sha512 -sign "$KEY" "$TARBALL" | openssl base64 -A)
+          # Eine Fehlermeldung darf nicht als "Signatur" beim Store landen.
           if ! printf '%s' "$SIGNATURE" | grep -qE '^[A-Za-z0-9+/]{100,}={0,2}$'; then
-            echo "::error::Es kam keine gueltige Signatur heraus. Ausgabe war: $SIGNATURE"
+            echo "::error::Keine gueltige Signatur erzeugt."
             exit 1
           fi
           echo "Signatur erzeugt (${#SIGNATURE} Zeichen)."

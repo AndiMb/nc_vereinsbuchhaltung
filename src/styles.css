@@ -218,7 +218,11 @@
 .vbh-table tbody tr:nth-child(even) { background-color: var(--color-background-hover); }
 .vbh-table tbody tr:hover { background-color: var(--color-background-dark); }
 .vbh-table th.num, .vbh-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
-.vbh-table td.num { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Betraege werden NICHT gekuerzt. Ein abgeschnittener Betrag ("28.798,68…")
+   ist in einer Buchhaltung schlimmer als eine etwas breitere Spalte: man
+   liest ihn falsch, ohne es zu merken. Passt er nicht, waechst die Spalte -
+   die Tabelle liegt in einem seitlich scrollbaren Bereich. */
+.vbh-table td.num { white-space: nowrap; }
 .vbh-table .right { text-align: right; white-space: nowrap; }
 .vbh-table .nowrap { white-space: nowrap; }
 /* nowrap-Textzellen (Datum, Nr.) kürzen mit … statt in die Nachbarspalte zu
@@ -233,7 +237,9 @@
    den Rest. Bei table-layout: fixed bleibt die Tabelle trotzdem genau 100 %
    breit, solange die festen Spalten zusammen unter die Containerbreite passen —
    das ist selbst auf schmalen Handys der Fall, da dort Nebenspalten ausblenden. */
-.vbh-table thead th.num { width: 100px; }
+/* min-width statt width: bei table-layout:fixed schnitt eine harte Breite von
+   100px Betraege ab 100px Textbreite ab (z. B. "28.798,68 €" = 104px). */
+.vbh-table thead th.num { min-width: 100px; }
 .vbh-table thead th.nowrap { width: 96px; }
 /* Aktionsspalte (leere Kopfzelle): breit genug für 3 Icon-Buttons (Bearbeiten,
    Regel, Löschen) à 44px + Abstände + Zellenpadding (3×44 + 2×2 + 20 ≈ 156).
@@ -640,3 +646,80 @@
 /* Kassenprüfung: Checkbox „nur ohne Beleg" in der Filterleiste */
 .vbh-checkinline { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; cursor: pointer; font-size: 0.95em; }
 .vbh-checkinline input { margin: 0; }
+
+/* ============================================================
+   Mobilgeräte: Korrekturen aus der Layout-Prüfung
+   ============================================================
+   Geprüft mit einem automatisierten Durchlauf über 360/390/430 px und alle
+   vier Reiter (horizontaler Überlauf, Tippziele, abgeschnittene Texte,
+   Verdeckungen). Die Regeln hier beheben genau die dort gefundenen Punkte.
+   Der Umbruchpunkt entspricht dem isMobile-Schwellwert in App.vue. */
+@media (max-width: 640px) {
+	/* Der schwebende Buchungs-Knopf (.vbh-fab, 52px + 14px Abstand) lag über
+	   dem Ende der Inhalte und verdeckte dort Beträge – zuletzt sichtbar am
+	   Kontostand des Bankkontos auf der Übersicht. Die scrollenden Bereiche
+	   bekommen deshalb unten genug Platz, damit man bis zur letzten Zeile
+	   lesen kann. */
+	.vbh-section.scroll { padding-bottom: 88px; }
+	.vbh-sectionbody { padding-bottom: 88px; }
+	.vbh-cardlist { padding-bottom: 8px; }
+
+	/* "Buchungen" passte in der unteren Leiste nicht in die Spalte und wurde
+	   zu "Buchun…" gekürzt. Weniger Innenabstand und eine leicht kleinere
+	   Schrift schaffen den nötigen Platz. */
+	.vbh-bottomnav { padding-left: 2px; padding-right: 2px; }
+	.vbh-bottomnav-item { padding-left: 0; padding-right: 0; font-size: 0.66em; }
+	.vbh-bottomnav-label { letter-spacing: -0.01em; }
+
+	/* Tippziele: unter dem Daumen sind 24px zu wenig. Betrifft die kompakten
+	   Schaltflächen der Übersichtskacheln ("Jetzt zuordnen", "Ansehen"), die
+	   Unterreiter der Berichte und die Baum-Schalter im Kontenrahmen. */
+	.vbh-subtabs button { min-height: 44px; padding-top: 0; padding-bottom: 0; }
+	.vbh-section .button-vue--size-small,
+	.vbh-sectionbody .button-vue--size-small { min-height: 44px; }
+	.vbh-section select,
+	.vbh-sectiontop select { min-height: 44px; }
+}
+
+/* Nachtrag zur Layout-Prüfung: die restlichen Tippziele.
+   Statt jede Schaltfläche einzeln zu benennen, gilt die Mindesthöhe für alle
+   Bedienelemente innerhalb der App. Ausgenommen sind die, die ihre Größe
+   bewusst selbst setzen (schwebender Knopf, untere Leiste, Ankreuzfelder). */
+@media (max-width: 640px) {
+	.vbh button:not(.vbh-fab):not(.vbh-bottomnav-item),
+	.vbh select,
+	.vbh .vbh-export-btn,
+	.vbh input:not([type="checkbox"]):not([type="radio"]) {
+		min-height: 44px;
+	}
+	/* Exportlinks sind <a> im Knopf-Gewand - vertikal zentrieren, sonst klebt
+	   die Beschriftung oben. */
+	.vbh .vbh-export-btn { display: inline-flex; align-items: center; }
+
+	/* Lange Kontonamen im Kontenbaum lieber umbrechen als kürzen - der Name
+	   ist die einzige Möglichkeit, das Konto zu unterscheiden. */
+	.vbh-treename { white-space: normal; overflow-wrap: anywhere; }
+}
+
+/* Die vier Einträge teilten sich die Breite zu gleichen Teilen (flex: 1 1 0).
+   Das längste Wort ("Buchungen") passte dadurch auf schmalen Geräten nicht in
+   seine Spalte und wurde zu "Buchun…" gekürzt, während neben "Konten" Platz
+   frei blieb. Mit flex-basis nach Inhalt bekommt jeder Eintrag so viel Breite,
+   wie sein Wort braucht; der Rest wird gleichmäßig verteilt. */
+@media (max-width: 640px) {
+	.vbh-bottomnav-item { flex: 1 1 auto; }
+}
+
+/* Tablets bedienen per Finger, bekommen aber ab 641px das Desktop-Layout.
+   Die Mindestgröße der Tippziele hängt deshalb zusätzlich am Eingabegerät,
+   nicht nur an der Breite: "pointer: coarse" trifft Finger- und Stiftbedienung
+   unabhängig von der Fensterbreite. */
+@media (hover: none) and (pointer: coarse) {
+	.vbh button:not(.vbh-fab):not(.vbh-bottomnav-item),
+	.vbh select,
+	.vbh .vbh-export-btn,
+	.vbh input:not([type="checkbox"]):not([type="radio"]) {
+		min-height: 44px;
+	}
+	.vbh-tabs button { min-height: 44px; }
+}

@@ -10,6 +10,27 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
 
 ## [Unreleased]
 
+## [0.11.2] – 2026-07-29
+
+### Behoben
+- **Beträge werden nicht mehr abgeschnitten.** In Tabellen hatte die
+  Betragsspalte eine feste Breite von 100 px; längere Werte wie
+  „28.798,68 €" wurden mit „…" gekürzt und ließen sich falsch lesen. Die
+  Spalte wächst jetzt mit.
+- **Mobil: „Buchungen" in der unteren Leiste war gekürzt** („Buchun…"). Die
+  Einträge teilen sich die Breite jetzt nach Inhalt statt zu gleichen Teilen.
+- **Mobil: zu kleine Tippziele.** Schaltflächen, Auswahlfelder und
+  Eingabefelder waren teils nur 24–36 px hoch. Sie sind jetzt mindestens
+  44 px – auch auf Tablets, die per Finger bedient werden, aber das
+  Desktop-Layout bekommen.
+- **Mobil: lange Kontonamen** im Kontenbaum wurden gekürzt und waren damit
+  nicht mehr unterscheidbar; sie brechen jetzt um.
+- **Mobil: das Ende langer Listen** lag unter dem schwebenden
+  Buchungs-Knopf und war nicht lesbar.
+
+### Sonstiges
+- Ausführliche Beschreibung und Screenshots für den Nextcloud App Store.
+
 ## [0.11.1] – 2026-07-29
 
 Erste im Nextcloud App Store veröffentlichte Fassung. Am Programm selbst

@@ -7,17 +7,59 @@
 	<name>Vereinsbuchhaltung</name>
 	<summary>Buchhaltung für Vereine: CSV-CAMT-Import, Kontenrahmen und doppelte Buchführung</summary>
 	<description><![CDATA[
-Eine schlanke Buchhaltungs-App für Vereine direkt in Nextcloud.
+**Buchhaltung für Vereine – vollständig in der eigenen Nextcloud.**
 
-Funktionen:
-- Import von Kontoumsätzen aus dem Onlinebanking im CSV-CAMT-Format
-- Dublettenprüfung: es werden nur neue Buchungen übernommen
-- Frei definierbarer Kontenrahmen (Konten/Kategorien)
-- Zuordnung von Bankbuchungen zu Konten und damit zu Kategorien
-- Doppelte Buchführung (Soll/Haben, Journal)
-- Optionale Regeln zur automatischen Zuordnung wiederkehrender Buchungen
+Für Kassenwartinnen und Kassenwarte kleiner und mittlerer Vereine, die keine
+Buchhaltungssoftware betreiben und ihre Finanzdaten nicht in eine Cloud eines
+Anbieters geben wollen. Die Daten bleiben, wo eure Nextcloud steht.
+
+Man muss kein Buchhalter sein: im **Einfach-Modus** erfasst man „Einnahme" oder
+„Ausgabe" mit Betrag, Datum und Kategorie – die doppelte Buchführung im
+Hintergrund erledigt die App. Wer Soll und Haben selbst setzen möchte, schaltet
+in den Experten-Modus um.
+
+## Der Arbeitsablauf
+
+1. **Kontoauszug importieren** – CSV-CAMT aus dem Onlinebanking, wie es
+   Sparkassen, Volksbanken und die meisten anderen Institute anbieten. Bereits
+   vorhandene Umsätze erkennt die App und überspringt sie.
+2. **Umsätze zuordnen** – jede Bankbuchung bekommt ein Gegenkonto. Regeln
+   erledigen wiederkehrende Zuordnungen (Miete, Beiträge, Gebühren) automatisch.
+3. **Belege anhängen** – Foto oder PDF, wahlweise in einem Nextcloud-Ordner
+   eurer Wahl oder app-intern gespeichert.
+4. **Auswerten und berichten** – Kassenbericht für die Mitgliederversammlung,
+   Kurzbericht für die Vorstandssitzung, Exporte für die Kassenprüfung.
+
+## Was die App kann
+
+- **Doppelte Buchführung** mit frei definierbarem Kontenrahmen; ein
+  Standard-Kontenrahmen für Vereine ist mitgeliefert
+- **Kassenbericht** und **Kurzbericht** als druckfertige Seiten (Strg+P), auf
+  Wunsch mit Vereinslogo und Akzentfarbe
+- **Finanzplan** mit Plan-Ist-Vergleich und einfrierbaren Planständen
+- **Gemeinnützigkeit:** Sphären nach dem Vier-Sphären-Modell (ideell,
+  Vermögensverwaltung, Zweckbetrieb, wirtschaftlicher Geschäftsbetrieb) und
+  Rücklagen nach § 62 AO
+- **Offene Posten** – unbezahlte Forderungen mit Fälligkeit im Blick
+- **Mehrjahres-Trend** und Auswertung nach Kostenstellen
+- **Jahresabschluss:** ein festgeschriebenes Geschäftsjahr lässt sich nicht mehr
+  verändern; fortlaufende, lückenlose Buchungsnummern je Jahr
+- **Änderungsprotokoll:** wer hat wann was geändert
+- **Rollen:** Verwalter, Buchhalter und Revisor – die Kassenprüfung bekommt
+  Lesezugriff auf alles, ohne etwas ändern zu können
+- **Für unterwegs:** eigene Ansicht für das Smartphone, Beleg direkt abfotografieren
+- **Kassenprüfung:** alle Belege eines Jahres als ZIP, druckfertige
+  Kurzanleitung für die Prüfperson, Vollständigkeitsprüfung der Buchungsnummern
+
+Ein **Beispielverein** lässt sich mit einem Klick anlegen, um alles gefahrlos
+auszuprobieren, und mit einem weiteren Klick wieder entfernen.
+
+Bestehende Daten aus „zero Buchhaltung" können über deren xbuc-Dateien
+übernommen werden.
+
+Ausführliches Handbuch auf Deutsch: siehe Dokumentation.
 	]]></description>
-	<version>0.11.1</version>
+	<version>0.11.2</version>
 	<licence>agpl</licence>
 	<author mail="hauffe.andreas@googlemail.com">Andreas Hauffe</author>
 	<namespace>Vereinsbuchhaltung</namespace>
@@ -30,12 +72,14 @@ Funktionen:
 	<website>https://github.com/AndiMb/nc_vereinsbuchhaltung</website>
 	<bugs>https://github.com/AndiMb/nc_vereinsbuchhaltung/issues</bugs>
 	<repository type="git">https://github.com/AndiMb/nc_vereinsbuchhaltung.git</repository>
-	<!-- Screenshots: PNG/JPG unter img/screenshots/ ablegen, committen und pushen,
-	     dann hier eintragen. Pflicht sind HTTPS-URLs, max. 2 MiB pro Bild.
-	<screenshot>https://raw.githubusercontent.com/AndiMb/nc_vereinsbuchhaltung/main/img/screenshots/dashboard.png</screenshot>
+	<!-- Der App Store laedt die Bilder von diesen URLs; sie muessen also auf
+	     main gepusht sein, bevor ein Release gemeldet wird. Max. 2 MiB je Bild.
+	     Erzeugt aus der Demo-Instanz (Beispielverein). -->
+	<screenshot>https://raw.githubusercontent.com/AndiMb/nc_vereinsbuchhaltung/main/img/screenshots/uebersicht.png</screenshot>
 	<screenshot>https://raw.githubusercontent.com/AndiMb/nc_vereinsbuchhaltung/main/img/screenshots/buchungen.png</screenshot>
-	<screenshot>https://raw.githubusercontent.com/AndiMb/nc_vereinsbuchhaltung/main/img/screenshots/auswertungen.png</screenshot>
-	-->
+	<screenshot>https://raw.githubusercontent.com/AndiMb/nc_vereinsbuchhaltung/main/img/screenshots/berichte.png</screenshot>
+	<screenshot>https://raw.githubusercontent.com/AndiMb/nc_vereinsbuchhaltung/main/img/screenshots/konten.png</screenshot>
+	<screenshot>https://raw.githubusercontent.com/AndiMb/nc_vereinsbuchhaltung/main/img/screenshots/mobil.png</screenshot>
 	<dependencies>
 		<php min-version="8.1" max-version="8.4"/>
 		<database>sqlite</database>
