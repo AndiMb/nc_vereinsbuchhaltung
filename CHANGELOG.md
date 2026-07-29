@@ -10,6 +10,17 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
 
 ## [Unreleased]
 
+## [0.11.1] – 2026-07-29
+
+Erste im Nextcloud App Store veröffentlichte Fassung. Am Programm selbst
+ändert sich gegenüber 0.11.0 nichts.
+
+### Sonstiges
+- Die App wird jetzt mit dem von Nextcloud ausgestellten Zertifikat signiert
+  (`appinfo/signature.json`) und im App Store veröffentlicht. Das Paket zu
+  0.11.0 war noch unsigniert und ist deshalb nur über ein direktes
+  Deployment aus dem GitHub-Release installierbar.
+
 ## [0.11.0] – 2026-07-28
 
 Ergebnis eines Code-Reviews. Schwerpunkt: Datenintegrität der Buchführung.
