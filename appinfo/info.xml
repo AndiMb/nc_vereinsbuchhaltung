@@ -59,7 +59,7 @@ Bestehende Daten aus „zero Buchhaltung" können über deren xbuc-Dateien
 
 Ausführliches Handbuch auf Deutsch: siehe Dokumentation.
 	]]></description>
-	<version>0.11.2</version>
+	<version>0.12.0</version>
 	<licence>agpl</licence>
 	<author mail="hauffe.andreas@googlemail.com">Andreas Hauffe</author>
 	<namespace>Vereinsbuchhaltung</namespace>
@@ -87,6 +87,13 @@ Ausführliches Handbuch auf Deutsch: siehe Dokumentation.
 		<database>pgsql</database>
 		<nextcloud min-version="28" max-version="34"/>
 	</dependencies>
+	<!-- Sieht stuendlich im eingestellten Wachordner nach neuen Kontoauszuegen.
+	     Ist keiner eingestellt, kehrt der Job sofort zurueck. Die Eintragung
+	     gehoert hierher und nicht in Application::register() - einen
+	     registerBackgroundJob() gibt es am IRegistrationContext nicht. -->
+	<background-jobs>
+		<job>OCA\Vereinsbuchhaltung\BackgroundJob\ImportWatchFolderJob</job>
+	</background-jobs>
 	<navigations>
 		<navigation>
 			<name>Vereinsbuchhaltung</name>

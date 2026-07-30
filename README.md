@@ -40,6 +40,7 @@ Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kon
 - **Doppelte Buchführung**: Buchungssätze mit Soll-/Haben-Konten und fortlaufender Buchungsnummer (je Kalenderjahr neu beginnend ab 1)
 - **Kontenrahmen** frei pflegbar mit Hierarchie (Über-/Unterkonten), Kontotypen, Bankkonto-Flag und Eröffnungssaldo
 - **Buchungsdialog mit Einfach-Modus** (Einnahme/Ausgabe + Kategorie + Geldkonto) und Experten-Modus (Soll/Haben direkt)
+- **Mehrere Bankkonten**: am Geldkonto lässt sich die IBAN hinterlegen; beim Zuordnen wählt die App daraufhin das Geldkonto, auf dem der Umsatz gebucht wurde (ohne IBAN-Treffer das erste Bankkonto, wie bisher)
 - **Bankbuchungen zuordnen**: jede importierte Bankbuchung wird einem Gegenkonto zugeordnet, woraus automatisch ein Buchungssatz entsteht
   - **Zuordnungs-Vorschläge** aus Regeln und der bisherigen Zuordnungshistorie, per Klick übernehmbar
   - **Auto-Zuordnungsregeln** (Zahlungspartner / Verwendungszweck / IBAN enthält Suchtext → Gegenkonto): verwaltbar unter Einstellungen, oder per Blitz-Button direkt aus einer gebuchten Bankbuchung
@@ -231,7 +232,6 @@ Beim allerersten Start begrüßt ein **Setup-Assistent** mit drei Wegen (xbuc ü
 ## Roadmap
 
 - Splittbuchungen im UI anlegen und bearbeiten (eine Zahlung auf mehrere Gegenkonten; importierte Splittbuchungen werden bereits angezeigt)
-- **Mehrere Bankkonten automatisch unterscheiden**: die IBAN lässt sich am Geldkonto bereits hinterlegen, die Zuordnung importierter Umsätze wählt aber noch immer das erste Bankkonto statt das passende
 - **Umsätze direkt bei der Bank abrufen (FinTS/HBCI)**, statt sie herunterzuladen. Der MT940-Parser dafür steht schon, das Format liefert FinTS zurück. Offen sind vor allem die nicht-technischen Fragen: Produktregistrierung bei der Deutschen Kreditwirtschaft, Speicherung der Bankzugangsdaten und der TAN-Dialog. Ausgeschlossen bleibt der Weg über einen Aggregator – die Kontoumsätze würden dann über die Cloud eines Dritten laufen
 - Budget-Ampel („Wie stehen wir zum Plan?") auf dem Dashboard
 - Automatischer Zahlungsabgleich für offene Posten (Vorschläge per Zahlungspartner-Abgleich wie bei den Auto-Zuordnungsregeln)

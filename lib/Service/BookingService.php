@@ -53,7 +53,10 @@ class BookingService {
 		$this->yearClose->assertOpen((string)$tx->getBookingDate());
 		// Gegenkonto validieren (gehört dem Nutzer)
 		$contra = $this->accountService->find($contraAccountId, $userId);
-		$bank = $this->accountService->getDefaultBankAccount($userId);
+		// Das Geldkonto folgt der IBAN aus dem Auszug, damit bei mehreren
+		// Bankkonten auf dem richtigen gebucht wird. Ohne IBAN-Treffer bleibt es
+		// beim ersten Bankkonto – siehe AccountService::resolveBankAccount().
+		$bank = $this->accountService->resolveBankAccount($userId, $tx->getOwnAccount());
 
 		// Bereits gebuchte Zuordnung zuerst zurücknehmen (Re-Assign)
 		if ($tx->getJournalId() !== null) {

@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
+use OCA\Vereinsbuchhaltung\Service\Statement\RowNormalizer;
 use OCP\AppFramework\Db\DoesNotExistException;
 
 class AccountService {
@@ -47,6 +48,7 @@ class AccountService {
 		private RuleMapper $ruleMapper,
 		private BudgetMapper $budgetMapper,
 		private TransactionRunner $transaction,
+		private RowNormalizer $normalizer,
 	) {
 	}
 
@@ -267,6 +269,40 @@ class AccountService {
 			}
 		}
 		throw new DoesNotExistException('Kein Bankkonto im Kontenrahmen definiert.');
+	}
+
+	/**
+	 * Ermittelt das Geldkonto, auf das ein importierter Umsatz gehört.
+	 *
+	 * Führt der Verein mehrere Bankkonten, entscheidet die IBAN: der Umsatz
+	 * bringt aus dem Auszug das Konto mit, auf dem er gebucht wurde, und das
+	 * wird gegen die am Geldkonto hinterlegte IBAN gehalten.
+	 *
+	 * Beide Seiten werden vor dem Vergleich normalisiert. Neu importierte
+	 * Umsätze und neu gespeicherte IBANs liegen zwar bereits in Normalform vor,
+	 * Umsätze aus der Zeit davor aber nicht – die trügen die Schreibweise der
+	 * Bank ("DE12 3456 …") und würden sonst nie treffen.
+	 *
+	 * Ohne Treffer bleibt es beim ersten Bankkonto, wie bisher. Das ist bewusst
+	 * kein Fehler: Die CSV mancher Bank führt im Feld „Auftragskonto" nur eine
+	 * Kontonummer statt der IBAN, und daran darf die Zuordnung nicht scheitern.
+	 * Wer mehrere Konten führt, sollte deshalb CAMT.053 oder MT940 exportieren –
+	 * dort steht die IBAN verlässlich.
+	 */
+	public function resolveBankAccount(string $userId, ?string $ownAccount): Account {
+		$wanted = $this->normalizer->normalizeOwnAccount($ownAccount);
+		if ($wanted !== null) {
+			foreach ($this->mapper->findAll($userId) as $account) {
+				if (!$account->getIsBank()) {
+					continue;
+				}
+				$iban = $this->normalizer->normalizeOwnAccount($account->getIban());
+				if ($iban !== null && $iban === $wanted) {
+					return $account;
+				}
+			}
+		}
+		return $this->getDefaultBankAccount($userId);
 	}
 
 	/**

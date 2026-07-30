@@ -129,6 +129,35 @@ class StatementFormatTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Damit die Zuordnung mehrerer Bankkonten funktioniert, muss die am
+	 * Geldkonto hinterlegte IBAN nach der Normalisierung genau dem entsprechen,
+	 * was der Auszug als eigenes Konto mitbringt
+	 * (siehe AccountService::resolveBankAccount()).
+	 *
+	 * CSV und CAMT.053 führen hier die volle IBAN und treffen deshalb. MT940
+	 * trägt in :25: oft nur „BLZ/Kontonummer" – dort greift die Zuordnung
+	 * bewusst nicht, und es bleibt beim ersten Bankkonto. Dieser Test hält
+	 * beides fest, damit der Unterschied eine bekannte Eigenschaft bleibt und
+	 * nicht als Fehler auftaucht.
+	 */
+	public function testIbanAusDemAuszugTrifftDieHinterlegteIban(): void {
+		// So, wie eine Person sie im Konto-Dialog eintippen würde:
+		$hinterlegt = $this->normalizer->normalizeOwnAccount('DE12 5001 0517 0648 4898 90');
+
+		[$csv] = $this->registry->parse($this->fixture('beispiel-camt.csv'));
+		[$camt] = $this->registry->parse($this->fixture('beispiel-camt053.xml'));
+		[$mt940] = $this->registry->parse($this->fixture('beispiel-mt940.sta'));
+
+		$this->assertSame($hinterlegt, $csv[0]['ownAccount'], 'CSV führt die IBAN');
+		$this->assertSame($hinterlegt, $camt[0]['ownAccount'], 'CAMT.053 führt die IBAN');
+		$this->assertNotSame(
+			$hinterlegt,
+			$mt940[0]['ownAccount'],
+			'MT940 führt in :25: nur die Kontonummer – hier greift die IBAN-Zuordnung nicht',
+		);
+	}
+
 	/** Der weiche Schlüssel ignoriert Trenn- und Sonderzeichen. */
 	public function testWeicherSchluesselIgnoriertTrennzeichen(): void {
 		$a = $this->normalizer->softKey('2026-01-02', 6000, 'Max Mustermann: Beitrag');

@@ -175,7 +175,8 @@ class WatchFolderService {
 					$name . '.fehler.txt',
 					'Diese Datei konnte am ' . (new \DateTime())->format('d.m.Y H:i')
 					. ' nicht eingelesen werden:' . "\n\n" . $error . "\n\n"
-					. 'Unterstützt werden CSV-CAMT, CAMT.053 (XML) und MT940.' . "\n"
+					. 'Die Datei wurde nicht verändert. Nach dem Beheben der Ursache kann sie '
+					. 'wieder in den Wachordner zurückgelegt werden.' . "\n"
 				);
 			}
 		} catch (\Throwable $e) {

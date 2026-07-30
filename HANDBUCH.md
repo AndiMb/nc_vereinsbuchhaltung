@@ -1,8 +1,8 @@
 # Handbuch Vereinsbuchhaltung
 
 Ein Praxis-Handbuch für Schatzmeisterinnen und Schatzmeister – von der
-Ersteinrichtung bis zum Jahresabschluss. Es beschreibt den Stand **nach
-Version 0.11.2** und orientiert sich am tatsächlichen Jahresablauf, nicht an
+Ersteinrichtung bis zum Jahresabschluss. Es beschreibt die App-Version
+**0.12.0** und orientiert sich am tatsächlichen Jahresablauf, nicht an
 Menüstrukturen: Was muss ich wann tun, und worauf ist dabei zu achten?
 
 ---
@@ -121,10 +121,11 @@ Jedes Konto hat:
 - ggf. das Flag **Bankkonto** (für Geldkonten – nur diese kumulieren über
   die Jahresgrenze),
 - bei Geldkonten optional die **IBAN**. Wer nur ein Bankkonto führt, braucht
-  sie nicht; bei mehreren Konten ist sie das Unterscheidungsmerkmal, an dem
-  ein importierter Auszug dem richtigen Konto zugeordnet werden kann.
-  Leerzeichen spielen keine Rolle – die App speichert sie einheitlich.
-  Wird das Bankkonto-Flag wieder entfernt, verschwindet auch die IBAN,
+  sie nicht. Bei mehreren Konten entscheidet sie darüber, auf welchem
+  Geldkonto ein importierter Umsatz gebucht wird – ohne sie landet alles auf
+  dem ersten Bankkonto des Kontenrahmens. Leerzeichen spielen keine Rolle,
+  die App speichert sie einheitlich. Wird das Bankkonto-Kennzeichen wieder
+  entfernt, verschwindet auch die IBAN,
 - einen **Eröffnungssaldo** (Anfangsbestand, z. B. der Kontostand zum
   01.01.).
 
@@ -216,6 +217,12 @@ Warum CAMT.053 die beste Wahl ist: dort sind Vorzeichen, Datum und
 Zahlungsbeteiligte eindeutig ausgezeichnet. Bei der CSV muss die App die
 Spalten anhand ihrer Überschriften erraten – das klappt bei den gängigen
 Instituten, aber eben nicht mit Sicherheit.
+
+> **Mehrere Bankkonten?** Dann kommt es zusätzlich darauf an, dass der Auszug
+> die **IBAN** des Kontos mitbringt – nur daran erkennt die App, auf welchem
+> Geldkonto zu buchen ist (Kapitel 2.2). CAMT.053 führt sie immer, MT940
+> häufig nur die Kontonummer, und die CSV je nach Institut. Im Zweifel
+> CAMT.053 nehmen.
 
 - **Dublettenprüfung:** bereits importierte Buchungen werden automatisch
   erkannt – auch gegen zuvor per xbuc importierte und **auch über
@@ -815,4 +822,4 @@ nur Geldkonten (Bank-Flag).
 
 ---
 
-*Stand: nach App-Version 0.11.2. Bei Fragen an die verwaltende Person wenden.*
+*Stand: App-Version 0.12.0. Bei Fragen an die verwaltende Person wenden.*

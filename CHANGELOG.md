@@ -10,6 +10,8 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
 
 ## [Unreleased]
 
+## [0.12.0] – 2026-07-30
+
 ### Hinzugefügt
 - **Kontoauszüge in zwei weiteren Formaten:** neben der bisherigen CSV liest
   die App jetzt auch **CAMT.053 (XML)** und **MT940**. Welches Format
@@ -26,11 +28,14 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
   das Herunterladen bei der Bank.
 - Vorgemerkte Umsätze aus CAMT.053 werden übersprungen. Sie ändern sich beim
   endgültigen Buchen häufig noch und kämen sonst ein zweites Mal herein.
-- **IBAN am Geldkonto** (Tab Konten → Konto bearbeiten): Vereine mit mehreren
-  Bankkonten können jedes Konto seiner IBAN zuordnen. Das Feld erscheint nur
-  bei Geldkonten. Die automatische Zuordnung importierter Auszüge zum
-  passenden Geldkonto folgt in einem späteren Schritt; bis dahin ist die
-  Angabe reine Stammdatenpflege.
+- **Mehrere Bankkonten werden unterschieden.** Am Geldkonto lässt sich die
+  **IBAN** hinterlegen (Tab Konten → Konto bearbeiten, nur bei Geldkonten);
+  beim Zuordnen einer Bankbuchung wählt die App daraufhin das Geldkonto, auf
+  dem der Umsatz tatsächlich gebucht wurde. Bisher landete alles auf dem
+  ersten Bankkonto des Kontenrahmens. Ohne hinterlegte IBAN – oder wenn der
+  Auszug keine mitbringt – bleibt es beim bisherigen Verhalten. Wer mehrere
+  Konten führt, sollte CAMT.053 oder MT940 exportieren: dort steht die IBAN
+  verlässlich, in der CSV mancher Bank nur eine Kontonummer.
 
 ### Behoben
 - **Derselbe Umsatz landet nicht mehr doppelt, wenn das Exportformat wechselt.**
@@ -212,7 +217,8 @@ Ergebnis eines Code-Reviews. Schwerpunkt: Datenintegrität der Buchführung.
   frei definierbarer Kontenrahmen, doppelte Buchführung (Soll/Haben, Journal),
   Zuordnung von Bankbuchungen und optionale Auto-Zuordnungsregeln
 
-[Unreleased]: https://github.com/AndiMb/nc_vereinsbuchhaltung/compare/v0.11.2...HEAD
+[Unreleased]: https://github.com/AndiMb/nc_vereinsbuchhaltung/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/AndiMb/nc_vereinsbuchhaltung/compare/v0.11.2...v0.12.0
 [0.11.2]: https://github.com/AndiMb/nc_vereinsbuchhaltung/compare/v0.11.1...v0.11.2
 [0.11.1]: https://github.com/AndiMb/nc_vereinsbuchhaltung/compare/v0.11.0...v0.11.1
 [0.11.0]: https://github.com/AndiMb/nc_vereinsbuchhaltung/compare/v0.10.69...v0.11.0
