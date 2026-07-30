@@ -26,6 +26,37 @@ class BankTransactionMapper extends QBMapper {
 	}
 
 	/**
+	 * Felder aller vorhandenen Bankbuchungen für den weichen Dublettenabgleich.
+	 *
+	 * Gebraucht, weil der Hash quellenabhängig ist: dieselbe Buchung trägt im
+	 * CSV-Export der Bank oft nur eine Kontonummer als eigenes Konto, im
+	 * CAMT.053 und über FinTS dagegen die IBAN. Die Hashes weichen dann
+	 * zwangsläufig ab, und ohne diesen zweiten Abgleich läge derselbe Umsatz
+	 * beim Formatwechsel doppelt in „Zuzuordnen".
+	 *
+	 * @return array<int, array{date:string, valueDate:?string, amount:int, text:string}>
+	 */
+	public function findDedupKeys(string $userId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('booking_date', 'value_date', 'amount_cents', 'counterparty', 'purpose')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)));
+
+		$out = [];
+		$result = $qb->executeQuery();
+		while (($row = $result->fetch()) !== false) {
+			$out[] = [
+				'date' => (string)$row['booking_date'],
+				'valueDate' => $row['value_date'] !== null ? (string)$row['value_date'] : null,
+				'amount' => (int)$row['amount_cents'],
+				'text' => (string)($row['counterparty'] ?? '') . (string)($row['purpose'] ?? ''),
+			];
+		}
+		$result->closeCursor();
+		return $out;
+	}
+
+	/**
 	 * @param string[] $hashes
 	 * @return string[] vorhandene Hashes
 	 */

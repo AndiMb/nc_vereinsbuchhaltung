@@ -10,6 +10,46 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
 
 ## [Unreleased]
 
+### Hinzugefügt
+- **Kontoauszüge in zwei weiteren Formaten:** neben der bisherigen CSV liest
+  die App jetzt auch **CAMT.053 (XML)** und **MT940**. Welches Format
+  vorliegt, erkennt sie am Inhalt der Datei – die Endung spielt keine Rolle.
+  CAMT.053 ist die bessere Wahl, wo die Bank es anbietet: Vorzeichen, Datum
+  und Zahlungsbeteiligte stehen dort eindeutig drin, statt aus
+  Spaltenüberschriften erraten zu werden.
+- **Wachordner:** Auf Wunsch liest die App Kontoauszüge selbstständig aus
+  einem Nextcloud-Ordner ein (Einstellungen → *Kontoauszüge automatisch
+  einlesen*). Den heruntergeladenen Auszug dort ablegen genügt; stündlich
+  sieht ein Hintergrundjob nach. Verarbeitete Dateien wandern nach
+  `verarbeitet/`, nicht lesbare mit Begründung nach `fehler/` – gelöscht wird
+  nichts. Setzt System-Cron voraus. Das ersetzt das Hochladen von Hand, nicht
+  das Herunterladen bei der Bank.
+- Vorgemerkte Umsätze aus CAMT.053 werden übersprungen. Sie ändern sich beim
+  endgültigen Buchen häufig noch und kämen sonst ein zweites Mal herein.
+- **IBAN am Geldkonto** (Tab Konten → Konto bearbeiten): Vereine mit mehreren
+  Bankkonten können jedes Konto seiner IBAN zuordnen. Das Feld erscheint nur
+  bei Geldkonten. Die automatische Zuordnung importierter Auszüge zum
+  passenden Geldkonto folgt in einem späteren Schritt; bis dahin ist die
+  Angabe reine Stammdatenpflege.
+
+### Behoben
+- **Derselbe Umsatz landet nicht mehr doppelt, wenn das Exportformat wechselt.**
+  Die Dublettenerkennung hing am eigenen Konto, und das schreiben die Formate
+  verschieden: die CSV mancher Bank führt dort nur eine Kontonummer, CAMT.053
+  immer die volle IBAN. Zusätzlich zum bisherigen Vergleich prüft die App
+  Umsätze jetzt über Datum, Betrag und Text gegen die bereits vorhandenen
+  Bankbuchungen.
+
+### Sonstiges
+- Die Umsatzquellen liegen hinter einer gemeinsamen Schnittstelle
+  (`lib/Service/Statement/`); Dublettenerkennung, Regeln und Import-Protokoll
+  sind für alle Formate dieselben. Der MT940-Parser ist zugleich die
+  Vorarbeit für einen späteren FinTS-Abruf, der genau dieses Format liefert.
+- Das Import-Protokoll hält fest, aus welchem Format ein Import stammt;
+  Geldkonten können ihre IBAN tragen (Migration 122).
+- Unit-Tests für beide neuen Parser sowie ein Kreuztest, der denselben
+  Kontoauszug in allen drei Formaten vergleicht (61 Tests).
+
 ## [0.11.2] – 2026-07-29
 
 ### Behoben

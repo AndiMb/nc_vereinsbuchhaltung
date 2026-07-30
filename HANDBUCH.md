@@ -1,8 +1,8 @@
 # Handbuch Vereinsbuchhaltung
 
 Ein Praxis-Handbuch für Schatzmeisterinnen und Schatzmeister – von der
-Ersteinrichtung bis zum Jahresabschluss. Es beschreibt die App-Version
-**0.11.2** und orientiert sich am tatsächlichen Jahresablauf, nicht an
+Ersteinrichtung bis zum Jahresabschluss. Es beschreibt den Stand **nach
+Version 0.11.2** und orientiert sich am tatsächlichen Jahresablauf, nicht an
 Menüstrukturen: Was muss ich wann tun, und worauf ist dabei zu achten?
 
 ---
@@ -120,6 +120,11 @@ Jedes Konto hat:
   Eigenkapital),
 - ggf. das Flag **Bankkonto** (für Geldkonten – nur diese kumulieren über
   die Jahresgrenze),
+- bei Geldkonten optional die **IBAN**. Wer nur ein Bankkonto führt, braucht
+  sie nicht; bei mehreren Konten ist sie das Unterscheidungsmerkmal, an dem
+  ein importierter Auszug dem richtigen Konto zugeordnet werden kann.
+  Leerzeichen spielen keine Rolle – die App speichert sie einheitlich.
+  Wird das Bankkonto-Flag wieder entfernt, verschwindet auch die IBAN,
 - einen **Eröffnungssaldo** (Anfangsbestand, z. B. der Kontostand zum
   01.01.).
 
@@ -193,27 +198,73 @@ Datei wählen.
 > festgeschrieben und darf nicht mehr verändert werden – auch nicht per
 > Import.
 
-### 3.2 CSV-CAMT-Import (Bankumsätze)
+### 3.2 Kontoauszüge importieren (Bankumsätze)
 
 Für die laufenden Umsätze: Tab **Buchungen** → *Umsätze importieren* →
-CSV-Datei der Bank hierher ziehen oder wählen. Unterstützt werden die
-gängigen deutschen Bank-CSV-Formate (Sparkasse, Volksbank/VR-NetWorld …);
-Trennzeichen und Zeichensatz werden automatisch erkannt.
+Datei der Bank hierher ziehen oder wählen.
+
+**Welches Format?** Die App erkennt drei und bestimmt das Format am Inhalt –
+die Dateiendung ist ihr egal:
+
+| Format | Im Onlinebanking meist so benannt | Empfehlung |
+|---|---|---|
+| **CSV-CAMT** | „CSV-CAMT-Format", „Umsätze als CSV" | funktioniert, aber jede Bank baut die Spalten anders |
+| **CAMT.053** (XML) | „CAMT", „ISO 20022", „XML" | **beste Wahl**, wenn angeboten |
+| **MT940** | „MT940", „SWIFT", Datei endet oft auf `.sta` | ebenfalls gut |
+
+Warum CAMT.053 die beste Wahl ist: dort sind Vorzeichen, Datum und
+Zahlungsbeteiligte eindeutig ausgezeichnet. Bei der CSV muss die App die
+Spalten anhand ihrer Überschriften erraten – das klappt bei den gängigen
+Instituten, aber eben nicht mit Sicherheit.
 
 - **Dublettenprüfung:** bereits importierte Buchungen werden automatisch
-  erkannt (SHA-256-Hash) – auch gegen zuvor per xbuc importierte. Man kann
-  dieselbe Datei also gefahrlos erneut laden.
+  erkannt – auch gegen zuvor per xbuc importierte und **auch über
+  Formatgrenzen hinweg**. Man kann dieselbe Datei also gefahrlos erneut laden,
+  und ebenso denselben Auszug einmal als CSV und einmal als CAMT.
+- **Vorgemerkte Umsätze** (in CAMT als „PDNG") werden übersprungen. Sie ändern
+  sich beim endgültigen Buchen oft noch – sie jetzt zu übernehmen hieße, sie
+  später ein zweites Mal zu bekommen.
 - **0-€-Buchungen** (z. B. ABSCHLUSS) und bank-interne Buchungen werden
   sinnvoll behandelt (übersprungen bzw. buchbar gelassen).
+- **Sammelbuchungen** (eine Lastschrifteinreichung mit vielen Einzelposten)
+  bleiben *eine* Buchung – so, wie die Bank sie auch gebucht hat. Im
+  Verwendungszweck steht ein Hinweis auf die Zahl der Posten.
 - Nach dem Import erscheint eine Vorschau mit *neu* / *Dubletten* / *gesamt*.
+
+### 3.3 Kontoauszüge automatisch einlesen (Wachordner)
+
+Wer jeden Monat dasselbe tut, kann sich den Upload sparen: Einstellungen →
+*Kontoauszüge automatisch einlesen* (nur Verwalter). Dort werden ein
+Nextcloud-Nutzer und ein Ordner in dessen Dateien eingetragen, zum Beispiel
+`Vereinsbuchhaltung/Kontoauszüge`.
+
+Ab dann genügt es, den im Onlinebanking heruntergeladenen Auszug in diesen
+Ordner zu legen – auch vom Handy oder direkt aus der Nextcloud-App heraus.
+Stündlich sieht die App nach und liest neue Dateien ein. Anschließend
+wandert die Datei nach `verarbeitet/`; ließ sie sich nicht lesen, nach
+`fehler/`, mit einer Textdatei daneben, die den Grund nennt. **Gelöscht wird
+nichts.**
+
+> **Was das nicht ist:** ein Abruf bei der Bank. Den Auszug herunterladen
+> muss weiterhin ein Mensch – die App holt ihn sich nicht selbst.
+
+> **Voraussetzung:** Die Nextcloud-Instanz muss Hintergrundaufgaben per
+> **System-Cron** ausführen (Verwaltung → Grundeinstellungen). Steht dort
+> „AJAX", laufen sie nur, solange jemand Nextcloud geöffnet hat – der
+> Wachordner reagiert dann unzuverlässig. Im Zweifel die verwaltende Person
+> fragen.
+
+Der Vorgang steht anschließend im Änderungsprotokoll (Kapitel 9.2), erkennbar
+am Akteur „automatisch (Wachordner)".
 
 Die importierten Umsätze landen im Tab **Buchungen → Zuzuordnen** und
 warten dort auf ihre Zuordnung (Kapitel 4.1).
 
-> **Hinweis:** Der CSV-Import erzeugt *noch keine* Buchungssätze, sondern
-> nur die rohen Bankumsätze. Erst die **Zuordnung** zu einem Gegenkonto
-> macht daraus eine Buchung. Das ist Absicht: So bleiben Sie Herr darüber,
-> was tatsächlich gebucht wird.
+> **Hinweis:** Der Import eines Kontoauszugs erzeugt *noch keine*
+> Buchungssätze, sondern nur die rohen Bankumsätze – gleich, aus welchem
+> Format und ob von Hand oder über den Wachordner. Erst die **Zuordnung** zu
+> einem Gegenkonto macht daraus eine Buchung. Das ist Absicht: So bleiben Sie
+> Herr darüber, was tatsächlich gebucht wird.
 
 ---
 
@@ -240,9 +291,9 @@ der Zuordnung entsteht automatisch der Buchungssatz:
 - **Auto-Zuordnungsregeln:** Wiederkehrende Buchungen (z. B. „Miete
   Vermieter Müller → 5100 Miete") lassen sich automatisieren. Eine Regel
   kann direkt aus einer bereits gebuchten Transaktion per **Blitz-Button**
-  angelegt werden, oder gepflegt unter Einstellungen → *Regeln*. Beim
-  CSV-Import können Regeln automatisch angewendet werden (Häkchen
-  „Auto-Zuordnungsregeln anwenden").
+  angelegt werden, oder gepflegt unter Einstellungen → *Regeln*. Beim Import
+  können Regeln automatisch angewendet werden (Häkchen „Auto-Zuordnungsregeln
+  anwenden"); über den Wachordner (Kapitel 3.3) geschieht das immer.
 
 Wer eine Zuordnung versehentlich vorgenommen hat, kann sie jederzeit wieder
 entfernen („– nicht zugeordnet –") – solange das Jahr noch offen ist.
@@ -520,8 +571,15 @@ xbuc-Import (Merge). Die App zeigt abgeschlossene Buchungen nur noch
 lesend an; Schreibversuche werden mit einer klaren Meldung abgewiesen.
 
 **Möglich bleibt:** alles Lesen, alle Auswertungen, Exporte und der
-Kassenbericht. Auch der CSV-Import *roher* Bankumsätze geht weiterhin –
-erst die Zuordnung wäre gesperrt.
+Kassenbericht. Auch der Import *roher* Bankumsätze geht weiterhin – erst die
+Zuordnung wäre gesperrt.
+
+> **Für den Wachordner heißt das:** Legt jemand einen Auszug ab, der in ein
+> abgeschlossenes Jahr fällt, werden die Umsätze eingelesen, bleiben aber
+> unzugeordnet liegen – auch dann, wenn eine Regel greifen würde. Der Auszug
+> landet trotzdem in `verarbeitet/`; die Zahl der nicht zugeordneten Umsätze
+> vermerkt das Änderungsprotokoll (Kapitel 9.2) beim Eintrag
+> „Wachordner-Import".
 
 ### 8.3 Jahr wiedereröffnen (Ausnahmefall)
 
@@ -744,7 +802,17 @@ nur Geldkonten (Bank-Flag).
   Zahlung.
 - **Rücklage** – zurückgelegte Vereinsmittel (frei, zweckgebunden oder für
   Wiederbeschaffung), als gekennzeichnetes Eigenkapital-Konto geführt.
+- **CSV-CAMT / CAMT.053 / MT940** – die drei Formate, in denen Banken einen
+  Kontoauszug zum Herunterladen anbieten. CAMT.053 (eine XML-Datei) ist das
+  eindeutigste und deshalb die beste Wahl; die CSV ist am verbreitetsten,
+  ihre Spalten benennt aber jede Bank anders. Siehe Kapitel 3.2.
+- **Wachordner** – ein Nextcloud-Ordner, aus dem die App abgelegte
+  Kontoauszüge von allein einliest (Kapitel 3.3). Er holt nichts bei der Bank
+  ab; das Herunterladen bleibt Handarbeit.
+- **Vorgemerkter Umsatz** – eine von der Bank angezeigte, aber noch nicht
+  endgültig gebuchte Zahlung. Die App überspringt solche Umsätze, weil sich
+  Betrag oder Text bis zur endgültigen Buchung noch ändern können.
 
 ---
 
-*Stand: App-Version 0.11.2. Bei Fragen an die verwaltende Person wenden.*
+*Stand: nach App-Version 0.11.2. Bei Fragen an die verwaltende Person wenden.*

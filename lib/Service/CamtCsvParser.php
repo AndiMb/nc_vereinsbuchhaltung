@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service;
 
+use OCA\Vereinsbuchhaltung\Service\Statement\RowNormalizer;
+use OCA\Vereinsbuchhaltung\Service\Statement\StatementParser;
+
 /**
  * Parser für das CSV-CAMT-Format deutscher Banken (Sparkasse, Volksbank, …).
  *
@@ -15,8 +18,34 @@ namespace OCA\Vereinsbuchhaltung\Service;
  *   Betrag;Waehrung;Info
  *
  * Beträge im deutschen Format (1.234,56), Datum als TT.MM.JJ(JJ).
+ *
+ * Zuständig ist dieser Parser nur noch für das Auffinden der Spalten und das
+ * Deuten von Datum und Betrag. Das Putzen der Felder und der Dedup-Hash liegen
+ * in {@see RowNormalizer}, gemeinsam mit allen anderen Umsatzquellen.
  */
-class CamtCsvParser {
+class CamtCsvParser implements StatementParser {
+
+	public function __construct(
+		private RowNormalizer $normalizer = new RowNormalizer(),
+	) {
+	}
+
+	public function sourceKey(): string {
+		return 'csv';
+	}
+
+	/**
+	 * CSV ist der Rückfall, wenn kein spezielleres Format greift: eine
+	 * Kopfzeile mit erkennbaren Pflichtspalten genügt.
+	 */
+	public function supports(string $content): bool {
+		$firstLine = strtok(ltrim($content, "\xEF\xBB\xBF"), "\r\n");
+		if ($firstLine === false || $firstLine === '') {
+			return false;
+		}
+		$map = $this->mapHeader(str_getcsv($firstLine, $this->detectDelimiter($firstLine), '"', '\\'));
+		return isset($map['bookingDate'], $map['amount']);
+	}
 
 	/**
 	 * Synonyme je logischem Feld. Schlüssel werden normalisiert verglichen
@@ -127,97 +156,18 @@ class CamtCsvParser {
 			return isset($cols[$idx]) ? trim((string)$cols[$idx]) : null;
 		};
 
-		$bookingDate = $this->parseDate($get('bookingDate'));
-		$amountCents = $this->parseAmount($get('amount'));
-		// Summen-/Leerzeilen und 0,00-EUR-Buchungen (z. B. Kontoabschluss ohne
-		// Zinsen) überspringen – Letztere sind in doppelter Buchführung nicht
-		// buchbar und würden die Zuordnungsliste nur zumüllen.
-		if ($bookingDate === null || $amountCents === null || $amountCents === 0) {
-			return null;
-		}
-
-		$ownAccount = $get('ownAccount');
-		$bookingText = $this->limit($get('bookingText'), 255);
-		$counterparty = $this->limit($get('counterparty'), 255);
-		// Bank-interne Buchungen (Entgeltabschluss, Stornorechnung …) haben keinen
-		// Zahlungsbeteiligten. Damit die Zeile in „Zuzuordnen" lesbar bleibt und
-		// per Regel kategorisiert werden kann, wird der Buchungstext als Label
-		// eingesetzt.
-		if (($counterparty === null || $counterparty === '') && $bookingText !== null && $bookingText !== '') {
-			$counterparty = $bookingText;
-		}
-
-		$row = [
-			'ownAccount' => $ownAccount,
-			'bookingDate' => $bookingDate,
+		return $this->normalizer->build([
+			'ownAccount' => $get('ownAccount'),
+			'bookingDate' => $this->parseDate($get('bookingDate')),
 			'valueDate' => $this->parseDate($get('valueDate')),
-			'bookingText' => $bookingText,
+			'bookingText' => $get('bookingText'),
 			'purpose' => $get('purpose'),
-			'counterparty' => $counterparty,
-			'counterpartyIban' => $this->cleanIban($get('counterpartyIban'), $ownAccount),
-			'counterpartyBic' => $this->cleanBic($get('counterpartyBic')),
-			'amountCents' => $amountCents,
-			'currency' => $get('currency') ?: 'EUR',
-		];
-		$row['hash'] = $this->computeHash($row);
-		return $row;
-	}
-
-	/**
-	 * Übernimmt eine Gegenkonto-IBAN nur, wenn sie wie eine echte IBAN aussieht
-	 * und nicht das eigene Konto ist. Bank-interne Buchungen tragen in dieser
-	 * Spalte oft die eigene Kontonummer oder Nullen ("3200015160", "0000000000")
-	 * – die haben als Gegenkonto keinen Wert und werden verworfen.
-	 */
-	private function cleanIban(?string $value, ?string $ownAccount): ?string {
-		if ($value === null) {
-			return null;
-		}
-		$v = strtoupper(preg_replace('/\s+/', '', $value) ?? '');
-		if ($v === '' || !preg_match('/^[A-Z]{2}\d{2}[A-Z0-9]{6,30}$/', $v)) {
-			return null; // keine echte IBAN (reine Kontonummer, Nullen …)
-		}
-		$own = strtoupper(preg_replace('/\s+/', '', (string)$ownAccount) ?? '');
-		if ($own !== '' && $v === $own) {
-			return null; // eigenes Konto ist kein Gegenkonto
-		}
-		return $this->limit($v, 40);
-	}
-
-	/**
-	 * Übernimmt einen BIC nur, wenn er dem BIC-Muster entspricht (4 Buchstaben
-	 * Bankcode + 2 Buchstaben Land + 2–5 alphanumerisch). Eine reine Zahl ist
-	 * eine BLZ, kein BIC ("85050300") → verworfen.
-	 */
-	private function cleanBic(?string $value): ?string {
-		if ($value === null) {
-			return null;
-		}
-		$v = strtoupper(preg_replace('/\s+/', '', $value) ?? '');
-		if (!preg_match('/^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2,5}$/', $v)) {
-			return null;
-		}
-		return $this->limit($v, 16);
-	}
-
-	/**
-	 * Stabiler Dedup-Hash über die fachlich identifizierenden Felder.
-	 * Mehrfach identische Buchungen am selben Tag erhalten denselben Hash und
-	 * gelten bewusst als Dublette – seltener Sonderfall, der manuell nachgebucht
-	 * werden kann.
-	 *
-	 * @param array<string, mixed> $row
-	 */
-	public function computeHash(array $row): string {
-		$parts = [
-			$row['ownAccount'] ?? '',
-			$row['bookingDate'] ?? '',
-			(string)($row['amountCents'] ?? ''),
-			$this->normalizeText((string)($row['purpose'] ?? '')),
-			$this->normalizeText((string)($row['counterparty'] ?? '')),
-			$row['counterpartyIban'] ?? '',
-		];
-		return hash('sha256', implode('|', $parts));
+			'counterparty' => $get('counterparty'),
+			'counterpartyIban' => $get('counterpartyIban'),
+			'counterpartyBic' => $get('counterpartyBic'),
+			'amountCents' => $this->parseAmount($get('amount')),
+			'currency' => $get('currency'),
+		]);
 	}
 
 	/**
@@ -319,18 +269,6 @@ class CamtCsvParser {
 		$name = mb_strtolower($name);
 		$name = strtr($name, ['ä' => 'ae', 'ö' => 'oe', 'ü' => 'ue', 'ß' => 'ss']);
 		return preg_replace('/[^a-z0-9]/', '', $name) ?? '';
-	}
-
-	private function normalizeText(string $text): string {
-		$text = mb_strtolower(trim($text));
-		return preg_replace('/\s+/', ' ', $text) ?? '';
-	}
-
-	private function limit(?string $value, int $max): ?string {
-		if ($value === null) {
-			return null;
-		}
-		return mb_substr($value, 0, $max);
 	}
 
 	private function toUtf8(string $content): string {

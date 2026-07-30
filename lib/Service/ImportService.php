@@ -12,11 +12,14 @@ use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\Rule;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
+use OCA\Vereinsbuchhaltung\Service\Statement\RowNormalizer;
+use OCA\Vereinsbuchhaltung\Service\Statement\StatementParserRegistry;
 
 class ImportService {
 
 	public function __construct(
-		private CamtCsvParser $parser,
+		private StatementParserRegistry $parsers,
+		private RowNormalizer $normalizer,
 		private BankTransactionMapper $txMapper,
 		private ImportLogMapper $importMapper,
 		private RuleMapper $ruleMapper,
@@ -29,10 +32,10 @@ class ImportService {
 	/**
 	 * Analysiert die Datei, ohne etwas zu speichern.
 	 *
-	 * @return array{total:int, new:int, duplicate:int, sample:array<int, array<string,mixed>>}
+	 * @return array{total:int, new:int, duplicate:int, format:string, sample:array<int, array<string,mixed>>}
 	 */
 	public function preview(string $userId, string $content): array {
-		$rows = $this->parser->parse($content);
+		[$rows, $format] = $this->parsers->parse($content);
 		[$new, $duplicate, $existingBookings] = $this->splitNewAndDuplicate($userId, $rows);
 
 		$sample = array_map(static function (array $r): array {
@@ -50,6 +53,7 @@ class ImportService {
 			'duplicate' => count($duplicate),
 			// davon: bereits als vorhandene Buchung erkannt (z. B. aus XBUC-Import)
 			'existingBookings' => $existingBookings,
+			'format' => $format,
 			'sample' => $sample,
 		];
 	}
@@ -60,17 +64,33 @@ class ImportService {
 	 * @return array{import:ImportLog, total:int, new:int, duplicate:int, autoAssigned:int}
 	 */
 	public function commit(string $userId, string $filename, string $content, bool $applyRules = true): array {
-		// Ganz oder gar nicht: bricht der Import in der Mitte ab (Timeout,
-		// fehlerhafte Zeile), bleibt sonst ein halb eingelesener Kontoauszug
-		// zurück, dessen Rest beim zweiten Versuch als Dublette gilt.
-		return $this->transaction->run(fn (): array => $this->doCommit($userId, $filename, $content, $applyRules));
+		[$rows, $format] = $this->parsers->parse($content);
+		return $this->commitRows($userId, $filename, $rows, $format, $applyRules);
 	}
 
 	/**
+	 * Importiert bereits gelesene Zeilen.
+	 *
+	 * Getrennt von {@see commit()}, damit auch Quellen ohne Datei diesen Weg
+	 * nehmen können – der Wachordner reicht den Dateiinhalt durch, der geplante
+	 * FinTS-Abruf später die Antwort der Bank. Dublettenerkennung, Regeln und
+	 * Protokoll sind für alle Quellen dieselben.
+	 *
+	 * @param array<int, array<string, mixed>> $rows
 	 * @return array{import:ImportLog, total:int, new:int, duplicate:int, autoAssigned:int}
 	 */
-	private function doCommit(string $userId, string $filename, string $content, bool $applyRules): array {
-		$rows = $this->parser->parse($content);
+	public function commitRows(string $userId, string $label, array $rows, string $source, bool $applyRules = true): array {
+		// Ganz oder gar nicht: bricht der Import in der Mitte ab (Timeout,
+		// fehlerhafte Zeile), bleibt sonst ein halb eingelesener Kontoauszug
+		// zurück, dessen Rest beim zweiten Versuch als Dublette gilt.
+		return $this->transaction->run(fn (): array => $this->doCommit($userId, $label, $rows, $source, $applyRules));
+	}
+
+	/**
+	 * @param array<int, array<string, mixed>> $rows
+	 * @return array{import:ImportLog, total:int, new:int, duplicate:int, autoAssigned:int}
+	 */
+	private function doCommit(string $userId, string $filename, array $rows, string $source, bool $applyRules): array {
 		[$new, , $existingBookings] = $this->splitNewAndDuplicate($userId, $rows);
 
 		$log = new ImportLog();
@@ -80,10 +100,12 @@ class ImportService {
 		$log->setRowsTotal(count($rows));
 		$log->setRowsNew(count($new));
 		$log->setRowsDuplicate(count($rows) - count($new));
+		$log->setSource($source);
 		$log = $this->importMapper->insert($log);
 
 		$rules = $applyRules ? $this->ruleMapper->findAll($userId) : [];
 		$autoAssigned = 0;
+		$ruleFailed = 0;
 
 		foreach ($new as $row) {
 			$tx = $this->buildEntity($userId, $log->getId(), $row);
@@ -96,7 +118,12 @@ class ImportService {
 						$this->bookingService->assign($tx, $accountId);
 						$autoAssigned++;
 					} catch (\Throwable) {
-						// Regel ins Leere – Buchung bleibt unzugeordnet
+						// Regel ins Leere (gelöschtes Gegenkonto) oder Jahr bereits
+						// abgeschlossen – die Buchung bleibt unzugeordnet. Beim
+						// Import per Hand fällt das in der Liste auf; ein
+						// unbeaufsichtigter Lauf (Wachordner) muss es dagegen
+						// melden, sonst bleibt es unbemerkt liegen.
+						$ruleFailed++;
 					}
 				}
 			}
@@ -109,13 +136,15 @@ class ImportService {
 			'duplicate' => count($rows) - count($new),
 			'existingBookings' => $existingBookings,
 			'autoAssigned' => $autoAssigned,
+			'ruleFailed' => $ruleFailed,
+			'format' => $source,
 		];
 	}
 
 	/**
 	 * Teilt geparste Zeilen in neue und bereits vorhandene.
 	 *
-	 * Zwei Dublettenquellen:
+	 * Drei Dublettenquellen:
 	 *  1. Hash gegen bereits importierte Bankbuchungen (und Dubletten in derselben Datei).
 	 *  2. Datum (Buchungs- ODER Valutadatum) + Betrag + normalisierter Text gegen
 	 *     bestehende Buchungen OHNE Bankbezug (XBUC-/manuell erfasst). So werden
@@ -124,6 +153,11 @@ class ImportService {
 	 *     Normalisierung entfernt Trennzeichen/Groß-Kleinschreibung, sodass
 	 *     "Empfänger: Verwendungszweck" (XBUC) und "Empfänger – Verwendungszweck"
 	 *     (Bankzuordnung) als gleich gelten.
+	 *  3. Derselbe weiche Schlüssel gegen bereits vorhandene BANKbuchungen. Nötig,
+	 *     weil der Hash das eigene Konto enthält und die Quellen es unterschiedlich
+	 *     schreiben: die CSV der Sparkasse führt dort oft nur eine Kontonummer,
+	 *     CAMT.053 und FinTS immer die IBAN. Ohne diesen Schritt läge derselbe
+	 *     Umsatz beim Wechsel des Exportformats doppelt in „Zuzuordnen".
 	 *
 	 * @param array<int, array<string,mixed>> $rows
 	 * @return array{0: array<int, array<string,mixed>>, 1: array<int, array<string,mixed>>, 2: int}
@@ -132,7 +166,7 @@ class ImportService {
 	private function splitNewAndDuplicate(string $userId, array $rows): array {
 		$hashes = array_column($rows, 'hash');
 		$existing = array_flip($this->txMapper->findExistingHashes($userId, $hashes));
-		$bookingKeys = $this->existingBookingKeys($userId);
+		$bookingKeys = $this->existingBookingKeys($userId) + $this->existingBankKeys($userId);
 
 		$new = [];
 		$duplicate = [];
@@ -164,18 +198,43 @@ class ImportService {
 	private function existingBookingKeys(string $userId): array {
 		$keys = [];
 		foreach ($this->journalMapper->findManualBookingKeys($userId) as $k) {
-			$norm = $this->normalizeText($k['description']);
-			if ($norm === '') {
-				continue;
+			$key = $this->normalizer->softKey($k['date'], (int)$k['amount'], $k['description']);
+			if ($key !== null) {
+				$keys[$key] = true;
 			}
-			$keys[$k['date'] . '|' . abs((int)$k['amount']) . '|' . $norm] = true;
 		}
 		return $keys;
 	}
 
 	/**
-	 * Prüft, ob eine CSV-Zeile bereits als Buchung ohne Bankbezug existiert
-	 * (Betrag + normalisierter Text gegen {@see existingBookingKeys}).
+	 * Dieselben Schlüssel für bereits importierte Bankbuchungen – der
+	 * quellenübergreifende Schutz aus Punkt 3 in {@see splitNewAndDuplicate()}.
+	 *
+	 * Buchungs- und Valutadatum werden beide eingetragen: welches von beiden ein
+	 * Format als "Buchungstag" ausgibt, ist nicht einheitlich.
+	 *
+	 * @return array<string, true>
+	 */
+	private function existingBankKeys(string $userId): array {
+		$keys = [];
+		foreach ($this->txMapper->findDedupKeys($userId) as $k) {
+			foreach ([$k['date'], $k['valueDate']] as $date) {
+				if (!is_string($date) || $date === '') {
+					continue;
+				}
+				$key = $this->normalizer->softKey($date, $k['amount'], $k['text']);
+				if ($key !== null) {
+					$keys[$key] = true;
+				}
+			}
+		}
+		return $keys;
+	}
+
+	/**
+	 * Prüft, ob eine gelesene Zeile bereits als Buchung ohne Bankbezug oder als
+	 * Bankbuchung existiert (Betrag + normalisierter Text gegen die Schlüssel
+	 * aus {@see existingBookingKeys()} und {@see existingBankKeys()}).
 	 *
 	 * Datumsseitig wird sowohl das Buchungs- ALS AUCH das Valutadatum geprüft:
 	 * die Alt-Software (xbuc-Export) hat teils das Valutadatum als Buchungsdatum
@@ -186,22 +245,18 @@ class ImportService {
 	 * @param array<string, true> $bookingKeys
 	 */
 	private function matchesExistingBooking(array $row, array $bookingKeys): bool {
-		$norm = $this->normalizeText((string)($row['counterparty'] ?? '') . (string)($row['purpose'] ?? ''));
-		if ($norm === '') {
-			return false;
-		}
-		$amount = abs((int)$row['amountCents']);
+		$text = (string)($row['counterparty'] ?? '') . (string)($row['purpose'] ?? '');
+		$amount = (int)$row['amountCents'];
 		foreach ([$row['bookingDate'] ?? null, $row['valueDate'] ?? null] as $date) {
-			if (is_string($date) && $date !== '' && isset($bookingKeys[$date . '|' . $amount . '|' . $norm])) {
+			if (!is_string($date) || $date === '') {
+				continue;
+			}
+			$key = $this->normalizer->softKey($date, $amount, $text);
+			if ($key !== null && isset($bookingKeys[$key])) {
 				return true;
 			}
 		}
 		return false;
-	}
-
-	/** Klein, ohne Trennzeichen/Leer-/Sonderzeichen – nur Buchstaben und Ziffern. */
-	private function normalizeText(string $s): string {
-		return preg_replace('/[^\p{L}\p{N}]+/u', '', mb_strtolower($s)) ?? '';
 	}
 
 	/**

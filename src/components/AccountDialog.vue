@@ -34,6 +34,18 @@
 					Geldkonto (Bank/Kasse) – Bestand geht über Jahresgrenzen
 				</NcCheckboxRadioSwitch>
 			</div>
+			<div v-if="form.isBank" class="vbh-form">
+				<label class="vbh-grow">IBAN (optional)
+					<input v-model="form.iban"
+						type="text"
+						autocapitalize="characters"
+						placeholder="z. B. DE12 5001 0517 0648 4898 90">
+				</label>
+			</div>
+			<p v-if="form.isBank" class="vbh-hint">
+				Nur nötig, wenn die Buchhaltung mehrere Geldkonten führt: Damit ordnet die App
+				importierte Kontoauszüge dem richtigen Konto zu. Leerzeichen sind egal.
+			</p>
 			<div v-if="form.type !== 'equity' && !form.isBank" class="vbh-form">
 				<label class="vbh-grow">Steuerliche Sphäre
 					<select v-model="form.sphere">
@@ -81,7 +93,7 @@ import { useAccounts } from '../composables/useAccounts.js'
  *
  */
 function emptyForm() {
-	return { number: '', name: '', type: 'income', category: '', isBank: false, parentId: null, sphere: '', reserveKind: '' }
+	return { number: '', name: '', type: 'income', category: '', isBank: false, parentId: null, sphere: '', reserveKind: '', iban: '' }
 }
 
 export default {

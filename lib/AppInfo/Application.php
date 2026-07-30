@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\AppInfo;
 
+use OCA\Vereinsbuchhaltung\BackgroundJob\ImportWatchFolderJob;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Middleware\PermissionMiddleware;
 use OCA\Vereinsbuchhaltung\Middleware\RevisionMiddleware;
@@ -34,6 +35,11 @@ class Application extends App implements IBootstrap {
 		$context->registerService(TransactionRunner::class, static function ($c): TransactionRunner {
 			return new TransactionRunner($c->get(IDBConnection::class));
 		}, true);
+
+		// Der Job prüft selbst, ob ein Wachordner eingestellt ist, und tut sonst
+		// nichts – registriert wird er trotzdem immer, damit das Einschalten in
+		// den Einstellungen ohne Neustart wirkt.
+		$context->registerBackgroundJob(ImportWatchFolderJob::class);
 	}
 
 	public function boot(IBootContext $context): void {

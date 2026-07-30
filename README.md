@@ -1,6 +1,6 @@
 # Vereinsbuchhaltung – Nextcloud-App
 
-Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kontenrahmen und Buchungen können aus einer **„zero Buchhaltung"-.xbuc-Datei** importiert werden, Kontoumsätze kommen als **CSV-CAMT** von der Bank. Die App arbeitet nach den Regeln der **doppelten Buchführung** (Soll/Haben) mit frei definierbarem Kontenrahmen.
+Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kontenrahmen und Buchungen können aus einer **„zero Buchhaltung"-.xbuc-Datei** importiert werden, Kontoumsätze kommen als **CSV-CAMT, CAMT.053 oder MT940** von der Bank – wahlweise per Upload oder vollautomatisch aus einem überwachten Nextcloud-Ordner. Die App arbeitet nach den Regeln der **doppelten Buchführung** (Soll/Haben) mit frei definierbarem Kontenrahmen.
 
 ## 🎬 Die App in zwei Minuten
 
@@ -27,10 +27,14 @@ Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kon
   - **Anfangsbestände**: werden beim Mehrjahres-Import erkannt und übersprungen, wenn sie durch Vorjahresbuchungen abgedeckt sind (mit Abweichungswarnung)
   - Buchungen ohne Gegenkonto landen als offene Bankbuchungen im Tab „Zuzuordnen"
   - Reset-Modus (nur Verwalter): alle Daten werden vorher gelöscht
-- **CSV-CAMT-Import** (Sparkasse, Volksbank/VR-NetWorld, …): automatische Erkennung von Trennzeichen und Zeichensatz, deutsches Zahlen- und Datumsformat
-  - **Dublettenerkennung** per SHA-256-Hash – und zusätzlich gegen bereits per xbuc importierte Buchungen (auch bei abweichendem Valutadatum)
+- **Kontoauszüge** in drei Formaten – das Format wird am **Inhalt** erkannt, die Dateiendung spielt keine Rolle:
+  - **CSV-CAMT** (Sparkasse, Volksbank/VR-NetWorld, …): automatische Erkennung von Trennzeichen und Zeichensatz, deutsches Zahlen- und Datumsformat
+  - **CAMT.053 (XML)**: das ISO-20022-Standardformat – Vorzeichen, Datum und Zahlungsbeteiligte sind eindeutig ausgezeichnet statt geraten; vorgemerkte Umsätze (`PDNG`) werden übersprungen, Sammelbuchungen bleiben eine Zeile mit Posten-Hinweis
+  - **MT940** (SWIFT, oft als `.sta`): mehrteilige Verwendungszwecke und Namen werden zusammengesetzt, Storni (`RC`/`RD`) kehren die Richtung um
+  - **Dublettenerkennung** per SHA-256-Hash, zusätzlich gegen bereits per xbuc importierte Buchungen und – formatübergreifend – gegen vorhandene Bankbuchungen über Datum/Betrag/Text (auch bei abweichendem Valutadatum). Derselbe Auszug lässt sich also gefahrlos in einem anderen Format erneut einlesen
   - 0-€-Buchungen (z. B. ABSCHLUSS) werden übersprungen; bank-interne Buchungen ohne Zahlungsbeteiligten (ENTGELTABSCHLUSS …) bleiben buchbar
   - Import direkt im Tab „Buchungen" mit Drag-&-Drop, Vorschau und Erfolgsübersicht
+- **Wachordner** (Einstellungen → *Kontoauszüge automatisch einlesen*): den heruntergeladenen Auszug in einen Nextcloud-Ordner legen genügt – ein stündlicher Hintergrundjob liest ihn ein, verschiebt ihn nach `verarbeitet/` und fehlerhafte Dateien mitsamt Begründung nach `fehler/`. Gelöscht wird nichts. Setzt System-Cron voraus
 
 ### Buchhaltung
 - **Doppelte Buchführung**: Buchungssätze mit Soll-/Haben-Konten und fortlaufender Buchungsnummer (je Kalenderjahr neu beginnend ab 1)
@@ -99,13 +103,20 @@ vereinsbuchhaltung/
 │   │                  RevisionMiddleware (Änderungsstand für das Polling),
 │   │                  RequiresRole (Attribut zur Rechteprüfung je Methode)
 │   ├── Migration/     Schema-Migrationen (vbh_* Tabellen)
-│   └── Service/       CamtCsvParser, ImportService, XbucParser, XbucImportService,
-│                      AccountService, BookingService, JournalService,
-│                      EntryNumberService, OpeningBalanceService, ReportService,
-│                      ResetService, PermissionService, AttachmentStorageService,
-│                      BudgetSnapshotService, OpenItemService, RevisionService,
-│                      YearCloseService, AuditService, BrandingService,
-│                      CsvFormatter, DemoDataService
+│   ├── BackgroundJob/ ImportWatchFolderJob (stündlicher Blick in den Wachordner)
+│   ├── Service/       CamtCsvParser, ImportService, WatchFolderService,
+│   │                  XbucParser, XbucImportService, AccountService,
+│   │                  BookingService, JournalService, EntryNumberService,
+│   │                  OpeningBalanceService, ReportService, ResetService,
+│   │                  PermissionService, AttachmentStorageService,
+│   │                  BudgetSnapshotService, OpenItemService, RevisionService,
+│   │                  YearCloseService, AuditService, BrandingService,
+│   │                  CsvFormatter, DemoDataService
+│   └── Service/Statement/
+│                      Umsatzquellen: StatementParser (Schnittstelle),
+│                      Camt053Parser, Mt940Parser, StatementParserRegistry
+│                      (Formaterkennung am Inhalt), RowNormalizer
+│                      (kanonische Zeilenform + Dedup-Hash für alle Quellen)
 ├── src/               Vue 2.7-Frontend (Composition API via setup(), reactive() als
 │   │                  Composable-Singletons statt Vuex/Pinia)
 │   ├── App.vue        Shell: Header/Navigation/Jahresauswahl, Tab-Router,
@@ -136,11 +147,11 @@ vereinsbuchhaltung/
 
 | Tabelle | Zweck |
 |---|---|
-| `vbh_accounts` | Kontenrahmen (Nr., Name, Typ, Hierarchie, Eröffnungssaldo) |
+| `vbh_accounts` | Kontenrahmen (Nr., Name, Typ, Hierarchie, Eröffnungssaldo, IBAN bei Geldkonten) |
 | `vbh_bank_tx` | importierte Bankbuchungen inkl. Dedup-Hash und Zuordnungsstatus |
 | `vbh_journal` | Buchungssätze (Datum, Beschreibung, Belegnr., Buchungsnr.) |
 | `vbh_journal_line` | Soll-/Haben-Zeilen je Buchungssatz (Betrag in Cent) |
-| `vbh_imports` | Import-Protokoll (neu/Dubletten je Datei) |
+| `vbh_imports` | Import-Protokoll (neu/Dubletten je Datei, Quellformat) |
 | `vbh_costcenters` | Kostenstellen-Namen (code, name) |
 | `vbh_budgets` | Finanzplan (Konto × Jahr × Betrag in Cent + Notiz) |
 | `vbh_budget_snapshots` | eingefrorene Plan-Stände (Jahr, Label, Zeitpunkt) |
@@ -211,7 +222,7 @@ Beim allerersten Start begrüßt ein **Setup-Assistent** mit drei Wegen (xbuc ü
 2. **Einstellungen → Aus „zero Buchhaltung" importieren** → `.xbuc`-Datei wählen → Vorschau prüfen → Importieren.
    - Mehrere Jahres-Dateien nacheinander importieren: der Merge-Modus (Standard) übernimmt nur fehlende Konten und neue Buchungen.
    - Alternativ: Tab **Konten** → *Standard-Kontenrahmen anlegen* und Konten manuell erstellen.
-3. Tab **Buchungen** → *Kontoumsätze importieren* → CSV-CAMT-Datei der Bank hochladen.
+3. Tab **Buchungen** → *Kontoumsätze importieren* → Kontoauszug der Bank hochladen (CSV-CAMT, CAMT.053 oder MT940). Wer das regelmäßig tut: Einstellungen → *Kontoauszüge automatisch einlesen* erspart den Upload.
 4. Tab **Buchungen → Zuzuordnen** → jede Bankbuchung einem Gegenkonto zuordnen (Vorschläge per Klick übernehmen; Regeln automatisieren wiederkehrende Buchungen).
 5. Tab **Übersicht** → Dashboard mit KPI-Kacheln und Monatschart.
 6. Tab **Berichte** → Auswertung (inkl. Kassenbericht, Kurzbericht, Beleg-ZIP und Prüfleitfaden), Kostenstellen, Finanzplan (inkl. Plan-Notizen, Plan-Ständen und CSV-Export), Sphären, Rücklagen, Protokoll.
@@ -220,7 +231,8 @@ Beim allerersten Start begrüßt ein **Setup-Assistent** mit drei Wegen (xbuc ü
 ## Roadmap
 
 - Splittbuchungen im UI anlegen und bearbeiten (eine Zahlung auf mehrere Gegenkonten; importierte Splittbuchungen werden bereits angezeigt)
-- Mehrere Bankkonten per IBAN automatisch zuordnen (CSV-Import)
+- **Mehrere Bankkonten automatisch unterscheiden**: die IBAN lässt sich am Geldkonto bereits hinterlegen, die Zuordnung importierter Umsätze wählt aber noch immer das erste Bankkonto statt das passende
+- **Umsätze direkt bei der Bank abrufen (FinTS/HBCI)**, statt sie herunterzuladen. Der MT940-Parser dafür steht schon, das Format liefert FinTS zurück. Offen sind vor allem die nicht-technischen Fragen: Produktregistrierung bei der Deutschen Kreditwirtschaft, Speicherung der Bankzugangsdaten und der TAN-Dialog. Ausgeschlossen bleibt der Weg über einen Aggregator – die Kontoumsätze würden dann über die Cloud eines Dritten laufen
 - Budget-Ampel („Wie stehen wir zum Plan?") auf dem Dashboard
 - Automatischer Zahlungsabgleich für offene Posten (Vorschläge per Zahlungspartner-Abgleich wie bei den Auto-Zuordnungsregeln)
 

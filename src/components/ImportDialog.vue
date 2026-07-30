@@ -1,6 +1,6 @@
 <template>
 	<NcModal :show="show"
-		name="Kontoumsätze importieren (CSV-CAMT)"
+		name="Kontoumsätze importieren"
 		size="normal"
 		@close="$emit('close')"
 		@update:show="$emit('update:show', $event)">
@@ -13,12 +13,12 @@
 					@drop.prevent="onImportDrop">
 					<NcIconSvgWrapper :path="mdiUpload" :size="36" class="vbh-dropzone-icon" />
 					<p class="vbh-dropzone-text">
-						CSV-Datei der Bank hierher ziehen<br>
+						Kontoauszug der Bank hierher ziehen<br>
 						<span class="vbh-dropzone-or">oder</span>
 					</p>
 					<label class="vbh-filebtn">Datei wählen<input ref="fileInput"
 						type="file"
-						accept=".csv,text/csv"
+						accept=".csv,.xml,.sta,.txt,text/csv,text/xml,application/xml"
 						hidden
 						@change="onFileSelected"></label>
 					<p v-if="selectedFile" class="vbh-filename">
@@ -26,7 +26,9 @@
 					</p>
 				</div>
 				<p class="vbh-hint">
-					Nur neue Buchungen werden übernommen – bereits importierte werden automatisch erkannt (Dublettenprüfung).
+					Erkannt werden CSV-CAMT, CAMT.053 (XML) und MT940 – das Format wird am Inhalt bestimmt,
+					die Dateiendung spielt keine Rolle. Nur neue Buchungen werden übernommen; bereits
+					importierte werden automatisch erkannt (Dublettenprüfung).
 				</p>
 				<NcCheckboxRadioSwitch v-model="applyRules">
 					Auto-Zuordnungsregeln anwenden

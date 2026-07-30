@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Derselbe Kontoauszug wie beispiel-camt.csv, nur im ISO-20022-Format.
+  Wird für den Kreuztest gebraucht: dieselben Umsätze aus zwei Formaten dürfen
+  nicht doppelt importiert werden.
+-->
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.02">
+	<BkToCstmrStmt>
+		<GrpHdr>
+			<MsgId>TESTMSG-1</MsgId>
+			<CreDtTm>2026-02-01T08:00:00</CreDtTm>
+		</GrpHdr>
+		<Stmt>
+			<Id>AUSZUG-2026-01</Id>
+			<Acct>
+				<Id>
+					<IBAN>DE12500105170648489890</IBAN>
+				</Id>
+				<Ccy>EUR</Ccy>
+			</Acct>
+			<Ntry>
+				<Amt Ccy="EUR">60.00</Amt>
+				<CdtDbtInd>CRDT</CdtDbtInd>
+				<Sts>BOOK</Sts>
+				<BookgDt><Dt>2026-01-02</Dt></BookgDt>
+				<ValDt><Dt>2026-01-02</Dt></ValDt>
+				<NtryDtls>
+					<TxDtls>
+						<RltdPties>
+							<Dbtr><Nm>Max Mustermann</Nm></Dbtr>
+							<DbtrAcct><Id><IBAN>DE02120300000000202051</IBAN></Id></DbtrAcct>
+						</RltdPties>
+						<RltdAgts>
+							<DbtrAgt><FinInstnId><BIC>BYLADEM1001</BIC></FinInstnId></DbtrAgt>
+						</RltdAgts>
+						<RmtInf><Ustrd>Mitgliedsbeitrag 2026 Max Mustermann</Ustrd></RmtInf>
+					</TxDtls>
+				</NtryDtls>
+				<AddtlNtryInf>GUTSCHRIFT</AddtlNtryInf>
+			</Ntry>
+			<Ntry>
+				<Amt Ccy="EUR">250.00</Amt>
+				<CdtDbtInd>DBIT</CdtDbtInd>
+				<Sts>BOOK</Sts>
+				<BookgDt><Dt>2026-01-05</Dt></BookgDt>
+				<ValDt><Dt>2026-01-05</Dt></ValDt>
+				<NtryDtls>
+					<TxDtls>
+						<RltdPties>
+							<Cdtr><Nm>Stadtwerke Musterstadt</Nm></Cdtr>
+							<CdtrAcct><Id><IBAN>DE89370400440532013000</IBAN></Id></CdtrAcct>
+						</RltdPties>
+						<RltdAgts>
+							<CdtrAgt><FinInstnId><BIC>COBADEFFXXX</BIC></FinInstnId></CdtrAgt>
+						</RltdAgts>
+						<RmtInf><Ustrd>Miete Vereinsheim Januar</Ustrd></RmtInf>
+					</TxDtls>
+				</NtryDtls>
+				<AddtlNtryInf>FOLGELASTSCHRIFT</AddtlNtryInf>
+			</Ntry>
+			<Ntry>
+				<Amt Ccy="EUR">1250.50</Amt>
+				<CdtDbtInd>CRDT</CdtDbtInd>
+				<Sts>BOOK</Sts>
+				<BookgDt><Dt>2026-01-10</Dt></BookgDt>
+				<ValDt><Dt>2026-01-10</Dt></ValDt>
+				<NtryDtls>
+					<TxDtls>
+						<RltdPties>
+							<Dbtr><Nm>Erika Beispiel</Nm></Dbtr>
+							<DbtrAcct><Id><IBAN>DE44500105175407324931</IBAN></Id></DbtrAcct>
+						</RltdPties>
+						<RltdAgts>
+							<DbtrAgt><FinInstnId><BIC>INGDDEFFXXX</BIC></FinInstnId></DbtrAgt>
+						</RltdAgts>
+						<RmtInf><Ustrd>Spende Weihnachtskonzert</Ustrd></RmtInf>
+					</TxDtls>
+				</NtryDtls>
+				<AddtlNtryInf>GUTSCHRIFT</AddtlNtryInf>
+			</Ntry>
+			<Ntry>
+				<Amt Ccy="EUR">8.90</Amt>
+				<CdtDbtInd>DBIT</CdtDbtInd>
+				<Sts>BOOK</Sts>
+				<BookgDt><Dt>2026-01-15</Dt></BookgDt>
+				<ValDt><Dt>2026-01-15</Dt></ValDt>
+				<NtryDtls>
+					<TxDtls>
+						<RltdPties>
+							<Cdtr><Nm>Sparkasse Musterstadt</Nm></Cdtr>
+						</RltdPties>
+						<RmtInf><Ustrd>Kontofuehrungsentgelt</Ustrd></RmtInf>
+					</TxDtls>
+				</NtryDtls>
+				<AddtlNtryInf>ENTGELTABSCHLUSS</AddtlNtryInf>
+			</Ntry>
+			<Ntry>
+				<Amt Ccy="EUR">60.00</Amt>
+				<CdtDbtInd>CRDT</CdtDbtInd>
+				<Sts>BOOK</Sts>
+				<BookgDt><Dt>2026-01-20</Dt></BookgDt>
+				<ValDt><Dt>2026-01-20</Dt></ValDt>
+				<NtryDtls>
+					<TxDtls>
+						<RltdPties>
+							<Dbtr><Nm>Anna Schmidt</Nm></Dbtr>
+							<DbtrAcct><Id><IBAN>DE02500105170137075030</IBAN></Id></DbtrAcct>
+						</RltdPties>
+						<RltdAgts>
+							<DbtrAgt><FinInstnId><BIC>SOLADEST600</BIC></FinInstnId></DbtrAgt>
+						</RltdAgts>
+						<RmtInf><Ustrd>Mitgliedsbeitrag 2026 Anna Schmidt</Ustrd></RmtInf>
+					</TxDtls>
+				</NtryDtls>
+				<AddtlNtryInf>GUTSCHRIFT</AddtlNtryInf>
+			</Ntry>
+			<Ntry>
+				<Amt Ccy="EUR">99.00</Amt>
+				<CdtDbtInd>CRDT</CdtDbtInd>
+				<Sts>PDNG</Sts>
+				<BookgDt><Dt>2026-01-31</Dt></BookgDt>
+				<ValDt><Dt>2026-01-31</Dt></ValDt>
+				<NtryDtls>
+					<TxDtls>
+						<RltdPties>
+							<Dbtr><Nm>Vorgemerkt Beispiel</Nm></Dbtr>
+						</RltdPties>
+						<RmtInf><Ustrd>Noch nicht gebucht</Ustrd></RmtInf>
+					</TxDtls>
+				</NtryDtls>
+			</Ntry>
+		</Stmt>
+	</BkToCstmrStmt>
+</Document>

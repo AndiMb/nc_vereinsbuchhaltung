@@ -96,6 +96,38 @@
 				Belege werden unter <code>{{ storageUser }}/{{ storagePath || 'Vereinsbuchhaltung/Belege' }}/&lt;BuchungsID&gt;/</code> abgelegt.
 			</p>
 		</div>
+
+		<h3 class="vbh-section-divider">
+			Kontoauszüge automatisch einlesen
+		</h3>
+		<div class="vbh-card">
+			<p class="vbh-hint">
+				Legt man den im Onlinebanking heruntergeladenen Kontoauszug in diesen Ordner, liest die App
+				ihn von allein ein – kein Hochladen mehr von Hand. Erkannt werden CSV-CAMT,
+				CAMT.053 (XML) und MT940. Leer lassen schaltet die Funktion ab.
+			</p>
+			<div class="vbh-form">
+				<label class="vbh-grow">Nextcloud-Nutzer
+					<select v-model="watchUserModel">
+						<option value="">— aus —</option>
+						<option v-for="u in users" :key="u.id" :value="u.id">{{ u.displayName }} ({{ u.id }})</option>
+					</select>
+				</label>
+				<label class="vbh-grow">Ordnerpfad im Nutzer-Home
+					<input v-model="watchPathModel" type="text" placeholder="Vereinsbuchhaltung/Kontoauszüge">
+				</label>
+				<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings">
+					Speichern
+				</NcButton>
+			</div>
+			<p v-if="watchActive" class="vbh-hint vbh-hint--info">
+				Eingelesene Dateien wandern nach <code>{{ statementWatchPath }}/verarbeitet/</code>,
+				nicht lesbare nach <code>{{ statementWatchPath }}/fehler/</code> – gelöscht wird nichts.
+				Geprüft wird stündlich. <strong>Voraussetzung:</strong> die Nextcloud-Instanz muss
+				Hintergrundaufgaben per System-Cron ausführen (Verwaltung → Grundeinstellungen);
+				mit „AJAX" laufen sie nur, solange jemand Nextcloud geöffnet hat.
+			</p>
+		</div>
 	</div>
 </template>
 
@@ -117,6 +149,8 @@ export default {
 		storageUser: { type: String, required: true },
 		storagePath: { type: String, required: true },
 		brandColor: { type: String, required: true },
+		statementWatchUser: { type: String, default: '' },
+		statementWatchPath: { type: String, default: '' },
 		// nur lesend - Upload/Loeschen laden hier direkt per api.js nach (siehe
 		// onLogoSelected/removeLogo), @changed signalisiert dem Elternteil,
 		// hasLogo per loadStorageSettings() neu zu laden.
@@ -155,6 +189,19 @@ export default {
 		brandColorModel: {
 			get() { return this.brandColor || '#2d7d46' },
 			set(v) { this.$emit('update:brandColor', v) },
+		},
+		watchUserModel: {
+			get() { return this.statementWatchUser },
+			set(v) { this.$emit('update:statementWatchUser', v) },
+		},
+		watchPathModel: {
+			get() { return this.statementWatchPath },
+			set(v) { this.$emit('update:statementWatchPath', v) },
+		},
+		// Nur beides zusammen ergibt einen Wachordner (das Backend setzt eine
+		// halb ausgefuellte Angabe ebenfalls zurueck).
+		watchActive() {
+			return !!this.statementWatchUser && !!this.statementWatchPath
 		},
 		logoPreviewUrl() {
 			return api.logoUrl() + '?v=' + this.logoVersion

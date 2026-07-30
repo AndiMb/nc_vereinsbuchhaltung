@@ -19,6 +19,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setRowsNew(int $rowsNew)
  * @method int getRowsDuplicate()
  * @method void setRowsDuplicate(int $rowsDuplicate)
+ * @method string|null getSource()
+ * @method void setSource(?string $source)
  */
 class ImportLog extends Entity implements \JsonSerializable {
 	protected $userId;
@@ -27,6 +29,8 @@ class ImportLog extends Entity implements \JsonSerializable {
 	protected $rowsTotal = 0;
 	protected $rowsNew = 0;
 	protected $rowsDuplicate = 0;
+	/** Format der Quelle: csv, camt, mt940 (später fints). */
+	protected $source = 'csv';
 
 	public function __construct() {
 		$this->addType('rowsTotal', 'integer');
@@ -42,6 +46,7 @@ class ImportLog extends Entity implements \JsonSerializable {
 			'rowsTotal' => $this->rowsTotal,
 			'rowsNew' => $this->rowsNew,
 			'rowsDuplicate' => $this->rowsDuplicate,
+			'source' => $this->source,
 		];
 	}
 }

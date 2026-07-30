@@ -243,6 +243,8 @@
 					:storage-user.sync="storageUser"
 					:storage-path.sync="storagePath"
 					:brand-color.sync="brandColor"
+					:statement-watch-user.sync="statementWatchUser"
+					:statement-watch-path.sync="statementWatchPath"
 					:has-logo="hasLogo"
 					:users="users"
 					:storage-saving="storageSaving"
@@ -526,6 +528,10 @@ export default {
 			brandColor: '',
 			hasLogo: false,
 			storageSaving: false,
+			// Überwachter Ordner für Kontoauszüge (leer = aus); der stündliche
+			// Hintergrundjob liest daraus ein.
+			statementWatchUser: '',
+			statementWatchPath: '',
 			// Hilfe-Modal (HelpModal.vue): Kapitel folgt standardmäßig dem aktiven Tab,
 			// kann aber gezielt überschrieben werden (z. B. Links aus Leerzuständen).
 			showHelp: false,
@@ -891,12 +897,14 @@ export default {
 				this.brandColor = data.brand_color || ''
 				this.hasLogo = !!data.has_logo
 				this.demoActive = !!data.demo_active
+				this.statementWatchUser = data.statement_watch_user || ''
+				this.statementWatchPath = data.statement_watch_path || ''
 			} catch (e) { /* ignorieren */ }
 		},
 		async saveStorageSettings() {
 			this.storageSaving = true
 			try {
-				await api.saveSettings({ storage_user: this.storageUser, storage_path: this.storagePath || 'Vereinsbuchhaltung/Belege', cost_center_mode: this.costCenterMode, club_name: this.clubName, brand_color: this.brandColor })
+				await api.saveSettings({ storage_user: this.storageUser, storage_path: this.storagePath || 'Vereinsbuchhaltung/Belege', cost_center_mode: this.costCenterMode, club_name: this.clubName, brand_color: this.brandColor, statement_watch_user: this.statementWatchUser, statement_watch_path: this.statementWatchPath })
 				showSuccess('Einstellungen gespeichert.')
 				this.reportData = null
 			} catch (e) {
@@ -1389,6 +1397,10 @@ export default {
 				parentId: this.selectedAccountId || null,
 				sphere: parent ? (parent.sphere || '') : '',
 				reserveKind: parent ? (parent.reserveKind || '') : '',
+				// IBAN wird bewusst NICHT vom Ueberkonto uebernommen: sie
+				// identifiziert genau ein Bankkonto und darf nicht an zwei
+				// Konten haengen.
+				iban: '',
 			}
 			this.showAccount = true
 		},
@@ -1403,6 +1415,7 @@ export default {
 				parentId: acc.parentId || null,
 				sphere: acc.sphere || '',
 				reserveKind: acc.reserveKind || '',
+				iban: acc.iban || '',
 			}
 			this.showAccount = true
 		},
@@ -1422,13 +1435,16 @@ export default {
 						parentId: f.parentId || 0,
 						sphere: f.sphere || '',
 						reserveKind: f.reserveKind || '',
+						// Leerstring statt null: der Controller verwirft null-Werte,
+						// eine geleerte IBAN wuerde sonst nicht geloescht.
+						iban: f.iban || '',
 					})
 				} else {
-					await api.createAccount({ ...f, parentId: f.parentId || null, sphere: f.sphere || null, reserveKind: f.reserveKind || null })
+					await api.createAccount({ ...f, parentId: f.parentId || null, sphere: f.sphere || null, reserveKind: f.reserveKind || null, iban: f.iban || null })
 				}
 				this.showAccount = false
 				this.accountEditId = null
-				this.newAccount = { number: '', name: '', type: 'income', category: '', isBank: false, parentId: null, sphere: '', reserveKind: '' }
+				this.newAccount = { number: '', name: '', type: 'income', category: '', isBank: false, parentId: null, sphere: '', reserveKind: '', iban: '' }
 				await this.loadAccounts(); await this.loadBalances(); await this.loadSphereReport()
 				showSuccess('Konto gespeichert.')
 			} catch (e) { showError(this.errMsg(e, 'Konto konnte nicht gespeichert werden')) }

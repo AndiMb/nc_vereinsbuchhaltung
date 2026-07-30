@@ -48,9 +48,9 @@ class AccountController extends Controller {
 	}
 
 	#[NoAdminRequired]
-	public function create(string $number, string $name, string $type, ?string $category = null, bool $isBank = false, ?int $parentId = null, ?string $sphere = null, ?string $reserveKind = null): DataResponse {
+	public function create(string $number, string $name, string $type, ?string $category = null, bool $isBank = false, ?int $parentId = null, ?string $sphere = null, ?string $reserveKind = null, ?string $iban = null): DataResponse {
 		try {
-			$account = $this->service->create($this->userId(), $number, $name, $type, $category, $isBank, $parentId, $sphere, $reserveKind);
+			$account = $this->service->create($this->userId(), $number, $name, $type, $category, $isBank, $parentId, $sphere, $reserveKind, $iban);
 			return new DataResponse($account, Http::STATUS_CREATED);
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
@@ -62,9 +62,10 @@ class AccountController extends Controller {
 	 *                       Die Account-Bearbeitung sendet das Feld immer mit.
 	 * @param string|null $sphere '' = nicht zugeordnet (löscht eine ggf. gesetzte Sphäre).
 	 * @param string|null $reserveKind '' = keine Rücklage (löscht eine ggf. gesetzte Rücklagen-Art).
+	 * @param string|null $iban '' = keine IBAN (löscht eine ggf. gesetzte).
 	 */
 	#[NoAdminRequired]
-	public function update(int $id, ?string $number = null, ?string $name = null, ?string $type = null, ?string $category = null, ?bool $isBank = null, ?bool $active = null, int $parentId = 0, ?string $sphere = null, ?string $reserveKind = null): DataResponse {
+	public function update(int $id, ?string $number = null, ?string $name = null, ?string $type = null, ?string $category = null, ?bool $isBank = null, ?bool $active = null, int $parentId = 0, ?string $sphere = null, ?string $reserveKind = null, ?string $iban = null): DataResponse {
 		$data = array_filter([
 			'number' => $number,
 			'name' => $name,
@@ -74,6 +75,7 @@ class AccountController extends Controller {
 			'active' => $active,
 			'sphere' => $sphere,
 			'reserveKind' => $reserveKind,
+			'iban' => $iban,
 		], static fn ($v) => $v !== null);
 		// parentId immer übernehmen (0 = Wurzel), damit Umhängen/Lösen möglich ist.
 		$data['parentId'] = $parentId;

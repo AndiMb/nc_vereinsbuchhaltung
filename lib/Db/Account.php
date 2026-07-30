@@ -31,6 +31,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setSphere(?string $sphere)
  * @method string|null getReserveKind()
  * @method void setReserveKind(?string $reserveKind)
+ * @method string|null getIban()
+ * @method void setIban(?string $iban)
  */
 class Account extends Entity implements \JsonSerializable {
 	protected $userId;
@@ -45,6 +47,8 @@ class Account extends Entity implements \JsonSerializable {
 	protected $parentId;
 	protected $sphere;
 	protected $reserveKind;
+	/** IBAN des Geldkontos – ordnet importierte Bankumsätze diesem Konto zu. */
+	protected $iban;
 
 	/** Gültige Werte für die steuerliche Sphäre (Account::$sphere). */
 	public const SPHERES = ['ideell', 'vermoegensverwaltung', 'zweckbetrieb', 'wirtschaftlich'];
@@ -113,6 +117,7 @@ class Account extends Entity implements \JsonSerializable {
 			'parentId' => $this->parentId,
 			'sphere' => $this->sphere,
 			'reserveKind' => $this->reserveKind,
+			'iban' => $this->iban,
 		];
 	}
 }

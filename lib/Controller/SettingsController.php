@@ -8,6 +8,7 @@ use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Service\DemoDataService;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
+use OCA\Vereinsbuchhaltung\Service\WatchFolderService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -43,26 +44,49 @@ class SettingsController extends Controller {
 	 * @return string|null Fehlermeldung oder null, wenn alles in Ordnung ist
 	 */
 	private function validateStorage(string $storageUser, string $storagePath): ?string {
-		if ($storageUser !== '' && !$this->userManager->userExists($storageUser)) {
-			return 'Der angegebene Nextcloud-Nutzer für die Belegablage existiert nicht.';
+		return $this->validateUserPath($storageUser, $storagePath, 'Belegablage', 'Ablagepfad');
+	}
+
+	/**
+	 * Dieselbe Prüfung für den überwachten Ordner der Kontoauszüge.
+	 *
+	 * Hier wiegt sie sogar schwerer als bei der Belegablage: die App liest aus
+	 * diesem Ordner und verschiebt die Dateien anschließend. Ein beliebiger
+	 * fremder Pfad wäre also nicht nur beschreibbar, sondern auch auslesbar.
+	 */
+	private function validateWatchFolder(string $user, string $path): ?string {
+		if ($user === '' || trim($path) === '') {
+			return null; // beides leer bzw. unvollständig -> Wachordner ist aus
+		}
+		return $this->validateUserPath($user, $path, 'überwachten Ordner', 'Ordnerpfad');
+	}
+
+	/**
+	 * @param string $subject wofür der Nutzer gebraucht wird (für die Meldung)
+	 * @param string $pathLabel wie der Pfad in Meldungen heißen soll
+	 * @return string|null Fehlermeldung oder null, wenn alles in Ordnung ist
+	 */
+	private function validateUserPath(string $user, string $path, string $subject, string $pathLabel): ?string {
+		if ($user !== '' && !$this->userManager->userExists($user)) {
+			return 'Der angegebene Nextcloud-Nutzer für die ' . $subject . ' existiert nicht.';
 		}
 
-		$normalized = trim(str_replace('\\', '/', $storagePath), '/');
+		$normalized = trim(str_replace('\\', '/', $path), '/');
 		if ($normalized === '') {
 			return null; // leer -> Standardpfad, wird vom Aufrufer gesetzt
 		}
 		foreach (explode('/', $normalized) as $segment) {
 			if ($segment === '' || $segment === '.' || $segment === '..') {
-				return 'Ungültiger Ablagepfad: "." und ".." sind nicht erlaubt.';
+				return 'Ungültiger ' . $pathLabel . ': "." und ".." sind nicht erlaubt.';
 			}
 		}
 		// Nextcloud verbietet diese Zeichen in Dateinamen; ein Pfad damit wäre
 		// nicht anlegbar und der Fehler erst beim ersten Beleg-Upload sichtbar.
 		if (preg_match('/[\\\\:*?"<>|]/', $normalized) === 1) {
-			return 'Ungültiger Ablagepfad: enthält unzulässige Zeichen.';
+			return 'Ungültiger ' . $pathLabel . ': enthält unzulässige Zeichen.';
 		}
 		if (mb_strlen($normalized) > 200) {
-			return 'Der Ablagepfad ist zu lang (max. 200 Zeichen).';
+			return 'Der ' . $pathLabel . ' ist zu lang (max. 200 Zeichen).';
 		}
 		return null;
 	}
@@ -77,6 +101,8 @@ class SettingsController extends Controller {
 			'brand_color' => $this->config->getAppValue(Application::APP_ID, 'brand_color', ''),
 			'has_logo' => $this->config->getAppValue(Application::APP_ID, 'brand_logo_mime', '') !== '',
 			'demo_active' => $this->demoService->isActive(),
+			'statement_watch_user' => $this->config->getAppValue(Application::APP_ID, WatchFolderService::SETTING_USER, ''),
+			'statement_watch_path' => $this->config->getAppValue(Application::APP_ID, WatchFolderService::SETTING_PATH, ''),
 		]);
 	}
 
@@ -107,11 +133,26 @@ class SettingsController extends Controller {
 			return new DataResponse(['message' => 'Ungültige Akzentfarbe (Format #RRGGBB erwartet)'], Http::STATUS_BAD_REQUEST);
 		}
 
+		$watchUser = trim((string)($this->request->getParam('statement_watch_user') ?? ''));
+		$watchPath = trim(str_replace('\\', '/', (string)($this->request->getParam('statement_watch_path') ?? '')), '/');
+		$watchError = $this->validateWatchFolder($watchUser, $watchPath);
+		if ($watchError !== null) {
+			return new DataResponse(['message' => $watchError], Http::STATUS_BAD_REQUEST);
+		}
+		// Nur beides zusammen ergibt einen Wachordner; halb ausgefüllt wäre er
+		// eingeschaltet, fände aber nie etwas.
+		if ($watchUser === '' || $watchPath === '') {
+			$watchUser = '';
+			$watchPath = '';
+		}
+
 		$this->config->setAppValue(Application::APP_ID, 'storage_user', $storageUser);
 		$this->config->setAppValue(Application::APP_ID, 'storage_path', $storagePath);
 		$this->config->setAppValue(Application::APP_ID, 'cost_center_mode', $ccMode);
 		$this->config->setAppValue(Application::APP_ID, 'club_name', $clubName);
 		$this->config->setAppValue(Application::APP_ID, 'brand_color', $brandColor);
+		$this->config->setAppValue(Application::APP_ID, WatchFolderService::SETTING_USER, $watchUser);
+		$this->config->setAppValue(Application::APP_ID, WatchFolderService::SETTING_PATH, $watchPath);
 
 		return new DataResponse([
 			'storage_user' => $storageUser,
@@ -119,6 +160,8 @@ class SettingsController extends Controller {
 			'cost_center_mode' => $ccMode,
 			'club_name' => $clubName,
 			'brand_color' => $brandColor,
+			'statement_watch_user' => $watchUser,
+			'statement_watch_path' => $watchPath,
 		]);
 	}
 }
