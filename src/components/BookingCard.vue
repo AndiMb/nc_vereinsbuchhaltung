@@ -13,9 +13,11 @@
 			{{ row.description || '(ohne Beschreibung)' }}
 		</div>
 		<div class="vbh-mcard-bottom">
+			<!-- Bei einer Splittbuchung stehen in soll/haben mehrere Konten; die
+			     zu zeigen ist nuetzlicher als der blosse Hinweis, dass es eine
+			     ist. Der Vermerk davor ordnet sie trotzdem gleich ein. -->
 			<span class="vbh-mcard-accounts">
-				<template v-if="row.isSplit">Splittbuchung (mehrere Zeilen)</template>
-				<template v-else>{{ row.soll }} ← {{ row.haben }}</template>
+				<template v-if="row.isSplit">Splitt: </template>{{ row.soll }} ← {{ row.haben }}
 			</span>
 			<button v-if="attachmentCount > 0"
 				type="button"

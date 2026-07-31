@@ -81,6 +81,19 @@
 					</select>
 				</label>
 			</div>
+			<!-- Nur beim Bearbeiten: ein neues Konto ist immer aktiv. Der Weg
+			     hierher fuehrt oft ueber den Loeschversuch eines bebuchten
+			     Kontos, den AccountService::delete() genau hierauf verweist. -->
+			<div v-if="accountEditId" class="vbh-form">
+				<NcCheckboxRadioSwitch v-model="form.active" type="switch">
+					Konto aktiv
+				</NcCheckboxRadioSwitch>
+			</div>
+			<p v-if="accountEditId && !form.active" class="vbh-hint">
+				Ein inaktives Konto verschwindet aus allen Auswahllisten – bereits gebuchte
+				Beträge, Berichte und die Historie bleiben unverändert. So werden Konten
+				losgeworden, die sich wegen vorhandener Buchungen nicht löschen lassen.
+			</p>
 			<div class="vbh-modal-actions">
 				<NcButton variant="tertiary" @click="$emit('close')">
 					Abbrechen
@@ -103,7 +116,7 @@ import { useCostCenters } from '../composables/useCostCenters.js'
  *
  */
 function emptyForm() {
-	return { number: '', name: '', type: 'income', category: '', isBank: false, parentId: null, sphere: '', reserveKind: '', iban: '', costCenterId: null }
+	return { number: '', name: '', type: 'income', category: '', isBank: false, parentId: null, sphere: '', reserveKind: '', iban: '', costCenterId: null, active: true }
 }
 
 export default {

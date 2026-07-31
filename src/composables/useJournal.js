@@ -34,6 +34,17 @@ const journalRows = computed(() => state.journalData.map(item => {
 		debitAccountId: dl.length ? dl[0].accountId : null,
 		creditAccountId: cl.length ? cl[0].accountId : null,
 		isSplit: dl.length > 1 || cl.length > 1,
+		// Die Zeilen selbst, damit der Buchungsdialog eine Splittbuchung zum
+		// Bearbeiten laden kann (die abgeleiteten Felder oben reichen dafür nicht).
+		lines,
+		// Bearbeitbar ist eine Splittbuchung, solange genau eine Seite einzeilig
+		// ist - das ist die Form, die der Dialog abbildet (eine feste Seite,
+		// mehrere Gegenkonten). Echte N:M-Buchungen entstehen in dieser App
+		// nirgends; kaemen sie aus Fremddaten, wuerde der Dialog sie beim
+		// Speichern verstuemmeln, deshalb bleiben sie gesperrt.
+		splitSide: dl.length === 1 && cl.length > 1
+			? 'credit'
+			: (cl.length === 1 && dl.length > 1 ? 'debit' : null),
 		amount: lines.reduce((s, l) => s + (l.debitCents || 0), 0) / 100,
 		updatedAt: j.updatedAt || null,
 	}

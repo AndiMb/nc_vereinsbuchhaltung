@@ -452,6 +452,14 @@ class XbucImportService {
 			$debitId  = $this->ensureAccount($userId, $b['sollNumber'],  $b['sollName'],  $byNumber);
 			$creditId = $this->ensureAccount($userId, $b['habenNumber'], $b['habenName'], $byNumber);
 
+			// Soll = Haben oder Betrag 0: eine in sich leere Buchung. Die lehnt
+			// JournalService::validateLines() ab – hier überspringen, damit nicht
+			// eine einzelne kaputte Zeile den ganzen Import abbricht.
+			if ($debitId === $creditId || $b['amountCents'] === 0) {
+				$skipped++;
+				continue;
+			}
+
 			$fp = $b['date'] . '|' . abs($b['amountCents']) . '|' . $debitId . '|' . $creditId . '|' . $b['docRef'];
 			if (isset($seen[$fp])) {
 				$skipped++;

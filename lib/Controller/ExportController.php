@@ -14,6 +14,7 @@ use OCA\Vereinsbuchhaltung\Db\YearCloseMapper;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\BrandingService;
 use OCA\Vereinsbuchhaltung\Service\CsvFormatter;
+use OCA\Vereinsbuchhaltung\Service\JournalService;
 use OCA\Vereinsbuchhaltung\Service\ReportService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -123,6 +124,9 @@ class ExportController extends Controller {
 	/**
 	 * Journal aller Buchungssätze als CSV.
 	 * Format: Nr.;Datum;Beschreibung;Belegnr.;Soll-Nr.;Soll-Konto;Haben-Nr.;Haben-Konto;Betrag (EUR)
+	 *
+	 * Eine Splittbuchung belegt mehrere Zeilen mit derselben Nummer, siehe
+	 * {@see JournalService::pairLines()}.
 	 */
 	#[NoAdminRequired]
 	#[NoCSRFRequired]
@@ -144,34 +148,36 @@ class ExportController extends Controller {
 
 		$rows = [];
 		foreach ($journals as $journal) {
-			$lines = $linesByJournal[$journal->getId()] ?? [];
-			$debitAcc = null;
-			$creditAcc = null;
-			$amountCents = 0;
-			foreach ($lines as $line) {
-				if ($line->getDebitCents() > 0) {
-					$debitAcc = $accountMap[$line->getAccountId()] ?? null;
-					$amountCents = $line->getDebitCents();
-				}
-				if ($line->getCreditCents() > 0) {
-					$creditAcc = $accountMap[$line->getAccountId()] ?? null;
-				}
+			$lines = array_map(
+				static fn ($line): array => [
+					'accountId' => $line->getAccountId(),
+					'debitCents' => $line->getDebitCents(),
+					'creditCents' => $line->getCreditCents(),
+				],
+				$linesByJournal[$journal->getId()] ?? [],
+			);
+			foreach (JournalService::pairLines($lines) as $pair) {
+				$debitAcc = $accountMap[$pair['debitAccountId']] ?? null;
+				$creditAcc = $accountMap[$pair['creditAccountId']] ?? null;
+				$rows[] = [
+					'sortDate'  => (string)$journal->getDate(),
+					'sortEntry' => (int)($journal->getEntryNo() ?? 0),
+					'entryNo'   => (string)($journal->getEntryNo() ?? ''),
+					'date'      => $this->fmtDate((string)$journal->getDate()),
+					'desc'      => (string)$journal->getDescription(),
+					'docRef'    => (string)($journal->getDocumentRef() ?? ''),
+					'debitNr'   => $debitAcc['number'] ?? '',
+					'debitName' => $debitAcc['name'] ?? '',
+					'creditNr'  => $creditAcc['number'] ?? '',
+					'creditName'=> $creditAcc['name'] ?? '',
+					'amount'    => $this->fmtMoney($pair['amountCents'] / 100),
+				];
 			}
-			$rows[] = [
-				'sortDate'  => (string)$journal->getDate(),
-				'sortEntry' => (int)($journal->getEntryNo() ?? 0),
-				'entryNo'   => (string)($journal->getEntryNo() ?? ''),
-				'date'      => $this->fmtDate((string)$journal->getDate()),
-				'desc'      => (string)$journal->getDescription(),
-				'docRef'    => (string)($journal->getDocumentRef() ?? ''),
-				'debitNr'   => $debitAcc['number'] ?? '',
-				'debitName' => $debitAcc['name'] ?? '',
-				'creditNr'  => $creditAcc['number'] ?? '',
-				'creditName'=> $creditAcc['name'] ?? '',
-				'amount'    => $this->fmtMoney($amountCents / 100),
-			];
 		}
 
+		// Die Ausgabezeilen einer Splittbuchung tragen dieselbe Nummer und
+		// dasselbe Datum; ihre Reihenfolge untereinander bleibt damit die aus
+		// pairLines() (usort in PHP 8 ist stabil).
 		usort($rows, static fn ($a, $b) => [$a['sortDate'], $a['sortEntry']] <=> [$b['sortDate'], $b['sortEntry']]);
 
 		$yearLabel = $year ? (string)$year : 'alle_jahre';

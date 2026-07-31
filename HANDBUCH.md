@@ -132,9 +132,15 @@ Jedes Konto hat:
 > **Konten löschen:** Nur solange auf ihnen **nichts gebucht** ist und sie
 > keine Unterkonten haben. Sonst lehnt die App das Löschen mit einer
 > Erklärung ab – sonst verschwänden die gebuchten Beträge aus Saldenliste
-> und Kassenbericht, ohne dass es jemandem auffiele. Ein nicht mehr
-> benötigtes, aber bebuchtes Konto lässt man am besten stehen: es stört
-> nur in den Auswahllisten, und die Historie bleibt vollständig.
+> und Kassenbericht, ohne dass es jemandem auffiele.
+>
+> **Konten stilllegen statt löschen:** Für genau diesen Fall gibt es im
+> Konto-Dialog den Schalter **„Konto aktiv"**. Ein Konto, das Sie ausschalten,
+> verschwindet aus allen Auswahllisten (Buchen, Zuordnen, Umbuchen) – die
+> gebuchten Beträge, alle Berichte und die Historie bleiben unverändert. Im
+> Kontenbaum steht es weiterhin, kursiv und mit dem Vermerk *inaktiv*, und
+> lässt sich jederzeit wieder einschalten. So räumen Sie Konten aus dem Weg,
+> die Sie nicht mehr brauchen, aber auch nicht löschen dürfen.
 
 ### 2.3 Eröffnungssalden eintragen
 
@@ -305,6 +311,31 @@ der Zuordnung entsteht automatisch der Buchungssatz:
 Wer eine Zuordnung versehentlich vorgenommen hat, kann sie jederzeit wieder
 entfernen („– nicht zugeordnet –") – solange das Jahr noch offen ist.
 
+**Ein Umsatz, der mehreres zugleich enthält: „Aufteilen…"**
+
+Manchmal steckt in einer einzigen Überweisung mehr als eine Sache – jemand
+zahlt seinen Jahresbeitrag und legt eine Spende obendrauf, oder eine Rechnung
+gehört zur Hälfte auf zwei Projekte. So ein Umsatz gehört nicht auf *ein*
+Gegenkonto.
+
+Klicken Sie in der Zeile auf **„Aufteilen…"**. Es öffnet sich ein Fenster mit
+dem Umsatz oben und einer Liste darunter: je Zeile ein Konto und ein
+Teilbetrag, „+ Zeile hinzufügen" für weitere. Rechts oben steht immer, wie
+viel noch offen ist („Rest: 70,00 €") bzw. „✓ geht auf". **Zuordnen** lässt
+sich erst, wenn die Aufteilung aufgeht – so kann kein Betrag verloren gehen.
+„Rest übernehmen" schreibt den offenen Betrag in die letzte Zeile.
+
+Beispiel: 250,00 € Eingang von Frau Meier → 180,00 € auf *Mitgliedsbeiträge*,
+70,00 € auf *Spenden*. Daraus entsteht **eine** Buchung mit drei Zeilen; im
+Kassenbericht und in der Kostenstellenauswertung erscheinen beide Beträge
+getrennt.
+
+> Ein aufgeteilter Umsatz zeigt in der Liste „Aufgeteilt auf mehrere Konten"
+> statt eines Kontonamens – ein einzelnes Konto gibt es dort ja nicht mehr.
+> Für Vorschläge merkt sich die App eine solche Zuordnung bewusst **nicht**:
+> ein Vorschlag „Konto X" wäre für einen geteilten Umsatz falsch. Aufheben und
+> neu vergeben geht wie sonst auch.
+
 ### 4.2 Manuelle Buchungen anlegen
 
 Button **„+ Buchung"** (oben rechts, oder mobil der große „+"-Knopf).
@@ -320,6 +351,13 @@ sind (z. B. interne Umbuchungen Bank → Tagesgeld, Rückstellungen).
 
 Jeder Buchung lässt sich eine **Belegnummer** zuordnen (z. B. die
 Rechnungsnummer) – optional, aber für die Kassenprüfung hilfreich.
+
+**Betrag aufteilen (Splittbuchung):** Der Schalter *Betrag aufteilen* macht
+aus der einen Kategorie eine Liste – dasselbe wie beim Zuordnen (Kapitel 4.1),
+nur für eine Buchung, die Sie selbst erfassen. Oben steht der **Gesamtbetrag**,
+darunter die Aufteilung mit laufender Restanzeige; das Geldkonto bleibt eine
+einzige Zeile über den vollen Betrag. Im Experten-Modus können Sie zusätzlich
+wählen, **welche Seite** aufgeteilt wird (Soll oder Haben).
 
 > Beim allerersten Öffnen des Buchungsdialogs am Desktop führt eine kurze
 > **Drei-Schritte-Tour** durch die wichtigsten Felder (Einnahme/Ausgabe,
@@ -350,9 +388,14 @@ Solange das Jahr **offen** ist, lassen sich Buchungen jederzeit ändern
 (Stift-Symbol) oder löschen (Papierkorb). Bei der Bearbeitung zeigt die App
 jederzeit den aktuellen Stand – hat zwischenzeitlich eine andere Person
 dieselbe Buchung geändert, erscheint eine Konfliktmeldung statt einer
-stillen Überschreibung (Kapitel 10). Splittbuchungen (mehrere Soll-/Haben-
-Zeilen, z. B. aus xbuc-Import) können derzeit **angezeigt, aber nicht
-bearbeitet** werden – die App warnt dann.
+stillen Überschreibung (Kapitel 10).
+
+Auch **Splittbuchungen** lassen sich bearbeiten: Der Dialog öffnet sich mit
+der bestehenden Aufteilung, Beträge lassen sich verschieben und Zeilen
+entfernen oder ergänzen. Gespeichert wird auch hier erst, wenn die Aufteilung
+aufgeht. Nur Buchungen, die auf **beiden** Seiten mehrere Konten haben, bleiben
+außen vor – die App erzeugt solche nicht, sie könnten allenfalls aus
+Fremddaten stammen; die App zeigt sie an und warnt beim Bearbeiten.
 
 ### 4.5 Offene Posten (unbezahlte Forderungen)
 
@@ -551,6 +594,12 @@ Download-Buttons (Pfeil-nach-unten-Symbol):
 Die CSV-Dateien eignen sich für die Weitergabe an Steuerberatung oder
 Kassenprüfung oder für die eigene Analyse in Excel. Format: Semikolon-
 getrennt, UTF-8 mit BOM (Excel-tauglich), deutsches Zahlenformat.
+
+> **Splittbuchungen im Journal-Export:** Eine Buchung, deren Betrag auf
+> mehrere Gegenkonten verteilt ist, belegt dort mehrere Zeilen – jede mit
+> derselben Buchungsnummer und ihrem Teilbetrag. So weist ein Journal
+> Splittbuchungen üblicherweise aus; die Summe der Zeilen ergibt den
+> Buchungsbetrag.
 
 > **Mehrjahres-Trend als Diagramm:** In Berichte → Auswertung zeigt ein
 > Liniendiagramm Einnahmen, Ausgaben und Ergebnis über alle Jahre – auf
@@ -857,7 +906,15 @@ nur Geldkonten (Bank-Flag).
 - **Vorgemerkter Umsatz** – eine von der Bank angezeigte, aber noch nicht
   endgültig gebuchte Zahlung. Die App überspringt solche Umsätze, weil sich
   Betrag oder Text bis zur endgültigen Buchung noch ändern können.
+- **Splittbuchung** – eine Buchung, deren Betrag auf mehrere Gegenkonten
+  verteilt ist: eine Überweisung über Beitrag *und* Spende, eine Rechnung auf
+  zwei Projekte. Soll und Haben bleiben in der Summe gleich, nur eine Seite
+  hat mehrere Zeilen (Kapitel 4.1 und 4.2).
+- **Inaktives Konto** – ein Konto, das aus allen Auswahllisten genommen wurde,
+  dessen gebuchte Beträge und Historie aber unverändert bleiben. Der Weg für
+  Konten, die nicht mehr gebraucht werden, sich wegen vorhandener Buchungen
+  aber nicht löschen lassen (Kapitel 2.2).
 
 ---
 
-*Stand: App-Version 0.12.0. Bei Fragen an die verwaltende Person wenden.*
+*Stand: App-Version 0.14.0. Bei Fragen an die verwaltende Person wenden.*

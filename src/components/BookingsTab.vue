@@ -215,22 +215,39 @@
 						<div v-if="tx.purpose" class="vbh-mcard-purpose">
 							{{ tx.purpose }}
 						</div>
-						<button v-if="canWrite && !tx.contraAccountId && suggestionsById[tx.id] && !isYearClosed(tx.bookingDate)"
+						<button v-if="canWrite && !isSplitAssigned(tx) && !tx.contraAccountId && suggestionsById[tx.id] && !isYearClosed(tx.bookingDate)"
 							type="button"
 							class="vbh-suggest-chip vbh-suggest-chip--big"
 							@click="applySuggestion(tx)">
 							✓ Vorschlag übernehmen: {{ suggestionsById[tx.id].label }}
 						</button>
-						<button type="button"
-							class="vbh-fieldbtn"
-							:disabled="!canWrite || isYearClosed(tx.bookingDate)"
-							@click="openAccountPicker('assign', tx)">
-							<span class="vbh-fieldbtn-text">
-								<span class="vbh-fieldbtn-lab">Konto / Kategorie</span>
-								<span class="vbh-fieldbtn-val" :class="{ placeholder: !tx.contraAccountId }">{{ tx.contraAccountId ? accountLabel(tx.contraAccountId) : 'Konto wählen…' }}</span>
-							</span>
-							<span class="vbh-fieldbtn-chev" aria-hidden="true">›</span>
-						</button>
+						<template v-if="isSplitAssigned(tx)">
+							<span class="vbh-split-badge">Aufgeteilt auf mehrere Konten</span>
+							<button v-if="canWrite && !isYearClosed(tx.bookingDate)"
+								type="button"
+								class="vbh-suggest-chip"
+								@click="onAssign(tx, '')">
+								Zuordnung aufheben
+							</button>
+						</template>
+						<template v-else>
+							<button type="button"
+								class="vbh-fieldbtn"
+								:disabled="!canWrite || isYearClosed(tx.bookingDate)"
+								@click="openAccountPicker('assign', tx)">
+								<span class="vbh-fieldbtn-text">
+									<span class="vbh-fieldbtn-lab">Konto / Kategorie</span>
+									<span class="vbh-fieldbtn-val" :class="{ placeholder: !tx.contraAccountId }">{{ tx.contraAccountId ? accountLabel(tx.contraAccountId) : 'Konto wählen…' }}</span>
+								</span>
+								<span class="vbh-fieldbtn-chev" aria-hidden="true">›</span>
+							</button>
+							<button v-if="canWrite && !isYearClosed(tx.bookingDate)"
+								type="button"
+								class="vbh-suggest-chip"
+								@click="openSplitAssign(tx)">
+								Aufteilen…
+							</button>
+						</template>
 					</div>
 				</div>
 				<div v-else-if="currentTransactions.length" class="vbh-tablecard">
@@ -268,7 +285,19 @@
 									{{ formatMoney(tx.amount) }}
 								</td>
 								<td class="vbh-assign-cell">
-									<div class="vbh-assign-inner">
+									<!-- Aufgeteilter Umsatz: das Auswahlfeld fasst nur ein Konto
+									     und stuende hier leer da. Die Konten selbst zeigt der
+									     Kontoauszug bzw. das Journal. -->
+									<div v-if="isSplitAssigned(tx)" class="vbh-assign-inner">
+										<span class="vbh-split-badge">Aufgeteilt auf mehrere Konten</span>
+										<button v-if="canWrite && !isYearClosed(tx.bookingDate)"
+											class="vbh-suggest-chip"
+											title="Zuordnung aufheben und neu vergeben"
+											@click="onAssign(tx, '')">
+											Zuordnung aufheben
+										</button>
+									</div>
+									<div v-else class="vbh-assign-inner">
 										<div class="vbh-assign-row">
 											<NcSelect :model-value="accountOptionFor(tx.contraAccountId)"
 												:options="accountOptionsList"
@@ -285,6 +314,12 @@
 											:title="'Vorschlag übernehmen: ' + suggestionsById[tx.id].label"
 											@click="applySuggestion(tx)">
 											✓ Vorschlag: {{ suggestionsById[tx.id].label }}
+										</button>
+										<button v-if="canWrite && !isYearClosed(tx.bookingDate)"
+											class="vbh-suggest-chip"
+											title="Den Umsatz auf mehrere Gegenkonten verteilen"
+											@click="openSplitAssign(tx)">
+											Aufteilen…
 										</button>
 									</div>
 								</td>
@@ -441,6 +476,7 @@ export default {
 		removeBooking: { type: Function, required: true },
 		openAccountPicker: { type: Function, required: true },
 		onAssign: { type: Function, required: true },
+		openSplitAssign: { type: Function, required: true },
 		applySuggestion: { type: Function, required: true },
 		toggleSort: { type: Function, required: true },
 		sortArrow: { type: Function, required: true },
@@ -653,6 +689,14 @@ export default {
 		formatMoney,
 		formatDate,
 		amountClass,
+		/**
+		 * Zugeordnet, aber ohne einzelnes Gegenkonto = der Umsatz wurde auf
+		 * mehrere verteilt. contra_account_id bleibt dann leer, siehe
+		 * BookingService::doAssign().
+		 */
+		isSplitAssigned(tx) {
+			return tx.status === 'assigned' && !tx.contraAccountId
+		},
 		openItemStatusLabel(status) {
 			return { open: 'Offen', paid: 'Bezahlt', cancelled: 'Storniert' }[status] || status
 		},

@@ -43,6 +43,19 @@ class JournalReassignTest extends TestCase {
 		$this->assertSame([2], JournalService::reassignPlan($lines, 5900, 5400));
 	}
 
+	public function testSplittbuchungWechseltDieFesteSeite(): void {
+		// Das Geldkonto einer aufgeteilten Ausgabe auf ein anderes umbuchen
+		$lines = $this->lines([[1, 5300], [2, 5900], [3, 1200]]);
+		$this->assertSame([3], JournalService::reassignPlan($lines, 1200, 1600));
+	}
+
+	public function testSplittbuchungAufEinBereitsBelegtesKontoWirdAbgelehnt(): void {
+		// 5900 auf 5300 umbuchen: 5300 steht schon auf derselben Buchung
+		$lines = $this->lines([[1, 5300], [2, 5900], [3, 1200]]);
+		$this->expectException(\InvalidArgumentException::class);
+		JournalService::reassignPlan($lines, 5900, 5300);
+	}
+
 	public function testMehrereZeilenAufDemselbenKontoWandernGemeinsam(): void {
 		$lines = $this->lines([[1, 5300], [2, 5300], [3, 1200]]);
 		$this->assertSame([1, 2], JournalService::reassignPlan($lines, 5300, 5400));

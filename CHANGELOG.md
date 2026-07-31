@@ -10,6 +10,46 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
 
 ## [Unreleased]
 
+## [0.14.0] – 2026-07-31
+
+### Hinzugefügt
+- **Splittbuchungen.** Ein Betrag lässt sich jetzt auf mehrere Gegenkonten
+  verteilen – für die Überweisung, die mehreres zugleich enthält: der
+  Jahresbeitrag zusammen mit einer Spende, eine Rechnung, die auf zwei
+  Kostenstellen gehört. Bisher blieb dafür nur, den Umsatz einem einzigen Konto
+  zuzuschlagen oder ihn von Hand zerlegt nachzubuchen.
+  Zwei Wege führen dorthin: im **Buchungsdialog** über den Schalter *Betrag
+  aufteilen*, und – der häufigere Fall – direkt beim **Zuordnen eines
+  Bankumsatzes** über *Aufteilen…*. In beiden Fällen bleibt das Geldkonto eine
+  Zeile über den vollen Betrag; aufgeteilt wird die Gegenseite. Eine laufende
+  Restanzeige zeigt, was noch fehlt, gespeichert wird erst, wenn die Aufteilung
+  aufgeht. Im Experten-Modus lässt sich wählen, welche Seite aufgeteilt wird.
+  Bestehende Splittbuchungen lassen sich genauso bearbeiten wie andere
+  Buchungen. Alle Auswertungen – Kassenbericht, Kostenstellen, Sphären,
+  Saldenliste – rechnen zeilenweise und weisen die Teilbeträge damit
+  getrennt aus.
+- **Konten auf inaktiv setzen.** Ein Konto, das wegen vorhandener Buchungen
+  nicht gelöscht werden kann, lässt sich im Konto-Dialog auf *inaktiv* stellen:
+  es verschwindet aus allen Auswahllisten, Beträge und Historie bleiben
+  unverändert. Genau dazu riet die App bisher beim Löschversuch, ohne dass es
+  dafür ein Bedienelement gab. Im Kontenbaum sind inaktive Konten
+  gekennzeichnet und lassen sich jederzeit wieder aktivieren.
+
+### Behoben
+- Der **Journal-Export als CSV** wies bei einer Buchung über mehr als zwei
+  Konten einen falschen Betrag aus – er behielt nur je ein Soll- und Habenkonto.
+  Jetzt belegt eine solche Buchung mehrere Zeilen mit derselben Buchungsnummer,
+  wie in einem Journal üblich. Zweizeilige Buchungen exportiert die App
+  unverändert.
+
+### Sonstiges
+- Eine Buchung ist intern nun eine Liste von Zeilen; „Soll an Haben" ist der
+  zweizeilige Sonderfall davon. Die Prüfung (`JournalService::validateLines()`)
+  ist wie das Umbuchen eine reine Funktion ohne Datenbank und damit prüfbar –
+  neu sind 26 Unit-Tests dafür.
+- Ein aufgeteilt zugeordneter Umsatz trägt kein einzelnes Gegenkonto mehr und
+  geht deshalb nicht in die Vorschläge für künftige Zuordnungen ein.
+
 ## [0.13.0] – 2026-07-31
 
 ### Hinzugefügt

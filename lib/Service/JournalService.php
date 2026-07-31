@@ -16,11 +16,26 @@ use OCP\AppFramework\Db\DoesNotExistException;
 /**
  * Erstellt und pflegt allgemeine Buchungssätze (Soll an Haben).
  *
- * Alle Schreibpfade laufen in einer Transaktion: Kopf und die beiden
- * Soll-/Haben-Zeilen entstehen und verschwinden ausschließlich gemeinsam,
- * sonst bliebe eine halbe – und damit unausgeglichene – Buchung zurück.
+ * Alle Schreibpfade laufen in einer Transaktion: Kopf und Buchungszeilen
+ * entstehen und verschwinden ausschließlich gemeinsam, sonst bliebe eine
+ * halbe – und damit unausgeglichene – Buchung zurück.
+ *
+ * Intern ist eine Buchung immer eine Liste von Zeilen (siehe
+ * {@see self::createBookingLines()}); der häufige Fall "ein Konto gegen ein
+ * anderes" ist die zweizeilige Sonderform und behält mit
+ * {@see self::createBooking()} seinen bequemen Einstieg. Eine Splittbuchung
+ * (ein Betrag auf mehrere Gegenkonten) unterscheidet sich davon nur in der
+ * Zahl der Zeilen – Nummernvergabe, Festschreibung, Locking und Protokoll
+ * sind für beide dieselben.
  */
 class JournalService {
+
+	/**
+	 * Obergrenze für die Zeilen einer Buchung. Fachlich gibt es keine – die
+	 * Schranke hält nur unsinnige Eingaben aus der Schnittstelle heraus, die
+	 * sonst als tausendzeilige Buchung in der Datenbank landen würden.
+	 */
+	public const MAX_LINES = 50;
 
 	public function __construct(
 		private JournalMapper $journalMapper,
@@ -52,8 +67,39 @@ class JournalService {
 		?int $entryNo = null,
 		bool $audit = true,
 	): Journal {
+		return $this->createBookingLines(
+			$userId,
+			$date,
+			$description,
+			$docRef,
+			self::simpleLines($debitAccountId, $creditAccountId, $amountCents),
+			$entryNo,
+			$audit,
+		);
+	}
+
+	/**
+	 * Legt einen Buchungssatz aus beliebig vielen Zeilen an – der allgemeine
+	 * Fall hinter {@see self::createBooking()}, den eine Splittbuchung braucht.
+	 *
+	 * @param array<int, array{accountId:int, debitCents:int, creditCents:int}> $lines
+	 *        geprüft mit {@see self::validateLines()}
+	 * @param int|null $entryNo vorgegebene Buchungsnummer (z.B. beim Massenimport)
+	 * @param bool $audit Einzeleintrag im Änderungsprotokoll
+	 * @throws \InvalidArgumentException wenn die Zeilen nicht ausgeglichen sind
+	 */
+	public function createBookingLines(
+		string $userId,
+		string $date,
+		string $description,
+		?string $docRef,
+		array $lines,
+		?int $entryNo = null,
+		bool $audit = true,
+	): Journal {
+		$this->assertLines($lines);
 		$insert = fn (): Journal => $this->transaction->run(
-			fn (): Journal => $this->insertBooking($userId, $date, $description, $docRef, $debitAccountId, $creditAccountId, $amountCents, $entryNo, $audit),
+			fn (): Journal => $this->insertBooking($userId, $date, $description, $docRef, $lines, $entryNo, $audit),
 		);
 
 		// Nummer vorgegeben (Import vergibt sie selbst) oder wir stecken schon in
@@ -65,19 +111,19 @@ class JournalService {
 		return $this->transaction->runWithRetry($insert);
 	}
 
+	/**
+	 * @param array<int, array{accountId:int, debitCents:int, creditCents:int}> $lines
+	 */
 	private function insertBooking(
 		string $userId,
 		string $date,
 		string $description,
 		?string $docRef,
-		int $debitAccountId,
-		int $creditAccountId,
-		int $amountCents,
+		array $lines,
 		?int $entryNo,
 		bool $audit,
 	): Journal {
 		$this->yearClose->assertOpen($date);
-		$amount = abs($amountCents);
 
 		$journal = new Journal();
 		$journal->setUserId($userId);
@@ -90,15 +136,17 @@ class JournalService {
 		$journal->setUpdatedAt(self::now());
 		$journal = $this->journalMapper->insert($journal);
 
-		$this->addLine($journal->getId(), $debitAccountId, $amount, 0);
-		$this->addLine($journal->getId(), $creditAccountId, 0, $amount);
+		$this->writeLines($journal->getId(), $lines);
 
 		if ($audit) {
 			$this->audit->log('Buchung angelegt', 'journal', $journal->getId(), [
 				'entryNo' => $journal->getEntryNo(),
 				'date' => $date,
 				'description' => $journal->getDescription(),
-				'amount' => $amount / 100,
+				'amount' => self::totalCents($lines) / 100,
+				// Nur bei einer Splittbuchung erwähnen – sonst stünde in jedem
+				// Protokolleintrag ein "Zeilen: 2", das nichts sagt.
+				...(count($lines) > 2 ? ['zeilen' => count($lines)] : []),
 			]);
 		}
 		return $journal;
@@ -121,8 +169,39 @@ class JournalService {
 		int $amountCents,
 		?string $expectedUpdatedAt = null,
 	): Journal {
+		return $this->updateBookingLines(
+			$id,
+			$userId,
+			$date,
+			$description,
+			$docRef,
+			self::simpleLines($debitAccountId, $creditAccountId, $amountCents),
+			$expectedUpdatedAt,
+		);
+	}
+
+	/**
+	 * Ersetzt die Zeilen einer Buchung vollständig – der allgemeine Fall hinter
+	 * {@see self::updateBooking()}. Aus einer zweizeiligen Buchung kann dabei
+	 * eine Splittbuchung werden und umgekehrt.
+	 *
+	 * @param array<int, array{accountId:int, debitCents:int, creditCents:int}> $lines
+	 * @param string|null $expectedUpdatedAt siehe {@see self::updateBooking()}
+	 * @throws ConflictException bei zwischenzeitlicher Fremdänderung
+	 * @throws \InvalidArgumentException wenn die Zeilen nicht ausgeglichen sind
+	 */
+	public function updateBookingLines(
+		int $id,
+		string $userId,
+		string $date,
+		string $description,
+		?string $docRef,
+		array $lines,
+		?string $expectedUpdatedAt = null,
+	): Journal {
+		$this->assertLines($lines);
 		$update = fn (): Journal => $this->transaction->run(
-			fn (): Journal => $this->applyUpdate($id, $userId, $date, $description, $docRef, $debitAccountId, $creditAccountId, $amountCents, $expectedUpdatedAt),
+			fn (): Journal => $this->applyUpdate($id, $userId, $date, $description, $docRef, $lines, $expectedUpdatedAt),
 		);
 		if ($this->transaction->isActive()) {
 			return $update();
@@ -132,15 +211,16 @@ class JournalService {
 		return $this->transaction->runWithRetry($update);
 	}
 
+	/**
+	 * @param array<int, array{accountId:int, debitCents:int, creditCents:int}> $lines
+	 */
 	private function applyUpdate(
 		int $id,
 		string $userId,
 		string $date,
 		string $description,
 		?string $docRef,
-		int $debitAccountId,
-		int $creditAccountId,
-		int $amountCents,
+		array $lines,
 		?string $expectedUpdatedAt,
 	): Journal {
 		$journal = $this->journalMapper->find($id, $userId);
@@ -168,9 +248,7 @@ class JournalService {
 		$journal = $this->journalMapper->update($journal);
 
 		$this->lineMapper->deleteByJournal($journal->getId());
-		$amount = abs($amountCents);
-		$this->addLine($journal->getId(), $debitAccountId, $amount, 0);
-		$this->addLine($journal->getId(), $creditAccountId, 0, $amount);
+		$this->writeLines($journal->getId(), $lines);
 
 		if ($newYear !== $oldYear) {
 			// Das alte Jahr hat jetzt eine Lücke – schließen.
@@ -181,7 +259,8 @@ class JournalService {
 			'entryNo' => $journal->getEntryNo(),
 			'date' => $date,
 			'description' => $journal->getDescription(),
-			'amount' => $amount / 100,
+			'amount' => self::totalCents($lines) / 100,
+			...(count($lines) > 2 ? ['zeilen' => count($lines)] : []),
 		]);
 		return $journal;
 	}
@@ -305,6 +384,159 @@ class JournalService {
 				'description' => $journal->getDescription(),
 			]);
 		});
+	}
+
+	/**
+	 * Prüft eine Zeilenliste, ohne die Datenbank zu berühren – nach dem Vorbild
+	 * von {@see self::reassignPlan()}, damit die Fallunterscheidung prüfbar
+	 * bleibt.
+	 *
+	 * Die Regel „kein Konto doppelt" ist dabei kein Schönheitswunsch: Auf ihr
+	 * ruhen die Annahmen von {@see self::reassignPlan()} – dass es eine
+	 * Gegenseite gibt und dass das Zielkonto nicht schon auf der anderen Seite
+	 * steht. Ohne sie lieferte das Umbuchen aus dem Kontoauszug bei
+	 * Splittbuchungen falsche Ergebnisse.
+	 *
+	 * @param array<int, array{accountId:int, debitCents:int, creditCents:int}> $lines
+	 * @return string|null Fehlermeldung oder null, wenn die Zeilen stimmig sind
+	 */
+	public static function validateLines(array $lines): ?string {
+		if (count($lines) < 2) {
+			return 'Eine Buchung braucht mindestens zwei Zeilen (Soll und Haben).';
+		}
+		if (count($lines) > self::MAX_LINES) {
+			return sprintf('Eine Buchung darf höchstens %d Zeilen haben.', self::MAX_LINES);
+		}
+		$debitSum = 0;
+		$creditSum = 0;
+		$seen = [];
+		foreach ($lines as $line) {
+			$debit = $line['debitCents'] ?? 0;
+			$credit = $line['creditCents'] ?? 0;
+			if ($debit < 0 || $credit < 0) {
+				return 'Beträge müssen positiv sein.';
+			}
+			if ($debit > 0 && $credit > 0) {
+				return 'Eine Buchungszeile steht entweder im Soll oder im Haben, nicht in beidem.';
+			}
+			if ($debit === 0 && $credit === 0) {
+				return 'Jede Buchungszeile braucht einen Betrag größer als 0.';
+			}
+			$accountId = $line['accountId'] ?? 0;
+			if ($accountId <= 0) {
+				return 'Jede Buchungszeile braucht ein Konto.';
+			}
+			if (isset($seen[$accountId])) {
+				// Zweimal dasselbe Konto ließe sich zwar aufsummieren, wäre aber
+				// entweder ein Bedienfehler (zwei Zeilen auf derselben Kategorie)
+				// oder eine in sich leere Buchung (dasselbe Konto in Soll und
+				// Haben). Beides lieber ablehnen als still zusammenfassen.
+				return 'Jedes Konto darf in einer Buchung nur einmal vorkommen.';
+			}
+			$seen[$accountId] = true;
+			$debitSum += $debit;
+			$creditSum += $credit;
+		}
+		if ($debitSum !== $creditSum) {
+			return sprintf(
+				'Soll und Haben sind nicht ausgeglichen (%s € gegen %s €).',
+				number_format($debitSum / 100, 2, ',', '.'),
+				number_format($creditSum / 100, 2, ',', '.'),
+			);
+		}
+		if ($debitSum <= 0) {
+			return 'Betrag muss größer als 0 sein';
+		}
+		return null;
+	}
+
+	/**
+	 * Zerlegt die Zeilen einer Buchung in Soll-Haben-Paare.
+	 *
+	 * Gedacht für Ausgaben, die je Zeile ein Soll- und ein Habenkonto zeigen –
+	 * allen voran der Journal-Export. Eine Splittbuchung passt dort nicht in
+	 * eine Zeile; sie wird auf mehrere mit derselben Buchungsnummer verteilt,
+	 * so wie ein Journal Splittbuchungen üblicherweise ausweist. Die Summe der
+	 * Paare ergibt immer den Buchungsbetrag.
+	 *
+	 * Für die zweizeilige Buchung – den Normalfall – kommt genau ein Paar
+	 * heraus; dort ändert sich also nichts.
+	 *
+	 * @param array<int, array{accountId:int, debitCents:int, creditCents:int}> $lines
+	 * @return array<int, array{debitAccountId:int, creditAccountId:int, amountCents:int}>
+	 */
+	public static function pairLines(array $lines): array {
+		$debits = [];
+		$credits = [];
+		foreach ($lines as $line) {
+			if (($line['debitCents'] ?? 0) > 0) {
+				$debits[] = ['accountId' => $line['accountId'], 'rest' => $line['debitCents']];
+			}
+			if (($line['creditCents'] ?? 0) > 0) {
+				$credits[] = ['accountId' => $line['accountId'], 'rest' => $line['creditCents']];
+			}
+		}
+
+		$pairs = [];
+		$i = 0;
+		$j = 0;
+		while ($i < count($debits) && $j < count($credits)) {
+			// Immer den kleineren der beiden Reste verbuchen; die größere Seite
+			// bleibt mit ihrem Rest für das nächste Paar stehen. So geht die
+			// Aufteilung auch bei mehrzeiligen Seiten restlos auf.
+			$amount = min($debits[$i]['rest'], $credits[$j]['rest']);
+			$pairs[] = [
+				'debitAccountId' => $debits[$i]['accountId'],
+				'creditAccountId' => $credits[$j]['accountId'],
+				'amountCents' => $amount,
+			];
+			$debits[$i]['rest'] -= $amount;
+			$credits[$j]['rest'] -= $amount;
+			if ($debits[$i]['rest'] === 0) {
+				$i++;
+			}
+			if ($credits[$j]['rest'] === 0) {
+				$j++;
+			}
+		}
+		return $pairs;
+	}
+
+	/**
+	 * Die zweizeilige Sonderform "Soll an Haben".
+	 *
+	 * @return array<int, array{accountId:int, debitCents:int, creditCents:int}>
+	 */
+	public static function simpleLines(int $debitAccountId, int $creditAccountId, int $amountCents): array {
+		$amount = abs($amountCents);
+		return [
+			['accountId' => $debitAccountId, 'debitCents' => $amount, 'creditCents' => 0],
+			['accountId' => $creditAccountId, 'debitCents' => 0, 'creditCents' => $amount],
+		];
+	}
+
+	/** Buchungsbetrag = Summe der Sollseite (= Summe der Habenseite). */
+	private static function totalCents(array $lines): int {
+		$sum = 0;
+		foreach ($lines as $line) {
+			$sum += $line['debitCents'] ?? 0;
+		}
+		return $sum;
+	}
+
+	/** @throws \InvalidArgumentException */
+	private function assertLines(array $lines): void {
+		$error = self::validateLines($lines);
+		if ($error !== null) {
+			throw new \InvalidArgumentException($error);
+		}
+	}
+
+	/** @param array<int, array{accountId:int, debitCents:int, creditCents:int}> $lines */
+	private function writeLines(int $journalId, array $lines): void {
+		foreach ($lines as $line) {
+			$this->addLine($journalId, $line['accountId'], $line['debitCents'], $line['creditCents']);
+		}
 	}
 
 	/** Änderungszeitstempel mit Mikrosekunden (Sekundenauflösung reicht dem Konfliktvergleich nicht). */

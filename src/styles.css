@@ -340,6 +340,10 @@
 .vbh-caret.empty { cursor: default; color: var(--color-border); opacity: 0.6; }
 .vbh-treenum { flex: 0 0 auto; min-width: 54px; font-variant-numeric: tabular-nums; opacity: 0.7; font-size: 0.85em; font-weight: 400; }
 .vbh-treename { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Inaktives Konto: bleibt auffindbar und bearbeitbar, aber sichtbar abgesetzt –
+   sonst waere der Aktiv-Schalter eine Einbahnstrasse. */
+.vbh-treenode.inactive .vbh-treename, .vbh-treenode.inactive .vbh-treenum { opacity: 0.55; font-style: italic; }
+.vbh-treeinactive { flex: 0 0 auto; padding: 0 6px; border-radius: 10px; background: var(--color-background-dark); font-size: 0.75em; opacity: 0.8; font-style: normal; }
 .vbh-treesaldo { flex: 0 0 auto; font-variant-numeric: tabular-nums; font-size: 0.88em; font-weight: 400; }
 .vbh-treesaldo.zero { opacity: 0.3; }
 .vbh-ccsummary { display: flex; align-items: center; justify-content: space-between; padding: 8px; margin: 0 8px 6px; border-radius: 8px; background-color: var(--color-background-hover); flex: 0 0 auto; }
@@ -399,6 +403,33 @@
 .vbh-kindbtn.income.active { background: var(--color-success, #2d7d46); color: #fff; }
 .vbh-kindbtn.expense.active { background: var(--color-error, #b23636); color: #fff; }
 .vbh-expertrow { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--color-border); opacity: 0.85; }
+
+/* Splittbuchung: eine feste Seite oben, hier die Gegenkonten mit Teilbetraegen */
+.vbh-split { margin-top: 10px; padding: 10px; border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); background: var(--color-background-hover); }
+.vbh-split-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.vbh-split-title { font-weight: 600; }
+.vbh-split-rest { font-variant-numeric: tabular-nums; font-size: 0.9em; }
+.vbh-split-rest.ok { color: var(--color-success, #2d7d46); }
+.vbh-split-rest.bad { color: var(--color-warning, #c28800); }
+.vbh-split-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.vbh-split-row { display: flex; align-items: center; gap: 6px; }
+.vbh-split-acc { flex: 1 1 auto; min-width: 0; }
+.vbh-split-amount { flex: 0 0 7.5em; text-align: right; }
+.vbh-split-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.vbh-split-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; background: var(--color-background-dark); font-size: 0.85em; }
+/* Kopf des Aufteilen-Dialogs: der Umsatz, um den es geht */
+.vbh-split-tx { margin: 8px 0; padding: 8px 10px; border-radius: var(--border-radius-large, 12px); background: var(--color-background-dark); }
+.vbh-split-tx-line { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.vbh-split-tx-amount { font-variant-numeric: tabular-nums; }
+.vbh-split-tx-party { font-weight: 600; }
+.vbh-split-tx-purpose { font-size: 0.9em; opacity: 0.75; }
+@media (max-width: 640px) {
+	/* Auf dem Telefon steht der Betrag unter dem Konto, sonst bleibt fuer
+	   beides zu wenig Breite. */
+	.vbh-split-row { flex-wrap: wrap; }
+	.vbh-split-acc { flex: 1 1 100%; }
+	.vbh-split-amount { flex: 1 1 auto; }
+}
 
 /* Drag-&-Drop-Zone (CSV-Import) */
 .vbh-dropzone { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 28px 16px; margin: 8px 0 12px; border: 2px dashed var(--color-border-maxcontrast, var(--color-border)); border-radius: var(--border-radius-large, 12px); text-align: center; transition: border-color 0.15s, background-color 0.15s; }

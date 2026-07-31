@@ -207,15 +207,9 @@ class JournalController extends Controller {
 	 * @return string|null Fehlermeldung oder null, wenn alles in Ordnung ist
 	 */
 	private function validateBooking(string $date, int $cents, int $debitAccountId, int $creditAccountId): ?string {
-		if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
-			return 'Ungültiges Datum (erwartet wird JJJJ-MM-TT).';
-		}
-		[$y, $m, $d] = array_map('intval', explode('-', $date));
-		if (!checkdate($m, $d, $y)) {
-			return 'Dieses Datum gibt es nicht.';
-		}
-		if ($y < 2000 || $y > 2099) {
-			return 'Das Buchungsdatum muss zwischen 2000 und 2099 liegen.';
+		$error = $this->validateDate($date);
+		if ($error !== null) {
+			return $error;
 		}
 		if ($cents <= 0) {
 			return 'Betrag muss größer als 0 sein';
@@ -234,35 +228,120 @@ class JournalController extends Controller {
 		return null;
 	}
 
+	/** @return string|null Fehlermeldung oder null */
+	private function validateDate(string $date): ?string {
+		if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+			return 'Ungültiges Datum (erwartet wird JJJJ-MM-TT).';
+		}
+		[$y, $m, $d] = array_map('intval', explode('-', $date));
+		if (!checkdate($m, $d, $y)) {
+			return 'Dieses Datum gibt es nicht.';
+		}
+		if ($y < 2000 || $y > 2099) {
+			return 'Das Buchungsdatum muss zwischen 2000 und 2099 liegen.';
+		}
+		return null;
+	}
+
 	/**
-	 * Buchungssatz "Soll an Haben" anlegen.
+	 * Wandelt die Zeilen einer Splittbuchung aus der Anfrage in die interne
+	 * Form um und prüft sie – das Gegenstück zu {@see validateBooking()} für
+	 * den mehrzeiligen Fall.
+	 *
+	 * Die Kontoexistenz wird hier genauso geprüft wie dort und aus demselben
+	 * Grund: eine Zeile mit unbekannter account_id taucht in keiner Auswertung
+	 * mehr auf.
+	 *
+	 * @param array $raw Zeilen aus der Anfrage: [{accountId, debit, credit}, …], Beträge in Euro
+	 * @param array<int, array{accountId:int, debitCents:int, creditCents:int}>|null $lines
+	 *        Ausgabe: die geprüften Zeilen in Cent
+	 * @return string|null Fehlermeldung oder null, wenn alles in Ordnung ist
+	 */
+	private function parseLines(array $raw, ?array &$lines): ?string {
+		$lines = [];
+		foreach ($raw as $entry) {
+			if (!is_array($entry)) {
+				return 'Ungültige Buchungszeile.';
+			}
+			// Erst je Zeile auf Cent runden, dann summieren lassen: prüfte man
+			// die Summen in Euro, gingen sie bei krummen Beträgen (z.B. 33,33 +
+			// 33,33 + 33,34) um einen Cent auseinander.
+			$lines[] = [
+				'accountId' => (int)($entry['accountId'] ?? 0),
+				'debitCents' => (int)round(((float)($entry['debit'] ?? 0)) * 100),
+				'creditCents' => (int)round(((float)($entry['credit'] ?? 0)) * 100),
+			];
+		}
+		$error = JournalService::validateLines($lines);
+		if ($error !== null) {
+			return $error;
+		}
+		$userId = $this->userId();
+		foreach ($lines as $line) {
+			try {
+				$this->accountMapper->find($line['accountId'], $userId);
+			} catch (DoesNotExistException) {
+				return 'Ein Konto der Buchung wurde nicht gefunden.';
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Buchungssatz anlegen – "Soll an Haben" oder, mit $lines, als
+	 * Splittbuchung über mehrere Konten.
+	 *
+	 * @param array $lines Zeilen einer Splittbuchung: [{accountId, debit, credit}, …]
+	 *        mit Beträgen in Euro. Ist der Parameter gesetzt, beschreiben die
+	 *        Zeilen die Buchung vollständig und $debitAccountId/$creditAccountId/
+	 *        $amount werden nicht ausgewertet.
 	 */
 	#[NoAdminRequired]
-	public function create(string $date, string $description, int $debitAccountId, int $creditAccountId, float $amount, ?string $documentRef = null): DataResponse {
-		$cents = (int)round($amount * 100);
-		$error = $this->validateBooking($date, $cents, $debitAccountId, $creditAccountId);
+	public function create(string $date, string $description, int $debitAccountId = 0, int $creditAccountId = 0, float $amount = 0, ?string $documentRef = null, array $lines = []): DataResponse {
+		[$error, $bookingLines] = $this->prepareLines($date, $debitAccountId, $creditAccountId, $amount, $lines);
 		if ($error !== null) {
 			return new DataResponse(['message' => $error], Http::STATUS_BAD_REQUEST);
 		}
-		$journal = $this->journalService->createBooking($this->userId(), $date, $description, $documentRef, $debitAccountId, $creditAccountId, $cents);
+		$journal = $this->journalService->createBookingLines($this->userId(), $date, $description, $documentRef, $bookingLines);
 		return new DataResponse($journal, Http::STATUS_CREATED);
 	}
 
+	/**
+	 * @param array $lines siehe {@see create()}; aus einer zweizeiligen Buchung
+	 *        kann dabei eine Splittbuchung werden und umgekehrt.
+	 */
 	#[NoAdminRequired]
-	public function update(int $id, string $date, string $description, int $debitAccountId, int $creditAccountId, float $amount, ?string $documentRef = null, ?string $updatedAt = null): DataResponse {
-		$cents = (int)round($amount * 100);
-		$error = $this->validateBooking($date, $cents, $debitAccountId, $creditAccountId);
+	public function update(int $id, string $date, string $description, int $debitAccountId = 0, int $creditAccountId = 0, float $amount = 0, ?string $documentRef = null, ?string $updatedAt = null, array $lines = []): DataResponse {
+		[$error, $bookingLines] = $this->prepareLines($date, $debitAccountId, $creditAccountId, $amount, $lines);
 		if ($error !== null) {
 			return new DataResponse(['message' => $error], Http::STATUS_BAD_REQUEST);
 		}
 		try {
-			$journal = $this->journalService->updateBooking($id, $this->userId(), $date, $description, $documentRef, $debitAccountId, $creditAccountId, $cents, $updatedAt);
+			$journal = $this->journalService->updateBookingLines($id, $this->userId(), $date, $description, $documentRef, $bookingLines, $updatedAt);
 			return new DataResponse($journal);
 		} catch (DoesNotExistException) {
 			return new DataResponse(['message' => 'Buchung nicht gefunden'], Http::STATUS_NOT_FOUND);
 		} catch (ConflictException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_CONFLICT);
 		}
+	}
+
+	/**
+	 * Gemeinsame Eingangsprüfung von {@see create()} und {@see update()}: der
+	 * zweizeilige und der mehrzeilige Fall münden beide in eine geprüfte
+	 * Zeilenliste.
+	 *
+	 * @return array{0: ?string, 1: array<int, array{accountId:int, debitCents:int, creditCents:int}>}
+	 *         Fehlermeldung (oder null) und die Zeilen
+	 */
+	private function prepareLines(string $date, int $debitAccountId, int $creditAccountId, float $amount, array $rawLines): array {
+		if ($rawLines !== []) {
+			$error = $this->validateDate($date) ?? $this->parseLines($rawLines, $lines);
+			return [$error, $lines ?? []];
+		}
+		$cents = (int)round($amount * 100);
+		$error = $this->validateBooking($date, $cents, $debitAccountId, $creditAccountId);
+		return [$error, JournalService::simpleLines($debitAccountId, $creditAccountId, $cents)];
 	}
 
 	/**

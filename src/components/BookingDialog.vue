@@ -57,7 +57,8 @@
 				</div>
 				<div class="vbh-mfields">
 					<template v-if="bookingMode === 'simple'">
-						<button type="button"
+						<button v-if="!formSplitMode"
+							type="button"
 							class="vbh-fieldbtn"
 							:disabled="bookingLocked"
 							@click="openAccountPicker('category')">
@@ -79,7 +80,8 @@
 						</button>
 					</template>
 					<template v-else>
-						<button type="button"
+						<button v-if="!formSplitMode || splitSide === 'credit'"
+							type="button"
 							class="vbh-fieldbtn"
 							:disabled="bookingLocked"
 							@click="openAccountPicker('debit')">
@@ -89,7 +91,8 @@
 							</span>
 							<span class="vbh-fieldbtn-chev" aria-hidden="true">›</span>
 						</button>
-						<button type="button"
+						<button v-if="!formSplitMode || splitSide === 'debit'"
+							type="button"
 							class="vbh-fieldbtn"
 							:disabled="bookingLocked"
 							@click="openAccountPicker('credit')">
@@ -99,6 +102,12 @@
 							</span>
 							<span class="vbh-fieldbtn-chev" aria-hidden="true">›</span>
 						</button>
+						<label v-if="formSplitMode" class="vbh-mfield">Aufteilen auf
+							<select v-model="formSplitSide" :disabled="bookingLocked">
+								<option value="credit">die Habenseite</option>
+								<option value="debit">die Sollseite</option>
+							</select>
+						</label>
 					</template>
 					<label class="vbh-mfield">Datum<input v-model="formDate" type="date" :disabled="bookingLocked"></label>
 					<label class="vbh-mfield">Buchungstext<input v-model="formDescription" placeholder="z. B. Mitgliedsbeitrag Max Mustermann" :disabled="bookingLocked"></label>
@@ -149,7 +158,7 @@
 						class="vbh-short"
 						placeholder="optional"
 						:disabled="bookingLocked"></label>
-					<label>Betrag (€)<input v-model.number="formAmount"
+					<label>{{ formSplitMode ? 'Gesamtbetrag (€)' : 'Betrag (€)' }}<input v-model.number="formAmount"
 						type="number"
 						step="0.01"
 						min="0.01"
@@ -158,7 +167,7 @@
 				</div>
 				<template v-if="bookingMode === 'simple'">
 					<div class="vbh-form" :class="{ 'vbh-tour-target': bookingTour.active && bookingTour.step === 1 }">
-						<label class="vbh-grow">{{ bookingForm.kind === 'income' ? 'Wofür? (Einnahme-Kategorie)' : 'Wofür? (Ausgabe-Kategorie)' }}
+						<label v-if="!formSplitMode" class="vbh-grow">{{ bookingForm.kind === 'income' ? 'Wofür? (Einnahme-Kategorie)' : 'Wofür? (Ausgabe-Kategorie)' }}
 							<NcSelect v-model="bookingFormCategoryOption"
 								:options="simpleCategoryOptions"
 								:filter-by="accountFilterBy"
@@ -189,7 +198,7 @@
 				</template>
 				<template v-else>
 					<div class="vbh-form">
-						<label class="vbh-grow">Soll (Aufwand/Aktiv)
+						<label v-if="!formSplitMode || splitSide === 'credit'" class="vbh-grow">Soll (Aufwand/Aktiv)
 							<NcSelect v-model="bookingFormDebitOption"
 								:options="accountOptionsList"
 								:filter-by="accountFilterBy"
@@ -197,13 +206,19 @@
 								label="label"
 								placeholder="– wählen –" />
 						</label>
-						<label class="vbh-grow">Haben (Ertrag/Passiv)
+						<label v-if="!formSplitMode || splitSide === 'debit'" class="vbh-grow">Haben (Ertrag/Passiv)
 							<NcSelect v-model="bookingFormCreditOption"
 								:options="accountOptionsList"
 								:filter-by="accountFilterBy"
 								:disabled="bookingLocked"
 								label="label"
 								placeholder="– wählen –" />
+						</label>
+						<label v-if="formSplitMode">Aufteilen auf
+							<select v-model="formSplitSide" :disabled="bookingLocked">
+								<option value="credit">die Habenseite</option>
+								<option value="debit">die Sollseite</option>
+							</select>
 						</label>
 					</div>
 				</template>
@@ -219,7 +234,72 @@
 					</div>
 				</div>
 			</template>
+			<!-- Aufteilung: die feste Seite steht oben, hier folgen die
+			     Gegenkonten mit ihren Teilbeträgen (mobil wie am Desktop). -->
+			<div v-if="formSplitMode" class="vbh-split">
+				<div class="vbh-split-head">
+					<span class="vbh-split-title">Aufteilung</span>
+					<span class="vbh-split-rest" :class="{ ok: splitRestOk, bad: !splitRestOk }">
+						{{ splitRestOk ? '✓ geht auf' : 'Rest: ' + formatMoney(splitRest) }}
+					</span>
+				</div>
+				<ul class="vbh-split-list">
+					<li v-for="(line, i) in splitLines" :key="i" class="vbh-split-row">
+						<button v-if="isMobile"
+							type="button"
+							class="vbh-fieldbtn vbh-split-acc"
+							:disabled="bookingLocked"
+							@click="openAccountPicker('splitline:' + i)">
+							<span class="vbh-fieldbtn-text">
+								<span class="vbh-fieldbtn-val" :class="{ placeholder: !line.accountId }">{{ line.accountId ? accountLabel(line.accountId) : 'Konto wählen…' }}</span>
+							</span>
+							<span class="vbh-fieldbtn-chev" aria-hidden="true">›</span>
+						</button>
+						<NcSelect v-else
+							:model-value="splitLineOption(i)"
+							:options="splitAccountOptions"
+							:filter-by="accountFilterBy"
+							:disabled="bookingLocked"
+							class="vbh-split-acc"
+							label="label"
+							placeholder="– Konto wählen –"
+							@update:model-value="setSplitLineAccount(i, $event)" />
+						<input :value="line.amount"
+							type="number"
+							step="0.01"
+							min="0.01"
+							inputmode="decimal"
+							class="vbh-num vbh-split-amount"
+							:aria-label="'Teilbetrag Zeile ' + (i + 1)"
+							:disabled="bookingLocked"
+							@input="setSplitLineAmount(i, $event.target.value)">
+						<NcButton v-if="!bookingLocked"
+							variant="tertiary"
+							:aria-label="'Zeile ' + (i + 1) + ' entfernen'"
+							@click="removeSplitLine(i)">
+							<template #icon>
+								<NcIconSvgWrapper :path="mdiDelete" :size="14" />
+							</template>
+						</NcButton>
+					</li>
+				</ul>
+				<div class="vbh-split-actions">
+					<NcButton v-if="!bookingLocked" variant="tertiary" @click="addSplitLine">
+						+ Zeile hinzufügen
+					</NcButton>
+					<NcButton v-if="!bookingLocked && splitRest > 0.0049"
+						variant="tertiary"
+						title="Den noch offenen Rest in die letzte Zeile schreiben"
+						@click="fillSplitRest">
+						Rest übernehmen
+					</NcButton>
+				</div>
+			</div>
+
 			<div class="vbh-expertrow">
+				<NcCheckboxRadioSwitch v-model="formSplitMode" :disabled="bookingLocked" type="switch">
+					Betrag aufteilen (mehrere Gegenkonten)
+				</NcCheckboxRadioSwitch>
 				<NcCheckboxRadioSwitch v-model="bookingModeExpert" type="switch">
 					Experten-Modus (Soll/Haben direkt wählen)
 				</NcCheckboxRadioSwitch>
@@ -289,6 +369,8 @@ import { NcModal, NcButton, NcSelect, NcCheckboxRadioSwitch, NcIconSvgWrapper } 
 import { mdiCamera, mdiPaperclip, mdiDelete } from '@mdi/js'
 import { useAccounts } from '../composables/useAccounts.js'
 import { useJournal } from '../composables/useJournal.js'
+import { formatMoney } from '../lib/format.js'
+import { splitSideOf, splitRemainder, splitBalanced } from '../lib/split.js'
 
 export default {
 	name: 'BookingDialog',
@@ -452,8 +534,95 @@ export default {
 			get() { return this.bookingMode === 'expert' },
 			set(v) { this.setBookingMode(v ? 'expert' : 'simple') },
 		},
+
+		// --- Splittbuchung ---------------------------------------------------
+		formSplitMode: {
+			get() { return !!this.bookingForm.splitMode },
+			set(v) {
+				if (!v) { this.updateForm({ splitMode: false }); return }
+				// Beim Einschalten das bereits gewaehlte Gegenkonto als erste
+				// Zeile uebernehmen - sonst faengt man bei Null an, obwohl oben
+				// schon etwas steht. Der Betrag kommt nur mit, wenn es auch ein
+				// Konto dazu gibt; sonst stuende eine Zahl ohne Zuordnung da.
+				const f = this.bookingForm
+				const first = this.bookingMode === 'simple'
+					? f.categoryId
+					: (this.splitSide === 'credit' ? f.creditAccountId : f.debitAccountId)
+				const lines = this.splitLines.length
+					? this.splitLines
+					: [
+						{ accountId: first || null, amount: first ? (f.amount || null) : null },
+						{ accountId: null, amount: null },
+					]
+				this.updateForm({ splitMode: true, splitLines: lines })
+			},
+		},
+		formSplitSide: {
+			get() { return this.bookingForm.splitSide === 'debit' ? 'debit' : 'credit' },
+			set(v) { this.updateForm({ splitSide: v }) },
+		},
+		/** Die tatsaechlich aufgeteilte Seite (im Einfach-Modus aus der Buchungsart). */
+		splitSide() {
+			return splitSideOf(this.bookingForm, this.bookingMode)
+		},
+		splitLines() {
+			return this.bookingForm.splitLines || []
+		},
+		splitRest() {
+			return splitRemainder(this.bookingForm.amount, this.splitLines)
+		},
+		splitRestOk() {
+			return splitBalanced(this.bookingForm.amount, this.splitLines)
+		},
+		/**
+		 * Konten fuer die Aufteilung: im Einfach-Modus die Kategorien zur
+		 * Buchungsart, im Experten-Modus alle. Bereits belegte Konten fallen
+		 * heraus - das Backend lehnt Dubletten ohnehin ab.
+		 */
+		splitAccountOptions() {
+			const base = this.bookingMode === 'simple' ? this.simpleCategoryOptions : this.accountOptionsList
+			const used = new Set(this.splitLines.map(l => l.accountId).filter(Boolean))
+			const fixed = this.bookingMode === 'simple'
+				? this.bookingForm.moneyAccountId
+				: (this.splitSide === 'credit' ? this.bookingForm.debitAccountId : this.bookingForm.creditAccountId)
+			if (fixed) used.add(fixed)
+			return base.filter(o => o.$isDisabled || !used.has(o.id))
+		},
 	},
 	methods: {
+		formatMoney,
+		/** Aktuelle Auswahl einer Aufteilungszeile als NcSelect-Option. */
+		splitLineOption(index) {
+			const id = this.splitLines[index]?.accountId
+			if (id == null) return null
+			const base = this.bookingMode === 'simple' ? this.simpleCategoryOptions : this.accountOptionsList
+			return base.find(o => o.id === id) ?? null
+		},
+		setSplitLineAccount(index, option) {
+			this.patchSplitLine(index, { accountId: option ? option.id : null })
+		},
+		setSplitLineAmount(index, value) {
+			this.patchSplitLine(index, { amount: value === '' ? null : Number(value) })
+		},
+		patchSplitLine(index, patch) {
+			this.updateForm({
+				splitLines: this.splitLines.map((l, i) => (i === index ? { ...l, ...patch } : l)),
+			})
+		},
+		addSplitLine() {
+			this.updateForm({ splitLines: [...this.splitLines, { accountId: null, amount: null }] })
+		},
+		removeSplitLine(index) {
+			this.updateForm({ splitLines: this.splitLines.filter((_, i) => i !== index) })
+		},
+		/** Schreibt den offenen Rest in die letzte Zeile. */
+		fillSplitRest() {
+			const lines = this.splitLines
+			if (!lines.length) return
+			const last = lines.length - 1
+			const value = Math.round((Number(lines[last].amount || 0) + this.splitRest) * 100) / 100
+			this.patchSplitLine(last, { amount: value })
+		},
 		/**
 		 * Meldet geaenderte Formularfelder an den Elternteil zurueck. Bewusst
 		 * ein neues Objekt statt einer Mutation des uebergebenen - so bleibt

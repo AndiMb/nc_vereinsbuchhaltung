@@ -41,6 +41,8 @@ export default {
 	// Buchungen (Bankumsätze)
 	listTransactions: status => axios.get(url('/transactions'), { params: { status } }),
 	assignTransaction: (id, contraAccountId) => axios.post(url(`/transactions/${id}/assign`), { contraAccountId }),
+	// Aufteilung auf mehrere Gegenkonten: parts = [{accountId, amount}, …] in Euro
+	assignTransactionParts: (id, parts) => axios.post(url(`/transactions/${id}/assign`), { parts }),
 	unassignTransaction: id => axios.delete(url(`/transactions/${id}/assign`)),
 
 	// Import CSV-CAMT

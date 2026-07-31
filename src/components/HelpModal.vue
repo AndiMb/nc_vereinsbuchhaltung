@@ -56,6 +56,7 @@ const TOPICS = [
 		bullets: [
 			'Kontoumsätze importieren: Tab Buchungen → CSV-Datei der Bank hochladen (Dubletten werden automatisch erkannt).',
 			'Tab „Zuzuordnen": jede offene Bankbuchung bekommt ein Gegenkonto – Vorschläge und Regeln übernehmen das oft automatisch.',
+			'Enthält ein Umsatz mehreres zugleich (Beitrag und Spende): „Aufteilen…" verteilt ihn auf mehrere Gegenkonten.',
 			'Manuelle Buchung: Button „+ Buchung" – im Einfach-Modus reicht Einnahme/Ausgabe, Kategorie und Geldkonto.',
 			'Belege lassen sich direkt an jede Buchung anhängen (Foto oder Datei).',
 		],
@@ -68,6 +69,7 @@ const TOPICS = [
 			'Jedes Konto hat eine Nummer, einen Namen und einen Typ (Einnahmen, Ausgaben, Anlage/Umlauf, Verbindlichkeit, Eigenkapital).',
 			'Das Flag „Bankkonto" markiert Geldkonten (Bank/Kasse) – nur diese führen einen Kontostand über die Jahresgrenze fort.',
 			'Konten lassen sich über- und unterordnen (Feld „Übergeordnet") für eine Baumstruktur.',
+			'Bebuchte Konten lassen sich nicht löschen, aber über den Schalter „Konto aktiv" stilllegen – sie verschwinden aus den Auswahllisten, die Historie bleibt.',
 			'Auf ein Konto klicken zeigt den Kontoauszug mit laufendem Saldo.',
 		],
 	},

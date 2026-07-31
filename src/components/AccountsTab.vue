@@ -43,7 +43,7 @@
 				<div v-for="node in currentTree"
 					:key="node.id"
 					class="vbh-treenode"
-					:class="{ selected: node.id === selectedAccountId, group: node.hasChildren }"
+					:class="{ selected: node.id === selectedAccountId, group: node.hasChildren, inactive: !node.active }"
 					:style="{ paddingLeft: (8 + node.depth * 18) + 'px' }"
 					@click="selectAccount(node)">
 					<button v-if="node.hasChildren && !accountSearch"
@@ -55,6 +55,7 @@
 					<span v-else class="vbh-caret empty">·</span>
 					<span class="vbh-treenum">{{ node.number }}</span>
 					<span class="vbh-treename">{{ node.name }}</span>
+					<span v-if="!node.active" class="vbh-treeinactive" title="Inaktiv – taucht in keiner Auswahlliste mehr auf">inaktiv</span>
 					<span class="vbh-treesaldo" :class="[amountClass(balanceFor(node.id)), { zero: !balanceFor(node.id) }]">{{ formatMoney(balanceFor(node.id)) }}</span>
 				</div>
 			</div>
@@ -349,7 +350,7 @@ export default {
 			const out = []
 			const walk = (acc, depth) => {
 				const kids = this.childrenOf[acc.id] || []
-				out.push({ id: acc.id, number: acc.number, name: acc.name, type: acc.type, depth, hasChildren: kids.length > 0 })
+				out.push({ id: acc.id, number: acc.number, name: acc.name, type: acc.type, active: acc.active !== false, depth, hasChildren: kids.length > 0 })
 				if (kids.length && this.expanded[acc.id]) for (const k of byNum(kids)) walk(k, depth + 1)
 			}
 			for (const r of roots) walk(r, 0)
@@ -375,7 +376,7 @@ export default {
 			const out = []
 			const walk = (acc, depth) => {
 				const kids = (this.childrenOf[acc.id] || []).filter(k => matchingIds.has(k.id))
-				out.push({ id: acc.id, number: acc.number, name: acc.name, type: acc.type, depth, hasChildren: kids.length > 0 })
+				out.push({ id: acc.id, number: acc.number, name: acc.name, type: acc.type, active: acc.active !== false, depth, hasChildren: kids.length > 0 })
 				for (const k of byNum(kids)) walk(k, depth + 1)
 			}
 			for (const r of byNum(this.accounts.filter(a => !a.parentId && matchingIds.has(a.id)))) walk(r, 0)

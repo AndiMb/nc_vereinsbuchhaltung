@@ -125,6 +125,7 @@
 					:remove-booking="removeBooking"
 					:open-account-picker="openAccountPicker"
 					:on-assign="onAssign"
+					:open-split-assign="openSplitAssign"
 					:apply-suggestion="applySuggestion"
 					:toggle-sort="toggleSort"
 					:sort-arrow="sortArrow"
@@ -298,6 +299,17 @@
 			@save="saveBooking"
 			@delete="deleteBookingFromDialog" />
 
+		<!-- ============ UMSATZ AUFTEILEN (ZUORDNEN) ============ -->
+		<SplitAssignDialog :show="splitAssign.open"
+			:tx="splitAssign.tx"
+			:parts="splitAssign.parts"
+			:is-mobile="isMobile"
+			:open-account-picker="openAccountPicker"
+			@update:show="splitAssign.open = $event"
+			@update:parts="splitAssign.parts = $event"
+			@close="closeSplitAssign"
+			@save="saveSplitAssign" />
+
 		<!-- ============ KONTO-DIALOG ============ -->
 		<AccountDialog :show="showAccount"
 			:account-edit-id="accountEditId"
@@ -361,6 +373,7 @@ import {
 import { mdiCog, mdiPlus, mdiUpload, mdiPrinter, mdiViewDashboardOutline, mdiSwapHorizontal, mdiFileTreeOutline, mdiChartBar, mdiHelpCircleOutline } from '@mdi/js'
 import api from './api.js'
 import { formatMoney, formatDate, formatDateTime, typeLabel, amountClass, budgetDiffClass, errMsg } from './lib/format.js'
+import { splitSideOf, splitRemainder, splitBalanced } from './lib/split.js'
 import SettingsRules from './components/SettingsRules.vue'
 import SettingsSpheres from './components/SettingsSpheres.vue'
 import SettingsCostCenters from './components/SettingsCostCenters.vue'
@@ -371,6 +384,7 @@ import SettingsYearClose from './components/SettingsYearClose.vue'
 import ImportDialog from './components/ImportDialog.vue'
 import AccountDialog from './components/AccountDialog.vue'
 import BookingDialog from './components/BookingDialog.vue'
+import SplitAssignDialog from './components/SplitAssignDialog.vue'
 import BudgetSnapshotModal from './components/BudgetSnapshotModal.vue'
 import DashboardTab from './components/DashboardTab.vue'
 import AccountsTab from './components/AccountsTab.vue'
@@ -408,6 +422,7 @@ export default {
 		ImportDialog,
 		AccountDialog,
 		BookingDialog,
+		SplitAssignDialog,
 		BudgetSnapshotModal,
 		DashboardTab,
 		AccountsTab,
@@ -523,8 +538,10 @@ export default {
 			syncTimer: null,
 			// Mobil-Layout (≤ 640px): schaltet Bottom-Nav, Kartenlisten etc.
 			isMobile: false,
-			// Kontoauswahl-Sheet (mobil): target = category|money|debit|credit|assign
+			// Kontoauswahl-Sheet (mobil): target = category|money|debit|credit|assign|splitline:<i>
 			accountPicker: { open: false, target: null, title: '', tx: null },
+			// Umsatz beim Zuordnen auf mehrere Gegenkonten aufteilen
+			splitAssign: { open: false, tx: null, parts: [] },
 			// Belege, die beim Anlegen gesammelt und nach dem Speichern hochgeladen werden
 			pendingFiles: [],
 			// Zuletzt im Auswahl-Sheet gewählte Konten (localStorage, max. 5)
@@ -668,6 +685,13 @@ export default {
 			const t = this.accountPicker.target
 			if (t === 'category') return this.simpleCategoryOptions
 			if (t === 'money') return this.moneyAccountOptions
+			// Zeile einer Aufteilung: im Buchungsdialog im Einfach-Modus dieselben
+			// Kategorien wie sonst auch, sonst alle Konten (auch beim Zuordnen).
+			if (t && t.startsWith('splitline:')) {
+				return !this.splitAssign.open && this.bookingMode === 'simple'
+					? this.simpleCategoryOptions
+					: this.accountOptionsList
+			}
 			return this.accountOptionsList
 		},
 		accountPickerSuggestion() {
@@ -690,6 +714,11 @@ export default {
 			if (t === 'debit') return f.debitAccountId
 			if (t === 'credit') return f.creditAccountId
 			if (t === 'assign' && this.accountPicker.tx) return this.accountPicker.tx.contraAccountId
+			if (t && t.startsWith('splitline:')) {
+				const i = Number(t.slice('splitline:'.length))
+				const lines = this.splitAssign.open ? this.splitAssign.parts : f.splitLines
+				return lines[i] ? lines[i].accountId : null
+			}
 			return null
 		},
 		// Frühere Zuordnungen je Zahlungspartner (für Vorschläge)
@@ -943,7 +972,53 @@ export default {
 		},
 		// auditDetailText ist jetzt Teil von ReportsTab.vue.
 		emptyBookingForm() {
-			return { id: null, entryNo: null, date: new Date().toISOString().slice(0, 10), documentRef: '', amount: null, debitAccountId: null, creditAccountId: null, description: '', kind: 'expense', moneyAccountId: null, categoryId: null, updatedAt: null }
+			return {
+				id: null,
+				entryNo: null,
+				date: new Date().toISOString().slice(0, 10),
+				documentRef: '',
+				amount: null,
+				debitAccountId: null,
+				creditAccountId: null,
+				description: '',
+				kind: 'expense',
+				moneyAccountId: null,
+				categoryId: null,
+				updatedAt: null,
+				// Splittbuchung: eine Seite bleibt einzeilig (Geldkonto bzw. im
+				// Experten-Modus die gewaehlte Seite), die andere wird zur Liste.
+				// splitSide nennt die aufgeteilte Seite; im Einfach-Modus ergibt
+				// sie sich aus kind, siehe splitSideForForm().
+				splitMode: false,
+				splitSide: 'credit',
+				splitLines: [],
+			}
+		},
+		/** Die aufgeteilte Seite – Regel in ./lib/split.js. */
+		splitSideForForm() {
+			return splitSideOf(this.bookingForm, this.bookingMode)
+		},
+		/** Konto der festen (einzeiligen) Seite. */
+		splitFixedAccountId() {
+			const f = this.bookingForm
+			if (this.bookingMode === 'simple') return f.moneyAccountId
+			return this.splitSideForForm() === 'credit' ? f.debitAccountId : f.creditAccountId
+		},
+		/**
+		 * Baut aus der festen Seite und der Aufteilung die Zeilen fuer die API
+		 * (Betraege in Euro, wie beim einfachen Buchen auch).
+		 */
+		buildSplitPayloadLines() {
+			const f = this.bookingForm
+			const side = this.splitSideForForm()
+			const total = Number(f.amount || 0)
+			const fixed = side === 'credit'
+				? { accountId: this.splitFixedAccountId(), debit: total, credit: 0 }
+				: { accountId: this.splitFixedAccountId(), debit: 0, credit: total }
+			const rest = f.splitLines.map(l => (side === 'credit'
+				? { accountId: l.accountId, debit: 0, credit: Number(l.amount) }
+				: { accountId: l.accountId, debit: Number(l.amount), credit: 0 }))
+			return [fixed, ...rest]
 		},
 		// --- Einfach-Modus: Einnahme/Ausgabe <-> Soll/Haben ---
 		deriveSimpleAccounts() {
@@ -967,15 +1042,35 @@ export default {
 			if (this.bookingForm.kind === kind) return
 			this.bookingForm.kind = kind
 			this.bookingForm.categoryId = null
+			// Bei einer Aufteilung wechseln die Gegenkonten mit der Buchungsart
+			// die Seite (siehe splitSideOf) - die bisher gewaehlten Kategorien
+			// gehoeren dann zur falschen Richtung.
+			if (this.bookingForm.splitMode) this.bookingForm.splitLines = this.bookingForm.splitLines.map(l => ({ ...l, accountId: null }))
 		},
 		setBookingMode(mode) {
 			if (mode === this.bookingMode) return
+			const f = this.bookingForm
+			if (f.splitMode) {
+				// Bei einer Aufteilung stehen Soll/Haben nicht komplett fest; es
+				// wandert nur die feste Seite zwischen Geldkonto und Soll/Haben.
+				const side = this.splitSideForForm()
+				if (mode === 'expert') {
+					f.splitSide = side
+					if (side === 'credit') f.debitAccountId = f.moneyAccountId
+					else f.creditAccountId = f.moneyAccountId
+				} else {
+					f.moneyAccountId = side === 'credit' ? f.debitAccountId : f.creditAccountId
+					f.kind = side === 'credit' ? 'income' : 'expense'
+				}
+				this.bookingMode = mode
+				return
+			}
 			if (mode === 'expert') {
 				const d = this.deriveSimpleAccounts()
-				if (d) { this.bookingForm.debitAccountId = d.debit; this.bookingForm.creditAccountId = d.credit }
+				if (d) { f.debitAccountId = d.debit; f.creditAccountId = d.credit }
 			} else {
-				const m = this.mapToSimple(this.bookingForm.debitAccountId, this.bookingForm.creditAccountId)
-				if (m) Object.assign(this.bookingForm, m)
+				const m = this.mapToSimple(f.debitAccountId, f.creditAccountId)
+				if (m) Object.assign(f, m)
 			}
 			this.bookingMode = mode
 		},
@@ -1155,6 +1250,46 @@ export default {
 				await this.loadTransactions(); await this.loadBalances(); await this.loadJournal(); await this.loadSphereReport()
 			} catch (e) { showError(this.errMsg(e, 'Zuordnung fehlgeschlagen')) }
 		},
+		// --- Umsatz aufteilen (Zuordnen) ------------------------------------
+		openSplitAssign(tx) {
+			// Der Vorschlag (Regel/Verlauf) landet in der ersten Zeile: bei einer
+			// Aufteilung stimmt er meist fuer den groessten Teil und muss dann nur
+			// noch beziffert werden.
+			const suggestion = this.suggestionsById[tx.id]
+			this.splitAssign = {
+				open: true,
+				tx,
+				parts: [
+					{ accountId: suggestion ? suggestion.accountId : null, amount: null },
+					{ accountId: null, amount: null },
+				],
+			}
+		},
+		closeSplitAssign() {
+			this.splitAssign = { open: false, tx: null, parts: [] }
+		},
+		async saveSplitAssign() {
+			const { tx, parts } = this.splitAssign
+			if (!tx) return
+			const rows = parts.filter(p => p.accountId || p.amount)
+			if (rows.length < 2) { showError('Eine Aufteilung braucht mindestens zwei Zeilen.'); return }
+			if (rows.some(p => !p.accountId)) { showError('Jeder Zeile der Aufteilung fehlt noch ein Konto.'); return }
+			if (rows.some(p => !(Number(p.amount) > 0))) { showError('Jede Zeile der Aufteilung braucht einen Betrag größer als 0.'); return }
+			const total = Math.abs(tx.amountCents || 0) / 100
+			if (!splitBalanced(total, rows)) {
+				const rest = splitRemainder(total, rows)
+				showError(rest > 0
+					? `Die Aufteilung geht nicht auf – es fehlen noch ${formatMoney(rest)}.`
+					: `Die Aufteilung übersteigt den Umsatz um ${formatMoney(-rest)}.`)
+				return
+			}
+			try {
+				await api.assignTransactionParts(tx.id, rows.map(p => ({ accountId: p.accountId, amount: Number(p.amount) })))
+				showSuccess('Umsatz aufgeteilt zugeordnet.')
+				this.closeSplitAssign()
+				await this.loadTransactions(); await this.loadBalances(); await this.loadJournal(); await this.loadSphereReport()
+			} catch (e) { showError(this.errMsg(e, 'Zuordnung fehlgeschlagen')) }
+		},
 		// Vorschlag: passende Regel, sonst häufigste frühere Zuordnung desselben Zahlungspartners
 		computeSuggestion(tx) {
 			for (const rule of this.rules) {
@@ -1235,8 +1370,9 @@ export default {
 			}
 		},
 		clickPaperclip(r) {
-			// Splittbuchungen haben kein Bearbeiten-Modal → Beleg direkt öffnen
-			if (r.isSplit || this.attachmentCountMap[r.id]?.count === 1) this.openQuickViewer(r)
+			// Buchungen ohne Bearbeiten-Modal (N:M-Splitt aus Fremddaten) →
+			// Beleg direkt öffnen; ebenso, wenn es ohnehin nur einen gibt.
+			if ((r.isSplit && !r.splitSide) || this.attachmentCountMap[r.id]?.count === 1) this.openQuickViewer(r)
 			else this.editBooking(r)
 		},
 		async openQuickViewer(r) {
@@ -1280,7 +1416,9 @@ export default {
 				credit: 'Habenkonto wählen',
 				assign: 'Konto / Kategorie zuordnen',
 			}
-			this.accountPicker = { open: true, target, title: titles[target] || 'Konto wählen', tx }
+			// splitline:<index> waehlt das Konto einer Zeile der Aufteilung.
+			const title = target.startsWith('splitline:') ? 'Konto der Aufteilung wählen' : (titles[target] || 'Konto wählen')
+			this.accountPicker = { open: true, target, title, tx }
 		},
 		closeAccountPicker() {
 			this.accountPicker = { open: false, target: null, title: '', tx: null }
@@ -1292,6 +1430,11 @@ export default {
 			else if (p.target === 'debit') this.bookingForm.debitAccountId = opt.id
 			else if (p.target === 'credit') this.bookingForm.creditAccountId = opt.id
 			else if (p.target === 'assign' && p.tx) this.onAssign(p.tx, opt.id)
+			else if (p.target && p.target.startsWith('splitline:')) {
+				const i = Number(p.target.slice('splitline:'.length))
+				const lines = this.splitAssign.open ? this.splitAssign.parts : this.bookingForm.splitLines
+				if (lines[i]) lines[i].accountId = opt.id
+			}
 			this.pushRecentAccount(opt.id)
 			this.closeAccountPicker()
 		},
@@ -1362,34 +1505,111 @@ export default {
 			} catch (e) { showError(this.errMsg(e, 'Löschen fehlgeschlagen')) }
 		},
 		editBooking(r) {
-			if (r.isSplit) {
-				showError('Splittbuchung (mehrere Soll-/Haben-Zeilen) – Bearbeitung würde Zeilen verwerfen und wird daher nicht unterstützt.')
+			if (r.isSplit && !r.splitSide) {
+				// Beide Seiten mehrzeilig: diese Form erzeugt die App nirgends
+				// (siehe useJournal.js). Der Dialog bildet sie nicht ab und
+				// wuerde sie beim Speichern verstuemmeln.
+				showError('Diese Buchung hat auf beiden Seiten mehrere Konten – so eine Buchung kann die App nicht bearbeiten.')
 				return
 			}
 			this.bookingForm = { ...this.emptyBookingForm(), id: r.id, entryNo: r.entryNo, date: r.date, documentRef: r.documentRef || '', amount: r.amount, debitAccountId: r.debitAccountId, creditAccountId: r.creditAccountId, description: r.description || '', updatedAt: r.updatedAt || null }
-			const m = this.mapToSimple(r.debitAccountId, r.creditAccountId)
-			if (m) {
-				Object.assign(this.bookingForm, m)
-				this.bookingMode = 'simple'
+			if (r.isSplit) {
+				this.loadSplitIntoForm(r)
 			} else {
-				this.bookingMode = 'expert'
+				const m = this.mapToSimple(r.debitAccountId, r.creditAccountId)
+				if (m) {
+					Object.assign(this.bookingForm, m)
+					this.bookingMode = 'simple'
+				} else {
+					this.bookingMode = 'expert'
+				}
 			}
 			this.loadAttachments(r.id)
 			this.showBooking = true
 		},
+		/**
+		 * Uebernimmt eine bestehende Splittbuchung ins Formular: die einzelne
+		 * Zeile wird zur festen Seite, die mehrzeilige zur Aufteilung.
+		 */
+		loadSplitIntoForm(r) {
+			const side = r.splitSide // 'credit' = Habenseite ist aufgeteilt
+			const fixed = (r.lines || []).find(l => (side === 'credit' ? l.debitCents : l.creditCents) > 0)
+			const parts = (r.lines || []).filter(l => (side === 'credit' ? l.creditCents : l.debitCents) > 0)
+			const f = this.bookingForm
+			f.splitMode = true
+			f.splitSide = side
+			f.splitLines = parts.map(l => ({
+				accountId: l.accountId,
+				amount: (side === 'credit' ? l.creditCents : l.debitCents) / 100,
+			}))
+			// Der Einfach-Modus passt, wenn die feste Seite ein Geldkonto ist und
+			// auf der Seite steht, die zur Buchungsart gehoert - sonst Experte.
+			const fixedAccount = fixed ? this.accountsById[fixed.accountId] : null
+			const isMoney = fixedAccount && (fixedAccount.isBank || fixedAccount.type === 'asset')
+			if (isMoney) {
+				this.bookingMode = 'simple'
+				f.kind = side === 'credit' ? 'income' : 'expense'
+				f.moneyAccountId = fixed.accountId
+			} else {
+				this.bookingMode = 'expert'
+				if (side === 'credit') f.debitAccountId = fixed ? fixed.accountId : null
+				else f.creditAccountId = fixed ? fixed.accountId : null
+			}
+		},
 		closeBooking() { this.showBooking = false; this.bookingForm = this.emptyBookingForm(); this.bookingAttachments = []; this.pendingFiles = []; this.endTour() },
-		async saveBooking() {
+		/**
+		 * Prueft das Formular und baut die Nutzlast der zweizeiligen Buchung.
+		 * @return {object|null} null, wenn eine Meldung gezeigt wurde
+		 */
+		buildSimplePayload() {
 			const f = this.bookingForm
 			if (this.bookingMode === 'simple') {
-				if (!f.date || !f.amount || !f.categoryId || !f.moneyAccountId) { showError('Datum, Betrag, Kategorie und Geldkonto sind Pflicht.'); return }
-				if (f.categoryId === f.moneyAccountId) { showError('Kategorie und Geldkonto müssen unterschiedlich sein.'); return }
+				if (!f.date || !f.amount || !f.categoryId || !f.moneyAccountId) { showError('Datum, Betrag, Kategorie und Geldkonto sind Pflicht.'); return null }
+				if (f.categoryId === f.moneyAccountId) { showError('Kategorie und Geldkonto müssen unterschiedlich sein.'); return null }
 				const d = this.deriveSimpleAccounts()
 				f.debitAccountId = d.debit
 				f.creditAccountId = d.credit
 			}
-			if (!f.date || !f.debitAccountId || !f.creditAccountId || !f.amount) { showError('Datum, Soll, Haben und Betrag sind Pflicht.'); return }
-			if (f.debitAccountId === f.creditAccountId) { showError('Soll- und Habenkonto müssen unterschiedlich sein.'); return }
-			const payload = { date: f.date, description: f.description, documentRef: f.documentRef || null, debitAccountId: f.debitAccountId, creditAccountId: f.creditAccountId, amount: Number(f.amount) }
+			if (!f.date || !f.debitAccountId || !f.creditAccountId || !f.amount) { showError('Datum, Soll, Haben und Betrag sind Pflicht.'); return null }
+			if (f.debitAccountId === f.creditAccountId) { showError('Soll- und Habenkonto müssen unterschiedlich sein.'); return null }
+			return { date: f.date, description: f.description, documentRef: f.documentRef || null, debitAccountId: f.debitAccountId, creditAccountId: f.creditAccountId, amount: Number(f.amount) }
+		},
+		/**
+		 * Dasselbe fuer die Splittbuchung. Die Pruefungen hier sind die
+		 * bedienfreundliche Vorstufe; verbindlich prueft
+		 * JournalService::validateLines() im Backend.
+		 * @return {object|null} null, wenn eine Meldung gezeigt wurde
+		 */
+		buildSplitPayload() {
+			const f = this.bookingForm
+			if (!f.date || !f.amount) { showError('Datum und Gesamtbetrag sind Pflicht.'); return null }
+			if (!this.splitFixedAccountId()) {
+				showError(this.bookingMode === 'simple' ? 'Das Geldkonto fehlt.' : 'Das Konto der festen Seite fehlt.')
+				return null
+			}
+			const rows = (f.splitLines || []).filter(l => l.accountId || l.amount)
+			if (rows.length < 2) { showError('Eine Aufteilung braucht mindestens zwei Zeilen.'); return null }
+			if (rows.some(l => !l.accountId)) { showError('Jeder Zeile der Aufteilung fehlt noch ein Konto.'); return null }
+			if (rows.some(l => !(Number(l.amount) > 0))) { showError('Jede Zeile der Aufteilung braucht einen Betrag größer als 0.'); return null }
+			const rest = splitRemainder(f.amount, rows)
+			if (!splitBalanced(f.amount, rows)) {
+				showError(rest > 0
+					? `Die Aufteilung geht nicht auf – es fehlen noch ${formatMoney(rest)}.`
+					: `Die Aufteilung übersteigt den Gesamtbetrag um ${formatMoney(-rest)}.`)
+				return null
+			}
+			f.splitLines = rows
+			return {
+				date: f.date,
+				description: f.description,
+				documentRef: f.documentRef || null,
+				lines: this.buildSplitPayloadLines(),
+			}
+		},
+		async saveBooking() {
+			const f = this.bookingForm
+			const payload = f.splitMode ? this.buildSplitPayload() : this.buildSimplePayload()
+			if (!payload) return
 			try {
 				if (f.id) {
 					await api.updateBooking(f.id, { ...payload, updatedAt: f.updatedAt || null })
@@ -1467,6 +1687,8 @@ export default {
 				reserveKind: acc.reserveKind || '',
 				iban: acc.iban || '',
 				costCenterId: acc.costCenterId || null,
+				// Altbestand ohne gesetztes Feld gilt als aktiv.
+				active: acc.active !== false,
 			}
 			this.showAccount = true
 		},
@@ -1492,9 +1714,13 @@ export default {
 						// 0 statt null aus demselben Grund: null hiesse
 						// "unveraendert", 0 loest die Zuordnung.
 						costCenterId: f.costCenterId || 0,
+						active: !!f.active,
 					})
 				} else {
-					await api.createAccount({ ...f, parentId: f.parentId || null, sphere: f.sphere || null, reserveKind: f.reserveKind || null, iban: f.iban || null, costCenterId: f.costCenterId || null })
+					// active bleibt hier aussen vor: ein neu angelegtes Konto ist
+					// immer aktiv, der Schalter erscheint erst beim Bearbeiten.
+					const { active, ...rest } = f
+					await api.createAccount({ ...rest, parentId: f.parentId || null, sphere: f.sphere || null, reserveKind: f.reserveKind || null, iban: f.iban || null, costCenterId: f.costCenterId || null })
 				}
 				this.showAccount = false
 				this.accountEditId = null
