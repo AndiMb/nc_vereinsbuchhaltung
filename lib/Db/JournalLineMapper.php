@@ -63,6 +63,37 @@ class JournalLineMapper extends QBMapper {
 	}
 
 	/**
+	 * Geschäftsjahre, in denen dieses Konto bebucht ist.
+	 *
+	 * Grundlage der Festschreibungsprüfung an den Konto-Stammdaten (siehe
+	 * AccountService::assertEvaluationOpen()): ob eine Änderung am Konto einen
+	 * bereits abgeschlossenen Bericht nachträglich verändern würde, hängt genau
+	 * daran, ob das Konto in einem abgeschlossenen Jahr überhaupt vorkommt.
+	 *
+	 * @return int[] Kalenderjahre, aufsteigend
+	 */
+	public function findYearsForAccount(string $userId, int $accountId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->selectDistinct('j.year')
+			->from($this->getTableName(), 'l')
+			->innerJoin('l', 'vbh_journal', 'j', $qb->expr()->eq('l.journal_id', 'j.id'))
+			->where($qb->expr()->eq('j.user_id', $qb->createNamedParameter($userId)))
+			->andWhere($qb->expr()->eq('l.account_id', $qb->createNamedParameter($accountId, IQueryBuilder::PARAM_INT)));
+		$res = $qb->executeQuery();
+		$years = [];
+		while (($row = $res->fetch()) !== false) {
+			$year = (int)$row['year'];
+			if ($year > 0) {
+				$years[$year] = true;
+			}
+		}
+		$res->closeCursor();
+		$years = array_keys($years);
+		sort($years);
+		return $years;
+	}
+
+	/**
 	 * Alle Zeilen der angegebenen Buchungssätze auf einmal – ersetzt das
 	 * Nachladen je Buchung (N+1) in Journal-Liste, Kontoauszug und Export.
 	 *

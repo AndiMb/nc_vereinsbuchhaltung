@@ -1501,7 +1501,8 @@ export default {
 			try {
 				await api.deleteBooking(id)
 				this.closeBooking()
-				await this.loadJournal(); await this.loadBalances()
+				// Umsätze mitladen – siehe removeBooking().
+				await this.loadJournal(); await this.loadTransactions(); await this.loadBalances()
 			} catch (e) { showError(this.errMsg(e, 'Löschen fehlgeschlagen')) }
 		},
 		editBooking(r) {
@@ -1632,7 +1633,11 @@ export default {
 		},
 		async removeBooking(r) {
 			if (!await this.askConfirm('Buchung löschen', `Buchung #${r.entryNo} löschen?`)) return
-			try { await api.deleteBooking(r.id); await this.loadJournal(); await this.loadBalances(); await this.loadSphereReport() } catch (e) { showError(this.errMsg(e, 'Löschen fehlgeschlagen')) }
+			// loadTransactions() muss mit: stammte die Buchung aus einem Bankumsatz,
+			// steht dieser jetzt wieder unter „Zuzuordnen" (siehe
+			// JournalService::releaseBankTransaction()). Ohne das Nachladen bliebe
+			// die Liste samt Zähler bis zum nächsten Neuladen veraltet.
+			try { await api.deleteBooking(r.id); await this.loadJournal(); await this.loadTransactions(); await this.loadBalances(); await this.loadSphereReport() } catch (e) { showError(this.errMsg(e, 'Löschen fehlgeschlagen')) }
 		},
 
 		// --- Konten ---

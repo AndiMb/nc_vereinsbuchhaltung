@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Db\Attachment;
 use OCA\Vereinsbuchhaltung\Db\AttachmentMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCP\Files\AppData\IAppDataFactory;
@@ -38,14 +39,27 @@ class AttachmentStorageService {
 	 */
 	public function deleteForJournal(int $journalId): void {
 		foreach ($this->attachmentMapper->findAllByJournal($journalId) as $attachment) {
-			$id = $attachment->getId();
-			$attachmentJournalId = $attachment->getJournalId();
-			$fileName = $attachment->getFileName();
-			$this->attachmentMapper->delete($attachment);
-			$this->transaction->afterCommit(function () use ($id, $attachmentJournalId, $fileName): void {
-				$this->deleteFile($id, $attachmentJournalId, $fileName);
-			});
+			$this->deleteOne($attachment);
 		}
+	}
+
+	/**
+	 * Löscht einen einzelnen Beleg – Datensatz und Datei, in dieser Reihenfolge.
+	 *
+	 * Der einzige richtige Weg, einen Beleg loszuwerden, auch außerhalb einer
+	 * Transaktion: {@see TransactionRunner::afterCommit()} führt die Aufgabe
+	 * dann sofort aus, aber eben erst nachdem der Datensatz weg ist. Wer die
+	 * Datei zuerst löscht, hat bei einem Fehler auf der Datenbankseite einen
+	 * Beleg-Datensatz ohne Datei – und die ist nicht wiederherstellbar.
+	 */
+	public function deleteOne(Attachment $attachment): void {
+		$id = $attachment->getId();
+		$journalId = $attachment->getJournalId();
+		$fileName = $attachment->getFileName();
+		$this->attachmentMapper->delete($attachment);
+		$this->transaction->afterCommit(function () use ($id, $journalId, $fileName): void {
+			$this->deleteFile($id, $journalId, $fileName);
+		});
 	}
 
 	private function storageUser(): string {

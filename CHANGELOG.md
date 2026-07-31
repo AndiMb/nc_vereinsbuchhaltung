@@ -10,6 +10,48 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
 
 ## [Unreleased]
 
+### Behoben
+- **Gelöschte Buchung gab ihren Bankumsatz nicht wieder frei.** Wurde ein
+  Buchungssatz gelöscht, der durch das Zuordnen eines Bankumsatzes entstanden
+  war, blieb der Umsatz auf „zugeordnet" stehen – mit einem Verweis auf einen
+  Buchungssatz, den es nicht mehr gab. Er tauchte danach nirgends mehr auf:
+  nicht unter *Zuzuordnen* (dort stehen nur offene Umsätze) und nicht in den
+  Salden (die kennen nur Buchungen). Auch die Bank-Abstimmung führte ihn weder
+  als gebucht noch als offen, sodass der Kontostand still vom Bankauszug abwich.
+  Der Umsatz steht jetzt nach dem Löschen wieder unter *Zuzuordnen* und lässt
+  sich neu zuordnen – derselbe Stand wie beim Aufheben einer Zuordnung.
+- **Belege eines Jahres konnten beim xbuc-Import verloren gehen.** Die
+  Dublettenprüfung des Zusammenführ-Imports beschrieb eine Splittbuchung nur
+  über eine ihrer Zeilen. Eine eingehende Buchung, die zufällig auf diesen
+  Teilbetrag passte, galt dadurch als bereits vorhanden und wurde
+  stillschweigend übersprungen. Der Vergleich betrachtet jetzt die ganze
+  Buchung, und beide Seiten des Vergleichs bilden ihren Schlüssel an derselben
+  Stelle.
+- **Beleg löschen konnte einen Datensatz ohne Datei hinterlassen.** Die Datei
+  wurde vor dem Datensatz entfernt; schlug das Löschen des Datensatzes fehl,
+  blieb ein Beleg zurück, der sich nicht mehr öffnen ließ. Jetzt gilt auch hier
+  die Reihenfolge, die beim Löschen einer ganzen Buchung längst galt: erst der
+  Datensatz, dann – nach erfolgreichem Abschluss – die Datei.
+
+### Geändert
+- **Der Jahresabschluss schützt jetzt auch die Konten-Stammdaten.** Bisher war
+  ein festgeschriebenes Geschäftsjahr nur gegen Änderungen an den Buchungen
+  gesichert. Über das Konto ließ sich sein Bericht trotzdem nachträglich
+  verschieben: Ein Wechsel der Kontoart dreht das Vorzeichen, ein Wechsel des
+  Geldkonto-Kennzeichens verschiebt das Konto zwischen Vermögensübersicht und
+  Einnahmen-/Ausgaben-Rechnung – das archivierte Jahresergebnis änderte sich,
+  ohne dass eine einzige Buchung angefasst wurde. Kontoart, Geldkonto-
+  Kennzeichen, Sphäre, Rücklagen-Art und Kostenstelle lassen sich deshalb nicht
+  mehr ändern, solange das Konto in einem abgeschlossenen Jahr bebucht ist; wer
+  die Änderung braucht, eröffnet das Jahr wieder und schließt es danach erneut
+  ab. Nummer, Name, Kategorie, Aktiv-Schalter und Überkonto bleiben frei
+  änderbar – sie ändern nur Beschriftungen, keine Beträge.
+- **Konten stehen jetzt im Änderungsprotokoll.** Anlegen, Ändern und Löschen
+  eines Kontos wurden bisher nicht protokolliert – ausgerechnet die Stammdaten,
+  aus denen jede Auswertung gerechnet wird, waren für die Kassenprüfung
+  unsichtbar. Bei einer Änderung vermerkt das Protokoll zusätzlich, ob ein
+  auswertungsrelevantes Feld betroffen war.
+
 ## [0.14.0] – 2026-07-31
 
 ### Hinzugefügt

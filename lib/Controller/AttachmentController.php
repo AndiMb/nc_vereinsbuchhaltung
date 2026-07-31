@@ -181,8 +181,8 @@ class AttachmentController extends Controller {
 			// Buchung existiert nicht mehr → verwaister Beleg darf immer weg.
 		}
 
-		$this->storageService->deleteFile($id, $attachment->getJournalId(), $attachment->getFileName());
-		$this->attachmentMapper->delete($attachment);
+		// Datensatz zuerst, Datei danach – siehe AttachmentStorageService::deleteOne().
+		$this->storageService->deleteOne($attachment);
 		$this->audit->log('Beleg gelöscht', 'attachment', $id, [
 			'journalId' => $attachment->getJournalId(),
 			'fileName' => $attachment->getFileName(),

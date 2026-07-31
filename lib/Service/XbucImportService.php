@@ -12,6 +12,7 @@ use OCA\Vereinsbuchhaltung\Db\CostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
+use OCA\Vereinsbuchhaltung\Service\Statement\RowNormalizer;
 
 /**
  * Importiert eine „zero Buchhaltung"-Datei (.xbuc): Kontenbaum + Buchungen.
@@ -460,12 +461,23 @@ class XbucImportService {
 				continue;
 			}
 
-			$fp = $b['date'] . '|' . abs($b['amountCents']) . '|' . $debitId . '|' . $creditId . '|' . $b['docRef'];
-			if (isset($seen[$fp])) {
-				$skipped++;
-				continue;
+			// Denselben Weg nehmen wie die vorhandenen Buchungen in
+			// JournalMapper::findFingerprintsForUser() – sonst laufen die beiden
+			// Seiten des Vergleichs auseinander.
+			$fp = RowNormalizer::journalFingerprint(
+				(string)$b['date'],
+				(int)$b['amountCents'],
+				[$debitId],
+				[$creditId],
+				(string)$b['docRef'],
+			);
+			if ($fp !== null) {
+				if (isset($seen[$fp])) {
+					$skipped++;
+					continue;
+				}
+				$seen[$fp] = true;
 			}
-			$seen[$fp] = true;
 
 			$year = (int)substr((string)$b['date'], 0, 4);
 			if (!isset($nextEntryByYear[$year])) {

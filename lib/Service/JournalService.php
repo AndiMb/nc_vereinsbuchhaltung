@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
+use OCA\Vereinsbuchhaltung\Db\BankTransactionMapper;
 use OCA\Vereinsbuchhaltung\Db\Journal;
 use OCA\Vereinsbuchhaltung\Db\JournalLine;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
@@ -41,6 +42,7 @@ class JournalService {
 		private JournalMapper $journalMapper,
 		private JournalLineMapper $lineMapper,
 		private AccountMapper $accountMapper,
+		private BankTransactionMapper $txMapper,
 		private AttachmentStorageService $attachmentStorage,
 		private YearCloseService $yearClose,
 		private AuditService $audit,
@@ -370,6 +372,7 @@ class JournalService {
 			$this->yearClose->assertOpen((string)$journal->getDate());
 			$year = $journal->getYear();
 
+			$released = $this->releaseBankTransaction($journal);
 			$this->attachmentStorage->deleteForJournal($journal->getId());
 			$this->lineMapper->deleteByJournal($journal->getId());
 			$this->journalMapper->delete($journal);
@@ -382,8 +385,49 @@ class JournalService {
 				'entryNo' => $journal->getEntryNo(),
 				'date' => $journal->getDate(),
 				'description' => $journal->getDescription(),
+				// Nur erwähnen, wenn tatsächlich ein Umsatz betroffen war.
+				...($released ? ['umsatz' => 'wieder unter „Zuzuordnen"'] : []),
 			]);
 		});
+	}
+
+	/**
+	 * Gibt den Bankumsatz wieder frei, aus dem dieser Buchungssatz entstanden ist.
+	 *
+	 * Ohne diesen Schritt bliebe der Umsatz nach dem Löschen seines Buchungssatzes
+	 * auf status='assigned' mit einer journal_id stehen, hinter der nichts mehr
+	 * liegt. Er tauchte dann nirgends mehr auf: „Zuzuordnen" filtert auf
+	 * 'unassigned', und in den Salden ist sein Betrag mit dem Buchungssatz
+	 * verschwunden. Auch die Bank-Abstimmung (JournalController::balances())
+	 * zählte ihn weder als gebucht noch als offen – der Kontostand wiche vom
+	 * Bankauszug ab, ohne dass irgendetwas darauf hinweist.
+	 *
+	 * Zurückgesetzt wird auf denselben Stand wie bei
+	 * {@see BookingService::unassign()}: der Umsatz ist wieder offen und lässt
+	 * sich neu zuordnen.
+	 *
+	 * @return bool ob ein Umsatz freigegeben wurde
+	 */
+	private function releaseBankTransaction(Journal $journal): bool {
+		$bankTxId = $journal->getBankTxId();
+		if ($bankTxId === null) {
+			return false;
+		}
+		try {
+			$tx = $this->txMapper->find($bankTxId, (string)$journal->getUserId());
+		} catch (DoesNotExistException) {
+			return false; // Umsatz gibt es nicht mehr – nichts freizugeben.
+		}
+		// Zeigt der Umsatz inzwischen auf einen anderen Buchungssatz (Neu-
+		// zuordnung), gehört er nicht mehr zu diesem hier und bleibt unberührt.
+		if ($tx->getJournalId() !== $journal->getId()) {
+			return false;
+		}
+		$tx->setContraAccountId(null);
+		$tx->setJournalId(null);
+		$tx->setStatus('unassigned');
+		$this->txMapper->update($tx);
+		return true;
 	}
 
 	/**

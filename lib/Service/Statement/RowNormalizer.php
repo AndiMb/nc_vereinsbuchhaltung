@@ -170,6 +170,45 @@ class RowNormalizer {
 	}
 
 	/**
+	 * Dublettenschlüssel eines fertigen Buchungssatzes – das Gegenstück zu
+	 * {@see softKey()} für den xbuc-Import, der ganze Buchungen und nicht
+	 * Bankumsätze vergleicht.
+	 *
+	 * Hier, weil beide Seiten des Vergleichs denselben Schlüssel bilden müssen:
+	 * die vorhandenen Buchungen (JournalMapper::findFingerprintsForUser()) und
+	 * die eingehenden Zeilen (XbucImportService). Standen die beiden Formeln an
+	 * zwei Orten, liefen sie auseinander – genau das ist passiert, als die
+	 * Splittbuchung dazukam.
+	 *
+	 * Format: "datum|betragCents|sollKonten|habenKonten|belegnummer".
+	 *
+	 * Für die zweizeilige Buchung – den Normalfall und die einzige Form, die der
+	 * xbuc-Import erzeugt – steht auf jeder Seite genau eine Konto-ID. Eine
+	 * Splittbuchung hat keine solche Paarung; ihr Betrag ist die Summe der
+	 * Sollseite und beide Seiten führen alle beteiligten Konten auf (aufsteigend,
+	 * damit die Zeilenreihenfolge egal ist). Ein mehrzeiliger Schlüssel enthält
+	 * dadurch ein Komma und kann nie einem zweizeiligen gleichen – vorher gewann
+	 * die zuletzt gelesene Zeile, sodass der Schlüssel einen Teilbetrag beschrieb
+	 * und eine eingehende Buchung, die zufällig darauf passte, stillschweigend
+	 * als Dublette verworfen wurde.
+	 *
+	 * @param int[] $debitAccountIds Konten der Sollseite
+	 * @param int[] $creditAccountIds Konten der Habenseite
+	 * @return string|null null, wenn eine Seite fehlt (kaputte Altdaten)
+	 */
+	public static function journalFingerprint(string $date, int $amountCents, array $debitAccountIds, array $creditAccountIds, string $docRef): ?string {
+		if ($date === '' || $debitAccountIds === [] || $creditAccountIds === []) {
+			return null;
+		}
+		sort($debitAccountIds);
+		sort($creditAccountIds);
+		return $date . '|' . abs($amountCents)
+			. '|' . implode(',', $debitAccountIds)
+			. '|' . implode(',', $creditAccountIds)
+			. '|' . $docRef;
+	}
+
+	/**
 	 * Textform für den Hash: klein, ohne führenden/folgenden Leerraum, innere
 	 * Leerräume auf ein Leerzeichen gefaltet. Satzzeichen bleiben erhalten.
 	 *

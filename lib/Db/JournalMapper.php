@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Db;
 
+use OCA\Vereinsbuchhaltung\Service\Statement\RowNormalizer;
 use OCP\AppFramework\Db\QBMapper;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
@@ -198,8 +199,8 @@ class JournalMapper extends QBMapper {
 	}
 
 	/**
-	 * Fingerprints aller Buchungen für Duplikatprüfung beim Merge-Import.
-	 * Fingerprint-Format: "datum|betragCents|sollKontoId|habenKontoId|belegnummer"
+	 * Fingerprints aller Buchungen für die Duplikatprüfung beim Merge-Import.
+	 * Fingerprint-Format: "datum|betragCents|sollKontoIds|habenKontoIds|belegnummer"
 	 *
 	 * @return array<string, true>
 	 */
@@ -215,22 +216,28 @@ class JournalMapper extends QBMapper {
 		while (($row = $res->fetch()) !== false) {
 			$id = (int)$row['id'];
 			if (!isset($byId[$id])) {
-				$byId[$id] = ['date' => $row['date'], 'doc' => (string)($row['document_ref'] ?? ''), 'debit' => null, 'credit' => null, 'amount' => 0];
+				$byId[$id] = ['date' => (string)$row['date'], 'doc' => (string)($row['document_ref'] ?? ''), 'debits' => [], 'credits' => [], 'amount' => 0];
 			}
+			$accountId = (int)$row['account_id'];
 			if ((int)$row['debit_cents'] > 0) {
-				$byId[$id]['debit'] = (int)$row['account_id'];
-				$byId[$id]['amount'] = (int)$row['debit_cents'];
+				$byId[$id]['debits'][] = $accountId;
+				// Der Buchungsbetrag ist die Summe der Sollseite, nicht der
+				// Betrag einer einzelnen Zeile (siehe fingerprint()).
+				$byId[$id]['amount'] += (int)$row['debit_cents'];
 			}
 			if ((int)$row['credit_cents'] > 0) {
-				$byId[$id]['credit'] = (int)$row['account_id'];
+				$byId[$id]['credits'][] = $accountId;
 			}
 		}
 		$res->closeCursor();
 
 		$fps = [];
 		foreach ($byId as $j) {
-			if ($j['debit'] !== null && $j['credit'] !== null) {
-				$fps[$j['date'] . '|' . $j['amount'] . '|' . $j['debit'] . '|' . $j['credit'] . '|' . $j['doc']] = true;
+			// Dieselbe Formel wie auf der eingehenden Seite (XbucImportService),
+			// siehe RowNormalizer::journalFingerprint().
+			$fp = RowNormalizer::journalFingerprint($j['date'], $j['amount'], $j['debits'], $j['credits'], $j['doc']);
+			if ($fp !== null) {
+				$fps[$fp] = true;
 			}
 		}
 		return $fps;
