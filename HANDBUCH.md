@@ -668,6 +668,18 @@ lesend an; Schreibversuche werden mit einer klaren Meldung abgewiesen.
 Kassenbericht. Auch der Import *roher* Bankumsätze geht weiterhin – erst die
 Zuordnung wäre gesperrt.
 
+Gesperrt sind außerdem die **Eigenschaften eines Kontos, die in die Zahlen
+eingehen**: Kontoart, Geldkonto-Kennzeichen, Sphäre, Rücklagen-Art und
+Kostenstelle. Das betrifft nur Konten, die im abgeschlossenen Jahr auch
+tatsächlich bebucht sind. Der Grund: Aus einem Einnahmekonto ein
+Ausgabekonto zu machen, dreht das Vorzeichen in allen Auswertungen – der
+Kassenbericht des abgeschlossenen Jahres sähe hinterher anders aus, ohne
+dass jemand eine Buchung angefasst hätte. **Frei änderbar bleiben** Nummer,
+Name, Kategorie, Überkonto und der Aktiv-Schalter; sie ändern nur
+Beschriftung und Sortierung. Wer eine gesperrte Eigenschaft doch ändern
+muss, eröffnet das Jahr wieder (Kapitel 8.3) und schließt es danach erneut
+ab.
+
 > **Für den Wachordner heißt das:** Legt jemand einen Auszug ab, der in ein
 > abgeschlossenes Jahr fällt, werden die Umsätze eingelesen, bleiben aber
 > unzugeordnet liegen – auch dann, wenn eine Regel greifen würde. Der Auszug
@@ -917,4 +929,4 @@ nur Geldkonten (Bank-Flag).
 
 ---
 
-*Stand: App-Version 0.14.0. Bei Fragen an die verwaltende Person wenden.*
+*Stand: App-Version 0.15.0. Bei Fragen an die verwaltende Person wenden.*

@@ -10,6 +10,8 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
 
 ## [Unreleased]
 
+## [0.15.0] – 2026-07-31
+
 ### Behoben
 - **Gelöschte Buchung gab ihren Bankumsatz nicht wieder frei.** Wurde ein
   Buchungssatz gelöscht, der durch das Zuordnen eines Bankumsatzes entstanden
@@ -324,7 +326,9 @@ Ergebnis eines Code-Reviews. Schwerpunkt: Datenintegrität der Buchführung.
   frei definierbarer Kontenrahmen, doppelte Buchführung (Soll/Haben, Journal),
   Zuordnung von Bankbuchungen und optionale Auto-Zuordnungsregeln
 
-[Unreleased]: https://github.com/AndiMb/nc_vereinsbuchhaltung/compare/v0.13.0...HEAD
+[Unreleased]: https://github.com/AndiMb/nc_vereinsbuchhaltung/compare/v0.15.0...HEAD
+[0.15.0]: https://github.com/AndiMb/nc_vereinsbuchhaltung/compare/v0.14.0...v0.15.0
+[0.14.0]: https://github.com/AndiMb/nc_vereinsbuchhaltung/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/AndiMb/nc_vereinsbuchhaltung/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/AndiMb/nc_vereinsbuchhaltung/compare/v0.11.2...v0.12.0
 [0.11.2]: https://github.com/AndiMb/nc_vereinsbuchhaltung/compare/v0.11.1...v0.11.2
