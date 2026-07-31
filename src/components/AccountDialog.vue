@@ -63,6 +63,14 @@
 					?
 				</button>
 			</div>
+			<div v-if="showCostCenter" class="vbh-form">
+				<label class="vbh-grow">Kostenstelle
+					<select v-model="form.costCenterId">
+						<option :value="null">– keine Kostenstelle –</option>
+						<option v-for="cc in costCenters" :key="cc.id" :value="cc.id">{{ cc.code }} · {{ cc.name }}</option>
+					</select>
+				</label>
+			</div>
 			<div v-if="form.type === 'equity'" class="vbh-form">
 				<label class="vbh-grow">Rücklagen-Art
 					<select v-model="form.reserveKind">
@@ -87,13 +95,15 @@
 
 <script>
 import { NcModal, NcButton, NcSelect, NcCheckboxRadioSwitch } from '@nextcloud/vue'
+import { toRefs } from 'vue'
 import { useAccounts } from '../composables/useAccounts.js'
+import { useCostCenters } from '../composables/useCostCenters.js'
 
 /**
  *
  */
 function emptyForm() {
-	return { number: '', name: '', type: 'income', category: '', isBank: false, parentId: null, sphere: '', reserveKind: '', iban: '' }
+	return { number: '', name: '', type: 'income', category: '', isBank: false, parentId: null, sphere: '', reserveKind: '', iban: '', costCenterId: null }
 }
 
 export default {
@@ -108,12 +118,19 @@ export default {
 		// bereitet dies weiterhin vor (openNewAccount/openEditAccount), da es von
 		// Accounts-Tab-Kontext (selectedAccount) abhaengt, den der Dialog nicht kennt.
 		initialForm: { type: Object, required: true },
+		// Kostenstellen-Modus (group|account|manual): die Zuordnung am Konto
+		// wird nur im Modus 'manual' ausgewertet - in den anderen waere das
+		// Feld ein Bedienelement ohne Wirkung.
+		costCenterMode: { type: String, default: 'group' },
 	},
 	setup() {
 		// accountsSorted kommt direkt aus dem useAccounts-Singleton (fuer die
 		// Ueberkonto-Auswahl, gleicher geteilter Zustand wie in App.vue).
 		const accounts = useAccounts()
-		return { accountsSorted: accounts.accountsSorted }
+		// Kostenstellen ebenfalls aus dem geteilten Zustand: das Auswahlfeld
+		// erscheint nur, wenn welche angelegt sind.
+		const costCenters = useCostCenters()
+		return { accountsSorted: accounts.accountsSorted, ...toRefs(costCenters.state) }
 	},
 	data() {
 		return {
@@ -123,6 +140,15 @@ export default {
 		}
 	},
 	computed: {
+		// Nur wo die Zuordnung auch wirkt und zum Kontotyp passt: Geldkonten und
+		// Eigenkapital tauchen in der Kostenstellen-Auswertung nicht auf
+		// (Account::isResultRelevant() im Backend).
+		showCostCenter() {
+			return this.costCenterMode === 'manual'
+				&& this.costCenters.length > 0
+				&& this.form.type !== 'equity'
+				&& !this.form.isBank
+		},
 		parentOptions() {
 			return this.accountsSorted.filter(a => a.id !== this.accountEditId)
 		},

@@ -61,6 +61,25 @@ class AccountMapper extends QBMapper {
 		return $count;
 	}
 
+	/**
+	 * Löst die Zuordnung aller Konten zu einer Kostenstelle.
+	 *
+	 * Es gibt keine Fremdschlüssel im Schema: ohne dieses Aufräumen zeigten
+	 * die Konten einer gelöschten Kostenstelle auf eine nicht mehr vorhandene
+	 * ID und fielen im Bericht stillschweigend unter „ohne Kostenstelle",
+	 * ließen sich dort aber nicht mehr neu zuordnen.
+	 *
+	 * @return int Anzahl betroffener Konten
+	 */
+	public function clearCostCenter(string $userId, int $costCenterId): int {
+		$qb = $this->db->getQueryBuilder();
+		$qb->update($this->getTableName())
+			->set('cost_center_id', $qb->createNamedParameter(null, IQueryBuilder::PARAM_NULL))
+			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+			->andWhere($qb->expr()->eq('cost_center_id', $qb->createNamedParameter($costCenterId, IQueryBuilder::PARAM_INT)));
+		return $qb->executeStatement();
+	}
+
 	public function deleteAllForUser(string $userId): void {
 		$qb = $this->db->getQueryBuilder();
 		$qb->delete($this->getTableName())

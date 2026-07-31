@@ -60,6 +60,8 @@ export default {
 	createBooking: data => axios.post(url('/journal'), data),
 	updateBooking: (id, data) => axios.put(url(`/journal/${id}`), data),
 	deleteBooking: id => axios.delete(url(`/journal/${id}`)),
+	// Eine Seite einer Buchung auf ein anderes Konto umbuchen (aus dem Kontoauszug)
+	reassignBooking: (id, fromAccountId, toAccountId, updatedAt) => axios.post(url(`/journal/${id}/reassign`), { fromAccountId, toAccountId, updatedAt: updatedAt || null }),
 
 	// Auswertung
 	balances: year => axios.get(url('/journal/balances'), { params: { year: year || undefined } }),
@@ -67,6 +69,13 @@ export default {
 	// Berichte / Kostenstellen
 	costCenterReport: year => axios.get(url('/report/costcenters'), { params: { year: year || undefined } }),
 	renameCostCenter: (code, name) => axios.put(url('/report/costcenters'), { code, name }),
+
+	// Kostenstellen pflegen (frei definierbar)
+	listCostCenters: () => axios.get(url('/costcenters')),
+	createCostCenter: (code, name) => axios.post(url('/costcenters'), { code, name }),
+	updateCostCenter: (id, code, name) => axios.put(url(`/costcenters/${id}`), { code, name }),
+	deleteCostCenter: id => axios.delete(url(`/costcenters/${id}`)),
+	assignCostCenter: (accountIds, costCenterId) => axios.post(url('/costcenters/assign'), { accountIds, costCenterId: costCenterId || 0 }),
 	sphereReport: year => axios.get(url('/report/spheres'), { params: { year: year || undefined } }),
 	bulkSphere: (accountIds, sphere) => axios.post(url('/accounts/sphere-bulk'), { accountIds, sphere }),
 	multiyearTrend: () => axios.get(url('/report/multiyear-trend')),

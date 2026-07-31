@@ -8,6 +8,7 @@ use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Service\DemoDataService;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
+use OCA\Vereinsbuchhaltung\Service\ReportService;
 use OCA\Vereinsbuchhaltung\Service\WatchFolderService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
@@ -124,7 +125,7 @@ class SettingsController extends Controller {
 			$storagePath = 'Vereinsbuchhaltung/Belege';
 		}
 		$ccMode = (string)($this->request->getParam('cost_center_mode') ?? 'group');
-		if (!in_array($ccMode, ['group', 'account'], true)) {
+		if (!in_array($ccMode, ReportService::MODES, true)) {
 			$ccMode = 'group';
 		}
 		$clubName = mb_substr(trim((string)($this->request->getParam('club_name') ?? '')), 0, 128);

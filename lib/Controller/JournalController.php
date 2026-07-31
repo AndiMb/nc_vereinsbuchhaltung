@@ -265,6 +265,27 @@ class JournalController extends Controller {
 		}
 	}
 
+	/**
+	 * Eine Seite einer Buchung auf ein anderes Konto umbuchen.
+	 *
+	 * Der Weg dorthin ist der Kontoauszug (Tab Konten): eine dort als falsch
+	 * zugeordnet erkannte Buchung lässt sich an Ort und Stelle korrigieren,
+	 * statt sie im Journal zu suchen und komplett neu zu erfassen.
+	 */
+	#[NoAdminRequired]
+	public function reassign(int $id, int $fromAccountId, int $toAccountId, ?string $updatedAt = null): DataResponse {
+		try {
+			$journal = $this->journalService->reassignLine($id, $this->userId(), $fromAccountId, $toAccountId, $updatedAt);
+			return new DataResponse($journal);
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => 'Buchung oder Konto nicht gefunden'], Http::STATUS_NOT_FOUND);
+		} catch (ConflictException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_CONFLICT);
+		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		}
+	}
+
 	#[NoAdminRequired]
 	public function destroy(int $id): DataResponse {
 		try {
@@ -334,9 +355,14 @@ class JournalController extends Controller {
 			}
 			$lines = $linesByJournal[$jid] ?? [];
 			$contra = [];
+			// Die Gegenkonten einzeln (nicht nur als Text): der Kontoauszug
+			// bietet das Umbuchen für beide Seiten an, siehe reassign().
+			$contraAccounts = [];
 			foreach ($lines as $line) {
 				if (!isset($idSet[$line->getAccountId()])) {
-					$contra[] = $labels[$line->getAccountId()] ?? ('#' . $line->getAccountId());
+					$label = $labels[$line->getAccountId()] ?? ('#' . $line->getAccountId());
+					$contra[] = $label;
+					$contraAccounts[] = ['accountId' => $line->getAccountId(), 'label' => $label];
 				}
 			}
 			foreach ($lines as $line) {
@@ -358,8 +384,12 @@ class JournalController extends Controller {
 					'date' => $journal->getDate(),
 					'description' => $journal->getDescription(),
 					'documentRef' => $journal->getDocumentRef(),
+					'accountId' => $line->getAccountId(),
 					'account' => $labels[$line->getAccountId()] ?? ('#' . $line->getAccountId()),
 					'contra' => implode(', ', $contra),
+					'contraAccounts' => $contraAccounts,
+					// Für das optimistische Locking beim Umbuchen (siehe reassign()).
+					'updatedAt' => $journal->getUpdatedAt(),
 					'debit' => $line->getDebitCents() / 100,
 					'credit' => $line->getCreditCents() / 100,
 				];

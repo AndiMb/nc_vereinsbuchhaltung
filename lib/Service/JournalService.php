@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service;
 
+use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\Journal;
 use OCA\Vereinsbuchhaltung\Db\JournalLine;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Exception\ConflictException;
+use OCP\AppFramework\Db\DoesNotExistException;
 
 /**
  * Erstellt und pflegt allgemeine Buchungssätze (Soll an Haben).
@@ -23,6 +25,7 @@ class JournalService {
 	public function __construct(
 		private JournalMapper $journalMapper,
 		private JournalLineMapper $lineMapper,
+		private AccountMapper $accountMapper,
 		private AttachmentStorageService $attachmentStorage,
 		private YearCloseService $yearClose,
 		private AuditService $audit,
@@ -181,6 +184,105 @@ class JournalService {
 			'amount' => $amount / 100,
 		]);
 		return $journal;
+	}
+
+	/**
+	 * Bucht eine einzelne Seite eines Buchungssatzes auf ein anderes Konto um.
+	 *
+	 * Gedacht für den Kontoauszug: wer beim Durchsehen eines Kontos eine falsch
+	 * zugeordnete Buchung findet, korrigiert genau diese eine Seite, ohne den
+	 * ganzen Buchungssatz neu zu erfassen. Betrag, Datum, Beschreibung und die
+	 * Gegenseite bleiben unangetastet – Soll und Haben können dadurch nicht
+	 * auseinanderlaufen.
+	 *
+	 * @param string|null $expectedUpdatedAt siehe {@see updateBooking()}
+	 * @throws DoesNotExistException wenn Buchung oder Zielkonto fehlen
+	 * @throws ConflictException bei zwischenzeitlicher Fremdänderung
+	 * @throws \InvalidArgumentException wenn die Umbuchung fachlich nicht geht
+	 */
+	public function reassignLine(
+		int $journalId,
+		string $userId,
+		int $fromAccountId,
+		int $toAccountId,
+		?string $expectedUpdatedAt = null,
+	): Journal {
+		return $this->transaction->run(function () use ($journalId, $userId, $fromAccountId, $toAccountId, $expectedUpdatedAt): Journal {
+			$journal = $this->journalMapper->find($journalId, $userId);
+			$this->yearClose->assertOpen((string)$journal->getDate());
+			if (($journal->getUpdatedAt() ?? '') !== ($expectedUpdatedAt ?? '')) {
+				throw new ConflictException('Die Buchung wurde zwischenzeitlich von einer anderen Person geändert.');
+			}
+			// Zielkonto muss existieren und zu diesem Bestand gehören – sonst
+			// zeigte die Zeile anschließend auf ein Konto, das in keiner
+			// Auswertung vorkommt (siehe AccountService::delete()).
+			$target = $this->accountMapper->find($toAccountId, $userId);
+			$from = $this->accountMapper->find($fromAccountId, $userId);
+
+			$lines = $this->lineMapper->findByJournal($journalId);
+			$moveIds = self::reassignPlan(
+				array_map(
+					static fn (JournalLine $l): array => ['id' => $l->getId(), 'accountId' => $l->getAccountId()],
+					$lines,
+				),
+				$fromAccountId,
+				$toAccountId,
+			);
+			foreach ($lines as $line) {
+				if (in_array($line->getId(), $moveIds, true)) {
+					$line->setAccountId($target->getId());
+					$this->lineMapper->update($line);
+				}
+			}
+
+			$journal->setUpdatedAt(self::now());
+			$journal = $this->journalMapper->update($journal);
+
+			$this->audit->log('Buchung umgebucht', 'journal', $journal->getId(), [
+				'entryNo' => $journal->getEntryNo(),
+				'date' => $journal->getDate(),
+				'von' => $from->getNumber() . ' ' . $from->getName(),
+				'nach' => $target->getNumber() . ' ' . $target->getName(),
+			]);
+			return $journal;
+		});
+	}
+
+	/**
+	 * Entscheidet, welche Buchungszeilen umzuhängen sind – ohne Datenbank,
+	 * damit die Fallunterscheidung prüfbar bleibt.
+	 *
+	 * @param array<int, array{id:int, accountId:int}> $lines alle Zeilen des Buchungssatzes
+	 * @return int[] IDs der Zeilen, die auf das Zielkonto wechseln
+	 * @throws \InvalidArgumentException wenn die Umbuchung fachlich nicht geht
+	 */
+	public static function reassignPlan(array $lines, int $fromAccountId, int $toAccountId): array {
+		if ($fromAccountId === $toAccountId) {
+			throw new \InvalidArgumentException('Die Buchung steht bereits auf diesem Konto.');
+		}
+		$move = [];
+		$stays = false;
+		foreach ($lines as $line) {
+			if ($line['accountId'] === $fromAccountId) {
+				$move[] = $line['id'];
+			} elseif ($line['accountId'] === $toAccountId) {
+				// Das Zielkonto steht schon auf der anderen Seite: die Buchung
+				// hätte danach dasselbe Konto im Soll und im Haben und wäre
+				// inhaltlich leer.
+				throw new \InvalidArgumentException('Auf diesem Konto steht bereits die Gegenseite der Buchung. Soll- und Habenkonto müssen unterschiedlich sein.');
+			} else {
+				$stays = true;
+			}
+		}
+		if ($move === []) {
+			throw new \InvalidArgumentException('Diese Buchung hat keine Zeile auf dem angegebenen Konto.');
+		}
+		if ($move !== [] && !$stays) {
+			// Alle Zeilen lägen auf demselben Konto – dann gäbe es keine
+			// Gegenseite mehr. Kommt nur bei kaputten Altdaten vor.
+			throw new \InvalidArgumentException('Diese Buchung hat keine Gegenseite und kann nicht umgebucht werden.');
+		}
+		return $move;
 	}
 
 	public function deleteBooking(int $id, string $userId): void {

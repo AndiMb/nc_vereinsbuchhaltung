@@ -49,6 +49,7 @@ class AccountService {
 		private BudgetMapper $budgetMapper,
 		private TransactionRunner $transaction,
 		private RowNormalizer $normalizer,
+		private CostCenterService $costCenters,
 	) {
 	}
 
@@ -63,7 +64,7 @@ class AccountService {
 		return $this->mapper->find($id, $userId);
 	}
 
-	public function create(string $userId, string $number, string $name, string $type, ?string $category, bool $isBank, ?int $parentId = null, ?string $sphere = null, ?string $reserveKind = null, ?string $iban = null): Account {
+	public function create(string $userId, string $number, string $name, string $type, ?string $category, bool $isBank, ?int $parentId = null, ?string $sphere = null, ?string $reserveKind = null, ?string $iban = null, ?int $costCenterId = null): Account {
 		$account = new Account();
 		$account->setUserId($userId);
 		$account->setNumber(trim($number));
@@ -77,6 +78,7 @@ class AccountService {
 		// Eine IBAN ergibt nur an einem Geldkonto Sinn – nur dort werden
 		// Bankumsätze zugeordnet.
 		$account->setIban($isBank ? $this->validateIban($iban) : null);
+		$account->setCostCenterId($this->costCenters->resolveId($userId, $costCenterId));
 		if ($parentId !== null && $parentId > 0) {
 			// Überkonto muss existieren und demselben Bestand gehören.
 			$this->mapper->find($parentId, $userId);
@@ -120,6 +122,11 @@ class AccountService {
 		// damit der eben gesetzte Wert gilt und nicht der alte.
 		if (!$account->getIsBank()) {
 			$account->setIban(null);
+		}
+		if (array_key_exists('costCenterId', $data)) {
+			// 0/null = keine Kostenstelle; das Konto-Formular sendet das Feld
+			// immer mit, damit sich eine Zuordnung auch wieder lösen lässt.
+			$account->setCostCenterId($this->costCenters->resolveId($userId, $data['costCenterId'] !== null ? (int)$data['costCenterId'] : null));
 		}
 		if (array_key_exists('parentId', $data)) {
 			$account->setParentId($this->resolveParent($id, $userId, (int)$data['parentId']));

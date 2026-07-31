@@ -407,14 +407,52 @@ Auf jedes Konto klicken (in der Saldenliste oder im Konten-Tab) zeigt den
 Jahresanfang. Ideal, um einen einzelnen Bank- oder Kassenbestand gegen den
 Bankauszug abzugleichen.
 
+**Falsch zugeordnete Buchung korrigieren.** Fällt beim Durchsehen auf, dass
+eine Buchung auf diesem Konto nicht richtig ist, korrigieren Sie das an Ort
+und Stelle – ohne ins Journal zu wechseln. Der Knopf ⇄ am Zeilenende (mobil:
+*„Falsch zugeordnet? Auf ein anderes Konto umbuchen…"*) öffnet die
+Kontoauswahl. Sind mehrere Seiten beteiligt, wählen Sie zuerst, welche
+umgebucht werden soll – voreingestellt ist das gerade geöffnete Konto, das
+Gegenkonto steht ebenfalls zur Wahl.
+
+Dabei ändert sich **nur die Kontozuordnung dieser einen Seite**: Betrag,
+Datum, Beschreibung, Belege und die Gegenseite bleiben unverändert, Soll und
+Haben können also nicht auseinanderlaufen. Buchungen aus einem
+abgeschlossenen Geschäftsjahr lassen sich nicht umbuchen, und jede Umbuchung
+steht mit Herkunfts- und Zielkonto im **Änderungsprotokoll**.
+
 ### 5.4 Kostenstellen
 
 Tab **Berichte → Kostenstellen**. Einnahmen, Ausgaben und das Ergebnis je
 **Kostenstelle** (z. B. Abteilungen, Projekte, Veranstaltungen) mit
-Drilldown bis zu den einzelnen Buchungen. Zwei Gruppierungsmodi
-(Einstellungen → *Kostenstellen*): 2. Zahlengruppe der Kontonummer oder
-jedes Konto als eigene Kostenstelle. Namen lassen sich direkt hier
+Drilldown bis zu den einzelnen Buchungen. Namen lassen sich direkt hier
 anpassen.
+
+Wie die App die Konten zu Kostenstellen zusammenfasst, entscheidet der
+**Kostenstellen-Modus** (Einstellungen → *Kostenstellen-Modus*, nur
+Verwalter):
+
+| Modus | Kostenstelle ist … | Passt, wenn … |
+|---|---|---|
+| 2. Zahlengruppe der Kontonummer | die zweite Zahlengruppe, z. B. `111 51 2021` → `51` | der Kontenrahmen die Kostenstelle in der Nummer trägt |
+| Jedes Konto eine eigene | das Konto selbst | jedes Einnahmen-/Ausgabenkonto für sich ausgewertet werden soll |
+| **Frei definierte Kostenstellen** | die am Konto hinterlegte Kostenstelle | die Kostenstelle sich nicht aus der Kontonummer ergibt |
+
+Der dritte Modus macht keine Annahme über den Kontenrahmen: Kostenstellen
+werden unter **Einstellungen → Kostenstellen** angelegt (Kürzel + Name) und
+Konten ihnen ausdrücklich zugeordnet. So lassen sich auch Konten mit ganz
+unterschiedlichen Nummern zu einem Projekt bündeln. Zuordnen geht auf zwei
+Wegen:
+
+- einzeln im **Konto-Dialog** (Tab Konten → Konto bearbeiten → *Kostenstelle*);
+  ein neues Unterkonto übernimmt die Kostenstelle seines Überkontos,
+- für viele Konten auf einmal in **Einstellungen → Kostenstellen**
+  (ankreuzen, Kostenstelle wählen, *Zuweisen*).
+
+Angelegte Kostenstellen erscheinen im Bericht auch dann, wenn ihnen noch kein
+Konto zugeordnet ist – so fällt eine vergessene Zuordnung auf. Wird eine
+Kostenstelle gelöscht, verlieren ihre Konten nur die Zuordnung; **Buchungen
+bleiben unverändert**, eine Kostenstelle trägt selbst keine Beträge.
 
 ### 5.5 Geldkonten-Abstimmung
 

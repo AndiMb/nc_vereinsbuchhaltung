@@ -10,6 +10,31 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
 
 ## [Unreleased]
 
+## [0.13.0] – 2026-07-31
+
+### Hinzugefügt
+- **Frei definierbare Kostenstellen.** Bisher leitete die App die Kostenstelle
+  aus dem Kontenrahmen ab – entweder aus der zweiten Zahlengruppe der
+  Kontonummer oder „ein Konto = eine Kostenstelle". Beides setzt einen
+  bestimmten Kontenaufbau voraus. Jetzt lassen sich Kostenstellen unter
+  *Einstellungen → Kostenstellen* frei anlegen und Konten ihnen ausdrücklich
+  zuordnen; beliebige Konten können so zu einem Projekt zusammengefasst werden.
+  Der neue Modus heißt *„Frei definierte Kostenstellen"* (Einstellungen →
+  Kostenstellen-Modus, nur Verwalter). Die beiden bisherigen Modi bleiben
+  unverändert Standard – bestehende Auswertungen ändern sich nicht.
+  Die Zuordnung geht einzeln im Konto-Dialog oder für viele Konten auf einmal.
+  Angelegte Kostenstellen erscheinen im Bericht auch ohne zugeordnetes Konto,
+  damit eine fehlende Zuordnung sichtbar ist.
+- **Umbuchen direkt im Kontoauszug.** Wer beim Durchblättern eines Kontos
+  (Tab *Konten*) eine falsch zugeordnete Buchung findet, bucht sie an Ort und
+  Stelle auf ein anderes Konto um – der Umweg über das Journal entfällt.
+  Umbuchen lässt sich jede Seite der Buchung, also auch das Gegenkonto.
+  Geändert wird ausschließlich die Kontozuordnung; Betrag, Datum, Beschreibung
+  und die Gegenseite bleiben, sodass Soll und Haben nicht auseinanderlaufen
+  können. Abgeschlossene Geschäftsjahre bleiben gesperrt, jede Umbuchung steht
+  im Änderungsprotokoll, und eine zwischenzeitliche Änderung durch jemand
+  anderen wird erkannt.
+
 ## [0.12.0] – 2026-07-30
 
 ### Hinzugefügt
@@ -217,7 +242,8 @@ Ergebnis eines Code-Reviews. Schwerpunkt: Datenintegrität der Buchführung.
   frei definierbarer Kontenrahmen, doppelte Buchführung (Soll/Haben, Journal),
   Zuordnung von Bankbuchungen und optionale Auto-Zuordnungsregeln
 
-[Unreleased]: https://github.com/AndiMb/nc_vereinsbuchhaltung/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/AndiMb/nc_vereinsbuchhaltung/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/AndiMb/nc_vereinsbuchhaltung/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/AndiMb/nc_vereinsbuchhaltung/compare/v0.11.2...v0.12.0
 [0.11.2]: https://github.com/AndiMb/nc_vereinsbuchhaltung/compare/v0.11.1...v0.11.2
 [0.11.1]: https://github.com/AndiMb/nc_vereinsbuchhaltung/compare/v0.11.0...v0.11.1

@@ -131,6 +131,24 @@
 							<span class="vbh-mcard-accounts">{{ row.contra }}</span>
 							<span class="vbh-mcard-meta">Saldo {{ formatMoney(row.saldo) }}</span>
 						</div>
+						<button v-if="canReassign(row) && !isReassigning(row)"
+							type="button"
+							class="vbh-fieldbtn"
+							@click="startReassign(row)">
+							<span class="vbh-fieldbtn-text">
+								<span class="vbh-fieldbtn-lab">Falsch zugeordnet?</span>
+								<span class="vbh-fieldbtn-val">Auf ein anderes Konto umbuchen…</span>
+							</span>
+							<span class="vbh-fieldbtn-chev" aria-hidden="true">›</span>
+						</button>
+						<ReassignPanel v-if="isReassigning(row)"
+							:sides="reassignSides"
+							:side-id="reassign.fromAccountId"
+							:options="reassignOptions"
+							:busy="reassignSaving"
+							@side="onReassignSide"
+							@pick="applyReassign"
+							@cancel="cancelReassign" />
 					</div>
 					<div class="vbh-mcard vbh-mcard--sum">
 						<div class="vbh-mcard-top">
@@ -158,7 +176,7 @@
 									Haben
 								</th><th class="num">
 									Saldo
-								</th>
+								</th><th v-if="canWrite" />
 							</tr>
 						</thead>
 						<tbody>
@@ -174,30 +192,58 @@
 								<td class="num strong" :class="amountClass(statement.carry)">
 									{{ formatMoney(statement.carry) }}
 								</td>
+								<td v-if="canWrite" />
 							</tr>
-							<tr v-for="(row, i) in statementRows" :key="i">
-								<td class="num vbh-col-hide-sm">
-									{{ row.entryNo }}
-								</td>
-								<td class="nowrap">
-									{{ formatDate(row.date) }}
-								</td>
-								<td class="vbh-purpose" :title="row.description">
-									<span class="vbh-clamp">{{ row.description }}</span>
-								</td>
-								<td class="vbh-col-hide-sm">
-									{{ row.contra }}
-								</td>
-								<td class="num vbh-col-hide-sm">
-									{{ row.debit ? formatMoney(row.debit) : '' }}
-								</td>
-								<td class="num vbh-col-hide-sm">
-									{{ row.credit ? formatMoney(row.credit) : '' }}
-								</td>
-								<td class="num strong" :class="amountClass(row.saldo)">
-									{{ formatMoney(row.saldo) }}
-								</td>
-							</tr>
+							<!-- :key gehoert auf die echten <tr>, nicht aufs <template>
+							     (Vue 2 ignoriert Template-Keys stillschweigend) -->
+							<template v-for="(row, i) in statementRows">
+								<tr :key="'r' + i">
+									<td class="num vbh-col-hide-sm">
+										{{ row.entryNo }}
+									</td>
+									<td class="nowrap">
+										{{ formatDate(row.date) }}
+									</td>
+									<td class="vbh-purpose" :title="row.description">
+										<span class="vbh-clamp">{{ row.description }}</span>
+									</td>
+									<td class="vbh-col-hide-sm">
+										{{ row.contra }}
+									</td>
+									<td class="num vbh-col-hide-sm">
+										{{ row.debit ? formatMoney(row.debit) : '' }}
+									</td>
+									<td class="num vbh-col-hide-sm">
+										{{ row.credit ? formatMoney(row.credit) : '' }}
+									</td>
+									<td class="num strong" :class="amountClass(row.saldo)">
+										{{ formatMoney(row.saldo) }}
+									</td>
+									<td v-if="canWrite" class="nowrap">
+										<NcButton v-if="canReassign(row)"
+											variant="tertiary"
+											size="small"
+											:aria-label="'Buchung #' + row.entryNo + ' auf ein anderes Konto umbuchen'"
+											title="Auf ein anderes Konto umbuchen"
+											@click="startReassign(row)">
+											<template #icon>
+												<NcIconSvgWrapper :path="mdiSwapHorizontal" :size="18" />
+											</template>
+										</NcButton>
+									</td>
+								</tr>
+								<tr v-if="isReassigning(row)" :key="'x' + i" class="vbh-ccdetail">
+									<td :colspan="canWrite ? 8 : 7">
+										<ReassignPanel :sides="reassignSides"
+											:side-id="reassign.fromAccountId"
+											:options="reassignOptions"
+											:busy="reassignSaving"
+											@side="onReassignSide"
+											@pick="applyReassign"
+											@cancel="cancelReassign" />
+									</td>
+								</tr>
+							</template>
 						</tbody>
 					</table>
 				</div>
@@ -212,16 +258,17 @@
 <script>
 import { toRefs } from 'vue'
 import { NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper } from '@nextcloud/vue'
-import { mdiPlus, mdiPencil, mdiDelete } from '@mdi/js'
+import { mdiPlus, mdiPencil, mdiDelete, mdiSwapHorizontal } from '@mdi/js'
 import { formatMoney, formatDate, typeLabel, amountClass } from '../lib/format.js'
 import { useAuth } from '../composables/useAuth.js'
 import { useYears } from '../composables/useYears.js'
 import { useAccounts } from '../composables/useAccounts.js'
 import { useBalances } from '../composables/useBalances.js'
+import ReassignPanel from './ReassignPanel.vue'
 
 export default {
 	name: 'AccountsTab',
-	components: { NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper },
+	components: { NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper, ReassignPanel },
 	props: {
 		isMobile: { type: Boolean, required: true },
 		// selectedAccountId/statement/statementIncludeChildren bleiben in App.vue
@@ -237,6 +284,9 @@ export default {
 		selectAccount: { type: Function, required: true },
 		closeAccountDetail: { type: Function, required: true },
 		reloadStatement: { type: Function, required: true },
+		// Bucht eine Seite einer Buchung auf ein anderes Konto um (App.vue
+		// orchestriert das Nachladen); liefert true bei Erfolg.
+		reassignBooking: { type: Function, required: true },
 		openNewAccount: { type: Function, required: true },
 		openEditAccount: { type: Function, required: true },
 		deleteAccount: { type: Function, required: true },
@@ -250,9 +300,11 @@ export default {
 		const balances = useBalances()
 		return {
 			canWrite: auth.canWrite,
+			isYearClosed: years.isYearClosed,
 			...toRefs(years.state),
 			...toRefs(accounts.state),
 			accountsById: accounts.accountsById,
+			accountsSorted: accounts.accountsSorted,
 			childrenOf: accounts.childrenOf,
 			...toRefs(balances.state),
 		}
@@ -262,8 +314,13 @@ export default {
 			mdiPlus,
 			mdiPencil,
 			mdiDelete,
+			mdiSwapHorizontal,
 			accountSearch: '',
 			expanded: {},
+			// Umbuchen aus dem Kontoauszug: welche Zeile gerade bearbeitet wird
+			// und welche ihrer Seiten auf ein anderes Konto soll.
+			reassign: { journalId: null, rowKey: null, fromAccountId: null, row: null },
+			reassignSaving: false,
 		}
 	},
 	computed: {
@@ -327,6 +384,35 @@ export default {
 		currentTree() {
 			return this.accountSearch.trim() ? this.filteredVisibleTree : this.visibleTree
 		},
+		// Beteiligte Konten der Buchung, die gerade umgebucht wird: das Konto
+		// dieser Zeile (Regelfall) und die Gegenkonten.
+		reassignSides() {
+			const row = this.reassign.row
+			if (!row) return []
+			return [
+				{ accountId: row.accountId, label: row.account },
+				...(row.contraAccounts || []),
+			]
+		},
+		// Zielkonten: aktive Konten nach Kategorie gruppiert (id === null =
+		// Überschrift), ohne die Konten, die schon auf dieser Buchung stehen –
+		// dasselbe Konto auf beiden Seiten lehnt das Backend ohnehin ab.
+		reassignOptions() {
+			const used = new Set(this.reassignSides.map(s => s.accountId))
+			const groups = {}
+			for (const acc of this.accountsSorted) {
+				if (!acc.active || used.has(acc.id)) continue
+				const cat = acc.category || 'Sonstige'
+				if (!groups[cat]) groups[cat] = []
+				groups[cat].push(acc)
+			}
+			const opts = []
+			for (const [cat, list] of Object.entries(groups)) {
+				opts.push({ id: null, label: cat, $isDisabled: true })
+				for (const acc of list) opts.push({ id: acc.id, label: `${acc.number} ${acc.name}`, number: acc.number })
+			}
+			return opts
+		},
 		statementRows() {
 			if (!this.statement) return []
 			const isCredit = ['income', 'liability', 'equity'].includes(this.statement.account.type)
@@ -336,6 +422,12 @@ export default {
 				return { ...r, saldo: run }
 			})
 		},
+	},
+	watch: {
+		// Kontowechsel oder neu geladener Auszug: das Umbuchen-Panel gehoert zu
+		// einer bestimmten Zeile und darf nicht auf die naechste ueberspringen.
+		selectedAccountId() { this.cancelReassign() },
+		statement() { this.cancelReassign() },
 	},
 	methods: {
 		formatMoney,
@@ -366,6 +458,39 @@ export default {
 		onIncludeChildrenChange(v) {
 			this.$emit('update:statementIncludeChildren', v)
 			this.$nextTick(() => this.reloadStatement())
+		},
+
+		// --- Umbuchen aus dem Kontoauszug ---------------------------------
+		/**
+		 * Eine Zeile ist über journalId UND Konto eindeutig: bei „inkl.
+		 * Unterkonten" kann derselbe Buchungssatz mit beiden Seiten im Auszug
+		 * stehen.
+		 *
+		 * @param {object} row Zeile des Kontoauszugs
+		 */
+		rowKey(row) { return `${row.journalId}:${row.accountId}` },
+		canReassign(row) {
+			return this.canWrite && !!row.accountId && !this.isYearClosed(row.date)
+		},
+		isReassigning(row) {
+			return this.reassign.rowKey === this.rowKey(row)
+		},
+		startReassign(row) {
+			this.reassign = { journalId: row.journalId, rowKey: this.rowKey(row), fromAccountId: row.accountId, row }
+		},
+		cancelReassign() {
+			this.reassign = { journalId: null, rowKey: null, fromAccountId: null, row: null }
+		},
+		onReassignSide(accountId) { this.reassign.fromAccountId = accountId },
+		async applyReassign(toAccountId) {
+			const { row, fromAccountId } = this.reassign
+			if (!row || !fromAccountId || this.reassignSaving) return
+			this.reassignSaving = true
+			try {
+				// Der Auszug wird danach neu geladen – das Panel muss in jedem
+				// Fall zu, sonst zeigte es auf eine Zeile von gestern.
+				if (await this.reassignBooking(row, fromAccountId, toAccountId)) this.cancelReassign()
+			} finally { this.reassignSaving = false }
 		},
 	},
 }

@@ -50,18 +50,21 @@
 		</div>
 
 		<h3 class="vbh-section-divider">
-			Kostenstellen
+			Kostenstellen-Modus
 		</h3>
 		<div class="vbh-card">
 			<p class="vbh-hint">
-				Bestimmt, wie der Bericht „Kostenstellen" die Konten gruppiert. Der Modus hängt vom
-				Kontenrahmen des Vereins ab.
+				Bestimmt, wie der Bericht „Kostenstellen" die Konten gruppiert. Die ersten beiden Modi
+				lesen die Kostenstelle aus dem Kontenrahmen ab und setzen voraus, dass er dafür gebaut
+				ist. Der dritte macht diese Annahme nicht: Kostenstellen werden angelegt und Konten
+				ihnen ausdrücklich zugeordnet (Abschnitt „Kostenstellen" weiter oben).
 			</p>
 			<div class="vbh-form">
 				<label class="vbh-grow">Modus
 					<select v-model="costCenterModeModel">
 						<option value="group">2. Zahlengruppe der Kontonummer (z. B. „111 51" → Kostenstelle 51)</option>
 						<option value="account">Jedes Einnahmen-/Ausgabenkonto ist eine eigene Kostenstelle</option>
+						<option value="manual">Frei definierte Kostenstellen (Konten werden zugeordnet)</option>
 					</select>
 				</label>
 				<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings">

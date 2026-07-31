@@ -53,8 +53,8 @@ Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kon
 ### Auswertungen & Export
 - **Übersicht (Dashboard)**: KPI-Kacheln mit Vorjahresvergleich, Hinweis auf nicht zugeordnete Buchungen und überfällige offene Posten, monatliches Einnahmen-/Ausgaben-Diagramm
 - **Saldenliste**: alle Konten mit Soll/Haben/Saldo, hierarchische Darstellung, optional inkl. Unterkonten
-- **Kontoauszug**: Buchungshistorie je Konto inkl. laufendem Saldo und Saldovortrag
-- **Kostenstellen**: Einnahmen/Ausgaben/Ergebnis je Kostenstelle mit Buchungs-Drilldown; zwei Modi (2. Zahlengruppe der Kontonummer oder je Konto), Namen per UI änderbar
+- **Kontoauszug**: Buchungshistorie je Konto inkl. laufendem Saldo und Saldovortrag; falsch zugeordnete Buchungen lassen sich direkt dort auf ein anderes Konto **umbuchen** (jede Seite der Buchung, nur die Kontozuordnung ändert sich, protokolliert, gesperrt in abgeschlossenen Jahren)
+- **Kostenstellen**: Einnahmen/Ausgaben/Ergebnis je Kostenstelle mit Buchungs-Drilldown; drei Modi (2. Zahlengruppe der Kontonummer, je Konto oder **frei definierte Kostenstellen** mit ausdrücklicher Konto-Zuordnung einzeln bzw. per Mehrfachauswahl), Namen per UI änderbar
 - **Steuerliche Sphären** (ideeller Bereich, Vermögensverwaltung, Zweckbetrieb, wirtschaftlicher Geschäftsbetrieb): je Konto zuweisbar (Einzeln oder per Mehrfachauswahl), eigener Bericht mit Einnahmen/Ausgaben/Ergebnis je Sphäre; Dashboard-Warnleiste bei Annäherung an die Freigrenze für den wirtschaftlichen Geschäftsbetrieb (§ 64 Abs. 3 AO) – ersetzt keine steuerliche Beratung
 - **Finanzplan**: geplante Beträge je Konto und Jahr, Soll-Ist-Vergleich mit farbiger Abweichung
   - **Notizen je Planzahl** (z. B. Herleitung „40 Mitglieder × 25 €")
@@ -148,12 +148,12 @@ vereinsbuchhaltung/
 
 | Tabelle | Zweck |
 |---|---|
-| `vbh_accounts` | Kontenrahmen (Nr., Name, Typ, Hierarchie, Eröffnungssaldo, IBAN bei Geldkonten) |
+| `vbh_accounts` | Kontenrahmen (Nr., Name, Typ, Hierarchie, Eröffnungssaldo, IBAN bei Geldkonten, Kostenstelle) |
 | `vbh_bank_tx` | importierte Bankbuchungen inkl. Dedup-Hash und Zuordnungsstatus |
 | `vbh_journal` | Buchungssätze (Datum, Beschreibung, Belegnr., Buchungsnr.) |
 | `vbh_journal_line` | Soll-/Haben-Zeilen je Buchungssatz (Betrag in Cent) |
 | `vbh_imports` | Import-Protokoll (neu/Dubletten je Datei, Quellformat) |
-| `vbh_costcenters` | Kostenstellen-Namen (code, name) |
+| `vbh_costcenters` | Kostenstellen (Kürzel, Name); Konten verweisen über `vbh_accounts.cost_center_id` darauf |
 | `vbh_budgets` | Finanzplan (Konto × Jahr × Betrag in Cent + Notiz) |
 | `vbh_budget_snapshots` | eingefrorene Plan-Stände (Jahr, Label, Zeitpunkt) |
 | `vbh_budget_snap_items` | Positionen eines Plan-Stands (inkl. eingefrorener Konto-Stammdaten) |

@@ -37,6 +37,7 @@ return [
 		['name' => 'journal#balances', 'url' => '/api/journal/balances', 'verb' => 'GET'],
 		['name' => 'journal#create', 'url' => '/api/journal', 'verb' => 'POST'],
 		['name' => 'journal#update', 'url' => '/api/journal/{id}', 'verb' => 'PUT'],
+		['name' => 'journal#reassign', 'url' => '/api/journal/{id}/reassign', 'verb' => 'POST'],
 		['name' => 'journal#destroy', 'url' => '/api/journal/{id}', 'verb' => 'DELETE'],
 
 		// Kollaboration: Änderungsstand für das Polling anderer Browser
@@ -52,6 +53,13 @@ return [
 		['name' => 'report#costCenters', 'url' => '/api/report/costcenters', 'verb' => 'GET'],
 		['name' => 'report#rename', 'url' => '/api/report/costcenters', 'verb' => 'PUT'],
 		['name' => 'report#spheres', 'url' => '/api/report/spheres', 'verb' => 'GET'],
+
+		// Kostenstellen pflegen (frei definierbar, Modus 'manual')
+		['name' => 'costCenter#index', 'url' => '/api/costcenters', 'verb' => 'GET'],
+		['name' => 'costCenter#create', 'url' => '/api/costcenters', 'verb' => 'POST'],
+		['name' => 'costCenter#assign', 'url' => '/api/costcenters/assign', 'verb' => 'POST'],
+		['name' => 'costCenter#update', 'url' => '/api/costcenters/{id}', 'verb' => 'PUT'],
+		['name' => 'costCenter#destroy', 'url' => '/api/costcenters/{id}', 'verb' => 'DELETE'],
 		['name' => 'report#multiyearTrend', 'url' => '/api/report/multiyear-trend', 'verb' => 'GET'],
 		['name' => 'report#reserves', 'url' => '/api/report/reserves', 'verb' => 'GET'],
 

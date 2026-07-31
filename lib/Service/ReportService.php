@@ -60,13 +60,23 @@ class ReportService {
 	) {
 	}
 
+	/** Erlaubte Werte der Einstellung `cost_center_mode`. */
+	public const MODES = ['group', 'account', 'manual'];
+
 	/**
-	 * Kostenstellen-Modus: 'group' (2. Zahlengruppe der Kontonummer, Standard)
-	 * oder 'account' (jedes Erfolgskonto ist seine eigene Kostenstelle).
+	 * Kostenstellen-Modus:
+	 *  - 'group'   – 2. Zahlengruppe der Kontonummer (Standard, Altbestand)
+	 *  - 'account' – jedes Erfolgskonto ist seine eigene Kostenstelle
+	 *  - 'manual'  – frei angelegte Kostenstellen, Konten werden ihnen
+	 *                ausdrücklich zugeordnet (Account::$costCenterId)
+	 *
+	 * Die ersten beiden leiten die Kostenstelle aus dem Kontenrahmen ab und
+	 * setzen damit voraus, dass er entsprechend aufgebaut ist. 'manual' macht
+	 * keine solche Annahme.
 	 */
 	public function costCenterMode(): string {
 		$mode = $this->config->getAppValue(Application::APP_ID, 'cost_center_mode', 'group');
-		return $mode === 'account' ? 'account' : 'group';
+		return in_array($mode, self::MODES, true) ? $mode : 'group';
 	}
 
 	/**
@@ -78,6 +88,23 @@ class ReportService {
 			return $parts[1];
 		}
 		return null;
+	}
+
+	/**
+	 * Gruppenschlüssel einer frei angelegten Kostenstelle (Modus 'manual'),
+	 * oder null für „ohne Kostenstelle".
+	 *
+	 * Eine Zuordnung auf eine inzwischen gelöschte Kostenstelle zählt als
+	 * „ohne": das Schema kennt keine Fremdschlüssel, und eine Gruppe ohne
+	 * Namen wäre im Bericht nicht zu gebrauchen.
+	 *
+	 * @param array<int, mixed> $defined vorhandene Kostenstellen, indiziert nach ID
+	 */
+	public static function manualGroupKey(?int $costCenterId, array $defined): ?string {
+		if ($costCenterId === null || !isset($defined[$costCenterId])) {
+			return null;
+		}
+		return 'cc-' . $costCenterId;
 	}
 
 	/**
@@ -97,11 +124,27 @@ class ReportService {
 		$mode = $this->costCenterMode();
 
 		$names = [];
+		$defined = [];
 		foreach ($this->costCenterMapper->findAll($userId) as $cc) {
 			$names[$cc->getCode()] = $cc->getName();
+			$defined[$cc->getId()] = $cc;
 		}
 
 		$groups = [];
+		if ($mode === 'manual') {
+			// Alle angelegten Kostenstellen erscheinen, auch ohne zugeordnetes
+			// Konto: sonst wäre eine gerade angelegte Kostenstelle im Bericht
+			// unsichtbar und man könnte nicht sehen, dass die Zuordnung fehlt.
+			foreach ($defined as $cc) {
+				$groups[(string)self::manualGroupKey($cc->getId(), $defined)] = [
+					'code' => $cc->getCode(),
+					'name' => $cc->getName(),
+					'incomeCents' => 0,
+					'expenseCents' => 0,
+					'accounts' => [],
+				];
+			}
+		}
 		foreach ($accounts as $a) {
 			// Erfolgswirksam sind alle Nicht-Geldkonten außer Eigenkapital
 			// (siehe Account::isResultRelevant()); Seite nach Kontonatur.
@@ -126,6 +169,10 @@ class ReportService {
 						'accounts' => [],
 					];
 				}
+			} elseif ($mode === 'manual') {
+				$manualKey = self::manualGroupKey($a->getCostCenterId(), $defined);
+				$code = $manualKey !== null ? $defined[$a->getCostCenterId()]->getCode() : null;
+				$key = $manualKey ?? '';
 			} else {
 				$code = self::costCode($a->getNumber());
 				$key = $code ?? '';
@@ -149,7 +196,10 @@ class ReportService {
 				$balCents = $debit - $credit;
 				$groups[$key]['expenseCents'] += $balCents;
 			}
-			if ($balCents !== 0 || $mode === 'account') {
+			// Im Modus 'group' interessieren nur bewegte Konten; wo die Zuordnung
+			// ausdrücklich ist ('account', 'manual'), gehören auch Konten ohne
+			// Bewegung sichtbar dazu.
+			if ($balCents !== 0 || $mode !== 'group') {
 				$groups[$key]['accounts'][] = [
 					'accountId' => $id,
 					'number' => $a->getNumber(),

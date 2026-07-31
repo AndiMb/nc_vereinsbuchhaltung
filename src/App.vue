@@ -142,6 +142,7 @@
 					:select-account="selectAccount"
 					:close-account-detail="closeAccountDetail"
 					:reload-statement="reloadStatement"
+					:reassign-booking="reassignBooking"
 					:open-new-account="openNewAccount"
 					:open-edit-account="openEditAccount"
 					:delete-account="deleteAccount"
@@ -233,6 +234,11 @@
 					@changed="onSpheresChanged"
 					@help="openHelp('spheres')" />
 
+				<SettingsCostCenters v-if="canWrite"
+					:mode="costCenterMode"
+					:ask-confirm="askConfirm"
+					@changed="onCostCentersChanged" />
+
 				<SettingsPermissions v-if="isAdmin"
 					:ask-confirm="askConfirm"
 					@help="openHelp('setup')" />
@@ -296,6 +302,7 @@
 		<AccountDialog :show="showAccount"
 			:account-edit-id="accountEditId"
 			:initial-form="newAccount"
+			:cost-center-mode="costCenterMode"
 			@update:show="showAccount = $event"
 			@close="closeAccount"
 			@save="saveAccount"
@@ -356,6 +363,7 @@ import api from './api.js'
 import { formatMoney, formatDate, formatDateTime, typeLabel, amountClass, budgetDiffClass, errMsg } from './lib/format.js'
 import SettingsRules from './components/SettingsRules.vue'
 import SettingsSpheres from './components/SettingsSpheres.vue'
+import SettingsCostCenters from './components/SettingsCostCenters.vue'
 import SettingsXbucImport from './components/SettingsXbucImport.vue'
 import SettingsPermissions from './components/SettingsPermissions.vue'
 import SettingsGeneral from './components/SettingsGeneral.vue'
@@ -380,6 +388,7 @@ import { useJournal } from './composables/useJournal.js'
 import { usePermissions } from './composables/usePermissions.js'
 import { useSync } from './composables/useSync.js'
 import { useOpenItems } from './composables/useOpenItems.js'
+import { useCostCenters } from './composables/useCostCenters.js'
 
 export default {
 	name: 'App',
@@ -391,6 +400,7 @@ export default {
 		NcModal,
 		SettingsRules,
 		SettingsSpheres,
+		SettingsCostCenters,
 		SettingsXbucImport,
 		SettingsPermissions,
 		SettingsGeneral,
@@ -417,8 +427,10 @@ export default {
 		const permissions = usePermissions()
 		const sync = useSync()
 		const openItems = useOpenItems()
+		const costCenters = useCostCenters()
 		return {
 			loadOpenItems: openItems.loadOpenItems,
+			loadCostCenters: costCenters.loadCostCenters,
 			...toRefs(auth.state),
 			canRead: auth.canRead,
 			canWrite: auth.canWrite,
@@ -790,6 +802,7 @@ export default {
 				this.loadClosedYears(),
 				this.loadSphereReport(),
 				this.loadOpenItems(),
+				this.loadCostCenters(),
 			])
 			// storage/demo-Status betrifft alle Leseberechtigten (Demo-Banner); Berechtigungsliste nur Verwalter (Backend-Gate)
 			this.loadStorageSettings()
@@ -871,7 +884,7 @@ export default {
 		async refreshAfterRemoteChange() {
 			this.ccBookings = {}
 			this.ccExpanded = {}
-			const jobs = [this.loadYears(), this.loadClosedYears(), this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions(), this.loadSphereReport(), this.loadOpenItems()]
+			const jobs = [this.loadYears(), this.loadClosedYears(), this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions(), this.loadSphereReport(), this.loadOpenItems(), this.loadCostCenters()]
 			if (this.activeTab === 'accounts' && this.selectedAccountId) jobs.push(this.loadStatement(this.selectedAccountId))
 			if (this.activeTab === 'reports') {
 				if (this.reportView === 'costcenters') jobs.push(this.loadReport())
@@ -1027,6 +1040,34 @@ export default {
 			await this.loadStatement(node.id)
 		},
 		async reloadStatement() { if (this.selectedAccountId) await this.loadStatement(this.selectedAccountId) },
+		/**
+		 * Kontoauszug: eine falsch zugeordnete Buchung an Ort und Stelle auf ein
+		 * anderes Konto umbuchen, ohne den Umweg über das Journal. Geändert wird
+		 * nur die Kontozuordnung einer Seite – Betrag, Datum und Gegenseite
+		 * bleiben, damit Soll und Haben nicht auseinanderlaufen koennen.
+		 *
+		 * @param {object} row Zeile des Kontoauszugs
+		 * @param {number} fromAccountId Konto, das die Buchung verlaesst
+		 * @param {number} toAccountId Zielkonto
+		 * @return {Promise<boolean>} true, wenn umgebucht wurde
+		 */
+		async reassignBooking(row, fromAccountId, toAccountId) {
+			if (!fromAccountId || !toAccountId || fromAccountId === toAccountId) return false
+			try {
+				await api.reassignBooking(row.journalId, fromAccountId, toAccountId, row.updatedAt)
+				showSuccess(`Buchung #${row.entryNo} auf ${this.accountLabel(toAccountId)} umgebucht.`)
+				await Promise.all([this.reloadStatement(), this.loadBalances(), this.loadJournal(), this.loadSphereReport()])
+				return true
+			} catch (e) {
+				if (e?.response?.status === 409) {
+					showError('Diese Buchung wurde zwischenzeitlich von einer anderen Person geändert. Die Ansicht wurde aktualisiert – bitte erneut versuchen.')
+					await this.reloadStatement()
+					return false
+				}
+				showError(this.errMsg(e, 'Umbuchen fehlgeschlagen'))
+				return false
+			}
+		},
 		async loadStatement(accountId) {
 			try { const { data } = await api.accountJournal(accountId, this.statementIncludeChildren, this.selectedYear); this.statement = data } catch (e) { showError(this.errMsg(e, 'Kontoauszug konnte nicht geladen werden')) }
 		},
@@ -1045,7 +1086,7 @@ export default {
 		// SettingsXbucImport.vue meldet einen erfolgreichen Import; die Nachlade-
 		// Orchestrierung über mehrere Composables + lokales imports bleibt hier.
 		async onXbucImported() {
-			await this.loadYears(); await this.loadAccounts(); await this.loadBalances(); await this.loadImports(); await this.loadJournal(); await this.loadTransactions()
+			await this.loadYears(); await this.loadAccounts(); await this.loadBalances(); await this.loadImports(); await this.loadJournal(); await this.loadTransactions(); await this.loadCostCenters()
 		},
 		async resetAll() {
 			if (!await this.askConfirm('Alle Daten löschen', 'Wirklich ALLE Konten, Buchungen und Importe löschen?')) return
@@ -1055,7 +1096,7 @@ export default {
 				this.selectedAccountId = null; this.statement = null; this.journalData = []; this.transactions = []
 				this.selectedYear = null
 				this.demoActive = false
-				await this.loadYears(); await this.loadAccounts(); await this.loadBalances(); await this.loadImports()
+				await this.loadYears(); await this.loadAccounts(); await this.loadBalances(); await this.loadImports(); await this.loadCostCenters()
 			} catch (e) { showError(this.errMsg(e, 'Zurücksetzen fehlgeschlagen')) } finally { this.busy = false }
 		},
 		// --- Beispieldaten (Onboarding) ---
@@ -1089,6 +1130,12 @@ export default {
 		// loadTransactions kommt aus setup() (useJournal).
 		async loadRules() { try { const { data } = await api.listRules(); this.rules = data } catch (e) { /* Regeln optional */ } },
 		async onSpheresChanged() { await this.loadAccounts(); await this.loadSphereReport() },
+		// Kostenstellen: die Zuordnung haengt am Konto, deshalb muessen die
+		// Konten mit nachgeladen werden; der Bericht nur, wenn er offen ist.
+		async onCostCentersChanged() {
+			await this.loadAccounts()
+			if (this.activeTab === 'reports' && this.reportView === 'costcenters') await this.loadReport()
+		},
 		async onAssign(tx, value) {
 			const prevContra = tx.contraAccountId
 			try {
@@ -1401,6 +1448,9 @@ export default {
 				// identifiziert genau ein Bankkonto und darf nicht an zwei
 				// Konten haengen.
 				iban: '',
+				// Kostenstelle dagegen schon: ein Unterkonto gehoert in aller
+				// Regel zum selben Projekt wie sein Ueberkonto.
+				costCenterId: parent ? (parent.costCenterId || null) : null,
 			}
 			this.showAccount = true
 		},
@@ -1416,6 +1466,7 @@ export default {
 				sphere: acc.sphere || '',
 				reserveKind: acc.reserveKind || '',
 				iban: acc.iban || '',
+				costCenterId: acc.costCenterId || null,
 			}
 			this.showAccount = true
 		},
@@ -1438,13 +1489,16 @@ export default {
 						// Leerstring statt null: der Controller verwirft null-Werte,
 						// eine geleerte IBAN wuerde sonst nicht geloescht.
 						iban: f.iban || '',
+						// 0 statt null aus demselben Grund: null hiesse
+						// "unveraendert", 0 loest die Zuordnung.
+						costCenterId: f.costCenterId || 0,
 					})
 				} else {
-					await api.createAccount({ ...f, parentId: f.parentId || null, sphere: f.sphere || null, reserveKind: f.reserveKind || null, iban: f.iban || null })
+					await api.createAccount({ ...f, parentId: f.parentId || null, sphere: f.sphere || null, reserveKind: f.reserveKind || null, iban: f.iban || null, costCenterId: f.costCenterId || null })
 				}
 				this.showAccount = false
 				this.accountEditId = null
-				this.newAccount = { number: '', name: '', type: 'income', category: '', isBank: false, parentId: null, sphere: '', reserveKind: '', iban: '' }
+				this.newAccount = { number: '', name: '', type: 'income', category: '', isBank: false, parentId: null, sphere: '', reserveKind: '', iban: '', costCenterId: null }
 				await this.loadAccounts(); await this.loadBalances(); await this.loadSphereReport()
 				showSuccess('Konto gespeichert.')
 			} catch (e) { showError(this.errMsg(e, 'Konto konnte nicht gespeichert werden')) }

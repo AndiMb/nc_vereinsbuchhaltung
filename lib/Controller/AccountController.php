@@ -48,9 +48,9 @@ class AccountController extends Controller {
 	}
 
 	#[NoAdminRequired]
-	public function create(string $number, string $name, string $type, ?string $category = null, bool $isBank = false, ?int $parentId = null, ?string $sphere = null, ?string $reserveKind = null, ?string $iban = null): DataResponse {
+	public function create(string $number, string $name, string $type, ?string $category = null, bool $isBank = false, ?int $parentId = null, ?string $sphere = null, ?string $reserveKind = null, ?string $iban = null, ?int $costCenterId = null): DataResponse {
 		try {
-			$account = $this->service->create($this->userId(), $number, $name, $type, $category, $isBank, $parentId, $sphere, $reserveKind, $iban);
+			$account = $this->service->create($this->userId(), $number, $name, $type, $category, $isBank, $parentId, $sphere, $reserveKind, $iban, $costCenterId);
 			return new DataResponse($account, Http::STATUS_CREATED);
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
@@ -63,9 +63,14 @@ class AccountController extends Controller {
 	 * @param string|null $sphere '' = nicht zugeordnet (löscht eine ggf. gesetzte Sphäre).
 	 * @param string|null $reserveKind '' = keine Rücklage (löscht eine ggf. gesetzte Rücklagen-Art).
 	 * @param string|null $iban '' = keine IBAN (löscht eine ggf. gesetzte).
+	 * @param int|null $costCenterId 0 = keine Kostenstelle (löst eine ggf.
+	 *        bestehende Zuordnung); nicht mitgesendet = unverändert. Anders als
+	 *        parentId hat dieses Feld keinen „immer mitsenden"-Zwang, damit
+	 *        Teil-Updates aus anderen Masken (z.B. Sphären-Zuordnung) eine
+	 *        Kostenstelle nicht stillschweigend entfernen.
 	 */
 	#[NoAdminRequired]
-	public function update(int $id, ?string $number = null, ?string $name = null, ?string $type = null, ?string $category = null, ?bool $isBank = null, ?bool $active = null, int $parentId = 0, ?string $sphere = null, ?string $reserveKind = null, ?string $iban = null): DataResponse {
+	public function update(int $id, ?string $number = null, ?string $name = null, ?string $type = null, ?string $category = null, ?bool $isBank = null, ?bool $active = null, int $parentId = 0, ?string $sphere = null, ?string $reserveKind = null, ?string $iban = null, ?int $costCenterId = null): DataResponse {
 		$data = array_filter([
 			'number' => $number,
 			'name' => $name,
@@ -76,6 +81,7 @@ class AccountController extends Controller {
 			'sphere' => $sphere,
 			'reserveKind' => $reserveKind,
 			'iban' => $iban,
+			'costCenterId' => $costCenterId,
 		], static fn ($v) => $v !== null);
 		// parentId immer übernehmen (0 = Wurzel), damit Umhängen/Lösen möglich ist.
 		$data['parentId'] = $parentId;

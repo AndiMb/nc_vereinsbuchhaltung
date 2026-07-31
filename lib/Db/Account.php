@@ -33,6 +33,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setReserveKind(?string $reserveKind)
  * @method string|null getIban()
  * @method void setIban(?string $iban)
+ * @method int|null getCostCenterId()
+ * @method void setCostCenterId(?int $costCenterId)
  */
 class Account extends Entity implements \JsonSerializable {
 	protected $userId;
@@ -49,6 +51,11 @@ class Account extends Entity implements \JsonSerializable {
 	protected $reserveKind;
 	/** IBAN des Geldkontos – ordnet importierte Bankumsätze diesem Konto zu. */
 	protected $iban;
+	/**
+	 * Frei vergebene Kostenstelle (vbh_costcenters.id) – nur im Kostenstellen-
+	 * Modus 'manual' ausgewertet, siehe ReportService::costCenterReport().
+	 */
+	protected $costCenterId;
 
 	/** Gültige Werte für die steuerliche Sphäre (Account::$sphere). */
 	public const SPHERES = ['ideell', 'vermoegensverwaltung', 'zweckbetrieb', 'wirtschaftlich'];
@@ -61,6 +68,7 @@ class Account extends Entity implements \JsonSerializable {
 		$this->addType('active', 'boolean');
 		$this->addType('openingBalanceCents', 'integer');
 		$this->addType('parentId', 'integer');
+		$this->addType('costCenterId', 'integer');
 	}
 
 	/**
@@ -118,6 +126,7 @@ class Account extends Entity implements \JsonSerializable {
 			'sphere' => $this->sphere,
 			'reserveKind' => $this->reserveKind,
 			'iban' => $this->iban,
+			'costCenterId' => $this->costCenterId,
 		];
 	}
 }
