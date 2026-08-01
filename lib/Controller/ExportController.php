@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Db\Account;
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
+use OCA\Vereinsbuchhaltung\Db\AccountNature;
 use OCA\Vereinsbuchhaltung\Db\AttachmentMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
@@ -16,6 +18,7 @@ use OCA\Vereinsbuchhaltung\Service\BrandingService;
 use OCA\Vereinsbuchhaltung\Service\CsvFormatter;
 use OCA\Vereinsbuchhaltung\Service\FiscalYear;
 use OCA\Vereinsbuchhaltung\Service\JournalService;
+use OCA\Vereinsbuchhaltung\Service\LedgerAggregator;
 use OCA\Vereinsbuchhaltung\Service\ReportService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -194,8 +197,6 @@ class ExportController extends Controller {
 		$moveSums = $this->lineMapper->sumByAccount($userId, $from, $to);
 		$balSums  = $from !== null ? $this->lineMapper->sumByAccount($userId, null, $to) : $moveSums;
 
-		// Wie JournalController::balances(): kumulativ nur Geldkonten (Bank/Kasse,
-		// siehe Account::isStockAccount()), alle anderen Konten jahresbezogen.
 		$typeLabel      = static fn (string $t): string => match ($t) {
 			'income'    => 'Einnahmen',
 			'expense'   => 'Ausgaben',
@@ -210,25 +211,15 @@ class ExportController extends Controller {
 		$csv .= $this->csvLine(['Nr.', 'Konto', 'Typ', 'Kategorie', 'Soll (EUR)', 'Haben (EUR)', 'Saldo (EUR)']);
 
 		foreach ($accounts as $account) {
-			$id     = $account->getId();
-			$type   = $account->getType();
-			$debit  = $moveSums[$id]['debit'] ?? 0;
-			$credit = $moveSums[$id]['credit'] ?? 0;
-			if ($account->isStockAccount()) {
-				$bd = $balSums[$id]['debit'] ?? 0;
-				$bc = $balSums[$id]['credit'] ?? 0;
-				$balance = $account->isCreditNature() ? $bc - $bd : $bd - $bc;
-			} else {
-				$balance = $account->isCreditNature() ? $credit - $debit : $debit - $credit;
-			}
+			$movement = LedgerAggregator::movement($account, $moveSums);
 			$csv .= $this->csvLine([
 				$account->getNumber(),
 				$account->getName(),
-				$typeLabel($type),
+				$typeLabel($account->getType()),
 				(string)$account->getCategory(),
-				$this->fmtMoney($debit / 100),
-				$this->fmtMoney($credit / 100),
-				$this->fmtMoney($balance / 100),
+				$this->fmtMoney($movement['debit'] / 100),
+				$this->fmtMoney($movement['credit'] / 100),
+				$this->fmtMoney(LedgerAggregator::listBalance($account, $moveSums, $balSums) / 100),
 			]);
 		}
 
@@ -251,48 +242,31 @@ class ExportController extends Controller {
 		$csv = "\xEF\xBB\xBF";
 		$csv .= $this->csvLine(['Typ', 'Nr.', 'Konto', 'Kategorie', 'Betrag (EUR)']);
 
-		$income = [];
-		$expense = [];
-		$totalIncome = 0;
-		$totalExpense = 0;
+		$erfolg = LedgerAggregator::incomeExpense($accounts, $moveSums);
 
-		// Erfolgswirksam sind alle Nicht-Geldkonten außer Eigenkapital; die Seite
-		// ergibt sich aus der Kontonatur (siehe Account::isResultRelevant()).
-		foreach ($accounts as $account) {
-			if (!$account->isResultRelevant()) {
+		// Konten ohne Bewegung bleiben weg; auf die Summen wirkt sich das nicht
+		// aus (sie steuern null bei), die Übersicht wird nur kürzer.
+		foreach ($erfolg['income'] as $row) {
+			if ($row['cents'] === 0) {
 				continue;
 			}
-			$id = $account->getId();
-			$d  = $moveSums[$id]['debit'] ?? 0;
-			$c  = $moveSums[$id]['credit'] ?? 0;
-			if ($account->isCreditNature()) {
-				$amount = $c - $d;
-				if ($amount !== 0) {
-					$income[]     = [$account->getNumber(), $account->getName(), (string)$account->getCategory(), $amount];
-					$totalIncome += $amount;
-				}
-			} else {
-				$amount = $d - $c;
-				if ($amount !== 0) {
-					$expense[]     = [$account->getNumber(), $account->getName(), (string)$account->getCategory(), $amount];
-					$totalExpense += $amount;
-				}
+			$account = $row['account'];
+			$csv .= $this->csvLine(['Einnahmen', $account->getNumber(), $account->getName(), (string)$account->getCategory(), $this->fmtMoney($row['cents'] / 100)]);
+		}
+		$csv .= $this->csvLine(['Einnahmen gesamt', '', '', '', $this->fmtMoney($erfolg['incomeCents'] / 100)]);
+		$csv .= $this->csvLine(['', '', '', '', '']);
+
+		foreach ($erfolg['expense'] as $row) {
+			if ($row['cents'] === 0) {
+				continue;
 			}
+			$account = $row['account'];
+			$csv .= $this->csvLine(['Ausgaben', $account->getNumber(), $account->getName(), (string)$account->getCategory(), $this->fmtMoney($row['cents'] / 100)]);
 		}
-
-		foreach ($income as [$nr, $name, $cat, $amount]) {
-			$csv .= $this->csvLine(['Einnahmen', $nr, $name, $cat, $this->fmtMoney($amount / 100)]);
-		}
-		$csv .= $this->csvLine(['Einnahmen gesamt', '', '', '', $this->fmtMoney($totalIncome / 100)]);
+		$csv .= $this->csvLine(['Ausgaben gesamt', '', '', '', $this->fmtMoney($erfolg['expenseCents'] / 100)]);
 		$csv .= $this->csvLine(['', '', '', '', '']);
 
-		foreach ($expense as [$nr, $name, $cat, $amount]) {
-			$csv .= $this->csvLine(['Ausgaben', $nr, $name, $cat, $this->fmtMoney($amount / 100)]);
-		}
-		$csv .= $this->csvLine(['Ausgaben gesamt', '', '', '', $this->fmtMoney($totalExpense / 100)]);
-		$csv .= $this->csvLine(['', '', '', '', '']);
-
-		$result = $totalIncome - $totalExpense;
+		$result = $erfolg['resultCents'];
 		$csv .= $this->csvLine(['Ergebnis', '', '', '', $this->fmtMoney($result / 100)]);
 
 		return new DataDownloadResponse($csv, "einnahmen_ausgaben_{$yearLabel}.csv", 'text/csv; charset=utf-8');
@@ -319,46 +293,30 @@ class ExportController extends Controller {
 
 		$typeLabel = static fn (string $t): string => $t === 'income' ? 'Einnahmen' : 'Ausgaben';
 
-		$rows = [];
-		$planIncome = 0; $actualIncome = 0;
-		$planExpense = 0; $actualExpense = 0;
-		foreach ($accounts as $account) {
-			$type = $account->getType();
-			if ($type !== 'income' && $type !== 'expense') {
-				continue;
-			}
-			$id     = $account->getId();
-			$debit  = $actualSums[$id]['debit'] ?? 0;
-			$credit = $actualSums[$id]['credit'] ?? 0;
-			$actualCents = $type === 'income' ? ($credit - $debit) : ($debit - $credit);
-			$planCents   = $plan[$id]['amount'] ?? 0;
-			$rows[] = [
-				'number'   => (string)$account->getNumber(),
-				'label'    => $typeLabel($type),
-				'name'     => (string)$account->getName(),
-				'category' => (string)$account->getCategory(),
-				'plan'     => $planCents,
-				'actual'   => $actualCents,
-				'diff'     => $actualCents - $planCents,
-				'note'     => $plan[$id]['note'] ?? '',
-			];
-			if ($type === 'income') {
-				$planIncome += $planCents; $actualIncome += $actualCents;
-			} else {
-				$planExpense += $planCents; $actualExpense += $actualCents;
-			}
-		}
+		$soll = LedgerAggregator::planActual($accounts, $actualSums, $plan);
+		$rows = $soll['rows'];
+		usort($rows, static fn ($a, $b) => strcmp(
+			(string)$a['account']->getNumber(),
+			(string)$b['account']->getNumber(),
+		));
 
-		usort($rows, static fn ($a, $b) => strcmp($a['number'], $b['number']));
+		$planIncome = $soll['planIncomeCents'];
+		$actualIncome = $soll['actualIncomeCents'];
+		$planExpense = $soll['planExpenseCents'];
+		$actualExpense = $soll['actualExpenseCents'];
 
 		$csv = "\xEF\xBB\xBF";
 		$csv .= $this->csvLine(['Typ', 'Nr.', 'Konto', 'Kategorie', 'Plan (EUR)', 'Ist (EUR)', 'Differenz (EUR)', 'Notiz']);
 		foreach ($rows as $r) {
+			$account = $r['account'];
 			$csv .= $this->csvLine([
-				$r['label'], $r['number'], $r['name'], $r['category'],
-				$this->fmtMoney($r['plan'] / 100),
-				$this->fmtMoney($r['actual'] / 100),
-				$this->fmtMoney($r['diff'] / 100),
+				$typeLabel($account->getType()),
+				(string)$account->getNumber(),
+				(string)$account->getName(),
+				(string)$account->getCategory(),
+				$this->fmtMoney($r['planCents'] / 100),
+				$this->fmtMoney($r['actualCents'] / 100),
+				$this->fmtMoney(($r['actualCents'] - $r['planCents']) / 100),
 				$r['note'],
 			]);
 		}
@@ -402,15 +360,14 @@ class ExportController extends Controller {
 		$byNumberSort = static fn ($a, $b) => strcmp((string)$a->getNumber(), (string)$b->getNumber());
 		usort($accounts, $byNumberSort);
 
-		// Vorzeichenbehafteter Jahreswert nach Kontonatur (Einnahme +, Ausgabe −).
-		// Erfolgswirksam sind ALLE Nicht-Geldkonten außer Eigenkapital (siehe
-		// Account::isResultRelevant()) – auch z.B. Durchlauf-/Übertragskonten
-		// erscheinen mit ihrer Netto-Jahresbewegung wie jedes andere Konto.
-		$yearValueCents = static function (array $sums, int $accId, bool $creditNature): int {
-			$debit = $sums[$accId]['debit'] ?? 0;
-			$credit = $sums[$accId]['credit'] ?? 0;
-			return $creditNature ? ($credit - $debit) : -($debit - $credit);
-		};
+		// Für die Matrix wird die Ausgabenseite negativ dargestellt, damit sich
+		// das Ergebnis je Spalte als schlichte Summe der Zellen ergibt. Der
+		// Betrag selbst kommt aus LedgerAggregator::net(); nur das Vorzeichen
+		// ist Darstellung.
+		$yearValueCents = static fn (AccountNature $account, array $sums): int
+			=> $account->isCreditNature()
+				? LedgerAggregator::net($account, $sums)
+				: -LedgerAggregator::net($account, $sums);
 
 		$header = array_merge([''], array_map(static fn ($y) => (string)$y, $years));
 
@@ -451,21 +408,11 @@ class ExportController extends Controller {
 		$wealthCells = ['Vermögen (31.12.)'];
 		foreach ($years as $y) {
 			$resultCells[] = $this->fmtMoney(($incomeTotals[$y] + $expenseTotals[$y]) / 100);
-			// Vermögen = kumulierte Bestände der Geldkonten (Bank/Kasse, debit-Natur).
+			// Vermögen = kumulierte Bestände der Geldkonten (Bank/Kasse).
 			// Da alle übrigen Konten außer Eigenkapital erfolgswirksam sind, gilt
 			// per doppelter Buchführung: Vermögen(J) = Vermögen(J−1) + Ergebnis(J)
 			// (abweichend nur in Jahren mit Eröffnungsbuchungen gegen Eigenkapital).
-			$wealthCents = 0;
-			foreach ($accounts as $a) {
-				if (!$a->isStockAccount()) {
-					continue;
-				}
-				$id = $a->getId();
-				$debit = $cumByYear[$y][$id]['debit'] ?? 0;
-				$credit = $cumByYear[$y][$id]['credit'] ?? 0;
-				$wealthCents += $debit - $credit;
-			}
-			$wealthCells[] = $this->fmtMoney($wealthCents / 100);
+			$wealthCells[] = $this->fmtMoney(LedgerAggregator::wealth($accounts, $cumByYear[$y]) / 100);
 		}
 		$csv .= $this->csvLine($resultCells);
 		$csv .= $this->csvLine(array_fill(0, count($years) + 1, ''));
@@ -542,17 +489,15 @@ class ExportController extends Controller {
 	 *
 	 * @param int[] $years
 	 * @param array<int, array<int, array{debit:int, credit:int}>> $movByYear
-	 * @param callable(array,int,bool):int $yearValueCents
+	 * @param callable(Account, array<int, array{debit:int, credit:int}>):int $yearValueCents
 	 * @param array<int,int> $totals
 	 * @return array{0:string, 1:bool}
 	 */
-	private function accountYearRow($account, array $years, array $movByYear, callable $yearValueCents, array &$totals): array {
-		$id = $account->getId();
-		$creditNature = $account->isCreditNature();
+	private function accountYearRow(Account $account, array $years, array $movByYear, callable $yearValueCents, array &$totals): array {
 		$cells = [trim($account->getNumber() . ' ' . $account->getName())];
 		$any = false;
 		foreach ($years as $y) {
-			$v = $yearValueCents($movByYear[$y], $id, $creditNature);
+			$v = $yearValueCents($account, $movByYear[$y]);
 			if ($v !== 0) {
 				$any = true;
 			}
@@ -576,6 +521,26 @@ class ExportController extends Controller {
 
 	private function esc(string $s): string {
 		return htmlspecialchars($s, ENT_QUOTES);
+	}
+
+	/**
+	 * Bringt die Zeilen aus {@see LedgerAggregator::incomeExpense()} in die
+	 * knappe Form [Nr., Name, Betrag], die die HTML-Berichte ausgeben – und
+	 * lässt dabei Konten ohne Bewegung weg. Auf die Summen wirkt sich das
+	 * nicht aus: sie steuern null bei.
+	 *
+	 * @param list<array{account:Account, cents:int}> $rows
+	 * @return list<array{0:string, 1:string, 2:int}>
+	 */
+	private static function withAmount(array $rows): array {
+		$out = [];
+		foreach ($rows as $row) {
+			if ($row['cents'] === 0) {
+				continue;
+			}
+			$out[] = [$row['account']->getNumber(), $row['account']->getName(), $row['cents']];
+		}
+		return $out;
 	}
 
 	/** Ist das Geschäftsjahr bereits festgeschrieben? */
@@ -728,78 +693,46 @@ class ExportController extends Controller {
 		$cumEnd = $this->lineMapper->sumByAccount($userId, null, $to);
 		$cumStart = $this->lineMapper->sumByAccount($userId, null, $prevTo);
 
-		// --- Einnahmen / Ausgaben (wie report()) ---
-		$income = [];
-		$expense = [];
-		$totalIncome = 0;
-		$totalExpense = 0;
-		foreach ($accounts as $account) {
-			if (!$account->isResultRelevant()) {
-				continue;
-			}
-			$id = $account->getId();
-			$d = $moveSums[$id]['debit'] ?? 0;
-			$c = $moveSums[$id]['credit'] ?? 0;
-			if ($account->isCreditNature()) {
-				$amount = $c - $d;
-				if ($amount !== 0) {
-					$income[] = [$account->getNumber(), $account->getName(), $amount];
-					$totalIncome += $amount;
-				}
-			} else {
-				$amount = $d - $c;
-				if ($amount !== 0) {
-					$expense[] = [$account->getNumber(), $account->getName(), $amount];
-					$totalExpense += $amount;
-				}
-			}
-		}
-		$result = $totalIncome - $totalExpense;
+		// --- Einnahmen / Ausgaben ---
+		$erfolg = LedgerAggregator::incomeExpense($accounts, $moveSums);
+		$income = self::withAmount($erfolg['income']);
+		$expense = self::withAmount($erfolg['expense']);
+		$totalIncome = $erfolg['incomeCents'];
+		$totalExpense = $erfolg['expenseCents'];
+		$result = $erfolg['resultCents'];
 
 		// --- Vermögensübersicht: Geldkonten (Bank/Kasse), Bestand kumulativ ---
-		$wealthRows = [];
-		$wealthStart = 0;
-		$wealthEnd = 0;
-		foreach ($accounts as $account) {
-			if (!$account->isStockAccount()) {
-				continue;
-			}
-			$id = $account->getId();
-			$start = ($cumStart[$id]['debit'] ?? 0) - ($cumStart[$id]['credit'] ?? 0);
-			$end = ($cumEnd[$id]['debit'] ?? 0) - ($cumEnd[$id]['credit'] ?? 0);
-			if ($start === 0 && $end === 0) {
-				continue;
-			}
-			$wealthRows[] = [$account->getNumber(), $account->getName(), $start, $end];
-			$wealthStart += $start;
-			$wealthEnd += $end;
-		}
+		$vermoegen = LedgerAggregator::wealthRows($accounts, $cumStart, $cumEnd);
+		$wealthRows = array_map(
+			static fn (array $r): array => [$r['account']->getNumber(), $r['account']->getName(), $r['start'], $r['end']],
+			$vermoegen['rows'],
+		);
+		$wealthStart = $vermoegen['startCents'];
+		$wealthEnd = $vermoegen['endCents'];
 
-		// --- Soll-Ist (nur wenn Planwerte existieren, wie budget()) ---
+		// --- Soll-Ist (nur wenn Planwerte existieren) ---
 		$plan = $this->budgetMapper->findByYear($userId, $year);
 		$planRows = [];
 		$planIncome = 0; $actualIncome = 0;
 		$planExpense = 0; $actualExpense = 0;
 		if ($plan !== []) {
-			foreach ($accounts as $account) {
-				$type = $account->getType();
-				if ($type !== 'income' && $type !== 'expense') {
+			$soll = LedgerAggregator::planActual($accounts, $moveSums, $plan);
+			$planIncome = $soll['planIncomeCents'];
+			$actualIncome = $soll['actualIncomeCents'];
+			$planExpense = $soll['planExpenseCents'];
+			$actualExpense = $soll['actualExpenseCents'];
+			foreach ($soll['rows'] as $r) {
+				// Konten ohne Plan und ohne Ist verlängern nur die Tabelle.
+				if ($r['planCents'] === 0 && $r['actualCents'] === 0) {
 					continue;
 				}
-				$id = $account->getId();
-				$d = $moveSums[$id]['debit'] ?? 0;
-				$c = $moveSums[$id]['credit'] ?? 0;
-				$actualCents = $type === 'income' ? ($c - $d) : ($d - $c);
-				$planCents = $plan[$id]['amount'] ?? 0;
-				if ($planCents === 0 && $actualCents === 0) {
-					continue;
-				}
-				$planRows[] = [$account->getNumber(), $account->getName(), $type, $planCents, $actualCents];
-				if ($type === 'income') {
-					$planIncome += $planCents; $actualIncome += $actualCents;
-				} else {
-					$planExpense += $planCents; $actualExpense += $actualCents;
-				}
+				$planRows[] = [
+					$r['account']->getNumber(),
+					$r['account']->getName(),
+					$r['account']->getType(),
+					$r['planCents'],
+					$r['actualCents'],
+				];
 			}
 			usort($planRows, static fn ($a, $b) => strcmp((string)$a[0], (string)$b[0]));
 		}
@@ -1004,51 +937,21 @@ class ExportController extends Controller {
 		$cumEnd = $this->lineMapper->sumByAccount($userId, null, $today);
 
 		// --- Kontostände (Geldkonten) ---
-		$wealthRows = [];
-		$wealthStart = 0;
-		$wealthEnd = 0;
-		foreach ($accounts as $account) {
-			if (!$account->isStockAccount()) {
-				continue;
-			}
-			$id = $account->getId();
-			$start = ($cumStart[$id]['debit'] ?? 0) - ($cumStart[$id]['credit'] ?? 0);
-			$end = ($cumEnd[$id]['debit'] ?? 0) - ($cumEnd[$id]['credit'] ?? 0);
-			if ($start === 0 && $end === 0) {
-				continue;
-			}
-			$wealthRows[] = [$account->getNumber(), $account->getName(), $start, $end];
-			$wealthStart += $start;
-			$wealthEnd += $end;
-		}
+		$vermoegen = LedgerAggregator::wealthRows($accounts, $cumStart, $cumEnd);
+		$wealthRows = array_map(
+			static fn (array $r): array => [$r['account']->getNumber(), $r['account']->getName(), $r['start'], $r['end']],
+			$vermoegen['rows'],
+		);
+		$wealthStart = $vermoegen['startCents'];
+		$wealthEnd = $vermoegen['endCents'];
 
 		// --- Bewegungen seit dem Stichtag ---
-		$income = [];
-		$expense = [];
-		$totalIncome = 0;
-		$totalExpense = 0;
-		foreach ($accounts as $account) {
-			if (!$account->isResultRelevant()) {
-				continue;
-			}
-			$id = $account->getId();
-			$d = $moveSums[$id]['debit'] ?? 0;
-			$c = $moveSums[$id]['credit'] ?? 0;
-			if ($account->isCreditNature()) {
-				$amount = $c - $d;
-				if ($amount !== 0) {
-					$income[] = [$account->getNumber(), $account->getName(), $amount];
-					$totalIncome += $amount;
-				}
-			} else {
-				$amount = $d - $c;
-				if ($amount !== 0) {
-					$expense[] = [$account->getNumber(), $account->getName(), $amount];
-					$totalExpense += $amount;
-				}
-			}
-		}
-		$result = $totalIncome - $totalExpense;
+		$erfolg = LedgerAggregator::incomeExpense($accounts, $moveSums);
+		$income = self::withAmount($erfolg['income']);
+		$expense = self::withAmount($erfolg['expense']);
+		$totalIncome = $erfolg['incomeCents'];
+		$totalExpense = $erfolg['expenseCents'];
+		$result = $erfolg['resultCents'];
 
 		// --- Finanzplan des laufenden Jahres, nur die Summenzeile (kein Kurzbericht mehr, wenn hier die volle Tabelle steht) ---
 		$currentYear = (int)date('Y');
@@ -1056,22 +959,11 @@ class ExportController extends Controller {
 		$planIncome = 0; $planExpense = 0; $actualIncome = 0; $actualExpense = 0;
 		if ($plan !== []) {
 			$yearMoveSums = $this->lineMapper->sumByAccount($userId, FiscalYear::start($currentYear), $today);
-			foreach ($accounts as $account) {
-				$type = $account->getType();
-				if ($type !== 'income' && $type !== 'expense') {
-					continue;
-				}
-				$id = $account->getId();
-				$d = $yearMoveSums[$id]['debit'] ?? 0;
-				$c = $yearMoveSums[$id]['credit'] ?? 0;
-				$actualCents = $type === 'income' ? ($c - $d) : ($d - $c);
-				$planCents = $plan[$id]['amount'] ?? 0;
-				if ($type === 'income') {
-					$planIncome += $planCents; $actualIncome += $actualCents;
-				} else {
-					$planExpense += $planCents; $actualExpense += $actualCents;
-				}
-			}
+			$soll = LedgerAggregator::planActual($accounts, $yearMoveSums, $plan);
+			$planIncome = $soll['planIncomeCents'];
+			$actualIncome = $soll['actualIncomeCents'];
+			$planExpense = $soll['planExpenseCents'];
+			$actualExpense = $soll['actualExpenseCents'];
 		}
 
 		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '');

@@ -36,7 +36,7 @@ use OCP\AppFramework\Db\Entity;
  * @method int|null getCostCenterId()
  * @method void setCostCenterId(?int $costCenterId)
  */
-class Account extends Entity implements \JsonSerializable {
+class Account extends Entity implements \JsonSerializable, AccountNature {
 	protected $userId;
 	protected $number;
 	protected $name;
@@ -72,6 +72,14 @@ class Account extends Entity implements \JsonSerializable {
 	}
 
 	/**
+	 * Ausdrueckliche Methode statt des geerbten __call-Getters: nur so laesst
+	 * sich die ID in {@see AccountNature} zusagen. Der Wert ist derselbe.
+	 */
+	public function getId(): int {
+		return (int)$this->id;
+	}
+
+	/**
 	 * Bestandskonto: kumuliert seinen Saldo ueber Jahresgrenzen (Kontostand,
 	 * Saldovortrag, Teil des Vermoegens). Das sind ausschliesslich die
 	 * Geldkonten (Bank/Kasse, isBank). Alle anderen Konten – auch Aktiv-/
@@ -100,6 +108,17 @@ class Account extends Entity implements \JsonSerializable {
 	 */
 	public function isResultRelevant(): bool {
 		return !$this->isStockAccount() && $this->type !== 'equity';
+	}
+
+	/**
+	 * Kommt im Finanzplan vor.
+	 *
+	 * Enger gefasst als isResultRelevant(): geplant werden echte Einnahmen und
+	 * Ausgaben. Ein Durchlauf- oder Uebertragskonto ist zwar erfolgswirksam,
+	 * hat aber keinen Planwert und stuende nur als Nullzeile im Soll-Ist.
+	 */
+	public function isBudgetable(): bool {
+		return $this->type === 'income' || $this->type === 'expense';
 	}
 
 	/**

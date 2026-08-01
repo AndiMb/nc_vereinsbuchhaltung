@@ -12,6 +12,7 @@ use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Exception\ConflictException;
 use OCA\Vereinsbuchhaltung\Service\JournalService;
+use OCA\Vereinsbuchhaltung\Service\LedgerAggregator;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
@@ -85,56 +86,27 @@ class JournalController extends Controller {
 		// Bestandssummen (Bestandskonten = kumulativ bis Jahresende = Kontostand).
 		$balSums = $from !== null ? $this->lineMapper->sumByAccount($userId, null, $to) : $moveSums;
 
-		// Kumulativ (Kontostand) ausschließlich Geldkonten (Bank/Kasse, siehe
-		// Account::isStockAccount()); alle anderen Konten – auch sonstige Aktiv-/
-		// Passivkonten und Eigenkapital – werden jahresbezogen gezeigt.
-
 		$rows = [];
 		foreach ($accounts as $account) {
-			$id = $account->getId();
-			$type = $account->getType();
-			// Bewegung im Zeitraum (Spalten Soll/Haben).
-			$debit = $moveSums[$id]['debit'] ?? 0;
-			$credit = $moveSums[$id]['credit'] ?? 0;
-			// Saldo: Bestandskonten kumulativ (Kontostand), sonst = Bewegung.
-			if ($account->isStockAccount()) {
-				$bd = $balSums[$id]['debit'] ?? 0;
-				$bc = $balSums[$id]['credit'] ?? 0;
-				$balance = $account->isCreditNature() ? $bc - $bd : $bd - $bc;
-			} else {
-				$balance = $account->isCreditNature() ? $credit - $debit : $debit - $credit;
-			}
+			// Spalten Soll/Haben zeigen immer die Bewegung des Zeitraums; der
+			// Saldo dagegen bei Geldkonten den Kontostand (siehe
+			// LedgerAggregator::listBalance()).
+			$movement = LedgerAggregator::movement($account, $moveSums);
 			$rows[] = [
-				'accountId' => $id,
+				'accountId' => $account->getId(),
 				'number' => $account->getNumber(),
 				'name' => $account->getName(),
-				'type' => $type,
+				'type' => $account->getType(),
 				'category' => $account->getCategory(),
-				'debit' => $debit / 100,
-				'credit' => $credit / 100,
-				'balance' => $balance / 100,
+				'debit' => $movement['debit'] / 100,
+				'credit' => $movement['credit'] / 100,
+				'balance' => LedgerAggregator::listBalance($account, $moveSums, $balSums) / 100,
 			];
 		}
 
-		// Ergebnis: Einnahmen/Ausgaben aus den Bewegungen des Zeitraums.
-		// Erfolgswirksam sind alle Nicht-Geldkonten außer Eigenkapital (siehe
-		// Account::isResultRelevant()); die Seite ergibt sich aus der Kontonatur.
-		// Damit gilt: Änderung des Vermögens (Bank/Kasse) = Ergebnis.
-		$income = 0;
-		$expense = 0;
-		foreach ($accounts as $account) {
-			if (!$account->isResultRelevant()) {
-				continue;
-			}
-			$id = $account->getId();
-			$d = $moveSums[$id]['debit'] ?? 0;
-			$c = $moveSums[$id]['credit'] ?? 0;
-			if ($account->isCreditNature()) {
-				$income += ($c - $d);
-			} else {
-				$expense += ($d - $c);
-			}
-		}
+		// Ergebnis aus den Bewegungen des Zeitraums. Damit gilt: Änderung des
+		// Vermögens (Bank/Kasse) = Ergebnis.
+		$result = LedgerAggregator::incomeExpense($accounts, $moveSums);
 
 		// --- Bank-Abstimmung ---------------------------------------------
 		// Kontostand = kumulativer Saldo (inkl. Eröffnung) bis Jahresende.
@@ -154,13 +126,12 @@ class JournalController extends Controller {
 				continue;
 			}
 			$id = $account->getId();
-			$balance = ($balSums[$id]['debit'] ?? 0) - ($balSums[$id]['credit'] ?? 0);
 			$open = ($id === $defaultBankId) ? $openUnassigned : 0;
 			$bankReconciliation[] = [
 				'accountId' => $id,
 				'number' => $account->getNumber(),
 				'name' => $account->getName(),
-				'balance' => $balance / 100,
+				'balance' => LedgerAggregator::stock($account, $balSums) / 100,
 				'open' => $open / 100,
 			];
 		}
@@ -169,9 +140,9 @@ class JournalController extends Controller {
 			'year' => $year,
 			'accounts' => $rows,
 			'totals' => [
-				'income' => $income / 100,
-				'expense' => $expense / 100,
-				'result' => ($income - $expense) / 100,
+				'income' => $result['incomeCents'] / 100,
+				'expense' => $result['expenseCents'] / 100,
+				'result' => $result['resultCents'] / 100,
 			],
 			'bankReconciliation' => $bankReconciliation,
 		]);

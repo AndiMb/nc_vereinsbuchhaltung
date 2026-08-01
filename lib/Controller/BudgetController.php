@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Service\BudgetSnapshotService;
 use OCA\Vereinsbuchhaltung\Service\FiscalYear;
+use OCA\Vereinsbuchhaltung\Service\LedgerAggregator;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -44,39 +45,22 @@ class BudgetController extends Controller {
 		$plan = $this->budgetMapper->findByYear($userId, $year);
 		$actualSums = $this->lineMapper->sumByAccount($userId, $from, $to);
 
+		$plan = LedgerAggregator::planActual($accounts, $actualSums, $plan);
+
 		$rows = [];
-		$totals = [
-			'planIncome' => 0, 'actualIncome' => 0,
-			'planExpense' => 0, 'actualExpense' => 0,
-		];
-		foreach ($accounts as $account) {
-			$type = $account->getType();
-			if ($type !== 'income' && $type !== 'expense') {
-				continue;
-			}
-			$id = $account->getId();
-			$debit = $actualSums[$id]['debit'] ?? 0;
-			$credit = $actualSums[$id]['credit'] ?? 0;
-			$actualCents = $type === 'income' ? ($credit - $debit) : ($debit - $credit);
-			$planCents = $plan[$id]['amount'] ?? 0;
+		foreach ($plan['rows'] as $row) {
+			$account = $row['account'];
 			$rows[] = [
-				'accountId' => $id,
+				'accountId' => $account->getId(),
 				'number' => $account->getNumber(),
 				'name' => $account->getName(),
-				'type' => $type,
+				'type' => $account->getType(),
 				'category' => $account->getCategory(),
-				'plan' => $planCents / 100,
-				'note' => $plan[$id]['note'] ?? '',
-				'actual' => $actualCents / 100,
-				'diff' => ($actualCents - $planCents) / 100,
+				'plan' => $row['planCents'] / 100,
+				'note' => $row['note'],
+				'actual' => $row['actualCents'] / 100,
+				'diff' => ($row['actualCents'] - $row['planCents']) / 100,
 			];
-			if ($type === 'income') {
-				$totals['planIncome'] += $planCents;
-				$totals['actualIncome'] += $actualCents;
-			} else {
-				$totals['planExpense'] += $planCents;
-				$totals['actualExpense'] += $actualCents;
-			}
 		}
 
 		usort($rows, static fn ($a, $b) => strcmp((string)$a['number'], (string)$b['number']));
@@ -85,12 +69,12 @@ class BudgetController extends Controller {
 			'year' => $year,
 			'rows' => $rows,
 			'totals' => [
-				'planIncome' => $totals['planIncome'] / 100,
-				'actualIncome' => $totals['actualIncome'] / 100,
-				'planExpense' => $totals['planExpense'] / 100,
-				'actualExpense' => $totals['actualExpense'] / 100,
-				'planResult' => ($totals['planIncome'] - $totals['planExpense']) / 100,
-				'actualResult' => ($totals['actualIncome'] - $totals['actualExpense']) / 100,
+				'planIncome' => $plan['planIncomeCents'] / 100,
+				'actualIncome' => $plan['actualIncomeCents'] / 100,
+				'planExpense' => $plan['planExpenseCents'] / 100,
+				'actualExpense' => $plan['actualExpenseCents'] / 100,
+				'planResult' => ($plan['planIncomeCents'] - $plan['planExpenseCents']) / 100,
+				'actualResult' => ($plan['actualIncomeCents'] - $plan['actualExpenseCents']) / 100,
 			],
 		]);
 	}

@@ -187,13 +187,10 @@ class ReportService {
 				];
 			}
 			$id = $a->getId();
-			$debit = $sums[$id]['debit'] ?? 0;
-			$credit = $sums[$id]['credit'] ?? 0;
+			$balCents = LedgerAggregator::net($a, $sums);
 			if ($a->isCreditNature()) {
-				$balCents = $credit - $debit;
 				$groups[$key]['incomeCents'] += $balCents;
 			} else {
-				$balCents = $debit - $credit;
 				$groups[$key]['expenseCents'] += $balCents;
 			}
 			// Im Modus 'group' interessieren nur bewegte Konten; wo die Zuordnung
@@ -281,13 +278,10 @@ class ReportService {
 			}
 			$key = $a->getSphere() ?? '';
 			$id = $a->getId();
-			$debit = $sums[$id]['debit'] ?? 0;
-			$credit = $sums[$id]['credit'] ?? 0;
+			$balCents = LedgerAggregator::net($a, $sums);
 			if ($a->isCreditNature()) {
-				$balCents = $credit - $debit;
 				$groups[$key]['incomeCents'] += $balCents;
 			} else {
-				$balCents = $debit - $credit;
 				$groups[$key]['expenseCents'] += $balCents;
 			}
 			if ($balCents !== 0) {
@@ -372,10 +366,8 @@ class ReportService {
 				continue;
 			}
 			$id = $a->getId();
-			$debit = $sums[$id]['debit'] ?? 0;
-			$credit = $sums[$id]['credit'] ?? 0;
-			// Eigenkapital ist Haben-Natur.
-			$balCents = $credit - $debit;
+			// Eigenkapital ist Haben-Natur, der Saldo also Haben − Soll.
+			$balCents = LedgerAggregator::net($a, $sums);
 			$groups[$kind]['balanceCents'] += $balCents;
 			$groups[$kind]['accounts'][] = [
 				'accountId' => $id,
@@ -406,9 +398,7 @@ class ReportService {
 
 	/**
 	 * Einnahmen/Ausgaben/Ergebnis je Jahr, für ein Mehrjahres-Trend-Diagramm
-	 * (Sitzungspräsentation). Bewusst eine eigene, schlanke Methode statt
-	 * Wiederverwendung von ExportController::multiyear() – die CSV-Methode
-	 * bleibt unangetastet, um deren Regressionsrisiko nicht zu erhöhen.
+	 * (Sitzungspräsentation).
 	 *
 	 * @return array{years: array<int, array{year:int,income:float,expense:float,result:float}>}
 	 */
@@ -420,26 +410,12 @@ class ReportService {
 		$rows = [];
 		foreach ($years as $y) {
 			$sums = $this->lineMapper->sumByAccount($userId, FiscalYear::start($y), FiscalYear::end($y));
-			$incomeCents = 0;
-			$expenseCents = 0;
-			foreach ($accounts as $a) {
-				if (!$a->isResultRelevant()) {
-					continue;
-				}
-				$id = $a->getId();
-				$debit = $sums[$id]['debit'] ?? 0;
-				$credit = $sums[$id]['credit'] ?? 0;
-				if ($a->isCreditNature()) {
-					$incomeCents += $credit - $debit;
-				} else {
-					$expenseCents += $debit - $credit;
-				}
-			}
+			$result = LedgerAggregator::incomeExpense($accounts, $sums);
 			$rows[] = [
 				'year' => $y,
-				'income' => $incomeCents / 100,
-				'expense' => $expenseCents / 100,
-				'result' => ($incomeCents - $expenseCents) / 100,
+				'income' => $result['incomeCents'] / 100,
+				'expense' => $result['expenseCents'] / 100,
+				'result' => $result['resultCents'] / 100,
 			];
 		}
 
