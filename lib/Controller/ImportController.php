@@ -18,7 +18,6 @@ use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IRequest;
-use OCP\IUserSession;
 
 class ImportController extends Controller {
 
@@ -28,7 +27,6 @@ class ImportController extends Controller {
 		private XbucImportService $xbucService,
 		private ResetService $resetService,
 		private ImportLogMapper $importMapper,
-		private IUserSession $userSession,
 		private PermissionService $permissionService,
 		private AuditService $audit,
 		private DemoDataService $demoService,

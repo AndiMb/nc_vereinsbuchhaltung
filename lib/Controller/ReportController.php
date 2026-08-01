@@ -12,7 +12,6 @@ use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IRequest;
-use OCP\IUserSession;
 
 class ReportController extends Controller {
 
@@ -20,7 +19,6 @@ class ReportController extends Controller {
 		IRequest $request,
 		private ReportService $reportService,
 		private CostCenterMapper $costCenterMapper,
-		private IUserSession $userSession,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}

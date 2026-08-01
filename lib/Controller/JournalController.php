@@ -18,7 +18,6 @@ use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IRequest;
-use OCP\IUserSession;
 
 class JournalController extends Controller {
 
@@ -30,7 +29,6 @@ class JournalController extends Controller {
 		private BankTransactionMapper $txMapper,
 		private BudgetMapper $budgetMapper,
 		private JournalService $journalService,
-		private IUserSession $userSession,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}

@@ -13,14 +13,12 @@ use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IRequest;
-use OCP\IUserSession;
 
 class RuleController extends Controller {
 
 	public function __construct(
 		IRequest $request,
 		private RuleMapper $mapper,
-		private IUserSession $userSession,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}

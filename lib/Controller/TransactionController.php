@@ -13,7 +13,6 @@ use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IRequest;
-use OCP\IUserSession;
 
 class TransactionController extends Controller {
 
@@ -21,7 +20,6 @@ class TransactionController extends Controller {
 		IRequest $request,
 		private BankTransactionMapper $txMapper,
 		private BookingService $bookingService,
-		private IUserSession $userSession,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
