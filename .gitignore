@@ -7,10 +7,10 @@
 .phpunit.cache/
 .phpunit.result.cache
 # Stubs fuer die statische Analyse (Nextcloud-Server-Schnittstellen, PHPUnit).
-# Die composer.json dort ist versioniert, das installierte vendor/ nicht -
-# sonst laege Fremdcode im Release-Tarball.
+# composer.json und .lock dort sind versioniert - die Analyse soll auf jeder
+# Maschine dieselben Stubs sehen. Das installierte vendor/ nicht: sonst laege
+# Fremdcode im Repository und (ohne den rsync-Ausschluss) im Release-Tarball.
 /.phpstan/vendor/
-/.phpstan/composer.lock
 .phpstan-cache/
 # Rohmaterial fuer das README-Video u.ae. gehoert nicht ins Repo
 *.mp3

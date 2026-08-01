@@ -10,6 +10,48 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
 
 ## [Unreleased]
 
+## [0.16.0] – 2026-08-01
+
+Diese Version bringt kaum sichtbare Neuerungen: sie räumt den Programmcode auf
+und sichert ihn gegen Fehler ab, die bisher niemand bemerkt hätte. Ein solcher
+Fehler kam dabei ans Licht – und er betraf ausgerechnet die Kassenprüfung.
+
+### Behoben
+- **Der Beleg-Export als ZIP brach ab, sobald ein Beleg im Zeitraum lag.** Die
+  Funktion rief eine Methode auf, die es in PHP gar nicht gibt
+  (`ZipArchive::addStream`); der Download endete mit einem Serverfehler statt
+  mit einem Archiv. Betroffen war genau die Funktion, die eine Kassenprüfung
+  braucht, um alle Belege eines Jahres auf einmal zu bekommen. Die Belege
+  werden jetzt blockweise ins Archiv geschrieben – der Speicherbedarf bleibt
+  wie vorgesehen niedrig, auch bei einem Jahr voller PDFs.
+- **Der Kassenbericht ignorierte die dunkle Darstellung.** Wer ihn bei dunklem
+  Systemdesign öffnete, bekam schwarze Schrift auf weißem Grund in einem sonst
+  dunklen Fenster – der Kurzbericht konnte es längst. Beide Berichte teilen
+  sich jetzt dieselbe Gestaltung. Am Ausdruck ändert sich nichts.
+- **Beispieldaten konnten halb angelegt liegenbleiben.** Fehlte ein Konto des
+  Standard-Kontenrahmens, brach das Anlegen mitten in den Buchungen ab. Jetzt
+  meldet die App vorher, welches Konto fehlt.
+
+### Geändert
+- **Die Rechenregeln aller Auswertungen liegen jetzt an einer Stelle.** Die
+  Frage, welches Konto mit welchem Vorzeichen ins Ergebnis eingeht, war an acht
+  Stellen einzeln ausgeschrieben – in den Exporten, in der Saldenliste und in
+  den Berichten. Eine Änderung daran musste bisher überall nachgezogen werden.
+  An den Zahlen ändert sich nichts; sie sind jetzt nur an einer Stelle
+  festgelegt und erstmals automatisiert geprüft.
+- **Der Sortier-Vergleich der Tabellen war dreifach vorhanden** und ist es nun
+  einmal. Sortierung und Sicherheitsabfragen sind damit in allen Ansichten
+  garantiert gleich.
+
+### Technisch
+- Statische Analyse (PHPStan, Stufe 5) läuft jetzt bei jeder Änderung mit und
+  fand die drei oben genannten Fehler.
+- Der 1149 Zeilen lange `ExportController` ist in Dienste aufgeteilt: CSV,
+  Beleg-Archiv und die druckfertigen Berichte je für sich, der Controller
+  behält nur die Auslieferung (158 Zeilen).
+- Frontend-Unit-Tests (Vitest) für die Rechen- und Anzeigehelfer; der
+  Testbestand wächst von 118 auf 210 Tests.
+
 ## [0.15.0] – 2026-07-31
 
 ### Behoben
@@ -326,7 +368,8 @@ Ergebnis eines Code-Reviews. Schwerpunkt: Datenintegrität der Buchführung.
   frei definierbarer Kontenrahmen, doppelte Buchführung (Soll/Haben, Journal),
   Zuordnung von Bankbuchungen und optionale Auto-Zuordnungsregeln
 
-[Unreleased]: https://github.com/AndiMb/nc_vereinsbuchhaltung/compare/v0.15.0...HEAD
+[Unreleased]: https://github.com/AndiMb/nc_vereinsbuchhaltung/compare/v0.16.0...HEAD
+[0.16.0]: https://github.com/AndiMb/nc_vereinsbuchhaltung/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/AndiMb/nc_vereinsbuchhaltung/compare/87e535b...v0.15.0
 [0.14.0]: https://github.com/AndiMb/nc_vereinsbuchhaltung/compare/v0.13.0...87e535b
 [0.13.0]: https://github.com/AndiMb/nc_vereinsbuchhaltung/compare/v0.12.0...v0.13.0
