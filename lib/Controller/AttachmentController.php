@@ -24,6 +24,8 @@ use OCP\IRequest;
 
 class AttachmentController extends Controller {
 
+	use BookContext;
+
 	private const ALLOWED_MIMES = [
 		'image/jpeg',
 		'image/png',
@@ -43,10 +45,6 @@ class AttachmentController extends Controller {
 		private AuditService $audit,
 	) {
 		parent::__construct(Application::APP_ID, $request);
-	}
-
-	private function userId(): string {
-		return Application::BOOK;
 	}
 
 	#[NoAdminRequired]

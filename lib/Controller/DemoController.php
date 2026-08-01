@@ -17,6 +17,8 @@ use OCP\IRequest;
 
 class DemoController extends Controller {
 
+	use BookContext;
+
 	public function __construct(
 		IRequest $request,
 		private DemoDataService $demoService,
@@ -24,10 +26,6 @@ class DemoController extends Controller {
 		private AuditService $audit,
 	) {
 		parent::__construct(Application::APP_ID, $request);
-	}
-
-	private function userId(): string {
-		return Application::BOOK;
 	}
 
 	/** Legt den Beispielverein an – nur Verwalter, nur wenn noch keine Konten existieren. */

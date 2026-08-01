@@ -21,6 +21,8 @@ use OCP\IRequest;
 
 class ImportController extends Controller {
 
+	use BookContext;
+
 	public function __construct(
 		IRequest $request,
 		private ImportService $importService,
@@ -32,10 +34,6 @@ class ImportController extends Controller {
 		private DemoDataService $demoService,
 	) {
 		parent::__construct(Application::APP_ID, $request);
-	}
-
-	private function userId(): string {
-		return Application::BOOK;
 	}
 
 	/**

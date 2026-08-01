@@ -17,6 +17,8 @@ use OCP\IRequest;
 
 class AccountController extends Controller {
 
+	use BookContext;
+
 	public function __construct(
 		IRequest $request,
 		private AccountService $service,
@@ -24,11 +26,6 @@ class AccountController extends Controller {
 		private AuditService $audit,
 	) {
 		parent::__construct(Application::APP_ID, $request);
-	}
-
-	private function userId(): string {
-		// Gemeinsamer Datenbestand des Vereins; Zugriff regelt die Rechteprüfung.
-		return Application::BOOK;
 	}
 
 	#[NoAdminRequired]

@@ -16,16 +16,14 @@ use OCP\IRequest;
 
 class TransactionController extends Controller {
 
+	use BookContext;
+
 	public function __construct(
 		IRequest $request,
 		private BankTransactionMapper $txMapper,
 		private BookingService $bookingService,
 	) {
 		parent::__construct(Application::APP_ID, $request);
-	}
-
-	private function userId(): string {
-		return Application::BOOK;
 	}
 
 	#[NoAdminRequired]

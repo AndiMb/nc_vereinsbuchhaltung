@@ -230,7 +230,7 @@ class XbucImportService {
 			$expectedCents = $accountOnDebit ? $b['amountCents'] : -$b['amountCents'];
 
 			$bookingYear = $year ?? (int)substr((string)$b['date'], 0, 4);
-			$priorTo = sprintf('%04d-12-31', $bookingYear - 1);
+			$priorTo = FiscalYear::end($bookingYear - 1);
 
 			$entry = [
 				'index' => $idx,
@@ -276,8 +276,8 @@ class XbucImportService {
 		if ($year === null) {
 			return [];
 		}
-		$from = sprintf('%04d-01-01', $year);
-		$to = sprintf('%04d-12-31', $year);
+		$from = FiscalYear::start($year);
+		$to = FiscalYear::end($year);
 		return array_values(array_filter($bookings, static fn ($b) => $b['date'] < $from || $b['date'] > $to));
 	}
 
@@ -311,8 +311,8 @@ class XbucImportService {
 		$outsideCount = count($this->findOutsideYear($data['bookings'], $year));
 		$clamped = 0;
 		if ($clampDates && $year !== null && $outsideCount > 0) {
-			$from = sprintf('%04d-01-01', $year);
-			$to = sprintf('%04d-12-31', $year);
+			$from = FiscalYear::start($year);
+			$to = FiscalYear::end($year);
 			foreach ($data['bookings'] as &$booking) {
 				if ($booking['date'] < $from) {
 					$booking['date'] = $from;
@@ -366,7 +366,7 @@ class XbucImportService {
 				$touchedYears[$year + 1] = true;
 			}
 			foreach (array_keys($touchedYears) as $y) {
-				$this->yearCloseService->assertOpen(sprintf('%04d-01-01', $y));
+				$this->yearCloseService->assertOpen(FiscalYear::start($y));
 			}
 		}
 

@@ -117,8 +117,8 @@ class ReportService {
 		$from = null;
 		$to = null;
 		if ($year !== null && $year > 0) {
-			$from = sprintf('%04d-01-01', $year);
-			$to = sprintf('%04d-12-31', $year);
+			$from = FiscalYear::start($year);
+			$to = FiscalYear::end($year);
 		}
 		$sums = $this->lineMapper->sumByAccount($userId, $from, $to);
 		$mode = $this->costCenterMode();
@@ -257,8 +257,8 @@ class ReportService {
 		$from = null;
 		$to = null;
 		if ($year !== null && $year > 0) {
-			$from = sprintf('%04d-01-01', $year);
-			$to = sprintf('%04d-12-31', $year);
+			$from = FiscalYear::start($year);
+			$to = FiscalYear::end($year);
 		}
 		$sums = $this->lineMapper->sumByAccount($userId, $from, $to);
 
@@ -419,7 +419,7 @@ class ReportService {
 
 		$rows = [];
 		foreach ($years as $y) {
-			$sums = $this->lineMapper->sumByAccount($userId, sprintf('%04d-01-01', $y), sprintf('%04d-12-31', $y));
+			$sums = $this->lineMapper->sumByAccount($userId, FiscalYear::start($y), FiscalYear::end($y));
 			$incomeCents = 0;
 			$expenseCents = 0;
 			foreach ($accounts as $a) {

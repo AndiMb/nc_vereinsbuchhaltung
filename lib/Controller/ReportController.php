@@ -15,16 +15,14 @@ use OCP\IRequest;
 
 class ReportController extends Controller {
 
+	use BookContext;
+
 	public function __construct(
 		IRequest $request,
 		private ReportService $reportService,
 		private CostCenterMapper $costCenterMapper,
 	) {
 		parent::__construct(Application::APP_ID, $request);
-	}
-
-	private function userId(): string {
-		return Application::BOOK;
 	}
 
 	#[NoAdminRequired]

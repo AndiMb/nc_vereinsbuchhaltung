@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Service\BudgetSnapshotService;
+use OCA\Vereinsbuchhaltung\Service\FiscalYear;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -16,6 +17,8 @@ use OCP\AppFramework\Http\DataResponse;
 use OCP\IRequest;
 
 class BudgetController extends Controller {
+
+	use BookContext;
 
 	public function __construct(
 		IRequest $request,
@@ -27,19 +30,15 @@ class BudgetController extends Controller {
 		parent::__construct(Application::APP_ID, $request);
 	}
 
-	private function userId(): string {
-		return Application::BOOK;
-	}
-
 	/**
 	 * Finanzplan eines Jahres: je Erfolgskonto Plan (Soll) und Ist sowie Differenz.
 	 */
 	#[NoAdminRequired]
 	public function index(?int $year = null): DataResponse {
-		$year = ($year === null || $year <= 0) ? (int)date('Y') : $year;
+		$year = FiscalYear::orCurrent($year);
 		$userId = $this->userId();
-		$from = sprintf('%04d-01-01', $year);
-		$to = sprintf('%04d-12-31', $year);
+		$from = FiscalYear::start($year);
+		$to = FiscalYear::end($year);
 
 		$accounts = $this->accountMapper->findAll($userId);
 		$plan = $this->budgetMapper->findByYear($userId, $year);
@@ -113,7 +112,7 @@ class BudgetController extends Controller {
 	 */
 	#[NoAdminRequired]
 	public function snapshots(?int $year = null): DataResponse {
-		$year = ($year === null || $year <= 0) ? (int)date('Y') : $year;
+		$year = FiscalYear::orCurrent($year);
 		return new DataResponse($this->snapshotService->listForYear($this->userId(), $year));
 	}
 

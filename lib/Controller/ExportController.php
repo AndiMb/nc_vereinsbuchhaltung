@@ -14,6 +14,7 @@ use OCA\Vereinsbuchhaltung\Db\YearCloseMapper;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\BrandingService;
 use OCA\Vereinsbuchhaltung\Service\CsvFormatter;
+use OCA\Vereinsbuchhaltung\Service\FiscalYear;
 use OCA\Vereinsbuchhaltung\Service\JournalService;
 use OCA\Vereinsbuchhaltung\Service\ReportService;
 use OCP\AppFramework\Controller;
@@ -38,6 +39,8 @@ use OCP\IURLGenerator;
  * Die Session-Authentifizierung bleibt aktiv.
  */
 class ExportController extends Controller {
+
+	use BookContext;
 
 	/**
 	 * Antwort für die druckfertigen HTML-Ansichten.
@@ -82,18 +85,6 @@ class ExportController extends Controller {
 		private IURLGenerator $urlGenerator,
 	) {
 		parent::__construct(Application::APP_ID, $request);
-	}
-
-	private function userId(): string {
-		return Application::BOOK;
-	}
-
-	/** @return array{0: ?string, 1: ?string} */
-	private function yearRange(?int $year): array {
-		if ($year === null || $year <= 0) {
-			return [null, null];
-		}
-		return [sprintf('%04d-01-01', $year), sprintf('%04d-12-31', $year)];
 	}
 
 	private function fmtMoney(float $eur): string {
@@ -203,7 +194,6 @@ class ExportController extends Controller {
 		$moveSums = $this->lineMapper->sumByAccount($userId, $from, $to);
 		$balSums  = $from !== null ? $this->lineMapper->sumByAccount($userId, null, $to) : $moveSums;
 
-		$isCreditNature = static fn (string $t): bool => in_array($t, ['income', 'liability', 'equity'], true);
 		// Wie JournalController::balances(): kumulativ nur Geldkonten (Bank/Kasse,
 		// siehe Account::isStockAccount()), alle anderen Konten jahresbezogen.
 		$typeLabel      = static fn (string $t): string => match ($t) {
@@ -227,9 +217,9 @@ class ExportController extends Controller {
 			if ($account->isStockAccount()) {
 				$bd = $balSums[$id]['debit'] ?? 0;
 				$bc = $balSums[$id]['credit'] ?? 0;
-				$balance = $isCreditNature($type) ? $bc - $bd : $bd - $bc;
+				$balance = $account->isCreditNature() ? $bc - $bd : $bd - $bc;
 			} else {
-				$balance = $isCreditNature($type) ? $credit - $debit : $debit - $credit;
+				$balance = $account->isCreditNature() ? $credit - $debit : $debit - $credit;
 			}
 			$csv .= $this->csvLine([
 				$account->getNumber(),
@@ -319,9 +309,9 @@ class ExportController extends Controller {
 	#[NoCSRFRequired]
 	public function budget(?int $year = null): DataDownloadResponse {
 		$userId = $this->userId();
-		$year = ($year === null || $year <= 0) ? (int)date('Y') : $year;
-		$from = sprintf('%04d-01-01', $year);
-		$to   = sprintf('%04d-12-31', $year);
+		$year = FiscalYear::orCurrent($year);
+		$from = FiscalYear::start($year);
+		$to   = FiscalYear::end($year);
 
 		$accounts   = $this->accountMapper->findAll($userId);
 		$plan       = $this->budgetMapper->findByYear($userId, $year);
@@ -405,8 +395,8 @@ class ExportController extends Controller {
 		$movByYear = [];
 		$cumByYear = [];
 		foreach ($years as $y) {
-			$movByYear[$y] = $this->lineMapper->sumByAccount($userId, sprintf('%04d-01-01', $y), sprintf('%04d-12-31', $y));
-			$cumByYear[$y] = $this->lineMapper->sumByAccount($userId, null, sprintf('%04d-12-31', $y));
+			$movByYear[$y] = $this->lineMapper->sumByAccount($userId, FiscalYear::start($y), FiscalYear::end($y));
+			$cumByYear[$y] = $this->lineMapper->sumByAccount($userId, null, FiscalYear::end($y));
 		}
 
 		$byNumberSort = static fn ($a, $b) => strcmp((string)$a->getNumber(), (string)$b->getNumber());
@@ -701,10 +691,10 @@ class ExportController extends Controller {
 	#[NoCSRFRequired]
 	public function kassenbericht(?int $year = null): DataDisplayResponse {
 		$userId = $this->userId();
-		$year = ($year === null || $year <= 0) ? (int)date('Y') : $year;
-		$from = sprintf('%04d-01-01', $year);
-		$to = sprintf('%04d-12-31', $year);
-		$prevTo = sprintf('%04d-12-31', $year - 1);
+		$year = FiscalYear::orCurrent($year);
+		$from = FiscalYear::start($year);
+		$to = FiscalYear::end($year);
+		$prevTo = FiscalYear::end($year - 1);
 
 		$accounts = $this->accountMapper->findAll($userId);
 		$moveSums = $this->lineMapper->sumByAccount($userId, $from, $to);
@@ -977,7 +967,7 @@ class ExportController extends Controller {
 		$userId = $this->userId();
 		$today = date('Y-m-d');
 		if ($since === null || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $since) || $since >= $today) {
-			$since = sprintf('%04d-01-01', (int)date('Y'));
+			$since = FiscalYear::start((int)date('Y'));
 		}
 		$beforeSince = date('Y-m-d', strtotime($since . ' -1 day'));
 
@@ -1038,7 +1028,7 @@ class ExportController extends Controller {
 		$plan = $this->budgetMapper->findByYear($userId, $currentYear);
 		$planIncome = 0; $planExpense = 0; $actualIncome = 0; $actualExpense = 0;
 		if ($plan !== []) {
-			$yearMoveSums = $this->lineMapper->sumByAccount($userId, sprintf('%04d-01-01', $currentYear), $today);
+			$yearMoveSums = $this->lineMapper->sumByAccount($userId, FiscalYear::start($currentYear), $today);
 			foreach ($accounts as $account) {
 				$type = $account->getType();
 				if ($type !== 'income' && $type !== 'expense') {

@@ -21,6 +21,8 @@ use OCP\IRequest;
 
 class JournalController extends Controller {
 
+	use BookContext;
+
 	public function __construct(
 		IRequest $request,
 		private JournalMapper $journalMapper,
@@ -31,23 +33,6 @@ class JournalController extends Controller {
 		private JournalService $journalService,
 	) {
 		parent::__construct(Application::APP_ID, $request);
-	}
-
-	private function userId(): string {
-		return Application::BOOK;
-	}
-
-	/**
-	 * Datumsgrenzen für ein Geschäftsjahr (= Kalenderjahr) oder [null, null]
-	 * für „alle Jahre".
-	 *
-	 * @return array{0: ?string, 1: ?string}
-	 */
-	private function yearRange(?int $year): array {
-		if ($year === null || $year <= 0) {
-			return [null, null];
-		}
-		return [sprintf('%04d-01-01', $year), sprintf('%04d-12-31', $year)];
 	}
 
 	/** Geschäftsjahre mit Buchungen oder Planwerten (+ laufendes Jahr). */
@@ -100,7 +85,6 @@ class JournalController extends Controller {
 		// Bestandssummen (Bestandskonten = kumulativ bis Jahresende = Kontostand).
 		$balSums = $from !== null ? $this->lineMapper->sumByAccount($userId, null, $to) : $moveSums;
 
-		$isCreditNature = static fn (string $t): bool => in_array($t, ['income', 'liability', 'equity'], true);
 		// Kumulativ (Kontostand) ausschließlich Geldkonten (Bank/Kasse, siehe
 		// Account::isStockAccount()); alle anderen Konten – auch sonstige Aktiv-/
 		// Passivkonten und Eigenkapital – werden jahresbezogen gezeigt.
@@ -116,9 +100,9 @@ class JournalController extends Controller {
 			if ($account->isStockAccount()) {
 				$bd = $balSums[$id]['debit'] ?? 0;
 				$bc = $balSums[$id]['credit'] ?? 0;
-				$balance = $isCreditNature($type) ? $bc - $bd : $bd - $bc;
+				$balance = $account->isCreditNature() ? $bc - $bd : $bd - $bc;
 			} else {
-				$balance = $isCreditNature($type) ? $credit - $debit : $debit - $credit;
+				$balance = $account->isCreditNature() ? $credit - $debit : $debit - $credit;
 			}
 			$rows[] = [
 				'accountId' => $id,
@@ -478,7 +462,6 @@ class JournalController extends Controller {
 		});
 
 		$account = $this->accountMapper->find($id, $userId);
-		$isCreditNature = in_array($account->getType(), ['income', 'liability', 'equity'], true);
 
 		// Saldovortrag nur bei aktivem Jahresfilter; beigetragen haben oben ohnehin
 		// nur Zeilen von Geldkonten (debit-Natur), daher Soll − Haben.
@@ -486,7 +469,7 @@ class JournalController extends Controller {
 		if ($from !== null) {
 			$carryCents = $carryDebit - $carryCredit;
 		}
-		$periodNet = $isCreditNature ? ($sumCredit - $sumDebit) : ($sumDebit - $sumCredit);
+		$periodNet = $account->isCreditNature() ? ($sumCredit - $sumDebit) : ($sumDebit - $sumCredit);
 		$balanceCents = $carryCents + $periodNet;
 
 		return new DataResponse([

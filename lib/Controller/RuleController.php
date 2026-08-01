@@ -16,15 +16,13 @@ use OCP\IRequest;
 
 class RuleController extends Controller {
 
+	use BookContext;
+
 	public function __construct(
 		IRequest $request,
 		private RuleMapper $mapper,
 	) {
 		parent::__construct(Application::APP_ID, $request);
-	}
-
-	private function userId(): string {
-		return Application::BOOK;
 	}
 
 	#[NoAdminRequired]

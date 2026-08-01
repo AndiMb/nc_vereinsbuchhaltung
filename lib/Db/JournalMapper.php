@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Db;
 
+use OCA\Vereinsbuchhaltung\Service\FiscalYear;
 use OCA\Vereinsbuchhaltung\Service\Statement\RowNormalizer;
 use OCP\AppFramework\Db\QBMapper;
 use OCP\DB\QueryBuilder\IQueryBuilder;
@@ -131,8 +132,8 @@ class JournalMapper extends QBMapper {
 		if (count($accountIds) === 0) {
 			return [];
 		}
-		$from = sprintf('%04d-01-01', $year);
-		$to = sprintf('%04d-12-31', $year);
+		$from = FiscalYear::start($year);
+		$to = FiscalYear::end($year);
 		$ids = [];
 		foreach (array_chunk($accountIds, 500) as $chunk) {
 			$qb = $this->db->getQueryBuilder();
