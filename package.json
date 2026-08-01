@@ -8,7 +8,8 @@
 		"build": "webpack --node-env production --progress",
 		"dev": "webpack --node-env development --progress",
 		"watch": "webpack --node-env development --progress --watch",
-		"lint": "eslint --ext .js,.vue src/"
+		"lint": "eslint --ext .js,.vue src/",
+		"test": "vitest run"
 	},
 	"dependencies": {
 		"@mdi/js": "^7.4.47",
@@ -26,6 +27,7 @@
 		"@nextcloud/browserslist-config": "^3.0.1",
 		"@nextcloud/eslint-config": "^8.4.1",
 		"@nextcloud/webpack-vue-config": "^6.2.0",
+		"vitest": "^4.1.10",
 		"vue-loader": "^15.11.1",
 		"vue-template-compiler": "^2.7.16"
 	},

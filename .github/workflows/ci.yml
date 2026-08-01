@@ -28,6 +28,12 @@ jobs:
       - name: ESLint
         run: npm run lint
 
+      - name: Unit-Tests (Vitest)
+        # Deckt die zustandslosen Module unter src/lib ab. Der Rest des
+        # Frontends braucht eine laufende Nextcloud-Instanz und gehoert in
+        # Integrationstests - genau wie im Backend, siehe phpunit.xml.
+        run: npm test
+
       - name: Produktions-Build
         # Faengt fehlende Abhaengigkeiten ab, die lokal nur zufaellig ueber
         # node_modules eines anderen Pakets aufloesen.
