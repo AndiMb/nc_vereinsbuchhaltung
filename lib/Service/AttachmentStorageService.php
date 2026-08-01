@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\Attachment;
 use OCA\Vereinsbuchhaltung\Db\AttachmentMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCP\Files\AppData\IAppDataFactory;
+use OCP\Files\File;
 use OCP\Files\Folder;
 use OCP\Files\IRootFolder;
 use OCP\IConfig;
@@ -104,6 +105,24 @@ class AttachmentStorageService {
 		return $current;
 	}
 
+	/**
+	 * Die Beleg-Datei unter einem Namen im Nextcloud-Dateibaum.
+	 *
+	 * Folder::get() liefert einen Node – das kann auch ein Ordner sein. Nur eine
+	 * File hat getContent()/putContent(). Liegt an der Stelle etwas anderes, ist
+	 * die Ablage nicht so aufgebaut, wie diese Klasse sie anlegt; dann lieber
+	 * eine verständliche Meldung als ein Aufruf ins Leere.
+	 *
+	 * @throws \RuntimeException wenn dort keine Datei liegt
+	 */
+	private function ncFile(Folder $folder, string $name): File {
+		$node = $folder->get($name);
+		if (!$node instanceof File) {
+			throw new \RuntimeException(sprintf('In der Belegablage liegt unter "%s" keine Datei.', $name));
+		}
+		return $node;
+	}
+
 	private function getNcFolder(int $journalId): Folder {
 		$userFolder = $this->rootFolder->getUserFolder($this->storageUser());
 		return $this->ensureFolder($userFolder, $this->storagePath() . '/' . $journalId);
@@ -122,7 +141,7 @@ class AttachmentStorageService {
 			$folder = $this->getNcFolder($journalId);
 			$name = $this->ncFileName($id, $fileName);
 			if ($folder->nodeExists($name)) {
-				$folder->get($name)->putContent($content);
+				$this->ncFile($folder, $name)->putContent($content);
 			} else {
 				$file = $folder->newFile($name);
 				$file->putContent($content);
@@ -138,7 +157,7 @@ class AttachmentStorageService {
 		if ($this->isNcMode()) {
 			$folder = $this->getNcFolder($journalId);
 			$name = $this->ncFileName($id, $fileName);
-			return $folder->get($name)->getContent();
+			return $this->ncFile($folder, $name)->getContent();
 		} else {
 			$folder = $this->appDataFolder();
 			return $folder->getFile((string)$id)->getContent();

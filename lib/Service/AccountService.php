@@ -380,7 +380,7 @@ class AccountService {
 				$def['number'],
 				$def['name'],
 				$def['type'],
-				$def['category'] ?? null,
+				$def['category'],
 				$def['isBank'] ?? false,
 				null,
 				$def['sphere'] ?? null,

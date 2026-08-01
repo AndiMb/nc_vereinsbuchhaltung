@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCP\Files\File;
 use OCP\Files\Folder;
 use OCP\Files\IRootFolder;
 use OCP\Files\Node;
@@ -121,8 +122,14 @@ class WatchFolderService {
 	private function handle(Folder $folder, Node $node): array {
 		$name = $node->getName();
 		try {
+			// Nur eine File hat getContent(). Ein Unterordner im Wachordner ist
+			// kein Kontoauszug und wird wie eine unlesbare Datei behandelt,
+			// statt den ganzen Durchlauf mit einem Fehler abzubrechen.
+			if (!$node instanceof File) {
+				throw new \RuntimeException('Kein Kontoauszug, sondern ein Ordner.');
+			}
 			$content = $node->getContent();
-			if (!is_string($content) || $content === '') {
+			if ($content === '') {
 				throw new \RuntimeException('Die Datei ist leer.');
 			}
 

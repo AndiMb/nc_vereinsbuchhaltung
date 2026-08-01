@@ -61,6 +61,30 @@ jobs:
         # Klassen per PSR-4 direkt aus lib/ (siehe Kommentar dort).
         run: phpunit --configuration phpunit.xml
 
+  static-analysis:
+    name: PHPStan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          # Die niedrigste unterstuetzte Version: was hier durchgeht, laeuft
+          # auch auf den neueren. .phpstan/composer.json setzt dieselbe Plattform.
+          php-version: '8.1'
+          tools: composer, phpstan
+          coverage: none
+
+      - name: Analyse-Stubs holen
+        # Nextcloud-Server-Schnittstellen (OCP\*) und PHPUnit als eigenes
+        # composer-Projekt unter .phpstan/ - ausserhalb der composer.json der
+        # App, damit deren Abhaengigkeitsliste leer bleibt und kein Fremdcode
+        # ins Release-Tarball geraet.
+        run: composer install --working-dir=.phpstan --no-interaction --no-progress
+
+      - name: PHPStan
+        run: phpstan analyse --no-progress
+
   appinfo:
     name: info.xml gegen App-Store-Schema
     runs-on: ubuntu-latest

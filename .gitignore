@@ -6,6 +6,12 @@
 .DS_Store
 .phpunit.cache/
 .phpunit.result.cache
+# Stubs fuer die statische Analyse (Nextcloud-Server-Schnittstellen, PHPUnit).
+# Die composer.json dort ist versioniert, das installierte vendor/ nicht -
+# sonst laege Fremdcode im Release-Tarball.
+/.phpstan/vendor/
+/.phpstan/composer.lock
+.phpstan-cache/
 # Rohmaterial fuer das README-Video u.ae. gehoert nicht ins Repo
 *.mp3
 # Lokales Composer-Binary - nicht versionieren

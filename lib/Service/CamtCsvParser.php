@@ -39,8 +39,10 @@ class CamtCsvParser implements StatementParser {
 	 * Kopfzeile mit erkennbaren Pflichtspalten genügt.
 	 */
 	public function supports(string $content): bool {
+		// strtok() überspringt führende Trennzeichen und liefert deshalb
+		// entweder false (nichts als Trennzeichen) oder eine nicht-leere Zeile.
 		$firstLine = strtok(ltrim($content, "\xEF\xBB\xBF"), "\r\n");
-		if ($firstLine === false || $firstLine === '') {
+		if ($firstLine === false) {
 			return false;
 		}
 		$map = $this->mapHeader(str_getcsv($firstLine, $this->detectDelimiter($firstLine), '"', '\\'));

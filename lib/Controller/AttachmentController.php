@@ -132,7 +132,7 @@ class AttachmentController extends Controller {
 		}
 		try {
 			$content = $this->storageService->getFileContent($id, $attachment->getJournalId(), $attachment->getFileName());
-		} catch (NotFoundException|\Throwable) {
+		} catch (\Throwable) {
 			return new DataResponse(['message' => 'Datei nicht gefunden'], Http::STATUS_NOT_FOUND);
 		}
 		$response = new DataDownloadResponse($content, $attachment->getFileName(), $attachment->getMimeType());
@@ -156,7 +156,7 @@ class AttachmentController extends Controller {
 
 		try {
 			$content = $this->storageService->getFileContent($id, $attachment->getJournalId(), $attachment->getFileName());
-		} catch (NotFoundException|\Throwable) {
+		} catch (\Throwable) {
 			return new DataResponse(['message' => 'Datei nicht gefunden'], Http::STATUS_NOT_FOUND);
 		}
 

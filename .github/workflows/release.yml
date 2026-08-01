@@ -94,6 +94,8 @@ jobs:
             --exclude='webpack.config.js' \
             --exclude='phpunit.xml' \
             --exclude='.phpunit.cache' \
+            --exclude='phpstan.neon' \
+            --exclude='.phpstan' \
             --exclude='package.json' \
             --exclude='package-lock.json' \
             --exclude='*.map' \

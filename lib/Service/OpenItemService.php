@@ -60,6 +60,7 @@ class OpenItemService {
 	 * @param int|null $journalId optionale Verknüpfung mit der Buchung, die den
 	 *        Posten bezahlt hat
 	 * @throws \InvalidArgumentException wenn es diese Buchung nicht gibt
+	 * @throws DoesNotExistException wenn es den offenen Posten nicht gibt
 	 */
 	public function markPaid(int $id, ?int $journalId): OpenItem {
 		$item = $this->mapper->find($id);

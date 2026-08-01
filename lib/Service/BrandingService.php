@@ -56,7 +56,7 @@ class BrandingService {
 		}
 		try {
 			$content = $this->folder()->getFile(self::FILE)->getContent();
-		} catch (NotFoundException|\Throwable) {
+		} catch (\Throwable) {
 			return null;
 		}
 		return ['content' => $content, 'mimeType' => $mime];
@@ -81,7 +81,7 @@ class BrandingService {
 	public function deleteLogo(): void {
 		try {
 			$this->folder()->getFile(self::FILE)->delete();
-		} catch (NotFoundException|\Throwable) {
+		} catch (\Throwable) {
 			// schon weg – ignorieren
 		}
 		$this->config->deleteAppValue(Application::APP_ID, 'brand_logo_mime');

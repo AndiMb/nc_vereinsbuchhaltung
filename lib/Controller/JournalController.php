@@ -235,11 +235,12 @@ class JournalController extends Controller {
 	 * mehr auf.
 	 *
 	 * @param array $raw Zeilen aus der Anfrage: [{accountId, debit, credit}, …], Beträge in Euro
-	 * @param array<int, array{accountId:int, debitCents:int, creditCents:int}>|null $lines
-	 *        Ausgabe: die geprüften Zeilen in Cent
+	 * @param array<int, array{accountId:int, debitCents:int, creditCents:int}> $lines
+	 *        Ausgabe: die geprüften Zeilen in Cent (bei einem Fehler die bis
+	 *        dahin umgewandelten – der Aufrufer wertet sie dann nicht aus)
 	 * @return string|null Fehlermeldung oder null, wenn alles in Ordnung ist
 	 */
-	private function parseLines(array $raw, ?array &$lines): ?string {
+	private function parseLines(array $raw, array &$lines): ?string {
 		$lines = [];
 		foreach ($raw as $entry) {
 			if (!is_array($entry)) {
@@ -318,8 +319,11 @@ class JournalController extends Controller {
 	 */
 	private function prepareLines(string $date, int $debitAccountId, int $creditAccountId, float $amount, array $rawLines): array {
 		if ($rawLines !== []) {
+			// Vorbelegt, weil parseLines() bei einem Datumsfehler gar nicht
+			// erst aufgerufen wird (?? kürzt ab) und $lines dann ungesetzt bliebe.
+			$lines = [];
 			$error = $this->validateDate($date) ?? $this->parseLines($rawLines, $lines);
-			return [$error, $lines ?? []];
+			return [$error, $lines];
 		}
 		$cents = (int)round($amount * 100);
 		$error = $this->validateBooking($date, $cents, $debitAccountId, $creditAccountId);

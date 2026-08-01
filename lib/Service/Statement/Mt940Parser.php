@@ -70,9 +70,6 @@ class Mt940Parser implements StatementParser {
 
 		$out = [];
 		foreach ($rows as $raw) {
-			if ($raw === null) {
-				continue;
-			}
 			$row = $this->normalizer->build($raw);
 			if ($row !== null) {
 				$out[] = $row;

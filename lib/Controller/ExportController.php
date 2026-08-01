@@ -599,6 +599,48 @@ class ExportController extends Controller {
 	}
 
 	/**
+	 * Schreibt einen Beleg in eine lokale Temp-Datei und gibt deren Pfad zurück.
+	 *
+	 * Der Umweg über die Platte ist Absicht. Der Beleg liegt je nach
+	 * Einstellung im Nextcloud-Dateibaum eines Nutzers und ist damit nicht
+	 * zwingend eine lokale Datei, die ZipArchive::addFile() öffnen könnte.
+	 * Ihn stattdessen mit getContent() in eine Variable zu holen, brächte
+	 * genau das memory_limit-Problem zurück, das der Streaming-Ansatz
+	 * vermeiden sollte: ein Jahr voller PDFs (bis 20 MB je Beleg) sprengt den
+	 * Speicher – ausgerechnet in der Funktion, die die Kassenprüfung braucht.
+	 * stream_copy_to_stream() kopiert blockweise und hält nie mehr als einen
+	 * Puffer im Speicher.
+	 *
+	 * Die Temp-Dateien müssen bis zum ZipArchive::close() bestehen bleiben –
+	 * erst dort liest ZipArchive die per addFile() angemeldeten Dateien. Der
+	 * ITempManager räumt sie am Ende der Anfrage ab.
+	 *
+	 * @throws \RuntimeException wenn der Beleg nicht lesbar ist
+	 */
+	private function spoolToTempFile(int $id, int $journalId, string $fileName): string {
+		$source = $this->storageService->getFileStream($id, $journalId, $fileName);
+		try {
+			$target = $this->tempManager->getTemporaryFile('.beleg');
+			$sink = fopen($target, 'wb');
+			if ($sink === false) {
+				throw new \RuntimeException('Zwischendatei für den Beleg konnte nicht angelegt werden.');
+			}
+			try {
+				if (stream_copy_to_stream($source, $sink) === false) {
+					throw new \RuntimeException('Beleg konnte nicht gelesen werden.');
+				}
+			} finally {
+				fclose($sink);
+			}
+		} finally {
+			if (is_resource($source)) {
+				fclose($source);
+			}
+		}
+		return $target;
+	}
+
+	/**
 	 * Alle Belege eines Geschäftsjahres als ZIP – für die Kassenprüfung.
 	 * Ordner je Buchung: "NNNN_Datum_Beschreibung/<BelegID>_<Dateiname>".
 	 * Nicht auffindbare Dateien brechen den Export nicht ab, sondern werden
@@ -619,8 +661,6 @@ class ExportController extends Controller {
 
 		$count = 0;
 		$problems = [];
-		/** @var list<resource> $openStreams bis zum close() offen zu haltende Dateiströme */
-		$openStreams = [];
 		$journals = $this->journalMapper->findAll($userId, 100000, 0, $from, $to);
 		// Belegliste gebündelt laden statt je Buchung.
 		$attsByJournal = $this->attachmentMapper->findByJournals(array_map(
@@ -641,21 +681,13 @@ class ExportController extends Controller {
 			foreach ($atts as $att) {
 				$entryName = $folder . '/' . $att->getId() . '_' . $this->zipName($att->getFileName(), 100);
 				try {
-					// Belegweise als Datenstrom in das Archiv geben, statt den
-					// Inhalt vorher komplett in eine Variable zu laden. Bei
-					// einem Jahr voller PDFs (bis 20 MB je Beleg) lief der
-					// Export sonst gegen das memory_limit - ausgerechnet die
-					// Funktion, die die Kassenprüfung braucht.
-					$stream = $this->storageService->getFileStream($att->getId(), $att->getJournalId(), $att->getFileName());
+					$localPath = $this->spoolToTempFile($att->getId(), $att->getJournalId(), $att->getFileName());
 				} catch (\Throwable) {
 					$problems[] = sprintf('Buchung #%s (%s): Datei "%s" (Beleg %d) nicht gefunden.',
 						(string)($journal->getEntryNo() ?? '?'), (string)$journal->getDate(), $att->getFileName(), $att->getId());
 					continue;
 				}
-				$zip->addStream($stream, $entryName);
-				// ZipArchive liest den Strom erst beim close() aus, deshalb
-				// bleiben die Handles bis dahin offen.
-				$openStreams[] = $stream;
+				$zip->addFile($localPath, $entryName);
 				$count++;
 			}
 		}
@@ -667,11 +699,6 @@ class ExportController extends Controller {
 			$zip->addFromString('fehlende_dateien.txt', implode("\n", $problems) . "\n");
 		}
 		$zip->close();
-		foreach ($openStreams as $stream) {
-			if (is_resource($stream)) {
-				fclose($stream);
-			}
-		}
 
 		// Die fertige Datei ausliefern, ohne sie noch einmal komplett in den
 		// Speicher zu lesen. Der Temp-Ordner wird von Nextcloud aufgeräumt.

@@ -358,7 +358,7 @@ class JournalService {
 		if ($move === []) {
 			throw new \InvalidArgumentException('Diese Buchung hat keine Zeile auf dem angegebenen Konto.');
 		}
-		if ($move !== [] && !$stays) {
+		if (!$stays) {
 			// Alle Zeilen lägen auf demselben Konto – dann gäbe es keine
 			// Gegenseite mehr. Kommt nur bei kaputten Altdaten vor.
 			throw new \InvalidArgumentException('Diese Buchung hat keine Gegenseite und kann nicht umgebucht werden.');
