@@ -782,6 +782,8 @@ import { useAuth } from '../composables/useAuth.js'
 import { useYears } from '../composables/useYears.js'
 import { useAccounts } from '../composables/useAccounts.js'
 import { useBalances } from '../composables/useBalances.js'
+import { useConfirm } from '../composables/useConfirm.js'
+import { useSort } from '../composables/useSort.js'
 
 Chart.register(LineController, LineElement, PointElement, CategoryScale, LinearScale, Tooltip, Legend)
 
@@ -811,7 +813,6 @@ export default {
 		ccBookings: { type: Object, required: true },
 		renameName: { type: String, required: true },
 		// sort wird per Referenz durchgereicht (auch vom Buchungen-Tab genutzt).
-		sort: { type: Object, required: true },
 		selectCC: { type: Function, required: true },
 		isCCSelected: { type: Function, required: true },
 		toggleCCAccount: { type: Function, required: true },
@@ -821,15 +822,13 @@ export default {
 		loadAudit: { type: Function, required: true },
 		// oeffnet ein Top-Level-Modal ausserhalb dieser Komponente (App.vue).
 		openSnapshot: { type: Function, required: true },
-		toggleSort: { type: Function, required: true },
-		sortArrow: { type: Function, required: true },
-		askConfirm: { type: Function, required: true },
 	},
 	setup() {
 		const auth = useAuth()
 		const years = useYears()
 		const accounts = useAccounts()
 		const balances = useBalances()
+		const sorting = useSort()
 		return {
 			canWrite: auth.canWrite,
 			...toRefs(years.state),
@@ -837,6 +836,13 @@ export default {
 			accountsById: accounts.accountsById,
 			childrenOf: accounts.childrenOf,
 			...toRefs(balances.state),
+			// Sortierung und Rueckfrage kommen aus dem gemeinsamen Zustand,
+			// nicht mehr als Funktions-Props aus App.vue.
+			sort: sorting.sort,
+			toggleSort: sorting.toggleSort,
+			sortArrow: sorting.sortArrow,
+			applySort: sorting.applySort,
+			askConfirm: useConfirm().askConfirm,
 		}
 	},
 	data() {
@@ -1040,22 +1046,6 @@ export default {
 					},
 				},
 			}))
-		},
-		applySort(rows, state, lexKeys = []) {
-			if (!state || !state.key) return rows
-			const f = state.dir === 'asc' ? 1 : -1
-			const lex = lexKeys.includes(state.key)
-			return rows.slice().sort((a, b) => {
-				let x = a[state.key]; let y = b[state.key]
-				if (x === null || x === undefined) x = ''
-				if (y === null || y === undefined) y = ''
-				if (lex) {
-					const sx = String(x); const sy = String(y)
-					return (sx < sy ? -1 : sx > sy ? 1 : 0) * f
-				}
-				if (typeof x === 'number' && typeof y === 'number') return (x - y) * f
-				return String(x).localeCompare(String(y), 'de', { numeric: true, sensitivity: 'base' }) * f
-			})
 		},
 		auditDetailText(a) {
 			if (!a.details) return ''

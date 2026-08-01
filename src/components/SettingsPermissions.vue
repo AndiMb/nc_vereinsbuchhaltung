@@ -73,13 +73,13 @@ import { mdiDelete } from '@mdi/js'
 import api from '../api.js'
 import { roleLabel, errMsg } from '../lib/format.js'
 import { usePermissions } from '../composables/usePermissions.js'
+import { useConfirm } from '../composables/useConfirm.js'
 
 export default {
 	name: 'SettingsPermissions',
 	components: { NcButton, NcSelect, NcEmptyContent, NcIconSvgWrapper },
 	props: {
 		// Bestaetigungsdialog des Elternteils (gibt Promise<boolean> zurueck)
-		askConfirm: { type: Function, required: true },
 	},
 	setup() {
 		// permissions/groups/users kommen direkt aus dem usePermissions-Singleton
@@ -88,6 +88,7 @@ export default {
 		return {
 			...toRefs(permissions.state),
 			loadPermissions: permissions.loadPermissions,
+			askConfirm: useConfirm().askConfirm,
 		}
 	},
 	data() {

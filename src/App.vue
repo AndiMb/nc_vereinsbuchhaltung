@@ -116,7 +116,6 @@
 					:booking-view="bookingView"
 					:attachment-count-map="attachmentCountMap"
 					:suggestions-by-id="suggestionsById"
-					:sort="sort"
 					:open-import="openImport"
 					:click-paperclip="clickPaperclip"
 					:open-booking-card="openBookingCard"
@@ -127,8 +126,6 @@
 					:on-assign="onAssign"
 					:open-split-assign="openSplitAssign"
 					:apply-suggestion="applySuggestion"
-					:toggle-sort="toggleSort"
-					:sort-arrow="sortArrow"
 					@update:booking-view="bookingView = $event"
 					@help="openHelp('bookings')" />
 			</section>
@@ -168,7 +165,6 @@
 					:cc-expanded="ccExpanded"
 					:cc-bookings="ccBookings"
 					:rename-name="renameName"
-					:sort="sort"
 					:select-c-c="selectCC"
 					:is-c-c-selected="isCCSelected"
 					:toggle-c-c-account="toggleCCAccount"
@@ -177,9 +173,6 @@
 					:is-sphere-selected="isSphereSelected"
 					:load-audit="loadAudit"
 					:open-snapshot="openSnapshot"
-					:toggle-sort="toggleSort"
-					:sort-arrow="sortArrow"
-					:ask-confirm="askConfirm"
 					@update:report-view="reportView = $event"
 					@update:selected-c-c-code="selectedCCCode = $event"
 					@update:selected-sphere-code="selectedSphereCode = $event"
@@ -219,7 +212,6 @@
 
 				<SettingsXbucImport :imports="imports"
 					:busy.sync="busy"
-					:ask-confirm="askConfirm"
 					@changed="onXbucImported"
 					@help="openHelp('bookings')" />
 
@@ -227,7 +219,6 @@
 					:rules="rules"
 					:accounts-by-id="accountsById"
 					:account-options-list="accountOptionsList"
-					:ask-confirm="askConfirm"
 					@changed="loadRules" />
 
 				<SettingsSpheres v-if="canWrite"
@@ -237,11 +228,9 @@
 
 				<SettingsCostCenters v-if="canWrite"
 					:mode="costCenterMode"
-					:ask-confirm="askConfirm"
 					@changed="onCostCentersChanged" />
 
 				<SettingsPermissions v-if="isAdmin"
-					:ask-confirm="askConfirm"
 					@help="openHelp('setup')" />
 
 				<SettingsGeneral v-if="isAdmin"
@@ -259,7 +248,6 @@
 					@changed="loadStorageSettings" />
 
 				<SettingsYearClose v-if="isAdmin"
-					:ask-confirm="askConfirm"
 					:busy="busy"
 					:reset-all="resetAll" />
 			</div>
@@ -351,11 +339,14 @@
 			@update:show="showSetupWizard = $event"
 			@choose="onWizardChoice" />
 
-		<NcDialog v-if="confirmDialog.open"
-			:name="confirmDialog.title"
-			:message="confirmDialog.message"
+		<!-- Die Rueckfrage vor nicht umkehrbaren Aktionen. Sie steht hier, weil
+			es genau eine geben soll; ausgeloest wird sie ueber useConfirm() aus
+			jeder Komponente heraus. -->
+		<NcDialog v-if="confirm.open"
+			:name="confirm.title"
+			:message="confirm.message"
 			:no-close="true"
-			:buttons="confirmDialogButtonList"
+			:buttons="confirmButtons"
 			@update:open="closeConfirm(false)" />
 	</div>
 </template>
@@ -403,6 +394,8 @@ import { usePermissions } from './composables/usePermissions.js'
 import { useSync } from './composables/useSync.js'
 import { useOpenItems } from './composables/useOpenItems.js'
 import { useCostCenters } from './composables/useCostCenters.js'
+import { useConfirm } from './composables/useConfirm.js'
+import { useSort } from './composables/useSort.js'
 
 export default {
 	name: 'App',
@@ -483,6 +476,10 @@ export default {
 			loadPermissions: permissions.loadPermissions,
 			...toRefs(sync.state),
 			checkRemoteRevision: sync.checkRemoteRevision,
+			// Rueckfrage und Sortierung: gemeinsamer Zustand statt
+			// Funktions-Props durch den ganzen Komponentenbaum.
+			...useConfirm(),
+			...useSort(),
 		}
 	},
 	data() {
@@ -521,12 +518,6 @@ export default {
 			rules: [],
 			sectionFade: true,
 			bookingForm: this.emptyBookingForm(),
-			sort: {
-				transactions: { key: 'bookingDate', dir: 'desc' },
-				balances: { key: 'number', dir: 'asc' },
-				journal: { key: 'entryNo', dir: 'desc' },
-			},
-			confirmDialog: { open: false, title: '', message: '', confirmLabel: 'Löschen', confirmVariant: 'error', resolve: null },
 			mdiCog,
 			mdiPlus,
 			mdiUpload,
@@ -744,12 +735,6 @@ export default {
 			return out
 		},
 		// assignProgress ist jetzt Teil von BookingsTab.vue.
-		confirmDialogButtonList() {
-			return [
-				{ label: 'Abbrechen', type: 'secondary', callback: () => this.closeConfirm(false) },
-				{ label: this.confirmDialog.confirmLabel, type: this.confirmDialog.confirmVariant, callback: () => this.closeConfirm(true) },
-			]
-		},
 		// selectedAccount bleibt hier (wird auch von openNewAccount() gebraucht,
 		// das ausserhalb von AccountsTab.vue liegt).
 		selectedAccount() {
@@ -861,7 +846,7 @@ export default {
 			if (e.ctrlKey || e.metaKey || e.altKey) return
 			const tag = (e.target.tagName || '').toLowerCase()
 			if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable) return
-			if (this.showBooking || this.showAccount || this.showImport || this.showSettings || this.confirmDialog.open) return
+			if (this.showBooking || this.showAccount || this.showImport || this.showSettings || this.confirm.open) return
 			if ((e.key === 'n' || e.key === 'N') && this.canWrite) {
 				e.preventDefault()
 				this.openNewBooking()
@@ -1090,42 +1075,9 @@ export default {
 		// (nicht mehr anderswo in App.vue gebraucht).
 
 		// --- Confirm-Dialog ---
-		askConfirm(title, message, confirmLabel = 'Löschen', confirmVariant = 'error') {
-			return new Promise(resolve => {
-				this.confirmDialog = { open: true, title, message, confirmLabel, confirmVariant, resolve }
-			})
-		},
-		closeConfirm(result) {
-			this.confirmDialog.open = false
-			this.confirmDialog.resolve?.(result)
-		},
-
-		// --- Sortierung ---
-		toggleSort(table, key) {
-			const s = this.sort[table]
-			if (s.key === key) s.dir = s.dir === 'asc' ? 'desc' : 'asc'
-			else { s.key = key; s.dir = 'asc' }
-		},
-		sortArrow(table, key) {
-			const s = this.sort[table]
-			return s.key !== key ? '' : (s.dir === 'asc' ? ' ▲' : ' ▼')
-		},
-		applySort(rows, state, lexKeys = []) {
-			if (!state || !state.key) return rows
-			const f = state.dir === 'asc' ? 1 : -1
-			const lex = lexKeys.includes(state.key)
-			return rows.slice().sort((a, b) => {
-				let x = a[state.key]; let y = b[state.key]
-				if (x === null || x === undefined) x = ''
-				if (y === null || y === undefined) y = ''
-				if (lex) {
-					const sx = String(x); const sy = String(y)
-					return (sx < sy ? -1 : sx > sy ? 1 : 0) * f
-				}
-				if (typeof x === 'number' && typeof y === 'number') return (x - y) * f
-				return String(x).localeCompare(String(y), 'de', { numeric: true, sensitivity: 'base' }) * f
-			})
-		},
+		// askConfirm/closeConfirm kommen aus useConfirm(), Sortierung aus
+		// useSort() - beide als gemeinsamer Zustand, damit sie nicht mehr als
+		// Funktions-Props durch den Komponentenbaum gereicht werden muessen.
 
 		// --- Baum: toggleExpand/expandAll/collapseAll sind jetzt Teil von
 		// AccountsTab.vue. ---

@@ -69,12 +69,12 @@ import { showError, showSuccess } from '@nextcloud/dialogs'
 import api from '../api.js'
 import { formatDate, errMsg } from '../lib/format.js'
 import { useYears } from '../composables/useYears.js'
+import { useConfirm } from '../composables/useConfirm.js'
 
 export default {
 	name: 'SettingsYearClose',
 	components: { NcButton },
 	props: {
-		askConfirm: { type: Function, required: true },
 		// gemeinsames App-weites Ladeflag (auch vom Demo-Banner ausserhalb des
 		// Einstellungen-Modals verwendet)
 		busy: { type: Boolean, required: true },
@@ -90,6 +90,7 @@ export default {
 			...toRefs(years.state),
 			closedYearSet: years.closedYearSet,
 			loadClosedYears: years.loadClosedYears,
+			askConfirm: useConfirm().askConfirm,
 		}
 	},
 	methods: {

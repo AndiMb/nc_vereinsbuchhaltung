@@ -145,6 +145,7 @@ import { NcButton, NcCheckboxRadioSwitch, NcEmptyContent } from '@nextcloud/vue'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import api from '../api.js'
 import { formatMoney, formatDate, formatDateTime, errMsg } from '../lib/format.js'
+import { useConfirm } from '../composables/useConfirm.js'
 
 export default {
 	name: 'SettingsXbucImport',
@@ -156,7 +157,9 @@ export default {
 		// gemeinsames App-weites Ladeflag (blockiert z. B. auch andere Import-/Reset-
 		// Buttons und das Kollaborations-Polling), .sync-Prop wie NcModal:show.sync
 		busy: { type: Boolean, required: true },
-		askConfirm: { type: Function, required: true },
+	},
+	setup() {
+		return { askConfirm: useConfirm().askConfirm }
 	},
 	data() {
 		return {

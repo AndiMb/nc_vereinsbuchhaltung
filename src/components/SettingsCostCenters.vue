@@ -134,6 +134,7 @@ import api from '../api.js'
 import { errMsg } from '../lib/format.js'
 import { useAccounts } from '../composables/useAccounts.js'
 import { useCostCenters } from '../composables/useCostCenters.js'
+import { useConfirm } from '../composables/useConfirm.js'
 
 const MODE_LABELS = {
 	group: '2. Zahlengruppe der Kontonummer',
@@ -153,7 +154,6 @@ export default {
 	props: {
 		// Kostenstellen-Modus aus den Einstellungen (group|account|manual)
 		mode: { type: String, default: 'group' },
-		askConfirm: { type: Function, required: true },
 	},
 	setup() {
 		const accounts = useAccounts()
@@ -162,6 +162,7 @@ export default {
 			...toRefs(accounts.state),
 			...toRefs(costCenters.state),
 			loadCostCenters: costCenters.loadCostCenters,
+			askConfirm: useConfirm().askConfirm,
 		}
 	},
 	data() {

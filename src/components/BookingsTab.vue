@@ -454,6 +454,7 @@ import { useYears } from '../composables/useYears.js'
 import { useAccounts } from '../composables/useAccounts.js'
 import { useJournal } from '../composables/useJournal.js'
 import { useOpenItems } from '../composables/useOpenItems.js'
+import { useSort } from '../composables/useSort.js'
 
 export default {
 	name: 'BookingsTab',
@@ -465,9 +466,6 @@ export default {
 		// suggestionsById bleibt in App.vue berechnet (wird auch vom
 		// AccountPickerSheet-Flow dort gebraucht), hier nur als Prop gelesen.
 		suggestionsById: { type: Object, required: true },
-		// sort wird per Referenz durchgereicht (auch von der Saldenliste im
-		// Berichte-Tab genutzt, App.vue behaelt das gemeinsame Sortier-Objekt).
-		sort: { type: Object, required: true },
 		openImport: { type: Function, required: true },
 		clickPaperclip: { type: Function, required: true },
 		openBookingCard: { type: Function, required: true },
@@ -478,8 +476,6 @@ export default {
 		onAssign: { type: Function, required: true },
 		openSplitAssign: { type: Function, required: true },
 		applySuggestion: { type: Function, required: true },
-		toggleSort: { type: Function, required: true },
-		sortArrow: { type: Function, required: true },
 	},
 	setup() {
 		const auth = useAuth()
@@ -499,6 +495,9 @@ export default {
 			...toRefs(openItemsC.state),
 			overdueOpenItemsCount: openItemsC.overdueCount,
 			loadOpenItems: openItemsC.loadOpenItems,
+			// Sortierung aus dem gemeinsamen Zustand (dieselbe Einstellung nutzt
+			// die Saldenliste im Berichte-Tab), nicht mehr als Prop aus App.vue.
+			...useSort(),
 		}
 	},
 	data() {
@@ -751,22 +750,6 @@ export default {
 			if (dIn && !cOut) return 'in'
 			if (cOut && !dIn) return 'out'
 			return ''
-		},
-		applySort(rows, state, lexKeys = []) {
-			if (!state || !state.key) return rows
-			const f = state.dir === 'asc' ? 1 : -1
-			const lex = lexKeys.includes(state.key)
-			return rows.slice().sort((a, b) => {
-				let x = a[state.key]; let y = b[state.key]
-				if (x === null || x === undefined) x = ''
-				if (y === null || y === undefined) y = ''
-				if (lex) {
-					const sx = String(x); const sy = String(y)
-					return (sx < sy ? -1 : sx > sy ? 1 : 0) * f
-				}
-				if (typeof x === 'number' && typeof y === 'number') return (x - y) * f
-				return String(x).localeCompare(String(y), 'de', { numeric: true, sensitivity: 'base' }) * f
-			})
 		},
 	},
 }

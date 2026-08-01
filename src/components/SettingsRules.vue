@@ -93,6 +93,7 @@ import { showError, showSuccess } from '@nextcloud/dialogs'
 import { mdiPencil, mdiDelete } from '@mdi/js'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
+import { useConfirm } from '../composables/useConfirm.js'
 
 export default {
 	name: 'SettingsRules',
@@ -103,8 +104,9 @@ export default {
 		// Kontostammdaten fuer Anzeige (accountLabel) und Gegenkonto-Auswahl
 		accountsById: { type: Object, required: true },
 		accountOptionsList: { type: Array, required: true },
-		// Bestaetigungsdialog des Elternteils (gibt Promise<boolean> zurueck)
-		askConfirm: { type: Function, required: true },
+	},
+	setup() {
+		return { askConfirm: useConfirm().askConfirm }
 	},
 	data() {
 		return {
