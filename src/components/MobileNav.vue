@@ -1,10 +1,10 @@
 <template>
-	<nav class="vbh-bottomnav" aria-label="Hauptnavigation">
+	<nav class="vbh-bottomnav" :aria-label="t('Hauptnavigation')">
 		<button v-if="canWrite"
 			type="button"
 			class="vbh-fab"
-			aria-label="Neue Buchung anlegen"
-			title="Neue Buchung anlegen"
+			:aria-label="t('Neue Buchung anlegen')"
+			:title="t('Neue Buchung anlegen')"
 			@click="$emit('new-booking')">
 			<NcIconSvgWrapper :path="mdiPlus" :size="26" />
 		</button>

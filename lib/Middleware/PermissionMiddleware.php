@@ -13,6 +13,7 @@ use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\AppFramework\Middleware;
+use OCP\IL10N;
 use OCP\IRequest;
 
 /**
@@ -29,6 +30,7 @@ class PermissionMiddleware extends Middleware {
 	public function __construct(
 		private PermissionService $permissions,
 		private IRequest $request,
+		private IL10N $l10n,
 	) {
 	}
 
@@ -41,7 +43,7 @@ class PermissionMiddleware extends Middleware {
 				return;
 			}
 			if (!$this->permissions->isAdmin()) {
-				throw new ForbiddenException('Nur Verwalter dürfen Berechtigungen verwalten.');
+				throw new ForbiddenException($this->l10n->t('Nur Verwalter dürfen Berechtigungen verwalten.'));
 			}
 			return;
 		}
@@ -86,9 +88,9 @@ class PermissionMiddleware extends Middleware {
 			return;
 		}
 		throw new ForbiddenException(match ($role) {
-			PermissionService::ROLE_READ => 'Kein Lesezugriff auf die Vereinsbuchhaltung.',
-			PermissionService::ROLE_WRITE => 'Keine Schreibberechtigung.',
-			default => 'Diese Aktion ist Verwaltern vorbehalten.',
+			PermissionService::ROLE_READ => $this->l10n->t('Kein Lesezugriff auf die Vereinsbuchhaltung.'),
+			PermissionService::ROLE_WRITE => $this->l10n->t('Keine Schreibberechtigung.'),
+			default => $this->l10n->t('Diese Aktion ist Verwaltern vorbehalten.'),
 		});
 	}
 

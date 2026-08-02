@@ -486,10 +486,10 @@ export default {
 		return {
 			activeTab: 'dashboard',
 			allTabs: [
-				{ id: 'dashboard', label: 'Übersicht', need: 'read', icon: mdiViewDashboardOutline },
-				{ id: 'bookings', label: 'Buchungen', need: 'read', icon: mdiSwapHorizontal },
-				{ id: 'accounts', label: 'Konten', need: 'read', icon: mdiFileTreeOutline },
-				{ id: 'reports', label: 'Berichte', need: 'read', icon: mdiChartBar },
+				{ id: 'dashboard', label: this.t('Übersicht'), need: 'read', icon: mdiViewDashboardOutline },
+				{ id: 'bookings', label: this.t('Buchungen'), need: 'read', icon: mdiSwapHorizontal },
+				{ id: 'accounts', label: this.t('Konten'), need: 'read', icon: mdiFileTreeOutline },
+				{ id: 'reports', label: this.t('Berichte'), need: 'read', icon: mdiChartBar },
 			],
 			bookingView: 'journal',
 			reportView: 'summary',

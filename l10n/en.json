@@ -1,0 +1,15 @@
+{
+    "translations": {
+        "Übersicht": "Overview",
+        "Buchungen": "Entries",
+        "Konten": "Accounts",
+        "Berichte": "Reports",
+        "Hauptnavigation": "Main navigation",
+        "Neue Buchung anlegen": "Add entry",
+        "Nur Verwalter dürfen Berechtigungen verwalten.": "Only administrators may manage permissions.",
+        "Kein Lesezugriff auf die Vereinsbuchhaltung.": "No read access to the club accounting.",
+        "Keine Schreibberechtigung.": "No write permission.",
+        "Diese Aktion ist Verwaltern vorbehalten.": "This action is reserved for administrators."
+    },
+    "pluralForm": "nplurals=2; plural=(n != 1);"
+}

@@ -10,6 +10,21 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
 
 ## [Unreleased]
 
+### Hinzugefügt
+- **Video in der App-Store-Beschreibung verlinkt.** Der erste Schritt zur
+  Mehrsprachigkeit: die App-Store-Seite verweist jetzt auf das Erklärvideo,
+  das bisher nur im README zu finden war.
+
+### Technisch
+- **Grundgerüst für Mehrsprachigkeit (Deutsch/Englisch).** Die Quelltexte im
+  Code bleiben Deutsch, ein `l10n/en.json` liefert die englische Übersetzung
+  on top – im Frontend über einen eigenen Lade-Mechanismus (die Bibliothek
+  `@nextcloud/l10n` würde Englisch sonst als Quellsprache annehmen und gar
+  keine Übersetzung laden), im Backend über `IL10N`. Als Machbarkeitsnachweis
+  sind die Haupt-Tabs, die mobile Navigation und die Berechtigungsfehler der
+  `PermissionMiddleware` bereits umgestellt; der Rest der App folgt
+  schrittweise.
+
 ## [0.16.0] – 2026-08-01
 
 Diese Version bringt kaum sichtbare Neuerungen: sie räumt den Programmcode auf

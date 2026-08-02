@@ -1,6 +1,7 @@
 import Vue from 'vue'
 import App from './App.vue'
 import { usePermissions } from './composables/usePermissions.js'
+import { loadAppTranslations, t, n } from './lib/l10n.js'
 // Globale .vbh-* Utility-Styles (frueher scoped in App.vue). Global, damit auch
 // ausgelagerte Kindkomponenten sie nutzen koennen; alle Selektoren sind
 // .vbh-*-praefigiert (bzw. .vbh-table-qualifiziert) und lecken daher nicht in
@@ -34,5 +35,10 @@ window.addEventListener('unhandledrejection', e => recordUnexpectedError('unhand
 
 Vue.mixin({ methods: { t, n } })
 
-const View = Vue.extend(App)
-new View().$mount('#vereinsbuchhaltung-app')
+// Uebersetzungen fuer die aktuelle Sprache laden, bevor gemountet wird - sonst
+// blitzt beim ersten Render kurz der deutsche Quelltext auf und wird dann durch
+// die uebersetzte Fassung ersetzt.
+loadAppTranslations().finally(() => {
+	const View = Vue.extend(App)
+	new View().$mount('#vereinsbuchhaltung-app')
+})
