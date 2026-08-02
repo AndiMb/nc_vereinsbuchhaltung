@@ -1,6 +1,6 @@
 <template>
 	<NcModal :show="show"
-		name="Hilfe"
+		:name="t('Hilfe')"
 		size="normal"
 		@close="$emit('close')"
 		@update:show="$emit('update:show', $event)">
@@ -24,7 +24,7 @@
 					target="_blank"
 					rel="noopener noreferrer"
 					class="vbh-help-full">
-					Vollständiges Handbuch öffnen ↗
+					{{ t('Vollständiges Handbuch öffnen ↗') }}
 				</a>
 			</div>
 		</div>
@@ -34,69 +34,77 @@
 <script>
 import { NcModal } from '@nextcloud/vue'
 import api from '../api.js'
+import { t } from '../lib/l10n.js'
 
 // Kurzfassungen je App-Bereich, kein Volltext des Handbuchs – Anker verweisen
 // auf das passende Kapitel in HANDBUCH.md (Slugs siehe HelpController::slugify).
-const TOPICS = [
-	{
-		id: 'setup',
-		label: 'Ersteinrichtung',
-		anchor: '2-ersteinrichtung-einmalig',
-		bullets: [
-			'Zahnrad → Berechtigungen: Nutzer/Gruppen als Verwalter, Buchhalter oder Revisor eintragen.',
-			'Tab Konten → „Standard-Kontenrahmen anlegen" – oder Einstellungen → „Aus zero Buchhaltung importieren", falls vorhanden.',
-			'Je Geldkonto (Bank/Kasse) einen Anfangsbestand als Eröffnungssaldo eintragen.',
-			'Einstellungen → Belegablage und Verein: Speicherort für Belege und Vereinsnamen festlegen.',
-		],
-	},
-	{
-		id: 'bookings',
-		label: 'Buchen & zuordnen',
-		anchor: '4-die-laufende-arbeit-buchen-und-zuordnen',
-		bullets: [
-			'Kontoumsätze importieren: Tab Buchungen → CSV-Datei der Bank hochladen (Dubletten werden automatisch erkannt).',
-			'Tab „Zuzuordnen": jede offene Bankbuchung bekommt ein Gegenkonto – Vorschläge und Regeln übernehmen das oft automatisch.',
-			'Enthält ein Umsatz mehreres zugleich (Beitrag und Spende): „Aufteilen…" verteilt ihn auf mehrere Gegenkonten.',
-			'Manuelle Buchung: Button „+ Buchung" – im Einfach-Modus reicht Einnahme/Ausgabe, Kategorie und Geldkonto.',
-			'Belege lassen sich direkt an jede Buchung anhängen (Foto oder Datei).',
-		],
-	},
-	{
-		id: 'accounts',
-		label: 'Konten',
-		anchor: '2-2-kontenrahmen-anlegen',
-		bullets: [
-			'Jedes Konto hat eine Nummer, einen Namen und einen Typ (Einnahmen, Ausgaben, Anlage/Umlauf, Verbindlichkeit, Eigenkapital).',
-			'Das Flag „Bankkonto" markiert Geldkonten (Bank/Kasse) – nur diese führen einen Kontostand über die Jahresgrenze fort.',
-			'Konten lassen sich über- und unterordnen (Feld „Übergeordnet") für eine Baumstruktur.',
-			'Bebuchte Konten lassen sich nicht löschen, aber über den Schalter „Konto aktiv" stilllegen – sie verschwinden aus den Auswahllisten, die Historie bleibt.',
-			'Auf ein Konto klicken zeigt den Kontoauszug mit laufendem Saldo.',
-		],
-	},
-	{
-		id: 'reports',
-		label: 'Berichte',
-		anchor: '5-auswertungen-verstehen',
-		bullets: [
-			'Dashboard: Einnahmen/Ausgaben/Ergebnis des gewählten Jahres mit Vorjahresvergleich.',
-			'Saldenliste: alle Konten mit Soll, Haben und Saldo, optional inklusive Unterkonten.',
-			'Kassenbericht (Berichte → Auswertung): druckfertige Zusammenfassung für die Mitgliederversammlung.',
-			'Prüfleitfaden (Berichte → Auswertung): druckfertige Kurzanleitung für Kassenprüfer/innen.',
-			'Kostenstellen, Sphären und Finanzplan: Auswertung je Projekt, je Steuerkategorie bzw. Soll-Ist-Vergleich.',
-		],
-	},
-	{
-		id: 'spheres',
-		label: 'Sphären',
-		anchor: '5-6-steuerliche-sphaeren',
-		bullets: [
-			'Vier steuerliche Sphären: ideeller Bereich, Vermögensverwaltung, Zweckbetrieb, wirtschaftlicher Geschäftsbetrieb.',
-			'Zuordnen im Konto-Dialog (Feld „Steuerliche Sphäre") oder für mehrere Konten auf einmal unter Einstellungen → „Steuerliche Sphären".',
-			'Tab Berichte → „Sphären" zeigt Einnahmen/Ausgaben/Ergebnis je Sphäre.',
-			'Freigrenze wirtschaftlicher Geschäftsbetrieb: aktuell 45.000 € Bruttoeinnahmen/Jahr – das Dashboard warnt per Ampel, sobald es dort Einnahmen gibt. Ersetzt keine steuerliche Beratung.',
-		],
-	},
-]
+//
+// Als Funktion statt Modul-Konstante, weil t() sonst beim Import ausgewertet
+// würde - noch bevor main.js die Übersetzungen geladen hat (siehe
+// loadAppTranslations() in main.js). Aufgerufen wird sie erst in data(),
+// wenn die Komponente instanziiert wird und die Übersetzungen schon da sind.
+function buildTopics() {
+	return [
+		{
+			id: 'setup',
+			label: t('Ersteinrichtung'),
+			anchor: '2-ersteinrichtung-einmalig',
+			bullets: [
+				t('Zahnrad → Berechtigungen: Nutzer/Gruppen als Verwalter, Buchhalter oder Revisor eintragen.'),
+				t('Tab Konten → „Standard-Kontenrahmen anlegen" – oder Einstellungen → „Aus zero Buchhaltung importieren", falls vorhanden.'),
+				t('Je Geldkonto (Bank/Kasse) einen Anfangsbestand als Eröffnungssaldo eintragen.'),
+				t('Einstellungen → Belegablage und Verein: Speicherort für Belege und Vereinsnamen festlegen.'),
+			],
+		},
+		{
+			id: 'bookings',
+			label: t('Buchen & zuordnen'),
+			anchor: '4-die-laufende-arbeit-buchen-und-zuordnen',
+			bullets: [
+				t('Kontoumsätze importieren: Tab Buchungen → CSV-Datei der Bank hochladen (Dubletten werden automatisch erkannt).'),
+				t('Tab „Zuzuordnen": jede offene Bankbuchung bekommt ein Gegenkonto – Vorschläge und Regeln übernehmen das oft automatisch.'),
+				t('Enthält ein Umsatz mehreres zugleich (Beitrag und Spende): „Aufteilen…" verteilt ihn auf mehrere Gegenkonten.'),
+				t('Manuelle Buchung: Button „+ Buchung" – im Einfach-Modus reicht Einnahme/Ausgabe, Kategorie und Geldkonto.'),
+				t('Belege lassen sich direkt an jede Buchung anhängen (Foto oder Datei).'),
+			],
+		},
+		{
+			id: 'accounts',
+			label: t('Konten'),
+			anchor: '2-2-kontenrahmen-anlegen',
+			bullets: [
+				t('Jedes Konto hat eine Nummer, einen Namen und einen Typ (Einnahmen, Ausgaben, Anlage/Umlauf, Verbindlichkeit, Eigenkapital).'),
+				t('Das Flag „Bankkonto" markiert Geldkonten (Bank/Kasse) – nur diese führen einen Kontostand über die Jahresgrenze fort.'),
+				t('Konten lassen sich über- und unterordnen (Feld „Übergeordnet") für eine Baumstruktur.'),
+				t('Bebuchte Konten lassen sich nicht löschen, aber über den Schalter „Konto aktiv" stilllegen – sie verschwinden aus den Auswahllisten, die Historie bleibt.'),
+				t('Auf ein Konto klicken zeigt den Kontoauszug mit laufendem Saldo.'),
+			],
+		},
+		{
+			id: 'reports',
+			label: t('Berichte'),
+			anchor: '5-auswertungen-verstehen',
+			bullets: [
+				t('Dashboard: Einnahmen/Ausgaben/Ergebnis des gewählten Jahres mit Vorjahresvergleich.'),
+				t('Saldenliste: alle Konten mit Soll, Haben und Saldo, optional inklusive Unterkonten.'),
+				t('Kassenbericht (Berichte → Auswertung): druckfertige Zusammenfassung für die Mitgliederversammlung.'),
+				t('Prüfleitfaden (Berichte → Auswertung): druckfertige Kurzanleitung für Kassenprüfer/innen.'),
+				t('Kostenstellen, Sphären und Finanzplan: Auswertung je Projekt, je Steuerkategorie bzw. Soll-Ist-Vergleich.'),
+			],
+		},
+		{
+			id: 'spheres',
+			label: t('Sphären'),
+			anchor: '5-6-steuerliche-sphaeren',
+			bullets: [
+				t('Vier steuerliche Sphären: ideeller Bereich, Vermögensverwaltung, Zweckbetrieb, wirtschaftlicher Geschäftsbetrieb.'),
+				t('Zuordnen im Konto-Dialog (Feld „Steuerliche Sphäre") oder für mehrere Konten auf einmal unter Einstellungen → „Steuerliche Sphären".'),
+				t('Tab Berichte → „Sphären" zeigt Einnahmen/Ausgaben/Ergebnis je Sphäre.'),
+				t('Freigrenze wirtschaftlicher Geschäftsbetrieb: aktuell 45.000 € Bruttoeinnahmen/Jahr – das Dashboard warnt per Ampel, sobald es dort Einnahmen gibt. Ersetzt keine steuerliche Beratung.'),
+			],
+		},
+	]
+}
 
 export default {
 	name: 'HelpModal',
@@ -108,7 +116,7 @@ export default {
 	},
 	data() {
 		return {
-			topics: TOPICS,
+			topics: buildTopics(),
 			currentTopic: this.topic,
 		}
 	},

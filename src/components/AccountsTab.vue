@@ -9,15 +9,15 @@
 					<template #icon>
 						<NcIconSvgWrapper :path="mdiPlus" :size="18" />
 					</template>
-					Konto
+					{{ t('Konto') }}
 				</NcButton>
 				<span v-else />
 				<div class="vbh-treeactions">
 					<NcButton variant="tertiary" @click="expandAll">
-						alle auf
+						{{ t('alle auf') }}
 					</NcButton>
 					<NcButton variant="tertiary" @click="collapseAll">
-						alle zu
+						{{ t('alle zu') }}
 					</NcButton>
 				</div>
 			</div>
@@ -25,17 +25,17 @@
 			<div class="vbh-treesearch">
 				<input v-model="accountSearch"
 					type="search"
-					placeholder="Konto suchen…"
+					:placeholder="t('Konto suchen…')"
 					class="vbh-search vbh-search--full">
 			</div>
 
 			<p v-if="accounts.length === 0" class="vbh-hint">
-				Noch keine Konten.<br>
+				{{ t('Noch keine Konten.') }}<br>
 				<NcButton v-if="canWrite" variant="primary" @click="seedAccounts">
-					Standard-Kontenrahmen anlegen
+					{{ t('Standard-Kontenrahmen anlegen') }}
 				</NcButton>
 				<NcButton variant="tertiary" @click="$emit('help')">
-					Mehr dazu
+					{{ t('Mehr dazu') }}
 				</NcButton>
 			</p>
 
@@ -55,7 +55,7 @@
 					<span v-else class="vbh-caret empty">·</span>
 					<span class="vbh-treenum">{{ node.number }}</span>
 					<span class="vbh-treename">{{ node.name }}</span>
-					<span v-if="!node.active" class="vbh-treeinactive" title="Inaktiv – taucht in keiner Auswahlliste mehr auf">inaktiv</span>
+					<span v-if="!node.active" class="vbh-treeinactive" :title="t('Inaktiv – taucht in keiner Auswahlliste mehr auf')">{{ t('inaktiv') }}</span>
 					<span class="vbh-treesaldo" :class="[amountClass(balanceFor(node.id)), { zero: !balanceFor(node.id) }]">{{ formatMoney(balanceFor(node.id)) }}</span>
 				</div>
 			</div>
@@ -64,11 +64,11 @@
 		<div v-if="!isMobile || selectedAccountId" class="vbh-detail">
 			<div v-if="isMobile" class="vbh-backbar">
 				<button type="button" class="vbh-backbtn" @click="closeAccountDetail">
-					‹ Konten
+					{{ t('‹ Konten') }}
 				</button>
 			</div>
 			<p v-if="!selectedAccount" class="vbh-empty vbh-detailhint">
-				Konto links auswählen, um Buchungen anzuzeigen.
+				{{ t('Konto links auswählen, um Buchungen anzuzeigen.') }}
 			</p>
 
 			<template v-else>
@@ -79,10 +79,10 @@
 						<span v-if="selectedAccount.category" class="vbh-cat">{{ selectedAccount.category }}</span>
 					</div>
 					<span v-if="canWrite" class="nowrap">
-						<NcButton variant="tertiary" aria-label="Konto bearbeiten" @click="openEditAccount(selectedAccount)">
+						<NcButton variant="tertiary" :aria-label="t('Konto bearbeiten')" @click="openEditAccount(selectedAccount)">
 							<template #icon><NcIconSvgWrapper :path="mdiPencil" :size="20" /></template>
 						</NcButton>
-						<NcButton variant="error" aria-label="Konto löschen" @click="deleteAccount(selectedAccount)">
+						<NcButton variant="error" :aria-label="t('Konto löschen')" @click="deleteAccount(selectedAccount)">
 							<template #icon><NcIconSvgWrapper :path="mdiDelete" :size="20" /></template>
 						</NcButton>
 					</span>
@@ -90,33 +90,33 @@
 
 				<!-- Eröffnungssaldo nur für Geldkonten: nur deren Bestand geht über Jahresgrenzen. -->
 				<div v-if="canWrite && selectedAccount.isBank" class="vbh-opening">
-					<span>Eröffnungssaldo:</span>
+					<span>{{ t('Eröffnungssaldo:') }}</span>
 					<input v-model.number="openingAmount"
 						type="number"
 						step="0.01"
 						class="vbh-num">
 					<input v-model="openingDate" type="date" class="vbh-date">
 					<NcButton variant="primary" size="small" @click="saveOpening(selectedAccount)">
-						Speichern
+						{{ t('Speichern') }}
 					</NcButton>
 				</div>
 
 				<div v-if="statement" class="vbh-statementbar">
 					<NcCheckboxRadioSwitch :model-value="statementIncludeChildren" @update:model-value="onIncludeChildrenChange">
-						inkl. Unterkonten
+						{{ t('inkl. Unterkonten') }}
 					</NcCheckboxRadioSwitch>
 					<div class="vbh-previewsummary">
-						<span class="vbh-badge muted">{{ statement.totals.count }} Buchungen</span>
-						<span class="vbh-badge muted">Soll {{ formatMoney(statement.totals.debit) }}</span>
-						<span class="vbh-badge muted">Haben {{ formatMoney(statement.totals.credit) }}</span>
-						<span class="vbh-badge pos">Saldo {{ formatMoney(statement.totals.balance) }}</span>
+						<span class="vbh-badge muted">{{ t('{n} Buchungen', { n: statement.totals.count }) }}</span>
+						<span class="vbh-badge muted">{{ t('Soll {amount}', { amount: formatMoney(statement.totals.debit) }) }}</span>
+						<span class="vbh-badge muted">{{ t('Haben {amount}', { amount: formatMoney(statement.totals.credit) }) }}</span>
+						<span class="vbh-badge pos">{{ t('Saldo {amount}', { amount: formatMoney(statement.totals.balance) }) }}</span>
 					</div>
 				</div>
 
 				<div v-if="statementRows.length && isMobile" class="vbh-cardlist">
 					<div v-if="statement.carry" class="vbh-mcard">
 						<div class="vbh-mcard-top">
-							<span class="vbh-mcard-title">Saldovortrag aus Vorjahr</span>
+							<span class="vbh-mcard-title">{{ t('Saldovortrag aus Vorjahr') }}</span>
 							<span class="vbh-mcard-amount" :class="amountClass(statement.carry)">{{ formatMoney(statement.carry) }}</span>
 						</div>
 					</div>
@@ -130,15 +130,15 @@
 						</div>
 						<div class="vbh-mcard-bottom">
 							<span class="vbh-mcard-accounts">{{ row.contra }}</span>
-							<span class="vbh-mcard-meta">Saldo {{ formatMoney(row.saldo) }}</span>
+							<span class="vbh-mcard-meta">{{ t('Saldo {amount}', { amount: formatMoney(row.saldo) }) }}</span>
 						</div>
 						<button v-if="canReassign(row) && !isReassigning(row)"
 							type="button"
 							class="vbh-fieldbtn"
 							@click="startReassign(row)">
 							<span class="vbh-fieldbtn-text">
-								<span class="vbh-fieldbtn-lab">Falsch zugeordnet?</span>
-								<span class="vbh-fieldbtn-val">Auf ein anderes Konto umbuchen…</span>
+								<span class="vbh-fieldbtn-lab">{{ t('Falsch zugeordnet?') }}</span>
+								<span class="vbh-fieldbtn-val">{{ t('Auf ein anderes Konto umbuchen…') }}</span>
 							</span>
 							<span class="vbh-fieldbtn-chev" aria-hidden="true">›</span>
 						</button>
@@ -153,11 +153,11 @@
 					</div>
 					<div class="vbh-mcard vbh-mcard--sum">
 						<div class="vbh-mcard-top">
-							<span class="vbh-mcard-title">Saldo{{ selectedYear ? ' ' + selectedYear : '' }}</span>
+							<span class="vbh-mcard-title">{{ t('Saldo') }}{{ selectedYear ? ' ' + selectedYear : '' }}</span>
 							<span class="vbh-mcard-amount" :class="amountClass(statement.totals.balance)">{{ formatMoney(statement.totals.balance) }}</span>
 						</div>
 						<div class="vbh-mcard-bottom">
-							<span class="vbh-mcard-accounts">{{ statement.totals.count }} Buchungen · Soll {{ formatMoney(statement.totals.debit) }} · Haben {{ formatMoney(statement.totals.credit) }}</span>
+							<span class="vbh-mcard-accounts">{{ t('{n} Buchungen · Soll {debit} · Haben {credit}', { n: statement.totals.count, debit: formatMoney(statement.totals.debit), credit: formatMoney(statement.totals.credit) }) }}</span>
 						</div>
 					</div>
 				</div>
@@ -166,17 +166,17 @@
 						<thead>
 							<tr>
 								<th class="num vbh-col-hide-sm">
-									Nr.
+									{{ t('Nr.') }}
 								</th><th class="nowrap">
-									Datum
-								</th><th>Beschreibung</th><th class="vbh-col-hide-sm">
-									Gegenkonto
+									{{ t('Datum') }}
+								</th><th>{{ t('Beschreibung') }}</th><th class="vbh-col-hide-sm">
+									{{ t('Gegenkonto') }}
 								</th><th class="num vbh-col-hide-sm">
-									Soll
+									{{ t('Soll') }}
 								</th><th class="num vbh-col-hide-sm">
-									Haben
+									{{ t('Haben') }}
 								</th><th class="num">
-									Saldo
+									{{ t('Saldo') }}
 								</th><th v-if="canWrite" />
 							</tr>
 						</thead>
@@ -186,7 +186,7 @@
 								<td class="nowrap">
 									{{ formatDate(selectedYear + '-01-01') }}
 								</td>
-								<td><em>Saldovortrag aus Vorjahr</em></td>
+								<td><em>{{ t('Saldovortrag aus Vorjahr') }}</em></td>
 								<td class="vbh-col-hide-sm" />
 								<td class="num vbh-col-hide-sm" />
 								<td class="num vbh-col-hide-sm" />
@@ -224,8 +224,8 @@
 										<NcButton v-if="canReassign(row)"
 											variant="tertiary"
 											size="small"
-											:aria-label="'Buchung #' + row.entryNo + ' auf ein anderes Konto umbuchen'"
-											title="Auf ein anderes Konto umbuchen"
+											:aria-label="t('Buchung #{n} auf ein anderes Konto umbuchen', { n: row.entryNo })"
+											:title="t('Auf ein anderes Konto umbuchen')"
 											@click="startReassign(row)">
 											<template #icon>
 												<NcIconSvgWrapper :path="mdiSwapHorizontal" :size="18" />
@@ -249,7 +249,7 @@
 					</table>
 				</div>
 				<p v-else-if="statement" class="vbh-empty">
-					Keine Buchungen auf diesem Konto{{ statementIncludeChildren ? ' (inkl. Unterkonten)' : '' }}.
+					{{ statementIncludeChildren ? t('Keine Buchungen auf diesem Konto (inkl. Unterkonten).') : t('Keine Buchungen auf diesem Konto.') }}
 				</p>
 			</template>
 		</div>
@@ -403,7 +403,7 @@ export default {
 			const groups = {}
 			for (const acc of this.accountsSorted) {
 				if (!acc.active || used.has(acc.id)) continue
-				const cat = acc.category || 'Sonstige'
+				const cat = acc.category || this.t('Sonstige')
 				if (!groups[cat]) groups[cat] = []
 				groups[cat].push(acc)
 			}

@@ -1,18 +1,15 @@
 <template>
 	<div>
 		<h3 class="vbh-section-divider">
-			Jahresabschluss
+			{{ t('Jahresabschluss') }}
 		</h3>
 		<div class="vbh-card">
 			<p class="vbh-hint">
-				Ein abgeschlossenes Geschäftsjahr ist <strong>festgeschrieben</strong>: Buchungen, Belege und
-				Zuordnungen dieses Jahres können nicht mehr geändert oder gelöscht werden – z. B. nach der
-				Kassenprüfung und Entlastung. Nur Verwalter können ein Jahr abschließen oder wiedereröffnen;
-				beides wird im Protokoll (Berichte → Protokoll) festgehalten.
+				{{ t('Ein abgeschlossenes Geschäftsjahr ist') }} <strong>{{ t('festgeschrieben') }}</strong>{{ t(': Buchungen, Belege und Zuordnungen dieses Jahres können nicht mehr geändert oder gelöscht werden – z. B. nach der Kassenprüfung und Entlastung. Nur Verwalter können ein Jahr abschließen oder wiedereröffnen; beides wird im Protokoll (Berichte → Protokoll) festgehalten.') }}
 			</p>
 			<div v-if="years.length" class="vbh-tablecard">
 				<table class="vbh-table">
-					<thead><tr><th>Jahr</th><th>Status</th><th class="right" /></tr></thead>
+					<thead><tr><th>{{ t('Jahr') }}</th><th>{{ t('Status') }}</th><th class="right" /></tr></thead>
 					<tbody>
 						<tr v-for="y in years" :key="'yc' + y">
 							<td class="strong">
@@ -20,11 +17,10 @@
 							</td>
 							<td>
 								<template v-if="closedYearSet[y]">
-									🔒 abgeschlossen am {{ formatDate(String(closedYearSet[y].closedAt).slice(0, 10)) }}
-									von {{ closedYearSet[y].closedBy }}
+									{{ t('🔒 abgeschlossen am {date} von {who}', { date: formatDate(String(closedYearSet[y].closedAt).slice(0, 10)), who: closedYearSet[y].closedBy }) }}
 								</template>
 								<template v-else>
-									offen
+									{{ t('offen') }}
 								</template>
 							</td>
 							<td class="right">
@@ -32,13 +28,13 @@
 									variant="primary"
 									size="small"
 									@click="closeYear(y)">
-									Abschließen
+									{{ t('Abschließen') }}
 								</NcButton>
 								<NcButton v-else
 									variant="tertiary"
 									size="small"
 									@click="reopenYear(y)">
-									Wiedereröffnen
+									{{ t('Wiedereröffnen') }}
 								</NcButton>
 							</td>
 						</tr>
@@ -46,17 +42,17 @@
 				</table>
 			</div>
 			<p v-else class="vbh-hint">
-				Noch keine Geschäftsjahre mit Buchungen vorhanden.
+				{{ t('Noch keine Geschäftsjahre mit Buchungen vorhanden.') }}
 			</p>
 		</div>
 
 		<div class="vbh-card vbh-card--danger">
-			<h4>Alle Daten löschen</h4>
+			<h4>{{ t('Alle Daten löschen') }}</h4>
 			<p class="vbh-hint">
-				Löscht alle Konten, Buchungen und Importe dieses Kontos unwiderruflich.
+				{{ t('Löscht alle Konten, Buchungen und Importe dieses Kontos unwiderruflich.') }}
 			</p>
 			<NcButton variant="error" :disabled="busy" @click="resetAll">
-				Alle Daten löschen
+				{{ t('Alle Daten löschen') }}
 			</NcButton>
 		</div>
 	</div>
@@ -98,25 +94,25 @@ export default {
 		errMsg,
 		async closeYear(year) {
 			if (!await this.askConfirm(
-				`Jahr ${year} abschließen`,
-				`Das Geschäftsjahr ${year} wird festgeschrieben: Buchungen, Belege und Zuordnungen dieses Jahres können danach nicht mehr geändert werden. Ein Verwalter kann das Jahr bei Bedarf wiedereröffnen.`,
-				'Abschließen', 'primary')) return
+				this.t('Jahr {year} abschließen', { year }),
+				this.t('Das Geschäftsjahr {year} wird festgeschrieben: Buchungen, Belege und Zuordnungen dieses Jahres können danach nicht mehr geändert werden. Ein Verwalter kann das Jahr bei Bedarf wiedereröffnen.', { year }),
+				this.t('Abschließen'), 'primary')) return
 			try {
 				await api.closeYear(year)
 				await this.loadClosedYears()
-				showSuccess(`Geschäftsjahr ${year} abgeschlossen.`)
-			} catch (e) { showError(this.errMsg(e, 'Abschließen fehlgeschlagen')) }
+				showSuccess(this.t('Geschäftsjahr {year} abgeschlossen.', { year }))
+			} catch (e) { showError(this.errMsg(e, this.t('Abschließen fehlgeschlagen'))) }
 		},
 		async reopenYear(year) {
 			if (!await this.askConfirm(
-				`Jahr ${year} wiedereröffnen`,
-				`Das Geschäftsjahr ${year} wird wieder änderbar. Das sollte nur in Ausnahmefällen geschehen (z. B. Korrektur vor der Kassenprüfung) und wird protokolliert.`,
-				'Wiedereröffnen', 'error')) return
+				this.t('Jahr {year} wiedereröffnen', { year }),
+				this.t('Das Geschäftsjahr {year} wird wieder änderbar. Das sollte nur in Ausnahmefällen geschehen (z. B. Korrektur vor der Kassenprüfung) und wird protokolliert.', { year }),
+				this.t('Wiedereröffnen'), 'error')) return
 			try {
 				await api.reopenYear(year)
 				await this.loadClosedYears()
-				showSuccess(`Geschäftsjahr ${year} wiedereröffnet.`)
-			} catch (e) { showError(this.errMsg(e, 'Wiedereröffnen fehlgeschlagen')) }
+				showSuccess(this.t('Geschäftsjahr {year} wiedereröffnet.', { year }))
+			} catch (e) { showError(this.errMsg(e, this.t('Wiedereröffnen fehlgeschlagen'))) }
 		},
 	},
 }

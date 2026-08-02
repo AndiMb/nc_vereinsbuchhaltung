@@ -10,62 +10,62 @@
 
 		<div v-if="balances" class="vbh-totals">
 			<div class="vbh-total pos">
-				<span>Einnahmen{{ selectedYear ? ' ' + selectedYear : '' }}</span>
+				<span>{{ t('Einnahmen') }}{{ selectedYear ? ' ' + selectedYear : '' }}</span>
 				<strong>{{ formatMoney(balances.totals.income) }}</strong>
 				<small v-if="kpiDeltas && kpiDeltas.income" class="vbh-total-delta" :class="kpiDeltas.income.up ? 'good' : 'bad'">{{ kpiDeltas.income.text }}</small>
 			</div>
 			<div class="vbh-total neg">
-				<span>Ausgaben{{ selectedYear ? ' ' + selectedYear : '' }}</span>
+				<span>{{ t('Ausgaben') }}{{ selectedYear ? ' ' + selectedYear : '' }}</span>
 				<strong>{{ formatMoney(balances.totals.expense) }}</strong>
 				<small v-if="kpiDeltas && kpiDeltas.expense" class="vbh-total-delta" :class="kpiDeltas.expense.up ? 'bad' : 'good'">{{ kpiDeltas.expense.text }}</small>
 			</div>
 			<div class="vbh-total" :class="balances.totals.result >= 0 ? 'pos' : 'neg'">
-				<span>Ergebnis{{ selectedYear ? ' ' + selectedYear : '' }}</span>
+				<span>{{ t('Ergebnis') }}{{ selectedYear ? ' ' + selectedYear : '' }}</span>
 				<strong>{{ formatMoney(balances.totals.result) }}</strong>
 				<small v-if="kpiDeltas && kpiDeltas.result" class="vbh-total-delta" :class="kpiDeltas.result.up ? 'good' : 'bad'">{{ kpiDeltas.result.text }}</small>
 			</div>
 			<div v-if="unassignedCount > 0" class="vbh-total vbh-total--warn">
-				<span>Nicht zugeordnet</span>
-				<strong>{{ unassignedCount }} Buchungen</strong>
+				<span>{{ t('Nicht zugeordnet') }}</span>
+				<strong>{{ t('{n} Buchungen', { n: unassignedCount }) }}</strong>
 				<NcButton variant="primary" size="small" @click="$emit('go-unassigned')">
-					Jetzt zuordnen
+					{{ t('Jetzt zuordnen') }}
 				</NcButton>
 			</div>
 			<div v-if="overdueOpenItemsCount > 0" class="vbh-total vbh-total--warn">
-				<span>Überfällige offene Posten</span>
+				<span>{{ t('Überfällige offene Posten') }}</span>
 				<strong>{{ overdueOpenItemsCount }}</strong>
 				<NcButton variant="primary" size="small" @click="$emit('go-open-items')">
-					Ansehen
+					{{ t('Ansehen') }}
 				</NcButton>
 			</div>
 		</div>
 
 		<div v-if="sphereData && sphereData.freigrenze.incomeCents > 0" class="vbh-freigrenzecard" :class="sphereData.freigrenze.level">
 			<div class="vbh-freigrenzecard-text">
-				<strong>Wirtschaftlicher Geschäftsbetrieb{{ selectedYear ? ' ' + selectedYear : '' }}:</strong>
-				{{ formatMoney(sphereData.freigrenze.income) }} von {{ formatMoney(sphereData.freigrenze.threshold) }} Freigrenze
+				<strong>{{ t('Wirtschaftlicher Geschäftsbetrieb') }}{{ selectedYear ? ' ' + selectedYear : '' }}:</strong>
+				{{ t('{income} von {threshold} Freigrenze', { income: formatMoney(sphereData.freigrenze.income), threshold: formatMoney(sphereData.freigrenze.threshold) }) }}
 				({{ Math.round(sphereData.freigrenze.ratio * 100) }} %)
-				<span v-if="sphereData.freigrenze.level === 'over'"> – Freigrenze überschritten, bitte mit Steuerberatung klären.</span>
-				<span v-else-if="sphereData.freigrenze.level === 'warn'"> – nähert sich der Freigrenze.</span>
+				<span v-if="sphereData.freigrenze.level === 'over'"> {{ t('– Freigrenze überschritten, bitte mit Steuerberatung klären.') }}</span>
+				<span v-else-if="sphereData.freigrenze.level === 'warn'"> {{ t('– nähert sich der Freigrenze.') }}</span>
 			</div>
 			<button type="button"
 				class="vbh-sphere-help"
-				title="Was bedeutet das?"
+				:title="t('Was bedeutet das?')"
 				@click="$emit('help', 'spheres')">
 				?
 			</button>
 		</div>
 
 		<template v-if="balances && balances.bankReconciliation && balances.bankReconciliation.length">
-			<h4>Geldkonten</h4>
+			<h4>{{ t('Geldkonten') }}</h4>
 			<div v-if="!isMobile" class="vbh-tablecard">
 				<table class="vbh-table">
 					<thead>
 						<tr>
-							<th>Konto</th><th class="num">
-								Kontostand
+							<th>{{ t('Konto') }}</th><th class="num">
+								{{ t('Kontostand') }}
 							</th><th class="num">
-								Offen (nicht zugeordnet)
+								{{ t('Offen (nicht zugeordnet)') }}
 							</th>
 						</tr>
 					</thead>
@@ -89,7 +89,7 @@
 						<span class="vbh-mcard-amount">{{ formatMoney(b.balance) }}</span>
 					</div>
 					<div v-if="Math.abs(b.open) > 0.005" class="vbh-mcard-bottom">
-						<span class="vbh-mcard-accounts">{{ formatMoney(b.open) }} nicht zugeordnet</span>
+						<span class="vbh-mcard-accounts">{{ t('{amount} nicht zugeordnet', { amount: formatMoney(b.open) }) }}</span>
 					</div>
 				</div>
 			</div>
@@ -97,9 +97,9 @@
 
 		<template v-if="recentJournal.length">
 			<div class="vbh-sectionhead">
-				<h4>Letzte Buchungen</h4>
+				<h4>{{ t('Letzte Buchungen') }}</h4>
 				<NcButton variant="tertiary" @click="$emit('show-all-bookings')">
-					Alle anzeigen
+					{{ t('Alle anzeigen') }}
 				</NcButton>
 			</div>
 			<div v-if="!isMobile" class="vbh-tablecard">
@@ -107,20 +107,20 @@
 					<thead>
 						<tr>
 							<th class="num vbh-col-hide-sm">
-								Nr.
+								{{ t('Nr.') }}
 							</th>
 							<th class="nowrap">
-								Datum
+								{{ t('Datum') }}
 							</th>
-							<th>Beschreibung</th>
+							<th>{{ t('Beschreibung') }}</th>
 							<th class="vbh-col-hide-sm">
-								Soll
+								{{ t('Soll') }}
 							</th>
 							<th class="vbh-col-hide-sm">
-								Haben
+								{{ t('Haben') }}
 							</th>
 							<th class="num">
-								Betrag
+								{{ t('Betrag') }}
 							</th>
 						</tr>
 					</thead>
@@ -159,17 +159,17 @@
 					@paperclip="clickPaperclip(r)" />
 			</div>
 		</template>
-		<NcEmptyContent v-else-if="!busy" name="Noch keine Buchungen" description="Importiere Kontoumsätze oder lege manuell Buchungssätze an.">
+		<NcEmptyContent v-else-if="!busy" :name="t('Noch keine Buchungen')" :description="t('Importiere Kontoumsätze oder lege manuell Buchungssätze an.')">
 			<template #action>
 				<NcButton variant="tertiary" @click="$emit('help', 'bookings')">
-					Mehr dazu
+					{{ t('Mehr dazu') }}
 				</NcButton>
 			</template>
 		</NcEmptyContent>
 
 		<div class="vbh-chart-grid">
 			<div class="vbh-chart-card vbh-chart-card--wide">
-				<h4>Einnahmen &amp; Ausgaben{{ selectedYear ? ' ' + selectedYear : '' }} (monatlich)</h4>
+				<h4>{{ t('Einnahmen & Ausgaben') }}{{ selectedYear ? ' ' + selectedYear : '' }} {{ t('(monatlich)') }}</h4>
 				<div class="vbh-chart-wrap">
 					<canvas ref="monthlyChart" />
 				</div>
@@ -253,12 +253,12 @@ export default {
 				const prev = this.prevBalances.totals[key]
 				if (!prev || Math.abs(prev) < 0.005) return null
 				const pct = Math.round(((cur - prev) / Math.abs(prev)) * 100)
-				return { pct, up: pct >= 0, text: (pct >= 0 ? '+' : '') + pct + ' % ggü. ' + (this.selectedYear - 1) }
+				return { pct, up: pct >= 0, text: this.t('{sign}{pct} % ggü. {year}', { sign: pct >= 0 ? '+' : '', pct, year: this.selectedYear - 1 }) }
 			}
 			return { income: mk('income'), expense: mk('expense'), result: mk('result') }
 		},
 		monthlyChartData() {
-			const labels = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez']
+			const labels = [this.t('Jan'), this.t('Feb'), this.t('Mär'), this.t('Apr'), this.t('Mai'), this.t('Jun'), this.t('Jul'), this.t('Aug'), this.t('Sep'), this.t('Okt'), this.t('Nov'), this.t('Dez')]
 			const income = new Array(12).fill(0)
 			const expense = new Array(12).fill(0)
 			for (const item of this.journalData) {
@@ -319,7 +319,7 @@ export default {
 					labels,
 					datasets: [
 						{
-							label: 'Einnahmen',
+							label: this.t('Einnahmen'),
 							data: income,
 							backgroundColor: 'rgba(45,125,70,0.72)',
 							borderColor: 'rgba(45,125,70,0.9)',
@@ -327,7 +327,7 @@ export default {
 							borderRadius: 4,
 						},
 						{
-							label: 'Ausgaben',
+							label: this.t('Ausgaben'),
 							data: expense,
 							backgroundColor: 'rgba(199,60,60,0.72)',
 							borderColor: 'rgba(199,60,60,0.9)',

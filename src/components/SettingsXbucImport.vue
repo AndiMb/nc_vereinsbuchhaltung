@@ -1,66 +1,65 @@
 <template>
 	<div>
-		<h3>Aus „zero Buchhaltung" (.xbuc)</h3>
+		<h3>{{ t('Aus „zero Buchhaltung" (.xbuc)') }}</h3>
 		<div class="vbh-card">
 			<p class="vbh-hint">
-				Übernimmt Kontenbaum und alle Buchungen aus einer .xbuc-Datei.
+				{{ t('Übernimmt Kontenbaum und alle Buchungen aus einer .xbuc-Datei.') }}
 			</p>
 			<div class="vbh-uploadrow">
-				<label class="vbh-filebtn">Datei wählen<input ref="xbucInput"
+				<label class="vbh-filebtn">{{ t('Datei wählen') }}<input ref="xbucInput"
 					type="file"
 					accept=".xbuc,application/xml,text/xml"
 					hidden
 					@change="onXbucSelected"></label>
-				<span class="vbh-filename">{{ xbucFile ? xbucFile.name : 'keine Datei gewählt' }}</span>
+				<span class="vbh-filename">{{ xbucFile ? xbucFile.name : t('keine Datei gewählt') }}</span>
 				<NcCheckboxRadioSwitch v-model="xbucReset">
-					Vorher alle Daten löschen (frisch starten)
+					{{ t('Vorher alle Daten löschen (frisch starten)') }}
 				</NcCheckboxRadioSwitch>
 			</div>
 			<div v-if="xbucPreviewResult" class="vbh-preview">
 				<p class="vbh-previewsummary">
-					<span class="vbh-badge pos">{{ xbucPreviewResult.accounts }} Konten</span>
-					<span class="vbh-badge pos">{{ xbucPreviewResult.bookings }} Buchungen</span>
-					<span v-if="xbucPreviewResult.openBankTx > 0" class="vbh-badge muted">{{ xbucPreviewResult.openBankTx }} ohne Gegenkonto → offen</span>
+					<span class="vbh-badge pos">{{ t('{n} Konten', { n: xbucPreviewResult.accounts }) }}</span>
+					<span class="vbh-badge pos">{{ t('{n} Buchungen', { n: xbucPreviewResult.bookings }) }}</span>
+					<span v-if="xbucPreviewResult.openBankTx > 0" class="vbh-badge muted">{{ t('{n} ohne Gegenkonto → offen', { n: xbucPreviewResult.openBankTx }) }}</span>
 				</p>
 				<p v-if="xbucPreviewResult.openBankTx > 0" class="vbh-hint">
-					{{ xbucPreviewResult.openBankTx }} Buchung(en) ohne Gegenkonto werden als offene Bankbuchungen übernommen und erscheinen im Tab „Buchungen → Zuzuordnen".
+					{{ t('{n} Buchung(en) ohne Gegenkonto werden als offene Bankbuchungen übernommen und erscheinen im Tab „Buchungen → Zuzuordnen".', { n: xbucPreviewResult.openBankTx }) }}
 				</p>
 				<div class="vbh-form vbh-yearedit">
-					<label>Geschäftsjahr
+					<label>{{ t('Geschäftsjahr') }}
 						<input v-model.number="xbucYear"
 							type="number"
 							min="2000"
 							max="2099"
-							placeholder="z. B. 2025"
+							:placeholder="t('z. B. 2025')"
 							class="vbh-addyear-input"
 							@change="xbucPreview()">
 					</label>
-					<span v-if="!xbucPreviewResult.fileYear && !xbucYear" class="vbh-hint">Kein Geschäftsjahr in der Datei hinterlegt – Jahr eintragen, um die Datumsprüfung zu aktivieren.</span>
-					<span v-else-if="xbucPreviewResult.fileYear && xbucYear && xbucYear !== xbucPreviewResult.fileYear" class="vbh-warn-inline">Weicht vom Jahr der Datei ab ({{ xbucPreviewResult.fileYear }}).</span>
+					<span v-if="!xbucPreviewResult.fileYear && !xbucYear" class="vbh-hint">{{ t('Kein Geschäftsjahr in der Datei hinterlegt – Jahr eintragen, um die Datumsprüfung zu aktivieren.') }}</span>
+					<span v-else-if="xbucPreviewResult.fileYear && xbucYear && xbucYear !== xbucPreviewResult.fileYear" class="vbh-warn-inline">{{ t('Weicht vom Jahr der Datei ab ({year}).', { year: xbucPreviewResult.fileYear }) }}</span>
 				</div>
 				<div v-if="!xbucReset && xbucPreviewResult.openings && xbucPreviewResult.openings.length" class="vbh-openinfo">
 					<p class="vbh-openinfo-title">
-						Anfangsbestände in der Datei:
+						{{ t('Anfangsbestände in der Datei:') }}
 					</p>
 					<ul class="vbh-yearwarn-list">
 						<li v-for="(o, i) in xbucPreviewResult.openings" :key="i">
-							{{ o.account }}: {{ formatMoney(o.amount) }} ({{ formatDate(o.date) }}) –
+							{{ t('{account}: {amount} ({date}) –', { account: o.account, amount: formatMoney(o.amount), date: formatDate(o.date) }) }}
 							<template v-if="o.action === 'import'">
-								wird übernommen (keine Vorjahresbuchungen vorhanden)
+								{{ t('wird übernommen (keine Vorjahresbuchungen vorhanden)') }}
 							</template>
 							<template v-else-if="o.matches">
-								wird übersprungen, stimmt mit dem Vorjahres-Endstand überein ✓
+								{{ t('wird übersprungen, stimmt mit dem Vorjahres-Endstand überein ✓') }}
 							</template>
 							<template v-else>
-								<span class="vbh-warn-inline">wird übersprungen – ⚠ Vorjahres-Endstand ist {{ formatMoney(o.priorBalance) }} (Differenz {{ formatMoney(o.amount - o.priorBalance) }})</span>
+								<span class="vbh-warn-inline">{{ t('wird übersprungen – ⚠ Vorjahres-Endstand ist {prior} (Differenz {diff})', { prior: formatMoney(o.priorBalance), diff: formatMoney(o.amount - o.priorBalance) }) }}</span>
 							</template>
 						</li>
 					</ul>
 				</div>
 				<div v-if="xbucPreviewResult.outsideYear > 0" class="vbh-yearwarn">
 					<p class="vbh-warn-inline">
-						⚠ {{ xbucPreviewResult.outsideYear }} Buchung(en) liegen außerhalb des Geschäftsjahres {{ xbucPreviewResult.year }}
-						und würden in der App einem anderen Jahr zugeordnet:
+						{{ t('⚠ {n} Buchung(en) liegen außerhalb des Geschäftsjahres {year} und würden in der App einem anderen Jahr zugeordnet:', { n: xbucPreviewResult.outsideYear, year: xbucPreviewResult.year }) }}
 					</p>
 					<ul class="vbh-yearwarn-list">
 						<li v-for="(s, i) in xbucPreviewResult.outsideSamples" :key="i">
@@ -71,46 +70,46 @@
 						</li>
 					</ul>
 					<NcCheckboxRadioSwitch v-model="xbucClampDates">
-						Diese Buchungen auf das Geschäftsjahr {{ xbucPreviewResult.year }} datieren (01.01. bzw. 31.12.)
+						{{ t('Diese Buchungen auf das Geschäftsjahr {year} datieren (01.01. bzw. 31.12.)', { year: xbucPreviewResult.year }) }}
 					</NcCheckboxRadioSwitch>
 				</div>
 				<div v-if="!xbucReset && xbucPreviewResult.yearTransition" class="vbh-yearwarn" :class="{ 'vbh-yearwarn--block': xbucPreviewResult.yearTransition.hasMismatch }">
 					<p :class="xbucPreviewResult.yearTransition.hasMismatch ? 'vbh-warn-inline' : 'vbh-openinfo-title'">
-						Rückwärts-Import (früheres Jahr): Abgleich mit dem Jahresübergang zu {{ xbucPreviewResult.yearTransition.targetYear }}.
+						{{ t('Rückwärts-Import (früheres Jahr): Abgleich mit dem Jahresübergang zu {year}.', { year: xbucPreviewResult.yearTransition.targetYear }) }}
 					</p>
 					<ul class="vbh-yearwarn-list">
 						<li v-for="(c, i) in xbucPreviewResult.yearTransition.comparisons" :key="i">
 							<template v-if="c.matches">
-								{{ c.account }}: {{ formatMoney(c.storedOpening) }} stimmt überein ✓
+								{{ t('{account}: {amount} stimmt überein ✓', { account: c.account, amount: formatMoney(c.storedOpening) }) }}
 							</template>
 							<template v-else>
-								<span class="vbh-warn-inline">{{ c.account }}: Endstand {{ formatMoney(c.fileClosing) }} ≠ gespeicherter Anfangsbestand {{ formatMoney(c.storedOpening) }} (Differenz {{ formatMoney(c.fileClosing - c.storedOpening) }})</span>
+								<span class="vbh-warn-inline">{{ t('{account}: Endstand {closing} ≠ gespeicherter Anfangsbestand {opening} (Differenz {diff})', { account: c.account, closing: formatMoney(c.fileClosing), opening: formatMoney(c.storedOpening), diff: formatMoney(c.fileClosing - c.storedOpening) }) }}</span>
 							</template>
 						</li>
 					</ul>
 					<p v-if="xbucPreviewResult.yearTransition.hasMismatch" class="vbh-warn-inline">
-						⛔ Import blockiert, bis die Beträge am Jahresübergang übereinstimmen.
+						{{ t('⛔ Import blockiert, bis die Beträge am Jahresübergang übereinstimmen.') }}
 					</p>
 					<p v-else class="vbh-hint">
-						{{ xbucPreviewResult.yearTransition.removalCount }} überflüssige Eröffnungsbuchung(en) aus {{ xbucPreviewResult.yearTransition.targetYear }} werden beim Import entfernt (der Anfangsbestand kommt dann aus diesem früheren Jahr).
+						{{ t('{n} überflüssige Eröffnungsbuchung(en) aus {year} werden beim Import entfernt (der Anfangsbestand kommt dann aus diesem früheren Jahr).', { n: xbucPreviewResult.yearTransition.removalCount, year: xbucPreviewResult.yearTransition.targetYear }) }}
 					</p>
 				</div>
 				<NcButton variant="primary" :disabled="busy || xbucImportBlocked" @click="xbucImport">
-					Importieren
+					{{ t('Importieren') }}
 				</NcButton>
-				<span v-if="xbucReset" class="vbh-warn-inline">Achtung: bestehende Daten werden gelöscht.</span>
+				<span v-if="xbucReset" class="vbh-warn-inline">{{ t('Achtung: bestehende Daten werden gelöscht.') }}</span>
 			</div>
 		</div>
 
-		<h4>Bisherige CSV-Importe</h4>
+		<h4>{{ t('Bisherige CSV-Importe') }}</h4>
 		<div v-if="imports.length" class="vbh-tablecard">
 			<table class="vbh-table">
 				<thead>
 					<tr>
-						<th>Datum</th><th>Datei</th><th class="num">
-							Neu
+						<th>{{ t('Datum') }}</th><th>{{ t('Datei') }}</th><th class="num">
+							{{ t('Neu') }}
 						</th><th class="num">
-							Dubletten
+							{{ t('Dubletten') }}
 						</th>
 					</tr>
 				</thead>
@@ -130,10 +129,10 @@
 				</tbody>
 			</table>
 		</div>
-		<NcEmptyContent v-else name="Noch keine CSV-Importe" description="Importiere oben eine CSV-CAMT-Datei.">
+		<NcEmptyContent v-else :name="t('Noch keine CSV-Importe')" :description="t('Importiere oben eine CSV-CAMT-Datei.')">
 			<template #action>
 				<NcButton variant="tertiary" @click="$emit('help')">
-					Mehr dazu
+					{{ t('Mehr dazu') }}
 				</NcButton>
 			</template>
 		</NcEmptyContent>
@@ -199,31 +198,31 @@ export default {
 				this.xbucYear = data.year || this.xbucYear
 				// Standard: Ausreißer auf das Geschäftsjahr datieren
 				this.xbucClampDates = (data.outsideYear || 0) > 0
-			} catch (e) { showError(this.errMsg(e, 'Vorschau fehlgeschlagen')) } finally { this.$emit('update:busy', false) }
+			} catch (e) { showError(this.errMsg(e, this.t('Vorschau fehlgeschlagen'))) } finally { this.$emit('update:busy', false) }
 		},
 		async xbucImport() {
 			if (!this.xbucFile) return
-			if (this.xbucReset && !await this.askConfirm('xbuc Import', 'Alle vorhandenen Daten werden gelöscht und ersetzt. Fortfahren?', 'Importieren', 'primary')) return
+			if (this.xbucReset && !await this.askConfirm(this.t('xbuc Import'), this.t('Alle vorhandenen Daten werden gelöscht und ersetzt. Fortfahren?'), this.t('Importieren'), 'primary')) return
 			this.$emit('update:busy', true)
 			try {
 				const fd = new FormData(); fd.append('file', this.xbucFile); fd.append('reset', this.xbucReset ? '1' : '0'); fd.append('clampDates', this.xbucClampDates ? '1' : '0')
 				const importYear = this.xbucYearParam()
 				if (importYear) fd.append('year', String(importYear))
 				const { data } = await api.commitXbuc(fd)
-				const skippedMsg = data.skipped > 0 ? `, ${data.skipped} übersprungen (bereits vorhanden)` : ''
-				const newAccMsg = data.accountsNew > 0 ? `, ${data.accountsNew} neue Konten` : ''
-				const clampMsg = data.clamped > 0 ? `, ${data.clamped} auf das Geschäftsjahr ${data.year} datiert` : ''
-				const openMsg = data.openingsSkipped > 0 ? `, ${data.openingsSkipped} Anfangsbestände übersprungen (über Vorjahressalden abgedeckt)` : ''
-				const openTxMsg = data.openBankTx > 0 ? `, ${data.openBankTx} ohne Gegenkonto → offen (Tab „Zuzuordnen")` : ''
-				const removedMsg = data.openingsRemoved > 0 ? `, ${data.openingsRemoved} überflüssige Eröffnungsbuchung(en) aus ${data.transitionYear} entfernt` : ''
-				showSuccess(`${data.bookings} Buchungen importiert${openTxMsg}${skippedMsg}${newAccMsg}${clampMsg}${openMsg}${removedMsg}.`)
+				const skippedMsg = data.skipped > 0 ? this.t(', {n} übersprungen (bereits vorhanden)', { n: data.skipped }) : ''
+				const newAccMsg = data.accountsNew > 0 ? this.t(', {n} neue Konten', { n: data.accountsNew }) : ''
+				const clampMsg = data.clamped > 0 ? this.t(', {n} auf das Geschäftsjahr {year} datiert', { n: data.clamped, year: data.year }) : ''
+				const openMsg = data.openingsSkipped > 0 ? this.t(', {n} Anfangsbestände übersprungen (über Vorjahressalden abgedeckt)', { n: data.openingsSkipped }) : ''
+				const openTxMsg = data.openBankTx > 0 ? this.t(', {n} ohne Gegenkonto → offen (Tab „Zuzuordnen")', { n: data.openBankTx }) : ''
+				const removedMsg = data.openingsRemoved > 0 ? this.t(', {n} überflüssige Eröffnungsbuchung(en) aus {year} entfernt', { n: data.openingsRemoved, year: data.transitionYear }) : ''
+				showSuccess(this.t('{n} Buchungen importiert', { n: data.bookings }) + openTxMsg + skippedMsg + newAccMsg + clampMsg + openMsg + removedMsg + '.')
 				for (const m of (data.openingMismatches || [])) {
-					showError(`Achtung: Anfangsbestand ${m.account} laut Datei ${this.formatMoney(m.fileAmount)}, Vorjahres-Endstand in der App ${this.formatMoney(m.priorBalance)} – bitte Vorjahresbuchungen prüfen.`, { timeout: -1 })
+					showError(this.t('Achtung: Anfangsbestand {account} laut Datei {fileAmount}, Vorjahres-Endstand in der App {priorBalance} – bitte Vorjahresbuchungen prüfen.', { account: m.account, fileAmount: this.formatMoney(m.fileAmount), priorBalance: this.formatMoney(m.priorBalance) }), { timeout: -1 })
 				}
 				this.xbucPreviewResult = null; this.xbucFile = null
 				if (this.$refs.xbucInput) this.$refs.xbucInput.value = ''
 				this.$emit('changed')
-			} catch (e) { showError(this.errMsg(e, 'Import fehlgeschlagen')) } finally { this.$emit('update:busy', false) }
+			} catch (e) { showError(this.errMsg(e, this.t('Import fehlgeschlagen'))) } finally { this.$emit('update:busy', false) }
 		},
 	},
 }

@@ -16,7 +16,7 @@
 					<span class="vbh-sheet-title">{{ title }}</span>
 					<button type="button"
 						class="vbh-sheet-close"
-						aria-label="Schließen"
+						:aria-label="t('Schließen')"
 						@click="$emit('close')">
 						✕
 					</button>
@@ -26,16 +26,16 @@
 				type="button"
 				class="vbh-suggest-chip vbh-suggest-chip--big vbh-sheet-suggest"
 				@click="$emit('suggest')">
-				✓ Vorschlag übernehmen: {{ suggestion.label }}
+				{{ t('✓ Vorschlag übernehmen: {label}', { label: suggestion.label }) }}
 			</button>
 			<input v-model="search"
 				type="search"
 				class="vbh-search vbh-search--full vbh-sheet-search"
-				placeholder="Konto suchen (Nummer oder Name)…">
+				:placeholder="t('Konto suchen (Nummer oder Name)…')">
 			<div class="vbh-sheet-list">
 				<template v-if="!searching && recent.length">
 					<div class="vbh-sheet-group">
-						Zuletzt verwendet
+						{{ t('Zuletzt verwendet') }}
 					</div>
 					<button v-for="opt in recent"
 						:key="'r' + opt.id"
@@ -60,7 +60,7 @@
 					</button>
 				</template>
 				<p v-if="!filteredOptions.length" class="vbh-sheet-empty">
-					Kein Konto gefunden.
+					{{ t('Kein Konto gefunden.') }}
 				</p>
 			</div>
 		</div>

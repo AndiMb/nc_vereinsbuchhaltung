@@ -1,51 +1,49 @@
 <template>
 	<div>
 		<h3 class="vbh-section-divider">
-			Steuerliche Sphären
+			{{ t('Steuerliche Sphären') }}
 		</h3>
 		<p class="vbh-hint">
-			Ordnet Einnahmen-/Ausgaben-Konten einer Sphäre zu (ideeller Bereich, Vermögensverwaltung, Zweckbetrieb,
-			wirtschaftlicher Geschäftsbetrieb) – wichtig für die Gemeinnützigkeit und die Freigrenze des
-			wirtschaftlichen Geschäftsbetriebs. Ersetzt keine steuerliche Beratung.
+			{{ t('Ordnet Einnahmen-/Ausgaben-Konten einer Sphäre zu (ideeller Bereich, Vermögensverwaltung, Zweckbetrieb, wirtschaftlicher Geschäftsbetrieb) – wichtig für die Gemeinnützigkeit und die Freigrenze des wirtschaftlichen Geschäftsbetriebs. Ersetzt keine steuerliche Beratung.') }}
 			<button type="button"
 				class="vbh-sphere-help"
-				title="Was bedeutet das?"
+				:title="t('Was bedeutet das?')"
 				@click="$emit('help')">
 				?
 			</button>
 		</p>
 
 		<div v-if="relevantAccounts.length === 0" class="vbh-hint">
-			Noch keine Einnahmen-/Ausgaben-Konten vorhanden.
+			{{ t('Noch keine Einnahmen-/Ausgaben-Konten vorhanden.') }}
 		</div>
 		<template v-else>
 			<div class="vbh-sphere-bulkbar">
 				<label class="vbh-checkinline">
 					<input type="checkbox" :checked="allSelected" @change="toggleAll($event.target.checked)">
-					{{ selected.length }} von {{ relevantAccounts.length }} ausgewählt
+					{{ t('{selected} von {total} ausgewählt', { selected: selected.length, total: relevantAccounts.length }) }}
 				</label>
 				<select v-model="bulkSphere">
 					<option value="">
-						– Sphäre wählen –
+						{{ t('– Sphäre wählen –') }}
 					</option>
 					<option value="ideell">
-						Ideeller Bereich
+						{{ t('Ideeller Bereich') }}
 					</option>
 					<option value="vermoegensverwaltung">
-						Vermögensverwaltung
+						{{ t('Vermögensverwaltung') }}
 					</option>
 					<option value="zweckbetrieb">
-						Zweckbetrieb
+						{{ t('Zweckbetrieb') }}
 					</option>
 					<option value="wirtschaftlich">
-						Wirtschaftlicher Geschäftsbetrieb
+						{{ t('Wirtschaftlicher Geschäftsbetrieb') }}
 					</option>
 				</select>
 				<NcButton variant="primary" :disabled="!selected.length || !bulkSphere || bulkSaving" @click="applyBulk">
-					Zuweisen
+					{{ t('Zuweisen') }}
 				</NcButton>
 				<NcButton variant="tertiary" :disabled="bulkSaving" @click="showSuggestions = !showSuggestions">
-					{{ showSuggestions ? 'Vorschläge ausblenden' : 'Vorschläge für unzugeordnete Konten anzeigen' }}
+					{{ showSuggestions ? t('Vorschläge ausblenden') : t('Vorschläge für unzugeordnete Konten anzeigen') }}
 				</NcButton>
 			</div>
 
@@ -54,8 +52,8 @@
 					<thead>
 						<tr>
 							<th /><th class="nowrap">
-								Nr.
-							</th><th>Konto</th><th>Sphäre</th>
+								{{ t('Nr.') }}
+							</th><th>{{ t('Konto') }}</th><th>{{ t('Sphäre') }}</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -68,23 +66,23 @@
 							<td>
 								<select :value="a.sphere || ''" @change="saveOne(a, $event.target.value)">
 									<option value="">
-										– nicht zugeordnet –
+										{{ t('– nicht zugeordnet –') }}
 									</option>
 									<option value="ideell">
-										Ideeller Bereich
+										{{ t('Ideeller Bereich') }}
 									</option>
 									<option value="vermoegensverwaltung">
-										Vermögensverwaltung
+										{{ t('Vermögensverwaltung') }}
 									</option>
 									<option value="zweckbetrieb">
-										Zweckbetrieb
+										{{ t('Zweckbetrieb') }}
 									</option>
 									<option value="wirtschaftlich">
-										Wirtschaftlicher Geschäftsbetrieb
+										{{ t('Wirtschaftlicher Geschäftsbetrieb') }}
 									</option>
 								</select>
 								<span v-if="showSuggestions && !a.sphere && suggestSphere(a.name)" class="vbh-sphere-suggest">
-									Vorschlag: {{ sphereLabel(suggestSphere(a.name)) }}
+									{{ t('Vorschlag: {sphere}', { sphere: sphereLabel(suggestSphere(a.name)) }) }}
 								</span>
 							</td>
 						</tr>
@@ -100,12 +98,18 @@ import { NcButton } from '@nextcloud/vue'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
+import { t } from '../lib/l10n.js'
 
-const LABELS = {
-	ideell: 'Ideeller Bereich',
-	vermoegensverwaltung: 'Vermögensverwaltung',
-	zweckbetrieb: 'Zweckbetrieb',
-	wirtschaftlich: 'Wirtschaftlicher Geschäftsbetrieb',
+// Als Funktion statt Modul-Konstante ausgewertet (siehe sphereLabel()), damit
+// t() erst beim tatsächlichen Aufruf laeuft und nicht schon beim Import -
+// gleiche Begruendung wie bei HelpModal.vue.
+function sphereLabels() {
+	return {
+		ideell: t('Ideeller Bereich'),
+		vermoegensverwaltung: t('Vermögensverwaltung'),
+		zweckbetrieb: t('Zweckbetrieb'),
+		wirtschaftlich: t('Wirtschaftlicher Geschäftsbetrieb'),
+	}
 }
 
 export default {
@@ -134,7 +138,7 @@ export default {
 	},
 	methods: {
 		errMsg,
-		sphereLabel(code) { return LABELS[code] || code },
+		sphereLabel(code) { return sphereLabels()[code] || code },
 		// Grobe Namensheuristik als Vorschlag – keine Garantie, muss geprüft werden (siehe Hinweistext oben).
 		suggestSphere(name) {
 			const n = (name || '').toLowerCase()
@@ -155,11 +159,11 @@ export default {
 			this.bulkSaving = true
 			try {
 				const { data } = await api.bulkSphere(this.selected, this.bulkSphere)
-				showSuccess(`${data.updated} Konten der Sphäre „${this.sphereLabel(this.bulkSphere)}" zugeordnet.`)
+				showSuccess(this.t('{count} Konten der Sphäre „{sphere}" zugeordnet.', { count: data.updated, sphere: this.sphereLabel(this.bulkSphere) }))
 				this.selected = []
 				this.bulkSphere = ''
 				this.$emit('changed')
-			} catch (e) { showError(this.errMsg(e, 'Zuordnung fehlgeschlagen')) } finally { this.bulkSaving = false }
+			} catch (e) { showError(this.errMsg(e, this.t('Zuordnung fehlgeschlagen'))) } finally { this.bulkSaving = false }
 		},
 		async saveOne(account, sphere) {
 			try {
@@ -173,7 +177,7 @@ export default {
 					sphere,
 				})
 				this.$emit('changed')
-			} catch (e) { showError(this.errMsg(e, 'Sphäre konnte nicht gespeichert werden')) }
+			} catch (e) { showError(this.errMsg(e, this.t('Sphäre konnte nicht gespeichert werden'))) }
 		},
 	},
 }

@@ -1,7 +1,7 @@
 <template>
 	<div class="vbh-reassign">
 		<div v-if="sides.length > 1" class="vbh-reassign-sides">
-			<span class="vbh-reassign-lab">Welche Seite umbuchen?</span>
+			<span class="vbh-reassign-lab">{{ t('Welche Seite umbuchen?') }}</span>
 			<button v-for="s in sides"
 				:key="s.accountId"
 				type="button"
@@ -18,19 +18,18 @@
 				:filter-by="accountFilterBy"
 				:disabled="busy"
 				label="label"
-				placeholder="Neues Konto wählen…"
+				:placeholder="t('Neues Konto wählen…')"
 				class="vbh-reassign-select"
 				@update:model-value="v => v && v.id && $emit('pick', v.id)" />
 			<NcButton variant="tertiary"
 				size="small"
 				:disabled="busy"
 				@click="$emit('cancel')">
-				Abbrechen
+				{{ t('Abbrechen') }}
 			</NcButton>
 		</div>
 		<p class="vbh-hint">
-			Es ändert sich nur die Kontozuordnung dieser einen Seite – Betrag, Datum, Beschreibung
-			und die Gegenseite bleiben unverändert.
+			{{ t('Es ändert sich nur die Kontozuordnung dieser einen Seite – Betrag, Datum, Beschreibung und die Gegenseite bleiben unverändert.') }}
 		</p>
 	</div>
 </template>

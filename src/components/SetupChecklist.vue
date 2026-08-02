@@ -1,10 +1,10 @@
 <template>
 	<div v-if="!dismissed && remaining.length" class="vbh-card vbh-setupcard">
 		<div class="vbh-setuphead">
-			<h4>Erste Schritte ({{ steps.length - remaining.length }} von {{ steps.length }} erledigt)</h4>
+			<h4>{{ t('Erste Schritte ({done} von {total} erledigt)', { done: steps.length - remaining.length, total: steps.length }) }}</h4>
 			<NcButton variant="tertiary"
-				aria-label="Ausblenden"
-				title="Ausblenden"
+				:aria-label="t('Ausblenden')"
+				:title="t('Ausblenden')"
 				@click="dismiss">
 				<template #icon>
 					<NcIconSvgWrapper :path="mdiClose" :size="18" />
@@ -21,7 +21,7 @@
 			</li>
 		</ul>
 		<button v-if="accounts.length === 0" class="vbh-setupstep vbh-setupwizardlink" @click="$emit('open-wizard')">
-			Setup-Assistenten öffnen
+			{{ t('Setup-Assistenten öffnen') }}
 		</button>
 	</div>
 </template>
@@ -50,16 +50,16 @@ export default {
 	computed: {
 		steps() {
 			return [
-				{ id: 'club', label: 'Verein benennen', action: 'settings', done: !!this.clubName },
-				{ id: 'accounts', label: 'Kontenrahmen anlegen', action: 'accounts', done: this.accounts.length > 0 },
+				{ id: 'club', label: this.t('Verein benennen'), action: 'settings', done: !!this.clubName },
+				{ id: 'accounts', label: this.t('Kontenrahmen anlegen'), action: 'accounts', done: this.accounts.length > 0 },
 				// xbuc-Importe setzen openingDate nicht (Anfangsbestand steckt in der
 				// EB-Buchung selbst) – sobald überhaupt gebucht wurde, ist der Punkt
 				// gegenstandslos, sonst würde er bei aktiven, importierten Vereinen nie erledigt sein.
-				{ id: 'opening', label: 'Geldkonto mit Anfangsbestand eintragen', action: 'accounts', done: this.journalCount > 0 || this.accounts.some(a => a.isBank && a.openingDate) },
-				{ id: 'permissions', label: 'Berechtigungen vergeben', action: 'settings', done: this.permissions.length > 0 },
-				{ id: 'booking', label: 'Erste Buchung erfassen', action: 'booking', done: this.journalCount > 0 },
+				{ id: 'opening', label: this.t('Geldkonto mit Anfangsbestand eintragen'), action: 'accounts', done: this.journalCount > 0 || this.accounts.some(a => a.isBank && a.openingDate) },
+				{ id: 'permissions', label: this.t('Berechtigungen vergeben'), action: 'settings', done: this.permissions.length > 0 },
+				{ id: 'booking', label: this.t('Erste Buchung erfassen'), action: 'booking', done: this.journalCount > 0 },
 				// Entspricht Account::isResultRelevant() im Backend (alles außer Geldkonten/Eigenkapital).
-				{ id: 'spheres', label: 'Sphären zuordnen (steuerlich)', action: 'settings', done: this.accounts.filter(a => a.type !== 'equity' && !a.isBank).every(a => a.sphere) },
+				{ id: 'spheres', label: this.t('Sphären zuordnen (steuerlich)'), action: 'settings', done: this.accounts.filter(a => a.type !== 'equity' && !a.isBank).every(a => a.sphere) },
 			]
 		},
 		remaining() {

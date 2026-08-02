@@ -10,19 +10,19 @@
 			<span class="vbh-mcard-amount" :class="flowClass">{{ amountLabel }}</span>
 		</div>
 		<div class="vbh-mcard-title">
-			{{ row.description || '(ohne Beschreibung)' }}
+			{{ row.description || t('(ohne Beschreibung)') }}
 		</div>
 		<div class="vbh-mcard-bottom">
 			<!-- Bei einer Splittbuchung stehen in soll/haben mehrere Konten; die
 			     zu zeigen ist nuetzlicher als der blosse Hinweis, dass es eine
 			     ist. Der Vermerk davor ordnet sie trotzdem gleich ein. -->
 			<span class="vbh-mcard-accounts">
-				<template v-if="row.isSplit">Splitt: </template>{{ row.soll }} ← {{ row.haben }}
+				<template v-if="row.isSplit">{{ t('Splitt: ') }}</template>{{ row.soll }} ← {{ row.haben }}
 			</span>
 			<button v-if="attachmentCount > 0"
 				type="button"
 				class="vbh-mcard-clip"
-				:aria-label="attachmentCount + ' Beleg(e) anzeigen'"
+				:aria-label="n('%n Beleg anzeigen', '%n Belege anzeigen', attachmentCount)"
 				@click.stop="$emit('paperclip')">
 				<NcIconSvgWrapper :path="mdiPaperclip" :size="14" inline /> {{ attachmentCount }}
 			</button>

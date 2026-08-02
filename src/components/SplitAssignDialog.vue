@@ -1,14 +1,12 @@
 <template>
 	<NcModal :show="show"
-		name="Umsatz aufteilen"
+		:name="t('Umsatz aufteilen')"
 		:size="isMobile ? 'full' : 'normal'"
 		@close="$emit('close')"
 		@update:show="$emit('update:show', $event)">
 		<div class="vbh-modal-inner">
 			<p class="vbh-hint vbh-hint--info">
-				Der Umsatz wird auf mehrere Gegenkonten verteilt – für eine Überweisung,
-				die mehreres zugleich enthält (z. B. Beitrag und Spende). Das Geldkonto
-				bleibt unverändert.
+				{{ t('Der Umsatz wird auf mehrere Gegenkonten verteilt – für eine Überweisung, die mehreres zugleich enthält (z. B. Beitrag und Spende). Das Geldkonto bleibt unverändert.') }}
 			</p>
 
 			<div v-if="tx" class="vbh-split-tx">
@@ -26,9 +24,9 @@
 
 			<div class="vbh-split">
 				<div class="vbh-split-head">
-					<span class="vbh-split-title">Aufteilung</span>
+					<span class="vbh-split-title">{{ t('Aufteilung') }}</span>
 					<span class="vbh-split-rest" :class="{ ok: restOk, bad: !restOk }">
-						{{ restOk ? '✓ geht auf' : 'Rest: ' + formatMoney(rest) }}
+						{{ restOk ? t('✓ geht auf') : t('Rest: {amount}', { amount: formatMoney(rest) }) }}
 					</span>
 				</div>
 				<ul class="vbh-split-list">
@@ -38,7 +36,7 @@
 							class="vbh-fieldbtn vbh-split-acc"
 							@click="openAccountPicker('splitline:' + i)">
 							<span class="vbh-fieldbtn-text">
-								<span class="vbh-fieldbtn-val" :class="{ placeholder: !part.accountId }">{{ part.accountId ? accountLabel(part.accountId) : 'Konto wählen…' }}</span>
+								<span class="vbh-fieldbtn-val" :class="{ placeholder: !part.accountId }">{{ part.accountId ? accountLabel(part.accountId) : t('Konto wählen…') }}</span>
 							</span>
 							<span class="vbh-fieldbtn-chev" aria-hidden="true">›</span>
 						</button>
@@ -48,7 +46,7 @@
 							:filter-by="accountFilterBy"
 							class="vbh-split-acc"
 							label="label"
-							placeholder="– Konto wählen –"
+							:placeholder="t('– Konto wählen –')"
 							@update:model-value="setAccount(i, $event)" />
 						<input :value="part.amount"
 							type="number"
@@ -56,10 +54,10 @@
 							min="0.01"
 							inputmode="decimal"
 							class="vbh-num vbh-split-amount"
-							:aria-label="'Teilbetrag Zeile ' + (i + 1)"
+							:aria-label="t('Teilbetrag Zeile {n}', { n: i + 1 })"
 							@input="setAmount(i, $event.target.value)">
 						<NcButton variant="tertiary"
-							:aria-label="'Zeile ' + (i + 1) + ' entfernen'"
+							:aria-label="t('Zeile {n} entfernen', { n: i + 1 })"
 							@click="removePart(i)">
 							<template #icon>
 								<NcIconSvgWrapper :path="mdiDelete" :size="14" />
@@ -69,23 +67,23 @@
 				</ul>
 				<div class="vbh-split-actions">
 					<NcButton variant="tertiary" @click="addPart">
-						+ Zeile hinzufügen
+						{{ t('+ Zeile hinzufügen') }}
 					</NcButton>
 					<NcButton v-if="rest > 0.0049"
 						variant="tertiary"
-						title="Den noch offenen Rest in die letzte Zeile schreiben"
+						:title="t('Den noch offenen Rest in die letzte Zeile schreiben')"
 						@click="fillRest">
-						Rest übernehmen
+						{{ t('Rest übernehmen') }}
 					</NcButton>
 				</div>
 			</div>
 
 			<div class="vbh-modal-actions">
 				<NcButton variant="tertiary" @click="$emit('close')">
-					Abbrechen
+					{{ t('Abbrechen') }}
 				</NcButton>
 				<NcButton variant="primary" @click="$emit('save')">
-					Zuordnen
+					{{ t('Zuordnen') }}
 				</NcButton>
 			</div>
 		</div>
@@ -146,7 +144,7 @@ export default {
 			const groups = {}
 			for (const acc of this.accountsSorted) {
 				if (!acc.active || used.has(acc.id)) continue
-				const cat = acc.category || 'Sonstige'
+				const cat = acc.category || this.t('Sonstige')
 				;(groups[cat] = groups[cat] || []).push(acc)
 			}
 			const opts = []

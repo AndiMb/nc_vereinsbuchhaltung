@@ -1,83 +1,82 @@
 <template>
 	<NcModal :show="show"
-		:name="accountEditId ? 'Konto bearbeiten' : 'Neues Konto'"
+		:name="accountEditId ? t('Konto bearbeiten') : t('Neues Konto')"
 		size="normal"
 		@close="$emit('close')"
 		@update:show="$emit('update:show', $event)">
 		<div class="vbh-modal-inner">
 			<div class="vbh-form">
-				<label>Nummer<input v-model="form.number" class="vbh-short" placeholder="z.B. 4000"></label>
-				<label class="vbh-grow">Bezeichnung<input v-model="form.name" placeholder="Kontoname"></label>
+				<label>{{ t('Nummer') }}<input v-model="form.number" class="vbh-short" :placeholder="t('z.B. 4000')"></label>
+				<label class="vbh-grow">{{ t('Bezeichnung') }}<input v-model="form.name" :placeholder="t('Kontoname')"></label>
 			</div>
 			<div class="vbh-form">
-				<label>Typ
+				<label>{{ t('Typ') }}
 					<select v-model="form.type">
-						<option value="income">Ertrag (Einnahme)</option>
-						<option value="expense">Aufwand (Ausgabe)</option>
-						<option value="asset">Aktiv (Vermögen)</option>
-						<option value="liability">Passiv (Verbindlichkeit)</option>
-						<option value="equity">Eigenkapital</option>
+						<option value="income">{{ t('Ertrag (Einnahme)') }}</option>
+						<option value="expense">{{ t('Aufwand (Ausgabe)') }}</option>
+						<option value="asset">{{ t('Aktiv (Vermögen)') }}</option>
+						<option value="liability">{{ t('Passiv (Verbindlichkeit)') }}</option>
+						<option value="equity">{{ t('Eigenkapital') }}</option>
 					</select>
 				</label>
-				<label class="vbh-grow">Überkonto
+				<label class="vbh-grow">{{ t('Überkonto') }}
 					<NcSelect v-model="accountParentOption"
 						:options="accountParentOptions"
 						:filter-by="accountFilterBy"
 						label="label"
-						placeholder="– kein Überkonto –"
+						:placeholder="t('– kein Überkonto –')"
 						:clearable="true" />
 				</label>
 			</div>
 			<div class="vbh-form">
-				<label>Kategorie<input v-model="form.category" placeholder="optional"></label>
+				<label>{{ t('Kategorie') }}<input v-model="form.category" :placeholder="t('optional')"></label>
 				<NcCheckboxRadioSwitch v-model="form.isBank">
-					Geldkonto (Bank/Kasse) – Bestand geht über Jahresgrenzen
+					{{ t('Geldkonto (Bank/Kasse) – Bestand geht über Jahresgrenzen') }}
 				</NcCheckboxRadioSwitch>
 			</div>
 			<div v-if="form.isBank" class="vbh-form">
-				<label class="vbh-grow">IBAN (optional)
+				<label class="vbh-grow">{{ t('IBAN (optional)') }}
 					<input v-model="form.iban"
 						type="text"
 						autocapitalize="characters"
-						placeholder="z. B. DE12 5001 0517 0648 4898 90">
+						:placeholder="t('z. B. DE12 5001 0517 0648 4898 90')">
 				</label>
 			</div>
 			<p v-if="form.isBank" class="vbh-hint">
-				Nur nötig, wenn die Buchhaltung mehrere Geldkonten führt: Damit ordnet die App
-				importierte Kontoauszüge dem richtigen Konto zu. Leerzeichen sind egal.
+				{{ t('Nur nötig, wenn die Buchhaltung mehrere Geldkonten führt: Damit ordnet die App importierte Kontoauszüge dem richtigen Konto zu. Leerzeichen sind egal.') }}
 			</p>
 			<div v-if="form.type !== 'equity' && !form.isBank" class="vbh-form">
-				<label class="vbh-grow">Steuerliche Sphäre
+				<label class="vbh-grow">{{ t('Steuerliche Sphäre') }}
 					<select v-model="form.sphere">
-						<option value="">– nicht zugeordnet –</option>
-						<option value="ideell">Ideeller Bereich</option>
-						<option value="vermoegensverwaltung">Vermögensverwaltung</option>
-						<option value="zweckbetrieb">Zweckbetrieb</option>
-						<option value="wirtschaftlich">Wirtschaftlicher Geschäftsbetrieb</option>
+						<option value="">{{ t('– nicht zugeordnet –') }}</option>
+						<option value="ideell">{{ t('Ideeller Bereich') }}</option>
+						<option value="vermoegensverwaltung">{{ t('Vermögensverwaltung') }}</option>
+						<option value="zweckbetrieb">{{ t('Zweckbetrieb') }}</option>
+						<option value="wirtschaftlich">{{ t('Wirtschaftlicher Geschäftsbetrieb') }}</option>
 					</select>
 				</label>
 				<button type="button"
 					class="vbh-sphere-help"
-					title="Was bedeutet das?"
+					:title="t('Was bedeutet das?')"
 					@click="$emit('help')">
 					?
 				</button>
 			</div>
 			<div v-if="showCostCenter" class="vbh-form">
-				<label class="vbh-grow">Kostenstelle
+				<label class="vbh-grow">{{ t('Kostenstelle') }}
 					<select v-model="form.costCenterId">
-						<option :value="null">– keine Kostenstelle –</option>
+						<option :value="null">{{ t('– keine Kostenstelle –') }}</option>
 						<option v-for="cc in costCenters" :key="cc.id" :value="cc.id">{{ cc.code }} · {{ cc.name }}</option>
 					</select>
 				</label>
 			</div>
 			<div v-if="form.type === 'equity'" class="vbh-form">
-				<label class="vbh-grow">Rücklagen-Art
+				<label class="vbh-grow">{{ t('Rücklagen-Art') }}
 					<select v-model="form.reserveKind">
-						<option value="">– keine Rücklage –</option>
-						<option value="frei">Freie Rücklage</option>
-						<option value="zweckgebunden">Zweckgebundene Rücklage</option>
-						<option value="wiederbeschaffung">Wiederbeschaffungsrücklage</option>
+						<option value="">{{ t('– keine Rücklage –') }}</option>
+						<option value="frei">{{ t('Freie Rücklage') }}</option>
+						<option value="zweckgebunden">{{ t('Zweckgebundene Rücklage') }}</option>
+						<option value="wiederbeschaffung">{{ t('Wiederbeschaffungsrücklage') }}</option>
 					</select>
 				</label>
 			</div>
@@ -86,20 +85,18 @@
 			     Kontos, den AccountService::delete() genau hierauf verweist. -->
 			<div v-if="accountEditId" class="vbh-form">
 				<NcCheckboxRadioSwitch v-model="form.active" type="switch">
-					Konto aktiv
+					{{ t('Konto aktiv') }}
 				</NcCheckboxRadioSwitch>
 			</div>
 			<p v-if="accountEditId && !form.active" class="vbh-hint">
-				Ein inaktives Konto verschwindet aus allen Auswahllisten – bereits gebuchte
-				Beträge, Berichte und die Historie bleiben unverändert. So werden Konten
-				losgeworden, die sich wegen vorhandener Buchungen nicht löschen lassen.
+				{{ t('Ein inaktives Konto verschwindet aus allen Auswahllisten – bereits gebuchte Beträge, Berichte und die Historie bleiben unverändert. So werden Konten losgeworden, die sich wegen vorhandener Buchungen nicht löschen lassen.') }}
 			</p>
 			<div class="vbh-modal-actions">
 				<NcButton variant="tertiary" @click="$emit('close')">
-					Abbrechen
+					{{ t('Abbrechen') }}
 				</NcButton>
 				<NcButton variant="primary" @click="save">
-					{{ accountEditId ? 'Speichern' : 'Anlegen' }}
+					{{ accountEditId ? t('Speichern') : t('Anlegen') }}
 				</NcButton>
 			</div>
 		</div>
@@ -167,7 +164,7 @@ export default {
 		},
 		accountParentOptions() {
 			return [
-				{ id: null, label: '– kein Überkonto –' },
+				{ id: null, label: this.t('– kein Überkonto –') },
 				...this.parentOptions.map(a => ({ id: a.id, label: `${a.number} ${a.name}`, number: a.number })),
 			]
 		},

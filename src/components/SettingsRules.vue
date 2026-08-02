@@ -1,45 +1,43 @@
 <template>
 	<div>
 		<h3 class="vbh-section-divider">
-			Automatische Zuordnung (Regeln)
+			{{ t('Automatische Zuordnung (Regeln)') }}
 		</h3>
 		<p class="vbh-hint">
-			Regeln ordnen offenen Bankbuchungen automatisch ein Gegenkonto zu: Enthält das gewählte Feld
-			(Zahlungspartner, Verwendungszweck oder IBAN) den Suchtext, wird das Gegenkonto vorgeschlagen und
-			beim Import direkt gesetzt. Bei mehreren Treffern gewinnt die höhere Priorität.
+			{{ t('Regeln ordnen offenen Bankbuchungen automatisch ein Gegenkonto zu: Enthält das gewählte Feld (Zahlungspartner, Verwendungszweck oder IBAN) den Suchtext, wird das Gegenkonto vorgeschlagen und beim Import direkt gesetzt. Bei mehreren Treffern gewinnt die höhere Priorität.') }}
 		</p>
 
 		<div class="vbh-card">
-			<h4>{{ ruleEditId ? 'Regel bearbeiten' : 'Neue Regel' }}</h4>
+			<h4>{{ ruleEditId ? t('Regel bearbeiten') : t('Neue Regel') }}</h4>
 			<div class="vbh-form">
-				<label>Feld
+				<label>{{ t('Feld') }}
 					<select v-model="ruleForm.matchField">
-						<option value="counterparty">Zahlungspartner</option>
-						<option value="purpose">Verwendungszweck</option>
-						<option value="iban">IBAN</option>
+						<option value="counterparty">{{ t('Zahlungspartner') }}</option>
+						<option value="purpose">{{ t('Verwendungszweck') }}</option>
+						<option value="iban">{{ t('IBAN') }}</option>
 					</select>
 				</label>
-				<label class="vbh-grow">enthält (Suchtext)
+				<label class="vbh-grow">{{ t('enthält (Suchtext)') }}
 					<input v-model="ruleForm.matchValue"
 						type="text"
-						placeholder="z. B. Stadtwerke"
+						:placeholder="t('z. B. Stadtwerke')"
 						@keyup.enter="saveRule">
 				</label>
-				<label class="vbh-grow">Gegenkonto
+				<label class="vbh-grow">{{ t('Gegenkonto') }}
 					<NcSelect v-model="ruleFormContraOption"
 						:options="accountOptionsList"
 						:filter-by="accountFilterBy"
 						label="label"
-						placeholder="– Konto wählen –" />
+						:placeholder="t('– Konto wählen –')" />
 				</label>
-				<label class="vbh-rule-prio">Priorität
+				<label class="vbh-rule-prio">{{ t('Priorität') }}
 					<input v-model.number="ruleForm.priority" type="number" step="1">
 				</label>
 				<NcButton variant="primary" @click="saveRule">
-					{{ ruleEditId ? 'Speichern' : 'Hinzufügen' }}
+					{{ ruleEditId ? t('Speichern') : t('Hinzufügen') }}
 				</NcButton>
 				<NcButton v-if="ruleEditId" variant="tertiary" @click="resetRuleForm">
-					Abbrechen
+					{{ t('Abbrechen') }}
 				</NcButton>
 			</div>
 		</div>
@@ -48,8 +46,8 @@
 			<table class="vbh-table">
 				<thead>
 					<tr>
-						<th>Feld</th><th>Suchtext</th><th>Gegenkonto</th><th class="num">
-							Prio.
+						<th>{{ t('Feld') }}</th><th>{{ t('Suchtext') }}</th><th>{{ t('Gegenkonto') }}</th><th class="num">
+							{{ t('Prio.') }}
 						</th><th />
 					</tr>
 				</thead>
@@ -63,16 +61,16 @@
 						</td>
 						<td class="right nowrap">
 							<NcButton variant="tertiary"
-								aria-label="Regel bearbeiten"
-								title="Bearbeiten"
+								:aria-label="t('Regel bearbeiten')"
+								:title="t('Bearbeiten')"
 								@click="editRule(rule)">
 								<template #icon>
 									<NcIconSvgWrapper :path="mdiPencil" :size="20" />
 								</template>
 							</NcButton>
 							<NcButton variant="error"
-								aria-label="Regel löschen"
-								title="Löschen"
+								:aria-label="t('Regel löschen')"
+								:title="t('Löschen')"
 								@click="deleteRule(rule)">
 								<template #icon>
 									<NcIconSvgWrapper :path="mdiDelete" :size="20" />
@@ -83,7 +81,7 @@
 				</tbody>
 			</table>
 		</div>
-		<NcEmptyContent v-else name="Keine Regeln" description="Lege oben eine Regel an – oder erzeuge sie im Tab „Buchungen“ direkt aus einer Bankbuchung." />
+		<NcEmptyContent v-else :name="t('Keine Regeln')" :description="t('Lege oben eine Regel an – oder erzeuge sie im Tab „Buchungen“ direkt aus einer Bankbuchung.')" />
 	</div>
 </template>
 
@@ -144,7 +142,7 @@ export default {
 			return String(label || '').toLowerCase().includes(s)
 		},
 		matchFieldLabel(field) {
-			return { counterparty: 'Zahlungspartner', purpose: 'Verwendungszweck', iban: 'IBAN' }[field] || field
+			return { counterparty: this.t('Zahlungspartner'), purpose: this.t('Verwendungszweck'), iban: this.t('IBAN') }[field] || field
 		},
 		resetRuleForm() {
 			this.ruleEditId = null
@@ -166,32 +164,32 @@ export default {
 				contraAccountId: this.ruleForm.contraAccountId,
 				priority: Number(this.ruleForm.priority) || 0,
 			}
-			if (!payload.matchValue) { showError('Bitte einen Suchtext eingeben.'); return }
-			if (!payload.contraAccountId) { showError('Bitte ein Gegenkonto wählen.'); return }
+			if (!payload.matchValue) { showError(this.t('Bitte einen Suchtext eingeben.')); return }
+			if (!payload.contraAccountId) { showError(this.t('Bitte ein Gegenkonto wählen.')); return }
 			try {
 				if (this.ruleEditId) {
 					await api.updateRule(this.ruleEditId, payload)
-					showSuccess('Regel gespeichert.')
+					showSuccess(this.t('Regel gespeichert.'))
 				} else {
 					await api.createRule(payload)
-					showSuccess('Regel angelegt.')
+					showSuccess(this.t('Regel angelegt.'))
 				}
 				this.$emit('changed')
 				this.resetRuleForm()
-			} catch (e) { showError(this.errMsg(e, 'Regel konnte nicht gespeichert werden')) }
+			} catch (e) { showError(this.errMsg(e, this.t('Regel konnte nicht gespeichert werden'))) }
 		},
 		async deleteRule(rule) {
 			const ok = await this.askConfirm(
-				'Regel löschen',
-				`Regel „${this.matchFieldLabel(rule.matchField)} enthält ${rule.matchValue} → ${this.accountLabel(rule.contraAccountId)}" wirklich löschen?`,
+				this.t('Regel löschen'),
+				this.t('Regel „{field} enthält {value} → {account}" wirklich löschen?', { field: this.matchFieldLabel(rule.matchField), value: rule.matchValue, account: this.accountLabel(rule.contraAccountId) }),
 			)
 			if (!ok) return
 			try {
 				await api.deleteRule(rule.id)
 				if (this.ruleEditId === rule.id) this.resetRuleForm()
 				this.$emit('changed')
-				showSuccess('Regel gelöscht.')
-			} catch (e) { showError(this.errMsg(e, 'Regel konnte nicht gelöscht werden')) }
+				showSuccess(this.t('Regel gelöscht.'))
+			} catch (e) { showError(this.errMsg(e, this.t('Regel konnte nicht gelöscht werden'))) }
 		},
 	},
 }

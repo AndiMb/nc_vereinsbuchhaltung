@@ -1,28 +1,28 @@
 <template>
 	<NcModal v-if="show"
 		:show="show"
-		:name="'Plan-Stand: ' + (snapshot ? snapshot.label : '')"
+		:name="t('Plan-Stand: {label}', { label: snapshot ? snapshot.label : '' })"
 		size="normal"
 		@close="$emit('close')"
 		@update:show="$emit('update:show', $event)">
 		<div v-if="snapshot" class="vbh-modal-inner">
 			<p class="vbh-hint">
-				Eingefroren am {{ formatDateTime(snapshot.createdAt) }} · Geschäftsjahr {{ snapshot.year }}.
-				Die Spalte „Aktuell" zeigt den heutigen Planwert, „Δ" die Abweichung des aktuellen Plans zum Stand.
+				{{ t('Eingefroren am {date} · Geschäftsjahr {year}.', { date: formatDateTime(snapshot.createdAt), year: snapshot.year }) }}
+				{{ t('Die Spalte „Aktuell" zeigt den heutigen Planwert, „Δ" die Abweichung des aktuellen Plans zum Stand.') }}
 			</p>
 			<div v-if="snapshot.items && snapshot.items.length" class="vbh-tablecard">
 				<table class="vbh-table">
 					<thead>
 						<tr>
 							<th class="nowrap vbh-col-hide-sm">
-								Nr.
+								{{ t('Nr.') }}
 							</th>
-							<th>Konto</th>
+							<th>{{ t('Konto') }}</th>
 							<th class="num">
-								Stand
+								{{ t('Stand') }}
 							</th>
 							<th class="num vbh-col-hide-sm">
-								Aktuell
+								{{ t('Aktuell') }}
 							</th>
 							<th class="num">
 								Δ
@@ -49,7 +49,7 @@
 					<tfoot>
 						<tr>
 							<td class="vbh-col-hide-sm" />
-							<td><strong>Ergebnis (Plan)</strong></td>
+							<td><strong>{{ t('Ergebnis (Plan)') }}</strong></td>
 							<td class="num strong" :class="snapshot.planResult >= 0 ? 'good' : 'bad'">
 								{{ formatMoney(snapshot.planResult) }}
 							</td>
@@ -60,11 +60,11 @@
 				</table>
 			</div>
 			<p v-else class="vbh-empty">
-				Dieser Stand enthält keine Planwerte.
+				{{ t('Dieser Stand enthält keine Planwerte.') }}
 			</p>
 			<div class="vbh-modal-actions">
 				<NcButton variant="primary" @click="$emit('close')">
-					Schließen
+					{{ t('Schließen') }}
 				</NcButton>
 			</div>
 		</div>

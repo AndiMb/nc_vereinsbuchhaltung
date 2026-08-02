@@ -1,28 +1,27 @@
 <template>
 	<div>
 		<h3 class="vbh-section-divider">
-			Kostenstellen
+			{{ t('Kostenstellen') }}
 		</h3>
 		<p class="vbh-hint">
-			Kostenstellen bündeln Konten zu Projekten, Abteilungen oder Veranstaltungen – der Bericht
-			<em>Berichte → Kostenstellen</em> zeigt dann Einnahmen, Ausgaben und Ergebnis je Kostenstelle.
-			Hier angelegte Kostenstellen wertet die App aus, sobald der Modus
-			<em>„Frei definierte Kostenstellen"</em> eingestellt ist.
+			{{ t('Kostenstellen bündeln Konten zu Projekten, Abteilungen oder Veranstaltungen – der Bericht') }}
+			<em>{{ t('Berichte → Kostenstellen') }}</em> {{ t('zeigt dann Einnahmen, Ausgaben und Ergebnis je Kostenstelle. Hier angelegte Kostenstellen wertet die App aus, sobald der Modus') }}
+			<em>{{ t('„Frei definierte Kostenstellen"') }}</em> {{ t('eingestellt ist.') }}
 		</p>
 		<p v-if="mode !== 'manual'" class="vbh-hint vbh-cc-modewarn">
-			Zurzeit ist der Modus <strong>{{ modeLabel }}</strong> eingestellt. Die Zuordnung unten wird dann
-			<strong>nicht</strong> ausgewertet; die Namen der Kostenstellen gelten aber weiterhin.
-			Umstellen lässt sich das weiter unten unter <em>Allgemein</em> (nur Verwalter).
+			{{ t('Zurzeit ist der Modus') }} <strong>{{ modeLabel }}</strong> {{ t('eingestellt. Die Zuordnung unten wird dann') }}
+			<strong>{{ t('nicht') }}</strong> {{ t('ausgewertet; die Namen der Kostenstellen gelten aber weiterhin. Umstellen lässt sich das weiter unten unter') }}
+			<em>{{ t('Allgemein') }}</em> {{ t('(nur Verwalter).') }}
 		</p>
 
 		<div class="vbh-form vbh-cc-newform">
-			<label>Kürzel<input v-model="newCode"
+			<label>{{ t('Kürzel') }}<input v-model="newCode"
 				class="vbh-short"
 				maxlength="8"
-				placeholder="z.B. 51"></label>
-			<label class="vbh-grow">Name<input v-model="newName" placeholder="z.B. Sommerfest"></label>
+				:placeholder="t('z.B. 51')"></label>
+			<label class="vbh-grow">{{ t('Name') }}<input v-model="newName" :placeholder="t('z.B. Sommerfest')"></label>
 			<NcButton variant="primary" :disabled="!newCode.trim() || !newName.trim() || saving" @click="createCostCenter">
-				Anlegen
+				{{ t('Anlegen') }}
 			</NcButton>
 		</div>
 
@@ -31,9 +30,9 @@
 				<thead>
 					<tr>
 						<th class="nowrap">
-							Kürzel
-						</th><th>Name</th><th class="num nowrap">
-							Konten
+							{{ t('Kürzel') }}
+						</th><th>{{ t('Name') }}</th><th class="num nowrap">
+							{{ t('Konten') }}
 						</th><th />
 					</tr>
 				</thead>
@@ -56,9 +55,9 @@
 						<td class="nowrap">
 							<NcButton variant="error"
 								size="small"
-								aria-label="Kostenstelle löschen"
+								:aria-label="t('Kostenstelle löschen')"
 								@click="remove(cc)">
-								Löschen
+								{{ t('Löschen') }}
 							</NcButton>
 						</td>
 					</tr>
@@ -66,29 +65,29 @@
 			</table>
 		</div>
 		<p v-else class="vbh-hint">
-			Noch keine Kostenstelle angelegt.
+			{{ t('Noch keine Kostenstelle angelegt.') }}
 		</p>
 
 		<template v-if="costCenters.length && relevantAccounts.length">
-			<h4>Konten zuordnen</h4>
+			<h4>{{ t('Konten zuordnen') }}</h4>
 			<div class="vbh-sphere-bulkbar">
 				<label class="vbh-checkinline">
 					<input type="checkbox" :checked="allSelected" @change="toggleAll($event.target.checked)">
-					{{ selected.length }} von {{ relevantAccounts.length }} ausgewählt
+					{{ t('{selected} von {total} ausgewählt', { selected: selected.length, total: relevantAccounts.length }) }}
 				</label>
 				<select v-model="bulkTarget">
 					<option value="">
-						– Kostenstelle wählen –
+						{{ t('– Kostenstelle wählen –') }}
 					</option>
 					<option v-for="cc in costCenters" :key="cc.id" :value="String(cc.id)">
 						{{ cc.code }} · {{ cc.name }}
 					</option>
 					<option value="0">
-						– Zuordnung aufheben –
+						{{ t('– Zuordnung aufheben –') }}
 					</option>
 				</select>
 				<NcButton variant="primary" :disabled="!selected.length || bulkTarget === '' || saving" @click="applyBulk">
-					Zuweisen
+					{{ t('Zuweisen') }}
 				</NcButton>
 			</div>
 
@@ -97,8 +96,8 @@
 					<thead>
 						<tr>
 							<th /><th class="nowrap">
-								Nr.
-							</th><th>Konto</th><th>Kostenstelle</th>
+								{{ t('Nr.') }}
+							</th><th>{{ t('Konto') }}</th><th>{{ t('Kostenstelle') }}</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -111,7 +110,7 @@
 							<td>
 								<select :value="a.costCenterId ? String(a.costCenterId) : ''" @change="assignOne(a, $event.target.value)">
 									<option value="">
-										– nicht zugeordnet –
+										{{ t('– nicht zugeordnet –') }}
 									</option>
 									<option v-for="cc in costCenters" :key="cc.id" :value="String(cc.id)">
 										{{ cc.code }} · {{ cc.name }}
@@ -135,11 +134,16 @@ import { errMsg } from '../lib/format.js'
 import { useAccounts } from '../composables/useAccounts.js'
 import { useCostCenters } from '../composables/useCostCenters.js'
 import { useConfirm } from '../composables/useConfirm.js'
+import { t } from '../lib/l10n.js'
 
-const MODE_LABELS = {
-	group: '2. Zahlengruppe der Kontonummer',
-	account: 'jedes Konto eine eigene Kostenstelle',
-	manual: 'frei definierte Kostenstellen',
+// Als Funktion statt Modul-Konstante (siehe HelpModal.vue/SettingsSpheres.vue
+// fuer die Begruendung: t() darf erst beim Aufruf laufen, nicht beim Import).
+function modeLabels() {
+	return {
+		group: t('2. Zahlengruppe der Kontonummer'),
+		account: t('jedes Konto eine eigene Kostenstelle'),
+		manual: t('frei definierte Kostenstellen'),
+	}
 }
 
 /**
@@ -175,7 +179,7 @@ export default {
 		}
 	},
 	computed: {
-		modeLabel() { return MODE_LABELS[this.mode] || this.mode },
+		modeLabel() { return modeLabels()[this.mode] || this.mode },
 		// Entspricht Account::isResultRelevant() im Backend: nur diese Konten
 		// tauchen in der Kostenstellen-Auswertung überhaupt auf.
 		relevantAccounts() {
@@ -201,8 +205,8 @@ export default {
 				this.newName = ''
 				await this.loadCostCenters()
 				this.$emit('changed')
-				showSuccess('Kostenstelle angelegt.')
-			} catch (e) { showError(this.errMsg(e, 'Kostenstelle konnte nicht angelegt werden')) } finally { this.saving = false }
+				showSuccess(this.t('Kostenstelle angelegt.'))
+			} catch (e) { showError(this.errMsg(e, this.t('Kostenstelle konnte nicht angelegt werden'))) } finally { this.saving = false }
 		},
 		/**
 		 * Kürzel oder Name einer Kostenstelle ändern (beim Verlassen des Feldes).
@@ -219,7 +223,7 @@ export default {
 				await this.loadCostCenters()
 				this.$emit('changed')
 			} catch (e) {
-				showError(this.errMsg(e, 'Kostenstelle konnte nicht gespeichert werden'))
+				showError(this.errMsg(e, this.t('Kostenstelle konnte nicht gespeichert werden')))
 				// Das Feld steht sonst weiter auf dem abgelehnten Wert – Vue
 				// gleicht es nicht ab, weil sich der gebundene Wert nicht ändert.
 				event.target.value = cc[field]
@@ -227,14 +231,14 @@ export default {
 		},
 		async remove(cc) {
 			const count = this.accountCount(cc.id)
-			const hint = count ? ` Die Zuordnung von ${count} Konto/Konten wird gelöst; Buchungen bleiben unverändert.` : ''
-			if (!await this.askConfirm('Kostenstelle löschen', `Kostenstelle „${cc.code} ${cc.name}" löschen?${hint}`)) return
+			const hint = count ? ' ' + this.t('Die Zuordnung von {count} Konto/Konten wird gelöst; Buchungen bleiben unverändert.', { count }) : ''
+			if (!await this.askConfirm(this.t('Kostenstelle löschen'), this.t('Kostenstelle „{code} {name}" löschen?', { code: cc.code, name: cc.name }) + hint)) return
 			try {
 				await api.deleteCostCenter(cc.id)
 				await this.loadCostCenters()
 				this.$emit('changed')
-				showSuccess('Kostenstelle gelöscht.')
-			} catch (e) { showError(this.errMsg(e, 'Löschen fehlgeschlagen')) }
+				showSuccess(this.t('Kostenstelle gelöscht.'))
+			} catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
 		},
 		toggleAll(checked) {
 			this.selected = checked ? this.relevantAccounts.map(a => a.id) : []
@@ -250,14 +254,14 @@ export default {
 				this.selected = []
 				this.bulkTarget = ''
 				this.$emit('changed')
-				showSuccess(`${data.updated} Konten zugeordnet.`)
-			} catch (e) { showError(this.errMsg(e, 'Zuordnung fehlgeschlagen')) } finally { this.saving = false }
+				showSuccess(this.t('{count} Konten zugeordnet.', { count: data.updated }))
+			} catch (e) { showError(this.errMsg(e, this.t('Zuordnung fehlgeschlagen'))) } finally { this.saving = false }
 		},
 		async assignOne(account, value) {
 			try {
 				await api.assignCostCenter([account.id], Number(value || 0))
 				this.$emit('changed')
-			} catch (e) { showError(this.errMsg(e, 'Zuordnung fehlgeschlagen')) }
+			} catch (e) { showError(this.errMsg(e, this.t('Zuordnung fehlgeschlagen'))) }
 		},
 	},
 }
