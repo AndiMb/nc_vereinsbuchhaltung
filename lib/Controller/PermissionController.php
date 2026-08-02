@@ -14,6 +14,7 @@ use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IGroupManager;
+use OCP\IL10N;
 use OCP\IRequest;
 use OCP\IUserManager;
 
@@ -26,6 +27,7 @@ class PermissionController extends Controller {
 		private IGroupManager $groupManager,
 		private IUserManager $userManager,
 		private AuditService $audit,
+		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -64,23 +66,23 @@ class PermissionController extends Controller {
 	#[NoAdminRequired]
 	public function setRole(string $principalType, string $principalId, string $role): DataResponse {
 		if (!in_array($principalType, ['user', 'group'], true)) {
-			return new DataResponse(['message' => 'Ungültiger Typ'], Http::STATUS_BAD_REQUEST);
+			return new DataResponse(['message' => $this->l10n->t('Ungültiger Typ')], Http::STATUS_BAD_REQUEST);
 		}
 		if (!in_array($role, [PermissionService::ROLE_READ, PermissionService::ROLE_WRITE, PermissionService::ROLE_ADMIN], true)) {
-			return new DataResponse(['message' => 'Ungültige Rolle'], Http::STATUS_BAD_REQUEST);
+			return new DataResponse(['message' => $this->l10n->t('Ungültige Rolle')], Http::STATUS_BAD_REQUEST);
 		}
 		$principalId = trim($principalId);
 		if ($principalId === '') {
-			return new DataResponse(['message' => 'Nutzer/Gruppe fehlt'], Http::STATUS_BAD_REQUEST);
+			return new DataResponse(['message' => $this->l10n->t('Nutzer/Gruppe fehlt')], Http::STATUS_BAD_REQUEST);
 		}
 		// Existenz prüfen: ein Tippfehler legte sonst eine Berechtigung an, die
 		// zu niemandem gehört. Sie stünde dauerhaft in der Rechteliste, ohne je
 		// zu greifen - und niemand käme darauf, dass der Name falsch ist.
 		if ($principalType === 'user' && !$this->userManager->userExists($principalId)) {
-			return new DataResponse(['message' => 'Diesen Nextcloud-Nutzer gibt es nicht: ' . $principalId], Http::STATUS_BAD_REQUEST);
+			return new DataResponse(['message' => $this->l10n->t('Diesen Nextcloud-Nutzer gibt es nicht: %s', [$principalId])], Http::STATUS_BAD_REQUEST);
 		}
 		if ($principalType === 'group' && !$this->groupManager->groupExists($principalId)) {
-			return new DataResponse(['message' => 'Diese Nextcloud-Gruppe gibt es nicht: ' . $principalId], Http::STATUS_BAD_REQUEST);
+			return new DataResponse(['message' => $this->l10n->t('Diese Nextcloud-Gruppe gibt es nicht: %s', [$principalId])], Http::STATUS_BAD_REQUEST);
 		}
 		$entry = $this->mapper->upsert($principalType, $principalId, $role);
 		$this->audit->log('Berechtigung gesetzt', 'permission', null, [
@@ -102,7 +104,7 @@ class PermissionController extends Controller {
 			]);
 			return new DataResponse([]);
 		} catch (DoesNotExistException) {
-			return new DataResponse(['message' => 'Eintrag nicht gefunden'], Http::STATUS_NOT_FOUND);
+			return new DataResponse(['message' => $this->l10n->t('Eintrag nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
 	}
 }

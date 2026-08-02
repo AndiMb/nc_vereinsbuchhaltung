@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service\Statement;
 
+use OCP\IL10N;
+
 /**
  * Parser für CAMT.053 (ISO 20022, „Bank to Customer Statement").
  *
@@ -17,9 +19,20 @@ namespace OCA\Vereinsbuchhaltung\Service\Statement;
  */
 class Camt053Parser implements StatementParser {
 
+	/**
+	 * $l10n ist bewusst optional: der Parser bleibt dadurch ohne laufende
+	 * Nextcloud-Instanz mit `new Camt053Parser()` instanziierbar (siehe
+	 * tests/unit/Camt053ParserTest.php), übersetzt seine Fehlermeldungen aber,
+	 * sobald ihn Nextclouds DI-Container mit einer echten IL10N versorgt.
+	 */
 	public function __construct(
 		private RowNormalizer $normalizer = new RowNormalizer(),
+		private ?IL10N $l10n = null,
 	) {
+	}
+
+	private function msg(string $text): string {
+		return $this->l10n !== null ? $this->l10n->t($text) : $text;
 	}
 
 	public function sourceKey(): string {
@@ -39,7 +52,7 @@ class Camt053Parser implements StatementParser {
 	public function parse(string $content): array {
 		$entries = $this->entries($content);
 		if ($entries === []) {
-			throw new \RuntimeException('Die CAMT-Datei enthält keine Buchungen (<Ntry>).');
+			throw new \RuntimeException($this->msg('Die CAMT-Datei enthält keine Buchungen (<Ntry>).'));
 		}
 
 		$rows = [];
@@ -70,7 +83,7 @@ class Camt053Parser implements StatementParser {
 			$xml = simplexml_load_string($content, \SimpleXMLElement::class, LIBXML_NONET | LIBXML_NOCDATA);
 			if ($xml === false) {
 				$first = libxml_get_errors()[0] ?? null;
-				throw new \RuntimeException('Die Datei ist kein gültiges XML'
+				throw new \RuntimeException($this->msg('Die Datei ist kein gültiges XML')
 					. ($first !== null ? ': ' . trim($first->message) : '.'));
 			}
 		} finally {

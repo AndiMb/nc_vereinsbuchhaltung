@@ -15,6 +15,7 @@ use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IConfig;
+use OCP\IL10N;
 use OCP\IRequest;
 use OCP\IUserManager;
 
@@ -26,6 +27,7 @@ class SettingsController extends Controller {
 		private PermissionService $permissionService,
 		private DemoDataService $demoService,
 		private IUserManager $userManager,
+		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -45,7 +47,7 @@ class SettingsController extends Controller {
 	 * @return string|null Fehlermeldung oder null, wenn alles in Ordnung ist
 	 */
 	private function validateStorage(string $storageUser, string $storagePath): ?string {
-		return $this->validateUserPath($storageUser, $storagePath, 'Belegablage', 'Ablagepfad');
+		return $this->validateUserPath($storageUser, $storagePath, $this->l10n->t('Belegablage'), $this->l10n->t('Ablagepfad'));
 	}
 
 	/**
@@ -59,7 +61,7 @@ class SettingsController extends Controller {
 		if ($user === '' || trim($path) === '') {
 			return null; // beides leer bzw. unvollständig -> Wachordner ist aus
 		}
-		return $this->validateUserPath($user, $path, 'überwachten Ordner', 'Ordnerpfad');
+		return $this->validateUserPath($user, $path, $this->l10n->t('überwachten Ordner'), $this->l10n->t('Ordnerpfad'));
 	}
 
 	/**
@@ -69,7 +71,7 @@ class SettingsController extends Controller {
 	 */
 	private function validateUserPath(string $user, string $path, string $subject, string $pathLabel): ?string {
 		if ($user !== '' && !$this->userManager->userExists($user)) {
-			return 'Der angegebene Nextcloud-Nutzer für die ' . $subject . ' existiert nicht.';
+			return $this->l10n->t('Der angegebene Nextcloud-Nutzer für die %s existiert nicht.', [$subject]);
 		}
 
 		$normalized = trim(str_replace('\\', '/', $path), '/');
@@ -78,16 +80,16 @@ class SettingsController extends Controller {
 		}
 		foreach (explode('/', $normalized) as $segment) {
 			if ($segment === '' || $segment === '.' || $segment === '..') {
-				return 'Ungültiger ' . $pathLabel . ': "." und ".." sind nicht erlaubt.';
+				return $this->l10n->t('Ungültiger %s: "." und ".." sind nicht erlaubt.', [$pathLabel]);
 			}
 		}
 		// Nextcloud verbietet diese Zeichen in Dateinamen; ein Pfad damit wäre
 		// nicht anlegbar und der Fehler erst beim ersten Beleg-Upload sichtbar.
 		if (preg_match('/[\\\\:*?"<>|]/', $normalized) === 1) {
-			return 'Ungültiger ' . $pathLabel . ': enthält unzulässige Zeichen.';
+			return $this->l10n->t('Ungültiger %s: enthält unzulässige Zeichen.', [$pathLabel]);
 		}
 		if (mb_strlen($normalized) > 200) {
-			return 'Der ' . $pathLabel . ' ist zu lang (max. 200 Zeichen).';
+			return $this->l10n->t('Der %s ist zu lang (max. 200 Zeichen).', [$pathLabel]);
 		}
 		return null;
 	}
@@ -111,7 +113,7 @@ class SettingsController extends Controller {
 	#[RequiresRole(PermissionService::ROLE_ADMIN)]
 	public function update(): DataResponse {
 		if (PermissionService::RANK[$this->permissionService->getRole()] < PermissionService::RANK[PermissionService::ROLE_ADMIN]) {
-			return new DataResponse(['message' => 'Zugriff verweigert'], Http::STATUS_FORBIDDEN);
+			return new DataResponse(['message' => $this->l10n->t('Zugriff verweigert')], Http::STATUS_FORBIDDEN);
 		}
 
 		$storageUser = trim((string)($this->request->getParam('storage_user') ?? ''));
@@ -131,7 +133,7 @@ class SettingsController extends Controller {
 		$clubName = mb_substr(trim((string)($this->request->getParam('club_name') ?? '')), 0, 128);
 		$brandColor = trim((string)($this->request->getParam('brand_color') ?? ''));
 		if ($brandColor !== '' && !preg_match('/^#[0-9a-fA-F]{6}$/', $brandColor)) {
-			return new DataResponse(['message' => 'Ungültige Akzentfarbe (Format #RRGGBB erwartet)'], Http::STATUS_BAD_REQUEST);
+			return new DataResponse(['message' => $this->l10n->t('Ungültige Akzentfarbe (Format #RRGGBB erwartet)')], Http::STATUS_BAD_REQUEST);
 		}
 
 		$watchUser = trim((string)($this->request->getParam('statement_watch_user') ?? ''));

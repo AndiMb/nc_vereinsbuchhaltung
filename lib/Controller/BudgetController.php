@@ -15,6 +15,7 @@ use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
+use OCP\IL10N;
 use OCP\IRequest;
 
 class BudgetController extends Controller {
@@ -27,6 +28,7 @@ class BudgetController extends Controller {
 		private BudgetMapper $budgetMapper,
 		private JournalLineMapper $lineMapper,
 		private BudgetSnapshotService $snapshotService,
+		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -107,7 +109,7 @@ class BudgetController extends Controller {
 	public function snapshot(int $id): DataResponse {
 		$detail = $this->snapshotService->getDetail($this->userId(), $id);
 		if ($detail === null) {
-			return new DataResponse(['message' => 'Stand nicht gefunden.'], Http::STATUS_NOT_FOUND);
+			return new DataResponse(['message' => $this->l10n->t('Stand nicht gefunden.')], Http::STATUS_NOT_FOUND);
 		}
 		return new DataResponse($detail);
 	}
@@ -127,7 +129,7 @@ class BudgetController extends Controller {
 	#[NoAdminRequired]
 	public function deleteSnapshot(int $id): DataResponse {
 		if (!$this->snapshotService->delete($this->userId(), $id)) {
-			return new DataResponse(['message' => 'Stand nicht gefunden.'], Http::STATUS_NOT_FOUND);
+			return new DataResponse(['message' => $this->l10n->t('Stand nicht gefunden.')], Http::STATUS_NOT_FOUND);
 		}
 		return new DataResponse(['id' => $id]);
 	}

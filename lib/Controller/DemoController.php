@@ -13,6 +13,7 @@ use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
+use OCP\IL10N;
 use OCP\IRequest;
 
 class DemoController extends Controller {
@@ -24,6 +25,7 @@ class DemoController extends Controller {
 		private DemoDataService $demoService,
 		private PermissionService $permissionService,
 		private AuditService $audit,
+		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -33,7 +35,7 @@ class DemoController extends Controller {
 	#[RequiresRole(PermissionService::ROLE_ADMIN)]
 	public function seed(): DataResponse {
 		if (!$this->permissionService->isAdmin()) {
-			return new DataResponse(['message' => 'Nur Verwalter dürfen Beispieldaten anlegen.'], Http::STATUS_FORBIDDEN);
+			return new DataResponse(['message' => $this->l10n->t('Nur Verwalter dürfen Beispieldaten anlegen.')], Http::STATUS_FORBIDDEN);
 		}
 		try {
 			$result = $this->demoService->seed($this->userId());

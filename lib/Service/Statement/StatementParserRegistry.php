@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service\Statement;
 
 use OCA\Vereinsbuchhaltung\Service\CamtCsvParser;
+use OCP\IL10N;
 
 /**
  * Wählt anhand des Dateiinhalts den passenden Parser.
@@ -22,12 +23,24 @@ class StatementParserRegistry {
 	/** @var StatementParser[] */
 	private array $parsers;
 
+	/**
+	 * $l10n ist bewusst optional: die Registry bleibt dadurch ohne laufende
+	 * Nextcloud-Instanz mit drei positionellen Argumenten instanziierbar
+	 * (siehe tests/unit/StatementFormatTest.php), übersetzt ihre
+	 * Fehlermeldungen aber, sobald Nextclouds DI-Container sie mit einer
+	 * echten IL10N versorgt.
+	 */
 	public function __construct(
 		Camt053Parser $camt,
 		Mt940Parser $mt940,
 		CamtCsvParser $csv,
+		private ?IL10N $l10n = null,
 	) {
 		$this->parsers = [$camt, $mt940, $csv];
+	}
+
+	private function msg(string $text): string {
+		return $this->l10n !== null ? $this->l10n->t($text) : $text;
 	}
 
 	/**
@@ -35,18 +48,18 @@ class StatementParserRegistry {
 	 */
 	public function detect(string $content): StatementParser {
 		if (trim($content) === '') {
-			throw new \RuntimeException('Die Datei ist leer.');
+			throw new \RuntimeException($this->msg('Die Datei ist leer.'));
 		}
 		foreach ($this->parsers as $parser) {
 			if ($parser->supports($content)) {
 				return $parser;
 			}
 		}
-		throw new \RuntimeException(
+		throw new \RuntimeException($this->msg(
 			'Das Dateiformat wurde nicht erkannt. Unterstützt werden CSV-CAMT, '
 			. 'CAMT.053 (XML) und MT940 – im Onlinebanking meist als '
 			. '„Umsätze exportieren" auswählbar.'
-		);
+		));
 	}
 
 	/**

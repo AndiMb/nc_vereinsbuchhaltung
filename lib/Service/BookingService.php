@@ -11,6 +11,7 @@ use OCA\Vereinsbuchhaltung\Db\JournalLine;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
+use OCP\IL10N;
 
 /**
  * Übersetzt zugeordnete Bankbuchungen in doppelte Buchungssätze (Soll/Haben).
@@ -38,6 +39,7 @@ class BookingService {
 		private AuditService $audit,
 		private EntryNumberService $entryNumbers,
 		private TransactionRunner $transaction,
+		private IL10N $l10n,
 	) {
 	}
 
@@ -63,7 +65,7 @@ class BookingService {
 	public function assignParts(BankTransaction $tx, array $parts): BankTransaction {
 		$error = self::validateParts($parts, abs($tx->getAmountCents()));
 		if ($error !== null) {
-			throw new \InvalidArgumentException($error);
+			throw new \InvalidArgumentException($this->translatePartsError($error));
 		}
 		$run = fn (): BankTransaction => $this->transaction->run(fn (): BankTransaction => $this->doAssign($tx, $parts));
 		if ($this->transaction->isActive()) {
@@ -76,22 +78,29 @@ class BookingService {
 	 * Prüft die Aufteilung eines Umsatzes, ohne die Datenbank zu berühren –
 	 * nach dem Vorbild von {@see JournalService::validateLines()}.
 	 *
+	 * Der Rückgabewert ist bewusst ein Fehlercode statt eines fertigen
+	 * deutschen Satzes: die Methode ist static und wird in
+	 * {@see \OCA\Vereinsbuchhaltung\Tests\Unit\JournalSplitTest} direkt ohne
+	 * Nextcloud-Umgebung aufgerufen, eine IL10N-Übersetzung darin ist also
+	 * nicht möglich. {@see translatePartsError()} übersetzt den Code in eine
+	 * Nutzermeldung.
+	 *
 	 * @param array<int, array{accountId:int, amountCents:int}> $parts
 	 * @param int $totalCents Betrag des Umsatzes (ohne Vorzeichen)
-	 * @return string|null Fehlermeldung oder null, wenn die Aufteilung aufgeht
+	 * @return array{code:string, params?:array<string,int>}|null Fehlercode oder null, wenn die Aufteilung aufgeht
 	 */
-	public static function validateParts(array $parts, int $totalCents): ?string {
+	public static function validateParts(array $parts, int $totalCents): ?array {
 		if ($totalCents <= 0) {
 			// Ohne diesen Fall liefe der Nutzer in die irreführende Meldung
 			// „Teilbetrag muss größer als 0 sein" für einen Umsatz, an dem
 			// nichts aufzuteilen ist.
-			return 'Ein Umsatz über 0 € lässt sich nicht zuordnen.';
+			return ['code' => 'zero_total'];
 		}
 		if ($parts === []) {
-			return 'Es fehlt das Gegenkonto.';
+			return ['code' => 'missing_contra'];
 		}
 		if (count($parts) > JournalService::MAX_LINES - 1) {
-			return sprintf('Ein Umsatz lässt sich auf höchstens %d Konten aufteilen.', JournalService::MAX_LINES - 1);
+			return ['code' => 'too_many_parts', 'params' => ['max' => JournalService::MAX_LINES - 1]];
 		}
 		$sum = 0;
 		$seen = [];
@@ -99,28 +108,58 @@ class BookingService {
 			$accountId = $part['accountId'] ?? 0;
 			$amount = $part['amountCents'] ?? 0;
 			if ($accountId <= 0) {
-				return 'Jeder Teilbetrag braucht ein Konto.';
+				return ['code' => 'missing_account'];
 			}
 			if ($amount <= 0) {
-				return 'Jeder Teilbetrag muss größer als 0 sein.';
+				return ['code' => 'zero_amount'];
 			}
 			if (isset($seen[$accountId])) {
-				return 'Jedes Konto darf in der Aufteilung nur einmal vorkommen.';
+				return ['code' => 'duplicate_account'];
 			}
 			$seen[$accountId] = true;
 			$sum += $amount;
 		}
 		if ($sum !== $totalCents) {
-			return sprintf(
-				$sum < $totalCents
-					? 'Die Aufteilung ergibt %1$s € statt %2$s € – es fehlen noch %3$s €.'
-					: 'Die Aufteilung ergibt %1$s € statt %2$s € – das sind %3$s € zu viel.',
-				number_format($sum / 100, 2, ',', '.'),
-				number_format($totalCents / 100, 2, ',', '.'),
-				number_format(abs($totalCents - $sum) / 100, 2, ',', '.'),
-			);
+			return [
+				'code' => $sum < $totalCents ? 'too_little' : 'too_much',
+				'params' => ['sum' => $sum, 'total' => $totalCents, 'diff' => abs($totalCents - $sum)],
+			];
 		}
 		return null;
+	}
+
+	/**
+	 * Übersetzt einen Fehlercode aus {@see validateParts()} in eine Nutzermeldung.
+	 *
+	 * @param array{code:string, params?:array<string,int>} $error
+	 */
+	private function translatePartsError(array $error): string {
+		$params = $error['params'] ?? [];
+		return match ($error['code']) {
+			'zero_total' => $this->l10n->t('Ein Umsatz über 0 € lässt sich nicht zuordnen.'),
+			'missing_contra' => $this->l10n->t('Es fehlt das Gegenkonto.'),
+			'too_many_parts' => $this->l10n->t('Ein Umsatz lässt sich auf höchstens %d Konten aufteilen.', [$params['max']]),
+			'missing_account' => $this->l10n->t('Jeder Teilbetrag braucht ein Konto.'),
+			'zero_amount' => $this->l10n->t('Jeder Teilbetrag muss größer als 0 sein.'),
+			'duplicate_account' => $this->l10n->t('Jedes Konto darf in der Aufteilung nur einmal vorkommen.'),
+			'too_little' => $this->l10n->t(
+				'Die Aufteilung ergibt %1$s € statt %2$s € – es fehlen noch %3$s €.',
+				[
+					number_format($params['sum'] / 100, 2, ',', '.'),
+					number_format($params['total'] / 100, 2, ',', '.'),
+					number_format($params['diff'] / 100, 2, ',', '.'),
+				],
+			),
+			'too_much' => $this->l10n->t(
+				'Die Aufteilung ergibt %1$s € statt %2$s € – das sind %3$s € zu viel.',
+				[
+					number_format($params['sum'] / 100, 2, ',', '.'),
+					number_format($params['total'] / 100, 2, ',', '.'),
+					number_format($params['diff'] / 100, 2, ',', '.'),
+				],
+			),
+			default => $error['code'],
+		};
 	}
 
 	/**

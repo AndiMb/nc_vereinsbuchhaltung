@@ -63,7 +63,7 @@ Bestehende Daten aus „zero Buchhaltung" können über deren xbuc-Dateien
 
 Ausführliches Handbuch auf Deutsch: siehe Dokumentation.
 	]]></description>
-	<version>0.17.0</version>
+	<version>0.18.0</version>
 	<licence>agpl</licence>
 	<author mail="hauffe.andreas@googlemail.com">Andreas Hauffe</author>
 	<namespace>Vereinsbuchhaltung</namespace>

@@ -15,6 +15,7 @@ use OCA\Vereinsbuchhaltung\Service\LedgerAggregator;
 use OCA\Vereinsbuchhaltung\Service\ReportService;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IConfig;
+use OCP\IL10N;
 
 /**
  * Der Kassenbericht für die Mitgliederversammlung als druckfertige HTML-Seite.
@@ -37,6 +38,7 @@ class KassenberichtRenderer {
 		private YearCloseMapper $yearCloseMapper,
 		private ReportService $reportService,
 		private IConfig $config,
+		private IL10N $l10n,
 	) {
 	}
 
@@ -56,14 +58,14 @@ class KassenberichtRenderer {
 		$soll = $plan !== [] ? LedgerAggregator::planActual($accounts, $moveSums, $plan) : null;
 
 		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '');
-		$title = ($clubName !== '' ? $clubName . ' – ' : '') . 'Kassenbericht ' . $year;
+		$title = ($clubName !== '' ? $clubName . ' – ' : '') . $this->l10n->t('Kassenbericht %d', [$year]);
 
-		$h = PrintableReportPage::printHint();
+		$h = PrintableReportPage::printHint($this->l10n->t('Zum Drucken oder Als-PDF-Speichern: <strong>Strg+P</strong> (Mac: ⌘P) im Browser.'));
 		$h .= PrintableReportPage::header(
 			null,
 			$clubName,
-			'Kassenbericht für das Geschäftsjahr ' . $year,
-			'Erstellt am ' . ReportFormat::date(date('Y-m-d')) . ' · ' . PrintableReportPage::escape($this->closeNote($year)),
+			$this->l10n->t('Kassenbericht für das Geschäftsjahr %d', [$year]),
+			$this->l10n->t('Erstellt am %s', [ReportFormat::date(date('Y-m-d'))]) . ' · ' . PrintableReportPage::escape($this->closeNote($year)),
 		);
 		$h .= $this->wealthSection($vermoegen);
 		$h .= $this->resultSection($erfolg);
@@ -71,7 +73,7 @@ class KassenberichtRenderer {
 		if ($soll !== null) {
 			$h .= $this->planSection($soll);
 		}
-		$h .= '<section><h2>Vollständigkeit</h2><p>'
+		$h .= '<section><h2>' . $this->l10n->t('Vollständigkeit') . '</h2><p>'
 			. PrintableReportPage::escape($this->numberingNote($userId, $year, $from, $to))
 			. '</p></section>';
 		$h .= $this->signatureSection();
@@ -81,8 +83,8 @@ class KassenberichtRenderer {
 
 	/** @param array{rows: list<array{account:mixed, start:int, end:int}>, startCents:int, endCents:int} $vermoegen */
 	private function wealthSection(array $vermoegen): string {
-		$h = '<section><h2>Vermögensübersicht (Geldkonten)</h2><table>';
-		$h .= '<tr><th>Konto</th><th class="num">Bestand 01.01.</th><th class="num">Bestand 31.12.</th><th class="num">Veränderung</th></tr>';
+		$h = '<section><h2>' . $this->l10n->t('Vermögensübersicht (Geldkonten)') . '</h2><table>';
+		$h .= '<tr><th>' . $this->l10n->t('Konto') . '</th><th class="num">' . $this->l10n->t('Bestand 01.01.') . '</th><th class="num">' . $this->l10n->t('Bestand 31.12.') . '</th><th class="num">' . $this->l10n->t('Veränderung') . '</th></tr>';
 		foreach ($vermoegen['rows'] as $row) {
 			$label = trim($row['account']->getNumber() . ' ' . $row['account']->getName());
 			$h .= '<tr><td>' . PrintableReportPage::escape($label) . '</td>'
@@ -90,7 +92,7 @@ class KassenberichtRenderer {
 				. '<td class="num">' . ReportFormat::cents($row['end']) . '</td>'
 				. '<td class="num">' . ReportFormat::cents($row['end'] - $row['start']) . '</td></tr>';
 		}
-		$h .= '<tr class="sum"><td>Gesamtvermögen</td>'
+		$h .= '<tr class="sum"><td>' . $this->l10n->t('Gesamtvermögen') . '</td>'
 			. '<td class="num">' . ReportFormat::cents($vermoegen['startCents']) . '</td>'
 			. '<td class="num">' . ReportFormat::cents($vermoegen['endCents']) . '</td>'
 			. '<td class="num">' . ReportFormat::cents($vermoegen['endCents'] - $vermoegen['startCents']) . '</td></tr>';
@@ -99,14 +101,14 @@ class KassenberichtRenderer {
 
 	/** @param array<string, mixed> $erfolg aus LedgerAggregator::incomeExpense() */
 	private function resultSection(array $erfolg): string {
-		$h = '<section><h2>Einnahmen-/Ausgaben-Rechnung</h2><table>';
-		$h .= '<tr><th colspan="2">Einnahmen</th><th class="num">Betrag</th></tr>';
+		$h = '<section><h2>' . $this->l10n->t('Einnahmen-/Ausgaben-Rechnung') . '</h2><table>';
+		$h .= '<tr><th colspan="2">' . $this->l10n->t('Einnahmen') . '</th><th class="num">' . $this->l10n->t('Betrag') . '</th></tr>';
 		$h .= self::accountRows($erfolg['income']);
-		$h .= '<tr class="sum"><td colspan="2">Summe Einnahmen</td><td class="num">' . ReportFormat::cents($erfolg['incomeCents']) . '</td></tr>';
-		$h .= '<tr><th colspan="2">Ausgaben</th><th class="num">Betrag</th></tr>';
+		$h .= '<tr class="sum"><td colspan="2">' . $this->l10n->t('Summe Einnahmen') . '</td><td class="num">' . ReportFormat::cents($erfolg['incomeCents']) . '</td></tr>';
+		$h .= '<tr><th colspan="2">' . $this->l10n->t('Ausgaben') . '</th><th class="num">' . $this->l10n->t('Betrag') . '</th></tr>';
 		$h .= self::accountRows($erfolg['expense']);
-		$h .= '<tr class="sum"><td colspan="2">Summe Ausgaben</td><td class="num">' . ReportFormat::cents($erfolg['expenseCents']) . '</td></tr>';
-		$h .= '<tr class="result"><td colspan="2">Jahresergebnis</td><td class="num">' . ReportFormat::cents($erfolg['resultCents']) . '</td></tr>';
+		$h .= '<tr class="sum"><td colspan="2">' . $this->l10n->t('Summe Ausgaben') . '</td><td class="num">' . ReportFormat::cents($erfolg['expenseCents']) . '</td></tr>';
+		$h .= '<tr class="result"><td colspan="2">' . $this->l10n->t('Jahresergebnis') . '</td><td class="num">' . ReportFormat::cents($erfolg['resultCents']) . '</td></tr>';
 		return $h . '</table></section>';
 	}
 
@@ -131,8 +133,8 @@ class KassenberichtRenderer {
 
 	private function sphereSection(string $userId, int $year): string {
 		$report = $this->reportService->sphereReport($userId, $year);
-		$h = '<section><h2>Sphärenübersicht (steuerlich)</h2><table>';
-		$h .= '<tr><th>Sphäre</th><th class="num">Einnahmen</th><th class="num">Ausgaben</th><th class="num">Ergebnis</th></tr>';
+		$h = '<section><h2>' . $this->l10n->t('Sphärenübersicht (steuerlich)') . '</h2><table>';
+		$h .= '<tr><th>' . $this->l10n->t('Sphäre') . '</th><th class="num">' . $this->l10n->t('Einnahmen') . '</th><th class="num">' . $this->l10n->t('Ausgaben') . '</th><th class="num">' . $this->l10n->t('Ergebnis') . '</th></tr>';
 		foreach ($report['spheres'] as $s) {
 			$h .= '<tr><td>' . PrintableReportPage::escape((string)$s['name']) . '</td>'
 				. '<td class="num">' . ReportFormat::money((float)$s['income']) . ' €</td>'
@@ -144,15 +146,21 @@ class KassenberichtRenderer {
 		$fg = $report['freigrenze'];
 		if ($fg['incomeCents'] > 0) {
 			$levelText = match ($fg['level']) {
-				'over' => 'überschritten',
-				'warn' => 'nähert sich der Grenze',
-				default => 'im grünen Bereich',
+				'over' => $this->l10n->t('überschritten'),
+				'warn' => $this->l10n->t('nähert sich der Grenze'),
+				default => $this->l10n->t('im grünen Bereich'),
 			};
-			$h .= '<p>Wirtschaftlicher Geschäftsbetrieb: ' . ReportFormat::money((float)$fg['income'])
-				. ' € von ' . ReportFormat::money((float)$fg['threshold'])
-				. ' € Freigrenze (' . round(((float)$fg['ratio']) * 100) . ' % – ' . $levelText . ').</p>';
+			$h .= '<p>' . $this->l10n->t(
+				'Wirtschaftlicher Geschäftsbetrieb: %s € von %s € Freigrenze (%s %% – %s).',
+				[
+					ReportFormat::money((float)$fg['income']),
+					ReportFormat::money((float)$fg['threshold']),
+					(string)round(((float)$fg['ratio']) * 100),
+					$levelText,
+				],
+			) . '</p>';
 		}
-		$h .= '<p class="meta">Ersetzt keine steuerliche Beratung.</p>';
+		$h .= '<p class="meta">' . $this->l10n->t('Ersetzt keine steuerliche Beratung.') . '</p>';
 		return $h . '</section>';
 	}
 
@@ -171,8 +179,8 @@ class KassenberichtRenderer {
 			(string)$b['account']->getNumber(),
 		));
 
-		$h = '<section><h2>Soll-Ist-Vergleich (Finanzplan)</h2><table>';
-		$h .= '<tr><th colspan="2">Konto</th><th class="num">Plan</th><th class="num">Ist</th><th class="num">Differenz</th></tr>';
+		$h = '<section><h2>' . $this->l10n->t('Soll-Ist-Vergleich (Finanzplan)') . '</h2><table>';
+		$h .= '<tr><th colspan="2">' . $this->l10n->t('Konto') . '</th><th class="num">' . $this->l10n->t('Plan') . '</th><th class="num">' . $this->l10n->t('Ist') . '</th><th class="num">' . $this->l10n->t('Differenz') . '</th></tr>';
 		foreach ($rows as $r) {
 			$h .= '<tr><td class="nr">' . PrintableReportPage::escape((string)$r['account']->getNumber()) . '</td>'
 				. '<td>' . PrintableReportPage::escape((string)$r['account']->getName()) . '</td>'
@@ -180,18 +188,18 @@ class KassenberichtRenderer {
 				. '<td class="num">' . ReportFormat::cents($r['actualCents']) . '</td>'
 				. '<td class="num">' . ReportFormat::cents($r['actualCents'] - $r['planCents']) . '</td></tr>';
 		}
-		$h .= self::planTotalRow('sum', 'Einnahmen', $soll['planIncomeCents'], $soll['actualIncomeCents']);
-		$h .= self::planTotalRow('sum', 'Ausgaben', $soll['planExpenseCents'], $soll['actualExpenseCents']);
-		$h .= self::planTotalRow(
+		$h .= $this->planTotalRow('sum', $this->l10n->t('Einnahmen'), $soll['planIncomeCents'], $soll['actualIncomeCents']);
+		$h .= $this->planTotalRow('sum', $this->l10n->t('Ausgaben'), $soll['planExpenseCents'], $soll['actualExpenseCents']);
+		$h .= $this->planTotalRow(
 			'result',
-			'Ergebnis',
+			$this->l10n->t('Ergebnis'),
 			$soll['planIncomeCents'] - $soll['planExpenseCents'],
 			$soll['actualIncomeCents'] - $soll['actualExpenseCents'],
 		);
 		return $h . '</table></section>';
 	}
 
-	private static function planTotalRow(string $class, string $label, int $plan, int $actual): string {
+	private function planTotalRow(string $class, string $label, int $plan, int $actual): string {
 		return '<tr class="' . $class . '"><td colspan="2">' . $label . '</td>'
 			. '<td class="num">' . ReportFormat::cents($plan) . '</td>'
 			. '<td class="num">' . ReportFormat::cents($actual) . '</td>'
@@ -200,8 +208,8 @@ class KassenberichtRenderer {
 
 	private function signatureSection(): string {
 		$h = '<section class="signatures">';
-		foreach (['Schatzmeister/in', 'Kassenprüfer/in', 'Kassenprüfer/in'] as $rolle) {
-			$h .= '<div><div class="line"></div>Ort, Datum · ' . $rolle . '</div>';
+		foreach ([$this->l10n->t('Schatzmeister/in'), $this->l10n->t('Kassenprüfer/in'), $this->l10n->t('Kassenprüfer/in')] as $rolle) {
+			$h .= '<div><div class="line"></div>' . $this->l10n->t('Ort, Datum') . ' · ' . $rolle . '</div>';
 		}
 		return $h . '</section>';
 	}
@@ -210,13 +218,15 @@ class KassenberichtRenderer {
 		try {
 			$close = $this->yearCloseMapper->findByYear($year);
 		} catch (DoesNotExistException) {
-			return sprintf('Das Geschäftsjahr %d ist noch nicht abgeschlossen.', $year);
+			return $this->l10n->t('Das Geschäftsjahr %d ist noch nicht abgeschlossen.', [$year]);
 		}
-		return sprintf(
+		return $this->l10n->t(
 			'Das Geschäftsjahr %d wurde am %s von %s abgeschlossen (festgeschrieben).',
-			$year,
-			ReportFormat::date(substr((string)$close->getClosedAt(), 0, 10)),
-			$close->getClosedBy(),
+			[
+				$year,
+				ReportFormat::date(substr((string)$close->getClosedAt(), 0, 10)),
+				$close->getClosedBy(),
+			],
 		);
 	}
 
@@ -236,7 +246,7 @@ class KassenberichtRenderer {
 		sort($entryNos);
 		$count = count($entryNos);
 		if ($count === 0) {
-			return 'Keine Buchungen im Geschäftsjahr.';
+			return $this->l10n->t('Keine Buchungen im Geschäftsjahr.');
 		}
 
 		$missing = [];
@@ -254,17 +264,17 @@ class KassenberichtRenderer {
 			$prev = $no;
 		}
 
-		$note = sprintf('%d Buchungen (Nr. %d–%d)', $count, $entryNos[0], $entryNos[$count - 1]);
+		$note = $this->l10n->t('%d Buchungen (Nr. %d–%d)', [$count, $entryNos[0], $entryNos[$count - 1]]);
 		if (!$missing && !$duplicates) {
-			return $note . ', Buchungsnummern lückenlos.';
+			return $note . ', ' . $this->l10n->t('Buchungsnummern lückenlos.');
 		}
 
 		$hints = [];
 		if ($missing) {
-			$hints[] = 'fehlende Nummern: ' . implode(', ', array_slice($missing, 0, 20)) . (count($missing) > 20 ? ' …' : '');
+			$hints[] = $this->l10n->t('fehlende Nummern: %s', [implode(', ', array_slice($missing, 0, 20)) . (count($missing) > 20 ? ' …' : '')]);
 		}
 		if ($duplicates) {
-			$hints[] = 'doppelte Nummern: ' . implode(', ', array_unique($duplicates));
+			$hints[] = $this->l10n->t('doppelte Nummern: %s', [implode(', ', array_unique($duplicates))]);
 		}
 		$note .= ' – ⚠ ' . implode('; ', $hints);
 
@@ -274,8 +284,7 @@ class KassenberichtRenderer {
 		// Jahr, stammt sie aus einer älteren Version – dann hilft nur
 		// Wiedereröffnen und erneut Abschließen.
 		if ($missing && $this->isYearClosed($year)) {
-			$note .= ' (Lücken aus einer früheren Programmversion; sie verschwinden, '
-				. 'wenn das Jahr einmal wiedereröffnet und erneut abgeschlossen wird)';
+			$note .= ' ' . $this->l10n->t('(Lücken aus einer früheren Programmversion; sie verschwinden, wenn das Jahr einmal wiedereröffnet und erneut abgeschlossen wird)');
 		}
 		return $note;
 	}

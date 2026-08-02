@@ -18,6 +18,7 @@ use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
+use OCP\IL10N;
 use OCP\IRequest;
 
 class JournalController extends Controller {
@@ -32,6 +33,7 @@ class JournalController extends Controller {
 		private BankTransactionMapper $txMapper,
 		private BudgetMapper $budgetMapper,
 		private JournalService $journalService,
+		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -165,17 +167,17 @@ class JournalController extends Controller {
 			return $error;
 		}
 		if ($cents <= 0) {
-			return 'Betrag muss größer als 0 sein';
+			return $this->l10n->t('Betrag muss größer als 0 sein');
 		}
 		if ($debitAccountId === $creditAccountId) {
-			return 'Soll- und Habenkonto müssen unterschiedlich sein';
+			return $this->l10n->t('Soll- und Habenkonto müssen unterschiedlich sein');
 		}
 		$userId = $this->userId();
-		foreach (['Sollkonto' => $debitAccountId, 'Habenkonto' => $creditAccountId] as $label => $accountId) {
+		foreach ([$this->l10n->t('Sollkonto') => $debitAccountId, $this->l10n->t('Habenkonto') => $creditAccountId] as $label => $accountId) {
 			try {
 				$this->accountMapper->find($accountId, $userId);
 			} catch (DoesNotExistException) {
-				return $label . ' nicht gefunden.';
+				return $this->l10n->t('%s nicht gefunden.', [$label]);
 			}
 		}
 		return null;
@@ -184,14 +186,14 @@ class JournalController extends Controller {
 	/** @return string|null Fehlermeldung oder null */
 	private function validateDate(string $date): ?string {
 		if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
-			return 'Ungültiges Datum (erwartet wird JJJJ-MM-TT).';
+			return $this->l10n->t('Ungültiges Datum (erwartet wird JJJJ-MM-TT).');
 		}
 		[$y, $m, $d] = array_map('intval', explode('-', $date));
 		if (!checkdate($m, $d, $y)) {
-			return 'Dieses Datum gibt es nicht.';
+			return $this->l10n->t('Dieses Datum gibt es nicht.');
 		}
 		if ($y < 2000 || $y > 2099) {
-			return 'Das Buchungsdatum muss zwischen 2000 und 2099 liegen.';
+			return $this->l10n->t('Das Buchungsdatum muss zwischen 2000 und 2099 liegen.');
 		}
 		return null;
 	}
@@ -215,7 +217,7 @@ class JournalController extends Controller {
 		$lines = [];
 		foreach ($raw as $entry) {
 			if (!is_array($entry)) {
-				return 'Ungültige Buchungszeile.';
+				return $this->l10n->t('Ungültige Buchungszeile.');
 			}
 			// Erst je Zeile auf Cent runden, dann summieren lassen: prüfte man
 			// die Summen in Euro, gingen sie bei krummen Beträgen (z.B. 33,33 +
@@ -228,17 +230,47 @@ class JournalController extends Controller {
 		}
 		$error = JournalService::validateLines($lines);
 		if ($error !== null) {
-			return $error;
+			return $this->translateLineError($error);
 		}
 		$userId = $this->userId();
 		foreach ($lines as $line) {
 			try {
 				$this->accountMapper->find($line['accountId'], $userId);
 			} catch (DoesNotExistException) {
-				return 'Ein Konto der Buchung wurde nicht gefunden.';
+				return $this->l10n->t('Ein Konto der Buchung wurde nicht gefunden.');
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Übersetzt einen Fehlercode aus {@see JournalService::validateLines()}
+	 * in eine Nutzermeldung (Duplikat der gleichnamigen privaten Methode in
+	 * JournalService - der Code ist dort ebenfalls static/testgebunden und
+	 * kann nicht öffentlich gemacht werden, ohne die Kapselung aufzugeben).
+	 *
+	 * @param array{code:string, params?:array<string,int>} $error
+	 */
+	private function translateLineError(array $error): string {
+		$params = $error['params'] ?? [];
+		return match ($error['code']) {
+			'too_few_lines' => $this->l10n->t('Eine Buchung braucht mindestens zwei Zeilen (Soll und Haben).'),
+			'too_many_lines' => $this->l10n->t('Eine Buchung darf höchstens %d Zeilen haben.', [$params['max']]),
+			'negative_amount' => $this->l10n->t('Beträge müssen positiv sein.'),
+			'both_sides' => $this->l10n->t('Eine Buchungszeile steht entweder im Soll oder im Haben, nicht in beidem.'),
+			'zero_amount' => $this->l10n->t('Jede Buchungszeile braucht einen Betrag größer als 0.'),
+			'missing_account' => $this->l10n->t('Jede Buchungszeile braucht ein Konto.'),
+			'duplicate_account' => $this->l10n->t('Jedes Konto darf in einer Buchung nur einmal vorkommen.'),
+			'unbalanced' => $this->l10n->t(
+				'Soll und Haben sind nicht ausgeglichen (%s € gegen %s €).',
+				[
+					number_format($params['debit'] / 100, 2, ',', '.'),
+					number_format($params['credit'] / 100, 2, ',', '.'),
+				],
+			),
+			'zero_total' => $this->l10n->t('Betrag muss größer als 0 sein'),
+			default => $error['code'],
+		};
 	}
 
 	/**
@@ -274,7 +306,7 @@ class JournalController extends Controller {
 			$journal = $this->journalService->updateBookingLines($id, $this->userId(), $date, $description, $documentRef, $bookingLines, $updatedAt);
 			return new DataResponse($journal);
 		} catch (DoesNotExistException) {
-			return new DataResponse(['message' => 'Buchung nicht gefunden'], Http::STATUS_NOT_FOUND);
+			return new DataResponse(['message' => $this->l10n->t('Buchung nicht gefunden')], Http::STATUS_NOT_FOUND);
 		} catch (ConflictException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_CONFLICT);
 		}
@@ -314,7 +346,7 @@ class JournalController extends Controller {
 			$journal = $this->journalService->reassignLine($id, $this->userId(), $fromAccountId, $toAccountId, $updatedAt);
 			return new DataResponse($journal);
 		} catch (DoesNotExistException) {
-			return new DataResponse(['message' => 'Buchung oder Konto nicht gefunden'], Http::STATUS_NOT_FOUND);
+			return new DataResponse(['message' => $this->l10n->t('Buchung oder Konto nicht gefunden')], Http::STATUS_NOT_FOUND);
 		} catch (ConflictException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_CONFLICT);
 		} catch (\InvalidArgumentException $e) {
@@ -328,7 +360,7 @@ class JournalController extends Controller {
 			$this->journalService->deleteBooking($id, $this->userId());
 			return new DataResponse([]);
 		} catch (DoesNotExistException) {
-			return new DataResponse(['message' => 'Buchung nicht gefunden'], Http::STATUS_NOT_FOUND);
+			return new DataResponse(['message' => $this->l10n->t('Buchung nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
 	}
 

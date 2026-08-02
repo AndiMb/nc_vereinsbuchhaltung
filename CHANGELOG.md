@@ -10,6 +10,31 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
 
 ## [Unreleased]
 
+## [0.18.0] – 2026-08-02
+
+### Hinzugefügt
+- **Weitere Mehrsprachigkeit im Backend.** Kassenbericht und Kurzbericht
+  (beide als druckfertige HTML-Seite) sowie das Änderungsprotokoll
+  (Berichte → Protokoll) erscheinen jetzt in der Sprache des
+  Nextcloud-Profils statt fest auf Deutsch.
+- Alle bisher noch deutschen Fehler- und Bestätigungsmeldungen der
+  Controller sind übersetzt, ebenso die Prüfmeldungen beim Anlegen und
+  Ändern von Buchungen (Soll-Haben-Kontrolle) und die Fehlermeldungen der
+  CAMT-/MT940-/CSV-Kontoauszugs-Parser.
+
+### Technisch
+- Statische Prüfmethoden (`JournalService::validateLines()`,
+  `JournalService::reassignPlan()`, `BookingService::validateParts()`), die
+  auch direkt aus PHPUnit-Tests ohne laufende Nextcloud-Instanz aufgerufen
+  werden, liefern jetzt stabile Fehlercodes statt fertigem Text; die
+  Übersetzung passiert in einer begleitenden Instanzmethode mit Zugriff auf
+  `IL10N`. Die Parser (`CamtCsvParser`, `Camt053Parser`, `Mt940Parser`,
+  `XbucParser`) erhalten `IL10N` als optionalen, in Tests weglassbaren
+  Konstruktorparameter mit deutschem Fallback-Text.
+
+### Bekannte Lücken
+- Der CSV-Export der Auswertungen ist noch vollständig Deutsch.
+
 ## [0.17.0] – 2026-08-02
 
 Der erste sichtbare Schritt zur Mehrsprachigkeit: wer Nextcloud auf Englisch

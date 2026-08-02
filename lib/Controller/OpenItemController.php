@@ -12,6 +12,7 @@ use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
+use OCP\IL10N;
 use OCP\IRequest;
 
 class OpenItemController extends Controller {
@@ -20,6 +21,7 @@ class OpenItemController extends Controller {
 		IRequest $request,
 		private OpenItemService $service,
 		private AuditService $audit,
+		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -50,7 +52,7 @@ class OpenItemController extends Controller {
 		try {
 			$item = $this->service->markPaid($id, $journalId);
 		} catch (DoesNotExistException) {
-			return new DataResponse(['message' => 'Offener Posten nicht gefunden'], Http::STATUS_NOT_FOUND);
+			return new DataResponse(['message' => $this->l10n->t('Offener Posten nicht gefunden')], Http::STATUS_NOT_FOUND);
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		}
@@ -66,7 +68,7 @@ class OpenItemController extends Controller {
 		try {
 			$item = $this->service->cancel($id);
 		} catch (DoesNotExistException) {
-			return new DataResponse(['message' => 'Offener Posten nicht gefunden'], Http::STATUS_NOT_FOUND);
+			return new DataResponse(['message' => $this->l10n->t('Offener Posten nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
 		$this->audit->log('Offener Posten storniert', 'open_item', $id, ['debtor' => $item->getDebtor()]);
 		return new DataResponse($item);
@@ -77,7 +79,7 @@ class OpenItemController extends Controller {
 		try {
 			$item = $this->service->reopen($id);
 		} catch (DoesNotExistException) {
-			return new DataResponse(['message' => 'Offener Posten nicht gefunden'], Http::STATUS_NOT_FOUND);
+			return new DataResponse(['message' => $this->l10n->t('Offener Posten nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
 		return new DataResponse($item);
 	}
@@ -88,7 +90,7 @@ class OpenItemController extends Controller {
 			$item = $this->service->find($id);
 			$this->service->delete($id);
 		} catch (DoesNotExistException) {
-			return new DataResponse(['message' => 'Offener Posten nicht gefunden'], Http::STATUS_NOT_FOUND);
+			return new DataResponse(['message' => $this->l10n->t('Offener Posten nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
 		$this->audit->log('Offener Posten gelöscht', 'open_item', $id, ['debtor' => $item->getDebtor()]);
 		return new DataResponse([]);

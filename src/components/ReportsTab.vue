@@ -730,7 +730,7 @@
 									{{ a.userId }}
 								</td>
 								<td class="nowrap">
-									{{ a.action }}
+									{{ t(a.action) }}
 								</td>
 								<td class="vbh-purpose">
 									<span class="vbh-clamp">{{ auditDetailText(a) }}</span>

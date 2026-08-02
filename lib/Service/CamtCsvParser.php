@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\Service\Statement\RowNormalizer;
 use OCA\Vereinsbuchhaltung\Service\Statement\StatementParser;
+use OCP\IL10N;
 
 /**
  * Parser für das CSV-CAMT-Format deutscher Banken (Sparkasse, Volksbank, …).
@@ -22,12 +23,26 @@ use OCA\Vereinsbuchhaltung\Service\Statement\StatementParser;
  * Zuständig ist dieser Parser nur noch für das Auffinden der Spalten und das
  * Deuten von Datum und Betrag. Das Putzen der Felder und der Dedup-Hash liegen
  * in {@see RowNormalizer}, gemeinsam mit allen anderen Umsatzquellen.
+ *
+ * $l10n ist bewusst optional: der Parser bleibt dadurch ohne laufende
+ * Nextcloud-Instanz mit `new CamtCsvParser()` instanziierbar (siehe
+ * tests/unit/CamtCsvParserTest.php), übersetzt seine Fehlermeldungen aber,
+ * sobald ihn Nextclouds DI-Container mit einer echten IL10N versorgt.
  */
 class CamtCsvParser implements StatementParser {
 
 	public function __construct(
 		private RowNormalizer $normalizer = new RowNormalizer(),
+		private ?IL10N $l10n = null,
 	) {
+	}
+
+	/** @param array<string,mixed> $params Parameter für sprintf, siehe {@see IL10N::t()} */
+	private function msg(string $text, array $params = []): string {
+		if ($this->l10n !== null) {
+			return $this->l10n->t($text, $params);
+		}
+		return $params === [] ? $text : vsprintf($text, $params);
 	}
 
 	public function sourceKey(): string {
@@ -80,12 +95,12 @@ class CamtCsvParser implements StatementParser {
 
 		$records = $this->readRecords($content);
 		if (count($records) < 2) {
-			throw new \RuntimeException('Die Datei enthält keine Buchungszeilen.');
+			throw new \RuntimeException($this->msg('Die Datei enthält keine Buchungszeilen.'));
 		}
 
 		$map = $this->mapHeader($records[0]);
 		if (!isset($map['bookingDate']) || !isset($map['amount'])) {
-			throw new \RuntimeException('Pflichtspalten (Buchungstag, Betrag) konnten in der Kopfzeile nicht gefunden werden.');
+			throw new \RuntimeException($this->msg('Pflichtspalten (Buchungstag, Betrag) konnten in der Kopfzeile nicht gefunden werden.'));
 		}
 
 		$rows = [];
@@ -121,7 +136,7 @@ class CamtCsvParser implements StatementParser {
 
 		$handle = fopen('php://temp', 'r+');
 		if ($handle === false) {
-			throw new \RuntimeException('Die Datei konnte nicht gelesen werden.');
+			throw new \RuntimeException($this->msg('Die Datei konnte nicht gelesen werden.'));
 		}
 		fwrite($handle, $content);
 		rewind($handle);

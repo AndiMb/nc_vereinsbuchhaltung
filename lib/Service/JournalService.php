@@ -303,14 +303,18 @@ class JournalService {
 			$from = $this->accountMapper->find($fromAccountId, $userId);
 
 			$lines = $this->lineMapper->findByJournal($journalId);
-			$moveIds = self::reassignPlan(
-				array_map(
-					static fn (JournalLine $l): array => ['id' => $l->getId(), 'accountId' => $l->getAccountId()],
-					$lines,
-				),
-				$fromAccountId,
-				$toAccountId,
-			);
+			try {
+				$moveIds = self::reassignPlan(
+					array_map(
+						static fn (JournalLine $l): array => ['id' => $l->getId(), 'accountId' => $l->getAccountId()],
+						$lines,
+					),
+					$fromAccountId,
+					$toAccountId,
+				);
+			} catch (\InvalidArgumentException $e) {
+				throw new \InvalidArgumentException($this->translateReassignError($e->getMessage()));
+			}
 			foreach ($lines as $line) {
 				if (in_array($line->getId(), $moveIds, true)) {
 					$line->setAccountId($target->getId());
@@ -339,9 +343,16 @@ class JournalService {
 	 * @return int[] IDs der Zeilen, die auf das Zielkonto wechseln
 	 * @throws \InvalidArgumentException wenn die Umbuchung fachlich nicht geht
 	 */
+	/**
+	 * Die Exception-Message ist bewusst ein stabiler Fehlercode statt eines
+	 * fertigen deutschen Satzes: die Methode ist static und wird in
+	 * {@see \OCA\Vereinsbuchhaltung\Tests\Unit\JournalReassignTest} direkt ohne
+	 * Nextcloud-Umgebung aufgerufen, eine IL10N-Übersetzung darin ist also nicht
+	 * möglich. {@see reassignLine()} übersetzt den Code in eine Nutzermeldung.
+	 */
 	public static function reassignPlan(array $lines, int $fromAccountId, int $toAccountId): array {
 		if ($fromAccountId === $toAccountId) {
-			throw new \InvalidArgumentException('Die Buchung steht bereits auf diesem Konto.');
+			throw new \InvalidArgumentException('same_account');
 		}
 		$move = [];
 		$stays = false;
@@ -352,20 +363,31 @@ class JournalService {
 				// Das Zielkonto steht schon auf der anderen Seite: die Buchung
 				// hätte danach dasselbe Konto im Soll und im Haben und wäre
 				// inhaltlich leer.
-				throw new \InvalidArgumentException('Auf diesem Konto steht bereits die Gegenseite der Buchung. Soll- und Habenkonto müssen unterschiedlich sein.');
+				throw new \InvalidArgumentException('target_is_other_side');
 			} else {
 				$stays = true;
 			}
 		}
 		if ($move === []) {
-			throw new \InvalidArgumentException('Diese Buchung hat keine Zeile auf dem angegebenen Konto.');
+			throw new \InvalidArgumentException('no_matching_line');
 		}
 		if (!$stays) {
 			// Alle Zeilen lägen auf demselben Konto – dann gäbe es keine
 			// Gegenseite mehr. Kommt nur bei kaputten Altdaten vor.
-			throw new \InvalidArgumentException('Diese Buchung hat keine Gegenseite und kann nicht umgebucht werden.');
+			throw new \InvalidArgumentException('no_counter_side');
 		}
 		return $move;
+	}
+
+	/** Übersetzt einen Fehlercode aus {@see reassignPlan()} in eine Nutzermeldung. */
+	private function translateReassignError(string $code): string {
+		return match ($code) {
+			'same_account' => $this->l10n->t('Die Buchung steht bereits auf diesem Konto.'),
+			'target_is_other_side' => $this->l10n->t('Auf diesem Konto steht bereits die Gegenseite der Buchung. Soll- und Habenkonto müssen unterschiedlich sein.'),
+			'no_matching_line' => $this->l10n->t('Diese Buchung hat keine Zeile auf dem angegebenen Konto.'),
+			'no_counter_side' => $this->l10n->t('Diese Buchung hat keine Gegenseite und kann nicht umgebucht werden.'),
+			default => $code,
+		};
 	}
 
 	public function deleteBooking(int $id, string $userId): void {
@@ -443,15 +465,22 @@ class JournalService {
 	 * steht. Ohne sie lieferte das Umbuchen aus dem Kontoauszug bei
 	 * Splittbuchungen falsche Ergebnisse.
 	 *
+	 * Der Rückgabewert ist bewusst ein Fehlercode statt eines fertigen
+	 * deutschen Satzes: die Methode ist static und wird in
+	 * {@see \OCA\Vereinsbuchhaltung\Tests\Unit\JournalSplitTest} direkt ohne
+	 * Nextcloud-Umgebung aufgerufen, eine IL10N-Übersetzung darin ist also
+	 * nicht möglich. {@see translateLineError()} übersetzt den Code in eine
+	 * Nutzermeldung.
+	 *
 	 * @param array<int, array{accountId:int, debitCents:int, creditCents:int}> $lines
-	 * @return string|null Fehlermeldung oder null, wenn die Zeilen stimmig sind
+	 * @return array{code:string, params?:array<string,int>}|null Fehlercode oder null, wenn die Zeilen stimmig sind
 	 */
-	public static function validateLines(array $lines): ?string {
+	public static function validateLines(array $lines): ?array {
 		if (count($lines) < 2) {
-			return 'Eine Buchung braucht mindestens zwei Zeilen (Soll und Haben).';
+			return ['code' => 'too_few_lines'];
 		}
 		if (count($lines) > self::MAX_LINES) {
-			return sprintf('Eine Buchung darf höchstens %d Zeilen haben.', self::MAX_LINES);
+			return ['code' => 'too_many_lines', 'params' => ['max' => self::MAX_LINES]];
 		}
 		$debitSum = 0;
 		$creditSum = 0;
@@ -460,40 +489,63 @@ class JournalService {
 			$debit = $line['debitCents'] ?? 0;
 			$credit = $line['creditCents'] ?? 0;
 			if ($debit < 0 || $credit < 0) {
-				return 'Beträge müssen positiv sein.';
+				return ['code' => 'negative_amount'];
 			}
 			if ($debit > 0 && $credit > 0) {
-				return 'Eine Buchungszeile steht entweder im Soll oder im Haben, nicht in beidem.';
+				return ['code' => 'both_sides'];
 			}
 			if ($debit === 0 && $credit === 0) {
-				return 'Jede Buchungszeile braucht einen Betrag größer als 0.';
+				return ['code' => 'zero_amount'];
 			}
 			$accountId = $line['accountId'] ?? 0;
 			if ($accountId <= 0) {
-				return 'Jede Buchungszeile braucht ein Konto.';
+				return ['code' => 'missing_account'];
 			}
 			if (isset($seen[$accountId])) {
 				// Zweimal dasselbe Konto ließe sich zwar aufsummieren, wäre aber
 				// entweder ein Bedienfehler (zwei Zeilen auf derselben Kategorie)
 				// oder eine in sich leere Buchung (dasselbe Konto in Soll und
 				// Haben). Beides lieber ablehnen als still zusammenfassen.
-				return 'Jedes Konto darf in einer Buchung nur einmal vorkommen.';
+				return ['code' => 'duplicate_account'];
 			}
 			$seen[$accountId] = true;
 			$debitSum += $debit;
 			$creditSum += $credit;
 		}
 		if ($debitSum !== $creditSum) {
-			return sprintf(
-				'Soll und Haben sind nicht ausgeglichen (%s € gegen %s €).',
-				number_format($debitSum / 100, 2, ',', '.'),
-				number_format($creditSum / 100, 2, ',', '.'),
-			);
+			return ['code' => 'unbalanced', 'params' => ['debit' => $debitSum, 'credit' => $creditSum]];
 		}
 		if ($debitSum <= 0) {
-			return 'Betrag muss größer als 0 sein';
+			return ['code' => 'zero_total'];
 		}
 		return null;
+	}
+
+	/**
+	 * Übersetzt einen Fehlercode aus {@see validateLines()} in eine Nutzermeldung.
+	 *
+	 * @param array{code:string, params?:array<string,int>} $error
+	 */
+	private function translateLineError(array $error): string {
+		$params = $error['params'] ?? [];
+		return match ($error['code']) {
+			'too_few_lines' => $this->l10n->t('Eine Buchung braucht mindestens zwei Zeilen (Soll und Haben).'),
+			'too_many_lines' => $this->l10n->t('Eine Buchung darf höchstens %d Zeilen haben.', [$params['max']]),
+			'negative_amount' => $this->l10n->t('Beträge müssen positiv sein.'),
+			'both_sides' => $this->l10n->t('Eine Buchungszeile steht entweder im Soll oder im Haben, nicht in beidem.'),
+			'zero_amount' => $this->l10n->t('Jede Buchungszeile braucht einen Betrag größer als 0.'),
+			'missing_account' => $this->l10n->t('Jede Buchungszeile braucht ein Konto.'),
+			'duplicate_account' => $this->l10n->t('Jedes Konto darf in einer Buchung nur einmal vorkommen.'),
+			'unbalanced' => $this->l10n->t(
+				'Soll und Haben sind nicht ausgeglichen (%s € gegen %s €).',
+				[
+					number_format($params['debit'] / 100, 2, ',', '.'),
+					number_format($params['credit'] / 100, 2, ',', '.'),
+				],
+			),
+			'zero_total' => $this->l10n->t('Betrag muss größer als 0 sein'),
+			default => $error['code'],
+		};
 	}
 
 	/**
@@ -574,7 +626,7 @@ class JournalService {
 	private function assertLines(array $lines): void {
 		$error = self::validateLines($lines);
 		if ($error !== null) {
-			throw new \InvalidArgumentException($error);
+			throw new \InvalidArgumentException($this->translateLineError($error));
 		}
 	}
 

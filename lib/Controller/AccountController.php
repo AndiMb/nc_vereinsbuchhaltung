@@ -13,6 +13,7 @@ use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
+use OCP\IL10N;
 use OCP\IRequest;
 
 class AccountController extends Controller {
@@ -24,6 +25,7 @@ class AccountController extends Controller {
 		private AccountService $service,
 		private OpeningBalanceService $openingService,
 		private AuditService $audit,
+		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -38,7 +40,7 @@ class AccountController extends Controller {
 		try {
 			return new DataResponse($this->service->find($id, $this->userId()));
 		} catch (DoesNotExistException) {
-			return new DataResponse(['message' => 'Konto nicht gefunden'], Http::STATUS_NOT_FOUND);
+			return new DataResponse(['message' => $this->l10n->t('Konto nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
 	}
 
@@ -85,7 +87,7 @@ class AccountController extends Controller {
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		} catch (DoesNotExistException) {
-			return new DataResponse(['message' => 'Konto nicht gefunden'], Http::STATUS_NOT_FOUND);
+			return new DataResponse(['message' => $this->l10n->t('Konto nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
 	}
 
@@ -112,7 +114,7 @@ class AccountController extends Controller {
 			$this->service->delete($id, $this->userId());
 			return new DataResponse([]);
 		} catch (DoesNotExistException) {
-			return new DataResponse(['message' => 'Konto nicht gefunden'], Http::STATUS_NOT_FOUND);
+			return new DataResponse(['message' => $this->l10n->t('Konto nicht gefunden')], Http::STATUS_NOT_FOUND);
 		} catch (\InvalidArgumentException $e) {
 			// Konto noch in Verwendung (Buchungen/Unterkonten) – siehe AccountService::delete().
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_CONFLICT);
@@ -140,7 +142,7 @@ class AccountController extends Controller {
 			]);
 			return new DataResponse($account);
 		} catch (DoesNotExistException) {
-			return new DataResponse(['message' => 'Konto nicht gefunden'], Http::STATUS_NOT_FOUND);
+			return new DataResponse(['message' => $this->l10n->t('Konto nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
 	}
 }

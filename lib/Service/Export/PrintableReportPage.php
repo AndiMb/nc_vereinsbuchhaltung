@@ -54,9 +54,17 @@ final class PrintableReportPage {
 			. '</body></html>';
 	}
 
-	/** Der Hinweis zum Drucken – auf Papier blendet ihn @media print aus. */
-	public static function printHint(): string {
-		return '<div class="noprint">Zum Drucken oder Als-PDF-Speichern: <strong>Strg+P</strong> (Mac: ⌘P) im Browser.</div>';
+	/**
+	 * Der Hinweis zum Drucken – auf Papier blendet ihn @media print aus.
+	 *
+	 * $text kommt bereits übersetzt von der aufrufenden Stelle: diese Klasse
+	 * hat bewusst keine eigene IL10N-Abhängigkeit (siehe Klassendoc, statische
+	 * Methoden, direkt in tests/unit/ExportFormatTest.php aufgerufen).
+	 *
+	 * @param string $text darf HTML enthalten (z.B. <strong>), wird NICHT maskiert
+	 */
+	public static function printHint(string $text): string {
+		return '<div class="noprint">' . $text . '</div>';
 	}
 
 	/**

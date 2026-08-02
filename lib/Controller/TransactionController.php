@@ -12,6 +12,7 @@ use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
+use OCP\IL10N;
 use OCP\IRequest;
 
 class TransactionController extends Controller {
@@ -22,6 +23,7 @@ class TransactionController extends Controller {
 		IRequest $request,
 		private BankTransactionMapper $txMapper,
 		private BookingService $bookingService,
+		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -59,7 +61,7 @@ class TransactionController extends Controller {
 			}
 			return new DataResponse($tx);
 		} catch (DoesNotExistException) {
-			return new DataResponse(['message' => 'Buchung oder Konto nicht gefunden'], Http::STATUS_NOT_FOUND);
+			return new DataResponse(['message' => $this->l10n->t('Buchung oder Konto nicht gefunden')], Http::STATUS_NOT_FOUND);
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		}
@@ -72,7 +74,7 @@ class TransactionController extends Controller {
 			$tx = $this->bookingService->unassign($tx);
 			return new DataResponse($tx);
 		} catch (DoesNotExistException) {
-			return new DataResponse(['message' => 'Buchung nicht gefunden'], Http::STATUS_NOT_FOUND);
+			return new DataResponse(['message' => $this->l10n->t('Buchung nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
 	}
 }

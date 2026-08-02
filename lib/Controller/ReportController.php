@@ -11,6 +11,7 @@ use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
+use OCP\IL10N;
 use OCP\IRequest;
 
 class ReportController extends Controller {
@@ -21,6 +22,7 @@ class ReportController extends Controller {
 		IRequest $request,
 		private ReportService $reportService,
 		private CostCenterMapper $costCenterMapper,
+		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -53,7 +55,7 @@ class ReportController extends Controller {
 		$code = trim($code);
 		$name = trim($name);
 		if ($code === '' || $name === '') {
-			return new DataResponse(['message' => 'Code und Name sind Pflicht'], Http::STATUS_BAD_REQUEST);
+			return new DataResponse(['message' => $this->l10n->t('Code und Name sind Pflicht')], Http::STATUS_BAD_REQUEST);
 		}
 		return new DataResponse($this->costCenterMapper->upsert($this->userId(), $code, $name));
 	}

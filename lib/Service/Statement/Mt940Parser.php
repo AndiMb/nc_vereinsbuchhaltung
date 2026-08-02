@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service\Statement;
 
+use OCP\IL10N;
+
 /**
  * Parser für MT940 (SWIFT-Kontoauszug, im Onlinebanking oft „.sta" oder
  * „Kontoauszug MT940").
@@ -19,9 +21,20 @@ namespace OCA\Vereinsbuchhaltung\Service\Statement;
  */
 class Mt940Parser implements StatementParser {
 
+	/**
+	 * $l10n ist bewusst optional: der Parser bleibt dadurch ohne laufende
+	 * Nextcloud-Instanz mit `new Mt940Parser()` instanziierbar (siehe
+	 * tests/unit/Mt940ParserTest.php), übersetzt seine Fehlermeldungen aber,
+	 * sobald ihn Nextclouds DI-Container mit einer echten IL10N versorgt.
+	 */
 	public function __construct(
 		private RowNormalizer $normalizer = new RowNormalizer(),
+		private ?IL10N $l10n = null,
 	) {
+	}
+
+	private function msg(string $text): string {
+		return $this->l10n !== null ? $this->l10n->t($text) : $text;
 	}
 
 	public function sourceKey(): string {
@@ -77,7 +90,7 @@ class Mt940Parser implements StatementParser {
 		}
 
 		if ($out === []) {
-			throw new \RuntimeException('Die MT940-Datei enthält keine lesbaren Buchungen (:61:).');
+			throw new \RuntimeException($this->msg('Die MT940-Datei enthält keine lesbaren Buchungen (:61:).'));
 		}
 		return $out;
 	}

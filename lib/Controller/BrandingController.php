@@ -15,6 +15,7 @@ use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\DataDisplayResponse;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\EmptyContentSecurityPolicy;
+use OCP\IL10N;
 use OCP\IRequest;
 
 /**
@@ -28,6 +29,7 @@ class BrandingController extends Controller {
 		IRequest $request,
 		private BrandingService $branding,
 		private PermissionService $permissionService,
+		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -46,7 +48,7 @@ class BrandingController extends Controller {
 	public function view(): DataDisplayResponse|DataResponse {
 		$logo = $this->branding->getLogo();
 		if ($logo === null) {
-			return new DataResponse(['message' => 'Kein Logo hinterlegt'], Http::STATUS_NOT_FOUND);
+			return new DataResponse(['message' => $this->l10n->t('Kein Logo hinterlegt')], Http::STATUS_NOT_FOUND);
 		}
 		$response = new DataDisplayResponse($logo['content'], Http::STATUS_OK, [
 			'Content-Type' => $logo['mimeType'],
@@ -61,14 +63,14 @@ class BrandingController extends Controller {
 	#[RequiresRole(PermissionService::ROLE_ADMIN)]
 	public function upload(): DataResponse {
 		if (!$this->permissionService->isAdmin()) {
-			return new DataResponse(['message' => 'Zugriff verweigert'], Http::STATUS_FORBIDDEN);
+			return new DataResponse(['message' => $this->l10n->t('Zugriff verweigert')], Http::STATUS_FORBIDDEN);
 		}
 		$upload = $this->request->getUploadedFile('file');
 		if ($upload === null || !isset($upload['tmp_name']) || !is_uploaded_file($upload['tmp_name'])) {
-			return new DataResponse(['message' => 'Keine Datei empfangen'], Http::STATUS_BAD_REQUEST);
+			return new DataResponse(['message' => $this->l10n->t('Keine Datei empfangen')], Http::STATUS_BAD_REQUEST);
 		}
 		if (($upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-			return new DataResponse(['message' => 'Datei-Upload fehlgeschlagen (Fehlercode: ' . ($upload['error'] ?? -1) . ')'], Http::STATUS_BAD_REQUEST);
+			return new DataResponse(['message' => $this->l10n->t('Datei-Upload fehlgeschlagen (Fehlercode: %s)', [(string)($upload['error'] ?? -1)])], Http::STATUS_BAD_REQUEST);
 		}
 
 		// Ausschließlich der erkannte Typ zählt. Früher wurde bei text/plain
@@ -80,7 +82,7 @@ class BrandingController extends Controller {
 		$detectedMime = $finfo->file($upload['tmp_name']);
 		$content = file_get_contents($upload['tmp_name']);
 		if ($content === false) {
-			return new DataResponse(['message' => 'Datei konnte nicht gelesen werden'], Http::STATUS_INTERNAL_SERVER_ERROR);
+			return new DataResponse(['message' => $this->l10n->t('Datei konnte nicht gelesen werden')], Http::STATUS_INTERNAL_SERVER_ERROR);
 		}
 
 		try {
@@ -95,7 +97,7 @@ class BrandingController extends Controller {
 	#[RequiresRole(PermissionService::ROLE_ADMIN)]
 	public function destroy(): DataResponse {
 		if (!$this->permissionService->isAdmin()) {
-			return new DataResponse(['message' => 'Zugriff verweigert'], Http::STATUS_FORBIDDEN);
+			return new DataResponse(['message' => $this->l10n->t('Zugriff verweigert')], Http::STATUS_FORBIDDEN);
 		}
 		$this->branding->deleteLogo();
 		return new DataResponse([]);

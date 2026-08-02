@@ -17,6 +17,7 @@ use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
+use OCP\IL10N;
 use OCP\IRequest;
 
 class ImportController extends Controller {
@@ -32,6 +33,7 @@ class ImportController extends Controller {
 		private PermissionService $permissionService,
 		private AuditService $audit,
 		private DemoDataService $demoService,
+		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -60,7 +62,7 @@ class ImportController extends Controller {
 	public function preview(): DataResponse {
 		$upload = $this->readUpload();
 		if ($upload === null) {
-			return new DataResponse(['message' => 'Keine Datei empfangen'], Http::STATUS_BAD_REQUEST);
+			return new DataResponse(['message' => $this->l10n->t('Keine Datei empfangen')], Http::STATUS_BAD_REQUEST);
 		}
 		try {
 			return new DataResponse($this->importService->preview($this->userId(), $upload['content']));
@@ -73,7 +75,7 @@ class ImportController extends Controller {
 	public function commit(): DataResponse {
 		$upload = $this->readUpload();
 		if ($upload === null) {
-			return new DataResponse(['message' => 'Keine Datei empfangen'], Http::STATUS_BAD_REQUEST);
+			return new DataResponse(['message' => $this->l10n->t('Keine Datei empfangen')], Http::STATUS_BAD_REQUEST);
 		}
 		$applyRules = filter_var($this->request->getParam('applyRules', true), FILTER_VALIDATE_BOOLEAN);
 		try {
@@ -108,7 +110,7 @@ class ImportController extends Controller {
 	public function xbucPreview(): DataResponse {
 		$upload = $this->readUpload();
 		if ($upload === null) {
-			return new DataResponse(['message' => 'Keine Datei empfangen'], Http::STATUS_BAD_REQUEST);
+			return new DataResponse(['message' => $this->l10n->t('Keine Datei empfangen')], Http::STATUS_BAD_REQUEST);
 		}
 		try {
 			return new DataResponse($this->xbucService->preview($this->userId(), $upload['content'], $this->yearOverride()));
@@ -121,12 +123,12 @@ class ImportController extends Controller {
 	public function xbucCommit(): DataResponse {
 		$upload = $this->readUpload();
 		if ($upload === null) {
-			return new DataResponse(['message' => 'Keine Datei empfangen'], Http::STATUS_BAD_REQUEST);
+			return new DataResponse(['message' => $this->l10n->t('Keine Datei empfangen')], Http::STATUS_BAD_REQUEST);
 		}
 		$reset = filter_var($this->request->getParam('reset', false), FILTER_VALIDATE_BOOLEAN);
 		$clampDates = filter_var($this->request->getParam('clampDates', false), FILTER_VALIDATE_BOOLEAN);
 		if ($reset && !$this->permissionService->isAdmin()) {
-			return new DataResponse(['message' => 'Nur Verwalter dürfen beim Import alle Daten löschen.'], Http::STATUS_FORBIDDEN);
+			return new DataResponse(['message' => $this->l10n->t('Nur Verwalter dürfen beim Import alle Daten löschen.')], Http::STATUS_FORBIDDEN);
 		}
 		try {
 			$result = $this->xbucService->import($this->userId(), $upload['content'], $reset, $clampDates, $this->yearOverride());
@@ -147,7 +149,7 @@ class ImportController extends Controller {
 		// Zweite Schicht neben der Middleware – hier hängt der gesamte
 		// Datenbestand dran.
 		if (!$this->permissionService->isAdmin()) {
-			return new DataResponse(['message' => 'Nur Verwalter dürfen alle Daten zurücksetzen.'], Http::STATUS_FORBIDDEN);
+			return new DataResponse(['message' => $this->l10n->t('Nur Verwalter dürfen alle Daten zurücksetzen.')], Http::STATUS_FORBIDDEN);
 		}
 		// Vor dem Löschen protokollieren – das Protokoll überlebt den Reset bewusst.
 		$this->audit->log('Alle Daten zurückgesetzt');

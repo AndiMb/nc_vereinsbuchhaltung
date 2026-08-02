@@ -11,6 +11,7 @@ use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
+use OCP\IL10N;
 use OCP\IRequest;
 
 /**
@@ -26,6 +27,7 @@ class CostCenterController extends Controller {
 	public function __construct(
 		IRequest $request,
 		private CostCenterService $service,
+		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -51,7 +53,7 @@ class CostCenterController extends Controller {
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		} catch (DoesNotExistException) {
-			return new DataResponse(['message' => 'Kostenstelle nicht gefunden'], Http::STATUS_NOT_FOUND);
+			return new DataResponse(['message' => $this->l10n->t('Kostenstelle nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
 	}
 
@@ -61,7 +63,7 @@ class CostCenterController extends Controller {
 			$this->service->delete($id, $this->userId());
 			return new DataResponse([]);
 		} catch (DoesNotExistException) {
-			return new DataResponse(['message' => 'Kostenstelle nicht gefunden'], Http::STATUS_NOT_FOUND);
+			return new DataResponse(['message' => $this->l10n->t('Kostenstelle nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
 	}
 
@@ -77,7 +79,7 @@ class CostCenterController extends Controller {
 			$count = $this->service->assign($this->userId(), $accountIds, $costCenterId);
 			return new DataResponse(['updated' => $count]);
 		} catch (DoesNotExistException) {
-			return new DataResponse(['message' => 'Kostenstelle nicht gefunden'], Http::STATUS_NOT_FOUND);
+			return new DataResponse(['message' => $this->l10n->t('Kostenstelle nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
 	}
 }

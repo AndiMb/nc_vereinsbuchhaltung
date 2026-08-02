@@ -4,13 +4,26 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service;
 
+use OCP\IL10N;
+
 /**
  * Parser für das XML-Exportformat von „zero Buchhaltung" (.xbuc).
  *
  * Liefert den Kontenbaum (flach, Eltern zuerst) und die Buchungen (Soll/Haben).
- * Keine Nextcloud-Abhängigkeiten – dadurch eigenständig testbar.
+ * Ohne Pflicht-Abhängigkeit von Nextcloud – dadurch mit `new XbucParser()`
+ * eigenständig testbar; $l10n ist optional und übersetzt die Fehlermeldungen,
+ * sobald Nextclouds DI-Container eine echte IL10N bereitstellt.
  */
 class XbucParser {
+
+	public function __construct(
+		private ?IL10N $l10n = null,
+	) {
+	}
+
+	private function msg(string $text): string {
+		return $this->l10n !== null ? $this->l10n->t($text) : $text;
+	}
 
 	/**
 	 * @return array{accounts: array<int, array<string,mixed>>, bookings: array<int, array<string,mixed>>, costCenters: array<int, array{code:string, name:string}>, year: ?int}
@@ -21,12 +34,12 @@ class XbucParser {
 		$xml = simplexml_load_string($content);
 		libxml_use_internal_errors($prev);
 		if ($xml === false) {
-			throw new \RuntimeException('Die Datei konnte nicht als XML gelesen werden.');
+			throw new \RuntimeException($this->msg('Die Datei konnte nicht als XML gelesen werden.'));
 		}
 
 		$projekt = $xml->Projekt;
 		if (!$projekt) {
-			throw new \RuntimeException('Kein <Projekt>-Element gefunden – ist das eine zero-Buchhaltung-Datei?');
+			throw new \RuntimeException($this->msg('Kein <Projekt>-Element gefunden – ist das eine zero-Buchhaltung-Datei?'));
 		}
 
 		$accounts = [];

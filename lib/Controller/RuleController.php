@@ -12,6 +12,7 @@ use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
+use OCP\IL10N;
 use OCP\IRequest;
 
 class RuleController extends Controller {
@@ -21,6 +22,7 @@ class RuleController extends Controller {
 	public function __construct(
 		IRequest $request,
 		private RuleMapper $mapper,
+		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -33,7 +35,7 @@ class RuleController extends Controller {
 	#[NoAdminRequired]
 	public function create(string $matchField, string $matchValue, int $contraAccountId, int $priority = 0): DataResponse {
 		if (!$this->isValid($matchField, $matchValue, $contraAccountId)) {
-			return new DataResponse(['message' => 'Ungültige Regel (Feld, Suchtext oder Gegenkonto fehlt).'], Http::STATUS_BAD_REQUEST);
+			return new DataResponse(['message' => $this->l10n->t('Ungültige Regel (Feld, Suchtext oder Gegenkonto fehlt).')], Http::STATUS_BAD_REQUEST);
 		}
 		$rule = new Rule();
 		$rule->setUserId($this->userId());
@@ -47,12 +49,12 @@ class RuleController extends Controller {
 	#[NoAdminRequired]
 	public function update(int $id, string $matchField, string $matchValue, int $contraAccountId, int $priority = 0): DataResponse {
 		if (!$this->isValid($matchField, $matchValue, $contraAccountId)) {
-			return new DataResponse(['message' => 'Ungültige Regel (Feld, Suchtext oder Gegenkonto fehlt).'], Http::STATUS_BAD_REQUEST);
+			return new DataResponse(['message' => $this->l10n->t('Ungültige Regel (Feld, Suchtext oder Gegenkonto fehlt).')], Http::STATUS_BAD_REQUEST);
 		}
 		try {
 			$rule = $this->mapper->find($id, $this->userId());
 		} catch (DoesNotExistException) {
-			return new DataResponse(['message' => 'Regel nicht gefunden'], Http::STATUS_NOT_FOUND);
+			return new DataResponse(['message' => $this->l10n->t('Regel nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
 		$rule->setMatchField($matchField);
 		$rule->setMatchValue(trim($matchValue));
@@ -74,7 +76,7 @@ class RuleController extends Controller {
 			$this->mapper->delete($rule);
 			return new DataResponse([]);
 		} catch (DoesNotExistException) {
-			return new DataResponse(['message' => 'Regel nicht gefunden'], Http::STATUS_NOT_FOUND);
+			return new DataResponse(['message' => $this->l10n->t('Regel nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
 	}
 }

@@ -12,6 +12,7 @@ use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
+use OCP\IL10N;
 use OCP\IRequest;
 use OCP\IUserSession;
 
@@ -26,6 +27,7 @@ class YearController extends Controller {
 		private YearCloseService $yearCloseService,
 		private PermissionService $permissionService,
 		private IUserSession $userSession,
+		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -42,10 +44,10 @@ class YearController extends Controller {
 		// als zweite Schicht stehen, damit ein Fehler in der Verdrahtung nicht
 		// gleich die Festschreibung öffnet.
 		if (!$this->permissionService->isAdmin()) {
-			return new DataResponse(['message' => 'Nur Verwalter dürfen Jahre abschließen.'], Http::STATUS_FORBIDDEN);
+			return new DataResponse(['message' => $this->l10n->t('Nur Verwalter dürfen Jahre abschließen.')], Http::STATUS_FORBIDDEN);
 		}
 		if ($year < 2000 || $year > 2099) {
-			return new DataResponse(['message' => 'Ungültiges Jahr'], Http::STATUS_BAD_REQUEST);
+			return new DataResponse(['message' => $this->l10n->t('Ungültiges Jahr')], Http::STATUS_BAD_REQUEST);
 		}
 		$uid = $this->userSession->getUser()?->getUID() ?? '?';
 		return new DataResponse($this->yearCloseService->close($year, $uid), Http::STATUS_CREATED);
@@ -55,7 +57,7 @@ class YearController extends Controller {
 	#[RequiresRole(PermissionService::ROLE_ADMIN)]
 	public function reopen(int $year): DataResponse {
 		if (!$this->permissionService->isAdmin()) {
-			return new DataResponse(['message' => 'Nur Verwalter dürfen Jahre wiedereröffnen.'], Http::STATUS_FORBIDDEN);
+			return new DataResponse(['message' => $this->l10n->t('Nur Verwalter dürfen Jahre wiedereröffnen.')], Http::STATUS_FORBIDDEN);
 		}
 		$this->yearCloseService->reopen($year);
 		return new DataResponse([]);
