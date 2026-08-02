@@ -3,22 +3,22 @@
 		<div class="vbh-sectiontop">
 			<div class="vbh-subtabs">
 				<button :class="{ active: reportView === 'summary' }" @click="$emit('update:report-view', 'summary')">
-					Auswertung
+					{{ t('Auswertung') }}
 				</button>
 				<button :class="{ active: reportView === 'costcenters' }" @click="$emit('update:report-view', 'costcenters')">
-					Kostenstellen
+					{{ t('Kostenstellen') }}
 				</button>
 				<button :class="{ active: reportView === 'spheres' }" @click="$emit('update:report-view', 'spheres')">
-					Sphären
+					{{ t('Sphären') }}
 				</button>
 				<button :class="{ active: reportView === 'reserves' }" @click="$emit('update:report-view', 'reserves')">
-					Rücklagen
+					{{ t('Rücklagen') }}
 				</button>
 				<button :class="{ active: reportView === 'budget' }" @click="$emit('update:report-view', 'budget')">
-					Finanzplan
+					{{ t('Finanzplan') }}
 				</button>
 				<button :class="{ active: reportView === 'audit' }" @click="$emit('update:report-view', 'audit')">
-					Protokoll
+					{{ t('Protokoll') }}
 				</button>
 			</div>
 			<div class="vbh-sectiontop-actions">
@@ -27,49 +27,49 @@
 					target="_blank"
 					rel="noopener"
 					class="vbh-export-btn"
-					title="Druckfertiger Kassenbericht für die Mitgliederversammlung (öffnet in neuem Tab, dort drucken oder als PDF speichern)"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> Kassenbericht</a>
+					:title="t('Druckfertiger Kassenbericht für die Mitgliederversammlung (öffnet in neuem Tab, dort drucken oder als PDF speichern)')"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> {{ t('Kassenbericht') }}</a>
 				<span v-if="reportView === 'summary'" class="vbh-kurzbericht-picker">
 					<input v-model="kurzberichtSince"
 						type="date"
 						class="vbh-kurzbericht-date"
-						title="Kurzbericht: Bewegungen seit diesem Datum">
+						:title="t('Kurzbericht: Bewegungen seit diesem Datum')">
 					<a :href="kurzberichtUrl"
 						target="_blank"
 						rel="noopener"
 						class="vbh-export-btn"
-						title="Kurzbericht für die nächste Vorstandssitzung (öffnet in neuem Tab, dort drucken oder als PDF speichern)"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> Kurzbericht</a>
+						:title="t('Kurzbericht für die nächste Vorstandssitzung (öffnet in neuem Tab, dort drucken oder als PDF speichern)')"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> {{ t('Kurzbericht') }}</a>
 				</span>
 				<a v-if="reportView === 'summary' && selectedYear"
 					:href="attachmentsZipUrl"
 					download
 					class="vbh-export-btn"
-					title="Alle Belege des Jahres als ZIP herunterladen (für die Kassenprüfung)"><NcIconSvgWrapper :path="mdiPaperclip" :size="16" inline /> Beleg-ZIP</a>
+					:title="t('Alle Belege des Jahres als ZIP herunterladen (für die Kassenprüfung)')"><NcIconSvgWrapper :path="mdiPaperclip" :size="16" inline /> {{ t('Beleg-ZIP') }}</a>
 				<a v-if="reportView === 'summary'"
 					:href="pruefleitfadenUrl"
 					target="_blank"
 					rel="noopener"
 					class="vbh-export-btn"
-					title="Druckfertige 1-Seiten-Kurzanleitung für Kassenprüfer/innen (öffnet in neuem Tab)"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> Prüfleitfaden</a>
+					:title="t('Druckfertige 1-Seiten-Kurzanleitung für Kassenprüfer/innen (öffnet in neuem Tab)')"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> {{ t('Prüfleitfaden') }}</a>
 				<a v-if="reportView === 'summary'"
 					:href="exportBalancesUrl"
 					download
 					class="vbh-export-btn"
-					title="Saldenliste als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> Saldenliste</a>
+					:title="t('Saldenliste als CSV exportieren')"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> {{ t('Saldenliste') }}</a>
 				<a v-if="reportView === 'summary'"
 					:href="exportReportUrl"
 					download
 					class="vbh-export-btn"
-					title="E/A-Übersicht als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> E/A-Übersicht</a>
+					:title="t('E/A-Übersicht als CSV exportieren')"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> {{ t('E/A-Übersicht') }}</a>
 				<a v-if="reportView === 'summary'"
 					:href="exportMultiyearUrl"
 					download
 					class="vbh-export-btn"
-					title="Mehrjahresübersicht (alle Jahre) als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> Mehrjahresübersicht</a>
+					:title="t('Mehrjahresübersicht (alle Jahre) als CSV exportieren')"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> {{ t('Mehrjahresübersicht') }}</a>
 				<a v-if="reportView === 'budget'"
 					:href="exportBudgetUrl"
 					download
 					class="vbh-export-btn"
-					title="Soll-Ist-Vergleich als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> Soll-Ist-Vergleich</a>
+					:title="t('Soll-Ist-Vergleich als CSV exportieren')"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> {{ t('Soll-Ist-Vergleich') }}</a>
 			</div>
 		</div>
 
@@ -78,19 +78,19 @@
 			<div v-show="reportView === 'summary'">
 				<div v-if="balances" class="vbh-totals">
 					<div class="vbh-total pos">
-						<span>Einnahmen</span><strong>{{ formatMoney(balances.totals.income) }}</strong>
+						<span>{{ t('Einnahmen') }}</span><strong>{{ formatMoney(balances.totals.income) }}</strong>
 					</div>
 					<div class="vbh-total neg">
-						<span>Ausgaben</span><strong>{{ formatMoney(balances.totals.expense) }}</strong>
+						<span>{{ t('Ausgaben') }}</span><strong>{{ formatMoney(balances.totals.expense) }}</strong>
 					</div>
 					<div class="vbh-total" :class="balances.totals.result >= 0 ? 'pos' : 'neg'">
-						<span>Ergebnis</span><strong>{{ formatMoney(balances.totals.result) }}</strong>
+						<span>{{ t('Ergebnis') }}</span><strong>{{ formatMoney(balances.totals.result) }}</strong>
 					</div>
 				</div>
 
 				<div v-if="trendChartData.labels.length" class="vbh-chart-grid">
 					<div class="vbh-chart-card vbh-chart-card--wide">
-						<h4>Mehrjahres-Trend (Einnahmen, Ausgaben, Ergebnis)</h4>
+						<h4>{{ t('Mehrjahres-Trend (Einnahmen, Ausgaben, Ergebnis)') }}</h4>
 						<div class="vbh-chart-wrap">
 							<canvas ref="trendChart" />
 						</div>
@@ -98,15 +98,15 @@
 				</div>
 
 				<template v-if="balances && balances.bankReconciliation && balances.bankReconciliation.length">
-					<h4>Geldkonten</h4>
+					<h4>{{ t('Geldkonten') }}</h4>
 					<div v-if="!isMobile" class="vbh-tablecard">
 						<table class="vbh-table">
 							<thead>
 								<tr>
-									<th>Konto</th><th class="num">
-										Kontostand
+									<th>{{ t('Konto') }}</th><th class="num">
+										{{ t('Kontostand') }}
 									</th><th class="num">
-										Offen (nicht zugeordnet)
+										{{ t('Offen (nicht zugeordnet)') }}
 									</th>
 								</tr>
 							</thead>
@@ -130,16 +130,16 @@
 								<span class="vbh-mcard-amount">{{ formatMoney(b.balance) }}</span>
 							</div>
 							<div v-if="Math.abs(b.open) > 0.005" class="vbh-mcard-bottom">
-								<span class="vbh-mcard-accounts">{{ formatMoney(b.open) }} nicht zugeordnet</span>
+								<span class="vbh-mcard-accounts">{{ t('{amount} nicht zugeordnet', { amount: formatMoney(b.open) }) }}</span>
 							</div>
 						</div>
 					</div>
 				</template>
 
 				<div class="vbh-sectionhead">
-					<h4>Saldenliste</h4>
+					<h4>{{ t('Saldenliste') }}</h4>
 					<NcCheckboxRadioSwitch v-model="balancesIncludeChildren">
-						Werte inkl. Unterkonten
+						{{ t('Werte inkl. Unterkonten') }}
 					</NcCheckboxRadioSwitch>
 				</div>
 				<div v-if="balances && isMobile" class="vbh-cardlist">
@@ -153,7 +153,7 @@
 							<span class="vbh-mcard-amount" :class="amountClass(row.balance)">{{ formatMoney(row.balance) }}</span>
 						</div>
 						<div class="vbh-mcard-bottom">
-							<span class="vbh-mcard-accounts">{{ row.category || typeLabel(row.type) }} · Soll {{ formatMoney(row.debit) }} · Haben {{ formatMoney(row.credit) }}</span>
+							<span class="vbh-mcard-accounts">{{ t('{category} · Soll {debit} · Haben {credit}', { category: row.category || typeLabel(row.type), debit: formatMoney(row.debit), credit: formatMoney(row.credit) }) }}</span>
 						</div>
 					</div>
 				</div>
@@ -162,22 +162,22 @@
 						<thead>
 							<tr>
 								<th class="sortable nowrap vbh-col-hide-sm" @click="toggleSort('balances','number')">
-									Nr.{{ sortArrow('balances','number') }}
+									{{ t('Nr.') }}{{ sortArrow('balances','number') }}
 								</th>
 								<th class="sortable" @click="toggleSort('balances','name')">
-									Konto{{ sortArrow('balances','name') }}
+									{{ t('Konto') }}{{ sortArrow('balances','name') }}
 								</th>
 								<th class="sortable vbh-col-hide-sm" @click="toggleSort('balances','category')">
-									Kategorie{{ sortArrow('balances','category') }}
+									{{ t('Kategorie') }}{{ sortArrow('balances','category') }}
 								</th>
 								<th class="sortable num vbh-col-hide-sm" @click="toggleSort('balances','debit')">
-									Soll{{ sortArrow('balances','debit') }}
+									{{ t('Soll') }}{{ sortArrow('balances','debit') }}
 								</th>
 								<th class="sortable num vbh-col-hide-sm" @click="toggleSort('balances','credit')">
-									Haben{{ sortArrow('balances','credit') }}
+									{{ t('Haben') }}{{ sortArrow('balances','credit') }}
 								</th>
 								<th class="sortable num" @click="toggleSort('balances','balance')">
-									Saldo{{ sortArrow('balances','balance') }}
+									{{ t('Saldo') }}{{ sortArrow('balances','balance') }}
 								</th>
 							</tr>
 						</thead>
@@ -211,10 +211,10 @@
 			<div v-show="reportView === 'costcenters'" class="vbh-splitinner" :class="{ 'vbh-drill': isMobile }">
 				<div v-if="!isMobile || !selectedCC" class="vbh-tree">
 					<div class="vbh-treehead">
-						<strong>Kostenstellen</strong>
+						<strong>{{ t('Kostenstellen') }}</strong>
 					</div>
 					<div v-if="reportData" class="vbh-ccsummary">
-						<span>Gesamtergebnis</span>
+						<span>{{ t('Gesamtergebnis') }}</span>
 						<strong :class="amountClass(reportData.totals.result)">{{ formatMoney(reportData.totals.result) }}</strong>
 					</div>
 					<div v-if="reportData" class="vbh-treelist">
@@ -229,18 +229,18 @@
 						</div>
 					</div>
 					<p v-else class="vbh-hint">
-						Keine Daten. Importiere oder erfasse zuerst Buchungen.
+						{{ t('Keine Daten. Importiere oder erfasse zuerst Buchungen.') }}
 					</p>
 				</div>
 
 				<div v-if="!isMobile || selectedCC" class="vbh-detail">
 					<div v-if="isMobile" class="vbh-backbar">
 						<button type="button" class="vbh-backbtn" @click="$emit('update:selected-c-c-code', false)">
-							‹ Kostenstellen
+							{{ t('‹ Kostenstellen') }}
 						</button>
 					</div>
 					<p v-if="!selectedCC" class="vbh-empty vbh-detailhint">
-						Kostenstelle links auswählen.
+						{{ t('Kostenstelle links auswählen.') }}
 					</p>
 					<template v-else>
 						<div class="vbh-detailhead">
@@ -248,26 +248,26 @@
 						</div>
 
 						<div v-if="canWrite && selectedCC.code && reportData && reportData.mode !== 'account'" class="vbh-opening">
-							<span>Name:</span>
+							<span>{{ t('Name:') }}</span>
 							<input :value="renameName" class="vbh-rename" @input="$emit('update:rename-name', $event.target.value)">
 							<NcButton variant="primary" size="small" @click="saveRename">
-								Umbenennen
+								{{ t('Umbenennen') }}
 							</NcButton>
 						</div>
 
 						<div class="vbh-totals">
 							<div class="vbh-total pos">
-								<span>Einnahmen</span><strong>{{ formatMoney(selectedCC.income) }}</strong>
+								<span>{{ t('Einnahmen') }}</span><strong>{{ formatMoney(selectedCC.income) }}</strong>
 							</div>
 							<div class="vbh-total neg">
-								<span>Ausgaben</span><strong>{{ formatMoney(selectedCC.expense) }}</strong>
+								<span>{{ t('Ausgaben') }}</span><strong>{{ formatMoney(selectedCC.expense) }}</strong>
 							</div>
 							<div class="vbh-total" :class="selectedCC.result >= 0 ? 'pos' : 'neg'">
-								<span>Ergebnis</span><strong>{{ formatMoney(selectedCC.result) }}</strong>
+								<span>{{ t('Ergebnis') }}</span><strong>{{ formatMoney(selectedCC.result) }}</strong>
 							</div>
 						</div>
 
-						<h4>Beteiligte Konten <span class="vbh-hint">(Konto anklicken für Buchungen)</span></h4>
+						<h4>{{ t('Beteiligte Konten') }} <span class="vbh-hint">{{ t('(Konto anklicken für Buchungen)') }}</span></h4>
 						<div v-if="selectedCC.accounts.length && isMobile" class="vbh-cardlist">
 							<div v-for="(a, i) in selectedCC.accounts"
 								:key="'m' + i"
@@ -289,7 +289,7 @@
 										</div>
 									</template>
 									<p v-else class="vbh-empty">
-										Keine Buchungen.
+										{{ t('Keine Buchungen.') }}
 									</p>
 								</div>
 							</div>
@@ -299,9 +299,9 @@
 								<thead>
 									<tr>
 										<th class="nowrap">
-											Nr.
-										</th><th>Konto</th><th>Art</th><th class="num">
-											Betrag
+											{{ t('Nr.') }}
+										</th><th>{{ t('Konto') }}</th><th>{{ t('Art') }}</th><th class="num">
+											{{ t('Betrag') }}
 										</th>
 									</tr>
 								</thead>
@@ -325,15 +325,15 @@
 													<thead>
 														<tr>
 															<th class="num vbh-col-hide-sm">
-																Nr.
+																{{ t('Nr.') }}
 															</th><th class="nowrap">
-																Datum
-															</th><th>Beschreibung</th><th class="vbh-col-hide-sm">
-																Gegenkonto
+																{{ t('Datum') }}
+															</th><th>{{ t('Beschreibung') }}</th><th class="vbh-col-hide-sm">
+																{{ t('Gegenkonto') }}
 															</th><th class="num">
-																Soll
+																{{ t('Soll') }}
 															</th><th class="num">
-																Haben
+																{{ t('Haben') }}
 															</th>
 														</tr>
 													</thead>
@@ -361,7 +361,7 @@
 													</tbody>
 												</table>
 												<p v-else class="vbh-empty">
-													Keine Buchungen.
+													{{ t('Keine Buchungen.') }}
 												</p>
 											</td>
 										</tr>
@@ -370,7 +370,7 @@
 							</table>
 						</div>
 						<p v-else class="vbh-empty">
-							Keine Buchungen mit Betrag in dieser Kostenstelle.
+							{{ t('Keine Buchungen mit Betrag in dieser Kostenstelle.') }}
 						</p>
 					</template>
 				</div>
@@ -380,20 +380,20 @@
 			<div v-show="reportView === 'spheres'" class="vbh-splitinner" :class="{ 'vbh-drill': isMobile }">
 				<div v-if="!isMobile || !selectedSphere" class="vbh-tree">
 					<div class="vbh-treehead">
-						<strong>Sphären</strong>
+						<strong>{{ t('Sphären') }}</strong>
 						<button type="button"
 							class="vbh-sphere-help"
-							title="Was bedeutet das?"
+							:title="t('Was bedeutet das?')"
 							@click="$emit('help', 'spheres')">
 							?
 						</button>
 					</div>
 					<div v-if="sphereData" class="vbh-ccsummary">
-						<span>Gesamtergebnis</span>
+						<span>{{ t('Gesamtergebnis') }}</span>
 						<strong :class="amountClass(sphereData.totals.result)">{{ formatMoney(sphereData.totals.result) }}</strong>
 					</div>
 					<div v-if="sphereData && sphereData.freigrenze.incomeCents > 0" class="vbh-freigrenzemini" :class="sphereData.freigrenze.level">
-						Wirtschaftlicher Geschäftsbetrieb: {{ formatMoney(sphereData.freigrenze.income) }} von {{ formatMoney(sphereData.freigrenze.threshold) }}
+						{{ t('Wirtschaftlicher Geschäftsbetrieb: {income} von {threshold}', { income: formatMoney(sphereData.freigrenze.income), threshold: formatMoney(sphereData.freigrenze.threshold) }) }}
 						({{ Math.round(sphereData.freigrenze.ratio * 100) }} %)
 					</div>
 					<div v-if="sphereData" class="vbh-treelist">
@@ -407,18 +407,18 @@
 						</div>
 					</div>
 					<p v-else class="vbh-hint">
-						Keine Daten. Importiere oder erfasse zuerst Buchungen.
+						{{ t('Keine Daten. Importiere oder erfasse zuerst Buchungen.') }}
 					</p>
 				</div>
 
 				<div v-if="!isMobile || selectedSphere" class="vbh-detail">
 					<div v-if="isMobile" class="vbh-backbar">
 						<button type="button" class="vbh-backbtn" @click="$emit('update:selected-sphere-code', false)">
-							‹ Sphären
+							{{ t('‹ Sphären') }}
 						</button>
 					</div>
 					<p v-if="!selectedSphere" class="vbh-empty vbh-detailhint">
-						Sphäre links auswählen.
+						{{ t('Sphäre links auswählen.') }}
 					</p>
 					<template v-else>
 						<div class="vbh-detailhead">
@@ -427,25 +427,25 @@
 
 						<div class="vbh-totals">
 							<div class="vbh-total pos">
-								<span>Einnahmen</span><strong>{{ formatMoney(selectedSphere.income) }}</strong>
+								<span>{{ t('Einnahmen') }}</span><strong>{{ formatMoney(selectedSphere.income) }}</strong>
 							</div>
 							<div class="vbh-total neg">
-								<span>Ausgaben</span><strong>{{ formatMoney(selectedSphere.expense) }}</strong>
+								<span>{{ t('Ausgaben') }}</span><strong>{{ formatMoney(selectedSphere.expense) }}</strong>
 							</div>
 							<div class="vbh-total" :class="selectedSphere.result >= 0 ? 'pos' : 'neg'">
-								<span>Ergebnis</span><strong>{{ formatMoney(selectedSphere.result) }}</strong>
+								<span>{{ t('Ergebnis') }}</span><strong>{{ formatMoney(selectedSphere.result) }}</strong>
 							</div>
 						</div>
 
-						<h4>Beteiligte Konten</h4>
+						<h4>{{ t('Beteiligte Konten') }}</h4>
 						<div v-if="selectedSphere.accounts.length" class="vbh-tablecard">
 							<table class="vbh-table">
 								<thead>
 									<tr>
 										<th class="nowrap">
-											Nr.
-										</th><th>Konto</th><th>Art</th><th class="num">
-											Betrag
+											{{ t('Nr.') }}
+										</th><th>{{ t('Konto') }}</th><th>{{ t('Art') }}</th><th class="num">
+											{{ t('Betrag') }}
 										</th>
 									</tr>
 								</thead>
@@ -464,7 +464,7 @@
 							</table>
 						</div>
 						<p v-else class="vbh-empty">
-							Keine Buchungen mit Betrag in dieser Sphäre.
+							{{ t('Keine Buchungen mit Betrag in dieser Sphäre.') }}
 						</p>
 					</template>
 				</div>
@@ -473,21 +473,19 @@
 			<!-- RÜCKLAGEN -->
 			<div v-show="reportView === 'reserves'">
 				<p class="vbh-hint">
-					Rücklagen sind Eigenkapital-Konten mit festgelegter Rücklagen-Art (§ 62 AO). Zuweisungen
-					erfolgen als normale Buchung (Experten-Modus im Buchungsdialog, Eigenkapital-zu-Eigenkapital-
-					Umbuchung) – hier siehst du nur den aktuellen Stand je Art.
+					{{ t('Rücklagen sind Eigenkapital-Konten mit festgelegter Rücklagen-Art (§ 62 AO). Zuweisungen erfolgen als normale Buchung (Experten-Modus im Buchungsdialog, Eigenkapital-zu-Eigenkapital-Umbuchung) – hier siehst du nur den aktuellen Stand je Art.') }}
 				</p>
 				<div v-if="reserveData" class="vbh-totals">
 					<div class="vbh-total" :class="reserveData.total >= 0 ? 'pos' : 'neg'">
-						<span>Rücklagen gesamt</span><strong>{{ formatMoney(reserveData.total) }}</strong>
+						<span>{{ t('Rücklagen gesamt') }}</span><strong>{{ formatMoney(reserveData.total) }}</strong>
 					</div>
 				</div>
 				<div v-if="reserveData && reserveData.reserves.some(r => r.accounts.length)" class="vbh-tablecard">
 					<table class="vbh-table">
 						<thead>
 							<tr>
-								<th>Rücklagen-Art</th><th class="num">
-									Saldo
+								<th>{{ t('Rücklagen-Art') }}</th><th class="num">
+									{{ t('Saldo') }}
 								</th>
 							</tr>
 						</thead>
@@ -512,42 +510,41 @@
 					</table>
 				</div>
 				<p v-else class="vbh-empty">
-					Noch keinem Konto eine Rücklagen-Art zugewiesen. Im Konto-Dialog eines Eigenkapital-Kontos festlegen (Tab Konten).
+					{{ t('Noch keinem Konto eine Rücklagen-Art zugewiesen. Im Konto-Dialog eines Eigenkapital-Kontos festlegen (Tab Konten).') }}
 				</p>
 			</div>
 
 			<!-- FINANZPLAN -->
 			<div v-show="reportView === 'budget'">
 				<div class="vbh-sectionhead">
-					<h4>Finanzplan &amp; Soll-Ist-Vergleich{{ budgetData ? ' ' + budgetData.year : '' }}</h4>
+					<h4>{{ t('Finanzplan & Soll-Ist-Vergleich') }}{{ budgetData ? ' ' + budgetData.year : '' }}</h4>
 					<form v-if="canWrite" class="vbh-addyear" @submit.prevent="addBudgetYear">
 						<input v-model="newBudgetYear"
 							type="number"
 							min="2000"
 							max="2099"
-							placeholder="Jahr"
+							:placeholder="t('Jahr')"
 							class="vbh-addyear-input">
 						<NcButton type="submit" variant="secondary">
-							Jahr hinzufügen
+							{{ t('Jahr hinzufügen') }}
 						</NcButton>
 					</form>
 				</div>
 				<p class="vbh-hint">
-					Plane je Konto die erwarteten Einnahmen und Ausgaben (Spalte „Plan"). Die Spalte „Ist" zeigt
-					die tatsächlichen Buchungen des gewählten Geschäftsjahres, „Differenz" den Abstand zum Plan.
+					{{ t('Plane je Konto die erwarteten Einnahmen und Ausgaben (Spalte „Plan"). Die Spalte „Ist" zeigt die tatsächlichen Buchungen des gewählten Geschäftsjahres, „Differenz" den Abstand zum Plan.') }}
 				</p>
 
 				<div v-if="budgetData" class="vbh-totals">
 					<div class="vbh-total pos">
-						<span>Einnahmen (Plan / Ist)</span>
+						<span>{{ t('Einnahmen (Plan / Ist)') }}</span>
 						<strong>{{ formatMoney(budgetData.totals.planIncome) }} / {{ formatMoney(budgetData.totals.actualIncome) }}</strong>
 					</div>
 					<div class="vbh-total neg">
-						<span>Ausgaben (Plan / Ist)</span>
+						<span>{{ t('Ausgaben (Plan / Ist)') }}</span>
 						<strong>{{ formatMoney(budgetData.totals.planExpense) }} / {{ formatMoney(budgetData.totals.actualExpense) }}</strong>
 					</div>
 					<div class="vbh-total" :class="budgetData.totals.actualResult >= 0 ? 'pos' : 'neg'">
-						<span>Ergebnis (Plan / Ist)</span>
+						<span>{{ t('Ergebnis (Plan / Ist)') }}</span>
 						<strong>{{ formatMoney(budgetData.totals.planResult) }} / {{ formatMoney(budgetData.totals.actualResult) }}</strong>
 					</div>
 				</div>
@@ -557,21 +554,21 @@
 						<thead>
 							<tr>
 								<th class="nowrap vbh-col-hide-sm">
-									Nr.
+									{{ t('Nr.') }}
 								</th>
-								<th>Konto</th>
+								<th>{{ t('Konto') }}</th>
 								<th class="vbh-col-hide-sm">
-									Art
+									{{ t('Art') }}
 								</th>
 								<th class="num vbh-col-plan">
-									Plan (Soll)
+									{{ t('Plan (Soll)') }}
 								</th>
-								<th class="vbh-col-note" title="Notiz zur Planzahl" />
+								<th class="vbh-col-note" :title="t('Notiz zur Planzahl')" />
 								<th class="num">
-									Ist
+									{{ t('Ist') }}
 								</th>
 								<th class="num">
-									Differenz
+									{{ t('Differenz') }}
 								</th>
 							</tr>
 						</thead>
@@ -597,8 +594,8 @@
 									<td class="vbh-col-note">
 										<NcButton v-if="canWrite || row.note"
 											variant="tertiary"
-											:aria-label="row.note ? 'Notiz zur Planzahl anzeigen' : 'Notiz zur Planzahl hinzufügen'"
-											:title="row.note || 'Notiz hinzufügen'"
+											:aria-label="row.note ? t('Notiz zur Planzahl anzeigen') : t('Notiz zur Planzahl hinzufügen')"
+											:title="row.note || t('Notiz hinzufügen')"
 											@click="toggleBudgetNote(row)">
 											<template #icon>
 												<NcIconSvgWrapper :path="row.note ? mdiCommentText : mdiCommentPlusOutline" :size="18" :class="{ 'vbh-noteicon--set': row.note }" />
@@ -614,13 +611,13 @@
 								</tr>
 								<tr v-if="budgetNoteOpen[row.accountId]" :key="'note-' + row.accountId" class="vbh-note-row">
 									<td colspan="7">
-										<label class="vbh-note-label">Notiz zu {{ row.number }} {{ row.name }}
+										<label class="vbh-note-label">{{ t('Notiz zu {number} {name}', { number: row.number, name: row.name }) }}
 											<textarea v-if="canWrite"
 												v-model="row.note"
 												maxlength="1000"
 												rows="2"
 												class="vbh-note-textarea"
-												placeholder="z. B. Herleitung: 40 Mitglieder × 25 € Beitrag"
+												:placeholder="t('z. B. Herleitung: 40 Mitglieder × 25 € Beitrag')"
 												@change="saveBudget(row)" />
 											<p v-else class="vbh-note-text">{{ row.note }}</p>
 										</label>
@@ -631,44 +628,43 @@
 					</table>
 				</div>
 				<p v-else-if="budgetData" class="vbh-empty">
-					Keine Einnahmen-/Ausgabenkonten vorhanden.
+					{{ t('Keine Einnahmen-/Ausgabenkonten vorhanden.') }}
 				</p>
 
 				<!-- PLAN-STÄNDE (Snapshots) -->
 				<div v-if="budgetData" class="vbh-snapblock">
 					<div class="vbh-sectionhead">
-						<h4>Plan-Stände {{ budgetData.year }}</h4>
+						<h4>{{ t('Plan-Stände {year}', { year: budgetData.year }) }}</h4>
 						<form v-if="canWrite" class="vbh-addyear" @submit.prevent="saveBudgetSnapshot">
 							<input v-model="newSnapshotLabel"
 								type="text"
 								maxlength="128"
-								placeholder="z.B. Beschluss MV"
+								:placeholder="t('z.B. Beschluss MV')"
 								class="vbh-snaplabel-input">
 							<NcButton type="submit" variant="secondary">
-								Aktuellen Plan speichern
+								{{ t('Aktuellen Plan speichern') }}
 							</NcButton>
 						</form>
 					</div>
 					<p class="vbh-hint">
-						Friere den aktuellen Finanzplan als benannten, datierten Stand ein (z.B. den in der
-						Mitgliederversammlung beschlossenen Haushalt). Spätere Planänderungen lassen den Stand unberührt.
+						{{ t('Friere den aktuellen Finanzplan als benannten, datierten Stand ein (z.B. den in der Mitgliederversammlung beschlossenen Haushalt). Spätere Planänderungen lassen den Stand unberührt.') }}
 					</p>
 					<div v-if="budgetSnapshots.length" class="vbh-tablecard">
 						<table class="vbh-table">
 							<thead>
 								<tr>
-									<th>Stand</th>
+									<th>{{ t('Stand') }}</th>
 									<th class="nowrap vbh-col-hide-sm">
-										Gespeichert
+										{{ t('Gespeichert') }}
 									</th>
 									<th class="num vbh-col-hide-sm">
-										Einnahmen
+										{{ t('Einnahmen') }}
 									</th>
 									<th class="num vbh-col-hide-sm">
-										Ausgaben
+										{{ t('Ausgaben') }}
 									</th>
 									<th class="num">
-										Ergebnis
+										{{ t('Ergebnis') }}
 									</th>
 									<th />
 								</tr>
@@ -690,11 +686,11 @@
 									</td>
 									<td class="right nowrap">
 										<NcButton variant="tertiary" @click="openSnapshot(snap)">
-											Ansehen
+											{{ t('Ansehen') }}
 										</NcButton>
 										<NcButton v-if="canWrite"
 											variant="tertiary"
-											title="Stand löschen"
+											:title="t('Stand löschen')"
 											@click="deleteBudgetSnapshot(snap)">
 											<template #icon>
 												<NcIconSvgWrapper :path="mdiDelete" :size="18" />
@@ -706,7 +702,7 @@
 						</table>
 					</div>
 					<p v-else class="vbh-empty">
-						Noch keine Stände für dieses Jahr gespeichert.
+						{{ t('Noch keine Stände für dieses Jahr gespeichert.') }}
 					</p>
 				</div>
 			</div>
@@ -714,16 +710,15 @@
 			<!-- ÄNDERUNGSPROTOKOLL -->
 			<div v-show="reportView === 'audit'">
 				<p class="vbh-hint">
-					Wer hat wann was geändert – z. B. für die Kassenprüfung. Das Protokoll wird
-					automatisch geführt und bleibt auch beim Zurücksetzen aller Daten erhalten.
+					{{ t('Wer hat wann was geändert – z. B. für die Kassenprüfung. Das Protokoll wird automatisch geführt und bleibt auch beim Zurücksetzen aller Daten erhalten.') }}
 				</p>
 				<div v-if="auditEntries.length" class="vbh-tablecard">
 					<table class="vbh-table">
 						<thead>
 							<tr>
 								<th class="nowrap">
-									Zeitpunkt
-								</th><th>Wer</th><th>Aktion</th><th>Details</th>
+									{{ t('Zeitpunkt') }}
+								</th><th>{{ t('Wer') }}</th><th>{{ t('Aktion') }}</th><th>{{ t('Details') }}</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -744,16 +739,16 @@
 						</tbody>
 					</table>
 				</div>
-				<NcEmptyContent v-else-if="!auditLoading" name="Noch keine Protokolleinträge" description="Änderungen ab Version 0.10.41 werden hier aufgezeichnet.">
+				<NcEmptyContent v-else-if="!auditLoading" :name="t('Noch keine Protokolleinträge')" :description="t('Änderungen ab Version 0.10.41 werden hier aufgezeichnet.')">
 					<template #action>
 						<NcButton variant="tertiary" @click="$emit('help', 'reports')">
-							Mehr dazu
+							{{ t('Mehr dazu') }}
 						</NcButton>
 					</template>
 				</NcEmptyContent>
 				<div v-if="auditEntries.length && !auditEnd" class="vbh-loadmore">
 					<NcButton variant="secondary" :disabled="auditLoading" @click="loadAudit(true)">
-						Ältere Einträge laden
+						{{ t('Ältere Einträge laden') }}
 					</NcButton>
 				</div>
 			</div>
@@ -979,7 +974,7 @@ export default {
 			return d.toISOString().slice(0, 10)
 		},
 		async loadReserveReport() {
-			try { const { data } = await api.reserveReport(); this.reserveData = data } catch (e) { showError(this.errMsg(e, 'Rücklagen-Bericht konnte nicht geladen werden')) }
+			try { const { data } = await api.reserveReport(); this.reserveData = data } catch (e) { showError(this.errMsg(e, this.t('Rücklagen-Bericht konnte nicht geladen werden'))) }
 		},
 		async loadMultiyearTrend() {
 			try {
@@ -1010,21 +1005,21 @@ export default {
 					labels,
 					datasets: [
 						{
-							label: 'Einnahmen',
+							label: this.t('Einnahmen'),
 							data: income,
 							borderColor: 'rgba(45,125,70,0.9)',
 							backgroundColor: 'rgba(45,125,70,0.15)',
 							tension: 0.2,
 						},
 						{
-							label: 'Ausgaben',
+							label: this.t('Ausgaben'),
 							data: expense,
 							borderColor: 'rgba(199,60,60,0.9)',
 							backgroundColor: 'rgba(199,60,60,0.15)',
 							tension: 0.2,
 						},
 						{
-							label: 'Ergebnis',
+							label: this.t('Ergebnis'),
 							data: result,
 							borderColor: 'rgba(70,100,199,0.9)',
 							backgroundColor: 'rgba(70,100,199,0.15)',
@@ -1058,13 +1053,13 @@ export default {
 			if (d.description) parts.push(d.description)
 			if (d.fileName) parts.push(d.fileName)
 			if (d.filename) parts.push(d.filename)
-			if (d.wer) parts.push((d.typ === 'group' ? 'Gruppe ' : '') + d.wer + (d.rolle ? ' → ' + this.roleLabel(d.rolle) : ''))
+			if (d.wer) parts.push((d.typ === 'group' ? this.t('Gruppe') + ' ' : '') + d.wer + (d.rolle ? ' → ' + this.roleLabel(d.rolle) : ''))
 			if (d.amount != null) parts.push(this.formatMoney(d.amount))
-			if (d.jahr != null) parts.push('Jahr ' + d.jahr)
-			if (d.buchungen != null) parts.push(d.buchungen + ' Buchungen')
-			if (d.neu != null) parts.push(d.neu + ' neu')
-			if (d.duplikate != null) parts.push(d.duplikate + ' Dubletten')
-			if (d.reset) parts.push('mit Zurücksetzen')
+			if (d.jahr != null) parts.push(this.t('Jahr {year}', { year: d.jahr }))
+			if (d.buchungen != null) parts.push(this.t('{n} Buchungen', { n: d.buchungen }))
+			if (d.neu != null) parts.push(this.t('{n} neu', { n: d.neu }))
+			if (d.duplikate != null) parts.push(this.t('{n} Dubletten', { n: d.duplikate }))
+			if (d.reset) parts.push(this.t('mit Zurücksetzen'))
 			return parts.join(' · ')
 		},
 		addBudgetYear() {
@@ -1081,7 +1076,7 @@ export default {
 			try {
 				await api.setBudget(row.accountId, this.budgetData.year, Number(row.plan) || 0, (row.note || '').trim())
 				this.$emit('budget-changed')
-			} catch (e) { showError(this.errMsg(e, 'Planwert konnte nicht gespeichert werden')) }
+			} catch (e) { showError(this.errMsg(e, this.t('Planwert konnte nicht gespeichert werden'))) }
 		},
 		toggleBudgetNote(row) {
 			this.$set(this.budgetNoteOpen, row.accountId, !this.budgetNoteOpen[row.accountId])
@@ -1093,16 +1088,16 @@ export default {
 				await api.createBudgetSnapshot(this.budgetData.year, label)
 				this.newSnapshotLabel = ''
 				this.$emit('snapshots-changed')
-				showSuccess('Plan-Stand gespeichert.')
-			} catch (e) { showError(this.errMsg(e, 'Plan-Stand konnte nicht gespeichert werden')) }
+				showSuccess(this.t('Plan-Stand gespeichert.'))
+			} catch (e) { showError(this.errMsg(e, this.t('Plan-Stand konnte nicht gespeichert werden'))) }
 		},
 		async deleteBudgetSnapshot(snap) {
-			if (!await this.askConfirm('Plan-Stand löschen', `Stand „${snap.label}" wirklich löschen?`)) return
+			if (!await this.askConfirm(this.t('Plan-Stand löschen'), this.t('Stand „{label}" wirklich löschen?', { label: snap.label }))) return
 			try {
 				await api.deleteBudgetSnapshot(snap.id)
 				this.$emit('snapshots-changed')
-				showSuccess('Plan-Stand gelöscht.')
-			} catch (e) { showError(this.errMsg(e, 'Plan-Stand konnte nicht gelöscht werden')) }
+				showSuccess(this.t('Plan-Stand gelöscht.'))
+			} catch (e) { showError(this.errMsg(e, this.t('Plan-Stand konnte nicht gelöscht werden'))) }
 		},
 	},
 }

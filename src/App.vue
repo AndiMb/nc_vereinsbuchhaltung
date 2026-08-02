@@ -6,9 +6,9 @@
 				<div v-if="primaryBank && !isMobile" class="vbh-bankchip" :class="{ warn: Math.abs(primaryBank.open) > 0.005 }">
 					<span class="vbh-bankchip-label">{{ primaryBank.name }}</span>
 					<span class="vbh-bankchip-value">{{ formatMoney(primaryBank.balance) }}</span>
-					<span v-if="Math.abs(primaryBank.open) > 0.005" class="vbh-bankchip-hint">{{ formatMoney(primaryBank.open) }} offen</span>
+					<span v-if="Math.abs(primaryBank.open) > 0.005" class="vbh-bankchip-hint">{{ t('{amount} offen', { amount: formatMoney(primaryBank.open) }) }}</span>
 				</div>
-				<NcLoadingIcon v-if="busy" :size="24" name="Wird geladen…" />
+				<NcLoadingIcon v-if="busy" :size="24" :name="t('Wird geladen…')" />
 			</div>
 			<div v-if="canRead" class="vbh-navbar" :class="{ 'vbh-navbar--mobile': isMobile }">
 				<nav v-if="!isMobile" class="vbh-tabs">
@@ -25,23 +25,23 @@
 					<NcButton v-if="canWrite && !isMobile"
 						variant="primary"
 						class="vbh-newbooking-btn"
-						title="Neue Buchung anlegen (von überall)"
+						:title="t('Neue Buchung anlegen (von überall)')"
 						@click="openNewBooking">
 						<template #icon>
 							<NcIconSvgWrapper :path="mdiPlus" :size="20" />
 						</template>
-						<span class="vbh-newbooking-label">Buchung</span>
+						<span class="vbh-newbooking-label">{{ t('Buchung') }}</span>
 					</NcButton>
-					<label class="vbh-yearsel" :title="yearClosed ? 'Geschäftsjahr abgeschlossen (festgeschrieben)' : 'Geschäftsjahr (Kalenderjahr)'">
-						<span>Jahr</span>
+					<label class="vbh-yearsel" :title="yearClosed ? t('Geschäftsjahr abgeschlossen (festgeschrieben)') : t('Geschäftsjahr (Kalenderjahr)')">
+						<span>{{ t('Jahr') }}</span>
 						<select v-model="selectedYear">
-							<option :value="null">Alle Jahre</option>
+							<option :value="null">{{ t('Alle Jahre') }}</option>
 							<option v-for="y in years" :key="y" :value="y">{{ y }}{{ closedYearSet[y] ? ' 🔒' : '' }}</option>
 						</select>
 					</label>
 					<NcButton variant="tertiary"
-						aria-label="Hilfe"
-						title="Hilfe"
+						:aria-label="t('Hilfe')"
+						:title="t('Hilfe')"
 						@click="openHelp()">
 						<template #icon>
 							<NcIconSvgWrapper :path="mdiHelpCircleOutline" :size="20" />
@@ -49,8 +49,8 @@
 					</NcButton>
 					<NcButton v-if="canWrite"
 						variant="tertiary"
-						aria-label="Einstellungen & Import"
-						title="Einstellungen & Import"
+						:aria-label="t('Einstellungen & Import')"
+						:title="t('Einstellungen & Import')"
 						@click="openSettings">
 						<template #icon>
 							<NcIconSvgWrapper :path="mdiCog" :size="20" />
@@ -61,32 +61,32 @@
 		</header>
 
 		<div v-if="me && !canRead" class="vbh-noaccess">
-			<h3>Kein Zugriff</h3>
-			<p>Du hast keine Berechtigung für die Vereinsbuchhaltung. Bitte wende dich an eine Verwalterin oder einen Verwalter.</p>
+			<h3>{{ t('Kein Zugriff') }}</h3>
+			<p>{{ t('Du hast keine Berechtigung für die Vereinsbuchhaltung. Bitte wende dich an eine Verwalterin oder einen Verwalter.') }}</p>
 		</div>
 
 		<div v-if="demoActive" class="vbh-demobanner">
-			<span><strong>Beispieldaten aktiv.</strong> Das ist ein Beispielverein zum Ausprobieren, keine echten Daten.</span>
+			<span><strong>{{ t('Beispieldaten aktiv.') }}</strong> {{ t('Das ist ein Beispielverein zum Ausprobieren, keine echten Daten.') }}</span>
 			<NcButton variant="secondary" :disabled="busy" @click="resetAll">
-				Zurücksetzen &amp; mit echten Daten starten
+				{{ t('Zurücksetzen & mit echten Daten starten') }}
 			</NcButton>
 		</div>
 
 		<div v-if="showRevisorIntro" class="vbh-revisorintro">
-			<h3>Willkommen als Kassenprüfer/in</h3>
+			<h3>{{ t('Willkommen als Kassenprüfer/in') }}</h3>
 			<ul>
-				<li>Buchungen einsehen (Tab „Buchungen")</li>
-				<li>Kontoauszug und Saldenliste prüfen (Tabs „Konten" und „Berichte")</li>
-				<li>Kassenbericht drucken (Tab „Berichte" → Auswertung)</li>
+				<li>{{ t('Buchungen einsehen (Tab „Buchungen")') }}</li>
+				<li>{{ t('Kontoauszug und Saldenliste prüfen (Tabs „Konten" und „Berichte")') }}</li>
+				<li>{{ t('Kassenbericht drucken (Tab „Berichte" → Auswertung)') }}</li>
 			</ul>
-			<p>Ändern ist mit dieser Rolle nicht möglich.</p>
+			<p>{{ t('Ändern ist mit dieser Rolle nicht möglich.') }}</p>
 			<div class="vbh-modal-actions">
 				<a :href="pruefleitfadenUrl"
 					target="_blank"
 					rel="noopener"
-					class="vbh-export-btn"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> Prüfleitfaden</a>
+					class="vbh-export-btn"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> {{ t('Prüfleitfaden') }}</a>
 				<NcButton variant="tertiary" @click="dismissRevisorIntro">
-					Verstanden
+					{{ t('Verstanden') }}
 				</NcButton>
 			</div>
 		</div>
@@ -193,20 +193,20 @@
 
 		<!-- ============ EINSTELLUNGEN MODAL ============ -->
 		<NcModal :show.sync="showSettings"
-			name="Einstellungen & Import"
+			:name="t('Einstellungen & Import')"
 			size="large"
 			@close="showSettings = false">
 			<div class="vbh-modal-inner">
-				<h3>Kontoumsätze importieren (CSV-CAMT)</h3>
+				<h3>{{ t('Kontoumsätze importieren (CSV-CAMT)') }}</h3>
 				<div class="vbh-card">
 					<p class="vbh-hint">
-						Der CSV-Import ist direkt im Tab „Buchungen" erreichbar.
+						{{ t('Der CSV-Import ist direkt im Tab „Buchungen" erreichbar.') }}
 					</p>
 					<NcButton variant="secondary" @click="showSettings = false; openImport()">
 						<template #icon>
 							<NcIconSvgWrapper :path="mdiUpload" :size="18" />
 						</template>
-						Kontoumsätze importieren…
+						{{ t('Kontoumsätze importieren…') }}
 					</NcButton>
 				</div>
 
@@ -608,7 +608,7 @@ export default {
 			const groups = {}
 			for (const acc of this.accountsSorted) {
 				if (!acc.active) continue
-				const cat = acc.category || 'Sonstige'
+				const cat = acc.category || this.t('Sonstige')
 				if (!groups[cat]) groups[cat] = []
 				groups[cat].push(acc)
 			}
@@ -633,7 +633,7 @@ export default {
 		accountOptionsList() {
 			const opts = []
 			if (this.frequentAccounts.length >= 2) {
-				opts.push({ id: null, label: '★ Häufig verwendet', $isDisabled: true })
+				opts.push({ id: null, label: this.t('★ Häufig verwendet'), $isDisabled: true })
 				for (const acc of this.frequentAccounts) {
 					opts.push({ id: acc.id, label: `${acc.number} ${acc.name}`, number: acc.number })
 				}
@@ -893,7 +893,7 @@ export default {
 			// nachgeladen, aber eine zeitgleiche Fremdänderung darf nicht verloren gehen).
 			const ownWrite = Date.now() - api.lastWriteAt() < 15000
 			await this.refreshAfterRemoteChange()
-			if (!ownWrite) showInfo('Die Buchhaltung wurde von einer anderen Person geändert – Ansicht aktualisiert.')
+			if (!ownWrite) showInfo(this.t('Die Buchhaltung wurde von einer anderen Person geändert – Ansicht aktualisiert.'))
 		},
 		async refreshAfterRemoteChange() {
 			this.ccBookings = {}
@@ -932,10 +932,10 @@ export default {
 			this.storageSaving = true
 			try {
 				await api.saveSettings({ storage_user: this.storageUser, storage_path: this.storagePath || 'Vereinsbuchhaltung/Belege', cost_center_mode: this.costCenterMode, club_name: this.clubName, brand_color: this.brandColor, statement_watch_user: this.statementWatchUser, statement_watch_path: this.statementWatchPath })
-				showSuccess('Einstellungen gespeichert.')
+				showSuccess(this.t('Einstellungen gespeichert.'))
 				this.reportData = null
 			} catch (e) {
-				const msg = (e?.response?.data?.message) || `Speichern fehlgeschlagen (HTTP ${e?.response?.status ?? 'Netzwerkfehler'})`
+				const msg = (e?.response?.data?.message) || this.t('Speichern fehlgeschlagen (HTTP {status})', { status: e?.response?.status ?? this.t('Netzwerkfehler') })
 				showError(msg)
 			} finally { this.storageSaving = false }
 		},
@@ -952,7 +952,7 @@ export default {
 				this.auditEnd = data.length < 100
 				this.auditEntries = more ? this.auditEntries.concat(data) : data
 			} catch (e) {
-				showError(this.errMsg(e, 'Protokoll konnte nicht geladen werden'))
+				showError(this.errMsg(e, this.t('Protokoll konnte nicht geladen werden')))
 			} finally { this.auditLoading = false }
 		},
 		// auditDetailText ist jetzt Teil von ReportsTab.vue.
@@ -1102,21 +1102,21 @@ export default {
 			if (!fromAccountId || !toAccountId || fromAccountId === toAccountId) return false
 			try {
 				await api.reassignBooking(row.journalId, fromAccountId, toAccountId, row.updatedAt)
-				showSuccess(`Buchung #${row.entryNo} auf ${this.accountLabel(toAccountId)} umgebucht.`)
+				showSuccess(this.t('Buchung #{n} auf {account} umgebucht.', { n: row.entryNo, account: this.accountLabel(toAccountId) }))
 				await Promise.all([this.reloadStatement(), this.loadBalances(), this.loadJournal(), this.loadSphereReport()])
 				return true
 			} catch (e) {
 				if (e?.response?.status === 409) {
-					showError('Diese Buchung wurde zwischenzeitlich von einer anderen Person geändert. Die Ansicht wurde aktualisiert – bitte erneut versuchen.')
+					showError(this.t('Diese Buchung wurde zwischenzeitlich von einer anderen Person geändert. Die Ansicht wurde aktualisiert – bitte erneut versuchen.'))
 					await this.reloadStatement()
 					return false
 				}
-				showError(this.errMsg(e, 'Umbuchen fehlgeschlagen'))
+				showError(this.errMsg(e, this.t('Umbuchen fehlgeschlagen')))
 				return false
 			}
 		},
 		async loadStatement(accountId) {
-			try { const { data } = await api.accountJournal(accountId, this.statementIncludeChildren, this.selectedYear); this.statement = data } catch (e) { showError(this.errMsg(e, 'Kontoauszug konnte nicht geladen werden')) }
+			try { const { data } = await api.accountJournal(accountId, this.statementIncludeChildren, this.selectedYear); this.statement = data } catch (e) { showError(this.errMsg(e, this.t('Kontoauszug konnte nicht geladen werden'))) }
 		},
 
 		// --- CSV-Import (ImportDialog.vue) ---
@@ -1136,15 +1136,15 @@ export default {
 			await this.loadYears(); await this.loadAccounts(); await this.loadBalances(); await this.loadImports(); await this.loadJournal(); await this.loadTransactions(); await this.loadCostCenters()
 		},
 		async resetAll() {
-			if (!await this.askConfirm('Alle Daten löschen', 'Wirklich ALLE Konten, Buchungen und Importe löschen?')) return
+			if (!await this.askConfirm(this.t('Alle Daten löschen'), this.t('Wirklich ALLE Konten, Buchungen und Importe löschen?'))) return
 			this.busy = true
 			try {
-				await api.reset(); showSuccess('Alle Daten gelöscht.')
+				await api.reset(); showSuccess(this.t('Alle Daten gelöscht.'))
 				this.selectedAccountId = null; this.statement = null; this.journalData = []; this.transactions = []
 				this.selectedYear = null
 				this.demoActive = false
 				await this.loadYears(); await this.loadAccounts(); await this.loadBalances(); await this.loadImports(); await this.loadCostCenters()
-			} catch (e) { showError(this.errMsg(e, 'Zurücksetzen fehlgeschlagen')) } finally { this.busy = false }
+			} catch (e) { showError(this.errMsg(e, this.t('Zurücksetzen fehlgeschlagen'))) } finally { this.busy = false }
 		},
 		// --- Beispieldaten (Onboarding) ---
 		async seedDemoData() {
@@ -1153,8 +1153,8 @@ export default {
 				await api.seedDemo()
 				this.demoActive = true
 				await Promise.all([this.loadYears(), this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions()])
-				showSuccess('Beispielverein angelegt – schau dich gern um. Zum Starten mit echten Daten: Zurücksetzen.')
-			} catch (e) { showError(this.errMsg(e, 'Beispieldaten konnten nicht angelegt werden')) } finally { this.busy = false }
+				showSuccess(this.t('Beispielverein angelegt – schau dich gern um. Zum Starten mit echten Daten: Zurücksetzen.'))
+			} catch (e) { showError(this.errMsg(e, this.t('Beispieldaten konnten nicht angelegt werden'))) } finally { this.busy = false }
 		},
 		setupWizardSeen() {
 			try { return localStorage.getItem('vbh_setup_wizard_seen') === '1' } catch (e) { return false }
@@ -1189,18 +1189,18 @@ export default {
 				if (value === '') {
 					await api.unassignTransaction(tx.id)
 					if (prevContra) {
-						showUndo('Zuordnung entfernt', async () => {
+						showUndo(this.t('Zuordnung entfernt'), async () => {
 							try {
 								await api.assignTransaction(tx.id, prevContra)
 								await this.loadTransactions(); await this.loadBalances(); await this.loadJournal(); await this.loadSphereReport()
-							} catch (e) { showError(this.errMsg(e, 'Wiederherstellen fehlgeschlagen')) }
+							} catch (e) { showError(this.errMsg(e, this.t('Wiederherstellen fehlgeschlagen'))) }
 						})
 					}
 				} else {
 					await api.assignTransaction(tx.id, Number(value))
 				}
 				await this.loadTransactions(); await this.loadBalances(); await this.loadJournal(); await this.loadSphereReport()
-			} catch (e) { showError(this.errMsg(e, 'Zuordnung fehlgeschlagen')) }
+			} catch (e) { showError(this.errMsg(e, this.t('Zuordnung fehlgeschlagen'))) }
 		},
 		// --- Umsatz aufteilen (Zuordnen) ------------------------------------
 		openSplitAssign(tx) {
@@ -1224,23 +1224,23 @@ export default {
 			const { tx, parts } = this.splitAssign
 			if (!tx) return
 			const rows = parts.filter(p => p.accountId || p.amount)
-			if (rows.length < 2) { showError('Eine Aufteilung braucht mindestens zwei Zeilen.'); return }
-			if (rows.some(p => !p.accountId)) { showError('Jeder Zeile der Aufteilung fehlt noch ein Konto.'); return }
-			if (rows.some(p => !(Number(p.amount) > 0))) { showError('Jede Zeile der Aufteilung braucht einen Betrag größer als 0.'); return }
+			if (rows.length < 2) { showError(this.t('Eine Aufteilung braucht mindestens zwei Zeilen.')); return }
+			if (rows.some(p => !p.accountId)) { showError(this.t('Jeder Zeile der Aufteilung fehlt noch ein Konto.')); return }
+			if (rows.some(p => !(Number(p.amount) > 0))) { showError(this.t('Jede Zeile der Aufteilung braucht einen Betrag größer als 0.')); return }
 			const total = Math.abs(tx.amountCents || 0) / 100
 			if (!splitBalanced(total, rows)) {
 				const rest = splitRemainder(total, rows)
 				showError(rest > 0
-					? `Die Aufteilung geht nicht auf – es fehlen noch ${formatMoney(rest)}.`
-					: `Die Aufteilung übersteigt den Umsatz um ${formatMoney(-rest)}.`)
+					? this.t('Die Aufteilung geht nicht auf – es fehlen noch {amount}.', { amount: formatMoney(rest) })
+					: this.t('Die Aufteilung übersteigt den Umsatz um {amount}.', { amount: formatMoney(-rest) }))
 				return
 			}
 			try {
 				await api.assignTransactionParts(tx.id, rows.map(p => ({ accountId: p.accountId, amount: Number(p.amount) })))
-				showSuccess('Umsatz aufgeteilt zugeordnet.')
+				showSuccess(this.t('Umsatz aufgeteilt zugeordnet.'))
 				this.closeSplitAssign()
 				await this.loadTransactions(); await this.loadBalances(); await this.loadJournal(); await this.loadSphereReport()
-			} catch (e) { showError(this.errMsg(e, 'Zuordnung fehlgeschlagen')) }
+			} catch (e) { showError(this.errMsg(e, this.t('Zuordnung fehlgeschlagen'))) }
 		},
 		// Vorschlag: passende Regel, sonst häufigste frühere Zuordnung desselben Zahlungspartners
 		computeSuggestion(tx) {
@@ -1269,12 +1269,12 @@ export default {
 			if (!tx.counterparty || !tx.contraAccountId) return
 			const value = tx.counterparty.trim()
 			const exists = this.rules.some(r => r.matchField === 'counterparty' && r.matchValue.toLowerCase() === value.toLowerCase())
-			if (exists) { showSuccess('Für diesen Zahlungspartner existiert bereits eine Regel.'); return }
+			if (exists) { showSuccess(this.t('Für diesen Zahlungspartner existiert bereits eine Regel.')); return }
 			try {
 				await api.createRule({ matchField: 'counterparty', matchValue: value, contraAccountId: tx.contraAccountId })
 				await this.loadRules()
-				showSuccess(`Regel angelegt: „${value}" wird künftig automatisch ${this.accountLabel(tx.contraAccountId)} zugeordnet.`)
-			} catch (e) { showError(this.errMsg(e, 'Regel konnte nicht angelegt werden')) }
+				showSuccess(this.t('Regel angelegt: „{value}" wird künftig automatisch {account} zugeordnet.', { value, account: this.accountLabel(tx.contraAccountId) }))
+			} catch (e) { showError(this.errMsg(e, this.t('Regel konnte nicht angelegt werden'))) }
 		},
 
 		// --- Journal ---
@@ -1303,15 +1303,15 @@ export default {
 				}
 				await this.loadAttachments(this.bookingForm.id)
 				this.loadAttachmentCounts()
-			} catch (e) { showError(this.errMsg(e, 'Upload fehlgeschlagen')) } finally { this.attachmentUploading = false; event.target.value = '' }
+			} catch (e) { showError(this.errMsg(e, this.t('Upload fehlgeschlagen'))) } finally { this.attachmentUploading = false; event.target.value = '' }
 		},
 		async deleteAttachment(id) {
-			if (!await this.askConfirm('Beleg löschen', 'Diesen Beleg wirklich unwiderruflich löschen?')) return
+			if (!await this.askConfirm(this.t('Beleg löschen'), this.t('Diesen Beleg wirklich unwiderruflich löschen?'))) return
 			try {
 				await api.deleteAttachment(id)
 				await this.loadAttachments(this.bookingForm.id)
 				this.loadAttachmentCounts()
-			} catch (e) { showError(this.errMsg(e, 'Beleg konnte nicht gelöscht werden')) }
+			} catch (e) { showError(this.errMsg(e, this.t('Beleg konnte nicht gelöscht werden'))) }
 		},
 		attachmentDownloadUrl(id) { return api.attachmentDownloadUrl(id) },
 		openViewer(attachment) {
@@ -1362,14 +1362,14 @@ export default {
 		// --- Mobil: Kontoauswahl-Sheet -------------------------------------
 		openAccountPicker(target, tx = null) {
 			const titles = {
-				category: 'Kategorie wählen',
-				money: 'Geldkonto wählen',
-				debit: 'Sollkonto wählen',
-				credit: 'Habenkonto wählen',
-				assign: 'Konto / Kategorie zuordnen',
+				category: this.t('Kategorie wählen'),
+				money: this.t('Geldkonto wählen'),
+				debit: this.t('Sollkonto wählen'),
+				credit: this.t('Habenkonto wählen'),
+				assign: this.t('Konto / Kategorie zuordnen'),
 			}
 			// splitline:<index> waehlt das Konto einer Zeile der Aufteilung.
-			const title = target.startsWith('splitline:') ? 'Konto der Aufteilung wählen' : (titles[target] || 'Konto wählen')
+			const title = target.startsWith('splitline:') ? this.t('Konto der Aufteilung wählen') : (titles[target] || this.t('Konto wählen'))
 			this.accountPicker = { open: true, target, title, tx }
 		},
 		closeAccountPicker() {
@@ -1433,7 +1433,7 @@ export default {
 					await api.uploadAttachment(journalId, fd)
 				}
 				this.loadAttachmentCounts()
-			} catch (e) { showError(this.errMsg(e, 'Buchung gespeichert, aber der Beleg-Upload ist fehlgeschlagen')) }
+			} catch (e) { showError(this.errMsg(e, this.t('Buchung gespeichert, aber der Beleg-Upload ist fehlgeschlagen'))) }
 		},
 		// Mobil: Tippen auf eine Buchungskarte
 		openBookingCard(r) {
@@ -1449,20 +1449,20 @@ export default {
 			const id = this.bookingForm.id
 			const entryNo = this.bookingForm.entryNo
 			if (!id) return
-			if (!await this.askConfirm('Buchung löschen', `Buchung #${entryNo} löschen?`)) return
+			if (!await this.askConfirm(this.t('Buchung löschen'), this.t('Buchung #{n} löschen?', { n: entryNo }))) return
 			try {
 				await api.deleteBooking(id)
 				this.closeBooking()
 				// Umsätze mitladen – siehe removeBooking().
 				await this.loadJournal(); await this.loadTransactions(); await this.loadBalances()
-			} catch (e) { showError(this.errMsg(e, 'Löschen fehlgeschlagen')) }
+			} catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
 		},
 		editBooking(r) {
 			if (r.isSplit && !r.splitSide) {
 				// Beide Seiten mehrzeilig: diese Form erzeugt die App nirgends
 				// (siehe useJournal.js). Der Dialog bildet sie nicht ab und
 				// wuerde sie beim Speichern verstuemmeln.
-				showError('Diese Buchung hat auf beiden Seiten mehrere Konten – so eine Buchung kann die App nicht bearbeiten.')
+				showError(this.t('Diese Buchung hat auf beiden Seiten mehrere Konten – so eine Buchung kann die App nicht bearbeiten.'))
 				return
 			}
 			this.bookingForm = { ...this.emptyBookingForm(), id: r.id, entryNo: r.entryNo, date: r.date, documentRef: r.documentRef || '', amount: r.amount, debitAccountId: r.debitAccountId, creditAccountId: r.creditAccountId, description: r.description || '', updatedAt: r.updatedAt || null }
@@ -1517,14 +1517,14 @@ export default {
 		buildSimplePayload() {
 			const f = this.bookingForm
 			if (this.bookingMode === 'simple') {
-				if (!f.date || !f.amount || !f.categoryId || !f.moneyAccountId) { showError('Datum, Betrag, Kategorie und Geldkonto sind Pflicht.'); return null }
-				if (f.categoryId === f.moneyAccountId) { showError('Kategorie und Geldkonto müssen unterschiedlich sein.'); return null }
+				if (!f.date || !f.amount || !f.categoryId || !f.moneyAccountId) { showError(this.t('Datum, Betrag, Kategorie und Geldkonto sind Pflicht.')); return null }
+				if (f.categoryId === f.moneyAccountId) { showError(this.t('Kategorie und Geldkonto müssen unterschiedlich sein.')); return null }
 				const d = this.deriveSimpleAccounts()
 				f.debitAccountId = d.debit
 				f.creditAccountId = d.credit
 			}
-			if (!f.date || !f.debitAccountId || !f.creditAccountId || !f.amount) { showError('Datum, Soll, Haben und Betrag sind Pflicht.'); return null }
-			if (f.debitAccountId === f.creditAccountId) { showError('Soll- und Habenkonto müssen unterschiedlich sein.'); return null }
+			if (!f.date || !f.debitAccountId || !f.creditAccountId || !f.amount) { showError(this.t('Datum, Soll, Haben und Betrag sind Pflicht.')); return null }
+			if (f.debitAccountId === f.creditAccountId) { showError(this.t('Soll- und Habenkonto müssen unterschiedlich sein.')); return null }
 			return { date: f.date, description: f.description, documentRef: f.documentRef || null, debitAccountId: f.debitAccountId, creditAccountId: f.creditAccountId, amount: Number(f.amount) }
 		},
 		/**
@@ -1535,20 +1535,20 @@ export default {
 		 */
 		buildSplitPayload() {
 			const f = this.bookingForm
-			if (!f.date || !f.amount) { showError('Datum und Gesamtbetrag sind Pflicht.'); return null }
+			if (!f.date || !f.amount) { showError(this.t('Datum und Gesamtbetrag sind Pflicht.')); return null }
 			if (!this.splitFixedAccountId()) {
-				showError(this.bookingMode === 'simple' ? 'Das Geldkonto fehlt.' : 'Das Konto der festen Seite fehlt.')
+				showError(this.bookingMode === 'simple' ? this.t('Das Geldkonto fehlt.') : this.t('Das Konto der festen Seite fehlt.'))
 				return null
 			}
 			const rows = (f.splitLines || []).filter(l => l.accountId || l.amount)
-			if (rows.length < 2) { showError('Eine Aufteilung braucht mindestens zwei Zeilen.'); return null }
-			if (rows.some(l => !l.accountId)) { showError('Jeder Zeile der Aufteilung fehlt noch ein Konto.'); return null }
-			if (rows.some(l => !(Number(l.amount) > 0))) { showError('Jede Zeile der Aufteilung braucht einen Betrag größer als 0.'); return null }
+			if (rows.length < 2) { showError(this.t('Eine Aufteilung braucht mindestens zwei Zeilen.')); return null }
+			if (rows.some(l => !l.accountId)) { showError(this.t('Jeder Zeile der Aufteilung fehlt noch ein Konto.')); return null }
+			if (rows.some(l => !(Number(l.amount) > 0))) { showError(this.t('Jede Zeile der Aufteilung braucht einen Betrag größer als 0.')); return null }
 			const rest = splitRemainder(f.amount, rows)
 			if (!splitBalanced(f.amount, rows)) {
 				showError(rest > 0
-					? `Die Aufteilung geht nicht auf – es fehlen noch ${formatMoney(rest)}.`
-					: `Die Aufteilung übersteigt den Gesamtbetrag um ${formatMoney(-rest)}.`)
+					? this.t('Die Aufteilung geht nicht auf – es fehlen noch {amount}.', { amount: formatMoney(rest) })
+					: this.t('Die Aufteilung übersteigt den Gesamtbetrag um {amount}.', { amount: formatMoney(-rest) }))
 				return null
 			}
 			f.splitLines = rows
@@ -1570,26 +1570,26 @@ export default {
 					const { data } = await api.createBooking(payload)
 					await this.uploadPendingFiles(data && data.id)
 				}
-				showSuccess('Buchung gespeichert.')
+				showSuccess(this.t('Buchung gespeichert.'))
 				this.closeBooking()
 				await this.loadJournal(); await this.loadBalances(); await this.loadYears(); await this.loadSphereReport()
 			} catch (e) {
 				if (e?.response?.status === 409) {
-					showError('Diese Buchung wurde zwischenzeitlich von einer anderen Person geändert. Die Ansicht wurde aktualisiert – bitte erneut bearbeiten.')
+					showError(this.t('Diese Buchung wurde zwischenzeitlich von einer anderen Person geändert. Die Ansicht wurde aktualisiert – bitte erneut bearbeiten.'))
 					this.closeBooking()
 					await this.loadJournal(); await this.loadBalances()
 					return
 				}
-				showError(this.errMsg(e, 'Buchung konnte nicht gespeichert werden'))
+				showError(this.errMsg(e, this.t('Buchung konnte nicht gespeichert werden')))
 			}
 		},
 		async removeBooking(r) {
-			if (!await this.askConfirm('Buchung löschen', `Buchung #${r.entryNo} löschen?`)) return
+			if (!await this.askConfirm(this.t('Buchung löschen'), this.t('Buchung #{n} löschen?', { n: r.entryNo }))) return
 			// loadTransactions() muss mit: stammte die Buchung aus einem Bankumsatz,
 			// steht dieser jetzt wieder unter „Zuzuordnen" (siehe
 			// JournalService::releaseBankTransaction()). Ohne das Nachladen bliebe
 			// die Liste samt Zähler bis zum nächsten Neuladen veraltet.
-			try { await api.deleteBooking(r.id); await this.loadJournal(); await this.loadTransactions(); await this.loadBalances(); await this.loadSphereReport() } catch (e) { showError(this.errMsg(e, 'Löschen fehlgeschlagen')) }
+			try { await api.deleteBooking(r.id); await this.loadJournal(); await this.loadTransactions(); await this.loadBalances(); await this.loadSphereReport() } catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
 		},
 
 		// --- Konten ---
@@ -1606,8 +1606,8 @@ export default {
 			try {
 				await this.accountsSeedDefaults()
 				await this.loadAccounts()
-				showSuccess('Standard-Kontenrahmen angelegt.')
-			} catch (e) { showError(this.errMsg(e, 'Anlegen fehlgeschlagen')) }
+				showSuccess(this.t('Standard-Kontenrahmen angelegt.'))
+			} catch (e) { showError(this.errMsg(e, this.t('Anlegen fehlgeschlagen'))) }
 		},
 		openNewAccount() {
 			this.accountEditId = null
@@ -1653,7 +1653,7 @@ export default {
 		// f kommt jetzt als @save-Payload von AccountDialog.vue (eigene lokale
 		// Formularkopie dort, kein direktes Mutieren von this.newAccount mehr).
 		async saveAccount(f) {
-			if (!f.number || !f.name) { showError('Nummer und Bezeichnung sind Pflicht.'); return }
+			if (!f.number || !f.name) { showError(this.t('Nummer und Bezeichnung sind Pflicht.')); return }
 			try {
 				if (this.accountEditId) {
 					await api.updateAccount(this.accountEditId, {
@@ -1683,16 +1683,16 @@ export default {
 				this.accountEditId = null
 				this.newAccount = { number: '', name: '', type: 'income', category: '', isBank: false, parentId: null, sphere: '', reserveKind: '', iban: '', costCenterId: null }
 				await this.loadAccounts(); await this.loadBalances(); await this.loadSphereReport()
-				showSuccess('Konto gespeichert.')
-			} catch (e) { showError(this.errMsg(e, 'Konto konnte nicht gespeichert werden')) }
+				showSuccess(this.t('Konto gespeichert.'))
+			} catch (e) { showError(this.errMsg(e, this.t('Konto konnte nicht gespeichert werden'))) }
 		},
 		async deleteAccount(acc) {
-			if (!await this.askConfirm('Konto löschen', `Konto "${acc.number} ${acc.name}" löschen?`)) return
+			if (!await this.askConfirm(this.t('Konto löschen'), this.t('Konto "{number} {name}" löschen?', { number: acc.number, name: acc.name }))) return
 			try {
 				await api.deleteAccount(acc.id)
 				if (this.selectedAccountId === acc.id) { this.selectedAccountId = null; this.statement = null }
 				await this.loadAccounts(); await this.loadBalances(); await this.loadSphereReport()
-			} catch (e) { showError(this.errMsg(e, 'Löschen fehlgeschlagen')) }
+			} catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
 		},
 		async saveOpening(acc) {
 			const form = this.openingForm[acc.id] || { amount: 0, date: '' }
@@ -1700,8 +1700,8 @@ export default {
 				await api.setOpening(acc.id, Number(form.amount) || 0, form.date || null)
 				await this.loadAccounts(); await this.loadBalances(); await this.loadSphereReport()
 				if (this.selectedAccountId === acc.id) await this.loadStatement(acc.id)
-				showSuccess(`Eröffnungssaldo für ${acc.name} gespeichert.`)
-			} catch (e) { showError(this.errMsg(e, 'Eröffnungssaldo konnte nicht gespeichert werden')) }
+				showSuccess(this.t('Eröffnungssaldo für {name} gespeichert.', { name: acc.name }))
+			} catch (e) { showError(this.errMsg(e, this.t('Eröffnungssaldo konnte nicht gespeichert werden'))) }
 		},
 
 		// --- Auswertung ---
@@ -1713,7 +1713,7 @@ export default {
 				const { data } = await api.costCenterReport(this.selectedYear)
 				this.reportData = data
 				if (this.selectedCCCode !== false && !data.costCenters.some(c => c.code === this.selectedCCCode)) this.selectedCCCode = false
-			} catch (e) { showError(this.errMsg(e, 'Bericht konnte nicht geladen werden')) }
+			} catch (e) { showError(this.errMsg(e, this.t('Bericht konnte nicht geladen werden'))) }
 		},
 		selectCC(cc) { this.selectedCCCode = cc.code; this.renameName = cc.name; this.ccExpanded = {} },
 		isCCSelected(cc) { return this.selectedCCCode !== false && cc.code === this.selectedCCCode },
@@ -1730,13 +1730,13 @@ export default {
 			const open = !this.ccExpanded[accountId]
 			this.$set(this.ccExpanded, accountId, open)
 			if (open && !this.ccBookings[accountId]) {
-				try { const { data } = await api.accountJournal(accountId, false, this.selectedYear); this.$set(this.ccBookings, accountId, data.rows) } catch (e) { showError(this.errMsg(e, 'Buchungen konnten nicht geladen werden')) }
+				try { const { data } = await api.accountJournal(accountId, false, this.selectedYear); this.$set(this.ccBookings, accountId, data.rows) } catch (e) { showError(this.errMsg(e, this.t('Buchungen konnten nicht geladen werden'))) }
 			}
 		},
 		async saveRename() {
 			const cc = this.selectedCC
 			if (!cc || !cc.code) return
-			try { await api.renameCostCenter(cc.code, this.renameName); await this.loadReport(); showSuccess('Kostenstelle umbenannt.') } catch (e) { showError(this.errMsg(e, 'Umbenennen fehlgeschlagen')) }
+			try { await api.renameCostCenter(cc.code, this.renameName); await this.loadReport(); showSuccess(this.t('Kostenstelle umbenannt.')) } catch (e) { showError(this.errMsg(e, this.t('Umbenennen fehlgeschlagen'))) }
 		},
 
 		// --- Finanzplan / Budget ---
@@ -1745,7 +1745,7 @@ export default {
 				const { data } = await api.budget(this.selectedYear)
 				this.budgetData = data
 				await this.loadBudgetSnapshots()
-			} catch (e) { showError(this.errMsg(e, 'Finanzplan konnte nicht geladen werden')) }
+			} catch (e) { showError(this.errMsg(e, this.t('Finanzplan konnte nicht geladen werden'))) }
 		},
 		// saveBudget/toggleBudgetNote/saveBudgetSnapshot/deleteBudgetSnapshot/
 		// addBudgetYear sind jetzt Teil von ReportsTab.vue.
@@ -1755,13 +1755,13 @@ export default {
 			try {
 				const { data } = await api.budgetSnapshots(this.selectedYear)
 				this.budgetSnapshots = data
-			} catch (e) { showError(this.errMsg(e, 'Plan-Stände konnten nicht geladen werden')) }
+			} catch (e) { showError(this.errMsg(e, this.t('Plan-Stände konnten nicht geladen werden'))) }
 		},
 		async openSnapshot(snap) {
 			try {
 				const { data } = await api.budgetSnapshot(snap.id)
 				this.snapshotView = { open: true, data }
-			} catch (e) { showError(this.errMsg(e, 'Plan-Stand konnte nicht geladen werden')) }
+			} catch (e) { showError(this.errMsg(e, this.t('Plan-Stand konnte nicht geladen werden'))) }
 		},
 		closeSnapshot() { this.snapshotView = { open: false, data: null } },
 		/**

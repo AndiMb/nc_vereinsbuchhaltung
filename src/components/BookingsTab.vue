@@ -3,14 +3,14 @@
 		<div class="vbh-sectiontop">
 			<div class="vbh-subtabs">
 				<button :class="{ active: bookingView === 'journal' }" @click="$emit('update:booking-view', 'journal')">
-					Alle Buchungen
+					{{ t('Alle Buchungen') }}
 				</button>
 				<button :class="{ active: bookingView === 'unassigned' }" @click="$emit('update:booking-view', 'unassigned')">
-					Zuzuordnen
+					{{ t('Zuzuordnen') }}
 					<span v-if="unassignedCount > 0" class="vbh-badge vbh-badge--alert">{{ unassignedCount }}</span>
 				</button>
 				<button :class="{ active: bookingView === 'openitems' }" @click="$emit('update:booking-view', 'openitems')">
-					Offene Posten
+					{{ t('Offene Posten') }}
 					<span v-if="overdueOpenItemsCount > 0" class="vbh-badge vbh-badge--alert">{{ overdueOpenItemsCount }}</span>
 				</button>
 			</div>
@@ -19,12 +19,12 @@
 					:href="exportJournalUrl"
 					download
 					class="vbh-export-btn"
-					title="Journal als CSV exportieren"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> CSV</a>
+					:title="t('Journal als CSV exportieren')"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> CSV</a>
 				<NcButton v-if="canWrite" variant="secondary" @click="openImport">
 					<template #icon>
 						<NcIconSvgWrapper :path="mdiUpload" :size="18" />
 					</template>
-					Umsätze importieren
+					{{ t('Umsätze importieren') }}
 				</NcButton>
 			</div>
 		</div>
@@ -32,7 +32,7 @@
 		<div class="vbh-filterbar">
 			<input v-model="bookingSearch"
 				type="search"
-				placeholder="Suche…"
+				:placeholder="t('Suche…')"
 				class="vbh-search">
 			<NcSelect v-if="bookingView === 'journal'"
 				v-model="bookingFilterAccountOption"
@@ -40,11 +40,11 @@
 				:filter-by="accountFilterBy"
 				label="label"
 				:clearable="true"
-				placeholder="Konto filtern"
+				:placeholder="t('Konto filtern')"
 				class="vbh-filter-select" />
-			<label v-if="bookingView === 'journal'" class="vbh-checkinline" title="Nur Buchungen ohne angehängten Beleg zeigen (z. B. vor der Kassenprüfung)">
+			<label v-if="bookingView === 'journal'" class="vbh-checkinline" :title="t('Nur Buchungen ohne angehängten Beleg zeigen (z. B. vor der Kassenprüfung)')">
 				<input v-model="journalOnlyNoAttachment" type="checkbox">
-				nur ohne Beleg
+				{{ t('nur ohne Beleg') }}
 			</label>
 		</div>
 
@@ -53,9 +53,9 @@
 			<template v-if="bookingView === 'journal'">
 				<div v-if="journalNumberIssues" class="vbh-yearwarn">
 					<p class="vbh-warn-inline">
-						⚠ Buchungsnummern {{ selectedYear }} nicht lückenlos:
+						{{ t('⚠ Buchungsnummern {year} nicht lückenlos:', { year: selectedYear }) }}
 						<template v-if="journalNumberIssues.missing.length">
-							fehlend {{ journalNumberIssues.missing.slice(0, 20).join(', ') }}<template v-if="journalNumberIssues.missing.length > 20">
+							{{ t('fehlend {list}', { list: journalNumberIssues.missing.slice(0, 20).join(', ') }) }}<template v-if="journalNumberIssues.missing.length > 20">
 								…
 							</template>
 						</template>
@@ -63,15 +63,13 @@
 							·
 						</template>
 						<template v-if="journalNumberIssues.duplicates.length">
-							doppelt {{ journalNumberIssues.duplicates.join(', ') }}
+							{{ t('doppelt {list}', { list: journalNumberIssues.duplicates.join(', ') }) }}
 						</template>
 					</p>
 				</div>
 				<div v-if="filteredJournalRows.length && isMobile" class="vbh-cardlist">
 					<div class="vbh-tablecount">
-						{{ filteredJournalRows.length }}<template v-if="filteredJournalRows.length !== sortedJournalRows.length">
-							von {{ sortedJournalRows.length }}
-						</template> Buchungssätze
+						{{ filteredJournalRows.length !== sortedJournalRows.length ? t('{n} von {total} Buchungssätze', { n: filteredJournalRows.length, total: sortedJournalRows.length }) : t('{n} Buchungssätze', { n: filteredJournalRows.length }) }}
 					</div>
 					<template v-for="g in journalCardGroups">
 						<div :key="g.key" class="vbh-monthdivider">
@@ -89,30 +87,28 @@
 				</div>
 				<div v-else-if="filteredJournalRows.length" class="vbh-tablecard">
 					<div class="vbh-tablecount">
-						{{ filteredJournalRows.length }}<template v-if="filteredJournalRows.length !== sortedJournalRows.length">
-							von {{ sortedJournalRows.length }}
-						</template> Buchungssätze
+						{{ filteredJournalRows.length !== sortedJournalRows.length ? t('{n} von {total} Buchungssätze', { n: filteredJournalRows.length, total: sortedJournalRows.length }) : t('{n} Buchungssätze', { n: filteredJournalRows.length }) }}
 					</div>
 					<table class="vbh-table">
 						<thead>
 							<tr>
 								<th class="sortable num vbh-col-hide-sm" @click="toggleSort('journal','entryNo')">
-									Nr.{{ sortArrow('journal','entryNo') }}
+									{{ t('Nr.') }}{{ sortArrow('journal','entryNo') }}
 								</th>
 								<th class="sortable nowrap" @click="toggleSort('journal','date')">
-									Datum{{ sortArrow('journal','date') }}
+									{{ t('Datum') }}{{ sortArrow('journal','date') }}
 								</th>
 								<th class="sortable" @click="toggleSort('journal','description')">
-									Beschreibung{{ sortArrow('journal','description') }}
+									{{ t('Beschreibung') }}{{ sortArrow('journal','description') }}
 								</th>
 								<th class="sortable vbh-col-hide-sm" @click="toggleSort('journal','soll')">
-									Soll{{ sortArrow('journal','soll') }}
+									{{ t('Soll') }}{{ sortArrow('journal','soll') }}
 								</th>
 								<th class="sortable vbh-col-hide-sm" @click="toggleSort('journal','haben')">
-									Haben{{ sortArrow('journal','haben') }}
+									{{ t('Haben') }}{{ sortArrow('journal','haben') }}
 								</th>
 								<th class="sortable num" @click="toggleSort('journal','amount')">
-									Betrag{{ sortArrow('journal','amount') }}
+									{{ t('Betrag') }}{{ sortArrow('journal','amount') }}
 								</th>
 								<th />
 							</tr>
@@ -141,8 +137,8 @@
 									<div class="vbh-actions">
 										<NcButton v-if="attachmentCountMap[r.id]"
 											variant="tertiary"
-											:title="attachmentCountMap[r.id].count === 1 ? 'Beleg anzeigen' : attachmentCountMap[r.id].count + ' Belege'"
-											:aria-label="attachmentCountMap[r.id].count + ' Beleg(e)'"
+											:title="attachmentCountMap[r.id].count === 1 ? t('Beleg anzeigen') : t('{n} Belege', { n: attachmentCountMap[r.id].count })"
+											:aria-label="t('{n} Beleg(e)', { n: attachmentCountMap[r.id].count })"
 											@click="clickPaperclip(r)">
 											<template #icon>
 												<NcIconSvgWrapper :path="mdiPaperclip" :size="16" />
@@ -150,7 +146,7 @@
 										</NcButton>
 										<NcButton v-if="canWrite"
 											variant="tertiary"
-											aria-label="Bearbeiten"
+											:aria-label="t('Bearbeiten')"
 											@click="editBooking(r)">
 											<template #icon>
 												<NcIconSvgWrapper :path="mdiPencil" :size="20" />
@@ -158,8 +154,8 @@
 										</NcButton>
 										<NcButton v-if="canWrite && txByJournalId[r.id]"
 											variant="tertiary"
-											:title="'Regel anlegen: ' + txByJournalId[r.id].counterparty + ' künftig automatisch zuordnen'"
-											aria-label="Zuordnungsregel anlegen"
+											:title="t('Regel anlegen: {counterparty} künftig automatisch zuordnen', { counterparty: txByJournalId[r.id].counterparty })"
+											:aria-label="t('Zuordnungsregel anlegen')"
 											@click="createRuleFromTx(txByJournalId[r.id])">
 											<template #icon>
 												<NcIconSvgWrapper :path="mdiFlash" :size="16" />
@@ -167,7 +163,7 @@
 										</NcButton>
 										<NcButton v-if="canWrite && !isYearClosed(r.date)"
 											variant="error"
-											aria-label="Löschen"
+											:aria-label="t('Löschen')"
 											@click="removeBooking(r)">
 											<template #icon>
 												<NcIconSvgWrapper :path="mdiDelete" :size="20" />
@@ -179,11 +175,11 @@
 						</tbody>
 					</table>
 				</div>
-				<NcEmptyContent v-else-if="bookingSearch || bookingFilterAccountId" name="Keine Treffer" description="Suchfilter anpassen oder löschen." />
-				<NcEmptyContent v-else name="Noch keine Buchungssätze" description="Lege mit ‛Neue Buchung' einen ersten Buchungssatz an.">
+				<NcEmptyContent v-else-if="bookingSearch || bookingFilterAccountId" :name="t('Keine Treffer')" :description="t('Suchfilter anpassen oder löschen.')" />
+				<NcEmptyContent v-else :name="t('Noch keine Buchungssätze')" :description="t('Lege mit ‛Neue Buchung\' einen ersten Buchungssatz an.')">
 					<template #action>
 						<NcButton variant="tertiary" @click="$emit('help')">
-							Mehr dazu
+							{{ t('Mehr dazu') }}
 						</NcButton>
 					</template>
 				</NcEmptyContent>
@@ -192,14 +188,14 @@
 			<!-- TRANSACTIONS VIEW (unassigned / assigned) -->
 			<template v-else-if="bookingView === 'unassigned'">
 				<div v-if="assignProgress.total > 0" class="vbh-progress">
-					<span class="vbh-progress-label">{{ assignProgress.done }} von {{ assignProgress.total }} Bankbuchungen zugeordnet</span>
+					<span class="vbh-progress-label">{{ t('{done} von {total} Bankbuchungen zugeordnet', { done: assignProgress.done, total: assignProgress.total }) }}</span>
 					<div class="vbh-progress-bar">
 						<div class="vbh-progress-fill" :style="{ width: assignProgress.pct + '%' }" />
 					</div>
 				</div>
 				<div v-if="currentTransactions.length && isMobile" class="vbh-cardlist">
 					<div class="vbh-tablecount">
-						{{ currentTransactions.length }} Buchungen
+						{{ t('{n} Buchungen', { n: currentTransactions.length }) }}
 					</div>
 					<div v-for="tx in currentTransactions"
 						:key="'m' + tx.id"
@@ -219,15 +215,15 @@
 							type="button"
 							class="vbh-suggest-chip vbh-suggest-chip--big"
 							@click="applySuggestion(tx)">
-							✓ Vorschlag übernehmen: {{ suggestionsById[tx.id].label }}
+							{{ t('✓ Vorschlag übernehmen: {label}', { label: suggestionsById[tx.id].label }) }}
 						</button>
 						<template v-if="isSplitAssigned(tx)">
-							<span class="vbh-split-badge">Aufgeteilt auf mehrere Konten</span>
+							<span class="vbh-split-badge">{{ t('Aufgeteilt auf mehrere Konten') }}</span>
 							<button v-if="canWrite && !isYearClosed(tx.bookingDate)"
 								type="button"
 								class="vbh-suggest-chip"
 								@click="onAssign(tx, '')">
-								Zuordnung aufheben
+								{{ t('Zuordnung aufheben') }}
 							</button>
 						</template>
 						<template v-else>
@@ -236,8 +232,8 @@
 								:disabled="!canWrite || isYearClosed(tx.bookingDate)"
 								@click="openAccountPicker('assign', tx)">
 								<span class="vbh-fieldbtn-text">
-									<span class="vbh-fieldbtn-lab">Konto / Kategorie</span>
-									<span class="vbh-fieldbtn-val" :class="{ placeholder: !tx.contraAccountId }">{{ tx.contraAccountId ? accountLabel(tx.contraAccountId) : 'Konto wählen…' }}</span>
+									<span class="vbh-fieldbtn-lab">{{ t('Konto / Kategorie') }}</span>
+									<span class="vbh-fieldbtn-val" :class="{ placeholder: !tx.contraAccountId }">{{ tx.contraAccountId ? accountLabel(tx.contraAccountId) : t('Konto wählen…') }}</span>
 								</span>
 								<span class="vbh-fieldbtn-chev" aria-hidden="true">›</span>
 							</button>
@@ -245,31 +241,31 @@
 								type="button"
 								class="vbh-suggest-chip"
 								@click="openSplitAssign(tx)">
-								Aufteilen…
+								{{ t('Aufteilen…') }}
 							</button>
 						</template>
 					</div>
 				</div>
 				<div v-else-if="currentTransactions.length" class="vbh-tablecard">
 					<div class="vbh-tablecount">
-						{{ currentTransactions.length }} Buchungen
+						{{ t('{n} Buchungen', { n: currentTransactions.length }) }}
 					</div>
 					<table class="vbh-table">
 						<thead>
 							<tr>
 								<th class="sortable nowrap" @click="toggleSort('transactions','bookingDate')">
-									Datum{{ sortArrow('transactions','bookingDate') }}
+									{{ t('Datum') }}{{ sortArrow('transactions','bookingDate') }}
 								</th>
 								<th class="sortable" @click="toggleSort('transactions','counterparty')">
-									Empfänger/Zahler{{ sortArrow('transactions','counterparty') }}
+									{{ t('Empfänger/Zahler') }}{{ sortArrow('transactions','counterparty') }}
 								</th>
 								<th class="vbh-col-hide-sm">
-									Verwendungszweck
+									{{ t('Verwendungszweck') }}
 								</th>
 								<th class="sortable num" @click="toggleSort('transactions','amount')">
-									Betrag{{ sortArrow('transactions','amount') }}
+									{{ t('Betrag') }}{{ sortArrow('transactions','amount') }}
 								</th>
-								<th>Konto / Kategorie</th>
+								<th>{{ t('Konto / Kategorie') }}</th>
 							</tr>
 						</thead>
 						<transition-group tag="tbody" name="vbh-row">
@@ -289,12 +285,12 @@
 									     und stuende hier leer da. Die Konten selbst zeigt der
 									     Kontoauszug bzw. das Journal. -->
 									<div v-if="isSplitAssigned(tx)" class="vbh-assign-inner">
-										<span class="vbh-split-badge">Aufgeteilt auf mehrere Konten</span>
+										<span class="vbh-split-badge">{{ t('Aufgeteilt auf mehrere Konten') }}</span>
 										<button v-if="canWrite && !isYearClosed(tx.bookingDate)"
 											class="vbh-suggest-chip"
-											title="Zuordnung aufheben und neu vergeben"
+											:title="t('Zuordnung aufheben und neu vergeben')"
 											@click="onAssign(tx, '')">
-											Zuordnung aufheben
+											{{ t('Zuordnung aufheben') }}
 										</button>
 									</div>
 									<div v-else class="vbh-assign-inner">
@@ -305,21 +301,21 @@
 												:clearable="!!tx.contraAccountId"
 												:disabled="!canWrite || isYearClosed(tx.bookingDate)"
 												label="label"
-												placeholder="– nicht zugeordnet –"
+												:placeholder="t('– nicht zugeordnet –')"
 												class="vbh-assign-select"
 												@update:model-value="v => onAssign(tx, v ? v.id : '')" />
 										</div>
 										<button v-if="canWrite && !tx.contraAccountId && suggestionsById[tx.id] && !isYearClosed(tx.bookingDate)"
 											class="vbh-suggest-chip"
-											:title="'Vorschlag übernehmen: ' + suggestionsById[tx.id].label"
+											:title="t('Vorschlag übernehmen: {label}', { label: suggestionsById[tx.id].label })"
 											@click="applySuggestion(tx)">
-											✓ Vorschlag: {{ suggestionsById[tx.id].label }}
+											{{ t('✓ Vorschlag: {label}', { label: suggestionsById[tx.id].label }) }}
 										</button>
 										<button v-if="canWrite && !isYearClosed(tx.bookingDate)"
 											class="vbh-suggest-chip"
-											title="Den Umsatz auf mehrere Gegenkonten verteilen"
+											:title="t('Den Umsatz auf mehrere Gegenkonten verteilen')"
 											@click="openSplitAssign(tx)">
-											Aufteilen…
+											{{ t('Aufteilen…') }}
 										</button>
 									</div>
 								</td>
@@ -327,14 +323,14 @@
 						</transition-group>
 					</table>
 				</div>
-				<NcEmptyContent v-else-if="bookingSearch" name="Keine Treffer" description="Suchfilter anpassen." />
-				<NcEmptyContent v-else name="Alle Buchungen zugeordnet" description="Keine offenen Bankbuchungen – alles erledigt.">
+				<NcEmptyContent v-else-if="bookingSearch" :name="t('Keine Treffer')" :description="t('Suchfilter anpassen.')" />
+				<NcEmptyContent v-else :name="t('Alle Buchungen zugeordnet')" :description="t('Keine offenen Bankbuchungen – alles erledigt.')">
 					<template v-if="canWrite" #action>
 						<NcButton variant="secondary" @click="openImport">
 							<template #icon>
 								<NcIconSvgWrapper :path="mdiUpload" :size="18" />
 							</template>
-							Neue Umsätze importieren
+							{{ t('Neue Umsätze importieren') }}
 						</NcButton>
 					</template>
 				</NcEmptyContent>
@@ -343,28 +339,28 @@
 			<!-- OFFENE POSTEN -->
 			<template v-else-if="bookingView === 'openitems'">
 				<div v-if="canWrite" class="vbh-card">
-					<h4>Neuer offener Posten</h4>
+					<h4>{{ t('Neuer offener Posten') }}</h4>
 					<div class="vbh-form">
-						<label class="vbh-grow">Debitor<input v-model="openItemForm.debtor" placeholder="z. B. Max Mustermann"></label>
-						<label>Betrag (€)<input v-model.number="openItemForm.amount"
+						<label class="vbh-grow">{{ t('Debitor') }}<input v-model="openItemForm.debtor" :placeholder="t('z. B. Max Mustermann')"></label>
+						<label>{{ t('Betrag (€)') }}<input v-model.number="openItemForm.amount"
 							type="number"
 							step="0.01"
 							min="0.01"
 							class="vbh-num"></label>
-						<label>Fällig am<input v-model="openItemForm.dueDate" type="date"></label>
+						<label>{{ t('Fällig am') }}<input v-model="openItemForm.dueDate" type="date"></label>
 					</div>
 					<div class="vbh-form">
-						<label class="vbh-grow">Konto (für die spätere Buchung)
+						<label class="vbh-grow">{{ t('Konto (für die spätere Buchung)') }}
 							<NcSelect v-model="openItemAccountOption"
 								:options="accountOptionsList"
 								:filter-by="accountFilterBy"
 								label="label"
-								placeholder="optional"
+								:placeholder="t('optional')"
 								:clearable="true" />
 						</label>
-						<label class="vbh-grow">Notiz<input v-model="openItemForm.description" placeholder="optional"></label>
+						<label class="vbh-grow">{{ t('Notiz') }}<input v-model="openItemForm.description" :placeholder="t('optional')"></label>
 						<NcButton variant="primary" :disabled="!openItemForm.debtor || !openItemForm.amount" @click="createOpenItem">
-							Anlegen
+							{{ t('Anlegen') }}
 						</NcButton>
 					</div>
 				</div>
@@ -384,20 +380,20 @@
 					<table class="vbh-table">
 						<thead>
 							<tr>
-								<th>Debitor</th>
+								<th>{{ t('Debitor') }}</th>
 								<th class="vbh-col-hide-sm">
-									Notiz
+									{{ t('Notiz') }}
 								</th>
 								<th class="nowrap">
-									Fällig
+									{{ t('Fällig') }}
 								</th>
 								<th class="num">
-									Betrag
+									{{ t('Betrag') }}
 								</th>
 								<th class="vbh-col-hide-sm">
-									Konto
+									{{ t('Konto') }}
 								</th>
-								<th>Status</th>
+								<th>{{ t('Status') }}</th>
 								<th />
 							</tr>
 						</thead>
@@ -409,7 +405,7 @@
 								</td>
 								<td class="nowrap">
 									{{ o.dueDate ? formatDate(o.dueDate) : '–' }}
-									<span v-if="o.overdue" class="vbh-warn-inline">überfällig</span>
+									<span v-if="o.overdue" class="vbh-warn-inline">{{ t('überfällig') }}</span>
 								</td>
 								<td class="num strong">
 									{{ formatMoney(o.amount) }}
@@ -421,21 +417,21 @@
 								<td class="right nowrap">
 									<template v-if="canWrite && o.status === 'open'">
 										<NcButton variant="tertiary" @click="markOpenItemPaid(o)">
-											Bezahlt
+											{{ t('Bezahlt') }}
 										</NcButton>
 										<NcButton variant="tertiary" @click="cancelOpenItem(o)">
-											Stornieren
+											{{ t('Stornieren') }}
 										</NcButton>
 									</template>
 									<NcButton v-else-if="canWrite" variant="tertiary" @click="reopenOpenItem(o)">
-										Wieder öffnen
+										{{ t('Wieder öffnen') }}
 									</NcButton>
 								</td>
 							</tr>
 						</tbody>
 					</table>
 				</div>
-				<NcEmptyContent v-else name="Keine offenen Posten" description="Lege oben einen neuen offenen Posten an, z. B. einen unbezahlten Mitgliedsbeitrag." />
+				<NcEmptyContent v-else :name="t('Keine offenen Posten')" :description="t('Lege oben einen neuen offenen Posten an, z. B. einen unbezahlten Mitgliedsbeitrag.')" />
 			</template>
 		</div>
 	</div>
@@ -514,10 +510,10 @@ export default {
 			openItemForm: { debtor: '', description: '', amount: '', dueDate: '', accountId: null },
 			openItemFilter: 'open',
 			openItemFilterOptions: [
-				{ key: 'open', label: 'Offen' },
-				{ key: 'paid', label: 'Bezahlt' },
-				{ key: 'cancelled', label: 'Storniert' },
-				{ key: 'all', label: 'Alle' },
+				{ key: 'open', label: this.t('Offen') },
+				{ key: 'paid', label: this.t('Bezahlt') },
+				{ key: 'cancelled', label: this.t('Storniert') },
+				{ key: 'all', label: this.t('Alle') },
 			],
 		}
 	},
@@ -543,7 +539,7 @@ export default {
 			const groups = {}
 			for (const acc of this.accountsSorted) {
 				if (!acc.active) continue
-				const cat = acc.category || 'Sonstige'
+				const cat = acc.category || this.t('Sonstige')
 				;(groups[cat] = groups[cat] || []).push(acc)
 			}
 			return groups
@@ -551,7 +547,7 @@ export default {
 		accountOptionsList() {
 			const opts = []
 			if (this.frequentAccounts.length >= 2) {
-				opts.push({ id: null, label: '★ Häufig verwendet', $isDisabled: true })
+				opts.push({ id: null, label: this.t('★ Häufig verwendet'), $isDisabled: true })
 				for (const acc of this.frequentAccounts) {
 					opts.push({ id: acc.id, label: `${acc.number} ${acc.name}`, number: acc.number })
 				}
@@ -599,7 +595,7 @@ export default {
 		journalCardGroups() {
 			const rows = [...this.filteredJournalRows].sort((a, b) =>
 				String(b.date || '').localeCompare(String(a.date || '')) || (b.entryNo || 0) - (a.entryNo || 0))
-			const names = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
+			const names = [this.t('Januar'), this.t('Februar'), this.t('März'), this.t('April'), this.t('Mai'), this.t('Juni'), this.t('Juli'), this.t('August'), this.t('September'), this.t('Oktober'), this.t('November'), this.t('Dezember')]
 			const groups = []
 			let cur = null
 			for (const r of rows) {
@@ -697,7 +693,7 @@ export default {
 			return tx.status === 'assigned' && !tx.contraAccountId
 		},
 		openItemStatusLabel(status) {
-			return { open: 'Offen', paid: 'Bezahlt', cancelled: 'Storniert' }[status] || status
+			return { open: this.t('Offen'), paid: this.t('Bezahlt'), cancelled: this.t('Storniert') }[status] || status
 		},
 		async createOpenItem() {
 			if (!this.openItemForm.debtor || !this.openItemForm.amount) return
@@ -711,17 +707,17 @@ export default {
 				})
 				this.openItemForm = { debtor: '', description: '', amount: '', dueDate: '', accountId: null }
 				await this.loadOpenItems()
-				showSuccess('Offener Posten angelegt.')
-			} catch (e) { showError(errMsg(e, 'Offener Posten konnte nicht angelegt werden')) }
+				showSuccess(this.t('Offener Posten angelegt.'))
+			} catch (e) { showError(errMsg(e, this.t('Offener Posten konnte nicht angelegt werden'))) }
 		},
 		async markOpenItemPaid(o) {
-			try { await api.markOpenItemPaid(o.id); await this.loadOpenItems(); showSuccess('Als bezahlt markiert.') } catch (e) { showError(errMsg(e, 'Konnte nicht als bezahlt markiert werden')) }
+			try { await api.markOpenItemPaid(o.id); await this.loadOpenItems(); showSuccess(this.t('Als bezahlt markiert.')) } catch (e) { showError(errMsg(e, this.t('Konnte nicht als bezahlt markiert werden'))) }
 		},
 		async cancelOpenItem(o) {
-			try { await api.cancelOpenItem(o.id); await this.loadOpenItems(); showSuccess('Storniert.') } catch (e) { showError(errMsg(e, 'Konnte nicht storniert werden')) }
+			try { await api.cancelOpenItem(o.id); await this.loadOpenItems(); showSuccess(this.t('Storniert.')) } catch (e) { showError(errMsg(e, this.t('Konnte nicht storniert werden'))) }
 		},
 		async reopenOpenItem(o) {
-			try { await api.reopenOpenItem(o.id); await this.loadOpenItems(); showSuccess('Wieder geöffnet.') } catch (e) { showError(errMsg(e, 'Konnte nicht wieder geöffnet werden')) }
+			try { await api.reopenOpenItem(o.id); await this.loadOpenItems(); showSuccess(this.t('Wieder geöffnet.')) } catch (e) { showError(errMsg(e, this.t('Konnte nicht wieder geöffnet werden'))) }
 		},
 		accountLabel(id) {
 			const acc = this.accountsById[id]
