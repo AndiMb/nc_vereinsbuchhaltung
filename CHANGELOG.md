@@ -10,20 +10,39 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
 
 ## [Unreleased]
 
+## [0.17.0] – 2026-08-02
+
+Der erste sichtbare Schritt zur Mehrsprachigkeit: wer Nextcloud auf Englisch
+eingestellt hat, sieht jetzt eine englische Oberfläche statt einer deutschen
+mit englischen Brocken drumherum.
+
 ### Hinzugefügt
-- **Video in der App-Store-Beschreibung verlinkt.** Der erste Schritt zur
-  Mehrsprachigkeit: die App-Store-Seite verweist jetzt auf das Erklärvideo,
-  das bisher nur im README zu finden war.
+- **Englische Übersetzung.** Alle Vue-Komponenten der Oberfläche – jeder Tab,
+  jeder Dialog, jede Fehler- und Bestätigungsmeldung – sowie die häufigsten
+  Fehlermeldungen des Backends sind jetzt ins Englische übersetzt
+  (`l10n/en.json`). Einen eigenen Sprachschalter braucht die App dafür nicht:
+  wer sein Nextcloud-Profil auf Englisch stellt, bekommt automatisch die
+  englische Fassung. Die Quelltexte im Code bleiben bewusst Deutsch – der
+  Herkunftssprache der App –, Deutsch ist also unverändert die Fallback-Sprache.
+- **Video in der App-Store-Beschreibung verlinkt.**
 
 ### Technisch
-- **Grundgerüst für Mehrsprachigkeit (Deutsch/Englisch).** Die Quelltexte im
-  Code bleiben Deutsch, ein `l10n/en.json` liefert die englische Übersetzung
-  on top – im Frontend über einen eigenen Lade-Mechanismus (die Bibliothek
-  `@nextcloud/l10n` würde Englisch sonst als Quellsprache annehmen und gar
-  keine Übersetzung laden), im Backend über `IL10N`. Als Machbarkeitsnachweis
-  sind die Haupt-Tabs, die mobile Navigation und die Berechtigungsfehler der
-  `PermissionMiddleware` bereits umgestellt; der Rest der App folgt
-  schrittweise.
+- Eigener Lademechanismus für Übersetzungen im Frontend (`src/lib/l10n.js`):
+  die Bibliothek `@nextcloud/l10n` geht davon aus, dass Englisch die
+  Quellsprache ist, und lädt dafür gar kein Übersetzungsbundle – bei einer
+  deutschen Quellsprache wäre das genau die falsche Sprache.
+- `IL10N` ist jetzt per Konstruktor in die Controller und Services injiziert,
+  die nutzerseitige Fehlermeldungen werfen.
+
+### Bekannte Lücken
+- Kassenbericht, Kurzbericht, Prüfleitfaden und die CSV-Exporte sind noch
+  vollständig Deutsch.
+- Ein paar Backend-Prüfungen (u. a. die Soll-Haben-Kontrolle beim Buchen, die
+  CAMT-/MT940-Parser) bleiben vorerst Deutsch – sie sind bewusst ohne
+  Nextcloud-Abhängigkeit gehalten, damit sie sich ohne laufende Instanz testen
+  lassen.
+- Das Änderungsprotokoll (Berichte → Protokoll) zeigt seine Einträge
+  weiterhin auf Deutsch.
 
 ## [0.16.0] – 2026-08-01
 
