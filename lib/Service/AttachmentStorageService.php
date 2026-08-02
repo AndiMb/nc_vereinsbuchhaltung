@@ -13,6 +13,7 @@ use OCP\Files\File;
 use OCP\Files\Folder;
 use OCP\Files\IRootFolder;
 use OCP\IConfig;
+use OCP\IL10N;
 
 class AttachmentStorageService {
 
@@ -24,6 +25,7 @@ class AttachmentStorageService {
 		private IConfig $config,
 		private AttachmentMapper $attachmentMapper,
 		private TransactionRunner $transaction,
+		private IL10N $l10n,
 	) {
 		$this->appData = $appDataFactory->get(Application::APP_ID);
 	}
@@ -95,7 +97,7 @@ class AttachmentStorageService {
 			if ($current->nodeExists($part)) {
 				$node = $current->get($part);
 				if (!($node instanceof Folder)) {
-					throw new \RuntimeException("Pfadkomponente '$part' ist kein Ordner");
+					throw new \RuntimeException($this->l10n->t("Pfadkomponente '%s' ist kein Ordner", [$part]));
 				}
 				$current = $node;
 			} else {
@@ -118,7 +120,7 @@ class AttachmentStorageService {
 	private function ncFile(Folder $folder, string $name): File {
 		$node = $folder->get($name);
 		if (!$node instanceof File) {
-			throw new \RuntimeException(sprintf('In der Belegablage liegt unter "%s" keine Datei.', $name));
+			throw new \RuntimeException($this->l10n->t('In der Belegablage liegt unter "%s" keine Datei.', [$name]));
 		}
 		return $node;
 	}
@@ -182,7 +184,7 @@ class AttachmentStorageService {
 		}
 		$stream = $node->fopen('r');
 		if (!is_resource($stream)) {
-			throw new \RuntimeException('Beleg-Datei konnte nicht geöffnet werden.');
+			throw new \RuntimeException($this->l10n->t('Beleg-Datei konnte nicht geöffnet werden.'));
 		}
 		return $stream;
 	}

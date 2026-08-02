@@ -13,6 +13,7 @@ use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Service\Statement\RowNormalizer;
+use OCP\IL10N;
 
 /**
  * Importiert eine „zero Buchhaltung"-Datei (.xbuc): Kontenbaum + Buchungen.
@@ -44,6 +45,7 @@ class XbucImportService {
 		private DemoDataService $demoService,
 		private EntryNumberService $entryNumbers,
 		private TransactionRunner $transaction,
+		private IL10N $l10n,
 	) {
 	}
 
@@ -538,16 +540,18 @@ class XbucImportService {
 		$lines = [];
 		foreach ($transition['comparisons'] as $c) {
 			if (($c['matches'] ?? true) === false) {
-				$lines[] = sprintf(
+				$lines[] = $this->l10n->t(
 					'%s: Endstand Datei %s € ≠ gespeicherter Anfangsbestand %s €',
-					$c['account'],
-					number_format((float)$c['fileClosing'], 2, ',', '.'),
-					number_format((float)$c['storedOpening'], 2, ',', '.'),
+					[
+						$c['account'],
+						number_format((float)$c['fileClosing'], 2, ',', '.'),
+						number_format((float)$c['storedOpening'], 2, ',', '.'),
+					],
 				);
 			}
 		}
-		return 'Import blockiert: Der Jahresübergang zu ' . $transition['targetYear']
-			. ' stimmt nicht überein. Bitte die Beträge in den Dateien prüfen.' . "\n" . implode("\n", $lines);
+		return $this->l10n->t('Import blockiert: Der Jahresübergang zu %s stimmt nicht überein. Bitte die Beträge in den Dateien prüfen.', [(string)$transition['targetYear']])
+			. "\n" . implode("\n", $lines);
 	}
 
 	/**

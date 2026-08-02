@@ -20,6 +20,7 @@ use OCP\AppFramework\Http\DataDownloadResponse;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\EmptyContentSecurityPolicy;
 use OCP\Files\NotFoundException;
+use OCP\IL10N;
 use OCP\IRequest;
 
 class AttachmentController extends Controller {
@@ -43,6 +44,7 @@ class AttachmentController extends Controller {
 		private JournalMapper $journalMapper,
 		private YearCloseService $yearClose,
 		private AuditService $audit,
+		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -72,30 +74,30 @@ class AttachmentController extends Controller {
 		try {
 			$journal = $this->journalMapper->find($journalId, $this->userId());
 		} catch (DoesNotExistException) {
-			return new DataResponse(['message' => 'Buchung nicht gefunden'], Http::STATUS_NOT_FOUND);
+			return new DataResponse(['message' => $this->l10n->t('Buchung nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
 		$this->yearClose->assertOpen((string)$journal->getDate());
 
 		$upload = $this->request->getUploadedFile('file');
 		if ($upload === null || !isset($upload['tmp_name']) || !is_uploaded_file($upload['tmp_name'])) {
-			return new DataResponse(['message' => 'Keine Datei empfangen'], Http::STATUS_BAD_REQUEST);
+			return new DataResponse(['message' => $this->l10n->t('Keine Datei empfangen')], Http::STATUS_BAD_REQUEST);
 		}
 		if (($upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-			return new DataResponse(['message' => 'Datei-Upload fehlgeschlagen (Fehlercode: ' . ($upload['error'] ?? -1) . ')'], Http::STATUS_BAD_REQUEST);
+			return new DataResponse(['message' => $this->l10n->t('Datei-Upload fehlgeschlagen (Fehlercode: %s)', [(string)($upload['error'] ?? -1)])], Http::STATUS_BAD_REQUEST);
 		}
 		if (($upload['size'] ?? 0) > self::MAX_SIZE) {
-			return new DataResponse(['message' => 'Datei zu groß (max. 20 MB)'], Http::STATUS_BAD_REQUEST);
+			return new DataResponse(['message' => $this->l10n->t('Datei zu groß (max. 20 MB)')], Http::STATUS_BAD_REQUEST);
 		}
 
 		$finfo = new \finfo(FILEINFO_MIME_TYPE);
 		$detectedMime = $finfo->file($upload['tmp_name']);
 		if ($detectedMime === false || !in_array($detectedMime, self::ALLOWED_MIMES, true)) {
-			return new DataResponse(['message' => 'Nur Bilder (JPG/PNG/GIF/WebP) und PDFs erlaubt'], Http::STATUS_BAD_REQUEST);
+			return new DataResponse(['message' => $this->l10n->t('Nur Bilder (JPG/PNG/GIF/WebP) und PDFs erlaubt')], Http::STATUS_BAD_REQUEST);
 		}
 
 		$content = file_get_contents($upload['tmp_name']);
 		if ($content === false) {
-			return new DataResponse(['message' => 'Datei konnte nicht gelesen werden'], Http::STATUS_INTERNAL_SERVER_ERROR);
+			return new DataResponse(['message' => $this->l10n->t('Datei konnte nicht gelesen werden')], Http::STATUS_INTERNAL_SERVER_ERROR);
 		}
 
 		$attachment = new Attachment();
@@ -111,7 +113,7 @@ class AttachmentController extends Controller {
 			$this->storageService->putFile($attachment->getId(), $journalId, $attachment->getFileName(), $content);
 		} catch (\Throwable $e) {
 			$this->attachmentMapper->delete($attachment);
-			return new DataResponse(['message' => 'Datei konnte nicht gespeichert werden: ' . $e->getMessage()], Http::STATUS_INTERNAL_SERVER_ERROR);
+			return new DataResponse(['message' => $this->l10n->t('Datei konnte nicht gespeichert werden: %s', [$e->getMessage()])], Http::STATUS_INTERNAL_SERVER_ERROR);
 		}
 
 		$this->audit->log('Beleg hinzugefügt', 'attachment', $attachment->getId(), [
@@ -128,12 +130,12 @@ class AttachmentController extends Controller {
 		try {
 			$attachment = $this->attachmentMapper->findOne($id, $this->userId());
 		} catch (DoesNotExistException) {
-			return new DataResponse(['message' => 'Nicht gefunden'], Http::STATUS_NOT_FOUND);
+			return new DataResponse(['message' => $this->l10n->t('Nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
 		try {
 			$content = $this->storageService->getFileContent($id, $attachment->getJournalId(), $attachment->getFileName());
 		} catch (\Throwable) {
-			return new DataResponse(['message' => 'Datei nicht gefunden'], Http::STATUS_NOT_FOUND);
+			return new DataResponse(['message' => $this->l10n->t('Datei nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
 		$response = new DataDownloadResponse($content, $attachment->getFileName(), $attachment->getMimeType());
 		$response->addHeader('Content-Disposition', 'inline; filename="' . addslashes($attachment->getFileName()) . '"');
@@ -151,13 +153,13 @@ class AttachmentController extends Controller {
 		try {
 			$attachment = $this->attachmentMapper->findOne($id, $this->userId());
 		} catch (DoesNotExistException) {
-			return new DataResponse(['message' => 'Nicht gefunden'], Http::STATUS_NOT_FOUND);
+			return new DataResponse(['message' => $this->l10n->t('Nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
 
 		try {
 			$content = $this->storageService->getFileContent($id, $attachment->getJournalId(), $attachment->getFileName());
 		} catch (\Throwable) {
-			return new DataResponse(['message' => 'Datei nicht gefunden'], Http::STATUS_NOT_FOUND);
+			return new DataResponse(['message' => $this->l10n->t('Datei nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
 
 		return new DataDownloadResponse($content, $attachment->getFileName(), $attachment->getMimeType());
@@ -168,7 +170,7 @@ class AttachmentController extends Controller {
 		try {
 			$attachment = $this->attachmentMapper->findOne($id, $this->userId());
 		} catch (DoesNotExistException) {
-			return new DataResponse(['message' => 'Nicht gefunden'], Http::STATUS_NOT_FOUND);
+			return new DataResponse(['message' => $this->l10n->t('Nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
 
 		// Festschreibung: Belege eines abgeschlossenen Jahres bleiben unangetastet.

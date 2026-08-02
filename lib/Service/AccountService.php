@@ -13,6 +13,7 @@ use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Exception\YearClosedException;
 use OCA\Vereinsbuchhaltung\Service\Statement\RowNormalizer;
 use OCP\AppFramework\Db\DoesNotExistException;
+use OCP\IL10N;
 
 class AccountService {
 
@@ -70,6 +71,7 @@ class AccountService {
 		private CostCenterService $costCenters,
 		private YearCloseService $yearClose,
 		private AuditService $audit,
+		private IL10N $l10n,
 	) {
 	}
 
@@ -224,13 +226,13 @@ class AccountService {
 	}
 
 	/** Feldname → Bezeichnung für Meldungen und Protokoll. */
-	private static function fieldLabel(string $field): string {
+	private function fieldLabel(string $field): string {
 		return match ($field) {
-			'type' => 'Kontoart',
-			'isBank' => 'Geldkonto-Kennzeichen',
-			'sphere' => 'Sphäre',
-			'reserveKind' => 'Rücklagen-Art',
-			'costCenterId' => 'Kostenstelle',
+			'type' => $this->l10n->t('Kontoart'),
+			'isBank' => $this->l10n->t('Geldkonto-Kennzeichen'),
+			'sphere' => $this->l10n->t('Sphäre'),
+			'reserveKind' => $this->l10n->t('Rücklagen-Art'),
+			'costCenterId' => $this->l10n->t('Kostenstelle'),
 			default => $field,
 		};
 	}
@@ -262,16 +264,18 @@ class AccountService {
 		if ($closed === []) {
 			return;
 		}
-		throw new YearClosedException(sprintf(
+		throw new YearClosedException($this->l10n->t(
 			'Das Konto "%s" ist in %s bebucht – %s dort abgeschlossen. %s lässt sich deshalb nicht mehr ändern: '
 			. 'die Auswertungen dieses Jahres würden sich nachträglich verschieben. '
 			. 'Wer die Änderung braucht, eröffnet das Jahr wieder und schließt es danach erneut ab.',
-			$label,
-			count($closed) === 1 ? $closed[0] : implode(', ', $closed),
-			count($closed) === 1 ? 'dieses Geschäftsjahr ist' : 'diese Geschäftsjahre sind',
-			count($changed) === 1
-				? self::fieldLabel($changed[0])
-				: implode(' und ', array_map(self::fieldLabel(...), $changed)),
+			[
+				$label,
+				count($closed) === 1 ? $closed[0] : implode(', ', $closed),
+				count($closed) === 1 ? $this->l10n->t('dieses Geschäftsjahr ist') : $this->l10n->t('diese Geschäftsjahre sind'),
+				count($changed) === 1
+					? $this->fieldLabel($changed[0])
+					: implode(' ' . $this->l10n->t('und') . ' ', array_map($this->fieldLabel(...), $changed)),
+			],
 		));
 	}
 
@@ -284,21 +288,21 @@ class AccountService {
 			return null;
 		}
 		if ($parentId === $id) {
-			throw new \InvalidArgumentException('Ein Konto kann nicht sein eigenes Überkonto sein.');
+			throw new \InvalidArgumentException($this->l10n->t('Ein Konto kann nicht sein eigenes Überkonto sein.'));
 		}
 		$byId = [];
 		foreach ($this->mapper->findAll($userId) as $acc) {
 			$byId[$acc->getId()] = $acc;
 		}
 		if (!isset($byId[$parentId])) {
-			throw new \InvalidArgumentException('Überkonto nicht gefunden.');
+			throw new \InvalidArgumentException($this->l10n->t('Überkonto nicht gefunden.'));
 		}
 		// Würde das gewählte Überkonto unter diesem Konto hängen? → Zyklus.
 		$cursor = $byId[$parentId];
 		$guard = 0;
 		while ($cursor !== null && $guard++ < 1000) {
 			if ($cursor->getId() === $id) {
-				throw new \InvalidArgumentException('Ungültige Zuordnung: Das gewählte Überkonto ist ein Unterkonto dieses Kontos.');
+				throw new \InvalidArgumentException($this->l10n->t('Ungültige Zuordnung: Das gewählte Überkonto ist ein Unterkonto dieses Kontos.'));
 			}
 			$pid = $cursor->getParentId();
 			$cursor = $pid && isset($byId[$pid]) ? $byId[$pid] : null;
@@ -331,25 +335,29 @@ class AccountService {
 
 			$bookings = $this->lineMapper->countByAccount($userId, $id);
 			if ($bookings > 0) {
-				throw new \InvalidArgumentException(sprintf(
+				throw new \InvalidArgumentException($this->l10n->t(
 					'Das Konto "%s %s" ist in %d Buchungszeile%s verwendet und kann nicht gelöscht werden. '
 					. 'Setze es stattdessen auf „inaktiv" – dann taucht es nicht mehr in den Auswahllisten auf, '
 					. 'die bisherigen Buchungen bleiben aber erhalten.',
-					$account->getNumber(),
-					$account->getName(),
-					$bookings,
-					$bookings === 1 ? '' : 'n',
+					[
+						$account->getNumber(),
+						$account->getName(),
+						$bookings,
+						$bookings === 1 ? '' : 'n',
+					],
 				));
 			}
 
 			$children = $this->mapper->countChildren($userId, $id);
 			if ($children > 0) {
-				throw new \InvalidArgumentException(sprintf(
+				throw new \InvalidArgumentException($this->l10n->t(
 					'Das Konto "%s %s" hat %d Unterkonto%s. Bitte diese zuerst löschen oder umhängen.',
-					$account->getNumber(),
-					$account->getName(),
-					$children,
-					$children === 1 ? '' : 'en',
+					[
+						$account->getNumber(),
+						$account->getName(),
+						$children,
+						$children === 1 ? '' : 'en',
+					],
 				));
 			}
 
@@ -435,7 +443,7 @@ class AccountService {
 				return $account;
 			}
 		}
-		throw new DoesNotExistException('Kein Bankkonto im Kontenrahmen definiert.');
+		throw new DoesNotExistException($this->l10n->t('Kein Bankkonto im Kontenrahmen definiert.'));
 	}
 
 	/**
@@ -491,7 +499,7 @@ class AccountService {
 				continue;
 			}
 		}
-		throw new \RuntimeException('Eigenkapitalkonto für Eröffnung konnte nicht angelegt werden.');
+		throw new \RuntimeException($this->l10n->t('Eigenkapitalkonto für Eröffnung konnte nicht angelegt werden.'));
 	}
 
 	/**
@@ -507,7 +515,7 @@ class AccountService {
 	private function validateType(string $type): string {
 		$allowed = ['asset', 'liability', 'equity', 'income', 'expense'];
 		if (!in_array($type, $allowed, true)) {
-			throw new \InvalidArgumentException('Ungültiger Kontotyp: ' . $type);
+			throw new \InvalidArgumentException($this->l10n->t('Ungültiger Kontotyp: %s', [$type]));
 		}
 		return $type;
 	}
@@ -518,7 +526,7 @@ class AccountService {
 			return null;
 		}
 		if (!in_array($sphere, Account::SPHERES, true)) {
-			throw new \InvalidArgumentException('Ungültige Sphäre: ' . $sphere);
+			throw new \InvalidArgumentException($this->l10n->t('Ungültige Sphäre: %s', [$sphere]));
 		}
 		return $sphere;
 	}
@@ -529,7 +537,7 @@ class AccountService {
 			return null;
 		}
 		if (!in_array($reserveKind, Account::RESERVE_KINDS, true)) {
-			throw new \InvalidArgumentException('Ungültige Rücklagen-Art: ' . $reserveKind);
+			throw new \InvalidArgumentException($this->l10n->t('Ungültige Rücklagen-Art: %s', [$reserveKind]));
 		}
 		return $reserveKind;
 	}
@@ -557,8 +565,7 @@ class AccountService {
 		}
 		if (!preg_match('/^[A-Z]{2}\d{2}[A-Z0-9]{6,30}$/', $normalized)) {
 			throw new \InvalidArgumentException(
-				'Das sieht nicht nach einer IBAN aus: ' . $iban
-				. ' (erwartet wird z. B. DE12 5001 0517 0648 4898 90).'
+				$this->l10n->t('Das sieht nicht nach einer IBAN aus: %s (erwartet wird z. B. DE12 5001 0517 0648 4898 90).', [$iban])
 			);
 		}
 		return $normalized;

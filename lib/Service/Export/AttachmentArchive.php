@@ -8,6 +8,7 @@ use OCA\Vereinsbuchhaltung\Db\AttachmentMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\FiscalYear;
+use OCP\IL10N;
 use OCP\ITempManager;
 
 /**
@@ -25,6 +26,7 @@ class AttachmentArchive {
 		private AttachmentMapper $attachmentMapper,
 		private AttachmentStorageService $storageService,
 		private ITempManager $tempManager,
+		private IL10N $l10n,
 	) {
 	}
 
@@ -40,7 +42,7 @@ class AttachmentArchive {
 		$zipPath = $this->tempManager->getTemporaryFile('.zip');
 		$zip = new \ZipArchive();
 		if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
-			throw new \RuntimeException('ZIP-Datei konnte nicht erstellt werden.');
+			throw new \RuntimeException($this->l10n->t('ZIP-Datei konnte nicht erstellt werden.'));
 		}
 
 		$count = 0;
@@ -119,11 +121,11 @@ class AttachmentArchive {
 			$target = $this->tempManager->getTemporaryFile('.beleg');
 			$sink = fopen($target, 'wb');
 			if ($sink === false) {
-				throw new \RuntimeException('Zwischendatei für den Beleg konnte nicht angelegt werden.');
+				throw new \RuntimeException($this->l10n->t('Zwischendatei für den Beleg konnte nicht angelegt werden.'));
 			}
 			try {
 				if (stream_copy_to_stream($source, $sink) === false) {
-					throw new \RuntimeException('Beleg konnte nicht gelesen werden.');
+					throw new \RuntimeException($this->l10n->t('Beleg konnte nicht gelesen werden.'));
 				}
 			} finally {
 				fclose($sink);

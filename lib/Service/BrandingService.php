@@ -8,6 +8,7 @@ use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCP\Files\AppData\IAppDataFactory;
 use OCP\Files\NotFoundException;
 use OCP\IConfig;
+use OCP\IL10N;
 
 /**
  * Vereins-Logo für druckfertige Berichte (Kurzbericht, siehe ExportController::kurzbericht()).
@@ -32,6 +33,7 @@ class BrandingService {
 	public function __construct(
 		IAppDataFactory $appDataFactory,
 		private IConfig $config,
+		private IL10N $l10n,
 	) {
 		$this->appData = $appDataFactory->get(Application::APP_ID);
 	}
@@ -64,10 +66,10 @@ class BrandingService {
 
 	public function setLogo(string $content, string $mimeType): void {
 		if (!in_array($mimeType, self::ALLOWED_MIMES, true)) {
-			throw new \InvalidArgumentException('Nur PNG/JPG/SVG/WebP als Logo erlaubt.');
+			throw new \InvalidArgumentException($this->l10n->t('Nur PNG/JPG/SVG/WebP als Logo erlaubt.'));
 		}
 		if (strlen($content) > self::MAX_SIZE) {
-			throw new \InvalidArgumentException('Logo zu groß (max. 2 MB).');
+			throw new \InvalidArgumentException($this->l10n->t('Logo zu groß (max. 2 MB).'));
 		}
 		$folder = $this->folder();
 		if ($folder->fileExists(self::FILE)) {

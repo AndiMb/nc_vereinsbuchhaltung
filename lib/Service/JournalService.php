@@ -13,6 +13,7 @@ use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Exception\ConflictException;
 use OCP\AppFramework\Db\DoesNotExistException;
+use OCP\IL10N;
 
 /**
  * Erstellt und pflegt allgemeine Buchungssätze (Soll an Haben).
@@ -48,6 +49,7 @@ class JournalService {
 		private AuditService $audit,
 		private EntryNumberService $entryNumbers,
 		private TransactionRunner $transaction,
+		private IL10N $l10n,
 	) {
 	}
 
@@ -232,7 +234,7 @@ class JournalService {
 		$this->yearClose->assertOpen((string)$journal->getDate());
 		$this->yearClose->assertOpen($date);
 		if (($journal->getUpdatedAt() ?? '') !== ($expectedUpdatedAt ?? '')) {
-			throw new ConflictException('Die Buchung wurde zwischenzeitlich von einer anderen Person geändert.');
+			throw new ConflictException($this->l10n->t('Die Buchung wurde zwischenzeitlich von einer anderen Person geändert.'));
 		}
 
 		$oldYear = $journal->getYear();
@@ -292,7 +294,7 @@ class JournalService {
 			$journal = $this->journalMapper->find($journalId, $userId);
 			$this->yearClose->assertOpen((string)$journal->getDate());
 			if (($journal->getUpdatedAt() ?? '') !== ($expectedUpdatedAt ?? '')) {
-				throw new ConflictException('Die Buchung wurde zwischenzeitlich von einer anderen Person geändert.');
+				throw new ConflictException($this->l10n->t('Die Buchung wurde zwischenzeitlich von einer anderen Person geändert.'));
 			}
 			// Zielkonto muss existieren und zu diesem Bestand gehören – sonst
 			// zeigte die Zeile anschließend auf ein Konto, das in keiner

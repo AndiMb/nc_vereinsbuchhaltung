@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCP\AppFramework\Db\DoesNotExistException;
+use OCP\IL10N;
 
 /**
  * Offene-Posten-Verwaltung: schlanke Ad-hoc-Liste unbezahlter Forderungen
@@ -21,6 +22,7 @@ class OpenItemService {
 	public function __construct(
 		private OpenItemMapper $mapper,
 		private JournalMapper $journalMapper,
+		private IL10N $l10n,
 	) {
 	}
 
@@ -40,10 +42,10 @@ class OpenItemService {
 	public function create(string $debtor, ?string $description, int $amountCents, ?string $dueDate, ?int $accountId): OpenItem {
 		$debtor = trim($debtor);
 		if ($debtor === '') {
-			throw new \InvalidArgumentException('Debitor ist Pflicht.');
+			throw new \InvalidArgumentException($this->l10n->t('Debitor ist Pflicht.'));
 		}
 		if ($amountCents <= 0) {
-			throw new \InvalidArgumentException('Betrag muss größer als 0 sein.');
+			throw new \InvalidArgumentException($this->l10n->t('Betrag muss größer als 0 sein.'));
 		}
 		$item = new OpenItem();
 		$item->setDebtor($debtor);
@@ -70,7 +72,7 @@ class OpenItemService {
 			try {
 				$this->journalMapper->find($journalId, Application::BOOK);
 			} catch (DoesNotExistException) {
-				throw new \InvalidArgumentException('Die angegebene Buchung existiert nicht.');
+				throw new \InvalidArgumentException($this->l10n->t('Die angegebene Buchung existiert nicht.'));
 			}
 		}
 		$item->setStatus('paid');

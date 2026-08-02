@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\YearClose;
 use OCA\Vereinsbuchhaltung\Db\YearCloseMapper;
 use OCA\Vereinsbuchhaltung\Exception\YearClosedException;
 use OCP\AppFramework\Db\DoesNotExistException;
+use OCP\IL10N;
 
 /**
  * Jahresabschluss: abgeschlossene Geschäftsjahre sind festgeschrieben.
@@ -26,6 +27,7 @@ class YearCloseService {
 		private AuditService $audit,
 		private EntryNumberService $entryNumbers,
 		private TransactionRunner $transaction,
+		private IL10N $l10n,
 	) {
 	}
 
@@ -56,7 +58,7 @@ class YearCloseService {
 		$year = (int)substr($date, 0, 4);
 		if ($year > 0 && $this->isClosed($year)) {
 			throw new YearClosedException(
-				'Das Geschäftsjahr ' . $year . ' ist abgeschlossen. Buchungen, Belege und Zuordnungen dieses Jahres können nicht mehr geändert werden.'
+				$this->l10n->t('Das Geschäftsjahr %d ist abgeschlossen. Buchungen, Belege und Zuordnungen dieses Jahres können nicht mehr geändert werden.', [$year])
 			);
 		}
 	}

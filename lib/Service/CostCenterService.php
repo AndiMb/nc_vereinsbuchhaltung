@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\CostCenter;
 use OCA\Vereinsbuchhaltung\Db\CostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCP\AppFramework\Db\DoesNotExistException;
+use OCP\IL10N;
 
 /**
  * Frei definierbare Kostenstellen und ihre Zuordnung zu Konten.
@@ -32,6 +33,7 @@ class CostCenterService {
 		private AccountMapper $accountMapper,
 		private TransactionRunner $transaction,
 		private AuditService $audit,
+		private IL10N $l10n,
 	) {
 	}
 
@@ -46,7 +48,7 @@ class CostCenterService {
 		$code = $this->validateCode($code);
 		$name = $this->validateName($name);
 		if ($this->mapper->findByCode($userId, $code) !== null) {
-			throw new \InvalidArgumentException('Es gibt bereits eine Kostenstelle mit dem Kürzel „' . $code . '".');
+			throw new \InvalidArgumentException($this->l10n->t('Es gibt bereits eine Kostenstelle mit dem Kürzel „%s".', [$code]));
 		}
 		$cc = new CostCenter();
 		$cc->setUserId($userId);
@@ -69,7 +71,7 @@ class CostCenterService {
 		$cc = $this->mapper->find($id, $userId);
 		$other = $this->mapper->findByCode($userId, $code);
 		if ($other !== null && $other->getId() !== $cc->getId()) {
-			throw new \InvalidArgumentException('Es gibt bereits eine Kostenstelle mit dem Kürzel „' . $code . '".');
+			throw new \InvalidArgumentException($this->l10n->t('Es gibt bereits eine Kostenstelle mit dem Kürzel „%s".', [$code]));
 		}
 		$cc->setCode($code);
 		$cc->setName($name);
@@ -148,17 +150,17 @@ class CostCenterService {
 		try {
 			return $this->mapper->find($costCenterId, $userId)->getId();
 		} catch (DoesNotExistException) {
-			throw new \InvalidArgumentException('Kostenstelle nicht gefunden.');
+			throw new \InvalidArgumentException($this->l10n->t('Kostenstelle nicht gefunden.'));
 		}
 	}
 
 	private function validateCode(string $code): string {
 		$code = trim($code);
 		if ($code === '') {
-			throw new \InvalidArgumentException('Das Kürzel der Kostenstelle ist Pflicht.');
+			throw new \InvalidArgumentException($this->l10n->t('Das Kürzel der Kostenstelle ist Pflicht.'));
 		}
 		if (mb_strlen($code) > self::CODE_MAX) {
-			throw new \InvalidArgumentException('Das Kürzel darf höchstens ' . self::CODE_MAX . ' Zeichen lang sein.');
+			throw new \InvalidArgumentException($this->l10n->t('Das Kürzel darf höchstens %d Zeichen lang sein.', [self::CODE_MAX]));
 		}
 		return $code;
 	}
@@ -166,7 +168,7 @@ class CostCenterService {
 	private function validateName(string $name): string {
 		$name = trim($name);
 		if ($name === '') {
-			throw new \InvalidArgumentException('Der Name der Kostenstelle ist Pflicht.');
+			throw new \InvalidArgumentException($this->l10n->t('Der Name der Kostenstelle ist Pflicht.'));
 		}
 		return mb_substr($name, 0, 255);
 	}
