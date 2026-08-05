@@ -204,6 +204,15 @@
 						<div class="vbh-mcard-top">
 							<span class="vbh-mcard-meta">{{ formatDate(tx.bookingDate) }}</span>
 							<span class="vbh-mcard-amount" :class="tx.amount < 0 ? 'neg' : 'pos'">{{ formatMoney(tx.amount) }}</span>
+							<NcButton v-if="canWrite && tx.status === 'unassigned' && !isYearClosed(tx.bookingDate)"
+								variant="tertiary"
+								:aria-label="t('Umsatz löschen')"
+								:title="t('Umsatz löschen (z. B. Dublette)')"
+								@click="removeTransaction(tx)">
+								<template #icon>
+									<NcIconSvgWrapper :path="mdiDelete" :size="18" />
+								</template>
+							</NcButton>
 						</div>
 						<div class="vbh-mcard-title">
 							{{ tx.counterparty }}
@@ -317,6 +326,15 @@
 											@click="openSplitAssign(tx)">
 											{{ t('Aufteilen…') }}
 										</button>
+										<NcButton v-if="canWrite && !isYearClosed(tx.bookingDate)"
+											variant="tertiary"
+											:aria-label="t('Umsatz löschen')"
+											:title="t('Umsatz löschen (z. B. Dublette)')"
+											@click="removeTransaction(tx)">
+											<template #icon>
+												<NcIconSvgWrapper :path="mdiDelete" :size="18" />
+											</template>
+										</NcButton>
 									</div>
 								</td>
 							</tr>
@@ -468,6 +486,7 @@ export default {
 		editBooking: { type: Function, required: true },
 		createRuleFromTx: { type: Function, required: true },
 		removeBooking: { type: Function, required: true },
+		removeTransaction: { type: Function, required: true },
 		openAccountPicker: { type: Function, required: true },
 		onAssign: { type: Function, required: true },
 		openSplitAssign: { type: Function, required: true },

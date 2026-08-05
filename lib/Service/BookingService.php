@@ -256,6 +256,31 @@ class BookingService {
 	}
 
 	/**
+	 * Löscht einen noch nicht zugeordneten Bankumsatz endgültig.
+	 *
+	 * Nur für 'unassigned' gedacht: eine bereits verbuchte Zuordnung hängt an
+	 * einem Buchungssatz, der über {@see JournalService::deleteBooking()} oder
+	 * {@see self::unassign()} verschwindet – der Umsatz selbst bleibt dabei
+	 * bewusst erhalten (siehe dort). Gebraucht vor allem, um Dubletten aus
+	 * einem sich überschneidenden Kontoauszugs-Import wieder loszuwerden, die
+	 * der weiche Dublettenabgleich nicht erkannt hat.
+	 */
+	public function delete(BankTransaction $tx): void {
+		$this->transaction->run(function () use ($tx): void {
+			if ($tx->getStatus() !== 'unassigned' || $tx->getJournalId() !== null) {
+				throw new \InvalidArgumentException($this->l10n->t('Ein bereits zugeordneter Umsatz kann nur über den Buchungssatz gelöscht werden.'));
+			}
+			$this->yearClose->assertOpen((string)$tx->getBookingDate());
+			$this->txMapper->delete($tx);
+			$this->audit->log('Umsatz gelöscht', 'transaction', $tx->getId(), [
+				'date' => $tx->getBookingDate(),
+				'amount' => $tx->getAmountCents() / 100,
+				'counterparty' => $tx->getCounterparty(),
+			]);
+		});
+	}
+
+	/**
 	 * Entfernt einen Buchungssatz samt Zeilen und Belegen und schließt die
 	 * dadurch entstehende Lücke in der Buchungsnummerierung des Jahres.
 	 */

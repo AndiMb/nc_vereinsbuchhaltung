@@ -10,6 +10,27 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
 
 ## [Unreleased]
 
+## [0.19.0] – 2026-08-05
+
+### Behoben
+- **Vorgemerkte Umsätze im CSV-Import konnten zu Dubletten führen.** Die
+  CSV-CAMT-Kontoauszüge führen anders als CAMT.053 keinen eigenen
+  Statuscode, sondern schreiben den Buchungsstand als Klartext in die Spalte
+  „Info" – „Umsatz vorgemerkt" wurde bislang nicht ausgewertet. Ändert sich
+  ein solcher Umsatz beim endgültigen Buchen (typischerweise das Datum),
+  erkannte ihn ein späterer, sich überschneidender Import nicht mehr als
+  bereits vorhanden. `CamtCsvParser` überspringt vorgemerkte Zeilen jetzt wie
+  schon `Camt053Parser` es für „PDNG" tut.
+
+### Hinzugefügt
+- **Nicht zugeordnete Bankumsätze lassen sich jetzt löschen.** Bisher gab es
+  dafür keinen Weg – ein Umsatz, den die Dublettenerkennung bei einem sich
+  überschneidenden Kontoauszugs-Import nicht als bereits vorhanden erkannt
+  hat, ließ sich weder zuordnen (dann läge er doppelt im Journal) noch wieder
+  loswerden. Der Papierkorb-Knopf in „Zuzuordnen" löscht einen einzelnen,
+  noch nicht verbuchten Umsatz; bereits zugeordnete bleiben wie gehabt nur
+  über den zugehörigen Buchungssatz löschbar.
+
 ## [0.18.0] – 2026-08-02
 
 ### Hinzugefügt

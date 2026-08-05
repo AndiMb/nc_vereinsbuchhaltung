@@ -122,6 +122,7 @@
 					:edit-booking="editBooking"
 					:create-rule-from-tx="createRuleFromTx"
 					:remove-booking="removeBooking"
+					:remove-transaction="removeTransaction"
 					:open-account-picker="openAccountPicker"
 					:on-assign="onAssign"
 					:open-split-assign="openSplitAssign"
@@ -1201,6 +1202,13 @@ export default {
 				}
 				await this.loadTransactions(); await this.loadBalances(); await this.loadJournal(); await this.loadSphereReport()
 			} catch (e) { showError(this.errMsg(e, this.t('Zuordnung fehlgeschlagen'))) }
+		},
+		async removeTransaction(tx) {
+			if (!await this.askConfirm(this.t('Umsatz löschen'), this.t('Umsatz über {amount} von/an „{counterparty}" endgültig löschen?', { amount: formatMoney(tx.amount), counterparty: tx.counterparty || '' }))) return
+			try {
+				await api.deleteTransaction(tx.id)
+				await this.loadTransactions(); await this.loadBalances()
+			} catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
 		},
 		// --- Umsatz aufteilen (Zuordnen) ------------------------------------
 		openSplitAssign(tx) {

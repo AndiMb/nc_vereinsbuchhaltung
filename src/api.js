@@ -44,6 +44,7 @@ export default {
 	// Aufteilung auf mehrere Gegenkonten: parts = [{accountId, amount}, …] in Euro
 	assignTransactionParts: (id, parts) => axios.post(url(`/transactions/${id}/assign`), { parts }),
 	unassignTransaction: id => axios.delete(url(`/transactions/${id}/assign`)),
+	deleteTransaction: id => axios.delete(url(`/transactions/${id}`)),
 
 	// Import CSV-CAMT
 	previewImport: formData => axios.post(url('/import/preview'), formData),

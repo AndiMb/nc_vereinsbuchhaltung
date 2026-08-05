@@ -234,7 +234,8 @@ Instituten, aber eben nicht mit Sicherheit.
   erkannt – auch gegen zuvor per xbuc importierte und **auch über
   Formatgrenzen hinweg**. Man kann dieselbe Datei also gefahrlos erneut laden,
   und ebenso denselben Auszug einmal als CSV und einmal als CAMT.
-- **Vorgemerkte Umsätze** (in CAMT als „PDNG") werden übersprungen. Sie ändern
+- **Vorgemerkte Umsätze** (in CAMT als „PDNG", in der CSV an „Umsatz
+  vorgemerkt" in der Spalte *Info* erkennbar) werden übersprungen. Sie ändern
   sich beim endgültigen Buchen oft noch – sie jetzt zu übernehmen hieße, sie
   später ein zweites Mal zu bekommen.
 - **0-€-Buchungen** (z. B. ABSCHLUSS) und bank-interne Buchungen werden

@@ -22,6 +22,7 @@ return [
 		['name' => 'transaction#index', 'url' => '/api/transactions', 'verb' => 'GET'],
 		['name' => 'transaction#assign', 'url' => '/api/transactions/{id}/assign', 'verb' => 'POST'],
 		['name' => 'transaction#unassign', 'url' => '/api/transactions/{id}/assign', 'verb' => 'DELETE'],
+		['name' => 'transaction#destroy', 'url' => '/api/transactions/{id}', 'verb' => 'DELETE'],
 
 		// Import
 		['name' => 'import#preview', 'url' => '/api/import/preview', 'verb' => 'POST'],

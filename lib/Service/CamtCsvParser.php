@@ -20,6 +20,10 @@ use OCP\IL10N;
  *
  * Beträge im deutschen Format (1.234,56), Datum als TT.MM.JJ(JJ).
  *
+ * Die Spalte "Info" trägt anders als bei CAMT.053 keinen eigenen Statuscode,
+ * sondern Klartext ("Umsatz gebucht" / "Umsatz vorgemerkt") – ein
+ * vorgemerkter Umsatz wird übersprungen, siehe {@see buildRow()}.
+ *
  * Zuständig ist dieser Parser nur noch für das Auffinden der Spalten und das
  * Deuten von Datum und Betrag. Das Putzen der Felder und der Dedup-Hash liegen
  * in {@see RowNormalizer}, gemeinsam mit allen anderen Umsatzquellen.
@@ -81,6 +85,7 @@ class CamtCsvParser implements StatementParser {
 		'counterpartyBic' => ['bicswiftcode', 'bic', 'swift', 'bicswiftcodezahlungsbeteiligter', 'biczahlungsbeteiligter'],
 		'amount' => ['betrag', 'umsatz'],
 		'currency' => ['waehrung', 'whrg', 'currency'],
+		'info' => ['info'],
 	];
 
 	/**
@@ -172,6 +177,18 @@ class CamtCsvParser implements StatementParser {
 			// fgetcsv liefert für leere Felder null.
 			return isset($cols[$idx]) ? trim((string)$cols[$idx]) : null;
 		};
+
+		// Nur gebuchte Umsätze übernehmen – das Pendant zum PDNG-Ausschluss in
+		// Camt053Parser. Diese CSV-Variante führt keinen eigenen Statuscode,
+		// sondern schreibt den Stand in die Spalte "Info" ("Umsatz gebucht" vs.
+		// "Umsatz vorgemerkt"). Ein vorgemerkter Umsatz ändert beim endgültigen
+		// Buchen oft Datum, Betrag oder Text – würde er übernommen, käme
+		// derselbe Umsatz beim nächsten, sich überschneidenden Import mit
+		// abweichendem Hash ein zweites Mal herein.
+		$info = $get('info');
+		if ($info !== null && stripos($info, 'vorgemerkt') !== false) {
+			return null;
+		}
 
 		return $this->normalizer->build([
 			'ownAccount' => $get('ownAccount'),

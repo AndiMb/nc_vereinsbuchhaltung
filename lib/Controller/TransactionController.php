@@ -77,4 +77,22 @@ class TransactionController extends Controller {
 			return new DataResponse(['message' => $this->l10n->t('Buchung nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
 	}
+
+	/**
+	 * Löscht einen noch nicht zugeordneten Bankumsatz – etwa eine Dublette aus
+	 * einem sich überschneidenden Kontoauszugs-Import, die der Dublettenabgleich
+	 * nicht erkannt hat.
+	 */
+	#[NoAdminRequired]
+	public function destroy(int $id): DataResponse {
+		try {
+			$tx = $this->txMapper->find($id, $this->userId());
+			$this->bookingService->delete($tx);
+			return new DataResponse([]);
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Buchung nicht gefunden')], Http::STATUS_NOT_FOUND);
+		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		}
+	}
 }

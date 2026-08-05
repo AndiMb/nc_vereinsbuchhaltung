@@ -41,6 +41,23 @@ class CamtCsvParserTest extends TestCase {
 	}
 
 	/**
+	 * Das Pendant zum PDNG-Ausschluss in Camt053ParserTest: ein vorgemerkter
+	 * Umsatz ändert beim endgültigen Buchen oft Datum, Betrag oder Text – wird
+	 * er trotzdem übernommen, kommt derselbe Umsatz bei einem sich
+	 * überschneidenden Folge-Import mit abweichendem Hash ein zweites Mal
+	 * herein, statt als Dublette erkannt zu werden.
+	 */
+	public function testVorgemerkterUmsatzWirdUebersprungen(): void {
+		$csv = "Buchungstag;Betrag;Beguenstigter/Zahlungspflichtiger;Info\n"
+			. "28.01.2026;60,00;Max Mustermann;Umsatz vorgemerkt\n"
+			. "20.01.2026;60,00;Max Mustermann;Umsatz gebucht\n";
+		$rows = $this->parser->parse($csv);
+
+		$this->assertCount(1, $rows, 'Die vorgemerkte Zeile muss übersprungen werden');
+		$this->assertSame('2026-01-20', $rows[0]['bookingDate']);
+	}
+
+	/**
 	 * Ein nicht existierendes Datum darf nicht als Buchungsdatum durchgehen –
 	 * es käme sonst als "2026-02-31" in die Datenbank.
 	 */
