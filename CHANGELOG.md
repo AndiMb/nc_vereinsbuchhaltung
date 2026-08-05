@@ -10,6 +10,14 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
 
 ## [Unreleased]
 
+## [0.19.1] – 2026-08-05
+
+### Geändert
+- **Buchungsjournal: Zeilen brachen durch bis zu 4 Aktions-Icons zweizeilig
+  um.** „Regel anlegen" und „Löschen" stecken jetzt in einem Menü-Button;
+  Beleg (falls vorhanden) und „Bearbeiten" bleiben direkt anklickbar. Damit
+  passt jede Zeile wieder auf eine Zeile.
+
 ## [0.19.0] – 2026-08-05
 
 ### Behoben

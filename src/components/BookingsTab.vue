@@ -152,23 +152,25 @@
 												<NcIconSvgWrapper :path="mdiPencil" :size="20" />
 											</template>
 										</NcButton>
-										<NcButton v-if="canWrite && txByJournalId[r.id]"
-											variant="tertiary"
-											:title="t('Regel anlegen: {counterparty} künftig automatisch zuordnen', { counterparty: txByJournalId[r.id].counterparty })"
-											:aria-label="t('Zuordnungsregel anlegen')"
-											@click="createRuleFromTx(txByJournalId[r.id])">
-											<template #icon>
-												<NcIconSvgWrapper :path="mdiFlash" :size="16" />
-											</template>
-										</NcButton>
-										<NcButton v-if="canWrite && !isYearClosed(r.date)"
-											variant="error"
-											:aria-label="t('Löschen')"
-											@click="removeBooking(r)">
-											<template #icon>
-												<NcIconSvgWrapper :path="mdiDelete" :size="20" />
-											</template>
-										</NcButton>
+										<!-- Seltener genutzte Aktionen in einem Menü statt als eigene
+										     Buttons, sonst wird die Zeile durch bis zu 4 Icon-Buttons
+										     zweizeilig (siehe .vbh-table thead th:empty in styles.css). -->
+										<NcActions v-if="canWrite && (txByJournalId[r.id] || !isYearClosed(r.date))" :force-menu="true">
+											<NcActionButton v-if="txByJournalId[r.id]"
+												:title="t('Regel anlegen: {counterparty} künftig automatisch zuordnen', { counterparty: txByJournalId[r.id].counterparty })"
+												@click="createRuleFromTx(txByJournalId[r.id])">
+												<template #icon>
+													<NcIconSvgWrapper :path="mdiFlash" :size="16" />
+												</template>
+												{{ t('Regel anlegen') }}
+											</NcActionButton>
+											<NcActionButton v-if="!isYearClosed(r.date)" @click="removeBooking(r)">
+												<template #icon>
+													<NcIconSvgWrapper :path="mdiDelete" :size="16" />
+												</template>
+												{{ t('Löschen') }}
+											</NcActionButton>
+										</NcActions>
 									</div>
 								</td>
 							</tr>
@@ -457,7 +459,7 @@
 
 <script>
 import { toRefs } from 'vue'
-import { NcButton, NcSelect, NcEmptyContent, NcIconSvgWrapper } from '@nextcloud/vue'
+import { NcButton, NcActions, NcActionButton, NcSelect, NcEmptyContent, NcIconSvgWrapper } from '@nextcloud/vue'
 import { mdiDownload, mdiUpload, mdiPaperclip, mdiPencil, mdiFlash, mdiDelete } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import BookingCard from './BookingCard.vue'
@@ -472,7 +474,7 @@ import { useSort } from '../composables/useSort.js'
 
 export default {
 	name: 'BookingsTab',
-	components: { NcButton, NcSelect, NcEmptyContent, NcIconSvgWrapper, BookingCard },
+	components: { NcButton, NcActions, NcActionButton, NcSelect, NcEmptyContent, NcIconSvgWrapper, BookingCard },
 	props: {
 		isMobile: { type: Boolean, required: true },
 		bookingView: { type: String, required: true },

@@ -244,9 +244,11 @@
    100px Betraege ab 100px Textbreite ab (z. B. "28.798,68 €" = 104px). */
 .vbh-table thead th.num { min-width: 100px; }
 .vbh-table thead th.nowrap { width: 96px; }
-/* Aktionsspalte (leere Kopfzelle): breit genug für 3 Icon-Buttons (Bearbeiten,
-   Regel, Löschen) à 44px + Abstände + Zellenpadding (3×44 + 2×2 + 20 ≈ 156).
-   Ein optionales 4. Beleg-Icon bricht per flex-wrap sauber in eine zweite Zeile um. */
+/* Aktionsspalte (leere Kopfzelle): breit genug für 3 Icon-Buttons à 44px +
+   Abstände + Zellenpadding (3×44 + 2×2 + 20 ≈ 156). Im Journal sind das
+   Beleg (optional), Bearbeiten und ein Menü-Button für Regel/Löschen -
+   seltener genutzte Aktionen stecken bewusst im Menü, damit nie mehr als
+   3 Buttons gleichzeitig erscheinen und die Zeile einzeilig bleibt. */
 .vbh-table thead th:empty { width: 160px; }
 /* "Nr." ist immer die erste Zahlenspalte und braucht wenig Platz (Beträge nie) */
 .vbh-table thead th.num:first-child { width: 56px; }
