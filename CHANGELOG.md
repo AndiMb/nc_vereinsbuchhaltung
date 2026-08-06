@@ -10,6 +10,21 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
 
 ## [Unreleased]
 
+## [0.19.2] – 2026-08-06
+
+### Behoben
+- **Kassenbericht und Kurzbericht erschienen auf Englisch, obwohl die
+  Nextcloud-Oberfläche auf Deutsch stand.** Nextclouds `L10NFactory` hält eine
+  Sprache nur dann für „verfügbar", wenn im `l10n/`-Ordner der App eine Datei
+  dazu liegt – für Deutsch gab es bisher keine, weil es ja die Quellsprache
+  des Codes ist und `l10n/de.json` daher als überflüssig galt. Ohne diese
+  Datei überspringt `findLanguage()` die deutsche Spracheinstellung des
+  Nutzers und landet beim harten Fallback Englisch. Betroffen waren nur die
+  serverseitig gerenderten Berichte (`IL10N::t()` direkt im PHP); die
+  Vue-Oberfläche hat ihr eigenes, clientseitiges Übersetzungssystem und war
+  nicht betroffen. Eine leere `l10n/de.json` reicht als Fix: sie macht
+  Deutsch für Nextcloud „bekannt", ohne dass echte Übersetzungen nötig wären.
+
 ## [0.19.1] – 2026-08-05
 
 ### Geändert
