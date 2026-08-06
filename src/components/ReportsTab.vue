@@ -39,32 +39,60 @@
 						class="vbh-export-btn"
 						:title="t('Kurzbericht für die nächste Vorstandssitzung (öffnet in neuem Tab, dort drucken oder als PDF speichern)')"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> {{ t('Kurzbericht') }}</a>
 				</span>
-				<a v-if="reportView === 'summary' && selectedYear"
-					:href="attachmentsZipUrl"
-					download
-					class="vbh-export-btn"
-					:title="t('Alle Belege des Jahres als ZIP herunterladen (für die Kassenprüfung)')"><NcIconSvgWrapper :path="mdiPaperclip" :size="16" inline /> {{ t('Beleg-ZIP') }}</a>
-				<a v-if="reportView === 'summary'"
-					:href="pruefleitfadenUrl"
-					target="_blank"
-					rel="noopener"
-					class="vbh-export-btn"
-					:title="t('Druckfertige 1-Seiten-Kurzanleitung für Kassenprüfer/innen (öffnet in neuem Tab)')"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> {{ t('Prüfleitfaden') }}</a>
-				<a v-if="reportView === 'summary'"
-					:href="exportBalancesUrl"
-					download
-					class="vbh-export-btn"
-					:title="t('Saldenliste als CSV exportieren')"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> {{ t('Saldenliste') }}</a>
-				<a v-if="reportView === 'summary'"
-					:href="exportReportUrl"
-					download
-					class="vbh-export-btn"
-					:title="t('E/A-Übersicht als CSV exportieren')"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> {{ t('E/A-Übersicht') }}</a>
-				<a v-if="reportView === 'summary'"
-					:href="exportMultiyearUrl"
-					download
-					class="vbh-export-btn"
-					:title="t('Mehrjahresübersicht (alle Jahre) als CSV exportieren')"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> {{ t('Mehrjahresübersicht') }}</a>
+				<!-- Seltener genutzte Exporte in einem Menü statt als eigene Buttons,
+				     sonst wird die Kopfzeile durch Reiter + bis zu 7 Buttons zwei-
+				     bis dreizeilig (gleiches Muster wie die Zeilen-Aktionen in
+				     BookingsTab.vue). Kassenbericht und Kurzbericht bleiben sichtbar,
+				     das sind laut Handbuch die beiden meistgenutzten Berichte. -->
+				<NcActions v-if="reportView === 'summary'"
+					:menu-name="t('Weitere Exporte')"
+					size="small"
+					:force-menu="true">
+					<template #icon>
+						<NcIconSvgWrapper :path="mdiDownload" :size="20" />
+					</template>
+					<NcActionLink v-if="selectedYear"
+						:href="attachmentsZipUrl"
+						download=""
+						:title="t('Alle Belege des Jahres als ZIP herunterladen (für die Kassenprüfung)')">
+						<template #icon>
+							<NcIconSvgWrapper :path="mdiPaperclip" :size="16" />
+						</template>
+						{{ t('Beleg-ZIP') }}
+					</NcActionLink>
+					<NcActionLink :href="pruefleitfadenUrl"
+						target="_blank"
+						:title="t('Druckfertige 1-Seiten-Kurzanleitung für Kassenprüfer/innen (öffnet in neuem Tab)')">
+						<template #icon>
+							<NcIconSvgWrapper :path="mdiPrinter" :size="16" />
+						</template>
+						{{ t('Prüfleitfaden') }}
+					</NcActionLink>
+					<NcActionLink :href="exportBalancesUrl"
+						download=""
+						:title="t('Saldenliste als CSV exportieren')">
+						<template #icon>
+							<NcIconSvgWrapper :path="mdiDownload" :size="16" />
+						</template>
+						{{ t('Saldenliste') }}
+					</NcActionLink>
+					<NcActionLink :href="exportReportUrl"
+						download=""
+						:title="t('E/A-Übersicht als CSV exportieren')">
+						<template #icon>
+							<NcIconSvgWrapper :path="mdiDownload" :size="16" />
+						</template>
+						{{ t('E/A-Übersicht') }}
+					</NcActionLink>
+					<NcActionLink :href="exportMultiyearUrl"
+						download=""
+						:title="t('Mehrjahresübersicht (alle Jahre) als CSV exportieren')">
+						<template #icon>
+							<NcIconSvgWrapper :path="mdiDownload" :size="16" />
+						</template>
+						{{ t('Mehrjahresübersicht') }}
+					</NcActionLink>
+				</NcActions>
 				<a v-if="reportView === 'budget'"
 					:href="exportBudgetUrl"
 					download
@@ -768,7 +796,7 @@ import {
 	Tooltip,
 	Legend,
 } from 'chart.js'
-import { NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper } from '@nextcloud/vue'
+import { NcButton, NcActions, NcActionLink, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper } from '@nextcloud/vue'
 import { mdiPrinter, mdiPaperclip, mdiDownload, mdiDelete, mdiCommentText, mdiCommentPlusOutline } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import api from '../api.js'
@@ -784,7 +812,7 @@ Chart.register(LineController, LineElement, PointElement, CategoryScale, LinearS
 
 export default {
 	name: 'ReportsTab',
-	components: { NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper },
+	components: { NcButton, NcActions, NcActionLink, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper },
 	props: {
 		// steuert (zusammen mit reportView==='summary') den Chart-Redraw des
 		// Mehrjahres-Trend-Diagramms, gleiches Muster wie DashboardTab.vue.

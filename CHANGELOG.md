@@ -10,6 +10,17 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
 
 ## [Unreleased]
 
+## [0.19.3] – 2026-08-06
+
+### Geändert
+- **Berichte-Seite: Reiter und Buttons wirkten überladen.** Im Auswertung-Tab
+  brachen bis zu 7 Export-Buttons (Kassenbericht, Kurzbericht, Beleg-ZIP,
+  Prüfleitfaden, Saldenliste, E/A-Übersicht, Mehrjahresübersicht) neben den 6
+  Reitern mehrzeilig um und nahmen viel Platz ein. Kassenbericht und
+  Kurzbericht – laut Handbuch die beiden meistgenutzten Berichte – bleiben
+  direkt anklickbar, die übrigen fünf stecken jetzt in einem Menü „Weitere
+  Exporte".
+
 ## [0.19.2] – 2026-08-06
 
 ### Behoben
