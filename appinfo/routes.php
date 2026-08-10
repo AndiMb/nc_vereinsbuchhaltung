@@ -93,6 +93,12 @@ return [
 		['name' => 'sepaMandate#revoke', 'url' => '/api/sepa/mandates/{id}/revoke', 'verb' => 'POST'],
 		['name' => 'sepaMandate#destroy', 'url' => '/api/sepa/mandates/{id}', 'verb' => 'DELETE'],
 
+		// Mitgliedsbeiträge mit Zahlungsfrequenz (optionales Zusatzmodul)
+		['name' => 'membershipFee#index', 'url' => '/api/sepa/fees', 'verb' => 'GET'],
+		['name' => 'membershipFee#create', 'url' => '/api/sepa/fees', 'verb' => 'POST'],
+		['name' => 'membershipFee#update', 'url' => '/api/sepa/fees/{id}', 'verb' => 'PUT'],
+		['name' => 'membershipFee#destroy', 'url' => '/api/sepa/fees/{id}', 'verb' => 'DELETE'],
+
 		// Offene Posten
 		['name' => 'openItem#index', 'url' => '/api/open-items', 'verb' => 'GET'],
 		['name' => 'openItem#create', 'url' => '/api/open-items', 'verb' => 'POST'],

@@ -8,7 +8,6 @@ use OCA\Vereinsbuchhaltung\Db\SepaMandate;
 use OCA\Vereinsbuchhaltung\Db\SepaMandateMapper;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IL10N;
-use OCP\IUserManager;
 
 /**
  * SEPA-Lastschriftmandate. Rein optionales Zusatzmodul (siehe Migration
@@ -22,7 +21,7 @@ class SepaMandateService {
 	public function __construct(
 		private SepaMandateMapper $mapper,
 		private IbanValidator $ibanValidator,
-		private IUserManager $userManager,
+		private MemberReferenceValidator $memberRef,
 		private AuditService $audit,
 		private IL10N $l10n,
 	) {
@@ -46,7 +45,7 @@ class SepaMandateService {
 		string $mandateType,
 		string $signedDate,
 	): SepaMandate {
-		[$memberUid, $memberLabel] = $this->validateMember($memberUid, $memberLabel);
+		[$memberUid, $memberLabel] = $this->memberRef->validate($memberUid, $memberLabel);
 
 		$mandate = new SepaMandate();
 		$mandate->setMemberUid($memberUid);
@@ -112,25 +111,6 @@ class SepaMandateService {
 			'zahler' => $mandate->displayName(),
 			'referenz' => $mandate->getMandateReference(),
 		]);
-	}
-
-	/**
-	 * @return array{0: ?string, 1: ?string} [memberUid, memberLabel] normalisiert
-	 */
-	private function validateMember(?string $memberUid, ?string $memberLabel): array {
-		$memberUid = $memberUid !== null && trim($memberUid) !== '' ? trim($memberUid) : null;
-		$memberLabel = $memberLabel !== null && trim($memberLabel) !== '' ? mb_substr(trim($memberLabel), 0, 255) : null;
-
-		if ($memberUid !== null && $memberLabel !== null) {
-			throw new \InvalidArgumentException($this->l10n->t('Bitte entweder einen Nextcloud-Nutzer oder einen freien Zahlernamen angeben, nicht beides.'));
-		}
-		if ($memberUid === null && $memberLabel === null) {
-			throw new \InvalidArgumentException($this->l10n->t('Bitte einen Nextcloud-Nutzer oder einen freien Zahlernamen angeben.'));
-		}
-		if ($memberUid !== null && !$this->userManager->userExists($memberUid)) {
-			throw new \InvalidArgumentException($this->l10n->t('Diesen Nextcloud-Nutzer gibt es nicht: %s', [$memberUid]));
-		}
-		return [$memberUid, $memberLabel];
 	}
 
 	private function requireIban(string $iban): string {

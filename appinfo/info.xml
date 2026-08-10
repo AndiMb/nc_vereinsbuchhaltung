@@ -97,6 +97,7 @@ Ausführliches Handbuch auf Deutsch: siehe Dokumentation.
 	     registerBackgroundJob() gibt es am IRegistrationContext nicht. -->
 	<background-jobs>
 		<job>OCA\Vereinsbuchhaltung\BackgroundJob\ImportWatchFolderJob</job>
+		<job>OCA\Vereinsbuchhaltung\BackgroundJob\MembershipFeeDueJob</job>
 	</background-jobs>
 	<navigations>
 		<navigation>

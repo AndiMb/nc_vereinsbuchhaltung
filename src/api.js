@@ -115,6 +115,12 @@ export default {
 	revokeSepaMandate: id => axios.post(url(`/sepa/mandates/${id}/revoke`)),
 	deleteSepaMandate: id => axios.delete(url(`/sepa/mandates/${id}`)),
 
+	// Mitgliedsbeiträge mit Zahlungsfrequenz (optionales Zusatzmodul)
+	listMembershipFees: () => axios.get(url('/sepa/fees')),
+	createMembershipFee: data => axios.post(url('/sepa/fees'), data),
+	updateMembershipFee: (id, data) => axios.put(url(`/sepa/fees/${id}`), data),
+	deleteMembershipFee: id => axios.delete(url(`/sepa/fees/${id}`)),
+
 	// Export (CSV-Download – Browser-Navigation, kein Axios)
 	exportJournalUrl: year => generateUrl(base + '/export/journal') + (year ? `?year=${year}` : ''),
 	exportBalancesUrl: year => generateUrl(base + '/export/balances') + (year ? `?year=${year}` : ''),

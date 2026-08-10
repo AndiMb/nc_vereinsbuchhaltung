@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\SepaMandate;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
+use OCA\Vereinsbuchhaltung\Service\MemberReferenceValidator;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCA\Vereinsbuchhaltung\Service\SepaMandateService;
 use OCP\AppFramework\Controller;
@@ -16,7 +17,6 @@ use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IL10N;
 use OCP\IRequest;
-use OCP\IUserManager;
 
 /**
  * Pflege der SEPA-Lastschriftmandate (siehe {@see SepaMandateService}).
@@ -32,18 +32,16 @@ class SepaMandateController extends Controller {
 	public function __construct(
 		IRequest $request,
 		private SepaMandateService $service,
-		private IUserManager $userManager,
+		private MemberReferenceValidator $memberRef,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
 
-	/** Reichert ein Mandat um den Anzeigenamen des Nextcloud-Kontos an, falls vorhanden. */
+	/** Reichert ein Mandat um den Anzeigenamen des Zahlers an. */
 	private function decorate(SepaMandate $mandate): array {
 		$data = $mandate->jsonSerialize();
-		$data['displayName'] = $mandate->getMemberUid() !== null
-			? ($this->userManager->get($mandate->getMemberUid())?->getDisplayName() ?? $mandate->getMemberUid())
-			: $mandate->getMemberLabel();
+		$data['displayName'] = $this->memberRef->displayName($mandate->getMemberUid(), $mandate->getMemberLabel());
 		return $data;
 	}
 

@@ -240,6 +240,8 @@
 					:storage-saving="storageSaving"
 					:save-settings="saveStorageSettings" />
 
+				<SettingsMembershipFees v-if="isAdmin" />
+
 				<SettingsGeneral v-if="isAdmin"
 					:club-name.sync="clubName"
 					:cost-center-mode.sync="costCenterMode"
@@ -378,6 +380,7 @@ import SettingsCostCenters from './components/SettingsCostCenters.vue'
 import SettingsXbucImport from './components/SettingsXbucImport.vue'
 import SettingsPermissions from './components/SettingsPermissions.vue'
 import SettingsSepaMandates from './components/SettingsSepaMandates.vue'
+import SettingsMembershipFees from './components/SettingsMembershipFees.vue'
 import SettingsGeneral from './components/SettingsGeneral.vue'
 import SettingsYearClose from './components/SettingsYearClose.vue'
 import ImportDialog from './components/ImportDialog.vue'
@@ -419,6 +422,7 @@ export default {
 		SettingsXbucImport,
 		SettingsPermissions,
 		SettingsSepaMandates,
+		SettingsMembershipFees,
 		SettingsGeneral,
 		SettingsYearClose,
 		ImportDialog,
