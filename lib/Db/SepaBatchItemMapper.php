@@ -61,6 +61,32 @@ class SepaBatchItemMapper extends QBMapper {
 		return $this->findEntities($qb);
 	}
 
+	/** @return SepaBatchItem[] noch offene (nicht zurückgebuchte) Zeilen eines Mandats */
+	public function findPendingByMandate(int $mandateId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('mandate_id', $qb->createNamedParameter($mandateId, IQueryBuilder::PARAM_INT)))
+			->andWhere($qb->expr()->eq('status', $qb->createNamedParameter('pending')));
+		return $this->findEntities($qb);
+	}
+
+	/**
+	 * Noch offene Zeilen mit genau diesem Betrag – Fallback-Zuordnung für die
+	 * Rücklastschrift-Erkennung, wenn im Verwendungszweck keine Mandats-
+	 * oder End-to-End-Referenz zu finden war.
+	 *
+	 * @return SepaBatchItem[]
+	 */
+	public function findPendingByAmount(int $amountCents): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('amount_cents', $qb->createNamedParameter($amountCents, IQueryBuilder::PARAM_INT)))
+			->andWhere($qb->expr()->eq('status', $qb->createNamedParameter('pending')));
+		return $this->findEntities($qb);
+	}
+
 	public function findByEndToEndId(string $endToEndId): ?SepaBatchItem {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')

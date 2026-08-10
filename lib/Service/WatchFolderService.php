@@ -64,7 +64,7 @@ class WatchFolderService {
 	 * Verarbeitet alle Dateien im Wachordner.
 	 *
 	 * @return array<int, array{file:string, ok:bool, new?:int, duplicate?:int,
-	 *         autoAssigned?:int, ruleFailed?:int, format?:string, error?:string}>
+	 *         autoAssigned?:int, ruleFailed?:int, sepaReturnsDetected?:int, format?:string, error?:string}>
 	 */
 	public function run(): array {
 		if (!$this->isConfigured()) {
@@ -101,6 +101,12 @@ class WatchFolderService {
 			if ($offen > 0) {
 				$details['nicht zugeordnet'] = $offen;
 			}
+			// Unbeaufsichtigter Lauf: ohne diesen Vermerk bemerkte niemand eine
+			// erkannte Rücklastschrift, bis er zufällig ins Protokoll schaut.
+			$returns = array_sum(array_column($results, 'sepaReturnsDetected'));
+			if ($returns > 0) {
+				$details['SEPA-Rücklastschriften'] = $returns;
+			}
 			$this->audit->log('Wachordner-Import', 'import', null, $details, self::ACTOR);
 
 			// Den Änderungsstand von Hand hochsetzen: das erledigt sonst die
@@ -117,7 +123,7 @@ class WatchFolderService {
 
 	/**
 	 * @return array{file:string, ok:bool, new?:int, duplicate?:int,
-	 *         autoAssigned?:int, ruleFailed?:int, format?:string, error?:string}
+	 *         autoAssigned?:int, ruleFailed?:int, sepaReturnsDetected?:int, format?:string, error?:string}
 	 */
 	private function handle(Folder $folder, Node $node): array {
 		$name = $node->getName();
@@ -147,6 +153,7 @@ class WatchFolderService {
 				// wollte – etwa weil das Jahr schon abgeschlossen ist. Beim
 				// Import von Hand sieht man das in der Liste; hier nicht.
 				'ruleFailed' => (int)($result['ruleFailed'] ?? 0),
+				'sepaReturnsDetected' => (int)($result['sepaReturnsDetected'] ?? 0),
 			];
 		} catch (\Throwable $e) {
 			$this->logger->warning('Wachordner: {file} konnte nicht eingelesen werden', [

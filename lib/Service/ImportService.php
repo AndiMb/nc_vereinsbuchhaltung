@@ -26,6 +26,7 @@ class ImportService {
 		private BookingService $bookingService,
 		private JournalMapper $journalMapper,
 		private TransactionRunner $transaction,
+		private SepaReturnDetectionService $sepaReturns,
 	) {
 	}
 
@@ -61,7 +62,7 @@ class ImportService {
 	/**
 	 * Importiert die Datei: nur neue Buchungen werden gespeichert.
 	 *
-	 * @return array{import:ImportLog, total:int, new:int, duplicate:int, autoAssigned:int}
+	 * @return array{import:ImportLog, total:int, new:int, duplicate:int, autoAssigned:int, sepaReturnsDetected:int}
 	 */
 	public function commit(string $userId, string $filename, string $content, bool $applyRules = true): array {
 		[$rows, $format] = $this->parsers->parse($content);
@@ -77,7 +78,7 @@ class ImportService {
 	 * Protokoll sind für alle Quellen dieselben.
 	 *
 	 * @param array<int, array<string, mixed>> $rows
-	 * @return array{import:ImportLog, total:int, new:int, duplicate:int, autoAssigned:int}
+	 * @return array{import:ImportLog, total:int, new:int, duplicate:int, autoAssigned:int, sepaReturnsDetected:int}
 	 */
 	public function commitRows(string $userId, string $label, array $rows, string $source, bool $applyRules = true): array {
 		// Ganz oder gar nicht: bricht der Import in der Mitte ab (Timeout,
@@ -88,7 +89,7 @@ class ImportService {
 
 	/**
 	 * @param array<int, array<string, mixed>> $rows
-	 * @return array{import:ImportLog, total:int, new:int, duplicate:int, autoAssigned:int}
+	 * @return array{import:ImportLog, total:int, new:int, duplicate:int, autoAssigned:int, sepaReturnsDetected:int}
 	 */
 	private function doCommit(string $userId, string $filename, array $rows, string $source, bool $applyRules): array {
 		[$new, , $existingBookings] = $this->splitNewAndDuplicate($userId, $rows);
@@ -106,10 +107,18 @@ class ImportService {
 		$rules = $applyRules ? $this->ruleMapper->findAll($userId) : [];
 		$autoAssigned = 0;
 		$ruleFailed = 0;
+		$sepaReturnsDetected = 0;
 
 		foreach ($new as $row) {
 			$tx = $this->buildEntity($userId, $log->getId(), $row);
 			$tx = $this->txMapper->insert($tx);
+
+			// Unabhängig von $applyRules: die Rücklastschrift-Erkennung ist keine
+			// nutzerdefinierte Regel, sondern greift automatisch, sobald das
+			// SEPA-Modul überhaupt Sammeleinzüge kennt (sonst bleibt sie wirkungslos).
+			if ($this->sepaReturns->detect($tx)) {
+				$sepaReturnsDetected++;
+			}
 
 			if ($applyRules) {
 				$accountId = $this->matchRule($tx, $rules);
@@ -137,6 +146,7 @@ class ImportService {
 			'existingBookings' => $existingBookings,
 			'autoAssigned' => $autoAssigned,
 			'ruleFailed' => $ruleFailed,
+			'sepaReturnsDetected' => $sepaReturnsDetected,
 			'format' => $source,
 		];
 	}
