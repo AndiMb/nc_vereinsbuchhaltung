@@ -43,6 +43,24 @@ class SepaBatchItemMapper extends QBMapper {
 		return array_map(static fn (array $row): int => (int)$row['open_item_id'], $rows);
 	}
 
+	/**
+	 * Sammeleinzug-Zeilen, deren Fälligkeit (Batch-execution_date) genau auf
+	 * $targetDate fällt und die noch keine Vorankündigung bekommen haben.
+	 * Genutzt vom {@see \OCA\Vereinsbuchhaltung\BackgroundJob\SepaPreNotificationJob}.
+	 *
+	 * @return SepaBatchItem[]
+	 */
+	public function findDueForNotification(string $targetDate): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('i.*')
+			->from($this->getTableName(), 'i')
+			->innerJoin('i', 'vbh_sepa_batches', 'b', $qb->expr()->eq('i.batch_id', 'b.id'))
+			->where($qb->expr()->eq('i.status', $qb->createNamedParameter('pending')))
+			->andWhere($qb->expr()->isNull('i.notified_at'))
+			->andWhere($qb->expr()->eq('b.execution_date', $qb->createNamedParameter($targetDate)));
+		return $this->findEntities($qb);
+	}
+
 	public function findByEndToEndId(string $endToEndId): ?SepaBatchItem {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')

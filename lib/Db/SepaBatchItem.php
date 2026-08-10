@@ -30,6 +30,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setReturnReason(?string $returnReason)
  * @method string|null getReturnDate()
  * @method void setReturnDate(?string $returnDate)
+ * @method string|null getNotifiedAt()
+ * @method void setNotifiedAt(?string $notifiedAt)
  * @method string getCreatedAt()
  * @method void setCreatedAt(string $createdAt)
  */
@@ -43,6 +45,7 @@ class SepaBatchItem extends Entity implements \JsonSerializable {
 	protected $status = 'pending';
 	protected $returnReason;
 	protected $returnDate;
+	protected $notifiedAt;
 	protected $createdAt;
 
 	/** FRST = erster Einzug eines Mandats, RCUR = Folgeeinzug, OOFF = einmalig. */
@@ -69,6 +72,7 @@ class SepaBatchItem extends Entity implements \JsonSerializable {
 			'status' => $this->status,
 			'returnReason' => $this->returnReason,
 			'returnDate' => $this->returnDate,
+			'notifiedAt' => $this->notifiedAt,
 			'createdAt' => $this->createdAt,
 		];
 	}

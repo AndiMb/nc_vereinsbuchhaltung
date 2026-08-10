@@ -98,6 +98,7 @@ Ausführliches Handbuch auf Deutsch: siehe Dokumentation.
 	<background-jobs>
 		<job>OCA\Vereinsbuchhaltung\BackgroundJob\ImportWatchFolderJob</job>
 		<job>OCA\Vereinsbuchhaltung\BackgroundJob\MembershipFeeDueJob</job>
+		<job>OCA\Vereinsbuchhaltung\BackgroundJob\SepaPreNotificationJob</job>
 	</background-jobs>
 	<navigations>
 		<navigation>
