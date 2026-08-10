@@ -234,6 +234,12 @@
 				<SettingsPermissions v-if="isAdmin"
 					@help="openHelp('setup')" />
 
+				<SettingsSepaMandates v-if="isAdmin"
+					:sepa-creditor-id.sync="sepaCreditorId"
+					:sepa-debtor-account-id.sync="sepaDebtorAccountId"
+					:storage-saving="storageSaving"
+					:save-settings="saveStorageSettings" />
+
 				<SettingsGeneral v-if="isAdmin"
 					:club-name.sync="clubName"
 					:cost-center-mode.sync="costCenterMode"
@@ -371,6 +377,7 @@ import SettingsSpheres from './components/SettingsSpheres.vue'
 import SettingsCostCenters from './components/SettingsCostCenters.vue'
 import SettingsXbucImport from './components/SettingsXbucImport.vue'
 import SettingsPermissions from './components/SettingsPermissions.vue'
+import SettingsSepaMandates from './components/SettingsSepaMandates.vue'
 import SettingsGeneral from './components/SettingsGeneral.vue'
 import SettingsYearClose from './components/SettingsYearClose.vue'
 import ImportDialog from './components/ImportDialog.vue'
@@ -411,6 +418,7 @@ export default {
 		SettingsCostCenters,
 		SettingsXbucImport,
 		SettingsPermissions,
+		SettingsSepaMandates,
 		SettingsGeneral,
 		SettingsYearClose,
 		ImportDialog,
@@ -553,6 +561,9 @@ export default {
 			// Hintergrundjob liest daraus ein.
 			statementWatchUser: '',
 			statementWatchPath: '',
+			// SEPA-Lastschrift (optionales Zusatzmodul, siehe SettingsSepaMandates.vue)
+			sepaCreditorId: '',
+			sepaDebtorAccountId: null,
 			// Hilfe-Modal (HelpModal.vue): Kapitel folgt standardmäßig dem aktiven Tab,
 			// kann aber gezielt überschrieben werden (z. B. Links aus Leerzuständen).
 			showHelp: false,
@@ -927,12 +938,14 @@ export default {
 				this.demoActive = !!data.demo_active
 				this.statementWatchUser = data.statement_watch_user || ''
 				this.statementWatchPath = data.statement_watch_path || ''
+				this.sepaCreditorId = data.sepa_creditor_id || ''
+				this.sepaDebtorAccountId = data.sepa_debtor_account_id || null
 			} catch (e) { /* ignorieren */ }
 		},
 		async saveStorageSettings() {
 			this.storageSaving = true
 			try {
-				await api.saveSettings({ storage_user: this.storageUser, storage_path: this.storagePath || 'Vereinsbuchhaltung/Belege', cost_center_mode: this.costCenterMode, club_name: this.clubName, brand_color: this.brandColor, statement_watch_user: this.statementWatchUser, statement_watch_path: this.statementWatchPath })
+				await api.saveSettings({ storage_user: this.storageUser, storage_path: this.storagePath || 'Vereinsbuchhaltung/Belege', cost_center_mode: this.costCenterMode, club_name: this.clubName, brand_color: this.brandColor, statement_watch_user: this.statementWatchUser, statement_watch_path: this.statementWatchPath, sepa_creditor_id: this.sepaCreditorId, sepa_debtor_account_id: this.sepaDebtorAccountId || '' })
 				showSuccess(this.t('Einstellungen gespeichert.'))
 				this.reportData = null
 			} catch (e) {

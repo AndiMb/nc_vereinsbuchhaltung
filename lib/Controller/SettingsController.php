@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Service\DemoDataService;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCA\Vereinsbuchhaltung\Service\ReportService;
 use OCA\Vereinsbuchhaltung\Service\WatchFolderService;
 use OCP\AppFramework\Controller;
+use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
@@ -21,11 +23,14 @@ use OCP\IUserManager;
 
 class SettingsController extends Controller {
 
+	use BookContext;
+
 	public function __construct(
 		IRequest $request,
 		private IConfig $config,
 		private PermissionService $permissionService,
 		private DemoDataService $demoService,
+		private AccountMapper $accountMapper,
 		private IUserManager $userManager,
 		private IL10N $l10n,
 	) {
@@ -106,6 +111,8 @@ class SettingsController extends Controller {
 			'demo_active' => $this->demoService->isActive(),
 			'statement_watch_user' => $this->config->getAppValue(Application::APP_ID, WatchFolderService::SETTING_USER, ''),
 			'statement_watch_path' => $this->config->getAppValue(Application::APP_ID, WatchFolderService::SETTING_PATH, ''),
+			'sepa_creditor_id' => $this->config->getAppValue(Application::APP_ID, 'sepa_creditor_id', ''),
+			'sepa_debtor_account_id' => (int)$this->config->getAppValue(Application::APP_ID, 'sepa_debtor_account_id', '0') ?: null,
 		]);
 	}
 
@@ -149,6 +156,24 @@ class SettingsController extends Controller {
 			$watchPath = '';
 		}
 
+		$creditorId = strtoupper(trim((string)($this->request->getParam('sepa_creditor_id') ?? '')));
+		if ($creditorId !== '' && !preg_match('/^[A-Z]{2}\d{2}[A-Z0-9]{1,28}$/', $creditorId)) {
+			return new DataResponse(['message' => $this->l10n->t('Das sieht nicht nach einer SEPA-Gläubiger-ID aus (erwartet wird z. B. DE98ZZZ09999999999).')], Http::STATUS_BAD_REQUEST);
+		}
+
+		$debtorAccountParam = $this->request->getParam('sepa_debtor_account_id');
+		$debtorAccountId = $debtorAccountParam !== null && $debtorAccountParam !== '' ? (int)$debtorAccountParam : null;
+		if ($debtorAccountId !== null) {
+			try {
+				$account = $this->accountMapper->find($debtorAccountId, $this->userId());
+				if (!$account->getIsBank()) {
+					return new DataResponse(['message' => $this->l10n->t('Das einziehende Konto muss ein Geldkonto sein.')], Http::STATUS_BAD_REQUEST);
+				}
+			} catch (DoesNotExistException) {
+				return new DataResponse(['message' => $this->l10n->t('Das gewählte einziehende Konto wurde nicht gefunden.')], Http::STATUS_BAD_REQUEST);
+			}
+		}
+
 		$this->config->setAppValue(Application::APP_ID, 'storage_user', $storageUser);
 		$this->config->setAppValue(Application::APP_ID, 'storage_path', $storagePath);
 		$this->config->setAppValue(Application::APP_ID, 'cost_center_mode', $ccMode);
@@ -156,6 +181,8 @@ class SettingsController extends Controller {
 		$this->config->setAppValue(Application::APP_ID, 'brand_color', $brandColor);
 		$this->config->setAppValue(Application::APP_ID, WatchFolderService::SETTING_USER, $watchUser);
 		$this->config->setAppValue(Application::APP_ID, WatchFolderService::SETTING_PATH, $watchPath);
+		$this->config->setAppValue(Application::APP_ID, 'sepa_creditor_id', $creditorId);
+		$this->config->setAppValue(Application::APP_ID, 'sepa_debtor_account_id', (string)($debtorAccountId ?? ''));
 
 		return new DataResponse([
 			'storage_user' => $storageUser,
@@ -165,6 +192,8 @@ class SettingsController extends Controller {
 			'brand_color' => $brandColor,
 			'statement_watch_user' => $watchUser,
 			'statement_watch_path' => $watchPath,
+			'sepa_creditor_id' => $creditorId,
+			'sepa_debtor_account_id' => $debtorAccountId,
 		]);
 	}
 }

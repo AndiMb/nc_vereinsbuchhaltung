@@ -86,6 +86,13 @@ return [
 		['name' => 'rule#update', 'url' => '/api/rules/{id}', 'verb' => 'PUT'],
 		['name' => 'rule#destroy', 'url' => '/api/rules/{id}', 'verb' => 'DELETE'],
 
+		// SEPA-Lastschriftmandate (optionales Zusatzmodul)
+		['name' => 'sepaMandate#index', 'url' => '/api/sepa/mandates', 'verb' => 'GET'],
+		['name' => 'sepaMandate#create', 'url' => '/api/sepa/mandates', 'verb' => 'POST'],
+		['name' => 'sepaMandate#update', 'url' => '/api/sepa/mandates/{id}', 'verb' => 'PUT'],
+		['name' => 'sepaMandate#revoke', 'url' => '/api/sepa/mandates/{id}/revoke', 'verb' => 'POST'],
+		['name' => 'sepaMandate#destroy', 'url' => '/api/sepa/mandates/{id}', 'verb' => 'DELETE'],
+
 		// Offene Posten
 		['name' => 'openItem#index', 'url' => '/api/open-items', 'verb' => 'GET'],
 		['name' => 'openItem#create', 'url' => '/api/open-items', 'verb' => 'POST'],

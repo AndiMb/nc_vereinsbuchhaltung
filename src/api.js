@@ -108,6 +108,13 @@ export default {
 	reopenOpenItem: id => axios.post(url(`/open-items/${id}/reopen`)),
 	deleteOpenItem: id => axios.delete(url(`/open-items/${id}`)),
 
+	// SEPA-Lastschriftmandate (optionales Zusatzmodul)
+	listSepaMandates: () => axios.get(url('/sepa/mandates')),
+	createSepaMandate: data => axios.post(url('/sepa/mandates'), data),
+	updateSepaMandate: (id, data) => axios.put(url(`/sepa/mandates/${id}`), data),
+	revokeSepaMandate: id => axios.post(url(`/sepa/mandates/${id}/revoke`)),
+	deleteSepaMandate: id => axios.delete(url(`/sepa/mandates/${id}`)),
+
 	// Export (CSV-Download – Browser-Navigation, kein Axios)
 	exportJournalUrl: year => generateUrl(base + '/export/journal') + (year ? `?year=${year}` : ''),
 	exportBalancesUrl: year => generateUrl(base + '/export/balances') + (year ? `?year=${year}` : ''),

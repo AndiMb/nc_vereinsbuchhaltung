@@ -71,6 +71,7 @@ class AccountService {
 		private CostCenterService $costCenters,
 		private YearCloseService $yearClose,
 		private AuditService $audit,
+		private IbanValidator $ibanValidator,
 		private IL10N $l10n,
 	) {
 	}
@@ -104,7 +105,7 @@ class AccountService {
 		$account->setReserveKind($this->validateReserveKind($reserveKind));
 		// Eine IBAN ergibt nur an einem Geldkonto Sinn – nur dort werden
 		// Bankumsätze zugeordnet.
-		$account->setIban($isBank ? $this->validateIban($iban) : null);
+		$account->setIban($isBank ? $this->ibanValidator->validate($iban) : null);
 		$account->setCostCenterId($this->costCenters->resolveId($userId, $costCenterId));
 		if ($parentId !== null && $parentId > 0) {
 			// Überkonto muss existieren und demselben Bestand gehören.
@@ -155,7 +156,7 @@ class AccountService {
 			$account->setReserveKind($this->validateReserveKind((string)$data['reserveKind']));
 		}
 		if (array_key_exists('iban', $data)) {
-			$account->setIban($this->validateIban($data['iban'] !== null ? (string)$data['iban'] : null));
+			$account->setIban($this->ibanValidator->validate($data['iban'] !== null ? (string)$data['iban'] : null));
 		}
 		// Wird das Geldkonto-Kennzeichen entfernt, muss die IBAN mitgehen: an
 		// einem Aufwandskonto würde sie nie wieder ausgewertet und bliebe als
@@ -542,32 +543,4 @@ class AccountService {
 		return $reserveKind;
 	}
 
-	/**
-	 * Prüft und vereinheitlicht die IBAN eines Geldkontos.
-	 *
-	 * Gespeichert wird in derselben Normalform, die auch der Import benutzt
-	 * (Großbuchstaben, ohne Leerzeichen). Nur so trifft ein Vergleich mit dem
-	 * Feld „eigenes Konto" einer importierten Bankbuchung – wer „DE12 3456 …"
-	 * einträgt und die Bank „DE123456…" liefert, hätte sonst zwei Werte, die
-	 * für den Menschen gleich aussehen und für die App nicht.
-	 *
-	 * Bewusst ohne Prüfsummenrechnung: eine formal gültige, aber fremde IBAN
-	 * würde sie ebenso durchlassen, und eine zu strenge Prüfung sperrt am Ende
-	 * jemanden mit einem ausländischen Vereinskonto aus.
-	 */
-	private function validateIban(?string $iban): ?string {
-		if ($iban === null) {
-			return null;
-		}
-		$normalized = strtoupper((string)preg_replace('/\s+/', '', $iban));
-		if ($normalized === '') {
-			return null;
-		}
-		if (!preg_match('/^[A-Z]{2}\d{2}[A-Z0-9]{6,30}$/', $normalized)) {
-			throw new \InvalidArgumentException(
-				$this->l10n->t('Das sieht nicht nach einer IBAN aus: %s (erwartet wird z. B. DE12 5001 0517 0648 4898 90).', [$iban])
-			);
-		}
-		return $normalized;
-	}
 }
