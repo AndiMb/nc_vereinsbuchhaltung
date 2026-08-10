@@ -127,6 +127,7 @@ class MembershipFeeService {
 				$fee->getAmountCents(),
 				$fee->getNextDueDate(),
 				$fee->getAccountId(),
+				$fee->getMandateId(),
 			);
 			// Pro Lauf genau ein Posten je Beitrag, auch wenn next_due_date weit
 			// in der Vergangenheit liegt (z. B. Beitrag erst Monate nach dem

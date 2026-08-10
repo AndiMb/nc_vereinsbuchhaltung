@@ -242,6 +242,8 @@
 
 				<SettingsMembershipFees v-if="isAdmin" />
 
+				<SettingsSepaExport v-if="isAdmin" />
+
 				<SettingsGeneral v-if="isAdmin"
 					:club-name.sync="clubName"
 					:cost-center-mode.sync="costCenterMode"
@@ -381,6 +383,7 @@ import SettingsXbucImport from './components/SettingsXbucImport.vue'
 import SettingsPermissions from './components/SettingsPermissions.vue'
 import SettingsSepaMandates from './components/SettingsSepaMandates.vue'
 import SettingsMembershipFees from './components/SettingsMembershipFees.vue'
+import SettingsSepaExport from './components/SettingsSepaExport.vue'
 import SettingsGeneral from './components/SettingsGeneral.vue'
 import SettingsYearClose from './components/SettingsYearClose.vue'
 import ImportDialog from './components/ImportDialog.vue'
@@ -423,6 +426,7 @@ export default {
 		SettingsPermissions,
 		SettingsSepaMandates,
 		SettingsMembershipFees,
+		SettingsSepaExport,
 		SettingsGeneral,
 		SettingsYearClose,
 		ImportDialog,

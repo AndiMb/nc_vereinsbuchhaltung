@@ -45,6 +45,23 @@ class OpenItemMapper extends QBMapper {
 		$qb->executeStatement();
 	}
 
+	/**
+	 * Offene Posten mit verknüpftem SEPA-Mandat – die Auswahlmenge für den
+	 * SEPA-Export (siehe SepaBatchService). Alle anderen offenen Posten
+	 * bleiben davon unberührt (mandate_id ist NULL, siehe OpenItem-Docblock).
+	 *
+	 * @return OpenItem[]
+	 */
+	public function findOpenWithMandate(): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('status', $qb->createNamedParameter('open')))
+			->andWhere($qb->expr()->isNotNull('mandate_id'))
+			->orderBy('due_date', 'ASC');
+		return $this->findEntities($qb);
+	}
+
 	/** Anzahl überfälliger offener Posten (für die Dashboard-KPI). */
 	public function countOverdue(): int {
 		$qb = $this->db->getQueryBuilder();

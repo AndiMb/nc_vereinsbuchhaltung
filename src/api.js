@@ -121,6 +121,12 @@ export default {
 	updateMembershipFee: (id, data) => axios.put(url(`/sepa/fees/${id}`), data),
 	deleteMembershipFee: id => axios.delete(url(`/sepa/fees/${id}`)),
 
+	// SEPA-Sammeleinzüge (pain.008-Export)
+	previewSepaExport: () => axios.get(url('/sepa/export/preview')),
+	listSepaBatches: () => axios.get(url('/sepa/export/batches')),
+	createSepaBatch: executionDate => axios.post(url('/sepa/export/batches'), { executionDate }),
+	sepaBatchXmlUrl: id => generateUrl(base + `/sepa/export/batches/${id}/xml`),
+
 	// Export (CSV-Download – Browser-Navigation, kein Axios)
 	exportJournalUrl: year => generateUrl(base + '/export/journal') + (year ? `?year=${year}` : ''),
 	exportBalancesUrl: year => generateUrl(base + '/export/balances') + (year ? `?year=${year}` : ''),

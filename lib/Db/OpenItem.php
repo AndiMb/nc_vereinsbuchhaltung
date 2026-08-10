@@ -10,6 +10,11 @@ use OCP\AppFramework\Db\Entity;
  * Offener Posten (unbezahlte Forderung, z. B. Mitgliedsbeitrag/Rechnung) mit
  * Fälligkeit. debtor ist Freitext – keine Mitgliederverwaltung in dieser App.
  *
+ * mandateId ist die einzige Ausnahme: gesetzt, wenn der Posten aus einem
+ * Mitgliedsbeitrag mit SEPA-Mandat stammt (siehe MembershipFeeService) – nur
+ * dann ist der Posten für den SEPA-Export überhaupt sichtbar (siehe
+ * Version000126). Für alle anderen offenen Posten bleibt es beim Freitext.
+ *
  * @method string getDebtor()
  * @method void setDebtor(string $debtor)
  * @method string|null getDescription()
@@ -24,6 +29,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setAccountId(?int $accountId)
  * @method int|null getPaidJournalId()
  * @method void setPaidJournalId(?int $paidJournalId)
+ * @method int|null getMandateId()
+ * @method void setMandateId(?int $mandateId)
  * @method string getCreatedAt()
  * @method void setCreatedAt(string $createdAt)
  */
@@ -35,6 +42,7 @@ class OpenItem extends Entity implements \JsonSerializable {
 	protected $status = 'open';
 	protected $accountId;
 	protected $paidJournalId;
+	protected $mandateId;
 	protected $createdAt;
 
 	public const STATUSES = ['open', 'paid', 'cancelled'];
@@ -43,6 +51,7 @@ class OpenItem extends Entity implements \JsonSerializable {
 		$this->addType('amountCents', 'integer');
 		$this->addType('accountId', 'integer');
 		$this->addType('paidJournalId', 'integer');
+		$this->addType('mandateId', 'integer');
 	}
 
 	public function isOverdue(): bool {
@@ -60,6 +69,7 @@ class OpenItem extends Entity implements \JsonSerializable {
 			'status' => $this->status,
 			'accountId' => $this->accountId,
 			'paidJournalId' => $this->paidJournalId,
+			'mandateId' => $this->mandateId,
 			'createdAt' => $this->createdAt,
 			'overdue' => $this->isOverdue(),
 		];
