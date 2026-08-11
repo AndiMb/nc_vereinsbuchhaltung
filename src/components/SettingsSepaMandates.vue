@@ -10,7 +10,7 @@
 		<div class="vbh-card">
 			<h4>{{ t('Grundeinstellungen') }}</h4>
 			<p class="vbh-hint">
-				{{ t('Gläubiger-ID und einziehendes Konto werden für den späteren SEPA-XML-Export gebraucht (noch nicht Teil dieser Version).') }}
+				{{ t('Gläubiger-ID und einziehendes Konto werden für den SEPA-Sammeleinzug weiter unten gebraucht. Die Gläubiger-ID vergibt die Deutsche Bundesbank auf Antrag; am einziehenden Konto muss eine IBAN hinterlegt sein.') }}
 			</p>
 			<div class="vbh-form">
 				<label class="vbh-grow">{{ t('SEPA-Gläubiger-ID') }}
@@ -105,12 +105,19 @@
 								@click="revoke(m)">
 								{{ t('Widerrufen') }}
 							</NcButton>
-							<NcButton variant="error"
+							<!-- Benutzte Mandate lassen sich nicht löschen: erzeugte
+							     Einreichungen müssen ihre Mandatsreferenz weiter
+							     auflösen können (siehe SepaMandateService::delete).
+							     Der Knopf verschwindet, statt eine Fehlermeldung
+							     anzukündigen. -->
+							<NcButton v-if="!isUsed(m)"
+								variant="error"
 								size="small"
 								:aria-label="t('Mandat löschen')"
 								@click="remove(m)">
 								{{ t('Löschen') }}
 							</NcButton>
+							<span v-else class="vbh-hint">{{ usageLabel(m) }}</span>
 						</td>
 					</tr>
 				</tbody>
@@ -206,6 +213,19 @@ export default {
 	},
 	methods: {
 		errMsg,
+		/** Verweist noch irgendetwas auf das Mandat? Dann ist Widerrufen der Weg. */
+		isUsed(m) {
+			const u = m.usage || {}
+			return (u.batchItems || 0) + (u.fees || 0) + (u.openItems || 0) > 0
+		},
+		usageLabel(m) {
+			const u = m.usage || {}
+			const teile = []
+			if (u.batchItems) teile.push(this.n('%n Einzug', '%n Einzüge', u.batchItems))
+			if (u.fees) teile.push(this.n('%n Beitrag', '%n Beiträge', u.fees))
+			if (u.openItems) teile.push(this.n('%n offener Posten', '%n offene Posten', u.openItems))
+			return this.t('in Verwendung: {was}', { was: teile.join(', ') })
+		},
 		async createMandate() {
 			this.saving = true
 			try {

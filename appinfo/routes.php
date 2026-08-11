@@ -103,7 +103,10 @@ return [
 		['name' => 'sepaBatch#preview', 'url' => '/api/sepa/export/preview', 'verb' => 'GET'],
 		['name' => 'sepaBatch#index', 'url' => '/api/sepa/export/batches', 'verb' => 'GET'],
 		['name' => 'sepaBatch#create', 'url' => '/api/sepa/export/batches', 'verb' => 'POST'],
+		['name' => 'sepaBatch#destroy', 'url' => '/api/sepa/export/batches/{id}', 'verb' => 'DELETE'],
+		['name' => 'sepaBatch#items', 'url' => '/api/sepa/export/batches/{id}/items', 'verb' => 'GET'],
 		['name' => 'sepaBatch#xml', 'url' => '/api/sepa/export/batches/{id}/xml', 'verb' => 'GET'],
+		['name' => 'sepaBatch#revertReturn', 'url' => '/api/sepa/export/items/{itemId}/revert-return', 'verb' => 'POST'],
 
 		// Offene Posten
 		['name' => 'openItem#index', 'url' => '/api/open-items', 'verb' => 'GET'],

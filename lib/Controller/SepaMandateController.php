@@ -38,10 +38,15 @@ class SepaMandateController extends Controller {
 		parent::__construct(Application::APP_ID, $request);
 	}
 
-	/** Reichert ein Mandat um den Anzeigenamen des Zahlers an. */
+	/**
+	 * Reichert ein Mandat um den Anzeigenamen des Zahlers an – und darum, ob
+	 * es noch irgendwo verwendet wird: die Oberfläche soll das Löschen gar
+	 * nicht erst anbieten, wo der Dienst es ohnehin ablehnt.
+	 */
 	private function decorate(SepaMandate $mandate): array {
 		$data = $mandate->jsonSerialize();
 		$data['displayName'] = $this->memberRef->displayName($mandate->getMemberUid(), $mandate->getMemberLabel());
+		$data['usage'] = $this->service->usage((int)$mandate->getId());
 		return $data;
 	}
 
@@ -98,6 +103,8 @@ class SepaMandateController extends Controller {
 		try {
 			$this->service->delete($id);
 			return new DataResponse([]);
+		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		} catch (DoesNotExistException) {
 			return new DataResponse(['message' => $this->l10n->t('Mandat nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}

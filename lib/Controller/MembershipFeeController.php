@@ -74,9 +74,10 @@ class MembershipFeeController extends Controller {
 		?int $accountId,
 		?int $mandateId,
 		bool $active,
+		?string $nextDueDate = null,
 	): DataResponse {
 		try {
-			$fee = $this->service->update($id, (int)round($amount * 100), $frequency, $accountId, $mandateId, $active);
+			$fee = $this->service->update($id, (int)round($amount * 100), $frequency, $accountId, $mandateId, $active, $nextDueDate);
 			return new DataResponse($this->decorate($fee));
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);

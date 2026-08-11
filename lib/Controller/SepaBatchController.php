@@ -35,9 +35,14 @@ class SepaBatchController extends Controller {
 		parent::__construct(Application::APP_ID, $request);
 	}
 
+	/**
+	 * @param string|null $executionDate geplanter Fälligkeitstag; nur bis dahin
+	 *        fällige Posten kommen mit. Ohne Angabe der Vorschlagstermin.
+	 */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_ADMIN)]
-	public function preview(): DataResponse {
+	public function preview(?string $executionDate = null): DataResponse {
+		$executionDate = $executionDate !== null && $executionDate !== '' ? $executionDate : $this->service->defaultExecutionDate();
 		$rows = array_map(function (array $row): array {
 			return [
 				'openItem' => $row['openItem'],
@@ -45,8 +50,51 @@ class SepaBatchController extends Controller {
 				'debtorName' => $this->memberRef->displayName($row['mandate']->getMemberUid(), $row['mandate']->getMemberLabel()),
 				'sequenceType' => $row['sequenceType'],
 			];
-		}, $this->service->previewEligible());
+		}, $this->service->previewEligible($executionDate));
+		return new DataResponse(['executionDate' => $executionDate, 'rows' => $rows]);
+	}
+
+	/** Die Zeilen eines Einzugs – wer, wie viel, angekündigt, zurückgebucht. */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	public function items(int $id): DataResponse {
+		try {
+			$rows = array_map(static fn (array $row): array => $row['item']->jsonSerialize() + [
+				'debtorName' => $row['debtorName'],
+				'mandateReference' => $row['mandateReference'],
+				'description' => $row['description'],
+			], $this->service->findBatchItems($id));
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Einzug nicht gefunden')], Http::STATUS_NOT_FOUND);
+		}
 		return new DataResponse($rows);
+	}
+
+	/** Verwirft einen versehentlich erzeugten Einzug wieder. */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	public function destroy(int $id): DataResponse {
+		try {
+			$this->service->deleteBatch($id);
+			return new DataResponse([]);
+		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Einzug nicht gefunden')], Http::STATUS_NOT_FOUND);
+		}
+	}
+
+	/** Nimmt eine falsch erkannte Rücklastschrift zurück. */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	public function revertReturn(int $itemId): DataResponse {
+		try {
+			return new DataResponse($this->service->revertReturn($itemId));
+		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Zeile nicht gefunden')], Http::STATUS_NOT_FOUND);
+		}
 	}
 
 	#[NoAdminRequired]

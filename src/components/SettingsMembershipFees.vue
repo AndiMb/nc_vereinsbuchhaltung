@@ -80,6 +80,7 @@
 						</th>
 						<th>{{ t('Frequenz') }}</th>
 						<th>{{ t('Nächste Fälligkeit') }}</th>
+						<th>{{ t('SEPA-Mandat') }}</th>
 						<th>{{ t('Aktiv') }}</th>
 						<th />
 					</tr>
@@ -87,24 +88,73 @@
 				<tbody>
 					<tr v-for="fee in membershipFees" :key="fee.id">
 						<td>{{ fee.displayName }}</td>
-						<td class="num nowrap">
-							{{ formatMoney(fee.amount) }}
-						</td>
-						<td>{{ frequencyLabel(fee.frequency) }}</td>
-						<td class="nowrap">
-							{{ fee.nextDueDate }}
-						</td>
-						<td>
-							<input type="checkbox" :checked="fee.active" @change="toggleActive(fee, $event.target.checked)">
-						</td>
-						<td class="nowrap right">
-							<NcButton variant="error"
-								size="small"
-								:aria-label="t('Beitrag löschen')"
-								@click="remove(fee)">
-								{{ t('Löschen') }}
-							</NcButton>
-						</td>
+						<template v-if="editing && editing.id === fee.id">
+							<td class="num">
+								<input v-model="editing.amount"
+									type="number"
+									step="0.01"
+									min="0"
+									class="vbh-short">
+							</td>
+							<td>
+								<select v-model="editing.frequency">
+									<option v-for="f in frequencies" :key="f.value" :value="f.value">
+										{{ f.label }}
+									</option>
+								</select>
+							</td>
+							<td><input v-model="editing.nextDueDate" type="date"></td>
+							<td>
+								<select v-model="editing.mandateId">
+									<option :value="null">
+										{{ t('– keins –') }}
+									</option>
+									<option v-for="m in mandatesFor(fee)" :key="m.id" :value="m.id">
+										{{ m.mandateReference }}
+									</option>
+								</select>
+							</td>
+							<td>
+								<input v-model="editing.active" type="checkbox">
+							</td>
+							<td class="nowrap right">
+								<NcButton variant="primary"
+									size="small"
+									:disabled="saving"
+									@click="saveEdit">
+									{{ t('Speichern') }}
+								</NcButton>
+								<NcButton variant="tertiary" size="small" @click="editing = null">
+									{{ t('Abbrechen') }}
+								</NcButton>
+							</td>
+						</template>
+						<template v-else>
+							<td class="num nowrap">
+								{{ formatMoney(fee.amount) }}
+							</td>
+							<td>{{ frequencyLabel(fee.frequency) }}</td>
+							<td class="nowrap">
+								{{ fee.nextDueDate }}
+							</td>
+							<td class="nowrap">
+								{{ mandateReference(fee) }}
+							</td>
+							<td>
+								<input type="checkbox" :checked="fee.active" @change="toggleActive(fee, $event.target.checked)">
+							</td>
+							<td class="nowrap right">
+								<NcButton variant="tertiary" size="small" @click="startEdit(fee)">
+									{{ t('Bearbeiten') }}
+								</NcButton>
+								<NcButton variant="error"
+									size="small"
+									:aria-label="t('Beitrag löschen')"
+									@click="remove(fee)">
+									{{ t('Löschen') }}
+								</NcButton>
+							</td>
+						</template>
 					</tr>
 				</tbody>
 			</table>
@@ -177,6 +227,9 @@ export default {
 		return {
 			form: emptyForm(),
 			saving: false,
+			// Zeile, die gerade bearbeitet wird (Kopie, damit Abbrechen wirklich
+			// abbricht), oder null.
+			editing: null,
 			frequencies: Object.entries(frequencyLabels()).map(([value, label]) => ({ value, label })),
 		}
 	},
@@ -210,6 +263,41 @@ export default {
 		errMsg,
 		formatMoney,
 		frequencyLabel(f) { return frequencyLabels()[f] || f },
+		mandateReference(fee) {
+			return this.sepaMandates.find(m => m.id === fee.mandateId)?.mandateReference || '–'
+		},
+		/** Mandate desselben Zahlers – ein fremdes lehnt das Backend ohnehin ab. */
+		mandatesFor(fee) {
+			return this.sepaMandates.filter(m => (m.status === 'active' || m.id === fee.mandateId)
+				&& m.memberUid === fee.memberUid && m.memberLabel === fee.memberLabel)
+		},
+		startEdit(fee) {
+			this.editing = {
+				id: fee.id,
+				amount: fee.amount,
+				frequency: fee.frequency,
+				nextDueDate: fee.nextDueDate,
+				mandateId: fee.mandateId,
+				active: fee.active,
+				accountId: fee.accountId,
+			}
+		},
+		async saveEdit() {
+			this.saving = true
+			try {
+				await api.updateMembershipFee(this.editing.id, {
+					amount: Number(this.editing.amount),
+					frequency: this.editing.frequency,
+					accountId: this.editing.accountId,
+					mandateId: this.editing.mandateId,
+					active: this.editing.active,
+					nextDueDate: this.editing.nextDueDate,
+				})
+				this.editing = null
+				await this.loadMembershipFees()
+				showSuccess(this.t('Beitrag gespeichert.'))
+			} catch (e) { showError(this.errMsg(e, this.t('Speichern fehlgeschlagen'))) } finally { this.saving = false }
+		},
 		async createFee() {
 			this.saving = true
 			try {
@@ -235,6 +323,7 @@ export default {
 					accountId: fee.accountId,
 					mandateId: fee.mandateId,
 					active,
+					nextDueDate: fee.nextDueDate,
 				})
 				await this.loadMembershipFees()
 			} catch (e) { showError(this.errMsg(e, this.t('Speichern fehlgeschlagen'))) }

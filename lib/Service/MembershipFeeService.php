@@ -72,6 +72,10 @@ class MembershipFeeService {
 	}
 
 	/**
+	 * @param string|null $nextDueDate korrigierte nächste Fälligkeit; ohne
+	 *        Angabe bleibt die bisherige stehen. Korrigierbar, weil ein
+	 *        vertipptes Startdatum sonst nur durch Löschen und Neuanlegen aus
+	 *        der Welt zu schaffen wäre – und damit auch die Historie.
 	 * @throws DoesNotExistException wenn es den Beitrag nicht (mehr) gibt
 	 */
 	public function update(
@@ -81,6 +85,7 @@ class MembershipFeeService {
 		?int $accountId,
 		?int $mandateId,
 		bool $active,
+		?string $nextDueDate = null,
 	): MembershipFee {
 		$fee = $this->mapper->find($id);
 		$fee->setAmountCents($this->requirePositiveAmount($amountCents));
@@ -88,11 +93,15 @@ class MembershipFeeService {
 		$fee->setAccountId($this->resolveAccountId($accountId));
 		$fee->setMandateId($this->resolveMandateId($mandateId, $fee->getMemberUid(), $fee->getMemberLabel()));
 		$fee->setActive($active);
+		if ($nextDueDate !== null && $nextDueDate !== '') {
+			$fee->setNextDueDate($this->validateDate($nextDueDate));
+		}
 		$fee = $this->mapper->update($fee);
 		$this->audit->log('Mitgliedsbeitrag geändert', 'membership_fee', $fee->getId(), [
 			'zahler' => $fee->displayName(),
 			'betrag' => $fee->getAmountCents() / 100,
 			'frequenz' => $fee->getFrequency(),
+			'faelligkeit' => $fee->getNextDueDate(),
 			'aktiv' => $fee->getActive(),
 		]);
 		return $fee;
@@ -135,7 +144,9 @@ class MembershipFeeService {
 			// einen Schlag erzeugte sonst unerwartet viele offene Posten auf
 			// einmal. Liegt next_due_date weiterhin in der Vergangenheit, holt
 			// der nächste Tageslauf die nächste Periode nach.
-			$fee->setNextDueDate($this->advance($fee->getNextDueDate(), $fee->getFrequency()));
+			// Startdatum als Stichtag: sonst verschöbe ein kurzer Monat die
+			// Fälligkeit dauerhaft (aus dem 31. würde über den Februar der 28.).
+			$fee->setNextDueDate(BillingPeriod::next($fee->getNextDueDate(), $fee->getFrequency(), $fee->getStartDate()));
 			$this->mapper->update($fee);
 			$count++;
 		}
@@ -163,16 +174,24 @@ class MembershipFeeService {
 	}
 
 	private function validateFrequency(string $frequency): string {
-		if (!isset(MembershipFee::FREQUENCY_MONTHS[$frequency])) {
+		if (!isset(BillingPeriod::FREQUENCY_MONTHS[$frequency])) {
 			throw new \InvalidArgumentException($this->l10n->t('Ungültige Zahlungsfrequenz: %s', [$frequency]));
 		}
 		return $frequency;
 	}
 
+	/**
+	 * Neben dem Format muss der Tag den Kalender überstehen: mit einem
+	 * unmöglichen Datum bricht {@see BillingPeriod::next()} ab, und eine
+	 * Fälligkeit, die niemand mehr fortschreiben kann, bliebe für immer stehen.
+	 */
 	private function validateDate(string $date): string {
 		$date = trim($date);
-		if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+		if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $date, $m)) {
 			throw new \InvalidArgumentException($this->l10n->t('Ungültiges Datum (erwartet JJJJ-MM-TT).'));
+		}
+		if (!checkdate((int)$m[2], (int)$m[3], (int)$m[1])) {
+			throw new \InvalidArgumentException($this->l10n->t('Diesen Tag gibt es nicht: %s', [$date]));
 		}
 		return $date;
 	}
@@ -209,20 +228,5 @@ class MembershipFeeService {
 			throw new \InvalidArgumentException($this->l10n->t('Das gewählte SEPA-Mandat gehört zu einem anderen Zahler.'));
 		}
 		return $mandate->getId();
-	}
-
-	/**
-	 * Zählt Monate ab $date weiter, ohne bei kurzen Monaten überzulaufen (z. B.
-	 * 31. Januar + 1 Monat -> 28./29. Februar, nicht 3. März).
-	 */
-	private function advance(string $date, string $frequency): string {
-		$months = MembershipFee::FREQUENCY_MONTHS[$frequency];
-		$dt = \DateTime::createFromFormat('Y-m-d', $date);
-		$day = (int)$dt->format('d');
-		$dt->modify('first day of this month');
-		$dt->modify("+{$months} month");
-		$daysInMonth = (int)$dt->format('t');
-		$dt->setDate((int)$dt->format('Y'), (int)$dt->format('m'), min($day, $daysInMonth));
-		return $dt->format('Y-m-d');
 	}
 }

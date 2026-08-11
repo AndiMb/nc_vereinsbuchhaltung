@@ -87,6 +87,12 @@
 .vbh-snaplabel-input { width: 200px; max-width: 60vw; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--color-border); }
 .vbh-snapblock { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--color-border); }
 .vbh-hint { color: var(--color-main-text); opacity: 0.8; max-width: 80ch; }
+/* Hinweise, die nicht bloss erlaeutern, sondern auf etwas hinweisen, das der
+   Nutzer sehen muss (SEPA-Vorlauffrist, erkannte Ruecklastschrift). Die volle
+   Deckkraft und der Balken heben sie aus den uebrigen Erlaeuterungen heraus. */
+.vbh-hint--info, .vbh-hint--warning { opacity: 1; padding: 8px 12px; border-left: 3px solid; border-radius: 0 4px 4px 0; }
+.vbh-hint--info { border-left-color: var(--color-primary-element, #0082c9); background-color: var(--color-background-hover); }
+.vbh-hint--warning { border-left-color: var(--color-warning, #c98b00); background-color: var(--color-background-hover); }
 .vbh-empty { color: var(--color-main-text); opacity: 0.65; font-style: italic; }
 .vbh-warn-inline { color: #b35900; font-weight: 600; margin-left: 10px; }
 

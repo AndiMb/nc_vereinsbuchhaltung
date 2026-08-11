@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service;
 
+use OCA\Vereinsbuchhaltung\Db\MembershipFeeMapper;
+use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
+use OCA\Vereinsbuchhaltung\Db\SepaBatchItemMapper;
 use OCA\Vereinsbuchhaltung\Db\SepaMandate;
 use OCA\Vereinsbuchhaltung\Db\SepaMandateMapper;
+use OCA\Vereinsbuchhaltung\Service\Sepa\SepaReference;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IL10N;
 
@@ -20,6 +24,9 @@ class SepaMandateService {
 
 	public function __construct(
 		private SepaMandateMapper $mapper,
+		private SepaBatchItemMapper $batchItemMapper,
+		private MembershipFeeMapper $feeMapper,
+		private OpenItemMapper $openItemMapper,
 		private IbanValidator $ibanValidator,
 		private MemberReferenceValidator $memberRef,
 		private AuditService $audit,
@@ -102,15 +109,51 @@ class SepaMandateService {
 	}
 
 	/**
+	 * Löscht ein Mandat – aber nur, solange nichts darauf verweist.
+	 *
+	 * Ein benutztes Mandat zu löschen zerstört mehr, als es aufräumt: die
+	 * pain.008-Datei eines bereits erzeugten Einzugs lässt sich danach nicht
+	 * mehr erzeugen (der Nachweis, mit welchem Mandat eingereicht wurde, ist
+	 * weg), und ein offener Posten mit verwaister mandate_id verschwindet
+	 * stillschweigend aus dem SEPA-Export – niemand erführe, dass dieser
+	 * Beitrag nie wieder eingezogen wird. Für „soll nicht mehr benutzt werden"
+	 * ist {@see revoke()} da; das ist auch der Weg, den die Oberfläche anbietet.
+	 *
 	 * @throws DoesNotExistException wenn es das Mandat nicht (mehr) gibt
+	 * @throws \InvalidArgumentException wenn noch etwas auf das Mandat verweist
 	 */
 	public function delete(int $id): void {
 		$mandate = $this->mapper->find($id);
+
+		$einzuege = count($this->batchItemMapper->findByMandate($id));
+		$beitraege = count($this->feeMapper->findByMandate($id));
+		$posten = count($this->openItemMapper->findByMandate($id));
+		if ($einzuege > 0 || $beitraege > 0 || $posten > 0) {
+			throw new \InvalidArgumentException($this->l10n->t(
+				'Dieses Mandat wird noch verwendet (%1$s Sammeleinzug-Zeilen, %2$s Beiträge, %3$s offene Posten) und kann nicht gelöscht werden. Widerrufen Sie es stattdessen – dann wird es für neue Einzüge nicht mehr benutzt, bleibt aber nachvollziehbar.',
+				[(string)$einzuege, (string)$beitraege, (string)$posten]
+			));
+		}
+
 		$this->mapper->delete($mandate);
 		$this->audit->log('SEPA-Mandat gelöscht', 'sepa_mandate', $id, [
 			'zahler' => $mandate->displayName(),
 			'referenz' => $mandate->getMandateReference(),
 		]);
+	}
+
+	/**
+	 * Verweise auf ein Mandat, damit die Oberfläche das Löschen gar nicht erst
+	 * anbieten muss, wo es ohnehin abgelehnt würde.
+	 *
+	 * @return array{batchItems:int, fees:int, openItems:int}
+	 */
+	public function usage(int $id): array {
+		return [
+			'batchItems' => count($this->batchItemMapper->findByMandate($id)),
+			'fees' => count($this->feeMapper->findByMandate($id)),
+			'openItems' => count($this->openItemMapper->findByMandate($id)),
+		];
 	}
 
 	private function requireIban(string $iban): string {
@@ -128,23 +171,32 @@ class SepaMandateService {
 		return $mandateType;
 	}
 
+	/**
+	 * Neben dem Format muss der Tag den Kalender überstehen: das Datum wandert
+	 * als DtOfSgntr in die pain.008-Datei, wo der Typ xs:date gilt. Ein
+	 * "2026-02-31" macht dort nicht eine Zeile ungültig, sondern die ganze
+	 * Einreichung – und das merkt man erst bei der Bank.
+	 */
 	private function validateDate(string $date): string {
 		$date = trim($date);
-		if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+		if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $date, $m)) {
 			throw new \InvalidArgumentException($this->l10n->t('Ungültiges Unterschriftsdatum (erwartet JJJJ-MM-TT).'));
+		}
+		if (!checkdate((int)$m[2], (int)$m[3], (int)$m[1])) {
+			throw new \InvalidArgumentException($this->l10n->t('Diesen Tag gibt es nicht: %s', [$date]));
 		}
 		return $date;
 	}
 
 	/**
-	 * Erzeugt eine eindeutige Mandatsreferenz (max. 35 Zeichen, SEPA-konform:
-	 * nur Buchstaben, Ziffern und Bindestrich). Kollisionen sind bei sechs
-	 * Zufalls-Hexstellen praktisch ausgeschlossen; die Schleife ist nur ein
-	 * Sicherheitsnetz, kein erwarteter Normalfall.
+	 * Erzeugt eine eindeutige Mandatsreferenz (Format siehe
+	 * {@see SepaReference}). Kollisionen sind bei sechs Zufalls-Hexstellen
+	 * praktisch ausgeschlossen; die Schleife ist nur ein Sicherheitsnetz,
+	 * kein erwarteter Normalfall.
 	 */
 	private function generateReference(): string {
 		for ($attempt = 0; $attempt < 5; $attempt++) {
-			$candidate = 'M' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(3)));
+			$candidate = SepaReference::mandate();
 			if ($this->mapper->findByReference($candidate) === null) {
 				return $candidate;
 			}

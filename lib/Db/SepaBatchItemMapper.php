@@ -16,6 +16,14 @@ class SepaBatchItemMapper extends QBMapper {
 		parent::__construct($db, 'vbh_sepa_batch_items', SepaBatchItem::class);
 	}
 
+	public function find(int $id): SepaBatchItem {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('id', $qb->createNamedParameter($id, IQueryBuilder::PARAM_INT)));
+		return $this->findEntity($qb);
+	}
+
 	/** @return SepaBatchItem[] */
 	public function findByBatch(int $batchId): array {
 		$qb = $this->db->getQueryBuilder();
@@ -44,20 +52,43 @@ class SepaBatchItemMapper extends QBMapper {
 	}
 
 	/**
-	 * Sammeleinzug-Zeilen, deren Fälligkeit (Batch-execution_date) genau auf
-	 * $targetDate fällt und die noch keine Vorankündigung bekommen haben.
+	 * Sammeleinzug-Zeilen, die im Zeitfenster [$from, $until] fällig werden und
+	 * noch keine Vorankündigung bekommen haben.
 	 * Genutzt vom {@see \OCA\Vereinsbuchhaltung\BackgroundJob\SepaPreNotificationJob}.
 	 *
+	 * Ein Fenster statt eines Stichtags: vorher wurde `execution_date` exakt
+	 * mit "heute + 14 Tage" verglichen, wodurch jeder Einzug mit kürzerem
+	 * Vorlauf nie eine Ankündigung bekam – siehe SepaNotificationService.
+	 *
+	 * @param string $from  ab wann (i. d. R. heute – Vergangenes ist erledigt)
+	 * @param string $until bis wann (i. d. R. heute + Vorlaufzeit)
 	 * @return SepaBatchItem[]
 	 */
-	public function findDueForNotification(string $targetDate): array {
+	public function findDueForNotification(string $from, string $until): array {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('i.*')
 			->from($this->getTableName(), 'i')
 			->innerJoin('i', 'vbh_sepa_batches', 'b', $qb->expr()->eq('i.batch_id', 'b.id'))
 			->where($qb->expr()->eq('i.status', $qb->createNamedParameter('pending')))
 			->andWhere($qb->expr()->isNull('i.notified_at'))
-			->andWhere($qb->expr()->eq('b.execution_date', $qb->createNamedParameter($targetDate)));
+			->andWhere($qb->expr()->gte('b.execution_date', $qb->createNamedParameter($from)))
+			->andWhere($qb->expr()->lte('b.execution_date', $qb->createNamedParameter($until)))
+			->orderBy('b.execution_date', 'ASC');
+		return $this->findEntities($qb);
+	}
+
+	/**
+	 * Alle Zeilen eines Mandats, unabhängig vom Status – die Frage lautet hier
+	 * „wird das Mandat noch gebraucht?", und dafür zählt auch eine längst
+	 * zurückgebuchte Zeile (siehe SepaMandateService::delete()).
+	 *
+	 * @return SepaBatchItem[]
+	 */
+	public function findByMandate(int $mandateId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('mandate_id', $qb->createNamedParameter($mandateId, IQueryBuilder::PARAM_INT)));
 		return $this->findEntities($qb);
 	}
 
@@ -85,6 +116,33 @@ class SepaBatchItemMapper extends QBMapper {
 			->where($qb->expr()->eq('amount_cents', $qb->createNamedParameter($amountCents, IQueryBuilder::PARAM_INT)))
 			->andWhere($qb->expr()->eq('status', $qb->createNamedParameter('pending')));
 		return $this->findEntities($qb);
+	}
+
+	/**
+	 * Jüngste Fälligkeit, zu der dieses Mandat tatsächlich noch in einem
+	 * Sammeleinzug steckt. Wird nach dem Verwerfen eines Einzugs gebraucht, um
+	 * `last_used_date` am Mandat wieder auf den Stand zu bringen, der durch
+	 * die verbliebenen Einzüge gedeckt ist – sonst gälte das Mandat weiter als
+	 * benutzt und der nächste Einzug liefe als RCUR statt als FRST.
+	 */
+	public function findLastExecutionDateByMandate(int $mandateId): ?string {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select($qb->func()->max('b.execution_date'))
+			->from($this->getTableName(), 'i')
+			->innerJoin('i', 'vbh_sepa_batches', 'b', $qb->expr()->eq('i.batch_id', 'b.id'))
+			->where($qb->expr()->eq('i.mandate_id', $qb->createNamedParameter($mandateId, IQueryBuilder::PARAM_INT)));
+		$result = $qb->executeQuery();
+		$value = $result->fetchOne();
+		$result->closeCursor();
+		return $value === false || $value === null || $value === '' ? null : (string)$value;
+	}
+
+	/** Alle Zeilen eines Einzugs löschen (siehe SepaBatchService::deleteBatch()). */
+	public function deleteByBatch(int $batchId): void {
+		$qb = $this->db->getQueryBuilder();
+		$qb->delete($this->getTableName())
+			->where($qb->expr()->eq('batch_id', $qb->createNamedParameter($batchId, IQueryBuilder::PARAM_INT)));
+		$qb->executeStatement();
 	}
 
 	public function findByEndToEndId(string $endToEndId): ?SepaBatchItem {

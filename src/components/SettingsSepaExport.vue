@@ -4,8 +4,30 @@
 			{{ t('SEPA-Sammeleinzug') }}
 		</h3>
 		<p class="vbh-hint">
-			{{ t('Erzeugt eine SEPA-XML-Datei (pain.008) aus allen offenen Posten mit aktivem Mandat, die noch in keinem laufenden Einzug stecken. Vor dem ersten echten Einzug unbedingt mit dem Prüftool der Hausbank testen – das genaue Format kann je nach Bank leicht abweichen.') }}
+			{{ t('Erzeugt eine SEPA-XML-Datei (pain.008) aus allen offenen Posten mit aktivem Mandat, die bis zum Fälligkeitstag fällig sind und noch in keinem laufenden Einzug stecken. Vor dem ersten echten Einzug unbedingt mit dem Prüftool der Hausbank testen – das genaue Format kann je nach Bank leicht abweichen.') }}
 		</p>
+
+		<div class="vbh-card">
+			<div class="vbh-form">
+				<label>{{ t('Fälligkeitsdatum') }}
+					<input v-model="executionDate" type="date" :min="today">
+				</label>
+				<NcButton :disabled="!executionDate || loading" @click="reloadPreview">
+					{{ t('Vorschau aktualisieren') }}
+				</NcButton>
+				<NcButton variant="primary"
+					:disabled="!executionDate || !sepaPreview.length || creating"
+					@click="createBatch">
+					{{ t('Einzug erzeugen') }}
+				</NcButton>
+			</div>
+			<p v-if="leadDays !== null && leadDays < leadRequired" class="vbh-hint vbh-hint--warning">
+				{{ t('Bis zu diesem Termin sind es nur noch {n} Tage. Das SEPA-Regelwerk verlangt, dass Sie den Zahler mindestens {required} Tage vorher über Betrag und Termin informieren – die automatische Vorankündigung schafft das dann nicht mehr vollständig.', { n: leadDays, required: leadRequired }) }}
+			</p>
+			<p v-else class="vbh-hint">
+				{{ t('Vorgeschlagen sind {required} Tage Vorlauf: so viel Zeit verlangt das SEPA-Regelwerk für die Vorankündigung an den Zahler.', { required: leadRequired }) }}
+			</p>
+		</div>
 
 		<div v-if="sepaPreview.length" class="vbh-tablecard">
 			<table class="vbh-table">
@@ -15,6 +37,7 @@
 						<th class="num">
 							{{ t('Betrag') }}
 						</th>
+						<th>{{ t('Fällig am') }}</th>
 						<th>{{ t('Mandatsreferenz') }}</th>
 						<th>{{ t('Art') }}</th>
 					</tr>
@@ -26,23 +49,27 @@
 							{{ formatMoney(row.openItem.amount) }}
 						</td>
 						<td class="nowrap">
+							{{ row.openItem.dueDate || '–' }}
+						</td>
+						<td class="nowrap">
 							{{ row.mandate.mandateReference }}
 						</td>
-						<td>{{ row.sequenceType }}</td>
+						<td>{{ sequenceLabel(row.sequenceType) }}</td>
 					</tr>
 				</tbody>
+				<tfoot>
+					<tr>
+						<td>{{ t('Summe') }}</td>
+						<td class="num nowrap">
+							{{ formatMoney(previewTotal) }}
+						</td>
+						<td colspan="3" />
+					</tr>
+				</tfoot>
 			</table>
-			<div class="vbh-form">
-				<label>{{ t('Fälligkeitsdatum') }}
-					<input v-model="executionDate" type="date">
-				</label>
-				<NcButton variant="primary" :disabled="!executionDate || creating" @click="createBatch">
-					{{ t('Einzug erzeugen') }}
-				</NcButton>
-			</div>
 		</div>
 		<p v-else class="vbh-hint">
-			{{ t('Zurzeit keine offenen Posten mit aktivem SEPA-Mandat fällig zum Einzug.') }}
+			{{ t('Bis zum gewählten Termin ist kein offener Posten mit aktivem SEPA-Mandat fällig.') }}
 		</p>
 
 		<div v-if="sepaBatches.length" class="vbh-tablecard">
@@ -55,20 +82,74 @@
 					</tr>
 				</thead>
 				<tbody>
-					<tr v-for="b in sepaBatches" :key="b.id">
-						<td class="nowrap">
-							{{ b.createdAt }}
-						</td>
-						<td class="nowrap">
-							{{ b.executionDate }}
-						</td>
-						<td class="nowrap right">
-							<a :href="xmlUrl(b.id)"
-								target="_blank"
-								rel="noopener"
-								class="vbh-export-btn">{{ t('XML herunterladen') }}</a>
-						</td>
-					</tr>
+					<template v-for="b in sepaBatches">
+						<tr :key="b.id">
+							<td class="nowrap">
+								{{ b.createdAt }}
+							</td>
+							<td class="nowrap">
+								{{ b.executionDate }}
+							</td>
+							<td class="nowrap right">
+								<NcButton variant="tertiary" size="small" @click="toggleItems(b.id)">
+									{{ expanded === b.id ? t('Zeilen ausblenden') : t('Zeilen anzeigen') }}
+								</NcButton>
+								<a :href="xmlUrl(b.id)"
+									target="_blank"
+									rel="noopener"
+									class="vbh-export-btn">{{ t('XML herunterladen') }}</a>
+								<NcButton variant="error"
+									size="small"
+									:aria-label="t('Einzug verwerfen')"
+									@click="discard(b)">
+									{{ t('Verwerfen') }}
+								</NcButton>
+							</td>
+						</tr>
+						<tr v-if="expanded === b.id" :key="`${b.id}-items`">
+							<td colspan="3">
+								<table class="vbh-table vbh-subtable">
+									<thead>
+										<tr>
+											<th>{{ t('Zahler') }}</th>
+											<th class="num">
+												{{ t('Betrag') }}
+											</th>
+											<th>{{ t('Art') }}</th>
+											<th>{{ t('Vorankündigung') }}</th>
+											<th>{{ t('Status') }}</th>
+											<th />
+										</tr>
+									</thead>
+									<tbody>
+										<tr v-for="item in (sepaBatchItems[b.id] || [])" :key="item.id">
+											<td>{{ item.debtorName }}</td>
+											<td class="num nowrap">
+												{{ formatMoney(item.amount) }}
+											</td>
+											<td>{{ sequenceLabel(item.sequenceType) }}</td>
+											<td>{{ notificationLabel(item) }}</td>
+											<td>
+												<span class="vbh-typetag">{{ item.status === 'returned' ? t('zurückgebucht') : t('offen') }}</span>
+												<span v-if="item.returnReason" class="vbh-hint">{{ item.returnReason }}</span>
+											</td>
+											<td class="nowrap right">
+												<NcButton v-if="item.status === 'returned'"
+													variant="tertiary"
+													size="small"
+													@click="revert(b.id, item)">
+													{{ t('Rückbuchung zurücknehmen') }}
+												</NcButton>
+											</td>
+										</tr>
+									</tbody>
+								</table>
+								<p v-if="skippedCount(b.id) > 0" class="vbh-hint vbh-hint--warning">
+									{{ t('{n} Zahler haben keine E-Mail-Adresse hinterlegt und konnten nicht angekündigt werden – bitte selbst informieren.', { n: skippedCount(b.id) }) }}
+								</p>
+							</td>
+						</tr>
+					</template>
 				</tbody>
 			</table>
 		</div>
@@ -82,10 +163,14 @@ import { showError, showSuccess } from '@nextcloud/dialogs'
 import api from '../api.js'
 import { errMsg, formatMoney } from '../lib/format.js'
 import { useSepaBatches } from '../composables/useSepaBatches.js'
+import { useConfirm } from '../composables/useConfirm.js'
+
+/** Vorlaufzeit der Vorankündigung, siehe SepaNotificationService::LEAD_DAYS. */
+const LEAD_DAYS = 14
 
 /**
- * Erzeugen und Herunterladen von SEPA-Sammeleinzügen. Nur für Verwalter
- * erreichbar (siehe SepaBatchController).
+ * Erzeugen, Prüfen und Herunterladen von SEPA-Sammeleinzügen. Nur für
+ * Verwalter erreichbar (siehe SepaBatchController).
  */
 export default {
 	name: 'SettingsSepaExport',
@@ -96,30 +181,91 @@ export default {
 			...toRefs(sepaBatches.state),
 			loadSepaPreview: sepaBatches.loadSepaPreview,
 			loadSepaBatches: sepaBatches.loadSepaBatches,
+			loadSepaBatchItems: sepaBatches.loadSepaBatchItems,
+			askConfirm: useConfirm().askConfirm,
 		}
 	},
 	data() {
 		return {
 			executionDate: '',
 			creating: false,
+			loading: false,
+			leadRequired: LEAD_DAYS,
+			// Aufgeklappter Einzug; immer nur einer, die Zeilenliste ist breit.
+			expanded: null,
 		}
 	},
-	mounted() {
-		this.loadSepaPreview()
+	computed: {
+		today() { return new Date().toISOString().slice(0, 10) },
+		previewTotal() { return this.sepaPreview.reduce((sum, r) => sum + r.openItem.amount, 0) },
+		/** Tage bis zum gewählten Termin, oder null, solange keiner gewählt ist. */
+		leadDays() {
+			if (!this.executionDate) return null
+			const ms = new Date(`${this.executionDate}T00:00:00`) - new Date(`${this.today}T00:00:00`)
+			return Math.round(ms / 86400000)
+		},
+	},
+	async mounted() {
+		// Ohne Datum antwortet das Backend mit seinem Vorschlagstermin - den
+		// uebernehmen wir, damit Vorschau und Eingabefeld dasselbe meinen.
+		const data = await this.loadSepaPreview()
+		this.executionDate = data?.executionDate || ''
 		this.loadSepaBatches()
 	},
 	methods: {
 		errMsg,
 		formatMoney,
 		xmlUrl(id) { return api.sepaBatchXmlUrl(id) },
+		sequenceLabel(type) {
+			return { FRST: this.t('Ersteinzug'), RCUR: this.t('Folgeeinzug'), OOFF: this.t('einmalig') }[type] || type
+		},
+		notificationLabel(item) {
+			if (item.notifiedState === 'sent') return this.t('verschickt')
+			if (item.notifiedState === 'no_email') return this.t('keine Adresse')
+			return this.t('offen')
+		},
+		skippedCount(batchId) {
+			return (this.sepaBatchItems[batchId] || []).filter(i => i.notifiedState === 'no_email').length
+		},
+		async reloadPreview() {
+			this.loading = true
+			try { await this.loadSepaPreview(this.executionDate) } finally { this.loading = false }
+		},
 		async createBatch() {
 			this.creating = true
 			try {
 				await api.createSepaBatch(this.executionDate)
-				this.executionDate = ''
-				await Promise.all([this.loadSepaPreview(), this.loadSepaBatches()])
+				await Promise.all([this.loadSepaPreview(this.executionDate), this.loadSepaBatches()])
 				showSuccess(this.t('SEPA-Einzug erzeugt.'))
 			} catch (e) { showError(this.errMsg(e, this.t('Einzug konnte nicht erzeugt werden'))) } finally { this.creating = false }
+		},
+		async toggleItems(batchId) {
+			if (this.expanded === batchId) { this.expanded = null; return }
+			this.expanded = batchId
+			await this.loadSepaBatchItems(batchId)
+		},
+		async discard(batch) {
+			if (!await this.askConfirm(
+				this.t('Einzug verwerfen'),
+				this.t('Einzug mit Fälligkeit {date} verwerfen? Die enthaltenen offenen Posten stehen danach wieder für einen Einzug bereit. Wurde die Datei bereits bei der Bank eingereicht, ändert das Verwerfen daran nichts.', { date: batch.executionDate }),
+			)) return
+			try {
+				await api.deleteSepaBatch(batch.id)
+				this.expanded = null
+				await Promise.all([this.loadSepaPreview(this.executionDate), this.loadSepaBatches()])
+				showSuccess(this.t('Einzug verworfen.'))
+			} catch (e) { showError(this.errMsg(e, this.t('Einzug konnte nicht verworfen werden'))) }
+		},
+		async revert(batchId, item) {
+			if (!await this.askConfirm(
+				this.t('Rückbuchung zurücknehmen'),
+				this.t('Diese Zeile war offenbar keine Rücklastschrift? Sie gilt danach wieder als offen. Den Status des zugehörigen offenen Postens prüfen Sie bitte selbst.'),
+			)) return
+			try {
+				await api.revertSepaReturn(item.id)
+				await this.loadSepaBatchItems(batchId)
+				showSuccess(this.t('Rückbuchung zurückgenommen.'))
+			} catch (e) { showError(this.errMsg(e, this.t('Zurücknehmen fehlgeschlagen'))) }
 		},
 	},
 }

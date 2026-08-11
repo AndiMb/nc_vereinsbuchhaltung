@@ -19,6 +19,9 @@ use OCA\Vereinsbuchhaltung\Db\SepaBatch;
  * exakt erwartete Subformat (001.02 vs. 001.08/09) unterscheidet sich je
  * nach Bank.
  *
+ * Alle Freitexte laufen durch {@see SepaText}: Umlaute werden aufgelöst und
+ * Feldlängen eingehalten, sonst weist die Bank die Datei zurück.
+ *
  * @phpstan-type Row array{
  *     endToEndId: string, amountCents: int, sequenceType: string,
  *     mandateReference: string, signedDate: string, debtorIban: string,
@@ -56,14 +59,14 @@ class PainXmlBuilder {
 		$this->el($doc, $grpHdr, 'CtrlSum', $this->formatAmount($this->sumCents($rows)));
 		$initgPty = $doc->createElement('InitgPty');
 		$grpHdr->appendChild($initgPty);
-		$this->el($doc, $initgPty, 'Nm', $batch->getCreditorName());
+		$this->el($doc, $initgPty, 'Nm', SepaText::name($batch->getCreditorName()));
 	}
 
 	/** @param Row[] $rows */
 	private function buildPaymentInfo(\DOMDocument $doc, \DOMElement $parent, SepaBatch $batch, string $sequenceType, array $rows): void {
 		$pmtInf = $doc->createElement('PmtInf');
 		$parent->appendChild($pmtInf);
-		$this->el($doc, $pmtInf, 'PmtInfId', $batch->getMessageId() . '-' . $sequenceType);
+		$this->el($doc, $pmtInf, 'PmtInfId', mb_substr($batch->getMessageId() . '-' . $sequenceType, 0, SepaText::MAX_ID));
 		$this->el($doc, $pmtInf, 'PmtMtd', 'DD');
 		$this->el($doc, $pmtInf, 'BtchBookg', 'true');
 		$this->el($doc, $pmtInf, 'NbOfTxs', (string)count($rows));
@@ -83,7 +86,7 @@ class PainXmlBuilder {
 
 		$cdtr = $doc->createElement('Cdtr');
 		$pmtInf->appendChild($cdtr);
-		$this->el($doc, $cdtr, 'Nm', $batch->getCreditorName());
+		$this->el($doc, $cdtr, 'Nm', SepaText::name($batch->getCreditorName()));
 
 		$cdtrAcct = $doc->createElement('CdtrAcct');
 		$pmtInf->appendChild($cdtrAcct);
@@ -91,15 +94,12 @@ class PainXmlBuilder {
 		$cdtrAcct->appendChild($cdtrAcctId);
 		$this->el($doc, $cdtrAcctId, 'IBAN', $batch->getCreditorIban());
 
-		$cdtrAgt = $doc->createElement('CdtrAgt');
-		$pmtInf->appendChild($cdtrAgt);
-		$cdtrFinInstn = $doc->createElement('FinInstnId');
-		$cdtrAgt->appendChild($cdtrFinInstn);
-		if ($batch->getCreditorBic() !== null) {
-			$this->el($doc, $cdtrFinInstn, 'BIC', $batch->getCreditorBic());
-		} else {
-			$this->el($doc, $cdtrFinInstn, 'Othr', null)->appendChild($doc->createElement('Id', 'NOTPROVIDED'));
-		}
+		$this->buildAgent($doc, $pmtInf, 'CdtrAgt', $batch->getCreditorBic());
+
+		// Gebührenregelung: bei SEPA immer geteilt (SLEV). Laut Schema optional,
+		// etliche deutsche Institute erwarten das Feld aber ausdrücklich.
+		// Position ist vorgeschrieben: nach CdtrAgt, vor CdtrSchmeId.
+		$this->el($doc, $pmtInf, 'ChrgBr', 'SLEV');
 
 		$cdtrSchmeId = $doc->createElement('CdtrSchmeId');
 		$pmtInf->appendChild($cdtrSchmeId);
@@ -139,19 +139,11 @@ class PainXmlBuilder {
 		$this->el($doc, $mndtRltdInf, 'MndtId', $row['mandateReference']);
 		$this->el($doc, $mndtRltdInf, 'DtOfSgntr', $row['signedDate']);
 
-		$dbtrAgt = $doc->createElement('DbtrAgt');
-		$txInf->appendChild($dbtrAgt);
-		$dbtrFinInstn = $doc->createElement('FinInstnId');
-		$dbtrAgt->appendChild($dbtrFinInstn);
-		if ($row['debtorBic'] !== null) {
-			$this->el($doc, $dbtrFinInstn, 'BIC', $row['debtorBic']);
-		} else {
-			$this->el($doc, $dbtrFinInstn, 'Othr', null)->appendChild($doc->createElement('Id', 'NOTPROVIDED'));
-		}
+		$this->buildAgent($doc, $txInf, 'DbtrAgt', $row['debtorBic']);
 
 		$dbtr = $doc->createElement('Dbtr');
 		$txInf->appendChild($dbtr);
-		$this->el($doc, $dbtr, 'Nm', $row['debtorName']);
+		$this->el($doc, $dbtr, 'Nm', SepaText::name($row['debtorName']));
 
 		$dbtrAcct = $doc->createElement('DbtrAcct');
 		$txInf->appendChild($dbtrAcct);
@@ -161,7 +153,24 @@ class PainXmlBuilder {
 
 		$rmtInf = $doc->createElement('RmtInf');
 		$txInf->appendChild($rmtInf);
-		$this->el($doc, $rmtInf, 'Ustrd', mb_substr($row['remittanceInfo'], 0, 140));
+		$this->el($doc, $rmtInf, 'Ustrd', SepaText::convert($row['remittanceInfo'], SepaText::MAX_REMITTANCE));
+	}
+
+	/**
+	 * Bank des Gläubigers bzw. des Zahlers. Ohne BIC gilt seit der IBAN-only-
+	 * Umstellung „NOTPROVIDED" – die Bank ermittelt sie selbst aus der IBAN.
+	 */
+	private function buildAgent(\DOMDocument $doc, \DOMElement $parent, string $tag, ?string $bic): void {
+		$agt = $doc->createElement($tag);
+		$parent->appendChild($agt);
+		$finInstn = $doc->createElement('FinInstnId');
+		$agt->appendChild($finInstn);
+		if ($bic !== null && $bic !== '') {
+			$this->el($doc, $finInstn, 'BIC', $bic);
+		} else {
+			$othr = $this->el($doc, $finInstn, 'Othr', null);
+			$this->el($doc, $othr, 'Id', 'NOTPROVIDED');
+		}
 	}
 
 	/**
@@ -195,6 +204,10 @@ class PainXmlBuilder {
 	 * (potenziell) Markup – ein "&" darin wirft eine DOMException oder,
 	 * schlimmer, ließe sich zur XML-Injektion missbrauchen. Ein Textknoten
 	 * wird dagegen beim Serialisieren immer sicher escaped.
+	 *
+	 * Die Regel gilt ohne Ausnahme, auch für feste Werte wie "NOTPROVIDED":
+	 * eine Regel mit Ausnahmen lädt dazu ein, die nächste Ausnahme mit einem
+	 * Variablenwert zu machen.
 	 */
 	private function el(\DOMDocument $doc, \DOMElement $parent, string $name, ?string $value): \DOMElement {
 		$el = $doc->createElement($name);

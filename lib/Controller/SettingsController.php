@@ -169,6 +169,11 @@ class SettingsController extends Controller {
 				if (!$account->getIsBank()) {
 					return new DataResponse(['message' => $this->l10n->t('Das einziehende Konto muss ein Geldkonto sein.')], Http::STATUS_BAD_REQUEST);
 				}
+				// Gleich hier prüfen und nicht erst beim Erzeugen des Einzugs: die
+				// fehlende IBAN fiele sonst erst auf, wenn es eilig ist.
+				if ($account->getIban() === null) {
+					return new DataResponse(['message' => $this->l10n->t('Für das einziehende Konto ist keine IBAN hinterlegt. Bitte tragen Sie sie zuerst am Konto ein.')], Http::STATUS_BAD_REQUEST);
+				}
 			} catch (DoesNotExistException) {
 				return new DataResponse(['message' => $this->l10n->t('Das gewählte einziehende Konto wurde nicht gefunden.')], Http::STATUS_BAD_REQUEST);
 			}

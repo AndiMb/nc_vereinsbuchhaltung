@@ -10,6 +10,34 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
 
 ## [Unreleased]
 
+## [0.20.0] – 2026-08-12
+
+### Neu
+- **SEPA-Lastschrift und Mitgliedsbeiträge** – ein optionales Zusatzmodul für
+  Vereine, die Beiträge einziehen. Wer es nicht braucht, merkt nichts davon:
+  ohne angelegtes Mandat bleibt alles wie bisher.
+  - **Lastschriftmandate** (Einstellungen → SEPA-Lastschriftmandate): je Mandat
+    ein Zahler, eine IBAN und ein Unterschriftsdatum. Zahler ist entweder ein
+    Nextcloud-Konto oder ein frei eingetragener Name – letzteres für Verbände,
+    die Beitragsanteile von Untergliederungen einziehen. Mandate werden
+    widerrufen, nicht gelöscht, damit erzeugte Einreichungen nachvollziehbar
+    bleiben.
+  - **Mitgliedsbeiträge mit Zahlungsfrequenz** (monatlich bis jährlich): bei
+    Fälligkeit legt die App automatisch einen offenen Posten an – mit oder ohne
+    Mandat. Ohne Mandat ist der Posten schlicht eine Erinnerung an eine
+    erwartete Überweisung.
+  - **SEPA-Sammeleinzug** als pain.008-Datei zum Einreichen bei der Hausbank,
+    mit Vorschau der fälligen Posten und der Möglichkeit, einen falsch
+    erzeugten Einzug wieder zu verwerfen.
+  - **Vorankündigung per E-Mail** an Mitglieder mit hinterlegter Adresse, wie
+    vom SEPA-Regelwerk verlangt. Zahler ohne Adresse werden vermerkt, damit der
+    Verein sie selbst informieren kann.
+  - **Rücklastschriften** werden beim Kontoauszugs-Import erkannt und öffnen den
+    zugehörigen offenen Posten wieder. Eine Fehlzuordnung lässt sich zurücknehmen.
+
+  Vor dem ersten echten Einzug die erzeugte Datei mit dem Prüftool der Hausbank
+  gegentesten – das genaue Format weicht je nach Bank leicht ab.
+
 ## [0.19.3] – 2026-08-06
 
 ### Geändert

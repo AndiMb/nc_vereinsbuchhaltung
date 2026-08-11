@@ -21,7 +21,8 @@ Menüstrukturen: Was muss ich wann tun, und worauf ist dabei zu achten?
 10. [Mehrere Personen an der Buchhaltung (Kollaboration)](#10-mehrere-personen-an-der-buchhaltung-kollaboration)
 11. [Unterwegs: die App auf dem Smartphone](#11-unterwegs-die-app-auf-dem-smartphone)
 12. [Wenn etwas schiefgeht – Hilfe und Sicherheit](#12-wenn-etwas-schiefgeht--hilfe-und-sicherheit)
-13. [Anhang: Rollen, Kontotypen, Tastenkürzel, Glossar](#13-anhang-rollen-kontotypen-tastenk%C3%BCrzel-glossar)
+13. [Mitgliedsbeiträge und SEPA-Lastschrift](#13-mitgliedsbeitr%C3%A4ge-und-sepa-lastschrift)
+14. [Anhang: Rollen, Kontotypen, Tastenkürzel, Glossar](#14-anhang-rollen-kontotypen-tastenk%C3%BCrzel-glossar)
 
 ---
 
@@ -853,9 +854,102 @@ Zweifel die verwaltende Person fragen.
 
 ---
 
-## 13. Anhang: Rollen, Kontotypen, Tastenkürzel, Glossar
+## 13. Mitgliedsbeiträge und SEPA-Lastschrift
 
-### 13.1 Rollen und Rechte
+Ein **optionales Zusatzmodul**. Wer Beiträge per Überweisung bekommt oder gar
+keine erhebt, kann dieses Kapitel überspringen – ohne angelegtes Mandat
+verhält sich die App genau wie bisher.
+
+Alles hier ist **Verwaltern vorbehalten**: ein Mandat verknüpft eine Person mit
+ihrer Bankverbindung.
+
+### 13.1 Was Sie vorher brauchen
+
+1. Eine **Gläubiger-Identifikationsnummer**. Die vergibt die Deutsche
+   Bundesbank kostenlos auf Antrag; sie sieht aus wie `DE98ZZZ09999999999` und
+   weist Ihren Verein bei jedem Einzug als Zahlungsempfänger aus.
+2. Ein **schriftliches Mandat je Mitglied**. Die App verwaltet die Angaben,
+   ersetzt aber nicht die unterschriebene Einzugsermächtigung – die gehört in
+   Ihre Unterlagen.
+3. Ein **Geldkonto mit hinterlegter IBAN** in der Kontenliste. Auf dieses Konto
+   wird eingezogen.
+
+Beides tragen Sie unter *Zahnrad → SEPA-Lastschriftmandate → Grundeinstellungen*
+ein.
+
+### 13.2 Mandate anlegen
+
+Ein Mandat gehört entweder zu einem **Nextcloud-Nutzer** dieser Instanz oder zu
+einem **frei eingetragenen Zahlernamen**. Das zweite ist für Verbände gedacht,
+die Beitragsanteile von Untergliederungen einziehen und keine einzelnen
+Mitglieder führen.
+
+Die App vergibt die **Mandatsreferenz** selbst (etwa `M20260812-2DE3C1`). Diese
+Referenz erscheint auf dem Kontoauszug des Zahlers – teilen Sie sie ihm mit dem
+Mandatsformular mit.
+
+> Ein Mandat wird **widerrufen, nicht gelöscht**. Bereits erzeugte
+> Einreichungen verweisen darauf, und dieser Nachweis muss erhalten bleiben.
+> Deshalb verschwindet der Löschen-Knopf, sobald ein Mandat irgendwo verwendet
+> wird.
+
+### 13.3 Beiträge mit Zahlungsfrequenz
+
+Unter *Zahnrad → Mitgliedsbeiträge* legen Sie je Zahler einen Betrag und eine
+Frequenz fest (monatlich, vierteljährlich, halbjährlich, jährlich). Bei
+Fälligkeit erzeugt die App automatisch einen **offenen Posten** – denselben, den
+Sie unter *Berichte → Offene Posten* sehen.
+
+Ein Mandat ist dabei **optional**: ohne Mandat ist der Posten schlicht eine
+Erinnerung an eine erwartete Überweisung. Nur Posten *mit* Mandat kommen für
+den Lastschrifteinzug in Frage.
+
+Liegt das Startdatum weit in der Vergangenheit, holt die App **pro Tag eine
+Periode** nach, statt auf einen Schlag zwölf offene Posten anzulegen. Wenn Sie
+sich beim Startdatum vertan haben, korrigieren Sie die nächste Fälligkeit
+einfach über *Bearbeiten*.
+
+### 13.4 Einzug erzeugen und einreichen
+
+Unter *Zahnrad → SEPA-Sammeleinzug* wählen Sie den **Fälligkeitstermin**. Die
+Vorschau zeigt alle offenen Posten mit aktivem Mandat, die bis dahin fällig
+sind und in keinem laufenden Einzug stecken.
+
+> **Legen Sie den Termin mindestens 14 Tage in die Zukunft.** Das SEPA-Regelwerk
+> verlangt, dass Sie den Zahler vorher über Betrag und Termin informieren
+> („Vorankündigung"). Die App übernimmt das per E-Mail für alle Mitglieder mit
+> hinterlegter Adresse; bei einem kürzeren Vorlauf warnt sie. Zahler ohne
+> E-Mail-Adresse müssen Sie selbst informieren – die Zeilenansicht des Einzugs
+> weist Sie darauf hin.
+
+„Einzug erzeugen" legt den Sammeleinzug an; über „XML herunterladen" bekommen
+Sie die **pain.008-Datei**, die Sie im Online-Banking Ihrer Bank hochladen.
+
+> **Vor dem ersten echten Einzug** die Datei mit dem Prüftool Ihrer Hausbank
+> gegentesten. Das genaue Format weicht je nach Institut leicht ab.
+
+Ein versehentlich erzeugter Einzug lässt sich über **„Verwerfen"** wieder
+auflösen, solange keine Rücklastschrift eingegangen ist; die enthaltenen Posten
+stehen dann wieder zur Verfügung. Wurde die Datei schon eingereicht, ändert das
+Verwerfen daran natürlich nichts – dann müssen Sie den Einzug bei der Bank
+zurückrufen.
+
+### 13.5 Rücklastschriften
+
+Kommt ein Einzug zurück (Konto nicht gedeckt, Mandat widersprochen), erkennt die
+App das beim nächsten **Kontoauszugs-Import** und öffnet den zugehörigen offenen
+Posten wieder. Die zurückgebuchte Bankbuchung selbst ordnen Sie wie jede andere
+einem Konto zu – typischerweise Forderungsausfälle und Bankgebühren.
+
+Die Erkennung arbeitet mit dem, was die Bank im Verwendungszweck mitliefert, und
+liegt gelegentlich daneben. In der Zeilenansicht des Einzugs können Sie eine
+falsch erkannte Rückbuchung über **„Rückbuchung zurücknehmen"** wieder aufheben.
+
+---
+
+## 14. Anhang: Rollen, Kontotypen, Tastenkürzel, Glossar
+
+### 14.1 Rollen und Rechte
 
 | Rolle | Lesen | Buchen/Belege | Berechtigungen, Jahresabschluss, Reset |
 |---|:---:|:---:|:---:|
@@ -864,7 +958,7 @@ Zweifel die verwaltende Person fragen.
 | Verwalter | ✓ | ✓ | ✓ |
 | NC-Admin | ✓ | ✓ | ✓ (immer) |
 
-### 13.2 Kontotypen und ihre Bedeutung
+### 14.2 Kontotypen und ihre Bedeutung
 
 | Typ | Bedeutung | Natur | kumulativ? |
 |---|---|---|---|
@@ -879,13 +973,13 @@ Zweifel die verwaltende Person fragen.
 und zeigt den echten Kontostand, nicht nur die Jahresbewegung. Das betrifft
 nur Geldkonten (Bank-Flag).
 
-### 13.3 Tastenkürzel (Desktop)
+### 14.3 Tastenkürzel (Desktop)
 
 - **N** – neue Buchung anlegen
 - **/** – Suche fokussieren (im Konten-Tab die Baumsuche, sonst die
   Buchungs-Suche)
 
-### 13.4 Glossar
+### 14.4 Glossar
 
 - **Soll / Haben** – die zwei Seiten einer Buchung („wo hin" / „wo her").
 - **Gegenkonto** – das Konto, dem eine Bankbuchung zugeordnet wird (die

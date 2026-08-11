@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\SepaBatchItem;
 use OCA\Vereinsbuchhaltung\Db\SepaBatchItemMapper;
 use OCA\Vereinsbuchhaltung\Db\SepaMandateMapper;
+use OCA\Vereinsbuchhaltung\Service\Sepa\SepaReference;
 use OCP\AppFramework\Db\DoesNotExistException;
 
 /**
@@ -23,15 +24,25 @@ use OCP\AppFramework\Db\DoesNotExistException;
  * Bewusst kein Ersatz für die normale Kontenzuordnung: die zurückgebuchte
  * Bankbuchung selbst bleibt wie jede andere unzugeordnet und muss weiterhin
  * auf ein Konto gebucht werden (z. B. Forderungsausfälle/Bankgebühren) –
- * dieser Dienst öffnet nur den ursprünglichen offenen Posten wieder und
- * markiert das Mandat als zurückgebucht.
+ * dieser Dienst markiert nur die Sammeleinzug-Zeile als zurückgebucht und
+ * öffnet den ursprünglichen offenen Posten wieder. Am Mandat ändert sich
+ * nichts: ob der Verein es nach einer Rückbuchung widerruft, ist eine
+ * Entscheidung, die ihm gehört und nicht dem Import.
  *
  * Die Erkennung ist Best-Effort auf Basis von Verwendungszweck/Buchungstext
- * (CSV- und CAMT-Exporte unterscheiden sich hier stark zwischen Banken):
- * zuerst wird nach der eigenen Mandats- oder End-to-End-Referenz gesucht
- * (hohe Sicherheit, die Bank spiegelt sie bei einer Rückbuchung oft), sonst
- * nach Betrag + IBAN unter den noch offenen Sammeleinzug-Zeilen (schwächer,
- * aber besser als nichts).
+ * (CSV- und CAMT-Exporte unterscheiden sich hier stark zwischen Banken) und
+ * arbeitet in drei Stufen abnehmender Sicherheit:
+ *
+ * 1. eigene End-to-End-Referenz im Text – eindeutig, die Bank spiegelt sie oft;
+ * 2. eigene Mandatsreferenz plus passender Betrag – nahezu eindeutig;
+ * 3. Betrag plus IBAN unter den noch offenen Zeilen – nur ein Indiz.
+ *
+ * Für Stufe 3 reicht ein deutsches Stichwort wie „Rücklastschrift" allein
+ * nicht: dasselbe Wort steht auch in der Gebührenbuchung, die die Bank für
+ * eine Rückbuchung erhebt („Entgelt Rücklastschrift"), und deren Betrag kann
+ * zufällig passen. Dort wird ein echter ISO-Rückgabegrund verlangt. Eine
+ * falsch erkannte Rückbuchung lässt sich außerdem zurücknehmen, siehe
+ * {@see SepaBatchService::revertReturn()}.
  */
 class SepaReturnDetectionService {
 
@@ -115,9 +126,17 @@ class SepaReturnDetectionService {
 		return false;
 	}
 
+	/**
+	 * Sucht einen ISO-Rückgabegrund als eigenständiges Wort.
+	 *
+	 * Die Abgrenzung ist strenger als ein bloßes \b: das würde auch in
+	 * „Rechnung AC01-2026" anschlagen, weil der Bindestrich als Wortgrenze
+	 * zählt. Ein Rückgabegrund steht im Bankdeutsch für sich, nie als Teil
+	 * einer längeren Kennung.
+	 */
 	private function extractReasonCode(string $haystack): ?string {
 		foreach (self::REASON_CODES as $code) {
-			if (preg_match('/\b' . $code . '\b/', $haystack)) {
+			if (preg_match('/(?<![A-Z0-9-])' . $code . '(?![A-Z0-9-])/', $haystack)) {
 				return $code;
 			}
 		}
@@ -127,15 +146,17 @@ class SepaReturnDetectionService {
 	private function resolveItem(BankTransaction $tx, string $haystack): ?SepaBatchItem {
 		$amountCents = abs($tx->getAmountCents());
 
-		if (preg_match('/\bE2E-\d{8}-\d{6}-[0-9A-F]{8}\b/', $haystack, $m)) {
-			$item = $this->itemMapper->findByEndToEndId($m[0]);
+		$endToEndId = SepaReference::findEndToEnd($haystack);
+		if ($endToEndId !== null) {
+			$item = $this->itemMapper->findByEndToEndId($endToEndId);
 			if ($item !== null && $item->getStatus() === 'pending') {
 				return $item;
 			}
 		}
 
-		if (preg_match('/\bM\d{8}-[0-9A-F]{6}\b/', $haystack, $m)) {
-			$mandate = $this->mandateMapper->findByReference($m[0]);
+		$mandateReference = SepaReference::findMandate($haystack);
+		if ($mandateReference !== null) {
+			$mandate = $this->mandateMapper->findByReference($mandateReference);
 			if ($mandate !== null) {
 				foreach ($this->itemMapper->findPendingByMandate($mandate->getId()) as $candidate) {
 					if ($candidate->getAmountCents() === $amountCents) {
@@ -145,7 +166,10 @@ class SepaReturnDetectionService {
 			}
 		}
 
-		if ($tx->getCounterpartyIban() !== null) {
+		// Schwächste Stufe: keine eigene Referenz im Text, nur Betrag und IBAN.
+		// Hier verlangen wir einen echten ISO-Rückgabegrund – ein deutsches
+		// Stichwort allein trifft sonst auch die Gebührenbuchung zur Rückgabe.
+		if ($tx->getCounterpartyIban() !== null && $this->extractReasonCode($haystack) !== null) {
 			foreach ($this->itemMapper->findPendingByAmount($amountCents) as $candidate) {
 				try {
 					$mandate = $this->mandateMapper->find($candidate->getMandateId());

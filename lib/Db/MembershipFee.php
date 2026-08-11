@@ -12,6 +12,10 @@ use OCP\AppFramework\Db\Entity;
  * gleiche Modellierung). mandate_id ist optional: ein Beitrag kann rein
  * informativ offene Posten erzeugen, ohne je per SEPA eingezogen zu werden.
  *
+ * Die erlaubten Werte für `frequency` stehen in
+ * {@see \OCA\Vereinsbuchhaltung\Service\BillingPeriod::FREQUENCY_MONTHS} –
+ * dort, wo auch damit gerechnet wird.
+ *
  * @method string|null getMemberUid()
  * @method void setMemberUid(?string $memberUid)
  * @method string|null getMemberLabel()
@@ -44,14 +48,6 @@ class MembershipFee extends Entity implements \JsonSerializable {
 	protected $mandateId;
 	protected $active = true;
 	protected $createdAt;
-
-	/** Anzahl Monate je Frequenz, für die Fälligkeitsfortschreibung. */
-	public const FREQUENCY_MONTHS = [
-		'monthly' => 1,
-		'quarterly' => 3,
-		'semiannual' => 6,
-		'yearly' => 12,
-	];
 
 	public function __construct() {
 		$this->addType('amountCents', 'integer');

@@ -35,6 +35,20 @@ class MembershipFeeMapper extends QBMapper {
 	}
 
 	/**
+	 * Beiträge, die auf ein Mandat verweisen – gebraucht, um zu entscheiden,
+	 * ob sich ein Mandat noch löschen lässt (SepaMandateService::delete()).
+	 *
+	 * @return MembershipFee[]
+	 */
+	public function findByMandate(int $mandateId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('mandate_id', $qb->createNamedParameter($mandateId, IQueryBuilder::PARAM_INT)));
+		return $this->findEntities($qb);
+	}
+
+	/**
 	 * Aktive Beiträge, deren nächste Fälligkeit erreicht oder überschritten ist.
 	 * Genutzt vom {@see \OCA\Vereinsbuchhaltung\BackgroundJob\MembershipFeeDueJob}.
 	 *

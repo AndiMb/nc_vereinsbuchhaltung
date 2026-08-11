@@ -93,6 +93,19 @@ function buildTopics() {
 			],
 		},
 		{
+			id: 'sepa',
+			label: t('Beiträge & SEPA'),
+			anchor: '13-mitgliedsbeitraege-und-sepa-lastschrift',
+			bullets: [
+				t('Optionales Zusatzmodul: wer keine Lastschriften einzieht, kann diesen Bereich ignorieren.'),
+				t('Einstellungen → SEPA-Lastschriftmandate: je Zahler ein Mandat mit IBAN und Unterschriftsdatum. Zahler ist ein Nextcloud-Nutzer oder ein frei eingetragener Name.'),
+				t('Einstellungen → Mitgliedsbeiträge: Betrag und Frequenz festlegen – bei Fälligkeit entsteht automatisch ein offener Posten, mit oder ohne Mandat.'),
+				t('Einstellungen → SEPA-Sammeleinzug: Vorschau prüfen, Einzug erzeugen und die XML-Datei bei der Hausbank einreichen. Vor dem ersten Einzug mit dem Prüftool der Bank testen.'),
+				t('Fälligkeitstermin mindestens 14 Tage in die Zukunft legen: so lange vorher muss der Zahler über Betrag und Termin informiert werden. Die App verschickt diese Ankündigung an Mitglieder mit hinterlegter E-Mail-Adresse.'),
+				t('Ein Mandat wird widerrufen, nicht gelöscht – erzeugte Einreichungen müssen nachvollziehbar bleiben.'),
+			],
+		},
+		{
 			id: 'spheres',
 			label: t('Sphären'),
 			anchor: '5-6-steuerliche-sphaeren',
