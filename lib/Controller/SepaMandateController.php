@@ -65,9 +65,10 @@ class SepaMandateController extends Controller {
 		?string $bic,
 		string $mandateType,
 		string $signedDate,
+		?string $email = null,
 	): DataResponse {
 		try {
-			$mandate = $this->service->create($memberUid, $memberLabel, $iban, $bic, $mandateType, $signedDate);
+			$mandate = $this->service->create($memberUid, $memberLabel, $iban, $bic, $mandateType, $signedDate, $email);
 			return new DataResponse($this->decorate($mandate), Http::STATUS_CREATED);
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
@@ -76,9 +77,9 @@ class SepaMandateController extends Controller {
 
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_ADMIN)]
-	public function update(int $id, string $iban, ?string $bic, string $mandateType, string $signedDate): DataResponse {
+	public function update(int $id, string $iban, ?string $bic, string $mandateType, string $signedDate, ?string $email = null): DataResponse {
 		try {
-			$mandate = $this->service->update($id, $iban, $bic, $mandateType, $signedDate);
+			$mandate = $this->service->update($id, $iban, $bic, $mandateType, $signedDate, $email);
 			return new DataResponse($this->decorate($mandate));
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);

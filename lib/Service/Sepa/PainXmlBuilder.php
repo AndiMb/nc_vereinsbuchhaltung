@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service\Sepa;
 
-use OCA\Vereinsbuchhaltung\Db\SepaBatch;
-
 /**
  * Erzeugt eine SEPA-Lastschrift-Einreichungsdatei (pain.008.001.02, „SEPA
  * Core Direct Debit"). Deckt den in Deutschland üblichen Normalfall ab:
@@ -22,6 +20,10 @@ use OCA\Vereinsbuchhaltung\Db\SepaBatch;
  * Alle Freitexte laufen durch {@see SepaText}: Umlaute werden aufgelöst und
  * Feldlängen eingehalten, sonst weist die Bank die Datei zurück.
  *
+ * Die Klasse kennt bewusst weder Nextcloud noch die Datenbank – sie bekommt
+ * ein {@see SepaCreditor} und einfache Zeilen. Nur so lässt sich das erzeugte
+ * XML im Test gegen das amtliche Schema prüfen (siehe tests/unit/PainXmlBuilderTest).
+ *
  * @phpstan-type Row array{
  *     endToEndId: string, amountCents: int, sequenceType: string,
  *     mandateReference: string, signedDate: string, debtorIban: string,
@@ -31,7 +33,7 @@ use OCA\Vereinsbuchhaltung\Db\SepaBatch;
 class PainXmlBuilder {
 
 	/** @param Row[] $rows */
-	public function build(SepaBatch $batch, array $rows): string {
+	public function build(SepaCreditor $creditor, array $rows): string {
 		$doc = new \DOMDocument('1.0', 'UTF-8');
 		$doc->formatOutput = true;
 
@@ -40,33 +42,33 @@ class PainXmlBuilder {
 		$init = $doc->createElement('CstmrDrctDbtInitn');
 		$root->appendChild($init);
 
-		$this->buildGroupHeader($doc, $init, $batch, $rows);
+		$this->buildGroupHeader($doc, $init, $creditor, $rows);
 
 		foreach ($this->groupBySequenceType($rows) as $sequenceType => $groupRows) {
-			$this->buildPaymentInfo($doc, $init, $batch, $sequenceType, $groupRows);
+			$this->buildPaymentInfo($doc, $init, $creditor, $sequenceType, $groupRows);
 		}
 
 		return $doc->saveXML();
 	}
 
 	/** @param Row[] $rows */
-	private function buildGroupHeader(\DOMDocument $doc, \DOMElement $parent, SepaBatch $batch, array $rows): void {
+	private function buildGroupHeader(\DOMDocument $doc, \DOMElement $parent, SepaCreditor $creditor, array $rows): void {
 		$grpHdr = $doc->createElement('GrpHdr');
 		$parent->appendChild($grpHdr);
-		$this->el($doc, $grpHdr, 'MsgId', $batch->getMessageId());
+		$this->el($doc, $grpHdr, 'MsgId', $creditor->messageId);
 		$this->el($doc, $grpHdr, 'CreDtTm', (new \DateTime())->format('Y-m-d\TH:i:s'));
 		$this->el($doc, $grpHdr, 'NbOfTxs', (string)count($rows));
 		$this->el($doc, $grpHdr, 'CtrlSum', $this->formatAmount($this->sumCents($rows)));
 		$initgPty = $doc->createElement('InitgPty');
 		$grpHdr->appendChild($initgPty);
-		$this->el($doc, $initgPty, 'Nm', SepaText::name($batch->getCreditorName()));
+		$this->el($doc, $initgPty, 'Nm', SepaText::name($creditor->name));
 	}
 
 	/** @param Row[] $rows */
-	private function buildPaymentInfo(\DOMDocument $doc, \DOMElement $parent, SepaBatch $batch, string $sequenceType, array $rows): void {
+	private function buildPaymentInfo(\DOMDocument $doc, \DOMElement $parent, SepaCreditor $creditor, string $sequenceType, array $rows): void {
 		$pmtInf = $doc->createElement('PmtInf');
 		$parent->appendChild($pmtInf);
-		$this->el($doc, $pmtInf, 'PmtInfId', mb_substr($batch->getMessageId() . '-' . $sequenceType, 0, SepaText::MAX_ID));
+		$this->el($doc, $pmtInf, 'PmtInfId', mb_substr($creditor->messageId . '-' . $sequenceType, 0, SepaText::MAX_ID));
 		$this->el($doc, $pmtInf, 'PmtMtd', 'DD');
 		$this->el($doc, $pmtInf, 'BtchBookg', 'true');
 		$this->el($doc, $pmtInf, 'NbOfTxs', (string)count($rows));
@@ -82,19 +84,19 @@ class PainXmlBuilder {
 		$this->el($doc, $lclInstrm, 'Cd', 'CORE');
 		$this->el($doc, $pmtTpInf, 'SeqTp', $sequenceType);
 
-		$this->el($doc, $pmtInf, 'ReqdColltnDt', $batch->getExecutionDate());
+		$this->el($doc, $pmtInf, 'ReqdColltnDt', $creditor->executionDate);
 
 		$cdtr = $doc->createElement('Cdtr');
 		$pmtInf->appendChild($cdtr);
-		$this->el($doc, $cdtr, 'Nm', SepaText::name($batch->getCreditorName()));
+		$this->el($doc, $cdtr, 'Nm', SepaText::name($creditor->name));
 
 		$cdtrAcct = $doc->createElement('CdtrAcct');
 		$pmtInf->appendChild($cdtrAcct);
 		$cdtrAcctId = $doc->createElement('Id');
 		$cdtrAcct->appendChild($cdtrAcctId);
-		$this->el($doc, $cdtrAcctId, 'IBAN', $batch->getCreditorIban());
+		$this->el($doc, $cdtrAcctId, 'IBAN', $creditor->iban);
 
-		$this->buildAgent($doc, $pmtInf, 'CdtrAgt', $batch->getCreditorBic());
+		$this->buildAgent($doc, $pmtInf, 'CdtrAgt', $creditor->bic);
 
 		// Gebührenregelung: bei SEPA immer geteilt (SLEV). Laut Schema optional,
 		// etliche deutsche Institute erwarten das Feld aber ausdrücklich.
@@ -109,7 +111,7 @@ class PainXmlBuilder {
 		$schmeId->appendChild($prvtId);
 		$othr = $doc->createElement('Othr');
 		$prvtId->appendChild($othr);
-		$this->el($doc, $othr, 'Id', $batch->getCreditorId());
+		$this->el($doc, $othr, 'Id', $creditor->creditorId);
 		$schmeNm = $doc->createElement('SchmeNm');
 		$othr->appendChild($schmeNm);
 		$this->el($doc, $schmeNm, 'Prtry', 'SEPA');

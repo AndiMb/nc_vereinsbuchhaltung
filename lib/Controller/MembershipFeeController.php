@@ -34,9 +34,16 @@ class MembershipFeeController extends Controller {
 		parent::__construct(Application::APP_ID, $request);
 	}
 
+	/**
+	 * `dueCount` ist die Zahl der Perioden, für die noch kein offener Posten
+	 * existiert. Sie steht hier und nicht in der Entität, weil sie vom
+	 * heutigen Datum abhängt – eine Entität, die je nach Tag etwas anderes
+	 * ausgibt, wäre eine Falle.
+	 */
 	private function decorate(MembershipFee $fee): array {
 		$data = $fee->jsonSerialize();
 		$data['displayName'] = $this->memberRef->displayName($fee->getMemberUid(), $fee->getMemberLabel());
+		$data['dueCount'] = $this->service->dueCount($fee);
 		return $data;
 	}
 
@@ -79,6 +86,19 @@ class MembershipFeeController extends Controller {
 		try {
 			$fee = $this->service->update($id, (int)round($amount * 100), $frequency, $accountId, $mandateId, $active, $nextDueDate);
 			return new DataResponse($this->decorate($fee));
+		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Beitrag nicht gefunden')], Http::STATUS_NOT_FOUND);
+		}
+	}
+
+	/** Erzeugt alle rückständigen offenen Posten dieses Beitrags auf einmal. */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	public function catchUp(int $id): DataResponse {
+		try {
+			return new DataResponse(['created' => $this->service->catchUp($id)]);
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		} catch (DoesNotExistException) {

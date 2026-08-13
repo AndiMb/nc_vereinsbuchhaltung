@@ -58,7 +58,7 @@ prüffähig dokumentiert.
 ## 2. Ersteinrichtung (einmalig)
 
 Die Ersteinrichtung macht einmal eine **Verwalterin oder ein Verwalter**.
-Ohne diese Rolle ist nur Lesen oder Buchen möglich (siehe Anhang 13.1).
+Ohne diese Rolle ist nur Lesen oder Buchen möglich (siehe Anhang 14.1).
 
 ### 2.0 Der Start-Assistent und die Checkliste
 
@@ -874,42 +874,98 @@ ihrer Bankverbindung.
 3. Ein **Geldkonto mit hinterlegter IBAN** in der Kontenliste. Auf dieses Konto
    wird eingezogen.
 
-Beides tragen Sie unter *Zahnrad → SEPA-Lastschriftmandate → Grundeinstellungen*
-ein.
+Gläubiger-ID und einziehendes Konto tragen Sie unter *Zahnrad →
+SEPA-Lastschrift → Grundeinstellungen* ein.
 
-### 13.2 Mandate anlegen
+### 13.2 Wo die Bankdaten der Mitglieder stehen
 
-Ein Mandat gehört entweder zu einem **Nextcloud-Nutzer** dieser Instanz oder zu
-einem **frei eingetragenen Zahlernamen**. Das zweite ist für Verbände gedacht,
-die Beitragsanteile von Untergliederungen einziehen und keine einzelnen
-Mitglieder führen.
+**Es gibt in dieser App keine Mitgliederverwaltung.** Das ist Absicht: eine
+Buchhaltung ist keine Mitgliederdatenbank, und die meisten Vereine führen ihre
+Mitglieder ohnehin anderswo. Was die App braucht, ist nur das, was zum Geld
+gehört.
 
-Die App vergibt die **Mandatsreferenz** selbst (etwa `M20260812-2DE3C1`). Diese
-Referenz erscheint auf dem Kontoauszug des Zahlers – teilen Sie sie ihm mit dem
+Ein „Mitglied" besteht hier deshalb aus zwei Angaben, die beide unter
+*Zahnrad → Mitglieder und Beiträge* stehen:
+
+| Angabe | Was dort hineingehört |
+|---|---|
+| **Mandat** | IBAN, optional BIC, E-Mail-Adresse und das Datum, an dem das Mandat unterschrieben wurde |
+| **Beitrag** | Betrag, Zahlungsfrequenz und die erste Fälligkeit |
+
+**Die IBAN steht am Mandat, nicht am Mitglied** – ein Mitglied ohne Mandat hat
+in der App schlicht keine Bankverbindung. Beides legen Sie im Formular
+*„Mitglied aufnehmen"* in einem Schritt an; jedes für sich ist ebenfalls
+möglich:
+
+- **nur Beitrag, keine IBAN** – für Überweiser und Barzahler. Die App legt bei
+  Fälligkeit trotzdem einen offenen Posten an, dann eben als Erinnerung.
+- **nur Mandat, kein Betrag** – wenn Sie nur gelegentlich etwas einziehen.
+
+Als Zahler wählen Sie entweder einen **Nextcloud-Nutzer** dieser Instanz oder
+tragen einen **freien Namen** ein. Das zweite ist der Normalfall: kaum ein
+Verein legt für jedes Mitglied ein Nextcloud-Konto an.
+
+> **Tragen Sie die E-Mail-Adresse ein.** Ohne sie kann die App die gesetzlich
+> vorgeschriebene Vorankündigung nicht verschicken, und Sie müssen jedes
+> Mitglied selbst benachrichtigen. Die Liste weist Sie bei jeder Zeile ohne
+> Adresse darauf hin; über *nur Auffälligkeiten* sehen Sie alle auf einmal.
+
+Die **Mandatsreferenz** vergibt die App selbst (etwa `M20260813-2DE3C1`). Sie
+erscheint auf dem Kontoauszug des Zahlers – teilen Sie sie ihm zusammen mit dem
 Mandatsformular mit.
 
 > Ein Mandat wird **widerrufen, nicht gelöscht**. Bereits erzeugte
 > Einreichungen verweisen darauf, und dieser Nachweis muss erhalten bleiben.
-> Deshalb verschwindet der Löschen-Knopf, sobald ein Mandat irgendwo verwendet
-> wird.
+> Deshalb verschwindet der Löschen-Knopf, sobald ein Mandat verwendet wurde.
 
-### 13.3 Beiträge mit Zahlungsfrequenz
+### 13.3 Viele Mitglieder auf einmal aufnehmen
 
-Unter *Zahnrad → Mitgliedsbeiträge* legen Sie je Zahler einen Betrag und eine
-Frequenz fest (monatlich, vierteljährlich, halbjährlich, jährlich). Bei
-Fälligkeit erzeugt die App automatisch einen **offenen Posten** – denselben, den
-Sie unter *Berichte → Offene Posten* sehen.
+Für einen Chor mit 200 Stimmen ist das Formular der falsche Weg. Nutzen Sie
+*Mitgliederliste einlesen*: eine **CSV-Datei**, eine Zeile je Mitglied.
 
-Ein Mandat ist dabei **optional**: ohne Mandat ist der Posten schlicht eine
-Erinnerung an eine erwartete Überweisung. Nur Posten *mit* Mandat kommen für
-den Lastschrifteinzug in Frage.
+Erwartet werden diese Spalten – **Reihenfolge und Schreibweise sind egal**, und
+zusätzliche Spalten (Mitgliedsnummer, Eintrittsdatum, Stimmlage …) werden
+einfach übergangen:
 
-Liegt das Startdatum weit in der Vergangenheit, holt die App **pro Tag eine
-Periode** nach, statt auf einen Schlag zwölf offene Posten anzulegen. Wenn Sie
-sich beim Startdatum vertan haben, korrigieren Sie die nächste Fälligkeit
-einfach über *Bearbeiten*.
+| Spalte | Beispiel | Pflicht? |
+|---|---|---|
+| Name *oder* Konto | `Katrin Brunner` bzw. `k.brunner` | ja |
+| E-Mail | `k.brunner@example.org` | nein, aber dringend empfohlen |
+| IBAN | `DE02 1203 0000 0000 2020 51` | nur wenn eingezogen werden soll |
+| BIC | meist leer | nein |
+| Mandat am | `15.01.2026` | ja, sobald eine IBAN dasteht |
+| Betrag | `42,50` | nur wenn ein Beitrag entstehen soll |
+| Frequenz | `monatlich` | nein – ohne Angabe gilt **jährlich** |
+| Start | `01.02.2026` | ja, sobald ein Betrag dasteht |
 
-### 13.4 Einzug erzeugen und einreichen
+Datumsangaben dürfen `15.01.2026` oder `2026-01-15` lauten, Beträge `42,50`
+oder `42.50`. Eine **Vorlage** zum Ausfüllen können Sie direkt herunterladen.
+
+Der Ablauf ist zweistufig: **„Prüfen"** ändert nichts und zeigt Ihnen für jede
+Zeile, was entstehen würde und was nicht stimmt. Erst danach übernehmen Sie.
+Fehlerhafte Zeilen werden übersprungen und einzeln benannt – ein Tippfehler in
+Zeile 143 macht die 142 Zeilen davor nicht wertlos.
+
+Beanstandet wird unter anderem: ein Zahler, der schon weiter oben in derselben
+Datei steht (meist eine kopierte Zeile), eine IBAN, für die es bereits ein
+aktives Mandat gibt, und ein Nextcloud-Konto, das es nicht gibt.
+
+### 13.4 Beiträge, Fälligkeit und Rückstand
+
+Bei Fälligkeit erzeugt die App automatisch einen **offenen Posten** – denselben,
+den Sie unter *Berichte → Offene Posten* sehen. Nur Posten *mit* Mandat kommen
+für den Lastschrifteinzug in Frage.
+
+Liegt die nächste Fälligkeit in der Vergangenheit – etwa weil Sie einen Beitrag
+rückwirkend angelegt haben –, holt der Tageslauf **eine Periode pro Tag** nach,
+statt auf einen Schlag zwei Jahrgänge Forderungen zu erzeugen. Wie viel noch
+aussteht, steht in der Spalte *Nächste Fälligkeit*; über **„Nachholen"**
+erzeugen Sie den gesamten Rückstand sofort.
+
+Haben Sie sich schlicht im Startdatum vertan, korrigieren Sie die nächste
+Fälligkeit über *Bearbeiten*, statt nachzuholen.
+
+### 13.5 Einzug erzeugen und einreichen
 
 Unter *Zahnrad → SEPA-Sammeleinzug* wählen Sie den **Fälligkeitstermin**. Die
 Vorschau zeigt alle offenen Posten mit aktivem Mandat, die bis dahin fällig
@@ -917,10 +973,10 @@ sind und in keinem laufenden Einzug stecken.
 
 > **Legen Sie den Termin mindestens 14 Tage in die Zukunft.** Das SEPA-Regelwerk
 > verlangt, dass Sie den Zahler vorher über Betrag und Termin informieren
-> („Vorankündigung"). Die App übernimmt das per E-Mail für alle Mitglieder mit
-> hinterlegter Adresse; bei einem kürzeren Vorlauf warnt sie. Zahler ohne
-> E-Mail-Adresse müssen Sie selbst informieren – die Zeilenansicht des Einzugs
-> weist Sie darauf hin.
+> („Vorankündigung"). Die App übernimmt das per E-Mail für alle Zahler mit
+> hinterlegter Adresse und nennt darin Betrag, Termin, Mandatsreferenz und Ihre
+> Gläubiger-ID. Bei kürzerem Vorlauf warnt sie. Zahler ohne Adresse müssen Sie
+> selbst informieren – die Zeilenansicht des Einzugs weist Sie darauf hin.
 
 „Einzug erzeugen" legt den Sammeleinzug an; über „XML herunterladen" bekommen
 Sie die **pain.008-Datei**, die Sie im Online-Banking Ihrer Bank hochladen.
@@ -934,7 +990,20 @@ stehen dann wieder zur Verfügung. Wurde die Datei schon eingereicht, ändert da
 Verwerfen daran natürlich nichts – dann müssen Sie den Einzug bei der Bank
 zurückrufen.
 
-### 13.5 Rücklastschriften
+### 13.6 Wenn das Geld da ist
+
+Sobald die Sammelgutschrift auf Ihrem Vereinskonto steht, klicken Sie beim
+Einzug auf **„Als ausgeführt verbuchen"**. Damit werden alle enthaltenen
+offenen Posten in einem Schritt als bezahlt geschlossen – bei 80 Mitgliedern
+also ein Klick statt achtzig.
+
+Zurückgebuchte Zeilen bleiben dabei ausdrücklich offen: dieses Geld ist nicht
+gekommen. Ein abgeschlossener Einzug lässt sich nicht mehr verwerfen.
+
+Die Bankbuchung der Sammelgutschrift ordnen Sie wie jede andere Buchung einem
+Konto zu.
+
+### 13.7 Rücklastschriften
 
 Kommt ein Einzug zurück (Konto nicht gedeckt, Mandat widersprochen), erkennt die
 App das beim nächsten **Kontoauszugs-Import** und öffnet den zugehörigen offenen
@@ -944,6 +1013,11 @@ einem Konto zu – typischerweise Forderungsausfälle und Bankgebühren.
 Die Erkennung arbeitet mit dem, was die Bank im Verwendungszweck mitliefert, und
 liegt gelegentlich daneben. In der Zeilenansicht des Einzugs können Sie eine
 falsch erkannte Rückbuchung über **„Rückbuchung zurücknehmen"** wieder aufheben.
+
+Eine Rückgabe trifft oft erst ein, **nachdem** Sie den Einzug als ausgeführt
+verbucht haben. Auch dann wird sie erkannt: der betroffene Posten wird wieder
+geöffnet, und das Mandat gilt wieder als nicht eingelöst – der nächste Versuch
+läuft dadurch erneut als Ersteinzug.
 
 ---
 

@@ -18,8 +18,8 @@ use OCP\AppFramework\Db\DoesNotExistException;
  * importierte Bankbuchung mit (siehe ImportService::doCommit()), meldet aber
  * nur dann etwas, wenn sowohl die Erkennungsmerkmale als auch eine passende
  * offene Sammeleinzug-Zeile gefunden wurden – rein additiv, betrifft Vereine
- * ohne SEPA-Modul überhaupt nicht (findPendingByMandate()/findPendingByAmount()
- * sind dann immer leer).
+ * ohne SEPA-Modul überhaupt nicht (findUnreturnedByMandate()/
+ * findUnreturnedByAmount() sind dann immer leer).
  *
  * Bewusst kein Ersatz für die normale Kontenzuordnung: die zurückgebuchte
  * Bankbuchung selbst bleibt wie jede andere unzugeordnet und muss weiterhin
@@ -98,11 +98,16 @@ class SepaReturnDetectionService {
 		try {
 			$openItem = $this->openItemMapper->find($item->getOpenItemId());
 			$openItem->setStatus('open');
+			// War der Einzug schon als ausgeführt verbucht, hängt am Posten die
+			// Sammelgutschrift als Zahlungsnachweis. Die gilt für ihn nicht mehr.
+			$openItem->setPaidJournalId(null);
 			$this->openItemMapper->update($openItem);
 		} catch (DoesNotExistException) {
 			// Offener Posten wurde inzwischen gelöscht - das Mandat/die Einzugs-
 			// zeile trotzdem als zurückgebucht markieren, das ist unabhängig.
 		}
+
+		$this->rewindMandateUsage($item->getMandateId());
 
 		$this->audit->log('SEPA-Rücklastschrift erkannt', 'sepa_batch_item', $item->getId(), [
 			'endToEndId' => $item->getEndToEndId(),
@@ -110,6 +115,27 @@ class SepaReturnDetectionService {
 			'betrag' => $item->getAmountCents() / 100,
 		]);
 		return true;
+	}
+
+	/**
+	 * Setzt `last_used_date` des Mandats auf den letzten Einzug zurück, der
+	 * tatsächlich Bestand hat.
+	 *
+	 * Ohne das bliebe ein zurückgegebener **Ersteinzug** als Benutzung stehen:
+	 * das Mandat gälte als eingelöst, und der nächste Versuch liefe als RCUR,
+	 * obwohl nie ein Einzug durchging. Manche Institute weisen das zurück.
+	 * Beim Verwerfen eines Einzugs wird derselbe Stand schon länger korrekt
+	 * zurückgedreht (SepaBatchService::deleteBatch()) – bei einer
+	 * Rücklastschrift fehlte es.
+	 */
+	private function rewindMandateUsage(int $mandateId): void {
+		try {
+			$mandate = $this->mandateMapper->find($mandateId);
+		} catch (DoesNotExistException) {
+			return;
+		}
+		$mandate->setLastUsedDate($this->itemMapper->findLastExecutionDateByMandate($mandateId));
+		$this->mandateMapper->update($mandate);
 	}
 
 	private function looksLikeReturn(string $haystack): bool {
@@ -149,7 +175,7 @@ class SepaReturnDetectionService {
 		$endToEndId = SepaReference::findEndToEnd($haystack);
 		if ($endToEndId !== null) {
 			$item = $this->itemMapper->findByEndToEndId($endToEndId);
-			if ($item !== null && $item->getStatus() === 'pending') {
+			if ($item !== null && in_array($item->getStatus(), SepaBatchItem::OPEN_STATUSES, true)) {
 				return $item;
 			}
 		}
@@ -158,7 +184,7 @@ class SepaReturnDetectionService {
 		if ($mandateReference !== null) {
 			$mandate = $this->mandateMapper->findByReference($mandateReference);
 			if ($mandate !== null) {
-				foreach ($this->itemMapper->findPendingByMandate($mandate->getId()) as $candidate) {
+				foreach ($this->itemMapper->findUnreturnedByMandate($mandate->getId()) as $candidate) {
 					if ($candidate->getAmountCents() === $amountCents) {
 						return $candidate;
 					}
@@ -170,7 +196,7 @@ class SepaReturnDetectionService {
 		// Hier verlangen wir einen echten ISO-Rückgabegrund – ein deutsches
 		// Stichwort allein trifft sonst auch die Gebührenbuchung zur Rückgabe.
 		if ($tx->getCounterpartyIban() !== null && $this->extractReasonCode($haystack) !== null) {
-			foreach ($this->itemMapper->findPendingByAmount($amountCents) as $candidate) {
+			foreach ($this->itemMapper->findUnreturnedByAmount($amountCents) as $candidate) {
 				try {
 					$mandate = $this->mandateMapper->find($candidate->getMandateId());
 				} catch (DoesNotExistException) {

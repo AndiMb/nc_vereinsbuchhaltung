@@ -54,6 +54,33 @@ class BillingPeriod {
 	}
 
 	/**
+	 * Wie viele Perioden bis einschließlich $today fällig sind – also wie viele
+	 * offene Posten noch fehlen, wenn `next_due_date` in der Vergangenheit
+	 * liegt.
+	 *
+	 * Der Tageslauf erzeugt bewusst nur einen Posten je Beitrag und Lauf, damit
+	 * ein rückwirkend angelegter Beitrag nicht auf einen Schlag zwei Jahrgänge
+	 * Forderungen erzeugt. Die Kehrseite: der Rückstand arbeitet sich nur
+	 * langsam ab, und ohne diese Zahl sähe das niemand.
+	 *
+	 * @param string|null $anchor Stichtag wie bei {@see next()} – in aller Regel
+	 *        das Startdatum des Beitrags, damit ein kurzer Monat die Zählung
+	 *        nicht verschiebt
+	 * @param int $limit Sicherheitsnetz gegen Endlosschleifen bei kaputten Daten
+	 * @throws \InvalidArgumentException bei unbekannter Frequenz oder unmöglichem Datum
+	 */
+	public static function dueCount(string $nextDueDate, string $frequency, string $today, ?string $anchor = null, int $limit = 240): int {
+		self::parse($today);
+		$count = 0;
+		$cursor = $nextDueDate;
+		while ($cursor <= $today && $count < $limit) {
+			$count++;
+			$cursor = self::next($cursor, $frequency, $anchor);
+		}
+		return $count;
+	}
+
+	/**
 	 * @return array{0:int, 1:int, 2:int} Jahr, Monat, Tag
 	 * @throws \InvalidArgumentException wenn es den Tag nicht gibt
 	 */

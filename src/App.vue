@@ -234,13 +234,13 @@
 				<SettingsPermissions v-if="isAdmin"
 					@help="openHelp('setup')" />
 
-				<SettingsSepaMandates v-if="isAdmin"
+				<SettingsSepaBasics v-if="isAdmin"
 					:sepa-creditor-id.sync="sepaCreditorId"
 					:sepa-debtor-account-id.sync="sepaDebtorAccountId"
 					:storage-saving="storageSaving"
 					:save-settings="saveStorageSettings" />
 
-				<SettingsMembershipFees v-if="isAdmin" />
+				<SettingsMembers v-if="isAdmin" />
 
 				<SettingsSepaExport v-if="isAdmin" />
 
@@ -381,8 +381,8 @@ import SettingsSpheres from './components/SettingsSpheres.vue'
 import SettingsCostCenters from './components/SettingsCostCenters.vue'
 import SettingsXbucImport from './components/SettingsXbucImport.vue'
 import SettingsPermissions from './components/SettingsPermissions.vue'
-import SettingsSepaMandates from './components/SettingsSepaMandates.vue'
-import SettingsMembershipFees from './components/SettingsMembershipFees.vue'
+import SettingsSepaBasics from './components/SettingsSepaBasics.vue'
+import SettingsMembers from './components/SettingsMembers.vue'
 import SettingsSepaExport from './components/SettingsSepaExport.vue'
 import SettingsGeneral from './components/SettingsGeneral.vue'
 import SettingsYearClose from './components/SettingsYearClose.vue'
@@ -424,8 +424,8 @@ export default {
 		SettingsCostCenters,
 		SettingsXbucImport,
 		SettingsPermissions,
-		SettingsSepaMandates,
-		SettingsMembershipFees,
+		SettingsSepaBasics,
+		SettingsMembers,
 		SettingsSepaExport,
 		SettingsGeneral,
 		SettingsYearClose,
@@ -569,7 +569,7 @@ export default {
 			// Hintergrundjob liest daraus ein.
 			statementWatchUser: '',
 			statementWatchPath: '',
-			// SEPA-Lastschrift (optionales Zusatzmodul, siehe SettingsSepaMandates.vue)
+			// SEPA-Lastschrift (optionales Zusatzmodul, siehe SettingsSepaBasics.vue)
 			sepaCreditorId: '',
 			sepaDebtorAccountId: null,
 			// Hilfe-Modal (HelpModal.vue): Kapitel folgt standardmäßig dem aktiven Tab,

@@ -53,7 +53,22 @@ class SepaBatchItem extends Entity implements \JsonSerializable {
 
 	/** FRST = erster Einzug eines Mandats, RCUR = Folgeeinzug, OOFF = einmalig. */
 	public const SEQUENCE_TYPES = ['FRST', 'RCUR', 'OOFF'];
-	public const STATUSES = ['pending', 'returned'];
+
+	/**
+	 * pending  = eingereicht, Ausgang offen
+	 * settled  = Geld eingegangen, offener Posten geschlossen
+	 * returned = zurückgebucht
+	 */
+	public const STATUSES = ['pending', 'settled', 'returned'];
+
+	/**
+	 * Zeilen, für die eine Rücklastschrift noch eintreffen kann. Eine Rückgabe
+	 * erreicht den Verein oft erst Tage nach dem Einzug – also durchaus erst,
+	 * nachdem er den Einzug längst als ausgeführt verbucht hat. Würde die
+	 * Erkennung nur `pending` betrachten, liefe genau dieser Normalfall ins
+	 * Leere (siehe SepaReturnDetectionService).
+	 */
+	public const OPEN_STATUSES = ['pending', 'settled'];
 
 	public function __construct() {
 		$this->addType('batchId', 'integer');

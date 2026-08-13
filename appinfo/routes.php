@@ -98,12 +98,18 @@ return [
 		['name' => 'membershipFee#create', 'url' => '/api/sepa/fees', 'verb' => 'POST'],
 		['name' => 'membershipFee#update', 'url' => '/api/sepa/fees/{id}', 'verb' => 'PUT'],
 		['name' => 'membershipFee#destroy', 'url' => '/api/sepa/fees/{id}', 'verb' => 'DELETE'],
+		['name' => 'membershipFee#catchUp', 'url' => '/api/sepa/fees/{id}/catch-up', 'verb' => 'POST'],
+
+		// Massenanlage von Mitgliedern aus einer CSV-Liste
+		['name' => 'memberImport#preview', 'url' => '/api/sepa/members/import/preview', 'verb' => 'POST'],
+		['name' => 'memberImport#import', 'url' => '/api/sepa/members/import', 'verb' => 'POST'],
 
 		// SEPA-Sammeleinzüge (pain.008-Export)
 		['name' => 'sepaBatch#preview', 'url' => '/api/sepa/export/preview', 'verb' => 'GET'],
 		['name' => 'sepaBatch#index', 'url' => '/api/sepa/export/batches', 'verb' => 'GET'],
 		['name' => 'sepaBatch#create', 'url' => '/api/sepa/export/batches', 'verb' => 'POST'],
 		['name' => 'sepaBatch#destroy', 'url' => '/api/sepa/export/batches/{id}', 'verb' => 'DELETE'],
+		['name' => 'sepaBatch#settle', 'url' => '/api/sepa/export/batches/{id}/settle', 'verb' => 'POST'],
 		['name' => 'sepaBatch#items', 'url' => '/api/sepa/export/batches/{id}/items', 'verb' => 'GET'],
 		['name' => 'sepaBatch#xml', 'url' => '/api/sepa/export/batches/{id}/xml', 'verb' => 'GET'],
 		['name' => 'sepaBatch#revertReturn', 'url' => '/api/sepa/export/items/{itemId}/revert-return', 'verb' => 'POST'],

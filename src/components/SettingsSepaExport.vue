@@ -72,12 +72,16 @@
 			{{ t('Bis zum gewählten Termin ist kein offener Posten mit aktivem SEPA-Mandat fällig.') }}
 		</p>
 
+		<p v-if="sepaBatches.length" class="vbh-hint vbh-hint--info">
+			{{ t('Sobald das Geld auf dem Vereinskonto eingegangen ist, verbuchen Sie den Einzug als ausgeführt: die enthaltenen offenen Posten werden dann in einem Schritt als bezahlt geschlossen. Kommt später eine Rücklastschrift, öffnet der Kontoauszugs-Import den betroffenen Posten von selbst wieder.') }}
+		</p>
 		<div v-if="sepaBatches.length" class="vbh-tablecard">
 			<table class="vbh-table">
 				<thead>
 					<tr>
 						<th>{{ t('Erzeugt') }}</th>
 						<th>{{ t('Fälligkeit') }}</th>
+						<th>{{ t('Status') }}</th>
 						<th />
 					</tr>
 				</thead>
@@ -90,6 +94,9 @@
 							<td class="nowrap">
 								{{ b.executionDate }}
 							</td>
+							<td class="nowrap">
+								<span class="vbh-typetag">{{ b.settledAt ? t('ausgeführt') : t('eingereicht') }}</span>
+							</td>
 							<td class="nowrap right">
 								<NcButton variant="tertiary" size="small" @click="toggleItems(b.id)">
 									{{ expanded === b.id ? t('Zeilen ausblenden') : t('Zeilen anzeigen') }}
@@ -98,7 +105,15 @@
 									target="_blank"
 									rel="noopener"
 									class="vbh-export-btn">{{ t('XML herunterladen') }}</a>
-								<NcButton variant="error"
+								<NcButton v-if="!b.settledAt"
+									variant="primary"
+									size="small"
+									:disabled="settling === b.id"
+									@click="settle(b)">
+									{{ t('Als ausgeführt verbuchen') }}
+								</NcButton>
+								<NcButton v-if="!b.settledAt"
+									variant="error"
 									size="small"
 									:aria-label="t('Einzug verwerfen')"
 									@click="discard(b)">
@@ -107,7 +122,7 @@
 							</td>
 						</tr>
 						<tr v-if="expanded === b.id" :key="`${b.id}-items`">
-							<td colspan="3">
+							<td colspan="4">
 								<table class="vbh-table vbh-subtable">
 									<thead>
 										<tr>
@@ -130,7 +145,7 @@
 											<td>{{ sequenceLabel(item.sequenceType) }}</td>
 											<td>{{ notificationLabel(item) }}</td>
 											<td>
-												<span class="vbh-typetag">{{ item.status === 'returned' ? t('zurückgebucht') : t('offen') }}</span>
+												<span class="vbh-typetag">{{ itemStatusLabel(item) }}</span>
 												<span v-if="item.returnReason" class="vbh-hint">{{ item.returnReason }}</span>
 											</td>
 											<td class="nowrap right">
@@ -190,6 +205,8 @@ export default {
 			executionDate: '',
 			creating: false,
 			loading: false,
+			// id des Einzugs, der gerade verbucht wird
+			settling: null,
 			leadRequired: LEAD_DAYS,
 			// Aufgeklappter Einzug; immer nur einer, die Zeilenliste ist breit.
 			expanded: null,
@@ -219,6 +236,11 @@ export default {
 		sequenceLabel(type) {
 			return { FRST: this.t('Ersteinzug'), RCUR: this.t('Folgeeinzug'), OOFF: this.t('einmalig') }[type] || type
 		},
+		itemStatusLabel(item) {
+			if (item.status === 'returned') return this.t('zurückgebucht')
+			if (item.status === 'settled') return this.t('ausgeführt')
+			return this.t('eingereicht')
+		},
 		notificationLabel(item) {
 			if (item.notifiedState === 'sent') return this.t('verschickt')
 			if (item.notifiedState === 'no_email') return this.t('keine Adresse')
@@ -243,6 +265,27 @@ export default {
 			if (this.expanded === batchId) { this.expanded = null; return }
 			this.expanded = batchId
 			await this.loadSepaBatchItems(batchId)
+		},
+		/**
+		 * Abschluss des Einzugs: das Geld ist da. Der Dialog nennt ausdrücklich
+		 * die Zahl der Posten, die dabei geschlossen werden - das ist der
+		 * eigentliche Effekt und der Grund, warum es diesen Knopf gibt.
+		 */
+		async settle(batch) {
+			const offen = (this.sepaBatchItems[batch.id] || []).filter(i => i.status !== 'returned').length
+			if (!await this.askConfirm(
+				this.t('Einzug als ausgeführt verbuchen'),
+				offen
+					? this.t('Ist das Geld für den Einzug vom {date} eingegangen? Die {n} zugehörigen offenen Posten werden dann als bezahlt geschlossen. Zurückgebuchte Zeilen bleiben davon unberührt.', { date: batch.executionDate, n: offen })
+					: this.t('Ist das Geld für den Einzug vom {date} eingegangen? Die zugehörigen offenen Posten werden dann als bezahlt geschlossen. Zurückgebuchte Zeilen bleiben davon unberührt.', { date: batch.executionDate }),
+			)) return
+			this.settling = batch.id
+			try {
+				const { data } = await api.settleSepaBatch(batch.id)
+				await Promise.all([this.loadSepaBatches(), this.loadSepaPreview(this.executionDate)])
+				if (this.expanded === batch.id) await this.loadSepaBatchItems(batch.id)
+				showSuccess(this.n('%n offener Posten geschlossen.', '%n offene Posten geschlossen.', data.settled))
+			} catch (e) { showError(this.errMsg(e, this.t('Verbuchen fehlgeschlagen'))) } finally { this.settling = null }
 		},
 		async discard(batch) {
 			if (!await this.askConfirm(

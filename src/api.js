@@ -120,12 +120,18 @@ export default {
 	createMembershipFee: data => axios.post(url('/sepa/fees'), data),
 	updateMembershipFee: (id, data) => axios.put(url(`/sepa/fees/${id}`), data),
 	deleteMembershipFee: id => axios.delete(url(`/sepa/fees/${id}`)),
+	catchUpMembershipFee: id => axios.post(url(`/sepa/fees/${id}/catch-up`)),
+
+	// Massenanlage aus einer CSV-Liste: erst pruefen, dann anlegen
+	previewMemberImport: csv => axios.post(url('/sepa/members/import/preview'), { csv }),
+	runMemberImport: csv => axios.post(url('/sepa/members/import'), { csv }),
 
 	// SEPA-Sammeleinzüge (pain.008-Export)
 	previewSepaExport: executionDate => axios.get(url('/sepa/export/preview'), { params: executionDate ? { executionDate } : {} }),
 	listSepaBatches: () => axios.get(url('/sepa/export/batches')),
 	createSepaBatch: executionDate => axios.post(url('/sepa/export/batches'), { executionDate }),
 	deleteSepaBatch: id => axios.delete(url(`/sepa/export/batches/${id}`)),
+	settleSepaBatch: (id, journalId) => axios.post(url(`/sepa/export/batches/${id}/settle`), { journalId: journalId || undefined }),
 	listSepaBatchItems: id => axios.get(url(`/sepa/export/batches/${id}/items`)),
 	revertSepaReturn: itemId => axios.post(url(`/sepa/export/items/${itemId}/revert-return`)),
 	sepaBatchXmlUrl: id => generateUrl(base + `/sepa/export/batches/${id}/xml`),

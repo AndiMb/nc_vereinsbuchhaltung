@@ -26,6 +26,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setCreditorBic(?string $creditorBic)
  * @method string|null getCreatedBy()
  * @method void setCreatedBy(?string $createdBy)
+ * @method string|null getSettledAt()
+ * @method void setSettledAt(?string $settledAt)
  * @method string getCreatedAt()
  * @method void setCreatedAt(string $createdAt)
  */
@@ -37,7 +39,13 @@ class SepaBatch extends Entity implements \JsonSerializable {
 	protected $creditorIban;
 	protected $creditorBic;
 	protected $createdBy;
+	protected $settledAt;
 	protected $createdAt;
+
+	/** Wurde der Einzug schon als ausgeführt verbucht? */
+	public function isSettled(): bool {
+		return $this->settledAt !== null;
+	}
 
 	public function jsonSerialize(): array {
 		return [
@@ -49,6 +57,7 @@ class SepaBatch extends Entity implements \JsonSerializable {
 			'creditorIban' => $this->creditorIban,
 			'creditorBic' => $this->creditorBic,
 			'createdBy' => $this->createdBy,
+			'settledAt' => $this->settledAt,
 			'createdAt' => $this->createdAt,
 		];
 	}

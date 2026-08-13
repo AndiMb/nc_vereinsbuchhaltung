@@ -49,6 +49,28 @@ class MembershipFeeMapper extends QBMapper {
 	}
 
 	/**
+	 * Aktive Beiträge desselben Zahlers.
+	 *
+	 * Gebraucht vom Mitglieder-Import: wird dieselbe Liste ein zweites Mal
+	 * eingelesen – der klassische „hat es geklappt?"-Reflex –, bekäme sonst
+	 * jeder Zahler ohne IBAN einen zweiten Beitrag. Bei einer IBAN fällt das
+	 * über das Mandat auf, ohne IBAN gäbe es keinerlei Anhaltspunkt, und der
+	 * Verein forderte fortan doppelt.
+	 *
+	 * @return MembershipFee[]
+	 */
+	public function findActiveByMember(?string $memberUid, ?string $memberLabel): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('active', $qb->createNamedParameter(true, IQueryBuilder::PARAM_BOOL)));
+		$qb->andWhere($memberUid !== null
+			? $qb->expr()->eq('member_uid', $qb->createNamedParameter($memberUid))
+			: $qb->expr()->eq('member_label', $qb->createNamedParameter((string)$memberLabel)));
+		return $this->findEntities($qb);
+	}
+
+	/**
 	 * Aktive Beiträge, deren nächste Fälligkeit erreicht oder überschritten ist.
 	 * Genutzt vom {@see \OCA\Vereinsbuchhaltung\BackgroundJob\MembershipFeeDueJob}.
 	 *

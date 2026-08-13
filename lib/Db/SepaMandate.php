@@ -19,6 +19,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setIban(string $iban)
  * @method string|null getBic()
  * @method void setBic(?string $bic)
+ * @method string|null getEmail()
+ * @method void setEmail(?string $email)
  * @method string getMandateReference()
  * @method void setMandateReference(string $mandateReference)
  * @method string getMandateType()
@@ -37,6 +39,7 @@ class SepaMandate extends Entity implements \JsonSerializable {
 	protected $memberLabel;
 	protected $iban;
 	protected $bic;
+	protected $email;
 	protected $mandateReference;
 	protected $mandateType = 'RCUR';
 	protected $signedDate;
@@ -64,6 +67,7 @@ class SepaMandate extends Entity implements \JsonSerializable {
 			'memberLabel' => $this->memberLabel,
 			'iban' => $this->iban,
 			'bic' => $this->bic,
+			'email' => $this->email,
 			'mandateReference' => $this->mandateReference,
 			'mandateType' => $this->mandateType,
 			'signedDate' => $this->signedDate,

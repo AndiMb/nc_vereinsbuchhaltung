@@ -8,6 +8,7 @@ use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\SepaBatchItem;
 use OCA\Vereinsbuchhaltung\Db\SepaBatchItemMapper;
 use OCA\Vereinsbuchhaltung\Db\SepaBatchMapper;
+use OCA\Vereinsbuchhaltung\Db\SepaMandate;
 use OCA\Vereinsbuchhaltung\Db\SepaMandateMapper;
 use OCP\IConfig;
 use OCP\IL10N;
@@ -18,10 +19,15 @@ use Psr\Log\LoggerInterface;
 /**
  * SEPA-Vorankündigung ("Pre-Notification"): mindestens 14 Tage vor dem
  * Einzug muss der Zahler über Betrag und Termin informiert werden (SEPA-
- * Regelwerk). Nur möglich für Mitglieder mit Nextcloud-Konto und hinterlegter
- * E-Mail-Adresse – ein frei benannter Zahler (member_label, z. B. eine
- * Untergliederung ohne eigenes Konto) hat keine Adresse, an die sich schicken
- * ließe. Solche Zeilen werden übersprungen und dabei vermerkt, damit der
+ * Regelwerk).
+ *
+ * Die Adresse kommt vorrangig vom Mandat und ersatzweise vom Nextcloud-Konto
+ * (siehe {@see resolveRecipient()}). Anfangs gab es nur den zweiten Weg – und
+ * damit erreichte die Pflichtankündigung ausgerechnet die Mehrheit nicht: in
+ * einem Chor oder einem Verein mit 200 Mitgliedern hat kaum jemand ein Konto
+ * auf diesem Server.
+ *
+ * Bleibt beides leer, wird die Zeile übersprungen und das vermerkt, damit der
  * Verein sie einmalig sieht und selbst ankündigen kann.
  */
 class SepaNotificationService {
@@ -41,6 +47,7 @@ class SepaNotificationService {
 		private SepaBatchItemMapper $itemMapper,
 		private SepaBatchMapper $batchMapper,
 		private SepaMandateMapper $mandateMapper,
+		private MemberReferenceValidator $memberRef,
 		private IUserManager $userManager,
 		private IMailer $mailer,
 		private IConfig $config,
@@ -94,16 +101,16 @@ class SepaNotificationService {
 	 */
 	private function notify(SepaBatchItem $item): string {
 		$mandate = $this->mandateMapper->find($item->getMandateId());
-		$user = $mandate->getMemberUid() !== null ? $this->userManager->get($mandate->getMemberUid()) : null;
-		$email = $user?->getEMailAddress();
-		if ($email === null || $email === '') {
-			// Freier Zahlername oder Konto ohne Adresse: einmal vermerken, statt
+		$recipient = $this->resolveRecipient($mandate);
+		if ($recipient === null) {
+			// Weder am Mandat noch am Konto eine Adresse: einmal vermerken, statt
 			// die Zeile in jedem Tageslauf erneut anzufassen. Der Vermerk ist
 			// zugleich die Information, die der Verein braucht – hier muss er
 			// selbst ankündigen.
 			$this->mark($item, self::STATE_NO_EMAIL);
 			return 'skipped';
 		}
+		[$email, $displayName] = $recipient;
 
 		$batch = $this->batchMapper->find($item->getBatchId());
 		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '') ?: $batch->getCreditorName();
@@ -117,11 +124,15 @@ class SepaNotificationService {
 			'%1$s wird am %2$s einen Betrag von %3$s per SEPA-Lastschrift von Ihrem Konto einziehen (Mandatsreferenz %4$s).',
 			[$clubName, $batch->getExecutionDate(), $amount, $mandate->getMandateReference()]
 		));
+		// Die Gläubiger-Identifikationsnummer gehört in jede Vorabankündigung:
+		// nur mit ihr und der Mandatsreferenz zusammen kann der Zahler die
+		// Abbuchung später auf seinem Kontoauszug zuordnen.
+		$template->addBodyText($this->l10n->t('Gläubiger-Identifikationsnummer: %s', [$batch->getCreditorId()]));
 		$template->addBodyText($this->l10n->t('Bitte sorgen Sie für ausreichende Deckung Ihres Kontos. Bei Fragen wenden Sie sich an die Kassenführung.'));
 		$template->addFooter();
 
 		$message = $this->mailer->createMessage();
-		$message->setTo([$email => $user->getDisplayName()]);
+		$message->setTo([$email => $displayName]);
 		$message->setSubject($template->renderSubject());
 		$message->useTemplate($template);
 
@@ -134,6 +145,34 @@ class SepaNotificationService {
 
 		$this->mark($item, self::STATE_SENT);
 		return 'sent';
+	}
+
+	/**
+	 * Wohin die Vorankündigung geht.
+	 *
+	 * Vorrang hat die Adresse am Mandat: sie steht dort, weil jemand sie für
+	 * genau diesen Zahler eingetragen hat. Erst danach das Nextcloud-Konto –
+	 * das war früher der einzige Weg und schloss damit alle aus, die auf
+	 * dieser Instanz kein Konto haben, also in einem Verein mit 200
+	 * Mitgliedern nahezu jeden.
+	 *
+	 * @return array{0:string, 1:string}|null Adresse und Anzeigename, oder null
+	 */
+	private function resolveRecipient(SepaMandate $mandate): ?array {
+		$name = $this->memberRef->displayName($mandate->getMemberUid(), $mandate->getMemberLabel());
+
+		$email = $mandate->getEmail();
+		if ($email !== null && $email !== '') {
+			return [$email, $name];
+		}
+
+		$user = $mandate->getMemberUid() !== null ? $this->userManager->get($mandate->getMemberUid()) : null;
+		$accountEmail = $user?->getEMailAddress();
+		if ($user !== null && $accountEmail !== null && $accountEmail !== '') {
+			return [$accountEmail, $user->getDisplayName()];
+		}
+
+		return null;
 	}
 
 	private function mark(SepaBatchItem $item, string $state): void {

@@ -51,6 +51,7 @@ class SepaMandateService {
 		?string $bic,
 		string $mandateType,
 		string $signedDate,
+		?string $email = null,
 	): SepaMandate {
 		[$memberUid, $memberLabel] = $this->memberRef->validate($memberUid, $memberLabel);
 
@@ -59,6 +60,7 @@ class SepaMandateService {
 		$mandate->setMemberLabel($memberLabel);
 		$mandate->setIban($this->requireIban($iban));
 		$mandate->setBic($bic !== null && trim($bic) !== '' ? strtoupper(trim($bic)) : null);
+		$mandate->setEmail($this->normalizeEmail($email));
 		$mandate->setMandateType($this->validateType($mandateType));
 		$mandate->setSignedDate($this->validateDate($signedDate));
 		$mandate->setStatus('active');
@@ -76,10 +78,11 @@ class SepaMandateService {
 	/**
 	 * @throws DoesNotExistException wenn es das Mandat nicht (mehr) gibt
 	 */
-	public function update(int $id, string $iban, ?string $bic, string $mandateType, string $signedDate): SepaMandate {
+	public function update(int $id, string $iban, ?string $bic, string $mandateType, string $signedDate, ?string $email = null): SepaMandate {
 		$mandate = $this->mapper->find($id);
 		$mandate->setIban($this->requireIban($iban));
 		$mandate->setBic($bic !== null && trim($bic) !== '' ? strtoupper(trim($bic)) : null);
+		$mandate->setEmail($this->normalizeEmail($email));
 		$mandate->setMandateType($this->validateType($mandateType));
 		$mandate->setSignedDate($this->validateDate($signedDate));
 		$mandate = $this->mapper->update($mandate);
@@ -162,6 +165,23 @@ class SepaMandateService {
 			throw new \InvalidArgumentException($this->l10n->t('Die IBAN ist Pflicht.'));
 		}
 		return $normalized;
+	}
+
+	/**
+	 * Adresse für die SEPA-Vorankündigung. Optional, aber für die meisten
+	 * Zahler der einzige Weg: wer kein Nextcloud-Konto auf dieser Instanz hat
+	 * – in einem Chor oder einem Verein mit 200 Mitgliedern also fast jeder –,
+	 * konnte vorher gar nicht angekündigt werden (siehe Migration 000130).
+	 */
+	private function normalizeEmail(?string $email): ?string {
+		$email = trim((string)$email);
+		if ($email === '') {
+			return null;
+		}
+		if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+			throw new \InvalidArgumentException($this->l10n->t('Die E-Mail-Adresse ist ungültig: %s', [$email]));
+		}
+		return $email;
 	}
 
 	private function validateType(string $mandateType): string {

@@ -16,6 +16,7 @@ use OCA\Vereinsbuchhaltung\Db\SepaMandate;
 use OCA\Vereinsbuchhaltung\Db\SepaMandateMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Service\Sepa\PainXmlBuilder;
+use OCA\Vereinsbuchhaltung\Service\Sepa\SepaCreditor;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaReference;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IConfig;
@@ -34,6 +35,7 @@ class SepaBatchService {
 		private SepaBatchMapper $batchMapper,
 		private SepaBatchItemMapper $itemMapper,
 		private OpenItemMapper $openItemMapper,
+		private OpenItemService $openItems,
 		private SepaMandateMapper $mandateMapper,
 		private AccountMapper $accountMapper,
 		private MemberReferenceValidator $memberRef,
@@ -208,7 +210,81 @@ class SepaBatchService {
 				'remittanceInfo' => $openItem->getDescription() ?? $this->l10n->t('Mitgliedsbeitrag'),
 			];
 		}
-		return $this->xmlBuilder->build($batch, $rows);
+		return $this->xmlBuilder->build($this->creditorOf($batch), $rows);
+	}
+
+	/**
+	 * Übersetzt den gespeicherten Einzug in das Wertobjekt, mit dem der
+	 * XML-Erzeuger arbeitet – siehe {@see SepaCreditor} zum Warum.
+	 */
+	private function creditorOf(SepaBatch $batch): SepaCreditor {
+		return new SepaCreditor(
+			$batch->getMessageId(),
+			$batch->getExecutionDate(),
+			$batch->getCreditorId(),
+			$batch->getCreditorName(),
+			$batch->getCreditorIban(),
+			$batch->getCreditorBic(),
+		);
+	}
+
+	/**
+	 * Bucht einen Einzug als ausgeführt: das Geld ist eingegangen.
+	 *
+	 * Das ist der Abschluss, der dem Modul lange gefehlt hat. Ohne ihn endete
+	 * der Ablauf beim heruntergeladenen XML – die Zeilen blieben `pending`,
+	 * und der Kassenwart musste jeden einzelnen offenen Posten von Hand
+	 * schließen, während die Bank eine einzige Sammelgutschrift bucht. Bei 80
+	 * Mitgliedern sind das 80 Handgriffe im Monat.
+	 *
+	 * Zurückgebuchte Zeilen bleiben unangetastet: deren Geld ist gerade nicht
+	 * gekommen, ihr offener Posten muss offen bleiben.
+	 *
+	 * @param int|null $journalId Buchung der Sammelgutschrift auf dem
+	 *        Kontoauszug, falls schon erfasst. Sie wird allen geschlossenen
+	 *        Posten als Zahlungsnachweis hinterlegt – eine Gutschrift für
+	 *        viele Posten, genau wie die Bank es bucht.
+	 * @return array{settled:int, skipped:int} verbucht / wegen Rücklastschrift übersprungen
+	 * @throws DoesNotExistException wenn es den Einzug nicht (mehr) gibt
+	 * @throws \InvalidArgumentException wenn er schon abgeschlossen ist
+	 */
+	public function settleBatch(int $batchId, ?int $journalId = null): array {
+		$batch = $this->batchMapper->find($batchId);
+		if ($batch->isSettled()) {
+			throw new \InvalidArgumentException($this->l10n->t('Dieser Einzug ist bereits als ausgeführt verbucht.'));
+		}
+
+		return $this->transaction->run(function () use ($batch, $batchId, $journalId): array {
+			$settled = 0;
+			$skipped = 0;
+			foreach ($this->itemMapper->findByBatch($batchId) as $item) {
+				if ($item->getStatus() === 'returned') {
+					$skipped++;
+					continue;
+				}
+				$item->setStatus('settled');
+				$this->itemMapper->update($item);
+				try {
+					$this->openItems->markPaid($item->getOpenItemId(), $journalId);
+				} catch (DoesNotExistException) {
+					// Posten inzwischen gelöscht – die Einzugszeile trotzdem
+					// abschließen, sie dokumentiert die Einreichung.
+				}
+				$settled++;
+			}
+
+			$batch->setSettledAt((new \DateTime())->format('Y-m-d H:i:s'));
+			$this->batchMapper->update($batch);
+
+			$this->audit->log('SEPA-Sammeleinzug als ausgeführt verbucht', 'sepa_batch', $batchId, [
+				'faelligkeit' => $batch->getExecutionDate(),
+				'verbucht' => $settled,
+				'uebersprungen' => $skipped,
+				'buchung' => $journalId,
+			]);
+
+			return ['settled' => $settled, 'skipped' => $skipped];
+		});
 	}
 
 	/**
@@ -230,6 +306,12 @@ class SepaBatchService {
 	public function deleteBatch(int $batchId): void {
 		$batch = $this->batchMapper->find($batchId);
 		$items = $this->itemMapper->findByBatch($batchId);
+
+		// Ein abgeschlossener Einzug ist Buchhaltung, kein Entwurf mehr: die
+		// offenen Posten sind geschlossen, das Geld ist geflossen.
+		if ($batch->isSettled()) {
+			throw new \InvalidArgumentException($this->l10n->t('Dieser Einzug ist bereits als ausgeführt verbucht und kann nicht mehr verworfen werden.'));
+		}
 
 		foreach ($items as $item) {
 			if ($item->getStatus() === 'returned') {
@@ -318,7 +400,9 @@ class SepaBatchService {
 		if ($item->getStatus() !== 'returned') {
 			throw new \InvalidArgumentException($this->l10n->t('Diese Zeile ist nicht als Rücklastschrift markiert.'));
 		}
-		$item->setStatus('pending');
+		// Zurück in den Zustand, in dem die Zeile vor der Fehlerkennung war:
+		// war der Einzug schon abgeschlossen, gehört sie wieder dazu.
+		$item->setStatus($this->batchMapper->find($item->getBatchId())->isSettled() ? 'settled' : 'pending');
 		$item->setReturnReason(null);
 		$item->setReturnDate(null);
 		$item = $this->itemMapper->update($item);

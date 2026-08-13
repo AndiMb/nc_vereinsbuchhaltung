@@ -10,6 +10,46 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
 
 ## [Unreleased]
 
+## [0.21.0] – 2026-08-13
+
+### Neu
+- **Mitglieder und Beiträge in einer Ansicht** (Einstellungen → Mitglieder und
+  Beiträge). Bankverbindung und Beitrag werden in einem Schritt angelegt statt
+  wie bisher in zwei getrennten Formularen mit doppelter Auswahl des Zahlers.
+  Dazu Suchfeld, Filter „nur Auffälligkeiten", Anzeige des Beitragsaufkommens
+  im Jahr – gedacht für Vereine und Chöre mit dreistelliger Mitgliederzahl.
+- **Mitgliederliste als CSV einlesen.** Erst ein Prüflauf, der je Zeile zeigt,
+  was entstehen würde und was nicht stimmt, dann das Anlegen. Spaltennamen
+  dürfen deutsch oder englisch sein, in beliebiger Reihenfolge; unbekannte
+  Spalten werden übergangen. Eine Vorlage lässt sich herunterladen.
+- **Einzug als ausgeführt verbuchen.** Ist das Geld eingegangen, werden alle
+  zugehörigen offenen Posten in einem Schritt als bezahlt geschlossen. Bisher
+  endete der Ablauf bei der heruntergeladenen XML-Datei, und jeder Posten
+  musste einzeln von Hand geschlossen werden.
+- **E-Mail-Adresse am Mandat.** Die gesetzlich vorgeschriebene Vorankündigung
+  ging bisher nur an Zahler mit Nextcloud-Konto und dort hinterlegter Adresse –
+  in den meisten Vereinen also an fast niemanden. Die Ankündigung nennt jetzt
+  außerdem die Gläubiger-Identifikationsnummer.
+- **Beitragsrückstand sichtbar**, mit Knopf zum Nachholen. Ein rückwirkend
+  angelegter Monatsbeitrag brauchte bisher einen Tageslauf je Periode, ohne
+  dass irgendwo stand, dass noch etwas aussteht.
+
+### Behoben
+- Nach einer **Rücklastschrift** galt das Mandat weiterhin als eingelöst: ein
+  zurückgegebener Ersteinzug wurde beim nächsten Mal als Folgeeinzug (RCUR)
+  eingereicht statt erneut als FRST. Manche Institute weisen das zurück.
+- Eine **Rücklastschrift zu einem bereits abgeschlossenen Einzug** wird jetzt
+  ebenfalls erkannt; die Rückgabe trifft regelmäßig erst nach dem Geldeingang
+  ein. Der betroffene offene Posten wird dabei wieder geöffnet.
+- Der **Mitglieder-Import** lehnt negative Beträge ab, statt sie stillschweigend
+  als Forderung zu übernehmen.
+
+### Intern
+- Der Erzeuger der pain.008-Datei arbeitet nicht mehr auf der Datenbank-Entität,
+  sondern auf einem Wertobjekt. Dadurch prüfen Unit-Tests die erzeugte Datei
+  jetzt gegen das amtliche Schema der Deutschen Kreditwirtschaft – die bislang
+  ungetestete, aber formatkritischste Stelle des Moduls.
+
 ## [0.20.0] – 2026-08-12
 
 ### Neu

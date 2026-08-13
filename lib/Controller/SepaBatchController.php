@@ -70,6 +70,24 @@ class SepaBatchController extends Controller {
 		return new DataResponse($rows);
 	}
 
+	/**
+	 * Bucht den Einzug als ausgeführt und schließt die zugehörigen offenen
+	 * Posten.
+	 *
+	 * @param int|null $journalId Buchung der Sammelgutschrift, falls erfasst
+	 */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	public function settle(int $id, ?int $journalId = null): DataResponse {
+		try {
+			return new DataResponse($this->service->settleBatch($id, $journalId));
+		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Einzug nicht gefunden')], Http::STATUS_NOT_FOUND);
+		}
+	}
+
 	/** Verwirft einen versehentlich erzeugten Einzug wieder. */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_ADMIN)]
