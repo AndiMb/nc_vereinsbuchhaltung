@@ -113,6 +113,7 @@ export default {
 	createSepaMandate: data => axios.post(url('/sepa/mandates'), data),
 	updateSepaMandate: (id, data) => axios.put(url(`/sepa/mandates/${id}`), data),
 	revokeSepaMandate: id => axios.post(url(`/sepa/mandates/${id}/revoke`)),
+	changeSepaMandateBankAccount: (id, data) => axios.post(url(`/sepa/mandates/${id}/change-account`), data),
 	deleteSepaMandate: id => axios.delete(url(`/sepa/mandates/${id}`)),
 
 	// Mitgliedsbeiträge mit Zahlungsfrequenz (optionales Zusatzmodul)

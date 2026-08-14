@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\SepaBatchItemMapper;
 use OCA\Vereinsbuchhaltung\Db\SepaMandate;
 use OCA\Vereinsbuchhaltung\Db\SepaMandateMapper;
+use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaReference;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IL10N;
@@ -29,6 +30,7 @@ class SepaMandateService {
 		private OpenItemMapper $openItemMapper,
 		private IbanValidator $ibanValidator,
 		private MemberReferenceValidator $memberRef,
+		private TransactionRunner $transaction,
 		private AuditService $audit,
 		private IL10N $l10n,
 	) {
@@ -109,6 +111,79 @@ class SepaMandateService {
 			'referenz' => $mandate->getMandateReference(),
 		]);
 		return $mandate;
+	}
+
+	/**
+	 * Wechselt die Bankverbindung eines Zahlers: widerruft das alte Mandat,
+	 * legt ein neues für denselben Zahler an und hängt um, was sich sonst
+	 * still verlöre.
+	 *
+	 * Ohne diese Methode war der einzige Weg „widerrufen, neu anlegen" –
+	 * zwei für sich richtige Schritte, die aber eine Lücke hinterließen: noch
+	 * offene Posten (bereits fällige, aber noch nicht eingezogene Beiträge)
+	 * zeigten weiter auf das widerrufene Mandat. {@see SepaBatchService::previewEligible()}
+	 * verlangt ein aktives Mandat und ließ sie deshalb kommentarlos aus jeder
+	 * künftigen Vorschau herausfallen – eine Forderung, die nie wieder
+	 * eingezogen wird, ohne dass es irgendwo auffällt. Ein aktiver Beitrag
+	 * mit Verweis auf das alte Mandat hätte ab der nächsten Fälligkeit
+	 * denselben Fehler wiederholt.
+	 *
+	 * Das neue Mandat beginnt bewusst als „noch nicht benutzt": eine neue
+	 * Bankverbindung ist SEPA-rechtlich eine neue Einzugsermächtigung, der
+	 * erste Einzug darüber läuft daher zu Recht wieder als FRST statt RCUR.
+	 *
+	 * @throws DoesNotExistException wenn es das alte Mandat nicht (mehr) gibt
+	 * @throws \InvalidArgumentException wenn das alte Mandat nicht aktiv ist
+	 */
+	public function changeBankAccount(
+		int $oldMandateId,
+		string $iban,
+		?string $bic,
+		string $mandateType,
+		string $signedDate,
+		?string $email = null,
+	): SepaMandate {
+		$old = $this->mapper->find($oldMandateId);
+		if ($old->getStatus() !== 'active') {
+			throw new \InvalidArgumentException($this->l10n->t('Nur ein aktives Mandat lässt sich auf eine neue Bankverbindung umstellen.'));
+		}
+
+		return $this->transaction->run(function () use ($old, $iban, $bic, $mandateType, $signedDate, $email): SepaMandate {
+			$new = $this->create($old->getMemberUid(), $old->getMemberLabel(), $iban, $bic, $mandateType, $signedDate, $email);
+			$this->revoke((int)$old->getId());
+
+			// Beiträge: unabhängig vom Aktiv-Status umhängen. Ein gerade
+			// pausierter Beitrag soll bei Wiederaufnahme die neue Bank-
+			// verbindung nutzen, nicht die widerrufene von vorhin.
+			$beitraege = 0;
+			foreach ($this->feeMapper->findByMandate((int)$old->getId()) as $fee) {
+				$fee->setMandateId($new->getId());
+				$this->feeMapper->update($fee);
+				$beitraege++;
+			}
+
+			// Offene Posten: nur die noch tatsächlich offenen. Bereits
+			// bezahlte oder stornierte sind abgeschlossene Historie – für sie
+			// ändert eine neue Bankverbindung nichts mehr.
+			$posten = 0;
+			foreach ($this->openItemMapper->findByMandate((int)$old->getId()) as $item) {
+				if ($item->getStatus() === 'open') {
+					$item->setMandateId($new->getId());
+					$this->openItemMapper->update($item);
+					$posten++;
+				}
+			}
+
+			$this->audit->log('SEPA-Bankverbindung gewechselt', 'sepa_mandate', $new->getId(), [
+				'zahler' => $new->displayName(),
+				'alte_referenz' => $old->getMandateReference(),
+				'neue_referenz' => $new->getMandateReference(),
+				'beitraege_umgehaengt' => $beitraege,
+				'offene_posten_umgehaengt' => $posten,
+			]);
+
+			return $new;
+		});
 	}
 
 	/**

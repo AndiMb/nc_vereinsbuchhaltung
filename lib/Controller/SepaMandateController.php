@@ -88,6 +88,31 @@ class SepaMandateController extends Controller {
 		}
 	}
 
+	/**
+	 * Wechselt die Bankverbindung: widerruft das Mandat und legt ein neues
+	 * an, mit umgehängten Beiträgen und noch offenen Posten (siehe
+	 * {@see SepaMandateService::changeBankAccount()}).
+	 */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	public function changeBankAccount(
+		int $id,
+		string $iban,
+		?string $bic,
+		string $mandateType,
+		string $signedDate,
+		?string $email = null,
+	): DataResponse {
+		try {
+			$mandate = $this->service->changeBankAccount($id, $iban, $bic, $mandateType, $signedDate, $email);
+			return new DataResponse($this->decorate($mandate), Http::STATUS_CREATED);
+		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Mandat nicht gefunden')], Http::STATUS_NOT_FOUND);
+		}
+	}
+
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_ADMIN)]
 	public function revoke(int $id): DataResponse {

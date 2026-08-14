@@ -1125,7 +1125,16 @@
             "%n open item is still missing for this fee. Create it now?",
             "%n open items are still missing for this fee. Create all of them now?"
         ],
-        "Für diesen Zahler gibt es bereits einen aktiven Beitrag.": "There is already an active fee for this payer."
+        "Für diesen Zahler gibt es bereits einen aktiven Beitrag.": "There is already an active fee for this payer.",
+        "Bankverbindung gewechselt.": "Bank details changed.",
+        "Bankverbindung wechseln": "Change bank details",
+        "Das bisherige Mandat für „{name}\" wird widerrufen, ein neues mit der eingegebenen Bankverbindung angelegt. Noch offene, nicht eingezogene Beiträge und Posten wandern automatisch auf das neue Mandat – sonst würden sie beim nächsten Einzug stillschweigend übersprungen.": "The existing mandate for “{name}” will be revoked, and a new one created with the bank details entered here. Open fees and items that have not yet been collected move to the new mandate automatically – otherwise they would silently drop out of the next collection.",
+        "Der erste Einzug über das neue Mandat läuft als Ersteinzug (FRST) – eine neue Bankverbindung ist SEPA-rechtlich eine neue Einzugsermächtigung.": "The first collection under the new mandate runs as a first collection (FRST) – a new bank account is legally a new direct debit authorisation under SEPA rules.",
+        "E-Mail für die Vorankündigung": "Email for the pre-notification",
+        "Neue IBAN": "New IBAN",
+        "Nur ein aktives Mandat lässt sich auf eine neue Bankverbindung umstellen.": "Only an active mandate can be switched to a new bank account.",
+        "Wechseln": "Change",
+        "Wechseln fehlgeschlagen": "Change failed"
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

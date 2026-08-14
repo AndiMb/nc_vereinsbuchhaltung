@@ -101,6 +101,7 @@ jobs:
             --exclude='*.map' \
             --exclude='*.log' \
             --exclude='*.mp3' \
+            --exclude='SEPA-STAND.md' \
             ./ "$STAGE/"
 
       - name: Signaturschluessel bereitstellen

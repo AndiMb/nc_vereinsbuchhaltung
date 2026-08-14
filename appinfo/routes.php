@@ -91,6 +91,7 @@ return [
 		['name' => 'sepaMandate#create', 'url' => '/api/sepa/mandates', 'verb' => 'POST'],
 		['name' => 'sepaMandate#update', 'url' => '/api/sepa/mandates/{id}', 'verb' => 'PUT'],
 		['name' => 'sepaMandate#revoke', 'url' => '/api/sepa/mandates/{id}/revoke', 'verb' => 'POST'],
+		['name' => 'sepaMandate#changeBankAccount', 'url' => '/api/sepa/mandates/{id}/change-account', 'verb' => 'POST'],
 		['name' => 'sepaMandate#destroy', 'url' => '/api/sepa/mandates/{id}', 'verb' => 'DELETE'],
 
 		// Mitgliedsbeiträge mit Zahlungsfrequenz (optionales Zusatzmodul)

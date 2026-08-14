@@ -264,6 +264,12 @@
 								<NcButton v-if="row.mandate && row.mandate.status === 'active'"
 									variant="tertiary"
 									size="small"
+									@click="openBankChange(row.mandate)">
+									{{ t('Bankverbindung wechseln') }}
+								</NcButton>
+								<NcButton v-if="row.mandate && row.mandate.status === 'active'"
+									variant="tertiary"
+									size="small"
 									@click="revokeMandate(row.mandate)">
 									{{ t('Mandat widerrufen') }}
 								</NcButton>
@@ -290,6 +296,12 @@
 		<p v-else class="vbh-hint">
 			{{ rows.length ? t('Kein Eintrag passt zur Suche.') : t('Noch kein Mitglied aufgenommen.') }}
 		</p>
+
+		<BankAccountChangeDialog :show.sync="bankChangeOpen"
+			:mandate="bankChangeMandate"
+			:saving="bankChangeSaving"
+			@close="bankChangeOpen = false"
+			@save="saveBankChange" />
 	</div>
 </template>
 
@@ -299,6 +311,7 @@ import { NcButton, NcSelect } from '@nextcloud/vue'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import api from '../api.js'
 import { errMsg, formatMoney } from '../lib/format.js'
+import BankAccountChangeDialog from './BankAccountChangeDialog.vue'
 import { useMembershipFees } from '../composables/useMembershipFees.js'
 import { useSepaMandates } from '../composables/useSepaMandates.js'
 import { usePermissions } from '../composables/usePermissions.js'
@@ -347,7 +360,7 @@ function frequencyLabels() {
  */
 export default {
 	name: 'SettingsMembers',
-	components: { NcButton, NcSelect },
+	components: { NcButton, NcSelect, BankAccountChangeDialog },
 	setup() {
 		const membershipFees = useMembershipFees()
 		const sepaMandates = useSepaMandates()
@@ -376,6 +389,9 @@ export default {
 			importError: '',
 			importing: false,
 			importSummary: { ok: 0, failed: 0, mandates: 0, fees: 0 },
+			bankChangeOpen: false,
+			bankChangeMandate: null,
+			bankChangeSaving: false,
 		}
 	},
 	computed: {
@@ -600,6 +616,25 @@ export default {
 				await this.loadMembershipFees()
 				showSuccess(this.t('Beitrag gelöscht.'))
 			} catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
+		},
+		openBankChange(mandate) {
+			this.bankChangeMandate = mandate
+			this.bankChangeOpen = true
+		},
+		/**
+		 * Widerruft das alte Mandat und legt ein neues an; Beiträge und noch
+		 * offene Posten hängen dabei serverseitig automatisch um (siehe
+		 * SepaMandateService::changeBankAccount()) - ohne das fielen sie beim
+		 * nächsten Einzug sonst kommentarlos aus der Vorschau.
+		 */
+		async saveBankChange(data) {
+			this.bankChangeSaving = true
+			try {
+				await api.changeSepaMandateBankAccount(this.bankChangeMandate.id, data)
+				this.bankChangeOpen = false
+				await this.reload()
+				showSuccess(this.t('Bankverbindung gewechselt.'))
+			} catch (e) { showError(this.errMsg(e, this.t('Wechseln fehlgeschlagen'))) } finally { this.bankChangeSaving = false }
 		},
 		async revokeMandate(mandate) {
 			if (!await this.askConfirm(this.t('Mandat widerrufen'), this.t('Mandat für „{name}" widerrufen? Es wird danach nicht mehr für neue Einzüge verwendet.', { name: mandate.displayName }))) return
