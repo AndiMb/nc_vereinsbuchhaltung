@@ -1,8 +1,5 @@
 <template>
 	<div>
-		<h3 class="vbh-section-divider">
-			{{ t('SEPA-Sammeleinzug') }}
-		</h3>
 		<p class="vbh-hint">
 			{{ t('Erzeugt eine SEPA-XML-Datei (pain.008) aus allen offenen Posten mit aktivem Mandat, die bis zum Fälligkeitstag fällig sind und noch in keinem laufenden Einzug stecken. Vor dem ersten echten Einzug unbedingt mit dem Prüftool der Hausbank testen – das genaue Format kann je nach Bank leicht abweichen.') }}
 		</p>
@@ -184,11 +181,14 @@ import { useConfirm } from '../composables/useConfirm.js'
 const LEAD_DAYS = 14
 
 /**
- * Erzeugen, Prüfen und Herunterladen von SEPA-Sammeleinzügen. Nur für
- * Verwalter erreichbar (siehe SepaBatchController).
+ * Erzeugen, Prüfen und Herunterladen von SEPA-Sammeleinzügen. Frueher
+ * SettingsSepaExport.vue im Einstellungen-Modal; jetzt Unterreiter „Einzug"
+ * von ContributionsTab.vue, siehe NAVIGATION-KONZEPT.md Abschnitt 4.
+ *
+ * Nur für Verwalter erreichbar (siehe SepaBatchController).
  */
 export default {
-	name: 'SettingsSepaExport',
+	name: 'SepaBatchPanel',
 	components: { NcButton },
 	setup() {
 		const sepaBatches = useSepaBatches()

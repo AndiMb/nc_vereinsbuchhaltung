@@ -137,7 +137,7 @@
 	.vbh-tour-tip { background: #16273f; border-color: #2c4a72; color: #cfe1ff; }
 }
 
-/* Sphären-Bericht: Freigrenzen-Statuszeile (App.vue + SettingsSpheres.vue) –
+/* Sphären-Bericht: Freigrenzen-Statuszeile (App.vue + SphereAssignPanel.vue) –
    feste Farben statt Theme-Variablen, siehe Ergänzung v0.10.12. */
 .vbh-freigrenzemini { margin: 0 10px 10px; padding: 8px 10px; border-radius: var(--border-radius, 6px); font-size: 0.85em; font-weight: 600; }
 .vbh-freigrenzemini.ok { background: #e3f3e6; color: #1e5e2c; }
@@ -149,7 +149,7 @@
 	.vbh-freigrenzemini.over { background: #3d1414; color: #f0a8a8; }
 }
 .vbh-sphere-bulkbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 10px 0; }
-/* Kostenstellen-Pflege (SettingsCostCenters.vue) */
+/* Kostenstellen-Pflege (CostCenterPanel.vue) */
 .vbh-cc-newform { align-items: flex-end; }
 .vbh-cc-modewarn { border-left: 3px solid var(--color-warning, #c9a227); padding-left: 10px; }
 .vbh-sphere-suggest { display: block; font-size: 0.8em; opacity: 0.75; margin-top: 2px; }

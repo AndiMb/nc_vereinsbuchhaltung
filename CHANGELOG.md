@@ -10,6 +10,34 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
 
 ## [Unreleased]
 
+## [0.22.0] – 2026-08-14
+
+### Geändert
+- **Navigation aufgeräumt.** Das Zahnrad-Menü „Einstellungen & Import" hatte
+  über die Entwicklungszeit 16 Abschnitte angesammelt – Einrichtung und
+  laufende Arbeit ungetrennt nebeneinander. Neu:
+  - **Reiter „Beiträge"** (Hauptnavigation, erscheint automatisch sobald das
+    Modul genutzt wird): Mitgliederliste und SEPA-Sammeleinzug, vorher zwei
+    Abschnitte im Einstellungen-Modal. Kennzahl im Reiter zeigt Beiträge im
+    Rückstand.
+  - **Unterreiter „Regeln"** (Tab Buchungen): Auto-Zuordnungsregeln, dort wo
+    sie auch entstehen (Blitz-Button beim Zuordnen).
+  - **Kostenstellen- und Sphären-Pflege** jetzt direkt in den gleichnamigen
+    Berichten statt im Zahnrad – inklusive des Kostenstellen-Modus.
+  - Das Zahnrad selbst fasst jetzt nur noch sieben statt 16 Abschnitte
+    (Verein, Belege, Bankdaten, Beiträge & SEPA, Berechtigungen,
+    Jahresabschluss, Daten). Der Wegweiser-Hinweis „Kontoumsätze
+    importieren" darin entfällt ersatzlos – der Import steht seit 0.19 im
+    Tab „Buchungen".
+  - Keine Datenbank-Migration nötig; bestehende Installationen mit
+    Mandaten/Beiträgen sehen den neuen Reiter sofort.
+- **Import-Verlauf konsolidiert.** Die Liste „Bisherige CSV-Importe" unter
+  Einstellungen → Daten zeigte dieselben Angaben (Dateiname, neu, Dubletten)
+  wie das Änderungsprotokoll ein zweites Mal – beide wurden bei jedem Import
+  parallel beschrieben. Die Liste entfällt; im Protokoll (Berichte →
+  Protokoll) blendet der neue Schnellfilter „nur Importe" alles andere aus.
+  Die dafür genutzte Tabelle `vbh_imports` wird per Migration entfernt.
+
 ## [0.21.0] – 2026-08-13
 
 ### Neu

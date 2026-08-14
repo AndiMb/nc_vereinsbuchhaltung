@@ -72,4 +72,22 @@ class SepaMandateMapper extends QBMapper {
 			->andWhere($qb->expr()->eq('status', $qb->createNamedParameter('active')));
 		return $this->findEntities($qb);
 	}
+
+	/**
+	 * Anzahl aller Mandate, unabhaengig vom Status.
+	 *
+	 * Entscheidet zusammen mit {@see MembershipFeeMapper::count()}, ob der
+	 * Reiter „Beitraege" ueberhaupt sichtbar ist (SettingsController::index()):
+	 * ein Verein, der bereits Mitglieder angelegt hat, soll ihn auch ohne den
+	 * separaten Schalter sehen.
+	 */
+	public function count(): int {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select($qb->func()->count('*', 'cnt'))
+			->from($this->getTableName());
+		$res = $qb->executeQuery();
+		$count = (int)$res->fetchOne();
+		$res->closeCursor();
+		return $count;
+	}
 }

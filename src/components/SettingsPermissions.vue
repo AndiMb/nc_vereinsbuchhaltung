@@ -1,8 +1,5 @@
 <template>
 	<div>
-		<h3 class="vbh-section-divider">
-			{{ t('Berechtigungen') }}
-		</h3>
 		<p class="vbh-hint">
 			<strong>{{ t('Verwalter') }}</strong> {{ t('dürfen alles inkl. Rechtevergabe,') }}
 			<strong>{{ t('Buchhalter') }}</strong> {{ t('lesen und schreiben,') }}

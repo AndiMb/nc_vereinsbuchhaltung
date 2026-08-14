@@ -1,8 +1,5 @@
 <template>
 	<div>
-		<h3 class="vbh-section-divider">
-			{{ t('Steuerliche Sphären') }}
-		</h3>
 		<p class="vbh-hint">
 			{{ t('Ordnet Einnahmen-/Ausgaben-Konten einer Sphäre zu (ideeller Bereich, Vermögensverwaltung, Zweckbetrieb, wirtschaftlicher Geschäftsbetrieb) – wichtig für die Gemeinnützigkeit und die Freigrenze des wirtschaftlichen Geschäftsbetriebs. Ersetzt keine steuerliche Beratung.') }}
 			<button type="button"
@@ -94,10 +91,12 @@
 </template>
 
 <script>
+import { toRefs } from 'vue'
 import { NcButton } from '@nextcloud/vue'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
+import { useAccounts } from '../composables/useAccounts.js'
 import { t } from '../lib/l10n.js'
 
 // Als Funktion statt Modul-Konstante ausgewertet (siehe sphereLabel()), damit
@@ -112,12 +111,17 @@ function sphereLabels() {
 	}
 }
 
+/**
+ * Zuordnung der steuerlichen Sphäre zu Einnahmen-/Ausgaben-Konten. Frueher
+ * SettingsSpheres.vue im Einstellungen-Modal; jetzt Teil des Berichts
+ * „Sphären" (ReportsTab.vue), siehe NAVIGATION-KONZEPT.md Abschnitt 4 – wo
+ * die fehlende Zuordnung sichtbar wird, wird sie auch geschlossen.
+ */
 export default {
-	name: 'SettingsSpheres',
+	name: 'SphereAssignPanel',
 	components: { NcButton },
-	props: {
-		// Alle Konten (Parent lädt sie ohnehin) – hier nur Einnahmen-/Ausgaben-Konten relevant.
-		accounts: { type: Array, required: true },
+	setup() {
+		return { ...toRefs(useAccounts().state) }
 	},
 	data() {
 		return {

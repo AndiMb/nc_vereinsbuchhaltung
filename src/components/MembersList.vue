@@ -1,156 +1,8 @@
 <template>
 	<div>
-		<h3 class="vbh-section-divider">
-			{{ t('Mitglieder und Beiträge') }}
-		</h3>
 		<p class="vbh-hint">
-			{{ t('Ein Mitglied besteht hier aus zwei Angaben: seiner Bankverbindung (dem SEPA-Mandat) und seinem Beitrag. Beides wird in einem Schritt angelegt. Eine eigene Mitgliederverwaltung führt die App bewusst nicht – wer keine Beiträge einzieht, braucht diesen Abschnitt nicht.') }}
+			{{ t('Ein Mitglied besteht hier aus zwei Angaben: seiner Bankverbindung (dem SEPA-Mandat) und seinem Beitrag. Eine eigene Mitgliederverwaltung führt die App bewusst nicht – wer keine Beiträge einzieht, braucht diesen Reiter nicht.') }}
 		</p>
-
-		<div class="vbh-card">
-			<h4>{{ t('Mitglied aufnehmen') }}</h4>
-			<div class="vbh-form">
-				<label>{{ t('Zahler') }}
-					<select v-model="form.memberKind">
-						<option value="label">{{ t('Freier Zahlername') }}</option>
-						<option value="user">{{ t('Nextcloud-Nutzer') }}</option>
-					</select>
-				</label>
-				<label v-if="form.memberKind === 'user'" class="vbh-grow">{{ t('Nutzer') }}
-					<NcSelect v-model="formMemberOption"
-						:options="userOptions"
-						label="label"
-						:placeholder="t('– Nutzer wählen –')" />
-				</label>
-				<label v-else class="vbh-grow">{{ t('Name') }}
-					<input v-model="form.memberLabel" :placeholder="t('z. B. Katrin Brunner')">
-				</label>
-				<label class="vbh-grow">{{ t('E-Mail') }}
-					<input v-model="form.email" type="email" :placeholder="t('für die Vorankündigung')">
-				</label>
-			</div>
-
-			<div class="vbh-form">
-				<label class="vbh-grow">{{ t('IBAN') }}
-					<input v-model="form.iban" placeholder="DE12 5001 0517 0648 4898 90">
-				</label>
-				<label>{{ t('BIC') }}
-					<input v-model="form.bic" class="vbh-short" :placeholder="t('optional')">
-				</label>
-				<label>{{ t('Mandat unterschrieben am') }}
-					<input v-model="form.signedDate" type="date">
-				</label>
-			</div>
-
-			<div class="vbh-form">
-				<label>{{ t('Betrag (€)') }}
-					<input v-model="form.amount"
-						type="number"
-						step="0.01"
-						min="0"
-						class="vbh-short">
-				</label>
-				<label>{{ t('Frequenz') }}
-					<select v-model="form.frequency">
-						<option v-for="f in frequencies" :key="f.value" :value="f.value">
-							{{ f.label }}
-						</option>
-					</select>
-				</label>
-				<label>{{ t('Erste Fälligkeit') }}
-					<input v-model="form.startDate" type="date">
-				</label>
-				<label class="vbh-grow">{{ t('Ertragskonto') }}
-					<select v-model="form.accountId">
-						<option :value="null">
-							{{ t('– optional –') }}
-						</option>
-						<option v-for="a in incomeAccounts" :key="a.id" :value="a.id">
-							{{ a.number }} · {{ a.name }}
-						</option>
-					</select>
-				</label>
-				<NcButton variant="primary" :disabled="!canSave || saving" @click="createMember">
-					{{ t('Aufnehmen') }}
-				</NcButton>
-			</div>
-			<p class="vbh-hint">
-				{{ t('Beides ist einzeln möglich: ohne IBAN entsteht nur ein Beitrag (etwa für Überweiser), ohne Betrag nur ein Mandat.') }}
-			</p>
-		</div>
-
-		<div class="vbh-card">
-			<h4>{{ t('Mitgliederliste einlesen') }}</h4>
-			<p class="vbh-hint">
-				{{ t('Für die erstmalige Aufnahme vieler Mitglieder: eine CSV-Datei mit den Spalten Name, E-Mail, IBAN, Mandat am, Betrag, Frequenz und Start. Die Reihenfolge und die Schreibweise der Überschriften sind egal, zusätzliche Spalten werden übergangen. Vor dem Anlegen sehen Sie zuerst, was entstehen würde.') }}
-			</p>
-			<div class="vbh-form">
-				<input ref="csvInput"
-					type="file"
-					accept=".csv,text/csv"
-					@change="onFileChosen">
-				<NcButton :disabled="!importCsv || importing" @click="previewImport">
-					{{ t('Prüfen') }}
-				</NcButton>
-				<NcButton variant="primary"
-					:disabled="!importPreview || importSummary.ok === 0 || importing"
-					@click="runImport">
-					{{ n('%n Zeile übernehmen', '%n Zeilen übernehmen', importSummary.ok) }}
-				</NcButton>
-				<NcButton v-if="importPreview" variant="tertiary" @click="resetImport">
-					{{ t('Abbrechen') }}
-				</NcButton>
-				<a :href="beispielCsv" download="mitglieder-vorlage.csv" class="vbh-export-btn">{{ t('Vorlage herunterladen') }}</a>
-			</div>
-
-			<p v-if="importError" class="vbh-hint vbh-hint--warning">
-				{{ importError }}
-			</p>
-
-			<template v-if="importPreview">
-				<p class="vbh-hint" :class="importSummary.failed ? 'vbh-hint--warning' : 'vbh-hint--info'">
-					{{ t('{ok} von {total} Zeilen sind in Ordnung: {mandate} Mandate und {beitraege} Beiträge würden angelegt. {fehler} Zeilen werden übersprungen.', {
-						ok: importSummary.ok,
-						total: importPreview.length,
-						mandate: importSummary.mandates,
-						beitraege: importSummary.fees,
-						fehler: importSummary.failed,
-					}) }}
-				</p>
-				<div class="vbh-tablecard">
-					<table class="vbh-table">
-						<thead>
-							<tr>
-								<th>{{ t('Zeile') }}</th>
-								<th>{{ t('Zahler') }}</th>
-								<th>{{ t('IBAN') }}</th>
-								<th class="num">
-									{{ t('Betrag') }}
-								</th>
-								<th>{{ t('Ergebnis') }}</th>
-							</tr>
-						</thead>
-						<tbody>
-							<tr v-for="row in importPreview" :key="row.line">
-								<td>{{ row.line }}</td>
-								<td>{{ row.name || '–' }}</td>
-								<td class="nowrap">
-									{{ row.iban || '–' }}
-								</td>
-								<td class="num nowrap">
-									{{ row.amount === null ? '–' : formatMoney(row.amount) }}
-								</td>
-								<td>
-									<span v-if="row.errors.length" class="vbh-hint vbh-hint--warning">{{ row.errors.join(' ') }}</span>
-									<span v-else-if="row.mandateId || row.feeId" class="vbh-typetag">{{ t('angelegt') }}</span>
-									<span v-else class="vbh-typetag">{{ importLabel(row) }}</span>
-								</td>
-							</tr>
-						</tbody>
-					</table>
-				</div>
-			</template>
-		</div>
 
 		<div class="vbh-form">
 			<label class="vbh-grow">{{ t('Suchen') }}
@@ -293,9 +145,20 @@
 				</tbody>
 			</table>
 		</div>
-		<p v-else class="vbh-hint">
-			{{ rows.length ? t('Kein Eintrag passt zur Suche.') : t('Noch kein Mitglied aufgenommen.') }}
-		</p>
+		<NcEmptyContent v-else
+			:name="rows.length ? t('Kein Eintrag passt zur Suche.') : t('Noch kein Mitglied aufgenommen.')"
+			:description="rows.length ? '' : t('Mit „＋ Mitglied“ oben ein erstes Mitglied anlegen, oder eine Liste als CSV einlesen.')" />
+
+		<MemberDialog :show="memberDialogOpen"
+			:saving="saving"
+			@update:show="memberDialogOpen = $event"
+			@close="memberDialogOpen = false"
+			@save="createMember" />
+
+		<MemberImportDialog :show="importDialogOpen"
+			@update:show="importDialogOpen = $event"
+			@close="importDialogOpen = false"
+			@imported="reload" />
 
 		<BankAccountChangeDialog :show.sync="bankChangeOpen"
 			:mandate="bankChangeMandate"
@@ -307,36 +170,20 @@
 
 <script>
 import { toRefs } from 'vue'
-import { NcButton, NcSelect } from '@nextcloud/vue'
+import { NcButton, NcEmptyContent } from '@nextcloud/vue'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import api from '../api.js'
 import { errMsg, formatMoney } from '../lib/format.js'
 import BankAccountChangeDialog from './BankAccountChangeDialog.vue'
+import MemberDialog from './MemberDialog.vue'
+import MemberImportDialog from './MemberImportDialog.vue'
 import { useMembershipFees } from '../composables/useMembershipFees.js'
 import { useSepaMandates } from '../composables/useSepaMandates.js'
-import { usePermissions } from '../composables/usePermissions.js'
-import { useAccounts } from '../composables/useAccounts.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { t } from '../lib/l10n.js'
 
 /** Monate je Frequenz – für die Hochrechnung aufs Jahr. */
 const MONTHS = { monthly: 1, quarterly: 3, semiannual: 6, yearly: 12 }
-
-function emptyForm() {
-	return {
-		memberKind: 'label',
-		memberUid: '',
-		memberLabel: '',
-		email: '',
-		iban: '',
-		bic: '',
-		signedDate: new Date().toISOString().slice(0, 10),
-		amount: '',
-		frequency: 'yearly',
-		startDate: new Date().toISOString().slice(0, 10),
-		accountId: null,
-	}
-}
 
 function frequencyLabels() {
 	return {
@@ -349,28 +196,24 @@ function frequencyLabels() {
 
 /**
  * Mitglieder als eine Liste: Mandat und Beitrag gehören zusammen und werden
- * hier auch zusammen gezeigt und angelegt.
- *
- * Vorher standen beide in getrennten Abschnitten mit je eigenem Formular, in
- * denen der Zahler jeweils erneut auszuwählen war – für einen Verein mit 200
- * Mitgliedern unbrauchbar. Deshalb zusätzlich Suche, Mengenanzeige und der
- * CSV-Import für die erstmalige Aufnahme.
+ * hier auch zusammen gezeigt. Frueher SettingsMembers.vue im Einstellungen-
+ * Modal; jetzt Unterreiter „Mitglieder" von ContributionsTab.vue, siehe
+ * NAVIGATION-KONZEPT.md Abschnitt 4. Die beiden Formulare („Mitglied
+ * aufnehmen", CSV-Import) leben seither in eigenen Dialogen
+ * (MemberDialog.vue, MemberImportDialog.vue), die per $refs von der
+ * Kopfzeile in ContributionsTab.vue geoeffnet werden.
  *
  * Nur für Verwalter erreichbar (siehe SepaMandateController).
  */
 export default {
-	name: 'SettingsMembers',
-	components: { NcButton, NcSelect, BankAccountChangeDialog },
+	name: 'MembersList',
+	components: { NcButton, NcEmptyContent, BankAccountChangeDialog, MemberDialog, MemberImportDialog },
 	setup() {
 		const membershipFees = useMembershipFees()
 		const sepaMandates = useSepaMandates()
-		const permissions = usePermissions()
-		const accounts = useAccounts()
 		return {
 			...toRefs(membershipFees.state),
 			...toRefs(sepaMandates.state),
-			...toRefs(permissions.state),
-			...toRefs(accounts.state),
 			loadMembershipFees: membershipFees.loadMembershipFees,
 			loadSepaMandates: sepaMandates.loadSepaMandates,
 			askConfirm: useConfirm().askConfirm,
@@ -378,39 +221,19 @@ export default {
 	},
 	data() {
 		return {
-			form: emptyForm(),
 			saving: false,
 			editing: null,
 			search: '',
 			onlyProblems: false,
 			frequencies: Object.entries(frequencyLabels()).map(([value, label]) => ({ value, label })),
-			importCsv: '',
-			importPreview: null,
-			importError: '',
-			importing: false,
-			importSummary: { ok: 0, failed: 0, mandates: 0, fees: 0 },
+			memberDialogOpen: false,
+			importDialogOpen: false,
 			bankChangeOpen: false,
 			bankChangeMandate: null,
 			bankChangeSaving: false,
 		}
 	},
 	computed: {
-		userOptions() { return this.users.map(u => ({ id: u.id, label: `${u.displayName} (${u.id})` })) },
-		formMemberOption: {
-			get() { return this.userOptions.find(o => o.id === this.form.memberUid) ?? null },
-			set(v) { this.form.memberUid = v ? v.id : '' },
-		},
-		incomeAccounts() {
-			return this.accounts.filter(a => a.type === 'income' && !a.isBank)
-				.slice()
-				.sort((a, b) => String(a.number).localeCompare(String(b.number), 'de', { numeric: true }))
-		},
-		canSave() {
-			const hasMember = this.form.memberKind === 'user' ? !!this.form.memberUid : !!this.form.memberLabel.trim()
-			const hasMandate = !!this.form.iban.trim() && !!this.form.signedDate
-			const hasFee = Number(this.form.amount) > 0 && !!this.form.startDate
-			return hasMember && (hasMandate || hasFee)
-		},
 		/**
 		 * Mandate und Beiträge zu einer Liste verschmolzen. Schlüssel ist der
 		 * Zahler; hat jemand mehrere Beiträge, bekommt er je Beitrag eine Zeile.
@@ -472,15 +295,6 @@ export default {
 				return summe + r.fee.amount * (12 / (MONTHS[r.fee.frequency] || 12))
 			}, 0)
 		},
-		/** Vorlage als Daten-URL: kein zusätzlicher Endpunkt nötig. */
-		beispielCsv() {
-			const zeilen = [
-				'Name;E-Mail;IBAN;BIC;Mandat am;Betrag;Frequenz;Start',
-				'Katrin Brunner;k.brunner@example.org;DE02120300000000202051;;15.01.2026;42,50;monatlich;01.02.2026',
-				'Hans Mertens;h.mertens@example.org;DE02120300000000202051;;15.01.2026;120,00;jährlich;01.01.2026',
-			].join('\r\n')
-			return 'data:text/csv;charset=utf-8,' + encodeURIComponent('﻿' + zeilen)
-		},
 	},
 	mounted() {
 		this.loadMembershipFees()
@@ -490,6 +304,9 @@ export default {
 		errMsg,
 		formatMoney,
 		frequencyLabel(f) { return frequencyLabels()[f] || f },
+		/** Von der Kopfzeile in ContributionsTab.vue per $refs aufgerufen. */
+		openMemberDialog() { this.memberDialogOpen = true },
+		openImportDialog() { this.importDialogOpen = true },
 		/** Was der Verwalter sehen sollte: fehlende Adresse, Rückstand, kein Mandat. */
 		hasProblem(row) {
 			if (row.fee && row.fee.dueCount > 0) return true
@@ -500,11 +317,6 @@ export default {
 			const u = m.usage || {}
 			return (u.batchItems || 0) + (u.fees || 0) + (u.openItems || 0) > 0
 		},
-		importLabel(row) {
-			if (row.willCreateMandate && row.willCreateFee) return this.t('Mandat und Beitrag')
-			if (row.willCreateMandate) return this.t('nur Mandat')
-			return this.t('nur Beitrag')
-		},
 		async reload() {
 			await Promise.all([this.loadMembershipFees(), this.loadSepaMandates()])
 		},
@@ -514,36 +326,34 @@ export default {
 		 * das Mandat bestehen - deshalb sagt die Meldung ausdrücklich, was
 		 * entstanden ist, statt nur „fehlgeschlagen".
 		 */
-		async createMember() {
+		async createMember(form) {
 			this.saving = true
-			const memberUid = this.form.memberKind === 'user' ? this.form.memberUid : null
-			const memberLabel = this.form.memberKind === 'label' ? this.form.memberLabel.trim() : null
 			let mandateId = null
 			try {
-				if (this.form.iban.trim()) {
+				if (form.iban) {
 					const { data } = await api.createSepaMandate({
-						memberUid,
-						memberLabel,
-						iban: this.form.iban.trim(),
-						bic: this.form.bic.trim() || null,
-						email: this.form.email.trim() || null,
+						memberUid: form.memberUid,
+						memberLabel: form.memberLabel,
+						iban: form.iban,
+						bic: form.bic,
+						email: form.email,
 						mandateType: 'RCUR',
-						signedDate: this.form.signedDate,
+						signedDate: form.signedDate,
 					})
 					mandateId = data.id
 				}
-				if (Number(this.form.amount) > 0) {
+				if (Number(form.amount) > 0) {
 					await api.createMembershipFee({
-						memberUid,
-						memberLabel,
-						amount: Number(this.form.amount),
-						frequency: this.form.frequency,
-						startDate: this.form.startDate,
-						accountId: this.form.accountId,
+						memberUid: form.memberUid,
+						memberLabel: form.memberLabel,
+						amount: Number(form.amount),
+						frequency: form.frequency,
+						startDate: form.startDate,
+						accountId: form.accountId,
 						mandateId,
 					})
 				}
-				this.form = emptyForm()
+				this.memberDialogOpen = false
 				await this.reload()
 				showSuccess(this.t('Mitglied aufgenommen.'))
 			} catch (e) {
@@ -651,53 +461,6 @@ export default {
 				await this.loadSepaMandates()
 				showSuccess(this.t('Mandat gelöscht.'))
 			} catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
-		},
-
-		onFileChosen(event) {
-			const datei = event.target.files && event.target.files[0]
-			this.resetImport()
-			if (!datei) return
-			const leser = new FileReader()
-			leser.onload = () => { this.importCsv = String(leser.result || '') }
-			leser.onerror = () => showError(this.t('Die Datei konnte nicht gelesen werden.'))
-			// Vereinstabellen kommen oft als Windows-1252 aus Excel; UTF-8 ist
-			// der Normalfall, der Rest faellt beim Pruefen als kaputte Umlaute auf.
-			leser.readAsText(datei, 'utf-8')
-		},
-		resetImport() {
-			this.importPreview = null
-			this.importError = ''
-			this.importSummary = { ok: 0, failed: 0, mandates: 0, fees: 0 }
-		},
-		async previewImport() {
-			this.importing = true
-			try {
-				const { data } = await api.previewMemberImport(this.importCsv)
-				this.importError = data.error || ''
-				this.importPreview = data.error ? null : data.rows
-				this.importSummary = data.summary
-			} catch (e) { showError(this.errMsg(e, this.t('Prüfen fehlgeschlagen'))) } finally { this.importing = false }
-		},
-		async runImport() {
-			if (!await this.askConfirm(
-				this.t('Mitglieder übernehmen'),
-				this.t('{ok} Zeilen werden jetzt angelegt ({mandate} Mandate, {beitraege} Beiträge). {fehler} fehlerhafte Zeilen werden übersprungen.', {
-					ok: this.importSummary.ok,
-					mandate: this.importSummary.mandates,
-					beitraege: this.importSummary.fees,
-					fehler: this.importSummary.failed,
-				}),
-			)) return
-			this.importing = true
-			try {
-				const { data } = await api.runMemberImport(this.importCsv)
-				this.importPreview = data.rows
-				this.importSummary = data.summary
-				this.importCsv = ''
-				if (this.$refs.csvInput) this.$refs.csvInput.value = ''
-				await this.reload()
-				showSuccess(this.n('%n Zeile übernommen.', '%n Zeilen übernommen.', data.summary.ok))
-			} catch (e) { showError(this.errMsg(e, this.t('Import fehlgeschlagen'))) } finally { this.importing = false }
 		},
 	},
 }

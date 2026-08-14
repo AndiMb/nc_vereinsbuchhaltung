@@ -84,4 +84,15 @@ class MembershipFeeMapper extends QBMapper {
 			->andWhere($qb->expr()->lte('next_due_date', $qb->createNamedParameter($date)));
 		return $this->findEntities($qb);
 	}
+
+	/** Anzahl aller Beitraege – siehe {@see SepaMandateMapper::count()}. */
+	public function count(): int {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select($qb->func()->count('*', 'cnt'))
+			->from($this->getTableName());
+		$res = $qb->executeQuery();
+		$count = (int)$res->fetchOne();
+		$res->closeCursor();
+		return $count;
+	}
 }

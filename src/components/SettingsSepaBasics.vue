@@ -1,10 +1,7 @@
 <template>
 	<div>
-		<h3 class="vbh-section-divider">
-			{{ t('SEPA-Lastschrift') }}
-		</h3>
 		<p class="vbh-hint">
-			{{ t('Rein optionales Zusatzmodul für Vereine, die Mitgliedsbeiträge per Lastschrift einziehen. Wer das nicht braucht, kann diesen und die beiden folgenden Abschnitte einfach ignorieren.') }}
+			{{ t('Rein optionales Zusatzmodul für Vereine, die Mitgliedsbeiträge per Lastschrift einziehen. Wer das nicht braucht, kann diesen Abschnitt einfach ignorieren.') }}
 		</p>
 
 		<div class="vbh-card">
@@ -30,29 +27,40 @@
 					{{ t('Speichern') }}
 				</NcButton>
 			</div>
+			<NcCheckboxRadioSwitch :checked="membershipEnabled" type="switch" @update:checked="changeMembershipEnabled">
+				{{ t('Reiter „Beiträge" in der Hauptnavigation zeigen (Mitgliederliste und Sammeleinzug)') }}
+			</NcCheckboxRadioSwitch>
+			<p v-if="!membershipEnabled && !membershipActive" class="vbh-hint">
+				{{ t('Ohne diesen Schalter bleibt der Reiter ausgeblendet, bis das erste Mandat oder der erste Beitrag angelegt wird.') }}
+			</p>
 		</div>
 	</div>
 </template>
 
 <script>
 import { toRefs } from 'vue'
-import { NcButton } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { useAccounts } from '../composables/useAccounts.js'
 
 /**
- * Die beiden Angaben, ohne die kein Sammeleinzug zustande kommt. Die Pflege
- * der Mandate selbst steht in SettingsMembers.vue, wo sie zusammen mit den
- * Beiträgen hingehört – vorher lagen beide in getrennten Abschnitten, und
- * jedes Mitglied musste zweimal angelegt werden.
+ * Die beiden Angaben, ohne die kein Sammeleinzug zustande kommt, plus der
+ * Schalter fuer den Reiter „Beiträge" (ContributionsTab.vue). Die Pflege der
+ * Mandate selbst steht in MembersList.vue, wo sie zusammen mit den Beiträgen
+ * hingehört – vorher lagen beide in getrennten Abschnitten, und jedes
+ * Mitglied musste zweimal angelegt werden.
  *
  * Nur für Verwalter erreichbar (siehe SepaMandateController).
  */
 export default {
 	name: 'SettingsSepaBasics',
-	components: { NcButton },
+	components: { NcButton, NcCheckboxRadioSwitch },
 	props: {
 		sepaCreditorId: { type: String, default: '' },
 		sepaDebtorAccountId: { type: Number, default: null },
+		membershipEnabled: { type: Boolean, default: false },
+		// nur lesend - zeigt an, ob der Reiter unabhaengig vom Schalter schon
+		// sichtbar ist (siehe App.vue::loadStorageSettings())
+		membershipActive: { type: Boolean, default: false },
 		storageSaving: { type: Boolean, default: false },
 		// gemeinsame Speichern-Funktion des Elternteils, siehe SettingsGeneral.vue
 		saveSettings: { type: Function, required: true },
@@ -69,6 +77,15 @@ export default {
 		sepaDebtorAccountIdModel: {
 			get() { return this.sepaDebtorAccountId },
 			set(v) { this.$emit('update:sepaDebtorAccountId', v) },
+		},
+	},
+	methods: {
+		// Kein reiner .sync-Setter: die neue Sichtbarkeit muss noch VOR dem
+		// Speichern beim Elternteil ankommen, sonst sendet saveSettings() den
+		// alten Wert (siehe App.vue::saveStorageSettings()).
+		changeMembershipEnabled(v) {
+			this.$emit('update:membershipEnabled', v)
+			this.saveSettings()
 		},
 	},
 }

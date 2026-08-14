@@ -6,6 +6,8 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
+use OCA\Vereinsbuchhaltung\Db\MembershipFeeMapper;
+use OCA\Vereinsbuchhaltung\Db\SepaMandateMapper;
 use OCA\Vereinsbuchhaltung\Service\DemoDataService;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
@@ -31,6 +33,8 @@ class SettingsController extends Controller {
 		private PermissionService $permissionService,
 		private DemoDataService $demoService,
 		private AccountMapper $accountMapper,
+		private SepaMandateMapper $sepaMandateMapper,
+		private MembershipFeeMapper $membershipFeeMapper,
 		private IUserManager $userManager,
 		private IL10N $l10n,
 	) {
@@ -101,6 +105,7 @@ class SettingsController extends Controller {
 
 	#[NoAdminRequired]
 	public function index(): DataResponse {
+		$membershipEnabled = $this->config->getAppValue(Application::APP_ID, 'membership_enabled', '0') === '1';
 		return new DataResponse([
 			'storage_user' => $this->config->getAppValue(Application::APP_ID, 'storage_user', ''),
 			'storage_path' => $this->config->getAppValue(Application::APP_ID, 'storage_path', 'Vereinsbuchhaltung/Belege'),
@@ -113,6 +118,14 @@ class SettingsController extends Controller {
 			'statement_watch_path' => $this->config->getAppValue(Application::APP_ID, WatchFolderService::SETTING_PATH, ''),
 			'sepa_creditor_id' => $this->config->getAppValue(Application::APP_ID, 'sepa_creditor_id', ''),
 			'sepa_debtor_account_id' => (int)$this->config->getAppValue(Application::APP_ID, 'sepa_debtor_account_id', '0') ?: null,
+			'membership_enabled' => $membershipEnabled,
+			// Steuert den Reiter „Beiträge": auch ohne den Schalter sichtbar,
+			// sobald bereits Mandate oder Beiträge bestehen – siehe
+			// NAVIGATION-KONZEPT.md Abschnitt 4. Keine Migration noetig, die
+			// bestehende Installationen zeigen den Reiter dadurch sofort.
+			'membership_active' => $membershipEnabled
+				|| $this->sepaMandateMapper->count() > 0
+				|| $this->membershipFeeMapper->count() > 0,
 		]);
 	}
 
@@ -188,6 +201,8 @@ class SettingsController extends Controller {
 		$this->config->setAppValue(Application::APP_ID, WatchFolderService::SETTING_PATH, $watchPath);
 		$this->config->setAppValue(Application::APP_ID, 'sepa_creditor_id', $creditorId);
 		$this->config->setAppValue(Application::APP_ID, 'sepa_debtor_account_id', (string)($debtorAccountId ?? ''));
+		$membershipEnabled = (string)($this->request->getParam('membership_enabled') ?? '') === '1';
+		$this->config->setAppValue(Application::APP_ID, 'membership_enabled', $membershipEnabled ? '1' : '0');
 
 		return new DataResponse([
 			'storage_user' => $storageUser,
@@ -199,6 +214,10 @@ class SettingsController extends Controller {
 			'statement_watch_path' => $watchPath,
 			'sepa_creditor_id' => $creditorId,
 			'sepa_debtor_account_id' => $debtorAccountId,
+			'membership_enabled' => $membershipEnabled,
+			'membership_active' => $membershipEnabled
+				|| $this->sepaMandateMapper->count() > 0
+				|| $this->membershipFeeMapper->count() > 0,
 		]);
 	}
 }

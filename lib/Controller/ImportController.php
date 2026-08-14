@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
-use OCA\Vereinsbuchhaltung\Db\ImportLogMapper;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\DemoDataService;
 use OCA\Vereinsbuchhaltung\Service\ImportService;
@@ -29,7 +28,6 @@ class ImportController extends Controller {
 		private ImportService $importService,
 		private XbucImportService $xbucService,
 		private ResetService $resetService,
-		private ImportLogMapper $importMapper,
 		private PermissionService $permissionService,
 		private AuditService $audit,
 		private DemoDataService $demoService,
@@ -79,7 +77,7 @@ class ImportController extends Controller {
 		}
 		$applyRules = filter_var($this->request->getParam('applyRules', true), FILTER_VALIDATE_BOOLEAN);
 		try {
-			$result = $this->importService->commit($this->userId(), $upload['filename'], $upload['content'], $applyRules);
+			$result = $this->importService->commit($this->userId(), $upload['content'], $applyRules);
 			$this->audit->log('CSV-Import', 'import', null, [
 				'filename' => $upload['filename'],
 				'neu' => $result['new'] ?? null,
@@ -89,11 +87,6 @@ class ImportController extends Controller {
 		} catch (\Throwable $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		}
-	}
-
-	#[NoAdminRequired]
-	public function index(): DataResponse {
-		return new DataResponse($this->importMapper->findAll($this->userId()));
 	}
 
 	/** Optionaler year-Parameter: manuell gewähltes Geschäftsjahr (2000–2099). */

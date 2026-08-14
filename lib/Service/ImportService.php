@@ -6,8 +6,6 @@ namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\Db\BankTransaction;
 use OCA\Vereinsbuchhaltung\Db\BankTransactionMapper;
-use OCA\Vereinsbuchhaltung\Db\ImportLog;
-use OCA\Vereinsbuchhaltung\Db\ImportLogMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\Rule;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
@@ -21,7 +19,6 @@ class ImportService {
 		private StatementParserRegistry $parsers,
 		private RowNormalizer $normalizer,
 		private BankTransactionMapper $txMapper,
-		private ImportLogMapper $importMapper,
 		private RuleMapper $ruleMapper,
 		private BookingService $bookingService,
 		private JournalMapper $journalMapper,
@@ -62,11 +59,11 @@ class ImportService {
 	/**
 	 * Importiert die Datei: nur neue Buchungen werden gespeichert.
 	 *
-	 * @return array{import:ImportLog, total:int, new:int, duplicate:int, autoAssigned:int, sepaReturnsDetected:int}
+	 * @return array{total:int, new:int, duplicate:int, autoAssigned:int, sepaReturnsDetected:int}
 	 */
-	public function commit(string $userId, string $filename, string $content, bool $applyRules = true): array {
+	public function commit(string $userId, string $content, bool $applyRules = true): array {
 		[$rows, $format] = $this->parsers->parse($content);
-		return $this->commitRows($userId, $filename, $rows, $format, $applyRules);
+		return $this->commitRows($userId, $rows, $format, $applyRules);
 	}
 
 	/**
@@ -74,35 +71,27 @@ class ImportService {
 	 *
 	 * Getrennt von {@see commit()}, damit auch Quellen ohne Datei diesen Weg
 	 * nehmen können – der Wachordner reicht den Dateiinhalt durch, der geplante
-	 * FinTS-Abruf später die Antwort der Bank. Dublettenerkennung, Regeln und
-	 * Protokoll sind für alle Quellen dieselben.
+	 * FinTS-Abruf später die Antwort der Bank. Dublettenerkennung und Regeln
+	 * sind für alle Quellen dieselben; die eigentliche Protokollierung (Audit-
+	 * Log) übernimmt der jeweilige Aufrufer, siehe ImportController::commit()
+	 * und WatchFolderService::handle().
 	 *
 	 * @param array<int, array<string, mixed>> $rows
-	 * @return array{import:ImportLog, total:int, new:int, duplicate:int, autoAssigned:int, sepaReturnsDetected:int}
+	 * @return array{total:int, new:int, duplicate:int, autoAssigned:int, sepaReturnsDetected:int}
 	 */
-	public function commitRows(string $userId, string $label, array $rows, string $source, bool $applyRules = true): array {
+	public function commitRows(string $userId, array $rows, string $source, bool $applyRules = true): array {
 		// Ganz oder gar nicht: bricht der Import in der Mitte ab (Timeout,
 		// fehlerhafte Zeile), bleibt sonst ein halb eingelesener Kontoauszug
 		// zurück, dessen Rest beim zweiten Versuch als Dublette gilt.
-		return $this->transaction->run(fn (): array => $this->doCommit($userId, $label, $rows, $source, $applyRules));
+		return $this->transaction->run(fn (): array => $this->doCommit($userId, $rows, $source, $applyRules));
 	}
 
 	/**
 	 * @param array<int, array<string, mixed>> $rows
-	 * @return array{import:ImportLog, total:int, new:int, duplicate:int, autoAssigned:int, sepaReturnsDetected:int}
+	 * @return array{total:int, new:int, duplicate:int, autoAssigned:int, sepaReturnsDetected:int}
 	 */
-	private function doCommit(string $userId, string $filename, array $rows, string $source, bool $applyRules): array {
+	private function doCommit(string $userId, array $rows, string $source, bool $applyRules): array {
 		[$new, , $existingBookings] = $this->splitNewAndDuplicate($userId, $rows);
-
-		$log = new ImportLog();
-		$log->setUserId($userId);
-		$log->setFilename(mb_substr($filename, 0, 255));
-		$log->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s'));
-		$log->setRowsTotal(count($rows));
-		$log->setRowsNew(count($new));
-		$log->setRowsDuplicate(count($rows) - count($new));
-		$log->setSource($source);
-		$log = $this->importMapper->insert($log);
 
 		$rules = $applyRules ? $this->ruleMapper->findAll($userId) : [];
 		$autoAssigned = 0;
@@ -110,7 +99,7 @@ class ImportService {
 		$sepaReturnsDetected = 0;
 
 		foreach ($new as $row) {
-			$tx = $this->buildEntity($userId, $log->getId(), $row);
+			$tx = $this->buildEntity($userId, $row);
 			$tx = $this->txMapper->insert($tx);
 
 			// Unabhängig von $applyRules: die Rücklastschrift-Erkennung ist keine
@@ -139,7 +128,6 @@ class ImportService {
 		}
 
 		return [
-			'import' => $log,
 			'total' => count($rows),
 			'new' => count($new),
 			'duplicate' => count($rows) - count($new),
@@ -272,10 +260,9 @@ class ImportService {
 	/**
 	 * @param array<string,mixed> $row
 	 */
-	private function buildEntity(string $userId, int $importId, array $row): BankTransaction {
+	private function buildEntity(string $userId, array $row): BankTransaction {
 		$tx = new BankTransaction();
 		$tx->setUserId($userId);
-		$tx->setImportId($importId);
 		$tx->setBookingDate($row['bookingDate']);
 		$tx->setValueDate($row['valueDate']);
 		$tx->setAmountCents($row['amountCents']);

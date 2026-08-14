@@ -27,7 +27,6 @@ return [
 		// Import
 		['name' => 'import#preview', 'url' => '/api/import/preview', 'verb' => 'POST'],
 		['name' => 'import#commit', 'url' => '/api/import/commit', 'verb' => 'POST'],
-		['name' => 'import#index', 'url' => '/api/imports', 'verb' => 'GET'],
 		['name' => 'import#xbucPreview', 'url' => '/api/import/xbuc/preview', 'verb' => 'POST'],
 		['name' => 'import#xbucCommit', 'url' => '/api/import/xbuc', 'verb' => 'POST'],
 		['name' => 'import#reset', 'url' => '/api/reset', 'verb' => 'POST'],

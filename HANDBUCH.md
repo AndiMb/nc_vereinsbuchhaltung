@@ -104,7 +104,7 @@ Nextcloud-Nutzer oder -Gruppen mit einer Rolle ausgestattet:
 Es gibt zwei Wege:
 
 **Weg A – aus „zero Buchhaltung" importieren (empfohlen, wenn vorhanden):**
-Einstellungen → *Aus „zero Buchhaltung" (.xbuc)*. Das übernimmt den
+Zahnrad → *Daten* → *Aus „zero Buchhaltung" (.xbuc)*. Das übernimmt den
 kompletten Kontenbaum inkl. Hierarchie und der bisherigen Buchungen.
 Details siehe Kapitel 3.1.
 
@@ -157,7 +157,7 @@ vom ersten Tag an.
 
 ### 2.4 Belegablage einrichten (Verwalter)
 
-Einstellungen → *Belegablage*: Belege können entweder **intern** (nur über
+Zahnrad → *Belege*: Belege können entweder **intern** (nur über
 die App sichtbar) oder in einem **Ordner eines Nextcloud-Nutzers** (z. B.
 „Vereinsbuchhaltung/Belege") liegen. Die Ordner-Variante ist
 empfehlenswert, weil die Belege dann auch direkt in Nextcloud durchsuchbar
@@ -166,14 +166,14 @@ Belege.
 
 ### 2.5 Verein benennen (Verwalter)
 
-Einstellungen → *Verein* → Vereinsname eintragen. Er erscheint im Kopf des
+Zahnrad → *Verein* → Vereinsname eintragen. Er erscheint im Kopf des
 Kassenberichts (Kapitel 7). Kleine Sache, großer Effekt auf der
 Mitgliederversammlung.
 
 ### 2.6 Corporate Design (optional)
 
-Einstellungen → *Corporate Design*: ein **Vereinslogo** (PNG, JPG oder
-WebP) hochladen und eine **Akzentfarbe** wählen. Beides erscheint
+Zahnrad → *Verein* (zweite Karte auf derselben Seite): ein **Vereinslogo**
+(PNG, JPG oder WebP) hochladen und eine **Akzentfarbe** wählen. Beides erscheint
 automatisch im **Kurzbericht für Vorstandssitzungen** (Kapitel 7.3) – der
 Kassenbericht selbst bleibt bewusst schlicht/neutral. Ganz optional: ohne
 Logo funktioniert der Kurzbericht genauso gut, nur ohne Wiedererkennung.
@@ -185,7 +185,7 @@ Logo funktioniert der Kurzbericht genauso gut, nur ohne Wiedererkennung.
 ### 3.1 xbuc-Import aus „zero Buchhaltung"
 
 Wer bisher mit *zero Buchhaltung* gearbeitet hat, kann Konten und Buchungen
-komplett übernehmen: Einstellungen → *Aus „zero Buchhaltung" (.xbuc)* →
+komplett übernehmen: Zahnrad → *Daten* → *Aus „zero Buchhaltung" (.xbuc)* →
 Datei wählen.
 
 - **Merge-Modus (Standard):** Nur fehlende Konten werden angelegt,
@@ -248,8 +248,8 @@ Instituten, aber eben nicht mit Sicherheit.
 
 ### 3.3 Kontoauszüge automatisch einlesen (Wachordner)
 
-Wer jeden Monat dasselbe tut, kann sich den Upload sparen: Einstellungen →
-*Kontoauszüge automatisch einlesen* (nur Verwalter). Dort werden ein
+Wer jeden Monat dasselbe tut, kann sich den Upload sparen: Zahnrad →
+*Bankdaten* (nur Verwalter). Dort werden ein
 Nextcloud-Nutzer und ein Ordner in dessen Dateien eingetragen, zum Beispiel
 `Vereinsbuchhaltung/Kontoauszüge`.
 
@@ -306,7 +306,8 @@ der Zuordnung entsteht automatisch der Buchungssatz:
 - **Auto-Zuordnungsregeln:** Wiederkehrende Buchungen (z. B. „Miete
   Vermieter Müller → 5100 Miete") lassen sich automatisieren. Eine Regel
   kann direkt aus einer bereits gebuchten Transaktion per **Blitz-Button**
-  angelegt werden, oder gepflegt unter Einstellungen → *Regeln*. Beim Import
+  angelegt werden, oder gepflegt im Unterreiter *Regeln* (Tab Buchungen,
+  nur Verwalter/Buchhalter). Beim Import
   können Regeln automatisch angewendet werden (Häkchen „Auto-Zuordnungsregeln
   anwenden"); über den Wachordner (Kapitel 3.3) geschieht das immer.
 
@@ -474,8 +475,8 @@ Drilldown bis zu den einzelnen Buchungen. Namen lassen sich direkt hier
 anpassen.
 
 Wie die App die Konten zu Kostenstellen zusammenfasst, entscheidet der
-**Kostenstellen-Modus** (Einstellungen → *Kostenstellen-Modus*, nur
-Verwalter):
+**Kostenstellen-Modus** (im Bericht selbst, oberhalb der Kostenstellen-Liste
+bzw. weiter unten in diesem Kapitel beschrieben, nur Verwalter):
 
 | Modus | Kostenstelle ist … | Passt, wenn … |
 |---|---|---|
@@ -484,15 +485,16 @@ Verwalter):
 | **Frei definierte Kostenstellen** | die am Konto hinterlegte Kostenstelle | die Kostenstelle sich nicht aus der Kontonummer ergibt |
 
 Der dritte Modus macht keine Annahme über den Kontenrahmen: Kostenstellen
-werden unter **Einstellungen → Kostenstellen** angelegt (Kürzel + Name) und
-Konten ihnen ausdrücklich zugeordnet. So lassen sich auch Konten mit ganz
+werden direkt hier im Bericht **Berichte → Kostenstellen** angelegt (Kürzel
++ Name) und Konten ihnen ausdrücklich zugeordnet (nur Verwalter/Buchhalter,
+Moduswechsel selbst nur Verwalter) – so lassen sich auch Konten mit ganz
 unterschiedlichen Nummern zu einem Projekt bündeln. Zuordnen geht auf zwei
 Wegen:
 
 - einzeln im **Konto-Dialog** (Tab Konten → Konto bearbeiten → *Kostenstelle*);
   ein neues Unterkonto übernimmt die Kostenstelle seines Überkontos,
-- für viele Konten auf einmal in **Einstellungen → Kostenstellen**
-  (ankreuzen, Kostenstelle wählen, *Zuweisen*).
+- für viele Konten auf einmal unterhalb der Kostenstellen-Liste in
+  **Berichte → Kostenstellen** (ankreuzen, Kostenstelle wählen, *Zuweisen*).
 
 Angelegte Kostenstellen erscheinen im Bericht auch dann, wenn ihnen noch kein
 Konto zugeordnet ist – so fällt eine vergessene Zuordnung auf. Wird eine
@@ -522,8 +524,9 @@ sichtbar zu machen – **sie ersetzt keine steuerliche Beratung.**
 
 **Zuordnen:** Im Konto-Dialog (Tab Konten) gibt es das Feld „Steuerliche
 Sphäre" – für alle Einnahmen-/Ausgaben-Konten (Geldkonten und Eigenkapital
-sind ausgenommen). Für viele Konten auf einmal: Einstellungen →
-„Steuerliche Sphären" bietet eine Mehrfachauswahl mit Namensvorschlägen.
+sind ausgenommen). Für viele Konten auf einmal: im Bericht selbst,
+**Berichte → „Sphären"** unterhalb der Auswertung, bietet eine
+Mehrfachauswahl mit Namensvorschlägen (nur Verwalter/Buchhalter).
 
 **Auswerten:** Tab Berichte → „Sphären" zeigt Einnahmen/Ausgaben/Ergebnis je
 Sphäre inkl. eines Buckets „nicht zugeordnet". Der Kassenbericht enthält
@@ -639,8 +642,8 @@ Datum geräte-lokal als Vorschlag für das nächste Mal.
 Inhalt: Kontostände der Geldkonten zum Stichtag und heute, Bewegungen seit
 dem Stichtag (Einnahmen/Ausgaben/Ergebnis) sowie eine kurze
 Finanzplan-Kurzfassung des laufenden Jahres (Plan vs. bisheriges Ist). Ist
-unter Einstellungen → *Corporate Design* (Kapitel 2.6) ein Logo und eine
-Akzentfarbe hinterlegt, erscheinen beide automatisch im Kopf des Berichts.
+unter Zahnrad → *Verein* (Kapitel 2.6) ein Logo und eine Akzentfarbe
+hinterlegt, erscheinen beide automatisch im Kopf des Berichts.
 Wie beim Kassenbericht: Drucken oder „Als PDF speichern" über den Browser.
 
 ---
@@ -654,7 +657,7 @@ bleibt das, was die Mitgliederversammlung entlastet hat, unveränderlich.
 
 ### 8.1 Jahr abschließen
 
-Einstellungen → *Jahresabschluss* (nur Verwalter). Liste aller Jahre mit
+Zahnrad → *Jahresabschluss* (nur Verwalter). Liste aller Jahre mit
 Status. Bei Bedarf „Abschließen" bestätigen. Das Jahr ist danach mit einem
 🔒 im Jahres-Dropdown markiert.
 
@@ -821,14 +824,14 @@ nur am Desktop erreichbar – dort gehört es hin.
 
 Oben im Kopf sitzt ein **Hilfe-Knopf (?)**. Er öffnet ein kleines
 Hilfe-Fenster mit Kurzinfos zum gerade geöffneten Tab (Ersteinrichtung,
-Buchen & zuordnen, Konten, Berichte, Sphären); in den einzelnen Ansichten
-führen ebenfalls Hilfe-Symbole genau dorthin. Von jedem Kapitel führt ein
-Link **direkt in dieses Handbuch** – die App liefert es selbst als lesbare
-Seite aus, es muss also nichts auf GitHub gesucht werden.
+Buchen & zuordnen, Konten, Berichte, Beiträge & SEPA, Sphären); in den
+einzelnen Ansichten führen ebenfalls Hilfe-Symbole genau dorthin. Von jedem
+Kapitel führt ein Link **direkt in dieses Handbuch** – die App liefert es
+selbst als lesbare Seite aus, es muss also nichts auf GitHub gesucht werden.
 
 ### 12.1 „Alle Daten löschen" / Reset
 
-Einstellungen → *Alle Daten löschen* (nur Verwalter, mit
+Zahnrad → *Daten* → *Alle Daten löschen* (nur Verwalter, mit
 Bestätigungsdialog) entfernt Konten, Buchungen, Importe, Belege und die
 Jahresabschluss-Marker. **Das Änderungsprotokoll bleibt erhalten.**
 Gleiches gilt für den Reset-Modus beim xbuc-Import. Beides ist
@@ -874,8 +877,11 @@ ihrer Bankverbindung.
 3. Ein **Geldkonto mit hinterlegter IBAN** in der Kontenliste. Auf dieses Konto
    wird eingezogen.
 
-Gläubiger-ID und einziehendes Konto tragen Sie unter *Zahnrad →
-SEPA-Lastschrift → Grundeinstellungen* ein.
+Gläubiger-ID und einziehendes Konto tragen Sie unter *Zahnrad → Beiträge &
+SEPA → Grundeinstellungen* ein. Dort steht auch der Schalter, der den
+Reiter **„Beiträge"** in der Hauptnavigation einblendet (siehe 13.2) – ist
+bereits ein Mandat oder ein Beitrag angelegt, erscheint er automatisch,
+auch ohne den Schalter.
 
 ### 13.2 Wo die Bankdaten der Mitglieder stehen
 
@@ -884,8 +890,9 @@ Buchhaltung ist keine Mitgliederdatenbank, und die meisten Vereine führen ihre
 Mitglieder ohnehin anderswo. Was die App braucht, ist nur das, was zum Geld
 gehört.
 
-Ein „Mitglied" besteht hier deshalb aus zwei Angaben, die beide unter
-*Zahnrad → Mitglieder und Beiträge* stehen:
+Ein „Mitglied" besteht hier deshalb aus zwei Angaben, die beide im
+**Reiter „Beiträge" → Mitglieder** stehen (Hauptnavigation, nicht das
+Zahnrad – das ist laufende Arbeit, keine Einstellung):
 
 | Angabe | Was dort hineingehört |
 |---|---|
@@ -893,9 +900,9 @@ Ein „Mitglied" besteht hier deshalb aus zwei Angaben, die beide unter
 | **Beitrag** | Betrag, Zahlungsfrequenz und die erste Fälligkeit |
 
 **Die IBAN steht am Mandat, nicht am Mitglied** – ein Mitglied ohne Mandat hat
-in der App schlicht keine Bankverbindung. Beides legen Sie im Formular
-*„Mitglied aufnehmen"* in einem Schritt an; jedes für sich ist ebenfalls
-möglich:
+in der App schlicht keine Bankverbindung. Beides legen Sie über den Knopf
+**„＋ Mitglied"** (Reiter „Beiträge" → Mitglieder) in einem Schritt an;
+jedes für sich ist ebenfalls möglich:
 
 - **nur Beitrag, keine IBAN** – für Überweiser und Barzahler. Die App legt bei
   Fälligkeit trotzdem einen offenen Posten an, dann eben als Erinnerung.
@@ -921,7 +928,8 @@ Mandatsformular mit.
 ### 13.3 Viele Mitglieder auf einmal aufnehmen
 
 Für einen Chor mit 200 Stimmen ist das Formular der falsche Weg. Nutzen Sie
-*Mitgliederliste einlesen*: eine **CSV-Datei**, eine Zeile je Mitglied.
+im Reiter „Beiträge" → Mitglieder den Knopf **„Liste einlesen"**: eine
+**CSV-Datei**, eine Zeile je Mitglied.
 
 Erwartet werden diese Spalten – **Reihenfolge und Schreibweise sind egal**, und
 zusätzliche Spalten (Mitgliedsnummer, Eintrittsdatum, Stimmlage …) werden
@@ -967,7 +975,7 @@ Fälligkeit über *Bearbeiten*, statt nachzuholen.
 
 ### 13.5 Einzug erzeugen und einreichen
 
-Unter *Zahnrad → SEPA-Sammeleinzug* wählen Sie den **Fälligkeitstermin**. Die
+Im Reiter **„Beiträge" → Einzug** wählen Sie den **Fälligkeitstermin**. Die
 Vorschau zeigt alle offenen Posten mit aktivem Mandat, die bis dahin fällig
 sind und in keinem laufenden Einzug stecken.
 

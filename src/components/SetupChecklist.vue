@@ -50,16 +50,18 @@ export default {
 	computed: {
 		steps() {
 			return [
-				{ id: 'club', label: this.t('Verein benennen'), action: 'settings', done: !!this.clubName },
+				{ id: 'club', label: this.t('Verein benennen'), action: 'settings:verein', done: !!this.clubName },
 				{ id: 'accounts', label: this.t('Kontenrahmen anlegen'), action: 'accounts', done: this.accounts.length > 0 },
 				// xbuc-Importe setzen openingDate nicht (Anfangsbestand steckt in der
 				// EB-Buchung selbst) – sobald überhaupt gebucht wurde, ist der Punkt
 				// gegenstandslos, sonst würde er bei aktiven, importierten Vereinen nie erledigt sein.
 				{ id: 'opening', label: this.t('Geldkonto mit Anfangsbestand eintragen'), action: 'accounts', done: this.journalCount > 0 || this.accounts.some(a => a.isBank && a.openingDate) },
-				{ id: 'permissions', label: this.t('Berechtigungen vergeben'), action: 'settings', done: this.permissions.length > 0 },
+				{ id: 'permissions', label: this.t('Berechtigungen vergeben'), action: 'settings:berechtigungen', done: this.permissions.length > 0 },
 				{ id: 'booking', label: this.t('Erste Buchung erfassen'), action: 'booking', done: this.journalCount > 0 },
 				// Entspricht Account::isResultRelevant() im Backend (alles außer Geldkonten/Eigenkapital).
-				{ id: 'spheres', label: this.t('Sphären zuordnen (steuerlich)'), action: 'settings', done: this.accounts.filter(a => a.type !== 'equity' && !a.isBank).every(a => a.sphere) },
+				// Zuordnung selbst steht seit NAVIGATION-KONZEPT.md Abschnitt 4 im
+				// Bericht „Sphären", nicht mehr im Zahnrad.
+				{ id: 'spheres', label: this.t('Sphären zuordnen (steuerlich)'), action: 'reports:spheres', done: this.accounts.filter(a => a.type !== 'equity' && !a.isBank).every(a => a.sphere) },
 			]
 		},
 		remaining() {

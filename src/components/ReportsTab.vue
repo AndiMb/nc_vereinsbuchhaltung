@@ -404,6 +404,13 @@
 				</div>
 			</div>
 
+			<div v-if="canWrite && reportView === 'costcenters'" class="vbh-section-divider">
+				<CostCenterPanel :mode="costCenterMode"
+					:save-storage-settings="saveStorageSettings"
+					@update:mode="$emit('update:cost-center-mode', $event)"
+					@changed="$emit('cost-centers-changed')" />
+			</div>
+
 			<!-- SPHÄREN -->
 			<div v-show="reportView === 'spheres'" class="vbh-splitinner" :class="{ 'vbh-drill': isMobile }">
 				<div v-if="!isMobile || !selectedSphere" class="vbh-tree">
@@ -496,6 +503,10 @@
 						</p>
 					</template>
 				</div>
+			</div>
+
+			<div v-if="canWrite && reportView === 'spheres'" class="vbh-section-divider">
+				<SphereAssignPanel @changed="$emit('spheres-changed')" @help="$emit('help', 'spheres')" />
 			</div>
 
 			<!-- RÜCKLAGEN -->
@@ -740,7 +751,11 @@
 				<p class="vbh-hint">
 					{{ t('Wer hat wann was geändert – z. B. für die Kassenprüfung. Das Protokoll wird automatisch geführt und bleibt auch beim Zurücksetzen aller Daten erhalten.') }}
 				</p>
-				<div v-if="auditEntries.length" class="vbh-tablecard">
+				<label v-if="auditEntries.length" class="vbh-checkinline">
+					<input v-model="auditOnlyImports" type="checkbox">
+					{{ t('nur Importe (CSV, xbuc, Wachordner)') }}
+				</label>
+				<div v-if="filteredAuditEntries.length" class="vbh-tablecard">
 					<table class="vbh-table">
 						<thead>
 							<tr>
@@ -750,7 +765,7 @@
 							</tr>
 						</thead>
 						<tbody>
-							<tr v-for="a in auditEntries" :key="a.id">
+							<tr v-for="a in filteredAuditEntries" :key="a.id">
 								<td class="nowrap">
 									{{ formatDateTime(a.ts) }}
 								</td>
@@ -767,6 +782,7 @@
 						</tbody>
 					</table>
 				</div>
+				<NcEmptyContent v-else-if="!auditLoading && auditOnlyImports" :name="t('Keine Importe in den geladenen Einträgen')" :description="t('Ältere Einträge laden oder den Filter ausschalten.')" />
 				<NcEmptyContent v-else-if="!auditLoading" :name="t('Noch keine Protokolleinträge')" :description="t('Änderungen ab Version 0.10.41 werden hier aufgezeichnet.')">
 					<template #action>
 						<NcButton variant="tertiary" @click="$emit('help', 'reports')">
@@ -801,6 +817,8 @@ import { mdiPrinter, mdiPaperclip, mdiDownload, mdiDelete, mdiCommentText, mdiCo
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import api from '../api.js'
 import { formatMoney, formatDate, formatDateTime, typeLabel, amountClass, budgetDiffClass, roleLabel } from '../lib/format.js'
+import CostCenterPanel from './CostCenterPanel.vue'
+import SphereAssignPanel from './SphereAssignPanel.vue'
 import { useAuth } from '../composables/useAuth.js'
 import { useYears } from '../composables/useYears.js'
 import { useAccounts } from '../composables/useAccounts.js'
@@ -812,8 +830,13 @@ Chart.register(LineController, LineElement, PointElement, CategoryScale, LinearS
 
 export default {
 	name: 'ReportsTab',
-	components: { NcButton, NcActions, NcActionLink, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper },
+	components: { NcButton, NcActions, NcActionLink, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, CostCenterPanel, SphereAssignPanel },
 	props: {
+		// Kostenstellen-Modus (group|account|manual) + gemeinsame Speichern-
+		// Funktion aus App.vue, durchgereicht an CostCenterPanel.vue - siehe
+		// NAVIGATION-KONZEPT.md Abschnitt 4/5 und Risiko R3 (dort mehr dazu).
+		costCenterMode: { type: String, default: 'group' },
+		saveStorageSettings: { type: Function, required: true },
 		// steuert (zusammen mit reportView==='summary') den Chart-Redraw des
 		// Mehrjahres-Trend-Diagramms, gleiches Muster wie DashboardTab.vue.
 		isActive: { type: Boolean, required: true },
@@ -884,6 +907,10 @@ export default {
 			newBudgetYear: '',
 			budgetNoteOpen: {},
 			newSnapshotLabel: '',
+			// Protokoll: Importe (CSV/xbuc/Wachordner/Beispieldaten) ausblenden, wenn
+			// nicht gebraucht - ersetzt die frühere separate Liste unter
+			// Einstellungen → Daten, die dieselben Angaben nur ein zweites Mal zeigte.
+			auditOnlyImports: false,
 		}
 	},
 	computed: {
@@ -894,6 +921,12 @@ export default {
 		exportReportUrl() { return api.exportReportUrl(this.selectedYear) },
 		exportMultiyearUrl() { return api.exportMultiyearUrl() },
 		exportBudgetUrl() { return api.exportBudgetUrl(this.selectedYear) },
+		// Import-Aktionen tragen alle objectType 'import' (CSV-/xbuc-/Wachordner-
+		// Import, Beispieldaten) - siehe die audit->log()-Aufrufe im Backend.
+		filteredAuditEntries() {
+			if (!this.auditOnlyImports) return this.auditEntries
+			return this.auditEntries.filter(a => a.objectType === 'import')
+		},
 		selectedCC() {
 			if (this.selectedCCCode === false || !this.reportData) return null
 			return this.reportData.costCenters.find(c => c.code === this.selectedCCCode) || null

@@ -51,9 +51,9 @@ function buildTopics() {
 			anchor: '2-ersteinrichtung-einmalig',
 			bullets: [
 				t('Zahnrad → Berechtigungen: Nutzer/Gruppen als Verwalter, Buchhalter oder Revisor eintragen.'),
-				t('Tab Konten → „Standard-Kontenrahmen anlegen" – oder Einstellungen → „Aus zero Buchhaltung importieren", falls vorhanden.'),
+				t('Tab Konten → „Standard-Kontenrahmen anlegen" – oder Zahnrad → Daten → „Aus zero Buchhaltung importieren", falls vorhanden.'),
 				t('Je Geldkonto (Bank/Kasse) einen Anfangsbestand als Eröffnungssaldo eintragen.'),
-				t('Einstellungen → Belegablage und Verein: Speicherort für Belege und Vereinsnamen festlegen.'),
+				t('Zahnrad → Belege und Verein: Speicherort für Belege und Vereinsnamen festlegen.'),
 			],
 		},
 		{
@@ -63,6 +63,7 @@ function buildTopics() {
 			bullets: [
 				t('Kontoumsätze importieren: Tab Buchungen → CSV-Datei der Bank hochladen (Dubletten werden automatisch erkannt).'),
 				t('Tab „Zuzuordnen": jede offene Bankbuchung bekommt ein Gegenkonto – Vorschläge und Regeln übernehmen das oft automatisch.'),
+				t('Unterreiter „Regeln" (nur Verwalter/Buchhalter): wiederkehrende Zuordnungen dauerhaft hinterlegen, statt sie jedes Mal von Hand zu setzen.'),
 				t('Enthält ein Umsatz mehreres zugleich (Beitrag und Spende): „Aufteilen…" verteilt ihn auf mehrere Gegenkonten.'),
 				t('Manuelle Buchung: Button „+ Buchung" – im Einfach-Modus reicht Einnahme/Ausgabe, Kategorie und Geldkonto.'),
 				t('Belege lassen sich direkt an jede Buchung anhängen (Foto oder Datei).'),
@@ -98,9 +99,9 @@ function buildTopics() {
 			anchor: '13-mitgliedsbeitraege-und-sepa-lastschrift',
 			bullets: [
 				t('Optionales Zusatzmodul: wer keine Lastschriften einzieht, kann diesen Bereich ignorieren.'),
-				t('Einstellungen → SEPA-Lastschriftmandate: je Zahler ein Mandat mit IBAN und Unterschriftsdatum. Zahler ist ein Nextcloud-Nutzer oder ein frei eingetragener Name.'),
-				t('Einstellungen → Mitgliedsbeiträge: Betrag und Frequenz festlegen – bei Fälligkeit entsteht automatisch ein offener Posten, mit oder ohne Mandat.'),
-				t('Einstellungen → SEPA-Sammeleinzug: Vorschau prüfen, Einzug erzeugen und die XML-Datei bei der Hausbank einreichen. Vor dem ersten Einzug mit dem Prüftool der Bank testen.'),
+				t('Zahnrad → Beiträge & SEPA: Gläubiger-ID, einziehendes Konto und der Schalter für den Reiter „Beiträge" in der Hauptnavigation.'),
+				t('Reiter „Beiträge" → Mitglieder: je Zahler ein Mandat (IBAN, Unterschriftsdatum) und/oder ein Beitrag (Betrag, Frequenz) – Zahler ist ein Nextcloud-Nutzer oder ein frei eingetragener Name. Bei Fälligkeit entsteht automatisch ein offener Posten.'),
+				t('Reiter „Beiträge" → Einzug: Vorschau prüfen, Einzug erzeugen und die XML-Datei bei der Hausbank einreichen. Vor dem ersten Einzug mit dem Prüftool der Bank testen.'),
 				t('Fälligkeitstermin mindestens 14 Tage in die Zukunft legen: so lange vorher muss der Zahler über Betrag und Termin informiert werden. Die App verschickt diese Ankündigung an Mitglieder mit hinterlegter E-Mail-Adresse.'),
 				t('Ein Mandat wird widerrufen, nicht gelöscht – erzeugte Einreichungen müssen nachvollziehbar bleiben.'),
 			],
@@ -111,8 +112,8 @@ function buildTopics() {
 			anchor: '5-6-steuerliche-sphaeren',
 			bullets: [
 				t('Vier steuerliche Sphären: ideeller Bereich, Vermögensverwaltung, Zweckbetrieb, wirtschaftlicher Geschäftsbetrieb.'),
-				t('Zuordnen im Konto-Dialog (Feld „Steuerliche Sphäre") oder für mehrere Konten auf einmal unter Einstellungen → „Steuerliche Sphären".'),
-				t('Tab Berichte → „Sphären" zeigt Einnahmen/Ausgaben/Ergebnis je Sphäre.'),
+				t('Zuordnen im Konto-Dialog (Feld „Steuerliche Sphäre") oder für mehrere Konten auf einmal im Bericht „Sphären" (nur Verwalter/Buchhalter).'),
+				t('Tab Berichte → „Sphären" zeigt Einnahmen/Ausgaben/Ergebnis je Sphäre und darunter die Zuordnung zum Bearbeiten.'),
 				t('Freigrenze wirtschaftlicher Geschäftsbetrieb: aktuell 45.000 € Bruttoeinnahmen/Jahr – das Dashboard warnt per Ampel, sobald es dort Einnahmen gibt. Ersetzt keine steuerliche Beratung.'),
 			],
 		},

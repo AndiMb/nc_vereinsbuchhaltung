@@ -13,6 +13,9 @@
 					{{ t('Offene Posten') }}
 					<span v-if="overdueOpenItemsCount > 0" class="vbh-badge vbh-badge--alert">{{ overdueOpenItemsCount }}</span>
 				</button>
+				<button v-if="canWrite" :class="{ active: bookingView === 'rules' }" @click="$emit('update:booking-view', 'rules')">
+					{{ t('Regeln') }}
+				</button>
 			</div>
 			<div class="vbh-sectiontop-actions">
 				<a v-if="bookingView === 'journal'"
@@ -453,6 +456,11 @@
 				</div>
 				<NcEmptyContent v-else :name="t('Keine offenen Posten')" :description="t('Lege oben einen neuen offenen Posten an, z. B. einen unbezahlten Mitgliedsbeitrag.')" />
 			</template>
+
+			<!-- REGELN -->
+			<template v-else-if="bookingView === 'rules' && canWrite">
+				<RulesPanel />
+			</template>
 		</div>
 	</div>
 </template>
@@ -463,6 +471,7 @@ import { NcButton, NcActions, NcActionButton, NcSelect, NcEmptyContent, NcIconSv
 import { mdiDownload, mdiUpload, mdiPaperclip, mdiPencil, mdiFlash, mdiDelete } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import BookingCard from './BookingCard.vue'
+import RulesPanel from './RulesPanel.vue'
 import api from '../api.js'
 import { formatMoney, formatDate, amountClass, errMsg } from '../lib/format.js'
 import { useAuth } from '../composables/useAuth.js'
@@ -474,7 +483,7 @@ import { useSort } from '../composables/useSort.js'
 
 export default {
 	name: 'BookingsTab',
-	components: { NcButton, NcActions, NcActionButton, NcSelect, NcEmptyContent, NcIconSvgWrapper, BookingCard },
+	components: { NcButton, NcActions, NcActionButton, NcSelect, NcEmptyContent, NcIconSvgWrapper, BookingCard, RulesPanel },
 	props: {
 		isMobile: { type: Boolean, required: true },
 		bookingView: { type: String, required: true },

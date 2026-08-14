@@ -1,6 +1,6 @@
 <template>
 	<div>
-		<h3>{{ t('Aus „zero Buchhaltung" (.xbuc)') }}</h3>
+		<h4>{{ t('Aus „zero Buchhaltung" (.xbuc)') }}</h4>
 		<div class="vbh-card">
 			<p class="vbh-hint">
 				{{ t('Übernimmt Kontenbaum und alle Buchungen aus einer .xbuc-Datei.') }}
@@ -100,59 +100,20 @@
 				<span v-if="xbucReset" class="vbh-warn-inline">{{ t('Achtung: bestehende Daten werden gelöscht.') }}</span>
 			</div>
 		</div>
-
-		<h4>{{ t('Bisherige CSV-Importe') }}</h4>
-		<div v-if="imports.length" class="vbh-tablecard">
-			<table class="vbh-table">
-				<thead>
-					<tr>
-						<th>{{ t('Datum') }}</th><th>{{ t('Datei') }}</th><th class="num">
-							{{ t('Neu') }}
-						</th><th class="num">
-							{{ t('Dubletten') }}
-						</th>
-					</tr>
-				</thead>
-				<tbody>
-					<tr v-for="imp in imports" :key="imp.id">
-						<td class="nowrap">
-							{{ formatDateTime(imp.createdAt) }}
-						</td>
-						<td>{{ imp.filename }}</td>
-						<td class="num">
-							{{ imp.rowsNew }}
-						</td>
-						<td class="num">
-							{{ imp.rowsDuplicate }}
-						</td>
-					</tr>
-				</tbody>
-			</table>
-		</div>
-		<NcEmptyContent v-else :name="t('Noch keine CSV-Importe')" :description="t('Importiere oben eine CSV-CAMT-Datei.')">
-			<template #action>
-				<NcButton variant="tertiary" @click="$emit('help')">
-					{{ t('Mehr dazu') }}
-				</NcButton>
-			</template>
-		</NcEmptyContent>
 	</div>
 </template>
 
 <script>
-import { NcButton, NcCheckboxRadioSwitch, NcEmptyContent } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import api from '../api.js'
-import { formatMoney, formatDate, formatDateTime, errMsg } from '../lib/format.js'
+import { formatMoney, formatDate, errMsg } from '../lib/format.js'
 import { useConfirm } from '../composables/useConfirm.js'
 
 export default {
 	name: 'SettingsXbucImport',
-	components: { NcButton, NcCheckboxRadioSwitch, NcEmptyContent },
+	components: { NcButton, NcCheckboxRadioSwitch },
 	props: {
-		// Verlauf aller Importe (CSV + xbuc), wird im Elternteil geladen (auch von
-		// resetAll()/loadImports() weiterhin genutzt)
-		imports: { type: Array, required: true },
 		// gemeinsames App-weites Ladeflag (blockiert z. B. auch andere Import-/Reset-
 		// Buttons und das Kollaborations-Polling), .sync-Prop wie NcModal:show.sync
 		busy: { type: Boolean, required: true },
@@ -178,7 +139,6 @@ export default {
 	methods: {
 		formatMoney,
 		formatDate,
-		formatDateTime,
 		errMsg,
 		onXbucSelected(e) { this.xbucFile = e.target.files[0] || null; this.xbucPreviewResult = null; this.xbucYear = null; if (this.xbucFile) this.xbucPreview() },
 		xbucYearParam() {

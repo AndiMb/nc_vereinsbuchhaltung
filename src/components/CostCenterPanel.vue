@@ -1,17 +1,29 @@
 <template>
 	<div>
-		<h3 class="vbh-section-divider">
-			{{ t('Kostenstellen') }}
-		</h3>
 		<p class="vbh-hint">
-			{{ t('Kostenstellen bündeln Konten zu Projekten, Abteilungen oder Veranstaltungen – der Bericht') }}
-			<em>{{ t('Berichte → Kostenstellen') }}</em> {{ t('zeigt dann Einnahmen, Ausgaben und Ergebnis je Kostenstelle. Hier angelegte Kostenstellen wertet die App aus, sobald der Modus') }}
+			{{ t('Kostenstellen bündeln Konten zu Projekten, Abteilungen oder Veranstaltungen – der Bericht zeigt dann Einnahmen, Ausgaben und Ergebnis je Kostenstelle. Hier angelegte Kostenstellen wertet die App aus, sobald der Modus') }}
 			<em>{{ t('„Frei definierte Kostenstellen"') }}</em> {{ t('eingestellt ist.') }}
 		</p>
+
+		<div v-if="isAdmin" class="vbh-card">
+			<h4>{{ t('Modus') }}</h4>
+			<div class="vbh-form">
+				<label class="vbh-grow">{{ t('Bestimmt, wie dieser Bericht die Konten gruppiert') }}
+					<select v-model="modeModel">
+						<option value="group">{{ t('2. Zahlengruppe der Kontonummer (z. B. „111 51" → Kostenstelle 51)') }}</option>
+						<option value="account">{{ t('Jedes Einnahmen-/Ausgabenkonto ist eine eigene Kostenstelle') }}</option>
+						<option value="manual">{{ t('Frei definierte Kostenstellen (Konten werden unten zugeordnet)') }}</option>
+					</select>
+				</label>
+				<NcButton variant="primary" @click="saveStorageSettings">
+					{{ t('Speichern') }}
+				</NcButton>
+			</div>
+		</div>
 		<p v-if="mode !== 'manual'" class="vbh-hint vbh-cc-modewarn">
 			{{ t('Zurzeit ist der Modus') }} <strong>{{ modeLabel }}</strong> {{ t('eingestellt. Die Zuordnung unten wird dann') }}
-			<strong>{{ t('nicht') }}</strong> {{ t('ausgewertet; die Namen der Kostenstellen gelten aber weiterhin. Umstellen lässt sich das weiter unten unter') }}
-			<em>{{ t('Allgemein') }}</em> {{ t('(nur Verwalter).') }}
+			<strong>{{ t('nicht') }}</strong> {{ t('ausgewertet; die Namen der Kostenstellen gelten aber weiterhin.') }}
+			{{ isAdmin ? t('Umstellen geht oben.') : t('Nur ein Verwalter kann das umstellen.') }}
 		</p>
 
 		<div class="vbh-form vbh-cc-newform">
@@ -131,12 +143,13 @@ import { NcButton } from '@nextcloud/vue'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
+import { useAuth } from '../composables/useAuth.js'
 import { useAccounts } from '../composables/useAccounts.js'
 import { useCostCenters } from '../composables/useCostCenters.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { t } from '../lib/l10n.js'
 
-// Als Funktion statt Modul-Konstante (siehe HelpModal.vue/SettingsSpheres.vue
+// Als Funktion statt Modul-Konstante (siehe HelpModal.vue/SphereAssignPanel.vue
 // fuer die Begruendung: t() darf erst beim Aufruf laufen, nicht beim Import).
 function modeLabels() {
 	return {
@@ -147,22 +160,36 @@ function modeLabels() {
 }
 
 /**
- * Pflege der frei definierbaren Kostenstellen: anlegen, umbenennen, löschen und
- * Konten zuordnen. Die Zuordnung wirkt im Bericht nur im Modus „manual" – der
- * Hinweis oben sagt das, statt die Maske zu verstecken: wer die Zuordnung
- * vorbereiten will, bevor umgestellt wird, soll das können.
+ * Pflege der frei definierbaren Kostenstellen: Modus, anlegen, umbenennen,
+ * löschen und Konten zuordnen. Frueher SettingsCostCenters.vue im
+ * Einstellungen-Modal (Modus-Auswahl separat in SettingsGeneral.vue); jetzt
+ * gemeinsam im Bericht „Kostenstellen" (ReportsTab.vue), siehe
+ * NAVIGATION-KONZEPT.md Abschnitt 4 und 5 – der Modus entscheidet, was dieser
+ * Bericht ueberhaupt zeigt, und gehoert deshalb direkt daneben.
+ *
+ * Die Zuordnung wirkt im Bericht nur im Modus „manual" – der Hinweis oben
+ * sagt das, statt die Maske zu verstecken: wer die Zuordnung vorbereiten
+ * will, bevor umgestellt wird, soll das können. Modus-Wechsel bleibt
+ * Verwalter-only (wie zuvor in SettingsGeneral.vue), Anlegen/Zuordnen bleibt
+ * fuer canWrite (Buchhalter und Verwalter).
  */
 export default {
-	name: 'SettingsCostCenters',
+	name: 'CostCenterPanel',
 	components: { NcButton },
 	props: {
 		// Kostenstellen-Modus aus den Einstellungen (group|account|manual)
 		mode: { type: String, default: 'group' },
+		// gemeinsame Speichern-Funktion aus App.vue (schreibt den vollstaendigen
+		// Einstellungssatz, siehe SettingsController::update()) - Modus-Aenderung
+		// darf nicht isoliert speichern, siehe NAVIGATION-KONZEPT.md Risiko R3.
+		saveStorageSettings: { type: Function, required: true },
 	},
 	setup() {
+		const auth = useAuth()
 		const accounts = useAccounts()
 		const costCenters = useCostCenters()
 		return {
+			isAdmin: auth.isAdmin,
 			...toRefs(accounts.state),
 			...toRefs(costCenters.state),
 			loadCostCenters: costCenters.loadCostCenters,
@@ -180,6 +207,10 @@ export default {
 	},
 	computed: {
 		modeLabel() { return modeLabels()[this.mode] || this.mode },
+		modeModel: {
+			get() { return this.mode },
+			set(v) { this.$emit('update:mode', v) },
+		},
 		// Entspricht Account::isResultRelevant() im Backend: nur diese Konten
 		// tauchen in der Kostenstellen-Auswertung überhaupt auf.
 		relevantAccounts() {

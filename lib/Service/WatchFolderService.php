@@ -139,7 +139,7 @@ class WatchFolderService {
 				throw new \RuntimeException('Die Datei ist leer.');
 			}
 
-			$result = $this->importService->commit(Application::BOOK, $name, $content);
+			$result = $this->importService->commit(Application::BOOK, $content);
 
 			$this->moveTo($folder, $node, self::DONE_FOLDER);
 			return [

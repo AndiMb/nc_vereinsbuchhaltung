@@ -49,7 +49,6 @@ export default {
 	// Import CSV-CAMT
 	previewImport: formData => axios.post(url('/import/preview'), formData),
 	commitImport: formData => axios.post(url('/import/commit'), formData),
-	listImports: () => axios.get(url('/imports')),
 
 	// Import zero Buchhaltung (.xbuc)
 	previewXbuc: formData => axios.post(url('/import/xbuc/preview'), formData),

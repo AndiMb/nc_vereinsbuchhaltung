@@ -18,6 +18,7 @@
 			<span class="vbh-bottomnav-icon">
 				<NcIconSvgWrapper :path="tab.icon" :size="22" />
 				<span v-if="tab.id === 'bookings' && unassignedCount > 0" class="vbh-badge vbh-badge--alert vbh-bottomnav-badge">{{ unassignedCount }}</span>
+				<span v-if="tab.id === 'contributions' && overdueMembershipCount > 0" class="vbh-badge vbh-badge--alert vbh-bottomnav-badge">{{ overdueMembershipCount }}</span>
 			</span>
 			<span class="vbh-bottomnav-label">{{ tab.label }}</span>
 		</button>
@@ -40,6 +41,7 @@ export default {
 		tabs: { type: Array, required: true },
 		activeTab: { type: String, required: true },
 		unassignedCount: { type: Number, default: 0 },
+		overdueMembershipCount: { type: Number, default: 0 },
 		canWrite: { type: Boolean, default: false },
 	},
 	data() {

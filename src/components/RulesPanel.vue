@@ -1,8 +1,5 @@
 <template>
 	<div>
-		<h3 class="vbh-section-divider">
-			{{ t('Automatische Zuordnung (Regeln)') }}
-		</h3>
 		<p class="vbh-hint">
 			{{ t('Regeln ordnen offenen Bankbuchungen automatisch ein Gegenkonto zu: Enthält das gewählte Feld (Zahlungspartner, Verwendungszweck oder IBAN) den Suchtext, wird das Gegenkonto vorgeschlagen und beim Import direkt gesetzt. Bei mehreren Treffern gewinnt die höhere Priorität.') }}
 		</p>
@@ -81,30 +78,42 @@
 				</tbody>
 			</table>
 		</div>
-		<NcEmptyContent v-else :name="t('Keine Regeln')" :description="t('Lege oben eine Regel an – oder erzeuge sie im Tab „Buchungen“ direkt aus einer Bankbuchung.')" />
+		<NcEmptyContent v-else :name="t('Keine Regeln')" :description="t('Lege oben eine Regel an – oder erzeuge sie im Journal direkt aus einer Bankbuchung.')" />
 	</div>
 </template>
 
 <script>
+import { toRefs } from 'vue'
 import { NcButton, NcSelect, NcEmptyContent, NcIconSvgWrapper } from '@nextcloud/vue'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { mdiPencil, mdiDelete } from '@mdi/js'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
+import { useAccounts } from '../composables/useAccounts.js'
+import { useRules } from '../composables/useRules.js'
 import { useConfirm } from '../composables/useConfirm.js'
 
+/**
+ * Auto-Zuordnungsregeln. Frueher SettingsRules.vue im Einstellungen-Modal;
+ * jetzt Unterreiter „Regeln" von BookingsTab.vue, siehe
+ * NAVIGATION-KONZEPT.md Abschnitt 4 – Regeln entstehen beim Zuordnen (das
+ * "Regel anlegen"-Menue steht dort bereits), ihre Pflege gehoert daneben.
+ *
+ * Sichtbar fuer canWrite (Buchhalter und Verwalter), nicht nur Verwalter.
+ */
 export default {
-	name: 'SettingsRules',
+	name: 'RulesPanel',
 	components: { NcButton, NcSelect, NcEmptyContent, NcIconSvgWrapper },
-	props: {
-		// Regel-Liste (im Elternteil geladen, da auch fuer Zuordnungs-Vorschlaege genutzt)
-		rules: { type: Array, required: true },
-		// Kontostammdaten fuer Anzeige (accountLabel) und Gegenkonto-Auswahl
-		accountsById: { type: Object, required: true },
-		accountOptionsList: { type: Array, required: true },
-	},
 	setup() {
-		return { askConfirm: useConfirm().askConfirm }
+		const accounts = useAccounts()
+		const rulesC = useRules()
+		return {
+			accountsSorted: accounts.accountsSorted,
+			accountsById: accounts.accountsById,
+			...toRefs(rulesC.state),
+			loadRules: rulesC.loadRules,
+			askConfirm: useConfirm().askConfirm,
+		}
 	},
 	data() {
 		return {
@@ -115,6 +124,47 @@ export default {
 		}
 	},
 	computed: {
+		// Gleiche Gruppierung wie in BookingsTab.vue (haeufig verwendete Konten
+		// zuerst) - eigenstaendig statt geteilt, da beide Stellen geringfuegig
+		// unterschiedliche Listen brauchen (siehe AccountDialog.vue fuer das
+		// gleiche Muster).
+		accountUsageCounts() {
+			const counts = {}
+			for (const r of this.rules) counts[r.contraAccountId] = (counts[r.contraAccountId] || 0) + 1
+			return counts
+		},
+		frequentAccounts() {
+			const counts = this.accountUsageCounts
+			return this.accountsSorted
+				.filter(a => a.active && counts[a.id])
+				.sort((a, b) => counts[b.id] - counts[a.id])
+				.slice(0, 5)
+		},
+		accountsByCategory() {
+			const groups = {}
+			for (const acc of this.accountsSorted) {
+				if (!acc.active) continue
+				const cat = acc.category || this.t('Sonstige')
+				;(groups[cat] = groups[cat] || []).push(acc)
+			}
+			return groups
+		},
+		accountOptionsList() {
+			const opts = []
+			if (this.frequentAccounts.length >= 2) {
+				opts.push({ id: null, label: this.t('★ Häufig verwendet'), $isDisabled: true })
+				for (const acc of this.frequentAccounts) {
+					opts.push({ id: acc.id, label: `${acc.number} ${acc.name}`, number: acc.number })
+				}
+			}
+			for (const [cat, accounts] of Object.entries(this.accountsByCategory)) {
+				opts.push({ id: null, label: cat, $isDisabled: true })
+				for (const acc of accounts) {
+					opts.push({ id: acc.id, label: `${acc.number} ${acc.name}`, number: acc.number })
+				}
+			}
+			return opts
+		},
 		ruleFormContraOption: {
 			get() {
 				if (this.ruleForm.contraAccountId == null) return null
@@ -122,6 +172,9 @@ export default {
 			},
 			set(v) { this.ruleForm.contraAccountId = v ? v.id : null },
 		},
+	},
+	mounted() {
+		this.loadRules()
 	},
 	methods: {
 		errMsg,
@@ -174,7 +227,7 @@ export default {
 					await api.createRule(payload)
 					showSuccess(this.t('Regel angelegt.'))
 				}
-				this.$emit('changed')
+				await this.loadRules()
 				this.resetRuleForm()
 			} catch (e) { showError(this.errMsg(e, this.t('Regel konnte nicht gespeichert werden'))) }
 		},
@@ -187,7 +240,7 @@ export default {
 			try {
 				await api.deleteRule(rule.id)
 				if (this.ruleEditId === rule.id) this.resetRuleForm()
-				this.$emit('changed')
+				await this.loadRules()
 				showSuccess(this.t('Regel gelöscht.'))
 			} catch (e) { showError(this.errMsg(e, this.t('Regel konnte nicht gelöscht werden'))) }
 		},
