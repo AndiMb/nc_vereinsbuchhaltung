@@ -210,7 +210,7 @@
    Zahl-/Datums-Spalten bekommen feste Prozentbreiten, Textspalten (Beschreibung,
    Konto, Empfänger …) teilen sich den Rest. Prozente summieren sich nie über
    100 %, deshalb ist Überlauf strukturell ausgeschlossen. */
-.vbh-tablecard { border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); margin: 8px 0; }
+.vbh-tablecard { border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); margin: 8px 0; overflow-x: auto; }
 /* WICHTIG: white-space: normal überschreibt Nextclouds Core-Regel
    `table { white-space: nowrap }` (core/css/server.css). Ohne dies erben ALLE
    Zellen nowrap → Text bricht nicht um und ragt bei table-layout: fixed in die
