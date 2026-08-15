@@ -24,9 +24,11 @@ Mitgliederversammlung erzeugen.
 
 ## Der Arbeitsablauf
 
-1. **Kontoauszug importieren** – CSV-CAMT aus dem Onlinebanking, wie es
-   Sparkassen, Volksbanken und die meisten anderen Institute anbieten. Bereits
-   vorhandene Umsätze erkennt die App und überspringt sie.
+1. **Kontoauszug importieren** – CSV-CAMT, CAMT.053 (XML) oder MT940 aus dem
+   Onlinebanking; das Format erkennt die App am Inhalt, die Dateiendung spielt
+   keine Rolle. Bereits vorhandene Umsätze werden erkannt und übersprungen,
+   auch formatübergreifend. Ein Wachordner kann neue Auszüge sogar von allein
+   einlesen, ohne manuellen Import.
 2. **Umsätze zuordnen** – jede Bankbuchung bekommt ein Gegenkonto. Regeln
    erledigen wiederkehrende Zuordnungen (Miete, Beiträge, Gebühren) automatisch.
 3. **Belege anhängen** – Foto oder PDF, wahlweise in einem Nextcloud-Ordner
@@ -44,6 +46,11 @@ Mitgliederversammlung erzeugen.
 - **Gemeinnützigkeit:** Sphären nach dem Vier-Sphären-Modell (ideell,
   Vermögensverwaltung, Zweckbetrieb, wirtschaftlicher Geschäftsbetrieb) und
   Rücklagen nach § 62 AO
+- **Mitgliedsbeiträge & SEPA-Lastschrift** (optional, bei Bedarf aktivierbar):
+  Mitgliederverwaltung mit CSV-Import, Lastschriftmandate, Beiträge mit
+  individueller Zahlungsfrequenz, SEPA-Sammeleinzug als pain.008-Datei für die
+  Hausbank – eigener Reiter in der Hauptnavigation; wer das Modul nicht
+  braucht, sieht ihn gar nicht
 - **Offene Posten** – unbezahlte Forderungen mit Fälligkeit im Blick
 - **Mehrjahres-Trend** und Auswertung nach Kostenstellen
 - **Jahresabschluss:** ein festgeschriebenes Geschäftsjahr lässt sich nicht mehr
