@@ -22,10 +22,10 @@ use OCP\IRequest;
  * Pflege der SEPA-Lastschriftmandate (siehe {@see SepaMandateService}).
  * Rein optionales Zusatzmodul – wer es nie öffnet, merkt nichts davon.
  *
- * Wie beim PermissionController (Rechtevergabe) ist jede Methode Verwaltern
- * vorbehalten: ein Mandat verknüpft ein Nextcloud-Konto mit einer IBAN, also
- * personenbezogenen Bankdaten – dieselbe Sensibilität wie die Rechteliste,
- * die aus demselben Grund schon auf Verwalter beschränkt ist.
+ * Jede Methode verlangt mindestens die Rolle Buchhalter (lesen+schreiben):
+ * ein Mandat verknüpft ein Nextcloud-Konto mit einer IBAN, also
+ * personenbezogenen Bankdaten, das reicht aber nicht an die Rechtevergabe
+ * heran, die weiterhin Verwaltern vorbehalten bleibt (PermissionController).
  */
 class SepaMandateController extends Controller {
 
@@ -51,13 +51,13 @@ class SepaMandateController extends Controller {
 	}
 
 	#[NoAdminRequired]
-	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function index(): DataResponse {
 		return new DataResponse(array_map($this->decorate(...), $this->service->findAll()));
 	}
 
 	#[NoAdminRequired]
-	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function create(
 		?string $memberUid,
 		?string $memberLabel,
@@ -76,7 +76,7 @@ class SepaMandateController extends Controller {
 	}
 
 	#[NoAdminRequired]
-	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function update(int $id, string $iban, ?string $bic, string $mandateType, string $signedDate, ?string $email = null): DataResponse {
 		try {
 			$mandate = $this->service->update($id, $iban, $bic, $mandateType, $signedDate, $email);
@@ -94,7 +94,7 @@ class SepaMandateController extends Controller {
 	 * {@see SepaMandateService::changeBankAccount()}).
 	 */
 	#[NoAdminRequired]
-	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function changeBankAccount(
 		int $id,
 		string $iban,
@@ -114,7 +114,7 @@ class SepaMandateController extends Controller {
 	}
 
 	#[NoAdminRequired]
-	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function revoke(int $id): DataResponse {
 		try {
 			return new DataResponse($this->decorate($this->service->revoke($id)));
@@ -124,7 +124,7 @@ class SepaMandateController extends Controller {
 	}
 
 	#[NoAdminRequired]
-	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function destroy(int $id): DataResponse {
 		try {
 			$this->service->delete($id);

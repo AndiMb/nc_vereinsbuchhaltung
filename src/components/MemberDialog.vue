@@ -87,16 +87,7 @@ import { toRefs } from 'vue'
 import { NcModal, NcButton, NcSelect } from '@nextcloud/vue'
 import { useAccounts } from '../composables/useAccounts.js'
 import { usePermissions } from '../composables/usePermissions.js'
-import { t } from '../lib/l10n.js'
-
-function frequencyLabels() {
-	return {
-		monthly: t('monatlich'),
-		quarterly: t('vierteljährlich'),
-		semiannual: t('halbjährlich'),
-		yearly: t('jährlich'),
-	}
-}
+import { frequencyOptions } from '../lib/frequency.js'
 
 function emptyForm() {
 	return {
@@ -125,6 +116,10 @@ export default {
 	props: {
 		show: { type: Boolean, default: false },
 		saving: { type: Boolean, default: false },
+		// Vorbelegung aus Einstellungen -> Beiträge & SEPA (SettingsSepaBasics.vue),
+		// leerer String heisst "kein Standardbeitrag hinterlegt".
+		defaultFeeAmount: { type: [Number, String], default: '' },
+		defaultFeeFrequency: { type: String, default: 'yearly' },
 	},
 	setup() {
 		return { ...toRefs(useAccounts().state), ...toRefs(usePermissions().state) }
@@ -132,7 +127,7 @@ export default {
 	data() {
 		return {
 			form: emptyForm(),
-			frequencies: Object.entries(frequencyLabels()).map(([value, label]) => ({ value, label })),
+			frequencies: frequencyOptions(),
 		}
 	},
 	computed: {
@@ -155,7 +150,15 @@ export default {
 	},
 	watch: {
 		show(open) {
-			if (open) this.form = emptyForm()
+			if (!open) return
+			this.form = emptyForm()
+			// Vorbelegung: bei 80-100 Mitgliedern mit einheitlichem Beitrag muss
+			// der Betrag sonst jedes Mal von Hand eingetippt werden. Wer einen
+			// abweichenden Einzelfall anlegt, ueberschreibt das Feld einfach.
+			if (this.defaultFeeAmount !== '' && this.defaultFeeAmount !== null) {
+				this.form.amount = this.defaultFeeAmount
+				this.form.frequency = this.defaultFeeFrequency
+			}
 		},
 	},
 	methods: {

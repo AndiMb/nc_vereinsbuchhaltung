@@ -24,8 +24,12 @@
 		</div>
 
 		<div class="vbh-sectionbody">
-			<MembersList v-show="contribView === 'members'" ref="membersList" />
-			<SepaBatchPanel v-show="contribView === 'batch'" />
+			<MembersList v-show="contribView === 'members'"
+				ref="membersList"
+				:is-mobile="isMobile"
+				:default-fee-amount="defaultFeeAmount"
+				:default-fee-frequency="defaultFeeFrequency" />
+			<SepaBatchPanel v-show="contribView === 'batch'" :is-mobile="isMobile" />
 		</div>
 	</div>
 </template>
@@ -45,15 +49,18 @@ import { useMembershipFees } from '../composables/useMembershipFees.js'
  * laufende Arbeit einer fuer Finanzen verantwortlichen Person, keine
  * Einstellung, und gehoert deshalb in die Hauptnavigation statt hinters
  * Zahnrad. Nur sichtbar, wenn das Beitragsmodul genutzt wird (App.vue,
- * membershipActive) – Sichtbarkeit der beiden Kindkomponenten selbst bleibt
- * unveraendert an die Rolle Verwalter gebunden (Backend-Gate in den
- * jeweiligen Controllern).
+ * membershipActive) – Sichtbarkeit der beiden Kindkomponenten selbst ist an
+ * mindestens die Rolle Buchhalter gebunden (Backend-Gate in den jeweiligen
+ * Controllern), Rechtevergabe bleibt trotzdem Verwaltern vorbehalten.
  */
 export default {
 	name: 'ContributionsTab',
 	components: { NcButton, NcIconSvgWrapper, MembersList, SepaBatchPanel },
 	props: {
 		contribView: { type: String, required: true },
+		isMobile: { type: Boolean, default: false },
+		defaultFeeAmount: { type: [Number, String], default: '' },
+		defaultFeeFrequency: { type: String, default: 'yearly' },
 	},
 	setup() {
 		const membershipFees = useMembershipFees()

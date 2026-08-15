@@ -20,8 +20,9 @@ use OCP\IRequest;
 
 /**
  * Pflege der Mitgliedsbeiträge (siehe {@see MembershipFeeService}).
- * Dieselbe Verwalter-Einstufung wie SepaMandateController: ein Beitrag
- * verknüpft ggf. ein Nextcloud-Konto mit Betrag und Mandat.
+ * Dieselbe Einstufung wie SepaMandateController: Verwalter und Buchhalter
+ * duerfen schreiben, ein Beitrag verknuepft ggf. ein Nextcloud-Konto mit
+ * Betrag und Mandat.
  */
 class MembershipFeeController extends Controller {
 
@@ -48,13 +49,13 @@ class MembershipFeeController extends Controller {
 	}
 
 	#[NoAdminRequired]
-	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function index(): DataResponse {
 		return new DataResponse(array_map($this->decorate(...), $this->service->findAll()));
 	}
 
 	#[NoAdminRequired]
-	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function create(
 		?string $memberUid,
 		?string $memberLabel,
@@ -73,7 +74,7 @@ class MembershipFeeController extends Controller {
 	}
 
 	#[NoAdminRequired]
-	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function update(
 		int $id,
 		float $amount,
@@ -95,7 +96,7 @@ class MembershipFeeController extends Controller {
 
 	/** Erzeugt alle rückständigen offenen Posten dieses Beitrags auf einmal. */
 	#[NoAdminRequired]
-	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function catchUp(int $id): DataResponse {
 		try {
 			return new DataResponse(['created' => $this->service->catchUp($id)]);
@@ -107,7 +108,7 @@ class MembershipFeeController extends Controller {
 	}
 
 	#[NoAdminRequired]
-	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function destroy(int $id): DataResponse {
 		try {
 			$this->service->delete($id);

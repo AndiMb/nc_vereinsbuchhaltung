@@ -253,7 +253,7 @@ class SepaMandateService {
 		if ($email === '') {
 			return null;
 		}
-		if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+		if (!EmailValidator::isValid($email)) {
 			throw new \InvalidArgumentException($this->l10n->t('Die E-Mail-Adresse ist ungültig: %s', [$email]));
 		}
 		return $email;

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service;
 
+use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\MembershipFeeMapper;
 use OCA\Vereinsbuchhaltung\Db\SepaMandateMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Service\Sepa\MemberCsvParser;
+use OCP\IConfig;
 use OCP\IL10N;
 use OCP\IUserManager;
 
@@ -35,8 +37,25 @@ class MemberImportService {
 		private IUserManager $userManager,
 		private TransactionRunner $transaction,
 		private AuditService $audit,
+		private IConfig $config,
 		private IL10N $l10n,
 	) {
+	}
+
+	/**
+	 * Standard-Beitrag aus den Einstellungen (SettingsSepaBasics.vue), fuer
+	 * Zeilen mit Start-Datum, aber ohne eigenen Betrag - siehe
+	 * MemberCsvParser::parseRow(). Cents ist null, wenn kein Standardbeitrag
+	 * hinterlegt ist.
+	 *
+	 * @return array{0: ?int, 1: ?string}
+	 */
+	private function defaultFee(): array {
+		$cents = $this->config->getAppValue(Application::APP_ID, 'default_fee_amount_cents', '');
+		if ($cents === '') {
+			return [null, null];
+		}
+		return [(int)$cents, $this->config->getAppValue(Application::APP_ID, 'default_fee_frequency', 'yearly')];
 	}
 
 	/**
@@ -45,7 +64,8 @@ class MemberImportService {
 	 * @return array{error: ?string, rows: list<array<string, mixed>>, summary: array{ok:int, failed:int, mandates:int, fees:int}}
 	 */
 	public function preview(string $csv): array {
-		$parsed = $this->parser->parse($csv);
+		[$defaultAmountCents, $defaultFrequency] = $this->defaultFee();
+		$parsed = $this->parser->parse($csv, $defaultAmountCents, $defaultFrequency);
 		if ($parsed['error'] !== null) {
 			return ['error' => $parsed['error'], 'rows' => [], 'summary' => ['ok' => 0, 'failed' => 0, 'mandates' => 0, 'fees' => 0]];
 		}
@@ -71,7 +91,8 @@ class MemberImportService {
 	 * @return array{error: ?string, rows: list<array<string, mixed>>, summary: array{ok:int, failed:int, mandates:int, fees:int}}
 	 */
 	public function import(string $csv): array {
-		$parsed = $this->parser->parse($csv);
+		[$defaultAmountCents, $defaultFrequency] = $this->defaultFee();
+		$parsed = $this->parser->parse($csv, $defaultAmountCents, $defaultFrequency);
 		if ($parsed['error'] !== null) {
 			return ['error' => $parsed['error'], 'rows' => [], 'summary' => ['ok' => 0, 'failed' => 0, 'mandates' => 0, 'fees' => 0]];
 		}

@@ -17,8 +17,8 @@ use OCP\IRequest;
 
 /**
  * Massenanlage von Mitgliedern aus einer CSV-Liste (siehe
- * {@see MemberImportService}). Verwaltern vorbehalten wie alle SEPA-
- * Endpunkte: hier entstehen Mandate, also Bankverbindungen.
+ * {@see MemberImportService}). Buchhaltern und Verwaltern vorbehalten wie
+ * alle SEPA-Endpunkte: hier entstehen Mandate, also Bankverbindungen.
  */
 class MemberImportController extends Controller {
 
@@ -39,7 +39,7 @@ class MemberImportController extends Controller {
 
 	/** Prüflauf: ändert nichts, zeigt je Zeile, was entstehen würde. */
 	#[NoAdminRequired]
-	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function preview(string $csv): DataResponse {
 		$fehler = $this->check($csv);
 		if ($fehler !== null) {
@@ -50,7 +50,7 @@ class MemberImportController extends Controller {
 
 	/** Legt die Zeilen an, die in Ordnung sind. */
 	#[NoAdminRequired]
-	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function import(string $csv): DataResponse {
 		$fehler = $this->check($csv);
 		if ($fehler !== null) {

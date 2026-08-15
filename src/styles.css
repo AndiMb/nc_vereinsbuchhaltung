@@ -256,6 +256,11 @@
    seltener genutzte Aktionen stecken bewusst im Menü, damit nie mehr als
    3 Buttons gleichzeitig erscheinen und die Zeile einzeilig bleibt. */
 .vbh-table thead th:empty { width: 160px; }
+/* Aktionsspalte der Mitgliederliste: bis zu zwei Text-Buttons (Nachholen,
+   Bearbeiten) plus ein Menü-Button fuer die selteneren Aktionen (Bankverbindung
+   wechseln, Mandat widerrufen, Loeschen) - braucht mehr als die 160px, die fuer
+   reine Icon-Buttons reichen (siehe th:empty oben). */
+.vbh-table thead th.vbh-col-memberactions { width: 230px; }
 /* "Nr." ist immer die erste Zahlenspalte und braucht wenig Platz (Beträge nie) */
 .vbh-table thead th.num:first-child { width: 56px; }
 .vbh-purpose .vbh-clamp { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
@@ -559,6 +564,13 @@
 .vbh-mcard-bottom { display: flex; align-items: center; gap: 8px; }
 .vbh-mcard-accounts { flex: 1 1 auto; min-width: 0; font-size: 0.78em; color: var(--color-text-maxcontrast); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .vbh-mcard-clip { border: none; background: none; margin: 0; padding: 4px 6px; font-size: 0.8em; color: var(--color-text-maxcontrast); cursor: pointer; display: inline-flex; align-items: center; gap: 2px; }
+/* Mitgliederkarte (MemberCard.vue): Frequenz/Fälligkeit-Zeile braucht mehr
+   Platz als eine Konten-Zeile, deshalb kein nowrap+ellipsis wie oben. */
+.vbh-membercard .vbh-mcard-accounts { white-space: normal; overflow: visible; text-overflow: clip; }
+.vbh-mcard-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+/* Aufgeklappte Einzugszeilen (SepaBatchPanel.vue, mobil) leicht eingerückt,
+   damit die Zugehörigkeit zum Einzug oben erkennbar bleibt. */
+.vbh-mcard-subcards { margin: 8px 0 0 10px; padding-left: 10px; border-left: 2px solid var(--color-border); }
 /* Zuordnen mobil: Vorschlag als große Primärtaste */
 .vbh-suggest-chip--big { display: block; width: 100%; margin-top: 6px; padding: 10px 12px; font-size: 0.9em; text-align: center; border-radius: 8px; background: var(--color-primary-element); color: var(--color-primary-element-text); }
 

@@ -190,11 +190,14 @@
 			</section>
 
 			<!-- ============ BEITRÄGE (MITGLIEDER + SEPA-SAMMELEINZUG) ============ -->
-			<section v-if="isAdmin && membershipActive"
+			<section v-if="canWrite && membershipActive"
 				v-show="activeTab === 'contributions'"
 				class="vbh-section vbh-flex-col"
 				:class="{ 'vbh-fadein': sectionFade }">
 				<ContributionsTab :contrib-view="contribView"
+					:is-mobile="isMobile"
+					:default-fee-amount="defaultFeeAmount"
+					:default-fee-frequency="defaultFeeFrequency"
 					@update:contrib-view="contribView = $event" />
 			</section>
 		</main>
@@ -275,6 +278,8 @@
 					<SettingsSepaBasics v-if="isAdmin"
 						:sepa-creditor-id.sync="sepaCreditorId"
 						:sepa-debtor-account-id.sync="sepaDebtorAccountId"
+						:default-fee-amount.sync="defaultFeeAmount"
+						:default-fee-frequency.sync="defaultFeeFrequency"
 						:membership-enabled.sync="membershipEnabled"
 						:membership-active="membershipActive"
 						:storage-saving="storageSaving"
@@ -576,8 +581,8 @@ export default {
 				{ id: 'accounts', label: this.t('Konten'), need: 'read', icon: mdiFileTreeOutline },
 				{ id: 'reports', label: this.t('Berichte'), need: 'read', icon: mdiChartBar },
 				// Nur sichtbar, wenn das Beitragsmodul genutzt wird (visibleTabs
-				// unten) - Verwalter-only wie bisher (siehe ContributionsTab.vue).
-				{ id: 'contributions', label: this.t('Beiträge'), need: 'admin', icon: mdiAccountCashOutline },
+				// unten) - fuer Verwalter und Buchhalter (siehe ContributionsTab.vue).
+				{ id: 'contributions', label: this.t('Beiträge'), need: 'write', icon: mdiAccountCashOutline },
 			],
 			bookingView: 'journal',
 			reportView: 'summary',
@@ -641,6 +646,11 @@ export default {
 			// SEPA-Lastschrift (optionales Zusatzmodul, siehe SettingsSepaBasics.vue)
 			sepaCreditorId: '',
 			sepaDebtorAccountId: null,
+			// Vorbelegung fuer "Mitglied aufnehmen" (MemberDialog.vue), wenn fast
+			// alle Mitglieder denselben Beitrag zahlen - leerer String heisst
+			// "kein Standardbeitrag hinterlegt".
+			defaultFeeAmount: '',
+			defaultFeeFrequency: 'yearly',
 			// Schalter fuer den Reiter „Beiträge" (siehe SettingsSepaBasics.vue);
 			// membershipActive kommt vom Backend (Schalter ODER bereits vorhandene
 			// Mandate/Beitraege, siehe SettingsController::index()) und entscheidet,
@@ -914,9 +924,12 @@ export default {
 				this.loadSphereReport(),
 				this.loadOpenItems(),
 				this.loadCostCenters(),
+				// storage/demo-Status betrifft alle Leseberechtigten (Demo-Banner);
+				// hier mit im ersten Schwung, damit membershipActive schon steht,
+				// wenn visibleTabs zum ersten Mal berechnet wird - sonst blitzt der
+				// Beitraege-Reiter erst nachtraeglich in der Navigation auf.
+				this.loadStorageSettings(),
 			])
-			// storage/demo-Status betrifft alle Leseberechtigten (Demo-Banner); Berechtigungsliste nur Verwalter (Backend-Gate)
-			this.loadStorageSettings()
 			if (this.isAdmin) {
 				this.loadPermissions()
 				// Setup-Assistent beim allerersten Login eines Verwalters (leerer Verein, noch nicht gesehen)
@@ -996,9 +1009,9 @@ export default {
 			this.ccBookings = {}
 			this.ccExpanded = {}
 			const jobs = [this.loadYears(), this.loadClosedYears(), this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions(), this.loadSphereReport(), this.loadOpenItems(), this.loadCostCenters()]
-			// Beitraege/Mandate/Einzuege: eigenes Zusatzmodul, Verwalter-only
+			// Beitraege/Mandate/Einzuege: eigenes Zusatzmodul, ab Rolle Buchhalter
 			// (Backend-Gate) - siehe ContributionsTab.vue.
-			if (this.isAdmin) jobs.push(this.loadMembershipFees(), this.loadSepaMandates(), this.loadSepaBatches())
+			if (this.canWrite) jobs.push(this.loadMembershipFees(), this.loadSepaMandates(), this.loadSepaBatches())
 			if (this.activeTab === 'accounts' && this.selectedAccountId) jobs.push(this.loadStatement(this.selectedAccountId))
 			if (this.activeTab === 'reports') {
 				if (this.reportView === 'costcenters') jobs.push(this.loadReport())
@@ -1037,6 +1050,8 @@ export default {
 				this.statementWatchPath = data.statement_watch_path || ''
 				this.sepaCreditorId = data.sepa_creditor_id || ''
 				this.sepaDebtorAccountId = data.sepa_debtor_account_id || null
+				this.defaultFeeAmount = data.default_fee_amount ?? ''
+				this.defaultFeeFrequency = data.default_fee_frequency || 'yearly'
 				this.membershipEnabled = !!data.membership_enabled
 				this.membershipActive = !!data.membership_active
 			} catch (e) { /* ignorieren */ }
@@ -1044,7 +1059,7 @@ export default {
 		async saveStorageSettings() {
 			this.storageSaving = true
 			try {
-				const { data } = await api.saveSettings({ storage_user: this.storageUser, storage_path: this.storagePath || 'Vereinsbuchhaltung/Belege', cost_center_mode: this.costCenterMode, club_name: this.clubName, brand_color: this.brandColor, statement_watch_user: this.statementWatchUser, statement_watch_path: this.statementWatchPath, sepa_creditor_id: this.sepaCreditorId, sepa_debtor_account_id: this.sepaDebtorAccountId || '', membership_enabled: this.membershipEnabled ? '1' : '0' })
+				const { data } = await api.saveSettings({ storage_user: this.storageUser, storage_path: this.storagePath || 'Vereinsbuchhaltung/Belege', cost_center_mode: this.costCenterMode, club_name: this.clubName, brand_color: this.brandColor, statement_watch_user: this.statementWatchUser, statement_watch_path: this.statementWatchPath, sepa_creditor_id: this.sepaCreditorId, sepa_debtor_account_id: this.sepaDebtorAccountId || '', default_fee_amount: this.defaultFeeAmount || '', default_fee_frequency: this.defaultFeeFrequency, membership_enabled: this.membershipEnabled ? '1' : '0' })
 				this.membershipActive = !!data.membership_active
 				showSuccess(this.t('Einstellungen gespeichert.'))
 				this.reportData = null

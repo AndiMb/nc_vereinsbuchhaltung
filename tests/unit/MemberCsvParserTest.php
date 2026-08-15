@@ -201,4 +201,61 @@ class MemberCsvParserTest extends TestCase {
 		$csv = "Name;Betrag;Frequenz;Start\n\"Brunner; Katrin\";42,50;monatlich;01.01.2026\n";
 		$this->assertSame('Brunner; Katrin', $this->parser->parse($csv)['rows'][0]['memberLabel']);
 	}
+
+	/**
+	 * Umlaute im lokalen Teil der E-Mail-Adresse sind bei gmx.de/web.de/
+	 * t-online.de echte, zustellbare Adressen (häufigste Nachnamen wie
+	 * „Müller" oder „Krüger" betreffen das regelmäßig) - der Import darf sie
+	 * nicht als ungültig verwerfen.
+	 */
+	public function testUmlautInEmailWirdAkzeptiert(): void {
+		$csv = "Name;E-Mail;Betrag;Frequenz;Start\nAnna Müller;a.müller@gmx.de;42,50;monatlich;01.01.2026\n";
+		$zeile = $this->parser->parse($csv)['rows'][0];
+		$this->assertSame([], $zeile['errors']);
+		$this->assertSame('a.müller@gmx.de', $zeile['email']);
+	}
+
+	/**
+	 * Standardbeitrag (SettingsSepaBasics.vue): eine Zeile mit Start-Datum,
+	 * aber ohne eigenen Betrag, uebernimmt den hinterlegten Satz - sonst
+	 * muesste er bei 90 gleich zahlenden Chormitgliedern 90 Mal wiederholt
+	 * werden.
+	 */
+	public function testStandardbeitragWirdBeiFehlendemBetragUebernommen(): void {
+		$csv = "Name;Start\nKatrin Brunner;01.01.2026\n";
+		$zeile = $this->parser->parse($csv, 800, 'monthly')['rows'][0];
+		$this->assertSame([], $zeile['errors']);
+		$this->assertSame(800, $zeile['amountCents']);
+		$this->assertSame('monthly', $zeile['frequency']);
+	}
+
+	/** Ein eigener Betrag in der Zeile geht immer vor den Standardbeitrag. */
+	public function testEigenerBetragUeberschreibtStandardbeitrag(): void {
+		$csv = "Name;Betrag;Frequenz;Start\nSonderfall;4,00;monatlich;01.01.2026\n";
+		$zeile = $this->parser->parse($csv, 800, 'monthly')['rows'][0];
+		$this->assertSame(400, $zeile['amountCents']);
+	}
+
+	/**
+	 * Ohne Start-Datum bleibt eine reine Mandatszeile ("nur IBAN") auch bei
+	 * hinterlegtem Standardbeitrag ein reines Mandat - sonst bekäme jeder
+	 * Überweiser ungefragt einen Beitrag.
+	 */
+	public function testStandardbeitragOhneStartdatumBleibtAus(): void {
+		$csv = "Name;IBAN;Mandat am\nÜberweiser;DE02120300000000202051;15.01.2026\n";
+		$zeile = $this->parser->parse($csv, 800, 'monthly')['rows'][0];
+		$this->assertSame([], $zeile['errors']);
+		$this->assertNull($zeile['amountCents']);
+	}
+
+	/**
+	 * Ein Betrag ohne Frequenz bleibt weiterhin ein Jahresbeitrag (bestehende,
+	 * getestete Konvention) - der Standard-Frequenz-Fallback gilt nur, wenn
+	 * auch der Betrag selbst aus dem Standardbeitrag stammt.
+	 */
+	public function testBetragOhneFrequenzIgnoriertStandardfrequenz(): void {
+		$csv = "Name;Betrag;Start\nKatrin Brunner;96,00;01.01.2026\n";
+		$zeile = $this->parser->parse($csv, 800, 'monthly')['rows'][0];
+		$this->assertSame('yearly', $zeile['frequency']);
+	}
 }

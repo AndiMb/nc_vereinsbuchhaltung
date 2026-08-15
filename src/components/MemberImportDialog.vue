@@ -8,6 +8,9 @@
 			<p class="vbh-hint">
 				{{ t('Für die erstmalige Aufnahme vieler Mitglieder: eine CSV-Datei mit den Spalten Name, E-Mail, IBAN, Mandat am, Betrag, Frequenz und Start. Die Reihenfolge und die Schreibweise der Überschriften sind egal, zusätzliche Spalten werden übergangen. Vor dem Anlegen sehen Sie zuerst, was entstehen würde.') }}
 			</p>
+			<p v-if="defaultFeeAmount" class="vbh-hint vbh-hint--info">
+				{{ t('Zeilen mit Start-Datum, aber ohne eigenen Betrag, bekommen automatisch Ihren Standardbeitrag ({amount} {frequency}) – die Betrag-Spalte kann bei einheitlichen Sätzen also leer bleiben.', { amount: formatMoney(defaultFeeAmount), frequency: frequencyLabel(defaultFeeFrequency) }) }}
+			</p>
 			<div class="vbh-form">
 				<input ref="csvInput"
 					type="file"
@@ -86,6 +89,7 @@ import { NcModal, NcButton } from '@nextcloud/vue'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import api from '../api.js'
 import { errMsg, formatMoney } from '../lib/format.js'
+import { frequencyLabel } from '../lib/frequency.js'
 import { useConfirm } from '../composables/useConfirm.js'
 
 /**
@@ -99,6 +103,8 @@ export default {
 	components: { NcModal, NcButton },
 	props: {
 		show: { type: Boolean, default: false },
+		defaultFeeAmount: { type: [Number, String], default: '' },
+		defaultFeeFrequency: { type: String, default: 'yearly' },
 	},
 	setup() {
 		return { askConfirm: useConfirm().askConfirm }
@@ -131,6 +137,7 @@ export default {
 	methods: {
 		errMsg,
 		formatMoney,
+		frequencyLabel,
 		importLabel(row) {
 			if (row.willCreateMandate && row.willCreateFee) return this.t('Mandat und Beitrag')
 			if (row.willCreateMandate) return this.t('nur Mandat')
@@ -172,6 +179,7 @@ export default {
 					beitraege: this.importSummary.fees,
 					fehler: this.importSummary.failed,
 				}),
+				this.t('Übernehmen'), 'primary',
 			)) return
 			this.importing = true
 			try {

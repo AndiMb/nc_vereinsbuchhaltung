@@ -21,7 +21,7 @@ use OCP\IRequest;
 
 /**
  * SEPA-Sammeleinzüge: Vorschau, Erzeugen und Herunterladen der pain.008-Datei
- * (siehe {@see SepaBatchService}). Dieselbe Verwalter-Einstufung wie die
+ * (siehe {@see SepaBatchService}). Dieselbe Einstufung (Buchhalter+) wie die
  * übrigen SEPA-Endpunkte.
  */
 class SepaBatchController extends Controller {
@@ -40,7 +40,7 @@ class SepaBatchController extends Controller {
 	 *        fällige Posten kommen mit. Ohne Angabe der Vorschlagstermin.
 	 */
 	#[NoAdminRequired]
-	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function preview(?string $executionDate = null): DataResponse {
 		$executionDate = $executionDate !== null && $executionDate !== '' ? $executionDate : $this->service->defaultExecutionDate();
 		$rows = array_map(function (array $row): array {
@@ -56,7 +56,7 @@ class SepaBatchController extends Controller {
 
 	/** Die Zeilen eines Einzugs – wer, wie viel, angekündigt, zurückgebucht. */
 	#[NoAdminRequired]
-	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function items(int $id): DataResponse {
 		try {
 			$rows = array_map(static fn (array $row): array => $row['item']->jsonSerialize() + [
@@ -77,7 +77,7 @@ class SepaBatchController extends Controller {
 	 * @param int|null $journalId Buchung der Sammelgutschrift, falls erfasst
 	 */
 	#[NoAdminRequired]
-	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function settle(int $id, ?int $journalId = null): DataResponse {
 		try {
 			return new DataResponse($this->service->settleBatch($id, $journalId));
@@ -90,7 +90,7 @@ class SepaBatchController extends Controller {
 
 	/** Verwirft einen versehentlich erzeugten Einzug wieder. */
 	#[NoAdminRequired]
-	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function destroy(int $id): DataResponse {
 		try {
 			$this->service->deleteBatch($id);
@@ -104,7 +104,7 @@ class SepaBatchController extends Controller {
 
 	/** Nimmt eine falsch erkannte Rücklastschrift zurück. */
 	#[NoAdminRequired]
-	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function revertReturn(int $itemId): DataResponse {
 		try {
 			return new DataResponse($this->service->revertReturn($itemId));
@@ -116,13 +116,13 @@ class SepaBatchController extends Controller {
 	}
 
 	#[NoAdminRequired]
-	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function index(): DataResponse {
 		return new DataResponse($this->service->findAllBatches());
 	}
 
 	#[NoAdminRequired]
-	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function create(string $executionDate): DataResponse {
 		try {
 			$batch = $this->service->createBatch($executionDate);
@@ -135,7 +135,7 @@ class SepaBatchController extends Controller {
 	/** Download der pain.008-XML-Datei eines bereits erzeugten Einzugs. */
 	#[NoAdminRequired]
 	#[NoCSRFRequired]
-	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function xml(int $id): DataDownloadResponse|DataResponse {
 		try {
 			$xml = $this->service->generateXml($id);

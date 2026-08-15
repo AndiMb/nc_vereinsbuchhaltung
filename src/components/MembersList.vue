@@ -23,7 +23,26 @@
 			}) }}
 		</p>
 
-		<div v-if="filteredRows.length" class="vbh-tablecard">
+		<div v-if="filteredRows.length && isMobile" class="vbh-cardlist">
+			<MemberCard v-for="row in filteredRows"
+				:key="row.key"
+				:row="row"
+				:editing="editing && row.fee && editing.id === row.fee.id ? editing : null"
+				:frequencies="frequencies"
+				:saving="saving"
+				:is-used="!!(row.mandate && isUsed(row.mandate))"
+				@toggle-active="toggleActive(row.fee, $event)"
+				@catch-up="catchUp(row.fee)"
+				@start-edit="startEdit(row.fee)"
+				@save-edit="saveEdit"
+				@cancel-edit="editing = null"
+				@update-editing="editing = $event"
+				@bank-change="openBankChange(row.mandate)"
+				@revoke-mandate="revokeMandate(row.mandate)"
+				@remove-fee="removeFee(row.fee)"
+				@remove-mandate="removeMandate(row.mandate)" />
+		</div>
+		<div v-else-if="filteredRows.length" class="vbh-tablecard">
 			<table class="vbh-table">
 				<thead>
 					<tr>
@@ -35,7 +54,7 @@
 						<th>{{ t('Frequenz') }}</th>
 						<th>{{ t('Nächste Fälligkeit') }}</th>
 						<th>{{ t('Aktiv') }}</th>
-						<th />
+						<th class="vbh-col-memberactions" />
 					</tr>
 				</thead>
 				<tbody>
@@ -113,49 +132,59 @@
 									@click="startEdit(row.fee)">
 									{{ t('Bearbeiten') }}
 								</NcButton>
-								<NcButton v-if="row.mandate && row.mandate.status === 'active'"
-									variant="tertiary"
-									size="small"
-									@click="openBankChange(row.mandate)">
-									{{ t('Bankverbindung wechseln') }}
-								</NcButton>
-								<NcButton v-if="row.mandate && row.mandate.status === 'active'"
-									variant="tertiary"
-									size="small"
-									@click="revokeMandate(row.mandate)">
-									{{ t('Mandat widerrufen') }}
-								</NcButton>
-								<NcButton v-if="row.fee"
-									variant="error"
-									size="small"
-									:aria-label="t('Beitrag löschen')"
-									@click="removeFee(row.fee)">
-									{{ t('Löschen') }}
-								</NcButton>
-								<NcButton v-else-if="row.mandate && !isUsed(row.mandate)"
-									variant="error"
-									size="small"
-									:aria-label="t('Mandat löschen')"
-									@click="removeMandate(row.mandate)">
-									{{ t('Löschen') }}
-								</NcButton>
+								<!-- Seltener genutzte Aktionen im Menue, sonst wird die Zeile
+									durch bis zu vier weitere Icon-Buttons zu breit (dasselbe
+									Muster wie im Buchungsjournal, siehe BookingsTab.vue). -->
+								<NcActions v-if="row.fee || (row.mandate && (row.mandate.status === 'active' || !isUsed(row.mandate)))"
+									:force-menu="true">
+									<NcActionButton v-if="row.mandate && row.mandate.status === 'active'"
+										@click="openBankChange(row.mandate)">
+										<template #icon>
+											<NcIconSvgWrapper :path="mdiBankTransfer" :size="16" />
+										</template>
+										{{ t('Bankverbindung wechseln') }}
+									</NcActionButton>
+									<NcActionButton v-if="row.mandate && row.mandate.status === 'active'"
+										@click="revokeMandate(row.mandate)">
+										<template #icon>
+											<NcIconSvgWrapper :path="mdiCancel" :size="16" />
+										</template>
+										{{ t('Mandat widerrufen') }}
+									</NcActionButton>
+									<NcActionButton v-if="row.fee" @click="removeFee(row.fee)">
+										<template #icon>
+											<NcIconSvgWrapper :path="mdiDelete" :size="16" />
+										</template>
+										{{ t('Beitrag löschen') }}
+									</NcActionButton>
+									<NcActionButton v-else-if="row.mandate && !isUsed(row.mandate)" @click="removeMandate(row.mandate)">
+										<template #icon>
+											<NcIconSvgWrapper :path="mdiDelete" :size="16" />
+										</template>
+										{{ t('Mandat löschen') }}
+									</NcActionButton>
+								</NcActions>
 							</td>
 						</template>
 					</tr>
 				</tbody>
 			</table>
 		</div>
-		<NcEmptyContent v-else
+		<NcEmptyContent v-if="!filteredRows.length"
 			:name="rows.length ? t('Kein Eintrag passt zur Suche.') : t('Noch kein Mitglied aufgenommen.')"
 			:description="rows.length ? '' : t('Mit „＋ Mitglied“ oben ein erstes Mitglied anlegen, oder eine Liste als CSV einlesen.')" />
 
 		<MemberDialog :show="memberDialogOpen"
 			:saving="saving"
+			:default-fee-amount="defaultFeeAmount"
+			:default-fee-frequency="defaultFeeFrequency"
 			@update:show="memberDialogOpen = $event"
 			@close="memberDialogOpen = false"
 			@save="createMember" />
 
 		<MemberImportDialog :show="importDialogOpen"
+			:default-fee-amount="defaultFeeAmount"
+			:default-fee-frequency="defaultFeeFrequency"
 			@update:show="importDialogOpen = $event"
 			@close="importDialogOpen = false"
 			@imported="reload" />
@@ -170,7 +199,8 @@
 
 <script>
 import { toRefs } from 'vue'
-import { NcButton, NcEmptyContent } from '@nextcloud/vue'
+import { NcButton, NcActions, NcActionButton, NcEmptyContent, NcIconSvgWrapper } from '@nextcloud/vue'
+import { mdiBankTransfer, mdiCancel, mdiDelete } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import api from '../api.js'
 import { errMsg, formatMoney } from '../lib/format.js'
@@ -180,19 +210,8 @@ import MemberImportDialog from './MemberImportDialog.vue'
 import { useMembershipFees } from '../composables/useMembershipFees.js'
 import { useSepaMandates } from '../composables/useSepaMandates.js'
 import { useConfirm } from '../composables/useConfirm.js'
-import { t } from '../lib/l10n.js'
-
-/** Monate je Frequenz – für die Hochrechnung aufs Jahr. */
-const MONTHS = { monthly: 1, quarterly: 3, semiannual: 6, yearly: 12 }
-
-function frequencyLabels() {
-	return {
-		monthly: t('monatlich'),
-		quarterly: t('vierteljährlich'),
-		semiannual: t('halbjährlich'),
-		yearly: t('jährlich'),
-	}
-}
+import { FREQUENCY_MONTHS, frequencyLabel, frequencyOptions } from '../lib/frequency.js'
+import MemberCard from './MemberCard.vue'
 
 /**
  * Mitglieder als eine Liste: Mandat und Beitrag gehören zusammen und werden
@@ -203,11 +222,16 @@ function frequencyLabels() {
  * (MemberDialog.vue, MemberImportDialog.vue), die per $refs von der
  * Kopfzeile in ContributionsTab.vue geoeffnet werden.
  *
- * Nur für Verwalter erreichbar (siehe SepaMandateController).
+ * Erreichbar ab Rolle Buchhalter (siehe SepaMandateController).
  */
 export default {
 	name: 'MembersList',
-	components: { NcButton, NcEmptyContent, BankAccountChangeDialog, MemberDialog, MemberImportDialog },
+	components: { NcButton, NcActions, NcActionButton, NcEmptyContent, NcIconSvgWrapper, BankAccountChangeDialog, MemberDialog, MemberImportDialog, MemberCard },
+	props: {
+		isMobile: { type: Boolean, default: false },
+		defaultFeeAmount: { type: [Number, String], default: '' },
+		defaultFeeFrequency: { type: String, default: 'yearly' },
+	},
 	setup() {
 		const membershipFees = useMembershipFees()
 		const sepaMandates = useSepaMandates()
@@ -225,12 +249,15 @@ export default {
 			editing: null,
 			search: '',
 			onlyProblems: false,
-			frequencies: Object.entries(frequencyLabels()).map(([value, label]) => ({ value, label })),
+			frequencies: frequencyOptions(),
 			memberDialogOpen: false,
 			importDialogOpen: false,
 			bankChangeOpen: false,
 			bankChangeMandate: null,
 			bankChangeSaving: false,
+			mdiBankTransfer,
+			mdiCancel,
+			mdiDelete,
 		}
 	},
 	computed: {
@@ -292,7 +319,7 @@ export default {
 		jahresSumme() {
 			return this.rows.reduce((summe, r) => {
 				if (!r.fee || !r.fee.active) return summe
-				return summe + r.fee.amount * (12 / (MONTHS[r.fee.frequency] || 12))
+				return summe + r.fee.amount * (12 / (FREQUENCY_MONTHS[r.fee.frequency] || 12))
 			}, 0)
 		},
 	},
@@ -303,7 +330,7 @@ export default {
 	methods: {
 		errMsg,
 		formatMoney,
-		frequencyLabel(f) { return frequencyLabels()[f] || f },
+		frequencyLabel,
 		/** Von der Kopfzeile in ContributionsTab.vue per $refs aufgerufen. */
 		openMemberDialog() { this.memberDialogOpen = true },
 		openImportDialog() { this.importDialogOpen = true },
@@ -412,6 +439,7 @@ export default {
 					'Für diesen Beitrag fehlen noch %n offene Posten. Sollen sie jetzt alle erzeugt werden?',
 					fee.dueCount,
 				),
+				this.t('Erzeugen'), 'primary',
 			)) return
 			try {
 				const { data } = await api.catchUpMembershipFee(fee.id)

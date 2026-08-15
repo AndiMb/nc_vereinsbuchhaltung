@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service\Sepa;
 
 use OCA\Vereinsbuchhaltung\Service\BillingPeriod;
+use OCA\Vereinsbuchhaltung\Service\EmailValidator;
 
 /**
  * Liest eine Mitgliederliste als CSV: Zahler, Bankverbindung und Beitrag in
@@ -92,11 +93,16 @@ class MemberCsvParser {
 	];
 
 	/**
+	 * @param int|null $defaultAmountCents Standard-Beitrag (Einstellungen ->
+	 *        Beiträge & SEPA), fuer Zeilen mit Start-Datum, aber ohne eigenen
+	 *        Betrag - siehe parseRow(). Null bedeutet: kein Standardbeitrag
+	 *        hinterlegt, Verhalten wie zuvor.
+	 * @param string|null $defaultFrequency Frequenz dazu, siehe BillingPeriod::FREQUENCY_MONTHS.
 	 * @return array{rows: list<ParsedRow>, error: ?string} `error` ist gesetzt,
 	 *         wenn schon die Datei als Ganzes unbrauchbar ist (keine Kopfzeile,
 	 *         keine erkennbare Spalte) – dann ist `rows` leer.
 	 */
-	public function parse(string $csv): array {
+	public function parse(string $csv, ?int $defaultAmountCents = null, ?string $defaultFrequency = null): array {
 		$lines = $this->splitLines($csv);
 		if ($lines === []) {
 			return ['rows' => [], 'error' => 'Die Datei ist leer.'];
@@ -113,7 +119,7 @@ class MemberCsvParser {
 			if ($index === 0 || trim($line) === '') {
 				continue;
 			}
-			$rows[] = $this->parseRow(str_getcsv($line, $delimiter, '"', '\\'), $header, $index + 1);
+			$rows[] = $this->parseRow(str_getcsv($line, $delimiter, '"', '\\'), $header, $index + 1, $defaultAmountCents, $defaultFrequency);
 		}
 		return ['rows' => $rows, 'error' => null];
 	}
@@ -123,7 +129,7 @@ class MemberCsvParser {
 	 * @param array<int, string> $header Spaltenindex → Feldname
 	 * @return ParsedRow
 	 */
-	private function parseRow(array $values, array $header, int $line): array {
+	private function parseRow(array $values, array $header, int $line, ?int $defaultAmountCents = null, ?string $defaultFrequency = null): array {
 		$raw = [];
 		foreach ($header as $index => $field) {
 			$raw[$field] = isset($values[$index]) ? trim((string)$values[$index]) : '';
@@ -143,7 +149,7 @@ class MemberCsvParser {
 		}
 
 		$email = ($raw['email'] ?? '') !== '' ? $raw['email'] : null;
-		if ($email !== null && filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+		if ($email !== null && !EmailValidator::isValid($email)) {
 			$errors[] = sprintf('Keine gültige E-Mail-Adresse: %s', $email);
 			$email = null;
 		}
@@ -165,12 +171,21 @@ class MemberCsvParser {
 		}
 
 		$amountCents = null;
+		$usedDefaultAmount = false;
 		if (($raw['amount'] ?? '') !== '') {
 			$amountCents = $this->parseAmount($raw['amount']);
 			if ($amountCents === null || $amountCents <= 0) {
 				$errors[] = sprintf('Unlesbarer oder nicht positiver Betrag: %s', $raw['amount']);
 				$amountCents = null;
 			}
+		} elseif ($defaultAmountCents !== null && ($raw['startDate'] ?? '') !== '') {
+			// Standardbeitrag (Einstellungen -> Beiträge & SEPA): eine Zeile mit
+			// Start-Datum, aber ohne eigenen Betrag, zahlt den üblichen Satz -
+			// sonst müsste er in jeder Zeile wiederholt werden. Ohne Start-Datum
+			// wäre aus einer reinen Mandatszeile ("nur IBAN") ungefragt ein
+			// Beitrag geworden.
+			$amountCents = $defaultAmountCents;
+			$usedDefaultAmount = true;
 		}
 
 		$frequency = null;
@@ -179,6 +194,8 @@ class MemberCsvParser {
 			if ($frequency === null) {
 				$errors[] = sprintf('Unbekannte Zahlungsfrequenz: %s', $raw['frequency']);
 			}
+		} elseif ($usedDefaultAmount) {
+			$frequency = $defaultFrequency ?? 'yearly';
 		} elseif ($amountCents !== null) {
 			// Ein Betrag ohne Frequenz ist fast immer ein Jahresbeitrag; das ist
 			// die häufigste Vereinstabelle überhaupt.

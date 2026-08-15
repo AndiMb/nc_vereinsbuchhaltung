@@ -26,7 +26,24 @@
 			</p>
 		</div>
 
-		<div v-if="sepaPreview.length" class="vbh-tablecard">
+		<div v-if="sepaPreview.length && isMobile" class="vbh-cardlist">
+			<div class="vbh-tablecount">
+				{{ t('Summe {sum}', { sum: formatMoney(previewTotal) }) }}
+			</div>
+			<div v-for="row in sepaPreview" :key="row.openItem.id" class="vbh-mcard">
+				<div class="vbh-mcard-top">
+					<span class="vbh-mcard-title">{{ row.debtorName }}</span>
+					<span class="vbh-mcard-amount">{{ formatMoney(row.openItem.amount) }}</span>
+				</div>
+				<div class="vbh-mcard-bottom">
+					<span class="vbh-mcard-accounts">{{ t('fällig {date}', { date: row.openItem.dueDate || '–' }) }} · {{ sequenceLabel(row.sequenceType) }}</span>
+				</div>
+				<div class="vbh-mcard-bottom">
+					<span class="vbh-mcard-accounts">{{ row.mandate.mandateReference }}</span>
+				</div>
+			</div>
+		</div>
+		<div v-else-if="sepaPreview.length" class="vbh-tablecard">
 			<table class="vbh-table">
 				<thead>
 					<tr>
@@ -72,7 +89,64 @@
 		<p v-if="sepaBatches.length" class="vbh-hint vbh-hint--info">
 			{{ t('Sobald das Geld auf dem Vereinskonto eingegangen ist, verbuchen Sie den Einzug als ausgeführt: die enthaltenen offenen Posten werden dann in einem Schritt als bezahlt geschlossen. Kommt später eine Rücklastschrift, öffnet der Kontoauszugs-Import den betroffenen Posten von selbst wieder.') }}
 		</p>
-		<div v-if="sepaBatches.length" class="vbh-tablecard">
+		<div v-if="sepaBatches.length && isMobile" class="vbh-cardlist">
+			<div v-for="b in sepaBatches" :key="b.id" class="vbh-mcard">
+				<div class="vbh-mcard-top">
+					<span class="vbh-mcard-title">{{ t('Fälligkeit {date}', { date: b.executionDate }) }}</span>
+					<span class="vbh-typetag">{{ b.settledAt ? t('ausgeführt') : t('eingereicht') }}</span>
+				</div>
+				<div class="vbh-mcard-bottom">
+					<span class="vbh-mcard-accounts">{{ t('erzeugt {date}', { date: b.createdAt }) }}</span>
+				</div>
+				<div class="vbh-mcard-actions">
+					<NcButton variant="tertiary" size="small" @click="toggleItems(b.id)">
+						{{ expanded === b.id ? t('Zeilen ausblenden') : t('Zeilen anzeigen') }}
+					</NcButton>
+					<a :href="xmlUrl(b.id)"
+						target="_blank"
+						rel="noopener"
+						class="vbh-export-btn">{{ t('XML herunterladen') }}</a>
+					<NcButton v-if="!b.settledAt"
+						variant="primary"
+						size="small"
+						:disabled="settling === b.id"
+						@click="settle(b)">
+						{{ t('Als ausgeführt verbuchen') }}
+					</NcButton>
+					<NcButton v-if="!b.settledAt"
+						variant="error"
+						size="small"
+						:aria-label="t('Einzug verwerfen')"
+						@click="discard(b)">
+						{{ t('Verwerfen') }}
+					</NcButton>
+				</div>
+				<div v-if="expanded === b.id" class="vbh-cardlist vbh-mcard-subcards">
+					<div v-for="item in (sepaBatchItems[b.id] || [])" :key="item.id" class="vbh-mcard">
+						<div class="vbh-mcard-top">
+							<span class="vbh-mcard-title">{{ item.debtorName }}</span>
+							<span class="vbh-mcard-amount">{{ formatMoney(item.amount) }}</span>
+						</div>
+						<div class="vbh-mcard-bottom">
+							<span class="vbh-mcard-accounts">{{ sequenceLabel(item.sequenceType) }} · {{ notificationLabel(item) }}</span>
+						</div>
+						<div class="vbh-mcard-bottom">
+							<span class="vbh-typetag">{{ itemStatusLabel(item) }}</span>
+							<span v-if="item.returnReason" class="vbh-hint">{{ item.returnReason }}</span>
+						</div>
+						<div v-if="item.status === 'returned'" class="vbh-mcard-actions">
+							<NcButton variant="tertiary" size="small" @click="revert(b.id, item)">
+								{{ t('Rückbuchung zurücknehmen') }}
+							</NcButton>
+						</div>
+					</div>
+					<p v-if="skippedCount(b.id) > 0" class="vbh-hint vbh-hint--warning">
+						{{ t('{n} Zahler haben keine E-Mail-Adresse hinterlegt und konnten nicht angekündigt werden – bitte selbst informieren.', { n: skippedCount(b.id) }) }}
+					</p>
+				</div>
+			</div>
+		</div>
+		<div v-else-if="sepaBatches.length" class="vbh-tablecard">
 			<table class="vbh-table">
 				<thead>
 					<tr>
@@ -185,11 +259,14 @@ const LEAD_DAYS = 14
  * SettingsSepaExport.vue im Einstellungen-Modal; jetzt Unterreiter „Einzug"
  * von ContributionsTab.vue, siehe NAVIGATION-KONZEPT.md Abschnitt 4.
  *
- * Nur für Verwalter erreichbar (siehe SepaBatchController).
+ * Erreichbar ab Rolle Buchhalter (siehe SepaBatchController).
  */
 export default {
 	name: 'SepaBatchPanel',
 	components: { NcButton },
+	props: {
+		isMobile: { type: Boolean, default: false },
+	},
 	setup() {
 		const sepaBatches = useSepaBatches()
 		return {
