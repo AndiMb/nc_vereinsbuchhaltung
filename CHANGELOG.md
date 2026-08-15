@@ -10,6 +10,26 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
 
 ## [Unreleased]
 
+## [0.24.0] – 2026-08-15
+
+### Geändert
+- **Berichte → Kostenstellen/Sphären: Bericht bekommt die volle Höhe, Pflege
+  wandert ins Modal**: Seit 0.22.3 hing die Pflege (Kostenstellen anlegen/
+  zuordnen, Sphären zuweisen) als zweiter, oft sehr hoher Block unter der
+  Split-Ansicht (Baum + Detail) im selben Scrollcontainer – der eigentliche
+  Bericht war dadurch auf `min-height: 360px` gedeckelt, während die Pflege
+  den Großteil der Seite einnahm. Die Pflege öffnet jetzt als `NcModal` über
+  die Buttons „Kostenstellen verwalten" bzw. „Sphären zuordnen" oben rechts
+  im Bericht (gleiches Muster wie „＋ Mitglied"/„Liste einlesen" im Reiter
+  Beiträge) sowie zusätzlich über „Konten zuordnen" direkt bei der
+  Baumzeile „– nicht zugeordnet". Der Kostenstellen-Modus (Gruppierung)
+  bleibt sichtbar, da er den Bericht selbst steuert – er ist jetzt ein
+  Auswahlfeld in der Kopfzeile statt einer Karte im Pflege-Modal. Damit
+  entfallen auch die CSS-Sonderfälle aus 0.23.0/0.23.1
+  (`.vbh-sectionbody.is-split` hatte nur wegen des zweiten Blocks
+  `flex-direction: column` und ein eigenes `.vbh-section-divider`-Padding
+  gebraucht).
+
 ## [0.23.1] – 2026-08-15
 
 ### Behoben

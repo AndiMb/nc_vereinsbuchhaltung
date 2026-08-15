@@ -476,8 +476,8 @@ Drilldown bis zu den einzelnen Buchungen. Namen lassen sich direkt hier
 anpassen.
 
 Wie die App die Konten zu Kostenstellen zusammenfasst, entscheidet der
-**Kostenstellen-Modus** (im Bericht selbst, oberhalb der Kostenstellen-Liste
-bzw. weiter unten in diesem Kapitel beschrieben, nur Verwalter):
+**Kostenstellen-Modus** (Auswahl „Gruppierung" in der Kopfzeile des Berichts,
+nur Verwalter; weiter unten in diesem Kapitel beschrieben):
 
 | Modus | Kostenstelle ist … | Passt, wenn … |
 |---|---|---|
@@ -486,16 +486,18 @@ bzw. weiter unten in diesem Kapitel beschrieben, nur Verwalter):
 | **Frei definierte Kostenstellen** | die am Konto hinterlegte Kostenstelle | die Kostenstelle sich nicht aus der Kontonummer ergibt |
 
 Der dritte Modus macht keine Annahme über den Kontenrahmen: Kostenstellen
-werden direkt hier im Bericht **Berichte → Kostenstellen** angelegt (Kürzel
-+ Name) und Konten ihnen ausdrücklich zugeordnet (nur Verwalter/Buchhalter,
-Moduswechsel selbst nur Verwalter) – so lassen sich auch Konten mit ganz
-unterschiedlichen Nummern zu einem Projekt bündeln. Zuordnen geht auf zwei
-Wegen:
+werden über den Button **„Kostenstellen verwalten"** oben rechts im Bericht
+**Berichte → Kostenstellen** angelegt (Kürzel + Name) und Konten ihnen
+ausdrücklich zugeordnet (nur Verwalter/Buchhalter, Moduswechsel selbst nur
+Verwalter) – so lassen sich auch Konten mit ganz unterschiedlichen Nummern zu
+einem Projekt bündeln. Zuordnen geht auf zwei Wegen:
 
 - einzeln im **Konto-Dialog** (Tab Konten → Konto bearbeiten → *Kostenstelle*);
   ein neues Unterkonto übernimmt die Kostenstelle seines Überkontos,
-- für viele Konten auf einmal unterhalb der Kostenstellen-Liste in
-  **Berichte → Kostenstellen** (ankreuzen, Kostenstelle wählen, *Zuweisen*).
+- für viele Konten auf einmal im Dialog **„Kostenstellen verwalten"**
+  (ankreuzen, Kostenstelle wählen, *Zuweisen*). Bei der Baumzeile
+  „– nicht zugeordnet" öffnet der Button *Konten zuordnen* direkt denselben
+  Dialog.
 
 Angelegte Kostenstellen erscheinen im Bericht auch dann, wenn ihnen noch kein
 Konto zugeordnet ist – so fällt eine vergessene Zuordnung auf. Wird eine
@@ -525,12 +527,13 @@ sichtbar zu machen – **sie ersetzt keine steuerliche Beratung.**
 
 **Zuordnen:** Im Konto-Dialog (Tab Konten) gibt es das Feld „Steuerliche
 Sphäre" – für alle Einnahmen-/Ausgaben-Konten (Geldkonten und Eigenkapital
-sind ausgenommen). Für viele Konten auf einmal: im Bericht selbst,
-**Berichte → „Sphären"** unterhalb der Auswertung, bietet eine
-Mehrfachauswahl mit Namensvorschlägen (nur Verwalter/Buchhalter).
+sind ausgenommen). Für viele Konten auf einmal: Button **„Sphären zuordnen"**
+oben rechts im Bericht **Berichte → „Sphären"** öffnet einen Dialog mit
+Mehrfachauswahl und Namensvorschlägen (nur Verwalter/Buchhalter).
 
 **Auswerten:** Tab Berichte → „Sphären" zeigt Einnahmen/Ausgaben/Ergebnis je
-Sphäre inkl. eines Buckets „nicht zugeordnet". Der Kassenbericht enthält
+Sphäre inkl. eines Buckets „nicht zugeordnet" (dort öffnet der Button
+*Konten zuordnen* direkt den Zuordnungsdialog). Der Kassenbericht enthält
 denselben Abschnitt, die Mehrjahresübersicht eine zusätzliche Matrix.
 
 > **Freigrenze wirtschaftlicher Geschäftsbetrieb:** aktuell 45.000 €

@@ -37,6 +37,11 @@
 .vbh-kurzbericht-picker { display: inline-flex; align-items: center; gap: 4px; }
 .vbh-kurzbericht-date { height: 34px; border: 1px solid var(--color-border); border-radius: var(--border-radius, 6px); background: var(--color-main-background); color: var(--color-main-text); padding: 0 6px; font-size: 0.85em; }
 
+/* Gruppierungs-Waehler (Berichte → Kostenstellen, Kopfzeile) */
+.vbh-ccmode-picker { display: inline-flex; align-items: center; }
+.vbh-ccmode-label { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85em; font-weight: 600; }
+.vbh-ccmode-label select { height: 34px; border: 1px solid var(--color-border); border-radius: var(--border-radius, 6px); background: var(--color-main-background); color: var(--color-main-text); padding: 0 6px; font-size: 1em; font-weight: normal; }
+
 /* Download-Pfeil in der Belegliste (Modal) */
 .vbh-attachment-dl { color: var(--color-text-lighter); font-size: 0.9em; padding: 0 4px; text-decoration: none; flex-shrink: 0; }
 .vbh-attachment-dl:hover { color: var(--color-main-text); }
@@ -71,30 +76,13 @@
 .vbh-search--full { width: 100%; box-sizing: border-box; }
 .vbh-filter-select { min-width: 200px; max-width: 280px; }
 .vbh-sectionbody { flex: 1 1 auto; min-height: 0; min-width: 0; overflow: auto; padding: 12px 16px 48px; }
-/* is-split (Kostenstellen/Sphären) haengt unterhalb von .vbh-splitinner noch
-   einen .vbh-section-divider mit Pflegepanel an (CostCenterPanel/
-   SphereAssignPanel, siehe ReportsTab.vue). Bei display:flex ohne
-   flex-direction (= row) wurde dieser Divider zum Flex-Geschwister NEBEN
-   splitinner statt darunter und quetschte es auf ~1px Breite - daher hier
-   flex-direction:column, damit beides untereinander steht (wie im Mobile-
-   Breakpoint, der aus demselben Grund auf display:block umschaltet). */
-.vbh-sectionbody.is-split { overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; padding: 0; }
-/* min-height statt 0: sonst schrumpft splitinner in der Spalte neben dem
-   ggf. sehr hohen .vbh-section-divider (Pflegepanel) auf 0 zusammen, weil
-   es als einziges der beiden Geschwister min-height:0 haette. */
-/* padding-top/-left: .vbh-tree/.vbh-detail bringen zwar eigenes Innenpadding
-   mit (Treehead/Treenode bzw. .vbh-detail selbst), aber nur auf ihre eigenen
-   Kinder bezogen - der AEUSSERE Rand zum sectionbody (padding:0, s.o.) fehlte
-   dadurch komplett, anders als bei jedem anderen Tab (.vbh-sectionbody hat
-   sonst ueberall 12px/16px). detail bringt rechts schon eigene 20px mit,
-   daher hier nur oben/links noetig. */
-.vbh-splitinner { display: flex; flex: 1 1 auto; min-height: 360px; min-width: 0; overflow: hidden; padding: 12px 0 0 16px; }
-/* .vbh-section-divider ist sonst nur eine <h3>-Trennlinie innerhalb von
-   Containern, die ihr Padding schon selbst mitbringen (z.B. .vbh-modal-inner
-   in App.vue) - hier umschliesst es aber das ganze Pflegepanel direkt unter
-   dem padding:0-gesetzten .vbh-sectionbody.is-split und braucht daher sein
-   eigenes horizontales Padding, sonst sitzt das Panel randlos. */
-.vbh-sectionbody.is-split > .vbh-section-divider { padding-left: 16px; padding-right: 16px; padding-bottom: 48px; }
+/* is-split (Kostenstellen/Sphären) enthaelt nur noch .vbh-splitinner (Baum +
+   Detail) - die Pflege (CostCenterPanel/SphereAssignPanel) liegt seit der
+   Modal-Umstellung nicht mehr darunter im selben Container, sondern in einem
+   eigenen NcModal (siehe ReportsTab.vue). padding:0, weil .vbh-splitinner
+   sein Innenpadding selbst mitbringt (naechste Regel). */
+.vbh-sectionbody.is-split { overflow: hidden; display: flex; padding: 0; }
+.vbh-splitinner { display: flex; flex: 1 1 auto; min-height: 0; min-width: 0; overflow: hidden; padding: 12px 0 0 16px; }
 
 /* Account tree search */
 .vbh-treesearch { padding: 8px; border-bottom: 1px solid var(--color-border); }
@@ -684,8 +672,7 @@
 	/* Konten + Kostenstellen: Split-Layout stapeln statt nebeneinander */
 	.vbh-section.split { flex-direction: column; overflow-y: auto; }
 	.vbh-splitinner { flex-direction: column; overflow-y: auto; overflow-x: hidden; padding: 8px 0 0 8px; }
-	.vbh-sectionbody.is-split { overflow-y: auto; overflow-x: hidden; display: block; }
-	.vbh-sectionbody.is-split > .vbh-section-divider { padding-left: 8px; padding-right: 8px; padding-bottom: 84px; }
+	.vbh-sectionbody.is-split { overflow: hidden; display: flex; }
 	.vbh-tree { flex: 0 0 auto; max-height: 240px; min-width: 0; border-right: none; border-bottom: 1px solid var(--color-border); }
 	.vbh-detail { overflow-y: visible; min-width: 0; padding: 10px 10px 32px; }
 	/* Drilldown (isMobile): Baum ODER Detail – der Baum bekommt die volle Höhe */

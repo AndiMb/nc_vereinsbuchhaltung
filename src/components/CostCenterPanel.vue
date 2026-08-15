@@ -5,25 +5,10 @@
 			<em>{{ t('„Frei definierte Kostenstellen"') }}</em> {{ t('eingestellt ist.') }}
 		</p>
 
-		<div v-if="isAdmin" class="vbh-card">
-			<h4>{{ t('Modus') }}</h4>
-			<div class="vbh-form">
-				<label class="vbh-grow">{{ t('Bestimmt, wie dieser Bericht die Konten gruppiert') }}
-					<select v-model="modeModel">
-						<option value="group">{{ t('2. Zahlengruppe der Kontonummer (z. B. „111 51" → Kostenstelle 51)') }}</option>
-						<option value="account">{{ t('Jedes Einnahmen-/Ausgabenkonto ist eine eigene Kostenstelle') }}</option>
-						<option value="manual">{{ t('Frei definierte Kostenstellen (Konten werden unten zugeordnet)') }}</option>
-					</select>
-				</label>
-				<NcButton variant="primary" @click="saveStorageSettings">
-					{{ t('Speichern') }}
-				</NcButton>
-			</div>
-		</div>
 		<p v-if="mode !== 'manual'" class="vbh-hint vbh-cc-modewarn">
 			{{ t('Zurzeit ist der Modus') }} <strong>{{ modeLabel }}</strong> {{ t('eingestellt. Die Zuordnung unten wird dann') }}
 			<strong>{{ t('nicht') }}</strong> {{ t('ausgewertet; die Namen der Kostenstellen gelten aber weiterhin.') }}
-			{{ isAdmin ? t('Umstellen geht oben.') : t('Nur ein Verwalter kann das umstellen.') }}
+			{{ isAdmin ? t('Umstellen geht oben in der Berichtszeile (Gruppierung).') : t('Nur ein Verwalter kann das umstellen.') }}
 		</p>
 
 		<div class="vbh-form vbh-cc-newform">
@@ -164,32 +149,33 @@ function modeLabels() {
 }
 
 /**
- * Pflege der frei definierbaren Kostenstellen: Modus, anlegen, umbenennen,
- * löschen und Konten zuordnen. Frueher SettingsCostCenters.vue im
- * Einstellungen-Modal (Modus-Auswahl separat in SettingsGeneral.vue); jetzt
- * gemeinsam im Bericht „Kostenstellen" (ReportsTab.vue), siehe
- * NAVIGATION-KONZEPT.md Abschnitt 4 und 5 – der Modus entscheidet, was dieser
- * Bericht ueberhaupt zeigt, und gehoert deshalb direkt daneben.
+ * Pflege der frei definierbaren Kostenstellen: anlegen, umbenennen, löschen
+ * und Konten zuordnen. Frueher SettingsCostCenters.vue im Einstellungen-
+ * Modal; jetzt ein Modal, das aus dem Bericht „Kostenstellen" (ReportsTab.vue)
+ * heraus geoeffnet wird, siehe NAVIGATION-KONZEPT.md Abschnitt 4 und 5 – wo
+ * die fehlende Zuordnung sichtbar wird, wird sie auch geschlossen. Der
+ * Kostenstellen-Modus (group|account|manual) ist kein Stammdatum dieses
+ * Panels mehr, sondern eine Bericht-Steuerung in der Kopfzeile von
+ * ReportsTab.vue (Gruppierungs-Waehler) - er entscheidet, was der Bericht
+ * ueberhaupt zeigt, und musste deshalb sichtbar bleiben, waehrend die Pflege
+ * hier ins Modal wandern konnte.
  *
  * Die Zuordnung wirkt im Bericht nur im Modus „manual" – der Hinweis oben
  * sagt das, statt die Maske zu verstecken: wer die Zuordnung vorbereiten
  * will, bevor umgestellt wird, soll das können. Modus-Wechsel bleibt
- * Verwalter-only (wie zuvor in SettingsGeneral.vue), Anlegen/Zuordnen bleibt
- * fuer canWrite (Buchhalter und Verwalter).
+ * Verwalter-only (jetzt in ReportsTab.vue), Anlegen/Zuordnen bleibt fuer
+ * canWrite (Buchhalter und Verwalter).
  */
 export default {
 	name: 'CostCenterPanel',
 	components: { NcButton },
 	props: {
-		// Kostenstellen-Modus aus den Einstellungen (group|account|manual)
+		// Kostenstellen-Modus aus den Einstellungen (group|account|manual) - nur
+		// fuer den Hinweistext oben, die Auswahl steht in ReportsTab.vue.
 		mode: { type: String, default: 'group' },
-		// gemeinsame Speichern-Funktion aus App.vue (schreibt den vollstaendigen
-		// Einstellungssatz, siehe SettingsController::update()) - Modus-Aenderung
-		// darf nicht isoliert speichern, siehe NAVIGATION-KONZEPT.md Risiko R3.
-		saveStorageSettings: { type: Function, required: true },
 	},
 
-	emits: ['changed', 'update:mode'],
+	emits: ['changed'],
 
 	setup() {
 		const auth = useAuth()
@@ -216,10 +202,6 @@ export default {
 
 	computed: {
 		modeLabel() { return modeLabels()[this.mode] || this.mode },
-		modeModel: {
-			get() { return this.mode },
-			set(v) { this.$emit('update:mode', v) },
-		},
 
 		// Entspricht Account::isResultRelevant() im Backend: nur diese Konten
 		// tauchen in der Kostenstellen-Auswertung überhaupt auf.

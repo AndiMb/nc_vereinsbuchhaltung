@@ -108,6 +108,37 @@
 					download
 					class="vbh-export-btn"
 					:title="t('Soll-Ist-Vergleich als CSV exportieren')"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> {{ t('Soll-Ist-Vergleich') }}</a>
+
+				<!-- Gruppierung + Pflege-Einstieg: nur in den beiden Split-Ansichten,
+				     dort wo bis 0.23.1 das Pflegepanel als zweiter Block unter dem
+				     Bericht stand (siehe styles.css .vbh-splitinner). Der Modus
+				     entscheidet, was der Kostenstellen-Bericht ueberhaupt gruppiert,
+				     gehoert also als Steuerung in die Kopfzeile statt versteckt im
+				     Pflege-Modal. -->
+				<span v-if="reportView === 'costcenters'" class="vbh-ccmode-picker">
+					<label v-if="isAdmin" class="vbh-ccmode-label">{{ t('Gruppierung:') }}
+						<select :value="costCenterMode" @change="changeCostCenterMode($event.target.value)">
+							<option value="group">{{ t('2. Zahlengruppe') }}</option>
+							<option value="account">{{ t('Je Konto') }}</option>
+							<option value="manual">{{ t('Frei definiert') }}</option>
+						</select>
+					</label>
+					<span v-else class="vbh-hint">{{ t('Gruppierung:') }} {{ costCenterModeLabel }}</span>
+				</span>
+				<NcButton
+					v-if="canWrite && reportView === 'costcenters'"
+					variant="secondary"
+					size="small"
+					@click="ccPanelOpen = true">
+					{{ t('Kostenstellen verwalten') }}
+				</NcButton>
+				<NcButton
+					v-if="canWrite && reportView === 'spheres'"
+					variant="secondary"
+					size="small"
+					@click="spherePanelOpen = true">
+					{{ t('Sphären zuordnen') }}
+				</NcButton>
 			</div>
 		</div>
 
@@ -295,6 +326,12 @@
 							</NcButton>
 						</div>
 
+						<div v-if="canWrite && !selectedCC.code" class="vbh-opening">
+							<NcButton variant="secondary" size="small" @click="ccPanelOpen = true">
+								{{ t('Konten zuordnen') }}
+							</NcButton>
+						</div>
+
 						<div class="vbh-totals">
 							<div class="vbh-total pos">
 								<span>{{ t('Einnahmen') }}</span><strong>{{ formatMoney(selectedCC.income) }}</strong>
@@ -417,14 +454,6 @@
 				</div>
 			</div>
 
-			<div v-if="canWrite && reportView === 'costcenters'" class="vbh-section-divider">
-				<CostCenterPanel
-					:mode="costCenterMode"
-					:saveStorageSettings="saveStorageSettings"
-					@update:mode="$emit('update:cost-center-mode', $event)"
-					@changed="$emit('cost-centers-changed')" />
-			</div>
-
 			<!-- SPHÄREN -->
 			<div v-show="reportView === 'spheres'" class="vbh-splitinner" :class="{ 'vbh-drill': isMobile }">
 				<div v-if="!isMobile || !selectedSphere" class="vbh-tree">
@@ -476,6 +505,12 @@
 							<div><h3>{{ selectedSphere.name }}</h3></div>
 						</div>
 
+						<div v-if="canWrite && !selectedSphere.code" class="vbh-opening">
+							<NcButton variant="secondary" size="small" @click="spherePanelOpen = true">
+								{{ t('Konten zuordnen') }}
+							</NcButton>
+						</div>
+
 						<div class="vbh-totals">
 							<div class="vbh-total pos">
 								<span>{{ t('Einnahmen') }}</span><strong>{{ formatMoney(selectedSphere.income) }}</strong>
@@ -519,10 +554,6 @@
 						</p>
 					</template>
 				</div>
-			</div>
-
-			<div v-if="canWrite && reportView === 'spheres'" class="vbh-section-divider">
-				<SphereAssignPanel @changed="$emit('spheres-changed')" @help="$emit('help', 'spheres')" />
 			</div>
 
 			<!-- RÜCKLAGEN -->
@@ -819,13 +850,36 @@
 				</div>
 			</div>
 		</div>
+
+		<!-- Pflege-Modals: v-if statt nur :show, damit die teils langen
+		     Konten-Tabellen erst beim Oeffnen mounten (siehe MembersList.vue
+		     fuer dasselbe Muster bei MemberDialog/MemberImportDialog). -->
+		<NcModal
+			v-if="canWrite && ccPanelOpen"
+			:name="t('Kostenstellen verwalten')"
+			size="large"
+			@close="ccPanelOpen = false">
+			<div class="vbh-modal-inner">
+				<CostCenterPanel :mode="costCenterMode" @changed="$emit('cost-centers-changed')" />
+			</div>
+		</NcModal>
+
+		<NcModal
+			v-if="canWrite && spherePanelOpen"
+			:name="t('Sphären zuordnen')"
+			size="large"
+			@close="spherePanelOpen = false">
+			<div class="vbh-modal-inner">
+				<SphereAssignPanel @changed="$emit('spheres-changed')" @help="$emit('help', 'spheres')" />
+			</div>
+		</NcModal>
 	</div>
 </template>
 
 <script>
 import { mdiCommentPlusOutline, mdiCommentText, mdiDelete, mdiDownload, mdiPaperclip, mdiPrinter } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { NcActionLink, NcActions, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper } from '@nextcloud/vue'
+import { NcActionLink, NcActions, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, NcModal } from '@nextcloud/vue'
 import {
 	CategoryScale,
 	Chart,
@@ -852,11 +906,12 @@ Chart.register(LineController, LineElement, PointElement, CategoryScale, LinearS
 
 export default {
 	name: 'ReportsTab',
-	components: { NcButton, NcActions, NcActionLink, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, CostCenterPanel, SphereAssignPanel },
+	components: { NcButton, NcActions, NcActionLink, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, NcModal, CostCenterPanel, SphereAssignPanel },
 	props: {
-		// Kostenstellen-Modus (group|account|manual) + gemeinsame Speichern-
-		// Funktion aus App.vue, durchgereicht an CostCenterPanel.vue - siehe
-		// NAVIGATION-KONZEPT.md Abschnitt 4/5 und Risiko R3 (dort mehr dazu).
+		// Kostenstellen-Modus (group|account|manual), gesteuert ueber den
+		// Gruppierungs-Waehler in der Kopfzeile (nur reportView==='costcenters');
+		// saveStorageSettings schreibt den vollstaendigen Einstellungssatz -
+		// siehe NAVIGATION-KONZEPT.md Abschnitt 4/5 und Risiko R3 (dort mehr dazu).
 		costCenterMode: { type: String, default: 'group' },
 		saveStorageSettings: { type: Function, required: true },
 		// steuert (zusammen mit reportView==='summary') den Chart-Redraw des
@@ -902,6 +957,7 @@ export default {
 		const sorting = useSort()
 		return {
 			canWrite: auth.canWrite,
+			isAdmin: auth.isAdmin,
 			...toRefs(years.state),
 			...toRefs(accounts.state),
 			accountsById: accounts.accountsById,
@@ -936,6 +992,11 @@ export default {
 			// nicht gebraucht - ersetzt die frühere separate Liste unter
 			// Einstellungen → Daten, die dieselben Angaben nur ein zweites Mal zeigte.
 			auditOnlyImports: false,
+			// Pflege-Modals (Kostenstellen/Sphären) - siehe NAVIGATION-KONZEPT.md
+			// Abschnitt 4 (D4-Nachtrag): Pflege bleibt bei den Berichten, aber als
+			// kontextnahes Modal statt als Block unter der Split-Ansicht.
+			ccPanelOpen: false,
+			spherePanelOpen: false,
 		}
 	},
 
@@ -952,6 +1013,18 @@ export default {
 		filteredAuditEntries() {
 			if (!this.auditOnlyImports) { return this.auditEntries }
 			return this.auditEntries.filter((a) => a.objectType === 'import')
+		},
+
+		// Kurzlabel fuer Buchhalter (nur lesend) - Verwalter sehen stattdessen das
+		// <select> aus changeCostCenterMode(). Gleiche drei Modi wie
+		// CostCenterPanel.vue::modeLabels(), hier aber als Kurzform fuer die
+		// schmale Kopfzeile statt der ausfuehrlichen Options-Beschriftung dort.
+		costCenterModeLabel() {
+			return {
+				group: this.t('2. Zahlengruppe'),
+				account: this.t('Je Konto'),
+				manual: this.t('Frei definiert'),
+			}[this.costCenterMode] || this.costCenterMode
 		},
 
 		selectedCC() {
@@ -1174,6 +1247,15 @@ export default {
 			if (d.duplikate !== null && d.duplikate !== undefined) { parts.push(this.t('{n} Dubletten', { n: d.duplikate })) }
 			if (d.reset) { parts.push(this.t('mit Zurücksetzen')) }
 			return parts.join(' · ')
+		},
+
+		// $emit ruft update:cost-center-mode synchron auf App.vue (costCenterMode
+		// = $event), saveStorageSettings() liest danach den bereits neuen Wert -
+		// schreibt aber wie immer den vollstaendigen Einstellungssatz (Risiko R3,
+		// siehe NAVIGATION-KONZEPT.md).
+		changeCostCenterMode(value) {
+			this.$emit('update:cost-center-mode', value)
+			this.saveStorageSettings()
 		},
 
 		addBudgetYear() {

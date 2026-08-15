@@ -116,8 +116,8 @@ function buildTopics() {
 			anchor: '5-6-steuerliche-sphaeren',
 			bullets: [
 				t('Vier steuerliche Sphären: ideeller Bereich, Vermögensverwaltung, Zweckbetrieb, wirtschaftlicher Geschäftsbetrieb.'),
-				t('Zuordnen im Konto-Dialog (Feld „Steuerliche Sphäre") oder für mehrere Konten auf einmal im Bericht „Sphären" (nur Verwalter/Buchhalter).'),
-				t('Tab Berichte → „Sphären" zeigt Einnahmen/Ausgaben/Ergebnis je Sphäre und darunter die Zuordnung zum Bearbeiten.'),
+				t('Zuordnen im Konto-Dialog (Feld „Steuerliche Sphäre") oder für mehrere Konten auf einmal über den Button „Sphären zuordnen" im Bericht „Sphären" (nur Verwalter/Buchhalter).'),
+				t('Tab Berichte → „Sphären" zeigt Einnahmen/Ausgaben/Ergebnis je Sphäre; oben rechts öffnet „Sphären zuordnen" die Zuordnung zum Bearbeiten.'),
 				t('Freigrenze wirtschaftlicher Geschäftsbetrieb: aktuell 45.000 € Bruttoeinnahmen/Jahr – das Dashboard warnt per Ampel, sobald es dort Einnahmen gibt. Ersetzt keine steuerliche Beratung.'),
 			],
 		},
