@@ -1,7 +1,9 @@
 <template>
-	<NcModal :show="show"
+	<NcModal
+		:show="show"
 		:name="accountEditId ? t('Konto bearbeiten') : t('Neues Konto')"
 		size="normal"
+		:closeOnClickOutside="true"
 		@close="$emit('close')"
 		@update:show="$emit('update:show', $event)">
 		<div class="vbh-modal-inner">
@@ -20,9 +22,10 @@
 					</select>
 				</label>
 				<label class="vbh-grow">{{ t('Überkonto') }}
-					<NcSelect v-model="accountParentOption"
+					<NcSelect
+						v-model="accountParentOption"
 						:options="accountParentOptions"
-						:filter-by="accountFilterBy"
+						:filterBy="accountFilterBy"
 						label="label"
 						:placeholder="t('– kein Überkonto –')"
 						:clearable="true" />
@@ -36,7 +39,8 @@
 			</div>
 			<div v-if="form.isBank" class="vbh-form">
 				<label class="vbh-grow">{{ t('IBAN (optional)') }}
-					<input v-model="form.iban"
+					<input
+						v-model="form.iban"
 						type="text"
 						autocapitalize="characters"
 						:placeholder="t('z. B. DE12 5001 0517 0648 4898 90')">
@@ -55,7 +59,8 @@
 						<option value="wirtschaftlich">{{ t('Wirtschaftlicher Geschäftsbetrieb') }}</option>
 					</select>
 				</label>
-				<button type="button"
+				<button
+					type="button"
 					class="vbh-sphere-help"
 					:title="t('Was bedeutet das?')"
 					@click="$emit('help')">
@@ -104,7 +109,7 @@
 </template>
 
 <script>
-import { NcModal, NcButton, NcSelect, NcCheckboxRadioSwitch } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcModal, NcSelect } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import { useAccounts } from '../composables/useAccounts.js'
 import { useCostCenters } from '../composables/useCostCenters.js'
@@ -133,6 +138,9 @@ export default {
 		// Feld ein Bedienelement ohne Wirkung.
 		costCenterMode: { type: String, default: 'group' },
 	},
+
+	emits: ['close', 'help', 'save', 'update:show'],
+
 	setup() {
 		// accountsSorted kommt direkt aus dem useAccounts-Singleton (fuer die
 		// Ueberkonto-Auswahl, gleicher geteilter Zustand wie in App.vue).
@@ -142,6 +150,7 @@ export default {
 		const costCenters = useCostCenters()
 		return { accountsSorted: accounts.accountsSorted, ...toRefs(costCenters.state) }
 	},
+
 	data() {
 		return {
 			// lokale Kopie statt direkter Prop-Mutation (Muster wie ruleForm in
@@ -149,6 +158,7 @@ export default {
 			form: emptyForm(),
 		}
 	},
+
 	computed: {
 		// Nur wo die Zuordnung auch wirkt und zum Kontotyp passt: Geldkonten und
 		// Eigenkapital tauchen in der Kostenstellen-Auswertung nicht auf
@@ -159,32 +169,37 @@ export default {
 				&& this.form.type !== 'equity'
 				&& !this.form.isBank
 		},
+
 		parentOptions() {
-			return this.accountsSorted.filter(a => a.id !== this.accountEditId)
+			return this.accountsSorted.filter((a) => a.id !== this.accountEditId)
 		},
+
 		accountParentOptions() {
 			return [
 				{ id: null, label: this.t('– kein Überkonto –') },
-				...this.parentOptions.map(a => ({ id: a.id, label: `${a.number} ${a.name}`, number: a.number })),
+				...this.parentOptions.map((a) => ({ id: a.id, label: `${a.number} ${a.name}`, number: a.number })),
 			]
 		},
+
 		accountParentOption: {
-			get() { return this.accountParentOptions.find(o => o.id === this.form.parentId) ?? null },
+			get() { return this.accountParentOptions.find((o) => o.id === this.form.parentId) ?? null },
 			set(v) { this.form.parentId = v ? v.id : null },
 		},
 	},
+
 	watch: {
 		show(open) {
-			if (open) this.form = { ...emptyForm(), ...this.initialForm }
+			if (open) { this.form = { ...emptyForm(), ...this.initialForm } }
 		},
 	},
+
 	methods: {
 		// Suchfilter fuer das Konto-Dropdown (Ziffern = Praefix der Kontonummer),
 		// dieselbe reine Logik wie in SettingsRules.vue.
 		accountFilterBy(option, label, search) {
 			const s = String(search || '').trim().toLowerCase()
-			if (!s) return true
-			if (option && option.$isDisabled) return false
+			if (!s) { return true }
+			if (option && option.$isDisabled) { return false }
 			if (/^[\d\s]+$/.test(s)) {
 				const digits = s.replace(/\s+/g, '')
 				const num = String((option && option.number) || '').replace(/\s+/g, '').toLowerCase()
@@ -192,6 +207,7 @@ export default {
 			}
 			return String(label || '').toLowerCase().includes(s)
 		},
+
 		save() {
 			this.$emit('save', { ...this.form })
 		},

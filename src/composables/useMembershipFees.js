@@ -1,5 +1,5 @@
-import { reactive, computed } from 'vue'
 import { showError } from '@nextcloud/dialogs'
+import { computed, reactive } from 'vue'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
 
@@ -13,7 +13,7 @@ const state = reactive({
 
 // Anzahl aktiver Beiträge mit Rückstand – Grundlage für die Kennzahl am
 // Reiter „Beiträge" (App.vue), analog useOpenItems.js::overdueCount.
-const overdueCount = computed(() => state.membershipFees.filter(f => f.active && f.dueCount > 0).length)
+const overdueCount = computed(() => state.membershipFees.filter((f) => f.active && f.dueCount > 0).length)
 
 async function loadMembershipFees() {
 	try {

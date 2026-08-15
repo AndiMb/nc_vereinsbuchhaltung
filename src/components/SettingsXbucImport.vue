@@ -6,7 +6,8 @@
 				{{ t('Übernimmt Kontenbaum und alle Buchungen aus einer .xbuc-Datei.') }}
 			</p>
 			<div class="vbh-uploadrow">
-				<label class="vbh-filebtn">{{ t('Datei wählen') }}<input ref="xbucInput"
+				<label class="vbh-filebtn">{{ t('Datei wählen') }}<input
+					ref="xbucInput"
 					type="file"
 					accept=".xbuc,application/xml,text/xml"
 					hidden
@@ -27,7 +28,8 @@
 				</p>
 				<div class="vbh-form vbh-yearedit">
 					<label>{{ t('Geschäftsjahr') }}
-						<input v-model.number="xbucYear"
+						<input
+							v-model.number="xbucYear"
 							type="number"
 							min="2000"
 							max="2099"
@@ -104,11 +106,11 @@
 </template>
 
 <script>
-import { NcButton, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { showError, showSuccess } from '@nextcloud/dialogs'
+import { NcButton, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import api from '../api.js'
-import { formatMoney, formatDate, errMsg } from '../lib/format.js'
 import { useConfirm } from '../composables/useConfirm.js'
+import { errMsg, formatDate, formatMoney } from '../lib/format.js'
 
 export default {
 	name: 'SettingsXbucImport',
@@ -118,9 +120,13 @@ export default {
 		// Buttons und das Kollaborations-Polling), .sync-Prop wie NcModal:show.sync
 		busy: { type: Boolean, required: true },
 	},
+
+	emits: ['changed', 'update:busy'],
+
 	setup() {
 		return { askConfirm: useConfirm().askConfirm }
 	},
+
 	data() {
 		return {
 			xbucFile: null,
@@ -130,28 +136,31 @@ export default {
 			xbucPreviewResult: null,
 		}
 	},
+
 	computed: {
 		xbucImportBlocked() {
 			const t = this.xbucPreviewResult && this.xbucPreviewResult.yearTransition
 			return !this.xbucReset && !!t && t.hasMismatch
 		},
 	},
+
 	methods: {
 		formatMoney,
 		formatDate,
 		errMsg,
-		onXbucSelected(e) { this.xbucFile = e.target.files[0] || null; this.xbucPreviewResult = null; this.xbucYear = null; if (this.xbucFile) this.xbucPreview() },
+		onXbucSelected(e) { this.xbucFile = e.target.files[0] || null; this.xbucPreviewResult = null; this.xbucYear = null; if (this.xbucFile) { this.xbucPreview() } },
 		xbucYearParam() {
 			const y = Number(this.xbucYear)
 			return Number.isInteger(y) && y >= 2000 && y <= 2099 ? y : null
 		},
+
 		async xbucPreview() {
-			if (!this.xbucFile) return
+			if (!this.xbucFile) { return }
 			this.$emit('update:busy', true)
 			try {
 				const fd = new FormData(); fd.append('file', this.xbucFile)
 				const year = this.xbucYearParam()
-				if (year) fd.append('year', String(year))
+				if (year) { fd.append('year', String(year)) }
 				const { data } = await api.previewXbuc(fd)
 				this.xbucPreviewResult = data
 				// Effektives Geschäftsjahr ins Eingabefeld übernehmen
@@ -160,14 +169,15 @@ export default {
 				this.xbucClampDates = (data.outsideYear || 0) > 0
 			} catch (e) { showError(this.errMsg(e, this.t('Vorschau fehlgeschlagen'))) } finally { this.$emit('update:busy', false) }
 		},
+
 		async xbucImport() {
-			if (!this.xbucFile) return
-			if (this.xbucReset && !await this.askConfirm(this.t('xbuc Import'), this.t('Alle vorhandenen Daten werden gelöscht und ersetzt. Fortfahren?'), this.t('Importieren'), 'primary')) return
+			if (!this.xbucFile) { return }
+			if (this.xbucReset && !await this.askConfirm(this.t('xbuc Import'), this.t('Alle vorhandenen Daten werden gelöscht und ersetzt. Fortfahren?'), this.t('Importieren'), 'primary')) { return }
 			this.$emit('update:busy', true)
 			try {
 				const fd = new FormData(); fd.append('file', this.xbucFile); fd.append('reset', this.xbucReset ? '1' : '0'); fd.append('clampDates', this.xbucClampDates ? '1' : '0')
 				const importYear = this.xbucYearParam()
-				if (importYear) fd.append('year', String(importYear))
+				if (importYear) { fd.append('year', String(importYear)) }
 				const { data } = await api.commitXbuc(fd)
 				const skippedMsg = data.skipped > 0 ? this.t(', {n} übersprungen (bereits vorhanden)', { n: data.skipped }) : ''
 				const newAccMsg = data.accountsNew > 0 ? this.t(', {n} neue Konten', { n: data.accountsNew }) : ''
@@ -180,7 +190,7 @@ export default {
 					showError(this.t('Achtung: Anfangsbestand {account} laut Datei {fileAmount}, Vorjahres-Endstand in der App {priorBalance} – bitte Vorjahresbuchungen prüfen.', { account: m.account, fileAmount: this.formatMoney(m.fileAmount), priorBalance: this.formatMoney(m.priorBalance) }), { timeout: -1 })
 				}
 				this.xbucPreviewResult = null; this.xbucFile = null
-				if (this.$refs.xbucInput) this.$refs.xbucInput.value = ''
+				if (this.$refs.xbucInput) { this.$refs.xbucInput.value = '' }
 				this.$emit('changed')
 			} catch (e) { showError(this.errMsg(e, this.t('Import fehlgeschlagen'))) } finally { this.$emit('update:busy', false) }
 		},

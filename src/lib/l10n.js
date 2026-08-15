@@ -1,3 +1,4 @@
+import { getLanguage, register, translate, translatePlural } from '@nextcloud/l10n'
 // Uebersetzungs-Helfer fuer die Vue-Oberflaeche.
 //
 // Die Quelltexte im Code sind bewusst Deutsch (Herkunftssprache der App), nicht
@@ -7,21 +8,20 @@
 // uns waere das genau die falsche Sprache. Deshalb wird hier selbst geladen
 // (register() statt loadTranslations()) und nur die Quellsprache uebersprungen.
 import { generateFilePath } from '@nextcloud/router'
-import { getLanguage, register, translate, translatePlural } from '@nextcloud/l10n'
 
 const APP_ID = 'vereinsbuchhaltung'
 const SOURCE_LANGUAGE = 'de'
 
 export async function loadAppTranslations() {
-	if (getLanguage() === SOURCE_LANGUAGE) return
+	if (getLanguage() === SOURCE_LANGUAGE) { return }
 	try {
 		const response = await fetch(generateFilePath(APP_ID, 'l10n', `${getLanguage()}.json`))
-		if (!response.ok) return
+		if (!response.ok) { return }
 		const bundle = await response.json()
 		if (bundle && typeof bundle.translations === 'object') {
 			register(APP_ID, bundle.translations)
 		}
-	} catch (e) {
+	} catch {
 		// Kein Netzwerk oder keine Uebersetzungsdatei fuer die Sprache -> es bleibt
 		// bei den deutschen Quelltexten, kein Fehler wert.
 	}

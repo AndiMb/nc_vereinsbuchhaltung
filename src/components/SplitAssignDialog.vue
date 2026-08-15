@@ -1,7 +1,9 @@
 <template>
-	<NcModal :show="show"
+	<NcModal
+		:show="show"
 		:name="t('Umsatz aufteilen')"
 		:size="isMobile ? 'full' : 'normal'"
+		:closeOnClickOutside="true"
 		@close="$emit('close')"
 		@update:show="$emit('update:show', $event)">
 		<div class="vbh-modal-inner">
@@ -31,7 +33,8 @@
 				</div>
 				<ul class="vbh-split-list">
 					<li v-for="(part, i) in parts" :key="i" class="vbh-split-row">
-						<button v-if="isMobile"
+						<button
+							v-if="isMobile"
 							type="button"
 							class="vbh-fieldbtn vbh-split-acc"
 							@click="openAccountPicker('splitline:' + i)">
@@ -40,15 +43,17 @@
 							</span>
 							<span class="vbh-fieldbtn-chev" aria-hidden="true">›</span>
 						</button>
-						<NcSelect v-else
-							:model-value="optionFor(i)"
+						<NcSelect
+							v-else
+							:modelValue="optionFor(i)"
 							:options="accountOptions"
-							:filter-by="accountFilterBy"
+							:filterBy="accountFilterBy"
 							class="vbh-split-acc"
 							label="label"
 							:placeholder="t('– Konto wählen –')"
-							@update:model-value="setAccount(i, $event)" />
-						<input :value="part.amount"
+							@update:modelValue="setAccount(i, $event)" />
+						<input
+							:value="part.amount"
 							type="number"
 							step="0.01"
 							min="0.01"
@@ -56,7 +61,8 @@
 							class="vbh-num vbh-split-amount"
 							:aria-label="t('Teilbetrag Zeile {n}', { n: i + 1 })"
 							@input="setAmount(i, $event.target.value)">
-						<NcButton variant="tertiary"
+						<NcButton
+							variant="tertiary"
 							:aria-label="t('Zeile {n} entfernen', { n: i + 1 })"
 							@click="removePart(i)">
 							<template #icon>
@@ -69,7 +75,8 @@
 					<NcButton variant="tertiary" @click="addPart">
 						{{ t('+ Zeile hinzufügen') }}
 					</NcButton>
-					<NcButton v-if="rest > 0.0049"
+					<NcButton
+						v-if="rest > 0.0049"
 						variant="tertiary"
 						:title="t('Den noch offenen Rest in die letzte Zeile schreiben')"
 						@click="fillRest">
@@ -91,11 +98,11 @@
 </template>
 
 <script>
-import { NcModal, NcButton, NcSelect, NcIconSvgWrapper } from '@nextcloud/vue'
 import { mdiDelete } from '@mdi/js'
+import { NcButton, NcIconSvgWrapper, NcModal, NcSelect } from '@nextcloud/vue'
 import { useAccounts } from '../composables/useAccounts.js'
-import { formatMoney, formatDate } from '../lib/format.js'
-import { splitRemainder, splitBalanced } from '../lib/split.js'
+import { formatDate, formatMoney } from '../lib/format.js'
+import { splitBalanced, splitRemainder } from '../lib/split.js'
 
 /**
  * Teilt einen Bankumsatz beim Zuordnen auf mehrere Gegenkonten auf.
@@ -120,41 +127,50 @@ export default {
 		isMobile: { type: Boolean, required: true },
 		openAccountPicker: { type: Function, required: true },
 	},
+
+	emits: ['close', 'save', 'update:parts', 'update:show'],
+
 	setup() {
 		const accounts = useAccounts()
 		return { accountsSorted: accounts.accountsSorted, accountsById: accounts.accountsById }
 	},
+
 	data() {
 		return { mdiDelete }
 	},
+
 	computed: {
 		/** Betrag des Umsatzes ohne Vorzeichen - aufgeteilt wird die Summe. */
 		totalEuro() {
 			return this.tx ? Math.abs(this.tx.amountCents || 0) / 100 : 0
 		},
+
 		rest() {
 			return splitRemainder(this.totalEuro, this.parts)
 		},
+
 		restOk() {
 			return splitBalanced(this.totalEuro, this.parts)
 		},
+
 		/** Aktive Konten nach Kategorie gruppiert, ohne die bereits belegten. */
 		accountOptions() {
-			const used = new Set(this.parts.map(p => p.accountId).filter(Boolean))
+			const used = new Set(this.parts.map((p) => p.accountId).filter(Boolean))
 			const groups = {}
 			for (const acc of this.accountsSorted) {
-				if (!acc.active || used.has(acc.id)) continue
+				if (!acc.active || used.has(acc.id)) { continue }
 				const cat = acc.category || this.t('Sonstige')
 				;(groups[cat] = groups[cat] || []).push(acc)
 			}
 			const opts = []
 			for (const [cat, list] of Object.entries(groups)) {
 				opts.push({ id: null, label: cat, $isDisabled: true })
-				for (const acc of list) opts.push({ id: acc.id, label: `${acc.number} ${acc.name}`, number: acc.number })
+				for (const acc of list) { opts.push({ id: acc.id, label: `${acc.number} ${acc.name}`, number: acc.number }) }
 			}
 			return opts
 		},
 	},
+
 	methods: {
 		formatMoney,
 		formatDate,
@@ -162,10 +178,11 @@ export default {
 			const acc = this.accountsById[id]
 			return acc ? `${acc.number} ${acc.name}` : `#${id}`
 		},
+
 		accountFilterBy(option, label, search) {
 			const s = String(search || '').trim().toLowerCase()
-			if (!s) return true
-			if (option && option.$isDisabled) return false
+			if (!s) { return true }
+			if (option && option.$isDisabled) { return false }
 			if (/^[\d\s]+$/.test(s)) {
 				const digits = s.replace(/\s+/g, '')
 				const num = String((option && option.number) || '').replace(/\s+/g, '').toLowerCase()
@@ -173,30 +190,37 @@ export default {
 			}
 			return String(label || '').toLowerCase().includes(s)
 		},
+
 		optionFor(index) {
 			const id = this.parts[index]?.accountId
-			if (id == null) return null
+			if (id === null || id === undefined) { return null }
 			const acc = this.accountsById[id]
 			return acc ? { id: acc.id, label: `${acc.number} ${acc.name}`, number: acc.number } : null
 		},
+
 		setAccount(index, option) {
 			this.patch(index, { accountId: option ? option.id : null })
 		},
+
 		setAmount(index, value) {
 			this.patch(index, { amount: value === '' ? null : Number(value) })
 		},
+
 		patch(index, values) {
 			this.$emit('update:parts', this.parts.map((p, i) => (i === index ? { ...p, ...values } : p)))
 		},
+
 		addPart() {
 			this.$emit('update:parts', [...this.parts, { accountId: null, amount: null }])
 		},
+
 		removePart(index) {
 			this.$emit('update:parts', this.parts.filter((_, i) => i !== index))
 		},
+
 		/** Schreibt den offenen Rest in die letzte Zeile. */
 		fillRest() {
-			if (!this.parts.length) return
+			if (!this.parts.length) { return }
 			const last = this.parts.length - 1
 			const value = Math.round((Number(this.parts[last].amount || 0) + this.rest) * 100) / 100
 			this.patch(last, { amount: value })

@@ -1,12 +1,15 @@
 <template>
-	<NcModal :show="show"
+	<NcModal
+		:show="show"
 		:name="t('Kontoumsätze importieren')"
 		size="normal"
+		:closeOnClickOutside="true"
 		@close="$emit('close')"
 		@update:show="$emit('update:show', $event)">
 		<div class="vbh-modal-inner">
 			<template v-if="!importDone">
-				<div class="vbh-dropzone"
+				<div
+					class="vbh-dropzone"
 					:class="{ dragging: importDragging, 'has-file': !!selectedFile }"
 					@dragover.prevent="importDragging = true"
 					@dragleave.self="importDragging = false"
@@ -16,7 +19,8 @@
 						{{ t('Kontoauszug der Bank hierher ziehen') }}<br>
 						<span class="vbh-dropzone-or">{{ t('oder') }}</span>
 					</p>
-					<label class="vbh-filebtn">{{ t('Datei wählen') }}<input ref="fileInput"
+					<label class="vbh-filebtn">{{ t('Datei wählen') }}<input
+						ref="fileInput"
 						type="file"
 						accept=".csv,.xml,.sta,.txt,text/csv,text/xml,application/xml"
 						hidden
@@ -76,9 +80,9 @@
 </template>
 
 <script>
-import { NcModal, NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper } from '@nextcloud/vue'
+import { mdiCheckCircle, mdiUpload } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { mdiUpload, mdiCheckCircle } from '@mdi/js'
+import { NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper, NcModal } from '@nextcloud/vue'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
 
@@ -90,6 +94,9 @@ export default {
 		// gemeinsames App-weites Ladeflag (.sync)
 		busy: { type: Boolean, required: true },
 	},
+
+	emits: ['close', 'go-assign', 'imported', 'update:busy', 'update:show'],
+
 	data() {
 		return {
 			mdiUpload,
@@ -101,6 +108,7 @@ export default {
 			importDone: null,
 		}
 	},
+
 	watch: {
 		// NcModal-Inhalt bleibt beim Schließen im DOM (Vue-Instanz bleibt bestehen) -
 		// Zuruecksetzen daher hier statt in einer openImport()-Methode des Elternteils.
@@ -114,6 +122,7 @@ export default {
 			}
 		},
 	},
+
 	methods: {
 		errMsg,
 		onImportDrop(e) {
@@ -121,14 +130,16 @@ export default {
 			const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]
 			if (f) { this.selectedFile = f; this.previewResult = null; this.preview() }
 		},
-		onFileSelected(e) { this.selectedFile = e.target.files[0] || null; this.previewResult = null; if (this.selectedFile) this.preview() },
+
+		onFileSelected(e) { this.selectedFile = e.target.files[0] || null; this.previewResult = null; if (this.selectedFile) { this.preview() } },
 		async preview() {
-			if (!this.selectedFile) return
+			if (!this.selectedFile) { return }
 			this.$emit('update:busy', true)
 			try { const fd = new FormData(); fd.append('file', this.selectedFile); const { data } = await api.previewImport(fd); this.previewResult = data } catch (e) { showError(this.errMsg(e, this.t('Vorschau fehlgeschlagen'))) } finally { this.$emit('update:busy', false) }
 		},
+
 		async commit() {
-			if (!this.selectedFile) return
+			if (!this.selectedFile) { return }
 			this.$emit('update:busy', true)
 			try {
 				const fd = new FormData(); fd.append('file', this.selectedFile); fd.append('applyRules', this.applyRules ? '1' : '0')
@@ -136,7 +147,7 @@ export default {
 				showSuccess(this.t('{n} Buchungen importiert ({auto} automatisch zugeordnet).', { n: data.new, auto: data.autoAssigned }))
 				this.importDone = data
 				this.previewResult = null; this.selectedFile = null
-				if (this.$refs.fileInput) this.$refs.fileInput.value = ''
+				if (this.$refs.fileInput) { this.$refs.fileInput.value = '' }
 				this.$emit('imported')
 			} catch (e) { showError(this.errMsg(e, this.t('Import fehlgeschlagen'))) } finally { this.$emit('update:busy', false) }
 		},

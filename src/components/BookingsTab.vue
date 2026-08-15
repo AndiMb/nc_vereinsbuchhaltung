@@ -18,7 +18,8 @@
 				</button>
 			</div>
 			<div class="vbh-sectiontop-actions">
-				<a v-if="bookingView === 'journal'"
+				<a
+					v-if="bookingView === 'journal'"
 					:href="exportJournalUrl"
 					download
 					class="vbh-export-btn"
@@ -33,14 +34,16 @@
 		</div>
 
 		<div class="vbh-filterbar">
-			<input v-model="bookingSearch"
+			<input
+				v-model="bookingSearch"
 				type="search"
 				:placeholder="t('Suche…')"
 				class="vbh-search">
-			<NcSelect v-if="bookingView === 'journal'"
+			<NcSelect
+				v-if="bookingView === 'journal'"
 				v-model="bookingFilterAccountOption"
 				:options="accountOptionsList"
-				:filter-by="accountFilterBy"
+				:filterBy="accountFilterBy"
 				label="label"
 				:clearable="true"
 				:placeholder="t('Konto filtern')"
@@ -74,14 +77,15 @@
 					<div class="vbh-tablecount">
 						{{ filteredJournalRows.length !== sortedJournalRows.length ? t('{n} von {total} Buchungssätze', { n: filteredJournalRows.length, total: sortedJournalRows.length }) : t('{n} Buchungssätze', { n: filteredJournalRows.length }) }}
 					</div>
-					<template v-for="g in journalCardGroups">
-						<div :key="g.key" class="vbh-monthdivider">
+					<template v-for="g in journalCardGroups" :key="g.key">
+						<div class="vbh-monthdivider">
 							{{ g.label }}
 						</div>
-						<BookingCard v-for="r in g.rows"
+						<BookingCard
+							v-for="r in g.rows"
 							:key="g.key + '-' + r.id"
 							:row="r"
-							:attachment-count="attachmentCountMap[r.id] ? attachmentCountMap[r.id].count : 0"
+							:attachmentCount="attachmentCountMap[r.id] ? attachmentCountMap[r.id].count : 0"
 							:flow="rowFlow(r)"
 							:tappable="canWrite || !!attachmentCountMap[r.id]"
 							@open="openBookingCard(r)"
@@ -95,23 +99,23 @@
 					<table class="vbh-table">
 						<thead>
 							<tr>
-								<th class="sortable num vbh-col-hide-sm" @click="toggleSort('journal','entryNo')">
-									{{ t('Nr.') }}{{ sortArrow('journal','entryNo') }}
+								<th class="sortable num vbh-col-hide-sm" @click="toggleSort('journal', 'entryNo')">
+									{{ t('Nr.') }}{{ sortArrow('journal', 'entryNo') }}
 								</th>
-								<th class="sortable nowrap" @click="toggleSort('journal','date')">
-									{{ t('Datum') }}{{ sortArrow('journal','date') }}
+								<th class="sortable nowrap" @click="toggleSort('journal', 'date')">
+									{{ t('Datum') }}{{ sortArrow('journal', 'date') }}
 								</th>
-								<th class="sortable" @click="toggleSort('journal','description')">
-									{{ t('Beschreibung') }}{{ sortArrow('journal','description') }}
+								<th class="sortable" @click="toggleSort('journal', 'description')">
+									{{ t('Beschreibung') }}{{ sortArrow('journal', 'description') }}
 								</th>
-								<th class="sortable vbh-col-hide-sm" @click="toggleSort('journal','soll')">
-									{{ t('Soll') }}{{ sortArrow('journal','soll') }}
+								<th class="sortable vbh-col-hide-sm" @click="toggleSort('journal', 'soll')">
+									{{ t('Soll') }}{{ sortArrow('journal', 'soll') }}
 								</th>
-								<th class="sortable vbh-col-hide-sm" @click="toggleSort('journal','haben')">
-									{{ t('Haben') }}{{ sortArrow('journal','haben') }}
+								<th class="sortable vbh-col-hide-sm" @click="toggleSort('journal', 'haben')">
+									{{ t('Haben') }}{{ sortArrow('journal', 'haben') }}
 								</th>
-								<th class="sortable num" @click="toggleSort('journal','amount')">
-									{{ t('Betrag') }}{{ sortArrow('journal','amount') }}
+								<th class="sortable num" @click="toggleSort('journal', 'amount')">
+									{{ t('Betrag') }}{{ sortArrow('journal', 'amount') }}
 								</th>
 								<th />
 							</tr>
@@ -138,7 +142,8 @@
 								</td>
 								<td class="nowrap right">
 									<div class="vbh-actions">
-										<NcButton v-if="attachmentCountMap[r.id]"
+										<NcButton
+											v-if="attachmentCountMap[r.id]"
 											variant="tertiary"
 											:title="attachmentCountMap[r.id].count === 1 ? t('Beleg anzeigen') : t('{n} Belege', { n: attachmentCountMap[r.id].count })"
 											:aria-label="t('{n} Beleg(e)', { n: attachmentCountMap[r.id].count })"
@@ -147,7 +152,8 @@
 												<NcIconSvgWrapper :path="mdiPaperclip" :size="16" />
 											</template>
 										</NcButton>
-										<NcButton v-if="canWrite"
+										<NcButton
+											v-if="canWrite"
 											variant="tertiary"
 											:aria-label="t('Bearbeiten')"
 											@click="editBooking(r)">
@@ -158,8 +164,9 @@
 										<!-- Seltener genutzte Aktionen in einem Menü statt als eigene
 										     Buttons, sonst wird die Zeile durch bis zu 4 Icon-Buttons
 										     zweizeilig (siehe .vbh-table thead th:empty in styles.css). -->
-										<NcActions v-if="canWrite && (txByJournalId[r.id] || !isYearClosed(r.date))" :force-menu="true">
-											<NcActionButton v-if="txByJournalId[r.id]"
+										<NcActions v-if="canWrite && (txByJournalId[r.id] || !isYearClosed(r.date))" :forceMenu="true">
+											<NcActionButton
+												v-if="txByJournalId[r.id]"
 												:title="t('Regel anlegen: {counterparty} künftig automatisch zuordnen', { counterparty: txByJournalId[r.id].counterparty })"
 												@click="createRuleFromTx(txByJournalId[r.id])">
 												<template #icon>
@@ -202,14 +209,16 @@
 					<div class="vbh-tablecount">
 						{{ t('{n} Buchungen', { n: currentTransactions.length }) }}
 					</div>
-					<div v-for="tx in currentTransactions"
+					<div
+						v-for="tx in currentTransactions"
 						:key="'m' + tx.id"
 						class="vbh-mcard"
 						:class="tx.status === 'assigned' ? '' : 'open'">
 						<div class="vbh-mcard-top">
 							<span class="vbh-mcard-meta">{{ formatDate(tx.bookingDate) }}</span>
 							<span class="vbh-mcard-amount" :class="tx.amount < 0 ? 'neg' : 'pos'">{{ formatMoney(tx.amount) }}</span>
-							<NcButton v-if="canWrite && tx.status === 'unassigned' && !isYearClosed(tx.bookingDate)"
+							<NcButton
+								v-if="canWrite && tx.status === 'unassigned' && !isYearClosed(tx.bookingDate)"
 								variant="tertiary"
 								:aria-label="t('Umsatz löschen')"
 								:title="t('Umsatz löschen (z. B. Dublette)')"
@@ -225,7 +234,8 @@
 						<div v-if="tx.purpose" class="vbh-mcard-purpose">
 							{{ tx.purpose }}
 						</div>
-						<button v-if="canWrite && !isSplitAssigned(tx) && !tx.contraAccountId && suggestionsById[tx.id] && !isYearClosed(tx.bookingDate)"
+						<button
+							v-if="canWrite && !isSplitAssigned(tx) && !tx.contraAccountId && suggestionsById[tx.id] && !isYearClosed(tx.bookingDate)"
 							type="button"
 							class="vbh-suggest-chip vbh-suggest-chip--big"
 							@click="applySuggestion(tx)">
@@ -233,7 +243,8 @@
 						</button>
 						<template v-if="isSplitAssigned(tx)">
 							<span class="vbh-split-badge">{{ t('Aufgeteilt auf mehrere Konten') }}</span>
-							<button v-if="canWrite && !isYearClosed(tx.bookingDate)"
+							<button
+								v-if="canWrite && !isYearClosed(tx.bookingDate)"
 								type="button"
 								class="vbh-suggest-chip"
 								@click="onAssign(tx, '')">
@@ -241,7 +252,8 @@
 							</button>
 						</template>
 						<template v-else>
-							<button type="button"
+							<button
+								type="button"
 								class="vbh-fieldbtn"
 								:disabled="!canWrite || isYearClosed(tx.bookingDate)"
 								@click="openAccountPicker('assign', tx)">
@@ -251,7 +263,8 @@
 								</span>
 								<span class="vbh-fieldbtn-chev" aria-hidden="true">›</span>
 							</button>
-							<button v-if="canWrite && !isYearClosed(tx.bookingDate)"
+							<button
+								v-if="canWrite && !isYearClosed(tx.bookingDate)"
 								type="button"
 								class="vbh-suggest-chip"
 								@click="openSplitAssign(tx)">
@@ -267,17 +280,17 @@
 					<table class="vbh-table">
 						<thead>
 							<tr>
-								<th class="sortable nowrap" @click="toggleSort('transactions','bookingDate')">
-									{{ t('Datum') }}{{ sortArrow('transactions','bookingDate') }}
+								<th class="sortable nowrap" @click="toggleSort('transactions', 'bookingDate')">
+									{{ t('Datum') }}{{ sortArrow('transactions', 'bookingDate') }}
 								</th>
-								<th class="sortable" @click="toggleSort('transactions','counterparty')">
-									{{ t('Empfänger/Zahler') }}{{ sortArrow('transactions','counterparty') }}
+								<th class="sortable" @click="toggleSort('transactions', 'counterparty')">
+									{{ t('Empfänger/Zahler') }}{{ sortArrow('transactions', 'counterparty') }}
 								</th>
 								<th class="vbh-col-hide-sm">
 									{{ t('Verwendungszweck') }}
 								</th>
-								<th class="sortable num" @click="toggleSort('transactions','amount')">
-									{{ t('Betrag') }}{{ sortArrow('transactions','amount') }}
+								<th class="sortable num" @click="toggleSort('transactions', 'amount')">
+									{{ t('Betrag') }}{{ sortArrow('transactions', 'amount') }}
 								</th>
 								<th>{{ t('Konto / Kategorie') }}</th>
 							</tr>
@@ -300,7 +313,8 @@
 									     Kontoauszug bzw. das Journal. -->
 									<div v-if="isSplitAssigned(tx)" class="vbh-assign-inner">
 										<span class="vbh-split-badge">{{ t('Aufgeteilt auf mehrere Konten') }}</span>
-										<button v-if="canWrite && !isYearClosed(tx.bookingDate)"
+										<button
+											v-if="canWrite && !isYearClosed(tx.bookingDate)"
 											class="vbh-suggest-chip"
 											:title="t('Zuordnung aufheben und neu vergeben')"
 											@click="onAssign(tx, '')">
@@ -309,29 +323,33 @@
 									</div>
 									<div v-else class="vbh-assign-inner">
 										<div class="vbh-assign-row">
-											<NcSelect :model-value="accountOptionFor(tx.contraAccountId)"
+											<NcSelect
+												:modelValue="accountOptionFor(tx.contraAccountId)"
 												:options="accountOptionsList"
-												:filter-by="accountFilterBy"
+												:filterBy="accountFilterBy"
 												:clearable="!!tx.contraAccountId"
 												:disabled="!canWrite || isYearClosed(tx.bookingDate)"
 												label="label"
 												:placeholder="t('– nicht zugeordnet –')"
 												class="vbh-assign-select"
-												@update:model-value="v => onAssign(tx, v ? v.id : '')" />
+												@update:modelValue="v => onAssign(tx, v ? v.id : '')" />
 										</div>
-										<button v-if="canWrite && !tx.contraAccountId && suggestionsById[tx.id] && !isYearClosed(tx.bookingDate)"
+										<button
+											v-if="canWrite && !tx.contraAccountId && suggestionsById[tx.id] && !isYearClosed(tx.bookingDate)"
 											class="vbh-suggest-chip"
 											:title="t('Vorschlag übernehmen: {label}', { label: suggestionsById[tx.id].label })"
 											@click="applySuggestion(tx)">
 											{{ t('✓ Vorschlag: {label}', { label: suggestionsById[tx.id].label }) }}
 										</button>
-										<button v-if="canWrite && !isYearClosed(tx.bookingDate)"
+										<button
+											v-if="canWrite && !isYearClosed(tx.bookingDate)"
 											class="vbh-suggest-chip"
 											:title="t('Den Umsatz auf mehrere Gegenkonten verteilen')"
 											@click="openSplitAssign(tx)">
 											{{ t('Aufteilen…') }}
 										</button>
-										<NcButton v-if="canWrite && !isYearClosed(tx.bookingDate)"
+										<NcButton
+											v-if="canWrite && !isYearClosed(tx.bookingDate)"
 											variant="tertiary"
 											:aria-label="t('Umsatz löschen')"
 											:title="t('Umsatz löschen (z. B. Dublette)')"
@@ -365,7 +383,8 @@
 					<h4>{{ t('Neuer offener Posten') }}</h4>
 					<div class="vbh-form">
 						<label class="vbh-grow">{{ t('Debitor') }}<input v-model="openItemForm.debtor" :placeholder="t('z. B. Max Mustermann')"></label>
-						<label>{{ t('Betrag (€)') }}<input v-model.number="openItemForm.amount"
+						<label>{{ t('Betrag (€)') }}<input
+							v-model.number="openItemForm.amount"
 							type="number"
 							step="0.01"
 							min="0.01"
@@ -374,9 +393,10 @@
 					</div>
 					<div class="vbh-form">
 						<label class="vbh-grow">{{ t('Konto (für die spätere Buchung)') }}
-							<NcSelect v-model="openItemAccountOption"
+							<NcSelect
+								v-model="openItemAccountOption"
 								:options="accountOptionsList"
-								:filter-by="accountFilterBy"
+								:filterBy="accountFilterBy"
 								label="label"
 								:placeholder="t('optional')"
 								:clearable="true" />
@@ -389,7 +409,8 @@
 				</div>
 
 				<div class="vbh-filterbar">
-					<button v-for="f in openItemFilterOptions"
+					<button
+						v-for="f in openItemFilterOptions"
 						:key="f.key"
 						type="button"
 						class="vbh-chip"
@@ -466,20 +487,20 @@
 </template>
 
 <script>
-import { toRefs } from 'vue'
-import { NcButton, NcActions, NcActionButton, NcSelect, NcEmptyContent, NcIconSvgWrapper } from '@nextcloud/vue'
-import { mdiDownload, mdiUpload, mdiPaperclip, mdiPencil, mdiFlash, mdiDelete } from '@mdi/js'
+import { mdiDelete, mdiDownload, mdiFlash, mdiPaperclip, mdiPencil, mdiUpload } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
+import { NcActionButton, NcActions, NcButton, NcEmptyContent, NcIconSvgWrapper, NcSelect } from '@nextcloud/vue'
+import { toRefs } from 'vue'
 import BookingCard from './BookingCard.vue'
 import RulesPanel from './RulesPanel.vue'
 import api from '../api.js'
-import { formatMoney, formatDate, amountClass, errMsg } from '../lib/format.js'
-import { useAuth } from '../composables/useAuth.js'
-import { useYears } from '../composables/useYears.js'
 import { useAccounts } from '../composables/useAccounts.js'
+import { useAuth } from '../composables/useAuth.js'
 import { useJournal } from '../composables/useJournal.js'
 import { useOpenItems } from '../composables/useOpenItems.js'
 import { useSort } from '../composables/useSort.js'
+import { useYears } from '../composables/useYears.js'
+import { amountClass, errMsg, formatDate, formatMoney } from '../lib/format.js'
 
 export default {
 	name: 'BookingsTab',
@@ -503,6 +524,9 @@ export default {
 		openSplitAssign: { type: Function, required: true },
 		applySuggestion: { type: Function, required: true },
 	},
+
+	emits: ['help', 'update:booking-view'],
+
 	setup() {
 		const auth = useAuth()
 		const years = useYears()
@@ -526,6 +550,7 @@ export default {
 			...useSort(),
 		}
 	},
+
 	data() {
 		return {
 			mdiDownload,
@@ -547,6 +572,7 @@ export default {
 			],
 		}
 	},
+
 	computed: {
 		exportJournalUrl() { return api.exportJournalUrl(this.selectedYear) },
 		accountUsageCounts() {
@@ -558,22 +584,25 @@ export default {
 			}
 			return counts
 		},
+
 		frequentAccounts() {
 			const counts = this.accountUsageCounts
 			return this.accountsSorted
-				.filter(a => a.active && counts[a.id])
+				.filter((a) => a.active && counts[a.id])
 				.sort((a, b) => counts[b.id] - counts[a.id])
 				.slice(0, 5)
 		},
+
 		accountsByCategory() {
 			const groups = {}
 			for (const acc of this.accountsSorted) {
-				if (!acc.active) continue
+				if (!acc.active) { continue }
 				const cat = acc.category || this.t('Sonstige')
 				;(groups[cat] = groups[cat] || []).push(acc)
 			}
 			return groups
 		},
+
 		accountOptionsList() {
 			const opts = []
 			if (this.frequentAccounts.length >= 2) {
@@ -590,41 +619,40 @@ export default {
 			}
 			return opts
 		},
+
 		bookingFilterAccountOption: {
 			get() {
-				if (!this.bookingFilterAccountId) return null
-				return this.accountOptionsList.find(o => o.id === this.bookingFilterAccountId) ?? null
+				if (!this.bookingFilterAccountId) { return null }
+				return this.accountOptionsList.find((o) => o.id === this.bookingFilterAccountId) ?? null
 			},
+
 			set(v) { this.bookingFilterAccountId = v ? v.id : null },
 		},
+
 		sortedJournalRows() { return this.applySort(this.journalRows, this.sort.journal) },
 		filteredJournalRows() {
 			let rows = this.sortedJournalRows
 			const s = this.bookingSearch.trim().toLowerCase()
 			if (s) {
-				rows = rows.filter(r =>
-					(r.description || '').toLowerCase().includes(s)
+				rows = rows.filter((r) => (r.description || '').toLowerCase().includes(s)
 					|| String(r.entryNo || '').includes(s)
 					|| (r.soll || '').toLowerCase().includes(s)
-					|| (r.haben || '').toLowerCase().includes(s),
-				)
+					|| (r.haben || '').toLowerCase().includes(s))
 			}
 			if (this.bookingFilterAccountId) {
-				rows = rows.filter(r =>
-					r.debitAccountId === this.bookingFilterAccountId
-					|| r.creditAccountId === this.bookingFilterAccountId,
-				)
+				rows = rows.filter((r) => r.debitAccountId === this.bookingFilterAccountId
+					|| r.creditAccountId === this.bookingFilterAccountId)
 			}
 			if (this.journalOnlyNoAttachment) {
-				rows = rows.filter(r => !this.attachmentCountMap[r.id])
+				rows = rows.filter((r) => !this.attachmentCountMap[r.id])
 			}
 			return rows
 		},
+
 		// Mobil: Journal fest nach Datum absteigend, gruppiert nach Monat
 		// (die Spaltenkopf-Sortierung der Tabelle entfällt auf Karten).
 		journalCardGroups() {
-			const rows = [...this.filteredJournalRows].sort((a, b) =>
-				String(b.date || '').localeCompare(String(a.date || '')) || (b.entryNo || 0) - (a.entryNo || 0))
+			const rows = [...this.filteredJournalRows].sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || (b.entryNo || 0) - (a.entryNo || 0))
 			const names = [this.t('Januar'), this.t('Februar'), this.t('März'), this.t('April'), this.t('Mai'), this.t('Juni'), this.t('Juli'), this.t('August'), this.t('September'), this.t('Oktober'), this.t('November'), this.t('Dezember')]
 			const groups = []
 			let cur = null
@@ -639,25 +667,27 @@ export default {
 			}
 			return groups
 		},
+
 		// Kassenprüfung: fehlende/doppelte Buchungsnummern im gewählten Jahr
 		// (bei „Alle Jahre" nicht sinnvoll, da je Jahr nummeriert wird).
 		journalNumberIssues() {
-			if (!this.selectedYear) return null
+			if (!this.selectedYear) { return null }
 			const nos = this.journalRows
-				.map(r => r.entryNo)
-				.filter(n => n != null)
+				.map((r) => r.entryNo)
+				.filter((n) => n !== null && n !== undefined)
 				.map(Number)
 				.sort((a, b) => a - b)
-			if (!nos.length) return null
+			if (!nos.length) { return null }
 			const missing = []
 			const duplicates = []
 			for (let i = 1; i < nos.length; i++) {
 				if (nos[i] === nos[i - 1]) { duplicates.push(nos[i]); continue }
-				for (let n = nos[i - 1] + 1; n < nos[i] && missing.length <= 20; n++) missing.push(n)
+				for (let n = nos[i - 1] + 1; n < nos[i] && missing.length <= 20; n++) { missing.push(n) }
 			}
-			if (!missing.length && !duplicates.length) return null
+			if (!missing.length && !duplicates.length) { return null }
 			return { missing, duplicates: [...new Set(duplicates)] }
 		},
+
 		// Verknüpft Journal-Zeilen mit ihrer bankstämmigen Buchung, damit in
 		// "Alle Buchungen" direkt eine Zuordnungsregel angelegt werden kann.
 		txByJournalId() {
@@ -669,47 +699,52 @@ export default {
 			}
 			return map
 		},
+
 		currentTransactions() {
 			const status = 'unassigned'
 			let txs = this.applySort(
-				this.transactions.filter(t => t.status === status),
+				this.transactions.filter((t) => t.status === status),
 				this.sort.transactions,
 			)
 			const s = this.bookingSearch.trim().toLowerCase()
 			if (s) {
-				txs = txs.filter(t =>
-					(t.counterparty || '').toLowerCase().includes(s)
+				txs = txs.filter((t) => (t.counterparty || '').toLowerCase().includes(s)
 					|| (t.purpose || '').toLowerCase().includes(s)
-					|| (t.bookingDate || '').includes(s),
-				)
+					|| (t.bookingDate || '').includes(s))
 			}
 			return txs
 		},
+
 		assignProgress() {
 			const total = this.transactions.length
-			const done = this.transactions.filter(t => t.status === 'assigned').length
+			const done = this.transactions.filter((t) => t.status === 'assigned').length
 			return { total, done, pct: total ? Math.round((done / total) * 100) : 0 }
 		},
+
 		openItemAccountOption: {
 			get() { return this.accountOptionFor(this.openItemForm.accountId) },
 			set(v) { this.openItemForm.accountId = v ? v.id : null },
 		},
+
 		filteredOpenItems() {
-			if (this.openItemFilter === 'all') return this.openItems
-			return this.openItems.filter(o => o.status === this.openItemFilter)
+			if (this.openItemFilter === 'all') { return this.openItems }
+			return this.openItems.filter((o) => o.status === this.openItemFilter)
 		},
 	},
+
 	watch: {
 		// Suchfeld beim Wechsel zwischen "Alle Buchungen"/"Zuzuordnen" leeren
 		// (Original-Verhalten aus App.vue's bookingView-Watcher).
 		bookingView(v) {
 			this.bookingSearch = ''
-			if (v === 'openitems') this.loadOpenItems()
+			if (v === 'openitems') { this.loadOpenItems() }
 		},
 	},
+
 	mounted() {
-		if (this.bookingView === 'openitems') this.loadOpenItems()
+		if (this.bookingView === 'openitems') { this.loadOpenItems() }
 	},
+
 	methods: {
 		formatMoney,
 		formatDate,
@@ -722,11 +757,13 @@ export default {
 		isSplitAssigned(tx) {
 			return tx.status === 'assigned' && !tx.contraAccountId
 		},
+
 		openItemStatusLabel(status) {
 			return { open: this.t('Offen'), paid: this.t('Bezahlt'), cancelled: this.t('Storniert') }[status] || status
 		},
+
 		async createOpenItem() {
-			if (!this.openItemForm.debtor || !this.openItemForm.amount) return
+			if (!this.openItemForm.debtor || !this.openItemForm.amount) { return }
 			try {
 				await api.createOpenItem({
 					debtor: this.openItemForm.debtor,
@@ -740,26 +777,32 @@ export default {
 				showSuccess(this.t('Offener Posten angelegt.'))
 			} catch (e) { showError(errMsg(e, this.t('Offener Posten konnte nicht angelegt werden'))) }
 		},
+
 		async markOpenItemPaid(o) {
 			try { await api.markOpenItemPaid(o.id); await this.loadOpenItems(); showSuccess(this.t('Als bezahlt markiert.')) } catch (e) { showError(errMsg(e, this.t('Konnte nicht als bezahlt markiert werden'))) }
 		},
+
 		async cancelOpenItem(o) {
 			try { await api.cancelOpenItem(o.id); await this.loadOpenItems(); showSuccess(this.t('Storniert.')) } catch (e) { showError(errMsg(e, this.t('Konnte nicht storniert werden'))) }
 		},
+
 		async reopenOpenItem(o) {
 			try { await api.reopenOpenItem(o.id); await this.loadOpenItems(); showSuccess(this.t('Wieder geöffnet.')) } catch (e) { showError(errMsg(e, this.t('Konnte nicht wieder geöffnet werden'))) }
 		},
+
 		accountLabel(id) {
 			const acc = this.accountsById[id]
 			return acc ? `${acc.number} ${acc.name}` : `#${id}`
 		},
+
 		accountOptionFor(id) {
-			return id ? (this.accountOptionsList.find(o => o.id === id) ?? null) : null
+			return id ? (this.accountOptionsList.find((o) => o.id === id) ?? null) : null
 		},
+
 		accountFilterBy(option, label, search) {
 			const s = String(search || '').trim().toLowerCase()
-			if (!s) return true
-			if (option && option.$isDisabled) return false
+			if (!s) { return true }
+			if (option && option.$isDisabled) { return false }
 			if (/^[\d\s]+$/.test(s)) {
 				const digits = s.replace(/\s+/g, '')
 				const num = String((option && option.number) || '').replace(/\s+/g, '').toLowerCase()
@@ -767,14 +810,15 @@ export default {
 			}
 			return String(label || '').toLowerCase().includes(s)
 		},
+
 		rowFlow(r) {
-			if (r.isSplit) return ''
+			if (r.isSplit) { return '' }
 			const d = this.accountsById[r.debitAccountId]
 			const c = this.accountsById[r.creditAccountId]
 			const dIn = !!(d && d.isBank)
 			const cOut = !!(c && c.isBank)
-			if (dIn && !cOut) return 'in'
-			if (cOut && !dIn) return 'out'
+			if (dIn && !cOut) { return 'in' }
+			if (cOut && !dIn) { return 'out' }
 			return ''
 		},
 	},

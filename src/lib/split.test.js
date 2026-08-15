@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { splitSideOf, splitRemainder, splitBalanced } from './split.js'
+import { describe, expect, it } from 'vitest'
+import { splitBalanced, splitRemainder, splitSideOf } from './split.js'
 
 // Die Regeln der Splittbuchung entscheiden darueber, welche Nutzlast das
 // Backend bekommt. Eine falsche Seite vertauscht Soll und Haben, ein falsch

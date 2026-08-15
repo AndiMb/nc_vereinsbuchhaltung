@@ -1,7 +1,9 @@
 <template>
-	<NcModal :show="show"
+	<NcModal
+		:show="show"
 		:name="t('Bankverbindung wechseln')"
 		size="normal"
+		:closeOnClickOutside="true"
 		@close="$emit('close')"
 		@update:show="$emit('update:show', $event)">
 		<div class="vbh-modal-inner">
@@ -40,7 +42,7 @@
 </template>
 
 <script>
-import { NcModal, NcButton } from '@nextcloud/vue'
+import { NcButton, NcModal } from '@nextcloud/vue'
 
 function emptyForm() {
 	return { iban: '', bic: '', signedDate: new Date().toISOString().slice(0, 10), email: '' }
@@ -61,20 +63,26 @@ export default {
 		mandate: { type: Object, default: null },
 		saving: { type: Boolean, default: false },
 	},
+
+	emits: ['close', 'save', 'update:show'],
+
 	data() {
 		return { form: emptyForm() }
 	},
+
 	computed: {
 		displayName() { return this.mandate?.displayName || '' },
 		canSave() {
 			return !!this.form.iban.trim() && !!this.form.signedDate
 		},
 	},
+
 	watch: {
 		show(open) {
-			if (open) this.form = emptyForm()
+			if (open) { this.form = emptyForm() }
 		},
 	},
+
 	methods: {
 		save() {
 			this.$emit('save', {

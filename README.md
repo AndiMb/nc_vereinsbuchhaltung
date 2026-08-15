@@ -142,7 +142,7 @@ vereinsbuchhaltung/
 │                      Camt053Parser, Mt940Parser, StatementParserRegistry
 │                      (Formaterkennung am Inhalt), RowNormalizer
 │                      (kanonische Zeilenform + Dedup-Hash für alle Quellen)
-├── src/               Vue 2.7-Frontend (Composition API via setup(), reactive() als
+├── src/               Vue 3-Frontend (Composition API via setup(), reactive() als
 │   │                  Composable-Singletons statt Vuex/Pinia)
 │   ├── App.vue        Shell: Header/Navigation/Jahresauswahl, Tab-Router,
 │   │                  Top-Level-Modals, Composable-Bootstrap in mounted()
@@ -209,11 +209,11 @@ Die App ist im **Nextcloud App Store** veröffentlicht (signiert): in Nextcloud 
 
 Alternativ lässt sich das Tarball eines [GitHub-Releases](https://github.com/AndiMb/nc_vereinsbuchhaltung/releases) nach `<nextcloud>/apps/` entpacken (siehe auch [`deploy/README.md`](deploy/README.md) für die Server-Automatisierung).
 
-**Unterstützt:** Nextcloud 28–34, PHP 8.1–8.4, SQLite/MySQL/PostgreSQL.
+**Unterstützt:** Nextcloud 31–35, PHP 8.1–8.5, SQLite/MySQL/PostgreSQL.
 
 ## Entwicklung
 
-**Voraussetzungen:** PHP ≥ 8.1, Node ≥ 20 / npm ≥ 10, eine Nextcloud-Instanz (≥ 28).
+**Voraussetzungen:** PHP ≥ 8.1, Node ≥ 22 / npm ≥ 10, eine Nextcloud-Instanz (≥ 31).
 
 ```bash
 # 1. Frontend bauen
@@ -247,10 +247,6 @@ Ein Git-Tag `v<version>` (muss der `<version>` in `appinfo/info.xml` entsprechen
 Die im App Store gezeigten Screenshots werden per URL aus `img/screenshots/` auf `main` geladen – neue Bilder müssen also **vor** dem Release gepusht sein.
 
 Auf eigenen Servern holt `deploy/vbh-deploy.sh` das neueste Release, prüft die Prüfsumme und führt `occ upgrade` aus. **Vor Releases mit Datenbank-Migration: Datenbank-Backup anlegen** – das Skript-Rollback stellt nur den App-Ordner wieder her, nicht das Schema.
-
-### Build-Hinweis (vue-loader)
-
-Das Projekt verwendet Vue 2.7 mit `@nextcloud/webpack-vue-config`. Damit der Build funktioniert, müssen `vue-loader@15` und `vue-template-compiler` explizit in `devDependencies` stehen – neuere `vue-loader`-Versionen erzeugen Vue-3-Render-Funktionen, die mit der Vue-2.7-Runtime inkompatibel sind.
 
 ## Erste Schritte
 

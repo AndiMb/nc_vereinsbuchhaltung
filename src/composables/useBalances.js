@@ -1,5 +1,5 @@
-import { reactive } from 'vue'
 import { showError } from '@nextcloud/dialogs'
+import { reactive } from 'vue'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
 import { useYears } from './useYears.js'
@@ -22,7 +22,7 @@ async function loadBalances() {
 		try {
 			const { data } = await api.balances(years.state.selectedYear - 1)
 			state.prevBalances = data
-		} catch (e) { state.prevBalances = null }
+		} catch { state.prevBalances = null }
 	} else {
 		state.prevBalances = null
 	}

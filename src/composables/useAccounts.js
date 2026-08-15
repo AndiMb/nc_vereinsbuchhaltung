@@ -1,5 +1,5 @@
-import { reactive, computed } from 'vue'
 import { showError } from '@nextcloud/dialogs'
+import { computed, reactive } from 'vue'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
 
@@ -9,18 +9,16 @@ const state = reactive({
 
 const accountsById = computed(() => {
 	const map = {}
-	for (const acc of state.accounts) map[acc.id] = acc
+	for (const acc of state.accounts) { map[acc.id] = acc }
 	return map
 })
 
-const accountsSorted = computed(() =>
-	state.accounts.slice().sort((a, b) => String(a.number).localeCompare(String(b.number), 'de', { numeric: true })),
-)
+const accountsSorted = computed(() => state.accounts.slice().sort((a, b) => String(a.number).localeCompare(String(b.number), 'de', { numeric: true })))
 
 const childrenOf = computed(() => {
 	const map = {}
 	for (const acc of state.accounts) {
-		if (acc.parentId) (map[acc.parentId] = map[acc.parentId] || []).push(acc)
+		if (acc.parentId) { (map[acc.parentId] = map[acc.parentId] || []).push(acc) }
 	}
 	return map
 })

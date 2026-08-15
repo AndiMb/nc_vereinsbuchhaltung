@@ -44,15 +44,20 @@ export default {
 		// gemeinsame Speichern-Funktion des Elternteils, siehe SettingsClub.vue
 		saveStorageSettings: { type: Function, required: true },
 	},
+
+	emits: ['update:statementWatchPath', 'update:statementWatchUser'],
+
 	computed: {
 		watchUserModel: {
 			get() { return this.statementWatchUser },
 			set(v) { this.$emit('update:statementWatchUser', v) },
 		},
+
 		watchPathModel: {
 			get() { return this.statementWatchPath },
 			set(v) { this.$emit('update:statementWatchPath', v) },
 		},
+
 		// Nur beides zusammen ergibt einen Wachordner (das Backend setzt eine
 		// halb ausgefuellte Angabe ebenfalls zurueck).
 		watchActive() {

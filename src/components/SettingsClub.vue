@@ -18,17 +18,19 @@
 				{{ t('Logo und Akzentfarbe erscheinen im Kurzbericht für Vorstandssitzungen (Berichte → Auswertung).') }}
 			</p>
 			<div class="vbh-uploadrow">
-				<label class="vbh-filebtn">{{ t('Logo wählen') }}<input ref="logoInput"
+				<label class="vbh-filebtn">{{ t('Logo wählen') }}<input
 					type="file"
 					accept="image/png,image/jpeg,image/webp"
 					hidden
 					@change="onLogoSelected"></label>
-				<img v-if="hasLogo"
+				<img
+					v-if="hasLogo"
 					:src="logoPreviewUrl"
 					:alt="t('Vereinslogo')"
 					class="vbh-logopreview">
 				<span v-else class="vbh-filename">{{ t('kein Logo hinterlegt') }}</span>
-				<NcButton v-if="hasLogo"
+				<NcButton
+					v-if="hasLogo"
 					variant="tertiary"
 					:disabled="logoBusy"
 					@click="removeLogo">
@@ -48,8 +50,8 @@
 </template>
 
 <script>
-import { NcButton } from '@nextcloud/vue'
 import { showError, showSuccess } from '@nextcloud/dialogs'
+import { NcButton } from '@nextcloud/vue'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
 
@@ -75,6 +77,9 @@ export default {
 		// vollstaendigen Einstellungssatz, siehe App.vue::saveStorageSettings())
 		saveStorageSettings: { type: Function, required: true },
 	},
+
+	emits: ['changed', 'update:brandColor', 'update:clubName'],
+
 	data() {
 		return {
 			logoBusy: false,
@@ -83,25 +88,29 @@ export default {
 			logoVersion: 0,
 		}
 	},
+
 	computed: {
 		clubNameModel: {
 			get() { return this.clubName },
 			set(v) { this.$emit('update:clubName', v) },
 		},
+
 		brandColorModel: {
 			get() { return this.brandColor || '#2d7d46' },
 			set(v) { this.$emit('update:brandColor', v) },
 		},
+
 		logoPreviewUrl() {
 			return api.logoUrl() + '?v=' + this.logoVersion
 		},
 	},
+
 	methods: {
 		errMsg,
 		async onLogoSelected(e) {
 			const file = e.target.files[0]
 			e.target.value = ''
-			if (!file) return
+			if (!file) { return }
 			this.logoBusy = true
 			try {
 				const fd = new FormData(); fd.append('file', file)
@@ -111,6 +120,7 @@ export default {
 				showSuccess(this.t('Logo gespeichert.'))
 			} catch (err) { showError(this.errMsg(err, this.t('Logo konnte nicht gespeichert werden'))) } finally { this.logoBusy = false }
 		},
+
 		async removeLogo() {
 			this.logoBusy = true
 			try {

@@ -1,4 +1,4 @@
-import { reactive, computed } from 'vue'
+import { computed, reactive } from 'vue'
 
 // Die Rueckfrage vor einer nicht umkehrbaren Aktion (loeschen, zuruecksetzen,
 // wiedereroeffnen).
@@ -38,8 +38,8 @@ let pending = null
 function askConfirm(title, message, confirmLabel = 'Löschen', confirmVariant = 'error') {
 	// Eine bereits offene Rueckfrage abraeumen, statt ihre Zusage liegen zu
 	// lassen - ein nie aufgeloestes Promise haelt den Aufrufer fuer immer an.
-	if (pending) close(false)
-	return new Promise(resolve => {
+	if (pending) { close(false) }
+	return new Promise((resolve) => {
 		pending = resolve
 		state.open = true
 		state.title = title
@@ -57,8 +57,8 @@ function close(result) {
 }
 
 const buttons = computed(() => [
-	{ label: 'Abbrechen', type: 'secondary', callback: () => close(false) },
-	{ label: state.confirmLabel, type: state.confirmVariant, callback: () => close(true) },
+	{ label: 'Abbrechen', variant: 'secondary', callback: () => close(false) },
+	{ label: state.confirmLabel, variant: state.confirmVariant, callback: () => close(true) },
 ])
 
 export function useConfirm() {

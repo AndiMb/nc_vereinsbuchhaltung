@@ -1,4 +1,4 @@
-import { reactive, computed } from 'vue'
+import { computed, reactive } from 'vue'
 import api from '../api.js'
 
 // Singleton-Zustand: EIN gemeinsamer Datenbestand je Installation
@@ -16,7 +16,7 @@ async function loadMe() {
 	try {
 		const { data } = await api.me()
 		state.me = data
-	} catch (e) {
+	} catch {
 		state.me = { role: 'none', canRead: false, canWrite: false, isAdmin: false }
 	}
 	return state.me

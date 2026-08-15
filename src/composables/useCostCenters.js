@@ -1,5 +1,5 @@
-import { reactive, computed } from 'vue'
 import { showError } from '@nextcloud/dialogs'
+import { computed, reactive } from 'vue'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
 
@@ -14,7 +14,7 @@ const state = reactive({
 
 const costCentersById = computed(() => {
 	const map = {}
-	for (const cc of state.costCenters) map[cc.id] = cc
+	for (const cc of state.costCenters) { map[cc.id] = cc }
 	return map
 })
 

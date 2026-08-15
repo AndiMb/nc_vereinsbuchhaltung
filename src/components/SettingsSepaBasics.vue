@@ -27,7 +27,7 @@
 					{{ t('Speichern') }}
 				</NcButton>
 			</div>
-			<NcCheckboxRadioSwitch :checked="membershipEnabled" type="switch" @update:checked="changeMembershipEnabled">
+			<NcCheckboxRadioSwitch :modelValue="membershipEnabled" type="switch" @update:modelValue="changeMembershipEnabled">
 				{{ t('Reiter „Beiträge" in der Hauptnavigation zeigen (Mitgliederliste und Sammeleinzug)') }}
 			</NcCheckboxRadioSwitch>
 			<p v-if="!membershipEnabled && !membershipActive" class="vbh-hint">
@@ -42,7 +42,8 @@
 			</p>
 			<div class="vbh-form">
 				<label>{{ t('Betrag (€)') }}
-					<input v-model="defaultFeeAmountModel"
+					<input
+						v-model="defaultFeeAmountModel"
 						type="number"
 						step="0.01"
 						min="0"
@@ -65,8 +66,8 @@
 </template>
 
 <script>
-import { toRefs } from 'vue'
 import { NcButton, NcCheckboxRadioSwitch } from '@nextcloud/vue'
+import { toRefs } from 'vue'
 import { useAccounts } from '../composables/useAccounts.js'
 import { frequencyOptions } from '../lib/frequency.js'
 
@@ -98,31 +99,40 @@ export default {
 		// gemeinsame Speichern-Funktion des Elternteils, siehe SettingsGeneral.vue
 		saveSettings: { type: Function, required: true },
 	},
+
+	emits: ['update:defaultFeeAmount', 'update:defaultFeeFrequency', 'update:membershipEnabled', 'update:sepaCreditorId', 'update:sepaDebtorAccountId'],
+
 	setup() {
 		return { ...toRefs(useAccounts().state) }
 	},
+
 	data() {
 		return { frequencies: frequencyOptions() }
 	},
+
 	computed: {
-		bankAccounts() { return this.accounts.filter(a => a.isBank) },
+		bankAccounts() { return this.accounts.filter((a) => a.isBank) },
 		sepaCreditorIdModel: {
 			get() { return this.sepaCreditorId },
 			set(v) { this.$emit('update:sepaCreditorId', v) },
 		},
+
 		sepaDebtorAccountIdModel: {
 			get() { return this.sepaDebtorAccountId },
 			set(v) { this.$emit('update:sepaDebtorAccountId', v) },
 		},
+
 		defaultFeeAmountModel: {
 			get() { return this.defaultFeeAmount },
 			set(v) { this.$emit('update:defaultFeeAmount', v) },
 		},
+
 		defaultFeeFrequencyModel: {
 			get() { return this.defaultFeeFrequency },
 			set(v) { this.$emit('update:defaultFeeFrequency', v) },
 		},
 	},
+
 	methods: {
 		// Kein reiner .sync-Setter: die neue Sichtbarkeit muss noch VOR dem
 		// Speichern beim Elternteil ankommen, sonst sendet saveSettings() den

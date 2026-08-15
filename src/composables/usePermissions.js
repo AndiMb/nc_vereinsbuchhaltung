@@ -1,5 +1,5 @@
-import { reactive } from 'vue'
 import { showError } from '@nextcloud/dialogs'
+import { reactive } from 'vue'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
 
@@ -18,9 +18,9 @@ function recordHistory(label) {
 	debugHistory.push({
 		t: Date.now(),
 		label,
-		permissionIds: state.permissions.map(p => p.id),
+		permissionIds: state.permissions.map((p) => p.id),
 	})
-	if (debugHistory.length > 20) debugHistory.shift()
+	if (debugHistory.length > 20) { debugHistory.shift() }
 }
 
 async function loadPermissions() {

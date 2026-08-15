@@ -1,7 +1,9 @@
 <template>
-	<NcModal :show="show"
+	<NcModal
+		:show="show"
 		:name="t('Mitglied aufnehmen')"
 		size="normal"
+		:closeOnClickOutside="true"
 		@close="$emit('close')"
 		@update:show="$emit('update:show', $event)">
 		<div class="vbh-modal-inner">
@@ -16,7 +18,8 @@
 					</select>
 				</label>
 				<label v-if="form.memberKind === 'user'" class="vbh-grow">{{ t('Nutzer') }}
-					<NcSelect v-model="formMemberOption"
+					<NcSelect
+						v-model="formMemberOption"
 						:options="userOptions"
 						label="label"
 						:placeholder="t('– Nutzer wählen –')" />
@@ -43,7 +46,8 @@
 
 			<div class="vbh-form">
 				<label>{{ t('Betrag (€)') }}
-					<input v-model="form.amount"
+					<input
+						v-model="form.amount"
 						type="number"
 						step="0.01"
 						min="0"
@@ -83,8 +87,8 @@
 </template>
 
 <script>
+import { NcButton, NcModal, NcSelect } from '@nextcloud/vue'
 import { toRefs } from 'vue'
-import { NcModal, NcButton, NcSelect } from '@nextcloud/vue'
 import { useAccounts } from '../composables/useAccounts.js'
 import { usePermissions } from '../composables/usePermissions.js'
 import { frequencyOptions } from '../lib/frequency.js'
@@ -121,26 +125,33 @@ export default {
 		defaultFeeAmount: { type: [Number, String], default: '' },
 		defaultFeeFrequency: { type: String, default: 'yearly' },
 	},
+
+	emits: ['close', 'save', 'update:show'],
+
 	setup() {
 		return { ...toRefs(useAccounts().state), ...toRefs(usePermissions().state) }
 	},
+
 	data() {
 		return {
 			form: emptyForm(),
 			frequencies: frequencyOptions(),
 		}
 	},
+
 	computed: {
-		userOptions() { return this.users.map(u => ({ id: u.id, label: `${u.displayName} (${u.id})` })) },
+		userOptions() { return this.users.map((u) => ({ id: u.id, label: `${u.displayName} (${u.id})` })) },
 		formMemberOption: {
-			get() { return this.userOptions.find(o => o.id === this.form.memberUid) ?? null },
+			get() { return this.userOptions.find((o) => o.id === this.form.memberUid) ?? null },
 			set(v) { this.form.memberUid = v ? v.id : '' },
 		},
+
 		incomeAccounts() {
-			return this.accounts.filter(a => a.type === 'income' && !a.isBank)
+			return this.accounts.filter((a) => a.type === 'income' && !a.isBank)
 				.slice()
 				.sort((a, b) => String(a.number).localeCompare(String(b.number), 'de', { numeric: true }))
 		},
+
 		canSave() {
 			const hasMember = this.form.memberKind === 'user' ? !!this.form.memberUid : !!this.form.memberLabel.trim()
 			const hasMandate = !!this.form.iban.trim() && !!this.form.signedDate
@@ -148,9 +159,10 @@ export default {
 			return hasMember && (hasMandate || hasFee)
 		},
 	},
+
 	watch: {
 		show(open) {
-			if (!open) return
+			if (!open) { return }
 			this.form = emptyForm()
 			// Vorbelegung: bei 80-100 Mitgliedern mit einheitlichem Beitrag muss
 			// der Betrag sonst jedes Mal von Hand eingetippt werden. Wer einen
@@ -161,9 +173,10 @@ export default {
 			}
 		},
 	},
+
 	methods: {
 		save() {
-			if (!this.canSave) return
+			if (!this.canSave) { return }
 			this.$emit('save', {
 				memberUid: this.form.memberKind === 'user' ? this.form.memberUid : null,
 				memberLabel: this.form.memberKind === 'label' ? this.form.memberLabel.trim() : null,

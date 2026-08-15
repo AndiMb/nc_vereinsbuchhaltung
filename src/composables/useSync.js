@@ -13,15 +13,15 @@ async function checkRemoteRevision(init, busy) {
 	let rev
 	try {
 		rev = (await api.revision()).data.revision
-	} catch (e) {
+	} catch {
 		return 'error'
 	}
 	if (init || state.syncRevision === null) {
 		state.syncRevision = rev
 		return 'unchanged'
 	}
-	if (rev === state.syncRevision) return 'unchanged'
-	if (busy) return 'busy'
+	if (rev === state.syncRevision) { return 'unchanged' }
+	if (busy) { return 'busy' }
 	state.syncRevision = rev
 	return 'changed'
 }

@@ -1,8 +1,10 @@
 <template>
-	<NcModal v-if="show"
+	<NcModal
+		v-if="show"
 		:show="show"
 		:name="t('Plan-Stand: {label}', { label: snapshot ? snapshot.label : '' })"
 		size="normal"
+		:closeOnClickOutside="true"
 		@close="$emit('close')"
 		@update:show="$emit('update:show', $event)">
 		<div v-if="snapshot" class="vbh-modal-inner">
@@ -72,8 +74,8 @@
 </template>
 
 <script>
-import { NcModal, NcButton } from '@nextcloud/vue'
-import { formatMoney, formatDateTime, amountClass } from '../lib/format.js'
+import { NcButton, NcModal } from '@nextcloud/vue'
+import { amountClass, formatDateTime, formatMoney } from '../lib/format.js'
 
 export default {
 	name: 'BudgetSnapshotModal',
@@ -85,6 +87,9 @@ export default {
 		// ab, den dieses Modal nicht selbst kennt.
 		currentPlanForAccount: { type: Function, required: true },
 	},
+
+	emits: ['close', 'update:show'],
+
 	methods: {
 		formatMoney,
 		formatDateTime,

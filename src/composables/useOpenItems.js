@@ -1,5 +1,5 @@
-import { reactive, computed } from 'vue'
 import { showError } from '@nextcloud/dialogs'
+import { computed, reactive } from 'vue'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
 
@@ -7,7 +7,7 @@ const state = reactive({
 	openItems: [],
 })
 
-const overdueCount = computed(() => state.openItems.filter(o => o.overdue).length)
+const overdueCount = computed(() => state.openItems.filter((o) => o.overdue).length)
 
 async function loadOpenItems() {
 	try {

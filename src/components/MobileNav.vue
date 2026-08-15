@@ -1,6 +1,7 @@
 <template>
 	<nav class="vbh-bottomnav" :aria-label="t('Hauptnavigation')">
-		<button v-if="canWrite"
+		<button
+			v-if="canWrite"
 			type="button"
 			class="vbh-fab"
 			:aria-label="t('Neue Buchung anlegen')"
@@ -8,7 +9,8 @@
 			@click="$emit('new-booking')">
 			<NcIconSvgWrapper :path="mdiPlus" :size="26" />
 		</button>
-		<button v-for="tab in tabs"
+		<button
+			v-for="tab in tabs"
 			:key="tab.id"
 			type="button"
 			class="vbh-bottomnav-item"
@@ -26,8 +28,8 @@
 </template>
 
 <script>
-import { NcIconSvgWrapper } from '@nextcloud/vue'
 import { mdiPlus } from '@mdi/js'
+import { NcIconSvgWrapper } from '@nextcloud/vue'
 
 /**
  * Untere Navigationsleiste für Mobilgeräte: alle Tabs gleichzeitig sichtbar
@@ -44,6 +46,9 @@ export default {
 		overdueMembershipCount: { type: Number, default: 0 },
 		canWrite: { type: Boolean, default: false },
 	},
+
+	emits: ['new-booking', 'select'],
+
 	data() {
 		return { mdiPlus }
 	},

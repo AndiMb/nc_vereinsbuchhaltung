@@ -24,8 +24,7 @@ const state = reactive({
  */
 function toggleSort(table, key) {
 	const s = state[table]
-	if (s.key === key) s.dir = s.dir === 'asc' ? 'desc' : 'asc'
-	else { s.key = key; s.dir = 'asc' }
+	if (s.key === key) { s.dir = s.dir === 'asc' ? 'desc' : 'asc' } else { s.key = key; s.dir = 'asc' }
 }
 
 /** Der Pfeil hinter der gerade sortierten Spaltenueberschrift. */
@@ -52,18 +51,18 @@ function sortArrow(table, key) {
  * @return {Array} sortierte Kopie
  */
 export function applySort(rows, state, lexKeys = []) {
-	if (!state || !state.key) return rows
+	if (!state || !state.key) { return rows }
 	const f = state.dir === 'asc' ? 1 : -1
 	const lex = lexKeys.includes(state.key)
 	return rows.slice().sort((a, b) => {
 		let x = a[state.key]; let y = b[state.key]
-		if (x === null || x === undefined) x = ''
-		if (y === null || y === undefined) y = ''
+		if (x === null || x === undefined) { x = '' }
+		if (y === null || y === undefined) { y = '' }
 		if (lex) {
 			const sx = String(x); const sy = String(y)
 			return (sx < sy ? -1 : sx > sy ? 1 : 0) * f
 		}
-		if (typeof x === 'number' && typeof y === 'number') return (x - y) * f
+		if (typeof x === 'number' && typeof y === 'number') { return (x - y) * f }
 		return String(x).localeCompare(String(y), 'de', { numeric: true, sensitivity: 'base' }) * f
 	})
 }

@@ -17,7 +17,7 @@ async function loadRules() {
 		const { data } = await api.listRules()
 		state.rules = data
 		return data
-	} catch (e) {
+	} catch {
 		// Regeln sind ein optionales Komfortfeature - kein Fehlerbanner, wenn
 		// der Endpunkt (noch) nichts liefert.
 		return null

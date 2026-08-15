@@ -22,18 +22,21 @@
 				</button>
 			</div>
 			<div class="vbh-sectiontop-actions">
-				<a v-if="reportView === 'summary' && selectedYear"
+				<a
+					v-if="reportView === 'summary' && selectedYear"
 					:href="kassenberichtUrl"
 					target="_blank"
 					rel="noopener"
 					class="vbh-export-btn"
 					:title="t('Druckfertiger Kassenbericht für die Mitgliederversammlung (öffnet in neuem Tab, dort drucken oder als PDF speichern)')"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> {{ t('Kassenbericht') }}</a>
 				<span v-if="reportView === 'summary'" class="vbh-kurzbericht-picker">
-					<input v-model="kurzberichtSince"
+					<input
+						v-model="kurzberichtSince"
 						type="date"
 						class="vbh-kurzbericht-date"
 						:title="t('Kurzbericht: Bewegungen seit diesem Datum')">
-					<a :href="kurzberichtUrl"
+					<a
+						:href="kurzberichtUrl"
 						target="_blank"
 						rel="noopener"
 						class="vbh-export-btn"
@@ -44,14 +47,16 @@
 				     bis dreizeilig (gleiches Muster wie die Zeilen-Aktionen in
 				     BookingsTab.vue). Kassenbericht und Kurzbericht bleiben sichtbar,
 				     das sind laut Handbuch die beiden meistgenutzten Berichte. -->
-				<NcActions v-if="reportView === 'summary'"
-					:menu-name="t('Weitere Exporte')"
+				<NcActions
+					v-if="reportView === 'summary'"
+					:menuName="t('Weitere Exporte')"
 					size="small"
-					:force-menu="true">
+					:forceMenu="true">
 					<template #icon>
 						<NcIconSvgWrapper :path="mdiDownload" :size="20" />
 					</template>
-					<NcActionLink v-if="selectedYear"
+					<NcActionLink
+						v-if="selectedYear"
 						:href="attachmentsZipUrl"
 						download=""
 						:title="t('Alle Belege des Jahres als ZIP herunterladen (für die Kassenprüfung)')">
@@ -60,7 +65,8 @@
 						</template>
 						{{ t('Beleg-ZIP') }}
 					</NcActionLink>
-					<NcActionLink :href="pruefleitfadenUrl"
+					<NcActionLink
+						:href="pruefleitfadenUrl"
 						target="_blank"
 						:title="t('Druckfertige 1-Seiten-Kurzanleitung für Kassenprüfer/innen (öffnet in neuem Tab)')">
 						<template #icon>
@@ -68,7 +74,8 @@
 						</template>
 						{{ t('Prüfleitfaden') }}
 					</NcActionLink>
-					<NcActionLink :href="exportBalancesUrl"
+					<NcActionLink
+						:href="exportBalancesUrl"
 						download=""
 						:title="t('Saldenliste als CSV exportieren')">
 						<template #icon>
@@ -76,7 +83,8 @@
 						</template>
 						{{ t('Saldenliste') }}
 					</NcActionLink>
-					<NcActionLink :href="exportReportUrl"
+					<NcActionLink
+						:href="exportReportUrl"
 						download=""
 						:title="t('E/A-Übersicht als CSV exportieren')">
 						<template #icon>
@@ -84,7 +92,8 @@
 						</template>
 						{{ t('E/A-Übersicht') }}
 					</NcActionLink>
-					<NcActionLink :href="exportMultiyearUrl"
+					<NcActionLink
+						:href="exportMultiyearUrl"
 						download=""
 						:title="t('Mehrjahresübersicht (alle Jahre) als CSV exportieren')">
 						<template #icon>
@@ -93,7 +102,8 @@
 						{{ t('Mehrjahresübersicht') }}
 					</NcActionLink>
 				</NcActions>
-				<a v-if="reportView === 'budget'"
+				<a
+					v-if="reportView === 'budget'"
 					:href="exportBudgetUrl"
 					download
 					class="vbh-export-btn"
@@ -171,7 +181,8 @@
 					</NcCheckboxRadioSwitch>
 				</div>
 				<div v-if="balances && isMobile" class="vbh-cardlist">
-					<div v-for="row in sortedBalances"
+					<div
+						v-for="row in sortedBalances"
 						:key="'m' + row.accountId"
 						class="vbh-mcard"
 						:class="{ 'vbh-mcard--parent': row.isParent }"
@@ -189,23 +200,23 @@
 					<table class="vbh-table">
 						<thead>
 							<tr>
-								<th class="sortable nowrap vbh-col-hide-sm" @click="toggleSort('balances','number')">
-									{{ t('Nr.') }}{{ sortArrow('balances','number') }}
+								<th class="sortable nowrap vbh-col-hide-sm" @click="toggleSort('balances', 'number')">
+									{{ t('Nr.') }}{{ sortArrow('balances', 'number') }}
 								</th>
-								<th class="sortable" @click="toggleSort('balances','name')">
-									{{ t('Konto') }}{{ sortArrow('balances','name') }}
+								<th class="sortable" @click="toggleSort('balances', 'name')">
+									{{ t('Konto') }}{{ sortArrow('balances', 'name') }}
 								</th>
-								<th class="sortable vbh-col-hide-sm" @click="toggleSort('balances','category')">
-									{{ t('Kategorie') }}{{ sortArrow('balances','category') }}
+								<th class="sortable vbh-col-hide-sm" @click="toggleSort('balances', 'category')">
+									{{ t('Kategorie') }}{{ sortArrow('balances', 'category') }}
 								</th>
-								<th class="sortable num vbh-col-hide-sm" @click="toggleSort('balances','debit')">
-									{{ t('Soll') }}{{ sortArrow('balances','debit') }}
+								<th class="sortable num vbh-col-hide-sm" @click="toggleSort('balances', 'debit')">
+									{{ t('Soll') }}{{ sortArrow('balances', 'debit') }}
 								</th>
-								<th class="sortable num vbh-col-hide-sm" @click="toggleSort('balances','credit')">
-									{{ t('Haben') }}{{ sortArrow('balances','credit') }}
+								<th class="sortable num vbh-col-hide-sm" @click="toggleSort('balances', 'credit')">
+									{{ t('Haben') }}{{ sortArrow('balances', 'credit') }}
 								</th>
-								<th class="sortable num" @click="toggleSort('balances','balance')">
-									{{ t('Saldo') }}{{ sortArrow('balances','balance') }}
+								<th class="sortable num" @click="toggleSort('balances', 'balance')">
+									{{ t('Saldo') }}{{ sortArrow('balances', 'balance') }}
 								</th>
 							</tr>
 						</thead>
@@ -246,7 +257,8 @@
 						<strong :class="amountClass(reportData.totals.result)">{{ formatMoney(reportData.totals.result) }}</strong>
 					</div>
 					<div v-if="reportData" class="vbh-treelist">
-						<div v-for="cc in reportData.costCenters"
+						<div
+							v-for="cc in reportData.costCenters"
 							:key="cc.code === null ? 'none' : cc.code"
 							class="vbh-treenode"
 							:class="{ selected: isCCSelected(cc) }"
@@ -297,7 +309,8 @@
 
 						<h4>{{ t('Beteiligte Konten') }} <span class="vbh-hint">{{ t('(Konto anklicken für Buchungen)') }}</span></h4>
 						<div v-if="selectedCC.accounts.length && isMobile" class="vbh-cardlist">
-							<div v-for="(a, i) in selectedCC.accounts"
+							<div
+								v-for="(a, i) in selectedCC.accounts"
 								:key="'m' + i"
 								class="vbh-mcard tappable"
 								role="button"
@@ -334,10 +347,10 @@
 									</tr>
 								</thead>
 								<tbody>
-									<!-- :key gehoert auf die echten <tr>, nicht aufs <template>
-									     (Vue 2 ignoriert Template-Keys stillschweigend, Muster wie beim Finanzplan unten) -->
-									<template v-for="(a, i) in selectedCC.accounts">
-										<tr :key="'cc-' + i" class="vbh-ccrow" @click="toggleCCAccount(a.accountId)">
+									<!-- :key gehoert unter Vue 3 aufs <template>, nicht mehr auf die
+									     einzelnen <tr> (Muster wie beim Finanzplan unten) -->
+									<template v-for="(a, i) in selectedCC.accounts" :key="i">
+										<tr class="vbh-ccrow" @click="toggleCCAccount(a.accountId)">
 											<td class="nowrap">
 												<span class="vbh-caret" :class="{ open: ccExpanded[a.accountId] }">›</span> {{ a.number }}
 											</td>
@@ -347,7 +360,7 @@
 												{{ formatMoney(a.balance) }}
 											</td>
 										</tr>
-										<tr v-if="ccExpanded[a.accountId]" :key="'ccd-' + i" class="vbh-ccdetail">
+										<tr v-if="ccExpanded[a.accountId]" class="vbh-ccdetail">
 											<td colspan="4">
 												<table v-if="ccBookings[a.accountId] && ccBookings[a.accountId].length" class="vbh-table vbh-subtable">
 													<thead>
@@ -405,8 +418,9 @@
 			</div>
 
 			<div v-if="canWrite && reportView === 'costcenters'" class="vbh-section-divider">
-				<CostCenterPanel :mode="costCenterMode"
-					:save-storage-settings="saveStorageSettings"
+				<CostCenterPanel
+					:mode="costCenterMode"
+					:saveStorageSettings="saveStorageSettings"
 					@update:mode="$emit('update:cost-center-mode', $event)"
 					@changed="$emit('cost-centers-changed')" />
 			</div>
@@ -416,7 +430,8 @@
 				<div v-if="!isMobile || !selectedSphere" class="vbh-tree">
 					<div class="vbh-treehead">
 						<strong>{{ t('Sphären') }}</strong>
-						<button type="button"
+						<button
+							type="button"
 							class="vbh-sphere-help"
 							:title="t('Was bedeutet das?')"
 							@click="$emit('help', 'spheres')">
@@ -432,7 +447,8 @@
 						({{ Math.round(sphereData.freigrenze.ratio * 100) }} %)
 					</div>
 					<div v-if="sphereData" class="vbh-treelist">
-						<div v-for="s in sphereData.spheres"
+						<div
+							v-for="s in sphereData.spheres"
 							:key="s.code || 'none'"
 							class="vbh-treenode"
 							:class="{ selected: isSphereSelected(s) }"
@@ -529,8 +545,8 @@
 							</tr>
 						</thead>
 						<tbody>
-							<template v-for="r in reserveData.reserves">
-								<tr :key="r.kind" class="vbh-parentrow">
+							<template v-for="r in reserveData.reserves" :key="r.kind">
+								<tr class="vbh-parentrow">
 									<td><strong>{{ r.name }}</strong></td>
 									<td class="num strong" :class="amountClass(r.balance)">
 										{{ formatMoney(r.balance) }}
@@ -558,7 +574,8 @@
 				<div class="vbh-sectionhead">
 					<h4>{{ t('Finanzplan & Soll-Ist-Vergleich') }}{{ budgetData ? ' ' + budgetData.year : '' }}</h4>
 					<form v-if="canWrite" class="vbh-addyear" @submit.prevent="addBudgetYear">
-						<input v-model="newBudgetYear"
+						<input
+							v-model="newBudgetYear"
 							type="number"
 							min="2000"
 							max="2099"
@@ -612,8 +629,8 @@
 							</tr>
 						</thead>
 						<tbody>
-							<template v-for="row in budgetData.rows">
-								<tr :key="row.accountId">
+							<template v-for="row in budgetData.rows" :key="row.accountId">
+								<tr>
 									<td class="nowrap vbh-col-hide-sm">
 										{{ row.number }}
 									</td>
@@ -622,7 +639,8 @@
 										<span class="vbh-typetag" :class="row.type">{{ typeLabel(row.type) }}</span>
 									</td>
 									<td class="num vbh-col-plan">
-										<input v-if="canWrite"
+										<input
+											v-if="canWrite"
 											v-model.number="row.plan"
 											type="number"
 											step="0.01"
@@ -631,7 +649,8 @@
 										<span v-else>{{ formatMoney(row.plan) }}</span>
 									</td>
 									<td class="vbh-col-note">
-										<NcButton v-if="canWrite || row.note"
+										<NcButton
+											v-if="canWrite || row.note"
 											variant="tertiary"
 											:aria-label="row.note ? t('Notiz zur Planzahl anzeigen') : t('Notiz zur Planzahl hinzufügen')"
 											:title="row.note || t('Notiz hinzufügen')"
@@ -648,10 +667,11 @@
 										{{ formatMoney(row.diff) }}
 									</td>
 								</tr>
-								<tr v-if="budgetNoteOpen[row.accountId]" :key="'note-' + row.accountId" class="vbh-note-row">
+								<tr v-if="budgetNoteOpen[row.accountId]" class="vbh-note-row">
 									<td colspan="7">
 										<label class="vbh-note-label">{{ t('Notiz zu {number} {name}', { number: row.number, name: row.name }) }}
-											<textarea v-if="canWrite"
+											<textarea
+												v-if="canWrite"
 												v-model="row.note"
 												maxlength="1000"
 												rows="2"
@@ -675,7 +695,8 @@
 					<div class="vbh-sectionhead">
 						<h4>{{ t('Plan-Stände {year}', { year: budgetData.year }) }}</h4>
 						<form v-if="canWrite" class="vbh-addyear" @submit.prevent="saveBudgetSnapshot">
-							<input v-model="newSnapshotLabel"
+							<input
+								v-model="newSnapshotLabel"
 								type="text"
 								maxlength="128"
 								:placeholder="t('z.B. Beschluss MV')"
@@ -727,7 +748,8 @@
 										<NcButton variant="tertiary" @click="openSnapshot(snap)">
 											{{ t('Ansehen') }}
 										</NcButton>
-										<NcButton v-if="canWrite"
+										<NcButton
+											v-if="canWrite"
 											variant="tertiary"
 											:title="t('Stand löschen')"
 											@click="deleteBudgetSnapshot(snap)">
@@ -801,30 +823,30 @@
 </template>
 
 <script>
-import { toRefs } from 'vue'
+import { mdiCommentPlusOutline, mdiCommentText, mdiDelete, mdiDownload, mdiPaperclip, mdiPrinter } from '@mdi/js'
+import { showError, showSuccess } from '@nextcloud/dialogs'
+import { NcActionLink, NcActions, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper } from '@nextcloud/vue'
 import {
+	CategoryScale,
 	Chart,
+	Legend,
+	LinearScale,
 	LineController,
 	LineElement,
 	PointElement,
-	CategoryScale,
-	LinearScale,
 	Tooltip,
-	Legend,
 } from 'chart.js'
-import { NcButton, NcActions, NcActionLink, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper } from '@nextcloud/vue'
-import { mdiPrinter, mdiPaperclip, mdiDownload, mdiDelete, mdiCommentText, mdiCommentPlusOutline } from '@mdi/js'
-import { showError, showSuccess } from '@nextcloud/dialogs'
-import api from '../api.js'
-import { formatMoney, formatDate, formatDateTime, typeLabel, amountClass, budgetDiffClass, roleLabel } from '../lib/format.js'
+import { toRefs } from 'vue'
 import CostCenterPanel from './CostCenterPanel.vue'
 import SphereAssignPanel from './SphereAssignPanel.vue'
-import { useAuth } from '../composables/useAuth.js'
-import { useYears } from '../composables/useYears.js'
+import api from '../api.js'
 import { useAccounts } from '../composables/useAccounts.js'
+import { useAuth } from '../composables/useAuth.js'
 import { useBalances } from '../composables/useBalances.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useSort } from '../composables/useSort.js'
+import { useYears } from '../composables/useYears.js'
+import { amountClass, budgetDiffClass, formatDate, formatDateTime, formatMoney, roleLabel, typeLabel } from '../lib/format.js'
 
 Chart.register(LineController, LineElement, PointElement, CategoryScale, LinearScale, Tooltip, Legend)
 
@@ -853,8 +875,8 @@ export default {
 		auditEnd: { type: Boolean, required: true },
 		// selectedCCCode/selectedSphereCode/ccExpanded/ccBookings/renameName
 		// bleiben in App.vue (Jahres-/Reload-Watcher setzen sie zurueck).
-		selectedCCCode: { type: [String, Number, Boolean], default: false },
-		selectedSphereCode: { type: [String, Number, Boolean], default: false },
+		selectedCCCode: { type: [Boolean, String, Number], default: false },
+		selectedSphereCode: { type: [Boolean, String, Number], default: false },
 		ccExpanded: { type: Object, required: true },
 		ccBookings: { type: Object, required: true },
 		renameName: { type: String, required: true },
@@ -869,6 +891,9 @@ export default {
 		// oeffnet ein Top-Level-Modal ausserhalb dieser Komponente (App.vue).
 		openSnapshot: { type: Function, required: true },
 	},
+
+	emits: ['budget-changed', 'cost-centers-changed', 'help', 'snapshots-changed', 'spheres-changed', 'update:cost-center-mode', 'update:rename-name', 'update:report-view', 'update:selected-c-c-code', 'update:selected-sphere-code'],
+
 	setup() {
 		const auth = useAuth()
 		const years = useYears()
@@ -891,6 +916,7 @@ export default {
 			askConfirm: useConfirm().askConfirm,
 		}
 	},
+
 	data() {
 		return {
 			mdiPrinter,
@@ -900,7 +926,6 @@ export default {
 			mdiCommentText,
 			mdiCommentPlusOutline,
 			balancesIncludeChildren: false,
-			chartInstances: {},
 			multiyearTrendData: null,
 			reserveData: null,
 			kurzberichtSince: this.defaultKurzberichtSince(),
@@ -913,6 +938,7 @@ export default {
 			auditOnlyImports: false,
 		}
 	},
+
 	computed: {
 		kassenberichtUrl() { return api.kassenberichtUrl(this.selectedYear) },
 		pruefleitfadenUrl() { return api.pruefleitfadenUrl() },
@@ -924,17 +950,20 @@ export default {
 		// Import-Aktionen tragen alle objectType 'import' (CSV-/xbuc-/Wachordner-
 		// Import, Beispieldaten) - siehe die audit->log()-Aufrufe im Backend.
 		filteredAuditEntries() {
-			if (!this.auditOnlyImports) return this.auditEntries
-			return this.auditEntries.filter(a => a.objectType === 'import')
+			if (!this.auditOnlyImports) { return this.auditEntries }
+			return this.auditEntries.filter((a) => a.objectType === 'import')
 		},
+
 		selectedCC() {
-			if (this.selectedCCCode === false || !this.reportData) return null
-			return this.reportData.costCenters.find(c => c.code === this.selectedCCCode) || null
+			if (this.selectedCCCode === false || !this.reportData) { return null }
+			return this.reportData.costCenters.find((c) => c.code === this.selectedCCCode) || null
 		},
+
 		selectedSphere() {
-			if (this.selectedSphereCode === false || !this.sphereData) return null
-			return this.sphereData.spheres.find(s => s.code === this.selectedSphereCode) || null
+			if (this.selectedSphereCode === false || !this.sphereData) { return null }
+			return this.sphereData.spheres.find((s) => s.code === this.selectedSphereCode) || null
 		},
+
 		// Hierarchie-Tiefe je Konto (für die Einrückung in der Saldenliste)
 		accountDepth() {
 			const out = {}
@@ -942,7 +971,7 @@ export default {
 				let depth = 0
 				let cur = a
 				const seen = new Set([a.id])
-				while (cur && cur.parentId != null && this.accountsById[cur.parentId] && !seen.has(cur.parentId) && depth < 8) {
+				while (cur && cur.parentId !== null && cur.parentId !== undefined && this.accountsById[cur.parentId] && !seen.has(cur.parentId) && depth < 8) {
 					cur = this.accountsById[cur.parentId]
 					seen.add(cur.id)
 					depth++
@@ -951,17 +980,18 @@ export default {
 			}
 			return out
 		},
+
 		balanceRows() {
 			const base = this.balances ? this.balances.accounts : []
-			const enrich = r => ({
+			const enrich = (r) => ({
 				...r,
 				depth: this.accountDepth[r.accountId] || 0,
 				isParent: (this.childrenOf[r.accountId] || []).length > 0,
 			})
-			if (!this.balancesIncludeChildren) return base.map(enrich)
+			if (!this.balancesIncludeChildren) { return base.map(enrich) }
 			const rowById = {}
-			for (const r of base) rowById[r.accountId] = r
-			const agg = id => {
+			for (const r of base) { rowById[r.accountId] = r }
+			const agg = (id) => {
 				const r = rowById[id]
 				let debit = r ? r.debit : 0
 				let credit = r ? r.credit : 0
@@ -972,11 +1002,12 @@ export default {
 				}
 				return { debit, credit, balance }
 			}
-			return base.map(r => {
+			return base.map((r) => {
 				const a = agg(r.accountId)
 				return { ...enrich(r), debit: a.debit, credit: a.credit, balance: a.balance }
 			})
 		},
+
 		sortedBalances() { return this.applySort(this.balanceRows, this.sort.balances, ['number']) },
 		kurzberichtUrl() { return api.kurzberichtUrl(this.kurzberichtSince) },
 		// steuert Laden+Redraw des Mehrjahres-Trend-Diagramms (nur in der
@@ -985,33 +1016,46 @@ export default {
 		trendChartData() {
 			const rows = (this.multiyearTrendData && this.multiyearTrendData.years) || []
 			return {
-				labels: rows.map(r => String(r.year)),
-				income: rows.map(r => r.income),
-				expense: rows.map(r => r.expense),
-				result: rows.map(r => r.result),
+				labels: rows.map((r) => String(r.year)),
+				income: rows.map((r) => r.income),
+				expense: rows.map((r) => r.expense),
+				result: rows.map((r) => r.result),
 			}
 		},
 	},
+
 	watch: {
 		trendChartVisible(v) {
-			if (v) this.loadMultiyearTrend()
+			if (v) { this.loadMultiyearTrend() }
 		},
+
 		reportView(v) {
-			if (v === 'reserves') this.loadReserveReport()
+			if (v === 'reserves') { this.loadReserveReport() }
 		},
+
 		// Komfort: zuletzt gewaehltes "seit"-Datum geraetelokal merken (Muster
 		// wie vbh_recent_accounts), reine UI-Vorbelegung, kein Pflichtfeld.
 		kurzberichtSince(v) {
-			try { localStorage.setItem('vbh_kurzbericht_since', v) } catch (e) { /* voll/gesperrt - dann eben ohne */ }
+			try { localStorage.setItem('vbh_kurzbericht_since', v) } catch { /* voll/gesperrt - dann eben ohne */ }
 		},
 	},
+
+	// chartInstances liegt bewusst NICHT in data(): Chart.js-Instanzen vertragen
+	// sich nicht mit Vue 3s tiefer Proxy-Reaktivitaet, und die Instanzen werden
+	// nirgends im Template gelesen, brauchen also keine Reaktivitaet.
+	created() {
+		this.chartInstances = {}
+	},
+
 	mounted() {
-		if (this.trendChartVisible) this.loadMultiyearTrend()
-		if (this.reportView === 'reserves') this.loadReserveReport()
+		if (this.trendChartVisible) { this.loadMultiyearTrend() }
+		if (this.reportView === 'reserves') { this.loadReserveReport() }
 	},
-	beforeDestroy() {
-		Object.values(this.chartInstances).forEach(c => c && c.destroy())
+
+	beforeUnmount() {
+		Object.values(this.chartInstances).forEach((c) => c && c.destroy())
 	},
+
 	methods: {
 		formatMoney,
 		formatDate,
@@ -1023,44 +1067,49 @@ export default {
 		errMsg(e, fallback) {
 			return (e?.response?.data?.message) || fallback
 		},
+
 		// Vorbelegung fuer das Kurzbericht-"seit"-Feld: letztes gemerktes Datum,
 		// sonst 30 Tage vor heute (typischer Sitzungsabstand).
 		defaultKurzberichtSince() {
 			try {
 				const saved = localStorage.getItem('vbh_kurzbericht_since')
-				if (saved) return saved
-			} catch (e) { /* voll/gesperrt - dann eben Default */ }
+				if (saved) { return saved }
+			} catch { /* voll/gesperrt - dann eben Default */ }
 			const d = new Date()
 			d.setDate(d.getDate() - 30)
 			return d.toISOString().slice(0, 10)
 		},
+
 		async loadReserveReport() {
 			try { const { data } = await api.reserveReport(); this.reserveData = data } catch (e) { showError(this.errMsg(e, this.t('Rücklagen-Bericht konnte nicht geladen werden'))) }
 		},
+
 		async loadMultiyearTrend() {
 			try {
 				const { data } = await api.multiyearTrend()
 				this.multiyearTrendData = data
 				this.$nextTick(() => setTimeout(() => this.renderTrendChart(), 50))
-			} catch (e) { /* Diagramm ist eine Zusatzansicht, kein harter Fehler */ }
+			} catch { /* Diagramm ist eine Zusatzansicht, kein harter Fehler */ }
 		},
+
 		destroyChart(key) {
 			if (this.chartInstances[key]) {
 				this.chartInstances[key].destroy()
-				this.$set(this.chartInstances, key, null)
+				this.chartInstances[key] = null
 			}
 		},
+
 		renderTrendChart() {
 			const canvas = this.$refs.trendChart
-			if (!canvas) return
+			if (!canvas) { return }
 			this.destroyChart('trend')
 			const { labels, income, expense, result } = this.trendChartData
-			if (!labels.length) return
+			if (!labels.length) { return }
 			const isDark = document.documentElement.classList.contains('theme--dark')
 			const textColor = isDark ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.7)'
 			const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'
-			const eur = v => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(v)
-			this.$set(this.chartInstances, 'trend', new Chart(canvas, {
+			const eur = (v) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(v)
+			this.chartInstances.trend = new Chart(canvas, {
 				type: 'line',
 				data: {
 					labels,
@@ -1089,61 +1138,68 @@ export default {
 						},
 					],
 				},
+
 				options: {
 					responsive: true,
 					maintainAspectRatio: false,
 					plugins: {
 						legend: { labels: { color: textColor, font: { size: 12 } } },
-						tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${eur(ctx.raw)}` } },
+						tooltip: { callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${eur(ctx.raw)}` } },
 					},
+
 					scales: {
 						x: { ticks: { color: textColor }, grid: { color: gridColor } },
-						y: { ticks: { color: textColor, callback: v => eur(v) }, grid: { color: gridColor } },
+						y: { ticks: { color: textColor, callback: (v) => eur(v) }, grid: { color: gridColor } },
 					},
 				},
-			}))
+			})
 		},
+
 		auditDetailText(a) {
-			if (!a.details) return ''
+			if (!a.details) { return '' }
 			const d = a.details
 			const parts = []
-			if (d.entryNo != null) parts.push('#' + d.entryNo)
-			if (d.date) parts.push(this.formatDate(d.date))
-			if (d.konto) parts.push(d.konto)
-			if (d.contra) parts.push(d.contra)
-			if (d.description) parts.push(d.description)
-			if (d.fileName) parts.push(d.fileName)
-			if (d.filename) parts.push(d.filename)
-			if (d.wer) parts.push((d.typ === 'group' ? this.t('Gruppe') + ' ' : '') + d.wer + (d.rolle ? ' → ' + this.roleLabel(d.rolle) : ''))
-			if (d.amount != null) parts.push(this.formatMoney(d.amount))
-			if (d.jahr != null) parts.push(this.t('Jahr {year}', { year: d.jahr }))
-			if (d.buchungen != null) parts.push(this.t('{n} Buchungen', { n: d.buchungen }))
-			if (d.neu != null) parts.push(this.t('{n} neu', { n: d.neu }))
-			if (d.duplikate != null) parts.push(this.t('{n} Dubletten', { n: d.duplikate }))
-			if (d.reset) parts.push(this.t('mit Zurücksetzen'))
+			if (d.entryNo !== null && d.entryNo !== undefined) { parts.push('#' + d.entryNo) }
+			if (d.date) { parts.push(this.formatDate(d.date)) }
+			if (d.konto) { parts.push(d.konto) }
+			if (d.contra) { parts.push(d.contra) }
+			if (d.description) { parts.push(d.description) }
+			if (d.fileName) { parts.push(d.fileName) }
+			if (d.filename) { parts.push(d.filename) }
+			if (d.wer) { parts.push((d.typ === 'group' ? this.t('Gruppe') + ' ' : '') + d.wer + (d.rolle ? ' → ' + this.roleLabel(d.rolle) : '')) }
+			if (d.amount !== null && d.amount !== undefined) { parts.push(this.formatMoney(d.amount)) }
+			if (d.jahr !== null && d.jahr !== undefined) { parts.push(this.t('Jahr {year}', { year: d.jahr })) }
+			if (d.buchungen !== null && d.buchungen !== undefined) { parts.push(this.t('{n} Buchungen', { n: d.buchungen })) }
+			if (d.neu !== null && d.neu !== undefined) { parts.push(this.t('{n} neu', { n: d.neu })) }
+			if (d.duplikate !== null && d.duplikate !== undefined) { parts.push(this.t('{n} Dubletten', { n: d.duplikate })) }
+			if (d.reset) { parts.push(this.t('mit Zurücksetzen')) }
 			return parts.join(' · ')
 		},
+
 		addBudgetYear() {
 			const y = parseInt(this.newBudgetYear, 10)
-			if (!y || y < 2000 || y > 2099) return
+			if (!y || y < 2000 || y > 2099) { return }
 			this.newBudgetYear = ''
 			if (!this.years.includes(y)) {
 				this.years = [y, ...this.years].sort((a, b) => b - a)
 			}
 			this.selectedYear = y
 		},
+
 		async saveBudget(row) {
-			if (!this.budgetData) return
+			if (!this.budgetData) { return }
 			try {
 				await api.setBudget(row.accountId, this.budgetData.year, Number(row.plan) || 0, (row.note || '').trim())
 				this.$emit('budget-changed')
 			} catch (e) { showError(this.errMsg(e, this.t('Planwert konnte nicht gespeichert werden'))) }
 		},
+
 		toggleBudgetNote(row) {
-			this.$set(this.budgetNoteOpen, row.accountId, !this.budgetNoteOpen[row.accountId])
+			this.budgetNoteOpen[row.accountId] = !this.budgetNoteOpen[row.accountId]
 		},
+
 		async saveBudgetSnapshot() {
-			if (!this.budgetData) return
+			if (!this.budgetData) { return }
 			const label = this.newSnapshotLabel.trim()
 			try {
 				await api.createBudgetSnapshot(this.budgetData.year, label)
@@ -1152,8 +1208,9 @@ export default {
 				showSuccess(this.t('Plan-Stand gespeichert.'))
 			} catch (e) { showError(this.errMsg(e, this.t('Plan-Stand konnte nicht gespeichert werden'))) }
 		},
+
 		async deleteBudgetSnapshot(snap) {
-			if (!await this.askConfirm(this.t('Plan-Stand löschen'), this.t('Stand „{label}" wirklich löschen?', { label: snap.label }))) return
+			if (!await this.askConfirm(this.t('Plan-Stand löschen'), this.t('Stand „{label}" wirklich löschen?', { label: snap.label }))) { return }
 			try {
 				await api.deleteBudgetSnapshot(snap.id)
 				this.$emit('snapshots-changed')

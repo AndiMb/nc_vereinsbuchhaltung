@@ -8,35 +8,33 @@
 		"build": "webpack --node-env production --progress",
 		"dev": "webpack --node-env development --progress",
 		"watch": "webpack --node-env development --progress --watch",
-		"lint": "eslint --ext .js,.vue src/",
+		"lint": "eslint src/",
 		"test": "vitest run"
 	},
 	"dependencies": {
 		"@mdi/js": "^7.4.47",
 		"@nextcloud/axios": "^2.5.0",
-		"@nextcloud/dialogs": "^5.3.5",
+		"@nextcloud/dialogs": "^7.4.1",
 		"@nextcloud/l10n": "^3.4.1",
-		"@nextcloud/router": "^3.0.1",
-		"@nextcloud/vue": "^8.16.0",
+		"@nextcloud/router": "^3.1.0",
+		"@nextcloud/vue": "^9.9.0",
 		"chart.js": "^4.5.1",
-		"vue": "^2.7.16",
-		"vue-chartjs": "^5.3.3",
-		"vue-router": "^3.6.5"
+		"vue": "^3.5.18"
 	},
 	"devDependencies": {
-		"@nextcloud/babel-config": "^1.2.0",
-		"@nextcloud/browserslist-config": "^3.0.1",
-		"@nextcloud/eslint-config": "^8.4.1",
-		"@nextcloud/webpack-vue-config": "^6.2.0",
+		"@nextcloud/babel-config": "^1.3.0",
+		"@nextcloud/browserslist-config": "^3.1.2",
+		"@nextcloud/eslint-config": "^9.0.1",
+		"@nextcloud/webpack-vue-config": "^7.0.4",
+		"eslint": "^10.8.1",
 		"vitest": "^4.1.10",
-		"vue-loader": "^15.11.1",
-		"vue-template-compiler": "^2.7.16"
+		"vue-loader": "^17.4.2"
 	},
 	"browserslist": [
 		"extends @nextcloud/browserslist-config"
 	],
 	"engines": {
-		"node": "^20.0.0 || ^22.0.0",
+		"node": "^22.0.0 || ^24.0.0",
 		"npm": "^10.0.0 || ^11.0.0"
 	}
 }

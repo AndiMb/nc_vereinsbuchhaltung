@@ -24,20 +24,21 @@
 		</div>
 
 		<div class="vbh-sectionbody">
-			<MembersList v-show="contribView === 'members'"
+			<MembersList
+				v-show="contribView === 'members'"
 				ref="membersList"
-				:is-mobile="isMobile"
-				:default-fee-amount="defaultFeeAmount"
-				:default-fee-frequency="defaultFeeFrequency" />
-			<SepaBatchPanel v-show="contribView === 'batch'" :is-mobile="isMobile" />
+				:isMobile="isMobile"
+				:defaultFeeAmount="defaultFeeAmount"
+				:defaultFeeFrequency="defaultFeeFrequency" />
+			<SepaBatchPanel v-show="contribView === 'batch'" :isMobile="isMobile" />
 		</div>
 	</div>
 </template>
 
 <script>
-import { toRefs } from 'vue'
-import { NcButton, NcIconSvgWrapper } from '@nextcloud/vue'
 import { mdiPlus } from '@mdi/js'
+import { NcButton, NcIconSvgWrapper } from '@nextcloud/vue'
+import { toRefs } from 'vue'
 import MembersList from './MembersList.vue'
 import SepaBatchPanel from './SepaBatchPanel.vue'
 import { useMembershipFees } from '../composables/useMembershipFees.js'
@@ -62,6 +63,9 @@ export default {
 		defaultFeeAmount: { type: [Number, String], default: '' },
 		defaultFeeFrequency: { type: String, default: 'yearly' },
 	},
+
+	emits: ['update:contrib-view'],
+
 	setup() {
 		const membershipFees = useMembershipFees()
 		return {
@@ -69,6 +73,7 @@ export default {
 			overdueMembershipCount: membershipFees.overdueCount,
 		}
 	},
+
 	data() {
 		return { mdiPlus }
 	},

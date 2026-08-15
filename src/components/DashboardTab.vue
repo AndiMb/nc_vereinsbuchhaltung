@@ -1,12 +1,13 @@
 <template>
 	<div>
-		<SetupChecklist v-if="isAdmin"
+		<SetupChecklist
+			v-if="isAdmin"
 			:accounts="accounts"
 			:permissions="permissions"
-			:journal-count="journalData.length"
-			:club-name="clubName"
+			:journalCount="journalData.length"
+			:clubName="clubName"
 			@navigate="$emit('navigate', $event)"
-			@open-wizard="$emit('open-wizard')" />
+			@openWizard="$emit('open-wizard')" />
 
 		<div v-if="balances" class="vbh-totals">
 			<div class="vbh-total pos">
@@ -48,7 +49,8 @@
 				<span v-if="sphereData.freigrenze.level === 'over'"> {{ t('– Freigrenze überschritten, bitte mit Steuerberatung klären.') }}</span>
 				<span v-else-if="sphereData.freigrenze.level === 'warn'"> {{ t('– nähert sich der Freigrenze.') }}</span>
 			</div>
-			<button type="button"
+			<button
+				type="button"
 				class="vbh-sphere-help"
 				:title="t('Was bedeutet das?')"
 				@click="$emit('help', 'spheres')">
@@ -149,10 +151,11 @@
 				</table>
 			</div>
 			<div v-else class="vbh-cardlist">
-				<BookingCard v-for="r in recentJournal"
+				<BookingCard
+					v-for="r in recentJournal"
 					:key="'m' + r.id"
 					:row="r"
-					:attachment-count="attachmentCountMap[r.id] ? attachmentCountMap[r.id].count : 0"
+					:attachmentCount="attachmentCountMap[r.id] ? attachmentCountMap[r.id].count : 0"
 					:flow="rowFlow(r)"
 					:tappable="canWrite || !!attachmentCountMap[r.id]"
 					@open="openBookingCard(r)"
@@ -179,27 +182,27 @@
 </template>
 
 <script>
-import { toRefs } from 'vue'
+import { NcButton, NcEmptyContent } from '@nextcloud/vue'
 import {
-	Chart,
 	BarController,
 	BarElement,
 	CategoryScale,
+	Chart,
+	Legend,
 	LinearScale,
 	Tooltip,
-	Legend,
 } from 'chart.js'
-import { NcButton, NcEmptyContent } from '@nextcloud/vue'
-import SetupChecklist from './SetupChecklist.vue'
+import { toRefs } from 'vue'
 import BookingCard from './BookingCard.vue'
-import { formatMoney, formatDate } from '../lib/format.js'
-import { useAuth } from '../composables/useAuth.js'
-import { useYears } from '../composables/useYears.js'
+import SetupChecklist from './SetupChecklist.vue'
 import { useAccounts } from '../composables/useAccounts.js'
+import { useAuth } from '../composables/useAuth.js'
 import { useBalances } from '../composables/useBalances.js'
 import { useJournal } from '../composables/useJournal.js'
-import { usePermissions } from '../composables/usePermissions.js'
 import { useOpenItems } from '../composables/useOpenItems.js'
+import { usePermissions } from '../composables/usePermissions.js'
+import { useYears } from '../composables/useYears.js'
+import { formatDate, formatMoney } from '../lib/format.js'
 
 Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend)
 
@@ -221,6 +224,9 @@ export default {
 		clickPaperclip: { type: Function, required: true },
 		openBookingCard: { type: Function, required: true },
 	},
+
+	emits: ['go-open-items', 'go-unassigned', 'help', 'navigate', 'open-wizard', 'show-all-bookings'],
+
 	setup() {
 		const auth = useAuth()
 		const years = useYears()
@@ -242,78 +248,89 @@ export default {
 			overdueOpenItemsCount: openItems.overdueCount,
 		}
 	},
-	data() {
-		return { chartInstances: {} }
-	},
+
 	computed: {
 		kpiDeltas() {
-			if (!this.balances || !this.prevBalances || !this.selectedYear) return null
-			const mk = key => {
+			if (!this.balances || !this.prevBalances || !this.selectedYear) { return null }
+			const mk = (key) => {
 				const cur = this.balances.totals[key]
 				const prev = this.prevBalances.totals[key]
-				if (!prev || Math.abs(prev) < 0.005) return null
+				if (!prev || Math.abs(prev) < 0.005) { return null }
 				const pct = Math.round(((cur - prev) / Math.abs(prev)) * 100)
 				return { pct, up: pct >= 0, text: this.t('{sign}{pct} % ggü. {year}', { sign: pct >= 0 ? '+' : '', pct, year: this.selectedYear - 1 }) }
 			}
 			return { income: mk('income'), expense: mk('expense'), result: mk('result') }
 		},
+
 		monthlyChartData() {
 			const labels = [this.t('Jan'), this.t('Feb'), this.t('Mär'), this.t('Apr'), this.t('Mai'), this.t('Jun'), this.t('Jul'), this.t('Aug'), this.t('Sep'), this.t('Okt'), this.t('Nov'), this.t('Dez')]
 			const income = new Array(12).fill(0)
 			const expense = new Array(12).fill(0)
 			for (const item of this.journalData) {
 				const date = item.journal && item.journal.date
-				if (!date) continue
+				if (!date) { continue }
 				const m = parseInt(String(date).slice(5, 7), 10) - 1
-				if (m < 0 || m > 11) continue
+				if (m < 0 || m > 11) { continue }
 				for (const line of (item.lines || [])) {
 					const acc = this.accountsById[line.accountId]
-					if (!acc || acc.isBank || acc.type === 'equity') continue
-					if (['income', 'liability'].includes(acc.type)) income[m] += (line.creditCents - line.debitCents) / 100
-					else expense[m] += (line.debitCents - line.creditCents) / 100
+					if (!acc || acc.isBank || acc.type === 'equity') { continue }
+					if (['income', 'liability'].includes(acc.type)) { income[m] += (line.creditCents - line.debitCents) / 100 } else { expense[m] += (line.debitCents - line.creditCents) / 100 }
 				}
 			}
 			return { labels, income, expense }
 		},
 	},
+
 	watch: {
-		isActive(v) { if (v) this.$nextTick(() => this.renderMonthlyChart()) },
-		journalData() { if (this.isActive) this.$nextTick(() => this.renderMonthlyChart()) },
+		isActive(v) { if (v) { this.$nextTick(() => this.renderMonthlyChart()) } },
+		journalData() { if (this.isActive) { this.$nextTick(() => this.renderMonthlyChart()) } },
 	},
+
+	// chartInstances liegt bewusst NICHT in data(): Chart.js-Instanzen vertragen
+	// sich nicht mit Vue 3s tiefer Proxy-Reaktivitaet, und die Instanzen werden
+	// nirgends im Template gelesen, brauchen also keine Reaktivitaet.
+	created() {
+		this.chartInstances = {}
+	},
+
 	mounted() {
 		this.$nextTick(() => setTimeout(() => this.renderMonthlyChart(), 50))
 	},
-	beforeDestroy() {
-		Object.values(this.chartInstances).forEach(c => c && c.destroy())
+
+	beforeUnmount() {
+		Object.values(this.chartInstances).forEach((c) => c && c.destroy())
 	},
+
 	methods: {
 		formatMoney,
 		formatDate,
 		rowFlow(r) {
-			if (r.isSplit) return ''
+			if (r.isSplit) { return '' }
 			const d = this.accountsById[r.debitAccountId]
 			const c = this.accountsById[r.creditAccountId]
 			const dIn = !!(d && d.isBank)
 			const cOut = !!(c && c.isBank)
-			if (dIn && !cOut) return 'in'
-			if (cOut && !dIn) return 'out'
+			if (dIn && !cOut) { return 'in' }
+			if (cOut && !dIn) { return 'out' }
 			return ''
 		},
+
 		destroyChart(key) {
 			if (this.chartInstances[key]) {
 				this.chartInstances[key].destroy()
-				this.$set(this.chartInstances, key, null)
+				this.chartInstances[key] = null
 			}
 		},
+
 		renderMonthlyChart() {
 			const canvas = this.$refs.monthlyChart
-			if (!canvas) return
+			if (!canvas) { return }
 			this.destroyChart('monthly')
 			const { labels, income, expense } = this.monthlyChartData
 			const isDark = document.documentElement.classList.contains('theme--dark')
 			const textColor = isDark ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.7)'
 			const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'
-			this.$set(this.chartInstances, 'monthly', new Chart(canvas, {
+			this.chartInstances.monthly = new Chart(canvas, {
 				type: 'bar',
 				data: {
 					labels,
@@ -336,6 +353,7 @@ export default {
 						},
 					],
 				},
+
 				options: {
 					responsive: true,
 					maintainAspectRatio: false,
@@ -343,25 +361,28 @@ export default {
 						legend: { labels: { color: textColor, font: { size: 12 } } },
 						tooltip: {
 							callbacks: {
-								label: ctx => ` ${ctx.dataset.label}: ${new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(ctx.raw)}`,
+								label: (ctx) => ` ${ctx.dataset.label}: ${new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(ctx.raw)}`,
 							},
 						},
 					},
+
 					scales: {
 						x: {
 							ticks: { color: textColor },
 							grid: { color: gridColor },
 						},
+
 						y: {
 							ticks: {
 								color: textColor,
-								callback: v => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(v),
+								callback: (v) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(v),
 							},
+
 							grid: { color: gridColor },
 						},
 					},
 				},
-			}))
+			})
 		},
 	},
 }

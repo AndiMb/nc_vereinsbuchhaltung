@@ -6,7 +6,8 @@
 			</div>
 			<div class="vbh-form">
 				<label>{{ t('Betrag (€)') }}
-					<input v-model="editAmount"
+					<input
+						v-model="editAmount"
 						type="number"
 						step="0.01"
 						min="0"
@@ -28,7 +29,8 @@
 				</label>
 			</div>
 			<div class="vbh-mcard-actions">
-				<NcButton variant="primary"
+				<NcButton
+					variant="primary"
 					size="small"
 					:disabled="saving"
 					@click="$emit('save-edit')">
@@ -68,13 +70,15 @@
 				{{ n('%n Periode im Rückstand', '%n Perioden im Rückstand', row.fee.dueCount) }}
 			</p>
 			<div class="vbh-mcard-actions">
-				<NcButton v-if="row.fee && row.fee.dueCount > 0"
+				<NcButton
+					v-if="row.fee && row.fee.dueCount > 0"
 					variant="secondary"
 					size="small"
 					@click="$emit('catch-up')">
 					{{ t('Nachholen') }}
 				</NcButton>
-				<NcButton v-if="row.fee"
+				<NcButton
+					v-if="row.fee"
 					variant="tertiary"
 					size="small"
 					@click="$emit('start-edit')">
@@ -82,7 +86,7 @@
 				</NcButton>
 				<!-- Seltener genutzte Aktionen im Menue, gleiches Muster wie in der
 					Desktop-Tabelle (MembersList.vue) und im Buchungsjournal. -->
-				<NcActions v-if="row.fee || (row.mandate && (row.mandate.status === 'active' || !isUsed))" :force-menu="true">
+				<NcActions v-if="row.fee || (row.mandate && (row.mandate.status === 'active' || !isUsed))" :forceMenu="true">
 					<NcActionButton v-if="row.mandate && row.mandate.status === 'active'" @click="$emit('bank-change')">
 						<template #icon>
 							<NcIconSvgWrapper :path="mdiBankTransfer" :size="16" />
@@ -114,8 +118,8 @@
 </template>
 
 <script>
-import { NcButton, NcActions, NcActionButton, NcIconSvgWrapper } from '@nextcloud/vue'
 import { mdiBankTransfer, mdiCancel, mdiDelete } from '@mdi/js'
+import { NcActionButton, NcActions, NcButton, NcIconSvgWrapper } from '@nextcloud/vue'
 import { formatMoney } from '../lib/format.js'
 import { frequencyLabel } from '../lib/frequency.js'
 
@@ -141,9 +145,13 @@ export default {
 		saving: { type: Boolean, default: false },
 		isUsed: { type: Boolean, default: false },
 	},
+
+	emits: ['bank-change', 'cancel-edit', 'catch-up', 'remove-fee', 'remove-mandate', 'revoke-mandate', 'save-edit', 'start-edit', 'toggle-active', 'update-editing'],
+
 	data() {
 		return { mdiBankTransfer, mdiCancel, mdiDelete }
 	},
+
 	computed: {
 		// Eigene v-model-Ziele statt direkter Prop-Mutation (vue/no-mutating-props):
 		// jede Feldaenderung meldet sich per Event zurueck, MembersList.vue haelt
@@ -153,19 +161,23 @@ export default {
 			get() { return this.editing.amount },
 			set(v) { this.$emit('update-editing', { ...this.editing, amount: v }) },
 		},
+
 		editFrequency: {
 			get() { return this.editing.frequency },
 			set(v) { this.$emit('update-editing', { ...this.editing, frequency: v }) },
 		},
+
 		editNextDueDate: {
 			get() { return this.editing.nextDueDate },
 			set(v) { this.$emit('update-editing', { ...this.editing, nextDueDate: v }) },
 		},
+
 		editActive: {
 			get() { return this.editing.active },
 			set(v) { this.$emit('update-editing', { ...this.editing, active: v }) },
 		},
 	},
+
 	methods: { formatMoney, frequencyLabel },
 }
 </script>

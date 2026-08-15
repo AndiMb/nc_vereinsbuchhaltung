@@ -16,7 +16,8 @@
 					</select>
 				</label>
 				<label class="vbh-grow">{{ permForm.principalType === 'group' ? t('Gruppe') : t('Nutzer') }}
-					<NcSelect v-model="permFormPrincipalOption"
+					<NcSelect
+						v-model="permFormPrincipalOption"
 						:options="permForm.principalType === 'group' ? groupOptions : userOptions"
 						label="label"
 						:placeholder="permForm.principalType === 'group' ? t('– Gruppe wählen –') : t('– Nutzer wählen –')" />
@@ -64,14 +65,14 @@
 </template>
 
 <script>
-import { toRefs } from 'vue'
-import { NcButton, NcSelect, NcEmptyContent, NcIconSvgWrapper } from '@nextcloud/vue'
-import { showError, showSuccess } from '@nextcloud/dialogs'
 import { mdiDelete } from '@mdi/js'
+import { showError, showSuccess } from '@nextcloud/dialogs'
+import { NcButton, NcEmptyContent, NcIconSvgWrapper, NcSelect } from '@nextcloud/vue'
+import { toRefs } from 'vue'
 import api from '../api.js'
-import { roleLabel, errMsg } from '../lib/format.js'
-import { usePermissions } from '../composables/usePermissions.js'
 import { useConfirm } from '../composables/useConfirm.js'
+import { usePermissions } from '../composables/usePermissions.js'
+import { errMsg, roleLabel } from '../lib/format.js'
 
 export default {
 	name: 'SettingsPermissions',
@@ -79,6 +80,9 @@ export default {
 	props: {
 		// Bestaetigungsdialog des Elternteils (gibt Promise<boolean> zurueck)
 	},
+
+	emits: ['help'],
+
 	setup() {
 		// permissions/groups/users kommen direkt aus dem usePermissions-Singleton
 		// (gleicher geteilter Zustand wie in App.vue, kein Prop-Drilling noetig).
@@ -89,23 +93,27 @@ export default {
 			askConfirm: useConfirm().askConfirm,
 		}
 	},
+
 	data() {
 		return {
 			mdiDelete,
 			permForm: { principalType: 'group', principalId: '', role: 'revisor' },
 		}
 	},
+
 	computed: {
-		groupOptions() { return this.groups.map(g => ({ id: g.id, label: g.displayName })) },
-		userOptions() { return this.users.map(u => ({ id: u.id, label: `${u.displayName} (${u.id})` })) },
+		groupOptions() { return this.groups.map((g) => ({ id: g.id, label: g.displayName })) },
+		userOptions() { return this.users.map((u) => ({ id: u.id, label: `${u.displayName} (${u.id})` })) },
 		permFormPrincipalOption: {
 			get() {
 				const list = this.permForm.principalType === 'group' ? this.groupOptions : this.userOptions
-				return list.find(o => o.id === this.permForm.principalId) ?? null
+				return list.find((o) => o.id === this.permForm.principalId) ?? null
 			},
+
 			set(v) { this.permForm.principalId = v ? v.id : '' },
 		},
 	},
+
 	methods: {
 		roleLabel,
 		errMsg,
@@ -118,8 +126,9 @@ export default {
 				showSuccess(this.t('Berechtigung gespeichert.'))
 			} catch (e) { showError(this.errMsg(e, this.t('Speichern fehlgeschlagen'))) }
 		},
+
 		async removePermission(p) {
-			if (!await this.askConfirm(this.t('Berechtigung entfernen'), this.t('Berechtigung für "{id}" entfernen?', { id: p.principalId }))) return
+			if (!await this.askConfirm(this.t('Berechtigung entfernen'), this.t('Berechtigung für "{id}" entfernen?', { id: p.principalId }))) { return }
 			try { await api.deletePermission(p.id); await this.loadPermissions() } catch (e) { showError(this.errMsg(e, this.t('Entfernen fehlgeschlagen'))) }
 		},
 	},

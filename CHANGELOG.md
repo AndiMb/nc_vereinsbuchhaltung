@@ -10,6 +10,47 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
 
 ## [Unreleased]
 
+## [0.23.0] – 2026-08-15
+
+### Geändert
+- **Frontend auf Vue 3 migriert**: Vue 2.7 → 3.5, `@nextcloud/vue` 8 → 9,
+  `@nextcloud/dialogs` 5 → 7, `vue-loader` 15 → 17. Build bleibt Webpack
+  (`@nextcloud/webpack-vue-config` 6 → 7, unterstützt Vue 3 nativ); Options
+  API und die bestehenden Composables (`reactive()`-Singletons) bleiben
+  unverändert. Vue 2 ist seit 31.12.2023 End-of-Life, `@nextcloud/vue` 8.x
+  bekommt zwar noch Patches, aber keine neuen Funktionen mehr.
+- **Nextcloud-Mindestversion auf 31 angehoben** (vorher 28), passend zum
+  harten Boden von `@nextcloud/vue` 9. Kostet real nichts – NC 28–31 sind
+  sämtlich End-of-Life, gewartet sind nur noch 32–34. `max-version` auf 35
+  angehoben, PHP-Obergrenze auf 8.5 (von NC 33/34 unterstützt).
+- **ESLint 8 → 10** mit Flat Config (`eslint.config.mjs` statt
+  `.eslintrc.cjs`), `@nextcloud/eslint-config` 8 → 9.
+- Tote Frontend-Abhängigkeiten entfernt: `vue-router` und `vue-chartjs`
+  standen in `package.json`, wurden aber nirgends importiert.
+
+### Behoben
+- **Button-Beschriftungen nicht mehr zentriert**: ein `:deep()`-Override aus
+  der `@nextcloud/vue`-8-Zeit erzwang `.button-vue__icon { display: flex
+  !important }` und verhinderte damit, dass `NcButton` v9 das Icon-Element
+  bei textonly-Buttons per `:empty { display: none }` korrekt kollabiert –
+  die leere Icon-Box schob den Text sichtbar nach rechts. Override ersatzlos
+  entfernt (`App.vue`, `RulesPanel.vue`), v9 zentriert von sich aus richtig.
+- **Berichte → Kostenstellen/Sphären nicht scrollbar, ohne Rand**: die
+  Split-Ansicht (`.vbh-splitinner`) und das darunterliegende Pflegepanel
+  (`CostCenterPanel`/`SphereAssignPanel`) lagen als Flex-Geschwister in
+  einer Reihe statt untereinander und quetschten die Split-Ansicht auf
+  ~1px Breite. `.vbh-sectionbody.is-split` bekommt `flex-direction: column`
+  und `.vbh-splitinner` eine Mindesthöhe, damit beides untereinander steht
+  und die Sektion als Ganzes scrollt (wie im Mobile-Breakpoint, der aus
+  demselben Grund längst auf `display: block` umschaltet).
+- Die beiden Notlösungen, die durch die Vue-2.7-Toolchain nötig waren, sind
+  mit Vue 3 hinfällig geworden: `<teleport>` wird jetzt korrekt kompiliert
+  (betraf `AccountPickerSheet.vue`, lief bisher über ein manuelles
+  `mounted()`/`beforeUnmount()`-Portal-Pattern, siehe 0.22.3), und
+  `NcAppSettingsDialog` könnte nun grundsätzlich wieder verwendet werden
+  (bisher `NcModal` als Ersatz, siehe Kommentar in `App.vue`) – beides nicht
+  in diesem Release umgesetzt, nur die Blockade entfernt.
+
 ## [0.22.4] – 2026-08-15
 
 ### Geändert

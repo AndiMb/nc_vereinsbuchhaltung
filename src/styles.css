@@ -71,8 +71,18 @@
 .vbh-search--full { width: 100%; box-sizing: border-box; }
 .vbh-filter-select { min-width: 200px; max-width: 280px; }
 .vbh-sectionbody { flex: 1 1 auto; min-height: 0; min-width: 0; overflow: auto; padding: 12px 16px 48px; }
-.vbh-sectionbody.is-split { overflow: hidden; display: flex; padding: 0; }
-.vbh-splitinner { display: flex; flex: 1 1 auto; min-height: 0; min-width: 0; overflow: hidden; }
+/* is-split (Kostenstellen/Sphären) haengt unterhalb von .vbh-splitinner noch
+   einen .vbh-section-divider mit Pflegepanel an (CostCenterPanel/
+   SphereAssignPanel, siehe ReportsTab.vue). Bei display:flex ohne
+   flex-direction (= row) wurde dieser Divider zum Flex-Geschwister NEBEN
+   splitinner statt darunter und quetschte es auf ~1px Breite - daher hier
+   flex-direction:column, damit beides untereinander steht (wie im Mobile-
+   Breakpoint, der aus demselben Grund auf display:block umschaltet). */
+.vbh-sectionbody.is-split { overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; padding: 0; }
+/* min-height statt 0: sonst schrumpft splitinner in der Spalte neben dem
+   ggf. sehr hohen .vbh-section-divider (Pflegepanel) auf 0 zusammen, weil
+   es als einziges der beiden Geschwister min-height:0 haette. */
+.vbh-splitinner { display: flex; flex: 1 1 auto; min-height: 360px; min-width: 0; overflow: hidden; }
 
 /* Account tree search */
 .vbh-treesearch { padding: 8px; border-bottom: 1px solid var(--color-border); }
@@ -325,13 +335,13 @@
 
 /* Assignment select */
 /* Zuordnungs-Spalte: feste Zielbreite; NcSelect bringt min-width:260px mit,
-   das die Tabelle über den Viewport drücken würde → per ::v-deep neutralisieren */
+   das die Tabelle über den Viewport drücken würde → per :deep() neutralisieren */
 .vbh-assign-cell { width: min(320px, 36vw); min-width: 140px; }
 /* contain:inline-size entkoppelt die Spaltenbreite hart vom Zelleninhalt (NcSelect`s
    NcEllipsisedOption nutzt white-space:pre und wuerde sonst die Mindestbreite sprengen) */
 .vbh-assign-inner { contain: inline-size; }
 .vbh-assign-row { min-width: 0; }
-/* global unbedenklich: .vbh-assign-select ist unser Klassenname; kein ::v-deep
+/* global unbedenklich: .vbh-assign-select ist unser Klassenname; kein :deep()
    noetig, da dieses Stylesheet global geladen wird und NcSelect-Internes so ohnehin
    erreicht. */
 .vbh-assign-select.v-select { min-width: 0 !important; width: 100%; max-width: none; }
@@ -520,9 +530,6 @@
 .vbh-previewsummary { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 10px; }
 .vbh-preview { margin-top: 10px; }
 
-/* Icon-/Button-Layout-Fixes fuer NcButton stehen als scoped ::v-deep-Block in
-   App.vue (nicht hier global), damit sie nicht in Nextclouds eigene .button-vue
-   im Header/Sidebar lecken. */
 .vbh-table td.right { white-space: nowrap; }
 .vbh-actions { display: inline-flex; gap: 2px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
 

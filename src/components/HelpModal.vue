@@ -1,12 +1,15 @@
 <template>
-	<NcModal :show="show"
+	<NcModal
+		:show="show"
 		:name="t('Hilfe')"
 		size="normal"
+		:closeOnClickOutside="true"
 		@close="$emit('close')"
 		@update:show="$emit('update:show', $event)">
 		<div class="vbh-help">
 			<nav class="vbh-help-nav">
-				<button v-for="t in topics"
+				<button
+					v-for="t in topics"
 					:key="t.id"
 					:class="{ active: t.id === currentTopic }"
 					@click="currentTopic = t.id">
@@ -20,7 +23,8 @@
 						{{ b }}
 					</li>
 				</ul>
-				<a :href="handbuchLink"
+				<a
+					:href="handbuchLink"
 					target="_blank"
 					rel="noopener noreferrer"
 					class="vbh-help-full">
@@ -128,23 +132,29 @@ export default {
 		// Gewünschtes Kapitel beim Öffnen; der Nutzer kann innerhalb der Hilfe frei weiterklicken.
 		topic: { type: String, default: 'setup' },
 	},
+
+	emits: ['close', 'update:show'],
+
 	data() {
 		return {
 			topics: buildTopics(),
 			currentTopic: this.topic,
 		}
 	},
+
 	computed: {
 		current() {
-			return this.topics.find(t => t.id === this.currentTopic) || this.topics[0]
+			return this.topics.find((t) => t.id === this.currentTopic) || this.topics[0]
 		},
+
 		handbuchLink() {
 			return api.handbuchUrl(this.current.anchor)
 		},
 	},
+
 	watch: {
 		show(open) {
-			if (open) this.currentTopic = this.topic
+			if (open) { this.currentTopic = this.topic }
 		},
 	},
 }

@@ -2,7 +2,8 @@
 	<div class="vbh-reassign">
 		<div v-if="sides.length > 1" class="vbh-reassign-sides">
 			<span class="vbh-reassign-lab">{{ t('Welche Seite umbuchen?') }}</span>
-			<button v-for="s in sides"
+			<button
+				v-for="s in sides"
 				:key="s.accountId"
 				type="button"
 				class="vbh-reassign-side"
@@ -13,15 +14,17 @@
 		</div>
 		<div class="vbh-reassign-row">
 			<span class="vbh-reassign-lab">{{ currentLabel }} → </span>
-			<NcSelect :model-value="null"
+			<NcSelect
+				:modelValue="null"
 				:options="options"
-				:filter-by="accountFilterBy"
+				:filterBy="accountFilterBy"
 				:disabled="busy"
 				label="label"
 				:placeholder="t('Neues Konto wählen…')"
 				class="vbh-reassign-select"
-				@update:model-value="v => v && v.id && $emit('pick', v.id)" />
-			<NcButton variant="tertiary"
+				@update:modelValue="v => v && v.id && $emit('pick', v.id)" />
+			<NcButton
+				variant="tertiary"
 				size="small"
 				:disabled="busy"
 				@click="$emit('cancel')">
@@ -57,19 +60,23 @@ export default {
 		options: { type: Array, required: true },
 		busy: { type: Boolean, default: false },
 	},
+
+	emits: ['cancel', 'pick', 'side'],
+
 	computed: {
 		currentLabel() {
-			const s = this.sides.find(x => x.accountId === this.sideId)
+			const s = this.sides.find((x) => x.accountId === this.sideId)
 			return s ? s.label : ''
 		},
 	},
+
 	methods: {
 		// Ziffern = Präfix der Kontonummer, sonst Textsuche – dieselbe reine
 		// Logik wie in SettingsRules.vue/AccountDialog.vue.
 		accountFilterBy(option, label, search) {
 			const s = String(search || '').trim().toLowerCase()
-			if (!s) return true
-			if (option && option.$isDisabled) return false
+			if (!s) { return true }
+			if (option && option.$isDisabled) { return false }
 			if (/^[\d\s]+$/.test(s)) {
 				const digits = s.replace(/\s+/g, '')
 				const num = String((option && option.number) || '').replace(/\s+/g, '').toLowerCase()

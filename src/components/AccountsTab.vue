@@ -2,7 +2,8 @@
 	<div style="display: contents;">
 		<div v-if="!isMobile || !selectedAccountId" class="vbh-tree">
 			<div class="vbh-treehead">
-				<NcButton v-if="canWrite"
+				<NcButton
+					v-if="canWrite"
 					variant="primary"
 					size="small"
 					@click="openNewAccount">
@@ -23,7 +24,8 @@
 			</div>
 
 			<div class="vbh-treesearch">
-				<input v-model="accountSearch"
+				<input
+					v-model="accountSearch"
 					type="search"
 					:placeholder="t('Konto suchen…')"
 					class="vbh-search vbh-search--full">
@@ -40,13 +42,15 @@
 			</p>
 
 			<div class="vbh-treelist">
-				<div v-for="node in currentTree"
+				<div
+					v-for="node in currentTree"
 					:key="node.id"
 					class="vbh-treenode"
 					:class="{ selected: node.id === selectedAccountId, group: node.hasChildren, inactive: !node.active }"
 					:style="{ paddingLeft: (8 + node.depth * 18) + 'px' }"
 					@click="selectAccount(node)">
-					<button v-if="node.hasChildren && !accountSearch"
+					<button
+						v-if="node.hasChildren && !accountSearch"
 						class="vbh-caret"
 						:class="{ open: expanded[node.id] }"
 						@click.stop="toggleExpand(node.id)">
@@ -91,7 +95,8 @@
 				<!-- Eröffnungssaldo nur für Geldkonten: nur deren Bestand geht über Jahresgrenzen. -->
 				<div v-if="canWrite && selectedAccount.isBank" class="vbh-opening">
 					<span>{{ t('Eröffnungssaldo:') }}</span>
-					<input v-model.number="openingAmount"
+					<input
+						v-model.number="openingAmount"
 						type="number"
 						step="0.01"
 						class="vbh-num">
@@ -102,7 +107,7 @@
 				</div>
 
 				<div v-if="statement" class="vbh-statementbar">
-					<NcCheckboxRadioSwitch :model-value="statementIncludeChildren" @update:model-value="onIncludeChildrenChange">
+					<NcCheckboxRadioSwitch :modelValue="statementIncludeChildren" @update:modelValue="onIncludeChildrenChange">
 						{{ t('inkl. Unterkonten') }}
 					</NcCheckboxRadioSwitch>
 					<div class="vbh-previewsummary">
@@ -132,7 +137,8 @@
 							<span class="vbh-mcard-accounts">{{ row.contra }}</span>
 							<span class="vbh-mcard-meta">{{ t('Saldo {amount}', { amount: formatMoney(row.saldo) }) }}</span>
 						</div>
-						<button v-if="canReassign(row) && !isReassigning(row)"
+						<button
+							v-if="canReassign(row) && !isReassigning(row)"
 							type="button"
 							class="vbh-fieldbtn"
 							@click="startReassign(row)">
@@ -142,9 +148,10 @@
 							</span>
 							<span class="vbh-fieldbtn-chev" aria-hidden="true">›</span>
 						</button>
-						<ReassignPanel v-if="isReassigning(row)"
+						<ReassignPanel
+							v-if="isReassigning(row)"
 							:sides="reassignSides"
-							:side-id="reassign.fromAccountId"
+							:sideId="reassign.fromAccountId"
 							:options="reassignOptions"
 							:busy="reassignSaving"
 							@side="onReassignSide"
@@ -195,10 +202,10 @@
 								</td>
 								<td v-if="canWrite" />
 							</tr>
-							<!-- :key gehoert auf die echten <tr>, nicht aufs <template>
-							     (Vue 2 ignoriert Template-Keys stillschweigend) -->
-							<template v-for="(row, i) in statementRows">
-								<tr :key="'r' + i">
+							<!-- :key gehoert unter Vue 3 aufs <template>, nicht mehr auf die
+							     einzelnen <tr> (umgekehrt zu Vue 2) -->
+							<template v-for="(row, i) in statementRows" :key="i">
+								<tr>
 									<td class="num vbh-col-hide-sm">
 										{{ row.entryNo }}
 									</td>
@@ -221,7 +228,8 @@
 										{{ formatMoney(row.saldo) }}
 									</td>
 									<td v-if="canWrite" class="nowrap">
-										<NcButton v-if="canReassign(row)"
+										<NcButton
+											v-if="canReassign(row)"
 											variant="tertiary"
 											size="small"
 											:aria-label="t('Buchung #{n} auf ein anderes Konto umbuchen', { n: row.entryNo })"
@@ -233,10 +241,11 @@
 										</NcButton>
 									</td>
 								</tr>
-								<tr v-if="isReassigning(row)" :key="'x' + i" class="vbh-ccdetail">
+								<tr v-if="isReassigning(row)" class="vbh-ccdetail">
 									<td :colspan="canWrite ? 8 : 7">
-										<ReassignPanel :sides="reassignSides"
-											:side-id="reassign.fromAccountId"
+										<ReassignPanel
+											:sides="reassignSides"
+											:sideId="reassign.fromAccountId"
 											:options="reassignOptions"
 											:busy="reassignSaving"
 											@side="onReassignSide"
@@ -257,15 +266,15 @@
 </template>
 
 <script>
-import { toRefs } from 'vue'
+import { mdiDelete, mdiPencil, mdiPlus, mdiSwapHorizontal } from '@mdi/js'
 import { NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper } from '@nextcloud/vue'
-import { mdiPlus, mdiPencil, mdiDelete, mdiSwapHorizontal } from '@mdi/js'
-import { formatMoney, formatDate, typeLabel, amountClass } from '../lib/format.js'
-import { useAuth } from '../composables/useAuth.js'
-import { useYears } from '../composables/useYears.js'
-import { useAccounts } from '../composables/useAccounts.js'
-import { useBalances } from '../composables/useBalances.js'
+import { toRefs } from 'vue'
 import ReassignPanel from './ReassignPanel.vue'
+import { useAccounts } from '../composables/useAccounts.js'
+import { useAuth } from '../composables/useAuth.js'
+import { useBalances } from '../composables/useBalances.js'
+import { useYears } from '../composables/useYears.js'
+import { amountClass, formatDate, formatMoney, typeLabel } from '../lib/format.js'
 
 export default {
 	name: 'AccountsTab',
@@ -294,6 +303,9 @@ export default {
 		saveOpening: { type: Function, required: true },
 		seedAccounts: { type: Function, required: true },
 	},
+
+	emits: ['help', 'update:openingForm', 'update:statementIncludeChildren'],
+
 	setup() {
 		const auth = useAuth()
 		const years = useYears()
@@ -310,6 +322,7 @@ export default {
 			...toRefs(balances.state),
 		}
 	},
+
 	data() {
 		return {
 			mdiPlus,
@@ -324,10 +337,12 @@ export default {
 			reassignSaving: false,
 		}
 	},
+
 	computed: {
 		selectedAccount() {
 			return this.selectedAccountId ? this.accountsById[this.selectedAccountId] : null
 		},
+
 		// Eroeffnungssaldo des gewaehlten Kontos. Der Zustand liegt beim
 		// Elternteil (App.vue zieht ihn nach dem Speichern nach), deshalb
 		// meldet das Kind Aenderungen per Event zurueck statt direkt in die
@@ -336,34 +351,36 @@ export default {
 			const id = this.selectedAccount ? this.selectedAccount.id : null
 			return (id && this.openingForm[id]) || { amount: 0, date: '' }
 		},
+
 		openingAmount: {
 			get() { return this.openingEntry.amount },
 			set(v) { this.updateOpening({ amount: v }) },
 		},
+
 		openingDate: {
 			get() { return this.openingEntry.date },
 			set(v) { this.updateOpening({ date: v }) },
 		},
+
 		visibleTree() {
-			const byNum = list => list.slice().sort((a, b) => String(a.number).localeCompare(String(b.number), 'de', { numeric: true }))
-			const roots = byNum(this.accounts.filter(a => !a.parentId))
+			const byNum = (list) => list.slice().sort((a, b) => String(a.number).localeCompare(String(b.number), 'de', { numeric: true }))
+			const roots = byNum(this.accounts.filter((a) => !a.parentId))
 			const out = []
 			const walk = (acc, depth) => {
 				const kids = this.childrenOf[acc.id] || []
 				out.push({ id: acc.id, number: acc.number, name: acc.name, type: acc.type, active: acc.active !== false, depth, hasChildren: kids.length > 0 })
-				if (kids.length && this.expanded[acc.id]) for (const k of byNum(kids)) walk(k, depth + 1)
+				if (kids.length && this.expanded[acc.id]) { for (const k of byNum(kids)) { walk(k, depth + 1) } }
 			}
-			for (const r of roots) walk(r, 0)
+			for (const r of roots) { walk(r, 0) }
 			return out
 		},
+
 		filteredVisibleTree() {
 			const s = this.accountSearch.trim().toLowerCase()
-			if (!s) return this.visibleTree
-			const matchingIds = new Set(
-				this.accounts
-					.filter(a => a.name.toLowerCase().includes(s) || String(a.number).includes(s))
-					.map(a => a.id),
-			)
+			if (!s) { return this.visibleTree }
+			const matchingIds = new Set(this.accounts
+				.filter((a) => a.name.toLowerCase().includes(s) || String(a.number).includes(s))
+				.map((a) => a.id))
 			const addAncestors = (id) => {
 				const acc = this.accountsById[id]
 				if (acc && acc.parentId && !matchingIds.has(acc.parentId)) {
@@ -371,65 +388,71 @@ export default {
 					addAncestors(acc.parentId)
 				}
 			}
-			for (const id of [...matchingIds]) addAncestors(id)
-			const byNum = list => list.slice().sort((a, b) => String(a.number).localeCompare(String(b.number), 'de', { numeric: true }))
+			for (const id of [...matchingIds]) { addAncestors(id) }
+			const byNum = (list) => list.slice().sort((a, b) => String(a.number).localeCompare(String(b.number), 'de', { numeric: true }))
 			const out = []
 			const walk = (acc, depth) => {
-				const kids = (this.childrenOf[acc.id] || []).filter(k => matchingIds.has(k.id))
+				const kids = (this.childrenOf[acc.id] || []).filter((k) => matchingIds.has(k.id))
 				out.push({ id: acc.id, number: acc.number, name: acc.name, type: acc.type, active: acc.active !== false, depth, hasChildren: kids.length > 0 })
-				for (const k of byNum(kids)) walk(k, depth + 1)
+				for (const k of byNum(kids)) { walk(k, depth + 1) }
 			}
-			for (const r of byNum(this.accounts.filter(a => !a.parentId && matchingIds.has(a.id)))) walk(r, 0)
+			for (const r of byNum(this.accounts.filter((a) => !a.parentId && matchingIds.has(a.id)))) { walk(r, 0) }
 			return out
 		},
+
 		currentTree() {
 			return this.accountSearch.trim() ? this.filteredVisibleTree : this.visibleTree
 		},
+
 		// Beteiligte Konten der Buchung, die gerade umgebucht wird: das Konto
 		// dieser Zeile (Regelfall) und die Gegenkonten.
 		reassignSides() {
 			const row = this.reassign.row
-			if (!row) return []
+			if (!row) { return [] }
 			return [
 				{ accountId: row.accountId, label: row.account },
 				...(row.contraAccounts || []),
 			]
 		},
+
 		// Zielkonten: aktive Konten nach Kategorie gruppiert (id === null =
 		// Überschrift), ohne die Konten, die schon auf dieser Buchung stehen –
 		// dasselbe Konto auf beiden Seiten lehnt das Backend ohnehin ab.
 		reassignOptions() {
-			const used = new Set(this.reassignSides.map(s => s.accountId))
+			const used = new Set(this.reassignSides.map((s) => s.accountId))
 			const groups = {}
 			for (const acc of this.accountsSorted) {
-				if (!acc.active || used.has(acc.id)) continue
+				if (!acc.active || used.has(acc.id)) { continue }
 				const cat = acc.category || this.t('Sonstige')
-				if (!groups[cat]) groups[cat] = []
+				if (!groups[cat]) { groups[cat] = [] }
 				groups[cat].push(acc)
 			}
 			const opts = []
 			for (const [cat, list] of Object.entries(groups)) {
 				opts.push({ id: null, label: cat, $isDisabled: true })
-				for (const acc of list) opts.push({ id: acc.id, label: `${acc.number} ${acc.name}`, number: acc.number })
+				for (const acc of list) { opts.push({ id: acc.id, label: `${acc.number} ${acc.name}`, number: acc.number }) }
 			}
 			return opts
 		},
+
 		statementRows() {
-			if (!this.statement) return []
+			if (!this.statement) { return [] }
 			const isCredit = ['income', 'liability', 'equity'].includes(this.statement.account.type)
 			let run = this.statement.carry || 0
-			return this.statement.rows.map(r => {
+			return this.statement.rows.map((r) => {
 				run += isCredit ? (r.credit - r.debit) : (r.debit - r.credit)
 				return { ...r, saldo: run }
 			})
 		},
 	},
+
 	watch: {
 		// Kontowechsel oder neu geladener Auszug: das Umbuchen-Panel gehoert zu
 		// einer bestimmten Zeile und darf nicht auf die naechste ueberspringen.
 		selectedAccountId() { this.cancelReassign() },
 		statement() { this.cancelReassign() },
 	},
+
 	methods: {
 		formatMoney,
 		formatDate,
@@ -437,25 +460,28 @@ export default {
 		amountClass,
 		/** Aenderung am Eroeffnungssaldo an den Elternteil zurueckmelden. */
 		updateOpening(patch) {
-			if (!this.selectedAccount) return
+			if (!this.selectedAccount) { return }
 			const id = this.selectedAccount.id
 			this.$emit('update:openingForm', {
 				...this.openingForm,
 				[id]: { ...this.openingEntry, ...patch },
 			})
 		},
-		toggleExpand(id) { this.$set(this.expanded, id, !this.expanded[id]) },
-		expandAll() { const e = {}; for (const acc of this.accounts) if ((this.childrenOf[acc.id] || []).length) e[acc.id] = true; this.expanded = e },
+
+		toggleExpand(id) { this.expanded[id] = !this.expanded[id] },
+		expandAll() { const e = {}; for (const acc of this.accounts) { if ((this.childrenOf[acc.id] || []).length) { e[acc.id] = true } } this.expanded = e },
 		collapseAll() { this.expanded = {} },
 		balanceFor(accountId) {
-			if (!this.balances) return 0
-			const row = this.balances.accounts.find(a => a.accountId === accountId)
+			if (!this.balances) { return 0 }
+			const row = this.balances.accounts.find((a) => a.accountId === accountId)
 			return row ? row.balance : 0
 		},
+
 		statementRowNet(row) {
 			const isCredit = this.statement && ['income', 'liability', 'equity'].includes(this.statement.account.type)
 			return isCredit ? (row.credit - row.debit) : (row.debit - row.credit)
 		},
+
 		onIncludeChildrenChange(v) {
 			this.$emit('update:statementIncludeChildren', v)
 			this.$nextTick(() => this.reloadStatement())
@@ -473,24 +499,28 @@ export default {
 		canReassign(row) {
 			return this.canWrite && !!row.accountId && !this.isYearClosed(row.date)
 		},
+
 		isReassigning(row) {
 			return this.reassign.rowKey === this.rowKey(row)
 		},
+
 		startReassign(row) {
 			this.reassign = { journalId: row.journalId, rowKey: this.rowKey(row), fromAccountId: row.accountId, row }
 		},
+
 		cancelReassign() {
 			this.reassign = { journalId: null, rowKey: null, fromAccountId: null, row: null }
 		},
+
 		onReassignSide(accountId) { this.reassign.fromAccountId = accountId },
 		async applyReassign(toAccountId) {
 			const { row, fromAccountId } = this.reassign
-			if (!row || !fromAccountId || this.reassignSaving) return
+			if (!row || !fromAccountId || this.reassignSaving) { return }
 			this.reassignSaving = true
 			try {
 				// Der Auszug wird danach neu geladen – das Panel muss in jedem
 				// Fall zu, sonst zeigte es auf eine Zeile von gestern.
-				if (await this.reassignBooking(row, fromAccountId, toAccountId)) this.cancelReassign()
+				if (await this.reassignBooking(row, fromAccountId, toAccountId)) { this.cancelReassign() }
 			} finally { this.reassignSaving = false }
 		},
 	},

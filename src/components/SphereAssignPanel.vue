@@ -2,7 +2,8 @@
 	<div>
 		<p class="vbh-hint">
 			{{ t('Ordnet Einnahmen-/Ausgaben-Konten einer Sphäre zu (ideeller Bereich, Vermögensverwaltung, Zweckbetrieb, wirtschaftlicher Geschäftsbetrieb) – wichtig für die Gemeinnützigkeit und die Freigrenze des wirtschaftlichen Geschäftsbetriebs. Ersetzt keine steuerliche Beratung.') }}
-			<button type="button"
+			<button
+				type="button"
 				class="vbh-sphere-help"
 				:title="t('Was bedeutet das?')"
 				@click="$emit('help')">
@@ -91,12 +92,12 @@
 </template>
 
 <script>
-import { toRefs } from 'vue'
-import { NcButton } from '@nextcloud/vue'
 import { showError, showSuccess } from '@nextcloud/dialogs'
+import { NcButton } from '@nextcloud/vue'
+import { toRefs } from 'vue'
 import api from '../api.js'
-import { errMsg } from '../lib/format.js'
 import { useAccounts } from '../composables/useAccounts.js'
+import { errMsg } from '../lib/format.js'
 import { t } from '../lib/l10n.js'
 
 // Als Funktion statt Modul-Konstante ausgewertet (siehe sphereLabel()), damit
@@ -120,9 +121,11 @@ function sphereLabels() {
 export default {
 	name: 'SphereAssignPanel',
 	components: { NcButton },
+	emits: ['changed', 'help'],
 	setup() {
 		return { ...toRefs(useAccounts().state) }
 	},
+
 	data() {
 		return {
 			selected: [],
@@ -131,35 +134,41 @@ export default {
 			showSuggestions: false,
 		}
 	},
+
 	computed: {
 		// Entspricht Account::isResultRelevant() im Backend: alles außer Geldkonten und Eigenkapital.
 		relevantAccounts() {
-			return this.accounts.filter(a => a.type !== 'equity' && !a.isBank)
+			return this.accounts.filter((a) => a.type !== 'equity' && !a.isBank)
 		},
+
 		allSelected() {
 			return this.relevantAccounts.length > 0 && this.selected.length === this.relevantAccounts.length
 		},
 	},
+
 	methods: {
 		errMsg,
 		sphereLabel(code) { return sphereLabels()[code] || code },
 		// Grobe Namensheuristik als Vorschlag – keine Garantie, muss geprüft werden (siehe Hinweistext oben).
 		suggestSphere(name) {
 			const n = (name || '').toLowerCase()
-			if (/mitgliedsbeitr|spende|zuschuss|förder|fördermittel/.test(n)) return 'ideell'
-			if (/zins|miete|pacht|kapitalertrag|geldanlage/.test(n)) return 'vermoegensverwaltung'
-			if (/konzert|veranstaltung|kurs|eintritt|sportver/.test(n)) return 'zweckbetrieb'
-			if (/gaststätte|werbung|sponsoring|verkauf|kiosk|bandenwerbung|stand/.test(n)) return 'wirtschaftlich'
+			if (/mitgliedsbeitr|spende|zuschuss|förder|fördermittel/.test(n)) { return 'ideell' }
+			if (/zins|miete|pacht|kapitalertrag|geldanlage/.test(n)) { return 'vermoegensverwaltung' }
+			if (/konzert|veranstaltung|kurs|eintritt|sportver/.test(n)) { return 'zweckbetrieb' }
+			if (/gaststätte|werbung|sponsoring|verkauf|kiosk|bandenwerbung|stand/.test(n)) { return 'wirtschaftlich' }
 			return null
 		},
+
 		toggleAll(checked) {
-			this.selected = checked ? this.relevantAccounts.map(a => a.id) : []
+			this.selected = checked ? this.relevantAccounts.map((a) => a.id) : []
 		},
+
 		toggleOne(id, checked) {
-			if (checked) { if (!this.selected.includes(id)) this.selected.push(id) } else { this.selected = this.selected.filter(x => x !== id) }
+			if (checked) { if (!this.selected.includes(id)) { this.selected.push(id) } } else { this.selected = this.selected.filter((x) => x !== id) }
 		},
+
 		async applyBulk() {
-			if (!this.selected.length || !this.bulkSphere) return
+			if (!this.selected.length || !this.bulkSphere) { return }
 			this.bulkSaving = true
 			try {
 				const { data } = await api.bulkSphere(this.selected, this.bulkSphere)
@@ -169,6 +178,7 @@ export default {
 				this.$emit('changed')
 			} catch (e) { showError(this.errMsg(e, this.t('Zuordnung fehlgeschlagen'))) } finally { this.bulkSaving = false }
 		},
+
 		async saveOne(account, sphere) {
 			try {
 				await api.updateAccount(account.id, {

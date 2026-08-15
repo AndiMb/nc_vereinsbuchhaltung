@@ -9,7 +9,7 @@ export function formatMoney(v) {
 }
 
 export function formatDate(s) {
-	if (!s) return ''
+	if (!s) { return '' }
 	const d = String(s).slice(0, 10)
 	const m = d.match(/^(\d{4})-(\d{2})-(\d{2})$/)
 	return m ? `${m[3]}.${m[2]}.${m[1]}` : d
@@ -42,7 +42,7 @@ export function amountClass(v) {
 }
 
 export function budgetDiffClass(row) {
-	if (!row.diff) return ''
+	if (!row.diff) { return '' }
 	const good = row.type === 'income' ? row.diff > 0 : row.diff < 0
 	return good ? 'good' : 'bad'
 }

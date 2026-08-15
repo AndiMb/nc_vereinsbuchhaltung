@@ -70,7 +70,7 @@ Bestehende Daten aus „zero Buchhaltung" können über deren xbuc-Dateien
 
 Ausführliches Handbuch auf Deutsch: siehe Dokumentation.
 	]]></description>
-	<version>0.22.4</version>
+	<version>0.23.0</version>
 	<licence>agpl</licence>
 	<author mail="hauffe.andreas@googlemail.com">Andreas Hauffe</author>
 	<namespace>Vereinsbuchhaltung</namespace>
@@ -92,11 +92,11 @@ Ausführliches Handbuch auf Deutsch: siehe Dokumentation.
 	<screenshot>https://raw.githubusercontent.com/AndiMb/nc_vereinsbuchhaltung/main/img/screenshots/konten.png</screenshot>
 	<screenshot>https://raw.githubusercontent.com/AndiMb/nc_vereinsbuchhaltung/main/img/screenshots/mobil.png</screenshot>
 	<dependencies>
-		<php min-version="8.1" max-version="8.4"/>
+		<php min-version="8.1" max-version="8.5"/>
 		<database>sqlite</database>
 		<database>mysql</database>
 		<database>pgsql</database>
-		<nextcloud min-version="28" max-version="34"/>
+		<nextcloud min-version="31" max-version="35"/>
 	</dependencies>
 	<!-- Sieht stuendlich im eingestellten Wachordner nach neuen Kontoauszuegen.
 	     Ist keiner eingestellt, kehrt der Job sofort zurueck. Die Eintragung

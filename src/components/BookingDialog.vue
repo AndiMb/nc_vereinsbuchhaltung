@@ -1,26 +1,31 @@
 <template>
-	<NcModal :show="show"
+	<NcModal
+		:show="show"
 		:name="bookingForm.id ? t('Buchung bearbeiten #{n}', { n: bookingForm.entryNo }) : t('Neue Buchung')"
 		:size="isMobile ? 'full' : 'normal'"
+		:closeOnClickOutside="true"
 		@close="$emit('close')"
 		@update:show="$emit('update:show', $event)">
 		<div class="vbh-modal-inner">
 			<p v-if="bookingLocked" class="vbh-hint vbh-hint--info">
 				{{ t('🔒 Das Geschäftsjahr {year} ist abgeschlossen – diese Buchung kann nur noch angesehen werden.', { year: String(bookingForm.date).slice(0, 4) }) }}
 			</p>
-			<div v-if="bookingMode === 'simple'"
+			<div
+				v-if="bookingMode === 'simple'"
 				class="vbh-kindtoggle"
 				:class="{ 'vbh-tour-target': bookingTour.active && bookingTour.step === 0 }"
 				role="radiogroup"
 				:aria-label="t('Buchungsart')">
-				<button type="button"
+				<button
+					type="button"
 					class="vbh-kindbtn income"
 					:class="{ active: bookingForm.kind === 'income' }"
 					:disabled="bookingLocked"
 					@click="setBookingKind('income')">
 					{{ t('Einnahme') }}
 				</button>
-				<button type="button"
+				<button
+					type="button"
 					class="vbh-kindbtn expense"
 					:class="{ active: bookingForm.kind === 'expense' }"
 					:disabled="bookingLocked"
@@ -43,7 +48,8 @@
 			<!-- Mobil: Betrag zuerst und groß, Kontenwahl über Auswahl-Sheets -->
 			<template v-if="isMobile">
 				<div class="vbh-bigamount">
-					<input v-model.number="formAmount"
+					<input
+						v-model.number="formAmount"
 						type="number"
 						step="0.01"
 						min="0.01"
@@ -56,7 +62,8 @@
 				</div>
 				<div class="vbh-mfields">
 					<template v-if="bookingMode === 'simple'">
-						<button v-if="!formSplitMode"
+						<button
+							v-if="!formSplitMode"
 							type="button"
 							class="vbh-fieldbtn"
 							:disabled="bookingLocked"
@@ -67,7 +74,8 @@
 							</span>
 							<span class="vbh-fieldbtn-chev" aria-hidden="true">›</span>
 						</button>
-						<button type="button"
+						<button
+							type="button"
 							class="vbh-fieldbtn"
 							:disabled="bookingLocked"
 							@click="openAccountPicker('money')">
@@ -79,7 +87,8 @@
 						</button>
 					</template>
 					<template v-else>
-						<button v-if="!formSplitMode || splitSide === 'credit'"
+						<button
+							v-if="!formSplitMode || splitSide === 'credit'"
 							type="button"
 							class="vbh-fieldbtn"
 							:disabled="bookingLocked"
@@ -90,7 +99,8 @@
 							</span>
 							<span class="vbh-fieldbtn-chev" aria-hidden="true">›</span>
 						</button>
-						<button v-if="!formSplitMode || splitSide === 'debit'"
+						<button
+							v-if="!formSplitMode || splitSide === 'debit'"
 							type="button"
 							class="vbh-fieldbtn"
 							:disabled="bookingLocked"
@@ -117,7 +127,8 @@
 						<span>{{ t('Beleg') }}</span>
 						<div class="vbh-pendingbtns">
 							<label class="vbh-upload-label">
-								<input type="file"
+								<input
+									type="file"
 									accept="image/*"
 									capture="environment"
 									hidden
@@ -125,7 +136,8 @@
 								<span class="vbh-upload-btn"><NcIconSvgWrapper :path="mdiCamera" :size="16" /> {{ t('Fotografieren') }}</span>
 							</label>
 							<label class="vbh-upload-label">
-								<input type="file"
+								<input
+									type="file"
 									accept="image/*,application/pdf"
 									multiple
 									hidden
@@ -153,11 +165,13 @@
 			<template v-else>
 				<div class="vbh-form">
 					<label>{{ t('Datum') }}<input v-model="formDate" type="date" :disabled="bookingLocked"></label>
-					<label>{{ t('Beleg-Nr.') }}<input v-model="formDocumentRef"
+					<label>{{ t('Beleg-Nr.') }}<input
+						v-model="formDocumentRef"
 						class="vbh-short"
 						:placeholder="t('optional')"
 						:disabled="bookingLocked"></label>
-					<label>{{ formSplitMode ? t('Gesamtbetrag (€)') : t('Betrag (€)') }}<input v-model.number="formAmount"
+					<label>{{ formSplitMode ? t('Gesamtbetrag (€)') : t('Betrag (€)') }}<input
+						v-model.number="formAmount"
 						type="number"
 						step="0.01"
 						min="0.01"
@@ -167,17 +181,19 @@
 				<template v-if="bookingMode === 'simple'">
 					<div class="vbh-form" :class="{ 'vbh-tour-target': bookingTour.active && bookingTour.step === 1 }">
 						<label v-if="!formSplitMode" class="vbh-grow">{{ bookingForm.kind === 'income' ? t('Wofür? (Einnahme-Kategorie)') : t('Wofür? (Ausgabe-Kategorie)') }}
-							<NcSelect v-model="bookingFormCategoryOption"
+							<NcSelect
+								v-model="bookingFormCategoryOption"
 								:options="simpleCategoryOptions"
-								:filter-by="accountFilterBy"
+								:filterBy="accountFilterBy"
 								:disabled="bookingLocked"
 								label="label"
 								:placeholder="t('– Kategorie wählen –')" />
 						</label>
 						<label class="vbh-grow">{{ t('Geldkonto (Bank/Kasse)') }}
-							<NcSelect v-model="bookingFormMoneyOption"
+							<NcSelect
+								v-model="bookingFormMoneyOption"
 								:options="moneyAccountOptions"
-								:filter-by="accountFilterBy"
+								:filterBy="accountFilterBy"
 								:disabled="bookingLocked"
 								label="label"
 								:placeholder="t('– wählen –')" />
@@ -198,17 +214,19 @@
 				<template v-else>
 					<div class="vbh-form">
 						<label v-if="!formSplitMode || splitSide === 'credit'" class="vbh-grow">{{ t('Soll (Aufwand/Aktiv)') }}
-							<NcSelect v-model="bookingFormDebitOption"
+							<NcSelect
+								v-model="bookingFormDebitOption"
 								:options="accountOptionsList"
-								:filter-by="accountFilterBy"
+								:filterBy="accountFilterBy"
 								:disabled="bookingLocked"
 								label="label"
 								:placeholder="t('– wählen –')" />
 						</label>
 						<label v-if="!formSplitMode || splitSide === 'debit'" class="vbh-grow">{{ t('Haben (Ertrag/Passiv)') }}
-							<NcSelect v-model="bookingFormCreditOption"
+							<NcSelect
+								v-model="bookingFormCreditOption"
 								:options="accountOptionsList"
-								:filter-by="accountFilterBy"
+								:filterBy="accountFilterBy"
 								:disabled="bookingLocked"
 								label="label"
 								:placeholder="t('– wählen –')" />
@@ -244,7 +262,8 @@
 				</div>
 				<ul class="vbh-split-list">
 					<li v-for="(line, i) in splitLines" :key="i" class="vbh-split-row">
-						<button v-if="isMobile"
+						<button
+							v-if="isMobile"
 							type="button"
 							class="vbh-fieldbtn vbh-split-acc"
 							:disabled="bookingLocked"
@@ -254,16 +273,18 @@
 							</span>
 							<span class="vbh-fieldbtn-chev" aria-hidden="true">›</span>
 						</button>
-						<NcSelect v-else
-							:model-value="splitLineOption(i)"
+						<NcSelect
+							v-else
+							:modelValue="splitLineOption(i)"
 							:options="splitAccountOptions"
-							:filter-by="accountFilterBy"
+							:filterBy="accountFilterBy"
 							:disabled="bookingLocked"
 							class="vbh-split-acc"
 							label="label"
 							:placeholder="t('– Konto wählen –')"
-							@update:model-value="setSplitLineAccount(i, $event)" />
-						<input :value="line.amount"
+							@update:modelValue="setSplitLineAccount(i, $event)" />
+						<input
+							:value="line.amount"
 							type="number"
 							step="0.01"
 							min="0.01"
@@ -272,7 +293,8 @@
 							:aria-label="t('Teilbetrag Zeile {n}', { n: i + 1 })"
 							:disabled="bookingLocked"
 							@input="setSplitLineAmount(i, $event.target.value)">
-						<NcButton v-if="!bookingLocked"
+						<NcButton
+							v-if="!bookingLocked"
 							variant="tertiary"
 							:aria-label="t('Zeile {n} entfernen', { n: i + 1 })"
 							@click="removeSplitLine(i)">
@@ -286,7 +308,8 @@
 					<NcButton v-if="!bookingLocked" variant="tertiary" @click="addSplitLine">
 						{{ t('+ Zeile hinzufügen') }}
 					</NcButton>
-					<NcButton v-if="!bookingLocked && splitRest > 0.0049"
+					<NcButton
+						v-if="!bookingLocked && splitRest > 0.0049"
 						variant="tertiary"
 						:title="t('Den noch offenen Rest in die letzte Zeile schreiben')"
 						@click="fillSplitRest">
@@ -309,7 +332,8 @@
 				<div class="vbh-attachments-header">
 					<span class="vbh-attachments-title">{{ t('Belege') }}</span>
 					<label v-if="canWrite && !bookingLocked" class="vbh-upload-label" :class="{ 'is-uploading': attachmentUploading }">
-						<input type="file"
+						<input
+							type="file"
 							accept="image/*,application/pdf"
 							multiple
 							:disabled="attachmentUploading"
@@ -328,11 +352,13 @@
 							{{ a.fileName }}
 						</button>
 						<span class="vbh-attachment-size">{{ formatFileSize(a.fileSize) }}</span>
-						<a :href="attachmentDownloadUrl(a.id)"
+						<a
+							:href="attachmentDownloadUrl(a.id)"
 							class="vbh-attachment-dl"
 							:title="t('Herunterladen')"
 							download>↓</a>
-						<NcButton v-if="canWrite && !bookingLocked"
+						<NcButton
+							v-if="canWrite && !bookingLocked"
 							variant="tertiary"
 							:aria-label="t('Beleg löschen')"
 							@click="deleteAttachment(a.id)">
@@ -363,13 +389,13 @@
 </template>
 
 <script>
+import { mdiCamera, mdiDelete, mdiPaperclip } from '@mdi/js'
+import { NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper, NcModal, NcSelect } from '@nextcloud/vue'
 import { toRefs } from 'vue'
-import { NcModal, NcButton, NcSelect, NcCheckboxRadioSwitch, NcIconSvgWrapper } from '@nextcloud/vue'
-import { mdiCamera, mdiPaperclip, mdiDelete } from '@mdi/js'
 import { useAccounts } from '../composables/useAccounts.js'
 import { useJournal } from '../composables/useJournal.js'
 import { formatMoney } from '../lib/format.js'
-import { splitSideOf, splitRemainder, splitBalanced } from '../lib/split.js'
+import { splitBalanced, splitRemainder, splitSideOf } from '../lib/split.js'
 
 export default {
 	name: 'BookingDialog',
@@ -404,6 +430,9 @@ export default {
 		nextTourStep: { type: Function, required: true },
 		endTour: { type: Function, required: true },
 	},
+
+	emits: ['close', 'delete', 'save', 'update:bookingForm', 'update:pendingFiles', 'update:show'],
+
 	setup() {
 		// accountsSorted/accountsById fuer Konto-Labels/-Auswahl, journalData fuer
 		// die Haeufigkeits-Sortierung - direkt aus den Singletons (gleicher
@@ -416,9 +445,11 @@ export default {
 			...toRefs(journal.state),
 		}
 	},
+
 	data() {
 		return { mdiCamera, mdiPaperclip, mdiDelete }
 	},
+
 	computed: {
 		// --- Formularfelder -------------------------------------------------
 		// Das Formular gehoert dem Elternteil (App.vue braucht es auch beim
@@ -432,18 +463,22 @@ export default {
 			get() { return this.bookingForm.amount },
 			set(v) { this.updateForm({ amount: v }) },
 		},
+
 		formDate: {
 			get() { return this.bookingForm.date },
 			set(v) { this.updateForm({ date: v }) },
 		},
+
 		formDescription: {
 			get() { return this.bookingForm.description },
 			set(v) { this.updateForm({ description: v }) },
 		},
+
 		formDocumentRef: {
 			get() { return this.bookingForm.documentRef },
 			set(v) { this.updateForm({ documentRef: v }) },
 		},
+
 		accountUsageCounts() {
 			const counts = {}
 			for (const item of this.journalData) {
@@ -453,22 +488,25 @@ export default {
 			}
 			return counts
 		},
+
 		frequentAccounts() {
 			const counts = this.accountUsageCounts
 			return this.accountsSorted
-				.filter(a => a.active && counts[a.id])
+				.filter((a) => a.active && counts[a.id])
 				.sort((a, b) => counts[b.id] - counts[a.id])
 				.slice(0, 5)
 		},
+
 		accountsByCategory() {
 			const groups = {}
 			for (const acc of this.accountsSorted) {
-				if (!acc.active) continue
+				if (!acc.active) { continue }
 				const cat = acc.category || this.t('Sonstige')
 				;(groups[cat] = groups[cat] || []).push(acc)
 			}
 			return groups
 		},
+
 		accountOptionsList() {
 			const opts = []
 			if (this.frequentAccounts.length >= 2) {
@@ -485,50 +523,61 @@ export default {
 			}
 			return opts
 		},
+
 		simpleCategoryOptions() {
 			const type = this.bookingForm.kind === 'income' ? 'income' : 'expense'
 			const counts = this.accountUsageCounts
 			return this.accountsSorted
-				.filter(a => a.active && a.type === type)
+				.filter((a) => a.active && a.type === type)
 				.sort((a, b) => (counts[b.id] || 0) - (counts[a.id] || 0)
 					|| String(a.number).localeCompare(String(b.number), 'de', { numeric: true }))
-				.map(a => ({ id: a.id, label: `${a.number} ${a.name}`, number: a.number }))
+				.map((a) => ({ id: a.id, label: `${a.number} ${a.name}`, number: a.number }))
 		},
+
 		moneyAccountOptions() {
 			return this.accountsSorted
-				.filter(a => a.active && (a.isBank || a.type === 'asset'))
+				.filter((a) => a.active && (a.isBank || a.type === 'asset'))
 				.sort((a, b) => (b.isBank ? 1 : 0) - (a.isBank ? 1 : 0)
 					|| String(a.number).localeCompare(String(b.number), 'de', { numeric: true }))
-				.map(a => ({ id: a.id, label: `${a.number} ${a.name}`, number: a.number }))
+				.map((a) => ({ id: a.id, label: `${a.number} ${a.name}`, number: a.number }))
 		},
+
 		bookingFormCategoryOption: {
 			get() {
-				if (this.bookingForm.categoryId == null) return null
-				return this.simpleCategoryOptions.find(o => o.id === this.bookingForm.categoryId) ?? null
+				if (this.bookingForm.categoryId === null || this.bookingForm.categoryId === undefined) { return null }
+				return this.simpleCategoryOptions.find((o) => o.id === this.bookingForm.categoryId) ?? null
 			},
+
 			set(v) { this.updateForm({ categoryId: v ? v.id : null }) },
 		},
+
 		bookingFormMoneyOption: {
 			get() {
-				if (this.bookingForm.moneyAccountId == null) return null
-				return this.moneyAccountOptions.find(o => o.id === this.bookingForm.moneyAccountId) ?? null
+				if (this.bookingForm.moneyAccountId === null || this.bookingForm.moneyAccountId === undefined) { return null }
+				return this.moneyAccountOptions.find((o) => o.id === this.bookingForm.moneyAccountId) ?? null
 			},
+
 			set(v) { this.updateForm({ moneyAccountId: v ? v.id : null }) },
 		},
+
 		bookingFormDebitOption: {
 			get() {
-				if (this.bookingForm.debitAccountId == null) return null
-				return this.accountOptionsList.find(o => o.id === this.bookingForm.debitAccountId) ?? null
+				if (this.bookingForm.debitAccountId === null || this.bookingForm.debitAccountId === undefined) { return null }
+				return this.accountOptionsList.find((o) => o.id === this.bookingForm.debitAccountId) ?? null
 			},
+
 			set(v) { this.updateForm({ debitAccountId: v ? v.id : null }) },
 		},
+
 		bookingFormCreditOption: {
 			get() {
-				if (this.bookingForm.creditAccountId == null) return null
-				return this.accountOptionsList.find(o => o.id === this.bookingForm.creditAccountId) ?? null
+				if (this.bookingForm.creditAccountId === null || this.bookingForm.creditAccountId === undefined) { return null }
+				return this.accountOptionsList.find((o) => o.id === this.bookingForm.creditAccountId) ?? null
 			},
+
 			set(v) { this.updateForm({ creditAccountId: v ? v.id : null }) },
 		},
+
 		bookingModeExpert: {
 			get() { return this.bookingMode === 'expert' },
 			set(v) { this.setBookingMode(v ? 'expert' : 'simple') },
@@ -550,29 +599,35 @@ export default {
 				const lines = this.splitLines.length
 					? this.splitLines
 					: [
-						{ accountId: first || null, amount: first ? (f.amount || null) : null },
-						{ accountId: null, amount: null },
-					]
+							{ accountId: first || null, amount: first ? (f.amount || null) : null },
+							{ accountId: null, amount: null },
+						]
 				this.updateForm({ splitMode: true, splitLines: lines })
 			},
 		},
+
 		formSplitSide: {
 			get() { return this.bookingForm.splitSide === 'debit' ? 'debit' : 'credit' },
 			set(v) { this.updateForm({ splitSide: v }) },
 		},
+
 		/** Die tatsaechlich aufgeteilte Seite (im Einfach-Modus aus der Buchungsart). */
 		splitSide() {
 			return splitSideOf(this.bookingForm, this.bookingMode)
 		},
+
 		splitLines() {
 			return this.bookingForm.splitLines || []
 		},
+
 		splitRest() {
 			return splitRemainder(this.bookingForm.amount, this.splitLines)
 		},
+
 		splitRestOk() {
 			return splitBalanced(this.bookingForm.amount, this.splitLines)
 		},
+
 		/**
 		 * Konten fuer die Aufteilung: im Einfach-Modus die Kategorien zur
 		 * Buchungsart, im Experten-Modus alle. Bereits belegte Konten fallen
@@ -580,48 +635,56 @@ export default {
 		 */
 		splitAccountOptions() {
 			const base = this.bookingMode === 'simple' ? this.simpleCategoryOptions : this.accountOptionsList
-			const used = new Set(this.splitLines.map(l => l.accountId).filter(Boolean))
+			const used = new Set(this.splitLines.map((l) => l.accountId).filter(Boolean))
 			const fixed = this.bookingMode === 'simple'
 				? this.bookingForm.moneyAccountId
 				: (this.splitSide === 'credit' ? this.bookingForm.debitAccountId : this.bookingForm.creditAccountId)
-			if (fixed) used.add(fixed)
-			return base.filter(o => o.$isDisabled || !used.has(o.id))
+			if (fixed) { used.add(fixed) }
+			return base.filter((o) => o.$isDisabled || !used.has(o.id))
 		},
 	},
+
 	methods: {
 		formatMoney,
 		/** Aktuelle Auswahl einer Aufteilungszeile als NcSelect-Option. */
 		splitLineOption(index) {
 			const id = this.splitLines[index]?.accountId
-			if (id == null) return null
+			if (id === null || id === undefined) { return null }
 			const base = this.bookingMode === 'simple' ? this.simpleCategoryOptions : this.accountOptionsList
-			return base.find(o => o.id === id) ?? null
+			return base.find((o) => o.id === id) ?? null
 		},
+
 		setSplitLineAccount(index, option) {
 			this.patchSplitLine(index, { accountId: option ? option.id : null })
 		},
+
 		setSplitLineAmount(index, value) {
 			this.patchSplitLine(index, { amount: value === '' ? null : Number(value) })
 		},
+
 		patchSplitLine(index, patch) {
 			this.updateForm({
 				splitLines: this.splitLines.map((l, i) => (i === index ? { ...l, ...patch } : l)),
 			})
 		},
+
 		addSplitLine() {
 			this.updateForm({ splitLines: [...this.splitLines, { accountId: null, amount: null }] })
 		},
+
 		removeSplitLine(index) {
 			this.updateForm({ splitLines: this.splitLines.filter((_, i) => i !== index) })
 		},
+
 		/** Schreibt den offenen Rest in die letzte Zeile. */
 		fillSplitRest() {
 			const lines = this.splitLines
-			if (!lines.length) return
+			if (!lines.length) { return }
 			const last = lines.length - 1
 			const value = Math.round((Number(lines[last].amount || 0) + this.splitRest) * 100) / 100
 			this.patchSplitLine(last, { amount: value })
 		},
+
 		/**
 		 * Meldet geaenderte Formularfelder an den Elternteil zurueck. Bewusst
 		 * ein neues Objekt statt einer Mutation des uebergebenen - so bleibt
@@ -630,18 +693,21 @@ export default {
 		updateForm(patch) {
 			this.$emit('update:bookingForm', { ...this.bookingForm, ...patch })
 		},
+
 		/** Einen noch nicht hochgeladenen Beleg aus der Warteliste nehmen. */
 		removePendingFile(index) {
 			this.$emit('update:pendingFiles', this.pendingFiles.filter((_, i) => i !== index))
 		},
+
 		accountLabel(id) {
 			const acc = this.accountsById[id]
 			return acc ? `${acc.number} ${acc.name}` : `#${id}`
 		},
+
 		accountFilterBy(option, label, search) {
 			const s = String(search || '').trim().toLowerCase()
-			if (!s) return true
-			if (option && option.$isDisabled) return false
+			if (!s) { return true }
+			if (option && option.$isDisabled) { return false }
 			if (/^[\d\s]+$/.test(s)) {
 				const digits = s.replace(/\s+/g, '')
 				const num = String((option && option.number) || '').replace(/\s+/g, '').toLowerCase()
@@ -649,9 +715,10 @@ export default {
 			}
 			return String(label || '').toLowerCase().includes(s)
 		},
+
 		formatFileSize(bytes) {
-			if (bytes < 1024) return bytes + ' B'
-			if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+			if (bytes < 1024) { return bytes + ' B' }
+			if (bytes < 1024 * 1024) { return (bytes / 1024).toFixed(1) + ' KB' }
 			return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
 		},
 	},

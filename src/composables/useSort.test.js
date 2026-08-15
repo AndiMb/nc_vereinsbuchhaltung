@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { useSort, applySort } from './useSort.js'
+import { beforeEach, describe, expect, it } from 'vitest'
+import { applySort, useSort } from './useSort.js'
 
 // applySort steht hinter jeder sortierbaren Tabelle der App. Der Vergleich
 // ist nicht trivial: Kontonummern sind Zeichenketten, sollen aber numerisch
@@ -24,20 +24,20 @@ describe('applySort', () => {
 
 	it('sortiert Zahlen numerisch', () => {
 		const rows = [{ n: 10 }, { n: 9 }, { n: 100 }]
-		expect(applySort(rows, { key: 'n', dir: 'asc' }).map(r => r.n)).toEqual([9, 10, 100])
-		expect(applySort(rows, { key: 'n', dir: 'desc' }).map(r => r.n)).toEqual([100, 10, 9])
+		expect(applySort(rows, { key: 'n', dir: 'asc' }).map((r) => r.n)).toEqual([9, 10, 100])
+		expect(applySort(rows, { key: 'n', dir: 'desc' }).map((r) => r.n)).toEqual([100, 10, 9])
 	})
 
 	it('sortiert Kontonummern numerisch, obwohl sie Zeichenketten sind', () => {
 		// Rein lexikografisch stuende "1000" vor "900" - in einer Saldenliste
 		// waere das die falsche Reihenfolge.
 		const rows = [{ nr: '1000' }, { nr: '900' }, { nr: '4100' }]
-		expect(applySort(rows, { key: 'nr', dir: 'asc' }).map(r => r.nr)).toEqual(['900', '1000', '4100'])
+		expect(applySort(rows, { key: 'nr', dir: 'asc' }).map((r) => r.nr)).toEqual(['900', '1000', '4100'])
 	})
 
 	it('sortiert Umlaute nach deutscher Sortierung', () => {
 		const rows = [{ s: 'Zuschuss' }, { s: 'Übertrag' }, { s: 'Anfang' }]
-		expect(applySort(rows, { key: 's', dir: 'asc' }).map(r => r.s)).toEqual(['Anfang', 'Übertrag', 'Zuschuss'])
+		expect(applySort(rows, { key: 's', dir: 'asc' }).map((r) => r.s)).toEqual(['Anfang', 'Übertrag', 'Zuschuss'])
 	})
 
 	it('vergleicht als lexKeys benannte Felder rein zeichenweise', () => {
@@ -46,13 +46,13 @@ describe('applySort', () => {
 		// dagegen einzeln lesen.
 		const rows = [{ d: '2026-01-31' }, { d: '2025-12-01' }, { d: '2026-01-05' }]
 		const sorted = applySort(rows, { key: 'd', dir: 'asc' }, ['d'])
-		expect(sorted.map(r => r.d)).toEqual(['2025-12-01', '2026-01-05', '2026-01-31'])
+		expect(sorted.map((r) => r.d)).toEqual(['2025-12-01', '2026-01-05', '2026-01-31'])
 	})
 
 	it('behandelt fehlende Werte als leer und stellt sie nach vorn', () => {
 		const rows = [{ v: 'b' }, { v: null }, { v: 'a' }, {}]
 		const sorted = applySort(rows, { key: 'v', dir: 'asc' })
-		expect(sorted.slice(2).map(r => r.v)).toEqual(['a', 'b'])
+		expect(sorted.slice(2).map((r) => r.v)).toEqual(['a', 'b'])
 	})
 })
 

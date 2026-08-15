@@ -1,13 +1,13 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
-	formatMoney,
-	formatDate,
-	formatDateTime,
-	typeLabel,
-	roleLabel,
 	amountClass,
 	budgetDiffClass,
 	errMsg,
+	formatDate,
+	formatDateTime,
+	formatMoney,
+	roleLabel,
+	typeLabel,
 } from './format.js'
 
 // Die Anzeigehelfer stehen in jeder Tabelle der App. Sie sind zustandslos und
@@ -18,7 +18,7 @@ describe('formatMoney', () => {
 	// Intl setzt vor das Waehrungszeichen einen geschuetzten Zwischenraum -
 	// je nach ICU-Fassung U+00A0 oder U+202F. Ein direkter Zeichenvergleich
 	// waere daher je nach Node-Version bruechig; \s deckt beide Varianten ab.
-	const normalize = s => s.replace(/\s/g, ' ')
+	const normalize = (s) => s.replace(/\s/g, ' ')
 
 	it('schreibt Betraege in deutscher Schreibweise mit Euro', () => {
 		expect(normalize(formatMoney(1234.5))).toBe('1.234,50 €')

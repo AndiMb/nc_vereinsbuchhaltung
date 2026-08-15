@@ -15,15 +15,17 @@
 					</select>
 				</label>
 				<label class="vbh-grow">{{ t('enthält (Suchtext)') }}
-					<input v-model="ruleForm.matchValue"
+					<input
+						v-model="ruleForm.matchValue"
 						type="text"
 						:placeholder="t('z. B. Stadtwerke')"
 						@keyup.enter="saveRule">
 				</label>
 				<label class="vbh-grow">{{ t('Gegenkonto') }}
-					<NcSelect v-model="ruleFormContraOption"
+					<NcSelect
+						v-model="ruleFormContraOption"
 						:options="accountOptionsList"
-						:filter-by="accountFilterBy"
+						:filterBy="accountFilterBy"
 						label="label"
 						:placeholder="t('– Konto wählen –')" />
 				</label>
@@ -57,7 +59,8 @@
 							{{ rule.priority }}
 						</td>
 						<td class="right nowrap">
-							<NcButton variant="tertiary"
+							<NcButton
+								variant="tertiary"
 								:aria-label="t('Regel bearbeiten')"
 								:title="t('Bearbeiten')"
 								@click="editRule(rule)">
@@ -65,7 +68,8 @@
 									<NcIconSvgWrapper :path="mdiPencil" :size="20" />
 								</template>
 							</NcButton>
-							<NcButton variant="error"
+							<NcButton
+								variant="error"
 								:aria-label="t('Regel löschen')"
 								:title="t('Löschen')"
 								@click="deleteRule(rule)">
@@ -83,15 +87,15 @@
 </template>
 
 <script>
-import { toRefs } from 'vue'
-import { NcButton, NcSelect, NcEmptyContent, NcIconSvgWrapper } from '@nextcloud/vue'
+import { mdiDelete, mdiPencil } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { mdiPencil, mdiDelete } from '@mdi/js'
+import { NcButton, NcEmptyContent, NcIconSvgWrapper, NcSelect } from '@nextcloud/vue'
+import { toRefs } from 'vue'
 import api from '../api.js'
-import { errMsg } from '../lib/format.js'
 import { useAccounts } from '../composables/useAccounts.js'
-import { useRules } from '../composables/useRules.js'
 import { useConfirm } from '../composables/useConfirm.js'
+import { useRules } from '../composables/useRules.js'
+import { errMsg } from '../lib/format.js'
 
 /**
  * Auto-Zuordnungsregeln. Frueher SettingsRules.vue im Einstellungen-Modal;
@@ -115,6 +119,7 @@ export default {
 			askConfirm: useConfirm().askConfirm,
 		}
 	},
+
 	data() {
 		return {
 			mdiPencil,
@@ -123,6 +128,7 @@ export default {
 			ruleEditId: null,
 		}
 	},
+
 	computed: {
 		// Gleiche Gruppierung wie in BookingsTab.vue (haeufig verwendete Konten
 		// zuerst) - eigenstaendig statt geteilt, da beide Stellen geringfuegig
@@ -130,25 +136,28 @@ export default {
 		// gleiche Muster).
 		accountUsageCounts() {
 			const counts = {}
-			for (const r of this.rules) counts[r.contraAccountId] = (counts[r.contraAccountId] || 0) + 1
+			for (const r of this.rules) { counts[r.contraAccountId] = (counts[r.contraAccountId] || 0) + 1 }
 			return counts
 		},
+
 		frequentAccounts() {
 			const counts = this.accountUsageCounts
 			return this.accountsSorted
-				.filter(a => a.active && counts[a.id])
+				.filter((a) => a.active && counts[a.id])
 				.sort((a, b) => counts[b.id] - counts[a.id])
 				.slice(0, 5)
 		},
+
 		accountsByCategory() {
 			const groups = {}
 			for (const acc of this.accountsSorted) {
-				if (!acc.active) continue
+				if (!acc.active) { continue }
 				const cat = acc.category || this.t('Sonstige')
 				;(groups[cat] = groups[cat] || []).push(acc)
 			}
 			return groups
 		},
+
 		accountOptionsList() {
 			const opts = []
 			if (this.frequentAccounts.length >= 2) {
@@ -165,28 +174,33 @@ export default {
 			}
 			return opts
 		},
+
 		ruleFormContraOption: {
 			get() {
-				if (this.ruleForm.contraAccountId == null) return null
-				return this.accountOptionsList.find(o => o.id === this.ruleForm.contraAccountId) ?? null
+				if (this.ruleForm.contraAccountId === null || this.ruleForm.contraAccountId === undefined) { return null }
+				return this.accountOptionsList.find((o) => o.id === this.ruleForm.contraAccountId) ?? null
 			},
+
 			set(v) { this.ruleForm.contraAccountId = v ? v.id : null },
 		},
 	},
+
 	mounted() {
 		this.loadRules()
 	},
+
 	methods: {
 		errMsg,
 		accountLabel(id) {
 			const acc = this.accountsById[id]
 			return acc ? `${acc.number} ${acc.name}` : `#${id}`
 		},
+
 		// Suchfilter fuer das Konto-Dropdown (Ziffern = Praefix der Kontonummer)
 		accountFilterBy(option, label, search) {
 			const s = String(search || '').trim().toLowerCase()
-			if (!s) return true
-			if (option && option.$isDisabled) return false
+			if (!s) { return true }
+			if (option && option.$isDisabled) { return false }
 			if (/^[\d\s]+$/.test(s)) {
 				const digits = s.replace(/\s+/g, '')
 				const num = String((option && option.number) || '').replace(/\s+/g, '').toLowerCase()
@@ -194,13 +208,16 @@ export default {
 			}
 			return String(label || '').toLowerCase().includes(s)
 		},
+
 		matchFieldLabel(field) {
 			return { counterparty: this.t('Zahlungspartner'), purpose: this.t('Verwendungszweck'), iban: this.t('IBAN') }[field] || field
 		},
+
 		resetRuleForm() {
 			this.ruleEditId = null
 			this.ruleForm = { matchField: 'counterparty', matchValue: '', contraAccountId: null, priority: 0 }
 		},
+
 		editRule(rule) {
 			this.ruleEditId = rule.id
 			this.ruleForm = {
@@ -210,6 +227,7 @@ export default {
 				priority: rule.priority || 0,
 			}
 		},
+
 		async saveRule() {
 			const payload = {
 				matchField: this.ruleForm.matchField,
@@ -231,15 +249,16 @@ export default {
 				this.resetRuleForm()
 			} catch (e) { showError(this.errMsg(e, this.t('Regel konnte nicht gespeichert werden'))) }
 		},
+
 		async deleteRule(rule) {
 			const ok = await this.askConfirm(
 				this.t('Regel löschen'),
 				this.t('Regel „{field} enthält {value} → {account}" wirklich löschen?', { field: this.matchFieldLabel(rule.matchField), value: rule.matchValue, account: this.accountLabel(rule.contraAccountId) }),
 			)
-			if (!ok) return
+			if (!ok) { return }
 			try {
 				await api.deleteRule(rule.id)
-				if (this.ruleEditId === rule.id) this.resetRuleForm()
+				if (this.ruleEditId === rule.id) { this.resetRuleForm() }
 				await this.loadRules()
 				showSuccess(this.t('Regel gelöscht.'))
 			} catch (e) { showError(this.errMsg(e, this.t('Regel konnte nicht gelöscht werden'))) }
@@ -247,11 +266,3 @@ export default {
 	},
 }
 </script>
-
-<style scoped>
-/* NcButton-Icon-Fix wie in App.vue (scoped, damit er nicht in Nextclouds eigene
-   .button-vue leckt), damit die Icon-Buttons hier identisch dargestellt werden. */
-::v-deep .button-vue { display: inline-flex !important; }
-::v-deep .button-vue__icon { display: flex !important; align-items: center; justify-content: center; }
-::v-deep .button-vue__icon svg { display: block !important; }
-</style>

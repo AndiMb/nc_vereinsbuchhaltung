@@ -1,7 +1,9 @@
 <template>
-	<NcModal :show="show"
+	<NcModal
+		:show="show"
 		:name="t('Willkommen')"
 		size="normal"
+		:closeOnClickOutside="true"
 		@close="$emit('close')"
 		@update:show="$emit('update:show', $event)">
 		<div class="vbh-wizard">
@@ -36,8 +38,8 @@
 </template>
 
 <script>
-import { NcModal, NcIconSvgWrapper } from '@nextcloud/vue'
-import { mdiDatabaseImportOutline, mdiPlusBoxOutline, mdiFlaskOutline } from '@mdi/js'
+import { mdiDatabaseImportOutline, mdiFlaskOutline, mdiPlusBoxOutline } from '@mdi/js'
+import { NcIconSvgWrapper, NcModal } from '@nextcloud/vue'
 
 export default {
 	name: 'SetupWizard',
@@ -45,6 +47,9 @@ export default {
 	props: {
 		show: { type: Boolean, default: false },
 	},
+
+	emits: ['choose', 'close', 'update:show'],
+
 	data() {
 		return { mdiDatabaseImportOutline, mdiPlusBoxOutline, mdiFlaskOutline }
 	},

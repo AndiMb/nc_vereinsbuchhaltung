@@ -1,9 +1,9 @@
-import { reactive, computed } from 'vue'
 import { showError } from '@nextcloud/dialogs'
+import { computed, reactive } from 'vue'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
-import { useYears } from './useYears.js'
 import { useAccounts } from './useAccounts.js'
+import { useYears } from './useYears.js'
 
 const state = reactive({
 	journalData: [],
@@ -18,19 +18,19 @@ function accountLabel(id) {
 	return acc ? `${acc.number} ${acc.name}` : `#${id}`
 }
 
-const journalRows = computed(() => state.journalData.map(item => {
+const journalRows = computed(() => state.journalData.map((item) => {
 	const j = item.journal
 	const lines = item.lines || []
-	const dl = lines.filter(l => l.debitCents > 0)
-	const cl = lines.filter(l => l.creditCents > 0)
+	const dl = lines.filter((l) => l.debitCents > 0)
+	const cl = lines.filter((l) => l.creditCents > 0)
 	return {
 		id: j.id,
 		entryNo: j.entryNo,
 		date: j.date,
 		description: j.description,
 		documentRef: j.documentRef,
-		soll: dl.map(l => accountLabel(l.accountId)).join(', '),
-		haben: cl.map(l => accountLabel(l.accountId)).join(', '),
+		soll: dl.map((l) => accountLabel(l.accountId)).join(', '),
+		haben: cl.map((l) => accountLabel(l.accountId)).join(', '),
 		debitAccountId: dl.length ? dl[0].accountId : null,
 		creditAccountId: cl.length ? cl[0].accountId : null,
 		isSplit: dl.length > 1 || cl.length > 1,
@@ -50,7 +50,7 @@ const journalRows = computed(() => state.journalData.map(item => {
 	}
 }))
 
-const unassignedCount = computed(() => state.transactions.filter(t => t.status === 'unassigned').length)
+const unassignedCount = computed(() => state.transactions.filter((t) => t.status === 'unassigned').length)
 
 async function loadJournal() {
 	try {

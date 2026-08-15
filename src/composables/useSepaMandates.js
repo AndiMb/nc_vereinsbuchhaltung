@@ -1,5 +1,5 @@
-import { reactive } from 'vue'
 import { showError } from '@nextcloud/dialogs'
+import { reactive } from 'vue'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
 

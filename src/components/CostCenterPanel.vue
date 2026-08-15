@@ -27,7 +27,8 @@
 		</p>
 
 		<div class="vbh-form vbh-cc-newform">
-			<label>{{ t('Kürzel') }}<input v-model="newCode"
+			<label>{{ t('Kürzel') }}<input
+				v-model="newCode"
 				class="vbh-short"
 				maxlength="8"
 				:placeholder="t('z.B. 51')"></label>
@@ -51,13 +52,15 @@
 				<tbody>
 					<tr v-for="cc in costCenters" :key="cc.id">
 						<td class="nowrap">
-							<input :value="cc.code"
+							<input
+								:value="cc.code"
 								class="vbh-short"
 								maxlength="8"
 								@change="rename(cc, 'code', $event)">
 						</td>
 						<td>
-							<input :value="cc.name"
+							<input
+								:value="cc.name"
 								class="vbh-rename"
 								@change="rename(cc, 'name', $event)">
 						</td>
@@ -65,7 +68,8 @@
 							{{ accountCount(cc.id) }}
 						</td>
 						<td class="nowrap">
-							<NcButton variant="error"
+							<NcButton
+								variant="error"
 								size="small"
 								:aria-label="t('Kostenstelle löschen')"
 								@click="remove(cc)">
@@ -138,15 +142,15 @@
 </template>
 
 <script>
-import { toRefs } from 'vue'
-import { NcButton } from '@nextcloud/vue'
 import { showError, showSuccess } from '@nextcloud/dialogs'
+import { NcButton } from '@nextcloud/vue'
+import { toRefs } from 'vue'
 import api from '../api.js'
-import { errMsg } from '../lib/format.js'
-import { useAuth } from '../composables/useAuth.js'
 import { useAccounts } from '../composables/useAccounts.js'
-import { useCostCenters } from '../composables/useCostCenters.js'
+import { useAuth } from '../composables/useAuth.js'
 import { useConfirm } from '../composables/useConfirm.js'
+import { useCostCenters } from '../composables/useCostCenters.js'
+import { errMsg } from '../lib/format.js'
 import { t } from '../lib/l10n.js'
 
 // Als Funktion statt Modul-Konstante (siehe HelpModal.vue/SphereAssignPanel.vue
@@ -184,6 +188,9 @@ export default {
 		// darf nicht isoliert speichern, siehe NAVIGATION-KONZEPT.md Risiko R3.
 		saveStorageSettings: { type: Function, required: true },
 	},
+
+	emits: ['changed', 'update:mode'],
+
 	setup() {
 		const auth = useAuth()
 		const accounts = useAccounts()
@@ -196,6 +203,7 @@ export default {
 			askConfirm: useConfirm().askConfirm,
 		}
 	},
+
 	data() {
 		return {
 			newCode: '',
@@ -205,29 +213,34 @@ export default {
 			saving: false,
 		}
 	},
+
 	computed: {
 		modeLabel() { return modeLabels()[this.mode] || this.mode },
 		modeModel: {
 			get() { return this.mode },
 			set(v) { this.$emit('update:mode', v) },
 		},
+
 		// Entspricht Account::isResultRelevant() im Backend: nur diese Konten
 		// tauchen in der Kostenstellen-Auswertung überhaupt auf.
 		relevantAccounts() {
 			return this.accounts
-				.filter(a => a.type !== 'equity' && !a.isBank)
+				.filter((a) => a.type !== 'equity' && !a.isBank)
 				.slice()
 				.sort((a, b) => String(a.number).localeCompare(String(b.number), 'de', { numeric: true }))
 		},
+
 		allSelected() {
 			return this.relevantAccounts.length > 0 && this.selected.length === this.relevantAccounts.length
 		},
 	},
+
 	methods: {
 		errMsg,
 		accountCount(costCenterId) {
-			return this.accounts.filter(a => a.costCenterId === costCenterId).length
+			return this.accounts.filter((a) => a.costCenterId === costCenterId).length
 		},
+
 		async createCostCenter() {
 			this.saving = true
 			try {
@@ -239,6 +252,7 @@ export default {
 				showSuccess(this.t('Kostenstelle angelegt.'))
 			} catch (e) { showError(this.errMsg(e, this.t('Kostenstelle konnte nicht angelegt werden'))) } finally { this.saving = false }
 		},
+
 		/**
 		 * Kürzel oder Name einer Kostenstelle ändern (beim Verlassen des Feldes).
 		 *
@@ -248,7 +262,7 @@ export default {
 		 */
 		async rename(cc, field, event) {
 			const next = { code: cc.code, name: cc.name, [field]: String(event.target.value).trim() }
-			if (next.code === cc.code && next.name === cc.name) return
+			if (next.code === cc.code && next.name === cc.name) { return }
 			try {
 				await api.updateCostCenter(cc.id, next.code, next.name)
 				await this.loadCostCenters()
@@ -260,10 +274,11 @@ export default {
 				event.target.value = cc[field]
 			}
 		},
+
 		async remove(cc) {
 			const count = this.accountCount(cc.id)
 			const hint = count ? ' ' + this.t('Die Zuordnung von {count} Konto/Konten wird gelöst; Buchungen bleiben unverändert.', { count }) : ''
-			if (!await this.askConfirm(this.t('Kostenstelle löschen'), this.t('Kostenstelle „{code} {name}" löschen?', { code: cc.code, name: cc.name }) + hint)) return
+			if (!await this.askConfirm(this.t('Kostenstelle löschen'), this.t('Kostenstelle „{code} {name}" löschen?', { code: cc.code, name: cc.name }) + hint)) { return }
 			try {
 				await api.deleteCostCenter(cc.id)
 				await this.loadCostCenters()
@@ -271,14 +286,17 @@ export default {
 				showSuccess(this.t('Kostenstelle gelöscht.'))
 			} catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
 		},
+
 		toggleAll(checked) {
-			this.selected = checked ? this.relevantAccounts.map(a => a.id) : []
+			this.selected = checked ? this.relevantAccounts.map((a) => a.id) : []
 		},
+
 		toggleOne(id, checked) {
-			if (checked) { if (!this.selected.includes(id)) this.selected.push(id) } else { this.selected = this.selected.filter(x => x !== id) }
+			if (checked) { if (!this.selected.includes(id)) { this.selected.push(id) } } else { this.selected = this.selected.filter((x) => x !== id) }
 		},
+
 		async applyBulk() {
-			if (!this.selected.length || this.bulkTarget === '') return
+			if (!this.selected.length || this.bulkTarget === '') { return }
 			this.saving = true
 			try {
 				const { data } = await api.assignCostCenter(this.selected, Number(this.bulkTarget))
@@ -288,6 +306,7 @@ export default {
 				showSuccess(this.t('{count} Konten zugeordnet.', { count: data.updated }))
 			} catch (e) { showError(this.errMsg(e, this.t('Zuordnung fehlgeschlagen'))) } finally { this.saving = false }
 		},
+
 		async assignOne(account, value) {
 			try {
 				await api.assignCostCenter([account.id], Number(value || 0))

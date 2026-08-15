@@ -1,5 +1,6 @@
 <template>
-	<div class="vbh-mcard"
+	<div
+		class="vbh-mcard"
 		:class="{ tappable }"
 		:role="tappable ? 'button' : null"
 		:tabindex="tappable ? 0 : null"
@@ -19,7 +20,8 @@
 			<span class="vbh-mcard-accounts">
 				<template v-if="row.isSplit">{{ t('Splitt: ') }}</template>{{ row.soll }} ← {{ row.haben }}
 			</span>
-			<button v-if="attachmentCount > 0"
+			<button
+				v-if="attachmentCount > 0"
 				type="button"
 				class="vbh-mcard-clip"
 				:aria-label="n('%n Beleg anzeigen', '%n Belege anzeigen', attachmentCount)"
@@ -31,9 +33,9 @@
 </template>
 
 <script>
-import { NcIconSvgWrapper } from '@nextcloud/vue'
 import { mdiPaperclip } from '@mdi/js'
-import { formatMoney, formatDate } from '../lib/format.js'
+import { NcIconSvgWrapper } from '@nextcloud/vue'
+import { formatDate, formatMoney } from '../lib/format.js'
 
 /**
  * Mobile Kartendarstellung eines Buchungssatzes (journalRows-Zeile):
@@ -51,19 +53,25 @@ export default {
 		flow: { type: String, default: '' },
 		tappable: { type: Boolean, default: false },
 	},
+
+	emits: ['open', 'paperclip'],
+
 	data() {
 		return { mdiPaperclip }
 	},
+
 	computed: {
 		flowClass() {
 			return this.flow === 'in' ? 'pos' : this.flow === 'out' ? 'neg' : ''
 		},
+
 		amountLabel() {
-			if (this.flow === 'in') return '+' + formatMoney(this.row.amount)
-			if (this.flow === 'out') return formatMoney(-this.row.amount)
+			if (this.flow === 'in') { return '+' + formatMoney(this.row.amount) }
+			if (this.flow === 'out') { return formatMoney(-this.row.amount) }
 			return formatMoney(this.row.amount)
 		},
 	},
+
 	methods: { formatDate },
 }
 </script>

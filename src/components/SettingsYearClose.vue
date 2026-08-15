@@ -21,13 +21,15 @@
 								</template>
 							</td>
 							<td class="right">
-								<NcButton v-if="!closedYearSet[y]"
+								<NcButton
+									v-if="!closedYearSet[y]"
 									variant="primary"
 									size="small"
 									@click="closeYear(y)">
 									{{ t('Abschließen') }}
 								</NcButton>
-								<NcButton v-else
+								<NcButton
+									v-else
 									variant="tertiary"
 									size="small"
 									@click="reopenYear(y)">
@@ -46,13 +48,13 @@
 </template>
 
 <script>
-import { toRefs } from 'vue'
-import { NcButton } from '@nextcloud/vue'
 import { showError, showSuccess } from '@nextcloud/dialogs'
+import { NcButton } from '@nextcloud/vue'
+import { toRefs } from 'vue'
 import api from '../api.js'
-import { formatDate, errMsg } from '../lib/format.js'
-import { useYears } from '../composables/useYears.js'
 import { useConfirm } from '../composables/useConfirm.js'
+import { useYears } from '../composables/useYears.js'
+import { errMsg, formatDate } from '../lib/format.js'
 
 export default {
 	name: 'SettingsYearClose',
@@ -68,6 +70,7 @@ export default {
 			askConfirm: useConfirm().askConfirm,
 		}
 	},
+
 	methods: {
 		formatDate,
 		errMsg,
@@ -75,18 +78,23 @@ export default {
 			if (!await this.askConfirm(
 				this.t('Jahr {year} abschließen', { year }),
 				this.t('Das Geschäftsjahr {year} wird festgeschrieben: Buchungen, Belege und Zuordnungen dieses Jahres können danach nicht mehr geändert werden. Ein Verwalter kann das Jahr bei Bedarf wiedereröffnen.', { year }),
-				this.t('Abschließen'), 'primary')) return
+				this.t('Abschließen'),
+				'primary',
+			)) { return }
 			try {
 				await api.closeYear(year)
 				await this.loadClosedYears()
 				showSuccess(this.t('Geschäftsjahr {year} abgeschlossen.', { year }))
 			} catch (e) { showError(this.errMsg(e, this.t('Abschließen fehlgeschlagen'))) }
 		},
+
 		async reopenYear(year) {
 			if (!await this.askConfirm(
 				this.t('Jahr {year} wiedereröffnen', { year }),
 				this.t('Das Geschäftsjahr {year} wird wieder änderbar. Das sollte nur in Ausnahmefällen geschehen (z. B. Korrektur vor der Kassenprüfung) und wird protokolliert.', { year }),
-				this.t('Wiedereröffnen'), 'error')) return
+				this.t('Wiedereröffnen'),
+				'error',
+			)) { return }
 			try {
 				await api.reopenYear(year)
 				await this.loadClosedYears()

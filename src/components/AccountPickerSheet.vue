@@ -1,12 +1,14 @@
 <template>
-	<div v-show="open"
+	<div
+		v-show="open"
 		class="vbh-sheetwrap"
 		role="dialog"
 		aria-modal="true"
 		:aria-label="title">
 		<div class="vbh-sheet-scrim" @click="$emit('close')" />
 		<div class="vbh-sheet" :style="dragY ? { transform: 'translateY(' + dragY + 'px)', transition: 'none' } : null">
-			<div class="vbh-sheet-dragzone"
+			<div
+				class="vbh-sheet-dragzone"
 				@touchstart.passive="onTouchStart"
 				@touchmove.passive="onTouchMove"
 				@touchend="onTouchEnd"
@@ -14,7 +16,8 @@
 				<div class="vbh-sheet-grabber" aria-hidden="true" />
 				<div class="vbh-sheet-head">
 					<span class="vbh-sheet-title">{{ title }}</span>
-					<button type="button"
+					<button
+						type="button"
 						class="vbh-sheet-close"
 						:aria-label="t('Schließen')"
 						@click="$emit('close')">
@@ -22,13 +25,15 @@
 					</button>
 				</div>
 			</div>
-			<button v-if="suggestion"
+			<button
+				v-if="suggestion"
 				type="button"
 				class="vbh-suggest-chip vbh-suggest-chip--big vbh-sheet-suggest"
 				@click="$emit('suggest')">
 				{{ t('✓ Vorschlag übernehmen: {label}', { label: suggestion.label }) }}
 			</button>
-			<input v-model="search"
+			<input
+				v-model="search"
 				type="search"
 				class="vbh-search vbh-search--full vbh-sheet-search"
 				:placeholder="t('Konto suchen (Nummer oder Name)…')">
@@ -37,7 +42,8 @@
 					<div class="vbh-sheet-group">
 						{{ t('Zuletzt verwendet') }}
 					</div>
-					<button v-for="opt in recent"
+					<button
+						v-for="opt in recent"
 						:key="'r' + opt.id"
 						type="button"
 						class="vbh-sheet-item"
@@ -46,12 +52,12 @@
 						{{ opt.label }}
 					</button>
 				</template>
-				<template v-for="(opt, i) in filteredOptions">
-					<div v-if="opt.id === null" :key="'h' + i" class="vbh-sheet-group">
+				<template v-for="(opt, i) in filteredOptions" :key="i">
+					<div v-if="opt.id === null" class="vbh-sheet-group">
 						{{ opt.label }}
 					</div>
-					<button v-else
-						:key="'o' + i"
+					<button
+						v-else
 						type="button"
 						class="vbh-sheet-item"
 						:class="{ current: opt.id === currentId }"
@@ -80,7 +86,7 @@
  * Das Suchfeld wird bewusst nicht automatisch fokussiert: die aufspringende
  * Tastatur würde das halbe Sheet verdecken, bevor man die Liste gesehen hat.
  *
- * Manuelles Portal (mounted/beforeDestroy hängen $el an document.body) statt
+ * Manuelles Portal (mounted/beforeUnmount hängen $el an document.body) statt
  * <teleport>: Pflicht, kein Stilmittel. Nextclouds eigenes Core-CSS setzt
  * `#content { position: fixed }`, was einen neuen Stacking-Context aufmacht;
  * ohne Portal haengt das Sheet darin fest und bleibt trotz hohem z-index
@@ -106,20 +112,25 @@ export default {
 		suggestion: { type: Object, default: null },
 		currentId: { type: [Number, String], default: null },
 	},
+
+	emits: ['close', 'pick', 'suggest'],
 	data() {
 		return { search: '', dragStartY: null, dragY: 0 }
 	},
+
 	computed: {
 		searching() {
 			return this.search.trim() !== ''
 		},
+
 		filteredOptions() {
 			const s = this.search.trim().toLowerCase()
-			if (!s) return this.options
+			if (!s) { return this.options }
 			// Bei aktiver Suche flache Trefferliste ohne Gruppen-Überschriften
-			return this.options.filter(o => o.id !== null && String(o.label).toLowerCase().includes(s))
+			return this.options.filter((o) => o.id !== null && String(o.label).toLowerCase().includes(s))
 		},
 	},
+
 	watch: {
 		open(v) {
 			if (v) {
@@ -129,23 +140,28 @@ export default {
 			}
 		},
 	},
+
 	mounted() {
 		document.body.appendChild(this.$el)
 	},
-	beforeDestroy() {
-		if (this.$el && this.$el.parentNode) this.$el.parentNode.removeChild(this.$el)
+
+	beforeUnmount() {
+		if (this.$el && this.$el.parentNode) { this.$el.parentNode.removeChild(this.$el) }
 	},
+
 	methods: {
 		onTouchStart(e) {
 			this.dragStartY = e.touches[0].clientY
 			this.dragY = 0
 		},
+
 		onTouchMove(e) {
-			if (this.dragStartY === null) return
+			if (this.dragStartY === null) { return }
 			this.dragY = Math.max(0, e.touches[0].clientY - this.dragStartY)
 		},
+
 		onTouchEnd() {
-			if (this.dragY > 70) this.$emit('close')
+			if (this.dragY > 70) { this.$emit('close') }
 			this.dragStartY = null
 			this.dragY = 0
 		},

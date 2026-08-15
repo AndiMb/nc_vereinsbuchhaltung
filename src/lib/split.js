@@ -16,7 +16,7 @@
  * @return {string} 'debit' | 'credit'
  */
 export function splitSideOf(form, mode) {
-	if (mode === 'simple') return form.kind === 'income' ? 'credit' : 'debit'
+	if (mode === 'simple') { return form.kind === 'income' ? 'credit' : 'debit' }
 	return form.splitSide === 'debit' ? 'debit' : 'credit'
 }
 

@@ -1,7 +1,9 @@
 <template>
-	<NcModal :show="show"
+	<NcModal
+		:show="show"
 		:name="t('Mitgliederliste einlesen')"
 		size="large"
+		:closeOnClickOutside="true"
 		@close="$emit('close')"
 		@update:show="$emit('update:show', $event)">
 		<div class="vbh-modal-inner">
@@ -12,14 +14,16 @@
 				{{ t('Zeilen mit Start-Datum, aber ohne eigenen Betrag, bekommen automatisch Ihren Standardbeitrag ({amount} {frequency}) – die Betrag-Spalte kann bei einheitlichen Sätzen also leer bleiben.', { amount: formatMoney(defaultFeeAmount), frequency: frequencyLabel(defaultFeeFrequency) }) }}
 			</p>
 			<div class="vbh-form">
-				<input ref="csvInput"
+				<input
+					ref="csvInput"
 					type="file"
 					accept=".csv,text/csv"
 					@change="onFileChosen">
 				<NcButton :disabled="!importCsv || importing" @click="previewImport">
 					{{ t('Prüfen') }}
 				</NcButton>
-				<NcButton variant="primary"
+				<NcButton
+					variant="primary"
 					:disabled="!importPreview || importSummary.ok === 0 || importing"
 					@click="runImport">
 					{{ n('%n Zeile übernehmen', '%n Zeilen übernehmen', importSummary.ok) }}
@@ -85,12 +89,12 @@
 </template>
 
 <script>
-import { NcModal, NcButton } from '@nextcloud/vue'
 import { showError, showSuccess } from '@nextcloud/dialogs'
+import { NcButton, NcModal } from '@nextcloud/vue'
 import api from '../api.js'
+import { useConfirm } from '../composables/useConfirm.js'
 import { errMsg, formatMoney } from '../lib/format.js'
 import { frequencyLabel } from '../lib/frequency.js'
-import { useConfirm } from '../composables/useConfirm.js'
 
 /**
  * CSV-Massenimport von Mitgliedern – aus MembersList.vue (frueher
@@ -106,9 +110,13 @@ export default {
 		defaultFeeAmount: { type: [Number, String], default: '' },
 		defaultFeeFrequency: { type: String, default: 'yearly' },
 	},
+
+	emits: ['close', 'imported', 'update:show'],
+
 	setup() {
 		return { askConfirm: useConfirm().askConfirm }
 	},
+
 	data() {
 		return {
 			importCsv: '',
@@ -118,6 +126,7 @@ export default {
 			importSummary: { ok: 0, failed: 0, mandates: 0, fees: 0 },
 		}
 	},
+
 	computed: {
 		/** Vorlage als Daten-URL: kein zusätzlicher Endpunkt nötig. */
 		beispielCsv() {
@@ -129,24 +138,27 @@ export default {
 			return 'data:text/csv;charset=utf-8,' + encodeURIComponent('﻿' + zeilen)
 		},
 	},
+
 	watch: {
 		show(open) {
-			if (open) this.resetImport()
+			if (open) { this.resetImport() }
 		},
 	},
+
 	methods: {
 		errMsg,
 		formatMoney,
 		frequencyLabel,
 		importLabel(row) {
-			if (row.willCreateMandate && row.willCreateFee) return this.t('Mandat und Beitrag')
-			if (row.willCreateMandate) return this.t('nur Mandat')
+			if (row.willCreateMandate && row.willCreateFee) { return this.t('Mandat und Beitrag') }
+			if (row.willCreateMandate) { return this.t('nur Mandat') }
 			return this.t('nur Beitrag')
 		},
+
 		onFileChosen(event) {
 			const datei = event.target.files && event.target.files[0]
 			this.resetImport()
-			if (!datei) return
+			if (!datei) { return }
 			const leser = new FileReader()
 			leser.onload = () => { this.importCsv = String(leser.result || '') }
 			leser.onerror = () => showError(this.t('Die Datei konnte nicht gelesen werden.'))
@@ -154,13 +166,15 @@ export default {
 			// der Normalfall, der Rest faellt beim Pruefen als kaputte Umlaute auf.
 			leser.readAsText(datei, 'utf-8')
 		},
+
 		resetImport() {
 			this.importCsv = ''
 			this.importPreview = null
 			this.importError = ''
 			this.importSummary = { ok: 0, failed: 0, mandates: 0, fees: 0 }
-			if (this.$refs.csvInput) this.$refs.csvInput.value = ''
+			if (this.$refs.csvInput) { this.$refs.csvInput.value = '' }
 		},
+
 		async previewImport() {
 			this.importing = true
 			try {
@@ -170,6 +184,7 @@ export default {
 				this.importSummary = data.summary
 			} catch (e) { showError(this.errMsg(e, this.t('Prüfen fehlgeschlagen'))) } finally { this.importing = false }
 		},
+
 		async runImport() {
 			if (!await this.askConfirm(
 				this.t('Mitglieder übernehmen'),
@@ -179,15 +194,16 @@ export default {
 					beitraege: this.importSummary.fees,
 					fehler: this.importSummary.failed,
 				}),
-				this.t('Übernehmen'), 'primary',
-			)) return
+				this.t('Übernehmen'),
+				'primary',
+			)) { return }
 			this.importing = true
 			try {
 				const { data } = await api.runMemberImport(this.importCsv)
 				this.importPreview = data.rows
 				this.importSummary = data.summary
 				this.importCsv = ''
-				if (this.$refs.csvInput) this.$refs.csvInput.value = ''
+				if (this.$refs.csvInput) { this.$refs.csvInput.value = '' }
 				this.$emit('imported')
 				showSuccess(this.n('%n Zeile übernommen.', '%n Zeilen übernommen.', data.summary.ok))
 			} catch (e) { showError(this.errMsg(e, this.t('Import fehlgeschlagen'))) } finally { this.importing = false }

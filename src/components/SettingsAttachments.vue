@@ -41,11 +41,15 @@ export default {
 		// gemeinsame Speichern-Funktion des Elternteils, siehe SettingsClub.vue
 		saveStorageSettings: { type: Function, required: true },
 	},
+
+	emits: ['update:storagePath', 'update:storageUser'],
+
 	computed: {
 		storageUserModel: {
 			get() { return this.storageUser },
 			set(v) { this.$emit('update:storageUser', v) },
 		},
+
 		storagePathModel: {
 			get() { return this.storagePath },
 			set(v) { this.$emit('update:storagePath', v) },
