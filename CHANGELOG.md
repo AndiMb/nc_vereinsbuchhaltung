@@ -10,6 +10,24 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
 
 ## [Unreleased]
 
+## [0.23.1] – 2026-08-15
+
+### Behoben
+- **Berichte → Kostenstellen/Sphären: kein Rand, weder oben in der
+  Split-Ansicht noch im Pflegepanel darunter**: Nachbesserung zum
+  0.23.0-Fix, der die Split-Ansicht (`.vbh-splitinner`) wieder auf volle
+  Breite brachte. Zwei getrennte Stellen hatten trotzdem noch keinen Rand,
+  weil beide bislang nur implizit vom umgebenden `.vbh-sectionbody`
+  profitierten, das für Kostenstellen/Sphären aber bewusst auf `padding: 0`
+  gesetzt ist (die Split-Ansicht managt Innenabstände sonst selbst) – bei
+  der vorherigen ~1px-Quetschung war das nie sichtbar:
+  - `.vbh-splitinner` selbst (Baum + Detail: kein oberer/linker Rand) –
+    jetzt eigenes `padding-top`/`padding-left`.
+  - das darunterliegende Pflegepanel (`CostCenterPanel`/`SphereAssignPanel`,
+    umschlossen von `.vbh-section-divider`, das sonst nur als `<h3>`-Trenn-
+    linie in schon gepolsterten Containern vorkommt) – jetzt eigenes
+    horizontales Padding auf `.vbh-sectionbody.is-split > .vbh-section-divider`.
+
 ## [0.23.0] – 2026-08-15
 
 ### Geändert

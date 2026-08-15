@@ -82,7 +82,19 @@
 /* min-height statt 0: sonst schrumpft splitinner in der Spalte neben dem
    ggf. sehr hohen .vbh-section-divider (Pflegepanel) auf 0 zusammen, weil
    es als einziges der beiden Geschwister min-height:0 haette. */
-.vbh-splitinner { display: flex; flex: 1 1 auto; min-height: 360px; min-width: 0; overflow: hidden; }
+/* padding-top/-left: .vbh-tree/.vbh-detail bringen zwar eigenes Innenpadding
+   mit (Treehead/Treenode bzw. .vbh-detail selbst), aber nur auf ihre eigenen
+   Kinder bezogen - der AEUSSERE Rand zum sectionbody (padding:0, s.o.) fehlte
+   dadurch komplett, anders als bei jedem anderen Tab (.vbh-sectionbody hat
+   sonst ueberall 12px/16px). detail bringt rechts schon eigene 20px mit,
+   daher hier nur oben/links noetig. */
+.vbh-splitinner { display: flex; flex: 1 1 auto; min-height: 360px; min-width: 0; overflow: hidden; padding: 12px 0 0 16px; }
+/* .vbh-section-divider ist sonst nur eine <h3>-Trennlinie innerhalb von
+   Containern, die ihr Padding schon selbst mitbringen (z.B. .vbh-modal-inner
+   in App.vue) - hier umschliesst es aber das ganze Pflegepanel direkt unter
+   dem padding:0-gesetzten .vbh-sectionbody.is-split und braucht daher sein
+   eigenes horizontales Padding, sonst sitzt das Panel randlos. */
+.vbh-sectionbody.is-split > .vbh-section-divider { padding-left: 16px; padding-right: 16px; padding-bottom: 48px; }
 
 /* Account tree search */
 .vbh-treesearch { padding: 8px; border-bottom: 1px solid var(--color-border); }
@@ -671,8 +683,9 @@
 
 	/* Konten + Kostenstellen: Split-Layout stapeln statt nebeneinander */
 	.vbh-section.split { flex-direction: column; overflow-y: auto; }
-	.vbh-splitinner { flex-direction: column; overflow-y: auto; overflow-x: hidden; }
+	.vbh-splitinner { flex-direction: column; overflow-y: auto; overflow-x: hidden; padding: 8px 0 0 8px; }
 	.vbh-sectionbody.is-split { overflow-y: auto; overflow-x: hidden; display: block; }
+	.vbh-sectionbody.is-split > .vbh-section-divider { padding-left: 8px; padding-right: 8px; padding-bottom: 84px; }
 	.vbh-tree { flex: 0 0 auto; max-height: 240px; min-width: 0; border-right: none; border-bottom: 1px solid var(--color-border); }
 	.vbh-detail { overflow-y: visible; min-width: 0; padding: 10px 10px 32px; }
 	/* Drilldown (isMobile): Baum ODER Detail – der Baum bekommt die volle Höhe */
