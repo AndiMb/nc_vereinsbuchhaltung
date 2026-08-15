@@ -1,5 +1,5 @@
 <template>
-	<div v-if="open"
+	<div v-show="open"
 		class="vbh-sheetwrap"
 		role="dialog"
 		aria-modal="true"
@@ -79,6 +79,19 @@
  * selbst muss scrollbar bleiben, daher hängt die Geste nur an der Dragzone).
  * Das Suchfeld wird bewusst nicht automatisch fokussiert: die aufspringende
  * Tastatur würde das halbe Sheet verdecken, bevor man die Liste gesehen hat.
+ *
+ * Manuelles Portal (mounted/beforeDestroy hängen $el an document.body) statt
+ * <teleport>: Pflicht, kein Stilmittel. Nextclouds eigenes Core-CSS setzt
+ * `#content { position: fixed }`, was einen neuen Stacking-Context aufmacht;
+ * ohne Portal haengt das Sheet darin fest und bleibt trotz hohem z-index
+ * unsichtbar/unklickbar hinter einem NcModal (z. B. dem Buchungsdialog) -
+ * NcModal selbst entkommt dem nur, weil @nextcloud/vue seine Modals ebenfalls
+ * an document.body haengt. <teleport> waere die saubere Vue-3-Loesung, wird
+ * von der hier verwendeten vue-loader-15-Toolchain (Vue-2.6-Aera-SFC-Pipeline
+ * trotz Vue 2.7 im Package) aber nur als wirkungsloses literales DOM-Element
+ * durchgereicht - deshalb der manuelle Weg. v-show statt v-if am Wurzelement
+ * ist hierfuer noetig: $el muss ueber die gesamte Komponenten-Lebensdauer
+ * dasselbe Element bleiben, sonst haette mounted() nichts zum Verschieben.
  */
 export default {
 	name: 'AccountPickerSheet',
@@ -115,6 +128,12 @@ export default {
 				this.dragY = 0
 			}
 		},
+	},
+	mounted() {
+		document.body.appendChild(this.$el)
+	},
+	beforeDestroy() {
+		if (this.$el && this.$el.parentNode) this.$el.parentNode.removeChild(this.$el)
 	},
 	methods: {
 		onTouchStart(e) {

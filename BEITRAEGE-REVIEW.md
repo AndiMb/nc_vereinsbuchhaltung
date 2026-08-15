@@ -11,7 +11,8 @@
 > Diese Datei betrifft **nur** das Modul „Beiträge & SEPA". Personas und
 > Testfälle für die übrige App – Buchhaltung, Import, Kassenprüfung,
 > Jahresabschluss, Rechteverwaltung, Mobil – stehen in
-> **[APP-REVIEW.md](APP-REVIEW.md)** (dort noch nicht durchgeführt).
+> **[APP-REVIEW.md](APP-REVIEW.md)** (seit 15.08.2026 durchgeführt, drei
+> Befunde, einer davon hoch).
 
 ## 1. Anlass
 

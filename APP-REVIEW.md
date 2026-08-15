@@ -1,11 +1,15 @@
 # Review-Vorlage „Gesamte App": Personas und Testfälle
 
-> **Status: noch nicht durchgeführt.** Personas und Testfälle sind am
-> 15.08.2026 aus dem Code hergeleitet (Version 0.22.2), nicht erlaufen. Die
-> zitierten Beschriftungen stammen aus den jeweiligen Komponenten und sind
-> damit als **Soll-Zustand** belastbar – das tatsächliche Verhalten ist es
-> nicht. Wer den Review fährt, trägt die Ergebnisse in
-> [Abschnitt 5](#5-befunde) nach.
+> **Durchgeführt am 15.08.2026** auf Version 0.22.2 gegen die lokale
+> Docker-Testinstanz (headless Chromium per CDP, zwei unabhängige
+> Chrome-Prozesse für echte Parallel-Sessions bei Petra – siehe
+> Projekt-Memory „Docker-Testinstanz"). Alle acht Personas wurden
+> durchgespielt; drei Befunde siehe [Abschnitt 5](#5-befunde). Der einzige
+> hohe Befund (Uwe, mobile Kontoauswahl unsichtbar hinter dem Buchungsdialog)
+> ist noch am selben Tag mit **Version 0.22.3** behoben und per
+> Real-Klick-Koordinaten (nicht nur `.click()`) erneut verifiziert worden.
+> Punkte, die aus Testdaten- oder Werkzeuggründen nicht erlaufen wurden, sind
+> in Abschnitt 5 einzeln vermerkt.
 
 ## 1. Abgrenzung zu BEITRAEGE-REVIEW.md
 
@@ -219,9 +223,74 @@ gegen den Stand davor, nicht absolut lesen), PHPUnit, ESLint, Vitest,
 
 ## 5. Befunde
 
-*Noch keine – der Review ist noch nicht gelaufen. Tabellenkopf steht bereit,
-Aufbau wie `BEITRAEGE-REVIEW.md` Abschnitt 3.*
+Aufbau wie `BEITRAEGE-REVIEW.md` Abschnitt 3. Schweregrad wie dort: „kritisch"
+blockiert eine Kernaufgabe vollständig, „hoch" einen häufigen Weg dorthin
+(Umgehung existiert, ist aber unbequem/nicht offensichtlich), „niedrig"
+Kosmetik/Randfall. Befund 1 ist mit **Version 0.22.3** behoben; Befunde 2–3
+sind unten als Vorschlag festgehalten, aber (bewusst, geringe Priorität) noch
+nicht umgesetzt.
 
-| # | Schwere | Befund | Persona | Fix | Berührte Dateien |
+| # | Schwere | Befund | Persona | Fix / Vorschlag | Berührte Dateien |
 |---|---|---|---|---|---|
-| | | | | | |
+| 1 | hoch | Auf dem Handy öffnete sich das Konto-/Kategorie-Auswahl-Sheet (Betragsfeld → „Kategorie wählen…"/„Geldkonto") zwar korrekt im DOM (`.vbh-sheetwrap`, `z-index: 12000`), blieb aber **unsichtbar und unklickbar hinter dem „Neue Buchung"-Dialog**: Klicks an der Sheet-Position landeten nachweislich auf dem darunterliegenden Buchungsformular. Ursache: Nextclouds eigenes Core-CSS setzt `#content:not(.with-sidebar--full) { position: fixed }` – und `position: fixed` erzeugt einen neuen Stacking-Context, unabhängig vom eigenen `z-index`. Der App-Root (`#content` = `.app-vereinsbuchhaltung`) sitzt darin, `.vbh-sheetwrap` war ein Nachfahre und blieb damit in diesem Context gefangen. NcModal (der „Neue Buchung"-Dialog, `z-index: 9998`) entkommt dem, weil `@nextcloud/vue` seine Modals an `document.body` teleportiert. Praktisch: Auf dem Handy ließ sich beim Anlegen einer Buchung **weder Kategorie noch Geldkonto auswählen**, sobald der Buchungsdialog offen war – der zentrale Erfassungsweg (Uwe) war blockiert. | Uwe | **Behoben (0.22.3).** `<teleport to="body">` wäre die saubere Lösung, wird von der hier verwendeten `vue-loader@15`-Toolchain aber nur als wirkungsloses literales DOM-Element durchgereicht (siehe Projekt-Memory „Vue `<teleport>` wirkungslos") – stattdessen manuelles Portal-Pattern (`mounted()` hängt `this.$el` an `document.body`, `beforeDestroy()` entfernt es wieder; Root-Element von `v-if` auf `v-show` umgestellt, damit `$el` über die Komponenten-Lebensdauer stabil bleibt). Verifiziert per `elementFromPoint` an der realen Sheet-Item-Position **und** echtem `Input.dispatchMouseEvent` (nicht nur `.click()`) – Auswahl, Suche und vollständiger Buchungsvorgang laufen jetzt durch. | `src/components/AccountPickerSheet.vue` |
+| 2 | niedrig | Auf einer wirklich leeren Instanz (0 Konten, direkt nach „Alle Daten löschen") zeigt die Einrichtungs-Checkliste „Sphären zuordnen (steuerlich)" bereits als **erledigt** an, obwohl noch gar keine Konten existieren – `this.accounts.filter(...).every(a => a.sphere)` ist auf einer leeren Liste vacuously `true`. Sobald der erste Kontenrahmen angelegt wird, korrigiert sich die Anzeige von selbst (verifiziert). Bis dahin ist der Haken irreführend für jemanden wie Jürgen, der die Checkliste von oben nach unten abarbeitet. | Jürgen | Vorschlag (nicht umgesetzt): In `steps` für `spheres` zusätzlich `this.accounts.length > 0` verlangen, analog zu den anderen Schritten. | `src/App.vue` (Checklisten-`steps`-Definition, Zeile ~64 laut Kommentarblock) |
+| 3 | niedrig | Die Fehlerbegründungs-Datei im Wachordner (`<Datei>.fehler.txt`) mischt Deutsch und Englisch: „Diese Datei konnte … nicht eingelesen werden: The file format was not recognized. Supported are CSV-CAMT, CAMT.053 (XML), and MT940 …". Für die Ehrenamts-Zielgruppe (unübersetzte Ausnahme-Message eines Parsers, direkt in die für Menschen gedachte Begründungsdatei durchgereicht) unnötig verwirrend, funktional aber unproblematisch. | Frank | Vorschlag (nicht umgesetzt): Den Format-Hinweis-Satz in `WatchFolderService`/`StatementParserRegistry` auf Deutsch formulieren, statt die rohe Parser-Exception-Message durchzureichen. | `lib/Service/WatchFolderService.php`, `lib/Service/Statement/StatementParserRegistry.php` |
+
+### Nicht erlaufene Punkte (Testdaten- bzw. Werkzeuggrenzen, kein Hinweis auf Bugs)
+
+- **Frank, 4.2 Punkte 1–4** (xbuc-Mehrjahresimport, Geschäftsjahr-Prüfung,
+  Anfangsbestände-Erkennung): Im Repo liegt keine `.xbuc`-Testdatei; eine
+  synthetische Datei aus dem Parser-Code zurückzukonstruieren hätte nur
+  meine eigene Format-Annahme getestet, nicht das echte Verhalten mit
+  Dateien aus „zero Buchhaltung". Punkte 5–7 (Bankauszugsformate, Wachordner,
+  formatübergreifende Dublettenerkennung) wurden mit echten Fixtures voll
+  bestätigt. Für einen künftigen Durchlauf: eine kleine, reale `.xbuc`-Datei
+  (ein bis zwei Jahre, wenige Konten/Buchungen) als Fixture ergänzen.
+- **Renate, 4.4**: Alle Punkte inkl. der API-Gegenprobe (403 auf
+  `POST /api/journal`, `/api/rules`, `/api/sepa/fees`, `/api/accounts`) sind
+  vollständig bestätigt – keine Einschränkung.
+- **Petra, 4.7 Punkt 1**: Die Zuordnung selbst (Gruppen-Rolle, höhere Rolle
+  gewinnt in beide Richtungen, NC-Admin-Sonderfall) ist über die API voll
+  verifiziert – dieselbe API, die `SettingsPermissions.vue::savePermission()`
+  aufruft. Das reine Bedienen des `NcSelect`-Dropdowns zur Nutzer-/
+  Gruppenauswahl ließ sich mit synthetischen DOM-Events nicht auslösen
+  (vue-multiselect erwartet echte Tastatureingaben); ein Werkzeug-, kein
+  App-Befund.
+
+## 6. Was bereits gut funktionierte (nicht angefasst)
+
+Für künftige Reviews zur Abgrenzung, was ausdrücklich geprüft und für gut
+befunden wurde:
+
+- **Setup-Assistent & Ersteinrichtung** (Jürgen): alle drei Wege, Beispielverein
+  inkl. Zurücksetzen, Erste-Buchung-Tour (erscheint einmalig, bleibt nach
+  Reload weg), Checkliste-Sprungmarken.
+- **Statement-Import** (Frank/Thomas): CSV-CAMT/CAMT.053/MT940 werden korrekt
+  erkannt, IBAN-basierte Geldkonto-Zuordnung über mehrere Bankkonten hinweg,
+  formatübergreifende Dublettenerkennung, Wachordner-Verzeichnisse
+  (`verarbeitet/`/`fehler/`) korrekt befüllt.
+- **Zuordnung & Regeln** (Thomas): Verlaufs-basierter Vorschlag, Regel-Anlage
+  per Blitz-Button, Splittbuchung (Geldkonto bleibt eine Zeile).
+- **Kostenstellen & Sphären** (Thomas): freie Kostenstellen mit
+  Mehrfachzuweisung, Freigrenzen-Warnung exakt bei 94 % ausgelöst.
+- **Rollen & Rechte** (Renate/Markus/Petra): Revisor ist serverseitig
+  vollständig schreibgeschützt (nicht nur UI-versteckt), „Kein Zugriff" für
+  Nutzer ohne Rolle greift ebenso serverseitig, Gruppenrollen und deren
+  Zusammenspiel mit individuellen Rollen (höhere gewinnt) funktionieren in
+  beide Richtungen, NC-Admins sind ohne expliziten Eintrag Verwalter.
+- **Kollaboration** (Petra): optimistisches Locking verhindert stilles
+  Überschreiben mit der exakt dokumentierten Konfliktmeldung, Polling
+  aktualisiert bei Fensterfokus mit der exakt dokumentierten Meldung.
+- **Jahresabschluss** (Hannelore): Abschließen sperrt PUT/DELETE/POST im
+  betroffenen Jahr mit HTTP 423 und verständlicher Meldung, offene Jahre
+  bleiben unberührt buchbar, Wiedereröffnen protokolliert und mit rotem
+  Bestätigungsdialog.
+- **Berichte** (Hannelore): Kassenbericht und Kurzbericht mit allen
+  dokumentierten Abschnitten (inkl. Vollständigkeitszeile, Freigrenzenhinweis,
+  Corporate Design aus den Einstellungen), Finanzplan-Snapshot-Vergleich,
+  Rücklagen-Bericht nach Art, Mehrjahresübersicht als CSV und Diagramm.
+- **Mobile Bedienung** (Uwe): Bottom-Navigation ab 640 px, große Eingabefelder
+  in der Schnellerfassung, Kamera-Direktzugriff fürs Belegfoto, Karten-Layout
+  in Journal/Kostenstellen/Konten; die Auswahl-Sheets für Konto/Kategorie
+  waren zunächst hinter dem Buchungsdialog unbedienbar (Befund 1), seit
+  0.22.3 behoben und end-to-end nachverifiziert.

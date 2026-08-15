@@ -10,6 +10,19 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
 
 ## [Unreleased]
 
+## [0.22.3] – 2026-08-15
+
+### Behoben
+- **Konto-/Kategorie-Auswahl auf dem Handy war unbedienbar**: Das
+  Bottom-Sheet zur Kontoauswahl (`AccountPickerSheet.vue`) rendete zwar in
+  den DOM, blieb aber unsichtbar und unklickbar hinter dem Buchungsdialog –
+  Nextclouds eigenes Core-CSS (`#content { position: fixed }`) erzeugt einen
+  Stacking-Context, in dem das Sheet trotz hohem `z-index` gefangen war,
+  während `NcModal` (der Buchungsdialog) dem entkommt, weil `@nextcloud/vue`
+  seine Modals an `document.body` teleportiert. Das Sheet tut das jetzt auch
+  (`<teleport to="body">`). Gefunden im Gesamt-App-Review, siehe
+  APP-REVIEW.md.
+
 ## [0.22.2] – 2026-08-15
 
 > In `appinfo/info.xml` direkt von 0.21.0 auf 0.22.1 gesprungen und dann auf
