@@ -2,7 +2,7 @@
 
 Ein Praxis-Handbuch für Schatzmeisterinnen und Schatzmeister – von der
 Ersteinrichtung bis zum Jahresabschluss. Es beschreibt die App-Version
-**0.12.0** und orientiert sich am tatsächlichen Jahresablauf, nicht an
+**0.22.2** und orientiert sich am tatsächlichen Jahresablauf, nicht an
 Menüstrukturen: Was muss ich wann tun, und worauf ist dabei zu achten?
 
 ---
@@ -92,7 +92,8 @@ Zahnrad-Symbol (Einstellungen) → Abschnitt **Berechtigungen**. Dort werden
 Nextcloud-Nutzer oder -Gruppen mit einer Rolle ausgestattet:
 
 - **Verwalter** – darf alles, inkl. Berechtigungen, Jahresabschluss, Alle-Daten-löschen.
-- **Buchhalter** – liest und schreibt Buchungen, Belege, Zuordnungen.
+- **Buchhalter** – liest und schreibt Buchungen, Belege, Zuordnungen, sowie
+  Mitglieder, SEPA-Mandate und den Beitragseinzug (Kapitel 13.2–13.7).
 - **Revisor** – darf nur lesen (für die Kassenprüfung).
 
 > **Hinweis:** Nextcloud-Administratoren sind *immer* Verwalter, unabhängig
@@ -800,9 +801,11 @@ Auf Mobilgeräten (bis 640 px Breite) schaltet die App automatisch in eine
 - **Untere Navigationsleiste** mit den Haupt-Tabs und einem zentralen
   **„+"-Knopf** für neue Buchungen.
 - **Karten statt Tabellen:** Journal (nach Monaten gruppiert), Bankbuchungen,
-  Saldenliste, Kostenstellen und Kontoauszug erscheinen als Karten.
-  Konten und Kostenstellen haben eine Listen-/Detail-Ansicht mit
-  „‹ Zurück"-Leiste.
+  Saldenliste, Kostenstellen, Kontoauszug sowie – wo genutzt – die
+  Mitgliederliste und der Einzug (Reiter „Beiträge", Kapitel 13) erscheinen
+  als Karten statt als breite Tabelle. Praktisch, um in der Chorprobe oder
+  Vorstandssitzung kurz nachzusehen, ob ein Beitrag abgebucht ist. Konten und
+  Kostenstellen haben eine Listen-/Detail-Ansicht mit „‹ Zurück"-Leiste.
 - **Auswahl-Sheet für Konten/Kategorien:** statt Dropdown öffnet ein
   durchsuchbares Sheet von unten. Es merkt sich die **„zuletzt verwendeten"**
   Konten (max. 5, gerätelokal) und schlägt Zuordnungen vor. Nach unten
@@ -863,8 +866,13 @@ Ein **optionales Zusatzmodul**. Wer Beiträge per Überweisung bekommt oder gar
 keine erhebt, kann dieses Kapitel überspringen – ohne angelegtes Mandat
 verhält sich die App genau wie bisher.
 
-Alles hier ist **Verwaltern vorbehalten**: ein Mandat verknüpft eine Person mit
-ihrer Bankverbindung.
+Mitglieder, Mandate, Beiträge und den Einzug (13.2–13.7) dürfen **Verwalter
+und Buchhalter** pflegen – ein Mandat verknüpft zwar eine Person mit ihrer
+Bankverbindung, aber das ist keine schwerere Verantwortung als jede andere
+Buchung. Die **Grundeinstellungen** (13.1: Gläubiger-ID, einziehendes Konto,
+Standardbeitrag, der Schalter für den Reiter) bleiben Verwaltern vorbehalten
+– das sind einmalige Weichenstellungen für den ganzen Verein, keine
+laufende Arbeit.
 
 ### 13.1 Was Sie vorher brauchen
 
@@ -882,6 +890,15 @@ SEPA → Grundeinstellungen* ein. Dort steht auch der Schalter, der den
 Reiter **„Beiträge"** in der Hauptnavigation einblendet (siehe 13.2) – ist
 bereits ein Mandat oder ein Beitrag angelegt, erscheint er automatisch,
 auch ohne den Schalter.
+
+> **Zahlen fast alle Mitglieder denselben Beitrag** (z. B. 8 € monatlich, der
+> Normalfall bei einem Chor oder Sportverein)? Dann lohnt sich auf derselben
+> Seite die Karte **„Standard-Beitrag"**: Betrag und Frequenz einmal
+> hinterlegen, und „Mitglied aufnehmen" (13.2) schlägt beides künftig vor,
+> statt dass Sie es bei jedem einzelnen Mitglied neu eintippen. Auch beim
+> CSV-Import (13.3) greift der Standardsatz, wenn eine Zeile ein Startdatum,
+> aber keinen eigenen Betrag hat – abweichende Einzelfälle (Ermäßigung,
+> Ehrenmitglied) tragen Sie einfach mit eigenem Betrag ein.
 
 ### 13.2 Wo die Bankdaten der Mitglieder stehen
 
@@ -948,6 +965,11 @@ einfach übergangen:
 
 Datumsangaben dürfen `15.01.2026` oder `2026-01-15` lauten, Beträge `42,50`
 oder `42.50`. Eine **Vorlage** zum Ausfüllen können Sie direkt herunterladen.
+
+> **Standardbeitrag hinterlegt (13.1)?** Dann darf die Betrag-Spalte für
+> Zeilen mit demselben Satz leer bleiben – solange ein Startdatum dasteht,
+> übernimmt die App automatisch Betrag und Frequenz aus den Einstellungen.
+> Nur Sonderfälle brauchen dann noch einen eigenen Betrag.
 
 Der Ablauf ist zweistufig: **„Prüfen"** ändert nichts und zeigt Ihnen für jede
 Zeile, was entstehen würde und was nicht stimmt. Erst danach übernehmen Sie.
@@ -1033,12 +1055,12 @@ läuft dadurch erneut als Ersteinzug.
 
 ### 14.1 Rollen und Rechte
 
-| Rolle | Lesen | Buchen/Belege | Berechtigungen, Jahresabschluss, Reset |
-|---|:---:|:---:|:---:|
-| Revisor | ✓ | – | – |
-| Buchhalter | ✓ | ✓ | – |
-| Verwalter | ✓ | ✓ | ✓ |
-| NC-Admin | ✓ | ✓ | ✓ (immer) |
+| Rolle | Lesen | Buchen/Belege | Mitglieder/SEPA-Einzug (13.2–13.7) | Beiträge-Grundeinstellungen (13.1), Berechtigungen, Jahresabschluss, Reset |
+|---|:---:|:---:|:---:|:---:|
+| Revisor | ✓ | – | – | – |
+| Buchhalter | ✓ | ✓ | ✓ | – |
+| Verwalter | ✓ | ✓ | ✓ | ✓ |
+| NC-Admin | ✓ | ✓ | ✓ | ✓ (immer) |
 
 ### 14.2 Kontotypen und ihre Bedeutung
 
@@ -1106,4 +1128,4 @@ nur Geldkonten (Bank-Flag).
 
 ---
 
-*Stand: App-Version 0.15.0. Bei Fragen an die verwaltende Person wenden.*
+*Stand: App-Version 0.22.2. Bei Fragen an die verwaltende Person wenden.*

@@ -1,6 +1,6 @@
 # Vereinsbuchhaltung – Nextcloud-App
 
-Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kontenrahmen und Buchungen können aus einer **„zero Buchhaltung"-.xbuc-Datei** importiert werden, Kontoumsätze kommen als **CSV-CAMT, CAMT.053 oder MT940** von der Bank – wahlweise per Upload oder vollautomatisch aus einem überwachten Nextcloud-Ordner. Die App arbeitet nach den Regeln der **doppelten Buchführung** (Soll/Haben) mit frei definierbarem Kontenrahmen.
+Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kontenrahmen und Buchungen können aus einer **„zero Buchhaltung"-.xbuc-Datei** importiert werden, Kontoumsätze kommen als **CSV-CAMT, CAMT.053 oder MT940** von der Bank – wahlweise per Upload oder vollautomatisch aus einem überwachten Nextcloud-Ordner. Die App arbeitet nach den Regeln der **doppelten Buchführung** (Soll/Haben) mit frei definierbarem Kontenrahmen. Optional zieht sie Mitgliedsbeiträge per **SEPA-Lastschrift** ein – vom CSV-Massenimport für 80–100 Mitglieder bis zum fertigen pain.008-XML für die Bank.
 
 ## 🎬 Die App in zwei Minuten
 
@@ -74,6 +74,15 @@ Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kon
 - **Lückenprüfung**: Warnhinweis über dem Journal bei fehlenden oder doppelten Buchungsnummern im gewählten Jahr (zusätzlich als Vollständigkeitszeile im Kassenbericht). In einem offenen Geschäftsjahr hält die App die Nummerierung selbst lückenlos – gelöschte Buchungen lassen die nachfolgenden Nummern aufrücken, mit dem Jahresabschluss werden sie festgeschrieben
 - **Prüfleitfaden** (Berichte → Auswertung): druckfertige 1-Seiten-Kurzanleitung für Kassenprüfer/innen – Rolle, Prüfschritte, wo was zu finden ist; mit Vereinsname im Kopf
 
+### Mitgliedsbeiträge & SEPA-Lastschrift
+Optionales Zusatzmodul (Reiter „Beiträge", erscheint automatisch sobald genutzt oder über Zahnrad → Beiträge & SEPA einschaltbar), erreichbar für Verwalter **und Buchhalter** – nur die Grundeinstellungen (Gläubiger-ID, einziehendes Konto, Standardbeitrag) bleiben Verwaltern vorbehalten.
+- **Mitglieder** bestehen aus zwei unabhängigen Angaben statt einer eigenen Mitgliederverwaltung: einem **SEPA-Mandat** (IBAN, BIC, E-Mail, Unterschriftsdatum) und/oder einem **Beitrag** (Betrag, Zahlungsfrequenz, erste Fälligkeit); Zahler ist ein Nextcloud-Konto oder ein freier Name
+- **Standard-Beitrag**: einmal hinterlegter Betrag/Frequenz belegt „Mitglied aufnehmen" vor und greift auch im CSV-Import, wenn eine Zeile ein Startdatum, aber keinen eigenen Betrag hat – bei 80–100 Mitgliedern mit demselben Satz sonst 80–100 Mal derselbe Wert von Hand
+- **CSV-Massenimport**: Prüflauf zeigt je Zeile, was entstehen würde, bevor etwas angelegt wird; Spaltennamen deutsch/englisch, beliebige Reihenfolge, unbekannte Spalten werden übergangen; E-Mail-Validierung akzeptiert Umlaute im lokalen Teil (z. B. `m.müller@gmx.de`)
+- **Beitragsfälligkeit**: erzeugt automatisch offene Posten; Rückstand (rückwirkend angelegte Beiträge) lässt sich mit „Nachholen" auf einen Schlag erzeugen statt eine Periode pro Tag abzuwarten
+- **SEPA-Sammeleinzug**: Vorschau aller fälligen offenen Posten mit aktivem Mandat, Erzeugen, XML-Export (**pain.008**), Vorankündigung per E-Mail (14-Tage-Frist des SEPA-Regelwerks, mit Warnung bei kürzerem Vorlauf), Verbuchen als ausgeführt (schließt alle enthaltenen offenen Posten in einem Schritt), Rücklastschriften werden beim nächsten Kontoauszugs-Import automatisch erkannt und der Posten wieder geöffnet
+- **Mandat widerrufen statt löschen**: erzeugte Einreichungen bleiben nachvollziehbar; Bankverbindung wechseln hängt bestehende Beiträge und offene Posten korrekt auf das neue Mandat um
+
 ### Organisation & Sicherheit
 - **Berechtigungsrollen**: Verwalter – Buchhalter – Revisor (nur Lesen); NC-Admins sind immer Verwalter; Rollen für Nutzer und Gruppen
 - **Gemeinsamer Datenbestand** (`user_id = '__verein__'`): alle berechtigten Nutzer arbeiten auf denselben Daten
@@ -82,7 +91,7 @@ Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kon
 
 ### Mobile Bedienung
 - **Bottom-Navigation mit „+"-Knopf** (neue Buchung) auf Mobilgeräten (≤ 640 px); Desktop-Ansicht bleibt unverändert
-- **Karten statt Tabellen**: Journal (nach Monat gruppiert), Bankbuchungen, Saldenliste, Kostenstellen und Kontoauszug als Karten mit Drilldown und Zurück-Leisten
+- **Karten statt Tabellen**: Journal (nach Monat gruppiert), Bankbuchungen, Saldenliste, Kostenstellen, Kontoauszug sowie Mitgliederliste und SEPA-Einzug als Karten mit Drilldown und Zurück-Leisten
 - **Auswahl-Sheet** für Konten/Kategorien: durchsuchbar, mit Zuordnungs-Vorschlag, Gruppe „Zuletzt verwendet" (gerätelokal) und Wisch-nach-unten zum Schließen
 - **Schnellerfassung**: großes Betragsfeld, native Datumswahl, Belegfoto per Kamera direkt beim Anlegen
 
@@ -97,10 +106,14 @@ vereinsbuchhaltung/
 │   │                  Budget, Permission, Rule, Export, Settings, Attachment,
 │   │                  OpenItem, Branding (Logo/Farbe), Help (Handbuch,
 │   │                  Prüfleitfaden), Demo (Beispielverein),
-│   │                  Sync (Kollaboration), Year (Jahresabschluss), Audit
+│   │                  Sync (Kollaboration), Year (Jahresabschluss), Audit,
+│   │                  CostCenter, SepaMandate, MembershipFee, SepaBatch,
+│   │                  MemberImport (Beiträge & SEPA, ab Rolle Buchhalter)
 │   ├── Db/            Entities + QBMapper (accounts, bank_tx, journal, journal_line,
-│   │                  imports, costcenters, budgets, budget_snapshots, open_items,
-│   │                  permissions, rules, attachments, year_close, audit_log)
+│   │                  costcenters, budgets, budget_snapshots, open_items,
+│   │                  permissions, rules, attachments, year_close, audit_log,
+│   │                  sepa_mandates, membership_fees, sepa_batches,
+│   │                  sepa_batch_items)
 │   │                  + TransactionRunner (DB-Transaktionsklammer)
 │   ├── Middleware/    PermissionMiddleware (Rechteprüfung, 403/423),
 │   │                  RevisionMiddleware (Änderungsstand für das Polling),
@@ -114,7 +127,16 @@ vereinsbuchhaltung/
 │   │                  PermissionService, AttachmentStorageService,
 │   │                  BudgetSnapshotService, OpenItemService, RevisionService,
 │   │                  YearCloseService, AuditService, BrandingService,
-│   │                  CsvFormatter, DemoDataService
+│   │                  CostCenterService, CsvFormatter, DemoDataService,
+│   │                  EmailValidator, IbanValidator, BillingPeriod (Beiträge:
+│   │                  Fälligkeits-/Rückstandsrechnung), SepaMandateService,
+│   │                  MembershipFeeService, SepaBatchService,
+│   │                  SepaNotificationService (Vorankündigung per Mail),
+│   │                  SepaReturnDetectionService (Rücklastschriften),
+│   │                  MemberImportService
+│   ├── Service/Sepa/  MemberCsvParser, PainXmlBuilder (pain.008-XML),
+│   │                  SepaCreditor, SepaReference (Mandatsreferenz),
+│   │                  SepaText
 │   └── Service/Statement/
 │                      Umsatzquellen: StatementParser (Schnittstelle),
 │                      Camt053Parser, Mt940Parser, StatementParserRegistry
@@ -126,15 +148,24 @@ vereinsbuchhaltung/
 │   │                  Top-Level-Modals, Composable-Bootstrap in mounted()
 │   ├── composables/   geteilter Zustand als reactive()-Singletons je Fachbereich
 │   │                  (useAuth, useYears, useAccounts, useBalances, useJournal,
-│   │                  useOpenItems, usePermissions, useSync)
-│   ├── components/    Tabs (DashboardTab/BookingsTab/AccountsTab/ReportsTab),
-│   │                  Dialoge (BookingDialog/SplitAssignDialog/AccountDialog/
-│   │                  ImportDialog/BudgetSnapshotModal/HelpModal/SetupWizard), Settings-*
-│   │                  (Rules/Spheres/XbucImport/Permissions/General/YearClose),
+│   │                  useOpenItems, usePermissions, useSync, useCostCenters,
+│   │                  useRules, useSort, useConfirm, useMembershipFees,
+│   │                  useSepaMandates, useSepaBatches)
+│   ├── components/    Tabs (DashboardTab/BookingsTab/AccountsTab/ReportsTab/
+│   │                  ContributionsTab), Dialoge (BookingDialog/
+│   │                  SplitAssignDialog/AccountDialog/ImportDialog/
+│   │                  BudgetSnapshotModal/HelpModal/SetupWizard),
+│   │                  Beiträge & SEPA (MembersList/MemberDialog/
+│   │                  MemberImportDialog/MemberCard/SepaBatchPanel/
+│   │                  BankAccountChangeDialog), Berichte-Pflege
+│   │                  (RulesPanel/CostCenterPanel/SphereAssignPanel),
+│   │                  Settings-* (Club/Attachments/StatementWatch/
+│   │                  SepaBasics/Permissions/XbucImport/YearClose),
 │   │                  Mobil (MobileNav/BookingCard/AccountPickerSheet),
 │   │                  SetupChecklist
 │   ├── lib/           zustandslose Helfer (format.js, split.js – die Regeln der
-│   │                  Splittbuchung, geteilt von App.vue und den Dialogen)
+│   │                  Splittbuchung, frequency.js – Beitragsfrequenzen,
+│   │                  geteilt von App.vue und den Dialogen)
 │   ├── styles.css     globale .vbh-* Utility-Styles
 │   ├── api.js         API-Client (axios + @nextcloud/router)
 │   └── main.js        Einstieg
@@ -155,7 +186,6 @@ vereinsbuchhaltung/
 | `vbh_bank_tx` | importierte Bankbuchungen inkl. Dedup-Hash und Zuordnungsstatus |
 | `vbh_journal` | Buchungssätze (Datum, Beschreibung, Belegnr., Buchungsnr.) |
 | `vbh_journal_line` | Soll-/Haben-Zeilen je Buchungssatz (Betrag in Cent) |
-| `vbh_imports` | Import-Protokoll (neu/Dubletten je Datei, Quellformat) |
 | `vbh_costcenters` | Kostenstellen (Kürzel, Name); Konten verweisen über `vbh_accounts.cost_center_id` darauf |
 | `vbh_budgets` | Finanzplan (Konto × Jahr × Betrag in Cent + Notiz) |
 | `vbh_budget_snapshots` | eingefrorene Plan-Stände (Jahr, Label, Zeitpunkt) |
@@ -166,6 +196,10 @@ vereinsbuchhaltung/
 | `vbh_permissions` | Berechtigungen (principal_type, principal_id, Rolle) |
 | `vbh_year_close` | abgeschlossene (festgeschriebene) Geschäftsjahre (Jahr, wann, von wem) |
 | `vbh_audit_log` | Änderungsprotokoll (Zeitpunkt, Nutzer, Aktion, Objekt, Details) |
+| `vbh_sepa_mandates` | SEPA-Lastschriftmandate (IBAN, BIC, E-Mail, Mandatsreferenz, Status: aktiv/widerrufen) |
+| `vbh_membership_fees` | Mitgliedsbeiträge (Betrag in Cent, Frequenz, nächste Fälligkeit, optional verknüpftes Mandat/Konto) |
+| `vbh_sepa_batches` | erzeugte SEPA-Sammeleinzüge (Fälligkeitstag, Gläubiger-Angaben zum Erzeugungszeitpunkt, Status) |
+| `vbh_sepa_batch_items` | Zeilen eines Sammeleinzugs (Betrag, Mandat, offener Posten, Rücklastschrift-Status) – bleiben auch nach Bezahlung/Storno bestehen |
 
 Beträge werden durchgängig als **Integer in Cent** gespeichert (keine Float-Rundungsfehler).
 
