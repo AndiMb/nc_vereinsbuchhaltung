@@ -2,7 +2,7 @@
 	<NcModal
 		:show="show"
 		:name="isMobile ? t('Umsatz aufteilen') : ''"
-		:label-id="isMobile ? undefined : 'vbh-modal-title-split'"
+		:labelId="isMobile ? undefined : 'vbh-modal-title-split'"
 		:size="isMobile ? 'full' : 'normal'"
 		:closeOnClickOutside="true"
 		@close="$emit('close')"

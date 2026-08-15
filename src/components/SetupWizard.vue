@@ -1,7 +1,7 @@
 <template>
 	<NcModal
 		:show="show"
-		label-id="vbh-modal-title-wizard"
+		labelId="vbh-modal-title-wizard"
 		size="normal"
 		:closeOnClickOutside="true"
 		@close="$emit('close')"

@@ -423,7 +423,7 @@
    absolute relativ zur fixed .modal-mask) am oberen Browserfensterrand statt im
    Popup - er ist NICHT im .modal-container verschachtelt, sondern dessen
    Geschwister. Deshalb rendern wir die Ueberschrift stattdessen selbst als
-   erstes Element im Slot-Inhalt und lassen :name weg; label-id verknuepft sie
+   erstes Element im Slot-Inhalt und lassen :name weg; labelId verknuepft sie
    fuer Screenreader mit dem Dialog (siehe NcModal-Prop-Doku "labelId"). Der
    rechte Rand raeumt den rund positionierten Schliessen-Button oben rechts
    (.modal-container__close, top:4px) frei - betrifft auch mehrzeilige Titel,

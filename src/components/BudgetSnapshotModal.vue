@@ -2,7 +2,7 @@
 	<NcModal
 		v-if="show"
 		:show="show"
-		label-id="vbh-modal-title-budgetsnapshot"
+		labelId="vbh-modal-title-budgetsnapshot"
 		size="normal"
 		:closeOnClickOutside="true"
 		@close="$emit('close')"

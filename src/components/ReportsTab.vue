@@ -856,7 +856,7 @@
 		     fuer dasselbe Muster bei MemberDialog/MemberImportDialog). -->
 		<NcModal
 			v-if="canWrite && ccPanelOpen"
-			label-id="vbh-modal-title-costcenters"
+			labelId="vbh-modal-title-costcenters"
 			size="large"
 			@close="ccPanelOpen = false">
 			<div class="vbh-modal-inner">
@@ -869,7 +869,7 @@
 
 		<NcModal
 			v-if="canWrite && spherePanelOpen"
-			label-id="vbh-modal-title-spheres"
+			labelId="vbh-modal-title-spheres"
 			size="large"
 			@close="spherePanelOpen = false">
 			<div class="vbh-modal-inner">

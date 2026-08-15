@@ -1,7 +1,7 @@
 <template>
 	<NcModal
 		:show="show"
-		label-id="vbh-modal-title-bankchange"
+		labelId="vbh-modal-title-bankchange"
 		size="normal"
 		:closeOnClickOutside="true"
 		@close="$emit('close')"

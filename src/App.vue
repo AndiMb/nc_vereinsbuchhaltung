@@ -243,7 +243,7 @@
 			bleibt ueber die id="settings-section_<id>"-Wrapper erhalten. -->
 		<NcModal
 			v-model:show="showSettings"
-			label-id="vbh-modal-title-settings"
+			labelId="vbh-modal-title-settings"
 			size="large"
 			:closeOnClickOutside="true"
 			@close="showSettings = false">

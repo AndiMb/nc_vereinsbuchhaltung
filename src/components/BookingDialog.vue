@@ -2,7 +2,7 @@
 	<NcModal
 		:show="show"
 		:name="isMobile ? bookingTitle : ''"
-		:label-id="isMobile ? undefined : 'vbh-modal-title-booking'"
+		:labelId="isMobile ? undefined : 'vbh-modal-title-booking'"
 		:size="isMobile ? 'full' : 'normal'"
 		:closeOnClickOutside="true"
 		@close="$emit('close')"
