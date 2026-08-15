@@ -198,7 +198,7 @@ Kostenstellen-Modus ging in Schritt 2 zu den Berichten.
 |---|---|---|
 | **D1** | Name des Reiters: „Beiträge", „Mitglieder" oder „Beiträge & Einzug"? | **„Beiträge"** – „Mitglieder" verspricht eine Mitgliederverwaltung, die die App bewusst nicht führt |
 | **D2** | Reiter immer für Verwalter zeigen (mit Leerzustand) oder nur bei aktivem Modul? | **Nur bei aktivem Modul**, Schalter im Zahnrad. Die Mehrheit der Vereine zieht nichts ein |
-| **D3** | Bleibt der Bereich Verwalter-only, oder wird er für Buchhalter geöffnet? | **Unverändert Verwalter.** Wenn in einem Verein der Kassenwart „Buchhalter" ist, ist das eine eigene, bewusst zu treffende Datenschutz-Entscheidung |
+| **D3** | Bleibt der Bereich Verwalter-only, oder wird er für Buchhalter geöffnet? | **Unverändert Verwalter.** Wenn in einem Verein der Kassenwart „Buchhalter" ist, ist das eine eigene, bewusst zu treffende Datenschutz-Entscheidung. *Nachtrag 15.08.2026: genau diese Entscheidung wurde im Usability-Review aufgeworfen und zugunsten voller Buchhalter-Rechte geändert (Version 0.22.2) – siehe `BEITRAEGE-REVIEW.md`.* |
 | **D4** | Sphären-/Kostenstellen-Pflege bei den Berichten oder im Reiter Konten? | **Bei den Berichten** – dort wird die fehlende Zuordnung sichtbar, und das Umbenennen liegt schon dort |
 | **D5** | Erst `feature/sepa-lastschrift` nach `main` bringen? | **Ja.** Schritt 1 fasst genau diesen Code an; ein ungetaggter Branch unter einem Umbau wird unübersichtlich |
 
