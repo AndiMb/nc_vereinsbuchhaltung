@@ -91,16 +91,18 @@
 							<td><input v-model="editing.nextDueDate" type="date"></td>
 							<td><input v-model="editing.active" type="checkbox"></td>
 							<td class="nowrap right">
-								<NcButton
-									variant="primary"
-									size="small"
-									:disabled="saving"
-									@click="saveEdit">
-									{{ t('Speichern') }}
-								</NcButton>
-								<NcButton variant="tertiary" size="small" @click="editing = null">
-									{{ t('Abbrechen') }}
-								</NcButton>
+								<div class="vbh-actions">
+									<NcButton
+										variant="primary"
+										size="small"
+										:disabled="saving"
+										@click="saveEdit">
+										{{ t('Speichern') }}
+									</NcButton>
+									<NcButton variant="tertiary" size="small" @click="editing = null">
+										{{ t('Abbrechen') }}
+									</NcButton>
+								</div>
 							</td>
 						</template>
 
@@ -124,55 +126,61 @@
 								<span v-else>–</span>
 							</td>
 							<td class="nowrap right">
-								<NcButton
-									v-if="row.fee && row.fee.dueCount > 0"
-									variant="secondary"
-									size="small"
-									@click="catchUp(row.fee)">
-									{{ t('Nachholen') }}
-								</NcButton>
-								<NcButton
-									v-if="row.fee"
-									variant="tertiary"
-									size="small"
-									@click="startEdit(row.fee)">
-									{{ t('Bearbeiten') }}
-								</NcButton>
-								<!-- Seltener genutzte Aktionen im Menue, sonst wird die Zeile
-									durch bis zu vier weitere Icon-Buttons zu breit (dasselbe
-									Muster wie im Buchungsjournal, siehe BookingsTab.vue). -->
-								<NcActions
-									v-if="row.fee || (row.mandate && (row.mandate.status === 'active' || !isUsed(row.mandate)))"
-									:forceMenu="true">
-									<NcActionButton
-										v-if="row.mandate && row.mandate.status === 'active'"
-										@click="openBankChange(row.mandate)">
+								<div class="vbh-actions">
+									<NcButton
+										v-if="row.fee && row.fee.dueCount > 0"
+										variant="secondary"
+										size="small"
+										@click="catchUp(row.fee)">
+										{{ t('Nachholen') }}
+									</NcButton>
+									<NcButton
+										v-if="row.fee"
+										variant="tertiary"
+										size="small"
+										:aria-label="t('Beitrag bearbeiten')"
+										:title="t('Bearbeiten')"
+										@click="startEdit(row.fee)">
 										<template #icon>
-											<NcIconSvgWrapper :path="mdiBankTransfer" :size="16" />
+											<NcIconSvgWrapper :path="mdiPencil" :size="20" />
 										</template>
-										{{ t('Bankverbindung wechseln') }}
-									</NcActionButton>
-									<NcActionButton
-										v-if="row.mandate && row.mandate.status === 'active'"
-										@click="revokeMandate(row.mandate)">
-										<template #icon>
-											<NcIconSvgWrapper :path="mdiCancel" :size="16" />
-										</template>
-										{{ t('Mandat widerrufen') }}
-									</NcActionButton>
-									<NcActionButton v-if="row.fee" @click="removeFee(row.fee)">
-										<template #icon>
-											<NcIconSvgWrapper :path="mdiDelete" :size="16" />
-										</template>
-										{{ t('Beitrag löschen') }}
-									</NcActionButton>
-									<NcActionButton v-else-if="row.mandate && !isUsed(row.mandate)" @click="removeMandate(row.mandate)">
-										<template #icon>
-											<NcIconSvgWrapper :path="mdiDelete" :size="16" />
-										</template>
-										{{ t('Mandat löschen') }}
-									</NcActionButton>
-								</NcActions>
+									</NcButton>
+									<!-- Seltener genutzte Aktionen im Menue, sonst wird die Zeile
+										durch bis zu vier weitere Icon-Buttons zu breit (dasselbe
+										Muster wie im Buchungsjournal, siehe BookingsTab.vue). -->
+									<NcActions
+										v-if="row.fee || (row.mandate && (row.mandate.status === 'active' || !isUsed(row.mandate)))"
+										:forceMenu="true">
+										<NcActionButton
+											v-if="row.mandate && row.mandate.status === 'active'"
+											@click="openBankChange(row.mandate)">
+											<template #icon>
+												<NcIconSvgWrapper :path="mdiBankTransfer" :size="16" />
+											</template>
+											{{ t('Bankverbindung wechseln') }}
+										</NcActionButton>
+										<NcActionButton
+											v-if="row.mandate && row.mandate.status === 'active'"
+											@click="revokeMandate(row.mandate)">
+											<template #icon>
+												<NcIconSvgWrapper :path="mdiCancel" :size="16" />
+											</template>
+											{{ t('Mandat widerrufen') }}
+										</NcActionButton>
+										<NcActionButton v-if="row.fee" @click="removeFee(row.fee)">
+											<template #icon>
+												<NcIconSvgWrapper :path="mdiDelete" :size="16" />
+											</template>
+											{{ t('Beitrag löschen') }}
+										</NcActionButton>
+										<NcActionButton v-else-if="row.mandate && !isUsed(row.mandate)" @click="removeMandate(row.mandate)">
+											<template #icon>
+												<NcIconSvgWrapper :path="mdiDelete" :size="16" />
+											</template>
+											{{ t('Mandat löschen') }}
+										</NcActionButton>
+									</NcActions>
+								</div>
 							</td>
 						</template>
 					</tr>
@@ -211,7 +219,7 @@
 </template>
 
 <script>
-import { mdiBankTransfer, mdiCancel, mdiDelete } from '@mdi/js'
+import { mdiBankTransfer, mdiCancel, mdiDelete, mdiPencil } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { NcActionButton, NcActions, NcButton, NcEmptyContent, NcIconSvgWrapper } from '@nextcloud/vue'
 import { toRefs } from 'vue'
@@ -273,6 +281,7 @@ export default {
 			mdiBankTransfer,
 			mdiCancel,
 			mdiDelete,
+			mdiPencil,
 		}
 	},
 

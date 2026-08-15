@@ -49,7 +49,7 @@
 				<table class="vbh-table">
 					<thead>
 						<tr>
-							<th /><th class="nowrap">
+							<th class="vbh-col-check" /><th class="nowrap">
 								{{ t('Nr.') }}
 							</th><th>{{ t('Konto') }}</th><th>{{ t('Sphäre') }}</th>
 						</tr>

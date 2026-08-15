@@ -268,10 +268,10 @@
    seltener genutzte Aktionen stecken bewusst im Menü, damit nie mehr als
    3 Buttons gleichzeitig erscheinen und die Zeile einzeilig bleibt. */
 .vbh-table thead th:empty { width: 160px; }
-/* Aktionsspalte der Mitgliederliste: bis zu zwei Text-Buttons (Nachholen,
-   Bearbeiten) plus ein Menü-Button fuer die selteneren Aktionen (Bankverbindung
-   wechseln, Mandat widerrufen, Loeschen) - braucht mehr als die 160px, die fuer
-   reine Icon-Buttons reichen (siehe th:empty oben). */
+/* Aktionsspalte der Mitgliederliste: bis zu ein Text-Button (Nachholen) plus
+   Bearbeiten-Icon-Button plus ein Menü-Button fuer die selteneren Aktionen
+   (Bankverbindung wechseln, Mandat widerrufen, Loeschen) - braucht mehr als
+   die 160px, die fuer reine Icon-Buttons reichen (siehe th:empty oben). */
 .vbh-table thead th.vbh-col-memberactions { width: 230px; }
 /* "Nr." ist immer die erste Zahlenspalte und braucht wenig Platz (Beträge nie) */
 .vbh-table thead th.num:first-child { width: 56px; }
@@ -300,6 +300,24 @@
 .vbh-table thead th.vbh-col-note { width: 52px; }
 .vbh-table td.vbh-col-note { overflow: visible; }
 .vbh-noteicon--set { color: var(--color-primary-element); }
+/* Checkbox-Spalte (Kostenstellen-/Sphären-Zuordnung, SphereAssignPanel.vue,
+   CostCenterPanel.vue): leere Kopfzelle, aber nur eine Checkbox statt bis zu
+   3 Icon-Buttons - MUSS nach `thead th:empty { width:160px }` stehen (gleiche
+   Spezifitaet 0,2,2, Quellreihenfolge entscheidet), sonst nimmt die
+   Checkbox-Spalte auf schmalen Bildschirmen (Modal, mobil) unnoetig viel
+   Platz weg und die Konto-/Zuordnungsspalten daneben werden bis zur
+   Unlesbarkeit zusammengequetscht. */
+.vbh-table thead th.vbh-col-check { width: 40px; }
+/* Zeitpunkt-Spalten mit Datum+Uhrzeit (Protokoll, Plan-Stände): "2026-08-15
+   14:23" braucht mehr als die 96px einer reinen Datumsspalte (.nowrap),
+   sonst wird die Uhrzeit abgeschnitten. */
+.vbh-table thead th.nowrap.vbh-col-datetime { width: 140px; }
+/* Kürzel-Eingabefeld in Tabellen (CostCenterPanel.vue, MembersList.vue
+   Betrags-Inline-Edit): .vbh-short ist ausserhalb von Tabellen bewusst fix
+   110px breit, ragt damit aber in Tabellenspalten (z. B. die 96px breite
+   Kürzel-Spalte) rechts heraus. Innerhalb einer Tabellenzelle stattdessen die
+   Zellenbreite ausfuellen. */
+.vbh-table td .vbh-short { width: 100%; box-sizing: border-box; }
 /* Aufgeklappte Notiz-Zeile unter der Plan-Zeile */
 .vbh-note-row td { background-color: var(--color-background-hover); }
 .vbh-note-label { display: flex; flex-direction: column; gap: 3px; font-size: 0.85em; font-weight: 600; }
@@ -349,6 +367,13 @@
 .vbh-assign-select.v-select { min-width: 0 !important; width: 100%; max-width: none; }
 .vbh-assign-select .vs__selected-options { min-width: 0; }
 .vbh-assign-select .vs__selected { white-space: normal; overflow-wrap: anywhere; }
+/* Vorschlag-/Aufteilen-Chip und Löschen-Button unter dem Auswahlfeld: NcButton
+   rendert intern display:flex (also blockartig) - als einfache Geschwister im
+   Block-Fluss landet dadurch jeder Button in einer eigenen Zeile, auch wenn
+   daneben noch Platz waere. flex-wrap statt block-Fluss haelt sie in einer
+   gemeinsamen Zeile, solange die Spaltenbreite reicht, und bricht erst danach
+   sauber um (Muster wie .vbh-actions weiter unten). */
+.vbh-assign-btns { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 4px; }
 
 /* Master-Detail layout */
 .vbh-tree { flex: 0 0 clamp(280px, 32vw, 440px); min-width: 280px; overflow-y: auto; border-right: 1px solid var(--color-border); display: flex; flex-direction: column; }

@@ -745,7 +745,7 @@
 							<thead>
 								<tr>
 									<th>{{ t('Stand') }}</th>
-									<th class="nowrap vbh-col-hide-sm">
+									<th class="nowrap vbh-col-hide-sm vbh-col-datetime">
 										{{ t('Gespeichert') }}
 									</th>
 									<th class="num vbh-col-hide-sm">
@@ -776,18 +776,20 @@
 										{{ formatMoney(snap.planResult) }}
 									</td>
 									<td class="right nowrap">
-										<NcButton variant="tertiary" @click="openSnapshot(snap)">
-											{{ t('Ansehen') }}
-										</NcButton>
-										<NcButton
-											v-if="canWrite"
-											variant="tertiary"
-											:title="t('Stand löschen')"
-											@click="deleteBudgetSnapshot(snap)">
-											<template #icon>
-												<NcIconSvgWrapper :path="mdiDelete" :size="18" />
-											</template>
-										</NcButton>
+										<div class="vbh-actions">
+											<NcButton variant="tertiary" @click="openSnapshot(snap)">
+												{{ t('Ansehen') }}
+											</NcButton>
+											<NcButton
+												v-if="canWrite"
+												variant="tertiary"
+												:title="t('Stand löschen')"
+												@click="deleteBudgetSnapshot(snap)">
+												<template #icon>
+													<NcIconSvgWrapper :path="mdiDelete" :size="18" />
+												</template>
+											</NcButton>
+										</div>
 									</td>
 								</tr>
 							</tbody>
@@ -812,7 +814,7 @@
 					<table class="vbh-table">
 						<thead>
 							<tr>
-								<th class="nowrap">
+								<th class="nowrap vbh-col-datetime">
 									{{ t('Zeitpunkt') }}
 								</th><th>{{ t('Wer') }}</th><th>{{ t('Aktion') }}</th><th>{{ t('Details') }}</th>
 							</tr>

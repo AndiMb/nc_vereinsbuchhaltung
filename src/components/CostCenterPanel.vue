@@ -29,7 +29,7 @@
 					<tr>
 						<th class="nowrap">
 							{{ t('Kürzel') }}
-						</th><th>{{ t('Name') }}</th><th class="num nowrap">
+						</th><th>{{ t('Name') }}</th><th class="num nowrap vbh-col-hide-sm">
 							{{ t('Konten') }}
 						</th><th />
 					</tr>
@@ -49,7 +49,7 @@
 								class="vbh-rename"
 								@change="rename(cc, 'name', $event)">
 						</td>
-						<td class="num">
+						<td class="num vbh-col-hide-sm">
 							{{ accountCount(cc.id) }}
 						</td>
 						<td class="nowrap">
@@ -96,7 +96,7 @@
 				<table class="vbh-table">
 					<thead>
 						<tr>
-							<th /><th class="nowrap">
+							<th class="vbh-col-check" /><th class="nowrap">
 								{{ t('Nr.') }}
 							</th><th>{{ t('Konto') }}</th><th>{{ t('Kostenstelle') }}</th>
 						</tr>

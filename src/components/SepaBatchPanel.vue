@@ -173,30 +173,32 @@
 								<span class="vbh-typetag">{{ b.settledAt ? t('ausgeführt') : t('eingereicht') }}</span>
 							</td>
 							<td class="nowrap right">
-								<NcButton variant="tertiary" size="small" @click="toggleItems(b.id)">
-									{{ expanded === b.id ? t('Zeilen ausblenden') : t('Zeilen anzeigen') }}
-								</NcButton>
-								<a
-									:href="xmlUrl(b.id)"
-									target="_blank"
-									rel="noopener"
-									class="vbh-export-btn">{{ t('XML herunterladen') }}</a>
-								<NcButton
-									v-if="!b.settledAt"
-									variant="primary"
-									size="small"
-									:disabled="settling === b.id"
-									@click="settle(b)">
-									{{ t('Als ausgeführt verbuchen') }}
-								</NcButton>
-								<NcButton
-									v-if="!b.settledAt"
-									variant="error"
-									size="small"
-									:aria-label="t('Einzug verwerfen')"
-									@click="discard(b)">
-									{{ t('Verwerfen') }}
-								</NcButton>
+								<div class="vbh-actions">
+									<NcButton variant="tertiary" size="small" @click="toggleItems(b.id)">
+										{{ expanded === b.id ? t('Zeilen ausblenden') : t('Zeilen anzeigen') }}
+									</NcButton>
+									<a
+										:href="xmlUrl(b.id)"
+										target="_blank"
+										rel="noopener"
+										class="vbh-export-btn">{{ t('XML herunterladen') }}</a>
+									<NcButton
+										v-if="!b.settledAt"
+										variant="primary"
+										size="small"
+										:disabled="settling === b.id"
+										@click="settle(b)">
+										{{ t('Als ausgeführt verbuchen') }}
+									</NcButton>
+									<NcButton
+										v-if="!b.settledAt"
+										variant="error"
+										size="small"
+										:aria-label="t('Einzug verwerfen')"
+										@click="discard(b)">
+										{{ t('Verwerfen') }}
+									</NcButton>
+								</div>
 							</td>
 						</tr>
 						<tr v-if="expanded === b.id">

@@ -10,6 +10,41 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
 
 ## [Unreleased]
 
+## [0.24.3] – 2026-08-15
+
+### Geändert
+- **Beiträge → Mitglieder: Bearbeiten-Button zeigt jetzt das Stift-Symbol**
+  statt des Texts „Bearbeiten“ – konsistent mit den übrigen
+  Bearbeiten-Buttons in Tabellenzeilen (Buchungen → Regeln, Journal).
+
+## [0.24.2] – 2026-08-15
+
+### Behoben
+- **Mehrere Tabellenzeilen mit zwei oder mehr Buttons wurden mehrzeilig**
+  (Buchungen → Regeln, Beiträge → Mitglieder, Offene Posten, SEPA-Einzüge,
+  Plan-Stände): NcButton rendert intern `display:flex` und damit blockartig –
+  als einfache Geschwister in einer Zelle landete jeder Button in einer
+  eigenen Zeile. Betroffene Aktionsspalten wrappen die Buttons jetzt in
+  `<div class="vbh-actions">` (bestehendes Muster aus dem Buchungsjournal).
+- **Buchungen → Zuzuordnen: Auswahlfeld, „Aufteilen…" und Löschen-Button
+  standen dreizeilig untereinander** statt Aufteilen und Löschen in einer
+  Zeile zu teilen – neue Klasse `.vbh-assign-btns` (flex-wrap) haelt beide
+  Buttons zusammen.
+- **Berichte → Protokoll: Zeitpunkt-Spalte schnitt die Uhrzeit ab** – reine
+  Datumsspalten sind 96px breit, Datum+Uhrzeit („2026-08-15 14:23") braucht
+  mehr Platz (neue Klasse `.vbh-col-datetime`, 140px), betrifft auch die
+  Spalte „Gespeichert" bei den Finanzplan-Plan-Ständen.
+- **Kostenstellen verwalten: Kürzel-Eingabefeld ragte rechts aus seiner
+  Spalte heraus** – `.vbh-short` ist ausserhalb von Tabellen bewusst 110px
+  breit, in der 96px schmalen Kürzel-Spalte überstand es die Zellengrenze.
+- **Kostenstellen verwalten / Sphären zuordnen: Tabelle auf mobilen Geräten
+  rechts abgeschnitten** – die leere Kopfzelle der Checkbox-Spalte erbte die
+  für bis zu 3 Icon-Buttons gedachte 160px-Breite (`th:empty`) und quetschte
+  Konto- und Zuordnungsspalte auf schmalen Bildschirmen bis zur
+  Unlesbarkeit zusammen. Neue schmale Klasse `.vbh-col-check` (40px) für
+  reine Checkbox-Kopfzellen; die Konten-Anzahl in der Kostenstellen-Liste
+  blendet auf dem Handy zusätzlich aus (wie andere Nebenspalten).
+
 ## [0.24.1] – 2026-08-15
 
 ### Behoben

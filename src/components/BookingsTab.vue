@@ -334,30 +334,32 @@
 												class="vbh-assign-select"
 												@update:modelValue="v => onAssign(tx, v ? v.id : '')" />
 										</div>
-										<button
-											v-if="canWrite && !tx.contraAccountId && suggestionsById[tx.id] && !isYearClosed(tx.bookingDate)"
-											class="vbh-suggest-chip"
-											:title="t('Vorschlag übernehmen: {label}', { label: suggestionsById[tx.id].label })"
-											@click="applySuggestion(tx)">
-											{{ t('✓ Vorschlag: {label}', { label: suggestionsById[tx.id].label }) }}
-										</button>
-										<button
-											v-if="canWrite && !isYearClosed(tx.bookingDate)"
-											class="vbh-suggest-chip"
-											:title="t('Den Umsatz auf mehrere Gegenkonten verteilen')"
-											@click="openSplitAssign(tx)">
-											{{ t('Aufteilen…') }}
-										</button>
-										<NcButton
-											v-if="canWrite && !isYearClosed(tx.bookingDate)"
-											variant="tertiary"
-											:aria-label="t('Umsatz löschen')"
-											:title="t('Umsatz löschen (z. B. Dublette)')"
-											@click="removeTransaction(tx)">
-											<template #icon>
-												<NcIconSvgWrapper :path="mdiDelete" :size="18" />
-											</template>
-										</NcButton>
+										<div class="vbh-assign-btns">
+											<button
+												v-if="canWrite && !tx.contraAccountId && suggestionsById[tx.id] && !isYearClosed(tx.bookingDate)"
+												class="vbh-suggest-chip"
+												:title="t('Vorschlag übernehmen: {label}', { label: suggestionsById[tx.id].label })"
+												@click="applySuggestion(tx)">
+												{{ t('✓ Vorschlag: {label}', { label: suggestionsById[tx.id].label }) }}
+											</button>
+											<button
+												v-if="canWrite && !isYearClosed(tx.bookingDate)"
+												class="vbh-suggest-chip"
+												:title="t('Den Umsatz auf mehrere Gegenkonten verteilen')"
+												@click="openSplitAssign(tx)">
+												{{ t('Aufteilen…') }}
+											</button>
+											<NcButton
+												v-if="canWrite && !isYearClosed(tx.bookingDate)"
+												variant="tertiary"
+												:aria-label="t('Umsatz löschen')"
+												:title="t('Umsatz löschen (z. B. Dublette)')"
+												@click="removeTransaction(tx)">
+												<template #icon>
+													<NcIconSvgWrapper :path="mdiDelete" :size="18" />
+												</template>
+											</NcButton>
+										</div>
 									</div>
 								</td>
 							</tr>
@@ -459,17 +461,19 @@
 								</td>
 								<td><span class="vbh-typetag" :class="o.status">{{ openItemStatusLabel(o.status) }}</span></td>
 								<td class="right nowrap">
-									<template v-if="canWrite && o.status === 'open'">
-										<NcButton variant="tertiary" @click="markOpenItemPaid(o)">
-											{{ t('Bezahlt') }}
+									<div class="vbh-actions">
+										<template v-if="canWrite && o.status === 'open'">
+											<NcButton variant="tertiary" @click="markOpenItemPaid(o)">
+												{{ t('Bezahlt') }}
+											</NcButton>
+											<NcButton variant="tertiary" @click="cancelOpenItem(o)">
+												{{ t('Stornieren') }}
+											</NcButton>
+										</template>
+										<NcButton v-else-if="canWrite" variant="tertiary" @click="reopenOpenItem(o)">
+											{{ t('Wieder öffnen') }}
 										</NcButton>
-										<NcButton variant="tertiary" @click="cancelOpenItem(o)">
-											{{ t('Stornieren') }}
-										</NcButton>
-									</template>
-									<NcButton v-else-if="canWrite" variant="tertiary" @click="reopenOpenItem(o)">
-										{{ t('Wieder öffnen') }}
-									</NcButton>
+									</div>
 								</td>
 							</tr>
 						</tbody>

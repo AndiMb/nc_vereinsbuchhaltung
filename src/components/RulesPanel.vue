@@ -59,24 +59,26 @@
 							{{ rule.priority }}
 						</td>
 						<td class="right nowrap">
-							<NcButton
-								variant="tertiary"
-								:aria-label="t('Regel bearbeiten')"
-								:title="t('Bearbeiten')"
-								@click="editRule(rule)">
-								<template #icon>
-									<NcIconSvgWrapper :path="mdiPencil" :size="20" />
-								</template>
-							</NcButton>
-							<NcButton
-								variant="error"
-								:aria-label="t('Regel löschen')"
-								:title="t('Löschen')"
-								@click="deleteRule(rule)">
-								<template #icon>
-									<NcIconSvgWrapper :path="mdiDelete" :size="20" />
-								</template>
-							</NcButton>
+							<div class="vbh-actions">
+								<NcButton
+									variant="tertiary"
+									:aria-label="t('Regel bearbeiten')"
+									:title="t('Bearbeiten')"
+									@click="editRule(rule)">
+									<template #icon>
+										<NcIconSvgWrapper :path="mdiPencil" :size="20" />
+									</template>
+								</NcButton>
+								<NcButton
+									variant="error"
+									:aria-label="t('Regel löschen')"
+									:title="t('Löschen')"
+									@click="deleteRule(rule)">
+									<template #icon>
+										<NcIconSvgWrapper :path="mdiDelete" :size="20" />
+									</template>
+								</NcButton>
+							</div>
 						</td>
 					</tr>
 				</tbody>
