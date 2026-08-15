@@ -190,21 +190,23 @@
 
 /* Hilfe-Modal (HelpModal.vue) – .modal-container__content von NcModal hat
    selbst KEIN Padding (padding: 0), daher hier volle eigene Innenabstände
-   statt eines Randausgleichs; oben Platz für den absolut positionierten
-   Schließen-Button der NcModal (top: 4px) lassen. */
+   statt eines Randausgleichs. Der eigene .vbh-modal-title oben (siehe
+   Modals-Abschnitt) raeumt bereits den Schliessen-Button frei, die Spalten
+   darunter brauchen dafuer kein eigenes Top-Padding mehr. */
+.vbh-help-titlewrap { padding: 4px 20px 0; }
 .vbh-help { display: flex; gap: 0; min-height: 320px; }
-.vbh-help-nav { flex: 0 0 190px; display: flex; flex-direction: column; border-right: 1px solid var(--color-border); padding: 44px 0 16px; }
+.vbh-help-nav { flex: 0 0 190px; display: flex; flex-direction: column; border-right: 1px solid var(--color-border); padding: 8px 0 16px; }
 .vbh-help-nav button { text-align: left; background: none; border: none; padding: 10px 20px; cursor: pointer; color: var(--color-main-text); font-size: 0.95em; white-space: nowrap; border-radius: 0; }
 .vbh-help-nav button:hover { background-color: var(--color-background-hover); }
 .vbh-help-nav button.active { background-color: var(--color-primary-element-light, var(--color-background-hover)); font-weight: 700; }
-.vbh-help-body { flex: 1 1 auto; min-width: 0; padding: 44px 24px 20px 20px; overflow-y: auto; }
+.vbh-help-body { flex: 1 1 auto; min-width: 0; padding: 8px 24px 20px 20px; overflow-y: auto; }
 .vbh-help-body h4 { margin-top: 0; }
 .vbh-help-body ul { padding-left: 20px; }
 .vbh-help-body li { margin: 8px 0; }
 .vbh-help-full { display: inline-block; margin-top: 16px; }
 @media (max-width: 640px) {
 	.vbh-help { flex-direction: column; }
-	.vbh-help-nav { flex-direction: row; flex-wrap: wrap; border-right: none; border-bottom: 1px solid var(--color-border); padding: 44px 12px 8px; gap: 4px; }
+	.vbh-help-nav { flex-direction: row; flex-wrap: wrap; border-right: none; border-bottom: 1px solid var(--color-border); padding: 8px 12px; gap: 4px; }
 	.vbh-help-nav button { padding: 6px 10px; border-radius: 999px; }
 	.vbh-help-nav button.active { background-color: var(--color-primary-element-light, var(--color-background-hover)); }
 	.vbh-help-body { padding: 12px 16px 16px; }
@@ -417,6 +419,19 @@
 /* Modals */
 .vbh-modal-inner { padding: 4px 16px 20px; }
 .vbh-modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+/* NcModals `:name`-Titel schwebt per Bibliotheks-CSS (.modal-header, position:
+   absolute relativ zur fixed .modal-mask) am oberen Browserfensterrand statt im
+   Popup - er ist NICHT im .modal-container verschachtelt, sondern dessen
+   Geschwister. Deshalb rendern wir die Ueberschrift stattdessen selbst als
+   erstes Element im Slot-Inhalt und lassen :name weg; label-id verknuepft sie
+   fuer Screenreader mit dem Dialog (siehe NcModal-Prop-Doku "labelId"). Der
+   rechte Rand raeumt den rund positionierten Schliessen-Button oben rechts
+   (.modal-container__close, top:4px) frei - betrifft auch mehrzeilige Titel,
+   da er auf dem ganzen Block liegt, nicht nur der ersten Zeile. Bei mobilen
+   size="full"-Dialogen (BookingDialog, SplitAssignDialog) bleibt dagegen der
+   eingebaute :name-Balken aktiv - dort deckt sich seine Position tatsaechlich
+   mit der Box (siehe deren eigene Kommentare). */
+.vbh-modal-title { margin: 0 44px 14px 0; }
 
 /* Einnahme/Ausgabe-Umschalter (Einfach-Modus) */
 .vbh-kindtoggle { display: flex; gap: 0; margin: 4px 0 14px; border: 1px solid var(--color-border); border-radius: var(--border-radius-element, 8px); overflow: hidden; }

@@ -1,12 +1,16 @@
 <template>
 	<NcModal
 		:show="show"
-		:name="bookingForm.id ? t('Buchung bearbeiten #{n}', { n: bookingForm.entryNo }) : t('Neue Buchung')"
+		:name="isMobile ? bookingTitle : ''"
+		:label-id="isMobile ? undefined : 'vbh-modal-title-booking'"
 		:size="isMobile ? 'full' : 'normal'"
 		:closeOnClickOutside="true"
 		@close="$emit('close')"
 		@update:show="$emit('update:show', $event)">
 		<div class="vbh-modal-inner">
+			<h2 v-if="!isMobile" id="vbh-modal-title-booking" class="vbh-modal-title">
+				{{ bookingTitle }}
+			</h2>
 			<p v-if="bookingLocked" class="vbh-hint vbh-hint--info">
 				{{ t('🔒 Das Geschäftsjahr {year} ist abgeschlossen – diese Buchung kann nur noch angesehen werden.', { year: String(bookingForm.date).slice(0, 4) }) }}
 			</p>
@@ -451,6 +455,12 @@ export default {
 	},
 
 	computed: {
+		bookingTitle() {
+			return this.bookingForm.id
+				? this.t('Buchung bearbeiten #{n}', { n: this.bookingForm.entryNo })
+				: this.t('Neue Buchung')
+		},
+
 		// --- Formularfelder -------------------------------------------------
 		// Das Formular gehoert dem Elternteil (App.vue braucht es auch beim
 		// Speichern und beim Anhaengen der Belege). Frueher hat diese Komponente

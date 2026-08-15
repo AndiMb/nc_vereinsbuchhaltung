@@ -1,12 +1,15 @@
 <template>
 	<NcModal
 		:show="show"
-		:name="t('Bankverbindung wechseln')"
+		label-id="vbh-modal-title-bankchange"
 		size="normal"
 		:closeOnClickOutside="true"
 		@close="$emit('close')"
 		@update:show="$emit('update:show', $event)">
 		<div class="vbh-modal-inner">
+			<h2 id="vbh-modal-title-bankchange" class="vbh-modal-title">
+				{{ t('Bankverbindung wechseln') }}
+			</h2>
 			<p class="vbh-hint">
 				{{ t('Das bisherige Mandat für „{name}" wird widerrufen, ein neues mit der eingegebenen Bankverbindung angelegt. Noch offene, nicht eingezogene Beiträge und Posten wandern automatisch auf das neue Mandat – sonst würden sie beim nächsten Einzug stillschweigend übersprungen.', { name: displayName }) }}
 			</p>

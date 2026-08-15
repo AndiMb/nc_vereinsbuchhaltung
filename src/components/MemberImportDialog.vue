@@ -1,12 +1,15 @@
 <template>
 	<NcModal
 		:show="show"
-		:name="t('Mitgliederliste einlesen')"
+		label-id="vbh-modal-title-memberimport"
 		size="large"
 		:closeOnClickOutside="true"
 		@close="$emit('close')"
 		@update:show="$emit('update:show', $event)">
 		<div class="vbh-modal-inner">
+			<h2 id="vbh-modal-title-memberimport" class="vbh-modal-title">
+				{{ t('Mitgliederliste einlesen') }}
+			</h2>
 			<p class="vbh-hint">
 				{{ t('Für die erstmalige Aufnahme vieler Mitglieder: eine CSV-Datei mit den Spalten Name, E-Mail, IBAN, Mandat am, Betrag, Frequenz und Start. Die Reihenfolge und die Schreibweise der Überschriften sind egal, zusätzliche Spalten werden übergangen. Vor dem Anlegen sehen Sie zuerst, was entstehen würde.') }}
 			</p>

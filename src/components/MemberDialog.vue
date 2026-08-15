@@ -1,12 +1,15 @@
 <template>
 	<NcModal
 		:show="show"
-		:name="t('Mitglied aufnehmen')"
+		label-id="vbh-modal-title-member"
 		size="normal"
 		:closeOnClickOutside="true"
 		@close="$emit('close')"
 		@update:show="$emit('update:show', $event)">
 		<div class="vbh-modal-inner">
+			<h2 id="vbh-modal-title-member" class="vbh-modal-title">
+				{{ t('Mitglied aufnehmen') }}
+			</h2>
 			<p class="vbh-hint">
 				{{ t('Ein Mitglied besteht hier aus zwei Angaben: seiner Bankverbindung (dem SEPA-Mandat) und seinem Beitrag. Beides ist einzeln möglich: ohne IBAN entsteht nur ein Beitrag (etwa für Überweiser), ohne Betrag nur ein Mandat.') }}
 			</p>

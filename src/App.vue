@@ -243,11 +243,14 @@
 			bleibt ueber die id="settings-section_<id>"-Wrapper erhalten. -->
 		<NcModal
 			v-model:show="showSettings"
-			:name="t('Einstellungen')"
+			label-id="vbh-modal-title-settings"
 			size="large"
 			:closeOnClickOutside="true"
 			@close="showSettings = false">
 			<div class="vbh-modal-inner">
+				<h2 id="vbh-modal-title-settings" class="vbh-modal-title">
+					{{ t('Einstellungen') }}
+				</h2>
 				<div id="settings-section_verein">
 					<h3 class="vbh-section-divider">
 						{{ t('Verein') }}

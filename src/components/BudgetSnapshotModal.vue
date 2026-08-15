@@ -2,12 +2,15 @@
 	<NcModal
 		v-if="show"
 		:show="show"
-		:name="t('Plan-Stand: {label}', { label: snapshot ? snapshot.label : '' })"
+		label-id="vbh-modal-title-budgetsnapshot"
 		size="normal"
 		:closeOnClickOutside="true"
 		@close="$emit('close')"
 		@update:show="$emit('update:show', $event)">
 		<div v-if="snapshot" class="vbh-modal-inner">
+			<h2 id="vbh-modal-title-budgetsnapshot" class="vbh-modal-title">
+				{{ t('Plan-Stand: {label}', { label: snapshot.label }) }}
+			</h2>
 			<p class="vbh-hint">
 				{{ t('Eingefroren am {date} · Geschäftsjahr {year}.', { date: formatDateTime(snapshot.createdAt), year: snapshot.year }) }}
 				{{ t('Die Spalte „Aktuell" zeigt den heutigen Planwert, „Δ" die Abweichung des aktuellen Plans zum Stand.') }}

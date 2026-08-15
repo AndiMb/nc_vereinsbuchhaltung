@@ -1,13 +1,15 @@
 <template>
 	<NcModal
 		:show="show"
-		:name="t('Willkommen')"
+		label-id="vbh-modal-title-wizard"
 		size="normal"
 		:closeOnClickOutside="true"
 		@close="$emit('close')"
 		@update:show="$emit('update:show', $event)">
 		<div class="vbh-wizard">
-			<h3>{{ t('Willkommen bei der Vereinsbuchhaltung!') }}</h3>
+			<h3 id="vbh-modal-title-wizard" class="vbh-modal-title">
+				{{ t('Willkommen bei der Vereinsbuchhaltung!') }}
+			</h3>
 			<p class="vbh-hint">
 				{{ t('Womit möchtest du starten? Das lässt sich jederzeit später ändern.') }}
 			</p>

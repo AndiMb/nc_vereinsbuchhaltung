@@ -1,12 +1,16 @@
 <template>
 	<NcModal
 		:show="show"
-		:name="t('Umsatz aufteilen')"
+		:name="isMobile ? t('Umsatz aufteilen') : ''"
+		:label-id="isMobile ? undefined : 'vbh-modal-title-split'"
 		:size="isMobile ? 'full' : 'normal'"
 		:closeOnClickOutside="true"
 		@close="$emit('close')"
 		@update:show="$emit('update:show', $event)">
 		<div class="vbh-modal-inner">
+			<h2 v-if="!isMobile" id="vbh-modal-title-split" class="vbh-modal-title">
+				{{ t('Umsatz aufteilen') }}
+			</h2>
 			<p class="vbh-hint vbh-hint--info">
 				{{ t('Der Umsatz wird auf mehrere Gegenkonten verteilt – für eine Überweisung, die mehreres zugleich enthält (z. B. Beitrag und Spende). Das Geldkonto bleibt unverändert.') }}
 			</p>

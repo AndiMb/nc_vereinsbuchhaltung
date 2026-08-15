@@ -1,11 +1,16 @@
 <template>
 	<NcModal
 		:show="show"
-		:name="t('Hilfe')"
+		label-id="vbh-modal-title-help"
 		size="normal"
 		:closeOnClickOutside="true"
 		@close="$emit('close')"
 		@update:show="$emit('update:show', $event)">
+		<div class="vbh-help-titlewrap">
+			<h2 id="vbh-modal-title-help" class="vbh-modal-title">
+				{{ t('Hilfe') }}
+			</h2>
+		</div>
 		<div class="vbh-help">
 			<nav class="vbh-help-nav">
 				<button

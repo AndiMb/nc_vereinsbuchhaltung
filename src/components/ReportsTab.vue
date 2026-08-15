@@ -856,20 +856,26 @@
 		     fuer dasselbe Muster bei MemberDialog/MemberImportDialog). -->
 		<NcModal
 			v-if="canWrite && ccPanelOpen"
-			:name="t('Kostenstellen verwalten')"
+			label-id="vbh-modal-title-costcenters"
 			size="large"
 			@close="ccPanelOpen = false">
 			<div class="vbh-modal-inner">
+				<h2 id="vbh-modal-title-costcenters" class="vbh-modal-title">
+					{{ t('Kostenstellen verwalten') }}
+				</h2>
 				<CostCenterPanel :mode="costCenterMode" @changed="$emit('cost-centers-changed')" />
 			</div>
 		</NcModal>
 
 		<NcModal
 			v-if="canWrite && spherePanelOpen"
-			:name="t('Sphären zuordnen')"
+			label-id="vbh-modal-title-spheres"
 			size="large"
 			@close="spherePanelOpen = false">
 			<div class="vbh-modal-inner">
+				<h2 id="vbh-modal-title-spheres" class="vbh-modal-title">
+					{{ t('Sphären zuordnen') }}
+				</h2>
 				<SphereAssignPanel @changed="$emit('spheres-changed')" @help="$emit('help', 'spheres')" />
 			</div>
 		</NcModal>

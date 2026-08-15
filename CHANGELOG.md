@@ -10,6 +10,19 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
 
 ## [Unreleased]
 
+## [0.24.1] – 2026-08-15
+
+### Behoben
+- **Modal-Überschriften schwebten am Browserfensterrand statt im Popup**:
+  NcModals `:name`-Titel hängt CSS-seitig als Geschwister von
+  `.modal-container`, nicht darin – bei zentrierten Dialogen (Einstellungen,
+  Neue Buchung, neues Konto, Kostenstellen verwalten, Sphären zuordnen,
+  Mitglied aufnehmen, Importe, Hilfe, Bankverbindung wechseln, Plan-Stand,
+  Willkommens-Assistent) klaffte dadurch eine Lücke zwischen Titel und Box.
+  Betroffene Dialoge rendern die Überschrift jetzt selbst im Inhalt; auf dem
+  Handy (size="full") bleibt der eingebaute Titel-Balken, der dort korrekt
+  über der Box sitzt.
+
 ## [0.24.0] – 2026-08-15
 
 ### Geändert

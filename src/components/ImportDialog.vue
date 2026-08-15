@@ -1,12 +1,15 @@
 <template>
 	<NcModal
 		:show="show"
-		:name="t('Kontoumsätze importieren')"
+		label-id="vbh-modal-title-import"
 		size="normal"
 		:closeOnClickOutside="true"
 		@close="$emit('close')"
 		@update:show="$emit('update:show', $event)">
 		<div class="vbh-modal-inner">
+			<h2 id="vbh-modal-title-import" class="vbh-modal-title">
+				{{ t('Kontoumsätze importieren') }}
+			</h2>
 			<template v-if="!importDone">
 				<div
 					class="vbh-dropzone"

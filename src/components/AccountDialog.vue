@@ -1,12 +1,15 @@
 <template>
 	<NcModal
 		:show="show"
-		:name="accountEditId ? t('Konto bearbeiten') : t('Neues Konto')"
+		label-id="vbh-modal-title-account"
 		size="normal"
 		:closeOnClickOutside="true"
 		@close="$emit('close')"
 		@update:show="$emit('update:show', $event)">
 		<div class="vbh-modal-inner">
+			<h2 id="vbh-modal-title-account" class="vbh-modal-title">
+				{{ accountEditId ? t('Konto bearbeiten') : t('Neues Konto') }}
+			</h2>
 			<div class="vbh-form">
 				<label>{{ t('Nummer') }}<input v-model="form.number" class="vbh-short" :placeholder="t('z.B. 4000')"></label>
 				<label class="vbh-grow">{{ t('Bezeichnung') }}<input v-model="form.name" :placeholder="t('Kontoname')"></label>
