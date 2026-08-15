@@ -10,6 +10,15 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
 
 ## [Unreleased]
 
+## [0.22.4] – 2026-08-15
+
+### Geändert
+- **App-Store-Beschreibung aktualisiert**: Das seit 0.20.0 bestehende
+  Beiträge-&-SEPA-Modul (Mitgliederverwaltung, Lastschriftmandate,
+  Sammeleinzug, eigener Reiter) fehlte dort drei Releases lang komplett.
+  Ergänzt, außerdem CAMT.053/MT940 und der Wachordner beim
+  Kontoauszug-Import – bisher war dort nur CSV-CAMT genannt.
+
 ## [0.22.3] – 2026-08-15
 
 ### Behoben
@@ -20,8 +29,10 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
   Stacking-Context, in dem das Sheet trotz hohem `z-index` gefangen war,
   während `NcModal` (der Buchungsdialog) dem entkommt, weil `@nextcloud/vue`
   seine Modals an `document.body` teleportiert. Das Sheet tut das jetzt auch
-  (`<teleport to="body">`). Gefunden im Gesamt-App-Review, siehe
-  APP-REVIEW.md.
+  – per manuellem Portal-Pattern (`mounted()`/`beforeDestroy()` hängen das
+  Element an `document.body`), da `<teleport>` von der hier verwendeten
+  `vue-loader@15`-Toolchain nicht kompiliert wird. Gefunden im
+  Gesamt-App-Review, siehe APP-REVIEW.md.
 
 ## [0.22.2] – 2026-08-15
 
