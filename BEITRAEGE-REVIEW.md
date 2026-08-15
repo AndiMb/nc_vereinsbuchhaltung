@@ -7,6 +7,11 @@
 > als Vorlage für künftige Reviews desselben Moduls stehen – Personas und
 > Testfälle sind absichtlich so geschrieben, dass sie sich nach dem nächsten
 > Umbau wiederverwenden und ergänzen lassen, nicht nur einmalig abhaken.
+>
+> Diese Datei betrifft **nur** das Modul „Beiträge & SEPA". Personas und
+> Testfälle für die übrige App – Buchhaltung, Import, Kassenprüfung,
+> Jahresabschluss, Rechteverwaltung, Mobil – stehen in
+> **[APP-REVIEW.md](APP-REVIEW.md)** (dort noch nicht durchgeführt).
 
 ## 1. Anlass
 
@@ -21,8 +26,9 @@ Gremiensitzung).
 Vier Rollen, wie sie in einem Chor dieser Größe tatsächlich vorkommen –
 bewusst ohne Fachkenntnis, denn das ist der Regelfall im Ehrenamt. Bei
 künftigen Reviews desselben Moduls: dieselben Personas wiederverwenden, bei
-Bedarf um weitere ergänzen (z. B. eine zweite Kassiererin, die die App zum
-ersten Mal ohne Vorgänger-Übergabe einrichtet).
+Bedarf um weitere ergänzen. Personas für die übrige App (Ersteinrichtung,
+Migration, Kassenprüfung, Jahresabschluss, Rechte, Mobil) siehe
+[APP-REVIEW.md](APP-REVIEW.md).
 
 | Persona | Rolle in der App | Situation | Ziel im Test |
 |---|---|---|---|
