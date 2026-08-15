@@ -10,7 +10,19 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
 
 ## [Unreleased]
 
-## [0.22.0] – 2026-08-14
+## [0.22.2] – 2026-08-15
+
+> In `appinfo/info.xml` direkt von 0.21.0 auf 0.22.1 gesprungen und dann auf
+> 0.22.2 weitergezählt, ohne dass 0.22.0/0.22.1 je getaggt oder veröffentlicht
+> wurden – dieser Abschnitt fasst beide Zwischenstände zu einem einzigen,
+> tatsächlich veröffentlichten Release zusammen.
+
+### Neu
+- **Standard-Beitrag** (Zahnrad → Beiträge & SEPA): ein einmal hinterlegter
+  Betrag/Frequenz füllt „Mitglied aufnehmen" vor und greift auch im
+  CSV-Import, wenn eine Zeile ein Start-Datum, aber keinen eigenen Betrag hat
+  – bei 80–100 Mitgliedern mit demselben Satz sonst 80–100 Mal derselbe Wert
+  von Hand.
 
 ### Geändert
 - **Navigation aufgeräumt.** Das Zahnrad-Menü „Einstellungen & Import" hatte
@@ -37,6 +49,30 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
   parallel beschrieben. Die Liste entfällt; im Protokoll (Berichte →
   Protokoll) blendet der neue Schnellfilter „nur Importe" alles andere aus.
   Die dafür genutzte Tabelle `vbh_imports` wird per Migration entfernt.
+- **Buchhalter darf Mitglieder, SEPA-Mandate und den Einzug jetzt vollständig
+  verwalten** (vorher Verwalter-only) – die naheliegende Rollenzuweisung für
+  eine Kassiererin ohne Rechtevergabe-Befugnis war sonst vom ganzen Reiter
+  „Beiträge" ausgesperrt.
+- **Mitgliederliste und Einzug zeigen auf dem Handy Karten statt einer
+  siebenspaltigen Tabelle**, die dort zeilenweise Buchstabe für Buchstabe
+  umbrach.
+- **Aktionsspalte der Mitgliederliste verdichtet.** Seltene Aktionen
+  (Bankverbindung wechseln, Mandat widerrufen, Löschen) stecken jetzt in
+  einem Menü, „Bearbeiten" bleibt sichtbar – auch am Desktop ragte die Spalte
+  vorher über den sichtbaren Bereich hinaus.
+
+### Behoben
+- **E-Mail-Adressen mit Umlaut im lokalen Teil** („m.müller@gmx.de") galten
+  beim Anlegen eines Mandats und beim CSV-Import als ungültig – betraf reale,
+  bei gmx.de/web.de/t-online.de zustellbare Adressen.
+- **Bestätigungsdialoge für „Mitglieder übernehmen" und „Rückstand
+  nachholen"** zeigten einen roten „Löschen"-Button statt einer zum Anlegen
+  passenden Beschriftung.
+- Der Reiter „Beiträge" blitzte beim Laden der App kurz auf, bevor er
+  endgültig erschien.
+
+Details und die zugrundeliegenden Personas/Testfälle siehe
+`BEITRAEGE-REVIEW.md`.
 
 ## [0.21.0] – 2026-08-13
 
