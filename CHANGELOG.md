@@ -10,6 +10,21 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
 
 ## [Unreleased]
 
+## [0.25.0] – 2026-08-22
+
+### Geändert
+- **Einstellungen umgezogen in die Nextcloud-Einstellungen.** Das Zahnrad im
+  App-Kopf und sein `NcModal` sind entfallen; die sieben Abschnitte (Verein,
+  Belege, Bankdaten, Beiträge & SEPA, Berechtigungen, Jahresabschluss, Daten)
+  stehen jetzt unter Einstellungen → Vereinsbuchhaltung – für
+  Nextcloud-Administratoren unter „Verwaltung", für App-Verwalter ohne
+  Nextcloud-Adminrechte unter „Persönlich". Erste-Schritte-Checkliste und
+  Einrichtungsassistent verlinken direkt auf den passenden Abschnitt.
+  `SettingsController::update()` schreibt seither nur noch die im Request
+  enthaltenen Felder, damit die neue Einstellungsseite und der
+  Kostenstellen-Modus (weiterhin in Berichte → Kostenstellen) sich beim
+  Speichern nicht mehr gegenseitig überschreiben können.
+
 ## [0.24.3] – 2026-08-15
 
 ### Geändert

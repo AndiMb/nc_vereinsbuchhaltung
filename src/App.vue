@@ -51,16 +51,6 @@
 							<NcIconSvgWrapper :path="mdiHelpCircleOutline" :size="20" />
 						</template>
 					</NcButton>
-					<NcButton
-						v-if="canWrite"
-						variant="tertiary"
-						:aria-label="t('Einstellungen')"
-						:title="t('Einstellungen')"
-						@click="openSettings">
-						<template #icon>
-							<NcIconSvgWrapper :path="mdiCog" :size="20" />
-						</template>
-					</NcButton>
 				</div>
 			</div>
 		</header>
@@ -185,7 +175,7 @@
 					:loadAudit="loadAudit"
 					:openSnapshot="openSnapshot"
 					:costCenterMode="costCenterMode"
-					:saveStorageSettings="saveStorageSettings"
+					:saveCostCenterMode="saveCostCenterMode"
 					@update:reportView="reportView = $event"
 					@update:selectedCCCode="selectedCCCode = $event"
 					@update:selectedSphereCode="selectedSphereCode = $event"
@@ -222,125 +212,6 @@
 			:canWrite="canWrite"
 			@select="id => { activeTab = id }"
 			@newBooking="openNewBooking" />
-
-		<!-- ============ EINSTELLUNGEN ============ -->
-		<!-- Sieben kurze Abschnitte statt frueher 16 - siehe
-			NAVIGATION-KONZEPT.md Abschnitt 5. Was regelmaessig gebraucht wird
-			(Mitglieder, Einzug, Regeln, Sphaeren, Kostenstellen) steht seit
-			Schritt 1/2 in der Hauptnavigation; hier bleibt nur, was den Verein
-			als Ganzes einstellt.
-
-			Ursprünglich als NcAppSettingsDialog mit Seitennavigation geplant;
-			im Browser-Test (headless Chromium gegen die lokale Docker-Testinstanz,
-			siehe Projekt-Memory) zeigte sich, dass die Komponente unter Vue 2.7
-			nicht rendert: ihr `open`-Prop kommt an (per Vue-Instanz-Inspektion
-			verifiziert), aber `useVModel()` aus @vueuse/core - die Komponente ist
-			intern als <script setup> gegen Vue 3 gebaut - haelt die daraus
-			abgeleitete lokale Reaktivitaet nicht synchron, wodurch NcDialog nie
-			mountet (Root bleibt ein Kommentarknoten, keine Fehlermeldung). Deshalb
-			hier bewusst NcModal wie zuvor, nur mit denselben sieben Abschnitten
-			statt der vorherigen 16 - der Sprung-Anker (openSettings(section))
-			bleibt ueber die id="settings-section_<id>"-Wrapper erhalten. -->
-		<NcModal
-			v-model:show="showSettings"
-			labelId="vbh-modal-title-settings"
-			size="large"
-			:closeOnClickOutside="true"
-			@close="showSettings = false">
-			<div class="vbh-modal-inner">
-				<h2 id="vbh-modal-title-settings" class="vbh-modal-title">
-					{{ t('Einstellungen') }}
-				</h2>
-				<div id="settings-section_verein">
-					<h3 class="vbh-section-divider">
-						{{ t('Verein') }}
-					</h3>
-					<SettingsClub
-						v-if="isAdmin"
-						v-model:clubName="clubName"
-						v-model:brandColor="brandColor"
-						:hasLogo="hasLogo"
-						:storageSaving="storageSaving"
-						:saveStorageSettings="saveStorageSettings"
-						@changed="loadStorageSettings" />
-				</div>
-
-				<div id="settings-section_belege">
-					<h3 class="vbh-section-divider">
-						{{ t('Belege') }}
-					</h3>
-					<SettingsAttachments
-						v-if="isAdmin"
-						v-model:storageUser="storageUser"
-						v-model:storagePath="storagePath"
-						:users="users"
-						:storageSaving="storageSaving"
-						:saveStorageSettings="saveStorageSettings" />
-				</div>
-
-				<div id="settings-section_bankdaten">
-					<h3 class="vbh-section-divider">
-						{{ t('Bankdaten') }}
-					</h3>
-					<SettingsStatementWatch
-						v-if="isAdmin"
-						v-model:statementWatchUser="statementWatchUser"
-						v-model:statementWatchPath="statementWatchPath"
-						:users="users"
-						:storageSaving="storageSaving"
-						:saveStorageSettings="saveStorageSettings" />
-				</div>
-
-				<div id="settings-section_beitraege-sepa">
-					<h3 class="vbh-section-divider">
-						{{ t('Beiträge & SEPA') }}
-					</h3>
-					<SettingsSepaBasics
-						v-if="isAdmin"
-						v-model:sepaCreditorId="sepaCreditorId"
-						v-model:sepaDebtorAccountId="sepaDebtorAccountId"
-						v-model:defaultFeeAmount="defaultFeeAmount"
-						v-model:defaultFeeFrequency="defaultFeeFrequency"
-						v-model:membershipEnabled="membershipEnabled"
-						:membershipActive="membershipActive"
-						:storageSaving="storageSaving"
-						:saveSettings="saveStorageSettings" />
-				</div>
-
-				<div id="settings-section_berechtigungen">
-					<h3 class="vbh-section-divider">
-						{{ t('Berechtigungen') }}
-					</h3>
-					<SettingsPermissions v-if="isAdmin" @help="openHelp('setup')" />
-				</div>
-
-				<div id="settings-section_jahresabschluss">
-					<h3 class="vbh-section-divider">
-						{{ t('Jahresabschluss') }}
-					</h3>
-					<SettingsYearClose v-if="isAdmin" />
-				</div>
-
-				<div id="settings-section_daten">
-					<h3 class="vbh-section-divider">
-						{{ t('Daten') }}
-					</h3>
-					<SettingsXbucImport
-						v-if="canWrite"
-						v-model:busy="busy"
-						@changed="onXbucImported" />
-					<div v-if="isAdmin" class="vbh-card vbh-card--danger">
-						<h4>{{ t('Alle Daten löschen') }}</h4>
-						<p class="vbh-hint">
-							{{ t('Löscht alle Konten, Buchungen und Importe dieses Kontos unwiderruflich.') }}
-						</p>
-						<NcButton variant="error" :disabled="busy" @click="resetAll">
-							{{ t('Alle Daten löschen') }}
-						</NcButton>
-					</div>
-				</div>
-			</div>
-		</NcModal>
 
 		<!-- ============ IMPORT-DIALOG (CSV-CAMT) ============ -->
 		<ImportDialog
@@ -450,14 +321,14 @@
 </template>
 
 <script>
-import { mdiAccountCashOutline, mdiChartBar, mdiCog, mdiFileTreeOutline, mdiHelpCircleOutline, mdiPlus, mdiPrinter, mdiSwapHorizontal, mdiViewDashboardOutline } from '@mdi/js'
+import { mdiAccountCashOutline, mdiChartBar, mdiFileTreeOutline, mdiHelpCircleOutline, mdiPlus, mdiPrinter, mdiSwapHorizontal, mdiViewDashboardOutline } from '@mdi/js'
 import { showError, showInfo, showSuccess, showUndo } from '@nextcloud/dialogs'
+import { generateUrl } from '@nextcloud/router'
 import {
 	NcButton,
 	NcDialog,
 	NcIconSvgWrapper,
 	NcLoadingIcon,
-	NcModal,
 } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import AccountDialog from './components/AccountDialog.vue'
@@ -472,13 +343,6 @@ import HelpModal from './components/HelpModal.vue'
 import ImportDialog from './components/ImportDialog.vue'
 import MobileNav from './components/MobileNav.vue'
 import ReportsTab from './components/ReportsTab.vue'
-import SettingsAttachments from './components/SettingsAttachments.vue'
-import SettingsClub from './components/SettingsClub.vue'
-import SettingsPermissions from './components/SettingsPermissions.vue'
-import SettingsSepaBasics from './components/SettingsSepaBasics.vue'
-import SettingsStatementWatch from './components/SettingsStatementWatch.vue'
-import SettingsXbucImport from './components/SettingsXbucImport.vue'
-import SettingsYearClose from './components/SettingsYearClose.vue'
 import SetupWizard from './components/SetupWizard.vue'
 import SplitAssignDialog from './components/SplitAssignDialog.vue'
 import api from './api.js'
@@ -507,14 +371,6 @@ export default {
 		NcDialog,
 		NcIconSvgWrapper,
 		NcLoadingIcon,
-		NcModal,
-		SettingsXbucImport,
-		SettingsPermissions,
-		SettingsSepaBasics,
-		SettingsClub,
-		SettingsAttachments,
-		SettingsStatementWatch,
-		SettingsYearClose,
 		ImportDialog,
 		AccountDialog,
 		BookingDialog,
@@ -621,7 +477,6 @@ export default {
 			bookingView: 'journal',
 			reportView: 'summary',
 			contribView: 'members',
-			showSettings: false,
 			budgetData: null,
 			budgetSnapshots: [],
 			snapshotView: { open: false, data: null },
@@ -644,7 +499,6 @@ export default {
 			showImport: false,
 			sectionFade: true,
 			bookingForm: this.emptyBookingForm(),
-			mdiCog,
 			mdiPlus,
 			mdiPrinter,
 			bookingAttachments: [],
@@ -666,30 +520,17 @@ export default {
 			auditEntries: [],
 			auditLoading: false,
 			auditEnd: false,
-			storageUser: '',
-			storagePath: '',
 			costCenterMode: 'group',
 			clubName: '',
-			brandColor: '',
-			hasLogo: false,
-			storageSaving: false,
-			// Überwachter Ordner für Kontoauszüge (leer = aus); der stündliche
-			// Hintergrundjob liest daraus ein.
-			statementWatchUser: '',
-			statementWatchPath: '',
-			// SEPA-Lastschrift (optionales Zusatzmodul, siehe SettingsSepaBasics.vue)
-			sepaCreditorId: '',
-			sepaDebtorAccountId: null,
 			// Vorbelegung fuer "Mitglied aufnehmen" (MemberDialog.vue), wenn fast
 			// alle Mitglieder denselben Beitrag zahlen - leerer String heisst
 			// "kein Standardbeitrag hinterlegt".
 			defaultFeeAmount: '',
 			defaultFeeFrequency: 'yearly',
-			// Schalter fuer den Reiter „Beiträge" (siehe SettingsSepaBasics.vue);
-			// membershipActive kommt vom Backend (Schalter ODER bereits vorhandene
-			// Mandate/Beitraege, siehe SettingsController::index()) und entscheidet,
-			// ob der Reiter ueberhaupt erscheint.
-			membershipEnabled: false,
+			// membershipActive kommt vom Backend (Schalter in den Nextcloud-
+			// Einstellungen ODER bereits vorhandene Mandate/Beitraege, siehe
+			// SettingsController::index()) und entscheidet, ob der Reiter
+			// „Beiträge" ueberhaupt erscheint.
 			membershipActive: false,
 			// Hilfe-Modal (HelpModal.vue): Kapitel folgt standardmäßig dem aktiven Tab,
 			// kann aber gezielt überschrieben werden (z. B. Links aus Leerzuständen).
@@ -1011,7 +852,7 @@ export default {
 			if (e.ctrlKey || e.metaKey || e.altKey) { return }
 			const tag = (e.target.tagName || '').toLowerCase()
 			if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable) { return }
-			if (this.showBooking || this.showAccount || this.showImport || this.showSettings || this.confirm.open) { return }
+			if (this.showBooking || this.showAccount || this.showImport || this.confirm.open) { return }
 			if ((e.key === 'n' || e.key === 'N') && this.canWrite) {
 				e.preventDefault()
 				this.openNewBooking()
@@ -1075,55 +916,48 @@ export default {
 		},
 
 		/**
-		 * @param {string|null} section optionaler Zielabschnitt im Einstellungen-
-		 *   Modal (id="settings-section_<section>" auf dessen Wrapper-Div) - kein
-		 *   eigenes Dialog-Prop dafuer, siehe NAVIGATION-KONZEPT.md Abschnitt 5.
+		 * Ziel-URL der Nextcloud-Einstellungsseite dieser App, optional mit
+		 * Anker auf einen bestimmten Abschnitt (id="settings-section_<id>",
+		 * siehe SettingsApp.vue). Verwaltung fuer Nextcloud-Admins, Persoenlich
+		 * fuer App-Verwalter ohne Nextcloud-Adminrechte - dieselbe Unterscheidung
+		 * wie in Settings\PersonalSettings::getSection().
 		 */
-		openSettings(section = null) {
-			this.showSettings = true
-			if (this.isAdmin) {
-				this.loadPermissions()
-				this.loadStorageSettings()
-			}
-			if (section) {
-				this.$nextTick(() => {
-					document.getElementById('settings-section_' + section)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-				})
-			}
+		settingsUrl(section = null) {
+			const area = this.me?.isServerAdmin ? 'admin' : 'user'
+			const url = generateUrl('/settings/' + area + '/vereinsbuchhaltung')
+			return section ? url + '#settings-section_' + section : url
 		},
 
+		// GET /api/settings ist ab Revisor erlaubt; App.vue braucht davon nur
+		// noch, was ausserhalb der (jetzt in Nextcloud-Einstellungen
+		// ausgelagerten) Einstellungsseite gebraucht wird: den Kostenstellen-
+		// Modus (ReportsTab, AccountDialog), den Vereinsnamen (SetupChecklist),
+		// den Beitrags-Standardwert (ContributionsTab → MemberDialog,
+		// MemberImportDialog) sowie demoActive/membershipActive.
 		async loadStorageSettings() {
 			try {
 				const { data } = await api.getSettings()
-				this.storageUser = data.storage_user || ''
-				this.storagePath = data.storage_path || 'Vereinsbuchhaltung/Belege'
 				this.costCenterMode = data.cost_center_mode || 'group'
 				this.clubName = data.club_name || ''
-				this.brandColor = data.brand_color || ''
-				this.hasLogo = !!data.has_logo
 				this.demoActive = !!data.demo_active
-				this.statementWatchUser = data.statement_watch_user || ''
-				this.statementWatchPath = data.statement_watch_path || ''
-				this.sepaCreditorId = data.sepa_creditor_id || ''
-				this.sepaDebtorAccountId = data.sepa_debtor_account_id || null
 				this.defaultFeeAmount = data.default_fee_amount ?? ''
 				this.defaultFeeFrequency = data.default_fee_frequency || 'yearly'
-				this.membershipEnabled = !!data.membership_enabled
 				this.membershipActive = !!data.membership_active
 			} catch { /* ignorieren */ }
 		},
 
-		async saveStorageSettings() {
-			this.storageSaving = true
+		// Schreibt nur den Kostenstellen-Modus - die uebrigen elf Felder
+		// gehoeren seit dem Umzug in die Nextcloud-Einstellungen nicht mehr zu
+		// App.vue, siehe SettingsController::update() (teilweise Speicherung).
+		async saveCostCenterMode() {
 			try {
-				const { data } = await api.saveSettings({ storage_user: this.storageUser, storage_path: this.storagePath || 'Vereinsbuchhaltung/Belege', cost_center_mode: this.costCenterMode, club_name: this.clubName, brand_color: this.brandColor, statement_watch_user: this.statementWatchUser, statement_watch_path: this.statementWatchPath, sepa_creditor_id: this.sepaCreditorId, sepa_debtor_account_id: this.sepaDebtorAccountId || '', default_fee_amount: this.defaultFeeAmount || '', default_fee_frequency: this.defaultFeeFrequency, membership_enabled: this.membershipEnabled ? '1' : '0' })
-				this.membershipActive = !!data.membership_active
+				await api.saveSettings({ cost_center_mode: this.costCenterMode })
 				showSuccess(this.t('Einstellungen gespeichert.'))
 				this.reportData = null
 			} catch (e) {
 				const msg = (e?.response?.data?.message) || this.t('Speichern fehlgeschlagen (HTTP {status})', { status: e?.response?.status ?? this.t('Netzwerkfehler') })
 				showError(msg)
-			} finally { this.storageSaving = false }
+			}
 		},
 
 		// loadYears/loadClosedYears/isYearClosed kommen aus setup() (useYears).
@@ -1327,12 +1161,6 @@ export default {
 
 		async onImported() { await this.loadBalances(); await this.loadTransactions() },
 
-		// SettingsXbucImport.vue meldet einen erfolgreichen Import; die Nachlade-
-		// Orchestrierung über mehrere Composables bleibt hier.
-		async onXbucImported() {
-			await this.loadYears(); await this.loadAccounts(); await this.loadBalances(); await this.loadJournal(); await this.loadTransactions(); await this.loadCostCenters()
-		},
-
 		async resetAll() {
 			if (!await this.askConfirm(this.t('Alle Daten löschen'), this.t('Wirklich ALLE Konten, Buchungen und Importe löschen?'))) { return }
 			this.busy = true
@@ -1371,7 +1199,7 @@ export default {
 
 		onWizardChoice(choice) {
 			this.closeSetupWizard()
-			if (choice === 'xbuc') { this.openSettings('daten') } else if (choice === 'fresh') { this.seedAccounts() } else if (choice === 'demo') { this.seedDemoData() }
+			if (choice === 'xbuc') { window.location.href = this.settingsUrl('daten') } else if (choice === 'fresh') { this.seedAccounts() } else if (choice === 'demo') { this.seedDemoData() }
 		},
 
 		// --- Bankbuchungen ---
@@ -2055,12 +1883,13 @@ export default {
 
 		// --- Setup-Checkliste: Sprung zur jeweiligen Aktion ----------------
 		// Ziele der Erste-Schritte-Checkliste (SetupChecklist.vue): 'settings:<id>'
-		// oeffnet den Einstellungsdialog auf der genannten Seite, 'reports:<view>'
-		// wechselt in den Berichte-Tab auf die genannte Auswertung - beides, weil
-		// die Zuordnung selbst seit NAVIGATION-KONZEPT.md Abschnitt 4 teils nicht
-		// mehr im Zahnrad liegt (z. B. Sphären → Bericht „Sphären").
+		// verlaesst die App zur Nextcloud-Einstellungsseite auf dem genannten
+		// Abschnitt, 'reports:<view>' wechselt in den Berichte-Tab auf die
+		// genannte Auswertung - beides, weil die Zuordnung selbst seit
+		// NAVIGATION-KONZEPT.md Abschnitt 4 teils nicht mehr in den Einstellungen
+		// liegt (z. B. Sphären → Bericht „Sphären").
 		onSetupNavigate(action) {
-			if (action === 'accounts') { this.activeTab = 'accounts' } else if (action === 'booking') { this.openNewBooking() } else if (action.startsWith('settings:')) { this.openSettings(action.slice('settings:'.length)) } else if (action.startsWith('reports:')) { this.activeTab = 'reports'; this.reportView = action.slice('reports:'.length) }
+			if (action === 'accounts') { this.activeTab = 'accounts' } else if (action === 'booking') { this.openNewBooking() } else if (action.startsWith('settings:')) { window.location.href = this.settingsUrl(action.slice('settings:'.length)) } else if (action.startsWith('reports:')) { this.activeTab = 'reports'; this.reportView = action.slice('reports:'.length) }
 		},
 
 		errMsg,

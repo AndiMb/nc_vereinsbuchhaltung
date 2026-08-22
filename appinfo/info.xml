@@ -70,7 +70,7 @@ Bestehende Daten aus „zero Buchhaltung" können über deren xbuc-Dateien
 
 Ausführliches Handbuch auf Deutsch: siehe Dokumentation.
 	]]></description>
-	<version>0.24.3</version>
+	<version>0.25.0</version>
 	<licence>agpl</licence>
 	<author mail="hauffe.andreas@googlemail.com">Andreas Hauffe</author>
 	<namespace>Vereinsbuchhaltung</namespace>
@@ -107,6 +107,17 @@ Ausführliches Handbuch auf Deutsch: siehe Dokumentation.
 		<job>OCA\Vereinsbuchhaltung\BackgroundJob\MembershipFeeDueJob</job>
 		<job>OCA\Vereinsbuchhaltung\BackgroundJob\SepaPreNotificationJob</job>
 	</background-jobs>
+	<!-- Dieselbe Section-Klasse fuer admin-section und personal-section: die
+	     Registrierung ist intern nach Typ getrennt (siehe Settings\Section).
+	     PersonalSettings::getSection() liefert null fuer Nextcloud-Admins
+	     (die sehen den Abschnitt bereits unter Verwaltung) und fuer alle ohne
+	     App-Verwalter-Rolle. -->
+	<settings>
+		<admin>OCA\Vereinsbuchhaltung\Settings\AdminSettings</admin>
+		<admin-section>OCA\Vereinsbuchhaltung\Settings\Section</admin-section>
+		<personal>OCA\Vereinsbuchhaltung\Settings\PersonalSettings</personal>
+		<personal-section>OCA\Vereinsbuchhaltung\Settings\Section</personal-section>
+	</settings>
 	<navigations>
 		<navigation>
 			<name>Vereinsbuchhaltung</name>

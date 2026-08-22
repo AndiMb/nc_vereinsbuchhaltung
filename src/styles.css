@@ -91,7 +91,6 @@
 .vbh-section h3 { margin-top: 0; }
 .vbh-section h4 { margin: 16px 0 6px; }
 .vbh-sectionhead { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
-.vbh-section-divider { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--color-border); }
 .vbh-addyear { display: flex; align-items: center; gap: 6px; }
 .vbh-addyear-input { width: 80px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--color-border); }
 .vbh-snaplabel-input { width: 200px; max-width: 60vw; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--color-border); }
@@ -690,7 +689,7 @@
 
 	/* Tabs: scrollbar, kleinere Schrift */
 	.vbh-navbar { gap: 4px; flex-wrap: nowrap; align-items: center; }
-	/* Mobil ersetzt die Bottom-Nav die Tab-Leiste: rechts nur Jahr + Zahnrad */
+	/* Mobil ersetzt die Bottom-Nav die Tab-Leiste: rechts nur Jahr + Hilfe */
 	.vbh-navbar--mobile { justify-content: flex-end; margin: 4px 0 8px; }
 	.vbh-tabs { overflow-x: auto; scrollbar-width: none; flex-shrink: 1; min-width: 0; }
 	.vbh-tabs::-webkit-scrollbar { display: none; }

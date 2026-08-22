@@ -73,6 +73,17 @@ class PermissionService {
 	}
 
 	/**
+	 * Ob der aktuelle Nutzer Nextcloud-Administrator ist (unabhängig von der
+	 * App-Rolle, die das bei isAdmin() bereits einschließt). Wird gebraucht,
+	 * um zwischen "Einstellungen → Verwaltung" und "Einstellungen →
+	 * Persönlich" zu unterscheiden, siehe Settings\PersonalSettings.
+	 */
+	public function isServerAdmin(): bool {
+		$user = $this->userSession->getUser();
+		return $user !== null && $this->groupManager->isAdmin($user->getUID());
+	}
+
+	/**
 	 * @return array<string,mixed>
 	 */
 	public function describeCurrent(): array {
@@ -85,6 +96,7 @@ class PermissionService {
 			'canRead' => $this->canRead(),
 			'canWrite' => $this->canWrite(),
 			'isAdmin' => $this->isAdmin(),
+			'isServerAdmin' => $this->isServerAdmin(),
 		];
 	}
 }

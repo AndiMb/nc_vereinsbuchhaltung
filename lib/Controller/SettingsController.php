@@ -104,11 +104,20 @@ class SettingsController extends Controller {
 		return null;
 	}
 
-	#[NoAdminRequired]
-	public function index(): DataResponse {
+	/**
+	 * Der vollständige, aktuell gespeicherte Einstellungssatz. Gemeinsame
+	 * Grundlage für index() und die Antwort von update(): zwei getrennte
+	 * Formulare (Einstellungsseite, Kostenstellen-Modus in ReportsTab)
+	 * schreiben seit der Aufteilung in Nextcloud-Einstellungen jeweils nur
+	 * ihre eigenen Felder (siehe update()), sollen aber beide denselben
+	 * vollständigen Satz zurückbekommen.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function currentSettings(): array {
 		$membershipEnabled = $this->config->getAppValue(Application::APP_ID, 'membership_enabled', '0') === '1';
 		$defaultFeeAmountCents = $this->config->getAppValue(Application::APP_ID, 'default_fee_amount_cents', '');
-		return new DataResponse([
+		return [
 			'storage_user' => $this->config->getAppValue(Application::APP_ID, 'storage_user', ''),
 			'storage_path' => $this->config->getAppValue(Application::APP_ID, 'storage_path', 'Vereinsbuchhaltung/Belege'),
 			'cost_center_mode' => $this->config->getAppValue(Application::APP_ID, 'cost_center_mode', 'group'),
@@ -132,9 +141,21 @@ class SettingsController extends Controller {
 			'membership_active' => $membershipEnabled
 				|| $this->sepaMandateMapper->count() > 0
 				|| $this->membershipFeeMapper->count() > 0,
-		]);
+		];
 	}
 
+	#[NoAdminRequired]
+	public function index(): DataResponse {
+		return new DataResponse($this->currentSettings());
+	}
+
+	/**
+	 * Schreibt nur die Schlüssel, die tatsächlich im Request stehen - die
+	 * Einstellungsseite (elf Felder) und der Kostenstellen-Modus in
+	 * ReportsTab (ein Feld) teilen sich diesen Endpunkt, seit sie nicht mehr
+	 * im selben Formular stehen. Ohne diese Unterscheidung würde das jeweils
+	 * andere Formular mit einem veralteten Schnappschuss überschrieben.
+	 */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_ADMIN)]
 	public function update(): DataResponse {
@@ -142,106 +163,121 @@ class SettingsController extends Controller {
 			return new DataResponse(['message' => $this->l10n->t('Zugriff verweigert')], Http::STATUS_FORBIDDEN);
 		}
 
-		$storageUser = trim((string)($this->request->getParam('storage_user') ?? ''));
-		$storagePath = trim((string)($this->request->getParam('storage_path') ?? ''));
-		$storageError = $this->validateStorage($storageUser, $storagePath);
-		if ($storageError !== null) {
-			return new DataResponse(['message' => $storageError], Http::STATUS_BAD_REQUEST);
-		}
-		$storagePath = trim(str_replace('\\', '/', $storagePath), '/');
-		if ($storagePath === '') {
-			$storagePath = 'Vereinsbuchhaltung/Belege';
-		}
-		$ccMode = (string)($this->request->getParam('cost_center_mode') ?? 'group');
-		if (!in_array($ccMode, ReportService::MODES, true)) {
-			$ccMode = 'group';
-		}
-		$clubName = mb_substr(trim((string)($this->request->getParam('club_name') ?? '')), 0, 128);
-		$brandColor = trim((string)($this->request->getParam('brand_color') ?? ''));
-		if ($brandColor !== '' && !preg_match('/^#[0-9a-fA-F]{6}$/', $brandColor)) {
-			return new DataResponse(['message' => $this->l10n->t('Ungültige Akzentfarbe (Format #RRGGBB erwartet)')], Http::STATUS_BAD_REQUEST);
-		}
+		$params = $this->request->getParams();
+		$appId = Application::APP_ID;
 
-		$watchUser = trim((string)($this->request->getParam('statement_watch_user') ?? ''));
-		$watchPath = trim(str_replace('\\', '/', (string)($this->request->getParam('statement_watch_path') ?? '')), '/');
-		$watchError = $this->validateWatchFolder($watchUser, $watchPath);
-		if ($watchError !== null) {
-			return new DataResponse(['message' => $watchError], Http::STATUS_BAD_REQUEST);
-		}
-		// Nur beides zusammen ergibt einen Wachordner; halb ausgefüllt wäre er
-		// eingeschaltet, fände aber nie etwas.
-		if ($watchUser === '' || $watchPath === '') {
-			$watchUser = '';
-			$watchPath = '';
-		}
-
-		$creditorId = strtoupper(trim((string)($this->request->getParam('sepa_creditor_id') ?? '')));
-		if ($creditorId !== '' && !preg_match('/^[A-Z]{2}\d{2}[A-Z0-9]{1,28}$/', $creditorId)) {
-			return new DataResponse(['message' => $this->l10n->t('Das sieht nicht nach einer SEPA-Gläubiger-ID aus (erwartet wird z. B. DE98ZZZ09999999999).')], Http::STATUS_BAD_REQUEST);
-		}
-
-		$defaultFeeAmountParam = trim((string)($this->request->getParam('default_fee_amount') ?? ''));
-		$defaultFeeAmountCents = '';
-		if ($defaultFeeAmountParam !== '') {
-			$defaultFeeAmount = (float)str_replace(',', '.', $defaultFeeAmountParam);
-			if ($defaultFeeAmount <= 0) {
-				return new DataResponse(['message' => $this->l10n->t('Der Standard-Beitrag muss größer als 0 sein.')], Http::STATUS_BAD_REQUEST);
+		// Belegablage (Paar): nur anfassen, wenn mindestens eine Hälfte
+		// gesendet wurde; die fehlende Hälfte wird aus dem aktuellen Stand
+		// ergänzt, damit die Paarprüfung (Nutzer + Pfad) vollständig bleibt.
+		if (array_key_exists('storage_user', $params) || array_key_exists('storage_path', $params)) {
+			$storageUser = trim((string)($params['storage_user'] ?? $this->config->getAppValue($appId, 'storage_user', '')));
+			$storagePath = trim((string)($params['storage_path'] ?? $this->config->getAppValue($appId, 'storage_path', 'Vereinsbuchhaltung/Belege')));
+			$storageError = $this->validateStorage($storageUser, $storagePath);
+			if ($storageError !== null) {
+				return new DataResponse(['message' => $storageError], Http::STATUS_BAD_REQUEST);
 			}
-			$defaultFeeAmountCents = (string)(int)round($defaultFeeAmount * 100);
-		}
-		$defaultFeeFrequency = (string)($this->request->getParam('default_fee_frequency') ?? 'yearly');
-		if (!isset(BillingPeriod::FREQUENCY_MONTHS[$defaultFeeFrequency])) {
-			$defaultFeeFrequency = 'yearly';
-		}
-
-		$debtorAccountParam = $this->request->getParam('sepa_debtor_account_id');
-		$debtorAccountId = $debtorAccountParam !== null && $debtorAccountParam !== '' ? (int)$debtorAccountParam : null;
-		if ($debtorAccountId !== null) {
-			try {
-				$account = $this->accountMapper->find($debtorAccountId, $this->userId());
-				if (!$account->getIsBank()) {
-					return new DataResponse(['message' => $this->l10n->t('Das einziehende Konto muss ein Geldkonto sein.')], Http::STATUS_BAD_REQUEST);
-				}
-				// Gleich hier prüfen und nicht erst beim Erzeugen des Einzugs: die
-				// fehlende IBAN fiele sonst erst auf, wenn es eilig ist.
-				if ($account->getIban() === null) {
-					return new DataResponse(['message' => $this->l10n->t('Für das einziehende Konto ist keine IBAN hinterlegt. Bitte tragen Sie sie zuerst am Konto ein.')], Http::STATUS_BAD_REQUEST);
-				}
-			} catch (DoesNotExistException) {
-				return new DataResponse(['message' => $this->l10n->t('Das gewählte einziehende Konto wurde nicht gefunden.')], Http::STATUS_BAD_REQUEST);
+			$storagePath = trim(str_replace('\\', '/', $storagePath), '/');
+			if ($storagePath === '') {
+				$storagePath = 'Vereinsbuchhaltung/Belege';
 			}
+			$this->config->setAppValue($appId, 'storage_user', $storageUser);
+			$this->config->setAppValue($appId, 'storage_path', $storagePath);
 		}
 
-		$this->config->setAppValue(Application::APP_ID, 'storage_user', $storageUser);
-		$this->config->setAppValue(Application::APP_ID, 'storage_path', $storagePath);
-		$this->config->setAppValue(Application::APP_ID, 'cost_center_mode', $ccMode);
-		$this->config->setAppValue(Application::APP_ID, 'club_name', $clubName);
-		$this->config->setAppValue(Application::APP_ID, 'brand_color', $brandColor);
-		$this->config->setAppValue(Application::APP_ID, WatchFolderService::SETTING_USER, $watchUser);
-		$this->config->setAppValue(Application::APP_ID, WatchFolderService::SETTING_PATH, $watchPath);
-		$this->config->setAppValue(Application::APP_ID, 'sepa_creditor_id', $creditorId);
-		$this->config->setAppValue(Application::APP_ID, 'sepa_debtor_account_id', (string)($debtorAccountId ?? ''));
-		$this->config->setAppValue(Application::APP_ID, 'default_fee_amount_cents', $defaultFeeAmountCents);
-		$this->config->setAppValue(Application::APP_ID, 'default_fee_frequency', $defaultFeeFrequency);
-		$membershipEnabled = (string)($this->request->getParam('membership_enabled') ?? '') === '1';
-		$this->config->setAppValue(Application::APP_ID, 'membership_enabled', $membershipEnabled ? '1' : '0');
+		if (array_key_exists('cost_center_mode', $params)) {
+			$ccMode = (string)($params['cost_center_mode'] ?? 'group');
+			if (!in_array($ccMode, ReportService::MODES, true)) {
+				$ccMode = 'group';
+			}
+			$this->config->setAppValue($appId, 'cost_center_mode', $ccMode);
+		}
 
-		return new DataResponse([
-			'storage_user' => $storageUser,
-			'storage_path' => $storagePath,
-			'cost_center_mode' => $ccMode,
-			'club_name' => $clubName,
-			'brand_color' => $brandColor,
-			'statement_watch_user' => $watchUser,
-			'statement_watch_path' => $watchPath,
-			'sepa_creditor_id' => $creditorId,
-			'sepa_debtor_account_id' => $debtorAccountId,
-			'default_fee_amount' => $defaultFeeAmountCents !== '' ? ((int)$defaultFeeAmountCents) / 100 : null,
-			'default_fee_frequency' => $defaultFeeFrequency,
-			'membership_enabled' => $membershipEnabled,
-			'membership_active' => $membershipEnabled
-				|| $this->sepaMandateMapper->count() > 0
-				|| $this->membershipFeeMapper->count() > 0,
-		]);
+		if (array_key_exists('club_name', $params)) {
+			$clubName = mb_substr(trim((string)$params['club_name']), 0, 128);
+			$this->config->setAppValue($appId, 'club_name', $clubName);
+		}
+
+		if (array_key_exists('brand_color', $params)) {
+			$brandColor = trim((string)$params['brand_color']);
+			if ($brandColor !== '' && !preg_match('/^#[0-9a-fA-F]{6}$/', $brandColor)) {
+				return new DataResponse(['message' => $this->l10n->t('Ungültige Akzentfarbe (Format #RRGGBB erwartet)')], Http::STATUS_BAD_REQUEST);
+			}
+			$this->config->setAppValue($appId, 'brand_color', $brandColor);
+		}
+
+		// Wachordner (Paar): dieselbe Ergänzungslogik wie bei der Belegablage.
+		if (array_key_exists('statement_watch_user', $params) || array_key_exists('statement_watch_path', $params)) {
+			$watchUser = trim((string)($params['statement_watch_user'] ?? $this->config->getAppValue($appId, WatchFolderService::SETTING_USER, '')));
+			$watchPath = trim(str_replace('\\', '/', (string)($params['statement_watch_path'] ?? $this->config->getAppValue($appId, WatchFolderService::SETTING_PATH, ''))), '/');
+			$watchError = $this->validateWatchFolder($watchUser, $watchPath);
+			if ($watchError !== null) {
+				return new DataResponse(['message' => $watchError], Http::STATUS_BAD_REQUEST);
+			}
+			// Nur beides zusammen ergibt einen Wachordner; halb ausgefüllt wäre er
+			// eingeschaltet, fände aber nie etwas.
+			if ($watchUser === '' || $watchPath === '') {
+				$watchUser = '';
+				$watchPath = '';
+			}
+			$this->config->setAppValue($appId, WatchFolderService::SETTING_USER, $watchUser);
+			$this->config->setAppValue($appId, WatchFolderService::SETTING_PATH, $watchPath);
+		}
+
+		if (array_key_exists('sepa_creditor_id', $params)) {
+			$creditorId = strtoupper(trim((string)$params['sepa_creditor_id']));
+			if ($creditorId !== '' && !preg_match('/^[A-Z]{2}\d{2}[A-Z0-9]{1,28}$/', $creditorId)) {
+				return new DataResponse(['message' => $this->l10n->t('Das sieht nicht nach einer SEPA-Gläubiger-ID aus (erwartet wird z. B. DE98ZZZ09999999999).')], Http::STATUS_BAD_REQUEST);
+			}
+			$this->config->setAppValue($appId, 'sepa_creditor_id', $creditorId);
+		}
+
+		if (array_key_exists('default_fee_amount', $params)) {
+			$defaultFeeAmountParam = trim((string)$params['default_fee_amount']);
+			$defaultFeeAmountCents = '';
+			if ($defaultFeeAmountParam !== '') {
+				$defaultFeeAmount = (float)str_replace(',', '.', $defaultFeeAmountParam);
+				if ($defaultFeeAmount <= 0) {
+					return new DataResponse(['message' => $this->l10n->t('Der Standard-Beitrag muss größer als 0 sein.')], Http::STATUS_BAD_REQUEST);
+				}
+				$defaultFeeAmountCents = (string)(int)round($defaultFeeAmount * 100);
+			}
+			$this->config->setAppValue($appId, 'default_fee_amount_cents', $defaultFeeAmountCents);
+		}
+
+		if (array_key_exists('default_fee_frequency', $params)) {
+			$defaultFeeFrequency = (string)$params['default_fee_frequency'];
+			if (!isset(BillingPeriod::FREQUENCY_MONTHS[$defaultFeeFrequency])) {
+				$defaultFeeFrequency = 'yearly';
+			}
+			$this->config->setAppValue($appId, 'default_fee_frequency', $defaultFeeFrequency);
+		}
+
+		if (array_key_exists('sepa_debtor_account_id', $params)) {
+			$debtorAccountParam = $params['sepa_debtor_account_id'];
+			$debtorAccountId = $debtorAccountParam !== null && $debtorAccountParam !== '' ? (int)$debtorAccountParam : null;
+			if ($debtorAccountId !== null) {
+				try {
+					$account = $this->accountMapper->find($debtorAccountId, $this->userId());
+					if (!$account->getIsBank()) {
+						return new DataResponse(['message' => $this->l10n->t('Das einziehende Konto muss ein Geldkonto sein.')], Http::STATUS_BAD_REQUEST);
+					}
+					// Gleich hier prüfen und nicht erst beim Erzeugen des Einzugs: die
+					// fehlende IBAN fiele sonst erst auf, wenn es eilig ist.
+					if ($account->getIban() === null) {
+						return new DataResponse(['message' => $this->l10n->t('Für das einziehende Konto ist keine IBAN hinterlegt. Bitte tragen Sie sie zuerst am Konto ein.')], Http::STATUS_BAD_REQUEST);
+					}
+				} catch (DoesNotExistException) {
+					return new DataResponse(['message' => $this->l10n->t('Das gewählte einziehende Konto wurde nicht gefunden.')], Http::STATUS_BAD_REQUEST);
+				}
+			}
+			$this->config->setAppValue($appId, 'sepa_debtor_account_id', (string)($debtorAccountId ?? ''));
+		}
+
+		if (array_key_exists('membership_enabled', $params)) {
+			$membershipEnabled = (string)$params['membership_enabled'] === '1';
+			$this->config->setAppValue($appId, 'membership_enabled', $membershipEnabled ? '1' : '0');
+		}
+
+		return new DataResponse($this->currentSettings());
 	}
 }

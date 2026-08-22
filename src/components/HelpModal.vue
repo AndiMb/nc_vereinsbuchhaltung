@@ -59,10 +59,10 @@ function buildTopics() {
 			label: t('Ersteinrichtung'),
 			anchor: '2-ersteinrichtung-einmalig',
 			bullets: [
-				t('Zahnrad → Berechtigungen: Nutzer/Gruppen als Verwalter, Buchhalter oder Revisor eintragen.'),
-				t('Tab Konten → „Standard-Kontenrahmen anlegen" – oder Zahnrad → Daten → „Aus zero Buchhaltung importieren", falls vorhanden.'),
+				t('Nextcloud-Einstellungen → Vereinsbuchhaltung → Berechtigungen: Nutzer/Gruppen als Verwalter, Buchhalter oder Revisor eintragen.'),
+				t('Tab Konten → „Standard-Kontenrahmen anlegen" – oder Nextcloud-Einstellungen → Vereinsbuchhaltung → Daten → „Aus zero Buchhaltung importieren", falls vorhanden.'),
 				t('Je Geldkonto (Bank/Kasse) einen Anfangsbestand als Eröffnungssaldo eintragen.'),
-				t('Zahnrad → Belege und Verein: Speicherort für Belege und Vereinsnamen festlegen.'),
+				t('Nextcloud-Einstellungen → Vereinsbuchhaltung → Belege und Verein: Speicherort für Belege und Vereinsnamen festlegen.'),
 			],
 		},
 		{
@@ -108,7 +108,7 @@ function buildTopics() {
 			anchor: '13-mitgliedsbeitraege-und-sepa-lastschrift',
 			bullets: [
 				t('Optionales Zusatzmodul: wer keine Lastschriften einzieht, kann diesen Bereich ignorieren.'),
-				t('Zahnrad → Beiträge & SEPA: Gläubiger-ID, einziehendes Konto und der Schalter für den Reiter „Beiträge" in der Hauptnavigation.'),
+				t('Nextcloud-Einstellungen → Vereinsbuchhaltung → Beiträge & SEPA: Gläubiger-ID, einziehendes Konto und der Schalter für den Reiter „Beiträge" in der Hauptnavigation.'),
 				t('Reiter „Beiträge" → Mitglieder: je Zahler ein Mandat (IBAN, Unterschriftsdatum) und/oder ein Beitrag (Betrag, Frequenz) – Zahler ist ein Nextcloud-Nutzer oder ein frei eingetragener Name. Bei Fälligkeit entsteht automatisch ein offener Posten.'),
 				t('Reiter „Beiträge" → Einzug: Vorschau prüfen, Einzug erzeugen und die XML-Datei bei der Hausbank einreichen. Vor dem ersten Einzug mit dem Prüftool der Bank testen.'),
 				t('Fälligkeitstermin mindestens 14 Tage in die Zukunft legen: so lange vorher muss der Zahler über Betrag und Termin informiert werden. Die App verschickt diese Ankündigung an Mitglieder mit hinterlegter E-Mail-Adresse.'),

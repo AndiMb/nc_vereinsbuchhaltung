@@ -917,11 +917,13 @@ export default {
 	components: { NcButton, NcActions, NcActionLink, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, NcModal, CostCenterPanel, SphereAssignPanel },
 	props: {
 		// Kostenstellen-Modus (group|account|manual), gesteuert ueber den
-		// Gruppierungs-Waehler in der Kopfzeile (nur reportView==='costcenters');
-		// saveStorageSettings schreibt den vollstaendigen Einstellungssatz -
-		// siehe NAVIGATION-KONZEPT.md Abschnitt 4/5 und Risiko R3 (dort mehr dazu).
+		// Gruppierungs-Waehler in der Kopfzeile (nur reportView==='costcenters').
+		// saveCostCenterMode schreibt nur dieses eine Feld - seit die
+		// Einstellungsseite (SettingsApp.vue) denselben Endpunkt fuer ihre
+		// eigenen elf Felder benutzt, wuerde ein vollstaendiger Schreibzugriff
+		// hier deren Stand mit einem veralteten Schnappschuss ueberschreiben.
 		costCenterMode: { type: String, default: 'group' },
-		saveStorageSettings: { type: Function, required: true },
+		saveCostCenterMode: { type: Function, required: true },
 		// steuert (zusammen mit reportView==='summary') den Chart-Redraw des
 		// Mehrjahres-Trend-Diagramms, gleiches Muster wie DashboardTab.vue.
 		isActive: { type: Boolean, required: true },
@@ -1258,12 +1260,10 @@ export default {
 		},
 
 		// $emit ruft update:cost-center-mode synchron auf App.vue (costCenterMode
-		// = $event), saveStorageSettings() liest danach den bereits neuen Wert -
-		// schreibt aber wie immer den vollstaendigen Einstellungssatz (Risiko R3,
-		// siehe NAVIGATION-KONZEPT.md).
+		// = $event), saveCostCenterMode() liest danach den bereits neuen Wert.
 		changeCostCenterMode(value) {
 			this.$emit('update:cost-center-mode', value)
-			this.saveStorageSettings()
+			this.saveCostCenterMode()
 		},
 
 		addBudgetYear() {
