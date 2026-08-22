@@ -78,18 +78,21 @@ jobs:
           # Die niedrigste unterstuetzte Version: was hier durchgeht, laeuft
           # auch auf den neueren. .phpstan/composer.json setzt dieselbe Plattform.
           php-version: '8.1'
-          tools: composer, phpstan
+          tools: composer
           coverage: none
 
-      - name: Analyse-Stubs holen
-        # Nextcloud-Server-Schnittstellen (OCP\*) und PHPUnit als eigenes
-        # composer-Projekt unter .phpstan/ - ausserhalb der composer.json der
-        # App, damit deren Abhaengigkeitsliste leer bleibt und kein Fremdcode
-        # ins Release-Tarball geraet.
+      - name: Analyse-Stubs und PHPStan holen
+        # Nextcloud-Server-Schnittstellen (OCP\*), PHPUnit und PHPStan selbst
+        # als eigenes composer-Projekt unter .phpstan/ - ausserhalb der
+        # composer.json der App, damit deren Abhaengigkeitsliste leer bleibt
+        # und kein Fremdcode ins Release-Tarball geraet. PHPStan bewusst per
+        # composer.lock hier fixiert statt ueber setup-php's 'tools:'
+        # installiert: eine ungepinnte 'latest' PHPStan-Version driftet sonst
+        # unbemerkt zwischen CI-Laeufen, siehe Issue #2.
         run: composer install --working-dir=.phpstan --no-interaction --no-progress
 
       - name: PHPStan
-        run: phpstan analyse --no-progress
+        run: .phpstan/vendor/bin/phpstan analyse --no-progress
 
   appinfo:
     name: info.xml gegen App-Store-Schema

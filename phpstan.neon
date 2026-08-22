@@ -6,21 +6,25 @@
 # Bewusst getrennt von der composer.json der App: die bleibt ohne Abhaengigkeiten,
 # damit im Release-Tarball kein Fremdcode landet.
 #
-# Lokal:  composer install --working-dir=.phpstan && phpstan analyse
+# Lokal:  composer install --working-dir=.phpstan && .phpstan/vendor/bin/phpstan analyse
 #
 # .phpstan/composer.json bleibt bewusst auf nextcloud/ocp ^30.0, obwohl
 # appinfo/info.xml seit der Vue-3-Migration (0.23.0) NC >=31 verlangt: die
 # Stub-Version hier ist unabhaengig von der deklarierten NC-Mindestversion
 # der App und beeinflusst nicht, welche Server die App tatsaechlich laden.
-# Ein Versuch, hier auf ^31.0 zu heben, zeigte allerdings ein davon
-# unabhaengiges Problem auf: mit aktuellem PHPStan (2.1.14) schlagen schon
-# gegen die alten v30-Stubs 206 argument.type-Fehler fehl (DataResponse ist
-# als DataResponse<T of DataResponseType> generisch, der bestehende
-# Controller-Code liefert ueberall unspezifische Arrays/Entities). Per
-# `git stash` gegen den unveraenderten main-Branch verifiziert (Stand
-# 15.08.2026) - vorbestehend, nicht durch die Vue-3-Migration verursacht,
-# und eine eigene PHP-Baustelle: vermutlich ist das lokal installierte
-# PHPStan neuer als das, was CI zuletzt gruen sah.
+#
+# Ein Versuch, hier auf ^31.0 zu heben, fuehrte auf eine davon unabhaengige
+# Spur (Issue #2): gegen dieselben v30-Stubs meldeten PHPStan 2.1.14 bis
+# 2.2.1 rund 205-206 argument.type-Fehler bei generischen DataResponse<T>
+# (der bestehende Controller-Code liefert ueberall unspezifische
+# Arrays/Entities). Per `git stash` gegen den unveraenderten main-Branch und
+# Bisektion ueber mehrere PHPStan-Versionen verifiziert (Stand 22.08.2026):
+# ein PHPStan-eigener Regressionsbug in der Generics-Aufloesung, nicht ein
+# echtes Typproblem im Code - ab 2.2.5 liefert derselbe Code 0 Fehler. Behoben
+# durch Pinnen von phpstan/phpstan auf ^2.2.5 in .phpstan/composer.json,
+# per composer.lock reproduzierbar sowohl lokal als auch in CI (die vorher
+# genutzte setup-php-'tools:'-Installation zog dagegen bei jedem CI-Lauf
+# unversioniert die jeweils neueste PHPStan-Version).
 parameters:
 	level: 5
 	paths:

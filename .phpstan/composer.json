@@ -1,8 +1,18 @@
 {
 	"description": "Nur die Nextcloud-Server-Schnittstellen und PHPUnit fuer die statische Analyse. Bewusst ein eigenes composer-Projekt ausserhalb der App, damit composer.json/lock der App leer bleiben und kein Fremdcode ins Release-Tarball geraet.",
+	"//": [
+		"phpstan/phpstan steht hier als require-dev statt ueber setup-php's 'tools:' installiert zu",
+		"werden, damit CI und lokale Analyse garantiert dieselbe, ueber composer.lock fixierte",
+		"Version benutzen. Untergrenze 2.2.5 bewusst: 2.1.x bis 2.2.1 melden 205-206 falsche",
+		"argument.type-Fehler gegen generische DataResponse<T> (Issue #2) - ein PHPStan-Bug,",
+		"kein echtes Typproblem im Code, siehe phpstan.neon."
+	],
 	"require": {
 		"nextcloud/ocp": "^30.0",
 		"phpunit/phpunit": "^10.5"
+	},
+	"require-dev": {
+		"phpstan/phpstan": "^2.2.5"
 	},
 	"config": {
 		"platform": {
