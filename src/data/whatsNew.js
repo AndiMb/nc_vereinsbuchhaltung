@@ -20,6 +20,12 @@ import { isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.27.0',
+			items: [
+				t('Handbuch und Prüfleitfaden gibt es jetzt auch auf Englisch – die App liefert automatisch die passende Sprache aus, je nachdem, welche Sprache in den Nextcloud-Einstellungen eingestellt ist.'),
+			],
+		},
+		{
 			version: '0.25.0',
 			roles: ['verwalter'],
 			items: [

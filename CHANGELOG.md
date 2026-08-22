@@ -1,5 +1,7 @@
 # Changelog
 
+**Deutsch** · [English (ab 0.27.0)](CHANGELOG.en.md)
+
 Alle nennenswerten Änderungen an dieser App werden hier dokumentiert.
 
 Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
@@ -9,6 +11,21 @@ Der App Store zeigt zu jedem Release den hier passenden Abschnitt an – zu jede
 veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
 
 ## [Unreleased]
+
+## [0.27.0] – 2026-08-22
+
+### Neu
+- **README, Handbuch und Prüfleitfaden jetzt auch auf Englisch.** README.md,
+  CHANGELOG.md (ab dieser Version) und HANDBUCH.md liegen zusätzlich als
+  `*.en.md` vor, mit Sprach-Umschalter am Dateianfang. `info.xml` trägt
+  `<name>`/`<summary>`/`<description>` jetzt in beiden Sprachen, sodass der
+  App Store automatisch die passende zeigt. Das in der App ausgelieferte
+  Handbuch (`/api/help/handbuch`) und der Prüfleitfaden für Kassenprüfer/innen
+  (`/api/help/pruefleitfaden`) erkennen die Nextcloud-Spracheinstellung der
+  Nutzerin oder des Nutzers und liefern Englisch statt Deutsch aus, sobald sie
+  auf Englisch steht. Die Kapitel-Deep-Links aus der In-App-Hilfe (HelpModal)
+  verlinken dafür jetzt auf sprachunabhängige Anker (`section-<Kapitel>`)
+  statt auf die aus der (dann übersetzten) Überschrift abgeleiteten Slugs.
 
 ## [0.26.0] – 2026-08-22
 

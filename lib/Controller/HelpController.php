@@ -12,23 +12,36 @@ use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\DataDisplayResponse;
 use OCP\AppFramework\Http\EmptyContentSecurityPolicy;
 use OCP\IConfig;
+use OCP\IL10N;
 use OCP\IRequest;
 
 /**
- * Liefert das beiliegende HANDBUCH.md als lesbare HTML-Seite aus. Bewusst
- * kein Markdown-Parser als Composer-Abhängigkeit, sondern ein schlanker
- * Eigenbau, der nur die im Handbuch tatsächlich genutzte Syntax abdeckt
- * (Überschriften, Listen, Zitate, Fett- und Kursivschrift, Trennlinien).
- * Überschriften bekommen ein id-Attribut (slugify), damit das HelpModal aus
- * dem Frontend gezielt in ein Kapitel verlinken kann.
+ * Liefert das beiliegende HANDBUCH.md (bzw. HANDBUCH.en.md) als lesbare
+ * HTML-Seite aus. Bewusst kein Markdown-Parser als Composer-Abhängigkeit,
+ * sondern ein schlanker Eigenbau, der nur die im Handbuch tatsächlich
+ * genutzte Syntax abdeckt (Überschriften, Listen, Zitate, Fett- und
+ * Kursivschrift, Trennlinien).
+ *
+ * Überschriften bekommen zwei Anker: ein sprachabhängiges id-Attribut
+ * (slugify des – ggf. übersetzten – Überschriftentexts, trägt das
+ * Inhaltsverzeichnis am Dateianfang) sowie zusätzlich einen stabilen,
+ * sprachunabhängigen Anker "section-<Kapitelnummer>" direkt davor. Das
+ * HelpModal im Frontend verlinkt auf Letzteren, damit ein Kapitel-Deep-Link
+ * unabhängig davon funktioniert, ob die deutsche oder die englische Fassung
+ * ausgeliefert wird (siehe sectionAnchor()).
  */
 class HelpController extends Controller {
 
 	public function __construct(
 		IRequest $request,
 		private IConfig $config,
+		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
+	}
+
+	private function isEnglish(): bool {
+		return str_starts_with($this->l10n->getLanguageCode(), 'en');
 	}
 
 	/**
@@ -53,12 +66,14 @@ class HelpController extends Controller {
 	#[NoAdminRequired]
 	#[NoCSRFRequired]
 	public function handbuch(): DataDisplayResponse {
-		$path = dirname(__DIR__, 2) . '/HANDBUCH.md';
-		$md = is_file($path) ? file_get_contents($path) : '# Handbuch nicht gefunden';
+		$english = $this->isEnglish();
+		$path = dirname(__DIR__, 2) . '/' . ($english ? 'HANDBUCH.en.md' : 'HANDBUCH.md');
+		$notFound = $english ? '# Manual not found' : '# Handbuch nicht gefunden';
+		$md = is_file($path) ? file_get_contents($path) : $notFound;
 
-		$html = '<!DOCTYPE html><html lang="de"><head><meta charset="utf-8">'
+		$html = '<!DOCTYPE html><html lang="' . ($english ? 'en' : 'de') . '"><head><meta charset="utf-8">'
 			. '<meta name="viewport" content="width=device-width, initial-scale=1">'
-			. '<title>Handbuch Vereinsbuchhaltung</title>'
+			. '<title>' . ($english ? 'Vereinsbuchhaltung Manual' : 'Handbuch Vereinsbuchhaltung') . '</title>'
 			. '<style>' . $this->css() . '</style></head><body>'
 			. $this->render((string)$md)
 			. '</body></html>';
@@ -74,40 +89,69 @@ class HelpController extends Controller {
 	#[NoAdminRequired]
 	#[NoCSRFRequired]
 	public function pruefleitfaden(): DataDisplayResponse {
+		$english = $this->isEnglish();
 		$clubName = (string)$this->config->getAppValue(Application::APP_ID, 'club_name', '');
-		$title = ($clubName !== '' ? htmlspecialchars($clubName, ENT_QUOTES, 'UTF-8') . ' – ' : '') . 'Kurzanleitung für Kassenprüfer/innen';
+		$heading = $english ? 'Quick Guide for Auditors' : 'Kurzanleitung für Kassenprüfer/innen';
+		$title = ($clubName !== '' ? htmlspecialchars($clubName, ENT_QUOTES, 'UTF-8') . ' – ' : '') . $heading;
 
-		$h = '<div class="noprint">Zum Drucken oder Als-PDF-Speichern: <strong>Strg+P</strong> (Mac: ⌘P) im Browser.</div>';
+		$h = $english
+			? '<div class="noprint">To print or save as PDF: <strong>Ctrl+P</strong> (Mac: ⌘P) in your browser.</div>'
+			: '<div class="noprint">Zum Drucken oder Als-PDF-Speichern: <strong>Strg+P</strong> (Mac: ⌘P) im Browser.</div>';
 		$h .= '<header>';
 		if ($clubName !== '') {
 			$h .= '<div class="club">' . htmlspecialchars($clubName, ENT_QUOTES, 'UTF-8') . '</div>';
 		}
-		$h .= '<h1>Kurzanleitung für Kassenprüfer/innen</h1>';
-		$h .= '<div class="meta">Erstellt am ' . (new \DateTime())->format('d.m.Y') . '</div>';
+		$h .= '<h1>' . $heading . '</h1>';
+		$h .= '<div class="meta">' . ($english ? 'Created on ' : 'Erstellt am ') . (new \DateTime())->format('d.m.Y') . '</div>';
 		$h .= '</header>';
 
-		$h .= '<section><h2>Deine Rolle</h2><p>Du hast die Rolle <strong>Revisor</strong>: du kannst alles einsehen, aber nichts ändern, anlegen oder löschen. So kannst du frei prüfen, ohne versehentlich etwas zu verändern.</p></section>';
+		if ($english) {
+			$h .= '<section><h2>Your role</h2><p>You have the <strong>Auditor</strong> role: you can view everything but change, create or delete nothing. This lets you review freely without accidentally changing anything.</p></section>';
 
-		$h .= '<section><h2>Vor der Prüfung</h2><ul>'
-			. '<li><strong>Kassenbericht</strong> anfordern (Tab Berichte → Auswertung → Button „Kassenbericht") – er ist die Grundlage der Prüfung.</li>'
-			. '<li><strong>Beleg-ZIP</strong> anfordern (Berichte → Auswertung → „Beleg-ZIP") – alle Belege des Jahres, sortiert nach Buchung.</li>'
-			. '</ul></section>';
+			$h .= '<section><h2>Before the audit</h2><ul>'
+				. '<li>Request the <strong>treasurer\'s report</strong> (Reports tab → Evaluation → "Treasurer\'s report" button) – it is the basis of the audit.</li>'
+				. '<li>Request the <strong>receipt ZIP</strong> (Reports → Evaluation → "Receipt ZIP") – all receipts for the year, sorted by posting.</li>'
+				. '</ul></section>';
 
-		$h .= '<section><h2>Was du prüfen solltest</h2><ul>'
-			. '<li><strong>Vermögensübersicht:</strong> Stimmen Anfangs- und Endbestand der Geldkonten mit den Bankauszügen überein?</li>'
-			. '<li><strong>Belege vollständig?</strong> Im Tab Buchungen (Journal) zeigt der Filter „nur ohne Beleg" fehlende Nachweise.</li>'
-			. '<li><strong>Buchungsnummern lückenlos?</strong> Ein Warnhinweis über dem Journal meldet fehlende oder doppelte Nummern automatisch.</li>'
-			. '<li><strong>Plausibilität:</strong> Kontoauszug je Geldkonto (Tab Konten anklicken) gegen die eigenen Unterlagen abgleichen.</li>'
-			. '<li><strong>Nachvollziehbarkeit:</strong> Das <strong>Änderungsprotokoll</strong> (Berichte → Protokoll) zeigt, wer wann was geändert hat.</li>'
-			. '</ul></section>';
+			$h .= '<section><h2>What to check</h2><ul>'
+				. '<li><strong>Asset overview:</strong> Do the opening and closing balances of the cash accounts match the bank statements?</li>'
+				. '<li><strong>Receipts complete?</strong> In the Bookings tab (journal), the "only without receipt" filter shows missing evidence.</li>'
+				. '<li><strong>Posting numbers gap-free?</strong> A warning above the journal automatically reports missing or duplicate numbers.</li>'
+				. '<li><strong>Plausibility:</strong> Compare the account statement per cash account (click it in the Accounts tab) against your own records.</li>'
+				. '<li><strong>Traceability:</strong> The <strong>change log</strong> (Reports → Log) shows who changed what, and when.</li>'
+				. '</ul></section>';
 
-		$h .= '<section><h2>Wo du das findest</h2><ul>'
-			. '<li><strong>Buchungen</strong> – alle Buchungssätze, durchsuchbar und filterbar.</li>'
-			. '<li><strong>Konten</strong> – Kontenrahmen; ein Klick auf ein Konto zeigt den Kontoauszug.</li>'
-			. '<li><strong>Berichte</strong> – Saldenliste, Kostenstellen, Finanzplan, Kassenbericht, Protokoll.</li>'
-			. '</ul></section>';
+			$h .= '<section><h2>Where to find it</h2><ul>'
+				. '<li><strong>Bookings</strong> – all postings, searchable and filterable.</li>'
+				. '<li><strong>Accounts</strong> – chart of accounts; clicking an account shows its account statement.</li>'
+				. '<li><strong>Reports</strong> – trial balance, cost centers, financial plan, treasurer\'s report, log.</li>'
+				. '</ul></section>';
 
-		$h .= '<section><h2>Nach der Prüfung</h2><p>Ergebnis mit dem Vorstand besprechen. Bei Beanstandungen bleibt das Jahr offen, bis korrigiert wurde. Nach Entlastung durch die Mitgliederversammlung schließt eine Verwalterin oder ein Verwalter das Geschäftsjahr ab (Festschreibung).</p></section>';
+			$h .= '<section><h2>After the audit</h2><p>Discuss the result with the board. If there are objections, the year stays open until corrected. After formal discharge by the general assembly, an administrator closes the fiscal year (finalization).</p></section>';
+		} else {
+			$h .= '<section><h2>Deine Rolle</h2><p>Du hast die Rolle <strong>Revisor</strong>: du kannst alles einsehen, aber nichts ändern, anlegen oder löschen. So kannst du frei prüfen, ohne versehentlich etwas zu verändern.</p></section>';
+
+			$h .= '<section><h2>Vor der Prüfung</h2><ul>'
+				. '<li><strong>Kassenbericht</strong> anfordern (Tab Berichte → Auswertung → Button „Kassenbericht") – er ist die Grundlage der Prüfung.</li>'
+				. '<li><strong>Beleg-ZIP</strong> anfordern (Berichte → Auswertung → „Beleg-ZIP") – alle Belege des Jahres, sortiert nach Buchung.</li>'
+				. '</ul></section>';
+
+			$h .= '<section><h2>Was du prüfen solltest</h2><ul>'
+				. '<li><strong>Vermögensübersicht:</strong> Stimmen Anfangs- und Endbestand der Geldkonten mit den Bankauszügen überein?</li>'
+				. '<li><strong>Belege vollständig?</strong> Im Tab Buchungen (Journal) zeigt der Filter „nur ohne Beleg" fehlende Nachweise.</li>'
+				. '<li><strong>Buchungsnummern lückenlos?</strong> Ein Warnhinweis über dem Journal meldet fehlende oder doppelte Nummern automatisch.</li>'
+				. '<li><strong>Plausibilität:</strong> Kontoauszug je Geldkonto (Tab Konten anklicken) gegen die eigenen Unterlagen abgleichen.</li>'
+				. '<li><strong>Nachvollziehbarkeit:</strong> Das <strong>Änderungsprotokoll</strong> (Berichte → Protokoll) zeigt, wer wann was geändert hat.</li>'
+				. '</ul></section>';
+
+			$h .= '<section><h2>Wo du das findest</h2><ul>'
+				. '<li><strong>Buchungen</strong> – alle Buchungssätze, durchsuchbar und filterbar.</li>'
+				. '<li><strong>Konten</strong> – Kontenrahmen; ein Klick auf ein Konto zeigt den Kontoauszug.</li>'
+				. '<li><strong>Berichte</strong> – Saldenliste, Kostenstellen, Finanzplan, Kassenbericht, Protokoll.</li>'
+				. '</ul></section>';
+
+			$h .= '<section><h2>Nach der Prüfung</h2><p>Ergebnis mit dem Vorstand besprechen. Bei Beanstandungen bleibt das Jahr offen, bis korrigiert wurde. Nach Entlastung durch die Mitgliederversammlung schließt eine Verwalterin oder ein Verwalter das Geschäftsjahr ab (Festschreibung).</p></section>';
+		}
 
 		$css = '
 			* { box-sizing: border-box; }
@@ -125,7 +169,7 @@ class HelpController extends Controller {
 			@page { margin: 18mm 15mm; }
 		';
 
-		$html = '<!DOCTYPE html><html lang="de"><head><meta charset="utf-8">'
+		$html = '<!DOCTYPE html><html lang="' . ($english ? 'en' : 'de') . '"><head><meta charset="utf-8">'
 			. '<title>' . $title . '</title>'
 			. '<style>' . $css . '</style></head><body>' . $h . '</body></html>';
 
@@ -158,6 +202,10 @@ class HelpController extends Controller {
 				$closeBlocks();
 				$level = strlen($m[1]);
 				$id = $this->slugify($m[2]);
+				$sectionAnchor = $this->sectionAnchor($m[2]);
+				if ($sectionAnchor !== null) {
+					$html .= "<a id=\"{$sectionAnchor}\"></a>";
+				}
 				$html .= "<h{$level} id=\"{$id}\">" . $this->inline($m[2]) . "</h{$level}>";
 				continue;
 			}
@@ -207,6 +255,18 @@ class HelpController extends Controller {
 		// Markdown-Links auf Text reduzieren statt eigene Slugs gegen GitHub-Anker zu raten.
 		$s = preg_replace('/\[(.+?)\]\([^)]*\)/', '$1', $s);
 		return $s;
+	}
+
+	/**
+	 * "2. Ersteinrichtung (einmalig)" -> "section-2", "2.2 Kontenrahmen anlegen"
+	 * -> "section-2-2". Liefert null für Überschriften ohne Kapitelnummer
+	 * (Haupttitel, Inhaltsverzeichnis) – die verlinkt niemand von außen an.
+	 */
+	private function sectionAnchor(string $heading): ?string {
+		if (!preg_match('/^(\d+)(?:\.(\d+))?\.?\s/', trim($heading), $m)) {
+			return null;
+		}
+		return isset($m[2]) ? "section-{$m[1]}-{$m[2]}" : "section-{$m[1]}";
 	}
 
 	private function slugify(string $s): string {

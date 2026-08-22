@@ -1176,7 +1176,8 @@
         "ausgewertet; die Namen der Kostenstellen gelten aber weiterhin.": "be evaluated; the cost center names still apply, though.",
         "Keine Importe in den geladenen Einträgen": "No imports among the loaded entries",
         "nur Importe (CSV, xbuc, Wachordner)": "imports only (CSV, xbuc, watched folder)",
-        "Ältere Einträge laden oder den Filter ausschalten.": "Load older entries or turn off the filter."
+        "Ältere Einträge laden oder den Filter ausschalten.": "Load older entries or turn off the filter.",
+        "Handbuch und Prüfleitfaden gibt es jetzt auch auf Englisch – die App liefert automatisch die passende Sprache aus, je nachdem, welche Sprache in den Nextcloud-Einstellungen eingestellt ist.": "The manual and audit guide are now also available in English – the app automatically serves the matching language depending on what's set in the Nextcloud settings."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

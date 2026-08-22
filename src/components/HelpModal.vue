@@ -53,7 +53,10 @@ import api from '../api.js'
 import { t } from '../lib/l10n.js'
 
 // Kurzfassungen je App-Bereich, kein Volltext des Handbuchs – Anker verweisen
-// auf das passende Kapitel in HANDBUCH.md (Slugs siehe HelpController::slugify).
+// auf das passende Kapitel in HANDBUCH.md/HANDBUCH.en.md. Bewusst die
+// stabilen, sprachunabhängigen "section-<Kapitelnummer>"-Anker (siehe
+// HelpController::sectionAnchor()) statt der aus der Überschrift abgeleiteten
+// Slugs – die wären in der englischen Fassung anders.
 //
 // Als Funktion statt Modul-Konstante, weil t() sonst beim Import ausgewertet
 // würde - noch bevor main.js die Übersetzungen geladen hat (siehe
@@ -64,7 +67,7 @@ function buildTopics() {
 		{
 			id: 'setup',
 			label: t('Ersteinrichtung'),
-			anchor: '2-ersteinrichtung-einmalig',
+			anchor: 'section-2',
 			bullets: [
 				t('Nextcloud-Einstellungen → Vereinsbuchhaltung → Berechtigungen: Nutzer/Gruppen als Verwalter, Buchhalter oder Revisor eintragen.'),
 				t('Tab Konten → „Standard-Kontenrahmen anlegen" – oder Nextcloud-Einstellungen → Vereinsbuchhaltung → Daten → „Aus zero Buchhaltung importieren", falls vorhanden.'),
@@ -75,7 +78,7 @@ function buildTopics() {
 		{
 			id: 'bookings',
 			label: t('Buchen & zuordnen'),
-			anchor: '4-die-laufende-arbeit-buchen-und-zuordnen',
+			anchor: 'section-4',
 			bullets: [
 				t('Kontoumsätze importieren: Tab Buchungen → CSV-Datei der Bank hochladen (Dubletten werden automatisch erkannt).'),
 				t('Tab „Zuzuordnen": jede offene Bankbuchung bekommt ein Gegenkonto – Vorschläge und Regeln übernehmen das oft automatisch.'),
@@ -88,7 +91,7 @@ function buildTopics() {
 		{
 			id: 'accounts',
 			label: t('Konten'),
-			anchor: '2-2-kontenrahmen-anlegen',
+			anchor: 'section-2-2',
 			bullets: [
 				t('Jedes Konto hat eine Nummer, einen Namen und einen Typ (Einnahmen, Ausgaben, Anlage/Umlauf, Verbindlichkeit, Eigenkapital).'),
 				t('Das Flag „Bankkonto" markiert Geldkonten (Bank/Kasse) – nur diese führen einen Kontostand über die Jahresgrenze fort.'),
@@ -100,7 +103,7 @@ function buildTopics() {
 		{
 			id: 'reports',
 			label: t('Berichte'),
-			anchor: '5-auswertungen-verstehen',
+			anchor: 'section-5',
 			bullets: [
 				t('Dashboard: Einnahmen/Ausgaben/Ergebnis des gewählten Jahres mit Vorjahresvergleich.'),
 				t('Saldenliste: alle Konten mit Soll, Haben und Saldo, optional inklusive Unterkonten.'),
@@ -112,7 +115,7 @@ function buildTopics() {
 		{
 			id: 'sepa',
 			label: t('Beiträge & SEPA'),
-			anchor: '13-mitgliedsbeitraege-und-sepa-lastschrift',
+			anchor: 'section-13',
 			bullets: [
 				t('Optionales Zusatzmodul: wer keine Lastschriften einzieht, kann diesen Bereich ignorieren.'),
 				t('Nextcloud-Einstellungen → Vereinsbuchhaltung → Beiträge & SEPA: Gläubiger-ID, einziehendes Konto und der Schalter für den Reiter „Beiträge" in der Hauptnavigation.'),
@@ -125,7 +128,7 @@ function buildTopics() {
 		{
 			id: 'spheres',
 			label: t('Sphären'),
-			anchor: '5-6-steuerliche-sphaeren',
+			anchor: 'section-5-6',
 			bullets: [
 				t('Vier steuerliche Sphären: ideeller Bereich, Vermögensverwaltung, Zweckbetrieb, wirtschaftlicher Geschäftsbetrieb.'),
 				t('Zuordnen im Konto-Dialog (Feld „Steuerliche Sphäre") oder für mehrere Konten auf einmal über den Button „Sphären zuordnen" im Bericht „Sphären" (nur Verwalter/Buchhalter).'),

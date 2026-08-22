@@ -4,9 +4,11 @@
 	<!-- Die Reihenfolge der Elemente ist durch die XSD fest vorgegeben und darf
 	     nicht veraendert werden, sonst lehnt der App Store das Release ab. -->
 	<id>vereinsbuchhaltung</id>
-	<name>Vereinsbuchhaltung</name>
-	<summary>Buchhaltung für Vereine: CSV-CAMT-Import, Kontenrahmen und doppelte Buchführung</summary>
-	<description><![CDATA[
+	<name lang="de">Vereinsbuchhaltung</name>
+	<name lang="en">Club Accounting</name>
+	<summary lang="de">Buchhaltung für Vereine: CSV-CAMT-Import, Kontenrahmen und doppelte Buchführung</summary>
+	<summary lang="en">Accounting for nonprofit clubs: CSV-CAMT import, chart of accounts and double-entry bookkeeping</summary>
+	<description lang="de"><![CDATA[
 **Buchhaltung für Vereine – vollständig in der eigenen Nextcloud.**
 
 Für Kassenwartinnen und Kassenwarte kleiner und mittlerer Vereine, die keine
@@ -68,9 +70,74 @@ auszuprobieren, und mit einem weiteren Klick wieder entfernen.
 Bestehende Daten aus „zero Buchhaltung" können über deren xbuc-Dateien
 übernommen werden.
 
-Ausführliches Handbuch auf Deutsch: siehe Dokumentation.
+Ausführliches Handbuch auf Deutsch und Englisch: siehe Dokumentation.
 	]]></description>
-	<version>0.26.0</version>
+	<description lang="en"><![CDATA[
+**Accounting for nonprofit clubs – fully within your own Nextcloud.**
+
+For treasurers of small and medium-sized clubs who don't run separate
+accounting software and don't want their financial data in some provider's
+cloud. Your data stays wherever your Nextcloud is hosted.
+
+You don't need to be an accountant: in **simple mode** you record an "income"
+or "expense" with amount, date and category – the app handles double-entry
+bookkeeping in the background. If you'd rather set debit and credit yourself,
+switch to expert mode.
+
+**[▶ The app in two minutes (video, German)](https://youtu.be/eaF-tAQ_OOM)** –
+import bank statements, assign transactions, evaluate and produce the annual
+treasurer's report.
+
+## The workflow
+
+1. **Import a bank statement** – CSV-CAMT, CAMT.053 (XML) or MT940 from your
+   online banking; the app detects the format from the content, the file
+   extension doesn't matter. Transactions already present are recognized and
+   skipped, even across formats. A watch folder can even pick up new
+   statements on its own, without a manual import.
+2. **Assign transactions** – every bank entry gets a counter-account. Rules
+   handle recurring assignments (rent, membership fees, charges)
+   automatically.
+3. **Attach receipts** – photo or PDF, either in a Nextcloud folder of your
+   choice or stored inside the app.
+4. **Evaluate and report** – treasurer's report for the general assembly,
+   short report for board meetings, exports for the audit.
+
+## What the app can do
+
+- **Double-entry bookkeeping** with a freely definable chart of accounts; a
+  standard chart of accounts for clubs is included
+- **Treasurer's report** and **short report** as print-ready pages (Ctrl+P),
+  optionally with your club's logo and accent color
+- **Financial plan** with plan/actual comparison and freezable plan snapshots
+- **Nonprofit status:** spheres following the German four-sphere model
+  (ideational, asset management, purpose-related business, commercial
+  business) and reserves per § 62 AO
+- **Membership fees & SEPA direct debit** (optional, can be enabled as
+  needed): member management with CSV import, direct debit mandates, fees
+  with individual payment frequency, SEPA batch collection as a pain.008
+  file for your bank – its own tab in the main navigation; if you don't need
+  the module, you never see it
+- **Open items** – keep track of unpaid receivables with due dates
+- **Multi-year trend** and evaluation by cost center
+- **Year-end closing:** a finalized fiscal year can no longer be changed;
+  continuous, gap-free posting numbers per year
+- **Change log:** who changed what, and when
+- **Roles:** administrator, bookkeeper and auditor – the audit role gets
+  read access to everything without being able to change anything
+- **On the go:** dedicated view for smartphones, photograph receipts
+  directly
+- **Annual audit:** all receipts for a year as a ZIP, print-ready quick
+  guide for the auditor, completeness check of posting numbers
+
+A **sample club** can be created with one click to try everything out
+risk-free, and removed again with another click.
+
+Existing data from "zero Buchhaltung" can be taken over via its xbuc files.
+
+Full manual in German and English: see documentation.
+	]]></description>
+	<version>0.27.0</version>
 	<licence>agpl</licence>
 	<author mail="hauffe.andreas@googlemail.com">Andreas Hauffe</author>
 	<namespace>Vereinsbuchhaltung</namespace>

@@ -1,5 +1,7 @@
 # Handbuch Vereinsbuchhaltung
 
+**Deutsch** · [English](HANDBUCH.en.md)
+
 Ein Praxis-Handbuch für Schatzmeisterinnen und Schatzmeister – von der
 Ersteinrichtung bis zum Jahresabschluss. Es beschreibt die App-Version
 **0.22.2** und orientiert sich am tatsächlichen Jahresablauf, nicht an
