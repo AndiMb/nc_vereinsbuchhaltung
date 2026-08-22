@@ -10,6 +10,18 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
 
 ## [Unreleased]
 
+## [0.26.0] – 2026-08-22
+
+### Neu
+- **„Was ist neu"-Hinweis nach Updates.** Nach einem Update zeigt die App
+  jeder Person einmalig einen kurzen, auf ihre Rolle zugeschnittenen Hinweis,
+  was sich geändert hat – statt dass Neuerungen nur zufällig auffallen oder
+  gar nicht bemerkt werden. Der zuletzt gesehene Stand wird pro
+  Nextcloud-Konto serverseitig gemerkt (nicht nur im Browser), damit er auf
+  allen Geräten derselben Person konsistent erscheint. Über Hilfe → „Was ist
+  neu in Version …" lässt er sich jederzeit erneut aufrufen. Nicht jede
+  Version bekommt einen Eintrag – reine Fehlerbehebungen bleiben unerwähnt.
+
 ## [0.25.0] – 2026-08-22
 
 ### Geändert

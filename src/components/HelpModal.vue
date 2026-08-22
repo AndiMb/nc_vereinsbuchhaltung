@@ -35,6 +35,13 @@
 					class="vbh-help-full">
 					{{ t('Vollständiges Handbuch öffnen ↗') }}
 				</a>
+				<a
+					v-if="currentVersion"
+					href="#"
+					class="vbh-help-full"
+					@click.prevent="$emit('openWhatsNew')">
+					{{ t('Was ist neu in Version {v}?', { v: currentVersion }) }}
+				</a>
 			</div>
 		</div>
 	</NcModal>
@@ -136,9 +143,12 @@ export default {
 		show: { type: Boolean, default: false },
 		// Gewünschtes Kapitel beim Öffnen; der Nutzer kann innerhalb der Hilfe frei weiterklicken.
 		topic: { type: String, default: 'setup' },
+		// Aktuelle App-Version für den "Was ist neu"-Link; leer = Link ausgeblendet
+		// (z. B. bevor App.vue die Version vom Backend geladen hat).
+		currentVersion: { type: String, default: '' },
 	},
 
-	emits: ['close', 'update:show'],
+	emits: ['close', 'update:show', 'openWhatsNew'],
 
 	data() {
 		return {

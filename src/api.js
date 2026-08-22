@@ -150,6 +150,10 @@ export default {
 	handbuchUrl: (anchor) => generateUrl(base + '/help/handbuch') + (anchor ? `#${anchor}` : ''),
 	pruefleitfadenUrl: () => generateUrl(base + '/help/pruefleitfaden'),
 
+	// Was ist neu (Splash-Screen nach Updates)
+	whatsNew: () => axios.get(url('/whatsnew')),
+	dismissWhatsNew: (version) => axios.post(url('/whatsnew/seen'), { version }),
+
 	// Belegablage
 	attachmentCounts: () => axios.get(url('/attachments/counts')),
 	listAttachments: (journalId) => axios.get(url(`/journal/${journalId}/attachments`)),

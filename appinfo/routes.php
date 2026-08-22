@@ -145,6 +145,10 @@ return [
 		['name' => 'help#handbuch', 'url' => '/api/help/handbuch', 'verb' => 'GET'],
 		['name' => 'help#pruefleitfaden', 'url' => '/api/help/pruefleitfaden', 'verb' => 'GET'],
 
+		// Was ist neu (Splash-Screen nach Updates)
+		['name' => 'whatsNew#index', 'url' => '/api/whatsnew', 'verb' => 'GET'],
+		['name' => 'whatsNew#markSeen', 'url' => '/api/whatsnew/seen', 'verb' => 'POST'],
+
 		// Beispieldaten (Onboarding: risikolos ausprobieren)
 		['name' => 'demo#seed', 'url' => '/api/demo/seed', 'verb' => 'POST'],
 

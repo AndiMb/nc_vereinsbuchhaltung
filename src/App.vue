@@ -297,8 +297,10 @@
 		<HelpModal
 			:show="showHelp"
 			:topic="helpTopic"
+			:currentVersion="whatsNewCurrentVersion"
 			@close="closeHelp"
-			@update:show="showHelp = $event" />
+			@update:show="showHelp = $event"
+			@openWhatsNew="openWhatsNewUnfiltered" />
 
 		<!-- ============ SETUP-ASSISTENT (erster Verwalter-Login) ============ -->
 		<SetupWizard
@@ -306,6 +308,16 @@
 			@close="closeSetupWizard"
 			@update:show="showSetupWizard = $event"
 			@choose="onWizardChoice" />
+
+		<!-- ============ WAS IST NEU (Splash-Screen nach Updates) ============ -->
+		<WhatsNewDialog
+			:show="whatsNewShow"
+			:role="me && me.role"
+			:lastSeenVersion="whatsNewLastSeenVersion"
+			:unfiltered="whatsNewUnfiltered"
+			@close="whatsNewShow = false"
+			@update:show="whatsNewShow = $event"
+			@dismiss="dismissWhatsNew" />
 
 		<!-- Die Rueckfrage vor nicht umkehrbaren Aktionen. Sie steht hier, weil
 			es genau eine geben soll; ausgeloest wird sie ueber useConfirm() aus
@@ -345,6 +357,7 @@ import MobileNav from './components/MobileNav.vue'
 import ReportsTab from './components/ReportsTab.vue'
 import SetupWizard from './components/SetupWizard.vue'
 import SplitAssignDialog from './components/SplitAssignDialog.vue'
+import WhatsNewDialog from './components/WhatsNewDialog.vue'
 import api from './api.js'
 import { useAccounts } from './composables/useAccounts.js'
 import { useAuth } from './composables/useAuth.js'
@@ -361,6 +374,7 @@ import { useSepaMandates } from './composables/useSepaMandates.js'
 import { useSort } from './composables/useSort.js'
 import { useSync } from './composables/useSync.js'
 import { useYears } from './composables/useYears.js'
+import { buildWhatsNewEntries, filterWhatsNewEntries } from './data/whatsNew.js'
 import { amountClass, budgetDiffClass, errMsg, formatDate, formatDateTime, formatMoney, typeLabel } from './lib/format.js'
 import { splitBalanced, splitRemainder, splitSideOf } from './lib/split.js'
 
@@ -385,6 +399,7 @@ export default {
 		AccountPickerSheet,
 		HelpModal,
 		SetupWizard,
+		WhatsNewDialog,
 	},
 
 	setup() {
@@ -540,6 +555,12 @@ export default {
 			revisorIntroDismissed: true,
 			// Geführter Setup-Assistent (SetupWizard.vue) beim allerersten Verwalter-Login
 			showSetupWizard: false,
+			// "Was ist neu"-Splash (WhatsNewDialog.vue): einmalig nach einem Update,
+			// oder jederzeit ungefiltert über den Hilfe-Link erneut aufrufbar.
+			whatsNewShow: false,
+			whatsNewUnfiltered: false,
+			whatsNewCurrentVersion: '',
+			whatsNewLastSeenVersion: '',
 			// Beispieldaten (DemoDataService) aktiv – Banner mit Zurücksetzen-Hinweis
 			demoActive: false,
 			// Erste-Buchung-Tour (Feld-Hervorhebung im Einfach-Modus, Desktop, einmalig)
@@ -830,6 +851,10 @@ export default {
 				// Setup-Assistent beim allerersten Login eines Verwalters (leerer Verein, noch nicht gesehen)
 				if (this.accounts.length === 0 && !this.setupWizardSeen()) { this.showSetupWizard = true }
 			}
+			// "Was ist neu" erst NACH dem Setup-Assistenten prüfen (this.showSetupWizard
+			// steht an dieser Stelle bereits synchron fest) - beide Modals dürfen sich
+			// nie überschneiden, der Setup-Assistent hat für echte Erstläufer Vorrang.
+			await this.loadWhatsNew()
 			// Kollaboration: Änderungen anderer Personen per Polling mitbekommen
 			this.checkRevision(true)
 			this.syncTimer = setInterval(() => this.checkRevision(), 20000)
@@ -1200,6 +1225,44 @@ export default {
 		onWizardChoice(choice) {
 			this.closeSetupWizard()
 			if (choice === 'xbuc') { window.location.href = this.settingsUrl('daten') } else if (choice === 'fresh') { this.seedAccounts() } else if (choice === 'demo') { this.seedDemoData() }
+		},
+
+		// --- "Was ist neu" (WhatsNewDialog.vue) ---------------------------
+		async loadWhatsNew() {
+			try {
+				const { data } = await api.whatsNew()
+				this.whatsNewCurrentVersion = data.currentVersion
+				this.whatsNewLastSeenVersion = data.lastSeenVersion
+				if (data.lastSeenVersion === '') {
+					// Echter Erstlogin (oder Instanz ohne Historie): still auf den
+					// aktuellen Stand markieren, kein Popup - eine Wand historischer
+					// Aenderungen waere fuer neue Vereinskonten nur Ballast. Der
+					// Setup-Assistent uebernimmt bereits den Erstlauf-Flow.
+					this.whatsNewLastSeenVersion = data.currentVersion
+					await api.dismissWhatsNew(data.currentVersion)
+					return
+				}
+				if (!this.showSetupWizard && filterWhatsNewEntries(buildWhatsNewEntries(), this.me && this.me.role, data.lastSeenVersion).length) {
+					this.whatsNewShow = true
+				}
+			} catch { /* kein Blocker, still weiterarbeiten */ }
+		},
+
+		dismissWhatsNew() {
+			this.whatsNewShow = false
+			this.whatsNewUnfiltered = false
+			if (!this.whatsNewCurrentVersion) { return }
+			this.whatsNewLastSeenVersion = this.whatsNewCurrentVersion
+			api.dismissWhatsNew(this.whatsNewCurrentVersion).catch(() => { /* naechster Login versucht es erneut */ })
+		},
+
+		openWhatsNewUnfiltered() {
+			// Hilfe-Modal schliessen, sonst stapeln sich zwei NcModal uebereinander
+			// (am 22.08.2026 per Browser-Test aufgefallen: der Link liegt im
+			// Hilfe-Modal, das dabei offen bleibt).
+			this.closeHelp()
+			this.whatsNewUnfiltered = true
+			this.whatsNewShow = true
 		},
 
 		// --- Bankbuchungen ---
