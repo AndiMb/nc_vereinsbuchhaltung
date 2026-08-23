@@ -4,8 +4,15 @@
 	<!-- Die Reihenfolge der Elemente ist durch die XSD fest vorgegeben und darf
 	     nicht veraendert werden, sonst lehnt der App Store das Release ab. -->
 	<id>vereinsbuchhaltung</id>
-	<name lang="de">Vereinsbuchhaltung</name>
-	<name lang="en">Club Accounting</name>
+	<!-- Bewusst einsprachig (kein lang-Attribut): Nextclouds "Was ist neu"-
+	     Popup (apps/updatenotification) liest den App-Namen per
+	     IAppManager::getAppInfo() OHNE Sprachcode - bei mehreren <name>-
+	     Elementen bleibt das dortige Array dann uncollapsed und die Meldung
+	     zeigt "Neuigkeiten in {app} x.y.z" / "[object Object]" statt eines
+	     Textes (Nextcloud-Core-Bug, reproduziert mit Nextcloud 34/PHP 8.4,
+	     22.08.2026). <summary>/<description> sind davon nicht betroffen und
+	     bleiben zweisprachig. -->
+	<name>Vereinsbuchhaltung</name>
 	<summary lang="de">Buchhaltung für Vereine: CSV-CAMT-Import, Kontenrahmen und doppelte Buchführung</summary>
 	<summary lang="en">Accounting for nonprofit clubs: CSV-CAMT import, chart of accounts and double-entry bookkeeping</summary>
 	<description lang="de"><![CDATA[
@@ -137,7 +144,7 @@ Existing data from "zero Buchhaltung" can be taken over via its xbuc files.
 
 Full manual in German and English: see documentation.
 	]]></description>
-	<version>0.27.0</version>
+	<version>0.27.1</version>
 	<licence>agpl</licence>
 	<author mail="hauffe.andreas@googlemail.com">Andreas Hauffe</author>
 	<namespace>Vereinsbuchhaltung</namespace>

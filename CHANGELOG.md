@@ -12,6 +12,19 @@ veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
 
 ## [Unreleased]
 
+## [0.27.1] – 2026-08-23
+
+### Behoben
+- **Kaputte „Was ist neu"-Meldung von Nextcloud selbst.** Nach dem Update auf
+  0.27.0 zeigte Nextclouds eigenes (von unserer App unabhängiges) Popup zu
+  App-Updates statt eines Textes „Neuigkeiten in {app} 0.27.0" gefolgt von
+  „[object Object]". Ursache: `info.xml` trug den App-Namen seit 0.27.0 in
+  zwei `<name>`-Elementen (Deutsch/Englisch) für einen lokalisierten
+  App-Store-Titel – Nextclouds Update-Benachrichtigung liest den Namen aber
+  an dieser Stelle ohne Sprachangabe aus und kann mit mehreren `<name>`-
+  Elementen nicht umgehen (Nextcloud-Core-Bug). `<name>` ist deshalb wieder
+  einsprachig; `<summary>`/`<description>` bleiben weiterhin zweisprachig.
+
 ## [0.27.0] – 2026-08-22
 
 ### Neu

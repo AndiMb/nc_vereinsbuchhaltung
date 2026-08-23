@@ -11,6 +11,19 @@ versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.27.1] – 2026-08-23
+
+### Fixed
+- **Broken "what's new" popup from Nextcloud itself.** After updating to
+  0.27.0, Nextcloud's own app-update popup (independent of this app's
+  in-app dialog) showed "What's new in {app} 0.27.0" followed by
+  "[object Object]" instead of actual text. Cause: since 0.27.0, `info.xml`
+  carried the app name in two `<name>` elements (German/English) for a
+  localized App Store title – but Nextcloud's update notification reads the
+  name at that point without a language code and can't handle multiple
+  `<name>` elements (a Nextcloud core bug). `<name>` is single-language
+  again; `<summary>`/`<description>` remain bilingual.
+
 ## [0.27.0] – 2026-08-22
 
 ### New
