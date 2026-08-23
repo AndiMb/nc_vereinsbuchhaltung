@@ -9,11 +9,27 @@ history.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 versioning follows [Semantic Versioning](https://semver.org/).
 
+Do **not** use `###` sub-headings within a version section (nor `##`) –
+Nextcloud's own "what's new" popup (`apps/updatenotification`) renders
+Markdown headings as "[object Object]" since `marked` v18 (wrong renderer
+callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
+**bold lead-in** at the start of a line instead, e.g. `**New:**`.
+
 ## [Unreleased]
+
+## [0.27.2] – 2026-08-23
+
+**Fixed:**
+- **"What's new" popup from Nextcloud showed "[object Object]" instead of
+  text.** The 0.27.1 entry still had a `### Fixed` sub-heading in its
+  changelog entry; Nextcloud's popup renderer (`marked` v18) can no longer
+  process Markdown headings correctly (see note above) and shows
+  "[object Object]" in its place, while the rest of the text renders fine.
+  From this version on, changelog entries avoid `###` headings.
 
 ## [0.27.1] – 2026-08-23
 
-### Fixed
+**Fixed:**
 - **Broken "what's new" popup from Nextcloud itself.** After updating to
   0.27.0, Nextcloud's own app-update popup (independent of this app's
   in-app dialog) showed "What's new in {app} 0.27.0" followed by

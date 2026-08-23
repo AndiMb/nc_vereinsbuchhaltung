@@ -10,11 +10,29 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 Der App Store zeigt zu jedem Release den hier passenden Abschnitt an – zu jeder
 veröffentlichten Version muss es daher eine Überschrift `## [x.y.z]` geben.
 
+Innerhalb eines Versionsabschnitts **keine** `###`-Zwischenüberschriften
+verwenden (auch nicht `## `) – Nextclouds eigenes „Was ist neu"-Popup
+(`apps/updatenotification`) rendert Markdown-Überschriften seit `marked` v18
+als „[object Object]" (falsche Renderer-Callback-Signatur, Nextcloud-
+Core-Bug, reproduziert 23.08.2026). Stattdessen **Fettdruck als Zeilenanfang**
+verwenden, z. B. `**Neu:**`.
+
 ## [Unreleased]
+
+## [0.27.2] – 2026-08-23
+
+**Behoben:**
+- **„Was ist neu"-Popup von Nextcloud zeigte „[object Object]" statt Text.**
+  In 0.27.1 stand dafür noch eine `### Behoben`-Zwischenüberschrift im
+  Changelog-Eintrag; Nextclouds Popup-Renderer (`marked` v18) kann
+  Markdown-Überschriften nicht mehr korrekt verarbeiten (siehe Hinweis oben)
+  und zeigt an deren Stelle „[object Object]", der Rest des Textes
+  erscheint aber korrekt. Ab dieser Version verzichten Changelog-Einträge
+  auf `###`-Überschriften.
 
 ## [0.27.1] – 2026-08-23
 
-### Behoben
+**Behoben:**
 - **Kaputte „Was ist neu"-Meldung von Nextcloud selbst.** Nach dem Update auf
   0.27.0 zeigte Nextclouds eigenes (von unserer App unabhängiges) Popup zu
   App-Updates statt eines Textes „Neuigkeiten in {app} 0.27.0" gefolgt von
