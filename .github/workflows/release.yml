@@ -89,6 +89,7 @@ jobs:
             --exclude='deploy' \
             --exclude='node_modules' \
             --exclude='src' \
+            --exclude='docs' \
             --exclude='tests' \
             --exclude='composer.phar' \
             --exclude='webpack.config.js' \

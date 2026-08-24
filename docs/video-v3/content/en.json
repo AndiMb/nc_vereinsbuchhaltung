@@ -1,0 +1,109 @@
+{
+	"lang": "en",
+	"_hinweis": "Voice-over and all on-screen text of the English cut. Same structure as de.json; cue phrases must appear exactly once in the matching voice-over (lib/cue.mjs checks that).",
+	"voice": "en-US-AvaMultilingualNeural",
+	"rate": "-8%",
+	"pitch": "+0Hz",
+	"probe": "Welcome to Vereinsbuchhaltung for Nextcloud. Bank statements arrive as CSV-CAMT, CAMT.053 or MT940, and membership fees go to your bank as a pain dot zero zero eight file. IBAN, SEPA mandate, treasurer's report - everything stays in your own cloud.",
+	"cards": {
+		"title": "Vereinsbuchhaltung",
+		"subtitle": "Your club's finances – inside your own Nextcloud",
+		"outroTitle": "Give it a try",
+		"outroLines": [
+			"In the Nextcloud App Store: \"Vereinsbuchhaltung\"",
+			"A sample club with one click – and gone just as fast",
+			"Manual and help live inside the app"
+		]
+	},
+	"scenes": [
+		{
+			"id": "00-intro",
+			"lowerThird": null,
+			"vo": "Keeping the books, collecting membership fees, writing the treasurer's report: every club, every year, the same work. Vereinsbuchhaltung does it inside your own Nextcloud."
+		},
+		{
+			"id": "01-nextcloud",
+			"lowerThird": "Overview",
+			"callouts": [
+				{
+					"cue": "Board",
+					"text": "Administrator · Bookkeeper · Auditor"
+				}
+			],
+			"vo": "No subscription, no third-party cloud, no spreadsheet only one person understands. The overview shows income, expenses and the result, along with your bank accounts and the latest entries. Board, treasurer and auditor see the same figures, each with the permissions of their role."
+		},
+		{
+			"id": "02-buchen",
+			"lowerThird": "Recording an entry",
+			"callouts": [
+				{
+					"cue": "category",
+					"text": "Simple mode: income, amount, category"
+				}
+			],
+			"vo": "You don't need to be an accountant. Recording an entry means: income or expense, amount, category, done. Debit and credit happen in the background. If you'd rather set both yourself, switch to expert mode."
+		},
+		{
+			"id": "03-bank",
+			"lowerThird": "Bank statements and rules",
+			"callouts": [
+				{
+					"cue": "skipped",
+					"text": "14 new · 3 already booked"
+				},
+				{
+					"cue": "watched folder",
+					"text": "Watched folder: picks up statements on its own"
+				}
+			],
+			"vo": "Most of the work comes from the bank. Download the statement, drop it in: whether CSV, CAMT or MT940, the app detects the format itself. Anything already booked is skipped. The rest waits under To assign, where one click on the counter-account is enough. Rent, fees and bank charges are handled by rules, and a watched folder even reads new statements on its own."
+		},
+		{
+			"id": "04-beitraege",
+			"lowerThird": "Fees and SEPA direct debit",
+			"callouts": [
+				{
+					"cue": "default",
+					"text": "Default fee fills the empty cells"
+				},
+				{
+					"cue": "your bank",
+					"text": "pain.008 – ready for the bank"
+				}
+			],
+			"vo": "New in this version: membership fees. Import your member list as CSV: name, IBAN, fee, payment frequency. Anyone on the usual rate inherits it from the default. Fees that fall due become open items automatically. On collection day you create the batch and download the file for your bank. Once the money arrives, a single click closes every item at once. A returned debit the app spots in your next statement by itself."
+		},
+		{
+			"id": "05-auswerten",
+			"lowerThird": "Reports and financial plan",
+			"callouts": [
+				{
+					"cue": "nonprofit",
+					"text": "Four spheres, warning before the limit"
+				}
+			],
+			"vo": "Evaluation is one click away: a yearly overview with a multi-year trend, a trial balance, results by cost centre. In the financial plan, budget and actuals sit side by side with the variance. And because nonprofit status depends on it, the app assigns every amount to one of the four spheres and speaks up before an exemption limit is breached."
+		},
+		{
+			"id": "06-versammlung",
+			"lowerThird": "Treasurer's report and audit",
+			"callouts": [
+				{
+					"cue": "read-only",
+					"text": "Auditor: sees everything, changes nothing"
+				}
+			],
+			"vo": "Once a year it gets serious. The treasurer's report for the general assembly comes out as a print-ready page, with your club logo, the asset overview and signature lines. Your auditors get read-only access of their own and every receipt of the year as a ZIP. Then year-end closing locks the year down: gap-free numbering, no further changes."
+		},
+		{
+			"id": "07-mobil",
+			"lowerThird": "On the go",
+			"vo": "A receipt is best filed on the spot: photograph it while you're out and attach it to the entry right away. On a phone, the app switches to a card view built for thumbs."
+		},
+		{
+			"id": "08-outro",
+			"lowerThird": null,
+			"vo": "The app is in the Nextcloud App Store, free and open source. To try it out, create a sample club with one click and remove it just as fast. Enjoy your club's financial year!"
+		}
+	]
+}

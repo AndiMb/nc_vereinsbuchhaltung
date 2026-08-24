@@ -14,5 +14,9 @@
 .phpstan-cache/
 # Rohmaterial fuer das README-Video u.ae. gehoert nicht ins Repo
 *.mp3
+# Erster, verworfener Videoanlauf: 90 MB Clips, Screenshots und Rohschnitte.
+# Versioniert sind nur die Skripte der aktuellen Pipeline (docs/video-v3/),
+# deren Ergebnisse liegen dort unter build/ und sind ebenfalls ausgenommen.
+/docs/video/
 # Lokales Composer-Binary - nicht versionieren
 composer.phar

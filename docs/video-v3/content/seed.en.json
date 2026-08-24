@@ -1,0 +1,630 @@
+{
+	"lang": "en",
+	"_hinweis": "English demo data set for the recording. Same structure as seed.de.json; the chart of accounts is created explicitly because the app's built-in default chart is German (AccountService::DEFAULTS). All names invented, IBANs from the test bank code range 50010517.",
+	"club": {
+		"name": "Riverside Community Choir",
+		"brandColor": "#0082c9",
+		"treasurer": "Andrea Falk"
+	},
+	"sepa": {
+		"creditorId": "DE98ZZZ09999999999",
+		"defaultFeeEuro": 60,
+		"defaultFrequency": "yearly",
+		"bankAccount": "1200"
+	},
+	"accounts": [
+		{
+			"number": "1200",
+			"name": "Bank account",
+			"type": "asset",
+			"category": "Cash and bank",
+			"isBank": true,
+			"iban": "DE02500105170137075030",
+			"opening": 8420.55
+		},
+		{
+			"number": "1000",
+			"name": "Petty cash",
+			"type": "asset",
+			"category": "Cash and bank",
+			"isBank": true,
+			"opening": 215.4
+		},
+		{
+			"number": "0800",
+			"name": "Club equity",
+			"type": "equity",
+			"category": "Equity"
+		},
+		{
+			"number": "4000",
+			"name": "Membership fees",
+			"type": "income",
+			"category": "Income",
+			"sphere": "ideell"
+		},
+		{
+			"number": "4100",
+			"name": "Donations",
+			"type": "income",
+			"category": "Income",
+			"sphere": "ideell"
+		},
+		{
+			"number": "4200",
+			"name": "Grants and subsidies",
+			"type": "income",
+			"category": "Income",
+			"sphere": "ideell"
+		},
+		{
+			"number": "4300",
+			"name": "Concert income",
+			"type": "income",
+			"category": "Income",
+			"sphere": "zweckbetrieb"
+		},
+		{
+			"number": "4310",
+			"name": "Spring concert",
+			"type": "income",
+			"category": "Income",
+			"sphere": "zweckbetrieb",
+			"parent": "4300"
+		},
+		{
+			"number": "4320",
+			"name": "Christmas concert",
+			"type": "income",
+			"category": "Income",
+			"sphere": "zweckbetrieb",
+			"parent": "4300"
+		},
+		{
+			"number": "4400",
+			"name": "Choir trip contributions",
+			"type": "income",
+			"category": "Income",
+			"sphere": "zweckbetrieb"
+		},
+		{
+			"number": "4900",
+			"name": "Other income",
+			"type": "income",
+			"category": "Income",
+			"sphere": "ideell"
+		},
+		{
+			"number": "5000",
+			"name": "Rehearsal room rent",
+			"type": "expense",
+			"category": "Expenses",
+			"sphere": "ideell"
+		},
+		{
+			"number": "5010",
+			"name": "Choir director's fee",
+			"type": "expense",
+			"category": "Expenses",
+			"sphere": "ideell"
+		},
+		{
+			"number": "5100",
+			"name": "Insurance and association dues",
+			"type": "expense",
+			"category": "Expenses",
+			"sphere": "ideell"
+		},
+		{
+			"number": "5110",
+			"name": "Sheet music and licences",
+			"type": "expense",
+			"category": "Expenses",
+			"sphere": "ideell"
+		},
+		{
+			"number": "5200",
+			"name": "Concert and event costs",
+			"type": "expense",
+			"category": "Expenses",
+			"sphere": "zweckbetrieb"
+		},
+		{
+			"number": "5210",
+			"name": "Spring concert",
+			"type": "expense",
+			"category": "Expenses",
+			"sphere": "zweckbetrieb",
+			"parent": "5200"
+		},
+		{
+			"number": "5220",
+			"name": "Christmas concert",
+			"type": "expense",
+			"category": "Expenses",
+			"sphere": "zweckbetrieb",
+			"parent": "5200"
+		},
+		{
+			"number": "5230",
+			"name": "Youth choir",
+			"type": "expense",
+			"category": "Expenses",
+			"sphere": "ideell",
+			"parent": "5200"
+		},
+		{
+			"number": "5300",
+			"name": "Office and administration",
+			"type": "expense",
+			"category": "Expenses",
+			"sphere": "ideell"
+		},
+		{
+			"number": "5400",
+			"name": "Bank charges",
+			"type": "expense",
+			"category": "Expenses",
+			"sphere": "ideell"
+		},
+		{
+			"number": "5500",
+			"name": "Choir trip and rehearsal weekend",
+			"type": "expense",
+			"category": "Expenses",
+			"sphere": "zweckbetrieb"
+		},
+		{
+			"number": "5900",
+			"name": "Other expenses",
+			"type": "expense",
+			"category": "Expenses",
+			"sphere": "ideell"
+		}
+	],
+	"costCenters": [
+		{
+			"code": "K10",
+			"name": "Spring concert",
+			"accounts": [
+				"4310",
+				"5210"
+			]
+		},
+		{
+			"code": "K20",
+			"name": "Christmas concert",
+			"accounts": [
+				"4320",
+				"5220"
+			]
+		},
+		{
+			"code": "K30",
+			"name": "Youth choir",
+			"accounts": [
+				"5230"
+			]
+		},
+		{
+			"code": "K40",
+			"name": "Choir trip",
+			"accounts": [
+				"4400",
+				"5500"
+			]
+		}
+	],
+	"rules": [
+		{
+			"field": "counterparty",
+			"value": "Riverside Parish Council",
+			"account": "5000",
+			"priority": 10
+		},
+		{
+			"field": "counterparty",
+			"value": "PRS for Music",
+			"account": "5110",
+			"priority": 10
+		},
+		{
+			"field": "counterparty",
+			"value": "Hoffmann Music Publishing",
+			"account": "5110",
+			"priority": 20
+		},
+		{
+			"field": "purpose",
+			"value": "Director's fee",
+			"account": "5010",
+			"priority": 10
+		},
+		{
+			"field": "purpose",
+			"value": "Account maintenance",
+			"account": "5400",
+			"priority": 30
+		},
+		{
+			"field": "purpose",
+			"value": "Membership fee",
+			"account": "4000",
+			"priority": 40
+		}
+	],
+	"budget": [
+		{
+			"account": "4000",
+			"amount": 4980,
+			"note": "83 paying members at the standard rate of €60"
+		},
+		{
+			"account": "4100",
+			"amount": 900,
+			"note": "Average of the last three years"
+		},
+		{
+			"account": "4200",
+			"amount": 800,
+			"note": "Choral association and parish council"
+		},
+		{
+			"account": "4310",
+			"amount": 1400,
+			"note": "Spring concert, 180 tickets at €8"
+		},
+		{
+			"account": "4320",
+			"amount": 1900,
+			"note": "Christmas concert in the town church"
+		},
+		{
+			"account": "5000",
+			"amount": 1440,
+			"note": "12 × €120 rehearsal room"
+		},
+		{
+			"account": "5010",
+			"amount": 3600,
+			"note": "12 × €300 choir director"
+		},
+		{
+			"account": "5100",
+			"amount": 420,
+			"note": "Public liability and association dues"
+		},
+		{
+			"account": "5110",
+			"amount": 950,
+			"note": "Licence flat rate plus sheet music"
+		},
+		{
+			"account": "5210",
+			"amount": 620,
+			"note": "Hall, soloists, programmes"
+		},
+		{
+			"account": "5220",
+			"amount": 780,
+			"note": "Church hire, guest instrumentalists"
+		},
+		{
+			"account": "5400",
+			"amount": 60,
+			"note": "€5 account maintenance per month"
+		}
+	],
+	"bookingTexts": {
+		"rent": "Rehearsal room rent {monat}",
+		"conductor": "Choir director's fee {monat}",
+		"bankFee": "Account maintenance {monat}",
+		"feesCollected": "SEPA batch collection, membership fees {jahr}",
+		"feeTransfer": "Membership fee {jahr} (bank transfer)",
+		"donation": "Donation from {name}",
+		"grantAssociation": "Choral association grant {jahr}",
+		"grantTown": "Riverside Parish Council grant {jahr}",
+		"springIncome": "Ticket sales, spring concert",
+		"springCost": "Hall hire and programmes, spring concert",
+		"christmasIncome": "Ticket sales, Christmas concert",
+		"christmasCost": "Church hire and guest players, Christmas concert",
+		"youthChoir": "Sheet music for the youth choir",
+		"gema": "Music licence flat rate {jahr}",
+		"sheetMusic": "Sheet music: {titel}",
+		"insurance": "Public liability insurance {jahr}",
+		"associationDues": "Choral association dues {jahr}",
+		"office": "Postage and office supplies",
+		"tripIncome": "Choir trip contributions {jahr}",
+		"tripCost": "Choir trip {jahr}: coach and accommodation",
+		"cashConcert": "Cash takings, cake stall",
+		"misc": "Reimbursement of expenses"
+	},
+	"sheetMusicTitles": [
+		"Mozart: Ave verum",
+		"Rheinberger: Abendlied",
+		"Rutter: For the Beauty",
+		"Bach: Motets",
+		"Mendelssohn: Verleih uns Frieden"
+	],
+	"donorNames": [
+		"Riverside Savings Bank",
+		"Reinhardt Motors",
+		"Kern's Bakery",
+		"The Hoffmann family",
+		"Market Square Pharmacy"
+	],
+	"members": {
+		"first": [
+			"Alice",
+			"Brian",
+			"Catherine",
+			"David",
+			"Eleanor",
+			"Frank",
+			"Grace",
+			"Henry",
+			"Isabel",
+			"James",
+			"Katherine",
+			"Liam",
+			"Martha",
+			"Nathan",
+			"Olivia",
+			"Peter",
+			"Rachel",
+			"Simon",
+			"Tessa",
+			"Victor",
+			"Wendy",
+			"Yasmin",
+			"Zoe",
+			"Adam",
+			"Bella",
+			"Callum",
+			"Diana",
+			"Edward",
+			"Fiona",
+			"George",
+			"Hannah",
+			"Ian",
+			"Julia",
+			"Keith",
+			"Laura",
+			"Michael",
+			"Nora",
+			"Oscar",
+			"Paula",
+			"Robert"
+		],
+		"last": [
+			"Ashcroft",
+			"Bennett",
+			"Carlisle",
+			"Dawson",
+			"Ellery",
+			"Fairbank",
+			"Granger",
+			"Halloway",
+			"Ingles",
+			"Jarrett",
+			"Kendrick",
+			"Lawson",
+			"Merrick",
+			"Newbury",
+			"Oakley",
+			"Prentice",
+			"Quinlan",
+			"Rathbone",
+			"Sinclair",
+			"Thorne",
+			"Underhill",
+			"Vance",
+			"Whitlock",
+			"Yardley",
+			"Bramley",
+			"Denholm",
+			"Eastwood",
+			"Fenwick",
+			"Garrick",
+			"Holt"
+		],
+		"tiers": [
+			{
+				"key": "regular",
+				"label": "Standard fee",
+				"amount": 60,
+				"frequency": "yearly",
+				"share": 52
+			},
+			{
+				"key": "family",
+				"label": "Family fee",
+				"amount": 90,
+				"frequency": "yearly",
+				"share": 8
+			},
+			{
+				"key": "youth",
+				"label": "Youth fee",
+				"amount": 30,
+				"frequency": "yearly",
+				"share": 9
+			},
+			{
+				"key": "supporter",
+				"label": "Supporting member",
+				"amount": 25,
+				"frequency": "yearly",
+				"share": 6
+			}
+		],
+		"seedCount": 75,
+		"withoutMandate": 7,
+		"openNow": 6,
+		"newInVideo": 12
+	},
+	"statement": {
+		"accountIban": "DE02500105170137075030",
+		"header": "Auftragskonto;Buchungstag;Valutadatum;Buchungstext;Verwendungszweck;Glaeubiger ID;Mandatsreferenz;Kundenreferenz (End-to-End);Sammlerreferenz;Lastschrift Ursprungsbetrag;Auslagenersatz Ruecklastschrift;Beguenstigter/Zahlungspflichtiger;Kontonummer/IBAN;BIC (SWIFT-Code);Betrag;Waehrung;Info",
+		"known": [
+			{
+				"daysAgo": 34,
+				"kind": "Transfer",
+				"purpose": "Director's fee",
+				"party": "Martin Kreusch",
+				"amount": -300.0
+			},
+			{
+				"daysAgo": 33,
+				"kind": "Standing order",
+				"purpose": "Rehearsal room rent",
+				"party": "Riverside Parish Council",
+				"amount": -120.0
+			},
+			{
+				"daysAgo": 31,
+				"kind": "Fee statement",
+				"purpose": "Account maintenance",
+				"party": "Riverside Savings Bank",
+				"amount": -5.0
+			}
+		],
+		"new": [
+			{
+				"daysAgo": 26,
+				"kind": "Credit",
+				"purpose": "Donation, summer concert",
+				"party": "Reinhardt Motors",
+				"amount": 250.0
+			},
+			{
+				"daysAgo": 24,
+				"kind": "Direct debit",
+				"purpose": "Music licence, choir concerts",
+				"party": "PRS for Music",
+				"amount": -186.4
+			},
+			{
+				"daysAgo": 22,
+				"kind": "Transfer",
+				"purpose": "Sheet music: Rheinberger, Abendlied",
+				"party": "Hoffmann Music Publishing",
+				"amount": -94.8
+			},
+			{
+				"daysAgo": 20,
+				"kind": "Credit",
+				"purpose": "Choral association grant",
+				"party": "Northern Choral Association",
+				"amount": 450.0
+			},
+			{
+				"daysAgo": 18,
+				"kind": "Transfer",
+				"purpose": "Director's fee",
+				"party": "Martin Kreusch",
+				"amount": -300.0
+			},
+			{
+				"daysAgo": 17,
+				"kind": "Standing order",
+				"purpose": "Rehearsal room rent",
+				"party": "Riverside Parish Council",
+				"amount": -120.0
+			},
+			{
+				"daysAgo": 15,
+				"kind": "Credit",
+				"purpose": "Membership fee 2026",
+				"party": "Isabel Ingles",
+				"amount": 60.0
+			},
+			{
+				"daysAgo": 14,
+				"kind": "Credit",
+				"purpose": "Membership fee 2026",
+				"party": "Victor Vance",
+				"amount": 60.0
+			},
+			{
+				"daysAgo": 12,
+				"kind": "Transfer",
+				"purpose": "Church hire, Christmas concert (deposit)",
+				"party": "St Mary's Riverside",
+				"amount": -150.0
+			},
+			{
+				"daysAgo": 10,
+				"kind": "Credit",
+				"purpose": "Ticket sales, summer serenade",
+				"party": "Lay's Bookshop box office",
+				"amount": 612.0
+			},
+			{
+				"daysAgo": 8,
+				"kind": "Direct debit",
+				"purpose": "Public liability, annual premium",
+				"party": "Concordia Insurance",
+				"amount": -168.0
+			},
+			{
+				"daysAgo": 6,
+				"kind": "Transfer",
+				"purpose": "Coach deposit, choir trip",
+				"party": "Kalthoff Coaches",
+				"amount": -400.0
+			},
+			{
+				"daysAgo": 4,
+				"kind": "Credit",
+				"purpose": "Donation, youth choir",
+				"party": "Kern's Bakery",
+				"amount": 120.0
+			},
+			{
+				"daysAgo": 2,
+				"kind": "Fee statement",
+				"purpose": "Account maintenance",
+				"party": "Riverside Savings Bank",
+				"amount": -5.0
+			}
+		]
+	},
+	"openItems": [
+		{
+			"debtor": "Hoffmann Music Publishing",
+			"description": "Invoice 2026-114, choral scores",
+			"amount": 238.5,
+			"dueDaysAgo": 9,
+			"account": "5110"
+		}
+	],
+	"memberCsvHeader": [
+		"Name",
+		"Email",
+		"IBAN",
+		"BIC",
+		"Mandate",
+		"Amount",
+		"Frequency",
+		"Start date"
+	],
+	"nextcloudUsers": [
+		{
+			"uid": "andrea",
+			"displayName": "Andrea Falk",
+			"role": null
+		},
+		{
+			"uid": "jens",
+			"displayName": "James Wieland",
+			"role": "buchhalter"
+		},
+		{
+			"uid": "karla",
+			"displayName": "Carla Reed",
+			"role": "revisor"
+		}
+	],
+	"dateFormat": "iso"
+}

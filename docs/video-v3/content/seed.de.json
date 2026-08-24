@@ -1,0 +1,630 @@
+{
+	"lang": "de",
+	"_hinweis": "Sprachabhängiger Demodatenbestand für die Videoaufnahme. Struktur und Logik stecken in lib/dataset.mjs, hier stehen nur Beschriftungen und Beträge. Alle Namen erfunden, IBANs aus dem Testbankleitzahlbereich 50010517.",
+	"club": {
+		"name": "Liederkranz Waldbach e. V.",
+		"brandColor": "#0082c9",
+		"treasurer": "Andrea Falk"
+	},
+	"sepa": {
+		"creditorId": "DE98ZZZ09999999999",
+		"defaultFeeEuro": 60,
+		"defaultFrequency": "yearly",
+		"bankAccount": "1200"
+	},
+	"accounts": [
+		{
+			"number": "1200",
+			"name": "Bankkonto",
+			"type": "asset",
+			"category": "Geldkonten",
+			"isBank": true,
+			"iban": "DE02500105170137075030",
+			"opening": 8420.55
+		},
+		{
+			"number": "1000",
+			"name": "Kasse",
+			"type": "asset",
+			"category": "Geldkonten",
+			"isBank": true,
+			"opening": 215.4
+		},
+		{
+			"number": "0800",
+			"name": "Vereinsvermögen",
+			"type": "equity",
+			"category": "Eigenkapital"
+		},
+		{
+			"number": "4000",
+			"name": "Mitgliedsbeiträge",
+			"type": "income",
+			"category": "Einnahmen",
+			"sphere": "ideell"
+		},
+		{
+			"number": "4100",
+			"name": "Spenden",
+			"type": "income",
+			"category": "Einnahmen",
+			"sphere": "ideell"
+		},
+		{
+			"number": "4200",
+			"name": "Zuschüsse und Fördermittel",
+			"type": "income",
+			"category": "Einnahmen",
+			"sphere": "ideell"
+		},
+		{
+			"number": "4300",
+			"name": "Konzerteinnahmen",
+			"type": "income",
+			"category": "Einnahmen",
+			"sphere": "zweckbetrieb"
+		},
+		{
+			"number": "4310",
+			"name": "Frühjahrskonzert",
+			"type": "income",
+			"category": "Einnahmen",
+			"sphere": "zweckbetrieb",
+			"parent": "4300"
+		},
+		{
+			"number": "4320",
+			"name": "Weihnachtskonzert",
+			"type": "income",
+			"category": "Einnahmen",
+			"sphere": "zweckbetrieb",
+			"parent": "4300"
+		},
+		{
+			"number": "4400",
+			"name": "Umlage Chorfahrt",
+			"type": "income",
+			"category": "Einnahmen",
+			"sphere": "zweckbetrieb"
+		},
+		{
+			"number": "4900",
+			"name": "Sonstige Einnahmen",
+			"type": "income",
+			"category": "Einnahmen",
+			"sphere": "ideell"
+		},
+		{
+			"number": "5000",
+			"name": "Probenraummiete",
+			"type": "expense",
+			"category": "Ausgaben",
+			"sphere": "ideell"
+		},
+		{
+			"number": "5010",
+			"name": "Chorleitung (Dirigentenhonorar)",
+			"type": "expense",
+			"category": "Ausgaben",
+			"sphere": "ideell"
+		},
+		{
+			"number": "5100",
+			"name": "Versicherungen und Verbandsbeiträge",
+			"type": "expense",
+			"category": "Ausgaben",
+			"sphere": "ideell"
+		},
+		{
+			"number": "5110",
+			"name": "Notenmaterial und Lizenzen",
+			"type": "expense",
+			"category": "Ausgaben",
+			"sphere": "ideell"
+		},
+		{
+			"number": "5200",
+			"name": "Konzert- und Veranstaltungskosten",
+			"type": "expense",
+			"category": "Ausgaben",
+			"sphere": "zweckbetrieb"
+		},
+		{
+			"number": "5210",
+			"name": "Frühjahrskonzert",
+			"type": "expense",
+			"category": "Ausgaben",
+			"sphere": "zweckbetrieb",
+			"parent": "5200"
+		},
+		{
+			"number": "5220",
+			"name": "Weihnachtskonzert",
+			"type": "expense",
+			"category": "Ausgaben",
+			"sphere": "zweckbetrieb",
+			"parent": "5200"
+		},
+		{
+			"number": "5230",
+			"name": "Jugendchor",
+			"type": "expense",
+			"category": "Ausgaben",
+			"sphere": "ideell",
+			"parent": "5200"
+		},
+		{
+			"number": "5300",
+			"name": "Büro- und Verwaltungskosten",
+			"type": "expense",
+			"category": "Ausgaben",
+			"sphere": "ideell"
+		},
+		{
+			"number": "5400",
+			"name": "Bankgebühren",
+			"type": "expense",
+			"category": "Ausgaben",
+			"sphere": "ideell"
+		},
+		{
+			"number": "5500",
+			"name": "Chorfahrt und Probenwochenende",
+			"type": "expense",
+			"category": "Ausgaben",
+			"sphere": "zweckbetrieb"
+		},
+		{
+			"number": "5900",
+			"name": "Sonstige Ausgaben",
+			"type": "expense",
+			"category": "Ausgaben",
+			"sphere": "ideell"
+		}
+	],
+	"costCenters": [
+		{
+			"code": "K10",
+			"name": "Frühjahrskonzert",
+			"accounts": [
+				"4310",
+				"5210"
+			]
+		},
+		{
+			"code": "K20",
+			"name": "Weihnachtskonzert",
+			"accounts": [
+				"4320",
+				"5220"
+			]
+		},
+		{
+			"code": "K30",
+			"name": "Jugendchor",
+			"accounts": [
+				"5230"
+			]
+		},
+		{
+			"code": "K40",
+			"name": "Chorfahrt",
+			"accounts": [
+				"4400",
+				"5500"
+			]
+		}
+	],
+	"rules": [
+		{
+			"field": "counterparty",
+			"value": "Gemeinde Waldbach",
+			"account": "5000",
+			"priority": 10
+		},
+		{
+			"field": "counterparty",
+			"value": "GEMA",
+			"account": "5110",
+			"priority": 10
+		},
+		{
+			"field": "counterparty",
+			"value": "Musikverlag Hoffmann",
+			"account": "5110",
+			"priority": 20
+		},
+		{
+			"field": "purpose",
+			"value": "Dirigentenhonorar",
+			"account": "5010",
+			"priority": 10
+		},
+		{
+			"field": "purpose",
+			"value": "Kontoführung",
+			"account": "5400",
+			"priority": 30
+		},
+		{
+			"field": "purpose",
+			"value": "Mitgliedsbeitrag",
+			"account": "4000",
+			"priority": 40
+		}
+	],
+	"budget": [
+		{
+			"account": "4000",
+			"amount": 4980,
+			"note": "83 zahlende Mitglieder, Regelsatz 60 €"
+		},
+		{
+			"account": "4100",
+			"amount": 900,
+			"note": "Erfahrungswert der letzten drei Jahre"
+		},
+		{
+			"account": "4200",
+			"amount": 800,
+			"note": "Chorverband und Gemeinde"
+		},
+		{
+			"account": "4310",
+			"amount": 1400,
+			"note": "Frühjahrskonzert, 180 Karten à 8 €"
+		},
+		{
+			"account": "4320",
+			"amount": 1900,
+			"note": "Weihnachtskonzert in der Stadtkirche"
+		},
+		{
+			"account": "5000",
+			"amount": 1440,
+			"note": "12 × 120 € Probenraum"
+		},
+		{
+			"account": "5010",
+			"amount": 3600,
+			"note": "12 × 300 € Chorleitung"
+		},
+		{
+			"account": "5100",
+			"amount": 420,
+			"note": "Haftpflicht und Chorverband"
+		},
+		{
+			"account": "5110",
+			"amount": 950,
+			"note": "GEMA-Pauschale plus Notenkäufe"
+		},
+		{
+			"account": "5210",
+			"amount": 620,
+			"note": "Saalmiete, Solisten, Programmhefte"
+		},
+		{
+			"account": "5220",
+			"amount": 780,
+			"note": "Kirchenmiete, Orchesteraushilfen"
+		},
+		{
+			"account": "5400",
+			"amount": 60,
+			"note": "5 € Kontoführung im Monat"
+		}
+	],
+	"bookingTexts": {
+		"rent": "Probenraummiete {monat}",
+		"conductor": "Chorleitung {monat}",
+		"bankFee": "Kontoführung {monat}",
+		"feesCollected": "SEPA-Sammeleinzug Mitgliedsbeiträge {jahr}",
+		"feeTransfer": "Mitgliedsbeitrag {jahr} (Überweisung)",
+		"donation": "Spende {name}",
+		"grantAssociation": "Zuschuss Chorverband {jahr}",
+		"grantTown": "Zuschuss Gemeinde Waldbach {jahr}",
+		"springIncome": "Kartenverkauf Frühjahrskonzert",
+		"springCost": "Saalmiete und Programmhefte Frühjahrskonzert",
+		"christmasIncome": "Kartenverkauf Weihnachtskonzert",
+		"christmasCost": "Kirchenmiete und Aushilfen Weihnachtskonzert",
+		"youthChoir": "Notenmaterial Jugendchor",
+		"gema": "GEMA-Pauschale {jahr}",
+		"sheetMusic": "Notenkauf {titel}",
+		"insurance": "Vereinshaftpflicht {jahr}",
+		"associationDues": "Mitgliedsbeitrag Chorverband {jahr}",
+		"office": "Porto und Bürobedarf",
+		"tripIncome": "Umlage Chorfahrt {jahr}",
+		"tripCost": "Chorfahrt {jahr}: Bus und Unterkunft",
+		"cashConcert": "Kassenabrechnung Kuchenverkauf",
+		"misc": "Erstattung Auslagen"
+	},
+	"sheetMusicTitles": [
+		"Mozart: Ave verum",
+		"Rheinberger: Abendlied",
+		"Rutter: For the Beauty",
+		"Bach: Motetten",
+		"Mendelssohn: Verleih uns Frieden"
+	],
+	"donorNames": [
+		"Sparkasse Waldbach",
+		"Autohaus Reinhardt",
+		"Bäckerei Kern",
+		"Familie Hoffmann",
+		"Apotheke am Markt"
+	],
+	"members": {
+		"first": [
+			"Andrea",
+			"Bernd",
+			"Christine",
+			"Dieter",
+			"Elke",
+			"Frank",
+			"Gisela",
+			"Hans",
+			"Ingrid",
+			"Jörg",
+			"Katrin",
+			"Lars",
+			"Manuela",
+			"Norbert",
+			"Otto",
+			"Petra",
+			"Renate",
+			"Stefan",
+			"Tanja",
+			"Ulrich",
+			"Verena",
+			"Werner",
+			"Yvonne",
+			"Zita",
+			"Annika",
+			"Bastian",
+			"Claudia",
+			"Dennis",
+			"Eva",
+			"Florian",
+			"Gerda",
+			"Heiko",
+			"Iris",
+			"Jan",
+			"Karla",
+			"Lukas",
+			"Miriam",
+			"Nils",
+			"Olivia",
+			"Paul"
+		],
+		"last": [
+			"Achtermann",
+			"Berger",
+			"Cordes",
+			"Deininger",
+			"Ebert",
+			"Falk",
+			"Grunwald",
+			"Hartmann",
+			"Illner",
+			"Jansen",
+			"Kliemann",
+			"Lorenz",
+			"Möller",
+			"Neuhaus",
+			"Osterloh",
+			"Pfeiffer",
+			"Quandt",
+			"Riedel",
+			"Sander",
+			"Thiele",
+			"Ulrich",
+			"Voss",
+			"Wegener",
+			"Zimmer",
+			"Brand",
+			"Denzel",
+			"Erdmann",
+			"Fuhrmann",
+			"Gehrke",
+			"Holzer"
+		],
+		"tiers": [
+			{
+				"key": "regular",
+				"label": "Regelbeitrag",
+				"amount": 60,
+				"frequency": "yearly",
+				"share": 52
+			},
+			{
+				"key": "family",
+				"label": "Familienbeitrag",
+				"amount": 90,
+				"frequency": "yearly",
+				"share": 8
+			},
+			{
+				"key": "youth",
+				"label": "Jugendbeitrag",
+				"amount": 30,
+				"frequency": "yearly",
+				"share": 9
+			},
+			{
+				"key": "supporter",
+				"label": "Fördermitglied",
+				"amount": 25,
+				"frequency": "yearly",
+				"share": 6
+			}
+		],
+		"seedCount": 75,
+		"withoutMandate": 7,
+		"openNow": 6,
+		"newInVideo": 12
+	},
+	"statement": {
+		"accountIban": "DE02500105170137075030",
+		"header": "Auftragskonto;Buchungstag;Valutadatum;Buchungstext;Verwendungszweck;Glaeubiger ID;Mandatsreferenz;Kundenreferenz (End-to-End);Sammlerreferenz;Lastschrift Ursprungsbetrag;Auslagenersatz Ruecklastschrift;Beguenstigter/Zahlungspflichtiger;Kontonummer/IBAN;BIC (SWIFT-Code);Betrag;Waehrung;Info",
+		"known": [
+			{
+				"daysAgo": 34,
+				"kind": "Ueberweisung",
+				"purpose": "Dirigentenhonorar",
+				"party": "Martin Kreusch",
+				"amount": -300.0
+			},
+			{
+				"daysAgo": 33,
+				"kind": "Dauerauftrag",
+				"purpose": "Probenraummiete",
+				"party": "Gemeinde Waldbach",
+				"amount": -120.0
+			},
+			{
+				"daysAgo": 31,
+				"kind": "Entgeltabschluss",
+				"purpose": "Kontoführung",
+				"party": "Sparkasse Waldbach",
+				"amount": -5.0
+			}
+		],
+		"new": [
+			{
+				"daysAgo": 26,
+				"kind": "Gutschrift",
+				"purpose": "Spende Sommerkonzert",
+				"party": "Autohaus Reinhardt",
+				"amount": 250.0
+			},
+			{
+				"daysAgo": 24,
+				"kind": "Lastschrift",
+				"purpose": "GEMA-Pauschale Chorkonzerte",
+				"party": "GEMA",
+				"amount": -186.4
+			},
+			{
+				"daysAgo": 22,
+				"kind": "Ueberweisung",
+				"purpose": "Notenkauf Rheinberger: Abendlied",
+				"party": "Musikverlag Hoffmann",
+				"amount": -94.8
+			},
+			{
+				"daysAgo": 20,
+				"kind": "Gutschrift",
+				"purpose": "Zuschuss Chorverband",
+				"party": "Chorverband Nordkreis",
+				"amount": 450.0
+			},
+			{
+				"daysAgo": 18,
+				"kind": "Ueberweisung",
+				"purpose": "Dirigentenhonorar",
+				"party": "Martin Kreusch",
+				"amount": -300.0
+			},
+			{
+				"daysAgo": 17,
+				"kind": "Dauerauftrag",
+				"purpose": "Probenraummiete",
+				"party": "Gemeinde Waldbach",
+				"amount": -120.0
+			},
+			{
+				"daysAgo": 15,
+				"kind": "Gutschrift",
+				"purpose": "Mitgliedsbeitrag 2026",
+				"party": "Ingrid Osterloh",
+				"amount": 60.0
+			},
+			{
+				"daysAgo": 14,
+				"kind": "Gutschrift",
+				"purpose": "Mitgliedsbeitrag 2026",
+				"party": "Werner Voss",
+				"amount": 60.0
+			},
+			{
+				"daysAgo": 12,
+				"kind": "Ueberweisung",
+				"purpose": "Kirchenmiete Weihnachtskonzert (Anzahlung)",
+				"party": "Ev. Kirchengemeinde Waldbach",
+				"amount": -150.0
+			},
+			{
+				"daysAgo": 10,
+				"kind": "Gutschrift",
+				"purpose": "Kartenverkauf Sommerserenade",
+				"party": "Vorverkauf Buchhandlung Lay",
+				"amount": 612.0
+			},
+			{
+				"daysAgo": 8,
+				"kind": "Lastschrift",
+				"purpose": "Vereinshaftpflicht Jahresbeitrag",
+				"party": "Concordia Versicherung",
+				"amount": -168.0
+			},
+			{
+				"daysAgo": 6,
+				"kind": "Ueberweisung",
+				"purpose": "Bus Chorfahrt Anzahlung",
+				"party": "Reisedienst Kalthoff",
+				"amount": -400.0
+			},
+			{
+				"daysAgo": 4,
+				"kind": "Gutschrift",
+				"purpose": "Spende Jugendchor",
+				"party": "Bäckerei Kern",
+				"amount": 120.0
+			},
+			{
+				"daysAgo": 2,
+				"kind": "Entgeltabschluss",
+				"purpose": "Kontoführung",
+				"party": "Sparkasse Waldbach",
+				"amount": -5.0
+			}
+		]
+	},
+	"openItems": [
+		{
+			"debtor": "Musikverlag Hoffmann",
+			"description": "Rechnung Chorpartituren 2026-114",
+			"amount": 238.5,
+			"dueDaysAgo": 9,
+			"account": "5110"
+		}
+	],
+	"memberCsvHeader": [
+		"Name",
+		"Email",
+		"IBAN",
+		"BIC",
+		"Mandat",
+		"Betrag",
+		"Frequenz",
+		"Start"
+	],
+	"nextcloudUsers": [
+		{
+			"uid": "andrea",
+			"displayName": "Andrea Falk",
+			"role": null
+		},
+		{
+			"uid": "jens",
+			"displayName": "Jens Wieland",
+			"role": "buchhalter"
+		},
+		{
+			"uid": "karla",
+			"displayName": "Karla Riedel",
+			"role": "revisor"
+		}
+	],
+	"dateFormat": "de"
+}

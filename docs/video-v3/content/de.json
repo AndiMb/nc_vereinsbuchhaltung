@@ -1,0 +1,109 @@
+{
+	"lang": "de",
+	"_hinweis": "Sprechtext und alle Bildschirmtexte des Videos. Einzige Quelle für die Sprache: lib/tts.py vertont daraus, die Szenenskripte legen daraus die Einblendungen an. Wortanker (cue) müssen im Sprechtext genau einmal vorkommen - lib/cue.mjs prüft das.",
+	"voice": "de-DE-SeraphinaMultilingualNeural",
+	"rate": "-8%",
+	"pitch": "+0Hz",
+	"probe": "Willkommen bei der Vereinsbuchhaltung für Nextcloud. Kontoauszüge kommen als CSV-CAMT, CAMT.053 oder MT940, Mitgliedsbeiträge gehen als pain-Punkt-null-null-acht an die Hausbank. IBAN, SEPA-Mandat, Kassenbericht - alles bleibt in eurer eigenen Cloud.",
+	"cards": {
+		"title": "Vereinsbuchhaltung",
+		"subtitle": "Die Finanzen deines Vereins – in eurer eigenen Nextcloud",
+		"outroTitle": "Jetzt ausprobieren",
+		"outroLines": [
+			"Im Nextcloud App Store: „Vereinsbuchhaltung\"",
+			"Beispielverein mit einem Klick – und genauso schnell wieder weg",
+			"Handbuch und Hilfe stecken in der App"
+		]
+	},
+	"scenes": [
+		{
+			"id": "00-intro",
+			"lowerThird": null,
+			"vo": "Kassenbuch führen, Beiträge einziehen, Kassenbericht schreiben: in jedem Verein jedes Jahr dieselbe Arbeit. Die Vereinsbuchhaltung erledigt sie in eurer eigenen Nextcloud."
+		},
+		{
+			"id": "01-nextcloud",
+			"lowerThird": "Übersicht",
+			"callouts": [
+				{
+					"cue": "Vorstand",
+					"text": "Verwalter · Buchhalter · Revisor"
+				}
+			],
+			"vo": "Kein Abo, keine fremde Cloud, keine Tabelle, die nur eine Person versteht. Die Übersicht zeigt Einnahmen, Ausgaben und Ergebnis, dazu die Geldkonten und die letzten Buchungen. Vorstand, Kassenwart und Kassenprüfung sehen denselben Stand, jeder mit den Rechten seiner Rolle."
+		},
+		{
+			"id": "02-buchen",
+			"lowerThird": "Buchung erfassen",
+			"callouts": [
+				{
+					"cue": "Kategorie",
+					"text": "Einfach-Modus: Einnahme, Betrag, Kategorie"
+				}
+			],
+			"vo": "Man muss kein Buchhalter sein. Eine Buchung erfassen heißt: Einnahme oder Ausgabe, Betrag, Kategorie, fertig. Soll und Haben bucht die App im Hintergrund. Wer beides selbst setzen will, schaltet in den Experten-Modus."
+		},
+		{
+			"id": "03-bank",
+			"lowerThird": "Kontoauszug und Regeln",
+			"callouts": [
+				{
+					"cue": "überspringt",
+					"text": "14 neu · 3 bereits gebucht"
+				},
+				{
+					"cue": "Wachordner",
+					"text": "Wachordner: liest neue Auszüge von allein"
+				}
+			],
+			"vo": "Der größte Teil der Arbeit kommt von der Bank. Kontoauszug herunterladen, hineinziehen: ob CSV, CAMT oder MT940, das Format erkennt die App selbst. Was schon gebucht ist, überspringt sie. Der Rest wartet unter Zuzuordnen, ein Klick aufs Gegenkonto genügt. Miete, Beiträge und Gebühren erledigen Regeln von allein, und ein Wachordner liest neue Auszüge sogar ohne Zutun ein."
+		},
+		{
+			"id": "04-beitraege",
+			"lowerThird": "Beiträge und SEPA-Lastschrift",
+			"callouts": [
+				{
+					"cue": "Voreinstellung",
+					"text": "Standardbeitrag füllt leere Felder"
+				},
+				{
+					"cue": "Hausbank",
+					"text": "pain.008 – fertig für die Bank"
+				}
+			],
+			"vo": "Neu sind die Mitgliedsbeiträge. Die Mitgliederliste liest du als CSV ein: Name, IBAN, Beitrag, Zahlungsweise. Wer den üblichen Satz zahlt, bekommt ihn aus der Voreinstellung. Fällige Beiträge legt die App selbst als offene Posten an. Zum Stichtag erzeugst du den Sammeleinzug und lädst die Datei für die Hausbank herunter. Ist das Geld da, schließt ein Klick alle Posten auf einmal. Eine Rücklastschrift erkennt die App beim nächsten Kontoauszug von selbst."
+		},
+		{
+			"id": "05-auswerten",
+			"lowerThird": "Berichte und Finanzplan",
+			"callouts": [
+				{
+					"cue": "Gemeinnützigkeit",
+					"text": "Vier Sphären, Warnung vor der Freigrenze"
+				}
+			],
+			"vo": "Auswerten geht auf Knopfdruck: Jahresüberblick mit Mehrjahres-Trend, Saldenliste, Auswertung nach Kostenstellen. Im Finanzplan stehen Budget und Ist nebeneinander, samt Abweichung. Und weil an der Gemeinnützigkeit einiges hängt, ordnet die App jeden Betrag einer der vier Sphären zu und meldet sich, bevor eine Freigrenze reißt."
+		},
+		{
+			"id": "06-versammlung",
+			"lowerThird": "Kassenbericht und Prüfung",
+			"callouts": [
+				{
+					"cue": "Lesezugang",
+					"text": "Revisor: sieht alles, ändert nichts"
+				}
+			],
+			"vo": "Einmal im Jahr wird es ernst. Der Kassenbericht für die Mitgliederversammlung entsteht als druckfertige Seite, mit Vereinslogo, Vermögensübersicht und Unterschriftszeilen. Die Kassenprüfung bekommt einen eigenen Lesezugang und alle Belege des Jahres als ZIP. Danach schreibt der Jahresabschluss das Jahr fest: lückenlos nummeriert, unveränderbar."
+		},
+		{
+			"id": "07-mobil",
+			"lowerThird": "Unterwegs",
+			"vo": "Der Beleg gehört am besten sofort dazu: unterwegs abfotografieren und direkt an die Buchung hängen. Auf dem Smartphone hat die App eine eigene Ansicht mit großen Karten."
+		},
+		{
+			"id": "08-outro",
+			"lowerThird": null,
+			"vo": "Die App gibt es im Nextcloud App Store, kostenlos und quelloffen. Zum Ausprobieren legst du mit einem Klick einen Beispielverein an und entfernst ihn genauso schnell wieder. Viel Erfolg im Vereinsjahr!"
+		}
+	]
+}
