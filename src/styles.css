@@ -272,6 +272,20 @@
    (Bankverbindung wechseln, Mandat widerrufen, Loeschen) - braucht mehr als
    die 160px, die fuer reine Icon-Buttons reichen (siehe th:empty oben). */
 .vbh-table thead th.vbh-col-memberactions { width: 230px; }
+/* Aktionsspalte der Sammeleinzuege: bis zu vier *Text*-Buttons ("Zeilen
+   anzeigen", "XML herunterladen", "Als ausgeführt verbuchen", "Verwerfen").
+   In den 160px von th:empty - die fuer Icon-Buttons gedacht sind - brechen sie
+   untereinander um, und der breiteste ragt aus der Zelle heraus: die Tabelle
+   wird breiter als ihr Rahmen, der Rahmen scrollt seitlich, und links wird die
+   Spalte "Erzeugt" angeschnitten. Ab 900px Fensterbreite ist deshalb Platz fuer
+   alle vier nebeneinander (gemessen 596px, "Zeilen ausblenden" etwas mehr);
+   darunter bleibt es beim Umbruch, dann aber innerhalb der Zelle. */
+.vbh-table thead th.vbh-col-batchactions { width: 230px; }
+@media (min-width: 900px) {
+	.vbh-table thead th.vbh-col-batchactions { width: 640px; }
+}
+/* Aktionsspalte der Einzugszeilen: ein Text-Button ("Rückbuchung zurücknehmen"). */
+.vbh-table thead th.vbh-col-itemactions { width: 240px; }
 /* "Nr." ist immer die erste Zahlenspalte und braucht wenig Platz (Beträge nie) */
 .vbh-table thead th.num:first-child { width: 56px; }
 .vbh-purpose .vbh-clamp { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }

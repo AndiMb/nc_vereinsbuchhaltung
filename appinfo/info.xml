@@ -144,7 +144,7 @@ Existing data from "zero Buchhaltung" can be taken over via its xbuc files.
 
 Full manual in German and English: see documentation.
 	]]></description>
-	<version>0.27.2</version>
+	<version>0.28.0</version>
 	<licence>agpl</licence>
 	<author mail="hauffe.andreas@googlemail.com">Andreas Hauffe</author>
 	<namespace>Vereinsbuchhaltung</namespace>

@@ -258,4 +258,72 @@ class MemberCsvParserTest extends TestCase {
 		$zeile = $this->parser->parse($csv, 800, 'monthly')['rows'][0];
 		$this->assertSame('yearly', $zeile['frequency']);
 	}
+
+	/**
+	 * Wer die App auf Englisch benutzt, exportiert seine Mitgliederliste auch
+	 * mit englischen Spaltenüberschriften. Ohne erkanntes Mandatsdatum lehnt
+	 * parseRow() jede Zeile mit IBAN ab - "Mandate" muss also treffen.
+	 */
+	public function testEnglischeSpaltenueberschriften(): void {
+		$csv = "Name;Email;IBAN;BIC;Mandate;Amount;Frequency;Start date\n"
+			. "Alice Turner;alice.turner@example.org;DE02120300000000202051;BYLADEM1001;2026-01-15;42.50;monthly;2026-02-01\n";
+
+		$ergebnis = $this->parser->parse($csv);
+		$this->assertNull($ergebnis['error']);
+		$zeile = $ergebnis['rows'][0];
+		$this->assertSame([], $zeile['errors']);
+		$this->assertSame('Alice Turner', $zeile['memberLabel']);
+		$this->assertSame('alice.turner@example.org', $zeile['email']);
+		$this->assertSame('DE02120300000000202051', $zeile['iban']);
+		$this->assertSame('2026-01-15', $zeile['signedDate']);
+		$this->assertSame(4250, $zeile['amountCents']);
+		$this->assertSame('monthly', $zeile['frequency']);
+		$this->assertSame('2026-02-01', $zeile['startDate']);
+	}
+
+	/**
+	 * Genau die Spaltennamen, die HANDBUCH.en.md (13.3) als erwartet
+	 * beschreibt - die Doku versprach sie, bevor der Parser sie kannte.
+	 */
+	public function testSpaltennamenAusDemEnglischenHandbuch(): void {
+		$csv = "Name;Email;IBAN;BIC;Mandate on;Amount;Frequency;Start\n"
+			. "Katrin Brunner;k.brunner@example.org;DE02 1203 0000 0000 2020 51;;15.01.2026;42.50;monthly;01.02.2026\n";
+
+		$zeile = $this->parser->parse($csv)['rows'][0];
+		$this->assertSame([], $zeile['errors']);
+		$this->assertSame('2026-01-15', $zeile['signedDate']);
+		$this->assertSame(4250, $zeile['amountCents']);
+		$this->assertSame('monthly', $zeile['frequency']);
+		$this->assertSame('2026-02-01', $zeile['startDate']);
+	}
+
+	/** "Account" ist die englische Entsprechung zu "Konto": das Nextcloud-Konto. */
+	public function testEnglischeKontospalte(): void {
+		$csv = "Account;Amount;Start\nk.brunner;60.00;2026-01-15\n";
+		$zeile = $this->parser->parse($csv)['rows'][0];
+		$this->assertSame('k.brunner', $zeile['memberUid']);
+		$this->assertNull($zeile['memberLabel']);
+	}
+
+	/** Englische Frequenzwörter jenseits der Schlüssel selbst. */
+	public function testEnglischeFrequenzbeschriftungen(): void {
+		foreach (['annually' => 'yearly', 'quarterly' => 'quarterly', 'half-yearly' => 'semiannual', 'Month' => 'monthly'] as $wort => $erwartet) {
+			$csv = "Name;Fee;Interval;First due\nAlice Turner;60.00;{$wort};2026-01-15\n";
+			$zeile = $this->parser->parse($csv)['rows'][0];
+			$this->assertSame([], $zeile['errors'], "Frequenz \"{$wort}\" wurde nicht erkannt");
+			$this->assertSame($erwartet, $zeile['frequency'], "Frequenz \"{$wort}\"");
+		}
+	}
+
+	/**
+	 * Eine englische Zeile ohne eigenen Betrag zahlt den Standardbeitrag -
+	 * derselbe Weg wie bei der deutschen Tabelle, nur über "Start date".
+	 */
+	public function testEnglischeZeileNutztStandardbeitrag(): void {
+		$csv = "Name;IBAN;Mandate;Start date\nBen Fisher;DE02120300000000202051;2026-01-15;2026-02-01\n";
+		$zeile = $this->parser->parse($csv, 6000, 'yearly')['rows'][0];
+		$this->assertSame([], $zeile['errors']);
+		$this->assertSame(6000, $zeile['amountCents']);
+		$this->assertSame('yearly', $zeile['frequency']);
+	}
 }

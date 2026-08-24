@@ -971,6 +971,12 @@ einfach übergangen:
 Datumsangaben dürfen `15.01.2026` oder `2026-01-15` lauten, Beträge `42,50`
 oder `42.50`. Eine **Vorlage** zum Ausfüllen können Sie direkt herunterladen.
 
+Englische Spaltenüberschriften versteht die App ebenfalls (`Name`, `Email`,
+`IBAN`, `BIC`, `Mandate`, `Amount`, `Frequency`, `Start date`) – praktisch,
+wenn die Liste aus einem englischsprachigen Programm kommt. Bei der Frequenz
+gilt dasselbe: `monthly`, `quarterly`, `semiannual` und `yearly` werden neben
+den deutschen Wörtern erkannt.
+
 > **Standardbeitrag hinterlegt (13.1)?** Dann darf die Betrag-Spalte für
 > Zeilen mit demselben Satz leer bleiben – solange ein Startdatum dasteht,
 > übernimmt die App automatisch Betrag und Frequenz aus den Einstellungen.

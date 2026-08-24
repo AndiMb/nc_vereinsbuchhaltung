@@ -157,7 +157,7 @@
 						<th>{{ t('Erzeugt') }}</th>
 						<th>{{ t('Fälligkeit') }}</th>
 						<th>{{ t('Status') }}</th>
-						<th />
+						<th class="vbh-col-batchactions" />
 					</tr>
 				</thead>
 				<tbody>
@@ -213,7 +213,7 @@
 											<th>{{ t('Art') }}</th>
 											<th>{{ t('Vorankündigung') }}</th>
 											<th>{{ t('Status') }}</th>
-											<th />
+											<th class="vbh-col-itemactions" />
 										</tr>
 									</thead>
 									<tbody>
@@ -377,6 +377,10 @@ export default {
 				offen
 					? this.t('Ist das Geld für den Einzug vom {date} eingegangen? Die {n} zugehörigen offenen Posten werden dann als bezahlt geschlossen. Zurückgebuchte Zeilen bleiben davon unberührt.', { date: batch.executionDate, n: offen })
 					: this.t('Ist das Geld für den Einzug vom {date} eingegangen? Die zugehörigen offenen Posten werden dann als bezahlt geschlossen. Zurückgebuchte Zeilen bleiben davon unberührt.', { date: batch.executionDate }),
+				// Ohne eigene Beschriftung stünde hier ein rotes "Löschen" - die
+				// Vorgabe von askConfirm passt nur zu löschenden Aktionen.
+				this.t('Verbuchen'),
+				'primary',
 			)) { return }
 			this.settling = batch.id
 			try {
@@ -404,6 +408,8 @@ export default {
 			if (!await this.askConfirm(
 				this.t('Rückbuchung zurücknehmen'),
 				this.t('Diese Zeile war offenbar keine Rücklastschrift? Sie gilt danach wieder als offen. Den Status des zugehörigen offenen Postens prüfen Sie bitte selbst.'),
+				this.t('Zurücknehmen'),
+				'primary',
 			)) { return }
 			try {
 				await api.revertSepaReturn(item.id)

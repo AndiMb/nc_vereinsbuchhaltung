@@ -145,6 +145,11 @@ return [
 		['name' => 'help#handbuch', 'url' => '/api/help/handbuch', 'verb' => 'GET'],
 		['name' => 'help#pruefleitfaden', 'url' => '/api/help/pruefleitfaden', 'verb' => 'GET'],
 
+		// Übersetzungen der Oberfläche. Nextclouds .htaccess liefert keine
+		// .json-Dateien aus dem App-Verzeichnis aus, deshalb dieser Umweg –
+		// siehe L10nController.
+		['name' => 'l10n#bundle', 'url' => '/api/l10n/{lang}', 'verb' => 'GET'],
+
 		// Was ist neu (Splash-Screen nach Updates)
 		['name' => 'whatsNew#index', 'url' => '/api/whatsnew', 'verb' => 'GET'],
 		['name' => 'whatsNew#markSeen', 'url' => '/api/whatsnew/seen', 'verb' => 'POST'],

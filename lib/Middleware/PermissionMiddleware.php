@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Middleware;
 
+use OCA\Vereinsbuchhaltung\Controller\L10nController;
 use OCA\Vereinsbuchhaltung\Controller\PageController;
 use OCA\Vereinsbuchhaltung\Controller\PermissionController;
 use OCA\Vereinsbuchhaltung\Exception\ForbiddenException;
@@ -36,6 +37,12 @@ class PermissionMiddleware extends Middleware {
 
 	public function beforeController(Controller $controller, string $methodName): void {
 		if ($controller instanceof PageController) {
+			return;
+		}
+		// Übersetzungen sind keine Vereinsdaten: ohne sie stünde selbst der
+		// Hinweis "Kein Lesezugriff" in der falschen Sprache vor jemandem, der
+		// noch keine Rolle hat.
+		if ($controller instanceof L10nController) {
 			return;
 		}
 		if ($controller instanceof PermissionController) {

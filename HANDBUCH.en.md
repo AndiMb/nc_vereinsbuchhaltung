@@ -954,6 +954,12 @@ ignored:
 Dates may be given as `15.01.2026` or `2026-01-15`, amounts as `42,50` or
 `42.50`. A **template** to fill in can be downloaded directly.
 
+German column headings are understood just as well (`Name`, `E-Mail`, `IBAN`,
+`BIC`, `Mandat`, `Betrag`, `Frequenz`, `Start`) – useful when the list comes
+out of a German program. The same goes for the frequency: `monatlich`,
+`vierteljährlich`, `halbjährlich` and `jährlich` work alongside the English
+words.
+
 > **Default fee set (13.1)?** Then the amount column may stay empty for
 > rows on the same rate – as long as a start date is present, the app
 > automatically takes over amount and frequency from the settings. Only

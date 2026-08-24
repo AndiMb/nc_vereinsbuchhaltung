@@ -378,6 +378,12 @@ import { buildWhatsNewEntries, filterWhatsNewEntries } from './data/whatsNew.js'
 import { amountClass, budgetDiffClass, errMsg, formatDate, formatDateTime, formatMoney, typeLabel } from './lib/format.js'
 import { splitBalanced, splitRemainder, splitSideOf } from './lib/split.js'
 
+// Abstand zwischen zwei Abgleichen mit dem Server. Die Frist, in der eine
+// erkannte Änderung noch als *eigene* gilt, haengt daran (siehe checkRevision):
+// war sie kuerzer als dieser Abstand, meldete die App die eigene Buchung als
+// "von einer anderen Person geaendert" - je nachdem, wann der Abgleich fiel.
+const SYNC_INTERVALL = 20000
+
 export default {
 	name: 'App',
 	components: {
@@ -857,7 +863,7 @@ export default {
 			await this.loadWhatsNew()
 			// Kollaboration: Änderungen anderer Personen per Polling mitbekommen
 			this.checkRevision(true)
-			this.syncTimer = setInterval(() => this.checkRevision(), 20000)
+			this.syncTimer = setInterval(() => this.checkRevision(), SYNC_INTERVALL)
 			window.addEventListener('focus', this.onWindowFocus)
 		}
 	},
@@ -919,9 +925,16 @@ export default {
 			if (!init && document.hidden) { return }
 			const result = await this.checkRemoteRevision(init, this.busy)
 			if (result !== 'changed') { return }
-			// Nach eigener Schreibaktion still aktualisieren (die Handler haben schon
-			// nachgeladen, aber eine zeitgleiche Fremdänderung darf nicht verloren gehen).
-			const ownWrite = Date.now() - api.lastWriteAt() < 15000
+			// Eigene Schreibaktion? Dann still aktualisieren (die Handler haben schon
+			// nachgeladen, aber eine zeitgleiche Fremdänderung darf nicht verloren
+			// gehen). Nicht über eine feste Frist: der Abgleich läuft nur alle
+			// SYNC_INTERVALL, und solange die App mit dem eigenen Schreiben beschäftigt
+			// ist, verschiebt er sich weiter. Eine 15-Sekunden-Frist meldete deshalb den
+			// eigenen Import als „von einer anderen Person geändert". Maßstab ist
+			// stattdessen der Zeitpunkt, zu dem der eigene Stand zuletzt nachweislich
+			// mit dem Server übereinstimmte: alles danach Geschriebene kann die
+			// Abweichung erklären.
+			const ownWrite = api.lastWriteAt() > 0 && api.lastWriteAt() >= this.syncChangedSince
 			await this.refreshAfterRemoteChange()
 			if (!ownWrite) { showInfo(this.t('Die Buchhaltung wurde von einer anderen Person geändert – Ansicht aktualisiert.')) }
 		},

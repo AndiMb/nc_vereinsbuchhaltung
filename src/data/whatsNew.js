@@ -20,6 +20,19 @@ import { isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.28.0',
+			items: [
+				t('Steht Nextcloud auf Englisch, erscheint jetzt auch die Oberfläche der App auf Englisch – bisher blieb sie deutsch, weil das Übersetzungspaket nicht geladen werden konnte.'),
+			],
+		},
+		{
+			version: '0.28.0',
+			roles: ['buchhalter', 'verwalter'],
+			items: [
+				t('Mitgliederlisten dürfen jetzt auch englische Spaltenüberschriften haben (Name, Email, IBAN, BIC, Mandate, Amount, Frequency, Start date).'),
+			],
+		},
+		{
 			version: '0.27.0',
 			items: [
 				t('Handbuch und Prüfleitfaden gibt es jetzt auch auf Englisch – die App liefert automatisch die passende Sprache aus, je nachdem, welche Sprache in den Nextcloud-Einstellungen eingestellt ist.'),

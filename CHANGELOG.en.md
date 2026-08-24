@@ -17,6 +17,68 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+## [0.28.0] – 2026-08-24
+
+**Fixed:**
+- **The interface stayed German even with Nextcloud set to English.** Until
+  now the app loaded its translation bundle straight from the app directory as
+  a file (`l10n/<language>.json`). Nextcloud's shipped `.htaccess` only serves
+  files with certain extensions from there – `.json` is not among them, so the
+  request ends up in `index.php` and comes back as a 404. The attempt
+  therefore failed silently in **every** normal installation and the app kept
+  showing its German source strings (typical nginx configurations behave the
+  same way). Translations now come from a dedicated endpoint
+  (`/api/l10n/<language>`), which is not affected by that restriction.
+  Server-side text – manual, audit guide, error messages – was never affected.
+
+- **The confirmation for posting a SEPA collection showed a red "Delete"
+  button.** Two dialogs were affected – "Mark collection as executed" and
+  "Undo return" – both left the button label to the dialog's default, which is
+  meant for deleting actions. They now read "Post" and "Undo" and are no longer
+  red. The default label is translatable as well; until now it read "Löschen"
+  even in the English interface.
+
+- **The buttons in the SEPA collection list were cut off.** The action column
+  is fixed at 160 pixels – a width meant for three icon buttons. The four text
+  buttons ("Show rows", "Download XML", "Mark as collected", "Discard") wrapped
+  onto separate lines there, the widest one stuck out of the column, and that
+  made the table wider than its frame: the buttons sat half outside on the
+  right, and the "Created" column was clipped on the left. From 900 pixels of
+  window width they now sit side by side; below that they still stack, but
+  inside the column. The same applied to "Undo return" in the expanded
+  collection list.
+
+- **"The accounting was changed by another person" – after your own entry.**
+  The app compares its state with the server every 20 seconds, but a change
+  detected that way only counted as your own for 15 seconds. Since the
+  comparison runs less often than that window – and is deferred further while
+  an import is running – the app regularly reported your own larger actions as
+  someone else's change. The measure is no longer a fixed window but the moment
+  your state last provably matched the server: anything you wrote after that
+  explains the difference. Genuine changes by other people are still reported.
+
+- **Sphere, reserve and cost center names stayed German.** They came from
+  fixed strings in `ReportService` and never went through translation, so the
+  English interface read "Ideeller Bereich" instead of "Non-profit purpose".
+  This affected the sphere overview, the reserves overview and the built-in
+  cost center names.
+
+- **22 missing English translations added.** Among them the default-fee hint
+  in the member import, the labels on the SEPA collection cards ("Total",
+  "Due", "created"), the "What's new" dialog and the first-run hints in the
+  help – all of which showed up in German in the English interface. A sweep
+  of all 850 strings in the code against `l10n/en.json` now comes back
+  without a gap.
+
+**New:**
+- **Member lists with English column headings.** The CSV import now recognises
+  English column names alongside the German ones (`Name`, `Email`, `IBAN`,
+  `BIC`, `Mandate`, `Amount`, `Frequency`, `Start date` plus common variants)
+  as well as English frequency values (`monthly`, `quarterly`, `semiannual`,
+  `yearly`, `annually`). The English manual already described these column
+  names – now they actually work. Existing German lists keep working
+  unchanged.
+
 ## [0.27.2] – 2026-08-23
 
 **Fixed:**

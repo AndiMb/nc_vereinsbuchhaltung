@@ -77,6 +77,36 @@ class MemberCsvParser {
 		'startdatum' => 'startDate',
 		'beginn' => 'startDate',
 		'erstefaelligkeit' => 'startDate',
+		// Englische Spaltennamen: die Oberfläche gibt es auf Englisch, die
+		// Mitgliederliste kommt dann auch mit englischen Überschriften. Ohne
+		// diese Einträge blieben Mandatsdatum, Betrag und Frequenz ungelesen –
+		// und eine Zeile mit IBAN, aber ohne erkanntes Mandatsdatum lehnt der
+		// Import ganz ab (siehe parseRow()).
+		'member' => 'memberLabel',
+		'payer' => 'memberLabel',
+		'surname' => 'memberLabel',
+		'lastname' => 'memberLabel',
+		'user' => 'memberUid',
+		'username' => 'memberUid',
+		'login' => 'memberUid',
+		'account' => 'memberUid',
+		'nextcloudaccount' => 'memberUid',
+		'emailaddress' => 'email',
+		'mandate' => 'signedDate',
+		'mandateon' => 'signedDate',
+		'mandatedate' => 'signedDate',
+		'signed' => 'signedDate',
+		'signedon' => 'signedDate',
+		'signeddate' => 'signedDate',
+		'amount' => 'amount',
+		'fee' => 'amount',
+		'membershipfee' => 'amount',
+		'frequency' => 'frequency',
+		'interval' => 'frequency',
+		'paymentfrequency' => 'frequency',
+		'startdate' => 'startDate',
+		'firstdue' => 'startDate',
+		'firstduedate' => 'startDate',
 	];
 
 	/** Beschriftung → Schlüssel; die englischen Schlüssel gelten ebenfalls. */
@@ -90,6 +120,17 @@ class MemberCsvParser {
 		'halbjahr' => 'semiannual',
 		'jaehrlich' => 'yearly',
 		'jahr' => 'yearly',
+		// Englische Beschriftungen; die Schlüssel selbst (monthly, quarterly,
+		// semiannual, yearly) erkennt parseFrequency() ohnehin über
+		// BillingPeriod::FREQUENCY_MONTHS.
+		'month' => 'monthly',
+		'quarter' => 'quarterly',
+		'quarterly' => 'quarterly',
+		'halfyearly' => 'semiannual',
+		'semiannually' => 'semiannual',
+		'annual' => 'yearly',
+		'annually' => 'yearly',
+		'year' => 'yearly',
 	];
 
 	/**

@@ -11,6 +11,7 @@ use OCA\Vereinsbuchhaltung\Db\CostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCP\IConfig;
+use OCP\IL10N;
 
 /**
  * Auswertungen, insbesondere nach Kostenstellen.
@@ -22,12 +23,6 @@ use OCP\IConfig;
  */
 class ReportService {
 
-	/** Eingebaute Standardnamen für feste Kostenstellen. */
-	private const BUILTIN = [
-		'01' => 'Ideeller Bereich',
-		'11' => 'Verbandszeitung',
-	];
-
 	/**
 	 * Freigrenze für den wirtschaftlichen Geschäftsbetrieb (§ 64 Abs. 3 AO),
 	 * Stand seit 2020: 45.000 € Bruttoeinnahmen/Jahr, als SUMME über alle
@@ -36,20 +31,6 @@ class ReportService {
 	 */
 	private const WIRTSCHAFTLICH_FREIGRENZE_CENTS = 4500000;
 
-	/** Anzeigenamen der vier steuerlichen Sphären, siehe Account::SPHERES. */
-	private const SPHERE_LABELS = [
-		'ideell' => 'Ideeller Bereich',
-		'vermoegensverwaltung' => 'Vermögensverwaltung',
-		'zweckbetrieb' => 'Zweckbetrieb',
-		'wirtschaftlich' => 'Wirtschaftlicher Geschäftsbetrieb',
-	];
-
-	/** Anzeigenamen der drei Rücklagen-Arten, siehe Account::RESERVE_KINDS. */
-	private const RESERVE_LABELS = [
-		'frei' => 'Freie Rücklage',
-		'zweckgebunden' => 'Zweckgebundene Rücklage',
-		'wiederbeschaffung' => 'Wiederbeschaffungsrücklage',
-	];
 
 	public function __construct(
 		private AccountMapper $accountMapper,
@@ -57,6 +38,7 @@ class ReportService {
 		private CostCenterMapper $costCenterMapper,
 		private JournalMapper $journalMapper,
 		private IConfig $config,
+		private IL10N $l10n,
 	) {
 	}
 
@@ -265,7 +247,7 @@ class ReportService {
 		foreach (array_merge(Account::SPHERES, [null]) as $code) {
 			$groups[$code ?? ''] = [
 				'code' => $code,
-				'name' => $code !== null ? self::SPHERE_LABELS[$code] : '(nicht zugeordnet)',
+				'name' => $code !== null ? $this->sphereLabel($code) : $this->l10n->t('(nicht zugeordnet)'),
 				'incomeCents' => 0,
 				'expenseCents' => 0,
 				'accounts' => [],
@@ -354,7 +336,7 @@ class ReportService {
 		foreach (Account::RESERVE_KINDS as $kind) {
 			$groups[$kind] = [
 				'kind' => $kind,
-				'name' => self::RESERVE_LABELS[$kind],
+				'name' => $this->reserveLabel($kind),
 				'balanceCents' => 0,
 				'accounts' => [],
 			];
@@ -423,12 +405,48 @@ class ReportService {
 	}
 
 	/**
+	 * Anzeigename einer steuerlichen Sphäre, siehe Account::SPHERES.
+	 *
+	 * Bewusst literale t()-Aufrufe statt einer Konstanten-Tabelle: nur so
+	 * stehen die Texte auffindbar im Code, und nur so waren sie vor Version
+	 * 0.28.0 überhaupt übersetzbar - bis dahin kamen sie als feste deutsche
+	 * Zeichenketten aus einer Konstanten und standen auch in der englischen
+	 * Oberfläche auf Deutsch.
+	 */
+	private function sphereLabel(string $code): string {
+		return match ($code) {
+			'ideell' => $this->l10n->t('Ideeller Bereich'),
+			'vermoegensverwaltung' => $this->l10n->t('Vermögensverwaltung'),
+			'zweckbetrieb' => $this->l10n->t('Zweckbetrieb'),
+			'wirtschaftlich' => $this->l10n->t('Wirtschaftlicher Geschäftsbetrieb'),
+			default => $code,
+		};
+	}
+
+	/** Anzeigename einer Rücklagen-Art, siehe Account::RESERVE_KINDS. */
+	private function reserveLabel(string $kind): string {
+		return match ($kind) {
+			'frei' => $this->l10n->t('Freie Rücklage'),
+			'zweckgebunden' => $this->l10n->t('Zweckgebundene Rücklage'),
+			'wiederbeschaffung' => $this->l10n->t('Wiederbeschaffungsrücklage'),
+			default => $kind,
+		};
+	}
+
+	/**
 	 * @param array<string,string> $names
 	 */
 	private function resolveName(?string $code, array $names): string {
 		if ($code === null) {
-			return '(ohne Kostenstelle)';
+			return $this->l10n->t('(ohne Kostenstelle)');
 		}
-		return $names[$code] ?? self::BUILTIN[$code] ?? ('Kostenstelle ' . $code);
+		if (isset($names[$code])) {
+			return $names[$code];
+		}
+		return match ($code) {
+			'01' => $this->l10n->t('Ideeller Bereich'),
+			'11' => $this->l10n->t('Verbandszeitung'),
+			default => $this->l10n->t('Kostenstelle %s', [$code]),
+		};
 	}
 }

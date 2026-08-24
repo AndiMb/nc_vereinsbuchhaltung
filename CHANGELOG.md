@@ -19,6 +19,73 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+## [0.28.0] – 2026-08-24
+
+**Behoben:**
+- **Die Oberfläche blieb auf Deutsch, obwohl Nextcloud auf Englisch stand.**
+  Die App lud ihr Übersetzungsbündel bisher direkt als Datei
+  (`l10n/<sprache>.json`) aus dem App-Verzeichnis. Nextclouds mitgeliefertes
+  `.htaccess` liefert von dort aber nur Dateien mit bestimmten Endungen aus –
+  `.json` gehört nicht dazu, die Anfrage landet in `index.php` und kommt als
+  404 zurück. Der Ladeversuch scheiterte deshalb in **jeder** normalen
+  Installation still, und die App zeigte weiter die deutschen Quelltexte
+  (übliche nginx-Konfigurationen verhalten sich genauso). Die Übersetzungen
+  kommen jetzt über einen eigenen Endpunkt (`/api/l10n/<sprache>`), der von
+  dieser Einschränkung nicht betroffen ist. Serverseitige Texte – Handbuch,
+  Prüfleitfaden, Fehlermeldungen – waren nie betroffen.
+
+- **Rückfrage beim Verbuchen eines SEPA-Einzugs zeigte einen roten Knopf
+  „Löschen".** Betroffen waren die beiden Rückfragen „Einzug als ausgeführt
+  verbuchen" und „Rückbuchung zurücknehmen": beide ließen die Beschriftung
+  offen, und die Vorgabe des Rückfrage-Dialogs ist auf löschende Aktionen
+  ausgelegt. Jetzt heißen die Knöpfe „Verbuchen" bzw. „Zurücknehmen" und sind
+  nicht mehr rot. Die Vorgabe-Beschriftung ist außerdem übersetzbar – bisher
+  stand dort auch in der englischen Oberfläche „Löschen".
+
+- **Die Knöpfe in der Liste der Sammeleinzüge waren angeschnitten.** Die
+  Aktionsspalte ist auf 160 Pixel festgelegt – eine Breite, die für drei
+  Symbolknöpfe gedacht ist. Die vier Textknöpfe („Zeilen anzeigen“, „XML
+  herunterladen“, „Als ausgeführt verbuchen“, „Verwerfen“) brachen dort
+  untereinander um, der breiteste ragte aus der Spalte heraus, und die Tabelle
+  wurde dadurch breiter als ihr Rahmen: rechts standen die Knöpfe halb
+  außerhalb, links war die Spalte „Erzeugt“ angeschnitten. Ab 900 Pixel
+  Fensterbreite stehen sie jetzt nebeneinander, darunter weiterhin
+  untereinander – dann aber innerhalb der Spalte. Dasselbe galt für
+  „Rückbuchung zurücknehmen“ in der aufgeklappten Einzugsliste.
+
+- **„Die Buchhaltung wurde von einer anderen Person geändert“ – obwohl man
+  selbst gebucht hatte.** Die App gleicht ihren Stand alle 20 Sekunden mit dem
+  Server ab; eine dabei erkannte Änderung galt aber nur 15 Sekunden lang als
+  eigene. Da der Abgleich seltener läuft als diese Frist – und während eines
+  laufenden Imports zusätzlich aufgeschoben wird – meldete die App größere
+  eigene Aktionen regelmäßig als fremde Änderung. Maßstab ist jetzt nicht mehr
+  eine feste Frist, sondern der Zeitpunkt, zu dem der eigene Stand zuletzt
+  nachweislich mit dem Server übereinstimmte: alles danach selbst Geschriebene
+  erklärt die Abweichung. Echte Fremdänderungen werden weiterhin gemeldet.
+
+- **Sphären-, Rücklagen- und Kostenstellennamen blieben auf Deutsch.** Sie
+  kamen als feste Zeichenketten aus `ReportService` und liefen nie durch die
+  Übersetzung – in der englischen Oberfläche stand deshalb „Ideeller Bereich"
+  statt „Non-profit purpose". Betroffen waren die Sphärenübersicht, die
+  Rücklagenübersicht und die eingebauten Kostenstellennamen.
+
+- **22 fehlende englische Übersetzungen ergänzt.** Betroffen waren unter
+  anderem der Hinweis zum Standard-Beitrag im Mitglieder-Import, die
+  Beschriftungen der SEPA-Einzugskarten („Summe", „Fälligkeit", „erzeugt"),
+  der „Was ist neu"-Dialog und die Ersteinrichtungs-Hinweise in der Hilfe –
+  sie standen in der englischen Oberfläche auf Deutsch. Ein Abgleich der
+  850 Textbausteine im Code gegen `l10n/en.json` zeigt jetzt keine Lücke
+  mehr.
+
+**Neu:**
+- **Mitgliederlisten mit englischen Spaltenüberschriften einlesen.** Der
+  CSV-Import erkennt jetzt neben den deutschen auch englische Spaltennamen
+  (`Name`, `Email`, `IBAN`, `BIC`, `Mandate`, `Amount`, `Frequency`,
+  `Start date` samt gängiger Varianten) sowie englische Frequenzangaben
+  (`monthly`, `quarterly`, `semiannual`, `yearly`, `annually`). Das englische
+  Handbuch hat diese Spaltennamen bereits beschrieben – jetzt funktionieren
+  sie auch. Bestehende deutsche Listen bleiben unverändert lesbar.
+
 ## [0.27.2] – 2026-08-23
 
 **Behoben:**

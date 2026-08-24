@@ -3,6 +3,12 @@ import api from '../api.js'
 
 const state = reactive({
 	syncRevision: null,
+	// Zeitpunkt, zu dem der eigene Stand zuletzt nachweislich mit dem Server
+	// uebereinstimmte. Alles, was seitdem geschrieben wurde, kann die jetzt
+	// erkannte Aenderung erklaeren - daran haengt, ob sie als eigene gilt.
+	syncSeenAt: 0,
+	// Der syncSeenAt-Wert von *vor* der zuletzt erkannten Aenderung.
+	syncChangedSince: 0,
 })
 
 // 'busy' wird als Parameter übergeben statt hier gehalten, weil es App.vue-weit
@@ -18,11 +24,19 @@ async function checkRemoteRevision(init, busy) {
 	}
 	if (init || state.syncRevision === null) {
 		state.syncRevision = rev
+		state.syncSeenAt = Date.now()
 		return 'unchanged'
 	}
-	if (rev === state.syncRevision) { return 'unchanged' }
+	if (rev === state.syncRevision) {
+		state.syncSeenAt = Date.now()
+		return 'unchanged'
+	}
+	// Bei busy bleibt auch syncSeenAt stehen: der naechste Poll soll dieselbe
+	// Aenderung erneut erkennen - und dann noch wissen, seit wann sie aussteht.
 	if (busy) { return 'busy' }
 	state.syncRevision = rev
+	state.syncChangedSince = state.syncSeenAt
+	state.syncSeenAt = Date.now()
 	return 'changed'
 }
 

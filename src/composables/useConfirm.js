@@ -1,4 +1,5 @@
 import { computed, reactive } from 'vue'
+import { t } from '../lib/l10n.js'
 
 // Die Rueckfrage vor einer nicht umkehrbaren Aktion (loeschen, zuruecksetzen,
 // wiedereroeffnen).
@@ -17,7 +18,9 @@ const state = reactive({
 	open: false,
 	title: '',
 	message: '',
-	confirmLabel: 'Löschen',
+	// Leer statt 'Löschen': die Vorgabe wird erst beim Öffnen gesetzt, weil t()
+	// vor dem Laden der Übersetzungen noch den Quelltext liefern würde.
+	confirmLabel: '',
 	confirmVariant: 'error',
 })
 
@@ -31,11 +34,13 @@ let pending = null
  *
  * @param {string} title Ueberschrift des Dialogs
  * @param {string} message erklaerender Text
- * @param {string} confirmLabel Beschriftung der bestaetigenden Schaltflaeche
+ * @param {string|null} confirmLabel Beschriftung der bestaetigenden Schaltflaeche;
+ *        ohne Angabe "Löschen" - passt nur fuer wirklich loeschende Aktionen,
+ *        jede andere Rueckfrage gibt ihre eigene Beschriftung mit.
  * @param {string} confirmVariant Farbgebung ('error' fuer Loeschen, sonst 'primary')
  * @return {Promise<boolean>} true, wenn bestaetigt wurde
  */
-function askConfirm(title, message, confirmLabel = 'Löschen', confirmVariant = 'error') {
+function askConfirm(title, message, confirmLabel = null, confirmVariant = 'error') {
 	// Eine bereits offene Rueckfrage abraeumen, statt ihre Zusage liegen zu
 	// lassen - ein nie aufgeloestes Promise haelt den Aufrufer fuer immer an.
 	if (pending) { close(false) }
@@ -44,7 +49,7 @@ function askConfirm(title, message, confirmLabel = 'Löschen', confirmVariant = 
 		state.open = true
 		state.title = title
 		state.message = message
-		state.confirmLabel = confirmLabel
+		state.confirmLabel = confirmLabel ?? t('Löschen')
 		state.confirmVariant = confirmVariant
 	})
 }
