@@ -7,9 +7,13 @@ gebaut ist und wie man es startet.
 und erzeugt alles, was zur Veröffentlichung gehört – außer dem Hochladen.
 
 ```bash
+export VBH_DEMO_PASS='<Passwort der Demo-Instanz>'
 node lib/build.mjs --lang de      # Instanz, Daten, Aufnahme, Montage, Untertitel, Thumbnail
 node lib/build.mjs --lang en
 ```
+
+Das Passwort steht bewusst nicht im Repository – wie die Instanz aufgesetzt
+wird, steht unter [Aufnahme-Instanz](#aufnahme-instanz).
 
 | | Deutsch | Englisch |
 |---|---|---|
@@ -52,19 +56,30 @@ Eigener Container, damit der Entwicklungsstand in `nextcloud-test` unberührt
 bleibt — die App hat **einen gemeinsamen Datenbestand je Instanz**, ein Seed
 würde dort alles überschreiben.
 
+Das Passwort der Instanz steht **nicht** im Repository. Einmal setzen – die
+Skripte lesen es aus `VBH_DEMO_PASS` (oder aus `--pass <wort>`):
+
+```bash
+export VBH_DEMO_PASS='<selbst waehlen>'   # PowerShell: $env:VBH_DEMO_PASS = '...'
+```
+
+Der Bind-Mount zeigt auf dieses Repository – `docker run` deshalb in dessen
+Wurzelverzeichnis ausführen (unter Windows den Pfad in Docker-Schreibweise
+angeben, etwa `//c/pfad/zum/repo`).
+
 ```bash
 docker run -d --name vbh-demo -p 8081:80 \
-  -e NEXTCLOUD_ADMIN_USER=admin -e NEXTCLOUD_ADMIN_PASSWORD='VbhDemo2026!' \
+  -e NEXTCLOUD_ADMIN_USER=admin -e NEXTCLOUD_ADMIN_PASSWORD="$VBH_DEMO_PASS" \
   -e SQLITE_DATABASE=nextcloud -e NEXTCLOUD_TRUSTED_DOMAINS='localhost 127.0.0.1' \
   -v vbh-demo-html:/var/www/html \
-  -v 'C:\Temp2\Claude\Nextcloud-Vereinsbuchhaltungsapp\vereinsbuchhaltung:/var/www/html/custom_apps/vereinsbuchhaltung' \
+  -v "$PWD:/var/www/html/custom_apps/vereinsbuchhaltung" \
   nextcloud:34.0.0
 
 docker exec -u www-data vbh-demo php occ app:enable vereinsbuchhaltung
 docker exec -u www-data vbh-demo php occ app:disable firstrunwizard
 ```
 
-Demokonten (Passwort für alle: `VbhDemo2026!`):
+Demokonten (Passwort für alle: das aus `VBH_DEMO_PASS`):
 
 | Konto | Anzeigename (de/en) | Rolle in der App |
 |---|---|---|
@@ -73,7 +88,7 @@ Demokonten (Passwort für alle: `VbhDemo2026!`):
 | `karla` | Karla Riedel / Carla Reed | Revisorin (Kassenprüfung, Szene 06) |
 
 Angelegt mit
-`docker exec -u www-data -e OC_PASS='VbhDemo2026!' vbh-demo php occ user:add --password-from-env --display-name "<Name>" [--group admin] <uid>`.
+`docker exec -u www-data -e OC_PASS="$VBH_DEMO_PASS" vbh-demo php occ user:add --password-from-env --display-name "<Name>" [--group admin] <uid>`.
 Der Anzeigename wird später je Sprachlauf von `instance.mjs` überschrieben
 (`occ user:setting <uid> settings displayname` — `user:modify` gibt es in
 Nextcloud 34 nicht mehr).
@@ -89,7 +104,8 @@ node lib/instance.mjs --lang en
 node lib/seed.mjs     --lang en
 ```
 
-Nützliche Schalter: `--url`, `--user`, `--pass`, `--port` (CDP, Standard 9444),
+Nützliche Schalter: `--url`, `--user`, `--pass` (sonst `VBH_DEMO_PASS`),
+`--port` (CDP, Standard 9444),
 `--today YYYY-MM-DD` (fester Stichtag statt heute), `--keep-tab`.
 `node lib/dataset.mjs --lang de --dump` rechnet den Bestand nur durch und zeigt
 die Eckwerte, ohne eine Nextcloud zu brauchen.

@@ -23,7 +23,18 @@ function candidates() {
 			}
 		}
 	}
-	list.push('C:/Program Files/ImageMagick-7.1.1-Q16-HDRI/ffmpeg.exe', 'ffmpeg');
+	// ImageMagick bringt ein eigenes, aelteres ffmpeg mit. Es taugt fuer diese
+	// Pipeline nicht (kein xfade), steht hier aber trotzdem drin: wird es
+	// gefunden, meldet die Versionspruefung weiter unten genau das - hilfreicher
+	// als ein blankes "kein ffmpeg gefunden". Ohne feste Versionsnummer, die
+	// haengt vom Installationsstand ab.
+	const programme = process.env.ProgramFiles || 'C:/Program Files';
+	if (existsSync(programme)) {
+		for (const dir of readdirSync(programme).filter((d) => d.startsWith('ImageMagick-'))) {
+			list.push(join(programme, dir, 'ffmpeg.exe'));
+		}
+	}
+	list.push('ffmpeg');
 	return list;
 }
 

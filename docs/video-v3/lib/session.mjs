@@ -9,6 +9,28 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const cdp = require('./cdp.cjs');
 
+/**
+ * Passwort der Demo-Instanz.
+ *
+ * Bewusst nicht im Repository: die Aufnahme-Instanz ist zwar eine oertliche
+ * Wegwerfinstanz, ein fest eingetragenes Passwort in einem oeffentlichen
+ * Repository ist trotzdem keine gute Angewohnheit. Reihenfolge: --pass, sonst
+ * VBH_DEMO_PASS aus der Umgebung.
+ */
+export function demoPass(ausArgument) {
+	const pass = ausArgument || process.env.VBH_DEMO_PASS || '';
+	if (!pass) {
+		// Kein throw: die Skripte holen das Passwort beim Laden des Moduls, also
+		// bevor ihr main().catch() ueberhaupt existiert - ein Stapelabzug waere
+		// hier nur Rauschen vor einer reinen Bedienfehlermeldung.
+		console.error('Kein Passwort fuer die Demo-Instanz.');
+		console.error('  VBH_DEMO_PASS setzen oder --pass <wort> angeben - dasselbe, mit dem der');
+		console.error('  Container angelegt wurde (siehe docs/video-v3/README.md).');
+		process.exit(2);
+	}
+	return pass;
+}
+
 export async function login(tab, { url, user, pass }) {
 	await cdp.navigate(tab, `${url}/login`);
 	if (await cdp.evaluate(tab, 'document.querySelector("#user") === null')) {

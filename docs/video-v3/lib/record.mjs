@@ -19,7 +19,7 @@ import { dirname, join } from 'node:path';
 import { ensureChrome, fitViewport, DEFAULT_PORT } from './chrome.mjs';
 import { createContext, VIEWPORT, FPS, resetDir } from './harness.mjs';
 import { loadCues } from './cue.mjs';
-import { login, openApp } from './session.mjs';
+import { demoPass, login, openApp } from './session.mjs';
 import * as ffmpeg from './ffmpeg.mjs';
 
 const require = createRequire(import.meta.url);
@@ -41,7 +41,7 @@ const flag = (name) => process.argv.includes(`--${name}`);
 const LANG = arg('lang', 'de');
 const URL_BASE = arg('url', 'http://localhost:8081').replace(/\/$/, '');
 const USER = arg('user', 'andrea');
-const PASS = arg('pass', 'VbhDemo2026!');
+const PASS = demoPass(arg('pass'));
 // Eigener Port, damit die Aufnahme nicht das Chrome des Seeds erbt: dort ist
 // das Fenster breiter als der Aufnahmebereich, und rechts blitzt ein Streifen
 // Seitenhintergrund durch (der Screencast nimmt das Fenster auf, nicht die

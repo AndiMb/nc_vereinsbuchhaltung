@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { buildDataset, iso } from './dataset.mjs';
+import { demoPass } from './session.mjs';
 
 const require = createRequire(import.meta.url);
 const cdp = require('./cdp.cjs');
@@ -32,7 +33,7 @@ const flag = (name) => process.argv.includes(`--${name}`);
 const LANG = arg('lang', 'de');
 const URL_BASE = arg('url', 'http://localhost:8081').replace(/\/$/, '');
 const USER = arg('user', 'andrea');
-const PASS = arg('pass', 'VbhDemo2026!');
+const PASS = demoPass(arg('pass'));
 const PORT = Number(arg('port', '9444'));
 const TODAY = arg('today', iso(new Date()));
 const CONTAINER = arg('container', 'vbh-demo');

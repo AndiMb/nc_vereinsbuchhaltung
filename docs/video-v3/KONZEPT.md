@@ -331,9 +331,9 @@ zwei Tonspuren. README.md/README.en.md und die beiden `<description>`-Blöcke in
 |---|---|---|
 | Aufnahme-Instanz | Docker-Container `nextcloud-test`, Nextcloud 34.0.0.12, PHP 8.4, App 0.27.2, http://localhost:8080 | läuft |
 | Browsersteuerung + Aufnahme | Playwright 1.56.0 (über `npx`, kein lokales Paket nötig) mit dem vorhandenen Chromium-Build 1228 unter `%LOCALAPPDATA%\ms-playwright` | verfügbar |
-| Aufnahme-Fallback / CDP-Zugriff | `~/.claude/skills/browser-testing/scripts/cdp.js` (abhängigkeitsfreier CDP-Client, Ende-zu-Ende getestet) | vorhanden |
+| Aufnahme-Fallback / CDP-Zugriff | abhängigkeitsfreier CDP-Client aus dem vorhandenen Browser-Testing-Werkzeug (Ende-zu-Ende getestet, liegt jetzt als `lib/cdp.cjs` im Repo) | vorhanden |
 | Sprachausgabe | Python 3.14.3 + `edge-tts` 7.2.8 (neuronale Stimmen, WordBoundary-Zeiten) | vorhanden |
-| Schnitt/Montage | ffmpeg 4.2.3 (`C:\Program Files\ImageMagick-7.1.1-Q16-HDRI\ffmpeg.exe`) | vorhanden, **mit Einschränkung**, siehe 6.2 |
+| Schnitt/Montage | ffmpeg 4.2.3 (das mit ImageMagick mitgelieferte) | vorhanden, **mit Einschränkung**, siehe 6.2 |
 | Standbilder, Thumbnails, Geräterahmen | ImageMagick 7.1.1-47 | vorhanden |
 | Orchestrierung | Node 22.23.0 / npm 10.9.8 | vorhanden |
 | Demodaten-Zugriff | App-eigene REST-API inkl. `POST /api/reset` und `POST /api/demo/seed` | vorhanden |
