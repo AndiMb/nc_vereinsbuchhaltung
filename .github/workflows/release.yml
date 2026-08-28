@@ -191,7 +191,7 @@ jobs:
           ( cd "$RUNNER_TEMP" && sha256sum "$APP_ID-$VER.tar.gz" > "$APP_ID-$VER.tar.gz.sha256" )
 
       - name: Release veroeffentlichen
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             ${{ runner.temp }}/vereinsbuchhaltung-${{ steps.ver.outputs.version }}.tar.gz
