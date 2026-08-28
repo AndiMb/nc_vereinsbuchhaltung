@@ -11,7 +11,11 @@ test.describe('App-Grundgerüst', () => {
 
 	test('Verwalter sieht die App-Shell mit allen Tabs', async ({ page }) => {
 		await openApp(page, USERS.verwalter)
-		await expect(page.getByRole('heading', { name: 'Vereinsbuchhaltung' })).toBeVisible()
+		// exact, denn getByRole-Namen matchen per Teilstring: sobald der
+		// Setup-Assistent gerendert ist, träfe der Locator sonst auch dessen
+		// Überschrift „Willkommen bei der Vereinsbuchhaltung!" – ob das
+		// passiert, hing bisher vom Rendering-Timing ab.
+		await expect(page.getByRole('heading', { name: 'Vereinsbuchhaltung', exact: true })).toBeVisible()
 
 		// Auf leerem Bestand begrüßt der Setup-Assistent – erst schließen,
 		// dann ist die Navigation frei.

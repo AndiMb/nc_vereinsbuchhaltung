@@ -34,7 +34,10 @@ test.describe('Buchungen', () => {
 
 		await switchTab(page, 'Buchungen')
 		await selectYear(page, 2031)
-		await expect(visibleSection(page).getByText('Beitrag Erika Beispiel').first()).toBeVisible()
+		// Großzügiges Timeout: direkt nach dem Buchen laufen Journal-,
+		// Salden- und Umsatz-Reload parallel – das erste Rendering des
+		// gewechselten Jahres kann die Standard-5s gelegentlich reißen.
+		await expect(visibleSection(page).getByText('Beitrag Erika Beispiel').first()).toBeVisible({ timeout: 15000 })
 	})
 
 	test('per API angelegte Buchung erscheint im Journal (Experten-Felder)', async ({ page, request }) => {
