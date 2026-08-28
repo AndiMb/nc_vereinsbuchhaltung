@@ -9,6 +9,9 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # Der Release-Workflow ruft diese Pruefungen als Pflicht-Vorstufe auf:
+  # was hier rot ist, wird nicht veroeffentlicht.
+  workflow_call:
 
 jobs:
   frontend:
@@ -118,6 +121,52 @@ jobs:
 
       - name: Formatpruefung
         run: .php-cs-fixer/vendor/bin/php-cs-fixer fix --dry-run --diff
+
+  e2e:
+    name: E2E (Playwright gegen Docker-Nextcloud)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Abhaengigkeiten installieren
+        run: npm ci --no-audit --no-fund
+
+      - name: Playwright-Browser-Cache
+        # Spart den Chromium-Download (~150 MB) bei unveraenderter
+        # Playwright-Version; 'playwright install' erkennt den Cache selbst.
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Playwright-Browser installieren
+        run: npx playwright install --with-deps chromium
+
+      - name: Produktions-Build
+        # Der Testserver mountet das App-Verzeichnis - die Tests laufen
+        # gegen genau die Bundles, die auch ausgeliefert wuerden.
+        run: npm run build
+
+      - name: Testserver starten (Docker-Nextcloud stable34)
+        # Kehrt erst zurueck, wenn die Instanz eingerichtet und der
+        # "init"-Snapshot angelegt ist - ein eigener Warteschritt entfaellt.
+        run: npm run test:e2e:server
+
+      - name: E2E-Tests
+        run: npm run test:e2e:run
+
+      - name: Testbericht hochladen
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
 
   appinfo:
     name: info.xml gegen App-Store-Schema

@@ -15,6 +15,10 @@
 # Dasselbe Muster fuer die Formatpruefung (Nextcloud-Coding-Standard)
 /.php-cs-fixer/vendor/
 .php-cs-fixer.cache
+# Playwright-E2E: Laufergebnisse und gecachte Anmeldezustaende
+/playwright-report/
+/test-results/
+/tests/e2e/.auth/
 # Rohmaterial fuer das README-Video u.ae. gehoert nicht ins Repo
 *.mp3
 # Erster, verworfener Videoanlauf: 90 MB Clips, Screenshots und Rohschnitte.
