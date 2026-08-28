@@ -22,7 +22,14 @@ env:
   APP_ID: vereinsbuchhaltung
 
 jobs:
+  # Die komplette CI (Lint, Unit-Tests, PHPStan, php-cs-fixer, E2E gegen
+  # eine echte Nextcloud, info.xml-Schema) als Pflicht-Vorstufe: eine
+  # Version, die diese Pruefungen nicht besteht, wird gar nicht erst gebaut.
+  tests:
+    uses: ./.github/workflows/ci.yml
+
   build:
+    needs: tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -91,6 +98,10 @@ jobs:
             --exclude='.php-cs-fixer' \
             --exclude='.php-cs-fixer.dist.php' \
             --exclude='.php-cs-fixer.cache' \
+            --exclude='playwright.config.mjs' \
+            --exclude='playwright-report' \
+            --exclude='test-results' \
+            --exclude='vitest.config.mjs' \
             --exclude='deploy' \
             --exclude='node_modules' \
             --exclude='src' \
