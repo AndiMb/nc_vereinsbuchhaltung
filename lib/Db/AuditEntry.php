@@ -41,13 +41,13 @@ class AuditEntry extends Entity implements \JsonSerializable {
 			$details = is_array($decoded) ? $decoded : null;
 		}
 		return [
-			'id'         => $this->id,
-			'ts'         => $this->ts,
-			'userId'     => $this->userId,
-			'action'     => $this->action,
+			'id' => $this->id,
+			'ts' => $this->ts,
+			'userId' => $this->userId,
+			'action' => $this->action,
 			'objectType' => $this->objectType,
-			'objectId'   => $this->objectId,
-			'details'    => $details,
+			'objectId' => $this->objectId,
+			'details' => $details,
 		];
 	}
 }

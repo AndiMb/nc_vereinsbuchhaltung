@@ -39,8 +39,8 @@ class TransactionController extends Controller {
 	 * mehreren.
 	 *
 	 * @param array $parts Aufteilung: [{accountId, amount}, …] mit Beträgen in
-	 *        Euro. Ist der Parameter gesetzt, wird $contraAccountId nicht
-	 *        ausgewertet; die Summe der Teile muss den Umsatz ergeben.
+	 *                     Euro. Ist der Parameter gesetzt, wird $contraAccountId nicht
+	 *                     ausgewertet; die Summe der Teile muss den Umsatz ergeben.
 	 */
 	#[NoAdminRequired]
 	public function assign(int $id, int $contraAccountId = 0, array $parts = []): DataResponse {

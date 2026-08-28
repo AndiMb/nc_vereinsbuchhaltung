@@ -209,8 +209,8 @@ class JournalController extends Controller {
 	 *
 	 * @param array $raw Zeilen aus der Anfrage: [{accountId, debit, credit}, …], Beträge in Euro
 	 * @param array<int, array{accountId:int, debitCents:int, creditCents:int}> $lines
-	 *        Ausgabe: die geprüften Zeilen in Cent (bei einem Fehler die bis
-	 *        dahin umgewandelten – der Aufrufer wertet sie dann nicht aus)
+	 *                                                                                 Ausgabe: die geprüften Zeilen in Cent (bei einem Fehler die bis
+	 *                                                                                 dahin umgewandelten – der Aufrufer wertet sie dann nicht aus)
 	 * @return string|null Fehlermeldung oder null, wenn alles in Ordnung ist
 	 */
 	private function parseLines(array $raw, array &$lines): ?string {
@@ -278,9 +278,9 @@ class JournalController extends Controller {
 	 * Splittbuchung über mehrere Konten.
 	 *
 	 * @param array $lines Zeilen einer Splittbuchung: [{accountId, debit, credit}, …]
-	 *        mit Beträgen in Euro. Ist der Parameter gesetzt, beschreiben die
-	 *        Zeilen die Buchung vollständig und $debitAccountId/$creditAccountId/
-	 *        $amount werden nicht ausgewertet.
+	 *                     mit Beträgen in Euro. Ist der Parameter gesetzt, beschreiben die
+	 *                     Zeilen die Buchung vollständig und $debitAccountId/$creditAccountId/
+	 *                     $amount werden nicht ausgewertet.
 	 */
 	#[NoAdminRequired]
 	public function create(string $date, string $description, int $debitAccountId = 0, int $creditAccountId = 0, float $amount = 0, ?string $documentRef = null, array $lines = []): DataResponse {
@@ -294,7 +294,7 @@ class JournalController extends Controller {
 
 	/**
 	 * @param array $lines siehe {@see create()}; aus einer zweizeiligen Buchung
-	 *        kann dabei eine Splittbuchung werden und umgekehrt.
+	 *                     kann dabei eine Splittbuchung werden und umgekehrt.
 	 */
 	#[NoAdminRequired]
 	public function update(int $id, string $date, string $description, int $debitAccountId = 0, int $creditAccountId = 0, float $amount = 0, ?string $documentRef = null, ?string $updatedAt = null, array $lines = []): DataResponse {
@@ -318,7 +318,7 @@ class JournalController extends Controller {
 	 * Zeilenliste.
 	 *
 	 * @return array{0: ?string, 1: array<int, array{accountId:int, debitCents:int, creditCents:int}>}
-	 *         Fehlermeldung (oder null) und die Zeilen
+	 *                                                                                                 Fehlermeldung (oder null) und die Zeilen
 	 */
 	private function prepareLines(string $date, int $debitAccountId, int $creditAccountId, float $amount, array $rawLines): array {
 		if ($rawLines !== []) {

@@ -29,14 +29,14 @@ class BillingPeriod {
 	 * (31. Januar + 1 Monat -> 28./29. Februar, nicht 3. März).
 	 *
 	 * @param string $date gültiges Datum JJJJ-MM-TT; der Aufrufer prüft das
-	 *        mit checkdate(), sonst liefe createFromFormat() still über
+	 *                     mit checkdate(), sonst liefe createFromFormat() still über
 	 * @param string $frequency Schlüssel aus self::FREQUENCY_MONTHS
 	 * @param string|null $anchor Datum, dessen Tag der Stichtag ist – in aller
-	 *        Regel das Startdatum des Beitrags. Ohne Anker rechnet die Methode
-	 *        vom übergebenen Tag weiter, und ein kurzer Monat verschiebt den
-	 *        Stichtag dauerhaft nach vorn: aus dem 31. Januar würde über den
-	 *        Februar der 28., und dabei bliebe es für alle Folgemonate. Wer
-	 *        zum Monatsletzten bucht, soll das weiterhin tun.
+	 *                            Regel das Startdatum des Beitrags. Ohne Anker rechnet die Methode
+	 *                            vom übergebenen Tag weiter, und ein kurzer Monat verschiebt den
+	 *                            Stichtag dauerhaft nach vorn: aus dem 31. Januar würde über den
+	 *                            Februar der 28., und dabei bliebe es für alle Folgemonate. Wer
+	 *                            zum Monatsletzten bucht, soll das weiterhin tun.
 	 * @throws \InvalidArgumentException bei unbekannter Frequenz oder unmöglichem Datum
 	 */
 	public static function next(string $date, string $frequency, ?string $anchor = null): string {
@@ -64,8 +64,8 @@ class BillingPeriod {
 	 * langsam ab, und ohne diese Zahl sähe das niemand.
 	 *
 	 * @param string|null $anchor Stichtag wie bei {@see next()} – in aller Regel
-	 *        das Startdatum des Beitrags, damit ein kurzer Monat die Zählung
-	 *        nicht verschiebt
+	 *                            das Startdatum des Beitrags, damit ein kurzer Monat die Zählung
+	 *                            nicht verschiebt
 	 * @param int $limit Sicherheitsnetz gegen Endlosschleifen bei kaputten Daten
 	 * @throws \InvalidArgumentException bei unbekannter Frequenz oder unmöglichem Datum
 	 */

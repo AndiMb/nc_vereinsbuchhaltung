@@ -42,7 +42,7 @@ class L10nController extends Controller {
 
 	/**
 	 * @param string $lang Sprachcode wie von Nextcloud gemeldet, z. B. "en"
-	 *        oder "pt_BR".
+	 *                     oder "pt_BR".
 	 */
 	#[NoAdminRequired]
 	// Ohne NoCSRFRequired antwortet Nextcloud auf ein blankes fetch() mit 412:

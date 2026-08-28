@@ -27,8 +27,8 @@ class YearClose extends Entity implements \JsonSerializable {
 
 	public function jsonSerialize(): array {
 		return [
-			'id'       => $this->id,
-			'year'     => $this->year,
+			'id' => $this->id,
+			'year' => $this->year,
 			'closedAt' => $this->closedAt,
 			'closedBy' => $this->closedBy,
 		];

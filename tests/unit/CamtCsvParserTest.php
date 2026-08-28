@@ -37,7 +37,7 @@ class CamtCsvParserTest extends TestCase {
 
 	public function testRejectsFileWithoutRows(): void {
 		$this->expectException(\RuntimeException::class);
-		$this->parser->parse("nur eine zeile");
+		$this->parser->parse('nur eine zeile');
 	}
 
 	/**

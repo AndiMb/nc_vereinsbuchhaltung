@@ -73,7 +73,7 @@ class SepaReturnDetectionService {
 
 	/**
 	 * @return bool ob die Buchung als Rücklastschrift erkannt UND einer
-	 *         Sammeleinzug-Zeile zugeordnet werden konnte
+	 *              Sammeleinzug-Zeile zugeordnet werden konnte
 	 */
 	public function detect(BankTransaction $tx): bool {
 		// Eine Rücklastschrift belastet das Vereinskonto: negativer Betrag.

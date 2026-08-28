@@ -81,7 +81,7 @@ final class LedgerAggregator {
 	 * Jahresfilter sind beide Karten dieselbe; dann fallen die Fälle zusammen.
 	 *
 	 * @param array<int, array{debit:int, credit:int}> $moveSums Bewegung im Zeitraum
-	 * @param array<int, array{debit:int, credit:int}> $balSums  kumuliert bis Zeitraumende
+	 * @param array<int, array{debit:int, credit:int}> $balSums kumuliert bis Zeitraumende
 	 */
 	public static function listBalance(AccountNature $account, array $moveSums, array $balSums): int {
 		return self::net($account, $account->isStockAccount() ? $balSums : $moveSums);
@@ -146,7 +146,7 @@ final class LedgerAggregator {
 	 * @template T of AccountNature
 	 * @param iterable<T> $accounts
 	 * @param array<int, array{debit:int, credit:int}> $cumStart kumuliert bis zum Tag vor Beginn
-	 * @param array<int, array{debit:int, credit:int}> $cumEnd   kumuliert bis Ende
+	 * @param array<int, array{debit:int, credit:int}> $cumEnd kumuliert bis Ende
 	 * @return array{rows: list<array{account:T, start:int, end:int}>, startCents:int, endCents:int}
 	 */
 	public static function wealthRows(iterable $accounts, array $cumStart, array $cumEnd): array {

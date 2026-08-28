@@ -56,15 +56,15 @@ class AccountController extends Controller {
 
 	/**
 	 * @param int $parentId 0 = kein Überkonto (Wurzel); >0 = ID des Überkontos.
-	 *                       Die Account-Bearbeitung sendet das Feld immer mit.
+	 *                      Die Account-Bearbeitung sendet das Feld immer mit.
 	 * @param string|null $sphere '' = nicht zugeordnet (löscht eine ggf. gesetzte Sphäre).
 	 * @param string|null $reserveKind '' = keine Rücklage (löscht eine ggf. gesetzte Rücklagen-Art).
 	 * @param string|null $iban '' = keine IBAN (löscht eine ggf. gesetzte).
 	 * @param int|null $costCenterId 0 = keine Kostenstelle (löst eine ggf.
-	 *        bestehende Zuordnung); nicht mitgesendet = unverändert. Anders als
-	 *        parentId hat dieses Feld keinen „immer mitsenden"-Zwang, damit
-	 *        Teil-Updates aus anderen Masken (z.B. Sphären-Zuordnung) eine
-	 *        Kostenstelle nicht stillschweigend entfernen.
+	 *                               bestehende Zuordnung); nicht mitgesendet = unverändert. Anders als
+	 *                               parentId hat dieses Feld keinen „immer mitsenden"-Zwang, damit
+	 *                               Teil-Updates aus anderen Masken (z.B. Sphären-Zuordnung) eine
+	 *                               Kostenstelle nicht stillschweigend entfernen.
 	 */
 	#[NoAdminRequired]
 	public function update(int $id, ?string $number = null, ?string $name = null, ?string $type = null, ?string $category = null, ?bool $isBank = null, ?bool $active = null, int $parentId = 0, ?string $sphere = null, ?string $reserveKind = null, ?string $iban = null, ?int $costCenterId = null): DataResponse {

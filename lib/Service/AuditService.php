@@ -26,9 +26,9 @@ class AuditService {
 	/**
 	 * @param array<string,mixed> $details kleine, anzeigbare Zusatzinfos (JSON)
 	 * @param string|null $actor überschreibt den angemeldeten Nutzer. Nötig für
-	 *        Hintergrundläufe (Wachordner): dort gibt es keine Sitzung, und ohne
-	 *        diesen Wert stünde im Protokoll nur "?" – für die Kassenprüfung
-	 *        wäre dann nicht erkennbar, dass die App selbst gehandelt hat.
+	 *                           Hintergrundläufe (Wachordner): dort gibt es keine Sitzung, und ohne
+	 *                           diesen Wert stünde im Protokoll nur "?" – für die Kassenprüfung
+	 *                           wäre dann nicht erkennbar, dass die App selbst gehandelt hat.
 	 */
 	public function log(string $action, ?string $objectType = null, ?int $objectId = null, array $details = [], ?string $actor = null): void {
 		// Zeitpunkt und Nutzer JETZT festhalten – geschrieben wird ggf. später,

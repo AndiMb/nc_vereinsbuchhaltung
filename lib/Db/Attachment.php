@@ -36,11 +36,11 @@ class Attachment extends Entity implements \JsonSerializable {
 
 	public function jsonSerialize(): array {
 		return [
-			'id'         => $this->id,
-			'journalId'  => $this->journalId,
-			'fileName'   => $this->fileName,
-			'mimeType'   => $this->mimeType,
-			'fileSize'   => $this->fileSize,
+			'id' => $this->id,
+			'journalId' => $this->journalId,
+			'fileName' => $this->fileName,
+			'mimeType' => $this->mimeType,
+			'fileSize' => $this->fileSize,
 			'uploadedAt' => $this->uploadedAt?->format(\DateTime::ATOM),
 		];
 	}

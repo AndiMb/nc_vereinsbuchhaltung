@@ -72,22 +72,27 @@ export default {
 .vbh-whatsnew {
 	padding: 8px 4px 4px;
 }
+
 .vbh-whatsnew-list {
 	display: flex;
 	flex-direction: column;
 	gap: 16px;
 	margin-top: 8px;
 }
+
 .vbh-whatsnew-entry h4 {
 	margin: 0 0 4px;
 }
+
 .vbh-whatsnew-entry ul {
 	margin: 0;
-	padding-left: 22px;
+	padding-inline-start: 22px;
 }
+
 .vbh-whatsnew-entry li {
 	margin: 3px 0;
 }
+
 .vbh-whatsnew-footer {
 	display: flex;
 	align-items: center;

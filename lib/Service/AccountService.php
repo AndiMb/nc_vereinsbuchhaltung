@@ -89,8 +89,8 @@ class AccountService {
 
 	/**
 	 * @param bool $audit Einzeleintrag im Änderungsprotokoll (beim Anlegen des
-	 *        Standard-Kontenrahmens abschalten – der protokolliert sich als
-	 *        Ganzes, sonst stünden dort 14 einzelne „Konto angelegt")
+	 *                    Standard-Kontenrahmens abschalten – der protokolliert sich als
+	 *                    Ganzes, sonst stünden dort 14 einzelne „Konto angelegt")
 	 */
 	public function create(string $userId, string $number, string $name, string $type, ?string $category, bool $isBank, ?int $parentId = null, ?string $sphere = null, ?string $reserveKind = null, ?string $iban = null, ?int $costCenterId = null, bool $audit = true): Account {
 		$account = new Account();

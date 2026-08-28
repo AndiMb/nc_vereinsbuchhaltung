@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
-use OCA\Vereinsbuchhaltung\Service\BrandingService;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
+use OCA\Vereinsbuchhaltung\Service\BrandingService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;

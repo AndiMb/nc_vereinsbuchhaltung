@@ -96,7 +96,7 @@ class SepaNotificationService {
 
 	/**
 	 * @return 'sent'|'skipped'|'failed' verschickt / kein Empfänger bekannt /
-	 *         Zustellung abgelehnt (wird beim nächsten Lauf erneut versucht)
+	 *                                   Zustellung abgelehnt (wird beim nächsten Lauf erneut versucht)
 	 * @throws \Throwable bei Zustell- oder Datenfehlern; der Aufrufer fängt sie je Zeile ab
 	 */
 	private function notify(SepaBatchItem $item): string {

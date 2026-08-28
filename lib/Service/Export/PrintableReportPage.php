@@ -43,7 +43,7 @@ final class PrintableReportPage {
 	 * Baut das vollständige HTML-Dokument.
 	 *
 	 * @param string $title Fenstertitel (wird maskiert)
-	 * @param string $body  fertiges HTML des Berichtsinhalts
+	 * @param string $body fertiges HTML des Berichtsinhalts
 	 * @param string $accent Farbe für Trennlinien und Überschrift
 	 */
 	public static function document(string $title, string $body, string $accent = self::DEFAULT_ACCENT): string {

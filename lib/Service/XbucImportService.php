@@ -143,7 +143,7 @@ class XbucImportService {
 			if (!empty($b['openContra'])) {
 				continue;
 			}
-			$closingByNumber[$b['sollNumber']]  = ($closingByNumber[$b['sollNumber']]  ?? 0) + $b['amountCents'];
+			$closingByNumber[$b['sollNumber']] = ($closingByNumber[$b['sollNumber']] ?? 0) + $b['amountCents'];
 			$closingByNumber[$b['habenNumber']] = ($closingByNumber[$b['habenNumber']] ?? 0) - $b['amountCents'];
 		}
 
@@ -215,8 +215,8 @@ class XbucImportService {
 	 *
 	 * @param array<int, array<string,mixed>> $bookings
 	 * @return array<int, array<string,mixed>> je Eröffnungsbuchung:
-	 *         index, account, date, amount (EUR, erwarteter Anfangsbestand),
-	 *         action ('import'|'skip'), priorBalance (EUR|null), matches (bool|null)
+	 *                                         index, account, date, amount (EUR, erwarteter Anfangsbestand),
+	 *                                         action ('import'|'skip'), priorBalance (EUR|null), matches (bool|null)
 	 */
 	private function analyzeOpenings(string $userId, array $bookings, ?int $year): array {
 		$result = [];
@@ -427,7 +427,7 @@ class XbucImportService {
 		$openBankTx = 0;
 
 		// Buchungsnummern je Kalenderjahr (starten bei 1; im Merge-Modus ab MAX+1 des jeweiligen Jahres)
-		/** @var array<int,int> $nextEntryByYear  Jahr → nächste freie Nummer */
+		/** @var array<int,int> $nextEntryByYear Jahr → nächste freie Nummer */
 		$nextEntryByYear = [];
 
 		// --- Buchungen ---
@@ -452,7 +452,7 @@ class XbucImportService {
 				$openBankTx++;
 				continue;
 			}
-			$debitId  = $this->ensureAccount($userId, $b['sollNumber'],  $b['sollName'],  $byNumber);
+			$debitId = $this->ensureAccount($userId, $b['sollNumber'], $b['sollName'], $byNumber);
 			$creditId = $this->ensureAccount($userId, $b['habenNumber'], $b['habenName'], $byNumber);
 
 			// Soll = Haben oder Betrag 0: eine in sich leere Buchung. Die lehnt
@@ -515,19 +515,19 @@ class XbucImportService {
 		}
 
 		return [
-			'accounts'          => count($byNumber),
-			'accountsNew'       => $accountsNew,
-			'bookings'          => $count,
-			'openBankTx'        => $openBankTx,
-			'skipped'           => $skipped,
-			'reset'             => $reset,
-			'year'              => $year,
-			'outsideYear'       => $outsideCount,
-			'clamped'           => $clamped,
-			'openingsSkipped'   => $openingsSkipped,
+			'accounts' => count($byNumber),
+			'accountsNew' => $accountsNew,
+			'bookings' => $count,
+			'openBankTx' => $openBankTx,
+			'skipped' => $skipped,
+			'reset' => $reset,
+			'year' => $year,
+			'outsideYear' => $outsideCount,
+			'clamped' => $clamped,
+			'openingsSkipped' => $openingsSkipped,
 			'openingMismatches' => $openingMismatches,
-			'openingsRemoved'   => $openingsRemoved,
-			'transitionYear'    => $transition['targetYear'] ?? null,
+			'openingsRemoved' => $openingsRemoved,
+			'transitionYear' => $transition['targetYear'] ?? null,
 		];
 	}
 
