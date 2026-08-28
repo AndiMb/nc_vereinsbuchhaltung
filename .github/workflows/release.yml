@@ -85,7 +85,12 @@ jobs:
             --exclude='.github' \
             --exclude='.gitattributes' \
             --exclude='.gitignore' \
-            --exclude='.eslintrc.cjs' \
+            --exclude='eslint.config.mjs' \
+            --exclude='stylelint.config.cjs' \
+            --exclude='.nvmrc' \
+            --exclude='.php-cs-fixer' \
+            --exclude='.php-cs-fixer.dist.php' \
+            --exclude='.php-cs-fixer.cache' \
             --exclude='deploy' \
             --exclude='node_modules' \
             --exclude='src' \

@@ -12,6 +12,9 @@
 # Fremdcode im Repository und (ohne den rsync-Ausschluss) im Release-Tarball.
 /.phpstan/vendor/
 .phpstan-cache/
+# Dasselbe Muster fuer die Formatpruefung (Nextcloud-Coding-Standard)
+/.php-cs-fixer/vendor/
+.php-cs-fixer.cache
 # Rohmaterial fuer das README-Video u.ae. gehoert nicht ins Repo
 *.mp3
 # Erster, verworfener Videoanlauf: 90 MB Clips, Screenshots und Rohschnitte.

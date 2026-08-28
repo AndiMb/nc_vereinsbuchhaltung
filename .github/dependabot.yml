@@ -1,0 +1,29 @@
+# Haelt Abhaengigkeiten per automatischem PR aktuell. Woechentlich gebuendelt,
+# damit nicht jede Minor-Version einen eigenen PR erzeugt; die CI prueft jeden
+# dieser PRs wie jeden anderen (Lint, Tests, Build, PHPStan, php-cs-fixer).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      npm-abhaengigkeiten:
+        patterns: ['*']
+
+  # Die Werkzeug-Projekte der statischen Analyse und der Formatpruefung
+  # (bewusst ausserhalb der App-composer.json, siehe Kommentare dort).
+  - package-ecosystem: composer
+    directory: /.phpstan
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: composer
+    directory: /.php-cs-fixer
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
