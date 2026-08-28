@@ -139,7 +139,7 @@ jobs:
       - name: Playwright-Browser-Cache
         # Spart den Chromium-Download (~150 MB) bei unveraenderter
         # Playwright-Version; 'playwright install' erkennt den Cache selbst.
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
