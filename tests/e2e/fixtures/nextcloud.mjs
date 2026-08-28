@@ -122,8 +122,11 @@ export async function selectYear(page, yearOrLabel) {
 }
 
 /**
- * Eine Option in einem NcSelect wählen: tippen, Treffer klicken. Die
- * vue-select-Optionen tragen keine ARIA-Rollen – deshalb der Klassenname.
+ * Eine Option in einem NcSelect wählen: tippen, gefilterten Treffer
+ * abwarten, mit Enter übernehmen. Bewusst per Tastatur statt Klick auf die
+ * Option: je nach @nextcloud/vue-Version liegen Teile des Floating-Label-
+ * Markups über der Optionsliste und fangen den Mausklick ab – Enter nimmt
+ * immer die hervorgehobene (erste gefilterte) Option.
  *
  * @param scope Locator, der das NcSelect enthält (Dialog, Tabellenzeile …)
  */
@@ -131,7 +134,8 @@ export async function pickNcSelectOption(scope, placeholder, search) {
 	const input = scope.getByPlaceholder(placeholder)
 	await input.click()
 	await input.pressSequentially(search, { delay: 20 })
-	await scope.page().locator('li.vs__dropdown-option', { hasText: search }).first().click()
+	await scope.page().locator('li.vs__dropdown-option', { hasText: search }).first().waitFor()
+	await input.press('Enter')
 }
 
 // ---------------------------------------------------------------------------
