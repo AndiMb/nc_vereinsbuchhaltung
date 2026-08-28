@@ -164,7 +164,7 @@ class JournalLineMapper extends QBMapper {
 	 * Vergleich identisch mit dem chronologischen.
 	 *
 	 * @param string|null $from inklusive untere Datumsgrenze (z.B. 2026-01-01)
-	 * @param string|null $to   inklusive obere Datumsgrenze (z.B. 2026-12-31)
+	 * @param string|null $to inklusive obere Datumsgrenze (z.B. 2026-12-31)
 	 * @return array<int, array{debit:int, credit:int}>
 	 */
 	public function sumByAccount(string $userId, ?string $from = null, ?string $to = null): array {

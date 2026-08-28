@@ -190,8 +190,14 @@ class HelpController extends Controller {
 			}
 		};
 		$closeBlocks = function () use (&$inList, &$inQuote, &$html) {
-			if ($inList) { $html .= '</ul>'; $inList = false; }
-			if ($inQuote) { $html .= '</blockquote>'; $inQuote = false; }
+			if ($inList) {
+				$html .= '</ul>';
+				$inList = false;
+			}
+			if ($inQuote) {
+				$html .= '</blockquote>';
+				$inQuote = false;
+			}
 		};
 
 		foreach ($lines as $line) {
@@ -217,15 +223,27 @@ class HelpController extends Controller {
 			}
 			if (preg_match('/^[-*]\s+(.*)$/', $line, $m)) {
 				$flushPara();
-				if ($inQuote) { $html .= '</blockquote>'; $inQuote = false; }
-				if (!$inList) { $html .= '<ul>'; $inList = true; }
+				if ($inQuote) {
+					$html .= '</blockquote>';
+					$inQuote = false;
+				}
+				if (!$inList) {
+					$html .= '<ul>';
+					$inList = true;
+				}
 				$html .= '<li>' . $this->inline($m[1]) . '</li>';
 				continue;
 			}
 			if (preg_match('/^>\s?(.*)$/', $line, $m)) {
 				$flushPara();
-				if ($inList) { $html .= '</ul>'; $inList = false; }
-				if (!$inQuote) { $html .= '<blockquote>'; $inQuote = true; }
+				if ($inList) {
+					$html .= '</ul>';
+					$inList = false;
+				}
+				if (!$inQuote) {
+					$html .= '<blockquote>';
+					$inQuote = true;
+				}
 				$html .= '<p>' . $this->inline($m[1]) . '</p>';
 				continue;
 			}

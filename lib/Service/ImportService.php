@@ -159,7 +159,7 @@ class ImportService {
 	 *
 	 * @param array<int, array<string,mixed>> $rows
 	 * @return array{0: array<int, array<string,mixed>>, 1: array<int, array<string,mixed>>, 2: int}
-	 *         [neue Zeilen, Dubletten, davon bereits als Buchung vorhanden]
+	 *                                                                                               [neue Zeilen, Dubletten, davon bereits als Buchung vorhanden]
 	 */
 	private function splitNewAndDuplicate(string $userId, array $rows): array {
 		$hashes = array_column($rows, 'hash');

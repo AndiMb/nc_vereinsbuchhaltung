@@ -67,8 +67,8 @@ class SepaBatchService {
 	 * zur Kontrolle, bevor tatsächlich ein Einzug erzeugt wird.
 	 *
 	 * @param string|null $executionDate Fälligkeitstag des geplanten Einzugs;
-	 *        nur bis dahin fällige Posten kommen mit. Ohne Angabe der
-	 *        Vorschlagstermin aus {@see defaultExecutionDate()}.
+	 *                                   nur bis dahin fällige Posten kommen mit. Ohne Angabe der
+	 *                                   Vorschlagstermin aus {@see defaultExecutionDate()}.
 	 * @return array<int, array{openItem: OpenItem, mandate: SepaMandate, sequenceType: string}>
 	 */
 	public function previewEligible(?string $executionDate = null): array {
@@ -241,9 +241,9 @@ class SepaBatchService {
 	 * gekommen, ihr offener Posten muss offen bleiben.
 	 *
 	 * @param int|null $journalId Buchung der Sammelgutschrift auf dem
-	 *        Kontoauszug, falls schon erfasst. Sie wird allen geschlossenen
-	 *        Posten als Zahlungsnachweis hinterlegt – eine Gutschrift für
-	 *        viele Posten, genau wie die Bank es bucht.
+	 *                            Kontoauszug, falls schon erfasst. Sie wird allen geschlossenen
+	 *                            Posten als Zahlungsnachweis hinterlegt – eine Gutschrift für
+	 *                            viele Posten, genau wie die Bank es bucht.
 	 * @return array{settled:int, skipped:int} verbucht / wegen Rücklastschrift übersprungen
 	 * @throws DoesNotExistException wenn es den Einzug nicht (mehr) gibt
 	 * @throws \InvalidArgumentException wenn er schon abgeschlossen ist

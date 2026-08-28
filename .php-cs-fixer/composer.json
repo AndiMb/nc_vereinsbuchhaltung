@@ -1,0 +1,11 @@
+{
+	"description": "Nur der Nextcloud-Coding-Standard (php-cs-fixer) fuer die Formatpruefung. Bewusst ein eigenes composer-Projekt ausserhalb der App - dasselbe Muster wie .phpstan/: composer.json/lock der App bleiben leer, kein Fremdcode geraet ins Release-Tarball.",
+	"require-dev": {
+		"nextcloud/coding-standard": "^1.2"
+	},
+	"config": {
+		"platform": {
+			"php": "8.1.0"
+		}
+	}
+}

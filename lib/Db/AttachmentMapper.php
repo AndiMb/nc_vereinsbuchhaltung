@@ -41,7 +41,7 @@ class AttachmentMapper extends QBMapper {
 	/**
 	 * Anzahl der Anhänge je Journal-ID sowie die ID des ersten Anhangs (für Direktlinks).
 	 *
-	 * @return array<int, array{count: int, firstId: int}>  journalId => {count, firstId}
+	 * @return array<int, array{count: int, firstId: int}> journalId => {count, firstId}
 	 */
 	public function countByUser(string $userId): array {
 		$qb = $this->db->getQueryBuilder();
@@ -55,7 +55,7 @@ class AttachmentMapper extends QBMapper {
 		$out = [];
 		while (($row = $res->fetch()) !== false) {
 			$out[(int)$row['journal_id']] = [
-				'count'   => (int)$row['cnt'],
+				'count' => (int)$row['cnt'],
 				'firstId' => (int)$row['first_id'],
 			];
 		}

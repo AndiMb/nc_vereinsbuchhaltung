@@ -66,7 +66,7 @@ class SepaBatchItemMapper extends QBMapper {
 	 * mit "heute + 14 Tage" verglichen, wodurch jeder Einzug mit kürzerem
 	 * Vorlauf nie eine Ankündigung bekam – siehe SepaNotificationService.
 	 *
-	 * @param string $from  ab wann (i. d. R. heute – Vergangenes ist erledigt)
+	 * @param string $from ab wann (i. d. R. heute – Vergangenes ist erledigt)
 	 * @param string $until bis wann (i. d. R. heute + Vorlaufzeit)
 	 * @return SepaBatchItem[]
 	 */

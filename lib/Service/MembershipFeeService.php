@@ -73,9 +73,9 @@ class MembershipFeeService {
 
 	/**
 	 * @param string|null $nextDueDate korrigierte nächste Fälligkeit; ohne
-	 *        Angabe bleibt die bisherige stehen. Korrigierbar, weil ein
-	 *        vertipptes Startdatum sonst nur durch Löschen und Neuanlegen aus
-	 *        der Welt zu schaffen wäre – und damit auch die Historie.
+	 *                                 Angabe bleibt die bisherige stehen. Korrigierbar, weil ein
+	 *                                 vertipptes Startdatum sonst nur durch Löschen und Neuanlegen aus
+	 *                                 der Welt zu schaffen wäre – und damit auch die Historie.
 	 * @throws DoesNotExistException wenn es den Beitrag nicht (mehr) gibt
 	 */
 	public function update(

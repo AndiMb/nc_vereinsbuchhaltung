@@ -87,7 +87,7 @@ class JournalService {
 	 * Fall hinter {@see self::createBooking()}, den eine Splittbuchung braucht.
 	 *
 	 * @param array<int, array{accountId:int, debitCents:int, creditCents:int}> $lines
-	 *        geprüft mit {@see self::validateLines()}
+	 *                                                                                 geprüft mit {@see self::validateLines()}
 	 * @param int|null $entryNo vorgegebene Buchungsnummer (z.B. beim Massenimport)
 	 * @param bool $audit Einzeleintrag im Änderungsprotokoll
 	 * @throws \InvalidArgumentException wenn die Zeilen nicht ausgeglichen sind
@@ -158,8 +158,8 @@ class JournalService {
 
 	/**
 	 * @param string|null $expectedUpdatedAt updatedAt-Stand, den der Client beim
-	 *        Laden gesehen hat (optimistisches Locking); weicht er vom aktuellen
-	 *        Stand ab, hat zwischenzeitlich jemand anderes gespeichert.
+	 *                                       Laden gesehen hat (optimistisches Locking); weicht er vom aktuellen
+	 *                                       Stand ab, hat zwischenzeitlich jemand anderes gespeichert.
 	 * @throws ConflictException bei zwischenzeitlicher Fremdänderung
 	 */
 	public function updateBooking(

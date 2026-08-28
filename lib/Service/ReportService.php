@@ -31,7 +31,6 @@ class ReportService {
 	 */
 	private const WIRTSCHAFTLICH_FREIGRENZE_CENTS = 4500000;
 
-
 	public function __construct(
 		private AccountMapper $accountMapper,
 		private JournalLineMapper $lineMapper,

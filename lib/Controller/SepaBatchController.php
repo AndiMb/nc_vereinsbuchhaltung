@@ -37,7 +37,7 @@ class SepaBatchController extends Controller {
 
 	/**
 	 * @param string|null $executionDate geplanter Fälligkeitstag; nur bis dahin
-	 *        fällige Posten kommen mit. Ohne Angabe der Vorschlagstermin.
+	 *                                   fällige Posten kommen mit. Ohne Angabe der Vorschlagstermin.
 	 */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]

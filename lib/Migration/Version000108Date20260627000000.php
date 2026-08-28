@@ -24,9 +24,9 @@ class Version000108Date20260627000000 extends SimpleMigrationStep {
 			$table = $schema->getTable('vbh_attachments');
 			if ($table->hasColumn('uploaded_at')) {
 				$table->changeColumn('uploaded_at', [
-					'type'    => Type::getType(Types::DATETIME),
+					'type' => Type::getType(Types::DATETIME),
 					'notnull' => true,
-					'length'  => null,
+					'length' => null,
 				]);
 			}
 		}

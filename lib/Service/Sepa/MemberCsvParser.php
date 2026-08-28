@@ -135,13 +135,13 @@ class MemberCsvParser {
 
 	/**
 	 * @param int|null $defaultAmountCents Standard-Beitrag (Einstellungen ->
-	 *        Beiträge & SEPA), fuer Zeilen mit Start-Datum, aber ohne eigenen
-	 *        Betrag - siehe parseRow(). Null bedeutet: kein Standardbeitrag
-	 *        hinterlegt, Verhalten wie zuvor.
+	 *                                     Beiträge & SEPA), fuer Zeilen mit Start-Datum, aber ohne eigenen
+	 *                                     Betrag - siehe parseRow(). Null bedeutet: kein Standardbeitrag
+	 *                                     hinterlegt, Verhalten wie zuvor.
 	 * @param string|null $defaultFrequency Frequenz dazu, siehe BillingPeriod::FREQUENCY_MONTHS.
 	 * @return array{rows: list<ParsedRow>, error: ?string} `error` ist gesetzt,
-	 *         wenn schon die Datei als Ganzes unbrauchbar ist (keine Kopfzeile,
-	 *         keine erkennbare Spalte) – dann ist `rows` leer.
+	 *                                                      wenn schon die Datei als Ganzes unbrauchbar ist (keine Kopfzeile,
+	 *                                                      keine erkennbare Spalte) – dann ist `rows` leer.
 	 */
 	public function parse(string $csv, ?int $defaultAmountCents = null, ?string $defaultFrequency = null): array {
 		$lines = $this->splitLines($csv);

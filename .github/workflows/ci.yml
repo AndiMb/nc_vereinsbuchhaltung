@@ -28,6 +28,9 @@ jobs:
       - name: ESLint
         run: npm run lint
 
+      - name: Stylelint
+        run: npm run stylelint
+
       - name: Unit-Tests (Vitest)
         # Deckt die zustandslosen Module unter src/lib ab. Der Rest des
         # Frontends braucht eine laufende Nextcloud-Instanz und gehoert in
@@ -93,6 +96,28 @@ jobs:
 
       - name: PHPStan
         run: .phpstan/vendor/bin/phpstan analyse --no-progress
+
+  coding-standard:
+    name: php-cs-fixer (Nextcloud-Coding-Standard)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          tools: composer
+          coverage: none
+
+      - name: Werkzeug holen
+        # Eigenes composer-Projekt unter .php-cs-fixer/, per composer.lock
+        # fixiert - dasselbe Muster wie .phpstan/ und aus demselben Grund:
+        # die composer.json der App bleibt leer, und CI wie lokale Laeufe
+        # pruefen mit derselben Werkzeug-Version.
+        run: composer install --working-dir=.php-cs-fixer --no-interaction --no-progress
+
+      - name: Formatpruefung
+        run: .php-cs-fixer/vendor/bin/php-cs-fixer fix --dry-run --diff
 
   appinfo:
     name: info.xml gegen App-Store-Schema

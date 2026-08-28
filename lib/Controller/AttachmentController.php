@@ -19,7 +19,6 @@ use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\DataDownloadResponse;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\EmptyContentSecurityPolicy;
-use OCP\Files\NotFoundException;
 use OCP\IL10N;
 use OCP\IRequest;
 
