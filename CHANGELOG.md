@@ -17,7 +17,7 @@ als „[object Object]" (falsche Renderer-Callback-Signatur, Nextcloud-
 Core-Bug, reproduziert 23.08.2026). Stattdessen **Fettdruck als Zeilenanfang**
 verwenden, z. B. `**Neu:**`.
 
-## [Unreleased]
+## [0.29.0] – 2026-08-30
 
 **Geändert:**
 - **Aus „Kostenstelle" wird „Auswertungsgruppe".** Der Bericht, der Knopf
@@ -78,6 +78,21 @@ verwenden, z. B. `**Neu:**`.
   Nutzerliste – sie wurde zwar weiterhin geladen, aber nicht mehr an die
   beiden Abschnitte durchgereicht. Belege konnten dadurch nicht mehr im Ordner
   eines Nutzers abgelegt und der Wachordner nicht mehr eingerichtet werden.
+
+- **Unlesbare Beschriftungen und falsch eingefärbte Knöpfe.** Die App
+  verwendete Nextclouds helle Status-Flächentöne als Schrift- und Akzentfarbe:
+  „Ausgabe" im Buchungsdialog stand weiß auf Blassrosa, die Restanzeige beim
+  Aufteilen war kaum lesbar, Randmarker und Warnstreifen verblassten zu
+  Pastelltönen. Das dunkle Design hing außerdem an der
+  Betriebssystem-Einstellung statt an der Wahl im Nextcloud-Profil – wer dort
+  „Dunkles Design" wählte, während das System hell stand, bekam helle Farben
+  auf dunklem Grund. Und mehrere Knöpfe der App (der
+  Einnahme/Ausgabe-Umschalter, die Checklisten-Verweise, „Überspringen", die
+  Vorschlags-Chips) wurden von Nextclouds allgemeiner Knopf-Regel blau
+  eingefärbt. Ein automatisierter Kontrastdurchlauf über zwölf Ansichten in
+  hellem und dunklem Design fand vorher neun Verstöße gegen WCAG AA, danach
+  keinen; auch Nextclouds Kontrast-Designs werden jetzt korrekt übernommen.
+  Zwei überflüssige Trennlinien im Kopfbereich sind nebenbei entfallen.
 
 ## [0.28.0] – 2026-08-24
 

@@ -15,7 +15,7 @@ Markdown headings as "[object Object]" since `marked` v18 (wrong renderer
 callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 **bold lead-in** at the start of a line instead, e.g. `**New:**`.
 
-## [Unreleased]
+## [0.29.0] – 2026-08-30
 
 **Changed:**
 - **"Cost center" is now "reporting group".** The report, the *Manage
@@ -71,6 +71,20 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   the list was still being loaded, but no longer passed on to those two
   sections. As a result, receipts could no longer be stored in a user's folder
   and the watched folder could not be set up.
+
+- **Illegible labels and wrongly coloured buttons.** The app used Nextcloud's
+  light status background tones as text and accent colours: "Expense" in the
+  posting dialog was white on pale pink, the remainder shown while splitting
+  was barely readable, edge markers and warning stripes faded to pastels. The
+  dark theme was also tied to the operating system setting instead of the
+  choice in the Nextcloud profile – picking "Dark theme" there while the
+  system was light produced light colours on a dark background. And several
+  of the app's buttons (the income/expense toggle, the checklist links,
+  "Skip", the suggestion chips) were painted blue by Nextcloud's generic
+  button rule. An automated contrast sweep across twelve views in light and
+  dark theme found nine WCAG AA violations before and none after; Nextcloud's
+  high-contrast themes are now picked up correctly as well. Two superfluous
+  separator lines in the header area are gone, too.
 
 ## [0.28.0] – 2026-08-24
 
