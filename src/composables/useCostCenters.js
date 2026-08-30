@@ -25,7 +25,7 @@ async function loadCostCenters() {
 		state.costCenters = data
 		return data
 	} catch (e) {
-		showError(errMsg(e, 'Kostenstellen konnten nicht geladen werden'))
+		showError(errMsg(e, 'Auswertungsgruppen konnten nicht geladen werden'))
 		return null
 	}
 }

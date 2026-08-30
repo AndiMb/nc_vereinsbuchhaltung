@@ -17,6 +17,29 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+**Changed:**
+- **"Cost center" is now "reporting group".** The report, the *Manage
+  reporting groups* button, the field in the account dialog, all messages,
+  the in-app help and the manual now use this term; in German
+  *Auswertungsgruppe*. The trigger was a question from an accountant (issue
+  #7): in cost accounting, a cost center is a **second dimension on each
+  posting line** – an amount is allocated across cost centers independently of
+  the account it is posted to. This app does something else: it groups
+  **accounts**, and an account belongs to at most one group. The old name
+  therefore promised a capability that does not exist – and strictly speaking
+  there is no such thing as a result per cost center anyway, because a cost
+  center carries costs, not income.
+  **Nothing about the functionality changes**: the same three groupings, the
+  same assignments, the same figures. Groups you created, their codes and
+  names are kept unchanged; no conversion is needed. To split one amount
+  across two groups, you still create two accounts for it (ideally as
+  sub-accounts of a shared parent) and split the posting across them with
+  *Split…*; manual chapter 5.4 now says so explicitly.
+  Internally everything stays as it was – table `vbh_costcenters`, column
+  `cost_center_id`, setting `cost_center_mode` and the `/api/costcenters`
+  route are unchanged, and there is no migration. Older entries in the audit
+  log keep their original wording.
+
 **Fixed:**
 - **A deleted collecting account blocked the entire settings page.** If a
   collecting account had been selected under "Contributions & SEPA" and the

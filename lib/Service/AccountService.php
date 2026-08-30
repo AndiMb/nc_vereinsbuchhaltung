@@ -234,7 +234,7 @@ class AccountService {
 			'isBank' => $this->l10n->t('Geldkonto-Kennzeichen'),
 			'sphere' => $this->l10n->t('Sphäre'),
 			'reserveKind' => $this->l10n->t('Rücklagen-Art'),
-			'costCenterId' => $this->l10n->t('Kostenstelle'),
+			'costCenterId' => $this->l10n->t('Auswertungsgruppe'),
 			default => $field,
 		};
 	}

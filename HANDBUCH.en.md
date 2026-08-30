@@ -327,7 +327,7 @@ into the last row.
 
 Example: an incoming payment of €250.00 from Ms. Meier → €180.00 to
 *Membership fees*, €70.00 to *Donations*. This creates **one** posting with
-three lines; in the treasurer's report and the cost-center report, both
+three lines; in the treasurer's report and the reporting-group report, both
 amounts appear separately.
 
 > A split transaction shows "Split across several accounts" in the list
@@ -462,41 +462,52 @@ and credit can never drift apart. Postings from a closed fiscal year cannot
 be rebooked, and every rebooking is recorded in the **change log** with the
 source and target account.
 
-### 5.4 Cost centers
+### 5.4 Reporting groups
 
-**Reports → Cost centers** tab. Income, expenses and the result per
-**cost center** (e.g. departments, projects, events) with drill-down down
+**Reports → Reporting groups** tab. Income, expenses and the result per
+**reporting group** (e.g. departments, projects, events) with drill-down down
 to individual postings. Names can be adjusted directly here.
 
-How the app groups accounts into cost centers is decided by the
-**cost-center mode** (the "grouping" selector in the report header,
+> **A reporting group bundles accounts – it is not a second dimension on the
+> posting.** Every account belongs to at most one group, so a single amount
+> cannot be distributed across several groups. To split €1,000 for jerseys
+> between two teams, create two accounts for it (ideally as sub-accounts of a
+> shared "Equipment" account), assign each to its group, and split the posting
+> across them with **"Split…"** or *Split amount* – see chapter 4.1. In the
+> trial balance, *including sub-accounts* rolls the children back up into one
+> total. Up to version 0.28.0 a reporting group was called a "cost center";
+> that term was dropped deliberately, because in cost accounting a cost center
+> is precisely the per-line second dimension that this app does not keep.
+
+How the app groups accounts into reporting groups is decided by the
+**reporting-group mode** (the "grouping" selector in the report header,
 administrators only; described further below in this chapter):
 
-| Mode | Cost center is … | Fits when … |
+| Mode | Reporting group is … | Fits when … |
 |---|---|---|
-| 2nd digit group of the account number | the second digit group, e.g. `111 51 2021` → `51` | the chart of accounts carries the cost center in the number |
+| 2nd digit group of the account number | the second digit group, e.g. `111 51 2021` → `51` | the chart of accounts carries the reporting group in the number |
 | Each account its own | the account itself | every income/expense account should be evaluated on its own |
-| **Freely defined cost centers** | the cost center stored on the account | the cost center doesn't follow from the account number |
+| **Freely defined reporting groups** | the reporting group stored on the account | the reporting group doesn't follow from the account number |
 
 The third mode makes no assumption about the chart of accounts: cost
-centers are created via the **"Manage cost centers"** button top right in
-the **Reports → Cost centers** report (code + name) and accounts are
+centers are created via the **"Manage reporting groups"** button top right in
+the **Reports → Reporting groups** report (code + name) and accounts are
 explicitly assigned to them (administrators/bookkeepers only, changing the
 mode itself administrators only) – this way even accounts with completely
 different numbers can be bundled into one project. Assignment works two
 ways:
 
 - individually in the **account dialog** (Accounts tab → edit account →
-  *Cost center*); a new sub-account takes over the cost center of its
+  *Reporting group*); a new sub-account takes over the reporting group of its
   parent account,
-- for many accounts at once in the **"Manage cost centers"** dialog (check
-  boxes, choose the cost center, *Assign*). At the "– unassigned" tree row,
+- for many accounts at once in the **"Manage reporting groups"** dialog (check
+  boxes, choose the reporting group, *Assign*). At the "– unassigned" tree row,
   the *Assign accounts* button opens the same dialog directly.
 
-Cost centers that have been created appear in the report even before any
+Reporting groups that have been created appear in the report even before any
 account is assigned to them – so a forgotten assignment stands out. If a
-cost center is deleted, its accounts only lose the assignment; **postings
-remain unchanged**, a cost center itself doesn't carry any amounts.
+reporting group is deleted, its accounts only lose the assignment; **postings
+remain unchanged**, a reporting group itself doesn't carry any amounts.
 
 ### 5.5 Cash-account reconciliation
 
@@ -669,7 +680,7 @@ report. Importing *raw* bank transactions also still works – only the
 assignment would be blocked.
 
 Also locked are the **account properties that feed into the figures**:
-account type, bank-account flag, sphere, reserve type and cost center. This
+account type, bank-account flag, sphere, reserve type and reporting group. This
 only affects accounts that actually have postings in the closed year. The
 reason: turning an income account into an expense account flips the sign in
 every report – the treasurer's report of the closed year would look
@@ -790,11 +801,11 @@ On mobile devices (up to 640 px wide) the app automatically switches to a
 - **Bottom navigation bar** with the main tabs and a central **"+"
   button** for new postings.
 - **Cards instead of tables:** the journal (grouped by month), bank
-  transactions, trial balance, cost centers, account statement, as well as
+  transactions, trial balance, reporting groups, account statement, as well as
   – where used – the member list and fee collection (the "Contributions"
   tab, chapter 13), appear as cards instead of a wide table. Handy for a
   quick check during choir practice or a board meeting whether a fee was
-  collected. Accounts and cost centers have a list/detail view with a
+  collected. Accounts and reporting groups have a list/detail view with a
   "‹ Back" bar.
 - **Selection sheet for accounts/categories:** instead of a dropdown, a
   searchable sheet opens from the bottom. It remembers the **"recently
@@ -1090,7 +1101,7 @@ This only applies to cash accounts (bank flag).
   year-end closing they become final and no longer change.
 - **Opening balance** – the starting balance of an account (e.g. the
   account balance as of 01/01).
-- **Cost center** – a grouping (department, project), reported separately.
+- **Reporting group** – a grouping (department, project), reported separately.
 - **Finalization** – a closed, immutable fiscal year.
 - **Snapshot (plan snapshot)** – a frozen state of the financial plan at a
   point in time (e.g. "resolved at the general assembly").

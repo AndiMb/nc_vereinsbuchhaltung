@@ -20,6 +20,12 @@ import { isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.29.0',
+			items: [
+				t('Der Bericht „Kostenstellen" heißt jetzt „Auswertungsgruppen" – gleiche Funktion, treffenderer Name. Angelegte Gruppen und ihre Konto-Zuordnungen bleiben unverändert.'),
+			],
+		},
+		{
 			version: '0.28.0',
 			items: [
 				t('Steht Nextcloud auf Englisch, erscheint jetzt auch die Oberfläche der App auf Englisch – bisher blieb sie deutsch, weil das Übersetzungspaket nicht geladen werden konnte.'),

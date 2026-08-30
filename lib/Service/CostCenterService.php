@@ -14,6 +14,17 @@ use OCP\IL10N;
 /**
  * Frei definierbare Kostenstellen und ihre Zuordnung zu Konten.
  *
+ * ACHTUNG, Begriffe: nach außen heißt das Konzept seit 0.29.0
+ * **„Auswertungsgruppe"** (englisch „reporting group"). Intern – Klassen-,
+ * Methoden- und Spaltennamen, Tabelle `vbh_costcenters`, Einstellung
+ * `cost_center_mode`, Route `/api/costcenters` – bleibt es „costCenter",
+ * damit bestehende Installationen ohne Migration weiterlaufen. Umbenannt
+ * wurden nur sichtbare Texte, Hilfe und Handbuch. Der Grund für die
+ * Umbenennung: eine Kostenstelle im Sinne der Kosten- und Leistungsrechnung
+ * ist eine zweite Dimension *je Buchungszeile*, unabhängig vom Konto. Hier
+ * hängt sie am Konto und bündelt Konten – der alte Name versprach also etwas,
+ * was die App nicht leistet (siehe Issue #7).
+ *
  * Die App kannte Kostenstellen zunächst nur als Ableitung aus der Kontonummer
  * (zweite Zahlengruppe) oder als „ein Konto = eine Kostenstelle". Beides passt
  * jeweils nur zu einem bestimmten Kontenrahmen. Hier werden Kostenstellen
@@ -48,14 +59,14 @@ class CostCenterService {
 		$code = $this->validateCode($code);
 		$name = $this->validateName($name);
 		if ($this->mapper->findByCode($userId, $code) !== null) {
-			throw new \InvalidArgumentException($this->l10n->t('Es gibt bereits eine Kostenstelle mit dem Kürzel „%s".', [$code]));
+			throw new \InvalidArgumentException($this->l10n->t('Es gibt bereits eine Auswertungsgruppe mit dem Kürzel „%s".', [$code]));
 		}
 		$cc = new CostCenter();
 		$cc->setUserId($userId);
 		$cc->setCode($code);
 		$cc->setName($name);
 		$cc = $this->mapper->insert($cc);
-		$this->audit->log('Kostenstelle angelegt', 'costcenter', $cc->getId(), [
+		$this->audit->log('Auswertungsgruppe angelegt', 'costcenter', $cc->getId(), [
 			'code' => $code,
 			'name' => $name,
 		]);
@@ -71,12 +82,12 @@ class CostCenterService {
 		$cc = $this->mapper->find($id, $userId);
 		$other = $this->mapper->findByCode($userId, $code);
 		if ($other !== null && $other->getId() !== $cc->getId()) {
-			throw new \InvalidArgumentException($this->l10n->t('Es gibt bereits eine Kostenstelle mit dem Kürzel „%s".', [$code]));
+			throw new \InvalidArgumentException($this->l10n->t('Es gibt bereits eine Auswertungsgruppe mit dem Kürzel „%s".', [$code]));
 		}
 		$cc->setCode($code);
 		$cc->setName($name);
 		$cc = $this->mapper->update($cc);
-		$this->audit->log('Kostenstelle geändert', 'costcenter', $cc->getId(), [
+		$this->audit->log('Auswertungsgruppe geändert', 'costcenter', $cc->getId(), [
 			'code' => $code,
 			'name' => $name,
 		]);
@@ -96,7 +107,7 @@ class CostCenterService {
 			$cc = $this->mapper->find($id, $userId);
 			$detached = $this->accountMapper->clearCostCenter($userId, $id);
 			$this->mapper->delete($cc);
-			$this->audit->log('Kostenstelle gelöscht', 'costcenter', $id, [
+			$this->audit->log('Auswertungsgruppe gelöscht', 'costcenter', $id, [
 				'code' => $cc->getCode(),
 				'name' => $cc->getName(),
 				'konten' => $detached,
@@ -130,7 +141,7 @@ class CostCenterService {
 			$this->accountMapper->update($account);
 			$count++;
 		}
-		$this->audit->log('Kostenstellen zugeordnet', 'costcenter', $target?->getId(), [
+		$this->audit->log('Auswertungsgruppen zugeordnet', 'costcenter', $target?->getId(), [
 			'anzahl' => $count,
 			'kostenstelle' => $target !== null ? $target->getCode() . ' ' . $target->getName() : '(keine)',
 		]);
@@ -150,14 +161,14 @@ class CostCenterService {
 		try {
 			return $this->mapper->find($costCenterId, $userId)->getId();
 		} catch (DoesNotExistException) {
-			throw new \InvalidArgumentException($this->l10n->t('Kostenstelle nicht gefunden.'));
+			throw new \InvalidArgumentException($this->l10n->t('Auswertungsgruppe nicht gefunden.'));
 		}
 	}
 
 	private function validateCode(string $code): string {
 		$code = trim($code);
 		if ($code === '') {
-			throw new \InvalidArgumentException($this->l10n->t('Das Kürzel der Kostenstelle ist Pflicht.'));
+			throw new \InvalidArgumentException($this->l10n->t('Das Kürzel der Auswertungsgruppe ist Pflicht.'));
 		}
 		if (mb_strlen($code) > self::CODE_MAX) {
 			throw new \InvalidArgumentException($this->l10n->t('Das Kürzel darf höchstens %d Zeichen lang sein.', [self::CODE_MAX]));
@@ -168,7 +179,7 @@ class CostCenterService {
 	private function validateName(string $name): string {
 		$name = trim($name);
 		if ($name === '') {
-			throw new \InvalidArgumentException($this->l10n->t('Der Name der Kostenstelle ist Pflicht.'));
+			throw new \InvalidArgumentException($this->l10n->t('Der Name der Auswertungsgruppe ist Pflicht.'));
 		}
 		return mb_substr($name, 0, 255);
 	}

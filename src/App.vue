@@ -1890,7 +1890,7 @@ export default {
 		async saveRename() {
 			const cc = this.selectedCC
 			if (!cc || !cc.code) { return }
-			try { await api.renameCostCenter(cc.code, this.renameName); await this.loadReport(); showSuccess(this.t('Kostenstelle umbenannt.')) } catch (e) { showError(this.errMsg(e, this.t('Umbenennen fehlgeschlagen'))) }
+			try { await api.renameCostCenter(cc.code, this.renameName); await this.loadReport(); showSuccess(this.t('Auswertungsgruppe umbenannt.')) } catch (e) { showError(this.errMsg(e, this.t('Umbenennen fehlgeschlagen'))) }
 		},
 
 		// --- Finanzplan / Budget ---

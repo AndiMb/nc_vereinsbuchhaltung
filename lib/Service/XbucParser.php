@@ -91,7 +91,7 @@ class XbucParser {
 				$code = trim($this->decode((string)$k->ID));
 				$name = $this->decode((string)$k->Bezeichnung);
 				if ($code !== '') {
-					$costCenters[] = ['code' => mb_substr($code, 0, 8), 'name' => mb_substr($name !== '' ? $name : ('Kostenstelle ' . $code), 0, 255)];
+					$costCenters[] = ['code' => mb_substr($code, 0, 8), 'name' => mb_substr($name !== '' ? $name : ('Auswertungsgruppe ' . $code), 0, 255)];
 				}
 			}
 		}

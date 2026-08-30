@@ -6,7 +6,7 @@
 					{{ t('Auswertung') }}
 				</button>
 				<button :class="{ active: reportView === 'costcenters' }" @click="$emit('update:report-view', 'costcenters')">
-					{{ t('Kostenstellen') }}
+					{{ t('Auswertungsgruppen') }}
 				</button>
 				<button :class="{ active: reportView === 'spheres' }" @click="$emit('update:report-view', 'spheres')">
 					{{ t('Sphären') }}
@@ -130,7 +130,7 @@
 					variant="secondary"
 					size="small"
 					@click="ccPanelOpen = true">
-					{{ t('Kostenstellen verwalten') }}
+					{{ t('Auswertungsgruppen verwalten') }}
 				</NcButton>
 				<NcButton
 					v-if="canWrite && reportView === 'spheres'"
@@ -281,7 +281,7 @@
 			<div v-show="reportView === 'costcenters'" class="vbh-splitinner" :class="{ 'vbh-drill': isMobile }">
 				<div v-if="!isMobile || !selectedCC" class="vbh-tree">
 					<div class="vbh-treehead">
-						<strong>{{ t('Kostenstellen') }}</strong>
+						<strong>{{ t('Auswertungsgruppen') }}</strong>
 					</div>
 					<div v-if="reportData" class="vbh-ccsummary">
 						<span>{{ t('Gesamtergebnis') }}</span>
@@ -307,11 +307,11 @@
 				<div v-if="!isMobile || selectedCC" class="vbh-detail">
 					<div v-if="isMobile" class="vbh-backbar">
 						<button type="button" class="vbh-backbtn" @click="$emit('update:selected-c-c-code', false)">
-							{{ t('‹ Kostenstellen') }}
+							{{ t('‹ Auswertungsgruppen') }}
 						</button>
 					</div>
 					<p v-if="!selectedCC" class="vbh-empty vbh-detailhint">
-						{{ t('Kostenstelle links auswählen.') }}
+						{{ t('Auswertungsgruppe links auswählen.') }}
 					</p>
 					<template v-else>
 						<div class="vbh-detailhead">
@@ -448,7 +448,7 @@
 							</table>
 						</div>
 						<p v-else class="vbh-empty">
-							{{ t('Keine Buchungen mit Betrag in dieser Kostenstelle.') }}
+							{{ t('Keine Buchungen mit Betrag in dieser Auswertungsgruppe.') }}
 						</p>
 					</template>
 				</div>
@@ -863,7 +863,7 @@
 			@close="ccPanelOpen = false">
 			<div class="vbh-modal-inner">
 				<h2 id="vbh-modal-title-costcenters" class="vbh-modal-title">
-					{{ t('Kostenstellen verwalten') }}
+					{{ t('Auswertungsgruppen verwalten') }}
 				</h2>
 				<CostCenterPanel :mode="costCenterMode" @changed="$emit('cost-centers-changed')" />
 			</div>

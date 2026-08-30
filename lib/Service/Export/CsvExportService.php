@@ -380,7 +380,7 @@ class CsvExportService {
 	 */
 	private function costCenterMatrix(string $userId, array $years, array $header): string {
 		$csv = self::line(array_fill(0, count($years) + 1, ''));
-		$csv .= self::line(['Auswertung nach Kostenstellen / Projekten (Ergebnis)']);
+		$csv .= self::line(['Ergebnis je Auswertungsgruppe (Abteilung, Projekt, Veranstaltung)']);
 		$csv .= self::line($header);
 
 		$resultByKey = [];
@@ -403,7 +403,7 @@ class CsvExportService {
 			}
 			$csv .= self::line($cells);
 		}
-		$sumCells = ['Summe Kostenstellen'];
+		$sumCells = ['Summe Auswertungsgruppen'];
 		foreach ($years as $y) {
 			$sumCells[] = ReportFormat::money($totals[$y]);
 		}

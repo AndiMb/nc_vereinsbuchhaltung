@@ -333,7 +333,7 @@ sich erst, wenn die Aufteilung aufgeht – so kann kein Betrag verloren gehen.
 
 Beispiel: 250,00 € Eingang von Frau Meier → 180,00 € auf *Mitgliedsbeiträge*,
 70,00 € auf *Spenden*. Daraus entsteht **eine** Buchung mit drei Zeilen; im
-Kassenbericht und in der Kostenstellenauswertung erscheinen beide Beträge
+Kassenbericht und in der Auswertung nach Gruppen erscheinen beide Beträge
 getrennt.
 
 > Ein aufgeteilter Umsatz zeigt in der Liste „Aufgeteilt auf mehrere Konten"
@@ -470,41 +470,54 @@ Haben können also nicht auseinanderlaufen. Buchungen aus einem
 abgeschlossenen Geschäftsjahr lassen sich nicht umbuchen, und jede Umbuchung
 steht mit Herkunfts- und Zielkonto im **Änderungsprotokoll**.
 
-### 5.4 Kostenstellen
+### 5.4 Auswertungsgruppen
 
-Tab **Berichte → Kostenstellen**. Einnahmen, Ausgaben und das Ergebnis je
-**Kostenstelle** (z. B. Abteilungen, Projekte, Veranstaltungen) mit
+Tab **Berichte → Auswertungsgruppen**. Einnahmen, Ausgaben und das Ergebnis je
+**Auswertungsgruppe** (z. B. Abteilungen, Projekte, Veranstaltungen) mit
 Drilldown bis zu den einzelnen Buchungen. Namen lassen sich direkt hier
 anpassen.
 
-Wie die App die Konten zu Kostenstellen zusammenfasst, entscheidet der
-**Kostenstellen-Modus** (Auswahl „Gruppierung" in der Kopfzeile des Berichts,
+> **Eine Auswertungsgruppe fasst Konten zusammen – sie ist keine zweite
+> Dimension der Buchung.** Jedes Konto gehört zu höchstens einer Gruppe; ein
+> einzelner Betrag lässt sich deshalb nicht auf mehrere Gruppen verteilen.
+> Wer 1.000 € für Trikots auf zwei Mannschaften aufteilen möchte, legt dafür
+> zwei Konten an (am besten als Unterkonten eines gemeinsamen Kontos
+> „Trikots"), ordnet jedes seiner Gruppe zu und teilt die Buchung mit
+> **„Aufteilen…"** bzw. *Betrag aufteilen* darauf auf – siehe Kapitel 4.1. In
+> der Saldenliste lassen sich die Unterkonten mit *inkl. Unterkonten* wieder
+> zur Gesamtsumme zusammenziehen. Bis Version 0.28.0 hieß die
+> Auswertungsgruppe „Kostenstelle"; der Begriff ist bewusst aufgegeben worden,
+> weil eine Kostenstelle in der Kosten- und Leistungsrechnung genau jene
+> zweite Dimension je Buchungszeile bezeichnet, die die App nicht führt.
+
+Wie die App die Konten zu Auswertungsgruppen zusammenfasst, entscheidet der
+**Auswertungsgruppen-Modus** (Auswahl „Gruppierung" in der Kopfzeile des Berichts,
 nur Verwalter; weiter unten in diesem Kapitel beschrieben):
 
-| Modus | Kostenstelle ist … | Passt, wenn … |
+| Modus | Auswertungsgruppe ist … | Passt, wenn … |
 |---|---|---|
-| 2. Zahlengruppe der Kontonummer | die zweite Zahlengruppe, z. B. `111 51 2021` → `51` | der Kontenrahmen die Kostenstelle in der Nummer trägt |
+| 2. Zahlengruppe der Kontonummer | die zweite Zahlengruppe, z. B. `111 51 2021` → `51` | der Kontenrahmen die Auswertungsgruppe in der Nummer trägt |
 | Jedes Konto eine eigene | das Konto selbst | jedes Einnahmen-/Ausgabenkonto für sich ausgewertet werden soll |
-| **Frei definierte Kostenstellen** | die am Konto hinterlegte Kostenstelle | die Kostenstelle sich nicht aus der Kontonummer ergibt |
+| **Frei definierte Auswertungsgruppen** | die am Konto hinterlegte Auswertungsgruppe | die Auswertungsgruppe sich nicht aus der Kontonummer ergibt |
 
-Der dritte Modus macht keine Annahme über den Kontenrahmen: Kostenstellen
-werden über den Button **„Kostenstellen verwalten"** oben rechts im Bericht
-**Berichte → Kostenstellen** angelegt (Kürzel + Name) und Konten ihnen
+Der dritte Modus macht keine Annahme über den Kontenrahmen: Auswertungsgruppen
+werden über den Button **„Auswertungsgruppen verwalten"** oben rechts im Bericht
+**Berichte → Auswertungsgruppen** angelegt (Kürzel + Name) und Konten ihnen
 ausdrücklich zugeordnet (nur Verwalter/Buchhalter, Moduswechsel selbst nur
 Verwalter) – so lassen sich auch Konten mit ganz unterschiedlichen Nummern zu
 einem Projekt bündeln. Zuordnen geht auf zwei Wegen:
 
-- einzeln im **Konto-Dialog** (Tab Konten → Konto bearbeiten → *Kostenstelle*);
-  ein neues Unterkonto übernimmt die Kostenstelle seines Überkontos,
-- für viele Konten auf einmal im Dialog **„Kostenstellen verwalten"**
-  (ankreuzen, Kostenstelle wählen, *Zuweisen*). Bei der Baumzeile
+- einzeln im **Konto-Dialog** (Tab Konten → Konto bearbeiten → *Auswertungsgruppe*);
+  ein neues Unterkonto übernimmt die Auswertungsgruppe seines Überkontos,
+- für viele Konten auf einmal im Dialog **„Auswertungsgruppen verwalten"**
+  (ankreuzen, Auswertungsgruppe wählen, *Zuweisen*). Bei der Baumzeile
   „– nicht zugeordnet" öffnet der Button *Konten zuordnen* direkt denselben
   Dialog.
 
-Angelegte Kostenstellen erscheinen im Bericht auch dann, wenn ihnen noch kein
+Angelegte Auswertungsgruppen erscheinen im Bericht auch dann, wenn ihnen noch kein
 Konto zugeordnet ist – so fällt eine vergessene Zuordnung auf. Wird eine
-Kostenstelle gelöscht, verlieren ihre Konten nur die Zuordnung; **Buchungen
-bleiben unverändert**, eine Kostenstelle trägt selbst keine Beträge.
+Auswertungsgruppe gelöscht, verlieren ihre Konten nur die Zuordnung; **Buchungen
+bleiben unverändert**, eine Auswertungsgruppe trägt selbst keine Beträge.
 
 ### 5.5 Geldkonten-Abstimmung
 
@@ -599,7 +612,7 @@ Download-Buttons (Pfeil-nach-unten-Symbol):
 - **Saldenliste**
 - **Einnahmen-/Ausgaben-Übersicht**
 - **Soll-Ist-Vergleich** (Finanzplan, inkl. Notizen)
-- **Mehrjahresübersicht** (Matrix: Erfolgsrechnung + Vermögen + Kostenstellen
+- **Mehrjahresübersicht** (Matrix: Erfolgsrechnung + Vermögen + Auswertungsgruppen
   + steuerliche Sphären über alle Jahre)
 
 Die CSV-Dateien eignen sich für die Weitergabe an Steuerberatung oder
@@ -681,7 +694,7 @@ Zuordnung wäre gesperrt.
 
 Gesperrt sind außerdem die **Eigenschaften eines Kontos, die in die Zahlen
 eingehen**: Kontoart, Geldkonto-Kennzeichen, Sphäre, Rücklagen-Art und
-Kostenstelle. Das betrifft nur Konten, die im abgeschlossenen Jahr auch
+Auswertungsgruppe. Das betrifft nur Konten, die im abgeschlossenen Jahr auch
 tatsächlich bebucht sind. Der Grund: Aus einem Einnahmekonto ein
 Ausgabekonto zu machen, dreht das Vorzeichen in allen Auswertungen – der
 Kassenbericht des abgeschlossenen Jahres sähe hinterher anders aus, ohne
@@ -806,11 +819,11 @@ Auf Mobilgeräten (bis 640 px Breite) schaltet die App automatisch in eine
 - **Untere Navigationsleiste** mit den Haupt-Tabs und einem zentralen
   **„+"-Knopf** für neue Buchungen.
 - **Karten statt Tabellen:** Journal (nach Monaten gruppiert), Bankbuchungen,
-  Saldenliste, Kostenstellen, Kontoauszug sowie – wo genutzt – die
+  Saldenliste, Auswertungsgruppen, Kontoauszug sowie – wo genutzt – die
   Mitgliederliste und der Einzug (Reiter „Beiträge", Kapitel 13) erscheinen
   als Karten statt als breite Tabelle. Praktisch, um in der Chorprobe oder
   Vorstandssitzung kurz nachzusehen, ob ein Beitrag abgebucht ist. Konten und
-  Kostenstellen haben eine Listen-/Detail-Ansicht mit „‹ Zurück"-Leiste.
+  Auswertungsgruppen haben eine Listen-/Detail-Ansicht mit „‹ Zurück"-Leiste.
 - **Auswahl-Sheet für Konten/Kategorien:** statt Dropdown öffnet ein
   durchsuchbares Sheet von unten. Es merkt sich die **„zuletzt verwendeten"**
   Konten (max. 5, gerätelokal) und schlägt Zuordnungen vor. Nach unten
@@ -1107,7 +1120,7 @@ nur Geldkonten (Bank-Flag).
   nicht mehr.
 - **Eröffnungssaldo** – Anfangsbestand eines Kontos (z. B. Kontostand zum
   01.01.).
-- **Kostenstelle** – eine Gruppierung (Abteilung, Projekt), getrennt
+- **Auswertungsgruppe** – eine Gruppierung (Abteilung, Projekt), getrennt
   ausgewiesen.
 - **Festschreibung** – ein abgeschlossenes, unveränderliches Geschäftsjahr.
 - **Snapshot (Plan-Stand)** – eingefrorener Stand des Finanzplans zu einem

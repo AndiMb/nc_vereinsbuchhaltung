@@ -53,7 +53,7 @@ class CostCenterController extends Controller {
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		} catch (DoesNotExistException) {
-			return new DataResponse(['message' => $this->l10n->t('Kostenstelle nicht gefunden')], Http::STATUS_NOT_FOUND);
+			return new DataResponse(['message' => $this->l10n->t('Auswertungsgruppe nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
 	}
 
@@ -63,7 +63,7 @@ class CostCenterController extends Controller {
 			$this->service->delete($id, $this->userId());
 			return new DataResponse([]);
 		} catch (DoesNotExistException) {
-			return new DataResponse(['message' => $this->l10n->t('Kostenstelle nicht gefunden')], Http::STATUS_NOT_FOUND);
+			return new DataResponse(['message' => $this->l10n->t('Auswertungsgruppe nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
 	}
 
@@ -79,7 +79,7 @@ class CostCenterController extends Controller {
 			$count = $this->service->assign($this->userId(), $accountIds, $costCenterId);
 			return new DataResponse(['updated' => $count]);
 		} catch (DoesNotExistException) {
-			return new DataResponse(['message' => $this->l10n->t('Kostenstelle nicht gefunden')], Http::STATUS_NOT_FOUND);
+			return new DataResponse(['message' => $this->l10n->t('Auswertungsgruppe nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
 	}
 }
