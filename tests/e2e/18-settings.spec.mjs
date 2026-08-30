@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { api, openSettingsPage, authHeaders, davUrl, BANK_ACCOUNT, BELEG_PNG, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
+import { api, openSettingsPage, authHeaders, davUrl, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, BELEG_PNG, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
 
 // Die Einstellungsseite (Nextcloud-Einstellungen → Vereinsbuchhaltung):
 // Belegablage von der internen Ablage auf den Ordner eines Nextcloud-Nutzers
@@ -11,14 +11,10 @@ test.describe('Einstellungsseite: Belegablage', () => {
 		await api.seedDefaultAccounts(request)
 		// Ausgangszustand ausdrücklich herstellen: interne Ablage. Die Seite
 		// speichert immer den ganzen Satz (SettingsApp::saveSettings()), also
-		// müssen auch die Felder anderer Specs gültig sein: resetBook() löscht
-		// die Konten, ein von 11-contributions hinterlassenes einziehendes
-		// Konto zeigte danach ins Leere und ließe jedes Speichern mit HTTP 400
-		// scheitern. Der Wachordner aus 17-watchfolder aus demselben Grund mit.
+		// muss auch der Wachordner aus 17-watchfolder gültig sein.
 		await api.updateSettings(request, {
 			storage_user: '',
 			storage_path: 'Vereinsbuchhaltung/Belege',
-			sepa_debtor_account_id: '',
 			statement_watch_user: '',
 			statement_watch_path: '',
 		})
@@ -73,5 +69,54 @@ test.describe('Einstellungsseite: Belegablage', () => {
 		const resp = await request.fetch(dav, { headers: authHeaders() })
 		expect(resp.status()).toBe(200)
 		expect((await resp.body()).length).toBe(BELEG_PNG.length)
+	})
+})
+
+// Das einziehende Konto zeigt als einzige Einstellung auf einen Datensatz der
+// App. Verwaist sie, darf das nicht die ganze Seite unspeicherbar machen –
+// die sendet immer den vollständigen Feldsatz.
+test.describe('Einstellungsseite: einziehendes Konto blockiert nichts', () => {
+	/** Frischer Kontenrahmen, Geldkonto mit IBAN als einziehendes gesetzt. */
+	async function seedDebtorAccount(request) {
+		await api.resetBook(request)
+		const accounts = await api.seedDefaultAccounts(request)
+		const bank = accounts.find((a) => a.number === BANK_ACCOUNT)
+		await api.updateAccount(request, bank.id, { iban: BANK_ACCOUNT_IBAN })
+		const saved = await (await api.updateSettings(request, { sepa_debtor_account_id: bank.id })).json()
+		expect(saved.sepa_debtor_account_id).toBe(bank.id)
+		return bank
+	}
+
+	test('„Alle Daten löschen" räumt das einziehende Konto mit ab', async ({ request }) => {
+		await seedDebtorAccount(request)
+
+		await api.resetBook(request)
+		expect((await api.getSettings(request)).sepa_debtor_account_id).toBeNull()
+	})
+
+	test('Löschen des Kontos selbst räumt die Einstellung ebenfalls ab', async ({ request }) => {
+		const bank = await seedDebtorAccount(request)
+
+		await api.deleteAccount(request, bank.id)
+		expect((await api.getSettings(request)).sepa_debtor_account_id).toBeNull()
+	})
+
+	test('ein nachträglich ungültiges Konto blockiert nur seine eigene Änderung', async ({ request }) => {
+		const bank = await seedDebtorAccount(request)
+		// Ohne IBAN lässt sich über das Konto nichts mehr einziehen.
+		await api.updateAccount(request, bank.id, { iban: '' })
+
+		// Unverändert mitgesendet, wie es die Seite tut: darf nicht stören.
+		const saved = await (await api.updateSettings(request, {
+			club_name: 'Trotzdem speicherbar e.V.',
+			sepa_debtor_account_id: bank.id,
+		})).json()
+		expect(saved.club_name).toBe('Trotzdem speicherbar e.V.')
+
+		// Es neu auszuwählen bleibt ein Fehler mit klarer Meldung.
+		await api.updateSettings(request, { sepa_debtor_account_id: '' })
+		const rejected = await api.updateSettings(request, { sepa_debtor_account_id: bank.id }, { expectOk: false })
+		expect(rejected.status()).toBe(400)
+		expect((await rejected.json()).message).toMatch(/IBAN/)
 	})
 })

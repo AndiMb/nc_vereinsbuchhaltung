@@ -40,6 +40,9 @@ export const CAMT_STATEMENT = {
 // Specs buchen.
 export const BANK_ACCOUNT = '1200'
 export const INCOME_ACCOUNT = '4000'
+// IBAN des vereinseigenen Geldkontos – Voraussetzung dafür, dass es als
+// einziehendes Konto des SEPA-Sammeleinzugs taugt.
+export const BANK_ACCOUNT_IBAN = 'DE12500105170648489890'
 
 // Beleg-Fixture: ein 1×1-Pixel-PNG – klein, aber eine echte Bilddatei.
 export const BELEG_PNG = Buffer.from(
@@ -189,9 +192,17 @@ export const api = {
 		await call(request, 'POST', '/reset')
 	},
 
-	/** Mitgelieferten Standard-Kontenrahmen anlegen. */
+	/** Mitgelieferten Standard-Kontenrahmen anlegen; liefert alle Konten. */
 	async seedDefaultAccounts(request) {
-		await call(request, 'POST', '/accounts/seed')
+		return (await call(request, 'POST', '/accounts/seed')).json()
+	},
+
+	async updateAccount(request, id, data, { user = 'admin' } = {}) {
+		return (await call(request, 'PUT', `/accounts/${id}`, { user, data })).json()
+	},
+
+	async deleteAccount(request, id, { user = 'admin' } = {}) {
+		return call(request, 'DELETE', `/accounts/${id}`, { user })
 	},
 
 	async listAccounts(request) {
@@ -261,8 +272,13 @@ export const api = {
 		return call(request, 'DELETE', `/years/${year}/close`, { user })
 	},
 
-	async updateSettings(request, settings, { user = 'admin' } = {}) {
-		return call(request, 'POST', '/settings', { user, data: settings })
+	async getSettings(request, { user = 'admin' } = {}) {
+		return (await call(request, 'GET', '/settings', { user })).json()
+	},
+
+	/** Antwortet mit dem vollständigen Einstellungssatz nach dem Schreiben. */
+	async updateSettings(request, settings, { user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', '/settings', { user, expectOk, data: settings })
 	},
 
 	/** App-Rolle vergeben (nur Verwalter dürfen das). */

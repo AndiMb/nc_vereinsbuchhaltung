@@ -13,6 +13,7 @@ use OCA\Vereinsbuchhaltung\Service\BillingPeriod;
 use OCA\Vereinsbuchhaltung\Service\DemoDataService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCA\Vereinsbuchhaltung\Service\ReportService;
+use OCA\Vereinsbuchhaltung\Service\SepaDebtorAccountService;
 use OCA\Vereinsbuchhaltung\Service\WatchFolderService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -37,6 +38,7 @@ class SettingsController extends Controller {
 		private SepaMandateMapper $sepaMandateMapper,
 		private MembershipFeeMapper $membershipFeeMapper,
 		private IUserManager $userManager,
+		private SepaDebtorAccountService $sepaDebtorAccount,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -128,7 +130,7 @@ class SettingsController extends Controller {
 			'statement_watch_user' => $this->config->getAppValue(Application::APP_ID, WatchFolderService::SETTING_USER, ''),
 			'statement_watch_path' => $this->config->getAppValue(Application::APP_ID, WatchFolderService::SETTING_PATH, ''),
 			'sepa_creditor_id' => $this->config->getAppValue(Application::APP_ID, 'sepa_creditor_id', ''),
-			'sepa_debtor_account_id' => (int)$this->config->getAppValue(Application::APP_ID, 'sepa_debtor_account_id', '0') ?: null,
+			'sepa_debtor_account_id' => $this->sepaDebtorAccount->getAccountId(),
 			// Vorbelegung fuer "Mitglied aufnehmen" und den CSV-Import, siehe
 			// SettingsSepaBasics.vue ("Standard-Beitrag").
 			'default_fee_amount' => $defaultFeeAmountCents !== '' ? ((int)$defaultFeeAmountCents) / 100 : null,
@@ -255,7 +257,12 @@ class SettingsController extends Controller {
 		if (array_key_exists('sepa_debtor_account_id', $params)) {
 			$debtorAccountParam = $params['sepa_debtor_account_id'];
 			$debtorAccountId = $debtorAccountParam !== null && $debtorAccountParam !== '' ? (int)$debtorAccountParam : null;
-			if ($debtorAccountId !== null) {
+			// Die Einstellungsseite sendet immer den vollständigen Feldsatz
+			// (SettingsApp.vue::saveSettings()). Ein unverändert durchgereichtes
+			// Konto, das inzwischen ungültig geworden ist – etwa weil es seine
+			// IBAN verloren hat –, ließe sonst auch das Speichern des
+			// Vereinsnamens oder der Belegablage mit HTTP 400 scheitern.
+			if ($debtorAccountId !== null && $debtorAccountId !== $this->sepaDebtorAccount->getAccountId()) {
 				try {
 					$account = $this->accountMapper->find($debtorAccountId, $this->userId());
 					if (!$account->getIsBank()) {
@@ -270,7 +277,7 @@ class SettingsController extends Controller {
 					return new DataResponse(['message' => $this->l10n->t('Das gewählte einziehende Konto wurde nicht gefunden.')], Http::STATUS_BAD_REQUEST);
 				}
 			}
-			$this->config->setAppValue($appId, 'sepa_debtor_account_id', (string)($debtorAccountId ?? ''));
+			$this->sepaDebtorAccount->setAccountId($debtorAccountId);
 		}
 
 		if (array_key_exists('membership_enabled', $params)) {

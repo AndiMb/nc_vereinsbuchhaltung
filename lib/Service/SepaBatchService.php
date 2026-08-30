@@ -41,6 +41,7 @@ class SepaBatchService {
 		private MemberReferenceValidator $memberRef,
 		private PainXmlBuilder $xmlBuilder,
 		private IConfig $config,
+		private SepaDebtorAccountService $sepaDebtorAccount,
 		private IUserSession $userSession,
 		private TransactionRunner $transaction,
 		private AuditService $audit,
@@ -114,8 +115,8 @@ class SepaBatchService {
 		if (trim($creditorName) === '') {
 			throw new \InvalidArgumentException($this->l10n->t('Bitte zuerst den Vereinsnamen in den Einstellungen hinterlegen.'));
 		}
-		$debtorAccountId = (int)$this->config->getAppValue(Application::APP_ID, 'sepa_debtor_account_id', '0');
-		if ($debtorAccountId <= 0) {
+		$debtorAccountId = $this->sepaDebtorAccount->getAccountId();
+		if ($debtorAccountId === null) {
 			throw new \InvalidArgumentException($this->l10n->t('Bitte zuerst das einziehende Konto in den Einstellungen hinterlegen.'));
 		}
 		try {

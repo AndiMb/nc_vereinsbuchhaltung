@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { api, openApp, switchTab, visibleSection, BANK_ACCOUNT, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
+import { api, openApp, switchTab, visibleSection, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
 
 // Das Beitragsmodul: Modul aktivieren, Mitglied mit Mandat und Beitrag,
 // fällige Beiträge werden offene Posten, und der SEPA-Sammeleinzug
@@ -11,10 +11,7 @@ async function enableModule(request) {
 	const bank = await api.accountByNumber(request, BANK_ACCOUNT)
 	// Das einziehende Konto braucht eine IBAN, sonst weist die
 	// Einstellungs-Prüfung das Konto als SEPA-Einzugskonto ab.
-	await api.raw(request, 'PUT', `/accounts/${bank.id}`, {
-		data: { iban: 'DE12500105170648489890' },
-		expectOk: true,
-	})
+	await api.updateAccount(request, bank.id, { iban: BANK_ACCOUNT_IBAN })
 	await api.updateSettings(request, {
 		membership_enabled: '1',
 		club_name: 'Testverein e.V.',

@@ -72,6 +72,7 @@ class AccountService {
 		private YearCloseService $yearClose,
 		private AuditService $audit,
 		private IbanValidator $ibanValidator,
+		private SepaDebtorAccountService $sepaDebtorAccount,
 		private IL10N $l10n,
 	) {
 	}
@@ -325,8 +326,8 @@ class AccountService {
 	 * Deshalb: bebuchte Konten und Konten mit Unterkonten werden nicht
 	 * gelöscht. Wer sie loswerden will, setzt sie inaktiv (active = false) –
 	 * dann verschwinden sie aus den Auswahllisten, die Historie bleibt aber
-	 * vollständig. Reine Verweise ohne Buchungswert (Regeln, Planwerte) werden
-	 * mitgelöscht.
+	 * vollständig. Reine Verweise ohne Buchungswert (Regeln, Planwerte, das
+	 * einziehende Konto in den SEPA-Einstellungen) werden mitgelöscht.
 	 *
 	 * @throws \InvalidArgumentException wenn das Konto noch in Verwendung ist
 	 */
@@ -366,6 +367,11 @@ class AccountService {
 			$this->ruleMapper->deleteByAccount($userId, $id);
 			$this->budgetMapper->deleteByAccount($userId, $id);
 			$this->mapper->delete($account);
+
+			// Die App-Config läuft über einen eigenen Cache an der Transaktion
+			// vorbei – ein Rollback nähme die Änderung nicht zurück, das Konto
+			// wäre wieder da und die Einstellung trotzdem weg.
+			$this->transaction->afterCommit(fn () => $this->sepaDebtorAccount->forgetIfSetTo($id));
 
 			$this->audit->log('Konto gelöscht', 'account', $id, [
 				'konto' => $account->getNumber() . ' ' . $account->getName(),
