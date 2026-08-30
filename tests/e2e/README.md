@@ -48,3 +48,10 @@ jedem Testlauf zurück, die Tests selbst starten also immer vom selben Stand.
 - **Sichtbare Abschnitte scopen**: die App hält alle Tabs per `v-show`
   gleichzeitig im DOM. Textsuchen immer über `visibleSection(page)` laufen
   lassen, sonst trifft der Locator versteckte Duplikate.
+
+- **`getByRole({ name })` sucht Teilzeichenketten**: „Auswertung" trifft auch
+  „Auswertungsgruppen" – Playwright bricht dann mit *strict mode violation*
+  ab. Bei Knöpfen, deren Beschriftung Präfix einer benachbarten ist,
+  `exact: true` setzen. **Nicht pauschal**: die Untertabs *Zuzuordnen* und
+  *Offene Posten* tragen eine Zähler-Badge im Knopf, ihr Accessible Name
+  lautet dann „Zuzuordnen 2" – dort wäre `exact: true` falsch.

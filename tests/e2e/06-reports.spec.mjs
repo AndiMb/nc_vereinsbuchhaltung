@@ -18,9 +18,8 @@ test.describe('Berichte und Exporte', () => {
 		await openApp(page, USERS.verwalter)
 		await switchTab(page, 'Berichte')
 
-		// exact: true fuer die Ansichts-Umschalter - getByRole sucht den
-		// Namen sonst als Teilzeichenkette, und "Auswertung" traefe damit
-		// auch den Nachbarknopf "Auswertungsgruppen".
+		// exact: true - "Auswertung" traefe sonst als Teilzeichenkette auch
+		// den Nachbarknopf "Auswertungsgruppen".
 		await expect(visibleSection(page).getByRole('button', { name: 'Auswertung', exact: true })).toBeVisible()
 		for (const view of ['Sphären', 'Rücklagen', 'Finanzplan', 'Protokoll']) {
 			await visibleSection(page).getByRole('button', { name: view, exact: true }).click()

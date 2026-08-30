@@ -312,10 +312,7 @@
 		<!-- ============ WAS IST NEU (Splash-Screen nach Updates) ============ -->
 		<WhatsNewDialog
 			:show="whatsNewShow"
-			:role="me && me.role"
-			:lastSeenVersion="whatsNewLastSeenVersion"
-			:currentVersion="whatsNewCurrentVersion"
-			:unfiltered="whatsNewUnfiltered"
+			:entries="whatsNewEntries"
 			@close="whatsNewShow = false"
 			@update:show="whatsNewShow = $event"
 			@dismiss="dismissWhatsNew" />
@@ -585,6 +582,21 @@ export default {
 		// pruefleitfadenUrl bleibt hier (Revisor-Willkommenshinweis braucht sie
 		// ausserhalb des Berichte-Tabs).
 		pruefleitfadenUrl() { return api.pruefleitfadenUrl() },
+		// Die Eintraege des "Was ist neu"-Splash. Bewusst hier statt im Dialog:
+		// dieselbe Liste beantwortet die Frage "ueberhaupt etwas Neues?" (Gate
+		// in loadWhatsNew) und "was steht drin?" (Anzeige). Zwei Aufrufe mit
+		// denselben Eingaben koennten auseinanderlaufen, einer nicht.
+		whatsNewEntries() {
+			return filterWhatsNewEntries(
+				buildWhatsNewEntries(),
+				this.me && this.me.role,
+				// Ueber den Hilfe-Link ungefiltert: alle Eintraege der Rolle,
+				// unabhaengig vom zuletzt gesehenen Stand.
+				this.whatsNewUnfiltered ? '' : this.whatsNewLastSeenVersion,
+				this.whatsNewCurrentVersion,
+			)
+		},
+
 		visibleTabs() {
 			return this.allTabs.filter((t) => {
 				// Eigenes Zusatzmodul: ohne genutzte Beitragsverwaltung kein fuenfter
@@ -1256,7 +1268,7 @@ export default {
 					await api.dismissWhatsNew(data.currentVersion)
 					return
 				}
-				if (!this.showSetupWizard && filterWhatsNewEntries(buildWhatsNewEntries(), this.me && this.me.role, data.lastSeenVersion, data.currentVersion).length) {
+				if (!this.showSetupWizard && this.whatsNewEntries.length) {
 					this.whatsNewShow = true
 				}
 			} catch { /* kein Blocker, still weiterarbeiten */ }

@@ -15,14 +15,12 @@
 // wuerde - noch bevor main.js die Uebersetzungen geladen hat (gleiches Muster
 // wie buildTopics() in HelpModal.vue).
 //
-// Ein Eintrag darf vor dem Release-Commit stehen, der appinfo/info.xml auf
-// diese Version hebt: filterWhatsNewEntries() blendet alles aus, was ueber
-// der laufenden App-Version liegt. Ohne diese Obergrenze waere ein solcher
-// Eintrag ein Dauer-Popup - "Verstanden" schreibt die laufende Version in
-// whatsnew_last_seen_version zurueck, die weiterhin aelter ist als der
-// Eintrag, und der Splash-Screen kaeme bei jedem Laden wieder.
+// Ein Eintrag darf der laufenden App-Version vorauslaufen: er darf also schon
+// hier stehen, bevor der Release-Commit appinfo/info.xml auf diese Version
+// hebt. filterWhatsNewEntries() blendet ihn bis dahin aus - warum das noetig
+// ist, steht beim Test "nach dem Wegklicken bleibt nichts uebrig".
 import { t } from '../lib/l10n.js'
-import { isNewerVersion } from '../lib/version.js'
+import { compareVersions, isNewerVersion } from '../lib/version.js'
 
 export function buildWhatsNewEntries() {
 	return [
@@ -91,5 +89,5 @@ export function filterWhatsNewEntries(entries, role, sinceVersion, currentVersio
 	return entries
 		.filter((entry) => !entry.roles || entry.roles.includes(role))
 		.filter((entry) => !sinceVersion || isNewerVersion(entry.version, sinceVersion))
-		.filter((entry) => !currentVersion || !isNewerVersion(entry.version, currentVersion))
+		.filter((entry) => !currentVersion || compareVersions(entry.version, currentVersion) <= 0)
 }

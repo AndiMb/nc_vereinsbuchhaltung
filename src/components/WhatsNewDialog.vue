@@ -11,8 +11,8 @@
 				{{ t('Was ist neu?') }}
 			</h3>
 
-			<div v-if="visibleEntries.length" class="vbh-whatsnew-list">
-				<div v-for="entry in visibleEntries" :key="entry.version" class="vbh-whatsnew-entry">
+			<div v-if="entries.length" class="vbh-whatsnew-list">
+				<div v-for="entry in entries" :key="entry.version" class="vbh-whatsnew-entry">
 					<h4>{{ t('Version {v}', { v: entry.version }) }}</h4>
 					<ul>
 						<li v-for="(item, i) in entry.items" :key="i">
@@ -43,31 +43,18 @@
 
 <script>
 import { NcButton, NcModal } from '@nextcloud/vue'
-import { buildWhatsNewEntries, filterWhatsNewEntries } from '../data/whatsNew.js'
 
 export default {
 	name: 'WhatsNewDialog',
 	components: { NcModal, NcButton },
 	props: {
 		show: { type: Boolean, default: false },
-		role: { type: String, default: '' },
-		lastSeenVersion: { type: String, default: '' },
-		// Laufende App-Version: Eintraege darueber hinaus (im Code schon
-		// vorbereitet, aber noch nicht ausgeliefert) bleiben aussen vor.
-		currentVersion: { type: String, default: '' },
-		// true = ueber den Hilfe-Link erneut geoeffnet: zeigt alle kuratierten
-		// Eintraege der Rolle, unabhaengig vom zuletzt gesehenen Stand.
-		unfiltered: { type: Boolean, default: false },
+		// Reine Anzeige: gefiltert wird in App.vue (whatsNewEntries), damit
+		// Gate und Anzeige nicht zwei Rechnungen ueber dieselben Eingaben sind.
+		entries: { type: Array, default: () => [] },
 	},
 
 	emits: ['close', 'update:show', 'dismiss'],
-
-	computed: {
-		visibleEntries() {
-			const entries = buildWhatsNewEntries()
-			return filterWhatsNewEntries(entries, this.role, this.unfiltered ? '' : this.lastSeenVersion, this.currentVersion)
-		},
-	},
 }
 </script>
 
