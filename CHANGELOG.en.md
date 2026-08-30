@@ -15,6 +15,21 @@ Markdown headings as "[object Object]" since `marked` v18 (wrong renderer
 callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 **bold lead-in** at the start of a line instead, e.g. `**New:**`.
 
+## [0.29.1] – 2026-08-30
+
+**Fixed:**
+- **Success and error messages (toasts) rendered as bare text in the
+  top-left corner.** Since 0.29.0, confirmations such as "Settings saved."
+  sat unstyled across the header instead of appearing as a box at the
+  bottom left. The cause was updating `@nextcloud/dialogs` to 7.5.0: the
+  library's toasts now carry hashed CSS classes whose styling only its
+  bundled stylesheet knows – up to 7.4.1, Nextcloud's server CSS had
+  quietly styled the then-global Toastify class names, so the app's missing
+  stylesheet import never showed. Both script entry points now load the
+  stylesheet themselves; a static test and a sharpened e2e test guard this
+  (the previous one only checked that the message text appears, not that
+  it is styled).
+
 ## [0.29.0] – 2026-08-30
 
 **Changed:**

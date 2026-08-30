@@ -17,6 +17,21 @@ als „[object Object]" (falsche Renderer-Callback-Signatur, Nextcloud-
 Core-Bug, reproduziert 23.08.2026). Stattdessen **Fettdruck als Zeilenanfang**
 verwenden, z. B. `**Neu:**`.
 
+## [0.29.1] – 2026-08-30
+
+**Behoben:**
+- **Erfolgs- und Fehlermeldungen (Toasts) erschienen als nackter Text oben
+  links.** Seit 0.29.0 klebten Bestätigungen wie „Einstellungen gespeichert."
+  unformatiert über der Kopfleiste, statt als Kasten unten links zu
+  erscheinen. Ursache war die Aktualisierung von `@nextcloud/dialogs` auf
+  7.5.0: Die Toasts der Bibliothek tragen seither gehashte CSS-Klassen, deren
+  Gestaltung allein ihr mitgeliefertes Stylesheet kennt – bis 7.4.1 hatte
+  Nextclouds Server-CSS die damals globalen Toastify-Klassen unbemerkt
+  mitgestylt, sodass der fehlende Stylesheet-Import der App nie auffiel.
+  Beide Skript-Einstiege laden das Stylesheet jetzt selbst; ein statischer
+  Test und ein geschärfter E2E-Test wachen darüber (der bisherige prüfte
+  nur, dass der Meldungstext erscheint, nicht dass er gestaltet ist).
+
 ## [0.29.0] – 2026-08-30
 
 **Geändert:**
