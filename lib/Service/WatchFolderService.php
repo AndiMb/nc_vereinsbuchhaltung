@@ -61,6 +61,25 @@ class WatchFolderService {
 	}
 
 	/**
+	 * Schaltet den Wachordner ab, wenn er im Home dieses Nutzers lag.
+	 *
+	 * Nutzer und Pfad zusammen, denn nur beides zusammen ergibt einen
+	 * Wachordner ({@see isConfigured()}). Gegenstück zu
+	 * {@see SepaDebtorAccountService::forgetIfSetTo()}; aufgerufen vom
+	 * UserDeletedListener.
+	 *
+	 * @return bool ob der Wachordner tatsächlich abgeschaltet wurde
+	 */
+	public function forgetUser(string $uid): bool {
+		if ($this->watchUser() !== $uid) {
+			return false;
+		}
+		$this->config->setAppValue(Application::APP_ID, self::SETTING_USER, '');
+		$this->config->setAppValue(Application::APP_ID, self::SETTING_PATH, '');
+		return true;
+	}
+
+	/**
 	 * Verarbeitet alle Dateien im Wachordner.
 	 *
 	 * @return array<int, array{file:string, ok:bool, new?:int, duplicate?:int,

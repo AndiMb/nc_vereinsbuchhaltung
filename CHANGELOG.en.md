@@ -29,6 +29,17 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   it actually changes, so an account that became invalid later (after removing
   its IBAN, say) no longer paralyses the other sections.
 
+- **A deleted Nextcloud user blocked the entire settings page.** If a Nextcloud
+  user was configured under "Receipts" (receipt storage) or "Bank data"
+  (watched folder) and that user was later deleted in Nextcloud, **every** save
+  on the settings page failed with "The specified Nextcloud user for the … does
+  not exist." – including the club name, because the page always sends the full
+  set of fields. Deleting a Nextcloud user now clears both settings as well:
+  the receipt storage falls back to the app-internal storage and the watched
+  folder is switched off. The user is also only validated when it actually
+  changes – for the deletions the app never learns about (a foreign user
+  backend, a restored database dump, a deletion while the app was disabled).
+
 - **No Nextcloud user could be selected in the settings any more.** This
   affected "Receipts" (receipt storage) and "Bank data" (watched folder):
   both dropdowns only offered "— internal (AppData) —" resp. "— off —", the
