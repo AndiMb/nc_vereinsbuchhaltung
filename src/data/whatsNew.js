@@ -14,6 +14,13 @@
 // Als Funktion statt Modul-Konstante, weil t() sonst beim Import ausgewertet
 // wuerde - noch bevor main.js die Uebersetzungen geladen hat (gleiches Muster
 // wie buildTopics() in HelpModal.vue).
+//
+// Ein Eintrag darf vor dem Release-Commit stehen, der appinfo/info.xml auf
+// diese Version hebt: filterWhatsNewEntries() blendet alles aus, was ueber
+// der laufenden App-Version liegt. Ohne diese Obergrenze waere ein solcher
+// Eintrag ein Dauer-Popup - "Verstanden" schreibt die laufende Version in
+// whatsnew_last_seen_version zurueck, die weiterhin aelter ist als der
+// Eintrag, und der Splash-Screen kaeme bei jedem Laden wieder.
 import { t } from '../lib/l10n.js'
 import { isNewerVersion } from '../lib/version.js'
 
@@ -69,17 +76,20 @@ export function buildWhatsNewEntries() {
 }
 
 /**
- * Einträge, die für die gegebene Rolle sichtbar sind und (sofern sinceVersion
- * gesetzt ist) neuer sind als der zuletzt gesehene Stand. Von App.vue (Gate:
- * überhaupt etwas Neues?) und WhatsNewDialog.vue (Anzeige) gemeinsam genutzt,
- * damit beide Stellen exakt dieselbe Filterlogik anwenden.
+ * Einträge, die für die gegebene Rolle sichtbar sind, (sofern sinceVersion
+ * gesetzt ist) neuer sind als der zuletzt gesehene Stand und nicht über die
+ * laufende App-Version hinausgehen. Von App.vue (Gate: überhaupt etwas
+ * Neues?) und WhatsNewDialog.vue (Anzeige) gemeinsam genutzt, damit beide
+ * Stellen exakt dieselbe Filterlogik anwenden.
  *
  * @param {Array} entries
  * @param {string} role
  * @param {string} sinceVersion leerer String = ungefiltert (alle Einträge der Rolle)
+ * @param {string} currentVersion laufende App-Version; leerer String = keine Obergrenze
  */
-export function filterWhatsNewEntries(entries, role, sinceVersion) {
+export function filterWhatsNewEntries(entries, role, sinceVersion, currentVersion = '') {
 	return entries
 		.filter((entry) => !entry.roles || entry.roles.includes(role))
 		.filter((entry) => !sinceVersion || isNewerVersion(entry.version, sinceVersion))
+		.filter((entry) => !currentVersion || !isNewerVersion(entry.version, currentVersion))
 }

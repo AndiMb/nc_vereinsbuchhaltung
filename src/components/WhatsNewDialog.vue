@@ -52,6 +52,9 @@ export default {
 		show: { type: Boolean, default: false },
 		role: { type: String, default: '' },
 		lastSeenVersion: { type: String, default: '' },
+		// Laufende App-Version: Eintraege darueber hinaus (im Code schon
+		// vorbereitet, aber noch nicht ausgeliefert) bleiben aussen vor.
+		currentVersion: { type: String, default: '' },
 		// true = ueber den Hilfe-Link erneut geoeffnet: zeigt alle kuratierten
 		// Eintraege der Rolle, unabhaengig vom zuletzt gesehenen Stand.
 		unfiltered: { type: Boolean, default: false },
@@ -62,7 +65,7 @@ export default {
 	computed: {
 		visibleEntries() {
 			const entries = buildWhatsNewEntries()
-			return filterWhatsNewEntries(entries, this.role, this.unfiltered ? '' : this.lastSeenVersion)
+			return filterWhatsNewEntries(entries, this.role, this.unfiltered ? '' : this.lastSeenVersion, this.currentVersion)
 		},
 	},
 }

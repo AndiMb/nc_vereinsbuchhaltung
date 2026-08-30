@@ -314,6 +314,7 @@
 			:show="whatsNewShow"
 			:role="me && me.role"
 			:lastSeenVersion="whatsNewLastSeenVersion"
+			:currentVersion="whatsNewCurrentVersion"
 			:unfiltered="whatsNewUnfiltered"
 			@close="whatsNewShow = false"
 			@update:show="whatsNewShow = $event"
@@ -1255,7 +1256,7 @@ export default {
 					await api.dismissWhatsNew(data.currentVersion)
 					return
 				}
-				if (!this.showSetupWizard && filterWhatsNewEntries(buildWhatsNewEntries(), this.me && this.me.role, data.lastSeenVersion).length) {
+				if (!this.showSetupWizard && filterWhatsNewEntries(buildWhatsNewEntries(), this.me && this.me.role, data.lastSeenVersion, data.currentVersion).length) {
 					this.whatsNewShow = true
 				}
 			} catch { /* kein Blocker, still weiterarbeiten */ }
