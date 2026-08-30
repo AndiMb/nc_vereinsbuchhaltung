@@ -1,9 +1,27 @@
+/* Statusfarben kommen von Nextcloud als Paar: --color-success ist der
+   Flaechenton, --color-success-text die darauf lesbare Schrift (analog
+   -error/-warning). Fuer Linien, Symbole und Balken auf normalem Grund gilt
+   --color-element-success/-error/-warning. Einzeln oder gemischt sind sie
+   unlesbar: im hellen Design ist --color-success ein Pastellton, im dunklen
+   fast schwarz.
+
+   Doppelte Klassennamen (.vbh-x.vbh-x) sind Absicht. Nextcloud formt in
+   core/css/server.css jeden nackten <button> zum Sekundaerknopf:
+
+     select, button:not(.button-vue, [class^=vs__]), .button, ... { ... }
+
+   Spezifitaet (0,1,1) schlaegt jede Ein-Klassen-Regel (0,1,0); die doppelte
+   Klasse hebt die App-Regel auf (0,2,0). Die :hover/:focus-Variante derselben
+   Nextcloud-Regel liegt bei (0,2,1), eigene Hover-Zustaende brauchen deshalb
+   ebenfalls die doppelte Klasse. Jeder neue nackte <button> der App braucht
+   diesen Schutz, NcButton (.button-vue) nicht - src/styles.test.js prueft das. */
+
 /* Wurzel: direktes Flex-Item von Nextclouds #content (Vue ersetzt das Mount-Div).
    width/flex/min-width/max-width verhindern, dass die App inhaltsbestimmt breiter
    als der Viewport wird — Tabellenbreite hängt sonst an dieser Kette. */
 .vbh { width: 100%; max-width: 100%; flex: 1 1 auto; min-width: 0; height: calc(100dvh - var(--header-height, 50px)); display: flex; flex-direction: column; overflow: hidden; background-color: var(--color-main-background); color: var(--color-main-text); }
 
-.vbh-header { flex: 0 0 auto; padding: 12px 24px 0; border-bottom: 1px solid var(--color-border); }
+.vbh-header { flex: 0 0 auto; padding: 12px 24px 8px; }
 
 .vbh-noaccess { padding: 48px 24px; text-align: center; }
 
@@ -13,19 +31,19 @@
 
 .vbh-titlebar h2 { margin: 0; }
 
-.vbh-bankchip { display: inline-flex; align-items: baseline; gap: 8px; margin-inline-start: auto; padding: 6px 14px; border-radius: var(--border-radius-large, 12px); background-color: rgba(45, 125, 70, 0.16); border: 1px solid rgba(45, 125, 70, 0.55); }
+.vbh-bankchip { display: inline-flex; align-items: baseline; gap: 8px; margin-inline-start: auto; padding: 6px 14px; border-radius: var(--border-radius-large, 12px); background-color: var(--color-success); color: var(--color-success-text); border: 1px solid var(--color-element-success); }
 
-.vbh-bankchip.warn { background-color: rgba(201, 135, 10, 0.18); border-color: rgba(201, 135, 10, 0.65); }
+.vbh-bankchip.warn { background-color: var(--color-warning); color: var(--color-warning-text); border-color: var(--color-element-warning); }
 
 .vbh-bankchip-label { font-size: 0.82em; opacity: 0.9; }
 
 .vbh-bankchip-value { font-size: 1.2em; font-weight: 700; }
 
-.vbh-bankchip-hint { font-size: 0.82em; font-weight: 600; color: #b35900; }
+.vbh-bankchip-hint { font-size: 0.82em; font-weight: 600; }
 
 .vbh-navbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 
-.vbh-tabs { display: inline-flex; gap: 4px; margin: 12px 0 -1px; padding: 4px; background-color: var(--color-background-dark); border-radius: 12px; }
+.vbh-tabs { display: inline-flex; gap: 4px; margin: 12px 0 0; padding: 4px; background-color: var(--color-background-dark); border-radius: 12px; }
 
 .vbh-navright { display: inline-flex; align-items: center; gap: 6px; }
 
@@ -33,11 +51,11 @@
 
 .vbh-yearsel select { padding: 5px 8px; border-radius: 8px; }
 
-.vbh-tabs button { border: none; background: transparent; padding: 7px 16px; border-radius: 8px; cursor: pointer; color: var(--color-main-text); font-weight: 600; font-size: 0.9em; display: inline-flex; align-items: center; gap: 6px; }
+.vbh-tabs.vbh-tabs button { border: none; background: transparent; padding: 7px 16px; border-radius: 8px; cursor: pointer; color: var(--color-main-text); font-weight: 600; font-size: 0.9em; display: inline-flex; align-items: center; gap: 6px; }
 
-.vbh-tabs button:hover { background-color: var(--color-background-hover); }
+.vbh-tabs.vbh-tabs button:hover { background-color: var(--color-background-hover); }
 
-.vbh-tabs button.active { background-color: var(--color-primary-element); color: var(--color-primary-element-text); box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+.vbh-tabs.vbh-tabs button.active { background-color: var(--color-primary-element); color: var(--color-primary-element-text); box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
 
 .vbh-main { flex: 1 1 auto; min-height: 0; min-width: 0; display: flex; }
 
@@ -51,6 +69,9 @@
 
 /* Sub-tabs + filterbar (for bookings + reports sections) */
 .vbh-sectiontop { flex: 0 0 auto; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 16px; border-bottom: 1px solid var(--color-border); flex-wrap: wrap; }
+
+/* Folgt eine Filterleiste, traegt die die Trennlinie - sonst zwei Linien. */
+.vbh-sectiontop:has(+ .vbh-filterbar) { border-bottom: none; }
 
 .vbh-sectiontop-actions { display: inline-flex; align-items: center; gap: 8px; }
 
@@ -75,7 +96,7 @@
 .vbh-attachment-dl:hover { color: var(--color-main-text); }
 
 /* Dateiname als klickbarer Button */
-.vbh-attachment-name { background: none; border: none; padding: 0; cursor: pointer; color: var(--color-primary-element); text-align: start; font-size: inherit; font-family: inherit; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 0; min-width: 0; }
+.vbh-attachment-name.vbh-attachment-name { background: none; border: none; padding: 0; cursor: pointer; color: var(--color-primary-element); text-align: start; font-family: inherit; font-size: 0.9em; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
 
 .vbh-attachment-name:hover { text-decoration: underline; }
 
@@ -102,21 +123,17 @@
 
 .vbh-attachment-icon { flex-shrink: 0; color: var(--color-text-lighter); }
 
-.vbh-attachment-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9em; color: var(--color-primary-element); text-decoration: none; }
-
-.vbh-attachment-name:hover { text-decoration: underline; }
-
 .vbh-attachment-size { font-size: 0.8em; color: var(--color-text-lighter); white-space: nowrap; flex-shrink: 0; }
 
 .vbh-attachment-empty { font-size: 0.9em; color: var(--color-text-lighter); margin: 4px 0 0; }
 
 .vbh-subtabs { display: inline-flex; gap: 2px; }
 
-.vbh-subtabs button { padding: 5px 14px; border: none; border-bottom: 3px solid transparent; background: none; cursor: pointer; color: var(--color-main-text); font-weight: 600; font-size: 0.9em; border-radius: 6px 6px 0 0; display: inline-flex; align-items: center; gap: 6px; }
+.vbh-subtabs.vbh-subtabs button { padding: 5px 14px; border: none; border-bottom: 3px solid transparent; background: none; cursor: pointer; color: var(--color-main-text); font-weight: 600; font-size: 0.9em; border-radius: 6px 6px 0 0; display: inline-flex; align-items: center; gap: 6px; }
 
-.vbh-subtabs button:hover { background: var(--color-background-hover); }
+.vbh-subtabs.vbh-subtabs button:hover { background: var(--color-background-hover); }
 
-.vbh-subtabs button.active { color: var(--color-primary-element); border-bottom-color: var(--color-primary-element); }
+.vbh-subtabs.vbh-subtabs button.active { color: var(--color-primary-element); border-bottom-color: var(--color-primary-element); }
 
 .vbh-filterbar { flex: 0 0 auto; min-width: 0; display: flex; gap: 8px; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--color-border); flex-wrap: wrap; background: var(--color-main-background); }
 
@@ -160,20 +177,20 @@
    Deckkraft und der Balken heben sie aus den uebrigen Erlaeuterungen heraus. */
 .vbh-hint--info, .vbh-hint--warning { opacity: 1; padding: 8px 12px; border-inline-start: 3px solid; border-radius: 0 4px 4px 0; }
 
-.vbh-hint--info { border-inline-start-color: var(--color-primary-element, #0082c9); background-color: var(--color-background-hover); }
+.vbh-hint--info { border-inline-start-color: var(--color-primary-element); background-color: var(--color-background-hover); }
 
-.vbh-hint--warning { border-inline-start-color: var(--color-warning, #c98b00); background-color: var(--color-background-hover); }
+.vbh-hint--warning { border-inline-start-color: var(--color-element-warning); background-color: var(--color-background-hover); }
 
 .vbh-empty { color: var(--color-main-text); opacity: 0.65; font-style: italic; }
 
-.vbh-warn-inline { color: #b35900; font-weight: 600; margin-inline-start: 10px; }
+.vbh-warn-inline { color: var(--color-warning-text); font-weight: 600; margin-inline-start: 10px; }
 
 /* Cards */
 .vbh-card { border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); padding: 14px 16px; margin: 10px 0; background-color: var(--color-background-hover); }
 
 .vbh-card > h4 { margin-top: 0; }
 
-.vbh-card--danger { border-color: rgba(199, 60, 60, 0.5); }
+.vbh-card--danger { border-color: var(--color-element-error); }
 
 .vbh-uploadrow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 
@@ -198,11 +215,11 @@
 
 .vbh-setuplist li.done { opacity: 0.6; }
 
-.vbh-setupstep { background: none; border: none; padding: 0; margin: 0; font: inherit; color: var(--color-main-text); cursor: pointer; text-align: start; text-decoration: underline; text-decoration-style: dotted; }
+.vbh-setupstep.vbh-setupstep { background: none; border: none; padding: 0; margin: 0; font: inherit; color: var(--color-main-text); cursor: pointer; text-align: start; text-decoration: underline; text-decoration-style: dotted; }
 
-.vbh-setupstep--done { cursor: default; text-decoration: line-through; }
+.vbh-setupstep--done.vbh-setupstep--done { cursor: default; text-decoration: line-through; }
 
-.vbh-setupwizardlink { display: block; margin-top: 10px; }
+.vbh-setupwizardlink.vbh-setupwizardlink { display: block; margin-top: 10px; }
 
 /* Setup-Assistent (SetupWizard.vue) – .modal-container__content hat kein
    eigenes Padding, siehe Lehre bei .vbh-help oben. */
@@ -212,73 +229,48 @@
 
 .vbh-wizard-choices { display: flex; flex-direction: column; gap: 12px; margin: 20px 0; }
 
-.vbh-wizard-choice { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: start; padding: 16px 18px; border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); background: var(--color-main-background); cursor: pointer; color: var(--color-main-text); }
+.vbh-wizard-choice.vbh-wizard-choice { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: start; padding: 16px 18px; border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); background: var(--color-main-background); cursor: pointer; color: var(--color-main-text); }
 
-.vbh-wizard-choice:hover { background-color: var(--color-background-hover); border-color: var(--color-primary-element); }
+.vbh-wizard-choice.vbh-wizard-choice:hover { background-color: var(--color-background-hover); border-color: var(--color-primary-element); }
 
 .vbh-wizard-choice strong { font-size: 1.05em; }
 
 .vbh-wizard-choice span { opacity: 0.75; font-size: 0.9em; }
 
-.vbh-wizard-skip { background: none; border: none; color: var(--color-text-maxcontrast); cursor: pointer; text-decoration: underline; padding: 0; font-size: 0.9em; }
+.vbh-wizard-skip.vbh-wizard-skip { background: none; border: none; color: var(--color-text-maxcontrast); cursor: pointer; text-decoration: underline; padding: 0; font-size: 0.9em; }
 
 /* Erste-Buchung-Tour (App.vue, Buchungsdialog Einfach-Modus Desktop) */
 .vbh-tour-target { outline: 2px solid var(--color-primary-element); outline-offset: 3px; border-radius: var(--border-radius, 6px); }
 
-.vbh-tour-tip { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 6px 0 14px; padding: 10px 14px; border-radius: var(--border-radius-large, 12px); background: #eaf2ff; border: 1px solid #b8d4ff; color: #1c3d6e; flex-wrap: wrap; }
+.vbh-tour-tip { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 6px 0 14px; padding: 10px 14px; border-radius: var(--border-radius-large, 12px); background: var(--color-primary-element-light); border: 1px solid var(--color-primary-element); color: var(--color-main-text); flex-wrap: wrap; }
 
 .vbh-tour-actions { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
 
-.vbh-tour-skip { background: none; border: none; color: inherit; opacity: 0.75; cursor: pointer; text-decoration: underline; padding: 0; font-size: 0.9em; }
-@media (prefers-color-scheme: dark) {
-	.vbh-tour-tip { background: #16273f; border-color: #2c4a72; color: #cfe1ff; }
-}
+.vbh-tour-skip.vbh-tour-skip { background: none; border: none; color: inherit; opacity: 0.75; cursor: pointer; text-decoration: underline; padding: 0; font-size: 0.9em; }
 
-/* Sphären-Bericht: Freigrenzen-Statuszeile (App.vue + SphereAssignPanel.vue) –
-   feste Farben statt Theme-Variablen, siehe Ergänzung v0.10.12. */
+/* Sphären-Bericht: Freigrenzen-Statuszeile (App.vue + SphereAssignPanel.vue) */
 .vbh-freigrenzemini { margin: 0 10px 10px; padding: 8px 10px; border-radius: var(--border-radius, 6px); font-size: 0.85em; font-weight: 600; }
-
-.vbh-freigrenzemini.ok { background: #e3f3e6; color: #1e5e2c; }
-
-.vbh-freigrenzemini.warn { background: #fff3cd; color: #664d03; }
-
-.vbh-freigrenzemini.over { background: #fbdada; color: #7a1f1f; }
-@media (prefers-color-scheme: dark) {
-	.vbh-freigrenzemini.ok { background: #16321d; color: #8fd39f; }
-	.vbh-freigrenzemini.warn { background: #4a3c14; color: #f0d98c; }
-	.vbh-freigrenzemini.over { background: #3d1414; color: #f0a8a8; }
-}
 
 .vbh-sphere-bulkbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 10px 0; }
 /* Kostenstellen-Pflege (CostCenterPanel.vue) */
 .vbh-cc-newform { align-items: flex-end; }
 
-.vbh-cc-modewarn { border-inline-start: 3px solid var(--color-warning, #c9a227); padding-inline-start: 10px; }
+.vbh-cc-modewarn { border-inline-start: 3px solid var(--color-element-warning); padding-inline-start: 10px; }
 
 .vbh-sphere-suggest { display: block; font-size: 0.8em; opacity: 0.75; margin-top: 2px; }
 
 .vbh-freigrenzecard { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 12px; padding: 10px 16px; border-radius: var(--border-radius-large, 12px); font-size: 0.95em; flex-wrap: wrap; }
 
-.vbh-freigrenzecard.ok { background: #e3f3e6; color: #1e5e2c; }
+.vbh-freigrenzemini.ok, .vbh-freigrenzecard.ok { background: var(--color-success); color: var(--color-success-text); }
 
-.vbh-freigrenzecard.warn { background: #fff3cd; color: #664d03; }
+.vbh-freigrenzemini.warn, .vbh-freigrenzecard.warn { background: var(--color-warning); color: var(--color-warning-text); }
 
-.vbh-freigrenzecard.over { background: #fbdada; color: #7a1f1f; }
-@media (prefers-color-scheme: dark) {
-	.vbh-freigrenzecard.ok { background: #16321d; color: #8fd39f; }
-	.vbh-freigrenzecard.warn { background: #4a3c14; color: #f0d98c; }
-	.vbh-freigrenzecard.over { background: #3d1414; color: #f0a8a8; }
-}
+.vbh-freigrenzemini.over, .vbh-freigrenzecard.over { background: var(--color-error); color: var(--color-error-text); }
 
-/* Demo-Modus-Banner (App.vue) – feste Farben statt Theme-Variablen, siehe
-   Ergänzung v0.10.12 (Vorjahres-Delta-Badges): NC-Themes machen
-   var(--color-warning)-artige Kombinationen unzuverlässig lesbar. */
-.vbh-demobanner { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 16px 12px; padding: 10px 16px; border-radius: var(--border-radius-large, 12px); background: #fff3cd; border: 1px solid #e6d29e; color: #664d03; flex-wrap: wrap; }
+/* Demo-Modus-Banner (App.vue) */
+.vbh-demobanner { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 16px 12px; padding: 10px 16px; border-radius: var(--border-radius-large, 12px); background: var(--color-warning); border: 1px solid var(--color-element-warning); color: var(--color-warning-text); flex-wrap: wrap; }
 
 .vbh-demobanner strong { margin-inline-end: 6px; }
-@media (prefers-color-scheme: dark) {
-	.vbh-demobanner { background: #4a3c14; border-color: #6b5a24; color: #f0d98c; }
-}
 
 /* Revisor-Willkommenshinweis (App.vue) */
 .vbh-revisorintro { margin: 12px 16px; padding: 14px 18px; border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); background-color: var(--color-background-hover); max-width: 640px; }
@@ -300,11 +292,11 @@
 
 .vbh-help-nav { flex: 0 0 190px; display: flex; flex-direction: column; border-inline-end: 1px solid var(--color-border); padding: 8px 0 16px; }
 
-.vbh-help-nav button { text-align: start; background: none; border: none; padding: 10px 20px; cursor: pointer; color: var(--color-main-text); font-size: 0.95em; white-space: nowrap; border-radius: 0; }
+.vbh-help-nav.vbh-help-nav button { text-align: start; background: none; border: none; padding: 10px 20px; cursor: pointer; color: var(--color-main-text); font-size: 0.95em; white-space: nowrap; border-radius: 0; }
 
-.vbh-help-nav button:hover { background-color: var(--color-background-hover); }
+.vbh-help-nav.vbh-help-nav button:hover { background-color: var(--color-background-hover); }
 
-.vbh-help-nav button.active { background-color: var(--color-primary-element-light, var(--color-background-hover)); font-weight: 700; }
+.vbh-help-nav.vbh-help-nav button.active { background-color: var(--color-primary-element-light, var(--color-background-hover)); font-weight: 700; }
 
 .vbh-help-body { flex: 1 1 auto; min-width: 0; padding: 8px 24px 20px 20px; overflow-y: auto; }
 
@@ -318,8 +310,8 @@
 @media (max-width: 640px) {
 	.vbh-help { flex-direction: column; }
 	.vbh-help-nav { flex-direction: row; flex-wrap: wrap; border-inline-end: none; border-bottom: 1px solid var(--color-border); padding: 8px 12px; gap: 4px; }
-	.vbh-help-nav button { padding: 6px 10px; border-radius: 999px; }
-	.vbh-help-nav button.active { background-color: var(--color-primary-element-light, var(--color-background-hover)); }
+	.vbh-help-nav.vbh-help-nav button { padding: 6px 10px; border-radius: 999px; }
+	.vbh-help-nav.vbh-help-nav button.active { background-color: var(--color-primary-element-light, var(--color-background-hover)); }
 	.vbh-help-body { padding: 12px 16px 16px; }
 }
 
@@ -418,11 +410,9 @@
 /* Mit .vbh-table qualifiziert, damit dieses global geladene Stylesheet nicht
    ueber ein evtl. fremdes .num in der Nextcloud-UI leckt (Farbklassen sitzen
    immer auf td.num innerhalb einer .vbh-table). */
-.vbh-table .num.neg { color: #cc1f1f; font-weight: 700; }
+.vbh-table .num.neg, .vbh-table .num.bad { color: var(--color-error-text); font-weight: 700; }
 
-.vbh-table .num.good { color: #1f7a3d; font-weight: 700; }
-
-.vbh-table .num.bad { color: #cc1f1f; font-weight: 700; }
+.vbh-table .num.good { color: var(--color-success-text); font-weight: 700; }
 /* Plan-Eingabefeld fuellt seine Zelle. Hohe Spezifitaet (0,3,1) ist noetig,
    damit die weiter unten definierte Regel `.vbh-num { width:120px }` (bzw. 90px
    mobil) es nicht per Quellreihenfolge ueberschreibt. */
@@ -480,11 +470,11 @@
 /* Badges */
 .vbh-badge { padding: 2px 8px; border-radius: 10px; font-size: 0.82em; background-color: var(--color-background-dark); color: var(--color-main-text); }
 
-.vbh-badge.pos { background-color: #1f7a3d; color: #fff; }
+.vbh-badge.pos { background-color: var(--color-success); color: var(--color-success-text); box-shadow: inset 0 0 0 1px var(--color-element-success); }
 
 .vbh-badge.muted { opacity: 0.9; }
 
-.vbh-badge--alert { background-color: #c73c3c; color: #fff; font-weight: 700; }
+.vbh-badge--alert { background-color: var(--color-error); color: var(--color-error-text); box-shadow: inset 0 0 0 1px var(--color-element-error); font-weight: 700; }
 
 /* Tags */
 .vbh-typetag { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 0.82em; background-color: var(--color-background-dark); color: var(--color-main-text); }
@@ -497,9 +487,9 @@
 
 .vbh-typetag.cancelled { background-color: rgba(150, 150, 150, 0.25); }
 
-.vbh-chip { display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: 15px; background: var(--color-main-background); color: var(--color-main-text); font-size: 0.85em; cursor: pointer; }
+.vbh-chip.vbh-chip { display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: 15px; background: var(--color-main-background); color: var(--color-main-text); font-size: 0.85em; cursor: pointer; }
 
-.vbh-chip:hover { background: var(--color-background-hover); }
+.vbh-chip.vbh-chip:hover { background: var(--color-background-hover); }
 
 .vbh-chip.active { background: var(--color-primary-element); color: var(--color-primary-element-text); border-color: var(--color-primary-element); }
 
@@ -512,11 +502,11 @@
 
 .vbh-total strong { font-size: 1.3em; }
 
-.vbh-total.pos strong { color: #1f7a3d; }
+.vbh-total.pos strong { color: var(--color-success-text); }
 
-.vbh-total.neg strong { color: #cc1f1f; }
+.vbh-total.neg strong { color: var(--color-error-text); }
 
-.vbh-total--warn { border-color: rgba(201, 135, 10, 0.65); background-color: rgba(201, 135, 10, 0.1); }
+.vbh-total--warn { border-color: var(--color-element-warning); background-color: var(--color-warning); }
 
 /* Assignment select */
 /* Zuordnungs-Spalte: feste Zielbreite; NcSelect bringt min-width:260px mit,
@@ -562,7 +552,7 @@
 
 .vbh-treenode.selected .vbh-treenum, .vbh-treenode.selected .vbh-treesaldo, .vbh-treenode.selected .num.neg { color: var(--color-primary-element-text); }
 
-.vbh-caret { display: inline-block; flex: 0 0 16px; width: 16px; height: 16px; line-height: 16px; text-align: center; border: none; background: transparent; cursor: pointer; color: inherit; opacity: 0.7; transition: transform 0.12s; font-size: 1em; padding: 0; }
+.vbh-caret.vbh-caret { display: inline-block; flex: 0 0 16px; width: 16px; height: 16px; line-height: 16px; text-align: center; border: none; background: transparent; cursor: pointer; color: inherit; opacity: 0.7; transition: transform 0.12s; font-size: 1em; padding: 0; }
 
 .vbh-caret.open { transform: rotate(90deg); }
 
@@ -589,7 +579,7 @@
 
 .vbh-rename { flex: 1 1 240px; }
 
-.vbh-treesaldo.neg, .vbh-ccsummary strong.neg { color: #cc1f1f; }
+.vbh-treesaldo.neg, .vbh-ccsummary strong.neg { color: var(--color-error-text); }
 
 .vbh-ccrow { cursor: pointer; }
 
@@ -599,7 +589,7 @@
 
 .vbh-reassign-sides { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
 
-.vbh-reassign-side { margin: 0; padding: 4px 10px; border: 1px solid var(--color-border); border-radius: 14px; background-color: var(--color-main-background); color: var(--color-main-text); font-size: 0.88em; cursor: pointer; }
+.vbh-reassign-side.vbh-reassign-side { margin: 0; padding: 4px 10px; border: 1px solid var(--color-border); border-radius: 14px; background-color: var(--color-main-background); color: var(--color-main-text); font-size: 0.88em; cursor: pointer; }
 
 .vbh-reassign-side.active { border-color: var(--color-primary-element); background-color: var(--color-primary-element-light, var(--color-background-dark)); font-weight: 700; }
 
@@ -643,7 +633,7 @@
 
 .vbh-form .vbh-grow input, .vbh-form .vbh-grow select { width: 100%; }
 
-.vbh-sphere-help { flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--color-border); background: var(--color-background-hover); color: var(--color-main-text); cursor: pointer; font-weight: 700; }
+.vbh-sphere-help.vbh-sphere-help { flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--color-border); background: var(--color-background-hover); color: var(--color-main-text); cursor: pointer; font-weight: 700; }
 
 .vbh-rule-prio input { width: 80px; }
 
@@ -676,15 +666,15 @@
 /* Einnahme/Ausgabe-Umschalter (Einfach-Modus) */
 .vbh-kindtoggle { display: flex; gap: 0; margin: 4px 0 14px; border: 1px solid var(--color-border); border-radius: var(--border-radius-element, 8px); overflow: hidden; }
 
-.vbh-kindbtn { flex: 1 1 50%; padding: 10px 16px; border: none; background: var(--color-main-background); color: var(--color-main-text); font-size: 1em; font-weight: 600; cursor: pointer; transition: background-color 0.15s, color 0.15s; }
+.vbh-kindbtn.vbh-kindbtn { flex: 1 1 50%; padding: 10px 16px; border: none; background: var(--color-main-background); color: var(--color-main-text); font-size: 1em; font-weight: 600; cursor: pointer; transition: background-color 0.15s, color 0.15s; }
 
 .vbh-kindbtn + .vbh-kindbtn { border-inline-start: 1px solid var(--color-border); }
 
-.vbh-kindbtn:hover { background: var(--color-background-hover); }
+.vbh-kindbtn.vbh-kindbtn:hover { background: var(--color-background-hover); }
 
-.vbh-kindbtn.income.active { background: var(--color-success, #2d7d46); color: #fff; }
+.vbh-kindbtn.income.active { background: var(--color-success); color: var(--color-success-text); box-shadow: inset 0 0 0 2px var(--color-element-success); }
 
-.vbh-kindbtn.expense.active { background: var(--color-error, #b23636); color: #fff; }
+.vbh-kindbtn.expense.active { background: var(--color-error); color: var(--color-error-text); box-shadow: inset 0 0 0 2px var(--color-element-error); }
 
 .vbh-expertrow { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--color-border); opacity: 0.85; }
 
@@ -697,9 +687,9 @@
 
 .vbh-split-rest { font-variant-numeric: tabular-nums; font-size: 0.9em; }
 
-.vbh-split-rest.ok { color: var(--color-success, #2d7d46); }
+.vbh-split-rest.ok { color: var(--color-success-text); }
 
-.vbh-split-rest.bad { color: var(--color-warning, #c28800); }
+.vbh-split-rest.bad { color: var(--color-warning-text); }
 
 .vbh-split-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 
@@ -735,7 +725,7 @@
 
 .vbh-dropzone.dragging { border-color: var(--color-primary-element); background: var(--color-primary-element-light, var(--color-background-hover)); }
 
-.vbh-dropzone.has-file { border-style: solid; border-color: var(--color-success, #2d7d46); }
+.vbh-dropzone.has-file { border-style: solid; border-color: var(--color-element-success); }
 
 .vbh-dropzone-icon { opacity: 0.5; }
 
@@ -748,14 +738,14 @@
 /* Import-Erfolg */
 .vbh-import-done { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 20px 8px 8px; }
 
-.vbh-import-done-icon { color: var(--color-success, #2d7d46); }
+.vbh-import-done-icon { color: var(--color-element-success); }
 
 .vbh-import-done h3 { margin: 10px 0 4px; }
 
 .vbh-import-done .vbh-modal-actions { justify-content: center; width: 100%; }
 
 /* Tab-Icons */
-.vbh-tabs button { display: inline-flex; align-items: center; gap: 6px; }
+.vbh-tabs.vbh-tabs button { display: inline-flex; align-items: center; gap: 6px; }
 
 .vbh-export-btn { gap: 4px; }
 
@@ -777,9 +767,9 @@
 .vbh-row-move { transition: transform 0.22s ease; }
 
 /* Status-Akzent: offene vs. zugeordnete Bankbuchungen */
-.vbh-table tr.open td:first-child { box-shadow: inset 3px 0 0 var(--color-warning, #d9a411); }
+.vbh-table tr.open td:first-child { box-shadow: inset 3px 0 0 var(--color-element-warning); }
 
-.vbh-table tr.assigned td:first-child { box-shadow: inset 3px 0 0 var(--color-success, #2d7d46); }
+.vbh-table tr.assigned td:first-child { box-shadow: inset 3px 0 0 var(--color-element-success); }
 
 /* Zuordnungs-Fortschritt */
 .vbh-progress { display: flex; flex-direction: column; gap: 4px; margin: 4px 0 10px; }
@@ -788,21 +778,21 @@
 
 .vbh-progress-bar { height: 6px; border-radius: 3px; background: var(--color-background-dark); overflow: hidden; }
 
-.vbh-progress-fill { height: 100%; border-radius: 3px; background: var(--color-success, #2d7d46); transition: width 0.35s ease; }
+.vbh-progress-fill { height: 100%; border-radius: 3px; background: var(--color-element-success); transition: width 0.35s ease; }
 
 /* Vorschlag-Chip */
 .vbh-assign-row { display: flex; align-items: center; gap: 4px; }
 
-.vbh-suggest-chip { display: inline-block; margin-top: 4px; padding: 3px 10px; border: 1px solid var(--color-primary-element); border-radius: 12px; background: transparent; color: var(--color-primary-element); font-size: 0.82em; cursor: pointer; max-width: 100%; text-align: start; overflow-wrap: anywhere; transition: background-color 0.15s, color 0.15s; }
+.vbh-suggest-chip.vbh-suggest-chip { display: inline-block; margin-top: 4px; padding: 3px 10px; border: 1px solid var(--color-primary-element); border-radius: 12px; background: transparent; color: var(--color-primary-element); font-size: 0.82em; cursor: pointer; max-width: 100%; text-align: start; overflow-wrap: anywhere; transition: background-color 0.15s, color 0.15s; }
 
-.vbh-suggest-chip:hover { background: var(--color-primary-element); color: var(--color-primary-element-text); }
+.vbh-suggest-chip.vbh-suggest-chip:hover { background: var(--color-primary-element); color: var(--color-primary-element-text); }
 
 .vbh-yearedit { align-items: center; gap: 10px; margin: 6px 0; }
 
 /* Warnung: Buchungen außerhalb des Geschäftsjahres (xbuc-Import) */
-.vbh-yearwarn { margin: 8px 0; padding: 8px 12px; border: 1px solid var(--color-warning, #d9a411); border-radius: var(--border-radius, 6px); }
+.vbh-yearwarn { margin: 8px 0; padding: 8px 12px; border: 1px solid var(--color-element-warning); border-radius: var(--border-radius, 6px); }
 
-.vbh-yearwarn--block { border-color: var(--color-error, #c73c3c); border-width: 2px; background: rgba(199, 60, 60, 0.08); }
+.vbh-yearwarn--block { border-color: var(--color-element-error); border-width: 2px; background: var(--color-error); }
 
 .vbh-yearwarn-list { margin: 4px 0 8px; padding-inline-start: 20px; font-size: 0.88em; opacity: 0.85; }
 
@@ -818,14 +808,12 @@
 
 .vbh-openinfo-title { margin: 0 0 4px; font-weight: 600; font-size: 0.9em; }
 
-/* KPI-Vorjahresvergleich: Badge mit fest kodiertem dunklem Hintergrund + weißer Schrift.
-   Bewusst NICHT --color-success/--color-error verwenden: diese Theme-Variablen lösen in
-   manchen Nextcloud-Themes zu hellen Pastelltönen auf, auf denen weiße Schrift unlesbar ist. */
-.vbh-total-delta { align-self: flex-start; padding: 2px 9px; border-radius: 10px; font-size: 0.75em; font-weight: 600; color: #fff; white-space: nowrap; }
+/* KPI-Vorjahresvergleich */
+.vbh-total-delta { align-self: flex-start; padding: 2px 9px; border-radius: 10px; font-size: 0.75em; font-weight: 600; white-space: nowrap; }
 
-.vbh-total-delta.good { background-color: #2d7d46; }
+.vbh-total-delta.good { background-color: var(--color-success); color: var(--color-success-text); }
 
-.vbh-total-delta.bad { background-color: #b23636; }
+.vbh-total-delta.bad { background-color: var(--color-error); color: var(--color-error-text); }
 
 /* Preview */
 .vbh-previewsummary { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 10px; }
@@ -854,7 +842,9 @@
 /* ---- Mobil: Bottom-Navigation + FAB (nur bei isMobile gerendert) ---- */
 .vbh-bottomnav { position: relative; flex: 0 0 auto; display: flex; align-items: stretch; border-top: 1px solid var(--color-border); background-color: var(--color-main-background); padding: 4px 4px calc(4px + env(safe-area-inset-bottom, 0px)); z-index: 20; }
 
-.vbh-bottomnav-item { flex: 1 1 0; min-width: 0; min-height: 48px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; border: none; background: none; margin: 0; padding: 4px 2px; font-size: 0.7em; font-weight: 600; color: var(--color-text-maxcontrast); border-radius: 8px; cursor: pointer; }
+.vbh-bottomnav-item.vbh-bottomnav-item { flex: 1 1 0; min-width: 0; min-height: 48px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; border: none; background: none; margin: 0; padding: 4px 2px; font-size: 0.7em; font-weight: 600; color: var(--color-text-maxcontrast); border-radius: 8px; cursor: pointer; }
+
+.vbh-bottomnav-item.vbh-bottomnav-item:hover, .vbh-bottomnav-item.vbh-bottomnav-item:focus { background: none; }
 
 .vbh-bottomnav-item.active { color: var(--color-primary-element); }
 
@@ -864,7 +854,9 @@
 
 .vbh-bottomnav-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.vbh-fab { position: absolute; inset-inline-end: 14px; bottom: calc(100% + 14px); width: 52px; height: 52px; border-radius: 50%; border: none; margin: 0; padding: 0; background-color: var(--color-primary-element); color: var(--color-primary-element-text); display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3); cursor: pointer; z-index: 21; }
+.vbh-fab.vbh-fab { position: absolute; inset-inline-end: 14px; bottom: calc(100% + 14px); width: 52px; height: 52px; border-radius: 50%; border: none; margin: 0; padding: 0; background-color: var(--color-primary-element); color: var(--color-primary-element-text); display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3); cursor: pointer; z-index: 21; }
+
+.vbh-fab.vbh-fab:hover, .vbh-fab.vbh-fab:focus { background-color: var(--color-primary-element-hover); }
 
 .vbh-fab:active { transform: scale(0.95); }
 
@@ -879,7 +871,7 @@
 
 .vbh-mcard.tappable:active { background-color: var(--color-background-hover); }
 
-.vbh-mcard.open { box-shadow: inset 3px 0 0 var(--color-warning, #d9a411); }
+.vbh-mcard.open { box-shadow: inset 3px 0 0 var(--color-element-warning); }
 
 .vbh-mcard-top { display: flex; align-items: baseline; gap: 8px; }
 
@@ -889,9 +881,9 @@
 
 .vbh-mcard-amount { margin-inline-start: auto; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
-.vbh-mcard-amount.pos { color: #2d7d46; }
+.vbh-mcard-amount.pos { color: var(--color-success-text); }
 
-.vbh-mcard-amount.neg { color: #b23636; }
+.vbh-mcard-amount.neg { color: var(--color-error-text); }
 
 .vbh-mcard-title { font-weight: 600; overflow-wrap: anywhere; }
 
@@ -901,7 +893,7 @@
 
 .vbh-mcard-accounts { flex: 1 1 auto; min-width: 0; font-size: 0.78em; color: var(--color-text-maxcontrast); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.vbh-mcard-clip { border: none; background: none; margin: 0; padding: 4px 6px; font-size: 0.8em; color: var(--color-text-maxcontrast); cursor: pointer; display: inline-flex; align-items: center; gap: 2px; }
+.vbh-mcard-clip.vbh-mcard-clip { border: none; background: none; margin: 0; padding: 4px 6px; font-size: 0.8em; color: var(--color-text-maxcontrast); cursor: pointer; display: inline-flex; align-items: center; gap: 2px; }
 /* Mitgliederkarte (MemberCard.vue): Frequenz/Fälligkeit-Zeile braucht mehr
    Platz als eine Konten-Zeile, deshalb kein nowrap+ellipsis wie oben. */
 .vbh-membercard .vbh-mcard-accounts { white-space: normal; overflow: visible; text-overflow: clip; }
@@ -911,10 +903,10 @@
    damit die Zugehörigkeit zum Einzug oben erkennbar bleibt. */
 .vbh-mcard-subcards { margin: 8px 0 0 10px; padding-inline-start: 10px; border-inline-start: 2px solid var(--color-border); }
 /* Zuordnen mobil: Vorschlag als große Primärtaste */
-.vbh-suggest-chip--big { display: block; width: 100%; margin-top: 6px; padding: 10px 12px; font-size: 0.9em; text-align: center; border-radius: 8px; background: var(--color-primary-element); color: var(--color-primary-element-text); }
+.vbh-suggest-chip--big.vbh-suggest-chip--big { display: block; width: 100%; margin-top: 6px; padding: 10px 12px; font-size: 0.9em; text-align: center; border-radius: 8px; background: var(--color-primary-element); color: var(--color-primary-element-text); }
 
 /* ---- Mobil: Feld-Knopf (öffnet ein Auswahl-Sheet) ---- */
-.vbh-fieldbtn { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 48px; margin: 6px 0 0; padding: 7px 10px; border: 1px solid var(--color-border); border-radius: 10px; background-color: var(--color-main-background); color: var(--color-main-text); text-align: start; cursor: pointer; }
+.vbh-fieldbtn.vbh-fieldbtn { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 48px; margin: 6px 0 0; padding: 7px 10px; border: 1px solid var(--color-border); border-radius: 10px; background-color: var(--color-main-background); color: var(--color-main-text); text-align: start; cursor: pointer; }
 
 .vbh-fieldbtn:disabled { opacity: 0.6; cursor: default; }
 
@@ -941,9 +933,9 @@
 
 .vbh-sheet-title { flex: 1 1 auto; font-weight: 700; }
 
-.vbh-sheet-close { border: none; background: none; margin: 0; padding: 8px 10px; font-size: 1em; color: var(--color-text-maxcontrast); cursor: pointer; }
+.vbh-sheet-close.vbh-sheet-close { border: none; background: none; margin: 0; padding: 8px 10px; font-size: 1em; color: var(--color-text-maxcontrast); cursor: pointer; }
 
-.vbh-sheet-suggest { flex: 0 0 auto; margin: 0 0 8px; }
+.vbh-sheet-suggest.vbh-sheet-suggest { flex: 0 0 auto; margin: 0 0 8px; }
 
 .vbh-sheet-search { flex: 0 0 auto; margin-bottom: 6px; font-size: 16px; }
 
@@ -951,9 +943,9 @@
 
 .vbh-sheet-group { padding: 10px 4px 4px; font-size: 0.72em; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text-maxcontrast); }
 
-.vbh-sheet-item { display: block; width: 100%; min-height: 44px; margin: 0; padding: 11px 8px; border: none; border-radius: 8px; background: none; color: var(--color-main-text); font-size: 1em; text-align: start; cursor: pointer; }
+.vbh-sheet-item.vbh-sheet-item { display: block; width: 100%; min-height: 44px; margin: 0; padding: 11px 8px; border: none; border-radius: 8px; background: none; color: var(--color-main-text); font-size: 1em; text-align: start; cursor: pointer; }
 
-.vbh-sheet-item:hover, .vbh-sheet-item:active { background-color: var(--color-background-hover); }
+.vbh-sheet-item.vbh-sheet-item:hover, .vbh-sheet-item.vbh-sheet-item:active { background-color: var(--color-background-hover); }
 
 .vbh-sheet-item.current { background-color: var(--color-primary-element-light, var(--color-background-hover)); font-weight: 700; }
 
@@ -983,7 +975,7 @@
 /* ---- Mobil: Konten-Drilldown (Zurück-Leiste) ---- */
 .vbh-backbar { margin-bottom: 6px; }
 
-.vbh-backbtn { border: none; background: none; margin: 0; padding: 10px 10px 10px 0; font-size: 1em; font-weight: 700; color: var(--color-primary-element); cursor: pointer; }
+.vbh-backbtn.vbh-backbtn { border: none; background: none; margin: 0; padding: 10px 10px 10px 0; font-size: 1em; font-weight: 700; color: var(--color-primary-element); cursor: pointer; }
 
 /* ---- Mobil: Karten-Varianten (Saldenliste, Kostenstellen, Kontoauszug) ---- */
 .vbh-mcard--parent .vbh-mcard-title { font-weight: 700; }
@@ -1023,7 +1015,7 @@
 	.vbh-navbar--mobile { justify-content: flex-end; margin: 4px 0 8px; }
 	.vbh-tabs { overflow-x: auto; scrollbar-width: none; flex-shrink: 1; min-width: 0; }
 	.vbh-tabs::-webkit-scrollbar { display: none; }
-	.vbh-tabs button { padding: 5px 10px; font-size: 0.82em; white-space: nowrap; }
+	.vbh-tabs.vbh-tabs button { padding: 5px 10px; font-size: 0.82em; white-space: nowrap; }
 	.vbh-navright { flex-shrink: 0; gap: 2px; }
 	.vbh-newbooking-label { display: none; }
 	.vbh-yearsel { font-size: 0.8em; gap: 3px; }
@@ -1067,19 +1059,6 @@
 	.vbh-col-hide-sm { display: none; }
 }
 
-@media (prefers-color-scheme: dark) {
-	.vbh-table .num.neg, .vbh-table .num.bad { color: #ff7a7a; }
-	.vbh-table .num.good { color: #6fcf97; }
-	.vbh-mcard-amount.pos { color: #6fcf97; }
-	.vbh-mcard-amount.neg { color: #ff7a7a; }
-	.vbh-bankchip-hint, .vbh-warn-inline { color: #ffb060; }
-	.vbh-total.pos strong { color: #6fcf97; }
-	.vbh-total.neg strong { color: #ff7a7a; }
-	.vbh-treesaldo.neg, .vbh-ccsummary strong.neg { color: #ff7a7a; }
-	.vbh-badge.pos { background-color: #2d7d46; }
-	.vbh-badge--alert { background-color: #9b2a2a; }
-}
-
 /* Änderungsprotokoll: „Ältere Einträge laden" */
 .vbh-loadmore { display: flex; justify-content: center; padding: 12px 0 4px; }
 
@@ -1109,13 +1088,13 @@
 	   zu "Buchun…" gekürzt. Weniger Innenabstand und eine leicht kleinere
 	   Schrift schaffen den nötigen Platz. */
 	.vbh-bottomnav { padding-inline: 2px; }
-	.vbh-bottomnav-item { padding-inline: 0; font-size: 0.66em; }
+	.vbh-bottomnav-item.vbh-bottomnav-item { padding-inline: 0; font-size: 0.66em; }
 	.vbh-bottomnav-label { letter-spacing: -0.01em; }
 
 	/* Tippziele: unter dem Daumen sind 24px zu wenig. Betrifft die kompakten
 	   Schaltflächen der Übersichtskacheln ("Jetzt zuordnen", "Ansehen"), die
 	   Unterreiter der Berichte und die Baum-Schalter im Kontenrahmen. */
-	.vbh-subtabs button { min-height: 44px; padding-top: 0; padding-bottom: 0; }
+	.vbh-subtabs.vbh-subtabs button { min-height: 44px; padding-top: 0; padding-bottom: 0; }
 	.vbh-section .button-vue--size-small,
 	.vbh-sectionbody .button-vue--size-small { min-height: 44px; }
 	.vbh-section select,
@@ -1148,7 +1127,7 @@
    frei blieb. Mit flex-basis nach Inhalt bekommt jeder Eintrag so viel Breite,
    wie sein Wort braucht; der Rest wird gleichmäßig verteilt. */
 @media (max-width: 640px) {
-	.vbh-bottomnav-item { flex: 1 1 auto; }
+	.vbh-bottomnav-item.vbh-bottomnav-item { flex: 1 1 auto; }
 }
 
 /* Tablets bedienen per Finger, bekommen aber ab 641px das Desktop-Layout.
@@ -1162,5 +1141,5 @@
 	.vbh input:not([type="checkbox"]):not([type="radio"]) {
 		min-height: 44px;
 	}
-	.vbh-tabs button { min-height: 44px; }
+	.vbh-tabs.vbh-tabs button { min-height: 44px; }
 }

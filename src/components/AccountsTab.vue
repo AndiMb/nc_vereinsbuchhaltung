@@ -56,7 +56,7 @@
 						@click.stop="toggleExpand(node.id)">
 						›
 					</button>
-					<span v-else class="vbh-caret empty">·</span>
+					<span v-else class="vbh-caret empty" aria-hidden="true">·</span>
 					<span class="vbh-treenum">{{ node.number }}</span>
 					<span class="vbh-treename">{{ node.name }}</span>
 					<span v-if="!node.active" class="vbh-treeinactive" :title="t('Inaktiv – taucht in keiner Auswahlliste mehr auf')">{{ t('inaktiv') }}</span>
