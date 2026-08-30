@@ -32,6 +32,7 @@ class ResetService {
 		private AttachmentStorageService $storageService,
 		private YearCloseMapper $yearCloseMapper,
 		private OpenItemMapper $openItemMapper,
+		private SepaDebtorAccountService $sepaDebtorAccount,
 	) {
 	}
 
@@ -46,7 +47,8 @@ class ResetService {
 	 * Die Dateien der Belegablage liegen außerhalb der Datenbank und werden
 	 * daher erst nach dem erfolgreichen Commit entfernt: bricht die
 	 * Datenbank-Seite ab, sind die Dateien noch da und passen weiter zu den
-	 * erhaltenen Datensätzen.
+	 * erhaltenen Datensätzen. Für das einziehende Konto in den Einstellungen
+	 * gilt dasselbe.
 	 */
 	public function resetAll(string $userId): void {
 		// Vor dem Löschen der Datensätze merken, welche Dateien dazugehören –
@@ -71,6 +73,8 @@ class ResetService {
 			// Abschluss-Marker gehören zum Datenbestand; das Änderungsprotokoll
 			// bleibt bewusst erhalten (der Reset selbst wird protokolliert).
 			$this->yearCloseMapper->deleteAll();
+
+			$this->transaction->afterCommit(fn () => $this->sepaDebtorAccount->setAccountId(null));
 		});
 
 		$this->storageService->deleteAllFiles($attachments);

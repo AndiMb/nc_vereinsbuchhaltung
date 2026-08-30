@@ -18,6 +18,17 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 ## [Unreleased]
 
 **Fixed:**
+- **A deleted collecting account blocked the entire settings page.** If a
+  collecting account had been selected under "Contributions & SEPA" and the
+  data was then wiped via "Delete all data" (or an import with reset), the
+  setting pointed at an account that no longer existed. From then on **every**
+  save on the settings page failed with "The selected collecting account was
+  not found." – including the club name or the receipt storage, because the
+  page always sends the full set of fields. Resetting the data and deleting a
+  single account now clear that setting as well, and it is only validated when
+  it actually changes, so an account that became invalid later (after removing
+  its IBAN, say) no longer paralyses the other sections.
+
 - **No Nextcloud user could be selected in the settings any more.** This
   affected "Receipts" (receipt storage) and "Bank data" (watched folder):
   both dropdowns only offered "— internal (AppData) —" resp. "— off —", the

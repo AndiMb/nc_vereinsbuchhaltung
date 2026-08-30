@@ -20,6 +20,19 @@ verwenden, z. B. `**Neu:**`.
 ## [Unreleased]
 
 **Behoben:**
+- **Ein gelöschtes einziehendes Konto blockierte die gesamte
+  Einstellungsseite.** Wurde unter „Beiträge & SEPA" ein einziehendes Konto
+  gewählt und danach über „Alle Daten löschen" (oder einen Import mit
+  Zurücksetzen) der Bestand geleert, zeigte die Einstellung auf ein Konto, das
+  es nicht mehr gab. Ab da scheiterte **jedes** Speichern auf der
+  Einstellungsseite mit „Das gewählte einziehende Konto wurde nicht gefunden."
+  – auch das des Vereinsnamens oder der Belegablage, weil die Seite immer den
+  vollständigen Feldsatz sendet. Das Zurücksetzen und das Löschen eines
+  einzelnen Kontos räumen die Einstellung jetzt mit ab; geprüft wird sie
+  außerdem nur noch, wenn sie tatsächlich geändert wird, damit ein
+  nachträglich ungültig gewordenes Konto (etwa nach dem Entfernen seiner IBAN)
+  nicht die übrigen Abschnitte lahmlegt.
+
 - **In den Einstellungen ließ sich kein Nextcloud-Nutzer mehr auswählen.**
   Betroffen waren „Belege" (Belegablage) und „Bankdaten" (überwachter Ordner):
   beide Auswahlfelder boten nur noch „— intern (AppData) —" bzw. „— aus —" an,
