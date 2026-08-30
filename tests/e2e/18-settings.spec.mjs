@@ -1,16 +1,10 @@
-import { expect, test } from '@playwright/test'
-import { api, authHeaders, BANK_ACCOUNT, BASE_URL, INCOME_ACCOUNT, openSettingsPage, USERS } from './fixtures/nextcloud.mjs'
+import { test, expect } from '@playwright/test'
+import { api, openSettingsPage, authHeaders, davUrl, BANK_ACCOUNT, BELEG_PNG, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
 
 // Die Einstellungsseite (Nextcloud-Einstellungen → Vereinsbuchhaltung):
 // Belegablage auf einen Nutzer-Ordner umstellen. Regressionstest für
-// v0.25.0, wo das Nutzer-Dropdown leer blieb (users-Prop war in
-// SettingsApp.vue nicht angebunden) – nur „intern (AppData)" war wählbar.
-
-// 1×1-Pixel-PNG – klein, aber eine echte Bilddatei.
-const PNG = Buffer.from(
-	'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
-	'base64',
-)
+// v0.25.0, wo das Nutzer-Dropdown leer blieb (die Nutzerliste war an keinen
+// Zustand gebunden) – nur „intern (AppData)" war wählbar, siehe Issue #9.
 
 test.describe('Einstellungsseite: Belegablage', () => {
 	test.beforeAll(async ({ request }) => {
@@ -32,9 +26,11 @@ test.describe('Einstellungsseite: Belegablage', () => {
 	})
 
 	test.afterAll(async ({ request }) => {
-		// Erst den Bestand räumen, solange der NC-Modus noch aktiv ist – so
-		// verschwinden auch die Beleg-Dateien im Nutzer-Home. Danach zurück
-		// auf die interne Ablage, auf die sich die übrigen Specs verlassen.
+		// Aufräumen, solange der NC-Modus noch aktiv ist: nur dann räumt
+		// resetBook() auch die Beleg-Dateien im Nutzer-Home ab. Der
+		// Datenbank-Schnappschuss des Global-Setups setzt zwar die
+		// Einstellungen zurück, nicht aber das Dateisystem – ohne das hier
+		// sammelten sich die Belege über die Läufe hinweg an.
 		await api.resetBook(request)
 		await api.updateSettings(request, { storage_user: '', storage_path: 'Vereinsbuchhaltung/Belege' })
 	})
@@ -71,19 +67,14 @@ test.describe('Einstellungsseite: Belegablage', () => {
 			creditAccountId: income.id,
 			amount: 42,
 		})).json()
-		const attachment = await (await api.raw(request, 'POST', `/journal/${booking.id}/attachments`, {
-			expectOk: true,
-			multipart: {
-				file: { name: 'beleg.png', mimeType: 'image/png', buffer: PNG },
-			},
-		})).json()
+		const attachment = await api.addAttachment(request, booking.id)
 
 		// Ablageschema von AttachmentStorageService::getNcFilePath():
 		// <Pfad>/<BuchungsID>/<BelegID>_<Dateiname> im Home des Nutzers –
 		// dort per WebDAV sichtbar, wie in der Dateien-App.
-		const dav = `${BASE_URL}/remote.php/dav/files/admin/Vereinsbuchhaltung/Belege/${booking.id}/${attachment.id}_beleg.png`
+		const dav = davUrl('admin', `Vereinsbuchhaltung/Belege/${booking.id}/${attachment.id}_beleg.png`)
 		const resp = await request.fetch(dav, { headers: authHeaders() })
 		expect(resp.status()).toBe(200)
-		expect((await resp.body()).length).toBe(PNG.length)
+		expect((await resp.body()).length).toBe(BELEG_PNG.length)
 	})
 })

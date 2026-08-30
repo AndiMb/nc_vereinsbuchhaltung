@@ -1,6 +1,6 @@
 import { getContainer, runOcc } from '@nextcloud/e2e-test-server'
 import { test, expect } from '@playwright/test'
-import { api, fixture, authHeaders, BASE_URL, CAMT_STATEMENT } from './fixtures/nextcloud.mjs'
+import { api, fixture, authHeaders, davUrl, CAMT_STATEMENT } from './fixtures/nextcloud.mjs'
 
 // Der Wachordner: ein per WebDAV abgelegter Kontoauszug wird vom
 // Hintergrund-Job eingelesen, ganz ohne manuellen Import. Der Job wird
@@ -21,7 +21,7 @@ test.describe('Wachordner', () => {
 
 		// Auszug in den überwachten Ordner legen (WebDAV, wie es die Bank-App
 		// oder der Sync-Client täten).
-		const dav = `${BASE_URL}/remote.php/dav/files/admin/Auszuege`
+		const dav = davUrl('admin', 'Auszuege')
 		await request.fetch(dav, { method: 'MKCOL', headers: authHeaders() })
 		const put = await request.fetch(`${dav}/kontoauszug.csv`, {
 			method: 'PUT',

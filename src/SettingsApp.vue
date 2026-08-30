@@ -17,7 +17,6 @@
 				<SettingsAttachments
 					v-model:storageUser="storageUser"
 					v-model:storagePath="storagePath"
-					:users="users"
 					:storageSaving="storageSaving"
 					:saveStorageSettings="saveSettings" />
 			</NcSettingsSection>
@@ -28,7 +27,6 @@
 				<SettingsStatementWatch
 					v-model:statementWatchUser="statementWatchUser"
 					v-model:statementWatchPath="statementWatchPath"
-					:users="users"
 					:storageSaving="storageSaving"
 					:saveStorageSettings="saveSettings" />
 			</NcSettingsSection>
@@ -92,7 +90,6 @@
 <script>
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { NcButton, NcDialog, NcSettingsSection } from '@nextcloud/vue'
-import { toRef } from 'vue'
 import SettingsAttachments from './components/SettingsAttachments.vue'
 import SettingsClub from './components/SettingsClub.vue'
 import SettingsPermissions from './components/SettingsPermissions.vue'
@@ -136,14 +133,13 @@ export default {
 	},
 
 	setup() {
-		// Rueckfrage vor nicht umkehrbaren Aktionen (siehe App.vue).
+		// Rueckfrage vor nicht umkehrbaren Aktionen (siehe App.vue). users/
 		// permissions/accounts/years kommen direkt aus den jeweiligen
-		// Singletons in die Kindkomponenten (SettingsPermissions,
-		// SettingsSepaBasics, SettingsYearClose) - hier nur zum Anstossen des
-		// Ladens gebraucht, siehe mounted(). Die Nutzerliste dagegen erwarten
-		// SettingsAttachments/SettingsStatementWatch als Prop (vor v0.25.0 kam
-		// sie in App.vue aus toRefs(permissions.state)).
-		return { ...useConfirm(), users: toRef(usePermissions().state, 'users') }
+		// Singletons in die Kindkomponenten (SettingsAttachments,
+		// SettingsStatementWatch, SettingsPermissions, SettingsSepaBasics,
+		// SettingsYearClose) - hier nur zum Anstossen des Ladens gebraucht,
+		// siehe mounted().
+		return { ...useConfirm() }
 	},
 
 	data() {

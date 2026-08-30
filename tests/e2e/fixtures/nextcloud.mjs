@@ -41,6 +41,17 @@ export const CAMT_STATEMENT = {
 export const BANK_ACCOUNT = '1200'
 export const INCOME_ACCOUNT = '4000'
 
+// Beleg-Fixture: ein 1×1-Pixel-PNG – klein, aber eine echte Bilddatei.
+export const BELEG_PNG = Buffer.from(
+	'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+	'base64',
+)
+
+/** WebDAV-Adresse einer Datei oder eines Ordners im Home eines Nutzers. */
+export function davUrl(username, path) {
+	return `${BASE_URL}/remote.php/dav/files/${username}/${path}`
+}
+
 export function authHeaders(username = 'admin', password = null) {
 	return {
 		Authorization: 'Basic ' + Buffer.from(`${username}:${password ?? username}`).toString('base64'),
@@ -97,13 +108,13 @@ export async function openApp(page, username) {
 
 /**
  * Öffnet den Vereinsbuchhaltung-Abschnitt der Nextcloud-Einstellungen
- * (SettingsApp.vue). Server-Admins finden ihn unter Verwaltung (area
- * 'admin'), App-Verwalter ohne Server-Admin-Rechte unter Persönlich
- * (area 'user') – siehe PersonalSettings::getSection().
+ * (SettingsApp.vue) unter Verwaltung. App-Verwalter ohne Server-Admin-Rechte
+ * finden dieselbe Seite unter Persönlich (/settings/user/...), siehe
+ * PersonalSettings::getSection().
  */
-export async function openSettingsPage(page, username, { area = 'admin' } = {}) {
+export async function openSettingsPage(page, username) {
 	await login(page, username)
-	await page.goto(`${BASE_URL}/index.php/settings/${area}/vereinsbuchhaltung`)
+	await page.goto(`${BASE_URL}/index.php/settings/admin/vereinsbuchhaltung`)
 	await page.locator('#settings-section_belege').waitFor({ timeout: 15000 })
 }
 
@@ -213,6 +224,18 @@ export const api = {
 			expectOk,
 			data: { date, description, debitAccountId, creditAccountId, amount },
 		})
+	},
+
+	/** Beleg an eine Buchung hängen; liefert den angelegten Datensatz. */
+	async addAttachment(request, journalId, { name = 'beleg.png', mimeType = 'image/png', buffer = BELEG_PNG, user = 'admin' } = {}) {
+		return (await call(request, 'POST', `/journal/${journalId}/attachments`, {
+			user,
+			multipart: { file: { name, mimeType, buffer } },
+		})).json()
+	},
+
+	async listAttachments(request, journalId) {
+		return (await call(request, 'GET', `/journal/${journalId}/attachments`)).json()
 	},
 
 	async listJournal(request, { year = null } = {}) {

@@ -1,14 +1,8 @@
 import { test, expect } from '@playwright/test'
-import { api, openApp, switchTab, visibleSection, BANK_ACCOUNT, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
+import { api, openApp, switchTab, visibleSection, BANK_ACCOUNT, BELEG_PNG, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
 
 // Belegablage (app-intern): Beleg an eine Buchung hängen, Büroklammer im
 // Journal, Download und das Prüf-ZIP für die Kassenprüfung.
-
-// 1×1-Pixel-PNG – klein, aber eine echte Bilddatei.
-const PNG = Buffer.from(
-	'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
-	'base64',
-)
 
 async function ensureBookingWithAttachment(request) {
 	const journal = await api.listJournal(request)
@@ -24,14 +18,9 @@ async function ensureBookingWithAttachment(request) {
 		})).json()
 	}
 
-	let [attachment] = await api.getJson(request, `/journal/${booking.id}/attachments`)
+	let [attachment] = await api.listAttachments(request, booking.id)
 	if (!attachment) {
-		attachment = await (await api.raw(request, 'POST', `/journal/${booking.id}/attachments`, {
-			expectOk: true,
-			multipart: {
-				file: { name: 'beleg.png', mimeType: 'image/png', buffer: PNG },
-			},
-		})).json()
+		attachment = await api.addAttachment(request, booking.id)
 	}
 	return { booking, attachment }
 }
@@ -59,7 +48,7 @@ test.describe('Belegablage', () => {
 
 		const download = await api.raw(request, 'GET', `/attachments/${attachment.id}/download`)
 		expect(download.status()).toBe(200)
-		expect((await download.body()).length).toBe(PNG.length)
+		expect((await download.body()).length).toBe(BELEG_PNG.length)
 
 		const zip = await api.raw(request, 'GET', '/export/attachments?year=2026', { user: USERS.revisor })
 		expect(zip.status()).toBe(200)

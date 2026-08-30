@@ -27,6 +27,8 @@
 
 <script>
 import { NcButton } from '@nextcloud/vue'
+import { toRefs } from 'vue'
+import { usePermissions } from '../composables/usePermissions.js'
 
 /**
  * Überwachter Ordner für Kontoauszüge – eine der sieben Seiten des
@@ -39,13 +41,19 @@ export default {
 	props: {
 		statementWatchUser: { type: String, default: '' },
 		statementWatchPath: { type: String, default: '' },
-		users: { type: Array, required: true },
 		storageSaving: { type: Boolean, required: true },
 		// gemeinsame Speichern-Funktion des Elternteils, siehe SettingsClub.vue
 		saveStorageSettings: { type: Function, required: true },
 	},
 
 	emits: ['update:statementWatchPath', 'update:statementWatchUser'],
+
+	setup() {
+		// users kommt direkt aus dem usePermissions-Singleton, wie in
+		// SettingsPermissions.vue – kein Prop-Drilling noetig, siehe
+		// SettingsAttachments.vue.
+		return { ...toRefs(usePermissions().state) }
+	},
 
 	computed: {
 		watchUserModel: {
