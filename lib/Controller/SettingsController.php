@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\MembershipFeeMapper;
 use OCA\Vereinsbuchhaltung\Db\SepaMandateMapper;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
+use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\BillingPeriod;
 use OCA\Vereinsbuchhaltung\Service\DemoDataService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
@@ -45,47 +46,44 @@ class SettingsController extends Controller {
 	}
 
 	/**
-	 * Prüft den Zielort der Belegablage.
+	 * Prüft, ob ein neu gewählter Nextcloud-Nutzer existiert.
 	 *
-	 * Beides muss eng geführt werden: die App legt in dem konfigurierten Ordner
-	 * Dateien im Home eines echten Nextcloud-Nutzers an und räumt dort beim
-	 * Zurücksetzen wieder auf. Ohne Prüfung könnte ein Verwalter der App – der
-	 * kein Nextcloud-Administrator sein muss – einen beliebigen fremden Nutzer
-	 * und einen beliebigen Pfad eintragen und so in dessen Dateien schreiben.
-	 * (Gelöscht werden beim Reset nur noch die bekannten Beleg-Dateien, siehe
+	 * Nutzer und Pfad müssen eng geführt werden: die App legt im
+	 * konfigurierten Ordner Dateien im Home eines echten Nextcloud-Nutzers an,
+	 * beim Wachordner liest sie sogar aus ihm und verschiebt die Dateien. Ohne
+	 * Prüfung könnte ein Verwalter der App – der kein Nextcloud-Administrator
+	 * sein muss – einen beliebigen fremden Nutzer und Pfad eintragen und so in
+	 * dessen Dateien schreiben oder sie auslesen. (Gelöscht werden beim
+	 * Zurücksetzen nur noch die bekannten Beleg-Dateien, siehe
 	 * AttachmentStorageService::deleteAllFiles() – die Pfadprüfung bleibt
 	 * trotzdem die erste Verteidigungslinie.)
 	 *
-	 * @return string|null Fehlermeldung oder null, wenn alles in Ordnung ist
-	 */
-	private function validateStorage(string $storageUser, string $storagePath): ?string {
-		return $this->validateUserPath($storageUser, $storagePath, $this->l10n->t('Belegablage'), $this->l10n->t('Ablagepfad'));
-	}
-
-	/**
-	 * Dieselbe Prüfung für den überwachten Ordner der Kontoauszüge.
+	 * Aufgerufen wird das nur für einen tatsächlich GEÄNDERTEN Nutzer. Ein
+	 * gespeicherter Name kann verwaisen, ohne dass die App etwas davon merkt:
+	 * der UserDeletedListener räumt ihn zwar ab, erreicht aber nicht jede
+	 * Löschung (fremdes Nutzer-Backend, eingespielter Datenbank-Dump, Löschung
+	 * bei abgeschalteter App). Die Einstellungsseite sendet immer den
+	 * vollständigen Feldsatz (SettingsApp.vue::saveSettings()) – ein verwaister
+	 * Name ließe sonst auch das Speichern des Vereinsnamens mit HTTP 400
+	 * scheitern. An der Absicherung oben ändert das nichts: der gespeicherte
+	 * Wert hat sie schon einmal bestanden, unverändert öffnet er keinen
+	 * fremden Ordner, der nicht schon offen war.
 	 *
-	 * Hier wiegt sie sogar schwerer als bei der Belegablage: die App liest aus
-	 * diesem Ordner und verschiebt die Dateien anschließend. Ein beliebiger
-	 * fremder Pfad wäre also nicht nur beschreibbar, sondern auch auslesbar.
-	 */
-	private function validateWatchFolder(string $user, string $path): ?string {
-		if ($user === '' || trim($path) === '') {
-			return null; // beides leer bzw. unvollständig -> Wachordner ist aus
-		}
-		return $this->validateUserPath($user, $path, $this->l10n->t('überwachten Ordner'), $this->l10n->t('Ordnerpfad'));
-	}
-
-	/**
 	 * @param string $subject wofür der Nutzer gebraucht wird (für die Meldung)
-	 * @param string $pathLabel wie der Pfad in Meldungen heißen soll
 	 * @return string|null Fehlermeldung oder null, wenn alles in Ordnung ist
 	 */
-	private function validateUserPath(string $user, string $path, string $subject, string $pathLabel): ?string {
+	private function validateUser(string $user, string $subject): ?string {
 		if ($user !== '' && !$this->userManager->userExists($user)) {
 			return $this->l10n->t('Der angegebene Nextcloud-Nutzer für die %s existiert nicht.', [$subject]);
 		}
+		return null;
+	}
 
+	/**
+	 * @param string $pathLabel wie der Pfad in Meldungen heißen soll
+	 * @return string|null Fehlermeldung oder null, wenn alles in Ordnung ist
+	 */
+	private function validatePath(string $path, string $pathLabel): ?string {
 		$normalized = trim(str_replace('\\', '/', $path), '/');
 		if ($normalized === '') {
 			return null; // leer -> Standardpfad, wird vom Aufrufer gesetzt
@@ -120,8 +118,8 @@ class SettingsController extends Controller {
 		$membershipEnabled = $this->config->getAppValue(Application::APP_ID, 'membership_enabled', '0') === '1';
 		$defaultFeeAmountCents = $this->config->getAppValue(Application::APP_ID, 'default_fee_amount_cents', '');
 		return [
-			'storage_user' => $this->config->getAppValue(Application::APP_ID, 'storage_user', ''),
-			'storage_path' => $this->config->getAppValue(Application::APP_ID, 'storage_path', 'Vereinsbuchhaltung/Belege'),
+			'storage_user' => $this->config->getAppValue(Application::APP_ID, AttachmentStorageService::SETTING_USER, ''),
+			'storage_path' => $this->config->getAppValue(Application::APP_ID, AttachmentStorageService::SETTING_PATH, AttachmentStorageService::DEFAULT_PATH),
 			'cost_center_mode' => $this->config->getAppValue(Application::APP_ID, 'cost_center_mode', 'group'),
 			'club_name' => $this->config->getAppValue(Application::APP_ID, 'club_name', ''),
 			'brand_color' => $this->config->getAppValue(Application::APP_ID, 'brand_color', ''),
@@ -172,18 +170,21 @@ class SettingsController extends Controller {
 		// gesendet wurde; die fehlende Hälfte wird aus dem aktuellen Stand
 		// ergänzt, damit die Paarprüfung (Nutzer + Pfad) vollständig bleibt.
 		if (array_key_exists('storage_user', $params) || array_key_exists('storage_path', $params)) {
-			$storageUser = trim((string)($params['storage_user'] ?? $this->config->getAppValue($appId, 'storage_user', '')));
-			$storagePath = trim((string)($params['storage_path'] ?? $this->config->getAppValue($appId, 'storage_path', 'Vereinsbuchhaltung/Belege')));
-			$storageError = $this->validateStorage($storageUser, $storagePath);
+			$storedStorageUser = $this->config->getAppValue($appId, AttachmentStorageService::SETTING_USER, '');
+			$storageUser = trim((string)($params['storage_user'] ?? $storedStorageUser));
+			$storagePath = trim((string)($params['storage_path'] ?? $this->config->getAppValue($appId, AttachmentStorageService::SETTING_PATH, AttachmentStorageService::DEFAULT_PATH)));
+			// Der Nutzer nur, wenn er sich ändert – warum, steht an validateUser().
+			$storageError = $storageUser === $storedStorageUser ? null : $this->validateUser($storageUser, $this->l10n->t('Belegablage'));
+			$storageError ??= $this->validatePath($storagePath, $this->l10n->t('Ablagepfad'));
 			if ($storageError !== null) {
 				return new DataResponse(['message' => $storageError], Http::STATUS_BAD_REQUEST);
 			}
 			$storagePath = trim(str_replace('\\', '/', $storagePath), '/');
 			if ($storagePath === '') {
-				$storagePath = 'Vereinsbuchhaltung/Belege';
+				$storagePath = AttachmentStorageService::DEFAULT_PATH;
 			}
-			$this->config->setAppValue($appId, 'storage_user', $storageUser);
-			$this->config->setAppValue($appId, 'storage_path', $storagePath);
+			$this->config->setAppValue($appId, AttachmentStorageService::SETTING_USER, $storageUser);
+			$this->config->setAppValue($appId, AttachmentStorageService::SETTING_PATH, $storagePath);
 		}
 
 		if (array_key_exists('cost_center_mode', $params)) {
@@ -209,17 +210,20 @@ class SettingsController extends Controller {
 
 		// Wachordner (Paar): dieselbe Ergänzungslogik wie bei der Belegablage.
 		if (array_key_exists('statement_watch_user', $params) || array_key_exists('statement_watch_path', $params)) {
-			$watchUser = trim((string)($params['statement_watch_user'] ?? $this->config->getAppValue($appId, WatchFolderService::SETTING_USER, '')));
+			$storedWatchUser = $this->config->getAppValue($appId, WatchFolderService::SETTING_USER, '');
+			$watchUser = trim((string)($params['statement_watch_user'] ?? $storedWatchUser));
 			$watchPath = trim(str_replace('\\', '/', (string)($params['statement_watch_path'] ?? $this->config->getAppValue($appId, WatchFolderService::SETTING_PATH, ''))), '/');
-			$watchError = $this->validateWatchFolder($watchUser, $watchPath);
-			if ($watchError !== null) {
-				return new DataResponse(['message' => $watchError], Http::STATUS_BAD_REQUEST);
-			}
 			// Nur beides zusammen ergibt einen Wachordner; halb ausgefüllt wäre er
-			// eingeschaltet, fände aber nie etwas.
+			// eingeschaltet, fände aber nie etwas. Dann gibt es auch nichts zu prüfen.
 			if ($watchUser === '' || $watchPath === '') {
 				$watchUser = '';
 				$watchPath = '';
+			} else {
+				$watchError = $watchUser === $storedWatchUser ? null : $this->validateUser($watchUser, $this->l10n->t('überwachten Ordner'));
+				$watchError ??= $this->validatePath($watchPath, $this->l10n->t('Ordnerpfad'));
+				if ($watchError !== null) {
+					return new DataResponse(['message' => $watchError], Http::STATUS_BAD_REQUEST);
+				}
 			}
 			$this->config->setAppValue($appId, WatchFolderService::SETTING_USER, $watchUser);
 			$this->config->setAppValue($appId, WatchFolderService::SETTING_PATH, $watchPath);

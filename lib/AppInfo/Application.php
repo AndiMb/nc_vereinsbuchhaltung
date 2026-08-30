@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\AppInfo;
 
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
+use OCA\Vereinsbuchhaltung\Listener\UserDeletedListener;
 use OCA\Vereinsbuchhaltung\Middleware\PermissionMiddleware;
 use OCA\Vereinsbuchhaltung\Middleware\RevisionMiddleware;
 use OCP\AppFramework\App;
@@ -12,6 +13,7 @@ use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
 use OCP\IDBConnection;
+use OCP\User\Events\UserDeletedEvent;
 
 class Application extends App implements IBootstrap {
 	public const APP_ID = 'vereinsbuchhaltung';
@@ -26,6 +28,11 @@ class Application extends App implements IBootstrap {
 	public function register(IRegistrationContext $context): void {
 		$context->registerMiddleware(PermissionMiddleware::class);
 		$context->registerMiddleware(RevisionMiddleware::class);
+
+		// Belegablage und Wachordner zeigen auf einen Nextcloud-Nutzer. Wird der
+		// gelöscht, räumt der Listener die Einstellungen mit ab, damit keine
+		// Namen stehen bleiben, hinter denen niemand mehr steht.
+		$context->registerEventListener(UserDeletedEvent::class, UserDeletedListener::class);
 
 		// Ausdrücklich als geteilter Dienst: der TransactionRunner zählt die
 		// Verschachtelungstiefe und sammelt Nach-Commit-Aufgaben in

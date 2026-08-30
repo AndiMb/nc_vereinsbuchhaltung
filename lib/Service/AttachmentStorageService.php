@@ -17,6 +17,11 @@ use OCP\IL10N;
 
 class AttachmentStorageService {
 
+	/** Leerer Nutzer = app-interne Ablage (AppData), gesetzter Nutzer = sein Nextcloud-Home. */
+	public const SETTING_USER = 'storage_user';
+	public const SETTING_PATH = 'storage_path';
+	public const DEFAULT_PATH = 'Vereinsbuchhaltung/Belege';
+
 	private $appData;
 
 	public function __construct(
@@ -66,15 +71,31 @@ class AttachmentStorageService {
 	}
 
 	private function storageUser(): string {
-		return $this->config->getAppValue(Application::APP_ID, 'storage_user', '');
+		return $this->config->getAppValue(Application::APP_ID, self::SETTING_USER, '');
 	}
 
 	private function storagePath(): string {
-		return trim($this->config->getAppValue(Application::APP_ID, 'storage_path', 'Vereinsbuchhaltung/Belege'), '/');
+		return trim($this->config->getAppValue(Application::APP_ID, self::SETTING_PATH, self::DEFAULT_PATH), '/');
 	}
 
 	public function isNcMode(): bool {
 		return $this->storageUser() !== '';
+	}
+
+	/**
+	 * Stellt die Belegablage auf die app-interne zurück, wenn sie im Home
+	 * dieses Nutzers lag – neue Belege haben damit sofort wieder einen Platz.
+	 * Gegenstück zu {@see SepaDebtorAccountService::forgetIfSetTo()};
+	 * aufgerufen vom UserDeletedListener.
+	 *
+	 * @return bool ob die Ablage tatsächlich zurückgestellt wurde
+	 */
+	public function forgetUser(string $uid): bool {
+		if ($this->storageUser() !== $uid) {
+			return false;
+		}
+		$this->config->setAppValue(Application::APP_ID, self::SETTING_USER, '');
+		return true;
 	}
 
 	/** Pfad der Datei relativ zum Nutzer-Home (ohne führenden Slash). Nur im NC-Modus sinnvoll. */

@@ -33,6 +33,19 @@ verwenden, z. B. `**Neu:**`.
   nachträglich ungültig gewordenes Konto (etwa nach dem Entfernen seiner IBAN)
   nicht die übrigen Abschnitte lahmlegt.
 
+- **Ein gelöschter Nextcloud-Nutzer blockierte die gesamte
+  Einstellungsseite.** War unter „Belege" (Belegablage) oder „Bankdaten"
+  (überwachter Ordner) ein Nextcloud-Nutzer eingetragen und wurde dieser Nutzer
+  danach in Nextcloud gelöscht, scheiterte **jedes** Speichern auf der
+  Einstellungsseite mit „Der angegebene Nextcloud-Nutzer für die … existiert
+  nicht." – auch das des Vereinsnamens, weil die Seite immer den vollständigen
+  Feldsatz sendet. Das Löschen eines Nextcloud-Nutzers räumt die beiden
+  Einstellungen jetzt mit ab: die Belegablage fällt auf die app-interne Ablage
+  zurück, der überwachte Ordner wird abgeschaltet. Geprüft wird der Nutzer
+  außerdem nur noch, wenn er tatsächlich geändert wird – für die Löschungen,
+  die die App nicht mitbekommt (fremdes Nutzer-Backend, eingespielter
+  Datenbank-Dump, Löschung bei abgeschalteter App).
+
 - **In den Einstellungen ließ sich kein Nextcloud-Nutzer mehr auswählen.**
   Betroffen waren „Belege" (Belegablage) und „Bankdaten" (überwachter Ordner):
   beide Auswahlfelder boten nur noch „— intern (AppData) —" bzw. „— aus —" an,

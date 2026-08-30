@@ -1,3 +1,4 @@
+import { addUser, getContainer, runOcc, User } from '@nextcloud/e2e-test-server'
 import { test, expect } from '@playwright/test'
 import { api, openSettingsPage, authHeaders, davUrl, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, BELEG_PNG, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
 
@@ -9,14 +10,10 @@ test.describe('Einstellungsseite: Belegablage', () => {
 	test.beforeAll(async ({ request }) => {
 		await api.resetBook(request)
 		await api.seedDefaultAccounts(request)
-		// Ausgangszustand ausdrücklich herstellen: interne Ablage. Die Seite
-		// speichert immer den ganzen Satz (SettingsApp::saveSettings()), also
-		// muss auch der Wachordner aus 17-watchfolder gültig sein.
+		// Ausgangszustand ausdrücklich herstellen: interne Ablage.
 		await api.updateSettings(request, {
 			storage_user: '',
 			storage_path: 'Vereinsbuchhaltung/Belege',
-			statement_watch_user: '',
-			statement_watch_path: '',
 		})
 	})
 
@@ -118,5 +115,107 @@ test.describe('Einstellungsseite: einziehendes Konto blockiert nichts', () => {
 		const rejected = await api.updateSettings(request, { sepa_debtor_account_id: bank.id }, { expectOk: false })
 		expect(rejected.status()).toBe(400)
 		expect((await rejected.json()).message).toMatch(/IBAN/)
+	})
+})
+
+// storage_user und statement_watch_user zeigen als einzige Einstellungen auf
+// einen Nextcloud-Nutzer. Verschwindet der, darf das weder unbemerkt bleiben
+// noch die ganze Seite unspeicherbar machen – sie sendet immer den
+// vollständigen Feldsatz.
+test.describe('Einstellungsseite: gelöschter Nextcloud-Nutzer blockiert nichts', () => {
+	// Eigener Wegwerf-Nutzer: test1–test5 aus dem Snapshot brauchen die
+	// übrigen Specs noch.
+	const TEMP_USER = 'wegwerf'
+	const container = getContainer()
+	let userExists = false
+
+	/**
+	 * Wartet, bis über occ geschriebene Einstellungen im Webprozess ankommen.
+	 *
+	 * Nextcloud hält die App-Konfiguration prozesslokal in APCu (drei Sekunden,
+	 * OC\AppConfig::LOCAL_CACHE_TTL). Ein Schreibzugriff leert nur den Cache des
+	 * schreibenden Prozesses – occ und der Webserver haben getrennte Segmente,
+	 * ohne dieses Warten läse der nächste Request noch den alten Stand. Der
+	 * erste Versuch wartet die TTL deshalb gleich ab.
+	 */
+	async function waitForSettings(request, expected) {
+		await expect.poll(() => api.getSettings(request), { timeout: 15000, intervals: [3000, 500] }).toMatchObject(expected)
+	}
+
+	function setViaOcc(key, value) {
+		return runOcc(['config:app:set', 'vereinsbuchhaltung', key, '--value', value], { container })
+	}
+
+	test.afterAll(async ({ request }) => {
+		await api.updateSettings(request, {
+			storage_user: '',
+			storage_path: 'Vereinsbuchhaltung/Belege',
+			statement_watch_user: '',
+			statement_watch_path: '',
+		})
+		if (userExists) {
+			await runOcc(['user:delete', TEMP_USER], { container }) // nur wenn ein Test vor dem Löschen abbrach
+		}
+	})
+
+	test('Löschen des Nutzers räumt Belegablage und Wachordner mit ab', async ({ request }) => {
+		test.setTimeout(60000) // occ user:add/user:delete im Container
+		await addUser(new User(TEMP_USER, `${TEMP_USER}-nur-fuer-den-test`), { container })
+		userExists = true
+
+		const saved = await (await api.updateSettings(request, {
+			storage_user: TEMP_USER,
+			storage_path: 'Vereinsbuchhaltung/Belege',
+			statement_watch_user: TEMP_USER,
+			statement_watch_path: 'Auszuege',
+		})).json()
+		expect(saved.storage_user).toBe(TEMP_USER)
+		expect(saved.statement_watch_user).toBe(TEMP_USER)
+
+		await runOcc(['user:delete', TEMP_USER], { container })
+		userExists = false
+
+		await waitForSettings(request, {
+			storage_user: '', // zurück auf die app-interne Ablage
+			// Nutzer UND Pfad: halb ausgefüllt wäre der Wachordner an, fände aber nie etwas.
+			statement_watch_user: '',
+			statement_watch_path: '',
+		})
+	})
+
+	test('ein verwaister Nutzer blockiert nur seine eigene Änderung', async ({ request }) => {
+		// Von Hand gesetzt statt über eine Löschung: nicht jede Löschung erreicht
+		// den UserDeletedListener. Genau dafür ist die zweite Ebene im
+		// Controller da, siehe SettingsController::validateUser().
+		await setViaOcc('storage_user', TEMP_USER)
+		await setViaOcc('statement_watch_user', TEMP_USER)
+		await setViaOcc('statement_watch_path', 'Auszuege')
+		await waitForSettings(request, { storage_user: TEMP_USER })
+
+		// Unverändert mitgesendet, wie es die Seite tut: darf nicht stören.
+		const saved = await (await api.updateSettings(request, {
+			club_name: 'Trotzdem speicherbar e.V.',
+			storage_user: TEMP_USER,
+			storage_path: 'Vereinsbuchhaltung/Belege',
+			statement_watch_user: TEMP_USER,
+			statement_watch_path: 'Auszuege',
+		})).json()
+		expect(saved.club_name).toBe('Trotzdem speicherbar e.V.')
+		expect(saved.storage_user).toBe(TEMP_USER)
+
+		// Auch der Pfad daneben bleibt änderbar: der Nutzer wird als
+		// Paarhälfte ergänzt, nicht neu gewählt.
+		const repathed = await (await api.updateSettings(request, {
+			statement_watch_path: 'Auszuege/2026',
+		})).json()
+		expect(repathed.statement_watch_path).toBe('Auszuege/2026')
+
+		// Einen anderen, nicht existierenden Nutzer zu wählen bleibt ein Fehler.
+		const rejected = await api.updateSettings(request, {
+			statement_watch_user: 'gibtesnicht',
+			statement_watch_path: 'Auszuege',
+		}, { expectOk: false })
+		expect(rejected.status()).toBe(400)
+		expect((await rejected.json()).message).toMatch(/existiert nicht/)
 	})
 })
