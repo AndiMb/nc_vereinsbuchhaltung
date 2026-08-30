@@ -2,9 +2,8 @@ import { test, expect } from '@playwright/test'
 import { api, openSettingsPage, authHeaders, davUrl, BANK_ACCOUNT, BELEG_PNG, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
 
 // Die Einstellungsseite (Nextcloud-Einstellungen → Vereinsbuchhaltung):
-// Belegablage auf einen Nutzer-Ordner umstellen. Regressionstest für
-// v0.25.0, wo das Nutzer-Dropdown leer blieb (die Nutzerliste war an keinen
-// Zustand gebunden) – nur „intern (AppData)" war wählbar, siehe Issue #9.
+// Belegablage von der internen Ablage auf den Ordner eines Nextcloud-Nutzers
+// umstellen – Auswahlfeld, Speichern und die abgelegte Datei.
 
 test.describe('Einstellungsseite: Belegablage', () => {
 	test.beforeAll(async ({ request }) => {
@@ -40,8 +39,6 @@ test.describe('Einstellungsseite: Belegablage', () => {
 		const section = page.locator('#settings-section_belege')
 		const select = section.locator('select')
 
-		// Der Kern der Regression: neben „— intern (AppData) —" müssen die
-		// Nextcloud-Nutzer als Optionen auftauchen.
 		await expect(select.locator('option[value=""]')).toHaveText(/intern \(AppData\)/)
 		await expect(select.locator('option[value="admin"]')).toHaveCount(1)
 		await expect(select.locator(`option[value="${USERS.verwalter}"]`)).toHaveCount(1)

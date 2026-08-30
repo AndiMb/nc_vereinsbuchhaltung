@@ -49,9 +49,6 @@ export default {
 	emits: ['update:statementWatchPath', 'update:statementWatchUser'],
 
 	setup() {
-		// users kommt direkt aus dem usePermissions-Singleton, wie in
-		// SettingsPermissions.vue – kein Prop-Drilling noetig, siehe
-		// SettingsAttachments.vue.
 		return { ...toRefs(usePermissions().state) }
 	},
 
