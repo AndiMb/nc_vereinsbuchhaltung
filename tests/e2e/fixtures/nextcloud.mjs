@@ -96,6 +96,18 @@ export async function openApp(page, username) {
 }
 
 /**
+ * Öffnet den Vereinsbuchhaltung-Abschnitt der Nextcloud-Einstellungen
+ * (SettingsApp.vue). Server-Admins finden ihn unter Verwaltung (area
+ * 'admin'), App-Verwalter ohne Server-Admin-Rechte unter Persönlich
+ * (area 'user') – siehe PersonalSettings::getSection().
+ */
+export async function openSettingsPage(page, username, { area = 'admin' } = {}) {
+	await login(page, username)
+	await page.goto(`${BASE_URL}/index.php/settings/${area}/vereinsbuchhaltung`)
+	await page.locator('#settings-section_belege').waitFor({ timeout: 15000 })
+}
+
+/**
  * Der sichtbare Tab-Inhalt. Die App hält alle Tabs per v-show gleichzeitig
  * im DOM – ungescopte Textsuchen träfen auch die unsichtbaren Abschnitte.
  */
