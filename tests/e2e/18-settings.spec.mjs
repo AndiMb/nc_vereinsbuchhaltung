@@ -39,7 +39,10 @@ test.describe('Einstellungsseite: Belegablage', () => {
 		await select.selectOption('admin')
 		await expect(section.getByText(/Belege werden unter/)).toBeVisible()
 		await section.getByRole('button', { name: 'Speichern' }).click()
-		await expect(page.getByText('Einstellungen gespeichert.').first()).toBeVisible()
+		const toast = page.getByRole('status').filter({ hasText: 'Einstellungen gespeichert.' }).first()
+		await expect(toast).toBeVisible()
+		// Transparenter Hintergrund = Toast-Stylesheet nicht geladen (styles.test.js).
+		await expect(toast).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
 
 		const settings = await api.getJson(request, '/settings')
 		expect(settings.storage_user).toBe('admin')

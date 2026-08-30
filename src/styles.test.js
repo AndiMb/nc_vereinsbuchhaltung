@@ -113,3 +113,13 @@ describe('styles.css: Schutz gegen Nextclouds Button-Grundstil', () => {
 		expect(unprotected).toEqual([])
 	})
 })
+
+describe('Toast-Styles aus @nextcloud/dialogs', () => {
+	// Seit 7.5.0 tragen Toasts CSS-Modules-Klassen, die allein das
+	// Paket-Stylesheet kennt - ohne den Import in jedem Webpack-Einstieg
+	// rendern showSuccess/showError als nackter Text.
+	it.each(['main.js', 'settings.js'])('%s importiert @nextcloud/dialogs/style.css', (entry) => {
+		const source = readFileSync(join(SRC, entry), 'utf-8')
+		expect(source).toMatch(/^import '@nextcloud\/dialogs\/style\.css'$/m)
+	})
+})

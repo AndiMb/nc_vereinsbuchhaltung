@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import SettingsApp from './SettingsApp.vue'
 import { loadAppTranslations, n, t } from './lib/l10n.js'
 
+import '@nextcloud/dialogs/style.css'
 // Globale .vbh-* Utility-Styles, siehe main.js - dieselbe Begruendung gilt
 // hier: die Einstellungsseite nutzt dieselben Komponenten (SettingsClub.vue
 // & Co.) und damit dieselben Klassen.
