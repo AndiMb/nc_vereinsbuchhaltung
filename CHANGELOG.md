@@ -19,6 +19,30 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+**Geändert:**
+- **Aus „Kostenstelle" wird „Auswertungsgruppe".** Der Bericht, der Knopf
+  *Auswertungsgruppen verwalten*, das Feld im Konto-Dialog, alle Meldungen,
+  die Hilfe und das Handbuch heißen jetzt so; englisch *reporting group*.
+  Anlass war die Rückfrage eines Buchhalters (Issue #7): Eine Kostenstelle ist
+  in der Kosten- und Leistungsrechnung eine **zweite Dimension je
+  Buchungszeile** – ein Betrag wird darauf verteilt, unabhängig davon, auf
+  welches Konto gebucht wird. Diese App macht etwas anderes: Sie fasst
+  **Konten** zu Gruppen zusammen, und ein Konto gehört zu höchstens einer
+  Gruppe. Der alte Name versprach damit eine Funktion, die es nicht gibt –
+  und ein Ergebnis je Kostenstelle gibt es fachlich ohnehin nicht, weil eine
+  Kostenstelle nur Kosten trägt, keine Einnahmen.
+  **An der Funktion selbst ändert sich nichts**: dieselben drei Gruppierungen,
+  dieselben Zuordnungen, dieselben Zahlen. Angelegte Gruppen, ihre Kürzel und
+  Namen bleiben unverändert erhalten, eine Umstellung ist nicht nötig. Wer
+  einen Betrag auf zwei Gruppen aufteilen möchte, legt dafür weiterhin zwei
+  Konten an (gern als Unterkonten eines gemeinsamen Kontos) und teilt die
+  Buchung über *Aufteilen…* darauf auf; Handbuch-Kapitel 5.4 erklärt das jetzt
+  ausdrücklich.
+  Intern bleibt alles beim Alten – Tabelle `vbh_costcenters`, Spalte
+  `cost_center_id`, Einstellung `cost_center_mode` und die Route
+  `/api/costcenters` sind unverändert, es gibt keine Migration. Ältere
+  Einträge im Änderungsprotokoll tragen weiterhin den alten Wortlaut.
+
 **Behoben:**
 - **Ein gelöschtes einziehendes Konto blockierte die gesamte
   Einstellungsseite.** Wurde unter „Beiträge & SEPA" ein einziehendes Konto

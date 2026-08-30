@@ -61,7 +61,7 @@ Mitgliederversammlung erzeugen.
   Hausbank – eigener Reiter in der Hauptnavigation; wer das Modul nicht
   braucht, sieht ihn gar nicht
 - **Offene Posten** – unbezahlte Forderungen mit Fälligkeit im Blick
-- **Mehrjahres-Trend** und Auswertung nach Kostenstellen
+- **Mehrjahres-Trend** und Ergebnis je Auswertungsgruppe
 - **Jahresabschluss:** ein festgeschriebenes Geschäftsjahr lässt sich nicht mehr
   verändern; fortlaufende, lückenlose Buchungsnummern je Jahr
 - **Änderungsprotokoll:** wer hat wann was geändert
@@ -126,7 +126,7 @@ treasurer's report.
   file for your bank – its own tab in the main navigation; if you don't need
   the module, you never see it
 - **Open items** – keep track of unpaid receivables with due dates
-- **Multi-year trend** and evaluation by cost center
+- **Multi-year trend** and result per reporting group
 - **Year-end closing:** a finalized fiscal year can no longer be changed;
   continuous, gap-free posting numbers per year
 - **Change log:** who changed what, and when

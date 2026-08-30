@@ -18,9 +18,11 @@ test.describe('Berichte und Exporte', () => {
 		await openApp(page, USERS.verwalter)
 		await switchTab(page, 'Berichte')
 
-		await expect(visibleSection(page).getByRole('button', { name: 'Auswertung' })).toBeVisible()
+		// exact: true - "Auswertung" traefe sonst als Teilzeichenkette auch
+		// den Nachbarknopf "Auswertungsgruppen".
+		await expect(visibleSection(page).getByRole('button', { name: 'Auswertung', exact: true })).toBeVisible()
 		for (const view of ['Sphären', 'Rücklagen', 'Finanzplan', 'Protokoll']) {
-			await visibleSection(page).getByRole('button', { name: view }).click()
+			await visibleSection(page).getByRole('button', { name: view, exact: true }).click()
 		}
 		// Das Protokoll kennt mindestens das Anlegen der Beispieldaten.
 		await expect(visibleSection(page).getByText('Beispieldaten angelegt').first()).toBeVisible()

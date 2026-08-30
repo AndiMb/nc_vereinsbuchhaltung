@@ -1,13 +1,13 @@
 <template>
 	<div>
 		<p class="vbh-hint">
-			{{ t('Kostenstellen bündeln Konten zu Projekten, Abteilungen oder Veranstaltungen – der Bericht zeigt dann Einnahmen, Ausgaben und Ergebnis je Kostenstelle. Hier angelegte Kostenstellen wertet die App aus, sobald der Modus') }}
-			<em>{{ t('„Frei definierte Kostenstellen"') }}</em> {{ t('eingestellt ist.') }}
+			{{ t('Auswertungsgruppen bündeln Konten zu Projekten, Abteilungen oder Veranstaltungen – der Bericht zeigt dann Einnahmen, Ausgaben und Ergebnis je Gruppe. Hier angelegte Gruppen wertet die App aus, sobald der Modus') }}
+			<em>{{ t('„Frei definierte Auswertungsgruppen"') }}</em> {{ t('eingestellt ist.') }}
 		</p>
 
 		<p v-if="mode !== 'manual'" class="vbh-hint vbh-cc-modewarn">
 			{{ t('Zurzeit ist der Modus') }} <strong>{{ modeLabel }}</strong> {{ t('eingestellt. Die Zuordnung unten wird dann') }}
-			<strong>{{ t('nicht') }}</strong> {{ t('ausgewertet; die Namen der Kostenstellen gelten aber weiterhin.') }}
+			<strong>{{ t('nicht') }}</strong> {{ t('ausgewertet; die Namen der Gruppen gelten aber weiterhin.') }}
 			{{ isAdmin ? t('Umstellen geht oben in der Berichtszeile (Gruppierung).') : t('Nur ein Verwalter kann das umstellen.') }}
 		</p>
 
@@ -56,7 +56,7 @@
 							<NcButton
 								variant="error"
 								size="small"
-								:aria-label="t('Kostenstelle löschen')"
+								:aria-label="t('Auswertungsgruppe löschen')"
 								@click="remove(cc)">
 								{{ t('Löschen') }}
 							</NcButton>
@@ -66,7 +66,7 @@
 			</table>
 		</div>
 		<p v-else class="vbh-hint">
-			{{ t('Noch keine Kostenstelle angelegt.') }}
+			{{ t('Noch keine Auswertungsgruppe angelegt.') }}
 		</p>
 
 		<template v-if="costCenters.length && relevantAccounts.length">
@@ -78,7 +78,7 @@
 				</label>
 				<select v-model="bulkTarget">
 					<option value="">
-						{{ t('– Kostenstelle wählen –') }}
+						{{ t('– Auswertungsgruppe wählen –') }}
 					</option>
 					<option v-for="cc in costCenters" :key="cc.id" :value="String(cc.id)">
 						{{ cc.code }} · {{ cc.name }}
@@ -98,7 +98,7 @@
 						<tr>
 							<th class="vbh-col-check" /><th class="nowrap">
 								{{ t('Nr.') }}
-							</th><th>{{ t('Konto') }}</th><th>{{ t('Kostenstelle') }}</th>
+							</th><th>{{ t('Konto') }}</th><th>{{ t('Auswertungsgruppe') }}</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -143,14 +143,21 @@ import { t } from '../lib/l10n.js'
 function modeLabels() {
 	return {
 		group: t('2. Zahlengruppe der Kontonummer'),
-		account: t('jedes Konto eine eigene Kostenstelle'),
-		manual: t('frei definierte Kostenstellen'),
+		account: t('jedes Konto eine eigene Auswertungsgruppe'),
+		manual: t('frei definierte Auswertungsgruppen'),
 	}
 }
 
 /**
  * Pflege der frei definierbaren Kostenstellen: anlegen, umbenennen, löschen
- * und Konten zuordnen. Frueher SettingsCostCenters.vue im Einstellungen-
+ * und Konten zuordnen.
+ *
+ * ACHTUNG, Begriffe: sichtbar heisst das Konzept seit 0.29.0
+ * „Auswertungsgruppe" (englisch „reporting group"), intern weiterhin
+ * costCenter - Begruendung und Umfang der Umbenennung stehen im Docblock von
+ * lib/Service/CostCenterService.php.
+ *
+ * Frueher SettingsCostCenters.vue im Einstellungen-
  * Modal; jetzt ein Modal, das aus dem Bericht „Kostenstellen" (ReportsTab.vue)
  * heraus geoeffnet wird, siehe NAVIGATION-KONZEPT.md Abschnitt 4 und 5 – wo
  * die fehlende Zuordnung sichtbar wird, wird sie auch geschlossen. Der
@@ -231,8 +238,8 @@ export default {
 				this.newName = ''
 				await this.loadCostCenters()
 				this.$emit('changed')
-				showSuccess(this.t('Kostenstelle angelegt.'))
-			} catch (e) { showError(this.errMsg(e, this.t('Kostenstelle konnte nicht angelegt werden'))) } finally { this.saving = false }
+				showSuccess(this.t('Auswertungsgruppe angelegt.'))
+			} catch (e) { showError(this.errMsg(e, this.t('Auswertungsgruppe konnte nicht angelegt werden'))) } finally { this.saving = false }
 		},
 
 		/**
@@ -250,7 +257,7 @@ export default {
 				await this.loadCostCenters()
 				this.$emit('changed')
 			} catch (e) {
-				showError(this.errMsg(e, this.t('Kostenstelle konnte nicht gespeichert werden')))
+				showError(this.errMsg(e, this.t('Auswertungsgruppe konnte nicht gespeichert werden')))
 				// Das Feld steht sonst weiter auf dem abgelehnten Wert – Vue
 				// gleicht es nicht ab, weil sich der gebundene Wert nicht ändert.
 				event.target.value = cc[field]
@@ -260,12 +267,12 @@ export default {
 		async remove(cc) {
 			const count = this.accountCount(cc.id)
 			const hint = count ? ' ' + this.t('Die Zuordnung von {count} Konto/Konten wird gelöst; Buchungen bleiben unverändert.', { count }) : ''
-			if (!await this.askConfirm(this.t('Kostenstelle löschen'), this.t('Kostenstelle „{code} {name}" löschen?', { code: cc.code, name: cc.name }) + hint)) { return }
+			if (!await this.askConfirm(this.t('Auswertungsgruppe löschen'), this.t('Auswertungsgruppe „{code} {name}" löschen?', { code: cc.code, name: cc.name }) + hint)) { return }
 			try {
 				await api.deleteCostCenter(cc.id)
 				await this.loadCostCenters()
 				this.$emit('changed')
-				showSuccess(this.t('Kostenstelle gelöscht.'))
+				showSuccess(this.t('Auswertungsgruppe gelöscht.'))
 			} catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
 		},
 

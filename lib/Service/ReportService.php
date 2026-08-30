@@ -16,6 +16,9 @@ use OCP\IL10N;
 /**
  * Auswertungen, insbesondere nach Kostenstellen.
  *
+ * Zur Namensgebung („Kostenstelle" intern, „Auswertungsgruppe" nach außen)
+ * siehe {@see CostCenterService}.
+ *
  * Die Kostenstelle steckt als zweite Zahlengruppe in der Kontonummer:
  *   "111 51 2021"  ->  Typ 111, Kostenstelle 51, Jahr 2021
  *   "546 01 01"    ->  Typ 546, Kostenstelle 01 (ideell)
@@ -437,7 +440,7 @@ class ReportService {
 	 */
 	private function resolveName(?string $code, array $names): string {
 		if ($code === null) {
-			return $this->l10n->t('(ohne Kostenstelle)');
+			return $this->l10n->t('(ohne Auswertungsgruppe)');
 		}
 		if (isset($names[$code])) {
 			return $names[$code];
@@ -445,7 +448,7 @@ class ReportService {
 		return match ($code) {
 			'01' => $this->l10n->t('Ideeller Bereich'),
 			'11' => $this->l10n->t('Verbandszeitung'),
-			default => $this->l10n->t('Kostenstelle %s', [$code]),
+			default => $this->l10n->t('Auswertungsgruppe %s', [$code]),
 		};
 	}
 }

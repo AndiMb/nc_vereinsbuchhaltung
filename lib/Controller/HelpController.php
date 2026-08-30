@@ -147,7 +147,7 @@ class HelpController extends Controller {
 			$h .= '<section><h2>Wo du das findest</h2><ul>'
 				. '<li><strong>Buchungen</strong> – alle Buchungssätze, durchsuchbar und filterbar.</li>'
 				. '<li><strong>Konten</strong> – Kontenrahmen; ein Klick auf ein Konto zeigt den Kontoauszug.</li>'
-				. '<li><strong>Berichte</strong> – Saldenliste, Kostenstellen, Finanzplan, Kassenbericht, Protokoll.</li>'
+				. '<li><strong>Berichte</strong> – Saldenliste, Auswertungsgruppen, Finanzplan, Kassenbericht, Protokoll.</li>'
 				. '</ul></section>';
 
 			$h .= '<section><h2>Nach der Prüfung</h2><p>Ergebnis mit dem Vorstand besprechen. Bei Beanstandungen bleibt das Jahr offen, bis korrigiert wurde. Nach Entlastung durch die Mitgliederversammlung schließt eine Verwalterin oder ein Verwalter das Geschäftsjahr ab (Festschreibung).</p></section>';

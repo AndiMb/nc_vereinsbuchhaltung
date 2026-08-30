@@ -109,7 +109,7 @@ function buildTopics() {
 				t('Saldenliste: alle Konten mit Soll, Haben und Saldo, optional inklusive Unterkonten.'),
 				t('Kassenbericht (Berichte → Auswertung): druckfertige Zusammenfassung für die Mitgliederversammlung.'),
 				t('Prüfleitfaden (Berichte → Auswertung): druckfertige Kurzanleitung für Kassenprüfer/innen.'),
-				t('Kostenstellen, Sphären und Finanzplan: Auswertung je Projekt, je Steuerkategorie bzw. Soll-Ist-Vergleich.'),
+				t('Auswertungsgruppen, Sphären und Finanzplan: Ergebnis je Projekt, je Steuerkategorie bzw. Soll-Ist-Vergleich.'),
 			],
 		},
 		{

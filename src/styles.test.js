@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync } from 'fs'
 import { join } from 'path'
+import { fileURLToPath } from 'url'
 import { describe, expect, it } from 'vitest'
 
 // Nextcloud formt in core/css/server.css jeden nackten <button> zum
@@ -18,7 +19,7 @@ import { describe, expect, it } from 'vitest'
 // deshalb die Klassen an nackten <button> im Markup mit den Regeln, die sie
 // stylen, und meldet jede Regel, die den Schutz nicht hat.
 
-const SRC = new URL('.', import.meta.url).pathname
+const SRC = fileURLToPath(new URL('.', import.meta.url))
 
 // Die Eigenschaften, die Nextclouds Button-Regel beansprucht. Nur Regeln, die
 // eine davon setzen, brauchen den Schutz.

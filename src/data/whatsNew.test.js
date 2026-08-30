@@ -28,3 +28,33 @@ describe('filterWhatsNewEntries', () => {
 		expect(filterWhatsNewEntries(entries, 'verwalter', '').length).toBe(erwartet)
 	})
 })
+
+// Bewusst mit erfundenen Einträgen statt mit der echten Liste: die Obergrenze
+// greift nur, solange ein Eintrag ueber der laufenden Version liegt, und in
+// der echten Liste ist das genau bis zum naechsten Release-Commit so. Ein
+// Test gegen appinfo/info.xml wuerde ab dann still nichts mehr pruefen.
+describe('Obergrenze laufende App-Version', () => {
+	const LAEUFT = '0.28.0'
+	const entries = [
+		{ version: '0.29.0', items: ['schon vorbereitet, noch nicht ausgeliefert'] },
+		{ version: '0.28.0', items: ['ausgeliefert'] },
+		{ version: '0.27.0', items: ['aelter'] },
+	]
+
+	it('blendet Einträge oberhalb der laufenden Version aus', () => {
+		const sichtbar = filterWhatsNewEntries(entries, 'verwalter', '', LAEUFT)
+		expect(sichtbar.map((e) => e.version)).toEqual(['0.28.0', '0.27.0'])
+	})
+
+	it('leere currentVersion setzt keine Obergrenze', () => {
+		expect(filterWhatsNewEntries(entries, 'verwalter', '', '')).toHaveLength(3)
+	})
+
+	// Der Splash-Screen muss sich wegklicken lassen: „Verstanden" schreibt die
+	// laufende Version in whatsnew_last_seen_version. Bliebe danach ein Eintrag
+	// uebrig, kaeme das Popup bei jedem Laden wieder - genau das passierte, als
+	// ein Eintrag fuer eine noch nicht ausgelieferte Version vorbereitet wurde.
+	it('nach dem Wegklicken bleibt nichts übrig', () => {
+		expect(filterWhatsNewEntries(entries, 'verwalter', LAEUFT, LAEUFT)).toHaveLength(0)
+	})
+})

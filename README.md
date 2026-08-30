@@ -58,7 +58,7 @@ Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kon
 - **Übersicht (Dashboard)**: KPI-Kacheln mit Vorjahresvergleich, Hinweis auf nicht zugeordnete Buchungen und überfällige offene Posten, monatliches Einnahmen-/Ausgaben-Diagramm
 - **Saldenliste**: alle Konten mit Soll/Haben/Saldo, hierarchische Darstellung, optional inkl. Unterkonten
 - **Kontoauszug**: Buchungshistorie je Konto inkl. laufendem Saldo und Saldovortrag; falsch zugeordnete Buchungen lassen sich direkt dort auf ein anderes Konto **umbuchen** (jede Seite der Buchung, nur die Kontozuordnung ändert sich, protokolliert, gesperrt in abgeschlossenen Jahren)
-- **Kostenstellen**: Einnahmen/Ausgaben/Ergebnis je Kostenstelle mit Buchungs-Drilldown; drei Modi (2. Zahlengruppe der Kontonummer, je Konto oder **frei definierte Kostenstellen** mit ausdrücklicher Konto-Zuordnung einzeln bzw. per Mehrfachauswahl), Namen per UI änderbar
+- **Auswertungsgruppen**: Einnahmen/Ausgaben/Ergebnis je Auswertungsgruppe mit Buchungs-Drilldown; drei Modi (2. Zahlengruppe der Kontonummer, je Konto oder **frei definierte Auswertungsgruppen** mit ausdrücklicher Konto-Zuordnung einzeln bzw. per Mehrfachauswahl), Namen per UI änderbar
 - **Steuerliche Sphären** (ideeller Bereich, Vermögensverwaltung, Zweckbetrieb, wirtschaftlicher Geschäftsbetrieb): je Konto zuweisbar (einzeln oder per Mehrfachauswahl im Bericht „Sphären"), eigener Bericht mit Einnahmen/Ausgaben/Ergebnis je Sphäre; Dashboard-Warnleiste bei Annäherung an die Freigrenze für den wirtschaftlichen Geschäftsbetrieb (§ 64 Abs. 3 AO) – ersetzt keine steuerliche Beratung
 - **Finanzplan**: geplante Beträge je Konto und Jahr, Soll-Ist-Vergleich mit farbiger Abweichung
   - **Notizen je Planzahl** (z. B. Herleitung „40 Mitglieder × 25 €")
@@ -66,7 +66,7 @@ Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kon
 - **Kassenbericht (druckfertig)**: eigenständige Druckseite für die Mitgliederversammlung – Vereinsname, Vermögensübersicht der Geldkonten (Bestand 01.01./31.12.), Einnahmen-/Ausgaben-Rechnung, Soll-Ist-Vergleich, Sphärenübersicht (steuerlich) mit Freigrenzen-Hinweis, Vollständigkeitsvermerk, Abschlussvermerk und Unterschriftszeilen; Drucken/Als-PDF-speichern über den Browser
 - **Kurzbericht für Vorstandssitzungen (druckfertig)**: kompakte Druckseite mit wählbarem Stichtag – Kontostände seither, Bewegungen, Finanzplan-Kurzfassung; optional im Corporate Design (Vereinslogo + Akzentfarbe, unter Zahnrad → Verein hinterlegbar)
 - **CSV-Exporte** (für Kassenprüfung/Excel): Journal, Saldenliste, Einnahmen-/Ausgaben-Übersicht, Soll-Ist-Vergleich (inkl. Notizen)
-- **Mehrjahresübersicht** (CSV-Matrix, Spalten = Jahre): Erfolgsrechnung nach Konten (Einnahmen/Ausgaben/Ergebnis) + Vermögen zum Jahresende sowie Auswertung nach Kostenstellen/Projekten und nach steuerlichen Sphären über alle Jahre; zusätzlich als Liniendiagramm (Berichte → Auswertung) für Sitzungspräsentationen
+- **Mehrjahresübersicht** (CSV-Matrix, Spalten = Jahre): Erfolgsrechnung nach Konten (Einnahmen/Ausgaben/Ergebnis) + Vermögen zum Jahresende sowie Ergebnis je Auswertungsgruppe/Projekt und nach steuerlichen Sphären über alle Jahre; zusätzlich als Liniendiagramm (Berichte → Auswertung) für Sitzungspräsentationen
 - **Geldkonten-Abstimmung**: Kontostand (Journal) vs. offene (nicht zugeordnete) Bankbuchungen
 
 ### Kassenprüfung
@@ -93,7 +93,7 @@ Optionales Zusatzmodul (Reiter „Beiträge", erscheint automatisch sobald genut
 
 ### Mobile Bedienung
 - **Bottom-Navigation mit „+"-Knopf** (neue Buchung) auf Mobilgeräten (≤ 640 px); Desktop-Ansicht bleibt unverändert
-- **Karten statt Tabellen**: Journal (nach Monat gruppiert), Bankbuchungen, Saldenliste, Kostenstellen, Kontoauszug sowie Mitgliederliste und SEPA-Einzug als Karten mit Drilldown und Zurück-Leisten
+- **Karten statt Tabellen**: Journal (nach Monat gruppiert), Bankbuchungen, Saldenliste, Auswertungsgruppen, Kontoauszug sowie Mitgliederliste und SEPA-Einzug als Karten mit Drilldown und Zurück-Leisten
 - **Auswahl-Sheet** für Konten/Kategorien: durchsuchbar, mit Zuordnungs-Vorschlag, Gruppe „Zuletzt verwendet" (gerätelokal) und Wisch-nach-unten zum Schließen
 - **Schnellerfassung**: großes Betragsfeld, native Datumswahl, Belegfoto per Kamera direkt beim Anlegen
 
@@ -184,11 +184,11 @@ vereinsbuchhaltung/
 
 | Tabelle | Zweck |
 |---|---|
-| `vbh_accounts` | Kontenrahmen (Nr., Name, Typ, Hierarchie, Eröffnungssaldo, IBAN bei Geldkonten, Kostenstelle) |
+| `vbh_accounts` | Kontenrahmen (Nr., Name, Typ, Hierarchie, Eröffnungssaldo, IBAN bei Geldkonten, Auswertungsgruppe) |
 | `vbh_bank_tx` | importierte Bankbuchungen inkl. Dedup-Hash und Zuordnungsstatus |
 | `vbh_journal` | Buchungssätze (Datum, Beschreibung, Belegnr., Buchungsnr.) |
 | `vbh_journal_line` | Soll-/Haben-Zeilen je Buchungssatz (Betrag in Cent) |
-| `vbh_costcenters` | Kostenstellen (Kürzel, Name); Konten verweisen über `vbh_accounts.cost_center_id` darauf |
+| `vbh_costcenters` | Auswertungsgruppen (Kürzel, Name); Konten verweisen über `vbh_accounts.cost_center_id` darauf. Tabellen- und Spaltenname stammen aus der Zeit, als die Auswertungsgruppe „Kostenstelle" hieß – sie bleiben, damit bestehende Installationen ohne Migration weiterlaufen |
 | `vbh_budgets` | Finanzplan (Konto × Jahr × Betrag in Cent + Notiz) |
 | `vbh_budget_snapshots` | eingefrorene Plan-Stände (Jahr, Label, Zeitpunkt) |
 | `vbh_budget_snap_items` | Positionen eines Plan-Stands (inkl. eingefrorener Konto-Stammdaten) |
@@ -261,7 +261,7 @@ Beim allerersten Start begrüßt ein **Setup-Assistent** mit drei Wegen (xbuc ü
 3. Tab **Buchungen** → *Kontoumsätze importieren* → Kontoauszug der Bank hochladen (CSV-CAMT, CAMT.053 oder MT940). Wer das regelmäßig tut: Zahnrad → *Bankdaten* erspart den Upload.
 4. Tab **Buchungen → Zuzuordnen** → jede Bankbuchung einem Gegenkonto zuordnen (Vorschläge per Klick übernehmen; Regeln automatisieren wiederkehrende Buchungen).
 5. Tab **Übersicht** → Dashboard mit KPI-Kacheln und Monatschart.
-6. Tab **Berichte** → Auswertung (inkl. Kassenbericht, Kurzbericht, Beleg-ZIP und Prüfleitfaden), Kostenstellen, Finanzplan (inkl. Plan-Notizen, Plan-Ständen und CSV-Export), Sphären, Rücklagen, Protokoll.
+6. Tab **Berichte** → Auswertung (inkl. Kassenbericht, Kurzbericht, Beleg-ZIP und Prüfleitfaden), Auswertungsgruppen, Finanzplan (inkl. Plan-Notizen, Plan-Ständen und CSV-Export), Sphären, Rücklagen, Protokoll.
 7. Werden Mitgliedsbeiträge per SEPA-Lastschrift eingezogen: Reiter **„Beiträge"** (erscheint nach Zahnrad → Beiträge & SEPA → Schalter, oder automatisch beim ersten Mandat).
 8. Nach Kassenprüfung und Entlastung: **Zahnrad → Jahresabschluss** → Jahr abschließen (festschreiben).
 

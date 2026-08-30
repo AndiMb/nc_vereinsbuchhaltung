@@ -71,9 +71,9 @@
 				</button>
 			</div>
 			<div v-if="showCostCenter" class="vbh-form">
-				<label class="vbh-grow">{{ t('Kostenstelle') }}
+				<label class="vbh-grow">{{ t('Auswertungsgruppe') }}
 					<select v-model="form.costCenterId">
-						<option :value="null">{{ t('– keine Kostenstelle –') }}</option>
+						<option :value="null">{{ t('– keine Auswertungsgruppe –') }}</option>
 						<option v-for="cc in costCenters" :key="cc.id" :value="cc.id">{{ cc.code }} · {{ cc.name }}</option>
 					</select>
 				</label>

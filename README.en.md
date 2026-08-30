@@ -58,7 +58,7 @@ A lightweight accounting app for nonprofit clubs, integrated directly into Nextc
 - **Overview (dashboard)**: KPI tiles with year-over-year comparison, a notice about unassigned postings and overdue open items, monthly income/expense chart
 - **Trial balance**: all accounts with debit/credit/balance, hierarchical display, optionally including sub-accounts
 - **Account statement**: posting history per account including running balance and carried-forward balance; wrongly assigned postings can be **rebooked** to a different account right there (either side of the posting, only the account assignment changes, logged, locked in closed years)
-- **Cost centers**: income/expenses/result per cost center with posting drill-down; three modes (2nd digit group of the account number, per account, or **freely defined cost centers** with explicit account assignment individually or via multi-select), names editable in the UI
+- **Reporting groups**: income/expenses/result per reporting group with posting drill-down; three modes (2nd digit group of the account number, per account, or **freely defined reporting groups** with explicit account assignment individually or via multi-select), names editable in the UI
 - **Tax spheres** (ideational sphere, asset management, purpose-related business, commercial business): assignable per account (individually or via multi-select in the "Spheres" report), own report with income/expenses/result per sphere; dashboard warning banner when approaching the exemption threshold for commercial business (§ 64 (3) AO, German tax code) – does not replace tax advice
 - **Financial plan**: planned amounts per account and year, plan/actual comparison with color-coded deviation
   - **Notes per plan figure** (e.g. rationale "40 members × €25")
@@ -66,7 +66,7 @@ A lightweight accounting app for nonprofit clubs, integrated directly into Nextc
 - **Treasurer's report (print-ready)**: a standalone print page for the general assembly – club name, cash-account overview (balance on 01/01 and 12/31), income/expense statement, plan/actual comparison, tax-sphere overview with an exemption-threshold notice, completeness note, closing note and signature lines; print or save as PDF via the browser
 - **Short report for board meetings (print-ready)**: a compact print page with a selectable reference date – account balances since then, movements, short financial-plan summary; optionally in your corporate design (club logo + accent color, configurable under gear icon → Club)
 - **CSV exports** (for the audit / Excel): journal, trial balance, income/expense overview, plan/actual comparison (including notes)
-- **Multi-year overview** (CSV matrix, columns = years): income statement by account (income/expenses/result) + assets at year-end, plus evaluation by cost center/project and by tax sphere across all years; also as a line chart (Reports → Evaluation) for meeting presentations
+- **Multi-year overview** (CSV matrix, columns = years): income statement by account (income/expenses/result) + assets at year-end, plus result per reporting group/project and by tax sphere across all years; also as a line chart (Reports → Evaluation) for meeting presentations
 - **Cash-account reconciliation**: account balance (journal) vs. open (unassigned) bank transactions
 
 ### Audit support
@@ -93,7 +93,7 @@ An optional add-on module (the "Contributions" tab, appears automatically once u
 
 ### Mobile use
 - **Bottom navigation with a "+" button** (new posting) on mobile devices (≤ 640 px); the desktop view stays unchanged
-- **Cards instead of tables**: journal (grouped by month), bank transactions, trial balance, cost centers, account statement as well as the member list and SEPA batches as cards with drill-down and back bars
+- **Cards instead of tables**: journal (grouped by month), bank transactions, trial balance, reporting groups, account statement as well as the member list and SEPA batches as cards with drill-down and back bars
 - **Selection sheet** for accounts/categories: searchable, with an assignment suggestion, a "recently used" group (device-local), and swipe-down to close
 - **Quick entry**: a large amount field, native date picker, photograph a receipt with the camera right when creating a posting
 
@@ -184,11 +184,11 @@ vereinsbuchhaltung/
 
 | Table | Purpose |
 |---|---|
-| `vbh_accounts` | chart of accounts (number, name, type, hierarchy, opening balance, IBAN for cash accounts, cost center) |
+| `vbh_accounts` | chart of accounts (number, name, type, hierarchy, opening balance, IBAN for cash accounts, reporting group) |
 | `vbh_bank_tx` | imported bank transactions incl. dedup hash and assignment status |
 | `vbh_journal` | postings (date, description, receipt no., posting no.) |
 | `vbh_journal_line` | debit/credit lines per posting (amount in cents) |
-| `vbh_costcenters` | cost centers (code, name); accounts reference them via `vbh_accounts.cost_center_id` |
+| `vbh_costcenters` | reporting groups (code, name); accounts reference them via `vbh_accounts.cost_center_id`. Table and column names date from when a reporting group was called a "cost center" – they stay so existing installations keep working without a migration |
 | `vbh_budgets` | financial plan (account × year × amount in cents + note) |
 | `vbh_budget_snapshots` | frozen plan snapshots (year, label, timestamp) |
 | `vbh_budget_snap_items` | line items of a plan snapshot (incl. frozen account master data) |
@@ -261,7 +261,7 @@ On the very first start, a **setup wizard** greets you with three options (take 
 3. Tab **Bookings** → *Import bank transactions* → upload your bank statement (CSV-CAMT, CAMT.053 or MT940). Doing this regularly: gear icon → *Bank data* saves you the manual upload.
 4. Tab **Bookings → To assign** → assign each bank transaction a counter-account (apply suggestions with one click; rules automate recurring postings).
 5. Tab **Overview** → dashboard with KPI tiles and monthly chart.
-6. Tab **Reports** → evaluation (incl. treasurer's report, short report, receipt ZIP and audit guide), cost centers, financial plan (incl. plan notes, plan snapshots and CSV export), spheres, reserves, log.
+6. Tab **Reports** → evaluation (incl. treasurer's report, short report, receipt ZIP and audit guide), reporting groups, financial plan (incl. plan notes, plan snapshots and CSV export), spheres, reserves, log.
 7. If membership fees are collected via SEPA direct debit: the **"Contributions"** tab (appears after gear icon → Contributions & SEPA → toggle, or automatically on the first mandate).
 8. After the audit and formal discharge: **gear icon → Year-end closing** → close (finalize) the year.
 
