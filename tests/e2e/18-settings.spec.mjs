@@ -1,0 +1,77 @@
+import { test, expect } from '@playwright/test'
+import { api, openSettingsPage, authHeaders, davUrl, BANK_ACCOUNT, BELEG_PNG, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
+
+// Die Einstellungsseite (Nextcloud-Einstellungen → Vereinsbuchhaltung):
+// Belegablage von der internen Ablage auf den Ordner eines Nextcloud-Nutzers
+// umstellen – Auswahlfeld, Speichern und die abgelegte Datei.
+
+test.describe('Einstellungsseite: Belegablage', () => {
+	test.beforeAll(async ({ request }) => {
+		await api.resetBook(request)
+		await api.seedDefaultAccounts(request)
+		// Ausgangszustand ausdrücklich herstellen: interne Ablage. Die Seite
+		// speichert immer den ganzen Satz (SettingsApp::saveSettings()), also
+		// müssen auch die Felder anderer Specs gültig sein: resetBook() löscht
+		// die Konten, ein von 11-contributions hinterlassenes einziehendes
+		// Konto zeigte danach ins Leere und ließe jedes Speichern mit HTTP 400
+		// scheitern. Der Wachordner aus 17-watchfolder aus demselben Grund mit.
+		await api.updateSettings(request, {
+			storage_user: '',
+			storage_path: 'Vereinsbuchhaltung/Belege',
+			sepa_debtor_account_id: '',
+			statement_watch_user: '',
+			statement_watch_path: '',
+		})
+	})
+
+	test.afterAll(async ({ request }) => {
+		// Aufräumen, solange der NC-Modus noch aktiv ist: nur dann räumt
+		// resetBook() auch die Beleg-Dateien im Nutzer-Home ab. Der
+		// Datenbank-Schnappschuss des Global-Setups setzt zwar die
+		// Einstellungen zurück, nicht aber das Dateisystem – ohne das hier
+		// sammelten sich die Belege über die Läufe hinweg an.
+		await api.resetBook(request)
+		await api.updateSettings(request, { storage_user: '', storage_path: 'Vereinsbuchhaltung/Belege' })
+	})
+
+	test('Nutzer-Dropdown bietet die Nextcloud-Nutzer an, Auswahl lässt sich speichern', async ({ page, request }) => {
+		await openSettingsPage(page, USERS.admin)
+		const section = page.locator('#settings-section_belege')
+		const select = section.locator('select')
+
+		await expect(select.locator('option[value=""]')).toHaveText(/intern \(AppData\)/)
+		await expect(select.locator('option[value="admin"]')).toHaveCount(1)
+		await expect(select.locator(`option[value="${USERS.verwalter}"]`)).toHaveCount(1)
+
+		await select.selectOption('admin')
+		await expect(section.getByText(/Belege werden unter/)).toBeVisible()
+		await section.getByRole('button', { name: 'Speichern' }).click()
+		await expect(page.getByText('Einstellungen gespeichert.').first()).toBeVisible()
+
+		const settings = await api.getJson(request, '/settings')
+		expect(settings.storage_user).toBe('admin')
+	})
+
+	test('mit gewähltem Nutzer landet der Beleg im Nutzer-Home statt in AppData', async ({ request }) => {
+		// Vorbedingung selbst herstellen (kein Verlass auf den UI-Test davor).
+		await api.updateSettings(request, { storage_user: 'admin', storage_path: 'Vereinsbuchhaltung/Belege' })
+
+		const [bank, income] = await api.accountsByNumber(request, BANK_ACCOUNT, INCOME_ACCOUNT)
+		const booking = await (await api.createBooking(request, {
+			date: '2026-05-05',
+			description: 'Beleg im Nutzer-Ordner',
+			debitAccountId: bank.id,
+			creditAccountId: income.id,
+			amount: 42,
+		})).json()
+		const attachment = await api.addAttachment(request, booking.id)
+
+		// Ablageschema von AttachmentStorageService::getNcFilePath():
+		// <Pfad>/<BuchungsID>/<BelegID>_<Dateiname> im Home des Nutzers –
+		// dort per WebDAV sichtbar, wie in der Dateien-App.
+		const dav = davUrl('admin', `Vereinsbuchhaltung/Belege/${booking.id}/${attachment.id}_beleg.png`)
+		const resp = await request.fetch(dav, { headers: authHeaders() })
+		expect(resp.status()).toBe(200)
+		expect((await resp.body()).length).toBe(BELEG_PNG.length)
+	})
+})

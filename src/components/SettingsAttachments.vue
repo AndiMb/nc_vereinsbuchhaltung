@@ -25,6 +25,8 @@
 
 <script>
 import { NcButton } from '@nextcloud/vue'
+import { toRefs } from 'vue'
+import { usePermissions } from '../composables/usePermissions.js'
 
 /**
  * Belegablage – eine der sieben Seiten des Einstellungsdialogs (App.vue),
@@ -36,13 +38,16 @@ export default {
 	props: {
 		storageUser: { type: String, required: true },
 		storagePath: { type: String, required: true },
-		users: { type: Array, required: true },
 		storageSaving: { type: Boolean, required: true },
 		// gemeinsame Speichern-Funktion des Elternteils, siehe SettingsClub.vue
 		saveStorageSettings: { type: Function, required: true },
 	},
 
 	emits: ['update:storagePath', 'update:storageUser'],
+
+	setup() {
+		return { ...toRefs(usePermissions().state) }
+	},
 
 	computed: {
 		storageUserModel: {

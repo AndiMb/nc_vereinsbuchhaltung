@@ -17,6 +17,16 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+**Fixed:**
+- **No Nextcloud user could be selected in the settings any more.** This
+  affected "Receipts" (receipt storage) and "Bank data" (watched folder):
+  both dropdowns only offered "— internal (AppData) —" resp. "— off —", the
+  list of Nextcloud users stayed empty. When the settings moved into the
+  Nextcloud settings (0.25.0), the page lost its binding to the user list –
+  the list was still being loaded, but no longer passed on to those two
+  sections. As a result, receipts could no longer be stored in a user's folder
+  and the watched folder could not be set up.
+
 ## [0.28.0] – 2026-08-24
 
 **Fixed:**

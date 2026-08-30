@@ -19,6 +19,16 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+**Behoben:**
+- **In den Einstellungen ließ sich kein Nextcloud-Nutzer mehr auswählen.**
+  Betroffen waren „Belege" (Belegablage) und „Bankdaten" (überwachter Ordner):
+  beide Auswahlfelder boten nur noch „— intern (AppData) —" bzw. „— aus —" an,
+  die Liste der Nextcloud-Nutzer blieb leer. Beim Umzug der Einstellungen in
+  die Nextcloud-Einstellungen (0.25.0) verlor die Seite die Anbindung an die
+  Nutzerliste – sie wurde zwar weiterhin geladen, aber nicht mehr an die
+  beiden Abschnitte durchgereicht. Belege konnten dadurch nicht mehr im Ordner
+  eines Nutzers abgelegt und der Wachordner nicht mehr eingerichtet werden.
+
 ## [0.28.0] – 2026-08-24
 
 **Behoben:**

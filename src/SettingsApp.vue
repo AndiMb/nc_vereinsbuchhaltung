@@ -17,7 +17,6 @@
 				<SettingsAttachments
 					v-model:storageUser="storageUser"
 					v-model:storagePath="storagePath"
-					:users="users"
 					:storageSaving="storageSaving"
 					:saveStorageSettings="saveSettings" />
 			</NcSettingsSection>
@@ -28,7 +27,6 @@
 				<SettingsStatementWatch
 					v-model:statementWatchUser="statementWatchUser"
 					v-model:statementWatchPath="statementWatchPath"
-					:users="users"
 					:storageSaving="storageSaving"
 					:saveStorageSettings="saveSettings" />
 			</NcSettingsSection>
@@ -137,9 +135,10 @@ export default {
 	setup() {
 		// Rueckfrage vor nicht umkehrbaren Aktionen (siehe App.vue). users/
 		// permissions/accounts/years kommen direkt aus den jeweiligen
-		// Singletons in die Kindkomponenten (SettingsPermissions,
-		// SettingsSepaBasics, SettingsYearClose) - hier nur zum Anstossen des
-		// Ladens gebraucht, siehe mounted().
+		// Singletons in die Kindkomponenten (SettingsAttachments,
+		// SettingsStatementWatch, SettingsPermissions, SettingsSepaBasics,
+		// SettingsYearClose) - hier nur zum Anstossen des Ladens gebraucht,
+		// siehe mounted().
 		return { ...useConfirm() }
 	},
 
