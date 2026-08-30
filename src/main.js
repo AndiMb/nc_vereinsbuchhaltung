@@ -3,6 +3,7 @@ import App from './App.vue'
 import { usePermissions } from './composables/usePermissions.js'
 import { loadAppTranslations, n, t } from './lib/l10n.js'
 
+import '@nextcloud/dialogs/style.css'
 // Globale .vbh-* Utility-Styles (frueher scoped in App.vue). Global, damit auch
 // ausgelagerte Kindkomponenten sie nutzen koennen; alle Selektoren sind
 // .vbh-*-praefigiert (bzw. .vbh-table-qualifiziert) und lecken daher nicht in
