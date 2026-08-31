@@ -95,10 +95,14 @@
 
 .vbh-attachment-dl:hover { color: var(--color-main-text); }
 
-/* Dateiname als klickbarer Button */
-.vbh-attachment-name.vbh-attachment-name { background: none; border: none; padding: 0; cursor: pointer; color: var(--color-primary-element); text-align: start; font-family: inherit; font-size: 0.9em; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+/* Dateiname als klickbarer Button (gespeicherter Beleg, oeffnet den Viewer) */
+button.vbh-attachment-name.vbh-attachment-name { background: none; border: none; padding: 0; cursor: pointer; color: var(--color-primary-element); text-align: start; font-family: inherit; font-size: 0.9em; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
 
-.vbh-attachment-name:hover { text-decoration: underline; }
+button.vbh-attachment-name:hover { text-decoration: underline; }
+
+/* Derselbe Platz fuer eine wartende Datei: die laesst sich noch nicht
+   anzeigen, darf also auch nicht wie ein Link aussehen. */
+span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--color-main-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
 
 
 
@@ -113,6 +117,14 @@
 
 .vbh-upload-label.is-uploading { opacity: 0.6; pointer-events: none; }
 
+/* Das Datei-Feld steckt im Label und traegt dessen Beschriftung. Es wird
+   deshalb weggeblendet, aber NICHT per hidden/display:none - sonst fiele es
+   aus der Tab-Reihenfolge und der Knopf waere nur mit der Maus erreichbar.
+   Den Fokusring zeigt stattdessen die sichtbare Knopf-Huelle daneben. */
+.vbh-upload-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+.vbh-upload-input:focus-visible + .vbh-upload-btn { outline: 2px solid var(--color-primary-element); outline-offset: 2px; }
+
 .vbh-upload-btn { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border: 1px solid var(--color-border); border-radius: var(--border-radius, 6px); font-size: 0.85em; background: var(--color-main-background); color: var(--color-main-text); }
 
 .vbh-upload-btn:hover { background: var(--color-background-hover); }
@@ -126,6 +138,13 @@
 .vbh-attachment-size { font-size: 0.8em; color: var(--color-text-lighter); white-space: nowrap; flex-shrink: 0; }
 
 .vbh-attachment-empty { font-size: 0.9em; color: var(--color-text-lighter); margin: 4px 0 0; }
+
+/* Warteliste: Dateien, die noch an die Buchung sollen */
+.vbh-pending { margin-top: 6px; }
+
+.vbh-pending-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+
+.vbh-pending-title { font-size: 0.85em; color: var(--color-text-lighter); }
 
 .vbh-subtabs { display: inline-flex; gap: 2px; }
 

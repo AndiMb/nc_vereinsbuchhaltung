@@ -34,6 +34,23 @@ verwenden, z. B. `**Neu:**`.
 
 ## [0.29.0] – 2026-08-30
 
+**Neu:**
+- **Belege lassen sich jetzt auch am Desktop schon beim Anlegen anhängen.**
+  Der Dialog *Neue Buchung* zeigt am Desktop denselben Bereich *Belege* wie
+  der Bearbeiten-Dialog: ausgewählte Dateien stehen dort in einer Liste (mit
+  Entfernen-Knopf) und werden hochgeladen, sobald die Buchung gespeichert
+  ist. Bisher gab es das nur in der mobilen Ansicht (Fenster bis 640 px) – am
+  Desktop musste man die Buchung erst speichern und dann noch einmal öffnen
+  (Issue #29).
+  Dateityp und Größe prüft die App dabei **schon bei der Auswahl**: Was der
+  Server nicht annimmt (alles außer PDF, JPG, PNG, GIF, WebP; höchstens 20 MB),
+  wird sofort mit Namen gemeldet, statt erst nach dem Speichern der Buchung.
+  Scheitert ein Upload trotzdem – etwa weil die Verbindung abbricht –, bleiben
+  die betroffenen Dateien im Dialog stehen und lassen sich über *Erneut
+  hochladen* an die inzwischen angelegte Buchung schicken; die übrigen Belege
+  hängen dann schon dran. Während gespeichert und hochgeladen wird, ist der
+  Knopf gesperrt, damit aus einem zweiten Klick keine zweite Buchung wird.
+
 **Geändert:**
 - **Aus „Kostenstelle" wird „Auswertungsgruppe".** Der Bericht, der Knopf
   *Auswertungsgruppen verwalten*, das Feld im Konto-Dialog, alle Meldungen,
@@ -59,6 +76,11 @@ verwenden, z. B. `**Neu:**`.
   Einträge im Änderungsprotokoll tragen weiterhin den alten Wortlaut.
 
 **Behoben:**
+- **Der Knopf *Anhängen* war nur mit der Maus erreichbar.** Das Dateifeld
+  dahinter war per `hidden` ausgeblendet und fiel damit aus der
+  Tab-Reihenfolge – wer die App mit der Tastatur bedient, kam an die
+  Belegablage nicht heran. Das Feld ist jetzt fokussierbar und zeigt den
+  Fokus am Knopf, mobil ebenso wie am Desktop.
 - **Ein gelöschtes einziehendes Konto blockierte die gesamte
   Einstellungsseite.** Wurde unter „Beiträge & SEPA" ein einziehendes Konto
   gewählt und danach über „Alle Daten löschen" (oder einen Import mit

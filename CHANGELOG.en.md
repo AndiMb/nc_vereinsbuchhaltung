@@ -32,6 +32,22 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [0.29.0] – 2026-08-30
 
+**New:**
+- **Receipts can now be attached while creating a posting on the desktop,
+  too.** On the desktop the *New posting* dialog shows the same *Receipts*
+  section as the edit dialog: the selected files sit in a list (with a remove
+  button) and are uploaded as soon as the posting is saved. Until now this
+  only existed in the mobile view (windows up to 640 px) – on the desktop you
+  had to save the posting first and then open it again (issue #29).
+  File type and size are checked **as soon as you pick a file**: anything the
+  server will not take (only PDF, JPG, PNG, GIF, WebP; 20 MB at most) is
+  reported by name right away instead of after the posting has been saved. If
+  an upload fails anyway – a dropped connection, say – the files concerned stay
+  in the dialog and can be sent to the meanwhile created posting via *Upload
+  again*, while the other receipts are already attached. While saving and
+  uploading, the button is disabled so that a second click cannot turn into a
+  second posting.
+
 **Changed:**
 - **"Cost center" is now "reporting group".** The report, the *Manage
   reporting groups* button, the field in the account dialog, all messages,
@@ -56,6 +72,11 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   log keep their original wording.
 
 **Fixed:**
+- **The *Attach* button could only be reached with the mouse.** The file field
+  behind it was hidden via `hidden` and therefore dropped out of the tab order –
+  anyone operating the app from the keyboard could not get to the receipts at
+  all. The field is now focusable and shows the focus on the button, on mobile
+  as well as on the desktop.
 - **A deleted collecting account blocked the entire settings page.** If a
   collecting account had been selected under "Contributions & SEPA" and the
   data was then wiped via "Delete all data" (or an import with reset), the

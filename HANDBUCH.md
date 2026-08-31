@@ -375,7 +375,9 @@ wählen, **welche Seite** aufgeteilt wird (Soll oder Haben).
 An jede Buchung lassen sich **Belege** anhängen (PDF, JPG, PNG, GIF, WebP;
 max. 20 MB pro Datei). Drei Wege:
 
-- **Beim Anlegen** (mobil): direkt über „Fotografieren" mit der Kamera.
+- **Beim Anlegen:** im Dialog *Neue Buchung* im Bereich *Belege* über
+  „Anhängen" – mobil zusätzlich über „Fotografieren" direkt mit der Kamera.
+  Die Dateien werden hochgeladen, sobald die Buchung gespeichert ist.
 - **Nachträglich:** Buchung öffnen (Stift-Symbol) → Bereich *Belege* →
   „Anhängen".
 - **Mehrere Dateien** gleichzeitig sind möglich.

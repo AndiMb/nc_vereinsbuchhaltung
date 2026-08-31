@@ -4,9 +4,9 @@
 		:name="isMobile ? bookingTitle : ''"
 		:labelId="isMobile ? undefined : 'vbh-modal-title-booking'"
 		:size="isMobile ? 'full' : 'normal'"
-		:closeOnClickOutside="true"
-		@close="$emit('close')"
-		@update:show="$emit('update:show', $event)">
+		:closeOnClickOutside="!bookingSaving"
+		@close="requestClose"
+		@update:show="requestShow">
 		<div class="vbh-modal-inner">
 			<h2 v-if="!isMobile" id="vbh-modal-title-booking" class="vbh-modal-title">
 				{{ bookingTitle }}
@@ -125,8 +125,10 @@
 					<label class="vbh-mfield">{{ t('Datum') }}<input v-model="formDate" type="date" :disabled="bookingLocked"></label>
 					<label class="vbh-mfield">{{ t('Buchungstext') }}<input v-model="formDescription" :placeholder="t('z. B. Mitgliedsbeitrag Max Mustermann')" :disabled="bookingLocked"></label>
 					<label class="vbh-mfield">{{ t('Beleg-Nr.') }}<input v-model="formDocumentRef" :placeholder="t('optional')" :disabled="bookingLocked"></label>
-					<!-- Beleg schon beim Anlegen: Dateien werden lokal gesammelt und
-					     nach dem Speichern an die neue Buchung gehängt. -->
+					<!-- Beleg schon beim Anlegen: Dateien werden lokal gesammelt und nach
+					     dem Speichern an die neue Buchung gehängt. Mobil stehen die Knöpfe
+					     bewusst hier oben im Formular (Kamera direkt griffbereit) statt in
+					     der Belegablage weiter unten wie am Desktop. -->
 					<div v-if="canWrite && !bookingForm.id" class="vbh-mfield">
 						<span>{{ t('Beleg') }}</span>
 						<div class="vbh-pendingbtns">
@@ -135,16 +137,16 @@
 									type="file"
 									accept="image/*"
 									capture="environment"
-									hidden
+									class="vbh-upload-input"
 									@change="addPendingFiles">
 								<span class="vbh-upload-btn"><NcIconSvgWrapper :path="mdiCamera" :size="16" /> {{ t('Fotografieren') }}</span>
 							</label>
 							<label class="vbh-upload-label">
 								<input
 									type="file"
-									accept="image/*,application/pdf"
+									accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
 									multiple
-									hidden
+									class="vbh-upload-input"
 									@change="addPendingFiles">
 								<span class="vbh-upload-btn"><NcIconSvgWrapper :path="mdiPaperclip" :size="16" /> {{ t('Datei…') }}</span>
 							</label>
@@ -331,49 +333,80 @@
 				</NcCheckboxRadioSwitch>
 			</div>
 
-			<!-- Belegablage (nur bei bestehenden Buchungen verfügbar) -->
-			<div v-if="bookingForm.id" class="vbh-attachments">
+			<!-- Belegablage: bei einer bestehenden Buchung die bereits gespeicherten
+			     Belege, beim Anlegen die noch lokal gesammelten Dateien (der Upload
+			     folgt direkt nach dem Speichern). Mobil stehen die Sammel-Knoepfe
+			     schon oben im Formular, dort entfaellt dieser Zweig. -->
+			<div v-if="bookingForm.id || (canWrite && !isMobile)" class="vbh-attachments">
 				<div class="vbh-attachments-header">
 					<span class="vbh-attachments-title">{{ t('Belege') }}</span>
 					<label v-if="canWrite && !bookingLocked" class="vbh-upload-label" :class="{ 'is-uploading': attachmentUploading }">
 						<input
 							type="file"
-							accept="image/*,application/pdf"
+							accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
 							multiple
 							:disabled="attachmentUploading"
-							hidden
-							@change="uploadAttachment">
+							class="vbh-upload-input"
+							@change="attachOrCollectFiles">
 						<span class="vbh-upload-btn">
 							<NcIconSvgWrapper :path="mdiPaperclip" :size="16" />
 							{{ attachmentUploading ? t('Lädt hoch…') : t('Anhängen') }}
 						</span>
 					</label>
 				</div>
-				<ul v-if="bookingAttachments.length" class="vbh-attachment-list">
-					<li v-for="a in bookingAttachments" :key="a.id" class="vbh-attachment-item">
-						<NcIconSvgWrapper :path="mdiPaperclip" :size="14" class="vbh-attachment-icon" />
-						<button class="vbh-attachment-name" :title="t('Anzeigen: {name}', { name: a.fileName })" @click="openViewer(a)">
-							{{ a.fileName }}
-						</button>
-						<span class="vbh-attachment-size">{{ formatFileSize(a.fileSize) }}</span>
-						<a
-							:href="attachmentDownloadUrl(a.id)"
-							class="vbh-attachment-dl"
-							:title="t('Herunterladen')"
-							download>↓</a>
-						<NcButton
-							v-if="canWrite && !bookingLocked"
-							variant="tertiary"
-							:aria-label="t('Beleg löschen')"
-							@click="deleteAttachment(a.id)">
-							<template #icon>
-								<NcIconSvgWrapper :path="mdiDelete" :size="14" />
-							</template>
+				<template v-if="bookingForm.id">
+					<ul v-if="bookingAttachments.length" class="vbh-attachment-list">
+						<li v-for="a in bookingAttachments" :key="a.id" class="vbh-attachment-item">
+							<NcIconSvgWrapper :path="mdiPaperclip" :size="14" class="vbh-attachment-icon" />
+							<button class="vbh-attachment-name" :title="t('Anzeigen: {name}', { name: a.fileName })" @click="openViewer(a)">
+								{{ a.fileName }}
+							</button>
+							<span class="vbh-attachment-size">{{ formatFileSize(a.fileSize) }}</span>
+							<a
+								:href="attachmentDownloadUrl(a.id)"
+								class="vbh-attachment-dl"
+								:title="t('Herunterladen')"
+								download>↓</a>
+							<NcButton
+								v-if="canWrite && !bookingLocked"
+								variant="tertiary"
+								:aria-label="t('Beleg löschen')"
+								@click="deleteAttachment(a.id)">
+								<template #icon>
+									<NcIconSvgWrapper :path="mdiDelete" :size="14" />
+								</template>
+							</NcButton>
+						</li>
+					</ul>
+					<p v-else-if="!pendingFiles.length" class="vbh-attachment-empty">
+						{{ t('Noch kein Beleg angehängt.') }}
+					</p>
+				</template>
+				<!-- Wartende Dateien: beim Anlegen die getroffene Auswahl, nach einem
+				     fehlgeschlagenen Upload die Reste samt Knopf fuer den zweiten
+				     Anlauf (dann hat die Buchung schon eine ID). -->
+				<div v-if="pendingFiles.length" class="vbh-pending">
+					<div v-if="bookingForm.id" class="vbh-pending-header">
+						<span class="vbh-pending-title">{{ t('Noch nicht hochgeladen') }}</span>
+						<NcButton variant="secondary" :disabled="attachmentUploading" @click="retryPendingFiles">
+							{{ attachmentUploading ? t('Lädt hoch…') : t('Erneut hochladen') }}
 						</NcButton>
-					</li>
-				</ul>
-				<p v-else class="vbh-attachment-empty">
-					{{ t('Noch kein Beleg angehängt.') }}
+					</div>
+					<ul class="vbh-attachment-list">
+						<li v-for="(pf, i) in pendingFiles" :key="i" class="vbh-attachment-item">
+							<NcIconSvgWrapper :path="mdiPaperclip" :size="14" class="vbh-attachment-icon" />
+							<span class="vbh-attachment-name">{{ pf.name }}</span>
+							<span class="vbh-attachment-size">{{ formatFileSize(pf.size) }}</span>
+							<NcButton variant="tertiary" :aria-label="t('Beleg entfernen')" @click="removePendingFile(i)">
+								<template #icon>
+									<NcIconSvgWrapper :path="mdiDelete" :size="14" />
+								</template>
+							</NcButton>
+						</li>
+					</ul>
+				</div>
+				<p v-else-if="!bookingForm.id" class="vbh-attachment-empty">
+					{{ t('Noch kein Beleg gewählt – die Dateien werden nach dem Buchen hochgeladen.') }}
 				</p>
 			</div>
 
@@ -381,11 +414,21 @@
 				<NcButton v-if="isMobile && bookingForm.id && canWrite && !bookingLocked" variant="error" @click="$emit('delete')">
 					{{ t('Löschen') }}
 				</NcButton>
-				<NcButton variant="tertiary" @click="$emit('close')">
+				<NcButton variant="tertiary" :disabled="bookingSaving" @click="requestClose">
 					{{ bookingLocked ? t('Schließen') : t('Abbrechen') }}
 				</NcButton>
-				<NcButton v-if="!bookingLocked" variant="primary" @click="$emit('save')">
-					{{ bookingForm.id ? t('Speichern') : t('Buchen') }}
+				<!-- Waehrend des Speicherns gesperrt: daran haengt der Upload der
+				     gesammelten Belege, und ein zweiter Klick wuerde in dieser Zeit
+				     eine zweite Buchung anlegen (bookingForm.id ist noch leer). -->
+				<NcButton
+					v-if="!bookingLocked"
+					variant="primary"
+					:disabled="bookingSaving"
+					@click="$emit('save')">
+					<template v-if="bookingSaving" #icon>
+						<NcLoadingIcon :size="20" />
+					</template>
+					{{ bookingSaving ? t('Wird gespeichert…') : (bookingForm.id ? t('Speichern') : t('Buchen')) }}
 				</NcButton>
 			</div>
 		</div>
@@ -394,7 +437,7 @@
 
 <script>
 import { mdiCamera, mdiDelete, mdiPaperclip } from '@mdi/js'
-import { NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper, NcModal, NcSelect } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper, NcLoadingIcon, NcModal, NcSelect } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import { useAccounts } from '../composables/useAccounts.js'
 import { useJournal } from '../composables/useJournal.js'
@@ -403,7 +446,7 @@ import { splitBalanced, splitRemainder, splitSideOf } from '../lib/split.js'
 
 export default {
 	name: 'BookingDialog',
-	components: { NcModal, NcButton, NcSelect, NcCheckboxRadioSwitch, NcIconSvgWrapper },
+	components: { NcModal, NcButton, NcSelect, NcCheckboxRadioSwitch, NcIconSvgWrapper, NcLoadingIcon },
 	props: {
 		show: { type: Boolean, default: false },
 		// bookingForm/bookingMode/pendingFiles bleiben in App.vue und werden per
@@ -414,6 +457,7 @@ export default {
 		bookingForm: { type: Object, required: true },
 		bookingMode: { type: String, required: true },
 		bookingLocked: { type: Boolean, required: true },
+		bookingSaving: { type: Boolean, required: true },
 		bookingTour: { type: Object, required: true },
 		isMobile: { type: Boolean, required: true },
 		canWrite: { type: Boolean, required: true },
@@ -427,6 +471,7 @@ export default {
 		setBookingMode: { type: Function, required: true },
 		openAccountPicker: { type: Function, required: true },
 		addPendingFiles: { type: Function, required: true },
+		retryPendingFiles: { type: Function, required: true },
 		uploadAttachment: { type: Function, required: true },
 		deleteAttachment: { type: Function, required: true },
 		openViewer: { type: Function, required: true },
@@ -702,6 +747,37 @@ export default {
 		 */
 		updateForm(patch) {
 			this.$emit('update:bookingForm', { ...this.bookingForm, ...patch })
+		},
+
+		/**
+		 * Dateiauswahl aus der Belegablage: bei einer bestehenden Buchung geht
+		 * die Datei sofort an den Server, beim Anlegen wandert sie erst in die
+		 * Warteliste - hochgeladen wird sie, sobald die Buchung eine ID hat.
+		 *
+		 * @param {Event} event change-Event des Datei-Feldes
+		 */
+		attachOrCollectFiles(event) {
+			if (this.bookingForm.id) {
+				this.uploadAttachment(event)
+			} else {
+				this.addPendingFiles(event)
+			}
+		},
+
+		/**
+		 * Schliessen aus dem Dialog heraus (X, Abbrechen, Klick daneben, Esc).
+		 * Waehrend gespeichert wird bleibt der Dialog stehen: an dem Vorgang
+		 * haengt der Upload der wartenden Belege.
+		 */
+		requestClose() {
+			if (!this.bookingSaving) { this.$emit('close') }
+		},
+
+		/**
+		 * @param {boolean} value neuer show-Zustand des NcModal
+		 */
+		requestShow(value) {
+			if (!this.bookingSaving) { this.$emit('update:show', value) }
 		},
 
 		/** Einen noch nicht hochgeladenen Beleg aus der Warteliste nehmen. */
