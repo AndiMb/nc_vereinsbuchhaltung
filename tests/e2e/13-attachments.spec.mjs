@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { api, openApp, switchTab, visibleSection, BANK_ACCOUNT, BELEG_PNG, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
+import { api, openApp, pickNcSelectOption, switchTab, visibleSection, BANK_ACCOUNT, BELEG_PNG, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
 
 // Belegablage (app-intern): Beleg an eine Buchung hängen, Büroklammer im
 // Journal, Download und das Prüf-ZIP für die Kassenprüfung.
@@ -41,6 +41,44 @@ test.describe('Belegablage', () => {
 		await switchTab(page, 'Buchungen')
 		const row = visibleSection(page).locator('tr', { hasText: 'Buchung mit Beleg' }).first()
 		await expect(row.getByRole('button', { name: /Beleg/ })).toBeVisible()
+	})
+
+	test('Beleg schon beim Anlegen: falscher Typ fliegt raus, der Rest hängt nach dem Buchen dran', async ({ page, request }) => {
+		await openApp(page, USERS.verwalter)
+
+		await page.getByRole('button', { name: 'Buchung', exact: true }).click()
+		const dialog = page.getByRole('dialog')
+		await dialog.getByRole('button', { name: 'Einnahme' }).click()
+		const tourSkip = dialog.getByRole('button', { name: 'Überspringen', exact: true })
+		if (await tourSkip.isVisible().catch(() => false)) {
+			await tourSkip.click()
+		}
+
+		await dialog.locator('input[type="number"]').fill('42')
+		await pickNcSelectOption(dialog, '– Kategorie wählen –', 'Mitgliedsbeiträge')
+		await dialog.locator('input[type="date"]').fill('2026-05-04')
+		await dialog.getByPlaceholder('z. B. Mitgliedsbeitrag Max Mustermann').fill('Beleg direkt beim Anlegen')
+
+		// Was der Server ablehnen wuerde, faellt schon hier auf – sonst kaeme das
+		// Nein erst, wenn die Buchung bereits steht.
+		const fileInput = dialog.locator('input[type="file"]')
+		await fileInput.setInputFiles({ name: 'notiz.txt', mimeType: 'text/plain', buffer: Buffer.from('kein Beleg') })
+		await expect(page.getByText(/Dieser Dateityp geht nicht/)).toBeVisible()
+		await expect(dialog.getByText('notiz.txt')).toHaveCount(0)
+
+		await fileInput.setInputFiles({ name: 'anlage.png', mimeType: 'image/png', buffer: BELEG_PNG })
+		await expect(dialog.getByText('anlage.png')).toBeVisible()
+
+		await dialog.getByRole('button', { name: 'Buchen', exact: true }).click()
+		await expect(page.getByRole('dialog')).toBeHidden()
+
+		await switchTab(page, 'Buchungen')
+		const row = visibleSection(page).locator('tr', { hasText: 'Beleg direkt beim Anlegen' }).first()
+		await expect(row.getByRole('button', { name: /Beleg/ })).toBeVisible({ timeout: 15000 })
+
+		const booking = (await api.listJournal(request)).find((j) => j.description === 'Beleg direkt beim Anlegen')
+		const attachments = await api.listAttachments(request, booking.id)
+		expect(attachments.map((a) => a.fileName)).toEqual(['anlage.png'])
 	})
 
 	test('Beleg lässt sich herunterladen, das Prüf-ZIP kommt an', async ({ request }) => {

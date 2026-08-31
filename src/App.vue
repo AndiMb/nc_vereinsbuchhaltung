@@ -229,6 +229,7 @@
 			:show="showBooking"
 			:bookingMode="bookingMode"
 			:bookingLocked="bookingLocked"
+			:bookingSaving="bookingSaving"
 			:bookingTour="bookingTour"
 			:isMobile="isMobile"
 			:canWrite="canWrite"
@@ -238,6 +239,7 @@
 			:setBookingMode="setBookingMode"
 			:openAccountPicker="openAccountPicker"
 			:addPendingFiles="addPendingFiles"
+			:retryPendingFiles="retryPendingFiles"
 			:uploadAttachment="uploadAttachment"
 			:deleteAttachment="deleteAttachment"
 			:openViewer="openViewer"
@@ -384,6 +386,16 @@ import { splitBalanced, splitRemainder, splitSideOf } from './lib/split.js'
 // "von einer anderen Person geaendert" - je nachdem, wann der Abgleich fiel.
 const SYNC_INTERVALL = 20000
 
+// Belege: Grenzen aus AttachmentController (MAX_SIZE, ALLOWED_MIMES). Die
+// Oberflaeche prueft sie schon bei der Auswahl - beim Anlegen einer Buchung
+// laedt der Beleg erst nach dem Speichern hoch, ein Server-Nein kaeme also
+// erst, wenn die Buchung bereits steht.
+const BELEG_MAX_BYTES = 20 * 1024 * 1024
+const BELEG_MIMES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf']
+
+/** Erkennungsmerkmal einer Datei, um dieselbe Auswahl nicht doppelt zu sammeln. */
+const dateiSchluessel = (f) => `${f.name}|${f.size}|${f.lastModified}`
+
 export default {
 	name: 'App',
 	components: {
@@ -515,6 +527,10 @@ export default {
 			statement: null,
 			statementIncludeChildren: true,
 			showBooking: false,
+			// Laeuft ein Speichern (inkl. Beleg-Upload danach), bleibt der Dialog
+			// gesperrt: ein zweiter Klick auf "Buchen" wuerde sonst eine zweite
+			// Buchung anlegen, weil bookingForm.id noch leer ist.
+			bookingSaving: false,
 			showAccount: false,
 			bookingMode: 'simple',
 			showImport: false,
@@ -1415,12 +1431,35 @@ export default {
 			try { const { data } = await api.listAttachments(journalId); this.bookingAttachments = data } catch { this.bookingAttachments = [] }
 		},
 
+		/**
+		 * Filtert eine Dateiauswahl auf das, was der Server annimmt, und meldet
+		 * jede abgelehnte Datei mit Namen. Der Typ wird nur geprueft, wenn der
+		 * Browser einen nennt: der Server schaut ohnehin per finfo in die Datei,
+		 * eine leere type-Angabe (unbekannte Endung) darf also durch.
+		 *
+		 * @param {File[]} files ausgewaehlte Dateien
+		 * @return {File[]} die Dateien, die durchgehen
+		 */
+		belegeAnnehmbar(files) {
+			const ok = []
+			for (const file of files) {
+				if (file.type && !BELEG_MIMES.includes(file.type)) {
+					showError(this.t('{name}: Dieser Dateityp geht nicht – erlaubt sind PDF, JPG, PNG, GIF und WebP.', { name: file.name }))
+				} else if (file.size > BELEG_MAX_BYTES) {
+					showError(this.t('{name} ist zu groß – erlaubt sind höchstens 20 MB pro Beleg.', { name: file.name }))
+				} else {
+					ok.push(file)
+				}
+			}
+			return ok
+		},
+
 		async uploadAttachment(event) {
-			const files = event.target.files
-			if (!files || !files.length || !this.bookingForm.id) { return }
+			const files = this.belegeAnnehmbar(Array.from(event.target.files || []))
+			if (!files.length || !this.bookingForm.id) { event.target.value = ''; return }
 			this.attachmentUploading = true
 			try {
-				for (const file of Array.from(files)) {
+				for (const file of files) {
 					const fd = new FormData()
 					fd.append('file', file)
 					await api.uploadAttachment(this.bookingForm.id, fd)
@@ -1550,25 +1589,61 @@ export default {
 			this.statement = null
 		},
 
-		// Mobil: Belege beim Anlegen sammeln, Upload folgt nach dem Speichern
+		// Belege beim Anlegen sammeln (mobil wie am Desktop), der Upload folgt
+		// nach dem Speichern, sobald die Buchung eine ID hat
 		addPendingFiles(event) {
-			const files = event.target.files
-			if (files && files.length) { this.pendingFiles.push(...Array.from(files)) }
+			const known = new Set(this.pendingFiles.map(dateiSchluessel))
+			for (const file of this.belegeAnnehmbar(Array.from(event.target.files || []))) {
+				// Zweimal dieselbe Datei gewaehlt: sie soll nur einmal dranhaengen.
+				if (known.has(dateiSchluessel(file))) { continue }
+				known.add(dateiSchluessel(file))
+				this.pendingFiles.push(file)
+			}
 			event.target.value = ''
 		},
 
+		/**
+		 * Haengt die gesammelten Belege an die eben angelegte Buchung. Jede Datei
+		 * einzeln, damit eine abgelehnte die uebrigen nicht mitreisst; was nicht
+		 * ankommt, bleibt in der Warteliste und laesst sich erneut hochladen.
+		 *
+		 * @param {number|null} journalId Buchung, an die die Belege gehen
+		 * @return {Promise<number>} Anzahl der Dateien, die nicht angekommen sind
+		 */
 		async uploadPendingFiles(journalId) {
 			const files = this.pendingFiles
-			this.pendingFiles = []
-			if (!journalId || !files.length) { return }
-			try {
-				for (const file of files) {
-					const fd = new FormData()
-					fd.append('file', file)
+			if (!journalId || !files.length) { this.pendingFiles = []; return 0 }
+			const failed = []
+			let lastError = null
+			for (const file of files) {
+				const fd = new FormData()
+				fd.append('file', file)
+				try {
 					await api.uploadAttachment(journalId, fd)
-				}
-				this.loadAttachmentCounts()
-			} catch (e) { showError(this.errMsg(e, this.t('Buchung gespeichert, aber der Beleg-Upload ist fehlgeschlagen'))) }
+				} catch (e) { failed.push(file); lastError = e }
+			}
+			this.pendingFiles = failed
+			this.loadAttachmentCounts()
+			if (failed.length) {
+				showError(this.t('Die Buchung steht, aber diese Belege kamen nicht an: {names} ({grund}). Sie warten weiter im Dialog.', {
+					names: failed.map((f) => f.name).join(', '),
+					grund: this.errMsg(lastError, this.t('Upload fehlgeschlagen')),
+				}))
+			}
+			return failed.length
+		},
+
+		/** Zweiter Anlauf fuer Belege, die nach dem Speichern haengen geblieben sind. */
+		async retryPendingFiles() {
+			if (!this.bookingForm.id || !this.pendingFiles.length) { return }
+			this.attachmentUploading = true
+			try {
+				const offen = await this.uploadPendingFiles(this.bookingForm.id)
+				// Erst die Liste nachladen, dann Vollzug melden - sonst steht in
+				// der Belegablage fuer einen Wimpernschlag noch "kein Beleg".
+				await this.loadAttachments(this.bookingForm.id)
+				if (offen === 0) { showSuccess(this.t('Beleg gespeichert.')) }
+			} finally { this.attachmentUploading = false }
 		},
 
 		// Mobil: Tippen auf eine Buchungskarte
@@ -1703,15 +1778,26 @@ export default {
 		},
 
 		async saveBooking() {
+			if (this.bookingSaving) { return }
 			const f = this.bookingForm
 			const payload = f.splitMode ? this.buildSplitPayload() : this.buildSimplePayload()
 			if (!payload) { return }
+			this.bookingSaving = true
 			try {
 				if (f.id) {
 					await api.updateBooking(f.id, { ...payload, updatedAt: f.updatedAt || null })
 				} else {
 					const { data } = await api.createBooking(payload)
-					await this.uploadPendingFiles(data && data.id)
+					if (await this.uploadPendingFiles(data && data.id)) {
+						// Die Buchung steht, nur die Belege fehlen: aus dem Anlegen
+						// wird das Bearbeiten dieser Buchung. So legt ein weiterer
+						// Klick keine zweite Buchung an und die haengengebliebenen
+						// Dateien lassen sich im offenen Dialog erneut hochladen.
+						this.bookingForm = { ...f, id: data.id, entryNo: data.entryNo, updatedAt: data.updatedAt || null }
+						await this.loadAttachments(data.id)
+						await this.loadJournal(); await this.loadBalances(); await this.loadYears(); await this.loadSphereReport()
+						return
+					}
 				}
 				showSuccess(this.t('Buchung gespeichert.'))
 				this.closeBooking()
@@ -1724,7 +1810,7 @@ export default {
 					return
 				}
 				showError(this.errMsg(e, this.t('Buchung konnte nicht gespeichert werden')))
-			}
+			} finally { this.bookingSaving = false }
 		},
 
 		async removeBooking(r) {

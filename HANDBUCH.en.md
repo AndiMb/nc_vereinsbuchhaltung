@@ -369,7 +369,9 @@ can additionally choose **which side** is split (debit or credit).
 **Receipts** can be attached to every posting (PDF, JPG, PNG, GIF, WebP;
 max. 20 MB per file). Three ways:
 
-- **When creating** (mobile): directly via "photograph" with the camera.
+- **When creating:** in the *New posting* dialog under *Receipts* via
+  "attach" – on mobile also via "photograph" straight from the camera. The
+  files are uploaded as soon as the posting is saved.
 - **Afterwards:** open the posting (pencil icon) → *Receipts* section →
   "attach".
 - **Several files** at once are possible.
