@@ -4,9 +4,12 @@ import { api, openApp, pickNcSelectOption, switchTab, visibleSection, BANK_ACCOU
 // Belegablage (app-intern): Beleg an eine Buchung hängen, Büroklammer im
 // Journal, Download und das Prüf-ZIP für die Kassenprüfung.
 
+// /journal liefert je Buchung { journal: {...}, lines: [...] } - die Felder der
+// Buchung stecken also eine Ebene tiefer als beim POST auf /journal.
+const findeBuchung = (journal, text) => (journal.find((e) => e.journal.description === text) || {}).journal
+
 async function ensureBookingWithAttachment(request) {
-	const journal = await api.listJournal(request)
-	let booking = journal.find((j) => j.description === 'Buchung mit Beleg')
+	let booking = findeBuchung(await api.listJournal(request), 'Buchung mit Beleg')
 	if (!booking) {
 		const [bank, income] = await api.accountsByNumber(request, BANK_ACCOUNT, INCOME_ACCOUNT)
 		booking = await (await api.createBooking(request, {
@@ -76,7 +79,7 @@ test.describe('Belegablage', () => {
 		const row = visibleSection(page).locator('tr', { hasText: 'Beleg direkt beim Anlegen' }).first()
 		await expect(row.getByRole('button', { name: /Beleg/ })).toBeVisible({ timeout: 15000 })
 
-		const booking = (await api.listJournal(request)).find((j) => j.description === 'Beleg direkt beim Anlegen')
+		const booking = findeBuchung(await api.listJournal(request), 'Beleg direkt beim Anlegen')
 		const attachments = await api.listAttachments(request, booking.id)
 		expect(attachments.map((a) => a.fileName)).toEqual(['anlage.png'])
 	})
