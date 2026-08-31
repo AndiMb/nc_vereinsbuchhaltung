@@ -25,6 +25,13 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.30.0',
+			roles: ['buchhalter', 'verwalter'],
+			items: [
+				t('Belege lassen sich jetzt auch am Desktop schon beim Anlegen einer Buchung anhängen – bisher ging das nur am Handy. Die Dateien wandern hoch, sobald die Buchung gespeichert ist.'),
+			],
+		},
+		{
 			version: '0.29.0',
 			items: [
 				t('Der Bericht „Kostenstellen" heißt jetzt „Auswertungsgruppen" – gleiche Funktion, treffenderer Name. Angelegte Gruppen und ihre Konto-Zuordnungen bleiben unverändert.'),

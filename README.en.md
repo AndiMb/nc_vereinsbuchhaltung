@@ -48,7 +48,7 @@ A lightweight accounting app for nonprofit clubs, integrated directly into Nextc
 - **Assign bank transactions**: every imported bank transaction gets assigned a counter-account, which automatically creates a posting
   - **Assignment suggestions** from rules and past assignment history, applicable with one click
   - **Auto-assignment rules** (payment partner / purpose text / IBAN contains search text → counter-account): manageable in the "Rules" sub-tab (Bookings tab), or via a lightning-bolt button directly from a posted bank transaction
-- **Attachments** (PDF/images, max. 20 MB) on postings – stored internally (AppData) or in a configurable Nextcloud folder; photograph directly on mobile when creating a posting
+- **Attachments** (PDF/images, max. 20 MB) on postings – stored internally (AppData) or in a configurable Nextcloud folder; while creating the posting or afterwards, on mobile photographed straight from the camera
 - **Open items** (Bookings tab → Open items): a lean ad-hoc list of unpaid receivables (e.g. membership fees, invoices) with debtor, amount, due date and optional account; status open/paid/cancelled, dashboard notice for overdue items – deliberately not a full member-management system
 - **Reserves** (§ 62 AO: free / earmarked / replacement reserve): equity accounts can be flagged accordingly, own report with balance by type; allocations are normal postings (expert mode)
 - **Year filter**: all reports relate to the calendar year chosen in the header; balance-sheet accounts cumulative, income/expense accounts year-specific

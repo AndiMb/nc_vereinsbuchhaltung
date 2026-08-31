@@ -17,22 +17,7 @@ als „[object Object]" (falsche Renderer-Callback-Signatur, Nextcloud-
 Core-Bug, reproduziert 23.08.2026). Stattdessen **Fettdruck als Zeilenanfang**
 verwenden, z. B. `**Neu:**`.
 
-## [0.29.1] – 2026-08-30
-
-**Behoben:**
-- **Erfolgs- und Fehlermeldungen (Toasts) erschienen als nackter Text oben
-  links.** Seit 0.29.0 klebten Bestätigungen wie „Einstellungen gespeichert."
-  unformatiert über der Kopfleiste, statt als Kasten unten links zu
-  erscheinen. Ursache war die Aktualisierung von `@nextcloud/dialogs` auf
-  7.5.0: Die Toasts der Bibliothek tragen seither gehashte CSS-Klassen, deren
-  Gestaltung allein ihr mitgeliefertes Stylesheet kennt – bis 7.4.1 hatte
-  Nextclouds Server-CSS die damals globalen Toastify-Klassen unbemerkt
-  mitgestylt, sodass der fehlende Stylesheet-Import der App nie auffiel.
-  Beide Skript-Einstiege laden das Stylesheet jetzt selbst; ein statischer
-  Test und ein geschärfter E2E-Test wachen darüber (der bisherige prüfte
-  nur, dass der Meldungstext erscheint, nicht dass er gestaltet ist).
-
-## [0.29.0] – 2026-08-30
+## [0.30.0] – 2026-08-31
 
 **Neu:**
 - **Belege lassen sich jetzt auch am Desktop schon beim Anlegen anhängen.**
@@ -50,6 +35,30 @@ verwenden, z. B. `**Neu:**`.
   hochladen* an die inzwischen angelegte Buchung schicken; die übrigen Belege
   hängen dann schon dran. Während gespeichert und hochgeladen wird, ist der
   Knopf gesperrt, damit aus einem zweiten Klick keine zweite Buchung wird.
+
+**Behoben:**
+- **Der Knopf *Anhängen* war nur mit der Maus erreichbar.** Das Dateifeld
+  dahinter war per `hidden` ausgeblendet und fiel damit aus der
+  Tab-Reihenfolge – wer die App mit der Tastatur bedient, kam an die
+  Belegablage nicht heran. Das Feld ist jetzt fokussierbar und zeigt den
+  Fokus am Knopf, mobil ebenso wie am Desktop.
+
+## [0.29.1] – 2026-08-30
+
+**Behoben:**
+- **Erfolgs- und Fehlermeldungen (Toasts) erschienen als nackter Text oben
+  links.** Seit 0.29.0 klebten Bestätigungen wie „Einstellungen gespeichert."
+  unformatiert über der Kopfleiste, statt als Kasten unten links zu
+  erscheinen. Ursache war die Aktualisierung von `@nextcloud/dialogs` auf
+  7.5.0: Die Toasts der Bibliothek tragen seither gehashte CSS-Klassen, deren
+  Gestaltung allein ihr mitgeliefertes Stylesheet kennt – bis 7.4.1 hatte
+  Nextclouds Server-CSS die damals globalen Toastify-Klassen unbemerkt
+  mitgestylt, sodass der fehlende Stylesheet-Import der App nie auffiel.
+  Beide Skript-Einstiege laden das Stylesheet jetzt selbst; ein statischer
+  Test und ein geschärfter E2E-Test wachen darüber (der bisherige prüfte
+  nur, dass der Meldungstext erscheint, nicht dass er gestaltet ist).
+
+## [0.29.0] – 2026-08-30
 
 **Geändert:**
 - **Aus „Kostenstelle" wird „Auswertungsgruppe".** Der Bericht, der Knopf
@@ -76,11 +85,6 @@ verwenden, z. B. `**Neu:**`.
   Einträge im Änderungsprotokoll tragen weiterhin den alten Wortlaut.
 
 **Behoben:**
-- **Der Knopf *Anhängen* war nur mit der Maus erreichbar.** Das Dateifeld
-  dahinter war per `hidden` ausgeblendet und fiel damit aus der
-  Tab-Reihenfolge – wer die App mit der Tastatur bedient, kam an die
-  Belegablage nicht heran. Das Feld ist jetzt fokussierbar und zeigt den
-  Fokus am Knopf, mobil ebenso wie am Desktop.
 - **Ein gelöschtes einziehendes Konto blockierte die gesamte
   Einstellungsseite.** Wurde unter „Beiträge & SEPA" ein einziehendes Konto
   gewählt und danach über „Alle Daten löschen" (oder einen Import mit

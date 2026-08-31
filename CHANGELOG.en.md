@@ -15,22 +15,7 @@ Markdown headings as "[object Object]" since `marked` v18 (wrong renderer
 callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 **bold lead-in** at the start of a line instead, e.g. `**New:**`.
 
-## [0.29.1] – 2026-08-30
-
-**Fixed:**
-- **Success and error messages (toasts) rendered as bare text in the
-  top-left corner.** Since 0.29.0, confirmations such as "Settings saved."
-  sat unstyled across the header instead of appearing as a box at the
-  bottom left. The cause was updating `@nextcloud/dialogs` to 7.5.0: the
-  library's toasts now carry hashed CSS classes whose styling only its
-  bundled stylesheet knows – up to 7.4.1, Nextcloud's server CSS had
-  quietly styled the then-global Toastify class names, so the app's missing
-  stylesheet import never showed. Both script entry points now load the
-  stylesheet themselves; a static test and a sharpened e2e test guard this
-  (the previous one only checked that the message text appears, not that
-  it is styled).
-
-## [0.29.0] – 2026-08-30
+## [0.30.0] – 2026-08-31
 
 **New:**
 - **Receipts can now be attached while creating a posting on the desktop,
@@ -47,6 +32,30 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   again*, while the other receipts are already attached. While saving and
   uploading, the button is disabled so that a second click cannot turn into a
   second posting.
+
+**Fixed:**
+- **The *Attach* button could only be reached with the mouse.** The file field
+  behind it was hidden via `hidden` and therefore dropped out of the tab order –
+  anyone operating the app from the keyboard could not get to the receipts at
+  all. The field is now focusable and shows the focus on the button, on mobile
+  as well as on the desktop.
+
+## [0.29.1] – 2026-08-30
+
+**Fixed:**
+- **Success and error messages (toasts) rendered as bare text in the
+  top-left corner.** Since 0.29.0, confirmations such as "Settings saved."
+  sat unstyled across the header instead of appearing as a box at the
+  bottom left. The cause was updating `@nextcloud/dialogs` to 7.5.0: the
+  library's toasts now carry hashed CSS classes whose styling only its
+  bundled stylesheet knows – up to 7.4.1, Nextcloud's server CSS had
+  quietly styled the then-global Toastify class names, so the app's missing
+  stylesheet import never showed. Both script entry points now load the
+  stylesheet themselves; a static test and a sharpened e2e test guard this
+  (the previous one only checked that the message text appears, not that
+  it is styled).
+
+## [0.29.0] – 2026-08-30
 
 **Changed:**
 - **"Cost center" is now "reporting group".** The report, the *Manage
@@ -72,11 +81,6 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   log keep their original wording.
 
 **Fixed:**
-- **The *Attach* button could only be reached with the mouse.** The file field
-  behind it was hidden via `hidden` and therefore dropped out of the tab order –
-  anyone operating the app from the keyboard could not get to the receipts at
-  all. The field is now focusable and shows the focus on the button, on mobile
-  as well as on the desktop.
 - **A deleted collecting account blocked the entire settings page.** If a
   collecting account had been selected under "Contributions & SEPA" and the
   data was then wiped via "Delete all data" (or an import with reset), the
