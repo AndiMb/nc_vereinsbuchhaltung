@@ -52,6 +52,11 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   inner spacing as every other dialog.
 
 **Changed:**
+- **Clicking an account that has sub-accounts now expands them.** Previously
+  this only worked through the small arrow in front of it, which was easy to
+  miss. Collapsing still goes through the arrow – a second click on the row
+  deliberately does not collapse it again, otherwise you could not select a
+  parent account without closing it.
 - **The posting text now grows with its content.** Longer text wraps and is
   shown in full instead of running off the side of the field – when creating
   a posting as well as when editing one. The value itself stays single-line,

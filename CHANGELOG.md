@@ -57,6 +57,11 @@ verwenden, z. B. `**Neu:**`.
   denselben Innenabstand wie alle anderen Dialoge.
 
 **Geändert:**
+- **Ein Konto mit Unterkonten anzuklicken klappt sie jetzt mit auf.** Bisher
+  ging das nur über den kleinen Pfeil davor, was leicht zu übersehen war.
+  Zugeklappt wird weiterhin über den Pfeil – ein zweiter Klick auf die Zeile
+  klappt bewusst nicht wieder zu, sonst ließe sich ein Sammelkonto nicht
+  auswählen, ohne es zuzuklappen.
 - **Der Buchungstext wächst jetzt mit seinem Inhalt.** Längere Texte brechen
   um und werden vollständig angezeigt, statt seitlich aus dem Feld zu laufen –
   beim Anlegen wie beim Bearbeiten einer Buchung. Der Text bleibt dabei
