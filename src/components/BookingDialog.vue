@@ -123,7 +123,14 @@
 						</label>
 					</template>
 					<label class="vbh-mfield">{{ t('Datum') }}<input v-model="formDate" type="date" :disabled="bookingLocked"></label>
-					<label class="vbh-mfield">{{ t('Buchungstext') }}<input v-model="formDescription" :placeholder="t('z. B. Mitgliedsbeitrag Max Mustermann')" :disabled="bookingLocked"></label>
+					<label class="vbh-mfield">{{ t('Buchungstext') }}<textarea
+						v-model="formDescription"
+						v-autogrow
+						class="vbh-autogrow"
+						rows="1"
+						:placeholder="t('z. B. Mitgliedsbeitrag Max Mustermann')"
+						:disabled="bookingLocked"
+						@keydown.enter.prevent /></label>
 					<label class="vbh-mfield">{{ t('Beleg-Nr.') }}<input v-model="formDocumentRef" :placeholder="t('optional')" :disabled="bookingLocked"></label>
 					<!-- Beleg schon beim Anlegen: Dateien werden lokal gesammelt und nach
 					     dem Speichern an die neue Buchung gehängt. Mobil stehen die Knöpfe
@@ -246,7 +253,14 @@
 					</div>
 				</template>
 				<div class="vbh-form" :class="{ 'vbh-tour-target': bookingTour.active && bookingTour.step === 2 }">
-					<label class="vbh-grow">{{ t('Buchungstext') }}<input v-model="formDescription" :placeholder="t('z. B. Mitgliedsbeitrag Max Mustermann')" :disabled="bookingLocked"></label>
+					<label class="vbh-grow">{{ t('Buchungstext') }}<textarea
+						v-model="formDescription"
+						v-autogrow
+						class="vbh-autogrow"
+						rows="1"
+						:placeholder="t('z. B. Mitgliedsbeitrag Max Mustermann')"
+						:disabled="bookingLocked"
+						@keydown.enter.prevent /></label>
 				</div>
 				<div v-if="bookingTour.active && bookingTour.step === 2" class="vbh-tour-tip">
 					<span>{{ t('Ein kurzer Text erklärt später, worum es ging – fertig! Schritt 3 von 3.') }}</span>
@@ -441,12 +455,14 @@ import { NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper, NcLoadingIcon, NcMod
 import { toRefs } from 'vue'
 import { useAccounts } from '../composables/useAccounts.js'
 import { useJournal } from '../composables/useJournal.js'
+import { autogrow } from '../lib/autogrow.js'
 import { formatMoney } from '../lib/format.js'
 import { splitBalanced, splitRemainder, splitSideOf } from '../lib/split.js'
 
 export default {
 	name: 'BookingDialog',
 	components: { NcModal, NcButton, NcSelect, NcCheckboxRadioSwitch, NcIconSvgWrapper, NcLoadingIcon },
+	directives: { autogrow },
 	props: {
 		show: { type: Boolean, default: false },
 		// bookingForm/bookingMode/pendingFiles bleiben in App.vue und werden per
@@ -526,7 +542,12 @@ export default {
 
 		formDescription: {
 			get() { return this.bookingForm.description },
-			set(v) { this.updateForm({ description: v }) },
+			// Das Feld ist ein <textarea>, damit langer Text umbricht statt
+			// abgeschnitten zu werden - der Wert bleibt aber einzeilig wie
+			// bisher: Zeilenumbrueche aus eingefuegtem Text werden zu
+			// Leerzeichen, die Eingabetaste ist im Markup abgefangen. So
+			// aendert sich nichts an Journalanzeige, CSV/PDF-Export und API.
+			set(v) { this.updateForm({ description: v.replace(/\s*[\r\n]+\s*/g, ' ') }) },
 		},
 
 		formDocumentRef: {

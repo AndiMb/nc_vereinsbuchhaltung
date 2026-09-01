@@ -6,7 +6,7 @@
 		:closeOnClickOutside="true"
 		@close="$emit('close')"
 		@update:show="$emit('update:show', $event)">
-		<div class="vbh-whatsnew">
+		<div class="vbh-modal-inner">
 			<h3 id="vbh-modal-title-whatsnew" class="vbh-modal-title">
 				{{ t('Was ist neu?') }}
 			</h3>
@@ -59,10 +59,9 @@ export default {
 </script>
 
 <style scoped>
-.vbh-whatsnew {
-	padding: 8px 4px 4px;
-}
-
+/* Innenabstand kommt aus .vbh-modal-inner (styles.css) wie bei allen anderen
+   Dialogen: NcModals .modal-container__content hat selbst padding: 0, und die
+   frueheren 4px hier liessen Text und Ueberschrift am Rand kleben. */
 .vbh-whatsnew-list {
 	display: flex;
 	flex-direction: column;

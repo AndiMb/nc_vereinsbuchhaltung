@@ -908,6 +908,7 @@ import { useBalances } from '../composables/useBalances.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useSort } from '../composables/useSort.js'
 import { useYears } from '../composables/useYears.js'
+import { chartTheme, onThemeChange, withAlpha } from '../lib/chartTheme.js'
 import { amountClass, budgetDiffClass, formatDate, formatDateTime, formatMoney, roleLabel, typeLabel } from '../lib/format.js'
 
 Chart.register(LineController, LineElement, PointElement, CategoryScale, LinearScale, Tooltip, Legend)
@@ -1133,9 +1134,19 @@ export default {
 	mounted() {
 		if (this.trendChartVisible) { this.loadMultiyearTrend() }
 		if (this.reportView === 'reserves') { this.loadReserveReport() }
+		// Chart.js malt die Farben einmal ins Canvas; ohne Neuzeichnen bliebe
+		// nach einem Designwechsel das alte Bild stehen. Nur fuer das sichtbare
+		// Diagramm - die Instanz bleibt beim Tabwechsel bestehen (v-show), ein
+		// Neuaufbau fuer ein unsichtbares Canvas waere die teuerste Arbeit, die
+		// ein Designwechsel ausloesen kann. Der trendChartVisible-Watcher
+		// zeichnet beim Zurueckwechseln ohnehin neu.
+		this.stopThemeWatch = onThemeChange(() => {
+			if (this.trendChartVisible) { this.renderTrendChart() }
+		})
 	},
 
 	beforeUnmount() {
+		this.stopThemeWatch()
 		Object.values(this.chartInstances).forEach((c) => c && c.destroy())
 	},
 
@@ -1188,9 +1199,7 @@ export default {
 			this.destroyChart('trend')
 			const { labels, income, expense, result } = this.trendChartData
 			if (!labels.length) { return }
-			const isDark = document.documentElement.classList.contains('theme--dark')
-			const textColor = isDark ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.7)'
-			const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'
+			const theme = chartTheme()
 			const eur = (v) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(v)
 			this.chartInstances.trend = new Chart(canvas, {
 				type: 'line',
@@ -1200,22 +1209,22 @@ export default {
 						{
 							label: this.t('Einnahmen'),
 							data: income,
-							borderColor: 'rgba(45,125,70,0.9)',
-							backgroundColor: 'rgba(45,125,70,0.15)',
+							borderColor: theme.success,
+							backgroundColor: withAlpha(theme.success, 0.15),
 							tension: 0.2,
 						},
 						{
 							label: this.t('Ausgaben'),
 							data: expense,
-							borderColor: 'rgba(199,60,60,0.9)',
-							backgroundColor: 'rgba(199,60,60,0.15)',
+							borderColor: theme.error,
+							backgroundColor: withAlpha(theme.error, 0.15),
 							tension: 0.2,
 						},
 						{
 							label: this.t('Ergebnis'),
 							data: result,
-							borderColor: 'rgba(70,100,199,0.9)',
-							backgroundColor: 'rgba(70,100,199,0.15)',
+							borderColor: theme.accent,
+							backgroundColor: withAlpha(theme.accent, 0.15),
 							borderDash: [5, 4],
 							tension: 0.2,
 						},
@@ -1226,13 +1235,13 @@ export default {
 					responsive: true,
 					maintainAspectRatio: false,
 					plugins: {
-						legend: { labels: { color: textColor, font: { size: 12 } } },
+						legend: { labels: { color: theme.text, font: { size: 12 } } },
 						tooltip: { callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${eur(ctx.raw)}` } },
 					},
 
 					scales: {
-						x: { ticks: { color: textColor }, grid: { color: gridColor } },
-						y: { ticks: { color: textColor, callback: (v) => eur(v) }, grid: { color: gridColor } },
+						x: { ticks: { color: theme.mutedText }, grid: { color: theme.grid } },
+						y: { ticks: { color: theme.mutedText, callback: (v) => eur(v) }, grid: { color: theme.grid } },
 					},
 				},
 			})
