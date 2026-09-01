@@ -616,7 +616,8 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-caret.open { transform: rotate(90deg); }
 
-.vbh-caret.empty { cursor: default; color: var(--color-border); opacity: 0.6; }
+/* Leerer Platzhalter (kein Zeichen), haelt nur die Spalte. */
+.vbh-caret.empty { cursor: default; }
 
 .vbh-treenum { flex: 0 0 auto; min-width: 54px; font-variant-numeric: tabular-nums; opacity: 0.7; font-size: 0.85em; font-weight: 400; }
 

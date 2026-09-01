@@ -47,7 +47,9 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   is a button, and Nextcloud gives every button a minimum height of 34px plus
   a margin – which grew the row to 46px while leaf rows stayed at 29px. All
   rows are now the same height and weight; the arrow alone marks an account
-  as having children.
+  as having children. The faint placeholder dot in front of accounts without
+  sub-accounts is gone as well – it looked like a bullet point; the
+  placeholder still keeps the column aligned.
 - **Text hugged the edge in the "What's new" dialog.** It now uses the same
   inner spacing as every other dialog.
 

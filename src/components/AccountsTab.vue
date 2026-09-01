@@ -56,7 +56,10 @@
 						@click.stop="toggleExpand(node.id)">
 						›
 					</button>
-					<span v-else class="vbh-caret empty" aria-hidden="true">·</span>
+					<!-- Platzhalter statt Pfeil: haelt die Spalte, damit Blaetter und
+					     Elternknoten fluchten. Bewusst ohne Zeichen - der frueher hier
+					     stehende Punkt sah aus wie ein Aufzaehlungszeichen. -->
+					<span v-else class="vbh-caret empty" aria-hidden="true" />
 					<span class="vbh-treenum">{{ node.number }}</span>
 					<span class="vbh-treename">{{ node.name }}</span>
 					<span v-if="!node.active" class="vbh-treeinactive" :title="t('Inaktiv – taucht in keiner Auswahlliste mehr auf')">{{ t('inaktiv') }}</span>

@@ -52,7 +52,9 @@ verwenden, z. B. `**Neu:**`.
   Mindesthöhe von 34px und einen Außenabstand mit – die Zeile wuchs dadurch
   auf 46px, während Blattzeilen 29px hoch blieben. Alle Zeilen sind jetzt
   gleich hoch und gleich gesetzt; dass ein Konto Unterkonten hat, zeigt der
-  Pfeil.
+  Pfeil. Der blasse Platzhalterpunkt vor Konten ohne Unterkonten ist dabei
+  entfallen – er sah aus wie ein Aufzählungszeichen; die Spalte hält der
+  Platzhalter weiterhin frei.
 - **Im Dialog „Was ist neu?" klebte der Text am Rand.** Er nutzt jetzt
   denselben Innenabstand wie alle anderen Dialoge.
 
