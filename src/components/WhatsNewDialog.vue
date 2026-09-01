@@ -6,7 +6,10 @@
 		:closeOnClickOutside="true"
 		@close="$emit('close')"
 		@update:show="$emit('update:show', $event)">
-		<div class="vbh-modal-inner">
+		<!-- vbh-whatsnew traegt keine Stile mehr (der Innenabstand kommt aus
+		     vbh-modal-inner), ist aber der Anker der E2E-Tests fuer diesen
+		     Dialog - siehe tests/e2e/19-whatsnew.spec.mjs. Nicht entfernen. -->
+		<div class="vbh-whatsnew vbh-modal-inner">
 			<h3 id="vbh-modal-title-whatsnew" class="vbh-modal-title">
 				{{ t('Was ist neu?') }}
 			</h3>
