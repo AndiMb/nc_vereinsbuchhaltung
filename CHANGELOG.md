@@ -17,6 +17,61 @@ als „[object Object]" (falsche Renderer-Callback-Signatur, Nextcloud-
 Core-Bug, reproduziert 23.08.2026). Stattdessen **Fettdruck als Zeilenanfang**
 verwenden, z. B. `**Neu:**`.
 
+## [Unreleased]
+
+**Behoben:**
+- **Die Diagramme ignorierten das dunkle Design.** Achsenbeschriftungen und
+  Gitterlinien waren dauerhaft schwarz und lagen im dunklen Design fast
+  unsichtbar auf dunklem Grund – in der Übersicht wie in den Berichten.
+  Ursache war eine Abfrage auf die Klasse `theme--dark`, die Nextcloud
+  nirgends setzt; die Bedingung war damit immer unwahr. Die Diagramme lesen
+  ihre Farben jetzt direkt aus Nextclouds Design-Variablen und folgen so jedem
+  Design – hell, dunkel, hoher Kontrast und über die Theming-App gesetzte
+  Vereinsfarben. Wird das Design bei geöffneter App umgestellt, zeichnen sie
+  sich neu.
+- **Erfolgs- und Fehlermeldungen (Toasts) erschienen unten links.** Nextcloud
+  selbst zeigt seine Meldungen weiterhin oben rechts, sodass auf einem
+  Bildschirm zwei Sorten in zwei Ecken standen. `@nextcloud/dialogs` 7.5.0 hat
+  die Meldungen nach unten links verschoben und die Positionsoption ersatzlos
+  entfernt; die App rückt sie jetzt selbst wieder an ihren gewohnten Platz.
+- **Der aktive Knopf trug einen weißen Rand.** Sichtbar am Umschalter
+  *Einnahme/Ausgabe* im Buchungsdialog, außerdem an aktiven Filter-Chips, am
+  Unterstrich der aktiven Unterreiter und an der Seitenwahl beim Umbuchen.
+  Nextcloud beansprucht `button.active` für seinen eigenen Gedrückt-Zustand
+  und überschrieb dabei die Rahmenfarbe der App.
+- **Der Fokusrahmen war im Buchungsdialog angeschnitten.** Wer sich mit der
+  Tabulatortaste durch den Dialog bewegte, sah den Rahmen um *Einnahme* und
+  *Ausgabe* nur als Splitter – der Umschalter schnitt ihn ab.
+- **Der Buchungsdialog ließ sich waagerecht verschieben.** Das versteckte
+  Feld zur Belegauswahl beanspruchte seine volle Eigenbreite und schob den
+  Dialog über seinen Rand hinaus, was einen Rollbalken erzeugte.
+- **Im Kontenbaum brachen Konten mit Unterkonten aus der Liste aus.** Sie
+  standen fett und deutlich höher da als ihre Geschwister, und ihre Spalten
+  saßen ein paar Pixel weiter rechts. Ursache war der Aufklapp-Pfeil: bei
+  Elternkonten ist er ein Knopf, und Nextcloud gibt jedem Knopf eine
+  Mindesthöhe von 34px und einen Außenabstand mit – die Zeile wuchs dadurch
+  auf 46px, während Blattzeilen 29px hoch blieben. Alle Zeilen sind jetzt
+  gleich hoch und gleich gesetzt; dass ein Konto Unterkonten hat, zeigt der
+  Pfeil. Der blasse Platzhalterpunkt vor Konten ohne Unterkonten ist dabei
+  entfallen – er sah aus wie ein Aufzählungszeichen; die Spalte hält der
+  Platzhalter weiterhin frei.
+- **Im Dialog „Was ist neu?" klebte der Text am Rand.** Er nutzt jetzt
+  denselben Innenabstand wie alle anderen Dialoge.
+
+**Geändert:**
+- **Ein Konto mit Unterkonten anzuklicken klappt sie jetzt mit auf.** Bisher
+  ging das nur über den kleinen Pfeil davor, was leicht zu übersehen war.
+  Zugeklappt wird weiterhin über den Pfeil – ein zweiter Klick auf die Zeile
+  klappt bewusst nicht wieder zu, sonst ließe sich ein Sammelkonto nicht
+  auswählen, ohne es zuzuklappen.
+- **Der Buchungstext wächst jetzt mit seinem Inhalt.** Längere Texte brechen
+  um und werden vollständig angezeigt, statt seitlich aus dem Feld zu laufen –
+  beim Anlegen wie beim Bearbeiten einer Buchung. Der Text bleibt dabei
+  einzeilig gespeichert, an Journal, Export und Schnittstelle ändert sich
+  nichts.
+- **Dialoge haben etwas mehr Luft zum Rand.** Inhalt und Schaltflächen klebten
+  bisher recht dicht an der Kante.
+
 ## [0.30.0] – 2026-08-31
 
 **Neu:**

@@ -14,7 +14,24 @@
    Klasse hebt die App-Regel auf (0,2,0). Die :hover/:focus-Variante derselben
    Nextcloud-Regel liegt bei (0,2,1), eigene Hover-Zustaende brauchen deshalb
    ebenfalls die doppelte Klasse. Jeder neue nackte <button> der App braucht
-   diesen Schutz, NcButton (.button-vue) nicht - src/styles.test.js prueft das. */
+   diesen Schutz, NcButton (.button-vue) nicht - src/styles.test.js prueft das.
+
+   Fuer .active reicht die doppelte Klasse NICHT. Nextcloud beansprucht den
+   Gedrueckt-Zustand nackter Knoepfe mit einer viel spezifischeren Regel:
+
+     button:not(.button-vue, [class^=vs__]):not(:disabled, .primary)
+       :not(.app-navigation-entry-button).active
+       { border-color: var(--color-main-text); outline: none }
+
+   Das sind vier Klassen plus ein Element (0,4,1) - mehr als die doppelte
+   Klasse (0,2,0). Betroffen ist allein die Rahmenfarbe, Hintergrund und
+   Schrift laesst die Regel in Ruhe; sichtbar wird sie als weisser Rahmen an
+   jedem aktiven nackten <button>, der ueberhaupt einen Rahmen zeichnet.
+   Dagegen hilft nur mehr Spezifitaet: fuenf Klassen (0,5,0). Regeln, die eine
+   Rahmenfarbe an einem .active-Knopf setzen, wiederholen deshalb die eigene
+   Klasse viermal und haengen den Zustand an - src/styles.test.js prueft das.
+   Ausnahme .vbh-subtabs: die Klasse sitzt am Umschliesser, nicht am Knopf, der
+   Test findet sie deshalb nicht - diese Stelle ist von Hand zu pflegen. */
 
 /* Wurzel: direktes Flex-Item von Nextclouds #content (Vue ersetzt das Mount-Div).
    width/flex/min-width/max-width verhindern, dass die App inhaltsbestimmt breiter
@@ -121,7 +138,14 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
    deshalb weggeblendet, aber NICHT per hidden/display:none - sonst fiele es
    aus der Tab-Reihenfolge und der Knopf waere nur mit der Maus erreichbar.
    Den Fokusring zeigt stattdessen die sichtbare Knopf-Huelle daneben. */
-.vbh-upload-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+/* Doppelte Klasse (0,2,0), weil Nextcloud mit einem Attribut qualifiziert und
+   damit (0,1,1) erreicht: `input[type=radio], input[type=checkbox],
+   input[type=file] { width: auto; height: auto }`. Ohne den Schutz rendert das
+   Feld in seiner Eigenbreite (gemessen 342px) und schiebt den Buchungsdialog
+   ueber seine 600px hinaus - sichtbar als waagerechter Rollbalken. Padding und
+   Mindestmasse kommen aus derselben Ecke und muessen mit weg, sonst bleibt es
+   trotz width:1px 28px breit und 36px hoch. */
+.vbh-upload-input.vbh-upload-input { position: absolute; width: 1px; height: 1px; min-width: 0; min-height: 0; padding: 0; border: 0; opacity: 0; pointer-events: none; }
 
 .vbh-upload-input:focus-visible + .vbh-upload-btn { outline: 2px solid var(--color-primary-element); outline-offset: 2px; }
 
@@ -152,7 +176,7 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-subtabs.vbh-subtabs button:hover { background: var(--color-background-hover); }
 
-.vbh-subtabs.vbh-subtabs button.active { color: var(--color-primary-element); border-bottom-color: var(--color-primary-element); }
+.vbh-subtabs.vbh-subtabs.vbh-subtabs.vbh-subtabs button.active { color: var(--color-primary-element); border-bottom-color: var(--color-primary-element); }
 
 .vbh-filterbar { flex: 0 0 auto; min-width: 0; display: flex; gap: 8px; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--color-border); flex-wrap: wrap; background: var(--color-main-background); }
 
@@ -510,7 +534,7 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-chip.vbh-chip:hover { background: var(--color-background-hover); }
 
-.vbh-chip.active { background: var(--color-primary-element); color: var(--color-primary-element-text); border-color: var(--color-primary-element); }
+.vbh-chip.vbh-chip.vbh-chip.vbh-chip.active { background: var(--color-primary-element); color: var(--color-primary-element-text); border-color: var(--color-primary-element); }
 
 /* KPI cards */
 .vbh-totals { display: flex; gap: 12px; margin: 12px 0; flex-wrap: wrap; }
@@ -565,17 +589,35 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-treenode:hover { background-color: var(--color-background-hover); }
 
-.vbh-treenode.group { font-weight: 700; }
+/* Elternknoten sind nicht mehr fett: der Aufklapp-Pfeil und die eingerueckten
+   Kinder zeigen die Verschachtelung bereits, der Fettdruck liess die Zeile
+   gegenueber ihren Geschwistern nur ausbrechen. */
+.vbh-treenode.group { font-weight: inherit; }
 
 .vbh-treenode.selected { background-color: var(--color-primary-element); color: var(--color-primary-element-text); }
 
 .vbh-treenode.selected .vbh-treenum, .vbh-treenode.selected .vbh-treesaldo, .vbh-treenode.selected .num.neg { color: var(--color-primary-element-text); }
 
-.vbh-caret.vbh-caret { display: inline-block; flex: 0 0 16px; width: 16px; height: 16px; line-height: 16px; text-align: center; border: none; background: transparent; cursor: pointer; color: inherit; opacity: 0.7; transition: transform 0.12s; font-size: 1em; padding: 0; }
+/* Bei Elternknoten ist der Pfeil ein nackter <button>, bei Blaettern ein
+   <span>. Nextcloud gibt jedem Knopf min-height: var(--default-clickable-area)
+   (34px) und margin: 3px 3px 3px 0 - width/height allein zu setzen genuegt
+   also nicht: die Zeile wuchs dadurch auf 46px, waehrend Blattzeilen 29px
+   hoch blieben. Mindestmasse und Aussenabstand gehoeren deshalb mit
+   zurueckgesetzt. */
+.vbh-caret.vbh-caret { display: inline-block; flex: 0 0 16px; width: 16px; height: 16px; min-width: 0; min-height: 0; line-height: 16px; text-align: center; border: none; background: transparent; cursor: pointer; color: inherit; opacity: 0.7; transition: transform 0.12s; font-size: 1em; padding: 0; }
+
+/* Der Aussenabstand braucht drei Klassen (0,3,0): Nextcloud setzt ihn ueber
+   `button:not(.button-vue, [class^=vs__]):not(.app-navigation-entry-button)`
+   und liegt damit bei (0,2,1) - die doppelte Klasse reicht hier nicht. Er
+   steht bewusst allein, damit die Regel oben weiter von .empty/.open
+   ueberschrieben werden kann; sonst schluege sie deren Farbe und Zeiger mit.
+   Ohne das sitzen Elternzeilen 3px weiter rechts als Blattzeilen. */
+.vbh-caret.vbh-caret.vbh-caret { margin: 0; }
 
 .vbh-caret.open { transform: rotate(90deg); }
 
-.vbh-caret.empty { cursor: default; color: var(--color-border); opacity: 0.6; }
+/* Leerer Platzhalter (kein Zeichen), haelt nur die Spalte. */
+.vbh-caret.empty { cursor: default; }
 
 .vbh-treenum { flex: 0 0 auto; min-width: 54px; font-variant-numeric: tabular-nums; opacity: 0.7; font-size: 0.85em; font-weight: 400; }
 
@@ -610,7 +652,7 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-reassign-side.vbh-reassign-side { margin: 0; padding: 4px 10px; border: 1px solid var(--color-border); border-radius: 14px; background-color: var(--color-main-background); color: var(--color-main-text); font-size: 0.88em; cursor: pointer; }
 
-.vbh-reassign-side.active { border-color: var(--color-primary-element); background-color: var(--color-primary-element-light, var(--color-background-dark)); font-weight: 700; }
+.vbh-reassign-side.vbh-reassign-side.vbh-reassign-side.vbh-reassign-side.active { border-color: var(--color-primary-element); background-color: var(--color-primary-element-light, var(--color-background-dark)); font-weight: 700; }
 
 .vbh-reassign-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
@@ -650,7 +692,18 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-form .vbh-grow { flex: 1 1 220px; }
 
-.vbh-form .vbh-grow input, .vbh-form .vbh-grow select { width: 100%; }
+.vbh-form .vbh-grow input, .vbh-form .vbh-grow select, .vbh-form .vbh-grow textarea { width: 100%; }
+
+/* Mitwachsendes Textfeld (Buchungstext, siehe src/lib/autogrow.js). Die Hoehe
+   setzt die Direktive, deshalb hier kein Rollbalken und kein Anfasser zum
+   Ziehen - beides wuerde der gemessenen Hoehe widersprechen. */
+/* Nextcloud gibt <textarea> 12px Innenabstand oben und unten, den <input>
+   daneben aber nur seitlich - eine einzeilige Textarea stuende damit 49px hoch
+   neben 34px hohen Feldern derselben Zeile. Zeilenhoehe und Innenabstand sind
+   so gewaehlt, dass eine Zeile genau die 34px der Nachbarfelder ergibt
+   (21.75 + 2x4 + 2x2 Rahmen) und jede weitere sauber um eine Zeilenhoehe
+   waechst. */
+.vbh-autogrow.vbh-autogrow { box-sizing: border-box; resize: none; overflow: hidden; padding-block: 4px; line-height: 1.45; }
 
 .vbh-sphere-help.vbh-sphere-help { flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--color-border); background: var(--color-background-hover); color: var(--color-main-text); cursor: pointer; font-weight: 700; }
 
@@ -665,9 +718,14 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 .vbh-date { width: 150px; }
 
 /* Modals */
-.vbh-modal-inner { padding: 4px 16px 20px; }
+/* Gemeinsamer Innenabstand aller Dialoge - .modal-container__content von
+   NcModal hat selbst padding: 0. Die frueheren 16px seitlich liessen Inhalt und
+   Aktionsknoepfe am Rand kleben. Die Hoehe bleibt bewusst wie gehabt: der
+   Buchungsdialog passt auf niedrigen Fenstern gerade eben hinein, schon 12px
+   mehr geben ihm einen Rollbalken fuer 10px Ueberhang. */
+.vbh-modal-inner { padding: 4px 24px 20px; }
 
-.vbh-modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+.vbh-modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px; }
 /* NcModals `:name`-Titel schwebt per Bibliotheks-CSS (.modal-header, position:
    absolute relativ zur fixed .modal-mask) am oberen Browserfensterrand statt im
    Popup - er ist NICHT im .modal-container verschachtelt, sondern dessen
@@ -683,11 +741,25 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 .vbh-modal-title { margin: 0 44px 14px 0; }
 
 /* Einnahme/Ausgabe-Umschalter (Einfach-Modus) */
-.vbh-kindtoggle { display: flex; gap: 0; margin: 4px 0 14px; border: 1px solid var(--color-border); border-radius: var(--border-radius-element, 8px); overflow: hidden; }
+/* Bewusst OHNE overflow: hidden. Nextclouds Fokusring besteht aus outline
+   (2px) und box-shadow (0 0 0 4px), zusammen 6px - der Umschalter laesst seinen
+   Knoepfen aber nur 4px, ein Clip haette den Ring rundum angeschnitten. Die
+   Ecken runden deshalb die Knoepfe selbst (unten), innen bleiben sie eckig,
+   damit die beiden Haelften weiter wie ein Bauteil wirken. */
+.vbh-kindtoggle { --vbh-kind-radius: calc(var(--border-radius-element, 8px) - 1px); display: flex; gap: 0; margin: 4px 0 14px; border: 1px solid var(--color-border); border-radius: var(--border-radius-element, 8px); }
 
-.vbh-kindbtn.vbh-kindbtn { flex: 1 1 50%; padding: 10px 16px; border: none; background: var(--color-main-background); color: var(--color-main-text); font-size: 1em; font-weight: 600; cursor: pointer; transition: background-color 0.15s, color 0.15s; }
+.vbh-kindbtn.vbh-kindbtn { flex: 1 1 50%; padding: 10px 16px; border: none; border-radius: 0; background: var(--color-main-background); color: var(--color-main-text); font-size: 1em; font-weight: 600; cursor: pointer; transition: background-color 0.15s, color 0.15s; }
 
-.vbh-kindbtn + .vbh-kindbtn { border-inline-start: 1px solid var(--color-border); }
+/* Aussenecken auf den Innenradius des Umschalters: dessen 8px minus die 1px
+   Rahmenstaerke. :first-child/:last-child heben die Spezifitaet ohnehin ueber
+   die Grundregel. */
+.vbh-kindbtn.vbh-kindbtn:first-child { border-start-start-radius: var(--vbh-kind-radius); border-end-start-radius: var(--vbh-kind-radius); }
+
+.vbh-kindbtn.vbh-kindbtn:last-child { border-start-end-radius: var(--vbh-kind-radius); border-end-end-radius: var(--vbh-kind-radius); }
+
+/* Fuenf Klassen (0,5,0): der aktive Knopf traegt .active, sonst faerbt
+   Nextcloud den Trennstrich weiss (siehe Kopfkommentar). */
+.vbh-kindbtn.vbh-kindbtn + .vbh-kindbtn.vbh-kindbtn.vbh-kindbtn { border-inline-start: 1px solid var(--color-border); }
 
 .vbh-kindbtn.vbh-kindbtn:hover { background: var(--color-background-hover); }
 
@@ -987,7 +1059,7 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-mfield { display: flex; flex-direction: column; gap: 3px; font-size: 0.85em; color: var(--color-text-maxcontrast); }
 
-.vbh-mfield input { width: 100%; box-sizing: border-box; min-height: 44px; font-size: 16px; color: var(--color-main-text); }
+.vbh-mfield input, .vbh-mfield textarea { width: 100%; box-sizing: border-box; min-height: 44px; font-size: 16px; color: var(--color-main-text); }
 
 .vbh-pendingbtns { display: flex; gap: 8px; flex-wrap: wrap; }
 

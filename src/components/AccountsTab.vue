@@ -48,7 +48,7 @@
 					class="vbh-treenode"
 					:class="{ selected: node.id === selectedAccountId, group: node.hasChildren, inactive: !node.active }"
 					:style="{ paddingLeft: (8 + node.depth * 18) + 'px' }"
-					@click="selectAccount(node)">
+					@click="selectNode(node)">
 					<button
 						v-if="node.hasChildren && !accountSearch"
 						class="vbh-caret"
@@ -56,7 +56,10 @@
 						@click.stop="toggleExpand(node.id)">
 						›
 					</button>
-					<span v-else class="vbh-caret empty" aria-hidden="true">·</span>
+					<!-- Platzhalter statt Pfeil: haelt die Spalte, damit Blaetter und
+					     Elternknoten fluchten. Bewusst ohne Zeichen - der frueher hier
+					     stehende Punkt sah aus wie ein Aufzaehlungszeichen. -->
+					<span v-else class="vbh-caret empty" aria-hidden="true" />
 					<span class="vbh-treenum">{{ node.number }}</span>
 					<span class="vbh-treename">{{ node.name }}</span>
 					<span v-if="!node.active" class="vbh-treeinactive" :title="t('Inaktiv – taucht in keiner Auswahlliste mehr auf')">{{ t('inaktiv') }}</span>
@@ -466,6 +469,18 @@ export default {
 				...this.openingForm,
 				[id]: { ...this.openingEntry, ...patch },
 			})
+		},
+
+		// Ein Klick auf die Zeile waehlt das Konto und klappt seine Unterkonten
+		// mit auf - der Pfeil allein wird leicht uebersehen, und wer ein
+		// Sammelkonto anwaehlt, will meist ohnehin sehen, was darunter haengt.
+		// Bewusst nur aufklappen, nicht umschalten: sonst klappte der zweite
+		// Klick auf dasselbe Konto es wieder zu, obwohl man es nur auswaehlen
+		// wollte. Zum Zuklappen ist der Pfeil da. Bei aktiver Suche nicht - dort
+		// blendet die Liste den Pfeil aus und zeigt die Treffer flach.
+		selectNode(node) {
+			this.selectAccount(node)
+			if (node.hasChildren && !this.accountSearch) { this.expanded[node.id] = true }
 		},
 
 		toggleExpand(id) { this.expanded[id] = !this.expanded[id] },

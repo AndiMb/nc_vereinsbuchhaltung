@@ -1,0 +1,18 @@
+/* @nextcloud/dialogs 7.5.0 hat Toasts nach unten links verschoben und die
+   Positionsoption entfernt. Nextcloud selbst (NC 32-34) zeigt seine eigenen
+   Toasts weiterhin oben rechts - ohne diese Korrektur erschienen auf einem
+   Bildschirm zwei Toast-Sorten in zwei verschiedenen Ecken.
+
+   Die Klasse ist ein CSS-Module und traegt daher einen Hash pro Release, sie
+   laesst sich nur ueber einen Teilstring treffen. Das vorangestellte `body`
+   hebt die Spezifitaet auf (0,1,1) und schlaegt damit die beiden Regeln des
+   Pakets (0,1,0) - auch die fuer die geoeffnete Navigation, die left setzt.
+
+   Upstream ist noch unentschieden, siehe
+   https://github.com/nextcloud-libraries/nextcloud-dialogs/issues/2071 -
+   kommt die dort diskutierte Positions-API, ersetzt sie diese Datei. */
+body [class*="_toastContainer_"] {
+	inset-block: calc(var(--header-height, 50px) + var(--body-container-margin, 8px)) auto;
+	inset-inline: auto var(--body-container-margin, 8px);
+	align-items: flex-end;
+}
