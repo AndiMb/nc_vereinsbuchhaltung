@@ -41,6 +41,13 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 - **The posting dialog could be scrolled sideways.** The hidden receipt file
   input claimed its full intrinsic width and pushed the dialog past its edge,
   producing a scrollbar.
+- **Accounts with sub-accounts broke out of the account tree.** They were
+  bold and noticeably taller than their siblings, and their columns sat a few
+  pixels further right. The cause was the expand arrow: on parent accounts it
+  is a button, and Nextcloud gives every button a minimum height of 34px plus
+  a margin – which grew the row to 46px while leaf rows stayed at 29px. All
+  rows are now the same height and weight; the arrow alone marks an account
+  as having children.
 - **Text hugged the edge in the "What's new" dialog.** It now uses the same
   inner spacing as every other dialog.
 

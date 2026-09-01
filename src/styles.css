@@ -589,13 +589,30 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-treenode:hover { background-color: var(--color-background-hover); }
 
-.vbh-treenode.group { font-weight: 700; }
+/* Elternknoten sind nicht mehr fett: der Aufklapp-Pfeil und die eingerueckten
+   Kinder zeigen die Verschachtelung bereits, der Fettdruck liess die Zeile
+   gegenueber ihren Geschwistern nur ausbrechen. */
+.vbh-treenode.group { font-weight: inherit; }
 
 .vbh-treenode.selected { background-color: var(--color-primary-element); color: var(--color-primary-element-text); }
 
 .vbh-treenode.selected .vbh-treenum, .vbh-treenode.selected .vbh-treesaldo, .vbh-treenode.selected .num.neg { color: var(--color-primary-element-text); }
 
-.vbh-caret.vbh-caret { display: inline-block; flex: 0 0 16px; width: 16px; height: 16px; line-height: 16px; text-align: center; border: none; background: transparent; cursor: pointer; color: inherit; opacity: 0.7; transition: transform 0.12s; font-size: 1em; padding: 0; }
+/* Bei Elternknoten ist der Pfeil ein nackter <button>, bei Blaettern ein
+   <span>. Nextcloud gibt jedem Knopf min-height: var(--default-clickable-area)
+   (34px) und margin: 3px 3px 3px 0 - width/height allein zu setzen genuegt
+   also nicht: die Zeile wuchs dadurch auf 46px, waehrend Blattzeilen 29px
+   hoch blieben. Mindestmasse und Aussenabstand gehoeren deshalb mit
+   zurueckgesetzt. */
+.vbh-caret.vbh-caret { display: inline-block; flex: 0 0 16px; width: 16px; height: 16px; min-width: 0; min-height: 0; line-height: 16px; text-align: center; border: none; background: transparent; cursor: pointer; color: inherit; opacity: 0.7; transition: transform 0.12s; font-size: 1em; padding: 0; }
+
+/* Der Aussenabstand braucht drei Klassen (0,3,0): Nextcloud setzt ihn ueber
+   `button:not(.button-vue, [class^=vs__]):not(.app-navigation-entry-button)`
+   und liegt damit bei (0,2,1) - die doppelte Klasse reicht hier nicht. Er
+   steht bewusst allein, damit die Regel oben weiter von .empty/.open
+   ueberschrieben werden kann; sonst schluege sie deren Farbe und Zeiger mit.
+   Ohne das sitzen Elternzeilen 3px weiter rechts als Blattzeilen. */
+.vbh-caret.vbh-caret.vbh-caret { margin: 0; }
 
 .vbh-caret.open { transform: rotate(90deg); }
 

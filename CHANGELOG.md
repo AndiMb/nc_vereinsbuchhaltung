@@ -45,6 +45,14 @@ verwenden, z. B. `**Neu:**`.
 - **Der Buchungsdialog ließ sich waagerecht verschieben.** Das versteckte
   Feld zur Belegauswahl beanspruchte seine volle Eigenbreite und schob den
   Dialog über seinen Rand hinaus, was einen Rollbalken erzeugte.
+- **Im Kontenbaum brachen Konten mit Unterkonten aus der Liste aus.** Sie
+  standen fett und deutlich höher da als ihre Geschwister, und ihre Spalten
+  saßen ein paar Pixel weiter rechts. Ursache war der Aufklapp-Pfeil: bei
+  Elternkonten ist er ein Knopf, und Nextcloud gibt jedem Knopf eine
+  Mindesthöhe von 34px und einen Außenabstand mit – die Zeile wuchs dadurch
+  auf 46px, während Blattzeilen 29px hoch blieben. Alle Zeilen sind jetzt
+  gleich hoch und gleich gesetzt; dass ein Konto Unterkonten hat, zeigt der
+  Pfeil.
 - **Im Dialog „Was ist neu?" klebte der Text am Rand.** Er nutzt jetzt
   denselben Innenabstand wie alle anderen Dialoge.
 
