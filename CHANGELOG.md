@@ -37,10 +37,12 @@ verwenden, z. B. `**Neu:**`.
   wird deshalb auch nicht von der Festschreibung eines Geschäftsjahres
   gesperrt.
 - **Die Geldkonten-Tabelle in Dashboard und Auswertung hat eine
-  Summenzeile.** Ist mindestens ein Konto vom Geldbestand abgewählt, steht
-  darunter zusätzlich *davon Geldbestand (Kopfzeile)*, und die betroffenen
-  Konten sind in der Liste als solche gekennzeichnet – so bleibt
-  nachvollziehbar, wie die Zahl oben zustande kommt.
+  Summenzeile** – sobald der Verein mehr als ein Geldkonto führt; bei einem
+  einzigen wiederholte sie nur die Zeile darüber. Ist mindestens ein Konto
+  vom Geldbestand abgewählt, steht darunter zusätzlich *davon Geldbestand
+  (Kopfzeile)*, und die betroffenen Konten sind in der Liste als solche
+  gekennzeichnet – so bleibt nachvollziehbar, wie die Zahl oben zustande
+  kommt.
 
 ## [0.30.0] – 2026-08-31
 

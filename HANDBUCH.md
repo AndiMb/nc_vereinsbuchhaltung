@@ -533,16 +533,17 @@ Im Dashboard und in der Auswertung: **Kontostand** (aus dem Journal) vs.
 „Mein Bankkontostand stimmt, aber es gibt noch X € unzugeordnete Umsätze,
 die ich noch bearbeiten muss."
 
-Unter der Tabelle steht die **Summe** über alle Geldkonten. Ist mindestens
-ein Konto vom Geldbestand abgewählt (siehe Kapitel 2.2), kommt darunter die
-Zeile *davon Geldbestand (Kopfzeile)* – so ist zu sehen, wie die Zahl oben
-in der Kopfzeile zustande kommt und welches Geld nicht darin steckt.
+Führt der Verein mehr als ein Geldkonto, steht unter der Tabelle die
+**Summe** über alle Geldkonten. Ist mindestens eines davon vom Geldbestand
+abgewählt (siehe Kapitel 2.2), kommt darunter die Zeile *davon Geldbestand
+(Kopfzeile)* – so ist zu sehen, wie die Zahl oben in der Kopfzeile zustande
+kommt und welches Geld nicht darin steckt.
 
 **Geldbestand in der Kopfzeile:** Rechts oben zeigt die App den
 zusammengezählten Bestand **aller** Geldkonten, nicht nur eines. Führt der
-Verein genau ein Geldkonto, steht dort weiterhin dessen Name. Der Tooltip
-(Maus über die Zahl) schlüsselt die Summe nach Konten auf und nennt die noch
-nicht zugeordneten Umsätze.
+Verein genau ein Geldkonto, steht dort weiterhin dessen Name. Die
+Aufschlüsselung nach Konten erscheint als Tooltip, wenn die Maus auf der
+Zahl steht; Screenreader lesen sie ohne Umweg mit vor.
 
 ### 5.6 Steuerliche Sphären
 

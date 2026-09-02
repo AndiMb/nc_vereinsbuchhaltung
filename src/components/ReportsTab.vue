@@ -193,7 +193,10 @@
 									</td>
 								</tr>
 							</tbody>
-							<tfoot v-if="balances.bankTotal">
+							<!-- Erst ab zwei Geldkonten: bei einem einzigen wiederholte die
+							     Summenzeile nur die Zeile darueber. Mobil steht dieselbe
+							     Bedingung an der Summenkarte. -->
+							<tfoot v-if="balances.bankTotal && balances.bankTotal.allCount > 1">
 								<tr>
 									<td><strong>{{ t('Summe') }}</strong></td>
 									<td class="num strong">
@@ -204,8 +207,10 @@
 									</td>
 								</tr>
 								<!-- Nur wenn beide Zahlen auseinanderlaufen: sonst stünde
-								     hier dieselbe Summe ein zweites Mal. -->
-								<tr v-if="balances.bankTotal.count < balances.bankTotal.allCount">
+								     hier dieselbe Summe ein zweites Mal. Zaehlt gar kein Konto
+								     mit, gibt es auch keine Kopfzeilen-Zahl, auf die sich die
+								     Zeile beziehen koennte. -->
+								<tr v-if="balances.bankTotal.count > 0 && balances.bankTotal.count < balances.bankTotal.allCount">
 									<td>{{ t('davon Geldbestand (Kopfzeile)') }}</td>
 									<td class="num">
 										{{ formatMoney(balances.bankTotal.balance) }}
@@ -233,7 +238,7 @@
 								<span class="vbh-mcard-title"><strong>{{ t('Summe') }}</strong></span>
 								<span class="vbh-mcard-amount"><strong>{{ formatMoney(balances.bankTotal.allBalance) }}</strong></span>
 							</div>
-							<div v-if="balances.bankTotal.count < balances.bankTotal.allCount" class="vbh-mcard-bottom">
+							<div v-if="balances.bankTotal.count > 0 && balances.bankTotal.count < balances.bankTotal.allCount" class="vbh-mcard-bottom">
 								<span class="vbh-mcard-accounts">{{ t('davon Geldbestand (Kopfzeile): {amount}', { amount: formatMoney(balances.bankTotal.balance) }) }}</span>
 							</div>
 						</div>

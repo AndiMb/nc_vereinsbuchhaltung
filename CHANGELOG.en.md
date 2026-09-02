@@ -34,10 +34,11 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   cash account.** The flag is display only and is therefore not locked by the
   finalization of a fiscal year either.
 - **The cash-account table on the dashboard and in the evaluation has a
-  total row.** If at least one account is excluded from the funds figure, an
-  *of which funds (header)* row appears below it, and the accounts concerned
-  are marked as such in the list – so it stays clear how the figure at the
-  top comes about.
+  total row** – as soon as the club runs more than one cash account; with a
+  single one it would merely repeat the row above it. If at least one account
+  is excluded from the funds figure, an *of which funds (header)* row appears
+  below it, and the accounts concerned are marked as such in the list – so it
+  stays clear how the figure at the top comes about.
 
 ## [0.30.0] – 2026-08-31
 

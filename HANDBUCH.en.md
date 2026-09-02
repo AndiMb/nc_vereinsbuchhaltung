@@ -523,16 +523,16 @@ journal) vs. **open** (not yet assigned) bank transactions. This lets you
 immediately see: "My bank balance is correct, but there are still €X of
 unassigned transactions I still need to work through."
 
-Below the table stands the **total** across all cash accounts. If at least
-one account is excluded from the funds figure (see chapter 2.2), an
-additional *of which funds (header)* row appears – so you can see how the
-figure at the top of the page comes about and which money is not part of it.
+If the club runs more than one cash account, the **total** across all of
+them stands below the table. If at least one of them is excluded from the
+funds figure (see chapter 2.2), an additional *of which funds (header)* row
+appears – so you can see how the figure at the top of the page comes about
+and which money is not part of it.
 
 **Funds in the header:** At the top right the app shows the combined balance
 of **all** cash accounts, not just one. If the club runs exactly one cash
-account, its name still appears there. The tooltip (hover over the figure)
-breaks the total down by account and names the transactions not yet
-assigned.
+account, its name still appears there. Hovering over the figure shows the
+breakdown by account as a tooltip; screen readers read it out directly.
 
 ### 5.6 Tax spheres
 

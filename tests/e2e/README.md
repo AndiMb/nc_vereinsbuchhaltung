@@ -15,6 +15,19 @@ npm run test:e2e:server-stop  # Container wieder abräumen
 Docker muss laufen. `test:e2e` fasst Serverstart und Testlauf zusammen; für
 die Fehlersuche gibt es `test:e2e:ui`, `test:e2e:headed` und `test:e2e:debug`.
 
+**Unter Windows** spricht `@nextcloud/e2e-test-server` den Docker-Daemon über
+`/var/run/docker.sock` an – den es dort nicht gibt, der Lauf bricht mit
+`ENOENT … docker.sock` und „Läuft Docker?" ab. Docker Desktop hört auf einer
+Named Pipe; der Pfad lässt sich über die vorgesehene Umgebungsvariable setzen:
+
+```powershell
+$env:DOCKER_SOCKET = '//./pipe/docker_engine'
+```
+
+Sie wird für `test:e2e:server` **und** für den Testlauf gebraucht (das
+Global-Setup spielt den Snapshot ebenfalls über Docker zurück). Im CI läuft
+alles unter Linux, dort ist nichts zu setzen.
+
 ## Aufbau
 
 Der Serverstart (`setup/server.mjs`) richtet die Instanz einmalig ein –

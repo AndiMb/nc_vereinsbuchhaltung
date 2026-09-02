@@ -11,6 +11,14 @@
 					<span class="vbh-bankchip-label">{{ cashTotal.label }}</span>
 					<span class="vbh-bankchip-value">{{ formatMoney(cashTotal.balance) }}</span>
 					<span v-if="Math.abs(cashTotal.open) > 0.005" class="vbh-bankchip-hint">{{ t('{amount} offen', { amount: formatMoney(cashTotal.open) }) }}</span>
+					<!-- Dieselbe Aufschluesselung wie im Tooltip, nur vorlesbar: ein
+					     title haengt an der Maus und ist per Tastatur nicht
+					     erreichbar. Als schlichter Text im Chip statt per
+					     aria-describedby, weil Screenreader eine Beschreibung an
+					     einem nicht fokussierbaren Element nicht verlaesslich
+					     ansagen. Entfaellt, wenn die Aufschluesselung nichts
+					     hinzufuegt (ein Konto, keins abgewaehlt). -->
+					<span v-if="cashBreakdownLines.length > 1" class="vbh-visually-hidden">{{ cashBreakdownLines.join(', ') }}</span>
 				</div>
 				<NcLoadingIcon v-if="busy" :size="24" :name="t('Wird geladen…')" />
 			</div>
@@ -829,12 +837,13 @@ export default {
 			}
 		},
 
-		// Aufschluesselung als Tooltip: ohne sie waere die eine Zahl in der
+		// Aufschluesselung je Konto: ohne sie waere die eine Zahl in der
 		// Kopfzeile nicht nachvollziehbar - erst recht nicht, wenn ein Konto
-		// bewusst fehlt.
-		cashTotalTitle() {
+		// bewusst fehlt. Eigene Eigenschaft, weil sie zweimal gebraucht wird:
+		// im Tooltip fuer die Maus und als vorlesbarer Text im Chip.
+		cashBreakdownLines() {
 			const c = this.cashTotal
-			if (!c) { return '' }
+			if (!c) { return [] }
 			const lines = c.breakdown.map((b) => `${b.number} ${b.name}: ${formatMoney(b.balance)}`)
 			if (c.excluded > 0) {
 				lines.push(this.n(
@@ -844,6 +853,15 @@ export default {
 					{ amount: formatMoney(c.allBalance) },
 				))
 			}
+			return lines
+		},
+
+		// Der Tooltip nennt zusaetzlich den offenen Betrag ausgeschrieben - im
+		// Chip selbst steht dafuer nur die Kurzform "X offen".
+		cashTotalTitle() {
+			const c = this.cashTotal
+			if (!c) { return '' }
+			const lines = [...this.cashBreakdownLines]
 			if (Math.abs(c.open) > 0.005) {
 				lines.push(this.t('{amount} noch nicht zugeordnet', { amount: formatMoney(c.open) }))
 			}
