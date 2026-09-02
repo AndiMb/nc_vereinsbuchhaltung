@@ -67,7 +67,8 @@ A lightweight accounting app for nonprofit clubs, integrated directly into Nextc
 - **Short report for board meetings (print-ready)**: a compact print page with a selectable reference date – account balances since then, movements, short financial-plan summary; optionally in your corporate design (club logo + accent color, configurable under gear icon → Club)
 - **CSV exports** (for the audit / Excel): journal, trial balance, income/expense overview, plan/actual comparison (including notes)
 - **Multi-year overview** (CSV matrix, columns = years): income statement by account (income/expenses/result) + assets at year-end, plus result per reporting group/project and by tax sphere across all years; also as a line chart (Reports → Evaluation) for meeting presentations
-- **Cash-account reconciliation**: account balance (journal) vs. open (unassigned) bank transactions
+- **Cash-account reconciliation**: account balance (journal) vs. open (unassigned) bank transactions, with a total across all cash accounts
+- **Funds in the header**: the balances of all cash accounts as a single figure; individual accounts (a fixed-term deposit, say) can be left out of it without disappearing from the cash report, the assets overview or the trial balance
 
 ### Audit support
 - **Change log** (Reports → Log, for everyone with read access): who created/changed/deleted, assigned, imported postings, changed attachments or permissions, or closed years, and when; deliberately survives even "delete all data"
@@ -184,7 +185,7 @@ vereinsbuchhaltung/
 
 | Table | Purpose |
 |---|---|
-| `vbh_accounts` | chart of accounts (number, name, type, hierarchy, opening balance, IBAN for cash accounts, reporting group) |
+| `vbh_accounts` | chart of accounts (number, name, type, hierarchy, opening balance, IBAN for cash accounts, reporting group, funds flag) |
 | `vbh_bank_tx` | imported bank transactions incl. dedup hash and assignment status |
 | `vbh_journal` | postings (date, description, receipt no., posting no.) |
 | `vbh_journal_line` | debit/credit lines per posting (amount in cents) |
