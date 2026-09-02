@@ -242,6 +242,7 @@ import { useJournal } from '../composables/useJournal.js'
 import { useOpenItems } from '../composables/useOpenItems.js'
 import { usePermissions } from '../composables/usePermissions.js'
 import { useYears } from '../composables/useYears.js'
+import { chartTheme, onThemeChange, withAlpha } from '../lib/chartTheme.js'
 import { formatDate, formatMoney } from '../lib/format.js'
 
 Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend)
@@ -335,9 +336,15 @@ export default {
 
 	mounted() {
 		this.$nextTick(() => setTimeout(() => this.renderMonthlyChart(), 50))
+		// Chart.js malt die Farben einmal ins Canvas; ohne Neuzeichnen bliebe
+		// nach einem Designwechsel das alte Bild stehen.
+		this.stopThemeWatch = onThemeChange(() => {
+			if (this.isActive) { this.renderMonthlyChart() }
+		})
 	},
 
 	beforeUnmount() {
+		this.stopThemeWatch()
 		Object.values(this.chartInstances).forEach((c) => c && c.destroy())
 	},
 
@@ -367,9 +374,7 @@ export default {
 			if (!canvas) { return }
 			this.destroyChart('monthly')
 			const { labels, income, expense } = this.monthlyChartData
-			const isDark = document.documentElement.classList.contains('theme--dark')
-			const textColor = isDark ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.7)'
-			const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'
+			const theme = chartTheme()
 			this.chartInstances.monthly = new Chart(canvas, {
 				type: 'bar',
 				data: {
@@ -378,16 +383,16 @@ export default {
 						{
 							label: this.t('Einnahmen'),
 							data: income,
-							backgroundColor: 'rgba(45,125,70,0.72)',
-							borderColor: 'rgba(45,125,70,0.9)',
+							backgroundColor: withAlpha(theme.success, 0.72),
+							borderColor: theme.success,
 							borderWidth: 1,
 							borderRadius: 4,
 						},
 						{
 							label: this.t('Ausgaben'),
 							data: expense,
-							backgroundColor: 'rgba(199,60,60,0.72)',
-							borderColor: 'rgba(199,60,60,0.9)',
+							backgroundColor: withAlpha(theme.error, 0.72),
+							borderColor: theme.error,
 							borderWidth: 1,
 							borderRadius: 4,
 						},
@@ -398,7 +403,7 @@ export default {
 					responsive: true,
 					maintainAspectRatio: false,
 					plugins: {
-						legend: { labels: { color: textColor, font: { size: 12 } } },
+						legend: { labels: { color: theme.text, font: { size: 12 } } },
 						tooltip: {
 							callbacks: {
 								label: (ctx) => ` ${ctx.dataset.label}: ${new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(ctx.raw)}`,
@@ -408,17 +413,17 @@ export default {
 
 					scales: {
 						x: {
-							ticks: { color: textColor },
-							grid: { color: gridColor },
+							ticks: { color: theme.mutedText },
+							grid: { color: theme.grid },
 						},
 
 						y: {
 							ticks: {
-								color: textColor,
+								color: theme.mutedText,
 								callback: (v) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(v),
 							},
 
-							grid: { color: gridColor },
+							grid: { color: theme.grid },
 						},
 					},
 				},

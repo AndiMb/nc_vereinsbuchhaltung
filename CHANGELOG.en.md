@@ -40,6 +40,55 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   below it, and the accounts concerned are marked as such in the list – so it
   stays clear how the figure at the top comes about.
 
+**Changed:**
+- **Clicking an account that has sub-accounts now expands them.** Previously
+  this only worked through the small arrow in front of it, which was easy to
+  miss. Collapsing still goes through the arrow – a second click on the row
+  deliberately does not collapse it again, otherwise you could not select a
+  parent account without closing it.
+- **The posting text now grows with its content.** Longer text wraps and is
+  shown in full instead of running off the side of the field – when creating
+  a posting as well as when editing one. The value itself stays single-line,
+  so nothing changes for the journal, exports or the API.
+- **Dialogs have a little more room to the edge.** Content and buttons used to
+  sit rather close to it.
+
+**Fixed:**
+- **The charts ignored dark mode.** Axis labels and grid lines stayed black
+  and were barely visible on a dark background – both on the overview and in
+  the reports. The cause was a check for a `theme--dark` class that Nextcloud
+  never sets, so the condition was always false. The charts now read their
+  colours straight from Nextcloud's design variables and therefore follow any
+  theme – light, dark, high contrast, and club colours set through the
+  theming app. Changing the theme while the app is open redraws them.
+- **Success and error messages (toasts) appeared at the bottom left.**
+  Nextcloud still shows its own messages at the top right, so one screen ended
+  up with two kinds of toast in two different corners. `@nextcloud/dialogs`
+  7.5.0 moved them to the bottom left and dropped the position option; the app
+  now puts them back where they belong.
+- **The active button had a white border.** Visible on the *Income/Expense*
+  switch in the posting dialog, on active filter chips, on the underline of
+  the active sub-tab and on the side selector when reassigning. Nextcloud
+  claims `button.active` for its own pressed state and overrode the app's
+  border colour.
+- **The focus ring was clipped in the posting dialog.** Tabbing through the
+  dialog showed only a sliver of the ring around *Income* and *Expense* –
+  the switch cut it off.
+- **The posting dialog could be scrolled sideways.** The hidden receipt file
+  input claimed its full intrinsic width and pushed the dialog past its edge,
+  producing a scrollbar.
+- **Accounts with sub-accounts broke out of the account tree.** They were
+  bold and noticeably taller than their siblings, and their columns sat a few
+  pixels further right. The cause was the expand arrow: on parent accounts it
+  is a button, and Nextcloud gives every button a minimum height of 34px plus
+  a margin – which grew the row to 46px while leaf rows stayed at 29px. All
+  rows are now the same height and weight; the arrow alone marks an account
+  as having children. The faint placeholder dot in front of accounts without
+  sub-accounts is gone as well – it looked like a bullet point; the
+  placeholder still keeps the column aligned.
+- **Text hugged the edge in the "What's new" dialog.** It now uses the same
+  inner spacing as every other dialog.
+
 ## [0.30.0] – 2026-08-31
 
 **New:**
