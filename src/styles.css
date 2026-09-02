@@ -41,6 +41,10 @@
 
 .vbh-bankchip-hint { font-size: 0.82em; font-weight: 600; }
 
+/* Geldkonto, das nicht in den Geldbestand der Kopfzeile zaehlt: eine leise
+   Fussnote an der Kontozeile, damit die Summe darunter nachvollziehbar bleibt. */
+.vbh-nocount { font-size: 0.85em; opacity: 0.7; white-space: nowrap; }
+
 .vbh-navbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 
 .vbh-tabs { display: inline-flex; gap: 4px; margin: 12px 0 0; padding: 4px; background-color: var(--color-background-dark); border-radius: 12px; }

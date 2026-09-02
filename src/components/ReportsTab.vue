@@ -181,7 +181,10 @@
 							</thead>
 							<tbody>
 								<tr v-for="b in balances.bankReconciliation" :key="b.accountId">
-									<td>{{ b.number }} {{ b.name }}</td>
+									<td>
+										{{ b.number }} {{ b.name }}
+										<span v-if="b.countInTotal === false" class="vbh-nocount">{{ t('(nicht im Geldbestand)') }}</span>
+									</td>
 									<td class="num strong">
 										{{ formatMoney(b.balance) }}
 									</td>
@@ -190,6 +193,26 @@
 									</td>
 								</tr>
 							</tbody>
+							<tfoot v-if="balances.bankTotal">
+								<tr>
+									<td><strong>{{ t('Summe') }}</strong></td>
+									<td class="num strong">
+										{{ formatMoney(balances.bankTotal.allBalance) }}
+									</td>
+									<td class="num" :class="Math.abs(balances.bankTotal.open) > 0.005 ? 'neg' : 'pos'">
+										{{ formatMoney(balances.bankTotal.open) }}
+									</td>
+								</tr>
+								<!-- Nur wenn beide Zahlen auseinanderlaufen: sonst stünde
+								     hier dieselbe Summe ein zweites Mal. -->
+								<tr v-if="balances.bankTotal.count < balances.bankTotal.allCount">
+									<td>{{ t('davon Geldbestand (Kopfzeile)') }}</td>
+									<td class="num">
+										{{ formatMoney(balances.bankTotal.balance) }}
+									</td>
+									<td />
+								</tr>
+							</tfoot>
 						</table>
 					</div>
 					<div v-else class="vbh-cardlist">
@@ -198,8 +221,20 @@
 								<span class="vbh-mcard-title">{{ b.number }} {{ b.name }}</span>
 								<span class="vbh-mcard-amount">{{ formatMoney(b.balance) }}</span>
 							</div>
-							<div v-if="Math.abs(b.open) > 0.005" class="vbh-mcard-bottom">
-								<span class="vbh-mcard-accounts">{{ t('{amount} nicht zugeordnet', { amount: formatMoney(b.open) }) }}</span>
+							<div v-if="b.countInTotal === false || Math.abs(b.open) > 0.005" class="vbh-mcard-bottom">
+								<span class="vbh-mcard-accounts">
+									<template v-if="b.countInTotal === false">{{ t('(nicht im Geldbestand)') }}</template>
+									<template v-if="Math.abs(b.open) > 0.005">{{ t('{amount} nicht zugeordnet', { amount: formatMoney(b.open) }) }}</template>
+								</span>
+							</div>
+						</div>
+						<div v-if="balances.bankTotal && balances.bankTotal.allCount > 1" class="vbh-mcard">
+							<div class="vbh-mcard-top">
+								<span class="vbh-mcard-title"><strong>{{ t('Summe') }}</strong></span>
+								<span class="vbh-mcard-amount"><strong>{{ formatMoney(balances.bankTotal.allBalance) }}</strong></span>
+							</div>
+							<div v-if="balances.bankTotal.count < balances.bankTotal.allCount" class="vbh-mcard-bottom">
+								<span class="vbh-mcard-accounts">{{ t('davon Geldbestand (Kopfzeile): {amount}', { amount: formatMoney(balances.bankTotal.balance) }) }}</span>
 							</div>
 						</div>
 					</div>

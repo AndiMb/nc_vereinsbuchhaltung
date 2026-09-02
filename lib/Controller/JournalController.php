@@ -135,8 +135,18 @@ class JournalController extends Controller {
 				'name' => $account->getName(),
 				'balance' => LedgerAggregator::stock($account, $balSums) / 100,
 				'open' => $open / 100,
+				'countInTotal' => $account->countsInCashTotal(),
 			];
 		}
+
+		// Geldbestand für die Kopfzeile: eine Zahl über alle dafür angehakten
+		// Geldkonten. Sie stand dort bis 0.30.0 nur für das erste Geldkonto
+		// nach Kontonummer – bei Kasse (1000) und Bankkonto (1200) also
+		// ausgerechnet für die Barkasse (Issue #31). `open` ist hier die
+		// gesamte noch nicht zugeordnete Summe, nicht der Anteil eines
+		// einzelnen Kontos: zugeordnet wird sie ohnehin über alle Konten
+		// hinweg.
+		$cash = LedgerAggregator::cashTotal($accounts, $balSums);
 
 		return new DataResponse([
 			'year' => $year,
@@ -147,6 +157,16 @@ class JournalController extends Controller {
 				'result' => $result['resultCents'] / 100,
 			],
 			'bankReconciliation' => $bankReconciliation,
+			'bankTotal' => [
+				'balance' => $cash['cents'] / 100,
+				'count' => $cash['count'],
+				// Summe über alle Geldkonten – die Zeile unter der
+				// Geldkonten-Tabelle. Weicht sie vom Geldbestand ab, ist
+				// mindestens ein Konto abgewählt.
+				'allBalance' => $cash['allCents'] / 100,
+				'allCount' => $cash['allCount'],
+				'open' => $openUnassigned / 100,
+			],
 		]);
 	}
 
