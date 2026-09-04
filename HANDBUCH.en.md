@@ -129,6 +129,11 @@ Every account has:
   ends up on the first bank account in the chart of accounts. Spaces don't
   matter, the app stores it consistently. Removing the bank-account flag
   again also removes the IBAN,
+- for cash accounts, the **"Counts towards the funds shown in the header"**
+  flag (default: on). It only governs the single figure above the interface –
+  the cash report, the assets overview and the trial balance keep counting
+  every cash account. Turning it off makes sense for a fixed-term deposit
+  account, say, that is not part of day-to-day business,
 - an **opening balance** (starting balance, e.g. the account balance as of
   01/01).
 
@@ -517,6 +522,17 @@ On the dashboard and in the evaluation: **account balance** (from the
 journal) vs. **open** (not yet assigned) bank transactions. This lets you
 immediately see: "My bank balance is correct, but there are still €X of
 unassigned transactions I still need to work through."
+
+If the club runs more than one cash account, the **total** across all of
+them stands below the table. If at least one of them is excluded from the
+funds figure (see chapter 2.2), an additional *of which funds (header)* row
+appears – so you can see how the figure at the top of the page comes about
+and which money is not part of it.
+
+**Funds in the header:** At the top right the app shows the combined balance
+of **all** cash accounts, not just one. If the club runs exactly one cash
+account, its name still appears there. Hovering over the figure shows the
+breakdown by account as a tooltip; screen readers read it out directly.
 
 ### 5.6 Tax spheres
 
@@ -1103,6 +1119,10 @@ This only applies to cash accounts (bank flag).
   year-end closing they become final and no longer change.
 - **Opening balance** – the starting balance of an account (e.g. the
   account balance as of 01/01).
+- **Funds** – the balances of all cash accounts added up, the figure at the
+  top right of the header. Individual accounts can be excluded from it
+  (chapter 2.2); this has no effect on the cash report, the assets overview
+  or the trial balance.
 - **Reporting group** – a grouping (department, project), reported separately.
 - **Finalization** – a closed, immutable fiscal year.
 - **Snapshot (plan snapshot)** – a frozen state of the financial plan at a

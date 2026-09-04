@@ -130,6 +130,11 @@ Jedes Konto hat:
   dem ersten Bankkonto des Kontenrahmens. Leerzeichen spielen keine Rolle,
   die App speichert sie einheitlich. Wird das Bankkonto-Kennzeichen wieder
   entfernt, verschwindet auch die IBAN,
+- bei Geldkonten das Kennzeichen **„Zählt in den Geldbestand oben in der
+  Kopfzeile"** (Vorgabe: an). Es steuert allein die eine Zahl über der
+  Oberfläche – Kassenbericht, Vermögensübersicht und Saldenliste rechnen
+  unverändert mit allen Geldkonten. Abwählen lohnt sich z. B. bei einem
+  Festgeldkonto, das nicht zum Tagesgeschäft gehört,
 - einen **Eröffnungssaldo** (Anfangsbestand, z. B. der Kontostand zum
   01.01.).
 
@@ -527,6 +532,18 @@ Im Dashboard und in der Auswertung: **Kontostand** (aus dem Journal) vs.
 **offene** (noch nicht zugeordnete) Bankbuchungen. So erkennen Sie sofort:
 „Mein Bankkontostand stimmt, aber es gibt noch X € unzugeordnete Umsätze,
 die ich noch bearbeiten muss."
+
+Führt der Verein mehr als ein Geldkonto, steht unter der Tabelle die
+**Summe** über alle Geldkonten. Ist mindestens eines davon vom Geldbestand
+abgewählt (siehe Kapitel 2.2), kommt darunter die Zeile *davon Geldbestand
+(Kopfzeile)* – so ist zu sehen, wie die Zahl oben in der Kopfzeile zustande
+kommt und welches Geld nicht darin steckt.
+
+**Geldbestand in der Kopfzeile:** Rechts oben zeigt die App den
+zusammengezählten Bestand **aller** Geldkonten, nicht nur eines. Führt der
+Verein genau ein Geldkonto, steht dort weiterhin dessen Name. Die
+Aufschlüsselung nach Konten erscheint als Tooltip, wenn die Maus auf der
+Zahl steht; Screenreader lesen sie ohne Umweg mit vor.
 
 ### 5.6 Steuerliche Sphären
 
@@ -1122,6 +1139,10 @@ nur Geldkonten (Bank-Flag).
   nicht mehr.
 - **Eröffnungssaldo** – Anfangsbestand eines Kontos (z. B. Kontostand zum
   01.01.).
+- **Geldbestand** – die Kontostände aller Geldkonten zusammengezählt, die
+  Zahl rechts oben in der Kopfzeile. Einzelne Konten lassen sich davon
+  ausnehmen (Kapitel 2.2); auf Kassenbericht, Vermögensübersicht und
+  Saldenliste hat das keine Auswirkung.
 - **Auswertungsgruppe** – eine Gruppierung (Abteilung, Projekt), getrennt
   ausgewiesen.
 - **Festschreibung** – ein abgeschlossenes, unveränderliches Geschäftsjahr.

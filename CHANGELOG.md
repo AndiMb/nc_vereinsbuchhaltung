@@ -17,7 +17,46 @@ als „[object Object]" (falsche Renderer-Callback-Signatur, Nextcloud-
 Core-Bug, reproduziert 23.08.2026). Stattdessen **Fettdruck als Zeilenanfang**
 verwenden, z. B. `**Neu:**`.
 
-## [Unreleased]
+## [0.31.0] – 2026-09-02
+
+**Neu:**
+- **Die Kopfzeile zeigt jetzt den Geldbestand aller Geldkonten, nicht mehr
+  nur den des ersten.** Rechts oben stand bisher ausschließlich das erste
+  Geldkonto nach Kontonummer – wer Kasse (1000) und Bankkonto (1200) führt,
+  sah dort also ausgerechnet die Barkasse, während das Bankkonto unsichtbar
+  blieb (Issue #31). Die Zahl heißt jetzt *Geldbestand* und summiert alle
+  Geldkonten; der Tooltip schlüsselt sie nach Konten auf und nennt die noch
+  nicht zugeordneten Umsätze. Führt der Verein nur ein Geldkonto, steht dort
+  weiterhin dessen Name – für diese Vereine ändert sich nichts.
+- **Einzelne Geldkonten lassen sich aus dieser Zahl herausnehmen.** Im
+  Konto-Dialog gibt es bei Geldkonten das neue Kennzeichen *Zählt in den
+  Geldbestand oben in der Kopfzeile* (Vorgabe: an). Damit bleibt z. B. ein
+  Festgeldkonto aus der Alltagszahl heraus, ohne dass es aus der Buchhaltung
+  verschwindet: **Kassenbericht, Vermögensübersicht und Saldenliste rechnen
+  unverändert mit allen Geldkonten.** Das Kennzeichen ist reine Anzeige und
+  wird deshalb auch nicht von der Festschreibung eines Geschäftsjahres
+  gesperrt.
+- **Die Geldkonten-Tabelle in Dashboard und Auswertung hat eine
+  Summenzeile** – sobald der Verein mehr als ein Geldkonto führt; bei einem
+  einzigen wiederholte sie nur die Zeile darüber. Ist mindestens ein Konto
+  vom Geldbestand abgewählt, steht darunter zusätzlich *davon Geldbestand
+  (Kopfzeile)*, und die betroffenen Konten sind in der Liste als solche
+  gekennzeichnet – so bleibt nachvollziehbar, wie die Zahl oben zustande
+  kommt.
+
+**Geändert:**
+- **Ein Konto mit Unterkonten anzuklicken klappt sie jetzt mit auf.** Bisher
+  ging das nur über den kleinen Pfeil davor, was leicht zu übersehen war.
+  Zugeklappt wird weiterhin über den Pfeil – ein zweiter Klick auf die Zeile
+  klappt bewusst nicht wieder zu, sonst ließe sich ein Sammelkonto nicht
+  auswählen, ohne es zuzuklappen.
+- **Der Buchungstext wächst jetzt mit seinem Inhalt.** Längere Texte brechen
+  um und werden vollständig angezeigt, statt seitlich aus dem Feld zu laufen –
+  beim Anlegen wie beim Bearbeiten einer Buchung. Der Text bleibt dabei
+  einzeilig gespeichert, an Journal, Export und Schnittstelle ändert sich
+  nichts.
+- **Dialoge haben etwas mehr Luft zum Rand.** Inhalt und Schaltflächen klebten
+  bisher recht dicht an der Kante.
 
 **Behoben:**
 - **Die Diagramme ignorierten das dunkle Design.** Achsenbeschriftungen und
@@ -57,20 +96,6 @@ verwenden, z. B. `**Neu:**`.
   Platzhalter weiterhin frei.
 - **Im Dialog „Was ist neu?" klebte der Text am Rand.** Er nutzt jetzt
   denselben Innenabstand wie alle anderen Dialoge.
-
-**Geändert:**
-- **Ein Konto mit Unterkonten anzuklicken klappt sie jetzt mit auf.** Bisher
-  ging das nur über den kleinen Pfeil davor, was leicht zu übersehen war.
-  Zugeklappt wird weiterhin über den Pfeil – ein zweiter Klick auf die Zeile
-  klappt bewusst nicht wieder zu, sonst ließe sich ein Sammelkonto nicht
-  auswählen, ohne es zuzuklappen.
-- **Der Buchungstext wächst jetzt mit seinem Inhalt.** Längere Texte brechen
-  um und werden vollständig angezeigt, statt seitlich aus dem Feld zu laufen –
-  beim Anlegen wie beim Bearbeiten einer Buchung. Der Text bleibt dabei
-  einzeilig gespeichert, an Journal, Export und Schnittstelle ändert sich
-  nichts.
-- **Dialoge haben etwas mehr Luft zum Rand.** Inhalt und Schaltflächen klebten
-  bisher recht dicht an der Kante.
 
 ## [0.30.0] – 2026-08-31
 

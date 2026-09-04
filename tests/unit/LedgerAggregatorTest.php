@@ -22,6 +22,7 @@ final class TestKonto implements AccountNature {
 		private string $number,
 		private string $type,
 		private bool $isBank = false,
+		private bool $countInTotal = true,
 	) {
 	}
 
@@ -48,6 +49,10 @@ final class TestKonto implements AccountNature {
 	public function isBudgetable(): bool {
 		return $this->type === 'income' || $this->type === 'expense';
 	}
+
+	public function countsInCashTotal(): bool {
+		return $this->isStockAccount() && $this->countInTotal;
+	}
 }
 
 /**
@@ -61,8 +66,8 @@ class LedgerAggregatorTest extends TestCase {
 
 	private static int $nextId = 1;
 
-	private static function konto(string $number, string $type, bool $isBank = false): TestKonto {
-		return new TestKonto(self::$nextId++, $number, $type, $isBank);
+	private static function konto(string $number, string $type, bool $isBank = false, bool $countInTotal = true): TestKonto {
+		return new TestKonto(self::$nextId++, $number, $type, $isBank, $countInTotal);
 	}
 
 	/**
@@ -192,6 +197,104 @@ class LedgerAggregatorTest extends TestCase {
 		$this->assertSame(280000, $erg['endCents']);
 		$this->assertSame(250000, $erg['rows'][0]['start']);
 		$this->assertSame(280000, $erg['rows'][0]['end']);
+	}
+
+	// --- Geldbestand der Kopfzeile --------------------------------------
+
+	/**
+	 * Der Punkt der ganzen Uebung (Issue #31): die Kopfzeile zeigte nur das
+	 * erste Geldkonto nach Kontonummer – bei Kasse (1000) und Bankkonto (1200)
+	 * also ausgerechnet die Barkasse. Jetzt ist es die Summe.
+	 */
+	public function testGeldbestandSummiertAlleGeldkonten(): void {
+		$kasse = self::konto('1000', 'asset', true);
+		$bank = self::konto('1200', 'asset', true);
+		$sums = self::summen([
+			$kasse->getId() => [15000, 3000],
+			$bank->getId() => [250000, 30000],
+		]);
+
+		$erg = LedgerAggregator::cashTotal([$kasse, $bank], $sums);
+		$this->assertSame(232000, $erg['cents']);
+		$this->assertSame(2, $erg['count']);
+	}
+
+	/**
+	 * Ein abgewaehltes Konto faellt aus dem Geldbestand, bleibt aber in der
+	 * Summe aller Geldkonten – sonst waere die Zeile unter der
+	 * Geldkonten-Tabelle falsch, und das Geld verschwaende spurlos.
+	 */
+	public function testAbgewaehltesKontoFehltNurImGeldbestand(): void {
+		$bank = self::konto('1200', 'asset', true);
+		$festgeld = self::konto('1300', 'asset', true, false);
+		$sums = self::summen([
+			$bank->getId() => [250000, 30000],
+			$festgeld->getId() => [500000, 0],
+		]);
+
+		$erg = LedgerAggregator::cashTotal([$bank, $festgeld], $sums);
+		$this->assertSame(220000, $erg['cents']);
+		$this->assertSame(1, $erg['count']);
+		$this->assertSame(720000, $erg['allCents']);
+		$this->assertSame(2, $erg['allCount']);
+	}
+
+	/**
+	 * Das Kennzeichen an einem Konto ohne Geldkonto-Kennzeichen bleibt ohne
+	 * Wirkung: ein Aufwandskonto hat keinen Bestand, den man addieren koennte.
+	 */
+	public function testNurGeldkontenZaehlenInDenGeldbestand(): void {
+		$bank = self::konto('1200', 'asset', true);
+		$durchlauf = self::konto('1590', 'asset');
+		$ausgabe = self::konto('5000', 'expense');
+		$sums = self::summen([
+			$bank->getId() => [250000, 30000],
+			$durchlauf->getId() => [99999, 0],
+			$ausgabe->getId() => [12000, 0],
+		]);
+
+		$erg = LedgerAggregator::cashTotal([$bank, $durchlauf, $ausgabe], $sums);
+		$this->assertSame(220000, $erg['cents']);
+		$this->assertSame(1, $erg['count']);
+		$this->assertSame(220000, $erg['allCents']);
+		$this->assertSame(1, $erg['allCount']);
+	}
+
+	/**
+	 * Sind alle Geldkonten abgewaehlt, ist der Geldbestand null und zaehlt
+	 * kein Konto – die Oberflaeche blendet den Chip dann aus, statt eine
+	 * 0,00 € zu zeigen, die es so nicht gibt.
+	 */
+	public function testOhneAngehaktesKontoBleibtDerGeldbestandLeer(): void {
+		$bank = self::konto('1200', 'asset', true, false);
+		$sums = self::summen([$bank->getId() => [250000, 30000]]);
+
+		$erg = LedgerAggregator::cashTotal([$bank], $sums);
+		$this->assertSame(0, $erg['cents']);
+		$this->assertSame(0, $erg['count']);
+		$this->assertSame(220000, $erg['allCents']);
+	}
+
+	/**
+	 * Der Geldbestand rechnet mit denselben Bestaenden wie die
+	 * Vermoegensuebersicht – solange kein Konto abgewaehlt ist, muessen beide
+	 * dieselbe Zahl liefern.
+	 */
+	public function testGeldbestandUndVermoegenStimmenOhneAbwahlUeberein(): void {
+		$kasse = self::konto('1000', 'asset', true);
+		$bank = self::konto('1200', 'asset', true);
+		$durchlauf = self::konto('1590', 'asset');
+		$sums = self::summen([
+			$kasse->getId() => [5000, 1000],
+			$bank->getId() => [250000, 30000],
+			$durchlauf->getId() => [99999, 0],
+		]);
+		$konten = [$kasse, $bank, $durchlauf];
+
+		$this->assertSame(
+			LedgerAggregator::wealth($konten, $sums),
+			LedgerAggregator::cashTotal($konten, $sums)['cents'],
+		);
 	}
 
 	// --- Saldenliste ----------------------------------------------------

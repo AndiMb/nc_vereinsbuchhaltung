@@ -25,6 +25,13 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.31.0',
+			items: [
+				t('Oben rechts steht jetzt der Geldbestand aller Geldkonten zusammen, nicht mehr nur der des ersten Kontos. Die Aufschlüsselung nach Konten zeigt der Tooltip, wenn die Maus auf der Zahl steht.'),
+				t('Ein einzelnes Geldkonto lässt sich aus dieser Zahl herausnehmen – im Konto-Dialog über „Zählt in den Geldbestand oben in der Kopfzeile". Kassenbericht, Vermögensübersicht und Saldenliste rechnen unverändert mit allen Geldkonten.'),
+			],
+		},
+		{
 			version: '0.30.0',
 			roles: ['buchhalter', 'verwalter'],
 			items: [

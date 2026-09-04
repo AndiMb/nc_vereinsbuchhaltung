@@ -3,10 +3,22 @@
 		<header class="vbh-header">
 			<div class="vbh-titlebar">
 				<h2>Vereinsbuchhaltung</h2>
-				<div v-if="primaryBank && !isMobile" class="vbh-bankchip" :class="{ warn: Math.abs(primaryBank.open) > 0.005 }">
-					<span class="vbh-bankchip-label">{{ primaryBank.name }}</span>
-					<span class="vbh-bankchip-value">{{ formatMoney(primaryBank.balance) }}</span>
-					<span v-if="Math.abs(primaryBank.open) > 0.005" class="vbh-bankchip-hint">{{ t('{amount} offen', { amount: formatMoney(primaryBank.open) }) }}</span>
+				<div
+					v-if="cashTotal && !isMobile"
+					class="vbh-bankchip"
+					:class="{ warn: Math.abs(cashTotal.open) > 0.005 }"
+					:title="cashTotalTitle">
+					<span class="vbh-bankchip-label">{{ cashTotal.label }}</span>
+					<span class="vbh-bankchip-value">{{ formatMoney(cashTotal.balance) }}</span>
+					<span v-if="Math.abs(cashTotal.open) > 0.005" class="vbh-bankchip-hint">{{ t('{amount} offen', { amount: formatMoney(cashTotal.open) }) }}</span>
+					<!-- Dieselbe Aufschluesselung wie im Tooltip, nur vorlesbar: ein
+					     title haengt an der Maus und ist per Tastatur nicht
+					     erreichbar. Als schlichter Text im Chip statt per
+					     aria-describedby, weil Screenreader eine Beschreibung an
+					     einem nicht fokussierbaren Element nicht verlaesslich
+					     ansagen. Entfaellt, wenn die Aufschluesselung nichts
+					     hinzufuegt (ein Konto, keins abgewaehlt). -->
+					<span v-if="cashBreakdownLines.length > 1" class="vbh-visually-hidden">{{ cashBreakdownLines.join(', ') }}</span>
 				</div>
 				<NcLoadingIcon v-if="busy" :size="24" :name="t('Wird geladen…')" />
 			</div>
@@ -518,7 +530,7 @@ export default {
 			renameName: '',
 			ccExpanded: {},
 			ccBookings: {},
-			newAccount: { number: '', name: '', type: 'income', category: '', isBank: false, parentId: null, sphere: '' },
+			newAccount: { number: '', name: '', type: 'income', category: '', isBank: false, countInTotal: true, parentId: null, sphere: '' },
 			accountEditId: null,
 			openingForm: {},
 			selectedAccountId: null,
@@ -798,9 +810,62 @@ export default {
 			return this.selectedAccountId ? this.accountsById[this.selectedAccountId] : null
 		},
 
-		primaryBank() {
-			const list = this.balances && this.balances.bankReconciliation
-			return list && list.length ? list[0] : null
+		// Geldbestand fuer die Kopfzeile: eine Zahl ueber alle Geldkonten, die
+		// dafuer angehakt sind. Bis 0.30.0 stand hier nur das erste Geldkonto
+		// nach Kontonummer - bei Kasse (1000) und Bankkonto (1200) also
+		// ausgerechnet die Barkasse, waehrend das Bankkonto unsichtbar blieb
+		// (Issue #31). Gerechnet wird im Backend (LedgerAggregator::cashTotal),
+		// damit Dashboard und Auswertung dieselbe Zahl zeigen.
+		cashTotal() {
+			const total = this.balances && this.balances.bankTotal
+			// Kein einziges mitzaehlendes Geldkonto: lieber gar kein Chip als
+			// eine 0,00 EUR, die es so nicht gibt.
+			if (!total || !total.count) { return null }
+			const counted = (this.balances.bankReconciliation || []).filter((b) => b.countInTotal !== false)
+			return {
+				// Bei genau einem Konto ist sein Name die genauere Auskunft als
+				// das Wort "Geldbestand" - fuer Vereine mit nur einem Geldkonto
+				// sieht die Kopfzeile damit aus wie bisher.
+				label: counted.length === 1 ? counted[0].name : this.t('Geldbestand'),
+				balance: total.balance,
+				// Die gesamte noch nicht zugeordnete Summe, nicht der Anteil
+				// eines einzelnen Kontos.
+				open: total.open,
+				breakdown: counted,
+				excluded: Math.max(0, (total.allCount || 0) - total.count),
+				allBalance: total.allBalance,
+			}
+		},
+
+		// Aufschluesselung je Konto: ohne sie waere die eine Zahl in der
+		// Kopfzeile nicht nachvollziehbar - erst recht nicht, wenn ein Konto
+		// bewusst fehlt. Eigene Eigenschaft, weil sie zweimal gebraucht wird:
+		// im Tooltip fuer die Maus und als vorlesbarer Text im Chip.
+		cashBreakdownLines() {
+			const c = this.cashTotal
+			if (!c) { return [] }
+			const lines = c.breakdown.map((b) => `${b.number} ${b.name}: ${formatMoney(b.balance)}`)
+			if (c.excluded > 0) {
+				lines.push(this.n(
+					'%n Geldkonto zählt hier nicht mit – alle zusammen: {amount}',
+					'%n Geldkonten zählen hier nicht mit – alle zusammen: {amount}',
+					c.excluded,
+					{ amount: formatMoney(c.allBalance) },
+				))
+			}
+			return lines
+		},
+
+		// Der Tooltip nennt zusaetzlich den offenen Betrag ausgeschrieben - im
+		// Chip selbst steht dafuer nur die Kurzform "X offen".
+		cashTotalTitle() {
+			const c = this.cashTotal
+			if (!c) { return '' }
+			const lines = [...this.cashBreakdownLines]
+			if (Math.abs(c.open) > 0.005) {
+				lines.push(this.t('{amount} noch nicht zugeordnet', { amount: formatMoney(c.open) }))
+			}
+			return lines.join('\n')
 		},
 
 		// journalRows kommt aus setup() (useJournal).
@@ -1863,6 +1928,9 @@ export default {
 				type: parent ? parent.type : 'income',
 				category: parent ? (parent.category || '') : '',
 				isBank: false,
+				// Ein neues Geldkonto zaehlt in die Kopfzeile, bis jemand es
+				// abwaehlt - dieselbe Vorgabe wie im Backend.
+				countInTotal: true,
 				parentId: this.selectedAccountId || null,
 				sphere: parent ? (parent.sphere || '') : '',
 				reserveKind: parent ? (parent.reserveKind || '') : '',
@@ -1885,6 +1953,8 @@ export default {
 				type: acc.type,
 				category: acc.category || '',
 				isBank: !!acc.isBank,
+				// Altbestand ohne gesetztes Feld zaehlt mit (Spaltenvorgabe).
+				countInTotal: acc.countInTotal !== false,
 				parentId: acc.parentId || null,
 				sphere: acc.sphere || '',
 				reserveKind: acc.reserveKind || '',
@@ -1909,6 +1979,7 @@ export default {
 						type: f.type,
 						category: f.category || null,
 						isBank: f.isBank,
+						countInTotal: !!f.countInTotal,
 						parentId: f.parentId || 0,
 						sphere: f.sphere || '',
 						reserveKind: f.reserveKind || '',
@@ -1929,7 +2000,7 @@ export default {
 				}
 				this.showAccount = false
 				this.accountEditId = null
-				this.newAccount = { number: '', name: '', type: 'income', category: '', isBank: false, parentId: null, sphere: '', reserveKind: '', iban: '', costCenterId: null }
+				this.newAccount = { number: '', name: '', type: 'income', category: '', isBank: false, countInTotal: true, parentId: null, sphere: '', reserveKind: '', iban: '', costCenterId: null }
 				await this.loadAccounts(); await this.loadBalances(); await this.loadSphereReport()
 				showSuccess(this.t('Konto gespeichert.'))
 			} catch (e) { showError(this.errMsg(e, this.t('Konto konnte nicht gespeichert werden'))) }

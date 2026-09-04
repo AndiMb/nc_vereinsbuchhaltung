@@ -170,6 +170,44 @@ final class LedgerAggregator {
 	}
 
 	/**
+	 * Geldbestand für die Kopfzeile: eine Zahl über alle Geldkonten.
+	 *
+	 * Getrennt von {@see wealth()}, weil beide verschiedene Fragen
+	 * beantworten. Die Vermögensübersicht muss jeden Euro zeigen – auch den
+	 * auf einem Festgeld- oder Durchlaufkonto. Die Kopfzeile beantwortet
+	 * dagegen „wie viel Geld habe ich gerade", und dafür darf ein Konto
+	 * abgewählt sein (Account::countsInCashTotal()).
+	 *
+	 * Beide Werte kommen zusammen zurück, damit die Oberfläche die Summe der
+	 * Geldkonten-Tabelle und den Bestand der Kopfzeile nebeneinander zeigen
+	 * kann, ohne dieselbe Schleife dreimal nachzubauen – und damit auffällt,
+	 * wenn sie auseinanderlaufen.
+	 *
+	 * @param iterable<AccountNature> $accounts
+	 * @param array<int, array{debit:int, credit:int}> $cumSums kumuliert bis zum Stichtag
+	 * @return array{cents:int, count:int, allCents:int, allCount:int}
+	 */
+	public static function cashTotal(iterable $accounts, array $cumSums): array {
+		$cents = 0;
+		$count = 0;
+		$allCents = 0;
+		$allCount = 0;
+		foreach ($accounts as $account) {
+			if (!$account->isStockAccount()) {
+				continue;
+			}
+			$stock = self::stock($account, $cumSums);
+			$allCents += $stock;
+			$allCount++;
+			if ($account->countsInCashTotal()) {
+				$cents += $stock;
+				$count++;
+			}
+		}
+		return ['cents' => $cents, 'count' => $count, 'allCents' => $allCents, 'allCount' => $allCount];
+	}
+
+	/**
 	 * Vermögen zu einem Stichtag: die Summe aller Geldkonten-Bestände.
 	 *
 	 * @param iterable<AccountNature> $accounts

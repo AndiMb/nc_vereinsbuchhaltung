@@ -52,6 +52,14 @@
 			<p v-if="form.isBank" class="vbh-hint">
 				{{ t('Nur nötig, wenn die Buchhaltung mehrere Geldkonten führt: Damit ordnet die App importierte Kontoauszüge dem richtigen Konto zu. Leerzeichen sind egal.') }}
 			</p>
+			<div v-if="form.isBank" class="vbh-form">
+				<NcCheckboxRadioSwitch v-model="form.countInTotal">
+					{{ t('Zählt in den Geldbestand oben in der Kopfzeile') }}
+				</NcCheckboxRadioSwitch>
+			</div>
+			<p v-if="form.isBank && !form.countInTotal" class="vbh-hint">
+				{{ t('Dieses Konto bleibt aus der Zahl oben in der Kopfzeile heraus – sinnvoll z. B. bei einem Festgeldkonto, das nicht zum Tagesgeschäft gehört. In Kassenbericht, Vermögensübersicht und Saldenliste zählt es unverändert mit.') }}
+			</p>
 			<div v-if="form.type !== 'equity' && !form.isBank" class="vbh-form">
 				<label class="vbh-grow">{{ t('Steuerliche Sphäre') }}
 					<select v-model="form.sphere">
@@ -121,7 +129,7 @@ import { useCostCenters } from '../composables/useCostCenters.js'
  *
  */
 function emptyForm() {
-	return { number: '', name: '', type: 'income', category: '', isBank: false, parentId: null, sphere: '', reserveKind: '', iban: '', costCenterId: null, active: true }
+	return { number: '', name: '', type: 'income', category: '', isBank: false, countInTotal: true, parentId: null, sphere: '', reserveKind: '', iban: '', costCenterId: null, active: true }
 }
 
 export default {

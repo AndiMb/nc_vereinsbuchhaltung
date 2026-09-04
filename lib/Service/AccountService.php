@@ -93,7 +93,7 @@ class AccountService {
 	 *                    Standard-Kontenrahmens abschalten – der protokolliert sich als
 	 *                    Ganzes, sonst stünden dort 14 einzelne „Konto angelegt")
 	 */
-	public function create(string $userId, string $number, string $name, string $type, ?string $category, bool $isBank, ?int $parentId = null, ?string $sphere = null, ?string $reserveKind = null, ?string $iban = null, ?int $costCenterId = null, bool $audit = true): Account {
+	public function create(string $userId, string $number, string $name, string $type, ?string $category, bool $isBank, ?int $parentId = null, ?string $sphere = null, ?string $reserveKind = null, ?string $iban = null, ?int $costCenterId = null, bool $countInTotal = true, bool $audit = true): Account {
 		$account = new Account();
 		$account->setUserId($userId);
 		$account->setNumber(trim($number));
@@ -101,6 +101,12 @@ class AccountService {
 		$account->setType($this->validateType($type));
 		$account->setCategory($category !== null ? trim($category) : null);
 		$account->setIsBank($isBank);
+		// Ein neues Geldkonto zählt in den Geldbestand der Kopfzeile, solange
+		// niemand es abwählt – die Kopfzeile soll von sich aus vollständig
+		// sein. An einem Konto ohne Geldkonto-Kennzeichen ist das Kennzeichen
+		// wirkungslos (Account::countsInCashTotal()), aber ein false dort wäre
+		// ein irreführender Rest, wenn das Konto später Geldkonto wird.
+		$account->setCountInTotal($countInTotal);
 		$account->setActive(true);
 		$account->setSphere($this->validateSphere($sphere));
 		$account->setReserveKind($this->validateReserveKind($reserveKind));
@@ -147,6 +153,9 @@ class AccountService {
 		if (isset($data['isBank'])) {
 			$account->setIsBank((bool)$data['isBank']);
 		}
+		if (isset($data['countInTotal'])) {
+			$account->setCountInTotal((bool)$data['countInTotal']);
+		}
 		if (isset($data['active'])) {
 			$account->setActive((bool)$data['active']);
 		}
@@ -165,6 +174,11 @@ class AccountService {
 		// damit der eben gesetzte Wert gilt und nicht der alte.
 		if (!$account->getIsBank()) {
 			$account->setIban(null);
+			// Dasselbe Argument für das Kopfzeilen-Kennzeichen: an einem
+			// Konto ohne Bestand gibt es nichts zu summieren. Zurück auf die
+			// Vorgabe (an), damit ein später wieder gesetztes Geldkonto-
+			// Kennzeichen nicht stillschweigend aus der Kopfzeile fällt.
+			$account->setCountInTotal(true);
 		}
 		if (array_key_exists('costCenterId', $data)) {
 			// 0/null = keine Kostenstelle; das Konto-Formular sendet das Feld

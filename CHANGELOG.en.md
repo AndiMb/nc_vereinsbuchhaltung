@@ -15,7 +15,43 @@ Markdown headings as "[object Object]" since `marked` v18 (wrong renderer
 callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 **bold lead-in** at the start of a line instead, e.g. `**New:**`.
 
-## [Unreleased]
+## [0.31.0] – 2026-09-02
+
+**New:**
+- **The header now shows the funds across all cash accounts, no longer just
+  the first one.** Until now the top right only ever showed the first cash
+  account by account number – anyone running a cash box (1000) and a bank
+  account (1200) therefore saw the cash box of all things, while the bank
+  account stayed invisible (issue #31). The figure is now called *Funds* and
+  adds up every cash account; the tooltip breaks it down by account and names
+  the transactions not yet assigned. If the club runs only one cash account,
+  its name still appears there – nothing changes for those clubs.
+- **Individual cash accounts can be left out of that figure.** For cash
+  accounts the account dialog offers a new *Counts towards the funds shown in
+  the header* flag (default: on). A fixed-term deposit account can thus stay
+  out of the day-to-day figure without disappearing from the books: **the
+  cash report, the assets overview and the trial balance keep counting every
+  cash account.** The flag is display only and is therefore not locked by the
+  finalization of a fiscal year either.
+- **The cash-account table on the dashboard and in the evaluation has a
+  total row** – as soon as the club runs more than one cash account; with a
+  single one it would merely repeat the row above it. If at least one account
+  is excluded from the funds figure, an *of which funds (header)* row appears
+  below it, and the accounts concerned are marked as such in the list – so it
+  stays clear how the figure at the top comes about.
+
+**Changed:**
+- **Clicking an account that has sub-accounts now expands them.** Previously
+  this only worked through the small arrow in front of it, which was easy to
+  miss. Collapsing still goes through the arrow – a second click on the row
+  deliberately does not collapse it again, otherwise you could not select a
+  parent account without closing it.
+- **The posting text now grows with its content.** Longer text wraps and is
+  shown in full instead of running off the side of the field – when creating
+  a posting as well as when editing one. The value itself stays single-line,
+  so nothing changes for the journal, exports or the API.
+- **Dialogs have a little more room to the edge.** Content and buttons used to
+  sit rather close to it.
 
 **Fixed:**
 - **The charts ignored dark mode.** Axis labels and grid lines stayed black
@@ -52,19 +88,6 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   placeholder still keeps the column aligned.
 - **Text hugged the edge in the "What's new" dialog.** It now uses the same
   inner spacing as every other dialog.
-
-**Changed:**
-- **Clicking an account that has sub-accounts now expands them.** Previously
-  this only worked through the small arrow in front of it, which was easy to
-  miss. Collapsing still goes through the arrow – a second click on the row
-  deliberately does not collapse it again, otherwise you could not select a
-  parent account without closing it.
-- **The posting text now grows with its content.** Longer text wraps and is
-  shown in full instead of running off the side of the field – when creating
-  a posting as well as when editing one. The value itself stays single-line,
-  so nothing changes for the journal, exports or the API.
-- **Dialogs have a little more room to the edge.** Content and buttons used to
-  sit rather close to it.
 
 ## [0.30.0] – 2026-08-31
 

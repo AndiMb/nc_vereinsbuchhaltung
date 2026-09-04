@@ -8,7 +8,7 @@ namespace OCA\Vereinsbuchhaltung\Db;
  * Was eine Auswertung von einem Konto wissen muss.
  *
  * Alle Rechenregeln in {@see \OCA\Vereinsbuchhaltung\Service\LedgerAggregator}
- * hängen an genau diesen vier Fragen. Sie hier zu bündeln hat einen ganz
+ * hängen an genau diesen Fragen. Sie hier zu bündeln hat einen ganz
  * praktischen Grund: {@see Account} erbt von OCP\AppFramework\Db\Entity und ist
  * damit ohne laufende Nextcloud-Instanz nicht ladbar. Die Rechenregeln wären
  * ohne diese Schnittstelle also erneut nur gegen eine echte Instanz prüfbar –
@@ -35,4 +35,13 @@ interface AccountNature {
 
 	/** Kommt im Finanzplan vor (echte Einnahmen-/Ausgabenkonten). */
 	public function isBudgetable(): bool;
+
+	/**
+	 * Zählt in den Geldbestand, den die Kopfzeile als eine Zahl zeigt.
+	 *
+	 * Als einzige Frage hier keine Rechenregel, sondern eine Anzeigefrage: sie
+	 * verändert keine Auswertung, sondern nur, welche Geldkonten in der einen
+	 * Zahl über der Oberfläche zusammengefasst werden.
+	 */
+	public function countsInCashTotal(): bool;
 }

@@ -19,6 +19,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setCategory(?string $category)
  * @method bool getIsBank()
  * @method void setIsBank(bool $isBank)
+ * @method bool getCountInTotal()
+ * @method void setCountInTotal(bool $countInTotal)
  * @method bool getActive()
  * @method void setActive(bool $active)
  * @method int getOpeningBalanceCents()
@@ -43,6 +45,11 @@ class Account extends Entity implements \JsonSerializable, AccountNature {
 	protected $type;
 	protected $category;
 	protected $isBank = false;
+	/**
+	 * Zaehlt dieses Geldkonto in den Geldbestand der Kopfzeile? Reine Anzeige –
+	 * siehe countsInCashTotal().
+	 */
+	protected $countInTotal = true;
 	protected $active = true;
 	protected $openingBalanceCents = 0;
 	protected $openingDate;
@@ -65,6 +72,7 @@ class Account extends Entity implements \JsonSerializable, AccountNature {
 
 	public function __construct() {
 		$this->addType('isBank', 'boolean');
+		$this->addType('countInTotal', 'boolean');
 		$this->addType('active', 'boolean');
 		$this->addType('openingBalanceCents', 'integer');
 		$this->addType('parentId', 'integer');
@@ -89,6 +97,22 @@ class Account extends Entity implements \JsonSerializable, AccountNature {
 	 */
 	public function isStockAccount(): bool {
 		return (bool)$this->isBank;
+	}
+
+	/**
+	 * Zaehlt in den Geldbestand, den die Kopfzeile als eine Zahl zeigt.
+	 *
+	 * Nur fuer Geldkonten sinnvoll, deshalb die Kopplung an isStockAccount():
+	 * ein Aufwandskonto hat keinen Bestand, den man addieren koennte, und das
+	 * Kennzeichen bleibt an einem Konto stehen, dem spaeter das Geldkonto-
+	 * Kennzeichen abgenommen wurde (siehe AccountService::update()).
+	 *
+	 * Bewusst ohne Wirkung auf Kassenbericht, Vermoegensuebersicht und
+	 * Saldenliste: dort muss jeder Euro auftauchen, auch der auf einem Konto,
+	 * das in der Alltagszahl der Kopfzeile stoert.
+	 */
+	public function countsInCashTotal(): bool {
+		return $this->isStockAccount() && (bool)$this->countInTotal;
 	}
 
 	/**
@@ -137,6 +161,7 @@ class Account extends Entity implements \JsonSerializable, AccountNature {
 			'type' => $this->type,
 			'category' => $this->category,
 			'isBank' => $this->isBank,
+			'countInTotal' => $this->countInTotal,
 			'active' => $this->active,
 			'openingBalanceCents' => $this->openingBalanceCents,
 			'openingBalance' => $this->openingBalanceCents / 100,
