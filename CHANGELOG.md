@@ -17,7 +17,7 @@ als „[object Object]" (falsche Renderer-Callback-Signatur, Nextcloud-
 Core-Bug, reproduziert 23.08.2026). Stattdessen **Fettdruck als Zeilenanfang**
 verwenden, z. B. `**Neu:**`.
 
-## [0.31.0] – 2026-09-02
+## [0.31.0] – 2026-09-04
 
 **Neu:**
 - **Die Kopfzeile zeigt jetzt den Geldbestand aller Geldkonten, nicht mehr
