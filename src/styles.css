@@ -749,9 +749,11 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-row-editing td { background-color: var(--color-primary-element-light, var(--color-background-hover)); }
 
-.vbh-num { width: 120px; text-align: end; }
+/* Betragsfelder zeigen ihren Wert formatiert ("20.000,00 €", AmountInput.vue)
+   und brauchen dafuer mehr Breite als die frueheren nackten Zahlen. */
+.vbh-num { width: 145px; text-align: end; }
 
-.vbh-short { width: 110px; }
+.vbh-short { width: 130px; }
 
 .vbh-date { width: 150px; }
 
@@ -826,7 +828,7 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-split-acc { flex: 1 1 auto; min-width: 0; }
 
-.vbh-split-amount { flex: 0 0 7.5em; text-align: end; }
+.vbh-split-amount { flex: 0 0 9em; text-align: end; }
 
 .vbh-split-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 
@@ -1180,9 +1182,9 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 	/* Textabschneidung */
 	.vbh-purpose { max-width: 180px; }
-	.vbh-num { width: 90px; }
+	.vbh-num { width: 115px; }
 	/* Plan-Spalte mobil etwas schmaler; das Feld selbst fuellt sie (width:100%). */
-	.vbh-table thead th.num.vbh-col-plan { width: 130px; }
+	.vbh-table thead th.num.vbh-col-plan { width: 140px; }
 
 	/* Spalten auf Mobilgeräten ausblenden */
 	.vbh-col-hide-sm { display: none; }

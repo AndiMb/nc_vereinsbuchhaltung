@@ -56,15 +56,12 @@
 							label="label"
 							:placeholder="t('– Konto wählen –')"
 							@update:modelValue="setAccount(i, $event)" />
-						<input
-							:value="part.amount"
-							type="number"
-							step="0.01"
-							min="0.01"
-							inputmode="decimal"
+						<AmountInput
+							:modelValue="part.amount"
+							:emptyValue="null"
 							class="vbh-num vbh-split-amount"
 							:aria-label="t('Teilbetrag Zeile {n}', { n: i + 1 })"
-							@input="setAmount(i, $event.target.value)">
+							@update:modelValue="setAmount(i, $event)" />
 						<NcButton
 							variant="tertiary"
 							:aria-label="t('Zeile {n} entfernen', { n: i + 1 })"
@@ -104,6 +101,7 @@
 <script>
 import { mdiDelete } from '@mdi/js'
 import { NcButton, NcIconSvgWrapper, NcModal, NcSelect } from '@nextcloud/vue'
+import AmountInput from './AmountInput.vue'
 import { useAccounts } from '../composables/useAccounts.js'
 import { formatDate, formatMoney } from '../lib/format.js'
 import { splitBalanced, splitRemainder } from '../lib/split.js'
@@ -123,7 +121,7 @@ import { splitBalanced, splitRemainder } from '../lib/split.js'
  */
 export default {
 	name: 'SplitAssignDialog',
-	components: { NcModal, NcButton, NcSelect, NcIconSvgWrapper },
+	components: { NcModal, NcButton, NcSelect, NcIconSvgWrapper, AmountInput },
 	props: {
 		show: { type: Boolean, default: false },
 		tx: { type: Object, default: null },
@@ -207,7 +205,7 @@ export default {
 		},
 
 		setAmount(index, value) {
-			this.patch(index, { amount: value === '' ? null : Number(value) })
+			this.patch(index, { amount: (value === '' || value === null) ? null : Number(value) })
 		},
 
 		patch(index, values) {

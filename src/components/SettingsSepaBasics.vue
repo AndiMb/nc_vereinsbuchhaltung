@@ -42,13 +42,10 @@
 			</p>
 			<div class="vbh-form">
 				<label>{{ t('Betrag (€)') }}
-					<input
+					<AmountInput
 						v-model="defaultFeeAmountModel"
-						type="number"
-						step="0.01"
-						min="0"
 						class="vbh-short"
-						placeholder="8,00">
+						placeholder="8,00" />
 				</label>
 				<label>{{ t('Frequenz') }}
 					<select v-model="defaultFeeFrequencyModel">
@@ -68,6 +65,7 @@
 <script>
 import { NcButton, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { toRefs } from 'vue'
+import AmountInput from './AmountInput.vue'
 import { useAccounts } from '../composables/useAccounts.js'
 import { frequencyOptions } from '../lib/frequency.js'
 
@@ -85,7 +83,7 @@ import { frequencyOptions } from '../lib/frequency.js'
  */
 export default {
 	name: 'SettingsSepaBasics',
-	components: { NcButton, NcCheckboxRadioSwitch },
+	components: { NcButton, NcCheckboxRadioSwitch, AmountInput },
 	props: {
 		sepaCreditorId: { type: String, default: '' },
 		sepaDebtorAccountId: { type: Number, default: null },

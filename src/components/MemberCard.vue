@@ -6,12 +6,9 @@
 			</div>
 			<div class="vbh-form">
 				<label>{{ t('Betrag (€)') }}
-					<input
+					<AmountInput
 						v-model="editAmount"
-						type="number"
-						step="0.01"
-						min="0"
-						class="vbh-short">
+						class="vbh-short" />
 				</label>
 				<label>{{ t('Frequenz') }}
 					<select v-model="editFrequency">
@@ -120,6 +117,7 @@
 <script>
 import { mdiBankTransfer, mdiCancel, mdiDelete } from '@mdi/js'
 import { NcActionButton, NcActions, NcButton, NcIconSvgWrapper } from '@nextcloud/vue'
+import AmountInput from './AmountInput.vue'
 import { formatMoney } from '../lib/format.js'
 import { frequencyLabel } from '../lib/frequency.js'
 
@@ -136,7 +134,7 @@ import { frequencyLabel } from '../lib/frequency.js'
  */
 export default {
 	name: 'MemberCard',
-	components: { NcButton, NcActions, NcActionButton, NcIconSvgWrapper },
+	components: { NcButton, NcActions, NcActionButton, NcIconSvgWrapper, AmountInput },
 	props: {
 		row: { type: Object, required: true },
 		/** Das geteilte editing-Objekt aus MembersList.vue, oder null. */

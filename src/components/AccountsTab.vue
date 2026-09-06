@@ -98,11 +98,10 @@
 				<!-- Eröffnungssaldo nur für Geldkonten: nur deren Bestand geht über Jahresgrenzen. -->
 				<div v-if="canWrite && selectedAccount.isBank" class="vbh-opening">
 					<span>{{ t('Eröffnungssaldo:') }}</span>
-					<input
-						v-model.number="openingAmount"
-						type="number"
-						step="0.01"
-						class="vbh-num">
+					<AmountInput
+						v-model="openingAmount"
+						class="vbh-num"
+						:aria-label="t('Eröffnungssaldo in Euro')" />
 					<input v-model="openingDate" type="date" class="vbh-date">
 					<NcButton variant="primary" size="small" @click="saveOpening(selectedAccount)">
 						{{ t('Speichern') }}
@@ -272,6 +271,7 @@
 import { mdiDelete, mdiPencil, mdiPlus, mdiSwapHorizontal } from '@mdi/js'
 import { NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper } from '@nextcloud/vue'
 import { toRefs } from 'vue'
+import AmountInput from './AmountInput.vue'
 import ReassignPanel from './ReassignPanel.vue'
 import { useAccounts } from '../composables/useAccounts.js'
 import { useAuth } from '../composables/useAuth.js'
@@ -281,7 +281,7 @@ import { amountClass, formatDate, formatMoney, typeLabel } from '../lib/format.j
 
 export default {
 	name: 'AccountsTab',
-	components: { NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper, ReassignPanel },
+	components: { NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper, AmountInput, ReassignPanel },
 	props: {
 		isMobile: { type: Boolean, required: true },
 		// selectedAccountId/statement/statementIncludeChildren bleiben in App.vue

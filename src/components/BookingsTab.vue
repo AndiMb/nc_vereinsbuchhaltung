@@ -385,12 +385,9 @@
 					<h4>{{ t('Neuer offener Posten') }}</h4>
 					<div class="vbh-form">
 						<label class="vbh-grow">{{ t('Debitor') }}<input v-model="openItemForm.debtor" :placeholder="t('z. B. Max Mustermann')"></label>
-						<label>{{ t('Betrag (€)') }}<input
-							v-model.number="openItemForm.amount"
-							type="number"
-							step="0.01"
-							min="0.01"
-							class="vbh-num"></label>
+						<label>{{ t('Betrag (€)') }}<AmountInput
+							v-model="openItemForm.amount"
+							class="vbh-num" /></label>
 						<label>{{ t('Fällig am') }}<input v-model="openItemForm.dueDate" type="date"></label>
 					</div>
 					<div class="vbh-form">
@@ -495,6 +492,7 @@ import { mdiDelete, mdiDownload, mdiFlash, mdiPaperclip, mdiPencil, mdiUpload } 
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { NcActionButton, NcActions, NcButton, NcEmptyContent, NcIconSvgWrapper, NcSelect } from '@nextcloud/vue'
 import { toRefs } from 'vue'
+import AmountInput from './AmountInput.vue'
 import BookingCard from './BookingCard.vue'
 import RulesPanel from './RulesPanel.vue'
 import api from '../api.js'
@@ -508,7 +506,7 @@ import { amountClass, errMsg, formatDate, formatMoney } from '../lib/format.js'
 
 export default {
 	name: 'BookingsTab',
-	components: { NcButton, NcActions, NcActionButton, NcSelect, NcEmptyContent, NcIconSvgWrapper, BookingCard, RulesPanel },
+	components: { NcButton, NcActions, NcActionButton, NcSelect, NcEmptyContent, NcIconSvgWrapper, AmountInput, BookingCard, RulesPanel },
 	props: {
 		isMobile: { type: Boolean, required: true },
 		bookingView: { type: String, required: true },

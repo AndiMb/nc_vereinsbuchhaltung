@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import {
 	amountClass,
+	amountInputRaw,
 	budgetDiffClass,
 	errMsg,
+	formatAmountInput,
 	formatDate,
 	formatDateTime,
 	formatMoney,
+	parseAmountInput,
 	roleLabel,
+	roundCents,
 	typeLabel,
 } from './format.js'
 
@@ -137,5 +141,109 @@ describe('errMsg', () => {
 		expect(errMsg({}, 'Ersatz')).toBe('Ersatz')
 		expect(errMsg({ response: {} }, 'Ersatz')).toBe('Ersatz')
 		expect(errMsg({ response: { data: {} } }, 'Ersatz')).toBe('Ersatz')
+	})
+})
+
+// Betragsfelder (AmountInput.vue): der Parser entscheidet, was aus dem
+// Getippten wird - hier laufen die Formen zusammen, die Nutzer tatsaechlich
+// eingeben. Issue #34.
+
+describe('parseAmountInput', () => {
+	it('liest die deutsche Schreibweise mit Tausenderpunkt', () => {
+		expect(parseAmountInput('20.000,00')).toBe(20000)
+		expect(parseAmountInput('1.234.567,89')).toBe(1234567.89)
+		expect(parseAmountInput('1.500')).toBe(1500)
+	})
+
+	it('liest Komma und Punkt als Dezimaltrennzeichen', () => {
+		expect(parseAmountInput('20000,5')).toBe(20000.5)
+		expect(parseAmountInput('20000.5')).toBe(20000.5)
+		expect(parseAmountInput('1,5')).toBe(1.5)
+		expect(parseAmountInput('20.75')).toBe(20.75)
+	})
+
+	it('liest die englische Schreibweise, wenn beide Zeichen vorkommen', () => {
+		expect(parseAmountInput('1,234.56')).toBe(1234.56)
+		expect(parseAmountInput('1,234,567.89')).toBe(1234567.89)
+	})
+
+	it('ignoriert Waehrungszeichen und Leerraum', () => {
+		expect(parseAmountInput('20.000,00 €')).toBe(20000)
+		expect(parseAmountInput(' 20 000 ')).toBe(20000)
+		expect(parseAmountInput('1.234,56 EUR')).toBe(1234.56)
+		expect(parseAmountInput('20.000,00 €')).toBe(20000)
+	})
+
+	it('erkennt negative Betraege', () => {
+		expect(parseAmountInput('-1.500,50')).toBe(-1500.5)
+		expect(parseAmountInput('−42')).toBe(-42)
+	})
+
+	it('nimmt Zahlen unveraendert an', () => {
+		expect(parseAmountInput(1234.5)).toBe(1234.5)
+		expect(parseAmountInput(0)).toBe(0)
+	})
+
+	it('meldet unlesbare Eingaben als null – ein Vertipper darf keinen Wert auf 0 setzen', () => {
+		expect(parseAmountInput('')).toBeNull()
+		expect(parseAmountInput('   ')).toBeNull()
+		expect(parseAmountInput(null)).toBeNull()
+		expect(parseAmountInput('abc')).toBeNull()
+		expect(parseAmountInput('12x')).toBeNull()
+		expect(parseAmountInput('1.2.3')).toBeNull()
+		expect(parseAmountInput(',')).toBeNull()
+		expect(parseAmountInput('--5')).toBeNull()
+	})
+
+	it('verkraftet Zwischenstaende beim Tippen', () => {
+		expect(parseAmountInput('1,')).toBe(1)
+		expect(parseAmountInput('1.')).toBe(1)
+	})
+})
+
+describe('formatAmountInput', () => {
+	// wie oben: der Zwischenraum vor dem Euro haengt an der ICU-Fassung
+	const normalize = (s) => s.replace(/\s/g, ' ')
+
+	it('zeigt den Betrag wie die Tabellenspalten daneben', () => {
+		expect(normalize(formatAmountInput(20000))).toBe('20.000,00 €')
+		expect(normalize(formatAmountInput(1234.5))).toBe('1.234,50 €')
+	})
+
+	it('laesst das Waehrungszeichen weg, wenn daneben schon eines steht', () => {
+		expect(normalize(formatAmountInput(20000, false))).toBe('20.000,00')
+	})
+
+	it('laesst leere Werte leer, damit der Platzhalter sichtbar bleibt', () => {
+		expect(formatAmountInput('')).toBe('')
+		expect(formatAmountInput(null)).toBe('')
+		expect(formatAmountInput(undefined)).toBe('')
+		expect(formatAmountInput('abc')).toBe('')
+	})
+
+	it('zeigt die Null als Betrag – 0,00 € ist ein gueltiger Planwert', () => {
+		expect(normalize(formatAmountInput(0))).toBe('0,00 €')
+	})
+})
+
+describe('amountInputRaw', () => {
+	it('gibt den nackten Wert mit Dezimalkomma zum Bearbeiten', () => {
+		expect(amountInputRaw(20000)).toBe('20000')
+		expect(amountInputRaw(20000.5)).toBe('20000,5')
+		expect(amountInputRaw('1234.56')).toBe('1234,56')
+		expect(amountInputRaw(0)).toBe('0')
+	})
+
+	it('bleibt bei leeren Werten leer', () => {
+		expect(amountInputRaw('')).toBe('')
+		expect(amountInputRaw(null)).toBe('')
+	})
+})
+
+describe('roundCents', () => {
+	it('rundet auf ganze Cent – mehr kann das Backend nicht speichern', () => {
+		expect(roundCents(12.345)).toBe(12.35)
+		expect(roundCents(0.1 + 0.2)).toBe(0.3)
+		expect(roundCents(-1.005)).toBe(-1)
 	})
 })

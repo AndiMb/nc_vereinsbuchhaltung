@@ -743,13 +743,13 @@
 										<span class="vbh-typetag" :class="row.type">{{ typeLabel(row.type) }}</span>
 									</td>
 									<td class="num vbh-col-plan">
-										<input
+										<AmountInput
 											v-if="canWrite"
-											v-model.number="row.plan"
-											type="number"
-											step="0.01"
+											v-model="row.plan"
+											:emptyValue="0"
 											class="vbh-num vbh-planinput"
-											@change="saveBudget(row)">
+											:aria-label="t('Planwert für {number} {name}', { number: row.number, name: row.name })"
+											@change="saveBudget(row)" />
 										<span v-else>{{ formatMoney(row.plan) }}</span>
 									</td>
 									<td class="vbh-col-note">
@@ -972,6 +972,7 @@ import {
 	Tooltip,
 } from 'chart.js'
 import { toRefs } from 'vue'
+import AmountInput from './AmountInput.vue'
 import CostCenterPanel from './CostCenterPanel.vue'
 import SphereAssignPanel from './SphereAssignPanel.vue'
 import api from '../api.js'
@@ -988,7 +989,7 @@ Chart.register(LineController, LineElement, PointElement, CategoryScale, LinearS
 
 export default {
 	name: 'ReportsTab',
-	components: { NcButton, NcActions, NcActionInput, NcActionLink, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, NcModal, CostCenterPanel, SphereAssignPanel },
+	components: { NcButton, NcActions, NcActionInput, NcActionLink, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, NcModal, AmountInput, CostCenterPanel, SphereAssignPanel },
 	props: {
 		// Kostenstellen-Modus (group|account|manual), gesteuert ueber den
 		// Gruppierungs-Waehler in der Kopfzeile (nur reportView==='costcenters').
