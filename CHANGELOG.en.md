@@ -15,6 +15,23 @@ Markdown headings as "[object Object]" since `marked` v18 (wrong renderer
 callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 **bold lead-in** at the start of a line instead, e.g. `**New:**`.
 
+## [Unreleased]
+
+**Fixed:**
+- **The report sub-tabs are fully reachable again on narrow screens.** The bar
+  holding *Summary*, *Reporting groups*, *Spheres*, *Reserves*, *Budget* and
+  *Log* ran off the screen and could not be swiped – it ended after *Spheres*,
+  and the *More exports* button was out of reach as well (issue #38). The bar
+  can now be swiped sideways and indicates at its edges that there is more to
+  come; jumping straight to one of the later tabs from the help or the bottom
+  bar scrolls it into view automatically. The same applies to the sub-tabs
+  under *Entries* and *Contributions* and – with the Nextcloud sidebar open or
+  with longer labels – on the desktop too.
+- **The treasurer's report and the short report moved into the *More exports*
+  menu on phones.** As separate buttons they no longer fitted into the row and
+  pushed the menu off screen. The short report's date field is now part of that
+  menu; nothing changes on the desktop.
+
 ## [0.31.0] – 2026-09-04
 
 **New:**

@@ -17,6 +17,24 @@ als „[object Object]" (falsche Renderer-Callback-Signatur, Nextcloud-
 Core-Bug, reproduziert 23.08.2026). Stattdessen **Fettdruck als Zeilenanfang**
 verwenden, z. B. `**Neu:**`.
 
+## [Unreleased]
+
+**Behoben:**
+- **Auf schmalen Bildschirmen sind die Unterreiter der Berichte wieder
+  vollständig erreichbar.** Die Leiste mit *Auswertung*, *Auswertungsgruppen*,
+  *Sphären*, *Rücklagen*, *Finanzplan* und *Protokoll* lief aus dem Bild und
+  ließ sich nicht wischen – hinter *Sphären* war Schluss, und auch der Knopf
+  *Weitere Exporte* war nicht mehr zu erreichen (Issue #38). Die Leiste lässt
+  sich jetzt seitlich wischen und zeigt an den Rändern an, dass es dort
+  weitergeht; springt man aus der Hilfe oder der unteren Leiste direkt auf
+  einen hinteren Reiter, rückt dieser von selbst ins Bild. Das gilt genauso
+  für die Unterreiter unter *Buchungen* und *Beiträge* und – bei geöffneter
+  Nextcloud-Seitenleiste oder längeren Beschriftungen – auch am Desktop.
+- **Kassenbericht und Kurzbericht sind auf dem Handy in das Menü *Weitere
+  Exporte* gewandert.** Als eigene Schaltflächen passten sie dort nicht mehr
+  in die Zeile und schoben das Menü aus dem Bild. Das Datumsfeld des
+  Kurzberichts steht jetzt mit im Menü; am Desktop bleibt alles wie bisher.
+
 ## [0.31.0] – 2026-09-04
 
 **Neu:**
