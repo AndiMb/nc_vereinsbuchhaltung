@@ -19,6 +19,8 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+## [0.31.1] – 2026-09-06
+
 **Behoben:**
 - **Auf schmalen Bildschirmen sind die Unterreiter der Berichte wieder
   vollständig erreichbar.** Die Leiste mit *Auswertung*, *Auswertungsgruppen*,

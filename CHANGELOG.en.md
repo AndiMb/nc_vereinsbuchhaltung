@@ -17,6 +17,8 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+## [0.31.1] – 2026-09-06
+
 **Fixed:**
 - **The report sub-tabs are fully reachable again on narrow screens.** The bar
   holding *Summary*, *Reporting groups*, *Spheres*, *Reserves*, *Budget* and
