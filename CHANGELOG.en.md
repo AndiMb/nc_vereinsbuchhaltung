@@ -27,6 +27,16 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   bar scrolls it into view automatically. The same applies to the sub-tabs
   under *Entries* and *Contributions* and – with the Nextcloud sidebar open or
   with longer labels – on the desktop too.
+- **Amount fields now show the amount the way it appears next to them:
+  "20.000,00 €" instead of "20000".** In the budget, the *Plan* column was a
+  bare number sitting next to the formatted *Actual* and *Difference* columns –
+  with four- and five-digit figures it was hard to tell 5,000 from 50,000
+  (issue #34). The same applies to every other amount field: entry amount and
+  split lines, opening balance, open items, membership fees and the default
+  fee. While editing, the field still shows the bare value so that typing does
+  not fight a live format; both notations are accepted – "20000", "20.000,00"
+  or "20000.5". Anything unreadable restores the previous value instead of
+  silently setting it to 0.
 - **The treasurer's report and the short report moved into the *More exports*
   menu on phones.** As separate buttons they no longer fitted into the row and
   pushed the menu off screen. The short report's date field is now part of that

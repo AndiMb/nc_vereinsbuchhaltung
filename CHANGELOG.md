@@ -30,6 +30,17 @@ verwenden, z. B. `**Neu:**`.
   einen hinteren Reiter, rückt dieser von selbst ins Bild. Das gilt genauso
   für die Unterreiter unter *Buchungen* und *Beiträge* und – bei geöffneter
   Nextcloud-Seitenleiste oder längeren Beschriftungen – auch am Desktop.
+- **Betragsfelder zeigen den Betrag jetzt so, wie er daneben steht:
+  „20.000,00 €" statt „20000".** Im Finanzplan stand die Spalte *Plan (Soll)*
+  als nackte Zahl neben den formatierten Spalten *Ist* und *Differenz* – bei
+  vier- und fünfstelligen Planwerten war schwer zu sehen, ob da 5.000 oder
+  50.000 steht (Issue #34). Das gilt genauso für alle anderen Betragsfelder:
+  Buchungsbetrag und Aufteilung, Eröffnungssaldo, offene Posten,
+  Mitgliedsbeiträge und den Standard-Beitrag. Zum Bearbeiten zeigt das Feld
+  weiterhin den nackten Wert, damit man nicht gegen eine mitlaufende
+  Formatierung antippt; eingeben lässt sich beides – „20000", „20.000,00" oder
+  „20000.5". Was sich nicht lesen lässt, setzt den alten Wert zurück, statt
+  ihn stillschweigend auf 0 zu setzen.
 - **Kassenbericht und Kurzbericht sind auf dem Handy in das Menü *Weitere
   Exporte* gewandert.** Als eigene Schaltflächen passten sie dort nicht mehr
   in die Zeile und schoben das Menü aus dem Bild. Das Datumsfeld des

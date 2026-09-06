@@ -23,7 +23,9 @@ test.describe('Buchungen', () => {
 			await tourSkip.click()
 		}
 
-		await dialog.locator('input[type="number"]').fill('120')
+		// Ueber das Label statt ueber den Feldtyp: Betragsfelder sind seit
+		// Issue #34 Textfelder, die ihren Wert selbst formatieren.
+		await dialog.getByLabel('Betrag (€)', { exact: true }).fill('120')
 		await pickNcSelectOption(dialog, '– Kategorie wählen –', 'Mitgliedsbeiträge')
 		// Das Geldkonto ist mit dem ersten Bank-/Kassenkonto vorbelegt – passt.
 		await dialog.locator('input[type="date"]').fill('2031-03-15')

@@ -49,12 +49,9 @@
 
 			<div class="vbh-form">
 				<label>{{ t('Betrag (€)') }}
-					<input
+					<AmountInput
 						v-model="form.amount"
-						type="number"
-						step="0.01"
-						min="0"
-						class="vbh-short">
+						class="vbh-short" />
 				</label>
 				<label>{{ t('Frequenz') }}
 					<select v-model="form.frequency">
@@ -92,6 +89,7 @@
 <script>
 import { NcButton, NcModal, NcSelect } from '@nextcloud/vue'
 import { toRefs } from 'vue'
+import AmountInput from './AmountInput.vue'
 import { useAccounts } from '../composables/useAccounts.js'
 import { usePermissions } from '../composables/usePermissions.js'
 import { frequencyOptions } from '../lib/frequency.js'
@@ -119,7 +117,7 @@ function emptyForm() {
  */
 export default {
 	name: 'MemberDialog',
-	components: { NcModal, NcButton, NcSelect },
+	components: { NcModal, NcButton, NcSelect, AmountInput },
 	props: {
 		show: { type: Boolean, default: false },
 		saving: { type: Boolean, default: false },

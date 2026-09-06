@@ -1,0 +1,158 @@
+<template>
+	<input
+		:value="display"
+		type="text"
+		inputmode="decimal"
+		autocomplete="off"
+		@focus="onFocus"
+		@input="onInput"
+		@blur="onBlur"
+		@keydown.enter="onEnter">
+</template>
+
+<script>
+import { amountInputRaw, formatAmountInput, parseAmountInput, roundCents } from '../lib/format.js'
+
+/**
+ * Betragsfeld in der Schreibweise der App: unbearbeitet zeigt es
+ * "20.000,00 €" wie die Tabellenspalten daneben, beim Fokussieren wird der
+ * nackte Wert editierbar, beim Verlassen wieder formatiert (Issue #34).
+ *
+ * Warum kein <input type="number">: dessen Wert muss laut HTML-Spezifikation
+ * eine "valid floating-point number" sein, der Browser verwirft "20.000,00"
+ * also stillschweigend. Tausendertrennzeichen sind mit dem Feldtyp schlicht
+ * nicht darstellbar - deshalb ein Textfeld mit inputmode="decimal", das die
+ * Zifferntastatur auf Mobilgeräten genauso öffnet.
+ *
+ * Wurzelelement ist das <input> selbst: class, placeholder, aria-label und
+ * disabled fallen damit unverändert vom Aufrufer durch, die bestehenden
+ * Feld-Stile (.vbh-num, .vbh-short, …) gelten weiter.
+ *
+ * Beim Tippen meldet das Feld jeden lesbaren Zwischenstand als
+ * update:modelValue - Anzeigen, die am Wert hängen (der offene Rest einer
+ * Aufteilung), bleiben so live. 'change' kommt dagegen erst beim Verlassen
+ * und nur bei echter Änderung, damit ein blosser Tab-Durchlauf nicht speichert.
+ * Unlesbare Eingaben setzen den Wert auf den Stand vor dem Fokus zurück: ein
+ * Vertipper darf keinen Planwert auf 0 setzen.
+ */
+export default {
+	name: 'AmountInput',
+
+	props: {
+		/** Betrag in Euro; '' bzw. null lassen das Feld leer (Platzhalter). */
+		modelValue: { type: [Number, String], default: '' },
+		/** Kein '€' an der Anzeige – für Felder, neben denen schon eines steht. */
+		hideCurrency: { type: Boolean, default: false },
+		/** Wert, den ein geleertes Feld meldet (Planwerte wollen hier 0). */
+		emptyValue: { type: [Number, String], default: '' },
+	},
+
+	emits: ['update:modelValue', 'change'],
+
+	data() {
+		return {
+			display: '',
+			focused: false,
+			// Stand beim Fokussieren: Ziel des Rücksprungs bei unlesbarer
+			// Eingabe und Vergleichswert für 'change'.
+			valueAtFocus: '',
+		}
+	},
+
+	watch: {
+		modelValue: {
+			immediate: true,
+			handler(v) {
+				// $el fehlt beim ersten, sofortigen Lauf noch - dann genuegt der
+				// Zustand, das erste Rendern nimmt ihn mit.
+				if (!this.focused) { this.setDisplay(this.$el, formatAmountInput(v, !this.hideCurrency)) }
+			},
+		},
+	},
+
+	methods: {
+		/**
+		 * Setzt die Anzeige - im Zustand und sofort im Feld.
+		 *
+		 * Beides ist noetig, und beides muss *synchron* geschehen:
+		 *
+		 * Vue vergleicht beim Rendern gegen den zuletzt *gebundenen* Wert, nicht
+		 * gegen den im DOM stehenden. Tippt jemand "abc" ueber "20.000,00 €" und
+		 * verlaesst das Feld, springt die Bindung auf denselben Wert zurueck -
+		 * Vue sieht keine Aenderung, ueberschreibt das Feld nicht, und "abc"
+		 * bliebe sichtbar stehen, obwohl der Wert laengst wieder 20000 ist.
+		 *
+		 * Nachgereicht per $nextTick faellt dieses Schreiben dagegen mitten in
+		 * fremde Eingabefolgen: Playwrights fill() markiert nach dem Fokussieren
+		 * alles und fuegt dann ein - schreibt hier zwischendurch jemand ins Feld,
+		 * ist die Markierung weg und der neue Text landet HINTER dem alten
+		 * ("500" + "20000" = 50.020.000). Dasselbe trifft Passwortmanager,
+		 * Autofill und sehr schnelle Tipper. Synchron gesetzt gibt es kein
+		 * solches Zeitfenster, und Vues spaeterer Patch wird zum Nichts-Tun,
+		 * weil er nur bei abweichendem Wert ueberhaupt schreibt.
+		 *
+		 * @param {HTMLInputElement|null} el Das Feld, falls schon vorhanden
+		 * @param {string} text Anzeigetext
+		 */
+		setDisplay(el, text) {
+			this.display = text
+			if (el && el.value !== text) { el.value = text }
+		},
+
+		/**
+		 * Beim Fokussieren wird aus "20.000,00 €" das nackte "20000".
+		 *
+		 * Damit aendert sich der Feldinhalt unter dem Cursor, und jede
+		 * Markierung, die vor dem Fokus-Ereignis gesetzt wurde, zeigt danach
+		 * ins Leere - der Browser hebt sie beim Schreiben auf. Genau das tut
+		 * Playwrights fill(): es markiert alles und fokussiert *dann*, um
+		 * anschliessend ueber die Markierung zu schreiben; ohne Markierung
+		 * landet der neue Text hinter dem alten ("20000" + "50.000,50").
+		 * Dasselbe gilt fuer Autofill und Passwortmanager. Nach einer
+		 * Textaenderung wird deshalb wieder alles markiert - fuer Tastatur-
+		 * nutzer ohnehin das gewohnte Verhalten eines Betragsfeldes, und ein
+		 * Mausklick setzt den Cursor beim Loslassen wie immer selbst.
+		 *
+		 * @param {FocusEvent} event Fokus-Ereignis des Feldes
+		 */
+		onFocus(event) {
+			this.focused = true
+			this.valueAtFocus = this.modelValue
+			const raw = amountInputRaw(this.modelValue)
+			const geaendert = event.target.value !== raw
+			this.setDisplay(event.target, raw)
+			if (geaendert) { event.target.select() }
+		},
+
+		onInput(event) {
+			this.display = event.target.value
+			if (event.target.value.trim() === '') {
+				this.$emit('update:modelValue', this.emptyValue)
+				return
+			}
+			const n = parseAmountInput(event.target.value)
+			if (n !== null) { this.$emit('update:modelValue', n) }
+		},
+
+		onBlur(event) {
+			this.focused = false
+			const raw = event.target.value.trim()
+			let value
+			if (raw === '') {
+				value = this.emptyValue
+			} else {
+				const n = parseAmountInput(raw)
+				value = n === null ? this.valueAtFocus : roundCents(n)
+			}
+			this.setDisplay(event.target, formatAmountInput(value, !this.hideCurrency))
+			this.$emit('update:modelValue', value)
+			if (value !== this.valueAtFocus) { this.$emit('change', value) }
+		},
+
+		/** Enter schließt die Eingabe ab (und speichert damit, wo 'change' hängt). */
+		onEnter(event) {
+			event.target.blur()
+		},
+	},
+}
+</script>

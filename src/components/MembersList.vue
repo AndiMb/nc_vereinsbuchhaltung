@@ -74,12 +74,9 @@
 
 						<template v-if="editing && row.fee && editing.id === row.fee.id">
 							<td class="num">
-								<input
+								<AmountInput
 									v-model="editing.amount"
-									type="number"
-									step="0.01"
-									min="0"
-									class="vbh-short">
+									class="vbh-short" />
 							</td>
 							<td>
 								<select v-model="editing.frequency">
@@ -223,6 +220,7 @@ import { mdiBankTransfer, mdiCancel, mdiDelete, mdiPencil } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { NcActionButton, NcActions, NcButton, NcEmptyContent, NcIconSvgWrapper } from '@nextcloud/vue'
 import { toRefs } from 'vue'
+import AmountInput from './AmountInput.vue'
 import BankAccountChangeDialog from './BankAccountChangeDialog.vue'
 import MemberCard from './MemberCard.vue'
 import MemberDialog from './MemberDialog.vue'
@@ -247,7 +245,7 @@ import { FREQUENCY_MONTHS, frequencyLabel, frequencyOptions } from '../lib/frequ
  */
 export default {
 	name: 'MembersList',
-	components: { NcButton, NcActions, NcActionButton, NcEmptyContent, NcIconSvgWrapper, BankAccountChangeDialog, MemberDialog, MemberImportDialog, MemberCard },
+	components: { NcButton, NcActions, NcActionButton, NcEmptyContent, NcIconSvgWrapper, AmountInput, BankAccountChangeDialog, MemberDialog, MemberImportDialog, MemberCard },
 	props: {
 		isMobile: { type: Boolean, default: false },
 		defaultFeeAmount: { type: [Number, String], default: '' },

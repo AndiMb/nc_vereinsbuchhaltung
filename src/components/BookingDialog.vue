@@ -52,16 +52,13 @@
 			<!-- Mobil: Betrag zuerst und groß, Kontenwahl über Auswahl-Sheets -->
 			<template v-if="isMobile">
 				<div class="vbh-bigamount">
-					<input
-						v-model.number="formAmount"
-						type="number"
-						step="0.01"
-						min="0.01"
-						inputmode="decimal"
+					<AmountInput
+						v-model="formAmount"
+						hideCurrency
 						placeholder="0,00"
 						class="vbh-bigamount-input"
 						:aria-label="t('Betrag in Euro')"
-						:disabled="bookingLocked">
+						:disabled="bookingLocked" />
 					<span class="vbh-bigamount-cur">€</span>
 				</div>
 				<div class="vbh-mfields">
@@ -183,13 +180,10 @@
 						class="vbh-short"
 						:placeholder="t('optional')"
 						:disabled="bookingLocked"></label>
-					<label>{{ formSplitMode ? t('Gesamtbetrag (€)') : t('Betrag (€)') }}<input
-						v-model.number="formAmount"
-						type="number"
-						step="0.01"
-						min="0.01"
+					<label>{{ formSplitMode ? t('Gesamtbetrag (€)') : t('Betrag (€)') }}<AmountInput
+						v-model="formAmount"
 						class="vbh-num"
-						:disabled="bookingLocked"></label>
+						:disabled="bookingLocked" /></label>
 				</div>
 				<template v-if="bookingMode === 'simple'">
 					<div class="vbh-form" :class="{ 'vbh-tour-target': bookingTour.active && bookingTour.step === 1 }">
@@ -303,16 +297,13 @@
 							label="label"
 							:placeholder="t('– Konto wählen –')"
 							@update:modelValue="setSplitLineAccount(i, $event)" />
-						<input
-							:value="line.amount"
-							type="number"
-							step="0.01"
-							min="0.01"
-							inputmode="decimal"
+						<AmountInput
+							:modelValue="line.amount"
+							:emptyValue="null"
 							class="vbh-num vbh-split-amount"
 							:aria-label="t('Teilbetrag Zeile {n}', { n: i + 1 })"
 							:disabled="bookingLocked"
-							@input="setSplitLineAmount(i, $event.target.value)">
+							@update:modelValue="setSplitLineAmount(i, $event)" />
 						<NcButton
 							v-if="!bookingLocked"
 							variant="tertiary"
@@ -453,6 +444,7 @@
 import { mdiCamera, mdiDelete, mdiPaperclip } from '@mdi/js'
 import { NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper, NcLoadingIcon, NcModal, NcSelect } from '@nextcloud/vue'
 import { toRefs } from 'vue'
+import AmountInput from './AmountInput.vue'
 import { useAccounts } from '../composables/useAccounts.js'
 import { useJournal } from '../composables/useJournal.js'
 import { autogrow } from '../lib/autogrow.js'
@@ -461,7 +453,7 @@ import { splitBalanced, splitRemainder, splitSideOf } from '../lib/split.js'
 
 export default {
 	name: 'BookingDialog',
-	components: { NcModal, NcButton, NcSelect, NcCheckboxRadioSwitch, NcIconSvgWrapper, NcLoadingIcon },
+	components: { NcModal, NcButton, NcSelect, NcCheckboxRadioSwitch, NcIconSvgWrapper, NcLoadingIcon, AmountInput },
 	directives: { autogrow },
 	props: {
 		show: { type: Boolean, default: false },
@@ -735,7 +727,7 @@ export default {
 		},
 
 		setSplitLineAmount(index, value) {
-			this.patchSplitLine(index, { amount: value === '' ? null : Number(value) })
+			this.patchSplitLine(index, { amount: (value === '' || value === null) ? null : Number(value) })
 		},
 
 		patchSplitLine(index, patch) {

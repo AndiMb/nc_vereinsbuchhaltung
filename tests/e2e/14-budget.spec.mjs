@@ -34,4 +34,47 @@ test.describe('Finanzplan', () => {
 		const detail = await api.raw(request, 'GET', `/budget/snapshots/${snapshot.id}`)
 		expect(detail.status()).toBe(200)
 	})
+
+	// Issue #34: die Planwerte standen als nackte Zahl ("20000") neben den
+	// formatierten Spalten "Ist" und "Differenz". Geprueft wird die ganze
+	// Kette: eingetippt wird wie ein Mensch tippt, angezeigt wird formatiert,
+	// und beim Neuladen ist der Wert auch wirklich im Backend angekommen.
+	test('Planwerte werden formatiert angezeigt und eingelesen', async ({ page }) => {
+		await openApp(page, USERS.verwalter)
+		await switchTab(page, 'Berichte')
+		await visibleSection(page).getByRole('button', { name: 'Finanzplan', exact: true }).click()
+
+		// Der Planwert aus dem beforeAll steht formatiert da, wie die Spalten
+		// "Ist" und "Differenz" daneben.
+		const feld = visibleSection(page).locator('.vbh-planinput').first()
+		await expect(feld).toHaveValue(/^500,00\s*€$/)
+
+		// Beim Bearbeiten gibt das Feld den nackten Wert frei - niemand soll
+		// gegen eine mitlaufende Maske antippen muessen.
+		await feld.focus()
+		await expect(feld).toHaveValue('500')
+
+		// Tausenderpunkt: eingetippt "20000", angezeigt "20.000,00 €".
+		await feld.fill('20000')
+		await feld.blur()
+		await expect(feld).toHaveValue(/^20\.000,00\s*€$/)
+
+		// Deutsche Schreibweise mit Punkt UND Komma wird richtig gelesen.
+		await feld.fill('50.000,50')
+		await feld.blur()
+		await expect(feld).toHaveValue(/^50\.000,50\s*€$/)
+
+		// Unlesbares springt auf den letzten gueltigen Wert zurueck, statt
+		// den Planwert stillschweigend auf 0 zu setzen.
+		await feld.fill('keine Zahl')
+		await feld.blur()
+		await expect(feld).toHaveValue(/^50\.000,50\s*€$/)
+
+		// Gespeichert wird auch wirklich.
+		await page.reload()
+		await page.locator('.vbh').waitFor()
+		await switchTab(page, 'Berichte')
+		await visibleSection(page).getByRole('button', { name: 'Finanzplan', exact: true }).click()
+		await expect(visibleSection(page).locator('.vbh-planinput').first()).toHaveValue(/^50\.000,50\s*€$/)
+	})
 })
