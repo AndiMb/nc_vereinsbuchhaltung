@@ -99,10 +99,29 @@ export default {
 			if (el && el.value !== text) { el.value = text }
 		},
 
+		/**
+		 * Beim Fokussieren wird aus "20.000,00 €" das nackte "20000".
+		 *
+		 * Damit aendert sich der Feldinhalt unter dem Cursor, und jede
+		 * Markierung, die vor dem Fokus-Ereignis gesetzt wurde, zeigt danach
+		 * ins Leere - der Browser hebt sie beim Schreiben auf. Genau das tut
+		 * Playwrights fill(): es markiert alles und fokussiert *dann*, um
+		 * anschliessend ueber die Markierung zu schreiben; ohne Markierung
+		 * landet der neue Text hinter dem alten ("20000" + "50.000,50").
+		 * Dasselbe gilt fuer Autofill und Passwortmanager. Nach einer
+		 * Textaenderung wird deshalb wieder alles markiert - fuer Tastatur-
+		 * nutzer ohnehin das gewohnte Verhalten eines Betragsfeldes, und ein
+		 * Mausklick setzt den Cursor beim Loslassen wie immer selbst.
+		 *
+		 * @param {FocusEvent} event Fokus-Ereignis des Feldes
+		 */
 		onFocus(event) {
 			this.focused = true
 			this.valueAtFocus = this.modelValue
-			this.setDisplay(event.target, amountInputRaw(this.modelValue))
+			const raw = amountInputRaw(this.modelValue)
+			const geaendert = event.target.value !== raw
+			this.setDisplay(event.target, raw)
+			if (geaendert) { event.target.select() }
 		},
 
 		onInput(event) {
