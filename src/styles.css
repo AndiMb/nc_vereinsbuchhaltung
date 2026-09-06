@@ -102,7 +102,7 @@
 /* Folgt eine Filterleiste, traegt die die Trennlinie - sonst zwei Linien. */
 .vbh-sectiontop:has(+ .vbh-filterbar) { border-bottom: none; }
 
-.vbh-sectiontop-actions { display: inline-flex; align-items: center; gap: 8px; }
+.vbh-sectiontop-actions { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
 
 .vbh-export-btn { display: inline-flex; align-items: center; height: 34px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: var(--border-radius, 6px); background: var(--color-main-background); color: var(--color-main-text); font-size: 0.85em; font-weight: 600; text-decoration: none; white-space: nowrap; cursor: pointer; }
 
@@ -182,9 +182,35 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-pending-title { font-size: 0.85em; color: var(--color-text-lighter); }
 
-.vbh-subtabs { display: inline-flex; gap: 2px; }
+/* Die Reiterleiste laeuft bei sechs Reitern (Berichte) schmal aus dem Bild.
+   Vorher schnitt .vbh (overflow:hidden) den Ueberhang ab, ohne dass man ihn
+   scrollen konnte - die hinteren Reiter waren unerreichbar (Issue #38).
+   Bewusst ohne Media Query: der Ueberlauf trifft auch den Desktop, sobald die
+   Nextcloud-Seitenleiste offen ist oder laengere (englische) Labels laufen. */
+.vbh-subtabs { display: inline-flex; gap: 2px; min-width: 0; flex-shrink: 1; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
 
-.vbh-subtabs.vbh-subtabs button { padding: 5px 14px; border: none; border-bottom: 3px solid transparent; background: none; cursor: pointer; color: var(--color-main-text); font-weight: 600; font-size: 0.9em; border-radius: 6px 6px 0 0; display: inline-flex; align-items: center; gap: 6px; }
+/* Scroll-Schatten: zeigt an, auf welcher Seite es weitergeht. Die beiden
+   ersten Verlaeufe sind Deckel in Hintergrundfarbe und scrollen mit dem
+   Inhalt (background-attachment: local), die beiden hinteren sind die
+   Schatten und bleiben stehen (scroll). Am Anfang liegt der linke Deckel
+   ueber dem linken Schatten und verdeckt ihn; scrollt man los, wandert er
+   weg und der Schatten wird sichtbar. Rein per CSS, ohne Messlogik.
+   Noetig, weil auf Touch-Geraeten die Scrollbar nur waehrend des Scrollens
+   eingeblendet wird - der Hinweis fehlte also genau dort, wo er zaehlt. */
+.vbh-subtabs {
+	background-color: var(--color-main-background);
+	background-image:
+		linear-gradient(to right, var(--color-main-background), transparent),
+		linear-gradient(to left, var(--color-main-background), transparent),
+		linear-gradient(to right, var(--color-border-dark, #ccc), transparent),
+		linear-gradient(to left, var(--color-border-dark, #ccc), transparent);
+	background-position: left center, right center, left center, right center;
+	background-repeat: no-repeat;
+	background-size: 24px 100%, 24px 100%, 10px 100%, 10px 100%;
+	background-attachment: local, local, scroll, scroll;
+}
+
+.vbh-subtabs.vbh-subtabs button { flex: 0 0 auto; white-space: nowrap; padding: 5px 14px; border: none; border-bottom: 3px solid transparent; background: none; cursor: pointer; color: var(--color-main-text); font-weight: 600; font-size: 0.9em; border-radius: 6px 6px 0 0; display: inline-flex; align-items: center; gap: 6px; }
 
 .vbh-subtabs.vbh-subtabs button:hover { background: var(--color-background-hover); }
 

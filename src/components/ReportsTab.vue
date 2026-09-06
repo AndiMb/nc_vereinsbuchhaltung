@@ -1,7 +1,7 @@
 <template>
 	<div style="display: contents;">
 		<div class="vbh-sectiontop">
-			<div class="vbh-subtabs">
+			<div ref="subtabs" class="vbh-subtabs">
 				<button :class="{ active: reportView === 'summary' }" @click="$emit('update:report-view', 'summary')">
 					{{ t('Auswertung') }}
 				</button>
@@ -23,13 +23,13 @@
 			</div>
 			<div class="vbh-sectiontop-actions">
 				<a
-					v-if="reportView === 'summary' && selectedYear"
+					v-if="reportView === 'summary' && selectedYear && !isMobile"
 					:href="kassenberichtUrl"
 					target="_blank"
 					rel="noopener"
 					class="vbh-export-btn"
 					:title="t('Druckfertiger Kassenbericht für die Mitgliederversammlung (öffnet in neuem Tab, dort drucken oder als PDF speichern)')"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> {{ t('Kassenbericht') }}</a>
-				<span v-if="reportView === 'summary'" class="vbh-kurzbericht-picker">
+				<span v-if="reportView === 'summary' && !isMobile" class="vbh-kurzbericht-picker">
 					<input
 						v-model="kurzberichtSince"
 						type="date"
@@ -46,7 +46,10 @@
 				     sonst wird die Kopfzeile durch Reiter + bis zu 7 Buttons zwei-
 				     bis dreizeilig (gleiches Muster wie die Zeilen-Aktionen in
 				     BookingsTab.vue). Kassenbericht und Kurzbericht bleiben sichtbar,
-				     das sind laut Handbuch die beiden meistgenutzten Berichte. -->
+				     das sind laut Handbuch die beiden meistgenutzten Berichte.
+				     Mobil passt selbst das nicht mehr: dort lief die Zeile aus dem
+				     Bild und das Menue war nicht mehr erreichbar (Issue #38), also
+				     wandern auch die beiden hier hinein. -->
 				<NcActions
 					v-if="reportView === 'summary'"
 					:menuName="t('Weitere Exporte')"
@@ -55,6 +58,36 @@
 					<template #icon>
 						<NcIconSvgWrapper :path="mdiDownload" :size="20" />
 					</template>
+					<NcActionLink
+						v-if="isMobile && selectedYear"
+						:href="kassenberichtUrl"
+						target="_blank"
+						:title="t('Druckfertiger Kassenbericht für die Mitgliederversammlung (öffnet in neuem Tab, dort drucken oder als PDF speichern)')">
+						<template #icon>
+							<NcIconSvgWrapper :path="mdiPrinter" :size="16" />
+						</template>
+						{{ t('Kassenbericht') }}
+					</NcActionLink>
+					<NcActionInput
+						v-if="isMobile"
+						v-model="kurzberichtSinceDate"
+						type="date"
+						:isNativePicker="true"
+						:label="t('Bewegungen seit')">
+						<template #icon>
+							<NcIconSvgWrapper :path="mdiCalendarRange" :size="16" />
+						</template>
+					</NcActionInput>
+					<NcActionLink
+						v-if="isMobile"
+						:href="kurzberichtUrl"
+						target="_blank"
+						:title="t('Kurzbericht für die nächste Vorstandssitzung (öffnet in neuem Tab, dort drucken oder als PDF speichern)')">
+						<template #icon>
+							<NcIconSvgWrapper :path="mdiPrinter" :size="16" />
+						</template>
+						{{ t('Kurzbericht') }}
+					</NcActionLink>
 					<NcActionLink
 						v-if="selectedYear"
 						:href="attachmentsZipUrl"
@@ -925,9 +958,9 @@
 </template>
 
 <script>
-import { mdiCommentPlusOutline, mdiCommentText, mdiDelete, mdiDownload, mdiPaperclip, mdiPrinter } from '@mdi/js'
+import { mdiCalendarRange, mdiCommentPlusOutline, mdiCommentText, mdiDelete, mdiDownload, mdiPaperclip, mdiPrinter } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { NcActionLink, NcActions, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, NcModal } from '@nextcloud/vue'
+import { NcActionInput, NcActionLink, NcActions, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, NcModal } from '@nextcloud/vue'
 import {
 	CategoryScale,
 	Chart,
@@ -955,7 +988,7 @@ Chart.register(LineController, LineElement, PointElement, CategoryScale, LinearS
 
 export default {
 	name: 'ReportsTab',
-	components: { NcButton, NcActions, NcActionLink, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, NcModal, CostCenterPanel, SphereAssignPanel },
+	components: { NcButton, NcActions, NcActionInput, NcActionLink, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, NcModal, CostCenterPanel, SphereAssignPanel },
 	props: {
 		// Kostenstellen-Modus (group|account|manual), gesteuert ueber den
 		// Gruppierungs-Waehler in der Kopfzeile (nur reportView==='costcenters').
@@ -1032,6 +1065,7 @@ export default {
 			mdiDelete,
 			mdiCommentText,
 			mdiCommentPlusOutline,
+			mdiCalendarRange,
 			balancesIncludeChildren: false,
 			multiyearTrendData: null,
 			reserveData: null,
@@ -1134,6 +1168,28 @@ export default {
 
 		sortedBalances() { return this.applySort(this.balanceRows, this.sort.balances, ['number']) },
 		kurzberichtUrl() { return api.kurzberichtUrl(this.kurzberichtSince) },
+
+		// Mobil steckt das "seit"-Datum in einem NcActionInput, und das reicht den
+		// Wert als Date-Objekt durch (NcDateTimePickerNative liest getFullYear/
+		// getMonth/getDate). URL und localStorage-Merker arbeiten dagegen mit
+		// 'YYYY-MM-DD', deshalb diese Bruecke. Bewusst ueber die lokalen
+		// Datumsteile gerechnet und nicht ueber Date.parse/toISOString:
+		// new Date('2026-08-05') waere UTC-Mitternacht und damit westlich von
+		// Greenwich der Vortag.
+		kurzberichtSinceDate: {
+			get() {
+				const [y, m, d] = String(this.kurzberichtSince).split('-').map(Number)
+				if (!y || !m || !d) { return null }
+				return new Date(y, m - 1, d)
+			},
+
+			set(v) {
+				if (!(v instanceof Date) || isNaN(v.getTime())) { return }
+				const pad = (n) => String(n).padStart(2, '0')
+				this.kurzberichtSince = `${v.getFullYear()}-${pad(v.getMonth() + 1)}-${pad(v.getDate())}`
+			},
+		},
+
 		// steuert Laden+Redraw des Mehrjahres-Trend-Diagramms (nur in der
 		// Auswertung sichtbar, und nur wenn der Berichte-Tab selbst aktiv ist).
 		trendChartVisible() { return this.isActive && this.reportView === 'summary' },
@@ -1155,6 +1211,15 @@ export default {
 
 		reportView(v) {
 			if (v === 'reserves') { this.loadReserveReport() }
+			this.scrollActiveSubtabIntoView()
+		},
+
+		// Die Reiterleiste ist seit Issue #38 scrollbar; solange der Tab per
+		// v-show ausgeblendet ist, hat sie keine Masse und laesst sich nicht
+		// scrollen. Der Sprung muss deshalb beim Sichtbarwerden nachgeholt
+		// werden, nicht nur beim Wechsel der Unteransicht.
+		isActive(v) {
+			if (v) { this.scrollActiveSubtabIntoView() }
 		},
 
 		// Komfort: zuletzt gewaehltes "seit"-Datum geraetelokal merken (Muster
@@ -1172,6 +1237,7 @@ export default {
 	},
 
 	mounted() {
+		if (this.isActive) { this.scrollActiveSubtabIntoView() }
 		if (this.trendChartVisible) { this.loadMultiyearTrend() }
 		if (this.reportView === 'reserves') { this.loadReserveReport() }
 		// Chart.js malt die Farben einmal ins Canvas; ohne Neuzeichnen bliebe
@@ -1204,6 +1270,20 @@ export default {
 
 		// Vorbelegung fuer das Kurzbericht-"seit"-Feld: letztes gemerktes Datum,
 		// sonst 30 Tage vor heute (typischer Sitzungsabstand).
+		// Deep-Links (untere Leiste, Hilfe) springen direkt auf einen hinteren
+		// Reiter ("reports:audit"). In der scrollbaren Leiste laege der dann
+		// ausserhalb des Bildes - der aktive Reiter waere unsichtbar.
+		scrollActiveSubtabIntoView() {
+			this.$nextTick(() => {
+				const bar = this.$refs.subtabs
+				if (!bar) { return }
+				const active = bar.querySelector('button.active')
+				// block: 'nearest' haelt die vertikale Position fest - sonst wuerde
+				// der Aufruf die ganze Seite mitscrollen.
+				if (active) { active.scrollIntoView({ inline: 'nearest', block: 'nearest' }) }
+			})
+		},
+
 		defaultKurzberichtSince() {
 			try {
 				const saved = localStorage.getItem('vbh_kurzbericht_since')
