@@ -63,14 +63,18 @@ export default {
 		modelValue: {
 			immediate: true,
 			handler(v) {
-				if (!this.focused) { this.setDisplay(formatAmountInput(v, !this.hideCurrency)) }
+				// $el fehlt beim ersten, sofortigen Lauf noch - dann genuegt der
+				// Zustand, das erste Rendern nimmt ihn mit.
+				if (!this.focused) { this.setDisplay(this.$el, formatAmountInput(v, !this.hideCurrency)) }
 			},
 		},
 	},
 
 	methods: {
 		/**
-		 * Setzt die Anzeige - und schreibt sie notfalls selbst ins Feld.
+		 * Setzt die Anzeige - im Zustand und sofort im Feld.
+		 *
+		 * Beides ist noetig, und beides muss *synchron* geschehen:
 		 *
 		 * Vue vergleicht beim Rendern gegen den zuletzt *gebundenen* Wert, nicht
 		 * gegen den im DOM stehenden. Tippt jemand "abc" ueber "20.000,00 €" und
@@ -78,19 +82,27 @@ export default {
 		 * Vue sieht keine Aenderung, ueberschreibt das Feld nicht, und "abc"
 		 * bliebe sichtbar stehen, obwohl der Wert laengst wieder 20000 ist.
 		 *
+		 * Nachgereicht per $nextTick faellt dieses Schreiben dagegen mitten in
+		 * fremde Eingabefolgen: Playwrights fill() markiert nach dem Fokussieren
+		 * alles und fuegt dann ein - schreibt hier zwischendurch jemand ins Feld,
+		 * ist die Markierung weg und der neue Text landet HINTER dem alten
+		 * ("500" + "20000" = 50.020.000). Dasselbe trifft Passwortmanager,
+		 * Autofill und sehr schnelle Tipper. Synchron gesetzt gibt es kein
+		 * solches Zeitfenster, und Vues spaeterer Patch wird zum Nichts-Tun,
+		 * weil er nur bei abweichendem Wert ueberhaupt schreibt.
+		 *
+		 * @param {HTMLInputElement|null} el Das Feld, falls schon vorhanden
 		 * @param {string} text Anzeigetext
 		 */
-		setDisplay(text) {
+		setDisplay(el, text) {
 			this.display = text
-			this.$nextTick(() => {
-				if (this.$el && this.$el.value !== text) { this.$el.value = text }
-			})
+			if (el && el.value !== text) { el.value = text }
 		},
 
-		onFocus() {
+		onFocus(event) {
 			this.focused = true
 			this.valueAtFocus = this.modelValue
-			this.setDisplay(amountInputRaw(this.modelValue))
+			this.setDisplay(event.target, amountInputRaw(this.modelValue))
 		},
 
 		onInput(event) {
@@ -113,7 +125,7 @@ export default {
 				const n = parseAmountInput(raw)
 				value = n === null ? this.valueAtFocus : roundCents(n)
 			}
-			this.setDisplay(formatAmountInput(value, !this.hideCurrency))
+			this.setDisplay(event.target, formatAmountInput(value, !this.hideCurrency))
 			this.$emit('update:modelValue', value)
 			if (value !== this.valueAtFocus) { this.$emit('change', value) }
 		},

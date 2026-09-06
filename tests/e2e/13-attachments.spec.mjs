@@ -57,7 +57,9 @@ test.describe('Belegablage', () => {
 			await tourSkip.click()
 		}
 
-		await dialog.locator('input[type="number"]').fill('42')
+		// Ueber das Label statt ueber den Feldtyp: Betragsfelder sind seit
+		// Issue #34 Textfelder, die ihren Wert selbst formatieren.
+		await dialog.getByLabel('Betrag (€)', { exact: true }).fill('42')
 		await pickNcSelectOption(dialog, '– Kategorie wählen –', 'Mitgliedsbeiträge')
 		await dialog.locator('input[type="date"]').fill('2026-05-04')
 		await dialog.getByPlaceholder('z. B. Mitgliedsbeitrag Max Mustermann').fill('Beleg direkt beim Anlegen')

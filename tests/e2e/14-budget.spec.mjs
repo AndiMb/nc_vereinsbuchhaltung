@@ -44,19 +44,20 @@ test.describe('Finanzplan', () => {
 		await switchTab(page, 'Berichte')
 		await visibleSection(page).getByRole('button', { name: 'Finanzplan', exact: true }).click()
 
+		// Der Planwert aus dem beforeAll steht formatiert da, wie die Spalten
+		// "Ist" und "Differenz" daneben.
 		const feld = visibleSection(page).locator('.vbh-planinput').first()
-		await expect(feld).toBeVisible()
+		await expect(feld).toHaveValue(/^500,00\s*€$/)
+
+		// Beim Bearbeiten gibt das Feld den nackten Wert frei - niemand soll
+		// gegen eine mitlaufende Maske antippen muessen.
+		await feld.focus()
+		await expect(feld).toHaveValue('500')
 
 		// Tausenderpunkt: eingetippt "20000", angezeigt "20.000,00 €".
 		await feld.fill('20000')
 		await feld.blur()
 		await expect(feld).toHaveValue(/^20\.000,00\s*€$/)
-
-		// Beim Bearbeiten steht der nackte Wert da - niemand soll gegen eine
-		// mitlaufende Maske antippen muessen.
-		await feld.focus()
-		await expect(feld).toHaveValue('20000')
-		await feld.blur()
 
 		// Deutsche Schreibweise mit Punkt UND Komma wird richtig gelesen.
 		await feld.fill('50.000,50')
