@@ -19,6 +19,24 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+**Behoben:**
+- **In Firefox ist die Jahreszahl in Datumsfeldern wieder vollständig zu
+  sehen.** Firefox zeichnet seit Version 109 einen Kalenderknopf innerhalb des
+  Eingabefeldes, rechnet ihn aber nicht gegen die Breite auf, die Nextcloud
+  allen Eingabefeldern vorgibt – er legte sich dadurch über die letzten Stellen
+  des Jahres, aus „09.07.2026" wurde sichtbar „09.07.202" (Issue #43). Alle
+  Datumsfelder der App sind jetzt breit genug: Buchungsdatum, nächste und erste
+  Fälligkeit, Mandatsdatum, Eröffnungssaldo, offene Posten, SEPA-Fälligkeit und
+  der Zeitraum des Kurzberichts.
+- **Auf dem Handy sind die Schaltflächen in Dialogen wieder daumengroß.** Die
+  Mindesthöhe von 44px für Tippziele galt bisher nur außerhalb von Dialogen –
+  Nextcloud hängt Dialoginhalte an eine andere Stelle der Seite, wodurch die
+  Regel dort ins Leere lief. Im Buchungsdialog waren *Abbrechen* und *Buchen*
+  nur 34px hoch und die Umschalter *Einnahme*/*Ausgabe* 40px; das gilt jetzt in
+  allen Dialogen. Der runde Hilfe-Knopf neben den Sphären ist außerdem wieder
+  wirklich rund – er war zu einem Oval verzogen, am Handy wie am Schreibtisch –
+  und wächst unter dem Finger auf volle Tippzielgröße mit.
+
 ## [0.31.1] – 2026-09-06
 
 **Behoben:**

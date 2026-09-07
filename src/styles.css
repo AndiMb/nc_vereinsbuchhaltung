@@ -743,7 +743,15 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
    waechst. */
 .vbh-autogrow.vbh-autogrow { box-sizing: border-box; resize: none; overflow: hidden; padding-block: 4px; line-height: 1.45; }
 
-.vbh-sphere-help.vbh-sphere-help { flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--color-border); background: var(--color-background-hover); color: var(--color-main-text); cursor: pointer; font-weight: 700; }
+/* Nextclouds Knopf-Grundregel setzt neben Rahmen und Hintergrund auch
+   `min-height: var(--default-clickable-area)` (34px) und seitlichen
+   Innenabstand. Die doppelte Klasse gewinnt hier nichts: min-height und
+   padding sind Eigenschaften, die diese Regel setzt und die frühere Fassung
+   gar nicht – der 26px-Kreis wurde dadurch am Desktop zum 26x34-Oval
+   (07.09.2026 in Firefox nachgemessen). Beides ist deshalb ausdrücklich
+   zurückzusetzen; die Mindesthöhe für Tippziele hängt weiter unten in den
+   Mobil-Media-Queries und überschreibt das dort wieder. */
+.vbh-sphere-help.vbh-sphere-help { flex: 0 0 auto; width: 26px; height: 26px; min-height: 26px; padding: 0; border-radius: 50%; border: 1px solid var(--color-border); background: var(--color-background-hover); color: var(--color-main-text); cursor: pointer; font-weight: 700; }
 
 .vbh-rule-prio input { width: 80px; }
 
@@ -755,7 +763,30 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-short { width: 130px; }
 
-.vbh-date { width: 150px; }
+/* Nextcloud gibt in core/css/inputs.scss JEDEM Eingabefeld eine feste Breite
+   und 12px Innenabstand je Seite:
+
+     select, button:not(…), input, textarea, … { width: 130px; box-sizing: border-box }
+
+   Fuer den Inhalt bleiben damit 104px. Firefox zeichnet seit Version 109 einen
+   Kalenderknopf INNERHALB des Feldes und rechnet ihn nicht gegen diese Breite
+   auf - er legt sich dadurch ueber die Jahreszahl (Issue #43). Chrome ordnet
+   sein Symbol anders an und faellt deshalb nicht auf.
+
+   Zwei Wurzeln, weil NcModal seinen Inhalt aus der App heraus an <body>
+   teleportiert: die Haelfte der Datumsfelder steht in Dialogen und liegt damit
+   NICHT unter `.vbh` - im Browser geprueft (4 von 6 Feldern). `.vbh-modal-inner`
+   ist der gemeinsame Innenabstand aller App-Dialoge und faengt sie ein.
+
+   min-width statt width ist Absicht: das Attribut zaehlt in der Klassenspalte,
+   der Selektor liegt damit bei (0,2,1) und wuerde als width die bewusste
+   Vollbreite der Datumsfelder in `.vbh-mfield input` (mobiler Buchungsdialog,
+   (0,1,1)) und `.vbh-form .vbh-grow input` ((0,2,1), weiter oben im File)
+   ueberschreiben. Als Untergrenze laesst er sie in Ruhe und hebt nur die zu
+   schmalen Felder an. Nextclouds eigene Regel liegt bei (0,0,1) und unterliegt
+   in jedem Fall. */
+.vbh input[type="date"],
+.vbh-modal-inner input[type="date"] { min-width: 150px; }
 
 /* Modals */
 /* Gemeinsamer Innenabstand aller Dialoge - .modal-container__content von
@@ -1235,17 +1266,38 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 /* Nachtrag zur Layout-Prüfung: die restlichen Tippziele.
    Statt jede Schaltfläche einzeln zu benennen, gilt die Mindesthöhe für alle
    Bedienelemente innerhalb der App. Ausgenommen sind die, die ihre Größe
-   bewusst selbst setzen (schwebender Knopf, untere Leiste, Ankreuzfelder). */
+   bewusst selbst setzen (schwebender Knopf, untere Leiste, Ankreuzfelder).
+
+   `.vbh` allein reicht dabei nicht: NcModal teleportiert seinen Inhalt an
+   <body>, jeder Dialog steht damit AUSSERHALB der App-Wurzel und blieb von
+   dieser Regel unberührt – im Buchungsdialog waren „Abbrechen" und „Buchen"
+   34px hoch, die Knopfleiste Einnahme/Ausgabe 40px (07.09.2026 in Firefox bei
+   390px Breite nachgemessen). `.vbh-modal-inner` ist der gemeinsame
+   Innenabstand aller App-Dialoge und fängt sie ein.
+
+   `:is(.vbh, .vbh-modal-inner)` statt zweier ausgeschriebener Selektorlisten:
+   `:is()` zählt mit dem spezifischsten Argument, hier eine Klasse – die
+   Spezifität bleibt damit exakt die alte (0,3,1), die Regel gewinnt weiter
+   gegen Nextclouds (0,1,1) und verliert weiter gegen die doppelte Klasse.
+   */
 @media (max-width: 640px) {
-	.vbh button:not(.vbh-fab):not(.vbh-bottomnav-item),
-	.vbh select,
-	.vbh .vbh-export-btn,
-	.vbh input:not([type="checkbox"]):not([type="radio"]) {
+	:is(.vbh, .vbh-modal-inner) button:not(.vbh-fab):not(.vbh-bottomnav-item),
+	:is(.vbh, .vbh-modal-inner) select,
+	:is(.vbh, .vbh-modal-inner) .vbh-export-btn,
+	:is(.vbh, .vbh-modal-inner) input:not([type="checkbox"]):not([type="radio"]) {
 		min-height: 44px;
 	}
+
+	/* Der runde Hilfe-Knopf setzt sich 26x26 und wird von der Mindesthoehe
+	   darueber zum 26x44-Oval verzogen (border-radius: 50% auf einem nicht
+	   quadratischen Kasten) - am 07.09.2026 auf der Uebersicht nachgemessen.
+	   Ihn von der Regel auszunehmen hiesse, ein 26px-Tippziel stehen zu
+	   lassen; stattdessen waechst er im Quadrat mit. */
+	.vbh-sphere-help.vbh-sphere-help { width: 44px; height: 44px; }
+
 	/* Exportlinks sind <a> im Knopf-Gewand - vertikal zentrieren, sonst klebt
 	   die Beschriftung oben. */
-	.vbh .vbh-export-btn { display: inline-flex; align-items: center; }
+	:is(.vbh, .vbh-modal-inner) .vbh-export-btn { display: inline-flex; align-items: center; }
 
 	/* Lange Kontonamen im Kontenbaum lieber umbrechen als kürzen - der Name
 	   ist die einzige Möglichkeit, das Konto zu unterscheiden. */
@@ -1266,11 +1318,18 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
    nicht nur an der Breite: "pointer: coarse" trifft Finger- und Stiftbedienung
    unabhängig von der Fensterbreite. */
 @media (hover: none) and (pointer: coarse) {
-	.vbh button:not(.vbh-fab):not(.vbh-bottomnav-item),
-	.vbh select,
-	.vbh .vbh-export-btn,
-	.vbh input:not([type="checkbox"]):not([type="radio"]) {
+	:is(.vbh, .vbh-modal-inner) button:not(.vbh-fab):not(.vbh-bottomnav-item),
+	:is(.vbh, .vbh-modal-inner) select,
+	:is(.vbh, .vbh-modal-inner) .vbh-export-btn,
+	:is(.vbh, .vbh-modal-inner) input:not([type="checkbox"]):not([type="radio"]) {
 		min-height: 44px;
 	}
+
+	/* Der runde Hilfe-Knopf setzt sich 26x26 und wird von der Mindesthoehe
+	   darueber zum 26x44-Oval verzogen (border-radius: 50% auf einem nicht
+	   quadratischen Kasten) - am 07.09.2026 auf der Uebersicht nachgemessen.
+	   Ihn von der Regel auszunehmen hiesse, ein 26px-Tippziel stehen zu
+	   lassen; stattdessen waechst er im Quadrat mit. */
+	.vbh-sphere-help.vbh-sphere-help { width: 44px; height: 44px; }
 	.vbh-tabs.vbh-tabs button { min-height: 44px; }
 }
