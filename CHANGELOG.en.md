@@ -33,6 +33,15 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   help button next to the spheres is properly round again – it was stretched
   into an oval on phones and on the desktop alike – and grows to full
   touch-target size under a finger.
+- **The receipt ZIP export contains all receipts again.** With the receipt
+  storage set to *app-internal*, the archive came out empty and listed every
+  receipt in `fehlende_dateien.txt` as not found – even though each one opened
+  and downloaded perfectly on its own (issue #40). The files were never gone:
+  while building the archive the app read them in a way that only exists for
+  storage inside the Nextcloud file tree, not for the app-internal one. Only
+  the ZIP export was affected, and only with app-internal storage. On top of
+  that, `fehlende_dateien.txt` now states the reason for each entry instead of
+  reporting every failure as "not found".
 
 ## [0.31.1] – 2026-09-06
 

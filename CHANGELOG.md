@@ -36,6 +36,15 @@ verwenden, z. B. `**Neu:**`.
   allen Dialogen. Der runde Hilfe-Knopf neben den Sphären ist außerdem wieder
   wirklich rund – er war zu einem Oval verzogen, am Handy wie am Schreibtisch –
   und wächst unter dem Finger auf volle Tippzielgröße mit.
+- **Der ZIP-Export der Belege enthält wieder alle Belege.** Steht die
+  Belegablage auf *App-intern*, kam das Archiv leer heraus und führte in
+  `fehlende_dateien.txt` sämtliche Belege als nicht gefunden auf – obwohl sie
+  sich einzeln einwandfrei öffnen und herunterladen ließen (Issue #40). Die
+  Dateien waren nie weg: die App las sie beim Archivieren mit einem Verfahren,
+  das es nur für die Ablage im Nextcloud-Dateibaum gibt, nicht aber für die
+  app-interne. Betroffen war ausschließlich der ZIP-Export, und nur bei
+  app-interner Ablage. Außerdem nennt `fehlende_dateien.txt` jetzt zu jedem
+  Eintrag den Grund, statt jeden Fehler als „nicht gefunden“ auszuweisen.
 
 ## [0.31.1] – 2026-09-06
 
