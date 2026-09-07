@@ -25,6 +25,13 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.32.0',
+			roles: ['verwalter', 'buchhalter'],
+			items: [
+				t('Im Kontoauszug (Reiter „Konten") lassen sich Buchungen jetzt direkt bearbeiten – Knopf am Zeilenende, wie im Reiter „Buchungen". Kein Notieren der Buchungsnummer und kein Wechsel der Ansicht mehr, nur um einen Text oder ein falsches Konto zu korrigieren. Belege sind dort ebenfalls einsehbar; das Umbuchen ist ins Menü hinter den drei Punkten gewandert.'),
+			],
+		},
+		{
 			version: '0.31.0',
 			items: [
 				t('Oben rechts steht jetzt der Geldbestand aller Geldkonten zusammen, nicht mehr nur der des ersten Kontos. Die Aufschlüsselung nach Konten zeigt der Tooltip, wenn die Maus auf der Zahl steht.'),

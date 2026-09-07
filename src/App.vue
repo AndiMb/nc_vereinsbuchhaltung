@@ -149,10 +149,14 @@
 					:isMobile="isMobile"
 					:selectedAccountId="selectedAccountId"
 					:statement="statement"
+					:attachmentCountMap="attachmentCountMap"
 					:selectAccount="selectAccount"
 					:closeAccountDetail="closeAccountDetail"
 					:reloadStatement="reloadStatement"
 					:reassignBooking="reassignBooking"
+					:editBooking="editBookingFromStatement"
+					:clickPaperclip="paperclipFromStatement"
+					:removeBooking="removeBookingFromStatement"
 					:openNewAccount="openNewAccount"
 					:openEditAccount="openEditAccount"
 					:deleteAccount="deleteAccount"
@@ -1282,6 +1286,50 @@ export default {
 			try { const { data } = await api.accountJournal(accountId, this.statementIncludeChildren, this.selectedYear); this.statement = data } catch (e) { showError(this.errMsg(e, this.t('Kontoauszug konnte nicht geladen werden'))) }
 		},
 
+		/**
+		 * Auszugszeile → Journalzeile. Der Kontoauszug kennt je Zeile nur die
+		 * journalId; der Buchungsdialog braucht die volle Journalzeile (Zeilen,
+		 * Splitt-Seite, Soll-/Habenkonto). Beide Quellen laufen über denselben
+		 * Jahresfilter, der Treffer ist also der Normalfall.
+		 *
+		 * Fehlt er doch – jemand anderes hat die Buchung angelegt, seit das
+		 * Journal zuletzt geladen wurde – wird einmal nachgeladen und erneut
+		 * gesucht. Dauerhaft bei jedem Reiterwechsel mitzuladen waere fuer
+		 * diesen Randfall zu teuer.
+		 *
+		 * @param {object} row Zeile des Kontoauszugs
+		 * @return {Promise<object|null>} null, wenn eine Meldung gezeigt wurde
+		 */
+		async statementRowToJournalRow(row) {
+			const find = () => this.journalRows.find((j) => j.id === row.journalId) || null
+			let hit = find()
+			if (!hit) {
+				await this.loadJournal()
+				hit = find()
+			}
+			if (!hit) { showError(this.t('Diese Buchung ist nicht mehr da – die Ansicht war nicht aktuell. Bitte den Kontoauszug neu laden.')) }
+			return hit
+		},
+
+		/** Kontoauszug: Buchung dieser Zeile im Buchungsdialog oeffnen. */
+		async editBookingFromStatement(row) {
+			const j = await this.statementRowToJournalRow(row)
+			// editBooking() lehnt N:M-Splittbuchungen selbst mit Meldung ab.
+			if (j) { this.editBooking(j) }
+		},
+
+		/** Kontoauszug: Beleg dieser Zeile ansehen (Schnellansicht oder Dialog). */
+		async paperclipFromStatement(row) {
+			const j = await this.statementRowToJournalRow(row)
+			if (j) { this.clickPaperclip(j) }
+		},
+
+		/** Kontoauszug: Buchung dieser Zeile loeschen (mit Rueckfrage). */
+		async removeBookingFromStatement(row) {
+			const j = await this.statementRowToJournalRow(row)
+			if (j) { await this.removeBooking(j) }
+		},
+
 		// --- CSV-Import (ImportDialog.vue) ---
 		openImport() { this.showImport = true },
 		closeImport() { this.showImport = false },
@@ -1744,7 +1792,7 @@ export default {
 				await api.deleteBooking(id)
 				this.closeBooking()
 				// Umsätze mitladen – siehe removeBooking().
-				await this.loadJournal(); await this.loadTransactions(); await this.loadBalances()
+				await this.loadJournal(); await this.loadTransactions(); await this.loadBalances(); await this.reloadStatement()
 			} catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
 		},
 
@@ -1873,18 +1921,22 @@ export default {
 						// Dateien lassen sich im offenen Dialog erneut hochladen.
 						this.bookingForm = { ...f, id: data.id, entryNo: data.entryNo, updatedAt: data.updatedAt || null }
 						await this.loadAttachments(data.id)
-						await this.loadJournal(); await this.loadBalances(); await this.loadYears(); await this.loadSphereReport()
+						await this.loadJournal(); await this.loadBalances(); await this.loadYears(); await this.loadSphereReport(); await this.reloadStatement()
 						return
 					}
 				}
 				showSuccess(this.t('Buchung gespeichert.'))
 				this.closeBooking()
-				await this.loadJournal(); await this.loadBalances(); await this.loadYears(); await this.loadSphereReport()
+				// reloadStatement() muss mit: wird aus dem Kontoauszug heraus
+				// bearbeitet, stuenden Beschreibung, Gegenkonto und laufender
+				// Saldo dort sonst bis zum naechsten Kontowechsel veraltet da.
+				// Ohne offenen Auszug tut der Aufruf nichts.
+				await this.loadJournal(); await this.loadBalances(); await this.loadYears(); await this.loadSphereReport(); await this.reloadStatement()
 			} catch (e) {
 				if (e?.response?.status === 409) {
 					showError(this.t('Diese Buchung wurde zwischenzeitlich von einer anderen Person geändert. Die Ansicht wurde aktualisiert – bitte erneut bearbeiten.'))
 					this.closeBooking()
-					await this.loadJournal(); await this.loadBalances()
+					await this.loadJournal(); await this.loadBalances(); await this.reloadStatement()
 					return
 				}
 				showError(this.errMsg(e, this.t('Buchung konnte nicht gespeichert werden')))
@@ -1897,7 +1949,7 @@ export default {
 			// steht dieser jetzt wieder unter „Zuzuordnen" (siehe
 			// JournalService::releaseBankTransaction()). Ohne das Nachladen bliebe
 			// die Liste samt Zähler bis zum nächsten Neuladen veraltet.
-			try { await api.deleteBooking(r.id); await this.loadJournal(); await this.loadTransactions(); await this.loadBalances(); await this.loadSphereReport() } catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
+			try { await api.deleteBooking(r.id); await this.loadJournal(); await this.loadTransactions(); await this.loadBalances(); await this.loadSphereReport(); await this.reloadStatement() } catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
 		},
 
 		// --- Konten ---

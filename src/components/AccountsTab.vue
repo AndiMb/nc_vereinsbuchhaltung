@@ -139,6 +139,31 @@
 							<span class="vbh-mcard-accounts">{{ row.contra }}</span>
 							<span class="vbh-mcard-meta">{{ t('Saldo {amount}', { amount: formatMoney(row.saldo) }) }}</span>
 						</div>
+						<!-- Umbuchen bleibt mobil der eigene Knopf weiter unten: auf
+						     der Karte ist Platz, und die Beschriftung erklaert die
+						     Aktion besser als ein Icon. -->
+						<div v-if="canWrite || attachmentCountMap[row.journalId]" class="vbh-mcard-actions">
+							<NcButton
+								v-if="attachmentCountMap[row.journalId]"
+								variant="tertiary"
+								:title="attachmentCountMap[row.journalId].count === 1 ? t('Beleg anzeigen') : t('{n} Belege', { n: attachmentCountMap[row.journalId].count })"
+								:aria-label="t('{n} Beleg(e)', { n: attachmentCountMap[row.journalId].count })"
+								@click="clickPaperclip(row)">
+								<template #icon>
+									<NcIconSvgWrapper :path="mdiPaperclip" :size="18" />
+								</template>
+							</NcButton>
+							<NcButton
+								v-if="canWrite"
+								variant="tertiary"
+								:aria-label="t('Buchung #{n} bearbeiten', { n: row.entryNo })"
+								:title="t('Bearbeiten')"
+								@click="editBooking(row)">
+								<template #icon>
+									<NcIconSvgWrapper :path="mdiPencil" :size="20" />
+								</template>
+							</NcButton>
+						</div>
 						<button
 							v-if="canReassign(row) && !isReassigning(row)"
 							type="button"
@@ -186,7 +211,7 @@
 									{{ t('Haben') }}
 								</th><th class="num">
 									{{ t('Saldo') }}
-								</th><th v-if="canWrite" />
+								</th><th />
 							</tr>
 						</thead>
 						<tbody>
@@ -202,7 +227,7 @@
 								<td class="num strong" :class="amountClass(statement.carry)">
 									{{ formatMoney(statement.carry) }}
 								</td>
-								<td v-if="canWrite" />
+								<td />
 							</tr>
 							<!-- :key gehoert unter Vue 3 aufs <template>, nicht mehr auf die
 							     einzelnen <tr> (umgekehrt zu Vue 2) -->
@@ -229,22 +254,55 @@
 									<td class="num strong" :class="amountClass(row.saldo)">
 										{{ formatMoney(row.saldo) }}
 									</td>
-									<td v-if="canWrite" class="nowrap">
-										<NcButton
-											v-if="canReassign(row)"
-											variant="tertiary"
-											size="small"
-											:aria-label="t('Buchung #{n} auf ein anderes Konto umbuchen', { n: row.entryNo })"
-											:title="t('Auf ein anderes Konto umbuchen')"
-											@click="startReassign(row)">
-											<template #icon>
-												<NcIconSvgWrapper :path="mdiSwapHorizontal" :size="18" />
-											</template>
-										</NcButton>
+									<td class="nowrap right">
+										<!-- Reihenfolge und Zuschnitt wie im Reiter Buchungen
+										     (BookingsTab.vue): Beleg und Bearbeiten als Icon,
+										     Selteneres ins Menü - drei Icon-Knöpfe nebeneinander
+										     treiben die Zeile auf schmalen Fenstern in die
+										     zweite Zeile. -->
+										<div class="vbh-actions">
+											<NcButton
+												v-if="attachmentCountMap[row.journalId]"
+												variant="tertiary"
+												:title="attachmentCountMap[row.journalId].count === 1 ? t('Beleg anzeigen') : t('{n} Belege', { n: attachmentCountMap[row.journalId].count })"
+												:aria-label="t('{n} Beleg(e)', { n: attachmentCountMap[row.journalId].count })"
+												@click="clickPaperclip(row)">
+												<template #icon>
+													<NcIconSvgWrapper :path="mdiPaperclip" :size="16" />
+												</template>
+											</NcButton>
+											<NcButton
+												v-if="canWrite"
+												variant="tertiary"
+												:aria-label="t('Buchung #{n} bearbeiten', { n: row.entryNo })"
+												:title="t('Bearbeiten')"
+												@click="editBooking(row)">
+												<template #icon>
+													<NcIconSvgWrapper :path="mdiPencil" :size="20" />
+												</template>
+											</NcButton>
+											<NcActions v-if="canReassign(row) || canDelete(row)" :forceMenu="true">
+												<NcActionButton
+													v-if="canReassign(row)"
+													:title="t('Auf ein anderes Konto umbuchen')"
+													@click="startReassign(row)">
+													<template #icon>
+														<NcIconSvgWrapper :path="mdiSwapHorizontal" :size="16" />
+													</template>
+													{{ t('Umbuchen') }}
+												</NcActionButton>
+												<NcActionButton v-if="canDelete(row)" @click="removeBooking(row)">
+													<template #icon>
+														<NcIconSvgWrapper :path="mdiDelete" :size="16" />
+													</template>
+													{{ t('Löschen') }}
+												</NcActionButton>
+											</NcActions>
+										</div>
 									</td>
 								</tr>
 								<tr v-if="isReassigning(row)" class="vbh-ccdetail">
-									<td :colspan="canWrite ? 8 : 7">
+									<td colspan="8">
 										<ReassignPanel
 											:sides="reassignSides"
 											:sideId="reassign.fromAccountId"
@@ -268,8 +326,8 @@
 </template>
 
 <script>
-import { mdiDelete, mdiPencil, mdiPlus, mdiSwapHorizontal } from '@mdi/js'
-import { NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper } from '@nextcloud/vue'
+import { mdiDelete, mdiPaperclip, mdiPencil, mdiPlus, mdiSwapHorizontal } from '@mdi/js'
+import { NcActionButton, NcActions, NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import AmountInput from './AmountInput.vue'
 import ReassignPanel from './ReassignPanel.vue'
@@ -281,7 +339,7 @@ import { amountClass, formatDate, formatMoney, typeLabel } from '../lib/format.j
 
 export default {
 	name: 'AccountsTab',
-	components: { NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper, AmountInput, ReassignPanel },
+	components: { NcActionButton, NcActions, NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper, AmountInput, ReassignPanel },
 	props: {
 		isMobile: { type: Boolean, required: true },
 		// selectedAccountId/statement/statementIncludeChildren bleiben in App.vue
@@ -290,6 +348,9 @@ export default {
 		selectedAccountId: { type: [Number, String], default: null },
 		statement: { type: Object, default: null },
 		statementIncludeChildren: { type: Boolean, required: true },
+		// Belegzähler je Journal-ID (wie im Reiter Buchungen). Die Zeilen des
+		// Kontoauszugs tragen dieselbe ID, deshalb passt die Karte hier direkt.
+		attachmentCountMap: { type: Object, required: true },
 		// openingForm wird per Referenz durchgereicht (wie bookingForm bei
 		// BookingDialog): App.vue befuellt es in loadAccounts(), das Formular
 		// hier mutiert die Werte direkt im selben Objekt.
@@ -300,6 +361,11 @@ export default {
 		// Bucht eine Seite einer Buchung auf ein anderes Konto um (App.vue
 		// orchestriert das Nachladen); liefert true bei Erfolg.
 		reassignBooking: { type: Function, required: true },
+		// Nehmen eine Zeile des Kontoauszugs entgegen; App.vue schlägt daraus
+		// die Journalzeile nach, die der Buchungsdialog braucht.
+		editBooking: { type: Function, required: true },
+		clickPaperclip: { type: Function, required: true },
+		removeBooking: { type: Function, required: true },
 		openNewAccount: { type: Function, required: true },
 		openEditAccount: { type: Function, required: true },
 		deleteAccount: { type: Function, required: true },
@@ -331,6 +397,7 @@ export default {
 			mdiPlus,
 			mdiPencil,
 			mdiDelete,
+			mdiPaperclip,
 			mdiSwapHorizontal,
 			accountSearch: '',
 			expanded: {},
@@ -513,6 +580,14 @@ export default {
 		rowKey(row) { return `${row.journalId}:${row.accountId}` },
 		canReassign(row) {
 			return this.canWrite && !!row.accountId && !this.isYearClosed(row.date)
+		},
+
+		// Bearbeiten haengt nur am Schreibrecht - ein abgeschlossenes Jahr
+		// lehnt das Backend ab (JournalService::applyUpdate) und die App zeigt
+		// dessen Meldung, genau wie im Reiter Buchungen. Loeschen wird dagegen
+		// schon hier gesperrt, damit die Rueckfrage gar nicht erst kommt.
+		canDelete(row) {
+			return this.canWrite && !this.isYearClosed(row.date)
 		},
 
 		isReassigning(row) {

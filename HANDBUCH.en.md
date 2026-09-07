@@ -455,13 +455,24 @@ Clicking an account (in the trial balance or the Accounts tab) shows the
 carried forward from the start of the year. Ideal for reconciling a single
 bank or cash balance against the bank statement.
 
-**Correcting a wrongly assigned posting.** If you notice while reviewing
-that a posting on this account isn't right, correct it right there –
-without switching to the journal. The ⇄ button at the end of the row
-(mobile: *"Wrongly assigned? Rebook to a different account…"*) opens the
-account selection. If several sides are involved, first choose which one
-should be rebooked – the account currently open is preselected, the
-counter-account is also available to choose.
+**Editing a posting.** If you notice a mistake while reviewing, correct it
+right there – without switching to the journal and without noting down the
+entry number. The ✎ pencil at the end of the row opens the same entry dialog
+as the **Entries** tab: description, date, amount, both accounts, and turning
+the entry into a split entry. After saving, the statement and its running
+balance refresh immediately.
+
+If a **receipt** is attached to the posting, the 📎 paperclip sits next to it –
+a click shows it. That includes the auditor role, which cannot change anything
+otherwise.
+
+**Rebooking a wrongly assigned posting.** If only the account assignment needs
+to change, this is quicker than the entry dialog: the three-dot menu ⋮ at the
+end of the row holds *Rebook* (mobile: *"Wrongly assigned? Rebook to a
+different account…"*), which opens the account selection. If several sides are
+involved, first choose which one should be rebooked – the account currently
+open is preselected, the counter-account is also available to choose. The same
+menu holds *Delete*.
 
 This only changes **the account assignment of this one side**: amount,
 date, description, receipts and the other side remain unchanged, so debit
