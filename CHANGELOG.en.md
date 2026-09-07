@@ -17,6 +17,8 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+## [0.31.2] – 2026-09-07
+
 **Fixed:**
 - **In Firefox the year in date fields is fully visible again.** Since version
   109 Firefox draws a calendar button inside the input, but does not account

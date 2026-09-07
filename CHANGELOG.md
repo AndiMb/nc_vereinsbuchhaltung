@@ -19,6 +19,8 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+## [0.31.2] – 2026-09-07
+
 **Behoben:**
 - **In Firefox ist die Jahreszahl in Datumsfeldern wieder vollständig zu
   sehen.** Firefox zeichnet seit Version 109 einen Kalenderknopf innerhalb des
