@@ -17,6 +17,23 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+**Fixed:**
+- **In Firefox the year in date fields is fully visible again.** Since version
+  109 Firefox draws a calendar button inside the input, but does not account
+  for it in the width Nextcloud gives to every input field – it therefore
+  covered the last digits of the year, turning "07/09/2026" into a visible
+  "07/09/202" (issue #43). Every date field in the app is now wide enough:
+  entry date, next and first due date, mandate date, opening balance, open
+  items, SEPA due date and the short report's period.
+- **On phones the buttons inside dialogs are thumb-sized again.** The 44px
+  minimum for touch targets only applied outside dialogs – Nextcloud attaches
+  dialog content to a different place in the page, so the rule never reached
+  it. In the entry dialog *Cancel* and *Book* were only 34px tall and the
+  *Income*/*Expense* toggles 40px; this now applies in every dialog. The round
+  help button next to the spheres is properly round again – it was stretched
+  into an oval on phones and on the desktop alike – and grows to full
+  touch-target size under a finger.
+
 ## [0.31.1] – 2026-09-06
 
 **Fixed:**

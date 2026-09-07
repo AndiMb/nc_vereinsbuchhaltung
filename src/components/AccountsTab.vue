@@ -102,7 +102,7 @@
 						v-model="openingAmount"
 						class="vbh-num"
 						:aria-label="t('Eröffnungssaldo in Euro')" />
-					<input v-model="openingDate" type="date" class="vbh-date">
+					<input v-model="openingDate" type="date">
 					<NcButton variant="primary" size="small" @click="saveOpening(selectedAccount)">
 						{{ t('Speichern') }}
 					</NcButton>
