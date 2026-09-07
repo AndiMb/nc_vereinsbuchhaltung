@@ -463,13 +463,24 @@ Auf jedes Konto klicken (in der Saldenliste oder im Konten-Tab) zeigt den
 Jahresanfang. Ideal, um einen einzelnen Bank- oder Kassenbestand gegen den
 Bankauszug abzugleichen.
 
-**Falsch zugeordnete Buchung korrigieren.** Fällt beim Durchsehen auf, dass
-eine Buchung auf diesem Konto nicht richtig ist, korrigieren Sie das an Ort
-und Stelle – ohne ins Journal zu wechseln. Der Knopf ⇄ am Zeilenende (mobil:
-*„Falsch zugeordnet? Auf ein anderes Konto umbuchen…"*) öffnet die
-Kontoauswahl. Sind mehrere Seiten beteiligt, wählen Sie zuerst, welche
-umgebucht werden soll – voreingestellt ist das gerade geöffnete Konto, das
-Gegenkonto steht ebenfalls zur Wahl.
+**Buchung bearbeiten.** Fällt beim Durchsehen ein Fehler auf, korrigieren Sie
+ihn an Ort und Stelle – ohne ins Journal zu wechseln und ohne sich die
+Buchungsnummer zu notieren. Der Stift ✎ am Zeilenende öffnet denselben
+Buchungsdialog wie der Reiter **Buchungen**: Buchungstext, Datum, Betrag,
+beide Konten und die Umwandlung in eine Splittbuchung. Nach dem Speichern
+aktualisiert sich der Auszug samt laufendem Saldo sofort.
+
+Hängt ein **Beleg** an der Buchung, steht die Büroklammer 📎 daneben – ein
+Klick zeigt ihn. Das gilt auch für die Kassenprüfung, die sonst nichts ändern
+darf.
+
+**Falsch zugeordnete Buchung umbuchen.** Soll sich nur die Kontozuordnung
+ändern, geht das schneller als über den Buchungsdialog: hinter den drei
+Punkten ⋮ am Zeilenende liegt *Umbuchen* (mobil: *„Falsch zugeordnet? Auf ein
+anderes Konto umbuchen…"*), das die Kontoauswahl öffnet. Sind mehrere Seiten
+beteiligt, wählen Sie zuerst, welche umgebucht werden soll – voreingestellt
+ist das gerade geöffnete Konto, das Gegenkonto steht ebenfalls zur Wahl.
+Im selben Menü liegt *Löschen*.
 
 Dabei ändert sich **nur die Kontozuordnung dieser einen Seite**: Betrag,
 Datum, Beschreibung, Belege und die Gegenseite bleiben unverändert, Soll und

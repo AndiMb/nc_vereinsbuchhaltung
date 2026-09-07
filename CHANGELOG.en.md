@@ -17,6 +17,27 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+## [0.32.0] – 2026-09-07
+
+**New:**
+- **Entries can be edited straight from the account statement.** When you spot
+  a mistake while going through an account in the *Accounts* tab, you can fix
+  it on the spot: the pencil at the end of the row opens the same entry dialog
+  as the *Entries* tab – for the description, both accounts, and turning the
+  entry into a split entry. Until now you had to note the entry number, switch
+  views and search for it there (issue #39).
+- **Receipts are visible in the account statement.** If an entry has a receipt
+  attached, the row shows the paperclip and a click opens it. That includes
+  the auditor role, which cannot change anything otherwise.
+- **A tidier row:** *Reassign* and *Delete* now live in the three-dot menu,
+  exactly as in the *Entries* tab. Otherwise the row would have wrapped onto a
+  second line in narrow windows.
+
+**Fixed:**
+- **The account statement refreshes after an entry is edited.** Description,
+  contra account and running balance used to sit there outdated until the next
+  account switch whenever the entry had been changed elsewhere.
+
 ## [0.31.2] – 2026-09-07
 
 **Fixed:**

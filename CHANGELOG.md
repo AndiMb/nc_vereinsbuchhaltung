@@ -19,6 +19,27 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+## [0.32.0] – 2026-09-07
+
+**Neu:**
+- **Buchungen lassen sich direkt im Kontoauszug bearbeiten.** Wer im Reiter
+  *Konten* beim Durchsehen eines Kontos einen Fehler entdeckt, korrigiert ihn
+  an Ort und Stelle: der Stift am Zeilenende öffnet denselben Buchungsdialog
+  wie im Reiter *Buchungen* – für Buchungstext, beide Konten und die
+  Umwandlung in eine Splittbuchung. Bisher musste man sich die Buchungsnummer
+  notieren, die Ansicht wechseln und dort danach suchen (Issue #39).
+- **Belege sind im Kontoauszug einsehbar.** Hängt ein Beleg an der Buchung,
+  zeigt die Zeile die Büroklammer – ein Klick öffnet ihn. Das gilt auch für
+  die Kassenprüfung, die sonst nichts ändern darf.
+- **Aufgeräumte Zeile:** *Umbuchen* und *Löschen* liegen jetzt im Menü hinter
+  den drei Punkten, genau wie im Reiter *Buchungen*. Sonst wäre die Zeile auf
+  schmalen Fenstern zweizeilig geworden.
+
+**Behoben:**
+- **Der Kontoauszug aktualisiert sich nach dem Bearbeiten einer Buchung.**
+  Beschreibung, Gegenkonto und laufender Saldo standen dort bis zum nächsten
+  Kontowechsel veraltet da, wenn die Buchung anderswo geändert wurde.
+
 ## [0.31.2] – 2026-09-07
 
 **Behoben:**

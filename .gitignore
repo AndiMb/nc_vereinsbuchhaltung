@@ -27,3 +27,6 @@
 /docs/video/
 # Lokales Composer-Binary - nicht versionieren
 composer.phar
+# Planungsnotizen aus der Arbeit an einzelnen Issues (Anforderungen,
+# Umsetzungsplaene) - Arbeitsmaterial, keine Projektdokumentation
+/claudedocs/
