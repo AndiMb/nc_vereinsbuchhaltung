@@ -15,8 +15,8 @@ use OCP\ITempManager;
  * Alle Belege eines Geschäftsjahres als ZIP – für die Kassenprüfung.
  *
  * Ordner je Buchung: "NNNN_Datum_Beschreibung/<BelegID>_<Dateiname>". Eine
- * nicht auffindbare Datei bricht den Export nicht ab, sondern landet in
- * fehlende_dateien.txt: ein fehlender Beleg ist ein Befund für die Prüfung,
+ * nicht lesbare Datei bricht den Export nicht ab, sondern landet mitsamt Grund
+ * in fehlende_dateien.txt: ein fehlender Beleg ist ein Befund für die Prüfung,
  * kein Grund, die anderen dreihundert nicht auszuliefern.
  */
 class AttachmentArchive {
@@ -69,13 +69,19 @@ class AttachmentArchive {
 				$entryName = $folder . '/' . $att->getId() . '_' . self::safeName($att->getFileName(), 100);
 				try {
 					$localPath = $this->spoolToTempFile($att->getId(), $att->getJournalId(), $att->getFileName());
-				} catch (\Throwable) {
+				} catch (\Throwable $e) {
+					// Grund mitschreiben, nicht nur "nicht gefunden": Issue #40 war
+					// ein Programmierfehler in der Belegablage, und die pauschale
+					// Meldung schickte die Fehlersuche auf die Spur verschwundener
+					// Dateien. Wer diese Datei liest, soll unterscheiden koennen,
+					// ob ein Beleg wirklich fehlt oder die App ihn nicht lesen kann.
 					$problems[] = sprintf(
-						'Buchung #%s (%s): Datei "%s" (Beleg %d) nicht gefunden.',
+						'Buchung #%s (%s): Datei "%s" (Beleg %d) nicht lesbar: %s',
 						(string)($journal->getEntryNo() ?? '?'),
 						(string)$journal->getDate(),
 						$att->getFileName(),
 						$att->getId(),
+						$e->getMessage() !== '' ? $e->getMessage() : get_class($e),
 					);
 					continue;
 				}

@@ -68,9 +68,16 @@ jobs:
       - name: composer.json/lock validieren
         run: composer validate --strict --no-check-publish
 
+      - name: OCP-Stubs holen
+        # Die App-Klassen laedt tests/bootstrap.php per PSR-4 direkt aus lib/,
+        # dafuer braucht es keinen composer-Autoloader (siehe Kommentar dort).
+        # Die Nextcloud-Schnittstellen (OCP\*) liegen aber nicht im Repository,
+        # und ohne sie laesst sich kein OCP-Dienst mocken. Sie kommen aus
+        # demselben Stub-Projekt wie fuer die statische Analyse; --no-dev laesst
+        # PHPStan weg, das hier nicht gebraucht wird.
+        run: composer install --working-dir=.phpstan --no-dev --no-interaction --no-progress
+
       - name: PHPUnit
-        # Braucht keinen composer-Autoloader: tests/bootstrap.php laedt die
-        # Klassen per PSR-4 direkt aus lib/ (siehe Kommentar dort).
         run: phpunit --configuration phpunit.xml
 
   static-analysis:

@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-	Unit-Tests ohne laufende Nextcloud-Instanz: getestet werden ausschließlich
-	Klassen ohne Nextcloud-Abhängigkeiten (Parser, Rechenlogik). Alles, was
-	Mapper oder OCP-Dienste braucht, gehört in Integrationstests gegen eine
-	echte Instanz und ist hier bewusst nicht abgedeckt.
+	Unit-Tests ohne laufende Nextcloud-Instanz. Den Schwerpunkt bilden Klassen
+	ohne Nextcloud-Abhängigkeiten (Parser, Rechenlogik). Dazu kommen Klassen,
+	deren OCP-Dienste sich als Schnittstelle mocken lassen – tests/bootstrap.php
+	macht die OCP-Stubs dafür ladbar. Alles, was echte Nextcloud-Dienste braucht
+	(Datenbank, Dateisystem, Sitzung), bleibt den E2E-Tests gegen eine laufende
+	Instanz vorbehalten und ist hier bewusst nicht abgedeckt.
 -->
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"

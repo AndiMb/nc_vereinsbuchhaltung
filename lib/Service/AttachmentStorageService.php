@@ -194,16 +194,24 @@ class AttachmentStorageService {
 	 * je bis zu 20 MB verarbeitet, die nicht alle gleichzeitig in den Speicher
 	 * passen müssen.
 	 *
+	 * Die beiden Ablagen liefern verschiedene Dateiobjekte, und die haben für
+	 * dasselbe Anliegen verschiedene Methoden: der Nextcloud-Dateibaum eine
+	 * {@see File} mit fopen(), die app-interne Ablage eine
+	 * {@see \OCP\Files\SimpleFS\ISimpleFile} mit read(). Deshalb wird der Strom
+	 * in jedem Zweig einzeln geholt statt hinterher gemeinsam – ein fopen() auf
+	 * der ISimpleFile gibt es nicht und lief bis 0.31.1 in einen
+	 * Undefined-Method-Fehler, der den ZIP-Export bei app-interner Ablage jeden
+	 * Beleg als "nicht gefunden" melden ließ (Issue #40).
+	 *
 	 * @return resource
 	 */
 	public function getFileStream(int $id, int $journalId, string $fileName) {
 		if ($this->isNcMode()) {
 			$folder = $this->getNcFolder($journalId);
-			$node = $folder->get($this->ncFileName($id, $fileName));
+			$stream = $this->ncFile($folder, $this->ncFileName($id, $fileName))->fopen('r');
 		} else {
-			$node = $this->appDataFolder()->getFile((string)$id);
+			$stream = $this->appDataFolder()->getFile((string)$id)->read();
 		}
-		$stream = $node->fopen('r');
 		if (!is_resource($stream)) {
 			throw new \RuntimeException($this->l10n->t('Beleg-Datei konnte nicht geöffnet werden.'));
 		}
