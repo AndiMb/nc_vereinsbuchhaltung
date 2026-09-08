@@ -161,6 +161,11 @@ export default {
 	deleteAttachment: (id) => axios.delete(url(`/attachments/${id}`)),
 	attachmentViewUrl: (id) => generateUrl(base + `/attachments/${id}/view`),
 	attachmentDownloadUrl: (id) => generateUrl(base + `/attachments/${id}/download`),
+	// Wächter-Ordner für Belege
+	attachmentInbox: () => axios.get(url('/attachments/inbox')),
+	attachmentInboxSummary: () => axios.get(url('/attachments/inbox/summary')),
+	attachmentInboxViewUrl: (fileId) => generateUrl(base + `/attachments/inbox/${fileId}/view`),
+	linkAttachment: (journalId, fileId) => axios.post(url(`/journal/${journalId}/attachments/link`), { fileId }),
 
 	// Einstellungen (Belegablage)
 	getSettings: () => axios.get(url('/settings')),

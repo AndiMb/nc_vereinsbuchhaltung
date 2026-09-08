@@ -25,6 +25,14 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.33.0',
+			roles: ['verwalter', 'buchhalter'],
+			items: [
+				t('Neue Art der Belegablage: der Wächter-Ordner (Zahnrad → Belege). Ein Ordner in der Dateien-App, dessen Dateien samt Unterordnern beim Buchen über „Aus Ordner wählen" zur Auswahl stehen – die Dateien bleiben, wo sie sind, Umbenennen und Verschieben sind unschädlich.'),
+				t('Die Übersicht meldet „x Dokumente noch keiner Buchung zugewiesen", sobald im Wächter-Ordner etwas liegt, das an keiner Buchung hängt – damit keine Rechnung liegen bleibt. „Ansehen" öffnet den Eingangskorb mit „Buchung anlegen" je Datei.'),
+			],
+		},
+		{
 			version: '0.32.0',
 			roles: ['verwalter', 'buchhalter'],
 			items: [

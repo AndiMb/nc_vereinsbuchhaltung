@@ -154,10 +154,17 @@
 									@change="addPendingFiles">
 								<span class="vbh-upload-btn"><NcIconSvgWrapper :path="mdiPaperclip" :size="16" /> {{ t('Datei…') }}</span>
 							</label>
+							<button
+								v-if="watchMode"
+								type="button"
+								class="vbh-upload-btn"
+								@click="openFolderPicker">
+								<NcIconSvgWrapper :path="mdiFolderSearchOutline" :size="16" /> {{ t('Aus Ordner…') }}
+							</button>
 						</div>
 						<ul v-if="pendingFiles.length" class="vbh-attachment-list">
 							<li v-for="(pf, i) in pendingFiles" :key="i" class="vbh-attachment-item">
-								<NcIconSvgWrapper :path="mdiPaperclip" :size="14" class="vbh-attachment-icon" />
+								<NcIconSvgWrapper :path="pf.kind === 'link' ? mdiFolderOutline : mdiPaperclip" :size="14" class="vbh-attachment-icon" />
 								<span class="vbh-attachment-name">{{ pf.name }}</span>
 								<span class="vbh-attachment-size">{{ formatFileSize(pf.size) }}</span>
 								<NcButton variant="tertiary" :aria-label="t('Beleg entfernen')" @click="removePendingFile(i)">
@@ -345,29 +352,52 @@
 			<div v-if="bookingForm.id || (canWrite && !isMobile)" class="vbh-attachments">
 				<div class="vbh-attachments-header">
 					<span class="vbh-attachments-title">{{ t('Belege') }}</span>
-					<label v-if="canWrite && !bookingLocked" class="vbh-upload-label" :class="{ 'is-uploading': attachmentUploading }">
-						<input
-							type="file"
-							accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
-							multiple
+					<div v-if="canWrite && !bookingLocked" class="vbh-attachments-actions">
+						<button
+							v-if="watchMode"
+							type="button"
+							class="vbh-upload-btn"
 							:disabled="attachmentUploading"
-							class="vbh-upload-input"
-							@change="attachOrCollectFiles">
-						<span class="vbh-upload-btn">
-							<NcIconSvgWrapper :path="mdiPaperclip" :size="16" />
-							{{ attachmentUploading ? t('Lädt hoch…') : t('Anhängen') }}
-						</span>
-					</label>
+							@click="openFolderPicker">
+							<NcIconSvgWrapper :path="mdiFolderSearchOutline" :size="16" />
+							{{ t('Aus Ordner wählen') }}
+						</button>
+						<label class="vbh-upload-label" :class="{ 'is-uploading': attachmentUploading }">
+							<input
+								type="file"
+								accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
+								multiple
+								:disabled="attachmentUploading"
+								class="vbh-upload-input"
+								@change="attachOrCollectFiles">
+							<span class="vbh-upload-btn">
+								<NcIconSvgWrapper :path="mdiPaperclip" :size="16" />
+								{{ attachmentUploading ? t('Lädt hoch…') : t('Anhängen') }}
+							</span>
+						</label>
+					</div>
 				</div>
 				<template v-if="bookingForm.id">
 					<ul v-if="bookingAttachments.length" class="vbh-attachment-list">
 						<li v-for="a in bookingAttachments" :key="a.id" class="vbh-attachment-item">
-							<NcIconSvgWrapper :path="mdiPaperclip" :size="14" class="vbh-attachment-icon" />
-							<button class="vbh-attachment-name" :title="t('Anzeigen: {name}', { name: a.fileName })" @click="openViewer(a)">
+							<NcIconSvgWrapper
+								:path="a.missing ? mdiAlertCircleOutline : mdiPaperclip"
+								:size="14"
+								class="vbh-attachment-icon"
+								:class="{ 'vbh-folder-warn': a.missing }" />
+							<span v-if="a.missing" class="vbh-attachment-name" :title="t('Die Datei wurde in der Dateien-App gelöscht oder verschoben.')">
+								{{ a.fileName }} – {{ t('Datei nicht gefunden') }}
+							</span>
+							<button
+								v-else
+								class="vbh-attachment-name"
+								:title="t('Anzeigen: {name}', { name: a.fileName })"
+								@click="openViewer(a)">
 								{{ a.fileName }}
 							</button>
 							<span class="vbh-attachment-size">{{ formatFileSize(a.fileSize) }}</span>
 							<a
+								v-if="!a.missing"
 								:href="attachmentDownloadUrl(a.id)"
 								class="vbh-attachment-dl"
 								:title="t('Herunterladen')"
@@ -375,10 +405,11 @@
 							<NcButton
 								v-if="canWrite && !bookingLocked"
 								variant="tertiary"
-								:aria-label="t('Beleg löschen')"
-								@click="deleteAttachment(a.id)">
+								:aria-label="a.unlinkOnly ? t('Verknüpfung lösen') : t('Beleg löschen')"
+								:title="a.unlinkOnly ? t('Verknüpfung lösen – die Datei bleibt im Ordner') : t('Beleg löschen')"
+								@click="deleteAttachment(a)">
 								<template #icon>
-									<NcIconSvgWrapper :path="mdiDelete" :size="14" />
+									<NcIconSvgWrapper :path="a.unlinkOnly ? mdiLinkVariantOff : mdiDelete" :size="14" />
 								</template>
 							</NcButton>
 						</li>
@@ -399,7 +430,7 @@
 					</div>
 					<ul class="vbh-attachment-list">
 						<li v-for="(pf, i) in pendingFiles" :key="i" class="vbh-attachment-item">
-							<NcIconSvgWrapper :path="mdiPaperclip" :size="14" class="vbh-attachment-icon" />
+							<NcIconSvgWrapper :path="pf.kind === 'link' ? mdiFolderOutline : mdiPaperclip" :size="14" class="vbh-attachment-icon" />
 							<span class="vbh-attachment-name">{{ pf.name }}</span>
 							<span class="vbh-attachment-size">{{ formatFileSize(pf.size) }}</span>
 							<NcButton variant="tertiary" :aria-label="t('Beleg entfernen')" @click="removePendingFile(i)">
@@ -441,14 +472,14 @@
 </template>
 
 <script>
-import { mdiCamera, mdiDelete, mdiPaperclip } from '@mdi/js'
+import { mdiAlertCircleOutline, mdiCamera, mdiDelete, mdiFolderOutline, mdiFolderSearchOutline, mdiLinkVariantOff, mdiPaperclip } from '@mdi/js'
 import { NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper, NcLoadingIcon, NcModal, NcSelect } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import AmountInput from './AmountInput.vue'
 import { useAccounts } from '../composables/useAccounts.js'
 import { useJournal } from '../composables/useJournal.js'
 import { autogrow } from '../lib/autogrow.js'
-import { formatMoney } from '../lib/format.js'
+import { formatFileSize, formatMoney } from '../lib/format.js'
 import { splitBalanced, splitRemainder, splitSideOf } from '../lib/split.js'
 
 export default {
@@ -472,6 +503,8 @@ export default {
 		pendingFiles: { type: Array, required: true },
 		bookingAttachments: { type: Array, required: true },
 		attachmentUploading: { type: Boolean, required: true },
+		// Belegablage im Wächter-Ordner: dann gibt es "Aus Ordner wählen".
+		watchMode: { type: Boolean, default: false },
 		// App.vue-Funktionen (Muster wie askConfirm): bleiben dort, da teils mit
 		// anderen Bereichen geteilt (openAccountPicker auch von der "Zuordnen"-
 		// Ansicht genutzt) oder mit App-weiten Nebeneffekten (Beleg-Zaehler etc.).
@@ -479,6 +512,7 @@ export default {
 		setBookingMode: { type: Function, required: true },
 		openAccountPicker: { type: Function, required: true },
 		addPendingFiles: { type: Function, required: true },
+		openFolderPicker: { type: Function, required: true },
 		retryPendingFiles: { type: Function, required: true },
 		uploadAttachment: { type: Function, required: true },
 		deleteAttachment: { type: Function, required: true },
@@ -504,7 +538,7 @@ export default {
 	},
 
 	data() {
-		return { mdiCamera, mdiPaperclip, mdiDelete }
+		return { mdiAlertCircleOutline, mdiCamera, mdiDelete, mdiFolderOutline, mdiFolderSearchOutline, mdiLinkVariantOff, mdiPaperclip }
 	},
 
 	computed: {
@@ -714,6 +748,7 @@ export default {
 
 	methods: {
 		formatMoney,
+		formatFileSize,
 		/** Aktuelle Auswahl einer Aufteilungszeile als NcSelect-Option. */
 		splitLineOption(index) {
 			const id = this.splitLines[index]?.accountId
@@ -815,11 +850,6 @@ export default {
 			return String(label || '').toLowerCase().includes(s)
 		},
 
-		formatFileSize(bytes) {
-			if (bytes < 1024) { return bytes + ' B' }
-			if (bytes < 1024 * 1024) { return (bytes / 1024).toFixed(1) + ' KB' }
-			return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
-		},
 	},
 }
 </script>

@@ -41,7 +41,9 @@ Mitgliederversammlung erzeugen.
 2. **Umsätze zuordnen** – jede Bankbuchung bekommt ein Gegenkonto. Regeln
    erledigen wiederkehrende Zuordnungen (Miete, Beiträge, Gebühren) automatisch.
 3. **Belege anhängen** – Foto oder PDF, wahlweise in einem Nextcloud-Ordner
-   eurer Wahl oder app-intern gespeichert.
+   eurer Wahl oder app-intern gespeichert. Oder als Wächter-Ordner: was ihr
+   in der Dateien-App ablegt, steht beim Buchen zur Auswahl, und die
+   Übersicht meldet, was noch keiner Buchung zugewiesen ist.
 4. **Auswerten und berichten** – Kassenbericht für die Mitgliederversammlung,
    Kurzbericht für die Vorstandssitzung, Exporte für die Kassenprüfung.
 
@@ -106,7 +108,9 @@ treasurer's report.
    handle recurring assignments (rent, membership fees, charges)
    automatically.
 3. **Attach receipts** – photo or PDF, either in a Nextcloud folder of your
-   choice or stored inside the app.
+   choice or stored inside the app. Or as a watch folder: whatever you drop
+   into it in the Files app can be picked when booking, and the overview
+   reports what is not yet assigned to an entry.
 4. **Evaluate and report** – treasurer's report for the general assembly,
    short report for board meetings, exports for the audit.
 

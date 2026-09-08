@@ -117,6 +117,38 @@ class AttachmentMapper extends QBMapper {
 		return $this->findEntities($qb);
 	}
 
+	/**
+	 * Alle Belege, die auf eine Datei im Dateibaum verweisen (file_id gesetzt).
+	 * Grundlage für „welche Dateien im Wächter-Ordner sind schon zugeordnet"
+	 * und „welche Verweise zeigen ins Leere".
+	 *
+	 * @return Attachment[]
+	 */
+	public function findLinked(string $userId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+			->andWhere($qb->expr()->isNotNull('file_id'));
+		return $this->findEntities($qb);
+	}
+
+	/**
+	 * Belege ohne Dateiverweis – von der App selbst unter berechnetem Pfad
+	 * abgelegt. Beim Umschalten auf den Wächter-Ordner bekommen sie ihre
+	 * Datei-ID nachgetragen ({@see \OCA\Vereinsbuchhaltung\Service\AttachmentWatchFolderService::backfillFileIds()}).
+	 *
+	 * @return Attachment[]
+	 */
+	public function findUnlinked(string $userId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+			->andWhere($qb->expr()->isNull('file_id'));
+		return $this->findEntities($qb);
+	}
+
 	public function deleteAllForUser(string $userId): void {
 		$qb = $this->db->getQueryBuilder();
 		$qb->delete($this->getTableName())

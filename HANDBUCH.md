@@ -165,12 +165,28 @@ vom ersten Tag an.
 
 ### 2.4 Belegablage einrichten (Verwalter)
 
-Zahnrad → *Belege*: Belege können entweder **intern** (nur über
-die App sichtbar) oder in einem **Ordner eines Nextcloud-Nutzers** (z. B.
-„Vereinsbuchhaltung/Belege") liegen. Die Ordner-Variante ist
-empfehlenswert, weil die Belege dann auch direkt in Nextcloud durchsuchbar
-sind. Speicherort später zu ändern ist möglich, wirkt aber nur auf neue
-Belege.
+Zahnrad → *Belege* → *Art der Ablage*. Drei Möglichkeiten:
+
+- **intern (AppData):** nur über die App sichtbar.
+- **Nextcloud-Ordner, von der App verwaltet:** die App legt je Buchung
+  einen Unterordner unter dem gewählten Pfad an (z. B.
+  „Vereinsbuchhaltung/Belege/<BuchungsID>/"). Die Belege sind so auch in
+  Nextcloud durchsuchbar.
+- **Wächter-Ordner (Archiv in der Dateien-App):** ein Ordner, den ihr
+  selbst in der Dateien-App anlegt und pflegt – mit beliebigen
+  Unterordnern, etwa je Jahr oder Lieferant. Alle Beleg-Dateien darin
+  (PDF, JPG, PNG, GIF, WebP) stehen beim Buchen zur Auswahl, und die
+  Übersicht meldet, welche noch keiner Buchung zugewiesen sind. Die App
+  merkt sich die Nextcloud-Datei-ID: Umbenennen und Verschieben innerhalb
+  des Ordners sind unschädlich. Belege, die ihr in der App hochladet oder
+  fotografiert, legt sie unter `<Ordner>/<Jahr>/` ab. Gelöscht wird dort
+  nie etwas – „Beleg löschen" löst nur die Verknüpfung.
+
+Der Wächter-Ordner muss vorher existieren und darf sich nicht mit dem
+Wachordner für Kontoauszüge (Abschnitt 3.3) überschneiden. Beim Umschalten
+trägt die App für Belege, die sie bisher selbst im Nutzerordner abgelegt
+hat, die Datei-ID nach – der bisherige Belegordner kann also direkt zum
+Wächter-Ordner werden. Belege aus der internen Ablage bleiben, wo sie sind.
 
 ### 2.5 Verein benennen (Verwalter)
 
@@ -385,7 +401,20 @@ max. 20 MB pro Datei). Drei Wege:
   Die Dateien werden hochgeladen, sobald die Buchung gespeichert ist.
 - **Nachträglich:** Buchung öffnen (Stift-Symbol) → Bereich *Belege* →
   „Anhängen".
+- **Aus dem Wächter-Ordner** (wenn eingerichtet, Abschnitt 2.4): „Aus
+  Ordner wählen" zeigt die Dateien des Ordners, neueste zuerst, mit Suche
+  über Dateiname und Unterordner und einer Vorschau vor der Zuordnung.
+  Standardmäßig nur die noch nicht zugewiesenen; dieselbe Datei darf aber
+  auch an mehrere Buchungen (z. B. eine aufgeteilte Sammelrechnung).
 - **Mehrere Dateien** gleichzeitig sind möglich.
+
+Mit Wächter-Ordner zeigt die **Übersicht** außerdem „x Dokumente noch
+keiner Buchung zugewiesen": alles, was im Ordner liegt, aber noch an keiner
+Buchung hängt – etwa eine Rechnung, die noch zu überweisen ist. „Ansehen"
+öffnet den Eingangskorb, „Buchung anlegen" übernimmt die Datei gleich in
+eine neue Buchung. Eine zweite Kachel warnt, wenn die Datei zu einem Beleg
+in der Dateien-App gelöscht oder aus dem Nutzerbereich verschoben wurde;
+aus dem Papierkorb wiederhergestellt ist sie wieder da.
 
 Der **Büroklammer-Indikator** in der Buchungsliste zeigt sofort, ob und
 wie viele Belege vorliegen – fehlende Belege sind so auf einen Blick

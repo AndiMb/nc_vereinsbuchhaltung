@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service\Export;
 
+use OCA\Vereinsbuchhaltung\Db\Attachment;
 use OCA\Vereinsbuchhaltung\Db\AttachmentMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\FiscalYear;
+use OCA\Vereinsbuchhaltung\Service\SafeFileName;
 use OCP\IL10N;
 use OCP\ITempManager;
 
@@ -68,7 +70,7 @@ class AttachmentArchive {
 			foreach ($atts as $att) {
 				$entryName = $folder . '/' . $att->getId() . '_' . self::safeName($att->getFileName(), 100);
 				try {
-					$localPath = $this->spoolToTempFile($att->getId(), $att->getJournalId(), $att->getFileName());
+					$localPath = $this->spoolToTempFile($att);
 				} catch (\Throwable $e) {
 					// Grund mitschreiben, nicht nur "nicht gefunden": Issue #40 war
 					// ein Programmierfehler in der Belegablage, und die pauschale
@@ -121,8 +123,8 @@ class AttachmentArchive {
 	 *
 	 * @throws \RuntimeException wenn der Beleg nicht lesbar ist
 	 */
-	private function spoolToTempFile(int $id, int $journalId, string $fileName): string {
-		$source = $this->storageService->getFileStream($id, $journalId, $fileName);
+	private function spoolToTempFile(Attachment $attachment): string {
+		$source = $this->storageService->streamOf($attachment);
 		try {
 			$target = $this->tempManager->getTemporaryFile('.beleg');
 			$sink = fopen($target, 'wb');
@@ -144,18 +146,7 @@ class AttachmentArchive {
 		return $target;
 	}
 
-	/**
-	 * Dateisystem-tauglicher Name für ZIP-Einträge (Umlaute bleiben erhalten).
-	 *
-	 * Pfadtrenner und Steuerzeichen werden ersetzt: eine Buchungsbeschreibung
-	 * ist freier Text und könnte sonst aus dem vorgesehenen Ordner ausbrechen.
-	 */
 	public static function safeName(string $s, int $maxLen = 48): string {
-		$s = preg_replace('/[\\\\\/:*?"<>|[:cntrl:]]/u', '_', $s) ?? '_';
-		$s = trim(preg_replace('/\s+/u', ' ', $s) ?? '', ' ._');
-		if ($s === '') {
-			$s = '_';
-		}
-		return mb_substr($s, 0, $maxLen);
+		return SafeFileName::of($s, $maxLen);
 	}
 }

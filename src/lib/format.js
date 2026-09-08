@@ -15,6 +15,12 @@ export function formatDate(s) {
 	return m ? `${m[3]}.${m[2]}.${m[1]}` : d
 }
 
+export function formatFileSize(bytes) {
+	if (bytes < 1024) { return bytes + ' B' }
+	if (bytes < 1024 * 1024) { return (bytes / 1024).toFixed(1) + ' KB' }
+	return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+}
+
 export function formatDateTime(s) {
 	return s ? String(s).replace('T', ' ').slice(0, 16) : ''
 }

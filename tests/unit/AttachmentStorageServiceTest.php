@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Db\Attachment;
 use OCA\Vereinsbuchhaltung\Db\AttachmentMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
@@ -24,12 +25,12 @@ use PHPUnit\Framework\TestCase;
  * Prüft den Lesestrom der Belegablage – die eine Stelle, an der die beiden
  * Ablagearten wirklich verschiedene Schnittstellen anbieten.
  *
- * Hintergrund ist Issue #40: getFileStream() rief in beiden Zweigen fopen()
+ * Hintergrund ist Issue #40: der Lesestrom wurde in beiden Zweigen per fopen()
  * auf. Im Nextcloud-Dateibaum gibt es das (OCP\Files\File), in der app-internen
  * Ablage nicht (ISimpleFile kennt nur read()). Der ZIP-Export der Belege lief
  * dadurch bei app-interner Ablage für jeden einzelnen Beleg in einen
  * Undefined-Method-Fehler und meldete alle Belege als fehlend – während das
- * Öffnen einzelner Belege über getFileContent() weiter funktionierte und den
+ * Öffnen einzelner Belege über contentOf() weiter funktionierte und den
  * Fehler damit verdeckte.
  *
  * Deshalb wird hier bewusst gegen beide Ablagearten getestet: ein Test nur für
@@ -72,7 +73,7 @@ class AttachmentStorageServiceTest extends TestCase {
 			->willReturn($file);
 		$this->appData->method('getFolder')->with('attachments')->willReturn($folder);
 
-		$stream = $this->service()->getFileStream(self::ATTACHMENT_ID, self::JOURNAL_ID, self::FILE_NAME);
+		$stream = $this->service()->streamOf($this->attachment());
 
 		$this->assertIsResource($stream);
 		$this->assertSame('BELEG-INHALT', stream_get_contents($stream));
@@ -93,7 +94,7 @@ class AttachmentStorageServiceTest extends TestCase {
 			->with(self::NC_USER)
 			->willReturn($this->ncUserFolder($file));
 
-		$stream = $this->service()->getFileStream(self::ATTACHMENT_ID, self::JOURNAL_ID, self::FILE_NAME);
+		$stream = $this->service()->streamOf($this->attachment());
 
 		$this->assertIsResource($stream);
 		$this->assertSame('BELEG-INHALT', stream_get_contents($stream));
@@ -115,13 +116,13 @@ class AttachmentStorageServiceTest extends TestCase {
 		$this->appData->method('getFolder')->willReturn($folder);
 
 		$this->expectException(\RuntimeException::class);
-		$this->service()->getFileStream(self::ATTACHMENT_ID, self::JOURNAL_ID, self::FILE_NAME);
+		$this->service()->streamOf($this->attachment());
 	}
 
 	/**
 	 * Liegt im Dateibaum an der Stelle des Belegs ein Ordner, kommt eine
 	 * verständliche Meldung statt eines Aufrufs ins Leere – dieselbe Zusage,
-	 * die getFileContent() über ncFile() schon gibt.
+	 * die contentOf() über ncFile() schon gibt.
 	 */
 	public function testOrdnerStattDateiWirftVerstaendlicheAusnahme(): void {
 		$this->configureStorage(self::NC_USER);
@@ -132,7 +133,7 @@ class AttachmentStorageServiceTest extends TestCase {
 
 		$this->expectException(\RuntimeException::class);
 		$this->expectExceptionMessage('keine Datei');
-		$this->service()->getFileStream(self::ATTACHMENT_ID, self::JOURNAL_ID, self::FILE_NAME);
+		$this->service()->streamOf($this->attachment());
 	}
 
 	/**
@@ -152,6 +153,15 @@ class AttachmentStorageServiceTest extends TestCase {
 			$current = $parent;
 		}
 		return $current;
+	}
+
+	/** Ein Beleg der App-Ablage – ohne Dateiverweis, der Pfad wird berechnet. */
+	private function attachment(): Attachment {
+		$a = new Attachment();
+		$a->setId(self::ATTACHMENT_ID);
+		$a->setJournalId(self::JOURNAL_ID);
+		$a->setFileName(self::FILE_NAME);
+		return $a;
 	}
 
 	/** @return resource */

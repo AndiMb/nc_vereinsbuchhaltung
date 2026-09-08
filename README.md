@@ -48,14 +48,15 @@ Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kon
 - **Bankbuchungen zuordnen**: jede importierte Bankbuchung wird einem Gegenkonto zugeordnet, woraus automatisch ein Buchungssatz entsteht
   - **Zuordnungs-Vorschläge** aus Regeln und der bisherigen Zuordnungshistorie, per Klick übernehmbar
   - **Auto-Zuordnungsregeln** (Zahlungspartner / Verwendungszweck / IBAN enthält Suchtext → Gegenkonto): verwaltbar im Unterreiter „Regeln" (Tab Buchungen), oder per Blitz-Button direkt aus einer gebuchten Bankbuchung
-- **Belege** (PDF/Bilder, max. 20 MB) an Buchungssätze anhängen – Ablage intern (AppData) oder in einem konfigurierbaren Nextcloud-Ordner; schon beim Anlegen der Buchung oder nachträglich, auf Mobilgeräten direkt mit der Kamera fotografiert
+- **Belege** (PDF/Bilder, max. 20 MB) an Buchungssätze anhängen – Ablage intern (AppData), in einem von der App verwalteten Nextcloud-Ordner oder in einem **Wächter-Ordner**; schon beim Anlegen der Buchung oder nachträglich, auf Mobilgeräten direkt mit der Kamera fotografiert
+  - **Wächter-Ordner**: ein Ordner in der Dateien-App, dessen Dateien samt Unterordnern beim Buchen zur Auswahl stehen (Suche, Vorschau, Mehrfachauswahl); die Dateien bleiben liegen, Umbenennen und Verschieben brechen die Verknüpfung nicht (Nextcloud-Datei-ID); Uploads aus der App landen unter `<Ordner>/<Jahr>/`; die App löscht dort nie etwas, „Beleg löschen" löst nur die Verknüpfung
 - **Offene Posten** (Tab Buchungen → Offene Posten): schlanke Ad-hoc-Liste unbezahlter Forderungen (z. B. Mitgliedsbeiträge, Rechnungen) mit Debitor, Betrag, Fälligkeit und optionalem Konto; Status offen/bezahlt/storniert, Dashboard-Hinweis bei überfälligen Posten – bewusst keine vollständige Mitgliederverwaltung
 - **Rücklagen** (§ 62 AO: freie / zweckgebundene / Wiederbeschaffungsrücklage): Eigenkapital-Konten entsprechend kennzeichenbar, eigener Bericht mit Saldo je Art; Zuweisungen sind normale Buchungen (Experten-Modus)
 - **Jahresfilter**: alle Auswertungen beziehen sich auf das im Header gewählte Kalenderjahr; Bestandskonten kumulativ, Erfolgskonten jahresbezogen
 - **Jahresabschluss (Festschreibung)**: Verwalter schließen ein Geschäftsjahr ab – Buchungen, Belege und Zuordnungen dieses Jahres sind danach unveränderlich (Schreibversuche liefern HTTP 423); Wiedereröffnen nur durch Verwalter, beides wird protokolliert
 
 ### Auswertungen & Export
-- **Übersicht (Dashboard)**: KPI-Kacheln mit Vorjahresvergleich, Hinweis auf nicht zugeordnete Buchungen und überfällige offene Posten, monatliches Einnahmen-/Ausgaben-Diagramm
+- **Übersicht (Dashboard)**: KPI-Kacheln mit Vorjahresvergleich, Hinweis auf nicht zugeordnete Buchungen, überfällige offene Posten, Dokumente im Wächter-Ordner ohne Buchung (mit Eingangskorb und „Buchung anlegen") sowie Belege mit fehlender Datei, monatliches Einnahmen-/Ausgaben-Diagramm
 - **Saldenliste**: alle Konten mit Soll/Haben/Saldo, hierarchische Darstellung, optional inkl. Unterkonten
 - **Kontoauszug**: Buchungshistorie je Konto inkl. laufendem Saldo und Saldovortrag; falsch zugeordnete Buchungen lassen sich direkt dort auf ein anderes Konto **umbuchen** (jede Seite der Buchung, nur die Kontozuordnung ändert sich, protokolliert, gesperrt in abgeschlossenen Jahren)
 - **Auswertungsgruppen**: Einnahmen/Ausgaben/Ergebnis je Auswertungsgruppe mit Buchungs-Drilldown; drei Modi (2. Zahlengruppe der Kontonummer, je Konto oder **frei definierte Auswertungsgruppen** mit ausdrücklicher Konto-Zuordnung einzeln bzw. per Mehrfachauswahl), Namen per UI änderbar
@@ -195,7 +196,7 @@ vereinsbuchhaltung/
 | `vbh_budget_snap_items` | Positionen eines Plan-Stands (inkl. eingefrorener Konto-Stammdaten) |
 | `vbh_open_items` | offene Posten (Debitor, Betrag, Fälligkeit, Status, optional Konto/Buchung) |
 | `vbh_rules` | Auto-Zuordnungsregeln (Feld, Suchtext, Gegenkonto, Priorität) |
-| `vbh_attachments` | Belege je Buchungssatz (Dateiname, MIME, Größe) |
+| `vbh_attachments` | Belege je Buchungssatz (Dateiname, MIME, Größe; im Wächter-Ordner zusätzlich Nextcloud-Datei-ID und Besitzer) |
 | `vbh_permissions` | Berechtigungen (principal_type, principal_id, Rolle) |
 | `vbh_year_close` | abgeschlossene (festgeschriebene) Geschäftsjahre (Jahr, wann, von wem) |
 | `vbh_audit_log` | Änderungsprotokoll (Zeitpunkt, Nutzer, Aktion, Objekt, Details) |

@@ -1333,3 +1333,27 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 	.vbh-sphere-help.vbh-sphere-help { width: 44px; height: 44px; }
 	.vbh-tabs.vbh-tabs button { min-height: 44px; }
 }
+
+/* Wächter-Ordner für Belege: Dateiliste im Auswahl-/Eingangskorb-Dialog
+   (AttachmentFolderDialog.vue). */
+.vbh-folder-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 4px 0 10px; }
+
+.vbh-folder-toolbar .vbh-search--full { flex: 1 1 220px; width: auto; }
+
+.vbh-folder-list { max-height: 50vh; overflow-y: auto; }
+
+.vbh-folder-item { padding: 6px 8px; }
+
+.vbh-folder-main { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
+
+.vbh-folder-main .vbh-attachment-name { text-align: start; }
+
+.vbh-folder-meta { font-size: 0.8em; color: var(--color-text-lighter); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.vbh-folder-subtitle { font-size: 1em; margin: 18px 0 4px; }
+
+.vbh-folder-warn { color: var(--color-error-text); }
+
+.vbh-attachments-actions { display: flex; align-items: center; gap: 6px; }
+
+button.vbh-upload-btn { cursor: pointer; }
