@@ -687,9 +687,10 @@ class PeriodService {
 		$old = $this->all($userId);
 		$today = date('Y-m-d');
 
-		// Die neue Kette muss alles abdecken, was Daten trägt: den Zeitraum
-		// der Buchungen, die Zeiträume mit Planwerten oder Plan-Ständen und
-		// den heutigen Tag.
+		// Die neue Kette muss alles abdecken, was Daten trägt: den Zeitraum der
+		// Buchungen und die Zeiträume mit Planwerten oder Plan-Ständen. Der
+		// heutige Tag ist nur der Rückfall für ein leeres Buch; sonst hängt ihn
+		// current() bei Bedarf selbst an.
 		//
 		// Bewusst NICHT alle bestehenden Zeiträume: leere Perioden am Rand der
 		// Kette entstehen ganz von selbst (das Raster einer neuen Regel deckt
@@ -701,13 +702,21 @@ class PeriodService {
 		$from = $bounds[0] ?? $today;
 		$to = $bounds[1] ?? $today;
 
+		// Für einen Zeitraum mit Planwerten genügt es, dass die neue Kette ihn
+		// ÜBERSCHNEIDET – remapPlanValues() sucht sein Ziel über die
+		// Überschneidung, nicht über die Grenzen. Deshalb zählt hier das
+		// innere Ende (bis-Datum nach vorn, von-Datum nach hinten) und nicht
+		// das äußere: sonst zieht ein Planwert, der beim letzten Umstellen in
+		// einen früher beginnenden Zeitraum gewandert ist, die Kette beim
+		// Zurückstellen über die Daten hinaus – und vorn bliebe ein leeres
+		// Geschäftsjahr stehen.
 		$withPlan = $this->budgetMapper->countsByPeriod($userId) + $this->snapshotMapper->countsByPeriod($userId);
 		foreach ($old as $period) {
 			if (($withPlan[(int)$period->getId()] ?? 0) === 0) {
 				continue;
 			}
-			$from = min($from, $period->getStartDate());
-			$to = max($to, $period->getEndDate());
+			$from = min($from, $period->getEndDate());
+			$to = max($to, $period->getStartDate());
 		}
 
 		$byRange = [];

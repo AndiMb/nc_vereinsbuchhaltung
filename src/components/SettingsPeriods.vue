@@ -1,8 +1,12 @@
 <template>
 	<div>
-		<!-- KARTE 1: die Geschäftsjahr-Regel -->
+		<!-- KARTE 1: die Geschäftsjahr-Regel.
+		     Überschrift „Regel", nicht „Geschäftsjahr": so heißt schon der
+		     Abschnitt drumherum (NcSettingsSection in SettingsApp.vue), und
+		     zweimal dasselbe Wort untereinander liest sich wie ein Fehler.
+		     Zusammen mit der zweiten Karte ergibt das Regel → Zeiträume. -->
 		<div class="vbh-card">
-			<h4>{{ t('Geschäftsjahr') }}</h4>
+			<h4>{{ t('Regel') }}</h4>
 			<p class="vbh-hint">
 				{{ t('Ein Geschäftsjahr muss kein Kalenderjahr sein: Vereine rechnen häufig von Oktober bis September, Kindergärten im Schuljahr, studentische Vereine in Semestern. Die Regel legt fest, wann ein Zeitraum beginnt und wie lang er ist – daraus entsteht die Kette der Zeiträume unten.') }}
 			</p>

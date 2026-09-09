@@ -59,6 +59,11 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   Entry numbers and existing locks are left untouched. If you change nothing,
   you notice nothing.
 
+**Fixed:**
+- Opening the booking dialog before the account list had loaded left the cash
+  account empty – and booking then only reported that it was a required field.
+  The preselection is now filled in as soon as the accounts arrive.
+
 ## [0.32.0] – 2026-09-07
 
 **New:**

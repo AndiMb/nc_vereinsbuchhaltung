@@ -55,9 +55,6 @@ test.describe('Geschäftsjahr', () => {
 		await api.setPeriodRule(request, { preset: 'semester' })
 
 		const dezember = await api.periodIdForDate(request, '2030-12-15')
-		const april = await api.periodIdForDate(request, '2031-04-15')
-		expect(april).not.toBe(dezember)
-
 		const periods = await api.listPeriods(request)
 		const winter = periods.find((p) => p.id === dezember)
 		expect(winter.startDate).toBe('2030-10-01')
@@ -66,6 +63,23 @@ test.describe('Geschäftsjahr', () => {
 
 		// Beide Buchungen liegen weiterhin zusammen, jetzt im Wintersemester.
 		expect(winter.bookings).toBe(2)
+
+		// Der April gehört nicht mehr dazu – genau das ist die Teilung. Den
+		// Zeitraum dafür gibt es aber noch nicht: die Umstellung baut die Kette
+		// nur über das, was Daten trägt, und der Rest entsteht erst mit der
+		// ersten Buchung darin. Nachschlagen allein legt nichts an.
+		const gebucht = await api.createBooking(request, {
+			date: '2031-04-15', description: 'Im Sommersemester', debitAccountId: bank.id, creditAccountId: income.id, amount: 20,
+		})
+		const april = await api.periodIdForDate(request, '2031-04-15')
+		expect(april).not.toBe(dezember)
+		const sommer = (await api.listPeriods(request)).find((p) => p.id === april)
+		expect([sommer.startDate, sommer.endDate]).toEqual(['2031-04-01', '2031-09-30'])
+		expect(sommer.label).toBe('2030/31-2')
+
+		// Wieder wegräumen: die folgenden Tests rechnen mit den zwei Buchungen
+		// aus dem ersten Test, nicht mit einer dritten im Sommersemester.
+		await api.deleteBooking(request, (await gebucht.json()).id)
 	})
 
 	test('abgeschlossener Zeitraum: Schloss in der Auswahl, Buchung wird abgewiesen', async ({ page, request }) => {

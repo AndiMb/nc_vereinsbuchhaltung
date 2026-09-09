@@ -924,6 +924,25 @@ export default {
 			if (v === 'summary') { this.loadBalances() } else if (v === 'costcenters') { this.loadReport() } else if (v === 'spheres') { this.loadSphereReport() } else if (v === 'budget') { this.loadBudget() } else if (v === 'audit') { this.loadAudit() }
 		},
 
+		/**
+		 * Vorbelegung des Geldkontos nachtragen, sobald die Konten da sind.
+		 *
+		 * openNewBooking() liest defaultMoneyAccountId in dem Moment, in dem der
+		 * Dialog aufgeht – wer schneller klickt, als /api/accounts antwortet,
+		 * bekam ein leeres Geldkonto und beim Buchen die Pflichtfeld-Meldung,
+		 * ohne dass am Feld etwas darauf hingedeutet hätte. Der Fall ist real:
+		 * die Oberfläche steht, bevor die erste Datenrunde durch ist.
+		 *
+		 * Nur bei einer neuen Buchung und nur, solange nichts gewählt ist – ein
+		 * bewusst geleertes Feld bleibt leer, und eine bearbeitete Buchung
+		 * behält ihr Konto.
+		 */
+		defaultMoneyAccountId(id) {
+			if (!id || !this.showBooking) { return }
+			if (this.bookingForm.id !== null || this.bookingForm.moneyAccountId) { return }
+			this.bookingForm.moneyAccountId = id
+		},
+
 		async selectedPeriodId() {
 			// Jahresbezogene Caches invalidieren
 			this.ccBookings = {}

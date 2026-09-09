@@ -238,6 +238,11 @@ export const api = {
 		})
 	},
 
+	/** Buchung löschen – für Tests, die ihren Bestand hinterher wieder herstellen. */
+	async deleteBooking(request, id, { user = 'admin' } = {}) {
+		return call(request, 'DELETE', `/journal/${id}`, { user })
+	},
+
 	/** Beleg an eine Buchung hängen; liefert den angelegten Datensatz. */
 	async addAttachment(request, journalId, { name = 'beleg.png', mimeType = 'image/png', buffer = BELEG_PNG, user = 'admin' } = {}) {
 		return (await call(request, 'POST', `/journal/${journalId}/attachments`, {

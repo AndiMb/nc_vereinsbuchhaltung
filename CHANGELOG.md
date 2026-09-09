@@ -64,6 +64,11 @@ verwenden, z. B. `**Neu:**`.
   als Bezeichnung an. Buchungsnummern und Abschlüsse bleiben unangetastet. Wer
   nichts umstellt, merkt nichts.
 
+**Behoben:**
+- Wer den Buchungsdialog öffnete, bevor die Kontenliste geladen war, bekam ein
+  leeres Geldkonto – und beim Buchen nur die Meldung, dass es ein Pflichtfeld
+  sei. Die Vorbelegung wird jetzt nachgetragen, sobald die Konten da sind.
+
 ## [0.32.0] – 2026-09-07
 
 **Neu:**
