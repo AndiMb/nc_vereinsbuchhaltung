@@ -11,17 +11,17 @@
 
 		<div v-if="balances" class="vbh-totals">
 			<div class="vbh-total pos">
-				<span>{{ t('Einnahmen') }}{{ selectedYear ? ' ' + selectedYear : '' }}</span>
+				<span>{{ t('Einnahmen') }}{{ selectedPeriod ? ' ' + selectedPeriod.label : '' }}</span>
 				<strong>{{ formatMoney(balances.totals.income) }}</strong>
 				<small v-if="kpiDeltas && kpiDeltas.income" class="vbh-total-delta" :class="kpiDeltas.income.up ? 'good' : 'bad'">{{ kpiDeltas.income.text }}</small>
 			</div>
 			<div class="vbh-total neg">
-				<span>{{ t('Ausgaben') }}{{ selectedYear ? ' ' + selectedYear : '' }}</span>
+				<span>{{ t('Ausgaben') }}{{ selectedPeriod ? ' ' + selectedPeriod.label : '' }}</span>
 				<strong>{{ formatMoney(balances.totals.expense) }}</strong>
 				<small v-if="kpiDeltas && kpiDeltas.expense" class="vbh-total-delta" :class="kpiDeltas.expense.up ? 'bad' : 'good'">{{ kpiDeltas.expense.text }}</small>
 			</div>
 			<div class="vbh-total" :class="balances.totals.result >= 0 ? 'pos' : 'neg'">
-				<span>{{ t('Ergebnis') }}{{ selectedYear ? ' ' + selectedYear : '' }}</span>
+				<span>{{ t('Ergebnis') }}{{ selectedPeriod ? ' ' + selectedPeriod.label : '' }}</span>
 				<strong>{{ formatMoney(balances.totals.result) }}</strong>
 				<small v-if="kpiDeltas && kpiDeltas.result" class="vbh-total-delta" :class="kpiDeltas.result.up ? 'good' : 'bad'">{{ kpiDeltas.result.text }}</small>
 			</div>
@@ -43,7 +43,7 @@
 
 		<div v-if="sphereData && sphereData.freigrenze.incomeCents > 0" class="vbh-freigrenzecard" :class="sphereData.freigrenze.level">
 			<div class="vbh-freigrenzecard-text">
-				<strong>{{ t('Wirtschaftlicher Geschäftsbetrieb') }}{{ selectedYear ? ' ' + selectedYear : '' }}:</strong>
+				<strong>{{ t('Wirtschaftlicher Geschäftsbetrieb') }}{{ selectedPeriod ? ' ' + selectedPeriod.label : '' }}:</strong>
 				{{ t('{income} von {threshold} Freigrenze', { income: formatMoney(sphereData.freigrenze.income), threshold: formatMoney(sphereData.freigrenze.threshold) }) }}
 				({{ Math.round(sphereData.freigrenze.ratio * 100) }} %)
 				<span v-if="sphereData.freigrenze.level === 'over'"> {{ t('– Freigrenze überschritten, bitte mit Steuerberatung klären.') }}</span>
@@ -212,7 +212,7 @@
 
 		<div class="vbh-chart-grid">
 			<div class="vbh-chart-card vbh-chart-card--wide">
-				<h4>{{ t('Einnahmen & Ausgaben') }}{{ selectedYear ? ' ' + selectedYear : '' }} {{ t('(monatlich)') }}</h4>
+				<h4>{{ t('Einnahmen & Ausgaben') }}{{ selectedPeriod ? ' ' + selectedPeriod.label : '' }} {{ t('(monatlich)') }}</h4>
 				<div class="vbh-chart-wrap">
 					<canvas ref="monthlyChart" />
 				</div>
@@ -240,12 +240,21 @@ import { useAuth } from '../composables/useAuth.js'
 import { useBalances } from '../composables/useBalances.js'
 import { useJournal } from '../composables/useJournal.js'
 import { useOpenItems } from '../composables/useOpenItems.js'
+import { usePeriods } from '../composables/usePeriods.js'
 import { usePermissions } from '../composables/usePermissions.js'
-import { useYears } from '../composables/useYears.js'
 import { chartTheme, onThemeChange, withAlpha } from '../lib/chartTheme.js'
 import { formatDate, formatMoney } from '../lib/format.js'
 
 Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend)
+
+/**
+ * Monatszahl 1..12 aus einem Schlüssel „JJJJ-MM" (NaN, wenn er nicht passt).
+ *
+ * @param {string} key Monatsschlüssel
+ */
+function monthOf(key) {
+	return parseInt(String(key).slice(5, 7), 10)
+}
 
 export default {
 	name: 'DashboardTab',
@@ -270,7 +279,7 @@ export default {
 
 	setup() {
 		const auth = useAuth()
-		const years = useYears()
+		const periods = usePeriods()
 		const accounts = useAccounts()
 		const balances = useBalances()
 		const journal = useJournal()
@@ -279,7 +288,9 @@ export default {
 		return {
 			canWrite: auth.canWrite,
 			isAdmin: auth.isAdmin,
-			...toRefs(years.state),
+			...toRefs(periods.state),
+			selectedPeriod: periods.selectedPeriod,
+			previousOf: periods.previousOf,
 			accountsById: accounts.accountsById,
 			...toRefs(accounts.state),
 			...toRefs(balances.state),
@@ -292,30 +303,50 @@ export default {
 
 	computed: {
 		kpiDeltas() {
-			if (!this.balances || !this.prevBalances || !this.selectedYear) { return null }
+			if (!this.balances || !this.prevBalances || !this.selectedPeriod) { return null }
+			// Verglichen wird mit dem Zeitraum davor; früher stand hier „Jahr - 1".
+			// Beim ältesten Zeitraum gibt es keinen Vorgänger und damit auch
+			// keinen Vergleich - dann bleibt die Kennzahl ohne Zusatz.
+			const previous = this.previousOf(this.selectedPeriod)
 			const mk = (key) => {
+				if (!previous) { return null }
 				const cur = this.balances.totals[key]
 				const prev = this.prevBalances.totals[key]
 				if (!prev || Math.abs(prev) < 0.005) { return null }
 				const pct = Math.round(((cur - prev) / Math.abs(prev)) * 100)
-				return { pct, up: pct >= 0, text: this.t('{sign}{pct} % ggü. {year}', { sign: pct >= 0 ? '+' : '', pct, year: this.selectedYear - 1 }) }
+				return { pct, up: pct >= 0, text: this.t('{sign}{pct} % ggü. {period}', { sign: pct >= 0 ? '+' : '', pct, period: previous.label }) }
 			}
 			return { income: mk('income'), expense: mk('expense'), result: mk('result') }
 		},
 
+		/**
+		 * Die Balken folgen dem gewählten Geschäftsjahr, nicht mehr fest Jan..Dez:
+		 * bei einem Zeitraum Okt–Sep steht der Oktober vorn, ein Semester hat
+		 * sechs Balken. Bei „alle Zeiträume" gibt es keine Grenzen, dort bleibt es
+		 * beim Kalenderjahr und die Monate mehrerer Jahre werden aufsummiert.
+		 */
 		monthlyChartData() {
-			const labels = [this.t('Jan'), this.t('Feb'), this.t('Mär'), this.t('Apr'), this.t('Mai'), this.t('Jun'), this.t('Jul'), this.t('Aug'), this.t('Sep'), this.t('Okt'), this.t('Nov'), this.t('Dez')]
-			const income = new Array(12).fill(0)
-			const expense = new Array(12).fill(0)
+			const names = [this.t('Jan'), this.t('Feb'), this.t('Mär'), this.t('Apr'), this.t('Mai'), this.t('Jun'), this.t('Jul'), this.t('Aug'), this.t('Sep'), this.t('Okt'), this.t('Nov'), this.t('Dez')]
+			const months = this.selectedPeriod ? this.periodMonths(this.selectedPeriod) : null
+			const labels = months ? months.map((k) => names[monthOf(k) - 1] || k) : names
+			// Zuordnung über „JJJJ-MM": nur so landet der Januar eines
+			// Geschäftsjahres, das im Oktober begann, im richtigen Balken.
+			const slotOf = {}
+			if (months) { months.forEach((k, i) => { slotOf[k] = i }) }
+			const income = new Array(labels.length).fill(0)
+			const expense = new Array(labels.length).fill(0)
 			for (const item of this.journalData) {
 				const date = item.journal && item.journal.date
 				if (!date) { continue }
-				const m = parseInt(String(date).slice(5, 7), 10) - 1
-				if (m < 0 || m > 11) { continue }
+				const key = String(date).slice(0, 7)
+				// Buchungen außerhalb des Zeitraums (undefined) und unbrauchbare
+				// Datumsangaben (NaN) fallen über diesen Vergleich beide heraus.
+				const i = months ? slotOf[key] : monthOf(key) - 1
+				if (!(i >= 0 && i < labels.length)) { continue }
 				for (const line of (item.lines || [])) {
 					const acc = this.accountsById[line.accountId]
 					if (!acc || acc.isBank || acc.type === 'equity') { continue }
-					if (['income', 'liability'].includes(acc.type)) { income[m] += (line.creditCents - line.debitCents) / 100 } else { expense[m] += (line.debitCents - line.creditCents) / 100 }
+					if (['income', 'liability'].includes(acc.type)) { income[i] += (line.creditCents - line.debitCents) / 100 } else { expense[i] += (line.debitCents - line.creditCents) / 100 }
 				}
 			}
 			return { labels, income, expense }
@@ -325,6 +356,9 @@ export default {
 	watch: {
 		isActive(v) { if (v) { this.$nextTick(() => this.renderMonthlyChart()) } },
 		journalData() { if (this.isActive) { this.$nextTick(() => this.renderMonthlyChart()) } },
+		// Mit dem Zeitraum wechseln auch Anzahl und Reihenfolge der Balken - das
+		// haengt jetzt nicht mehr allein an den nachgeladenen Buchungen.
+		selectedPeriodId() { if (this.isActive) { this.$nextTick(() => this.renderMonthlyChart()) } },
 	},
 
 	// chartInstances liegt bewusst NICHT in data(): Chart.js-Instanzen vertragen
@@ -351,6 +385,30 @@ export default {
 	methods: {
 		formatMoney,
 		formatDate,
+		/**
+		 * Die Monate eines Zeitraums als „JJJJ-MM", von seinem Beginn bis zu
+		 * seinem Ende. Ein Geschäftsjahr ist nie länger als zwölf Monate; die
+		 * feste Obergrenze der Schleife hält sie trotzdem an, falls doch einmal
+		 * kaputte Datumsgrenzen ankommen.
+		 *
+		 * @param {object} period Zeitraum mit startDate/endDate
+		 */
+		periodMonths(period) {
+			const out = []
+			let year = parseInt(String(period.startDate).slice(0, 4), 10)
+			let month = parseInt(String(period.startDate).slice(5, 7), 10)
+			const last = String(period.endDate).slice(0, 7)
+			if (!year || !month) { return out }
+			for (let i = 0; i < 12; i++) {
+				const key = `${year}-${String(month).padStart(2, '0')}`
+				out.push(key)
+				if (key >= last) { break }
+				month += 1
+				if (month > 12) { month = 1; year += 1 }
+			}
+			return out
+		},
+
 		rowFlow(r) {
 			if (r.isSplit) { return '' }
 			const d = this.accountsById[r.debitAccountId]

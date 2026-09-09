@@ -26,7 +26,7 @@ class XbucParser {
 	}
 
 	/**
-	 * @return array{accounts: array<int, array<string,mixed>>, bookings: array<int, array<string,mixed>>, costCenters: array<int, array{code:string, name:string}>, year: ?int}
+	 * @return array{accounts: array<int, array<string,mixed>>, bookings: array<int, array<string,mixed>>, costCenters: array<int, array{code:string, name:string}>, minDate: ?string, maxDate: ?string}
 	 * @throws \RuntimeException
 	 */
 	public function parse(string $content): array {
@@ -100,23 +100,43 @@ class XbucParser {
 			'accounts' => $accounts,
 			'bookings' => $bookings,
 			'costCenters' => $costCenters,
-			'year' => $this->projectYear($projekt),
-		];
+		] + $this->projectRange($projekt, $bookings);
 	}
 
 	/**
-	 * Geschäftsjahr der Datei aus den Projekt-Attributen min__Datum/max__Datum.
-	 * Nur wenn beide auf dasselbe Kalenderjahr zeigen, sonst null.
+	 * Der Zeitraum, den die Datei abdeckt – als Datumspaar.
+	 *
+	 * Bis 0.32.0 stand hier eine Jahreszahl, und die gab es nur, wenn
+	 * min__Datum und max__Datum im selben Kalenderjahr lagen. Damit ließ sich
+	 * eine Datei für ein abweichendes Geschäftsjahr (Okt–Sep) gar nicht
+	 * zuordnen, obwohl sie genau eines enthielt. Welches Geschäftsjahr das ist,
+	 * entscheidet jetzt der PeriodService anhand dieser beiden Daten.
+	 *
+	 * Fehlen die Projekt-Attribute, treten die Buchungen selbst an ihre Stelle:
+	 * verlässlicher als ein Attribut, das nicht jede erzeugende Software setzt.
+	 *
+	 * @param array<int, array<string,mixed>> $bookings
+	 * @return array{minDate:?string, maxDate:?string}
 	 */
-	private function projectYear(\SimpleXMLElement $projekt): ?int {
+	private function projectRange(\SimpleXMLElement $projekt, array $bookings): array {
 		$from = $this->parseDate((string)$projekt['min__Datum']);
 		$to = $this->parseDate((string)$projekt['max__Datum']);
+
 		if ($from === null || $to === null) {
-			return null;
+			$dates = [];
+			foreach ($bookings as $booking) {
+				$date = (string)($booking['date'] ?? '');
+				if ($date !== '') {
+					$dates[] = $date;
+				}
+			}
+			if ($dates !== []) {
+				$from ??= min($dates);
+				$to ??= max($dates);
+			}
 		}
-		$yearFrom = (int)substr($from, 0, 4);
-		$yearTo = (int)substr($to, 0, 4);
-		return $yearFrom === $yearTo ? $yearFrom : null;
+
+		return ['minDate' => $from, 'maxDate' => $to];
 	}
 
 	/**

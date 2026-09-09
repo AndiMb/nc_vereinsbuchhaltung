@@ -22,15 +22,46 @@ class BudgetSnapshotMapper extends QBMapper {
 	 *
 	 * @return BudgetSnapshot[]
 	 */
-	public function findByYear(string $userId, int $year): array {
+	public function findByPeriod(string $userId, int $periodId): array {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')
 			->from($this->getTableName())
 			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
-			->andWhere($qb->expr()->eq('year', $qb->createNamedParameter($year, IQueryBuilder::PARAM_INT)))
+			->andWhere($qb->expr()->eq('period_id', $qb->createNamedParameter($periodId, IQueryBuilder::PARAM_INT)))
 			->orderBy('created_at', 'DESC')
 			->addOrderBy('id', 'DESC');
 		return $this->findEntities($qb);
+	}
+
+	/** Anzahl Plan-Stände in einem Geschäftsjahr. */
+	public function countByPeriod(string $userId, int $periodId): int {
+		$qb = $this->db->getQueryBuilder();
+		$qb->selectAlias($qb->func()->count('id'), 'c')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+			->andWhere($qb->expr()->eq('period_id', $qb->createNamedParameter($periodId, IQueryBuilder::PARAM_INT)));
+		$res = $qb->executeQuery();
+		$count = (int)$res->fetchOne();
+		$res->closeCursor();
+		return $count;
+	}
+
+	/**
+	 * Hängt alle Plan-Stände eines Geschäftsjahres an ein anderes um.
+	 *
+	 * Anders als bei den Planwerten kann es dabei keine Kollision geben:
+	 * mehrere Stände je Zeitraum sind ausdrücklich vorgesehen.
+	 */
+	public function movePeriod(string $userId, int $fromPeriodId, int $toPeriodId): void {
+		if ($fromPeriodId === $toPeriodId) {
+			return;
+		}
+		$qb = $this->db->getQueryBuilder();
+		$qb->update($this->getTableName())
+			->set('period_id', $qb->createNamedParameter($toPeriodId, IQueryBuilder::PARAM_INT))
+			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+			->andWhere($qb->expr()->eq('period_id', $qb->createNamedParameter($fromPeriodId, IQueryBuilder::PARAM_INT)));
+		$qb->executeStatement();
 	}
 
 	/**
@@ -50,7 +81,7 @@ class BudgetSnapshotMapper extends QBMapper {
 	}
 
 	/**
-	 * Alle Stände eines Nutzers (jahresübergreifend) – für das Aufräumen.
+	 * Alle Stände eines Nutzers (zeitraumübergreifend) – für das Aufräumen.
 	 *
 	 * @return BudgetSnapshot[]
 	 */
@@ -67,5 +98,29 @@ class BudgetSnapshotMapper extends QBMapper {
 		$qb->delete($this->getTableName())
 			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)));
 		$qb->executeStatement();
+	}
+
+	/**
+	 * Anzahl Plan-Stände je Geschäftsjahr, in einer Abfrage.
+	 *
+	 * Die Zeitraum-Liste braucht diese Zahlen für jede Periode; einzeln
+	 * abgefragt wären das zwei Abfragen je Zeitraum bei jedem Seitenaufbau.
+	 *
+	 * @return array<int, int> periodId => Anzahl
+	 */
+	public function countsByPeriod(string $userId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('period_id')
+			->selectAlias($qb->func()->count('id'), 'c')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+			->groupBy('period_id');
+		$res = $qb->executeQuery();
+		$out = [];
+		while (($row = $res->fetch()) !== false) {
+			$out[(int)$row['period_id']] = (int)$row['c'];
+		}
+		$res->closeCursor();
+		return $out;
 	}
 }

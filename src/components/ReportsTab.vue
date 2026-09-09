@@ -23,7 +23,7 @@
 			</div>
 			<div class="vbh-sectiontop-actions">
 				<a
-					v-if="reportView === 'summary' && selectedYear && !isMobile"
+					v-if="reportView === 'summary' && selectedPeriodId && !isMobile"
 					:href="kassenberichtUrl"
 					target="_blank"
 					rel="noopener"
@@ -59,7 +59,7 @@
 						<NcIconSvgWrapper :path="mdiDownload" :size="20" />
 					</template>
 					<NcActionLink
-						v-if="isMobile && selectedYear"
+						v-if="isMobile && selectedPeriodId"
 						:href="kassenberichtUrl"
 						target="_blank"
 						:title="t('Druckfertiger Kassenbericht für die Mitgliederversammlung (öffnet in neuem Tab, dort drucken oder als PDF speichern)')">
@@ -89,10 +89,10 @@
 						{{ t('Kurzbericht') }}
 					</NcActionLink>
 					<NcActionLink
-						v-if="selectedYear"
+						v-if="selectedPeriodId"
 						:href="attachmentsZipUrl"
 						download=""
-						:title="t('Alle Belege des Jahres als ZIP herunterladen (für die Kassenprüfung)')">
+						:title="t('Alle Belege des Zeitraums als ZIP herunterladen (für die Kassenprüfung)')">
 						<template #icon>
 							<NcIconSvgWrapper :path="mdiPaperclip" :size="16" />
 						</template>
@@ -128,7 +128,7 @@
 					<NcActionLink
 						:href="exportMultiyearUrl"
 						download=""
-						:title="t('Mehrjahresübersicht (alle Jahre) als CSV exportieren')">
+						:title="t('Mehrjahresübersicht (alle Zeiträume) als CSV exportieren')">
 						<template #icon>
 							<NcIconSvgWrapper :path="mdiDownload" :size="16" />
 						</template>
@@ -676,22 +676,22 @@
 			<!-- FINANZPLAN -->
 			<div v-show="reportView === 'budget'">
 				<div class="vbh-sectionhead">
-					<h4>{{ t('Finanzplan & Soll-Ist-Vergleich') }}{{ budgetData ? ' ' + budgetData.year : '' }}</h4>
-					<form v-if="canWrite" class="vbh-addyear" @submit.prevent="addBudgetYear">
-						<input
-							v-model="newBudgetYear"
-							type="number"
-							min="2000"
-							max="2099"
-							:placeholder="t('Jahr')"
-							class="vbh-addyear-input">
-						<NcButton type="submit" variant="secondary">
-							{{ t('Jahr hinzufügen') }}
-						</NcButton>
-					</form>
+					<h4>{{ t('Finanzplan & Soll-Ist-Vergleich') }}{{ budgetData ? ' ' + budgetData.label : '' }}</h4>
+					<!-- Bis 0.32.0 stand hier ein freies Jahreszahl-Feld, das den Wert
+					     nur in die lokale Jahresliste schob. Zeiträume koennen vom
+					     Kalender abweichen (Issue #8), also legt sie der Server nach
+					     der eingestellten Geschaeftsjahr-Regel an. -->
+					<NcButton
+						v-if="canWrite"
+						variant="secondary"
+						:disabled="creatingPeriod"
+						:title="t('Legt den Zeitraum nach dem bisher letzten an – nach der eingestellten Geschäftsjahr-Regel')"
+						@click="createNextPeriod">
+						{{ t('Nächsten Zeitraum anlegen') }}
+					</NcButton>
 				</div>
 				<p class="vbh-hint">
-					{{ t('Plane je Konto die erwarteten Einnahmen und Ausgaben (Spalte „Plan"). Die Spalte „Ist" zeigt die tatsächlichen Buchungen des gewählten Geschäftsjahres, „Differenz" den Abstand zum Plan.') }}
+					{{ t('Plane je Konto die erwarteten Einnahmen und Ausgaben (Spalte „Plan"). Die Spalte „Ist" zeigt die tatsächlichen Buchungen des gewählten Zeitraums, „Differenz" den Abstand zum Plan.') }}
 				</p>
 
 				<div v-if="budgetData" class="vbh-totals">
@@ -797,7 +797,7 @@
 				<!-- PLAN-STÄNDE (Snapshots) -->
 				<div v-if="budgetData" class="vbh-snapblock">
 					<div class="vbh-sectionhead">
-						<h4>{{ t('Plan-Stände {year}', { year: budgetData.year }) }}</h4>
+						<h4>{{ t('Plan-Stände {label}', { label: budgetData.label }) }}</h4>
 						<form v-if="canWrite" class="vbh-addyear" @submit.prevent="saveBudgetSnapshot">
 							<input
 								v-model="newSnapshotLabel"
@@ -869,7 +869,7 @@
 						</table>
 					</div>
 					<p v-else class="vbh-empty">
-						{{ t('Noch keine Stände für dieses Jahr gespeichert.') }}
+						{{ t('Noch keine Stände für diesen Zeitraum gespeichert.') }}
 					</p>
 				</div>
 			</div>
@@ -980,8 +980,8 @@ import { useAccounts } from '../composables/useAccounts.js'
 import { useAuth } from '../composables/useAuth.js'
 import { useBalances } from '../composables/useBalances.js'
 import { useConfirm } from '../composables/useConfirm.js'
+import { usePeriods } from '../composables/usePeriods.js'
 import { useSort } from '../composables/useSort.js'
-import { useYears } from '../composables/useYears.js'
 import { chartTheme, onThemeChange, withAlpha } from '../lib/chartTheme.js'
 import { amountClass, budgetDiffClass, formatDate, formatDateTime, formatMoney, roleLabel, typeLabel } from '../lib/format.js'
 
@@ -1005,7 +1005,7 @@ export default {
 		isMobile: { type: Boolean, required: true },
 		reportView: { type: String, required: true },
 		// reportData/budgetData/budgetSnapshots/auditEntries/auditLoading/auditEnd
-		// bleiben in App.vue (per reportView-/selectedYear-Watcher und
+		// bleiben in App.vue (per reportView-/selectedPeriodId-Watcher und
 		// refreshAfterRemoteChange() geladen) - hier nur als Props gelesen.
 		reportData: { type: Object, default: null },
 		budgetData: { type: Object, default: null },
@@ -1014,7 +1014,7 @@ export default {
 		auditLoading: { type: Boolean, required: true },
 		auditEnd: { type: Boolean, required: true },
 		// selectedCCCode/selectedSphereCode/ccExpanded/ccBookings/renameName
-		// bleiben in App.vue (Jahres-/Reload-Watcher setzen sie zurueck).
+		// bleiben in App.vue (Zeitraum-/Reload-Watcher setzen sie zurueck).
 		selectedCCCode: { type: [Boolean, String, Number], default: false },
 		selectedSphereCode: { type: [Boolean, String, Number], default: false },
 		ccExpanded: { type: Object, required: true },
@@ -1036,14 +1036,18 @@ export default {
 
 	setup() {
 		const auth = useAuth()
-		const years = useYears()
+		const periods = usePeriods()
 		const accounts = useAccounts()
 		const balances = useBalances()
 		const sorting = useSort()
 		return {
 			canWrite: auth.canWrite,
 			isAdmin: auth.isAdmin,
-			...toRefs(years.state),
+			// periods/selectedPeriodId aus dem usePeriods-Singleton (derselbe
+			// geteilte Zustand wie in App.vue) - loadPeriods braucht der Knopf
+			// „Nächsten Zeitraum anlegen" unten.
+			...toRefs(periods.state),
+			loadPeriods: periods.loadPeriods,
 			...toRefs(accounts.state),
 			accountsById: accounts.accountsById,
 			childrenOf: accounts.childrenOf,
@@ -1071,7 +1075,9 @@ export default {
 			multiyearTrendData: null,
 			reserveData: null,
 			kurzberichtSince: this.defaultKurzberichtSince(),
-			newBudgetYear: '',
+			// Doppelklick-Schutz fuer „Nächsten Zeitraum anlegen" - der Aufruf
+			// legt serverseitig an, ein zweiter waere ein zweiter Zeitraum.
+			creatingPeriod: false,
 			budgetNoteOpen: {},
 			newSnapshotLabel: '',
 			// Protokoll: Importe (CSV/xbuc/Wachordner/Beispieldaten) ausblenden, wenn
@@ -1087,13 +1093,13 @@ export default {
 	},
 
 	computed: {
-		kassenberichtUrl() { return api.kassenberichtUrl(this.selectedYear) },
+		kassenberichtUrl() { return api.kassenberichtUrl(this.selectedPeriodId) },
 		pruefleitfadenUrl() { return api.pruefleitfadenUrl() },
-		attachmentsZipUrl() { return api.exportAttachmentsUrl(this.selectedYear) },
-		exportBalancesUrl() { return api.exportBalancesUrl(this.selectedYear) },
-		exportReportUrl() { return api.exportReportUrl(this.selectedYear) },
+		attachmentsZipUrl() { return api.exportAttachmentsUrl(this.selectedPeriodId) },
+		exportBalancesUrl() { return api.exportBalancesUrl(this.selectedPeriodId) },
+		exportReportUrl() { return api.exportReportUrl(this.selectedPeriodId) },
 		exportMultiyearUrl() { return api.exportMultiyearUrl() },
-		exportBudgetUrl() { return api.exportBudgetUrl(this.selectedYear) },
+		exportBudgetUrl() { return api.exportBudgetUrl(this.selectedPeriodId) },
 		// Import-Aktionen tragen alle objectType 'import' (CSV-/xbuc-/Wachordner-
 		// Import, Beispieldaten) - siehe die audit->log()-Aufrufe im Backend.
 		filteredAuditEntries() {
@@ -1197,7 +1203,10 @@ export default {
 		trendChartData() {
 			const rows = (this.multiyearTrendData && this.multiyearTrendData.years) || []
 			return {
-				labels: rows.map((r) => String(r.year)),
+				// Seit Issue #8 beschriftet die Bezeichnung des Zeitraums die
+				// Achse - eine Jahreszahl gibt es nicht mehr, und bei Semestern
+				// stuenden sonst zwei Punkte unter demselben Text.
+				labels: rows.map((r) => r.label),
 				income: rows.map((r) => r.income),
 				expense: rows.map((r) => r.expense),
 				result: rows.map((r) => r.result),
@@ -1381,7 +1390,14 @@ export default {
 			if (d.filename) { parts.push(d.filename) }
 			if (d.wer) { parts.push((d.typ === 'group' ? this.t('Gruppe') + ' ' : '') + d.wer + (d.rolle ? ' → ' + this.roleLabel(d.rolle) : '')) }
 			if (d.amount !== null && d.amount !== undefined) { parts.push(this.formatMoney(d.amount)) }
-			if (d.jahr !== null && d.jahr !== undefined) { parts.push(this.t('Jahr {year}', { year: d.jahr })) }
+			// `zeitraum`/`geschaeftsjahr` seit Issue #8; `jahr` steht noch in
+			// Eintraegen aus alten Versionen und wird weiter angezeigt - das
+			// Protokoll wird nie umgeschrieben.
+			const label = d.zeitraum ?? d.geschaeftsjahr ?? d.jahr
+			if (label !== null && label !== undefined) { parts.push(this.t('Zeitraum {label}', { label })) }
+			// Umbenennen, Grenze verschieben und Regelwechsel protokollieren ein
+			// Vorher/Nachher - ohne diese Zeile blieben ihre Details leer.
+			if (d.vorher !== undefined && d.nachher !== undefined) { parts.push(`${d.vorher} → ${d.nachher}`) }
 			if (d.buchungen !== null && d.buchungen !== undefined) { parts.push(this.t('{n} Buchungen', { n: d.buchungen })) }
 			if (d.neu !== null && d.neu !== undefined) { parts.push(this.t('{n} neu', { n: d.neu })) }
 			if (d.duplikate !== null && d.duplikate !== undefined) { parts.push(this.t('{n} Dubletten', { n: d.duplikate })) }
@@ -1396,20 +1412,23 @@ export default {
 			this.saveCostCenterMode()
 		},
 
-		addBudgetYear() {
-			const y = parseInt(this.newBudgetYear, 10)
-			if (!y || y < 2000 || y > 2099) { return }
-			this.newBudgetYear = ''
-			if (!this.years.includes(y)) {
-				this.years = [y, ...this.years].sort((a, b) => b - a)
-			}
-			this.selectedYear = y
+		// Haengt den Zeitraum nach dem bisher letzten an und springt hinein, damit
+		// gleich fuer ihn geplant werden kann. Wo er anfaengt und aufhoert, weiss
+		// nur der Server (Geschaeftsjahr-Regel), deshalb danach neu laden.
+		async createNextPeriod() {
+			this.creatingPeriod = true
+			try {
+				const { data } = await api.createPeriod()
+				await this.loadPeriods()
+				this.selectedPeriodId = data.id
+				showSuccess(this.t('Zeitraum {label} angelegt.', { label: data.label }))
+			} catch (e) { showError(this.errMsg(e, this.t('Zeitraum konnte nicht angelegt werden'))) } finally { this.creatingPeriod = false }
 		},
 
 		async saveBudget(row) {
 			if (!this.budgetData) { return }
 			try {
-				await api.setBudget(row.accountId, this.budgetData.year, Number(row.plan) || 0, (row.note || '').trim())
+				await api.setBudget(row.accountId, this.budgetData.periodId, Number(row.plan) || 0, (row.note || '').trim())
 				this.$emit('budget-changed')
 			} catch (e) { showError(this.errMsg(e, this.t('Planwert konnte nicht gespeichert werden'))) }
 		},
@@ -1422,7 +1441,7 @@ export default {
 			if (!this.budgetData) { return }
 			const label = this.newSnapshotLabel.trim()
 			try {
-				await api.createBudgetSnapshot(this.budgetData.year, label)
+				await api.createBudgetSnapshot(this.budgetData.periodId, label)
 				this.newSnapshotLabel = ''
 				this.$emit('snapshots-changed')
 				showSuccess(this.t('Plan-Stand gespeichert.'))

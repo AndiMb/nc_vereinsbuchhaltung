@@ -18,7 +18,7 @@ Menüstrukturen: Was muss ich wann tun, und worauf ist dabei zu achten?
 5. [Auswertungen verstehen](#5-auswertungen-verstehen)
 6. [Finanzplan (Budget)](#6-finanzplan-budget)
 7. [Berichte, Exporte und der Kassenbericht](#7-berichte-exporte-und-der-kassenbericht)
-8. [Jahresabschluss und Festschreibung](#8-jahresabschluss-und-festschreibung)
+8. [Geschäftsjahr und Festschreibung](#8-gesch%C3%A4ftsjahr-und-festschreibung)
 9. [Kassenprüfung vorbereiten und begleiten](#9-kassenpr%C3%BCfung-vorbereiten-und-begleiten)
 10. [Mehrere Personen an der Buchhaltung (Kollaboration)](#10-mehrere-personen-an-der-buchhaltung-kollaboration)
 11. [Unterwegs: die App auf dem Smartphone](#11-unterwegs-die-app-auf-dem-smartphone)
@@ -93,7 +93,7 @@ sie nicht braucht, blendet sie aus.
 Zahnrad-Symbol (Einstellungen) → Abschnitt **Berechtigungen**. Dort werden
 Nextcloud-Nutzer oder -Gruppen mit einer Rolle ausgestattet:
 
-- **Verwalter** – darf alles, inkl. Berechtigungen, Jahresabschluss, Alle-Daten-löschen.
+- **Verwalter** – darf alles, inkl. Berechtigungen, Geschäftsjahr, Alle-Daten-löschen.
 - **Buchhalter** – liest und schreibt Buchungen, Belege, Zuordnungen, sowie
   Mitglieder, SEPA-Mandate und den Beitragseinzug (Kapitel 13.2–13.7).
 - **Revisor** – darf nur lesen (für die Kassenprüfung).
@@ -123,7 +123,7 @@ Jedes Konto hat:
 - einen **Typ** (Einnahmen, Ausgaben, Anlage/Umlauf, Verbindlichkeit,
   Eigenkapital),
 - ggf. das Flag **Bankkonto** (für Geldkonten – nur diese kumulieren über
-  die Jahresgrenze),
+  die Geschäftsjahresgrenze),
 - bei Geldkonten optional die **IBAN**. Wer nur ein Bankkonto führt, braucht
   sie nicht. Bei mehreren Konten entscheidet sie darüber, auf welchem
   Geldkonto ein importierter Umsatz gebucht wird – ohne sie landet alles auf
@@ -186,6 +186,23 @@ automatisch im **Kurzbericht für Vorstandssitzungen** (Kapitel 7.3) – der
 Kassenbericht selbst bleibt bewusst schlicht/neutral. Ganz optional: ohne
 Logo funktioniert der Kurzbericht genauso gut, nur ohne Wiedererkennung.
 
+### 2.7 Geschäftsjahr festlegen (nur, wenn es kein Kalenderjahr ist)
+
+Ab Werk rechnet die App im **Kalenderjahr** (1. Januar bis 31. Dezember).
+Wer das so hält, kann diesen Punkt überspringen – es ist nichts
+einzustellen.
+
+Läuft Ihr Geschäftsjahr anders – von Oktober bis September, im Schuljahr
+von August bis Juli, oder semesterweise –, dann stellen Sie das **einmal zu
+Beginn** ein: Zahnrad → *Geschäftsjahr* (nur Verwalter). Wie das geht und
+was dabei mit vorhandenen Buchungen passiert, steht in **Kapitel 8.1**.
+
+> **Am besten zuerst:** Die Umstellung ordnet jede vorhandene Buchung dem
+> passenden Zeitraum zu und vergibt die Buchungsnummern neu. Das ist
+> gewollt und unproblematisch – aber je weniger schon gebucht ist, desto
+> weniger gibt es zu prüfen. Sobald ein Zeitraum festgeschrieben ist, geht
+> die Umstellung gar nicht mehr (Kapitel 8.1).
+
 ---
 
 ## 3. Daten ins System bringen
@@ -200,18 +217,21 @@ Datei wählen.
   bereits vorhandene Buchungen werden per Fingerprint erkannt und
   übersprungen. So lassen sich mehrere Jahres-Dateien **nacheinander**
   importieren, ohne Duplikate zu erzeugen.
-- **Geschäftsjahr:** wird aus der Datei übernommen oder manuell gewählt.
-  Buchungen außerhalb des Jahres werden gemeldet und können auf den
-  01.01./31.12. datiert werden.
+- **Geschäftsjahr:** Die App liest den Datumsbereich der Datei und sucht
+  den Zeitraum, in den er fällt (Kapitel 8.1). Passt keiner oder soll es
+  ein anderer sein, wählen Sie ihn aus der Liste Ihrer Zeiträume. Buchungen
+  außerhalb dieses Zeitraums werden gemeldet und können auf seinen ersten
+  bzw. letzten Tag datiert werden – bei einem Geschäftsjahr Oktober bis
+  September also auf den 01.10. bzw. den 30.09., nicht auf 01.01./31.12.
 - **Anfangsbestände** beim Mehrjahres-Import: werden erkannt und
   übersprungen, wenn sie schon durch Vorjahresbuchungen abgedeckt sind –
   bei Abweichungen warnt die App.
 - **Reset-Modus** („Vorher alle Daten löschen", nur Verwalter): ersetzt
   alle Daten komplett. **Vorsicht:** unwiderruflich (siehe 12.1).
 
-> **Wichtig:** Der Merge-Import blockiert, wenn ein betroffenes Jahr
-> bereits **abgeschlossen** ist (Kapitel 8). Ein abgeschlossenes Jahr ist
-> festgeschrieben und darf nicht mehr verändert werden – auch nicht per
+> **Wichtig:** Der Merge-Import blockiert, wenn ein betroffener Zeitraum
+> bereits **abgeschlossen** ist (Kapitel 8). Ein abgeschlossener Zeitraum
+> ist festgeschrieben und darf nicht mehr verändert werden – auch nicht per
 > Import.
 
 ### 3.2 Kontoauszüge importieren (Bankumsätze)
@@ -320,7 +340,7 @@ der Zuordnung entsteht automatisch der Buchungssatz:
   anwenden"); über den Wachordner (Kapitel 3.3) geschieht das immer.
 
 Wer eine Zuordnung versehentlich vorgenommen hat, kann sie jederzeit wieder
-entfernen („– nicht zugeordnet –") – solange das Jahr noch offen ist.
+entfernen („– nicht zugeordnet –") – solange der Zeitraum noch offen ist.
 
 **Ein Umsatz, der mehreres zugleich enthält: „Aufteilen…"**
 
@@ -397,7 +417,7 @@ sichtbar (wichtig für Kapitel 9).
 
 ### 4.4 Buchungen korrigieren und löschen
 
-Solange das Jahr **offen** ist, lassen sich Buchungen jederzeit ändern
+Solange der Zeitraum **offen** ist, lassen sich Buchungen jederzeit ändern
 (Stift-Symbol) oder löschen (Papierkorb). Bei der Bearbeitung zeigt die App
 jederzeit den aktuellen Stand – hat zwischenzeitlich eine andere Person
 dieselbe Buchung geändert, erscheint eine Konfliktmeldung statt einer
@@ -436,32 +456,37 @@ Bedarf **wieder öffnen**.
 
 ## 5. Auswertungen verstehen
 
-Alle Auswertungen beziehen sich auf das **im Header gewählte
-Geschäftsjahr** (Kalenderjahr; „Alle Jahre" ist möglich). Bestandskonten
-(Bank, Kasse) zeigen den kumulierten Kontostand, Erfolgskonten
-(Einnahmen/Ausgaben) nur die Bewegung des gewählten Jahres.
+Alle Auswertungen beziehen sich auf den **im Header gewählten Zeitraum** –
+das ist Ihr Geschäftsjahr, beim Kalenderjahr also z. B. „2026", bei einem
+abweichenden Geschäftsjahr „2025/26" (Kapitel 8.1). „Alle Zeiträume" ist
+ebenfalls möglich. Bestandskonten (Bank, Kasse) zeigen den kumulierten
+Kontostand, Erfolgskonten (Einnahmen/Ausgaben) nur die Bewegung des
+gewählten Zeitraums.
 
 ### 5.1 Übersicht (Dashboard)
 
-KPI-Kacheln: **Einnahmen**, **Ausgaben**, **Ergebnis** des Jahres – jeweils
-mit Vorjahresvergleich. Dazu ein Hinweis auf *nicht zugeordnete*
-Bankbuchungen („Jetzt zuordnen" springt direkt dorthin) und ein monatliches
-Einnahmen-/Ausgaben-Diagramm. Das Dashboard ist der erste Blick nach dem
-Login: stimmt alles grob?
+KPI-Kacheln: **Einnahmen**, **Ausgaben**, **Ergebnis** des Zeitraums –
+jeweils im Vergleich mit dem **vorherigen Zeitraum** (bei Semestern also
+mit dem Semester davor, nicht mit „Jahr minus eins"). Dazu ein Hinweis auf
+*nicht zugeordnete* Bankbuchungen („Jetzt zuordnen" springt direkt dorthin)
+und ein monatliches Einnahmen-/Ausgaben-Diagramm. Es läuft über den
+gewählten Zeitraum: bei einem Geschäftsjahr Oktober bis September beginnt
+es im Oktober, bei einem Semester zeigt es sechs Balken. Das Dashboard ist
+der erste Blick nach dem Login: stimmt alles grob?
 
 ### 5.2 Saldenliste
 
 Tab **Berichte → Auswertung**. Listet alle Konten mit Soll, Haben und
 Saldo – hierarchisch, optional inklusive Unterkonten. Hier sehen Sie auf
-einen Blick, was im Jahr auf jedem Konto passiert ist. Auch als CSV
-exportierbar.
+einen Blick, was im gewählten Zeitraum auf jedem Konto passiert ist. Auch
+als CSV exportierbar.
 
 ### 5.3 Kontoauszug
 
 Auf jedes Konto klicken (in der Saldenliste oder im Konten-Tab) zeigt den
 **Kontoauszug**: jede Buchung mit laufendem Saldo und Saldovortrag vom
-Jahresanfang. Ideal, um einen einzelnen Bank- oder Kassenbestand gegen den
-Bankauszug abzugleichen.
+ersten Tag des gewählten Zeitraums. Ideal, um einen einzelnen Bank- oder
+Kassenbestand gegen den Bankauszug abzugleichen.
 
 **Buchung bearbeiten.** Fällt beim Durchsehen ein Fehler auf, korrigieren Sie
 ihn an Ort und Stelle – ohne ins Journal zu wechseln und ohne sich die
@@ -618,9 +643,10 @@ bereits zurückgelegt wurde.
 ## 6. Finanzplan (Budget)
 
 Tab **Berichte → Finanzplan**. Für jedes Einnahmen- und Ausgabenkonto
-lässt sich ein **Planbetrag** je Jahr eintragen. Die App zeigt daneben den
-**Ist-Wert** und die farbige **Abweichung** – so sehen Sie frühzeitig, ob
-z. B. die Versicherungen über dem Plan liegen.
+lässt sich ein **Planbetrag** je Zeitraum eintragen – bei einer
+Semester-Regel also je Semester. Die App zeigt daneben den **Ist-Wert** und
+die farbige **Abweichung** – so sehen Sie frühzeitig, ob z. B. die
+Versicherungen über dem Plan liegen.
 
 - **Notiz je Planzahl:** Herleitung festhalten, z. B. „40 Mitglieder ×
   25 €". Macht den Plan nachvollziehbar und bei der MV verteidigbar.
@@ -638,16 +664,21 @@ z. B. die Versicherungen über dem Plan liegen.
 In den Tabs **Buchungen** und **Berichte** gibt es jeweils
 Download-Buttons (Pfeil-nach-unten-Symbol):
 
-- **Journal** (alle Buchungssätze des Jahres)
+- **Journal** (alle Buchungssätze des gewählten Zeitraums)
 - **Saldenliste**
 - **Einnahmen-/Ausgaben-Übersicht**
 - **Soll-Ist-Vergleich** (Finanzplan, inkl. Notizen)
 - **Mehrjahresübersicht** (Matrix: Erfolgsrechnung + Vermögen + Auswertungsgruppen
-  + steuerliche Sphären über alle Jahre)
+  + steuerliche Sphären über alle Zeiträume)
 
 Die CSV-Dateien eignen sich für die Weitergabe an Steuerberatung oder
 Kassenprüfung oder für die eigene Analyse in Excel. Format: Semikolon-
 getrennt, UTF-8 mit BOM (Excel-tauglich), deutsches Zahlenformat.
+
+> **Die Dateinamen tragen die Bezeichnung des Zeitraums**, nicht mehr eine
+> Jahreszahl: `journal_2025-26.csv` statt `journal_2025.csv` (der
+> Schrägstrich aus „2025/26" wird zum Bindestrich, weil er in Dateinamen
+> nichts zu suchen hat). Dasselbe gilt für das Beleg-ZIP (Kapitel 9.2).
 
 > **Splittbuchungen im Journal-Export:** Eine Buchung, deren Betrag auf
 > mehrere Gegenkonten verteilt ist, belegt dort mehrere Zeilen – jede mit
@@ -656,19 +687,22 @@ getrennt, UTF-8 mit BOM (Excel-tauglich), deutsches Zahlenformat.
 > Buchungsbetrag.
 
 > **Mehrjahres-Trend als Diagramm:** In Berichte → Auswertung zeigt ein
-> Liniendiagramm Einnahmen, Ausgaben und Ergebnis über alle Jahre – auf
+> Liniendiagramm Einnahmen, Ausgaben und Ergebnis über alle Zeiträume – auf
 > einen Blick statt als Tabelle. Praktisch für die Präsentation vor dem
 > Vorstand oder der Mitgliederversammlung.
 
 ### 7.2 Kassenbericht (druckfertig)
 
 Tab **Berichte → Auswertung** → Button **„Kassenbericht"** (nur bei
-gewähltem Jahr). Öffnet eine eigene, druckoptimierte Seite mit:
+gewähltem Zeitraum). Öffnet eine eigene, druckoptimierte Seite mit:
 
-- Vereinsname, Jahr und Erstellungsdatum
-- **Vermögensübersicht** der Geldkonten (Bestand 01.01. und 31.12. sowie
-  Veränderung)
-- **Einnahmen-/Ausgaben-Rechnung** nach Konten mit Summen und Jahresergebnis
+- Vereinsname, Bezeichnung des Geschäftsjahres (z. B. „2025/26") und
+  Erstellungsdatum
+- **Vermögensübersicht** der Geldkonten (Bestand am ersten und am letzten
+  Tag des Geschäftsjahres sowie Veränderung). Die Spalten nennen die
+  echten Stichtage: bei einem Geschäftsjahr Oktober bis September also
+  *Bestand 01.10.2025* und *Bestand 30.09.2026* statt 01.01./31.12.
+- **Einnahmen-/Ausgaben-Rechnung** nach Konten mit Summen und Ergebnis
 - **Soll-Ist-Vergleich**, sofern Planwerte existieren
 - **Vollständigkeitshinweis** (Buchungszahl, Nummernkreis,
   Lücken-/Dublettenprüfung)
@@ -683,36 +717,139 @@ Mitgliederversammlung.
 ### 7.3 Kurzbericht für Vorstandssitzungen (druckfertig)
 
 Tab **Berichte → Auswertung** → Button **„Kurzbericht"**. Anders als der
-Kassenbericht (Kapitel 7.2, immer ein volles Kalenderjahr) bezieht sich der
+Kassenbericht (Kapitel 7.2, immer ein ganzes Geschäftsjahr) bezieht sich der
 Kurzbericht auf einen frei wählbaren **Zeitraum „seit …"** – typischerweise
 seit der letzten Vorstandssitzung. Die App merkt sich das zuletzt gewählte
 Datum geräte-lokal als Vorschlag für das nächste Mal.
 
 Inhalt: Kontostände der Geldkonten zum Stichtag und heute, Bewegungen seit
 dem Stichtag (Einnahmen/Ausgaben/Ergebnis) sowie eine kurze
-Finanzplan-Kurzfassung des laufenden Jahres (Plan vs. bisheriges Ist). Ist
+Finanzplan-Kurzfassung des laufenden Zeitraums (Plan vs. bisheriges Ist). Ist
 unter Zahnrad → *Verein* (Kapitel 2.6) ein Logo und eine Akzentfarbe
 hinterlegt, erscheinen beide automatisch im Kopf des Berichts.
 Wie beim Kassenbericht: Drucken oder „Als PDF speichern" über den Browser.
 
 ---
 
-## 8. Jahresabschluss und Festschreibung
+## 8. Geschäftsjahr und Festschreibung
 
 Ein Kernstück für eine saubere Vereinsbuchhaltung: ein **abgeschlossenes**
 Geschäftsjahr ist **festgeschrieben** – seine Buchungen, Belege und
 Zuordnungen können danach nicht mehr geändert oder gelöscht werden. So
 bleibt das, was die Mitgliederversammlung entlastet hat, unveränderlich.
 
-### 8.1 Jahr abschließen
+Zuvor muss aber feststehen, *was* das Geschäftsjahr überhaupt ist. Die App
+rechnet nicht mehr zwingend im Kalenderjahr: ein Geschäftsjahr ist ein
+benannter **Zeitraum** mit Von- und Bis-Datum. Es darf vom Kalenderjahr
+abweichen und kürzer als zwölf Monate sein.
 
-Zahnrad → *Jahresabschluss* (nur Verwalter). Liste aller Jahre mit
-Status. Bei Bedarf „Abschließen" bestätigen. Das Jahr ist danach mit einem
-🔒 im Jahres-Dropdown markiert.
+### 8.1 Das Geschäftsjahr festlegen
 
-### 8.2 Was gesperrt ist – und was nicht
+Zahnrad → *Geschäftsjahr* (nur Verwalter). Die Seite hat zwei Karten: oben
+die **Regel**, nach der Zeiträume entstehen, unten die **Zeiträume** selbst.
 
-Nach dem Abschluss sind im betreffenden Jahr **nicht mehr möglich**:
+**Karte 1: die Regel.** Zur Auswahl stehen vier Vorlagen und eine eigene:
+
+| Vorlage | Zeitraum | typisch für |
+|---|---|---|
+| **Kalenderjahr** (Vorgabe) | 1. Januar – 31. Dezember | die meisten Vereine |
+| **Oktober – September** | 1. Oktober – 30. September | Sportvereine, deren Saison im Herbst beginnt |
+| **August – Juli (Schuljahr)** | 1. August – 31. Juli | Kindergärten, Fördervereine an Schulen |
+| **Semester** | 1. Oktober und 1. April, je sechs Monate | studentische Vereine, Hochschulgruppen |
+| **Eigene Regel** | Starttag, Startmonat und Länge frei | alles andere |
+
+Bei der eigenen Regel geben Sie den **Starttag** (1–31), den **Startmonat**
+und die **Länge** an. Wählbar sind nur Längen, die 12 teilen: 1, 2, 3, 4, 6
+oder 12 Monate. Der Grund ist einfach: bei einer anderen Länge – etwa fünf
+Monaten – würde das Geschäftsjahr Jahr für Jahr gegen den Kalender laufen
+und nach ein paar Zeiträumen in einem ganz anderen Monat beginnen als am
+Anfang.
+
+Einen Starttag, den es im Zielmonat nicht gibt, kürzt die App auf den
+Monatsletzten: Starttag 31 ergibt im Februar den 28. bzw. 29. Gerechnet
+wird trotzdem weiter mit dem ursprünglichen Starttag – der März beginnt
+also wieder am 31., nicht am 28.
+
+**Vorher sehen, was passiert.** Der Knopf **„Vorschau"** zeigt, bevor
+irgendetwas gespeichert wird:
+
+- die künftigen Zeiträume mit Bezeichnung, Von und Bis,
+- wie viele Buchungen dabei den Zeitraum wechseln,
+- wie viele **Planwerte verloren gehen**. Das passiert, wenn zwei bisherige
+  Zeiträume zu einem neuen verschmelzen: ein Konto kann dort nur einen
+  Planbetrag haben, der andere wird verworfen und lässt sich nicht
+  wiederherstellen.
+
+Erst in diesem Dialog steht **„Übernehmen"**. Die Umstellung ordnet danach
+jede Buchung ihrem neuen Zeitraum zu und vergibt die Buchungsnummern je
+Zeitraum neu (nach Datum, lückenlos ab 1). Der Vorgang steht im
+Änderungsprotokoll.
+
+> **Gesperrt, sobald etwas festgeschrieben ist:** Ist auch nur ein Zeitraum
+> abgeschlossen, lehnt die App die Umstellung ab und nennt die betroffenen
+> Zeiträume. Sie müssten erst wiedereröffnet werden (Kapitel 8.4). Das ist
+> Absicht: ein festgeschriebenes Geschäftsjahr soll nicht nachträglich
+> andere Grenzen bekommen.
+
+**Karte 2: die Zeiträume.** Eine Liste mit **Bezeichnung**, **Von–Bis**,
+**Status** und den Aktionen.
+
+- Die **Bezeichnung** schlägt die App vor – „2026" beim Kalenderjahr,
+  „2025/26" bei einem abweichenden Geschäftsjahr, „2025/26-1" und
+  „2025/26-2" bei Semestern. Ein Klick darauf macht sie änderbar; „Saison
+  25/26" oder „Wintersemester 2025/26" geht genauso. Sie muss nur eindeutig
+  bleiben, weil sie überall in der App und in den Dateinamen auftaucht.
+- Die **Grenze zwischen zwei offenen Zeiträumen** lässt sich über das
+  Datumsfeld beim Bis-Datum verschieben; der folgende Zeitraum beginnt dann
+  am Tag darauf. Das ist der Weg zum **Rumpfgeschäftsjahr** beim Umstieg:
+  Wer zum 1. Oktober 2026 auf ein Geschäftsjahr Oktober–September wechselt,
+  lässt das Jahr 2026 am 30. September enden – übrig bleiben neun Monate,
+  die als eigenes, kurzes Geschäftsjahr abgerechnet werden.
+- **„Nächsten Zeitraum anlegen"** (Knopf über der Liste) hängt hinten einen
+  weiteren Zeitraum nach der geltenden Regel an. Nötig ist das selten – die
+  App legt einen Zeitraum von allein an, sobald eine Buchung hineinfällt.
+- **„Entfernen"** gibt es nur für einen leeren Zeitraum am Anfang oder am
+  Ende der Kette (weder Buchungen noch Planwerte). In der Mitte entstünde
+  sonst ein Loch, in das keine Buchung mehr gehört.
+- **„Abschließen"** und **„Wiedereröffnen"** wie bisher – dazu die
+  folgenden Abschnitte.
+
+> **Bestehende Buchhaltungen ändern sich durch das Update nicht.** Für
+> jedes bisherige Kalenderjahr entsteht ein Zeitraum 01.01.–31.12. mit der
+> Jahreszahl als Bezeichnung. Buchungsnummern und bereits abgeschlossene
+> Jahre bleiben unangetastet. Wer im Kalenderjahr rechnet, merkt vom
+> Umbau nichts außer dem neuen Wort „Zeitraum" in der Kopfzeile.
+
+**Was dem Zeitraum folgt** – und was nicht. Dem gewählten Zeitraum folgen:
+das Auswahlfeld in der Kopfzeile, die Buchungsnummern, alle Berichte und
+CSV-Exporte samt Dateinamen, der Finanzplan und die Plan-Stände, das
+Beleg-ZIP, die Festschreibung, der Saldovortrag im Kontoauszug, das
+Monatsdiagramm der Übersicht und der Vergleich der Kennzahlen mit dem
+vorherigen Zeitraum.
+
+Bewusst *nicht* umgestellt sind drei Dinge:
+
+- **Mitgliedsbeiträge, offene Posten und SEPA** (Kapitel 13) rechnen
+  weiterhin ab dem **Startdatum des Mitglieds**, nicht ab dem Beginn des
+  Geschäftsjahres. „Jährlich" heißt also zwölf Monate ab diesem Datum – wer
+  am 15. März eintritt, zahlt weiter jeden 15. März.
+- Die **Monatsgruppierung im Buchungsjournal** bleibt kalendarisch: die
+  Gruppe „Oktober 2025" heißt Oktober 2025, egal wo im Geschäftsjahr sie
+  liegt.
+- Der **Rücklagenbericht** (Kapitel 5.7) ist weiterhin kumulativ und kennt
+  keinen Zeitraumfilter – eine Rücklage ist ein Bestand, kein
+  Jahresergebnis.
+
+### 8.2 Zeitraum abschließen
+
+Zahnrad → *Geschäftsjahr* → Karte *Zeiträume* (nur Verwalter). Bei Bedarf
+„Abschließen" bestätigen; der Dialog nennt Bezeichnung und Von–Bis, damit
+nicht der falsche Zeitraum erwischt wird. Der Zeitraum ist danach mit einem
+🔒 in der Auswahl in der Kopfzeile markiert.
+
+### 8.3 Was gesperrt ist – und was nicht
+
+Nach dem Abschluss sind im betreffenden Zeitraum **nicht mehr möglich**:
 Buchungen anlegen/ändern/löschen, Bankbuchungen zuordnen oder Zuordnungen
 entfernen, Belege anhängen oder löschen, Eröffnungssalden ändern, der
 xbuc-Import (Merge). Die App zeigt abgeschlossene Buchungen nur noch
@@ -724,42 +861,48 @@ Zuordnung wäre gesperrt.
 
 Gesperrt sind außerdem die **Eigenschaften eines Kontos, die in die Zahlen
 eingehen**: Kontoart, Geldkonto-Kennzeichen, Sphäre, Rücklagen-Art und
-Auswertungsgruppe. Das betrifft nur Konten, die im abgeschlossenen Jahr auch
-tatsächlich bebucht sind. Der Grund: Aus einem Einnahmekonto ein
+Auswertungsgruppe. Das betrifft nur Konten, die im abgeschlossenen Zeitraum
+auch tatsächlich bebucht sind. Der Grund: Aus einem Einnahmekonto ein
 Ausgabekonto zu machen, dreht das Vorzeichen in allen Auswertungen – der
-Kassenbericht des abgeschlossenen Jahres sähe hinterher anders aus, ohne
-dass jemand eine Buchung angefasst hätte. **Frei änderbar bleiben** Nummer,
-Name, Kategorie, Überkonto und der Aktiv-Schalter; sie ändern nur
-Beschriftung und Sortierung. Wer eine gesperrte Eigenschaft doch ändern
-muss, eröffnet das Jahr wieder (Kapitel 8.3) und schließt es danach erneut
-ab.
+Kassenbericht des abgeschlossenen Geschäftsjahres sähe hinterher anders
+aus, ohne dass jemand eine Buchung angefasst hätte. **Frei änderbar
+bleiben** Nummer, Name, Kategorie, Überkonto und der Aktiv-Schalter; sie
+ändern nur Beschriftung und Sortierung. Wer eine gesperrte Eigenschaft doch
+ändern muss, eröffnet den Zeitraum wieder (Kapitel 8.4) und schließt ihn
+danach erneut ab.
 
-> **Für den Wachordner heißt das:** Legt jemand einen Auszug ab, der in ein
-> abgeschlossenes Jahr fällt, werden die Umsätze eingelesen, bleiben aber
-> unzugeordnet liegen – auch dann, wenn eine Regel greifen würde. Der Auszug
+Gesperrt ist außerdem die **Umstellung der Geschäftsjahres-Regel** und das
+Verschieben der Grenze zu einem abgeschlossenen Zeitraum (Kapitel 8.1). Die
+Bezeichnung selbst bleibt änderbar – sie ist nur eine Beschriftung.
+
+> **Für den Wachordner heißt das:** Legt jemand einen Auszug ab, der in
+> einen abgeschlossenen Zeitraum fällt, werden die Umsätze eingelesen,
+> bleiben aber unzugeordnet liegen – auch dann, wenn eine Regel greifen
+> würde. Der Auszug
 > landet trotzdem in `verarbeitet/`; die Zahl der nicht zugeordneten Umsätze
 > vermerkt das Änderungsprotokoll (Kapitel 9.2) beim Eintrag
 > „Wachordner-Import".
 
-### 8.3 Jahr wiedereröffnen (Ausnahmefall)
+### 8.4 Zeitraum wiedereröffnen (Ausnahmefall)
 
 Nur Verwalter, nur in Ausnahmefällen (z. B. Korrektur vor der
-Kassenprüfung). Der Vorgang wird im **Änderungsprotokoll** festgehalten.
-Im Normalfall schließt man ein Jahr endgültig ab.
+Kassenprüfung, oder weil die Geschäftsjahres-Regel doch noch umgestellt
+werden muss). Der Vorgang wird im **Änderungsprotokoll** festgehalten.
+Im Normalfall schließt man ein Geschäftsjahr endgültig ab.
 
-### 8.4 Wann abschließen?
+### 8.5 Wann abschließen?
 
 Typischer Reihenfolge:
 
-1. Alle Bankumsätze des Jahres importiert und zugeordnet.
+1. Alle Bankumsätze des Zeitraums importiert und zugeordnet.
 2. Belege vollständig (Kapitel 9.1 prüfen).
 3. Kassenprüfung durchgeführt.
-4. **Erst dann** das Jahr abschließen – meist kurz nach der MV, in der
+4. **Erst dann** den Zeitraum abschließen – meist kurz nach der MV, in der
    Entlastung erteilt wurde.
 
-> **Empfehlung:** Schließen Sie das *vorletzte* Jahr ab, sobald die
-> Kassenprüfung vorliegt, und lassen Sie das laufende sowie das direkt
-> zurückliegende Jahr offen, bis die MV entlastet hat.
+> **Empfehlung:** Schließen Sie das *vorletzte* Geschäftsjahr ab, sobald
+> die Kassenprüfung vorliegt, und lassen Sie das laufende sowie das direkt
+> zurückliegende offen, bis die MV entlastet hat.
 
 ---
 
@@ -787,7 +930,7 @@ Handbuch einzulesen.
 - **Lückenprüfung:** Über dem Journal erscheint automatisch ein
   Warnhinweis, falls Buchungsnummern fehlen oder doppelt sind. Im
   Kassenbericht steht dasselbe als Vollständigkeitszeile. In einem offenen
-  Geschäftsjahr hält die App die Nummerierung selbst lückenlos (gelöschte
+  Zeitraum hält die App die Nummerierung selbst lückenlos (gelöschte
   Buchungen lassen die nachfolgenden Nummern aufrücken); ein Hinweis hier
   bedeutet also, dass am Datenbestand vorbei etwas verändert wurde.
 - **Offene Bankbuchungen:** Dashboard → „nicht zugeordnet" – sollte vor
@@ -797,22 +940,23 @@ Handbuch einzulesen.
 
 - **Kassenbericht** drucken (Kapitel 7.2) – die Grundlage der Prüfung.
 - **Beleg-ZIP** (Button „Beleg-ZIP" in Berichte → Auswertung): lädt alle
-  Belege des Jahres als ZIP herunter, ein Ordner je Buchung
+  Belege des gewählten Zeitraums als ZIP herunter, ein Ordner je Buchung
   (`NNNN_Datum_Beschreibung/`). So lassen sich Belege sortiert
   durchblättern, ohne die App. Fehlende Dateien werden in einer
   `fehlende_dateien.txt` vermerkt statt den Export abzubrechen.
 - **Kontoauszüge** für die Geldkonten zum Abgleich mit den Bankauszügen.
 - **Änderungsprotokoll** (Tab Berichte → **Protokoll**): wer hat wann was
-  geändert – Buchungen, Zuordnungen, Belege, Berechtigungen,
-  Jahresabschlüsse. Sichtbar für alle Leseberechtigten. Das Protokoll
+  geändert – Buchungen, Zuordnungen, Belege, Berechtigungen, abgeschlossene
+  und wiedereröffnete Zeiträume, Umstellungen der Geschäftsjahres-Regel.
+  Sichtbar für alle Leseberechtigten. Das Protokoll
   übersteht bewusst auch „Alle Daten löschen" – es ist die
   manipulationssichere Chronik.
 
 ### 9.3 Nach der Prüfung
 
 Protokoll ggf. mit den Kassenprüfern gemeinsam durchgehen. Bei
-Beanstandungen: Jahr noch offen lassen, korrigieren, dann abschließen
-(Kapitel 8). Bei Entlastung: Jahr abschließen.
+Beanstandungen: den Zeitraum noch offen lassen, korrigieren, dann
+abschließen (Kapitel 8). Bei Entlastung: Zeitraum abschließen.
 
 ---
 
@@ -884,7 +1028,8 @@ selbst als lesbare Seite aus, es muss also nichts auf GitHub gesucht werden.
 
 Zahnrad → *Daten* → *Alle Daten löschen* (nur Verwalter, mit
 Bestätigungsdialog) entfernt Konten, Buchungen, Importe, Belege und die
-Jahresabschluss-Marker. **Das Änderungsprotokoll bleibt erhalten.**
+Zeiträume samt ihrer Festschreibung. **Das Änderungsprotokoll bleibt
+erhalten.**
 Gleiches gilt für den Reset-Modus beim xbuc-Import. Beides ist
 unwiderruflich – also nur nach Rücksprache und nie aus Versehen.
 
@@ -894,10 +1039,10 @@ nichts zu verlieren.
 
 ### 12.2 Falsche Buchung – was tun?
 
-Solange das Jahr offen ist: Buchung öffnen (Stift) und korrigieren, oder
-löschen und neu anlegen. Bei Konflikten mit einer anderen Person: neu
-öffnen und erneut speichern. Ein abgeschlossenes Jahr lässt sich nur nach
-Wiedereröffnung (Verwalter, Kapitel 8.3) korrigieren.
+Solange der Zeitraum offen ist: Buchung öffnen (Stift) und korrigieren,
+oder löschen und neu anlegen. Bei Konflikten mit einer anderen Person: neu
+öffnen und erneut speichern. Ein abgeschlossener Zeitraum lässt sich nur
+nach Wiedereröffnung (Verwalter, Kapitel 8.4) korrigieren.
 
 ### 12.3 Datenbank-Backup vor Updates
 
@@ -1109,7 +1254,7 @@ läuft dadurch erneut als Ersteinzug.
 
 ### 14.1 Rollen und Rechte
 
-| Rolle | Lesen | Buchen/Belege | Mitglieder/SEPA-Einzug (13.2–13.7) | Beiträge-Grundeinstellungen (13.1), Berechtigungen, Jahresabschluss, Reset |
+| Rolle | Lesen | Buchen/Belege | Mitglieder/SEPA-Einzug (13.2–13.7) | Beiträge-Grundeinstellungen (13.1), Berechtigungen, Geschäftsjahr, Reset |
 |---|:---:|:---:|:---:|:---:|
 | Revisor | ✓ | – | – | – |
 | Buchhalter | ✓ | ✓ | ✓ | – |
@@ -1120,16 +1265,16 @@ läuft dadurch erneut als Ersteinzug.
 
 | Typ | Bedeutung | Natur | kumulativ? |
 |---|---|---|---|
-| Einnahmen | Erträge (Mitgliedsbeiträge, Spenden) | Haben | nein (jahresbezogen) |
-| Ausgaben | Aufwendungen (Miete, Versicherungen) | Soll | nein (jahresbezogen) |
+| Einnahmen | Erträge (Mitgliedsbeiträge, Spenden) | Haben | nein (je Zeitraum) |
+| Ausgaben | Aufwendungen (Miete, Versicherungen) | Soll | nein (je Zeitraum) |
 | Anlage/Umlauf | Vermögen (außer Bank/Kasse) | Soll | nein |
 | Verbindlichkeit | Schulden | Haben | nein |
 | Eigenkapital | Eigenkapital / Rücklagen | Haben | – |
 | Bankkonto (Flag) | Geldkonto (Giro, Tagesgeld, Kasse) | Soll | **ja** (Kontostand) |
 
-„Kumulativ" heißt: Das Konto trägt seinen Bestand über die Jahresgrenze
-und zeigt den echten Kontostand, nicht nur die Jahresbewegung. Das betrifft
-nur Geldkonten (Bank-Flag).
+„Kumulativ" heißt: Das Konto trägt seinen Bestand über die Grenze des
+Geschäftsjahres und zeigt den echten Kontostand, nicht nur die Bewegung des
+Zeitraums. Das betrifft nur Geldkonten (Bank-Flag).
 
 ### 14.3 Tastenkürzel (Desktop)
 
@@ -1142,21 +1287,28 @@ nur Geldkonten (Bank-Flag).
 - **Soll / Haben** – die zwei Seiten einer Buchung („wo hin" / „wo her").
 - **Gegenkonto** – das Konto, dem eine Bankbuchung zugeordnet wird (die
   „andere Seite" neben dem Bankkonto).
-- **Buchungsnummer** – fortlaufende Nummer je Buchung, beginnt jedes
-  Kalenderjahr neu bei 1. Wichtig für die Lückenprüfung. Solange ein Jahr
+- **Geschäftsjahr / Zeitraum** – der benannte Abrechnungszeitraum mit
+  Von- und Bis-Datum, auf den sich alle Auswertungen beziehen. Vorgabe ist
+  das Kalenderjahr; es geht aber auch Oktober–September, das Schuljahr oder
+  ein Semester (Kapitel 8.1). In der Kopfzeile heißt das Auswahlfeld
+  „Zeitraum".
+- **Buchungsnummer** – fortlaufende Nummer je Buchung, beginnt in jedem
+  Zeitraum neu bei 1. Wichtig für die Lückenprüfung. Solange ein Zeitraum
   noch offen ist, sind die Nummern vorläufig: wird eine Buchung gelöscht,
   rücken die nachfolgenden Nummern automatisch auf, damit keine Lücke
-  entsteht. Mit dem Jahresabschluss werden sie endgültig und ändern sich
-  nicht mehr.
-- **Eröffnungssaldo** – Anfangsbestand eines Kontos (z. B. Kontostand zum
-  01.01.).
+  entsteht. Mit dem Abschluss werden sie endgültig und ändern sich nicht
+  mehr.
+- **Eröffnungssaldo** – Anfangsbestand eines Kontos (z. B. Kontostand zu
+  Beginn des ersten Geschäftsjahres).
 - **Geldbestand** – die Kontostände aller Geldkonten zusammengezählt, die
   Zahl rechts oben in der Kopfzeile. Einzelne Konten lassen sich davon
   ausnehmen (Kapitel 2.2); auf Kassenbericht, Vermögensübersicht und
   Saldenliste hat das keine Auswirkung.
 - **Auswertungsgruppe** – eine Gruppierung (Abteilung, Projekt), getrennt
   ausgewiesen.
-- **Festschreibung** – ein abgeschlossenes, unveränderliches Geschäftsjahr.
+- **Festschreibung** – ein abgeschlossener, unveränderlicher Zeitraum.
+- **Rumpfgeschäftsjahr** – ein verkürztes Geschäftsjahr, das beim Umstieg
+  von einem Geschäftsjahr auf ein anderes entsteht (Kapitel 8.1).
 - **Snapshot (Plan-Stand)** – eingefrorener Stand des Finanzplans zu einem
   Zeitpunkt (z. B. „Beschluss MV").
 - **Protokoll (Audit-Log)** – manipulationssichere Chronik aller Änderungen.

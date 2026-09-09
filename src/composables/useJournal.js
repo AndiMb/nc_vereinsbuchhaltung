@@ -3,14 +3,14 @@ import { computed, reactive } from 'vue'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
 import { useAccounts } from './useAccounts.js'
-import { useYears } from './useYears.js'
+import { usePeriods } from './usePeriods.js'
 
 const state = reactive({
 	journalData: [],
 	transactions: [],
 })
 
-const years = useYears()
+const periods = usePeriods()
 const accounts = useAccounts()
 
 function accountLabel(id) {
@@ -54,7 +54,7 @@ const unassignedCount = computed(() => state.transactions.filter((t) => t.status
 
 async function loadJournal() {
 	try {
-		const { data } = await api.journal(years.state.selectedYear)
+		const { data } = await api.journal(periods.state.selectedPeriodId)
 		state.journalData = data
 	} catch (e) { showError(errMsg(e, 'Journal konnte nicht geladen werden')) }
 }

@@ -29,7 +29,7 @@ class OpeningBalanceService {
 		private JournalLineMapper $lineMapper,
 		private AccountService $accountService,
 		private AttachmentStorageService $attachmentStorage,
-		private YearCloseService $yearClose,
+		private PeriodService $periods,
 		private EntryNumberService $entryNumbers,
 		private TransactionRunner $transaction,
 	) {
@@ -53,24 +53,24 @@ class OpeningBalanceService {
 		$userId = $account->getUserId();
 
 		// Festschreibung: weder eine bestehende Eröffnungsbuchung eines
-		// abgeschlossenen Jahres entfernen noch eine neue dort anlegen.
+		// abgeschlossenen Geschäftsjahres entfernen noch eine neue dort anlegen.
 		$existing = $this->journalMapper->findOpeningForAccount($userId, $account->getId());
 		if ($existing !== null) {
-			$this->yearClose->assertOpen((string)$existing->getDate());
+			$this->periods->assertOpen($userId, (string)$existing->getDate());
 		}
 		$newDate = $account->getOpeningDate() ?? (new \DateTime())->format('Y-m-d');
 		if ($account->getOpeningBalanceCents() !== 0) {
-			$this->yearClose->assertOpen($newDate);
+			$this->periods->assertOpen($userId, $newDate);
 		}
 
 		// bestehende Eröffnungsbuchung dieses Kontos entfernen
 		if ($existing !== null) {
-			$existingYear = $existing->getYear();
+			$existingPeriodId = (int)$existing->getPeriodId();
 			$this->attachmentStorage->deleteForJournal($existing->getId());
 			$this->lineMapper->deleteByJournal($existing->getId());
 			$this->journalMapper->delete($existing);
 			// Lücke in der Nummerierung schließen (siehe EntryNumberService).
-			$this->entryNumbers->renumberYear($userId, $existingYear);
+			$this->entryNumbers->renumberPeriod($userId, $existingPeriodId);
 		}
 
 		$amount = $account->getOpeningBalanceCents();
@@ -87,8 +87,11 @@ class OpeningBalanceService {
 		$journal = new Journal();
 		$journal->setUserId($userId);
 		$date = $account->getOpeningDate() ?? (new \DateTime())->format('Y-m-d');
-		$journal->setDateWithYear($date);
-		$journal->setEntryNo($this->entryNumbers->next($userId, $journal->getYear()));
+		// Materialisiert den Zeitraum, falls es ihn noch nicht gibt – eine
+		// Buchung ohne Geschäftsjahr darf es nicht geben.
+		$period = $this->periods->forDateOrCreate($userId, $date);
+		$journal->setDateWithPeriod($date, (int)$period->getId());
+		$journal->setEntryNo($this->entryNumbers->next($userId, (int)$period->getId()));
 		$journal->setDescription('Eröffnungsbuchung ' . $account->getNumber() . ' ' . $account->getName());
 		$journal->setDocumentRef(JournalMapper::OPENING_REF);
 		$journal->setBankTxId(null);

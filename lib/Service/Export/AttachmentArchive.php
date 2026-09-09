@@ -7,7 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Service\Export;
 use OCA\Vereinsbuchhaltung\Db\AttachmentMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
-use OCA\Vereinsbuchhaltung\Service\FiscalYear;
+use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCP\IL10N;
 use OCP\ITempManager;
 
@@ -25,6 +25,7 @@ class AttachmentArchive {
 		private JournalMapper $journalMapper,
 		private AttachmentMapper $attachmentMapper,
 		private AttachmentStorageService $storageService,
+		private PeriodService $periods,
 		private ITempManager $tempManager,
 		private IL10N $l10n,
 	) {
@@ -36,8 +37,8 @@ class AttachmentArchive {
 	 *
 	 * @throws \RuntimeException wenn sich das Archiv nicht anlegen lässt
 	 */
-	public function build(string $userId, ?int $year = null): string {
-		[$from, $to] = FiscalYear::range($year);
+	public function build(string $userId, ?int $periodId = null): string {
+		[$from, $to] = $this->periods->range($userId, $periodId);
 
 		$zipPath = $this->tempManager->getTemporaryFile('.zip');
 		$zip = new \ZipArchive();
@@ -101,8 +102,24 @@ class AttachmentArchive {
 		return $zipPath;
 	}
 
-	public static function fileName(?int $year): string {
-		return 'belege_' . (FiscalYear::isSelected($year) ? (string)$year : 'alle_jahre') . '.zip';
+	/**
+	 * Dateiname des Archivs, benannt nach dem gewählten Geschäftsjahr.
+	 *
+	 * Die Bezeichnung eines Zeitraums ist freier Text und enthält gern einen
+	 * Schrägstrich („2025/26"); im Dateinamen eines Downloads wäre der ein
+	 * Pfadtrenner. Deshalb bleibt nur das stehen, was auf jedem Dateisystem
+	 * unverfänglich ist – aus „2025/26" wird „belege_2025-26.zip".
+	 */
+	public function fileName(string $userId, ?int $periodId): string {
+		if (!PeriodService::isSelected($periodId)) {
+			return 'belege_alle_zeitraeume.zip';
+		}
+		return 'belege_' . self::slug($this->periods->find($userId, (int)$periodId)->getLabel()) . '.zip';
+	}
+
+	/** Bezeichnung eines Zeitraums als Bestandteil eines Dateinamens. */
+	public static function slug(string $label): string {
+		return preg_replace('/[^A-Za-z0-9_-]/u', '-', $label) ?? '-';
 	}
 
 	/**

@@ -14,7 +14,6 @@ use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
-use OCA\Vereinsbuchhaltung\Db\YearCloseMapper;
 
 class ResetService {
 
@@ -30,7 +29,7 @@ class ResetService {
 		private BudgetSnapshotService $snapshotService,
 		private AttachmentMapper $attachmentMapper,
 		private AttachmentStorageService $storageService,
-		private YearCloseMapper $yearCloseMapper,
+		private PeriodService $periods,
 		private OpenItemMapper $openItemMapper,
 		private SepaDebtorAccountService $sepaDebtorAccount,
 	) {
@@ -70,9 +69,12 @@ class ResetService {
 			// sie müssen beim Zurücksetzen mit verschwinden, sonst bleiben
 			// personenbezogene Daten mit Verweisen auf gelöschte Konten zurück.
 			$this->openItemMapper->deleteAll();
-			// Abschluss-Marker gehören zum Datenbestand; das Änderungsprotokoll
-			// bleibt bewusst erhalten (der Reset selbst wird protokolliert).
-			$this->yearCloseMapper->deleteAll();
+			// Die Geschäftsjahre gehören zum Datenbestand und gehen mit; das
+			// Änderungsprotokoll bleibt bewusst erhalten (der Reset selbst wird
+			// protokolliert). Bewusst als Letztes: bricht der Vorgang vorher ab,
+			// zeigt keine Buchung und kein Planwert auf einen Zeitraum, den es
+			// nicht mehr gibt.
+			$this->periods->deleteAll($userId);
 
 			$this->transaction->afterCommit(fn () => $this->sepaDebtorAccount->setAccountId(null));
 		});

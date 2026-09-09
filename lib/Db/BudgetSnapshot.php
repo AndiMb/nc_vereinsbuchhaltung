@@ -11,8 +11,8 @@ use OCP\AppFramework\Db\Entity;
  *
  * @method string getUserId()
  * @method void setUserId(string $userId)
- * @method int getYear()
- * @method void setYear(int $year)
+ * @method int getPeriodId()
+ * @method void setPeriodId(int $periodId)
  * @method string getLabel()
  * @method void setLabel(string $label)
  * @method \DateTime getCreatedAt()
@@ -21,19 +21,19 @@ use OCP\AppFramework\Db\Entity;
 class BudgetSnapshot extends Entity implements \JsonSerializable {
 
 	protected $userId;
-	protected $year;
+	protected $periodId;
 	protected $label;
 	protected $createdAt;
 
 	public function __construct() {
-		$this->addType('year', 'integer');
+		$this->addType('periodId', 'integer');
 		$this->addType('createdAt', 'datetime');
 	}
 
 	public function jsonSerialize(): array {
 		return [
 			'id' => $this->id,
-			'year' => $this->year,
+			'periodId' => $this->periodId,
 			'label' => $this->label,
 			'createdAt' => $this->createdAt?->format(\DateTime::ATOM),
 		];

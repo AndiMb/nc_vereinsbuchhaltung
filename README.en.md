@@ -39,7 +39,7 @@ A lightweight accounting app for nonprofit clubs, integrated directly into Nextc
 - **Watch folder** (gear icon → *Bank data*): just drop the downloaded statement into a Nextcloud folder – an hourly background job reads it, moves it to `verarbeitet/`, and moves faulty files together with a reason to `fehler/`. Nothing is deleted. Requires system cron
 
 ### Bookkeeping
-- **Double-entry bookkeeping**: postings with debit/credit accounts and a continuous posting number (restarting at 1 each calendar year)
+- **Double-entry bookkeeping**: postings with debit/credit accounts and a continuous posting number (restarting at 1 each fiscal year)
 - **Chart of accounts** freely maintainable with hierarchy (parent/sub-accounts), account types, bank-account flag and opening balance
 - **Posting dialog with simple mode** (income/expense + category + cash account) and expert mode (debit/credit directly)
 - **Split postings**: one amount across several counter-accounts – in the posting dialog via *Split amount*, and when assigning a bank transaction via *Split…*. The cash account stays a single line for the full amount; the other side is split, a remainder display shows what's still missing, and saving is only possible once the split adds up. All reports calculate line by line and show the split amounts separately
@@ -51,7 +51,9 @@ A lightweight accounting app for nonprofit clubs, integrated directly into Nextc
 - **Attachments** (PDF/images, max. 20 MB) on postings – stored internally (AppData) or in a configurable Nextcloud folder; while creating the posting or afterwards, on mobile photographed straight from the camera
 - **Open items** (Bookings tab → Open items): a lean ad-hoc list of unpaid receivables (e.g. membership fees, invoices) with debtor, amount, due date and optional account; status open/paid/cancelled, dashboard notice for overdue items – deliberately not a full member-management system
 - **Reserves** (§ 62 AO: free / earmarked / replacement reserve): equity accounts can be flagged accordingly, own report with balance by type; allocations are normal postings (expert mode)
-- **Year filter**: all reports relate to the calendar year chosen in the header; balance-sheet accounts cumulative, income/expense accounts year-specific
+- **Deviating fiscal year** (gear icon → *Fiscal year*): the fiscal year does not have to match the calendar year. Presets for calendar year (default), October–September, school year August–July and half-year periods (semesters), plus a custom rule with any start day and a period length of 1 to 12 months (divisors of 12). Every period carries a freely editable label ("2026", "2025/26", "2025/26-1"); switching shows in advance how many postings will change period (issue #8)
+- **Period filter**: all reports relate to the fiscal year chosen in the header; balance-sheet accounts cumulative, income/expense accounts period-specific
+- **Finalization (year-end closing)**: administrators close a fiscal year – postings, receipts and assignments of that period are immutable afterwards (write attempts return HTTP 423); reopening only by administrators, both are logged. While a period is finalized, the fiscal-year rule cannot be changed
 - **Year-end closing (finalization)**: administrators close a fiscal year – postings, attachments and assignments for that year become immutable afterwards (write attempts return HTTP 423); reopening only by administrators, both actions are logged
 
 ### Reports & export
@@ -197,7 +199,7 @@ vereinsbuchhaltung/
 | `vbh_rules` | auto-assignment rules (field, search text, counter-account, priority) |
 | `vbh_attachments` | receipts per posting (file name, MIME type, size) |
 | `vbh_permissions` | permissions (principal_type, principal_id, role) |
-| `vbh_year_close` | closed (finalized) fiscal years (year, when, by whom) |
+| `vbh_periods` | fiscal years (label, from/to) including finalization (when, by whom) |
 | `vbh_audit_log` | change log (timestamp, user, action, object, details) |
 | `vbh_sepa_mandates` | SEPA direct debit mandates (IBAN, BIC, email, mandate reference, status: active/revoked) |
 | `vbh_membership_fees` | membership fees (amount in cents, frequency, next due date, optionally linked mandate/account) |

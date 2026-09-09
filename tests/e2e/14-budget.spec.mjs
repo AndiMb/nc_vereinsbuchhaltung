@@ -5,12 +5,18 @@ import { api, openApp, switchTab, visibleSection, INCOME_ACCOUNT, USERS } from '
 // eingefrorenen Planstand (Snapshot) anlegen und abrufen.
 
 test.describe('Finanzplan', () => {
+	// Der laufende Zeitraum: die Oberfläche wählt ihn beim Laden vor, also
+	// muss der Planwert genau dort liegen, damit ihn der erste Test sieht.
+	// Bis 0.32.0 stand hier die feste Jahreszahl 2026.
+	let period
+
 	test.beforeAll(async ({ request }) => {
 		await api.resetBook(request)
 		await api.seedDefaultAccounts(request)
+		period = await api.periodIdForDate(request, new Date().toISOString().slice(0, 10))
 		const income = await api.accountByNumber(request, INCOME_ACCOUNT)
 		await api.raw(request, 'POST', '/budget', {
-			data: { accountId: income.id, year: 2026, amount: 500, note: 'Planwert für Beiträge' },
+			data: { accountId: income.id, period, amount: 500, note: 'Planwert für Beiträge' },
 		})
 	})
 
@@ -23,12 +29,12 @@ test.describe('Finanzplan', () => {
 
 	test('Planstand einfrieren und wieder abrufen (API)', async ({ request }) => {
 		const created = await api.raw(request, 'POST', '/budget/snapshots', {
-			data: { year: 2026, label: 'Stand Mitgliederversammlung' },
+			data: { period, label: 'Stand Mitgliederversammlung' },
 		})
 		expect(created.status()).toBe(200)
 		const snapshot = await created.json()
 
-		const list = await api.getJson(request, '/budget/snapshots?year=2026')
+		const list = await api.getJson(request, `/budget/snapshots?period=${period}`)
 		expect(list.some((s) => s.id === snapshot.id)).toBe(true)
 
 		const detail = await api.raw(request, 'GET', `/budget/snapshots/${snapshot.id}`)

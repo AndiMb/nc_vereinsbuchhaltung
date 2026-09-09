@@ -9,8 +9,8 @@ use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Service\BrandingService;
-use OCA\Vereinsbuchhaltung\Service\FiscalYear;
 use OCA\Vereinsbuchhaltung\Service\LedgerAggregator;
+use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCP\IConfig;
 use OCP\IL10N;
 use OCP\IURLGenerator;
@@ -32,6 +32,7 @@ class KurzberichtRenderer {
 		private AccountMapper $accountMapper,
 		private JournalLineMapper $lineMapper,
 		private BudgetMapper $budgetMapper,
+		private PeriodService $periods,
 		private BrandingService $branding,
 		private IConfig $config,
 		private IURLGenerator $urlGenerator,
@@ -41,19 +42,23 @@ class KurzberichtRenderer {
 
 	/**
 	 * Stichtag prüfen: unbrauchbare oder in der Zukunft liegende Angaben fallen
-	 * auf den Jahresanfang zurück, damit der Bericht immer einen sinnvollen
-	 * Zeitraum zeigt statt einer leeren Tabelle.
+	 * auf $fallback zurück (den Beginn des laufenden Geschäftsjahres), damit der
+	 * Bericht immer einen sinnvollen Zeitraum zeigt statt einer leeren Tabelle.
+	 *
+	 * Den Rückfallwert reicht der Aufrufer herein, damit diese Prüfung eine
+	 * reine Datumsrechnung bleibt und nicht selbst Zeiträume nachschlagen muss.
 	 */
-	public function normalizeSince(?string $since, string $today): string {
+	public function normalizeSince(?string $since, string $today, string $fallback): string {
 		if ($since === null || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $since) || $since >= $today) {
-			return FiscalYear::start((int)date('Y'));
+			return $fallback;
 		}
 		return $since;
 	}
 
 	public function render(string $userId, ?string $since = null): string {
 		$today = date('Y-m-d');
-		$since = $this->normalizeSince($since, $today);
+		$period = $this->periods->current($userId);
+		$since = $this->normalizeSince($since, $today, $period->getStartDate());
 		$beforeSince = date('Y-m-d', strtotime($since . ' -1 day'));
 
 		$accounts = $this->accountMapper->findAll($userId);
@@ -64,12 +69,14 @@ class KurzberichtRenderer {
 		$vermoegen = LedgerAggregator::wealthRows($accounts, $cumStart, $cumEnd);
 		$erfolg = LedgerAggregator::incomeExpense($accounts, $moveSums);
 
-		$currentYear = (int)date('Y');
-		$plan = $this->budgetMapper->findByYear($userId, $currentYear);
+		// Der Finanzplan gehört zum laufenden Geschäftsjahr, nicht zum frei
+		// gewählten Stichtag: verglichen wird der Plan mit dem Ist seit
+		// Zeitraumbeginn, sonst stünde neben dem Jahresplan ein Teil-Ist.
+		$plan = $this->budgetMapper->findByPeriod($userId, (int)$period->getId());
 		$soll = null;
 		if ($plan !== []) {
-			$yearMoveSums = $this->lineMapper->sumByAccount($userId, FiscalYear::start($currentYear), $today);
-			$soll = LedgerAggregator::planActual($accounts, $yearMoveSums, $plan);
+			$periodMoveSums = $this->lineMapper->sumByAccount($userId, $period->getStartDate(), $today);
+			$soll = LedgerAggregator::planActual($accounts, $periodMoveSums, $plan);
 		}
 
 		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '');
@@ -89,7 +96,7 @@ class KurzberichtRenderer {
 		$h .= $this->balanceSection($vermoegen, $beforeSince);
 		$h .= $this->movementSection($erfolg, $since);
 		if ($soll !== null) {
-			$h .= $this->planSummarySection($soll, $currentYear);
+			$h .= $this->planSummarySection($soll, $period->getLabel());
 		}
 
 		return PrintableReportPage::document($title, $h, $accent);
@@ -128,8 +135,8 @@ class KurzberichtRenderer {
 	}
 
 	/** @param array<string, mixed> $soll aus LedgerAggregator::planActual() */
-	private function planSummarySection(array $soll, int $year): string {
-		$h = '<section><h2>' . $this->l10n->t('Finanzplan %d (Kurzfassung)', [$year]) . '</h2><table>';
+	private function planSummarySection(array $soll, string $periodLabel): string {
+		$h = '<section><h2>' . $this->l10n->t('Finanzplan %s (Kurzfassung)', [$periodLabel]) . '</h2><table>';
 		$h .= '<tr><th></th><th class="num">' . $this->l10n->t('Plan') . '</th><th class="num">' . $this->l10n->t('Ist (bisher)') . '</th></tr>';
 		$h .= '<tr><td>' . $this->l10n->t('Einnahmen') . '</td><td class="num">' . ReportFormat::cents($soll['planIncomeCents'])
 			. '</td><td class="num">' . ReportFormat::cents($soll['actualIncomeCents']) . '</td></tr>';

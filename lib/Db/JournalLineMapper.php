@@ -68,29 +68,29 @@ class JournalLineMapper extends QBMapper {
 	 * Grundlage der Festschreibungsprüfung an den Konto-Stammdaten (siehe
 	 * AccountService::assertEvaluationOpen()): ob eine Änderung am Konto einen
 	 * bereits abgeschlossenen Bericht nachträglich verändern würde, hängt genau
-	 * daran, ob das Konto in einem abgeschlossenen Jahr überhaupt vorkommt.
+	 * daran, ob das Konto in einem abgeschlossenen Zeitraum überhaupt vorkommt.
 	 *
-	 * @return int[] Kalenderjahre, aufsteigend
+	 * @return int[] Perioden-IDs, aufsteigend
 	 */
-	public function findYearsForAccount(string $userId, int $accountId): array {
+	public function findPeriodIdsForAccount(string $userId, int $accountId): array {
 		$qb = $this->db->getQueryBuilder();
-		$qb->selectDistinct('j.year')
+		$qb->selectDistinct('j.period_id')
 			->from($this->getTableName(), 'l')
 			->innerJoin('l', 'vbh_journal', 'j', $qb->expr()->eq('l.journal_id', 'j.id'))
 			->where($qb->expr()->eq('j.user_id', $qb->createNamedParameter($userId)))
 			->andWhere($qb->expr()->eq('l.account_id', $qb->createNamedParameter($accountId, IQueryBuilder::PARAM_INT)));
 		$res = $qb->executeQuery();
-		$years = [];
+		$periodIds = [];
 		while (($row = $res->fetch()) !== false) {
-			$year = (int)$row['year'];
-			if ($year > 0) {
-				$years[$year] = true;
+			$periodId = (int)$row['period_id'];
+			if ($periodId > 0) {
+				$periodIds[$periodId] = true;
 			}
 		}
 		$res->closeCursor();
-		$years = array_keys($years);
-		sort($years);
-		return $years;
+		$periodIds = array_keys($periodIds);
+		sort($periodIds);
+		return $periodIds;
 	}
 
 	/**

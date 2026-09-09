@@ -9,11 +9,11 @@ use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
-use OCA\Vereinsbuchhaltung\Db\YearCloseMapper;
-use OCA\Vereinsbuchhaltung\Service\FiscalYear;
+use OCA\Vereinsbuchhaltung\Db\Period;
 use OCA\Vereinsbuchhaltung\Service\LedgerAggregator;
+use OCA\Vereinsbuchhaltung\Service\PeriodRule;
+use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCA\Vereinsbuchhaltung\Service\ReportService;
-use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IConfig;
 use OCP\IL10N;
 
@@ -35,17 +35,21 @@ class KassenberichtRenderer {
 		private JournalMapper $journalMapper,
 		private JournalLineMapper $lineMapper,
 		private BudgetMapper $budgetMapper,
-		private YearCloseMapper $yearCloseMapper,
+		private PeriodService $periods,
 		private ReportService $reportService,
 		private IConfig $config,
 		private IL10N $l10n,
 	) {
 	}
 
-	public function render(string $userId, int $year): string {
-		$from = FiscalYear::start($year);
-		$to = FiscalYear::end($year);
-		$prevTo = FiscalYear::end($year - 1);
+	public function render(string $userId, Period $period): string {
+		$from = $period->getStartDate();
+		$to = $period->getEndDate();
+		// Anfangsbestand ist der kumulierte Stand am Vorabend des Zeitraums.
+		// Beim allerersten Geschäftsjahr gibt es keinen Vorgänger; dann tut es
+		// der Tag davor, an dem definitionsgemäß noch nichts gebucht ist.
+		$previous = $this->periods->previous($userId, $period);
+		$prevTo = $previous?->getEndDate() ?? PeriodRule::previousDay($from);
 
 		$accounts = $this->accountMapper->findAll($userId);
 		$moveSums = $this->lineMapper->sumByAccount($userId, $from, $to);
@@ -54,37 +58,43 @@ class KassenberichtRenderer {
 
 		$erfolg = LedgerAggregator::incomeExpense($accounts, $moveSums);
 		$vermoegen = LedgerAggregator::wealthRows($accounts, $cumStart, $cumEnd);
-		$plan = $this->budgetMapper->findByYear($userId, $year);
+		$plan = $this->budgetMapper->findByPeriod($userId, (int)$period->getId());
 		$soll = $plan !== [] ? LedgerAggregator::planActual($accounts, $moveSums, $plan) : null;
 
 		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '');
-		$title = ($clubName !== '' ? $clubName . ' – ' : '') . $this->l10n->t('Kassenbericht %d', [$year]);
+		$title = ($clubName !== '' ? $clubName . ' – ' : '') . $this->l10n->t('Kassenbericht %s', [$period->getLabel()]);
 
 		$h = PrintableReportPage::printHint($this->l10n->t('Zum Drucken oder Als-PDF-Speichern: <strong>Strg+P</strong> (Mac: ⌘P) im Browser.'));
 		$h .= PrintableReportPage::header(
 			null,
 			$clubName,
-			$this->l10n->t('Kassenbericht für das Geschäftsjahr %d', [$year]),
-			$this->l10n->t('Erstellt am %s', [ReportFormat::date(date('Y-m-d'))]) . ' · ' . PrintableReportPage::escape($this->closeNote($year)),
+			$this->l10n->t('Kassenbericht für das Geschäftsjahr %s', [$period->getLabel()]),
+			$this->l10n->t('Erstellt am %s', [ReportFormat::date(date('Y-m-d'))]) . ' · ' . PrintableReportPage::escape($this->closeNote($period)),
 		);
-		$h .= $this->wealthSection($vermoegen);
+		$h .= $this->wealthSection($vermoegen, $from, $to);
 		$h .= $this->resultSection($erfolg);
-		$h .= $this->sphereSection($userId, $year);
+		$h .= $this->sphereSection($userId, (int)$period->getId());
 		if ($soll !== null) {
 			$h .= $this->planSection($soll);
 		}
 		$h .= '<section><h2>' . $this->l10n->t('Vollständigkeit') . '</h2><p>'
-			. PrintableReportPage::escape($this->numberingNote($userId, $year, $from, $to))
+			. PrintableReportPage::escape($this->numberingNote($userId, $period, $from, $to))
 			. '</p></section>';
 		$h .= $this->signatureSection();
 
 		return PrintableReportPage::document($title, $h);
 	}
 
-	/** @param array{rows: list<array{account:mixed, start:int, end:int}>, startCents:int, endCents:int} $vermoegen */
-	private function wealthSection(array $vermoegen): string {
+	/**
+	 * Die Stichtage stehen in den Spaltenköpfen, statt „01.01." und „31.12." zu
+	 * unterstellen: ein Geschäftsjahr muss seit Issue #8 nicht mehr am
+	 * Jahreswechsel beginnen.
+	 *
+	 * @param array{rows: list<array{account:mixed, start:int, end:int}>, startCents:int, endCents:int} $vermoegen
+	 */
+	private function wealthSection(array $vermoegen, string $from, string $to): string {
 		$h = '<section><h2>' . $this->l10n->t('Vermögensübersicht (Geldkonten)') . '</h2><table>';
-		$h .= '<tr><th>' . $this->l10n->t('Konto') . '</th><th class="num">' . $this->l10n->t('Bestand 01.01.') . '</th><th class="num">' . $this->l10n->t('Bestand 31.12.') . '</th><th class="num">' . $this->l10n->t('Veränderung') . '</th></tr>';
+		$h .= '<tr><th>' . $this->l10n->t('Konto') . '</th><th class="num">' . $this->l10n->t('Bestand %s', [ReportFormat::date($from)]) . '</th><th class="num">' . $this->l10n->t('Bestand %s', [ReportFormat::date($to)]) . '</th><th class="num">' . $this->l10n->t('Veränderung') . '</th></tr>';
 		foreach ($vermoegen['rows'] as $row) {
 			$label = trim($row['account']->getNumber() . ' ' . $row['account']->getName());
 			$h .= '<tr><td>' . PrintableReportPage::escape($label) . '</td>'
@@ -131,8 +141,8 @@ class KassenberichtRenderer {
 		return $h;
 	}
 
-	private function sphereSection(string $userId, int $year): string {
-		$report = $this->reportService->sphereReport($userId, $year);
+	private function sphereSection(string $userId, int $periodId): string {
+		$report = $this->reportService->sphereReport($userId, $periodId);
 		$h = '<section><h2>' . $this->l10n->t('Sphärenübersicht (steuerlich)') . '</h2><table>';
 		$h .= '<tr><th>' . $this->l10n->t('Sphäre') . '</th><th class="num">' . $this->l10n->t('Einnahmen') . '</th><th class="num">' . $this->l10n->t('Ausgaben') . '</th><th class="num">' . $this->l10n->t('Ergebnis') . '</th></tr>';
 		foreach ($report['spheres'] as $s) {
@@ -214,18 +224,16 @@ class KassenberichtRenderer {
 		return $h . '</section>';
 	}
 
-	private function closeNote(int $year): string {
-		try {
-			$close = $this->yearCloseMapper->findByYear($year);
-		} catch (DoesNotExistException) {
-			return $this->l10n->t('Das Geschäftsjahr %d ist noch nicht abgeschlossen.', [$year]);
+	private function closeNote(Period $period): string {
+		if (!$period->isClosed()) {
+			return $this->l10n->t('Das Geschäftsjahr %s ist noch nicht abgeschlossen.', [$period->getLabel()]);
 		}
 		return $this->l10n->t(
-			'Das Geschäftsjahr %d wurde am %s von %s abgeschlossen (festgeschrieben).',
+			'Das Geschäftsjahr %s wurde am %s von %s abgeschlossen (festgeschrieben).',
 			[
-				$year,
-				ReportFormat::date(substr((string)$close->getClosedAt(), 0, 10)),
-				$close->getClosedBy(),
+				$period->getLabel(),
+				ReportFormat::date(substr((string)$period->getClosedAt(), 0, 10)),
+				$period->getClosedBy(),
 			],
 		);
 	}
@@ -235,7 +243,7 @@ class KassenberichtRenderer {
 	 * Doppelungen – die Kernfrage jeder Kassenprüfung: ist der Bericht
 	 * vollständig?
 	 */
-	private function numberingNote(string $userId, int $year, string $from, string $to): string {
+	private function numberingNote(string $userId, Period $period, string $from, string $to): string {
 		$entryNos = [];
 		foreach ($this->journalMapper->findAll($userId, 100000, 0, $from, $to) as $journal) {
 			$no = $journal->getEntryNo();
@@ -283,18 +291,9 @@ class KassenberichtRenderer {
 		// nichts mehr stehen. Bleibt eine Lücke in einem bereits festgeschriebenen
 		// Jahr, stammt sie aus einer älteren Version – dann hilft nur
 		// Wiedereröffnen und erneut Abschließen.
-		if ($missing && $this->isYearClosed($year)) {
+		if ($missing && $period->isClosed()) {
 			$note .= ' ' . $this->l10n->t('(Lücken aus einer früheren Programmversion; sie verschwinden, wenn das Jahr einmal wiedereröffnet und erneut abgeschlossen wird)');
 		}
 		return $note;
-	}
-
-	private function isYearClosed(int $year): bool {
-		try {
-			$this->yearCloseMapper->findByYear($year);
-			return true;
-		} catch (DoesNotExistException) {
-			return false;
-		}
 	}
 }

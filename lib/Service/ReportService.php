@@ -9,7 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\Account;
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\CostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
-use OCA\Vereinsbuchhaltung\Db\JournalMapper;
+use OCA\Vereinsbuchhaltung\Db\Period;
 use OCP\IConfig;
 use OCP\IL10N;
 
@@ -38,7 +38,7 @@ class ReportService {
 		private AccountMapper $accountMapper,
 		private JournalLineMapper $lineMapper,
 		private CostCenterMapper $costCenterMapper,
-		private JournalMapper $journalMapper,
+		private PeriodService $periods,
 		private IConfig $config,
 		private IL10N $l10n,
 	) {
@@ -96,14 +96,9 @@ class ReportService {
 	 *
 	 * @return array{costCenters: array<int, array<string,mixed>>, totals: array<string,float>}
 	 */
-	public function costCenterReport(string $userId, ?int $year = null): array {
+	public function costCenterReport(string $userId, ?int $periodId = null): array {
 		$accounts = $this->accountMapper->findAll($userId);
-		$from = null;
-		$to = null;
-		if ($year !== null && $year > 0) {
-			$from = FiscalYear::start($year);
-			$to = FiscalYear::end($year);
-		}
+		[$from, $to] = $this->periods->range($userId, $periodId);
 		$sums = $this->lineMapper->sumByAccount($userId, $from, $to);
 		$mode = $this->costCenterMode();
 
@@ -233,14 +228,9 @@ class ReportService {
 	 *
 	 * @return array{spheres: array<int, array<string,mixed>>, totals: array<string,float>, freigrenze: array<string,mixed>}
 	 */
-	public function sphereReport(string $userId, ?int $year = null): array {
+	public function sphereReport(string $userId, ?int $periodId = null): array {
 		$accounts = $this->accountMapper->findAll($userId);
-		$from = null;
-		$to = null;
-		if ($year !== null && $year > 0) {
-			$from = FiscalYear::start($year);
-			$to = FiscalYear::end($year);
-		}
+		[$from, $to] = $this->periods->range($userId, $periodId);
 		$sums = $this->lineMapper->sumByAccount($userId, $from, $to);
 
 		// Alle vier Sphären + „nicht zugeordnet" immer anlegen, auch ohne
@@ -381,22 +371,29 @@ class ReportService {
 	}
 
 	/**
-	 * Einnahmen/Ausgaben/Ergebnis je Jahr, für ein Mehrjahres-Trend-Diagramm
-	 * (Sitzungspräsentation).
+	 * Einnahmen/Ausgaben/Ergebnis je Geschäftsjahr, für ein
+	 * Mehrjahres-Trend-Diagramm (Sitzungspräsentation).
 	 *
-	 * @return array{years: array<int, array{year:int,income:float,expense:float,result:float}>}
+	 * Grundlage sind die angelegten Zeiträume, nicht mehr die Jahreszahlen der
+	 * Buchungen: seit Issue #8 kann ein Geschäftsjahr über den Jahreswechsel
+	 * laufen, und nur der Zeitraum weiß, welche Buchungen zusammengehören. Ein
+	 * Zeitraum ohne Buchungen erscheint dadurch als Nullspalte – das ist
+	 * richtig so, denn er gehört zur Reihe.
+	 *
+	 * @return array{years: array<int, array{periodId:int,label:string,income:float,expense:float,result:float}>}
 	 */
 	public function multiyearTrend(string $userId): array {
-		$years = $this->journalMapper->distinctYears($userId);
-		sort($years);
+		$periods = $this->periods->all($userId);
+		usort($periods, static fn (Period $a, Period $b): int => strcmp($a->getStartDate(), $b->getStartDate()));
 		$accounts = $this->accountMapper->findAll($userId);
 
 		$rows = [];
-		foreach ($years as $y) {
-			$sums = $this->lineMapper->sumByAccount($userId, FiscalYear::start($y), FiscalYear::end($y));
+		foreach ($periods as $p) {
+			$sums = $this->lineMapper->sumByAccount($userId, $p->getStartDate(), $p->getEndDate());
 			$result = LedgerAggregator::incomeExpense($accounts, $sums);
 			$rows[] = [
-				'year' => $y,
+				'periodId' => (int)$p->getId(),
+				'label' => $p->getLabel(),
 				'income' => $result['incomeCents'] / 100,
 				'expense' => $result['expenseCents'] / 100,
 				'result' => $result['resultCents'] / 100,
