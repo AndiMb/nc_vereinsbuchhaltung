@@ -8,7 +8,6 @@ use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetSnapshotMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
-use OCA\Vereinsbuchhaltung\Db\Period;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\PeriodRule;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
