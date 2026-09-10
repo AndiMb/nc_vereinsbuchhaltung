@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { api, openApp, switchTab, selectYear, visibleSection, pickNcSelectOption, BANK_ACCOUNT, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
+import { api, openApp, switchTab, selectPeriod, visibleSection, pickNcSelectOption, BANK_ACCOUNT, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
 
 // Der Kern der App: Buchungen anlegen (Einfach-Modus über den Dialog),
 // im Journal wiederfinden, bearbeiten und löschen.
@@ -35,7 +35,7 @@ test.describe('Buchungen', () => {
 		await expect(page.getByRole('dialog')).toBeHidden()
 
 		await switchTab(page, 'Buchungen')
-		await selectYear(page, 2031)
+		await selectPeriod(page, '2031')
 		// Großzügiges Timeout: direkt nach dem Buchen laufen Journal-,
 		// Salden- und Umsatz-Reload parallel – das erste Rendering des
 		// gewechselten Jahres kann die Standard-5s gelegentlich reißen.
@@ -54,14 +54,14 @@ test.describe('Buchungen', () => {
 
 		await openApp(page, USERS.buchhalter)
 		await switchTab(page, 'Buchungen')
-		await selectYear(page, 2031)
+		await selectPeriod(page, '2031')
 		await expect(visibleSection(page).getByText('Spende Vereinsfest').first()).toBeVisible()
 	})
 
 	test('Buchung bearbeiten: geänderter Text landet im Journal', async ({ page }) => {
 		await openApp(page, USERS.verwalter)
 		await switchTab(page, 'Buchungen')
-		await selectYear(page, 2031)
+		await selectPeriod(page, '2031')
 
 		const row = visibleSection(page).locator('tr', { hasText: 'Spende Vereinsfest' }).first()
 		await row.getByRole('button', { name: 'Bearbeiten' }).click()
@@ -77,7 +77,7 @@ test.describe('Buchungen', () => {
 	test('Buchung löschen entfernt sie aus dem Journal', async ({ page, request }) => {
 		await openApp(page, USERS.verwalter)
 		await switchTab(page, 'Buchungen')
-		await selectYear(page, 2031)
+		await selectPeriod(page, '2031')
 
 		// Löschen liegt im Drei-Punkte-Menü der Journalzeile.
 		const row = visibleSection(page).locator('tr', { hasText: 'Spende Sommerfest' }).first()
@@ -88,7 +88,7 @@ test.describe('Buchungen', () => {
 		await page.getByRole('dialog').getByRole('button', { name: 'Löschen', exact: true }).click()
 
 		await expect(visibleSection(page).getByText('Spende Sommerfest')).toHaveCount(0)
-		const journal = await api.listJournal(request, { year: 2031 })
+		const journal = await api.listJournal(request, { period: await api.periodIdForDate(request, '2031-06-01') })
 		expect(journal.some((j) => j.description === 'Spende Sommerfest')).toBe(false)
 	})
 })

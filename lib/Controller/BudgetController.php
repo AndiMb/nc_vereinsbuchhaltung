@@ -9,8 +9,8 @@ use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Service\BudgetSnapshotService;
-use OCA\Vereinsbuchhaltung\Service\FiscalYear;
 use OCA\Vereinsbuchhaltung\Service\LedgerAggregator;
+use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -28,24 +28,24 @@ class BudgetController extends Controller {
 		private BudgetMapper $budgetMapper,
 		private JournalLineMapper $lineMapper,
 		private BudgetSnapshotService $snapshotService,
+		private PeriodService $periods,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
 
 	/**
-	 * Finanzplan eines Jahres: je Erfolgskonto Plan (Soll) und Ist sowie Differenz.
+	 * Finanzplan eines Geschäftsjahres: je Erfolgskonto Plan (Soll) und Ist
+	 * sowie Differenz.
 	 */
 	#[NoAdminRequired]
-	public function index(?int $year = null): DataResponse {
-		$year = FiscalYear::orCurrent($year);
+	public function index(?int $period = null): DataResponse {
 		$userId = $this->userId();
-		$from = FiscalYear::start($year);
-		$to = FiscalYear::end($year);
+		$p = $this->periods->selectedOrCurrent($userId, $period);
 
 		$accounts = $this->accountMapper->findAll($userId);
-		$plan = $this->budgetMapper->findByYear($userId, $year);
-		$actualSums = $this->lineMapper->sumByAccount($userId, $from, $to);
+		$plan = $this->budgetMapper->findByPeriod($userId, (int)$p->getId());
+		$actualSums = $this->lineMapper->sumByAccount($userId, $p->getStartDate(), $p->getEndDate());
 
 		$plan = LedgerAggregator::planActual($accounts, $actualSums, $plan);
 
@@ -68,7 +68,10 @@ class BudgetController extends Controller {
 		usort($rows, static fn ($a, $b) => strcmp((string)$a['number'], (string)$b['number']));
 
 		return new DataResponse([
-			'year' => $year,
+			'periodId' => (int)$p->getId(),
+			'label' => $p->getLabel(),
+			'startDate' => $p->getStartDate(),
+			'endDate' => $p->getEndDate(),
 			'rows' => $rows,
 			'totals' => [
 				'planIncome' => $plan['planIncomeCents'] / 100,
@@ -82,24 +85,31 @@ class BudgetController extends Controller {
 	}
 
 	/**
-	 * Planwert eines Kontos für ein Jahr setzen (Betrag in Euro), optional mit
-	 * Notiz. Sind Betrag UND Notiz leer, wird der Eintrag entfernt.
+	 * Planwert eines Kontos für einen Zeitraum setzen (Betrag in Euro),
+	 * optional mit Notiz. Sind Betrag UND Notiz leer, wird der Eintrag entfernt.
 	 */
 	#[NoAdminRequired]
-	public function set(int $accountId, int $year, float $amount = 0, string $note = ''): DataResponse {
+	public function set(int $accountId, int $period, float $amount = 0, string $note = ''): DataResponse {
+		// Der einzige Schreibpfad, der eine Perioden-ID aus dem Request
+		// übernimmt: ohne diese Prüfung entstünde bei einer veralteten oder
+		// erfundenen ID ein Planwert, den keine Ansicht je zeigt und den weder
+		// das Entfernen eines Zeitraums noch eine Umstellung wiederfindet.
+		// Eine unbekannte ID endet als 404 (PeriodNotFoundException).
+		$this->periods->find($this->userId(), $period);
 		$cents = (int)round($amount * 100);
 		$note = mb_substr(trim($note), 0, 1000);
-		$this->budgetMapper->upsert($this->userId(), $accountId, $year, $cents, $note);
-		return new DataResponse(['accountId' => $accountId, 'year' => $year, 'amount' => $cents / 100, 'note' => $note]);
+		$this->budgetMapper->upsert($this->userId(), $accountId, $period, $cents, $note);
+		return new DataResponse(['accountId' => $accountId, 'periodId' => $period, 'amount' => $cents / 100, 'note' => $note]);
 	}
 
 	/**
-	 * Gespeicherte Finanzplan-Stände eines Jahres (neueste zuerst).
+	 * Gespeicherte Finanzplan-Stände eines Zeitraums (neueste zuerst).
 	 */
 	#[NoAdminRequired]
-	public function snapshots(?int $year = null): DataResponse {
-		$year = FiscalYear::orCurrent($year);
-		return new DataResponse($this->snapshotService->listForYear($this->userId(), $year));
+	public function snapshots(?int $period = null): DataResponse {
+		$userId = $this->userId();
+		$p = $this->periods->selectedOrCurrent($userId, $period);
+		return new DataResponse($this->snapshotService->listForPeriod($userId, (int)$p->getId()));
 	}
 
 	/**
@@ -115,11 +125,13 @@ class BudgetController extends Controller {
 	}
 
 	/**
-	 * Aktuellen Finanzplan eines Jahres als neuen Stand einfrieren.
+	 * Aktuellen Finanzplan eines Zeitraums als neuen Stand einfrieren.
 	 */
 	#[NoAdminRequired]
-	public function createSnapshot(int $year, string $label = ''): DataResponse {
-		$snapshot = $this->snapshotService->create($this->userId(), $year, $label);
+	public function createSnapshot(?int $period = null, string $label = ''): DataResponse {
+		$userId = $this->userId();
+		$p = $this->periods->selectedOrCurrent($userId, $period);
+		$snapshot = $this->snapshotService->create($userId, (int)$p->getId(), $label);
 		return new DataResponse($snapshot);
 	}
 

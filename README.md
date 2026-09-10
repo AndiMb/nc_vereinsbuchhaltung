@@ -39,7 +39,7 @@ Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kon
 - **Wachordner** (Zahnrad → *Bankdaten*): den heruntergeladenen Auszug in einen Nextcloud-Ordner legen genügt – ein stündlicher Hintergrundjob liest ihn ein, verschiebt ihn nach `verarbeitet/` und fehlerhafte Dateien mitsamt Begründung nach `fehler/`. Gelöscht wird nichts. Setzt System-Cron voraus
 
 ### Buchhaltung
-- **Doppelte Buchführung**: Buchungssätze mit Soll-/Haben-Konten und fortlaufender Buchungsnummer (je Kalenderjahr neu beginnend ab 1)
+- **Doppelte Buchführung**: Buchungssätze mit Soll-/Haben-Konten und fortlaufender Buchungsnummer (je Geschäftsjahr neu beginnend ab 1)
 - **Kontenrahmen** frei pflegbar mit Hierarchie (Über-/Unterkonten), Kontotypen, Bankkonto-Flag und Eröffnungssaldo
 - **Buchungsdialog mit Einfach-Modus** (Einnahme/Ausgabe + Kategorie + Geldkonto) und Experten-Modus (Soll/Haben direkt)
 - **Splittbuchungen**: ein Betrag auf mehrere Gegenkonten – im Buchungsdialog über *Betrag aufteilen* und beim Zuordnen eines Bankumsatzes über *Aufteilen…*. Das Geldkonto bleibt eine Zeile über den vollen Betrag, aufgeteilt wird die Gegenseite; eine Restanzeige zeigt, was noch fehlt, gespeichert wird erst, wenn die Aufteilung aufgeht. Alle Auswertungen rechnen zeilenweise und weisen die Teilbeträge getrennt aus
@@ -51,8 +51,9 @@ Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kon
 - **Belege** (PDF/Bilder, max. 20 MB) an Buchungssätze anhängen – Ablage intern (AppData) oder in einem konfigurierbaren Nextcloud-Ordner; schon beim Anlegen der Buchung oder nachträglich, auf Mobilgeräten direkt mit der Kamera fotografiert
 - **Offene Posten** (Tab Buchungen → Offene Posten): schlanke Ad-hoc-Liste unbezahlter Forderungen (z. B. Mitgliedsbeiträge, Rechnungen) mit Debitor, Betrag, Fälligkeit und optionalem Konto; Status offen/bezahlt/storniert, Dashboard-Hinweis bei überfälligen Posten – bewusst keine vollständige Mitgliederverwaltung
 - **Rücklagen** (§ 62 AO: freie / zweckgebundene / Wiederbeschaffungsrücklage): Eigenkapital-Konten entsprechend kennzeichenbar, eigener Bericht mit Saldo je Art; Zuweisungen sind normale Buchungen (Experten-Modus)
-- **Jahresfilter**: alle Auswertungen beziehen sich auf das im Header gewählte Kalenderjahr; Bestandskonten kumulativ, Erfolgskonten jahresbezogen
-- **Jahresabschluss (Festschreibung)**: Verwalter schließen ein Geschäftsjahr ab – Buchungen, Belege und Zuordnungen dieses Jahres sind danach unveränderlich (Schreibversuche liefern HTTP 423); Wiedereröffnen nur durch Verwalter, beides wird protokolliert
+- **Abweichendes Geschäftsjahr** (Zahnrad → *Geschäftsjahr*): das Geschäftsjahr muss nicht dem Kalenderjahr entsprechen. Vorlagen für Kalenderjahr (Vorgabe), Oktober–September, Schuljahr August–Juli und halbjährliche Zeiträume (Semester), dazu eine eigene Regel mit beliebigem Starttag und einer Periodenlänge von 1 bis 12 Monaten (Teiler von 12). Jeder Zeitraum trägt eine frei änderbare Bezeichnung („2026", „2025/26", „2025/26-1"); die Umstellung zeigt vorher, wie viele Buchungen den Zeitraum wechseln (Issue #8)
+- **Zeitraumfilter**: alle Auswertungen beziehen sich auf das im Header gewählte Geschäftsjahr; Bestandskonten kumulativ, Erfolgskonten zeitraumbezogen
+- **Festschreibung (Jahresabschluss)**: Verwalter schließen ein Geschäftsjahr ab – Buchungen, Belege und Zuordnungen dieses Zeitraums sind danach unveränderlich (Schreibversuche liefern HTTP 423); Wiedereröffnen nur durch Verwalter, beides wird protokolliert. Solange ein Zeitraum festgeschrieben ist, lässt sich die Geschäftsjahr-Regel nicht umstellen
 
 ### Auswertungen & Export
 - **Übersicht (Dashboard)**: KPI-Kacheln mit Vorjahresvergleich, Hinweis auf nicht zugeordnete Buchungen und überfällige offene Posten, monatliches Einnahmen-/Ausgaben-Diagramm
@@ -197,7 +198,7 @@ vereinsbuchhaltung/
 | `vbh_rules` | Auto-Zuordnungsregeln (Feld, Suchtext, Gegenkonto, Priorität) |
 | `vbh_attachments` | Belege je Buchungssatz (Dateiname, MIME, Größe) |
 | `vbh_permissions` | Berechtigungen (principal_type, principal_id, Rolle) |
-| `vbh_year_close` | abgeschlossene (festgeschriebene) Geschäftsjahre (Jahr, wann, von wem) |
+| `vbh_periods` | Geschäftsjahre (Bezeichnung, Von/Bis) samt Festschreibung (wann, von wem) |
 | `vbh_audit_log` | Änderungsprotokoll (Zeitpunkt, Nutzer, Aktion, Objekt, Details) |
 | `vbh_sepa_mandates` | SEPA-Lastschriftmandate (IBAN, BIC, E-Mail, Mandatsreferenz, Status: aktiv/widerrufen) |
 | `vbh_membership_fees` | Mitgliedsbeiträge (Betrag in Cent, Frequenz, nächste Fälligkeit, optional verknüpftes Mandat/Konto) |

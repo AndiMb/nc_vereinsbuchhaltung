@@ -66,10 +66,19 @@ class ExportFormatTest extends TestCase {
 		$this->assertSame('_', AttachmentArchive::safeName('   '));
 	}
 
-	public function testArchivnameTraegtDasJahr(): void {
-		$this->assertSame('belege_2026.zip', AttachmentArchive::fileName(2026));
-		$this->assertSame('belege_alle_jahre.zip', AttachmentArchive::fileName(null));
-		$this->assertSame('belege_alle_jahre.zip', AttachmentArchive::fileName(0));
+	/**
+	 * Der Archivname trägt die Bezeichnung des Geschäftsjahres. Sie ist frei
+	 * wählbar und enthält bei einem abweichenden Geschäftsjahr regelmäßig
+	 * einen Schrägstrich („2025/26") – der im Dateinamen einen Pfad eröffnen
+	 * würde. Deshalb bleibt nur, was in einem Dateinamen unbedenklich ist.
+	 */
+	public function testZeitraumBezeichnungAlsDateinamensbestandteil(): void {
+		$this->assertSame('2026', AttachmentArchive::slug('2026'));
+		$this->assertSame('2025-26', AttachmentArchive::slug('2025/26'));
+		$this->assertSame('2025-26-1', AttachmentArchive::slug('2025/26-1'));
+		$this->assertSame('WS-2025-26', AttachmentArchive::slug('WS 2025/26'));
+		$this->assertSame('---etc', AttachmentArchive::slug('../etc'));
+		$this->assertSame('Gesch-ftsjahr', AttachmentArchive::slug('Geschäftsjahr'));
 	}
 
 	// --- Akzentfarbe ----------------------------------------------------

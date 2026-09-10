@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { api, openApp, pickNcSelectOption, switchTab, selectYear, visibleSection, BANK_ACCOUNT, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
+import { api, openApp, pickNcSelectOption, switchTab, selectPeriod, visibleSection, BANK_ACCOUNT, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
 
 // Kontoauszug (Tab Konten): eine Buchung an Ort und Stelle korrigieren, ohne
 // den Umweg über das Journal (Issue #39). Deckt zugleich das ältere Umbuchen
@@ -34,7 +34,7 @@ test.describe('Kontoauszug', () => {
 	test('Buchung aus dem Kontoauszug heraus bearbeiten', async ({ page }) => {
 		await openApp(page, USERS.verwalter)
 		await switchTab(page, 'Konten')
-		await selectYear(page, JAHR)
+		await selectPeriod(page, String(JAHR))
 		await oeffneKonto(page, BANK_ACCOUNT)
 
 		const zeile = auszugsZeile(page, 'Beitrag Linus Beispiel')
@@ -55,13 +55,13 @@ test.describe('Kontoauszug', () => {
 	})
 
 	test('Beleg zeigt sich als Büroklammer in der Auszugszeile', async ({ page, request }) => {
-		const journal = await api.listJournal(request, { year: JAHR })
+		const journal = await api.listJournal(request, { period: await api.periodIdForDate(request, `${JAHR}-05-02`) })
 		const buchung = journal.find((e) => e.journal.description.startsWith('Beitrag Linus Beispiel')).journal
 		await api.addAttachment(request, buchung.id)
 
 		await openApp(page, USERS.verwalter)
 		await switchTab(page, 'Konten')
-		await selectYear(page, JAHR)
+		await selectPeriod(page, String(JAHR))
 		await oeffneKonto(page, BANK_ACCOUNT)
 
 		const zeile = auszugsZeile(page, 'Beitrag Linus Beispiel (korrigiert)')
@@ -71,7 +71,7 @@ test.describe('Kontoauszug', () => {
 	test('Umbuchen bleibt über das Menü der Zeile erreichbar', async ({ page, request }) => {
 		await openApp(page, USERS.verwalter)
 		await switchTab(page, 'Konten')
-		await selectYear(page, JAHR)
+		await selectPeriod(page, String(JAHR))
 		await oeffneKonto(page, BANK_ACCOUNT)
 
 		const zeile = auszugsZeile(page, 'Beitrag Linus Beispiel (korrigiert)')
@@ -85,7 +85,7 @@ test.describe('Kontoauszug', () => {
 		await pickNcSelectOption(panel, 'Neues Konto wählen…', 'Spenden')
 
 		await expect(visibleSection(page).locator('.vbh-reassign')).toHaveCount(0, { timeout: 15000 })
-		const journal = await api.listJournal(request, { year: JAHR })
+		const journal = await api.listJournal(request, { period: await api.periodIdForDate(request, `${JAHR}-05-02`) })
 		const [spenden] = await api.accountsByNumber(request, '4100')
 		const buchung = journal.find((e) => e.journal.description === 'Beitrag Linus Beispiel (korrigiert)')
 		expect(buchung.lines.some((l) => l.accountId === spenden.id)).toBe(true)
@@ -100,7 +100,7 @@ test.describe('Kontoauszug', () => {
 			await intro.click()
 		}
 		await switchTab(page, 'Konten')
-		await selectYear(page, JAHR)
+		await selectPeriod(page, String(JAHR))
 		await oeffneKonto(page, BANK_ACCOUNT)
 
 		const zeile = auszugsZeile(page, 'Beitrag Linus Beispiel (korrigiert)')

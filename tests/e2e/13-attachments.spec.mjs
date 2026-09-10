@@ -93,7 +93,8 @@ test.describe('Belegablage', () => {
 		expect(download.status()).toBe(200)
 		expect((await download.body()).length).toBe(BELEG_PNG.length)
 
-		const zip = await api.raw(request, 'GET', '/export/attachments?year=2026', { user: USERS.revisor })
+		const period = await api.periodIdForDate(request, '2026-04-10')
+		const zip = await api.raw(request, 'GET', `/export/attachments?period=${period}`, { user: USERS.revisor })
 		expect(zip.status()).toBe(200)
 		expect((await zip.body()).slice(0, 2).toString()).toBe('PK')
 	})

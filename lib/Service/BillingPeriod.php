@@ -7,7 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Service;
 /**
  * Fortschreibung der Beitragsfälligkeit. Reine Datumsarithmetik ohne Zustand –
  * ausgelagert aus dem {@see MembershipFeeService}, damit sie sich ohne
- * Datenbank und DI-Container prüfen lässt (siehe FiscalYear für dasselbe
+ * Datenbank und DI-Container prüfen lässt (siehe PeriodRule für dasselbe
  * Muster). Bewusst ohne Verweis auf die Entität: die Unit-Tests laufen ohne
  * Nextcloud, und Entitäten erben von OCP.
  *

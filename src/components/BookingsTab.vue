@@ -59,7 +59,7 @@
 			<template v-if="bookingView === 'journal'">
 				<div v-if="journalNumberIssues" class="vbh-yearwarn">
 					<p class="vbh-warn-inline">
-						{{ t('⚠ Buchungsnummern {year} nicht lückenlos:', { year: selectedYear }) }}
+						{{ t('⚠ Buchungsnummern {period} nicht lückenlos:', { period: selectedPeriod ? selectedPeriod.label : '' }) }}
 						<template v-if="journalNumberIssues.missing.length">
 							{{ t('fehlend {list}', { list: journalNumberIssues.missing.slice(0, 20).join(', ') }) }}<template v-if="journalNumberIssues.missing.length > 20">
 								…
@@ -164,7 +164,7 @@
 										<!-- Seltener genutzte Aktionen in einem Menü statt als eigene
 										     Buttons, sonst wird die Zeile durch bis zu 4 Icon-Buttons
 										     zweizeilig (siehe .vbh-table thead th:empty in styles.css). -->
-										<NcActions v-if="canWrite && (txByJournalId[r.id] || !isYearClosed(r.date))" :forceMenu="true">
+										<NcActions v-if="canWrite && (txByJournalId[r.id] || !isDateClosed(r.date))" :forceMenu="true">
 											<NcActionButton
 												v-if="txByJournalId[r.id]"
 												:title="t('Regel anlegen: {counterparty} künftig automatisch zuordnen', { counterparty: txByJournalId[r.id].counterparty })"
@@ -174,7 +174,7 @@
 												</template>
 												{{ t('Regel anlegen') }}
 											</NcActionButton>
-											<NcActionButton v-if="!isYearClosed(r.date)" @click="removeBooking(r)">
+											<NcActionButton v-if="!isDateClosed(r.date)" @click="removeBooking(r)">
 												<template #icon>
 													<NcIconSvgWrapper :path="mdiDelete" :size="16" />
 												</template>
@@ -218,7 +218,7 @@
 							<span class="vbh-mcard-meta">{{ formatDate(tx.bookingDate) }}</span>
 							<span class="vbh-mcard-amount" :class="tx.amount < 0 ? 'neg' : 'pos'">{{ formatMoney(tx.amount) }}</span>
 							<NcButton
-								v-if="canWrite && tx.status === 'unassigned' && !isYearClosed(tx.bookingDate)"
+								v-if="canWrite && tx.status === 'unassigned' && !isDateClosed(tx.bookingDate)"
 								variant="tertiary"
 								:aria-label="t('Umsatz löschen')"
 								:title="t('Umsatz löschen (z. B. Dublette)')"
@@ -235,7 +235,7 @@
 							{{ tx.purpose }}
 						</div>
 						<button
-							v-if="canWrite && !isSplitAssigned(tx) && !tx.contraAccountId && suggestionsById[tx.id] && !isYearClosed(tx.bookingDate)"
+							v-if="canWrite && !isSplitAssigned(tx) && !tx.contraAccountId && suggestionsById[tx.id] && !isDateClosed(tx.bookingDate)"
 							type="button"
 							class="vbh-suggest-chip vbh-suggest-chip--big"
 							@click="applySuggestion(tx)">
@@ -244,7 +244,7 @@
 						<template v-if="isSplitAssigned(tx)">
 							<span class="vbh-split-badge">{{ t('Aufgeteilt auf mehrere Konten') }}</span>
 							<button
-								v-if="canWrite && !isYearClosed(tx.bookingDate)"
+								v-if="canWrite && !isDateClosed(tx.bookingDate)"
 								type="button"
 								class="vbh-suggest-chip"
 								@click="onAssign(tx, '')">
@@ -255,7 +255,7 @@
 							<button
 								type="button"
 								class="vbh-fieldbtn"
-								:disabled="!canWrite || isYearClosed(tx.bookingDate)"
+								:disabled="!canWrite || isDateClosed(tx.bookingDate)"
 								@click="openAccountPicker('assign', tx)">
 								<span class="vbh-fieldbtn-text">
 									<span class="vbh-fieldbtn-lab">{{ t('Konto / Kategorie') }}</span>
@@ -264,7 +264,7 @@
 								<span class="vbh-fieldbtn-chev" aria-hidden="true">›</span>
 							</button>
 							<button
-								v-if="canWrite && !isYearClosed(tx.bookingDate)"
+								v-if="canWrite && !isDateClosed(tx.bookingDate)"
 								type="button"
 								class="vbh-suggest-chip"
 								@click="openSplitAssign(tx)">
@@ -314,7 +314,7 @@
 									<div v-if="isSplitAssigned(tx)" class="vbh-assign-inner">
 										<span class="vbh-split-badge">{{ t('Aufgeteilt auf mehrere Konten') }}</span>
 										<button
-											v-if="canWrite && !isYearClosed(tx.bookingDate)"
+											v-if="canWrite && !isDateClosed(tx.bookingDate)"
 											class="vbh-suggest-chip"
 											:title="t('Zuordnung aufheben und neu vergeben')"
 											@click="onAssign(tx, '')">
@@ -328,7 +328,7 @@
 												:options="accountOptionsList"
 												:filterBy="accountFilterBy"
 												:clearable="!!tx.contraAccountId"
-												:disabled="!canWrite || isYearClosed(tx.bookingDate)"
+												:disabled="!canWrite || isDateClosed(tx.bookingDate)"
 												label="label"
 												:placeholder="t('– nicht zugeordnet –')"
 												class="vbh-assign-select"
@@ -336,21 +336,21 @@
 										</div>
 										<div class="vbh-assign-btns">
 											<button
-												v-if="canWrite && !tx.contraAccountId && suggestionsById[tx.id] && !isYearClosed(tx.bookingDate)"
+												v-if="canWrite && !tx.contraAccountId && suggestionsById[tx.id] && !isDateClosed(tx.bookingDate)"
 												class="vbh-suggest-chip"
 												:title="t('Vorschlag übernehmen: {label}', { label: suggestionsById[tx.id].label })"
 												@click="applySuggestion(tx)">
 												{{ t('✓ Vorschlag: {label}', { label: suggestionsById[tx.id].label }) }}
 											</button>
 											<button
-												v-if="canWrite && !isYearClosed(tx.bookingDate)"
+												v-if="canWrite && !isDateClosed(tx.bookingDate)"
 												class="vbh-suggest-chip"
 												:title="t('Den Umsatz auf mehrere Gegenkonten verteilen')"
 												@click="openSplitAssign(tx)">
 												{{ t('Aufteilen…') }}
 											</button>
 											<NcButton
-												v-if="canWrite && !isYearClosed(tx.bookingDate)"
+												v-if="canWrite && !isDateClosed(tx.bookingDate)"
 												variant="tertiary"
 												:aria-label="t('Umsatz löschen')"
 												:title="t('Umsatz löschen (z. B. Dublette)')"
@@ -500,8 +500,8 @@ import { useAccounts } from '../composables/useAccounts.js'
 import { useAuth } from '../composables/useAuth.js'
 import { useJournal } from '../composables/useJournal.js'
 import { useOpenItems } from '../composables/useOpenItems.js'
+import { usePeriods } from '../composables/usePeriods.js'
 import { useSort } from '../composables/useSort.js'
-import { useYears } from '../composables/useYears.js'
 import { amountClass, errMsg, formatDate, formatMoney } from '../lib/format.js'
 
 export default {
@@ -531,14 +531,15 @@ export default {
 
 	setup() {
 		const auth = useAuth()
-		const years = useYears()
+		const periods = usePeriods()
 		const accounts = useAccounts()
 		const journal = useJournal()
 		const openItemsC = useOpenItems()
 		return {
 			canWrite: auth.canWrite,
-			...toRefs(years.state),
-			isYearClosed: years.isYearClosed,
+			...toRefs(periods.state),
+			selectedPeriod: periods.selectedPeriod,
+			isDateClosed: periods.isDateClosed,
 			accountsSorted: accounts.accountsSorted,
 			accountsById: accounts.accountsById,
 			journalRows: journal.journalRows,
@@ -576,7 +577,7 @@ export default {
 	},
 
 	computed: {
-		exportJournalUrl() { return api.exportJournalUrl(this.selectedYear) },
+		exportJournalUrl() { return api.exportJournalUrl(this.selectedPeriodId) },
 		accountUsageCounts() {
 			const counts = {}
 			for (const item of this.journalData) {
@@ -653,6 +654,12 @@ export default {
 
 		// Mobil: Journal fest nach Datum absteigend, gruppiert nach Monat
 		// (die Spaltenkopf-Sortierung der Tabelle entfällt auf Karten).
+		//
+		// Gruppiert wird bewusst nach KALENDERmonat („JJJJ-MM" aus dem Datum),
+		// unabhängig davon, wann das Geschäftsjahr beginnt: die Trennlinien
+		// dienen dem Blättern durch eine lange Liste, nicht der Abgrenzung des
+		// Zeitraums. Das ist kein Rest der alten Jahres-Logik – bitte nicht auf
+		// die Geschäftsjahr-Grenzen umstellen.
 		journalCardGroups() {
 			const rows = [...this.filteredJournalRows].sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || (b.entryNo || 0) - (a.entryNo || 0))
 			const names = [this.t('Januar'), this.t('Februar'), this.t('März'), this.t('April'), this.t('Mai'), this.t('Juni'), this.t('Juli'), this.t('August'), this.t('September'), this.t('Oktober'), this.t('November'), this.t('Dezember')]
@@ -670,10 +677,11 @@ export default {
 			return groups
 		},
 
-		// Kassenprüfung: fehlende/doppelte Buchungsnummern im gewählten Jahr
-		// (bei „Alle Jahre" nicht sinnvoll, da je Jahr nummeriert wird).
+		// Kassenprüfung: fehlende/doppelte Buchungsnummern im gewählten Zeitraum
+		// (bei „Alle Zeiträume" nicht sinnvoll, da je Geschäftsjahr nummeriert
+		// wird).
 		journalNumberIssues() {
-			if (!this.selectedYear) { return null }
+			if (!this.selectedPeriodId) { return null }
 			const nos = this.journalRows
 				.map((r) => r.entryNo)
 				.filter((n) => n !== null && n !== undefined)

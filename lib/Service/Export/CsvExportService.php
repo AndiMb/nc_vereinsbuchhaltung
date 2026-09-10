@@ -9,10 +9,11 @@ use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
+use OCA\Vereinsbuchhaltung\Db\Period;
 use OCA\Vereinsbuchhaltung\Service\CsvFormatter;
-use OCA\Vereinsbuchhaltung\Service\FiscalYear;
 use OCA\Vereinsbuchhaltung\Service\JournalService;
 use OCA\Vereinsbuchhaltung\Service\LedgerAggregator;
+use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCA\Vereinsbuchhaltung\Service\ReportService;
 
 /**
@@ -39,6 +40,7 @@ class CsvExportService {
 		private JournalLineMapper $lineMapper,
 		private BudgetMapper $budgetMapper,
 		private ReportService $reportService,
+		private PeriodService $periods,
 	) {
 	}
 
@@ -49,9 +51,18 @@ class CsvExportService {
 		return CsvFormatter::line($fields);
 	}
 
-	/** Namensbestandteil für das gewählte Jahr, oder „alle_jahre". */
-	private static function yearLabel(?int $year): string {
-		return FiscalYear::isSelected($year) ? (string)$year : 'alle_jahre';
+	/**
+	 * Namensbestandteil für das gewählte Geschäftsjahr, oder „alle_zeitraeume".
+	 *
+	 * Dieselbe Regel wie beim Beleg-Archiv, siehe {@see AttachmentArchive::slug()}:
+	 * die Bezeichnung ist freier Text und darf im Dateinamen keine Pfadtrenner
+	 * hinterlassen – aus „2025/26" wird „2025-26".
+	 */
+	private function periodLabel(string $userId, ?int $periodId): string {
+		if (!PeriodService::isSelected($periodId)) {
+			return 'alle_zeitraeume';
+		}
+		return AttachmentArchive::slug($this->periods->find($userId, (int)$periodId)->getLabel());
 	}
 
 	/**
@@ -61,8 +72,8 @@ class CsvExportService {
 	 * Eine Splittbuchung belegt mehrere Zeilen mit derselben Nummer, siehe
 	 * {@see JournalService::pairLines()}.
 	 */
-	public function journal(string $userId, ?int $year = null): CsvFile {
-		[$from, $to] = FiscalYear::range($year);
+	public function journal(string $userId, ?int $periodId = null): CsvFile {
+		[$from, $to] = $this->periods->range($userId, $periodId);
 
 		$accountMap = [];
 		foreach ($this->accountMapper->findAll($userId) as $a) {
@@ -118,15 +129,15 @@ class CsvExportService {
 			$csv .= self::line($r['cells']);
 		}
 
-		return new CsvFile($csv, 'journal_' . self::yearLabel($year) . '.csv');
+		return new CsvFile($csv, 'journal_' . $this->periodLabel($userId, $periodId) . '.csv');
 	}
 
 	/**
 	 * Saldenliste aller Konten.
 	 * Format: Nr.;Konto;Typ;Kategorie;Soll (EUR);Haben (EUR);Saldo (EUR)
 	 */
-	public function balances(string $userId, ?int $year = null): CsvFile {
-		[$from, $to] = FiscalYear::range($year);
+	public function balances(string $userId, ?int $periodId = null): CsvFile {
+		[$from, $to] = $this->periods->range($userId, $periodId);
 		$accounts = $this->accountMapper->findAll($userId);
 		$moveSums = $this->lineMapper->sumByAccount($userId, $from, $to);
 		$balSums = $from !== null ? $this->lineMapper->sumByAccount($userId, null, $to) : $moveSums;
@@ -146,7 +157,7 @@ class CsvExportService {
 			]);
 		}
 
-		return new CsvFile($csv, 'saldenliste_' . self::yearLabel($year) . '.csv');
+		return new CsvFile($csv, 'saldenliste_' . $this->periodLabel($userId, $periodId) . '.csv');
 	}
 
 	private static function typeLabel(string $type): string {
@@ -164,8 +175,8 @@ class CsvExportService {
 	 * Einnahmen-/Ausgaben-Übersicht.
 	 * Format: Typ;Nr.;Konto;Kategorie;Betrag (EUR)
 	 */
-	public function report(string $userId, ?int $year = null): CsvFile {
-		[$from, $to] = FiscalYear::range($year);
+	public function report(string $userId, ?int $periodId = null): CsvFile {
+		[$from, $to] = $this->periods->range($userId, $periodId);
 		$accounts = $this->accountMapper->findAll($userId);
 		$moveSums = $this->lineMapper->sumByAccount($userId, $from, $to);
 		$erfolg = LedgerAggregator::incomeExpense($accounts, $moveSums);
@@ -183,7 +194,7 @@ class CsvExportService {
 
 		$csv .= self::line(['Ergebnis', '', '', '', ReportFormat::money($erfolg['resultCents'] / 100)]);
 
-		return new CsvFile($csv, 'einnahmen_ausgaben_' . self::yearLabel($year) . '.csv');
+		return new CsvFile($csv, 'einnahmen_ausgaben_' . $this->periodLabel($userId, $periodId) . '.csv');
 	}
 
 	/**
@@ -211,14 +222,14 @@ class CsvExportService {
 	}
 
 	/**
-	 * Finanzplan / Soll-Ist-Vergleich eines Jahres.
+	 * Finanzplan / Soll-Ist-Vergleich eines Geschäftsjahres.
 	 * Format: Typ;Nr.;Konto;Kategorie;Plan (EUR);Ist (EUR);Differenz (EUR);Notiz
 	 */
-	public function budget(string $userId, ?int $year = null): CsvFile {
-		$year = FiscalYear::orCurrent($year);
+	public function budget(string $userId, ?int $periodId = null): CsvFile {
+		$period = $this->periods->selectedOrCurrent($userId, $periodId);
 		$accounts = $this->accountMapper->findAll($userId);
-		$plan = $this->budgetMapper->findByYear($userId, $year);
-		$actualSums = $this->lineMapper->sumByAccount($userId, FiscalYear::start($year), FiscalYear::end($year));
+		$plan = $this->budgetMapper->findByPeriod($userId, (int)$period->getId());
+		$actualSums = $this->lineMapper->sumByAccount($userId, $period->getStartDate(), $period->getEndDate());
 
 		$soll = LedgerAggregator::planActual($accounts, $actualSums, $plan);
 		$rows = $soll['rows'];
@@ -251,7 +262,7 @@ class CsvExportService {
 		$csv .= self::planTotalLine('Ausgaben (Plan/Ist)', $soll['planExpenseCents'], $soll['actualExpenseCents']);
 		$csv .= self::planTotalLine('Ergebnis (Plan/Ist)', $planResult, $actualResult);
 
-		return new CsvFile($csv, "finanzplan_soll_ist_{$year}.csv");
+		return new CsvFile($csv, 'finanzplan_soll_ist_' . AttachmentArchive::slug($period->getLabel()) . '.csv');
 	}
 
 	private static function planTotalLine(string $label, int $plan, int $actual): string {
@@ -266,61 +277,69 @@ class CsvExportService {
 
 	/**
 	 * Mehrjahresübersicht als Matrix (Spalten = Geschäftsjahre):
-	 *  1. Erfolgsrechnung nach Konten je Jahr, plus Vermögen zum 31.12.
-	 *  2. Auswertung nach Kostenstellen/Projekten je Jahr.
-	 *  3. Auswertung nach steuerlichen Sphären je Jahr.
+	 *  1. Erfolgsrechnung nach Konten je Zeitraum, plus Vermögen zum Zeitraumende.
+	 *  2. Auswertung nach Kostenstellen/Projekten je Zeitraum.
+	 *  3. Auswertung nach steuerlichen Sphären je Zeitraum.
+	 *
+	 * Die Spalten kommen aus den angelegten Zeiträumen, nicht aus den Jahreszahlen
+	 * der Buchungen: seit Issue #8 kann ein Geschäftsjahr über den Jahreswechsel
+	 * laufen, und nur der Zeitraum weiß, welche Buchungen in eine Spalte gehören.
 	 *
 	 * Ausgaben stehen mit negativem Vorzeichen, sodass sich das Ergebnis je
 	 * Spalte als schlichte Summe der Zellen ergibt.
 	 */
 	public function multiyear(string $userId): CsvFile {
 		$accounts = $this->accountMapper->findAll($userId);
-		$years = $this->journalMapper->distinctYears($userId);
-		sort($years); // aufsteigend für die Spaltenreihenfolge
+		$periods = $this->periods->all($userId);
+		usort($periods, static fn (Period $a, Period $b): int => strcmp($a->getStartDate(), $b->getStartDate()));
 
-		$movByYear = [];
-		$cumByYear = [];
-		foreach ($years as $y) {
-			$movByYear[$y] = $this->lineMapper->sumByAccount($userId, FiscalYear::start($y), FiscalYear::end($y));
-			$cumByYear[$y] = $this->lineMapper->sumByAccount($userId, null, FiscalYear::end($y));
+		// Die Perioden-ID ist der Spaltenschlüssel; die Bezeichnung beschriftet nur.
+		$ids = [];
+		$movById = [];
+		$cumById = [];
+		foreach ($periods as $period) {
+			$id = (int)$period->getId();
+			$ids[] = $id;
+			$movById[$id] = $this->lineMapper->sumByAccount($userId, $period->getStartDate(), $period->getEndDate());
+			$cumById[$id] = $this->lineMapper->sumByAccount($userId, null, $period->getEndDate());
 		}
 
 		usort($accounts, static fn ($a, $b) => strcmp((string)$a->getNumber(), (string)$b->getNumber()));
 
-		$header = array_merge([''], array_map(static fn ($y) => (string)$y, $years));
+		$header = array_merge([''], array_map(static fn (Period $p): string => $p->getLabel(), $periods));
 
 		$csv = self::BOM;
 		$csv .= self::line(['Mehrjahresübersicht — Erfolgsrechnung nach Konten']);
 		$csv .= self::line($header);
 
 		// --- Einnahmen (Haben-Natur) ---
-		$incomeTotals = array_fill_keys($years, 0);
-		$csv .= self::line(array_merge(['EINNAHMEN'], array_fill(0, count($years), '')));
-		$csv .= $this->accountMatrix($accounts, $years, $movByYear, true, $incomeTotals);
-		$csv .= $this->totalsLine('Summe Einnahmen', $years, $incomeTotals);
+		$incomeTotals = array_fill_keys($ids, 0);
+		$csv .= self::line(array_merge(['EINNAHMEN'], array_fill(0, count($ids), '')));
+		$csv .= $this->accountMatrix($accounts, $ids, $movById, true, $incomeTotals);
+		$csv .= $this->totalsLine('Summe Einnahmen', $ids, $incomeTotals);
 
 		// --- Ausgaben (Soll-Natur, negativ dargestellt) ---
-		$expenseTotals = array_fill_keys($years, 0);
-		$csv .= self::line(array_merge(['AUSGABEN'], array_fill(0, count($years), '')));
-		$csv .= $this->accountMatrix($accounts, $years, $movByYear, false, $expenseTotals);
-		$csv .= $this->totalsLine('Summe Ausgaben', $years, $expenseTotals);
+		$expenseTotals = array_fill_keys($ids, 0);
+		$csv .= self::line(array_merge(['AUSGABEN'], array_fill(0, count($ids), '')));
+		$csv .= $this->accountMatrix($accounts, $ids, $movById, false, $expenseTotals);
+		$csv .= $this->totalsLine('Summe Ausgaben', $ids, $expenseTotals);
 
 		// --- Ergebnis + Vermögen ---
 		$resultCells = ['Ergebnis'];
-		$wealthCells = ['Vermögen (31.12.)'];
-		foreach ($years as $y) {
-			$resultCells[] = ReportFormat::money(($incomeTotals[$y] + $expenseTotals[$y]) / 100);
+		$wealthCells = ['Vermögen (Ende des Zeitraums)'];
+		foreach ($ids as $id) {
+			$resultCells[] = ReportFormat::money(($incomeTotals[$id] + $expenseTotals[$id]) / 100);
 			// Da alle Konten außer Geldkonten und Eigenkapital erfolgswirksam sind,
 			// gilt per doppelter Buchführung: Vermögen(J) = Vermögen(J−1) +
-			// Ergebnis(J) – abweichend nur in Jahren mit Eröffnungsbuchungen.
-			$wealthCells[] = ReportFormat::money(LedgerAggregator::wealth($accounts, $cumByYear[$y]) / 100);
+			// Ergebnis(J) – abweichend nur in Zeiträumen mit Eröffnungsbuchungen.
+			$wealthCells[] = ReportFormat::money(LedgerAggregator::wealth($accounts, $cumById[$id]) / 100);
 		}
 		$csv .= self::line($resultCells);
-		$csv .= self::line(array_fill(0, count($years) + 1, ''));
+		$csv .= self::line(array_fill(0, count($ids) + 1, ''));
 		$csv .= self::line($wealthCells);
 
-		$csv .= $this->costCenterMatrix($userId, $years, $header);
-		$csv .= $this->sphereMatrix($userId, $years, $header);
+		$csv .= $this->costCenterMatrix($userId, $ids, $header);
+		$csv .= $this->sphereMatrix($userId, $ids, $header);
 
 		return new CsvFile($csv, 'mehrjahresuebersicht.csv');
 	}
@@ -330,11 +349,11 @@ class CsvExportService {
 	 * bleiben weg, damit die Matrix nicht von Nullzeilen überwuchert wird.
 	 *
 	 * @param Account[] $accounts
-	 * @param int[] $years
-	 * @param array<int, array<int, array{debit:int, credit:int}>> $movByYear
+	 * @param int[] $ids Perioden-IDs in Spaltenreihenfolge
+	 * @param array<int, array<int, array{debit:int, credit:int}>> $movById
 	 * @param array<int,int> $totals
 	 */
-	private function accountMatrix(array $accounts, array $years, array $movByYear, bool $creditSide, array &$totals): string {
+	private function accountMatrix(array $accounts, array $ids, array $movById, bool $creditSide, array &$totals): string {
 		$csv = '';
 		foreach ($accounts as $account) {
 			if (!$account->isResultRelevant() || $account->isCreditNature() !== $creditSide) {
@@ -342,17 +361,17 @@ class CsvExportService {
 			}
 			$cells = [trim($account->getNumber() . ' ' . $account->getName())];
 			$any = false;
-			foreach ($years as $y) {
+			foreach ($ids as $id) {
 				// Die Ausgabenseite wird negativ dargestellt; nur das Vorzeichen
 				// ist Darstellung, der Betrag kommt aus LedgerAggregator::net().
-				$value = LedgerAggregator::net($account, $movByYear[$y]);
+				$value = LedgerAggregator::net($account, $movById[$id]);
 				if (!$creditSide) {
 					$value = -$value;
 				}
 				if ($value !== 0) {
 					$any = true;
 				}
-				$totals[$y] += $value;
+				$totals[$id] += $value;
 				$cells[] = ReportFormat::money($value / 100);
 			}
 			if ($any) {
@@ -363,84 +382,84 @@ class CsvExportService {
 	}
 
 	/**
-	 * @param int[] $years
+	 * @param int[] $ids Perioden-IDs in Spaltenreihenfolge
 	 * @param array<int,int> $totalsCents
 	 */
-	private function totalsLine(string $label, array $years, array $totalsCents): string {
+	private function totalsLine(string $label, array $ids, array $totalsCents): string {
 		$cells = [$label];
-		foreach ($years as $y) {
-			$cells[] = ReportFormat::money(($totalsCents[$y] ?? 0) / 100);
+		foreach ($ids as $id) {
+			$cells[] = ReportFormat::money(($totalsCents[$id] ?? 0) / 100);
 		}
 		return self::line($cells);
 	}
 
 	/**
-	 * @param int[] $years
+	 * @param int[] $ids Perioden-IDs in Spaltenreihenfolge
 	 * @param array<int, string> $header
 	 */
-	private function costCenterMatrix(string $userId, array $years, array $header): string {
-		$csv = self::line(array_fill(0, count($years) + 1, ''));
+	private function costCenterMatrix(string $userId, array $ids, array $header): string {
+		$csv = self::line(array_fill(0, count($ids) + 1, ''));
 		$csv .= self::line(['Ergebnis je Auswertungsgruppe (Abteilung, Projekt, Veranstaltung)']);
 		$csv .= self::line($header);
 
 		$resultByKey = [];
 		$nameByKey = [];
-		$totals = array_fill_keys($years, 0.0);
-		foreach ($years as $y) {
-			$report = $this->reportService->costCenterReport($userId, $y);
+		$totals = array_fill_keys($ids, 0.0);
+		foreach ($ids as $id) {
+			$report = $this->reportService->costCenterReport($userId, $id);
 			foreach ($report['costCenters'] as $cc) {
 				$key = ($cc['code'] ?? '') . '|' . $cc['name'];
 				$nameByKey[$key] = trim(($cc['code'] ? $cc['code'] . ' ' : '') . $cc['name']);
-				$resultByKey[$key][$y] = $cc['result'];
-				$totals[$y] += $cc['result'];
+				$resultByKey[$key][$id] = $cc['result'];
+				$totals[$id] += $cc['result'];
 			}
 		}
 		ksort($resultByKey);
-		foreach ($resultByKey as $key => $byYear) {
+		foreach ($resultByKey as $key => $byPeriod) {
 			$cells = [$nameByKey[$key]];
-			foreach ($years as $y) {
-				$cells[] = ReportFormat::money((float)($byYear[$y] ?? 0));
+			foreach ($ids as $id) {
+				$cells[] = ReportFormat::money((float)($byPeriod[$id] ?? 0));
 			}
 			$csv .= self::line($cells);
 		}
 		$sumCells = ['Summe Auswertungsgruppen'];
-		foreach ($years as $y) {
-			$sumCells[] = ReportFormat::money($totals[$y]);
+		foreach ($ids as $id) {
+			$sumCells[] = ReportFormat::money($totals[$id]);
 		}
 		return $csv . self::line($sumCells);
 	}
 
 	/**
-	 * @param int[] $years
+	 * @param int[] $ids Perioden-IDs in Spaltenreihenfolge
 	 * @param array<int, string> $header
 	 */
-	private function sphereMatrix(string $userId, array $years, array $header): string {
-		$csv = self::line(array_fill(0, count($years) + 1, ''));
+	private function sphereMatrix(string $userId, array $ids, array $header): string {
+		$csv = self::line(array_fill(0, count($ids) + 1, ''));
 		$csv .= self::line(['Auswertung nach steuerlichen Sphären (Ergebnis) — ersetzt keine steuerliche Beratung']);
 		$csv .= self::line($header);
 
 		$resultByCode = [];
 		$nameByCode = [];
-		$totals = array_fill_keys($years, 0.0);
-		foreach ($years as $y) {
-			$report = $this->reportService->sphereReport($userId, $y);
+		$totals = array_fill_keys($ids, 0.0);
+		foreach ($ids as $id) {
+			$report = $this->reportService->sphereReport($userId, $id);
 			foreach ($report['spheres'] as $s) {
 				$code = $s['code'] ?? '';
 				$nameByCode[$code] = $s['name'];
-				$resultByCode[$code][$y] = $s['result'];
-				$totals[$y] += $s['result'];
+				$resultByCode[$code][$id] = $s['result'];
+				$totals[$id] += $s['result'];
 			}
 		}
 		foreach ($nameByCode as $code => $name) {
 			$cells = [$name];
-			foreach ($years as $y) {
-				$cells[] = ReportFormat::money((float)($resultByCode[$code][$y] ?? 0));
+			foreach ($ids as $id) {
+				$cells[] = ReportFormat::money((float)($resultByCode[$code][$id] ?? 0));
 			}
 			$csv .= self::line($cells);
 		}
 		$sumCells = ['Summe Sphären'];
-		foreach ($years as $y) {
-			$sumCells[] = ReportFormat::money($totals[$y]);
+		foreach ($ids as $id) {
+			$sumCells[] = ReportFormat::money($totals[$id]);
 		}
 		return $csv . self::line($sumCells);
 	}

@@ -12,7 +12,7 @@
 				{{ t('Plan-Stand: {label}', { label: snapshot.label }) }}
 			</h2>
 			<p class="vbh-hint">
-				{{ t('Eingefroren am {date} · Geschäftsjahr {year}.', { date: formatDateTime(snapshot.createdAt), year: snapshot.year }) }}
+				{{ t('Eingefroren am {date} · Geschäftsjahr {period}.', { date: formatDateTime(snapshot.createdAt), period: snapshot.periodLabel }) }}
 				{{ t('Die Spalte „Aktuell" zeigt den heutigen Planwert, „Δ" die Abweichung des aktuellen Plans zum Stand.') }}
 			</p>
 			<div v-if="snapshot.items && snapshot.items.length" class="vbh-tablecard">

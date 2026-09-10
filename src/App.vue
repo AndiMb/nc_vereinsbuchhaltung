@@ -47,11 +47,15 @@
 						</template>
 						<span class="vbh-newbooking-label">{{ t('Buchung') }}</span>
 					</NcButton>
-					<label class="vbh-yearsel" :title="yearClosed ? t('Geschäftsjahr abgeschlossen (festgeschrieben)') : t('Geschäftsjahr (Kalenderjahr)')">
-						<span>{{ t('Jahr') }}</span>
-						<select v-model="selectedYear">
-							<option :value="null">{{ t('Alle Jahre') }}</option>
-							<option v-for="y in years" :key="y" :value="y">{{ y }}{{ closedYearSet[y] ? ' 🔒' : '' }}</option>
+					<label class="vbh-yearsel" :title="periodTitle">
+						<span>{{ t('Zeitraum') }}</span>
+						<!-- @change: eine bewusste Wahl zählt auch dann, wenn sie fällt,
+						     bevor die Zeiträume geladen sind („Alle Zeiträume" steht von
+						     Anfang an im Feld) – sonst überschriebe loadPeriods() sie
+						     gleich darauf mit der Vorgabe. -->
+						<select v-model="selectedPeriodId" @change="initialised = true">
+							<option :value="null">{{ t('Alle Zeiträume') }}</option>
+							<option v-for="p in periods" :key="p.id" :value="p.id">{{ p.label }}{{ p.closedAt ? ' 🔒' : '' }}</option>
 						</select>
 					</label>
 					<NcButton
@@ -383,13 +387,13 @@ import { useCostCenters } from './composables/useCostCenters.js'
 import { useJournal } from './composables/useJournal.js'
 import { useMembershipFees } from './composables/useMembershipFees.js'
 import { useOpenItems } from './composables/useOpenItems.js'
+import { usePeriods } from './composables/usePeriods.js'
 import { usePermissions } from './composables/usePermissions.js'
 import { useRules } from './composables/useRules.js'
 import { useSepaBatches } from './composables/useSepaBatches.js'
 import { useSepaMandates } from './composables/useSepaMandates.js'
 import { useSort } from './composables/useSort.js'
 import { useSync } from './composables/useSync.js'
-import { useYears } from './composables/useYears.js'
 import { buildWhatsNewEntries, filterWhatsNewEntries } from './data/whatsNew.js'
 import { amountClass, budgetDiffClass, errMsg, formatDate, formatDateTime, formatMoney, typeLabel } from './lib/format.js'
 import { splitBalanced, splitRemainder, splitSideOf } from './lib/split.js'
@@ -436,7 +440,7 @@ export default {
 
 	setup() {
 		const auth = useAuth()
-		const years = useYears()
+		const periods = usePeriods()
 		const accounts = useAccounts()
 		const balances = useBalances()
 		const journal = useJournal()
@@ -471,12 +475,11 @@ export default {
 			// eigener Name, damit App.vue seine eigene loadMe()-Methode mit
 			// Zusatzlogik (Tab-Umschalten, Revisor-Hinweis) behalten kann.
 			authLoadMe: auth.loadMe,
-			...toRefs(years.state),
-			closedYearSet: years.closedYearSet,
-			yearClosed: years.yearClosed,
-			isYearClosed: years.isYearClosed,
-			loadYears: years.loadYears,
-			loadClosedYears: years.loadClosedYears,
+			...toRefs(periods.state),
+			selectedPeriod: periods.selectedPeriod,
+			periodForDate: periods.periodForDate,
+			isDateClosed: periods.isDateClosed,
+			loadPeriods: periods.loadPeriods,
 			...toRefs(accounts.state),
 			accountsById: accounts.accountsById,
 			accountsSorted: accounts.accountsSorted,
@@ -606,9 +609,25 @@ export default {
 	},
 
 	computed: {
-		// canRead/canWrite/isAdmin/closedYearSet/yearClosed kommen aus setup() (useAuth/useYears).
+		// canRead/canWrite/isAdmin/selectedPeriod/isDateClosed kommen aus setup()
+		// (useAuth/usePeriods).
+
+		/**
+		 * Beschriftung des Zeitraum-Auswahlfelds. Sie nennt die Grenzen, weil
+		 * die Bezeichnung sie seit Issue #8 nicht mehr verrät: „2025/26" sagt
+		 * nicht, ob das Geschäftsjahr im Oktober oder im August beginnt.
+		 */
+		periodTitle() {
+			const p = this.selectedPeriod
+			if (!p) { return this.t('Geschäftsjahr wählen') }
+			const range = this.formatDate(p.startDate) + ' – ' + this.formatDate(p.endDate)
+			return p.closedAt
+				? this.t('{range} · abgeschlossen (festgeschrieben)', { range })
+				: range
+		},
+
 		// Bearbeiten-Dialog einer Buchung aus einem abgeschlossenen Jahr → nur ansehen
-		bookingLocked() { return !!(this.bookingForm.id && this.isYearClosed(this.bookingForm.date)) },
+		bookingLocked() { return !!(this.bookingForm.id && this.isDateClosed(this.bookingForm.date)) },
 		// exportBalancesUrl/exportReportUrl/exportBudgetUrl/exportMultiyearUrl/
 		// kassenberichtUrl/attachmentsZipUrl sind jetzt Teil von ReportsTab.vue.
 		// pruefleitfadenUrl bleibt hier (Revisor-Willkommenshinweis braucht sie
@@ -904,7 +923,26 @@ export default {
 			if (v === 'summary') { this.loadBalances() } else if (v === 'costcenters') { this.loadReport() } else if (v === 'spheres') { this.loadSphereReport() } else if (v === 'budget') { this.loadBudget() } else if (v === 'audit') { this.loadAudit() }
 		},
 
-		async selectedYear() {
+		/**
+		 * Vorbelegung des Geldkontos nachtragen, sobald die Konten da sind.
+		 *
+		 * openNewBooking() liest defaultMoneyAccountId in dem Moment, in dem der
+		 * Dialog aufgeht – wer schneller klickt, als /api/accounts antwortet,
+		 * bekam ein leeres Geldkonto und beim Buchen die Pflichtfeld-Meldung,
+		 * ohne dass am Feld etwas darauf hingedeutet hätte. Der Fall ist real:
+		 * die Oberfläche steht, bevor die erste Datenrunde durch ist.
+		 *
+		 * Nur bei einer neuen Buchung und nur, solange nichts gewählt ist – ein
+		 * bewusst geleertes Feld bleibt leer, und eine bearbeitete Buchung
+		 * behält ihr Konto.
+		 */
+		defaultMoneyAccountId(id) {
+			if (!id || !this.showBooking) { return }
+			if (this.bookingForm.id !== null || this.bookingForm.moneyAccountId) { return }
+			this.bookingForm.moneyAccountId = id
+		},
+
+		async selectedPeriodId() {
 			// Jahresbezogene Caches invalidieren
 			this.ccBookings = {}
 			this.ccExpanded = {}
@@ -933,14 +971,13 @@ export default {
 		this.loadRecentAccounts()
 		await this.loadMe()
 		if (this.canRead) {
-			await this.loadYears()
+			await this.loadPeriods()
 			await Promise.all([
 				this.loadAccounts(),
 				this.loadBalances(),
 				this.loadJournal(),
 				this.loadTransactions(),
 				this.loadRules(),
-				this.loadClosedYears(),
 				this.loadSphereReport(),
 				this.loadOpenItems(),
 				this.loadCostCenters(),
@@ -1040,7 +1077,14 @@ export default {
 		async refreshAfterRemoteChange() {
 			this.ccBookings = {}
 			this.ccExpanded = {}
-			const jobs = [this.loadYears(), this.loadClosedYears(), this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions(), this.loadSphereReport(), this.loadOpenItems(), this.loadCostCenters()]
+			// Zuerst die Zeiträume, und zwar allein: hat jemand anderes die
+			// Geschäftsjahr-Regel umgestellt oder einen Import mit Zurücksetzen
+			// gefahren, gibt es die gewählte Perioden-ID nicht mehr. loadPeriods()
+			// korrigiert die Auswahl; liefen die übrigen Abfragen parallel dazu,
+			// trügen sie noch die tote ID und meldeten reihenweise 404 – so wie
+			// es mounted() aus demselben Grund schon macht.
+			await this.loadPeriods()
+			const jobs = [this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions(), this.loadSphereReport(), this.loadOpenItems(), this.loadCostCenters()]
 			// Beitraege/Mandate/Einzuege: eigenes Zusatzmodul, ab Rolle Buchhalter
 			// (Backend-Gate) - siehe ContributionsTab.vue.
 			if (this.canWrite) { jobs.push(this.loadMembershipFees(), this.loadSepaMandates(), this.loadSepaBatches()) }
@@ -1096,9 +1140,9 @@ export default {
 			}
 		},
 
-		// loadYears/loadClosedYears/isYearClosed kommen aus setup() (useYears).
-		// closeYear/reopenYear sind jetzt Teil von SettingsYearClose.vue (eigenes
-		// setup() mit useYears()).
+		// loadPeriods/isDateClosed kommen aus setup() (usePeriods).
+		// Abschließen und Wiedereröffnen sind Teil von SettingsPeriods.vue
+		// (eigenes setup() mit usePeriods()).
 		// --- Änderungsprotokoll ----------------------------------------------
 		async loadAudit(more = false) {
 			if (this.auditLoading) { return }
@@ -1283,7 +1327,7 @@ export default {
 		},
 
 		async loadStatement(accountId) {
-			try { const { data } = await api.accountJournal(accountId, this.statementIncludeChildren, this.selectedYear); this.statement = data } catch (e) { showError(this.errMsg(e, this.t('Kontoauszug konnte nicht geladen werden'))) }
+			try { const { data } = await api.accountJournal(accountId, this.statementIncludeChildren, this.selectedPeriodId); this.statement = data } catch (e) { showError(this.errMsg(e, this.t('Kontoauszug konnte nicht geladen werden'))) }
 		},
 
 		/**
@@ -1347,9 +1391,13 @@ export default {
 			try {
 				await api.reset(); showSuccess(this.t('Alle Daten gelöscht.'))
 				this.selectedAccountId = null; this.statement = null; this.journalData = []; this.transactions = []
-				this.selectedYear = null
+				// Auswahl auf Anfang: loadPeriods() setzt die Vorgabe nur beim
+				// ersten Mal, deshalb auch das Flag zurück – sonst bliebe nach
+				// dem Löschen „alle Zeiträume" stehen.
+				this.selectedPeriodId = null
+				this.initialised = false
 				this.demoActive = false
-				await this.loadYears(); await this.loadAccounts(); await this.loadBalances(); await this.loadCostCenters()
+				await this.loadPeriods(); await this.loadAccounts(); await this.loadBalances(); await this.loadCostCenters()
 			} catch (e) { showError(this.errMsg(e, this.t('Zurücksetzen fehlgeschlagen'))) } finally { this.busy = false }
 		},
 
@@ -1359,7 +1407,7 @@ export default {
 			try {
 				await api.seedDemo()
 				this.demoActive = true
-				await Promise.all([this.loadYears(), this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions()])
+				await Promise.all([this.loadPeriods(), this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions()])
 				showSuccess(this.t('Beispielverein angelegt – schau dich gern um. Zum Starten mit echten Daten: Zurücksetzen.'))
 			} catch (e) { showError(this.errMsg(e, this.t('Beispieldaten konnten nicht angelegt werden'))) } finally { this.busy = false }
 		},
@@ -1921,7 +1969,7 @@ export default {
 						// Dateien lassen sich im offenen Dialog erneut hochladen.
 						this.bookingForm = { ...f, id: data.id, entryNo: data.entryNo, updatedAt: data.updatedAt || null }
 						await this.loadAttachments(data.id)
-						await this.loadJournal(); await this.loadBalances(); await this.loadYears(); await this.loadSphereReport(); await this.reloadStatement()
+						await this.loadJournal(); await this.loadBalances(); await this.loadPeriods(); await this.loadSphereReport(); await this.reloadStatement()
 						return
 					}
 				}
@@ -1931,7 +1979,7 @@ export default {
 				// bearbeitet, stuenden Beschreibung, Gegenkonto und laufender
 				// Saldo dort sonst bis zum naechsten Kontowechsel veraltet da.
 				// Ohne offenen Auszug tut der Aufruf nichts.
-				await this.loadJournal(); await this.loadBalances(); await this.loadYears(); await this.loadSphereReport(); await this.reloadStatement()
+				await this.loadJournal(); await this.loadBalances(); await this.loadPeriods(); await this.loadSphereReport(); await this.reloadStatement()
 			} catch (e) {
 				if (e?.response?.status === 409) {
 					showError(this.t('Diese Buchung wurde zwischenzeitlich von einer anderen Person geändert. Die Ansicht wurde aktualisiert – bitte erneut bearbeiten.'))
@@ -2083,7 +2131,7 @@ export default {
 		// --- Berichte / Kostenstellen ---
 		async loadReport() {
 			try {
-				const { data } = await api.costCenterReport(this.selectedYear)
+				const { data } = await api.costCenterReport(this.selectedPeriodId)
 				this.reportData = data
 				if (this.selectedCCCode !== false && !data.costCenters.some((c) => c.code === this.selectedCCCode)) { this.selectedCCCode = false }
 			} catch (e) { showError(this.errMsg(e, this.t('Bericht konnte nicht geladen werden'))) }
@@ -2105,7 +2153,7 @@ export default {
 			const open = !this.ccExpanded[accountId]
 			this.ccExpanded[accountId] = open
 			if (open && !this.ccBookings[accountId]) {
-				try { const { data } = await api.accountJournal(accountId, false, this.selectedYear); this.ccBookings[accountId] = data.rows } catch (e) { showError(this.errMsg(e, this.t('Buchungen konnten nicht geladen werden'))) }
+				try { const { data } = await api.accountJournal(accountId, false, this.selectedPeriodId); this.ccBookings[accountId] = data.rows } catch (e) { showError(this.errMsg(e, this.t('Buchungen konnten nicht geladen werden'))) }
 			}
 		},
 
@@ -2118,18 +2166,18 @@ export default {
 		// --- Finanzplan / Budget ---
 		async loadBudget() {
 			try {
-				const { data } = await api.budget(this.selectedYear)
+				const { data } = await api.budget(this.selectedPeriodId)
 				this.budgetData = data
 				await this.loadBudgetSnapshots()
 			} catch (e) { showError(this.errMsg(e, this.t('Finanzplan konnte nicht geladen werden'))) }
 		},
-		// saveBudget/toggleBudgetNote/saveBudgetSnapshot/deleteBudgetSnapshot/
-		// addBudgetYear sind jetzt Teil von ReportsTab.vue.
+		// saveBudget/toggleBudgetNote/saveBudgetSnapshot/deleteBudgetSnapshot
+		// und das Anlegen des nächsten Zeitraums sind Teil von ReportsTab.vue.
 
 		// --- Finanzplan-Stände (Snapshots) ---
 		async loadBudgetSnapshots() {
 			try {
-				const { data } = await api.budgetSnapshots(this.selectedYear)
+				const { data } = await api.budgetSnapshots(this.selectedPeriodId)
 				this.budgetSnapshots = data
 			} catch (e) { showError(this.errMsg(e, this.t('Plan-Stände konnten nicht geladen werden'))) }
 		},

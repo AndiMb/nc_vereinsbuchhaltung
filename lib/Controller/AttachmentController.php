@@ -10,7 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\AttachmentMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
-use OCA\Vereinsbuchhaltung\Service\YearCloseService;
+use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
@@ -41,7 +41,7 @@ class AttachmentController extends Controller {
 		private AttachmentMapper $attachmentMapper,
 		private AttachmentStorageService $storageService,
 		private JournalMapper $journalMapper,
-		private YearCloseService $yearClose,
+		private PeriodService $periods,
 		private AuditService $audit,
 		private IL10N $l10n,
 	) {
@@ -69,13 +69,14 @@ class AttachmentController extends Controller {
 
 	#[NoAdminRequired]
 	public function create(int $journalId): DataResponse {
-		// Festschreibung: Belege eines abgeschlossenen Jahres sind Teil des Abschlusses.
+		// Festschreibung: Belege eines abgeschlossenen Geschäftsjahres sind Teil
+		// des Abschlusses.
 		try {
 			$journal = $this->journalMapper->find($journalId, $this->userId());
 		} catch (DoesNotExistException) {
 			return new DataResponse(['message' => $this->l10n->t('Buchung nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
-		$this->yearClose->assertOpen((string)$journal->getDate());
+		$this->periods->assertOpen($this->userId(), (string)$journal->getDate());
 
 		$upload = $this->request->getUploadedFile('file');
 		if ($upload === null || !isset($upload['tmp_name']) || !is_uploaded_file($upload['tmp_name'])) {
@@ -172,10 +173,11 @@ class AttachmentController extends Controller {
 			return new DataResponse(['message' => $this->l10n->t('Nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
 
-		// Festschreibung: Belege eines abgeschlossenen Jahres bleiben unangetastet.
+		// Festschreibung: Belege eines abgeschlossenen Geschäftsjahres bleiben
+		// unangetastet.
 		try {
 			$journal = $this->journalMapper->find($attachment->getJournalId(), $this->userId());
-			$this->yearClose->assertOpen((string)$journal->getDate());
+			$this->periods->assertOpen($this->userId(), (string)$journal->getDate());
 		} catch (DoesNotExistException) {
 			// Buchung existiert nicht mehr → verwaister Beleg darf immer weg.
 		}

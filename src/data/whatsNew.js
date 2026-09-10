@@ -25,6 +25,13 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.33.0',
+			items: [
+				t('Das Geschäftsjahr muss nicht mehr dem Kalenderjahr entsprechen. Unter Zahnrad → Geschäftsjahr lässt sich der Beginn frei wählen – etwa 1. Oktober bis 30. September oder das Schuljahr von August bis Juli. Auch halbjährliche Zeiträume (Semester) sind möglich.'),
+				t('Aus dem „Jahr" oben in der Kopfzeile ist damit ein „Zeitraum" geworden. Jeder Zeitraum trägt eine frei änderbare Bezeichnung wie „2025/26"; Buchungsnummern, Berichte, Finanzplan und Festschreibung beziehen sich darauf.'),
+			],
+		},
+		{
 			version: '0.32.0',
 			roles: ['verwalter', 'buchhalter'],
 			items: [

@@ -52,15 +52,18 @@
 			</NcSettingsSection>
 		</div>
 
-		<div id="settings-section_jahresabschluss">
-			<NcSettingsSection :name="t('Jahresabschluss')">
-				<SettingsYearClose />
+		<div id="settings-section_geschaeftsjahr">
+			<NcSettingsSection :name="t('Geschäftsjahr')">
+				<SettingsPeriods />
 			</NcSettingsSection>
 		</div>
 
 		<div id="settings-section_daten">
 			<NcSettingsSection :name="t('Daten')">
-				<SettingsXbucImport v-model:busy="busy" />
+				<!-- Der Import legt Zeiträume an und löscht sie mit „Vorher alle
+				     Daten löschen" – die Tabelle unter „Geschäftsjahr" hängt am
+				     selben Singleton und muss davon erfahren. -->
+				<SettingsXbucImport v-model:busy="busy" @changed="reloadPeriods" />
 				<div class="vbh-card vbh-card--danger">
 					<h4>{{ t('Alle Daten löschen') }}</h4>
 					<p class="vbh-hint">
@@ -75,7 +78,7 @@
 
 		<!-- Die Rueckfrage vor nicht umkehrbaren Aktionen, siehe App.vue - dort
 			derselbe Aufbau, da useConfirm() ein Modul-Singleton ohne eigenen
-			Host ist und von SettingsPermissions/SettingsYearClose/
+			Host ist und von SettingsPermissions/SettingsPeriods/
 			SettingsXbucImport aus dieser Seite heraus aufgerufen wird. -->
 		<NcDialog
 			v-if="confirm.open"
@@ -92,16 +95,16 @@ import { showError, showSuccess } from '@nextcloud/dialogs'
 import { NcButton, NcDialog, NcSettingsSection } from '@nextcloud/vue'
 import SettingsAttachments from './components/SettingsAttachments.vue'
 import SettingsClub from './components/SettingsClub.vue'
+import SettingsPeriods from './components/SettingsPeriods.vue'
 import SettingsPermissions from './components/SettingsPermissions.vue'
 import SettingsSepaBasics from './components/SettingsSepaBasics.vue'
 import SettingsStatementWatch from './components/SettingsStatementWatch.vue'
 import SettingsXbucImport from './components/SettingsXbucImport.vue'
-import SettingsYearClose from './components/SettingsYearClose.vue'
 import api from './api.js'
 import { useAccounts } from './composables/useAccounts.js'
 import { useConfirm } from './composables/useConfirm.js'
+import { usePeriods } from './composables/usePeriods.js'
 import { usePermissions } from './composables/usePermissions.js'
-import { useYears } from './composables/useYears.js'
 import { errMsg } from './lib/format.js'
 
 /**
@@ -125,20 +128,20 @@ export default {
 		NcSettingsSection,
 		SettingsAttachments,
 		SettingsClub,
+		SettingsPeriods,
 		SettingsPermissions,
 		SettingsSepaBasics,
 		SettingsStatementWatch,
 		SettingsXbucImport,
-		SettingsYearClose,
 	},
 
 	setup() {
 		// Rueckfrage vor nicht umkehrbaren Aktionen (siehe App.vue). users/
-		// permissions/accounts/years kommen direkt aus den jeweiligen
+		// permissions/accounts/periods kommen direkt aus den jeweiligen
 		// Singletons in die Kindkomponenten (SettingsAttachments,
 		// SettingsStatementWatch, SettingsPermissions, SettingsSepaBasics,
-		// SettingsYearClose) - hier nur zum Anstossen des Ladens gebraucht,
-		// siehe mounted().
+		// SettingsPeriods, SettingsXbucImport) - hier nur zum Anstossen des
+		// Ladens gebraucht, siehe mounted().
 		return { ...useConfirm() }
 	},
 
@@ -174,9 +177,9 @@ export default {
 		this.loadSettings()
 		usePermissions().loadPermissions()
 		useAccounts().loadAccounts()
-		const years = useYears()
-		years.loadYears()
-		years.loadClosedYears()
+		// Ein Aufruf statt der frueheren zwei (loadYears + loadClosedYears):
+		// /periods liefert Zeitraeume und Festschreibung in einem Satz.
+		usePeriods().loadPeriods()
 		// Die Seite wird erst nach dem Parsen gemountet - ein #settings-
 		// section_<id>-Anker in der URL scrollt deshalb nicht von allein.
 		this.$nextTick(() => {
@@ -188,6 +191,10 @@ export default {
 
 	methods: {
 		errMsg,
+
+		reloadPeriods() {
+			return usePeriods().loadPeriods()
+		},
 
 		async loadSettings() {
 			try {

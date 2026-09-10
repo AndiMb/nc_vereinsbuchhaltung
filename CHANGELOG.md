@@ -19,6 +19,60 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+## [0.33.0] – 2026-09-08
+
+**Neu:**
+- **Das Geschäftsjahr muss nicht mehr dem Kalenderjahr entsprechen.** Unter
+  Zahnrad → *Geschäftsjahr* lässt sich wählen, wann es beginnt: als Vorlage
+  stehen das Kalenderjahr, Oktober–September, das Schuljahr August–Juli und
+  halbjährliche Zeiträume (Semester) bereit, dazu eine eigene Regel mit
+  beliebigem Starttag und einer Periodenlänge von 1 bis 12 Monaten (Teiler von 12). Vereine mit
+  abweichendem Geschäftsjahr mussten ihre Zahlen bisher außerhalb der App
+  zusammenrechnen (Issue #8).
+- **Aus dem „Jahr" in der Kopfzeile ist ein „Zeitraum" geworden.** Jeder Zeitraum
+  hat eine frei änderbare Bezeichnung – vorgeschlagen wird „2026" beim
+  Kalenderjahr, „2025/26" bei einem abweichenden und „2025/26-1" beim
+  Wintersemester. Buchungsnummern, Berichte, Finanzplan, Belege-ZIP und die
+  Festschreibung beziehen sich auf den Zeitraum, nicht mehr auf eine Jahreszahl.
+- **Zeiträume lassen sich einzeln pflegen.** Die Grenze zwischen zwei offenen
+  Zeiträumen ist verschiebbar – der Weg zu einem Rumpfgeschäftsjahr beim
+  Umstieg. Ein leerer Zeitraum am Anfang oder Ende der Kette lässt sich
+  entfernen, der nächste per Knopfdruck anlegen.
+- **Die Umstellung zeigt vorher, was sie tut.** Bevor eine geänderte Regel
+  greift, nennt eine Vorschau die künftigen Zeiträume, die Zahl der Buchungen,
+  die den Zeitraum wechseln, und die Planwerte, die dabei verlorengingen – denn
+  verschmelzen zwei Zeiträume, kann ein Konto nur einen der beiden Planwerte
+  behalten. Festgeschriebene Zeiträume blockieren die Umstellung: was die
+  Mitgliederversammlung entlastet hat, verschiebt sich nicht nachträglich.
+- **Der Kassenbericht nennt die echten Stichtage.** Die Vermögensübersicht
+  überschrieb ihre Spalten fest mit „Bestand 01.01." und „Bestand 31.12."; jetzt
+  steht dort der erste und letzte Tag des gewählten Geschäftsjahres.
+- **Das Monatsdiagramm auf der Übersicht folgt dem Geschäftsjahr.** Es lief
+  immer von Januar bis Dezember; bei Oktober–September beginnt es jetzt im
+  Oktober, bei einem Semester zeigt es sechs Monate.
+
+**Geändert:**
+- Der Einstellungsabschnitt *Jahresabschluss* heißt jetzt *Geschäftsjahr* und
+  enthält neben der Festschreibung auch die Regel und die Liste der Zeiträume.
+- Der xbuc-Import erkennt das Geschäftsjahr einer Datei jetzt über deren
+  Datumsbereich statt über das Kalenderjahr. Eine Datei für ein abweichendes
+  Geschäftsjahr ließ sich vorher gar nicht zuordnen. Buchungen außerhalb werden
+  auf den ersten bzw. letzten Tag des Zeitraums datiert, nicht mehr auf den
+  01.01./31.12.
+- Bestehende Installationen ändern sich nicht: die Migration legt für jedes
+  bisherige Kalenderjahr einen Zeitraum vom 01.01. bis 31.12. mit der Jahreszahl
+  als Bezeichnung an. Buchungsnummern und Abschlüsse bleiben unangetastet. Wer
+  nichts umstellt, merkt nichts.
+
+**Behoben:**
+- Wer den Buchungsdialog öffnete, bevor die Kontenliste geladen war, bekam ein
+  leeres Geldkonto – und beim Buchen nur die Meldung, dass es ein Pflichtfeld
+  sei. Die Vorbelegung wird jetzt nachgetragen, sobald die Konten da sind.
+- Wer den Zeitraum direkt nach dem Laden wechselte, sah gelegentlich Journal
+  und Auswertung des vorigen Zeitraums: von mehreren gleichzeitigen Abfragen
+  gewann die zuletzt eingetroffene, nicht die zuletzt gestellte. Eine
+  Auswahl, die vor dem Laden der Zeiträume fiel, blieb außerdem nicht stehen.
+
 ## [0.32.0] – 2026-09-07
 
 **Neu:**

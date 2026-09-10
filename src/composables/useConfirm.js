@@ -7,7 +7,7 @@ import { t } from '../lib/l10n.js'
 // Vorher lag der Zustand in App.vue, und jede Komponente, die irgendwo eine
 // Rueckfrage brauchte, bekam askConfirm als Funktions-Prop durchgereicht -
 // SettingsRules, SettingsCostCenters, SettingsPermissions, SettingsXbucImport,
-// SettingsYearClose, ReportsTab. Damit hing eine reine Anzeigefrage an einer
+// SettingsPeriods, ReportsTab. Damit hing eine reine Anzeigefrage an einer
 // Kette von Prop-Deklarationen, und jede neue Komponente musste sich in diese
 // Kette einreihen. Als gemeinsamer Zustand ruft sie jede Komponente direkt auf.
 //

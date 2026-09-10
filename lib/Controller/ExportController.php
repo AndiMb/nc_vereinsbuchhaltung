@@ -10,7 +10,7 @@ use OCA\Vereinsbuchhaltung\Service\Export\CsvExportService;
 use OCA\Vereinsbuchhaltung\Service\Export\CsvFile;
 use OCA\Vereinsbuchhaltung\Service\Export\KassenberichtRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\KurzberichtRenderer;
-use OCA\Vereinsbuchhaltung\Service\FiscalYear;
+use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -44,6 +44,7 @@ class ExportController extends Controller {
 		private AttachmentArchive $archive,
 		private KassenberichtRenderer $kassenbericht,
 		private KurzberichtRenderer $kurzbericht,
+		private PeriodService $periods,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -82,29 +83,29 @@ class ExportController extends Controller {
 	/** Journal aller Buchungssätze als CSV. */
 	#[NoAdminRequired]
 	#[NoCSRFRequired]
-	public function journal(?int $year = null): DataDownloadResponse {
-		return $this->download($this->csv->journal($this->userId(), $year));
+	public function journal(?int $period = null): DataDownloadResponse {
+		return $this->download($this->csv->journal($this->userId(), $period));
 	}
 
 	/** Saldenliste aller Konten als CSV. */
 	#[NoAdminRequired]
 	#[NoCSRFRequired]
-	public function balances(?int $year = null): DataDownloadResponse {
-		return $this->download($this->csv->balances($this->userId(), $year));
+	public function balances(?int $period = null): DataDownloadResponse {
+		return $this->download($this->csv->balances($this->userId(), $period));
 	}
 
 	/** Einnahmen-/Ausgaben-Übersicht als CSV. */
 	#[NoAdminRequired]
 	#[NoCSRFRequired]
-	public function report(?int $year = null): DataDownloadResponse {
-		return $this->download($this->csv->report($this->userId(), $year));
+	public function report(?int $period = null): DataDownloadResponse {
+		return $this->download($this->csv->report($this->userId(), $period));
 	}
 
-	/** Finanzplan / Soll-Ist-Vergleich eines Jahres als CSV. */
+	/** Finanzplan / Soll-Ist-Vergleich eines Geschäftsjahres als CSV. */
 	#[NoAdminRequired]
 	#[NoCSRFRequired]
-	public function budget(?int $year = null): DataDownloadResponse {
-		return $this->download($this->csv->budget($this->userId(), $year));
+	public function budget(?int $period = null): DataDownloadResponse {
+		return $this->download($this->csv->budget($this->userId(), $period));
 	}
 
 	/** Mehrjahresübersicht als CSV-Matrix. */
@@ -122,13 +123,14 @@ class ExportController extends Controller {
 	 */
 	#[NoAdminRequired]
 	#[NoCSRFRequired]
-	public function attachments(?int $year = null): StreamResponse|DataDownloadResponse {
-		$zipPath = $this->archive->build($this->userId(), $year);
+	public function attachments(?int $period = null): StreamResponse|DataDownloadResponse {
+		$userId = $this->userId();
+		$zipPath = $this->archive->build($userId, $period);
 
 		$response = new StreamResponse($zipPath);
 		$response->addHeader('Content-Type', 'application/zip');
 		$response->addHeader('Content-Length', (string)(filesize($zipPath) ?: 0));
-		$response->addHeader('Content-Disposition', 'attachment; filename="' . AttachmentArchive::fileName($year) . '"');
+		$response->addHeader('Content-Disposition', 'attachment; filename="' . $this->archive->fileName($userId, $period) . '"');
 		return $response;
 	}
 
@@ -138,8 +140,9 @@ class ExportController extends Controller {
 	 */
 	#[NoAdminRequired]
 	#[NoCSRFRequired]
-	public function kassenbericht(?int $year = null): DataDisplayResponse {
-		$html = $this->kassenbericht->render($this->userId(), FiscalYear::orCurrent($year));
+	public function kassenbericht(?int $period = null): DataDisplayResponse {
+		$userId = $this->userId();
+		$html = $this->kassenbericht->render($userId, $this->periods->selectedOrCurrent($userId, $period));
 		return $this->printableResponse($html);
 	}
 

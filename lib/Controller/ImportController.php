@@ -89,14 +89,22 @@ class ImportController extends Controller {
 		}
 	}
 
-	/** Optionaler year-Parameter: manuell gewähltes Geschäftsjahr (2000–2099). */
-	private function yearOverride(): ?int {
-		$raw = $this->request->getParam('year');
+	/**
+	 * Optionaler period-Parameter: manuell gewähltes Geschäftsjahr.
+	 *
+	 * Geprüft wird hier nur die Form; ob es den Zeitraum gibt, entscheidet der
+	 * PeriodService – er wirft sonst eine PeriodNotFoundException, die die
+	 * PermissionMiddleware in HTTP 404 übersetzt. Bis 0.32.0 stand hier eine
+	 * Jahreszahl, die auf 2000–2099 geprüft wurde; eine Perioden-ID sagt für
+	 * sich genommen nichts über einen gültigen Bereich aus.
+	 */
+	private function periodOverride(): ?int {
+		$raw = $this->request->getParam('period');
 		if (!is_numeric($raw)) {
 			return null;
 		}
-		$year = (int)$raw;
-		return ($year >= 2000 && $year <= 2099) ? $year : null;
+		$periodId = (int)$raw;
+		return $periodId > 0 ? $periodId : null;
 	}
 
 	#[NoAdminRequired]
@@ -106,7 +114,7 @@ class ImportController extends Controller {
 			return new DataResponse(['message' => $this->l10n->t('Keine Datei empfangen')], Http::STATUS_BAD_REQUEST);
 		}
 		try {
-			return new DataResponse($this->xbucService->preview($this->userId(), $upload['content'], $this->yearOverride()));
+			return new DataResponse($this->xbucService->preview($this->userId(), $upload['content'], $this->periodOverride()));
 		} catch (\Throwable $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		}
@@ -124,9 +132,9 @@ class ImportController extends Controller {
 			return new DataResponse(['message' => $this->l10n->t('Nur Verwalter dürfen beim Import alle Daten löschen.')], Http::STATUS_FORBIDDEN);
 		}
 		try {
-			$result = $this->xbucService->import($this->userId(), $upload['content'], $reset, $clampDates, $this->yearOverride());
+			$result = $this->xbucService->import($this->userId(), $upload['content'], $reset, $clampDates, $this->periodOverride());
 			$this->audit->log('xbuc-Import', 'import', null, [
-				'jahr' => $result['year'] ?? null,
+				'geschaeftsjahr' => $result['period']['label'] ?? null,
 				'buchungen' => $result['bookings'] ?? null,
 				'reset' => $reset,
 			]);

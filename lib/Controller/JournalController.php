@@ -7,12 +7,12 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\BankTransactionMapper;
-use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Exception\ConflictException;
 use OCA\Vereinsbuchhaltung\Service\JournalService;
 use OCA\Vereinsbuchhaltung\Service\LedgerAggregator;
+use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
@@ -31,31 +31,17 @@ class JournalController extends Controller {
 		private JournalLineMapper $lineMapper,
 		private AccountMapper $accountMapper,
 		private BankTransactionMapper $txMapper,
-		private BudgetMapper $budgetMapper,
+		private PeriodService $periods,
 		private JournalService $journalService,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
 
-	/** Geschäftsjahre mit Buchungen oder Planwerten (+ laufendes Jahr). */
 	#[NoAdminRequired]
-	public function years(): DataResponse {
+	public function index(int $limit = 10000, int $offset = 0, ?int $period = null): DataResponse {
 		$userId = $this->userId();
-		$all = array_merge(
-			$this->journalMapper->distinctYears($userId),
-			$this->budgetMapper->distinctYears($userId),
-			[(int)date('Y')],
-		);
-		$all = array_values(array_unique($all));
-		rsort($all);
-		return new DataResponse($all);
-	}
-
-	#[NoAdminRequired]
-	public function index(int $limit = 10000, int $offset = 0, ?int $year = null): DataResponse {
-		$userId = $this->userId();
-		[$from, $to] = $this->yearRange($year);
+		[$from, $to] = $this->periods->range($userId, $period);
 		$journals = $this->journalMapper->findAll($userId, $limit, $offset, $from, $to);
 		// Zeilen aller Buchungen in einem Rutsch statt einer Abfrage je Buchung –
 		// bei mehreren tausend Buchungen ist das der Unterschied zwischen zwei
@@ -78,9 +64,9 @@ class JournalController extends Controller {
 	 * Saldenliste je Konto, gruppierbar nach Kategorie.
 	 */
 	#[NoAdminRequired]
-	public function balances(?int $year = null): DataResponse {
+	public function balances(?int $period = null): DataResponse {
 		$userId = $this->userId();
-		[$from, $to] = $this->yearRange($year);
+		[$from, $to] = $this->periods->range($userId, $period);
 		$accounts = $this->accountMapper->findAll($userId);
 
 		// Bewegungssummen (Erfolgskonten = Jahr; ohne Jahr = alles).
@@ -149,7 +135,7 @@ class JournalController extends Controller {
 		$cash = LedgerAggregator::cashTotal($accounts, $balSums);
 
 		return new DataResponse([
-			'year' => $year,
+			'periodId' => $period,
 			'accounts' => $rows,
 			'totals' => [
 				'income' => $result['incomeCents'] / 100,
@@ -212,6 +198,10 @@ class JournalController extends Controller {
 		if (!checkdate($m, $d, $y)) {
 			return $this->l10n->t('Dieses Datum gibt es nicht.');
 		}
+		// Nicht nur Kosmetik: zu einem Datum weit außerhalb legt der
+		// PeriodService die fehlenden Geschäftsjahre an. Ein Zahlendreher
+		// (1025 statt 2025) erzeugte sonst reihenweise Zeiträume, bevor ihn
+		// jemand bemerkt.
 		if ($y < 2000 || $y > 2099) {
 			return $this->l10n->t('Das Buchungsdatum muss zwischen 2000 und 2099 liegen.');
 		}
@@ -388,9 +378,9 @@ class JournalController extends Controller {
 	 * Kontoauszug eines Kontos – optional inklusive aller Unterkonten.
 	 */
 	#[NoAdminRequired]
-	public function byAccount(int $id, int $includeChildren = 1, ?int $year = null): DataResponse {
+	public function byAccount(int $id, int $includeChildren = 1, ?int $period = null): DataResponse {
 		$userId = $this->userId();
-		[$from, $to] = $this->yearRange($year);
+		[$from, $to] = $this->periods->range($userId, $period);
 		$accounts = $this->accountMapper->findAll($userId);
 		$labels = [];
 		$childrenByParent = [];
@@ -409,7 +399,7 @@ class JournalController extends Controller {
 		$idSet = array_flip($ids);
 
 		// Saldovortrag je Zeile anhand des Zeilen-Kontos: nur Geldkonten tragen
-		// einen Bestand über die Jahresgrenze. So verfälscht bei "inkl. Unterkonten"
+		// einen Bestand über die Grenze des Geschäftsjahres. So verfälscht bei "inkl. Unterkonten"
 		// weder ein jahresbezogenes Unterkonto den Vortrag des Überkontos, noch
 		// verliert ein Geldkonto seinen Vortrag unter einem jahresbezogenen Parent.
 		$stockIdSet = [];
@@ -490,7 +480,7 @@ class JournalController extends Controller {
 
 		$account = $this->accountMapper->find($id, $userId);
 
-		// Saldovortrag nur bei aktivem Jahresfilter; beigetragen haben oben ohnehin
+		// Saldovortrag nur bei gewähltem Zeitraum; beigetragen haben oben ohnehin
 		// nur Zeilen von Geldkonten (debit-Natur), daher Soll − Haben.
 		$carryCents = 0;
 		if ($from !== null) {
@@ -502,7 +492,12 @@ class JournalController extends Controller {
 		return new DataResponse([
 			'account' => $account,
 			'includeChildren' => (bool)$includeChildren,
-			'year' => $year,
+			'periodId' => $period,
+			// Datum der Vortragszeile im Kontoauszug. Es ist der erste Tag des
+			// gewählten Geschäftsjahres – seit Issue #8 nicht mehr zwingend
+			// der 01.01., und deshalb schickt der Server ihn mit, statt ihn
+			// die Oberfläche aus einer Jahreszahl basteln zu lassen.
+			'carryDate' => $from,
 			'carry' => $carryCents / 100,
 			'rows' => $rows,
 			'totals' => [
