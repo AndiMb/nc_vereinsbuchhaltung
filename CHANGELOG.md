@@ -26,7 +26,7 @@ verwenden, z. B. `**Neu:**`.
   Zahnrad → *Geschäftsjahr* lässt sich wählen, wann es beginnt: als Vorlage
   stehen das Kalenderjahr, Oktober–September, das Schuljahr August–Juli und
   halbjährliche Zeiträume (Semester) bereit, dazu eine eigene Regel mit
-  beliebigem Starttag und einer Periodenlänge von 1 bis 12 Monaten. Vereine mit
+  beliebigem Starttag und einer Periodenlänge von 1 bis 12 Monaten (Teiler von 12). Vereine mit
   abweichendem Geschäftsjahr mussten ihre Zahlen bisher außerhalb der App
   zusammenrechnen (Issue #8).
 - **Aus dem „Jahr" in der Kopfzeile ist ein „Zeitraum" geworden.** Jeder Zeitraum
@@ -68,6 +68,10 @@ verwenden, z. B. `**Neu:**`.
 - Wer den Buchungsdialog öffnete, bevor die Kontenliste geladen war, bekam ein
   leeres Geldkonto – und beim Buchen nur die Meldung, dass es ein Pflichtfeld
   sei. Die Vorbelegung wird jetzt nachgetragen, sobald die Konten da sind.
+- Wer den Zeitraum direkt nach dem Laden wechselte, sah gelegentlich Journal
+  und Auswertung des vorigen Zeitraums: von mehreren gleichzeitigen Abfragen
+  gewann die zuletzt eingetroffene, nicht die zuletzt gestellte. Eine
+  Auswahl, die vor dem Laden der Zeiträume fiel, blieb außerdem nicht stehen.
 
 ## [0.32.0] – 2026-09-07
 

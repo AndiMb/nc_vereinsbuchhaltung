@@ -142,16 +142,14 @@ class PeriodController extends Controller {
 			return $denied;
 		}
 
+		$endDate = $endDate === '' ? null : $endDate;
+		$label = $label === '' ? null : $label;
+		if ($endDate !== null && !self::isIsoDate($endDate)) {
+			return new DataResponse(['message' => $this->l10n->t('Ungültiges Datum.')], Http::STATUS_BAD_REQUEST);
+		}
+
 		try {
-			if ($endDate !== null && $endDate !== '') {
-				if (!self::isIsoDate($endDate)) {
-					return new DataResponse(['message' => $this->l10n->t('Ungültiges Datum.')], Http::STATUS_BAD_REQUEST);
-				}
-				$this->periods->moveEnd($this->userId(), $id, $endDate);
-			}
-			$period = $label !== null && $label !== ''
-				? $this->periods->updateLabel($this->userId(), $id, $label)
-				: $this->periods->find($this->userId(), $id);
+			$period = $this->periods->update($this->userId(), $id, $label, $endDate);
 			return new DataResponse($period->jsonSerialize());
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);

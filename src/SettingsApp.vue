@@ -60,7 +60,10 @@
 
 		<div id="settings-section_daten">
 			<NcSettingsSection :name="t('Daten')">
-				<SettingsXbucImport v-model:busy="busy" />
+				<!-- Der Import legt Zeiträume an und löscht sie mit „Vorher alle
+				     Daten löschen" – die Tabelle unter „Geschäftsjahr" hängt am
+				     selben Singleton und muss davon erfahren. -->
+				<SettingsXbucImport v-model:busy="busy" @changed="reloadPeriods" />
 				<div class="vbh-card vbh-card--danger">
 					<h4>{{ t('Alle Daten löschen') }}</h4>
 					<p class="vbh-hint">
@@ -188,6 +191,10 @@ export default {
 
 	methods: {
 		errMsg,
+
+		reloadPeriods() {
+			return usePeriods().loadPeriods()
+		},
 
 		async loadSettings() {
 			try {

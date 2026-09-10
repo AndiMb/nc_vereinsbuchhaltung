@@ -113,6 +113,15 @@ class Version000133Date20260908000000 extends SimpleMigrationStep {
 			return;
 		}
 
+		// Ein früherer Lauf kann hier abgebrochen sein (assertComplete() wirft
+		// bewusst, damit fehlerhafte Zeilen berichtigt werden). Nextcloud
+		// merkt sich den Schritt erst nach dem Durchlauf, wiederholt ihn also –
+		// aber die damals eingefügten Zeiträume stehen noch da, und ein zweites
+		// Einfügen liefe in den Unique-Index (user_id, start_date). Vor dieser
+		// Migration schreibt nichts anderes in vbh_periods; der Bestand des
+		// Buchs kann deshalb gefahrlos neu aufgebaut werden.
+		$this->deletePeriods($userId);
+
 		// Lückenlos anlegen, auch für Jahre ohne Buchungen: der PeriodService
 		// setzt voraus, dass zwischen zwei Zeiträumen keine Lücke klafft.
 		$closed = $this->closedYears();
@@ -211,6 +220,13 @@ class Version000133Date20260908000000 extends SimpleMigrationStep {
 		}
 		$res->closeCursor();
 		return $out;
+	}
+
+	private function deletePeriods(string $userId): void {
+		$qb = $this->db->getQueryBuilder();
+		$qb->delete('vbh_periods')
+			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)));
+		$qb->executeStatement();
 	}
 
 	/** @param array{closedAt:string, closedBy:string}|null $closed */

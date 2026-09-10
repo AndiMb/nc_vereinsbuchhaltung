@@ -306,23 +306,28 @@ materialisiert. Für den Anfang der ersten Periode gilt dasselbe rückwärts.
 2. Regel validieren und speichern.
 3. Frühestes und spätestes Datum aus Journal ermitteln, dazu heute und die
    Grenzen der bestehenden Perioden (an denen Planwerte hängen können).
-4. **Erst die alten Perioden löschen, dann die neuen anlegen.** Beginn und
-   Bezeichnung sind je Buch eindeutig, und beim Umstellen bleiben regelmäßig
-   Grenzen stehen, wo alte und neue Regel zusammenfallen – bei einer
-   unveränderten Regel sogar alle. Würde zuerst eingefügt, liefe das in den
-   Unique-Index. Dazwischen zeigen Planwerte kurz auf Perioden, die es nicht
-   mehr gibt; unbedenklich, weil die Transaktion nach außen erst den
-   Endzustand zeigt. Wo eine neue Periode dieselben Grenzen hat wie eine alte,
-   bleibt deren Bezeichnung erhalten.
+4. **Unveränderte Perioden bleiben stehen, nur die übrigen werden ersetzt.**
+   Eine Periode, deren Grenzen die neue Regel exakt trifft, behält ID,
+   Bezeichnung, Buchungen, Buchungsnummern und Planwerte – beim Umstellen
+   fallen alte und neue Grenzen regelmäßig zusammen, bei einer unveränderten
+   Regel sogar alle. Für die übrigen gilt: erst die weichenden löschen, dann
+   die neuen anlegen, weil Beginn und Bezeichnung je Buch eindeutig sind und
+   ein neuer Zeitraum mit einem weichenden den Beginn teilen kann. Dazwischen
+   zeigen Planwerte kurz auf Perioden, die es nicht mehr gibt; unbedenklich,
+   weil die Transaktion nach außen erst den Endzustand zeigt. Die
+   Bezeichnungen bleibender Perioden werden bei der Planung zuerst
+   reserviert, damit kein Vorschlag für eine neue Periode sie verdrängt.
 5. Planwerte und Plan-Stände: jede alte Periode wird auf die neue Periode mit
    der größten Überschneidung abgebildet. Treffen zwei alte Planwerte
    desselben Kontos auf dieselbe neue Periode, gewinnt der mit der größeren
    Überschneidung, der andere wird verworfen. Die Vorschau zeigt das vorher.
    Plan-Stände kollidieren nicht: mehrere je Zeitraum sind vorgesehen.
 6. `reassignAll()`: ein UPDATE je Periode über den Datumsbereich (wie in
-   Version000119), danach neu nummerieren. Nur Perioden, deren Bestand sich
-   tatsächlich geändert hat, werden nach Datum neu nummeriert; die übrigen
-   behalten ihre Reihenfolge, und das Nachnummerieren schreibt dort nichts.
+   Version000119), danach neu nummerieren – in zwei getrennten Durchgängen:
+   erst wandern alle Buchungen, dann wird nummeriert. Nur Perioden, die
+   Buchungen aufgenommen haben, werden nach Datum neu nummeriert; die übrigen
+   behalten ihre Reihenfolge, und das Nachnummerieren schließt dort höchstens
+   die Lücke, die abgegebene Buchungen hinterlassen haben.
 7. Protokolleintrag „Geschäftsjahr-Regel geändert“ mit alter und neuer Regel,
    Zahl der neu zugeordneten Buchungen und verworfenen Planwerte.
 
@@ -573,7 +578,20 @@ zwei fielen erst beim Durchstich gegen eine echte Instanz auf:
    deshalb getrennt.
 2. **Reihenfolge in `applyRule`.** Siehe Abschnitt 4.2, Punkt 4: der Entwurf
    wollte erst anlegen, dann löschen. Das kollidiert mit dem Unique-Index auf
-   `(user_id, start_date)`, sobald eine Grenze unverändert bleibt.
+   `(user_id, start_date)`, sobald eine Grenze unverändert bleibt. Die erste
+   Umsetzung löschte deshalb alle Perioden und legte alle neu an – mit drei
+   Nebenwirkungen: jede Buchung galt als „umgehängt“ (die Erfolgsmeldung
+   nannte eine andere Zahl als die Vorschau), auch unberührte Zeiträume
+   wurden nach Datum neu nummeriert, und jede Perioden-ID wechselte. Seit der
+   Nachbesserung am 09.09.2026 bleiben Perioden mit unveränderten Grenzen
+   stehen.
+   **Zweiphasiges `reassignAll()`.** Die erste Fassung nummerierte jede
+   Periode direkt nach dem Umhängen. Beim Verlängern eines Zeitraums
+   (`moveEnd` nach hinten) wandern Buchungen aus dem *Folgezeitraum* in den
+   verlängerten – der Folgezeitraum steht in der absteigenden Liste aber
+   vorn, war also schon lückenlos nummeriert, als ihm die ersten Buchungen
+   entzogen wurden, und behielt eine Lücke. Der E2E-Test „Grenze nach hinten
+   verschieben“ deckt genau diesen Fall ab.
 3. **Periodenlänge nur als Teiler von 12.** Der Entwurf ließ 1 bis 12 zu.
 4. **`GET /api/periods` legt den laufenden Zeitraum an.** Eine schreibende
    GET-Anfrage, ausgelöst auch von Nutzern mit reinem Leserecht. Bewusst so:

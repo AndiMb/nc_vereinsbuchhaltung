@@ -24,7 +24,7 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   icon → *Fiscal year* you can now choose when it starts: presets cover the
   calendar year, October–September, the school year August–July and half-year
   periods (semesters), plus a custom rule with any start day and a period length
-  of 1 to 12 months. Clubs with a deviating fiscal year previously had to add up
+  of 1 to 12 months (divisors of 12). Clubs with a deviating fiscal year previously had to add up
   their figures outside the app (issue #8).
 - **The header's “Year" has become a “Period".** Every period carries a freely
   editable name – suggested as “2026" for a calendar year, “2025/26" for a
@@ -63,6 +63,10 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 - Opening the booking dialog before the account list had loaded left the cash
   account empty – and booking then only reported that it was a required field.
   The preselection is now filled in as soon as the accounts arrive.
+- Switching the period right after loading occasionally showed the journal
+  and evaluation of the previous period: of several simultaneous requests the
+  last to arrive won, not the last one made. A choice made before the periods
+  had loaded did not stick either.
 
 ## [0.32.0] – 2026-09-07
 

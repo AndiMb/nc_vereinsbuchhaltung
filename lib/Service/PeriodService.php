@@ -332,6 +332,27 @@ class PeriodService {
 	}
 
 	/**
+	 * Bezeichnung und/oder Ende in einem Zug – und in einer Transaktion.
+	 *
+	 * Der Endpunkt nimmt beides entgegen, weil die Einstellungsseite beides in
+	 * derselben Zeile anbietet. Getrennt ausgeführt bliebe eine bereits
+	 * verschobene Grenze (samt Umhängen und Nachnummerieren) stehen, wenn
+	 * danach die Bezeichnung abgelehnt wird – der Aufrufer bekäme einen
+	 * Fehler zu einer Änderung, die zur Hälfte doch stattgefunden hat.
+	 */
+	public function update(string $userId, int $id, ?string $label, ?string $newEnd): Period {
+		return $this->transaction->run(function () use ($userId, $id, $label, $newEnd): Period {
+			if ($newEnd !== null) {
+				$this->moveEnd($userId, $id, $newEnd);
+			}
+			if ($label !== null) {
+				return $this->updateLabel($userId, $id, $label);
+			}
+			return $this->find($userId, $id);
+		});
+	}
+
+	/**
 	 * Verschiebt das Ende eines Zeitraums – und damit den Beginn des
 	 * folgenden. Das ist der Weg zu einem Rumpfgeschäftsjahr beim Umstieg.
 	 *
@@ -493,31 +514,55 @@ class PeriodService {
 
 			$this->config->setAppValue(Application::APP_ID, self::SETTING_RULE, json_encode($rule, JSON_THROW_ON_ERROR));
 
-			// Erst die alte Kette entfernen, dann die neue anlegen, dann
-			// umhängen.
-			//
-			// Die Reihenfolge ist nicht beliebig: Beginn und Bezeichnung sind
-			// je Buch eindeutig, und beim Umstellen bleiben regelmäßig Grenzen
-			// stehen, wo alte und neue Regel zusammenfallen – bei einer
-			// unveränderten Regel sogar alle. Würde zuerst eingefügt, liefe das
-			// in den Unique-Index.
+			// Ein Zeitraum, dessen Grenzen die neue Regel unverändert lässt,
+			// bleibt bestehen – samt ID, Bezeichnung, Buchungen und Planwerten.
+			// Beim Umstellen fallen alte und neue Grenzen regelmäßig zusammen
+			// (bei einer unveränderten Regel sogar alle), und ein solcher
+			// Zeitraum soll davon nichts merken: seine Buchungsnummern bleiben,
+			// und eine im Browser stehende Auswahl zeigt weiter auf ihn.
+			// Außerdem zählt reassignAll() dadurch nur die Buchungen, die
+			// wirklich den Zeitraum wechseln – dieselbe Zahl wie die Vorschau.
+			$oldByRange = [];
+			foreach ($old as $period) {
+				$oldByRange[$period->getStartDate() . '|' . $period->getEndDate()] = $period;
+			}
+			$kept = [];
+			foreach ($plan['periods'] as $row) {
+				$key = $row['startDate'] . '|' . $row['endDate'];
+				if (isset($oldByRange[$key])) {
+					$kept[$key] = true;
+				}
+			}
+
+			// Erst die weichenden Zeiträume entfernen, dann die neuen anlegen:
+			// Beginn und Bezeichnung sind je Buch eindeutig, und ein neuer
+			// Zeitraum kann mit einem weichenden den Beginn teilen.
 			//
 			// Dazwischen zeigen Planwerte kurzzeitig auf Zeiträume, die es
 			// nicht mehr gibt. Das ist unbedenklich, weil alles in einer
 			// Transaktion läuft: nach außen sichtbar wird erst der Zustand nach
 			// dem Umhängen.
 			foreach ($old as $period) {
-				$this->mapper->delete($period);
+				if (!isset($kept[$period->getStartDate() . '|' . $period->getEndDate()])) {
+					$this->mapper->delete($period);
+				}
 			}
 
 			$new = [];
+			$inserted = 0;
 			foreach ($plan['periods'] as $row) {
+				$key = $row['startDate'] . '|' . $row['endDate'];
+				if (isset($kept[$key])) {
+					$new[] = $oldByRange[$key];
+					continue;
+				}
 				$period = new Period();
 				$period->setUserId($userId);
 				$period->setStartDate($row['startDate']);
 				$period->setEndDate($row['endDate']);
 				$period->setLabel($row['label']);
 				$new[] = $this->mapper->insert($period);
+				$inserted++;
 			}
 			$this->touched($userId);
 
@@ -529,6 +574,7 @@ class PeriodService {
 				'vorher' => $this->ruleText($before),
 				'nachher' => $this->ruleText($rule),
 				'zeitraeume' => count($new),
+				'neue_zeitraeume' => $inserted,
 				'umgehaengte_buchungen' => $moved,
 				'verworfene_planwerte' => $dropped,
 			], $uid);
@@ -649,26 +695,42 @@ class PeriodService {
 			$this->forDateOrCreate($userId, $bounds[1]);
 		}
 
+		// Zwei Durchgänge, und zwar zwingend getrennt: erst wandern alle
+		// Buchungen, dann wird nummeriert. Würde jeder Zeitraum gleich nach
+		// dem Umhängen nummeriert, verlöre der Zeitraum, der noch Buchungen
+		// abgeben muss, sie erst NACH seiner Nummerierung – und behielte eine
+		// Lücke. Genau das passierte beim Verlängern eines Zeitraums
+		// (moveEnd): der Folgezeitraum steht in der absteigenden Liste vorn,
+		// wurde lückenlos nummeriert, und dann zog ihm der verlängerte
+		// Vorgänger die ersten Buchungen weg.
 		$moved = 0;
+		$received = [];
 		foreach ($this->all($userId) as $period) {
 			$id = (int)$period->getId();
 			$mismatched = $this->journalMapper->countMismatchedInRange(
 				$userId, $period->getStartDate(), $period->getEndDate(), $id,
 			);
-			if ($mismatched > 0) {
-				// Erst die Nummern der wechselnden Buchungen aus dem Weg
-				// räumen, dann umhängen: sonst stoßen im Zielzeitraum zwei
-				// Buchungen mit derselben Nummer aufeinander, und der
-				// Unique-Index lässt das UPDATE gar nicht erst zu.
-				$this->journalMapper->parkEntryNosForMove($userId, $period->getStartDate(), $period->getEndDate(), $id);
-				$this->journalMapper->setPeriodForRange($userId, $period->getStartDate(), $period->getEndDate(), $id);
-				$moved += $mismatched;
+			if ($mismatched === 0) {
+				continue;
 			}
+			// Erst die Nummern der wechselnden Buchungen aus dem Weg
+			// räumen, dann umhängen: sonst stoßen im Zielzeitraum zwei
+			// Buchungen mit derselben Nummer aufeinander, und der
+			// Unique-Index lässt das UPDATE gar nicht erst zu.
+			$this->journalMapper->parkEntryNosForMove($userId, $period->getStartDate(), $period->getEndDate(), $id);
+			$this->journalMapper->setPeriodForRange($userId, $period->getStartDate(), $period->getEndDate(), $id);
+			$moved += $mismatched;
+			$received[$id] = true;
+		}
+
+		foreach ($this->all($userId) as $period) {
+			$id = (int)$period->getId();
 			// Nach dem Zusammenführen zweier Zeiträume ist die bisherige
 			// Nummer keine sinnvolle Ordnung mehr – dann zählt das Datum.
 			// Sonst bleibt es bei der bisherigen Reihenfolge, und das
-			// Nachnummerieren schreibt im Normalfall gar nichts.
-			if ($mismatched > 0) {
+			// Nachnummerieren schließt höchstens die Lücke, die abgegebene
+			// Buchungen hinterlassen haben; im Normalfall schreibt es nichts.
+			if (isset($received[$id])) {
 				$this->entryNumbers->renumberPeriodByDate($userId, $id);
 			} else {
 				$this->entryNumbers->renumberPeriod($userId, $id);
@@ -724,32 +786,54 @@ class PeriodService {
 			$byRange[$period->getStartDate() . '|' . $period->getEndDate()] = $period->getLabel();
 		}
 
-		$periods = [];
-		$used = [];
+		$ranges = [];
 		$cursor = PeriodRule::containing($rule, $from)[0];
 		while (true) {
 			[$start, $end] = PeriodRule::containing($rule, $cursor);
-
-			// Eine Periode mit unveränderten Grenzen behält ihre Bezeichnung –
-			// wer sie umbenannt hat, soll das nicht durch eine Umstellung
-			// verlieren, die diesen Zeitraum gar nicht berührt.
-			$label = $byRange[$start . '|' . $end] ?? PeriodRule::proposeLabel($rule, $start);
-			$base = $label;
-			for ($i = 2; isset($used[$label]); $i++) {
-				$label = mb_substr($base, 0, 58) . ' (' . $i . ')';
-			}
-			$used[$label] = true;
-
-			$periods[] = ['label' => mb_substr($label, 0, 64), 'startDate' => $start, 'endDate' => $end];
+			$ranges[] = [$start, $end];
 			if ($end >= $to) {
 				break;
 			}
-			if (count($periods) > self::MAX_MATERIALIZE) {
+			if (count($ranges) > self::MAX_MATERIALIZE) {
 				throw new \InvalidArgumentException($this->l10n->t(
 					'Diese Regel ergäbe zu viele Zeiträume. Bitte eine längere Periodendauer wählen.',
 				));
 			}
 			$cursor = PeriodRule::nextDay($end);
+		}
+
+		// Bezeichnungen in zwei Durchgängen. Eine Periode mit unveränderten
+		// Grenzen behält ihre – wer sie umbenannt hat, soll das nicht durch
+		// eine Umstellung verlieren, die diesen Zeitraum gar nicht berührt.
+		// Diese Bezeichnungen werden zuerst reserviert, damit kein Vorschlag
+		// für einen neuen Zeitraum sie verdrängt: applyRule() lässt solche
+		// Zeiträume unangetastet stehen, und ein neuer Zeitraum mit derselben
+		// Bezeichnung liefe in den Unique-Index.
+		$labels = [];
+		$used = [];
+		foreach ($ranges as $i => [$start, $end]) {
+			$existing = $byRange[$start . '|' . $end] ?? null;
+			if ($existing !== null) {
+				$labels[$i] = $existing;
+				$used[$existing] = true;
+			}
+		}
+		foreach ($ranges as $i => [$start, $end]) {
+			if (isset($labels[$i])) {
+				continue;
+			}
+			$label = PeriodRule::proposeLabel($rule, $start);
+			$base = $label;
+			for ($n = 2; isset($used[$label]); $n++) {
+				$label = mb_substr($base, 0, 58) . ' (' . $n . ')';
+			}
+			$used[$label] = true;
+			$labels[$i] = mb_substr($label, 0, 64);
+		}
+
+		$periods = [];
+		foreach ($ranges as $i => [$start, $end]) {
+			$periods[] = ['label' => $labels[$i], 'startDate' => $start, 'endDate' => $end];
 		}
 
 		return [
@@ -815,6 +899,12 @@ class PeriodService {
 	 * Maßstab ist die größte Überschneidung: ein Planwert landet dort, wo der
 	 * größte Teil seines bisherigen Zeitraums hingehört. Kollidieren zwei
 	 * Planwerte desselben Kontos, gewinnt der mit der größeren Überschneidung.
+	 *
+	 * Ein Zeitraum, den applyRule() unverändert stehen lässt, steht in beiden
+	 * Listen. Er ist mit sich selbst deckungsgleich, hat also die größte
+	 * mögliche Überschneidung und steht in seiner Gruppe vorn: seine eigenen
+	 * Planwerte gelten damit als gesetzt, bevor ein weichender Zeitraum seine
+	 * dazulegt – und movePeriod() von sich auf sich selbst ist ein No-op.
 	 *
 	 * @param Period[] $old
 	 * @param Period[] $new

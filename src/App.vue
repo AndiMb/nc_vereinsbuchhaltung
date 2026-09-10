@@ -49,7 +49,11 @@
 					</NcButton>
 					<label class="vbh-yearsel" :title="periodTitle">
 						<span>{{ t('Zeitraum') }}</span>
-						<select v-model="selectedPeriodId">
+						<!-- @change: eine bewusste Wahl zählt auch dann, wenn sie fällt,
+						     bevor die Zeiträume geladen sind („Alle Zeiträume" steht von
+						     Anfang an im Feld) – sonst überschriebe loadPeriods() sie
+						     gleich darauf mit der Vorgabe. -->
+						<select v-model="selectedPeriodId" @change="initialised = true">
 							<option :value="null">{{ t('Alle Zeiträume') }}</option>
 							<option v-for="p in periods" :key="p.id" :value="p.id">{{ p.label }}{{ p.closedAt ? ' 🔒' : '' }}</option>
 						</select>
@@ -473,13 +477,8 @@ export default {
 			authLoadMe: auth.loadMe,
 			...toRefs(periods.state),
 			selectedPeriod: periods.selectedPeriod,
-			periodsById: periods.periodsById,
-			closedSet: periods.closedSet,
-			periodClosed: periods.periodClosed,
 			periodForDate: periods.periodForDate,
 			isDateClosed: periods.isDateClosed,
-			previousOf: periods.previousOf,
-			labelOf: periods.labelOf,
 			loadPeriods: periods.loadPeriods,
 			...toRefs(accounts.state),
 			accountsById: accounts.accountsById,
@@ -610,7 +609,7 @@ export default {
 	},
 
 	computed: {
-		// canRead/canWrite/isAdmin/closedSet/periodClosed kommen aus setup()
+		// canRead/canWrite/isAdmin/selectedPeriod/isDateClosed kommen aus setup()
 		// (useAuth/usePeriods).
 
 		/**
@@ -1078,7 +1077,14 @@ export default {
 		async refreshAfterRemoteChange() {
 			this.ccBookings = {}
 			this.ccExpanded = {}
-			const jobs = [this.loadPeriods(), this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions(), this.loadSphereReport(), this.loadOpenItems(), this.loadCostCenters()]
+			// Zuerst die Zeiträume, und zwar allein: hat jemand anderes die
+			// Geschäftsjahr-Regel umgestellt oder einen Import mit Zurücksetzen
+			// gefahren, gibt es die gewählte Perioden-ID nicht mehr. loadPeriods()
+			// korrigiert die Auswahl; liefen die übrigen Abfragen parallel dazu,
+			// trügen sie noch die tote ID und meldeten reihenweise 404 – so wie
+			// es mounted() aus demselben Grund schon macht.
+			await this.loadPeriods()
+			const jobs = [this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions(), this.loadSphereReport(), this.loadOpenItems(), this.loadCostCenters()]
 			// Beitraege/Mandate/Einzuege: eigenes Zusatzmodul, ab Rolle Buchhalter
 			// (Backend-Gate) - siehe ContributionsTab.vue.
 			if (this.canWrite) { jobs.push(this.loadMembershipFees(), this.loadSepaMandates(), this.loadSepaBatches()) }
@@ -1385,7 +1391,11 @@ export default {
 			try {
 				await api.reset(); showSuccess(this.t('Alle Daten gelöscht.'))
 				this.selectedAccountId = null; this.statement = null; this.journalData = []; this.transactions = []
+				// Auswahl auf Anfang: loadPeriods() setzt die Vorgabe nur beim
+				// ersten Mal, deshalb auch das Flag zurück – sonst bliebe nach
+				// dem Löschen „alle Zeiträume" stehen.
 				this.selectedPeriodId = null
+				this.initialised = false
 				this.demoActive = false
 				await this.loadPeriods(); await this.loadAccounts(); await this.loadBalances(); await this.loadCostCenters()
 			} catch (e) { showError(this.errMsg(e, this.t('Zurücksetzen fehlgeschlagen'))) } finally { this.busy = false }

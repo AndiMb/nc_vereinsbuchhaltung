@@ -209,7 +209,7 @@
 								</tr>
 							</thead>
 							<tbody>
-								<tr v-for="(p, i) in rulePreview.periods" :key="i">
+								<tr v-for="(p, i) in previewRows" :key="i">
 									<td class="strong">
 										{{ p.label }}
 									</td>
@@ -312,6 +312,16 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Die Vorschau in derselben Reihenfolge wie die Tabelle darunter:
+		 * neuester Zeitraum zuerst. Der Server liefert die geplante Kette
+		 * aufsteigend; nebeneinander läsen sich „vorher" und „nachher" sonst in
+		 * entgegengesetzter Richtung.
+		 */
+		previewRows() {
+			return this.rulePreview ? [...this.rulePreview.periods].reverse() : []
+		},
+
 		monthNames() {
 			return [
 				this.t('Januar'),
@@ -373,6 +383,7 @@ export default {
 	// Muster wie chartInstances in ReportsTab.vue).
 	created() {
 		this.previewTimer = null
+		this.previewSeq = 0
 	},
 
 	mounted() {
@@ -407,22 +418,54 @@ export default {
 		},
 
 		async refreshPreview() {
+			// Laufende Nummer gegen überholte Antworten: zwei schnell
+			// aufeinanderfolgende Probeläufe können in umgekehrter Reihenfolge
+			// zurückkommen, und dann stünde unter der neuen Regel die Vorschau
+			// der alten.
+			const seq = ++this.previewSeq
 			this.previewLoading = true
 			try {
 				const { data } = await api.savePeriodRule(this.rule, true)
+				if (seq !== this.previewSeq) { return }
 				this.rulePreview = data
 				this.ruleError = ''
 			} catch (e) {
+				if (seq !== this.previewSeq) { return }
 				this.rulePreview = null
 				this.ruleError = this.errMsg(e, this.t('Diese Regel ergibt keine gültigen Zeiträume.'))
-			} finally { this.previewLoading = false }
+			} finally {
+				if (seq === this.previewSeq) { this.previewLoading = false }
+			}
 		},
 
+		/**
+		 * Holt die Vorschau immer frisch, statt die zuletzt gezeigte zu nehmen.
+		 * Der Watcher entprellt um 400 ms; wer innerhalb dieser Spanne klickt,
+		 * sähe sonst die Auswirkungen der vorigen Regel – und „Übernehmen"
+		 * schickte trotzdem die neue. Gerade die Warnung zu verlorenen
+		 * Planwerten muss zur Regel passen, die tatsächlich gesendet wird.
+		 */
 		async openPreview() {
-			// Ein noch laufender Probelauf oder ein leeres Ergebnis (etwa nach
-			// einem Fehler) darf keinen leeren Dialog öffnen.
-			if (!this.rulePreview) { await this.refreshPreview() }
+			clearTimeout(this.previewTimer)
+			await this.refreshPreview()
+			// Ein leeres Ergebnis (etwa nach einem Fehler) darf keinen leeren
+			// Dialog öffnen.
 			if (this.rulePreview) { this.previewOpen = true }
+		},
+
+		/**
+		 * Fehler melden – und bei einem 404 die Tabelle nachladen: der Zeitraum
+		 * ist dann hinter dem Rücken dieser Seite verschwunden (Umstellung oder
+		 * Import in einem anderen Fenster). Die Meldung des Servers bittet ums
+		 * Neuladen; das kann die Seite gleich selbst erledigen, sonst liefe
+		 * jeder weitere Klick auf dieselbe Zeile in denselben Fehler.
+		 *
+		 * @param {Error} e der Fehler aus dem API-Aufruf
+		 * @param {string} fallback Meldung, wenn der Server keine liefert
+		 */
+		async reportError(e, fallback) {
+			showError(this.errMsg(e, fallback))
+			if (e?.response?.status === 404) { await this.loadPeriods() }
 		},
 
 		async applyRule() {
@@ -472,7 +515,7 @@ export default {
 				await api.updatePeriod(period.id, { label })
 				await this.loadPeriods()
 				showSuccess(this.t('Zeitraum umbenannt.'))
-			} catch (e) { showError(this.errMsg(e, this.t('Umbenennen fehlgeschlagen'))) }
+			} catch (e) { await this.reportError(e, this.t('Umbenennen fehlgeschlagen')) }
 		},
 
 		/**
@@ -523,7 +566,7 @@ export default {
 				showSuccess(this.t('Grenze von {label} verschoben.', { label: period.label }))
 			} catch (e) {
 				input.value = period.endDate
-				showError(this.errMsg(e, this.t('Grenze konnte nicht verschoben werden')))
+				await this.reportError(e, this.t('Grenze konnte nicht verschoben werden'))
 			}
 		},
 
@@ -547,7 +590,7 @@ export default {
 				await api.deletePeriod(period.id)
 				await this.loadPeriods()
 				showSuccess(this.t('Zeitraum {label} entfernt.', { label: period.label }))
-			} catch (e) { showError(this.errMsg(e, this.t('Entfernen fehlgeschlagen'))) }
+			} catch (e) { await this.reportError(e, this.t('Entfernen fehlgeschlagen')) }
 		},
 
 		async closePeriod(period) {
@@ -561,7 +604,7 @@ export default {
 				await api.closePeriod(period.id)
 				await this.loadPeriods()
 				showSuccess(this.t('Zeitraum {label} abgeschlossen.', { label: period.label }))
-			} catch (e) { showError(this.errMsg(e, this.t('Abschließen fehlgeschlagen'))) }
+			} catch (e) { await this.reportError(e, this.t('Abschließen fehlgeschlagen')) }
 		},
 
 		async reopenPeriod(period) {
@@ -575,7 +618,7 @@ export default {
 				await api.reopenPeriod(period.id)
 				await this.loadPeriods()
 				showSuccess(this.t('Zeitraum {label} wiedereröffnet.', { label: period.label }))
-			} catch (e) { showError(this.errMsg(e, this.t('Wiedereröffnen fehlgeschlagen'))) }
+			} catch (e) { await this.reportError(e, this.t('Wiedereröffnen fehlgeschlagen')) }
 		},
 	},
 }

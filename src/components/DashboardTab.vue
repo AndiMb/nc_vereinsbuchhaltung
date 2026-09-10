@@ -387,9 +387,12 @@ export default {
 		formatDate,
 		/**
 		 * Die Monate eines Zeitraums als „JJJJ-MM", von seinem Beginn bis zu
-		 * seinem Ende. Ein Geschäftsjahr ist nie länger als zwölf Monate; die
-		 * feste Obergrenze der Schleife hält sie trotzdem an, falls doch einmal
-		 * kaputte Datumsgrenzen ankommen.
+		 * seinem Ende. Die Regel erzeugt höchstens zwölf Monate, aber der
+		 * letzte Zeitraum der Kette lässt sich von Hand beliebig verlängern
+		 * (Rumpf- oder Übergangsjahr beim Umstieg) – dann müssen auch der 13.
+		 * und 14. Monat ins Diagramm, sonst stimmen die Balken nicht mehr mit
+		 * den Kennzahlen darüber überein. Die feste Obergrenze hält die
+		 * Schleife nur an, falls einmal kaputte Datumsgrenzen ankommen.
 		 *
 		 * @param {object} period Zeitraum mit startDate/endDate
 		 */
@@ -399,7 +402,7 @@ export default {
 			let month = parseInt(String(period.startDate).slice(5, 7), 10)
 			const last = String(period.endDate).slice(0, 7)
 			if (!year || !month) { return out }
-			for (let i = 0; i < 12; i++) {
+			for (let i = 0; i < 120; i++) {
 				const key = `${year}-${String(month).padStart(2, '0')}`
 				out.push(key)
 				if (key >= last) { break }

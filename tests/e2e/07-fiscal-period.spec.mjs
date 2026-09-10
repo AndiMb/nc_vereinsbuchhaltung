@@ -127,9 +127,38 @@ test.describe('Geschäftsjahr', () => {
 
 		const periods = await api.listPeriods(request)
 		expect(periods.find((p) => p.id === dezember).label).toBe('2030')
-		// Jeder Zeitraum wird nach der Umstellung neu durchnummeriert.
+		// Der geteilte Zeitraum wird nach der Umstellung neu durchnummeriert.
 		const journal = await api.listJournal(request, { period: januar })
 		expect(journal.map((item) => item.journal.entryNo)).toEqual([1])
+	})
+
+	test('Grenze nach hinten verschieben: beide Zeiträume bleiben lückenlos nummeriert', async ({ request }) => {
+		// Ausgangslage aus den Tests davor: 2030 trägt zwei Dezember-Buchungen,
+		// 2031 die vom 15. Januar. Eine zweite im Februar, damit 2031 nach dem
+		// Verschieben noch etwas behält – nur dann fiele eine Lücke auf.
+		const februar = await api.createBooking(request, {
+			date: '2031-02-10', description: 'Bleibt in 2031', debitAccountId: bank.id, creditAccountId: income.id, amount: 30,
+		})
+		const p2030 = await api.periodIdForDate(request, '2030-12-15')
+		const p2031 = await api.periodIdForDate(request, '2031-02-10')
+
+		// Rumpfjahr-Fall aus dem Handbuch: 2030 endet erst am 31. Januar, die
+		// Januar-Buchung wandert vom Folgezeitraum in den verlängerten.
+		await api.updatePeriod(request, p2030, { endDate: '2031-01-31' })
+
+		const nummern = async (period) => (await api.listJournal(request, { period }))
+			.map((item) => item.journal.entryNo).sort((a, b) => a - b)
+		// Der verlängerte Zeitraum zählt nach Datum durch …
+		expect(await nummern(p2030)).toEqual([1, 2, 3])
+		// … und der, der eine Buchung abgegeben hat, fängt wieder bei 1 an –
+		// nicht bei 2, wie es eine zu frühe Nachnummerierung hinterließe.
+		expect(await nummern(p2031)).toEqual([1])
+		expect(await api.periodIdForDate(request, '2031-01-15')).toBe(p2030)
+
+		// Zurück auf Kalenderjahr-Grenzen für die Tests danach.
+		await api.updatePeriod(request, p2030, { endDate: '2030-12-31' })
+		await api.deleteBooking(request, (await februar.json()).id)
+		expect(await nummern(p2031)).toEqual([1])
 	})
 
 	test('nur Verwalter dürfen abschließen und umstellen', async ({ request }) => {

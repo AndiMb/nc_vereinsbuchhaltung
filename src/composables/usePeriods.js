@@ -16,6 +16,11 @@ const state = reactive({
 	periods: [],
 	// null bedeutet „alle Zeiträume"
 	selectedPeriodId: null,
+	// Wurde die Vorgabe schon einmal gesetzt? Getrennt von selectedPeriodId,
+	// weil null dort auch die bewusste Wahl „alle Zeiträume" ist – die darf
+	// ein späteres Nachladen (nach jeder Buchung, bei jedem Poll) nicht
+	// stillschweigend wieder auf den laufenden Zeitraum zurückdrehen.
+	initialised: false,
 })
 
 const periodsById = computed(() => {
@@ -27,15 +32,6 @@ const periodsById = computed(() => {
 const selectedPeriod = computed(() => (
 	state.selectedPeriodId === null ? null : (periodsById.value[state.selectedPeriodId] ?? null)
 ))
-
-/** Festgeschriebene Zeiträume für den schnellen Nachschlag. */
-const closedSet = computed(() => {
-	const s = {}
-	for (const p of state.periods) { if (p.closedAt) { s[p.id] = p } }
-	return s
-})
-
-const periodClosed = computed(() => !!(selectedPeriod.value && selectedPeriod.value.closedAt))
 
 /**
  * Der Zeitraum, in den ein Buchungsdatum fällt.
@@ -66,30 +62,36 @@ function previousOf(period) {
 	return best
 }
 
-/** Bezeichnung eines Zeitraums, oder ein leerer String, wenn es ihn nicht gibt. */
-function labelOf(periodId) {
-	return periodsById.value[periodId]?.label ?? ''
+/**
+ * Der Zeitraum, der heute enthält – sonst der neueste, sonst null.
+ *
+ * Vorgabe ist der laufende, nicht der zuletzt angelegte: bei halbjährlicher
+ * Buchführung ist im Mai das Sommersemester gemeint, auch wenn für das
+ * kommende Wintersemester schon ein Planwert steht.
+ *
+ * @param {Array} list die Zeiträume, absteigend nach Beginn
+ */
+function defaultPeriodId(list) {
+	if (!list.length) { return null }
+	const today = new Date().toISOString().slice(0, 10)
+	const current = list.find((p) => today >= p.startDate && today <= p.endDate)
+	return (current ?? list[0]).id
 }
 
-/**
- * Lädt die Zeiträume. Vorgabe ist der laufende, nicht der zuletzt angelegte:
- * bei halbjährlicher Buchführung ist im Mai das Sommersemester gemeint, auch
- * wenn für das kommende Wintersemester schon ein Planwert steht.
- */
+/** Lädt die Zeiträume und setzt beim ersten Mal die Vorgabe. */
 async function loadPeriods() {
 	try {
 		const { data } = await api.periods()
 		state.periods = data
-		if (state.selectedPeriodId === null && data.length) {
-			const today = new Date().toISOString().slice(0, 10)
-			const current = data.find((p) => today >= p.startDate && today <= p.endDate)
-			state.selectedPeriodId = (current ?? data[0]).id
+		if (!state.initialised && data.length) {
+			state.initialised = true
+			state.selectedPeriodId = defaultPeriodId(data)
 		}
 		// Nach einer Umstellung der Geschäftsjahr-Regel gibt es die bisher
 		// gewählte ID nicht mehr. Ohne diese Korrektur liefe jede folgende
-		// Anfrage in ein 404.
+		// Anfrage in ein 404. Ersatz ist derselbe wie beim ersten Laden.
 		if (state.selectedPeriodId !== null && !periodsById.value[state.selectedPeriodId]) {
-			state.selectedPeriodId = data.length ? data[0].id : null
+			state.selectedPeriodId = defaultPeriodId(data)
 		}
 	} catch { /* Zeiträume optional */ }
 }
@@ -97,14 +99,10 @@ async function loadPeriods() {
 export function usePeriods() {
 	return {
 		state,
-		periodsById,
 		selectedPeriod,
-		closedSet,
-		periodClosed,
 		periodForDate,
 		isDateClosed,
 		previousOf,
-		labelOf,
 		loadPeriods,
 	}
 }

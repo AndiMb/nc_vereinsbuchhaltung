@@ -90,6 +90,12 @@ class BudgetController extends Controller {
 	 */
 	#[NoAdminRequired]
 	public function set(int $accountId, int $period, float $amount = 0, string $note = ''): DataResponse {
+		// Der einzige Schreibpfad, der eine Perioden-ID aus dem Request
+		// übernimmt: ohne diese Prüfung entstünde bei einer veralteten oder
+		// erfundenen ID ein Planwert, den keine Ansicht je zeigt und den weder
+		// das Entfernen eines Zeitraums noch eine Umstellung wiederfindet.
+		// Eine unbekannte ID endet als 404 (PeriodNotFoundException).
+		$this->periods->find($this->userId(), $period);
 		$cents = (int)round($amount * 100);
 		$note = mb_substr(trim($note), 0, 1000);
 		$this->budgetMapper->upsert($this->userId(), $accountId, $period, $cents, $note);

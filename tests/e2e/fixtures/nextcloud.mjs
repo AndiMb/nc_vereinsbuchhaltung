@@ -295,6 +295,11 @@ export const api = {
 		return call(request, 'DELETE', `/periods/${periodId}/close`, { user })
 	},
 
+	/** Bezeichnung und/oder Ende eines Zeitraums ändern ({ label, endDate }). */
+	async updatePeriod(request, periodId, data, { user = 'admin', expectOk = true } = {}) {
+		return call(request, 'PUT', `/periods/${periodId}`, { user, expectOk, data })
+	},
+
 	/** Die Geschäftsjahr-Regel umstellen (Preset oder eigene Werte). */
 	async setPeriodRule(request, rule, { user = 'admin', expectOk = true } = {}) {
 		return call(request, 'PUT', '/periods/rule', { user, expectOk, data: rule })
