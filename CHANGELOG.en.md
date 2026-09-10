@@ -17,7 +17,7 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
-## [0.33.0] – 2026-09-08
+## [0.33.0] – 2026-09-10
 
 **New:**
 - **The fiscal year no longer has to match the calendar year.** Under the gear

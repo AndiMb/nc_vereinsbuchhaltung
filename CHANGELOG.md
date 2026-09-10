@@ -19,7 +19,7 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
-## [0.33.0] – 2026-09-08
+## [0.33.0] – 2026-09-10
 
 **Neu:**
 - **Das Geschäftsjahr muss nicht mehr dem Kalenderjahr entsprechen.** Unter
