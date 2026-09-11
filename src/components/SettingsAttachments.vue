@@ -30,7 +30,7 @@
 			{{ t('Belege werden unter') }} <code>{{ storageUser }}/{{ storagePath || 'Vereinsbuchhaltung/Belege' }}/&lt;BuchungsID&gt;/</code> {{ t('abgelegt.') }}
 		</p>
 		<p v-if="storageMode === 'watch'" class="vbh-hint vbh-hint--info">
-			{{ t('Der Ordner muss in der Dateien-App bereits existieren – die App legt ihn nicht an. Aus der App hochgeladene oder fotografierte Belege landen unter') }} <code>{{ storagePath || 'Vereinsbuchhaltung/Belege' }}/&lt;Jahr&gt;/</code>{{ t('; danach dürfen sie beliebig umsortiert werden. Gelöscht wird dort nie etwas: „Beleg löschen" löst nur die Verknüpfung. Beim Einschalten bekommen bereits vorhandene Belege im Ordner ihre Zuordnung nachgetragen.') }}
+			{{ t('Der Ordner muss in der Dateien-App bereits existieren – die App legt ihn nicht an. Aus der App hochgeladene oder fotografierte Belege landen unter') }} <code>{{ storagePath || 'Vereinsbuchhaltung/Belege' }}/&lt;Jahr&gt;/</code>{{ t('; danach dürfen sie beliebig umsortiert werden. Gelöscht wird dort nie etwas: „Beleg löschen" löst nur die Verknüpfung. Wer bisher den von der App verwalteten Ordner genutzt hat, kann ihn direkt als Wächter-Ordner wählen: die dort abgelegten Belege bleiben ihren Buchungen zugeordnet. Alle anderen Dateien im Ordner werden von Hand zugeordnet – in der Übersicht oder beim Buchen mit „Aus Ordner wählen".') }}
 		</p>
 	</div>
 </template>
