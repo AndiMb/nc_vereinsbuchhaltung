@@ -22,12 +22,12 @@ class BudgetMapper extends QBMapper {
 	 *
 	 * @return array<int, array{amount: int, note: string}> accountId => Planwert
 	 */
-	public function findByYear(string $userId, int $year): array {
+	public function findByPeriod(string $userId, int $periodId): array {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('account_id', 'amount_cents', 'note')
 			->from($this->getTableName())
 			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
-			->andWhere($qb->expr()->eq('year', $qb->createNamedParameter($year, IQueryBuilder::PARAM_INT)));
+			->andWhere($qb->expr()->eq('period_id', $qb->createNamedParameter($periodId, IQueryBuilder::PARAM_INT)));
 		$res = $qb->executeQuery();
 		$out = [];
 		while (($row = $res->fetch()) !== false) {
@@ -45,8 +45,8 @@ class BudgetMapper extends QBMapper {
 	 * leer, wird der Eintrag entfernt (eine Notiz allein hält ihn am Leben,
 	 * z. B. „bewusst 0 geplant, weil …").
 	 */
-	public function upsert(string $userId, int $accountId, int $year, int $amountCents, string $note = ''): void {
-		$existing = $this->findOne($userId, $accountId, $year);
+	public function upsert(string $userId, int $accountId, int $periodId, int $amountCents, string $note = ''): void {
+		$existing = $this->findOne($userId, $accountId, $periodId);
 		if ($amountCents === 0 && $note === '') {
 			if ($existing !== null) {
 				$this->delete($existing);
@@ -62,19 +62,19 @@ class BudgetMapper extends QBMapper {
 		$budget = new Budget();
 		$budget->setUserId($userId);
 		$budget->setAccountId($accountId);
-		$budget->setYear($year);
+		$budget->setPeriodId($periodId);
 		$budget->setAmountCents($amountCents);
 		$budget->setNote($note);
 		$this->insert($budget);
 	}
 
-	private function findOne(string $userId, int $accountId, int $year): ?Budget {
+	private function findOne(string $userId, int $accountId, int $periodId): ?Budget {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')
 			->from($this->getTableName())
 			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
 			->andWhere($qb->expr()->eq('account_id', $qb->createNamedParameter($accountId, IQueryBuilder::PARAM_INT)))
-			->andWhere($qb->expr()->eq('year', $qb->createNamedParameter($year, IQueryBuilder::PARAM_INT)));
+			->andWhere($qb->expr()->eq('period_id', $qb->createNamedParameter($periodId, IQueryBuilder::PARAM_INT)));
 		try {
 			return $this->findEntity($qb);
 		} catch (DoesNotExistException) {
@@ -82,24 +82,73 @@ class BudgetMapper extends QBMapper {
 		}
 	}
 
+	/** Anzahl Planwerte in einem Geschäftsjahr. */
+	public function countByPeriod(string $userId, int $periodId): int {
+		$qb = $this->db->getQueryBuilder();
+		$qb->selectAlias($qb->func()->count('id'), 'c')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+			->andWhere($qb->expr()->eq('period_id', $qb->createNamedParameter($periodId, IQueryBuilder::PARAM_INT)));
+		$res = $qb->executeQuery();
+		$count = (int)$res->fetchOne();
+		$res->closeCursor();
+		return $count;
+	}
+
 	/**
-	 * Geschäftsjahre, für die Planwerte existieren – absteigend sortiert.
+	 * Konten, für die in einem Geschäftsjahr ein Planwert existiert.
+	 *
+	 * Der PeriodService braucht das beim Umstellen der Regel: verschmelzen
+	 * zwei Zeiträume, kann ein Konto nur einen der beiden Planwerte behalten.
 	 *
 	 * @return int[]
 	 */
-	public function distinctYears(string $userId): array {
+	public function findAccountIdsForPeriod(string $userId, int $periodId): array {
 		$qb = $this->db->getQueryBuilder();
-		$qb->selectDistinct('year')
+		$qb->select('account_id')
 			->from($this->getTableName())
-			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)));
+			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+			->andWhere($qb->expr()->eq('period_id', $qb->createNamedParameter($periodId, IQueryBuilder::PARAM_INT)));
 		$res = $qb->executeQuery();
-		$years = [];
+		$ids = [];
 		while (($row = $res->fetch()) !== false) {
-			$years[] = (int)$row['year'];
+			$ids[] = (int)$row['account_id'];
 		}
 		$res->closeCursor();
-		rsort($years);
-		return $years;
+		return $ids;
+	}
+
+	/** Hängt alle Planwerte eines Geschäftsjahres an ein anderes um. */
+	public function movePeriod(string $userId, int $fromPeriodId, int $toPeriodId): void {
+		if ($fromPeriodId === $toPeriodId) {
+			return;
+		}
+		$qb = $this->db->getQueryBuilder();
+		$qb->update($this->getTableName())
+			->set('period_id', $qb->createNamedParameter($toPeriodId, IQueryBuilder::PARAM_INT))
+			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+			->andWhere($qb->expr()->eq('period_id', $qb->createNamedParameter($fromPeriodId, IQueryBuilder::PARAM_INT)));
+		$qb->executeStatement();
+	}
+
+	/**
+	 * Entfernt die Planwerte bestimmter Konten in einem Geschäftsjahr.
+	 * Gebraucht beim Verschmelzen zweier Zeiträume, siehe movePeriod().
+	 *
+	 * @param int[] $accountIds
+	 */
+	public function deleteByPeriodAndAccounts(string $userId, int $periodId, array $accountIds): void {
+		if ($accountIds === []) {
+			return;
+		}
+		foreach (array_chunk(array_values(array_unique($accountIds)), 500) as $chunk) {
+			$qb = $this->db->getQueryBuilder();
+			$qb->delete($this->getTableName())
+				->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+				->andWhere($qb->expr()->eq('period_id', $qb->createNamedParameter($periodId, IQueryBuilder::PARAM_INT)))
+				->andWhere($qb->expr()->in('account_id', $qb->createNamedParameter($chunk, IQueryBuilder::PARAM_INT_ARRAY)));
+			$qb->executeStatement();
+		}
 	}
 
 	public function deleteAllForUser(string $userId): void {
@@ -116,5 +165,29 @@ class BudgetMapper extends QBMapper {
 			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
 			->andWhere($qb->expr()->eq('account_id', $qb->createNamedParameter($accountId, IQueryBuilder::PARAM_INT)));
 		$qb->executeStatement();
+	}
+
+	/**
+	 * Anzahl Planwerte je Geschäftsjahr, in einer Abfrage.
+	 *
+	 * Die Zeitraum-Liste braucht diese Zahlen für jede Periode; einzeln
+	 * abgefragt wären das zwei Abfragen je Zeitraum bei jedem Seitenaufbau.
+	 *
+	 * @return array<int, int> periodId => Anzahl
+	 */
+	public function countsByPeriod(string $userId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('period_id')
+			->selectAlias($qb->func()->count('id'), 'c')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+			->groupBy('period_id');
+		$res = $qb->executeQuery();
+		$out = [];
+		while (($row = $res->fetch()) !== false) {
+			$out[(int)$row['period_id']] = (int)$row['c'];
+		}
+		$res->closeCursor();
+		return $out;
 	}
 }

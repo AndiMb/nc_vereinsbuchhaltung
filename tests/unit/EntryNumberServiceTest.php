@@ -56,16 +56,41 @@ class EntryNumberServiceTest extends TestCase {
 		$this->assertSame([10 => 1, 11 => 2, 12 => 3], EntryNumberService::renumberPlan($rows));
 	}
 
-	public function testLeeresJahr(): void {
+	public function testLeererZeitraum(): void {
 		$this->assertSame([], EntryNumberService::renumberPlan([]));
+	}
+
+	/**
+	 * Nach dem Umstellen der Geschäftsjahr-Regel können zwei bisher getrennte
+	 * Zeiträume zu einem verschmelzen. Dann treffen zwei Nummernkreise
+	 * aufeinander, die beide bei 1 begannen; sortiert wird deshalb nach Datum,
+	 * und die neue Nummer kann größer sein als die alte.
+	 *
+	 * Genau deshalb setzt renumberPeriodByDate() die betroffenen Zeilen erst
+	 * auf negative Zwischennummern: sonst liefe die Vergabe mitten im
+	 * Durchlauf in den Unique-Index.
+	 */
+	public function testZusammengefuehrteZeitraeumeKoennenNummernVergroessern(): void {
+		// Halbjahr A: 1, 2 (IDs 10, 11) – Halbjahr B: 1, 2 (IDs 20, 21),
+		// vom Mapper bereits nach Datum sortiert übergeben.
+		$rows = $this->rows([[10, 1], [11, 2], [20, 1], [21, 2]]);
+		$plan = EntryNumberService::renumberPlan($rows);
+
+		$this->assertSame([20 => 3, 21 => 4], $plan);
+		$this->assertGreaterThan(1, $plan[20], 'Beim Verschmelzen darf eine Nummer wachsen');
 	}
 
 	/**
 	 * Die entscheidende Eigenschaft für die Kollisionsfreiheit: beim Abarbeiten
 	 * in aufsteigender Reihenfolge ist die neue Nummer nie größer als die alte.
 	 * Nur deshalb ist die Zielnummer beim Schreiben garantiert schon frei und
-	 * der Unique-Index (user_id, year, entry_no) wird auch zwischendurch nie
-	 * verletzt.
+	 * der Unique-Index (user_id, period_id, entry_no) wird auch zwischendurch
+	 * nie verletzt.
+	 *
+	 * Sie gilt nur, solange die Reihenfolge die bisherige Nummer ist. Beim
+	 * Zusammenführen zweier Zeiträume zählt das Datum, und dann kann eine
+	 * Nummer auch wachsen – siehe
+	 * {@see testZusammengefuehrteZeitraeumeKoennenNummernVergroessern()}.
 	 */
 	public function testNeueNummerIstNieGroesserAlsDieAlte(): void {
 		$rows = $this->rows([[10, 3], [11, 7], [12, 8], [13, 20]]);

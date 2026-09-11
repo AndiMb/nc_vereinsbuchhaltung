@@ -23,13 +23,13 @@ function kontoFelder(account) {
 // die druckfertigen Seiten und die CSV-Exporte liefern Inhalt.
 
 test.describe('Berichte und Exporte', () => {
-	let demoYear
+	let demoPeriod
 
 	test.beforeAll(async ({ request }) => {
 		await api.resetBook(request)
 		await api.seedDemo(request)
-		const years = await api.getJson(request, '/journal/years')
-		demoYear = years[years.length - 1]
+		const periods = await api.listPeriods(request)
+		demoPeriod = periods[periods.length - 1].id
 	})
 
 	test('die Berichts-Ansichten rendern mit Daten', async ({ page }) => {
@@ -48,7 +48,7 @@ test.describe('Berichte und Exporte', () => {
 
 	test('Kassenbericht und Kurzbericht sind druckfertige Seiten', async ({ request }) => {
 		for (const report of ['kassenbericht', 'kurzbericht']) {
-			const resp = await api.raw(request, 'GET', `/export/${report}?year=${demoYear}`, { user: USERS.revisor })
+			const resp = await api.raw(request, 'GET', `/export/${report}?period=${demoPeriod}`, { user: USERS.revisor })
 			expect(resp.status(), report).toBe(200)
 			expect(await resp.text()).toContain('<html')
 		}
@@ -114,7 +114,7 @@ test.describe('Berichte und Exporte', () => {
 	})
 
 	test('CSV-Exporte liefern Journal und Saldenliste', async ({ request }) => {
-		for (const path of [`/export/journal?year=${demoYear}`, `/export/balances?year=${demoYear}`]) {
+		for (const path of [`/export/journal?period=${demoPeriod}`, `/export/balances?period=${demoPeriod}`]) {
 			const resp = await api.raw(request, 'GET', path, { user: USERS.revisor })
 			expect(resp.status(), path).toBe(200)
 			const body = await resp.text()

@@ -18,7 +18,7 @@ what should I watch out for?
 5. [Understanding the reports](#5-understanding-the-reports)
 6. [Financial plan (budget)](#6-financial-plan-budget)
 7. [Reports, exports and the treasurer's report](#7-reports-exports-and-the-treasurers-report)
-8. [Year-end closing and finalization](#8-year-end-closing-and-finalization)
+8. [Fiscal year and finalization](#8-fiscal-year-and-finalization)
 9. [Preparing for and accompanying the annual audit](#9-preparing-for-and-accompanying-the-annual-audit)
 10. [Several people working on the books (collaboration)](#10-several-people-working-on-the-books-collaboration)
 11. [On the go: the app on your smartphone](#11-on-the-go-the-app-on-your-smartphone)
@@ -92,8 +92,8 @@ need it can hide it.
 Gear icon (settings) → **Permissions** section. There you assign a role to
 Nextcloud users or groups:
 
-- **Administrator** – can do everything, including permissions, year-end
-  closing, delete-all-data.
+- **Administrator** – can do everything, including permissions, the fiscal
+  year, delete-all-data.
 - **Bookkeeper** – reads and writes postings, receipts, assignments, as
   well as members, SEPA mandates and fee collection (chapters 13.2–13.7).
 - **Auditor** – read-only (for the annual audit).
@@ -122,7 +122,7 @@ Every account has:
 - a **name**,
 - a **type** (income, expenses, fixed/current asset, liability, equity),
 - optionally the **bank account** flag (for cash accounts – only these
-  accumulate across the year boundary),
+  accumulate across the fiscal-year boundary),
 - for cash accounts, optionally the **IBAN**. Anyone running just one bank
   account doesn't need it. With several accounts, it decides which cash
   account an imported transaction is posted on – without it, everything
@@ -186,6 +186,23 @@ report itself deliberately stays plain and neutral. Entirely optional: the
 short report works just as well without a logo, just without brand
 recognition.
 
+### 2.7 Defining the fiscal year (only if it isn't the calendar year)
+
+Out of the box the app works in the **calendar year** (1 January to
+31 December). Anyone keeping it that way can skip this step – there is
+nothing to configure.
+
+If your fiscal year runs differently – October to September, the school
+year from August to July, or by semester – set that up **once at the
+start**: gear icon → *Fiscal year* (administrators only). How it works and
+what happens to existing postings is described in **chapter 8.1**.
+
+> **Best done first:** Switching the rule reassigns every existing posting
+> to its new period and renumbers the postings. That is intended and
+> harmless – but the less has been posted, the less there is to check. As
+> soon as one period is finalized, switching is no longer possible at all
+> (chapter 8.1).
+
 ---
 
 ## 3. Getting data into the system
@@ -200,17 +217,21 @@ and postings completely: gear icon → *Data* → *From "zero Buchhaltung"
   already present are recognized via a fingerprint and skipped. This lets
   you import several yearly files **one after another** without creating
   duplicates.
-- **Fiscal year:** taken from the file or chosen manually. Postings outside
-  the year are reported and can be dated to 01/01 or 12/31.
+- **Fiscal year:** The app reads the file's date range and looks for the
+  period it falls into (chapter 8.1). If none fits, or it should be a
+  different one, pick it from the list of your periods. Postings outside
+  that period are reported and can be dated to its first or last day – with
+  a fiscal year running October to September that means 01/10 or 30/09, not
+  01/01 or 31/12.
 - **Opening balances** on a multi-year import: recognized and skipped when
   they're already covered by prior-year postings – the app warns on
   deviations.
 - **Reset mode** ("delete all data first," administrators only): replaces
   all data completely. **Caution:** irreversible (see 12.1).
 
-> **Important:** The merge import is blocked if an affected year is already
-> **closed** (chapter 8). A closed year is finalized and can no longer be
-> changed – not even by an import.
+> **Important:** The merge import is blocked if an affected period is
+> already **closed** (chapter 8). A closed period is finalized and can no
+> longer be changed – not even by an import.
 
 ### 3.2 Importing bank statements (transactions)
 
@@ -315,7 +336,7 @@ posting is created automatically from the assignment:
   (chapter 3.3) this always happens.
 
 Anyone who assigned something by mistake can remove it again at any time
-("– not assigned –") – as long as the year is still open.
+("– not assigned –") – as long as the period is still open.
 
 **A transaction that contains more than one thing at once: "Split…"**
 
@@ -391,7 +412,7 @@ glance (important for chapter 9).
 
 ### 4.4 Correcting and deleting postings
 
-As long as the year is **open**, postings can be changed at any time
+As long as the period is **open**, postings can be changed at any time
 (pencil icon) or deleted (trash icon). While editing, the app always shows
 the current state – if someone else has changed the same posting in the
 meantime, a conflict message appears instead of a silent overwrite
@@ -428,32 +449,36 @@ e.g. a fee waiver) or, if needed, **reopened**.
 
 ## 5. Understanding the reports
 
-All reports relate to the **fiscal year chosen in the header** (calendar
-year; "all years" is possible). Balance-sheet accounts (bank, cash) show
-the cumulative account balance, income/expense accounts only the movement
-of the selected year.
+All reports relate to the **period chosen in the header** – that is your
+fiscal year, so "2026" with a calendar year, or "2025/26" with a
+non-calendar fiscal year (chapter 8.1). "All periods" is possible too.
+Balance-sheet accounts (bank, cash) show the cumulative account balance,
+income/expense accounts only the movement of the selected period.
 
 ### 5.1 Overview (dashboard)
 
-KPI tiles: **income**, **expenses**, **result** for the year – each with a
-year-over-year comparison. Plus a notice about *unassigned* bank
+KPI tiles: **income**, **expenses**, **result** for the period – each
+compared with the **previous period** (with semesters, that is the semester
+before, not "year minus one"). Plus a notice about *unassigned* bank
 transactions ("assign now" jumps directly there) and a monthly income/
-expense chart. The dashboard is the first thing you see after logging in:
-does everything look roughly right?
+expense chart. It runs across the selected period: with a fiscal year from
+October to September it starts in October, with a semester it shows six
+bars. The dashboard is the first thing you see after logging in: does
+everything look roughly right?
 
 ### 5.2 Trial balance
 
 **Reports → Evaluation** tab. Lists all accounts with debit, credit and
 balance – hierarchical, optionally including sub-accounts. Here you see at
-a glance what happened on each account during the year. Also exportable as
-CSV.
+a glance what happened on each account during the selected period. Also
+exportable as CSV.
 
 ### 5.3 Account statement
 
 Clicking an account (in the trial balance or the Accounts tab) shows the
 **account statement**: every posting with a running balance and the balance
-carried forward from the start of the year. Ideal for reconciling a single
-bank or cash balance against the bank statement.
+carried forward from the first day of the selected period. Ideal for
+reconciling a single bank or cash balance against the bank statement.
 
 **Editing a posting.** If you notice a mistake while reviewing, correct it
 right there – without switching to the journal and without noting down the
@@ -606,10 +631,11 @@ already been set aside.
 
 ## 6. Financial plan (budget)
 
-**Reports → Financial plan** tab. A **planned amount** per year can be
-entered for every income and expense account. The app shows the **actual
-value** next to it and the color-coded **deviation** – so you can see early
-whether, for example, insurance is over budget.
+**Reports → Financial plan** tab. A **planned amount** per period can be
+entered for every income and expense account – with a semester rule, that
+means per semester. The app shows the **actual value** next to it and the
+color-coded **deviation** – so you can see early whether, for example,
+insurance is over budget.
 
 - **Note per plan figure:** record the rationale, e.g. "40 members ×
   €25". Makes the plan traceable and defensible at the general assembly.
@@ -627,16 +653,21 @@ whether, for example, insurance is over budget.
 The **Bookings** and **Reports** tabs each have download buttons
 (down-arrow icon):
 
-- **Journal** (all postings of the year)
+- **Journal** (all postings of the selected period)
 - **Trial balance**
 - **Income/expense overview**
 - **Plan/actual comparison** (financial plan, including notes)
 - **Multi-year overview** (matrix: income statement + assets + cost
-  centers + tax spheres across all years)
+  centers + tax spheres across all periods)
 
 The CSV files are suitable for handing over to your tax advisor or the
 audit, or for your own analysis in Excel. Format: semicolon-separated,
 UTF-8 with BOM (Excel-compatible), German number format.
+
+> **The file names carry the period's label**, no longer a year number:
+> `journal_2025-26.csv` instead of `journal_2025.csv` (the slash in
+> "2025/26" becomes a hyphen, because it has no place in a file name). The
+> same goes for the receipt ZIP (chapter 9.2).
 
 > **Split postings in the journal export:** A posting whose amount is
 > spread across several counter-accounts occupies several rows there – each
@@ -645,18 +676,21 @@ UTF-8 with BOM (Excel-compatible), German number format.
 > posting amount.
 
 > **Multi-year trend as a chart:** In Reports → Evaluation, a line chart
-> shows income, expenses and result across all years – at a glance instead
-> of as a table. Handy for presenting to the board or the general assembly.
+> shows income, expenses and result across all periods – at a glance
+> instead of as a table. Handy for presenting to the board or the general
+> assembly.
 
 ### 7.2 Treasurer's report (print-ready)
 
 **Reports → Evaluation** tab → **"Treasurer's report"** button (only with a
-year selected). Opens a dedicated, print-optimized page with:
+period selected). Opens a dedicated, print-optimized page with:
 
-- club name, year and creation date
-- **asset overview** of the cash accounts (balance on 01/01 and 12/31, and
-  the change)
-- **income/expense statement** by account with totals and the year's result
+- club name, the fiscal year's label (e.g. "2025/26") and creation date
+- **asset overview** of the cash accounts (balance on the first and the
+  last day of the fiscal year, and the change). The columns name the actual
+  reference dates: with a fiscal year from October to September that is
+  *balance 01/10/2025* and *balance 30/09/2026*, not 01/01 and 31/12.
+- **income/expense statement** by account with totals and the result
 - **plan/actual comparison**, if plan figures exist
 - **completeness notice** (posting count, number range, gap/duplicate
   check)
@@ -669,36 +703,136 @@ report is the document for the general assembly.
 ### 7.3 Short report for board meetings (print-ready)
 
 **Reports → Evaluation** tab → **"Short report"** button. Unlike the
-treasurer's report (chapter 7.2, always a full calendar year), the short
+treasurer's report (chapter 7.2, always a whole fiscal year), the short
 report relates to a freely selectable period **"since …"** – typically
 since the last board meeting. The app remembers the last chosen date
 device-locally as a suggestion for next time.
 
 Content: cash-account balances as of the reference date and today,
 movements since the reference date (income/expenses/result), as well as a
-short financial-plan summary for the current year (plan vs. actual so far).
+short financial-plan summary for the current period (plan vs. actual so
+far).
 If a logo and an accent color are set under gear icon → *Club*
 (chapter 2.6), both appear automatically in the header of the report. As
 with the treasurer's report: print or "save as PDF" via the browser.
 
 ---
 
-## 8. Year-end closing and finalization
+## 8. Fiscal year and finalization
 
 A core piece of clean club accounting: a **closed** fiscal year is
 **finalized** – its postings, receipts and assignments can no longer be
 changed or deleted afterwards. This keeps what the general assembly has
 discharged immutable.
 
-### 8.1 Closing a year
+But first it has to be clear *what* the fiscal year even is. The app no
+longer necessarily works in the calendar year: a fiscal year is a named
+**period** with a from and a to date. It may deviate from the calendar year
+and be shorter than twelve months.
 
-Gear icon → *Year-end closing* (administrators only). A list of all years
-with status. Confirm "Close" as needed. The year is then marked with a 🔒
-in the year dropdown.
+### 8.1 Defining the fiscal year
 
-### 8.2 What's locked – and what isn't
+Gear icon → *Fiscal year* (administrators only). The page has two cards: at
+the top the **rule** by which periods come about, below it the **periods**
+themselves.
 
-After closing, the following are **no longer possible** for the year in
+**Card 1: the rule.** There are four templates plus one of your own:
+
+| Template | Period | typical for |
+|---|---|---|
+| **Calendar year** (default) | 1 January – 31 December | most clubs |
+| **October – September** | 1 October – 30 September | sports clubs whose season starts in autumn |
+| **August – July (school year)** | 1 August – 31 July | kindergartens, school support associations |
+| **Semester** | 1 October and 1 April, six months each | student clubs, university groups |
+| **Custom rule** | start day, start month and length, freely | everything else |
+
+For a custom rule you give the **start day** (1–31), the **start month**
+and the **length**. Only lengths that divide 12 can be chosen: 1, 2, 3, 4,
+6 or 12 months. The reason is simple: with any other length – five months,
+say – the fiscal year would drift against the calendar year after year and
+after a few periods would start in a completely different month than at the
+beginning.
+
+A start day that doesn't exist in the target month is clamped to the last
+day of that month: start day 31 yields 28 or 29 February. The app still
+computes with the original start day, though – March starts on the 31st
+again, not on the 28th.
+
+**See beforehand what will happen.** The **"Preview"** button shows, before
+anything is saved:
+
+- the future periods with label, from and to,
+- how many postings will change period,
+- how many **plan figures will be lost**. That happens when two existing
+  periods merge into one new one: an account can only hold one planned
+  amount there, the other is discarded and cannot be restored.
+
+Only in this dialog is there an **"Apply"** button. Switching then assigns
+every posting to its new period and renumbers the postings per period (by
+date, gap-free from 1). The action is recorded in the change log.
+
+> **Locked as soon as anything is finalized:** If even a single period is
+> closed, the app refuses to switch and names the periods concerned. They
+> would have to be reopened first (chapter 8.4). This is deliberate: a
+> finalized fiscal year should not get different boundaries after the fact.
+
+**Card 2: the periods.** A list with **label**, **from–to**, **status** and
+the actions.
+
+- The app proposes the **label** – "2026" for a calendar year, "2025/26"
+  for a non-calendar fiscal year, "2025/26-1" and "2025/26-2" for
+  semesters. Click it to edit; "Season 25/26" or "Winter semester 2025/26"
+  works just as well. It only has to stay unique, because it shows up all
+  over the app and in the file names.
+- The **boundary between two open periods** can be moved via the date field
+  on the to date; the following period then starts the next day. This is
+  the way to a **short fiscal year** when switching over: if you move to an
+  October–September fiscal year as of 1 October 2026, you let the year 2026
+  end on 30 September – what remains is a nine-month stub that is accounted
+  for as its own, short fiscal year.
+- **"Create next period"** (button above the list) appends one more period
+  at the end according to the current rule. This is rarely needed – the app
+  creates a period by itself as soon as a posting falls into it.
+- **"Remove"** is offered only for an empty period at the beginning or the
+  end of the chain (no postings and no plan figures). In the middle it
+  would leave a hole that no posting could belong to.
+- **"Close"** and **"Reopen"** as before – see the following sections.
+
+> **Existing books don't change with the update.** For every calendar year
+> so far, a period 01/01–31/12 is created with the year number as its
+> label. Posting numbers and years already closed stay untouched. Anyone
+> working in the calendar year notices nothing of the rebuild except the
+> new word "period" in the header.
+
+**What follows the period** – and what doesn't. Following the selected
+period are: the selector in the header, the posting numbers, all reports
+and CSV exports including their file names, the financial plan and the plan
+snapshots, the receipt ZIP, finalization, the balance carried forward in
+the account statement, the monthly chart on the overview and the comparison
+of the key figures with the previous period.
+
+Three things are deliberately *not* switched over:
+
+- **Membership fees, open items and SEPA** (chapter 13) still calculate
+  from the **member's start date**, not from the beginning of the fiscal
+  year. "Annually" therefore means twelve months from that date – whoever
+  joins on 15 March keeps paying every 15 March.
+- The **monthly grouping in the posting journal** stays calendar-based: the
+  group "October 2025" is called October 2025, wherever in the fiscal year
+  it happens to sit.
+- The **reserves report** (chapter 5.7) is still cumulative and has no
+  period filter – a reserve is a stock, not an annual result.
+
+### 8.2 Closing a period
+
+Gear icon → *Fiscal year* → *Periods* card (administrators only). Confirm
+"Close" as needed; the dialog names the label and the from–to dates so the
+wrong period doesn't get caught. The period is then marked with a 🔒 in the
+selector in the header.
+
+### 8.3 What's locked – and what isn't
+
+After closing, the following are **no longer possible** for the period in
 question: creating/changing/deleting postings, assigning bank transactions
 or removing assignments, attaching or deleting receipts, changing opening
 balances, the xbuc import (merge). The app shows closed postings read-only;
@@ -716,7 +850,7 @@ every report – the treasurer's report of the closed year would look
 different afterwards, without anyone having touched a posting. **Freely
 changeable remain** the number, name, category, parent account and the
 active toggle; they only change the label and sorting. Anyone who still
-needs to change a locked property reopens the year (chapter 8.3) and closes
+needs to change a locked property reopens the year (chapter 8.4) and closes
 it again afterwards.
 
 > **For the watch folder, this means:** if someone drops a statement that
@@ -725,13 +859,13 @@ it again afterwards.
 > in `verarbeitet/`; the number of unassigned transactions is noted in the
 > change log (chapter 9.2) at the "watch-folder import" entry.
 
-### 8.3 Reopening a year (exceptional case)
+### 8.4 Reopening a year (exceptional case)
 
 Administrators only, only in exceptional cases (e.g. a correction before
 the audit). The action is recorded in the **change log**. Normally, a year
 is closed for good.
 
-### 8.4 When to close?
+### 8.5 When to close?
 
 Typical order:
 
@@ -879,7 +1013,7 @@ there's nothing to lose.
 As long as the year is open: open the posting (pencil) and correct it, or
 delete it and create a new one. On conflicts with another person: reopen
 and save again. A closed year can only be corrected after reopening
-(administrators, chapter 8.3).
+(administrators, chapter 8.4).
 
 ### 12.3 Database backup before updates
 

@@ -11,8 +11,10 @@
 			<h2 v-if="!isMobile" id="vbh-modal-title-booking" class="vbh-modal-title">
 				{{ bookingTitle }}
 			</h2>
-			<p v-if="bookingLocked" class="vbh-hint vbh-hint--info">
-				{{ t('🔒 Das Geschäftsjahr {year} ist abgeschlossen – diese Buchung kann nur noch angesehen werden.', { year: String(bookingForm.date).slice(0, 4) }) }}
+			<!-- Ohne bekannten Zeitraum kein Banner: dann liesse sich nicht sagen,
+			     welches Geschäftsjahr gemeint ist. -->
+			<p v-if="bookingLocked && bookingPeriodLabel" class="vbh-hint vbh-hint--info">
+				{{ t('🔒 Das Geschäftsjahr {period} ist abgeschlossen – diese Buchung kann nur noch angesehen werden.', { period: bookingPeriodLabel }) }}
 			</p>
 			<div
 				v-if="bookingMode === 'simple'"
@@ -478,6 +480,7 @@ import { toRefs } from 'vue'
 import AmountInput from './AmountInput.vue'
 import { useAccounts } from '../composables/useAccounts.js'
 import { useJournal } from '../composables/useJournal.js'
+import { usePeriods } from '../composables/usePeriods.js'
 import { autogrow } from '../lib/autogrow.js'
 import { formatFileSize, formatMoney } from '../lib/format.js'
 import { splitBalanced, splitRemainder, splitSideOf } from '../lib/split.js'
@@ -526,14 +529,17 @@ export default {
 
 	setup() {
 		// accountsSorted/accountsById fuer Konto-Labels/-Auswahl, journalData fuer
-		// die Haeufigkeits-Sortierung - direkt aus den Singletons (gleicher
+		// die Haeufigkeits-Sortierung, periodForDate fuer den Hinweis auf ein
+		// festgeschriebenes Geschaeftsjahr - direkt aus den Singletons (gleicher
 		// geteilter Zustand wie in App.vue, keine Prop-Weitergabe noetig).
 		const accounts = useAccounts()
 		const journal = useJournal()
+		const periods = usePeriods()
 		return {
 			accountsSorted: accounts.accountsSorted,
 			accountsById: accounts.accountsById,
 			...toRefs(journal.state),
+			periodForDate: periods.periodForDate,
 		}
 	},
 
@@ -546,6 +552,15 @@ export default {
 			return this.bookingForm.id
 				? this.t('Buchung bearbeiten #{n}', { n: this.bookingForm.entryNo })
 				: this.t('Neue Buchung')
+		},
+
+		/**
+		 * Bezeichnung des Geschäftsjahres, in das das Buchungsdatum fällt - leer,
+		 * wenn es dafür keinen Zeitraum gibt (z. B. ein Datum vor dem ersten
+		 * angelegten Geschäftsjahr).
+		 */
+		bookingPeriodLabel() {
+			return this.periodForDate(this.bookingForm.date)?.label ?? ''
 		},
 
 		// --- Formularfelder -------------------------------------------------

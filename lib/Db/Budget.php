@@ -9,12 +9,16 @@ use OCP\AppFramework\Db\Entity;
 /**
  * Finanzplan-Wert (Budget) eines Kontos für ein Geschäftsjahr.
  *
+ * Das Geschäftsjahr steht seit 0.33.0 als Verweis auf {@see Period} da, nicht
+ * mehr als Jahreszahl: es muss weder dem Kalenderjahr entsprechen noch zwölf
+ * Monate lang sein (Issue #8).
+ *
  * @method string getUserId()
  * @method void setUserId(string $userId)
  * @method int getAccountId()
  * @method void setAccountId(int $accountId)
- * @method int getYear()
- * @method void setYear(int $year)
+ * @method int getPeriodId()
+ * @method void setPeriodId(int $periodId)
  * @method int getAmountCents()
  * @method void setAmountCents(int $amountCents)
  * @method ?string getNote()
@@ -24,13 +28,13 @@ class Budget extends Entity implements \JsonSerializable {
 
 	protected $userId;
 	protected $accountId;
-	protected $year;
+	protected $periodId;
 	protected $amountCents;
 	protected $note;
 
 	public function __construct() {
 		$this->addType('accountId', 'integer');
-		$this->addType('year', 'integer');
+		$this->addType('periodId', 'integer');
 		$this->addType('amountCents', 'integer');
 	}
 
@@ -38,7 +42,7 @@ class Budget extends Entity implements \JsonSerializable {
 		return [
 			'id' => $this->id,
 			'accountId' => $this->accountId,
-			'year' => $this->year,
+			'periodId' => $this->periodId,
 			'amountCents' => $this->amountCents,
 			'amount' => ($this->amountCents ?? 0) / 100,
 			'note' => (string)($this->note ?? ''),

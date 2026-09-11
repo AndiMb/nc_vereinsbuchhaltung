@@ -23,10 +23,19 @@ export default {
 	revision: () => axios.get(url('/revision')),
 	lastWriteAt: () => lastWriteTs,
 
-	// Jahresabschluss (Festschreibung) + Änderungsprotokoll
-	closedYears: () => axios.get(url('/years/closed')),
-	closeYear: (year) => axios.post(url(`/years/${year}/close`)),
-	reopenYear: (year) => axios.delete(url(`/years/${year}/close`)),
+	// Geschäftsjahre: Liste, Regel, Grenzen, Festschreibung.
+	// `period` ist überall die Perioden-ID; fehlt sie oder ist sie 0, meint der
+	// Server „alle Zeiträume" (siehe PeriodService::isSelected()).
+	periods: () => axios.get(url('/periods')),
+	periodRule: () => axios.get(url('/periods/rule')),
+	savePeriodRule: (rule, dryRun = false) => axios.put(url('/periods/rule'), { ...rule, dryRun: dryRun ? 1 : 0 }),
+	createPeriod: () => axios.post(url('/periods')),
+	updatePeriod: (id, data) => axios.put(url(`/periods/${id}`), data),
+	deletePeriod: (id) => axios.delete(url(`/periods/${id}`)),
+	closePeriod: (id) => axios.post(url(`/periods/${id}/close`)),
+	reopenPeriod: (id) => axios.delete(url(`/periods/${id}/close`)),
+
+	// Änderungsprotokoll
 	auditLog: (limit = 100, offset = 0) => axios.get(url('/audit'), { params: { limit, offset } }),
 
 	// Konten
@@ -36,7 +45,7 @@ export default {
 	deleteAccount: (id) => axios.delete(url(`/accounts/${id}`)),
 	seedAccounts: () => axios.post(url('/accounts/seed')),
 	setOpening: (id, amount, date) => axios.post(url(`/accounts/${id}/opening`), { amount, date }),
-	accountJournal: (id, includeChildren, year) => axios.get(url(`/accounts/${id}/journal`), { params: { includeChildren: includeChildren ? 1 : 0, year: year || undefined } }),
+	accountJournal: (id, includeChildren, period) => axios.get(url(`/accounts/${id}/journal`), { params: { includeChildren: includeChildren ? 1 : 0, period: period || undefined } }),
 
 	// Buchungen (Bankumsätze)
 	listTransactions: (status) => axios.get(url('/transactions'), { params: { status } }),
@@ -57,8 +66,7 @@ export default {
 	seedDemo: () => axios.post(url('/demo/seed')),
 
 	// Journal / Buchungssätze
-	journal: (year) => axios.get(url('/journal'), { params: { year: year || undefined } }),
-	journalYears: () => axios.get(url('/journal/years')),
+	journal: (period) => axios.get(url('/journal'), { params: { period: period || undefined } }),
 	createBooking: (data) => axios.post(url('/journal'), data),
 	updateBooking: (id, data) => axios.put(url(`/journal/${id}`), data),
 	deleteBooking: (id) => axios.delete(url(`/journal/${id}`)),
@@ -66,10 +74,10 @@ export default {
 	reassignBooking: (id, fromAccountId, toAccountId, updatedAt) => axios.post(url(`/journal/${id}/reassign`), { fromAccountId, toAccountId, updatedAt: updatedAt || null }),
 
 	// Auswertung
-	balances: (year) => axios.get(url('/journal/balances'), { params: { year: year || undefined } }),
+	balances: (period) => axios.get(url('/journal/balances'), { params: { period: period || undefined } }),
 
 	// Berichte / Kostenstellen
-	costCenterReport: (year) => axios.get(url('/report/costcenters'), { params: { year: year || undefined } }),
+	costCenterReport: (period) => axios.get(url('/report/costcenters'), { params: { period: period || undefined } }),
 	renameCostCenter: (code, name) => axios.put(url('/report/costcenters'), { code, name }),
 
 	// Kostenstellen pflegen (frei definierbar)
@@ -78,18 +86,18 @@ export default {
 	updateCostCenter: (id, code, name) => axios.put(url(`/costcenters/${id}`), { code, name }),
 	deleteCostCenter: (id) => axios.delete(url(`/costcenters/${id}`)),
 	assignCostCenter: (accountIds, costCenterId) => axios.post(url('/costcenters/assign'), { accountIds, costCenterId: costCenterId || 0 }),
-	sphereReport: (year) => axios.get(url('/report/spheres'), { params: { year: year || undefined } }),
+	sphereReport: (period) => axios.get(url('/report/spheres'), { params: { period: period || undefined } }),
 	bulkSphere: (accountIds, sphere) => axios.post(url('/accounts/sphere-bulk'), { accountIds, sphere }),
 	multiyearTrend: () => axios.get(url('/report/multiyear-trend')),
 	reserveReport: () => axios.get(url('/report/reserves')),
 
 	// Finanzplan / Budget
-	budget: (year) => axios.get(url('/budget'), { params: { year: year || undefined } }),
-	setBudget: (accountId, year, amount, note = '') => axios.post(url('/budget'), { accountId, year, amount, note }),
+	budget: (period) => axios.get(url('/budget'), { params: { period: period || undefined } }),
+	setBudget: (accountId, period, amount, note = '') => axios.post(url('/budget'), { accountId, period, amount, note }),
 
 	// Finanzplan-Stände (Snapshots)
-	budgetSnapshots: (year) => axios.get(url('/budget/snapshots'), { params: { year: year || undefined } }),
-	createBudgetSnapshot: (year, label) => axios.post(url('/budget/snapshots'), { year, label }),
+	budgetSnapshots: (period) => axios.get(url('/budget/snapshots'), { params: { period: period || undefined } }),
+	createBudgetSnapshot: (period, label) => axios.post(url('/budget/snapshots'), { period, label }),
 	budgetSnapshot: (id) => axios.get(url(`/budget/snapshots/${id}`)),
 	deleteBudgetSnapshot: (id) => axios.delete(url(`/budget/snapshots/${id}`)),
 
@@ -137,14 +145,14 @@ export default {
 	sepaBatchXmlUrl: (id) => generateUrl(base + `/sepa/export/batches/${id}/xml`),
 
 	// Export (CSV-Download – Browser-Navigation, kein Axios)
-	exportJournalUrl: (year) => generateUrl(base + '/export/journal') + (year ? `?year=${year}` : ''),
-	exportBalancesUrl: (year) => generateUrl(base + '/export/balances') + (year ? `?year=${year}` : ''),
-	exportReportUrl: (year) => generateUrl(base + '/export/report') + (year ? `?year=${year}` : ''),
-	exportBudgetUrl: (year) => generateUrl(base + '/export/budget') + (year ? `?year=${year}` : ''),
+	exportJournalUrl: (period) => generateUrl(base + '/export/journal') + (period ? `?period=${period}` : ''),
+	exportBalancesUrl: (period) => generateUrl(base + '/export/balances') + (period ? `?period=${period}` : ''),
+	exportReportUrl: (period) => generateUrl(base + '/export/report') + (period ? `?period=${period}` : ''),
+	exportBudgetUrl: (period) => generateUrl(base + '/export/budget') + (period ? `?period=${period}` : ''),
 	exportMultiyearUrl: () => generateUrl(base + '/export/multiyear'),
-	kassenberichtUrl: (year) => generateUrl(base + '/export/kassenbericht') + (year ? `?year=${year}` : ''),
+	kassenberichtUrl: (period) => generateUrl(base + '/export/kassenbericht') + (period ? `?period=${period}` : ''),
 	kurzberichtUrl: (since) => generateUrl(base + '/export/kurzbericht') + (since ? `?since=${since}` : ''),
-	exportAttachmentsUrl: (year) => generateUrl(base + '/export/attachments') + (year ? `?year=${year}` : ''),
+	exportAttachmentsUrl: (period) => generateUrl(base + '/export/attachments') + (period ? `?period=${period}` : ''),
 
 	// Hilfe (Handbuch als lesbare Seite, optional mit Kapitel-Anker; druckfertige Kassenprüfer-Kurzanleitung)
 	handbuchUrl: (anchor) => generateUrl(base + '/help/handbuch') + (anchor ? `#${anchor}` : ''),

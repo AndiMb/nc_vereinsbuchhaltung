@@ -95,7 +95,8 @@
 					</span>
 				</div>
 
-				<!-- Eröffnungssaldo nur für Geldkonten: nur deren Bestand geht über Jahresgrenzen. -->
+				<!-- Eröffnungssaldo nur für Geldkonten: nur deren Bestand geht über die
+				     Grenze eines Geschäftsjahres hinweg. -->
 				<div v-if="canWrite && selectedAccount.isBank" class="vbh-opening">
 					<span>{{ t('Eröffnungssaldo:') }}</span>
 					<AmountInput
@@ -123,7 +124,7 @@
 				<div v-if="statementRows.length && isMobile" class="vbh-cardlist">
 					<div v-if="statement.carry" class="vbh-mcard">
 						<div class="vbh-mcard-top">
-							<span class="vbh-mcard-title">{{ t('Saldovortrag aus Vorjahr') }}</span>
+							<span class="vbh-mcard-title">{{ t('Saldovortrag aus dem vorherigen Zeitraum') }}</span>
 							<span class="vbh-mcard-amount" :class="amountClass(statement.carry)">{{ formatMoney(statement.carry) }}</span>
 						</div>
 					</div>
@@ -187,7 +188,7 @@
 					</div>
 					<div class="vbh-mcard vbh-mcard--sum">
 						<div class="vbh-mcard-top">
-							<span class="vbh-mcard-title">{{ t('Saldo') }}{{ selectedYear ? ' ' + selectedYear : '' }}</span>
+							<span class="vbh-mcard-title">{{ t('Saldo') }}{{ selectedPeriod ? ' ' + selectedPeriod.label : '' }}</span>
 							<span class="vbh-mcard-amount" :class="amountClass(statement.totals.balance)">{{ formatMoney(statement.totals.balance) }}</span>
 						</div>
 						<div class="vbh-mcard-bottom">
@@ -217,10 +218,12 @@
 						<tbody>
 							<tr v-if="statement.carry" class="vbh-carryrow">
 								<td class="vbh-col-hide-sm" />
+								<!-- Das Datum kommt vom Server (carryDate): der erste Tag des
+								     gewählten Geschäftsjahres muss nicht der 01.01. sein. -->
 								<td class="nowrap">
-									{{ formatDate(selectedYear + '-01-01') }}
+									{{ formatDate(statement.carryDate) }}
 								</td>
-								<td><em>{{ t('Saldovortrag aus Vorjahr') }}</em></td>
+								<td><em>{{ t('Saldovortrag aus dem vorherigen Zeitraum') }}</em></td>
 								<td class="vbh-col-hide-sm" />
 								<td class="num vbh-col-hide-sm" />
 								<td class="num vbh-col-hide-sm" />
@@ -334,7 +337,7 @@ import ReassignPanel from './ReassignPanel.vue'
 import { useAccounts } from '../composables/useAccounts.js'
 import { useAuth } from '../composables/useAuth.js'
 import { useBalances } from '../composables/useBalances.js'
-import { useYears } from '../composables/useYears.js'
+import { usePeriods } from '../composables/usePeriods.js'
 import { amountClass, formatDate, formatMoney, typeLabel } from '../lib/format.js'
 
 export default {
@@ -377,13 +380,14 @@ export default {
 
 	setup() {
 		const auth = useAuth()
-		const years = useYears()
+		const periods = usePeriods()
 		const accounts = useAccounts()
 		const balances = useBalances()
 		return {
 			canWrite: auth.canWrite,
-			isYearClosed: years.isYearClosed,
-			...toRefs(years.state),
+			isDateClosed: periods.isDateClosed,
+			selectedPeriod: periods.selectedPeriod,
+			...toRefs(periods.state),
 			...toRefs(accounts.state),
 			accountsById: accounts.accountsById,
 			accountsSorted: accounts.accountsSorted,
@@ -579,15 +583,15 @@ export default {
 		 */
 		rowKey(row) { return `${row.journalId}:${row.accountId}` },
 		canReassign(row) {
-			return this.canWrite && !!row.accountId && !this.isYearClosed(row.date)
+			return this.canWrite && !!row.accountId && !this.isDateClosed(row.date)
 		},
 
-		// Bearbeiten haengt nur am Schreibrecht - ein abgeschlossenes Jahr
-		// lehnt das Backend ab (JournalService::applyUpdate) und die App zeigt
-		// dessen Meldung, genau wie im Reiter Buchungen. Loeschen wird dagegen
-		// schon hier gesperrt, damit die Rueckfrage gar nicht erst kommt.
+		// Bearbeiten haengt nur am Schreibrecht - einen festgeschriebenen
+		// Zeitraum lehnt das Backend ab (JournalService::applyUpdate) und die App
+		// zeigt dessen Meldung, genau wie im Reiter Buchungen. Loeschen wird
+		// dagegen schon hier gesperrt, damit die Rueckfrage gar nicht erst kommt.
 		canDelete(row) {
-			return this.canWrite && !this.isYearClosed(row.date)
+			return this.canWrite && !this.isDateClosed(row.date)
 		},
 
 		isReassigning(row) {

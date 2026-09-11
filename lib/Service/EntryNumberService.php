@@ -16,15 +16,21 @@ use OCA\Vereinsbuchhaltung\Db\JournalMapper;
  * anschließend zu Recht als „fehlende Nummern" bemängelte – obwohl gar nichts
  * Verdächtiges passiert war. Statt die Prüfung aufzuweichen (sie ist für die
  * Kassenprüfung wertvoll), wird die Nummerierung nach jedem Löschen wieder
- * geschlossen: {@see renumberYear()}.
+ * geschlossen: {@see renumberPeriod()}.
  *
  * Warum das zulässig ist: solange ein Geschäftsjahr nicht festgeschrieben ist,
  * sind seine Buchungsnummern vorläufig – es darf ohnehin frei gebucht,
  * geändert und gelöscht werden. Endgültig werden sie mit dem Jahresabschluss;
- * ab dann verhindert {@see YearCloseService::assertOpen()} jede Änderung, und
+ * ab dann verhindert {@see PeriodService::assertOpen()} jede Änderung, und
  * damit auch jede Nachnummerierung. Deshalb nummeriert
- * {@see YearCloseService::close()} unmittelbar vor dem Festschreiben ein
+ * {@see PeriodService::close()} unmittelbar vor dem Festschreiben ein
  * letztes Mal durch: was archiviert wird, ist garantiert lückenlos.
+ *
+ * Das Geschäftsjahr ist seit 0.33.0 eine Perioden-ID, keine Jahreszahl mehr
+ * (Issue #8). Daher gibt es die Nachnummerierung in zwei Ausführungen: in
+ * bisheriger Reihenfolge ({@see renumberPeriod()}) für den Normalfall, und
+ * nach Datum ({@see renumberPeriodByDate()}) für den Fall, dass zwei bisher
+ * getrennte Zeiträume zu einem verschmolzen sind.
  */
 class EntryNumberService {
 
@@ -37,12 +43,12 @@ class EntryNumberService {
 	 * Nächste freie Buchungsnummer des Geschäftsjahres.
 	 *
 	 * Gegen zwei gleichzeitige Buchungen, die beide dieselbe Nummer ermitteln,
-	 * schützt der Unique-Index (user_id, year, entry_no) zusammen mit dem
+	 * schützt der Unique-Index (user_id, period_id, entry_no) zusammen mit dem
 	 * Wiederholungsversuch in
 	 * {@see \OCA\Vereinsbuchhaltung\Db\TransactionRunner::runWithRetry()}.
 	 */
-	public function next(string $userId, int $year): int {
-		return $this->journalMapper->getNextEntryNoForYear($userId, $year);
+	public function next(string $userId, int $periodId): int {
+		return $this->journalMapper->getNextEntryNoForPeriod($userId, $periodId);
 	}
 
 	/**
@@ -60,11 +66,44 @@ class EntryNumberService {
 	 *
 	 * @return int Anzahl tatsächlich umnummerierter Buchungen
 	 */
-	public function renumberYear(string $userId, int $year): int {
-		if ($year <= 0) {
+	public function renumberPeriod(string $userId, int $periodId): int {
+		if ($periodId <= 0) {
 			return 0;
 		}
-		$plan = self::renumberPlan($this->journalMapper->findEntryNosForYear($userId, $year));
+		return $this->apply(self::renumberPlan($this->journalMapper->findEntryNosForPeriod($userId, $periodId)));
+	}
+
+	/**
+	 * Wie {@see renumberPeriod()}, aber in Datumsreihenfolge.
+	 *
+	 * Nötig, wenn ein Zeitraum Buchungen aus einem anderen aufgenommen hat –
+	 * etwa nach dem Umstellen der Geschäftsjahr-Regel. Dann treffen zwei
+	 * Nummernkreise aufeinander, die beide bei 1 begannen; die bisherige
+	 * Nummer ordnet nichts mehr sinnvoll, das Buchungsdatum schon.
+	 *
+	 * Anders als bei {@see renumberPeriod()} kann die neue Nummer hier größer
+	 * werden als die alte. Deshalb bekommen die betroffenen Zeilen erst
+	 * negative Zwischennummern: sonst liefe die Vergabe mitten im Durchlauf in
+	 * den Unique-Index (user_id, period_id, entry_no).
+	 *
+	 * @return int Anzahl tatsächlich umnummerierter Buchungen
+	 */
+	public function renumberPeriodByDate(string $userId, int $periodId): int {
+		if ($periodId <= 0) {
+			return 0;
+		}
+		$plan = self::renumberPlan($this->journalMapper->findEntryNosForPeriodByDate($userId, $periodId));
+		foreach (array_keys($plan) as $id) {
+			$this->journalMapper->setEntryNo($id, -$id);
+		}
+		return $this->apply($plan);
+	}
+
+	/**
+	 * @param array<int, int> $plan id => neue Nummer
+	 * @return int Anzahl geschriebener Zeilen
+	 */
+	private function apply(array $plan): int {
 		foreach ($plan as $id => $newEntryNo) {
 			$this->journalMapper->setEntryNo($id, $newEntryNo);
 		}
@@ -72,14 +111,14 @@ class EntryNumberService {
 	}
 
 	/**
-	 * Die reine Rechenvorschrift hinter {@see renumberYear()}: welche Buchung
+	 * Die reine Rechenvorschrift hinter {@see renumberPeriod()}: welche Buchung
 	 * bekommt welche neue Nummer?
 	 *
 	 * Als eigenständige, seiteneffektfreie Funktion herausgezogen, damit sich
 	 * genau diese Logik ohne Datenbank testen lässt (siehe
 	 * tests/unit/EntryNumberServiceTest.php).
 	 *
-	 * @param array<int, array{id:int, entryNo:int}> $rows aufsteigend nach bisheriger Nummer
+	 * @param array<int, array{id:int, entryNo:int}> $rows in der gewünschten Zielreihenfolge
 	 * @return array<int, int> id => neue Nummer, nur für tatsächliche Änderungen
 	 */
 	public static function renumberPlan(array $rows): array {

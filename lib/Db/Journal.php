@@ -13,8 +13,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setEntryNo(?int $entryNo)
  * @method string getDate()
  * @method void setDate(string $date)
- * @method int getYear()
- * @method void setYear(int $year)
+ * @method int getPeriodId()
+ * @method void setPeriodId(int $periodId)
  * @method string|null getDescription()
  * @method void setDescription(?string $description)
  * @method string|null getDocumentRef()
@@ -31,14 +31,19 @@ class Journal extends Entity implements \JsonSerializable {
 	protected $entryNo;
 	protected $date;
 	/**
-	 * Kalenderjahr aus {@see $date}, redundant gespeichert. Nötig, weil die
-	 * Buchungsnummer je Geschäftsjahr bei 1 startet und sich nur so ein
-	 * portabler Unique-Index (user_id, year, entry_no) bilden lässt – aus
-	 * einer DATE-Spalte lässt sich das Jahr nicht datenbankübergreifend
-	 * gleich indizieren. Wird ausschließlich über
-	 * {@see setDateWithYear()} gepflegt, damit beide Felder nie auseinanderlaufen.
+	 * Das Geschäftsjahr, zu dem die Buchung gehört – als Verweis auf
+	 * {@see Period}, abgeleitet aus {@see $date}.
+	 *
+	 * Nötig, weil die Buchungsnummer je Geschäftsjahr bei 1 startet und sich
+	 * nur so ein portabler Unique-Index (user_id, period_id, entry_no) bilden
+	 * lässt. Bis 0.32.0 stand hier die Jahreszahl aus dem Datum; seit Issue #8
+	 * muss ein Geschäftsjahr weder dem Kalenderjahr entsprechen noch zwölf
+	 * Monate dauern, und aus dem Datum allein ist es nicht mehr abzulesen.
+	 *
+	 * Wird ausschließlich über {@see setDateWithPeriod()} gepflegt, damit
+	 * Datum und Zuordnung nie auseinanderlaufen.
 	 */
-	protected $year;
+	protected $periodId;
 	protected $description;
 	protected $documentRef;
 	protected $bankTxId;
@@ -47,22 +52,21 @@ class Journal extends Entity implements \JsonSerializable {
 
 	public function __construct() {
 		$this->addType('entryNo', 'integer');
-		$this->addType('year', 'integer');
+		$this->addType('periodId', 'integer');
 		$this->addType('bankTxId', 'integer');
 	}
 
 	/**
-	 * Setzt Datum und abgeleitetes Jahr gemeinsam. Einziger zulässiger Weg,
-	 * das Datum eines Buchungssatzes zu setzen.
+	 * Setzt Datum und zugehöriges Geschäftsjahr gemeinsam. Einziger zulässiger
+	 * Weg, das Datum eines Buchungssatzes zu setzen.
+	 *
+	 * Die Periode ermittelt der Aufrufer über
+	 * {@see \OCA\Vereinsbuchhaltung\Service\PeriodService::forDate()} – nur
+	 * der kennt die Geschäftsjahr-Regel und kann eine fehlende Periode anlegen.
 	 */
-	public function setDateWithYear(string $date): void {
+	public function setDateWithPeriod(string $date, int $periodId): void {
 		$this->setDate($date);
-		$this->setYear(self::yearOf($date));
-	}
-
-	/** Kalenderjahr eines ISO-Datums (YYYY-MM-DD); 0 bei unbrauchbarer Eingabe. */
-	public static function yearOf(string $date): int {
-		return (int)substr($date, 0, 4);
+		$this->setPeriodId($periodId);
 	}
 
 	public function jsonSerialize(): array {
@@ -70,6 +74,7 @@ class Journal extends Entity implements \JsonSerializable {
 			'id' => $this->id,
 			'entryNo' => $this->entryNo,
 			'date' => $this->date,
+			'periodId' => $this->periodId,
 			'description' => $this->description,
 			'documentRef' => $this->documentRef,
 			'bankTxId' => $this->bankTxId,

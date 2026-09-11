@@ -47,6 +47,57 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   of the signed-in user; everyone else gets the app's own view. Until now the
   viewer failed for anyone who did not own the storage folder.
 
+## [0.33.0] – 2026-09-10
+
+**New:**
+- **The fiscal year no longer has to match the calendar year.** Under the gear
+  icon → *Fiscal year* you can now choose when it starts: presets cover the
+  calendar year, October–September, the school year August–July and half-year
+  periods (semesters), plus a custom rule with any start day and a period length
+  of 1 to 12 months (divisors of 12). Clubs with a deviating fiscal year previously had to add up
+  their figures outside the app (issue #8).
+- **The header's “Year" has become a “Period".** Every period carries a freely
+  editable name – suggested as “2026" for a calendar year, “2025/26" for a
+  deviating one and “2025/26-1" for a winter semester. Entry numbers, reports,
+  the budget, the receipt ZIP and the year-end lock all refer to the period
+  rather than to a year number.
+- **Periods can be maintained individually.** The boundary between two open
+  periods can be moved – the way to a short transitional fiscal year. An empty
+  period at either end of the chain can be removed, and the next one created at
+  the press of a button.
+- **Switching shows what it will do first.** Before a changed rule takes effect,
+  a preview lists the resulting periods, how many bookings will change period,
+  and which budget figures would be lost – because when two periods merge, an
+  account can only keep one of the two figures. Locked periods block the switch:
+  what the general meeting approved does not move afterwards.
+- **The cash report names the actual key dates.** The asset overview used fixed
+  column headers “Balance Jan 1" and “Balance Dec 31"; it now shows the first
+  and last day of the selected fiscal year.
+- **The monthly chart on the dashboard follows the fiscal year.** It always ran
+  from January to December; with October–September it now starts in October,
+  and a semester shows six months.
+
+**Changed:**
+- The settings section *Year-end closing* is now called *Fiscal year* and holds
+  the rule and the list of periods alongside the locking.
+- The xbuc import now derives a file's fiscal year from its date range instead
+  of the calendar year. A file for a deviating fiscal year could not be assigned
+  at all before. Bookings outside the range are dated to the first or last day
+  of the period rather than to January 1 / December 31.
+- Existing installations are unaffected: the migration creates one period per
+  previous calendar year, running Jan 1 to Dec 31 and named after the year.
+  Entry numbers and existing locks are left untouched. If you change nothing,
+  you notice nothing.
+
+**Fixed:**
+- Opening the booking dialog before the account list had loaded left the cash
+  account empty – and booking then only reported that it was a required field.
+  The preselection is now filled in as soon as the accounts arrive.
+- Switching the period right after loading occasionally showed the journal
+  and evaluation of the previous period: of several simultaneous requests the
+  last to arrive won, not the last one made. A choice made before the periods
+  had loaded did not stick either.
+
 ## [0.32.0] – 2026-09-07
 
 **New:**

@@ -197,11 +197,12 @@ export async function switchTab(page, label) {
 }
 
 /**
- * Geschäftsjahr im Kopfbereich wählen. Nach dem Laden steht der Filter auf
- * dem aktuellen Jahr – Buchungen anderer Jahre brauchen diesen Schritt.
+ * Geschäftsjahr im Kopfbereich wählen – über die Bezeichnung, so wie ein
+ * Mensch es täte. Nach dem Laden steht der Filter auf dem laufenden Zeitraum;
+ * Buchungen anderer Zeiträume brauchen diesen Schritt.
  */
-export async function selectYear(page, yearOrLabel) {
-	await page.locator('.vbh-yearsel select').selectOption({ label: String(yearOrLabel) })
+export async function selectPeriod(page, label) {
+	await page.locator('.vbh-yearsel select').selectOption({ label: String(label) })
 }
 
 /**
@@ -294,6 +295,11 @@ export const api = {
 		})
 	},
 
+	/** Buchung löschen – für Tests, die ihren Bestand hinterher wieder herstellen. */
+	async deleteBooking(request, id, { user = 'admin' } = {}) {
+		return call(request, 'DELETE', `/journal/${id}`, { user })
+	},
+
 	/** Beleg an eine Buchung hängen; liefert den angelegten Datensatz. */
 	async addAttachment(request, journalId, { name = 'beleg.png', mimeType = 'image/png', buffer = BELEG_PNG, user = 'admin' } = {}) {
 		return (await call(request, 'POST', `/journal/${journalId}/attachments`, {
@@ -323,8 +329,8 @@ export const api = {
 		return (await call(request, 'GET', '/attachments/inbox/summary')).json()
 	},
 
-	async listJournal(request, { year = null } = {}) {
-		const query = year ? `?year=${year}` : ''
+	async listJournal(request, { period = null } = {}) {
+		const query = period ? `?period=${period}` : ''
 		return (await call(request, 'GET', `/journal${query}`)).json()
 	},
 
@@ -338,12 +344,39 @@ export const api = {
 		return (await call(request, 'GET', `/transactions${query}`)).json()
 	},
 
-	async closeYear(request, year, { user = 'admin', expectOk = true } = {}) {
-		return call(request, 'POST', `/years/${year}/close`, { user, expectOk })
+	/** Alle Geschäftsjahre; legt serverseitig den laufenden Zeitraum an, falls er fehlt. */
+	async listPeriods(request, { user = 'admin' } = {}) {
+		return (await call(request, 'GET', '/periods', { user })).json()
 	},
 
-	async reopenYear(request, year, { user = 'admin' } = {}) {
-		return call(request, 'DELETE', `/years/${year}/close`, { user })
+	/**
+	 * Die ID des Zeitraums, in den ein Datum fällt. Die Tests kennen ihre
+	 * Buchungsdaten, aber nicht die IDs – und bei abweichendem Geschäftsjahr
+	 * auch die Bezeichnung nicht sicher.
+	 */
+	async periodIdForDate(request, date, { user = 'admin' } = {}) {
+		const periods = await this.listPeriods(request, { user })
+		const hit = periods.find((p) => date >= p.startDate && date <= p.endDate)
+		if (!hit) { throw new Error(`Kein Geschäftsjahr für ${date}`) }
+		return hit.id
+	},
+
+	async closePeriod(request, periodId, { user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', `/periods/${periodId}/close`, { user, expectOk })
+	},
+
+	async reopenPeriod(request, periodId, { user = 'admin' } = {}) {
+		return call(request, 'DELETE', `/periods/${periodId}/close`, { user })
+	},
+
+	/** Bezeichnung und/oder Ende eines Zeitraums ändern ({ label, endDate }). */
+	async updatePeriod(request, periodId, data, { user = 'admin', expectOk = true } = {}) {
+		return call(request, 'PUT', `/periods/${periodId}`, { user, expectOk, data })
+	},
+
+	/** Die Geschäftsjahr-Regel umstellen (Preset oder eigene Werte). */
+	async setPeriodRule(request, rule, { user = 'admin', expectOk = true } = {}) {
+		return call(request, 'PUT', '/periods/rule', { user, expectOk, data: rule })
 	},
 
 	async getSettings(request, { user = 'admin' } = {}) {

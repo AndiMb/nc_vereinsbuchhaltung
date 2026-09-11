@@ -45,7 +45,7 @@ class JournalService {
 		private AccountMapper $accountMapper,
 		private BankTransactionMapper $txMapper,
 		private AttachmentStorageService $attachmentStorage,
-		private YearCloseService $yearClose,
+		private PeriodService $periods,
 		private AuditService $audit,
 		private EntryNumberService $entryNumbers,
 		private TransactionRunner $transaction,
@@ -127,12 +127,16 @@ class JournalService {
 		?int $entryNo,
 		bool $audit,
 	): Journal {
-		$this->yearClose->assertOpen($date);
+		$this->periods->assertOpen($userId, $date);
+
+		// Materialisiert den Zeitraum, falls es ihn noch nicht gibt – eine
+		// Buchung ohne Geschäftsjahr darf es nicht geben.
+		$period = $this->periods->forDateOrCreate($userId, $date);
 
 		$journal = new Journal();
 		$journal->setUserId($userId);
-		$journal->setDateWithYear($date);
-		$journal->setEntryNo($entryNo ?? $this->entryNumbers->next($userId, $journal->getYear()));
+		$journal->setDateWithPeriod($date, (int)$period->getId());
+		$journal->setEntryNo($entryNo ?? $this->entryNumbers->next($userId, (int)$period->getId()));
 		$journal->setDescription(mb_substr($description, 0, 255));
 		$journal->setDocumentRef($docRef !== null ? mb_substr($docRef, 0, 64) : null);
 		$journal->setBankTxId(null);
@@ -210,8 +214,8 @@ class JournalService {
 		if ($this->transaction->isActive()) {
 			return $update();
 		}
-		// Ein Jahreswechsel vergibt eine neue Nummer – dabei ist derselbe
-		// Wettlauf möglich wie beim Anlegen.
+		// Ein Wechsel des Geschäftsjahres vergibt eine neue Nummer – dabei ist
+		// derselbe Wettlauf möglich wie beim Anlegen.
 		return $this->transaction->runWithRetry($update);
 	}
 
@@ -228,23 +232,23 @@ class JournalService {
 		?string $expectedUpdatedAt,
 	): Journal {
 		$journal = $this->journalMapper->find($id, $userId);
-		// Sowohl das bisherige als auch das neue Jahr müssen offen sein
-		// (sonst ließe sich eine Buchung aus einem abgeschlossenen Jahr
-		// herausziehen oder in eines hineinschieben).
-		$this->yearClose->assertOpen((string)$journal->getDate());
-		$this->yearClose->assertOpen($date);
+		// Sowohl das bisherige als auch das neue Geschäftsjahr müssen offen
+		// sein (sonst ließe sich eine Buchung aus einem abgeschlossenen
+		// Zeitraum herausziehen oder in einen hineinschieben).
+		$this->periods->assertOpen($userId, (string)$journal->getDate());
+		$this->periods->assertOpen($userId, $date);
 		if (($journal->getUpdatedAt() ?? '') !== ($expectedUpdatedAt ?? '')) {
 			throw new ConflictException($this->l10n->t('Die Buchung wurde zwischenzeitlich von einer anderen Person geändert.'));
 		}
 
-		$oldYear = $journal->getYear();
-		$newYear = Journal::yearOf($date);
+		$oldPeriodId = (int)$journal->getPeriodId();
+		$newPeriodId = (int)$this->periods->forDateOrCreate($userId, $date)->getId();
 
-		$journal->setDateWithYear($date);
-		if ($newYear !== $oldYear) {
-			// Die Nummer gehört zum alten Jahr: im neuen Jahr eine frische
-			// vergeben, sonst kollidiert sie dort mit einer bestehenden.
-			$journal->setEntryNo($this->entryNumbers->next($userId, $newYear));
+		$journal->setDateWithPeriod($date, $newPeriodId);
+		if ($newPeriodId !== $oldPeriodId) {
+			// Die Nummer gehört zum bisherigen Geschäftsjahr: im neuen eine
+			// frische vergeben, sonst kollidiert sie dort mit einer bestehenden.
+			$journal->setEntryNo($this->entryNumbers->next($userId, $newPeriodId));
 		}
 		$journal->setDescription(mb_substr($description, 0, 255));
 		$journal->setDocumentRef($docRef !== null ? mb_substr($docRef, 0, 64) : null);
@@ -254,9 +258,9 @@ class JournalService {
 		$this->lineMapper->deleteByJournal($journal->getId());
 		$this->writeLines($journal->getId(), $lines);
 
-		if ($newYear !== $oldYear) {
-			// Das alte Jahr hat jetzt eine Lücke – schließen.
-			$this->entryNumbers->renumberYear($userId, $oldYear);
+		if ($newPeriodId !== $oldPeriodId) {
+			// Das bisherige Geschäftsjahr hat jetzt eine Lücke – schließen.
+			$this->entryNumbers->renumberPeriod($userId, $oldPeriodId);
 		}
 
 		$this->audit->log('Buchung geändert', 'journal', $journal->getId(), [
@@ -292,7 +296,7 @@ class JournalService {
 	): Journal {
 		return $this->transaction->run(function () use ($journalId, $userId, $fromAccountId, $toAccountId, $expectedUpdatedAt): Journal {
 			$journal = $this->journalMapper->find($journalId, $userId);
-			$this->yearClose->assertOpen((string)$journal->getDate());
+			$this->periods->assertOpen($userId, (string)$journal->getDate());
 			if (($journal->getUpdatedAt() ?? '') !== ($expectedUpdatedAt ?? '')) {
 				throw new ConflictException($this->l10n->t('Die Buchung wurde zwischenzeitlich von einer anderen Person geändert.'));
 			}
@@ -393,8 +397,8 @@ class JournalService {
 	public function deleteBooking(int $id, string $userId): void {
 		$this->transaction->run(function () use ($id, $userId): void {
 			$journal = $this->journalMapper->find($id, $userId);
-			$this->yearClose->assertOpen((string)$journal->getDate());
-			$year = $journal->getYear();
+			$this->periods->assertOpen($userId, (string)$journal->getDate());
+			$periodId = (int)$journal->getPeriodId();
 
 			$released = $this->releaseBankTransaction($journal);
 			$this->attachmentStorage->deleteForJournal($journal->getId());
@@ -403,7 +407,7 @@ class JournalService {
 
 			// Die frei gewordene Nummer würde sonst als Lücke im Kassenbericht
 			// auftauchen (siehe EntryNumberService).
-			$this->entryNumbers->renumberYear($userId, $year);
+			$this->entryNumbers->renumberPeriod($userId, $periodId);
 
 			$this->audit->log('Buchung gelöscht', 'journal', $id, [
 				'entryNo' => $journal->getEntryNo(),

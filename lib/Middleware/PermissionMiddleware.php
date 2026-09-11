@@ -8,7 +8,8 @@ use OCA\Vereinsbuchhaltung\Controller\L10nController;
 use OCA\Vereinsbuchhaltung\Controller\PageController;
 use OCA\Vereinsbuchhaltung\Controller\PermissionController;
 use OCA\Vereinsbuchhaltung\Exception\ForbiddenException;
-use OCA\Vereinsbuchhaltung\Exception\YearClosedException;
+use OCA\Vereinsbuchhaltung\Exception\PeriodClosedException;
+use OCA\Vereinsbuchhaltung\Exception\PeriodNotFoundException;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
@@ -106,8 +107,15 @@ class PermissionMiddleware extends Middleware {
 			return new JSONResponse(['message' => $exception->getMessage()], Http::STATUS_FORBIDDEN);
 		}
 		// Festschreibung: Schreibversuch auf ein abgeschlossenes Geschäftsjahr.
-		if ($exception instanceof YearClosedException) {
+		if ($exception instanceof PeriodClosedException) {
 			return new JSONResponse(['message' => $exception->getMessage()], Http::STATUS_LOCKED);
+		}
+		// Ein Zeitraum, den es nicht (mehr) gibt. Der praktische Fall ist keine
+		// falsche URL, sondern eine im Browser stehengebliebene Zeitraum-Auswahl,
+		// nachdem jemand anderes die Geschäftsjahr-Regel umgestellt hat. 404 mit
+		// der Bitte, neu zu laden, ist ehrlicher als eine Serverfehlerseite.
+		if ($exception instanceof PeriodNotFoundException) {
+			return new JSONResponse(['message' => $exception->getMessage()], Http::STATUS_NOT_FOUND);
 		}
 		throw $exception;
 	}

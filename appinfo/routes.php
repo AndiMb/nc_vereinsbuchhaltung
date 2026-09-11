@@ -33,7 +33,6 @@ return [
 
 		// Journal / reports
 		['name' => 'journal#index', 'url' => '/api/journal', 'verb' => 'GET'],
-		['name' => 'journal#years', 'url' => '/api/journal/years', 'verb' => 'GET'],
 		['name' => 'journal#balances', 'url' => '/api/journal/balances', 'verb' => 'GET'],
 		['name' => 'journal#create', 'url' => '/api/journal', 'verb' => 'POST'],
 		['name' => 'journal#update', 'url' => '/api/journal/{id}', 'verb' => 'PUT'],
@@ -43,10 +42,20 @@ return [
 		// Kollaboration: Änderungsstand für das Polling anderer Browser
 		['name' => 'sync#revision', 'url' => '/api/revision', 'verb' => 'GET'],
 
-		// Jahresabschluss (Festschreibung) + Änderungsprotokoll
-		['name' => 'year#closed', 'url' => '/api/years/closed', 'verb' => 'GET'],
-		['name' => 'year#close',  'url' => '/api/years/{year}/close', 'verb' => 'POST'],
-		['name' => 'year#reopen', 'url' => '/api/years/{year}/close', 'verb' => 'DELETE'],
+		// Geschäftsjahre: Liste, Regel, Grenzen, Festschreibung.
+		// Die Liste ersetzt die frühere Jahresliste unter /api/journal/years –
+		// ein Geschäftsjahr ist seit Issue #8 ein eigener Datensatz und keine
+		// aus den Buchungen abgeleitete Zahl mehr.
+		['name' => 'period#index', 'url' => '/api/periods', 'verb' => 'GET'],
+		['name' => 'period#rule', 'url' => '/api/periods/rule', 'verb' => 'GET'],
+		['name' => 'period#saveRule', 'url' => '/api/periods/rule', 'verb' => 'PUT'],
+		['name' => 'period#create', 'url' => '/api/periods', 'verb' => 'POST'],
+		['name' => 'period#update', 'url' => '/api/periods/{id}', 'verb' => 'PUT', 'requirements' => ['id' => '\d+']],
+		['name' => 'period#destroy', 'url' => '/api/periods/{id}', 'verb' => 'DELETE', 'requirements' => ['id' => '\d+']],
+		['name' => 'period#close',  'url' => '/api/periods/{id}/close', 'verb' => 'POST'],
+		['name' => 'period#reopen', 'url' => '/api/periods/{id}/close', 'verb' => 'DELETE'],
+
+		// Änderungsprotokoll
 		['name' => 'audit#index', 'url' => '/api/audit', 'verb' => 'GET'],
 
 		// Berichte / Kostenstellen / Sphären

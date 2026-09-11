@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { api, openApp, switchTab, selectYear, visibleSection, BANK_ACCOUNT, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
+import { api, openApp, switchTab, selectPeriod, visibleSection, BANK_ACCOUNT, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
 
 // Kollaboration: die App pollt den Änderungsstand (alle 20 Sekunden) –
 // was eine andere Person bucht, taucht ohne Neuladen im Journal auf.
@@ -15,7 +15,7 @@ test.describe('Mehrbenutzer-Sync', () => {
 
 		await openApp(page, USERS.verwalter)
 		await switchTab(page, 'Buchungen')
-		await selectYear(page, 'Alle Jahre')
+		await selectPeriod(page, 'Alle Zeiträume')
 
 		// Der Buchhalter bucht in seinem eigenen Browser – hier per API.
 		const [bank, income] = await api.accountsByNumber(request, BANK_ACCOUNT, INCOME_ACCOUNT)

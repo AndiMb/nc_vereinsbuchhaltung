@@ -35,7 +35,7 @@ class BookingService {
 		private BankTransactionMapper $txMapper,
 		private AccountService $accountService,
 		private AttachmentStorageService $attachmentStorage,
-		private YearCloseService $yearClose,
+		private PeriodService $periods,
 		private AuditService $audit,
 		private EntryNumberService $entryNumbers,
 		private TransactionRunner $transaction,
@@ -167,7 +167,7 @@ class BookingService {
 	 */
 	private function doAssign(BankTransaction $tx, array $parts): BankTransaction {
 		$userId = $tx->getUserId();
-		$this->yearClose->assertOpen((string)$tx->getBookingDate());
+		$this->periods->assertOpen($userId, (string)$tx->getBookingDate());
 		// Gegenkonten validieren (gehören dem Nutzer)
 		$contras = [];
 		foreach ($parts as $part) {
@@ -189,10 +189,14 @@ class BookingService {
 		$amount = $tx->getAmountCents();
 		$abs = abs($amount);
 
+		// Materialisiert den Zeitraum, falls es ihn noch nicht gibt – eine
+		// Buchung ohne Geschäftsjahr darf es nicht geben.
+		$period = $this->periods->forDateOrCreate($userId, (string)$tx->getBookingDate());
+
 		$journal = new Journal();
 		$journal->setUserId($userId);
-		$journal->setDateWithYear((string)$tx->getBookingDate());
-		$journal->setEntryNo($this->entryNumbers->next($userId, $journal->getYear()));
+		$journal->setDateWithPeriod((string)$tx->getBookingDate(), (int)$period->getId());
+		$journal->setEntryNo($this->entryNumbers->next($userId, (int)$period->getId()));
 		$journal->setDescription($this->buildDescription($tx));
 		$journal->setBankTxId($tx->getId());
 		$journal->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s'));
@@ -239,7 +243,7 @@ class BookingService {
 	 */
 	public function unassign(BankTransaction $tx): BankTransaction {
 		return $this->transaction->run(function () use ($tx): BankTransaction {
-			$this->yearClose->assertOpen((string)$tx->getBookingDate());
+			$this->periods->assertOpen($tx->getUserId(), (string)$tx->getBookingDate());
 			if ($tx->getJournalId() !== null) {
 				$this->removeJournal($tx->getJournalId(), $tx->getUserId());
 			}
@@ -270,7 +274,7 @@ class BookingService {
 			if ($tx->getStatus() !== 'unassigned' || $tx->getJournalId() !== null) {
 				throw new \InvalidArgumentException($this->l10n->t('Ein bereits zugeordneter Umsatz kann nur über den Buchungssatz gelöscht werden.'));
 			}
-			$this->yearClose->assertOpen((string)$tx->getBookingDate());
+			$this->periods->assertOpen($tx->getUserId(), (string)$tx->getBookingDate());
 			$this->txMapper->delete($tx);
 			$this->audit->log('Umsatz gelöscht', 'transaction', $tx->getId(), [
 				'date' => $tx->getBookingDate(),
@@ -282,7 +286,7 @@ class BookingService {
 
 	/**
 	 * Entfernt einen Buchungssatz samt Zeilen und Belegen und schließt die
-	 * dadurch entstehende Lücke in der Buchungsnummerierung des Jahres.
+	 * dadurch entstehende Lücke in der Buchungsnummerierung des Geschäftsjahres.
 	 */
 	private function removeJournal(int $journalId, string $userId): void {
 		try {
@@ -290,11 +294,11 @@ class BookingService {
 		} catch (\Throwable) {
 			return;
 		}
-		$year = $journal->getYear();
+		$periodId = (int)$journal->getPeriodId();
 		$this->attachmentStorage->deleteForJournal($journal->getId());
 		$this->lineMapper->deleteByJournal($journal->getId());
 		$this->journalMapper->delete($journal);
-		$this->entryNumbers->renumberYear($userId, $year);
+		$this->entryNumbers->renumberPeriod($userId, $periodId);
 	}
 
 	private function addLine(int $journalId, int $accountId, int $debit, int $credit): void {

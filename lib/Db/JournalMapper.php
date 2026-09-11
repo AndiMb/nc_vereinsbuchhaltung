@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Db;
 
-use OCA\Vereinsbuchhaltung\Service\FiscalYear;
 use OCA\Vereinsbuchhaltung\Service\Statement\RowNormalizer;
 use OCP\AppFramework\Db\QBMapper;
 use OCP\DB\QueryBuilder\IQueryBuilder;
@@ -51,15 +50,15 @@ class JournalMapper extends QBMapper {
 	}
 
 	/**
-	 * Nächste fortlaufende Buchungsnummer innerhalb eines Kalenderjahres.
-	 * Buchungsnummern starten je Jahr bei 1.
+	 * Nächste fortlaufende Buchungsnummer innerhalb eines Geschäftsjahres.
+	 * Buchungsnummern starten je Zeitraum bei 1.
 	 */
-	public function getNextEntryNoForYear(string $userId, int $year): int {
+	public function getNextEntryNoForPeriod(string $userId, int $periodId): int {
 		$qb = $this->db->getQueryBuilder();
 		$qb->selectAlias($qb->func()->max('entry_no'), 'm')
 			->from($this->getTableName())
 			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
-			->andWhere($qb->expr()->eq('year', $qb->createNamedParameter($year, IQueryBuilder::PARAM_INT)));
+			->andWhere($qb->expr()->eq('period_id', $qb->createNamedParameter($periodId, IQueryBuilder::PARAM_INT)));
 		$res = $qb->executeQuery();
 		$max = $res->fetchOne();
 		$res->closeCursor();
@@ -77,20 +76,42 @@ class JournalMapper extends QBMapper {
 	 *
 	 * @return array<int, array{id:int, entryNo:int}>
 	 */
-	public function findEntryNosForYear(string $userId, int $year): array {
+	public function findEntryNosForPeriod(string $userId, int $periodId): array {
+		$rows = $this->entryNoRows($userId, $periodId);
+		usort($rows, static fn (array $a, array $b): int => [$a['entryNo'], $a['id']] <=> [$b['entryNo'], $b['id']]);
+		return array_map(static fn (array $r): array => ['id' => $r['id'], 'entryNo' => $r['entryNo']], $rows);
+	}
+
+	/**
+	 * Wie {@see findEntryNosForPeriod()}, aber nach Datum sortiert.
+	 *
+	 * Gebraucht, wenn zwei bisherige Zeiträume zu einem verschmelzen: dann
+	 * treffen zwei Nummernkreise aufeinander, die beide bei 1 anfingen, und
+	 * die bisherige Nummer taugt nicht mehr als Reihenfolge. Das Datum tut es.
+	 *
+	 * @return array<int, array{id:int, entryNo:int}>
+	 */
+	public function findEntryNosForPeriodByDate(string $userId, int $periodId): array {
+		$rows = $this->entryNoRows($userId, $periodId);
+		usort($rows, static fn (array $a, array $b): int => [$a['date'], $a['entryNo'], $a['id']] <=> [$b['date'], $b['entryNo'], $b['id']]);
+		return array_map(static fn (array $r): array => ['id' => $r['id'], 'entryNo' => $r['entryNo']], $rows);
+	}
+
+	/**
+	 * @return array<int, array{id:int, entryNo:int, date:string}>
+	 */
+	private function entryNoRows(string $userId, int $periodId): array {
 		$qb = $this->db->getQueryBuilder();
-		$qb->select('id', 'entry_no')
+		$qb->select('id', 'entry_no', 'date')
 			->from($this->getTableName())
 			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
-			->andWhere($qb->expr()->eq('year', $qb->createNamedParameter($year, IQueryBuilder::PARAM_INT)));
+			->andWhere($qb->expr()->eq('period_id', $qb->createNamedParameter($periodId, IQueryBuilder::PARAM_INT)));
 		$res = $qb->executeQuery();
 		$rows = [];
 		while (($row = $res->fetch()) !== false) {
-			$rows[] = ['id' => (int)$row['id'], 'entryNo' => (int)($row['entry_no'] ?? 0)];
+			$rows[] = ['id' => (int)$row['id'], 'entryNo' => (int)($row['entry_no'] ?? 0), 'date' => (string)$row['date']];
 		}
 		$res->closeCursor();
-
-		usort($rows, static fn (array $a, array $b): int => [$a['entryNo'], $a['id']] <=> [$b['entryNo'], $b['id']]);
 		return $rows;
 	}
 
@@ -121,19 +142,17 @@ class JournalMapper extends QBMapper {
 	}
 
 	/**
-	 * Distinct Journal-IDs, die in einem Kalenderjahr mindestens eine Zeile auf
+	 * Distinct Journal-IDs, die in einem Zeitraum mindestens eine Zeile auf
 	 * einem der angegebenen Konten haben (z.B. Eigenkapital-/EB-Konten, um
-	 * Eröffnungsbuchungen eines Jahres zu finden).
+	 * Eröffnungsbuchungen eines Geschäftsjahres zu finden).
 	 *
 	 * @param int[] $accountIds
 	 * @return int[]
 	 */
-	public function findBookingIdsTouchingAccountsInYear(string $userId, array $accountIds, int $year): array {
+	public function findBookingIdsTouchingAccountsInRange(string $userId, array $accountIds, string $from, string $to): array {
 		if (count($accountIds) === 0) {
 			return [];
 		}
-		$from = FiscalYear::start($year);
-		$to = FiscalYear::end($year);
 		$ids = [];
 		foreach (array_chunk($accountIds, 500) as $chunk) {
 			$qb = $this->db->getQueryBuilder();
@@ -274,27 +293,154 @@ class JournalMapper extends QBMapper {
 	}
 
 	/**
-	 * Liste der Geschäftsjahre (Kalenderjahre), in denen Buchungen existieren –
-	 * absteigend sortiert.
+	 * Frühestes und spätestes Buchungsdatum – oder null, wenn nicht gebucht ist.
 	 *
-	 * @return int[]
+	 * Sagt dem PeriodService, welchen Zeitraum die Kette der Geschäftsjahre
+	 * mindestens abdecken muss.
+	 *
+	 * @return array{0:string, 1:string}|null [von, bis]
 	 */
-	public function distinctYears(string $userId): array {
+	public function dateBounds(string $userId): ?array {
 		$qb = $this->db->getQueryBuilder();
-		$qb->selectDistinct('year')
+		$qb->selectAlias($qb->func()->min('date'), 'min_date')
+			->selectAlias($qb->func()->max('date'), 'max_date')
 			->from($this->getTableName())
 			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)));
 		$res = $qb->executeQuery();
-		$years = [];
+		$row = $res->fetch();
+		$res->closeCursor();
+
+		if ($row === false || $row['min_date'] === null) {
+			return null;
+		}
+		return [(string)$row['min_date'], (string)$row['max_date']];
+	}
+
+	/** Anzahl Buchungen in einem Geschäftsjahr. */
+	public function countByPeriod(string $userId, int $periodId): int {
+		$qb = $this->db->getQueryBuilder();
+		$qb->selectAlias($qb->func()->count('id'), 'c')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+			->andWhere($qb->expr()->eq('period_id', $qb->createNamedParameter($periodId, IQueryBuilder::PARAM_INT)));
+		return $this->fetchCount($qb);
+	}
+
+	/**
+	 * Anzahl Buchungen, die aktuell zu $periodId gehören und deren Datum in
+	 * den angegebenen Bereich fällt – die Grundlage der Umstellungsvorschau
+	 * („so viele Buchungen wechseln den Zeitraum").
+	 */
+	public function countByPeriodInRange(string $userId, int $periodId, string $from, string $to): int {
+		$qb = $this->db->getQueryBuilder();
+		$qb->selectAlias($qb->func()->count('id'), 'c')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+			->andWhere($qb->expr()->eq('period_id', $qb->createNamedParameter($periodId, IQueryBuilder::PARAM_INT)))
+			->andWhere($qb->expr()->gte('date', $qb->createNamedParameter($from)))
+			->andWhere($qb->expr()->lte('date', $qb->createNamedParameter($to)));
+		return $this->fetchCount($qb);
+	}
+
+	/**
+	 * Anzahl Buchungen im Datumsbereich, die NICHT auf $periodId zeigen.
+	 *
+	 * Damit erkennt der PeriodService vor dem UPDATE, ob sich in einem
+	 * Zeitraum überhaupt etwas ändert. Nur dann wird nachnummeriert – die
+	 * Buchungsnummern eines unveränderten Zeitraums bleiben so, wie sie sind.
+	 */
+	public function countMismatchedInRange(string $userId, string $from, string $to, int $periodId): int {
+		$qb = $this->db->getQueryBuilder();
+		$qb->selectAlias($qb->func()->count('id'), 'c')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+			->andWhere($qb->expr()->gte('date', $qb->createNamedParameter($from)))
+			->andWhere($qb->expr()->lte('date', $qb->createNamedParameter($to)))
+			->andWhere($qb->expr()->neq('period_id', $qb->createNamedParameter($periodId, IQueryBuilder::PARAM_INT)));
+		return $this->fetchCount($qb);
+	}
+
+	/**
+	 * Setzt die Buchungsnummern der Zeilen, die gleich den Zeitraum wechseln,
+	 * auf einen eindeutigen negativen Zwischenwert.
+	 *
+	 * Ohne diesen Schritt scheitert {@see setPeriodForRange()} am Unique-Index
+	 * (user_id, period_id, entry_no): jeder Zeitraum nummeriert ab 1, und
+	 * sobald zwei bisher getrennte Zeiträume zusammenlaufen, treffen zwei
+	 * Buchungen mit der Nummer 1 aufeinander. Neu nummeriert wird erst nach dem
+	 * Umhängen – die Datenbank prüft aber schon währenddessen.
+	 *
+	 * Die negative ID ist als Zwischenwert gewählt, weil sie garantiert
+	 * eindeutig ist und mit keiner echten Nummer kollidieren kann. Sie bleibt
+	 * nicht stehen: {@see \OCA\Vereinsbuchhaltung\Service\EntryNumberService::renumberPeriodByDate()}
+	 * ersetzt sie unmittelbar danach durch 1..N.
+	 *
+	 * @return int Anzahl geparkter Buchungen
+	 */
+	public function parkEntryNosForMove(string $userId, string $from, string $to, int $periodId): int {
+		$qb = $this->db->getQueryBuilder();
+		$qb->update($this->getTableName())
+			// createFunction(), weil der Wert je Zeile aus deren eigener ID
+			// entstehen soll. Ein schlichtes set('entry_no', '-id') geht hier
+			// schief: Nextclouds QueryBuilder quotet auch den Wert als
+			// Spaltennamen, und SQLite macht aus einem doppelt gequoteten
+			// Namen, den es nicht kennt, klaglos die Zeichenkette '-id' –
+			// also für eine Zahlenspalte die 0, und zwar für jede Zeile
+			// dieselbe. Genau das, was hier vermieden werden soll.
+			->set('entry_no', $qb->createFunction('-' . $qb->getColumnName('id')))
+			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+			->andWhere($qb->expr()->gte('date', $qb->createNamedParameter($from)))
+			->andWhere($qb->expr()->lte('date', $qb->createNamedParameter($to)))
+			->andWhere($qb->expr()->neq('period_id', $qb->createNamedParameter($periodId, IQueryBuilder::PARAM_INT)));
+		return $qb->executeStatement();
+	}
+
+	/**
+	 * Weist allen Buchungen eines Datumsbereichs ein Geschäftsjahr zu.
+	 *
+	 * Ein UPDATE je Zeitraum statt eines je Buchung: das Datum steht als
+	 * ISO-String in der Datenbank, ein Bereichsvergleich ist damit identisch
+	 * mit dem chronologischen und funktioniert auf allen drei Datenbanken
+	 * gleich (dasselbe Vorgehen wie beim Befüllen der früheren Jahresspalte).
+	 */
+	public function setPeriodForRange(string $userId, string $from, string $to, int $periodId): int {
+		$qb = $this->db->getQueryBuilder();
+		$qb->update($this->getTableName())
+			->set('period_id', $qb->createNamedParameter($periodId, IQueryBuilder::PARAM_INT))
+			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+			->andWhere($qb->expr()->gte('date', $qb->createNamedParameter($from)))
+			->andWhere($qb->expr()->lte('date', $qb->createNamedParameter($to)));
+		return $qb->executeStatement();
+	}
+
+	private function fetchCount(IQueryBuilder $qb): int {
+		$res = $qb->executeQuery();
+		$count = (int)$res->fetchOne();
+		$res->closeCursor();
+		return $count;
+	}
+
+	/**
+	 * Anzahl Buchungen je Geschäftsjahr, in einer Abfrage.
+	 *
+	 * Die Zeitraum-Liste braucht diese Zahlen für jede Periode; einzeln
+	 * abgefragt wären das zwei Abfragen je Zeitraum bei jedem Seitenaufbau.
+	 *
+	 * @return array<int, int> periodId => Anzahl
+	 */
+	public function countsByPeriod(string $userId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('period_id')
+			->selectAlias($qb->func()->count('id'), 'c')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+			->groupBy('period_id');
+		$res = $qb->executeQuery();
+		$out = [];
 		while (($row = $res->fetch()) !== false) {
-			$year = (int)$row['year'];
-			if ($year > 0) {
-				$years[$year] = true;
-			}
+			$out[(int)$row['period_id']] = (int)$row['c'];
 		}
 		$res->closeCursor();
-		$years = array_keys($years);
-		rsort($years);
-		return $years;
+		return $out;
 	}
 }

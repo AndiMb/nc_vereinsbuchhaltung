@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\BudgetSnapshot;
 use OCA\Vereinsbuchhaltung\Db\BudgetSnapshotItem;
 use OCA\Vereinsbuchhaltung\Db\BudgetSnapshotItemMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetSnapshotMapper;
+use OCA\Vereinsbuchhaltung\Exception\PeriodNotFoundException;
 
 /**
  * Finanzplan-Stände: einen aktuellen Plan als benannten, datierten Stand
@@ -22,27 +23,28 @@ class BudgetSnapshotService {
 		private BudgetSnapshotItemMapper $itemMapper,
 		private BudgetMapper $budgetMapper,
 		private AccountMapper $accountMapper,
+		private PeriodService $periods,
 	) {
 	}
 
 	/**
-	 * Gespeicherte Stände eines Jahres inkl. Kurz-Summen für die Liste.
+	 * Gespeicherte Stände eines Zeitraums inkl. Kurz-Summen für die Liste.
 	 *
 	 * @return array<int, array>
 	 */
-	public function listForYear(string $userId, int $year): array {
+	public function listForPeriod(string $userId, int $periodId): array {
 		$out = [];
-		foreach ($this->snapshotMapper->findByYear($userId, $year) as $snap) {
+		foreach ($this->snapshotMapper->findByPeriod($userId, $periodId) as $snap) {
 			$items = $this->itemMapper->findBySnapshot((int)$snap->getId());
-			$out[] = $this->summarize($snap, $items);
+			$out[] = $this->summarize($userId, $snap, $items);
 		}
 		return $out;
 	}
 
 	/**
-	 * Friert den aktuellen Finanzplan eines Jahres als neuen Stand ein.
+	 * Friert den aktuellen Finanzplan eines Zeitraums als neuen Stand ein.
 	 */
-	public function create(string $userId, int $year, string $label): array {
+	public function create(string $userId, int $periodId, string $label): array {
 		$label = trim($label);
 		if ($label === '') {
 			$label = 'Stand ' . date('d.m.Y H:i');
@@ -51,13 +53,13 @@ class BudgetSnapshotService {
 
 		$snapshot = new BudgetSnapshot();
 		$snapshot->setUserId($userId);
-		$snapshot->setYear($year);
+		$snapshot->setPeriodId($periodId);
 		$snapshot->setLabel($label);
 		$snapshot->setCreatedAt(new \DateTime());
 		$snapshot = $this->snapshotMapper->insert($snapshot);
 		$snapshotId = (int)$snapshot->getId();
 
-		$plan = $this->budgetMapper->findByYear($userId, $year);
+		$plan = $this->budgetMapper->findByPeriod($userId, $periodId);
 		$accounts = [];
 		foreach ($this->accountMapper->findAll($userId) as $account) {
 			$accounts[$account->getId()] = $account;
@@ -89,7 +91,7 @@ class BudgetSnapshotService {
 			$items[] = $this->itemMapper->insert($item);
 		}
 
-		return $this->summarize($snapshot, $items);
+		return $this->summarize($userId, $snapshot, $items);
 	}
 
 	/**
@@ -101,7 +103,7 @@ class BudgetSnapshotService {
 			return null;
 		}
 		$items = $this->itemMapper->findBySnapshot($id);
-		$detail = $this->summarize($snapshot, $items);
+		$detail = $this->summarize($userId, $snapshot, $items);
 		$detail['items'] = array_map(static fn (BudgetSnapshotItem $i) => $i->jsonSerialize(), $items);
 		return $detail;
 	}
@@ -129,7 +131,7 @@ class BudgetSnapshotService {
 	/**
 	 * @param BudgetSnapshotItem[] $items
 	 */
-	private function summarize(BudgetSnapshot $snapshot, array $items): array {
+	private function summarize(string $userId, BudgetSnapshot $snapshot, array $items): array {
 		$income = 0;
 		$expense = 0;
 		foreach ($items as $item) {
@@ -139,9 +141,11 @@ class BudgetSnapshotService {
 				$expense += $item->getAmountCents();
 			}
 		}
+		$periodId = (int)$snapshot->getPeriodId();
 		return [
 			'id' => (int)$snapshot->getId(),
-			'year' => $snapshot->getYear(),
+			'periodId' => $periodId,
+			'periodLabel' => $this->periodLabel($userId, $periodId),
 			'label' => $snapshot->getLabel(),
 			'createdAt' => $snapshot->getCreatedAt()?->format(\DateTime::ATOM),
 			'count' => count($items),
@@ -149,5 +153,21 @@ class BudgetSnapshotService {
 			'planExpense' => $expense / 100,
 			'planResult' => ($income - $expense) / 100,
 		];
+	}
+
+	/**
+	 * Bezeichnung des Zeitraums, zu dem der Stand gehört.
+	 *
+	 * Bewusst fehlertolerant: ein Stand überlebt das Löschen seines Zeitraums
+	 * als Datensatz, und eine Liste eingefrorener Pläne darf daran nicht
+	 * scheitern – ohne Bezeichnung fehlt nur die Beschriftung, die Zahlen
+	 * bleiben lesbar.
+	 */
+	private function periodLabel(string $userId, int $periodId): string {
+		try {
+			return $this->periods->find($userId, $periodId)->getLabel();
+		} catch (PeriodNotFoundException) {
+			return '';
+		}
 	}
 }

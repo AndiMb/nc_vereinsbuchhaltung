@@ -41,7 +41,7 @@ class XbucImportService {
 		private ResetService $resetService,
 		private BankTransactionMapper $txMapper,
 		private AttachmentStorageService $attachmentStorage,
-		private YearCloseService $yearCloseService,
+		private PeriodService $periods,
 		private DemoDataService $demoService,
 		private EntryNumberService $entryNumbers,
 		private TransactionRunner $transaction,
@@ -52,24 +52,25 @@ class XbucImportService {
 	/**
 	 * Analysiert die Datei ohne zu speichern.
 	 *
-	 * @param int|null $yearOverride manuell gewähltes Geschäftsjahr (hat Vorrang
-	 *                               vor dem in der Datei hinterlegten Jahr)
-	 * @return array{accounts:int, bookings:int, year:?int, fileYear:?int, outsideYear:int, outsideSamples:array<int,array<string,mixed>>, openings:array<int,array<string,mixed>>}
+	 * @param int|null $periodOverride manuell gewähltes Geschäftsjahr (hat Vorrang
+	 *                                 vor dem Zeitraum, den die Datei abdeckt)
+	 * @return array<string, mixed>
 	 */
-	public function preview(string $userId, string $content, ?int $yearOverride = null): array {
+	public function preview(string $userId, string $content, ?int $periodOverride = null): array {
 		$data = $this->parser->parse($content);
-		$year = $yearOverride ?? $data['year'];
-		$outside = $this->findOutsideYear($data['bookings'], $year);
-		$openings = $this->analyzeOpenings($userId, $data['bookings'], $year);
-		$transition = $this->analyzeYearTransition($userId, $data, $year);
+		$span = $this->fileSpan($userId, $data, $periodOverride);
+		$outside = $this->findOutsidePeriod($data['bookings'], $span);
+		$openings = $this->analyzeOpenings($userId, $data['bookings'], $span);
+		$transition = $this->analyzeYearTransition($userId, $data, $span);
 		return [
 			'accounts' => count($data['accounts']),
 			'bookings' => count($data['bookings']),
 			// Buchungen ohne Gegenkonto → werden als offene Bankbuchungen übernommen
 			'openBankTx' => count(array_filter($data['bookings'], static fn ($b) => !empty($b['openContra']))),
-			'year' => $year,
-			'fileYear' => $data['year'],
-			'outsideYear' => count($outside),
+			// Der Zeitraum, dem die Datei zugeordnet wird. periodId ist null,
+			// wenn es ihn noch nicht gibt – dann legt ihn erst der Import an.
+			'period' => $span,
+			'outsidePeriod' => count($outside),
 			'outsideSamples' => array_map(static fn ($b) => [
 				'date' => $b['date'],
 				'text' => mb_substr($b['text'], 0, 60),
@@ -81,7 +82,7 @@ class XbucImportService {
 				return $o;
 			}, $openings),
 			'yearTransition' => $transition === null ? null : [
-				'targetYear' => $transition['targetYear'],
+				'targetLabel' => $transition['targetLabel'],
 				'removalCount' => count($transition['removeJournalIds']),
 				'hasMismatch' => $transition['hasMismatch'],
 				'comparisons' => $transition['comparisons'],
@@ -90,26 +91,90 @@ class XbucImportService {
 	}
 
 	/**
-	 * Rückwärts-Import (frühere Jahres-Datei als bereits vorhandene): prüft, ob
-	 * der Endstand der Datei je Bestandskonto dem gespeicherten Anfangsbestand
-	 * des bisher frühesten Jahres entspricht, und ermittelt dessen nun
-	 * überflüssige Eröffnungsbuchungen (die sonst den kumulativen Saldo doppelt
-	 * zählen würden). Nur relevant, wenn das Datei-Jahr UNTER dem kleinsten
-	 * vorhandenen Buchungsjahr liegt.
+	 * Das Geschäftsjahr, dem die Datei zuzuordnen ist.
+	 *
+	 * Bis 0.32.0 war das eine Jahreszahl aus den ersten vier Zeichen der
+	 * Datumsangaben. Seit Issue #8 ist es ein Zeitraum, und der kann noch gar
+	 * nicht existieren – bei einer frisch eingerichteten App etwa. Deshalb
+	 * liefert diese Methode Grenzen und Bezeichnung auch dann, wenn periodId
+	 * null ist: die Vorschau soll zeigen können, was entstehen wird, ohne dafür
+	 * schon etwas anzulegen.
+	 *
+	 * Null bedeutet: die Datei lässt sich keinem einzelnen Geschäftsjahr
+	 * zuordnen (sie reicht über eine Grenze hinweg oder enthält kein Datum).
+	 * Dann bleibt die manuelle Auswahl.
 	 *
 	 * @param array<string,mixed> $data Parser-Ergebnis
-	 * @return array{targetYear:int, removeJournalIds:int[], comparisons:array<int,array<string,mixed>>, hasMismatch:bool}|null
+	 * @return array{from:string, to:string, periodId:?int, label:string}|null
 	 */
-	private function analyzeYearTransition(string $userId, array $data, ?int $year): ?array {
-		if ($year === null) {
+	private function fileSpan(string $userId, array $data, ?int $periodOverride): ?array {
+		if ($periodOverride !== null) {
+			$period = $this->periods->find($userId, $periodOverride);
+			return [
+				'from' => $period->getStartDate(),
+				'to' => $period->getEndDate(),
+				'periodId' => (int)$period->getId(),
+				'label' => $period->getLabel(),
+			];
+		}
+
+		$from = $data['minDate'] ?? null;
+		$to = $data['maxDate'] ?? null;
+		if ($from === null || $to === null) {
 			return null;
 		}
-		$existingYears = $this->journalMapper->distinctYears($userId);
-		if (count($existingYears) === 0) {
+
+		$period = $this->periods->forDate($userId, $from, false);
+		if ($period !== null) {
+			return $period->contains($to) ? [
+				'from' => $period->getStartDate(),
+				'to' => $period->getEndDate(),
+				'periodId' => (int)$period->getId(),
+				'label' => $period->getLabel(),
+			] : null;
+		}
+
+		// Noch kein Zeitraum für diese Daten: das Raster der Regel sagt, welcher
+		// beim Import entstünde.
+		$rule = $this->periods->rule();
+		[$gridFrom, $gridTo] = PeriodRule::containing($rule, $from);
+		if ($to > $gridTo) {
 			return null;
 		}
-		$targetYear = min($existingYears);
-		if ($year >= $targetYear) {
+		return [
+			'from' => $gridFrom,
+			'to' => $gridTo,
+			'periodId' => null,
+			'label' => PeriodRule::proposeLabel($rule, $gridFrom),
+		];
+	}
+
+	/**
+	 * Rückwärts-Import (frühere Jahres-Datei als bereits vorhandene): prüft, ob
+	 * der Endstand der Datei je Bestandskonto dem gespeicherten Anfangsbestand
+	 * des bisher frühesten Geschäftsjahres entspricht, und ermittelt dessen nun
+	 * überflüssige Eröffnungsbuchungen (die sonst den kumulativen Saldo doppelt
+	 * zählen würden). Nur relevant, wenn die Datei VOLLSTÄNDIG vor dem frühesten
+	 * bereits bebuchten Geschäftsjahr liegt.
+	 *
+	 * @param array<string,mixed> $data Parser-Ergebnis
+	 * @param array{from:string, to:string, periodId:?int, label:string}|null $span
+	 * @return array{targetLabel:string, removeJournalIds:int[], comparisons:array<int,array<string,mixed>>, hasMismatch:bool}|null
+	 */
+	private function analyzeYearTransition(string $userId, array $data, ?array $span): ?array {
+		if ($span === null) {
+			return null;
+		}
+		// Maßgeblich ist das früheste Geschäftsjahr, in dem tatsächlich gebucht
+		// ist – nicht der früheste Zeitraum überhaupt. Ein leerer Zeitraum am
+		// Anfang der Kette hat keinen Anfangsbestand, gegen den sich etwas
+		// abgleichen ließe.
+		$bounds = $this->journalMapper->dateBounds($userId);
+		if ($bounds === null) {
+			return null;
+		}
+		$target = $this->periods->forDate($userId, $bounds[0], false);
+		if ($target === null || $span['to'] >= $target->getStartDate()) {
 			// Kein Rückwärts-Import → normale (Vorwärts-)Logik greift.
 			return null;
 		}
@@ -149,7 +214,9 @@ class XbucImportService {
 
 		// Gespeicherter Anfangsbestand des Zieljahres: Eröffnungsbuchungen (die ein
 		// EK-Konto berühren) in diesem Jahr; je Bestandskonto Soll − Haben.
-		$openingJournalIds = $this->journalMapper->findBookingIdsTouchingAccountsInYear($userId, $equityIds, $targetYear);
+		$openingJournalIds = $this->journalMapper->findBookingIdsTouchingAccountsInRange(
+			$userId, $equityIds, $target->getStartDate(), $target->getEndDate(),
+		);
 		$equityIdSet = array_flip($equityIds);
 		$storedByNumber = [];
 		$linesByJournal = $this->lineMapper->findByJournals($openingJournalIds);
@@ -198,7 +265,7 @@ class XbucImportService {
 		}
 
 		return [
-			'targetYear' => $targetYear,
+			'targetLabel' => $target->getLabel(),
 			'removeJournalIds' => $openingJournalIds,
 			'comparisons' => $comparisons,
 			'hasMismatch' => $hasMismatch,
@@ -218,7 +285,7 @@ class XbucImportService {
 	 *                                         index, account, date, amount (EUR, erwarteter Anfangsbestand),
 	 *                                         action ('import'|'skip'), priorBalance (EUR|null), matches (bool|null)
 	 */
-	private function analyzeOpenings(string $userId, array $bookings, ?int $year): array {
+	private function analyzeOpenings(string $userId, array $bookings, ?array $span): array {
 		$result = [];
 		$priorSumsByTo = [];
 		foreach ($bookings as $idx => $b) {
@@ -231,8 +298,9 @@ class XbucImportService {
 			$name = $accountOnDebit ? $b['sollName'] : $b['habenName'];
 			$expectedCents = $accountOnDebit ? $b['amountCents'] : -$b['amountCents'];
 
-			$bookingYear = $year ?? (int)substr((string)$b['date'], 0, 4);
-			$priorTo = FiscalYear::end($bookingYear - 1);
+			// Der Stichtag, gegen den der Anfangsbestand zu prüfen ist: der Tag
+			// vor Beginn des Geschäftsjahres, in dem die Buchung liegt.
+			$priorTo = PeriodRule::previousDay($span['from'] ?? $this->periodStartFor($userId, (string)$b['date']));
 
 			$entry = [
 				'index' => $idx,
@@ -269,17 +337,30 @@ class XbucImportService {
 	}
 
 	/**
+	 * Beginn des Geschäftsjahres, in dem $date liegt – auch dann, wenn es
+	 * diesen Zeitraum noch gar nicht gibt. Angelegt wird hier nichts: die
+	 * Analyse einer Datei soll den Datenbestand nicht verändern.
+	 */
+	private function periodStartFor(string $userId, string $date): string {
+		$period = $this->periods->forDate($userId, $date, false);
+		return $period !== null
+			? $period->getStartDate()
+			: PeriodRule::containing($this->periods->rule(), $date)[0];
+	}
+
+	/**
 	 * Buchungen, deren Datum außerhalb des Geschäftsjahres der Datei liegt.
 	 *
 	 * @param array<int, array<string,mixed>> $bookings
+	 * @param array{from:string, to:string, periodId:?int, label:string}|null $span
 	 * @return array<int, array<string,mixed>>
 	 */
-	private function findOutsideYear(array $bookings, ?int $year): array {
-		if ($year === null) {
+	private function findOutsidePeriod(array $bookings, ?array $span): array {
+		if ($span === null) {
 			return [];
 		}
-		$from = FiscalYear::start($year);
-		$to = FiscalYear::end($year);
+		$from = $span['from'];
+		$to = $span['to'];
 		return array_values(array_filter($bookings, static fn ($b) => $b['date'] < $from || $b['date'] > $to));
 	}
 
@@ -290,31 +371,31 @@ class XbucImportService {
 	 * – Konten werden nur angelegt, wenn die Nummer noch nicht existiert.
 	 * – Buchungen werden per Fingerprint dedupliziert (Datum|Betrag|Soll-ID|Haben-ID|Belegnummer).
 	 *
-	 * @param bool $clampDates Buchungen außerhalb des Geschäftsjahres
-	 *                         auf den 01.01. bzw. 31.12. dieses Jahres datieren
-	 * @param int|null $yearOverride manuell gewähltes Geschäftsjahr (hat Vorrang
-	 *                               vor dem in der Datei hinterlegten Jahr)
-	 * @return array{accounts:int, accountsNew:int, bookings:int, skipped:int, reset:bool, year:?int, outsideYear:int, clamped:int, openingsSkipped:int, openingMismatches:array<int,array<string,mixed>>}
+	 * @param bool $clampDates Buchungen außerhalb des Geschäftsjahres auf dessen
+	 *                         ersten bzw. letzten Tag datieren
+	 * @param int|null $periodOverride manuell gewähltes Geschäftsjahr (hat Vorrang
+	 *                                 vor dem Zeitraum, den die Datei abdeckt)
+	 * @return array<string, mixed>
 	 */
-	public function import(string $userId, string $content, bool $reset = true, bool $clampDates = false, ?int $yearOverride = null): array {
-		return $this->transaction->run(fn (): array => $this->doImport($userId, $content, $reset, $clampDates, $yearOverride));
+	public function import(string $userId, string $content, bool $reset = true, bool $clampDates = false, ?int $periodOverride = null): array {
+		return $this->transaction->run(fn (): array => $this->doImport($userId, $content, $reset, $clampDates, $periodOverride));
 	}
 
 	/**
 	 * @return array<string, mixed>
 	 */
-	private function doImport(string $userId, string $content, bool $reset, bool $clampDates, ?int $yearOverride): array {
+	private function doImport(string $userId, string $content, bool $reset, bool $clampDates, ?int $periodOverride): array {
 		$data = $this->parser->parse($content);
 
 		// Buchungen außerhalb des Geschäftsjahres erkennen und optional
 		// auf die Jahresgrenzen datieren, damit sie in der App nicht in
 		// einem anderen Jahr landen als in der xbuc-Datei.
-		$year = $yearOverride ?? $data['year'];
-		$outsideCount = count($this->findOutsideYear($data['bookings'], $year));
+		$span = $this->fileSpan($userId, $data, $periodOverride);
+		$outsideCount = count($this->findOutsidePeriod($data['bookings'], $span));
 		$clamped = 0;
-		if ($clampDates && $year !== null && $outsideCount > 0) {
-			$from = FiscalYear::start($year);
-			$to = FiscalYear::end($year);
+		if ($clampDates && $span !== null && $outsideCount > 0) {
+			$from = $span['from'];
+			$to = $span['to'];
 			foreach ($data['bookings'] as &$booking) {
 				if ($booking['date'] < $from) {
 					$booking['date'] = $from;
@@ -333,7 +414,7 @@ class XbucImportService {
 		$openingSkipIdx = [];
 		$openingMismatches = [];
 		if (!$reset) {
-			foreach ($this->analyzeOpenings($userId, $data['bookings'], $year) as $o) {
+			foreach ($this->analyzeOpenings($userId, $data['bookings'], $span) as $o) {
 				if ($o['action'] === 'skip') {
 					$openingSkipIdx[$o['index']] = true;
 					if ($o['matches'] === false) {
@@ -350,7 +431,7 @@ class XbucImportService {
 		// Rückwärts-Import: Jahresübergang prüfen (VOR jeglichem Schreibvorgang).
 		// Stimmt der Endstand der Datei nicht mit dem gespeicherten Anfangsbestand
 		// des Folgejahres überein, wird der Import blockiert (nichts wird geändert).
-		$transition = $reset ? null : $this->analyzeYearTransition($userId, $data, $year);
+		$transition = $reset ? null : $this->analyzeYearTransition($userId, $data, $span);
 		if ($transition !== null && $transition['hasMismatch']) {
 			throw new \RuntimeException($this->transitionErrorMessage($transition));
 		}
@@ -359,16 +440,20 @@ class XbucImportService {
 		// berühren – geprüft VOR jeglichem Schreibvorgang. Beim reset-Import
 		// wird ohnehin alles inkl. der Abschluss-Marker gelöscht (Verwalter-only).
 		if (!$reset) {
-			$touchedYears = [];
+			$touchedDates = [];
 			foreach ($data['bookings'] as $b) {
-				$touchedYears[(int)substr((string)$b['date'], 0, 4)] = true;
+				$touchedDates[(string)$b['date']] = true;
 			}
-			if ($transition !== null && !empty($transition['removeJournalIds']) && $year !== null) {
-				// Der Jahresübergang entfernt Eröffnungsbuchungen des Folgejahres.
-				$touchedYears[$year + 1] = true;
+			if ($transition !== null && !empty($transition['removeJournalIds'])) {
+				// Der Jahresübergang entfernt Eröffnungsbuchungen des folgenden
+				// Geschäftsjahres; auch das muss offen sein.
+				$bounds = $this->journalMapper->dateBounds($userId);
+				if ($bounds !== null) {
+					$touchedDates[$bounds[0]] = true;
+				}
 			}
-			foreach (array_keys($touchedYears) as $y) {
-				$this->yearCloseService->assertOpen(FiscalYear::start($y));
+			foreach (array_keys($touchedDates) as $date) {
+				$this->periods->assertOpen($userId, $date);
 			}
 		}
 
@@ -426,9 +511,10 @@ class XbucImportService {
 		$seenTxHash = [];
 		$openBankTx = 0;
 
-		// Buchungsnummern je Kalenderjahr (starten bei 1; im Merge-Modus ab MAX+1 des jeweiligen Jahres)
-		/** @var array<int,int> $nextEntryByYear Jahr → nächste freie Nummer */
-		$nextEntryByYear = [];
+		// Buchungsnummern je Geschäftsjahr (starten bei 1; im Merge-Modus ab
+		// MAX+1 des jeweiligen Zeitraums)
+		/** @var array<int,int> $nextEntryByPeriod Perioden-ID → nächste freie Nummer */
+		$nextEntryByPeriod = [];
 
 		// --- Buchungen ---
 		$count = 0;
@@ -481,11 +567,13 @@ class XbucImportService {
 				$seen[$fp] = true;
 			}
 
-			$year = (int)substr((string)$b['date'], 0, 4);
-			if (!isset($nextEntryByYear[$year])) {
-				$nextEntryByYear[$year] = $reset ? 1 : $this->journalMapper->getNextEntryNoForYear($userId, $year);
+			// Hier wird der Zeitraum bei Bedarf angelegt – anders als in der
+			// Vorschau, die den Bestand nicht anfassen soll.
+			$periodId = (int)$this->periods->forDateOrCreate($userId, (string)$b['date'])->getId();
+			if (!isset($nextEntryByPeriod[$periodId])) {
+				$nextEntryByPeriod[$periodId] = $reset ? 1 : $this->journalMapper->getNextEntryNoForPeriod($userId, $periodId);
 			} else {
-				$nextEntryByYear[$year]++;
+				$nextEntryByPeriod[$periodId]++;
 			}
 
 			$this->journalService->createBooking(
@@ -496,13 +584,13 @@ class XbucImportService {
 				$debitId,
 				$creditId,
 				$b['amountCents'],
-				$nextEntryByYear[$year],
+				$nextEntryByPeriod[$periodId],
 				false, // Import protokolliert sich als Ganzes, nicht je Buchung
 			);
 			$count++;
 		}
 
-		// Rückwärts-Import: nun überflüssige Eröffnungsbuchungen des Folgejahres
+		// Rückwärts-Import: nun überflüssige Eröffnungsbuchungen des folgenden Geschäftsjahres
 		// entfernen (der Anfangsbestand kommt jetzt aus der frisch importierten,
 		// früheren Jahres-Datei). Der Übergang wurde oben bereits geprüft.
 		$openingsRemoved = 0;
@@ -521,20 +609,20 @@ class XbucImportService {
 			'openBankTx' => $openBankTx,
 			'skipped' => $skipped,
 			'reset' => $reset,
-			'year' => $year,
-			'outsideYear' => $outsideCount,
+			'period' => $span,
+			'outsidePeriod' => $outsideCount,
 			'clamped' => $clamped,
 			'openingsSkipped' => $openingsSkipped,
 			'openingMismatches' => $openingMismatches,
 			'openingsRemoved' => $openingsRemoved,
-			'transitionYear' => $transition['targetYear'] ?? null,
+			'transitionLabel' => $transition['targetLabel'] ?? null,
 		];
 	}
 
 	/**
 	 * Baut die (blockierende) Fehlermeldung bei inkonsistentem Jahresübergang.
 	 *
-	 * @param array{targetYear:int, comparisons:array<int,array<string,mixed>>} $transition
+	 * @param array{targetLabel:string, comparisons:array<int,array<string,mixed>>} $transition
 	 */
 	private function transitionErrorMessage(array $transition): string {
 		$lines = [];
@@ -550,7 +638,7 @@ class XbucImportService {
 				);
 			}
 		}
-		return $this->l10n->t('Import blockiert: Der Jahresübergang zu %s stimmt nicht überein. Bitte die Beträge in den Dateien prüfen.', [(string)$transition['targetYear']])
+		return $this->l10n->t('Import blockiert: Der Übergang zum Geschäftsjahr %s stimmt nicht überein. Bitte die Beträge in den Dateien prüfen.', [$transition['targetLabel']])
 			. "\n" . implode("\n", $lines);
 	}
 
@@ -564,12 +652,12 @@ class XbucImportService {
 		} catch (\Throwable) {
 			return false;
 		}
-		$year = $journal->getYear();
+		$periodId = $journal->getPeriodId();
 		$this->attachmentStorage->deleteForJournal($journalId);
 		$this->lineMapper->deleteByJournal($journalId);
 		$this->journalMapper->delete($journal);
 		// Lücke in der Buchungsnummerierung schließen (siehe EntryNumberService).
-		$this->entryNumbers->renumberYear($userId, $year);
+		$this->entryNumbers->renumberPeriod($userId, $periodId);
 		return true;
 	}
 

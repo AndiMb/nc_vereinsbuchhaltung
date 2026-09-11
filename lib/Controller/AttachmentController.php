@@ -12,7 +12,7 @@ use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\AttachmentWatchFolderService;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
-use OCA\Vereinsbuchhaltung\Service\YearCloseService;
+use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
@@ -37,7 +37,7 @@ class AttachmentController extends Controller {
 		private AttachmentStorageService $storageService,
 		private AttachmentWatchFolderService $watchFolder,
 		private JournalMapper $journalMapper,
-		private YearCloseService $yearClose,
+		private PeriodService $periods,
 		private AuditService $audit,
 		private IUserSession $userSession,
 		private IL10N $l10n,
@@ -84,8 +84,9 @@ class AttachmentController extends Controller {
 		} catch (DoesNotExistException) {
 			return new DataResponse(['message' => $this->l10n->t('Buchung nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
-		// Festschreibung: Belege eines abgeschlossenen Jahres sind Teil des Abschlusses.
-		$this->yearClose->assertOpen((string)$journal->getDate());
+		// Festschreibung: Belege eines abgeschlossenen Geschäftsjahres sind Teil
+		// des Abschlusses.
+		$this->periods->assertOpen($this->userId(), (string)$journal->getDate());
 		return $journal;
 	}
 
@@ -128,7 +129,7 @@ class AttachmentController extends Controller {
 		$attachment = $this->attachmentMapper->insert($attachment);
 
 		try {
-			$attachment = $this->storageService->store($attachment, $journal->getYear(), $content);
+			$attachment = $this->storageService->store($attachment, (int)substr((string)$journal->getDate(), 0, 4), $content);
 		} catch (\Throwable $e) {
 			$this->attachmentMapper->delete($attachment);
 			return new DataResponse(['message' => $this->l10n->t('Datei konnte nicht gespeichert werden: %s', [$e->getMessage()])], Http::STATUS_INTERNAL_SERVER_ERROR);
@@ -261,10 +262,11 @@ class AttachmentController extends Controller {
 			return new DataResponse(['message' => $this->l10n->t('Nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
 
-		// Festschreibung: Belege eines abgeschlossenen Jahres bleiben unangetastet.
+		// Festschreibung: Belege eines abgeschlossenen Geschäftsjahres bleiben
+		// unangetastet.
 		try {
 			$journal = $this->journalMapper->find($attachment->getJournalId(), $this->userId());
-			$this->yearClose->assertOpen((string)$journal->getDate());
+			$this->periods->assertOpen($this->userId(), (string)$journal->getDate());
 		} catch (DoesNotExistException) {
 			// Buchung existiert nicht mehr → verwaister Beleg darf immer weg.
 		}

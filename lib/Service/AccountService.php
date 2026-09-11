@@ -10,7 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
-use OCA\Vereinsbuchhaltung\Exception\YearClosedException;
+use OCA\Vereinsbuchhaltung\Exception\PeriodClosedException;
 use OCA\Vereinsbuchhaltung\Service\Statement\RowNormalizer;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IL10N;
@@ -69,7 +69,7 @@ class AccountService {
 		private TransactionRunner $transaction,
 		private RowNormalizer $normalizer,
 		private CostCenterService $costCenters,
-		private YearCloseService $yearClose,
+		private PeriodService $periods,
 		private AuditService $audit,
 		private IbanValidator $ibanValidator,
 		private SepaDebtorAccountService $sepaDebtorAccount,
@@ -256,34 +256,37 @@ class AccountService {
 	/**
 	 * Festschreibung an den Konto-Stammdaten.
 	 *
-	 * Der Jahresabschluss schützt bisher die Buchungssätze eines Jahres – nicht
-	 * aber die Konten, aus denen der Bericht gerechnet wird. Ein Wechsel der
-	 * Kontoart dreht über Account::isCreditNature() das Vorzeichen, ein Wechsel
-	 * des Geldkonto-Kennzeichens verschiebt das Konto über isStockAccount()
-	 * zwischen Vermögensübersicht und Einnahmen-/Ausgaben-Rechnung. Beides geht
-	 * rückwirkend in den Kassenbericht eines festgeschriebenen Jahres ein: das
-	 * archivierte Jahresergebnis änderte sich nachträglich, ohne dass eine
-	 * einzige Buchung angefasst wurde.
+	 * Der Jahresabschluss schützt bisher die Buchungssätze eines Geschäftsjahres
+	 * – nicht aber die Konten, aus denen der Bericht gerechnet wird. Ein Wechsel
+	 * der Kontoart dreht über Account::isCreditNature() das Vorzeichen, ein
+	 * Wechsel des Geldkonto-Kennzeichens verschiebt das Konto über
+	 * isStockAccount() zwischen Vermögensübersicht und Einnahmen-/Ausgaben-
+	 * Rechnung. Beides geht rückwirkend in den Kassenbericht eines
+	 * festgeschriebenen Zeitraums ein: das archivierte Jahresergebnis änderte
+	 * sich nachträglich, ohne dass eine einzige Buchung angefasst wurde.
 	 *
-	 * Gesperrt wird deshalb nur, wenn das Konto in einem abgeschlossenen Jahr
-	 * tatsächlich bebucht ist. Ein unbenutztes oder erst später bebuchtes Konto
-	 * bleibt frei änderbar.
+	 * Gesperrt wird deshalb nur, wenn das Konto in einem abgeschlossenen
+	 * Zeitraum tatsächlich bebucht ist. Ein unbenutztes oder erst später
+	 * bebuchtes Konto bleibt frei änderbar.
 	 *
 	 * @param string[] $changed Feldnamen aus EVALUATION_FIELDS
-	 * @throws YearClosedException wenn das Konto ein abgeschlossenes Jahr berührt
+	 * @throws PeriodClosedException wenn das Konto einen abgeschlossenen Zeitraum berührt
 	 */
 	private function assertEvaluationOpen(string $userId, int $accountId, string $label, array $changed): void {
-		$closed = array_values(array_intersect(
-			$this->lineMapper->findYearsForAccount($userId, $accountId),
-			$this->yearClose->closedYears(),
+		$closedIds = array_values(array_intersect(
+			$this->lineMapper->findPeriodIdsForAccount($userId, $accountId),
+			$this->periods->closedIds($userId),
 		));
-		if ($closed === []) {
+		if ($closedIds === []) {
 			return;
 		}
-		throw new YearClosedException($this->l10n->t(
+		// In der Meldung steht die Bezeichnung, nicht die ID: „2025/26" sagt
+		// dem Kassenwart etwas, eine Perioden-ID nichts.
+		$closed = array_map(fn (int $id): string => $this->periods->find($userId, $id)->getLabel(), $closedIds);
+		throw new PeriodClosedException($this->l10n->t(
 			'Das Konto "%s" ist in %s bebucht – %s dort abgeschlossen. %s lässt sich deshalb nicht mehr ändern: '
-			. 'die Auswertungen dieses Jahres würden sich nachträglich verschieben. '
-			. 'Wer die Änderung braucht, eröffnet das Jahr wieder und schließt es danach erneut ab.',
+			. 'die Auswertungen dieses Zeitraums würden sich nachträglich verschieben. '
+			. 'Wer die Änderung braucht, eröffnet den Zeitraum wieder und schließt ihn danach erneut ab.',
 			[
 				$label,
 				count($closed) === 1 ? $closed[0] : implode(', ', $closed),

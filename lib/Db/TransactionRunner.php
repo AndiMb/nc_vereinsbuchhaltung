@@ -31,6 +31,9 @@ class TransactionRunner {
 	/** @var list<callable():void> Aufgaben, die erst nach dem Commit laufen dürfen */
 	private array $afterCommit = [];
 
+	/** @var list<callable():void> Aufgaben, die nach einem Rollback laufen müssen */
+	private array $afterRollback = [];
+
 	public function __construct(
 		private IDBConnection $db,
 	) {
@@ -63,6 +66,28 @@ class TransactionRunner {
 	}
 
 	/**
+	 * Meldet eine Aufgabe an, die nach einem Rollback laufen muss.
+	 *
+	 * Das Gegenstück zu {@see afterCommit()}, und aus demselben Grund nötig:
+	 * ein Rollback macht nur die Datenbank rückgängig. Wer Datenbankinhalte im
+	 * Speicher zwischenhält – der PeriodService seine Zeiträume –, hält danach
+	 * einen Stand, den es nicht mehr gibt. Meist fällt das nicht auf, weil der
+	 * Request ohnehin mit einem Fehler endet; {@see runWithRetry()} setzt den
+	 * Vorgang aber fort, und dann rechnete er mit Perioden weiter, die gar
+	 * nicht angelegt wurden.
+	 *
+	 * Läuft gerade keine Transaktion, gibt es nichts zurückzurollen.
+	 *
+	 * @param callable():void $fn
+	 */
+	public function afterRollback(callable $fn): void {
+		if ($this->depth === 0) {
+			return;
+		}
+		$this->afterRollback[] = $fn;
+	}
+
+	/**
 	 * Arbeitet die aufgeschobenen Aufgaben ab. Fehler einzelner Aufgaben dürfen
 	 * die bereits committete Transaktion nicht nachträglich als gescheitert
 	 * erscheinen lassen – die Daten sind ja korrekt geschrieben.
@@ -76,6 +101,22 @@ class TransactionRunner {
 			} catch (\Throwable) {
 				// Verwaiste Datei ist ärgerlich, aber kein Grund, den
 				// erfolgreichen Vorgang als Fehler zu melden.
+			}
+		}
+	}
+
+	/**
+	 * Wie {@see runAfterCommit()}, nur für den Fehlerfall. Auch hier darf ein
+	 * Fehler in einer Aufräumaufgabe die eigentliche Ursache nicht verdecken –
+	 * die wird gleich danach weitergereicht.
+	 */
+	private function runAfterRollback(): void {
+		$tasks = $this->afterRollback;
+		$this->afterRollback = [];
+		foreach ($tasks as $task) {
+			try {
+				$task();
+			} catch (\Throwable) {
 			}
 		}
 	}
@@ -104,9 +145,11 @@ class TransactionRunner {
 		try {
 			$result = $fn();
 			$this->db->commit();
+			$this->afterRollback = [];
 		} catch (\Throwable $e) {
 			$this->db->rollBack();
 			$this->afterCommit = []; // aufgeschobene Aufgaben verwerfen
+			$this->runAfterRollback();
 			throw $e;
 		} finally {
 			$this->depth = 0;

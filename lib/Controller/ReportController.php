@@ -28,13 +28,13 @@ class ReportController extends Controller {
 	}
 
 	#[NoAdminRequired]
-	public function costCenters(?int $year = null): DataResponse {
-		return new DataResponse($this->reportService->costCenterReport($this->userId(), $year));
+	public function costCenters(?int $period = null): DataResponse {
+		return new DataResponse($this->reportService->costCenterReport($this->userId(), $period));
 	}
 
 	#[NoAdminRequired]
-	public function spheres(?int $year = null): DataResponse {
-		return new DataResponse($this->reportService->sphereReport($this->userId(), $year));
+	public function spheres(?int $period = null): DataResponse {
+		return new DataResponse($this->reportService->sphereReport($this->userId(), $period));
 	}
 
 	#[NoAdminRequired]
