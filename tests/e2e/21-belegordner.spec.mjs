@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { api, dav, findBooking, openApp, pickNcSelectOption, skipBookingTour, visibleSection, BANK_ACCOUNT, BELEG_PNG, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
+import { api, dav, findBooking, openApp, openSettingsPage, pickNcSelectOption, skipBookingTour, visibleSection, BANK_ACCOUNT, BELEG_PNG, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
 
 // Der Wächter-Ordner für Belege: was in der Dateien-App abgelegt wird, meldet
 // die Übersicht als „noch keiner Buchung zugewiesen" und lässt sich beim
@@ -39,6 +39,27 @@ test.describe('Wächter-Ordner für Belege', () => {
 		expect(resp.status()).toBe(400)
 		expect((await resp.json()).message).toMatch(/existiert/)
 		expect((await api.getSettings(request)).storage_mode).toBe('watch')
+	})
+
+	test('der Ordnerbaum in den Einstellungen wählt den Wächter-Ordner per Klick', async ({ page, request }) => {
+		await openSettingsPage(page, USERS.admin)
+		const section = page.locator('#settings-section_belege')
+		await section.locator('select').first().selectOption('watch')
+		await section.locator('select').nth(1).selectOption('admin')
+
+		const tree = section.locator('.vbh-dirtree')
+		await tree.getByRole('button', { name: FOLDER, exact: true }).click()
+		// Im Wächter-Modus ist das Pfadfeld nur Anzeige – getippt wird nichts.
+		await expect(section.locator('input[type="text"]')).toHaveValue(FOLDER)
+		await expect(section.locator('input[type="text"]')).toHaveAttribute('readonly', '')
+		// Die Auswahl klappt den Ordner auf und zeigt seine Unterordner.
+		await expect(tree.getByRole('button', { name: '2026', exact: true })).toBeVisible()
+
+		await section.getByRole('button', { name: 'Speichern' }).click()
+		await expect(page.getByRole('status').filter({ hasText: 'Einstellungen gespeichert' }).first()).toBeVisible()
+		const settings = await api.getSettings(request)
+		expect(settings.storage_mode).toBe('watch')
+		expect(settings.storage_path).toBe(FOLDER)
 	})
 
 	test('abgelegte Datei erscheint auf der Übersicht und wird beim Buchen verknüpft', async ({ page, request }) => {

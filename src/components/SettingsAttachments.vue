@@ -19,8 +19,16 @@
 					</select>
 				</label>
 				<label class="vbh-grow">{{ t('Ordnerpfad im Nutzer-Home') }}
-					<input v-model="storagePathModel" type="text" placeholder="Vereinsbuchhaltung/Belege">
+					<input
+						v-model="storagePathModel"
+						type="text"
+						placeholder="Vereinsbuchhaltung/Belege"
+						:readonly="storageMode === 'watch'">
 				</label>
+				<div v-if="storageUser" class="vbh-form-full">
+					<span>{{ storageMode === 'watch' ? t('Wächter-Ordner anklicken:') : t('Ordner anklicken oder Pfad oben eintippen:') }}</span>
+					<FolderTree v-model="storagePathModel" :user="storageUser" />
+				</div>
 			</template>
 			<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings">
 				{{ t('Speichern') }}
@@ -38,6 +46,7 @@
 <script>
 import { NcButton } from '@nextcloud/vue'
 import { toRefs } from 'vue'
+import FolderTree from './FolderTree.vue'
 import { usePermissions } from '../composables/usePermissions.js'
 
 /**
@@ -46,7 +55,7 @@ import { usePermissions } from '../composables/usePermissions.js'
  */
 export default {
 	name: 'SettingsAttachments',
-	components: { NcButton },
+	components: { FolderTree, NcButton },
 	props: {
 		storageMode: { type: String, required: true },
 		storageUser: { type: String, required: true },

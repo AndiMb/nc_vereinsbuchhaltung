@@ -1416,7 +1416,17 @@
         "⚠ {n} Buchung(en) liegen außerhalb des Geschäftsjahres {label} ({from} – {to}) und würden in der App einem anderen Zeitraum zugeordnet:": "⚠ {n} entry/entries fall outside fiscal year {label} ({from} – {to}) and would be assigned to a different period in the app:",
         "⛔ Import blockiert, bis die Beträge am Zeitraumübergang übereinstimmen.": "⛔ Import blocked until the amounts at the period transition match.",
         "⛔ Umstellung nicht möglich: diese Zeiträume sind festgeschrieben und müssten zuerst wiedereröffnet werden.": "⛔ Change not possible: these periods are locked and would have to be reopened first.",
-        "🔒 Das Geschäftsjahr {period} ist abgeschlossen – diese Buchung kann nur noch angesehen werden.": "🔒 Fiscal year {period} is closed – this entry can only be viewed."
+        "🔒 Das Geschäftsjahr {period} ist abgeschlossen – diese Buchung kann nur noch angesehen werden.": "🔒 Fiscal year {period} is closed – this entry can only be viewed.",
+        "Ordner im Home von {user}": "Folders in the home of {user}",
+        "Ordner konnte nicht gelesen werden": "Folder could not be read",
+        "Aufklappen": "Expand",
+        "Zuklappen": "Collapse",
+        "Lade …": "Loading …",
+        "Keine Unterordner": "No subfolders",
+        "Wächter-Ordner anklicken:": "Click the watch folder:",
+        "Ordner anklicken oder Pfad oben eintippen:": "Click a folder or type the path above:",
+        "Nutzer nicht gefunden": "User not found",
+        "Ordner nicht gefunden": "Folder not found"
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

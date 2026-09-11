@@ -178,6 +178,7 @@ export default {
 	// Einstellungen (Belegablage)
 	getSettings: () => axios.get(url('/settings')),
 	saveSettings: (data) => axios.post(url('/settings'), data),
+	listFolders: (user, path) => axios.get(url('/settings/folders'), { params: { user, path } }),
 
 	// Corporate Design (Vereins-Logo für den Kurzbericht)
 	logoUrl: () => generateUrl(base + '/settings/logo'),

@@ -1354,6 +1354,31 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-folder-warn { color: var(--color-error-text); }
 
+/* Ordnerbaum in den Einstellungen (FolderTree.vue): Ordner anklicken statt Pfad tippen */
+.vbh-form .vbh-form-full { flex: 1 1 100%; display: flex; flex-direction: column; gap: 3px; font-size: 0.85em; }
+
+.vbh-dirtree { max-height: 40vh; overflow: auto; margin: 0; padding: 6px; list-style: none; border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); background-color: var(--color-main-background); font-size: 1rem; }
+
+.vbh-dirtree ul { list-style: none; margin: 0; padding: 0 0 0 24px; }
+
+.vbh-dirtree-row { display: flex; align-items: center; gap: 2px; }
+
+button.vbh-dirtree-toggle.vbh-dirtree-toggle { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; min-height: 0; margin: 0; padding: 0; border: none; border-radius: 50%; background: none; color: var(--color-main-text); cursor: pointer; }
+
+button.vbh-dirtree-toggle.vbh-dirtree-toggle:hover, button.vbh-dirtree-toggle.vbh-dirtree-toggle:focus-visible { background-color: var(--color-background-hover); }
+
+.vbh-dirtree-label.vbh-dirtree-label { display: inline-flex; align-items: center; gap: 6px; min-height: 0; margin: 0; padding: 3px 8px; border: none; border-radius: 6px; background: none; color: var(--color-main-text); font: inherit; text-align: start; }
+
+button.vbh-dirtree-label.vbh-dirtree-label { cursor: pointer; }
+
+button.vbh-dirtree-label.vbh-dirtree-label:hover, button.vbh-dirtree-label.vbh-dirtree-label:focus-visible { background-color: var(--color-background-hover); }
+
+button.vbh-dirtree-label.vbh-dirtree-label.is-selected { background-color: var(--color-primary-element); color: var(--color-primary-element-text); }
+
+.vbh-dirtree-note { margin: 0; padding: 2px 8px 2px 38px; font-size: 0.85em; color: var(--color-text-lighter); }
+
+.vbh-dirtree-note--error { color: var(--color-error-text); }
+
 .vbh-attachments-actions { display: flex; align-items: center; gap: 6px; }
 
 button.vbh-upload-btn { cursor: pointer; }

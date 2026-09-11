@@ -27,6 +27,9 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   file id. Receipts uploaded or photographed from the app are stored under
   `<folder>/<year>/` and may be reorganised afterwards. The folder has to
   exist in the Files app beforehand and must not overlap with the watched
+  folder for bank statements. It is chosen by clicking in the folder tree
+  of the user's home that the settings show below the path field – a typo
+  in the path is ruled out. The same tree is now available for the watched
   folder for bank statements.
 - **The overview reports documents without an entry.** If the watch folder
   holds a file that is not attached to any entry yet, the overview shows

@@ -144,6 +144,7 @@ return [
 		// Einstellungen
 		['name' => 'settings#index',  'url' => '/api/settings', 'verb' => 'GET'],
 		['name' => 'settings#update', 'url' => '/api/settings', 'verb' => 'POST'],
+		['name' => 'settings#folders', 'url' => '/api/settings/folders', 'verb' => 'GET'],
 
 		// Corporate Design (Vereins-Logo für den Kurzbericht)
 		['name' => 'branding#view', 'url' => '/api/settings/logo', 'verb' => 'GET'],

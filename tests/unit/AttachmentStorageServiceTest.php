@@ -185,6 +185,49 @@ class AttachmentStorageServiceTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Die Ordnerwahl in den Einstellungen bekommt nur Ordner, keine Dateien
+	 * und nichts Verstecktes – natürlich sortiert, mit Pfad relativ zum Home.
+	 */
+	public function testSubfoldersAtListetNurSichtbareOrdnerSortiert(): void {
+		$hidden = $this->createMock(Folder::class);
+		$hidden->method('getName')->willReturn('.hidden');
+		$b = $this->createMock(Folder::class);
+		$b->method('getName')->willReturn('belege 10');
+		$a = $this->createMock(Folder::class);
+		$a->method('getName')->willReturn('Belege 9');
+		$file = $this->createMock(File::class);
+		$file->method('getName')->willReturn('x.pdf');
+
+		$folder = $this->createMock(Folder::class);
+		$folder->method('getDirectoryListing')->willReturn([$b, $file, $hidden, $a]);
+		$home = $this->createMock(Folder::class);
+		$home->method('get')->with('Vereinsbuchhaltung')->willReturn($folder);
+		$this->rootFolder->method('getUserFolder')->with(self::NC_USER)->willReturn($home);
+
+		$this->assertSame(
+			[
+				['name' => 'Belege 9', 'path' => 'Vereinsbuchhaltung/Belege 9'],
+				['name' => 'belege 10', 'path' => 'Vereinsbuchhaltung/belege 10'],
+			],
+			$this->service()->subfoldersAt(self::NC_USER, 'Vereinsbuchhaltung'),
+		);
+	}
+
+	/** Leerer Pfad ist das Home selbst; ein unbekannter Pfad ergibt null statt einer Ausnahme. */
+	public function testSubfoldersAtHomeUndUnbekannterPfad(): void {
+		$top = $this->createMock(Folder::class);
+		$top->method('getName')->willReturn('Dokumente');
+		$home = $this->createMock(Folder::class);
+		$home->method('getDirectoryListing')->willReturn([$top]);
+		$home->method('get')->willThrowException(new \OCP\Files\NotFoundException());
+		$this->rootFolder->method('getUserFolder')->willReturn($home);
+
+		$service = $this->service();
+		$this->assertSame([['name' => 'Dokumente', 'path' => 'Dokumente']], $service->subfoldersAt(self::NC_USER, ''));
+		$this->assertNull($service->subfoldersAt(self::NC_USER, 'gibt-es-nicht'));
+	}
+
 	private function service(): AttachmentStorageService {
 		$factory = $this->createMock(IAppDataFactory::class);
 		$factory->method('get')->willReturn($this->appData);

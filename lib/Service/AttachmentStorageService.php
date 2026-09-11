@@ -113,7 +113,8 @@ class AttachmentStorageService {
 	 */
 	public function folderAt(string $uid, string $path): ?Folder {
 		try {
-			$node = $this->userFolder($uid)->get($path);
+			$home = $this->userFolder($uid);
+			$node = $path === '' ? $home : $home->get($path);
 		} catch (\Throwable) {
 			return null;
 		}
@@ -122,6 +123,29 @@ class AttachmentStorageService {
 
 	public function watchFolder(): ?Folder {
 		return $this->isWatchMode() ? $this->folderAt($this->storageUser(), $this->storagePath()) : null;
+	}
+
+	/**
+	 * Die Unterordner eines Ordners im Home eines Nutzers – für die Ordnerwahl
+	 * in den Einstellungen. Versteckte Ordner bleiben außen vor, wie beim Scan
+	 * des Wächter-Ordners.
+	 *
+	 * @return list<array{name: string, path: string}>|null null, wenn es den Ordner nicht gibt
+	 */
+	public function subfoldersAt(string $uid, string $path): ?array {
+		$folder = $this->folderAt($uid, $path);
+		if ($folder === null) {
+			return null;
+		}
+		$out = [];
+		foreach ($folder->getDirectoryListing() as $node) {
+			if (!$node instanceof Folder || str_starts_with($node->getName(), '.')) {
+				continue;
+			}
+			$out[] = ['name' => $node->getName(), 'path' => ltrim($path . '/' . $node->getName(), '/')];
+		}
+		usort($out, static fn (array $a, array $b): int => strnatcasecmp($a['name'], $b['name']));
+		return $out;
 	}
 
 	private function userFolder(string $uid): Folder {

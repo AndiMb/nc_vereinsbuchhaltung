@@ -30,7 +30,10 @@ verwenden, z. B. `**Neu:**`.
   hochgeladene oder fotografierte Belege landen unter `<Ordner>/<Jahr>/` und
   dürfen danach beliebig umsortiert werden. Der Ordner muss vorher in der
   Dateien-App angelegt sein und darf sich nicht mit dem Wachordner für
-  Kontoauszüge überschneiden.
+  Kontoauszüge überschneiden. Gewählt wird er per Klick im Ordnerbaum des
+  Nutzer-Homes, der in den Einstellungen unter dem Pfadfeld erscheint –
+  ein Tippfehler im Pfad ist damit ausgeschlossen. Denselben Baum gibt es
+  jetzt auch für den Wachordner der Kontoauszüge.
 - **Die Übersicht meldet Dokumente ohne Buchung.** Liegt im Wächter-Ordner
   eine Datei, die noch an keiner Buchung hängt, zeigt die Übersicht „x
   Dokumente noch keiner Buchung zugewiesen" – etwa eine Rechnung, die noch zu

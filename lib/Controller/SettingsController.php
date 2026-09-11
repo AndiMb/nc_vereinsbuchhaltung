@@ -172,6 +172,26 @@ class SettingsController extends Controller {
 	}
 
 	/**
+	 * Unterordner im Home eines Nutzers – für die Ordnerwahl in den
+	 * Einstellungen (Belegablage, Wachordner für Kontoauszüge). Verwaltern
+	 * vorbehalten wie das Speichern der Einstellungen selbst.
+	 */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	public function folders(string $user = '', string $path = ''): DataResponse {
+		$user = trim($user);
+		$path = trim($path, '/');
+		if ($user === '' || !$this->userManager->userExists($user)) {
+			return new DataResponse(['message' => $this->l10n->t('Nutzer nicht gefunden')], Http::STATUS_NOT_FOUND);
+		}
+		$folders = $this->attachmentStorage->subfoldersAt($user, $path);
+		if ($folders === null) {
+			return new DataResponse(['message' => $this->l10n->t('Ordner nicht gefunden')], Http::STATUS_NOT_FOUND);
+		}
+		return new DataResponse(['path' => $path, 'folders' => $folders]);
+	}
+
+	/**
 	 * Schreibt nur die Schlüssel, die tatsächlich im Request stehen - die
 	 * Einstellungsseite (elf Felder) und der Kostenstellen-Modus in
 	 * ReportsTab (ein Feld) teilen sich diesen Endpunkt, seit sie nicht mehr
