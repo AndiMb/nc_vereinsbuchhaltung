@@ -142,7 +142,14 @@ test.describe('Kontenbaum: Saldo inkl. Unterkonten', () => {
 		await expect(haken).toBeChecked()
 		await expect(saldo).toHaveText(/^100,00\s*€$/)
 
-		await haken.click()
+		// NcCheckboxRadioSwitch legt einen gestylten Label-Span ueber den
+		// eigentlichen, unsichtbaren Input - ein normaler Klick auf den Input
+		// selbst laeuft deshalb (immer, nicht nur gelegentlich) in Playwrights
+		// Sichtbarkeitspruefung ("intercepts pointer events") und schlaegt nach
+		// 30s Timeout fehl. force:true klickt trotzdem den Input direkt an, was
+		// fuer einen nativen Checkbox-Input ein echtes Klick-/Change-Ereignis
+		// ausloest.
+		await haken.click({ force: true })
 		await expect(haken).not.toBeChecked()
 		await expect(saldo).toHaveText(/^60,00\s*€$/)
 	})
