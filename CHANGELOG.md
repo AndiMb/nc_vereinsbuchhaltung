@@ -19,6 +19,46 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+**Neu:**
+- **Wächter-Ordner für Belege.** Neben der app-internen Ablage und dem von
+  der App verwalteten Nutzerordner gibt es eine dritte Art der Belegablage
+  (Zahnrad → *Belege* → „Art der Ablage"): ein Ordner in der Dateien-App,
+  dessen Dateien samt aller Unterordner beim Buchen zur Auswahl stehen
+  („Aus Ordner wählen", mit Suche und Vorschau). Die Dateien bleiben, wo sie
+  sind – Umbenennen und Umsortieren innerhalb des Wächter-Ordners brechen
+  die Verknüpfung nicht, die App merkt sich die Nextcloud-Datei-ID. Aus der App
+  hochgeladene oder fotografierte Belege landen unter `<Ordner>/<Jahr>/` und
+  dürfen danach beliebig umsortiert werden. Der Ordner muss vorher in der
+  Dateien-App angelegt sein und darf sich nicht mit dem Wachordner für
+  Kontoauszüge überschneiden. Gewählt wird er per Klick im Ordnerbaum des
+  Nutzer-Homes („Ordner wählen…" neben dem Pfadfeld) – ein Tippfehler im
+  Pfad ist damit ausgeschlossen. Denselben Baum gibt es jetzt auch für den
+  Wachordner der Kontoauszüge.
+- **Die Übersicht meldet Dokumente ohne Buchung.** Liegt im Wächter-Ordner
+  eine Datei, die noch an keiner Buchung hängt, zeigt die Übersicht „x
+  Dokumente noch keiner Buchung zugewiesen" – etwa eine Rechnung, die noch zu
+  überweisen ist. „Ansehen" öffnet den Eingangskorb mit „Buchung anlegen" je
+  Datei. Eine zweite Kachel warnt vor Belegen, deren Datei in der
+  Dateien-App gelöscht oder aus dem Wächter-Ordner hinausgeschoben wurde;
+  der Prüf-ZIP listet solche Belege weiterhin in `fehlende_dateien.txt` auf.
+- **Im Wächter-Ordner löscht die App nie eine Datei.** „Beleg löschen" heißt
+  dort „Verknüpfung lösen" – auch beim Löschen der Buchung und bei „Alle
+  Daten löschen" bleiben die Dateien stehen. Dieselbe Datei darf an mehreren
+  Buchungen hängen, etwa bei einer aufgeteilten Sammelrechnung.
+- **Beim Einschalten** bekommen Belege, die die App bisher unter
+  `<Ordner>/<BuchungsID>/` abgelegt hat, ihre Datei-ID nachgetragen – der
+  bisherige Belegordner kann so direkt zum Wächter-Ordner werden. Wird ein
+  anderer Ordner gewählt, gelten die alten Belege als fehlend, bis sie dort
+  hineingeschoben sind.
+
+**Geändert:**
+- Der Nextcloud-Viewer öffnet einen Beleg nur noch, wenn die Datei im Home
+  des angemeldeten Nutzers liegt; alle anderen bekommen die Ansicht der App.
+  Bisher lief der Viewer für jeden ins Leere, dem der Ablageordner nicht
+  gehörte.
+- Beim Öffnen eines Belegs legt die App keine Ordner mehr an, und Belege aus
+  der app-internen Ablage bleiben nach einem Wechsel der Ablage lesbar.
+
 ## [0.33.0] – 2026-09-10
 
 **Neu:**

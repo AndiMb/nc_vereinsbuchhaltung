@@ -17,6 +17,42 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+**New:**
+- **Watch folder for receipts.** Besides the internal storage and the user
+  folder managed by the app there is a third storage type (cog → *Receipts*
+  → "Storage type"): a folder in the Files app whose files, including all
+  subfolders, can be picked when booking ("Pick from folder", with search
+  and preview). The files stay where they are – renaming or reorganising
+  them inside the watch folder does not break the link, the app remembers
+  the Nextcloud file id. Receipts uploaded or photographed from the app are stored under
+  `<folder>/<year>/` and may be reorganised afterwards. The folder has to
+  exist in the Files app beforehand and must not overlap with the watched
+  folder for bank statements. It is chosen by clicking in the folder tree
+  of the user's home ("Choose folder…" next to the path field) – a typo in
+  the path is ruled out. The same tree is now available for the watched
+  folder for bank statements.
+- **The overview reports documents without an entry.** If the watch folder
+  holds a file that is not attached to any entry yet, the overview shows
+  "x documents not yet assigned to an entry" – an invoice still to be paid,
+  for instance. "View" opens the inbox with "Create entry" per file. A second
+  tile warns about receipts whose file was deleted or moved out of the watch
+  folder; the audit ZIP keeps listing such receipts in `fehlende_dateien.txt`.
+- **The app never deletes a file in the watch folder.** "Delete receipt"
+  means "Unlink" there – the files also stay when an entry is deleted or
+  all data is wiped. The same file may be attached to several entries, e.g.
+  a split invoice.
+- **When switching on**, receipts the app stored under
+  `<folder>/<entry id>/` so far get their file id filled in – the existing
+  receipt folder can become the watch folder directly. If a different folder
+  is chosen, the old receipts count as missing until they are moved there.
+
+**Changed:**
+- The Nextcloud viewer only opens a receipt when the file lives in the home
+  of the signed-in user; everyone else gets the app's own view. Until now the
+  viewer failed for anyone who did not own the storage folder.
+- Opening a receipt no longer creates folders, and receipts from the
+  internal storage stay readable after switching the storage type.
+
 ## [0.33.0] – 2026-09-10
 
 **New:**

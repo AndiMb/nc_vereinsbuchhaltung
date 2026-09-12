@@ -144,6 +144,7 @@ return [
 		// Einstellungen
 		['name' => 'settings#index',  'url' => '/api/settings', 'verb' => 'GET'],
 		['name' => 'settings#update', 'url' => '/api/settings', 'verb' => 'POST'],
+		['name' => 'settings#folders', 'url' => '/api/settings/folders', 'verb' => 'GET'],
 
 		// Corporate Design (Vereins-Logo für den Kurzbericht)
 		['name' => 'branding#view', 'url' => '/api/settings/logo', 'verb' => 'GET'],
@@ -168,6 +169,11 @@ return [
 
 		// Belegablage
 		['name' => 'attachment#counts',   'url' => '/api/attachments/counts',              'verb' => 'GET'],
+		// Wächter-Ordner: Dateien ohne Buchung, Belege ohne Datei, Verknüpfen
+		['name' => 'attachment#inbox',        'url' => '/api/attachments/inbox',         'verb' => 'GET'],
+		['name' => 'attachment#inboxSummary', 'url' => '/api/attachments/inbox/summary', 'verb' => 'GET'],
+		['name' => 'attachment#inboxView',    'url' => '/api/attachments/inbox/{fileId}/view', 'verb' => 'GET'],
+		['name' => 'attachment#link',         'url' => '/api/journal/{journalId}/attachments/link', 'verb' => 'POST'],
 		['name' => 'attachment#index',    'url' => '/api/journal/{journalId}/attachments', 'verb' => 'GET'],
 		['name' => 'attachment#create',   'url' => '/api/journal/{journalId}/attachments', 'verb' => 'POST'],
 		['name' => 'attachment#view',     'url' => '/api/attachments/{id}/view',          'verb' => 'GET'],

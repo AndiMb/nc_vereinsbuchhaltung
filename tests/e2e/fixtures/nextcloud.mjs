@@ -65,6 +65,63 @@ export function authHeaders(username = 'admin', password = null) {
 }
 
 /**
+ * WebDAV im Home eines Nutzers – so legen Sync-Client oder Dateien-App
+ * Dateien ab, ohne die App zu kennen (Wachordner, Wächter-Ordner).
+ */
+export const dav = {
+	async mkcol(request, user, path) {
+		return request.fetch(davUrl(user, path), { method: 'MKCOL', headers: authHeaders(user) })
+	},
+
+	async put(request, user, path, buffer, contentType = 'application/octet-stream') {
+		const resp = await request.fetch(davUrl(user, path), {
+			method: 'PUT',
+			headers: { ...authHeaders(user), 'Content-Type': contentType },
+			data: buffer,
+		})
+		if (![201, 204].includes(resp.status())) {
+			throw new Error(`PUT ${path} als ${user}: HTTP ${resp.status()}`)
+		}
+		return resp
+	},
+
+	async exists(request, user, path) {
+		return (await request.fetch(davUrl(user, path), { method: 'HEAD', headers: authHeaders(user) })).status() === 200
+	},
+
+	async move(request, user, from, to) {
+		const resp = await request.fetch(davUrl(user, from), {
+			method: 'MOVE',
+			headers: { ...authHeaders(user), Destination: davUrl(user, to) },
+		})
+		if (![201, 204].includes(resp.status())) {
+			throw new Error(`MOVE ${from} → ${to} als ${user}: HTTP ${resp.status()}`)
+		}
+		return resp
+	},
+
+	async remove(request, user, path) {
+		return request.fetch(davUrl(user, path), { method: 'DELETE', headers: authHeaders(user) })
+	},
+}
+
+/**
+ * /journal liefert je Buchung { journal: {...}, lines: [...] } – die Felder
+ * der Buchung stecken eine Ebene tiefer als beim POST auf /journal.
+ */
+export function findBooking(journal, description) {
+	return (journal.find((e) => e.journal.description === description) || {}).journal
+}
+
+/** Die Erste-Buchung-Tour erscheint nur einmal je Browserprofil – falls sie da ist, weg damit. */
+export async function skipBookingTour(dialog) {
+	const skip = dialog.getByRole('button', { name: 'Überspringen', exact: true })
+	if (await skip.isVisible().catch(() => false)) {
+		await skip.click()
+	}
+}
+
+/**
  * Anmeldung über die Login-Seite, mit Cookie-Cache unter tests/e2e/.auth –
  * das Global-Setup leert den Cache, wenn die Datenbank zurückgesetzt wurde.
  */
@@ -258,6 +315,23 @@ export const api = {
 
 	async listAttachments(request, journalId) {
 		return (await call(request, 'GET', `/journal/${journalId}/attachments`)).json()
+	},
+
+	async deleteAttachment(request, id) {
+		return call(request, 'DELETE', `/attachments/${id}`)
+	},
+
+	// Wächter-Ordner für Belege
+	async linkAttachment(request, journalId, fileId) {
+		return (await call(request, 'POST', `/journal/${journalId}/attachments/link`, { data: { fileId } })).json()
+	},
+
+	async attachmentInbox(request) {
+		return (await call(request, 'GET', '/attachments/inbox')).json()
+	},
+
+	async attachmentInboxSummary(request) {
+		return (await call(request, 'GET', '/attachments/inbox/summary')).json()
 	},
 
 	async listJournal(request, { period = null } = {}) {

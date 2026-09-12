@@ -19,6 +19,10 @@ use OCP\AppFramework\Db\Entity;
  * @method void setFileSize(int $fileSize)
  * @method \DateTime getUploadedAt()
  * @method void setUploadedAt(\DateTime $uploadedAt)
+ * @method int|null getFileId()
+ * @method void setFileId(?int $fileId)
+ * @method string|null getFileOwner()
+ * @method void setFileOwner(?string $fileOwner)
  */
 class Attachment extends Entity implements \JsonSerializable {
 	protected $journalId;
@@ -27,11 +31,20 @@ class Attachment extends Entity implements \JsonSerializable {
 	protected $mimeType;
 	protected $fileSize;
 	protected $uploadedAt;
+	/** Nextcloud-Dateikennung, wenn der Beleg auf eine Datei im Wächter-Ordner verweist. */
+	protected $fileId;
+	/** Nutzer, in dessen Home die verwiesene Datei liegt. */
+	protected $fileOwner;
 
 	public function __construct() {
 		$this->addType('journalId', 'integer');
 		$this->addType('fileSize', 'integer');
 		$this->addType('uploadedAt', 'datetime');
+		$this->addType('fileId', 'integer');
+	}
+
+	public function isLinked(): bool {
+		return $this->fileId !== null;
 	}
 
 	public function jsonSerialize(): array {
@@ -42,6 +55,7 @@ class Attachment extends Entity implements \JsonSerializable {
 			'mimeType' => $this->mimeType,
 			'fileSize' => $this->fileSize,
 			'uploadedAt' => $this->uploadedAt?->format(\DateTime::ATOM),
+			'fileId' => $this->fileId,
 		];
 	}
 }

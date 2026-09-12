@@ -39,6 +39,30 @@
 					{{ t('Ansehen') }}
 				</NcButton>
 			</div>
+			<!-- Wächter-Ordner für Belege: was dort liegt, aber noch keine Buchung
+			     hat (z. B. eine noch zu überweisende Rechnung), und Belege, deren
+			     Datei in der Dateien-App verschwunden ist. -->
+			<div v-if="inbox.unassigned > 0" class="vbh-total vbh-total--warn">
+				<span>{{ t('Noch keiner Buchung zugewiesen') }}</span>
+				<strong>{{ n('%n{plus} Dokument', '%n{plus} Dokumente', inbox.unassigned, { plus: inbox.capped ? '+' : '' }) }}</strong>
+				<NcButton variant="primary" size="small" @click="$emit('open-inbox')">
+					{{ t('Ansehen') }}
+				</NcButton>
+			</div>
+			<div v-if="inbox.missing > 0" class="vbh-total vbh-total--warn">
+				<span>{{ t('Belege ohne Datei') }}</span>
+				<strong>{{ inbox.missing }}</strong>
+				<NcButton variant="primary" size="small" @click="$emit('open-inbox')">
+					{{ t('Ansehen') }}
+				</NcButton>
+			</div>
+			<div v-if="inbox.folderMissing && isAdmin" class="vbh-total vbh-total--warn">
+				<span>{{ t('Wächter-Ordner für Belege') }}</span>
+				<strong>{{ t('nicht gefunden') }}</strong>
+				<NcButton variant="primary" size="small" @click="$emit('navigate', 'settings:belege')">
+					{{ t('Einstellungen') }}
+				</NcButton>
+			</div>
 		</div>
 
 		<div v-if="sphereData && sphereData.freigrenze.incomeCents > 0" class="vbh-freigrenzecard" :class="sphereData.freigrenze.level">
@@ -236,6 +260,7 @@ import { toRefs } from 'vue'
 import BookingCard from './BookingCard.vue'
 import SetupChecklist from './SetupChecklist.vue'
 import { useAccounts } from '../composables/useAccounts.js'
+import { useAttachmentInbox } from '../composables/useAttachmentInbox.js'
 import { useAuth } from '../composables/useAuth.js'
 import { useBalances } from '../composables/useBalances.js'
 import { useJournal } from '../composables/useJournal.js'
@@ -275,7 +300,7 @@ export default {
 		openBookingCard: { type: Function, required: true },
 	},
 
-	emits: ['go-open-items', 'go-unassigned', 'help', 'navigate', 'open-wizard', 'show-all-bookings'],
+	emits: ['go-open-items', 'go-unassigned', 'help', 'navigate', 'open-inbox', 'open-wizard', 'show-all-bookings'],
 
 	setup() {
 		const auth = useAuth()
@@ -298,6 +323,7 @@ export default {
 			unassignedCount: journal.unassignedCount,
 			...toRefs(permissions.state),
 			overdueOpenItemsCount: openItems.overdueCount,
+			...toRefs(useAttachmentInbox().state),
 		}
 	},
 

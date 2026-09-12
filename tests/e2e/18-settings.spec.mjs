@@ -30,9 +30,13 @@ test.describe('Einstellungsseite: Belegablage', () => {
 	test('Nutzer-Dropdown bietet die Nextcloud-Nutzer an, Auswahl lässt sich speichern', async ({ page, request }) => {
 		await openSettingsPage(page, USERS.admin)
 		const section = page.locator('#settings-section_belege')
-		const select = section.locator('select')
+		// Erst die Art der Ablage: das Nutzer-Feld erscheint erst, wenn die
+		// Belege im Nextcloud-Dateibaum liegen sollen.
+		const modeSelect = section.locator('select').first()
+		await expect(modeSelect.locator('option[value="appdata"]')).toHaveText(/intern \(AppData\)/)
+		await modeSelect.selectOption('user')
+		const select = section.locator('select').nth(1)
 
-		await expect(select.locator('option[value=""]')).toHaveText(/intern \(AppData\)/)
 		await expect(select.locator('option[value="admin"]')).toHaveCount(1)
 		await expect(select.locator(`option[value="${USERS.verwalter}"]`)).toHaveCount(1)
 
