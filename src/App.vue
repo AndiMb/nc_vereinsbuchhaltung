@@ -429,6 +429,29 @@ const SYNC_INTERVALL = 20000
 const BELEG_MAX_BYTES = 20 * 1024 * 1024
 const BELEG_MIMES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf']
 
+// Deep-Linking: Gegenstück zu den Routennamen in router.js - applyRoute()
+// (methods) schlägt hier den Tab/die Unter-Ansicht zu route.name nach, statt
+// route.path selbst zu zerlegen (das kann der Router-Matcher schon).
+const ROUTE_META = {
+	dashboard: { tab: 'dashboard' },
+	bookings: { tab: 'bookings', bookingView: 'journal' },
+	'bookings-unassigned': { tab: 'bookings', bookingView: 'unassigned' },
+	'bookings-open-items': { tab: 'bookings', bookingView: 'openitems' },
+	'bookings-rules': { tab: 'bookings', bookingView: 'rules' },
+	accounts: { tab: 'accounts' },
+	'accounts-new': { tab: 'accounts', accountNew: true },
+	'accounts-detail': { tab: 'accounts', hasAccountId: true },
+	'accounts-edit': { tab: 'accounts', hasAccountId: true, accountEdit: true },
+	reports: { tab: 'reports', reportView: 'summary' },
+	'reports-costcenters': { tab: 'reports', reportView: 'costcenters' },
+	'reports-spheres': { tab: 'reports', reportView: 'spheres' },
+	'reports-reserves': { tab: 'reports', reportView: 'reserves' },
+	'reports-budget': { tab: 'reports', reportView: 'budget' },
+	'reports-audit': { tab: 'reports', reportView: 'audit' },
+	contributions: { tab: 'contributions', contribView: 'members' },
+	'contributions-batch': { tab: 'contributions', contribView: 'batch' },
+}
+
 /** Erkennungsmerkmal einer Datei, um dieselbe Auswahl nicht doppelt zu sammeln. */
 const dateiSchluessel = (f) => `${f.name}|${f.size}|${f.lastModified}`
 
@@ -942,6 +965,43 @@ export default {
 		// selectedSphere/accountDepth/balanceRows/sortedBalances sind jetzt Teil
 		// von ReportsTab.vue.
 		sortedJournalRows() { return this.applySort(this.journalRows, this.sort.journal) },
+
+		// Deep-Linking: der aktuelle Zustand als benannte Route. Gegenstück ist
+		// applyRoute() (methods), das über ROUTE_META denselben Weg rückwärts geht.
+		vbhRouteLocation() {
+			const query = {}
+			// Immer dabei (nicht nur fuer Buchungen/Berichte): ohne den Zeitraum in
+			// der URL waere eine verlinkte Buchung/ein Plan-Stand fuer alle, deren
+			// Vorgabe-Zeitraum ("laufendes Jahr") ein anderer ist, nicht auffindbar.
+			query.period = this.selectedPeriodId === null ? 'all' : this.selectedPeriodId
+			if (this.showBooking) { query.booking = this.bookingForm.id || 'new' }
+
+			if (this.activeTab === 'bookings') {
+				const names = { unassigned: 'bookings-unassigned', openitems: 'bookings-open-items', rules: 'bookings-rules' }
+				return { name: names[this.bookingView] || 'bookings', query }
+			}
+			if (this.activeTab === 'accounts') {
+				if (this.showAccount) {
+					return this.accountEditId
+						? { name: 'accounts-edit', params: { accountId: this.accountEditId }, query }
+						: { name: 'accounts-new', query }
+				}
+				return this.selectedAccountId
+					? { name: 'accounts-detail', params: { accountId: this.selectedAccountId }, query }
+					: { name: 'accounts', query }
+			}
+			if (this.activeTab === 'reports') {
+				const names = { costcenters: 'reports-costcenters', spheres: 'reports-spheres', reserves: 'reports-reserves', budget: 'reports-budget', audit: 'reports-audit' }
+				if (this.reportView === 'costcenters' && this.selectedCCCode !== false) { query.cc = this.selectedCCCode }
+				if (this.reportView === 'spheres' && this.selectedSphereCode !== false) { query.sphere = this.selectedSphereCode }
+				if (this.reportView === 'budget' && this.snapshotView.open && this.snapshotView.data) { query.snapshot = this.snapshotView.data.id }
+				return { name: names[this.reportView] || 'reports', query }
+			}
+			if (this.activeTab === 'contributions') {
+				return { name: this.contribView === 'batch' ? 'contributions-batch' : 'contributions', query }
+			}
+			return { name: 'dashboard', query }
+		},
 	},
 
 	watch: {
@@ -958,6 +1018,19 @@ export default {
 		// BookingsTab.vue (eigener Watcher auf sein bookingView-Prop).
 		bookingView(v) {
 			if (v === 'journal') { this.loadJournal() }
+		},
+
+		// Nur pushen, wenn die Route tatsaechlich abweicht - sonst loest applyRoute()
+		// (URL -> Zustand) hier wieder einen push aus und schaukelt sich hoch. Vor
+		// dem ersten applyRoute() (routeReady) gar nicht pushen: schon das simple
+		// Setzen von selectedPeriodId in loadPeriods() waehrend des Ladens macht
+		// vbhRouteLocation neu, das wuerde sonst mit den Vorgabewerten (Tab
+		// "dashboard" etc.) die echte Deep-Link-URL ueberschreiben, bevor
+		// applyRoute() sie lesen konnte.
+		vbhRouteLocation(loc) {
+			if (!this.$router || !this.routeReady) { return }
+			const target = this.$router.resolve(loc).fullPath
+			if (target !== this.$route.fullPath) { this.$router.push(loc) }
 		},
 
 		reportView(v) {
@@ -1012,6 +1085,7 @@ export default {
 		this.loadRecentAccounts()
 		await this.loadMe()
 		if (this.canRead) {
+			const routerReady = this.$router.isReady()
 			await this.loadPeriods()
 			await Promise.all([
 				this.loadAccounts(),
@@ -1028,6 +1102,12 @@ export default {
 				// Beitraege-Reiter erst nachtraeglich in der Navigation auf.
 				this.loadStorageSettings().then(() => this.refreshInbox()),
 			])
+			// Erst jetzt: applyRoute() loest ein Konto/eine Buchung ueber die eben
+			// geladenen Listen auf (accountsById, journalRows, ...).
+			await routerReady
+			await this.applyRoute(this.$route)
+			this.routeReady = true
+			this.unwatchRoute = this.$router.afterEach((to) => this.applyRoute(to))
 			if (this.isAdmin) {
 				this.loadPermissions()
 				// Setup-Assistent beim allerersten Login eines Verwalters (leerer Verein, noch nicht gesehen)
@@ -1051,6 +1131,7 @@ export default {
 		}
 		if (this.syncTimer) { clearInterval(this.syncTimer) }
 		window.removeEventListener('focus', this.onWindowFocus)
+		if (this.unwatchRoute) { this.unwatchRoute() }
 	},
 
 	methods: {
@@ -1082,6 +1163,109 @@ export default {
 			if (!jobs.length) { return }
 			this.busy = true
 			try { await Promise.all(jobs) } finally { this.busy = false }
+		},
+
+		/**
+		 * URL -> Zustand, bei jeder Navigation (Deep-Link, Reload, Vor/Zurück).
+		 * Jeder Zweig prüft zuerst, ob der Zustand nicht schon passt - sonst löste
+		 * ein Klick (der selbst schon push() aufruft) über afterEach() denselben
+		 * Ladevorgang ein zweites Mal aus.
+		 *
+		 * @param {object} route aktuelle vue-router-Route
+		 */
+		async applyRoute(route) {
+			const query = route.query || {}
+			const meta = ROUTE_META[route.name] || ROUTE_META.dashboard
+			const tab = meta.tab
+			const accountId = meta.hasAccountId ? Number(route.params.accountId) : null
+
+			if (!this.visibleTabs.some((t) => t.id === tab)) {
+				if (tab !== 'dashboard') { this.replaceKeepingPeriod('/') }
+				return
+			}
+
+			// Zuerst der Zeitraum: journalRows/reportData/budgetSnapshots sind alle
+			// darauf skaliert - eine verlinkte Buchung waere sonst nur zufällig
+			// sichtbar, wenn der Vorgabe-Zeitraum ("laufendes Jahr") zufällig passt.
+			if (query.period !== undefined) {
+				const wantedPeriod = query.period === 'all' ? null : Number(query.period)
+				const known = wantedPeriod === null || this.periods.some((p) => p.id === wantedPeriod)
+				if (known && this.selectedPeriodId !== wantedPeriod) {
+					this.selectedPeriodId = wantedPeriod
+					// Das Setzen oben lässt den bestehenden selectedPeriodId-Watcher
+					// (siehe watch weiter oben) eigenständig nachladen - nextTick()
+					// abwarten, damit der zuerst startet: useJournal.loadJournal() wirft
+					// überholte Antworten reihenfolgebasiert weg (journalSeq), unser
+					// eigener Aufruf muss also der zuletzt gestartete sein, sonst könnte
+					// gleich die Buchungssuche noch mit dem alten Zeitraum laufen.
+					await this.$nextTick()
+					await this.loadJournal()
+				}
+			}
+
+			if (this.activeTab !== tab) { this.activeTab = tab }
+			if (tab === 'bookings' && this.bookingView !== meta.bookingView) { this.bookingView = meta.bookingView }
+			if (tab === 'reports' && this.reportView !== meta.reportView) { this.reportView = meta.reportView }
+			if (tab === 'contributions' && this.contribView !== meta.contribView) { this.contribView = meta.contribView }
+
+			if (tab === 'accounts') {
+				if (meta.accountNew) {
+					if (!this.showAccount || this.accountEditId !== null) { this.openNewAccount() }
+				} else if (accountId) {
+					const node = this.accountsById[accountId]
+					if (!node) { this.replaceKeepingPeriod('/accounts'); return }
+					if (meta.accountEdit) {
+						if (!this.showAccount || this.accountEditId !== accountId) { this.openEditAccount(node) }
+					} else if (this.selectedAccountId !== accountId) {
+						await this.selectAccount(node)
+					}
+				} else if (this.selectedAccountId !== null) {
+					this.closeAccountDetail()
+				}
+			}
+
+			if (tab === 'reports') {
+				if (meta.reportView === 'costcenters' && query.cc !== undefined) {
+					if (!this.reportData) { await this.loadReport() }
+					const cc = this.reportData && this.reportData.costCenters.find((c) => String(c.code) === String(query.cc))
+					if (cc && this.selectedCCCode !== cc.code) { this.selectCC(cc) }
+				}
+				if (meta.reportView === 'spheres' && query.sphere !== undefined) {
+					if (!this.sphereData) { await this.loadSphereReport() }
+					const s = this.sphereData && this.sphereData.spheres.find((sp) => String(sp.code) === String(query.sphere))
+					if (s && this.selectedSphereCode !== s.code) { this.selectSphere(s) }
+				}
+				if (meta.reportView === 'budget' && query.snapshot) {
+					const snapId = Number(query.snapshot)
+					if (!(this.snapshotView.open && this.snapshotView.data && this.snapshotView.data.id === snapId)) {
+						if (!this.budgetSnapshots.length) { await this.loadBudget() }
+						const snap = this.budgetSnapshots.find((s) => s.id === snapId)
+						if (snap) { await this.openSnapshot(snap) }
+					}
+				} else if (this.snapshotView.open && !query.snapshot) {
+					this.closeSnapshot()
+				}
+			}
+
+			if (query.booking) {
+				if (query.booking === 'new') {
+					if (!this.showBooking || this.bookingForm.id) { this.openNewBooking() }
+				} else {
+					const id = Number(query.booking)
+					if (!(this.showBooking && this.bookingForm.id === id)) {
+						const row = this.journalRows.find((j) => j.id === id)
+						if (row) { this.editBooking(row) } else { this.replaceKeepingPeriod(route.path) }
+					}
+				}
+			} else if (this.showBooking) {
+				this.closeBooking()
+			}
+		},
+
+		/** Ersetzt die Route, behält aber den gewählten Zeitraum (?period=) bei. */
+		replaceKeepingPeriod(path) {
+			const period = this.$route.query.period
+			this.$router.replace({ path, query: period !== undefined ? { period } : {} })
 		},
 
 		goToUnassigned() {

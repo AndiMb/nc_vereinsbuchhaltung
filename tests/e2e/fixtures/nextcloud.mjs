@@ -159,11 +159,16 @@ async function login(page, username, password = null) {
 	} catch { /* Cache ist nur eine Beschleunigung */ }
 }
 
+/** Wartet, bis die App-Oberfläche steht – nach openApp(), aber auch nach einem eigenen goto()/reload(). */
+export async function waitForAppLoaded(page) {
+	await page.locator('.vbh').waitFor({ timeout: 15000 })
+}
+
 /** Öffnet die App und wartet, bis die Oberfläche steht. */
 export async function openApp(page, username) {
 	await login(page, username)
 	await page.goto(`${BASE_URL}/index.php/apps/vereinsbuchhaltung/`)
-	await page.locator('.vbh').waitFor({ timeout: 15000 })
+	await waitForAppLoaded(page)
 }
 
 /**
@@ -189,6 +194,11 @@ export function visibleSection(page) {
 /** Ein Tab-Knopf der App-Navigation (für Klicks und Sichtbarkeits-Prüfungen). */
 export function tabButton(page, label) {
 	return page.locator('.vbh-tabs').getByRole('button', { name: label })
+}
+
+/** Konto im Kontenbaum (Tab Konten) anklicken; der Auszug erscheint rechts. */
+export async function openAccountTreeNode(page, nummer) {
+	await visibleSection(page).locator('.vbh-treenode', { hasText: nummer }).first().click()
 }
 
 /** Tab in der App-Navigation wechseln. */
