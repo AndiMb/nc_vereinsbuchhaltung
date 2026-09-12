@@ -111,3 +111,39 @@ test.describe('Kontoauszug', () => {
 		await expect(zeile.getByRole('button', { name: /Beleg/ })).toBeVisible()
 	})
 })
+
+test.describe('Kontenbaum: Saldo inkl. Unterkonten', () => {
+	const UNTERKONTO_JAHR = 2032
+	// Bestehendes Konto "Spenden" (4100) bekommt ein Unterkonto: die
+	// Buchungen verteilen sich auf beide, der Baum links muss sie bei
+	// angehaktem "inkl. Unterkonten" zusammenzaehlen.
+	const SPENDEN_ACCOUNT = '4100'
+
+	test.beforeAll(async ({ request }) => {
+		await api.resetBook(request)
+		await api.seedDefaultAccounts(request)
+		const [bank, spenden] = await api.accountsByNumber(request, BANK_ACCOUNT, SPENDEN_ACCOUNT)
+		const unterkonto = await api.createAccount(request, { number: '4101', name: 'Spenden Unterkonto (E2E)', type: 'income', parentId: spenden.id })
+		await api.createBooking(request, { date: `${UNTERKONTO_JAHR}-03-01`, description: 'Spende Hauptkonto', debitAccountId: bank.id, creditAccountId: spenden.id, amount: 60 })
+		await api.createBooking(request, { date: `${UNTERKONTO_JAHR}-03-02`, description: 'Spende Unterkonto', debitAccountId: bank.id, creditAccountId: unterkonto.id, amount: 40 })
+	})
+
+	test('Saldo im Kontenbaum zaehlt Unterkonten je nach Haken mit oder nicht', async ({ page }) => {
+		await openApp(page, USERS.verwalter)
+		await switchTab(page, 'Konten')
+		await selectPeriod(page, String(UNTERKONTO_JAHR))
+
+		const saldo = visibleSection(page).locator('.vbh-treenode', { hasText: SPENDEN_ACCOUNT }).first().locator('.vbh-treesaldo')
+
+		// Anklicken waehlt das Konto aus und klappt es auf - dabei erscheint
+		// rechts der Kontoauszug samt Haken "inkl. Unterkonten" (voreingestellt an).
+		await oeffneKonto(page, SPENDEN_ACCOUNT)
+		const haken = visibleSection(page).getByRole('checkbox', { name: 'inkl. Unterkonten' })
+		await expect(haken).toBeChecked()
+		await expect(saldo).toHaveText(/^100,00\s*€$/)
+
+		await haken.click()
+		await expect(haken).not.toBeChecked()
+		await expect(saldo).toHaveText(/^60,00\s*€$/)
+	})
+})

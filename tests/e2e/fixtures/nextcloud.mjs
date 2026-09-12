@@ -198,6 +198,11 @@ export const api = {
 		return (await call(request, 'POST', '/accounts/seed')).json()
 	},
 
+	/** Konto anlegen, z. B. ein Unterkonto mit parentId. */
+	async createAccount(request, { number, name, type, category = null, isBank = false, parentId = null, user = 'admin' }) {
+		return (await call(request, 'POST', '/accounts', { user, data: { number, name, type, category, isBank, parentId } })).json()
+	},
+
 	async updateAccount(request, id, data, { user = 'admin' } = {}) {
 		return (await call(request, 'PUT', `/accounts/${id}`, { user, data })).json()
 	},
