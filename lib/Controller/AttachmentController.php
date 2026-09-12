@@ -193,7 +193,7 @@ class AttachmentController extends Controller {
 		return new DataResponse($this->watchFolder->summary($this->userId()));
 	}
 
-	/** Eine noch nicht verknüpfte Datei des Wächter-Ordners inline ausliefern (Vorschau vor der Zuordnung). */
+	/** Eine Datei des Wächter-Ordners inline ausliefern – die Vorschau im Eingangskorb und im Auswahldialog. */
 	#[NoAdminRequired]
 	#[NoCSRFRequired]
 	public function inboxView(int $fileId): DataDownloadResponse|DataResponse {

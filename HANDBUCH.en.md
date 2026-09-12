@@ -414,7 +414,7 @@ can additionally choose **which side** is split (debit or credit).
 ### 4.3 Attaching receipts
 
 **Receipts** can be attached to every posting (PDF, JPG, PNG, GIF, WebP;
-max. 20 MB per file). Three ways:
+max. 20 MB per file). Four ways:
 
 - **When creating:** in the *New posting* dialog under *Receipts* via
   "attach" – on mobile also via "photograph" straight from the camera. The

@@ -44,7 +44,7 @@
 			     Datei in der Dateien-App verschwunden ist. -->
 			<div v-if="inbox.unassigned > 0" class="vbh-total vbh-total--warn">
 				<span>{{ t('Noch keiner Buchung zugewiesen') }}</span>
-				<strong>{{ t('{n} Dokumente', { n: inbox.capped ? inbox.unassigned + '+' : inbox.unassigned }) }}</strong>
+				<strong>{{ inbox.capped ? t('{n} Dokumente', { n: inbox.unassigned + '+' }) : n('%n Dokument', '%n Dokumente', inbox.unassigned) }}</strong>
 				<NcButton variant="primary" size="small" @click="$emit('open-inbox')">
 					{{ t('Ansehen') }}
 				</NcButton>

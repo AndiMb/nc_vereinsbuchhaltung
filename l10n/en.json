@@ -1421,12 +1421,15 @@
         "Ordner konnte nicht gelesen werden": "Folder could not be read",
         "Aufklappen": "Expand",
         "Zuklappen": "Collapse",
-        "Lade …": "Loading …",
         "Keine Unterordner": "No subfolders",
         "Nutzer nicht gefunden": "User not found",
         "Ordner nicht gefunden": "Folder not found",
         "Ordner wählen…": "Choose folder…",
-        "Ordner wählen": "Choose folder"
+        "Ordner wählen": "Choose folder",
+        "_%n Dokument_::_%n Dokumente_": [
+            "%n document",
+            "%n documents"
+        ]
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

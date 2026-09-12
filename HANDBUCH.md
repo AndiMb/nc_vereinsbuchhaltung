@@ -418,7 +418,7 @@ wählen, **welche Seite** aufgeteilt wird (Soll oder Haben).
 ### 4.3 Belege anhängen
 
 An jede Buchung lassen sich **Belege** anhängen (PDF, JPG, PNG, GIF, WebP;
-max. 20 MB pro Datei). Drei Wege:
+max. 20 MB pro Datei). Vier Wege:
 
 - **Beim Anlegen:** im Dialog *Neue Buchung* im Bereich *Belege* über
   „Anhängen" – mobil zusätzlich über „Fotografieren" direkt mit der Kamera.
@@ -429,7 +429,7 @@ max. 20 MB pro Datei). Drei Wege:
   Ordner wählen" zeigt die Dateien des Ordners, neueste zuerst, mit Suche
   über Dateiname und Unterordner und einer Vorschau vor der Zuordnung.
   Standardmäßig nur die noch nicht zugewiesenen; dieselbe Datei darf aber
-  auch an mehrere Buchungen (z. B. eine aufgeteilte Sammelrechnung).
+  auch an mehreren Buchungen hängen (z. B. eine aufgeteilte Sammelrechnung).
 - **Mehrere Dateien** gleichzeitig sind möglich.
 
 Mit Wächter-Ordner zeigt die **Übersicht** außerdem „x Dokumente noch

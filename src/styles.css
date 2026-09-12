@@ -161,9 +161,9 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-upload-input:focus-visible + .vbh-upload-btn { outline: 2px solid var(--color-primary-element); outline-offset: 2px; }
 
-.vbh-upload-btn { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border: 1px solid var(--color-border); border-radius: var(--border-radius, 6px); font-size: 0.85em; background: var(--color-main-background); color: var(--color-main-text); }
+.vbh-upload-btn.vbh-upload-btn { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border: 1px solid var(--color-border); border-radius: var(--border-radius, 6px); font-size: 0.85em; background: var(--color-main-background); color: var(--color-main-text); cursor: pointer; }
 
-.vbh-upload-btn:hover { background: var(--color-background-hover); }
+.vbh-upload-btn.vbh-upload-btn:hover { background: var(--color-background-hover); }
 
 .vbh-attachment-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 
@@ -1352,7 +1352,7 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-folder-subtitle { font-size: 1em; margin: 18px 0 4px; }
 
-.vbh-folder-warn { color: var(--color-error-text); }
+.vbh-folder-warn { color: var(--color-element-error); }
 
 /* Ordnerbaum im Popup der Einstellungen (FolderPickerDialog.vue/FolderTree.vue): Ordner anklicken statt Pfad tippen */
 .vbh-dirtree { max-height: 55vh; min-height: 200px; overflow: auto; margin: 0; padding: 6px; list-style: none; border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); background-color: var(--color-main-background); font-size: 1rem; }
@@ -1379,4 +1379,3 @@ button.vbh-dirtree-label.vbh-dirtree-label.is-selected { background-color: var(-
 
 .vbh-attachments-actions { display: flex; align-items: center; gap: 6px; }
 
-button.vbh-upload-btn { cursor: pointer; }

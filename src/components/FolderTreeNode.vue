@@ -24,7 +24,7 @@
 		</div>
 		<template v-if="node.open">
 			<p v-if="node.loading" class="vbh-dirtree-note">
-				{{ t('Lade …') }}
+				{{ t('Lädt…') }}
 			</p>
 			<p v-else-if="node.error" class="vbh-dirtree-note vbh-dirtree-note--error">
 				{{ node.error }}

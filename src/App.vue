@@ -595,8 +595,8 @@ export default {
 			// Art der Belegablage (SettingsController), 'watch' schaltet den
 			// Wächter-Ordner-Dialog frei
 			storageMode: 'appdata',
-			// Wächter-Ordner-Dialog: pick = Auswahl fuer die offene Buchung,
-			// sonst der Eingangskorb von der Uebersicht aus
+			// Wächter-Ordner-Dialog: pick = Auswahl für die offene Buchung,
+			// sonst der Eingangskorb von der Übersicht aus
 			folderDialog: { open: false, pick: false },
 			// Zuletzt im Auswahl-Sheet gewählte Konten (localStorage, max. 5)
 			recentAccountIds: [],
@@ -1705,7 +1705,7 @@ export default {
 
 		async deleteAttachment(a) {
 			const ok = a.unlinkOnly
-				? await this.askConfirm(this.t('Verknüpfung lösen'), this.t('Die Verknüpfung zu dieser Buchung wird gelöst. Die Datei bleibt im Ordner und zählt wieder als „noch keiner Buchung zugewiesen".'))
+				? await this.askConfirm(this.t('Verknüpfung lösen'), this.t('Die Verknüpfung zu dieser Buchung wird gelöst. Die Datei bleibt im Ordner und zählt wieder als „noch keiner Buchung zugewiesen".'), this.t('Verknüpfung lösen'), 'primary')
 				: await this.askConfirm(this.t('Beleg löschen'), this.t('Diesen Beleg wirklich unwiderruflich löschen?'))
 			if (!ok) { return }
 			try {
