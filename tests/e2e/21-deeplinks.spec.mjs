@@ -29,13 +29,13 @@ test.describe('Deep-Linking', () => {
 		await openApp(page, USERS.verwalter)
 
 		await switchTab(page, 'Buchungen')
-		await expect(page).toHaveURL(/\/bookings$/)
+		await expect(page).toHaveURL(/\/bookings(\?|$)/)
 
 		await visibleSection(page).getByRole('button', { name: 'Zuzuordnen', exact: true }).click()
-		await expect(page).toHaveURL(/\/bookings\/unassigned$/)
+		await expect(page).toHaveURL(/\/bookings\/unassigned(\?|$)/)
 
 		await switchTab(page, 'Konten')
-		await expect(page).toHaveURL(/\/accounts$/)
+		await expect(page).toHaveURL(/\/accounts(\?|$)/)
 	})
 
 	test('Direkt geladene Deep-Link-URL zeigt sofort den richtigen Screen (kein Klick)', async ({ page }) => {
@@ -45,7 +45,7 @@ test.describe('Deep-Linking', () => {
 		await page.goto(`${APP_URL}/bookings/unassigned`)
 		await waitForAppLoaded(page)
 
-		await expect(page).toHaveURL(/\/bookings\/unassigned$/)
+		await expect(page).toHaveURL(/\/bookings\/unassigned(\?|$)/)
 		await expect(visibleSection(page).locator('.vbh-subtabs').getByRole('button', { name: 'Zuzuordnen', exact: true })).toHaveClass(/active/)
 	})
 
@@ -70,13 +70,31 @@ test.describe('Deep-Linking', () => {
 		await expect(dialog.getByPlaceholder('z. B. Mitgliedsbeitrag Max Mustermann')).toHaveValue('Spende Deep-Link-Test')
 	})
 
+	test('Frisch geöffneter Link mit Zeitraum findet die Buchung auch außerhalb des Vorgabe-Zeitraums', async ({ page, request }) => {
+		// JAHR (2032) liegt in der Zukunft - ohne den Zeitraum in der URL würde
+		// die App beim frischen Laden auf das laufende Jahr springen, dessen
+		// Journal die Buchung gar nicht enthält (genau der Fehler, den dieser
+		// Test abdeckt).
+		const periodId = await api.periodIdForDate(request, `${JAHR}-06-01`)
+		const journal = await api.listJournal(request, { period: periodId })
+		const buchung = journal.find((e) => e.journal.description === 'Spende Deep-Link-Test').journal
+
+		await openApp(page, USERS.verwalter)
+		await page.goto(`${APP_URL}/bookings?period=${periodId}&booking=${buchung.id}`)
+		await waitForAppLoaded(page)
+
+		const dialog = page.getByRole('dialog')
+		await expect(dialog).toBeVisible({ timeout: 15000 })
+		await expect(dialog.getByPlaceholder('z. B. Mitgliedsbeitrag Max Mustermann')).toHaveValue('Spende Deep-Link-Test')
+	})
+
 	test('Konto auswählen ändert die URL, Reload öffnet direkt dessen Kontoauszug', async ({ page, request }) => {
 		const bank = await api.accountByNumber(request, BANK_ACCOUNT)
 
 		await openApp(page, USERS.verwalter)
 		await switchTab(page, 'Konten')
 		await openAccountTreeNode(page, BANK_ACCOUNT)
-		await expect(page).toHaveURL(new RegExp(`/accounts/${bank.id}$`))
+		await expect(page).toHaveURL(new RegExp(`/accounts/${bank.id}(\\?|$)`))
 
 		await page.reload()
 		await waitForAppLoaded(page)
@@ -94,6 +112,6 @@ test.describe('Deep-Linking', () => {
 
 		await page.goBack()
 		await expect(page.getByRole('dialog')).toBeHidden()
-		await expect(page).toHaveURL(/\/bookings$/)
+		await expect(page).toHaveURL(/\/bookings(\?|$)/)
 	})
 })

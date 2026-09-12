@@ -970,6 +970,10 @@ export default {
 		// applyRoute() (methods), das über ROUTE_META denselben Weg rückwärts geht.
 		vbhRouteLocation() {
 			const query = {}
+			// Immer dabei (nicht nur fuer Buchungen/Berichte): ohne den Zeitraum in
+			// der URL waere eine verlinkte Buchung/ein Plan-Stand fuer alle, deren
+			// Vorgabe-Zeitraum ("laufendes Jahr") ein anderer ist, nicht auffindbar.
+			query.period = this.selectedPeriodId === null ? 'all' : this.selectedPeriodId
 			if (this.showBooking) { query.booking = this.bookingForm.id || 'new' }
 
 			if (this.activeTab === 'bookings') {
@@ -1017,9 +1021,14 @@ export default {
 		},
 
 		// Nur pushen, wenn die Route tatsaechlich abweicht - sonst loest applyRoute()
-		// (URL -> Zustand) hier wieder einen push aus und schaukelt sich hoch.
+		// (URL -> Zustand) hier wieder einen push aus und schaukelt sich hoch. Vor
+		// dem ersten applyRoute() (routeReady) gar nicht pushen: schon das simple
+		// Setzen von selectedPeriodId in loadPeriods() waehrend des Ladens macht
+		// vbhRouteLocation neu, das wuerde sonst mit den Vorgabewerten (Tab
+		// "dashboard" etc.) die echte Deep-Link-URL ueberschreiben, bevor
+		// applyRoute() sie lesen konnte.
 		vbhRouteLocation(loc) {
-			if (!this.$router) { return }
+			if (!this.$router || !this.routeReady) { return }
 			const target = this.$router.resolve(loc).fullPath
 			if (target !== this.$route.fullPath) { this.$router.push(loc) }
 		},
@@ -1097,6 +1106,7 @@ export default {
 			// geladenen Listen auf (accountsById, journalRows, ...).
 			await routerReady
 			await this.applyRoute(this.$route)
+			this.routeReady = true
 			this.unwatchRoute = this.$router.afterEach((to) => this.applyRoute(to))
 			if (this.isAdmin) {
 				this.loadPermissions()
@@ -1170,8 +1180,27 @@ export default {
 			const accountId = meta.hasAccountId ? Number(route.params.accountId) : null
 
 			if (!this.visibleTabs.some((t) => t.id === tab)) {
-				if (tab !== 'dashboard') { this.$router.replace('/') }
+				if (tab !== 'dashboard') { this.replaceKeepingPeriod('/') }
 				return
+			}
+
+			// Zuerst der Zeitraum: journalRows/reportData/budgetSnapshots sind alle
+			// darauf skaliert - eine verlinkte Buchung waere sonst nur zufällig
+			// sichtbar, wenn der Vorgabe-Zeitraum ("laufendes Jahr") zufällig passt.
+			if (query.period !== undefined) {
+				const wantedPeriod = query.period === 'all' ? null : Number(query.period)
+				const known = wantedPeriod === null || this.periods.some((p) => p.id === wantedPeriod)
+				if (known && this.selectedPeriodId !== wantedPeriod) {
+					this.selectedPeriodId = wantedPeriod
+					// Das Setzen oben lässt den bestehenden selectedPeriodId-Watcher
+					// (siehe watch weiter oben) eigenständig nachladen - nextTick()
+					// abwarten, damit der zuerst startet: useJournal.loadJournal() wirft
+					// überholte Antworten reihenfolgebasiert weg (journalSeq), unser
+					// eigener Aufruf muss also der zuletzt gestartete sein, sonst könnte
+					// gleich die Buchungssuche noch mit dem alten Zeitraum laufen.
+					await this.$nextTick()
+					await this.loadJournal()
+				}
 			}
 
 			if (this.activeTab !== tab) { this.activeTab = tab }
@@ -1184,7 +1213,7 @@ export default {
 					if (!this.showAccount || this.accountEditId !== null) { this.openNewAccount() }
 				} else if (accountId) {
 					const node = this.accountsById[accountId]
-					if (!node) { this.$router.replace('/accounts'); return }
+					if (!node) { this.replaceKeepingPeriod('/accounts'); return }
 					if (meta.accountEdit) {
 						if (!this.showAccount || this.accountEditId !== accountId) { this.openEditAccount(node) }
 					} else if (this.selectedAccountId !== accountId) {
@@ -1225,12 +1254,18 @@ export default {
 					const id = Number(query.booking)
 					if (!(this.showBooking && this.bookingForm.id === id)) {
 						const row = this.journalRows.find((j) => j.id === id)
-						if (row) { this.editBooking(row) } else { this.$router.replace({ path: route.path }) }
+						if (row) { this.editBooking(row) } else { this.replaceKeepingPeriod(route.path) }
 					}
 				}
 			} else if (this.showBooking) {
 				this.closeBooking()
 			}
+		},
+
+		/** Ersetzt die Route, behält aber den gewählten Zeitraum (?period=) bei. */
+		replaceKeepingPeriod(path) {
+			const period = this.$route.query.period
+			this.$router.replace({ path, query: period !== undefined ? { period } : {} })
 		},
 
 		goToUnassigned() {

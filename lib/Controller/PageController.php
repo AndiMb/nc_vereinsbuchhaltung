@@ -24,4 +24,18 @@ class PageController extends Controller {
 		Util::addScript(Application::APP_ID, Application::APP_ID . '-main');
 		return new TemplateResponse(Application::APP_ID, 'main');
 	}
+
+	/**
+	 * Deep-Linking: liefert fuer jeden Client-seitigen Pfad dieselbe SPA-Huelle
+	 * wie index() (vue-router uebernimmt im Browser). Eigene Methode statt
+	 * derselben Route "page#index" ein zweites Mal: Nextcloud leitet den
+	 * internen Routennamen aus Controller+Methode ab, zwei Routen mit
+	 * demselben Namen liessen die Reverse-URL-Generierung fuer das App-Menuee
+	 * (die ohne path-Parameter aufruft) mit "Internal Server Error" scheitern.
+	 */
+	#[NoAdminRequired]
+	#[NoCSRFRequired]
+	public function catchAll(string $path = ''): TemplateResponse {
+		return $this->index();
+	}
 }

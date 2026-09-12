@@ -132,7 +132,7 @@ test.describe('Kontenbaum: Saldo inkl. Unterkonten', () => {
 
 		// Anklicken waehlt das Konto aus und klappt es auf - dabei erscheint
 		// rechts der Kontoauszug samt Haken "inkl. Unterkonten" (voreingestellt an).
-		await oeffneKonto(page, SPENDEN_ACCOUNT)
+		await openAccountTreeNode(page, SPENDEN_ACCOUNT)
 		const haken = visibleSection(page).getByRole('checkbox', { name: 'inkl. Unterkonten' })
 		await expect(haken).toBeChecked()
 		await expect(saldo).toHaveText(/^100,00\s*€$/)

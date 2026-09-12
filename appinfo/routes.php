@@ -185,6 +185,6 @@ return [
 		// geteilter Link muss also serverseitig dieselbe SPA-Huelle liefern
 		// wie die Startseite. Am Ende der Liste, damit die /api/*-Routen
 		// oben weiter eindeutig Vorrang haben.
-		['name' => 'page#index', 'url' => '/{path}', 'verb' => 'GET', 'requirements' => ['path' => '.*']],
+		['name' => 'page#catchAll', 'url' => '/{path}', 'verb' => 'GET', 'requirements' => ['path' => '.*']],
 	],
 ];
