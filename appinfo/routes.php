@@ -173,5 +173,12 @@ return [
 		['name' => 'attachment#view',     'url' => '/api/attachments/{id}/view',          'verb' => 'GET'],
 		['name' => 'attachment#download', 'url' => '/api/attachments/{id}/download',       'verb' => 'GET'],
 		['name' => 'attachment#destroy',  'url' => '/api/attachments/{id}',                'verb' => 'DELETE'],
+
+		// Deep-Linking: vue-router (History-Mode, siehe src/router.js) haelt
+		// den kompletten Navigationszustand in der URL - Reload oder ein
+		// geteilter Link muss also serverseitig dieselbe SPA-Huelle liefern
+		// wie die Startseite. Am Ende der Liste, damit die /api/*-Routen
+		// oben weiter eindeutig Vorrang haben.
+		['name' => 'page#index', 'url' => '/{path}', 'verb' => 'GET', 'requirements' => ['path' => '.*']],
 	],
 ];

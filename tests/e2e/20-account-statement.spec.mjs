@@ -1,16 +1,11 @@
-import { test, expect } from '@playwright/test'
-import { api, openApp, pickNcSelectOption, switchTab, selectPeriod, visibleSection, BANK_ACCOUNT, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, BANK_ACCOUNT, INCOME_ACCOUNT, openAccountTreeNode, openApp, pickNcSelectOption, selectPeriod, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Kontoauszug (Tab Konten): eine Buchung an Ort und Stelle korrigieren, ohne
 // den Umweg über das Journal (Issue #39). Deckt zugleich das ältere Umbuchen
 // ab, das dabei ins Drei-Punkte-Menü gewandert ist.
 
 const JAHR = 2031
-
-/** Konto im Kontenbaum links anklicken; der Auszug erscheint rechts. */
-async function oeffneKonto(page, nummer) {
-	await visibleSection(page).locator('.vbh-treenode', { hasText: nummer }).first().click()
-}
 
 /** Zeile des Kontoauszugs zu einer Buchungsbeschreibung. */
 function auszugsZeile(page, text) {
@@ -35,7 +30,7 @@ test.describe('Kontoauszug', () => {
 		await openApp(page, USERS.verwalter)
 		await switchTab(page, 'Konten')
 		await selectPeriod(page, String(JAHR))
-		await oeffneKonto(page, BANK_ACCOUNT)
+		await openAccountTreeNode(page, BANK_ACCOUNT)
 
 		const zeile = auszugsZeile(page, 'Beitrag Linus Beispiel')
 		await expect(zeile).toBeVisible({ timeout: 15000 })
@@ -62,7 +57,7 @@ test.describe('Kontoauszug', () => {
 		await openApp(page, USERS.verwalter)
 		await switchTab(page, 'Konten')
 		await selectPeriod(page, String(JAHR))
-		await oeffneKonto(page, BANK_ACCOUNT)
+		await openAccountTreeNode(page, BANK_ACCOUNT)
 
 		const zeile = auszugsZeile(page, 'Beitrag Linus Beispiel (korrigiert)')
 		await expect(zeile.getByRole('button', { name: /Beleg/ })).toBeVisible({ timeout: 15000 })
@@ -72,7 +67,7 @@ test.describe('Kontoauszug', () => {
 		await openApp(page, USERS.verwalter)
 		await switchTab(page, 'Konten')
 		await selectPeriod(page, String(JAHR))
-		await oeffneKonto(page, BANK_ACCOUNT)
+		await openAccountTreeNode(page, BANK_ACCOUNT)
 
 		const zeile = auszugsZeile(page, 'Beitrag Linus Beispiel (korrigiert)')
 		await expect(zeile).toBeVisible({ timeout: 15000 })
@@ -101,7 +96,7 @@ test.describe('Kontoauszug', () => {
 		}
 		await switchTab(page, 'Konten')
 		await selectPeriod(page, String(JAHR))
-		await oeffneKonto(page, BANK_ACCOUNT)
+		await openAccountTreeNode(page, BANK_ACCOUNT)
 
 		const zeile = auszugsZeile(page, 'Beitrag Linus Beispiel (korrigiert)')
 		await expect(zeile).toBeVisible({ timeout: 15000 })
