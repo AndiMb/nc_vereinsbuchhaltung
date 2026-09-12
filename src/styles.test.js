@@ -39,8 +39,25 @@ function vueFiles(dir) {
 }
 
 /** Trifft die Klasse als ganzes Wort - `.vbh-x` nicht in `.vbh-x-gross`. */
+function classPattern(cls) {
+	return `\\.${cls}(?![\\w-])`
+}
+
+/**
+ * Fuer .test(): bewusst OHNE /g. Eine globale Regex merkt sich in lastIndex,
+ * wo der letzte Treffer endete, und der naechste .test() sucht erst ab dort.
+ * Genau das hatte den Test entwaffnet: nach dem Treffer im ganzen Selektor
+ * lag lastIndex hinter dem Klassennamen; im kuerzeren Zielteil stand die
+ * Klasse weiter vorn, der zweite .test() fand nichts, und die Regel fiel
+ * still durch - einfach-klassige Selektoren wurden nie gemeldet.
+ */
 function mentionsClass(cls) {
-	return new RegExp(`\\.${cls}(?![\\w-])`, 'g')
+	return new RegExp(classPattern(cls))
+}
+
+/** Wie oft der Selektor die Klasse nennt - hier ist /g richtig, .match() liest lastIndex nicht. */
+function countMentions(selector, cls) {
+	return (selector.match(new RegExp(classPattern(cls), 'g')) || []).length
 }
 
 /**
@@ -88,7 +105,7 @@ function ruleIndex() {
  * bringt sonst genug Klassen mit, um (0,1,1) zu ueberbieten.
  */
 function isProtected(selector, cls) {
-	if ((selector.match(mentionsClass(cls)) || []).length >= 2) { return true }
+	if (countMentions(selector, cls) >= 2) { return true }
 	// Weitere Klassen im selben Selektor zaehlen ebenfalls: .vbh-x.active o. ae.
 	return classCount(selector) >= 2
 }
