@@ -417,6 +417,17 @@ export default {
 			return this.selectedAccountId ? this.accountsById[this.selectedAccountId] : null
 		},
 
+		// Saldo je Konto-ID als Map statt Array: balanceFor() steigt bei "inkl.
+		// Unterkonten" rekursiv in die Unterkonten ab und braucht dafuer pro
+		// Ebene einen O(1)-Zugriff statt eines erneuten linearen .find().
+		balanceById() {
+			const out = {}
+			if (this.balances) {
+				for (const r of this.balances.accounts) { out[r.accountId] = r.balance }
+			}
+			return out
+		},
+
 		// Eroeffnungssaldo des gewaehlten Kontos. Der Zustand liegt beim
 		// Elternteil (App.vue zieht ihn nach dem Speichern nach), deshalb
 		// meldet das Kind Aenderungen per Event zurueck statt direkt in die
@@ -557,10 +568,18 @@ export default {
 		toggleExpand(id) { this.expanded[id] = !this.expanded[id] },
 		expandAll() { const e = {}; for (const acc of this.accounts) { if ((this.childrenOf[acc.id] || []).length) { e[acc.id] = true } } this.expanded = e },
 		collapseAll() { this.expanded = {} },
+		// Bei "inkl. Unterkonten" (statementIncludeChildren) fasst der Saldo im
+		// Baum links dieselbe Summe wie die Saldenliste zusammen (siehe
+		// ReportsTab.vue::balanceRows) - sonst zeigte der Kontoauszug rechts die
+		// Buchungen der Unterkonten mit, aber der Baum links weiterhin nur den
+		// eigenen (meist leeren) Saldo des Sammelkontos.
 		balanceFor(accountId) {
 			if (!this.balances) { return 0 }
-			const row = this.balances.accounts.find((a) => a.accountId === accountId)
-			return row ? row.balance : 0
+			let sum = this.balanceById[accountId] || 0
+			if (this.statementIncludeChildren) {
+				for (const child of (this.childrenOf[accountId] || [])) { sum += this.balanceFor(child.id) }
+			}
+			return sum
 		},
 
 		statementRowNet(row) {
