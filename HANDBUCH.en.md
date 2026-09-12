@@ -183,8 +183,9 @@ Gear icon → *Receipts* → *Storage type*. Three options:
 
 The watch folder has to exist beforehand and must not overlap with the
 watched folder for bank statements (chapter 3.3). As soon as a user is
-chosen, a folder tree shows their home; clicking a folder picks it – in
-watch mode the path cannot be typed by hand. When switching over, the app
+chosen, "Choose folder…" opens the folder tree of their home; click the
+folder and "Apply" – in watch mode the path cannot be typed by hand. When
+switching over, the app
 fills in the file id for receipts it stored in the user folder itself so
 far – the existing receipt folder can thus become the watch folder
 directly. Receipts in the internal storage stay where they are.
@@ -294,9 +295,9 @@ their headers – that works with the common banks, but not with certainty.
 
 Anyone doing the same thing every month can skip the upload: gear icon →
 *Bank data* (administrators only). There you enter a Nextcloud user and a
-folder in their files, for example `Vereinsbuchhaltung/Kontoauszüge`. Below
-the path field a folder tree shows the user's home; a click picks the
-folder.
+folder in their files, for example `Vereinsbuchhaltung/Kontoauszüge`.
+"Choose folder…" next to the path field opens the folder tree of the
+user's home; click the folder and "Apply".
 
 From then on, it's enough to drop the statement downloaded from online
 banking into this folder – also from a phone or directly from the Nextcloud

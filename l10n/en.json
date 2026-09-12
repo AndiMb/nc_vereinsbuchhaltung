@@ -1423,10 +1423,10 @@
         "Zuklappen": "Collapse",
         "Lade …": "Loading …",
         "Keine Unterordner": "No subfolders",
-        "Wächter-Ordner anklicken:": "Click the watch folder:",
-        "Ordner anklicken oder Pfad oben eintippen:": "Click a folder or type the path above:",
         "Nutzer nicht gefunden": "User not found",
-        "Ordner nicht gefunden": "Folder not found"
+        "Ordner nicht gefunden": "Folder not found",
+        "Ordner wählen…": "Choose folder…",
+        "Ordner wählen": "Choose folder"
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

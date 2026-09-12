@@ -184,9 +184,9 @@ Zahnrad → *Belege* → *Art der Ablage*. Drei Möglichkeiten:
 
 Der Wächter-Ordner muss vorher existieren und darf sich nicht mit dem
 Wachordner für Kontoauszüge (Abschnitt 3.3) überschneiden. Sobald ein
-Nutzer gewählt ist, zeigt ein Ordnerbaum dessen Home; ein Klick auf den
-Ordner übernimmt ihn – im Wächter-Modus lässt sich der Pfad nicht von Hand
-eintippen. Beim Umschalten
+Nutzer gewählt ist, öffnet „Ordner wählen…" den Ordnerbaum seines Homes;
+Ordner anklicken und „Übernehmen" – im Wächter-Modus lässt sich der Pfad
+nicht von Hand eintippen. Beim Umschalten
 trägt die App für Belege, die sie bisher selbst im Nutzerordner abgelegt
 hat, die Datei-ID nach – der bisherige Belegordner kann also direkt zum
 Wächter-Ordner werden. Belege aus der internen Ablage bleiben, wo sie sind.
@@ -298,8 +298,8 @@ Instituten, aber eben nicht mit Sicherheit.
 Wer jeden Monat dasselbe tut, kann sich den Upload sparen: Zahnrad →
 *Bankdaten* (nur Verwalter). Dort werden ein
 Nextcloud-Nutzer und ein Ordner in dessen Dateien eingetragen, zum Beispiel
-`Vereinsbuchhaltung/Kontoauszüge`. Unter dem Pfadfeld zeigt ein Ordnerbaum
-das Home des Nutzers; ein Klick übernimmt den Ordner.
+`Vereinsbuchhaltung/Kontoauszüge`. „Ordner wählen…" neben dem Pfadfeld
+öffnet den Ordnerbaum des Nutzer-Homes; Ordner anklicken und „Übernehmen".
 
 Ab dann genügt es, den im Onlinebanking heruntergeladenen Auszug in diesen
 Ordner zu legen – auch vom Handy oder direkt aus der Nextcloud-App heraus.

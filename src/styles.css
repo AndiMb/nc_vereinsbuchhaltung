@@ -1354,10 +1354,8 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-folder-warn { color: var(--color-error-text); }
 
-/* Ordnerbaum in den Einstellungen (FolderTree.vue): Ordner anklicken statt Pfad tippen */
-.vbh-form .vbh-form-full { flex: 1 1 100%; display: flex; flex-direction: column; gap: 3px; font-size: 0.85em; }
-
-.vbh-dirtree { max-height: 40vh; overflow: auto; margin: 0; padding: 6px; list-style: none; border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); background-color: var(--color-main-background); font-size: 1rem; }
+/* Ordnerbaum im Popup der Einstellungen (FolderPickerDialog.vue/FolderTree.vue): Ordner anklicken statt Pfad tippen */
+.vbh-dirtree { max-height: 55vh; min-height: 200px; overflow: auto; margin: 0; padding: 6px; list-style: none; border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); background-color: var(--color-main-background); font-size: 1rem; }
 
 .vbh-dirtree ul { list-style: none; margin: 0; padding: 0 0 0 24px; }
 

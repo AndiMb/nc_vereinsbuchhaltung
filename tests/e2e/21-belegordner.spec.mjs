@@ -47,13 +47,16 @@ test.describe('Wächter-Ordner für Belege', () => {
 		await section.locator('select').first().selectOption('watch')
 		await section.locator('select').nth(1).selectOption('admin')
 
-		const tree = section.locator('.vbh-dirtree')
-		await tree.getByRole('button', { name: FOLDER, exact: true }).click()
+		await section.getByRole('button', { name: 'Ordner wählen…' }).click()
+		const picker = page.getByRole('dialog')
+		await picker.getByRole('button', { name: FOLDER, exact: true }).click()
+		// Die Auswahl klappt den Ordner auf und zeigt seine Unterordner.
+		await expect(picker.getByRole('button', { name: '2026', exact: true })).toBeVisible()
+		await picker.getByRole('button', { name: 'Übernehmen' }).click()
+		await expect(picker).toBeHidden()
 		// Im Wächter-Modus ist das Pfadfeld nur Anzeige – getippt wird nichts.
 		await expect(section.locator('input[type="text"]')).toHaveValue(FOLDER)
 		await expect(section.locator('input[type="text"]')).toHaveAttribute('readonly', '')
-		// Die Auswahl klappt den Ordner auf und zeigt seine Unterordner.
-		await expect(tree.getByRole('button', { name: '2026', exact: true })).toBeVisible()
 
 		await section.getByRole('button', { name: 'Speichern' }).click()
 		await expect(page.getByRole('status').filter({ hasText: 'Einstellungen gespeichert' }).first()).toBeVisible()

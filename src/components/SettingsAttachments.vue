@@ -25,15 +25,20 @@
 						placeholder="Vereinsbuchhaltung/Belege"
 						:readonly="storageMode === 'watch'">
 				</label>
-				<div v-if="storageUser" class="vbh-form-full">
-					<span>{{ storageMode === 'watch' ? t('Wächter-Ordner anklicken:') : t('Ordner anklicken oder Pfad oben eintippen:') }}</span>
-					<FolderTree v-model="storagePathModel" :user="storageUser" />
-				</div>
+				<NcButton v-if="storageUser" @click="pickerOpen = true">
+					{{ t('Ordner wählen…') }}
+				</NcButton>
 			</template>
 			<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings">
 				{{ t('Speichern') }}
 			</NcButton>
 		</div>
+		<FolderPickerDialog
+			v-if="storageUser"
+			v-model:show="pickerOpen"
+			:user="storageUser"
+			:modelValue="storagePath"
+			@pick="storagePathModel = $event" />
 		<p v-if="storageMode === 'user' && storageUser" class="vbh-hint vbh-hint--info">
 			{{ t('Belege werden unter') }} <code>{{ storageUser }}/{{ storagePath || 'Vereinsbuchhaltung/Belege' }}/&lt;BuchungsID&gt;/</code> {{ t('abgelegt.') }}
 		</p>
@@ -46,7 +51,7 @@
 <script>
 import { NcButton } from '@nextcloud/vue'
 import { toRefs } from 'vue'
-import FolderTree from './FolderTree.vue'
+import FolderPickerDialog from './FolderPickerDialog.vue'
 import { usePermissions } from '../composables/usePermissions.js'
 
 /**
@@ -55,7 +60,7 @@ import { usePermissions } from '../composables/usePermissions.js'
  */
 export default {
 	name: 'SettingsAttachments',
-	components: { FolderTree, NcButton },
+	components: { FolderPickerDialog, NcButton },
 	props: {
 		storageMode: { type: String, required: true },
 		storageUser: { type: String, required: true },
@@ -69,6 +74,10 @@ export default {
 
 	setup() {
 		return { ...toRefs(usePermissions().state) }
+	},
+
+	data() {
+		return { pickerOpen: false }
 	},
 
 	computed: {
