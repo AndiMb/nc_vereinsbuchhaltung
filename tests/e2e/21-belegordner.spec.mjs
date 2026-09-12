@@ -132,11 +132,37 @@ test.describe('Wächter-Ordner für Belege', () => {
 		expect(after.missing).toBe(false)
 		expect((await api.raw(request, 'GET', `/attachments/${linked.id}/download`)).status()).toBe(200)
 
+		// Hinausgeschoben gilt als fehlend – die Datei-ID bleibt, zurück im Ordner ist sie wieder da.
+		await dav.move(request, 'admin', `${FOLDER}/2026/quittung-umbenannt.png`, 'quittung-draussen.png')
+		;[after] = await api.listAttachments(request, booking.id)
+		expect(after.missing).toBe(true)
+		expect((await api.attachmentInboxSummary(request)).missing).toBe(1)
+		await dav.move(request, 'admin', 'quittung-draussen.png', `${FOLDER}/2026/quittung-umbenannt.png`)
+		;[after] = await api.listAttachments(request, booking.id)
+		expect(after.missing).toBe(false)
+		// Dieselbe Datei ein zweites Mal an dieselbe Buchung: abgelehnt.
+		expect((await api.raw(request, 'POST', `/journal/${booking.id}/attachments/link`, { data: { fileId: file.fileId } })).status()).toBe(400)
+
 		await dav.remove(request, 'admin', `${FOLDER}/2026/quittung-umbenannt.png`)
 		;[after] = await api.listAttachments(request, booking.id)
 		expect(after.missing).toBe(true)
 		expect((await api.attachmentInboxSummary(request)).missing).toBe(1)
 		const inbox = await api.attachmentInbox(request)
 		expect(inbox.missing.map((m) => [m.journalId, m.description])).toEqual([[booking.id, 'Quittung verknüpft']])
+	})
+
+	test('Umschalten vom Nutzerordner trägt die Datei-IDs nach', async ({ request }) => {
+		await api.updateSettings(request, { storage_mode: 'user', storage_user: 'admin', storage_path: FOLDER })
+		const booking = await createBooking(request, 'Alter Beleg', '2026-02-02')
+		const old = await api.addAttachment(request, booking.id, { name: 'alt.png' })
+		expect(old.fileId).toBeFalsy()
+		expect(await dav.exists(request, 'admin', `${FOLDER}/${booking.id}/${old.id}_alt.png`)).toBe(true)
+
+		const switched = await (await api.updateSettings(request, { storage_mode: 'watch', storage_user: 'admin', storage_path: FOLDER })).json()
+		expect(switched.storage_backfilled).toBe(1)
+		const [linked] = await api.listAttachments(request, booking.id)
+		expect(linked.fileId).toBeTruthy()
+		expect(linked.missing).toBe(false)
+		expect((await api.attachmentInbox(request)).files.find((f) => f.fileId === linked.fileId).journalIds).toEqual([booking.id])
 	})
 })

@@ -188,7 +188,9 @@ folder and "Apply" – in watch mode the path cannot be typed by hand. When
 switching over, the app
 fills in the file id for receipts it stored in the user folder itself so
 far – the existing receipt folder can thus become the watch folder
-directly. Receipts in the internal storage stay where they are.
+directly. If you choose a different folder, the old receipts count as
+missing until you move them there. Receipts in the internal storage stay
+where they are and remain readable.
 
 ### 2.5 Naming the club (administrator)
 
@@ -433,8 +435,8 @@ assigned to a posting": everything that lies in the folder but is not
 attached to any posting yet – an invoice still to be paid, for instance.
 "View" opens the inbox, "Create posting" takes the file straight into a new
 posting. A second tile warns when the file of a receipt was deleted in the
-Files app or moved out of the user's files; restored from the trash, it is
-back.
+Files app or moved out of the watch folder; back in the folder or restored
+from the trash, it is back.
 
 The **paperclip indicator** in the posting list immediately shows whether,
 and how many, receipts are present – missing receipts are thus visible at a

@@ -189,7 +189,9 @@ Ordner anklicken und „Übernehmen" – im Wächter-Modus lässt sich der Pfad
 nicht von Hand eintippen. Beim Umschalten
 trägt die App für Belege, die sie bisher selbst im Nutzerordner abgelegt
 hat, die Datei-ID nach – der bisherige Belegordner kann also direkt zum
-Wächter-Ordner werden. Belege aus der internen Ablage bleiben, wo sie sind.
+Wächter-Ordner werden. Wählt ihr einen anderen Ordner, gelten die alten
+Belege als fehlend, bis ihr sie hineinschiebt. Belege aus der internen
+Ablage bleiben, wo sie sind, und bleiben lesbar.
 
 ### 2.5 Verein benennen (Verwalter)
 
@@ -437,8 +439,9 @@ keiner Buchung zugewiesen": alles, was im Ordner liegt, aber noch an keiner
 Buchung hängt – etwa eine Rechnung, die noch zu überweisen ist. „Ansehen"
 öffnet den Eingangskorb, „Buchung anlegen" übernimmt die Datei gleich in
 eine neue Buchung. Eine zweite Kachel warnt, wenn die Datei zu einem Beleg
-in der Dateien-App gelöscht oder aus dem Nutzerbereich verschoben wurde;
-aus dem Papierkorb wiederhergestellt ist sie wieder da.
+in der Dateien-App gelöscht oder aus dem Wächter-Ordner hinausgeschoben
+wurde; zurück im Ordner oder aus dem Papierkorb wiederhergestellt ist sie
+wieder da.
 
 Der **Büroklammer-Indikator** in der Buchungsliste zeigt sofort, ob und
 wie viele Belege vorliegen – fehlende Belege sind so auf einen Blick

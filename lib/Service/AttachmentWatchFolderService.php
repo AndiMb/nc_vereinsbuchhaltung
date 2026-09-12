@@ -210,9 +210,14 @@ class AttachmentWatchFolderService {
 		return $node;
 	}
 
-	/** @throws \RuntimeException wenn die Datei nicht im Ordner liegt oder kein Beleg-Typ ist */
+	/** @throws \RuntimeException wenn die Datei nicht im Ordner liegt, kein Beleg-Typ ist oder schon an der Buchung hängt */
 	public function link(string $userId, int $journalId, int $fileId): Attachment {
 		$node = $this->fileInFolder($fileId);
+		foreach ($this->attachmentMapper->findByJournal($journalId, $userId) as $existing) {
+			if ((int)$existing->getFileId() === $fileId) {
+				throw new \RuntimeException($this->l10n->t('Diese Datei hängt bereits an der Buchung.'));
+			}
+		}
 		$attachment = new Attachment();
 		$attachment->setJournalId($journalId);
 		$attachment->setUserId($userId);
@@ -227,17 +232,19 @@ class AttachmentWatchFolderService {
 	/**
 	 * Trägt für Belege, die die App früher unter <Ablage>/<BuchungsID>/
 	 * abgelegt hat, die Datei-ID nach. Beim Umschalten auf den Wächter-Ordner
-	 * aufgerufen: so kann der bisherige Belegordner selbst zum Wächter-Ordner
-	 * werden, ohne dass seine Dateien als „nicht zugewiesen" erscheinen, und
-	 * sie dürfen anschließend umsortiert werden.
+	 * aufgerufen, mit Nutzer und Pfad der bisherigen Ablage – gesucht wird
+	 * dort, wo die Dateien liegen, nicht im neuen Ordner. So kann der
+	 * bisherige Belegordner selbst zum Wächter-Ordner werden, ohne dass seine
+	 * Dateien als „nicht zugewiesen" erscheinen; wird ein anderer Ordner
+	 * gewählt, gelten die alten Belege als fehlend, bis sie hineingeschoben
+	 * sind – die Datei-ID überlebt das.
 	 *
 	 * Belege aus der app-internen Ablage liegen nicht im Nutzerbereich und
 	 * bleiben, wie sie sind.
 	 *
 	 * @return int Anzahl der nachgetragenen Belege
 	 */
-	public function backfillFileIds(string $userId): int {
-		$owner = $this->storage->storageUser();
+	public function backfillFileIds(string $userId, string $owner, string $basePath): int {
 		if ($owner === '') {
 			return 0;
 		}
@@ -249,14 +256,14 @@ class AttachmentWatchFolderService {
 		$count = 0;
 		foreach ($this->attachmentMapper->findUnlinked($userId) as $attachment) {
 			try {
-				$node = $userFolder->get($this->storage->getNcFilePath($attachment->getId(), $attachment->getJournalId(), $attachment->getFileName()));
+				$node = $userFolder->get($this->storage->getNcFilePath($attachment->getId(), $attachment->getJournalId(), $attachment->getFileName(), $basePath));
 			} catch (\Throwable) {
 				continue;
 			}
 			if (!$node instanceof File) {
 				continue;
 			}
-			$this->storage->attach($attachment, $node);
+			$this->storage->attach($attachment, $node, $owner);
 			$this->attachmentMapper->update($attachment);
 			$count++;
 		}

@@ -172,17 +172,73 @@ class AttachmentStorageServiceTest extends TestCase {
 		return $stream;
 	}
 
-	private function configureStorage(string $user): void {
+	private function configureStorage(string $user, string $mode = ''): void {
 		$this->config->method('getAppValue')->willReturnCallback(
-			static function (string $app, string $key) use ($user): string {
+			static function (string $app, string $key) use ($user, $mode): string {
 				self::assertSame(Application::APP_ID, $app);
 				return match ($key) {
 					AttachmentStorageService::SETTING_USER => $user,
 					AttachmentStorageService::SETTING_PATH => self::NC_PATH,
+					AttachmentStorageService::SETTING_MODE => $mode,
 					default => '',
 				};
 			},
 		);
+	}
+
+	/**
+	 * Im Wächter-Modus wird die Datei nur im Wächter-Ordner gesucht: was
+	 * hinausgeschoben wurde, gilt als fehlend und bleibt nicht über die App
+	 * für alle Leser erreichbar.
+	 */
+	public function testImWaechterModusZaehltNurDerWaechterOrdner(): void {
+		$this->configureStorage(self::NC_USER, AttachmentStorageService::MODE_WATCH);
+
+		$inside = $this->createMock(File::class);
+		$watch = $this->createMock(Folder::class);
+		$watch->method('getFirstNodeById')->willReturnCallback(
+			static fn (int $id): ?File => $id === 99 ? $inside : null,
+		);
+		$home = $this->createMock(Folder::class);
+		$home->method('get')->with(self::NC_PATH)->willReturn($watch);
+		// Das ganze Home wird nicht durchsucht – dort läge auch die hinausgeschobene Datei.
+		$home->expects($this->never())->method('getFirstNodeById');
+		$this->rootFolder->method('getUserFolder')->with(self::NC_USER)->willReturn($home);
+
+		$service = $this->service();
+		$this->assertSame($inside, $service->nodeOrNull($this->linked(99)));
+		$this->assertNull($service->nodeOrNull($this->linked(100)), 'außerhalb des Wächter-Ordners = fehlend');
+		$this->assertFalse($service->exists($this->linked(100)));
+	}
+
+	/**
+	 * Lesen legt keine Ordner an und fällt für Belege aus der app-internen
+	 * Zeit auf diese zurück – sonst entstünden beim Öffnen eines Altbelegs im
+	 * Wächter-Ordner leere Buchungsordner, und der Beleg bliebe unlesbar.
+	 */
+	public function testLesenLegtKeinenOrdnerAnUndFaelltAufAppDataZurueck(): void {
+		$this->configureStorage(self::NC_USER, AttachmentStorageService::MODE_WATCH);
+
+		$home = $this->createMock(Folder::class);
+		$home->method('nodeExists')->willReturn(false);
+		$home->expects($this->never())->method('newFolder');
+		$this->rootFolder->method('getUserFolder')->with(self::NC_USER)->willReturn($home);
+
+		$file = $this->createMock(ISimpleFile::class);
+		$file->method('getContent')->willReturn('ALT-INHALT');
+		$folder = $this->createMock(ISimpleFolder::class);
+		$folder->method('getFile')->with((string)self::ATTACHMENT_ID)->willReturn($file);
+		$this->appData->method('getFolder')->with('attachments')->willReturn($folder);
+
+		$this->assertSame('ALT-INHALT', $this->service()->contentOf($this->attachment()));
+	}
+
+	/** Ein Beleg mit Verweis auf eine Datei im Home des Ablage-Nutzers. */
+	private function linked(int $fileId): Attachment {
+		$a = $this->attachment();
+		$a->setFileId($fileId);
+		$a->setFileOwner(self::NC_USER);
+		return $a;
 	}
 
 	/**

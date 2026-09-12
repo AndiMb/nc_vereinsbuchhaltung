@@ -214,9 +214,10 @@ class SettingsController extends Controller {
 		$backfilled = null;
 		if (array_key_exists('storage_user', $params) || array_key_exists('storage_path', $params) || array_key_exists('storage_mode', $params)) {
 			$storedStorageUser = $this->config->getAppValue($appId, AttachmentStorageService::SETTING_USER, '');
+			$storedStoragePath = $this->config->getAppValue($appId, AttachmentStorageService::SETTING_PATH, AttachmentStorageService::DEFAULT_PATH);
 			$storedMode = $this->attachmentStorage->mode();
 			$storageUser = trim((string)($params['storage_user'] ?? $storedStorageUser));
-			$storagePath = trim((string)($params['storage_path'] ?? $this->config->getAppValue($appId, AttachmentStorageService::SETTING_PATH, AttachmentStorageService::DEFAULT_PATH)));
+			$storagePath = trim((string)($params['storage_path'] ?? $storedStoragePath));
 			// Ohne ausdrückliche Art gilt die alte Lesart: leerer Nutzer heißt
 			// intern, gesetzter Nutzer heißt Nutzerordner – ein eingeschalteter
 			// Wächter-Ordner bleibt dabei eingeschaltet.
@@ -262,15 +263,16 @@ class SettingsController extends Controller {
 					return new DataResponse(['message' => $overlap], Http::STATUS_BAD_REQUEST);
 				}
 			}
+			// Beim Einschalten bekommen die Belege, die die App bisher unter
+			// <alter Pfad>/<BuchungsID>/ abgelegt hat, ihre Datei-ID – vor dem
+			// Umschreiben der Einstellung, denn gesucht wird in der alten Ablage
+			// (AttachmentWatchFolderService::backfillFileIds()).
+			if ($storageMode === AttachmentStorageService::MODE_WATCH && $storedMode === AttachmentStorageService::MODE_USER) {
+				$backfilled = $this->attachmentWatchFolder->backfillFileIds($this->userId(), $storedStorageUser, $storedStoragePath);
+			}
 			$this->config->setAppValue($appId, AttachmentStorageService::SETTING_USER, $storageUser);
 			$this->config->setAppValue($appId, AttachmentStorageService::SETTING_PATH, $storagePath);
 			$this->config->setAppValue($appId, AttachmentStorageService::SETTING_MODE, $storageMode);
-			// Beim Einschalten bekommen die Belege, die die App bisher unter
-			// <Pfad>/<BuchungsID>/ abgelegt hat, ihre Datei-ID – siehe
-			// AttachmentWatchFolderService::backfillFileIds().
-			if ($storageMode === AttachmentStorageService::MODE_WATCH && $storedMode !== AttachmentStorageService::MODE_WATCH) {
-				$backfilled = $this->attachmentWatchFolder->backfillFileIds($this->userId());
-			}
 		}
 
 		if (array_key_exists('cost_center_mode', $params)) {

@@ -579,7 +579,8 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-total { border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); padding: 10px 16px; display: flex; flex-direction: column; gap: 4px; min-width: 140px; background-color: var(--color-background-hover); }
 
-.vbh-total span { opacity: 0.8; font-size: 0.82em; }
+/* Nur die Beschriftung direkt in der Kachel: NcButton setzt seinen Text ebenfalls in einen span, der darf weder gedimmt noch verkleinert werden */
+.vbh-total > span { opacity: 0.8; font-size: 0.82em; }
 
 .vbh-total strong { font-size: 1.3em; }
 
@@ -731,6 +732,15 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 .vbh-form .vbh-grow { flex: 1 1 220px; }
 
 .vbh-form .vbh-grow input, .vbh-form .vbh-grow select, .vbh-form .vbh-grow textarea { width: 100%; }
+
+/* Feld mit Knopf am Eingabefeld (Ordnerwahl in den Einstellungen): wie ein label gebaut, weil ein Knopf nicht in ein label gehoert */
+.vbh-form .vbh-field { display: flex; flex-direction: column; gap: 3px; }
+
+.vbh-form .vbh-field > label { display: block; font-size: 0.85em; }
+
+.vbh-inputgroup { display: flex; align-items: center; gap: 6px; }
+
+.vbh-inputgroup input { flex: 1 1 auto; min-width: 0; min-height: 36px; }
 
 /* Mitwachsendes Textfeld (Buchungstext, siehe src/lib/autogrow.js). Die Hoehe
    setzt die Direktive, deshalb hier kein Rollbalken und kein Anfasser zum
@@ -1357,7 +1367,7 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 /* Ordnerbaum im Popup der Einstellungen (FolderPickerDialog.vue/FolderTree.vue): Ordner anklicken statt Pfad tippen */
 .vbh-dirtree { max-height: 55vh; min-height: 200px; overflow: auto; margin: 0; padding: 6px; list-style: none; border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); background-color: var(--color-main-background); font-size: 1rem; }
 
-.vbh-dirtree ul { list-style: none; margin: 0; padding: 0 0 0 24px; }
+.vbh-dirtree ul { list-style: none; margin: 0; padding: 0 0 0 30px; }
 
 .vbh-dirtree-row { display: flex; align-items: center; gap: 2px; }
 
@@ -1365,7 +1375,7 @@ button.vbh-dirtree-toggle.vbh-dirtree-toggle { display: inline-flex; align-items
 
 button.vbh-dirtree-toggle.vbh-dirtree-toggle:hover, button.vbh-dirtree-toggle.vbh-dirtree-toggle:focus-visible { background-color: var(--color-background-hover); }
 
-.vbh-dirtree-label.vbh-dirtree-label { display: inline-flex; align-items: center; gap: 6px; min-height: 0; margin: 0; padding: 3px 8px; border: none; border-radius: 6px; background: none; color: var(--color-main-text); font: inherit; text-align: start; }
+.vbh-dirtree-label.vbh-dirtree-label { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; margin: 0; padding: 3px 8px; line-height: 1.3; border: none; border-radius: 6px; background: none; color: var(--color-main-text); font: inherit; text-align: start; }
 
 button.vbh-dirtree-label.vbh-dirtree-label { cursor: pointer; }
 
@@ -1373,7 +1383,7 @@ button.vbh-dirtree-label.vbh-dirtree-label:hover, button.vbh-dirtree-label.vbh-d
 
 button.vbh-dirtree-label.vbh-dirtree-label.is-selected { background-color: var(--color-primary-element); color: var(--color-primary-element-text); }
 
-.vbh-dirtree-note { margin: 0; padding: 2px 8px 2px 38px; font-size: 0.85em; color: var(--color-text-lighter); }
+.vbh-dirtree-note { margin: 0; padding: 2px 8px 4px 64px; font-size: 0.85em; color: var(--color-text-lighter); }
 
 .vbh-dirtree-note--error { color: var(--color-error-text); }
 

@@ -6,10 +6,10 @@
 				class="vbh-dirtree-toggle"
 				:aria-label="node.open ? t('Zuklappen') : t('Aufklappen')"
 				@click="toggle(node)">
-				<NcIconSvgWrapper :path="node.open ? mdiChevronDown : mdiChevronRight" :size="20" />
+				<NcIconSvgWrapper :path="node.open ? mdiChevronDown : mdiChevronRight" :size="20" inline />
 			</button>
 			<span v-if="isRoot" class="vbh-dirtree-label">
-				<NcIconSvgWrapper :path="mdiHomeOutline" :size="20" />
+				<NcIconSvgWrapper :path="mdiHomeOutline" :size="20" inline />
 				<span>{{ node.name }}</span>
 			</span>
 			<button
@@ -18,7 +18,7 @@
 				class="vbh-dirtree-label"
 				:class="{ 'is-selected': isSelected }"
 				@click="select(node)">
-				<NcIconSvgWrapper :path="node.open ? mdiFolderOpenOutline : mdiFolderOutline" :size="20" />
+				<NcIconSvgWrapper :path="node.open ? mdiFolderOpenOutline : mdiFolderOutline" :size="20" inline />
 				<span>{{ node.name }}</span>
 			</button>
 		</div>

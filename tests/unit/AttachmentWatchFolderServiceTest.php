@@ -221,7 +221,47 @@ class AttachmentWatchFolderServiceTest extends TestCase {
 		return $f;
 	}
 
-	private function service(): AttachmentWatchFolderService {
+	/** Dieselbe Datei ein zweites Mal an dieselbe Buchung ergibt keine zweite Zeile. */
+	public function testLinkLehntDoppelteVerknuepfungAb(): void {
+		$root = $this->createMock(Folder::class);
+		$root->method('getFirstNodeById')->with(51)->willReturn($this->file(51, 'Rechnung.pdf', 'application/pdf', 1, 1));
+		$this->storage->method('watchFolder')->willReturn($root);
+		$schonDa = new Attachment();
+		$schonDa->setFileId(51);
+		$this->mapper->method('findByJournal')->with(9, self::BOOK)->willReturn([$schonDa]);
+		$this->mapper->expects($this->never())->method('insert');
+
+		$this->expectException(\RuntimeException::class);
+		$this->expectExceptionMessage('bereits');
+		$this->service()->link(self::BOOK, 9, 51);
+	}
+
+	/**
+	 * Der Backfill sucht in der bisherigen Ablage (Nutzer und Pfad von vor dem
+	 * Umschalten) und trägt diesen Nutzer als Besitzer ein – nicht den des
+	 * neuen Wächter-Ordners.
+	 */
+	public function testBackfillSuchtInDerAltenAblage(): void {
+		$alt = new Attachment();
+		$alt->setId(7);
+		$alt->setJournalId(42);
+		$alt->setFileName('Rechnung.pdf');
+		$this->mapper->method('findUnlinked')->with(self::BOOK)->willReturn([$alt]);
+		$this->storage->method('getNcFilePath')->with(7, 42, 'Rechnung.pdf', 'Alt/Belege')->willReturn('Alt/Belege/42/7_Rechnung.pdf');
+
+		$datei = $this->file(77, '7_Rechnung.pdf', 'application/pdf', 1, 1);
+		$home = $this->createMock(Folder::class);
+		$home->method('get')->with('Alt/Belege/42/7_Rechnung.pdf')->willReturn($datei);
+		$rootFolder = $this->createMock(IRootFolder::class);
+		$rootFolder->method('getUserFolder')->with('altnutzer')->willReturn($home);
+
+		$this->storage->expects($this->once())->method('attach')->with($alt, $datei, 'altnutzer');
+		$this->mapper->expects($this->once())->method('update')->with($alt);
+
+		$this->assertSame(1, $this->service($rootFolder)->backfillFileIds(self::BOOK, 'altnutzer', 'Alt/Belege'));
+	}
+
+	private function service(?IRootFolder $rootFolder = null): AttachmentWatchFolderService {
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(
 			static fn (string $text, array $parameters = []): string => vsprintf($text, $parameters),
@@ -229,7 +269,7 @@ class AttachmentWatchFolderServiceTest extends TestCase {
 		return new AttachmentWatchFolderService(
 			$this->storage,
 			$this->mapper,
-			$this->createMock(IRootFolder::class),
+			$rootFolder ?? $this->createMock(IRootFolder::class),
 			$l10n,
 		);
 	}

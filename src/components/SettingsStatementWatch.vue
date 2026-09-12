@@ -10,12 +10,25 @@
 					<option v-for="u in users" :key="u.id" :value="u.id">{{ u.displayName }} ({{ u.id }})</option>
 				</select>
 			</label>
-			<label class="vbh-grow">{{ t('Ordnerpfad im Nutzer-Home') }}
-				<input v-model="watchPathModel" type="text" placeholder="Vereinsbuchhaltung/Kontoauszüge">
-			</label>
-			<NcButton v-if="statementWatchUser" @click="pickerOpen = true">
-				{{ t('Ordner wählen…') }}
-			</NcButton>
+			<div class="vbh-grow vbh-field">
+				<label for="vbh-statement-path">{{ t('Ordnerpfad im Nutzer-Home') }}</label>
+				<div class="vbh-inputgroup">
+					<input
+						id="vbh-statement-path"
+						v-model="watchPathModel"
+						type="text"
+						placeholder="Vereinsbuchhaltung/Kontoauszüge">
+					<NcButton
+						v-if="statementWatchUser"
+						:aria-label="t('Ordner wählen…')"
+						:title="t('Ordner wählen…')"
+						@click="pickerOpen = true">
+						<template #icon>
+							<NcIconSvgWrapper :path="mdiFolderSearchOutline" :size="20" />
+						</template>
+					</NcButton>
+				</div>
+			</div>
 			<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings">
 				{{ t('Speichern') }}
 			</NcButton>
@@ -35,7 +48,8 @@
 </template>
 
 <script>
-import { NcButton } from '@nextcloud/vue'
+import { mdiFolderSearchOutline } from '@mdi/js'
+import { NcButton, NcIconSvgWrapper } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import FolderPickerDialog from './FolderPickerDialog.vue'
 import { usePermissions } from '../composables/usePermissions.js'
@@ -47,7 +61,7 @@ import { usePermissions } from '../composables/usePermissions.js'
  */
 export default {
 	name: 'SettingsStatementWatch',
-	components: { FolderPickerDialog, NcButton },
+	components: { FolderPickerDialog, NcButton, NcIconSvgWrapper },
 	props: {
 		statementWatchUser: { type: String, default: '' },
 		statementWatchPath: { type: String, default: '' },
@@ -63,7 +77,7 @@ export default {
 	},
 
 	data() {
-		return { pickerOpen: false }
+		return { pickerOpen: false, mdiFolderSearchOutline }
 	},
 
 	computed: {

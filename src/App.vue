@@ -1718,7 +1718,7 @@ export default {
 		attachmentDownloadUrl(id) { return api.attachmentDownloadUrl(id) },
 		openViewer(attachment) {
 			if (attachment.missing) {
-				showError(this.t('Die Datei zu diesem Beleg wurde nicht gefunden – in der Dateien-App gelöscht oder verschoben?'))
+				showError(this.t('Die Datei zu diesem Beleg wurde nicht gefunden – in der Dateien-App gelöscht oder aus dem Wächter-Ordner verschoben?'))
 				return
 			}
 			if (attachment.ncPath && window.OCA?.Viewer) {

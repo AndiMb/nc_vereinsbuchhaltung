@@ -33,7 +33,7 @@
 					{{ t('Lädt…') }}
 				</p>
 				<p v-else-if="!visibleFiles.length" class="vbh-attachment-empty">
-					{{ search ? t('Keine Datei passt zur Suche.') : t('Im Wächter-Ordner liegt kein Dokument ohne Buchung.') }}
+					{{ search ? t('Keine Datei passt zur Suche.') : (showLinked ? t('Keine weiteren Dateien im Wächter-Ordner.') : t('Im Wächter-Ordner liegt kein Dokument ohne Buchung.')) }}
 				</p>
 				<ul v-else class="vbh-attachment-list vbh-folder-list">
 					<li v-for="f in visibleFiles" :key="f.fileId" class="vbh-attachment-item vbh-folder-item">
@@ -75,7 +75,7 @@
 						{{ t('Belege, deren Datei fehlt') }}
 					</h3>
 					<p class="vbh-hint">
-						{{ t('Die Datei wurde in der Dateien-App gelöscht oder verschoben. Aus dem Papierkorb wiederhergestellt ist sie wieder da; sonst die Verknüpfung in der Buchung lösen und den Beleg neu anhängen.') }}
+						{{ t('Die Datei wurde in der Dateien-App gelöscht oder aus dem Wächter-Ordner hinausgeschoben. Zurück im Ordner oder aus dem Papierkorb wiederhergestellt ist sie wieder da; sonst die Verknüpfung in der Buchung lösen und den Beleg neu anhängen.') }}
 					</p>
 					<ul class="vbh-attachment-list vbh-folder-list">
 						<li v-for="m in missing" :key="m.id" class="vbh-attachment-item vbh-folder-item">

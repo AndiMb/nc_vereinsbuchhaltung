@@ -18,16 +18,26 @@
 						<option v-for="u in users" :key="u.id" :value="u.id">{{ u.displayName }} ({{ u.id }})</option>
 					</select>
 				</label>
-				<label class="vbh-grow">{{ t('Ordnerpfad im Nutzer-Home') }}
-					<input
-						v-model="storagePathModel"
-						type="text"
-						placeholder="Vereinsbuchhaltung/Belege"
-						:readonly="storageMode === 'watch'">
-				</label>
-				<NcButton v-if="storageUser" @click="pickerOpen = true">
-					{{ t('Ordner wählen…') }}
-				</NcButton>
+				<div class="vbh-grow vbh-field">
+					<label for="vbh-storage-path">{{ t('Ordnerpfad im Nutzer-Home') }}</label>
+					<div class="vbh-inputgroup">
+						<input
+							id="vbh-storage-path"
+							v-model="storagePathModel"
+							type="text"
+							placeholder="Vereinsbuchhaltung/Belege"
+							:readonly="storageMode === 'watch'">
+						<NcButton
+							v-if="storageUser"
+							:aria-label="t('Ordner wählen…')"
+							:title="t('Ordner wählen…')"
+							@click="pickerOpen = true">
+							<template #icon>
+								<NcIconSvgWrapper :path="mdiFolderSearchOutline" :size="20" />
+							</template>
+						</NcButton>
+					</div>
+				</div>
 			</template>
 			<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings">
 				{{ t('Speichern') }}
@@ -49,7 +59,8 @@
 </template>
 
 <script>
-import { NcButton } from '@nextcloud/vue'
+import { mdiFolderSearchOutline } from '@mdi/js'
+import { NcButton, NcIconSvgWrapper } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import FolderPickerDialog from './FolderPickerDialog.vue'
 import { usePermissions } from '../composables/usePermissions.js'
@@ -60,7 +71,7 @@ import { usePermissions } from '../composables/usePermissions.js'
  */
 export default {
 	name: 'SettingsAttachments',
-	components: { FolderPickerDialog, NcButton },
+	components: { FolderPickerDialog, NcButton, NcIconSvgWrapper },
 	props: {
 		storageMode: { type: String, required: true },
 		storageUser: { type: String, required: true },
@@ -77,7 +88,7 @@ export default {
 	},
 
 	data() {
-		return { pickerOpen: false }
+		return { pickerOpen: false, mdiFolderSearchOutline }
 	},
 
 	computed: {
