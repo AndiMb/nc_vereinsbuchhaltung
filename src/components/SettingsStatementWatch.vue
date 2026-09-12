@@ -10,9 +10,11 @@
 					<option v-for="u in users" :key="u.id" :value="u.id">{{ u.displayName }} ({{ u.id }})</option>
 				</select>
 			</label>
-			<label class="vbh-grow">{{ t('Ordnerpfad im Nutzer-Home') }}
-				<input v-model="watchPathModel" type="text" placeholder="Vereinsbuchhaltung/Kontoauszüge">
-			</label>
+			<FolderPathField
+				v-model="watchPathModel"
+				inputId="vbh-statement-path"
+				:user="statementWatchUser"
+				placeholder="Vereinsbuchhaltung/Kontoauszüge" />
 			<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings">
 				{{ t('Speichern') }}
 			</NcButton>
@@ -28,6 +30,7 @@
 <script>
 import { NcButton } from '@nextcloud/vue'
 import { toRefs } from 'vue'
+import FolderPathField from './FolderPathField.vue'
 import { usePermissions } from '../composables/usePermissions.js'
 
 /**
@@ -37,7 +40,7 @@ import { usePermissions } from '../composables/usePermissions.js'
  */
 export default {
 	name: 'SettingsStatementWatch',
-	components: { NcButton },
+	components: { FolderPathField, NcButton },
 	props: {
 		statementWatchUser: { type: String, default: '' },
 		statementWatchPath: { type: String, default: '' },

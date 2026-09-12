@@ -161,9 +161,9 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-upload-input:focus-visible + .vbh-upload-btn { outline: 2px solid var(--color-primary-element); outline-offset: 2px; }
 
-.vbh-upload-btn { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border: 1px solid var(--color-border); border-radius: var(--border-radius, 6px); font-size: 0.85em; background: var(--color-main-background); color: var(--color-main-text); }
+.vbh-upload-btn.vbh-upload-btn { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border: 1px solid var(--color-border); border-radius: var(--border-radius, 6px); font-size: 0.85em; background: var(--color-main-background); color: var(--color-main-text); cursor: pointer; }
 
-.vbh-upload-btn:hover { background: var(--color-background-hover); }
+.vbh-upload-btn.vbh-upload-btn:hover { background: var(--color-background-hover); }
 
 .vbh-attachment-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 
@@ -579,7 +579,8 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-total { border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); padding: 10px 16px; display: flex; flex-direction: column; gap: 4px; min-width: 140px; background-color: var(--color-background-hover); }
 
-.vbh-total span { opacity: 0.8; font-size: 0.82em; }
+/* Nur die Beschriftung direkt in der Kachel: NcButton setzt seinen Text ebenfalls in einen span, der darf weder gedimmt noch verkleinert werden */
+.vbh-total > span { opacity: 0.8; font-size: 0.82em; }
 
 .vbh-total strong { font-size: 1.3em; }
 
@@ -731,6 +732,14 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 .vbh-form .vbh-grow { flex: 1 1 220px; }
 
 .vbh-form .vbh-grow input, .vbh-form .vbh-grow select, .vbh-form .vbh-grow textarea { width: 100%; }
+
+/* Feld mit Knopf am Eingabefeld (FolderPathField.vue): wie ein label gebaut, weil ein Knopf nicht in ein label gehoert */
+.vbh-form .vbh-field { display: flex; flex-direction: column; gap: 3px; }
+
+.vbh-inputgroup { display: flex; align-items: center; gap: 6px; }
+
+/* min-height: Nextclouds select rendert zwei Pixel hoeher als ein Textfeld; ohne Angleich stuende die Beschriftung dieses Felds tiefer als die der Nachbarn */
+.vbh-inputgroup input { flex: 1 1 auto; min-width: 0; min-height: 36px; }
 
 /* Mitwachsendes Textfeld (Buchungstext, siehe src/lib/autogrow.js). Die Hoehe
    setzt die Direktive, deshalb hier kein Rollbalken und kein Anfasser zum
@@ -1333,3 +1342,49 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 	.vbh-sphere-help.vbh-sphere-help { width: 44px; height: 44px; }
 	.vbh-tabs.vbh-tabs button { min-height: 44px; }
 }
+
+/* Wächter-Ordner für Belege: Dateiliste im Auswahl-/Eingangskorb-Dialog
+   (AttachmentFolderDialog.vue). */
+.vbh-folder-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 4px 0 10px; }
+
+.vbh-folder-toolbar .vbh-search--full { flex: 1 1 220px; width: auto; }
+
+.vbh-folder-list { max-height: 50vh; overflow-y: auto; }
+
+.vbh-folder-item { padding: 6px 8px; }
+
+.vbh-folder-main { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
+
+.vbh-folder-main .vbh-attachment-name { text-align: start; }
+
+.vbh-folder-meta { font-size: 0.8em; color: var(--color-text-lighter); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.vbh-folder-subtitle { font-size: 1em; margin: 18px 0 4px; }
+
+.vbh-folder-warn { color: var(--color-element-error); }
+
+/* Ordnerbaum im Popup der Einstellungen (FolderPickerDialog.vue/FolderTree.vue): Ordner anklicken statt Pfad tippen */
+.vbh-dirtree { max-height: 55vh; min-height: 200px; overflow: auto; margin: 0; padding: 6px; list-style: none; border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); background-color: var(--color-main-background); font-size: 1rem; }
+
+.vbh-dirtree ul { list-style: none; margin: 0; padding: 0 0 0 30px; }
+
+.vbh-dirtree-row { display: flex; align-items: center; gap: 2px; }
+
+button.vbh-dirtree-toggle.vbh-dirtree-toggle { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; min-height: 0; margin: 0; padding: 0; border: none; border-radius: 50%; background: none; color: var(--color-main-text); cursor: pointer; }
+
+button.vbh-dirtree-toggle.vbh-dirtree-toggle:hover, button.vbh-dirtree-toggle.vbh-dirtree-toggle:focus-visible { background-color: var(--color-background-hover); }
+
+.vbh-dirtree-label.vbh-dirtree-label { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; margin: 0; padding: 3px 8px; border: none; border-radius: 6px; background: none; color: var(--color-main-text); font: inherit; text-align: start; }
+
+button.vbh-dirtree-label.vbh-dirtree-label { cursor: pointer; }
+
+button.vbh-dirtree-label.vbh-dirtree-label:hover, button.vbh-dirtree-label.vbh-dirtree-label:focus-visible { background-color: var(--color-background-hover); }
+
+button.vbh-dirtree-label.vbh-dirtree-label.is-selected { background-color: var(--color-primary-element); color: var(--color-primary-element-text); }
+
+.vbh-dirtree-note { margin: 0; padding: 2px 8px 4px 64px; font-size: 0.85em; color: var(--color-text-lighter); }
+
+.vbh-dirtree-note--error { color: var(--color-error-text); }
+
+.vbh-attachments-actions { display: flex; align-items: center; gap: 6px; }
+

@@ -48,7 +48,8 @@ A lightweight accounting app for nonprofit clubs, integrated directly into Nextc
 - **Assign bank transactions**: every imported bank transaction gets assigned a counter-account, which automatically creates a posting
   - **Assignment suggestions** from rules and past assignment history, applicable with one click
   - **Auto-assignment rules** (payment partner / purpose text / IBAN contains search text → counter-account): manageable in the "Rules" sub-tab (Bookings tab), or via a lightning-bolt button directly from a posted bank transaction
-- **Attachments** (PDF/images, max. 20 MB) on postings – stored internally (AppData) or in a configurable Nextcloud folder; while creating the posting or afterwards, on mobile photographed straight from the camera
+- **Attachments** (PDF/images, max. 20 MB) on postings – stored internally (AppData), in a Nextcloud folder managed by the app or in a **watch folder**; while creating the posting or afterwards, on mobile photographed straight from the camera
+  - **Watch folder**: a folder in the Files app whose files, including subfolders, can be picked when posting (search, preview, multi-select); the files stay put, renaming and reorganising inside the folder do not break the link (Nextcloud file id); uploads from the app land under `<folder>/<year>/`; the app never deletes anything there, "Delete receipt" only removes the link; the folder is chosen from a folder tree in the settings
 - **Open items** (Bookings tab → Open items): a lean ad-hoc list of unpaid receivables (e.g. membership fees, invoices) with debtor, amount, due date and optional account; status open/paid/cancelled, dashboard notice for overdue items – deliberately not a full member-management system
 - **Reserves** (§ 62 AO: free / earmarked / replacement reserve): equity accounts can be flagged accordingly, own report with balance by type; allocations are normal postings (expert mode)
 - **Deviating fiscal year** (gear icon → *Fiscal year*): the fiscal year does not have to match the calendar year. Presets for calendar year (default), October–September, school year August–July and half-year periods (semesters), plus a custom rule with any start day and a period length of 1 to 12 months (divisors of 12). Every period carries a freely editable label ("2026", "2025/26", "2025/26-1"); switching shows in advance how many postings will change period (issue #8)
@@ -57,7 +58,7 @@ A lightweight accounting app for nonprofit clubs, integrated directly into Nextc
 - **Year-end closing (finalization)**: administrators close a fiscal year – postings, attachments and assignments for that year become immutable afterwards (write attempts return HTTP 423); reopening only by administrators, both actions are logged
 
 ### Reports & export
-- **Overview (dashboard)**: KPI tiles with year-over-year comparison, a notice about unassigned postings and overdue open items, monthly income/expense chart
+- **Overview (dashboard)**: KPI tiles with year-over-year comparison, notices about unassigned postings, overdue open items, documents in the watch folder without a posting (with inbox and "Create posting") and receipts whose file is missing, monthly income/expense chart
 - **Trial balance**: all accounts with debit/credit/balance, hierarchical display, optionally including sub-accounts
 - **Account statement**: posting history per account including running balance and carried-forward balance; wrongly assigned postings can be **rebooked** to a different account right there (either side of the posting, only the account assignment changes, logged, locked in closed years)
 - **Reporting groups**: income/expenses/result per reporting group with posting drill-down; three modes (2nd digit group of the account number, per account, or **freely defined reporting groups** with explicit account assignment individually or via multi-select), names editable in the UI
@@ -197,7 +198,7 @@ vereinsbuchhaltung/
 | `vbh_budget_snap_items` | line items of a plan snapshot (incl. frozen account master data) |
 | `vbh_open_items` | open items (debtor, amount, due date, status, optional account/posting) |
 | `vbh_rules` | auto-assignment rules (field, search text, counter-account, priority) |
-| `vbh_attachments` | receipts per posting (file name, MIME type, size) |
+| `vbh_attachments` | receipts per posting (file name, MIME type, size; with a watch folder also the Nextcloud file id and owner) |
 | `vbh_permissions` | permissions (principal_type, principal_id, role) |
 | `vbh_periods` | fiscal years (label, from/to) including finalization (when, by whom) |
 | `vbh_audit_log` | change log (timestamp, user, action, object, details) |

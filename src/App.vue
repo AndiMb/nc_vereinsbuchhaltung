@@ -120,6 +120,7 @@
 					@help="openHelp"
 					@goUnassigned="goToUnassigned"
 					@goOpenItems="goToOpenItems"
+					@openInbox="openInbox"
 					@showAllBookings="activeTab = 'bookings'" />
 			</section>
 
@@ -259,7 +260,9 @@
 			:setBookingMode="setBookingMode"
 			:openAccountPicker="openAccountPicker"
 			:addPendingFiles="addPendingFiles"
+			:openFolderPicker="openFolderPicker"
 			:retryPendingFiles="retryPendingFiles"
+			:watchMode="watchMode"
 			:uploadAttachment="uploadAttachment"
 			:deleteAttachment="deleteAttachment"
 			:openViewer="openViewer"
@@ -282,6 +285,19 @@
 			@update:parts="splitAssign.parts = $event"
 			@close="closeSplitAssign"
 			@save="saveSplitAssign" />
+
+		<!-- ============ WÄCHTER-ORDNER (Belegauswahl / Eingangskorb) ============ -->
+		<AttachmentFolderDialog
+			:show="folderDialog.open"
+			:pick="folderDialog.pick"
+			:isMobile="isMobile"
+			:canWrite="canWrite"
+			:excludeFileIds="folderExcludeIds"
+			@update:show="folderDialog.open = $event"
+			@close="folderDialog.open = false"
+			@pick="onFolderPick"
+			@createBooking="createBookingFromFile"
+			@openBooking="openBookingById" />
 
 		<!-- ============ KONTO-DIALOG ============ -->
 		<AccountDialog
@@ -366,6 +382,7 @@ import { toRefs } from 'vue'
 import AccountDialog from './components/AccountDialog.vue'
 import AccountPickerSheet from './components/AccountPickerSheet.vue'
 import AccountsTab from './components/AccountsTab.vue'
+import AttachmentFolderDialog from './components/AttachmentFolderDialog.vue'
 import BookingDialog from './components/BookingDialog.vue'
 import BookingsTab from './components/BookingsTab.vue'
 import BudgetSnapshotModal from './components/BudgetSnapshotModal.vue'
@@ -380,6 +397,7 @@ import SplitAssignDialog from './components/SplitAssignDialog.vue'
 import WhatsNewDialog from './components/WhatsNewDialog.vue'
 import api from './api.js'
 import { useAccounts } from './composables/useAccounts.js'
+import { useAttachmentInbox } from './composables/useAttachmentInbox.js'
 import { useAuth } from './composables/useAuth.js'
 import { useBalances } from './composables/useBalances.js'
 import { useConfirm } from './composables/useConfirm.js'
@@ -448,6 +466,7 @@ export default {
 		AccountDialog,
 		BookingDialog,
 		SplitAssignDialog,
+		AttachmentFolderDialog,
 		BudgetSnapshotModal,
 		DashboardTab,
 		AccountsTab,
@@ -470,6 +489,7 @@ export default {
 		const permissions = usePermissions()
 		const sync = useSync()
 		const openItems = useOpenItems()
+		const attachmentInbox = useAttachmentInbox()
 		const costCenters = useCostCenters()
 		const rulesC = useRules()
 		const membershipFees = useMembershipFees()
@@ -488,6 +508,8 @@ export default {
 			// hier nur die Kennzahl fuer den Reiter-Badge und die Nachlade-
 			// Funktionen fuer refreshAfterRemoteChange() (siehe dort).
 			overdueMembershipCount: membershipFees.overdueCount,
+			...toRefs(attachmentInbox.state),
+			loadInboxSummary: attachmentInbox.loadInboxSummary,
 			loadMembershipFees: membershipFees.loadMembershipFees,
 			loadSepaMandates: sepaMandates.loadSepaMandates,
 			loadSepaBatches: sepaBatches.loadSepaBatches,
@@ -589,8 +611,16 @@ export default {
 			accountPicker: { open: false, target: null, title: '', tx: null },
 			// Umsatz beim Zuordnen auf mehrere Gegenkonten aufteilen
 			splitAssign: { open: false, tx: null, parts: [] },
-			// Belege, die beim Anlegen gesammelt und nach dem Speichern hochgeladen werden
+			// Belege, die beim Anlegen gesammelt und nach dem Speichern hochgeladen
+			// werden: File-Objekte aus dem Datei-Feld oder { kind: 'link', fileId,
+			// name, size } aus dem Wächter-Ordner (siehe pendingLink())
 			pendingFiles: [],
+			// Art der Belegablage (SettingsController), 'watch' schaltet den
+			// Wächter-Ordner-Dialog frei
+			storageMode: 'appdata',
+			// Wächter-Ordner-Dialog: pick = Auswahl für die offene Buchung,
+			// sonst der Eingangskorb von der Übersicht aus
+			folderDialog: { open: false, pick: false },
 			// Zuletzt im Auswahl-Sheet gewählte Konten (localStorage, max. 5)
 			recentAccountIds: [],
 			// Änderungsprotokoll (Berichte → Protokoll)
@@ -632,6 +662,17 @@ export default {
 	},
 
 	computed: {
+		watchMode() { return this.storageMode === 'watch' },
+
+		// Was schon an der offenen Buchung hängt oder wartet, soll der
+		// Ordner-Dialog nicht noch einmal anbieten.
+		folderExcludeIds() {
+			return [
+				...this.bookingAttachments.map((a) => a.fileId),
+				...this.pendingFiles.map((f) => f.fileId),
+			].filter(Boolean)
+		},
+
 		// canRead/canWrite/isAdmin/selectedPeriod/isDateClosed kommen aus setup()
 		// (useAuth/usePeriods).
 
@@ -1050,7 +1091,7 @@ export default {
 				// hier mit im ersten Schwung, damit membershipActive schon steht,
 				// wenn visibleTabs zum ersten Mal berechnet wird - sonst blitzt der
 				// Beitraege-Reiter erst nachtraeglich in der Navigation auf.
-				this.loadStorageSettings(),
+				this.loadStorageSettings().then(() => this.refreshInbox()),
 			])
 			// Erst jetzt: applyRoute() loest ein Konto/eine Buchung ueber die eben
 			// geladenen Listen auf (accountsById, journalRows, ...).
@@ -1203,7 +1244,13 @@ export default {
 		},
 
 		// --- Kollaboration: Änderungen anderer Browser erkennen -------------
-		onWindowFocus() { this.checkRevision() },
+		onWindowFocus() {
+			this.checkRevision()
+			// Eine neu abgelegte Datei im Wächter-Ordner ändert den Änderungsstand
+			// nicht – die Kachel soll trotzdem stimmen, wenn man zurückkommt.
+			this.refreshInbox()
+		},
+
 		async checkRevision(init = false) {
 			if (!this.canRead) { return }
 			if (!init && document.hidden) { return }
@@ -1234,6 +1281,7 @@ export default {
 			// es mounted() aus demselben Grund schon macht.
 			await this.loadPeriods()
 			const jobs = [this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions(), this.loadSphereReport(), this.loadOpenItems(), this.loadCostCenters()]
+			this.refreshInbox()
 			// Beitraege/Mandate/Einzuege: eigenes Zusatzmodul, ab Rolle Buchhalter
 			// (Backend-Gate) - siehe ContributionsTab.vue.
 			if (this.canWrite) { jobs.push(this.loadMembershipFees(), this.loadSepaMandates(), this.loadSepaBatches()) }
@@ -1267,6 +1315,7 @@ export default {
 			try {
 				const { data } = await api.getSettings()
 				this.costCenterMode = data.cost_center_mode || 'group'
+				this.storageMode = data.storage_mode || 'appdata'
 				this.clubName = data.club_name || ''
 				this.demoActive = !!data.demo_active
 				this.defaultFeeAmount = data.default_fee_amount ?? ''
@@ -1749,6 +1798,17 @@ export default {
 			try { const { data } = await api.attachmentCounts(); this.attachmentCountMap = data } catch { /* ignorieren */ }
 		},
 
+		/** Nach jedem Anhängen, Verknüpfen oder Lösen: Zähler und Übersichts-Kacheln nachziehen. */
+		afterAttachmentsChanged() {
+			this.loadAttachmentCounts()
+			this.refreshInbox()
+		},
+
+		/** Die Kacheln des Wächter-Ordners – nur dort kostet der Aufruf einen Ordnerscan. */
+		refreshInbox() {
+			if (this.watchMode) { this.loadInboxSummary() }
+		},
+
 		async loadAttachments(journalId) {
 			if (!journalId) { this.bookingAttachments = []; return }
 			try { const { data } = await api.listAttachments(journalId); this.bookingAttachments = data } catch { this.bookingAttachments = [] }
@@ -1788,21 +1848,28 @@ export default {
 					await api.uploadAttachment(this.bookingForm.id, fd)
 				}
 				await this.loadAttachments(this.bookingForm.id)
-				this.loadAttachmentCounts()
+				this.afterAttachmentsChanged()
 			} catch (e) { showError(this.errMsg(e, this.t('Upload fehlgeschlagen'))) } finally { this.attachmentUploading = false; event.target.value = '' }
 		},
 
-		async deleteAttachment(id) {
-			if (!await this.askConfirm(this.t('Beleg löschen'), this.t('Diesen Beleg wirklich unwiderruflich löschen?'))) { return }
+		async deleteAttachment(a) {
+			const ok = a.unlinkOnly
+				? await this.askConfirm(this.t('Verknüpfung lösen'), this.t('Die Verknüpfung zu dieser Buchung wird gelöst. Die Datei bleibt im Ordner und zählt wieder als „noch keiner Buchung zugewiesen".'), this.t('Verknüpfung lösen'), 'primary')
+				: await this.askConfirm(this.t('Beleg löschen'), this.t('Diesen Beleg wirklich unwiderruflich löschen?'))
+			if (!ok) { return }
 			try {
-				await api.deleteAttachment(id)
+				await api.deleteAttachment(a.id)
 				await this.loadAttachments(this.bookingForm.id)
-				this.loadAttachmentCounts()
+				this.afterAttachmentsChanged()
 			} catch (e) { showError(this.errMsg(e, this.t('Beleg konnte nicht gelöscht werden'))) }
 		},
 
 		attachmentDownloadUrl(id) { return api.attachmentDownloadUrl(id) },
 		openViewer(attachment) {
+			if (attachment.missing) {
+				showError(this.t('Die Datei zu diesem Beleg wurde nicht gefunden – in der Dateien-App gelöscht oder aus dem Wächter-Ordner verschoben?'))
+				return
+			}
 			if (attachment.ncPath && window.OCA?.Viewer) {
 				OCA.Viewer.open({ path: attachment.ncPath })
 			} else {
@@ -1823,10 +1890,47 @@ export default {
 			} catch { this.editBooking(r) }
 		},
 
-		formatFileSize(bytes) {
-			if (bytes < 1024) { return bytes + ' B' }
-			if (bytes < 1024 * 1024) { return (bytes / 1024).toFixed(1) + ' KB' }
-			return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+		// --- Wächter-Ordner für Belege ---------------------------------------
+		openFolderPicker() { this.folderDialog = { open: true, pick: true } },
+		openInbox() { this.folderDialog = { open: true, pick: false } },
+
+		/** Eine Ordnerdatei als Eintrag der Warteliste (siehe pendingFiles in data()). */
+		pendingLink(file) {
+			return { kind: 'link', fileId: file.fileId, name: file.name, size: file.size }
+		},
+
+		/**
+		 * Auswahl aus dem Ordner: an eine bestehende Buchung sofort verknüpfen,
+		 * beim Anlegen in die Warteliste – wie bei Dateien aus dem Datei-Feld.
+		 * Dubletten hält schon der Dialog fern (excludeFileIds).
+		 *
+		 * @param {Array<{fileId:number,name:string,size:number}>} files gewählte Dateien
+		 */
+		async onFolderPick(files) {
+			this.folderDialog.open = false
+			if (!files.length) { return }
+			if (!this.bookingForm.id) {
+				this.pendingFiles.push(...files.map(this.pendingLink))
+				return
+			}
+			this.attachmentUploading = true
+			try {
+				for (const f of files) { await api.linkAttachment(this.bookingForm.id, f.fileId) }
+				await this.loadAttachments(this.bookingForm.id)
+				this.afterAttachmentsChanged()
+			} catch (e) { showError(this.errMsg(e, this.t('Beleg konnte nicht verknüpft werden'))) } finally { this.attachmentUploading = false }
+		},
+
+		createBookingFromFile(file) {
+			this.folderDialog.open = false
+			this.openNewBooking()
+			this.pendingFiles = [this.pendingLink(file)]
+		},
+
+		async openBookingById(journalId) {
+			this.folderDialog.open = false
+			const j = await this.statementRowToJournalRow({ journalId })
+			if (j) { this.editBooking(j) }
 		},
 
 		openNewBooking() {
@@ -1939,14 +2043,18 @@ export default {
 			const failed = []
 			let lastError = null
 			for (const file of files) {
-				const fd = new FormData()
-				fd.append('file', file)
 				try {
-					await api.uploadAttachment(journalId, fd)
+					if (file.kind === 'link') {
+						await api.linkAttachment(journalId, file.fileId)
+					} else {
+						const fd = new FormData()
+						fd.append('file', file)
+						await api.uploadAttachment(journalId, fd)
+					}
 				} catch (e) { failed.push(file); lastError = e }
 			}
 			this.pendingFiles = failed
-			this.loadAttachmentCounts()
+			this.afterAttachmentsChanged()
 			if (failed.length) {
 				showError(this.t('Die Buchung steht, aber diese Belege kamen nicht an: {names} ({grund}). Sie warten weiter im Dialog.', {
 					names: failed.map((f) => f.name).join(', '),
@@ -1988,6 +2096,7 @@ export default {
 			try {
 				await api.deleteBooking(id)
 				this.closeBooking()
+				this.refreshInbox()
 				// Umsätze mitladen – siehe removeBooking().
 				await this.loadJournal(); await this.loadTransactions(); await this.loadBalances(); await this.reloadStatement()
 			} catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
@@ -2146,7 +2255,7 @@ export default {
 			// steht dieser jetzt wieder unter „Zuzuordnen" (siehe
 			// JournalService::releaseBankTransaction()). Ohne das Nachladen bliebe
 			// die Liste samt Zähler bis zum nächsten Neuladen veraltet.
-			try { await api.deleteBooking(r.id); await this.loadJournal(); await this.loadTransactions(); await this.loadBalances(); await this.loadSphereReport(); await this.reloadStatement() } catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
+			try { await api.deleteBooking(r.id); this.refreshInbox(); await this.loadJournal(); await this.loadTransactions(); await this.loadBalances(); await this.loadSphereReport(); await this.reloadStatement() } catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
 		},
 
 		// --- Konten ---

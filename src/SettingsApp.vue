@@ -15,6 +15,7 @@
 		<div id="settings-section_belege">
 			<NcSettingsSection :name="t('Belege')">
 				<SettingsAttachments
+					v-model:storageMode="storageMode"
 					v-model:storageUser="storageUser"
 					v-model:storagePath="storagePath"
 					:storageSaving="storageSaving"
@@ -147,6 +148,7 @@ export default {
 
 	data() {
 		return {
+			storageMode: 'appdata',
 			storageUser: '',
 			storagePath: '',
 			clubName: '',
@@ -199,6 +201,7 @@ export default {
 		async loadSettings() {
 			try {
 				const { data } = await api.getSettings()
+				this.storageMode = data.storage_mode || 'appdata'
 				this.storageUser = data.storage_user || ''
 				this.storagePath = data.storage_path || 'Vereinsbuchhaltung/Belege'
 				this.clubName = data.club_name || ''
@@ -223,6 +226,7 @@ export default {
 			this.storageSaving = true
 			try {
 				const { data } = await api.saveSettings({
+					storage_mode: this.storageMode,
 					storage_user: this.storageUser,
 					storage_path: this.storagePath || 'Vereinsbuchhaltung/Belege',
 					club_name: this.clubName,
@@ -236,7 +240,14 @@ export default {
 					membership_enabled: this.membershipEnabled ? '1' : '0',
 				})
 				this.membershipActive = !!data.membership_active
-				showSuccess(this.t('Einstellungen gespeichert.'))
+				// Die Auswahl „intern" räumt den Nutzer serverseitig ab – die Felder
+				// sollen danach dasselbe zeigen wie der Server.
+				this.storageUser = data.storage_user || ''
+				if (data.storage_backfilled > 0) {
+					showSuccess(this.t('Einstellungen gespeichert. {n} vorhandene Belege wurden dem Wächter-Ordner zugeordnet.', { n: data.storage_backfilled }))
+				} else {
+					showSuccess(this.t('Einstellungen gespeichert.'))
+				}
 			} catch (e) {
 				const msg = (e?.response?.data?.message) || this.t('Speichern fehlgeschlagen (HTTP {status})', { status: e?.response?.status ?? this.t('Netzwerkfehler') })
 				showError(msg)

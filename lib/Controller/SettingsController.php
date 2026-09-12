@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\MembershipFeeMapper;
 use OCA\Vereinsbuchhaltung\Db\SepaMandateMapper;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
+use OCA\Vereinsbuchhaltung\Service\AttachmentWatchFolderService;
 use OCA\Vereinsbuchhaltung\Service\BillingPeriod;
 use OCA\Vereinsbuchhaltung\Service\DemoDataService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
@@ -40,9 +41,29 @@ class SettingsController extends Controller {
 		private MembershipFeeMapper $membershipFeeMapper,
 		private IUserManager $userManager,
 		private SepaDebtorAccountService $sepaDebtorAccount,
+		private AttachmentStorageService $attachmentStorage,
+		private AttachmentWatchFolderService $attachmentWatchFolder,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
+	}
+
+	/**
+	 * Wächter-Ordner für Belege und Wachordner für Kontoauszüge dürfen sich
+	 * nicht überschneiden: die PDF-Kontoauszüge unter „verarbeitet/"
+	 * erschienen sonst als Dokumente ohne Buchung. Beide Speicherpfade in
+	 * update() prüfen dieselbe Regel, jeweils gegen den Stand, den der andere
+	 * nach diesem Request hat.
+	 *
+	 * @return string|null Fehlermeldung oder null, wenn alles in Ordnung ist
+	 */
+	private function foldersOverlap(string $userA, string $pathA, string $userB, string $pathB): ?string {
+		if ($userA === '' || $userA !== $userB || $pathA === '' || $pathB === '') {
+			return null;
+		}
+		return AttachmentWatchFolderService::nested($pathA, $pathB)
+			? $this->l10n->t('Der Wächter-Ordner für Belege darf sich nicht mit dem überwachten Ordner für Kontoauszüge überschneiden.')
+			: null;
 	}
 
 	/**
@@ -118,6 +139,7 @@ class SettingsController extends Controller {
 		$membershipEnabled = $this->config->getAppValue(Application::APP_ID, 'membership_enabled', '0') === '1';
 		$defaultFeeAmountCents = $this->config->getAppValue(Application::APP_ID, 'default_fee_amount_cents', '');
 		return [
+			'storage_mode' => $this->attachmentStorage->mode(),
 			'storage_user' => $this->config->getAppValue(Application::APP_ID, AttachmentStorageService::SETTING_USER, ''),
 			'storage_path' => $this->config->getAppValue(Application::APP_ID, AttachmentStorageService::SETTING_PATH, AttachmentStorageService::DEFAULT_PATH),
 			'cost_center_mode' => $this->config->getAppValue(Application::APP_ID, 'cost_center_mode', 'group'),
@@ -150,6 +172,30 @@ class SettingsController extends Controller {
 	}
 
 	/**
+	 * Unterordner im Home eines Nutzers – für die Ordnerwahl in den
+	 * Einstellungen (Belegablage, Wachordner für Kontoauszüge). Verwaltern
+	 * vorbehalten wie das Speichern der Einstellungen selbst.
+	 */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	public function folders(string $user = '', string $path = ''): DataResponse {
+		$user = trim($user);
+		$error = $user === ''
+			? $this->l10n->t('Für die Ablage im Nextcloud-Dateibaum muss ein Nutzer gewählt sein.')
+			: $this->validateUser($user, $this->l10n->t('Belegablage'));
+		$error ??= $this->validatePath($path, $this->l10n->t('Ablagepfad'));
+		if ($error !== null) {
+			return new DataResponse(['message' => $error], Http::STATUS_BAD_REQUEST);
+		}
+		$path = trim(str_replace('\\', '/', $path), '/');
+		$folders = $this->attachmentStorage->subfoldersAt($user, $path);
+		if ($folders === null) {
+			return new DataResponse(['message' => $this->l10n->t('Ordner nicht gefunden')], Http::STATUS_NOT_FOUND);
+		}
+		return new DataResponse(['path' => $path, 'folders' => $folders]);
+	}
+
+	/**
 	 * Schreibt nur die Schlüssel, die tatsächlich im Request stehen - die
 	 * Einstellungsseite (elf Felder) und der Kostenstellen-Modus in
 	 * ReportsTab (ein Feld) teilen sich diesen Endpunkt, seit sie nicht mehr
@@ -166,13 +212,35 @@ class SettingsController extends Controller {
 		$params = $this->request->getParams();
 		$appId = Application::APP_ID;
 
-		// Belegablage (Paar): nur anfassen, wenn mindestens eine Hälfte
-		// gesendet wurde; die fehlende Hälfte wird aus dem aktuellen Stand
-		// ergänzt, damit die Paarprüfung (Nutzer + Pfad) vollständig bleibt.
-		if (array_key_exists('storage_user', $params) || array_key_exists('storage_path', $params)) {
+		// Belegablage (Tripel Modus + Nutzer + Pfad): nur anfassen, wenn
+		// mindestens ein Teil gesendet wurde; die fehlenden Teile werden aus
+		// dem aktuellen Stand ergänzt, damit die Prüfung vollständig bleibt.
+		$backfilled = null;
+		if (array_key_exists('storage_user', $params) || array_key_exists('storage_path', $params) || array_key_exists('storage_mode', $params)) {
 			$storedStorageUser = $this->config->getAppValue($appId, AttachmentStorageService::SETTING_USER, '');
+			$storedStoragePath = $this->config->getAppValue($appId, AttachmentStorageService::SETTING_PATH, AttachmentStorageService::DEFAULT_PATH);
+			$storedMode = $this->attachmentStorage->mode();
 			$storageUser = trim((string)($params['storage_user'] ?? $storedStorageUser));
-			$storagePath = trim((string)($params['storage_path'] ?? $this->config->getAppValue($appId, AttachmentStorageService::SETTING_PATH, AttachmentStorageService::DEFAULT_PATH)));
+			$storagePath = trim((string)($params['storage_path'] ?? $storedStoragePath));
+			// Ohne ausdrückliche Art gilt die alte Lesart: leerer Nutzer heißt
+			// intern, gesetzter Nutzer heißt Nutzerordner – ein eingeschalteter
+			// Wächter-Ordner bleibt dabei eingeschaltet.
+			$storageMode = (string)($params['storage_mode'] ?? match (true) {
+				$storageUser === '' => AttachmentStorageService::MODE_APPDATA,
+				$storedMode === AttachmentStorageService::MODE_WATCH => AttachmentStorageService::MODE_WATCH,
+				default => AttachmentStorageService::MODE_USER,
+			});
+			if (!in_array($storageMode, [AttachmentStorageService::MODE_APPDATA, AttachmentStorageService::MODE_USER, AttachmentStorageService::MODE_WATCH], true)) {
+				return new DataResponse(['message' => $this->l10n->t('Unbekannte Art der Belegablage.')], Http::STATUS_BAD_REQUEST);
+			}
+			// Leerer Nutzer heißt seit jeher app-interne Ablage – die Auswahl
+			// „intern" räumt den Nutzer deshalb ab, und die beiden anderen
+			// Arten kommen ohne Nutzer nicht aus.
+			if ($storageMode === AttachmentStorageService::MODE_APPDATA) {
+				$storageUser = '';
+			} elseif ($storageUser === '') {
+				return new DataResponse(['message' => $this->l10n->t('Für die Ablage im Nextcloud-Dateibaum muss ein Nutzer gewählt sein.')], Http::STATUS_BAD_REQUEST);
+			}
 			// Der Nutzer nur, wenn er sich ändert – warum, steht an validateUser().
 			$storageError = $storageUser === $storedStorageUser ? null : $this->validateUser($storageUser, $this->l10n->t('Belegablage'));
 			$storageError ??= $this->validatePath($storagePath, $this->l10n->t('Ablagepfad'));
@@ -183,8 +251,32 @@ class SettingsController extends Controller {
 			if ($storagePath === '') {
 				$storagePath = AttachmentStorageService::DEFAULT_PATH;
 			}
+			if ($storageMode === AttachmentStorageService::MODE_WATCH) {
+				// Der Ordner muss existieren: ein Tippfehler soll auffallen, nicht
+				// still einen leeren Ordner erzeugen.
+				if ($this->attachmentStorage->folderAt($storageUser, $storagePath) === null) {
+					return new DataResponse(['message' => $this->l10n->t('Der Wächter-Ordner „%s" existiert im Home von %s nicht. Bitte zuerst in der Dateien-App anlegen.', [$storagePath, $storageUser])], Http::STATUS_BAD_REQUEST);
+				}
+				$overlap = $this->foldersOverlap(
+					$storageUser,
+					$storagePath,
+					trim((string)($params['statement_watch_user'] ?? $this->config->getAppValue($appId, WatchFolderService::SETTING_USER, ''))),
+					trim(str_replace('\\', '/', (string)($params['statement_watch_path'] ?? $this->config->getAppValue($appId, WatchFolderService::SETTING_PATH, ''))), '/'),
+				);
+				if ($overlap !== null) {
+					return new DataResponse(['message' => $overlap], Http::STATUS_BAD_REQUEST);
+				}
+			}
+			// Beim Einschalten bekommen die Belege, die die App bisher unter
+			// <Pfad>/<BuchungsID>/ abgelegt hat, ihre Datei-ID – gesucht mit
+			// Nutzer und Pfad der bisherigen Ablage, denn dort liegen die Dateien
+			// (AttachmentWatchFolderService::backfillFileIds()).
+			if ($storageMode === AttachmentStorageService::MODE_WATCH && $storedMode === AttachmentStorageService::MODE_USER) {
+				$backfilled = $this->attachmentWatchFolder->backfillFileIds($this->userId(), $storedStorageUser, $storedStoragePath);
+			}
 			$this->config->setAppValue($appId, AttachmentStorageService::SETTING_USER, $storageUser);
 			$this->config->setAppValue($appId, AttachmentStorageService::SETTING_PATH, $storagePath);
+			$this->config->setAppValue($appId, AttachmentStorageService::SETTING_MODE, $storageMode);
 		}
 
 		if (array_key_exists('cost_center_mode', $params)) {
@@ -221,6 +313,9 @@ class SettingsController extends Controller {
 			} else {
 				$watchError = $watchUser === $storedWatchUser ? null : $this->validateUser($watchUser, $this->l10n->t('überwachten Ordner'));
 				$watchError ??= $this->validatePath($watchPath, $this->l10n->t('Ordnerpfad'));
+				if ($watchError === null && $this->attachmentStorage->isWatchMode()) {
+					$watchError = $this->foldersOverlap($this->attachmentStorage->storageUser(), $this->attachmentStorage->storagePath(), $watchUser, $watchPath);
+				}
 				if ($watchError !== null) {
 					return new DataResponse(['message' => $watchError], Http::STATUS_BAD_REQUEST);
 				}
@@ -289,6 +384,10 @@ class SettingsController extends Controller {
 			$this->config->setAppValue($appId, 'membership_enabled', $membershipEnabled ? '1' : '0');
 		}
 
-		return new DataResponse($this->currentSettings());
+		$settings = $this->currentSettings();
+		if ($backfilled !== null) {
+			$settings['storage_backfilled'] = $backfilled;
+		}
+		return new DataResponse($settings);
 	}
 }

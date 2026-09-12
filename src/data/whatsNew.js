@@ -25,6 +25,14 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.34.0',
+			roles: ['verwalter', 'buchhalter'],
+			items: [
+				t('Neue Art der Belegablage: der Wächter-Ordner (Zahnrad → Belege). Ein Ordner in der Dateien-App, dessen Dateien samt Unterordnern beim Buchen über „Aus Ordner wählen" zur Auswahl stehen – die Dateien bleiben, wo sie sind; Umbenennen und Umsortieren innerhalb des Ordners sind unschädlich.'),
+				t('Die Übersicht meldet „x Dokumente noch keiner Buchung zugewiesen", sobald im Wächter-Ordner etwas liegt, das an keiner Buchung hängt – damit keine Rechnung liegen bleibt. „Ansehen" öffnet den Eingangskorb mit „Buchung anlegen" je Datei.'),
+			],
+		},
+		{
 			version: '0.33.0',
 			items: [
 				t('Das Geschäftsjahr muss nicht mehr dem Kalenderjahr entsprechen. Unter Zahnrad → Geschäftsjahr lässt sich der Beginn frei wählen – etwa 1. Oktober bis 30. September oder das Schuljahr von August bis Juli. Auch halbjährliche Zeiträume (Semester) sind möglich.'),

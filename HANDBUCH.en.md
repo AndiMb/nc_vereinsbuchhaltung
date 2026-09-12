@@ -165,11 +165,32 @@ correct from day one.
 
 ### 2.4 Setting up receipt storage (administrator)
 
-Gear icon → *Attachments*: receipts can be stored either **internally**
-(visible only through the app) or in a **folder of a Nextcloud user** (e.g.
-"Vereinsbuchhaltung/Belege"). The folder option is recommended, because the
-receipts are then also directly searchable in Nextcloud. The storage
-location can be changed later, but this only affects new receipts.
+Gear icon → *Receipts* → *Storage type*. Three options:
+
+- **internal (AppData):** visible only through the app.
+- **Nextcloud folder managed by the app:** the app creates one subfolder
+  per posting below the chosen path (e.g.
+  "Vereinsbuchhaltung/Belege/<posting id>/"). The receipts are then also
+  searchable in Nextcloud.
+- **Watch folder (archive in the Files app):** a folder you create and
+  maintain yourselves in the Files app – with any subfolders, per year or
+  supplier, say. Every receipt file in it (PDF, JPG, PNG, GIF, WebP) can be
+  picked when posting, and the overview reports which ones are not yet
+  assigned to a posting. The app remembers the Nextcloud file id: renaming
+  and moving within the folder do no harm. Receipts you upload or
+  photograph in the app are stored under `<folder>/<year>/`. Nothing is
+  ever deleted there – "Delete receipt" only removes the link.
+
+The watch folder has to exist beforehand and must not overlap with the
+watched folder for bank statements (chapter 3.3). As soon as a user is
+chosen, "Choose folder…" opens the folder tree of their home; click the
+folder and "Apply" – in watch mode the path cannot be typed by hand. When
+switching over, the app
+fills in the file id for receipts it stored in the user folder itself so
+far – the existing receipt folder can thus become the watch folder
+directly. If you choose a different folder, the old receipts count as
+missing until you move them there. Receipts in the internal storage stay
+where they are and remain readable.
 
 ### 2.5 Naming the club (administrator)
 
@@ -277,6 +298,8 @@ their headers – that works with the common banks, but not with certainty.
 Anyone doing the same thing every month can skip the upload: gear icon →
 *Bank data* (administrators only). There you enter a Nextcloud user and a
 folder in their files, for example `Vereinsbuchhaltung/Kontoauszüge`.
+"Choose folder…" next to the path field opens the folder tree of the
+user's home; click the folder and "Apply".
 
 From then on, it's enough to drop the statement downloaded from online
 banking into this folder – also from a phone or directly from the Nextcloud
@@ -393,14 +416,27 @@ can additionally choose **which side** is split (debit or credit).
 ### 4.3 Attaching receipts
 
 **Receipts** can be attached to every posting (PDF, JPG, PNG, GIF, WebP;
-max. 20 MB per file). Three ways:
+max. 20 MB per file). Four ways:
 
 - **When creating:** in the *New posting* dialog under *Receipts* via
   "attach" – on mobile also via "photograph" straight from the camera. The
   files are uploaded as soon as the posting is saved.
 - **Afterwards:** open the posting (pencil icon) → *Receipts* section →
   "attach".
+- **From the watch folder** (if set up, chapter 2.4): "Pick from folder"
+  lists the files of the folder, newest first, with a search across file
+  name and subfolder and a preview before assigning. By default only the
+  ones not yet assigned; the same file may, however, be attached to several
+  postings (e.g. a split invoice).
 - **Several files** at once are possible.
+
+With a watch folder the **overview** also shows "x documents not yet
+assigned to a posting": everything that lies in the folder but is not
+attached to any posting yet – an invoice still to be paid, for instance.
+"View" opens the inbox, "Create posting" takes the file straight into a new
+posting. A second tile warns when the file of a receipt was deleted in the
+Files app or moved out of the watch folder; back in the folder or restored
+from the trash, it is back.
 
 The **paperclip indicator** in the posting list immediately shows whether,
 and how many, receipts are present – missing receipts are thus visible at a

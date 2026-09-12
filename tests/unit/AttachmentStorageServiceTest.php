@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Db\Attachment;
 use OCA\Vereinsbuchhaltung\Db\AttachmentMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
@@ -24,12 +25,12 @@ use PHPUnit\Framework\TestCase;
  * Prüft den Lesestrom der Belegablage – die eine Stelle, an der die beiden
  * Ablagearten wirklich verschiedene Schnittstellen anbieten.
  *
- * Hintergrund ist Issue #40: getFileStream() rief in beiden Zweigen fopen()
+ * Hintergrund ist Issue #40: der Lesestrom wurde in beiden Zweigen per fopen()
  * auf. Im Nextcloud-Dateibaum gibt es das (OCP\Files\File), in der app-internen
  * Ablage nicht (ISimpleFile kennt nur read()). Der ZIP-Export der Belege lief
  * dadurch bei app-interner Ablage für jeden einzelnen Beleg in einen
  * Undefined-Method-Fehler und meldete alle Belege als fehlend – während das
- * Öffnen einzelner Belege über getFileContent() weiter funktionierte und den
+ * Öffnen einzelner Belege über contentOf() weiter funktionierte und den
  * Fehler damit verdeckte.
  *
  * Deshalb wird hier bewusst gegen beide Ablagearten getestet: ein Test nur für
@@ -72,7 +73,7 @@ class AttachmentStorageServiceTest extends TestCase {
 			->willReturn($file);
 		$this->appData->method('getFolder')->with('attachments')->willReturn($folder);
 
-		$stream = $this->service()->getFileStream(self::ATTACHMENT_ID, self::JOURNAL_ID, self::FILE_NAME);
+		$stream = $this->service()->streamOf($this->attachment());
 
 		$this->assertIsResource($stream);
 		$this->assertSame('BELEG-INHALT', stream_get_contents($stream));
@@ -93,7 +94,7 @@ class AttachmentStorageServiceTest extends TestCase {
 			->with(self::NC_USER)
 			->willReturn($this->ncUserFolder($file));
 
-		$stream = $this->service()->getFileStream(self::ATTACHMENT_ID, self::JOURNAL_ID, self::FILE_NAME);
+		$stream = $this->service()->streamOf($this->attachment());
 
 		$this->assertIsResource($stream);
 		$this->assertSame('BELEG-INHALT', stream_get_contents($stream));
@@ -115,13 +116,13 @@ class AttachmentStorageServiceTest extends TestCase {
 		$this->appData->method('getFolder')->willReturn($folder);
 
 		$this->expectException(\RuntimeException::class);
-		$this->service()->getFileStream(self::ATTACHMENT_ID, self::JOURNAL_ID, self::FILE_NAME);
+		$this->service()->streamOf($this->attachment());
 	}
 
 	/**
 	 * Liegt im Dateibaum an der Stelle des Belegs ein Ordner, kommt eine
 	 * verständliche Meldung statt eines Aufrufs ins Leere – dieselbe Zusage,
-	 * die getFileContent() über ncFile() schon gibt.
+	 * die contentOf() über ncFile() schon gibt.
 	 */
 	public function testOrdnerStattDateiWirftVerstaendlicheAusnahme(): void {
 		$this->configureStorage(self::NC_USER);
@@ -132,26 +133,25 @@ class AttachmentStorageServiceTest extends TestCase {
 
 		$this->expectException(\RuntimeException::class);
 		$this->expectExceptionMessage('keine Datei');
-		$this->service()->getFileStream(self::ATTACHMENT_ID, self::JOURNAL_ID, self::FILE_NAME);
+		$this->service()->streamOf($this->attachment());
 	}
 
-	/**
-	 * Baut die Ordnerkette Home -> Vereinsbuchhaltung -> Belege -> <BuchungsID>,
-	 * an deren Ende der übergebene Knoten unter dem Belegnamen liegt.
-	 */
+	/** Ein Home, in dem unter <Ablage>/<BuchungsID>/<Belegname> der übergebene Knoten liegt. */
 	private function ncUserFolder(object $leaf): Folder {
 		$journalFolder = $this->createMock(Folder::class);
 		$journalFolder->method('get')->with(self::NC_FILE_NAME)->willReturn($leaf);
+		$home = $this->createMock(Folder::class);
+		$home->method('get')->with(self::NC_PATH . '/' . self::JOURNAL_ID)->willReturn($journalFolder);
+		return $home;
+	}
 
-		$parts = explode('/', self::NC_PATH);
-		$current = $journalFolder;
-		foreach (array_reverse(array_merge($parts, [(string)self::JOURNAL_ID])) as $name) {
-			$parent = $this->createMock(Folder::class);
-			$parent->method('nodeExists')->with($name)->willReturn(true);
-			$parent->method('get')->with($name)->willReturn($current);
-			$current = $parent;
-		}
-		return $current;
+	/** Ein Beleg der App-Ablage – ohne Dateiverweis, der Pfad wird berechnet. */
+	private function attachment(): Attachment {
+		$a = new Attachment();
+		$a->setId(self::ATTACHMENT_ID);
+		$a->setJournalId(self::JOURNAL_ID);
+		$a->setFileName(self::FILE_NAME);
+		return $a;
 	}
 
 	/** @return resource */
@@ -162,17 +162,110 @@ class AttachmentStorageServiceTest extends TestCase {
 		return $stream;
 	}
 
-	private function configureStorage(string $user): void {
+	private function configureStorage(string $user, string $mode = ''): void {
 		$this->config->method('getAppValue')->willReturnCallback(
-			static function (string $app, string $key) use ($user): string {
+			static function (string $app, string $key) use ($user, $mode): string {
 				self::assertSame(Application::APP_ID, $app);
 				return match ($key) {
 					AttachmentStorageService::SETTING_USER => $user,
 					AttachmentStorageService::SETTING_PATH => self::NC_PATH,
+					AttachmentStorageService::SETTING_MODE => $mode,
 					default => '',
 				};
 			},
 		);
+	}
+
+	/**
+	 * Im Wächter-Modus wird die Datei nur im Wächter-Ordner gesucht: was
+	 * hinausgeschoben wurde, gilt als fehlend und bleibt nicht über die App
+	 * für alle Leser erreichbar.
+	 */
+	public function testImWaechterModusZaehltNurDerWaechterOrdner(): void {
+		$this->configureStorage(self::NC_USER, AttachmentStorageService::MODE_WATCH);
+
+		$inside = $this->createMock(File::class);
+		$watch = $this->createMock(Folder::class);
+		$watch->method('getFirstNodeById')->willReturnCallback(
+			static fn (int $id): ?File => $id === 99 ? $inside : null,
+		);
+		$home = $this->createMock(Folder::class);
+		$home->method('get')->with(self::NC_PATH)->willReturn($watch);
+		// Das ganze Home wird nicht durchsucht – dort läge auch die hinausgeschobene Datei.
+		$home->expects($this->never())->method('getFirstNodeById');
+		$this->rootFolder->method('getUserFolder')->with(self::NC_USER)->willReturn($home);
+
+		$service = $this->service();
+		$this->assertSame($inside, $service->nodeOrNull($this->linked(99)));
+		$this->assertNull($service->nodeOrNull($this->linked(100)), 'außerhalb des Wächter-Ordners = fehlend');
+		$this->assertFalse($service->exists($this->linked(100)));
+	}
+
+	/**
+	 * Lesen legt keine Ordner an und fällt für Belege aus der app-internen
+	 * Zeit auf diese zurück – sonst entstünden beim Öffnen eines Altbelegs im
+	 * Wächter-Ordner leere Buchungsordner, und der Beleg bliebe unlesbar.
+	 */
+	public function testLesenLegtKeinenOrdnerAnUndFaelltAufAppDataZurueck(): void {
+		$this->configureStorage(self::NC_USER, AttachmentStorageService::MODE_WATCH);
+
+		$home = $this->createMock(Folder::class);
+		$home->method('get')->willThrowException(new \OCP\Files\NotFoundException());
+		$home->expects($this->never())->method('newFolder');
+		$this->rootFolder->method('getUserFolder')->with(self::NC_USER)->willReturn($home);
+
+		$file = $this->createMock(ISimpleFile::class);
+		$file->method('getContent')->willReturn('ALT-INHALT');
+		$folder = $this->createMock(ISimpleFolder::class);
+		$folder->method('getFile')->with((string)self::ATTACHMENT_ID)->willReturn($file);
+		$this->appData->method('getFolder')->with('attachments')->willReturn($folder);
+
+		$this->assertSame('ALT-INHALT', $this->service()->contentOf($this->attachment()));
+	}
+
+	private function linked(int $fileId): Attachment {
+		$a = $this->attachment();
+		$a->setFileId($fileId);
+		$a->setFileOwner(self::NC_USER);
+		return $a;
+	}
+
+	public function testSubfoldersAtListetNurSichtbareOrdnerSortiert(): void {
+		$hidden = $this->createMock(Folder::class);
+		$hidden->method('getName')->willReturn('.hidden');
+		$b = $this->createMock(Folder::class);
+		$b->method('getName')->willReturn('belege 10');
+		$a = $this->createMock(Folder::class);
+		$a->method('getName')->willReturn('Belege 9');
+		$file = $this->createMock(File::class);
+		$file->method('getName')->willReturn('x.pdf');
+
+		$folder = $this->createMock(Folder::class);
+		$folder->method('getDirectoryListing')->willReturn([$b, $file, $hidden, $a]);
+		$home = $this->createMock(Folder::class);
+		$home->method('get')->with('Vereinsbuchhaltung')->willReturn($folder);
+		$this->rootFolder->method('getUserFolder')->with(self::NC_USER)->willReturn($home);
+
+		$this->assertSame(
+			[
+				['name' => 'Belege 9', 'path' => 'Vereinsbuchhaltung/Belege 9'],
+				['name' => 'belege 10', 'path' => 'Vereinsbuchhaltung/belege 10'],
+			],
+			$this->service()->subfoldersAt(self::NC_USER, 'Vereinsbuchhaltung'),
+		);
+	}
+
+	public function testSubfoldersAtHomeUndUnbekannterPfad(): void {
+		$top = $this->createMock(Folder::class);
+		$top->method('getName')->willReturn('Dokumente');
+		$home = $this->createMock(Folder::class);
+		$home->method('getDirectoryListing')->willReturn([$top]);
+		$home->method('get')->willThrowException(new \OCP\Files\NotFoundException());
+		$this->rootFolder->method('getUserFolder')->willReturn($home);
+
+		$service = $this->service();
+		$this->assertSame([['name' => 'Dokumente', 'path' => 'Dokumente']], $service->subfoldersAt(self::NC_USER, ''));
+		$this->assertNull($service->subfoldersAt(self::NC_USER, 'gibt-es-nicht'));
 	}
 
 	private function service(): AttachmentStorageService {
