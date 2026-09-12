@@ -45,8 +45,8 @@ class AttachmentStorageService {
 
 	private $appData;
 
-	private ?Folder $watchRoot = null;
-	private bool $watchRootResolved = false;
+	private ?Folder $watchFolderMemo = null;
+	private bool $watchFolderResolved = false;
 
 	public function __construct(
 		IAppDataFactory $appDataFactory,
@@ -126,8 +126,13 @@ class AttachmentStorageService {
 		return $node instanceof Folder ? $node : null;
 	}
 
+	/** Je Anfrage einmal aufgelöst – nodeOrNull() fragt ihn je Beleg. */
 	public function watchFolder(): ?Folder {
-		return $this->isWatchMode() ? $this->folderAt($this->storageUser(), $this->storagePath()) : null;
+		if (!$this->watchFolderResolved) {
+			$this->watchFolderMemo = $this->isWatchMode() ? $this->folderAt($this->storageUser(), $this->storagePath()) : null;
+			$this->watchFolderResolved = true;
+		}
+		return $this->watchFolderMemo;
 	}
 
 	/**
@@ -144,7 +149,7 @@ class AttachmentStorageService {
 		}
 		$out = [];
 		foreach ($folder->getDirectoryListing() as $node) {
-			if (!$node instanceof Folder || str_starts_with($node->getName(), '.')) {
+			if (!$node instanceof Folder || AttachmentWatchFolderService::isHidden($node->getName())) {
 				continue;
 			}
 			$out[] = ['name' => $node->getName(), 'path' => ltrim($path . '/' . $node->getName(), '/')];
@@ -175,7 +180,12 @@ class AttachmentStorageService {
 	}
 
 	private function getNcFolder(int $journalId): Folder {
-		return $this->ensureFolder($this->userFolder($this->storageUser()), $this->storagePath() . '/' . $journalId);
+		return $this->ensureFolder($this->userFolder($this->storageUser()), $this->journalFolderPath($journalId));
+	}
+
+	/** Das Ablageschema der App: <Ablage>/<BuchungsID>/ – unter der aktuellen oder, für den Backfill, einer früheren Ablage. */
+	private function journalFolderPath(int $journalId, ?string $basePath = null): string {
+		return ($basePath ?? $this->storagePath()) . '/' . $journalId;
 	}
 
 	private function appDataFolder() {
@@ -189,14 +199,6 @@ class AttachmentStorageService {
 	// --- Ein Beleg und seine Datei -----------------------------------------
 
 	/**
-	 * Löst den Dateiverweis eines Belegs auf; null für Belege ohne Verweis
-	 * oder wenn die Datei nicht (mehr) da ist.
-	 *
-	 * Gesucht wird nur im Home des Besitzers: dort kann die Datei umbenannt
-	 * oder verschoben worden sein, die Kennung bleibt. Im Papierkorb liegt sie
-	 * außerhalb dieses Baums und gilt bis zum Wiederherstellen als fehlend.
-	 */
-	/**
 	 * Die verwiesene Datei – oder null, wenn sie fehlt. Im Wächter-Modus zählt
 	 * nur, was im Wächter-Ordner liegt: eine hinausgeschobene Datei gilt als
 	 * fehlend, sonst bliebe sie über die App für alle Leser erreichbar, auch
@@ -207,21 +209,12 @@ class AttachmentStorageService {
 			return null;
 		}
 		try {
-			$root = $this->isWatchMode() ? $this->watchRoot() : $this->userFolder((string)$attachment->getFileOwner());
+			$root = $this->isWatchMode() ? $this->watchFolder() : $this->userFolder((string)$attachment->getFileOwner());
 			$node = $root?->getFirstNodeById((int)$attachment->getFileId());
 		} catch (\Throwable) {
 			return null;
 		}
 		return $node instanceof File ? $node : null;
-	}
-
-	/** Der Wächter-Ordner, je Anfrage einmal aufgelöst – nodeOrNull() läuft je Beleg. */
-	private function watchRoot(): ?Folder {
-		if (!$this->watchRootResolved) {
-			$this->watchRoot = $this->watchFolder();
-			$this->watchRootResolved = true;
-		}
-		return $this->watchRoot;
 	}
 
 	/** @throws \RuntimeException wenn die Datei nicht (mehr) auffindbar ist */
@@ -261,13 +254,18 @@ class AttachmentStorageService {
 	 */
 	public function ncPathOf(Attachment $attachment, ?File $node): ?string {
 		if ($attachment->isLinked()) {
-			if ($node === null) {
-				return null;
-			}
-			$path = $this->userFolder((string)$attachment->getFileOwner())->getRelativePath($node->getPath());
-			return $path === null ? null : '/' . ltrim($path, '/');
+			$owner = (string)$attachment->getFileOwner();
+		} else {
+			// Ein Beleg aus der app-internen Zeit hat im Nutzerordner keine Datei –
+			// der Viewer bekäme einen Pfad ins Leere.
+			$node = $this->legacyNode($attachment);
+			$owner = $this->storageUser();
 		}
-		return $this->isNcMode() ? '/' . $this->getNcFilePath($attachment->getId(), $attachment->getJournalId(), $attachment->getFileName()) : null;
+		if ($node === null) {
+			return null;
+		}
+		$path = $this->userFolder($owner)->getRelativePath($node->getPath());
+		return $path === null ? null : '/' . ltrim($path, '/');
 	}
 
 	/**
@@ -275,7 +273,7 @@ class AttachmentStorageService {
 	 * der aktuellen Ablage oder, für den Backfill, unter einer früheren.
 	 */
 	public function getNcFilePath(int $id, int $journalId, string $fileName, ?string $basePath = null): string {
-		return ($basePath ?? $this->storagePath()) . '/' . $journalId . '/' . $this->ncFileName($id, $fileName);
+		return $this->journalFolderPath($journalId, $basePath) . '/' . $this->ncFileName($id, $fileName);
 	}
 
 	private function ncFileName(int $id, string $fileName): string {
@@ -319,7 +317,6 @@ class AttachmentStorageService {
 		return $this->attachmentMapper->update($attachment);
 	}
 
-	/** Macht den Beleg zum Verweis auf diese Datei im Home des Ablage-Nutzers – oder des genannten Besitzers. */
 	public function attach(Attachment $attachment, File $file, ?string $owner = null): void {
 		$attachment->setFileId($file->getId());
 		$attachment->setFileOwner($owner ?? $this->storageUser());
@@ -379,33 +376,23 @@ class AttachmentStorageService {
 	 * @throws NotFoundException wenn die Datei an keinem der beiden Orte liegt
 	 */
 	private function legacyFile(Attachment $attachment): File|ISimpleFile {
-		if ($this->isNcMode()) {
-			$folder = $this->existingFolder($this->userFolder($this->storageUser()), $this->storagePath() . '/' . $attachment->getJournalId());
-			if ($folder !== null) {
-				try {
-					return $this->ncFile($folder, $this->ncFileName($attachment->getId(), $attachment->getFileName()));
-				} catch (NotFoundException) {
-					// Nicht im Nutzerordner – vielleicht aus der app-internen Zeit.
-				}
-			}
-		}
-		return $this->appDataFolder()->getFile((string)$attachment->getId());
+		return $this->legacyNode($attachment) ?? $this->appDataFolder()->getFile((string)$attachment->getId());
 	}
 
-	/** Wie ensureFolder(), legt aber nichts an: null, sobald ein Teil des Pfads fehlt. */
-	private function existingFolder(Folder $root, string $path): ?Folder {
-		$current = $root;
-		foreach (array_values(array_filter(explode('/', $path))) as $part) {
-			if (!$current->nodeExists($part)) {
-				return null;
-			}
-			$node = $current->get($part);
-			if (!$node instanceof Folder) {
-				throw new \RuntimeException($this->l10n->t("Pfadkomponente '%s' ist kein Ordner", [$part]));
-			}
-			$current = $node;
+	/** Die Datei eines Belegs ohne Verweis im Nutzerordner – null, wenn sie dort nicht liegt. */
+	private function legacyNode(Attachment $attachment): ?File {
+		if (!$this->isNcMode()) {
+			return null;
 		}
-		return $current;
+		$folder = $this->folderAt($this->storageUser(), $this->journalFolderPath($attachment->getJournalId()));
+		if ($folder === null) {
+			return null;
+		}
+		try {
+			return $this->ncFile($folder, $this->ncFileName($attachment->getId(), $attachment->getFileName()));
+		} catch (NotFoundException) {
+			return null;
+		}
 	}
 
 	/**
@@ -550,7 +537,7 @@ class AttachmentStorageService {
 		}
 		foreach (array_keys($journalIds) as $journalId) {
 			try {
-				$path = $this->storagePath() . '/' . $journalId;
+				$path = $this->journalFolderPath($journalId);
 				if (!$userFolder->nodeExists($path)) {
 					continue;
 				}

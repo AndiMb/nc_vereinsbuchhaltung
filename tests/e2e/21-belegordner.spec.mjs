@@ -50,19 +50,19 @@ test.describe('Wächter-Ordner für Belege', () => {
 		await section.getByRole('button', { name: 'Ordner wählen…' }).click()
 		const picker = page.getByRole('dialog')
 		await picker.getByRole('button', { name: FOLDER, exact: true }).click()
-		// Die Auswahl klappt den Ordner auf und zeigt seine Unterordner.
-		await expect(picker.getByRole('button', { name: '2026', exact: true })).toBeVisible()
+		await picker.getByRole('button', { name: '2026', exact: true }).click()
 		await picker.getByRole('button', { name: 'Übernehmen' }).click()
 		await expect(picker).toBeHidden()
 		// Im Wächter-Modus ist das Pfadfeld nur Anzeige – getippt wird nichts.
-		await expect(section.locator('input[type="text"]')).toHaveValue(FOLDER)
+		await expect(section.locator('input[type="text"]')).toHaveValue(`${FOLDER}/2026`)
 		await expect(section.locator('input[type="text"]')).toHaveAttribute('readonly', '')
 
 		await section.getByRole('button', { name: 'Speichern' }).click()
 		await expect(page.getByRole('status').filter({ hasText: 'Einstellungen gespeichert' }).first()).toBeVisible()
 		const settings = await api.getSettings(request)
 		expect(settings.storage_mode).toBe('watch')
-		expect(settings.storage_path).toBe(FOLDER)
+		expect(settings.storage_path).toBe(`${FOLDER}/2026`)
+		await api.updateSettings(request, { storage_mode: 'watch', storage_user: 'admin', storage_path: FOLDER })
 	})
 
 	test('abgelegte Datei erscheint auf der Übersicht und wird beim Buchen verknüpft', async ({ page, request }) => {
@@ -140,7 +140,6 @@ test.describe('Wächter-Ordner für Belege', () => {
 		await dav.move(request, 'admin', 'quittung-draussen.png', `${FOLDER}/2026/quittung-umbenannt.png`)
 		;[after] = await api.listAttachments(request, booking.id)
 		expect(after.missing).toBe(false)
-		// Dieselbe Datei ein zweites Mal an dieselbe Buchung: abgelehnt.
 		expect((await api.raw(request, 'POST', `/journal/${booking.id}/attachments/link`, { data: { fileId: file.fileId } })).status()).toBe(400)
 
 		await dav.remove(request, 'admin', `${FOLDER}/2026/quittung-umbenannt.png`)

@@ -180,10 +180,14 @@ class SettingsController extends Controller {
 	#[RequiresRole(PermissionService::ROLE_ADMIN)]
 	public function folders(string $user = '', string $path = ''): DataResponse {
 		$user = trim($user);
-		$path = trim($path, '/');
-		if ($user === '' || !$this->userManager->userExists($user)) {
-			return new DataResponse(['message' => $this->l10n->t('Nutzer nicht gefunden')], Http::STATUS_NOT_FOUND);
+		$error = $user === ''
+			? $this->l10n->t('Für die Ablage im Nextcloud-Dateibaum muss ein Nutzer gewählt sein.')
+			: $this->validateUser($user, $this->l10n->t('Belegablage'));
+		$error ??= $this->validatePath($path, $this->l10n->t('Ablagepfad'));
+		if ($error !== null) {
+			return new DataResponse(['message' => $error], Http::STATUS_BAD_REQUEST);
 		}
+		$path = trim(str_replace('\\', '/', $path), '/');
 		$folders = $this->attachmentStorage->subfoldersAt($user, $path);
 		if ($folders === null) {
 			return new DataResponse(['message' => $this->l10n->t('Ordner nicht gefunden')], Http::STATUS_NOT_FOUND);
@@ -264,8 +268,8 @@ class SettingsController extends Controller {
 				}
 			}
 			// Beim Einschalten bekommen die Belege, die die App bisher unter
-			// <alter Pfad>/<BuchungsID>/ abgelegt hat, ihre Datei-ID – vor dem
-			// Umschreiben der Einstellung, denn gesucht wird in der alten Ablage
+			// <Pfad>/<BuchungsID>/ abgelegt hat, ihre Datei-ID – gesucht mit
+			// Nutzer und Pfad der bisherigen Ablage, denn dort liegen die Dateien
 			// (AttachmentWatchFolderService::backfillFileIds()).
 			if ($storageMode === AttachmentStorageService::MODE_WATCH && $storedMode === AttachmentStorageService::MODE_USER) {
 				$backfilled = $this->attachmentWatchFolder->backfillFileIds($this->userId(), $storedStorageUser, $storedStoragePath);

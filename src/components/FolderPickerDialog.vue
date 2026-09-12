@@ -45,7 +45,7 @@ export default {
 		modelValue: { type: String, default: '' },
 	},
 
-	emits: ['pick', 'update:show'],
+	emits: ['update:modelValue', 'update:show'],
 
 	data() {
 		return { draft: this.modelValue }
@@ -59,7 +59,7 @@ export default {
 
 	methods: {
 		confirm() {
-			this.$emit('pick', this.draft)
+			this.$emit('update:modelValue', this.draft)
 			this.$emit('update:show', false)
 		},
 	},

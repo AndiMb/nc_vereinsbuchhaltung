@@ -1256,7 +1256,6 @@
         "Die Datei wurde in der Dateien-App gelöscht oder verschoben.": "The file was deleted or moved in the Files app.",
         "Verknüpfung lösen – die Datei bleibt im Ordner": "Unlink – the file stays in the folder",
         "Noch keiner Buchung zugewiesen": "Not yet assigned to an entry",
-        "{n} Dokumente": "{n} documents",
         "Belege ohne Datei": "Receipts without a file",
         "Wächter-Ordner für Belege": "Watch folder for receipts",
         "nicht gefunden": "not found",
@@ -1422,13 +1421,12 @@
         "Aufklappen": "Expand",
         "Zuklappen": "Collapse",
         "Keine Unterordner": "No subfolders",
-        "Nutzer nicht gefunden": "User not found",
         "Ordner nicht gefunden": "Folder not found",
         "Ordner wählen…": "Choose folder…",
         "Ordner wählen": "Choose folder",
-        "_%n Dokument_::_%n Dokumente_": [
-            "%n document",
-            "%n documents"
+        "_%n{plus} Dokument_::_%n{plus} Dokumente_": [
+            "%n{plus} document",
+            "%n{plus} documents"
         ],
         "Diese Datei hängt bereits an der Buchung.": "This file is already attached to the entry.",
         "Keine weiteren Dateien im Wächter-Ordner.": "No further files in the watch folder."

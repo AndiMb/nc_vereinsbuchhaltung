@@ -55,6 +55,11 @@ class AttachmentWatchFolderService {
 	 * Ist einer der beiden Pfade der andere oder liegt in ihm? Beide relativ
 	 * zum selben Nutzer-Home, ohne führende oder schließende Schrägstriche.
 	 */
+	/** Versteckte Einträge zählen nirgends – weder als Dokument noch in der Ordnerwahl. */
+	public static function isHidden(string $name): bool {
+		return str_starts_with($name, '.');
+	}
+
 	public static function nested(string $a, string $b): bool {
 		$a = trim($a, '/');
 		$b = trim($b, '/');
@@ -85,7 +90,7 @@ class AttachmentWatchFolderService {
 	private function collect(Folder $folder, string $prefix, array &$files): bool {
 		foreach ($folder->getDirectoryListing() as $node) {
 			$name = $node->getName();
-			if (str_starts_with($name, '.')) {
+			if (self::isHidden($name)) {
 				continue;
 			}
 			if ($node instanceof Folder) {

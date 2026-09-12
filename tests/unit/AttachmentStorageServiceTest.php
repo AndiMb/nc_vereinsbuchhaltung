@@ -136,23 +136,13 @@ class AttachmentStorageServiceTest extends TestCase {
 		$this->service()->streamOf($this->attachment());
 	}
 
-	/**
-	 * Baut die Ordnerkette Home -> Vereinsbuchhaltung -> Belege -> <BuchungsID>,
-	 * an deren Ende der übergebene Knoten unter dem Belegnamen liegt.
-	 */
+	/** Ein Home, in dem unter <Ablage>/<BuchungsID>/<Belegname> der übergebene Knoten liegt. */
 	private function ncUserFolder(object $leaf): Folder {
 		$journalFolder = $this->createMock(Folder::class);
 		$journalFolder->method('get')->with(self::NC_FILE_NAME)->willReturn($leaf);
-
-		$parts = explode('/', self::NC_PATH);
-		$current = $journalFolder;
-		foreach (array_reverse(array_merge($parts, [(string)self::JOURNAL_ID])) as $name) {
-			$parent = $this->createMock(Folder::class);
-			$parent->method('nodeExists')->with($name)->willReturn(true);
-			$parent->method('get')->with($name)->willReturn($current);
-			$current = $parent;
-		}
-		return $current;
+		$home = $this->createMock(Folder::class);
+		$home->method('get')->with(self::NC_PATH . '/' . self::JOURNAL_ID)->willReturn($journalFolder);
+		return $home;
 	}
 
 	/** Ein Beleg der App-Ablage – ohne Dateiverweis, der Pfad wird berechnet. */
@@ -220,7 +210,7 @@ class AttachmentStorageServiceTest extends TestCase {
 		$this->configureStorage(self::NC_USER, AttachmentStorageService::MODE_WATCH);
 
 		$home = $this->createMock(Folder::class);
-		$home->method('nodeExists')->willReturn(false);
+		$home->method('get')->willThrowException(new \OCP\Files\NotFoundException());
 		$home->expects($this->never())->method('newFolder');
 		$this->rootFolder->method('getUserFolder')->with(self::NC_USER)->willReturn($home);
 
@@ -233,7 +223,6 @@ class AttachmentStorageServiceTest extends TestCase {
 		$this->assertSame('ALT-INHALT', $this->service()->contentOf($this->attachment()));
 	}
 
-	/** Ein Beleg mit Verweis auf eine Datei im Home des Ablage-Nutzers. */
 	private function linked(int $fileId): Attachment {
 		$a = $this->attachment();
 		$a->setFileId($fileId);
@@ -241,10 +230,6 @@ class AttachmentStorageServiceTest extends TestCase {
 		return $a;
 	}
 
-	/**
-	 * Die Ordnerwahl in den Einstellungen bekommt nur Ordner, keine Dateien
-	 * und nichts Verstecktes – natürlich sortiert, mit Pfad relativ zum Home.
-	 */
 	public function testSubfoldersAtListetNurSichtbareOrdnerSortiert(): void {
 		$hidden = $this->createMock(Folder::class);
 		$hidden->method('getName')->willReturn('.hidden');
@@ -270,7 +255,6 @@ class AttachmentStorageServiceTest extends TestCase {
 		);
 	}
 
-	/** Leerer Pfad ist das Home selbst; ein unbekannter Pfad ergibt null statt einer Ausnahme. */
 	public function testSubfoldersAtHomeUndUnbekannterPfad(): void {
 		$top = $this->createMock(Folder::class);
 		$top->method('getName')->willReturn('Dokumente');

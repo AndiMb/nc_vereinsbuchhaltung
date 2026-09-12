@@ -221,7 +221,6 @@ class AttachmentWatchFolderServiceTest extends TestCase {
 		return $f;
 	}
 
-	/** Dieselbe Datei ein zweites Mal an dieselbe Buchung ergibt keine zweite Zeile. */
 	public function testLinkLehntDoppelteVerknuepfungAb(): void {
 		$root = $this->createMock(Folder::class);
 		$root->method('getFirstNodeById')->with(51)->willReturn($this->file(51, 'Rechnung.pdf', 'application/pdf', 1, 1));

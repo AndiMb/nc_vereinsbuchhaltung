@@ -18,37 +18,17 @@
 						<option v-for="u in users" :key="u.id" :value="u.id">{{ u.displayName }} ({{ u.id }})</option>
 					</select>
 				</label>
-				<div class="vbh-grow vbh-field">
-					<label for="vbh-storage-path">{{ t('Ordnerpfad im Nutzer-Home') }}</label>
-					<div class="vbh-inputgroup">
-						<input
-							id="vbh-storage-path"
-							v-model="storagePathModel"
-							type="text"
-							placeholder="Vereinsbuchhaltung/Belege"
-							:readonly="storageMode === 'watch'">
-						<NcButton
-							v-if="storageUser"
-							:aria-label="t('Ordner wählen…')"
-							:title="t('Ordner wählen…')"
-							@click="pickerOpen = true">
-							<template #icon>
-								<NcIconSvgWrapper :path="mdiFolderSearchOutline" :size="20" />
-							</template>
-						</NcButton>
-					</div>
-				</div>
+				<FolderPathField
+					v-model="storagePathModel"
+					inputId="vbh-storage-path"
+					:user="storageUser"
+					placeholder="Vereinsbuchhaltung/Belege"
+					:readonly="storageMode === 'watch'" />
 			</template>
 			<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings">
 				{{ t('Speichern') }}
 			</NcButton>
 		</div>
-		<FolderPickerDialog
-			v-if="storageUser"
-			v-model:show="pickerOpen"
-			:user="storageUser"
-			:modelValue="storagePath"
-			@pick="storagePathModel = $event" />
 		<p v-if="storageMode === 'user' && storageUser" class="vbh-hint vbh-hint--info">
 			{{ t('Belege werden unter') }} <code>{{ storageUser }}/{{ storagePath || 'Vereinsbuchhaltung/Belege' }}/&lt;BuchungsID&gt;/</code> {{ t('abgelegt.') }}
 		</p>
@@ -59,10 +39,9 @@
 </template>
 
 <script>
-import { mdiFolderSearchOutline } from '@mdi/js'
-import { NcButton, NcIconSvgWrapper } from '@nextcloud/vue'
+import { NcButton } from '@nextcloud/vue'
 import { toRefs } from 'vue'
-import FolderPickerDialog from './FolderPickerDialog.vue'
+import FolderPathField from './FolderPathField.vue'
 import { usePermissions } from '../composables/usePermissions.js'
 
 /**
@@ -71,7 +50,7 @@ import { usePermissions } from '../composables/usePermissions.js'
  */
 export default {
 	name: 'SettingsAttachments',
-	components: { FolderPickerDialog, NcButton, NcIconSvgWrapper },
+	components: { FolderPathField, NcButton },
 	props: {
 		storageMode: { type: String, required: true },
 		storageUser: { type: String, required: true },
@@ -85,10 +64,6 @@ export default {
 
 	setup() {
 		return { ...toRefs(usePermissions().state) }
-	},
-
-	data() {
-		return { pickerOpen: false, mdiFolderSearchOutline }
 	},
 
 	computed: {

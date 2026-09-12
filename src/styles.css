@@ -733,13 +733,12 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-form .vbh-grow input, .vbh-form .vbh-grow select, .vbh-form .vbh-grow textarea { width: 100%; }
 
-/* Feld mit Knopf am Eingabefeld (Ordnerwahl in den Einstellungen): wie ein label gebaut, weil ein Knopf nicht in ein label gehoert */
+/* Feld mit Knopf am Eingabefeld (FolderPathField.vue): wie ein label gebaut, weil ein Knopf nicht in ein label gehoert */
 .vbh-form .vbh-field { display: flex; flex-direction: column; gap: 3px; }
-
-.vbh-form .vbh-field > label { display: block; font-size: 0.85em; }
 
 .vbh-inputgroup { display: flex; align-items: center; gap: 6px; }
 
+/* min-height: Nextclouds select rendert zwei Pixel hoeher als ein Textfeld; ohne Angleich stuende die Beschriftung dieses Felds tiefer als die der Nachbarn */
 .vbh-inputgroup input { flex: 1 1 auto; min-width: 0; min-height: 36px; }
 
 /* Mitwachsendes Textfeld (Buchungstext, siehe src/lib/autogrow.js). Die Hoehe

@@ -79,14 +79,12 @@ export default {
 		async reveal() {
 			this.root = this.node(this.user, '')
 			const root = this.root
-			root.open = true
-			await this.load(root)
+			await this.toggle(root)
 			let node = root
 			for (const part of this.modelValue.split('/').filter(Boolean)) {
 				const child = (node.children || []).find((c) => c.name === part)
 				if (this.root !== root || !child) { return }
-				child.open = true
-				await this.load(child)
+				await this.toggle(child)
 				node = child
 			}
 		},
