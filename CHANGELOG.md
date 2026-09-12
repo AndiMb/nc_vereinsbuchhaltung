@@ -17,7 +17,7 @@ als „[object Object]" (falsche Renderer-Callback-Signatur, Nextcloud-
 Core-Bug, reproduziert 23.08.2026). Stattdessen **Fettdruck als Zeilenanfang**
 verwenden, z. B. `**Neu:**`.
 
-## [Unreleased]
+## [0.34.0] – 2026-09-12
 
 **Neu:**
 - **Wächter-Ordner für Belege.** Neben der app-internen Ablage und dem von

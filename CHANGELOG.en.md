@@ -15,7 +15,7 @@ Markdown headings as "[object Object]" since `marked` v18 (wrong renderer
 callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 **bold lead-in** at the start of a line instead, e.g. `**New:**`.
 
-## [Unreleased]
+## [0.34.0] – 2026-09-12
 
 **New:**
 - **Watch folder for receipts.** Besides the internal storage and the user
