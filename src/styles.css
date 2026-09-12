@@ -161,7 +161,10 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-upload-input:focus-visible + .vbh-upload-btn { outline: 2px solid var(--color-primary-element); outline-offset: 2px; }
 
-.vbh-upload-btn.vbh-upload-btn { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border: 1px solid var(--color-border); border-radius: var(--border-radius, 6px); font-size: 0.85em; background: var(--color-main-background); color: var(--color-main-text); cursor: pointer; }
+/* !important gegen Nextclouds eigenes button{font-weight:bold; ...}-Reset (core/css/server.css):
+   der greift nur hier, weil "Aus Ordner wählen" als einziger dieser Trigger ein echtes
+   <button> ist statt eines <span>/<label> - Server-CSS gewinnt sonst per !important. */
+.vbh-upload-btn.vbh-upload-btn { display: inline-flex !important; align-items: center; gap: 5px; padding: 4px 10px; border: 1px solid var(--color-border); border-radius: var(--border-radius, 6px); font-size: 0.85em; font-weight: normal !important; line-height: inherit !important; background: var(--color-main-background); color: var(--color-main-text); cursor: pointer; }
 
 .vbh-upload-btn.vbh-upload-btn:hover { background: var(--color-background-hover); }
 
