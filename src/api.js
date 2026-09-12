@@ -26,7 +26,7 @@ export default {
 	// Geschäftsjahre: Liste, Regel, Grenzen, Festschreibung.
 	// `period` ist überall die Perioden-ID; fehlt sie oder ist sie 0, meint der
 	// Server „alle Zeiträume" (siehe PeriodService::isSelected()).
-	periods: () => axios.get(url('/periods')),
+	periods: (config) => axios.get(url('/periods'), config),
 	periodRule: () => axios.get(url('/periods/rule')),
 	savePeriodRule: (rule, dryRun = false) => axios.put(url('/periods/rule'), { ...rule, dryRun: dryRun ? 1 : 0 }),
 	createPeriod: () => axios.post(url('/periods')),

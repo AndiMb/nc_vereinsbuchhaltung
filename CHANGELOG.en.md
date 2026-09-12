@@ -15,6 +15,15 @@ Markdown headings as "[object Object]" since `marked` v18 (wrong renderer
 callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 **bold lead-in** at the start of a line instead, e.g. `**New:**`.
 
+## [Unreleased]
+
+**Fixed:**
+- The period selector in the header could stay empty if the request that
+  loads it failed just once (a brief network or server hiccup) – silently,
+  with no error and no later reload filling it in. Up to three attempts
+  with their own time limit now recover from this on their own; if all
+  three fail, an error appears just like for any other critical load.
+
 ## [0.34.0] – 2026-09-12
 
 **New:**

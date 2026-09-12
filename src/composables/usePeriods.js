@@ -1,5 +1,7 @@
+import { showError } from '@nextcloud/dialogs'
 import { computed, reactive } from 'vue'
 import api from '../api.js'
+import { errMsg } from '../lib/format.js'
 
 /**
  * Die Geschäftsjahre und das gerade gewählte.
@@ -78,22 +80,44 @@ function defaultPeriodId(list) {
 	return (current ?? list[0]).id
 }
 
-/** Lädt die Zeiträume und setzt beim ersten Mal die Vorgabe. */
+/**
+ * Lädt die Zeiträume und setzt beim ersten Mal die Vorgabe.
+ *
+ * Bis zu drei Versuche mit eigenem Zeitlimit je Anfrage: ohne `timeout`
+ * wartet axios auf eine ausbleibende Antwort unbegrenzt, und anders als
+ * loadAccounts/loadBalances hängt an loadPeriods() sonst nichts, was einen
+ * späteren Reload anstieße - eine einzelne unter Serverlast steckengebliebene
+ * Anfrage ließ die Zeitraum-Auswahl bisher für den Rest der Sitzung leer,
+ * ohne jede Fehlermeldung.
+ */
 async function loadPeriods() {
-	try {
-		const { data } = await api.periods()
-		state.periods = data
-		if (!state.initialised && data.length) {
-			state.initialised = true
-			state.selectedPeriodId = defaultPeriodId(data)
+	let data
+	let lastError = null
+	for (let attempt = 0; attempt < 3; attempt++) {
+		if (attempt > 0) { await new Promise((resolve) => setTimeout(resolve, 300 * attempt)) }
+		try {
+			({ data } = await api.periods({ timeout: 5000 }))
+			lastError = null
+			break
+		} catch (e) {
+			lastError = e
 		}
-		// Nach einer Umstellung der Geschäftsjahr-Regel gibt es die bisher
-		// gewählte ID nicht mehr. Ohne diese Korrektur liefe jede folgende
-		// Anfrage in ein 404. Ersatz ist derselbe wie beim ersten Laden.
-		if (state.selectedPeriodId !== null && !periodsById.value[state.selectedPeriodId]) {
-			state.selectedPeriodId = defaultPeriodId(data)
-		}
-	} catch { /* Zeiträume optional */ }
+	}
+	if (lastError) {
+		showError(errMsg(lastError, 'Zeiträume konnten nicht geladen werden'))
+		return
+	}
+	state.periods = data
+	if (!state.initialised && data.length) {
+		state.initialised = true
+		state.selectedPeriodId = defaultPeriodId(data)
+	}
+	// Nach einer Umstellung der Geschäftsjahr-Regel gibt es die bisher
+	// gewählte ID nicht mehr. Ohne diese Korrektur liefe jede folgende
+	// Anfrage in ein 404. Ersatz ist derselbe wie beim ersten Laden.
+	if (state.selectedPeriodId !== null && !periodsById.value[state.selectedPeriodId]) {
+		state.selectedPeriodId = defaultPeriodId(data)
+	}
 }
 
 export function usePeriods() {

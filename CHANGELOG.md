@@ -17,6 +17,16 @@ als „[object Object]" (falsche Renderer-Callback-Signatur, Nextcloud-
 Core-Bug, reproduziert 23.08.2026). Stattdessen **Fettdruck als Zeilenanfang**
 verwenden, z. B. `**Neu:**`.
 
+## [Unreleased]
+
+**Behoben:**
+- Die Zeitraum-Auswahl in der Kopfzeile konnte leer bleiben, wenn die
+  Anfrage beim Laden einmalig fehlschlug (etwa ein kurzer Netzwerk- oder
+  Serveraussetzer) – ohne Fehlermeldung, und ohne dass ein späteres
+  Nachladen sie nachträglich füllte. Bis zu drei Versuche mit eigenem
+  Zeitlimit beheben das jetzt selbst; scheitern alle drei, erscheint eine
+  Fehlermeldung wie bei jeder anderen kritischen Ladefunktion.
+
 ## [0.34.0] – 2026-09-12
 
 **Neu:**
