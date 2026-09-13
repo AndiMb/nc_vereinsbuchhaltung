@@ -52,8 +52,14 @@ test.describe('Erste-Schritte-Karte', () => {
 		await api.setRole(request, USERS.buchhalter, 'buchhalter')
 
 		const [bank, income] = await api.accountsByNumber(request, BANK_ACCOUNT, INCOME_ACCOUNT)
+		// Die Karte zählt Buchungen im Zeitraum, den die Oberfläche beim Laden
+		// vorwählt - das ist der laufende (heutige), nicht der zuletzt angelegte
+		// (siehe usePeriods.defaultPeriodId). Ein fest codiertes Datum in einem
+		// anderen Jahr landet in einem anderen Zeitraum, sobald der laufende
+		// bereits existiert, und "Erste Buchung erfassen"/"Anfangsbestand" blieben
+		// dann faelschlich offen (vgl. dieselbe Falle in 14-budget.spec.mjs).
 		await api.createBooking(request, {
-			date: '2031-06-15',
+			date: new Date().toISOString().slice(0, 10),
 			description: 'Spende Vereinsfest',
 			debitAccountId: bank.id,
 			creditAccountId: income.id,
