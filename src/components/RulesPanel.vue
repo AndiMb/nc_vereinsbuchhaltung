@@ -94,7 +94,7 @@ import { showError, showSuccess } from '@nextcloud/dialogs'
 import { NcButton, NcEmptyContent, NcIconSvgWrapper, NcSelect } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import api from '../api.js'
-import { useAccounts } from '../composables/useAccounts.js'
+import { buildAccountOptions, useAccounts } from '../composables/useAccounts.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useRules } from '../composables/useRules.js'
 import { errMsg } from '../lib/format.js'
@@ -132,49 +132,14 @@ export default {
 	},
 
 	computed: {
-		// Gleiche Gruppierung wie in BookingsTab.vue (haeufig verwendete Konten
-		// zuerst) - eigenstaendig statt geteilt, da beide Stellen geringfuegig
-		// unterschiedliche Listen brauchen (siehe AccountDialog.vue fuer das
-		// gleiche Muster).
 		accountUsageCounts() {
 			const counts = {}
 			for (const r of this.rules) { counts[r.contraAccountId] = (counts[r.contraAccountId] || 0) + 1 }
 			return counts
 		},
 
-		frequentAccounts() {
-			const counts = this.accountUsageCounts
-			return this.accountsSorted
-				.filter((a) => a.active && counts[a.id])
-				.sort((a, b) => counts[b.id] - counts[a.id])
-				.slice(0, 5)
-		},
-
-		accountsByCategory() {
-			const groups = {}
-			for (const acc of this.accountsSorted) {
-				if (!acc.active) { continue }
-				const cat = acc.category || this.t('Sonstige')
-				;(groups[cat] = groups[cat] || []).push(acc)
-			}
-			return groups
-		},
-
 		accountOptionsList() {
-			const opts = []
-			if (this.frequentAccounts.length >= 2) {
-				opts.push({ id: null, label: this.t('★ Häufig verwendet'), $isDisabled: true })
-				for (const acc of this.frequentAccounts) {
-					opts.push({ id: acc.id, label: `${acc.number} ${acc.name}`, number: acc.number })
-				}
-			}
-			for (const [cat, accounts] of Object.entries(this.accountsByCategory)) {
-				opts.push({ id: null, label: cat, $isDisabled: true })
-				for (const acc of accounts) {
-					opts.push({ id: acc.id, label: `${acc.number} ${acc.name}`, number: acc.number })
-				}
-			}
-			return opts
+			return buildAccountOptions(this.accountsSorted, this.accountUsageCounts, this.t)
 		},
 
 		ruleFormContraOption: {

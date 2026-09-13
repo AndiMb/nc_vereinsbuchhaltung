@@ -496,7 +496,7 @@ import AmountInput from './AmountInput.vue'
 import BookingCard from './BookingCard.vue'
 import RulesPanel from './RulesPanel.vue'
 import api from '../api.js'
-import { useAccounts } from '../composables/useAccounts.js'
+import { buildAccountOptions, useAccounts } from '../composables/useAccounts.js'
 import { useAuth } from '../composables/useAuth.js'
 import { useJournal } from '../composables/useJournal.js'
 import { useOpenItems } from '../composables/useOpenItems.js'
@@ -588,39 +588,8 @@ export default {
 			return counts
 		},
 
-		frequentAccounts() {
-			const counts = this.accountUsageCounts
-			return this.accountsSorted
-				.filter((a) => a.active && counts[a.id])
-				.sort((a, b) => counts[b.id] - counts[a.id])
-				.slice(0, 5)
-		},
-
-		accountsByCategory() {
-			const groups = {}
-			for (const acc of this.accountsSorted) {
-				if (!acc.active) { continue }
-				const cat = acc.category || this.t('Sonstige')
-				;(groups[cat] = groups[cat] || []).push(acc)
-			}
-			return groups
-		},
-
 		accountOptionsList() {
-			const opts = []
-			if (this.frequentAccounts.length >= 2) {
-				opts.push({ id: null, label: this.t('★ Häufig verwendet'), $isDisabled: true })
-				for (const acc of this.frequentAccounts) {
-					opts.push({ id: acc.id, label: `${acc.number} ${acc.name}`, number: acc.number })
-				}
-			}
-			for (const [cat, accounts] of Object.entries(this.accountsByCategory)) {
-				opts.push({ id: null, label: cat, $isDisabled: true })
-				for (const acc of accounts) {
-					opts.push({ id: acc.id, label: `${acc.number} ${acc.name}`, number: acc.number })
-				}
-			}
-			return opts
+			return buildAccountOptions(this.accountsSorted, this.accountUsageCounts, this.t)
 		},
 
 		bookingFilterAccountOption: {
