@@ -108,6 +108,30 @@ test.describe('Wächter-Ordner für Belege', () => {
 		expect((await download.body()).length).toBe(BELEG_PNG.length)
 	})
 
+	test('Suchfeld im „Aus Ordner wählen"-Popup ist direkt nach dem Öffnen bedienbar', async ({ page, request }) => {
+		await dav.put(request, 'admin', `${FOLDER}/2026/suchtest-eins.png`, BELEG_PNG, 'image/png')
+		await dav.put(request, 'admin', `${FOLDER}/2026/suchtest-zwei.png`, BELEG_PNG, 'image/png')
+
+		await openApp(page, USERS.verwalter)
+		await page.getByRole('button', { name: 'Buchung', exact: true }).click()
+		const bookingDialog = page.getByRole('dialog', { name: 'Neue Buchung' })
+		await skipBookingTour(bookingDialog)
+		await bookingDialog.getByRole('button', { name: 'Aus Ordner wählen' }).click()
+
+		// Aus dem verschachtelten Popup heraus: sofort tippen, ohne vorher zu
+		// klicken – das Suchfeld muss beim Öffnen selbst schon den Fokus haben.
+		const folderDialog = page.getByRole('dialog', { name: 'Beleg aus Ordner wählen' })
+		await expect(folderDialog).toBeVisible()
+		await page.keyboard.type('suchtest-eins')
+		await expect(folderDialog.getByText('suchtest-eins.png')).toBeVisible()
+		await expect(folderDialog.getByText('suchtest-zwei.png')).toBeHidden()
+
+		await folderDialog.getByRole('checkbox', { name: /suchtest-eins.png/ }).check()
+		await folderDialog.getByRole('button', { name: 'Übernehmen' }).click()
+		await expect(folderDialog).toBeHidden()
+		await expect(bookingDialog.getByText('suchtest-eins.png')).toBeVisible()
+	})
+
 	test('Upload landet im Jahresordner, Löschen lässt die Datei stehen', async ({ request }) => {
 		const booking = await createBooking(request, 'Foto vom Handy', '2025-03-01')
 		const attachment = await api.addAttachment(request, booking.id, { name: 'foto.png' })

@@ -19,6 +19,7 @@
 			<template v-else>
 				<div class="vbh-folder-toolbar">
 					<input
+						ref="searchInput"
 						v-model="search"
 						type="search"
 						class="vbh-search vbh-search--full"
@@ -120,6 +121,7 @@ import { showError } from '@nextcloud/dialogs'
 import { NcButton, NcIconSvgWrapper, NcModal } from '@nextcloud/vue'
 import api from '../api.js'
 import { errMsg, formatDate, formatFileSize } from '../lib/format.js'
+import { focusOnOpen } from '../lib/modalFocus.js'
 
 /**
  * Die Dateien des Wächter-Ordners – in zwei Rollen:
@@ -186,6 +188,8 @@ export default {
 				this.showLinked = false
 				this.selected = new Set()
 				this.load()
+				// Auf Mobil nicht: die aufspringende Tastatur würde die Liste verdecken.
+				if (!this.isMobile) { focusOnOpen(this, () => this.$refs.searchInput) }
 			}
 		},
 	},

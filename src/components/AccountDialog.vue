@@ -11,7 +11,11 @@
 				{{ accountEditId ? t('Konto bearbeiten') : t('Neues Konto') }}
 			</h2>
 			<div class="vbh-form">
-				<label>{{ t('Nummer') }}<input v-model="form.number" class="vbh-short" :placeholder="t('z.B. 4000')"></label>
+				<label>{{ t('Nummer') }}<input
+					ref="numberInput"
+					v-model="form.number"
+					class="vbh-short"
+					:placeholder="t('z.B. 4000')"></label>
 				<label class="vbh-grow">{{ t('Bezeichnung') }}<input v-model="form.name" :placeholder="t('Kontoname')"></label>
 			</div>
 			<div class="vbh-form">
@@ -124,6 +128,7 @@ import { NcButton, NcCheckboxRadioSwitch, NcModal, NcSelect } from '@nextcloud/v
 import { toRefs } from 'vue'
 import { useAccounts } from '../composables/useAccounts.js'
 import { useCostCenters } from '../composables/useCostCenters.js'
+import { focusOnOpen } from '../lib/modalFocus.js'
 
 /**
  *
@@ -200,7 +205,10 @@ export default {
 
 	watch: {
 		show(open) {
-			if (open) { this.form = { ...emptyForm(), ...this.initialForm } }
+			if (open) {
+				this.form = { ...emptyForm(), ...this.initialForm }
+				focusOnOpen(this, () => this.$refs.numberInput)
+			}
 		},
 	},
 

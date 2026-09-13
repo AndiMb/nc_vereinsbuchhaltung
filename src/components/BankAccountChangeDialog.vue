@@ -15,7 +15,7 @@
 			</p>
 			<div class="vbh-form">
 				<label class="vbh-grow">{{ t('Neue IBAN') }}
-					<input v-model="form.iban" placeholder="DE12 5001 0517 0648 4898 90">
+					<input ref="ibanInput" v-model="form.iban" placeholder="DE12 5001 0517 0648 4898 90">
 				</label>
 				<label>{{ t('BIC') }}
 					<input v-model="form.bic" class="vbh-short" :placeholder="t('optional')">
@@ -46,6 +46,7 @@
 
 <script>
 import { NcButton, NcModal } from '@nextcloud/vue'
+import { focusOnOpen } from '../lib/modalFocus.js'
 
 function emptyForm() {
 	return { iban: '', bic: '', signedDate: new Date().toISOString().slice(0, 10), email: '' }
@@ -82,7 +83,10 @@ export default {
 
 	watch: {
 		show(open) {
-			if (open) { this.form = emptyForm() }
+			if (open) {
+				this.form = emptyForm()
+				focusOnOpen(this, () => this.$refs.ibanInput)
+			}
 		},
 	},
 
