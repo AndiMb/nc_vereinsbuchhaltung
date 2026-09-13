@@ -19,6 +19,7 @@
 			<template v-else>
 				<div class="vbh-folder-toolbar">
 					<input
+						ref="searchInput"
 						v-model="search"
 						type="search"
 						class="vbh-search vbh-search--full"
@@ -186,6 +187,11 @@ export default {
 				this.showLinked = false
 				this.selected = new Set()
 				this.load()
+				// Fokus sofort setzen statt NcModals eigener Fokus-Ermittlung: die läuft
+				// erst nach der Öffnen-Animation (onAfterEnter) und kommt bei schnellem
+				// Klick zu spät – der Fokus bleibt dann auf der Modal-Maske hängen. Auf
+				// Mobil nicht, sonst verdeckt die Tastatur die Liste.
+				if (!this.isMobile) { this.$nextTick(() => this.$refs.searchInput?.focus()) }
 			}
 		},
 	},
