@@ -43,3 +43,46 @@ async function seedDefaults() {
 export function useAccounts() {
 	return { state, accountsById, accountsSorted, childrenOf, loadAccounts, seedDefaults }
 }
+
+/**
+ * Baut die Options-Liste fuer Konto-Autocompletes: eine "Haeufig verwendet"-Gruppe der bis zu
+ * 5 meistgebuchten Konten, danach die restlichen aktiven Konten nach Kategorie gruppiert.
+ * Haeufig verwendete Konten werden aus ihrer Kategorie-Gruppe ausgeschlossen, damit kein Konto
+ * doppelt erscheint.
+ *
+ * @param {Array} accountsSorted alle Konten, nach Kontonummer sortiert
+ * @param {object} usageCounts accountId -> Anzahl Buchungen
+ * @param {(key: string) => string} t Uebersetzungsfunktion
+ * @return {Array} Options fuer NcSelect
+ */
+export function buildAccountOptions(accountsSorted, usageCounts, t) {
+	const active = accountsSorted.filter((acc) => acc.active)
+	const frequent = active
+		.filter((acc) => usageCounts[acc.id])
+		.sort((a, b) => usageCounts[b.id] - usageCounts[a.id])
+		.slice(0, 5)
+
+	const opts = []
+	const frequentIds = new Set()
+	if (frequent.length >= 2) {
+		opts.push({ id: null, label: t('★ Häufig verwendet'), $isDisabled: true })
+		for (const acc of frequent) {
+			frequentIds.add(acc.id)
+			opts.push({ id: acc.id, label: `${acc.number} ${acc.name}`, number: acc.number })
+		}
+	}
+
+	const groups = {}
+	for (const acc of active) {
+		if (frequentIds.has(acc.id)) { continue }
+		const cat = acc.category || t('Sonstige')
+		;(groups[cat] = groups[cat] || []).push(acc)
+	}
+	for (const [cat, accs] of Object.entries(groups)) {
+		opts.push({ id: null, label: cat, $isDisabled: true })
+		for (const acc of accs) {
+			opts.push({ id: acc.id, label: `${acc.number} ${acc.name}`, number: acc.number })
+		}
+	}
+	return opts
+}
