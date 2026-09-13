@@ -2,6 +2,7 @@
 	<div>
 		<SetupChecklist
 			v-if="isAdmin"
+			:ready="setupReady"
 			:accounts="accounts"
 			:permissions="permissions"
 			:journalCount="journalData.length"
@@ -292,6 +293,8 @@ export default {
 		isMobile: { type: Boolean, required: true },
 		busy: { type: Boolean, required: true },
 		clubName: { type: String, required: true },
+		// steuert, ob die SetupChecklist schon urteilsfaehig ist (siehe SetupChecklist.vue)
+		setupReady: { type: Boolean, required: true },
 		attachmentCountMap: { type: Object, required: true },
 		// haengt vom Sortierzustand der Journal-Tabelle im Buchungen-Tab ab
 		// (sortedJournalRows), daher weiterhin von App.vue berechnet/uebergeben.

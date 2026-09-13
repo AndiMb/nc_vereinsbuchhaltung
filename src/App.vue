@@ -111,6 +111,7 @@
 					:isMobile="isMobile"
 					:busy="busy"
 					:clubName="clubName"
+					:setupReady="setupReady"
 					:attachmentCountMap="attachmentCountMap"
 					:recentJournal="recentJournal"
 					:clickPaperclip="clickPaperclip"
@@ -629,6 +630,10 @@ export default {
 			auditEnd: false,
 			costCenterMode: 'group',
 			clubName: '',
+			// Erst true, wenn alle Daten geladen sind, die SetupChecklist fuer ihre
+			// "erledigt"-Haekchen braucht - verhindert das Aufblitzen der Checkliste
+			// mit noch leeren/veralteten Werten waehrend des initialen Ladens.
+			setupReady: false,
 			// Vorbelegung fuer "Mitglied aufnehmen" (MemberDialog.vue), wenn fast
 			// alle Mitglieder denselben Beitrag zahlen - leerer String heisst
 			// "kein Standardbeitrag hinterlegt".
@@ -1077,7 +1082,10 @@ export default {
 			this.routeReady = true
 			this.unwatchRoute = this.$router.afterEach((to) => this.applyRoute(to))
 			if (this.isAdmin) {
-				this.loadPermissions()
+				// nicht awaiten, damit die Route/UI nicht auf die Berechtigungen wartet -
+				// aber die SetupChecklist (Punkt "Berechtigungen vergeben") erst zeigen,
+				// wenn sie da sind, sonst blitzt sie kurz mit falschem Zustand auf.
+				this.loadPermissions().then(() => { this.setupReady = true })
 				// Setup-Assistent beim allerersten Login eines Verwalters (leerer Verein, noch nicht gesehen)
 				if (this.accounts.length === 0 && !this.setupWizardSeen()) { this.showSetupWizard = true }
 			}
