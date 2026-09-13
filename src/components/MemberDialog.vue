@@ -28,7 +28,7 @@
 						:placeholder="t('– Nutzer wählen –')" />
 				</label>
 				<label v-else class="vbh-grow">{{ t('Name') }}
-					<input v-model="form.memberLabel" :placeholder="t('z. B. Katrin Brunner')">
+					<input ref="nameInput" v-model="form.memberLabel" :placeholder="t('z. B. Katrin Brunner')">
 				</label>
 				<label class="vbh-grow">{{ t('E-Mail') }}
 					<input v-model="form.email" type="email" :placeholder="t('für die Vorankündigung')">
@@ -93,6 +93,7 @@ import AmountInput from './AmountInput.vue'
 import { useAccounts } from '../composables/useAccounts.js'
 import { usePermissions } from '../composables/usePermissions.js'
 import { frequencyOptions } from '../lib/frequency.js'
+import { focusOnOpen } from '../lib/modalFocus.js'
 
 function emptyForm() {
 	return {
@@ -172,6 +173,7 @@ export default {
 				this.form.amount = this.defaultFeeAmount
 				this.form.frequency = this.defaultFeeFrequency
 			}
+			focusOnOpen(this, () => this.$refs.nameInput)
 		},
 	},
 

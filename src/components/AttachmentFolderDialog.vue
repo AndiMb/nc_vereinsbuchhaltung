@@ -121,6 +121,7 @@ import { showError } from '@nextcloud/dialogs'
 import { NcButton, NcIconSvgWrapper, NcModal } from '@nextcloud/vue'
 import api from '../api.js'
 import { errMsg, formatDate, formatFileSize } from '../lib/format.js'
+import { focusOnOpen } from '../lib/modalFocus.js'
 
 /**
  * Die Dateien des Wächter-Ordners – in zwei Rollen:
@@ -187,11 +188,8 @@ export default {
 				this.showLinked = false
 				this.selected = new Set()
 				this.load()
-				// Fokus sofort setzen statt NcModals eigener Fokus-Ermittlung: die läuft
-				// erst nach der Öffnen-Animation (onAfterEnter) und kommt bei schnellem
-				// Klick zu spät – der Fokus bleibt dann auf der Modal-Maske hängen. Auf
-				// Mobil nicht, sonst verdeckt die Tastatur die Liste.
-				if (!this.isMobile) { this.$nextTick(() => this.$refs.searchInput?.focus()) }
+				// Auf Mobil nicht: die aufspringende Tastatur würde die Liste verdecken.
+				if (!this.isMobile) { focusOnOpen(this, () => this.$refs.searchInput) }
 			}
 		},
 	},
