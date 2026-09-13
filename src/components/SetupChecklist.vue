@@ -1,5 +1,5 @@
 <template>
-	<div v-if="!dismissed && remaining.length" class="vbh-card vbh-setupcard">
+	<div v-if="ready && !dismissed && remaining.length" class="vbh-card vbh-setupcard">
 		<div class="vbh-setuphead">
 			<h4>{{ t('Erste Schritte ({done} von {total} erledigt)', { done: steps.length - remaining.length, total: steps.length }) }}</h4>
 			<NcButton
@@ -35,6 +35,10 @@ export default {
 	name: 'SetupChecklist',
 	components: { NcButton, NcIconSvgWrapper },
 	props: {
+		// true, sobald Konten/Buchungen/Berechtigungen initial geladen sind - vorher
+		// waeren die "erledigt"-Haekchen falsch (alles wirkt unerledigt) und die
+		// Karte wuerde kurz aufblitzen, siehe App.vue mounted().
+		ready: { type: Boolean, required: true },
 		accounts: { type: Array, required: true },
 		permissions: { type: Array, required: true },
 		journalCount: { type: Number, required: true },

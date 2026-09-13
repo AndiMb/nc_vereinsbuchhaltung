@@ -301,6 +301,11 @@ export const api = {
 		return (await this.accountsByNumber(request, number))[0]
 	},
 
+	/** Mehreren Konten auf einmal eine Sphäre zuweisen ('ideell'|'vermoegensverwaltung'|'zweckbetrieb'|'wirtschaftlich'). */
+	async bulkSphere(request, accountIds, sphere, { user = 'admin' } = {}) {
+		return call(request, 'POST', '/accounts/sphere-bulk', { user, data: { accountIds, sphere } })
+	},
+
 	/** Buchung im Experten-Modus (Soll/Haben ausdrücklich). */
 	async createBooking(request, { date, description, debitAccountId, creditAccountId, amount, user = 'admin', expectOk = true }) {
 		return call(request, 'POST', '/journal', {
