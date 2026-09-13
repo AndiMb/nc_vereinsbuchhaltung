@@ -17,15 +17,23 @@ als „[object Object]" (falsche Renderer-Callback-Signatur, Nextcloud-
 Core-Bug, reproduziert 23.08.2026). Stattdessen **Fettdruck als Zeilenanfang**
 verwenden, z. B. `**Neu:**`.
 
-## [Unreleased]
+## [0.34.1] – 2026-09-13
 
 **Behoben:**
-- Die Zeitraum-Auswahl in der Kopfzeile konnte leer bleiben, wenn die
-  Anfrage beim Laden einmalig fehlschlug (etwa ein kurzer Netzwerk- oder
-  Serveraussetzer) – ohne Fehlermeldung, und ohne dass ein späteres
-  Nachladen sie nachträglich füllte. Bis zu drei Versuche mit eigenem
-  Zeitlimit beheben das jetzt selbst; scheitern alle drei, erscheint eine
-  Fehlermeldung wie bei jeder anderen kritischen Ladefunktion.
+- **Doppelte Konten in der Autocomplete:** Häufig verwendete Konten wurden
+  zusätzlich in ihrer Kategorie-Gruppe gelistet und erschienen bei der Suche
+  mehrfach hintereinander. Jetzt nur noch einmal.
+- **Suchfeld im Popup „Beleg aus Ordner wählen" reagierte manchmal nicht:**
+  Bei schnellem Klick blieb der Fokus auf der Modal-Maske hängen, Klicks und
+  Tastatur liefen ins Leere. Behoben – ebenso in den Dialogen für Konto,
+  Bankkonto und Mitglied.
+- **Icon im Button „Aus Ordner wählen" verrutschte:** Der Button war für
+  Icon und Text zu schmal.
+- **Erste-Schritte-Karte blitzte beim Laden kurz auf:** Sie erschien kurz,
+  auch wenn schon alles erledigt war.
+- **Zeitraum-Auswahl blieb nach einem Ladefehler leer:** Schlug die Anfrage
+  einmal fehl, blieb sie leer – ohne Fehlermeldung, ohne Nachladen. Jetzt
+  bis zu drei Versuche, danach eine Fehlermeldung.
 
 ## [0.34.0] – 2026-09-12
 

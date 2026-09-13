@@ -15,14 +15,23 @@ Markdown headings as "[object Object]" since `marked` v18 (wrong renderer
 callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 **bold lead-in** at the start of a line instead, e.g. `**New:**`.
 
-## [Unreleased]
+## [0.34.1] – 2026-09-13
 
 **Fixed:**
-- The period selector in the header could stay empty if the request that
-  loads it failed just once (a brief network or server hiccup) – silently,
-  with no error and no later reload filling it in. Up to three attempts
-  with their own time limit now recover from this on their own; if all
-  three fail, an error appears just like for any other critical load.
+- **Duplicate accounts in the autocomplete:** Frequently used accounts were
+  also listed in their category group and showed up twice in a row when
+  searching. Now listed once.
+- **Search field in the "Pick receipt from folder" popup sometimes didn't
+  react:** A fast click could leave focus stuck on the modal backdrop, so
+  clicks and typing went nowhere. Fixed – the same fix now applies to the
+  account, bank account, and member dialogs.
+- **Icon in the "Pick from folder" button was misaligned:** The button was
+  too narrow for icon and text together.
+- **The getting-started card briefly flashed on load:** It appeared for a
+  moment even when everything was already set up.
+- **Period selector stayed empty after a load error:** A single failed
+  request left it empty with no error and no retry. Now retries up to
+  three times, then shows an error.
 
 ## [0.34.0] – 2026-09-12
 
