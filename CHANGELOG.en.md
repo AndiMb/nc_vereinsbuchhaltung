@@ -17,11 +17,13 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+## [0.34.2] – 2026-09-14
+
 **Fixed:**
-- An account's category could no longer be cleared: deleting the text in the
-  “Category" field of the account dialog left the previous category in place
-  (only a single blank space worked). An emptied field now clears the
-  category as expected. (#59)
+- **An account's category could not be cleared:** deleting the text in the
+  “Category" field of the account dialog left the previous category in place;
+  only a single blank space worked (issue #59). An emptied field now clears
+  the category as expected.
 
 ## [0.34.1] – 2026-09-13
 

@@ -19,11 +19,13 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+## [0.34.2] – 2026-09-14
+
 **Behoben:**
-- Die Kategorie eines Kontos ließ sich nicht mehr leeren: löschte man im
+- **Kategorie eines Kontos ließ sich nicht leeren:** Löschte man im
   Konto-Dialog den Text im Feld „Kategorie", blieb die bisherige Kategorie
-  stehen (nur ein Leerzeichen im Feld wirkte). Ein geleertes Feld löscht die
-  Kategorie jetzt wie erwartet. (#59)
+  stehen; nur ein Leerzeichen im Feld wirkte (Issue #59). Ein geleertes Feld
+  löscht die Kategorie jetzt wie erwartet.
 
 ## [0.34.1] – 2026-09-13
 
