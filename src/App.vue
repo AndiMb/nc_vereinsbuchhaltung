@@ -2346,7 +2346,9 @@ export default {
 						number: f.number,
 						name: f.name,
 						type: f.type,
-						category: f.category || null,
+						// Leerstring statt null: der Controller verwirft null-Werte,
+						// eine geleerte Kategorie wuerde sonst nicht geloescht (Issue #59).
+						category: f.category || '',
 						isBank: f.isBank,
 						countInTotal: !!f.countInTotal,
 						parentId: f.parentId || 0,

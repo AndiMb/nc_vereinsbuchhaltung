@@ -17,6 +17,14 @@ als „[object Object]" (falsche Renderer-Callback-Signatur, Nextcloud-
 Core-Bug, reproduziert 23.08.2026). Stattdessen **Fettdruck als Zeilenanfang**
 verwenden, z. B. `**Neu:**`.
 
+## [Unreleased]
+
+**Behoben:**
+- Die Kategorie eines Kontos ließ sich nicht mehr leeren: löschte man im
+  Konto-Dialog den Text im Feld „Kategorie", blieb die bisherige Kategorie
+  stehen (nur ein Leerzeichen im Feld wirkte). Ein geleertes Feld löscht die
+  Kategorie jetzt wie erwartet. (#59)
+
 ## [0.34.1] – 2026-09-13
 
 **Behoben:**

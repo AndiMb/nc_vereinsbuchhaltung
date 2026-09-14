@@ -15,6 +15,14 @@ Markdown headings as "[object Object]" since `marked` v18 (wrong renderer
 callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 **bold lead-in** at the start of a line instead, e.g. `**New:**`.
 
+## [Unreleased]
+
+**Fixed:**
+- An account's category could no longer be cleared: deleting the text in the
+  “Category" field of the account dialog left the previous category in place
+  (only a single blank space worked). An emptied field now clears the
+  category as expected. (#59)
+
 ## [0.34.1] – 2026-09-13
 
 **Fixed:**

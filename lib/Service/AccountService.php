@@ -99,7 +99,7 @@ class AccountService {
 		$account->setNumber(trim($number));
 		$account->setName(trim($name));
 		$account->setType($this->validateType($type));
-		$account->setCategory($category !== null ? trim($category) : null);
+		$account->setCategory($this->normalizeCategory($category));
 		$account->setIsBank($isBank);
 		// Ein neues Geldkonto zählt in den Geldbestand der Kopfzeile, solange
 		// niemand es abwählt – die Kopfzeile soll von sich aus vollständig
@@ -148,7 +148,7 @@ class AccountService {
 			$account->setType($this->validateType((string)$data['type']));
 		}
 		if (array_key_exists('category', $data)) {
-			$account->setCategory($data['category'] !== null ? trim((string)$data['category']) : null);
+			$account->setCategory($this->normalizeCategory($data['category'] !== null ? (string)$data['category'] : null));
 		}
 		if (isset($data['isBank'])) {
 			$account->setIsBank((bool)$data['isBank']);
@@ -545,6 +545,19 @@ class AccountService {
 	}
 
 	/** '' und null bedeuten beide „nicht zugeordnet" (gespeichert als NULL). */
+	/**
+	 * '' und null bedeuten beide „keine Kategorie" (gespeichert als NULL) – sonst
+	 * hätte ein neu angelegtes Konto ohne Kategorie '' und ein nachträglich
+	 * geleertes null, obwohl beides dasselbe meint.
+	 */
+	private function normalizeCategory(?string $category): ?string {
+		if ($category === null) {
+			return null;
+		}
+		$category = trim($category);
+		return $category !== '' ? $category : null;
+	}
+
 	private function validateSphere(?string $sphere): ?string {
 		if ($sphere === null || $sphere === '') {
 			return null;
