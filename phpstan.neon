@@ -6,7 +6,16 @@
 # Bewusst getrennt von der composer.json der App: die bleibt ohne Abhaengigkeiten,
 # damit im Release-Tarball kein Fremdcode landet.
 #
-# Lokal:  composer install --working-dir=.phpstan && .phpstan/vendor/bin/phpstan analyse
+# Lokal:  composer install --working-dir=.phpstan && npm run phpstan
+#
+# Das npm-Skript setzt --memory-limit=1G. PHPStan kennt dafuer keine
+# neon-Einstellung (`parameters: memoryLimit` wird als unbekannter Schluessel
+# abgewiesen), es geht nur ueber die Kommandozeile - deshalb hier als Skript
+# festgehalten und nicht als Parameter weiter unten. Ohne das Limit erben die
+# Parallel-Worker das php.ini-Limit (lokal 128M) und sterben mitten in der
+# Analyse: PHPStan meldet dann 4 'Child process error'-Eintraege und den
+# Hinweis 'Result is incomplete because of severe errors' - kein Befund am
+# Code. In CI faellt das nicht auf, weil setup-php memory_limit=-1 setzt.
 #
 # .phpstan/composer.json bleibt bewusst auf nextcloud/ocp ^30.0, obwohl
 # appinfo/info.xml seit der Vue-3-Migration (0.23.0) NC >=31 verlangt: die

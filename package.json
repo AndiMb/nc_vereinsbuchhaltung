@@ -11,6 +11,8 @@
 		"lint": "eslint src/",
 		"stylelint": "stylelint \"src/**/*.{vue,css}\"",
 		"test": "vitest run",
+		"phpstan": "php .phpstan/vendor/phpstan/phpstan/phpstan.phar analyse --no-progress --memory-limit=1G",
+		"phpunit": "php .phpstan/vendor/phpunit/phpunit/phpunit --configuration phpunit.xml",
 		"test:e2e:server": "node tests/e2e/setup/server.mjs",
 		"test:e2e:server-stop": "node tests/e2e/setup/server.mjs --stop",
 		"test:e2e": "npm run test:e2e:server && npm run test:e2e:run",
