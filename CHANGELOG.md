@@ -19,6 +19,14 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+**Behoben:**
+- **„Erste Schritte" vergaß Buchungen aus anderen Geschäftsjahren:** Wechselte
+  man auf ein Geschäftsjahr ohne Buchungen, standen „Erste Buchung erfassen"
+  und „Geldkonto mit Anfangsbestand eintragen" wieder als offen da, obwohl in
+  einem anderen Zeitraum längst gebucht war (Issue #60). Die Karte zählt jetzt
+  alle Zeiträume – sie beschreibt den Stand des Vereins, nicht den des
+  gewählten Jahres.
+
 ## [0.34.2] – 2026-09-14
 
 **Behoben:**

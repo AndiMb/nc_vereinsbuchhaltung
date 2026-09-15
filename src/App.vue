@@ -1698,14 +1698,17 @@ export default {
 						showUndo(this.t('Zuordnung entfernt'), async () => {
 							try {
 								await api.assignTransaction(tx.id, prevContra)
-								await this.loadTransactions(); await this.loadBalances(); await this.loadJournal(); await this.loadSphereReport()
+								await this.loadTransactions(); await this.loadBalances(); await this.loadJournal(); await this.loadSphereReport(); await this.loadPeriods()
 							} catch (e) { showError(this.errMsg(e, this.t('Wiederherstellen fehlgeschlagen'))) }
 						})
 					}
 				} else {
 					await api.assignTransaction(tx.id, Number(value))
 				}
-				await this.loadTransactions(); await this.loadBalances(); await this.loadJournal(); await this.loadSphereReport()
+				// loadPeriods() muss mit: eine Zuordnung legt eine Buchung an (bzw.
+				// loest sie wieder auf), und periods[].bookings speist die
+				// "Erste Schritte"-Karte auf der Uebersicht (Issue #60).
+				await this.loadTransactions(); await this.loadBalances(); await this.loadJournal(); await this.loadSphereReport(); await this.loadPeriods()
 			} catch (e) { showError(this.errMsg(e, this.t('Zuordnung fehlgeschlagen'))) }
 		},
 
@@ -1756,7 +1759,9 @@ export default {
 				await api.assignTransactionParts(tx.id, rows.map((p) => ({ accountId: p.accountId, amount: Number(p.amount) })))
 				showSuccess(this.t('Umsatz aufgeteilt zugeordnet.'))
 				this.closeSplitAssign()
-				await this.loadTransactions(); await this.loadBalances(); await this.loadJournal(); await this.loadSphereReport()
+				// loadPeriods() muss mit: die Aufteilung legt Buchungen an, und
+				// periods[].bookings speist die "Erste Schritte"-Karte (Issue #60).
+				await this.loadTransactions(); await this.loadBalances(); await this.loadJournal(); await this.loadSphereReport(); await this.loadPeriods()
 			} catch (e) { showError(this.errMsg(e, this.t('Zuordnung fehlgeschlagen'))) }
 		},
 
@@ -2109,7 +2114,9 @@ export default {
 				this.closeBooking()
 				this.refreshInbox()
 				// Umsätze mitladen – siehe removeBooking().
-				await this.loadJournal(); await this.loadTransactions(); await this.loadBalances(); await this.reloadStatement()
+				// loadPeriods() wie beim Speichern: periods[].bookings speist die
+				// "Erste Schritte"-Karte (Issue #60).
+				await this.loadJournal(); await this.loadTransactions(); await this.loadBalances(); await this.loadPeriods(); await this.reloadStatement()
 			} catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
 		},
 
@@ -2266,7 +2273,10 @@ export default {
 			// steht dieser jetzt wieder unter „Zuzuordnen" (siehe
 			// JournalService::releaseBankTransaction()). Ohne das Nachladen bliebe
 			// die Liste samt Zähler bis zum nächsten Neuladen veraltet.
-			try { await api.deleteBooking(r.id); this.refreshInbox(); await this.loadJournal(); await this.loadTransactions(); await this.loadBalances(); await this.loadSphereReport(); await this.reloadStatement() } catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
+			// loadPeriods() muss ebenfalls mit: periods[].bookings speist die
+			// "Erste Schritte"-Karte, die sonst die geloeschte Buchung
+			// weiterzaehlt (Issue #60).
+			try { await api.deleteBooking(r.id); this.refreshInbox(); await this.loadJournal(); await this.loadTransactions(); await this.loadBalances(); await this.loadSphereReport(); await this.loadPeriods(); await this.reloadStatement() } catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
 		},
 
 		// --- Konten ---

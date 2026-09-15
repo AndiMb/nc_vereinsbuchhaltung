@@ -30,6 +30,7 @@
 <script>
 import { mdiCheckCircle, mdiCircleOutline, mdiClose } from '@mdi/js'
 import { NcButton, NcIconSvgWrapper } from '@nextcloud/vue'
+import { buildSetupSteps } from '../lib/setupSteps.js'
 
 export default {
 	name: 'SetupChecklist',
@@ -41,7 +42,10 @@ export default {
 		ready: { type: Boolean, required: true },
 		accounts: { type: Array, required: true },
 		permissions: { type: Array, required: true },
-		journalCount: { type: Number, required: true },
+		// Gibt es ueberhaupt eine Buchung? Bewusst ein Boolean ueber ALLE Zeitraeume
+		// und keine Anzahl des gewaehlten: die Karte beschreibt den Stand des
+		// Vereins, nicht des Geschaeftsjahres (Issue #60).
+		hasAnyBooking: { type: Boolean, required: true },
 		clubName: { type: String, default: '' },
 	},
 
@@ -58,20 +62,13 @@ export default {
 
 	computed: {
 		steps() {
-			return [
-				{ id: 'club', label: this.t('Verein benennen'), action: 'settings:verein', done: !!this.clubName },
-				{ id: 'accounts', label: this.t('Kontenrahmen anlegen'), action: 'accounts', done: this.accounts.length > 0 },
-				// xbuc-Importe setzen openingDate nicht (Anfangsbestand steckt in der
-				// EB-Buchung selbst) – sobald überhaupt gebucht wurde, ist der Punkt
-				// gegenstandslos, sonst würde er bei aktiven, importierten Vereinen nie erledigt sein.
-				{ id: 'opening', label: this.t('Geldkonto mit Anfangsbestand eintragen'), action: 'accounts', done: this.journalCount > 0 || this.accounts.some((a) => a.isBank && a.openingDate) },
-				{ id: 'permissions', label: this.t('Berechtigungen vergeben'), action: 'settings:berechtigungen', done: this.permissions.length > 0 },
-				{ id: 'booking', label: this.t('Erste Buchung erfassen'), action: 'booking', done: this.journalCount > 0 },
-				// Entspricht Account::isResultRelevant() im Backend (alles außer Geldkonten/Eigenkapital).
-				// Zuordnung selbst steht seit NAVIGATION-KONZEPT.md Abschnitt 4 im
-				// Bericht „Sphären", nicht mehr im Zahnrad.
-				{ id: 'spheres', label: this.t('Sphären zuordnen (steuerlich)'), action: 'reports:spheres', done: this.accounts.filter((a) => a.type !== 'equity' && !a.isBank).every((a) => a.sphere) },
-			]
+			return buildSetupSteps({
+				clubName: this.clubName,
+				accounts: this.accounts,
+				permissions: this.permissions,
+				hasAnyBooking: this.hasAnyBooking,
+				t: this.t,
+			})
 		},
 
 		remaining() {

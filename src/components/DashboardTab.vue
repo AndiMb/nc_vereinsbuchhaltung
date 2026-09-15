@@ -5,7 +5,7 @@
 			:ready="setupReady"
 			:accounts="accounts"
 			:permissions="permissions"
-			:journalCount="journalData.length"
+			:hasAnyBooking="hasAnyBooking"
 			:clubName="clubName"
 			@navigate="$emit('navigate', $event)"
 			@openWizard="$emit('open-wizard')" />
@@ -331,6 +331,26 @@ export default {
 	},
 
 	computed: {
+		/**
+		 * Gibt es ueberhaupt eine Buchung - in irgendeinem Zeitraum?
+		 *
+		 * Die "Erste Schritte"-Karte hing bis 0.34.2 an journalData.length und
+		 * damit am gewaehlten Geschaeftsjahr: wer auf ein leeres Jahr wechselte,
+		 * sah "Erste Buchung erfassen" und "Anfangsbestand eintragen" wieder als
+		 * offen (Issue #60). periods[].bookings kommt aus PeriodController::index()
+		 * und zaehlt je Zeitraum.
+		 *
+		 * journalData.length steht bewusst als zweiter Zweig daneben, obwohl der
+		 * erste bereits genuegt: loadJournal() laeuft ausnahmslos in jedem Pfad,
+		 * der Buchungen anlegt, loadPeriods() muss jeder Aufrufer selbst mitnehmen.
+		 * Buchungen im gewaehlten Zeitraum SIND Buchungen, der Zweig kann also nie
+		 * faelschlich true liefern - er faengt nur ab, wenn kuenftig jemand das
+		 * Nachladen der Zeitraeume vergisst.
+		 */
+		hasAnyBooking() {
+			return this.periods.some((p) => p.bookings > 0) || this.journalData.length > 0
+		},
+
 		kpiDeltas() {
 			if (!this.balances || !this.prevBalances || !this.selectedPeriod) { return null }
 			// Verglichen wird mit dem Zeitraum davor; früher stand hier „Jahr - 1".
