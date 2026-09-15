@@ -17,6 +17,13 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+**Fixed:**
+- **"First steps" forgot entries from other financial years:** switching to a
+  financial year without entries made "Record first entry" and "Enter opening
+  balance for a cash/bank account" show up as open again, even though entries
+  existed in another period (issue #60). The card now counts all periods - it
+  describes the state of the association, not that of the selected year.
+
 ## [0.34.2] – 2026-09-14
 
 **Fixed:**
