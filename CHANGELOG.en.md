@@ -17,6 +17,8 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+## [0.34.3] – 2026-09-15
+
 **Fixed:**
 - **"First steps" forgot entries from other financial years:** switching to a
   financial year without entries made "Record first entry" and "Enter opening

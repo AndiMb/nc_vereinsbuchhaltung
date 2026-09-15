@@ -19,6 +19,8 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+## [0.34.3] – 2026-09-15
+
 **Behoben:**
 - **„Erste Schritte" vergaß Buchungen aus anderen Geschäftsjahren:** Wechselte
   man auf ein Geschäftsjahr ohne Buchungen, standen „Erste Buchung erfassen"
