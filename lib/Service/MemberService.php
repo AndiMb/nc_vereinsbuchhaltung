@@ -70,6 +70,56 @@ class MemberService {
 	}
 
 	/**
+	 * Self-Service-Kontaktdatenpflege (Spec §2.2/§3.4: „Kontaktdaten pflegt
+	 * das Mitglied, Vereinsdaten pflegt der Verein" – Hoheitsspalte der
+	 * Feldtabelle). Anders als {@see update()} bewusst NUR die Felder mit
+	 * Hoheit „Mitglied": Name (je nach bestehendem Typ), E-Mail, Telefon,
+	 * Adresse. `memberType` (Diskriminator), `memberNumber`, `joinedAt`,
+	 * `leftAt`, `ncUserId` und `internalNote` sind Vereinshoheit und bleiben
+	 * unberührt – ein fehlender Schlüssel in $data überschreibt hier (anders
+	 * als bei {@see applyStammdaten()}) NICHT mit einem Default, sondern
+	 * behält den bisherigen Wert.
+	 *
+	 * @param array<string, mixed> $data
+	 * @return array{member: Member, emailChanged: bool, oldEmail: ?string}
+	 * @throws DoesNotExistException wenn es das Mitglied nicht (mehr) gibt
+	 * @throws \InvalidArgumentException bei ungültigen Eingaben
+	 */
+	public function updateOwnContactData(int $id, array $data): array {
+		$member = $this->mapper->find($id);
+		$oldEmail = $member->getEmail();
+
+		if ($member->getMemberType() === Member::TYPE_PERSON) {
+			$lastName = trim((string)($data['lastName'] ?? $member->getLastName()));
+			if ($lastName === '') {
+				throw new \InvalidArgumentException($this->l10n->t('Der Nachname darf nicht leer sein.'));
+			}
+			$member->setFirstName($this->nullIfEmpty($data['firstName'] ?? $member->getFirstName()));
+			$member->setLastName($lastName);
+		} else {
+			$organizationName = trim((string)($data['organizationName'] ?? $member->getOrganizationName()));
+			if ($organizationName === '') {
+				throw new \InvalidArgumentException($this->l10n->t('Der Name darf nicht leer sein.'));
+			}
+			$member->setOrganizationName($organizationName);
+		}
+
+		$member->setEmail($this->normalizeEmail($data['email'] ?? $member->getEmail()));
+		$member->setPhone($this->nullIfEmpty($data['phone'] ?? $member->getPhone()));
+		$member->setStreet($this->nullIfEmpty($data['street'] ?? $member->getStreet()));
+		$member->setPostalCode($this->nullIfEmpty($data['postalCode'] ?? $member->getPostalCode()));
+		$member->setCity($this->nullIfEmpty($data['city'] ?? $member->getCity()));
+		$member->setCountry($this->nullIfEmpty($data['country'] ?? $member->getCountry()));
+
+		$member = $this->mapper->update($member);
+		return [
+			'member' => $member,
+			'emailChanged' => $member->getEmail() !== $oldEmail,
+			'oldEmail' => $oldEmail,
+		];
+	}
+
+	/**
 	 * @throws DoesNotExistException wenn es das Mitglied nicht (mehr) gibt
 	 * @throws \InvalidArgumentException wenn das Mitglied nicht gelöscht werden darf
 	 */

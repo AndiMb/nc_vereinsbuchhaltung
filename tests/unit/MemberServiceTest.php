@@ -173,6 +173,100 @@ class MemberServiceTest extends TestCase {
 		$this->assertSame('Neu', $member->getLastName());
 	}
 
+	// --- updateOwnContactData(): Self-Service-Kontaktdatenpflege (Spec §2.2/§3.4, Issue #76) ---
+
+	private function fullPerson(): Member {
+		$member = new Member();
+		$member->setId(5);
+		$member->setMemberType(Member::TYPE_PERSON);
+		$member->setFirstName('Katrin');
+		$member->setLastName('Brunner');
+		$member->setEmail('katrin@example.org');
+		$member->setPhone('+49 30 1234567');
+		$member->setStreet('Musterstraße 1');
+		$member->setPostalCode('12345');
+		$member->setCity('Berlin');
+		$member->setCountry('DE');
+		$member->setMemberNumber('M-042');
+		$member->setJoinedAt('2020-01-01');
+		$member->setNcUserId('katrin.b');
+		$member->setInternalNote('Zahlt oft zu spät.');
+		return $member;
+	}
+
+	public function testUpdateOwnContactDataAendertNurKontaktfelder(): void {
+		$this->mapper->method('find')->with(5)->willReturn($this->fullPerson());
+		$this->mapper->method('update')->willReturnArgument(0);
+
+		$result = $this->service()->updateOwnContactData(5, [
+			'phone' => '+49 30 999',
+			'street' => 'Neue Straße 2',
+		]);
+
+		$member = $result['member'];
+		// Kontaktfelder wie angefordert geändert ...
+		$this->assertSame('+49 30 999', $member->getPhone());
+		$this->assertSame('Neue Straße 2', $member->getStreet());
+		// ... Vereinshoheit-Felder bleiben unberührt, obwohl $data sie nicht nennt.
+		$this->assertSame('M-042', $member->getMemberNumber());
+		$this->assertSame('2020-01-01', $member->getJoinedAt());
+		$this->assertSame('katrin.b', $member->getNcUserId());
+		$this->assertSame('Zahlt oft zu spät.', $member->getInternalNote());
+		$this->assertSame(Member::TYPE_PERSON, $member->getMemberType());
+		// Nicht in $data genannte, aber Mitglied-hoheitliche Felder bleiben ebenfalls unverändert.
+		$this->assertSame('Katrin', $member->getFirstName());
+		$this->assertSame('katrin@example.org', $member->getEmail());
+	}
+
+	public function testUpdateOwnContactDataMeldetEmailWechselMitAlterAdresse(): void {
+		$this->mapper->method('find')->with(5)->willReturn($this->fullPerson());
+		$this->mapper->method('update')->willReturnArgument(0);
+
+		$result = $this->service()->updateOwnContactData(5, ['email' => 'neu@example.org']);
+
+		$this->assertTrue($result['emailChanged']);
+		$this->assertSame('katrin@example.org', $result['oldEmail']);
+		$this->assertSame('neu@example.org', $result['member']->getEmail());
+	}
+
+	public function testUpdateOwnContactDataOhneEmailAenderungMeldetKeinenWechsel(): void {
+		$this->mapper->method('find')->with(5)->willReturn($this->fullPerson());
+		$this->mapper->method('update')->willReturnArgument(0);
+
+		$result = $this->service()->updateOwnContactData(5, ['phone' => '+49 30 000']);
+
+		$this->assertFalse($result['emailChanged']);
+		$this->assertSame($result['oldEmail'], $result['member']->getEmail());
+	}
+
+	public function testUpdateOwnContactDataLehntLeerenNachnamenAb(): void {
+		$this->mapper->method('find')->with(5)->willReturn($this->fullPerson());
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->updateOwnContactData(5, ['lastName' => '   ']);
+	}
+
+	public function testUpdateOwnContactDataLehntUngueltigeEmailAb(): void {
+		$this->mapper->method('find')->with(5)->willReturn($this->fullPerson());
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->updateOwnContactData(5, ['email' => 'keine-email']);
+	}
+
+	public function testUpdateOwnContactDataBeiOrganisationAendertNurOrganisationsnamen(): void {
+		$org = new Member();
+		$org->setId(6);
+		$org->setMemberType(Member::TYPE_ORGANIZATION);
+		$org->setOrganizationName('Turnverein Alt');
+		$this->mapper->method('find')->with(6)->willReturn($org);
+		$this->mapper->method('update')->willReturnArgument(0);
+
+		$result = $this->service()->updateOwnContactData(6, ['organizationName' => 'Turnverein Neu']);
+
+		$this->assertSame('Turnverein Neu', $result['member']->getOrganizationName());
+		$this->assertSame(Member::TYPE_ORGANIZATION, $result['member']->getMemberType());
+	}
+
 	// --- blockingReasons()/delete(): Löschsperre (Spec §3.1) ---
 
 	private function mandate(int $memberId, string $status = 'active'): SepaMandate {

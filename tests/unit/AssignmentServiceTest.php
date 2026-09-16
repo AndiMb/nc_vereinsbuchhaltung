@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\AssignmentEventMapper;
 use OCA\Vereinsbuchhaltung\Db\AssignmentMapper;
 use OCA\Vereinsbuchhaltung\Db\ContributionGroup;
 use OCA\Vereinsbuchhaltung\Db\ContributionGroupMapper;
+use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Service\AssignmentService;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
@@ -31,13 +32,22 @@ class AssignmentServiceTest extends TestCase {
 	private AssignmentEventMapper&MockObject $eventMapper;
 	private ContributionGroupMapper&MockObject $groupMapper;
 	private OpenItemMapper&MockObject $openItemMapper;
+	/** @var array<int, list<OpenItem>> assignmentId => Perioden, siehe findByAssignment()-Stub */
+	private array $openItemsByAssignment = [];
 
 	protected function setUp(): void {
 		$this->mapper = $this->createMock(AssignmentMapper::class);
 		$this->eventMapper = $this->createMock(AssignmentEventMapper::class);
 		$this->groupMapper = $this->createMock(ContributionGroupMapper::class);
 		$this->openItemMapper = $this->createMock(OpenItemMapper::class);
-		$this->openItemMapper->method('findByAssignment')->willReturn([]);
+		// willReturnCallback statt willReturn([]), damit einzelne Tests per
+		// $this->openItemsByAssignment[$id] eigene Perioden hinterlegen können -
+		// ein zweites method('findByAssignment') im Test würde sonst nie
+		// greifen (das zuerst registrierte, uneingeschränkte willReturn([])
+		// gewinnt).
+		$this->openItemMapper->method('findByAssignment')->willReturnCallback(
+			fn (int $id) => $this->openItemsByAssignment[$id] ?? [],
+		);
 	}
 
 	private function group(int $minCents = 500, array $allowedIntervals = [1, 12]): ContributionGroup {
@@ -65,11 +75,20 @@ class AssignmentServiceTest extends TestCase {
 		$time->method('getDateTime')->willReturn(new \DateTime($today));
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(static fn (string $text, array $parameters = []): string => vsprintf($text, $parameters));
+		// Ein "nacktes" createMock(IConfig::class) liefert fuer JEDEN Aufruf
+		// null statt des dritten getAppValue()-Arguments ($default) - anders
+		// als die echte Implementierung. DueDateScheduleService/
+		// ContributionYearService verlassen sich aber auf diesen Default
+		// (leerer Terminplan/Kalenderjahr), deshalb hier wie in
+		// ClaimGenerationServiceTest ein Fake mit Default-Rueckgabe statt des
+		// bloßen Mocks.
 		$config = $this->createMock(\OCP\IConfig::class);
-		$config->method('getAppValue')->willReturnCallback(static fn (string $app, string $key, string $default = '') => $default);
+		$config->method('getAppValue')->willReturnCallback(
+			static fn (string $app, string $key, string $default = '') => $default,
+		);
 		$contributionYear = new ContributionYearService($config);
 		$dueDateSchedule = new DueDateScheduleService($config, $contributionYear, $l10n);
-		return new AssignmentService($this->mapper, $this->eventMapper, $this->groupMapper, $this->openItemMapper, $contributionYear, $time, $l10n, $dueDateSchedule);
+		return new AssignmentService($this->mapper, $this->eventMapper, $this->groupMapper, $this->openItemMapper, $contributionYear, $dueDateSchedule, $time, $l10n);
 	}
 
 	public function testCreateLegtDieZuweisungAnUndLogtEinEreignis(): void {
@@ -194,5 +213,148 @@ class AssignmentServiceTest extends TestCase {
 		// vorgeschlagene Einzugstermin auf den tatsaechlichen Beginn der ersten
 		// (angebrochenen) Periode - siehe DueDateScheduleService::dueDateForPeriod().
 		$this->assertSame('2026-03-15', $preview['dueDate']);
+	}
+
+	/**
+	 * update() muss beim Turnuswechsel denselben Sonderfall ins Event
+	 * schreiben, den previewChange() vorher gezeigt hat - sonst liefe die
+	 * Audit-Spur (AssignmentEvent.details.effectiveFrom) auseinander.
+	 */
+	public function testUpdateIntervalChangedLogtTurnuswechselSonderfall(): void {
+		$assignment = new Assignment();
+		$assignment->setId(5);
+		$assignment->setGroupId(1);
+		$assignment->setIntervalMonths(1);
+		$assignment->setMonthlyAmountCents(1000);
+		$assignment->setValidFrom('2026-01-01');
+		$this->mapper->method('find')->willReturn($assignment);
+		$this->mapper->method('update')->willReturnArgument(0);
+		$this->groupMapper->method('find')->willReturn($this->group(allowedIntervals: [1, 12]));
+
+		$locked = new OpenItem();
+		$locked->setPeriodStart('2026-01-01');
+		$locked->setPeriodEnd('2026-01-31');
+		$locked->setPrenotifiedAt('2025-12-15T00:00:00+00:00');
+		$this->openItemsByAssignment[5] = [$locked];
+
+		$this->eventMapper->expects($this->once())->method('insert')
+			->with($this->callback(function (AssignmentEvent $e): bool {
+				return $e->getType() === AssignmentEvent::TYPE_INTERVAL_CHANGED
+					&& $e->getDetailsArray()['effectiveFrom'] === '2027-01-01';
+			}));
+
+		$this->service('2026-01-10')->update(5, null, 12, null, AssignmentEvent::ACTOR_MEMBER, null);
+	}
+
+	/**
+	 * previewChange() ist die Grundlage der Pflicht-UI "Vorschau vor jedem
+	 * Speichern" (Spec §3.4, Issue #76 Self-Service Beitrag-Aktionen). Ohne
+	 * gesperrte Perioden wirkt eine Änderung sofort, also heute.
+	 */
+	public function testPreviewChangeOhneSperreWirktAbHeute(): void {
+		$assignment = new Assignment();
+		$assignment->setId(5);
+		$assignment->setGroupId(1);
+		$assignment->setIntervalMonths(12);
+		$assignment->setMonthlyAmountCents(1000);
+		$assignment->setValidFrom('2026-01-01');
+		$this->mapper->method('find')->with(5)->willReturn($assignment);
+		$this->groupMapper->method('find')->with(1)->willReturn($this->group());
+
+		$preview = $this->service('2026-06-15')->previewChange(5, 1500, null);
+
+		$this->assertSame('2026-06-15', $preview['effectiveFrom']);
+		$this->assertSame('2026-01-01', $preview['periodStart']);
+		$this->assertSame('2026-12-31', $preview['periodEnd']);
+		$this->assertSame('2026-06-15', $preview['firstDueDate']);
+		// Juni bis Dezember = 7 volle Monate zum neuen Betrag.
+		$this->assertSame(10500, $preview['amountCents']);
+	}
+
+	public function testPreviewChangeLehntBetragUnterDerUntergrenzeAb(): void {
+		$assignment = new Assignment();
+		$assignment->setId(5);
+		$assignment->setGroupId(1);
+		$assignment->setIntervalMonths(12);
+		$assignment->setMonthlyAmountCents(1000);
+		$assignment->setValidFrom('2026-01-01');
+		$this->mapper->method('find')->willReturn($assignment);
+		$this->groupMapper->method('find')->willReturn($this->group(minCents: 500));
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->previewChange(5, 400, null);
+	}
+
+	public function testPreviewChangeLehntNichtErlaubtenTurnusAb(): void {
+		$assignment = new Assignment();
+		$assignment->setId(5);
+		$assignment->setGroupId(1);
+		$assignment->setIntervalMonths(12);
+		$assignment->setMonthlyAmountCents(1000);
+		$assignment->setValidFrom('2026-01-01');
+		$this->mapper->method('find')->willReturn($assignment);
+		$this->groupMapper->method('find')->willReturn($this->group(allowedIntervals: [1, 12]));
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->previewChange(5, null, 3);
+	}
+
+	/**
+	 * Betrag/Turnus sind gesperrt, sobald für die Periode `prenotified_at`
+	 * gesetzt ist (Spec §3.4 "Sperrfenster") - previewChange() muss dieselbe
+	 * {@see EffectivityRuleService}-Regel anwenden wie update().
+	 */
+	public function testPreviewChangeMitGesperrterPeriodeVerschiebtWirktAb(): void {
+		$assignment = new Assignment();
+		$assignment->setId(5);
+		$assignment->setGroupId(1);
+		$assignment->setIntervalMonths(1);
+		$assignment->setMonthlyAmountCents(1000);
+		$assignment->setValidFrom('2026-01-01');
+		$this->mapper->method('find')->willReturn($assignment);
+		$this->groupMapper->method('find')->willReturn($this->group(allowedIntervals: [1, 12]));
+
+		$locked = new OpenItem();
+		$locked->setPeriodStart('2026-01-01');
+		$locked->setPeriodEnd('2026-01-31');
+		$locked->setPrenotifiedAt('2025-12-15T00:00:00+00:00');
+		$this->openItemsByAssignment[5] = [$locked];
+
+		$preview = $this->service('2026-01-10')->previewChange(5, 1500, null);
+
+		$this->assertSame('2026-02-01', $preview['effectiveFrom']);
+		$this->assertSame('2026-02-01', $preview['periodStart']);
+		$this->assertSame('2026-02-28', $preview['periodEnd']);
+		$this->assertSame(1500, $preview['amountCents']);
+	}
+
+	/**
+	 * Turnuswechsel-Sonderfall (Spec §3.4): wirkt ab der ersten Periode des
+	 * NEUEN Turnus, die vollständig hinter der letzten eingezogenen liegt -
+	 * nicht einfach ab dem Tag nach der letzten gesperrten Periode im alten
+	 * Raster (das wäre hier der 1.2.2026, mitten im Kalenderjahr 2026).
+	 */
+	public function testPreviewChangeTurnuswechselSonderfallSpringtHinterLetzteSperre(): void {
+		$assignment = new Assignment();
+		$assignment->setId(5);
+		$assignment->setGroupId(1);
+		$assignment->setIntervalMonths(1);
+		$assignment->setMonthlyAmountCents(1000);
+		$assignment->setValidFrom('2026-01-01');
+		$this->mapper->method('find')->willReturn($assignment);
+		$this->groupMapper->method('find')->willReturn($this->group(allowedIntervals: [1, 12]));
+
+		$locked = new OpenItem();
+		$locked->setPeriodStart('2026-01-01');
+		$locked->setPeriodEnd('2026-01-31');
+		$locked->setPrenotifiedAt('2025-12-15T00:00:00+00:00');
+		$this->openItemsByAssignment[5] = [$locked];
+
+		$preview = $this->service('2026-01-10')->previewChange(5, null, 12);
+
+		$this->assertSame('2027-01-01', $preview['effectiveFrom']);
+		$this->assertSame('2027-01-01', $preview['periodStart']);
+		$this->assertSame('2027-12-31', $preview['periodEnd']);
+		$this->assertSame(12000, $preview['amountCents']);
 	}
 }

@@ -51,6 +51,9 @@ class ClaimGenerationService {
 	/** Schutz gegen eine Endlosschleife bei einem kaputten/zirkulären Terminplan. */
 	private const MAX_NACHZUEGLER_HOPS = 60;
 
+	/** Schutz gegen eine Endlosschleife beim Turnuswechsel-Guard, siehe nextPendingPeriod(). */
+	private const MAX_INTERVAL_CHANGE_HOPS = 60;
+
 	public function __construct(
 		private AssignmentMapper $assignments,
 		private OpenItemMapper $openItems,
@@ -158,6 +161,23 @@ class ClaimGenerationService {
 			$isFirst = true;
 		} else {
 			[$periodStart, $periodEnd] = $this->schedule->nextPeriod($assignment->getIntervalMonths(), $latestPeriodEnd);
+			// Turnuswechsel-Sonderfall (Spec §3.4, Issue #76 "Self-Service
+			// Beitrag-Aktionen"): ein Turnuswechsel wirkt "ab der ersten Periode
+			// des NEUEN Turnus, die vollständig hinter der letzten eingezogenen
+			// liegt". Wechselt der Turnus zwischen zwei Perioden, kann das neue
+			// Perioden-Raster anders liegen als das alte - die per nextPeriod()
+			// im neuen Raster gefundene Periode kann dann noch vor oder
+			// überlappend mit der zuletzt erzeugten (ggf. schon
+			// vorabinformierten) Periode liegen. In diesem Fall im neuen Raster
+			// so lange weiterspringen, bis die Periode vollständig dahinter
+			// liegt - "kein Überholen", analog zum Terminplan-Guard in
+			// DueDateScheduleService::assertGuards(). Im Normalfall
+			// (unveränderter Turnus) liegt periodStart ohnehin immer schon exakt
+			// einen Tag nach $latestPeriodEnd - die Schleife dreht dann kein
+			// einziges Mal (kein Verhaltensunterschied zum bisherigen Code).
+			for ($hop = 0; $periodStart <= $latestPeriodEnd && $hop < self::MAX_INTERVAL_CHANGE_HOPS; $hop++) {
+				[$periodStart, $periodEnd] = $this->schedule->nextPeriod($assignment->getIntervalMonths(), $periodEnd);
+			}
 			$isFirst = false;
 		}
 

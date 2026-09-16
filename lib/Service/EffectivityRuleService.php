@@ -34,6 +34,28 @@ final class EffectivityRuleService {
 	 * oder – falls die Zuweisung bereits vorabinformierte Perioden hat – der
 	 * erste Tag nach der letzten davon, je nachdem, was später liegt.
 	 *
+	 * @param list<array{periodStart: string, periodEnd: string, prenotifiedAt: ?string}> $existingPeriods
+	 * @throws \InvalidArgumentException bei unmöglichem Datum
+	 */
+	public static function firstEffectiveDate(array $existingPeriods, string $requestedFrom): string {
+		self::assertDate($requestedFrom);
+		$blockedUntil = self::firstUnlockedDay($existingPeriods);
+		if ($blockedUntil === null) {
+			return $requestedFrom;
+		}
+		return $blockedUntil > $requestedFrom ? $blockedUntil : $requestedFrom;
+	}
+
+	/**
+	 * Der erste Tag nach der letzten gesperrten Periode, oder `null`, wenn
+	 * keine einzige Periode gesperrt ist (dann gilt "keine Sperre", siehe
+	 * {@see firstEffectiveDate()}). Eigener, öffentlicher Baustein (statt nur
+	 * Teil von {@see firstEffectiveDate()}), weil der Turnuswechsel-Sonderfall
+	 * (Spec §3.4: "wirkt ab der ersten Periode des *neuen* Turnus, die
+	 * vollständig hinter der letzten eingezogenen liegt") dieselbe Sperrgrenze
+	 * braucht, aber danach mit einem ANDEREN Perioden-Raster weiterrechnet –
+	 * siehe AssignmentService::effectiveFromFor().
+	 *
 	 * Erwartet die bereits existierenden Perioden(-Forderungen) einer
 	 * Zuweisung, aufsteigend nach `periodStart` sortiert. Da eine Vorabinfo
 	 * chronologisch fortschreitet, genügt es, vom Anfang der Liste weg
@@ -41,10 +63,8 @@ final class EffectivityRuleService {
 	 * sind laut Spec ohnehin alle folgenden noch änderbar.
 	 *
 	 * @param list<array{periodStart: string, periodEnd: string, prenotifiedAt: ?string}> $existingPeriods
-	 * @throws \InvalidArgumentException bei unmöglichem Datum
 	 */
-	public static function firstEffectiveDate(array $existingPeriods, string $requestedFrom): string {
-		self::assertDate($requestedFrom);
+	public static function firstUnlockedDay(array $existingPeriods): ?string {
 		$blockedUntil = null;
 		foreach ($existingPeriods as $period) {
 			if (!self::isLocked($period['prenotifiedAt'])) {
@@ -52,10 +72,7 @@ final class EffectivityRuleService {
 			}
 			$blockedUntil = PeriodRule::nextDay($period['periodEnd']);
 		}
-		if ($blockedUntil === null) {
-			return $requestedFrom;
-		}
-		return $blockedUntil > $requestedFrom ? $blockedUntil : $requestedFrom;
+		return $blockedUntil;
 	}
 
 	/** @throws \InvalidArgumentException bei unmöglichem Datum */

@@ -5,13 +5,17 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
 use OCA\Vereinsbuchhaltung\Controller\SelfController;
+use OCA\Vereinsbuchhaltung\Db\Assignment;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Exception\ForbiddenException;
 use OCA\Vereinsbuchhaltung\Service\ActorContextService;
 use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
+use OCA\Vereinsbuchhaltung\Service\SelfContactService;
+use OCA\Vereinsbuchhaltung\Service\SelfContributionService;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceMandateService;
+use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\IL10N;
 use OCP\IRequest;
@@ -40,6 +44,8 @@ class SelfControllerTest extends TestCase {
 	private ActorContextService $actorContext;
 	private MemberMapper&MockObject $memberMapper;
 	private IL10N&MockObject $l10n;
+	private SelfContributionService&MockObject $contributions;
+	private SelfContactService&MockObject $contact;
 
 	protected function setUp(): void {
 		$userSession = $this->createMock(IUserSession::class);
@@ -47,6 +53,8 @@ class SelfControllerTest extends TestCase {
 		$this->memberMapper = $this->createMock(MemberMapper::class);
 		$this->l10n = $this->createMock(IL10N::class);
 		$this->l10n->method('t')->willReturnArgument(0);
+		$this->contributions = $this->createMock(SelfContributionService::class);
+		$this->contact = $this->createMock(SelfContactService::class);
 	}
 
 	private function controller(): SelfController {
@@ -66,6 +74,8 @@ class SelfControllerTest extends TestCase {
 			$this->createMock(MandateService::class),
 			$this->createMock(MandateActivationService::class),
 			$this->createMock(SelfServiceMandateService::class),
+			$this->contributions,
+			$this->contact,
 			$this->l10n,
 		);
 	}
@@ -157,5 +167,104 @@ class SelfControllerTest extends TestCase {
 		$response = $this->controller()->me();
 
 		$this->assertSame(Http::STATUS_NOT_FOUND, $response->getStatus());
+	}
+
+	// --- Beitrag-Aktionen (Issue #76): duenne HTTP-Huelle um SelfContributionService ---
+
+	private function assignment(int $id = 1, int $amountCents = 1500, ?string $overrideReason = null): Assignment {
+		$a = new Assignment();
+		$a->setId($id);
+		$a->setMemberId(self::MEMBER_ID);
+		$a->setGroupId(1);
+		$a->setIntervalMonths(1);
+		$a->setMonthlyAmountCents($amountCents);
+		$a->setMinMonthlyAmountOverrideCents(500);
+		$a->setOverrideReason($overrideReason);
+		$a->setPaymentMethod(Assignment::PAYMENT_METHOD_DIRECT_DEBIT);
+		$a->setValidFrom('2026-01-01');
+		$a->setCreatedAt('2026-01-01T00:00:00+00:00');
+		return $a;
+	}
+
+	public function testAssignmentsDelegiertAnSelfContributionService(): void {
+		$this->contributions->expects($this->once())->method('findOwn')->willReturn([$this->assignment()]);
+
+		$data = $this->controller()->assignments()->getData();
+
+		$this->assertCount(1, $data);
+	}
+
+	/** Individuelle Untergrenze sichtbar, ihre Begründung nicht (Spec §3.4 Pflicht-UI). */
+	public function testAssignmentsBlendetOverrideReasonAus(): void {
+		$this->contributions->method('findOwn')->willReturn([$this->assignment(overrideReason: 'Sozialermäßigung, siehe Vorstandsbeschluss')]);
+
+		$data = $this->controller()->assignments()->getData();
+
+		$this->assertSame(5, $data[0]['minMonthlyAmountOverride']);
+		$this->assertArrayNotHasKey('overrideReason', $data[0]);
+	}
+
+	public function testPreviewAssignmentDelegiertMitCentUmrechnung(): void {
+		$this->contributions->expects($this->once())->method('preview')
+			->with(1, 1550, 12)
+			->willReturn(['effectiveFrom' => '2026-07-01']);
+
+		$response = $this->controller()->previewAssignment(1, 15.5, 12);
+
+		$this->assertSame(['effectiveFrom' => '2026-07-01'], $response->getData());
+	}
+
+	public function testPreviewAssignmentFremderZuweisungLiefert404(): void {
+		$this->contributions->method('preview')->willThrowException(new DoesNotExistException('weg'));
+
+		$response = $this->controller()->previewAssignment(999, 15.0, null);
+
+		$this->assertSame(Http::STATUS_NOT_FOUND, $response->getStatus());
+	}
+
+	public function testPreviewAssignmentUngueltigerWertLiefert400(): void {
+		$this->contributions->method('preview')->willThrowException(new \InvalidArgumentException('zu niedrig'));
+
+		$response = $this->controller()->previewAssignment(1, 1.0, null);
+
+		$this->assertSame(Http::STATUS_BAD_REQUEST, $response->getStatus());
+	}
+
+	public function testUpdateAssignmentDelegiertMitCentUmrechnung(): void {
+		$this->contributions->expects($this->once())->method('apply')
+			->with(1, 1550, null)
+			->willReturn(['assignment' => $this->assignment(amountCents: 1550), 'preview' => ['effectiveFrom' => '2026-06-15']]);
+
+		$response = $this->controller()->updateAssignment(1, 15.5, null);
+		$data = $response->getData();
+
+		$this->assertSame(1550, $data['assignment']['monthlyAmountCents']);
+		$this->assertSame('2026-06-15', $data['preview']['effectiveFrom']);
+	}
+
+	public function testUpdateAssignmentFremderZuweisungLiefert404(): void {
+		$this->contributions->method('apply')->willThrowException(new DoesNotExistException('weg'));
+
+		$response = $this->controller()->updateAssignment(999, 15.0, null);
+
+		$this->assertSame(Http::STATUS_NOT_FOUND, $response->getStatus());
+	}
+
+	// --- Kontaktdatenpflege (Issue #76): duenne HTTP-Huelle um SelfContactService ---
+
+	public function testUpdateMeReichtNurGesetzteFelderDurch(): void {
+		$this->contact->expects($this->once())->method('update')
+			->with(['phone' => '+49 30 999'])
+			->willReturn($this->fullMember());
+
+		$this->controller()->updateMe(phone: '+49 30 999');
+	}
+
+	public function testUpdateMeLehntUngueltigeEingabeAbAls400(): void {
+		$this->contact->method('update')->willThrowException(new \InvalidArgumentException('ungültig'));
+
+		$response = $this->controller()->updateMe(email: 'keine-email');
+
+		$this->assertSame(Http::STATUS_BAD_REQUEST, $response->getStatus());
 	}
 }
