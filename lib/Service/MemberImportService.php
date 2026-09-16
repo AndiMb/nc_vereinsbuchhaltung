@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\MembershipFeeMapper;
 use OCA\Vereinsbuchhaltung\Db\SepaMandateMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
@@ -15,7 +16,7 @@ use OCP\IUserManager;
 
 /**
  * Massenanlage von Mitgliedern: legt aus einer CSV-Liste je Zeile ein
- * SEPA-Mandat und einen Mitgliedsbeitrag an.
+ * Mitglied sowie optional ein SEPA-Mandat und einen Mitgliedsbeitrag an.
  *
  * Ohne diesen Weg musste jedes Mitglied über zwei getrennte Formulare
  * angelegt werden – erst das Mandat, dann der Beitrag, mit erneuter Auswahl
@@ -25,11 +26,22 @@ use OCP\IUserManager;
  * Der Ablauf ist zweistufig: erst {@see preview()} (ändert nichts, zeigt je
  * Zeile, was entstehen würde und was nicht stimmt), dann {@see import()}.
  * Wer 200 Zeilen einliest, soll vorher sehen, was passiert.
+ *
+ * Zeilenauflösung auf ein Mitglied (Spec §3.1 „CSV-Import legt nur an, gleicht
+ * nie ab"): eine Spalte mit Nextcloud-Konto findet ein bereits verknüpftes
+ * Mitglied wieder (idempotent über mehrere Importläufe hinweg, siehe
+ * {@see MemberService::findOrCreateByNcUserId()}), ein freier Zahlername legt
+ * dagegen bei jedem Lauf ein neues Mitglied an ({@see MemberService::createFromLabel()}) –
+ * die volle Dublettenprüfung über Mitgliedsnummer/Namensgleichheit aus der
+ * Spec ist bewusst ein späteres Ticket, hier bleibt nur die bisherige
+ * Zeilen- und IBAN-Prüfung erhalten.
  */
 class MemberImportService {
 
 	public function __construct(
 		private MemberCsvParser $parser,
+		private MemberService $members,
+		private MemberMapper $memberMapper,
 		private SepaMandateService $mandates,
 		private MembershipFeeService $fees,
 		private SepaMandateMapper $mandateMapper,
@@ -130,11 +142,14 @@ class MemberImportService {
 	 */
 	private function createRow(array $row): array {
 		return $this->transaction->run(function () use ($row): array {
+			$member = $row['memberUid'] !== null
+				? $this->members->findOrCreateByNcUserId((string)$row['memberUid'])
+				: $this->members->createFromLabel((string)$row['memberLabel']);
+
 			$mandateId = null;
 			if ($row['iban'] !== null) {
 				$mandateId = (int)$this->mandates->create(
-					$row['memberUid'],
-					$row['memberLabel'],
+					(int)$member->getId(),
 					(string)$row['iban'],
 					$row['bic'],
 					'RCUR',
@@ -146,8 +161,7 @@ class MemberImportService {
 			$feeId = null;
 			if ($row['amountCents'] !== null) {
 				$feeId = (int)$this->fees->create(
-					$row['memberUid'],
-					$row['memberLabel'],
+					(int)$member->getId(),
 					(int)$row['amountCents'],
 					(string)$row['frequency'],
 					(string)$row['startDate'],
@@ -192,12 +206,18 @@ class MemberImportService {
 		}
 
 		// Dieselbe Liste ein zweites Mal einzulesen ist der Normalfall, nicht
-		// die Ausnahme („ist das jetzt durchgelaufen?"). Ohne diese Prüfung
-		// bekäme jeder Zahler ohne IBAN dabei einen zweiten Beitrag – und der
-		// Verein forderte künftig doppelt, ohne dass es irgendwo auffiele.
-		if ($row['amountCents'] !== null
-			&& $this->feeMapper->findActiveByMember($row['memberUid'], $row['memberLabel']) !== []) {
-			$fehler[] = $this->l10n->t('Für diesen Zahler gibt es bereits einen aktiven Beitrag.');
+		// die Ausnahme („ist das jetzt durchgelaufen?"). Nur für ein bereits
+		// verknüpftes NC-Konto lässt sich das prüfen: ein freier Zahlername
+		// legt laut Spec §3.1 ohnehin bei jedem Lauf ein neues Mitglied an
+		// ("legt nur an, gleicht nie ab") - Namensgleichheit ist kein
+		// verlässlicher Dublettenschlüssel und bleibt einem späteren Ticket
+		// mit echten Dublettenregeln vorbehalten (member_number, Warnung bei
+		// Namensgleichheit).
+		if ($row['amountCents'] !== null && $row['memberUid'] !== null) {
+			$existing = $this->memberMapper->findByNcUserId((string)$row['memberUid']);
+			if ($existing !== null && $this->feeMapper->findActiveByMember((int)$existing->getId()) !== []) {
+				$fehler[] = $this->l10n->t('Für diesen Zahler gibt es bereits einen aktiven Beitrag.');
+			}
 		}
 
 		return $fehler;

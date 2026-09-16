@@ -836,6 +836,17 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
    mit der Box (siehe deren eigene Kommentare). */
 .vbh-modal-title { margin: 0 44px 14px 0; }
 
+/* Zwischenüberschriften in der Mitglied-Akte (MemberDialog.vue): NC-Konto,
+   Austritt, Löschen - eigene Abschnitte im selben Formular-Dialog statt
+   separater Modals, siehe Kommentar dort. */
+.vbh-modal-subtitle { margin: 20px 0 8px; font-size: 15px; font-weight: bold; }
+
+/* Vorschlagsliste für die NC-Kontoverknüpfung: jeder Treffer eine Zeile mit
+   eigenem Bestätigungsknopf, keiner vorausgewählt (Spec §3.1). */
+.vbh-linksuggestions { list-style: none; margin: 8px 0; padding: 0; }
+
+.vbh-linksuggestions li { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+
 /* Einnahme/Ausgabe-Umschalter (Einfach-Modus) */
 /* Bewusst OHNE overflow: hidden. Nextclouds Fokusring besteht aus outline
    (2px) und box-shadow (0 0 0 4px), zusammen 6px - der Umschalter laesst seinen
