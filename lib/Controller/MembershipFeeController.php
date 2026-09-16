@@ -43,11 +43,7 @@ class MembershipFeeController extends Controller {
 	 */
 	private function decorate(MembershipFee $fee): array {
 		$data = $fee->jsonSerialize();
-		try {
-			$data['displayName'] = $this->members->find($fee->getMemberId())->displayName();
-		} catch (DoesNotExistException) {
-			$data['displayName'] = $this->l10n->t('(Mitglied gelöscht)');
-		}
+		$data['displayName'] = $this->members->displayNameOr($fee->getMemberId(), $this->l10n->t('(Mitglied gelöscht)'));
 		$data['dueCount'] = $this->service->dueCount($fee);
 		return $data;
 	}

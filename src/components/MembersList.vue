@@ -388,32 +388,26 @@ export default {
 		 */
 		async saveMember(payload) {
 			this.saving = true
-			let createdMandate = false
+			let mandateId = null
 			try {
 				if (this.editingMember) {
 					await api.updateMember(this.editingMember.id, payload.stammdaten)
-					this.memberDialogOpen = false
-					await this.reload()
-					showSuccess(this.t('Mitglied gespeichert.'))
-					return
-				}
-
-				const { data: member } = await api.createMember(payload.stammdaten)
-				let mandateId = null
-				if (payload.mandate) {
-					const { data } = await api.createSepaMandate({ memberId: member.id, mandateType: 'RCUR', ...payload.mandate })
-					mandateId = data.id
-					createdMandate = true
-				}
-				if (payload.fee) {
-					await api.createMembershipFee({ memberId: member.id, mandateId, ...payload.fee })
+				} else {
+					const { data: member } = await api.createMember(payload.stammdaten)
+					if (payload.mandate) {
+						const { data } = await api.createSepaMandate({ memberId: member.id, mandateType: 'RCUR', ...payload.mandate })
+						mandateId = data.id
+					}
+					if (payload.fee) {
+						await api.createMembershipFee({ memberId: member.id, mandateId, ...payload.fee })
+					}
 				}
 				this.memberDialogOpen = false
 				await this.reload()
-				showSuccess(this.t('Mitglied aufgenommen.'))
+				showSuccess(this.t(this.editingMember ? 'Mitglied gespeichert.' : 'Mitglied aufgenommen.'))
 			} catch (e) {
 				await this.reload()
-				showError(this.errMsg(e, createdMandate
+				showError(this.errMsg(e, mandateId !== null
 					? this.t('Das Mandat wurde angelegt, der Beitrag nicht')
 					: this.t('Mitglied konnte nicht gespeichert werden')))
 			} finally { this.saving = false }

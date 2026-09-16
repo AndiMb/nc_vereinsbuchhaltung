@@ -97,16 +97,46 @@ class MemberService {
 	 * @return string[] leer = löschbar
 	 */
 	public function blockingReasons(int $id): array {
-		$reasons = [];
-		if ($this->mandateMapper->findActiveByMember($id) !== []) {
-			$reasons[] = $this->l10n->t('Es gibt noch ein aktives SEPA-Mandat für dieses Mitglied.');
-		} elseif ($this->mandateMapper->findByMember($id) !== []) {
-			$reasons[] = $this->l10n->t('Es gibt noch ein (widerrufenes) SEPA-Mandat für dieses Mitglied.');
+		return $this->blockingReasonsForIds([$id])[$id] ?? [];
+	}
+
+	/**
+	 * Dasselbe wie {@see blockingReasons()}, aber für beliebig viele Mitglieder
+	 * in genau zwei Abfragen statt bis zu drei je Mitglied – wichtig, weil
+	 * {@see \OCA\Vereinsbuchhaltung\Controller\MemberController::index()} das
+	 * für die gesamte Mitgliederliste auf einmal braucht (sonst N+1).
+	 *
+	 * @param int[] $memberIds
+	 * @return array<int, string[]> member_id => Sperrgründe (leer = löschbar)
+	 */
+	public function blockingReasonsForIds(array $memberIds): array {
+		$activeMandateIds = [];
+		$anyMandateIds = [];
+		foreach ($this->mandateMapper->findAll() as $mandate) {
+			$anyMandateIds[$mandate->getMemberId()] = true;
+			if ($mandate->getStatus() === 'active') {
+				$activeMandateIds[$mandate->getMemberId()] = true;
+			}
 		}
-		if ($this->feeMapper->findByMember($id) !== []) {
-			$reasons[] = $this->l10n->t('Es gibt noch einen Mitgliedsbeitrag für dieses Mitglied.');
+		$anyFeeIds = [];
+		foreach ($this->feeMapper->findAll() as $fee) {
+			$anyFeeIds[$fee->getMemberId()] = true;
 		}
-		return $reasons;
+
+		$result = [];
+		foreach ($memberIds as $id) {
+			$reasons = [];
+			if (isset($activeMandateIds[$id])) {
+				$reasons[] = $this->l10n->t('Es gibt noch ein aktives SEPA-Mandat für dieses Mitglied.');
+			} elseif (isset($anyMandateIds[$id])) {
+				$reasons[] = $this->l10n->t('Es gibt noch ein (widerrufenes) SEPA-Mandat für dieses Mitglied.');
+			}
+			if (isset($anyFeeIds[$id])) {
+				$reasons[] = $this->l10n->t('Es gibt noch einen Mitgliedsbeitrag für dieses Mitglied.');
+			}
+			$result[$id] = $reasons;
+		}
+		return $result;
 	}
 
 	/**
@@ -202,16 +232,9 @@ class MemberService {
 			return $existing;
 		}
 		$user = $this->userManager->get($ncUserId);
-		$split = self::splitLabel($user?->getDisplayName() ?? $ncUserId);
-		$member = new Member();
-		$member->setMemberType($split['type']);
-		$member->setFirstName($split['firstName']);
-		$member->setLastName($split['lastName']);
-		$member->setOrganizationName($split['organizationName']);
+		$member = $this->newMemberFromLabel($user?->getDisplayName() ?? $ncUserId);
 		$member->setEmail($user?->getEMailAddress());
 		$member->setNcUserId($ncUserId);
-		$member->setJoinedAt((new \DateTime())->format('Y-m-d'));
-		$member->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s'));
 		return $this->mapper->insert($member);
 	}
 
@@ -224,6 +247,17 @@ class MemberService {
 	 * je distinctem member_label auf (Dedup dort, nicht hier).
 	 */
 	public function createFromLabel(string $label): Member {
+		return $this->mapper->insert($this->newMemberFromLabel($label));
+	}
+
+	/**
+	 * Gemeinsamer Kern von {@see findOrCreateByNcUserId()} und
+	 * {@see createFromLabel()}: ein frisches, noch nicht gespeichertes
+	 * Mitglied mit den aus dem Namen gesplitteten Stammdaten und den
+	 * Default-Feldern (Beitritt heute). Der Aufrufer ergänzt danach, was ihn
+	 * unterscheidet (email/nc_user_id bei einem NC-Konto), und speichert.
+	 */
+	private function newMemberFromLabel(string $label): Member {
 		$split = self::splitLabel($label);
 		$member = new Member();
 		$member->setMemberType($split['type']);
@@ -232,7 +266,7 @@ class MemberService {
 		$member->setOrganizationName($split['organizationName']);
 		$member->setJoinedAt((new \DateTime())->format('Y-m-d'));
 		$member->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s'));
-		return $this->mapper->insert($member);
+		return $member;
 	}
 
 	/**

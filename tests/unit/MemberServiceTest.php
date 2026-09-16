@@ -163,17 +163,29 @@ class MemberServiceTest extends TestCase {
 
 	// --- blockingReasons()/delete(): Löschsperre (Spec §3.1) ---
 
+	private function mandate(int $memberId, string $status = 'active'): SepaMandate {
+		$mandate = new SepaMandate();
+		$mandate->setMemberId($memberId);
+		$mandate->setStatus($status);
+		return $mandate;
+	}
+
+	private function fee(int $memberId): MembershipFee {
+		$fee = new MembershipFee();
+		$fee->setMemberId($memberId);
+		return $fee;
+	}
+
 	public function testBlockingReasonsLeerWennNichtsVerweist(): void {
-		$this->mandateMapper->method('findActiveByMember')->willReturn([]);
-		$this->mandateMapper->method('findByMember')->willReturn([]);
-		$this->feeMapper->method('findByMember')->willReturn([]);
+		$this->mandateMapper->method('findAll')->willReturn([]);
+		$this->feeMapper->method('findAll')->willReturn([]);
 
 		$this->assertSame([], $this->service()->blockingReasons(1));
 	}
 
 	public function testBlockingReasonsAktivesMandatBlockiert(): void {
-		$this->mandateMapper->method('findActiveByMember')->willReturn([new SepaMandate()]);
-		$this->feeMapper->method('findByMember')->willReturn([]);
+		$this->mandateMapper->method('findAll')->willReturn([$this->mandate(1, 'active')]);
+		$this->feeMapper->method('findAll')->willReturn([]);
 
 		$reasons = $this->service()->blockingReasons(1);
 
@@ -182,9 +194,8 @@ class MemberServiceTest extends TestCase {
 	}
 
 	public function testBlockingReasonsWiderrufenesMandatBlockiertAuch(): void {
-		$this->mandateMapper->method('findActiveByMember')->willReturn([]);
-		$this->mandateMapper->method('findByMember')->willReturn([new SepaMandate()]);
-		$this->feeMapper->method('findByMember')->willReturn([]);
+		$this->mandateMapper->method('findAll')->willReturn([$this->mandate(1, 'revoked')]);
+		$this->feeMapper->method('findAll')->willReturn([]);
 
 		$reasons = $this->service()->blockingReasons(1);
 
@@ -192,20 +203,33 @@ class MemberServiceTest extends TestCase {
 	}
 
 	public function testBlockingReasonsBeitragBlockiert(): void {
-		$this->mandateMapper->method('findActiveByMember')->willReturn([]);
-		$this->mandateMapper->method('findByMember')->willReturn([]);
-		$this->feeMapper->method('findByMember')->willReturn([new MembershipFee()]);
+		$this->mandateMapper->method('findAll')->willReturn([]);
+		$this->feeMapper->method('findAll')->willReturn([$this->fee(1)]);
 
 		$reasons = $this->service()->blockingReasons(1);
 
 		$this->assertNotEmpty($reasons);
 	}
 
+	public function testBlockingReasonsForIdsBerechnetMehrereMitgliederInZweiAbfragen(): void {
+		// Batch-Fall (MemberController::index()): genau eine findAll()-Abfrage
+		// je Mapper bedient beliebig viele Mitglieder, nicht eine je Mitglied.
+		$this->mandateMapper->expects($this->once())->method('findAll')->willReturn([$this->mandate(1, 'active')]);
+		$this->feeMapper->expects($this->once())->method('findAll')->willReturn([$this->fee(2)]);
+
+		$reasons = $this->service()->blockingReasonsForIds([1, 2, 3]);
+
+		$this->assertNotEmpty($reasons[1]);
+		$this->assertNotEmpty($reasons[2]);
+		$this->assertSame([], $reasons[3]);
+	}
+
 	public function testDeleteWirftBeiBlockierendemGrund(): void {
 		$member = new Member();
 		$member->setId(3);
 		$this->mapper->method('find')->with(3)->willReturn($member);
-		$this->mandateMapper->method('findActiveByMember')->willReturn([new SepaMandate()]);
+		$this->mandateMapper->method('findAll')->willReturn([$this->mandate(3, 'active')]);
+		$this->feeMapper->method('findAll')->willReturn([]);
 		$this->mapper->expects($this->never())->method('delete');
 
 		$this->expectException(\InvalidArgumentException::class);
@@ -216,9 +240,8 @@ class MemberServiceTest extends TestCase {
 		$member = new Member();
 		$member->setId(3);
 		$this->mapper->method('find')->with(3)->willReturn($member);
-		$this->mandateMapper->method('findActiveByMember')->willReturn([]);
-		$this->mandateMapper->method('findByMember')->willReturn([]);
-		$this->feeMapper->method('findByMember')->willReturn([]);
+		$this->mandateMapper->method('findAll')->willReturn([]);
+		$this->feeMapper->method('findAll')->willReturn([]);
 		$this->mapper->expects($this->once())->method('delete')->with($member);
 
 		$this->service()->delete(3);

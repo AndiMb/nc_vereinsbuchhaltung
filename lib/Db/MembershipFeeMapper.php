@@ -67,20 +67,6 @@ class MembershipFeeMapper extends QBMapper {
 	}
 
 	/**
-	 * Alle Beiträge eines Mitglieds, unabhängig vom Status – gebraucht von
-	 * {@see \OCA\Vereinsbuchhaltung\Service\MemberService::blockingReasons()}.
-	 *
-	 * @return MembershipFee[]
-	 */
-	public function findByMember(int $memberId): array {
-		$qb = $this->db->getQueryBuilder();
-		$qb->select('*')
-			->from($this->getTableName())
-			->where($qb->expr()->eq('member_id', $qb->createNamedParameter($memberId, IQueryBuilder::PARAM_INT)));
-		return $this->findEntities($qb);
-	}
-
-	/**
 	 * Aktive Beiträge, deren nächste Fälligkeit erreicht oder überschritten ist.
 	 * Genutzt vom {@see \OCA\Vereinsbuchhaltung\BackgroundJob\MembershipFeeDueJob}.
 	 *

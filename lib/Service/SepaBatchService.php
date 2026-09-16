@@ -416,13 +416,8 @@ class SepaBatchService {
 		return $item;
 	}
 
-	/** Siehe {@see \OCA\Vereinsbuchhaltung\Service\SepaMandateService::displayNameFor()} für dieselbe Idee. */
 	private function displayNameForMandate(SepaMandate $mandate): string {
-		try {
-			return $this->members->find($mandate->getMemberId())->displayName();
-		} catch (DoesNotExistException) {
-			return $this->l10n->t('(Mitglied gelöscht)');
-		}
+		return $this->members->displayNameOr($mandate->getMemberId(), $this->l10n->t('(Mitglied gelöscht)'));
 	}
 
 	private function sequenceTypeFor(SepaMandate $mandate): string {
