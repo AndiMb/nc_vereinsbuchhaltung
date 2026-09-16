@@ -13,6 +13,7 @@ use OCA\Vereinsbuchhaltung\Db\ContributionGroupMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Service\AssignmentService;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
+use OCA\Vereinsbuchhaltung\Service\DueDateScheduleService;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IL10N;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -64,7 +65,11 @@ class AssignmentServiceTest extends TestCase {
 		$time->method('getDateTime')->willReturn(new \DateTime($today));
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(static fn (string $text, array $parameters = []): string => vsprintf($text, $parameters));
-		return new AssignmentService($this->mapper, $this->eventMapper, $this->groupMapper, $this->openItemMapper, new ContributionYearService($this->createMock(\OCP\IConfig::class)), $time, $l10n);
+		$config = $this->createMock(\OCP\IConfig::class);
+		$config->method('getAppValue')->willReturnCallback(static fn (string $app, string $key, string $default = '') => $default);
+		$contributionYear = new ContributionYearService($config);
+		$dueDateSchedule = new DueDateScheduleService($config, $contributionYear, $l10n);
+		return new AssignmentService($this->mapper, $this->eventMapper, $this->groupMapper, $this->openItemMapper, $contributionYear, $time, $l10n, $dueDateSchedule);
 	}
 
 	public function testCreateLegtDieZuweisungAnUndLogtEinEreignis(): void {
@@ -185,5 +190,9 @@ class AssignmentServiceTest extends TestCase {
 		// Maerz bis Dezember = 10 Monate, voll gezaehlt trotz Start am 15.
 		$this->assertSame(10, $preview['months']);
 		$this->assertSame(10000, $preview['amountCents']);
+		// Ohne eigenen Terminplan (Standard-Einzugstag 0 Tage Versatz) faellt der
+		// vorgeschlagene Einzugstermin auf den tatsaechlichen Beginn der ersten
+		// (angebrochenen) Periode - siehe DueDateScheduleService::dueDateForPeriod().
+		$this->assertSame('2026-03-15', $preview['dueDate']);
 	}
 }
