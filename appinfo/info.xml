@@ -190,6 +190,7 @@ Full manual in German and English: see documentation.
 		<job>OCA\Vereinsbuchhaltung\BackgroundJob\ImportWatchFolderJob</job>
 		<job>OCA\Vereinsbuchhaltung\BackgroundJob\MembershipFeeDueJob</job>
 		<job>OCA\Vereinsbuchhaltung\BackgroundJob\SepaPreNotificationJob</job>
+		<job>OCA\Vereinsbuchhaltung\BackgroundJob\MandateExpiryJob</job>
 	</background-jobs>
 	<!-- Dieselbe Section-Klasse fuer admin-section und personal-section: die
 	     Registrierung ist intern nach Typ getrennt (siehe Settings\Section).
