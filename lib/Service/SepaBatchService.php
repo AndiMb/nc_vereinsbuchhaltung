@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
+use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\SepaBatch;
@@ -38,7 +39,7 @@ class SepaBatchService {
 		private OpenItemService $openItems,
 		private SepaMandateMapper $mandateMapper,
 		private AccountMapper $accountMapper,
-		private MemberReferenceValidator $memberRef,
+		private MemberMapper $members,
 		private PainXmlBuilder $xmlBuilder,
 		private IConfig $config,
 		private SepaDebtorAccountService $sepaDebtorAccount,
@@ -207,7 +208,7 @@ class SepaBatchService {
 				'signedDate' => $mandate->getSignedDate(),
 				'debtorIban' => $mandate->getIban(),
 				'debtorBic' => $mandate->getBic(),
-				'debtorName' => $this->memberRef->displayName($mandate->getMemberUid(), $mandate->getMemberLabel()),
+				'debtorName' => $this->displayNameForMandate($mandate),
 				'remittanceInfo' => $openItem->getDescription() ?? $this->l10n->t('Mitgliedsbeitrag'),
 			];
 		}
@@ -360,7 +361,7 @@ class SepaBatchService {
 		foreach ($this->itemMapper->findByBatch($batchId) as $item) {
 			try {
 				$mandate = $this->mandateMapper->find($item->getMandateId());
-				$debtorName = $this->memberRef->displayName($mandate->getMemberUid(), $mandate->getMemberLabel());
+				$debtorName = $this->displayNameForMandate($mandate);
 				$mandateReference = $mandate->getMandateReference();
 			} catch (DoesNotExistException) {
 				// Kann seit der Löschsperre in SepaMandateService::delete() nicht
@@ -413,6 +414,15 @@ class SepaBatchService {
 			'betrag' => $item->getAmountCents() / 100,
 		]);
 		return $item;
+	}
+
+	/** Siehe {@see \OCA\Vereinsbuchhaltung\Service\SepaMandateService::displayNameFor()} für dieselbe Idee. */
+	private function displayNameForMandate(SepaMandate $mandate): string {
+		try {
+			return $this->members->find($mandate->getMemberId())->displayName();
+		} catch (DoesNotExistException) {
+			return $this->l10n->t('(Mitglied gelöscht)');
+		}
 	}
 
 	private function sequenceTypeFor(SepaMandate $mandate): string {

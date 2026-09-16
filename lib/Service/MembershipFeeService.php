@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
+use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\MembershipFee;
 use OCA\Vereinsbuchhaltung\Db\MembershipFeeMapper;
 use OCA\Vereinsbuchhaltung\Db\SepaMandateMapper;
@@ -14,8 +15,8 @@ use OCP\IL10N;
 
 /**
  * Mitgliedsbeiträge mit Zahlungsfrequenz (optionales Zusatzmodul, siehe
- * Migration 000125). Erzeugt bei Fälligkeit offene Posten über den
- * bestehenden {@see OpenItemService} – es gibt keine eigene Forderungs-
+ * Migration 000125/000137/000138). Erzeugt bei Fälligkeit offene Posten über
+ * den bestehenden {@see OpenItemService} – es gibt keine eigene Forderungs-
  * verwaltung, ein fälliger Beitrag ist einfach ein weiterer offener Posten.
  */
 class MembershipFeeService {
@@ -27,8 +28,8 @@ class MembershipFeeService {
 		private MembershipFeeMapper $mapper,
 		private SepaMandateMapper $mandateMapper,
 		private AccountMapper $accountMapper,
+		private MemberMapper $members,
 		private OpenItemService $openItems,
-		private MemberReferenceValidator $memberRef,
 		private AuditService $audit,
 		private IL10N $l10n,
 	) {
@@ -39,32 +40,34 @@ class MembershipFeeService {
 		return $this->mapper->findAll();
 	}
 
+	/**
+	 * @throws DoesNotExistException wenn es das Mitglied nicht (mehr) gibt
+	 * @throws \InvalidArgumentException bei ungültigen Eingaben
+	 */
 	public function create(
-		?string $memberUid,
-		?string $memberLabel,
+		int $memberId,
 		int $amountCents,
 		string $frequency,
 		string $startDate,
 		?int $accountId,
 		?int $mandateId,
 	): MembershipFee {
-		[$memberUid, $memberLabel] = $this->memberRef->validate($memberUid, $memberLabel);
+		$member = $this->members->find($memberId);
 
 		$fee = new MembershipFee();
-		$fee->setMemberUid($memberUid);
-		$fee->setMemberLabel($memberLabel);
+		$fee->setMemberId($member->getId());
 		$fee->setAmountCents($this->requirePositiveAmount($amountCents));
 		$fee->setFrequency($this->validateFrequency($frequency));
 		$fee->setStartDate($this->validateDate($startDate));
 		$fee->setNextDueDate($fee->getStartDate());
 		$fee->setAccountId($this->resolveAccountId($accountId));
-		$fee->setMandateId($this->resolveMandateId($mandateId, $memberUid, $memberLabel));
+		$fee->setMandateId($this->resolveMandateId($mandateId, $member->getId()));
 		$fee->setActive(true);
 		$fee->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s'));
 
 		$fee = $this->mapper->insert($fee);
 		$this->audit->log('Mitgliedsbeitrag angelegt', 'membership_fee', $fee->getId(), [
-			'zahler' => $fee->displayName(),
+			'zahler' => $member->displayName(),
 			'betrag' => $fee->getAmountCents() / 100,
 			'frequenz' => $fee->getFrequency(),
 		]);
@@ -91,14 +94,14 @@ class MembershipFeeService {
 		$fee->setAmountCents($this->requirePositiveAmount($amountCents));
 		$fee->setFrequency($this->validateFrequency($frequency));
 		$fee->setAccountId($this->resolveAccountId($accountId));
-		$fee->setMandateId($this->resolveMandateId($mandateId, $fee->getMemberUid(), $fee->getMemberLabel()));
+		$fee->setMandateId($this->resolveMandateId($mandateId, $fee->getMemberId()));
 		$fee->setActive($active);
 		if ($nextDueDate !== null && $nextDueDate !== '') {
 			$fee->setNextDueDate($this->validateDate($nextDueDate));
 		}
 		$fee = $this->mapper->update($fee);
 		$this->audit->log('Mitgliedsbeitrag geändert', 'membership_fee', $fee->getId(), [
-			'zahler' => $fee->displayName(),
+			'zahler' => $this->displayNameFor($fee),
 			'betrag' => $fee->getAmountCents() / 100,
 			'frequenz' => $fee->getFrequency(),
 			'faelligkeit' => $fee->getNextDueDate(),
@@ -114,8 +117,17 @@ class MembershipFeeService {
 		$fee = $this->mapper->find($id);
 		$this->mapper->delete($fee);
 		$this->audit->log('Mitgliedsbeitrag gelöscht', 'membership_fee', $id, [
-			'zahler' => $fee->displayName(),
+			'zahler' => $this->displayNameFor($fee),
 		]);
+	}
+
+	/** Siehe {@see \OCA\Vereinsbuchhaltung\Service\SepaMandateService::displayNameFor()} für dieselbe Idee. */
+	private function displayNameFor(MembershipFee $fee): string {
+		try {
+			return $this->members->find($fee->getMemberId())->displayName();
+		} catch (DoesNotExistException) {
+			return $this->l10n->t('(Mitglied gelöscht)');
+		}
 	}
 
 	/**
@@ -175,7 +187,7 @@ class MembershipFeeService {
 
 		if ($count > 0) {
 			$this->audit->log('Beitragsrückstand nachgeholt', 'membership_fee', $fee->getId(), [
-				'zahler' => $fee->displayName(),
+				'zahler' => $this->displayNameFor($fee),
 				'anzahl' => $count,
 				'naechste_faelligkeit' => $fee->getNextDueDate(),
 			]);
@@ -214,7 +226,7 @@ class MembershipFeeService {
 	 */
 	private function createDueItem(MembershipFee $fee): void {
 		$this->openItems->create(
-			$this->memberRef->displayName($fee->getMemberUid(), $fee->getMemberLabel()),
+			$this->displayNameFor($fee),
 			$this->l10n->t('Mitgliedsbeitrag (%s)', [$this->frequencyLabel($fee->getFrequency())]),
 			$fee->getAmountCents(),
 			$fee->getNextDueDate(),
@@ -281,7 +293,7 @@ class MembershipFeeService {
 	 * sonst könnte ein Beitrag versehentlich über das Konto einer anderen
 	 * Person eingezogen werden.
 	 */
-	private function resolveMandateId(?int $mandateId, ?string $memberUid, ?string $memberLabel): ?int {
+	private function resolveMandateId(?int $mandateId, int $memberId): ?int {
 		if ($mandateId === null || $mandateId <= 0) {
 			return null;
 		}
@@ -293,7 +305,7 @@ class MembershipFeeService {
 		if ($mandate->getStatus() !== 'active') {
 			throw new \InvalidArgumentException($this->l10n->t('Das gewählte SEPA-Mandat ist widerrufen.'));
 		}
-		if ($mandate->getMemberUid() !== $memberUid || $mandate->getMemberLabel() !== $memberLabel) {
+		if ($mandate->getMemberId() !== $memberId) {
 			throw new \InvalidArgumentException($this->l10n->t('Das gewählte SEPA-Mandat gehört zu einem anderen Zahler.'));
 		}
 		return $mandate->getId();

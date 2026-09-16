@@ -49,24 +49,34 @@ class MembershipFeeMapper extends QBMapper {
 	}
 
 	/**
-	 * Aktive Beiträge desselben Zahlers.
+	 * Aktive Beiträge desselben Mitglieds.
 	 *
 	 * Gebraucht vom Mitglieder-Import: wird dieselbe Liste ein zweites Mal
-	 * eingelesen – der klassische „hat es geklappt?"-Reflex –, bekäme sonst
-	 * jeder Zahler ohne IBAN einen zweiten Beitrag. Bei einer IBAN fällt das
-	 * über das Mandat auf, ohne IBAN gäbe es keinerlei Anhaltspunkt, und der
-	 * Verein forderte fortan doppelt.
+	 * eingelesen – der klassische „hat es geklappt?"-Reflex –, bekäme ein
+	 * bereits per NC-Konto verknüpftes Mitglied sonst einen zweiten Beitrag.
 	 *
 	 * @return MembershipFee[]
 	 */
-	public function findActiveByMember(?string $memberUid, ?string $memberLabel): array {
+	public function findActiveByMember(int $memberId): array {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')
 			->from($this->getTableName())
-			->where($qb->expr()->eq('active', $qb->createNamedParameter(true, IQueryBuilder::PARAM_BOOL)));
-		$qb->andWhere($memberUid !== null
-			? $qb->expr()->eq('member_uid', $qb->createNamedParameter($memberUid))
-			: $qb->expr()->eq('member_label', $qb->createNamedParameter((string)$memberLabel)));
+			->where($qb->expr()->eq('active', $qb->createNamedParameter(true, IQueryBuilder::PARAM_BOOL)))
+			->andWhere($qb->expr()->eq('member_id', $qb->createNamedParameter($memberId, IQueryBuilder::PARAM_INT)));
+		return $this->findEntities($qb);
+	}
+
+	/**
+	 * Alle Beiträge eines Mitglieds, unabhängig vom Status – gebraucht von
+	 * {@see \OCA\Vereinsbuchhaltung\Service\MemberService::blockingReasons()}.
+	 *
+	 * @return MembershipFee[]
+	 */
+	public function findByMember(int $memberId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('member_id', $qb->createNamedParameter($memberId, IQueryBuilder::PARAM_INT)));
 		return $this->findEntities($qb);
 	}
 

@@ -89,15 +89,18 @@ class Member extends Entity implements \JsonSerializable {
 
 	/**
 	 * „der Zeitraum ist der Status" (Spec §2.2/§3.1): kein Archivfeld, ein
-	 * left_at in der Vergangenheit *ist* der Status „ausgetreten". Ein
-	 * left_at in der Zukunft ist bereits angekündigt, aber noch aktiv.
+	 * left_at in der Vergangenheit *ist* der Status „ausgetreten". Am
+	 * Austrittstag selbst und davor ist das Mitglied noch aktiv – „in der
+	 * Vergangenheit" beginnt erst am Tag danach, analog zu einer Mitgliedschaft
+	 * „bis einschließlich" dem genannten Datum. Ein left_at in der Zukunft ist
+	 * bereits angekündigt, aber noch aktiv.
 	 */
 	public function isActive(?string $today = null): bool {
 		if ($this->leftAt === null) {
 			return true;
 		}
 		$today ??= (new \DateTime())->format('Y-m-d');
-		return $this->leftAt > $today;
+		return $this->leftAt >= $today;
 	}
 
 	public function jsonSerialize(): array {

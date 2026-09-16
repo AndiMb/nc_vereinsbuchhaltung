@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
-use OCA\Vereinsbuchhaltung\Service\MemberReferenceValidator;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCA\Vereinsbuchhaltung\Service\SepaBatchService;
 use OCP\AppFramework\Controller;
@@ -29,7 +29,7 @@ class SepaBatchController extends Controller {
 	public function __construct(
 		IRequest $request,
 		private SepaBatchService $service,
-		private MemberReferenceValidator $memberRef,
+		private MemberMapper $members,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -44,10 +44,15 @@ class SepaBatchController extends Controller {
 	public function preview(?string $executionDate = null): DataResponse {
 		$executionDate = $executionDate !== null && $executionDate !== '' ? $executionDate : $this->service->defaultExecutionDate();
 		$rows = array_map(function (array $row): array {
+			try {
+				$debtorName = $this->members->find($row['mandate']->getMemberId())->displayName();
+			} catch (DoesNotExistException) {
+				$debtorName = $this->l10n->t('(Mitglied gelöscht)');
+			}
 			return [
 				'openItem' => $row['openItem'],
 				'mandate' => $row['mandate'],
-				'debtorName' => $this->memberRef->displayName($row['mandate']->getMemberUid(), $row['mandate']->getMemberLabel()),
+				'debtorName' => $debtorName,
 				'sequenceType' => $row['sequenceType'],
 			];
 		}, $this->service->previewEligible($executionDate));

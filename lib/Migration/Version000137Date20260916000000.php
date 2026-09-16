@@ -17,13 +17,13 @@ use OCP\Migration\SimpleMigrationStep;
  * – vorerst additiv und nullable, die alten Spalten `member_uid`/
  * `member_label` bleiben unangetastet stehen.
  *
- * Bewusste Zweiteilung über zwei Migrationen: diese hier legt nur an, ohne
- * bestehende Daten oder Anwendungscode anzufassen (die App bleibt mit dieser
- * Migration allein voll funktionsfähig). Die Datenübernahme (Split-Heuristik
- * je distinctem Zahler, Spec §3.1 „Umbaupfad") und das Entfernen der alten
- * Spalten folgen in Version000138, sobald Mapper/Services auf member_id
- * umgestellt sind – Migrationen laufen sequenziell, ein Zwischenstand mit
- * doppelt gepflegten Spalten wäre hier nur unnötiges Risiko.
+ * Bewusste Dreiteilung über drei Migrationen (dasselbe Vorgehen wie bei den
+ * Geschäftsjahren, Version000133/134/135): diese hier legt nur an, ohne
+ * bestehende Daten anzufassen. Version000138 übernimmt die Daten
+ * (Split-Heuristik je distinctem Zahler, Spec §3.1 „Umbaupfad"), erst danach
+ * entfernt Version000139 die alten Spalten `member_uid`/`member_label` –
+ * Migrationen laufen sequenziell, ein Zwischenstand mit doppelt gepflegten
+ * Spalten wäre hier nur unnötiges Risiko.
  *
  * `member_number` und `nc_user_id` sind laut Spec „unique wenn gesetzt": ein
  * regulärer addUniqueIndex() auf einer nullable Spalte erfüllt das bereits,
