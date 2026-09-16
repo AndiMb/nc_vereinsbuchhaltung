@@ -9,8 +9,10 @@ import { api, openApp, switchTab, USERS, visibleSection } from './fixtures/nextc
 // geladen wurde).
 //
 // Das Sperrfenster (Betrag/Turnus gesperrt, sobald für die Periode
-// `prenotified_at` gesetzt ist) lässt sich hier NICHT organisch
-// herbeiführen: `prenotified_at` entsteht ausschließlich über den
+// `prenotified_at` gesetzt ist - GitHub-Akzeptanzkriterium Issue #76:
+// "Änderung wird abgelehnt mit Erklärung", siehe
+// SelfContributionService::assertNotLocked()) lässt sich hier NICHT
+// organisch herbeiführen: `prenotified_at` entsteht ausschließlich über den
 // täglichen Einzugszyklus-Cron (ContributionDueCycleJob), und dessen eigene
 // Nachzügler-Regel (ClaimGenerationService::dueDateWithNachzuegler())
 // garantiert technisch, dass zwischen Erzeugung und Vorabinfo IMMER die
@@ -19,11 +21,12 @@ import { api, openApp, switchTab, USERS, visibleSection } from './fixtures/nextc
 // vorabinformierbar (siehe dortiger Klassendoc). Ohne Zeitreise (die es für
 // E2E anders als ITimeFactory in PHPUnit nicht gibt) lässt sich ein
 // gesperrter Zustand deshalb nicht in einem einzelnen Testlauf herstellen.
-// Die Regel selbst ist bereits vollständig durch
-// AssignmentServiceTest::testPreviewChangeMitGesperrterPeriodeVerschiebtWirktAb()/
-// ...TurnuswechselSonderfallSpringtHinterLetzteSperre() abgedeckt - hier wird
-// deshalb STATISCH geprüft (Netzwerk-Mock der Vorschau-Antwort), dass die
-// Oberfläche eine vom Server gemeldete Sperrgrenze korrekt anzeigt.
+// Die Ablehnung selbst ist bereits vollständig durch
+// SelfContributionServiceTest::testApplyLehntGesperrteAenderungAbUndSpeichertNichts()/
+// testPreviewLehntGesperrteAenderungMitErklaerungAb() abgedeckt - hier wird
+// deshalb STATISCH geprüft (Netzwerk-Mock der Vorschau-Antwort mit HTTP 400),
+// dass die Oberfläche eine vom Server abgelehnte Änderung korrekt behandelt
+// (keine Vorschau, Speichern bleibt gesperrt, Erklärung wird angezeigt).
 
 const GROUP_NAME = 'Selfservice-Testgruppe'
 const MEMBER = { firstName: 'Beate', lastName: 'Beitragszahler', email: 'beate.beitrag@example.org' }
@@ -133,23 +136,26 @@ test.describe('Self-Service Beitrag-Aktionen', () => {
 		expect(assignments.find((a) => a.id === assignmentId).intervalMonths).toBe(3)
 	})
 
-	test('Sperrfenster nach prenotified_at: Oberfläche zeigt eine vom Server gemeldete spätere Wirksamkeit an (statisch geprüft, siehe Erläuterung oben)', async ({ page }) => {
-		const future = new Date(Date.now() + 60 * 86400000).toISOString().slice(0, 10)
-		const futureDisplay = `${future.slice(8, 10)}.${future.slice(5, 7)}.${future.slice(0, 4)}`
+	test('Sperrfenster nach prenotified_at: eine vom Server abgelehnte Änderung zeigt die Erklärung und bleibt ungespeichert (statisch geprüft, siehe Erläuterung oben)', async ({ page }) => {
+		const explanation = 'Für die laufende Periode wurde bereits eine Vorabinfo verschickt'
 
 		await page.route('**/apps/vereinsbuchhaltung/api/self/assignments/*/preview', async (route) => {
-			await route.fulfill({
-				json: { effectiveFrom: future, periodStart: future, periodEnd: '9999-12-31', firstDueDate: future, amountCents: 2000 },
-			})
+			await route.fulfill({ status: 400, json: { message: `${explanation} – möglich wäre diese Änderung erst ab 2099-01-01.` } })
 		})
 
 		await openApp(page, USERS.ohneRolle)
 		await switchTab(page, 'Mein Beitrag')
 
 		const card = visibleSection(page).locator('.vbh-selfservice-assignment', { hasText: GROUP_NAME })
+		const saveButton = card.getByRole('button', { name: 'Speichern' })
+
 		await card.getByLabel('Monatsbeitrag (€)').fill('20')
 		await card.getByRole('button', { name: 'Vorschau' }).click()
 
-		await expect(card.getByText(new RegExp(`Wirkt ab ${futureDisplay}`))).toBeVisible()
+		// Die Ablehnung landet als Fehler-Toast (showError) - nicht als
+		// "Wirkt ab"-Vorschau, und Speichern bleibt gesperrt.
+		await expect(page.getByText(new RegExp(explanation))).toBeVisible()
+		await expect(card.getByText(/Wirkt ab/)).toHaveCount(0)
+		await expect(saveButton).toBeDisabled()
 	})
 })

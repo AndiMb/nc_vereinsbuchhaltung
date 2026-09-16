@@ -14,6 +14,7 @@ use OCA\Vereinsbuchhaltung\Service\SelfContributionService;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceActivityPublisher;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceReceiptMailService;
 use OCP\AppFramework\Db\DoesNotExistException;
+use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IL10N;
 use OCP\IUserManager;
 use OCP\IUserSession;
@@ -51,10 +52,17 @@ class SelfContributionServiceTest extends TestCase {
 		$this->actorContext = new ActorContextService($userSession);
 	}
 
-	private function service(): SelfContributionService {
+	/**
+	 * $today muss zum effectiveFrom von fixedPreview() passen (Default
+	 * 2026-07-01) - sonst würde die neue Sperrfenster-Ablehnung
+	 * (assertNotLocked()) bestehende "Erfolg"-Tests grundlos scheitern lassen.
+	 */
+	private function service(string $today = '2026-07-01'): SelfContributionService {
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(static fn (string $text, array $parameters = []): string => vsprintf($text, $parameters));
-		return new SelfContributionService($this->actorContext, $this->assignments, $this->members, $this->receiptMail, $this->activity, $this->userManager, $l10n);
+		$time = $this->createMock(ITimeFactory::class);
+		$time->method('getDateTime')->willReturn(new \DateTime($today));
+		return new SelfContributionService($this->actorContext, $this->assignments, $this->members, $this->receiptMail, $this->activity, $this->userManager, $time, $l10n);
 	}
 
 	private function ownAssignment(int $amountCents = 1000, int $intervalMonths = 1): Assignment {
@@ -122,6 +130,44 @@ class SelfContributionServiceTest extends TestCase {
 		$preview = $this->service()->preview(self::ASSIGNMENT_ID, 1500, null);
 
 		$this->assertSame('2026-07-01', $preview['effectiveFrom']);
+	}
+
+	// --- Sperrfenster: "Änderung wird abgelehnt mit Erklärung" (GitHub-Akzeptanzkriterium #76) ---
+
+	public function testPreviewLehntGesperrteAenderungMitErklaerungAb(): void {
+		$this->actorContext->setMemberChannel(self::OWN_MEMBER_ID);
+		$this->assignments->method('find')->willReturn($this->ownAssignment());
+		// effectiveFrom (2026-07-01) liegt NACH "heute" (2026-06-15) - die
+		// Vorabinfo hat also eine Periode gesperrt.
+		$this->assignments->method('previewChange')->willReturn($this->fixedPreview(effectiveFrom: '2026-07-01'));
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->expectExceptionMessageMatches('/2026-07-01/');
+		$this->service('2026-06-15')->preview(self::ASSIGNMENT_ID, 1500, null);
+	}
+
+	public function testApplyLehntGesperrteAenderungAbUndSpeichertNichts(): void {
+		$this->actorContext->setMemberChannel(self::OWN_MEMBER_ID);
+		$this->assignments->method('find')->willReturn($this->ownAssignment());
+		$this->assignments->method('previewChange')->willReturn($this->fixedPreview(effectiveFrom: '2026-07-01'));
+		$this->assignments->expects($this->never())->method('update');
+		$this->activity->expects($this->never())->method('publish');
+		$this->receiptMail->expects($this->never())->method('sendReceipt');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service('2026-06-15')->apply(self::ASSIGNMENT_ID, 1500, null);
+	}
+
+	public function testApplyErlaubtAenderungWennSperreBereitsVerstrichenIst(): void {
+		$this->actorContext->setMemberChannel(self::OWN_MEMBER_ID);
+		$assignment = $this->ownAssignment(amountCents: 1000, intervalMonths: 1);
+		$this->assignments->method('find')->willReturn($assignment);
+		// effectiveFrom liegt NICHT nach heute (gleich) - keine aktive Sperre.
+		$this->assignments->method('previewChange')->willReturn($this->fixedPreview(effectiveFrom: '2026-06-15'));
+		$this->assignments->expects($this->once())->method('update')->willReturn($this->ownAssignment(amountCents: 1500, intervalMonths: 1));
+		$this->members->method('find')->willReturn($this->member());
+
+		$this->service('2026-06-15')->apply(self::ASSIGNMENT_ID, 1500, null);
 	}
 
 	// --- apply(): Benachrichtigungen ---------------------------------------
