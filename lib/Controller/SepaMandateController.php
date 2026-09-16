@@ -45,11 +45,7 @@ class SepaMandateController extends Controller {
 	 */
 	private function decorate(SepaMandate $mandate): array {
 		$data = $mandate->jsonSerialize();
-		try {
-			$data['displayName'] = $this->members->find($mandate->getMemberId())->displayName();
-		} catch (DoesNotExistException) {
-			$data['displayName'] = $this->l10n->t('(Mitglied gelöscht)');
-		}
+		$data['displayName'] = $this->members->displayNameOr($mandate->getMemberId(), $this->l10n->t('(Mitglied gelöscht)'));
 		$data['usage'] = $this->service->usage((int)$mandate->getId());
 		return $data;
 	}

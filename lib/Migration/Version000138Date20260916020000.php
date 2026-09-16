@@ -19,8 +19,8 @@ use OCP\Migration\SimpleMigrationStep;
  * `vbh_sepa_mandates`/`vbh_membership_fees` genau ein Mitglied an und trägt
  * `member_id` an allen betroffenen Zeilen nach. Version000137 hat die Spalte
  * bereits angelegt, Version000139 entfernt danach die alten Spalten
- * `member_uid`/`member_label` – erst müssen die Daten stimmen (dasselbe
- * Dreischritt-Vorgehen wie bei Version000133/134/135).
+ * `member_uid`/`member_label` – erst müssen die Daten stimmen (siehe
+ * Version000137 für die Begründung der Dreiteilung).
  *
  * Split-Heuristik je distinctem Zahler (Spec §3.1): `member_uid` → Mitglied
  * mit dem aktuellen NC-Displaynamen; `member_label` mit Leerzeichen →
@@ -34,6 +34,9 @@ use OCP\Migration\SimpleMigrationStep;
  * prüfen" (Spec §3.1/§7) – sofern überhaupt ein Zahler zu übernehmen war.
  */
 class Version000138Date20260916020000 extends SimpleMigrationStep {
+
+	/** Beide Tabellen, die member_uid/member_label auf member_id umstellen. */
+	private const TABLES = ['vbh_sepa_mandates', 'vbh_membership_fees'];
 
 	public function __construct(
 		private IDBConnection $db,
@@ -56,7 +59,7 @@ class Version000138Date20260916020000 extends SimpleMigrationStep {
 
 		$memberIdForUid = [];
 		$memberIdForLabel = [];
-		foreach (['vbh_sepa_mandates', 'vbh_membership_fees'] as $table) {
+		foreach (self::TABLES as $table) {
 			foreach ($this->distinctPayers($table) as [$uid, $label]) {
 				if ($uid !== null) {
 					$memberIdForUid[$uid] ??= $this->insertMemberForNcUser($uid);
@@ -67,7 +70,7 @@ class Version000138Date20260916020000 extends SimpleMigrationStep {
 		}
 
 		$migratedRows = 0;
-		foreach (['vbh_sepa_mandates', 'vbh_membership_fees'] as $table) {
+		foreach (self::TABLES as $table) {
 			$migratedRows += $this->assignMemberIds($table, $memberIdForUid, $memberIdForLabel);
 		}
 
@@ -92,8 +95,8 @@ class Version000138Date20260916020000 extends SimpleMigrationStep {
 		$result = $qb->executeQuery();
 		$rows = [];
 		while (($row = $result->fetch()) !== false) {
-			$uid = isset($row['member_uid']) && $row['member_uid'] !== '' ? (string)$row['member_uid'] : null;
-			$label = isset($row['member_label']) && $row['member_label'] !== '' ? (string)$row['member_label'] : null;
+			$uid = self::nullIfEmpty($row['member_uid'] ?? null);
+			$label = self::nullIfEmpty($row['member_label'] ?? null);
 			if ($uid === null && $label === null) {
 				continue;
 			}
@@ -101,6 +104,11 @@ class Version000138Date20260916020000 extends SimpleMigrationStep {
 		}
 		$result->closeCursor();
 		return $rows;
+	}
+
+	/** Leere DB-Werte (null oder '') einheitlich auf null normalisieren. */
+	private static function nullIfEmpty(mixed $value): ?string {
+		return $value !== null && $value !== '' ? (string)$value : null;
 	}
 
 	private function insertMemberForNcUser(string $uid): int {
@@ -143,8 +151,8 @@ class Version000138Date20260916020000 extends SimpleMigrationStep {
 		$result->closeCursor();
 
 		foreach ($rows as $row) {
-			$uid = isset($row['member_uid']) && $row['member_uid'] !== '' ? (string)$row['member_uid'] : null;
-			$label = isset($row['member_label']) && $row['member_label'] !== '' ? (string)$row['member_label'] : null;
+			$uid = self::nullIfEmpty($row['member_uid'] ?? null);
+			$label = self::nullIfEmpty($row['member_label'] ?? null);
 			$memberId = $uid !== null ? ($memberIdForUid[$uid] ?? null) : ($label !== null ? ($memberIdForLabel[$label] ?? null) : null);
 			if ($memberId === null) {
 				continue;

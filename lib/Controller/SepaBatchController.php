@@ -44,15 +44,10 @@ class SepaBatchController extends Controller {
 	public function preview(?string $executionDate = null): DataResponse {
 		$executionDate = $executionDate !== null && $executionDate !== '' ? $executionDate : $this->service->defaultExecutionDate();
 		$rows = array_map(function (array $row): array {
-			try {
-				$debtorName = $this->members->find($row['mandate']->getMemberId())->displayName();
-			} catch (DoesNotExistException) {
-				$debtorName = $this->l10n->t('(Mitglied gelöscht)');
-			}
 			return [
 				'openItem' => $row['openItem'],
 				'mandate' => $row['mandate'],
-				'debtorName' => $debtorName,
+				'debtorName' => $this->members->displayNameOr($row['mandate']->getMemberId(), $this->l10n->t('(Mitglied gelöscht)')),
 				'sequenceType' => $row['sequenceType'],
 			];
 		}, $this->service->previewEligible($executionDate));

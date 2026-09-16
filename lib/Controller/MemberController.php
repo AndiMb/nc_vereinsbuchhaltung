@@ -34,16 +34,27 @@ class MemberController extends Controller {
 		parent::__construct(Application::APP_ID, $request);
 	}
 
-	private function decorate(Member $member): array {
+	/** @param string[]|null $blockingReasons vorab berechnet (siehe index()), sonst wird einzeln nachgeschlagen */
+	private function decorate(Member $member, ?array $blockingReasons = null): array {
 		$data = $member->jsonSerialize();
-		$data['blockingReasons'] = $this->service->blockingReasons((int)$member->getId());
+		$data['blockingReasons'] = $blockingReasons ?? $this->service->blockingReasons((int)$member->getId());
 		return $data;
 	}
 
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function index(): DataResponse {
-		return new DataResponse(array_map($this->decorate(...), $this->service->findAll()));
+		$members = $this->service->findAll();
+		// Sperrgründe für alle Mitglieder auf einen Schlag statt je Zeile
+		// einzeln nachzuschlagen (siehe MemberService::blockingReasonsForIds()).
+		$reasons = $this->service->blockingReasonsForIds(array_map(
+			static fn (Member $m): int => (int)$m->getId(),
+			$members,
+		));
+		return new DataResponse(array_map(
+			fn (Member $m): array => $this->decorate($m, $reasons[$m->getId()]),
+			$members,
+		));
 	}
 
 	#[NoAdminRequired]

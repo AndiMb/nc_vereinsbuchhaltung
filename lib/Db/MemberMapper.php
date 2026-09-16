@@ -56,23 +56,6 @@ class MemberMapper extends QBMapper {
 		return $rows[0] ?? null;
 	}
 
-	/**
-	 * Kandidaten für eine NC-Kontoverknüpfung: alle Mitglieder mit genau
-	 * dieser Mailadresse (case-insensitiv, Familienadressen sind Normalfall,
-	 * siehe Spec §2.2). Nicht zu verwechseln mit der Verknüpfungssuche selbst
-	 * (die sucht andersherum: NC-Konten zu einer Mitglieds-Mailadresse, siehe
-	 * MemberService::findLinkSuggestions()).
-	 *
-	 * @return Member[]
-	 */
-	public function findByEmail(string $email): array {
-		$qb = $this->db->getQueryBuilder();
-		$qb->select('*')
-			->from($this->getTableName())
-			->where($qb->expr()->eq($qb->func()->lower('email'), $qb->createNamedParameter(mb_strtolower($email))));
-		return $this->findEntities($qb);
-	}
-
 	public function count(): int {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select($qb->func()->count('*', 'cnt'))
@@ -83,14 +66,25 @@ class MemberMapper extends QBMapper {
 		return $count;
 	}
 
-	/**
-	 * @throws DoesNotExistException wenn es den Datensatz nicht (mehr) gibt
-	 */
 	public function findOrNull(int $id): ?Member {
 		try {
 			return $this->find($id);
 		} catch (DoesNotExistException) {
 			return null;
 		}
+	}
+
+	/**
+	 * Anzeigename eines Mitglieds oder ein Fallback-Text, falls die member_id
+	 * leer ist oder das Mitglied inzwischen gelöscht wurde. Zentraler Helfer
+	 * für SepaMandateService/MembershipFeeService/SepaBatchService und ihre
+	 * Controller, die alle denselben Namen zu einem Mandat/Beitrag anzeigen –
+	 * vorher fand sich an sieben Stellen dieselbe find()/catch-Konstruktion.
+	 */
+	public function displayNameOr(?int $memberId, string $fallback): string {
+		if ($memberId === null) {
+			return $fallback;
+		}
+		return $this->findOrNull($memberId)?->displayName() ?? $fallback;
 	}
 }
