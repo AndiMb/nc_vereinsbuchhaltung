@@ -1179,7 +1179,14 @@ export default {
 				}
 			}
 
-			if (this.activeTab !== tab) { this.activeTab = tab }
+			// Waehrend des allerersten Ladens (routeReady noch false) kann ein Klick
+			// - von einer Nutzerin oder einem Test - schon einen anderen Tab gewaehlt
+			// haben, bevor die Start-URL hier ausgewertet wird. Ohne echten Deep-Link
+			// (tab === 'dashboard', die Vorgabe der blanken App-URL) gewinnt diese
+			// bewusste Wahl - der verspaetete Erstabgleich darf sie nicht mehr
+			// stillschweigend rueckgaengig machen.
+			const schonWeitergeklicktVorErstemAbgleich = !this.routeReady && tab === 'dashboard' && this.activeTab !== 'dashboard'
+			if (this.activeTab !== tab && !schonWeitergeklicktVorErstemAbgleich) { this.activeTab = tab }
 			if (tab === 'bookings' && this.bookingView !== meta.bookingView) { this.bookingView = meta.bookingView }
 			if (tab === 'reports' && this.reportView !== meta.reportView) { this.reportView = meta.reportView }
 			if (tab === 'contributions' && this.contribView !== meta.contribView) { this.contribView = meta.contribView }
