@@ -14,6 +14,9 @@ use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\AttachmentWatchFolderService;
 use OCA\Vereinsbuchhaltung\Service\BillingPeriod;
 use OCA\Vereinsbuchhaltung\Service\DemoDataService;
+use OCA\Vereinsbuchhaltung\Service\MandateDocumentService;
+use OCA\Vereinsbuchhaltung\Service\MandateReferenceGenerator;
+use OCA\Vereinsbuchhaltung\Service\MandateService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCA\Vereinsbuchhaltung\Service\ReportService;
 use OCA\Vereinsbuchhaltung\Service\SepaDebtorAccountService;
@@ -45,6 +48,7 @@ class SettingsController extends Controller {
 		private SepaDebtorAccountService $sepaDebtorAccount,
 		private AttachmentStorageService $attachmentStorage,
 		private AttachmentWatchFolderService $attachmentWatchFolder,
+		private MandateDocumentService $mandateDocuments,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -169,6 +173,10 @@ class SettingsController extends Controller {
 				|| $this->sepaMandateMapper->count() > 0
 				|| $this->membershipFeeMapper->count() > 0
 				|| $this->memberMapper->count() > 0,
+			// Mandats-Lifecycle (Issue #66, Spec §4 „Neue Einstellungen"):
+			'mandate_reference_prefix' => $this->config->getAppValue(Application::APP_ID, MandateService::SETTING_REFERENCE_PREFIX, MandateReferenceGenerator::DEFAULT_PREFIX),
+			'mandate_document_folder' => $this->mandateDocuments->folderPath(),
+			'show_missing_document_warning' => $this->mandateDocuments->showMissingDocumentWarning(),
 		];
 	}
 
@@ -388,6 +396,31 @@ class SettingsController extends Controller {
 		if (array_key_exists('membership_enabled', $params)) {
 			$membershipEnabled = (string)$params['membership_enabled'] === '1';
 			$this->config->setAppValue($appId, 'membership_enabled', $membershipEnabled ? '1' : '0');
+		}
+
+		// Mandats-Lifecycle (Issue #66): Präfix "verwalter"-Einstellung (Spec §4/§3.9).
+		// Leer ist erlaubt (fällt beim Generieren auf MandateReferenceGenerator::DEFAULT_PREFIX
+		// zurück) - dasselbe Muster wie ein geleerter Belegablage-Pfad oben.
+		if (array_key_exists('mandate_reference_prefix', $params)) {
+			$prefix = mb_substr(trim((string)$params['mandate_reference_prefix']), 0, 16);
+			if (preg_match('/[\/\\\\]/', $prefix) === 1) {
+				return new DataResponse(['message' => $this->l10n->t('Ungültiges Mandatsreferenz-Präfix.')], Http::STATUS_BAD_REQUEST);
+			}
+			$this->config->setAppValue($appId, MandateService::SETTING_REFERENCE_PREFIX, $prefix);
+		}
+
+		if (array_key_exists('mandate_document_folder', $params)) {
+			$mandateFolder = (string)$params['mandate_document_folder'];
+			$mandateFolderError = $this->validatePath($mandateFolder, $this->l10n->t('Nachweis-Ordner'));
+			if ($mandateFolderError !== null) {
+				return new DataResponse(['message' => $mandateFolderError], Http::STATUS_BAD_REQUEST);
+			}
+			$mandateFolder = trim(str_replace('\\', '/', $mandateFolder), '/');
+			$this->config->setAppValue($appId, MandateDocumentService::SETTING_FOLDER, $mandateFolder !== '' ? $mandateFolder : MandateDocumentService::DEFAULT_FOLDER);
+		}
+
+		if (array_key_exists('show_missing_document_warning', $params)) {
+			$this->config->setAppValue($appId, MandateDocumentService::SETTING_SHOW_MISSING_WARNING, (string)$params['show_missing_document_warning'] === '1' ? '1' : '0');
 		}
 
 		$settings = $this->currentSettings();

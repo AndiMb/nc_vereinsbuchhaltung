@@ -464,6 +464,42 @@ export const api = {
 		return (await call(request, 'GET', path, opts)).json()
 	},
 
+	// --- Mandats-Lifecycle (Issue #66, Papier-Weg) ------------------------------
+	// Mitglieder-Helfer (createMember/listMembers/...) siehe oben (Issue #65).
+
+	async listMandates(request, { user = 'admin' } = {}) {
+		return (await call(request, 'GET', '/mandates', { user })).json()
+	},
+
+	async mandatesByMember(request, memberId, { user = 'admin' } = {}) {
+		return (await call(request, 'GET', `/mandates/by-member/${memberId}`, { user })).json()
+	},
+
+	/** Papier-Mandat anlegen (Entwurf) – Issue #66. */
+	async createMandate(request, { memberId, iban, bic, accountHolder, signedAt, mandateReference, user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', '/mandates', {
+			user,
+			expectOk,
+			data: { memberId, iban, bic, accountHolder, signedAt, mandateReference },
+		})
+	},
+
+	async activateMandate(request, id, { signedAt, user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', `/mandates/${id}/activate`, { user, expectOk, data: { signedAt } })
+	},
+
+	async suspendMandate(request, id, { note, origin = 'manuell', user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', `/mandates/${id}/suspend`, { user, expectOk, data: { note, origin } })
+	},
+
+	async resumeMandate(request, id, { user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', `/mandates/${id}/resume`, { user, expectOk })
+	},
+
+	async revokeMandate(request, id, { user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', `/mandates/${id}/revoke`, { user, expectOk })
+	},
+
 	/** Roher Zugriff für Spezialfälle; expectOk standardmäßig aus. */
 	async raw(request, method, path, opts = {}) {
 		return call(request, method, path, { expectOk: false, ...opts })

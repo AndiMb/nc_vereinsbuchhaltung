@@ -128,6 +128,23 @@ return [
 		['name' => 'memberImport#preview', 'url' => '/api/sepa/members/import/preview', 'verb' => 'POST'],
 		['name' => 'memberImport#import', 'url' => '/api/sepa/members/import', 'verb' => 'POST'],
 
+		// Mandats-Lifecycle (Issue #66, Papier-Weg) – neues, additives Modell
+		// parallel zum alten sepaMandate#-Bestand (siehe MandateService).
+		['name' => 'mandate#index', 'url' => '/api/mandates', 'verb' => 'GET'],
+		['name' => 'mandate#create', 'url' => '/api/mandates', 'verb' => 'POST'],
+		['name' => 'mandate#byMember', 'url' => '/api/mandates/by-member/{memberId}', 'verb' => 'GET'],
+		['name' => 'mandate#show', 'url' => '/api/mandates/{id}', 'verb' => 'GET'],
+		['name' => 'mandate#activate', 'url' => '/api/mandates/{id}/activate', 'verb' => 'POST'],
+		['name' => 'mandate#suspend', 'url' => '/api/mandates/{id}/suspend', 'verb' => 'POST'],
+		['name' => 'mandate#resume', 'url' => '/api/mandates/{id}/resume', 'verb' => 'POST'],
+		['name' => 'mandate#revoke', 'url' => '/api/mandates/{id}/revoke', 'verb' => 'POST'],
+		['name' => 'mandate#correctAccountHolderName', 'url' => '/api/mandates/{id}/correct-name', 'verb' => 'POST'],
+		['name' => 'mandate#amendBankDetails', 'url' => '/api/mandates/{id}/amend-bank-details', 'verb' => 'POST'],
+		['name' => 'mandate#replace', 'url' => '/api/mandates/{id}/replace', 'verb' => 'POST'],
+		['name' => 'mandate#reopenAmendment', 'url' => '/api/mandates/amendments/{amendmentId}/reopen', 'verb' => 'POST'],
+		['name' => 'mandate#uploadDocument', 'url' => '/api/mandates/{id}/document', 'verb' => 'POST'],
+		['name' => 'mandate#downloadDocument', 'url' => '/api/mandates/{id}/document', 'verb' => 'GET'],
+
 		// SEPA-Sammeleinzüge (pain.008-Export)
 		['name' => 'sepaBatch#preview', 'url' => '/api/sepa/export/preview', 'verb' => 'GET'],
 		['name' => 'sepaBatch#index', 'url' => '/api/sepa/export/batches', 'verb' => 'GET'],
