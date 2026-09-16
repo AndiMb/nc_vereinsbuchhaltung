@@ -17,13 +17,15 @@ use OCP\Migration\SimpleMigrationStep;
  * – vorerst additiv und nullable, die alten Spalten `member_uid`/
  * `member_label` bleiben unangetastet stehen.
  *
- * Bewusste Dreiteilung über drei Migrationen (dasselbe Vorgehen wie bei den
- * Geschäftsjahren, Version000133/134/135): diese hier legt nur an, ohne
- * bestehende Daten anzufassen. Version000138 übernimmt die Daten
- * (Split-Heuristik je distinctem Zahler, Spec §3.1 „Umbaupfad"), erst danach
- * entfernt Version000139 die alten Spalten `member_uid`/`member_label` –
- * Migrationen laufen sequenziell, ein Zwischenstand mit doppelt gepflegten
- * Spalten wäre hier nur unnötiges Risiko.
+ * Bewusste Dreiteilung über drei Migrationen, im Geiste des Vorgehens bei den
+ * Geschäftsjahren (Version000133/134/135) — dort lagen Schema+Datenübernahme
+ * zusammen in Schritt 1 und Schritt 2 war für einen späteren Unique-Index
+ * reserviert; hier gibt es keinen Unique-Index auf `member_id` umzuziehen,
+ * deshalb liegt die Datenübernahme stattdessen ganz in Version000138 und
+ * diese Migration hier legt nur an, ohne bestehende Daten anzufassen.
+ * Version000139 entfernt danach die alten Spalten `member_uid`/
+ * `member_label` – Migrationen laufen sequenziell, ein Zwischenstand mit
+ * doppelt gepflegten Spalten wäre hier nur unnötiges Risiko.
  *
  * `member_number` und `nc_user_id` sind laut Spec „unique wenn gesetzt": ein
  * regulärer addUniqueIndex() auf einer nullable Spalte erfüllt das bereits,

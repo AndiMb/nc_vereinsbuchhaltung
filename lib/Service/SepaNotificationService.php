@@ -11,7 +11,6 @@ use OCA\Vereinsbuchhaltung\Db\SepaBatchItemMapper;
 use OCA\Vereinsbuchhaltung\Db\SepaBatchMapper;
 use OCA\Vereinsbuchhaltung\Db\SepaMandate;
 use OCA\Vereinsbuchhaltung\Db\SepaMandateMapper;
-use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IConfig;
 use OCP\IL10N;
 use OCP\IUserManager;
@@ -161,9 +160,8 @@ class SepaNotificationService {
 	 * @return array{0:string, 1:string}|null Adresse und Anzeigename, oder null
 	 */
 	private function resolveRecipient(SepaMandate $mandate): ?array {
-		try {
-			$member = $this->members->find($mandate->getMemberId());
-		} catch (DoesNotExistException) {
+		$member = $this->members->findOrNull($mandate->getMemberId());
+		if ($member === null) {
 			return null;
 		}
 		$name = $member->displayName();

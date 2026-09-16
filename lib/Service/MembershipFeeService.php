@@ -101,7 +101,7 @@ class MembershipFeeService {
 		}
 		$fee = $this->mapper->update($fee);
 		$this->audit->log('Mitgliedsbeitrag geändert', 'membership_fee', $fee->getId(), [
-			'zahler' => $this->displayNameFor($fee),
+			'zahler' => $this->displayName($fee),
 			'betrag' => $fee->getAmountCents() / 100,
 			'frequenz' => $fee->getFrequency(),
 			'faelligkeit' => $fee->getNextDueDate(),
@@ -117,17 +117,12 @@ class MembershipFeeService {
 		$fee = $this->mapper->find($id);
 		$this->mapper->delete($fee);
 		$this->audit->log('Mitgliedsbeitrag gelöscht', 'membership_fee', $id, [
-			'zahler' => $this->displayNameFor($fee),
+			'zahler' => $this->displayName($fee),
 		]);
 	}
 
-	/** Siehe {@see \OCA\Vereinsbuchhaltung\Service\SepaMandateService::displayNameFor()} für dieselbe Idee. */
-	private function displayNameFor(MembershipFee $fee): string {
-		try {
-			return $this->members->find($fee->getMemberId())->displayName();
-		} catch (DoesNotExistException) {
-			return $this->l10n->t('(Mitglied gelöscht)');
-		}
+	private function displayName(MembershipFee $fee): string {
+		return $this->members->displayNameOr($fee->getMemberId(), $this->l10n->t('(Mitglied gelöscht)'));
 	}
 
 	/**
@@ -187,7 +182,7 @@ class MembershipFeeService {
 
 		if ($count > 0) {
 			$this->audit->log('Beitragsrückstand nachgeholt', 'membership_fee', $fee->getId(), [
-				'zahler' => $this->displayNameFor($fee),
+				'zahler' => $this->displayName($fee),
 				'anzahl' => $count,
 				'naechste_faelligkeit' => $fee->getNextDueDate(),
 			]);
@@ -226,7 +221,7 @@ class MembershipFeeService {
 	 */
 	private function createDueItem(MembershipFee $fee): void {
 		$this->openItems->create(
-			$this->displayNameFor($fee),
+			$this->displayName($fee),
 			$this->l10n->t('Mitgliedsbeitrag (%s)', [$this->frequencyLabel($fee->getFrequency())]),
 			$fee->getAmountCents(),
 			$fee->getNextDueDate(),

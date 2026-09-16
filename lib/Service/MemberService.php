@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service;
 
+use OCA\Vereinsbuchhaltung\Db\AssignmentMapper;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\MembershipFeeMapper;
+use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\SepaMandateMapper;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IL10N;
@@ -23,6 +25,8 @@ class MemberService {
 		private MemberMapper $mapper,
 		private SepaMandateMapper $mandateMapper,
 		private MembershipFeeMapper $feeMapper,
+		private AssignmentMapper $assignmentMapper,
+		private OpenItemMapper $openItemMapper,
 		private IUserManager $userManager,
 		private IL10N $l10n,
 	) {
@@ -83,30 +87,74 @@ class MemberService {
 	 * Oberfläche zeigt sie als erklärende Sperrmeldung statt den
 	 * Löschen-Knopf einfach auszugrauen (Spec §3.1).
 	 *
-	 * Laut Akzeptanzkriterium ist die Prüfung "ohne Forderung" in diesem
-	 * Ticket trivial erlaubt: eine Forderung (Claim, auf vbh_open_items
-	 * abgebildet) mit member_id gibt es erst, sobald ein späteres Ticket
-	 * Beitragsgruppen/Zuweisungen einführt – hier ist bewusst noch nichts zu
-	 * prüfen. "ohne aktives Mandat" lässt sich dagegen schon heute echt
-	 * prüfen, weil vbh_sepa_mandates bereits existiert; ergänzend blockiert
-	 * auch ein bestehendes, nicht-aktives Mandat oder ein Alt-Beitrag
-	 * (vbh_membership_fees) die Löschung – referenzielle Sicherheit, damit
-	 * member_id in diesen beiden Tabellen nicht verwaist, solange es noch
-	 * keine Kaskaden-Logik gibt (siehe PR-Beschreibung).
+	 * Referenzielle Sicherheit, damit member_id in keiner der vier
+	 * verweisenden Tabellen verwaist, solange es noch keine Kaskaden-Logik
+	 * gibt: aktives/widerrufenes SEPA-Mandat, Alt-Beitrag
+	 * (vbh_membership_fees), Zuweisung (vbh_assignments) und Forderung
+	 * (vbh_open_items mit gesetztem member_id) blockieren alle die Löschung.
+	 * Die beiden letzteren gibt es erst seit Issue #68 (Beitragsgruppen/
+	 * Zuweisungen) – zuvor war die Prüfung hier laut Akzeptanzkriterium noch
+	 * trivial erlaubt, weil es schlicht keine Forderungen mit member_id gab.
 	 *
 	 * @return string[] leer = löschbar
 	 */
 	public function blockingReasons(int $id): array {
-		$reasons = [];
-		if ($this->mandateMapper->findActiveByMember($id) !== []) {
-			$reasons[] = $this->l10n->t('Es gibt noch ein aktives SEPA-Mandat für dieses Mitglied.');
-		} elseif ($this->mandateMapper->findByMember($id) !== []) {
-			$reasons[] = $this->l10n->t('Es gibt noch ein (widerrufenes) SEPA-Mandat für dieses Mitglied.');
+		return $this->blockingReasonsForIds([$id])[$id] ?? [];
+	}
+
+	/**
+	 * Dasselbe wie {@see blockingReasons()}, aber für beliebig viele Mitglieder
+	 * in wenigen Abfragen statt bis zu vier je Mitglied – wichtig, weil
+	 * {@see \OCA\Vereinsbuchhaltung\Controller\MemberController::index()} das
+	 * für die gesamte Mitgliederliste auf einmal braucht (sonst N+1).
+	 *
+	 * @param int[] $memberIds
+	 * @return array<int, string[]> member_id => Sperrgründe (leer = löschbar)
+	 */
+	public function blockingReasonsForIds(array $memberIds): array {
+		$activeMandateIds = [];
+		$anyMandateIds = [];
+		foreach ($this->mandateMapper->findAll() as $mandate) {
+			$anyMandateIds[$mandate->getMemberId()] = true;
+			if ($mandate->getStatus() === 'active') {
+				$activeMandateIds[$mandate->getMemberId()] = true;
+			}
 		}
-		if ($this->feeMapper->findByMember($id) !== []) {
-			$reasons[] = $this->l10n->t('Es gibt noch einen Mitgliedsbeitrag für dieses Mitglied.');
+		$anyFeeIds = [];
+		foreach ($this->feeMapper->findAll() as $fee) {
+			$anyFeeIds[$fee->getMemberId()] = true;
 		}
-		return $reasons;
+		$anyAssignmentIds = [];
+		foreach ($this->assignmentMapper->findAll() as $assignment) {
+			$anyAssignmentIds[$assignment->getMemberId()] = true;
+		}
+		$anyClaimIds = [];
+		foreach ($this->openItemMapper->findClaims() as $claim) {
+			if ($claim->getMemberId() !== null) {
+				$anyClaimIds[$claim->getMemberId()] = true;
+			}
+		}
+
+		$result = [];
+		foreach ($memberIds as $id) {
+			$reasons = [];
+			if (isset($activeMandateIds[$id])) {
+				$reasons[] = $this->l10n->t('Es gibt noch ein aktives SEPA-Mandat für dieses Mitglied.');
+			} elseif (isset($anyMandateIds[$id])) {
+				$reasons[] = $this->l10n->t('Es gibt noch ein (widerrufenes) SEPA-Mandat für dieses Mitglied.');
+			}
+			if (isset($anyFeeIds[$id])) {
+				$reasons[] = $this->l10n->t('Es gibt noch einen Mitgliedsbeitrag für dieses Mitglied.');
+			}
+			if (isset($anyAssignmentIds[$id])) {
+				$reasons[] = $this->l10n->t('Es gibt noch eine Zuweisung zu einer Beitragsgruppe für dieses Mitglied.');
+			}
+			if (isset($anyClaimIds[$id])) {
+				$reasons[] = $this->l10n->t('Es gibt noch eine Forderung für dieses Mitglied.');
+			}
+			$result[$id] = $reasons;
+		}
+		return $result;
 	}
 
 	/**
@@ -202,16 +250,9 @@ class MemberService {
 			return $existing;
 		}
 		$user = $this->userManager->get($ncUserId);
-		$split = self::splitLabel($user?->getDisplayName() ?? $ncUserId);
-		$member = new Member();
-		$member->setMemberType($split['type']);
-		$member->setFirstName($split['firstName']);
-		$member->setLastName($split['lastName']);
-		$member->setOrganizationName($split['organizationName']);
+		$member = $this->newMemberFromLabel($user?->getDisplayName() ?? $ncUserId);
 		$member->setEmail($user?->getEMailAddress());
 		$member->setNcUserId($ncUserId);
-		$member->setJoinedAt((new \DateTime())->format('Y-m-d'));
-		$member->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s'));
 		return $this->mapper->insert($member);
 	}
 
@@ -224,6 +265,17 @@ class MemberService {
 	 * je distinctem member_label auf (Dedup dort, nicht hier).
 	 */
 	public function createFromLabel(string $label): Member {
+		return $this->mapper->insert($this->newMemberFromLabel($label));
+	}
+
+	/**
+	 * Gemeinsamer Kern von {@see findOrCreateByNcUserId()} und
+	 * {@see createFromLabel()}: ein frisches, noch nicht gespeichertes
+	 * Mitglied mit den aus dem Namen gesplitteten Stammdaten und den
+	 * Default-Feldern (Beitritt heute). Der Aufrufer ergänzt danach, was ihn
+	 * unterscheidet (email/nc_user_id bei einem NC-Konto), und speichert.
+	 */
+	private function newMemberFromLabel(string $label): Member {
 		$split = self::splitLabel($label);
 		$member = new Member();
 		$member->setMemberType($split['type']);
@@ -232,7 +284,7 @@ class MemberService {
 		$member->setOrganizationName($split['organizationName']);
 		$member->setJoinedAt((new \DateTime())->format('Y-m-d'));
 		$member->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s'));
-		return $this->mapper->insert($member);
+		return $member;
 	}
 
 	/**

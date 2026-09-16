@@ -85,7 +85,7 @@ class SepaMandateService {
 		$mandate->setSignedDate($this->validateDate($signedDate));
 		$mandate = $this->mapper->update($mandate);
 		$this->audit->log('SEPA-Mandat geändert', 'sepa_mandate', $mandate->getId(), [
-			'zahler' => $this->displayNameFor($mandate),
+			'zahler' => $this->members->displayNameOr($mandate->getMemberId(), $this->l10n->t('(Mitglied gelöscht)')),
 			'referenz' => $mandate->getMandateReference(),
 		]);
 		return $mandate;
@@ -103,7 +103,7 @@ class SepaMandateService {
 		$mandate->setStatus('revoked');
 		$mandate = $this->mapper->update($mandate);
 		$this->audit->log('SEPA-Mandat widerrufen', 'sepa_mandate', $mandate->getId(), [
-			'zahler' => $this->displayNameFor($mandate),
+			'zahler' => $this->members->displayNameOr($mandate->getMemberId(), $this->l10n->t('(Mitglied gelöscht)')),
 			'referenz' => $mandate->getMandateReference(),
 		]);
 		return $mandate;
@@ -171,7 +171,7 @@ class SepaMandateService {
 			}
 
 			$this->audit->log('SEPA-Bankverbindung gewechselt', 'sepa_mandate', $new->getId(), [
-				'zahler' => $this->displayNameFor($new),
+				'zahler' => $this->members->displayNameOr($new->getMemberId(), $this->l10n->t('(Mitglied gelöscht)')),
 				'alte_referenz' => $old->getMandateReference(),
 				'neue_referenz' => $new->getMandateReference(),
 				'beitraege_umgehaengt' => $beitraege,
@@ -211,26 +211,9 @@ class SepaMandateService {
 
 		$this->mapper->delete($mandate);
 		$this->audit->log('SEPA-Mandat gelöscht', 'sepa_mandate', $id, [
-			'zahler' => $this->displayNameFor($mandate),
+			'zahler' => $this->members->displayNameOr($mandate->getMemberId(), $this->l10n->t('(Mitglied gelöscht)')),
 			'referenz' => $mandate->getMandateReference(),
 		]);
-	}
-
-	/**
-	 * Anzeigename des Mitglieds zu einem Mandat – als eigene Methode, weil
-	 * das Mandat den Namen anders als früher nicht mehr selbst trägt
-	 * (member_id statt member_uid/member_label, siehe Migration 000138).
-	 * Ein Mitglied, das seit dem Anlegen des Mandats gelöscht wurde, kann es
-	 * laut {@see MemberService::blockingReasons()} eigentlich nicht geben –
-	 * der Fallback ist trotzdem hier, analog zum bestehenden Muster in
-	 * {@see \OCA\Vereinsbuchhaltung\Service\SepaBatchService::findBatchItems()}.
-	 */
-	private function displayNameFor(SepaMandate $mandate): string {
-		try {
-			return $this->members->find($mandate->getMemberId())->displayName();
-		} catch (DoesNotExistException) {
-			return $this->l10n->t('(Mitglied gelöscht)');
-		}
 	}
 
 	/**

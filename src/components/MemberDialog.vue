@@ -232,14 +232,19 @@ function emptyForm(member, defaultFeeAmount, defaultFeeFrequency) {
 		memberNumber: member?.memberNumber ?? '',
 		joinedAt: member?.joinedAt ?? new Date().toISOString().slice(0, 10),
 		internalNote: member?.internalNote ?? '',
-		// Nur beim Anlegen relevant (siehe Template) – optionales Mandat/Beitrag.
-		iban: '',
-		bic: '',
-		signedDate: new Date().toISOString().slice(0, 10),
-		amount: defaultFeeAmount ?? '',
-		frequency: defaultFeeFrequency ?? 'yearly',
-		startDate: new Date().toISOString().slice(0, 10),
-		accountId: null,
+		// Nur beim Anlegen relevant (siehe Template): optionales Mandat/Beitrag
+		// gibt es nur, wenn kein Mitglied übergeben wurde (Akte bearbeitet keins).
+		...(member
+			? {}
+			: {
+					iban: '',
+					bic: '',
+					signedDate: new Date().toISOString().slice(0, 10),
+					amount: defaultFeeAmount ?? '',
+					frequency: defaultFeeFrequency ?? 'yearly',
+					startDate: new Date().toISOString().slice(0, 10),
+					accountId: null,
+				}),
 	}
 }
 

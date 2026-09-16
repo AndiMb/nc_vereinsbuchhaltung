@@ -163,6 +163,29 @@ return [
 		['name' => 'openItem#reopen', 'url' => '/api/open-items/{id}/reopen', 'verb' => 'POST'],
 		['name' => 'openItem#destroy', 'url' => '/api/open-items/{id}', 'verb' => 'DELETE'],
 
+		// Beitragsgruppen & Zuweisungen (Issue #68)
+		['name' => 'contributionGroup#index', 'url' => '/api/contribution-groups', 'verb' => 'GET'],
+		['name' => 'contributionGroup#create', 'url' => '/api/contribution-groups', 'verb' => 'POST'],
+		['name' => 'contributionGroup#update', 'url' => '/api/contribution-groups/{id}', 'verb' => 'PUT'],
+		['name' => 'contributionGroup#destroy', 'url' => '/api/contribution-groups/{id}', 'verb' => 'DELETE'],
+		['name' => 'contributionGroup#minAmountPreview', 'url' => '/api/contribution-groups/{id}/min-amount-preview', 'verb' => 'GET'],
+		['name' => 'contributionGroup#applyMinAmountIncrease', 'url' => '/api/contribution-groups/{id}/min-amount-increase', 'verb' => 'POST'],
+
+		['name' => 'assignment#index', 'url' => '/api/assignments', 'verb' => 'GET'],
+		['name' => 'assignment#create', 'url' => '/api/assignments', 'verb' => 'POST'],
+		['name' => 'assignment#previewNew', 'url' => '/api/assignments/preview', 'verb' => 'POST'],
+		['name' => 'assignment#update', 'url' => '/api/assignments/{id}', 'verb' => 'PUT'],
+		['name' => 'assignment#setMinAmountOverride', 'url' => '/api/assignments/{id}/min-amount-override', 'verb' => 'POST'],
+		['name' => 'assignment#end', 'url' => '/api/assignments/{id}/end', 'verb' => 'POST'],
+		['name' => 'assignment#events', 'url' => '/api/assignments/{id}/events', 'verb' => 'GET'],
+
+		// Forderungen inkl. manueller Einzelforderung (Issue #68)
+		['name' => 'claim#index', 'url' => '/api/claims', 'verb' => 'GET'],
+		['name' => 'claim#create', 'url' => '/api/claims', 'verb' => 'POST'],
+		['name' => 'claim#settle', 'url' => '/api/claims/{id}/settle', 'verb' => 'POST'],
+		['name' => 'claim#cancel', 'url' => '/api/claims/{id}/cancel', 'verb' => 'POST'],
+		['name' => 'claim#defer', 'url' => '/api/claims/{id}/defer', 'verb' => 'POST'],
+
 		// Export (CSV-Download)
 		['name' => 'export#journal',  'url' => '/api/export/journal',  'verb' => 'GET'],
 		['name' => 'export#balances', 'url' => '/api/export/balances', 'verb' => 'GET'],

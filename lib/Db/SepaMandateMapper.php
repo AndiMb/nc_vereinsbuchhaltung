@@ -63,32 +63,6 @@ class SepaMandateMapper extends QBMapper {
 		return $rows[0] ?? null;
 	}
 
-	/** @return SepaMandate[] aktive Mandate eines Mitglieds (i. d. R. maximal eines). */
-	public function findActiveByMember(int $memberId): array {
-		$qb = $this->db->getQueryBuilder();
-		$qb->select('*')
-			->from($this->getTableName())
-			->where($qb->expr()->eq('member_id', $qb->createNamedParameter($memberId, IQueryBuilder::PARAM_INT)))
-			->andWhere($qb->expr()->eq('status', $qb->createNamedParameter('active')));
-		return $this->findEntities($qb);
-	}
-
-	/**
-	 * Alle Mandate eines Mitglieds, unabhängig vom Status – gebraucht von
-	 * {@see \OCA\Vereinsbuchhaltung\Service\MemberService::blockingReasons()}:
-	 * auch ein widerrufenes Mandat verweist per member_id auf das Mitglied
-	 * und würde beim Löschen verwaisen.
-	 *
-	 * @return SepaMandate[]
-	 */
-	public function findByMember(int $memberId): array {
-		$qb = $this->db->getQueryBuilder();
-		$qb->select('*')
-			->from($this->getTableName())
-			->where($qb->expr()->eq('member_id', $qb->createNamedParameter($memberId, IQueryBuilder::PARAM_INT)));
-		return $this->findEntities($qb);
-	}
-
 	/**
 	 * Anzahl aller Mandate, unabhaengig vom Status.
 	 *

@@ -145,6 +145,30 @@ export default {
 	deleteMembershipFee: (id) => axios.delete(url(`/sepa/fees/${id}`)),
 	catchUpMembershipFee: (id) => axios.post(url(`/sepa/fees/${id}/catch-up`)),
 
+	// Beitragsgruppen (Issue #68)
+	listContributionGroups: () => axios.get(url('/contribution-groups')),
+	createContributionGroup: (data) => axios.post(url('/contribution-groups'), data),
+	updateContributionGroup: (id, data) => axios.put(url(`/contribution-groups/${id}`), data),
+	deleteContributionGroup: (id) => axios.delete(url(`/contribution-groups/${id}`)),
+	previewMinAmountIncrease: (id, newMinMonthlyAmount) => axios.get(url(`/contribution-groups/${id}/min-amount-preview`), { params: { newMinMonthlyAmount } }),
+	applyMinAmountIncrease: (id, newMinMonthlyAmount) => axios.post(url(`/contribution-groups/${id}/min-amount-increase`), { newMinMonthlyAmount }),
+
+	// Zuweisungen (Issue #68)
+	listAssignments: (memberId) => axios.get(url('/assignments'), { params: memberId ? { memberId } : {} }),
+	createAssignment: (data) => axios.post(url('/assignments'), data),
+	previewNewAssignment: (data) => axios.post(url('/assignments/preview'), data),
+	updateAssignment: (id, data) => axios.put(url(`/assignments/${id}`), data),
+	setAssignmentMinAmountOverride: (id, data) => axios.post(url(`/assignments/${id}/min-amount-override`), data),
+	endAssignment: (id, validTo) => axios.post(url(`/assignments/${id}/end`), { validTo }),
+	assignmentEvents: (id) => axios.get(url(`/assignments/${id}/events`)),
+
+	// Forderungen inkl. manueller Einzelforderung (Issue #68)
+	listClaims: () => axios.get(url('/claims')),
+	createClaim: (data) => axios.post(url('/claims'), data),
+	settleClaim: (id, settlementType, note) => axios.post(url(`/claims/${id}/settle`), { settlementType, note: note || undefined }),
+	cancelClaim: (id, reason) => axios.post(url(`/claims/${id}/cancel`), { reason }),
+	deferClaim: (id, deferredUntil, reason) => axios.post(url(`/claims/${id}/defer`), { deferredUntil, reason }),
+
 	// Massenanlage aus einer CSV-Liste: erst pruefen, dann anlegen
 	previewMemberImport: (csv) => axios.post(url('/sepa/members/import/preview'), { csv }),
 	runMemberImport: (csv) => axios.post(url('/sepa/members/import'), { csv }),

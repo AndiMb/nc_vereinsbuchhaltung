@@ -9,6 +9,9 @@
 				<button :class="{ active: contribView === 'batch' }" @click="$emit('update:contrib-view', 'batch')">
 					{{ t('Einzug') }}
 				</button>
+				<button :class="{ active: contribView === 'groups' }" @click="$emit('update:contrib-view', 'groups')">
+					{{ t('Beitragsgruppen') }}
+				</button>
 			</div>
 			<div v-if="contribView === 'members'" class="vbh-sectiontop-actions">
 				<NcButton variant="secondary" @click="$refs.membersList.openImportDialog()">
@@ -31,6 +34,7 @@
 				:defaultFeeAmount="defaultFeeAmount"
 				:defaultFeeFrequency="defaultFeeFrequency" />
 			<SepaBatchPanel v-show="contribView === 'batch'" :isMobile="isMobile" />
+			<ContributionGroupsPanel v-show="contribView === 'groups'" />
 		</div>
 	</div>
 </template>
@@ -39,6 +43,7 @@
 import { mdiPlus } from '@mdi/js'
 import { NcButton, NcIconSvgWrapper } from '@nextcloud/vue'
 import { toRefs } from 'vue'
+import ContributionGroupsPanel from './ContributionGroupsPanel.vue'
 import MembersList from './MembersList.vue'
 import SepaBatchPanel from './SepaBatchPanel.vue'
 import { useMembershipFees } from '../composables/useMembershipFees.js'
@@ -56,7 +61,7 @@ import { useMembershipFees } from '../composables/useMembershipFees.js'
  */
 export default {
 	name: 'ContributionsTab',
-	components: { NcButton, NcIconSvgWrapper, MembersList, SepaBatchPanel },
+	components: { NcButton, NcIconSvgWrapper, MembersList, SepaBatchPanel, ContributionGroupsPanel },
 	props: {
 		contribView: { type: String, required: true },
 		isMobile: { type: Boolean, default: false },
