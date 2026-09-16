@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\ContributionCycleTaskService;
+use OCA\Vereinsbuchhaltung\Service\DebitBatchTaskService;
 use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCA\Vereinsbuchhaltung\Service\TaskService;
@@ -26,8 +27,10 @@ use OCP\IRequest;
  * solche Abfrage ein (siehe dortige Klassendoc, warum keine eigene Tabelle
  * nötig ist). Issue #70 hängt mit {@see ContributionCycleTaskService} den
  * Einzugszyklus (Vorwarnfenster, fehlendes Mandat, gerissene Vorlauffrist,
- * überfällige Überweiser-Forderungen) nach demselben Muster ein. Spätere
- * Tickets (Mandats-Verfall-Vorwarnung, Rücklastschrift, ...) tun es ihnen gleich.
+ * überfällige Überweiser-Forderungen) nach demselben Muster ein, Issue #71
+ * ergänzt mit {@see DebitBatchTaskService} „Freigabe fällig"/„Einreichung
+ * überfällig" (Spec §7). Spätere Tickets (Mandats-Verfall-Vorwarnung,
+ * Rücklastschrift, ...) tun es ihnen gleich.
  */
 class TaskController extends Controller {
 
@@ -36,6 +39,7 @@ class TaskController extends Controller {
 		private TaskService $service,
 		private MandateActivationService $mandateActivation,
 		private ContributionCycleTaskService $contributionCycle,
+		private DebitBatchTaskService $debitBatchTasks,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -51,6 +55,9 @@ class TaskController extends Controller {
 		}
 		foreach ($this->contributionCycle->findTasks() as $i => $task) {
 			$tasks[] = $task + ['id' => 'contribution-cycle-' . ($task['objectId'] ?? 'run') . '-' . $i, 'createdAt' => null];
+		}
+		foreach ($this->debitBatchTasks->findTasks() as $i => $task) {
+			$tasks[] = $task + ['id' => 'debit-batch-' . ($task['objectId'] ?? 'run') . '-' . $i, 'createdAt' => null];
 		}
 		return new DataResponse($tasks);
 	}

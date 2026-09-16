@@ -339,4 +339,47 @@ class MandateServiceTest extends TestCase {
 		$this->expectException(\InvalidArgumentException::class);
 		$this->service()->endDueToDeparture(1);
 	}
+
+	// --- Freigabe & Einreichung (Issue #71) -------------------------------------
+
+	/** {@see \OCA\Vereinsbuchhaltung\Service\DebitBatchService::submit()} ruft dies für jedes beteiligte Mandat auf. */
+	public function testMarkPresentedSetztLastPresentedDueDate(): void {
+		$mandate = $this->activeMandate(1);
+		$this->mandateMapper->method('find')->with(1)->willReturn($mandate);
+
+		$result = $this->service()->markPresented(1, '2026-10-01');
+
+		$this->assertSame('2026-10-01', $result->getLastPresentedDueDate());
+	}
+
+	/**
+	 * Ein Mandat kann über mehrere unabhängig fällige Forderungen in mehr als
+	 * einem Lauf zugleich stecken – ein späterer Aufruf mit einem FRÜHEREN
+	 * Termin (Läufe werden nicht zwingend in Terminreihenfolge eingereicht)
+	 * darf den bereits gemerkten späteren Termin nicht zurückdrehen.
+	 */
+	public function testMarkPresentedDrehtEinenSpaeterenTerminNichtZurueck(): void {
+		$mandate = $this->activeMandate(1);
+		$mandate->setLastPresentedDueDate('2026-11-01');
+		$this->mandateMapper->method('find')->with(1)->willReturn($mandate);
+		$this->mandateMapper->expects($this->never())->method('update');
+
+		$result = $this->service()->markPresented(1, '2026-10-01');
+
+		$this->assertSame('2026-11-01', $result->getLastPresentedDueDate());
+	}
+
+	public function testMarkAmendmentTransmittedSetztStatusUndDebitItemId(): void {
+		$amendment = new MandateAmendment();
+		$amendment->setId(7);
+		$amendment->setMandateId(1);
+		$amendment->setType(MandateAmendment::TYPE_ACCOUNT);
+		$amendment->setStatus(MandateAmendment::STATUS_OPEN);
+		$this->amendmentMapper->method('find')->with(7)->willReturn($amendment);
+
+		$result = $this->service()->markAmendmentTransmitted(7, 42);
+
+		$this->assertSame(MandateAmendment::STATUS_TRANSMITTED, $result->getStatus());
+		$this->assertSame(42, $result->getDebitItemId());
+	}
 }

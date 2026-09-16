@@ -433,6 +433,42 @@ class MandateService {
 	}
 
 	/**
+	 * Gegenstück zu {@see reopenAmendment()} (Issue #71): ein Amendment gilt
+	 * erst als `transmitted`, sobald der Einzugsposten, der es in die
+	 * pain.008-Datei getragen hat, tatsächlich bei der Bank *eingereicht*
+	 * wurde – „steckt in keinem eingereichten Einzugsposten" (Spec §2.2,
+	 * `MandateAmendment`-Klassendoc). Vor der Freigabe ist es `open`, bei der
+	 * Freigabe selbst entscheidet nur der Snapshot in {@see \OCA\Vereinsbuchhaltung\Db\DebitItem}
+	 * über `amendment_indicator`/`original_debtor_account` – der Statuswechsel
+	 * hier passiert erst mit {@see \OCA\Vereinsbuchhaltung\Service\DebitBatchService::submit()}.
+	 */
+	public function markAmendmentTransmitted(int $amendmentId, int $debitItemId): MandateAmendment {
+		$amendment = $this->amendmentMapper->find($amendmentId);
+		$amendment->setStatus(MandateAmendment::STATUS_TRANSMITTED);
+		$amendment->setDebitItemId($debitItemId);
+		return $this->amendmentMapper->update($amendment);
+	}
+
+	/**
+	 * Einreichung markiert (Issue #71, Schritt 2 „Datei ist bei der Bank
+	 * eingereicht"): setzt `last_presented_due_date`, Grundlage der
+	 * 36-Monats-Verfallsfrist ({@see MandateExpiryCalculator}). Ein Mandat kann
+	 * über mehrere, unabhängig fällige Forderungen (z. B. Beitrag + separate
+	 * manuelle Forderung) in mehr als einem Lauf zugleich stecken – nur der
+	 * *spätere* Termin zählt als „zuletzt vorgelegt", ein früherer Aufruf
+	 * (Läufe werden nicht notwendig in Terminreihenfolge eingereicht) darf den
+	 * bereits gemerkten späteren Termin nicht wieder zurückdrehen.
+	 */
+	public function markPresented(int $id, string $dueDate): Mandate {
+		$mandate = $this->mapper->find($id);
+		if ($mandate->getLastPresentedDueDate() === null || $dueDate > $mandate->getLastPresentedDueDate()) {
+			$mandate->setLastPresentedDueDate($dueDate);
+			$mandate = $this->mapper->update($mandate);
+		}
+		return $mandate;
+	}
+
+	/**
 	 * Protokolliert den Versand eines elektronischen Aktivierungslinks
 	 * (Issue #67) in der Mandats-Historie – aufgerufen von
 	 * {@see MandateActivationService::issueLink()}, die selbst keinen
