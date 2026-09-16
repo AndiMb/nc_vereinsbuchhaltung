@@ -372,6 +372,12 @@ export default {
 
 		async reload() {
 			await Promise.all([this.loadMembers(), this.loadMembershipFees(), this.loadSepaMandates()])
+			// Die offene Akte zeigt sonst weiter den Stand von vor dem Neuladen -
+			// nach @changed (verknuepft/geloest/Austritt) muss sie den frischen
+			// Datensatz bekommen, sonst wirkt z.B. "Verknuepfen" folgenlos.
+			if (this.editingMember) {
+				this.editingMember = this.members.find((m) => m.id === this.editingMember.id) ?? null
+			}
 		},
 
 		/**
