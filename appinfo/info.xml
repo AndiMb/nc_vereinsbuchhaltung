@@ -206,12 +206,16 @@ Full manual in German and English: see documentation.
 		<personal>OCA\Vereinsbuchhaltung\Settings\PersonalSettings</personal>
 		<personal-section>OCA\Vereinsbuchhaltung\Settings\Section</personal-section>
 	</settings>
-	<!-- Benachrichtigungsgerüst für Self-Service-Änderungen (Spec §3.4, Issue
-	     #74): reine Registrierung, noch ohne konkrete Activity-Einträge - die
-	     auslösenden Aktionen (Mandat, Beitrag) kommen erst mit #75/#76. -->
+	<!-- Benachrichtigungsgerüst für Self-Service-Änderungen (Spec §3.4).
+	     #74 registrierte den Provider noch ohne konkrete Ereignisse; Issue
+	     #75 (Mandats-Aktionskatalog) füllt ihn mit den ersten Subjekten und
+	     ergänzt den zweiten Settings-Typ für den Widerruf-Sonderfall
+	     ("Mail-Voreinstellung: an bei Widerruf, aus sonst" - siehe
+	     SelfServiceMandateRevocationSetting-Klassendoc). -->
 	<activity>
 		<settings>
 			<setting>OCA\Vereinsbuchhaltung\Activity\SelfServiceSetting</setting>
+			<setting>OCA\Vereinsbuchhaltung\Activity\SelfServiceMandateRevocationSetting</setting>
 		</settings>
 		<providers>
 			<provider>OCA\Vereinsbuchhaltung\Activity\SelfServiceProvider</provider>

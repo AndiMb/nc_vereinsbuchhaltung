@@ -30,9 +30,17 @@ use OCP\IUserSession;
  * Elektronische Aktivierung (Selbst-Aktivierung bei Zustimmung über den
  * Einmal-Link, Issue #67) ist {@see activateElectronic()} - orchestriert vom
  * eigenen {@see MandateActivationService} (Token-Lebenszyklus, Mailversand),
- * der `actor_type: member` protokolliert. Jeder andere Aufruf hier bleibt
- * `actor_type: staff`, mit Ausnahme des automatischen Verfalls-Crons
- * (`actor_type: system`).
+ * der `actor_type: member` protokolliert. Jeder andere Aufruf hier las bisher
+ * (#66) `actor_type: staff` fest verdrahtet; seit Issue #75 ({@see
+ * grantElectronicSelfService()}/{@see replaceElectronicSelfService()} sowie
+ * die direkt wiederverwendeten {@see revoke()}/{@see amendBankDetails()})
+ * liest jede Zustandsänderung stattdessen den Kanal aus dem geteilten
+ * {@see ActorContextService} (`staff` per Default, `member` für den
+ * Self-Service-Kanal - siehe dortige Klassendoku und
+ * PermissionMiddleware::authorizeSelfService()). Das war genau der
+ * Erweiterungspunkt, für den #74 diesen Dienst eingeführt hat. Der
+ * automatische Verfalls-/Austritts-Cron bleibt fest auf `actor_type: system`
+ * verdrahtet (läuft nicht über die Middleware, setzt den Kanal nirgends).
  */
 class MandateService {
 
@@ -50,6 +58,7 @@ class MandateService {
 		private IbanValidator $ibanValidator,
 		private TransactionRunner $transaction,
 		private AuditService $audit,
+		private ActorContextService $actorContext,
 		private IUserSession $userSession,
 		private IConfig $config,
 		private IL10N $l10n,
@@ -302,7 +311,11 @@ class MandateService {
 	}
 
 	/**
-	 * Widerruf: terminal, nie reaktivierbar (Spec §2.2).
+	 * Widerruf: terminal, nie reaktivierbar (Spec §2.2). Von zwei Kanälen
+	 * aufrufbar - der Admin-Akte (`buchhalter`) UND, seit Issue #75, direkt
+	 * vom Self-Service ({@see \OCA\Vereinsbuchhaltung\Service\SelfServiceMandateService::revoke()},
+	 * „Widerruf ist ein Recht" laut Spec §3.4) - der tatsächliche Kanal kommt
+	 * aus dem {@see ActorContextService}, nicht aus einem Methodenparameter.
 	 *
 	 * @throws \InvalidArgumentException wenn der Übergang nicht erlaubt ist
 	 */
@@ -312,7 +325,7 @@ class MandateService {
 		$this->end($mandate, Mandate::END_REASON_REVOKED);
 
 		$this->audit->log('SEPA-Mandat widerrufen', 'mandate', $mandate->getId(), ['referenz' => $mandate->getMandateReference()]);
-		$this->logEvent($mandate, $this->l10n->t('Mandat widerrufen'), MandateEvent::ACTOR_STAFF);
+		$this->logEvent($mandate, $this->l10n->t('Mandat widerrufen'), $this->actorContext->actorType());
 		return $mandate;
 	}
 
@@ -348,7 +361,10 @@ class MandateService {
 	 * IBAN/BIC-Wechsel bei *gleichem* Kontoinhaber: dasselbe Mandat bleibt
 	 * bestehen, keine neue Unterschrift – stattdessen ein
 	 * `MandateAmendment(type: account)` mit den alten Werten (Spec §2.2,
-	 * Compliance-Anhang §8: `AmdmntInd=true` + `OrgnlDbtrAcct=SMNDA`).
+	 * Compliance-Anhang §8: `AmdmntInd=true` + `OrgnlDbtrAcct=SMNDA`). Seit
+	 * Issue #75 auch direkt vom Self-Service aufrufbar (Spec §3.4 „IBAN
+	 * ändern (gleicher Kontoinhaber)", kein Sperrfenster nötig) - siehe
+	 * {@see \OCA\Vereinsbuchhaltung\Service\SelfServiceMandateService::changeIban()}.
 	 *
 	 * @throws \InvalidArgumentException wenn sich nichts ändert oder der Übergang nicht erlaubt ist
 	 */
@@ -378,7 +394,7 @@ class MandateService {
 			$mandate = $this->mapper->update($mandate);
 
 			$this->audit->log('SEPA-Mandat: Bankverbindung per Amendment geändert', 'mandate', $mandate->getId(), ['referenz' => $mandate->getMandateReference()]);
-			$this->logEvent($mandate, $this->l10n->t('Bankverbindung geändert (Amendment, alte IBAN %s)', [(string)$amendment->getOldIban()]), MandateEvent::ACTOR_STAFF);
+			$this->logEvent($mandate, $this->l10n->t('Bankverbindung geändert (Amendment, alte IBAN %s)', [(string)$amendment->getOldIban()]), $this->actorContext->actorType());
 			return $mandate;
 		});
 	}
@@ -422,6 +438,103 @@ class MandateService {
 			$this->logEvent($old, $this->l10n->t('Mandat ersetzt durch %s (Kontoinhaberwechsel)', [$new->getMandateReference()]), MandateEvent::ACTOR_STAFF);
 			$this->logCreated($new, $this->l10n->t('Ersetzt Mandat %s (Kontoinhaberwechsel)', [$old->getMandateReference()]));
 			return $new;
+		});
+	}
+
+	// --- Self-Service-Aktionskatalog (Issue #75) --------------------------------
+	// Beide Methoden werden ausschließlich von
+	// {@see \OCA\Vereinsbuchhaltung\Service\SelfServiceMandateService} aufgerufen,
+	// die die member_id/mandate_id serverseitig auflöst (IDOR-Schutz - siehe
+	// dortige Klassendoku); hier unten zählt nur noch die reine Zustandslogik.
+
+	/**
+	 * Self-Service: Mandat erfassen + elektronisch erteilen in EINEM Schritt
+	 * (Spec §3.4 „Mandat erfassen + elektronisch erteilen", Issue #75).
+	 * Anders als der E-Mail-Einmal-Link-Weg (#67, gedacht für Mitglieder OHNE
+	 * NC-Konto) ist die/der Zustimmende hier bereits über die eigene,
+	 * angemeldete Self-Service-Sitzung authentifiziert - ein zusätzlicher
+	 * Bestätigungslink wäre ein überflüssiger Umweg. `consentActor` ist
+	 * deshalb NICHT die Mailadresse (wie beim Einmal-Link), sondern die
+	 * NC-Konto-Uid der Sitzung.
+	 *
+	 * In einer Transaktion: schlägt die Aktivierung nach erfolgreicher Anlage
+	 * fehl, bliebe sonst ein unbestätigter Entwurf zurück, der laut
+	 * {@see MandateStateMachine::assertNoLiveMandate()} jeden weiteren Versuch
+	 * blockiert - das Mitglied säße ohne erkennbaren Ausweg fest.
+	 *
+	 * @throws DoesNotExistException wenn es das Mitglied nicht gibt
+	 * @throws \InvalidArgumentException bei ungültigen Eingaben oder bereits
+	 *                                   bestehendem lebenden Mandat
+	 */
+	public function grantElectronicSelfService(
+		int $memberId,
+		string $iban,
+		?string $bic,
+		?string $accountHolder,
+		int $mandateTextVersionId,
+		string $consentIp,
+		string $consentUserAgent,
+		string $consentActor,
+	): Mandate {
+		return $this->transaction->run(function () use ($memberId, $iban, $bic, $accountHolder, $mandateTextVersionId, $consentIp, $consentUserAgent, $consentActor): Mandate {
+			$mandate = $this->createElectronic($memberId, $iban, $bic, $accountHolder);
+			return $this->activateElectronic((int)$mandate->getId(), $mandateTextVersionId, $this->now(), $consentIp, $consentUserAgent, $consentActor);
+		});
+	}
+
+	/**
+	 * Kontoinhaberwechsel im Self-Service (Spec §3.4 „Kontoinhaber wechseln
+	 * (erzwingt neues Mandat)", Issue #75): fachlich wie {@see replaceMandate()}
+	 * (altes Mandat `ended`/`replaced`, ein komplett neues Mandat statt eines
+	 * Amendments - der Kontoinhaber, nicht nur die IBAN, wechselt), aber
+	 * elektronisch mit sofortiger Selbst-Aktivierung statt Papier-Entwurf, aus
+	 * demselben Grund wie {@see grantElectronicSelfService()}: die/der
+	 * Zustimmende ist bereits angemeldet.
+	 *
+	 * @throws DoesNotExistException wenn es das alte Mandat nicht gibt
+	 * @throws \InvalidArgumentException wenn der Übergang nicht erlaubt ist
+	 *                                   oder der neue Kontoinhaber leer ist
+	 */
+	public function replaceElectronicSelfService(
+		int $oldId,
+		string $iban,
+		?string $bic,
+		string $newAccountHolder,
+		int $mandateTextVersionId,
+		string $consentIp,
+		string $consentUserAgent,
+		string $consentActor,
+	): Mandate {
+		$old = $this->mapper->find($oldId);
+		$this->stateMachine->assertCanReplace($old);
+		$newAccountHolder = trim($newAccountHolder);
+		if ($newAccountHolder === '') {
+			throw new \InvalidArgumentException($this->l10n->t('Der Kontoinhaber ist Pflicht.'));
+		}
+
+		return $this->transaction->run(function () use ($old, $iban, $bic, $newAccountHolder, $mandateTextVersionId, $consentIp, $consentUserAgent, $consentActor): Mandate {
+			$this->end($old, Mandate::END_REASON_REPLACED);
+
+			$new = new Mandate();
+			$new->setMemberId($old->getMemberId());
+			$new->setMandateReference($this->generateReference());
+			$new->setIban($this->requireIban($iban));
+			$new->setBic($this->normalizeBic($bic));
+			$new->setAccountHolder($newAccountHolder);
+			$new->setSignatureType(Mandate::SIGNATURE_ELECTRONIC);
+			$new->setStatus(Mandate::STATUS_DRAFT);
+			$new->setCreatedAt($this->now());
+			$new = $this->mapper->insert($new);
+
+			$this->audit->log('SEPA-Mandat ersetzt (Kontoinhaberwechsel, Self-Service)', 'mandate', $new->getId(), [
+				'alte_referenz' => $old->getMandateReference(),
+				'neue_referenz' => $new->getMandateReference(),
+			]);
+			$this->logEvent($old, $this->l10n->t('Mandat ersetzt durch %s (Kontoinhaberwechsel, Self-Service)', [$new->getMandateReference()]), $this->actorContext->actorType());
+
+			// Aktiviert im selben Zug (siehe Klassendoc grantElectronicSelfService())
+			// - protokolliert selbst als ACTOR_MEMBER, siehe activateElectronic().
+			return $this->activateElectronic((int)$new->getId(), $mandateTextVersionId, $this->now(), $consentIp, $consentUserAgent, $consentActor);
 		});
 	}
 
@@ -590,19 +703,34 @@ class MandateService {
 		$this->mapper->update($mandate);
 	}
 
+	/**
+	 * Gemeinsames Anlegen-Protokoll für Papier- UND elektronischen Entwurf
+	 * (Spec §2.2 „createDraft()") - die Audit-Aktionsbezeichnung folgt seit
+	 * Issue #75 dem tatsächlichen `signature_type` (vorher stand hier
+	 * unabhängig vom Weg immer "(Papier)", was einen im Self-Service
+	 * angelegten elektronischen Entwurf falsch beschriftet hätte); die
+	 * MandateEvent-Nachricht selbst unterschied das schon vorher richtig
+	 * über den optionalen `$message`-Parameter (siehe createDraft()).
+	 */
 	private function logCreated(Mandate $mandate, ?string $message = null): void {
-		$this->audit->log('SEPA-Mandat angelegt (Papier)', 'mandate', $mandate->getId(), [
+		$electronic = $mandate->getSignatureType() === Mandate::SIGNATURE_ELECTRONIC;
+		$this->audit->log($electronic ? 'SEPA-Mandat angelegt (elektronisch)' : 'SEPA-Mandat angelegt (Papier)', 'mandate', $mandate->getId(), [
 			'referenz' => $mandate->getMandateReference(),
 			'mitgliedId' => $mandate->getMemberId(),
 		]);
-		$this->logEvent($mandate, $message ?? $this->l10n->t('Mandats-Entwurf angelegt (Papier)'), MandateEvent::ACTOR_STAFF);
+		$this->logEvent($mandate, $message ?? $this->l10n->t('Mandats-Entwurf angelegt (Papier)'), $this->actorContext->actorType());
 	}
 
 	private function logEvent(Mandate $mandate, string $message, string $actorType, ?string $onBehalfNote = null): void {
 		$event = new MandateEvent();
 		$event->setMandateId((int)$mandate->getId());
 		$event->setActorType($actorType);
-		$event->setActorUid($actorType === MandateEvent::ACTOR_STAFF ? $this->currentUid() : null);
+		// NC-Uid nur bei einer echten Sitzung (staff ODER member) - der
+		// anonyme Einmal-Link-Konsens (activateElectronic() über
+		// MandateActivationService::consent(), #[PublicPage], keine Session)
+		// bleibt korrekt uid-los, weil IUserSession::getUser() dort ohnehin
+		// null liefert.
+		$event->setActorUid(in_array($actorType, [MandateEvent::ACTOR_STAFF, MandateEvent::ACTOR_MEMBER], true) ? $this->currentUid() : null);
 		$event->setOnBehalfNote($onBehalfNote);
 		$event->setMessage($message);
 		$event->setCreatedAt($this->now());

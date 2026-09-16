@@ -7,11 +7,13 @@ namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 use OCA\Vereinsbuchhaltung\Db\Mandate;
 use OCA\Vereinsbuchhaltung\Db\MandateAmendment;
 use OCA\Vereinsbuchhaltung\Db\MandateAmendmentMapper;
+use OCA\Vereinsbuchhaltung\Db\MandateEvent;
 use OCA\Vereinsbuchhaltung\Db\MandateEventMapper;
 use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
+use OCA\Vereinsbuchhaltung\Service\ActorContextService;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\IbanValidator;
 use OCA\Vereinsbuchhaltung\Service\MandateDocumentService;
@@ -42,12 +44,28 @@ class MandateServiceTest extends TestCase {
 	private MandateAmendmentMapper&MockObject $amendmentMapper;
 	private MandateEventMapper&MockObject $eventMapper;
 	private MemberMapper&MockObject $memberMapper;
+	/**
+	 * Echte Instanz statt Mock, als Feld statt lokal in service() gebaut:
+	 * Tests zum Issue-#75-Aktionskatalog (Widerruf/IBAN-Änderung über den
+	 * Self-Service-Kanal) müssen VOR dem service()-Aufruf per
+	 * setMemberChannel() umschalten können - der Default-Kanal "staff" ist
+	 * das, was jeder ältere Test hier stillschweigend erwartet.
+	 */
+	private ActorContextService $actorContext;
+	/** Dieselbe Instanz, mit der auch $actorContext gebaut wird - wie in der echten DI teilen sich beide dieselbe IUserSession. */
+	private IUserSession&MockObject $userSession;
 
 	protected function setUp(): void {
 		$this->mandateMapper = $this->createMock(MandateMapper::class);
 		$this->amendmentMapper = $this->createMock(MandateAmendmentMapper::class);
 		$this->eventMapper = $this->createMock(MandateEventMapper::class);
 		$this->memberMapper = $this->createMock(MemberMapper::class);
+
+		$user = $this->createMock(IUser::class);
+		$user->method('getUID')->willReturn('kassenwart');
+		$this->userSession = $this->createMock(IUserSession::class);
+		$this->userSession->method('getUser')->willReturn($user);
+		$this->actorContext = new ActorContextService($this->userSession);
 	}
 
 	private function service(): MandateService {
@@ -56,11 +74,6 @@ class MandateServiceTest extends TestCase {
 
 		$config = $this->createMock(IConfig::class);
 		$config->method('getAppValue')->willReturnCallback(static fn (string $app, string $key, string $default = '') => $default);
-
-		$user = $this->createMock(IUser::class);
-		$user->method('getUID')->willReturn('kassenwart');
-		$userSession = $this->createMock(IUserSession::class);
-		$userSession->method('getUser')->willReturn($user);
 
 		// insert()/update() geben in der echten QBMapper-Implementierung das
 		// (ggf. mit ID versehene) Entity zurück - hier reicht "gibt weiter,
@@ -89,7 +102,8 @@ class MandateServiceTest extends TestCase {
 			new IbanValidator($this->createMock(IL10N::class)),
 			$transaction,
 			$this->createMock(AuditService::class),
-			$userSession,
+			$this->actorContext,
+			$this->userSession,
 			$config,
 			$this->createMock(IL10N::class),
 		);
@@ -381,5 +395,142 @@ class MandateServiceTest extends TestCase {
 
 		$this->assertSame(MandateAmendment::STATUS_TRANSMITTED, $result->getStatus());
 		$this->assertSame(42, $result->getDebitItemId());
+	}
+
+	// --- Self-Service-Aktionskatalog (Issue #75) --------------------------------
+
+	/**
+	 * Kern der Personalunion-Regel (Spec §3.9): dieselbe Methode (revoke())
+	 * protokolliert je nach Kanal - nicht je nach Identität - unterschiedliche
+	 * actor_types. ActorContextService steht per Default auf "staff" (siehe
+	 * setUp()), genau wie es die Admin-Akte für denselben Aufruf setzen würde.
+	 */
+	public function testWiderrufProtokolliertStaffAlsActorTypeOhneSelfServiceKanal(): void {
+		$mandate = $this->activeMandate(1);
+		$this->mandateMapper->method('find')->willReturn($mandate);
+		$captured = null;
+		$this->eventMapper->expects($this->once())->method('insert')
+			->with($this->callback(function (MandateEvent $e) use (&$captured): bool {
+				$captured = $e;
+				return true;
+			}));
+
+		$this->service()->revoke(1);
+
+		$this->assertSame(MandateEvent::ACTOR_STAFF, $captured->getActorType());
+	}
+
+	/** Gegenprobe: derselbe Aufruf über den Self-Service-Kanal protokolliert "member" (Spec §3.4 "Widerruf ist ein Recht"). */
+	public function testWiderrufProtokolliertMemberAlsActorTypeUeberSelfServiceKanal(): void {
+		$this->actorContext->setMemberChannel(42);
+		$mandate = $this->activeMandate(1);
+		$this->mandateMapper->method('find')->willReturn($mandate);
+		$captured = null;
+		$this->eventMapper->expects($this->once())->method('insert')
+			->with($this->callback(function (MandateEvent $e) use (&$captured): bool {
+				$captured = $e;
+				return true;
+			}));
+
+		$this->service()->revoke(1);
+
+		$this->assertSame(MandateEvent::ACTOR_MEMBER, $captured->getActorType());
+	}
+
+	public function testGrantElectronicSelfServiceLegtMandatAnUndAktiviertEsSofort(): void {
+		$this->actorContext->setMemberChannel(42);
+		$member = new Member();
+		$member->setId(42);
+		$member->setMemberType(Member::TYPE_PERSON);
+		$member->setFirstName('Katrin');
+		$member->setLastName('Brunner');
+		$this->memberMapper->method('find')->willReturn($member);
+		$this->mandateMapper->method('findLiveByMember')->willReturn([]);
+		// activateElectronic() laedt das gerade angelegte Mandat per find() neu -
+		// der geteilte insert()-Stub in service() liefert zwar dieselbe Instanz
+		// zurueck, aber ohne eigenen find()-Stub kaeme hier eine PHPUnit-
+		// Default-Instanz mit signatureType=papier zurueck (Entity-Standardwert)
+		// und die Aktivierung schluege fehl.
+		$this->mandateMapper->method('find')->willReturnCallback(static function (int $id): Mandate {
+			$m = new Mandate();
+			$m->setId($id);
+			$m->setMemberId(42);
+			$m->setMandateReference('M-' . $id);
+			$m->setAccountHolder('Katrin Brunner');
+			$m->setSignatureType(Mandate::SIGNATURE_ELECTRONIC);
+			$m->setStatus(Mandate::STATUS_DRAFT);
+			return $m;
+		});
+
+		$mandate = $this->service()->grantElectronicSelfService(
+			42, 'DE12500105170648489890', null, null, 7,
+			'203.0.113.5', 'TestBrowser/1.0', 'katrin.b',
+		);
+
+		$this->assertSame(Mandate::SIGNATURE_ELECTRONIC, $mandate->getSignatureType());
+		$this->assertSame(Mandate::STATUS_ACTIVE, $mandate->getStatus(), 'sofort wirksam - keine separate Zustimmung nötig');
+		$this->assertTrue($mandate->isCollectible());
+		$this->assertSame(7, $mandate->getMandateTextVersion());
+		$this->assertSame('katrin.b', $mandate->getConsentActor());
+		$this->assertNotNull($mandate->getSignedAt(), 'die Zustimmung selbst wird zur Unterschrift');
+	}
+
+	public function testGrantElectronicSelfServiceLehntZweitesLebendesMandatAb(): void {
+		$this->actorContext->setMemberChannel(42);
+		$member = new Member();
+		$member->setId(42);
+		$member->setMemberType(Member::TYPE_PERSON);
+		$member->setFirstName('Katrin');
+		$member->setLastName('Brunner');
+		$this->memberMapper->method('find')->willReturn($member);
+		$this->mandateMapper->method('findLiveByMember')->willReturn([$this->activeMandate()]);
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->grantElectronicSelfService(42, 'DE12500105170648489890', null, null, 7, '203.0.113.5', 'TestBrowser/1.0', 'katrin.b');
+	}
+
+	public function testReplaceElectronicSelfServiceErzeugtNeuesAktivesMandatUndBeendetDasAlte(): void {
+		$this->actorContext->setMemberChannel(42);
+		$old = $this->activeMandate(1);
+		// Zwei verschiedene find()-Aufrufe im selben Ablauf: erst das alte
+		// Mandat (id=1, PAPIER/aktiv), dann - innerhalb von activateElectronic() -
+		// das gerade neu angelegte (andere id, ELEKTRONISCH/entwurf). Ein
+		// einzelnes willReturn($old) wuerde den zweiten Aufruf falsch bedienen.
+		$this->mandateMapper->method('find')->willReturnCallback(static function (int $id) use ($old): Mandate {
+			if ($id === $old->getId()) {
+				return $old;
+			}
+			$m = new Mandate();
+			$m->setId($id);
+			$m->setMemberId($old->getMemberId());
+			$m->setMandateReference('M-' . $id);
+			$m->setAccountHolder('Neuer Kontoinhaber');
+			$m->setSignatureType(Mandate::SIGNATURE_ELECTRONIC);
+			$m->setStatus(Mandate::STATUS_DRAFT);
+			return $m;
+		});
+
+		$new = $this->service()->replaceElectronicSelfService(
+			1, 'DE89370400440532013000', 'COBADEFFXXX', 'Neuer Kontoinhaber', 9,
+			'203.0.113.5', 'TestBrowser/1.0', 'katrin.b',
+		);
+
+		$this->assertNotSame($old->getId(), $new->getId());
+		$this->assertSame(Mandate::SIGNATURE_ELECTRONIC, $new->getSignatureType());
+		$this->assertSame(Mandate::STATUS_ACTIVE, $new->getStatus(), 'sofort wirksam, kein Papier-Entwurf');
+		$this->assertSame('Neuer Kontoinhaber', $new->getAccountHolder());
+		$this->assertSame(9, $new->getMandateTextVersion());
+		$this->assertSame(Mandate::STATUS_ENDED, $old->getStatus());
+		$this->assertSame(Mandate::END_REASON_REPLACED, $old->getEndReason());
+	}
+
+	public function testReplaceElectronicSelfServiceLehntEntwurfAlsAusgangsmandatAb(): void {
+		$this->actorContext->setMemberChannel(42);
+		$old = $this->activeMandate(1);
+		$old->setStatus(Mandate::STATUS_DRAFT);
+		$this->mandateMapper->method('find')->willReturn($old);
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->replaceElectronicSelfService(1, 'DE89370400440532013000', null, 'Jemand anders', 9, '203.0.113.5', 'TestBrowser/1.0', 'katrin.b');
 	}
 }

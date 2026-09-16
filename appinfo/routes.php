@@ -96,6 +96,15 @@ return [
 		// einen (neuen) Einmal-Link an - self_service_enabled +
 		// Kontoverknüpfung, wie jeder andere self#-Endpunkt.
 		['name' => 'self#requestMandateActivationLink', 'url' => '/api/self/mandate/request-link', 'verb' => 'POST'],
+		// Issue #75: Mandats-Aktionskatalog im Self-Service (Spec §3.4) - jede
+		// Aktion löst die member_id serverseitig auf und nimmt NIE eine
+		// Mandats-ID entgegen (IDOR-Schutz, siehe SelfServiceMandateService).
+		['name' => 'self#mandateLegalText', 'url' => '/api/self/mandate/legal-text', 'verb' => 'GET'],
+		['name' => 'self#grantMandate', 'url' => '/api/self/mandate', 'verb' => 'POST'],
+		['name' => 'self#confirmMandate', 'url' => '/api/self/mandate/confirm', 'verb' => 'POST'],
+		['name' => 'self#changeMandateIban', 'url' => '/api/self/mandate/iban', 'verb' => 'POST'],
+		['name' => 'self#replaceMandate', 'url' => '/api/self/mandate/replace', 'verb' => 'POST'],
+		['name' => 'self#revokeMandate', 'url' => '/api/self/mandate/revoke', 'verb' => 'POST'],
 
 		// Rules
 		['name' => 'rule#index', 'url' => '/api/rules', 'verb' => 'GET'],
