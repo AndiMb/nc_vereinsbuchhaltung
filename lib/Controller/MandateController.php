@@ -7,23 +7,35 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Mandate;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
+use OCA\Vereinsbuchhaltung\Service\Export\PrintableReportPage;
+use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
 use OCA\Vereinsbuchhaltung\Service\MandateDocumentService;
+use OCA\Vereinsbuchhaltung\Service\MandateFormRenderer;
+use OCA\Vereinsbuchhaltung\Service\MandateLegalTextService;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
+use OCP\AppFramework\Http\DataDisplayResponse;
 use OCP\AppFramework\Http\DataDownloadResponse;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\EmptyContentSecurityPolicy;
+use OCP\IConfig;
 use OCP\IL10N;
 use OCP\IRequest;
+use OCP\IUserSession;
 
 /**
  * Pflege der SEPA-Mandate im neuen Lifecycle-Modell (Spec §2.2/§3.2, Issue
- * #66) – Papier-Weg. Rollen laut Spec §3.9: Aktivierung/Sperren/Entsperren/
- * Ändern nur `buchhalter`; `revisor` sieht nur lesend mit maskierter IBAN.
+ * #66) – Papier-Weg – plus die elektronische Erteilung (Issue #67):
+ * elektronische Entwürfe anlegen und ihren Einmal-Link verschicken. Die
+ * Zustimmung selbst läuft NICHT über diesen Controller, sondern über den
+ * öffentlichen {@see MandateConsentController} (kein Login, auch für
+ * Mitglieder ohne NC-Konto). Rollen laut Spec §3.9: Aktivierung/Sperren/
+ * Entsperren/Ändern/Versenden nur `buchhalter`; `revisor` sieht nur lesend
+ * mit maskierter IBAN.
  */
 class MandateController extends Controller {
 
@@ -33,7 +45,12 @@ class MandateController extends Controller {
 		IRequest $request,
 		private MandateService $service,
 		private MandateDocumentService $documents,
+		private MandateActivationService $activation,
+		private MandateLegalTextService $legalText,
+		private MandateFormRenderer $formRenderer,
 		private PermissionService $permissions,
+		private IUserSession $userSession,
+		private IConfig $config,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -100,6 +117,105 @@ class MandateController extends Controller {
 		} catch (DoesNotExistException) {
 			return new DataResponse(['message' => $this->l10n->t('Mitglied nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
+	}
+
+	/** Elektronischer Entwurf (Issue #67) – Aktivierung folgt nicht hier, sondern über {@see sendActivationLink()} + den öffentlichen Einmal-Link. */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	public function createElectronic(
+		int $memberId,
+		string $iban,
+		?string $bic = null,
+		?string $accountHolder = null,
+		?string $mandateReference = null,
+	): DataResponse {
+		try {
+			$mandate = $this->service->createElectronic($memberId, $iban, $bic, $accountHolder, $mandateReference);
+			return new DataResponse($this->decorate($mandate), Http::STATUS_CREATED);
+		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Mitglied nicht gefunden')], Http::STATUS_NOT_FOUND);
+		}
+	}
+
+	/**
+	 * Verschickt (oder erneuert) den elektronischen Einmal-Link (Issue #67).
+	 * Liefert die Aktivierungs-URL im Response mit zurück: dieselbe
+	 * berechtigte Person, die den Versand auslösen darf, darf den Link auch
+	 * sehen (z.B. um ihn mündlich weiterzugeben, wenn die Mail nicht
+	 * ankommt) – keine zusätzliche Preisgabe gegenüber Dritten.
+	 */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	public function sendActivationLink(int $id): DataResponse {
+		try {
+			$result = $this->activation->issueLink($id, $this->userSession->getUser()?->getUID());
+			return new DataResponse([
+				'mandate' => $this->decorate($this->service->find($id)),
+				'activationUrl' => $result['url'],
+				'sentTo' => $result['email'],
+			]);
+		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Mandat nicht gefunden')], Http::STATUS_NOT_FOUND);
+		}
+	}
+
+	/**
+	 * Druckfertiges Mandatsformular (Spec §2.2 „Mandatsformular-PDF wird aus
+	 * demselben Textkörper wie die elektronische Zustimmung erzeugt") –
+	 * dasselbe „Strg+P“-Muster wie Kassen-/Kurzbericht
+	 * ({@see \OCA\Vereinsbuchhaltung\Service\Export\KurzberichtRenderer}),
+	 * kein PDF-erzeugendes Fremdpaket nötig (Spec §1.4: kein eigenes
+	 * Tooling). Zeigt bei einem bereits aktiven/beendeten Mandat dessen
+	 * fixierte Version und Zustimmungs-/Unterschriftsangaben, bei einem noch
+	 * unbestätigten Entwurf die aktuelle Version mit leerer
+	 * Unterschriftszeile.
+	 */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	public function form(int $id): DataResponse|DataDisplayResponse {
+		try {
+			$mandate = $this->service->find($id);
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Mandat nicht gefunden')], Http::STATUS_NOT_FOUND);
+		}
+
+		$legalText = $mandate->getMandateTextVersion() !== null
+			? ($this->legalText->find((int)$mandate->getMandateTextVersion()) ?? $this->legalText->current())
+			: $this->legalText->current();
+
+		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '');
+		$creditorId = $this->config->getAppValue(Application::APP_ID, 'sepa_creditor_id', '');
+
+		$body = PrintableReportPage::header(null, $clubName, $this->l10n->t('SEPA-Lastschriftmandat'), PrintableReportPage::escape($mandate->getMandateReference()));
+		$body .= '<section>' . $this->formRenderer->renderLegalText($legalText, $clubName) . '</section>';
+		$body .= '<section>' . $this->formRenderer->renderDataBlock($mandate, $creditorId, $mandate->getSignedAt() ?? date('Y-m-d')) . '</section>';
+		$body .= '<section class="signatures">' . $this->signatureSection($mandate) . '</section>';
+
+		$html = PrintableReportPage::document($this->l10n->t('SEPA-Lastschriftmandat %s', [$mandate->getMandateReference()]), PrintableReportPage::printHint($this->l10n->t('Zum Drucken oder Als-PDF-Speichern: <strong>Strg+P</strong> (Mac: ⌘P) im Browser.')) . $body);
+
+		$response = new DataDisplayResponse($html, Http::STATUS_OK, ['Content-Type' => 'text/html; charset=utf-8']);
+		$policy = new EmptyContentSecurityPolicy();
+		$policy->allowInlineStyle(true);
+		$response->setContentSecurityPolicy($policy);
+		return $response;
+	}
+
+	/** Unterschriftsbereich des Formulars – Papier: leere Zeile, elektronisch: Zustimmungsvermerk, wenn schon erteilt. */
+	private function signatureSection(Mandate $mandate): string {
+		if ($mandate->getConsentAt() !== null) {
+			return '<div>' . $this->l10n->t('Elektronisch bestätigt am %1$s (IP %2$s)', [
+				PrintableReportPage::escape($mandate->getConsentAt()),
+				PrintableReportPage::escape((string)$mandate->getConsentIp()),
+			]) . '</div>';
+		}
+		if ($mandate->isElectronic()) {
+			return '<div>' . $this->l10n->t('Noch keine elektronische Zustimmung erteilt.') . '</div>';
+		}
+		return '<div><div class="line"></div>' . $this->l10n->t('Ort, Datum, Unterschrift') . '</div>';
 	}
 
 	#[NoAdminRequired]

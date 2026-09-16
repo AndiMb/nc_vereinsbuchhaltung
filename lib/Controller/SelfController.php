@@ -5,11 +5,15 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Db\Mandate;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Exception\ForbiddenException;
 use OCA\Vereinsbuchhaltung\Service\ActorContextService;
+use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
+use OCA\Vereinsbuchhaltung\Service\MandateService;
 use OCP\AppFramework\Controller;
+use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
@@ -38,6 +42,8 @@ class SelfController extends Controller {
 		IRequest $request,
 		private ActorContextService $actorContext,
 		private MemberMapper $memberMapper,
+		private MandateService $mandateService,
+		private MandateActivationService $activation,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -65,6 +71,37 @@ class SelfController extends Controller {
 			return new DataResponse(['message' => $this->l10n->t('Mitglied nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
 		return new DataResponse($this->contactData($member));
+	}
+
+	/**
+	 * Fordert für das EIGENE elektronische Mandat einen (neuen) Einmal-Link
+	 * an (Issue #67, Spec: "teils über den Self-Service-Kanal"). Setzt einen
+	 * bereits von der Verwaltung angelegten elektronischen Entwurf voraus -
+	 * das Anlegen eines neuen Mandats mit eigenen Bankdaten gehört zum noch
+	 * ausstehenden Self-Service-Aktionskatalog (#75/#76, siehe Klassendoc),
+	 * nicht zu diesem Ticket. `memberId` kommt wie überall in diesem
+	 * Controller ausschließlich aus dem ActorContextService (IDOR-Schutz).
+	 */
+	#[NoAdminRequired]
+	public function requestMandateActivationLink(): DataResponse {
+		$memberId = $this->actorContext->memberId();
+		if ($memberId === null) {
+			throw new ForbiddenException($this->l10n->t('Kein Self-Service-Zugang.'));
+		}
+		$mandate = $this->mandateService->findLiveByMember($memberId);
+		if ($mandate === null || !$mandate->isElectronic() || $mandate->getStatus() !== Mandate::STATUS_DRAFT) {
+			return new DataResponse(['message' => $this->l10n->t('Für Sie liegt aktuell kein elektronischer Mandats-Entwurf vor, der eine Bestätigung braucht.')], Http::STATUS_BAD_REQUEST);
+		}
+		try {
+			// $requestedByUid bewusst null: das ist die Selbstbedienungs-Anfrage
+			// selbst, kein Vorgang "im Namen von" durch Mitarbeitende.
+			$result = $this->activation->issueLink((int)$mandate->getId(), null);
+			return new DataResponse(['activationUrl' => $result['url'], 'sentTo' => $result['email']]);
+		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Mandat nicht gefunden')], Http::STATUS_NOT_FOUND);
+		}
 	}
 
 	/**

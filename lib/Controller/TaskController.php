@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
+use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCA\Vereinsbuchhaltung\Service\TaskService;
 use OCP\AppFramework\Controller;
@@ -17,12 +18,20 @@ use OCP\IRequest;
  * Aufgaben/Störfälle (siehe {@see \OCA\Vereinsbuchhaltung\Db\Task}). Gleiche
  * Einstufung wie die Mitglieder-Unterreiter (ab Buchhalter, nicht Revisor):
  * die Meldungen nennen Mitgliedsnamen und teils Mailadressen.
+ *
+ * Mischt PERSISTIERTE Aufgaben (TaskService) mit ABGELEITETEN Abfragen aus
+ * Fachdiensten - Issue #67 bringt mit
+ * {@see MandateActivationService::findStaleElectronicDraftTasks()} die erste
+ * solche Abfrage ein (siehe dortige Klassendoc, warum keine eigene Tabelle
+ * nötig ist). Spätere Tickets (Mandats-Verfall-Vorwarnung, ...) hängen sich
+ * nach demselben Muster hier ein.
  */
 class TaskController extends Controller {
 
 	public function __construct(
 		IRequest $request,
 		private TaskService $service,
+		private MandateActivationService $mandateActivation,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -30,6 +39,12 @@ class TaskController extends Controller {
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function index(): DataResponse {
-		return new DataResponse(array_map(static fn ($t) => $t->jsonSerialize(), $this->service->findAll()));
+		$tasks = array_map(static fn ($t) => $t->jsonSerialize(), $this->service->findAll());
+		foreach ($this->mandateActivation->findStaleElectronicDraftTasks() as $i => $task) {
+			// Synthetische, stabile id fuer Frontend-Listenschluessel - diese
+			// Eintraege sind nie in vbh_tasks persistiert (siehe Klassendoc).
+			$tasks[] = $task + ['id' => 'mandate-activation-' . $task['objectId'] . '-' . $i, 'createdAt' => null];
+		}
+		return new DataResponse($tasks);
 	}
 }

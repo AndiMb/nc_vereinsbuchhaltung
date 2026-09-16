@@ -92,6 +92,10 @@ return [
 		// + self_service_enabled, siehe PermissionMiddleware (vierter
 		// instanceof-Sonderfall). Keine Rollenprüfung, kein #[PublicPage].
 		['name' => 'self#me', 'url' => '/api/self/me', 'verb' => 'GET'],
+		// Issue #67: Mitglied fordert für sein EIGENES elektronisches Mandat
+		// einen (neuen) Einmal-Link an - self_service_enabled +
+		// Kontoverknüpfung, wie jeder andere self#-Endpunkt.
+		['name' => 'self#requestMandateActivationLink', 'url' => '/api/self/mandate/request-link', 'verb' => 'POST'],
 
 		// Rules
 		['name' => 'rule#index', 'url' => '/api/rules', 'verb' => 'GET'],
@@ -149,6 +153,22 @@ return [
 		['name' => 'mandate#reopenAmendment', 'url' => '/api/mandates/amendments/{amendmentId}/reopen', 'verb' => 'POST'],
 		['name' => 'mandate#uploadDocument', 'url' => '/api/mandates/{id}/document', 'verb' => 'POST'],
 		['name' => 'mandate#downloadDocument', 'url' => '/api/mandates/{id}/document', 'verb' => 'GET'],
+
+		// Elektronische Mandatserteilung (Issue #67)
+		['name' => 'mandate#createElectronic', 'url' => '/api/mandates/electronic', 'verb' => 'POST'],
+		['name' => 'mandate#sendActivationLink', 'url' => '/api/mandates/{id}/send-activation-link', 'verb' => 'POST'],
+		['name' => 'mandate#form', 'url' => '/api/mandates/{id}/form', 'verb' => 'GET'],
+		['name' => 'mandateLegalText#current', 'url' => '/api/mandate-legal-text', 'verb' => 'GET'],
+		['name' => 'mandateLegalText#history', 'url' => '/api/mandate-legal-text/history', 'verb' => 'GET'],
+		['name' => 'mandateLegalText#update', 'url' => '/api/mandate-legal-text', 'verb' => 'POST'],
+
+		// Öffentliche, login-lose Zustimmungsseite des Einmal-Links (Issue #67,
+		// Spec §2.2) - AUSSERHALB von /api/, funktioniert auch für Mitglieder
+		// ohne NC-Konto. Kein Rollen-Bypass über die Middleware nötig: die
+		// Middleware überspringt diesen Controller komplett (siehe
+		// PermissionMiddleware), die Absicherung übernimmt allein der Token.
+		['name' => 'mandateConsent#show', 'url' => '/mandate-consent/{token}', 'verb' => 'GET'],
+		['name' => 'mandateConsent#accept', 'url' => '/mandate-consent/{token}', 'verb' => 'POST'],
 
 		// SEPA-Sammeleinzüge (pain.008-Export)
 		['name' => 'sepaBatch#preview', 'url' => '/api/sepa/export/preview', 'verb' => 'GET'],

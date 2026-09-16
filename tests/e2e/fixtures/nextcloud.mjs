@@ -508,6 +508,27 @@ export const api = {
 		return call(request, 'POST', `/mandates/${id}/revoke`, { user, expectOk })
 	},
 
+	// --- Elektronische Mandatserteilung (Issue #67) -----------------------------
+
+	/** Elektronischer Entwurf - Aktivierung läuft NICHT hier, sondern über den Einmal-Link. */
+	async createElectronicMandate(request, { memberId, iban, bic, accountHolder, mandateReference, user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', '/mandates/electronic', {
+			user,
+			expectOk,
+			data: { memberId, iban, bic, accountHolder, mandateReference },
+		})
+	},
+
+	/** Verschickt/erneuert den Einmal-Link; die Antwort enthält die volle activationUrl (siehe MandateController::sendActivationLink()). */
+	async sendActivationLink(request, id, { user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', `/mandates/${id}/send-activation-link`, { user, expectOk })
+	},
+
+	/** Self-Service-Kanal: das verknüpfte Mitglied fordert selbst einen (neuen) Link für sein eigenes elektronisches Mandat an. */
+	async requestOwnMandateLink(request, { user, expectOk = true } = {}) {
+		return call(request, 'POST', '/self/mandate/request-link', { user, expectOk })
+	},
+
 	/** Roher Zugriff für Spezialfälle; expectOk standardmäßig aus. */
 	async raw(request, method, path, opts = {}) {
 		return call(request, method, path, { expectOk: false, ...opts })

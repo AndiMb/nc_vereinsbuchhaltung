@@ -254,6 +254,54 @@ class MandateServiceTest extends TestCase {
 		$this->assertSame(Mandate::STATUS_ACTIVE, $nochGueltig->getStatus());
 	}
 
+	// --- Elektronische Erteilung (Issue #67) ------------------------------------
+
+	public function testCreateElectronicLegtEntwurfOhneUnterschriftsdatumAn(): void {
+		$member = new Member();
+		$member->setId(42);
+		$member->setMemberType(Member::TYPE_PERSON);
+		$member->setFirstName('Katrin');
+		$member->setLastName('Brunner');
+		$this->memberMapper->method('find')->willReturn($member);
+		$this->mandateMapper->method('findLiveByMember')->willReturn([]);
+
+		$mandate = $this->service()->createElectronic(42, 'DE12500105170648489890', null, null);
+
+		$this->assertSame(Mandate::SIGNATURE_ELECTRONIC, $mandate->getSignatureType());
+		$this->assertSame(Mandate::STATUS_DRAFT, $mandate->getStatus());
+		$this->assertNull($mandate->getSignedAt(), 'keine Unterschrift vor der Zustimmung');
+	}
+
+	public function testActivateElectronicSetztDasVollstaendigeBeweispaket(): void {
+		$mandate = $this->activeMandate(1);
+		$mandate->setStatus(Mandate::STATUS_DRAFT);
+		$mandate->setSignatureType(Mandate::SIGNATURE_ELECTRONIC);
+		$mandate->setSignedAt(null);
+		$this->mandateMapper->method('find')->willReturn($mandate);
+
+		$result = $this->service()->activateElectronic(1, 7, '2026-03-10 12:00:00', '203.0.113.5', 'TestBrowser/1.0', 'katrin@example.org');
+
+		$this->assertSame(Mandate::STATUS_ACTIVE, $result->getStatus());
+		$this->assertTrue($result->isCollectible());
+		$this->assertSame(7, $result->getMandateTextVersion());
+		$this->assertSame('2026-03-10 12:00:00', $result->getConsentAt());
+		$this->assertSame('203.0.113.5', $result->getConsentIp());
+		$this->assertSame('TestBrowser/1.0', $result->getConsentUserAgent());
+		$this->assertSame('katrin@example.org', $result->getConsentActor());
+		$this->assertSame('2026-03-10', $result->getSignedAt(), 'die Zustimmung selbst wird zur Unterschrift (Datumsteil von consent_at)');
+		$this->assertNotNull($result->getActivatedAt());
+	}
+
+	public function testActivateElectronicAufPapierMandatSchlaegtFehl(): void {
+		$mandate = $this->activeMandate(1);
+		$mandate->setStatus(Mandate::STATUS_DRAFT);
+		$mandate->setSignatureType(Mandate::SIGNATURE_PAPER);
+		$this->mandateMapper->method('find')->willReturn($mandate);
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->activateElectronic(1, 7, '2026-03-10 12:00:00', '203.0.113.5', 'TestBrowser/1.0', 'katrin@example.org');
+	}
+
 	public function testGemischterBestandVerfaelltNurDieFaelligen(): void {
 		$faellig = $this->activeMandate(1);
 		$faellig->setSignedAt('2022-01-01');
