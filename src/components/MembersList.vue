@@ -202,7 +202,6 @@
 			:saving="saving"
 			:member="editingMember"
 			:defaultFeeAmount="defaultFeeAmount"
-			:defaultFeeFrequency="defaultFeeFrequency"
 			@update:show="memberDialogOpen = $event"
 			@close="memberDialogOpen = false"
 			@save="saveMember"
@@ -211,7 +210,6 @@
 		<MemberImportDialog
 			:show="importDialogOpen"
 			:defaultFeeAmount="defaultFeeAmount"
-			:defaultFeeFrequency="defaultFeeFrequency"
 			@update:show="importDialogOpen = $event"
 			@close="importDialogOpen = false"
 			@imported="reload" />
@@ -265,7 +263,6 @@ export default {
 	props: {
 		isMobile: { type: Boolean, default: false },
 		defaultFeeAmount: { type: [Number, String], default: '' },
-		defaultFeeFrequency: { type: String, default: 'yearly' },
 	},
 
 	setup() {
@@ -381,25 +378,29 @@ export default {
 		},
 
 		/**
-		 * Stammdaten anlegen/ändern, dazu beim Anlegen optional Mandat und
-		 * Beitrag in einem Zug (siehe MemberDialog.vue). Schlägt eine spätere
-		 * Stufe fehl, bleibt stehen, was schon entstanden ist – die Meldung
-		 * sagt ausdrücklich, was das war, statt nur „fehlgeschlagen".
+		 * Stammdaten anlegen/ändern, dazu beim Anlegen optional ein SEPA-Mandat
+		 * (papier oder elektronisch, Issue #66/#67) und eine Zuweisung zu einer
+		 * Beitragsgruppe (Issue #68) in einem Zug – der dreistufige
+		 * Aufnahme-Assistent aus Spec §3.1 (MemberDialog.vue: Stammdaten → Mandat
+		 * → Beitrag, Schritt 2/3 überspringbar). Schlägt eine spätere Stufe fehl,
+		 * bleibt stehen, was schon entstanden ist – die Meldung sagt ausdrücklich,
+		 * was das war, statt nur „fehlgeschlagen".
 		 */
 		async saveMember(payload) {
 			this.saving = true
-			let mandateId = null
+			let stage = 'member'
 			try {
 				if (this.editingMember) {
 					await api.updateMember(this.editingMember.id, payload.stammdaten)
 				} else {
 					const { data: member } = await api.createMember(payload.stammdaten)
 					if (payload.mandate) {
-						const { data } = await api.createSepaMandate({ memberId: member.id, mandateType: 'RCUR', ...payload.mandate })
-						mandateId = data.id
+						stage = 'mandate'
+						await this.createOnboardingMandate(member.id, payload.mandate)
 					}
-					if (payload.fee) {
-						await api.createMembershipFee({ memberId: member.id, mandateId, ...payload.fee })
+					if (payload.assignment) {
+						stage = 'assignment'
+						await api.createAssignment({ memberId: member.id, ...payload.assignment })
 					}
 				}
 				this.memberDialogOpen = false
@@ -407,10 +408,43 @@ export default {
 				showSuccess(this.t(this.editingMember ? 'Mitglied gespeichert.' : 'Mitglied aufgenommen.'))
 			} catch (e) {
 				await this.reload()
-				showError(this.errMsg(e, mandateId !== null
-					? this.t('Das Mandat wurde angelegt, der Beitrag nicht')
-					: this.t('Mitglied konnte nicht gespeichert werden')))
+				showError(this.errMsg(e, {
+					member: this.t('Mitglied konnte nicht gespeichert werden'),
+					mandate: this.t('Das Mitglied wurde angelegt, das Mandat nicht'),
+					assignment: this.t('Mitglied und Mandat wurden angelegt, der Beitrag nicht'),
+				}[stage]))
 			} finally { this.saving = false }
+		},
+
+		/**
+		 * Schritt 2 des Aufnahme-Assistenten (Spec §3.1): papier-Weg entscheidet
+		 * per Mandatsdatum sofort-aktiv vs. entwurf, elektronisch-Weg verschickt
+		 * sofort den Einmal-Link (Issue #67).
+		 */
+		async createOnboardingMandate(memberId, mandate) {
+			if (mandate.signatureType === 'elektronisch') {
+				const { data } = await api.createMandateElectronic({
+					memberId,
+					iban: mandate.iban,
+					bic: mandate.bic,
+					accountHolder: mandate.accountHolder,
+					mandateReference: mandate.mandateReference,
+				})
+				await api.sendMandateActivationLink(data.id)
+				return data
+			}
+			const { data } = await api.createMandate({
+				memberId,
+				iban: mandate.iban,
+				bic: mandate.bic,
+				accountHolder: mandate.accountHolder,
+				mandateReference: mandate.mandateReference,
+				signedAt: mandate.signedAt,
+			})
+			if (mandate.signedAt) {
+				await api.activateMandate(data.id)
+			}
+			return data
 		},
 
 		startEdit(fee) {

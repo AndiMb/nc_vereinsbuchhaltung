@@ -68,44 +68,98 @@
 
 			<template v-if="!isEdit">
 				<p class="vbh-hint">
-					{{ t('Optional gleich SEPA-Mandat und Beitrag miterfassen – beides lässt sich auch später ergänzen.') }}
+					{{ t('Optional gleich ein SEPA-Mandat erfassen und einer Beitragsgruppe zuweisen – beides lässt sich auch später ergänzen (Schritt 2/3 des Aufnahme-Assistenten, überspringbar).') }}
 				</p>
 				<div class="vbh-form">
+					<label>{{ t('Art der Unterschrift') }}
+						<select v-model="form.signatureType">
+							<option value="papier">
+								{{ t('Papier') }}
+							</option>
+							<option value="elektronisch" :disabled="!hasEmail">
+								{{ t('Elektronisch (Einmal-Link per Mail)') }}
+							</option>
+						</select>
+					</label>
 					<label class="vbh-grow">{{ t('IBAN') }}
 						<input v-model="form.iban" placeholder="DE12 5001 0517 0648 4898 90">
 					</label>
 					<label>{{ t('BIC') }}
 						<input v-model="form.bic" class="vbh-short" :placeholder="t('optional')">
 					</label>
-					<label>{{ t('Mandat unterschrieben am') }}
+				</div>
+				<div class="vbh-form">
+					<label class="vbh-grow">{{ t('Kontoinhaber') }}
+						<input v-model="form.accountHolder" :placeholder="t('sonst Anzeigename des Mitglieds')">
+					</label>
+					<label>{{ t('Mandatsreferenz') }}
+						<input v-model="form.mandateReference" :placeholder="t('sonst automatisch vergeben')">
+					</label>
+					<label v-if="form.signatureType === 'papier'">{{ t('Mandat unterschrieben am') }}
 						<input v-model="form.signedDate" type="date">
 					</label>
 				</div>
+				<p v-if="form.iban.trim() && form.signatureType === 'papier' && !form.signedDate" class="vbh-hint">
+					{{ t('Ohne Unterschriftsdatum bleibt das Mandat ein Entwurf – erst das Datum aktiviert es sofort.') }}
+				</p>
+				<p v-if="form.iban.trim() && form.signatureType === 'elektronisch'" class="vbh-hint">
+					{{ t('Nach dem Anlegen geht sofort ein Einmal-Link an die Mailadresse des Mitglieds – die Zustimmung dort aktiviert das Mandat.') }}
+				</p>
+
 				<div class="vbh-form">
-					<label>{{ t('Betrag (€)') }}
-						<AmountInput v-model="form.amount" class="vbh-short" />
-					</label>
-					<label>{{ t('Frequenz') }}
-						<select v-model="form.frequency">
-							<option v-for="f in frequencies" :key="f.value" :value="f.value">
-								{{ f.label }}
-							</option>
-						</select>
-					</label>
-					<label>{{ t('Erste Fälligkeit') }}
-						<input v-model="form.startDate" type="date">
-					</label>
-					<label class="vbh-grow">{{ t('Ertragskonto') }}
-						<select v-model="form.accountId">
+					<label class="vbh-grow">{{ t('Beitragsgruppe') }}
+						<select v-model.number="form.groupId">
 							<option :value="null">
-								{{ t('– optional –') }}
+								{{ t('– keine Zuweisung –') }}
 							</option>
-							<option v-for="a in incomeAccounts" :key="a.id" :value="a.id">
-								{{ a.number }} · {{ a.name }}
+							<option v-for="g in groups" :key="g.id" :value="g.id">
+								{{ g.name }}
 							</option>
 						</select>
 					</label>
 				</div>
+				<div v-if="selectedGroup" class="vbh-form">
+					<label>{{ t('Turnus (Monate)') }}
+						<select v-model.number="form.intervalMonths">
+							<option v-for="n in selectedGroup.allowedIntervals" :key="n" :value="n">
+								{{ n }}
+							</option>
+						</select>
+					</label>
+					<label>{{ t('Monatsbeitrag (€)') }}
+						<AmountInput v-model="form.monthlyAmount" class="vbh-short" />
+					</label>
+					<label>{{ t('Zahlungsart') }}
+						<select v-model="form.paymentMethod" :disabled="!hasEmail">
+							<option value="direct_debit">
+								{{ t('Lastschrift') }}
+							</option>
+							<option value="ueberweisung">
+								{{ t('Überweisung') }}
+							</option>
+						</select>
+					</label>
+				</div>
+				<p v-if="selectedGroup && !hasEmail" class="vbh-hint">
+					{{ t('Ohne Mailadresse ist keine Vorabinformation und kein Lastschrifteinzug möglich – Zahlungsart wird auf Überweisung gesetzt.') }}
+				</p>
+				<div v-if="selectedGroup" class="vbh-form">
+					<label>{{ t('Gültig ab') }}
+						<input v-model="form.validFrom" type="date">
+					</label>
+					<NcButton variant="secondary" :disabled="!canPreviewAssignment" @click="loadAssignmentPreview">
+						{{ t('Vorschau') }}
+					</NcButton>
+				</div>
+				<p v-if="assignmentPreview" class="vbh-hint">
+					{{ t('Erste Periode: {from} bis {to} ({months}) · Einzugsbetrag {amount} · voraussichtlicher Einzugstermin {due}', {
+						from: assignmentPreview.periodStart,
+						to: assignmentPreview.periodEnd,
+						months: n('%n Monat', '%n Monate', assignmentPreview.months),
+						amount: euro(assignmentPreview.amountCents),
+						due: assignmentPreview.dueDate,
+					}) }}
+				</p>
 			</template>
 
 			<template v-else>
@@ -212,13 +266,12 @@ import { NcButton, NcModal } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import AmountInput from './AmountInput.vue'
 import api from '../api.js'
-import { useAccounts } from '../composables/useAccounts.js'
 import { useConfirm } from '../composables/useConfirm.js'
+import { useContributionGroups } from '../composables/useContributionGroups.js'
 import { errMsg } from '../lib/format.js'
-import { frequencyOptions } from '../lib/frequency.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 
-function emptyForm(member, defaultFeeAmount, defaultFeeFrequency) {
+function emptyForm(member, defaultFeeAmount) {
 	return {
 		memberType: member?.memberType ?? 'person',
 		firstName: member?.firstName ?? '',
@@ -232,18 +285,24 @@ function emptyForm(member, defaultFeeAmount, defaultFeeFrequency) {
 		memberNumber: member?.memberNumber ?? '',
 		joinedAt: member?.joinedAt ?? new Date().toISOString().slice(0, 10),
 		internalNote: member?.internalNote ?? '',
-		// Nur beim Anlegen relevant (siehe Template): optionales Mandat/Beitrag
-		// gibt es nur, wenn kein Mitglied übergeben wurde (Akte bearbeitet keins).
+		// Nur beim Anlegen relevant (siehe Template): das optionale Mandat
+		// (Schritt 2) und die optionale Zuweisung (Schritt 3) des
+		// Aufnahme-Assistenten gibt es nur, wenn kein Mitglied übergeben wurde
+		// (Akte bearbeitet keins).
 		...(member
 			? {}
 			: {
+					signatureType: 'papier',
 					iban: '',
 					bic: '',
+					accountHolder: '',
+					mandateReference: '',
 					signedDate: new Date().toISOString().slice(0, 10),
-					amount: defaultFeeAmount ?? '',
-					frequency: defaultFeeFrequency ?? 'yearly',
-					startDate: new Date().toISOString().slice(0, 10),
-					accountId: null,
+					groupId: null,
+					intervalMonths: 12,
+					monthlyAmount: defaultFeeAmount ?? '',
+					paymentMethod: 'direct_debit',
+					validFrom: new Date().toISOString().slice(0, 10),
 				}),
 	}
 }
@@ -267,37 +326,42 @@ export default {
 		/** null = Aufnahme, sonst die zu bearbeitende Mitglied-Akte (dekoriert, inkl. blockingReasons). */
 		member: { type: Object, default: null },
 		// Vorbelegung aus Einstellungen -> Beiträge & SEPA (SettingsSepaBasics.vue),
-		// leerer String heisst "kein Standardbeitrag hinterlegt".
+		// leerer String heisst "kein Standardbeitrag hinterlegt". Nur der Betrag
+		// ist hier noch relevant – die Frequenz gibt seit Issue #69 die gewählte
+		// Beitragsgruppe vor (allowedIntervals/defaultInterval).
 		defaultFeeAmount: { type: [Number, String], default: '' },
-		defaultFeeFrequency: { type: String, default: 'yearly' },
 	},
 
 	emits: ['close', 'save', 'update:show', 'changed'],
 
 	setup() {
-		return { ...toRefs(useAccounts().state), askConfirm: useConfirm().askConfirm }
+		return { ...toRefs(useContributionGroups().state), askConfirm: useConfirm().askConfirm }
 	},
 
 	data() {
 		return {
-			form: emptyForm(this.member, this.defaultFeeAmount, this.defaultFeeFrequency),
-			frequencies: frequencyOptions(),
+			form: emptyForm(this.member, this.defaultFeeAmount),
 			suggestions: [],
 			suggestionsLoaded: false,
 			linking: false,
 			leaving: false,
 			deleting: false,
 			leaveDate: new Date().toISOString().slice(0, 10),
+			assignmentPreview: null,
 		}
 	},
 
 	computed: {
 		isEdit() { return this.member !== null },
 
-		incomeAccounts() {
-			return this.accounts.filter((a) => a.type === 'income' && !a.isBank)
-				.slice()
-				.sort((a, b) => String(a.number).localeCompare(String(b.number), 'de', { numeric: true }))
+		hasEmail() { return this.form.email.trim() !== '' },
+
+		selectedGroup() {
+			return this.groups.find((g) => g.id === this.form.groupId) ?? null
+		},
+
+		canPreviewAssignment() {
+			return this.form.intervalMonths && this.form.monthlyAmount !== '' && this.form.validFrom
 		},
 
 		canSave() {
@@ -310,16 +374,37 @@ export default {
 	watch: {
 		show(open) {
 			if (!open) { return }
-			this.form = emptyForm(this.member, this.defaultFeeAmount, this.defaultFeeFrequency)
+			this.form = emptyForm(this.member, this.defaultFeeAmount)
 			this.suggestions = []
 			this.suggestionsLoaded = false
 			this.leaveDate = new Date().toISOString().slice(0, 10)
+			this.assignmentPreview = null
 			focusOnOpen(this, () => this.$refs.nameInput || this.$refs.orgInput)
+		},
+
+		// Spec §3.1: "fehlt die Mailadresse, fällt Schritt 3 sichtbar auf
+		// ueberweisung zurück, sagt warum" – die Mail-Pflicht greift hier direkt
+		// an Ort und Stelle, weil Stammdaten (Schritt 1) und Beitrag (Schritt 3)
+		// im selben Formular stehen.
+		hasEmail(has) {
+			if (!has) { this.form.paymentMethod = 'ueberweisung' }
+		},
+
+		selectedGroup(group) {
+			if (!group) { return }
+			if (!group.allowedIntervals.includes(this.form.intervalMonths)) {
+				this.form.intervalMonths = group.defaultInterval
+			}
+			if (this.form.monthlyAmount === '') {
+				this.form.monthlyAmount = group.defaultMonthlyAmount
+			}
+			this.assignmentPreview = null
 		},
 	},
 
 	methods: {
 		errMsg,
+		euro(cents) { return (cents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }) },
 
 		stammdaten() {
 			return {
@@ -343,13 +428,41 @@ export default {
 			const payload = { stammdaten: this.stammdaten() }
 			if (!this.isEdit) {
 				payload.mandate = this.form.iban.trim()
-					? { iban: this.form.iban.trim(), bic: this.form.bic.trim() || null, signedDate: this.form.signedDate }
+					? {
+							signatureType: this.form.signatureType,
+							iban: this.form.iban.trim(),
+							bic: this.form.bic.trim() || null,
+							accountHolder: this.form.accountHolder.trim() || null,
+							mandateReference: this.form.mandateReference.trim() || null,
+							signedAt: this.form.signatureType === 'papier' ? (this.form.signedDate || null) : null,
+						}
 					: null
-				payload.fee = Number(this.form.amount) > 0
-					? { amount: Number(this.form.amount), frequency: this.form.frequency, startDate: this.form.startDate, accountId: this.form.accountId }
+				payload.assignment = this.form.groupId
+					? {
+							groupId: this.form.groupId,
+							intervalMonths: this.form.intervalMonths,
+							monthlyAmount: Number(this.form.monthlyAmount),
+							paymentMethod: this.form.paymentMethod,
+							validFrom: this.form.validFrom,
+						}
 					: null
 			}
 			this.$emit('save', payload)
+		},
+
+		/** Vorschau der ersten (Prorata-)Periode samt vorgeschlagenem Einzugstermin (Spec §3.1 Schritt 3). */
+		async loadAssignmentPreview() {
+			try {
+				const { data } = await api.previewNewAssignment({
+					intervalMonths: this.form.intervalMonths,
+					monthlyAmount: this.form.monthlyAmount,
+					validFrom: this.form.validFrom,
+				})
+				this.assignmentPreview = data
+			} catch (e) {
+				this.assignmentPreview = null
+				showError(this.errMsg(e, this.t('Vorschau konnte nicht geladen werden')))
+			}
 		},
 
 		async loadSuggestions() {

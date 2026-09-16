@@ -138,6 +138,13 @@ export default {
 	changeSepaMandateBankAccount: (id, data) => axios.post(url(`/sepa/mandates/${id}/change-account`), data),
 	deleteSepaMandate: (id) => axios.delete(url(`/sepa/mandates/${id}`)),
 
+	// SEPA-Mandate, voller Lifecycle (Issue #66/#67) – parallel zum Alt-Bestand
+	// oben; genutzt vom Aufnahme-Assistenten (MemberDialog.vue, Issue #69).
+	createMandate: (data) => axios.post(url('/mandates'), data),
+	activateMandate: (id, signedAt) => axios.post(url(`/mandates/${id}/activate`), signedAt ? { signedAt } : {}),
+	createMandateElectronic: (data) => axios.post(url('/mandates/electronic'), data),
+	sendMandateActivationLink: (id) => axios.post(url(`/mandates/${id}/send-activation-link`)),
+
 	// Mitgliedsbeiträge mit Zahlungsfrequenz (optionales Zusatzmodul)
 	listMembershipFees: () => axios.get(url('/sepa/fees')),
 	createMembershipFee: (data) => axios.post(url('/sepa/fees'), data),
@@ -177,7 +184,7 @@ export default {
 
 	// Massenanlage aus einer CSV-Liste: erst pruefen, dann anlegen
 	previewMemberImport: (csv) => axios.post(url('/sepa/members/import/preview'), { csv }),
-	runMemberImport: (csv) => axios.post(url('/sepa/members/import'), { csv }),
+	runMemberImport: (csv, mandatesConfirmed) => axios.post(url('/sepa/members/import'), { csv, mandatesConfirmed }),
 
 	// Self-Service ("Mein Beitrag"): eigene Stammdaten, Zugang ausschließlich
 	// über die Kontoverknüpfung (siehe PermissionMiddleware/SelfController).

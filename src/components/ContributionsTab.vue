@@ -31,8 +31,7 @@
 				v-show="contribView === 'members'"
 				ref="membersList"
 				:isMobile="isMobile"
-				:defaultFeeAmount="defaultFeeAmount"
-				:defaultFeeFrequency="defaultFeeFrequency" />
+				:defaultFeeAmount="defaultFeeAmount" />
 			<SepaBatchPanel v-show="contribView === 'batch'" :isMobile="isMobile" />
 			<ContributionGroupsPanel v-show="contribView === 'groups'" />
 		</div>
@@ -66,7 +65,6 @@ export default {
 		contribView: { type: String, required: true },
 		isMobile: { type: Boolean, default: false },
 		defaultFeeAmount: { type: [Number, String], default: '' },
-		defaultFeeFrequency: { type: String, default: 'yearly' },
 	},
 
 	emits: ['update:contrib-view'],
