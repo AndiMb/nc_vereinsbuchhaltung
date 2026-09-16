@@ -24,14 +24,11 @@ async function enableMembership(request) {
 
 /** Mitglied per API sicherstellen (idempotent - siehe ensureMemberWithFee in 11-contributions.spec.mjs). */
 async function ensureMember(request, firstName, lastName) {
-	const members = await api.getJson(request, '/members')
+	const members = await api.listMembers(request)
 	const displayName = `${firstName} ${lastName}`
 	let member = members.find((m) => m.displayName === displayName)
 	if (!member) {
-		member = await (await api.raw(request, 'POST', '/members', {
-			expectOk: true,
-			data: { memberType: 'person', firstName, lastName },
-		})).json()
+		member = await api.createMember(request, { firstName, lastName })
 	}
 	return member
 }
