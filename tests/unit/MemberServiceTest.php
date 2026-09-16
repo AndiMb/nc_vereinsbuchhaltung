@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
+use OCA\Vereinsbuchhaltung\Db\Assignment;
+use OCA\Vereinsbuchhaltung\Db\AssignmentMapper;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\MembershipFee;
 use OCA\Vereinsbuchhaltung\Db\MembershipFeeMapper;
+use OCA\Vereinsbuchhaltung\Db\OpenItem;
+use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\SepaMandate;
 use OCA\Vereinsbuchhaltung\Db\SepaMandateMapper;
 use OCA\Vereinsbuchhaltung\Service\MemberService;
@@ -28,12 +32,20 @@ class MemberServiceTest extends TestCase {
 	private MemberMapper&MockObject $mapper;
 	private SepaMandateMapper&MockObject $mandateMapper;
 	private MembershipFeeMapper&MockObject $feeMapper;
+	private AssignmentMapper&MockObject $assignmentMapper;
+	private OpenItemMapper&MockObject $openItemMapper;
 	private IUserManager&MockObject $userManager;
 
 	protected function setUp(): void {
 		$this->mapper = $this->createMock(MemberMapper::class);
 		$this->mandateMapper = $this->createMock(SepaMandateMapper::class);
 		$this->feeMapper = $this->createMock(MembershipFeeMapper::class);
+		// Kein Standard-Stub hier, analog zu mandateMapper/feeMapper: ein
+		// nicht konfigurierter Mock-Aufruf liefert für einen als `array`
+		// typisierten Rückgabewert bereits [] - jeder Test stubt explizit,
+		// was er braucht (siehe restliche Tests in dieser Klasse).
+		$this->assignmentMapper = $this->createMock(AssignmentMapper::class);
+		$this->openItemMapper = $this->createMock(OpenItemMapper::class);
 		$this->userManager = $this->createMock(IUserManager::class);
 	}
 
@@ -42,7 +54,7 @@ class MemberServiceTest extends TestCase {
 		$l10n->method('t')->willReturnCallback(
 			static fn (string $text, array $parameters = []): string => vsprintf(str_replace('%s', '%1$s', $text), $parameters),
 		);
-		return new MemberService($this->mapper, $this->mandateMapper, $this->feeMapper, $this->userManager, $l10n);
+		return new MemberService($this->mapper, $this->mandateMapper, $this->feeMapper, $this->assignmentMapper, $this->openItemMapper, $this->userManager, $l10n);
 	}
 
 	// --- splitLabel(): reine Split-Heuristik (Spec §3.1 "Umbaupfad") ---
@@ -209,6 +221,31 @@ class MemberServiceTest extends TestCase {
 		$reasons = $this->service()->blockingReasons(1);
 
 		$this->assertNotEmpty($reasons);
+	}
+
+	/** Issue #68: eine Zuweisung zu einer Beitragsgruppe blockiert die Löschung ebenso. */
+	public function testBlockingReasonsZuweisungBlockiert(): void {
+		$assignment = new Assignment();
+		$assignment->setMemberId(1);
+		$this->assignmentMapper->method('findAll')->willReturn([$assignment]);
+
+		$reasons = $this->service()->blockingReasons(1);
+
+		$this->assertNotEmpty($reasons);
+		$this->assertStringContainsString('Zuweisung', $reasons[0]);
+	}
+
+	/** Issue #68: eine Forderung (Claim, auf vbh_open_items abgebildet) blockiert die Löschung ebenso. */
+	public function testBlockingReasonsForderungBlockiert(): void {
+		$claim = new OpenItem();
+		$claim->setMemberId(1);
+		$claim->setType(OpenItem::TYPE_CONTRIBUTION);
+		$this->openItemMapper->method('findClaims')->willReturn([$claim]);
+
+		$reasons = $this->service()->blockingReasons(1);
+
+		$this->assertNotEmpty($reasons);
+		$this->assertStringContainsString('Forderung', $reasons[0]);
 	}
 
 	public function testBlockingReasonsForIdsBerechnetMehrereMitgliederInZweiAbfragen(): void {

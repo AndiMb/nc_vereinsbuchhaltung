@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service;
 
+use OCA\Vereinsbuchhaltung\Db\AssignmentMapper;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\MembershipFeeMapper;
+use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\SepaMandateMapper;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IL10N;
@@ -23,6 +25,8 @@ class MemberService {
 		private MemberMapper $mapper,
 		private SepaMandateMapper $mandateMapper,
 		private MembershipFeeMapper $feeMapper,
+		private AssignmentMapper $assignmentMapper,
+		private OpenItemMapper $openItemMapper,
 		private IUserManager $userManager,
 		private IL10N $l10n,
 	) {
@@ -83,16 +87,14 @@ class MemberService {
 	 * Oberfläche zeigt sie als erklärende Sperrmeldung statt den
 	 * Löschen-Knopf einfach auszugrauen (Spec §3.1).
 	 *
-	 * Laut Akzeptanzkriterium ist die Prüfung "ohne Forderung" in diesem
-	 * Ticket trivial erlaubt: eine Forderung (Claim, auf vbh_open_items
-	 * abgebildet) mit member_id gibt es erst, sobald ein späteres Ticket
-	 * Beitragsgruppen/Zuweisungen einführt – hier ist bewusst noch nichts zu
-	 * prüfen. "ohne aktives Mandat" lässt sich dagegen schon heute echt
-	 * prüfen, weil vbh_sepa_mandates bereits existiert; ergänzend blockiert
-	 * auch ein bestehendes, nicht-aktives Mandat oder ein Alt-Beitrag
-	 * (vbh_membership_fees) die Löschung – referenzielle Sicherheit, damit
-	 * member_id in diesen beiden Tabellen nicht verwaist, solange es noch
-	 * keine Kaskaden-Logik gibt (siehe PR-Beschreibung).
+	 * Referenzielle Sicherheit, damit member_id in keiner der vier
+	 * verweisenden Tabellen verwaist, solange es noch keine Kaskaden-Logik
+	 * gibt: aktives/widerrufenes SEPA-Mandat, Alt-Beitrag
+	 * (vbh_membership_fees), Zuweisung (vbh_assignments) und Forderung
+	 * (vbh_open_items mit gesetztem member_id) blockieren alle die Löschung.
+	 * Die beiden letzteren gibt es erst seit Issue #68 (Beitragsgruppen/
+	 * Zuweisungen) – zuvor war die Prüfung hier laut Akzeptanzkriterium noch
+	 * trivial erlaubt, weil es schlicht keine Forderungen mit member_id gab.
 	 *
 	 * @return string[] leer = löschbar
 	 */
@@ -102,7 +104,7 @@ class MemberService {
 
 	/**
 	 * Dasselbe wie {@see blockingReasons()}, aber für beliebig viele Mitglieder
-	 * in genau zwei Abfragen statt bis zu drei je Mitglied – wichtig, weil
+	 * in wenigen Abfragen statt bis zu vier je Mitglied – wichtig, weil
 	 * {@see \OCA\Vereinsbuchhaltung\Controller\MemberController::index()} das
 	 * für die gesamte Mitgliederliste auf einmal braucht (sonst N+1).
 	 *
@@ -122,6 +124,16 @@ class MemberService {
 		foreach ($this->feeMapper->findAll() as $fee) {
 			$anyFeeIds[$fee->getMemberId()] = true;
 		}
+		$anyAssignmentIds = [];
+		foreach ($this->assignmentMapper->findAll() as $assignment) {
+			$anyAssignmentIds[$assignment->getMemberId()] = true;
+		}
+		$anyClaimIds = [];
+		foreach ($this->openItemMapper->findClaims() as $claim) {
+			if ($claim->getMemberId() !== null) {
+				$anyClaimIds[$claim->getMemberId()] = true;
+			}
+		}
 
 		$result = [];
 		foreach ($memberIds as $id) {
@@ -133,6 +145,12 @@ class MemberService {
 			}
 			if (isset($anyFeeIds[$id])) {
 				$reasons[] = $this->l10n->t('Es gibt noch einen Mitgliedsbeitrag für dieses Mitglied.');
+			}
+			if (isset($anyAssignmentIds[$id])) {
+				$reasons[] = $this->l10n->t('Es gibt noch eine Zuweisung zu einer Beitragsgruppe für dieses Mitglied.');
+			}
+			if (isset($anyClaimIds[$id])) {
+				$reasons[] = $this->l10n->t('Es gibt noch eine Forderung für dieses Mitglied.');
 			}
 			$result[$id] = $reasons;
 		}
