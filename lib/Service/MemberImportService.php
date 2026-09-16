@@ -5,50 +5,77 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Db\Assignment;
+use OCA\Vereinsbuchhaltung\Db\AssignmentEvent;
+use OCA\Vereinsbuchhaltung\Db\ContributionGroup;
+use OCA\Vereinsbuchhaltung\Db\ContributionGroupMapper;
+use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
-use OCA\Vereinsbuchhaltung\Db\MembershipFeeMapper;
-use OCA\Vereinsbuchhaltung\Db\SepaMandateMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Service\Sepa\MemberCsvParser;
 use OCP\IConfig;
 use OCP\IL10N;
 use OCP\IUserManager;
+use OCP\IUserSession;
 
 /**
  * Massenanlage von Mitgliedern: legt aus einer CSV-Liste je Zeile ein
- * Mitglied sowie optional ein SEPA-Mandat und einen Mitgliedsbeitrag an.
+ * Mitglied sowie optional ein SEPA-Mandat (voller Lifecycle, Issue #66/#67)
+ * und eine Zuweisung zu einer Beitragsgruppe (Issue #68) an.
  *
- * Ohne diesen Weg musste jedes Mitglied über zwei getrennte Formulare
- * angelegt werden – erst das Mandat, dann der Beitrag, mit erneuter Auswahl
- * desselben Zahlers. Bei einem Chor mit 200 Stimmen ist das der Unterschied
- * zwischen „einmal einlesen" und „einen Nachmittag lang tippen".
+ * Vollständig auf das neue Domänenmodell umgestellt (Issue #69, Spec §3.1):
+ * vorher richtete sich dieselbe Klasse gegen die flachen Alt-Tabellen
+ * `vbh_sepa_mandates`/`vbh_membership_fees` (siehe {@see SepaMandateService},
+ * {@see MembershipFeeService}, weiterhin unverändert für den Alt-Bestand
+ * nutzbar). Die beiden Systeme laufen bewusst nebeneinander, bis ein
+ * gesondertes Migrationsticket den Alt-Bestand ablöst (Spec §3.1 „Umbaupfad").
+ *
+ * **„CSV-Import legt nur an, gleicht nie ab"** (Spec §3.1) – diese Klasse
+ * berührt nie ein bereits bestehendes Mitglied. Dublettenregeln:
+ * - hart (member_number/nc_user_id bereits vergeben): die ganze Zeile wird
+ *   übersprungen (kein Mitglied, kein Mandat, keine Zuweisung) – ein erneuter
+ *   Einlauf derselben Liste darf niemandem ein zweites Mandat verpassen.
+ * - weich (Namensgleichheit): nur eine Warnung, die Zeile wird trotzdem
+ *   angelegt (Mailadressen sind in Vereinen nicht eindeutig, Namen erst recht
+ *   nicht – das allein blockiert nichts).
+ * Mailadresse ist ausdrücklich **kein** Dublettenschlüssel.
+ *
+ * **Betrag = Monatsbeitrag** (bewusste Modellentscheidung für dieses Ticket):
+ * anders als beim alten `vbh_membership_fees`-Import (dort war „Betrag" der
+ * tatsächlich je Frequenz fällige Betrag) ist die Spalte „Betrag" hier direkt
+ * `Assignment::monthlyAmountCents` – „Der Monatsbeitrag ist das Atom" (Spec
+ * §3.3), genau wie es AssignmentDialog.vue für die manuelle Erfassung auch
+ * verlangt. Eine Division des Altbetrags durch den Turnus hätte krumme Cent-
+ * Beträge riskiert; diese Neuinterpretation der Spalte ist für den neuen,
+ * vollständigen Import (Issue #69) tragbar, weil es die erste Version dieses
+ * Imports mit Beitragsgruppen überhaupt ist.
+ *
+ * **Mandats-Aktivierung** (Spec §3.1): ein per Import angelegtes Mandat hat
+ * durch die Parser-Regel „IBAN verlangt ein Mandatsdatum" immer ein
+ * `signed_at` – es wird deshalb immer sofort aktiviert, nie im Entwurf
+ * belassen. Die Bestätigungs-Checkbox in der Vorschau ("die unterschriebenen
+ * Mandate liegen vor", siehe {@see \OCA\Vereinsbuchhaltung\Controller\MemberImportController})
+ * *ist* die vom Aktivierungs-Gate verlangte Admin-Handlung – ohne sie lehnt
+ * {@see import()} jede Datei mit mindestens einer Mandatszeile komplett ab.
+ * Der Import erzeugt ausschließlich Papier-Mandate: ein Einmal-Link (Issue
+ * #67) setzt eine tatsächliche Zustimmung *durch das Mitglied selbst* voraus,
+ * die ein Massenimport nicht ersetzen kann.
  *
  * Der Ablauf ist zweistufig: erst {@see preview()} (ändert nichts, zeigt je
  * Zeile, was entstehen würde und was nicht stimmt), dann {@see import()}.
- * Wer 200 Zeilen einliest, soll vorher sehen, was passiert.
- *
- * Zeilenauflösung auf ein Mitglied (Spec §3.1 „CSV-Import legt nur an, gleicht
- * nie ab"): eine Spalte mit Nextcloud-Konto findet ein bereits verknüpftes
- * Mitglied wieder (idempotent über mehrere Importläufe hinweg, siehe
- * {@see MemberService::findOrCreateByNcUserId()}), ein freier Zahlername legt
- * dagegen bei jedem Lauf ein neues Mitglied an ({@see MemberService::createFromLabel()}) –
- * die volle Dublettenprüfung über Mitgliedsnummer/Namensgleichheit aus der
- * Spec ist bewusst ein späteres Ticket, hier bleibt nur die bisherige
- * Zeilen- und IBAN-Prüfung erhalten.
  */
 class MemberImportService {
 
 	public function __construct(
 		private MemberCsvParser $parser,
-		private MemberService $members,
 		private MemberMapper $memberMapper,
-		private SepaMandateService $mandates,
-		private MembershipFeeService $fees,
-		private SepaMandateMapper $mandateMapper,
-		private MembershipFeeMapper $feeMapper,
+		private MandateService $mandates,
+		private AssignmentService $assignments,
+		private ContributionGroupMapper $groupMapper,
 		private IUserManager $userManager,
 		private TransactionRunner $transaction,
 		private AuditService $audit,
+		private IUserSession $userSession,
 		private IConfig $config,
 		private IL10N $l10n,
 	) {
@@ -73,22 +100,10 @@ class MemberImportService {
 	/**
 	 * Prüflauf ohne jede Änderung.
 	 *
-	 * @return array{error: ?string, rows: list<array<string, mixed>>, summary: array{ok:int, failed:int, mandates:int, fees:int}}
+	 * @return array{error: ?string, rows: list<array<string, mixed>>, summary: array<string, int>}
 	 */
 	public function preview(string $csv): array {
-		[$defaultAmountCents, $defaultFrequency] = $this->defaultFee();
-		$parsed = $this->parser->parse($csv, $defaultAmountCents, $defaultFrequency);
-		if ($parsed['error'] !== null) {
-			return ['error' => $parsed['error'], 'rows' => [], 'summary' => ['ok' => 0, 'failed' => 0, 'mandates' => 0, 'fees' => 0]];
-		}
-
-		$rows = [];
-		$gesehene = [];
-		foreach ($parsed['rows'] as $row) {
-			$fehler = array_merge($row['errors'], $this->checkRow($row, $gesehene));
-			$rows[] = $this->describe($row, $fehler);
-		}
-		return ['error' => null, 'rows' => $rows, 'summary' => $this->summarize($rows)];
+		return $this->run($csv, false, false);
 	}
 
 	/**
@@ -96,40 +111,48 @@ class MemberImportService {
 	 * und einzeln gemeldet – ein Tippfehler in Zeile 143 darf die 142 Zeilen
 	 * davor nicht wertlos machen.
 	 *
-	 * Jede Zeile läuft in ihrer eigenen Transaktion: entweder Mandat *und*
-	 * Beitrag oder keins von beidem. Ein Beitrag, dessen Mandat fehlt, wäre
-	 * stiller Datenmüll – er würde nie eingezogen und niemand wüsste warum.
-	 *
-	 * @return array{error: ?string, rows: list<array<string, mixed>>, summary: array{ok:int, failed:int, mandates:int, fees:int}}
+	 * @param bool $mandatesConfirmed Die Bestätigungs-Checkbox aus der Vorschau
+	 *                                ("die unterschriebenen Mandate liegen vor") – Pflicht, sobald
+	 *                                mindestens eine Zeile ein Mandat anlegen würde (Spec §3.1).
+	 * @return array{error: ?string, rows: list<array<string, mixed>>, summary: array<string, int>}
 	 */
-	public function import(string $csv): array {
+	public function import(string $csv, bool $mandatesConfirmed = false): array {
+		return $this->run($csv, true, $mandatesConfirmed);
+	}
+
+	/**
+	 * @return array{error: ?string, rows: list<array<string, mixed>>, summary: array<string, int>}
+	 */
+	private function run(string $csv, bool $persist, bool $mandatesConfirmed): array {
 		[$defaultAmountCents, $defaultFrequency] = $this->defaultFee();
 		$parsed = $this->parser->parse($csv, $defaultAmountCents, $defaultFrequency);
 		if ($parsed['error'] !== null) {
-			return ['error' => $parsed['error'], 'rows' => [], 'summary' => ['ok' => 0, 'failed' => 0, 'mandates' => 0, 'fees' => 0]];
+			return ['error' => $parsed['error'], 'rows' => [], 'summary' => $this->emptySummary()];
 		}
 
+		if ($persist && !$mandatesConfirmed && $this->anyRowCreatesMandate($parsed['rows'])) {
+			return [
+				'error' => $this->l10n->t('Mindestens eine Zeile würde ein SEPA-Mandat anlegen. Bitte bestätigen Sie zuerst, dass die unterschriebenen Mandate vorliegen.'),
+				'rows' => [],
+				'summary' => $this->emptySummary(),
+			];
+		}
+
+		$groups = $this->groupMapper->findAll();
+		$knownNames = $this->loadExistingDisplayNames();
+
 		$rows = [];
-		$gesehene = [];
 		foreach ($parsed['rows'] as $row) {
-			$fehler = array_merge($row['errors'], $this->checkRow($row, $gesehene));
-			if ($fehler !== []) {
-				$rows[] = $this->describe($row, $fehler);
-				continue;
-			}
-			try {
-				$rows[] = $this->describe($row, [], $this->createRow($row));
-			} catch (\Throwable $e) {
-				$rows[] = $this->describe($row, [$e->getMessage()]);
-			}
+			$rows[] = $this->processRow($row, $groups, $knownNames, $persist);
 		}
 
 		$summary = $this->summarize($rows);
-		if ($summary['ok'] > 0) {
-			$this->audit->log('Mitglieder importiert', 'sepa_mandate', null, [
+		if ($persist && $summary['ok'] > 0) {
+			$this->audit->log('Mitglieder importiert', 'member', null, [
 				'zeilen' => $summary['ok'],
 				'mandate' => $summary['mandates'],
-				'beitraege' => $summary['fees'],
+				'zuweisungen' => $summary['assignments'],
+				'uebersprungen' => $summary['skipped'],
 				'fehlerhaft' => $summary['failed'],
 			]);
 		}
@@ -138,131 +161,269 @@ class MemberImportService {
 
 	/**
 	 * @param array<string, mixed> $row
-	 * @return array{mandateId:?int, feeId:?int}
+	 * @param ContributionGroup[] $groups
+	 * @param array<string, bool> $knownNames Kleingeschriebener Anzeigename → schon gesehen (DB oder frühere Zeile dieser Datei)
+	 * @return array<string, mixed>
 	 */
-	private function createRow(array $row): array {
-		return $this->transaction->run(function () use ($row): array {
-			$member = $row['memberUid'] !== null
-				? $this->members->findOrCreateByNcUserId((string)$row['memberUid'])
-				: $this->members->createFromLabel((string)$row['memberLabel']);
+	private function processRow(array $row, array $groups, array &$knownNames, bool $persist): array {
+		if ($row['errors'] !== []) {
+			return $this->describe($row, $row['errors']);
+		}
 
-			$mandateId = null;
-			if ($row['iban'] !== null) {
-				$mandateId = (int)$this->mandates->create(
-					(int)$member->getId(),
-					(string)$row['iban'],
-					$row['bic'],
-					'RCUR',
-					(string)$row['signedDate'],
-					$row['email'],
-				)->getId();
+		if ($row['memberUid'] !== null && !$this->userManager->userExists((string)$row['memberUid'])) {
+			return $this->describe($row, [$this->l10n->t('Es gibt kein Nextcloud-Konto „%s".', [(string)$row['memberUid']])]);
+		}
+
+		// Harte Dublette (Spec §3.1): member_number/nc_user_id gibt es schon –
+		// die ganze Zeile wird übersprungen, damit ein erneuter Einlauf
+		// derselben Liste niemandem ein zweites Mandat/eine zweite Zuweisung
+		// verpasst ("legt nur an, gleicht nie ab").
+		if ($row['memberUid'] !== null && $this->memberMapper->findByNcUserId((string)$row['memberUid']) !== null) {
+			return $this->describe($row, [], null, [], true, $this->l10n->t('Mitglied mit diesem Nextcloud-Konto existiert bereits – Zeile übersprungen.'));
+		}
+		if ($row['memberNumber'] !== null && $this->memberMapper->findByMemberNumber((string)$row['memberNumber']) !== null) {
+			return $this->describe($row, [], null, [], true, $this->l10n->t('Diese Mitgliedsnummer existiert bereits – Zeile übersprungen.'));
+		}
+
+		$warnings = [];
+		$group = null;
+		$assignmentPlanned = false;
+		if ($row['amountCents'] !== null) {
+			[$group, $groupWarning] = $this->resolveGroup($row['groupName'], $groups);
+			$assignmentPlanned = $group !== null;
+			if ($groupWarning !== null) {
+				$warnings[] = $groupWarning;
 			}
+		}
 
-			$feeId = null;
-			if ($row['amountCents'] !== null) {
-				$feeId = (int)$this->fees->create(
-					(int)$member->getId(),
-					(int)$row['amountCents'],
-					(string)$row['frequency'],
-					(string)$row['startDate'],
-					null,
-					$mandateId,
-				)->getId();
-			}
+		$displayName = $this->plannedDisplayName($row);
+		$nameKey = mb_strtolower($displayName);
+		if (isset($knownNames[$nameKey])) {
+			$warnings[] = $this->l10n->t('Ein Mitglied namens „%s" gibt es schon – trotzdem angelegt (Namensgleichheit ist keine Dublette).', [$displayName]);
+		}
 
-			return ['mandateId' => $mandateId, 'feeId' => $feeId];
-		});
+		if (!$persist) {
+			// Auch im Prüflauf spätere Dubletten *innerhalb derselben Datei*
+			// erkennen – zwei gleich benannte Zeilen sollen beide die Warnung
+			// zeigen, nicht nur die zweite.
+			$knownNames[$nameKey] = true;
+			return $this->describe($row, [], null, $warnings, assignmentPlanned: $assignmentPlanned);
+		}
+
+		try {
+			$created = $this->transaction->run(fn (): array => $this->createRow($row, $group));
+			$knownNames[$nameKey] = true;
+			return $this->describe($row, [], $created, $warnings, assignmentPlanned: $assignmentPlanned);
+		} catch (\Throwable $e) {
+			return $this->describe($row, [$e->getMessage()]);
+		}
 	}
 
 	/**
-	 * Prüfungen, die der Parser nicht anstellen kann, weil sie den Datenbestand
-	 * brauchen.
+	 * @param array<string, mixed> $row
+	 * @return array{memberId:int, mandateId:?int, mandateStatus:?string, assignmentId:?int}
+	 */
+	private function createRow(array $row, ?ContributionGroup $group): array {
+		$member = $this->buildMember($row);
+
+		$mandateId = null;
+		$mandateStatus = null;
+		if ($row['iban'] !== null) {
+			$mandate = $this->mandates->createPaper(
+				(int)$member->getId(),
+				(string)$row['iban'],
+				$row['bic'],
+				$row['accountHolder'],
+				$row['signedDate'],
+				$row['mandateReference'],
+			);
+			// Die Preview-Bestätigung ("die unterschriebenen Mandate liegen vor")
+			// *ist* die vom Aktivierungs-Gate verlangte Admin-Handlung (Spec
+			// §3.1) – jede Importzeile mit IBAN hat dank der Parser-Regel immer
+			// ein Mandatsdatum, aktiviert also immer sofort.
+			$mandate = $this->mandates->activatePaper((int)$mandate->getId());
+			$mandateId = $mandate->getId();
+			$mandateStatus = $mandate->getStatus();
+		}
+
+		$assignmentId = null;
+		if ($group !== null && $row['amountCents'] !== null) {
+			// Die tatsächlich am Mitglied hinterlegte Mailadresse entscheidet
+			// (Spec §3.1 "Zeile ohne Mail landet auf ueberweisung") – bei einem
+			// verknüpften NC-Konto kann die aus dessen Kontodaten stammen, auch
+			// wenn die CSV-Spalte selbst leer war (siehe buildMember()).
+			$paymentMethod = $member->getEmail() !== null ? Assignment::PAYMENT_METHOD_DIRECT_DEBIT : Assignment::PAYMENT_METHOD_TRANSFER;
+			$intervalMonths = BillingPeriod::FREQUENCY_MONTHS[$row['frequency']] ?? 12;
+			$assignment = $this->assignments->create(
+				(int)$member->getId(),
+				(int)$group->getId(),
+				$intervalMonths,
+				(int)$row['amountCents'],
+				$paymentMethod,
+				(string)$row['startDate'],
+				null,
+				null,
+				null,
+				AssignmentEvent::ACTOR_STAFF,
+				$this->currentUid(),
+			);
+			$assignmentId = $assignment->getId();
+		}
+
+		return ['memberId' => (int)$member->getId(), 'mandateId' => $mandateId, 'mandateStatus' => $mandateStatus, 'assignmentId' => $assignmentId];
+	}
+
+	/**
+	 * Legt das Mitglied frisch an – nie ein bestehendes wiederverwenden (siehe
+	 * Klassendoc "legt nur an, gleicht nie ab"; die Dublettenprüfung in
+	 * {@see processRow()} ist deshalb VOR diesem Aufruf Pflicht). Baut selbst
+	 * auf {@see MemberService::splitLabel()} auf (dieselbe Heuristik wie
+	 * Migration 000138 und die Alt-Fassung dieser Klasse), ergänzt aber –
+	 * anders als MemberService::createFromLabel()/findOrCreateByNcUserId() –
+	 * auch Mitgliedsnummer und E-Mail, die dieser Import zusätzlich kennt.
 	 *
 	 * @param array<string, mixed> $row
-	 * @param array<string, int> $gesehene Zahler → Zeilennummer, innerhalb dieser Datei
-	 * @return list<string>
 	 */
-	private function checkRow(array $row, array &$gesehene): array {
-		$fehler = [];
-
-		if ($row['memberUid'] !== null && !$this->userManager->userExists((string)$row['memberUid'])) {
-			$fehler[] = $this->l10n->t('Es gibt kein Nextcloud-Konto „%s".', [(string)$row['memberUid']]);
+	private function buildMember(array $row): Member {
+		$email = $row['email'];
+		if ($row['memberUid'] !== null) {
+			$user = $this->userManager->get((string)$row['memberUid']);
+			$label = $user?->getDisplayName() ?? (string)$row['memberUid'];
+			$split = MemberService::splitLabel($label);
+			$email ??= $user?->getEMailAddress();
+		} else {
+			$split = MemberService::splitLabel((string)$row['memberLabel']);
 		}
 
-		// Zweimal derselbe Zahler in einer Datei ist fast immer ein Versehen
-		// (kopierte Zeile). Zweimal anlegen ergäbe zwei Mandate und zwei
-		// Beiträge – also den doppelten Einzug.
-		$schluessel = mb_strtolower((string)($row['memberUid'] ?? $row['memberLabel'] ?? ''));
-		if ($schluessel !== '') {
-			if (isset($gesehene[$schluessel])) {
-				$fehler[] = $this->l10n->t('Dieser Zahler steht schon in Zeile %s dieser Datei.', [(string)$gesehene[$schluessel]]);
-			} else {
-				$gesehene[$schluessel] = (int)$row['line'];
+		$member = new Member();
+		$member->setMemberType($split['type']);
+		$member->setFirstName($split['firstName']);
+		$member->setLastName($split['lastName']);
+		$member->setOrganizationName($split['organizationName']);
+		$member->setEmail($email);
+		$member->setMemberNumber($row['memberNumber']);
+		if ($row['memberUid'] !== null) {
+			$member->setNcUserId((string)$row['memberUid']);
+		}
+		$member->setJoinedAt((new \DateTime())->format('Y-m-d'));
+		$member->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s'));
+		return $this->memberMapper->insert($member);
+	}
+
+	/**
+	 * @param ContributionGroup[] $groups
+	 * @return array{0: ?ContributionGroup, 1: ?string} Gruppe (falls auflösbar) + Warnung (falls nicht)
+	 */
+	private function resolveGroup(?string $groupName, array $groups): array {
+		if ($groupName !== null) {
+			foreach ($groups as $group) {
+				if (mb_strtolower($group->getName()) === mb_strtolower($groupName)) {
+					return [$group, null];
+				}
+			}
+			return [null, $this->l10n->t('Unbekannte Beitragsgruppe „%s" – der Beitrag wird nicht angelegt.', [$groupName])];
+		}
+		// Nachsichtiger Fallback: bei genau einer bestehenden Beitragsgruppe ist
+		// die Zuordnung eindeutig, auch ohne eigene Spalte in der Datei (der
+		// häufigste Fall: ein Verein mit einem einzigen Beitragssatz).
+		if (count($groups) === 1) {
+			return [$groups[0], null];
+		}
+		return [null, $this->l10n->t('Keine Beitragsgruppe angegeben – der Beitrag wird nicht angelegt.')];
+	}
+
+	/** @param array<string, mixed> $row */
+	private function plannedDisplayName(array $row): string {
+		if ($row['memberUid'] !== null) {
+			$user = $this->userManager->get((string)$row['memberUid']);
+			return $user?->getDisplayName() ?? (string)$row['memberUid'];
+		}
+		return (string)$row['memberLabel'];
+	}
+
+	/** @return array<string, bool> kleingeschriebener Anzeigename → true */
+	private function loadExistingDisplayNames(): array {
+		$names = [];
+		foreach ($this->memberMapper->findAll() as $member) {
+			$names[mb_strtolower($member->displayName())] = true;
+		}
+		return $names;
+	}
+
+	/** @param list<array<string, mixed>> $rows */
+	private function anyRowCreatesMandate(array $rows): bool {
+		foreach ($rows as $row) {
+			if ($row['errors'] === [] && $row['iban'] !== null) {
+				return true;
 			}
 		}
-
-		if ($row['iban'] !== null && $this->mandateMapper->findActiveByIban((string)$row['iban']) !== null) {
-			$fehler[] = $this->l10n->t('Für diese IBAN gibt es bereits ein aktives Mandat.');
-		}
-
-		// Dieselbe Liste ein zweites Mal einzulesen ist der Normalfall, nicht
-		// die Ausnahme („ist das jetzt durchgelaufen?"). Nur für ein bereits
-		// verknüpftes NC-Konto lässt sich das prüfen: ein freier Zahlername
-		// legt laut Spec §3.1 ohnehin bei jedem Lauf ein neues Mitglied an
-		// ("legt nur an, gleicht nie ab") - Namensgleichheit ist kein
-		// verlässlicher Dublettenschlüssel und bleibt einem späteren Ticket
-		// mit echten Dublettenregeln vorbehalten (member_number, Warnung bei
-		// Namensgleichheit).
-		if ($row['amountCents'] !== null && $row['memberUid'] !== null) {
-			$existing = $this->memberMapper->findByNcUserId((string)$row['memberUid']);
-			if ($existing !== null && $this->feeMapper->findActiveByMember((int)$existing->getId()) !== []) {
-				$fehler[] = $this->l10n->t('Für diesen Zahler gibt es bereits einen aktiven Beitrag.');
-			}
-		}
-
-		return $fehler;
+		return false;
 	}
 
 	/**
 	 * @param array<string, mixed> $row
 	 * @param list<string> $errors
-	 * @param array{mandateId:?int, feeId:?int}|null $created
+	 * @param array{memberId:int, mandateId:?int, mandateStatus:?string, assignmentId:?int}|null $created
+	 * @param list<string> $warnings
 	 * @return array<string, mixed>
 	 */
-	private function describe(array $row, array $errors, ?array $created = null): array {
+	private function describe(array $row, array $errors, ?array $created = null, array $warnings = [], bool $skipped = false, ?string $skipReason = null, bool $assignmentPlanned = false): array {
 		return [
 			'line' => $row['line'],
 			'name' => $row['memberUid'] ?? $row['memberLabel'] ?? '',
+			'memberNumber' => $row['memberNumber'],
 			'iban' => $row['iban'],
 			'email' => $row['email'],
+			'groupName' => $row['groupName'],
 			'amount' => $row['amountCents'] !== null ? $row['amountCents'] / 100 : null,
 			'frequency' => $row['frequency'],
 			'startDate' => $row['startDate'],
-			// Was entstehen würde bzw. entstanden ist – im Prüflauf steht hier
-			// die Absicht, nach dem Import das Ergebnis.
+			// "geplant" heißt: nach Auflösung der Beitragsgruppe würde dieser
+			// Block tatsächlich entstehen – anders als willCreateAssignment
+			// unten (reine Spalten-Absicht) zieht das eine nicht auflösbare
+			// Beitragsgruppe (Warnung statt Fehler) bereits ab.
 			'willCreateMandate' => $row['iban'] !== null,
-			'willCreateFee' => $row['amountCents'] !== null,
+			'willCreateAssignment' => $assignmentPlanned,
+			'memberId' => $created['memberId'] ?? null,
 			'mandateId' => $created['mandateId'] ?? null,
-			'feeId' => $created['feeId'] ?? null,
+			'mandateStatus' => $created['mandateStatus'] ?? null,
+			'assignmentId' => $created['assignmentId'] ?? null,
+			'skipped' => $skipped,
+			'skipReason' => $skipReason,
+			'warnings' => $warnings,
 			'errors' => $errors,
 		];
 	}
 
 	/**
 	 * @param list<array<string, mixed>> $rows
-	 * @return array{ok:int, failed:int, mandates:int, fees:int}
+	 * @return array<string, int>
 	 */
 	private function summarize(array $rows): array {
-		$summary = ['ok' => 0, 'failed' => 0, 'mandates' => 0, 'fees' => 0];
+		$summary = $this->emptySummary();
 		foreach ($rows as $row) {
+			if ($row['skipped']) {
+				$summary['skipped']++;
+				continue;
+			}
 			if ($row['errors'] !== []) {
 				$summary['failed']++;
 				continue;
 			}
 			$summary['ok']++;
 			$summary['mandates'] += $row['willCreateMandate'] ? 1 : 0;
-			$summary['fees'] += $row['willCreateFee'] ? 1 : 0;
+			$summary['assignments'] += $row['willCreateAssignment'] ? 1 : 0;
+			$summary['warnings'] += $row['warnings'] !== [] ? 1 : 0;
 		}
 		return $summary;
+	}
+
+	/** @return array<string, int> */
+	private function emptySummary(): array {
+		return ['ok' => 0, 'skipped' => 0, 'failed' => 0, 'mandates' => 0, 'assignments' => 0, 'warnings' => 0];
+	}
+
+	private function currentUid(): ?string {
+		return $this->userSession->getUser()?->getUID();
 	}
 }

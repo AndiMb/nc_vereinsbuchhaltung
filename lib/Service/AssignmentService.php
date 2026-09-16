@@ -21,6 +21,12 @@ use OCP\IL10N;
  * {@see AssignmentEvent}. Eine Wirksamkeitsregel für Gruppenwechsel/
  * Turnuswechsel/Betragsänderung/Untergrenzen-Erhöhung –
  * {@see EffectivityRuleService} – gilt für alle Änderungsmethoden gleich.
+ *
+ * {@see previewFirstPeriod()} zeigt seit Issue #69 zusätzlich den
+ * vorgeschlagenen Einzugstermin der Prorata-Erstforderung (Spec §3.1 „Schritt
+ * 3 … schlägt den Einzugstermin vor") – dieselbe Vorschau bedient sowohl den
+ * Aufnahme-Assistenten als auch die bestehende manuelle Zuweisungs-Erfassung
+ * (AssignmentDialog.vue).
  */
 class AssignmentService {
 
@@ -32,6 +38,9 @@ class AssignmentService {
 		private ContributionYearService $contributionYear,
 		private ITimeFactory $time,
 		private IL10N $l10n,
+		// Erst mit Issue #70 hinzugekommen (Terminplan) – nur für die
+		// Einzugstermin-Vorschau in previewFirstPeriod() gebraucht, siehe dort.
+		private DueDateScheduleService $dueDateSchedule,
 	) {
 	}
 
@@ -251,7 +260,14 @@ class AssignmentService {
 	 * – Prorata-Mathematik (Spec §3.3): angebrochene Monate zählen an beiden
 	 * Enden voll, Einzugsbetrag = Monatsbeitrag × Turnusmonate.
 	 *
-	 * @return array{periodStart:string, periodEnd:string, months:int, amountCents:int}
+	 * `dueDate` ist der vorgeschlagene, überschreibbare Einzugstermin der
+	 * Prorata-Erstforderung (Spec §3.1/§3.5, Issue #69/#70): derselbe Anker
+	 * (`max(periodStart, validFrom)`), den {@see \OCA\Vereinsbuchhaltung\Service\ClaimGenerationService}
+	 * für die allererste Periode einer Zuweisung verwendet – die tatsächliche
+	 * Forderung entsteht weiterhin erst über den Tageslauf dort, hier ist es
+	 * eine reine Vorschau vor dem Speichern.
+	 *
+	 * @return array{periodStart:string, periodEnd:string, months:int, amountCents:int, dueDate:string}
 	 */
 	public function previewFirstPeriod(Assignment $assignment): array {
 		[$periodStart, $periodEnd] = $this->contributionYear->periodContaining($assignment->getIntervalMonths(), $assignment->getValidFrom());
@@ -262,6 +278,7 @@ class AssignmentService {
 			'periodEnd' => $periodEnd,
 			'months' => $months,
 			'amountCents' => ProrataCalculator::amountCents($assignment->getMonthlyAmountCents(), $from, $periodEnd),
+			'dueDate' => $this->dueDateSchedule->dueDateForPeriod($assignment->getIntervalMonths(), $from),
 		];
 	}
 
