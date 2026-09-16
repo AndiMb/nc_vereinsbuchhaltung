@@ -98,4 +98,26 @@ class AssignmentMapper extends QBMapper {
 			->where($qb->expr()->eq('group_id', $qb->createNamedParameter($groupId, IQueryBuilder::PARAM_INT)));
 		return $this->findEntities($qb);
 	}
+
+	/**
+	 * Zuweisungen, die an `$date` aktiv sind (validFrom <= $date, validTo NULL
+	 * oder erst danach) – Grundlage für die periodische Forderungserzeugung
+	 * (Issue #70, {@see \OCA\Vereinsbuchhaltung\Service\ClaimGenerationService})
+	 * und die Störfall-Abfrage „Kein Mandat + Lastschrift gewollt"
+	 * ({@see \OCA\Vereinsbuchhaltung\Service\ContributionCycleTaskService}).
+	 *
+	 * @return Assignment[]
+	 */
+	public function findActiveAsOf(string $date): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->lte('valid_from', $qb->createNamedParameter($date)))
+			->andWhere($qb->expr()->orX(
+				$qb->expr()->isNull('valid_to'),
+				$qb->expr()->gte('valid_to', $qb->createNamedParameter($date)),
+			))
+			->orderBy('id', 'ASC');
+		return $this->findEntities($qb);
+	}
 }

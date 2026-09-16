@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
+use OCA\Vereinsbuchhaltung\Service\ContributionCycleTaskService;
 use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCA\Vereinsbuchhaltung\Service\TaskService;
@@ -23,8 +24,10 @@ use OCP\IRequest;
  * Fachdiensten - Issue #67 bringt mit
  * {@see MandateActivationService::findStaleElectronicDraftTasks()} die erste
  * solche Abfrage ein (siehe dortige Klassendoc, warum keine eigene Tabelle
- * nötig ist). Spätere Tickets (Mandats-Verfall-Vorwarnung, ...) hängen sich
- * nach demselben Muster hier ein.
+ * nötig ist). Issue #70 hängt mit {@see ContributionCycleTaskService} den
+ * Einzugszyklus (Vorwarnfenster, fehlendes Mandat, gerissene Vorlauffrist,
+ * überfällige Überweiser-Forderungen) nach demselben Muster ein. Spätere
+ * Tickets (Mandats-Verfall-Vorwarnung, Rücklastschrift, ...) tun es ihnen gleich.
  */
 class TaskController extends Controller {
 
@@ -32,6 +35,7 @@ class TaskController extends Controller {
 		IRequest $request,
 		private TaskService $service,
 		private MandateActivationService $mandateActivation,
+		private ContributionCycleTaskService $contributionCycle,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -44,6 +48,9 @@ class TaskController extends Controller {
 			// Synthetische, stabile id fuer Frontend-Listenschluessel - diese
 			// Eintraege sind nie in vbh_tasks persistiert (siehe Klassendoc).
 			$tasks[] = $task + ['id' => 'mandate-activation-' . $task['objectId'] . '-' . $i, 'createdAt' => null];
+		}
+		foreach ($this->contributionCycle->findTasks() as $i => $task) {
+			$tasks[] = $task + ['id' => 'contribution-cycle-' . ($task['objectId'] ?? 'run') . '-' . $i, 'createdAt' => null];
 		}
 		return new DataResponse($tasks);
 	}

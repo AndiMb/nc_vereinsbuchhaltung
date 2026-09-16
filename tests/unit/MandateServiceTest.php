@@ -316,4 +316,27 @@ class MandateServiceTest extends TestCase {
 		$this->assertSame(Mandate::STATUS_ENDED, $faellig->getStatus());
 		$this->assertSame(Mandate::STATUS_ACTIVE, $nochGueltig->getStatus());
 	}
+
+	// --- Austritts-Mandatsende (Issue #70) --------------------------------------
+
+	public function testEndDueToDepartureBeendetEinAktivesMandat(): void {
+		$mandate = $this->activeMandate(1);
+		$this->mandateMapper->method('find')->with(1)->willReturn($mandate);
+		$this->mandateMapper->expects($this->once())->method('update');
+
+		$result = $this->service()->endDueToDeparture(1);
+
+		$this->assertSame(Mandate::STATUS_ENDED, $result->getStatus());
+		$this->assertSame(Mandate::END_REASON_TERMINATED, $result->getEndReason());
+	}
+
+	public function testEndDueToDepartureLehntNichtAktivesMandatAb(): void {
+		$mandate = $this->activeMandate(1);
+		$mandate->setStatus(Mandate::STATUS_SUSPENDED);
+		$this->mandateMapper->method('find')->with(1)->willReturn($mandate);
+		$this->mandateMapper->expects($this->never())->method('update');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->endDueToDeparture(1);
+	}
 }

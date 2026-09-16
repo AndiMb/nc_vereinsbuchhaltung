@@ -497,6 +497,38 @@ class MandateService {
 		));
 	}
 
+	// --- Cron: Austritts-Mandatsende -------------------------------------------
+
+	/**
+	 * Automatisches Mandatsende bei Austritt (Spec §2.2 „Widerruf/Austritt":
+	 * „Austritt beendet das Mandat automatisch per Cron, erst wenn keine
+	 * Forderung mehr offen ist", Issue #70). Der Aufrufer
+	 * ({@see \OCA\Vereinsbuchhaltung\BackgroundJob\MandateDepartureJob}) prüft
+	 * bereits "Mitglied ausgetreten" und "keine Forderung mehr offen"
+	 * ({@see ClaimStateResolver}) – diese Methode prüft nur noch den
+	 * Mandatszustand selbst.
+	 *
+	 * Bewusst nur `aktiv`: ein Entwurf oder eine Sperre eines ausgetretenen
+	 * Mitglieds bleibt unangetastet liegen (die Spec beschreibt für diese
+	 * Fälle kein automatisches Aufräumen) – wer das braucht, nutzt die
+	 * bestehenden manuellen Wege.
+	 *
+	 * @throws \InvalidArgumentException wenn das Mandat nicht aktiv ist
+	 */
+	public function endDueToDeparture(int $id): Mandate {
+		$mandate = $this->mapper->find($id);
+		if ($mandate->getStatus() !== Mandate::STATUS_ACTIVE) {
+			throw new \InvalidArgumentException($this->l10n->t('Nur ein aktives Mandat endet automatisch bei Austritt.'));
+		}
+		$this->end($mandate, Mandate::END_REASON_TERMINATED);
+
+		$this->audit->log('SEPA-Mandat automatisch beendet (Austritt, keine Forderung mehr offen)', 'mandate', $mandate->getId(), [
+			'referenz' => $mandate->getMandateReference(),
+		], actor: 'system');
+		$this->logEvent($mandate, $this->l10n->t('Mandat automatisch beendet (Austritt, keine Forderung mehr offen)'), MandateEvent::ACTOR_SYSTEM);
+		return $mandate;
+	}
+
 	// --- Referenz --------------------------------------------------------------
 
 	public function generateReference(): string {

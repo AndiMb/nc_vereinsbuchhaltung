@@ -153,6 +153,8 @@
 			</div>
 		</section>
 
+		<DueDateScheduleSettings />
+
 		<ContributionGroupDialog
 			:show="groupDialogOpen"
 			:groupEditId="groupEditId"
@@ -188,6 +190,7 @@ import { NcButton } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import AssignmentDialog from './AssignmentDialog.vue'
 import ContributionGroupDialog from './ContributionGroupDialog.vue'
+import DueDateScheduleSettings from './DueDateScheduleSettings.vue'
 import ManualClaimDialog from './ManualClaimDialog.vue'
 import MinAmountIncreaseDialog from './MinAmountIncreaseDialog.vue'
 import api from '../api.js'
@@ -207,7 +210,7 @@ import { errMsg } from '../lib/format.js'
  */
 export default {
 	name: 'ContributionGroupsPanel',
-	components: { NcButton, ContributionGroupDialog, MinAmountIncreaseDialog, AssignmentDialog, ManualClaimDialog },
+	components: { NcButton, ContributionGroupDialog, MinAmountIncreaseDialog, AssignmentDialog, ManualClaimDialog, DueDateScheduleSettings },
 
 	setup() {
 		const groups = useContributionGroups()
