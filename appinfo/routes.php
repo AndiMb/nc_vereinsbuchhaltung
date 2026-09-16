@@ -217,6 +217,18 @@ return [
 		['name' => 'dueDateSchedule#setOverride', 'url' => '/api/due-date-schedule/{intervalMonths}/overrides/{periodIndex}', 'verb' => 'POST'],
 		['name' => 'dueDateSchedule#setLeadDays', 'url' => '/api/due-date-schedule/lead-days', 'verb' => 'POST'],
 
+		// Lastschriftlauf: Freigabe & Einreichung (Issue #71)
+		['name' => 'debitBatch#preview', 'url' => '/api/debit-batches/preview', 'verb' => 'GET'],
+		['name' => 'debitBatch#settings', 'url' => '/api/debit-batches/settings', 'verb' => 'GET'],
+		['name' => 'debitBatch#updateSettings', 'url' => '/api/debit-batches/settings', 'verb' => 'POST'],
+		['name' => 'debitBatch#index', 'url' => '/api/debit-batches', 'verb' => 'GET'],
+		['name' => 'debitBatch#release', 'url' => '/api/debit-batches', 'verb' => 'POST'],
+		['name' => 'debitBatch#show', 'url' => '/api/debit-batches/{id}', 'verb' => 'GET'],
+		['name' => 'debitBatch#submit', 'url' => '/api/debit-batches/{id}/submit', 'verb' => 'POST'],
+		['name' => 'debitBatch#discard', 'url' => '/api/debit-batches/{id}/discard', 'verb' => 'POST'],
+		['name' => 'debitBatch#reschedule', 'url' => '/api/debit-batches/{id}/reschedule', 'verb' => 'POST'],
+		['name' => 'debitBatch#xml', 'url' => '/api/debit-batches/{id}/xml', 'verb' => 'GET'],
+
 		// Export (CSV-Download)
 		['name' => 'export#journal',  'url' => '/api/export/journal',  'verb' => 'GET'],
 		['name' => 'export#balances', 'url' => '/api/export/balances', 'verb' => 'GET'],

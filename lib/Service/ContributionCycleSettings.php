@@ -8,14 +8,18 @@ use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCP\IConfig;
 
 /**
- * Die beiden konfigurierbaren Abstände des Einzugszyklus-Crons (Spec §3.5/§7,
- * Issue #70): D−21 „Vorwarnfenster" und D−14 „Vorabinfo-Vorlauf". Bewusst eine
- * eigene, winzige Klasse statt zwei verstreuter `getAppValue()`-Aufrufe je
+ * Die konfigurierbaren Abstände des Einzugszyklus (Spec §3.5/§7/§3.9): D−21
+ * „Vorwarnfenster", D−14 „Vorabinfo-Vorlauf" (Issue #70) und D−5
+ * „Vorlauf-Puffer" (Issue #71, Spec §8 Compliance-Anhang: „Vorlagefrist D-1
+ * bis D-14 … Vorlauf-Puffer konfigurierbar (Default 5 Tage)"). Bewusst eine
+ * eigene, winzige Klasse statt verstreuter `getAppValue()`-Aufrufe je
  * Nutzstelle – {@see ClaimGenerationService} (Generierungs-Horizont),
- * {@see ContributionPreNotificationService} (Versandfenster) und
- * {@see ContributionCycleTaskService} (Vorwarn-Aufgabe) brauchen alle
- * denselben Wert und müssen bei einer künftigen Änderung (z. B. Validierung)
- * nicht synchron gehalten werden.
+ * {@see ContributionPreNotificationService} (Versandfenster),
+ * {@see ContributionCycleTaskService} (Vorwarn-Aufgabe) und
+ * {@see DebitBatchTaskService} („Freigabe fällig"/„Einreichung überfällig")
+ * brauchen dieselben Werte und müssen bei einer künftigen Änderung (z. B.
+ * Validierung) nicht synchron gehalten werden. Spec §3.9 führt alle drei
+ * zusammen mit der XML-Ablage als EINE `verwalter`-Einstellungsgruppe.
  *
  * `prenotificationLeadDays()` ersetzt fachlich
  * {@see SepaNotificationService::LEAD_DAYS} für das neue Assignment/Claim-
@@ -30,6 +34,9 @@ final class ContributionCycleSettings {
 
 	public const SETTING_WARNING_LEAD_DAYS = 'warning_lead_days';
 	public const DEFAULT_WARNING_LEAD_DAYS = 21;
+
+	public const SETTING_RELEASE_LEAD_DAYS = 'release_lead_days';
+	public const DEFAULT_RELEASE_LEAD_DAYS = 5;
 
 	/** Reine Plausibilitätsgrenzen gegen Tippfehler (0 oder ein Jahr Vorlauf ergäben keinen Sinn). */
 	private const MIN_DAYS = 1;
@@ -56,6 +63,16 @@ final class ContributionCycleSettings {
 	/** @throws \InvalidArgumentException außerhalb des Plausibilitätsbereichs */
 	public function setWarningLeadDays(int $days): void {
 		$this->writeDays(self::SETTING_WARNING_LEAD_DAYS, $days);
+	}
+
+	/** Der „Vorlauf-Puffer" (Spec §8): ab wann ein noch nicht freigegebener/eingereichter Lauf zum Störfall wird (Issue #71). */
+	public function releaseLeadDays(): int {
+		return $this->readDays(self::SETTING_RELEASE_LEAD_DAYS, self::DEFAULT_RELEASE_LEAD_DAYS);
+	}
+
+	/** @throws \InvalidArgumentException außerhalb des Plausibilitätsbereichs */
+	public function setReleaseLeadDays(int $days): void {
+		$this->writeDays(self::SETTING_RELEASE_LEAD_DAYS, $days);
 	}
 
 	private function readDays(string $key, int $default): int {
