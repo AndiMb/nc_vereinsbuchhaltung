@@ -92,6 +92,8 @@ return [
 		// + self_service_enabled, siehe PermissionMiddleware (vierter
 		// instanceof-Sonderfall). Keine Rollenprüfung, kein #[PublicPage].
 		['name' => 'self#me', 'url' => '/api/self/me', 'verb' => 'GET'],
+		// Issue #76: eigene Kontaktstammdaten pflegen (Spec §3.4 Aktionskatalog).
+		['name' => 'self#updateMe', 'url' => '/api/self/me', 'verb' => 'PUT'],
 		// Issue #67: Mitglied fordert für sein EIGENES elektronisches Mandat
 		// einen (neuen) Einmal-Link an - self_service_enabled +
 		// Kontoverknüpfung, wie jeder andere self#-Endpunkt.
@@ -105,6 +107,13 @@ return [
 		['name' => 'self#changeMandateIban', 'url' => '/api/self/mandate/iban', 'verb' => 'POST'],
 		['name' => 'self#replaceMandate', 'url' => '/api/self/mandate/replace', 'verb' => 'POST'],
 		['name' => 'self#revokeMandate', 'url' => '/api/self/mandate/revoke', 'verb' => 'POST'],
+
+		// Issue #76: Beitrag-Aktionen (Betrag/Turnus, Spec §3.4 Aktionskatalog) -
+		// bewusst ohne groupId-Parameter ueberhaupt (Beitragsgruppe wechseln
+		// ist "Darf nicht"), siehe SelfController::updateAssignment().
+		['name' => 'self#assignments', 'url' => '/api/self/assignments', 'verb' => 'GET'],
+		['name' => 'self#previewAssignment', 'url' => '/api/self/assignments/{id}/preview', 'verb' => 'POST'],
+		['name' => 'self#updateAssignment', 'url' => '/api/self/assignments/{id}', 'verb' => 'PUT'],
 
 		// Rules
 		['name' => 'rule#index', 'url' => '/api/rules', 'verb' => 'GET'],

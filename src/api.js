@@ -189,6 +189,13 @@ export default {
 	// Self-Service ("Mein Beitrag"): eigene Stammdaten, Zugang ausschließlich
 	// über die Kontoverknüpfung (siehe PermissionMiddleware/SelfController).
 	selfMe: () => axios.get(url('/self/me')),
+	selfUpdateMe: (data) => axios.put(url('/self/me'), data),
+
+	// Self-Service Beitrag-Aktionen (Issue #76): Betrag/Turnus, bewusst ohne
+	// groupId - Beitragsgruppe wechseln ist im Self-Service nicht erlaubt.
+	selfAssignments: () => axios.get(url('/self/assignments')),
+	selfPreviewAssignment: (id, data) => axios.post(url(`/self/assignments/${id}/preview`), data),
+	selfUpdateAssignment: (id, data) => axios.put(url(`/self/assignments/${id}`), data),
 
 	// Self-Service-Mandats-Aktionskatalog (Issue #75, Spec §3.4): keiner
 	// dieser Aufrufe nimmt eine Mandats-ID entgegen - der Server löst das

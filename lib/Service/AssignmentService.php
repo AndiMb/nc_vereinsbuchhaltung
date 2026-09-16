@@ -36,11 +36,12 @@ class AssignmentService {
 		private ContributionGroupMapper $groupMapper,
 		private OpenItemMapper $openItemMapper,
 		private ContributionYearService $contributionYear,
+		// Erst mit Issue #70 hinzugekommen (Terminplan) – gebraucht sowohl für
+		// die Einzugstermin-Vorschau in previewFirstPeriod() (Issue #69) als
+		// auch für previewChange() (Issue #76).
+		private DueDateScheduleService $dueDateSchedule,
 		private ITimeFactory $time,
 		private IL10N $l10n,
-		// Erst mit Issue #70 hinzugekommen (Terminplan) – nur für die
-		// Einzugstermin-Vorschau in previewFirstPeriod() gebraucht, siehe dort.
-		private DueDateScheduleService $dueDateSchedule,
 	) {
 	}
 
@@ -143,8 +144,12 @@ class AssignmentService {
 
 		if ($intervalMonths !== null && $intervalMonths !== $assignment->getIntervalMonths()) {
 			$this->assertValidInterval($group, $intervalMonths);
+			// Turnuswechsel-Sonderfall (Spec §3.4): eigene Wirksamkeitsberechnung
+			// statt der generischen $effectiveFrom von oben - siehe
+			// effectiveFromFor()/EffectivityRuleService::firstUnlockedDay().
+			$intervalEffectiveFrom = $this->effectiveFromFor($assignment, $intervalMonths);
 			$this->logEvent($id, AssignmentEvent::TYPE_INTERVAL_CHANGED, $actorType, $actorUid, $onBehalfNote, [
-				'from' => $assignment->getIntervalMonths(), 'to' => $intervalMonths, 'effectiveFrom' => $effectiveFrom,
+				'from' => $assignment->getIntervalMonths(), 'to' => $intervalMonths, 'effectiveFrom' => $intervalEffectiveFrom,
 			]);
 			$assignment->setIntervalMonths($intervalMonths);
 		}
@@ -291,11 +296,17 @@ class AssignmentService {
 	 * Der früheste laut Wirksamkeitsregel zulässige Stichtag für eine
 	 * Änderung an dieser Zuweisung, ausgehend von heute (siehe
 	 * {@see EffectivityRuleService}). Solange keine Forderung dieser
-	 * Zuweisung je vorabinformiert wurde – in Issue #68 immer der Fall,
-	 * `prenotified_at` wird erst in Ticket #70 gesetzt –, ist das schlicht
-	 * heute.
+	 * Zuweisung je vorabinformiert wurde, ist das schlicht heute.
+	 *
+	 * @param int|null $newIntervalMonths Turnuswechsel-Sonderfall (Spec §3.4,
+	 *                                    Issue #76): wechselt der Turnus, wirkt die Änderung nicht einfach ab
+	 *                                    dem Tag nach der letzten gesperrten Periode (das alte Perioden-Raster
+	 *                                    ist dann irrelevant), sondern "ab der ersten Periode des NEUEN Turnus,
+	 *                                    die vollständig hinter der letzten eingezogenen liegt" - deshalb hier
+	 *                                    ab der Sperrgrenze im NEUEN Raster weitergerechnet.
+	 *                                    `null`/gleicher Wert wie bisher = generische Regel.
 	 */
-	private function effectiveFromFor(Assignment $assignment): string {
+	private function effectiveFromFor(Assignment $assignment, ?int $newIntervalMonths = null): string {
 		$periods = array_map(
 			static fn ($item) => [
 				'periodStart' => (string)$item->getPeriodStart(),
@@ -307,7 +318,71 @@ class AssignmentService {
 				static fn ($item) => $item->getPeriodStart() !== null && $item->getPeriodEnd() !== null,
 			)),
 		);
-		return EffectivityRuleService::firstEffectiveDate($periods, $this->today());
+		$today = $this->today();
+
+		if ($newIntervalMonths === null || $newIntervalMonths === $assignment->getIntervalMonths()) {
+			return EffectivityRuleService::firstEffectiveDate($periods, $today);
+		}
+
+		$blockedUntil = EffectivityRuleService::firstUnlockedDay($periods);
+		if ($blockedUntil === null) {
+			return $today;
+		}
+		// Das Raster des NEUEN Turnus muss nicht an derselben Stelle beginnen
+		// wie das alte - periodContaining() kann deshalb eine Periode liefern,
+		// die VOR $blockedUntil beginnt (aber $blockedUntil noch enthält). So
+		// lange weiterspringen, bis eine Periode vollständig dahinter liegt
+		// ("kein Überholen", analog zum Guard in ClaimGenerationService).
+		[$periodStart, $periodEnd] = $this->contributionYear->periodContaining($newIntervalMonths, $blockedUntil);
+		while ($periodStart < $blockedUntil) {
+			[$periodStart, $periodEnd] = $this->contributionYear->periodContaining($newIntervalMonths, PeriodRule::nextDay($periodEnd));
+		}
+		return max($periodStart, $today);
+	}
+
+	/**
+	 * Vorschau einer Betrags-/Turnusänderung, OHNE zu speichern (Spec §3.4
+	 * Pflicht-UI: "Vorschau vor jedem Speichern - Wirkt ab … · erster Einzug
+	 * am … · Betrag"). Dieselbe Validierung wie {@see update()} (Untergrenze,
+	 * erlaubter Turnus), damit Vorschau und tatsächliche Änderung nie
+	 * auseinanderlaufen - ruft dafür bewusst dieselben privaten
+	 * Prüfmethoden auf.
+	 *
+	 * @return array{effectiveFrom:string, periodStart:string, periodEnd:string, firstDueDate:string, amountCents:int}
+	 * @throws \InvalidArgumentException bei ungültigen Werten
+	 * @throws DoesNotExistException wenn es die Zuweisung/Gruppe nicht gibt
+	 */
+	public function previewChange(int $id, ?int $monthlyAmountCents, ?int $intervalMonths): array {
+		$assignment = $this->mapper->find($id);
+		$group = $this->groupMapper->find($assignment->getGroupId());
+
+		if ($intervalMonths !== null) {
+			$this->assertValidInterval($group, $intervalMonths);
+		}
+		$effectiveIntervalMonths = $intervalMonths ?? $assignment->getIntervalMonths();
+
+		if ($monthlyAmountCents !== null) {
+			$effectiveMin = $assignment->effectiveMinMonthlyAmountCents($group);
+			if ($monthlyAmountCents < $effectiveMin) {
+				throw new \InvalidArgumentException($this->l10n->t('Der Monatsbeitrag darf die Untergrenze von %s € nicht unterschreiten.', [number_format($effectiveMin / 100, 2, ',', '.')]));
+			}
+		}
+		$effectiveAmountCents = $monthlyAmountCents ?? $assignment->getMonthlyAmountCents();
+
+		$effectiveFrom = ($intervalMonths !== null && $intervalMonths !== $assignment->getIntervalMonths())
+			? $this->effectiveFromFor($assignment, $intervalMonths)
+			: $this->effectiveFromFor($assignment);
+
+		[$periodStart, $periodEnd] = $this->contributionYear->periodContaining($effectiveIntervalMonths, $effectiveFrom);
+		$from = max($periodStart, $effectiveFrom);
+
+		return [
+			'effectiveFrom' => $effectiveFrom,
+			'periodStart' => $periodStart,
+			'periodEnd' => $periodEnd,
+			'firstDueDate' => $this->dueDateSchedule->dueDateForPeriod($effectiveIntervalMonths, $from),
+			'amountCents' => ProrataCalculator::amountCents($effectiveAmountCents, $from, $periodEnd),
+		];
 	}
 
 	private function assertValidInterval(ContributionGroup $group, int $intervalMonths): void {

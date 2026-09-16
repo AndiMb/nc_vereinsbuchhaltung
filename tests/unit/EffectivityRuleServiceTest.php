@@ -75,4 +75,26 @@ class EffectivityRuleServiceTest extends TestCase {
 		$this->expectException(\InvalidArgumentException::class);
 		EffectivityRuleService::firstEffectiveDate([], '2026-02-30');
 	}
+
+	/**
+	 * firstUnlockedDay() ist der Baustein, den der Turnuswechsel-Sonderfall
+	 * (Issue #76, AssignmentService::effectiveFromFor()) zusätzlich zu
+	 * firstEffectiveDate() braucht: die reine Sperrgrenze, ohne sie schon mit
+	 * dem angefragten Tag zu verrechnen.
+	 */
+	public function testFirstUnlockedDayOhneGesperrtePeriodenIstNull(): void {
+		$this->assertNull(EffectivityRuleService::firstUnlockedDay([]));
+		$this->assertNull(EffectivityRuleService::firstUnlockedDay([
+			['periodStart' => '2026-01-01', 'periodEnd' => '2026-01-31', 'prenotifiedAt' => null],
+		]));
+	}
+
+	public function testFirstUnlockedDayNachGesperrtenPerioden(): void {
+		$periods = [
+			['periodStart' => '2026-01-01', 'periodEnd' => '2026-01-31', 'prenotifiedAt' => '2025-12-15T00:00:00+00:00'],
+			['periodStart' => '2026-02-01', 'periodEnd' => '2026-02-28', 'prenotifiedAt' => '2026-01-15T00:00:00+00:00'],
+			['periodStart' => '2026-03-01', 'periodEnd' => '2026-03-31', 'prenotifiedAt' => null],
+		];
+		$this->assertSame('2026-03-01', EffectivityRuleService::firstUnlockedDay($periods));
+	}
 }

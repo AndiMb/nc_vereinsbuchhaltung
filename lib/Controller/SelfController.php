@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Db\Assignment;
+use OCA\Vereinsbuchhaltung\Db\ContributionGroupMapper;
 use OCA\Vereinsbuchhaltung\Db\Mandate;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
@@ -12,6 +14,8 @@ use OCA\Vereinsbuchhaltung\Exception\ForbiddenException;
 use OCA\Vereinsbuchhaltung\Service\ActorContextService;
 use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
+use OCA\Vereinsbuchhaltung\Service\SelfContactService;
+use OCA\Vereinsbuchhaltung\Service\SelfContributionService;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceMandateService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -24,10 +28,13 @@ use OCP\IRequest;
 /**
  * Self-Service-Zugang für Mitglieder mit verknüpftem NC-Konto (Spec §3.4).
  *
- * Eigene Stammdaten (#74) plus, seit Issue #75, der Mandats-Aktionskatalog:
+ * Eigene Stammdaten (#74) plus zwei Aktionskataloge: Mandat (Issue #75 -
  * elektronisch erteilen/bestätigen, IBAN ändern, Kontoinhaber wechseln,
- * widerrufen. Der Beitrags-Teil des Aktionskatalogs (#76) ist NICHT Teil
- * dieser Klasse.
+ * widerrufen) und Beitrag/Kontaktdaten (Issue #76 - Betrag/Turnus ändern,
+ * Kontaktstammdaten pflegen). Für Letzteres ist dieser Controller nur die
+ * dünne HTTP-Hülle - die eigentliche Logik (IDOR-Schutz, Validierung,
+ * Wirksamkeitsregel, Benachrichtigungen) steckt in
+ * {@see SelfContributionService}/{@see SelfContactService}.
  *
  * Sicherheitsregel dieses Controllers, weil er die einzige Stelle im Modul
  * ist, die ohne Buchhaltungsrolle erreichbar ist: JEDE Methode liest die
@@ -52,6 +59,9 @@ class SelfController extends Controller {
 		private MandateService $mandateService,
 		private MandateActivationService $activation,
 		private SelfServiceMandateService $selfServiceMandate,
+		private SelfContributionService $contributions,
+		private SelfContactService $contact,
+		private ContributionGroupMapper $groupMapper,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -188,6 +198,97 @@ class SelfController extends Controller {
 	}
 
 	/**
+	 * Eigene Kontaktstammdaten pflegen (Spec §3.4 Aktionskatalog „Darf":
+	 * „Kontaktstammdaten pflegen"). NUR die Felder mit Hoheit „Mitglied"
+	 * (Spec §2.2) - siehe {@see \OCA\Vereinsbuchhaltung\Service\MemberService::updateOwnContactData()}.
+	 */
+	#[NoAdminRequired]
+	public function updateMe(
+		?string $firstName = null,
+		?string $lastName = null,
+		?string $organizationName = null,
+		?string $email = null,
+		?string $phone = null,
+		?string $street = null,
+		?string $postalCode = null,
+		?string $city = null,
+		?string $country = null,
+	): DataResponse {
+		try {
+			$member = $this->contact->update(array_filter([
+				'firstName' => $firstName,
+				'lastName' => $lastName,
+				'organizationName' => $organizationName,
+				'email' => $email,
+				'phone' => $phone,
+				'street' => $street,
+				'postalCode' => $postalCode,
+				'city' => $city,
+				'country' => $country,
+			], static fn ($v) => $v !== null));
+			return new DataResponse($this->contactData($member));
+		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		}
+	}
+
+	/**
+	 * Eigene Zuweisungen einsehen (Spec §3.4 Aktionskatalog „Darf": „eigene
+	 * Daten einsehen") - Grundlage für den Beitrag-Bereich der SPA.
+	 */
+	#[NoAdminRequired]
+	public function assignments(): DataResponse {
+		$assignments = $this->contributions->findOwn();
+		return new DataResponse(array_map(fn (Assignment $a) => $this->assignmentData($a), $assignments));
+	}
+
+	/**
+	 * Vorschau vor dem Speichern (Spec §3.4 Pflicht-UI „Vorschau vor jedem
+	 * Speichern - Wirkt ab … · erster Einzug am … · Betrag").
+	 */
+	#[NoAdminRequired]
+	public function previewAssignment(int $id, ?float $monthlyAmount = null, ?int $intervalMonths = null): DataResponse {
+		try {
+			$preview = $this->contributions->preview(
+				$id,
+				$monthlyAmount !== null ? (int)round($monthlyAmount * 100) : null,
+				$intervalMonths,
+			);
+			return new DataResponse($preview);
+		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Zuweisung nicht gefunden')], Http::STATUS_NOT_FOUND);
+		}
+	}
+
+	/**
+	 * Monatsbeitrag und/oder Turnus der eigenen Zuweisung ändern (Spec §3.4
+	 * Aktionskatalog „Darf": „Monatsbeitrag … Turnus wechseln"). Absichtlich
+	 * OHNE `groupId`-Parameter - eine Beitragsgruppe zu wechseln ist im
+	 * Self-Service nicht erlaubt ("Darf nicht"), diese Methode kann es also
+	 * technisch gar nicht anfordern.
+	 */
+	#[NoAdminRequired]
+	public function updateAssignment(int $id, ?float $monthlyAmount = null, ?int $intervalMonths = null): DataResponse {
+		try {
+			$result = $this->contributions->apply(
+				$id,
+				$monthlyAmount !== null ? (int)round($monthlyAmount * 100) : null,
+				$intervalMonths,
+			);
+			return new DataResponse([
+				'assignment' => $this->assignmentData($result['assignment']),
+				'preview' => $result['preview'],
+			]);
+		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Zuweisung nicht gefunden')], Http::STATUS_NOT_FOUND);
+		}
+	}
+
+	/**
 	 * Erlaubte Feldliste für den Self-Service – bewusst kein
 	 * `jsonSerialize()` der Entity, das auch `internalNote` einschließt.
 	 *
@@ -243,5 +344,39 @@ class SelfController extends Controller {
 			'storyText' => $mandate->storyText($this->l10n),
 			'createdAt' => $mandate->getCreatedAt(),
 		];
+	}
+
+	/**
+	 * Erlaubte Feldliste für eine Zuweisung im Self-Service (Spec §3.4
+	 * Pflicht-UI: „individuelle Untergrenze sichtbar, ihre Begründung
+	 * nicht") – Deny-Liste statt Allow-Liste wie bei {@see contactData()},
+	 * weil hier (anders als bei Member) fast alle Felder unbedenklich sind
+	 * und nur `overrideReason` (die vom Verein hinterlegte Begründung der
+	 * individuellen Untergrenze) explizit ausgeblendet werden muss.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function assignmentData(Assignment $assignment): array {
+		$data = $assignment->jsonSerialize();
+		unset($data['overrideReason']);
+		// Gruppenname + erlaubte Turnusse dazu (nicht in Assignment selbst,
+		// aber fuer die Turnus-Auswahl der SPA noetig) - referenzielle
+		// Sicherheit ist Vereinssache, ein bereits geloeschter Gruppen-Verweis
+		// kommt praktisch nicht vor; die Anzeige zeigt dann einfach nichts.
+		try {
+			$group = $this->groupMapper->find($assignment->getGroupId());
+			$data['groupName'] = $group->getName();
+			$data['allowedIntervals'] = $group->getAllowedIntervalsArray();
+			// Die tatsaechlich geltende Untergrenze (Override ODER Gruppen-
+			// Untergrenze) - "individuelle Untergrenze sichtbar" (Spec §3.4)
+			// ist ohne diese Ableitung nur die Haelfte der Information: ohne
+			// Override kennt der Self-Service sonst gar keine Grenze.
+			$data['effectiveMinMonthlyAmount'] = $assignment->effectiveMinMonthlyAmountCents($group) / 100;
+		} catch (DoesNotExistException) {
+			$data['groupName'] = null;
+			$data['allowedIntervals'] = [];
+			$data['effectiveMinMonthlyAmount'] = null;
+		}
+		return $data;
 	}
 }

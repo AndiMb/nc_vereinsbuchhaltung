@@ -267,6 +267,39 @@ class ClaimGenerationServiceTest extends TestCase {
 		$this->assertSame('2026-03-01', $secondClaim->getDueDate());
 	}
 
+	/**
+	 * Turnuswechsel-Sonderfall (Spec §3.4, Issue #76 "Self-Service
+	 * Beitrag-Aktionen"): wechselt eine Zuweisung zwischen zwei Läufen den
+	 * Turnus (per AssignmentService::update(), z.B. per Self-Service), kann
+	 * das neue Perioden-Raster anders liegen als das alte. Ohne den Guard in
+	 * nextPendingPeriod() würde das neue Raster hier "naiv" wieder ab dem
+	 * 1.1.2026 beginnen - genau die schon erzeugte Januar-Periode
+	 * überlappend. Der Guard muss stattdessen bis zur ersten Periode des
+	 * neuen Turnus weiterspringen, die vollständig dahinter liegt (2027).
+	 */
+	public function testTurnuswechselUeberspringtUeberlappendePeriodeDesNeuenRasters(): void {
+		$assignment = $this->assignment(intervalMonths: 1, validFrom: '2026-01-01');
+		$this->assignments->method('findActiveAsOf')->willReturn([$assignment]);
+		$this->groups->method('find')->willReturn($this->group());
+		$this->setMandateActive(true);
+
+		$this->service('2025-12-14')->generateDue();
+		$this->assertCount(1, $this->store);
+		$this->assertSame('2026-01-01', $this->store[0]->getPeriodStart());
+		$this->assertSame('2026-01-31', $this->store[0]->getPeriodEnd());
+
+		// Turnuswechsel auf Jahresturnus (Kalenderjahr-Raster) zwischen den
+		// beiden Läufen.
+		$assignment->setIntervalMonths(12);
+
+		$this->service('2026-12-11')->generateDue();
+		$this->assertCount(2, $this->store);
+		$secondClaim = $this->store[1];
+		$this->assertSame('2027-01-01', $secondClaim->getPeriodStart());
+		$this->assertSame('2027-12-31', $secondClaim->getPeriodEnd());
+		$this->assertSame('2027-01-01', $secondClaim->getDueDate());
+	}
+
 	public function testGenerateDueIstIdempotent(): void {
 		$this->assignments->method('findActiveAsOf')->willReturn([$this->assignment()]);
 		$this->groups->method('find')->willReturn($this->group());
