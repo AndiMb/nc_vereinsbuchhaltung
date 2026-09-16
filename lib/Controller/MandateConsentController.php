@@ -122,6 +122,13 @@ class MandateConsentController extends Controller {
 		$mandate = $view['mandate'];
 		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '');
 		$creditorId = $this->config->getAppValue(Application::APP_ID, 'sepa_creditor_id', '');
+		// "Datum" der Pflichtangaben: bei einer noch offenen Zustimmung das
+		// heutige Datum (das prospektive Unterschriftsdatum), bei einer bereits
+		// erteilten das tatsächliche - sonst zeigte ein Wochen später erneut
+		// geöffneter Link ein falsches, viel zu spätes Datum an.
+		$referenceDate = $view['status'] === 'consumed' && $mandate->getSignedAt() !== null
+			? $mandate->getSignedAt()
+			: date('Y-m-d');
 
 		return new TemplateResponse(
 			Application::APP_ID,
@@ -130,7 +137,7 @@ class MandateConsentController extends Controller {
 				'status' => $view['status'],
 				'clubName' => $clubName,
 				'legalTextHtml' => $this->formRenderer->renderLegalText($view['legalText'], $clubName),
-				'dataBlockHtml' => $this->formRenderer->renderDataBlock($mandate, $creditorId, date('Y-m-d')),
+				'dataBlockHtml' => $this->formRenderer->renderDataBlock($mandate, $creditorId, $referenceDate),
 				'consentAt' => $mandate->getConsentAt(),
 				'token' => $token,
 				'acceptUrl' => $this->urlGenerator->linkToRoute('vereinsbuchhaltung.mandateConsent.accept', ['token' => $token]),
