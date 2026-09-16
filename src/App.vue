@@ -22,7 +22,7 @@
 				</div>
 				<NcLoadingIcon v-if="busy" :size="24" :name="t('Wird geladen…')" />
 			</div>
-			<div v-if="canRead" class="vbh-navbar" :class="{ 'vbh-navbar--mobile': isMobile }">
+			<div v-if="canRead || selfServiceAvailable" class="vbh-navbar" :class="{ 'vbh-navbar--mobile': isMobile }">
 				<nav v-if="!isMobile" class="vbh-tabs">
 					<button
 						v-for="tab in visibleTabs"
@@ -35,7 +35,10 @@
 						<span v-if="tab.id === 'contributions' && overdueMembershipCount > 0" class="vbh-badge vbh-badge--alert">{{ overdueMembershipCount }}</span>
 					</button>
 				</nav>
-				<div class="vbh-navright">
+				<!-- Zeitraum/Buchung/Hilfe beziehen sich auf die Buchhaltung - fuer ein
+				     nur per Self-Service verknuepftes Konto (kein canRead) ergeben sie
+				     keinen Sinn, siehe "Mein Beitrag" (SelfServiceTab.vue). -->
+				<div v-if="canRead" class="vbh-navright">
 					<NcButton
 						v-if="canWrite && !isMobile"
 						variant="primary"
@@ -71,7 +74,11 @@
 			</div>
 		</header>
 
-		<div v-if="me && !canRead" class="vbh-noaccess">
+		<!-- "Kein Zugriff" nur ohne jede Berechtigung: ein verknuepftes,
+		     Self-Service-faehiges Konto ohne vbh-Rolle bekommt statt dessen den
+		     Bereich "Mein Beitrag" weiter unten (Spec §3.4 - ersetzt dieses
+		     Panel fuer genau diesen Fall). -->
+		<div v-if="me && !canRead && !selfServiceAvailable" class="vbh-noaccess">
 			<h3>{{ t('Kein Zugriff') }}</h3>
 			<p>{{ t('Du hast keine Berechtigung für die Vereinsbuchhaltung. Bitte wende dich an eine Verwalterin oder einen Verwalter.') }}</p>
 		</div>
@@ -103,7 +110,7 @@
 			</div>
 		</div>
 
-		<main v-show="canRead" class="vbh-main">
+		<main v-show="canRead || selfServiceAvailable" class="vbh-main">
 			<!-- ============ ÜBERSICHT (DASHBOARD) ============ -->
 			<section v-show="activeTab === 'dashboard'" class="vbh-section scroll" :class="{ 'vbh-fadein': sectionFade }">
 				<DashboardTab
@@ -223,10 +230,19 @@
 					:defaultFeeFrequency="defaultFeeFrequency"
 					@update:contribView="contribView = $event" />
 			</section>
+
+			<!-- ============ MEIN BEITRAG (SELF-SERVICE) ============ -->
+			<section
+				v-if="selfServiceAvailable"
+				v-show="activeTab === 'self'"
+				class="vbh-section scroll"
+				:class="{ 'vbh-fadein': sectionFade }">
+				<SelfServiceTab />
+			</section>
 		</main>
 
 		<MobileNav
-			v-if="canRead && isMobile"
+			v-if="(canRead || selfServiceAvailable) && isMobile"
 			:tabs="visibleTabs"
 			:activeTab="activeTab"
 			:unassignedCount="unassignedCount"
@@ -370,7 +386,7 @@
 </template>
 
 <script>
-import { mdiAccountCashOutline, mdiChartBar, mdiFileTreeOutline, mdiHelpCircleOutline, mdiPlus, mdiPrinter, mdiSwapHorizontal, mdiViewDashboardOutline } from '@mdi/js'
+import { mdiAccountCashOutline, mdiCardAccountDetailsOutline, mdiChartBar, mdiFileTreeOutline, mdiHelpCircleOutline, mdiPlus, mdiPrinter, mdiSwapHorizontal, mdiViewDashboardOutline } from '@mdi/js'
 import { showError, showInfo, showSuccess, showUndo } from '@nextcloud/dialogs'
 import { generateUrl } from '@nextcloud/router'
 import {
@@ -393,6 +409,7 @@ import HelpModal from './components/HelpModal.vue'
 import ImportDialog from './components/ImportDialog.vue'
 import MobileNav from './components/MobileNav.vue'
 import ReportsTab from './components/ReportsTab.vue'
+import SelfServiceTab from './components/SelfServiceTab.vue'
 import SetupWizard from './components/SetupWizard.vue'
 import SplitAssignDialog from './components/SplitAssignDialog.vue'
 import WhatsNewDialog from './components/WhatsNewDialog.vue'
@@ -452,6 +469,7 @@ const ROUTE_META = {
 	contributions: { tab: 'contributions', contribView: 'members' },
 	'contributions-batch': { tab: 'contributions', contribView: 'batch' },
 	'contributions-groups': { tab: 'contributions', contribView: 'groups' },
+	self: { tab: 'self' },
 }
 
 /** Erkennungsmerkmal einer Datei, um dieselbe Auswahl nicht doppelt zu sammeln. */
@@ -475,6 +493,7 @@ export default {
 		BookingsTab,
 		ReportsTab,
 		ContributionsTab,
+		SelfServiceTab,
 		MobileNav,
 		AccountPickerSheet,
 		HelpModal,
@@ -569,6 +588,10 @@ export default {
 				// Nur sichtbar, wenn das Beitragsmodul genutzt wird (visibleTabs
 				// unten) - fuer Verwalter und Buchhalter (siehe ContributionsTab.vue).
 				{ id: 'contributions', label: this.t('Beiträge'), need: 'write', icon: mdiAccountCashOutline },
+				// Self-Service (Spec §3.4): additiv neben dem Buchhaltungs-Tab bei
+				// Personalunion, unabhaengig von der vbh-Rolle - siehe
+				// selfServiceAvailable/visibleTabs unten und SelfServiceTab.vue.
+				{ id: 'self', label: this.t('Mein Beitrag'), need: 'self', icon: mdiCardAccountDetailsOutline },
 			],
 
 			bookingView: 'journal',
@@ -723,10 +746,20 @@ export default {
 				// Eigenes Zusatzmodul: ohne genutzte Beitragsverwaltung kein fuenfter
 				// Reiter, siehe NAVIGATION-KONZEPT.md Abschnitt 4.
 				if (t.id === 'contributions' && !this.membershipActive) { return false }
+				// "Mein Beitrag" folgt der Kontoverknuepfung, nicht der vbh-Rolle
+				// (Spec §3.4) - unabhaengig von canRead/canWrite/isAdmin.
+				if (t.need === 'self') { return this.selfServiceAvailable }
 				if (t.need === 'admin') { return this.isAdmin }
 				if (t.need === 'write') { return this.canWrite }
 				return this.canRead
 			})
+		},
+
+		// Ob der Bereich "Mein Beitrag" ueberhaupt zustande kommt: Backend prueft
+		// self_service_enabled UND Kontoverknuepfung gemeinsam (SelfServiceService),
+		// hier nur die vorgerechnete Auskunft aus permission#me uebernehmen.
+		selfServiceAvailable() {
+			return !!(this.me && this.me.selfService && this.me.selfService.available)
 		},
 
 		// Hilfe-Kapitel, das zum gerade aktiven Tab passt (HelpModal-Default)
@@ -975,6 +1008,9 @@ export default {
 				const contribNames = { batch: 'contributions-batch', groups: 'contributions-groups' }
 				return { name: contribNames[this.contribView] || 'contributions', query }
 			}
+			if (this.activeTab === 'self') {
+				return { name: 'self', query }
+			}
 			return { name: 'dashboard', query }
 		},
 	},
@@ -1122,7 +1158,9 @@ export default {
 			if ((e.key === 'n' || e.key === 'N') && this.canWrite) {
 				e.preventDefault()
 				this.openNewBooking()
-			} else if (e.key === '/') {
+			} else if (e.key === '/' && this.canRead) {
+				// Ohne canRead (z. B. nur Self-Service) gibt es weder Buchungen
+				// noch eine Suche, die dieses Kürzel fokussieren könnte.
 				e.preventDefault()
 				if (this.activeTab === 'accounts') {
 					this.$el.querySelector('.vbh-treesearch input')?.focus()

@@ -50,6 +50,13 @@ parameters:
 	excludePaths:
 		analyse:
 			- lib/Migration
+			# Kein PHPUnit-Test, sondern ein Standalone-CLI-Skript fuer die
+			# Playwright-E2E-Suite (siehe 23-self-service.spec.mjs): laeuft nur
+			# im Docker-Testcontainer nach require_once des dortigen Nextcloud-
+			# Bootstraps (lib/base.php, existiert hier nicht) und bekommt $argv
+			# vom PHP-CLI-SAPI, nicht von PHPStan - beides also erwartungsgemaess
+			# unaufloesbar fuer die statische Analyse.
+			- tests/e2e/fixtures/self-service-seed.php
 
 	# QBMapper::insert()/update() sind im Server generisch ueber @template
 	# annotiert, in den Stubs aber nur als Entity gefuehrt. Ein Cast an jeder

@@ -182,6 +182,9 @@ class SettingsController extends Controller {
 			// Beitragsjahr (Issue #68, Spec §3.3/§4): eigenständig vom
 			// Geschäftsjahr der Kern-Buchhaltung, siehe ContributionYearService.
 			'fiscal_year_start_month' => $this->contributionYear->getStartMonth(),
+			// Self-Service-Zugang (Spec §3.4): einfacher Bool-Schalter, nur ab
+			// Verwalter änderbar (siehe update(), RequiresRole ROLE_ADMIN).
+			'self_service_enabled' => $this->config->getAppValue(Application::APP_ID, 'self_service_enabled', '0') === '1',
 		];
 	}
 
@@ -434,6 +437,11 @@ class SettingsController extends Controller {
 			} catch (\InvalidArgumentException $e) {
 				return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 			}
+		}
+
+		if (array_key_exists('self_service_enabled', $params)) {
+			$selfServiceEnabled = (string)$params['self_service_enabled'] === '1';
+			$this->config->setAppValue($appId, 'self_service_enabled', $selfServiceEnabled ? '1' : '0');
 		}
 
 		$settings = $this->currentSettings();
