@@ -12,6 +12,7 @@ use OCA\Vereinsbuchhaltung\Exception\ForbiddenException;
 use OCA\Vereinsbuchhaltung\Service\ActorContextService;
 use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
+use OCA\Vereinsbuchhaltung\Service\SelfServiceMandateService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
@@ -23,18 +24,24 @@ use OCP\IRequest;
 /**
  * Self-Service-Zugang für Mitglieder mit verknüpftem NC-Konto (Spec §3.4).
  *
- * Der Aktionskatalog (Mandat erfassen/ändern, Beitrag anpassen) ist NICHT
- * Teil dieses Tickets (#74) – er kommt mit #75/#76. Hier nur die eigenen
- * Stammdaten.
+ * Eigene Stammdaten (#74) plus, seit Issue #75, der Mandats-Aktionskatalog:
+ * elektronisch erteilen/bestätigen, IBAN ändern, Kontoinhaber wechseln,
+ * widerrufen. Der Beitrags-Teil des Aktionskatalogs (#76) ist NICHT Teil
+ * dieser Klasse.
  *
  * Sicherheitsregel dieses Controllers, weil er die einzige Stelle im Modul
  * ist, die ohne Buchhaltungsrolle erreichbar ist: JEDE Methode liest die
  * maßgebliche member_id ausschließlich aus dem {@see ActorContextService} –
  * die PermissionMiddleware hat sie dort vor dem Aufruf aus der
  * Kontoverknüpfung aufgelöst (vierter instanceof-Sonderfall). Kein Parameter
- * aus Query oder Body darf je als member_id verwendet werden – sonst käme
- * ein Mitglied per ID-Manipulation an fremde Daten (IDOR). Absichtlich ohne
- * `#[PublicPage]`: die Middleware muss für jeden Aufruf laufen.
+ * aus Query oder Body darf je als member_id ODER als Mandats-ID verwendet
+ * werden – sonst käme ein Mitglied per ID-Manipulation an fremde Daten
+ * (IDOR). Deshalb nehmen auch die neuen Mandats-Aktionen unten NIE eine
+ * Mandats-ID entgegen: {@see SelfServiceMandateService} löst das eigene,
+ * einzige lebende Mandat serverseitig über die member_id auf (Spec §2.2
+ * „höchstens ein lebendes Mandat je Mitglied" - es gibt für den Self-Service
+ * schlicht nichts zu identifizieren). Absichtlich ohne `#[PublicPage]`: die
+ * Middleware muss für jeden Aufruf laufen.
  */
 class SelfController extends Controller {
 
@@ -44,6 +51,7 @@ class SelfController extends Controller {
 		private MemberMapper $memberMapper,
 		private MandateService $mandateService,
 		private MandateActivationService $activation,
+		private SelfServiceMandateService $selfServiceMandate,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -53,16 +61,13 @@ class SelfController extends Controller {
 	 * Eigene Stammdaten – nur Kontaktdaten (Spec §2.2: „Kontaktdaten pflegt
 	 * das Mitglied, Vereinsdaten pflegt der Verein"). Niemals `internalNote`
 	 * (reine Vereinsinterna) oder `ncUserId`/`createdAt` (technische Felder).
+	 * Seit Issue #75 zusätzlich das eigene Mandat (maskiert, siehe
+	 * {@see mandateData()}) und die offene Forderungssumme, damit die SPA
+	 * beides ohne einen zweiten Roundtrip anzeigen kann.
 	 */
 	#[NoAdminRequired]
 	public function me(): DataResponse {
-		$memberId = $this->actorContext->memberId();
-		if ($memberId === null) {
-			// Kann die Middleware nicht passieren lassen (sie wirft vorher
-			// eine ForbiddenException) – zweite Verteidigungslinie, falls
-			// sich das je ändert.
-			throw new ForbiddenException($this->l10n->t('Kein Self-Service-Zugang.'));
-		}
+		$memberId = $this->requireMemberId();
 		$member = $this->memberMapper->findOrNull($memberId);
 		if ($member === null) {
 			// Die Kontoverknüpfung zeigt auf einen inzwischen gelöschten
@@ -70,24 +75,27 @@ class SelfController extends Controller {
 			// möglich, kein Nutzerfehler.
 			return new DataResponse(['message' => $this->l10n->t('Mitglied nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
-		return new DataResponse($this->contactData($member));
+		$data = $this->contactData($member);
+		$data['mandate'] = $this->mandateData($this->selfServiceMandate->currentMandate($memberId));
+		$data['openClaimsTotalCents'] = $this->selfServiceMandate->openClaimsTotalCents($memberId);
+		return new DataResponse($data);
 	}
 
 	/**
 	 * Fordert für das EIGENE elektronische Mandat einen (neuen) Einmal-Link
 	 * an (Issue #67, Spec: "teils über den Self-Service-Kanal"). Setzt einen
-	 * bereits von der Verwaltung angelegten elektronischen Entwurf voraus -
-	 * das Anlegen eines neuen Mandats mit eigenen Bankdaten gehört zum noch
-	 * ausstehenden Self-Service-Aktionskatalog (#75/#76, siehe Klassendoc),
-	 * nicht zu diesem Ticket. `memberId` kommt wie überall in diesem
-	 * Controller ausschließlich aus dem ActorContextService (IDOR-Schutz).
+	 * bereits von der Verwaltung angelegten elektronischen Entwurf voraus.
+	 * Seit Issue #75 gibt es mit {@see confirmMandate()} eine schnellere
+	 * Alternative für dieselbe Situation (direkte Bestätigung in der
+	 * angemeldeten Sitzung statt Mail-Umweg) - diese Methode bleibt als
+	 * Rückfall bestehen (z.B. falls die Mail-Adresse des Kontos vom Verein
+	 * abweicht und der Verein genau DIESE Adresse per Mail erreichen will).
+	 * `memberId` kommt wie überall in diesem Controller ausschließlich aus
+	 * dem ActorContextService (IDOR-Schutz).
 	 */
 	#[NoAdminRequired]
 	public function requestMandateActivationLink(): DataResponse {
-		$memberId = $this->actorContext->memberId();
-		if ($memberId === null) {
-			throw new ForbiddenException($this->l10n->t('Kein Self-Service-Zugang.'));
-		}
+		$memberId = $this->requireMemberId();
 		$mandate = $this->mandateService->findLiveByMember($memberId);
 		if ($mandate === null || !$mandate->isElectronic() || $mandate->getStatus() !== Mandate::STATUS_DRAFT) {
 			return new DataResponse(['message' => $this->l10n->t('Für Sie liegt aktuell kein elektronischer Mandats-Entwurf vor, der eine Bestätigung braucht.')], Http::STATUS_BAD_REQUEST);
@@ -102,6 +110,81 @@ class SelfController extends Controller {
 		} catch (DoesNotExistException) {
 			return new DataResponse(['message' => $this->l10n->t('Mandat nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
+	}
+
+	/** Textkörper für die Vorschau vor Erteilung/Kontoinhaberwechsel (Spec §3.4 Pflicht-UI). */
+	#[NoAdminRequired]
+	public function mandateLegalText(): DataResponse {
+		$this->requireMemberId();
+		return new DataResponse($this->selfServiceMandate->legalTextPreview());
+	}
+
+	/** Mandat erfassen + elektronisch erteilen in einem Schritt (Spec §3.4, Issue #75). */
+	#[NoAdminRequired]
+	public function grantMandate(string $iban, ?string $bic = null, ?string $accountHolder = null): DataResponse {
+		$memberId = $this->requireMemberId();
+		return $this->guarded(fn () => $this->selfServiceMandate->grant($memberId, $iban, $bic, $accountHolder), Http::STATUS_CREATED);
+	}
+
+	/** Einen von der Verwaltung angelegten elektronischen Entwurf direkt bestätigen (Issue #75, siehe requestMandateActivationLink()). */
+	#[NoAdminRequired]
+	public function confirmMandate(): DataResponse {
+		$memberId = $this->requireMemberId();
+		return $this->guarded(fn () => $this->selfServiceMandate->confirmDraft($memberId));
+	}
+
+	/** IBAN ändern (gleicher Kontoinhaber), kein Sperrfenster (Spec §3.4). */
+	#[NoAdminRequired]
+	public function changeMandateIban(string $iban, ?string $bic = null): DataResponse {
+		$memberId = $this->requireMemberId();
+		return $this->guarded(fn () => $this->selfServiceMandate->changeIban($memberId, $iban, $bic));
+	}
+
+	/** Kontoinhaberwechsel: erzwingt ein neues, elektronisch erteiltes Mandat (Spec §3.4). */
+	#[NoAdminRequired]
+	public function replaceMandate(string $iban, ?string $bic, string $accountHolder): DataResponse {
+		$memberId = $this->requireMemberId();
+		return $this->guarded(fn () => $this->selfServiceMandate->replaceForNewHolder($memberId, $iban, $bic, $accountHolder), Http::STATUS_CREATED);
+	}
+
+	/** Widerruf: terminal, „ein Recht" - keine Zweitfaktor-Bestätigung (Spec §3.4). */
+	#[NoAdminRequired]
+	public function revokeMandate(): DataResponse {
+		$memberId = $this->requireMemberId();
+		return $this->guarded(fn () => $this->selfServiceMandate->revoke($memberId));
+	}
+
+	/**
+	 * Gemeinsame Fehlerbehandlung der Mandats-Aktionen (dasselbe Muster wie
+	 * MandateController::guarded()): `DoesNotExistException` fängt den
+	 * Extremfall ab, dass das eigene Mitglied zwischen Middleware-Prüfung und
+	 * dieser Methode parallel gelöscht wurde - praktisch nur durch einen
+	 * gleichzeitigen Admin-Eingriff möglich, kein Nutzerfehler.
+	 *
+	 * @param callable():\OCA\Vereinsbuchhaltung\Db\Mandate $action
+	 * @param 200|201 $successStatus
+	 */
+	private function guarded(callable $action, int $successStatus = Http::STATUS_OK): DataResponse {
+		try {
+			return new DataResponse($this->mandateData($action()), $successStatus);
+		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Mitglied nicht gefunden')], Http::STATUS_NOT_FOUND);
+		}
+	}
+
+	/**
+	 * Die eigene, server-aufgelöste member_id - zweite Verteidigungslinie
+	 * neben der Middleware (die einen fehlenden Self-Service-Zugang bereits
+	 * vorher abweist), siehe Klassendoc.
+	 */
+	private function requireMemberId(): int {
+		$memberId = $this->actorContext->memberId();
+		if ($memberId === null) {
+			throw new ForbiddenException($this->l10n->t('Kein Self-Service-Zugang.'));
+		}
+		return $memberId;
 	}
 
 	/**
@@ -128,6 +211,37 @@ class SelfController extends Controller {
 			'joinedAt' => $member->getJoinedAt(),
 			'leftAt' => $member->getLeftAt(),
 			'active' => $member->isActive(),
+		];
+	}
+
+	/**
+	 * Erlaubte Feldliste für das eigene Mandat (Spec §3.4 Pflicht-UI: „IBAN
+	 * immer maskiert", „keine Ereignislisten") – bewusst kein
+	 * `jsonSerialize()` der Entity, das u.a. `consentIp`/`consentUserAgent`
+	 * (technisches Beweispaket, keine Mitgliedsinfo) und die unmaskierte IBAN
+	 * einschließen würde.
+	 *
+	 * @return array<string,mixed>|null
+	 */
+	private function mandateData(?Mandate $mandate): ?array {
+		if ($mandate === null) {
+			return null;
+		}
+		return [
+			'id' => $mandate->getId(),
+			'mandateReference' => $mandate->getMandateReference(),
+			'ibanMasked' => $mandate->maskedIban(),
+			'bic' => $mandate->getBic(),
+			'accountHolder' => $mandate->getAccountHolder(),
+			'signatureType' => $mandate->getSignatureType(),
+			'status' => $mandate->getStatus(),
+			'isCollectible' => $mandate->isCollectible(),
+			'signedAt' => $mandate->getSignedAt(),
+			'activatedAt' => $mandate->getActivatedAt(),
+			'suspensionNote' => $mandate->getSuspensionNote(),
+			'endReason' => $mandate->getEndReason(),
+			'storyText' => $mandate->storyText($this->l10n),
+			'createdAt' => $mandate->getCreatedAt(),
 		];
 	}
 }

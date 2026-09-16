@@ -190,6 +190,17 @@ export default {
 	// über die Kontoverknüpfung (siehe PermissionMiddleware/SelfController).
 	selfMe: () => axios.get(url('/self/me')),
 
+	// Self-Service-Mandats-Aktionskatalog (Issue #75, Spec §3.4): keiner
+	// dieser Aufrufe nimmt eine Mandats-ID entgegen - der Server löst das
+	// eigene, einzige lebende Mandat selbst auf (siehe SelfServiceMandateService).
+	selfMandateLegalText: () => axios.get(url('/self/mandate/legal-text')),
+	selfGrantMandate: (data) => axios.post(url('/self/mandate'), data),
+	selfConfirmMandate: () => axios.post(url('/self/mandate/confirm')),
+	selfRequestMandateActivationLink: () => axios.post(url('/self/mandate/request-link')),
+	selfChangeMandateIban: (data) => axios.post(url('/self/mandate/iban'), data),
+	selfReplaceMandate: (data) => axios.post(url('/self/mandate/replace'), data),
+	selfRevokeMandate: () => axios.post(url('/self/mandate/revoke')),
+
 	// SEPA-Sammeleinzüge (pain.008-Export)
 	previewSepaExport: (executionDate) => axios.get(url('/sepa/export/preview'), { params: executionDate ? { executionDate } : {} }),
 	listSepaBatches: () => axios.get(url('/sepa/export/batches')),

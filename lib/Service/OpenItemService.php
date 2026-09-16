@@ -39,6 +39,24 @@ class OpenItemService {
 		return $this->mapper->countOverdue();
 	}
 
+	/**
+	 * Summe der noch OFFENEN Forderungen eines Mitglieds, in Cent (Spec §3.4
+	 * Reibungsdialoge Widerruf/Kontoinhaberwechsel: „Endgültigkeit + offene
+	 * Summe zeigen", Issue #75). „Offen" ist hier {@see ClaimStateResolver::STATE_OPEN}
+	 * - storniert/erledigt zählen bewusst nicht mit, sonst würde die
+	 * angezeigte Summe eine Reibung erzeugen, die es fachlich gar nicht mehr
+	 * gibt.
+	 */
+	public function openClaimsTotalCents(int $memberId): int {
+		$total = 0;
+		foreach ($this->mapper->findByMember($memberId) as $item) {
+			if (ClaimStateResolver::resolveForItem($item) === ClaimStateResolver::STATE_OPEN) {
+				$total += $item->getAmountCents();
+			}
+		}
+		return $total;
+	}
+
 	public function create(string $debtor, ?string $description, int $amountCents, ?string $dueDate, ?int $accountId, ?int $mandateId = null): OpenItem {
 		$debtor = trim($debtor);
 		if ($debtor === '') {

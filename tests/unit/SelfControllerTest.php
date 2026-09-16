@@ -11,6 +11,7 @@ use OCA\Vereinsbuchhaltung\Exception\ForbiddenException;
 use OCA\Vereinsbuchhaltung\Service\ActorContextService;
 use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
+use OCA\Vereinsbuchhaltung\Service\SelfServiceMandateService;
 use OCP\AppFramework\Http;
 use OCP\IL10N;
 use OCP\IRequest;
@@ -54,15 +55,17 @@ class SelfControllerTest extends TestCase {
 		// nimmt in me() gar keinen Parameter entgegen, ein getParam()-Aufruf
 		// darf also nie stattfinden.
 		$request->expects($this->never())->method('getParam');
-		// Issue #67 (requestMandateActivationLink) ist nicht Gegenstand dieser
-		// Testdatei (siehe MandateActivationServiceTest/SelfControllerMandateLinkTest) -
-		// hier reichen leere Mocks, keiner der me()-Tests ruft sie auf.
+		// Issue #67 (requestMandateActivationLink) und Issue #75 (Mandats-
+		// Aktionskatalog) sind nicht Gegenstand dieser Testdatei (siehe
+		// MandateActivationServiceTest/SelfServiceMandateServiceTest) - hier
+		// reichen leere Mocks, keiner der me()-Tests ruft sie mit Erwartungen auf.
 		return new SelfController(
 			$request,
 			$this->actorContext,
 			$this->memberMapper,
 			$this->createMock(MandateService::class),
 			$this->createMock(MandateActivationService::class),
+			$this->createMock(SelfServiceMandateService::class),
 			$this->l10n,
 		);
 	}
