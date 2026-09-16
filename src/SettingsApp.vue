@@ -41,6 +41,7 @@
 					v-model:defaultFeeAmount="defaultFeeAmount"
 					v-model:defaultFeeFrequency="defaultFeeFrequency"
 					v-model:membershipEnabled="membershipEnabled"
+					v-model:selfServiceEnabled="selfServiceEnabled"
 					:membershipActive="membershipActive"
 					:storageSaving="storageSaving"
 					:saveSettings="saveSettings" />
@@ -170,6 +171,9 @@ export default {
 			// Beitraege, siehe SettingsController::index()).
 			membershipEnabled: false,
 			membershipActive: false,
+			// Self-Service-Zugang (Spec §3.4): einfacher Bool-Schalter, ab
+			// Verwalter änderbar (siehe SettingsSepaBasics.vue).
+			selfServiceEnabled: false,
 			// Gemeinsames Ladeflag fuer xbuc-Import und "Alle Daten löschen".
 			busy: false,
 		}
@@ -215,11 +219,12 @@ export default {
 				this.defaultFeeFrequency = data.default_fee_frequency || 'yearly'
 				this.membershipEnabled = !!data.membership_enabled
 				this.membershipActive = !!data.membership_active
+				this.selfServiceEnabled = !!data.self_service_enabled
 			} catch { /* ignorieren */ }
 		},
 
 		// Gemeinsame Speichern-Funktion aller Abschnitte ausser "Daten": schreibt
-		// den vollstaendigen Satz dieser Seite (elf Felder, alles ausser
+		// den vollstaendigen Satz dieser Seite (zwoelf Felder, alles ausser
 		// cost_center_mode - das bleibt bei ReportsTab/App.vue, siehe
 		// SettingsController::update()).
 		async saveSettings() {
@@ -238,6 +243,7 @@ export default {
 					default_fee_amount: this.defaultFeeAmount || '',
 					default_fee_frequency: this.defaultFeeFrequency,
 					membership_enabled: this.membershipEnabled ? '1' : '0',
+					self_service_enabled: this.selfServiceEnabled ? '1' : '0',
 				})
 				this.membershipActive = !!data.membership_active
 				// Die Auswahl „intern" räumt den Nutzer serverseitig ab – die Felder

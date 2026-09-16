@@ -173,6 +173,10 @@ export default {
 	previewMemberImport: (csv) => axios.post(url('/sepa/members/import/preview'), { csv }),
 	runMemberImport: (csv) => axios.post(url('/sepa/members/import'), { csv }),
 
+	// Self-Service ("Mein Beitrag"): eigene Stammdaten, Zugang ausschließlich
+	// über die Kontoverknüpfung (siehe PermissionMiddleware/SelfController).
+	selfMe: () => axios.get(url('/self/me')),
+
 	// SEPA-Sammeleinzüge (pain.008-Export)
 	previewSepaExport: (executionDate) => axios.get(url('/sepa/export/preview'), { params: executionDate ? { executionDate } : {} }),
 	listSepaBatches: () => axios.get(url('/sepa/export/batches')),

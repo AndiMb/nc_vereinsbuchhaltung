@@ -88,6 +88,11 @@ return [
 		['name' => 'permission#setRole', 'url' => '/api/permissions', 'verb' => 'POST'],
 		['name' => 'permission#destroy', 'url' => '/api/permissions/{id}', 'verb' => 'DELETE'],
 
+		// Self-Service (Spec §3.4): Zugang ausschließlich über Kontoverknüpfung
+		// + self_service_enabled, siehe PermissionMiddleware (vierter
+		// instanceof-Sonderfall). Keine Rollenprüfung, kein #[PublicPage].
+		['name' => 'self#me', 'url' => '/api/self/me', 'verb' => 'GET'],
+
 		// Rules
 		['name' => 'rule#index', 'url' => '/api/rules', 'verb' => 'GET'],
 		['name' => 'rule#create', 'url' => '/api/rules', 'verb' => 'POST'],

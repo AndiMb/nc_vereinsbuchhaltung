@@ -204,6 +204,17 @@ Full manual in German and English: see documentation.
 		<personal>OCA\Vereinsbuchhaltung\Settings\PersonalSettings</personal>
 		<personal-section>OCA\Vereinsbuchhaltung\Settings\Section</personal-section>
 	</settings>
+	<!-- Benachrichtigungsgerüst für Self-Service-Änderungen (Spec §3.4, Issue
+	     #74): reine Registrierung, noch ohne konkrete Activity-Einträge - die
+	     auslösenden Aktionen (Mandat, Beitrag) kommen erst mit #75/#76. -->
+	<activity>
+		<settings>
+			<setting>OCA\Vereinsbuchhaltung\Activity\SelfServiceSetting</setting>
+		</settings>
+		<providers>
+			<provider>OCA\Vereinsbuchhaltung\Activity\SelfServiceProvider</provider>
+		</providers>
+	</activity>
 	<navigations>
 		<navigation>
 			<name>Vereinsbuchhaltung</name>

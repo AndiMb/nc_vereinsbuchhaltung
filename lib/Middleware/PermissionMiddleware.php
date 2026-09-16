@@ -7,10 +7,13 @@ namespace OCA\Vereinsbuchhaltung\Middleware;
 use OCA\Vereinsbuchhaltung\Controller\L10nController;
 use OCA\Vereinsbuchhaltung\Controller\PageController;
 use OCA\Vereinsbuchhaltung\Controller\PermissionController;
+use OCA\Vereinsbuchhaltung\Controller\SelfController;
 use OCA\Vereinsbuchhaltung\Exception\ForbiddenException;
 use OCA\Vereinsbuchhaltung\Exception\PeriodClosedException;
 use OCA\Vereinsbuchhaltung\Exception\PeriodNotFoundException;
+use OCA\Vereinsbuchhaltung\Service\ActorContextService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
+use OCA\Vereinsbuchhaltung\Service\SelfServiceService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\JSONResponse;
@@ -26,11 +29,19 @@ use OCP\IRequest;
  * (Buchhalter+). Der PermissionController (Rechtevergabe) erfordert Verwalter;
  * nur "me" ist für jeden angemeldeten Nutzer erreichbar. Die Seite selbst wird
  * immer gerendert (die Vue-App zeigt dann ggf. "kein Zugriff").
+ *
+ * Vierter Sonderfall (Spec §3.4): der SelfController braucht KEINE vbh-Rolle
+ * – statt dessen zentral `self_service_enabled && Kontoverknüpfung` prüfen
+ * (SelfServiceService) und die aufgelöste member_id als Request-Kontext
+ * bereitstellen (ActorContextService). Bewusst kein `#[PublicPage]` am
+ * Controller: die Middleware muss für jeden Aufruf laufen.
  */
 class PermissionMiddleware extends Middleware {
 
 	public function __construct(
 		private PermissionService $permissions,
+		private SelfServiceService $selfService,
+		private ActorContextService $actorContext,
 		private IRequest $request,
 		private IL10N $l10n,
 	) {
@@ -46,6 +57,17 @@ class PermissionMiddleware extends Middleware {
 		if ($controller instanceof L10nController) {
 			return;
 		}
+		if ($controller instanceof SelfController) {
+			$this->authorizeSelfService();
+			return;
+		}
+
+		// Ab hier "normale" Buchhaltungs-/Verwaltungs-Endpunkte: der Kanal ist
+		// staff, unabhängig davon, ob die handelnde Person selbst auch ein
+		// verknüpftes Mitglied ist (Personalunion, Spec §3.9) – der Kanal
+		// entscheidet actor_type, nicht die Identität.
+		$this->actorContext->setStaffChannel();
+
 		if ($controller instanceof PermissionController) {
 			if ($methodName === 'me') {
 				return;
@@ -69,6 +91,24 @@ class PermissionMiddleware extends Middleware {
 		} else {
 			$this->requireRole(PermissionService::ROLE_WRITE);
 		}
+	}
+
+	/**
+	 * Zentrales Gate für den SelfController (Spec §3.4): statt einer
+	 * Rollenprüfung zählt ausschließlich `self_service_enabled &&
+	 * Kontoverknüpfung`. Bei Erfolg landet die aufgelöste member_id im
+	 * {@see ActorContextService} – jede Query des SelfController MUSS darauf
+	 * filtern (IDOR-Schutz, siehe SelfController).
+	 *
+	 * @throws ForbiddenException wenn der Schalter aus ist oder das Konto
+	 *                            nicht mit einem Mitglied verknüpft ist
+	 */
+	private function authorizeSelfService(): void {
+		$member = $this->selfService->isEnabled() ? $this->selfService->currentMember() : null;
+		if ($member === null) {
+			throw new ForbiddenException($this->l10n->t('Kein Self-Service-Zugang.'));
+		}
+		$this->actorContext->setMemberChannel($member->getId());
 	}
 
 	/**
