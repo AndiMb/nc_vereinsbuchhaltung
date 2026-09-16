@@ -3,8 +3,14 @@
 		<NcLoadingIcon v-if="loading" :size="32" />
 		<template v-else-if="member">
 			<div class="vbh-card">
-				<h4>{{ t('Meine Stammdaten') }}</h4>
-				<dl class="vbh-selfservice-fields">
+				<div class="vbh-selfservice-card-header">
+					<h4>{{ t('Meine Stammdaten') }}</h4>
+					<NcButton v-if="!editingContact" variant="tertiary" @click="startEditContact">
+						{{ t('Bearbeiten') }}
+					</NcButton>
+				</div>
+
+				<dl v-if="!editingContact" class="vbh-selfservice-fields">
 					<dt>{{ t('Name') }}</dt>
 					<dd>{{ member.displayName }}</dd>
 
@@ -36,6 +42,94 @@
 						<dd>{{ formatDate(member.leftAt) }}</dd>
 					</template>
 				</dl>
+
+				<div v-else class="vbh-form-stack">
+					<div v-if="member.memberType === 'person'" class="vbh-form">
+						<label>{{ t('Vorname') }}
+							<input v-model="contactForm.firstName">
+						</label>
+						<label class="vbh-grow">{{ t('Nachname') }}
+							<input v-model="contactForm.lastName">
+						</label>
+					</div>
+					<div v-else class="vbh-form">
+						<label class="vbh-grow">{{ t('Name') }}
+							<input v-model="contactForm.organizationName">
+						</label>
+					</div>
+					<div class="vbh-form">
+						<label class="vbh-grow">{{ t('E-Mail') }}
+							<input v-model="contactForm.email" type="email">
+						</label>
+						<label>{{ t('Telefon') }}
+							<input v-model="contactForm.phone">
+						</label>
+					</div>
+					<div class="vbh-form">
+						<label class="vbh-grow">{{ t('Straße') }}
+							<input v-model="contactForm.street">
+						</label>
+					</div>
+					<div class="vbh-form">
+						<label>{{ t('PLZ') }}
+							<input v-model="contactForm.postalCode" class="vbh-short">
+						</label>
+						<label class="vbh-grow">{{ t('Ort') }}
+							<input v-model="contactForm.city">
+						</label>
+						<label>{{ t('Land') }}
+							<input v-model="contactForm.country" class="vbh-short">
+						</label>
+					</div>
+					<p v-if="emailChangedInForm" class="vbh-hint">
+						{{ t('Bei einer Änderung der E-Mail-Adresse erhält die bisherige Adresse zur Sicherheit eine Mail darüber.') }}
+					</p>
+					<div class="vbh-modal-actions">
+						<NcButton variant="tertiary" @click="cancelEditContact">
+							{{ t('Abbrechen') }}
+						</NcButton>
+						<NcButton variant="primary" :disabled="savingContact" @click="saveContact">
+							{{ t('Speichern') }}
+						</NcButton>
+					</div>
+				</div>
+			</div>
+
+			<div v-if="assignments.length" class="vbh-card">
+				<h4>{{ t('Mein Beitrag') }}</h4>
+				<div v-for="a in assignments" :key="a.id" class="vbh-selfservice-assignment">
+					<h5>{{ a.groupName || t('Beitrag') }}</h5>
+					<p v-if="a.effectiveMinMonthlyAmount !== null" class="vbh-hint">
+						{{ t('Untergrenze: {amount}', { amount: formatMoney(a.effectiveMinMonthlyAmount) }) }}
+					</p>
+					<div class="vbh-form">
+						<label>{{ t('Monatsbeitrag (€)') }}
+							<AmountInput v-model="a._form.monthlyAmount" class="vbh-short" />
+						</label>
+						<label>{{ t('Turnus (Monate)') }}
+							<select v-model.number="a._form.intervalMonths">
+								<option v-for="n in a.allowedIntervals" :key="n" :value="n">
+									{{ n }}
+								</option>
+							</select>
+						</label>
+						<NcButton variant="secondary" :disabled="a._loadingPreview" @click="loadPreview(a)">
+							{{ t('Vorschau') }}
+						</NcButton>
+					</div>
+					<p v-if="a._preview && previewMatchesForm(a)" class="vbh-hint">
+						{{ t('Wirkt ab {from} · erster Einzug am {due} · Betrag {amount}', {
+							from: formatDate(a._preview.effectiveFrom),
+							due: formatDate(a._preview.firstDueDate),
+							amount: formatMoney(a._preview.amountCents / 100),
+						}) }}
+					</p>
+					<div class="vbh-modal-actions">
+						<NcButton variant="primary" :disabled="!canSave(a)" @click="save(a)">
+							{{ t('Speichern') }}
+						</NcButton>
+					</div>
+				</div>
 			</div>
 
 			<div class="vbh-card">
@@ -131,32 +225,50 @@
 <script>
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import AmountInput from './AmountInput.vue'
 import SelfServiceMandateAccountDialog from './SelfServiceMandateAccountDialog.vue'
 import SelfServiceMandateGrantDialog from './SelfServiceMandateGrantDialog.vue'
 import SelfServiceMandateRevokeDialog from './SelfServiceMandateRevokeDialog.vue'
 import api from '../api.js'
-import { errMsg, formatDate } from '../lib/format.js'
+import { errMsg, formatDate, formatMoney } from '../lib/format.js'
+
+function emptyContactForm() {
+	return { firstName: '', lastName: '', organizationName: '', email: '', phone: '', street: '', postalCode: '', city: '', country: '' }
+}
 
 /**
- * Bereich „Mein Beitrag" (Spec §3.4): eigene Stammdaten (#74) plus, seit
- * Issue #75, der Mandats-Aktionskatalog - erfassen/elektronisch erteilen,
+ * Bereich „Mein Beitrag" (Spec §3.4): eigene Stammdaten (#74) plus zwei
+ * Aktionskataloge - Mandat (Issue #75: erfassen/elektronisch erteilen,
  * bestehenden Entwurf bestätigen, IBAN ändern, Kontoinhaber wechseln,
- * widerrufen. Jede Aktion wirkt sofort (kein Antragsmodell); die einzige
- * Bremse ist die Vorschau im jeweiligen Dialog (Spec Pflicht-UI).
+ * widerrufen) und Beitrag/Kontaktdaten (Issue #76: Monatsbeitrag/Turnus
+ * ändern, Kontaktstammdaten pflegen). Jede Aktion wirkt sofort (kein
+ * Antragsmodell) - die einzige Bremse ist jeweils eine Vorschau vor dem
+ * Speichern (Spec Pflicht-UI).
  *
- * Der Beitrags-Teil des Aktionskatalogs (#76) ist NICHT Teil dieser Komponente.
+ * Beitrag-Teil (#76) bewusst OHNE Beitragsgruppen-Auswahl (Zuweisung.groupId
+ * ist nicht editierbar, siehe SelfController.updateAssignment()) und ohne
+ * groupId-Feld überhaupt im Formular. Pflicht-UI „Vorschau vor jedem
+ * Speichern": der Speichern-Knopf einer Zuweisung bleibt deaktiviert, bis
+ * eine Vorschau für GENAU die aktuell eingetragenen Werte geladen wurde
+ * (siehe canSave()/previewMatchesForm()) - jede Änderung an Betrag oder
+ * Turnus danach verlangt eine neue Vorschau, weil der Vergleich dann nicht
+ * mehr passt.
  *
  * Lädt seine Daten beim eigenen mounted() wie MembersList.vue/SepaBatchPanel.vue,
  * statt von App.vue vorgeladen zu werden.
  */
 export default {
 	name: 'SelfServiceTab',
-	components: { NcLoadingIcon, NcButton, SelfServiceMandateGrantDialog, SelfServiceMandateAccountDialog, SelfServiceMandateRevokeDialog },
+	components: { NcLoadingIcon, NcButton, AmountInput, SelfServiceMandateGrantDialog, SelfServiceMandateAccountDialog, SelfServiceMandateRevokeDialog },
 
 	data() {
 		return {
 			loading: true,
 			member: null,
+			assignments: [],
+			editingContact: false,
+			savingContact: false,
+			contactForm: emptyContactForm(),
 			grantDialogOpen: false,
 			grantMode: 'grant',
 			accountDialogOpen: false,
@@ -176,6 +288,10 @@ export default {
 			return [line1, line2].filter(Boolean).join(', ')
 		},
 
+		emailChangedInForm() {
+			return this.editingContact && this.contactForm.email !== (this.member?.email || '')
+		},
+
 		mandate() {
 			return this.member && this.member.mandate
 		},
@@ -191,21 +307,29 @@ export default {
 	},
 
 	async mounted() {
+		this.loading = true
 		await this.reload()
+		try {
+			const { data } = await api.selfAssignments()
+			this.assignments = data.map((a) => this.withEditState(a))
+		} catch (e) {
+			showError(errMsg(e, this.t('Beitrag konnte nicht geladen werden')))
+		} finally {
+			this.loading = false
+		}
 	},
 
 	methods: {
 		formatDate,
+		formatMoney,
 
+		/** Eigene Stammdaten (inkl. Mandat/offene Forderungssumme) neu laden - auch nach jeder Mandats-Aktion, siehe unten. */
 		async reload() {
-			this.loading = true
 			try {
 				const { data } = await api.selfMe()
 				this.member = data
 			} catch (e) {
 				showError(errMsg(e, this.t('Stammdaten konnten nicht geladen werden')))
-			} finally {
-				this.loading = false
 			}
 		},
 
@@ -304,6 +428,122 @@ export default {
 			this.revokeOpen = false
 			this.openAccountDialog('iban')
 		},
+
+		withEditState(a) {
+			return {
+				...a,
+				_form: { monthlyAmount: a.monthlyAmount, intervalMonths: a.intervalMonths },
+				_preview: null,
+				_previewedFor: null,
+				_loadingPreview: false,
+			}
+		},
+
+		/** Schlüssel der aktuellen Formularwerte - Grundlage für den Vorschau-Abgleich. */
+		formKey(a) {
+			return `${a._form.monthlyAmount}|${a._form.intervalMonths}`
+		},
+
+		previewMatchesForm(a) {
+			return a._previewedFor === this.formKey(a)
+		},
+
+		/** Speichern ist erst erlaubt, wenn eine Vorschau GENAU für die aktuellen Werte vorliegt (Pflicht-UI). */
+		canSave(a) {
+			return a._preview !== null && this.previewMatchesForm(a)
+		},
+
+		async loadPreview(a) {
+			a._loadingPreview = true
+			try {
+				const { data } = await api.selfPreviewAssignment(a.id, {
+					monthlyAmount: a._form.monthlyAmount,
+					intervalMonths: a._form.intervalMonths,
+				})
+				a._preview = data
+				a._previewedFor = this.formKey(a)
+			} catch (e) {
+				a._preview = null
+				a._previewedFor = null
+				showError(errMsg(e, this.t('Vorschau konnte nicht geladen werden')))
+			} finally {
+				a._loadingPreview = false
+			}
+		},
+
+		async save(a) {
+			if (!this.canSave(a)) { return }
+			try {
+				const { data } = await api.selfUpdateAssignment(a.id, {
+					monthlyAmount: a._form.monthlyAmount,
+					intervalMonths: a._form.intervalMonths,
+				})
+				Object.assign(a, this.withEditState(data.assignment))
+				showSuccess(this.t('Beitrag geändert.'))
+			} catch (e) {
+				showError(errMsg(e, this.t('Beitrag konnte nicht geändert werden')))
+			}
+		},
+
+		startEditContact() {
+			const m = this.member
+			this.contactForm = {
+				firstName: m.firstName || '',
+				lastName: m.lastName || '',
+				organizationName: m.organizationName || '',
+				email: m.email || '',
+				phone: m.phone || '',
+				street: m.street || '',
+				postalCode: m.postalCode || '',
+				city: m.city || '',
+				country: m.country || '',
+			}
+			this.editingContact = true
+		},
+
+		cancelEditContact() {
+			this.editingContact = false
+		},
+
+		async saveContact() {
+			this.savingContact = true
+			try {
+				const { data } = await api.selfUpdateMe(this.contactForm)
+				this.member = data
+				this.editingContact = false
+				showSuccess(this.t('Kontaktdaten gespeichert.'))
+			} catch (e) {
+				showError(errMsg(e, this.t('Kontaktdaten konnten nicht gespeichert werden')))
+			} finally {
+				this.savingContact = false
+			}
+		},
 	},
 }
 </script>
+
+<style scoped>
+.vbh-selfservice-card-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.vbh-selfservice-assignment {
+	border-top: 1px solid var(--color-border);
+	padding-top: 12px;
+	margin-top: 12px;
+}
+
+.vbh-selfservice-assignment:first-of-type {
+	border-top: none;
+	padding-top: 0;
+	margin-top: 0;
+}
+
+.vbh-form-stack {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+</style>

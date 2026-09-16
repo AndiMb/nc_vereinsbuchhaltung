@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Assignment;
+use OCA\Vereinsbuchhaltung\Db\ContributionGroupMapper;
 use OCA\Vereinsbuchhaltung\Db\Mandate;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
@@ -60,6 +61,7 @@ class SelfController extends Controller {
 		private SelfServiceMandateService $selfServiceMandate,
 		private SelfContributionService $contributions,
 		private SelfContactService $contact,
+		private ContributionGroupMapper $groupMapper,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -357,6 +359,24 @@ class SelfController extends Controller {
 	private function assignmentData(Assignment $assignment): array {
 		$data = $assignment->jsonSerialize();
 		unset($data['overrideReason']);
+		// Gruppenname + erlaubte Turnusse dazu (nicht in Assignment selbst,
+		// aber fuer die Turnus-Auswahl der SPA noetig) - referenzielle
+		// Sicherheit ist Vereinssache, ein bereits geloeschter Gruppen-Verweis
+		// kommt praktisch nicht vor; die Anzeige zeigt dann einfach nichts.
+		try {
+			$group = $this->groupMapper->find($assignment->getGroupId());
+			$data['groupName'] = $group->getName();
+			$data['allowedIntervals'] = $group->getAllowedIntervalsArray();
+			// Die tatsaechlich geltende Untergrenze (Override ODER Gruppen-
+			// Untergrenze) - "individuelle Untergrenze sichtbar" (Spec §3.4)
+			// ist ohne diese Ableitung nur die Haelfte der Information: ohne
+			// Override kennt der Self-Service sonst gar keine Grenze.
+			$data['effectiveMinMonthlyAmount'] = $assignment->effectiveMinMonthlyAmountCents($group) / 100;
+		} catch (DoesNotExistException) {
+			$data['groupName'] = null;
+			$data['allowedIntervals'] = [];
+			$data['effectiveMinMonthlyAmount'] = null;
+		}
 		return $data;
 	}
 }

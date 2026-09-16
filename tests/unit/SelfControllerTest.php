@@ -6,6 +6,8 @@ namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
 use OCA\Vereinsbuchhaltung\Controller\SelfController;
 use OCA\Vereinsbuchhaltung\Db\Assignment;
+use OCA\Vereinsbuchhaltung\Db\ContributionGroup;
+use OCA\Vereinsbuchhaltung\Db\ContributionGroupMapper;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Exception\ForbiddenException;
@@ -46,6 +48,7 @@ class SelfControllerTest extends TestCase {
 	private IL10N&MockObject $l10n;
 	private SelfContributionService&MockObject $contributions;
 	private SelfContactService&MockObject $contact;
+	private ContributionGroupMapper&MockObject $groupMapper;
 
 	protected function setUp(): void {
 		$userSession = $this->createMock(IUserSession::class);
@@ -55,6 +58,7 @@ class SelfControllerTest extends TestCase {
 		$this->l10n->method('t')->willReturnArgument(0);
 		$this->contributions = $this->createMock(SelfContributionService::class);
 		$this->contact = $this->createMock(SelfContactService::class);
+		$this->groupMapper = $this->createMock(ContributionGroupMapper::class);
 	}
 
 	private function controller(): SelfController {
@@ -76,6 +80,7 @@ class SelfControllerTest extends TestCase {
 			$this->createMock(SelfServiceMandateService::class),
 			$this->contributions,
 			$this->contact,
+			$this->groupMapper,
 			$this->l10n,
 		);
 	}
@@ -192,6 +197,33 @@ class SelfControllerTest extends TestCase {
 		$data = $this->controller()->assignments()->getData();
 
 		$this->assertCount(1, $data);
+	}
+
+	public function testAssignmentsReichertMitGruppennameUndErlaubtenTurnussenAn(): void {
+		$this->contributions->method('findOwn')->willReturn([$this->assignment()]);
+		$group = new ContributionGroup();
+		$group->setName('Basisbeitrag');
+		$group->setAllowedIntervalsArray([1, 12]);
+		$this->groupMapper->method('find')->with(1)->willReturn($group);
+
+		$data = $this->controller()->assignments()->getData();
+
+		$this->assertSame('Basisbeitrag', $data[0]['groupName']);
+		$this->assertSame([1, 12], $data[0]['allowedIntervals']);
+	}
+
+	/** Ohne individuelle Untergrenze ist die Gruppen-Untergrenze die geltende (Spec §3.4). */
+	public function testAssignmentsZeigtGeltendeUntergrenzeAuchOhneOverride(): void {
+		$assignment = $this->assignment();
+		$assignment->setMinMonthlyAmountOverrideCents(null);
+		$this->contributions->method('findOwn')->willReturn([$assignment]);
+		$group = new ContributionGroup();
+		$group->setMinMonthlyAmountCents(800);
+		$this->groupMapper->method('find')->willReturn($group);
+
+		$data = $this->controller()->assignments()->getData();
+
+		$this->assertSame(8, $data[0]['effectiveMinMonthlyAmount']);
 	}
 
 	/** Individuelle Untergrenze sichtbar, ihre Begründung nicht (Spec §3.4 Pflicht-UI). */

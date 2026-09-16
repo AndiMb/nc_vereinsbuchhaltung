@@ -529,6 +529,28 @@ export const api = {
 		return call(request, 'POST', '/self/mandate/request-link', { user, expectOk })
 	},
 
+	// --- Self-Service Beitrag-Aktionen (Issue #76) ------------------------------
+
+	/** Eigene Zuweisungen (Self-Service-Kanal). */
+	async selfAssignments(request, { user, expectOk = true } = {}) {
+		return (await call(request, 'GET', '/self/assignments', { user, expectOk })).json()
+	},
+
+	/** Vorschau vor dem Speichern (Spec §3.4 Pflicht-UI) - Self-Service-Kanal. */
+	async selfPreviewAssignment(request, id, { monthlyAmount, intervalMonths, user, expectOk = true } = {}) {
+		return call(request, 'POST', `/self/assignments/${id}/preview`, { user, expectOk, data: { monthlyAmount, intervalMonths } })
+	},
+
+	/** Betrag/Turnus der eigenen Zuweisung ändern (Self-Service-Kanal). */
+	async selfUpdateAssignment(request, id, { monthlyAmount, intervalMonths, user, expectOk = true } = {}) {
+		return call(request, 'PUT', `/self/assignments/${id}`, { user, expectOk, data: { monthlyAmount, intervalMonths } })
+	},
+
+	/** Eigene Kontaktstammdaten pflegen (Self-Service-Kanal). */
+	async selfUpdateMe(request, data, { user, expectOk = true } = {}) {
+		return call(request, 'PUT', '/self/me', { user, expectOk, data })
+	},
+
 	/** Roher Zugriff für Spezialfälle; expectOk standardmäßig aus. */
 	async raw(request, method, path, opts = {}) {
 		return call(request, method, path, { expectOk: false, ...opts })
