@@ -211,6 +211,12 @@ return [
 		['name' => 'claim#cancel', 'url' => '/api/claims/{id}/cancel', 'verb' => 'POST'],
 		['name' => 'claim#defer', 'url' => '/api/claims/{id}/defer', 'verb' => 'POST'],
 
+		// Terminplan & Einzugszyklus-Einstellungen (Issue #70)
+		['name' => 'dueDateSchedule#index', 'url' => '/api/due-date-schedule', 'verb' => 'GET'],
+		['name' => 'dueDateSchedule#setDefaultDay', 'url' => '/api/due-date-schedule/{intervalMonths}/default-day', 'verb' => 'POST'],
+		['name' => 'dueDateSchedule#setOverride', 'url' => '/api/due-date-schedule/{intervalMonths}/overrides/{periodIndex}', 'verb' => 'POST'],
+		['name' => 'dueDateSchedule#setLeadDays', 'url' => '/api/due-date-schedule/lead-days', 'verb' => 'POST'],
+
 		// Export (CSV-Download)
 		['name' => 'export#journal',  'url' => '/api/export/journal',  'verb' => 'GET'],
 		['name' => 'export#balances', 'url' => '/api/export/balances', 'verb' => 'GET'],

@@ -169,6 +169,12 @@ export default {
 	cancelClaim: (id, reason) => axios.post(url(`/claims/${id}/cancel`), { reason }),
 	deferClaim: (id, deferredUntil, reason) => axios.post(url(`/claims/${id}/defer`), { deferredUntil, reason }),
 
+	// Terminplan & Einzugszyklus-Einstellungen (Issue #70)
+	loadDueDateSchedule: () => axios.get(url('/due-date-schedule')),
+	setDueDateScheduleDefaultDay: (intervalMonths, offsetDays) => axios.post(url(`/due-date-schedule/${intervalMonths}/default-day`), { offsetDays }),
+	setDueDateScheduleOverride: (intervalMonths, periodIndex, offsetDays) => axios.post(url(`/due-date-schedule/${intervalMonths}/overrides/${periodIndex}`), { offsetDays }),
+	setDueDateScheduleLeadDays: (data) => axios.post(url('/due-date-schedule/lead-days'), data),
+
 	// Massenanlage aus einer CSV-Liste: erst pruefen, dann anlegen
 	previewMemberImport: (csv) => axios.post(url('/sepa/members/import/preview'), { csv }),
 	runMemberImport: (csv) => axios.post(url('/sepa/members/import'), { csv }),
