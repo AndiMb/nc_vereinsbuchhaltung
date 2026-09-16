@@ -45,13 +45,24 @@ use OCP\AppFramework\Db\Entity;
  * @method void setCreatedAt(string $createdAt)
  */
 class Assignment extends Entity implements \JsonSerializable {
+	// Bewusst ohne "realistische" Standardwerte fuer intervalMonths/
+	// monthlyAmountCents/paymentMethod (siehe ausfuehrliche Begruendung in
+	// ContributionGroup.php): Entity::setter() markiert ein Feld nur als
+	// geaendert, wenn sich der neue Wert vom aktuellen PHP-Property-Wert
+	// unterscheidet, und QBMapper::insert() schreibt nur geaenderte Felder.
+	// intervalMonths=12 ist der mit Abstand haeufigste Turnus, ein frisch
+	// angelegtes Assignment mit Turnus 12 wuerde die Spalte sonst
+	// stillschweigend aus dem INSERT auslassen und an der
+	// NOT-NULL-Constraint scheitern. AssignmentService::create() setzt alle
+	// diese Felder ohnehin immer explizit, ein Default von null ist deshalb
+	// gefahrlos.
 	protected $memberId;
 	protected $groupId;
-	protected $intervalMonths = 12;
-	protected $monthlyAmountCents = 0;
+	protected $intervalMonths;
+	protected $monthlyAmountCents;
 	protected $minMonthlyAmountOverrideCents;
 	protected $overrideReason;
-	protected $paymentMethod = self::PAYMENT_METHOD_DIRECT_DEBIT;
+	protected $paymentMethod;
 	protected $validFrom;
 	protected $validTo;
 	protected $createdAt;

@@ -146,8 +146,16 @@ test.describe('Beitragsgruppen, Zuweisungen & Forderungen', () => {
 	})
 
 	test('Offene-Posten-Sicht: revisor liest Forderungen ohne Mitglieds-Kontaktdaten', async ({ request }) => {
+		// Eigenständig von der UI-Forderung aus dem vorigen Test: legt die
+		// Forderung, die geprüft wird, selbst per API an, statt sich auf einen
+		// Seiteneffekt eines UI-Tests zu verlassen (sonst würde ein Fehlschlag
+		// dort diesen Test hier scheinbar unabhängig mit fehlschlagen lassen).
 		const [firstName, lastName] = CLAIM_MEMBER.split(' ')
-		await ensureMember(request, firstName, lastName)
+		const member = await ensureMember(request, firstName, lastName)
+		await api.raw(request, 'POST', '/claims', {
+			expectOk: true,
+			data: { memberId: member.id, type: 'beitrag', amount: 7, label: 'API-Testforderung', dueDate: '2026-12-01' },
+		})
 
 		const claims = await api.getJson(request, '/claims', { user: USERS.revisor })
 		expect(claims.length).toBeGreaterThan(0)

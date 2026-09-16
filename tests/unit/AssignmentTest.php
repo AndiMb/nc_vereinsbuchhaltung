@@ -51,4 +51,29 @@ class AssignmentTest extends TestCase {
 		$assignment->setMinMonthlyAmountOverrideCents(200);
 		$this->assertSame(200, $assignment->effectiveMinMonthlyAmountCents($group));
 	}
+
+	/**
+	 * Regressionstest für einen live beobachteten Bug (PR #83, siehe
+	 * ContributionGroupTest::testAlleFelderSindNachDemSetzenAlsGeaendertMarkiert()
+	 * für die ausführliche Begründung): intervalMonths=12 ist der mit Abstand
+	 * häufigste Turnus (AssignmentDialog.vue-Vorbelegung) – ein Klassen-
+	 * Default von 12 hätte QBMapper::insert() die Spalte für genau diesen,
+	 * alltäglichen Fall auslassen lassen und an der NOT-NULL-Constraint
+	 * scheitern lassen.
+	 */
+	public function testAlleFelderSindNachDemSetzenAlsGeaendertMarkiert(): void {
+		$assignment = new Assignment();
+		$assignment->setMemberId(1);
+		$assignment->setGroupId(1);
+		$assignment->setIntervalMonths(12);
+		$assignment->setMonthlyAmountCents(0);
+		$assignment->setPaymentMethod(Assignment::PAYMENT_METHOD_DIRECT_DEBIT);
+		$assignment->setValidFrom('2026-01-01');
+		$assignment->setCreatedAt('2026-01-01');
+
+		$updated = array_keys($assignment->getUpdatedFields());
+		foreach (['memberId', 'groupId', 'intervalMonths', 'monthlyAmountCents', 'paymentMethod', 'validFrom', 'createdAt'] as $field) {
+			$this->assertContains($field, $updated, "Feld '$field' fehlt in getUpdatedFields() - QBMapper::insert() würde die Spalte auslassen.");
+		}
+	}
 }

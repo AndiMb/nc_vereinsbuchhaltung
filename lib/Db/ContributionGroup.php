@@ -36,12 +36,25 @@ use OCP\AppFramework\Db\Entity;
  * @method void setCreatedAt(string $createdAt)
  */
 class ContributionGroup extends Entity implements \JsonSerializable {
+	// Bewusst ohne "realistische" Standardwerte (siehe Entity::setter():
+	// `if ($args[0] === $this->$name) { return; }` markiert ein Feld nur als
+	// geaendert, wenn sich der Wert vom aktuellen PHP-Property-Wert
+	// unterscheidet). QBMapper::insert() schreibt nur als geaendert markierte
+	// Felder in die INSERT-Anweisung - ein neu angelegtes Objekt, dessen
+	// Setter zufaellig denselben Wert wie der Klassen-Default bekommt (z.B.
+	// allowedIntervals='1,12', defaultInterval=12 - beides die verbreitetsten
+	// Werte ueberhaupt), wuerde diese Spalte sonst stillschweigend aus dem
+	// INSERT auslassen und an der NOT-NULL-Constraint scheitern (beobachtet:
+	// SQLSTATE[23000] NOT NULL constraint failed: allowed_intervals). Alle
+	// Felder hier werden von ContributionGroupService::applyFields() vor
+	// jedem insert()/update() explizit gesetzt, ein Default von null ist
+	// deshalb gefahrlos und schliesst die Kollision aus.
 	protected $name;
-	protected $minMonthlyAmountCents = 0;
-	protected $defaultMonthlyAmountCents = 0;
-	protected $allowedIntervals = '1,12';
-	protected $defaultInterval = 12;
-	protected $isActive = true;
+	protected $minMonthlyAmountCents;
+	protected $defaultMonthlyAmountCents;
+	protected $allowedIntervals;
+	protected $defaultInterval;
+	protected $isActive;
 	protected $createdAt;
 
 	/** Erlaubte Turnuswerte – Teiler von 12 (siehe PeriodRule::LENGTHS). */
