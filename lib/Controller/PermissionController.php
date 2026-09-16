@@ -8,6 +8,7 @@ use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\PermissionMapper;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
+use OCA\Vereinsbuchhaltung\Service\SelfServiceService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
@@ -27,15 +28,23 @@ class PermissionController extends Controller {
 		private IGroupManager $groupManager,
 		private IUserManager $userManager,
 		private AuditService $audit,
+		private SelfServiceService $selfService,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
 
-	/** Eigene Rolle/Rechte – für jeden angemeldeten Nutzer erreichbar. */
+	/**
+	 * Eigene Rolle/Rechte – für jeden angemeldeten Nutzer erreichbar.
+	 *
+	 * `selfService` steuert zusätzlich, ob die SPA den Bereich „Mein Beitrag"
+	 * zeigt (Spec §3.4) – unabhängig von der vbh-Rolle, siehe App.vue.
+	 */
 	#[NoAdminRequired]
 	public function me(): DataResponse {
-		return new DataResponse($this->permissions->describeCurrent());
+		$data = $this->permissions->describeCurrent();
+		$data['selfService'] = $this->selfService->describeCurrent();
+		return new DataResponse($data);
 	}
 
 	#[NoAdminRequired]

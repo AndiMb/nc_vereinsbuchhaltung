@@ -430,16 +430,24 @@ export const api = {
 	},
 
 	// Mitglieder-Stammdaten (Spec §2.2, docs/beitraege-sepa-modul-spec.md)
-	async createMember(request, { memberType = 'person', firstName, lastName, organizationName, email, joinedAt, user = 'admin' } = {}) {
-		return (await call(request, 'POST', '/members', { user, data: { memberType, firstName, lastName, organizationName, email, joinedAt } })).json()
+	async createMember(request, { memberType = 'person', firstName, lastName, organizationName, email, phone, internalNote, joinedAt, user = 'admin' } = {}) {
+		return (await call(request, 'POST', '/members', { user, data: { memberType, firstName, lastName, organizationName, email, phone, internalNote, joinedAt } })).json()
 	},
 
 	async listMembers(request, { user = 'admin' } = {}) {
 		return (await call(request, 'GET', '/members', { user })).json()
 	},
 
+	async deleteMember(request, id, { user = 'admin' } = {}) {
+		return call(request, 'DELETE', `/members/${id}`, { user })
+	},
+
 	async linkMember(request, id, ncUserId, { user = 'admin', expectOk = true } = {}) {
 		return call(request, 'POST', `/members/${id}/link`, { user, expectOk, data: { ncUserId } })
+	},
+
+	async unlinkMember(request, id, { user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', `/members/${id}/unlink`, { user, expectOk })
 	},
 
 	/**
