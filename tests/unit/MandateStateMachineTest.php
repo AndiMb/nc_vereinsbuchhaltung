@@ -50,6 +50,24 @@ class MandateStateMachineTest extends TestCase {
 		$this->machine()->assertCanActivatePaper($this->mandate(Mandate::STATUS_DRAFT, Mandate::SIGNATURE_ELECTRONIC, '2026-01-15'));
 	}
 
+	// --- Aktivierung (elektronisch, Issue #67) ----------------------------------
+
+	public function testElektronischerEntwurfLaesstSichOhneUnterschriftsdatumAktivieren(): void {
+		// Kein signed_at erforderlich - die Zustimmung selbst IST die Unterschrift.
+		$this->machine()->assertCanActivateElectronic($this->mandate(Mandate::STATUS_DRAFT, Mandate::SIGNATURE_ELECTRONIC, null));
+		$this->addToAssertionCount(1);
+	}
+
+	public function testPapierMandatLaesstSichNichtElektronischAktivieren(): void {
+		$this->expectException(\InvalidArgumentException::class);
+		$this->machine()->assertCanActivateElectronic($this->mandate(Mandate::STATUS_DRAFT, Mandate::SIGNATURE_PAPER, '2026-01-15'));
+	}
+
+	public function testBereitsAktivesElektronischesMandatLaesstSichNichtErneutAktivieren(): void {
+		$this->expectException(\InvalidArgumentException::class);
+		$this->machine()->assertCanActivateElectronic($this->mandate(Mandate::STATUS_ACTIVE, Mandate::SIGNATURE_ELECTRONIC, '2026-01-15'));
+	}
+
 	// --- Sperren/Entsperren -----------------------------------------------------
 
 	public function testAktivesMandatLaesstSichSperren(): void {

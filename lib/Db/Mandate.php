@@ -28,6 +28,15 @@ use OCP\AppFramework\Db\Entity;
  * dagegen englisch, wie im Issue-Feldkatalog selbst angegeben (dort nicht als
  * klärungsbedürftig markiert) – siehe {@see MandateAmendment}, {@see MandateEvent}.
  *
+ * Beweispaket der elektronischen Erteilung (Spec §2.2/§8, Issue #67):
+ * `mandate_text_version`/`consent_at`/`consent_ip`/`consent_user_agent`/
+ * `consent_actor`, gefüllt von
+ * {@see \OCA\Vereinsbuchhaltung\Service\MandateActivationService::consent()}.
+ * `consent_actor` ist bewusst KEIN Enum, sondern die tatsächlich verwendete
+ * Mailadresse: bei einem anonymen Einmal-Link (kein NC-Konto nötig) ist die
+ * Zustelladresse des Links die einzige belastbare Identitätsspur, die Spec §8
+ * als viertes Beweispaket-Element ("Identität") verlangt.
+ *
  * @method int getMemberId()
  * @method void setMemberId(int $memberId)
  * @method string getMandateReference()
@@ -64,6 +73,16 @@ use OCP\AppFramework\Db\Entity;
  * @method void setDocumentFileId(?int $documentFileId)
  * @method int|null getReturnedDebitId()
  * @method void setReturnedDebitId(?int $returnedDebitId)
+ * @method int|null getMandateTextVersion()
+ * @method void setMandateTextVersion(?int $mandateTextVersion)
+ * @method string|null getConsentAt()
+ * @method void setConsentAt(?string $consentAt)
+ * @method string|null getConsentIp()
+ * @method void setConsentIp(?string $consentIp)
+ * @method string|null getConsentUserAgent()
+ * @method void setConsentUserAgent(?string $consentUserAgent)
+ * @method string|null getConsentActor()
+ * @method void setConsentActor(?string $consentActor)
  * @method string getCreatedAt()
  * @method void setCreatedAt(string $createdAt)
  */
@@ -86,6 +105,11 @@ class Mandate extends Entity implements \JsonSerializable {
 	protected $lastPresentedDueDate;
 	protected $documentFileId;
 	protected $returnedDebitId;
+	protected $mandateTextVersion;
+	protected $consentAt;
+	protected $consentIp;
+	protected $consentUserAgent;
+	protected $consentActor;
 	protected $createdAt;
 
 	/** Nur `papier` ist in diesem Ticket (#66) tatsächlich nutzbar; die anderen beiden sind Enum-Vorgriffe auf #67 (Einmal-Link) und QES (nicht v1). */
@@ -128,6 +152,11 @@ class Mandate extends Entity implements \JsonSerializable {
 	 */
 	public function isCollectible(): bool {
 		return $this->status === self::STATUS_ACTIVE;
+	}
+
+	/** Ob dieses Mandat den elektronischen Erteilungsweg nimmt (Issue #67). */
+	public function isElectronic(): bool {
+		return $this->signatureType === self::SIGNATURE_ELECTRONIC;
 	}
 
 	/**
@@ -181,6 +210,11 @@ class Mandate extends Entity implements \JsonSerializable {
 			'lastPresentedDueDate' => $this->lastPresentedDueDate,
 			'documentFileId' => $this->documentFileId,
 			'returnedDebitId' => $this->returnedDebitId,
+			'mandateTextVersion' => $this->mandateTextVersion,
+			'consentAt' => $this->consentAt,
+			'consentIp' => $this->consentIp,
+			'consentUserAgent' => $this->consentUserAgent,
+			'consentActor' => $this->consentActor,
 			'sequenceType' => self::SEQUENCE_TYPE,
 			'isCollectible' => $this->isCollectible(),
 			'createdAt' => $this->createdAt,

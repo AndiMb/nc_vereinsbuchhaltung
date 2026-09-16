@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Middleware;
 
 use OCA\Vereinsbuchhaltung\Controller\L10nController;
+use OCA\Vereinsbuchhaltung\Controller\MandateConsentController;
 use OCA\Vereinsbuchhaltung\Controller\PageController;
 use OCA\Vereinsbuchhaltung\Controller\PermissionController;
 use OCA\Vereinsbuchhaltung\Controller\SelfController;
@@ -35,6 +36,13 @@ use OCP\IRequest;
  * (SelfServiceService) und die aufgelöste member_id als Request-Kontext
  * bereitstellen (ActorContextService). Bewusst kein `#[PublicPage]` am
  * Controller: die Middleware muss für jeden Aufruf laufen.
+ *
+ * Fünfter Sonderfall (Issue #67): der {@see MandateConsentController} braucht
+ * ÜBERHAUPT KEINE vbh-Rolle und KEINEN Self-Service-Zugang - er ist die
+ * anonyme, login-lose Zustimmungsseite des elektronischen Einmal-Links
+ * (funktioniert bewusst auch ohne NC-Konto). Seine eigene Absicherung ist der
+ * kryptographisch geprüfte Token selbst, siehe dortige Klassendoku - hier
+ * genügt derselbe komplette Überspringen wie bei Page-/L10nController.
  */
 class PermissionMiddleware extends Middleware {
 
@@ -55,6 +63,9 @@ class PermissionMiddleware extends Middleware {
 		// Hinweis "Kein Lesezugriff" in der falschen Sprache vor jemandem, der
 		// noch keine Rolle hat.
 		if ($controller instanceof L10nController) {
+			return;
+		}
+		if ($controller instanceof MandateConsentController) {
 			return;
 		}
 		if ($controller instanceof SelfController) {

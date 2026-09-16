@@ -27,9 +27,12 @@ use OCP\IUserSession;
  * {@see AuditService} als auch die mandatseigene, feingranularere Historie
  * ({@see MandateEvent}, mit `actor_type` – Spec §3.9).
  *
- * Elektronische Erteilung/Aktivierung (Einmal-Link, Selbst-Aktivierung) ist
- * nicht Teil dieses Tickets (#67); jeder Aufruf hier ist `actor_type: staff`,
- * mit Ausnahme des automatischen Verfalls-Crons (`actor_type: system`).
+ * Elektronische Aktivierung (Selbst-Aktivierung bei Zustimmung über den
+ * Einmal-Link, Issue #67) ist {@see activateElectronic()} - orchestriert vom
+ * eigenen {@see MandateActivationService} (Token-Lebenszyklus, Mailversand),
+ * der `actor_type: member` protokolliert. Jeder andere Aufruf hier bleibt
+ * `actor_type: staff`, mit Ausnahme des automatischen Verfalls-Crons
+ * (`actor_type: system`).
  */
 class MandateService {
 
@@ -106,6 +109,43 @@ class MandateService {
 		?string $signedAt = null,
 		?string $mandateReference = null,
 	): Mandate {
+		return $this->createDraft($memberId, $iban, $bic, $accountHolder, Mandate::SIGNATURE_PAPER, $signedAt, $mandateReference);
+	}
+
+	/**
+	 * Legt einen elektronischen Mandats-Entwurf an (Issue #67): fachlich
+	 * dasselbe wie {@see createPaper()} (Entwurf, `member_id` + Bankdaten),
+	 * nur `signature_type: elektronisch` und ohne `signed_at` - das setzt erst
+	 * {@see activateElectronic()} bei der Zustimmung selbst, denn beim
+	 * elektronischen Weg IST die Zustimmung die Unterschrift, keine separat
+	 * einzugebende Angabe. Der Versand des Einmal-Links ist ein eigener
+	 * Schritt ({@see MandateActivationService::issueLink()}), nicht Teil
+	 * dieser Methode - so lässt sich ein Entwurf anlegen, ohne sofort eine
+	 * Mailadresse parat haben zu müssen.
+	 *
+	 * @throws DoesNotExistException wenn es das Mitglied nicht gibt
+	 * @throws \InvalidArgumentException bei ungültigen Eingaben oder bereits
+	 *                                   bestehendem lebenden Mandat
+	 */
+	public function createElectronic(
+		int $memberId,
+		string $iban,
+		?string $bic,
+		?string $accountHolder,
+		?string $mandateReference = null,
+	): Mandate {
+		return $this->createDraft($memberId, $iban, $bic, $accountHolder, Mandate::SIGNATURE_ELECTRONIC, null, $mandateReference);
+	}
+
+	private function createDraft(
+		int $memberId,
+		string $iban,
+		?string $bic,
+		?string $accountHolder,
+		string $signatureType,
+		?string $signedAt,
+		?string $mandateReference,
+	): Mandate {
 		$member = $this->memberMapper->find($memberId);
 		$this->stateMachine->assertNoLiveMandate($this->mapper->findLiveByMember($memberId));
 
@@ -117,22 +157,66 @@ class MandateService {
 			throw new \InvalidArgumentException($this->l10n->t('Der Kontoinhaber ist Pflicht.'));
 		}
 
-		return $this->transaction->run(function () use ($memberId, $iban, $bic, $holder, $signedAt, $mandateReference): Mandate {
+		return $this->transaction->run(function () use ($memberId, $iban, $bic, $holder, $signatureType, $signedAt, $mandateReference): Mandate {
 			$mandate = new Mandate();
 			$mandate->setMemberId($memberId);
 			$mandate->setMandateReference($mandateReference !== null && trim($mandateReference) !== '' ? trim($mandateReference) : $this->generateReference());
 			$mandate->setIban($this->requireIban($iban));
 			$mandate->setBic($this->normalizeBic($bic));
 			$mandate->setAccountHolder($holder);
-			$mandate->setSignatureType(Mandate::SIGNATURE_PAPER);
+			$mandate->setSignatureType($signatureType);
 			$mandate->setSignedAt($this->normalizeDate($signedAt));
 			$mandate->setStatus(Mandate::STATUS_DRAFT);
 			$mandate->setCreatedAt($this->now());
 			$mandate = $this->mapper->insert($mandate);
 
-			$this->logCreated($mandate);
+			$this->logCreated($mandate, $signatureType === Mandate::SIGNATURE_ELECTRONIC
+				? $this->l10n->t('Mandats-Entwurf angelegt (elektronisch)')
+				: null);
 			return $mandate;
 		});
+	}
+
+	/**
+	 * Selbst-Aktivierung bei Zustimmung über den Einmal-Link (Spec §2.2, Issue
+	 * #67): KEIN manuelles Gate - `assertCanActivateElectronic()` verlangt nur
+	 * Entwurf + `signature_type: elektronisch`, die Zustimmung selbst ersetzt
+	 * die Unterschrift. Aufrufer ist ausschließlich
+	 * {@see MandateActivationService::consent()}, NIE ein Controller direkt -
+	 * das Beweispaket (Version/IP/User-Agent/Identität) muss vollständig
+	 * vorliegen, bevor irgendetwas aktiviert wird.
+	 *
+	 * @throws DoesNotExistException
+	 * @throws \InvalidArgumentException wenn der Übergang nicht erlaubt ist
+	 */
+	public function activateElectronic(
+		int $id,
+		int $mandateTextVersionId,
+		string $consentAt,
+		string $consentIp,
+		string $consentUserAgent,
+		string $consentActor,
+	): Mandate {
+		$mandate = $this->mapper->find($id);
+		$this->stateMachine->assertCanActivateElectronic($mandate);
+
+		$mandate->setMandateTextVersion($mandateTextVersionId);
+		$mandate->setConsentAt($consentAt);
+		$mandate->setConsentIp($consentIp);
+		$mandate->setConsentUserAgent($consentUserAgent);
+		$mandate->setConsentActor($consentActor);
+		// Die Zustimmung IST die Unterschrift (Spec §2.2) - signed_at wird erst
+		// hier, mit dem Zustimmungsdatum, gesetzt. Das lässt das Mandat auch in
+		// {@see MandateMapper::findCandidatesForExpiry()} (verlangt signed_at)
+		// und damit im 36-Monats-Verfall-Cron ankommen wie jedes andere Mandat.
+		$mandate->setSignedAt(substr($consentAt, 0, 10));
+		$mandate->setStatus(Mandate::STATUS_ACTIVE);
+		$mandate->setActivatedAt($this->now());
+		$mandate = $this->mapper->update($mandate);
+
+		$this->audit->log('SEPA-Mandat elektronisch aktiviert (Einmal-Link)', 'mandate', $mandate->getId(), ['referenz' => $mandate->getMandateReference()]);
+		$this->logEvent($mandate, $this->l10n->t('Mandat elektronisch aktiviert (Zustimmung per E-Mail-Link an %s)', [$consentActor]), MandateEvent::ACTOR_MEMBER);
+		return $mandate;
 	}
 
 	/**
@@ -346,6 +430,18 @@ class MandateService {
 		$amendment = $this->amendmentMapper->find($amendmentId);
 		$amendment->setStatus(MandateAmendment::STATUS_OPEN);
 		return $this->amendmentMapper->update($amendment);
+	}
+
+	/**
+	 * Protokolliert den Versand eines elektronischen Aktivierungslinks
+	 * (Issue #67) in der Mandats-Historie – aufgerufen von
+	 * {@see MandateActivationService::issueLink()}, die selbst keinen
+	 * direkten Zugriff auf {@see MandateEventMapper} hat (dieselbe
+	 * Kapselung wie bei jeder anderen Zustandsänderung: nur
+	 * {@see MandateService} schreibt in `vbh_mandate_events`).
+	 */
+	public function logActivationLinkSent(Mandate $mandate, string $email, string $actorType): void {
+		$this->logEvent($mandate, $this->l10n->t('Elektronischer Aktivierungslink versendet an %s', [$email]), $actorType);
 	}
 
 	/** Nachweis-Upload; setzt `document_file_id` (Spec §3.2). */

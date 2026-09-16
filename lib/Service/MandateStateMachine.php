@@ -48,6 +48,24 @@ class MandateStateMachine {
 	}
 
 	/**
+	 * Der elektronische Aktivierungsweg (Issue #67): kein manuelles Gate, die
+	 * Zustimmung selbst *ist* die Unterschrift - anders als beim Papier-Weg
+	 * ({@see assertCanActivatePaper()}) wird deshalb KEIN `signed_at` verlangt,
+	 * das setzt {@see \OCA\Vereinsbuchhaltung\Service\MandateService::activateElectronic()}
+	 * erst mit dem Zustimmungszeitpunkt selbst.
+	 *
+	 * @throws \InvalidArgumentException
+	 */
+	public function assertCanActivateElectronic(Mandate $mandate): void {
+		if ($mandate->getSignatureType() !== Mandate::SIGNATURE_ELECTRONIC) {
+			throw new \InvalidArgumentException($this->l10n->t('Nur elektronische Mandate aktivieren sich per Zustimmung selbst.'));
+		}
+		if ($mandate->getStatus() !== Mandate::STATUS_DRAFT) {
+			throw new \InvalidArgumentException($this->l10n->t('Nur ein Mandat im Entwurf lässt sich aktivieren.'));
+		}
+	}
+
+	/**
 	 * Nur ein aktives Mandat lässt sich aussetzen (Spec §2.2 „Sperre"). Ein
 	 * bereits ausgesetztes Mandat ein zweites Mal zu sperren wäre kein
 	 * Zustandswechsel und hätte auch keine erkennbare Wirkung.
