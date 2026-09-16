@@ -13,6 +13,7 @@ use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\AttachmentWatchFolderService;
 use OCA\Vereinsbuchhaltung\Service\BillingPeriod;
+use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCA\Vereinsbuchhaltung\Service\DemoDataService;
 use OCA\Vereinsbuchhaltung\Service\MandateDocumentService;
 use OCA\Vereinsbuchhaltung\Service\MandateReferenceGenerator;
@@ -49,6 +50,7 @@ class SettingsController extends Controller {
 		private AttachmentStorageService $attachmentStorage,
 		private AttachmentWatchFolderService $attachmentWatchFolder,
 		private MandateDocumentService $mandateDocuments,
+		private ContributionYearService $contributionYear,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -177,6 +179,9 @@ class SettingsController extends Controller {
 			'mandate_reference_prefix' => $this->config->getAppValue(Application::APP_ID, MandateService::SETTING_REFERENCE_PREFIX, MandateReferenceGenerator::DEFAULT_PREFIX),
 			'mandate_document_folder' => $this->mandateDocuments->folderPath(),
 			'show_missing_document_warning' => $this->mandateDocuments->showMissingDocumentWarning(),
+			// Beitragsjahr (Issue #68, Spec §3.3/§4): eigenständig vom
+			// Geschäftsjahr der Kern-Buchhaltung, siehe ContributionYearService.
+			'fiscal_year_start_month' => $this->contributionYear->getStartMonth(),
 		];
 	}
 
@@ -421,6 +426,14 @@ class SettingsController extends Controller {
 
 		if (array_key_exists('show_missing_document_warning', $params)) {
 			$this->config->setAppValue($appId, MandateDocumentService::SETTING_SHOW_MISSING_WARNING, (string)$params['show_missing_document_warning'] === '1' ? '1' : '0');
+		}
+
+		if (array_key_exists('fiscal_year_start_month', $params)) {
+			try {
+				$this->contributionYear->setStartMonth((int)$params['fiscal_year_start_month']);
+			} catch (\InvalidArgumentException $e) {
+				return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+			}
 		}
 
 		$settings = $this->currentSettings();

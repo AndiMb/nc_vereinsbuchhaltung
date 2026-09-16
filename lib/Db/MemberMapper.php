@@ -56,6 +56,25 @@ class MemberMapper extends QBMapper {
 		return $rows[0] ?? null;
 	}
 
+	/**
+	 * Mitglieder, deren Austrittsdatum an oder vor $date liegt – Grundlage für
+	 * den Austritts-Hook (Issue #68 AK 8, siehe
+	 * {@see \OCA\Vereinsbuchhaltung\BackgroundJob\MemberDepartureJob}). Läuft
+	 * über alle Mitglieder mit gesetztem `left_at`, nicht nur „neu"
+	 * ausgetretene – der Job ist idempotent, weil
+	 * `AssignmentService::onMemberLeft()` nur noch offene Zuweisungen findet.
+	 *
+	 * @return Member[]
+	 */
+	public function findLeftOnOrBefore(string $date): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->isNotNull('left_at'))
+			->andWhere($qb->expr()->lte('left_at', $qb->createNamedParameter($date)));
+		return $this->findEntities($qb);
+	}
+
 	public function count(): int {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select($qb->func()->count('*', 'cnt'))
@@ -80,6 +99,7 @@ class MemberMapper extends QBMapper {
 	 * für SepaMandateService/MembershipFeeService/SepaBatchService und ihre
 	 * Controller, die alle denselben Namen zu einem Mandat/Beitrag anzeigen –
 	 * vorher fand sich an sieben Stellen dieselbe find()/catch-Konstruktion.
+	 * Auch von ContributionGroupService/ClaimService (Issue #68) genutzt.
 	 */
 	public function displayNameOr(?int $memberId, string $fallback): string {
 		if ($memberId === null) {

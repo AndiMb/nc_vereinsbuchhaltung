@@ -89,6 +89,45 @@ class OpenItemMapper extends QBMapper {
 		return $this->findEntities($qb);
 	}
 
+	/**
+	 * Alle Forderungen im Sinne von Issue #68 (memberId+type gesetzt), für die
+	 * „Offene-Posten-Sicht" (Spec §3.9, revisor+). Bewusst getrennt von
+	 * findAll(): die alten Freitext-Posten (OpenItemService) sollen dort nicht
+	 * mit auftauchen, und umgekehrt.
+	 *
+	 * @return OpenItem[]
+	 */
+	public function findClaims(): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->isNotNull('member_id'))
+			->andWhere($qb->expr()->isNotNull('type'))
+			->orderBy('due_date', 'ASC')
+			->addOrderBy('id', 'DESC');
+		return $this->findEntities($qb);
+	}
+
+	/** @return OpenItem[] */
+	public function findByMember(int $memberId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('member_id', $qb->createNamedParameter($memberId, IQueryBuilder::PARAM_INT)))
+			->orderBy('due_date', 'ASC');
+		return $this->findEntities($qb);
+	}
+
+	/** @return OpenItem[] */
+	public function findByAssignment(int $assignmentId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('assignment_id', $qb->createNamedParameter($assignmentId, IQueryBuilder::PARAM_INT)))
+			->orderBy('period_start', 'ASC');
+		return $this->findEntities($qb);
+	}
+
 	/** Anzahl überfälliger offener Posten (für die Dashboard-KPI). */
 	public function countOverdue(): int {
 		$qb = $this->db->getQueryBuilder();

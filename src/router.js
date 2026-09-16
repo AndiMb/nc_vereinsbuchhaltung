@@ -35,6 +35,7 @@ export default createRouter({
 
 		{ path: '/contributions', name: 'contributions', component: RouteHost },
 		{ path: '/contributions/batch', name: 'contributions-batch', component: RouteHost },
+		{ path: '/contributions/groups', name: 'contributions-groups', component: RouteHost },
 
 		{ path: '/:pathMatch(.*)*', name: 'not-found', component: RouteHost },
 	],

@@ -451,6 +451,7 @@ const ROUTE_META = {
 	'reports-audit': { tab: 'reports', reportView: 'audit' },
 	contributions: { tab: 'contributions', contribView: 'members' },
 	'contributions-batch': { tab: 'contributions', contribView: 'batch' },
+	'contributions-groups': { tab: 'contributions', contribView: 'groups' },
 }
 
 /** Erkennungsmerkmal einer Datei, um dieselbe Auswahl nicht doppelt zu sammeln. */
@@ -971,7 +972,8 @@ export default {
 				return { name: names[this.reportView] || 'reports', query }
 			}
 			if (this.activeTab === 'contributions') {
-				return { name: this.contribView === 'batch' ? 'contributions-batch' : 'contributions', query }
+				const contribNames = { batch: 'contributions-batch', groups: 'contributions-groups' }
+				return { name: contribNames[this.contribView] || 'contributions', query }
 			}
 			return { name: 'dashboard', query }
 		},
