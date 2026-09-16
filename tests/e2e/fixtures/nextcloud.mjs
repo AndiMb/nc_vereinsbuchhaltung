@@ -429,6 +429,36 @@ export const api = {
 		return (await call(request, 'POST', '/open-items', { user, data: { debtor, description, amount, dueDate } })).json()
 	},
 
+	// Mitglieder-Stammdaten (Spec §2.2, docs/beitraege-sepa-modul-spec.md)
+	async createMember(request, { memberType = 'person', firstName, lastName, organizationName, email, joinedAt, user = 'admin' } = {}) {
+		return (await call(request, 'POST', '/members', { user, data: { memberType, firstName, lastName, organizationName, email, joinedAt } })).json()
+	},
+
+	async listMembers(request, { user = 'admin' } = {}) {
+		return (await call(request, 'GET', '/members', { user })).json()
+	},
+
+	async linkMember(request, id, ncUserId, { user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', `/members/${id}/link`, { user, expectOk, data: { ncUserId } })
+	},
+
+	/**
+	 * Setzt die Mailadresse eines NC-Kontos über die Provisioning-API – die
+	 * NC-Kontoverknüpfung schlägt Konten anhand von IUserManager::getByEmail()
+	 * vor, `setupUsers()` legt Testnutzer aber ohne Mailadresse an.
+	 */
+	async setUserEmail(request, uid, email, { user = 'admin' } = {}) {
+		const resp = await request.fetch(`${BASE_URL}/ocs/v2.php/cloud/users/${uid}?format=json`, {
+			method: 'PUT',
+			headers: authHeaders(user),
+			data: { key: 'email', value: email },
+		})
+		if (!resp.ok()) {
+			throw new Error(`Mailadresse für ${uid} setzen fehlgeschlagen: HTTP ${resp.status()} – ${(await resp.text()).slice(0, 300)}`)
+		}
+		return resp
+	},
+
 	/** GET mit Erfolgserwartung, direkt als JSON. */
 	async getJson(request, path, opts = {}) {
 		return (await call(request, 'GET', path, opts)).json()

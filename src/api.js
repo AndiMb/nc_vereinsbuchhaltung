@@ -115,6 +115,21 @@ export default {
 	reopenOpenItem: (id) => axios.post(url(`/open-items/${id}/reopen`)),
 	deleteOpenItem: (id) => axios.delete(url(`/open-items/${id}`)),
 
+	// Mitglieder-Stammdaten (Spec §2.2, docs/beitraege-sepa-modul-spec.md)
+	listMembers: () => axios.get(url('/members')),
+	getMember: (id) => axios.get(url(`/members/${id}`)),
+	createMember: (data) => axios.post(url('/members'), data),
+	updateMember: (id, data) => axios.put(url(`/members/${id}`), data),
+	deleteMember: (id) => axios.delete(url(`/members/${id}`)),
+	leaveMember: (id, leftAt) => axios.post(url(`/members/${id}/leave`), { leftAt }),
+	reactivateMember: (id) => axios.post(url(`/members/${id}/reactivate`)),
+	memberLinkSuggestions: (id) => axios.get(url(`/members/${id}/link-suggestions`)),
+	linkMember: (id, ncUserId) => axios.post(url(`/members/${id}/link`), { ncUserId }),
+	unlinkMember: (id) => axios.post(url(`/members/${id}/unlink`)),
+
+	// Aufgaben/Störfälle
+	listTasks: () => axios.get(url('/tasks')),
+
 	// SEPA-Lastschriftmandate (optionales Zusatzmodul)
 	listSepaMandates: () => axios.get(url('/sepa/mandates')),
 	createSepaMandate: (data) => axios.post(url('/sepa/mandates'), data),
