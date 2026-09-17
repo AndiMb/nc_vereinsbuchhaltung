@@ -207,6 +207,27 @@
 				</div>
 
 				<h3 class="vbh-modal-subtitle">
+					{{ t('Beitragsbestätigung') }}
+				</h3>
+				<p class="vbh-hint">
+					{{ t('Informelle Bestätigung der bezahlten Beiträge eines Beitragsjahres – kein amtlicher Spendennachweis nach § 10b EStG (siehe Issue #10). Stellvertretung durch den Kassenwart.') }}
+				</p>
+				<div class="vbh-form">
+					<label>{{ t('Beitragsjahr') }}
+						<select v-model.number="certificateYear">
+							<option v-for="y in certificateYears" :key="y" :value="y">
+								{{ y }}
+							</option>
+						</select>
+					</label>
+					<a
+						:href="certificateUrl"
+						target="_blank"
+						rel="noopener"
+						class="vbh-export-btn">{{ t('Öffnen') }}</a>
+				</div>
+
+				<h3 class="vbh-modal-subtitle">
 					{{ t('Austritt') }}
 				</h3>
 				<div v-if="member.leftAt" class="vbh-form">
@@ -348,6 +369,8 @@ export default {
 			deleting: false,
 			leaveDate: new Date().toISOString().slice(0, 10),
 			assignmentPreview: null,
+			certificateYears: [],
+			certificateYear: null,
 		}
 	},
 
@@ -369,6 +392,11 @@ export default {
 				? !!this.form.organizationName.trim()
 				: !!this.form.lastName.trim()
 		},
+
+		/** Druckfertige Live-Ansicht der Beitragsbestätigung (Issue #77) - öffnet in neuem Tab. */
+		certificateUrl() {
+			return api.memberCertificateUrl(this.member.id, this.certificateYear)
+		},
 	},
 
 	watch: {
@@ -379,6 +407,9 @@ export default {
 			this.suggestionsLoaded = false
 			this.leaveDate = new Date().toISOString().slice(0, 10)
 			this.assignmentPreview = null
+			this.certificateYears = []
+			this.certificateYear = null
+			if (this.isEdit) { this.loadCertificateYears() }
 			focusOnOpen(this, () => this.$refs.nameInput || this.$refs.orgInput)
 		},
 
@@ -462,6 +493,17 @@ export default {
 			} catch (e) {
 				this.assignmentPreview = null
 				showError(this.errMsg(e, this.t('Vorschau konnte nicht geladen werden')))
+			}
+		},
+
+		/** Beitragsjahre für die Jahresauswahl der Beitragsbestätigung (Issue #77). */
+		async loadCertificateYears() {
+			try {
+				const { data } = await api.memberCertificateYears(this.member.id)
+				this.certificateYears = data.years
+				this.certificateYear = data.years[0] ?? null
+			} catch (e) {
+				showError(this.errMsg(e, this.t('Beitragsjahre konnten nicht geladen werden')))
 			}
 		},
 

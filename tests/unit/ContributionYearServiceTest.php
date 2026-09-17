@@ -75,4 +75,50 @@ class ContributionYearServiceTest extends TestCase {
 		// Periode 2025-10-01 bis 2026-09-30.
 		$this->assertSame(['2025-10-01', '2026-09-30'], $service->periodContaining(12, '2026-01-15'));
 	}
+
+	// --- Beitragsjahr (Spec §3.7, Issue #77): Grundlage der Beitragsbescheinigung ---
+
+	public function testAnchorYearForBeiKalenderjahrIstDasKalenderjahrSelbst(): void {
+		$this->config->method('getAppValue')->willReturn('1');
+		$service = new ContributionYearService($this->config);
+		$this->assertSame(2026, $service->anchorYearFor('2026-06-15'));
+		$this->assertSame(2026, $service->anchorYearFor('2026-01-01'));
+		$this->assertSame(2025, $service->anchorYearFor('2025-12-31'));
+	}
+
+	/**
+	 * Bei Oktober-Start liegt der Januar noch im Beitragsjahr, das im
+	 * Oktober des VORJAHRES begonnen hat - der Anker ist deshalb 2025, nicht
+	 * 2026, obwohl das Datum im Kalenderjahr 2026 liegt.
+	 */
+	public function testAnchorYearForBeiAbweichendemStartmonat(): void {
+		$this->config->method('getAppValue')->willReturn('10');
+		$service = new ContributionYearService($this->config);
+		$this->assertSame(2025, $service->anchorYearFor('2026-01-15'));
+		$this->assertSame(2026, $service->anchorYearFor('2026-10-01'));
+	}
+
+	public function testCurrentAnchorYearNutztDenUebergebenenStichtag(): void {
+		$this->config->method('getAppValue')->willReturn('10');
+		$service = new ContributionYearService($this->config);
+		$this->assertSame(2025, $service->currentAnchorYear('2026-01-15'));
+	}
+
+	public function testYearBoundsLiefertVonBis(): void {
+		$this->config->method('getAppValue')->willReturn('10');
+		$service = new ContributionYearService($this->config);
+		$this->assertSame(['2025-10-01', '2026-09-30'], $service->yearBounds(2025));
+	}
+
+	public function testYearLabelKalenderjahr(): void {
+		$this->config->method('getAppValue')->willReturn('1');
+		$service = new ContributionYearService($this->config);
+		$this->assertSame('2026', $service->yearLabel(2026));
+	}
+
+	public function testYearLabelAbweichenderStartmonat(): void {
+		$this->config->method('getAppValue')->willReturn('10');
+		$service = new ContributionYearService($this->config);
+		$this->assertSame('2025/26', $service->yearLabel(2025));
+	}
 }

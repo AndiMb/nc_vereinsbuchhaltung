@@ -12,6 +12,7 @@ use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Exception\ForbiddenException;
 use OCA\Vereinsbuchhaltung\Service\ActorContextService;
+use OCA\Vereinsbuchhaltung\Service\Export\BeitragsbescheinigungRenderer;
 use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
 use OCA\Vereinsbuchhaltung\Service\SelfContactService;
@@ -19,6 +20,7 @@ use OCA\Vereinsbuchhaltung\Service\SelfContributionService;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceMandateService;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\DataDisplayResponse;
 use OCP\IL10N;
 use OCP\IRequest;
 use OCP\IUserSession;
@@ -49,6 +51,7 @@ class SelfControllerTest extends TestCase {
 	private SelfContributionService&MockObject $contributions;
 	private SelfContactService&MockObject $contact;
 	private ContributionGroupMapper&MockObject $groupMapper;
+	private BeitragsbescheinigungRenderer&MockObject $certificateRenderer;
 
 	protected function setUp(): void {
 		$userSession = $this->createMock(IUserSession::class);
@@ -59,6 +62,7 @@ class SelfControllerTest extends TestCase {
 		$this->contributions = $this->createMock(SelfContributionService::class);
 		$this->contact = $this->createMock(SelfContactService::class);
 		$this->groupMapper = $this->createMock(ContributionGroupMapper::class);
+		$this->certificateRenderer = $this->createMock(BeitragsbescheinigungRenderer::class);
 	}
 
 	private function controller(): SelfController {
@@ -81,6 +85,7 @@ class SelfControllerTest extends TestCase {
 			$this->contributions,
 			$this->contact,
 			$this->groupMapper,
+			$this->certificateRenderer,
 			$this->l10n,
 		);
 	}
@@ -298,5 +303,54 @@ class SelfControllerTest extends TestCase {
 		$response = $this->controller()->updateMe(email: 'keine-email');
 
 		$this->assertSame(Http::STATUS_BAD_REQUEST, $response->getStatus());
+	}
+
+	// --- Beitragsbestätigung (Issue #77): duenne HTTP-Huelle um BeitragsbescheinigungRenderer ---
+
+	public function testCertificateYearsDelegiertMitAufgeloesterMemberId(): void {
+		$this->actorContext->setMemberChannel(self::MEMBER_ID);
+		$this->certificateRenderer->expects($this->once())
+			->method('selectableYears')
+			->with(self::MEMBER_ID)
+			->willReturn([2026, 2025]);
+
+		$data = $this->controller()->certificateYears()->getData();
+
+		$this->assertSame(['years' => [2026, 2025]], $data);
+	}
+
+	/**
+	 * IDOR-Kern (siehe Klassendoc): certificate() nimmt selbst KEINEN
+	 * memberId-Parameter entgegen (siehe Signatur) - der Renderer wird
+	 * ausschließlich mit der server-aufgelösten eigenen member_id
+	 * aufgerufen.
+	 */
+	public function testCertificateRendertMitAufgeloesterMemberIdUndDruckfertigerAntwort(): void {
+		$this->actorContext->setMemberChannel(self::MEMBER_ID);
+		$this->certificateRenderer->expects($this->once())
+			->method('render')
+			->with(self::MEMBER_ID, 2025)
+			->willReturn('<html>Bestätigung</html>');
+
+		$response = $this->controller()->certificate(2025);
+
+		$this->assertInstanceOf(DataDisplayResponse::class, $response);
+		$this->assertSame('<html>Bestätigung</html>', $response->getData());
+	}
+
+	public function testCertificateOhneAufgeloesteMemberIdWirdVerweigert(): void {
+		$this->certificateRenderer->expects($this->never())->method('render');
+
+		$this->expectException(ForbiddenException::class);
+		$this->controller()->certificate();
+	}
+
+	public function testCertificateUnbekanntesMitgliedLiefert404(): void {
+		$this->actorContext->setMemberChannel(self::FOREIGN_MEMBER_ID);
+		$this->certificateRenderer->method('render')->willThrowException(new DoesNotExistException('weg'));
+
+		$response = $this->controller()->certificate();
+
+		$this->assertSame(Http::STATUS_NOT_FOUND, $response->getStatus());
 	}
 }

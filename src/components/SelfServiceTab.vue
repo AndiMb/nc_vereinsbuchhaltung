@@ -191,6 +191,27 @@
 					{{ t('Bisher keine Rücklastschrift.') }}
 				</p>
 			</div>
+
+			<div class="vbh-card">
+				<h4>{{ t('Meine Beitragsbestätigung') }}</h4>
+				<p class="vbh-hint">
+					{{ t('Informelle Bestätigung der bezahlten Beiträge eines Beitragsjahres – kein amtlicher Spendennachweis nach § 10b EStG (siehe Issue #10).') }}
+				</p>
+				<div class="vbh-form">
+					<label>{{ t('Beitragsjahr') }}
+						<select v-model.number="certificateYear">
+							<option v-for="y in certificateYears" :key="y" :value="y">
+								{{ y }}
+							</option>
+						</select>
+					</label>
+					<a
+						:href="certificateUrl"
+						target="_blank"
+						rel="noopener"
+						class="vbh-export-btn">{{ t('Öffnen') }}</a>
+				</div>
+			</div>
 		</template>
 		<p v-else class="vbh-hint vbh-hint--warning">
 			{{ t('Deine Stammdaten konnten nicht geladen werden.') }}
@@ -256,6 +277,10 @@ function emptyContactForm() {
  *
  * Lädt seine Daten beim eigenen mounted() wie MembersList.vue/SepaBatchPanel.vue,
  * statt von App.vue vorgeladen zu werden.
+ *
+ * Dazu die informelle Beitragsbestätigung (Issue #77): eine druckfertige
+ * Live-Ansicht je Beitragsjahr, geöffnet als eigene Seite (kein Axios,
+ * daher kein Ladezustand/Fehler-Toast außer für die Jahresauswahl selbst).
  */
 export default {
 	name: 'SelfServiceTab',
@@ -276,6 +301,8 @@ export default {
 			revokeOpen: false,
 			saving: false,
 			requestingLink: false,
+			certificateYears: [],
+			certificateYear: null,
 		}
 	},
 
@@ -304,6 +331,11 @@ export default {
 		isUnconfirmedElectronicDraft() {
 			return !!this.mandate && this.mandate.status === 'entwurf' && this.mandate.signatureType === 'elektronisch'
 		},
+
+		/** Druckfertige Live-Ansicht der Beitragsbestätigung (Issue #77) - öffnet in neuem Tab. */
+		certificateUrl() {
+			return api.selfCertificateUrl(this.certificateYear)
+		},
 	},
 
 	async mounted() {
@@ -316,6 +348,13 @@ export default {
 			showError(errMsg(e, this.t('Beitrag konnte nicht geladen werden')))
 		} finally {
 			this.loading = false
+		}
+		try {
+			const { data } = await api.selfCertificateYears()
+			this.certificateYears = data.years
+			this.certificateYear = data.years[0] ?? null
+		} catch (e) {
+			showError(errMsg(e, this.t('Beitragsjahre konnten nicht geladen werden')))
 		}
 	},
 

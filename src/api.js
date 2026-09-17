@@ -208,6 +208,12 @@ export default {
 	selfReplaceMandate: (data) => axios.post(url('/self/mandate/replace'), data),
 	selfRevokeMandate: () => axios.post(url('/self/mandate/revoke')),
 
+	// Beitragsbestätigung (Issue #77, Spec §3.7): informelle Live-Ansicht -
+	// die Jahresliste ist ein normaler Axios-Aufruf, die eigentliche Seite
+	// wird per Browser-Navigation geöffnet (druckfertiges HTML, kein Axios).
+	selfCertificateYears: () => axios.get(url('/self/certificate/years')),
+	selfCertificateUrl: (year) => generateUrl(base + '/self/certificate') + (year ? `?year=${year}` : ''),
+
 	// SEPA-Sammeleinzüge (pain.008-Export)
 	previewSepaExport: (executionDate) => axios.get(url('/sepa/export/preview'), { params: executionDate ? { executionDate } : {} }),
 	listSepaBatches: () => axios.get(url('/sepa/export/batches')),
@@ -227,6 +233,12 @@ export default {
 	kassenberichtUrl: (period) => generateUrl(base + '/export/kassenbericht') + (period ? `?period=${period}` : ''),
 	kurzberichtUrl: (since) => generateUrl(base + '/export/kurzbericht') + (since ? `?since=${since}` : ''),
 	exportAttachmentsUrl: (period) => generateUrl(base + '/export/attachments') + (period ? `?period=${period}` : ''),
+
+	// Beitragsbestätigung, Stellvertretung durch den Kassenwart über die
+	// Admin-Akte (Issue #77, Spec §3.7) - dieselbe Live-Ansicht wie
+	// selfCertificateUrl(), hier für ein beliebiges Mitglied.
+	memberCertificateYears: (memberId) => axios.get(url(`/export/beitragsbescheinigung/${memberId}/years`)),
+	memberCertificateUrl: (memberId, year) => generateUrl(base + `/export/beitragsbescheinigung/${memberId}`) + (year ? `?year=${year}` : ''),
 
 	// Hilfe (Handbuch als lesbare Seite, optional mit Kapitel-Anker; druckfertige Kassenprüfer-Kurzanleitung)
 	handbuchUrl: (anchor) => generateUrl(base + '/help/handbuch') + (anchor ? `#${anchor}` : ''),

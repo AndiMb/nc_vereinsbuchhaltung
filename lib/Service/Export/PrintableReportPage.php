@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service\Export;
 
+use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\DataDisplayResponse;
+use OCP\AppFramework\Http\EmptyContentSecurityPolicy;
+
 /**
  * Das Gerüst der druckfertigen HTML-Berichte: Dokument, Stylesheet, Kopfzeile.
  *
@@ -65,6 +69,33 @@ final class PrintableReportPage {
 	 */
 	public static function printHint(string $text): string {
 		return '<div class="noprint">' . $text . '</div>';
+	}
+
+	/**
+	 * Fertige HTTP-Antwort für eine druckfertige Seite – dieselbe eng gefasste
+	 * Content-Security-Policy für alle Aufrufer: Kassenbericht/Kurzbericht in
+	 * {@see \OCA\Vereinsbuchhaltung\Controller\ExportController}, dazu seit
+	 * Issue #77 die Beitragsbestätigung dort (Stellvertretung) und im
+	 * Self-Service. Ohne eigene Richtlinie gilt Nextclouds `default-src
+	 * 'none'` und verwirft das inline eingebettete Stylesheet stillschweigend
+	 * (siehe Klassendoc).
+	 *
+	 * @param bool $withImages true, wenn die Seite ein Bild aus der eigenen
+	 *                         Instanz einbettet (z. B. Vereinslogo)
+	 */
+	public static function response(string $html, bool $withImages = false): DataDisplayResponse {
+		$response = new DataDisplayResponse(
+			$html,
+			Http::STATUS_OK,
+			['Content-Type' => 'text/html; charset=utf-8'],
+		);
+		$policy = new EmptyContentSecurityPolicy();
+		$policy->allowInlineStyle(true);
+		if ($withImages) {
+			$policy->addAllowedImageDomain("'self'");
+		}
+		$response->setContentSecurityPolicy($policy);
+		return $response;
 	}
 
 	/**
