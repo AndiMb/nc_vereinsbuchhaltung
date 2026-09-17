@@ -86,6 +86,14 @@ class CamtCsvParser implements StatementParser {
 		'amount' => ['betrag', 'umsatz'],
 		'currency' => ['waehrung', 'whrg', 'currency'],
 		'info' => ['info'],
+		// SEPA-Feldkatalog (Spec §5, Issue #72) - Sparkassen-CSV-Spaltennamen
+		// laut Klassendoc oben, hier normalisiert (klein, ohne Leer-/
+		// Sonderzeichen, wie {@see normalizeKey()} es mit dem Header tut).
+		'endToEndId' => ['kundenreferenzendtoend'],
+		'mandateReference' => ['mandatsreferenz'],
+		'originalAmount' => ['lastschriftursprungsbetrag'],
+		'charges' => ['auslagenersatzruecklastschrift'],
+		'batchReference' => ['sammlerreferenz'],
 	];
 
 	/**
@@ -174,8 +182,15 @@ class CamtCsvParser implements StatementParser {
 				return null;
 			}
 			$idx = $map[$field];
-			// fgetcsv liefert für leere Felder null.
-			return isset($cols[$idx]) ? trim((string)$cols[$idx]) : null;
+			// fgetcsv liefert für leere Felder null; eine leere Zelle (z. B. die
+			// SEPA-Zusatzspalten bei einer normalen Buchung ohne Mandatsbezug)
+			// zählt ebenfalls als "nicht vorhanden" - wichtig für sepaDetails()
+			// unten, die sonst jede Buchung fälschlich als SEPA-relevant läse.
+			if (!isset($cols[$idx])) {
+				return null;
+			}
+			$value = trim((string)$cols[$idx]);
+			return $value !== '' ? $value : null;
 		};
 
 		// Nur gebuchte Umsätze übernehmen – das Pendant zum PDNG-Ausschluss in
@@ -190,6 +205,7 @@ class CamtCsvParser implements StatementParser {
 			return null;
 		}
 
+		$amountCents = $this->parseAmount($get('amount'));
 		return $this->normalizer->build([
 			'ownAccount' => $get('ownAccount'),
 			'bookingDate' => $this->parseDate($get('bookingDate')),
@@ -199,9 +215,51 @@ class CamtCsvParser implements StatementParser {
 			'counterparty' => $get('counterparty'),
 			'counterpartyIban' => $get('counterpartyIban'),
 			'counterpartyBic' => $get('counterpartyBic'),
-			'amountCents' => $this->parseAmount($get('amount')),
+			'amountCents' => $amountCents,
 			'currency' => $get('currency'),
+			'sepaDetails' => $this->sepaDetails($get, $amountCents),
 		]);
+	}
+
+	/**
+	 * SEPA-Detail-Rohdaten aus den fünf zusätzlichen Sparkassen-CSV-Spalten
+	 * (Spec §5, Issue #72) - CSV liefert höchstens eine Detail-Zeile je
+	 * Buchung (1:1, kein TxDtls-Konzept wie camt).
+	 *
+	 * "ist Rückgabe" (Spec §5): Betrag negativ UND (Ursprungsbetrag ODER
+	 * Auslagenersatz gefüllt) - ein negativer Betrag allein wäre jede normale
+	 * Ausgabenbuchung, das CSV-Format kennt anders als camt/MT940 keinen
+	 * eigenen Rückgabegrund-Code (siehe FIELD_SYNONYMS-Klassendoc: "—").
+	 *
+	 * @param callable(string):?string $get
+	 */
+	private function sepaDetails(callable $get, ?int $amountCents): array {
+		$endToEndId = $get('endToEndId');
+		$mandateReference = $get('mandateReference');
+		$batchReference = $get('batchReference');
+		$originalAmountCents = $this->parseAmount($get('originalAmount'));
+		$chargesCents = $this->parseAmount($get('charges'));
+
+		$hasAnyField = $endToEndId !== null || $mandateReference !== null || $batchReference !== null
+			|| $originalAmountCents !== null || $chargesCents !== null;
+		if (!$hasAnyField || $amountCents === null) {
+			return [];
+		}
+
+		$isReturn = $amountCents < 0 && ($originalAmountCents !== null || $chargesCents !== null);
+
+		return [[
+			'endToEndId' => $endToEndId,
+			'mandateReference' => $mandateReference,
+			'returnReasonCode' => null,
+			'returnReasonText' => null,
+			'originalAmountCents' => $originalAmountCents !== null ? abs($originalAmountCents) : null,
+			'chargesCents' => $chargesCents !== null ? abs($chargesCents) : null,
+			'gvc' => null,
+			'batchReference' => $batchReference,
+			'amountCents' => $amountCents,
+			'isReturn' => $isReturn,
+		]];
 	}
 
 	/**

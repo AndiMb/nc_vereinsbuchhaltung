@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\SepaBatchItem;
 use OCA\Vereinsbuchhaltung\Db\SepaBatchItemMapper;
 use OCA\Vereinsbuchhaltung\Db\SepaMandateMapper;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaReference;
+use OCA\Vereinsbuchhaltung\Service\Sepa\SepaReturnReasonCodes;
 use OCP\AppFramework\Db\DoesNotExistException;
 
 /**
@@ -45,17 +46,6 @@ use OCP\AppFramework\Db\DoesNotExistException;
  * {@see SepaBatchService::revertReturn()}.
  */
 class SepaReturnDetectionService {
-
-	/**
-	 * ISO-20022-Rückgabegründe für SEPA-Lastschriften, wie sie Banken im
-	 * Verwendungszweck/Buchungstext einer Rücklastschrift häufig mitgeben.
-	 */
-	private const REASON_CODES = [
-		'AC01', 'AC04', 'AC06', 'AC13', 'AG01', 'AG02', 'AM04', 'AM05',
-		'BE01', 'BE05', 'FF01', 'MD01', 'MD02', 'MD06', 'MD07', 'MS02',
-		'MS03', 'RC01', 'RR01', 'RR02', 'RR03', 'RR04', 'SL01', 'SL02',
-		'SL11', 'SL12', 'SL13', 'SL14', 'TM01',
-	];
 
 	/** Deutsche Klartext-Marker, falls die Bank keinen Reason-Code ausgibt. */
 	private const TEXT_MARKERS = [
@@ -159,14 +149,13 @@ class SepaReturnDetectionService {
 	 * „Rechnung AC01-2026" anschlagen, weil der Bindestrich als Wortgrenze
 	 * zählt. Ein Rückgabegrund steht im Bankdeutsch für sich, nie als Teil
 	 * einer längeren Kennung.
+	 *
+	 * Die Codeliste selbst kommt seit Issue #72 aus {@see SepaReturnReasonCodes},
+	 * die auch die neue, strukturierte Erkennung nutzt - eine Stelle statt
+	 * zweier unabhängig gepflegter Listen.
 	 */
 	private function extractReasonCode(string $haystack): ?string {
-		foreach (self::REASON_CODES as $code) {
-			if (preg_match('/(?<![A-Z0-9-])' . $code . '(?![A-Z0-9-])/', $haystack)) {
-				return $code;
-			}
-		}
-		return null;
+		return SepaReturnReasonCodes::findInText($haystack);
 	}
 
 	private function resolveItem(BankTransaction $tx, string $haystack): ?SepaBatchItem {
