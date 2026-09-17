@@ -194,6 +194,7 @@ Full manual in German and English: see documentation.
 		<job>OCA\Vereinsbuchhaltung\BackgroundJob\MemberDepartureJob</job>
 		<job>OCA\Vereinsbuchhaltung\BackgroundJob\ContributionDueCycleJob</job>
 		<job>OCA\Vereinsbuchhaltung\BackgroundJob\MandateDepartureJob</job>
+		<job>OCA\Vereinsbuchhaltung\BackgroundJob\DunningLadderJob</job>
 	</background-jobs>
 	<!-- Dieselbe Section-Klasse fuer admin-section und personal-section: die
 	     Registrierung ist intern nach Typ getrennt (siehe Settings\Section).

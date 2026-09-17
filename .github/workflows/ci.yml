@@ -60,6 +60,9 @@ jobs:
         with:
           php-version: ${{ matrix.php-version }}
           tools: composer, phpunit:10.5
+          # gd seit Issue #73 fuer chillerlan/php-qrcode (GiroCode-PNG-Anhang)
+          # explizit angefordert statt auf das setup-php-Standardbild zu vertrauen.
+          extensions: gd
           coverage: none
 
       - name: Syntaxpruefung aller PHP-Dateien
@@ -67,6 +70,16 @@ jobs:
 
       - name: composer.json/lock validieren
         run: composer validate --strict --no-check-publish
+
+      - name: App-Abhaengigkeiten installieren
+        # Seit Issue #73 hat die App mit chillerlan/php-qrcode (GiroCode-Anhang
+        # der Mahnwesen-Mails) erstmals eine echte Produktivabhaengigkeit -
+        # tests/bootstrap.php laedt deren vendor/autoload.php als vierten,
+        # nachrangigen Autoloader (siehe Kommentar dort). Die App-eigenen
+        # OCA\Vereinsbuchhaltung-Klassen kommen weiterhin ausschliesslich ueber
+        # den ersten, klassmap-unabhaengigen Autoloader - dieser Schritt betrifft
+        # nur den echten Fremdcode unter vendor/.
+        run: composer install --no-interaction --no-progress
 
       - name: OCP-Stubs holen
         # Die App-Klassen laedt tests/bootstrap.php per PSR-4 direkt aus lib/,

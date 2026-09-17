@@ -131,7 +131,7 @@ class Mandate extends Entity implements \JsonSerializable {
 	public const END_REASON_TERMINATED = 'beendet';
 	public const END_REASONS = [self::END_REASON_REVOKED, self::END_REASON_REPLACED, self::END_REASON_EXPIRED, self::END_REASON_TERMINATED];
 
-	/** `ruecklastschrift` erst ab Issue #73 tatsächlich auslösbar (Rücklastschrift-Fachlogik). */
+	/** `ruecklastschrift` wird ausschließlich automatisch gesetzt, siehe {@see \OCA\Vereinsbuchhaltung\Service\MandateService::suspendDueToReturnedDebit()} (Issue #73, Rücklastschrift-Fachlogik). */
 	public const SUSPENSION_MANUAL = 'manuell';
 	public const SUSPENSION_RETURNED_DEBIT = 'ruecklastschrift';
 	public const SUSPENSION_ORIGINS = [self::SUSPENSION_MANUAL, self::SUSPENSION_RETURNED_DEBIT];

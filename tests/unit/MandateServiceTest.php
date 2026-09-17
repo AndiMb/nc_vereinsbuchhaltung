@@ -15,6 +15,7 @@ use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Service\ActorContextService;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
+use OCA\Vereinsbuchhaltung\Service\DunningLadderService;
 use OCA\Vereinsbuchhaltung\Service\IbanValidator;
 use OCA\Vereinsbuchhaltung\Service\MandateDocumentService;
 use OCA\Vereinsbuchhaltung\Service\MandateExpiryCalculator;
@@ -54,12 +55,15 @@ class MandateServiceTest extends TestCase {
 	private ActorContextService $actorContext;
 	/** Dieselbe Instanz, mit der auch $actorContext gebaut wird - wie in der echten DI teilen sich beide dieselbe IUserSession. */
 	private IUserSession&MockObject $userSession;
+	/** Als Feld statt lokal in service() gebaut (Issue #73): Tests zur Widerruf-Zahlungsaufforderung muessen VOR dem service()-Aufruf expects() darauf setzen koennen. */
+	private DunningLadderService&MockObject $dunningLadder;
 
 	protected function setUp(): void {
 		$this->mandateMapper = $this->createMock(MandateMapper::class);
 		$this->amendmentMapper = $this->createMock(MandateAmendmentMapper::class);
 		$this->eventMapper = $this->createMock(MandateEventMapper::class);
 		$this->memberMapper = $this->createMock(MemberMapper::class);
+		$this->dunningLadder = $this->createMock(DunningLadderService::class);
 
 		$user = $this->createMock(IUser::class);
 		$user->method('getUID')->willReturn('kassenwart');
@@ -105,6 +109,7 @@ class MandateServiceTest extends TestCase {
 			$this->actorContext,
 			$this->userSession,
 			$config,
+			$this->dunningLadder,
 			$this->createMock(IL10N::class),
 		);
 	}
@@ -435,6 +440,53 @@ class MandateServiceTest extends TestCase {
 		$this->service()->revoke(1);
 
 		$this->assertSame(MandateEvent::ACTOR_MEMBER, $captured->getActorType());
+	}
+
+	// --- Automatische Rücklastschrift-Sperre (Issue #73) ------------------------
+
+	public function testSuspendDueToReturnedDebitSperrtAktivesMandat(): void {
+		$mandate = $this->activeMandate(1);
+		$this->mandateMapper->method('find')->willReturn($mandate);
+
+		$result = $this->service()->suspendDueToReturnedDebit(1, 77, 'Klasse: Konto nicht erreichbar');
+
+		$this->assertSame(Mandate::STATUS_SUSPENDED, $result->getStatus());
+		$this->assertSame(Mandate::SUSPENSION_RETURNED_DEBIT, $result->getSuspensionOrigin());
+		$this->assertSame('Klasse: Konto nicht erreichbar', $result->getSuspensionNote());
+		$this->assertSame(77, $result->getReturnedDebitId());
+	}
+
+	/** Idempotent statt werfend (Klassendoc): ein bereits nicht mehr aktives Mandat bleibt unangetastet. */
+	public function testSuspendDueToReturnedDebitIstNoopBeiNichtAktivemMandat(): void {
+		$mandate = $this->activeMandate(1);
+		$mandate->setStatus(Mandate::STATUS_SUSPENDED);
+		$this->mandateMapper->method('find')->willReturn($mandate);
+		$this->mandateMapper->expects($this->never())->method('update');
+
+		$result = $this->service()->suspendDueToReturnedDebit(1, 77, 'Klasse: Konto nicht erreichbar');
+
+		$this->assertNull($result);
+	}
+
+	/** memberId der Mandats-Akte, nicht z. B. die Mandats-Id (Spec §3.6 "Widerruf mit offenen Forderungen"). */
+	public function testWiderrufLoestZahlungsaufforderungFuerOffeneForderungenAus(): void {
+		$mandate = $this->activeMandate(1); // activeMandate() setzt memberId auf 42
+		$this->mandateMapper->method('find')->willReturn($mandate);
+		$this->dunningLadder->expects($this->once())->method('onMandateRevoked')->with(42);
+
+		$this->service()->revoke(1);
+	}
+
+	/** Best effort (Klassendoc notifyRevocationDunning()): ein Fehler bei der Zahlungsaufforderung darf den bereits vollzogenen Widerruf nicht scheitern lassen. */
+	public function testWiderrufSchlaegtNichtFehlWennZahlungsaufforderungWirft(): void {
+		$mandate = $this->activeMandate(1);
+		$this->mandateMapper->method('find')->willReturn($mandate);
+		$this->dunningLadder->method('onMandateRevoked')->willThrowException(new \RuntimeException('Mailserver nicht erreichbar'));
+
+		$result = $this->service()->revoke(1);
+
+		$this->assertSame(Mandate::STATUS_ENDED, $result->getStatus());
+		$this->assertSame(Mandate::END_REASON_REVOKED, $result->getEndReason());
 	}
 
 	public function testGrantElectronicSelfServiceLegtMandatAnUndAktiviertEsSofort(): void {

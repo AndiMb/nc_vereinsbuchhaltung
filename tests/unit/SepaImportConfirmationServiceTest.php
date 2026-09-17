@@ -18,6 +18,8 @@ use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\BookingService;
 use OCA\Vereinsbuchhaltung\Service\ClaimService;
+use OCA\Vereinsbuchhaltung\Service\DunningLadderService;
+use OCA\Vereinsbuchhaltung\Service\MandateService;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportConfirmationService;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportSettingsService;
 use OCP\AppFramework\Utility\ITimeFactory;
@@ -43,6 +45,8 @@ class SepaImportConfirmationServiceTest extends TestCase {
 	private ClaimService&MockObject $claims;
 	private BookingService&MockObject $bookingService;
 	private SepaImportSettingsService&MockObject $settings;
+	private MandateService&MockObject $mandates;
+	private DunningLadderService&MockObject $dunningLadder;
 	private AuditService&MockObject $audit;
 
 	/**
@@ -66,6 +70,8 @@ class SepaImportConfirmationServiceTest extends TestCase {
 		$this->claims = $this->createMock(ClaimService::class);
 		$this->bookingService = $this->createMock(BookingService::class);
 		$this->settings = $this->createMock(SepaImportSettingsService::class);
+		$this->mandates = $this->createMock(MandateService::class);
+		$this->dunningLadder = $this->createMock(DunningLadderService::class);
 		$this->audit = $this->createMock(AuditService::class);
 
 		$this->details->method('update')->willReturnArgument(0);
@@ -100,6 +106,8 @@ class SepaImportConfirmationServiceTest extends TestCase {
 			$this->claims,
 			$this->bookingService,
 			$this->settings,
+			$this->mandates,
+			$this->dunningLadder,
 			$transaction,
 			$this->audit,
 			$userSession,
@@ -117,7 +125,7 @@ class SepaImportConfirmationServiceTest extends TestCase {
 		return $tx;
 	}
 
-	private function detail(int $id, int $bankTxId, int $debitItemId, int $amountCents, bool $isReturn, string $status = BankTxSepaDetail::STATUS_ASSIGNED, ?int $chargesCents = null): BankTxSepaDetail {
+	private function detail(int $id, int $bankTxId, int $debitItemId, int $amountCents, bool $isReturn, string $status = BankTxSepaDetail::STATUS_ASSIGNED, ?int $chargesCents = null, ?string $returnReasonCode = null): BankTxSepaDetail {
 		$d = new BankTxSepaDetail();
 		$d->setId($id);
 		$d->setBankTxId($bankTxId);
@@ -125,6 +133,7 @@ class SepaImportConfirmationServiceTest extends TestCase {
 		$d->setAmountCents($amountCents);
 		$d->setIsReturn($isReturn);
 		$d->setChargesCents($chargesCents);
+		$d->setReturnReasonCode($returnReasonCode);
 		$d->setStatus($status);
 		if ($status !== BankTxSepaDetail::STATUS_OPEN) {
 			$d->setDecidedAt('2026-10-10 09:00:00');
@@ -290,11 +299,12 @@ class SepaImportConfirmationServiceTest extends TestCase {
 
 	// --- Gebühren-Weiterbelastung (Opt-in) ----------------------------------------------
 
+	/** insufficient_funds (AM04) ist eine der beiden Klassen mit automatischer Gebühren-Weiterbelastung (Spec §3.6, Issue #73). */
 	public function testGebuehrenWeiterbelastungLegtNeueForderungAn(): void {
 		$tx = $this->tx(1, -5000);
 		$this->txMapper->method('find')->willReturn($tx);
 		$this->details->method('findByBankTx')->with(1)->willReturn([
-			$this->detail(1, 1, 10, -5000, true, BankTxSepaDetail::STATUS_ASSIGNED, chargesCents: 500),
+			$this->detail(1, 1, 10, -5000, true, BankTxSepaDetail::STATUS_ASSIGNED, chargesCents: 500, returnReasonCode: 'AM04'),
 		]);
 		$this->debitItems->method('find')->with(10)->willReturn($this->debitItem(10, 100, 4500));
 		$this->openItems->method('find')->with(100)->willReturn($this->openItem(100, 7, 4500, 42));
@@ -328,7 +338,7 @@ class SepaImportConfirmationServiceTest extends TestCase {
 		$tx = $this->tx(1, -5000);
 		$this->txMapper->method('find')->willReturn($tx);
 		$this->details->method('findByBankTx')->with(1)->willReturn([
-			$this->detail(1, 1, 10, -5000, true, BankTxSepaDetail::STATUS_ASSIGNED, chargesCents: 500),
+			$this->detail(1, 1, 10, -5000, true, BankTxSepaDetail::STATUS_ASSIGNED, chargesCents: 500, returnReasonCode: 'AM04'),
 		]);
 		$this->debitItems->method('find')->with(10)->willReturn($this->debitItem(10, 100, 4500));
 		$this->openItems->method('find')->with(100)->willReturn($this->openItem(100, 7, 4500, 42));
@@ -341,6 +351,140 @@ class SepaImportConfirmationServiceTest extends TestCase {
 		$this->claims->expects($this->never())->method('createManual');
 
 		$this->service()->settle(1);
+	}
+
+	/** Verfeinerung aus #72 (Spec §3.6/Issue #73): "disputed" (hier MD06) belastet die Gebühr nie automatisch, auch nicht bei aktiviertem Opt-in. */
+	public function testGebuehrenWeiterbelastungGreiftNichtBeiDisputed(): void {
+		$tx = $this->tx(1, -5000);
+		$this->txMapper->method('find')->willReturn($tx);
+		$this->details->method('findByBankTx')->with(1)->willReturn([
+			$this->detail(1, 1, 10, -5000, true, BankTxSepaDetail::STATUS_ASSIGNED, chargesCents: 500, returnReasonCode: 'MD06'),
+		]);
+		$this->debitItems->method('find')->with(10)->willReturn($this->debitItem(10, 100, 4500));
+		$this->openItems->method('find')->with(100)->willReturn($this->openItem(100, 7, 4500, 42));
+		$this->settings->method('returnFeeAccountId')->willReturn(99);
+		$this->settings->method('isReturnFeeRechargeEnabled')->willReturn(true);
+		$this->bookingService->method('assignParts')->willReturnCallback(static function (BankTransaction $t) {
+			$t->setJournalId(555);
+			return $t;
+		});
+		$this->claims->expects($this->never())->method('createManual');
+
+		$this->service()->settle(1);
+	}
+
+	// --- Rückgabe-Klassen-Folgen (Spec §3.6, Issue #73): Mandats-Sperre + Zahlungsaufforderung ---
+
+	public function testAccountUnusableSperrtDasMandatUndLoestZahlungsaufforderungAus(): void {
+		$tx = $this->tx(1, -4500);
+		$this->txMapper->method('find')->willReturn($tx);
+		$this->details->method('findByBankTx')->with(1)->willReturn([
+			$this->detail(1, 1, 10, -4500, true, BankTxSepaDetail::STATUS_ASSIGNED, returnReasonCode: 'AC01'),
+		]);
+		$debitItem = $this->debitItem(10, 100, 4500);
+		$debitItem->setMandateId(55);
+		$this->debitItems->method('find')->with(10)->willReturn($debitItem);
+		$openItem = $this->openItem(100, 7, 4500, 42);
+		$this->openItems->method('find')->with(100)->willReturn($openItem);
+		$this->settings->method('returnFeeAccountId')->willReturn(null);
+		$this->bookingService->method('assignParts')->willReturnCallback(static function (BankTransaction $t) {
+			$t->setJournalId(555);
+			return $t;
+		});
+
+		$this->mandates->expects($this->once())->method('suspendDueToReturnedDebit')->with(55, $this->isType('int'), $this->isType('string'));
+		$this->dunningLadder->expects($this->once())->method('triggerPaymentRequest')->with($this->callback(fn (OpenItem $i) => $i->getId() === 100), $this->isType('string'));
+
+		$this->service()->settle(1);
+	}
+
+	public function testDeceasedSperrtMandatAberLoestKeineZahlungsaufforderungAus(): void {
+		$tx = $this->tx(1, -4500);
+		$this->txMapper->method('find')->willReturn($tx);
+		$this->details->method('findByBankTx')->with(1)->willReturn([
+			$this->detail(1, 1, 10, -4500, true, BankTxSepaDetail::STATUS_ASSIGNED, returnReasonCode: 'MD07'),
+		]);
+		$debitItem = $this->debitItem(10, 100, 4500);
+		$debitItem->setMandateId(55);
+		$this->debitItems->method('find')->with(10)->willReturn($debitItem);
+		$this->openItems->method('find')->with(100)->willReturn($this->openItem(100, 7, 4500, 42));
+		$this->settings->method('returnFeeAccountId')->willReturn(null);
+		$this->bookingService->method('assignParts')->willReturnCallback(static function (BankTransaction $t) {
+			$t->setJournalId(555);
+			return $t;
+		});
+
+		$this->mandates->expects($this->once())->method('suspendDueToReturnedDebit');
+		$this->dunningLadder->expects($this->never())->method('triggerPaymentRequest');
+
+		$this->service()->settle(1);
+	}
+
+	public function testInsufficientFundsLoestNurZahlungsaufforderungOhneMandatsSperreAus(): void {
+		$tx = $this->tx(1, -4500);
+		$this->txMapper->method('find')->willReturn($tx);
+		$this->details->method('findByBankTx')->with(1)->willReturn([
+			$this->detail(1, 1, 10, -4500, true, BankTxSepaDetail::STATUS_ASSIGNED, returnReasonCode: 'AM04'),
+		]);
+		$debitItem = $this->debitItem(10, 100, 4500);
+		$debitItem->setMandateId(55);
+		$this->debitItems->method('find')->with(10)->willReturn($debitItem);
+		$this->openItems->method('find')->with(100)->willReturn($this->openItem(100, 7, 4500, 42));
+		$this->settings->method('returnFeeAccountId')->willReturn(null);
+		$this->bookingService->method('assignParts')->willReturnCallback(static function (BankTransaction $t) {
+			$t->setJournalId(555);
+			return $t;
+		});
+
+		$this->mandates->expects($this->never())->method('suspendDueToReturnedDebit');
+		$this->dunningLadder->expects($this->once())->method('triggerPaymentRequest');
+
+		$this->service()->settle(1);
+	}
+
+	public function testTechnicalLoestWederSperreNochZahlungsaufforderungAus(): void {
+		$tx = $this->tx(1, -4500);
+		$this->txMapper->method('find')->willReturn($tx);
+		$this->details->method('findByBankTx')->with(1)->willReturn([
+			$this->detail(1, 1, 10, -4500, true, BankTxSepaDetail::STATUS_ASSIGNED, returnReasonCode: 'AG02'),
+		]);
+		$debitItem = $this->debitItem(10, 100, 4500);
+		$debitItem->setMandateId(55);
+		$this->debitItems->method('find')->with(10)->willReturn($debitItem);
+		$this->openItems->method('find')->with(100)->willReturn($this->openItem(100, 7, 4500, 42));
+		$this->settings->method('returnFeeAccountId')->willReturn(null);
+		$this->bookingService->method('assignParts')->willReturnCallback(static function (BankTransaction $t) {
+			$t->setJournalId(555);
+			return $t;
+		});
+
+		$this->mandates->expects($this->never())->method('suspendDueToReturnedDebit');
+		$this->dunningLadder->expects($this->never())->method('triggerPaymentRequest');
+
+		$this->service()->settle(1);
+	}
+
+	/** Best effort (Klassendoc reactToReturn()): eine geworfene Sperre darf die bereits korrekt gebuchte Rücklastschrift nicht scheitern lassen. */
+	public function testFehlerBeiDerAutomatischenSperreLaesstDieVerbuchungNichtScheitern(): void {
+		$tx = $this->tx(1, -4500);
+		$this->txMapper->method('find')->willReturn($tx);
+		$this->details->method('findByBankTx')->with(1)->willReturn([
+			$this->detail(1, 1, 10, -4500, true, BankTxSepaDetail::STATUS_ASSIGNED, returnReasonCode: 'AC01'),
+		]);
+		$debitItem = $this->debitItem(10, 100, 4500);
+		$debitItem->setMandateId(55);
+		$this->debitItems->method('find')->with(10)->willReturn($debitItem);
+		$this->openItems->method('find')->with(100)->willReturn($this->openItem(100, 7, 4500, 42));
+		$this->settings->method('returnFeeAccountId')->willReturn(null);
+		$this->bookingService->method('assignParts')->willReturnCallback(static function (BankTransaction $t) {
+			$t->setJournalId(555);
+			return $t;
+		});
+		$this->mandates->method('suspendDueToReturnedDebit')->willThrowException(new \RuntimeException('DB weg'));
+
+		$result = $this->service()->settle(1);
+
+		$this->assertSame(['settled' => 0, 'returned' => 1], $result);
 	}
 
 	// --- Sammelbuchung des erfolgreichen Einzugs (Spec §3.10) --------------------------

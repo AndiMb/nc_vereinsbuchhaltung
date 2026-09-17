@@ -15,8 +15,11 @@ use OCP\AppFramework\Db\Entity;
  * `reasonCode`/`reasonText`: Codes bleiben admin-only (Spec §3.6 „Mitglieder-
  * Klartexte: Codes bleiben admin-only"), Freitext ist bei „unbekanntem" Grund
  * Pflicht. Die volle Ursache-Klassifikation (Rückgabe-Klassen, Mandats-Sperre,
- * Mahnwesen) folgt erst mit Issue #73 – hier reicht der einfache Ja/Nein-
- * Schalter {@see getFeeRechargeTriggered()} für die Gebühren-Weiterbelastung.
+ * Mahnwesen) ist seit Issue #73 in {@see \OCA\Vereinsbuchhaltung\Service\Sepa\ReturnReasonClassifier}
+ * – `reasonCode` selbst bleibt hier bewusst der rohe ISO-Code (die Klasse wird
+ * nie gespeichert, siehe dortige Klassendoc), {@see getFeeRechargeTriggered()}
+ * bleibt der einfache Ja/Nein-Schalter für die (jetzt klassenabhängig
+ * automatische) Gebühren-Weiterbelastung.
  *
  * @method int getDebitItemId()
  * @method void setDebitItemId(int $debitItemId)
