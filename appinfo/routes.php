@@ -121,6 +121,11 @@ return [
 		['name' => 'self#certificateYears', 'url' => '/api/self/certificate/years', 'verb' => 'GET'],
 		['name' => 'self#certificate', 'url' => '/api/self/certificate', 'verb' => 'GET'],
 
+		// Issue #78: eigene "Datenübersicht" (Art. 15 DSGVO) unter "Meine
+		// Daten" - member_id ausschließlich aus der Kontoverknüpfung, siehe
+		// SelfController::dataOverview().
+		['name' => 'self#dataOverview', 'url' => '/api/self/data-overview', 'verb' => 'GET'],
+
 		// Rules
 		['name' => 'rule#index', 'url' => '/api/rules', 'verb' => 'GET'],
 		['name' => 'rule#create', 'url' => '/api/rules', 'verb' => 'POST'],
@@ -138,6 +143,10 @@ return [
 		['name' => 'member#linkSuggestions', 'url' => '/api/members/{id}/link-suggestions', 'verb' => 'GET'],
 		['name' => 'member#link', 'url' => '/api/members/{id}/link', 'verb' => 'POST'],
 		['name' => 'member#unlink', 'url' => '/api/members/{id}/unlink', 'verb' => 'POST'],
+		// DSGVO-Anonymisierung (Spec §3.8, Issue #78) - Reife-Anzeige +
+		// manuelle, irreversible Bestätigung je Mitglied durch den Buchhalter.
+		['name' => 'member#anonymizationStatus', 'url' => '/api/members/{id}/anonymization', 'verb' => 'GET'],
+		['name' => 'member#anonymize', 'url' => '/api/members/{id}/anonymize', 'verb' => 'POST'],
 
 		// Aufgaben/Störfälle (Spec §7, Grundlage siehe lib/Db/Task.php)
 		['name' => 'task#index', 'url' => '/api/tasks', 'verb' => 'GET'],
@@ -279,6 +288,10 @@ return [
 		// durch den Kassenwart über die Admin-Akte (Spec §3.7).
 		['name' => 'export#beitragsbescheinigungYears', 'url' => '/api/export/beitragsbescheinigung/{memberId}/years', 'verb' => 'GET'],
 		['name' => 'export#beitragsbescheinigung', 'url' => '/api/export/beitragsbescheinigung/{memberId}', 'verb' => 'GET'],
+
+		// Issue #78: "Datenübersicht" eines Mitglieds (Art. 15 DSGVO),
+		// Stellvertretung durch den Kassenwart über die Admin-Akte (Spec §3.8).
+		['name' => 'export#datenuebersicht', 'url' => '/api/export/datenuebersicht/{memberId}', 'verb' => 'GET'],
 
 		// Einstellungen
 		['name' => 'settings#index',  'url' => '/api/settings', 'verb' => 'GET'],

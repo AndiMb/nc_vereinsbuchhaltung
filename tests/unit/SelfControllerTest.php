@@ -13,6 +13,7 @@ use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Exception\ForbiddenException;
 use OCA\Vereinsbuchhaltung\Service\ActorContextService;
 use OCA\Vereinsbuchhaltung\Service\Export\BeitragsbescheinigungRenderer;
+use OCA\Vereinsbuchhaltung\Service\Export\DatenuebersichtRenderer;
 use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
 use OCA\Vereinsbuchhaltung\Service\SelfContactService;
@@ -52,6 +53,7 @@ class SelfControllerTest extends TestCase {
 	private SelfContactService&MockObject $contact;
 	private ContributionGroupMapper&MockObject $groupMapper;
 	private BeitragsbescheinigungRenderer&MockObject $certificateRenderer;
+	private DatenuebersichtRenderer&MockObject $dataOverviewRenderer;
 
 	protected function setUp(): void {
 		$userSession = $this->createMock(IUserSession::class);
@@ -63,6 +65,7 @@ class SelfControllerTest extends TestCase {
 		$this->contact = $this->createMock(SelfContactService::class);
 		$this->groupMapper = $this->createMock(ContributionGroupMapper::class);
 		$this->certificateRenderer = $this->createMock(BeitragsbescheinigungRenderer::class);
+		$this->dataOverviewRenderer = $this->createMock(DatenuebersichtRenderer::class);
 	}
 
 	private function controller(): SelfController {
@@ -86,6 +89,7 @@ class SelfControllerTest extends TestCase {
 			$this->contact,
 			$this->groupMapper,
 			$this->certificateRenderer,
+			$this->dataOverviewRenderer,
 			$this->l10n,
 		);
 	}

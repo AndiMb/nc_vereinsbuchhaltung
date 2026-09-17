@@ -776,6 +776,9 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 /* Feld mit Knopf am Eingabefeld (FolderPathField.vue): wie ein label gebaut, weil ein Knopf nicht in ein label gehoert */
 .vbh-form .vbh-field { display: flex; flex-direction: column; gap: 3px; }
 
+/* Gruppiert mehrere .vbh-form-Zeilen hinter einem gemeinsamen disabled-Schalter (z.B. MemberDialog.vue nach einer DSGVO-Anonymisierung), ohne den Browser-Rahmen/-Innenabstand eines <fieldset> */
+.vbh-fieldset-reset { border: 0; padding: 0; margin: 0; min-width: 0; }
+
 .vbh-inputgroup { display: flex; align-items: center; gap: 6px; }
 
 /* min-height: Nextclouds select rendert zwei Pixel hoeher als ein Textfeld; ohne Angleich stuende die Beschriftung dieses Felds tiefer als die der Nachbarn */

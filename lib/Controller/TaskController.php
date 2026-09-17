@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
+use OCA\Vereinsbuchhaltung\Service\AnonymizationCandidateService;
 use OCA\Vereinsbuchhaltung\Service\ContributionCycleTaskService;
 use OCA\Vereinsbuchhaltung\Service\DebitBatchTaskService;
 use OCA\Vereinsbuchhaltung\Service\DunningTaskService;
@@ -31,7 +32,9 @@ use OCP\IRequest;
  * überfällige Überweiser-Forderungen) nach demselben Muster ein, Issue #71
  * ergänzt mit {@see DebitBatchTaskService} „Freigabe fällig"/„Einreichung
  * überfällig" (Spec §7). Issue #73 ergänzt mit {@see DunningTaskService}
- * „Mahnstufe an Vorstand eskaliert" nach demselben Muster.
+ * „Mahnstufe an Vorstand eskaliert" nach demselben Muster. Issue #78 ergänzt
+ * mit {@see AnonymizationCandidateService} „Mitglied X anonymisierungsreif"
+ * (Spec §3.8/§7 „Anonymisierungs-Vorschlag").
  */
 class TaskController extends Controller {
 
@@ -42,6 +45,7 @@ class TaskController extends Controller {
 		private ContributionCycleTaskService $contributionCycle,
 		private DebitBatchTaskService $debitBatchTasks,
 		private DunningTaskService $dunningTasks,
+		private AnonymizationCandidateService $anonymizationCandidates,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -63,6 +67,9 @@ class TaskController extends Controller {
 		}
 		foreach ($this->dunningTasks->findBoardEscalationTasks() as $i => $task) {
 			$tasks[] = $task + ['id' => 'dunning-' . ($task['objectId'] ?? 'run') . '-' . $i, 'createdAt' => null];
+		}
+		foreach ($this->anonymizationCandidates->findTasks() as $i => $task) {
+			$tasks[] = $task + ['id' => 'anonymization-' . ($task['objectId'] ?? 'run') . '-' . $i, 'createdAt' => null];
 		}
 		return new DataResponse($tasks);
 	}

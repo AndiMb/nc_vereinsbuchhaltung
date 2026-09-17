@@ -212,6 +212,20 @@
 						class="vbh-export-btn">{{ t('Öffnen') }}</a>
 				</div>
 			</div>
+
+			<div class="vbh-card">
+				<h4>{{ t('Meine Daten') }}</h4>
+				<p class="vbh-hint">
+					{{ t('Druckfertige Auskunft nach Art. 15 DSGVO über alle zu deiner Mitgliedschaft gespeicherten Daten – kein strukturierter Export nach Art. 20 DSGVO.') }}
+				</p>
+				<div class="vbh-form">
+					<a
+						:href="dataOverviewUrl"
+						target="_blank"
+						rel="noopener"
+						class="vbh-export-btn">{{ t('Datenübersicht öffnen') }}</a>
+				</div>
+			</div>
 		</template>
 		<p v-else class="vbh-hint vbh-hint--warning">
 			{{ t('Deine Stammdaten konnten nicht geladen werden.') }}
@@ -281,6 +295,11 @@ function emptyContactForm() {
  * Dazu die informelle Beitragsbestätigung (Issue #77): eine druckfertige
  * Live-Ansicht je Beitragsjahr, geöffnet als eigene Seite (kein Axios,
  * daher kein Ladezustand/Fehler-Toast außer für die Jahresauswahl selbst).
+ *
+ * Dazu „Meine Daten" (Issue #78, Spec §3.8): dieselbe Art von druckfertiger
+ * Live-Ansicht für die Auskunftspflicht nach Art. 15 DSGVO - kein
+ * strukturierter Export nach Art. 20, keine eigene Jahresauswahl (die
+ * Datenübersicht deckt immer den vollständigen Datenbestand ab).
  */
 export default {
 	name: 'SelfServiceTab',
@@ -335,6 +354,11 @@ export default {
 		/** Druckfertige Live-Ansicht der Beitragsbestätigung (Issue #77) - öffnet in neuem Tab. */
 		certificateUrl() {
 			return api.selfCertificateUrl(this.certificateYear)
+		},
+
+		/** Druckfertige "Datenübersicht" (Art. 15 DSGVO, Issue #78) - öffnet in neuem Tab. */
+		dataOverviewUrl() {
+			return api.selfDataOverviewUrl()
 		},
 	},
 

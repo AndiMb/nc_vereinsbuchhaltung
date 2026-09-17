@@ -13,6 +13,7 @@ use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Exception\ForbiddenException;
 use OCA\Vereinsbuchhaltung\Service\ActorContextService;
 use OCA\Vereinsbuchhaltung\Service\Export\BeitragsbescheinigungRenderer;
+use OCA\Vereinsbuchhaltung\Service\Export\DatenuebersichtRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\PrintableReportPage;
 use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
@@ -69,6 +70,7 @@ class SelfController extends Controller {
 		private SelfContactService $contact,
 		private ContributionGroupMapper $groupMapper,
 		private BeitragsbescheinigungRenderer $certificateRenderer,
+		private DatenuebersichtRenderer $dataOverviewRenderer,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -324,6 +326,23 @@ class SelfController extends Controller {
 	}
 
 	/**
+	 * Eigene „Datenübersicht" als druckfertige Live-Ansicht (Spec §3.8, Issue
+	 * #78) – deckt die Auskunftspflicht nach Art. 15 DSGVO ab, unter „Meine
+	 * Daten". `memberId` kommt wie überall in diesem Controller ausschließlich
+	 * aus dem ActorContextService (IDOR-Schutz) – ein Mitglied kann sich damit
+	 * technisch NIE die Datenübersicht eines anderen anzeigen lassen.
+	 */
+	#[NoAdminRequired]
+	#[NoCSRFRequired]
+	public function dataOverview(): DataDisplayResponse|DataResponse {
+		try {
+			return PrintableReportPage::response($this->dataOverviewRenderer->render($this->requireMemberId()));
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Mitglied nicht gefunden')], Http::STATUS_NOT_FOUND);
+		}
+	}
+
+	/**
 	 * Erlaubte Feldliste für den Self-Service – bewusst kein
 	 * `jsonSerialize()` der Entity, das auch `internalNote` einschließt.
 	 *
@@ -347,6 +366,7 @@ class SelfController extends Controller {
 			'joinedAt' => $member->getJoinedAt(),
 			'leftAt' => $member->getLeftAt(),
 			'active' => $member->isActive(),
+			'redactedAt' => $member->getRedactedAt(),
 		];
 	}
 
