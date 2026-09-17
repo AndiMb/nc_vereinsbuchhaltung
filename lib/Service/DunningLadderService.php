@@ -47,7 +47,7 @@ use Psr\Log\LoggerInterface;
  * ({@see runDaily()}): „Ableitungsformel mit Zusatzbedingung 'nicht aktuell
  * gestundet'" – eine gestundete Forderung fällt komplett aus der
  * Positionsliste, bis die Stundung abläuft; danach läuft die Uhr von der
- * zuletzt erreichten Stufe weiter (kein Reset, siehe {@see dueEscalations()}:
+ * zuletzt erreichten Stufe weiter (kein Reset, siehe {@see dueEscalationsByMember()}:
  * die Frist bemisst sich immer am `sent_at` der zuletzt erreichten Stufe,
  * eine Stundung dazwischen verschiebt diesen Bezugspunkt nicht). Stufe 0 hat
  * laut Spec ausdrücklich KEIN solches Stundungs-Gate („automatik: ja,
