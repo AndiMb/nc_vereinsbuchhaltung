@@ -19,6 +19,8 @@ use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\BookingService;
 use OCA\Vereinsbuchhaltung\Service\ClaimService;
+use OCA\Vereinsbuchhaltung\Service\DunningLadderService;
+use OCA\Vereinsbuchhaltung\Service\MandateService;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IL10N;
@@ -44,6 +46,16 @@ use OCP\IUserSession;
  *   (höchstens eine je Einzugsposten, siehe Posten-Guard) und öffnet die
  *   zugehörige Forderung wieder ("zurückgegeben → wieder offen", Spec §2.2).
  *
+ * Seit Issue #73 löst {@see finalizeReturn()} zusätzlich die Rückgabe-Klassen-
+ * Folgen aus (Spec §3.6, siehe {@see ReturnReasonClassifier}): automatische
+ * Mandats-Sperre bei `account_unusable`/`disputed`/`deceased`
+ * ({@see \OCA\Vereinsbuchhaltung\Service\MandateService::suspendDueToReturnedDebit()}),
+ * sofortige Mahnstufe-0-Zahlungsaufforderung bei `insufficient_funds`/
+ * `account_unusable`/`disputed`
+ * ({@see \OCA\Vereinsbuchhaltung\Service\DunningLadderService::triggerPaymentRequest()})
+ * und die klassenabhängige Gebühren-Weiterbelastung (verfeinert den in #72
+ * gebauten einfachen Ja/Nein-Schalter).
+ *
  * Ein Bankumsatz mischt beide Richtungen in der Praxis nie (eine Bank bündelt
  * Gutschrift und Rückgabe nie in derselben Buchung) – {@see settle()} bricht
  * trotzdem kontrolliert ab, sollte das doch vorkommen, statt eine der beiden
@@ -60,6 +72,8 @@ class SepaImportConfirmationService {
 		private ClaimService $claims,
 		private BookingService $bookingService,
 		private SepaImportSettingsService $settings,
+		private MandateService $mandates,
+		private DunningLadderService $dunningLadder,
 		private TransactionRunner $transaction,
 		private AuditService $audit,
 		private IUserSession $userSession,
@@ -284,12 +298,16 @@ class SepaImportConfirmationService {
 		$returned->setCreatedAt($this->now());
 		$returned->setCreatedBy($this->currentUid());
 
+		// Rückgabe-Klasse (Spec §3.6, Issue #73): deterministisch aus dem
+		// ISO-Rückgabegrund, nicht gespeichert - entscheidet über Gebühren-
+		// Weiterbelastung, Mandats-Sperre und Zahlungsaufforderung weiter unten.
+		$class = ReturnReasonClassifier::classify($returned->getReasonCode());
+
 		// Gebühren-Weiterbelastung (Spec §3.6/§5): Opt-in, Höhe = exakte
-		// Bankgebühr, hier als einfacher Ja/Nein-Schalter - die vollständige
-		// Ursache-Klassifikation (nur insufficient_funds/account_unusable)
-		// verfeinert #73 (Mahnwesen-Ticket).
+		// Bankgebühr, automatisch nur bei insufficient_funds/account_unusable
+		// (Issue #73 verfeinert den einfachen Ja/Nein-Schalter aus #72).
 		$chargesCents = $detail->getChargesCents() ?? 0;
-		if ($rechargeEnabled && $chargesCents > 0 && $feeAccountId !== null) {
+		if ($rechargeEnabled && ReturnReasonClassifier::shouldRechargeFeeAutomatically($class) && $chargesCents > 0 && $feeAccountId !== null) {
 			$fee = $this->claims->createManual(
 				(int)$openItem->getMemberId(),
 				OpenItem::TYPE_FEE,
@@ -314,6 +332,40 @@ class SepaImportConfirmationService {
 		$openItem->setSettledBy(null);
 		$openItem->setSettlementNote(null);
 		$this->openItems->update($openItem);
+
+		$this->reactToReturn($debitItem, $openItem, $returned, $class);
+	}
+
+	/**
+	 * Mandats-Sperre + Mahnwesen-Auslöser (Spec §3.6, Issue #73) – kommt NACH
+	 * dem Wieder-Öffnen der Forderung, damit
+	 * {@see DunningLadderService::triggerPaymentRequest()} eine bereits
+	 * korrekt zurückgesetzte Forderung sieht (Erledigungsvermerk weg, Status
+	 * `open`). Beides läuft best effort innerhalb derselben Buchungs-
+	 * Transaktion wie der Rest von {@see finalizeReturn()} – ein Mailversand-
+	 * oder Sperr-Fehler darf die bereits korrekt gebuchte Rücklastschrift
+	 * nicht rückgängig machen (dieselbe Haltung wie
+	 * {@see \OCA\Vereinsbuchhaltung\Service\MandateService::notifyRevocationDunning()}).
+	 */
+	private function reactToReturn(DebitItem $debitItem, OpenItem $openItem, ReturnedDebit $returned, string $class): void {
+		if (ReturnReasonClassifier::shouldSuspendMandate($class)) {
+			try {
+				$this->mandates->suspendDueToReturnedDebit(
+					$debitItem->getMandateId(),
+					(int)$returned->getId(),
+					$this->l10n->t('Automatisch nach Rücklastschrift: %s', [ReturnReasonClassifier::memberFacingReason($class, $this->l10n)]),
+				);
+			} catch (\Throwable $e) {
+				$this->audit->log('Mahnwesen: automatische Mandats-Sperre nach Rücklastschrift fehlgeschlagen', 'bank_tx', (int)$returned->getBankTxSepaDetailId(), ['fehler' => $e->getMessage()]);
+			}
+		}
+		if (ReturnReasonClassifier::shouldTriggerPaymentRequest($class)) {
+			try {
+				$this->dunningLadder->triggerPaymentRequest($openItem, ReturnReasonClassifier::memberFacingReason($class, $this->l10n));
+			} catch (\Throwable $e) {
+				$this->audit->log('Mahnwesen: Zahlungsaufforderung nach Rücklastschrift fehlgeschlagen', 'open_item', (int)$openItem->getId(), ['fehler' => $e->getMessage()]);
+			}
+		}
 	}
 
 	/**

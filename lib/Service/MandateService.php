@@ -61,6 +61,7 @@ class MandateService {
 		private ActorContextService $actorContext,
 		private IUserSession $userSession,
 		private IConfig $config,
+		private DunningLadderService $dunningLadder,
 		private IL10N $l10n,
 	) {
 	}
@@ -266,11 +267,14 @@ class MandateService {
 		if (!in_array($origin, Mandate::SUSPENSION_ORIGINS, true)) {
 			throw new \InvalidArgumentException($this->l10n->t('Ungültiger Sperr-Ursprung: %s', [$origin]));
 		}
-		// Rücklastschrift als Auslöser kommt erst mit #73 (Rücklastschrift-
-		// Fachlogik) – ohne die zugehörige Erkennung wäre eine hier manuell
-		// gewählte "ruecklastschrift"-Sperre ein irreführender Datensatz.
+		// "ruecklastschrift" ist seit Issue #73 tatsaechlich auslösbar, aber
+		// ausschliesslich automatisch ueber {@see suspendDueToReturnedDebit()} -
+		// dort protokolliert die Historie korrekt actor_type "system" und setzt
+		// returned_debit_id. Ein Mensch, der ueber diese generische Methode
+		// (UI-Aktion "Mandat sperren") den Ursprung "ruecklastschrift" waehlte,
+		// wuerde eine Sperre vortaeuschen, die tatsaechlich manuell war.
 		if ($origin === Mandate::SUSPENSION_RETURNED_DEBIT) {
-			throw new \InvalidArgumentException($this->l10n->t('Die automatische Sperre bei Rücklastschrift ist noch nicht verfügbar.'));
+			throw new \InvalidArgumentException($this->l10n->t('Der Sperr-Ursprung "Rücklastschrift" wird nur automatisch gesetzt.'));
 		}
 
 		$mandate = $this->mapper->find($id);
@@ -311,6 +315,42 @@ class MandateService {
 	}
 
 	/**
+	 * Automatische Sperre nach Rücklastschrift (Spec §3.6, Issue #73) – der
+	 * Gegenpart zum manuellen {@see suspend()}: kein Pflicht-Grund-Parameter
+	 * vom Aufrufer nötig (der Grund IST die Rücklastschrift-Klasse), kein
+	 * `actor_type: staff`, sondern `system`, und `returned_debit_id` wird
+	 * gesetzt (Spec §2.2 Mandat-Feldkatalog, bislang ungenutzt seit #66).
+	 *
+	 * Bewusst idempotent statt werfend: {@see \OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportConfirmationService::finalizeReturn()}
+	 * ruft diese Methode aus einer bereits laufenden Buchungstransaktion auf –
+	 * ein Mandat, das zum Zeitpunkt der Rücklastschrift längst nicht mehr
+	 * `aktiv` ist (z. B. zwischenzeitlich manuell gesperrt oder widerrufen),
+	 * bleibt unangetastet liegen, statt die gesamte Verbuchung des
+	 * Bankumsatzes an einem für die Rücklastschrift selbst irrelevanten
+	 * Mandatszustand scheitern zu lassen.
+	 */
+	public function suspendDueToReturnedDebit(int $id, int $returnedDebitId, string $note): ?Mandate {
+		$mandate = $this->mapper->find($id);
+		if ($mandate->getStatus() !== Mandate::STATUS_ACTIVE) {
+			return null;
+		}
+
+		$mandate->setStatus(Mandate::STATUS_SUSPENDED);
+		$mandate->setSuspendedAt($this->now());
+		$mandate->setSuspensionOrigin(Mandate::SUSPENSION_RETURNED_DEBIT);
+		$mandate->setSuspensionNote($note);
+		$mandate->setReturnedDebitId($returnedDebitId);
+		$mandate = $this->mapper->update($mandate);
+
+		$this->audit->log('SEPA-Mandat automatisch gesperrt (Rücklastschrift)', 'mandate', $mandate->getId(), [
+			'referenz' => $mandate->getMandateReference(),
+			'grund' => $note,
+		], actor: 'system');
+		$this->logEvent($mandate, $this->l10n->t('Mandat automatisch gesperrt: %s', [$note]), MandateEvent::ACTOR_SYSTEM);
+		return $mandate;
+	}
+
+	/**
 	 * Widerruf: terminal, nie reaktivierbar (Spec §2.2). Von zwei Kanälen
 	 * aufrufbar - der Admin-Akte (`buchhalter`) UND, seit Issue #75, direkt
 	 * vom Self-Service ({@see \OCA\Vereinsbuchhaltung\Service\SelfServiceMandateService::revoke()},
@@ -326,7 +366,24 @@ class MandateService {
 
 		$this->audit->log('SEPA-Mandat widerrufen', 'mandate', $mandate->getId(), ['referenz' => $mandate->getMandateReference()]);
 		$this->logEvent($mandate, $this->l10n->t('Mandat widerrufen'), $this->actorContext->actorType());
+		$this->notifyRevocationDunning($mandate);
 		return $mandate;
+	}
+
+	/**
+	 * Mahnstufe 0 „Zahlungsaufforderung" sofort bei Widerruf mit offenen
+	 * Forderungen (Spec §3.6, Issue #73) – best effort: ein Mailversand-Fehler
+	 * darf den bereits vollzogenen Widerruf nicht rückwirkend als
+	 * fehlgeschlagen erscheinen lassen (dasselbe Muster wie
+	 * {@see \OCA\Vereinsbuchhaltung\Service\DebitBatchService::storeXmlSafely()}
+	 * für die optionale XML-Ablage).
+	 */
+	private function notifyRevocationDunning(Mandate $mandate): void {
+		try {
+			$this->dunningLadder->onMandateRevoked($mandate->getMemberId());
+		} catch (\Throwable $e) {
+			$this->audit->log('Mahnwesen: Zahlungsaufforderung nach Widerruf fehlgeschlagen', 'mandate', $mandate->getId(), ['fehler' => $e->getMessage()]);
+		}
 	}
 
 	/**
