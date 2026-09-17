@@ -66,4 +66,43 @@ class ContributionYearService {
 	public function periodContaining(int $intervalMonths, string $date): array {
 		return PeriodRule::containing($this->periodRuleFor($intervalMonths), $date);
 	}
+
+	/**
+	 * Anker-Kalenderjahr des Beitragsjahres, das $date enthält (Turnus 12
+	 * Monate im Beitragsjahr-Raster) – Grundlage für die
+	 * Beitragsbescheinigung (Spec §3.7: „das Beitragsjahr, NICHT das
+	 * Period-Geschäftsjahr des Gefäßes"). Ein Beitragsjahr wird über das
+	 * Kalenderjahr identifiziert, in dem es beginnt (der „Anker"-Jahrgang,
+	 * gleiche Idee wie {@see PeriodRule::gridIndex()}); bei Startmonat Januar
+	 * ist das schlicht das Kalenderjahr selbst, sonst z. B. 2025 für das am
+	 * 1.10.2025 beginnende Jahr „2025/26".
+	 */
+	public function anchorYearFor(string $date): int {
+		[$year] = PeriodRule::gridIndex($this->periodRuleFor(12), $date);
+		return $year;
+	}
+
+	/** Anker-Kalenderjahr des laufenden Beitragsjahres (Standard: heute). */
+	public function currentAnchorYear(?string $today = null): int {
+		return $this->anchorYearFor($today ?? date('Y-m-d'));
+	}
+
+	/**
+	 * Start/Ende (beide inklusive) des Beitragsjahres, das mit $anchorYear beginnt.
+	 *
+	 * @return array{0:string,1:string} [von, bis]
+	 */
+	public function yearBounds(int $anchorYear): array {
+		return PeriodRule::containing($this->periodRuleFor(12), $this->anchorStart($anchorYear));
+	}
+
+	/** Bezeichnung des Beitragsjahres („2025" oder „2025/26"), siehe {@see PeriodRule::proposeLabel()}. */
+	public function yearLabel(int $anchorYear): string {
+		return PeriodRule::proposeLabel($this->periodRuleFor(12), $this->anchorStart($anchorYear));
+	}
+
+	/** Der 1. des Startmonats im Anker-Kalenderjahr – Startdatum des Beitragsjahres. */
+	private function anchorStart(int $anchorYear): string {
+		return sprintf('%04d-%02d-01', $anchorYear, $this->getStartMonth());
+	}
 }

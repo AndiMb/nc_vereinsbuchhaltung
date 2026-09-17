@@ -103,6 +103,19 @@ class Member extends Entity implements \JsonSerializable {
 		return $this->leftAt >= $today;
 	}
 
+	/**
+	 * Ob eine für den Postversand ausreichende Anschrift hinterlegt ist
+	 * (Straße, PLZ, Ort) – `country` bleibt außen vor, viele Vereine lassen es
+	 * für inländische Mitglieder leer. Grundlage für den Hinweis-Banner
+	 * „Adresse jetzt hinterlegen" der Beitragsbestätigung (Spec §3.7, Issue
+	 * #77) statt einer Admin-Aufgabe.
+	 */
+	public function hasAddress(): bool {
+		return trim((string)$this->street) !== ''
+			&& trim((string)$this->postalCode) !== ''
+			&& trim((string)$this->city) !== '';
+	}
+
 	public function jsonSerialize(): array {
 		return [
 			'id' => $this->id,

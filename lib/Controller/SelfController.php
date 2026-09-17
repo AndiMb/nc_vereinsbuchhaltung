@@ -12,6 +12,8 @@ use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Exception\ForbiddenException;
 use OCA\Vereinsbuchhaltung\Service\ActorContextService;
+use OCA\Vereinsbuchhaltung\Service\Export\BeitragsbescheinigungRenderer;
+use OCA\Vereinsbuchhaltung\Service\Export\PrintableReportPage;
 use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
 use OCA\Vereinsbuchhaltung\Service\SelfContactService;
@@ -21,6 +23,8 @@ use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
+use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
+use OCP\AppFramework\Http\DataDisplayResponse;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IL10N;
 use OCP\IRequest;
@@ -34,7 +38,9 @@ use OCP\IRequest;
  * Kontaktstammdaten pflegen). Für Letzteres ist dieser Controller nur die
  * dünne HTTP-Hülle - die eigentliche Logik (IDOR-Schutz, Validierung,
  * Wirksamkeitsregel, Benachrichtigungen) steckt in
- * {@see SelfContributionService}/{@see SelfContactService}.
+ * {@see SelfContributionService}/{@see SelfContactService}. Dazu die
+ * informelle Beitragsbestätigung (Issue #77) als druckfertige Live-Ansicht,
+ * siehe {@see certificate()}.
  *
  * Sicherheitsregel dieses Controllers, weil er die einzige Stelle im Modul
  * ist, die ohne Buchhaltungsrolle erreichbar ist: JEDE Methode liest die
@@ -62,6 +68,7 @@ class SelfController extends Controller {
 		private SelfContributionService $contributions,
 		private SelfContactService $contact,
 		private ContributionGroupMapper $groupMapper,
+		private BeitragsbescheinigungRenderer $certificateRenderer,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -285,6 +292,34 @@ class SelfController extends Controller {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		} catch (DoesNotExistException) {
 			return new DataResponse(['message' => $this->l10n->t('Zuweisung nicht gefunden')], Http::STATUS_NOT_FOUND);
+		}
+	}
+
+	/**
+	 * Beitragsjahre mit mindestens einer eigenen bezahlten Beitrags-Forderung
+	 * (plus das laufende Jahr) – Grundlage der Jahresauswahl der eigenen
+	 * Beitragsbestätigung (Spec §3.7, Issue #77).
+	 */
+	#[NoAdminRequired]
+	public function certificateYears(): DataResponse {
+		return new DataResponse(['years' => $this->certificateRenderer->selectableYears($this->requireMemberId())]);
+	}
+
+	/**
+	 * Informelle Beitragsbestätigung als druckfertige Live-Ansicht (Spec
+	 * §3.7, Issue #77) – KEINE amtliche Zuwendungsbestätigung nach §10b EStG
+	 * (separates Upstream-Issue #10). `memberId` kommt wie überall in diesem
+	 * Controller ausschließlich aus dem ActorContextService (IDOR-Schutz) –
+	 * ein Mitglied kann sich damit technisch NIE die Bestätigung eines
+	 * anderen anzeigen lassen.
+	 */
+	#[NoAdminRequired]
+	#[NoCSRFRequired]
+	public function certificate(?int $year = null): DataDisplayResponse|DataResponse {
+		try {
+			return PrintableReportPage::response($this->certificateRenderer->render($this->requireMemberId(), $year));
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Mitglied nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
 	}
 

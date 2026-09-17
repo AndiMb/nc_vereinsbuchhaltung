@@ -115,6 +115,12 @@ return [
 		['name' => 'self#previewAssignment', 'url' => '/api/self/assignments/{id}/preview', 'verb' => 'POST'],
 		['name' => 'self#updateAssignment', 'url' => '/api/self/assignments/{id}', 'verb' => 'PUT'],
 
+		// Issue #77: informelle Beitragsbestätigung als druckfertige
+		// Live-Ansicht (Spec §3.7) - member_id kommt ausschließlich aus der
+		// aufgelösten Kontoverknüpfung, siehe SelfController::certificate().
+		['name' => 'self#certificateYears', 'url' => '/api/self/certificate/years', 'verb' => 'GET'],
+		['name' => 'self#certificate', 'url' => '/api/self/certificate', 'verb' => 'GET'],
+
 		// Rules
 		['name' => 'rule#index', 'url' => '/api/rules', 'verb' => 'GET'],
 		['name' => 'rule#create', 'url' => '/api/rules', 'verb' => 'POST'],
@@ -268,6 +274,11 @@ return [
 		['name' => 'export#kassenbericht', 'url' => '/api/export/kassenbericht', 'verb' => 'GET'],
 		['name' => 'export#kurzbericht', 'url' => '/api/export/kurzbericht', 'verb' => 'GET'],
 		['name' => 'export#attachments', 'url' => '/api/export/attachments', 'verb' => 'GET'],
+
+		// Issue #77: Beitragsbestätigung eines Mitglieds, Stellvertretung
+		// durch den Kassenwart über die Admin-Akte (Spec §3.7).
+		['name' => 'export#beitragsbescheinigungYears', 'url' => '/api/export/beitragsbescheinigung/{memberId}/years', 'verb' => 'GET'],
+		['name' => 'export#beitragsbescheinigung', 'url' => '/api/export/beitragsbescheinigung/{memberId}', 'verb' => 'GET'],
 
 		// Einstellungen
 		['name' => 'settings#index',  'url' => '/api/settings', 'verb' => 'GET'],
