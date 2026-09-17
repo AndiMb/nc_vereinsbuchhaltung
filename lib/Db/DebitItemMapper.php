@@ -34,6 +34,41 @@ class DebitItemMapper extends QBMapper {
 		return $this->findEntities($qb);
 	}
 
+	/**
+	 * Matching Stufe 1 (Spec §5, Issue #72): `end_to_end_id` exakt. Der
+	 * Unique-Index auf der Spalte (Migration 000143) macht das Ergebnis von
+	 * Natur aus eindeutig.
+	 */
+	public function findByEndToEndId(string $endToEndId): ?DebitItem {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('end_to_end_id', $qb->createNamedParameter($endToEndId)));
+		try {
+			return $this->findEntity($qb);
+		} catch (\OCP\AppFramework\Db\DoesNotExistException|\OCP\AppFramework\Db\MultipleObjectsReturnedException) {
+			return null;
+		}
+	}
+
+	/**
+	 * Matching Stufe 3 (Spec §5, Issue #72): "Betrag + Zahler-IBAN unter
+	 * offenen Posten, nur bei Rückgabe-Signal" - schwächste Stufe, deshalb
+	 * bewusst ohne Eingrenzung auf einen Lauf (eine Rücklastschrift kann
+	 * Wochen nach der Einreichung eintreffen).
+	 *
+	 * @return DebitItem[]
+	 */
+	public function findByAmountAndIban(int $amountCents, string $iban): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('amount_cents', $qb->createNamedParameter($amountCents, IQueryBuilder::PARAM_INT)))
+			->andWhere($qb->expr()->eq('iban', $qb->createNamedParameter($iban)))
+			->orderBy('id', 'DESC');
+		return $this->findEntities($qb);
+	}
+
 	/** @return DebitItem[] */
 	public function findByMandate(int $mandateId): array {
 		$qb = $this->db->getQueryBuilder();

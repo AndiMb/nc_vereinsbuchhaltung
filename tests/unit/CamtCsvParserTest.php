@@ -99,4 +99,65 @@ class CamtCsvParserTest extends TestCase {
 		$this->assertCount(1, $rows);
 		$this->assertSame('2026-01-05', $rows[0]['bookingDate']);
 	}
+
+	/** Die fünf zusätzlichen SEPA-Spalten (Spec §5, Issue #72) werden erkannt. */
+	private function header(): string {
+		return 'Auftragskonto;Buchungstag;Valutadatum;Buchungstext;Verwendungszweck;'
+			. 'Glaeubiger ID;Mandatsreferenz;Kundenreferenz (End-to-End);Sammlerreferenz;'
+			. 'Lastschrift Ursprungsbetrag;Auslagenersatz Ruecklastschrift;'
+			. 'Beguenstigter/Zahlungspflichtiger;Kontonummer/IBAN;BIC (SWIFT-Code);'
+			. 'Betrag;Waehrung;Info';
+	}
+
+	public function testSepaDetailsAusDenFuenfZusaetzlichenSpalten(): void {
+		$csv = $this->header() . "\n"
+			. 'DE12500105170648489890;05.10.2026;05.10.2026;LASTSCHRIFTEINZUG;Beitrag;'
+			. "DE98ZZZ09999999999;M-1;E2E-1;MSG-42-RCUR;;;Max Mustermann;DE02120300000000202051;BYLADEM1001;45,00;EUR;Umsatz gebucht\n";
+		$rows = $this->parser->parse($csv);
+
+		$details = $rows[0]['sepaDetails'];
+		$this->assertCount(1, $details);
+		$this->assertSame('E2E-1', $details[0]['endToEndId']);
+		$this->assertSame('M-1', $details[0]['mandateReference']);
+		$this->assertSame('MSG-42-RCUR', $details[0]['batchReference']);
+		$this->assertFalse($details[0]['isReturn'], 'Positiver Betrag ohne Ursprungsbetrag/Gebühr ist keine Rückgabe');
+	}
+
+	/**
+	 * "ist Rückgabe" (Spec §5): Betrag negativ UND (Ursprungsbetrag ODER
+	 * Auslagenersatz gefüllt) - das CSV-Format kennt keinen eigenen
+	 * Rückgabegrund-Code.
+	 */
+	public function testErkenntRuecklastschriftUeberNegativenBetragUndUrsprungsbetrag(): void {
+		$csv = $this->header() . "\n"
+			. 'DE12500105170648489890;06.10.2026;06.10.2026;RUECKLASTSCHRIFT;Rueckgabe;'
+			. "DE98ZZZ09999999999;M-2;E2E-2;;45,00;5,00;Max Mustermann;DE02120300000000202051;BYLADEM1001;-50,00;EUR;Umsatz gebucht\n";
+		$rows = $this->parser->parse($csv);
+
+		$details = $rows[0]['sepaDetails'];
+		$this->assertCount(1, $details);
+		$this->assertTrue($details[0]['isReturn']);
+		$this->assertNull($details[0]['returnReasonCode'], 'CSV kennt keinen eigenen Rückgabegrund-Code');
+		$this->assertSame(4500, $details[0]['originalAmountCents']);
+		$this->assertSame(500, $details[0]['chargesCents']);
+	}
+
+	/** Ein negativer Betrag ohne Ursprungsbetrag/Gebühr ist keine Rückgabe (z. B. eine normale Ausgabe). */
+	public function testNegativerBetragOhneUrsprungsbetragIstKeineRueckgabe(): void {
+		$csv = $this->header() . "\n"
+			. 'DE12500105170648489890;07.10.2026;07.10.2026;UEBERWEISUNG;Miete;'
+			. ";;;;;;Vermieter GmbH;DE02120300000000202051;;-50,00;EUR;Umsatz gebucht\n";
+		$rows = $this->parser->parse($csv);
+
+		$this->assertSame([], $rows[0]['sepaDetails']);
+	}
+
+	public function testKeineSepaSpaltenErzeugtLeereDetails(): void {
+		$content = file_get_contents(__DIR__ . '/../fixtures/beispiel-camt.csv');
+		$rows = $this->parser->parse($content);
+
+		foreach ($rows as $row) {
+			$this->assertSame([], $row['sepaDetails']);
+		}
+	}
 }

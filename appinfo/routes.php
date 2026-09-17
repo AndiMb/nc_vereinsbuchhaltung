@@ -247,6 +247,18 @@ return [
 		['name' => 'debitBatch#reschedule', 'url' => '/api/debit-batches/{id}/reschedule', 'verb' => 'POST'],
 		['name' => 'debitBatch#xml', 'url' => '/api/debit-batches/{id}/xml', 'verb' => 'GET'],
 
+		// Bankimport-Härtung & Einzugs-/Rücklastschrift-Verbuchung (Issue #72)
+		['name' => 'sepaImport#pending', 'url' => '/api/sepa-import/pending', 'verb' => 'GET'],
+		['name' => 'sepaImport#settings', 'url' => '/api/sepa-import/settings', 'verb' => 'GET'],
+		['name' => 'sepaImport#updateSettings', 'url' => '/api/sepa-import/settings', 'verb' => 'POST'],
+		['name' => 'sepaImport#show', 'url' => '/api/sepa-import/{bankTxId}', 'verb' => 'GET'],
+		['name' => 'sepaImport#settle', 'url' => '/api/sepa-import/{bankTxId}/settle', 'verb' => 'POST'],
+		['name' => 'sepaImport#incomingPaymentSuggestions', 'url' => '/api/sepa-import/{bankTxId}/incoming-payment-suggestions', 'verb' => 'GET'],
+		['name' => 'sepaImport#confirmIncomingPayment', 'url' => '/api/sepa-import/{bankTxId}/incoming-payment-suggestions/{openItemId}', 'verb' => 'POST'],
+		['name' => 'sepaImport#assign', 'url' => '/api/sepa-import/details/{id}/assign', 'verb' => 'POST'],
+		['name' => 'sepaImport#reject', 'url' => '/api/sepa-import/details/{id}/reject', 'verb' => 'POST'],
+		['name' => 'sepaImport#markUnmatched', 'url' => '/api/sepa-import/details/{id}/unmatched', 'verb' => 'POST'],
+
 		// Export (CSV-Download)
 		['name' => 'export#journal',  'url' => '/api/export/journal',  'verb' => 'GET'],
 		['name' => 'export#balances', 'url' => '/api/export/balances', 'verb' => 'GET'],
