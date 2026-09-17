@@ -127,6 +127,11 @@ export default {
 	linkMember: (id, ncUserId) => axios.post(url(`/members/${id}/link`), { ncUserId }),
 	unlinkMember: (id) => axios.post(url(`/members/${id}/unlink`)),
 
+	// DSGVO-Anonymisierung (Issue #78, Spec §3.8): Reife-Anzeige + manuelle,
+	// irreversible Bestätigung je Mitglied.
+	memberAnonymizationStatus: (id) => axios.get(url(`/members/${id}/anonymization`)),
+	anonymizeMember: (id) => axios.post(url(`/members/${id}/anonymize`)),
+
 	// Aufgaben/Störfälle
 	listTasks: () => axios.get(url('/tasks')),
 
@@ -214,6 +219,10 @@ export default {
 	selfCertificateYears: () => axios.get(url('/self/certificate/years')),
 	selfCertificateUrl: (year) => generateUrl(base + '/self/certificate') + (year ? `?year=${year}` : ''),
 
+	// "Datenübersicht" (Issue #78, Spec §3.8): Art.-15-DSGVO-Auskunft als
+	// druckfertige Live-Ansicht, hier unter "Meine Daten".
+	selfDataOverviewUrl: () => generateUrl(base + '/self/data-overview'),
+
 	// SEPA-Sammeleinzüge (pain.008-Export)
 	previewSepaExport: (executionDate) => axios.get(url('/sepa/export/preview'), { params: executionDate ? { executionDate } : {} }),
 	listSepaBatches: () => axios.get(url('/sepa/export/batches')),
@@ -239,6 +248,10 @@ export default {
 	// selfCertificateUrl(), hier für ein beliebiges Mitglied.
 	memberCertificateYears: (memberId) => axios.get(url(`/export/beitragsbescheinigung/${memberId}/years`)),
 	memberCertificateUrl: (memberId, year) => generateUrl(base + `/export/beitragsbescheinigung/${memberId}`) + (year ? `?year=${year}` : ''),
+
+	// "Datenübersicht" eines Mitglieds, Stellvertretung durch den Kassenwart
+	// über die Admin-Akte (Issue #78, Spec §3.8).
+	memberDataOverviewUrl: (memberId) => generateUrl(base + `/export/datenuebersicht/${memberId}`),
 
 	// Hilfe (Handbuch als lesbare Seite, optional mit Kapitel-Anker; druckfertige Kassenprüfer-Kurzanleitung)
 	handbuchUrl: (anchor) => generateUrl(base + '/help/handbuch') + (anchor ? `#${anchor}` : ''),

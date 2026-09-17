@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Service\Export\AttachmentArchive;
 use OCA\Vereinsbuchhaltung\Service\Export\BeitragsbescheinigungRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\CsvExportService;
 use OCA\Vereinsbuchhaltung\Service\Export\CsvFile;
+use OCA\Vereinsbuchhaltung\Service\Export\DatenuebersichtRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\KassenberichtRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\KurzberichtRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\PrintableReportPage;
@@ -55,6 +56,7 @@ class ExportController extends Controller {
 		private KassenberichtRenderer $kassenbericht,
 		private KurzberichtRenderer $kurzbericht,
 		private BeitragsbescheinigungRenderer $beitragsbescheinigung,
+		private DatenuebersichtRenderer $datenuebersicht,
 		private PeriodService $periods,
 		private IL10N $l10n,
 	) {
@@ -192,6 +194,25 @@ class ExportController extends Controller {
 	public function beitragsbescheinigung(int $memberId, ?int $year = null): DataDisplayResponse|DataResponse {
 		try {
 			return $this->printableResponse($this->beitragsbescheinigung->render($memberId, $year));
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Mitglied nicht gefunden')], Http::STATUS_NOT_FOUND);
+		}
+	}
+
+	/**
+	 * „Datenübersicht" eines Mitglieds als druckfertige Live-Ansicht (Spec
+	 * §3.8, Issue #78) – deckt die Auskunftspflicht nach Art. 15 DSGVO ab,
+	 * kein strukturierter Export nach Art. 20. Stellvertretung durch den
+	 * Kassenwart über die Admin-Akte, deshalb `RequiresRole(WRITE)` wie
+	 * {@see beitragsbescheinigung()} (zeigt personenbezogene Daten eines
+	 * Mitglieds, nicht Revisoren vorbehalten).
+	 */
+	#[NoAdminRequired]
+	#[NoCSRFRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	public function datenuebersicht(int $memberId): DataDisplayResponse|DataResponse {
+		try {
+			return $this->printableResponse($this->datenuebersicht->render($memberId));
 		} catch (DoesNotExistException) {
 			return new DataResponse(['message' => $this->l10n->t('Mitglied nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}

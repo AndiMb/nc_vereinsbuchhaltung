@@ -7,6 +7,8 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
+use OCA\Vereinsbuchhaltung\Service\AnonymizationCandidateService;
+use OCA\Vereinsbuchhaltung\Service\MemberAnonymizationService;
 use OCA\Vereinsbuchhaltung\Service\MemberService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCP\AppFramework\Controller;
@@ -29,6 +31,8 @@ class MemberController extends Controller {
 	public function __construct(
 		IRequest $request,
 		private MemberService $service,
+		private AnonymizationCandidateService $anonymizationCandidates,
+		private MemberAnonymizationService $anonymization,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -198,6 +202,40 @@ class MemberController extends Controller {
 	public function unlink(int $id): DataResponse {
 		try {
 			return new DataResponse($this->decorate($this->service->unlink($id)));
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Mitglied nicht gefunden')], Http::STATUS_NOT_FOUND);
+		}
+	}
+
+	/**
+	 * Anonymisierungsreife eines Mitglieds (Spec §3.8, Issue #78) – Grundlage
+	 * für den „Jetzt anonymisieren"-Knopf der Personenakte: die 10-Jahres-Frist
+	 * seit der letzten zugehörigen Buchung, unabhängig von der SEPA-14-Monats-
+	 * Untergrenze (siehe {@see AnonymizationEligibilityCalculator}-Klassendoc).
+	 */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	public function anonymizationStatus(int $id): DataResponse {
+		try {
+			return new DataResponse($this->anonymizationCandidates->statusFor($id));
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Mitglied nicht gefunden')], Http::STATUS_NOT_FOUND);
+		}
+	}
+
+	/**
+	 * Führt die DSGVO-Anonymisierung aus (Spec §3.8, Issue #78) – manuelle
+	 * Einzelbestätigung durch `buchhalter`, kein Vollautomatismus. Irreversibel:
+	 * {@see MemberAnonymizationService::anonymize()} prüft Reife und
+	 * „noch nicht anonymisiert" selbst noch einmal nach.
+	 */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	public function anonymize(int $id): DataResponse {
+		try {
+			return new DataResponse($this->decorate($this->anonymization->anonymize($id)));
+		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		} catch (DoesNotExistException) {
 			return new DataResponse(['message' => $this->l10n->t('Mitglied nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}

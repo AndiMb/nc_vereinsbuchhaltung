@@ -25,6 +25,16 @@ use OCP\AppFramework\Db\Entity;
  * festen Wert `SMNDA`, nie die tatsächliche alte IBAN – genau das verlangt
  * die Regel.
  *
+ * `iban` ist seit Migration 000146 nullable, `account_holder` bleibt Pflicht
+ * (Platzhalter {@see Mandate::REDACTED_ACCOUNT_HOLDER} statt NULL) – dieselbe
+ * DSGVO-Anonymisierung (Spec §3.8, Issue #78) wie beim Mandat selbst, siehe
+ * {@see \OCA\Vereinsbuchhaltung\Service\MemberAnonymizationService}. Ein
+ * anonymisierter Einzugsposten verliert damit die „byte-identische
+ * Nachrenderbarkeit" (Spec §3.5) seiner Bankdaten – laut Klassendoc dieser
+ * Migration (000143) eine bewusst in Kauf genommene Folge: nach Ablauf der
+ * Aufbewahrungsfrist zählt die DSGVO-Löschpflicht mehr als eine erneute
+ * Byte-für-Byte-Reproduzierbarkeit eines Jahrzehnte alten Laufs.
+ *
  * @method int getBatchId()
  * @method void setBatchId(int $batchId)
  * @method int getOpenItemId()
@@ -33,8 +43,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setMandateId(int $mandateId)
  * @method int getAmountCents()
  * @method void setAmountCents(int $amountCents)
- * @method string getIban()
- * @method void setIban(string $iban)
+ * @method string|null getIban()
+ * @method void setIban(?string $iban)
  * @method string|null getBic()
  * @method void setBic(?string $bic)
  * @method string getAccountHolder()
@@ -92,8 +102,14 @@ class DebitItem extends Entity implements \JsonSerializable {
 	 * – der Einzug-Unterreiter ist laut Spec §3.9 für `revisor` lesbar, aber nur
 	 * mit maskierter IBAN, unabhängig von der tatsächlichen Rolle des Aufrufers
 	 * (siehe {@see \OCA\Vereinsbuchhaltung\Controller\DebitBatchController}).
+	 *
+	 * Null nach einer DSGVO-Anonymisierung (siehe Klassendoc) – dann gibt es
+	 * nichts mehr zu maskieren.
 	 */
-	public function maskedIban(): string {
+	public function maskedIban(): ?string {
+		if ($this->iban === null || $this->iban === '') {
+			return $this->iban;
+		}
 		$len = strlen($this->iban);
 		if ($len <= 8) {
 			return str_repeat('•', $len);

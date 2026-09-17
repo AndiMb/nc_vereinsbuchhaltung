@@ -11,60 +11,62 @@
 				{{ isEdit ? t('Mitglied') + ': ' + member.displayName : t('Mitglied aufnehmen') }}
 			</h2>
 
-			<div class="vbh-form">
-				<label>{{ t('Mitgliedstyp') }}
-					<select v-model="form.memberType">
-						<option value="person">{{ t('Person') }}</option>
-						<option value="organisation">{{ t('Organisation') }}</option>
-					</select>
-				</label>
-			</div>
-			<div v-if="form.memberType === 'person'" class="vbh-form">
-				<label>{{ t('Vorname') }}
-					<input ref="nameInput" v-model="form.firstName" :placeholder="t('optional')">
-				</label>
-				<label class="vbh-grow">{{ t('Nachname') }}
-					<input v-model="form.lastName">
-				</label>
-			</div>
-			<div v-else class="vbh-form">
-				<label class="vbh-grow">{{ t('Name der Organisation') }}
-					<input ref="orgInput" v-model="form.organizationName">
-				</label>
-			</div>
+			<fieldset class="vbh-fieldset-reset" :disabled="isRedacted">
+				<div class="vbh-form">
+					<label>{{ t('Mitgliedstyp') }}
+						<select v-model="form.memberType">
+							<option value="person">{{ t('Person') }}</option>
+							<option value="organisation">{{ t('Organisation') }}</option>
+						</select>
+					</label>
+				</div>
+				<div v-if="form.memberType === 'person'" class="vbh-form">
+					<label>{{ t('Vorname') }}
+						<input ref="nameInput" v-model="form.firstName" :placeholder="t('optional')">
+					</label>
+					<label class="vbh-grow">{{ t('Nachname') }}
+						<input v-model="form.lastName">
+					</label>
+				</div>
+				<div v-else class="vbh-form">
+					<label class="vbh-grow">{{ t('Name der Organisation') }}
+						<input ref="orgInput" v-model="form.organizationName">
+					</label>
+				</div>
 
-			<div class="vbh-form">
-				<label class="vbh-grow">{{ t('E-Mail') }}
-					<input v-model="form.email" type="email" :placeholder="t('Voraussetzung für Lastschrift')">
-				</label>
-				<label>{{ t('Telefon') }}
-					<input v-model="form.phone">
-				</label>
-			</div>
-			<div class="vbh-form">
-				<label class="vbh-grow">{{ t('Straße') }}
-					<input v-model="form.street">
-				</label>
-				<label>{{ t('PLZ') }}
-					<input v-model="form.postalCode" class="vbh-short">
-				</label>
-				<label>{{ t('Ort') }}
-					<input v-model="form.city">
-				</label>
-			</div>
-			<div class="vbh-form">
-				<label>{{ t('Mitgliedsnummer') }}
-					<input v-model="form.memberNumber" :placeholder="t('optional')">
-				</label>
-				<label>{{ t('Beigetreten am') }}
-					<input v-model="form.joinedAt" type="date">
-				</label>
-			</div>
-			<div class="vbh-form">
-				<label class="vbh-grow">{{ t('Interne Notiz') }}
-					<textarea v-model="form.internalNote" rows="2" :placeholder="t('nicht im Self-Service sichtbar')" />
-				</label>
-			</div>
+				<div class="vbh-form">
+					<label class="vbh-grow">{{ t('E-Mail') }}
+						<input v-model="form.email" type="email" :placeholder="t('Voraussetzung für Lastschrift')">
+					</label>
+					<label>{{ t('Telefon') }}
+						<input v-model="form.phone">
+					</label>
+				</div>
+				<div class="vbh-form">
+					<label class="vbh-grow">{{ t('Straße') }}
+						<input v-model="form.street">
+					</label>
+					<label>{{ t('PLZ') }}
+						<input v-model="form.postalCode" class="vbh-short">
+					</label>
+					<label>{{ t('Ort') }}
+						<input v-model="form.city">
+					</label>
+				</div>
+				<div class="vbh-form">
+					<label>{{ t('Mitgliedsnummer') }}
+						<input v-model="form.memberNumber" :placeholder="t('optional')">
+					</label>
+					<label>{{ t('Beigetreten am') }}
+						<input v-model="form.joinedAt" type="date">
+					</label>
+				</div>
+				<div class="vbh-form">
+					<label class="vbh-grow">{{ t('Interne Notiz') }}
+						<textarea v-model="form.internalNote" rows="2" :placeholder="t('nicht im Self-Service sichtbar')" />
+					</label>
+				</div>
+			</fieldset>
 
 			<template v-if="!isEdit">
 				<p class="vbh-hint">
@@ -163,6 +165,10 @@
 			</template>
 
 			<template v-else>
+				<p v-if="member.redactedAt" class="vbh-hint vbh-hint--warning">
+					{{ t('Diese Mitgliedsakte wurde am {datum} DSGVO-anonymisiert. Name, Kontaktdaten und personenbezogene Freitexte sind unwiderruflich entfernt; Stammdaten können nicht mehr bearbeitet werden.', { datum: member.redactedAt.slice(0, 10) }) }}
+				</p>
+
 				<h3 class="vbh-modal-subtitle">
 					{{ t('Nextcloud-Konto') }}
 				</h3>
@@ -226,6 +232,46 @@
 						rel="noopener"
 						class="vbh-export-btn">{{ t('Öffnen') }}</a>
 				</div>
+
+				<h3 class="vbh-modal-subtitle">
+					{{ t('Datenübersicht (Art. 15 DSGVO)') }}
+				</h3>
+				<p class="vbh-hint">
+					{{ t('Druckfertige Auskunft über alle zu diesem Mitglied gespeicherten Daten – kein strukturierter Export nach Art. 20 DSGVO.') }}
+				</p>
+				<div class="vbh-form">
+					<a
+						:href="dataOverviewUrl"
+						target="_blank"
+						rel="noopener"
+						class="vbh-export-btn">{{ t('Datenübersicht öffnen') }}</a>
+				</div>
+
+				<h3 class="vbh-modal-subtitle">
+					{{ t('Anonymisierung (Art. 17 DSGVO)') }}
+				</h3>
+				<p v-if="member.redactedAt" class="vbh-hint">
+					{{ t('Bereits am {datum} anonymisiert.', { datum: member.redactedAt.slice(0, 10) }) }}
+				</p>
+				<template v-else>
+					<p v-if="anonymizationStatus && anonymizationStatus.eligible" class="vbh-hint vbh-hint--warning">
+						{{ t('Anonymisierungsreif: die letzte zugehörige Buchung liegt mehr als 10 Jahre zurück – die Bestätigung ist irreversibel.') }}
+					</p>
+					<p v-else-if="anonymizationStatus && anonymizationStatus.cutoffDate" class="vbh-hint">
+						{{ t('Noch nicht anonymisierungsreif (frühestens ab {datum} – 10 Jahre nach der letzten zugehörigen Buchung).', { datum: anonymizationStatus.cutoffDate }) }}
+					</p>
+					<p v-else-if="anonymizationStatus" class="vbh-hint">
+						{{ t('Noch keine zugehörige Buchung – die 10-Jahres-Frist läuft noch nicht.') }}
+					</p>
+					<NcButton
+						v-if="anonymizationStatus && anonymizationStatus.eligible"
+						variant="error"
+						size="small"
+						:disabled="anonymizing"
+						@click="doAnonymize">
+						{{ t('Jetzt anonymisieren') }}
+					</NcButton>
+				</template>
 
 				<h3 class="vbh-modal-subtitle">
 					{{ t('Austritt') }}
@@ -371,11 +417,15 @@ export default {
 			assignmentPreview: null,
 			certificateYears: [],
 			certificateYear: null,
+			anonymizationStatus: null,
+			anonymizing: false,
 		}
 	},
 
 	computed: {
 		isEdit() { return this.member !== null },
+
+		isRedacted() { return this.isEdit && !!this.member.redactedAt },
 
 		hasEmail() { return this.form.email.trim() !== '' },
 
@@ -388,6 +438,11 @@ export default {
 		},
 
 		canSave() {
+			// Nach einer DSGVO-Anonymisierung (Issue #78) ist die Bearbeitung
+			// gesperrt (siehe isRedacted/Fieldset im Template und die serverseitige
+			// Spiegelung in MemberService::update()) - explizit statt sich darauf
+			// zu verlassen, dass Vor-/Nachname nach der Schwärzung ohnehin leer sind.
+			if (this.isRedacted) { return false }
 			return this.form.memberType === 'organisation'
 				? !!this.form.organizationName.trim()
 				: !!this.form.lastName.trim()
@@ -396,6 +451,11 @@ export default {
 		/** Druckfertige Live-Ansicht der Beitragsbestätigung (Issue #77) - öffnet in neuem Tab. */
 		certificateUrl() {
 			return api.memberCertificateUrl(this.member.id, this.certificateYear)
+		},
+
+		/** Druckfertige "Datenübersicht" (Art. 15 DSGVO, Issue #78) - öffnet in neuem Tab. */
+		dataOverviewUrl() {
+			return api.memberDataOverviewUrl(this.member.id)
 		},
 	},
 
@@ -409,7 +469,11 @@ export default {
 			this.assignmentPreview = null
 			this.certificateYears = []
 			this.certificateYear = null
-			if (this.isEdit) { this.loadCertificateYears() }
+			this.anonymizationStatus = null
+			if (this.isEdit) {
+				this.loadCertificateYears()
+				if (!this.isRedacted) { this.loadAnonymizationStatus() }
+			}
 			focusOnOpen(this, () => this.$refs.nameInput || this.$refs.orgInput)
 		},
 
@@ -504,6 +568,40 @@ export default {
 				this.certificateYear = data.years[0] ?? null
 			} catch (e) {
 				showError(this.errMsg(e, this.t('Beitragsjahre konnten nicht geladen werden')))
+			}
+		},
+
+		/** Anonymisierungsreife für den "Jetzt anonymisieren"-Knopf (Issue #78, Spec §3.8). */
+		async loadAnonymizationStatus() {
+			try {
+				const { data } = await api.memberAnonymizationStatus(this.member.id)
+				this.anonymizationStatus = data
+			} catch (e) {
+				showError(this.errMsg(e, this.t('Anonymisierungsstatus konnte nicht geladen werden')))
+			}
+		},
+
+		/**
+		 * Manuelle, irreversible Bestätigung der DSGVO-Anonymisierung (Spec
+		 * §3.8) - kein Vollautomatismus, deshalb die deutliche Rückfrage.
+		 */
+		async doAnonymize() {
+			if (!await this.askConfirm(
+				this.t('Mitglied anonymisieren'),
+				this.t('Name, Kontaktdaten, Bankverbindungen und personenbezogene Freitexte von „{name}" unwiderruflich schwärzen? Das lässt sich nicht rückgängig machen.', { name: this.member.displayName }),
+				this.t('Jetzt anonymisieren'),
+				'error',
+			)) { return }
+			this.anonymizing = true
+			try {
+				await api.anonymizeMember(this.member.id)
+				showSuccess(this.t('Mitglied anonymisiert.'))
+				this.$emit('changed')
+				this.$emit('close')
+			} catch (e) {
+				showError(this.errMsg(e, this.t('Anonymisierung fehlgeschlagen')))
+			} finally {
+				this.anonymizing = false
 			}
 		},
 

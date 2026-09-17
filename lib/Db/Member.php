@@ -51,6 +51,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setInternalNote(?string $internalNote)
  * @method string getCreatedAt()
  * @method void setCreatedAt(string $createdAt)
+ * @method string|null getRedactedAt()
+ * @method void setRedactedAt(?string $redactedAt)
  */
 class Member extends Entity implements \JsonSerializable {
 	protected $memberType = self::TYPE_PERSON;
@@ -69,18 +71,37 @@ class Member extends Entity implements \JsonSerializable {
 	protected $ncUserId;
 	protected $internalNote;
 	protected $createdAt;
+	// DSGVO-Anonymisierung (Spec §3.8, Issue #78) - siehe MemberAnonymizationService.
+	protected $redactedAt;
 
 	public const TYPE_PERSON = 'person';
 	public const TYPE_ORGANIZATION = 'organisation';
 	public const TYPES = [self::TYPE_PERSON, self::TYPE_ORGANIZATION];
+
+	/** Anzeigename eines anonymisierten Mitglieds (Spec §3.8) - Name/Kontakt sind geschwärzt, die Mitglieds-ID bleibt der einzige Wiedererkennungswert. */
+	public const REDACTED_DISPLAY_NAME = 'Anonymisiertes Mitglied';
+
+	public function isRedacted(): bool {
+		return $this->redactedAt !== null;
+	}
 
 	/**
 	 * Anzeigename je nach Mitgliedstyp: bei einer Person Vor- und Nachname,
 	 * bei einer Organisation deren Name. Bewusst nicht über getName() – die
 	 * Fachlogik unterscheidet die beiden Fälle ausdrücklich (siehe
 	 * Feldkatalog Spec §2.2).
+	 *
+	 * Nach einer DSGVO-Anonymisierung (Spec §3.8) sind Name/Kontakt geschwärzt
+	 * (null) - ohne diese Ausnahme läge hier ein irreführender Leerstring,
+	 * überall dort, wo displayName() auch weiterhin auftaucht (z.B. eingefroren
+	 * in {@see \OCA\Vereinsbuchhaltung\Db\OpenItem::getDebtor()} vor der
+	 * Anonymisierung selbst schon, oder in Listen, die trotzdem eine Zeile
+	 * brauchen).
 	 */
 	public function displayName(): string {
+		if ($this->isRedacted()) {
+			return self::REDACTED_DISPLAY_NAME;
+		}
 		if ($this->memberType === self::TYPE_ORGANIZATION) {
 			return (string)($this->organizationName ?? '');
 		}
@@ -137,6 +158,7 @@ class Member extends Entity implements \JsonSerializable {
 			'ncUserId' => $this->ncUserId,
 			'internalNote' => $this->internalNote,
 			'createdAt' => $this->createdAt,
+			'redactedAt' => $this->redactedAt,
 		];
 	}
 }

@@ -26,10 +26,15 @@ namespace OCA\Vereinsbuchhaltung\Service\Sepa;
  *
  * @phpstan-type Row array{
  *     endToEndId: string, amountCents: int, sequenceType: string,
- *     mandateReference: string, signedDate: string, debtorIban: string,
+ *     mandateReference: string, signedDate: string, debtorIban: ?string,
  *     debtorBic: ?string, debtorName: string, remittanceInfo: string,
  *     amendmentIndicator?: bool, originalDebtorAccount?: ?string,
  * }
+ *
+ * `debtorIban` ist seit Issue #78 (DSGVO-Anonymisierung, Spec §3.8) nullable:
+ * ein Jahrzehnte alter, anonymisierter Einzugsposten lässt sich weiterhin
+ * neu rendern, nur eben ohne IBAN (leeres `<IBAN/>`-Element statt eines
+ * PHP-Fehlers) – siehe {@see DebitItem}-Klassendoc.
  */
 class PainXmlBuilder {
 

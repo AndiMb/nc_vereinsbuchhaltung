@@ -85,6 +85,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setConsentActor(?string $consentActor)
  * @method string getCreatedAt()
  * @method void setCreatedAt(string $createdAt)
+ * @method string|null getRedactedAt()
+ * @method void setRedactedAt(?string $redactedAt)
  */
 class Mandate extends Entity implements \JsonSerializable {
 	protected $memberId;
@@ -111,6 +113,15 @@ class Mandate extends Entity implements \JsonSerializable {
 	protected $consentUserAgent;
 	protected $consentActor;
 	protected $createdAt;
+	// DSGVO-Anonymisierung (Spec §3.8, Issue #78) - siehe MemberAnonymizationService.
+	protected $redactedAt;
+
+	/**
+	 * Platzhalter für `account_holder` nach der Anonymisierung - die Spalte
+	 * ist Pflicht (siehe Version000140), anders als `iban`/`bic` kann sie
+	 * deshalb nicht einfach geleert werden.
+	 */
+	public const REDACTED_ACCOUNT_HOLDER = '(anonymisiert)';
 
 	/** Nur `papier` ist in diesem Ticket (#66) tatsächlich nutzbar; die anderen beiden sind Enum-Vorgriffe auf #67 (Einmal-Link) und QES (nicht v1). */
 	public const SIGNATURE_PAPER = 'papier';
@@ -144,6 +155,10 @@ class Mandate extends Entity implements \JsonSerializable {
 
 	public function isLive(): bool {
 		return $this->status !== self::STATUS_ENDED;
+	}
+
+	public function isRedacted(): bool {
+		return $this->redactedAt !== null;
 	}
 
 	/**
@@ -218,6 +233,7 @@ class Mandate extends Entity implements \JsonSerializable {
 			'sequenceType' => self::SEQUENCE_TYPE,
 			'isCollectible' => $this->isCollectible(),
 			'createdAt' => $this->createdAt,
+			'redactedAt' => $this->redactedAt,
 		];
 	}
 }

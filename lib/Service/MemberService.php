@@ -59,12 +59,20 @@ class MemberService {
 	 * {@see leave()}, {@see reactivate()}, {@see link()}, {@see unlink()}),
 	 * keine beiläufige Feldänderung im großen Stammdatenformular.
 	 *
+	 * Nach einer DSGVO-Anonymisierung (Spec §3.8, Issue #78) gesperrt – sonst
+	 * ließe sich ein gerade erst geschwärztes Mitglied über dasselbe Formular
+	 * gleich wieder mit einem (ggf. frei erfundenen) Namen befüllen, was den
+	 * ausdrücklich irreversiblen Anonymisierungs-Vorgang unterlaufen würde.
+	 *
 	 * @param array<string, mixed> $data
 	 * @throws DoesNotExistException wenn es das Mitglied nicht (mehr) gibt
-	 * @throws \InvalidArgumentException bei ungültigen Eingaben
+	 * @throws \InvalidArgumentException bei ungültigen Eingaben, oder wenn das Mitglied bereits anonymisiert ist
 	 */
 	public function update(int $id, array $data): Member {
 		$member = $this->mapper->find($id);
+		if ($member->isRedacted()) {
+			throw new \InvalidArgumentException($this->l10n->t('Dieses Mitglied ist anonymisiert; Stammdaten können nicht mehr bearbeitet werden.'));
+		}
 		$this->applyStammdaten($member, $data);
 		return $this->mapper->update($member);
 	}
