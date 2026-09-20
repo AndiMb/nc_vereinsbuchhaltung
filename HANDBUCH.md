@@ -1247,6 +1247,15 @@ erzeugen Sie den gesamten Rückstand sofort.
 Haben Sie sich schlicht im Startdatum vertan, korrigieren Sie die nächste
 Fälligkeit über *Bearbeiten*, statt nachzuholen.
 
+**Mitglieder, die über den Aufnahme-Assistenten oder den CSV-Import angelegt
+wurden**, zeigt die Liste mit Mandat (IBAN, bei Bedarf mit der Marke *Entwurf*
+oder *ausgesetzt*) und ihrer Beitragsgruppen-Zuweisung: *Betrag* ist der Betrag
+je Periode (Monatsbeitrag × Turnus), *Aktiv* nennt den Zustand der Zuweisung
+(*aktiv*, *ab …*, *beendet …*). Eine *Nächste Fälligkeit* gibt es dort nicht –
+sie entsteht erst mit der Forderung. Wer per Überweisung zahlt, steht mit
+„Überweisung" statt „kein Mandat" da. Solche Zuweisungen bearbeiten Sie nicht in
+der Zeile, sondern über **„Zuweisung verwalten"** im Reiter *Beitragsgruppen*.
+
 ### 13.5 Einzug erzeugen und einreichen
 
 Im Reiter **„Beiträge" → Einzug** wählen Sie den **Fälligkeitstermin**. Die

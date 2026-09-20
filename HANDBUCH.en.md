@@ -1215,6 +1215,15 @@ create the entire backlog immediately.
 If you simply got the start date wrong, correct the next due date via
 *Edit* instead of catching up.
 
+**Members created through the intake wizard or the CSV import** appear in the
+list with their mandate (IBAN, marked *Draft* or *suspended* where applicable)
+and their contribution-group assignment: *Amount* is the amount per period
+(monthly fee × interval), *Active* states the assignment's state (*active*,
+*from …*, *ended …*). There is no *Next due date* for them – it only arises
+with the claim. Members who pay by bank transfer show "Bank transfer" instead
+of "no mandate". You do not edit such assignments in the row but via **"Manage
+assignment"** in the *Contribution groups* tab.
+
 ### 13.5 Generating and submitting a collection
 
 In the **"Contributions" → Collection** tab you choose the **due date**.

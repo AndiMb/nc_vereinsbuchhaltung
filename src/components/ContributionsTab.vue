@@ -31,7 +31,8 @@
 				v-show="contribView === 'members'"
 				ref="membersList"
 				:isMobile="isMobile"
-				:defaultFeeAmount="defaultFeeAmount" />
+				:defaultFeeAmount="defaultFeeAmount"
+				@manageAssignments="$emit('update:contrib-view', 'groups')" />
 			<SepaBatchPanel v-show="contribView === 'batch'" :isMobile="isMobile" />
 			<ContributionGroupsPanel v-show="contribView === 'groups'" />
 		</div>
