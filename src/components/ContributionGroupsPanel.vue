@@ -225,6 +225,9 @@ export default {
 			loadAssignments: assignments.loadAssignments,
 			...toRefs(claims.state),
 			loadClaims: claims.loadClaims,
+			// Ohne den State fehlt memberName() `this.members` – die Zuweisungs-Tabelle
+			// warf beim ersten Rendern einen Vue-Fehler und der ganze Reiter blieb leer.
+			...toRefs(members.state),
 			loadMembers: members.loadMembers,
 			askConfirm,
 		}

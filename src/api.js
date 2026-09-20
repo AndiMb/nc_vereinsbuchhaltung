@@ -144,7 +144,9 @@ export default {
 	deleteSepaMandate: (id) => axios.delete(url(`/sepa/mandates/${id}`)),
 
 	// SEPA-Mandate, voller Lifecycle (Issue #66/#67) – parallel zum Alt-Bestand
-	// oben; genutzt vom Aufnahme-Assistenten (MemberDialog.vue, Issue #69).
+	// oben; genutzt vom Aufnahme-Assistenten (MemberDialog.vue, Issue #69) und
+	// für die Zeilen der Mitgliederliste (MembersList.vue).
+	listMandates: () => axios.get(url('/mandates')),
 	createMandate: (data) => axios.post(url('/mandates'), data),
 	activateMandate: (id, signedAt) => axios.post(url(`/mandates/${id}/activate`), signedAt ? { signedAt } : {}),
 	createMandateElectronic: (data) => axios.post(url('/mandates/electronic'), data),

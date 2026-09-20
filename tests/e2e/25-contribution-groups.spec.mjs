@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { api, openApp, pickNcSelectOption, switchTab, visibleSection, USERS } from './fixtures/nextcloud.mjs'
+import { api, openApp, switchTab, visibleSection, USERS } from './fixtures/nextcloud.mjs'
 
 // Beitragsgruppen, Zuweisungen & manuelle Einzelforderungen (Issue #68):
 // Gruppen-CRUD, eine Zuweisung samt Inline-Mitgliedsanlage und Prorata-
@@ -111,7 +111,9 @@ test.describe('Beitragsgruppen, Zuweisungen & Forderungen', () => {
 		await dialog.getByRole('button', { name: 'Anlegen', exact: true }).click()
 		await expect(dialog).toBeHidden()
 
-		const row = visibleSection(page).locator('tr', { hasText: `${NEW_MEMBER_FIRST} ${NEW_MEMBER_LAST}` })
+		// Der Mitgliedsname steht auch in der (versteckten) Mitgliederliste – nur die
+		// sichtbare Tabelle, sonst greift der Locator zweimal (strict mode).
+		const row = visibleSection(page).locator('table.vbh-table:visible tr', { hasText: `${NEW_MEMBER_FIRST} ${NEW_MEMBER_LAST}` })
 		await expect(row).toBeVisible()
 		await expect(row).toContainText(group.name)
 		await expect(row).toContainText('8,00')
@@ -129,7 +131,14 @@ test.describe('Beitragsgruppen, Zuweisungen & Forderungen', () => {
 		const dialog = page.getByRole('dialog', { name: 'Manuelle Einzelforderung' })
 		await expect(dialog).toBeVisible()
 
-		await pickNcSelectOption(dialog, 'Mitglied wählen …', firstName)
+		// Innerhalb eines <label> trägt der NcSelect den Platzhalter nicht als
+		// Attribut (er steht nur als Text im Feld) – deshalb über den Namen des
+		// Comboboxes statt pickNcSelectOption(…, placeholder, …).
+		const memberSelect = dialog.getByRole('combobox', { name: 'Mitglied' })
+		await memberSelect.click()
+		await memberSelect.pressSequentially(firstName, { delay: 20 })
+		await page.locator('li.vs__dropdown-option', { hasText: firstName }).first().waitFor()
+		await memberSelect.press('Enter')
 		await dialog.getByLabel('Betrag (€)').fill('15')
 		await dialog.getByLabel('Bezeichnung').fill('Nachzahlung Sommerfest')
 		await dialog.getByRole('button', { name: 'Anlegen', exact: true }).click()

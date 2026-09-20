@@ -368,7 +368,9 @@ function emptyForm(member, defaultFeeAmount) {
 					groupId: null,
 					intervalMonths: 12,
 					monthlyAmount: defaultFeeAmount ?? '',
-					paymentMethod: 'direct_debit',
+					// Ohne Mailadresse (beim Öffnen leer) ist nur Überweisung möglich; sobald
+					// eine eingetragen wird, schaltet der Watcher hasEmail auf Lastschrift.
+					paymentMethod: 'ueberweisung',
 					validFrom: new Date().toISOString().slice(0, 10),
 				}),
 	}
@@ -482,7 +484,8 @@ export default {
 		// an Ort und Stelle, weil Stammdaten (Schritt 1) und Beitrag (Schritt 3)
 		// im selben Formular stehen.
 		hasEmail(has) {
-			if (!has) { this.form.paymentMethod = 'ueberweisung' }
+			if (this.isEdit) { return } // die Akte kennt keinen Beitrag-Schritt
+			this.form.paymentMethod = has ? 'direct_debit' : 'ueberweisung'
 		},
 
 		selectedGroup(group) {

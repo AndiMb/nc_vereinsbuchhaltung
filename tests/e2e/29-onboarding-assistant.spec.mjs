@@ -118,9 +118,12 @@ test.describe('Aufnahme-Assistent & voller CSV-Import', () => {
 		// Ohne Mailadresse lässt sich kein Einmal-Link verschicken - die Option
 		// bleibt bis dahin gesperrt (Spec §2.2: "an NC-Konto- oder bestätigte
 		// Mitglieds-Mailadresse").
-		await expect(dialog.getByLabel('Art der Unterschrift').locator('option[value="elektronisch"]')).toBeDisabled()
+		// Über die DOM-Eigenschaft statt toBeDisabled(): Playwright kennt <option>
+		// nicht als sperrbares Element und meldet sie immer als "enabled".
+		const electronic = dialog.getByLabel('Art der Unterschrift').locator('option[value="elektronisch"]')
+		await expect(electronic).toHaveJSProperty('disabled', true)
 		await dialog.getByLabel('E-Mail').fill('elke.elektronisch@example.org')
-		await expect(dialog.getByLabel('Art der Unterschrift').locator('option[value="elektronisch"]')).toBeEnabled()
+		await expect(electronic).toHaveJSProperty('disabled', false)
 
 		await dialog.getByLabel('Art der Unterschrift').selectOption('elektronisch')
 		await dialog.getByLabel('IBAN', { exact: true }).fill('DE02120300000000202051')
@@ -169,9 +172,14 @@ test.describe('Aufnahme-Assistent & voller CSV-Import', () => {
 	test('CSV-Import: Mitglied, Mandat und Zuweisung in einer Zeile, Bestätigungs-Checkbox erforderlich', async ({ page, request }) => {
 		const group = await ensureGroup(request)
 
+		// Der Beginn einer Zuweisung darf nicht in der Vergangenheit liegen – ein
+		// festes Datum verfaulte deshalb mit dem Kalender; heute (UTC, wie der
+		// Server) ist immer zulässig.
+		const [y, m, d] = new Date().toISOString().slice(0, 10).split('-')
+		const startDate = `${d}.${m}.${y}`
 		const csv = [
 			'Name;E-Mail;IBAN;Mandat am;Mandatsreferenz;Mitgliedsnummer;Beitragsgruppe;Betrag;Frequenz;Start',
-			`Klara Import;klara.import@example.org;DE02120300000000202051;15.01.2026;ALT-EXTERN-1;IMP-0001;${group.name};9,00;monatlich;01.02.2026`,
+			`Klara Import;klara.import@example.org;DE02120300000000202051;15.01.2026;ALT-EXTERN-1;IMP-0001;${group.name};9,00;monatlich;${startDate}`,
 			'Barzahler Import;;;;;;;;;', // reine Stammdatenzeile - Spec §3.1: Zeile ohne Mandat/Beitrag ist gueltig
 		].join('\r\n')
 
@@ -200,7 +208,9 @@ test.describe('Aufnahme-Assistent & voller CSV-Import', () => {
 		const confirmDialog = page.getByRole('dialog', { name: 'Mitglieder übernehmen' })
 		await expect(confirmDialog).toBeVisible()
 		await confirmDialog.getByRole('button', { name: 'Übernehmen', exact: true }).click()
-		await expect(dialog).toBeVisible() // Import-Dialog schliesst sich nicht selbst, zeigt das Ergebnis
+		// Import-Dialog schliesst sich nicht selbst, zeigt das Ergebnis – darauf
+		// warten, sonst fragt die API-Prüfung unten vor dem Ende des Imports ab.
+		await expect(dialog.getByText('Mandat und Zuweisung angelegt')).toBeVisible()
 
 		const members = await api.listMembers(request)
 		const klara = members.find((m) => m.displayName === 'Klara Import')
