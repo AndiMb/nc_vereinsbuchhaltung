@@ -6,13 +6,18 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
+use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\MembershipFeeMapper;
 use OCA\Vereinsbuchhaltung\Db\SepaMandateMapper;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\AttachmentWatchFolderService;
 use OCA\Vereinsbuchhaltung\Service\BillingPeriod;
+use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCA\Vereinsbuchhaltung\Service\DemoDataService;
+use OCA\Vereinsbuchhaltung\Service\MandateDocumentService;
+use OCA\Vereinsbuchhaltung\Service\MandateReferenceGenerator;
+use OCA\Vereinsbuchhaltung\Service\MandateService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCA\Vereinsbuchhaltung\Service\ReportService;
 use OCA\Vereinsbuchhaltung\Service\SepaDebtorAccountService;
@@ -39,10 +44,13 @@ class SettingsController extends Controller {
 		private AccountMapper $accountMapper,
 		private SepaMandateMapper $sepaMandateMapper,
 		private MembershipFeeMapper $membershipFeeMapper,
+		private MemberMapper $memberMapper,
 		private IUserManager $userManager,
 		private SepaDebtorAccountService $sepaDebtorAccount,
 		private AttachmentStorageService $attachmentStorage,
 		private AttachmentWatchFolderService $attachmentWatchFolder,
+		private MandateDocumentService $mandateDocuments,
+		private ContributionYearService $contributionYear,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -157,12 +165,26 @@ class SettingsController extends Controller {
 			'default_fee_frequency' => $this->config->getAppValue(Application::APP_ID, 'default_fee_frequency', 'yearly'),
 			'membership_enabled' => $membershipEnabled,
 			// Steuert den Reiter „Beiträge": auch ohne den Schalter sichtbar,
-			// sobald bereits Mandate oder Beiträge bestehen – siehe
+			// sobald bereits Mitglieder, Mandate oder Beiträge bestehen – siehe
 			// NAVIGATION-KONZEPT.md Abschnitt 4. Keine Migration noetig, die
 			// bestehende Installationen zeigen den Reiter dadurch sofort.
+			// Mitglieder zaehlen seit der Member-Entity (Issue #65) mit: anders
+			// als Mandat/Beitrag ist ein Mitglied jetzt unabhaengig von beiden
+			// anlegbar, ohne sie bliebe der Reiter fuer diesen Fall verborgen.
 			'membership_active' => $membershipEnabled
 				|| $this->sepaMandateMapper->count() > 0
-				|| $this->membershipFeeMapper->count() > 0,
+				|| $this->membershipFeeMapper->count() > 0
+				|| $this->memberMapper->count() > 0,
+			// Mandats-Lifecycle (Issue #66, Spec §4 „Neue Einstellungen"):
+			'mandate_reference_prefix' => $this->config->getAppValue(Application::APP_ID, MandateService::SETTING_REFERENCE_PREFIX, MandateReferenceGenerator::DEFAULT_PREFIX),
+			'mandate_document_folder' => $this->mandateDocuments->folderPath(),
+			'show_missing_document_warning' => $this->mandateDocuments->showMissingDocumentWarning(),
+			// Beitragsjahr (Issue #68, Spec §3.3/§4): eigenständig vom
+			// Geschäftsjahr der Kern-Buchhaltung, siehe ContributionYearService.
+			'fiscal_year_start_month' => $this->contributionYear->getStartMonth(),
+			// Self-Service-Zugang (Spec §3.4): einfacher Bool-Schalter, nur ab
+			// Verwalter änderbar (siehe update(), RequiresRole ROLE_ADMIN).
+			'self_service_enabled' => $this->config->getAppValue(Application::APP_ID, 'self_service_enabled', '0') === '1',
 		];
 	}
 
@@ -382,6 +404,44 @@ class SettingsController extends Controller {
 		if (array_key_exists('membership_enabled', $params)) {
 			$membershipEnabled = (string)$params['membership_enabled'] === '1';
 			$this->config->setAppValue($appId, 'membership_enabled', $membershipEnabled ? '1' : '0');
+		}
+
+		// Mandats-Lifecycle (Issue #66): Präfix "verwalter"-Einstellung (Spec §4/§3.9).
+		// Leer ist erlaubt (fällt beim Generieren auf MandateReferenceGenerator::DEFAULT_PREFIX
+		// zurück) - dasselbe Muster wie ein geleerter Belegablage-Pfad oben.
+		if (array_key_exists('mandate_reference_prefix', $params)) {
+			$prefix = mb_substr(trim((string)$params['mandate_reference_prefix']), 0, 16);
+			if (preg_match('/[\/\\\\]/', $prefix) === 1) {
+				return new DataResponse(['message' => $this->l10n->t('Ungültiges Mandatsreferenz-Präfix.')], Http::STATUS_BAD_REQUEST);
+			}
+			$this->config->setAppValue($appId, MandateService::SETTING_REFERENCE_PREFIX, $prefix);
+		}
+
+		if (array_key_exists('mandate_document_folder', $params)) {
+			$mandateFolder = (string)$params['mandate_document_folder'];
+			$mandateFolderError = $this->validatePath($mandateFolder, $this->l10n->t('Nachweis-Ordner'));
+			if ($mandateFolderError !== null) {
+				return new DataResponse(['message' => $mandateFolderError], Http::STATUS_BAD_REQUEST);
+			}
+			$mandateFolder = trim(str_replace('\\', '/', $mandateFolder), '/');
+			$this->config->setAppValue($appId, MandateDocumentService::SETTING_FOLDER, $mandateFolder !== '' ? $mandateFolder : MandateDocumentService::DEFAULT_FOLDER);
+		}
+
+		if (array_key_exists('show_missing_document_warning', $params)) {
+			$this->config->setAppValue($appId, MandateDocumentService::SETTING_SHOW_MISSING_WARNING, (string)$params['show_missing_document_warning'] === '1' ? '1' : '0');
+		}
+
+		if (array_key_exists('fiscal_year_start_month', $params)) {
+			try {
+				$this->contributionYear->setStartMonth((int)$params['fiscal_year_start_month']);
+			} catch (\InvalidArgumentException $e) {
+				return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+			}
+		}
+
+		if (array_key_exists('self_service_enabled', $params)) {
+			$selfServiceEnabled = (string)$params['self_service_enabled'] === '1';
+			$this->config->setAppValue($appId, 'self_service_enabled', $selfServiceEnabled ? '1' : '0');
 		}
 
 		$settings = $this->currentSettings();

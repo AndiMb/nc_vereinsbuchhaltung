@@ -1,0 +1,524 @@
+<?php
+
+declare(strict_types=1);
+
+namespace OCA\Vereinsbuchhaltung\Tests\Unit;
+
+use OCA\Vereinsbuchhaltung\Db\Assignment;
+use OCA\Vereinsbuchhaltung\Db\AssignmentMapper;
+use OCA\Vereinsbuchhaltung\Db\Member;
+use OCA\Vereinsbuchhaltung\Db\MemberMapper;
+use OCA\Vereinsbuchhaltung\Db\MembershipFee;
+use OCA\Vereinsbuchhaltung\Db\MembershipFeeMapper;
+use OCA\Vereinsbuchhaltung\Db\OpenItem;
+use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
+use OCA\Vereinsbuchhaltung\Db\SepaMandate;
+use OCA\Vereinsbuchhaltung\Db\SepaMandateMapper;
+use OCA\Vereinsbuchhaltung\Service\MemberService;
+use OCP\IL10N;
+use OCP\IUser;
+use OCP\IUserManager;
+use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\TestCase;
+
+/**
+ * Stammdaten-CRUD und Störfall-Regeln der Mitglied-Entity (Spec §2.2/§3.1).
+ * DB-Zugriffe sind gemockt (MemberMapper/SepaMandateMapper/MembershipFeeMapper) –
+ * echte Datenbankfragen bleiben wie im übrigen Bestand den E2E-Tests
+ * vorbehalten (siehe tests/e2e/11-contributions.spec.mjs).
+ */
+class MemberServiceTest extends TestCase {
+
+	private MemberMapper&MockObject $mapper;
+	private SepaMandateMapper&MockObject $mandateMapper;
+	private MembershipFeeMapper&MockObject $feeMapper;
+	private AssignmentMapper&MockObject $assignmentMapper;
+	private OpenItemMapper&MockObject $openItemMapper;
+	private IUserManager&MockObject $userManager;
+
+	protected function setUp(): void {
+		$this->mapper = $this->createMock(MemberMapper::class);
+		$this->mandateMapper = $this->createMock(SepaMandateMapper::class);
+		$this->feeMapper = $this->createMock(MembershipFeeMapper::class);
+		// Kein Standard-Stub hier, analog zu mandateMapper/feeMapper: ein
+		// nicht konfigurierter Mock-Aufruf liefert für einen als `array`
+		// typisierten Rückgabewert bereits [] - jeder Test stubt explizit,
+		// was er braucht (siehe restliche Tests in dieser Klasse).
+		$this->assignmentMapper = $this->createMock(AssignmentMapper::class);
+		$this->openItemMapper = $this->createMock(OpenItemMapper::class);
+		$this->userManager = $this->createMock(IUserManager::class);
+	}
+
+	private function service(): MemberService {
+		$l10n = $this->createMock(IL10N::class);
+		$l10n->method('t')->willReturnCallback(
+			static fn (string $text, array $parameters = []): string => vsprintf(str_replace('%s', '%1$s', $text), $parameters),
+		);
+		return new MemberService($this->mapper, $this->mandateMapper, $this->feeMapper, $this->assignmentMapper, $this->openItemMapper, $this->userManager, $l10n);
+	}
+
+	// --- splitLabel(): reine Split-Heuristik (Spec §3.1 "Umbaupfad") ---
+
+	public function testSplitLabelMitLeerzeichenIstPerson(): void {
+		$split = MemberService::splitLabel('Katrin Brunner');
+
+		$this->assertSame(Member::TYPE_PERSON, $split['type']);
+		$this->assertSame('Katrin', $split['firstName']);
+		$this->assertSame('Brunner', $split['lastName']);
+		$this->assertNull($split['organizationName']);
+	}
+
+	public function testSplitLabelSplittetAmErstenLeerzeichen(): void {
+		// "Anna Maria Muster" -> Vorname "Anna", Nachname "Maria Muster":
+		// Split am *ersten* Leerzeichen, nicht am letzten (Spec §3.1).
+		$split = MemberService::splitLabel('Anna Maria Muster');
+
+		$this->assertSame('Anna', $split['firstName']);
+		$this->assertSame('Maria Muster', $split['lastName']);
+	}
+
+	public function testSplitLabelOhneLeerzeichenIstOrganisation(): void {
+		$split = MemberService::splitLabel('Musikverein');
+
+		$this->assertSame(Member::TYPE_ORGANIZATION, $split['type']);
+		$this->assertSame('Musikverein', $split['organizationName']);
+		$this->assertNull($split['firstName']);
+		$this->assertNull($split['lastName']);
+	}
+
+	// --- create(): Validierung ---
+
+	public function testCreatePersonOhneNachnameSchlaegtFehl(): void {
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->create(['memberType' => Member::TYPE_PERSON, 'firstName' => 'Katrin']);
+	}
+
+	public function testCreateOrganisationOhneNamenSchlaegtFehl(): void {
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->create(['memberType' => Member::TYPE_ORGANIZATION]);
+	}
+
+	public function testCreateUngueltigerTypSchlaegtFehl(): void {
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->create(['memberType' => 'verein']);
+	}
+
+	public function testCreateUngueltigeEmailSchlaegtFehl(): void {
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->create(['memberType' => Member::TYPE_PERSON, 'lastName' => 'Brunner', 'email' => 'keine-email']);
+	}
+
+	public function testCreateDoppelteMitgliedsnummerSchlaegtFehl(): void {
+		$other = new Member();
+		$other->setId(9);
+		$this->mapper->method('findByMemberNumber')->with('M-1')->willReturn($other);
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->create(['memberType' => Member::TYPE_PERSON, 'lastName' => 'Brunner', 'memberNumber' => 'M-1']);
+	}
+
+	// --- create(): Erfolgsfall ---
+
+	public function testCreatePersonSetztFelderUndDefaultJoinedAt(): void {
+		$this->mapper->method('insert')->willReturnArgument(0);
+
+		$member = $this->service()->create([
+			'memberType' => Member::TYPE_PERSON,
+			'firstName' => 'Katrin',
+			'lastName' => ' Brunner ',
+			'email' => 'k.brunner@example.org',
+		]);
+
+		$this->assertSame(Member::TYPE_PERSON, $member->getMemberType());
+		$this->assertSame('Katrin', $member->getFirstName());
+		$this->assertSame('Brunner', $member->getLastName());
+		$this->assertSame('k.brunner@example.org', $member->getEmail());
+		$this->assertSame((new \DateTime())->format('Y-m-d'), $member->getJoinedAt());
+		$this->assertNotNull($member->getCreatedAt());
+	}
+
+	public function testCreateOrganisationSetztOrganisationsnamen(): void {
+		$this->mapper->method('insert')->willReturnArgument(0);
+
+		$member = $this->service()->create([
+			'memberType' => Member::TYPE_ORGANIZATION,
+			'organizationName' => 'Musikverein Talheim e.V.',
+		]);
+
+		$this->assertSame(Member::TYPE_ORGANIZATION, $member->getMemberType());
+		$this->assertSame('Musikverein Talheim e.V.', $member->getOrganizationName());
+		$this->assertNull($member->getFirstName());
+		$this->assertNull($member->getLastName());
+	}
+
+	public function testCreateOhneAngabeIstPersonPerDefault(): void {
+		$this->mapper->method('insert')->willReturnArgument(0);
+
+		$member = $this->service()->create(['lastName' => 'Brunner']);
+
+		$this->assertSame(Member::TYPE_PERSON, $member->getMemberType());
+	}
+
+	public function testUpdateAendertNichtDieId(): void {
+		$existing = new Member();
+		$existing->setId(5);
+		$existing->setMemberType(Member::TYPE_PERSON);
+		$existing->setLastName('Alt');
+		$this->mapper->method('find')->with(5)->willReturn($existing);
+		$this->mapper->method('update')->willReturnArgument(0);
+
+		$member = $this->service()->update(5, ['memberType' => Member::TYPE_PERSON, 'lastName' => 'Neu']);
+
+		$this->assertSame(5, $member->getId());
+		$this->assertSame('Neu', $member->getLastName());
+	}
+
+	// --- updateOwnContactData(): Self-Service-Kontaktdatenpflege (Spec §2.2/§3.4, Issue #76) ---
+
+	private function fullPerson(): Member {
+		$member = new Member();
+		$member->setId(5);
+		$member->setMemberType(Member::TYPE_PERSON);
+		$member->setFirstName('Katrin');
+		$member->setLastName('Brunner');
+		$member->setEmail('katrin@example.org');
+		$member->setPhone('+49 30 1234567');
+		$member->setStreet('Musterstraße 1');
+		$member->setPostalCode('12345');
+		$member->setCity('Berlin');
+		$member->setCountry('DE');
+		$member->setMemberNumber('M-042');
+		$member->setJoinedAt('2020-01-01');
+		$member->setNcUserId('katrin.b');
+		$member->setInternalNote('Zahlt oft zu spät.');
+		return $member;
+	}
+
+	public function testUpdateOwnContactDataAendertNurKontaktfelder(): void {
+		$this->mapper->method('find')->with(5)->willReturn($this->fullPerson());
+		$this->mapper->method('update')->willReturnArgument(0);
+
+		$result = $this->service()->updateOwnContactData(5, [
+			'phone' => '+49 30 999',
+			'street' => 'Neue Straße 2',
+		]);
+
+		$member = $result['member'];
+		// Kontaktfelder wie angefordert geändert ...
+		$this->assertSame('+49 30 999', $member->getPhone());
+		$this->assertSame('Neue Straße 2', $member->getStreet());
+		// ... Vereinshoheit-Felder bleiben unberührt, obwohl $data sie nicht nennt.
+		$this->assertSame('M-042', $member->getMemberNumber());
+		$this->assertSame('2020-01-01', $member->getJoinedAt());
+		$this->assertSame('katrin.b', $member->getNcUserId());
+		$this->assertSame('Zahlt oft zu spät.', $member->getInternalNote());
+		$this->assertSame(Member::TYPE_PERSON, $member->getMemberType());
+		// Nicht in $data genannte, aber Mitglied-hoheitliche Felder bleiben ebenfalls unverändert.
+		$this->assertSame('Katrin', $member->getFirstName());
+		$this->assertSame('katrin@example.org', $member->getEmail());
+	}
+
+	public function testUpdateOwnContactDataMeldetEmailWechselMitAlterAdresse(): void {
+		$this->mapper->method('find')->with(5)->willReturn($this->fullPerson());
+		$this->mapper->method('update')->willReturnArgument(0);
+
+		$result = $this->service()->updateOwnContactData(5, ['email' => 'neu@example.org']);
+
+		$this->assertTrue($result['emailChanged']);
+		$this->assertSame('katrin@example.org', $result['oldEmail']);
+		$this->assertSame('neu@example.org', $result['member']->getEmail());
+	}
+
+	public function testUpdateOwnContactDataOhneEmailAenderungMeldetKeinenWechsel(): void {
+		$this->mapper->method('find')->with(5)->willReturn($this->fullPerson());
+		$this->mapper->method('update')->willReturnArgument(0);
+
+		$result = $this->service()->updateOwnContactData(5, ['phone' => '+49 30 000']);
+
+		$this->assertFalse($result['emailChanged']);
+		$this->assertSame($result['oldEmail'], $result['member']->getEmail());
+	}
+
+	public function testUpdateOwnContactDataLehntLeerenNachnamenAb(): void {
+		$this->mapper->method('find')->with(5)->willReturn($this->fullPerson());
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->updateOwnContactData(5, ['lastName' => '   ']);
+	}
+
+	public function testUpdateOwnContactDataLehntUngueltigeEmailAb(): void {
+		$this->mapper->method('find')->with(5)->willReturn($this->fullPerson());
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->updateOwnContactData(5, ['email' => 'keine-email']);
+	}
+
+	public function testUpdateOwnContactDataBeiOrganisationAendertNurOrganisationsnamen(): void {
+		$org = new Member();
+		$org->setId(6);
+		$org->setMemberType(Member::TYPE_ORGANIZATION);
+		$org->setOrganizationName('Turnverein Alt');
+		$this->mapper->method('find')->with(6)->willReturn($org);
+		$this->mapper->method('update')->willReturnArgument(0);
+
+		$result = $this->service()->updateOwnContactData(6, ['organizationName' => 'Turnverein Neu']);
+
+		$this->assertSame('Turnverein Neu', $result['member']->getOrganizationName());
+		$this->assertSame(Member::TYPE_ORGANIZATION, $result['member']->getMemberType());
+	}
+
+	// --- blockingReasons()/delete(): Löschsperre (Spec §3.1) ---
+
+	private function mandate(int $memberId, string $status = 'active'): SepaMandate {
+		$mandate = new SepaMandate();
+		$mandate->setMemberId($memberId);
+		$mandate->setStatus($status);
+		return $mandate;
+	}
+
+	private function fee(int $memberId): MembershipFee {
+		$fee = new MembershipFee();
+		$fee->setMemberId($memberId);
+		return $fee;
+	}
+
+	public function testBlockingReasonsLeerWennNichtsVerweist(): void {
+		$this->mandateMapper->method('findAll')->willReturn([]);
+		$this->feeMapper->method('findAll')->willReturn([]);
+
+		$this->assertSame([], $this->service()->blockingReasons(1));
+	}
+
+	public function testBlockingReasonsAktivesMandatBlockiert(): void {
+		$this->mandateMapper->method('findAll')->willReturn([$this->mandate(1, 'active')]);
+		$this->feeMapper->method('findAll')->willReturn([]);
+
+		$reasons = $this->service()->blockingReasons(1);
+
+		$this->assertNotEmpty($reasons);
+		$this->assertStringContainsString('aktives SEPA-Mandat', $reasons[0]);
+	}
+
+	public function testBlockingReasonsWiderrufenesMandatBlockiertAuch(): void {
+		$this->mandateMapper->method('findAll')->willReturn([$this->mandate(1, 'revoked')]);
+		$this->feeMapper->method('findAll')->willReturn([]);
+
+		$reasons = $this->service()->blockingReasons(1);
+
+		$this->assertNotEmpty($reasons);
+	}
+
+	public function testBlockingReasonsBeitragBlockiert(): void {
+		$this->mandateMapper->method('findAll')->willReturn([]);
+		$this->feeMapper->method('findAll')->willReturn([$this->fee(1)]);
+
+		$reasons = $this->service()->blockingReasons(1);
+
+		$this->assertNotEmpty($reasons);
+	}
+
+	/** Issue #68: eine Zuweisung zu einer Beitragsgruppe blockiert die Löschung ebenso. */
+	public function testBlockingReasonsZuweisungBlockiert(): void {
+		$assignment = new Assignment();
+		$assignment->setMemberId(1);
+		$this->assignmentMapper->method('findAll')->willReturn([$assignment]);
+
+		$reasons = $this->service()->blockingReasons(1);
+
+		$this->assertNotEmpty($reasons);
+		$this->assertStringContainsString('Zuweisung', $reasons[0]);
+	}
+
+	/** Issue #68: eine Forderung (Claim, auf vbh_open_items abgebildet) blockiert die Löschung ebenso. */
+	public function testBlockingReasonsForderungBlockiert(): void {
+		$claim = new OpenItem();
+		$claim->setMemberId(1);
+		$claim->setType(OpenItem::TYPE_CONTRIBUTION);
+		$this->openItemMapper->method('findClaims')->willReturn([$claim]);
+
+		$reasons = $this->service()->blockingReasons(1);
+
+		$this->assertNotEmpty($reasons);
+		$this->assertStringContainsString('Forderung', $reasons[0]);
+	}
+
+	public function testBlockingReasonsForIdsBerechnetMehrereMitgliederInZweiAbfragen(): void {
+		// Batch-Fall (MemberController::index()): genau eine findAll()-Abfrage
+		// je Mapper bedient beliebig viele Mitglieder, nicht eine je Mitglied.
+		$this->mandateMapper->expects($this->once())->method('findAll')->willReturn([$this->mandate(1, 'active')]);
+		$this->feeMapper->expects($this->once())->method('findAll')->willReturn([$this->fee(2)]);
+
+		$reasons = $this->service()->blockingReasonsForIds([1, 2, 3]);
+
+		$this->assertNotEmpty($reasons[1]);
+		$this->assertNotEmpty($reasons[2]);
+		$this->assertSame([], $reasons[3]);
+	}
+
+	public function testDeleteWirftBeiBlockierendemGrund(): void {
+		$member = new Member();
+		$member->setId(3);
+		$this->mapper->method('find')->with(3)->willReturn($member);
+		$this->mandateMapper->method('findAll')->willReturn([$this->mandate(3, 'active')]);
+		$this->feeMapper->method('findAll')->willReturn([]);
+		$this->mapper->expects($this->never())->method('delete');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->delete(3);
+	}
+
+	public function testDeleteLoeschtWennNichtsBlockiert(): void {
+		$member = new Member();
+		$member->setId(3);
+		$this->mapper->method('find')->with(3)->willReturn($member);
+		$this->mandateMapper->method('findAll')->willReturn([]);
+		$this->feeMapper->method('findAll')->willReturn([]);
+		$this->mapper->expects($this->once())->method('delete')->with($member);
+
+		$this->service()->delete(3);
+	}
+
+	// --- Austritt (Spec §2.2/§3.1) ---
+
+	public function testLeaveSetztLeftAtAuchInDerZukunft(): void {
+		$member = new Member();
+		$member->setId(4);
+		$this->mapper->method('find')->with(4)->willReturn($member);
+		$this->mapper->method('update')->willReturnArgument(0);
+
+		$result = $this->service()->leave(4, '2030-01-01');
+
+		$this->assertSame('2030-01-01', $result->getLeftAt());
+	}
+
+	public function testLeaveMitUngueltigemDatumSchlaegtFehl(): void {
+		$member = new Member();
+		$this->mapper->method('find')->willReturn($member);
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->leave(4, 'nicht-datum');
+	}
+
+	public function testReactivateLeertLeftAt(): void {
+		$member = new Member();
+		$member->setLeftAt('2026-01-01');
+		$this->mapper->method('find')->willReturn($member);
+		$this->mapper->method('update')->willReturnArgument(0);
+
+		$result = $this->service()->reactivate(4);
+
+		$this->assertNull($result->getLeftAt());
+	}
+
+	// --- NC-Kontoverknüpfung (Spec §3.1: Vorschlag, nie Vollzug) ---
+
+	public function testFindLinkSuggestionsOhneEmailIstLeer(): void {
+		$member = new Member();
+		$this->mapper->method('find')->willReturn($member);
+
+		$this->assertSame([], $this->service()->findLinkSuggestions(1));
+	}
+
+	public function testFindLinkSuggestionsZeigtAlleTrefferOhneAuswahl(): void {
+		$member = new Member();
+		$member->setEmail('familie@example.org');
+		$this->mapper->method('find')->willReturn($member);
+		$this->userManager->method('getByEmail')->with('familie@example.org')->willReturn([
+			$this->user('vater', 'Vater Muster', 'familie@example.org'),
+			$this->user('mutter', 'Mutter Muster', 'familie@example.org'),
+		]);
+
+		$suggestions = $this->service()->findLinkSuggestions(1);
+
+		$this->assertCount(2, $suggestions);
+		$this->assertSame(['vater', 'mutter'], array_column($suggestions, 'uid'));
+	}
+
+	public function testLinkOhneExistierendesKontoSchlaegtFehl(): void {
+		$this->mapper->method('find')->willReturn(new Member());
+		$this->userManager->method('userExists')->willReturn(false);
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->link(1, 'unbekannt');
+	}
+
+	public function testLinkAnderesMitgliedSchonVerknuepftSchlaegtFehl(): void {
+		$member = new Member();
+		$member->setId(1);
+		$this->mapper->method('find')->willReturn($member);
+		$this->userManager->method('userExists')->willReturn(true);
+		$other = new Member();
+		$other->setId(2);
+		$this->mapper->method('findByNcUserId')->willReturn($other);
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->link(1, 'katrin');
+	}
+
+	public function testLinkSetztNcUserIdNachBestaetigung(): void {
+		$member = new Member();
+		$member->setId(1);
+		$this->mapper->method('find')->willReturn($member);
+		$this->userManager->method('userExists')->willReturn(true);
+		$this->mapper->method('findByNcUserId')->willReturn(null);
+		$this->mapper->method('update')->willReturnArgument(0);
+
+		$result = $this->service()->link(1, 'katrin');
+
+		$this->assertSame('katrin', $result->getNcUserId());
+	}
+
+	public function testUnlinkLeertNcUserId(): void {
+		$member = new Member();
+		$member->setNcUserId('katrin');
+		$this->mapper->method('find')->willReturn($member);
+		$this->mapper->method('update')->willReturnArgument(0);
+
+		$result = $this->service()->unlink(1);
+
+		$this->assertNull($result->getNcUserId());
+	}
+
+	// --- findOrCreateByNcUserId()/createFromLabel(): Migration & CSV-Import ---
+
+	public function testFindOrCreateByNcUserIdFindetVorhandenes(): void {
+		$existing = new Member();
+		$existing->setId(7);
+		$this->mapper->method('findByNcUserId')->with('katrin')->willReturn($existing);
+		$this->mapper->expects($this->never())->method('insert');
+
+		$this->assertSame($existing, $this->service()->findOrCreateByNcUserId('katrin'));
+	}
+
+	public function testFindOrCreateByNcUserIdLegtNeuAnAusDisplayname(): void {
+		$this->mapper->method('findByNcUserId')->willReturn(null);
+		$this->userManager->method('get')->with('katrin')->willReturn($this->user('katrin', 'Katrin Brunner', 'k@example.org'));
+		$this->mapper->method('insert')->willReturnArgument(0);
+
+		$member = $this->service()->findOrCreateByNcUserId('katrin');
+
+		$this->assertSame(Member::TYPE_PERSON, $member->getMemberType());
+		$this->assertSame('Katrin', $member->getFirstName());
+		$this->assertSame('Brunner', $member->getLastName());
+		$this->assertSame('k@example.org', $member->getEmail());
+		$this->assertSame('katrin', $member->getNcUserId());
+	}
+
+	public function testCreateFromLabelLegtImmerNeuAn(): void {
+		$this->mapper->method('insert')->willReturnArgument(0);
+		$this->mapper->expects($this->never())->method('findByNcUserId');
+
+		$member = $this->service()->createFromLabel('Musikverein');
+
+		$this->assertSame(Member::TYPE_ORGANIZATION, $member->getMemberType());
+		$this->assertSame('Musikverein', $member->getOrganizationName());
+	}
+
+	private function user(string $uid, string $displayName, ?string $email): IUser&MockObject {
+		$user = $this->createMock(IUser::class);
+		$user->method('getUID')->willReturn($uid);
+		$user->method('getDisplayName')->willReturn($displayName);
+		$user->method('getEMailAddress')->willReturn($email);
+		return $user;
+	}
+}

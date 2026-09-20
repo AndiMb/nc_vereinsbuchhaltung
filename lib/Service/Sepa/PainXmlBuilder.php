@@ -26,9 +26,15 @@ namespace OCA\Vereinsbuchhaltung\Service\Sepa;
  *
  * @phpstan-type Row array{
  *     endToEndId: string, amountCents: int, sequenceType: string,
- *     mandateReference: string, signedDate: string, debtorIban: string,
+ *     mandateReference: string, signedDate: string, debtorIban: ?string,
  *     debtorBic: ?string, debtorName: string, remittanceInfo: string,
+ *     amendmentIndicator?: bool, originalDebtorAccount?: ?string,
  * }
+ *
+ * `debtorIban` ist seit Issue #78 (DSGVO-Anonymisierung, Spec §3.8) nullable:
+ * ein Jahrzehnte alter, anonymisierter Einzugsposten lässt sich weiterhin
+ * neu rendern, nur eben ohne IBAN (leeres `<IBAN/>`-Element statt eines
+ * PHP-Fehlers) – siehe {@see DebitItem}-Klassendoc.
  */
 class PainXmlBuilder {
 
@@ -56,7 +62,10 @@ class PainXmlBuilder {
 		$grpHdr = $doc->createElement('GrpHdr');
 		$parent->appendChild($grpHdr);
 		$this->el($doc, $grpHdr, 'MsgId', $creditor->messageId);
-		$this->el($doc, $grpHdr, 'CreDtTm', (new \DateTime())->format('Y-m-d\TH:i:s'));
+		// Issue #71: ein bei der Freigabe eingefrorener Zeitpunkt macht die Datei
+		// byte-identisch nachrenderbar (Spec §3.5) - ohne Angabe wie bisher der
+		// tatsächliche Erzeugungszeitpunkt (alter Einzugszyklus, SepaBatchService).
+		$this->el($doc, $grpHdr, 'CreDtTm', $creditor->creationDateTime ?? (new \DateTime())->format('Y-m-d\TH:i:s'));
 		$this->el($doc, $grpHdr, 'NbOfTxs', (string)count($rows));
 		$this->el($doc, $grpHdr, 'CtrlSum', $this->formatAmount($this->sumCents($rows)));
 		$initgPty = $doc->createElement('InitgPty');
@@ -140,6 +149,7 @@ class PainXmlBuilder {
 		$ddTx->appendChild($mndtRltdInf);
 		$this->el($doc, $mndtRltdInf, 'MndtId', $row['mandateReference']);
 		$this->el($doc, $mndtRltdInf, 'DtOfSgntr', $row['signedDate']);
+		$this->buildAmendment($doc, $mndtRltdInf, $row['amendmentIndicator'] ?? false, $row['originalDebtorAccount'] ?? null);
 
 		$this->buildAgent($doc, $txInf, 'DbtrAgt', $row['debtorBic']);
 
@@ -156,6 +166,36 @@ class PainXmlBuilder {
 		$rmtInf = $doc->createElement('RmtInf');
 		$txInf->appendChild($rmtInf);
 		$this->el($doc, $rmtInf, 'Ustrd', SepaText::convert($row['remittanceInfo'], SepaText::MAX_REMITTANCE));
+	}
+
+	/**
+	 * Amendment-Angaben bei Kontowechsel (Issue #71, Compliance-Anhang Spec §8:
+	 * „IBAN-/Kontowechsel: Amendment AmdmntInd=true + OrgnlDbtrAcct=SMNDA, DK
+	 * empfiehlt SMNDA für jeden Kontowechsel … OrgnlDbtrAgt leer"). Ohne
+	 * gesetzten Indikator wird gar nichts geschrieben – `AmdmntInd`/
+	 * `AmdmntInfDtls` sind laut Schema optional (`minOccurs="0"`) und dürfen bei
+	 * einer normalen, unveränderten Lastschrift nicht auftauchen.
+	 *
+	 * `OrgnlDbtrAgt` bleibt bewusst immer weg: die DK-Empfehlung SMNDA deckt
+	 * laut Schema-Doku ausdrücklich auch einen Bankwechsel ab („If changes
+	 * occur in debtor agent and SMNDA is NOT used in OrgnlDbtrAcct") – wird
+	 * SMNDA verwendet, entfällt `OrgnlDbtrAgt` unabhängig davon, ob sich auch
+	 * die Bank geändert hat.
+	 */
+	private function buildAmendment(\DOMDocument $doc, \DOMElement $mndtRltdInf, bool $amendmentIndicator, ?string $originalDebtorAccount): void {
+		if (!$amendmentIndicator) {
+			return;
+		}
+		$this->el($doc, $mndtRltdInf, 'AmdmntInd', 'true');
+		$amdmntInfDtls = $doc->createElement('AmdmntInfDtls');
+		$mndtRltdInf->appendChild($amdmntInfDtls);
+		$orgnlDbtrAcct = $doc->createElement('OrgnlDbtrAcct');
+		$amdmntInfDtls->appendChild($orgnlDbtrAcct);
+		$id = $doc->createElement('Id');
+		$orgnlDbtrAcct->appendChild($id);
+		$othr = $doc->createElement('Othr');
+		$id->appendChild($othr);
+		$this->el($doc, $othr, 'Id', $originalDebtorAccount ?? 'SMNDA');
 	}
 
 	/**

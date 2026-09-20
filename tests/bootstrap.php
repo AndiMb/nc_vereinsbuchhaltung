@@ -71,3 +71,57 @@ spl_autoload_register(static function (string $class): void {
 		require_once $file;
 	}
 });
+
+/**
+ * Vierter Autoloader (Fallback): Composer-Drittanbieter-Abhängigkeiten der
+ * App selbst (seit Issue #73 z. B. `chillerlan/php-qrcode` für den
+ * GiroCode-Anhang der Mahnwesen-Mails, siehe composer.json/EpcQrCodeGenerator) -
+ * composer.json dient der App-Laufzeit seither nicht mehr nur dem
+ * Autoloader für `OCA\Vereinsbuchhaltung\*` (dafür bleibt der erste
+ * Autoloader oben zuständig, siehe dessen Klassendoc zur
+ * `classmap-authoritative`-Falle), sondern liefert auch echten, im
+ * Release-Tarball mitgelieferten Fremdcode. Nextcloud selbst lädt
+ * vendor/autoload.php beim App-Start automatisch; für die Unit-Tests ohne
+ * laufende Instanz braucht es diesen expliziten Require - bewusst NACH den
+ * drei obigen Autoloadern registriert, damit deren gezielte, immer aktuelle
+ * Ladewege unangetastet bleiben und nur echte Drittanbieter-Klassen hier
+ * landen.
+ */
+if (is_file(dirname(__DIR__) . '/vendor/autoload.php')) {
+	require_once dirname(__DIR__) . '/vendor/autoload.php';
+}
+
+/**
+ * Fünfter Autoloader: die PSR-Schnittstellen, auf die die OCP-Stubs verweisen.
+ *
+ * `nextcloud/ocp` zieht psr/clock, psr/container, psr/event-dispatcher und
+ * psr/log als Abhängigkeiten nach; sie liegen unter .phpstan/vendor/psr/. Etwa
+ * `OCP\AppFramework\Utility\ITimeFactory` erweitert `Psr\Clock\ClockInterface` -
+ * ohne diese Schnittstelle lässt sich ITimeFactory weder laden noch mocken.
+ *
+ * Der Composer-Autoloader aus .phpstan kennt die Psr\-Namensräume zwar, wird
+ * aber nur vom PHPUnit unter .phpstan/vendor (`npm run phpunit`) geladen. In
+ * CI läuft das globale PHPUnit-PHAR (setup-php `tools: phpunit`) und lädt
+ * ausschließlich diese Bootstrap-Datei; ohne diesen Autoloader schlugen dort
+ * alle Tests mit "Interface Psr\Clock\ClockInterface not found" fehl. Lokal
+ * greift er nie doppelt: er springt nur an, wenn die Klasse noch fehlt.
+ */
+spl_autoload_register(static function (string $class): void {
+	$packages = [
+		'Psr\\Clock\\' => 'clock',
+		'Psr\\Container\\' => 'container',
+		'Psr\\EventDispatcher\\' => 'event-dispatcher',
+		'Psr\\Log\\' => 'log',
+	];
+	foreach ($packages as $prefix => $package) {
+		if (!str_starts_with($class, $prefix)) {
+			continue;
+		}
+		$relative = substr($class, strlen($prefix));
+		$file = dirname(__DIR__) . '/.phpstan/vendor/psr/' . $package . '/src/' . str_replace('\\', '/', $relative) . '.php';
+		if (is_file($file)) {
+			require_once $file;
+		}
+		return;
+	}
+});

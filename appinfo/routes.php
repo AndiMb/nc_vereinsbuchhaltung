@@ -88,11 +88,68 @@ return [
 		['name' => 'permission#setRole', 'url' => '/api/permissions', 'verb' => 'POST'],
 		['name' => 'permission#destroy', 'url' => '/api/permissions/{id}', 'verb' => 'DELETE'],
 
+		// Self-Service (Spec §3.4): Zugang ausschließlich über Kontoverknüpfung
+		// + self_service_enabled, siehe PermissionMiddleware (vierter
+		// instanceof-Sonderfall). Keine Rollenprüfung, kein #[PublicPage].
+		['name' => 'self#me', 'url' => '/api/self/me', 'verb' => 'GET'],
+		// Issue #76: eigene Kontaktstammdaten pflegen (Spec §3.4 Aktionskatalog).
+		['name' => 'self#updateMe', 'url' => '/api/self/me', 'verb' => 'PUT'],
+		// Issue #67: Mitglied fordert für sein EIGENES elektronisches Mandat
+		// einen (neuen) Einmal-Link an - self_service_enabled +
+		// Kontoverknüpfung, wie jeder andere self#-Endpunkt.
+		['name' => 'self#requestMandateActivationLink', 'url' => '/api/self/mandate/request-link', 'verb' => 'POST'],
+		// Issue #75: Mandats-Aktionskatalog im Self-Service (Spec §3.4) - jede
+		// Aktion löst die member_id serverseitig auf und nimmt NIE eine
+		// Mandats-ID entgegen (IDOR-Schutz, siehe SelfServiceMandateService).
+		['name' => 'self#mandateLegalText', 'url' => '/api/self/mandate/legal-text', 'verb' => 'GET'],
+		['name' => 'self#grantMandate', 'url' => '/api/self/mandate', 'verb' => 'POST'],
+		['name' => 'self#confirmMandate', 'url' => '/api/self/mandate/confirm', 'verb' => 'POST'],
+		['name' => 'self#changeMandateIban', 'url' => '/api/self/mandate/iban', 'verb' => 'POST'],
+		['name' => 'self#replaceMandate', 'url' => '/api/self/mandate/replace', 'verb' => 'POST'],
+		['name' => 'self#revokeMandate', 'url' => '/api/self/mandate/revoke', 'verb' => 'POST'],
+
+		// Issue #76: Beitrag-Aktionen (Betrag/Turnus, Spec §3.4 Aktionskatalog) -
+		// bewusst ohne groupId-Parameter ueberhaupt (Beitragsgruppe wechseln
+		// ist "Darf nicht"), siehe SelfController::updateAssignment().
+		['name' => 'self#assignments', 'url' => '/api/self/assignments', 'verb' => 'GET'],
+		['name' => 'self#previewAssignment', 'url' => '/api/self/assignments/{id}/preview', 'verb' => 'POST'],
+		['name' => 'self#updateAssignment', 'url' => '/api/self/assignments/{id}', 'verb' => 'PUT'],
+
+		// Issue #77: informelle Beitragsbestätigung als druckfertige
+		// Live-Ansicht (Spec §3.7) - member_id kommt ausschließlich aus der
+		// aufgelösten Kontoverknüpfung, siehe SelfController::certificate().
+		['name' => 'self#certificateYears', 'url' => '/api/self/certificate/years', 'verb' => 'GET'],
+		['name' => 'self#certificate', 'url' => '/api/self/certificate', 'verb' => 'GET'],
+
+		// Issue #78: eigene "Datenübersicht" (Art. 15 DSGVO) unter "Meine
+		// Daten" - member_id ausschließlich aus der Kontoverknüpfung, siehe
+		// SelfController::dataOverview().
+		['name' => 'self#dataOverview', 'url' => '/api/self/data-overview', 'verb' => 'GET'],
+
 		// Rules
 		['name' => 'rule#index', 'url' => '/api/rules', 'verb' => 'GET'],
 		['name' => 'rule#create', 'url' => '/api/rules', 'verb' => 'POST'],
 		['name' => 'rule#update', 'url' => '/api/rules/{id}', 'verb' => 'PUT'],
 		['name' => 'rule#destroy', 'url' => '/api/rules/{id}', 'verb' => 'DELETE'],
+
+		// Mitglieder-Stammdaten (Spec §2.2, docs/beitraege-sepa-modul-spec.md)
+		['name' => 'member#index', 'url' => '/api/members', 'verb' => 'GET'],
+		['name' => 'member#show', 'url' => '/api/members/{id}', 'verb' => 'GET'],
+		['name' => 'member#create', 'url' => '/api/members', 'verb' => 'POST'],
+		['name' => 'member#update', 'url' => '/api/members/{id}', 'verb' => 'PUT'],
+		['name' => 'member#destroy', 'url' => '/api/members/{id}', 'verb' => 'DELETE'],
+		['name' => 'member#leave', 'url' => '/api/members/{id}/leave', 'verb' => 'POST'],
+		['name' => 'member#reactivate', 'url' => '/api/members/{id}/reactivate', 'verb' => 'POST'],
+		['name' => 'member#linkSuggestions', 'url' => '/api/members/{id}/link-suggestions', 'verb' => 'GET'],
+		['name' => 'member#link', 'url' => '/api/members/{id}/link', 'verb' => 'POST'],
+		['name' => 'member#unlink', 'url' => '/api/members/{id}/unlink', 'verb' => 'POST'],
+		// DSGVO-Anonymisierung (Spec §3.8, Issue #78) - Reife-Anzeige +
+		// manuelle, irreversible Bestätigung je Mitglied durch den Buchhalter.
+		['name' => 'member#anonymizationStatus', 'url' => '/api/members/{id}/anonymization', 'verb' => 'GET'],
+		['name' => 'member#anonymize', 'url' => '/api/members/{id}/anonymize', 'verb' => 'POST'],
+
+		// Aufgaben/Störfälle (Spec §7, Grundlage siehe lib/Db/Task.php)
+		['name' => 'task#index', 'url' => '/api/tasks', 'verb' => 'GET'],
 
 		// SEPA-Lastschriftmandate (optionales Zusatzmodul)
 		['name' => 'sepaMandate#index', 'url' => '/api/sepa/mandates', 'verb' => 'GET'],
@@ -113,6 +170,39 @@ return [
 		['name' => 'memberImport#preview', 'url' => '/api/sepa/members/import/preview', 'verb' => 'POST'],
 		['name' => 'memberImport#import', 'url' => '/api/sepa/members/import', 'verb' => 'POST'],
 
+		// Mandats-Lifecycle (Issue #66, Papier-Weg) – neues, additives Modell
+		// parallel zum alten sepaMandate#-Bestand (siehe MandateService).
+		['name' => 'mandate#index', 'url' => '/api/mandates', 'verb' => 'GET'],
+		['name' => 'mandate#create', 'url' => '/api/mandates', 'verb' => 'POST'],
+		['name' => 'mandate#byMember', 'url' => '/api/mandates/by-member/{memberId}', 'verb' => 'GET'],
+		['name' => 'mandate#show', 'url' => '/api/mandates/{id}', 'verb' => 'GET'],
+		['name' => 'mandate#activate', 'url' => '/api/mandates/{id}/activate', 'verb' => 'POST'],
+		['name' => 'mandate#suspend', 'url' => '/api/mandates/{id}/suspend', 'verb' => 'POST'],
+		['name' => 'mandate#resume', 'url' => '/api/mandates/{id}/resume', 'verb' => 'POST'],
+		['name' => 'mandate#revoke', 'url' => '/api/mandates/{id}/revoke', 'verb' => 'POST'],
+		['name' => 'mandate#correctAccountHolderName', 'url' => '/api/mandates/{id}/correct-name', 'verb' => 'POST'],
+		['name' => 'mandate#amendBankDetails', 'url' => '/api/mandates/{id}/amend-bank-details', 'verb' => 'POST'],
+		['name' => 'mandate#replace', 'url' => '/api/mandates/{id}/replace', 'verb' => 'POST'],
+		['name' => 'mandate#reopenAmendment', 'url' => '/api/mandates/amendments/{amendmentId}/reopen', 'verb' => 'POST'],
+		['name' => 'mandate#uploadDocument', 'url' => '/api/mandates/{id}/document', 'verb' => 'POST'],
+		['name' => 'mandate#downloadDocument', 'url' => '/api/mandates/{id}/document', 'verb' => 'GET'],
+
+		// Elektronische Mandatserteilung (Issue #67)
+		['name' => 'mandate#createElectronic', 'url' => '/api/mandates/electronic', 'verb' => 'POST'],
+		['name' => 'mandate#sendActivationLink', 'url' => '/api/mandates/{id}/send-activation-link', 'verb' => 'POST'],
+		['name' => 'mandate#form', 'url' => '/api/mandates/{id}/form', 'verb' => 'GET'],
+		['name' => 'mandateLegalText#current', 'url' => '/api/mandate-legal-text', 'verb' => 'GET'],
+		['name' => 'mandateLegalText#history', 'url' => '/api/mandate-legal-text/history', 'verb' => 'GET'],
+		['name' => 'mandateLegalText#update', 'url' => '/api/mandate-legal-text', 'verb' => 'POST'],
+
+		// Öffentliche, login-lose Zustimmungsseite des Einmal-Links (Issue #67,
+		// Spec §2.2) - AUSSERHALB von /api/, funktioniert auch für Mitglieder
+		// ohne NC-Konto. Kein Rollen-Bypass über die Middleware nötig: die
+		// Middleware überspringt diesen Controller komplett (siehe
+		// PermissionMiddleware), die Absicherung übernimmt allein der Token.
+		['name' => 'mandateConsent#show', 'url' => '/mandate-consent/{token}', 'verb' => 'GET'],
+		['name' => 'mandateConsent#accept', 'url' => '/mandate-consent/{token}', 'verb' => 'POST'],
+
 		// SEPA-Sammeleinzüge (pain.008-Export)
 		['name' => 'sepaBatch#preview', 'url' => '/api/sepa/export/preview', 'verb' => 'GET'],
 		['name' => 'sepaBatch#index', 'url' => '/api/sepa/export/batches', 'verb' => 'GET'],
@@ -131,6 +221,59 @@ return [
 		['name' => 'openItem#reopen', 'url' => '/api/open-items/{id}/reopen', 'verb' => 'POST'],
 		['name' => 'openItem#destroy', 'url' => '/api/open-items/{id}', 'verb' => 'DELETE'],
 
+		// Beitragsgruppen & Zuweisungen (Issue #68)
+		['name' => 'contributionGroup#index', 'url' => '/api/contribution-groups', 'verb' => 'GET'],
+		['name' => 'contributionGroup#create', 'url' => '/api/contribution-groups', 'verb' => 'POST'],
+		['name' => 'contributionGroup#update', 'url' => '/api/contribution-groups/{id}', 'verb' => 'PUT'],
+		['name' => 'contributionGroup#destroy', 'url' => '/api/contribution-groups/{id}', 'verb' => 'DELETE'],
+		['name' => 'contributionGroup#minAmountPreview', 'url' => '/api/contribution-groups/{id}/min-amount-preview', 'verb' => 'GET'],
+		['name' => 'contributionGroup#applyMinAmountIncrease', 'url' => '/api/contribution-groups/{id}/min-amount-increase', 'verb' => 'POST'],
+
+		['name' => 'assignment#index', 'url' => '/api/assignments', 'verb' => 'GET'],
+		['name' => 'assignment#create', 'url' => '/api/assignments', 'verb' => 'POST'],
+		['name' => 'assignment#previewNew', 'url' => '/api/assignments/preview', 'verb' => 'POST'],
+		['name' => 'assignment#update', 'url' => '/api/assignments/{id}', 'verb' => 'PUT'],
+		['name' => 'assignment#setMinAmountOverride', 'url' => '/api/assignments/{id}/min-amount-override', 'verb' => 'POST'],
+		['name' => 'assignment#end', 'url' => '/api/assignments/{id}/end', 'verb' => 'POST'],
+		['name' => 'assignment#events', 'url' => '/api/assignments/{id}/events', 'verb' => 'GET'],
+
+		// Forderungen inkl. manueller Einzelforderung (Issue #68)
+		['name' => 'claim#index', 'url' => '/api/claims', 'verb' => 'GET'],
+		['name' => 'claim#create', 'url' => '/api/claims', 'verb' => 'POST'],
+		['name' => 'claim#settle', 'url' => '/api/claims/{id}/settle', 'verb' => 'POST'],
+		['name' => 'claim#cancel', 'url' => '/api/claims/{id}/cancel', 'verb' => 'POST'],
+		['name' => 'claim#defer', 'url' => '/api/claims/{id}/defer', 'verb' => 'POST'],
+
+		// Terminplan & Einzugszyklus-Einstellungen (Issue #70)
+		['name' => 'dueDateSchedule#index', 'url' => '/api/due-date-schedule', 'verb' => 'GET'],
+		['name' => 'dueDateSchedule#setDefaultDay', 'url' => '/api/due-date-schedule/{intervalMonths}/default-day', 'verb' => 'POST'],
+		['name' => 'dueDateSchedule#setOverride', 'url' => '/api/due-date-schedule/{intervalMonths}/overrides/{periodIndex}', 'verb' => 'POST'],
+		['name' => 'dueDateSchedule#setLeadDays', 'url' => '/api/due-date-schedule/lead-days', 'verb' => 'POST'],
+
+		// Lastschriftlauf: Freigabe & Einreichung (Issue #71)
+		['name' => 'debitBatch#preview', 'url' => '/api/debit-batches/preview', 'verb' => 'GET'],
+		['name' => 'debitBatch#settings', 'url' => '/api/debit-batches/settings', 'verb' => 'GET'],
+		['name' => 'debitBatch#updateSettings', 'url' => '/api/debit-batches/settings', 'verb' => 'POST'],
+		['name' => 'debitBatch#index', 'url' => '/api/debit-batches', 'verb' => 'GET'],
+		['name' => 'debitBatch#release', 'url' => '/api/debit-batches', 'verb' => 'POST'],
+		['name' => 'debitBatch#show', 'url' => '/api/debit-batches/{id}', 'verb' => 'GET'],
+		['name' => 'debitBatch#submit', 'url' => '/api/debit-batches/{id}/submit', 'verb' => 'POST'],
+		['name' => 'debitBatch#discard', 'url' => '/api/debit-batches/{id}/discard', 'verb' => 'POST'],
+		['name' => 'debitBatch#reschedule', 'url' => '/api/debit-batches/{id}/reschedule', 'verb' => 'POST'],
+		['name' => 'debitBatch#xml', 'url' => '/api/debit-batches/{id}/xml', 'verb' => 'GET'],
+
+		// Bankimport-Härtung & Einzugs-/Rücklastschrift-Verbuchung (Issue #72)
+		['name' => 'sepaImport#pending', 'url' => '/api/sepa-import/pending', 'verb' => 'GET'],
+		['name' => 'sepaImport#settings', 'url' => '/api/sepa-import/settings', 'verb' => 'GET'],
+		['name' => 'sepaImport#updateSettings', 'url' => '/api/sepa-import/settings', 'verb' => 'POST'],
+		['name' => 'sepaImport#show', 'url' => '/api/sepa-import/{bankTxId}', 'verb' => 'GET'],
+		['name' => 'sepaImport#settle', 'url' => '/api/sepa-import/{bankTxId}/settle', 'verb' => 'POST'],
+		['name' => 'sepaImport#incomingPaymentSuggestions', 'url' => '/api/sepa-import/{bankTxId}/incoming-payment-suggestions', 'verb' => 'GET'],
+		['name' => 'sepaImport#confirmIncomingPayment', 'url' => '/api/sepa-import/{bankTxId}/incoming-payment-suggestions/{openItemId}', 'verb' => 'POST'],
+		['name' => 'sepaImport#assign', 'url' => '/api/sepa-import/details/{id}/assign', 'verb' => 'POST'],
+		['name' => 'sepaImport#reject', 'url' => '/api/sepa-import/details/{id}/reject', 'verb' => 'POST'],
+		['name' => 'sepaImport#markUnmatched', 'url' => '/api/sepa-import/details/{id}/unmatched', 'verb' => 'POST'],
+
 		// Export (CSV-Download)
 		['name' => 'export#journal',  'url' => '/api/export/journal',  'verb' => 'GET'],
 		['name' => 'export#balances', 'url' => '/api/export/balances', 'verb' => 'GET'],
@@ -140,6 +283,15 @@ return [
 		['name' => 'export#kassenbericht', 'url' => '/api/export/kassenbericht', 'verb' => 'GET'],
 		['name' => 'export#kurzbericht', 'url' => '/api/export/kurzbericht', 'verb' => 'GET'],
 		['name' => 'export#attachments', 'url' => '/api/export/attachments', 'verb' => 'GET'],
+
+		// Issue #77: Beitragsbestätigung eines Mitglieds, Stellvertretung
+		// durch den Kassenwart über die Admin-Akte (Spec §3.7).
+		['name' => 'export#beitragsbescheinigungYears', 'url' => '/api/export/beitragsbescheinigung/{memberId}/years', 'verb' => 'GET'],
+		['name' => 'export#beitragsbescheinigung', 'url' => '/api/export/beitragsbescheinigung/{memberId}', 'verb' => 'GET'],
+
+		// Issue #78: "Datenübersicht" eines Mitglieds (Art. 15 DSGVO),
+		// Stellvertretung durch den Kassenwart über die Admin-Akte (Spec §3.8).
+		['name' => 'export#datenuebersicht', 'url' => '/api/export/datenuebersicht/{memberId}', 'verb' => 'GET'],
 
 		// Einstellungen
 		['name' => 'settings#index',  'url' => '/api/settings', 'verb' => 'GET'],

@@ -429,9 +429,126 @@ export const api = {
 		return (await call(request, 'POST', '/open-items', { user, data: { debtor, description, amount, dueDate } })).json()
 	},
 
+	// Mitglieder-Stammdaten (Spec §2.2, docs/beitraege-sepa-modul-spec.md)
+	async createMember(request, { memberType = 'person', firstName, lastName, organizationName, email, phone, internalNote, joinedAt, user = 'admin' } = {}) {
+		return (await call(request, 'POST', '/members', { user, data: { memberType, firstName, lastName, organizationName, email, phone, internalNote, joinedAt } })).json()
+	},
+
+	async listMembers(request, { user = 'admin' } = {}) {
+		return (await call(request, 'GET', '/members', { user })).json()
+	},
+
+	async deleteMember(request, id, { user = 'admin' } = {}) {
+		return call(request, 'DELETE', `/members/${id}`, { user })
+	},
+
+	async linkMember(request, id, ncUserId, { user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', `/members/${id}/link`, { user, expectOk, data: { ncUserId } })
+	},
+
+	async unlinkMember(request, id, { user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', `/members/${id}/unlink`, { user, expectOk })
+	},
+
+	/**
+	 * Setzt die Mailadresse eines NC-Kontos über die Provisioning-API – die
+	 * NC-Kontoverknüpfung schlägt Konten anhand von IUserManager::getByEmail()
+	 * vor, `setupUsers()` legt Testnutzer aber ohne Mailadresse an.
+	 */
+	async setUserEmail(request, uid, email, { user = 'admin' } = {}) {
+		const resp = await request.fetch(`${BASE_URL}/ocs/v2.php/cloud/users/${uid}?format=json`, {
+			method: 'PUT',
+			headers: authHeaders(user),
+			data: { key: 'email', value: email },
+		})
+		if (!resp.ok()) {
+			throw new Error(`Mailadresse für ${uid} setzen fehlgeschlagen: HTTP ${resp.status()} – ${(await resp.text()).slice(0, 300)}`)
+		}
+		return resp
+	},
+
 	/** GET mit Erfolgserwartung, direkt als JSON. */
 	async getJson(request, path, opts = {}) {
 		return (await call(request, 'GET', path, opts)).json()
+	},
+
+	// --- Mandats-Lifecycle (Issue #66, Papier-Weg) ------------------------------
+	// Mitglieder-Helfer (createMember/listMembers/...) siehe oben (Issue #65).
+
+	async listMandates(request, { user = 'admin' } = {}) {
+		return (await call(request, 'GET', '/mandates', { user })).json()
+	},
+
+	async mandatesByMember(request, memberId, { user = 'admin' } = {}) {
+		return (await call(request, 'GET', `/mandates/by-member/${memberId}`, { user })).json()
+	},
+
+	/** Papier-Mandat anlegen (Entwurf) – Issue #66. */
+	async createMandate(request, { memberId, iban, bic, accountHolder, signedAt, mandateReference, user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', '/mandates', {
+			user,
+			expectOk,
+			data: { memberId, iban, bic, accountHolder, signedAt, mandateReference },
+		})
+	},
+
+	async activateMandate(request, id, { signedAt, user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', `/mandates/${id}/activate`, { user, expectOk, data: { signedAt } })
+	},
+
+	async suspendMandate(request, id, { note, origin = 'manuell', user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', `/mandates/${id}/suspend`, { user, expectOk, data: { note, origin } })
+	},
+
+	async resumeMandate(request, id, { user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', `/mandates/${id}/resume`, { user, expectOk })
+	},
+
+	async revokeMandate(request, id, { user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', `/mandates/${id}/revoke`, { user, expectOk })
+	},
+
+	// --- Elektronische Mandatserteilung (Issue #67) -----------------------------
+
+	/** Elektronischer Entwurf - Aktivierung läuft NICHT hier, sondern über den Einmal-Link. */
+	async createElectronicMandate(request, { memberId, iban, bic, accountHolder, mandateReference, user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', '/mandates/electronic', {
+			user,
+			expectOk,
+			data: { memberId, iban, bic, accountHolder, mandateReference },
+		})
+	},
+
+	/** Verschickt/erneuert den Einmal-Link; die Antwort enthält die volle activationUrl (siehe MandateController::sendActivationLink()). */
+	async sendActivationLink(request, id, { user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', `/mandates/${id}/send-activation-link`, { user, expectOk })
+	},
+
+	/** Self-Service-Kanal: das verknüpfte Mitglied fordert selbst einen (neuen) Link für sein eigenes elektronisches Mandat an. */
+	async requestOwnMandateLink(request, { user, expectOk = true } = {}) {
+		return call(request, 'POST', '/self/mandate/request-link', { user, expectOk })
+	},
+
+	// --- Self-Service Beitrag-Aktionen (Issue #76) ------------------------------
+
+	/** Eigene Zuweisungen (Self-Service-Kanal). */
+	async selfAssignments(request, { user, expectOk = true } = {}) {
+		return (await call(request, 'GET', '/self/assignments', { user, expectOk })).json()
+	},
+
+	/** Vorschau vor dem Speichern (Spec §3.4 Pflicht-UI) - Self-Service-Kanal. */
+	async selfPreviewAssignment(request, id, { monthlyAmount, intervalMonths, user, expectOk = true } = {}) {
+		return call(request, 'POST', `/self/assignments/${id}/preview`, { user, expectOk, data: { monthlyAmount, intervalMonths } })
+	},
+
+	/** Betrag/Turnus der eigenen Zuweisung ändern (Self-Service-Kanal). */
+	async selfUpdateAssignment(request, id, { monthlyAmount, intervalMonths, user, expectOk = true } = {}) {
+		return call(request, 'PUT', `/self/assignments/${id}`, { user, expectOk, data: { monthlyAmount, intervalMonths } })
+	},
+
+	/** Eigene Kontaktstammdaten pflegen (Self-Service-Kanal). */
+	async selfUpdateMe(request, data, { user, expectOk = true } = {}) {
+		return call(request, 'PUT', '/self/me', { user, expectOk, data })
 	},
 
 	/** Roher Zugriff für Spezialfälle; expectOk standardmäßig aus. */

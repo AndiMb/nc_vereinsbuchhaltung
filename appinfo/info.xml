@@ -190,6 +190,11 @@ Full manual in German and English: see documentation.
 		<job>OCA\Vereinsbuchhaltung\BackgroundJob\ImportWatchFolderJob</job>
 		<job>OCA\Vereinsbuchhaltung\BackgroundJob\MembershipFeeDueJob</job>
 		<job>OCA\Vereinsbuchhaltung\BackgroundJob\SepaPreNotificationJob</job>
+		<job>OCA\Vereinsbuchhaltung\BackgroundJob\MandateExpiryJob</job>
+		<job>OCA\Vereinsbuchhaltung\BackgroundJob\MemberDepartureJob</job>
+		<job>OCA\Vereinsbuchhaltung\BackgroundJob\ContributionDueCycleJob</job>
+		<job>OCA\Vereinsbuchhaltung\BackgroundJob\MandateDepartureJob</job>
+		<job>OCA\Vereinsbuchhaltung\BackgroundJob\DunningLadderJob</job>
 	</background-jobs>
 	<!-- Dieselbe Section-Klasse fuer admin-section und personal-section: die
 	     Registrierung ist intern nach Typ getrennt (siehe Settings\Section).
@@ -202,6 +207,21 @@ Full manual in German and English: see documentation.
 		<personal>OCA\Vereinsbuchhaltung\Settings\PersonalSettings</personal>
 		<personal-section>OCA\Vereinsbuchhaltung\Settings\Section</personal-section>
 	</settings>
+	<!-- Benachrichtigungsgerüst für Self-Service-Änderungen (Spec §3.4).
+	     #74 registrierte den Provider noch ohne konkrete Ereignisse; Issue
+	     #75 (Mandats-Aktionskatalog) füllt ihn mit den ersten Subjekten und
+	     ergänzt den zweiten Settings-Typ für den Widerruf-Sonderfall
+	     ("Mail-Voreinstellung: an bei Widerruf, aus sonst" - siehe
+	     SelfServiceMandateRevocationSetting-Klassendoc). -->
+	<activity>
+		<settings>
+			<setting>OCA\Vereinsbuchhaltung\Activity\SelfServiceSetting</setting>
+			<setting>OCA\Vereinsbuchhaltung\Activity\SelfServiceMandateRevocationSetting</setting>
+		</settings>
+		<providers>
+			<provider>OCA\Vereinsbuchhaltung\Activity\SelfServiceProvider</provider>
+		</providers>
+	</activity>
 	<navigations>
 		<navigation>
 			<name>Vereinsbuchhaltung</name>

@@ -7,14 +7,13 @@ namespace OCA\Vereinsbuchhaltung\Db;
 use OCP\AppFramework\Db\Entity;
 
 /**
- * SEPA-Lastschriftmandat. Genau eines von member_uid (Nextcloud-Konto) und
- * member_label (Freitext-Zahler, z. B. für Verbände ohne Mitglieder-Konten)
- * ist gesetzt – siehe Migration 000124 und SepaMandateService::create().
+ * SEPA-Lastschriftmandat, gehört zu genau einem {@see \OCA\Vereinsbuchhaltung\Db\Member}
+ * (member_id). Bis Version000138 hieß der Zahler noch member_uid/member_label
+ * (Freitext oder Nextcloud-Konto ohne eigene Mitglieder-Entity) – siehe
+ * Migration 000137/000138 für den Umbau.
  *
- * @method string|null getMemberUid()
- * @method void setMemberUid(?string $memberUid)
- * @method string|null getMemberLabel()
- * @method void setMemberLabel(?string $memberLabel)
+ * @method int getMemberId()
+ * @method void setMemberId(int $memberId)
  * @method string getIban()
  * @method void setIban(string $iban)
  * @method string|null getBic()
@@ -35,8 +34,7 @@ use OCP\AppFramework\Db\Entity;
  * @method void setCreatedAt(string $createdAt)
  */
 class SepaMandate extends Entity implements \JsonSerializable {
-	protected $memberUid;
-	protected $memberLabel;
+	protected $memberId;
 	protected $iban;
 	protected $bic;
 	protected $email;
@@ -51,20 +49,19 @@ class SepaMandate extends Entity implements \JsonSerializable {
 	public const TYPES = ['RCUR', 'OOFF'];
 	public const STATUSES = ['active', 'revoked'];
 
+	public function __construct() {
+		$this->addType('memberId', 'integer');
+	}
+
 	/** Wurde dieses Mandat schon mindestens einmal eingezogen? */
 	public function isFirstUse(): bool {
 		return $this->lastUsedDate === null;
 	}
 
-	public function displayName(): string {
-		return $this->memberLabel ?? ($this->memberUid ?? '');
-	}
-
 	public function jsonSerialize(): array {
 		return [
 			'id' => $this->id,
-			'memberUid' => $this->memberUid,
-			'memberLabel' => $this->memberLabel,
+			'memberId' => $this->memberId,
 			'iban' => $this->iban,
 			'bic' => $this->bic,
 			'email' => $this->email,

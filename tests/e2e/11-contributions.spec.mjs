@@ -20,15 +20,19 @@ async function enableModule(request) {
 	})
 }
 
-/** Mitglied samt Mandat und Jahresbeitrag – nur anlegen, was noch fehlt. */
+/** Das Mitglied samt Mandat und Jahresbeitrag – nur anlegen, was noch fehlt. */
 async function ensureMemberWithFee(request) {
-	let mandate = (await api.getJson(request, '/sepa/mandates')).find((m) => m.memberLabel === MEMBER)
+	let member = (await api.listMembers(request)).find((m) => m.displayName === MEMBER)
+	if (!member) {
+		member = await api.createMember(request, { firstName: 'Erika', lastName: 'Beispiel' })
+	}
+
+	let mandate = (await api.getJson(request, '/sepa/mandates')).find((m) => m.memberId === member.id)
 	if (!mandate) {
 		mandate = await (await api.raw(request, 'POST', '/sepa/mandates', {
 			expectOk: true,
 			data: {
-				memberUid: null,
-				memberLabel: MEMBER,
+				memberId: member.id,
 				iban: 'DE02120300000000202051',
 				bic: null,
 				mandateType: 'RCUR',
@@ -37,14 +41,13 @@ async function ensureMemberWithFee(request) {
 		})).json()
 	}
 
-	let fee = (await api.getJson(request, '/sepa/fees')).find((f) => f.memberLabel === MEMBER)
+	let fee = (await api.getJson(request, '/sepa/fees')).find((f) => f.memberId === member.id)
 	if (!fee) {
 		const income = await api.accountByNumber(request, INCOME_ACCOUNT)
 		fee = await (await api.raw(request, 'POST', '/sepa/fees', {
 			expectOk: true,
 			data: {
-				memberUid: null,
-				memberLabel: MEMBER,
+				memberId: member.id,
 				amount: 60,
 				frequency: 'yearly',
 				startDate: '2026-01-01',
@@ -53,7 +56,7 @@ async function ensureMemberWithFee(request) {
 			},
 		})).json()
 	}
-	return { mandate, fee }
+	return { member, mandate, fee }
 }
 
 test.describe('Beiträge und SEPA-Lastschrift', () => {

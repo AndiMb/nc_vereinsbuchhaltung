@@ -5,15 +5,18 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\AppInfo;
 
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
+use OCA\Vereinsbuchhaltung\Listener\MemberAccountDeletionListener;
 use OCA\Vereinsbuchhaltung\Listener\UserDeletedListener;
 use OCA\Vereinsbuchhaltung\Middleware\PermissionMiddleware;
 use OCA\Vereinsbuchhaltung\Middleware\RevisionMiddleware;
+use OCA\Vereinsbuchhaltung\Service\ActorContextService;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
 use OCP\IDBConnection;
+use OCP\User\Events\BeforeUserDeletedEvent;
 use OCP\User\Events\UserDeletedEvent;
 
 class Application extends App implements IBootstrap {
@@ -34,6 +37,11 @@ class Application extends App implements IBootstrap {
 		// gelöscht, räumt der Listener die Einstellungen mit ab, damit keine
 		// Namen stehen bleiben, hinter denen niemand mehr steht.
 		$context->registerEventListener(UserDeletedEvent::class, UserDeletedListener::class);
+
+		// Mitglied-Verknüpfung: rettet vor der Löschung die Mailadresse ins
+		// Mitglied (Spec §2.2/§3.1) und löst die Verknüpfung, sobald das
+		// Konto weg ist.
+		$context->registerEventListener(BeforeUserDeletedEvent::class, MemberAccountDeletionListener::class);
 
 		// Ausdrücklich als geteilter Dienst: der TransactionRunner zählt die
 		// Verschachtelungstiefe und sammelt Nach-Commit-Aufgaben in
@@ -60,6 +68,15 @@ class Application extends App implements IBootstrap {
 				$c->get(\OCP\IConfig::class),
 				$c->get(\OCP\IL10N::class),
 			);
+		}, true);
+
+		// Ebenfalls ausdrücklich geteilt: die PermissionMiddleware befüllt den
+		// ActorContextService einmal pro Request (Kanal Self-Service vs.
+		// Admin-Akte, Spec §3.9 „Personalunion"). Injizierte Controller/
+		// Services in #66/#68 müssen denselben Stand sehen wie die Middleware
+		// ihn gesetzt hat, nicht eine frische, unbefüllte Instanz.
+		$context->registerService(ActorContextService::class, static function ($c): ActorContextService {
+			return new ActorContextService($c->get(\OCP\IUserSession::class));
 		}, true);
 
 		// Der Wachordner-Job wird NICHT hier registriert, sondern über

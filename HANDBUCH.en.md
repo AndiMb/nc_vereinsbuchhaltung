@@ -1147,19 +1147,26 @@ For a choir with 200 voices, the form is the wrong way. In the
 file**, one row per member.
 
 The following columns are expected – **order and spelling don't matter**,
-and extra columns (member number, join date, voice part …) are simply
-ignored:
+and extra columns (join date, voice part …) are simply ignored:
 
 | Column | Example | Required? |
 |---|---|---|
 | Name *or* account | `Katrin Brunner` or `k.brunner` | yes |
+| Member number | `0815` | no, but a hard duplicate key (see below) |
 | Email | `k.brunner@example.org` | no, but strongly recommended |
 | IBAN | `DE02 1203 0000 0000 2020 51` | only if collections are made |
 | BIC | usually empty | no |
+| Account holder | `Peter Brunner` | no, otherwise the member's display name |
 | Mandate on | `15.01.2026` | yes, as soon as there's an IBAN |
-| Amount | `42.50` | only if a fee should be created |
-| Frequency | `monthly` | no – **yearly** applies if not specified |
-| Start | `01.02.2026` | yes, as soon as there's an amount |
+| Mandate reference | `ALT-0001` | no, otherwise the app assigns one |
+| Contribution group | `Choir members` | yes, as soon as a fee should be created |
+| Amount | `8.00` | only if a fee should be created – the **monthly amount**, regardless of the interval |
+| Frequency | `monthly` | no – **yearly** applies if not specified; only sets the interval, not the amount |
+| Start | `01.02.2026` | yes, as soon as there's an amount – must not lie in the past |
+
+A row without an IBAN and without an amount is valid – only the member is
+created then, a mandate and a fee can be added any time later through the
+member's record.
 
 Dates may be given as `15.01.2026` or `2026-01-15`, amounts as `42,50` or
 `42.50`. A **template** to fill in can be downloaded directly.
@@ -1180,9 +1187,18 @@ every row, what would be created and what's wrong. Only afterwards do you
 apply it. Faulty rows are skipped and listed individually – a typo in row
 143 doesn't invalidate the 142 rows before it.
 
-Among other things, the check flags: a payer already listed further up in
-the same file (usually a copied row), an IBAN that already has an active
-mandate, and a Nextcloud account that doesn't exist.
+**The import only creates, it never reconciles:** a row whose member number
+or Nextcloud account already exists is skipped entirely (no duplicate
+member, no second mandate). A row with the same name as an existing member
+only gets a warning – names are too often ambiguous in clubs to serve as a
+duplicate key. A row without an email address automatically lands on the
+"bank transfer" payment method rather than direct debit.
+
+**Every mandate created by the import activates immediately.** As soon as
+at least one row would create a mandate, the app requires confirming "the
+signed mandates are on file" before you can apply the import – this replaces
+the usual per-mandate approval and assumes you actually hold the paper
+mandates.
 
 ### 13.4 Fees, due dates and backlog
 
@@ -1198,6 +1214,15 @@ create the entire backlog immediately.
 
 If you simply got the start date wrong, correct the next due date via
 *Edit* instead of catching up.
+
+**Members created through the intake wizard or the CSV import** appear in the
+list with their mandate (IBAN, marked *Draft* or *suspended* where applicable)
+and their contribution-group assignment: *Amount* is the amount per period
+(monthly fee × interval), *Active* states the assignment's state (*active*,
+*from …*, *ended …*). There is no *Next due date* for them – it only arises
+with the claim. Members who pay by bank transfer show "Bank transfer" instead
+of "no mandate". You do not edit such assignments in the row but via **"Manage
+assignment"** in the *Contribution groups* tab.
 
 ### 13.5 Generating and submitting a collection
 

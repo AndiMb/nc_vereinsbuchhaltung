@@ -33,6 +33,12 @@
 			<p v-if="!membershipEnabled && !membershipActive" class="vbh-hint">
 				{{ t('Ohne diesen Schalter bleibt der Reiter ausgeblendet, bis das erste Mandat oder der erste Beitrag angelegt wird.') }}
 			</p>
+			<NcCheckboxRadioSwitch :modelValue="selfServiceEnabled" type="switch" @update:modelValue="changeSelfServiceEnabled">
+				{{ t('Self-Service „Mein Beitrag" für verknüpfte Nextcloud-Konten freischalten') }}
+			</NcCheckboxRadioSwitch>
+			<p class="vbh-hint">
+				{{ t('Betrifft nur Mitglieder, deren Nextcloud-Konto in der Mitgliederakte verknüpft ist – sie sehen dann ihre eigenen Stammdaten, unabhängig von einer Buchhaltungsrolle.') }}
+			</p>
 		</div>
 
 		<div class="vbh-card">
@@ -93,12 +99,15 @@ export default {
 		// nur lesend - zeigt an, ob der Reiter unabhaengig vom Schalter schon
 		// sichtbar ist (siehe App.vue::loadStorageSettings())
 		membershipActive: { type: Boolean, default: false },
+		// Self-Service-Zugang (Spec §3.4): einfacher Bool-Schalter, siehe
+		// SelfServiceService/SettingsController.
+		selfServiceEnabled: { type: Boolean, default: false },
 		storageSaving: { type: Boolean, default: false },
 		// gemeinsame Speichern-Funktion des Elternteils, siehe SettingsGeneral.vue
 		saveSettings: { type: Function, required: true },
 	},
 
-	emits: ['update:defaultFeeAmount', 'update:defaultFeeFrequency', 'update:membershipEnabled', 'update:sepaCreditorId', 'update:sepaDebtorAccountId'],
+	emits: ['update:defaultFeeAmount', 'update:defaultFeeFrequency', 'update:membershipEnabled', 'update:selfServiceEnabled', 'update:sepaCreditorId', 'update:sepaDebtorAccountId'],
 
 	setup() {
 		return { ...toRefs(useAccounts().state) }
@@ -137,6 +146,11 @@ export default {
 		// alten Wert (siehe App.vue::saveStorageSettings()).
 		changeMembershipEnabled(v) {
 			this.$emit('update:membershipEnabled', v)
+			this.saveSettings()
+		},
+
+		changeSelfServiceEnabled(v) {
+			this.$emit('update:selfServiceEnabled', v)
 			this.saveSettings()
 		},
 	},

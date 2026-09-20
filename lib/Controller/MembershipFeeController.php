@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\MembershipFee;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
-use OCA\Vereinsbuchhaltung\Service\MemberReferenceValidator;
 use OCA\Vereinsbuchhaltung\Service\MembershipFeeService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCP\AppFramework\Controller;
@@ -21,15 +21,15 @@ use OCP\IRequest;
 /**
  * Pflege der Mitgliedsbeiträge (siehe {@see MembershipFeeService}).
  * Dieselbe Einstufung wie SepaMandateController: Verwalter und Buchhalter
- * duerfen schreiben, ein Beitrag verknuepft ggf. ein Nextcloud-Konto mit
- * Betrag und Mandat.
+ * duerfen schreiben, ein Beitrag verknuepft ein Mitglied mit Betrag und
+ * Mandat.
  */
 class MembershipFeeController extends Controller {
 
 	public function __construct(
 		IRequest $request,
 		private MembershipFeeService $service,
-		private MemberReferenceValidator $memberRef,
+		private MemberMapper $members,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -43,7 +43,7 @@ class MembershipFeeController extends Controller {
 	 */
 	private function decorate(MembershipFee $fee): array {
 		$data = $fee->jsonSerialize();
-		$data['displayName'] = $this->memberRef->displayName($fee->getMemberUid(), $fee->getMemberLabel());
+		$data['displayName'] = $this->members->displayNameOr($fee->getMemberId(), $this->l10n->t('(Mitglied gelöscht)'));
 		$data['dueCount'] = $this->service->dueCount($fee);
 		return $data;
 	}
@@ -57,8 +57,7 @@ class MembershipFeeController extends Controller {
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function create(
-		?string $memberUid,
-		?string $memberLabel,
+		int $memberId,
 		float $amount,
 		string $frequency,
 		string $startDate,
@@ -66,10 +65,12 @@ class MembershipFeeController extends Controller {
 		?int $mandateId,
 	): DataResponse {
 		try {
-			$fee = $this->service->create($memberUid, $memberLabel, (int)round($amount * 100), $frequency, $startDate, $accountId, $mandateId);
+			$fee = $this->service->create($memberId, (int)round($amount * 100), $frequency, $startDate, $accountId, $mandateId);
 			return new DataResponse($this->decorate($fee), Http::STATUS_CREATED);
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Mitglied nicht gefunden')], Http::STATUS_BAD_REQUEST);
 		}
 	}
 

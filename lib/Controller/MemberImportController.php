@@ -48,15 +48,21 @@ class MemberImportController extends Controller {
 		return new DataResponse($this->service->preview($csv));
 	}
 
-	/** Legt die Zeilen an, die in Ordnung sind. */
+	/**
+	 * Legt die Zeilen an, die in Ordnung sind.
+	 *
+	 * @param bool $mandatesConfirmed Checkbox "die unterschriebenen Mandate
+	 *                                liegen vor" (Spec §3.1) – ohne sie lehnt der Service jede Datei
+	 *                                mit mindestens einer Mandatszeile komplett ab.
+	 */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
-	public function import(string $csv): DataResponse {
+	public function import(string $csv, bool $mandatesConfirmed = false): DataResponse {
 		$fehler = $this->check($csv);
 		if ($fehler !== null) {
 			return $fehler;
 		}
-		return new DataResponse($this->service->import($csv));
+		return new DataResponse($this->service->import($csv, $mandatesConfirmed));
 	}
 
 	private function check(string $csv): ?DataResponse {

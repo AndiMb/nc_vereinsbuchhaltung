@@ -1178,19 +1178,26 @@ im Reiter „Beiträge" → Mitglieder den Knopf **„Liste einlesen"**: eine
 **CSV-Datei**, eine Zeile je Mitglied.
 
 Erwartet werden diese Spalten – **Reihenfolge und Schreibweise sind egal**, und
-zusätzliche Spalten (Mitgliedsnummer, Eintrittsdatum, Stimmlage …) werden
-einfach übergangen:
+zusätzliche Spalten (Eintrittsdatum, Stimmlage …) werden einfach übergangen:
 
 | Spalte | Beispiel | Pflicht? |
 |---|---|---|
 | Name *oder* Konto | `Katrin Brunner` bzw. `k.brunner` | ja |
+| Mitgliedsnummer | `0815` | nein, aber harter Dublettenschlüssel (siehe unten) |
 | E-Mail | `k.brunner@example.org` | nein, aber dringend empfohlen |
 | IBAN | `DE02 1203 0000 0000 2020 51` | nur wenn eingezogen werden soll |
 | BIC | meist leer | nein |
+| Kontoinhaber | `Peter Brunner` | nein, sonst Anzeigename des Mitglieds |
 | Mandat am | `15.01.2026` | ja, sobald eine IBAN dasteht |
-| Betrag | `42,50` | nur wenn ein Beitrag entstehen soll |
-| Frequenz | `monatlich` | nein – ohne Angabe gilt **jährlich** |
-| Start | `01.02.2026` | ja, sobald ein Betrag dasteht |
+| Mandatsreferenz | `ALT-0001` | nein, sonst vergibt die App eine |
+| Beitragsgruppe | `Chormitglieder` | ja, sobald ein Beitrag entstehen soll |
+| Betrag | `8,00` | nur wenn ein Beitrag entstehen soll – der **Monatsbeitrag**, unabhängig vom Turnus |
+| Frequenz | `monatlich` | nein – ohne Angabe gilt **jährlich**; bestimmt nur den Turnus, nicht den Betrag |
+| Start | `01.02.2026` | ja, sobald ein Betrag dasteht – darf nicht in der Vergangenheit liegen |
+
+Eine Zeile ganz ohne IBAN und ohne Betrag ist gültig – dann entsteht nur das
+Mitglied, Mandat und Beitrag lassen sich jederzeit über die Personenakte
+nachtragen.
 
 Datumsangaben dürfen `15.01.2026` oder `2026-01-15` lauten, Beträge `42,50`
 oder `42.50`. Eine **Vorlage** zum Ausfüllen können Sie direkt herunterladen.
@@ -1211,9 +1218,19 @@ Zeile, was entstehen würde und was nicht stimmt. Erst danach übernehmen Sie.
 Fehlerhafte Zeilen werden übersprungen und einzeln benannt – ein Tippfehler in
 Zeile 143 macht die 142 Zeilen davor nicht wertlos.
 
-Beanstandet wird unter anderem: ein Zahler, der schon weiter oben in derselben
-Datei steht (meist eine kopierte Zeile), eine IBAN, für die es bereits ein
-aktives Mandat gibt, und ein Nextcloud-Konto, das es nicht gibt.
+**Der Import legt nur an, er gleicht nie ab:** eine Zeile, deren
+Mitgliedsnummer oder Nextcloud-Konto bereits existiert, wird komplett
+übersprungen (kein doppeltes Mitglied, kein zweites Mandat). Trägt eine Zeile
+denselben Namen wie ein bereits vorhandenes Mitglied, warnt die App nur –
+Namen sind in Vereinen zu oft mehrdeutig, um sie als Dublettenschlüssel zu
+verwenden. Eine Zeile ohne Mailadresse landet automatisch bei der Zahlungsart
+„Überweisung", nicht bei Lastschrift.
+
+**Jedes per Import angelegte Mandat wird sofort aktiv.** Sobald mindestens
+eine Zeile ein Mandat anlegen würde, verlangt die App vor dem Übernehmen die
+Bestätigung „die unterschriebenen Mandate liegen vor" – das ersetzt die sonst
+manuelle Freigabe je Mandat und setzt voraus, dass Sie die Papierform
+tatsächlich vorliegen haben.
 
 ### 13.4 Beiträge, Fälligkeit und Rückstand
 
@@ -1229,6 +1246,15 @@ erzeugen Sie den gesamten Rückstand sofort.
 
 Haben Sie sich schlicht im Startdatum vertan, korrigieren Sie die nächste
 Fälligkeit über *Bearbeiten*, statt nachzuholen.
+
+**Mitglieder, die über den Aufnahme-Assistenten oder den CSV-Import angelegt
+wurden**, zeigt die Liste mit Mandat (IBAN, bei Bedarf mit der Marke *Entwurf*
+oder *ausgesetzt*) und ihrer Beitragsgruppen-Zuweisung: *Betrag* ist der Betrag
+je Periode (Monatsbeitrag × Turnus), *Aktiv* nennt den Zustand der Zuweisung
+(*aktiv*, *ab …*, *beendet …*). Eine *Nächste Fälligkeit* gibt es dort nicht –
+sie entsteht erst mit der Forderung. Wer per Überweisung zahlt, steht mit
+„Überweisung" statt „kein Mandat" da. Solche Zuweisungen bearbeiten Sie nicht in
+der Zeile, sondern über **„Zuweisung verwalten"** im Reiter *Beitragsgruppen*.
 
 ### 13.5 Einzug erzeugen und einreichen
 

@@ -289,6 +289,30 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-card--danger { border-color: var(--color-element-error); }
 
+/* Bereich "Mein Beitrag" (SelfServiceTab.vue) */
+.vbh-selfservice { max-width: 640px; }
+
+.vbh-selfservice-fields { display: grid; grid-template-columns: max-content 1fr; column-gap: 16px; row-gap: 8px; margin: 0; }
+
+.vbh-selfservice-fields dt { color: var(--color-text-maxcontrast); }
+
+.vbh-selfservice-fields dd { margin: 0; }
+
+/* Self-Service-Mandatsdialoge (Issue #75): Vorschau des bestehenden Entwurfs
+   (SelfServiceMandateGrantDialog.vue) und der serverseitig gerenderte
+   Mandatstext (MandateFormRenderer::renderLegalText(), dieselbe Klasse wie
+   .vbh-selfservice-fields für die Definitionsliste, plus ein abgegrenzter,
+   scrollbarer Block für den - potenziell langen - Rechtstext). */
+.vbh-mandate-preview { display: grid; grid-template-columns: max-content 1fr; column-gap: 16px; row-gap: 8px; margin: 0 0 10px; }
+
+.vbh-mandate-preview dt { color: var(--color-text-maxcontrast); }
+
+.vbh-mandate-preview dd { margin: 0; }
+
+.vbh-mandate-legaltext { max-height: 220px; overflow-y: auto; border: 1px solid var(--color-border); border-radius: var(--border-radius, 4px); padding: 8px 12px; font-size: 0.9em; }
+
+.vbh-mandate-legaltext p:first-child { margin-top: 0; }
+
 .vbh-uploadrow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 
 .vbh-filebtn { display: inline-block; background: var(--color-background-dark); border: 1px solid var(--color-border); border-radius: var(--border-radius-element, 8px); padding: 6px 14px; cursor: pointer; font-weight: 600; }
@@ -752,6 +776,9 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 /* Feld mit Knopf am Eingabefeld (FolderPathField.vue): wie ein label gebaut, weil ein Knopf nicht in ein label gehoert */
 .vbh-form .vbh-field { display: flex; flex-direction: column; gap: 3px; }
 
+/* Gruppiert mehrere .vbh-form-Zeilen hinter einem gemeinsamen disabled-Schalter (z.B. MemberDialog.vue nach einer DSGVO-Anonymisierung), ohne den Browser-Rahmen/-Innenabstand eines <fieldset> */
+.vbh-fieldset-reset { border: 0; padding: 0; margin: 0; min-width: 0; }
+
 .vbh-inputgroup { display: flex; align-items: center; gap: 6px; }
 
 /* min-height: Nextclouds select rendert zwei Pixel hoeher als ein Textfeld; ohne Angleich stuende die Beschriftung dieses Felds tiefer als die der Nachbarn */
@@ -835,6 +862,17 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
    eingebaute :name-Balken aktiv - dort deckt sich seine Position tatsaechlich
    mit der Box (siehe deren eigene Kommentare). */
 .vbh-modal-title { margin: 0 44px 14px 0; }
+
+/* Zwischenüberschriften in der Mitglied-Akte (MemberDialog.vue): NC-Konto,
+   Austritt, Löschen - eigene Abschnitte im selben Formular-Dialog statt
+   separater Modals, siehe Kommentar dort. */
+.vbh-modal-subtitle { margin: 20px 0 8px; font-size: 15px; font-weight: bold; }
+
+/* Vorschlagsliste für die NC-Kontoverknüpfung: jeder Treffer eine Zeile mit
+   eigenem Bestätigungsknopf, keiner vorausgewählt (Spec §3.1). */
+.vbh-linksuggestions { list-style: none; margin: 8px 0; padding: 0; }
+
+.vbh-linksuggestions li { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
 
 /* Einnahme/Ausgabe-Umschalter (Einfach-Modus) */
 /* Bewusst OHNE overflow: hidden. Nextclouds Fokusring besteht aus outline

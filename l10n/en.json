@@ -1429,7 +1429,36 @@
             "%n{plus} documents"
         ],
         "Diese Datei hängt bereits an der Buchung.": "This file is already attached to the entry.",
-        "Keine weiteren Dateien im Wächter-Ordner.": "No further files in the watch folder."
+        "Keine weiteren Dateien im Wächter-Ordner.": "No further files in the watch folder.",
+
+        "Mein Beitrag": "My contribution",
+        "Kein Self-Service-Zugang.": "No self-service access.",
+        "Mitglied nicht gefunden": "Member not found",
+        "Meine Stammdaten": "My details",
+        "Telefon": "Phone",
+        "Adresse": "Address",
+        "Mitgliedsnummer": "Member number",
+        "Mitglied seit": "Member since",
+        "Mitglied bis": "Member until",
+        "Mandat und Beitrag lassen sich hier bald selbst verwalten – bis dahin wendet euch für Änderungen an den Vorstand.": "Managing your mandate and contribution here yourself is coming soon – until then, please contact the board for changes.",
+        "Deine Stammdaten konnten nicht geladen werden.": "Your details could not be loaded.",
+        "Self-Service „Mein Beitrag\" für verknüpfte Nextcloud-Konten freischalten": "Enable “My contribution” self-service for linked Nextcloud accounts",
+        "Betrifft nur Mitglieder, deren Nextcloud-Konto in der Mitgliederakte verknüpft ist – sie sehen dann ihre eigenen Stammdaten, unabhängig von einer Buchhaltungsrolle.": "Only affects members whose Nextcloud account is linked in the member record – they then see their own details, regardless of any accounting role.",
+        "Änderungen an meinem Beitrag (Mandat, Beitrag, Stammdaten)": "Changes to my contribution (mandate, fee, personal details)",
+
+        "Überweisung": "Bank transfer",
+        "Entwurf": "Draft",
+        "ausgesetzt": "suspended",
+        "ab {datum}": "from {datum}",
+        "beendet {datum}": "ended {datum}",
+        "alle {monate} Monate": "every {monate} months",
+        "Zuweisung verwalten": "Manage assignment",
+        "Beitragsgruppen": "Contribution groups",
+        "In den Beitragsgruppen verwalten": "Manage in contribution groups",
+        "_+ %n weitere Zuweisung_::_+ %n weitere Zuweisungen_": [
+            "+ %n more assignment",
+            "+ %n more assignments"
+        ]
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }
