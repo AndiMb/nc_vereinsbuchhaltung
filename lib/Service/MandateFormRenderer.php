@@ -42,6 +42,11 @@ class MandateFormRenderer {
 	 */
 	public function renderLegalText(MandateLegalTextVersion $legalText, string $creditorName): string {
 		$rendered = $legalText->render($creditorName !== '' ? $creditorName : $this->l10n->t('den Verein'));
+		// Pflichtblock und Rahmen stecken im selben Textkörper, getrennt durch
+		// einen HTML-Kommentar-Marker (siehe MandateLegalTextService). Der
+		// Marker ist reine Buchführung und darf nie als Text erscheinen -
+		// stattdessen trennt er die beiden Teile als Absätze.
+		$rendered = str_replace(MandateLegalTextService::RAHMEN_MARKER, "\n\n", $rendered);
 		$paragraphs = preg_split('/\n{2,}/', trim($rendered)) ?: [];
 		$html = '';
 		foreach ($paragraphs as $paragraph) {

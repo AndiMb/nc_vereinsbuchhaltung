@@ -34,11 +34,11 @@ class MandateLegalTextService {
 	 * Trennt Pflichtblock und Rahmen innerhalb von `body`. Ein HTML-Kommentar,
 	 * der weder im Fließtext noch im gerenderten PDF/Zustimmungsformular
 	 * sichtbar auftaucht, wenn `body` als vorformatierter Text ausgegeben wird
-	 * (siehe {@see MandateFormRenderer}) - dort wird ohnehin nur der Teil VOR
-	 * diesem Marker (der Pflichtblock) plus der Teil DANACH (der Rahmen)
-	 * jeweils einzeln escaped und angezeigt, der Marker selbst nie.
+	 * (siehe {@see MandateFormRenderer}) - dort wird der Marker vor dem
+	 * Escapen durch einen Absatzwechsel ersetzt, Pflichtblock und Rahmen
+	 * erscheinen als getrennte Absätze, der Marker selbst nie.
 	 */
-	private const RAHMEN_MARKER = "\n<!-- vbh:rahmen -->\n";
+	public const RAHMEN_MARKER = "\n<!-- vbh:rahmen -->\n";
 
 	public function __construct(
 		private MandateLegalTextVersionMapper $mapper,

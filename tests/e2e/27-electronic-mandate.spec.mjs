@@ -71,7 +71,12 @@ test.describe('Elektronische Mandatserteilung', () => {
 		// nicht angemeldeter Browser-Kontext (page startet in diesem Test ohne
 		// vorherigen login()/openApp()-Aufruf, siehe Spec-Kopf).
 		await page.goto(activationUrl)
-		await expect(page.getByText('SEPA-Lastschriftmandat', { exact: false }).first()).toBeVisible()
+		// Über die Überschrift, nicht über den Text: 'SEPA-Lastschriftmandat'
+		// steht auch im Rechtstext selbst (und früher im <title>).
+		await expect(page.getByRole('heading', { name: 'SEPA-Lastschriftmandat', exact: true })).toBeVisible()
+		// Der interne Marker zwischen Pflichtblock und Rahmen darf nie als
+		// Text beim Mitglied ankommen.
+		await expect(page.getByText('vbh:rahmen', { exact: false })).toHaveCount(0)
 		await expect(page.getByText('Lena Fischer', { exact: false })).toBeVisible()
 		await expect(page.getByText('DE89370400440532013000', { exact: false })).toBeVisible()
 

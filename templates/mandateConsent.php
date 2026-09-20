@@ -8,73 +8,76 @@ declare(strict_types=1);
  * Mandats-Rechtstext ist nicht Teil des l10n-Wegs) - deshalb hier auch die
  * umgebenden Bedienelemente hart auf Deutsch statt ueber $l->t().
  *
+ * Wird per TemplateResponse::RENDER_AS_PUBLIC in die Public-Hülle von
+ * Nextcloud eingebettet - deshalb hier bewusst KEIN eigenes
+ * <html>/<head>/<body>-Gerüst, sondern nur der Inhalt (mit eigenem
+ * Scroll-Container, siehe .vbh-consent-page).
+ *
  * $_['status']: 'pending' | 'consumed' | 'invalid' | 'expired'
  */
 
 $status = $_['status'];
 $clubName = (string)($_['clubName'] ?? '');
-$title = $clubName !== '' ? $clubName . ' – SEPA-Lastschriftmandat' : 'SEPA-Lastschriftmandat';
 ?>
-<!DOCTYPE html>
-<html lang="de">
-<head>
-	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<meta name="robots" content="noindex, nofollow">
-	<title><?php p($title); ?></title>
-	<style>
-		* { box-sizing: border-box; }
-		body {
-			font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-			color: #222;
-			background: #f5f5f5;
-			margin: 0;
-			padding: 24px 16px;
-		}
-		.vbh-consent-card {
-			max-width: 640px;
-			margin: 0 auto;
-			background: #fff;
-			border-radius: 8px;
-			padding: 24px;
-			box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
-		}
-		h1 { font-size: 1.3rem; margin: 0 0 4px; }
-		.vbh-club { color: #555; font-size: 0.9rem; margin-bottom: 20px; }
-		.vbh-legal-text p { line-height: 1.5; }
-		dl.vbh-mandate-data { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 20px 0; font-size: 0.95rem; }
-		dl.vbh-mandate-data dt { font-weight: 600; color: #444; }
-		dl.vbh-mandate-data dd { margin: 0; word-break: break-word; }
-		.vbh-actions { margin-top: 24px; }
-		button.vbh-consent-submit {
-			background: #2d7d46;
-			color: #fff;
-			border: none;
-			border-radius: 4px;
-			padding: 12px 20px;
-			font-size: 1rem;
-			cursor: pointer;
-		}
-		button.vbh-consent-submit:hover { background: #256238; }
-		.vbh-hint { color: #555; font-size: 0.85rem; margin-top: 12px; }
-		.vbh-status-box {
-			border-radius: 6px;
-			padding: 16px;
-			margin-bottom: 16px;
-		}
-		.vbh-status-box.vbh-success { background: #eaf6ec; border: 1px solid #bfe3c8; }
-		.vbh-status-box.vbh-error { background: #fdeaea; border: 1px solid #f3c2c2; }
-		@media (prefers-color-scheme: dark) {
-			body { background: #1b1b1b; color: #ddd; }
-			.vbh-consent-card { background: #262626; box-shadow: none; }
-			.vbh-club, .vbh-hint { color: #aaa; }
-			dl.vbh-mandate-data dt { color: #ccc; }
-			.vbh-status-box.vbh-success { background: #1f3324; border-color: #2d5136; }
-			.vbh-status-box.vbh-error { background: #3a2323; border-color: #6b3a3a; }
-		}
-	</style>
-</head>
-<body>
+<style>
+	.vbh-consent-page {
+		/* Die Public-Hülle von Nextcloud (#content) ist fest positioniert und
+		   schneidet Überlauf ab - ohne eigenen Scroll-Container ist bei einem
+		   niedrigen Fenster (Handy, Querformat) der Zustimmungsknopf am Ende
+		   der Seite nicht erreichbar. */
+		flex: 1 1 auto;
+		min-width: 0;
+		overflow-y: auto;
+		box-sizing: border-box;
+		font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+		color: #222;
+		background: #f5f5f5;
+		padding: 24px 16px;
+	}
+	.vbh-consent-page *, .vbh-consent-page *::before, .vbh-consent-page *::after { box-sizing: border-box; }
+	.vbh-consent-card {
+		max-width: 640px;
+		margin: 0 auto;
+		background: #fff;
+		border-radius: 8px;
+		padding: 24px;
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+	}
+	.vbh-consent-card h1 { font-size: 1.3rem; margin: 0 0 4px; }
+	.vbh-club { color: #555; font-size: 0.9rem; margin-bottom: 20px; }
+	.vbh-legal-text p { line-height: 1.5; }
+	dl.vbh-mandate-data { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 20px 0; font-size: 0.95rem; }
+	dl.vbh-mandate-data dt { font-weight: 600; color: #444; }
+	dl.vbh-mandate-data dd { margin: 0; word-break: break-word; }
+	.vbh-actions { margin-top: 24px; }
+	button.vbh-consent-submit {
+		background: #2d7d46;
+		color: #fff;
+		border: none;
+		border-radius: 4px;
+		padding: 12px 20px;
+		font-size: 1rem;
+		cursor: pointer;
+	}
+	button.vbh-consent-submit:hover { background: #256238; }
+	.vbh-hint { color: #555; font-size: 0.85rem; margin-top: 12px; }
+	.vbh-status-box {
+		border-radius: 6px;
+		padding: 16px;
+		margin-bottom: 16px;
+	}
+	.vbh-status-box.vbh-success { background: #eaf6ec; border: 1px solid #bfe3c8; }
+	.vbh-status-box.vbh-error { background: #fdeaea; border: 1px solid #f3c2c2; }
+	@media (prefers-color-scheme: dark) {
+		.vbh-consent-page { background: #1b1b1b; color: #ddd; }
+		.vbh-consent-card { background: #262626; box-shadow: none; }
+		.vbh-club, .vbh-hint { color: #aaa; }
+		dl.vbh-mandate-data dt { color: #ccc; }
+		.vbh-status-box.vbh-success { background: #1f3324; border-color: #2d5136; }
+		.vbh-status-box.vbh-error { background: #3a2323; border-color: #6b3a3a; }
+	}
+</style>
+<div class="vbh-consent-page">
 	<div class="vbh-consent-card">
 		<h1>SEPA-Lastschriftmandat</h1>
 		<?php if ($clubName !== '') { ?>
@@ -111,5 +114,4 @@ $title = $clubName !== '' ? $clubName . ' – SEPA-Lastschriftmandat' : 'SEPA-La
 			</form>
 		<?php } ?>
 	</div>
-</body>
-</html>
+</div>
