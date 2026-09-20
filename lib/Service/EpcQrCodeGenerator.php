@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service;
 
 use chillerlan\QRCode\Common\EccLevel;
-use chillerlan\QRCode\Output\QRGdImagePNG;
+use chillerlan\QRCode\Output\QROutputInterface;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
 
@@ -52,7 +52,10 @@ final class EpcQrCodeGenerator {
 		$payload = $this->buildPayload($creditorName, $creditorIban, $creditorBic, $amountCents, $remittanceText);
 
 		$options = new QROptions([
-			'outputInterface' => QRGdImagePNG::class,
+			// In php-qrcode 5.x wählt `outputType` die Ausgabeklasse (GDIMAGE_PNG
+			// -> QRGdImagePNG); `outputInterface` gilt dort nur für den Typ CUSTOM
+			// und wurde sonst stillschweigend ignoriert (Ergebnis wäre SVG-Text).
+			'outputType' => QROutputInterface::GDIMAGE_PNG,
 			'outputBase64' => false,
 			// EPC069-12 empfiehlt ECC-Level M als Kompromiss aus Fehlertoleranz
 			// und Codegröße bei der vergleichsweise langen Zeichenkette.
