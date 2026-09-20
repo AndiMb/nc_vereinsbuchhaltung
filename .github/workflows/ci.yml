@@ -181,6 +181,25 @@ jobs:
         # gegen genau die Bundles, die auch ausgeliefert wuerden.
         run: npm run build
 
+      - uses: shivammathur/setup-php@v2
+        with:
+          # Wie in den anderen PHP-Jobs die niedrigste unterstuetzte Version:
+          # das composer.lock muss dort installierbar sein. Im Container
+          # laeuft spaeter PHP 8.3; welche Version vendor/ gebaut hat, spielt
+          # keine Rolle, die Versionen kommen aus dem Lockfile.
+          php-version: '8.1'
+          tools: composer
+          coverage: none
+
+      - name: App-Abhaengigkeiten installieren
+        # Der Testserver mountet das Checkout als App-Verzeichnis, und
+        # Nextcloud laedt dessen vendor/autoload.php beim App-Start. Ohne
+        # vendor/ fehlt chillerlan/php-qrcode (Issue #73, GiroCode-Anhang der
+        # Mahnwesen-Mails): jeder Pfad, der den Anhang erzeugt, bricht dann
+        # in der CI, waehrend er lokal (mit vendor/) laeuft. --no-dev wie im
+        # Release-Workflow, das Tarball enthaelt dieselbe vendor/-Auswahl.
+        run: composer install --no-dev --no-interaction --no-progress
+
       - name: Testserver starten (Docker-Nextcloud stable34)
         # Kehrt erst zurueck, wenn die Instanz eingerichtet und der
         # "init"-Snapshot angelegt ist - ein eigener Warteschritt entfaellt.
