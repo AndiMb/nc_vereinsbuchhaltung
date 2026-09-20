@@ -31,23 +31,17 @@ import { api, openApp, switchTab, USERS, visibleSection } from './fixtures/nextc
 const GROUP_NAME = 'Selfservice-Testgruppe'
 const MEMBER = { firstName: 'Beate', lastName: 'Beitragszahler', email: 'beate.beitrag@example.org' }
 
-/** Idempotente Aufräumung, siehe derselbe Kommentar in 26-self-service.spec.mjs. */
-async function unlinkExisting(request, ncUserId) {
-	const members = await api.listMembers(request)
-	const existing = members.find((m) => m.ncUserId === ncUserId)
-	if (existing) {
-		await api.unlinkMember(request, existing.id)
-		await api.deleteMember(request, existing.id)
-	}
-}
-
 test.describe('Self-Service Beitrag-Aktionen', () => {
 	let memberId
 	let assignmentId
 
 	test.beforeAll(async ({ request }) => {
+		// resetBook räumt auch ein verknüpftes Mitglied aus früheren Läufen/Specs
+		// weg. Ein Mitglied mit Beitragsgruppen-Zuweisung lässt sich nicht per
+		// DELETE entfernen (MemberService verweigert es wegen der Historie) -
+		// ein gezieltes Löschen wie in 26-self-service ist hier nicht möglich.
+		await api.resetBook(request)
 		await api.updateSettings(request, { self_service_enabled: '1', membership_enabled: '1', club_name: 'Testverein e.V.' })
-		await unlinkExisting(request, USERS.ohneRolle)
 
 		const groupResp = await api.raw(request, 'POST', '/contribution-groups', {
 			data: { name: GROUP_NAME, minMonthlyAmount: 5, defaultMonthlyAmount: 10, allowedIntervals: [1, 3, 12], defaultInterval: 12, isActive: true },
@@ -72,9 +66,11 @@ test.describe('Self-Service Beitrag-Aktionen', () => {
 	})
 
 	test.afterAll(async ({ request }) => {
+		// Nur die Kontoverknüpfung lösen: das Mitglied hat eine Zuweisung (und
+		// nach den Beitragsänderungen Historie) und ist deshalb per DELETE nicht
+		// mehr entfernbar; die nächste Spec setzt den Bestand selbst zurück.
 		if (memberId) {
 			await api.unlinkMember(request, memberId)
-			await api.deleteMember(request, memberId)
 		}
 		await api.updateSettings(request, { self_service_enabled: '0', membership_enabled: '0' })
 	})
@@ -154,7 +150,9 @@ test.describe('Self-Service Beitrag-Aktionen', () => {
 
 		// Die Ablehnung landet als Fehler-Toast (showError) - nicht als
 		// "Wirkt ab"-Vorschau, und Speichern bleibt gesperrt.
-		await expect(page.getByText(new RegExp(explanation))).toBeVisible()
+		// .first(): neben dem Toast kann eine Bildschirmleser-Ansage mit demselben
+		// Text im DOM stehen (siehe successToast() in 31-self-service-mandate).
+		await expect(page.getByText(new RegExp(explanation)).first()).toBeVisible()
 		await expect(card.getByText(/Wirkt ab/)).toHaveCount(0)
 		await expect(saveButton).toBeDisabled()
 	})
