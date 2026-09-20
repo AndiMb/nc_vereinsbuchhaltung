@@ -23,6 +23,16 @@ import { api, openApp, tabButton, USERS, visibleSection } from './fixtures/nextc
 // über den öffentlichen Einmal-Link, den 27-electronic-mandate.spec.mjs
 // bereits abdeckt.
 
+/**
+ * Erfolgs-Toast (showSuccess). Der Toast steht doppelt im DOM: als sichtbares
+ * Toast-Element und als Bildschirmleser-Ansage "Erfolg: <Text>" in einer
+ * Live-Region - ein Teilstring-Locator träfe beide (strict mode violation),
+ * deshalb der exakte Text.
+ */
+function successToast(page, text) {
+	return page.getByText(text, { exact: true })
+}
+
 /** Löst eine evtl. bestehende Verknüpfung von USERS.ohneRolle und verknüpft stattdessen ein frisches Mitglied. */
 async function linkFreshMember(request, memberData) {
 	const members = await api.listMembers(request)
@@ -45,6 +55,7 @@ async function activePaperMandate(request, memberId, iban, accountHolder) {
 
 test.describe('Self-Service: Mandats-Aktionskatalog (Issue #75)', () => {
 	test.beforeAll(async ({ request }) => {
+		await api.resetBook(request)
 		await api.updateSettings(request, { self_service_enabled: '1' })
 	})
 
@@ -73,10 +84,16 @@ test.describe('Self-Service: Mandats-Aktionskatalog (Issue #75)', () => {
 		await dialog.getByLabel('Kontoinhaber', { exact: true }).fill('Nora Fischer')
 		// Pflicht-UI "Vorschau vor jedem Speichern" (Spec §3.4): der Mandatstext
 		// ist Teil desselben Dialogs, keine separate Fläche.
-		await expect(dialog.getByText('SEPA-Lastschriftmandat', { exact: false })).toBeVisible()
+		// Gezielt der geladene Rechtstext, nicht irgendein Text mit dem Wort: der
+		// Vorschau-Hinweis im Dialog nennt "SEPA-Lastschriftmandat" ebenfalls -
+		// ein Textlocator wäre je nach Ladezustand einmal eindeutig, einmal
+		// eine strict mode violation.
+		const legalText = dialog.locator('.vbh-mandate-legaltext')
+		await expect(legalText).toContainText('SEPA-Lastschriftmandat')
+		await expect(legalText).not.toContainText('vbh:rahmen')
 		await dialog.getByRole('button', { name: 'Jetzt erteilen' }).click()
 
-		await expect(page.getByText('Mandat erteilt.')).toBeVisible()
+		await expect(successToast(page, 'Mandat erteilt.')).toBeVisible()
 		await expect(section.getByText('Aktiv')).toBeVisible()
 		// IBAN immer maskiert (Spec §3.4 Pflicht-UI) - die volle IBAN darf nach
 		// der Erteilung nirgends auf der Seite auftauchen, nur maskiert
@@ -112,7 +129,7 @@ test.describe('Self-Service: Mandats-Aktionskatalog (Issue #75)', () => {
 		await dialog.getByLabel('Neuer Kontoinhaber', { exact: true }).fill('Neue Person')
 		await dialog.getByRole('button', { name: 'Kontoinhaber wechseln' }).click()
 
-		await expect(page.getByText('Kontoinhaber gewechselt, neues Mandat erteilt.')).toBeVisible()
+		await expect(successToast(page, 'Kontoinhaber gewechselt, neues Mandat erteilt.')).toBeVisible()
 		await expect(section.getByText('Neue Person')).toBeVisible()
 	})
 
@@ -145,7 +162,7 @@ test.describe('Self-Service: Mandats-Aktionskatalog (Issue #75)', () => {
 		await section.getByRole('button', { name: 'Mandat widerrufen' }).click()
 		await page.getByRole('dialog', { name: 'Mandat widerrufen' }).getByRole('button', { name: 'Mandat endgültig widerrufen' }).click()
 
-		await expect(page.getByText('Mandat widerrufen.')).toBeVisible()
+		await expect(successToast(page, 'Mandat widerrufen.')).toBeVisible()
 		await expect(section.getByText('Kein Mandat hinterlegt.')).toBeVisible()
 	})
 })
