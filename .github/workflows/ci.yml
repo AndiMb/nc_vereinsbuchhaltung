@@ -117,6 +117,15 @@ jobs:
         # unbemerkt zwischen CI-Laeufen, siehe Issue #2.
         run: composer install --working-dir=.phpstan --no-interaction --no-progress
 
+      - name: App-Abhaengigkeiten installieren
+        # Seit Issue #73 nutzt lib/ mit chillerlan/php-qrcode Fremdcode aus
+        # dem Root-vendor/ (EpcQrCodeGenerator). PHPStan laedt dessen
+        # vendor/autoload.php im Arbeitsverzeichnis von selbst; ohne diesen
+        # Schritt meldet es die Klassen als "not found". Die gd-Erweiterung
+        # braucht es hier nicht - die Analyse liest nur den Quelltext, ruft
+        # aber nichts auf (anders als der Backend-Job mit den Unit-Tests).
+        run: composer install --no-interaction --no-progress
+
       - name: PHPStan
         run: .phpstan/vendor/bin/phpstan analyse --no-progress
 
