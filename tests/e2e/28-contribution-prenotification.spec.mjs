@@ -17,11 +17,20 @@ import { api, USERS } from './fixtures/nextcloud.mjs'
 // abhaengiges Datum, das sich nicht ohne Zeitreise-Fixture (die es fuer E2E
 // nicht gibt, anders als ITimeFactory in PHPUnit) zuverlaessig auf "bald
 // faellig" bringen liesse.
+//
+// Der Testserver hat keinen Mailserver (NC-Standard: SMTP auf 127.0.0.1:25,
+// Verbindung abgelehnt). Ohne Zustellweg meldet IMailer::send() einen
+// Fehlschlag, der Dienst vermerkt dann bewusst KEIN prenotified_at (der
+// naechste Lauf versucht es erneut). Fuer diese Spec wird deshalb der
+// NC-Mail-Modus "null" gesetzt (Mails werden angenommen und verworfen) und
+// danach wieder entfernt: config.php gehoert nicht zum DB-Snapshot, die
+// Einstellung bliebe sonst fuer alle folgenden Specs gesetzt (afterAll).
 test.describe('Einzugszyklus: Vorabinfo-Versand', () => {
 	let memberId
 	let claimId
 
 	test.beforeAll(async ({ request }) => {
+		await runOcc(['config:system:set', 'mail_smtpmode', '--value', 'null'], { container: getContainer() })
 		await api.resetBook(request)
 		await api.updateSettings(request, { membership_enabled: '1', club_name: 'Testverein e.V.' })
 
@@ -48,6 +57,10 @@ test.describe('Einzugszyklus: Vorabinfo-Versand', () => {
 		const claim = await claimResp.json()
 		claimId = claim.id
 		expect(claim.prenotifiedAt).toBeNull()
+	})
+
+	test.afterAll(async () => {
+		await runOcc(['config:system:delete', 'mail_smtpmode'], { container: getContainer() })
 	})
 
 	test('Cron verschickt die Vorabinfo und setzt prenotifiedAt, idempotent bei erneutem Lauf', async ({ request }) => {
