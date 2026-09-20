@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service;
 
+use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\MembershipFeeMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\SepaBatchItemMapper;
@@ -16,10 +17,8 @@ use OCP\IL10N;
 
 /**
  * SEPA-Lastschriftmandate. Rein optionales Zusatzmodul (siehe Migration
- * 000124): ein Mandat gehört entweder zu einem Nextcloud-Konto dieser
- * Instanz (Mitglied mit eigenem Login) oder zu einem frei benannten Zahler
- * (member_label) – etwa bei einem Verband, der nur Beitragsanteile von
- * Untergliederungen einzieht und keine individuellen Mitglieder führt.
+ * 000124/000137/000138): ein Mandat gehört zu genau einem {@see \OCA\Vereinsbuchhaltung\Db\Member},
+ * unabhängig davon, ob dieses ein Nextcloud-Konto hat.
  */
 class SepaMandateService {
 
@@ -28,8 +27,8 @@ class SepaMandateService {
 		private SepaBatchItemMapper $batchItemMapper,
 		private MembershipFeeMapper $feeMapper,
 		private OpenItemMapper $openItemMapper,
+		private MemberMapper $members,
 		private IbanValidator $ibanValidator,
-		private MemberReferenceValidator $memberRef,
 		private TransactionRunner $transaction,
 		private AuditService $audit,
 		private IL10N $l10n,
@@ -42,24 +41,21 @@ class SepaMandateService {
 	}
 
 	/**
-	 * @param string|null $memberUid Nextcloud-Konto; exklusiv zu $memberLabel
-	 * @param string|null $memberLabel Freitext-Zahler; exklusiv zu $memberUid
+	 * @throws DoesNotExistException wenn es das Mitglied nicht (mehr) gibt
 	 * @throws \InvalidArgumentException bei ungültigen Eingaben
 	 */
 	public function create(
-		?string $memberUid,
-		?string $memberLabel,
+		int $memberId,
 		string $iban,
 		?string $bic,
 		string $mandateType,
 		string $signedDate,
 		?string $email = null,
 	): SepaMandate {
-		[$memberUid, $memberLabel] = $this->memberRef->validate($memberUid, $memberLabel);
+		$member = $this->members->find($memberId);
 
 		$mandate = new SepaMandate();
-		$mandate->setMemberUid($memberUid);
-		$mandate->setMemberLabel($memberLabel);
+		$mandate->setMemberId($member->getId());
 		$mandate->setIban($this->requireIban($iban));
 		$mandate->setBic($bic !== null && trim($bic) !== '' ? strtoupper(trim($bic)) : null);
 		$mandate->setEmail($this->normalizeEmail($email));
@@ -71,7 +67,7 @@ class SepaMandateService {
 
 		$mandate = $this->mapper->insert($mandate);
 		$this->audit->log('SEPA-Mandat angelegt', 'sepa_mandate', $mandate->getId(), [
-			'zahler' => $mandate->displayName(),
+			'zahler' => $member->displayName(),
 			'referenz' => $mandate->getMandateReference(),
 		]);
 		return $mandate;
@@ -89,7 +85,7 @@ class SepaMandateService {
 		$mandate->setSignedDate($this->validateDate($signedDate));
 		$mandate = $this->mapper->update($mandate);
 		$this->audit->log('SEPA-Mandat geändert', 'sepa_mandate', $mandate->getId(), [
-			'zahler' => $mandate->displayName(),
+			'zahler' => $this->members->displayNameOr($mandate->getMemberId(), $this->l10n->t('(Mitglied gelöscht)')),
 			'referenz' => $mandate->getMandateReference(),
 		]);
 		return $mandate;
@@ -107,7 +103,7 @@ class SepaMandateService {
 		$mandate->setStatus('revoked');
 		$mandate = $this->mapper->update($mandate);
 		$this->audit->log('SEPA-Mandat widerrufen', 'sepa_mandate', $mandate->getId(), [
-			'zahler' => $mandate->displayName(),
+			'zahler' => $this->members->displayNameOr($mandate->getMemberId(), $this->l10n->t('(Mitglied gelöscht)')),
 			'referenz' => $mandate->getMandateReference(),
 		]);
 		return $mandate;
@@ -149,7 +145,7 @@ class SepaMandateService {
 		}
 
 		return $this->transaction->run(function () use ($old, $iban, $bic, $mandateType, $signedDate, $email): SepaMandate {
-			$new = $this->create($old->getMemberUid(), $old->getMemberLabel(), $iban, $bic, $mandateType, $signedDate, $email);
+			$new = $this->create($old->getMemberId(), $iban, $bic, $mandateType, $signedDate, $email);
 			$this->revoke((int)$old->getId());
 
 			// Beiträge: unabhängig vom Aktiv-Status umhängen. Ein gerade
@@ -175,7 +171,7 @@ class SepaMandateService {
 			}
 
 			$this->audit->log('SEPA-Bankverbindung gewechselt', 'sepa_mandate', $new->getId(), [
-				'zahler' => $new->displayName(),
+				'zahler' => $this->members->displayNameOr($new->getMemberId(), $this->l10n->t('(Mitglied gelöscht)')),
 				'alte_referenz' => $old->getMandateReference(),
 				'neue_referenz' => $new->getMandateReference(),
 				'beitraege_umgehaengt' => $beitraege,
@@ -215,7 +211,7 @@ class SepaMandateService {
 
 		$this->mapper->delete($mandate);
 		$this->audit->log('SEPA-Mandat gelöscht', 'sepa_mandate', $id, [
-			'zahler' => $mandate->displayName(),
+			'zahler' => $this->members->displayNameOr($mandate->getMemberId(), $this->l10n->t('(Mitglied gelöscht)')),
 			'referenz' => $mandate->getMandateReference(),
 		]);
 	}

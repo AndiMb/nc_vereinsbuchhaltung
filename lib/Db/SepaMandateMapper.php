@@ -63,16 +63,6 @@ class SepaMandateMapper extends QBMapper {
 		return $rows[0] ?? null;
 	}
 
-	/** @return SepaMandate[] aktive Mandate eines Nextcloud-Kontos (i. d. R. maximal eines). */
-	public function findActiveByMemberUid(string $memberUid): array {
-		$qb = $this->db->getQueryBuilder();
-		$qb->select('*')
-			->from($this->getTableName())
-			->where($qb->expr()->eq('member_uid', $qb->createNamedParameter($memberUid)))
-			->andWhere($qb->expr()->eq('status', $qb->createNamedParameter('active')));
-		return $this->findEntities($qb);
-	}
-
 	/**
 	 * Anzahl aller Mandate, unabhaengig vom Status.
 	 *
