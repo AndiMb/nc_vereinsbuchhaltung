@@ -35,7 +35,7 @@ class SelfServiceReceiptMailService {
 
 	/**
 	 * @param string $what Slot „was" – Freitext, z.B. „Ihr Monatsbeitrag wurde
-	 *                      von 10,00 € auf 15,00 € geändert."
+	 *                     von 10,00 € auf 15,00 € geändert."
 	 * @param string|null $effectiveFrom Slot „ab wann" (JJJJ-MM-TT), null = ausgeblendet
 	 * @param string|null $firstDueDate Slot „welcher Einzug" (JJJJ-MM-TT), null = ausgeblendet
 	 * @param string|null $onBehalfNote Slot „Stellvertretung" (Spec §3.4 Modell A), null = ausgeblendet

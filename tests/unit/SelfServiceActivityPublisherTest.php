@@ -9,7 +9,6 @@ use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceActivityPublisher;
 use OCP\Activity\IEvent;
 use OCP\Activity\IManager;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 /**
