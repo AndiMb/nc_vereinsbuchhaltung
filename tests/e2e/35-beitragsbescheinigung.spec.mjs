@@ -21,6 +21,7 @@ const MEMBER = { firstName: 'Petra', lastName: 'Beitragspflichtig' }
 
 test.describe('Beitragsbestätigung', () => {
 	test.beforeAll(async ({ request }) => {
+		await api.resetBook(request)
 		await api.updateSettings(request, { membership_enabled: '1', club_name: 'Testverein e.V.' })
 	})
 
@@ -73,7 +74,9 @@ test.describe('Beitragsbestätigung', () => {
 
 		const [popup] = await Promise.all([
 			page.context().waitForEvent('page'),
-			dialog.getByRole('link', { name: 'Öffnen' }).click(),
+			// exact: der Knopf daneben heißt "Datenübersicht öffnen" - getByRole
+			// sucht Teilstrings ohne Beachtung der Groß-/Kleinschreibung.
+			dialog.getByRole('link', { name: 'Öffnen', exact: true }).click(),
 		])
 		await popup.waitForLoadState()
 
