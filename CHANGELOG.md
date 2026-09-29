@@ -19,6 +19,23 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+## [0.34.4] – 2026-09-29
+
+**Behoben:**
+- **Kontoauszugs-Import legte bereits gebuchte Umsätze doppelt an:** Überschnitt
+  sich ein Bank-Export mit Buchungen aus dem xbuc-Import, erkannte der
+  Dublettenabgleich zwei Fälle nicht und übernahm den Umsatz ein zweites Mal
+  nach „Zuzuordnen" (Issue #112). Betroffen waren Buchungstexte mit kodierten
+  Umlauten („M&amp;#252;ller" statt „Müller") und bankinterne Umsätze ohne
+  Zahlungsbeteiligten wie der Kontoabschluss. Beide werden jetzt als
+  vorhandene Buchung erkannt; bereits importierte Umsätze sind nicht betroffen.
+- **Tab-Wechsel direkt nach dem Öffnen der App ging verloren:** Wer während des
+  ersten Ladens schon einen anderen Tab anklickte, landete wieder auf dem Tab
+  der Start-Adresse.
+- **Betragsfeld sprang auf einen veralteten Wert zurück:** Nach schnellem
+  Fokussieren, Tippen und Verlassen stellte eine ungültige Eingabe den
+  vorletzten statt den letzten gültigen Betrag wieder her.
+
 ## [0.34.3] – 2026-09-15
 
 **Behoben:**
