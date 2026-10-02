@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\AppInfo;
 
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
+use OCA\Vereinsbuchhaltung\Listener\MemberAccountDeletionListener;
 use OCA\Vereinsbuchhaltung\Listener\UserDeletedListener;
 use OCA\Vereinsbuchhaltung\Middleware\PermissionMiddleware;
 use OCA\Vereinsbuchhaltung\Middleware\RevisionMiddleware;
@@ -14,6 +15,7 @@ use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
 use OCP\IDBConnection;
+use OCP\User\Events\BeforeUserDeletedEvent;
 use OCP\User\Events\UserDeletedEvent;
 
 class Application extends App implements IBootstrap {
@@ -34,6 +36,11 @@ class Application extends App implements IBootstrap {
 		// gelöscht, räumt der Listener die Einstellungen mit ab, damit keine
 		// Namen stehen bleiben, hinter denen niemand mehr steht.
 		$context->registerEventListener(UserDeletedEvent::class, UserDeletedListener::class);
+
+		// Mitglied-Verknüpfung: rettet vor der Löschung die Mailadresse ins
+		// Mitglied (Spec §2.2/§3.1) und löst die Verknüpfung, sobald das
+		// Konto weg ist.
+		$context->registerEventListener(BeforeUserDeletedEvent::class, MemberAccountDeletionListener::class);
 
 		// Ausdrücklich als geteilter Dienst: der TransactionRunner zählt die
 		// Verschachtelungstiefe und sammelt Nach-Commit-Aufgaben in

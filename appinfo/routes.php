@@ -94,6 +94,21 @@ return [
 		['name' => 'rule#update', 'url' => '/api/rules/{id}', 'verb' => 'PUT'],
 		['name' => 'rule#destroy', 'url' => '/api/rules/{id}', 'verb' => 'DELETE'],
 
+		// Mitglieder-Stammdaten (Spec §2.2, docs/beitraege-sepa-modul-spec.md)
+		['name' => 'member#index', 'url' => '/api/members', 'verb' => 'GET'],
+		['name' => 'member#show', 'url' => '/api/members/{id}', 'verb' => 'GET'],
+		['name' => 'member#create', 'url' => '/api/members', 'verb' => 'POST'],
+		['name' => 'member#update', 'url' => '/api/members/{id}', 'verb' => 'PUT'],
+		['name' => 'member#destroy', 'url' => '/api/members/{id}', 'verb' => 'DELETE'],
+		['name' => 'member#leave', 'url' => '/api/members/{id}/leave', 'verb' => 'POST'],
+		['name' => 'member#reactivate', 'url' => '/api/members/{id}/reactivate', 'verb' => 'POST'],
+		['name' => 'member#linkSuggestions', 'url' => '/api/members/{id}/link-suggestions', 'verb' => 'GET'],
+		['name' => 'member#link', 'url' => '/api/members/{id}/link', 'verb' => 'POST'],
+		['name' => 'member#unlink', 'url' => '/api/members/{id}/unlink', 'verb' => 'POST'],
+
+		// Aufgaben/Störfälle (Spec §7, Grundlage siehe lib/Db/Task.php)
+		['name' => 'task#index', 'url' => '/api/tasks', 'verb' => 'GET'],
+
 		// SEPA-Lastschriftmandate (optionales Zusatzmodul)
 		['name' => 'sepaMandate#index', 'url' => '/api/sepa/mandates', 'verb' => 'GET'],
 		['name' => 'sepaMandate#create', 'url' => '/api/sepa/mandates', 'verb' => 'POST'],

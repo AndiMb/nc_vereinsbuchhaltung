@@ -41,7 +41,10 @@
 
 		<template v-else>
 			<div class="vbh-mcard-top">
-				<span class="vbh-mcard-title">{{ row.displayName }}</span>
+				<span class="vbh-mcard-title">
+					{{ row.displayName }}
+					<span v-if="!row.member.active" class="vbh-typetag">{{ t('ausgetreten') }}</span>
+				</span>
 				<span v-if="row.fee" class="vbh-mcard-amount">{{ formatMoney(row.fee.amount) }}</span>
 			</div>
 			<p v-if="!row.email" class="vbh-hint">
@@ -83,7 +86,13 @@
 				</NcButton>
 				<!-- Seltener genutzte Aktionen im Menue, gleiches Muster wie in der
 					Desktop-Tabelle (MembersList.vue) und im Buchungsjournal. -->
-				<NcActions v-if="row.fee || (row.mandate && (row.mandate.status === 'active' || !isUsed))" :forceMenu="true">
+				<NcActions :forceMenu="true">
+					<NcActionButton @click="$emit('open-member')">
+						<template #icon>
+							<NcIconSvgWrapper :path="mdiAccountEdit" :size="16" />
+						</template>
+						{{ t('Akte öffnen') }}
+					</NcActionButton>
 					<NcActionButton v-if="row.mandate && row.mandate.status === 'active'" @click="$emit('bank-change')">
 						<template #icon>
 							<NcIconSvgWrapper :path="mdiBankTransfer" :size="16" />
@@ -115,7 +124,7 @@
 </template>
 
 <script>
-import { mdiBankTransfer, mdiCancel, mdiDelete } from '@mdi/js'
+import { mdiAccountEdit, mdiBankTransfer, mdiCancel, mdiDelete } from '@mdi/js'
 import { NcActionButton, NcActions, NcButton, NcIconSvgWrapper } from '@nextcloud/vue'
 import AmountInput from './AmountInput.vue'
 import { formatMoney } from '../lib/format.js'
@@ -144,10 +153,10 @@ export default {
 		isUsed: { type: Boolean, default: false },
 	},
 
-	emits: ['bank-change', 'cancel-edit', 'catch-up', 'remove-fee', 'remove-mandate', 'revoke-mandate', 'save-edit', 'start-edit', 'toggle-active', 'update-editing'],
+	emits: ['bank-change', 'cancel-edit', 'catch-up', 'open-member', 'remove-fee', 'remove-mandate', 'revoke-mandate', 'save-edit', 'start-edit', 'toggle-active', 'update-editing'],
 
 	data() {
-		return { mdiBankTransfer, mdiCancel, mdiDelete }
+		return { mdiAccountEdit, mdiBankTransfer, mdiCancel, mdiDelete }
 	},
 
 	computed: {

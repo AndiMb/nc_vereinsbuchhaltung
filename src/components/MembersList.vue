@@ -1,12 +1,12 @@
 <template>
 	<div>
 		<p class="vbh-hint">
-			{{ t('Ein Mitglied besteht hier aus zwei Angaben: seiner Bankverbindung (dem SEPA-Mandat) und seinem Beitrag. Eine eigene Mitgliederverwaltung führt die App bewusst nicht – wer keine Beiträge einzieht, braucht diesen Reiter nicht.') }}
+			{{ t('Ein Mitglied wird unabhängig von einer Bankverbindung geführt – SEPA-Mandat und Beitrag sind optionale Ergänzungen, die sich jederzeit über „Aufnehmen" bzw. die Akte nachtragen lassen.') }}
 		</p>
 
 		<div class="vbh-form">
 			<label class="vbh-grow">{{ t('Suchen') }}
-				<input v-model="search" type="search" :placeholder="t('Name, IBAN oder E-Mail')">
+				<input v-model="search" type="search" :placeholder="t('Name, IBAN, Mitgliedsnummer oder E-Mail')">
 			</label>
 			<label>
 				<input v-model="onlyProblems" type="checkbox">
@@ -15,7 +15,7 @@
 		</div>
 
 		<p v-if="rows.length" class="vbh-hint">
-			{{ t('{gezeigt} von {gesamt} Einträgen · {mitMandat} mit Mandat · Beitragsaufkommen {summe} im Jahr', {
+			{{ t('{gezeigt} von {gesamt} Mitgliedern · {mitMandat} mit Mandat · Beitragsaufkommen {summe} im Jahr', {
 				gezeigt: filteredRows.length,
 				gesamt: rows.length,
 				mitMandat: rows.filter(r => r.mandate).length,
@@ -41,13 +41,14 @@
 				@bankChange="openBankChange(row.mandate)"
 				@revokeMandate="revokeMandate(row.mandate)"
 				@removeFee="removeFee(row.fee)"
-				@removeMandate="removeMandate(row.mandate)" />
+				@removeMandate="removeMandate(row.mandate)"
+				@openMember="openMemberAkte(row.member)" />
 		</div>
 		<div v-else-if="filteredRows.length" class="vbh-tablecard">
 			<table class="vbh-table">
 				<thead>
 					<tr>
-						<th>{{ t('Zahler') }}</th>
+						<th>{{ t('Mitglied') }}</th>
 						<th>{{ t('Bankverbindung') }}</th>
 						<th class="num">
 							{{ t('Betrag') }}
@@ -62,6 +63,9 @@
 					<tr v-for="row in filteredRows" :key="row.key">
 						<td>
 							{{ row.displayName }}
+							<span v-if="row.member.memberNumber" class="vbh-hint">#{{ row.member.memberNumber }}</span>
+							<span v-if="!row.member.active" class="vbh-typetag">{{ t('ausgetreten') }}</span>
+							<br v-if="!row.email">
 							<span v-if="!row.email" class="vbh-hint">{{ t('keine E-Mail – keine Vorankündigung möglich') }}</span>
 						</td>
 						<td class="nowrap">
@@ -145,9 +149,13 @@
 									<!-- Seltener genutzte Aktionen im Menue, sonst wird die Zeile
 										durch bis zu vier weitere Icon-Buttons zu breit (dasselbe
 										Muster wie im Buchungsjournal, siehe BookingsTab.vue). -->
-									<NcActions
-										v-if="row.fee || (row.mandate && (row.mandate.status === 'active' || !isUsed(row.mandate)))"
-										:forceMenu="true">
+									<NcActions :forceMenu="true">
+										<NcActionButton @click="openMemberAkte(row.member)">
+											<template #icon>
+												<NcIconSvgWrapper :path="mdiAccountEdit" :size="16" />
+											</template>
+											{{ t('Akte öffnen') }}
+										</NcActionButton>
 										<NcActionButton
 											v-if="row.mandate && row.mandate.status === 'active'"
 											@click="openBankChange(row.mandate)">
@@ -192,11 +200,13 @@
 		<MemberDialog
 			:show="memberDialogOpen"
 			:saving="saving"
+			:member="editingMember"
 			:defaultFeeAmount="defaultFeeAmount"
 			:defaultFeeFrequency="defaultFeeFrequency"
 			@update:show="memberDialogOpen = $event"
 			@close="memberDialogOpen = false"
-			@save="createMember" />
+			@save="saveMember"
+			@changed="reload" />
 
 		<MemberImportDialog
 			:show="importDialogOpen"
@@ -216,7 +226,7 @@
 </template>
 
 <script>
-import { mdiBankTransfer, mdiCancel, mdiDelete, mdiPencil } from '@mdi/js'
+import { mdiAccountEdit, mdiBankTransfer, mdiCancel, mdiDelete, mdiPencil } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { NcActionButton, NcActions, NcButton, NcEmptyContent, NcIconSvgWrapper } from '@nextcloud/vue'
 import { toRefs } from 'vue'
@@ -227,21 +237,27 @@ import MemberDialog from './MemberDialog.vue'
 import MemberImportDialog from './MemberImportDialog.vue'
 import api from '../api.js'
 import { useConfirm } from '../composables/useConfirm.js'
+import { useMembers } from '../composables/useMembers.js'
 import { useMembershipFees } from '../composables/useMembershipFees.js'
 import { useSepaMandates } from '../composables/useSepaMandates.js'
 import { errMsg, formatMoney } from '../lib/format.js'
 import { FREQUENCY_MONTHS, frequencyLabel, frequencyOptions } from '../lib/frequency.js'
 
 /**
- * Mitglieder als eine Liste: Mandat und Beitrag gehören zusammen und werden
- * hier auch zusammen gezeigt. Frueher SettingsMembers.vue im Einstellungen-
- * Modal; jetzt Unterreiter „Mitglieder" von ContributionsTab.vue, siehe
- * NAVIGATION-KONZEPT.md Abschnitt 4. Die beiden Formulare („Mitglied
- * aufnehmen", CSV-Import) leben seither in eigenen Dialogen
- * (MemberDialog.vue, MemberImportDialog.vue), die per $refs von der
- * Kopfzeile in ContributionsTab.vue geoeffnet werden.
+ * Mitgliederliste (Spec §2.2/§3.1, docs/beitraege-sepa-modul-spec.md): jede
+ * Zeile ist ein Mitglied, angereichert um sein SEPA-Mandat und seinen
+ * Mitgliedsbeitrag, falls vorhanden – beides ist seit der Mitglied-Entity
+ * unabhängig vom Mitglied selbst (siehe Migration 000137/000138/000139).
  *
- * Erreichbar ab Rolle Buchhalter (siehe SepaMandateController).
+ * Frueher SettingsMembers.vue im Einstellungen-Modal, jetzt Unterreiter
+ * „Mitglieder" von ContributionsTab.vue, siehe NAVIGATION-KONZEPT.md
+ * Abschnitt 4. Die Formulare leben in eigenen Dialogen (MemberDialog.vue,
+ * MemberImportDialog.vue), die per $refs von der Kopfzeile in
+ * ContributionsTab.vue geoeffnet werden.
+ *
+ * Erreichbar ab Rolle Buchhalter (siehe MemberController) – anders als der
+ * Einzug-Unterreiter *nicht* ab Revisor, weil hier unmaskierte Kontaktdaten
+ * stehen (Spec §3.9).
  */
 export default {
 	name: 'MembersList',
@@ -255,11 +271,14 @@ export default {
 	setup() {
 		const membershipFees = useMembershipFees()
 		const sepaMandates = useSepaMandates()
+		const members = useMembers()
 		return {
 			...toRefs(membershipFees.state),
 			...toRefs(sepaMandates.state),
+			...toRefs(members.state),
 			loadMembershipFees: membershipFees.loadMembershipFees,
 			loadSepaMandates: sepaMandates.loadSepaMandates,
+			loadMembers: members.loadMembers,
 			askConfirm: useConfirm().askConfirm,
 		}
 	},
@@ -272,10 +291,12 @@ export default {
 			onlyProblems: false,
 			frequencies: frequencyOptions(),
 			memberDialogOpen: false,
+			editingMember: null,
 			importDialogOpen: false,
 			bankChangeOpen: false,
 			bankChangeMandate: null,
 			bankChangeSaving: false,
+			mdiAccountEdit,
 			mdiBankTransfer,
 			mdiCancel,
 			mdiDelete,
@@ -284,49 +305,23 @@ export default {
 	},
 
 	computed: {
-		/**
-		 * Mandate und Beiträge zu einer Liste verschmolzen. Schlüssel ist der
-		 * Zahler; hat jemand mehrere Beiträge, bekommt er je Beitrag eine Zeile.
-		 */
+		/** Ein Mitglied ist die Zeile; sein Mandat/Beitrag (falls vorhanden) hängt sich daran. */
 		rows() {
-			const key = (x) => (x.memberUid ? `u:${x.memberUid}` : `l:${x.memberLabel}`)
-			const mandateFor = new Map()
-			for (const m of this.sepaMandates) {
-				// Ein aktives Mandat sticht ein widerrufenes: gezeigt wird das,
-				// mit dem tatsaechlich eingezogen wird.
-				const vorhanden = mandateFor.get(key(m))
-				if (!vorhanden || (vorhanden.status !== 'active' && m.status === 'active')) { mandateFor.set(key(m), m) }
-			}
-
-			const zeilen = []
-			const behandelt = new Set()
-			for (const fee of this.membershipFees) {
-				const k = key(fee)
-				behandelt.add(k)
-				const mandate = fee.mandateId
-					? this.sepaMandates.find((m) => m.id === fee.mandateId)
-					: mandateFor.get(k)
-				zeilen.push({
-					key: `fee-${fee.id}`,
-					displayName: fee.displayName,
-					email: mandate?.email || null,
-					mandate: mandate || null,
+			return this.members.map((member) => {
+				const memberMandates = this.sepaMandates.filter((m) => m.memberId === member.id)
+				// Ein aktives Mandat sticht ein widerrufenes: gezeigt wird das, mit
+				// dem tatsaechlich eingezogen wird.
+				const mandate = memberMandates.find((m) => m.status === 'active') ?? memberMandates[0] ?? null
+				const fee = this.membershipFees.find((f) => f.memberId === member.id) ?? null
+				return {
+					key: `member-${member.id}`,
+					member,
+					displayName: member.displayName,
+					email: member.email,
+					mandate,
 					fee,
-				})
-			}
-			// Mandate ohne Beitrag duerfen nicht verschwinden - sonst faende
-			// niemand mehr das Mandat, das er gerade angelegt hat.
-			for (const m of this.sepaMandates) {
-				if (behandelt.has(key(m))) { continue }
-				zeilen.push({
-					key: `mandate-${m.id}`,
-					displayName: m.displayName,
-					email: m.email || null,
-					mandate: m,
-					fee: null,
-				})
-			}
-			return zeilen.sort((a, b) => a.displayName.localeCompare(b.displayName, 'de'))
+				}
+			}).sort((a, b) => a.displayName.localeCompare(b.displayName, 'de'))
 		},
 
 		filteredRows() {
@@ -334,7 +329,7 @@ export default {
 			return this.rows.filter((r) => {
 				if (this.onlyProblems && !this.hasProblem(r)) { return false }
 				if (!suche) { return true }
-				return [r.displayName, r.email, r.mandate?.iban, r.mandate?.mandateReference]
+				return [r.displayName, r.email, r.member.memberNumber, r.mandate?.iban, r.mandate?.mandateReference]
 					.filter(Boolean)
 					.some((v) => String(v).toLowerCase().includes(suche))
 			})
@@ -350,6 +345,7 @@ export default {
 	},
 
 	mounted() {
+		this.loadMembers()
 		this.loadMembershipFees()
 		this.loadSepaMandates()
 	},
@@ -359,8 +355,9 @@ export default {
 		formatMoney,
 		frequencyLabel,
 		/** Von der Kopfzeile in ContributionsTab.vue per $refs aufgerufen. */
-		openMemberDialog() { this.memberDialogOpen = true },
+		openMemberDialog() { this.editingMember = null; this.memberDialogOpen = true },
 		openImportDialog() { this.importDialogOpen = true },
+		openMemberAkte(member) { this.editingMember = member; this.memberDialogOpen = true },
 		/** Was der Verwalter sehen sollte: fehlende Adresse, Rückstand, kein Mandat. */
 		hasProblem(row) {
 			if (row.fee && row.fee.dueCount > 0) { return true }
@@ -374,49 +371,45 @@ export default {
 		},
 
 		async reload() {
-			await Promise.all([this.loadMembershipFees(), this.loadSepaMandates()])
+			await Promise.all([this.loadMembers(), this.loadMembershipFees(), this.loadSepaMandates()])
+			// Die offene Akte zeigt sonst weiter den Stand von vor dem Neuladen -
+			// nach @changed (verknuepft/geloest/Austritt) muss sie den frischen
+			// Datensatz bekommen, sonst wirkt z.B. "Verknuepfen" folgenlos.
+			if (this.editingMember) {
+				this.editingMember = this.members.find((m) => m.id === this.editingMember.id) ?? null
+			}
 		},
 
 		/**
-		 * Legt Mandat und Beitrag zusammen an. Schlägt der Beitrag fehl, bleibt
-		 * das Mandat bestehen - deshalb sagt die Meldung ausdrücklich, was
-		 * entstanden ist, statt nur „fehlgeschlagen".
+		 * Stammdaten anlegen/ändern, dazu beim Anlegen optional Mandat und
+		 * Beitrag in einem Zug (siehe MemberDialog.vue). Schlägt eine spätere
+		 * Stufe fehl, bleibt stehen, was schon entstanden ist – die Meldung
+		 * sagt ausdrücklich, was das war, statt nur „fehlgeschlagen".
 		 */
-		async createMember(form) {
+		async saveMember(payload) {
 			this.saving = true
 			let mandateId = null
 			try {
-				if (form.iban) {
-					const { data } = await api.createSepaMandate({
-						memberUid: form.memberUid,
-						memberLabel: form.memberLabel,
-						iban: form.iban,
-						bic: form.bic,
-						email: form.email,
-						mandateType: 'RCUR',
-						signedDate: form.signedDate,
-					})
-					mandateId = data.id
-				}
-				if (Number(form.amount) > 0) {
-					await api.createMembershipFee({
-						memberUid: form.memberUid,
-						memberLabel: form.memberLabel,
-						amount: Number(form.amount),
-						frequency: form.frequency,
-						startDate: form.startDate,
-						accountId: form.accountId,
-						mandateId,
-					})
+				if (this.editingMember) {
+					await api.updateMember(this.editingMember.id, payload.stammdaten)
+				} else {
+					const { data: member } = await api.createMember(payload.stammdaten)
+					if (payload.mandate) {
+						const { data } = await api.createSepaMandate({ memberId: member.id, mandateType: 'RCUR', ...payload.mandate })
+						mandateId = data.id
+					}
+					if (payload.fee) {
+						await api.createMembershipFee({ memberId: member.id, mandateId, ...payload.fee })
+					}
 				}
 				this.memberDialogOpen = false
 				await this.reload()
-				showSuccess(this.t('Mitglied aufgenommen.'))
+				showSuccess(this.t(this.editingMember ? 'Mitglied gespeichert.' : 'Mitglied aufgenommen.'))
 			} catch (e) {
 				await this.reload()
-				showError(this.errMsg(e, mandateId
+				showError(this.errMsg(e, mandateId !== null
 					? this.t('Das Mandat wurde angelegt, der Beitrag nicht')
-					: this.t('Mitglied konnte nicht aufgenommen werden')))
+					: this.t('Mitglied konnte nicht gespeichert werden')))
 			} finally { this.saving = false }
 		},
 

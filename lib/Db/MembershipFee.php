@@ -7,19 +7,18 @@ namespace OCA\Vereinsbuchhaltung\Db;
 use OCP\AppFramework\Db\Entity;
 
 /**
- * Wiederkehrender Mitgliedsbeitrag. Genau eines von member_uid und
- * member_label ist gesetzt (siehe Migration 000125 und SepaMandate für die
- * gleiche Modellierung). mandate_id ist optional: ein Beitrag kann rein
- * informativ offene Posten erzeugen, ohne je per SEPA eingezogen zu werden.
+ * Wiederkehrender Mitgliedsbeitrag, gehört zu genau einem
+ * {@see \OCA\Vereinsbuchhaltung\Db\Member} (member_id, siehe Migration
+ * 000137/000138 für den Umbau von member_uid/member_label). mandate_id ist
+ * optional: ein Beitrag kann rein informativ offene Posten erzeugen, ohne je
+ * per SEPA eingezogen zu werden.
  *
  * Die erlaubten Werte für `frequency` stehen in
  * {@see \OCA\Vereinsbuchhaltung\Service\BillingPeriod::FREQUENCY_MONTHS} –
  * dort, wo auch damit gerechnet wird.
  *
- * @method string|null getMemberUid()
- * @method void setMemberUid(?string $memberUid)
- * @method string|null getMemberLabel()
- * @method void setMemberLabel(?string $memberLabel)
+ * @method int getMemberId()
+ * @method void setMemberId(int $memberId)
  * @method int getAmountCents()
  * @method void setAmountCents(int $amountCents)
  * @method string getFrequency()
@@ -38,8 +37,7 @@ use OCP\AppFramework\Db\Entity;
  * @method void setCreatedAt(string $createdAt)
  */
 class MembershipFee extends Entity implements \JsonSerializable {
-	protected $memberUid;
-	protected $memberLabel;
+	protected $memberId;
 	protected $amountCents = 0;
 	protected $frequency = 'monthly';
 	protected $startDate;
@@ -50,22 +48,17 @@ class MembershipFee extends Entity implements \JsonSerializable {
 	protected $createdAt;
 
 	public function __construct() {
+		$this->addType('memberId', 'integer');
 		$this->addType('amountCents', 'integer');
 		$this->addType('accountId', 'integer');
 		$this->addType('mandateId', 'integer');
 		$this->addType('active', 'boolean');
 	}
 
-	/** Audit-taugliche Kurzbezeichnung – siehe SepaMandate::displayName() für dieselbe Idee. */
-	public function displayName(): string {
-		return $this->memberLabel ?? ($this->memberUid ?? '');
-	}
-
 	public function jsonSerialize(): array {
 		return [
 			'id' => $this->id,
-			'memberUid' => $this->memberUid,
-			'memberLabel' => $this->memberLabel,
+			'memberId' => $this->memberId,
 			'amountCents' => $this->amountCents,
 			'amount' => $this->amountCents / 100,
 			'frequency' => $this->frequency,

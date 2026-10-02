@@ -8,7 +8,6 @@ import { api, openApp, switchTab, visibleSection, BANK_ACCOUNT, BANK_ACCOUNT_IBA
 // Dialogen mit einem klaren ersten Feld - hier geprüft: sofort tippen, ohne
 // vorher zu klicken.
 
-const MEMBER = 'Sofort Mitglied'
 const MEMBER_BANK = 'Sofort Bankwechsel'
 
 async function enableMembership(request) {
@@ -39,7 +38,7 @@ test.describe('Sofort-Fokus beim Öffnen von NcModal-Dialogen', () => {
 		await expect(dialog.getByLabel('Nummer')).toHaveValue('9876')
 	})
 
-	test('"Mitglied aufnehmen": das Namensfeld ist direkt nach dem Öffnen bedienbar', async ({ page, request }) => {
+	test('"Mitglied aufnehmen": das Vorname-Feld ist direkt nach dem Öffnen bedienbar', async ({ page, request }) => {
 		await enableMembership(request)
 
 		await openApp(page, USERS.verwalter)
@@ -48,9 +47,10 @@ test.describe('Sofort-Fokus beim Öffnen von NcModal-Dialogen', () => {
 
 		const dialog = page.getByRole('dialog', { name: 'Mitglied aufnehmen' })
 		await expect(dialog).toBeVisible()
-		await page.keyboard.type(MEMBER)
-		await expect(dialog.getByRole('textbox', { name: 'Name' })).toHaveValue(MEMBER)
+		await page.keyboard.type('Sofort')
+		await expect(dialog.getByRole('textbox', { name: 'Vorname', exact: true })).toHaveValue('Sofort')
 
+		await dialog.getByRole('textbox', { name: 'Nachname', exact: true }).fill('Mitglied')
 		await dialog.getByLabel('IBAN', { exact: true }).fill('DE02120300000000202051')
 		await dialog.getByLabel('Mandat unterschrieben am').fill('2026-01-15')
 		await dialog.getByRole('button', { name: 'Aufnehmen' }).click()
@@ -59,11 +59,11 @@ test.describe('Sofort-Fokus beim Öffnen von NcModal-Dialogen', () => {
 
 	test('"Bankverbindung wechseln": das IBAN-Feld ist direkt nach dem Öffnen bedienbar', async ({ page, request }) => {
 		await enableMembership(request)
+		const member = await api.createMember(request, { firstName: 'Sofort', lastName: 'Bankwechsel' })
 		const mandate = await (await api.raw(request, 'POST', '/sepa/mandates', {
 			expectOk: true,
 			data: {
-				memberUid: null,
-				memberLabel: MEMBER_BANK,
+				memberId: member.id,
 				iban: 'DE02120300000000202051',
 				bic: null,
 				mandateType: 'RCUR',

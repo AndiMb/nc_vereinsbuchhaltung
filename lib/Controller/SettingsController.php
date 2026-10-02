@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
+use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\MembershipFeeMapper;
 use OCA\Vereinsbuchhaltung\Db\SepaMandateMapper;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
@@ -39,6 +40,7 @@ class SettingsController extends Controller {
 		private AccountMapper $accountMapper,
 		private SepaMandateMapper $sepaMandateMapper,
 		private MembershipFeeMapper $membershipFeeMapper,
+		private MemberMapper $memberMapper,
 		private IUserManager $userManager,
 		private SepaDebtorAccountService $sepaDebtorAccount,
 		private AttachmentStorageService $attachmentStorage,
@@ -157,12 +159,16 @@ class SettingsController extends Controller {
 			'default_fee_frequency' => $this->config->getAppValue(Application::APP_ID, 'default_fee_frequency', 'yearly'),
 			'membership_enabled' => $membershipEnabled,
 			// Steuert den Reiter „Beiträge": auch ohne den Schalter sichtbar,
-			// sobald bereits Mandate oder Beiträge bestehen – siehe
+			// sobald bereits Mitglieder, Mandate oder Beiträge bestehen – siehe
 			// NAVIGATION-KONZEPT.md Abschnitt 4. Keine Migration noetig, die
 			// bestehende Installationen zeigen den Reiter dadurch sofort.
+			// Mitglieder zaehlen seit der Member-Entity (Issue #65) mit: anders
+			// als Mandat/Beitrag ist ein Mitglied jetzt unabhaengig von beiden
+			// anlegbar, ohne sie bliebe der Reiter fuer diesen Fall verborgen.
 			'membership_active' => $membershipEnabled
 				|| $this->sepaMandateMapper->count() > 0
-				|| $this->membershipFeeMapper->count() > 0,
+				|| $this->membershipFeeMapper->count() > 0
+				|| $this->memberMapper->count() > 0,
 		];
 	}
 
