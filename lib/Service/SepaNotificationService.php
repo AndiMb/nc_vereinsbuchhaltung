@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\SepaBatchItem;
 use OCA\Vereinsbuchhaltung\Db\SepaBatchItemMapper;
 use OCA\Vereinsbuchhaltung\Db\SepaBatchMapper;
@@ -47,7 +48,7 @@ class SepaNotificationService {
 		private SepaBatchItemMapper $itemMapper,
 		private SepaBatchMapper $batchMapper,
 		private SepaMandateMapper $mandateMapper,
-		private MemberReferenceValidator $memberRef,
+		private MemberMapper $members,
 		private IUserManager $userManager,
 		private IMailer $mailer,
 		private IConfig $config,
@@ -159,14 +160,24 @@ class SepaNotificationService {
 	 * @return array{0:string, 1:string}|null Adresse und Anzeigename, oder null
 	 */
 	private function resolveRecipient(SepaMandate $mandate): ?array {
-		$name = $this->memberRef->displayName($mandate->getMemberUid(), $mandate->getMemberLabel());
+		$member = $this->members->findOrNull($mandate->getMemberId());
+		if ($member === null) {
+			return null;
+		}
+		$name = $member->displayName();
 
 		$email = $mandate->getEmail();
 		if ($email !== null && $email !== '') {
 			return [$email, $name];
 		}
 
-		$user = $mandate->getMemberUid() !== null ? $this->userManager->get($mandate->getMemberUid()) : null;
+		// Mailadresse des Mitglieds (Spec §2.2): der zweite Rückfall, bevor
+		// überhaupt ein verknüpftes NC-Konto in Frage kommt.
+		if ($member->getEmail() !== null && $member->getEmail() !== '') {
+			return [$member->getEmail(), $name];
+		}
+
+		$user = $member->getNcUserId() !== null ? $this->userManager->get($member->getNcUserId()) : null;
 		$accountEmail = $user?->getEMailAddress();
 		if ($user !== null && $accountEmail !== null && $accountEmail !== '') {
 			return [$accountEmail, $user->getDisplayName()];

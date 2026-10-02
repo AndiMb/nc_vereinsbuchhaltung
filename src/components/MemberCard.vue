@@ -41,7 +41,10 @@
 
 		<template v-else>
 			<div class="vbh-mcard-top">
-				<span class="vbh-mcard-title">{{ row.displayName }}</span>
+				<span class="vbh-mcard-title">
+					{{ row.displayName }}
+					<span v-if="!row.member.active" class="vbh-typetag">{{ t('ausgetreten') }}</span>
+				</span>
 				<span v-if="row.fee" class="vbh-mcard-amount">{{ formatMoney(row.fee.amount) }}</span>
 			</div>
 			<p v-if="!row.email" class="vbh-hint">
@@ -51,18 +54,23 @@
 				<span class="vbh-mcard-accounts">
 					<template v-if="row.mandate">
 						{{ row.mandate.iban }}
-						<span v-if="row.mandate.status !== 'active'" class="vbh-typetag">{{ t('widerrufen') }}</span>
+						<span v-if="row.mandate.statusTag" class="vbh-typetag">{{ row.mandate.statusTag }}</span>
 					</template>
+					<span v-else-if="row.fee && !row.fee.needsMandate">{{ t('Überweisung') }}</span>
 					<span v-else>{{ t('kein Mandat') }}</span>
 				</span>
 			</div>
 			<div v-if="row.fee" class="vbh-mcard-bottom">
-				<span class="vbh-mcard-accounts">{{ frequencyLabel(row.fee.frequency) }} · {{ t('fällig {date}', { date: row.fee.nextDueDate }) }}</span>
-				<label class="vbh-checkinline">
+				<span class="vbh-mcard-accounts">{{ row.fee.frequencyLabel }}<template v-if="row.fee.nextDueDate"> · {{ t('fällig {date}', { date: row.fee.nextDueDate }) }}</template></span>
+				<label v-if="row.legacyFee" class="vbh-checkinline">
 					<input type="checkbox" :checked="row.fee.active" @change="$emit('toggle-active', $event.target.checked)">
 					{{ t('aktiv') }}
 				</label>
+				<span v-else class="vbh-hint">{{ row.fee.statusLabel }}</span>
 			</div>
+			<p v-if="row.moreFees > 0" class="vbh-hint">
+				{{ n('+ %n weitere Zuweisung', '+ %n weitere Zuweisungen', row.moreFees) }}
+			</p>
 			<p v-if="row.fee && row.fee.dueCount > 0" class="vbh-hint vbh-hint--warning">
 				{{ n('%n Periode im Rückstand', '%n Perioden im Rückstand', row.fee.dueCount) }}
 			</p>
@@ -75,34 +83,48 @@
 					{{ t('Nachholen') }}
 				</NcButton>
 				<NcButton
-					v-if="row.fee"
+					v-if="row.legacyFee"
 					variant="tertiary"
 					size="small"
 					@click="$emit('start-edit')">
 					{{ t('Bearbeiten') }}
 				</NcButton>
+				<!-- Zuweisungen werden nicht inline bearbeitet, siehe MembersList.vue. -->
+				<NcButton
+					v-else-if="row.fee"
+					variant="tertiary"
+					size="small"
+					@click="$emit('manage-assignments')">
+					{{ t('Zuweisung verwalten') }}
+				</NcButton>
 				<!-- Seltener genutzte Aktionen im Menue, gleiches Muster wie in der
 					Desktop-Tabelle (MembersList.vue) und im Buchungsjournal. -->
-				<NcActions v-if="row.fee || (row.mandate && (row.mandate.status === 'active' || !isUsed))" :forceMenu="true">
-					<NcActionButton v-if="row.mandate && row.mandate.status === 'active'" @click="$emit('bank-change')">
+				<NcActions :forceMenu="true">
+					<NcActionButton @click="$emit('open-member')">
+						<template #icon>
+							<NcIconSvgWrapper :path="mdiAccountEdit" :size="16" />
+						</template>
+						{{ t('Akte öffnen') }}
+					</NcActionButton>
+					<NcActionButton v-if="row.legacyMandate && row.legacyMandate.status === 'active'" @click="$emit('bank-change')">
 						<template #icon>
 							<NcIconSvgWrapper :path="mdiBankTransfer" :size="16" />
 						</template>
 						{{ t('Bankverbindung wechseln') }}
 					</NcActionButton>
-					<NcActionButton v-if="row.mandate && row.mandate.status === 'active'" @click="$emit('revoke-mandate')">
+					<NcActionButton v-if="row.legacyMandate && row.legacyMandate.status === 'active'" @click="$emit('revoke-mandate')">
 						<template #icon>
 							<NcIconSvgWrapper :path="mdiCancel" :size="16" />
 						</template>
 						{{ t('Mandat widerrufen') }}
 					</NcActionButton>
-					<NcActionButton v-if="row.fee" @click="$emit('remove-fee')">
+					<NcActionButton v-if="row.legacyFee" @click="$emit('remove-fee')">
 						<template #icon>
 							<NcIconSvgWrapper :path="mdiDelete" :size="16" />
 						</template>
 						{{ t('Beitrag löschen') }}
 					</NcActionButton>
-					<NcActionButton v-else-if="row.mandate && !isUsed" @click="$emit('remove-mandate')">
+					<NcActionButton v-else-if="row.legacyMandate && !row.fee && !isUsed" @click="$emit('remove-mandate')">
 						<template #icon>
 							<NcIconSvgWrapper :path="mdiDelete" :size="16" />
 						</template>
@@ -115,11 +137,10 @@
 </template>
 
 <script>
-import { mdiBankTransfer, mdiCancel, mdiDelete } from '@mdi/js'
+import { mdiAccountEdit, mdiBankTransfer, mdiCancel, mdiDelete } from '@mdi/js'
 import { NcActionButton, NcActions, NcButton, NcIconSvgWrapper } from '@nextcloud/vue'
 import AmountInput from './AmountInput.vue'
 import { formatMoney } from '../lib/format.js'
-import { frequencyLabel } from '../lib/frequency.js'
 
 /**
  * Mobile Kartendarstellung einer Mitgliederzeile (MembersList.vue): dieselben
@@ -144,10 +165,10 @@ export default {
 		isUsed: { type: Boolean, default: false },
 	},
 
-	emits: ['bank-change', 'cancel-edit', 'catch-up', 'remove-fee', 'remove-mandate', 'revoke-mandate', 'save-edit', 'start-edit', 'toggle-active', 'update-editing'],
+	emits: ['bank-change', 'cancel-edit', 'catch-up', 'manage-assignments', 'open-member', 'remove-fee', 'remove-mandate', 'revoke-mandate', 'save-edit', 'start-edit', 'toggle-active', 'update-editing'],
 
 	data() {
-		return { mdiBankTransfer, mdiCancel, mdiDelete }
+		return { mdiAccountEdit, mdiBankTransfer, mdiCancel, mdiDelete }
 	},
 
 	computed: {
@@ -176,6 +197,6 @@ export default {
 		},
 	},
 
-	methods: { formatMoney, frequencyLabel },
+	methods: { formatMoney },
 }
 </script>

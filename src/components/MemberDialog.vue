@@ -2,84 +2,325 @@
 	<NcModal
 		:show="show"
 		labelId="vbh-modal-title-member"
-		size="normal"
+		size="large"
 		:closeOnClickOutside="true"
 		@close="$emit('close')"
 		@update:show="$emit('update:show', $event)">
 		<div class="vbh-modal-inner">
 			<h2 id="vbh-modal-title-member" class="vbh-modal-title">
-				{{ t('Mitglied aufnehmen') }}
+				{{ isEdit ? t('Mitglied') + ': ' + member.displayName : t('Mitglied aufnehmen') }}
 			</h2>
-			<p class="vbh-hint">
-				{{ t('Ein Mitglied besteht hier aus zwei Angaben: seiner Bankverbindung (dem SEPA-Mandat) und seinem Beitrag. Beides ist einzeln möglich: ohne IBAN entsteht nur ein Beitrag (etwa für Überweiser), ohne Betrag nur ein Mandat.') }}
-			</p>
-			<div class="vbh-form">
-				<label>{{ t('Zahler') }}
-					<select v-model="form.memberKind">
-						<option value="label">{{ t('Freier Zahlername') }}</option>
-						<option value="user">{{ t('Nextcloud-Nutzer') }}</option>
-					</select>
-				</label>
-				<label v-if="form.memberKind === 'user'" class="vbh-grow">{{ t('Nutzer') }}
-					<NcSelect
-						v-model="formMemberOption"
-						:options="userOptions"
-						label="label"
-						:placeholder="t('– Nutzer wählen –')" />
-				</label>
-				<label v-else class="vbh-grow">{{ t('Name') }}
-					<input ref="nameInput" v-model="form.memberLabel" :placeholder="t('z. B. Katrin Brunner')">
-				</label>
-				<label class="vbh-grow">{{ t('E-Mail') }}
-					<input v-model="form.email" type="email" :placeholder="t('für die Vorankündigung')">
-				</label>
-			</div>
 
-			<div class="vbh-form">
-				<label class="vbh-grow">{{ t('IBAN') }}
-					<input v-model="form.iban" placeholder="DE12 5001 0517 0648 4898 90">
-				</label>
-				<label>{{ t('BIC') }}
-					<input v-model="form.bic" class="vbh-short" :placeholder="t('optional')">
-				</label>
-				<label>{{ t('Mandat unterschrieben am') }}
-					<input v-model="form.signedDate" type="date">
-				</label>
-			</div>
+			<fieldset class="vbh-fieldset-reset" :disabled="isRedacted">
+				<div class="vbh-form">
+					<label>{{ t('Mitgliedstyp') }}
+						<select v-model="form.memberType">
+							<option value="person">{{ t('Person') }}</option>
+							<option value="organisation">{{ t('Organisation') }}</option>
+						</select>
+					</label>
+				</div>
+				<div v-if="form.memberType === 'person'" class="vbh-form">
+					<label>{{ t('Vorname') }}
+						<input ref="nameInput" v-model="form.firstName" :placeholder="t('optional')">
+					</label>
+					<label class="vbh-grow">{{ t('Nachname') }}
+						<input v-model="form.lastName">
+					</label>
+				</div>
+				<div v-else class="vbh-form">
+					<label class="vbh-grow">{{ t('Name der Organisation') }}
+						<input ref="orgInput" v-model="form.organizationName">
+					</label>
+				</div>
 
-			<div class="vbh-form">
-				<label>{{ t('Betrag (€)') }}
-					<AmountInput
-						v-model="form.amount"
-						class="vbh-short" />
-				</label>
-				<label>{{ t('Frequenz') }}
-					<select v-model="form.frequency">
-						<option v-for="f in frequencies" :key="f.value" :value="f.value">
-							{{ f.label }}
-						</option>
-					</select>
-				</label>
-				<label>{{ t('Erste Fälligkeit') }}
-					<input v-model="form.startDate" type="date">
-				</label>
-				<label class="vbh-grow">{{ t('Ertragskonto') }}
-					<select v-model="form.accountId">
-						<option :value="null">
-							{{ t('– optional –') }}
-						</option>
-						<option v-for="a in incomeAccounts" :key="a.id" :value="a.id">
-							{{ a.number }} · {{ a.name }}
-						</option>
-					</select>
-				</label>
-			</div>
+				<div class="vbh-form">
+					<label class="vbh-grow">{{ t('E-Mail') }}
+						<input v-model="form.email" type="email" :placeholder="t('Voraussetzung für Lastschrift')">
+					</label>
+					<label>{{ t('Telefon') }}
+						<input v-model="form.phone">
+					</label>
+				</div>
+				<div class="vbh-form">
+					<label class="vbh-grow">{{ t('Straße') }}
+						<input v-model="form.street">
+					</label>
+					<label>{{ t('PLZ') }}
+						<input v-model="form.postalCode" class="vbh-short">
+					</label>
+					<label>{{ t('Ort') }}
+						<input v-model="form.city">
+					</label>
+				</div>
+				<div class="vbh-form">
+					<label>{{ t('Mitgliedsnummer') }}
+						<input v-model="form.memberNumber" :placeholder="t('optional')">
+					</label>
+					<label>{{ t('Beigetreten am') }}
+						<input v-model="form.joinedAt" type="date">
+					</label>
+				</div>
+				<div class="vbh-form">
+					<label class="vbh-grow">{{ t('Interne Notiz') }}
+						<textarea v-model="form.internalNote" rows="2" :placeholder="t('nicht im Self-Service sichtbar')" />
+					</label>
+				</div>
+			</fieldset>
+
+			<template v-if="!isEdit">
+				<p class="vbh-hint">
+					{{ t('Optional gleich ein SEPA-Mandat erfassen und einer Beitragsgruppe zuweisen – beides lässt sich auch später ergänzen (Schritt 2/3 des Aufnahme-Assistenten, überspringbar).') }}
+				</p>
+				<div class="vbh-form">
+					<label>{{ t('Art der Unterschrift') }}
+						<select v-model="form.signatureType">
+							<option value="papier">
+								{{ t('Papier') }}
+							</option>
+							<option value="elektronisch" :disabled="!hasEmail">
+								{{ t('Elektronisch (Einmal-Link per Mail)') }}
+							</option>
+						</select>
+					</label>
+					<label class="vbh-grow">{{ t('IBAN') }}
+						<input v-model="form.iban" placeholder="DE12 5001 0517 0648 4898 90">
+					</label>
+					<label>{{ t('BIC') }}
+						<input v-model="form.bic" class="vbh-short" :placeholder="t('optional')">
+					</label>
+				</div>
+				<div class="vbh-form">
+					<label class="vbh-grow">{{ t('Kontoinhaber') }}
+						<input v-model="form.accountHolder" :placeholder="t('sonst Anzeigename des Mitglieds')">
+					</label>
+					<label>{{ t('Mandatsreferenz') }}
+						<input v-model="form.mandateReference" :placeholder="t('sonst automatisch vergeben')">
+					</label>
+					<label v-if="form.signatureType === 'papier'">{{ t('Mandat unterschrieben am') }}
+						<input v-model="form.signedDate" type="date">
+					</label>
+				</div>
+				<p v-if="form.iban.trim() && form.signatureType === 'papier' && !form.signedDate" class="vbh-hint">
+					{{ t('Ohne Unterschriftsdatum bleibt das Mandat ein Entwurf – erst das Datum aktiviert es sofort.') }}
+				</p>
+				<p v-if="form.iban.trim() && form.signatureType === 'elektronisch'" class="vbh-hint">
+					{{ t('Nach dem Anlegen geht sofort ein Einmal-Link an die Mailadresse des Mitglieds – die Zustimmung dort aktiviert das Mandat.') }}
+				</p>
+
+				<div class="vbh-form">
+					<label class="vbh-grow">{{ t('Beitragsgruppe') }}
+						<select v-model.number="form.groupId">
+							<option :value="null">
+								{{ t('– keine Zuweisung –') }}
+							</option>
+							<option v-for="g in groups" :key="g.id" :value="g.id">
+								{{ g.name }}
+							</option>
+						</select>
+					</label>
+				</div>
+				<div v-if="selectedGroup" class="vbh-form">
+					<label>{{ t('Turnus (Monate)') }}
+						<select v-model.number="form.intervalMonths">
+							<option v-for="n in selectedGroup.allowedIntervals" :key="n" :value="n">
+								{{ n }}
+							</option>
+						</select>
+					</label>
+					<label>{{ t('Monatsbeitrag (€)') }}
+						<AmountInput v-model="form.monthlyAmount" class="vbh-short" />
+					</label>
+					<label>{{ t('Zahlungsart') }}
+						<select v-model="form.paymentMethod" :disabled="!hasEmail">
+							<option value="direct_debit">
+								{{ t('Lastschrift') }}
+							</option>
+							<option value="ueberweisung">
+								{{ t('Überweisung') }}
+							</option>
+						</select>
+					</label>
+				</div>
+				<p v-if="selectedGroup && !hasEmail" class="vbh-hint">
+					{{ t('Ohne Mailadresse ist keine Vorabinformation und kein Lastschrifteinzug möglich – Zahlungsart wird auf Überweisung gesetzt.') }}
+				</p>
+				<div v-if="selectedGroup" class="vbh-form">
+					<label>{{ t('Gültig ab') }}
+						<input v-model="form.validFrom" type="date">
+					</label>
+					<NcButton variant="secondary" :disabled="!canPreviewAssignment" @click="loadAssignmentPreview">
+						{{ t('Vorschau') }}
+					</NcButton>
+				</div>
+				<p v-if="assignmentPreview" class="vbh-hint">
+					{{ t('Erste Periode: {from} bis {to} ({months}) · Einzugsbetrag {amount} · voraussichtlicher Einzugstermin {due}', {
+						from: assignmentPreview.periodStart,
+						to: assignmentPreview.periodEnd,
+						months: n('%n Monat', '%n Monate', assignmentPreview.months),
+						amount: euro(assignmentPreview.amountCents),
+						due: assignmentPreview.dueDate,
+					}) }}
+				</p>
+			</template>
+
+			<template v-else>
+				<p v-if="member.redactedAt" class="vbh-hint vbh-hint--warning">
+					{{ t('Diese Mitgliedsakte wurde am {datum} DSGVO-anonymisiert. Name, Kontaktdaten und personenbezogene Freitexte sind unwiderruflich entfernt; Stammdaten können nicht mehr bearbeitet werden.', { datum: member.redactedAt.slice(0, 10) }) }}
+				</p>
+
+				<h3 class="vbh-modal-subtitle">
+					{{ t('Nextcloud-Konto') }}
+				</h3>
+				<div v-if="member.ncUserId" class="vbh-form">
+					<span>{{ t('Verknüpft mit „{uid}".', { uid: member.ncUserId }) }}</span>
+					<NcButton
+						variant="tertiary"
+						size="small"
+						:disabled="linking"
+						@click="doUnlink">
+						{{ t('Verknüpfung lösen') }}
+					</NcButton>
+				</div>
+				<div v-else>
+					<p v-if="!member.email" class="vbh-hint">
+						{{ t('Ohne Mailadresse gibt es keinen Vorschlag – erst speichern, dann verknüpfen.') }}
+					</p>
+					<template v-else>
+						<NcButton
+							variant="secondary"
+							size="small"
+							:disabled="linking"
+							@click="loadSuggestions">
+							{{ t('Vorschläge suchen') }}
+						</NcButton>
+						<ul v-if="suggestions.length" class="vbh-linksuggestions">
+							<li v-for="s in suggestions" :key="s.uid">
+								{{ s.displayName }} <span class="vbh-hint">({{ s.email }})</span>
+								<NcButton
+									variant="primary"
+									size="small"
+									:disabled="linking"
+									@click="doLink(s.uid)">
+									{{ t('Verknüpfen') }}
+								</NcButton>
+							</li>
+						</ul>
+						<p v-else-if="suggestionsLoaded" class="vbh-hint">
+							{{ t('Kein Nextcloud-Konto mit dieser Mailadresse gefunden.') }}
+						</p>
+					</template>
+				</div>
+
+				<h3 class="vbh-modal-subtitle">
+					{{ t('Beitragsbestätigung') }}
+				</h3>
+				<p class="vbh-hint">
+					{{ t('Informelle Bestätigung der bezahlten Beiträge eines Beitragsjahres – kein amtlicher Spendennachweis nach § 10b EStG (siehe Issue #10). Stellvertretung durch den Kassenwart.') }}
+				</p>
+				<div class="vbh-form">
+					<label>{{ t('Beitragsjahr') }}
+						<select v-model.number="certificateYear">
+							<option v-for="y in certificateYears" :key="y" :value="y">
+								{{ y }}
+							</option>
+						</select>
+					</label>
+					<a
+						:href="certificateUrl"
+						target="_blank"
+						rel="noopener"
+						class="vbh-export-btn">{{ t('Öffnen') }}</a>
+				</div>
+
+				<h3 class="vbh-modal-subtitle">
+					{{ t('Datenübersicht (Art. 15 DSGVO)') }}
+				</h3>
+				<p class="vbh-hint">
+					{{ t('Druckfertige Auskunft über alle zu diesem Mitglied gespeicherten Daten – kein strukturierter Export nach Art. 20 DSGVO.') }}
+				</p>
+				<div class="vbh-form">
+					<a
+						:href="dataOverviewUrl"
+						target="_blank"
+						rel="noopener"
+						class="vbh-export-btn">{{ t('Datenübersicht öffnen') }}</a>
+				</div>
+
+				<h3 class="vbh-modal-subtitle">
+					{{ t('Anonymisierung (Art. 17 DSGVO)') }}
+				</h3>
+				<p v-if="member.redactedAt" class="vbh-hint">
+					{{ t('Bereits am {datum} anonymisiert.', { datum: member.redactedAt.slice(0, 10) }) }}
+				</p>
+				<template v-else>
+					<p v-if="anonymizationStatus && anonymizationStatus.eligible" class="vbh-hint vbh-hint--warning">
+						{{ t('Anonymisierungsreif: die letzte zugehörige Buchung liegt mehr als 10 Jahre zurück – die Bestätigung ist irreversibel.') }}
+					</p>
+					<p v-else-if="anonymizationStatus && anonymizationStatus.cutoffDate" class="vbh-hint">
+						{{ t('Noch nicht anonymisierungsreif (frühestens ab {datum} – 10 Jahre nach der letzten zugehörigen Buchung).', { datum: anonymizationStatus.cutoffDate }) }}
+					</p>
+					<p v-else-if="anonymizationStatus" class="vbh-hint">
+						{{ t('Noch keine zugehörige Buchung – die 10-Jahres-Frist läuft noch nicht.') }}
+					</p>
+					<NcButton
+						v-if="anonymizationStatus && anonymizationStatus.eligible"
+						variant="error"
+						size="small"
+						:disabled="anonymizing"
+						@click="doAnonymize">
+						{{ t('Jetzt anonymisieren') }}
+					</NcButton>
+				</template>
+
+				<h3 class="vbh-modal-subtitle">
+					{{ t('Austritt') }}
+				</h3>
+				<div v-if="member.leftAt" class="vbh-form">
+					<span>{{ t('Austritt zum {datum}.', { datum: member.leftAt }) }}</span>
+					<NcButton
+						variant="tertiary"
+						size="small"
+						:disabled="leaving"
+						@click="doReactivate">
+						{{ t('Austritt zurücknehmen') }}
+					</NcButton>
+				</div>
+				<div v-else class="vbh-form">
+					<label>{{ t('Austrittsdatum') }}
+						<input v-model="leaveDate" type="date">
+					</label>
+					<NcButton
+						variant="secondary"
+						size="small"
+						:disabled="leaving || !leaveDate"
+						@click="doLeave">
+						{{ t('Austritt erklären') }}
+					</NcButton>
+				</div>
+
+				<h3 class="vbh-modal-subtitle">
+					{{ t('Löschen') }}
+				</h3>
+				<p v-if="member.blockingReasons && member.blockingReasons.length" class="vbh-hint vbh-hint--warning">
+					{{ member.blockingReasons.join(' ') }}
+				</p>
+				<NcButton
+					v-else
+					variant="error"
+					size="small"
+					:disabled="deleting"
+					@click="doDelete">
+					{{ t('Mitglied löschen') }}
+				</NcButton>
+			</template>
+
 			<div class="vbh-modal-actions">
 				<NcButton variant="tertiary" @click="$emit('close')">
 					{{ t('Abbrechen') }}
 				</NcButton>
 				<NcButton variant="primary" :disabled="!canSave || saving" @click="save">
-					{{ t('Aufnehmen') }}
+					{{ isEdit ? t('Speichern') : t('Aufnehmen') }}
 				</NcButton>
 			</div>
 		</div>
@@ -87,111 +328,341 @@
 </template>
 
 <script>
-import { NcButton, NcModal, NcSelect } from '@nextcloud/vue'
+import { showError, showSuccess } from '@nextcloud/dialogs'
+import { NcButton, NcModal } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import AmountInput from './AmountInput.vue'
-import { useAccounts } from '../composables/useAccounts.js'
-import { usePermissions } from '../composables/usePermissions.js'
-import { frequencyOptions } from '../lib/frequency.js'
+import api from '../api.js'
+import { useConfirm } from '../composables/useConfirm.js'
+import { useContributionGroups } from '../composables/useContributionGroups.js'
+import { errMsg } from '../lib/format.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 
-function emptyForm() {
+function emptyForm(member, defaultFeeAmount) {
 	return {
-		memberKind: 'label',
-		memberUid: '',
-		memberLabel: '',
-		email: '',
-		iban: '',
-		bic: '',
-		signedDate: new Date().toISOString().slice(0, 10),
-		amount: '',
-		frequency: 'yearly',
-		startDate: new Date().toISOString().slice(0, 10),
-		accountId: null,
+		memberType: member?.memberType ?? 'person',
+		firstName: member?.firstName ?? '',
+		lastName: member?.lastName ?? '',
+		organizationName: member?.organizationName ?? '',
+		email: member?.email ?? '',
+		phone: member?.phone ?? '',
+		street: member?.street ?? '',
+		postalCode: member?.postalCode ?? '',
+		city: member?.city ?? '',
+		memberNumber: member?.memberNumber ?? '',
+		joinedAt: member?.joinedAt ?? new Date().toISOString().slice(0, 10),
+		internalNote: member?.internalNote ?? '',
+		// Nur beim Anlegen relevant (siehe Template): das optionale Mandat
+		// (Schritt 2) und die optionale Zuweisung (Schritt 3) des
+		// Aufnahme-Assistenten gibt es nur, wenn kein Mitglied übergeben wurde
+		// (Akte bearbeitet keins).
+		...(member
+			? {}
+			: {
+					signatureType: 'papier',
+					iban: '',
+					bic: '',
+					accountHolder: '',
+					mandateReference: '',
+					signedDate: new Date().toISOString().slice(0, 10),
+					groupId: null,
+					intervalMonths: 12,
+					monthlyAmount: defaultFeeAmount ?? '',
+					// Ohne Mailadresse (beim Öffnen leer) ist nur Überweisung möglich; sobald
+					// eine eingetragen wird, schaltet der Watcher hasEmail auf Lastschrift.
+					paymentMethod: 'ueberweisung',
+					validFrom: new Date().toISOString().slice(0, 10),
+				}),
 	}
 }
 
 /**
- * „Mitglied aufnehmen" – aus MembersList.vue (frueher SettingsMembers.vue)
- * herausgeloest, damit die Liste selbst nicht laenger unter dem Formular
- * beginnt (siehe NAVIGATION-KONZEPT.md Abschnitt 4).
+ * Mitglieder-Stammdaten anlegen/bearbeiten (Spec §2.2/§3.1). Ohne `member`-Prop
+ * ist es die Aufnahme (mit optionalem Mandat+Beitrag in einem Zug, wie schon
+ * bisher); mit `member`-Prop ist es die Akte – Stammdaten bearbeiten,
+ * NC-Kontoverknüpfung (nur Vorschlag, nie Vollzug), Austritt und die
+ * Löschsperre mit erklärender Meldung statt Ausgrauen.
+ *
+ * Frueher aus MembersList.vue (damals SettingsMembers.vue) herausgeloest,
+ * siehe NAVIGATION-KONZEPT.md Abschnitt 4.
  */
 export default {
 	name: 'MemberDialog',
-	components: { NcModal, NcButton, NcSelect, AmountInput },
+	components: { NcModal, NcButton, AmountInput },
 	props: {
 		show: { type: Boolean, default: false },
 		saving: { type: Boolean, default: false },
+		/** null = Aufnahme, sonst die zu bearbeitende Mitglied-Akte (dekoriert, inkl. blockingReasons). */
+		member: { type: Object, default: null },
 		// Vorbelegung aus Einstellungen -> Beiträge & SEPA (SettingsSepaBasics.vue),
-		// leerer String heisst "kein Standardbeitrag hinterlegt".
+		// leerer String heisst "kein Standardbeitrag hinterlegt". Nur der Betrag
+		// ist hier noch relevant – die Frequenz gibt seit Issue #69 die gewählte
+		// Beitragsgruppe vor (allowedIntervals/defaultInterval).
 		defaultFeeAmount: { type: [Number, String], default: '' },
-		defaultFeeFrequency: { type: String, default: 'yearly' },
 	},
 
-	emits: ['close', 'save', 'update:show'],
+	emits: ['close', 'save', 'update:show', 'changed'],
 
 	setup() {
-		return { ...toRefs(useAccounts().state), ...toRefs(usePermissions().state) }
+		return { ...toRefs(useContributionGroups().state), askConfirm: useConfirm().askConfirm }
 	},
 
 	data() {
 		return {
-			form: emptyForm(),
-			frequencies: frequencyOptions(),
+			form: emptyForm(this.member, this.defaultFeeAmount),
+			suggestions: [],
+			suggestionsLoaded: false,
+			linking: false,
+			leaving: false,
+			deleting: false,
+			leaveDate: new Date().toISOString().slice(0, 10),
+			assignmentPreview: null,
+			certificateYears: [],
+			certificateYear: null,
+			anonymizationStatus: null,
+			anonymizing: false,
 		}
 	},
 
 	computed: {
-		userOptions() { return this.users.map((u) => ({ id: u.id, label: `${u.displayName} (${u.id})` })) },
-		formMemberOption: {
-			get() { return this.userOptions.find((o) => o.id === this.form.memberUid) ?? null },
-			set(v) { this.form.memberUid = v ? v.id : '' },
+		isEdit() { return this.member !== null },
+
+		isRedacted() { return this.isEdit && !!this.member.redactedAt },
+
+		hasEmail() { return this.form.email.trim() !== '' },
+
+		selectedGroup() {
+			return this.groups.find((g) => g.id === this.form.groupId) ?? null
 		},
 
-		incomeAccounts() {
-			return this.accounts.filter((a) => a.type === 'income' && !a.isBank)
-				.slice()
-				.sort((a, b) => String(a.number).localeCompare(String(b.number), 'de', { numeric: true }))
+		canPreviewAssignment() {
+			return this.form.intervalMonths && this.form.monthlyAmount !== '' && this.form.validFrom
 		},
 
 		canSave() {
-			const hasMember = this.form.memberKind === 'user' ? !!this.form.memberUid : !!this.form.memberLabel.trim()
-			const hasMandate = !!this.form.iban.trim() && !!this.form.signedDate
-			const hasFee = Number(this.form.amount) > 0 && !!this.form.startDate
-			return hasMember && (hasMandate || hasFee)
+			// Nach einer DSGVO-Anonymisierung (Issue #78) ist die Bearbeitung
+			// gesperrt (siehe isRedacted/Fieldset im Template und die serverseitige
+			// Spiegelung in MemberService::update()) - explizit statt sich darauf
+			// zu verlassen, dass Vor-/Nachname nach der Schwärzung ohnehin leer sind.
+			if (this.isRedacted) { return false }
+			return this.form.memberType === 'organisation'
+				? !!this.form.organizationName.trim()
+				: !!this.form.lastName.trim()
+		},
+
+		/** Druckfertige Live-Ansicht der Beitragsbestätigung (Issue #77) - öffnet in neuem Tab. */
+		certificateUrl() {
+			return api.memberCertificateUrl(this.member.id, this.certificateYear)
+		},
+
+		/** Druckfertige "Datenübersicht" (Art. 15 DSGVO, Issue #78) - öffnet in neuem Tab. */
+		dataOverviewUrl() {
+			return api.memberDataOverviewUrl(this.member.id)
 		},
 	},
 
 	watch: {
 		show(open) {
 			if (!open) { return }
-			this.form = emptyForm()
-			// Vorbelegung: bei 80-100 Mitgliedern mit einheitlichem Beitrag muss
-			// der Betrag sonst jedes Mal von Hand eingetippt werden. Wer einen
-			// abweichenden Einzelfall anlegt, ueberschreibt das Feld einfach.
-			if (this.defaultFeeAmount !== '' && this.defaultFeeAmount !== null) {
-				this.form.amount = this.defaultFeeAmount
-				this.form.frequency = this.defaultFeeFrequency
+			this.form = emptyForm(this.member, this.defaultFeeAmount)
+			this.suggestions = []
+			this.suggestionsLoaded = false
+			this.leaveDate = new Date().toISOString().slice(0, 10)
+			this.assignmentPreview = null
+			this.certificateYears = []
+			this.certificateYear = null
+			this.anonymizationStatus = null
+			if (this.isEdit) {
+				this.loadCertificateYears()
+				if (!this.isRedacted) { this.loadAnonymizationStatus() }
 			}
-			focusOnOpen(this, () => this.$refs.nameInput)
+			focusOnOpen(this, () => this.$refs.nameInput || this.$refs.orgInput)
+		},
+
+		// Spec §3.1: "fehlt die Mailadresse, fällt Schritt 3 sichtbar auf
+		// ueberweisung zurück, sagt warum" – die Mail-Pflicht greift hier direkt
+		// an Ort und Stelle, weil Stammdaten (Schritt 1) und Beitrag (Schritt 3)
+		// im selben Formular stehen.
+		hasEmail(has) {
+			if (this.isEdit) { return } // die Akte kennt keinen Beitrag-Schritt
+			this.form.paymentMethod = has ? 'direct_debit' : 'ueberweisung'
+		},
+
+		selectedGroup(group) {
+			if (!group) { return }
+			if (!group.allowedIntervals.includes(this.form.intervalMonths)) {
+				this.form.intervalMonths = group.defaultInterval
+			}
+			if (this.form.monthlyAmount === '') {
+				this.form.monthlyAmount = group.defaultMonthlyAmount
+			}
+			this.assignmentPreview = null
 		},
 	},
 
 	methods: {
+		errMsg,
+		euro(cents) { return (cents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }) },
+
+		stammdaten() {
+			return {
+				memberType: this.form.memberType,
+				firstName: this.form.memberType === 'person' ? (this.form.firstName.trim() || null) : null,
+				lastName: this.form.memberType === 'person' ? this.form.lastName.trim() : null,
+				organizationName: this.form.memberType === 'organisation' ? this.form.organizationName.trim() : null,
+				email: this.form.email.trim() || null,
+				phone: this.form.phone.trim() || null,
+				street: this.form.street.trim() || null,
+				postalCode: this.form.postalCode.trim() || null,
+				city: this.form.city.trim() || null,
+				memberNumber: this.form.memberNumber.trim() || null,
+				joinedAt: this.form.joinedAt,
+				internalNote: this.form.internalNote.trim() || null,
+			}
+		},
+
 		save() {
 			if (!this.canSave) { return }
-			this.$emit('save', {
-				memberUid: this.form.memberKind === 'user' ? this.form.memberUid : null,
-				memberLabel: this.form.memberKind === 'label' ? this.form.memberLabel.trim() : null,
-				email: this.form.email.trim() || null,
-				iban: this.form.iban.trim(),
-				bic: this.form.bic.trim() || null,
-				signedDate: this.form.signedDate,
-				amount: this.form.amount,
-				frequency: this.form.frequency,
-				startDate: this.form.startDate,
-				accountId: this.form.accountId,
-			})
+			const payload = { stammdaten: this.stammdaten() }
+			if (!this.isEdit) {
+				payload.mandate = this.form.iban.trim()
+					? {
+							signatureType: this.form.signatureType,
+							iban: this.form.iban.trim(),
+							bic: this.form.bic.trim() || null,
+							accountHolder: this.form.accountHolder.trim() || null,
+							mandateReference: this.form.mandateReference.trim() || null,
+							signedAt: this.form.signatureType === 'papier' ? (this.form.signedDate || null) : null,
+						}
+					: null
+				payload.assignment = this.form.groupId
+					? {
+							groupId: this.form.groupId,
+							intervalMonths: this.form.intervalMonths,
+							monthlyAmount: Number(this.form.monthlyAmount),
+							paymentMethod: this.form.paymentMethod,
+							validFrom: this.form.validFrom,
+						}
+					: null
+			}
+			this.$emit('save', payload)
+		},
+
+		/** Vorschau der ersten (Prorata-)Periode samt vorgeschlagenem Einzugstermin (Spec §3.1 Schritt 3). */
+		async loadAssignmentPreview() {
+			try {
+				const { data } = await api.previewNewAssignment({
+					intervalMonths: this.form.intervalMonths,
+					monthlyAmount: this.form.monthlyAmount,
+					validFrom: this.form.validFrom,
+				})
+				this.assignmentPreview = data
+			} catch (e) {
+				this.assignmentPreview = null
+				showError(this.errMsg(e, this.t('Vorschau konnte nicht geladen werden')))
+			}
+		},
+
+		/** Beitragsjahre für die Jahresauswahl der Beitragsbestätigung (Issue #77). */
+		async loadCertificateYears() {
+			try {
+				const { data } = await api.memberCertificateYears(this.member.id)
+				this.certificateYears = data.years
+				this.certificateYear = data.years[0] ?? null
+			} catch (e) {
+				showError(this.errMsg(e, this.t('Beitragsjahre konnten nicht geladen werden')))
+			}
+		},
+
+		/** Anonymisierungsreife für den "Jetzt anonymisieren"-Knopf (Issue #78, Spec §3.8). */
+		async loadAnonymizationStatus() {
+			try {
+				const { data } = await api.memberAnonymizationStatus(this.member.id)
+				this.anonymizationStatus = data
+			} catch (e) {
+				showError(this.errMsg(e, this.t('Anonymisierungsstatus konnte nicht geladen werden')))
+			}
+		},
+
+		/**
+		 * Manuelle, irreversible Bestätigung der DSGVO-Anonymisierung (Spec
+		 * §3.8) - kein Vollautomatismus, deshalb die deutliche Rückfrage.
+		 */
+		async doAnonymize() {
+			if (!await this.askConfirm(
+				this.t('Mitglied anonymisieren'),
+				this.t('Name, Kontaktdaten, Bankverbindungen und personenbezogene Freitexte von „{name}" unwiderruflich schwärzen? Das lässt sich nicht rückgängig machen.', { name: this.member.displayName }),
+				this.t('Jetzt anonymisieren'),
+				'error',
+			)) { return }
+			this.anonymizing = true
+			try {
+				await api.anonymizeMember(this.member.id)
+				showSuccess(this.t('Mitglied anonymisiert.'))
+				this.$emit('changed')
+				this.$emit('close')
+			} catch (e) {
+				showError(this.errMsg(e, this.t('Anonymisierung fehlgeschlagen')))
+			} finally {
+				this.anonymizing = false
+			}
+		},
+
+		async loadSuggestions() {
+			this.linking = true
+			try {
+				const { data } = await api.memberLinkSuggestions(this.member.id)
+				this.suggestions = data
+				this.suggestionsLoaded = true
+			} catch (e) { showError(this.errMsg(e, this.t('Vorschläge konnten nicht geladen werden'))) } finally { this.linking = false }
+		},
+
+		async doLink(ncUserId) {
+			this.linking = true
+			try {
+				await api.linkMember(this.member.id, ncUserId)
+				showSuccess(this.t('Verknüpft.'))
+				this.$emit('changed')
+			} catch (e) { showError(this.errMsg(e, this.t('Verknüpfen fehlgeschlagen'))) } finally { this.linking = false }
+		},
+
+		async doUnlink() {
+			if (!await this.askConfirm(this.t('Verknüpfung lösen'), this.t('Die Verknüpfung mit dem Nextcloud-Konto lösen? Das Mitglied und seine Historie bleiben bestehen.'), this.t('Lösen'), 'primary')) { return }
+			this.linking = true
+			try {
+				await api.unlinkMember(this.member.id)
+				showSuccess(this.t('Verknüpfung gelöst.'))
+				this.$emit('changed')
+			} catch (e) { showError(this.errMsg(e, this.t('Lösen fehlgeschlagen'))) } finally { this.linking = false }
+		},
+
+		async doLeave() {
+			this.leaving = true
+			try {
+				await api.leaveMember(this.member.id, this.leaveDate)
+				showSuccess(this.t('Austritt erklärt.'))
+				this.$emit('changed')
+			} catch (e) { showError(this.errMsg(e, this.t('Speichern fehlgeschlagen'))) } finally { this.leaving = false }
+		},
+
+		async doReactivate() {
+			this.leaving = true
+			try {
+				await api.reactivateMember(this.member.id)
+				showSuccess(this.t('Austritt zurückgenommen.'))
+				this.$emit('changed')
+			} catch (e) { showError(this.errMsg(e, this.t('Speichern fehlgeschlagen'))) } finally { this.leaving = false }
+		},
+
+		async doDelete() {
+			if (!await this.askConfirm(this.t('Mitglied löschen'), this.t('Mitglied „{name}" endgültig löschen?', { name: this.member.displayName }))) { return }
+			this.deleting = true
+			try {
+				await api.deleteMember(this.member.id)
+				showSuccess(this.t('Mitglied gelöscht.'))
+				this.$emit('changed')
+				this.$emit('close')
+			} catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) } finally { this.deleting = false }
 		},
 	},
 }

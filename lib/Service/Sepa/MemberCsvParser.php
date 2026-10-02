@@ -24,20 +24,36 @@ use OCA\Vereinsbuchhaltung\Service\EmailValidator;
  * und englische Schreibweisen erlaubt; nicht erkannte Spalten werden
  * ignoriert):
  *
- *   Name        Freitext-Zahler – alternativ „Konto" für ein Nextcloud-Konto
- *   Konto       Nextcloud-Benutzername (optional)
- *   E-Mail      für die SEPA-Vorankündigung (optional, aber dringend empfohlen)
- *   IBAN        ohne IBAN entsteht kein Mandat, sondern nur ein Beitrag
- *   BIC         optional, seit IBAN-only fast nie nötig
- *   Mandat am   Unterschriftsdatum des Mandats
- *   Betrag      „42,50" oder „42.50"
- *   Frequenz    monatlich / vierteljährlich / halbjährlich / jährlich
- *   Start       erste Fälligkeit des Beitrags
+ *   Name              Freitext-Zahler – alternativ „Konto" für ein Nextcloud-Konto
+ *   Konto             Nextcloud-Benutzername (optional)
+ *   Mitgliedsnummer   optional, harter Dublettenschlüssel (Issue #69)
+ *   E-Mail            für die SEPA-Vorankündigung (optional, aber dringend empfohlen)
+ *   IBAN              ohne IBAN entsteht kein Mandat, sondern nur eine Zuweisung
+ *   BIC               optional, seit IBAN-only fast nie nötig
+ *   Kontoinhaber      optional, sonst Anzeigename des Mitglieds (Issue #69)
+ *   Mandat am         Unterschriftsdatum des Mandats – vorhanden ⇒ das Mandat
+ *                     wird beim Import sofort aktiviert (Issue #69)
+ *   Mandatsreferenz   optional, freie Eingabe aus Fremdsystemen (Issue #69)
+ *   Beitragsgruppe    Name einer bestehenden Beitragsgruppe – Pflicht, sobald
+ *                     ein Betrag/Standardbeitrag greift (Issue #69)
+ *   Betrag            „42,50" oder „42.50" – der MONATSBEITRAG der Zuweisung
+ *                     (Spec §3.3 „Der Monatsbeitrag ist das Atom"), unabhängig
+ *                     vom Turnus (Issue #69, siehe MemberImportService)
+ *   Frequenz          monatlich / vierteljährlich / halbjährlich / jährlich
+ *                     (bestimmt nur den Turnus, nicht den Betrag)
+ *   Start             Beginn der Zuweisung (validFrom), darf nicht in der
+ *                     Vergangenheit liegen
+ *
+ * Eine Zeile ganz ohne Mandat/Beitrag ist gültig (Spec §3.1 „Zeile = ein
+ * Mitglied mit zwei optionalen, atomaren Blöcken") – anders als vor Issue #69,
+ * wo diese Klasse ausschließlich für die Kombi-Erfassung Mandat+Beitrag
+ * gedacht war.
  *
  * @phpstan-type ParsedRow array{
- *     line:int, memberUid:?string, memberLabel:?string, email:?string,
- *     iban:?string, bic:?string, signedDate:?string, amountCents:?int,
- *     frequency:?string, startDate:?string, errors:string[],
+ *     line:int, memberUid:?string, memberLabel:?string, memberNumber:?string,
+ *     email:?string, iban:?string, bic:?string, accountHolder:?string,
+ *     signedDate:?string, mandateReference:?string, groupName:?string,
+ *     amountCents:?int, frequency:?string, startDate:?string, errors:string[],
  * }
  */
 class MemberCsvParser {
@@ -107,6 +123,28 @@ class MemberCsvParser {
 		'startdate' => 'startDate',
 		'firstdue' => 'startDate',
 		'firstduedate' => 'startDate',
+
+		// Neu seit Issue #69 (voller CSV-Import mit Mandats-/Zuweisungs-Block):
+		// Mitgliedsnummer (harter Dublettenschlüssel), Kontoinhaber (weicht vom
+		// Mitglied ab, z.B. Elternteil zahlt für Kind), Mandatsreferenz (freie
+		// Eingabe aus Fremdsystemen) und Beitragsgruppe (löst die Zuweisung auf
+		// eine bestehende Gruppe auf).
+		'mitgliedsnummer' => 'memberNumber',
+		'mitgliednummer' => 'memberNumber',
+		'mitgliedsnr' => 'memberNumber',
+		'membernumber' => 'memberNumber',
+		'memberno' => 'memberNumber',
+		'kontoinhaber' => 'accountHolder',
+		'accountholder' => 'accountHolder',
+		'mandatsreferenz' => 'mandateReference',
+		'mandatreferenz' => 'mandateReference',
+		'mandatsref' => 'mandateReference',
+		'mandatereference' => 'mandateReference',
+		'mandateref' => 'mandateReference',
+		'beitragsgruppe' => 'groupName',
+		'gruppe' => 'groupName',
+		'contributiongroup' => 'groupName',
+		'group' => 'groupName',
 	];
 
 	/** Beschriftung → Schlüssel; die englischen Schlüssel gelten ebenfalls. */
@@ -195,6 +233,11 @@ class MemberCsvParser {
 			$email = null;
 		}
 
+		$memberNumber = ($raw['memberNumber'] ?? '') !== '' ? $raw['memberNumber'] : null;
+		$accountHolder = ($raw['accountHolder'] ?? '') !== '' ? $raw['accountHolder'] : null;
+		$mandateReference = ($raw['mandateReference'] ?? '') !== '' ? $raw['mandateReference'] : null;
+		$groupName = ($raw['groupName'] ?? '') !== '' ? $raw['groupName'] : null;
+
 		$iban = ($raw['iban'] ?? '') !== '' ? strtoupper(str_replace(' ', '', $raw['iban'])) : null;
 		$bic = ($raw['bic'] ?? '') !== '' ? strtoupper(str_replace(' ', '', $raw['bic'])) : null;
 
@@ -253,18 +296,31 @@ class MemberCsvParser {
 			$errors[] = 'Zu einem Betrag gehört ein Startdatum (erste Fälligkeit).';
 		}
 
-		if ($iban === null && $amountCents === null && $errors === []) {
-			$errors[] = 'Zeile enthält weder eine IBAN noch einen Beitrag – nichts anzulegen.';
-		}
+		// Seit Issue #69 (voller CSV-Import) ist eine Zeile ganz ohne Mandat und
+		// ohne Beitrag ausdrücklich zulässig – „Zeile = ein Mitglied mit zwei
+		// optionalen, atomaren Blöcken" (Spec §3.1). Vorher (reine Mandat+Beitrag-
+		// Kombi-Erfassung) war das ein Fehler; ein bloßes Stammdaten-Mitglied
+		// gehörte damals noch nicht zum Funktionsumfang dieser Klasse.
+		//
+		// Ob $groupName zu einer bestehenden Beitragsgruppe passt (oder überhaupt
+		// gesetzt sein muss), kann diese von der Datenbank unabhängige Klasse
+		// nicht entscheiden – das prüft MemberImportService, mit einem
+		// nachsichtigen Fallback (genau eine Gruppe vorhanden ⇒ diese verwenden)
+		// statt eines harten Parser-Fehlers, der jede der zahlreichen bereits
+		// bestehenden Vorlagen ohne Beitragsgruppen-Spalte ablehnen würde.
 
 		return [
 			'line' => $line,
 			'memberUid' => $memberUid,
 			'memberLabel' => $memberLabel,
+			'memberNumber' => $memberNumber,
 			'email' => $email,
 			'iban' => $iban,
 			'bic' => $bic,
+			'accountHolder' => $accountHolder,
 			'signedDate' => $signedDate,
+			'mandateReference' => $mandateReference,
+			'groupName' => $groupName,
 			'amountCents' => $amountCents,
 			'frequency' => $frequency,
 			'startDate' => $startDate,

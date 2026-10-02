@@ -101,6 +101,81 @@ class Mt940ParserTest extends TestCase {
 		$this->assertSame('DE12500105170648489890', $rows[0]['ownAccount']);
 	}
 
+	/**
+	 * SEPA-strukturierte Felder aus dem Verwendungszweck (EREF+/MREF+/KREF+,
+	 * Spec §5) - MT940 liefert höchstens eine Detail-Zeile je Buchung.
+	 */
+	public function testSepaDetailsAusStrukturierterReferenz(): void {
+		$sta = ":20:TEST\n:25:50010517/0648489890\n"
+			. ":61:2610050105C4500,00NTRFNONREF\n"
+			. ":86:171?00GUTSCHRIFT?20EREF+E2E-1 MREF+M-1?21 KREF+MSG-42-RCUR?32Max Mustermann\n";
+
+		$rows = $this->parser->parse($sta);
+
+		$details = $rows[0]['sepaDetails'];
+		$this->assertCount(1, $details);
+		$this->assertSame('E2E-1', $details[0]['endToEndId']);
+		$this->assertSame('M-1', $details[0]['mandateReference']);
+		$this->assertSame('MSG-42-RCUR', $details[0]['batchReference']);
+		$this->assertSame('171', $details[0]['gvc']);
+		$this->assertFalse($details[0]['isReturn']);
+		$this->assertSame(450000, $details[0]['amountCents']);
+	}
+
+	/**
+	 * "ist Rückgabe" (Spec §5): GVC 108 am :86:-Anfang - derselbe Kernwert wie
+	 * bei camt. Der DK-Retourencode `?34` wird nur übersetzt, wenn er in
+	 * {@see \OCA\Vereinsbuchhaltung\Service\Sepa\DkReturnReasonCodes} eindeutig
+	 * bekannt ist ("nie raten").
+	 */
+	public function testSepaDetailsErkenntRuecklastschriftUeberGvc(): void {
+		$sta = ":20:TEST\n:25:50010517/0648489890\n"
+			. ":61:2610060106D50,00NTRFNONREF\n"
+			. ":86:108?00RUECKLASTSCHRIFT?20EREF+E2E-2 MREF+M-2?34901\n";
+
+		$rows = $this->parser->parse($sta);
+
+		$details = $rows[0]['sepaDetails'];
+		$this->assertCount(1, $details);
+		$this->assertTrue($details[0]['isReturn']);
+		$this->assertSame('AC01', $details[0]['returnReasonCode'], 'DK 901 -> ISO AC01');
+		$this->assertSame(-5000, $details[0]['amountCents']);
+	}
+
+	/** Ein unbekannter/mehrdeutiger DK-Code wird NICHT geraten (Spec §5 "nie raten"). */
+	public function testUnbekannterDkCodeWirdNichtGeraten(): void {
+		$sta = ":20:TEST\n:25:50010517/0648489890\n"
+			. ":61:2610070107D50,00NTRFNONREF\n"
+			. ":86:108?00RUECKLASTSCHRIFT?20EREF+E2E-3?34999\n";
+
+		$rows = $this->parser->parse($sta);
+
+		$this->assertNull($rows[0]['sepaDetails'][0]['returnReasonCode']);
+	}
+
+	/** Ursprungsbetrag/Bankgebühr können statt über OAMT+/COAM+ auch als /OCMT/…/CHGS/… an :61: hängen. */
+	public function testUrsprungsbetragUndGebuehrAusOcmtChgsAmZeilenende(): void {
+		$sta = ":20:TEST\n:25:50010517/0648489890\n"
+			. ":61:2610080108D50,00NTRFNONREF//OCMT/EUR45,00/CHGS/EUR5,00/\n"
+			. ":86:108?00RUECKLASTSCHRIFT?20EREF+E2E-4\n";
+
+		$rows = $this->parser->parse($sta);
+
+		$details = $rows[0]['sepaDetails'];
+		$this->assertSame(4500, $details[0]['originalAmountCents']);
+		$this->assertSame(500, $details[0]['chargesCents']);
+	}
+
+	/** Ein Umsatz ohne jede SEPA-Referenz erzeugt keine Detail-Zeile. */
+	public function testSepaDetailsLeerOhneReferenz(): void {
+		$rows = $this->parser->parse($this->fixture());
+
+		// Die Beispieldatei enthaelt keine EREF+/MREF+/GVC-108/109-Zeilen.
+		foreach ($rows as $row) {
+			$this->assertSame([], $row['sepaDetails']);
+		}
+	}
+
 	public function testErkenntDasFormat(): void {
 		$this->assertTrue($this->parser->supports($this->fixture()));
 		$this->assertFalse($this->parser->supports('<?xml version="1.0"?><Document/>'));

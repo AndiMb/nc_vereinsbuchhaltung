@@ -228,4 +228,58 @@ class PainXmlBuilderTest extends TestCase {
 		$this->assertSame('CORE', $xpath->query('//p:PmtInf/p:PmtTpInf/p:LclInstrm/p:Cd')->item(0)->textContent);
 		$this->assertSame('2026-09-01', $xpath->query('//p:PmtInf/p:ReqdColltnDt')->item(0)->textContent);
 	}
+
+	/**
+	 * Ein bei der Freigabe eingefrorener Zeitpunkt (Issue #71, Spec §3.5
+	 * „byte-identisch nachrenderbar") landet unverändert in GrpHdr/CreDtTm –
+	 * ohne Angabe bliebe das alte Verhalten (aktueller Zeitpunkt) erhalten,
+	 * siehe {@see testOhneEingefrorenenZeitpunktWirdDerAktuelleGenommen()}.
+	 */
+	public function testEingefrorenerZeitpunktLandetUnveraendertImXml(): void {
+		$creditor = new SepaCreditor(
+			'MSG-20260812-101500-A1B2C3D4',
+			'2026-09-01',
+			'DE98ZZZ09999999999',
+			'TSV Waldbach e. V.',
+			'DE12500105170648489890',
+			null,
+			'2026-08-12T10:15:00',
+		);
+		$xml = (new PainXmlBuilder())->build($creditor, [$this->row()]);
+		$this->assertSchemaValid($xml);
+		$this->assertSame('2026-08-12T10:15:00', $this->xpath($xml)->query('//p:GrpHdr/p:CreDtTm')->item(0)->textContent);
+	}
+
+	public function testOhneEingefrorenenZeitpunktWirdDerAktuelleGenommen(): void {
+		$xml = (new PainXmlBuilder())->build($this->creditor(), [$this->row()]);
+		$creDtTm = $this->xpath($xml)->query('//p:GrpHdr/p:CreDtTm')->item(0)->textContent;
+		$this->assertStringStartsWith(date('Y-m-d'), $creDtTm);
+	}
+
+	/**
+	 * Kontowechsel-Amendment (Issue #71, Compliance-Anhang Spec §8:
+	 * „AmdmntInd=true + OrgnlDbtrAcct=SMNDA, OrgnlDbtrAgt leer") – schema-
+	 * konform und mit fest verdrahtetem SMNDA statt der tatsächlichen alten IBAN.
+	 */
+	public function testAmendmentErzeugtSmndaUndBleibtSchemakonform(): void {
+		$xml = (new PainXmlBuilder())->build($this->creditor(), [
+			$this->row(['amendmentIndicator' => true, 'originalDebtorAccount' => 'SMNDA']),
+		]);
+		$this->assertSchemaValid($xml);
+
+		$xpath = $this->xpath($xml);
+		$this->assertSame('true', $xpath->query('//p:DrctDbtTxInf/p:DrctDbtTx/p:MndtRltdInf/p:AmdmntInd')->item(0)->textContent);
+		$this->assertSame('SMNDA', $xpath->query('//p:DrctDbtTxInf/p:DrctDbtTx/p:MndtRltdInf/p:AmdmntInfDtls/p:OrgnlDbtrAcct/p:Id/p:Othr/p:Id')->item(0)->textContent);
+		// "OrgnlDbtrAgt leer" (Spec §8): das Element darf gar nicht auftauchen.
+		$this->assertSame(0, $xpath->query('//p:DrctDbtTxInf/p:DrctDbtTx/p:MndtRltdInf/p:AmdmntInfDtls/p:OrgnlDbtrAgt')->length);
+	}
+
+	/** Ohne Amendment-Kennzeichen darf AmdmntInd/AmdmntInfDtls gar nicht erst auftauchen (minOccurs="0" im Schema). */
+	public function testOhneAmendmentFehltAmdmntIndVollstaendig(): void {
+		$xml = (new PainXmlBuilder())->build($this->creditor(), [$this->row()]);
+		$this->assertSchemaValid($xml);
+		$xpath = $this->xpath($xml);
+		$this->assertSame(0, $xpath->query('//p:AmdmntInd')->length);
+		$this->assertSame(0, $xpath->query('//p:AmdmntInfDtls')->length);
+	}
 }

@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\Rule;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
+use OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportExtractionService;
 use OCA\Vereinsbuchhaltung\Service\Statement\RowNormalizer;
 use OCA\Vereinsbuchhaltung\Service\Statement\StatementParserRegistry;
 
@@ -24,6 +25,7 @@ class ImportService {
 		private JournalMapper $journalMapper,
 		private TransactionRunner $transaction,
 		private SepaReturnDetectionService $sepaReturns,
+		private SepaImportExtractionService $sepaDetails,
 	) {
 	}
 
@@ -108,6 +110,12 @@ class ImportService {
 			if ($this->sepaReturns->detect($tx)) {
 				$sepaReturnsDetected++;
 			}
+
+			// Strukturierte SEPA-Detail-Erkennung für das neue Mandats-/
+			// Einzugsposten-Modell (Issue #72) - additiv, unabhängig vom alten
+			// System oben. Erzeugt nur Vorschläge, bucht nichts automatisch
+			// (siehe SepaImportExtractionService-Klassendoc).
+			$this->sepaDetails->extract($tx, $row['sepaDetails'] ?? []);
 
 			if ($applyRules) {
 				$accountId = $this->matchRule($tx, $rules);

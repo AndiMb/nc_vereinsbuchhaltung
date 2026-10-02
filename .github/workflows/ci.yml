@@ -60,6 +60,9 @@ jobs:
         with:
           php-version: ${{ matrix.php-version }}
           tools: composer, phpunit:10.5
+          # gd seit Issue #73 fuer chillerlan/php-qrcode (GiroCode-PNG-Anhang)
+          # explizit angefordert statt auf das setup-php-Standardbild zu vertrauen.
+          extensions: gd
           coverage: none
 
       - name: Syntaxpruefung aller PHP-Dateien
@@ -67,6 +70,16 @@ jobs:
 
       - name: composer.json/lock validieren
         run: composer validate --strict --no-check-publish
+
+      - name: App-Abhaengigkeiten installieren
+        # Seit Issue #73 hat die App mit chillerlan/php-qrcode (GiroCode-Anhang
+        # der Mahnwesen-Mails) erstmals eine echte Produktivabhaengigkeit -
+        # tests/bootstrap.php laedt deren vendor/autoload.php als vierten,
+        # nachrangigen Autoloader (siehe Kommentar dort). Die App-eigenen
+        # OCA\Vereinsbuchhaltung-Klassen kommen weiterhin ausschliesslich ueber
+        # den ersten, klassmap-unabhaengigen Autoloader - dieser Schritt betrifft
+        # nur den echten Fremdcode unter vendor/.
+        run: composer install --no-interaction --no-progress
 
       - name: OCP-Stubs holen
         # Die App-Klassen laedt tests/bootstrap.php per PSR-4 direkt aus lib/,
@@ -103,6 +116,15 @@ jobs:
         # installiert: eine ungepinnte 'latest' PHPStan-Version driftet sonst
         # unbemerkt zwischen CI-Laeufen, siehe Issue #2.
         run: composer install --working-dir=.phpstan --no-interaction --no-progress
+
+      - name: App-Abhaengigkeiten installieren
+        # Seit Issue #73 nutzt lib/ mit chillerlan/php-qrcode Fremdcode aus
+        # dem Root-vendor/ (EpcQrCodeGenerator). PHPStan laedt dessen
+        # vendor/autoload.php im Arbeitsverzeichnis von selbst; ohne diesen
+        # Schritt meldet es die Klassen als "not found". Die gd-Erweiterung
+        # braucht es hier nicht - die Analyse liest nur den Quelltext, ruft
+        # aber nichts auf (anders als der Backend-Job mit den Unit-Tests).
+        run: composer install --no-interaction --no-progress
 
       - name: PHPStan
         run: .phpstan/vendor/bin/phpstan analyse --no-progress
@@ -158,6 +180,25 @@ jobs:
         # Der Testserver mountet das App-Verzeichnis - die Tests laufen
         # gegen genau die Bundles, die auch ausgeliefert wuerden.
         run: npm run build
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          # Wie in den anderen PHP-Jobs die niedrigste unterstuetzte Version:
+          # das composer.lock muss dort installierbar sein. Im Container
+          # laeuft spaeter PHP 8.3; welche Version vendor/ gebaut hat, spielt
+          # keine Rolle, die Versionen kommen aus dem Lockfile.
+          php-version: '8.1'
+          tools: composer
+          coverage: none
+
+      - name: App-Abhaengigkeiten installieren
+        # Der Testserver mountet das Checkout als App-Verzeichnis, und
+        # Nextcloud laedt dessen vendor/autoload.php beim App-Start. Ohne
+        # vendor/ fehlt chillerlan/php-qrcode (Issue #73, GiroCode-Anhang der
+        # Mahnwesen-Mails): jeder Pfad, der den Anhang erzeugt, bricht dann
+        # in der CI, waehrend er lokal (mit vendor/) laeuft. --no-dev wie im
+        # Release-Workflow, das Tarball enthaelt dieselbe vendor/-Auswahl.
+        run: composer install --no-dev --no-interaction --no-progress
 
       - name: Testserver starten (Docker-Nextcloud stable34)
         # Kehrt erst zurueck, wenn die Instanz eingerichtet und der

@@ -147,10 +147,6 @@ class MemberCsvParserTest extends TestCase {
 				"Name;IBAN;Mandat am\n;DE02120300000000202051;15.01.2026\n",
 				'Weder Name noch Nextcloud-Konto',
 			],
-			'weder Mandat noch Beitrag' => [
-				"Name;E-Mail\nKatrin Brunner;k.brunner@example.org\n",
-				'weder eine IBAN noch einen Beitrag',
-			],
 		];
 	}
 
@@ -325,5 +321,42 @@ class MemberCsvParserTest extends TestCase {
 		$this->assertSame([], $zeile['errors']);
 		$this->assertSame(6000, $zeile['amountCents']);
 		$this->assertSame('yearly', $zeile['frequency']);
+	}
+
+	/**
+	 * Seit Issue #69 (voller CSV-Import) ist „nur Stammdaten, kein Mandat,
+	 * kein Beitrag" eine gültige Zeile – die Klasse diente vorher ausschließlich
+	 * der Mandat+Beitrag-Kombi-Erfassung.
+	 */
+	public function testReineStammdatenzeileOhneMandatUndBeitragIstGueltig(): void {
+		$csv = "Name;E-Mail\nKatrin Brunner;k.brunner@example.org\n";
+		$zeile = $this->parser->parse($csv)['rows'][0];
+		$this->assertSame([], $zeile['errors']);
+		$this->assertNull($zeile['iban']);
+		$this->assertNull($zeile['amountCents']);
+	}
+
+	/** Die vier mit Issue #69 neu hinzugekommenen Spalten. */
+	public function testNeueSpaltenSeitVollemCsvImport(): void {
+		$csv = "Name;Mitgliedsnummer;IBAN;Kontoinhaber;Mandat am;Mandatsreferenz;Beitragsgruppe;Betrag;Frequenz;Start\n"
+			. "Katrin Brunner;0815;DE02120300000000202051;Peter Brunner;15.01.2026;ALT-REF-42;Chormitglieder;42,50;monatlich;01.02.2026\n";
+		$zeile = $this->parser->parse($csv)['rows'][0];
+		$this->assertSame([], $zeile['errors']);
+		$this->assertSame('0815', $zeile['memberNumber']);
+		$this->assertSame('Peter Brunner', $zeile['accountHolder']);
+		$this->assertSame('ALT-REF-42', $zeile['mandateReference']);
+		$this->assertSame('Chormitglieder', $zeile['groupName']);
+	}
+
+	/**
+	 * Ob eine Beitragsgruppe zum Betrag passt, weiß erst MemberImportService
+	 * (Datenbankzugriff) – der Parser liefert groupName nur unverändert durch,
+	 * auch wenn er leer bleibt.
+	 */
+	public function testBetragOhneBeitragsgruppenspalteWirdKlaglosDurchgereicht(): void {
+		$csv = "Name;Betrag;Frequenz;Start\nKatrin Brunner;42,50;monatlich;01.01.2026\n";
+		$zeile = $this->parser->parse($csv)['rows'][0];
+		$this->assertSame([], $zeile['errors']);
+		$this->assertNull($zeile['groupName']);
 	}
 }

@@ -4,13 +4,20 @@
 	"type": "project",
 	"license": "AGPL-3.0-or-later",
 	"require": {
-		"php": ">=8.1"
+		"php": ">=8.1",
+		"chillerlan/php-qrcode": "^5.0"
 	},
 	"//": [
-		"Bewusst ohne require-dev: die App hat keine einzige Produktivabhaengigkeit,",
-		"composer dient hier nur dem Autoloader. PHPUnit wird als eigenstaendiges",
-		"PHAR benutzt (CI: shivammathur/setup-php mit tools: phpunit), damit die",
-		"composer.lock leer und das Release-Tarball frei von Fremdcode bleibt.",
+		"Bewusst ohne require-dev: PHPUnit wird als eigenstaendiges PHAR benutzt",
+		"(CI: shivammathur/setup-php mit tools: phpunit / .phpstan/vendor/phpunit),",
+		"damit die composer.lock schlank bleibt. chillerlan/php-qrcode (Issue #73,",
+		"GiroCode-Anhang der Mahnwesen-Mails) ist die erste echte",
+		"Produktivabhaengigkeit dieser App ueberhaupt - Nextcloud laedt",
+		"vendor/autoload.php beim App-Start automatisch mit, das Release-Tarball",
+		"enthaelt vendor/ deshalb ab jetzt bewusst mit.",
+		"Bewusst ^5.0 statt ^6.0: 6.x verlangt PHP ^8.2, die App deklariert aber",
+		"PHP >=8.1 (appinfo/info.xml, CI-Matrix) - mit 6.x liesse sich composer",
+		"install unter 8.1 nicht ausfuehren und das Tarball liefe dort nicht.",
 		"Lokal: 'phpunit --configuration phpunit.xml' nach 'composer install'."
 	],
 	"autoload": {

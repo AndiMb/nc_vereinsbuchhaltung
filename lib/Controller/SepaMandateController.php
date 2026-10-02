@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\SepaMandate;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
-use OCA\Vereinsbuchhaltung\Service\MemberReferenceValidator;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCA\Vereinsbuchhaltung\Service\SepaMandateService;
 use OCP\AppFramework\Controller;
@@ -23,16 +23,16 @@ use OCP\IRequest;
  * Rein optionales Zusatzmodul – wer es nie öffnet, merkt nichts davon.
  *
  * Jede Methode verlangt mindestens die Rolle Buchhalter (lesen+schreiben):
- * ein Mandat verknüpft ein Nextcloud-Konto mit einer IBAN, also
- * personenbezogenen Bankdaten, das reicht aber nicht an die Rechtevergabe
- * heran, die weiterhin Verwaltern vorbehalten bleibt (PermissionController).
+ * ein Mandat verknüpft ein Mitglied mit einer IBAN, also personenbezogenen
+ * Bankdaten, das reicht aber nicht an die Rechtevergabe heran, die weiterhin
+ * Verwaltern vorbehalten bleibt (PermissionController).
  */
 class SepaMandateController extends Controller {
 
 	public function __construct(
 		IRequest $request,
 		private SepaMandateService $service,
-		private MemberReferenceValidator $memberRef,
+		private MemberMapper $members,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -45,7 +45,7 @@ class SepaMandateController extends Controller {
 	 */
 	private function decorate(SepaMandate $mandate): array {
 		$data = $mandate->jsonSerialize();
-		$data['displayName'] = $this->memberRef->displayName($mandate->getMemberUid(), $mandate->getMemberLabel());
+		$data['displayName'] = $this->members->displayNameOr($mandate->getMemberId(), $this->l10n->t('(Mitglied gelöscht)'));
 		$data['usage'] = $this->service->usage((int)$mandate->getId());
 		return $data;
 	}
@@ -59,8 +59,7 @@ class SepaMandateController extends Controller {
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function create(
-		?string $memberUid,
-		?string $memberLabel,
+		int $memberId,
 		string $iban,
 		?string $bic,
 		string $mandateType,
@@ -68,10 +67,12 @@ class SepaMandateController extends Controller {
 		?string $email = null,
 	): DataResponse {
 		try {
-			$mandate = $this->service->create($memberUid, $memberLabel, $iban, $bic, $mandateType, $signedDate, $email);
+			$mandate = $this->service->create($memberId, $iban, $bic, $mandateType, $signedDate, $email);
 			return new DataResponse($this->decorate($mandate), Http::STATUS_CREATED);
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Mitglied nicht gefunden')], Http::STATUS_BAD_REQUEST);
 		}
 	}
 
