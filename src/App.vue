@@ -61,6 +61,7 @@
 							<option v-for="p in periods" :key="p.id" :value="p.id">{{ p.label }}{{ p.closedAt ? ' 🔒' : '' }}</option>
 						</select>
 					</label>
+					<TasksFlyout v-if="canWrite && membershipActive" @navigate="onTaskNavigate" />
 					<NcButton
 						variant="tertiary"
 						:aria-label="t('Hilfe')"
@@ -412,6 +413,7 @@ import ReportsTab from './components/ReportsTab.vue'
 import SelfServiceTab from './components/SelfServiceTab.vue'
 import SetupWizard from './components/SetupWizard.vue'
 import SplitAssignDialog from './components/SplitAssignDialog.vue'
+import TasksFlyout from './components/TasksFlyout.vue'
 import WhatsNewDialog from './components/WhatsNewDialog.vue'
 import api from './api.js'
 import { buildAccountOptions, useAccounts } from './composables/useAccounts.js'
@@ -421,6 +423,7 @@ import { useBalances } from './composables/useBalances.js'
 import { useConfirm } from './composables/useConfirm.js'
 import { useCostCenters } from './composables/useCostCenters.js'
 import { useJournal } from './composables/useJournal.js'
+import { useMemberAkteRequest } from './composables/useMemberAkteRequest.js'
 import { useMembershipFees } from './composables/useMembershipFees.js'
 import { useOpenItems } from './composables/useOpenItems.js'
 import { usePeriods } from './composables/usePeriods.js'
@@ -430,6 +433,7 @@ import { useSepaBatches } from './composables/useSepaBatches.js'
 import { useSepaMandates } from './composables/useSepaMandates.js'
 import { useSort } from './composables/useSort.js'
 import { useSync } from './composables/useSync.js'
+import { useTasks } from './composables/useTasks.js'
 import { buildWhatsNewEntries, filterWhatsNewEntries } from './data/whatsNew.js'
 import { amountClass, budgetDiffClass, errMsg, formatDate, formatDateTime, formatMoney, typeLabel } from './lib/format.js'
 import { splitBalanced, splitRemainder, splitSideOf } from './lib/split.js'
@@ -498,6 +502,7 @@ export default {
 		AccountPickerSheet,
 		HelpModal,
 		SetupWizard,
+		TasksFlyout,
 		WhatsNewDialog,
 	},
 
@@ -516,6 +521,8 @@ export default {
 		const membershipFees = useMembershipFees()
 		const sepaMandates = useSepaMandates()
 		const sepaBatches = useSepaBatches()
+		const memberAkteRequest = useMemberAkteRequest()
+		const tasks = useTasks()
 		return {
 			loadOpenItems: openItems.loadOpenItems,
 			loadCostCenters: costCenters.loadCostCenters,
@@ -534,6 +541,9 @@ export default {
 			loadMembershipFees: membershipFees.loadMembershipFees,
 			loadSepaMandates: sepaMandates.loadSepaMandates,
 			loadSepaBatches: sepaBatches.loadSepaBatches,
+			requestMemberAkte: memberAkteRequest.requestMemberAkte,
+			// Aufgaben-Flyout (TasksFlyout.vue): hier nur fuer refreshAfterRemoteChange().
+			loadTasks: tasks.loadTasks,
 			...toRefs(auth.state),
 			canRead: auth.canRead,
 			canWrite: auth.canWrite,
@@ -1291,6 +1301,19 @@ export default {
 			this.$router.replace({ path, query: period !== undefined ? { period } : {} })
 		},
 
+		/**
+		 * Sprung aus dem Aufgaben-Flyout (TasksFlyout.vue): in den Beiträge-Reiter,
+		 * je nach Ziel auf die Mitgliederliste (mit geöffneter Akte) oder in den
+		 * Einzug-Unterreiter.
+		 *
+		 * @param {{ kind: 'member'|'members'|'batch', memberId?: number }} target Ziel laut lib/tasks.js::taskTarget()
+		 */
+		onTaskNavigate(target) {
+			this.activeTab = 'contributions'
+			this.contribView = target.kind === 'batch' ? 'batch' : 'members'
+			if (target.kind === 'member') { this.requestMemberAkte(target.memberId) }
+		},
+
 		goToUnassigned() {
 			this.activeTab = 'bookings'
 			this.bookingView = 'unassigned'
@@ -1343,6 +1366,8 @@ export default {
 			// Beitraege/Mandate/Einzuege: eigenes Zusatzmodul, ab Rolle Buchhalter
 			// (Backend-Gate) - siehe ContributionsTab.vue.
 			if (this.canWrite) { jobs.push(this.loadMembershipFees(), this.loadSepaMandates(), this.loadSepaBatches()) }
+			// Aufgaben-Flyout: eine Aenderung anderer Personen kann Aufgaben loesen/schaffen.
+			if (this.canWrite && this.membershipActive) { jobs.push(this.loadTasks()) }
 			if (this.activeTab === 'accounts' && this.selectedAccountId) { jobs.push(this.loadStatement(this.selectedAccountId)) }
 			if (this.activeTab === 'reports') {
 				if (this.reportView === 'costcenters') { jobs.push(this.loadReport()) } else if (this.reportView === 'budget') { jobs.push(this.loadBudget()) }
