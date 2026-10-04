@@ -263,6 +263,11 @@ export default {
 	selfRevokeMandate: () => axios.post(url('/self/mandate/revoke')),
 	selfDiscardMandateDraft: () => axios.post(url('/self/mandate/discard-draft')),
 
+	// Eigene Rücklastschriften im Klartext (Issue #122, Spec §3.4 Pflicht-UI):
+	// ohne Parameter - der Server liefert nur die des eigenen Mitglieds, nie
+	// einen Rückgabecode (siehe SelfReturnedDebitService).
+	selfReturnedDebits: () => axios.get(url('/self/returned-debits')),
+
 	// Beitragsbestätigung (Issue #77, Spec §3.7): informelle Live-Ansicht -
 	// die Jahresliste ist ein normaler Axios-Aufruf, die eigentliche Seite
 	// wird per Browser-Navigation geöffnet (druckfertiges HTML, kein Axios).
