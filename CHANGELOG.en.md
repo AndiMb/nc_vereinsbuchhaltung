@@ -17,6 +17,22 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+## [0.34.4] – 2026-09-29
+
+**Fixed:**
+- **Bank statement import duplicated transactions that were already booked:**
+  when a bank export overlapped bookings from the xbuc import, duplicate
+  detection missed two cases and added the transaction to "To assign" a second
+  time (issue #112). Affected were booking texts with encoded umlauts
+  ("M&amp;#252;ller" instead of "Müller") and bank-internal transactions
+  without a counterparty, such as the account closing. Both are now recognised
+  as existing bookings; transactions imported earlier are not affected.
+- **Switching tabs right after opening the app was lost:** clicking another tab
+  while the app was still loading jumped back to the tab of the start URL.
+- **Amount field reverted to an outdated value:** after quickly focusing,
+  typing and leaving, an invalid entry restored the second-to-last instead of
+  the last valid amount.
+
 ## [0.34.3] – 2026-09-15
 
 **Fixed:**

@@ -56,6 +56,15 @@ export default {
 			// Stand beim Fokussieren: Ziel des Rücksprungs bei unlesbarer
 			// Eingabe und Vergleichswert für 'change'.
 			valueAtFocus: '',
+			// Letzter selbst gemeldeter Wert - im Gegensatz zur modelValue-Prop
+			// sofort aktuell. Vue reicht ein 'update:modelValue' erst mit dem
+			// naechsten Render-Zyklus des Elternteils als neue Prop zurueck; wer
+			// blitzschnell hintereinander fokussiert-tippt-verlaesst (Playwrights
+			// fill()+blur(), aber auch sehr schnelle Tipper), kann in onFocus auf
+			// die eigene, gerade erst gemeldete Aenderung noch als "modelValue"
+			// den VORHERIGEN Stand sehen - der Ruecksprung bei unlesbarer Eingabe
+			// laendete dann beim vorletzten statt beim letzten gueltigen Wert.
+			currentValue: '',
 		}
 	},
 
@@ -63,6 +72,7 @@ export default {
 		modelValue: {
 			immediate: true,
 			handler(v) {
+				this.currentValue = v
 				// $el fehlt beim ersten, sofortigen Lauf noch - dann genuegt der
 				// Zustand, das erste Rendern nimmt ihn mit.
 				if (!this.focused) { this.setDisplay(this.$el, formatAmountInput(v, !this.hideCurrency)) }
@@ -117,8 +127,8 @@ export default {
 		 */
 		onFocus(event) {
 			this.focused = true
-			this.valueAtFocus = this.modelValue
-			const raw = amountInputRaw(this.modelValue)
+			this.valueAtFocus = this.currentValue
+			const raw = amountInputRaw(this.currentValue)
 			const geaendert = event.target.value !== raw
 			this.setDisplay(event.target, raw)
 			if (geaendert) { event.target.select() }
@@ -127,11 +137,15 @@ export default {
 		onInput(event) {
 			this.display = event.target.value
 			if (event.target.value.trim() === '') {
+				this.currentValue = this.emptyValue
 				this.$emit('update:modelValue', this.emptyValue)
 				return
 			}
 			const n = parseAmountInput(event.target.value)
-			if (n !== null) { this.$emit('update:modelValue', n) }
+			if (n !== null) {
+				this.currentValue = n
+				this.$emit('update:modelValue', n)
+			}
 		},
 
 		onBlur(event) {
@@ -145,6 +159,7 @@ export default {
 				value = n === null ? this.valueAtFocus : roundCents(n)
 			}
 			this.setDisplay(event.target, formatAmountInput(value, !this.hideCurrency))
+			this.currentValue = value
 			this.$emit('update:modelValue', value)
 			if (value !== this.valueAtFocus) { this.$emit('change', value) }
 		},

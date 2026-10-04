@@ -237,9 +237,56 @@ class RowNormalizer {
 	 * Robuster als {@see hashText()}, damit "Empfänger: Zweck" und
 	 * "Empfänger – Zweck" als derselbe Umsatz gelten. Geht bewusst NICHT in den
 	 * Hash ein.
+	 *
+	 * HTML-Entitäten werden vorher aufgelöst, auch mehrfach kodierte: Buchungs-
+	 * texte aus dem xbuc-Import tragen teils "M&amp;#252;ller" statt "Müller"
+	 * und würden sonst nie zum Bankumsatz passen (Issue #112).
 	 */
 	public function normalizeText(string $s): string {
-		return preg_replace('/[^\p{L}\p{N}]+/u', '', mb_strtolower($s)) ?? '';
+		return preg_replace('/[^\p{L}\p{N}]+/u', '', mb_strtolower($this->decodeEntities($s))) ?? '';
+	}
+
+	/**
+	 * Texte, unter denen eine gelesene Zeile als bereits vorhandene Buchung
+	 * wiedererkannt werden kann (für {@see softKey()}).
+	 *
+	 * Regelfall: Gegenpartei + Verwendungszweck. Hat die Bank keinen
+	 * Zahlungsbeteiligten geliefert, steht in der Gegenpartei der Buchungstext
+	 * (siehe {@see build()}) – ein Buchungssatz für denselben Umsatz trägt diesen
+	 * Zusatz aber nicht ("ABSCHLUSS" + "Abschluss per 31.01.2026" gegen
+	 * "Abschluss per 31.01.2026"). Nur dann zählt der Zweck allein zusätzlich;
+	 * bei echten Zahlungen würde er verschiedene Zahler mit gleichem Zweck
+	 * ("Mitgliedsbeitrag 2026") zusammenwerfen.
+	 *
+	 * @param array<string, mixed> $row
+	 * @return list<string>
+	 */
+	public function matchTexts(array $row): array {
+		$counterparty = (string)($row['counterparty'] ?? '');
+		$purpose = (string)($row['purpose'] ?? '');
+		$texts = [$counterparty . $purpose];
+		if ($purpose !== '' && $counterparty !== '' && $counterparty === (string)($row['bookingText'] ?? '')) {
+			$texts[] = $purpose;
+		}
+		return $texts;
+	}
+
+	/**
+	 * Löst HTML-Entitäten bis zum Fixpunkt auf, dazu die in xbuc-Dateien
+	 * vorkommende Form ohne "&" ("#252;"). Reihenfolge wichtig: erst
+	 * dekodieren, dann "#252;" ergänzen – andersherum würde aus "&amp;#252;"
+	 * zuerst "&amp;&#252;" und am Ende "&ü".
+	 */
+	private function decodeEntities(string $s): string {
+		for ($i = 0; $i < 5 && (str_contains($s, '&') || str_contains($s, '#')); $i++) {
+			$next = html_entity_decode($s, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+			$next = preg_replace('/(?<!&)#(\d+);/', '&#$1;', $next) ?? $next;
+			if ($next === $s) {
+				break;
+			}
+			$s = $next;
+		}
+		return $s;
 	}
 
 	private function limit(?string $value, int $max): ?string {

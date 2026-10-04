@@ -167,4 +167,55 @@ class StatementFormatTest extends TestCase {
 		$this->assertSame($a, $b, 'Vorzeichen und Trennzeichen dürfen den Schlüssel nicht ändern');
 		$this->assertNull($this->normalizer->softKey('2026-01-02', 6000, '   '));
 	}
+
+	/**
+	 * Issue #112: Buchungstexte aus dem xbuc-Import tragen teils mehrfach
+	 * kodierte HTML-Entitäten. Sie müssen denselben Schlüssel ergeben wie der
+	 * Klartext aus der Bank-CSV, sonst legt ein überlappender Import den Umsatz
+	 * ein zweites Mal an.
+	 */
+	public function testWeicherSchluesselLoestHtmlEntitaetenAuf(): void {
+		$bank = $this->normalizer->softKey('2026-02-02', 1000, 'Chor Müllerstadt e.V.' . 'Beitrag 2026');
+		foreach ([
+			'Chor M&amp;#252;llerstadt e.V.: Beitrag 2026',
+			'Chor M&amp;amp;#252;llerstadt e.V.: Beitrag 2026',
+			'Chor M&#252;llerstadt e.V.: Beitrag 2026',
+			'Chor M#252;llerstadt e.V.: Beitrag 2026',
+			'Chor M&uuml;llerstadt e.V.: Beitrag 2026',
+		] as $buchung) {
+			$this->assertSame($bank, $this->normalizer->softKey('2026-02-02', 1000, $buchung), $buchung);
+		}
+	}
+
+	/**
+	 * Issue #112: Bank-interne Umsätze ohne Zahlungsbeteiligten bekommen den
+	 * Buchungstext als Gegenpartei. Der Zweck allein muss dann zusätzlich
+	 * gegen vorhandene Buchungssätze geprüft werden.
+	 */
+	public function testAbgleichstexteBankinternerUmsatz(): void {
+		$row = $this->normalizer->build([
+			'bookingDate' => '2026-01-30', 'valueDate' => '2026-01-31', 'amountCents' => -500,
+			'bookingText' => 'ABSCHLUSS', 'purpose' => 'Abschluss per 31.01.2026',
+		]);
+		$this->assertNotNull($row);
+		$this->assertSame(['ABSCHLUSSAbschluss per 31.01.2026', 'Abschluss per 31.01.2026'], $this->normalizer->matchTexts($row));
+
+		$buchung = $this->normalizer->softKey('2026-01-31', -500, 'Abschluss per 31.01.2026');
+		$keys = array_map(fn (string $t) => $this->normalizer->softKey('2026-01-31', -500, $t), $this->normalizer->matchTexts($row));
+		$this->assertContains($buchung, $keys);
+	}
+
+	/**
+	 * Mit echtem Zahlungsbeteiligten zählt nur Gegenpartei + Zweck: sonst
+	 * würde die Beitragszahlung eines zweiten Mitglieds mit gleichem Zweck am
+	 * selben Tag als Dublette verworfen.
+	 */
+	public function testAbgleichstexteMitZahlungsbeteiligtem(): void {
+		$row = $this->normalizer->build([
+			'bookingDate' => '2026-01-30', 'amountCents' => 6000, 'bookingText' => 'GUTSCHRIFT',
+			'counterparty' => 'Erika Beispiel', 'purpose' => 'Mitgliedsbeitrag 2026',
+		]);
+		$this->assertNotNull($row);
+		$this->assertSame(['Erika BeispielMitgliedsbeitrag 2026'], $this->normalizer->matchTexts($row));
+	}
 }

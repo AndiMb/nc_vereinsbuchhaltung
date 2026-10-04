@@ -245,21 +245,23 @@ class ImportService {
 	 * Datumsseitig wird sowohl das Buchungs- ALS AUCH das Valutadatum geprüft:
 	 * die Alt-Software (xbuc-Export) hat teils das Valutadatum als Buchungsdatum
 	 * gespeichert, sodass ein Abgleich nur über das Buchungsdatum fehlschlüge.
-	 * Ohne aussagekräftigen Text findet kein Abgleich statt.
+	 * Ohne aussagekräftigen Text findet kein Abgleich statt. Welche Texte
+	 * geprüft werden, legt {@see RowNormalizer::matchTexts()} fest.
 	 *
 	 * @param array<string,mixed> $row
 	 * @param array<string, true> $bookingKeys
 	 */
 	private function matchesExistingBooking(array $row, array $bookingKeys): bool {
-		$text = (string)($row['counterparty'] ?? '') . (string)($row['purpose'] ?? '');
 		$amount = (int)$row['amountCents'];
-		foreach ([$row['bookingDate'] ?? null, $row['valueDate'] ?? null] as $date) {
-			if (!is_string($date) || $date === '') {
-				continue;
-			}
-			$key = $this->normalizer->softKey($date, $amount, $text);
-			if ($key !== null && isset($bookingKeys[$key])) {
-				return true;
+		foreach ($this->normalizer->matchTexts($row) as $text) {
+			foreach ([$row['bookingDate'] ?? null, $row['valueDate'] ?? null] as $date) {
+				if (!is_string($date) || $date === '') {
+					continue;
+				}
+				$key = $this->normalizer->softKey($date, $amount, $text);
+				if ($key !== null && isset($bookingKeys[$key])) {
+					return true;
+				}
 			}
 		}
 		return false;
