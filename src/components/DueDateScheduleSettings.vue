@@ -76,19 +76,24 @@
 					v-model.number="leadDrafts.warningLeadDays"
 					type="number"
 					class="vbh-short"
-					min="1">
+					min="1"
+					:disabled="!isAdmin">
 			</label>
 			<label>{{ t('Vorabinfo-Vorlauf (Tage vor Einzug)') }}
 				<input
 					v-model.number="leadDrafts.prenotificationLeadDays"
 					type="number"
 					class="vbh-short"
-					min="1">
+					min="1"
+					:disabled="!isAdmin">
 			</label>
-			<NcButton variant="primary" @click="saveLeadDays">
+			<NcButton variant="primary" :disabled="!isAdmin" @click="saveLeadDays">
 				{{ t('Speichern') }}
 			</NcButton>
 		</div>
+		<p v-if="!isAdmin" class="vbh-hint vbh-hint--info" data-testid="lead-days-admin-only">
+			{{ t('Nur Verwalter können die Vorlaufzeiten ändern.') }}
+		</p>
 	</section>
 </template>
 
@@ -97,6 +102,7 @@ import { showError, showSuccess } from '@nextcloud/dialogs'
 import { NcButton } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import api from '../api.js'
+import { useAuth } from '../composables/useAuth.js'
 import { useDueDateSchedule } from '../composables/useDueDateSchedule.js'
 import { errMsg } from '../lib/format.js'
 
@@ -106,6 +112,12 @@ import { errMsg } from '../lib/format.js'
  * Cron-Abstände. Guards (kein Überholen, Termin im Beitragsjahr) prüft der
  * Server (DueDateScheduleService) - diese Ansicht zeigt dessen Fehlermeldung
  * einfach an, statt sie hier zu duplizieren.
+ *
+ * Rollen (Spec §3.9, Issue #119): Die Terminverschiebung (Standard-Einzugstag,
+ * Überschreibungen) ist `buchhalter`. Vorwarnfenster und Vorabinfo-Vorlauf sind
+ * Einstellungen und nur für `verwalter` änderbar: für alle anderen bleiben die
+ * Felder sichtbar, aber gesperrt, mit Hinweis - der Server lehnt den Aufruf
+ * ohnehin mit 403 ab (DueDateScheduleController::setLeadDays).
  */
 export default {
 	name: 'DueDateScheduleSettings',
@@ -117,7 +129,7 @@ export default {
 
 	setup() {
 		const schedule = useDueDateSchedule()
-		return { ...toRefs(schedule.state), loadDueDateSchedule: schedule.loadDueDateSchedule }
+		return { ...toRefs(schedule.state), loadDueDateSchedule: schedule.loadDueDateSchedule, isAdmin: useAuth().isAdmin }
 	},
 
 	data() {
@@ -139,8 +151,12 @@ export default {
 			},
 		},
 
-		warningLeadDays(value) { this.leadDrafts.warningLeadDays = value },
-		prenotificationLeadDays(value) { this.leadDrafts.prenotificationLeadDays = value },
+		// `immediate`: der Zustand ist ein Modul-Singleton und kann beim Einhängen schon die
+		// geladenen Werte tragen (Wechsel zwischen Einzug und Beitragsgruppen). Ohne das bliebe
+		// ein Entwurf bei den Vorgaben 21/14 stehen, weil sich der Wert nicht mehr „ändert“ –
+		// die gesperrten Felder zeigten dann falsche Zahlen.
+		warningLeadDays: { immediate: true, handler(value) { this.leadDrafts.warningLeadDays = value } },
+		prenotificationLeadDays: { immediate: true, handler(value) { this.leadDrafts.prenotificationLeadDays = value } },
 	},
 
 	async mounted() {
@@ -180,6 +196,7 @@ export default {
 		},
 
 		async saveLeadDays() {
+			if (!this.isAdmin) { return }
 			try {
 				await api.setDueDateScheduleLeadDays(this.leadDrafts)
 				await this.loadDueDateSchedule()

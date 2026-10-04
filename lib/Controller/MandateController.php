@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Mandate;
+use OCA\Vereinsbuchhaltung\Db\MandateAmendment;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\Export\PrintableReportPage;
 use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
@@ -89,6 +90,22 @@ class MandateController extends Controller {
 		return $data;
 	}
 
+	/**
+	 * Ein Amendment trägt die IBAN des Kontos, das ersetzt wurde (`oldIban`).
+	 * Auch sie sieht `revisor` nur maskiert (Spec §3.9) – sonst wäre die
+	 * Maskierung in {@see decorate()} über die Akte des Mandats zu umgehen
+	 * (Issue #119).
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function decorateAmendment(MandateAmendment $amendment): array {
+		$data = $amendment->jsonSerialize();
+		if (!$this->permissions->canWrite()) {
+			$data['oldIban'] = Mandate::maskIban($amendment->getOldIban());
+		}
+		return $data;
+	}
+
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_READ)]
 	public function index(): DataResponse {
@@ -111,7 +128,7 @@ class MandateController extends Controller {
 		}
 		$data = $this->decorate($mandate);
 		$data['history'] = array_map(fn ($e) => $e->jsonSerialize(), $this->service->history($id));
-		$data['amendments'] = array_map(fn ($a) => $a->jsonSerialize(), $this->service->amendments($id));
+		$data['amendments'] = array_map($this->decorateAmendment(...), $this->service->amendments($id));
 		// Nur für die Akte (Issue #100), bewusst nicht in decorate(): das
 		// laufen index()/byMember() für jede Zeile der Mitgliederliste durch.
 		$data['activationLink'] = $mandate->isElectronic() && $mandate->getStatus() === Mandate::STATUS_DRAFT

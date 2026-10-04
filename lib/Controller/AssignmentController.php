@@ -19,10 +19,19 @@ use OCP\IRequest;
 use OCP\IUserSession;
 
 /**
- * Pflege der Zuweisungen (siehe {@see AssignmentService}). Da Self-Service
- * (Ticket #69/#74) noch nicht existiert, kommt jede Änderung ausschließlich
- * über die Admin-Akte – `actorType` ist deshalb hier immer `staff` (Spec
- * §3.9 „Personalunion": der **Kanal** entscheidet, nicht die Identität).
+ * Pflege der Zuweisungen (siehe {@see AssignmentService}). Diese Endpunkte sind
+ * die Admin-Akte – `actorType` ist deshalb hier immer `staff` (Spec §3.9
+ * „Personalunion": der **Kanal** entscheidet, nicht die Identität); das
+ * Mitglied ändert über den {@see SelfController}.
+ *
+ * Rollen (Spec §3.9, Issue #119), jede Methode ausdrücklich: alles ab
+ * `buchhalter`, auch das Lesen. Zuweisungen gehören zur Personenakte des
+ * Mitglieder-Unterreiters (dort „nicht revisor"): sie tragen die Begründung der
+ * individuellen Untergrenze, die Ereignisse die Freitext-Vermerke einer
+ * Stellvertretung – beides sollen Kassenprüfer nicht über die API lesen, auch
+ * wenn die Oberfläche es ihnen gar nicht erst anzeigt. Die Vorschau ist ein
+ * POST ohne Schreibwirkung, bleibt aber auf der Rolle der Änderung, weil sie nur
+ * im Dialog zum Speichern vorkommt.
  */
 class AssignmentController extends Controller {
 
@@ -40,12 +49,14 @@ class AssignmentController extends Controller {
 	}
 
 	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function index(?int $memberId = null): DataResponse {
 		$assignments = $memberId !== null ? $this->service->findByMember($memberId) : $this->service->findAll();
 		return new DataResponse(array_map(fn ($a) => $a->jsonSerialize(), $assignments));
 	}
 
 	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function create(
 		int $memberId,
 		int $groupId,
@@ -81,6 +92,7 @@ class AssignmentController extends Controller {
 
 	/** Vorschau der ersten (Prorata-)Periode, bevor überhaupt gespeichert wird (Spec §3.4 „Vorschau vor jedem Speichern"). */
 	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function previewNew(int $intervalMonths, float $monthlyAmount, string $validFrom): DataResponse {
 		$transient = new Assignment();
 		$transient->setIntervalMonths($intervalMonths);
@@ -94,6 +106,7 @@ class AssignmentController extends Controller {
 	}
 
 	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function update(int $id, ?float $monthlyAmount = null, ?int $intervalMonths = null, ?int $groupId = null): DataResponse {
 		try {
 			$assignment = $this->service->update(
@@ -131,6 +144,7 @@ class AssignmentController extends Controller {
 	}
 
 	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function end(int $id, string $validTo): DataResponse {
 		try {
 			$assignment = $this->service->end($id, $validTo, 'staff', $this->actorUid());
@@ -143,6 +157,7 @@ class AssignmentController extends Controller {
 	}
 
 	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function events(int $id): DataResponse {
 		return new DataResponse(array_map(fn ($e) => $e->jsonSerialize(), $this->service->findEvents($id)));
 	}

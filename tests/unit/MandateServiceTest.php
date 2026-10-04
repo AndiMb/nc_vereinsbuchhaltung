@@ -198,6 +198,25 @@ class MandateServiceTest extends TestCase {
 		$this->assertSame('INGDDEFFXXX', $capturedAmendment->getOldBic());
 	}
 
+	/**
+	 * Issue #119: den Verlauf eines Mandats liest auch der Revisor, der die IBAN nur
+	 * maskiert sehen darf (Spec §3.9). Der Ereignistext des Amendments nannte die
+	 * alte IBAN bisher im Klartext – die volle steht im Amendment selbst.
+	 */
+	public function testAmendmentSchreibtDieAlteIbanNurMaskiertInDenVerlauf(): void {
+		$this->realisticMessages = true;
+		$this->mandateMapper->method('find')->willReturn($this->activeMandate());
+		$events = [];
+		$this->collectEvents($events);
+
+		$this->service()->amendBankDetails(1, 'DE89370400440532013000', 'COBADEFFXXX');
+
+		$this->assertCount(1, $events);
+		$this->assertSame('Bankverbindung geändert (Amendment, alte IBAN DE12••••••••••••••9890)', $events[0]->getMessage());
+		$this->assertStringNotContainsString('50010517', $events[0]->getMessage());
+		$this->assertStringNotContainsString('DE89', $events[0]->getMessage(), 'auch die neue IBAN steht nicht im Verlauf');
+	}
+
 	public function testUnveraenderteIbanUndBicErzeugenKeinAmendment(): void {
 		$mandate = $this->activeMandate();
 		$this->mandateMapper->method('find')->willReturn($mandate);

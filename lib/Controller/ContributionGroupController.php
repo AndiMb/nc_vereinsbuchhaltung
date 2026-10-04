@@ -19,10 +19,10 @@ use OCP\IUserSession;
 
 /**
  * Pflege der Beitragsgruppen (siehe {@see ContributionGroupService}).
- * Lesen ab `revisor`, Schreiben ab `buchhalter` (Default-Heuristik der
- * PermissionMiddleware) – nur die Untergrenzen-Erhöhung ist laut Issue #68
- * ausdrücklich `buchhalter`-only und bekommt deshalb ein explizites
- * RequiresRole, obwohl die Vorschau ein GET ist.
+ * Lesen ab `revisor` (das Regelwerk selbst enthält keine Personendaten),
+ * Schreiben ab `buchhalter` – jede Methode ausdrücklich per #[RequiresRole]
+ * (Spec §3.9, Issue #119), nicht über die Verb-Heuristik. Die Vorschau der
+ * Untergrenzen-Erhöhung ist trotz GET `buchhalter`-only (Issue #68).
  */
 class ContributionGroupController extends Controller {
 
@@ -36,11 +36,13 @@ class ContributionGroupController extends Controller {
 	}
 
 	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_READ)]
 	public function index(): DataResponse {
 		return new DataResponse(array_map(fn ($g) => $g->jsonSerialize(), $this->service->findAll()));
 	}
 
 	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function create(
 		string $name,
 		float $minMonthlyAmount,
@@ -58,6 +60,7 @@ class ContributionGroupController extends Controller {
 	}
 
 	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function update(
 		int $id,
 		string $name,
@@ -78,6 +81,7 @@ class ContributionGroupController extends Controller {
 	}
 
 	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function destroy(int $id): DataResponse {
 		try {
 			$this->service->delete($id);
