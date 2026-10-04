@@ -376,6 +376,18 @@ class MandateTaskServiceTest extends TestCase {
 		$this->assertStringContainsString('nach 36 Monaten verfallen', $task['message']);
 	}
 
+	public function testVerworfenerEntwurfWirdAlsSolcherBenannt(): void {
+		// Ein verworfener Entwurf (#118) ist kein „beendetes“ Mandat: der Text nennt den echten Grund.
+		$this->givenBestand([
+			$this->mandate(3, 7, Mandate::STATUS_ENDED, ['endReason' => Mandate::END_REASON_DISCARDED]),
+		], [$this->member(7)]);
+		$this->assignments->method('findActiveAsOf')->willReturn([$this->directDebitAssignment(7)]);
+
+		$task = $this->only($this->service()->findTasks(self::TODAY));
+
+		$this->assertStringContainsString('erloschen (Entwurf verworfen)', $task['message']);
+	}
+
 	public function testErloschenesMandatOhneLastschriftWunschIstKeineAufgabe(): void {
 		$this->givenBestand([$this->mandate(3, 7, Mandate::STATUS_ENDED, ['endReason' => Mandate::END_REASON_REVOKED])], [$this->member(7)]);
 		// Die Zuweisung läuft über Überweisung: nichts mehr zu tun.

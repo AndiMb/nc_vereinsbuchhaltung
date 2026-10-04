@@ -340,6 +340,7 @@ class MandateTaskService {
 			Mandate::END_REASON_REVOKED => $this->l10n->t('widerrufen'),
 			Mandate::END_REASON_EXPIRED => $this->l10n->t('nach 36 Monaten verfallen'),
 			Mandate::END_REASON_REPLACED => $this->l10n->t('durch ein neues Mandat ersetzt'),
+			Mandate::END_REASON_DISCARDED => $this->l10n->t('Entwurf verworfen'),
 			default => $this->l10n->t('beendet'),
 		};
 	}
