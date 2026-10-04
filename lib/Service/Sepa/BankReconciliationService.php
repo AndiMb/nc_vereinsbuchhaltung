@@ -560,14 +560,16 @@ class BankReconciliationService {
 	private function returnInfo(BankTxSepaDetail $detail, array $returnSettings, bool $withReturnCodes, ?bool $mandateActive): array {
 		$class = ReturnReasonClassifier::classify($detail->getReturnReasonCode());
 		$charges = max(0, $detail->getChargesCents() ?? 0);
+		// Dieselbe Bedingung wie in SepaImportConfirmationService::finalizeReturn(): Opt-in, Klasse, Gebühr und Konto.
+		$feeClaim = $returnSettings['rechargeEnabled']
+			&& ReturnReasonClassifier::shouldRechargeFeeAutomatically($class)
+			&& $charges > 0
+			&& $returnSettings['feeAccountId'] !== null;
 		$info = [
 			'reasonClass' => $class,
 			'suspendsMandate' => ReturnReasonClassifier::shouldSuspendMandate($class) && $mandateActive !== false,
 			'paymentRequest' => ReturnReasonClassifier::shouldTriggerPaymentRequest($class),
-			'feeClaimCents' => $returnSettings['rechargeEnabled']
-				&& ReturnReasonClassifier::shouldRechargeFeeAutomatically($class)
-				&& $charges > 0
-				&& $returnSettings['feeAccountId'] !== null ? $charges : null,
+			'feeClaimCents' => $feeClaim ? $charges : null,
 		];
 		if ($withReturnCodes) {
 			// Code und Freitext der Bank: nur für die Buchhaltung (Spec §3.6 „Codes bleiben admin-only").
