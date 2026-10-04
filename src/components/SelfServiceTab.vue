@@ -191,7 +191,18 @@
 				</template>
 
 				<h4>{{ t('Rücklastschriften') }}</h4>
-				<p class="vbh-hint">
+				<!-- Der Leer-Hinweis nur, wenn die Liste wirklich geladen und leer ist - nie bei einem Ladefehler (Issue #122) -->
+				<ul v-if="returnedDebitRows.length" class="vbh-selfservice-returns">
+					<li v-for="(r, index) in returnedDebitRows" :key="index" class="vbh-selfservice-return">
+						<strong>{{ r.date }} · {{ r.amount }}</strong>
+						<span v-if="r.subject" class="vbh-hint">{{ r.subject }}</span>
+						<span>{{ r.reason }}</span>
+					</li>
+				</ul>
+				<p v-else-if="returnedDebitsFailed" class="vbh-hint vbh-hint--warning">
+					{{ t('Rücklastschriften konnten nicht geladen werden.') }}
+				</p>
+				<p v-else-if="returnedDebitsLoaded" class="vbh-hint">
 					{{ t('Bisher keine Rücklastschrift.') }}
 				</p>
 			</div>
@@ -277,6 +288,7 @@ import SelfServiceMandateGrantDialog from './SelfServiceMandateGrantDialog.vue'
 import SelfServiceMandateRevokeDialog from './SelfServiceMandateRevokeDialog.vue'
 import api from '../api.js'
 import { errMsg, formatDate, formatMoney } from '../lib/format.js'
+import { returnedDebitRows } from '../lib/selfReturnedDebits.js'
 
 function emptyContactForm() {
 	return { firstName: '', lastName: '', organizationName: '', email: '', phone: '', street: '', postalCode: '', city: '', country: '' }
@@ -307,6 +319,11 @@ function emptyContactForm() {
  * Live-Ansicht je Beitragsjahr, geöffnet als eigene Seite (kein Axios,
  * daher kein Ladezustand/Fehler-Toast außer für die Jahresauswahl selbst).
  *
+ * Dazu die eigenen Rücklastschriften (Issue #122, Spec §3.4 Pflicht-UI): als
+ * Klartext je Rückgabe-Klasse, neueste zuerst (Anzeigelogik in
+ * lib/selfReturnedDebits.js); der Leer-Hinweis steht nur, wenn die Liste
+ * geladen und leer ist, nie bei einem Ladefehler.
+ *
  * Dazu „Meine Daten" (Issue #78, Spec §3.8): dieselbe Art von druckfertiger
  * Live-Ansicht für die Auskunftspflicht nach Art. 15 DSGVO - kein
  * strukturierter Export nach Art. 20, keine eigene Jahresauswahl (die
@@ -321,6 +338,9 @@ export default {
 			loading: true,
 			member: null,
 			assignments: [],
+			returnedDebits: [],
+			returnedDebitsLoaded: false,
+			returnedDebitsFailed: false,
 			editingContact: false,
 			savingContact: false,
 			contactForm: emptyContactForm(),
@@ -372,6 +392,11 @@ export default {
 			return !!this.mandate && this.mandate.status === 'entwurf' && this.mandate.signatureType === 'elektronisch'
 		},
 
+		/** Eigene Rücklastschriften als Anzeigezeilen, neueste zuerst (Issue #122) - Klartext, nie der Bankcode. */
+		returnedDebitRows() {
+			return returnedDebitRows(this.returnedDebits)
+		},
+
 		/** Druckfertige Live-Ansicht der Beitragsbestätigung (Issue #77) - öffnet in neuem Tab. */
 		certificateUrl() {
 			return api.selfCertificateUrl(this.certificateYear)
@@ -394,6 +419,7 @@ export default {
 		} finally {
 			this.loading = false
 		}
+		await this.loadReturnedDebits()
 		try {
 			const { data } = await api.selfCertificateYears()
 			this.certificateYears = data.years
@@ -406,6 +432,21 @@ export default {
 	methods: {
 		formatDate,
 		formatMoney,
+
+		/**
+		 * Eigene Rücklastschriften laden (Issue #122). Ein Ladefehler bleibt als solcher sichtbar
+		 * (`returnedDebitsFailed`): der Leer-Hinweis „Bisher keine Rücklastschrift.“ wäre dann falsch.
+		 */
+		async loadReturnedDebits() {
+			try {
+				const { data } = await api.selfReturnedDebits()
+				this.returnedDebits = data
+				this.returnedDebitsLoaded = true
+			} catch (e) {
+				this.returnedDebitsFailed = true
+				showError(errMsg(e, this.t('Rücklastschriften konnten nicht geladen werden.')))
+			}
+		},
 
 		/** Eigene Stammdaten (inkl. Mandat/offene Forderungssumme) neu laden - auch nach jeder Mandats-Aktion, siehe unten. */
 		async reload() {
@@ -644,5 +685,24 @@ export default {
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
+}
+
+.vbh-selfservice-returns {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.vbh-selfservice-return {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	border-top: 1px solid var(--color-border);
+	padding: 8px 0;
+}
+
+.vbh-selfservice-return:first-child {
+	border-top: none;
+	padding-top: 0;
 }
 </style>

@@ -18,6 +18,7 @@ use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
 use OCA\Vereinsbuchhaltung\Service\SelfContactService;
 use OCA\Vereinsbuchhaltung\Service\SelfContributionService;
+use OCA\Vereinsbuchhaltung\Service\SelfReturnedDebitService;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceMandateService;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
@@ -54,6 +55,7 @@ class SelfControllerTest extends TestCase {
 	private ContributionGroupMapper&MockObject $groupMapper;
 	private BeitragsbescheinigungRenderer&MockObject $certificateRenderer;
 	private DatenuebersichtRenderer&MockObject $dataOverviewRenderer;
+	private SelfReturnedDebitService&MockObject $returnedDebits;
 
 	protected function setUp(): void {
 		$userSession = $this->createMock(IUserSession::class);
@@ -66,6 +68,7 @@ class SelfControllerTest extends TestCase {
 		$this->groupMapper = $this->createMock(ContributionGroupMapper::class);
 		$this->certificateRenderer = $this->createMock(BeitragsbescheinigungRenderer::class);
 		$this->dataOverviewRenderer = $this->createMock(DatenuebersichtRenderer::class);
+		$this->returnedDebits = $this->createMock(SelfReturnedDebitService::class);
 	}
 
 	private function controller(?SelfServiceMandateService $selfServiceMandate = null): SelfController {
@@ -90,6 +93,7 @@ class SelfControllerTest extends TestCase {
 			$this->groupMapper,
 			$this->certificateRenderer,
 			$this->dataOverviewRenderer,
+			$this->returnedDebits,
 			$this->l10n,
 		);
 	}
@@ -403,5 +407,42 @@ class SelfControllerTest extends TestCase {
 		$response = $this->controller($selfMandate)->discardMandateDraft();
 
 		$this->assertSame(Http::STATUS_BAD_REQUEST, $response->getStatus());
+	}
+
+	// --- Eigene Rücklastschriften im Klartext (Issue #122) -------------------------
+
+	/**
+	 * IDOR-Schutz: weder eine member_id noch sonst ein Parameter kommt vom Client –
+	 * die Methode nimmt keinen entgegen und löst nur über den Kontext auf.
+	 */
+	public function testRuecklastschriftenNimmtKeinenParameterEntgegen(): void {
+		$parameters = (new \ReflectionMethod(SelfController::class, 'returnedDebits'))->getParameters();
+
+		$this->assertSame([], $parameters);
+	}
+
+	public function testRuecklastschriftenLiefertDieListeDesAufgeloestenMitglieds(): void {
+		$this->actorContext->setMemberChannel(self::MEMBER_ID);
+		$rows = [[
+			'receivedAt' => '2026-10-05',
+			'amountCents' => 1250,
+			'description' => 'Vollmitglied',
+			'periodStart' => '2026-10-01',
+			'periodEnd' => '2026-12-31',
+			'reason' => 'Die Lastschrift konnte mangels Kontodeckung nicht eingezogen werden.',
+		]];
+		$this->returnedDebits->expects($this->once())->method('findOwn')->with(self::MEMBER_ID)->willReturn($rows);
+
+		$response = $this->controller()->returnedDebits();
+
+		$this->assertSame(Http::STATUS_OK, $response->getStatus());
+		$this->assertSame($rows, $response->getData());
+	}
+
+	public function testRuecklastschriftenOhneAufgeloesteMemberIdWirdVerweigert(): void {
+		$this->returnedDebits->expects($this->never())->method('findOwn');
+
+		$this->expectException(ForbiddenException::class);
+		$this->controller()->returnedDebits();
 	}
 }
