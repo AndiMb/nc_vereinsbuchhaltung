@@ -30,6 +30,8 @@ class Application extends App implements IBootstrap {
 	}
 
 	public function register(IRegistrationContext $context): void {
+		self::loadComposerAutoloader();
+
 		$context->registerMiddleware(PermissionMiddleware::class);
 		$context->registerMiddleware(RevisionMiddleware::class);
 
@@ -87,5 +89,30 @@ class Application extends App implements IBootstrap {
 	}
 
 	public function boot(IBootContext $context): void {
+	}
+
+	/**
+	 * Lädt den Composer-Autoloader der App-Abhängigkeiten (`chillerlan/php-qrcode`
+	 * für den GiroCode-Anhang der Mahnmails, Issue #73).
+	 *
+	 * Nextcloud lädt je App nur `composer/autoload.php` oder, wenn es das nicht
+	 * gibt, registriert es `lib/` als PSR-4-Wurzel (`OC_App::registerAutoloading()`,
+	 * NC 31–34) – ein `vendor/autoload.php` fasst der Server NIE an. Ohne dieses
+	 * `require_once` (so empfiehlt es auch das Entwicklerhandbuch, Abschnitt
+	 * „Dependency management“) war die Bibliothek in der laufenden Instanz nicht
+	 * ladbar: `generatePng()` warf „Class … not found“, der Mahnversand fing den
+	 * Fehler lautlos ab, und kein Mahnmail trug je einen GiroCode (Issue #120).
+	 *
+	 * Bewusst nicht als `composer/autoload.php`: dann ließe Nextcloud die
+	 * PSR-4-Registrierung von `lib/` aus, und ein Checkout ohne `vendor/` (lokale
+	 * Entwicklung, `composer install` vergessen) fände nicht einmal mehr die
+	 * eigenen Klassen. So bleibt eine fehlende `vendor/` folgenlos – es fehlen
+	 * dann nur die GiroCodes, und das steht im Log.
+	 */
+	private static function loadComposerAutoloader(): void {
+		$autoloader = __DIR__ . '/../../vendor/autoload.php';
+		if (is_file($autoloader)) {
+			require_once $autoloader;
+		}
 	}
 }

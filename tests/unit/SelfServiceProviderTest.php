@@ -89,4 +89,12 @@ class SelfServiceProviderTest extends TestCase {
 
 		$this->provider()->parse('de', $event);
 	}
+
+	/** Issue #118: der Self-Service-Feed benennt das Verwerfen eines eigenen Entwurfs. */
+	public function testFormatiertDasVerwerfenEinesMandatsEntwurfs(): void {
+		$event = $this->event(SelfServiceMandateService::SUBJECT_DRAFT_DISCARDED, []);
+		$event->expects($this->once())->method('setParsedSubject')->with('Mandats-Entwurf verworfen')->willReturnSelf();
+
+		$this->provider()->parse('de', $event);
+	}
 }

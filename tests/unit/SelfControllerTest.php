@@ -68,7 +68,7 @@ class SelfControllerTest extends TestCase {
 		$this->dataOverviewRenderer = $this->createMock(DatenuebersichtRenderer::class);
 	}
 
-	private function controller(): SelfController {
+	private function controller(?SelfServiceMandateService $selfServiceMandate = null): SelfController {
 		$request = $this->createMock(IRequest::class);
 		// Selbst wenn ein Angriff eine fremde ID mitschickt: SelfController
 		// nimmt in me() gar keinen Parameter entgegen, ein getParam()-Aufruf
@@ -84,7 +84,7 @@ class SelfControllerTest extends TestCase {
 			$this->memberMapper,
 			$this->createMock(MandateService::class),
 			$this->createMock(MandateActivationService::class),
-			$this->createMock(SelfServiceMandateService::class),
+			$selfServiceMandate ?? $this->createMock(SelfServiceMandateService::class),
 			$this->contributions,
 			$this->contact,
 			$this->groupMapper,
@@ -356,5 +356,52 @@ class SelfControllerTest extends TestCase {
 		$response = $this->controller()->certificate();
 
 		$this->assertSame(Http::STATUS_NOT_FOUND, $response->getStatus());
+	}
+
+	// --- Eigenen Mandats-Entwurf verwerfen (Issue #118) --------------------------
+
+	/**
+	 * IDOR-Schutz: weder eine Mandats-ID noch eine member_id kommt vom Client -
+	 * die Methode nimmt gar keinen Parameter entgegen und löst nur über den Kontext auf.
+	 */
+	public function testMandatEntwurfVerwerfenNimmtKeinenParameterEntgegen(): void {
+		$parameters = (new \ReflectionMethod(SelfController::class, 'discardMandateDraft'))->getParameters();
+
+		$this->assertSame([], $parameters);
+	}
+
+	public function testMandatEntwurfVerwerfenLoestDasMitgliedAusschliesslichAusDemKontextAuf(): void {
+		$this->actorContext->setMemberChannel(self::MEMBER_ID);
+		$ended = new \OCA\Vereinsbuchhaltung\Db\Mandate();
+		$ended->setId(3);
+		$ended->setMandateReference('M-3');
+		$ended->setStatus(\OCA\Vereinsbuchhaltung\Db\Mandate::STATUS_ENDED);
+		$ended->setEndReason(\OCA\Vereinsbuchhaltung\Db\Mandate::END_REASON_DISCARDED);
+		$selfMandate = $this->createMock(SelfServiceMandateService::class);
+		$selfMandate->expects($this->once())->method('discardDraft')->with(self::MEMBER_ID)->willReturn($ended);
+
+		$response = $this->controller($selfMandate)->discardMandateDraft();
+
+		$this->assertSame(Http::STATUS_OK, $response->getStatus());
+		$this->assertSame('erloschen', $response->getData()['status']);
+		$this->assertSame('verworfen', $response->getData()['endReason']);
+	}
+
+	public function testMandatEntwurfVerwerfenOhneAufgeloesteMemberIdWirdVerweigert(): void {
+		$selfMandate = $this->createMock(SelfServiceMandateService::class);
+		$selfMandate->expects($this->never())->method('discardDraft');
+
+		$this->expectException(ForbiddenException::class);
+		$this->controller($selfMandate)->discardMandateDraft();
+	}
+
+	public function testMandatEntwurfVerwerfenMeldetEinenAbgelehntenVorgangAls400(): void {
+		$this->actorContext->setMemberChannel(self::MEMBER_ID);
+		$selfMandate = $this->createMock(SelfServiceMandateService::class);
+		$selfMandate->method('discardDraft')->willThrowException(new \InvalidArgumentException('Nur ein Mandat im Entwurf lässt sich verwerfen'));
+
+		$response = $this->controller($selfMandate)->discardMandateDraft();
+
+		$this->assertSame(Http::STATUS_BAD_REQUEST, $response->getStatus());
 	}
 }

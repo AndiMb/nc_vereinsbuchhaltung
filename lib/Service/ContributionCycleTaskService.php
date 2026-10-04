@@ -34,9 +34,11 @@ use OCP\IL10N;
  *   nur eine eskalierende Aufgabe").
  * - **Überweiser-Forderungen überfällig**, aggregiert (Hinweis).
  * - **Vorwarnfenster D−21**: „Nächster Lauf am … — N Forderungen, Summe, M
- *   Störfälle" (Hinweis). Die anderen Aufgaben-Katalog-Einträge (Mandat ohne
- *   Nachweis, Mandat läuft ab, Rücklastschrift, Freigabe fällig, …) gehören
- *   fachlich zu #66/#71/#72/#73 und werden dort eingehängt.
+ *   Störfälle" (Hinweis). Die anderen Aufgaben-Katalog-Einträge stehen in
+ *   {@see MandateTaskService} (Mandatszustände, Nachweis, Verfall, Austritt),
+ *   {@see ClaimFollowUpTaskService} (Rücklastschrift, Widerruf),
+ *   {@see DebitBatchTaskService} (Freigabe/Einreichung) und
+ *   {@see DunningTaskService} (Eskalation).
  *
  * „M Störfälle" der Vorwarn-Aufgabe zählt bewusst ALLE aktuell offenen
  * „Kein Mandat"-Fälle, nicht nur die, deren nächste Periode zufällig auf denselben
@@ -57,11 +59,21 @@ class ContributionCycleTaskService {
 	) {
 	}
 
-	/** @return list<array{severity:string,message:string,objectType:?string,objectId:?int}> */
-	public function findTasks(?string $today = null): array {
+	/**
+	 * Mit `$skipExplainedMissingMandates` bekommen Mitglieder, deren fehlende
+	 * Einzugsfähigkeit eine genauere Aufgabe benennt ({@see MandateTaskService}:
+	 * Entwurf auf Papier, gesperrt, erloschen; {@see MandateSituation::hasOwnTask()}),
+	 * die allgemeine Zeile „kein einzugsfähiges Mandat“ nicht zusätzlich – für die
+	 * Aufgabenliste, in der sonst dasselbe Problem zweimal und doppelt im Badge
+	 * stünde. Die Forderungsübersicht und die Lauf-Vorschau lesen die allgemeine
+	 * Aussage („nicht einzugsfähig“) dagegen unverändert.
+	 *
+	 * @return list<array{severity:string,message:string,objectType:?string,objectId:?int}>
+	 */
+	public function findTasks(?string $today = null, bool $skipExplainedMissingMandates = false): array {
 		$today ??= $this->today();
 		return [
-			...$this->findMissingMandateTasks($today),
+			...$this->findMissingMandateTasks($today, $skipExplainedMissingMandates),
 			...$this->findBrokenLeadTimeTasks($today),
 			...$this->findOverdueTransferTask($today),
 			...$this->findUpcomingRunTask($today),
@@ -102,10 +114,17 @@ class ContributionCycleTaskService {
 	}
 
 	/** @return list<array{severity:string,message:string,objectType:string,objectId:int}> */
-	private function findMissingMandateTasks(string $today): array {
+	private function findMissingMandateTasks(string $today, bool $skipExplained = false): array {
+		$explained = [];
+		if ($skipExplained) {
+			$explained = array_filter($this->eligibility->situationsByMember(), MandateSituation::hasOwnTask(...));
+		}
 		$tasks = [];
 		foreach ($this->assignments->findActiveAsOf($today) as $assignment) {
 			if ($assignment->getPaymentMethod() !== Assignment::PAYMENT_METHOD_DIRECT_DEBIT) {
+				continue;
+			}
+			if (isset($explained[$assignment->getMemberId()])) {
 				continue;
 			}
 			if ($this->eligibility->hasCollectibleMandate($assignment->getMemberId())) {
@@ -181,6 +200,7 @@ class ContributionCycleTaskService {
 	private function findOverdueTransferTask(string $today): array {
 		$count = 0;
 		$sumCents = 0;
+		$transferAssignments = null;
 		foreach ($this->openItems->findClaims() as $item) {
 			if ($item->getAssignmentId() === null || $item->getDueDate() === null || $item->getDueDate() >= $today) {
 				continue;
@@ -188,8 +208,10 @@ class ContributionCycleTaskService {
 			if (ClaimStateResolver::resolveForItem($item) !== ClaimStateResolver::STATE_OPEN) {
 				continue;
 			}
-			$assignment = $this->assignments->find($item->getAssignmentId());
-			if ($assignment->getPaymentMethod() !== Assignment::PAYMENT_METHOD_TRANSFER) {
+			// Alle Zuweisungen einmal laden, erst beim ersten überfälligen Kandidaten,
+			// statt je Forderung eine Abfrage (die Liste lädt bei jedem Öffnen des Flyouts).
+			$transferAssignments ??= $this->eligibility->transferAssignmentIds();
+			if (!isset($transferAssignments[$item->getAssignmentId()])) {
 				continue;
 			}
 			$count++;

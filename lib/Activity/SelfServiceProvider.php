@@ -15,7 +15,7 @@ use OCP\L10N\IFactory;
  * Formatiert Aktivitäts-Einträge für den Feed „Mein Beitrag" (Spec §3.4:
  * „OCP\Activity-Feed (jede Änderung)"). Ein einziger Provider für BEIDE
  * Aktionskataloge - Mandat (#75: Erteilen/IBAN-Änderung/Kontoinhaberwechsel/
- * Widerruf, siehe {@see SelfServiceMandateService}) und Beitrag (#76:
+ * Widerruf, #118: Entwurf verwerfen, siehe {@see SelfServiceMandateService}) und Beitrag (#76:
  * Betrag/Turnus/Kontaktdaten) -, weil ein Feed "Mein Beitrag" aus
  * Mitgliedssicht einheitlich aussehen soll, nicht nach internem Ticket
  * getrennt. Unterschieden wird dabei rein über `getSubject()` (die
@@ -58,6 +58,7 @@ class SelfServiceProvider implements IProvider {
 			SelfServiceMandateService::SUBJECT_IBAN_CHANGED => $l->t('Bankverbindung des SEPA-Lastschriftmandats geändert'),
 			SelfServiceMandateService::SUBJECT_HOLDER_CHANGED => $l->t('Kontoinhaber gewechselt, neues Mandat erteilt'),
 			SelfServiceMandateService::SUBJECT_REVOKED => $l->t('SEPA-Lastschriftmandat widerrufen'),
+			SelfServiceMandateService::SUBJECT_DRAFT_DISCARDED => $l->t('Mandats-Entwurf verworfen'),
 			self::SUBJECT_CONTRIBUTION_AMOUNT_CHANGED => $l->t(
 				'Monatsbeitrag geändert: %1$s € → %2$s € (wirkt ab %3$s)',
 				[$this->euro($params['from'] ?? 0), $this->euro($params['to'] ?? 0), $params['effectiveFrom'] ?? '?'],

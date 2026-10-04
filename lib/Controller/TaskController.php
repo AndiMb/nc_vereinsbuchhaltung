@@ -7,10 +7,12 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\AnonymizationCandidateService;
+use OCA\Vereinsbuchhaltung\Service\ClaimFollowUpTaskService;
 use OCA\Vereinsbuchhaltung\Service\ContributionCycleTaskService;
 use OCA\Vereinsbuchhaltung\Service\DebitBatchTaskService;
 use OCA\Vereinsbuchhaltung\Service\DunningTaskService;
 use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
+use OCA\Vereinsbuchhaltung\Service\MandateTaskService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCA\Vereinsbuchhaltung\Service\TaskService;
 use OCA\Vereinsbuchhaltung\Service\TaskTargetResolver;
@@ -35,7 +37,14 @@ use OCP\IRequest;
  * überfällig" (Spec §7). Issue #73 ergänzt mit {@see DunningTaskService}
  * „Mahnstufe an Vorstand eskaliert" nach demselben Muster. Issue #78 ergänzt
  * mit {@see AnonymizationCandidateService} „Mitglied X anonymisierungsreif"
- * (Spec §3.8/§7 „Anonymisierungs-Vorschlag").
+ * (Spec §3.8/§7 „Anonymisierungs-Vorschlag"). Issue #117 vervollständigt den
+ * Katalog aus Spec §7: {@see MandateTaskService} (Mandat im Entwurf auf Papier,
+ * gesperrt, erloschen bei weiter gewollter Lastschrift, ohne Nachweis,
+ * verfällt bald, ausgetreten mit offenen Forderungen) und
+ * {@see ClaimFollowUpTaskService} (aggregiert: Rücklastschrift ohne
+ * Wiedereinzug, Forderungen nach Widerruf offen). Persistierte Hinweise
+ * kommen über {@see TaskService::findCurrent()} und lösen sich dort von selbst
+ * auf.
  *
  * Jede Aufgabe trägt zusätzlich `memberId` (?int) als Sprungziel für die
  * Oberfläche (Aufgaben-Flyout, Issue #99), siehe {@see TaskTargetResolver}.
@@ -50,6 +59,8 @@ class TaskController extends Controller {
 		private DebitBatchTaskService $debitBatchTasks,
 		private DunningTaskService $dunningTasks,
 		private AnonymizationCandidateService $anonymizationCandidates,
+		private MandateTaskService $mandateTasks,
+		private ClaimFollowUpTaskService $claimFollowUps,
 		private TaskTargetResolver $targets,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -58,14 +69,22 @@ class TaskController extends Controller {
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function index(): DataResponse {
-		$tasks = array_map(static fn ($t) => $t->jsonSerialize(), $this->service->findAll());
+		$tasks = array_map(static fn ($t) => $t->jsonSerialize(), $this->service->findCurrent());
 		foreach ($this->mandateActivation->findStaleElectronicDraftTasks() as $i => $task) {
 			// Synthetische, stabile id fuer Frontend-Listenschluessel - diese
 			// Eintraege sind nie in vbh_tasks persistiert (siehe Klassendoc).
 			$tasks[] = $task + ['id' => 'mandate-activation-' . $task['objectId'] . '-' . $i, 'createdAt' => null];
 		}
-		foreach ($this->contributionCycle->findTasks() as $i => $task) {
+		// Das allgemeine „kein einzugsfähiges Mandat“ nur dort, wo keine genauere Mandat-Aufgabe
+		// die Ursache nennt - sonst stünde dasselbe Problem zweimal in der Liste.
+		foreach ($this->contributionCycle->findTasks(null, true) as $i => $task) {
 			$tasks[] = $task + ['id' => 'contribution-cycle-' . ($task['objectId'] ?? 'run') . '-' . $i, 'createdAt' => null];
+		}
+		foreach ($this->mandateTasks->findTasks() as $i => $task) {
+			$tasks[] = $task + ['id' => 'mandate-' . $task['objectId'] . '-' . $i, 'createdAt' => null];
+		}
+		foreach ($this->claimFollowUps->findTasks() as $i => $task) {
+			$tasks[] = $task + ['id' => 'claim-follow-up-' . $i, 'createdAt' => null];
 		}
 		foreach ($this->debitBatchTasks->findTasks() as $i => $task) {
 			$tasks[] = $task + ['id' => 'debit-batch-' . ($task['objectId'] ?? 'run') . '-' . $i, 'createdAt' => null];

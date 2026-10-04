@@ -28,6 +28,20 @@ class MemberMapper extends QBMapper {
 		return $this->findEntities($qb);
 	}
 
+	/**
+	 * Alle Mitglieder nach Mitglieds-ID – für Abfragen, die viele Mitglieder
+	 * nachschlagen (Aufgabenliste): eine Abfrage statt einer je Zeile.
+	 *
+	 * @return array<int,Member>
+	 */
+	public function findAllById(): array {
+		$byId = [];
+		foreach ($this->findAll() as $member) {
+			$byId[(int)$member->getId()] = $member;
+		}
+		return $byId;
+	}
+
 	public function find(int $id): Member {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')

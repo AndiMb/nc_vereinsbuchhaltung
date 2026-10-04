@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
 use OCA\Vereinsbuchhaltung\Db\Mandate;
+use OCA\Vereinsbuchhaltung\Db\MandateActivationTokenMapper;
 use OCA\Vereinsbuchhaltung\Db\MandateAmendment;
 use OCA\Vereinsbuchhaltung\Db\MandateAmendmentMapper;
 use OCA\Vereinsbuchhaltung\Db\MandateEvent;
@@ -58,8 +59,13 @@ class MandateServiceTest extends TestCase {
 	private IUserSession&MockObject $userSession;
 	/** Als Feld statt lokal in service() gebaut (Issue #73): Tests zur Widerruf-Zahlungsaufforderung muessen VOR dem service()-Aufruf expects() darauf setzen koennen. */
 	private DunningLadderService&MockObject $dunningLadder;
+	/** Einmal-Links (Issue #118): Korrigieren/Verwerfen eines Entwurfs muss ausgesendete Links löschen. */
+	private MandateActivationTokenMapper&MockObject $activationTokens;
+	/** Ereignistexte lassen sich nur prüfen, wenn t() den Text durchreicht - der Standard-Mock liefert ''. */
+	private bool $realisticMessages = false;
 
 	protected function setUp(): void {
+		$this->activationTokens = $this->createMock(MandateActivationTokenMapper::class);
 		$this->mandateMapper = $this->createMock(MandateMapper::class);
 		$this->amendmentMapper = $this->createMock(MandateAmendmentMapper::class);
 		$this->eventMapper = $this->createMock(MandateEventMapper::class);
@@ -98,6 +104,11 @@ class MandateServiceTest extends TestCase {
 		$this->mandateMapper->method('findReferencesWithPrefix')->willReturn([]);
 		$this->mandateMapper->method('findByReference')->willReturn(null);
 
+		$serviceL10n = $this->createMock(IL10N::class);
+		if ($this->realisticMessages) {
+			$serviceL10n->method('t')->willReturnCallback(static fn (string $text, array $params = []): string => vsprintf($text, $params));
+		}
+
 		return new MandateService(
 			$this->mandateMapper,
 			$this->amendmentMapper,
@@ -114,8 +125,9 @@ class MandateServiceTest extends TestCase {
 			$this->userSession,
 			$config,
 			$this->dunningLadder,
-			$this->createMock(IL10N::class),
+			$serviceL10n,
 			new MandateExpirySettings($config),
+			$this->activationTokens,
 		);
 	}
 
@@ -659,5 +671,257 @@ class MandateServiceTest extends TestCase {
 
 		$this->expectException(\InvalidArgumentException::class);
 		$this->service()->replaceElectronicSelfService(1, 'DE89370400440532013000', null, 'Jemand anders', 9, '203.0.113.5', 'TestBrowser/1.0', 'katrin.b');
+	}
+
+	// --- Entwurf korrigieren und verwerfen (Issue #118) -------------------------
+
+	private function draftMandate(int $id = 1, string $signatureType = Mandate::SIGNATURE_PAPER): Mandate {
+		$m = $this->activeMandate($id);
+		$m->setStatus(Mandate::STATUS_DRAFT);
+		$m->setSignatureType($signatureType);
+		$m->setSignedAt(null);
+		return $m;
+	}
+
+	/**
+	 * Sammelt die in diesem Test geschriebenen Verlaufseinträge in der Reihenfolge ihres Entstehens.
+	 *
+	 * @param list<MandateEvent> $events wird per Referenz befüllt
+	 */
+	private function collectEvents(array &$events): void {
+		$this->eventMapper->method('insert')->willReturnCallback(static function (MandateEvent $e) use (&$events): MandateEvent {
+			$events[] = $e;
+			return $e;
+		});
+	}
+
+	public function testEntwurfVerwerfenBeendetMitVerworfenUndLaesstEinNeuesMandatZu(): void {
+		$draft = $this->draftMandate();
+		$this->mandateMapper->method('find')->willReturn($draft);
+
+		$result = $this->service()->discardDraft(1, 'Tippfehler in der IBAN');
+
+		$this->assertSame(Mandate::STATUS_ENDED, $result->getStatus());
+		$this->assertSame(Mandate::END_REASON_DISCARDED, $result->getEndReason());
+		$this->assertSame('verworfen', $result->getEndReason(), 'der Wert ist Teil der API und der Datenbank');
+		$this->assertContains($result->getEndReason(), Mandate::END_REASONS);
+		$this->assertNotNull($result->getEndedAt());
+		// „höchstens ein lebendes Mandat“ zählt nur noch nicht erloschene - der verworfene Entwurf blockiert nichts mehr.
+		$this->assertFalse($result->isLive());
+		$this->assertNull($result->getActivatedAt(), 'ein Entwurf war nie aktiv');
+	}
+
+	public function testEntwurfVerwerfenProtokolliertNotizUndKanalImVerlauf(): void {
+		$this->realisticMessages = true;
+		$this->mandateMapper->method('find')->willReturn($this->draftMandate());
+		$events = [];
+		$this->collectEvents($events);
+
+		$this->service()->discardDraft(1, '  Tippfehler in der IBAN  ');
+
+		$this->assertCount(1, $events);
+		$this->assertSame('Entwurf verworfen: Tippfehler in der IBAN', $events[0]->getMessage());
+		$this->assertSame(MandateEvent::ACTOR_STAFF, $events[0]->getActorType());
+		$this->assertSame('kassenwart', $events[0]->getActorUid());
+		$this->assertSame(1, $events[0]->getMandateId());
+	}
+
+	public function testEntwurfVerwerfenImSelfServiceKanalProtokolliertDasMitgliedAlsAkteur(): void {
+		$this->actorContext->setMemberChannel(42);
+		$this->mandateMapper->method('find')->willReturn($this->draftMandate(1, Mandate::SIGNATURE_ELECTRONIC));
+		$events = [];
+		$this->collectEvents($events);
+
+		$this->service()->discardDraft(1, 'Vom Mitglied selbst verworfen');
+
+		$this->assertSame(MandateEvent::ACTOR_MEMBER, $events[0]->getActorType());
+	}
+
+	/** @dataProvider leereNotizen */
+	public function testEntwurfVerwerfenVerlangtEinePflichtNotiz(string $note): void {
+		$this->mandateMapper->expects($this->never())->method('find');
+		$this->mandateMapper->expects($this->never())->method('update');
+		$this->eventMapper->expects($this->never())->method('insert');
+		$this->activationTokens->expects($this->never())->method('deleteOutstandingByMandate');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->discardDraft(1, $note);
+	}
+
+	public static function leereNotizen(): array {
+		return [
+			'leer' => [''],
+			'nur Leerzeichen' => ['   '],
+			'nur Zeilenumbruch' => ["\n"],
+		];
+	}
+
+	/** @dataProvider nichtEntwurfsStatus */
+	public function testNurEinEntwurfLaesstSichVerwerfen(string $status): void {
+		$mandate = $this->activeMandate();
+		$mandate->setStatus($status);
+		$this->mandateMapper->method('find')->willReturn($mandate);
+		$this->mandateMapper->expects($this->never())->method('update');
+		$this->eventMapper->expects($this->never())->method('insert');
+		$this->activationTokens->expects($this->never())->method('deleteOutstandingByMandate');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->discardDraft(1, 'Soll weg');
+	}
+
+	/** @dataProvider nichtEntwurfsStatus */
+	public function testNurEinEntwurfLaesstSichOhneAmendmentKorrigieren(string $status): void {
+		$mandate = $this->activeMandate();
+		$mandate->setStatus($status);
+		$this->mandateMapper->method('find')->willReturn($mandate);
+		$this->mandateMapper->expects($this->never())->method('update');
+		$this->activationTokens->expects($this->never())->method('deleteOutstandingByMandate');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->correctDraft(1, 'DE89370400440532013000', null, 'Katrin Brunner');
+	}
+
+	public static function nichtEntwurfsStatus(): array {
+		return [
+			'aktiv' => [Mandate::STATUS_ACTIVE],
+			'ausgesetzt' => [Mandate::STATUS_SUSPENDED],
+			'erloschen' => [Mandate::STATUS_ENDED],
+		];
+	}
+
+	public function testVerwerfenEinesElektronischenEntwurfsLoeschtDenAusgesendetenEinmalLink(): void {
+		$this->realisticMessages = true;
+		$this->mandateMapper->method('find')->willReturn($this->draftMandate(7, Mandate::SIGNATURE_ELECTRONIC));
+		$this->activationTokens->expects($this->once())->method('deleteOutstandingByMandate')->with(7)->willReturn(1);
+		$events = [];
+		$this->collectEvents($events);
+
+		$this->service()->discardDraft(7, 'Mitglied will kein Lastschriftmandat');
+
+		$this->assertSame('Entwurf verworfen: Mitglied will kein Lastschriftmandat – der ausgesendete Einmal-Link ist damit ungültig', $events[0]->getMessage());
+	}
+
+	public function testKorrekturAendertIbanBicUndKontoinhaberOhneAmendment(): void {
+		$this->mandateMapper->method('find')->willReturn($this->draftMandate());
+		$this->amendmentMapper->expects($this->never())->method('insert');
+
+		$result = $this->service()->correctDraft(1, 'de89 3704 0044 0532 0130 00', ' cobadeffxxx ', '  Katrin Meier  ');
+
+		$this->assertSame(Mandate::STATUS_DRAFT, $result->getStatus(), 'die Korrektur ändert den Zustand nicht');
+		$this->assertSame(1, $result->getId(), 'dasselbe Mandat, kein neues');
+		$this->assertSame('DE89370400440532013000', $result->getIban(), 'IBAN normalisiert wie bei jedem anderen Weg');
+		$this->assertSame('COBADEFFXXX', $result->getBic());
+		$this->assertSame('Katrin Meier', $result->getAccountHolder());
+		$this->assertNull($result->getEndReason());
+	}
+
+	public function testKorrekturDarfDieBicLeerenUndNenntNurGeaenderteFelder(): void {
+		$this->realisticMessages = true;
+		$this->mandateMapper->method('find')->willReturn($this->draftMandate());
+		$events = [];
+		$this->collectEvents($events);
+
+		$result = $this->service()->correctDraft(1, 'DE12500105170648489890', null, 'Katrin Brunner');
+
+		$this->assertNull($result->getBic());
+		$this->assertSame('DE12500105170648489890', $result->getIban());
+		$this->assertSame('Entwurf korrigiert: BIC INGDDEFFXXX → –', $events[0]->getMessage());
+	}
+
+	public function testKorrekturSchreibtJedeAenderungInDenVerlaufOhneVolleIbanOderNamen(): void {
+		$this->realisticMessages = true;
+		$this->mandateMapper->method('find')->willReturn($this->draftMandate());
+		$events = [];
+		$this->collectEvents($events);
+
+		$this->service()->correctDraft(1, 'DE89370400440532013000', 'COBADEFFXXX', 'Katrin Meier');
+
+		$this->assertCount(1, $events);
+		$message = $events[0]->getMessage();
+		$bullets = str_repeat('•', 14);
+		$this->assertSame("Entwurf korrigiert: IBAN DE12{$bullets}9890 → DE89{$bullets}3000, BIC INGDDEFFXXX → COBADEFFXXX, Kontoinhaber", $message);
+		// Der Verlauf ist auch für den Revisor lesbar und entgeht der Anonymisierung:
+		// weder die volle Kontonummer noch ein Name gehören hinein.
+		$this->assertStringNotContainsString('DE12500105170648489890', $message);
+		$this->assertStringNotContainsString('DE89370400440532013000', $message);
+		$this->assertStringNotContainsString('Katrin', $message);
+		$this->assertSame(MandateEvent::ACTOR_STAFF, $events[0]->getActorType());
+		$this->assertSame('kassenwart', $events[0]->getActorUid());
+	}
+
+	public function testKorrekturEinesElektronischenEntwurfsMachtDenAusgesendetenLinkUngueltig(): void {
+		$this->realisticMessages = true;
+		$this->mandateMapper->method('find')->willReturn($this->draftMandate(7, Mandate::SIGNATURE_ELECTRONIC));
+		$this->activationTokens->expects($this->once())->method('deleteOutstandingByMandate')->with(7)->willReturn(1);
+		$events = [];
+		$this->collectEvents($events);
+
+		$this->service()->correctDraft(7, 'DE89370400440532013000', null, 'Katrin Brunner');
+
+		$this->assertStringContainsString('der ausgesendete Einmal-Link ist damit ungültig', $events[0]->getMessage());
+	}
+
+	public function testKorrekturOhneAusgesendetenLinkErwaehntKeinenLinkImVerlauf(): void {
+		$this->realisticMessages = true;
+		$this->mandateMapper->method('find')->willReturn($this->draftMandate(7, Mandate::SIGNATURE_ELECTRONIC));
+		$this->activationTokens->expects($this->once())->method('deleteOutstandingByMandate')->with(7)->willReturn(0);
+		$events = [];
+		$this->collectEvents($events);
+
+		$this->service()->correctDraft(7, 'DE89370400440532013000', null, 'Katrin Brunner');
+
+		$this->assertStringNotContainsString('Einmal-Link', $events[0]->getMessage());
+	}
+
+	public function testUnveraenderteKorrekturSchreibtNichtsWegUndLoeschtKeinenLink(): void {
+		$this->mandateMapper->method('find')->willReturn($this->draftMandate());
+		$this->mandateMapper->expects($this->never())->method('update');
+		$this->eventMapper->expects($this->never())->method('insert');
+		$this->activationTokens->expects($this->never())->method('deleteOutstandingByMandate');
+
+		$this->expectException(\InvalidArgumentException::class);
+		// Schreibweise ohne Leerzeichen/Kleinbuchstaben ist derselbe Wert: nichts zu korrigieren.
+		$this->service()->correctDraft(1, 'de12 5001 0517 0648 4898 90', 'ingddeffxxx', 'Katrin Brunner');
+	}
+
+	public function testKorrekturLehntUngueltigeIbanUndLeerenKontoinhaberAb(): void {
+		$draft = $this->draftMandate();
+		$this->mandateMapper->method('find')->willReturn($draft);
+		$this->mandateMapper->expects($this->never())->method('update');
+		$this->activationTokens->expects($this->never())->method('deleteOutstandingByMandate');
+		$service = $this->service();
+
+		$rejected = 0;
+		foreach ([['kaputt', 'Katrin Brunner'], ['', 'Katrin Brunner'], ['DE89370400440532013000', '   ']] as [$iban, $holder]) {
+			try {
+				$service->correctDraft(1, $iban, null, $holder);
+			} catch (\InvalidArgumentException) {
+				$rejected++;
+			}
+		}
+
+		$this->assertSame(3, $rejected);
+		$this->assertSame('DE12500105170648489890', $draft->getIban(), 'der Entwurf bleibt unverändert');
+	}
+
+	public function testNachVerwerfenLaesstSichEinNeuesMandatAnlegen(): void {
+		// Zusammenspiel Zustandsmaschine/Anlegen: nach dem Verwerfen ist der Entwurf nicht mehr
+		// "lebend", die Liste lebender Mandate des Mitglieds ist leer - das Anlegen ist erlaubt.
+		$draft = $this->draftMandate();
+		$this->mandateMapper->method('find')->willReturn($draft);
+		$member = new Member();
+		$member->setId(42);
+		$member->setMemberType(Member::TYPE_PERSON);
+		$member->setFirstName('Katrin');
+		$member->setLastName('Brunner');
+		$this->memberMapper->method('find')->willReturn($member);
+		$this->mandateMapper->method('findLiveByMember')->willReturnCallback(static fn (): array => $draft->isLive() ? [$draft] : []);
+		$service = $this->service();
+
+		$service->discardDraft(1, 'Tippfehler');
+		$new = $service->createPaper(42, 'DE89370400440532013000', null, null, '2026-01-01');
+
+		$this->assertSame(Mandate::STATUS_DRAFT, $new->getStatus());
+		$this->assertNotSame($draft->getId(), $new->getId());
 	}
 }

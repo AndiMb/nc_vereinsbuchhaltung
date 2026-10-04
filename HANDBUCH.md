@@ -1182,10 +1182,10 @@ gemacht hat; unter *Frühere Mandate* stehen die beendeten.
 
 | Zustand | Bedeutung | Das können Sie tun |
 |---|---|---|
-| **Entwurf** | Angaben liegen vor, die Unterschrift fehlt | Papier: das Unterschriftsdatum eintragen und **Aktivieren** – das Datum ist Pflicht und das Gate. Elektronisch: **Einmal-Link senden** bzw. erneut senden; die Akte zeigt, wann und an wen er ging und ob er abgelaufen ist |
+| **Entwurf** | Angaben liegen vor, die Unterschrift fehlt | Papier: das Unterschriftsdatum eintragen und **Aktivieren** – das Datum ist Pflicht und das Gate. Elektronisch: **Einmal-Link senden** bzw. erneut senden; die Akte zeigt, wann und an wen er ging und ob er abgelaufen ist. Bei Tippfehlern oder wenn das Mandat nicht zustande kommt: **Entwurf korrigieren** oder **Entwurf verwerfen** |
 | **Aktiv** | einzugsfähig | **Bankverbindung ändern**, **Sperren**, **Mandat widerrufen** |
 | **Ausgesetzt** | vorübergehend nicht einzugsfähig | **Entsperren**, **Mandat widerrufen** |
-| **Erloschen** | widerrufen, ersetzt, verfallen oder beendet | **Mandat anlegen** für ein neues |
+| **Erloschen** | widerrufen, ersetzt, verfallen, beendet oder als Entwurf verworfen | **Mandat anlegen** für ein neues |
 
 **Sperren und Entsperren** verlangen jeweils eine Notiz; sie steht im Verlauf.
 Eine Sperre beendet nichts, offene Forderungen bleiben offen. Eine Sperre nach
@@ -1199,6 +1199,21 @@ als „offen" unter *Änderungen der Bankverbindung*), nur der **Name** war fals
 geschrieben (stille Korrektur) oder der **Kontoinhaber wechselt** (ein neues
 Mandat entsteht, das alte ist „ersetzt"; mit Unterschriftsdatum ist es sofort
 aktiv, ohne bleibt es Entwurf).
+
+**Einen Entwurf korrigieren oder verwerfen.** Solange ein Mandat Entwurf ist,
+wurde über es nie etwas eingezogen – deshalb brauchen Sie weder Widerruf noch
+Amendment. **Entwurf korrigieren** ändert IBAN, BIC und Kontoinhaber direkt (der
+Dialog ist mit den bisherigen Werten vorbelegt, jede Korrektur steht im
+Verlauf, die IBAN dort nur maskiert). Bei einem **elektronischen** Entwurf macht
+die Korrektur den bereits verschickten Einmal-Link ungültig – senden Sie danach
+einen neuen; bei einem **Papier**-Entwurf müssen die Angaben zum unterschriebenen
+Formular passen. **Entwurf verwerfen** beendet den Entwurf endgültig; der Grund
+ist Pflicht und steht im Verlauf. Das Mandat erscheint danach unter *Frühere
+Mandate* als „Entwurf verworfen" (kein Widerruf – es war nie wirksam, also geht
+auch keine Zahlungsaufforderung raus) und für das Mitglied lässt sich ein neues
+Mandat anlegen. Auch das Mitglied selbst kann unter *Mein Beitrag* seinen
+Entwurf verwerfen, aber nicht korrigieren – es erteilt danach das Mandat mit den
+richtigen Angaben neu.
 
 **Der Widerruf ist endgültig** – ein widerrufenes Mandat lässt sich nicht
 wieder aktivieren. Der Dialog zeigt die noch offene Summe und bietet als
@@ -1410,7 +1425,43 @@ schon in einer Datei steht oder bei der Bank liegt – dann warnt die App.
 Einzugstermin, auch ohne Mandat), dieselbe Eingabe wie im Reiter
 *Beitragsgruppen*.
 
-### 13.9 Bankabgleich: Vorschläge prüfen und verbuchen
+### 13.9 Aufgaben und Hinweise in der Kopfzeile
+
+Der Knopf mit dem Klemmbrett in der Kopfzeile (ab Buchhalter, solange das
+Beitragsmodul genutzt wird) sammelt alles, was bei den Mitgliedern, Mandaten und
+Forderungen Aufmerksamkeit braucht. Die Zahl am Knopf zählt nur den
+**Handlungsbedarf**; **Hinweise** stehen im Fenster, machen aber nicht auf sich
+aufmerksam. Quittieren gibt es nicht: eine Aufgabe verschwindet von selbst,
+sobald ihre Ursache behoben ist. **„Zur Akte"** bzw. **„Zum Einzug"** springt dorthin,
+wo Sie sie beheben.
+
+| Aufgabe | Schweregrad | So verschwindet sie |
+|---|---|---|
+| Lastschrift gewollt, aber noch **kein Mandat** angelegt | Handlungsbedarf | Mandat anlegen und aktivieren, oder die Zuweisung auf Überweisung umstellen |
+| **Papier-Mandat im Entwurf**, Unterschrift fehlt | Handlungsbedarf | Unterschriftsdatum eintragen und das Mandat aktivieren |
+| Elektronisches Mandat: Link abgelaufen (Hinweis, solange er noch gilt) | Handlungsbedarf / Hinweis | Link erneut senden oder auf Papier wechseln |
+| **Mandat gesperrt**, Klärung offen – bei einer Sperre nach Rücklastschrift mit dem Grund in Klartext | Handlungsbedarf | Fall klären, Mandat entsperren (Notiz Pflicht) |
+| **Mandat erloschen**, die Zuweisung verlangt aber weiter Lastschrift | Handlungsbedarf | Neues Mandat einholen oder auf Überweisung umstellen |
+| Mandat **ohne Nachweis** (nur aktive Papier-Mandate; abschaltbar mit *Auf Mandate ohne Nachweis hinweisen* in der Verwaltung) | Hinweis | Unterschriebenes Dokument im Mandat hochladen |
+| Mandat **verfällt in N Tagen** (N: *Ablauf-Vorwarnung (Tage vor Verfall)* in der Verwaltung, vorbelegt mit 180) | Hinweis | Ein eingereichter Einzug setzt die 36-Monats-Frist neu in Gang |
+| **Ausgetreten**, aber noch offene Forderungen – das Mandat bleibt aktiv | Hinweis | Forderungen begleichen oder erlassen; danach endet das Mandat von selbst |
+| Rücklastschrift **ohne Wiedereinzug** (eine Zeile mit Anzahl und Summe) | Hinweis; **Handlungsbedarf**, sobald eine Ursache dringend ist (Konto nicht nutzbar, Widerspruch, verstorben, technisch, unbekannt – nur *Deckung fehlt* bleibt ein Hinweis) | Forderung bezahlt oder erlassen |
+| Forderungen **nach Widerruf** des Mandats offen (eine Zeile) | Hinweis | Forderung bezahlt oder erlassen; ein neues Mandat nimmt sie wieder in den Einzug |
+| **Überweiser-Forderungen überfällig** (eine Zeile) | Hinweis | Zahlung zuordnen oder Forderung erledigen |
+| Vorabinfo nicht rechtzeitig verschickt, Freigabe fällig, Einreichung überfällig, Mahnstufe an den Vorstand eskaliert, nächster Lauf, anonymisierungsreifes Mitglied | je nach Fall | siehe 13.5, 13.8 und die DSGVO-Hinweise |
+
+Für ein Mitglied, dessen Mandat entworfen, gesperrt oder erloschen ist, steht
+statt des allgemeinen „kein einzugsfähiges Mandat" nur die genauere Aufgabe in
+der Liste – dasselbe Problem erscheint nicht doppelt.
+
+Zwei Hinweise entstehen aus einem **Ereignis** statt aus einem Zustand: „Das
+Nextcloud-Konto von … wurde gelöscht – Adresse übernommen, bitte prüfen" und „N
+Mitglieder übernommen – Namen und Mailadressen prüfen" (nach der Umstellung auf
+die Mitgliederverwaltung). Auch sie müssen nicht weggeklickt werden: sie
+verschwinden nach **30 Tagen**, früher, sobald das Mitglied wieder ein
+Nextcloud-Konto hat oder es nicht mehr gibt (gelöscht oder anonymisiert).
+
+### 13.10 Bankabgleich: Vorschläge prüfen und verbuchen
 
 **Der Bankauszug ist die Wahrheit.** Eine Buchung zu einem Einzug entsteht erst,
 wenn die Bank das Geld gebucht hat – und auch dann nicht von selbst: Im Reiter

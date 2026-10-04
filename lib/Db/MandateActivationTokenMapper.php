@@ -99,10 +99,19 @@ class MandateActivationTokenMapper extends QBMapper {
 		}
 	}
 
-	/** Räumt nicht mehr benötigte, unverbrauchte Links auf (Neuversand invalidiert die alten). */
-	public function deleteOutstandingByMandate(int $mandateId): void {
+	/**
+	 * Räumt nicht mehr benötigte, unverbrauchte Links auf (Neuversand invalidiert
+	 * die alten; seit Issue #118 auch das Korrigieren und Verwerfen eines
+	 * Entwurfs).
+	 *
+	 * @return int Anzahl der gelöschten Links – wer es protokolliert, sagt damit, ob überhaupt einer unterwegs war
+	 */
+	public function deleteOutstandingByMandate(int $mandateId): int {
+		$deleted = 0;
 		foreach ($this->findOutstandingByMandate($mandateId) as $token) {
 			$this->delete($token);
+			$deleted++;
 		}
+		return $deleted;
 	}
 }

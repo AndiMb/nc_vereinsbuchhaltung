@@ -107,6 +107,8 @@ return [
 		['name' => 'self#changeMandateIban', 'url' => '/api/self/mandate/iban', 'verb' => 'POST'],
 		['name' => 'self#replaceMandate', 'url' => '/api/self/mandate/replace', 'verb' => 'POST'],
 		['name' => 'self#revokeMandate', 'url' => '/api/self/mandate/revoke', 'verb' => 'POST'],
+		// Issue #118: den EIGENEN Entwurf verwerfen (kein Korrigieren, keine Mandats-ID).
+		['name' => 'self#discardMandateDraft', 'url' => '/api/self/mandate/discard-draft', 'verb' => 'POST'],
 
 		// Issue #76: Beitrag-Aktionen (Betrag/Turnus, Spec §3.4 Aktionskatalog) -
 		// bewusst ohne groupId-Parameter ueberhaupt (Beitragsgruppe wechseln
@@ -183,6 +185,9 @@ return [
 		['name' => 'mandate#correctAccountHolderName', 'url' => '/api/mandates/{id}/correct-name', 'verb' => 'POST'],
 		['name' => 'mandate#amendBankDetails', 'url' => '/api/mandates/{id}/amend-bank-details', 'verb' => 'POST'],
 		['name' => 'mandate#replace', 'url' => '/api/mandates/{id}/replace', 'verb' => 'POST'],
+		// Issue #118: Entwurf korrigieren (ohne Amendment) bzw. verwerfen.
+		['name' => 'mandate#correctDraft', 'url' => '/api/mandates/{id}/correct-draft', 'verb' => 'POST'],
+		['name' => 'mandate#discardDraft', 'url' => '/api/mandates/{id}/discard-draft', 'verb' => 'POST'],
 		['name' => 'mandate#reopenAmendment', 'url' => '/api/mandates/amendments/{amendmentId}/reopen', 'verb' => 'POST'],
 		['name' => 'mandate#uploadDocument', 'url' => '/api/mandates/{id}/document', 'verb' => 'POST'],
 		['name' => 'mandate#downloadDocument', 'url' => '/api/mandates/{id}/document', 'verb' => 'GET'],

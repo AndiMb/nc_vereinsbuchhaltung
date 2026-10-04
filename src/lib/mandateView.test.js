@@ -3,7 +3,9 @@ import {
 	activationLinkState,
 	actorLabel,
 	amendmentStatusLabel,
+	canSaveDraftCorrection,
 	daysUntil,
+	draftCorrectionChanged,
 	endReasonLabel,
 	formatIban,
 	formatStamp,
@@ -65,6 +67,7 @@ describe('Klartext statt Enum-Rohwerten', () => {
 		expect(endReasonLabel('ersetzt')).toContain('Kontoinhaberwechsel')
 		expect(endReasonLabel('verfallen')).toContain('36 Monate')
 		expect(endReasonLabel('beendet')).toContain('Austritt')
+		expect(endReasonLabel('verworfen')).toBe('Entwurf verworfen')
 		expect(endReasonLabel(null)).toBe('')
 		expect(suspensionOriginLabel('ruecklastschrift')).toContain('Rücklastschrift')
 		expect(suspensionOriginLabel('manuell')).toContain('manuell')
@@ -110,6 +113,39 @@ describe('Unterschrift zu alt für die Aktivierung', () => {
 		expect(signatureTooOld('2026-01-15', TODAY)).toBe(false)
 		expect(signatureTooOld('', TODAY)).toBe(false)
 		expect(signatureTooOld(null, TODAY)).toBe(false)
+	})
+})
+
+describe('Entwurf korrigieren (Issue #118)', () => {
+	const draft = { iban: 'DE12500105170648489890', bic: 'INGDDEFFXXX', accountHolder: 'Katrin Brunner' }
+	const form = (over = {}) => ({ iban: 'DE12 5001 0517 0648 4898 90', bic: 'INGDDEFFXXX', accountHolder: 'Katrin Brunner', ...over })
+
+	it('die vorbelegte Eingabe ist keine Änderung – auch nicht in anderer Schreibweise', () => {
+		expect(draftCorrectionChanged(draft, form())).toBe(false)
+		expect(draftCorrectionChanged(draft, form({ iban: 'de12500105170648489890', bic: ' ingddeffxxx ', accountHolder: '  Katrin Brunner ' }))).toBe(false)
+	})
+
+	it('erkennt jede der drei Änderungen einzeln', () => {
+		expect(draftCorrectionChanged(draft, form({ iban: 'DE89 3704 0044 0532 0130 00' }))).toBe(true)
+		expect(draftCorrectionChanged(draft, form({ bic: 'COBADEFFXXX' }))).toBe(true)
+		expect(draftCorrectionChanged(draft, form({ accountHolder: 'Katrin Meier' }))).toBe(true)
+	})
+
+	it('eine geleerte BIC zählt als Änderung, eine fehlende BIC am Entwurf nicht', () => {
+		expect(draftCorrectionChanged(draft, form({ bic: '' }))).toBe(true)
+		expect(draftCorrectionChanged({ ...draft, bic: null }, form({ bic: '' }))).toBe(false)
+	})
+
+	it('ohne gespeicherten Entwurf gibt es nichts zu ändern', () => {
+		expect(draftCorrectionChanged(null, form({ iban: 'DE89370400440532013000' }))).toBe(false)
+	})
+
+	it('Speichern braucht IBAN und Kontoinhaber und eine Änderung, die BIC ist optional', () => {
+		expect(canSaveDraftCorrection(draft, form())).toBe(false)
+		expect(canSaveDraftCorrection(draft, form({ iban: 'DE89370400440532013000' }))).toBe(true)
+		expect(canSaveDraftCorrection(draft, form({ bic: '' }))).toBe(true)
+		expect(canSaveDraftCorrection(draft, form({ iban: '   ' }))).toBe(false)
+		expect(canSaveDraftCorrection(draft, form({ accountHolder: '  ' }))).toBe(false)
 	})
 })
 
@@ -161,6 +197,11 @@ describe('Störfall-Hinweise je Zustand', () => {
 		expect(notice.key).toBe('ended')
 		expect(notice.title).toBe('neues Mandat einholen')
 		expect(notice.text).toContain('Widerrufen')
+	})
+
+	it('erloschen durch Verwerfen: der Endgrund steht im Hinweis', () => {
+		const notice = mandateNotices(mandate({ status: 'erloschen', storyText: 'neues Mandat einholen', endReason: 'verworfen', expiresAt: null }), TODAY)[0]
+		expect(notice.text).toContain('Entwurf verworfen')
 	})
 
 	it('„Mandat ohne Nachweis“ nur, wenn der Server den (abschaltbaren) Hinweis meldet – als Info, nicht als Warnung', () => {

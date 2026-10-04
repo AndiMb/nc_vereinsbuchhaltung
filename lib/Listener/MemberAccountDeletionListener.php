@@ -21,6 +21,8 @@ use OCP\User\Events\BeforeUserDeletedEvent;
  * entsteht nur, wenn dabei tatsächlich eine Adresse gerettet wurde; das
  * bloße Lösen der Verknüpfung ist kein Störfall (analog zum bestehenden
  * {@see UserDeletedListener}, der andere Einstellungen ohne Aufgabe abräumt).
+ * Der Hinweis löst sich von selbst auf (Konto wieder verknüpft, Mitglied weg,
+ * nach 30 Tagen), siehe {@see TaskService::findCurrent()}.
  *
  * Bewusst `BeforeUserDeletedEvent`, nicht das andere Zwecke abräumende
  * {@see UserDeletedListener} auf `UserDeletedEvent`: die Mailadresse muss
@@ -59,7 +61,9 @@ class MemberAccountDeletionListener implements IEventListener {
 		if ($rescuedEmail !== null) {
 			$this->tasks->create(
 				Task::SEVERITY_HINT,
-				$this->l10n->t('NC-Konto von %s wurde gelöscht — Adresse übernommen, bitte prüfen', [$member->displayName()]),
+				// Name vor den Text statt als t()-Variable: t() maskiert HTML-Zeichen in Variablen
+				// („Müller & Söhne" würde zu „Müller &amp; Söhne"), und dieser Text wird gespeichert.
+				$member->displayName() . ': ' . $this->l10n->t('Nextcloud-Konto wurde gelöscht, die Mailadresse wurde übernommen – bitte prüfen.'),
 				'member',
 				(int)$member->getId(),
 			);

@@ -280,6 +280,10 @@ class DunningLadderService {
 		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '');
 		$clubName = $clubName !== '' ? $clubName : $this->l10n->t('Ihre Organisation');
 
+		// Vor dem Mailtext: ob der Text einen GiroCode verspricht, hängt davon ab,
+		// ob für ALLE Positionen einer erzeugt werden konnte.
+		$giroCodes = $this->renderGiroCodes($pending, $clubName);
+
 		$template = $this->mailer->createEMailTemplate('vereinsbuchhaltung.dunningStage' . $stage);
 		$template->setSubject($this->stageSubject($stage, $clubName));
 		$template->addHeader();
@@ -293,7 +297,9 @@ class DunningLadderService {
 		if ($stage === DunningNotice::STAGE_DUNNING) {
 			$template->addBodyText($this->l10n->t('Sollte der Betrag weiterhin nicht eingehen, legen wir den Vorgang dem Vorstand vor.'));
 		}
-		$template->addBodyText($this->l10n->t('Bitte überweisen Sie jede Position einzeln mit dem jeweils genannten Betrag – für jede Position liegt ein GiroCode zum Scannen mit Ihrer Banking-App bei.'));
+		$template->addBodyText(count($giroCodes) === count($pending)
+			? $this->l10n->t('Bitte überweisen Sie jede Position einzeln mit dem jeweils genannten Betrag – für jede Position liegt ein GiroCode zum Scannen mit Ihrer Banking-App bei.')
+			: $this->l10n->t('Bitte überweisen Sie jede Position einzeln mit dem jeweils genannten Betrag.'));
 		$template->addFooter();
 
 		$message = $this->mailer->createMessage();
@@ -301,33 +307,58 @@ class DunningLadderService {
 		$message->setSubject($template->renderSubject());
 		$message->useTemplate($template);
 
-		foreach ($pending as [$item]) {
-			$this->attachGiroCode($message, $item, $clubName);
+		foreach ($giroCodes as $itemId => $png) {
+			$message->attach($this->mailer->createAttachment($png, 'girocode-' . $itemId . '.png', 'image/png'));
 		}
 		return $message;
 	}
 
-	/** GiroCode ist eine Zusatzhilfe, kein Versandhindernis - fehlt die Kontoeinstellung oder scheitert die Erzeugung, bleibt die Mail trotzdem ohne Anhang versendbar. */
-	private function attachGiroCode(IMessage $message, OpenItem $item, string $clubName): void {
+	/**
+	 * GiroCode je Position (PNG-Bilddaten, Schlüssel = ID der Forderung).
+	 *
+	 * Eine Zusatzhilfe, kein Versandhindernis: ist kein Zahlungskonto mit IBAN
+	 * eingestellt, ist das schlicht die Einstellung der Instanz (dann gibt es
+	 * keine Codes, ohne Aufhebens). Scheitert dagegen die Erzeugung einer
+	 * Position – `gd` oder `chillerlan/php-qrcode` fehlt (`\Error` bzw.
+	 * `QRCodeOutputException`), oder der Betrag ist unbrauchbar –, geht die
+	 * Mail trotzdem ohne diesen Code raus und der Fehler steht im Log
+	 * (Issue #120). Bewusst `\Throwable`: eine fehlende Klasse ist ein `\Error`.
+	 *
+	 * @param list<array{0:OpenItem,1:string}> $pending
+	 * @return array<int, string>
+	 */
+	private function renderGiroCodes(array $pending, string $clubName): array {
+		$iban = $this->giroCodeIban();
+		if ($iban === null) {
+			return [];
+		}
+		$codes = [];
+		foreach ($pending as [$item]) {
+			try {
+				$codes[(int)$item->getId()] = $this->qrCode->generatePng($clubName, $iban, null, $item->getAmountCents(), $this->positionLine($item));
+			} catch (\Throwable $e) {
+				$this->logger->warning('Mahnwesen: GiroCode für Forderung {id} konnte nicht erzeugt werden, die Mail geht ohne diesen Anhang raus', [
+					'app' => Application::APP_ID,
+					'id' => $item->getId(),
+					'exception' => $e,
+				]);
+			}
+		}
+		return $codes;
+	}
+
+	/** IBAN des Zahlungskontos, auf das überwiesen werden soll – `null`, solange keines eingestellt ist. */
+	private function giroCodeIban(): ?string {
 		$accountId = $this->debtorAccount->getAccountId();
 		if ($accountId === null) {
-			return;
+			return null;
 		}
 		try {
-			$account = $this->accounts->find($accountId, Application::BOOK);
+			$iban = $this->accounts->find($accountId, Application::BOOK)->getIban();
 		} catch (DoesNotExistException) {
-			return;
+			return null;
 		}
-		if ($account->getIban() === null) {
-			return;
-		}
-		try {
-			$png = $this->qrCode->generatePng($clubName, $account->getIban(), null, $item->getAmountCents(), $this->positionLine($item));
-		} catch (\Throwable) {
-			return;
-		}
-		$attachment = $this->mailer->createAttachment($png, 'girocode-' . $item->getId() . '.png', 'image/png');
-		$message->attach($attachment);
+		return $iban !== null && trim($iban) !== '' ? $iban : null;
 	}
 
 	private function stageSubject(int $stage, string $clubName): string {

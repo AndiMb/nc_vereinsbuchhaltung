@@ -40,7 +40,7 @@
 			</NcButton>
 		</div>
 		<p class="vbh-hint">
-			{{ t('Forderungen an Mitglieder mit Zustand, Störfällen und Mahnstand. Die allgemeinen offenen Posten (Rechnungen ohne Mitglied) bleiben unter Buchungen.') }}
+			{{ t('Forderungen an Mitglieder mit Zustand, Störfällen und Mahnstand. Vorgabe der Liste sind die nicht beglichenen (offen, im Einzug, zurückgegeben). Die allgemeinen offenen Posten (Rechnungen ohne Mitglied) bleiben unter Buchungen.') }}
 		</p>
 
 		<NcLoadingIcon v-if="!loaded && loading" :size="32" :name="t('Wird geladen…')" />
@@ -79,10 +79,10 @@
 						{{ t('Alle Mitglieder') }}
 					</NcButton>
 				</div>
-				<label>{{ t('Fällig von') }}
+				<label class="vbh-claims-date">{{ t('Fällig von') }}
 					<input v-model="filters.from" type="date">
 				</label>
-				<label>{{ t('Fällig bis') }}
+				<label class="vbh-claims-date">{{ t('Fällig bis') }}
 					<input v-model="filters.to" type="date">
 				</label>
 				<NcButton
@@ -580,11 +580,42 @@ export default {
 	margin-top: 4px;
 }
 
+/* Ein Auswahlfeld ist so breit wie sein längster Eintrag: auf einem schmalen Bildschirm ragte es samt Label über
+   den Rand und schob den ganzen Abschnitt seitlich (gemessen im echten App-Rahmen bei 375 px). Deckel auf die
+   Breite des Rahmens, damit es auch mit einer breiteren Schrift nicht passiert. */
+.vbh-claims-filters label {
+	min-width: 0;
+	max-width: 100%;
+}
+
+.vbh-claims-filters select,
+.vbh-claims-filters input {
+	min-width: 0;
+	max-width: 100%;
+}
+
 .vbh-claims-memberchip {
 	display: flex;
+	flex-wrap: wrap;
 	align-items: center;
-	gap: 8px;
+	gap: 4px 8px;
 	min-height: var(--default-clickable-area, 44px);
+}
+
+/* Handy (derselbe Umbruch wie isMobile in App.vue): jedes Feld eine volle Zeile, nur die beiden Daten teilen sich eine. */
+@media (max-width: 640px) {
+	.vbh-claims-filters label {
+		flex: 1 1 100%;
+	}
+
+	.vbh-claims-filters label.vbh-claims-date {
+		flex: 1 1 calc(50% - 10px);
+	}
+
+	.vbh-claims-filters select,
+	.vbh-claims-filters input {
+		width: 100%;
+	}
 }
 
 .vbh-claims-summary {

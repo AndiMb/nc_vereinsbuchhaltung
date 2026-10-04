@@ -120,6 +120,74 @@ class MandateStateMachineTest extends TestCase {
 		$this->machine()->assertCanRevoke($this->mandate(Mandate::STATUS_ENDED));
 	}
 
+	// --- Entwurf verwerfen/korrigieren (Issue #118): nur im Zustand entwurf -----
+
+	/** @dataProvider entwurfsSignaturen */
+	public function testEntwurfLaesstSichVerwerfenUndKorrigieren(string $signatureType): void {
+		$draft = $this->mandate(Mandate::STATUS_DRAFT, $signatureType);
+
+		$this->machine()->assertCanDiscardDraft($draft);
+		$this->machine()->assertCanCorrectDraft($draft);
+		$this->addToAssertionCount(2);
+	}
+
+	public static function entwurfsSignaturen(): array {
+		return [
+			'Papier' => [Mandate::SIGNATURE_PAPER],
+			'elektronisch' => [Mandate::SIGNATURE_ELECTRONIC],
+		];
+	}
+
+	/** @dataProvider nichtEntwurfsZustaende */
+	public function testNurEinEntwurfLaesstSichVerwerfen(string $status): void {
+		$this->expectException(\InvalidArgumentException::class);
+		$this->machine()->assertCanDiscardDraft($this->mandate($status));
+	}
+
+	/** @dataProvider nichtEntwurfsZustaende */
+	public function testNurEinEntwurfLaesstSichAnAmendmentVorbeiKorrigieren(string $status): void {
+		$this->expectException(\InvalidArgumentException::class);
+		$this->machine()->assertCanCorrectDraft($this->mandate($status));
+	}
+
+	public static function nichtEntwurfsZustaende(): array {
+		return [
+			'aktiv' => [Mandate::STATUS_ACTIVE],
+			'ausgesetzt' => [Mandate::STATUS_SUSPENDED],
+			'erloschen' => [Mandate::STATUS_ENDED],
+		];
+	}
+
+	/**
+	 * Verwerfen und Widerruf schließen einander aus: was widerrufbar ist (aktiv,
+	 * ausgesetzt), ist nicht verwerfbar - und umgekehrt der Entwurf.
+	 */
+	public function testVerwerfenUndWiderrufBedienenVerschiedeneZustaende(): void {
+		foreach ([Mandate::STATUS_DRAFT, Mandate::STATUS_ACTIVE, Mandate::STATUS_SUSPENDED, Mandate::STATUS_ENDED] as $status) {
+			$mandate = $this->mandate($status);
+			$canDiscard = $this->passes(fn () => $this->machine()->assertCanDiscardDraft($mandate));
+			$canRevoke = $this->passes(fn () => $this->machine()->assertCanRevoke($mandate));
+			$this->assertFalse($canDiscard && $canRevoke, "Zustand $status darf nicht beides erlauben");
+		}
+		// Und jeder lebende Zustand hat einen Ausweg: verwerfen oder widerrufen.
+		foreach ([Mandate::STATUS_DRAFT, Mandate::STATUS_ACTIVE, Mandate::STATUS_SUSPENDED] as $status) {
+			$mandate = $this->mandate($status);
+			$this->assertTrue(
+				$this->passes(fn () => $this->machine()->assertCanDiscardDraft($mandate)) || $this->passes(fn () => $this->machine()->assertCanRevoke($mandate)),
+				"Zustand $status braucht einen Ausweg, damit er kein neues Mandat blockiert",
+			);
+		}
+	}
+
+	private function passes(callable $assertion): bool {
+		try {
+			$assertion();
+			return true;
+		} catch (\InvalidArgumentException) {
+			return false;
+		}
+	}
+
 	// --- Höchstens ein lebendes Mandat je Mitglied ------------------------------
 
 	public function testOhneLebendesMandatDarfEinNeuesAngelegtWerden(): void {

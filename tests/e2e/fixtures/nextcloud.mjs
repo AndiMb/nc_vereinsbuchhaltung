@@ -726,6 +726,23 @@ export const api = {
 		return call(request, 'POST', '/self/mandate/request-link', { user, expectOk })
 	},
 
+	// --- Entwurf korrigieren/verwerfen (Issue #118) -----------------------------
+
+	/** Entwurf direkt korrigieren (ohne Amendment): IBAN, BIC, Kontoinhaber. */
+	async correctMandateDraft(request, id, { iban, bic, accountHolder, user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', `/mandates/${id}/correct-draft`, { user, expectOk, data: { iban, bic, accountHolder } })
+	},
+
+	/** Entwurf verwerfen; die Notiz ist Pflicht. */
+	async discardMandateDraft(request, id, { note, user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', `/mandates/${id}/discard-draft`, { user, expectOk, data: { note } })
+	},
+
+	/** Self-Service: den EIGENEN Entwurf verwerfen. `data` lässt einen Test fremde IDs mitschicken (IDOR-Probe) – der Endpunkt liest keine. */
+	async selfDiscardMandateDraft(request, { user, data, expectOk = true } = {}) {
+		return call(request, 'POST', '/self/mandate/discard-draft', { user, expectOk, data })
+	},
+
 	// --- Self-Service Beitrag-Aktionen (Issue #76) ------------------------------
 
 	/** Eigene Zuweisungen (Self-Service-Kanal). */
