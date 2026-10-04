@@ -61,6 +61,7 @@
 							<option v-for="p in periods" :key="p.id" :value="p.id">{{ p.label }}{{ p.closedAt ? ' 🔒' : '' }}</option>
 						</select>
 					</label>
+					<TasksFlyout v-if="canWrite && membershipActive" @navigate="onTaskNavigate" />
 					<NcButton
 						variant="tertiary"
 						:aria-label="t('Hilfe')"
@@ -412,6 +413,7 @@ import ReportsTab from './components/ReportsTab.vue'
 import SelfServiceTab from './components/SelfServiceTab.vue'
 import SetupWizard from './components/SetupWizard.vue'
 import SplitAssignDialog from './components/SplitAssignDialog.vue'
+import TasksFlyout from './components/TasksFlyout.vue'
 import WhatsNewDialog from './components/WhatsNewDialog.vue'
 import api from './api.js'
 import { buildAccountOptions, useAccounts } from './composables/useAccounts.js'
@@ -421,6 +423,7 @@ import { useBalances } from './composables/useBalances.js'
 import { useConfirm } from './composables/useConfirm.js'
 import { useCostCenters } from './composables/useCostCenters.js'
 import { useJournal } from './composables/useJournal.js'
+import { useMemberAkteRequest } from './composables/useMemberAkteRequest.js'
 import { useMembershipFees } from './composables/useMembershipFees.js'
 import { useOpenItems } from './composables/useOpenItems.js'
 import { usePeriods } from './composables/usePeriods.js'
@@ -498,6 +501,7 @@ export default {
 		AccountPickerSheet,
 		HelpModal,
 		SetupWizard,
+		TasksFlyout,
 		WhatsNewDialog,
 	},
 
@@ -516,6 +520,7 @@ export default {
 		const membershipFees = useMembershipFees()
 		const sepaMandates = useSepaMandates()
 		const sepaBatches = useSepaBatches()
+		const memberAkteRequest = useMemberAkteRequest()
 		return {
 			loadOpenItems: openItems.loadOpenItems,
 			loadCostCenters: costCenters.loadCostCenters,
@@ -534,6 +539,7 @@ export default {
 			loadMembershipFees: membershipFees.loadMembershipFees,
 			loadSepaMandates: sepaMandates.loadSepaMandates,
 			loadSepaBatches: sepaBatches.loadSepaBatches,
+			requestMemberAkte: memberAkteRequest.requestMemberAkte,
 			...toRefs(auth.state),
 			canRead: auth.canRead,
 			canWrite: auth.canWrite,
@@ -1289,6 +1295,19 @@ export default {
 		replaceKeepingPeriod(path) {
 			const period = this.$route.query.period
 			this.$router.replace({ path, query: period !== undefined ? { period } : {} })
+		},
+
+		/**
+		 * Sprung aus dem Aufgaben-Flyout (TasksFlyout.vue): in den Beiträge-Reiter,
+		 * je nach Ziel auf die Mitgliederliste (mit geöffneter Akte) oder in den
+		 * Einzug-Unterreiter.
+		 *
+		 * @param {{ kind: 'member'|'members'|'batch', memberId?: number }} target Ziel laut lib/tasks.js::taskTarget()
+		 */
+		onTaskNavigate(target) {
+			this.activeTab = 'contributions'
+			this.contribView = target.kind === 'batch' ? 'batch' : 'members'
+			if (target.kind === 'member') { this.requestMemberAkte(target.memberId) }
 		},
 
 		goToUnassigned() {

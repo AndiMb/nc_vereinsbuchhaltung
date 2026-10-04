@@ -258,6 +258,7 @@ import api from '../api.js'
 import { useAssignments } from '../composables/useAssignments.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useMandates } from '../composables/useMandates.js'
+import { useMemberAkteRequest } from '../composables/useMemberAkteRequest.js'
 import { useMembers } from '../composables/useMembers.js'
 import { useMembershipFees } from '../composables/useMembershipFees.js'
 import { useSepaMandates } from '../composables/useSepaMandates.js'
@@ -304,6 +305,7 @@ export default {
 		const mandates = useMandates()
 		const assignments = useAssignments()
 		const members = useMembers()
+		const akteRequest = useMemberAkteRequest()
 		return {
 			...toRefs(membershipFees.state),
 			...toRefs(sepaMandates.state),
@@ -316,6 +318,8 @@ export default {
 			loadAssignments: assignments.loadAssignments,
 			loadMembers: members.loadMembers,
 			askConfirm: useConfirm().askConfirm,
+			akteRequest: akteRequest.request,
+			takeMemberAkteRequest: akteRequest.takeMemberAkteRequest,
 		}
 	},
 
@@ -371,6 +375,15 @@ export default {
 		},
 	},
 
+	watch: {
+		// Sprung aus dem Aufgaben-Flyout (App.vue::onTaskNavigate): die Anfrage
+		// kann vor dem ersten Rendern dieser Liste da sein, daher immediate.
+		'akteRequest.memberId': {
+			immediate: true,
+			handler(memberId) { if (memberId) { this.openRequestedAkte() } },
+		},
+	},
+
 	mounted() {
 		this.loadMembers()
 		this.loadMembershipFees()
@@ -386,6 +399,23 @@ export default {
 		openMemberDialog() { this.editingMember = null; this.memberDialogOpen = true },
 		openImportDialog() { this.importDialogOpen = true },
 		openMemberAkte(member) { this.editingMember = member; this.memberDialogOpen = true },
+		/**
+		 * Öffnet die Akte, um die das Aufgaben-Flyout gebeten hat. Fehlt das
+		 * Mitglied in der geladenen Liste (jemand hat es eben erst angelegt,
+		 * oder die Liste lädt noch), wird einmal frisch geladen - findet es sich
+		 * auch dann nicht, ist es weg, und das wird gesagt statt still nichts zu tun.
+		 */
+		async openRequestedAkte() {
+			const memberId = this.takeMemberAkteRequest()
+			if (!memberId) { return }
+			let member = this.members.find((m) => m.id === memberId)
+			if (!member) {
+				await this.loadMembers()
+				member = this.members.find((m) => m.id === memberId)
+			}
+			if (member) { this.openMemberAkte(member) } else { showError(this.t('Das Mitglied wurde nicht gefunden – vielleicht wurde es inzwischen gelöscht.')) }
+		},
+
 		/** Was der Verwalter sehen sollte: fehlende Adresse, Rückstand, kein Mandat. */
 		hasProblem(row) {
 			if (row.fee && row.fee.dueCount > 0) { return true }
