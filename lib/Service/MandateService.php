@@ -469,7 +469,9 @@ class MandateService {
 			$mandate = $this->mapper->update($mandate);
 
 			$this->audit->log('SEPA-Mandat: Bankverbindung per Amendment geändert', 'mandate', $mandate->getId(), ['referenz' => $mandate->getMandateReference()]);
-			$this->logEvent($mandate, $this->l10n->t('Bankverbindung geändert (Amendment, alte IBAN %s)', [(string)$amendment->getOldIban()]), $this->actorContext->actorType());
+			// Nur maskiert: den Verlauf liest auch der Revisor (Spec §3.9, Issue #119);
+			// die volle alte IBAN steht im Amendment, das die Buchhaltung einsieht.
+			$this->logEvent($mandate, $this->l10n->t('Bankverbindung geändert (Amendment, alte IBAN %s)', [(string)Mandate::maskIban($amendment->getOldIban())]), $this->actorContext->actorType());
 			return $mandate;
 		});
 	}
