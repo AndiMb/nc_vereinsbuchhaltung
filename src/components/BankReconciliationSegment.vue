@@ -20,6 +20,7 @@
 			</div>
 			<span class="vbh-bank-spacer" />
 			<NcButton
+				class="vbh-bank-refresh"
 				size="small"
 				variant="tertiary"
 				:aria-label="t('Bankabgleich aktualisieren')"
@@ -273,5 +274,13 @@ export default {
 
 .vbh-bank-spacer {
 	flex: 1 1 auto;
+}
+
+/* Schmale Anzeige: Überschrift und Aktualisieren bleiben in einer Zeile, die Ansichten brechen darunter um. */
+@media (max-width: 600px) {
+	.vbh-bank-views {
+		order: 3;
+		flex: 1 1 100%;
+	}
 }
 </style>
