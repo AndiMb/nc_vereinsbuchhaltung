@@ -117,13 +117,13 @@ describe('startAutoRefresh', () => {
 
 	const write = (method = 'post', url = '/index.php/apps/vereinsbuchhaltung/api/mandates') => responseInterceptor({ config: { method, url } })
 
-	it('laedt sofort und danach im Minutentakt, solange der Tab sichtbar ist', async () => {
+	it('laedt sofort und danach alle fuenf Minuten, solange der Tab sichtbar ist', async () => {
 		stop = startAutoRefresh()
 		expect(listTasks).toHaveBeenCalledTimes(1)
-		await vi.advanceTimersByTimeAsync(60000)
+		await vi.advanceTimersByTimeAsync(300000)
 		expect(listTasks).toHaveBeenCalledTimes(2)
 		document.hidden = true
-		await vi.advanceTimersByTimeAsync(60000)
+		await vi.advanceTimersByTimeAsync(300000)
 		expect(listTasks).toHaveBeenCalledTimes(2)
 	})
 
@@ -137,18 +137,20 @@ describe('startAutoRefresh', () => {
 		stop = startAutoRefresh()
 		listTasks.mockClear()
 		write()
-		write('put')
-		write('delete')
+		write('put', '/index.php/apps/vereinsbuchhaltung/api/assignments/4')
+		write('delete', '/index.php/apps/vereinsbuchhaltung/api/members/7')
 		expect(listTasks).not.toHaveBeenCalled()
-		await vi.advanceTimersByTimeAsync(1000)
+		await vi.advanceTimersByTimeAsync(1500)
 		expect(listTasks).toHaveBeenCalledTimes(1)
 	})
 
-	it('Lesezugriffe und fremde Adressen loesen nichts aus und die Antwort bleibt unveraendert', async () => {
+	it('Lesezugriffe, fremde Adressen und Schreibzugriffe ohne Bezug zu Aufgaben loesen nichts aus', async () => {
 		stop = startAutoRefresh()
 		listTasks.mockClear()
 		write('get')
 		write('post', '/index.php/apps/andere-app/api/x')
+		write('post', '/index.php/apps/vereinsbuchhaltung/api/journal')
+		write('post', '/index.php/apps/vereinsbuchhaltung/api/transactions/3/assign')
 		const response = { config: { method: 'get', url: '/index.php/apps/vereinsbuchhaltung/api/tasks' } }
 		expect(responseInterceptor(response)).toBe(response)
 		await vi.advanceTimersByTimeAsync(5000)
@@ -165,7 +167,7 @@ describe('startAutoRefresh', () => {
 		expect(eject).toHaveBeenCalledWith(42)
 		expect(listeners.focus).toBeUndefined()
 		listTasks.mockClear()
-		await vi.advanceTimersByTimeAsync(120000)
+		await vi.advanceTimersByTimeAsync(600000)
 		expect(listTasks).not.toHaveBeenCalled()
 	})
 })

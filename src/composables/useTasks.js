@@ -52,19 +52,27 @@ async function loadTasks() {
 
 // Abstand des Hintergrund-Abgleichs und Wartezeit nach einer eigenen
 // Schreibaktion (damit mehrere Schreibzugriffe in Folge nur eine Abfrage
-// auslösen).
-const POLL_INTERVAL = 60000
-const WRITE_DEBOUNCE = 1000
+// auslösen). Die Abfrage ist nicht billig - der Server rechnet die Liste aus
+// Mitgliedern, Mandaten, Forderungen und Läufen jedes Mal neu -, deshalb
+// bewusst kein enger Takt: Änderungen anderer Personen holt App.vue über den
+// Änderungsstand-Abgleich (refreshAfterRemoteChange), der Takt hier fängt nur
+// ab, was von der Uhr abhängt (eine Frist läuft ab, ein neuer Tag beginnt).
+const POLL_INTERVAL = 300000
+const WRITE_DEBOUNCE = 1500
+
+// Schreibzugriffe, die eine Aufgabe auslösen oder beheben können. Buchungen,
+// Konten, Belege u. ä. gehören nicht dazu und sollen die Abfrage nicht bei jeder
+// Zuordnung anstoßen; was hier durchrutscht, holt der Änderungsstand-Abgleich
+// ohnehin nach.
+const TASK_RELEVANT_WRITE = /\/apps\/vereinsbuchhaltung\/api\/(members|mandates|assignments|claims|open-items|contribution-groups|due-date-schedule|sepa|settings|import|demo|reset)(\/|\?|$)/
 
 let stopRefresh = null
 
 /**
- * Hält die Liste aktuell: beim Fokussieren des Fensters, nach jeder eigenen
- * Schreibaktion der App (ein behobener Störfall soll sofort aus dem Badge
- * verschwinden, nicht erst beim nächsten Poll) und sonst im Minutentakt, solange
- * der Tab sichtbar ist. Der Aufgabenstand hängt von der Uhrzeit ab (Fristen
- * laufen ab), der Änderungsstand-Abgleich der App (useSync.js) erfasst das
- * nicht.
+ * Hält die Liste aktuell: beim Fokussieren des Fensters, nach einer eigenen
+ * Schreibaktion mit Bezug zu Mitgliedern/Mandaten/Forderungen/Läufen (eine
+ * behobene Störung soll sofort aus dem Badge verschwinden, nicht erst beim
+ * nächsten Abgleich) und sonst alle fünf Minuten, solange der Tab sichtbar ist.
  *
  * Mehrfache Aufrufe sind harmlos - es läuft immer höchstens ein Abgleich.
  *
@@ -84,7 +92,7 @@ function startAutoRefresh() {
 	const interceptorId = axios.interceptors.response.use((response) => {
 		const method = ((response.config && response.config.method) || 'get').toLowerCase()
 		const requestUrl = (response.config && response.config.url) || ''
-		if (method !== 'get' && method !== 'head' && requestUrl.includes('/apps/vereinsbuchhaltung/')) {
+		if (method !== 'get' && method !== 'head' && TASK_RELEVANT_WRITE.test(requestUrl)) {
 			scheduleReload()
 		}
 		return response

@@ -433,6 +433,7 @@ import { useSepaBatches } from './composables/useSepaBatches.js'
 import { useSepaMandates } from './composables/useSepaMandates.js'
 import { useSort } from './composables/useSort.js'
 import { useSync } from './composables/useSync.js'
+import { useTasks } from './composables/useTasks.js'
 import { buildWhatsNewEntries, filterWhatsNewEntries } from './data/whatsNew.js'
 import { amountClass, budgetDiffClass, errMsg, formatDate, formatDateTime, formatMoney, typeLabel } from './lib/format.js'
 import { splitBalanced, splitRemainder, splitSideOf } from './lib/split.js'
@@ -521,6 +522,7 @@ export default {
 		const sepaMandates = useSepaMandates()
 		const sepaBatches = useSepaBatches()
 		const memberAkteRequest = useMemberAkteRequest()
+		const tasks = useTasks()
 		return {
 			loadOpenItems: openItems.loadOpenItems,
 			loadCostCenters: costCenters.loadCostCenters,
@@ -540,6 +542,8 @@ export default {
 			loadSepaMandates: sepaMandates.loadSepaMandates,
 			loadSepaBatches: sepaBatches.loadSepaBatches,
 			requestMemberAkte: memberAkteRequest.requestMemberAkte,
+			// Aufgaben-Flyout (TasksFlyout.vue): hier nur fuer refreshAfterRemoteChange().
+			loadTasks: tasks.loadTasks,
 			...toRefs(auth.state),
 			canRead: auth.canRead,
 			canWrite: auth.canWrite,
@@ -1362,6 +1366,8 @@ export default {
 			// Beitraege/Mandate/Einzuege: eigenes Zusatzmodul, ab Rolle Buchhalter
 			// (Backend-Gate) - siehe ContributionsTab.vue.
 			if (this.canWrite) { jobs.push(this.loadMembershipFees(), this.loadSepaMandates(), this.loadSepaBatches()) }
+			// Aufgaben-Flyout: eine Aenderung anderer Personen kann Aufgaben loesen/schaffen.
+			if (this.canWrite && this.membershipActive) { jobs.push(this.loadTasks()) }
 			if (this.activeTab === 'accounts' && this.selectedAccountId) { jobs.push(this.loadStatement(this.selectedAccountId)) }
 			if (this.activeTab === 'reports') {
 				if (this.reportView === 'costcenters') { jobs.push(this.loadReport()) } else if (this.reportView === 'budget') { jobs.push(this.loadBudget()) }

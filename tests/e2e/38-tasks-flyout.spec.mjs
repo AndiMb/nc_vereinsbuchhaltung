@@ -72,7 +72,11 @@ async function ensureSeed(request) {
 	if ((await api.mandatesByMember(request, theo.id)).length === 0) {
 		const created = await api.createElectronicMandate(request, { memberId: theo.id, iban: IBAN, accountHolder: name(THEO) })
 		const mandate = await created.json()
-		await api.sendActivationLink(request, mandate.id)
+		// Der Hinweis hängt am ausstehenden Link, nicht am Mailversand: der Token
+		// steht schon vor dem Senden in der Datenbank. Ein Testserver ohne
+		// funktionierenden Mailweg antwortet hier mit 500 - das ist für diesen
+		// Fall egal und soll ihn nicht kippen.
+		await api.sendActivationLink(request, mandate.id, { expectOk: false })
 	}
 	return { tessa, theo }
 }
