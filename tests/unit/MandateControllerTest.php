@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
 use OCA\Vereinsbuchhaltung\Controller\MandateController;
 use OCA\Vereinsbuchhaltung\Db\Mandate;
+use OCA\Vereinsbuchhaltung\Db\MandateAmendment;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
 use OCA\Vereinsbuchhaltung\Service\MandateDocumentService;
@@ -127,6 +128,48 @@ class MandateControllerTest extends TestCase {
 		$data = $this->controller()->byMember(42)->getData()[0];
 
 		$this->assertSame('DE12••••••••••••••9890', $data['iban']);
+	}
+
+	private function amendmentWithOldIban(string $oldIban): MandateAmendment {
+		$amendment = new MandateAmendment();
+		$amendment->setId(3);
+		$amendment->setMandateId(7);
+		$amendment->setType(MandateAmendment::TYPE_ACCOUNT);
+		$amendment->setOldIban($oldIban);
+		$amendment->setOldAccountHolder('Katrin Brunner');
+		$amendment->setStatus(MandateAmendment::STATUS_OPEN);
+		return $amendment;
+	}
+
+	/**
+	 * Issue #119: ein Amendment trägt die IBAN des ersetzten Kontos. Sie lag über
+	 * die Einzelansicht (ab `revisor` lesbar) im Klartext vor, obwohl die IBAN
+	 * des Mandats selbst maskiert wird (Spec §3.9).
+	 */
+	public function testRevisorSiehtDieAlteIbanEinesAmendmentsNurMaskiert(): void {
+		$permissions = $this->createMock(PermissionService::class);
+		$permissions->method('canWrite')->willReturn(false);
+		$this->permissions = $permissions;
+		$this->service->method('find')->with(7)->willReturn($this->mandate(Mandate::STATUS_ACTIVE));
+		$this->service->method('history')->willReturn([]);
+		$this->service->method('amendments')->willReturn([$this->amendmentWithOldIban('DE89370400440532013000')]);
+
+		$data = $this->controller()->show(7)->getData();
+
+		$this->assertSame('DE12••••••••••••••9890', $data['iban']);
+		$this->assertSame('DE89••••••••••••••3000', $data['amendments'][0]['oldIban']);
+		$this->assertStringNotContainsString('0440532013', json_encode($data, JSON_THROW_ON_ERROR), 'keine Ziffernfolge der alten IBAN in der Antwort');
+	}
+
+	public function testBuchhalterSiehtDieAlteIbanEinesAmendmentsImKlartext(): void {
+		$this->service->method('find')->with(7)->willReturn($this->mandate(Mandate::STATUS_ACTIVE));
+		$this->service->method('history')->willReturn([]);
+		$this->service->method('amendments')->willReturn([$this->amendmentWithOldIban('DE89370400440532013000')]);
+
+		$data = $this->controller()->show(7)->getData();
+
+		$this->assertSame('DE89370400440532013000', $data['amendments'][0]['oldIban']);
+		$this->assertSame('Katrin Brunner', $data['amendments'][0]['oldAccountHolder']);
 	}
 
 	public function testEinzelansichtLiefertLinkStatusFuerElektronischenEntwurfUndOffeneSumme(): void {
