@@ -1182,10 +1182,10 @@ gemacht hat; unter *Frühere Mandate* stehen die beendeten.
 
 | Zustand | Bedeutung | Das können Sie tun |
 |---|---|---|
-| **Entwurf** | Angaben liegen vor, die Unterschrift fehlt | Papier: das Unterschriftsdatum eintragen und **Aktivieren** – das Datum ist Pflicht und das Gate. Elektronisch: **Einmal-Link senden** bzw. erneut senden; die Akte zeigt, wann und an wen er ging und ob er abgelaufen ist |
+| **Entwurf** | Angaben liegen vor, die Unterschrift fehlt | Papier: das Unterschriftsdatum eintragen und **Aktivieren** – das Datum ist Pflicht und das Gate. Elektronisch: **Einmal-Link senden** bzw. erneut senden; die Akte zeigt, wann und an wen er ging und ob er abgelaufen ist. Bei Tippfehlern oder wenn das Mandat nicht zustande kommt: **Entwurf korrigieren** oder **Entwurf verwerfen** |
 | **Aktiv** | einzugsfähig | **Bankverbindung ändern**, **Sperren**, **Mandat widerrufen** |
 | **Ausgesetzt** | vorübergehend nicht einzugsfähig | **Entsperren**, **Mandat widerrufen** |
-| **Erloschen** | widerrufen, ersetzt, verfallen oder beendet | **Mandat anlegen** für ein neues |
+| **Erloschen** | widerrufen, ersetzt, verfallen, beendet oder als Entwurf verworfen | **Mandat anlegen** für ein neues |
 
 **Sperren und Entsperren** verlangen jeweils eine Notiz; sie steht im Verlauf.
 Eine Sperre beendet nichts, offene Forderungen bleiben offen. Eine Sperre nach
@@ -1199,6 +1199,21 @@ als „offen" unter *Änderungen der Bankverbindung*), nur der **Name** war fals
 geschrieben (stille Korrektur) oder der **Kontoinhaber wechselt** (ein neues
 Mandat entsteht, das alte ist „ersetzt"; mit Unterschriftsdatum ist es sofort
 aktiv, ohne bleibt es Entwurf).
+
+**Einen Entwurf korrigieren oder verwerfen.** Solange ein Mandat Entwurf ist,
+wurde über es nie etwas eingezogen – deshalb brauchen Sie weder Widerruf noch
+Amendment. **Entwurf korrigieren** ändert IBAN, BIC und Kontoinhaber direkt (der
+Dialog ist mit den bisherigen Werten vorbelegt, jede Korrektur steht im
+Verlauf, die IBAN dort nur maskiert). Bei einem **elektronischen** Entwurf macht
+die Korrektur den bereits verschickten Einmal-Link ungültig – senden Sie danach
+einen neuen; bei einem **Papier**-Entwurf müssen die Angaben zum unterschriebenen
+Formular passen. **Entwurf verwerfen** beendet den Entwurf endgültig; der Grund
+ist Pflicht und steht im Verlauf. Das Mandat erscheint danach unter *Frühere
+Mandate* als „Entwurf verworfen" (kein Widerruf – es war nie wirksam, also geht
+auch keine Zahlungsaufforderung raus) und für das Mitglied lässt sich ein neues
+Mandat anlegen. Auch das Mitglied selbst kann unter *Mein Beitrag* seinen
+Entwurf verwerfen, aber nicht korrigieren – es erteilt danach das Mandat mit den
+richtigen Angaben neu.
 
 **Der Widerruf ist endgültig** – ein widerrufenes Mandat lässt sich nicht
 wieder aktivieren. Der Dialog zeigt die noch offene Summe und bietet als
