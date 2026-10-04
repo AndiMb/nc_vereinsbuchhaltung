@@ -68,9 +68,9 @@ use OCP\IUserSession;
  */
 class BankReconciliationService {
 
-	public const KIND_COLLECTION = 'collection';
-	public const KIND_RETURN = 'return';
-	public const KIND_MIXED = 'mixed';
+	public const KIND_COLLECTION = 'einzug';
+	public const KIND_RETURN = 'ruecklastschrift';
+	public const KIND_MIXED = 'gemischt';
 
 	/** Mindestens eine Detail-Zeile ohne Urteil. */
 	public const STATE_OPEN = 'offen';
@@ -365,7 +365,7 @@ class BankReconciliationService {
 			$isFee = $isReturn && $plan['chargesCents'] > 0 && $index === $partCount - 1;
 			$preview['lines'][] = $this->accountView($part['accountId'], $accountNames) + [
 				'side' => $isReturn ? 'soll' : 'haben',
-				'role' => $isFee ? 'fee' : ($isReturn ? 'revenue_back' : 'revenue'),
+				'role' => $isFee ? 'gebuehr' : ($isReturn ? 'erloes_zurueck' : 'erloes'),
 				'amountCents' => $part['amountCents'],
 			];
 		}

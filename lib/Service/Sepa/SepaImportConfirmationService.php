@@ -66,9 +66,9 @@ use OCP\IUserSession;
 class SepaImportConfirmationService {
 
 	/** Gutschrift des Einzugs: Forderungen werden abgeschlossen (siehe {@see plan()}). */
-	public const DIRECTION_COLLECTION = 'collection';
+	public const DIRECTION_COLLECTION = 'einzug';
 	/** Rücklastschrift: Forderungen werden wieder geöffnet, Folgen nach Rückgabe-Klasse. */
-	public const DIRECTION_RETURN = 'return';
+	public const DIRECTION_RETURN = 'ruecklastschrift';
 
 	public function __construct(
 		private BankTxSepaDetailMapper $details,

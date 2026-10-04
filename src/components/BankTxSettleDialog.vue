@@ -61,12 +61,12 @@
 				</section>
 
 				<!-- Gutschrift: was mit den Forderungen geschieht -->
-				<p v-if="preview.direction === 'collection' && preview.rows.length" class="vbh-bank-effect">
+				<p v-if="preview.direction === 'einzug' && preview.rows.length" class="vbh-bank-effect">
 					{{ n('%n Forderung wird als bezahlt erledigt und mit dieser Buchung verknüpft.', '%n Forderungen werden als bezahlt erledigt und mit dieser Buchung verknüpft.', preview.rows.length) }}
 				</p>
 
 				<!-- Rücklastschrift: je Posten Grund und automatische Folgen, vor der Bestätigung -->
-				<section v-if="preview.direction === 'return' && preview.rows.length" :aria-label="t('Rücklastschrift-Posten')">
+				<section v-if="preview.direction === 'ruecklastschrift' && preview.rows.length" :aria-label="t('Rücklastschrift-Posten')">
 					<h3 class="vbh-modal-subtitle">
 						{{ t('Das geschieht beim Verbuchen') }}
 					</h3>
@@ -137,7 +137,7 @@ export default {
 		show: { type: Boolean, default: false },
 		bankTxId: { type: Number, default: null },
 		// Art des Umsatzes laut Liste – für die Überschrift, bis die Vorschau da ist
-		kind: { type: String, default: 'collection' },
+		kind: { type: String, default: 'einzug' },
 		saving: { type: Boolean, default: false },
 		error: { type: String, default: null },
 	},
@@ -154,8 +154,8 @@ export default {
 
 	computed: {
 		title() {
-			const direction = this.preview?.direction ?? (this.kind === 'return' ? 'return' : 'collection')
-			return direction === 'return' ? this.t('Rücklastschrift verbuchen') : this.t('Einzugsgutschrift verbuchen')
+			const direction = this.preview?.direction ?? (this.kind === 'ruecklastschrift' ? 'ruecklastschrift' : 'einzug')
+			return direction === 'ruecklastschrift' ? this.t('Rücklastschrift verbuchen') : this.t('Einzugsgutschrift verbuchen')
 		},
 
 		rows() { return bookingRows(this.preview) },

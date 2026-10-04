@@ -514,12 +514,12 @@ class BankReconciliationServiceTest extends TestCase {
 		$preview = $this->service()->settlementPreview(1, true);
 
 		$this->assertSame([], $preview['blockers']);
-		$this->assertSame('collection', $preview['direction']);
+		$this->assertSame('einzug', $preview['direction']);
 		$this->assertSame('2026-10-10', $preview['bookingDate'], 'Buchungsdatum ist das des Bankumsatzes');
 		$this->assertSame('1200', $preview['bank']['number']);
 		$this->assertSame(9000, $preview['amountCents']);
 		$this->assertCount(2, $preview['lines']);
-		$this->assertSame(['haben', 'revenue', 4500, '4000'], [$preview['lines'][0]['side'], $preview['lines'][0]['role'], $preview['lines'][0]['amountCents'], $preview['lines'][0]['number']]);
+		$this->assertSame(['haben', 'erloes', 4500, '4000'], [$preview['lines'][0]['side'], $preview['lines'][0]['role'], $preview['lines'][0]['amountCents'], $preview['lines'][0]['number']]);
 		$this->assertSame('4100', $preview['lines'][1]['number']);
 		$this->assertCount(2, $preview['rows']);
 		$this->assertNull($preview['rows'][0]['return']);
@@ -544,10 +544,10 @@ class BankReconciliationServiceTest extends TestCase {
 		$preview = $this->service()->settlementPreview(1, true);
 
 		$this->assertSame([], $preview['blockers']);
-		$this->assertSame('return', $preview['direction']);
+		$this->assertSame('ruecklastschrift', $preview['direction']);
 		$this->assertCount(2, $preview['lines']);
-		$this->assertSame(['soll', 'revenue_back', '4000', 4500], [$preview['lines'][0]['side'], $preview['lines'][0]['role'], $preview['lines'][0]['number'], $preview['lines'][0]['amountCents']]);
-		$this->assertSame(['soll', 'fee', '6800', 500], [$preview['lines'][1]['side'], $preview['lines'][1]['role'], $preview['lines'][1]['number'], $preview['lines'][1]['amountCents']]);
+		$this->assertSame(['soll', 'erloes_zurueck', '4000', 4500], [$preview['lines'][0]['side'], $preview['lines'][0]['role'], $preview['lines'][0]['number'], $preview['lines'][0]['amountCents']]);
+		$this->assertSame(['soll', 'gebuehr', '6800', 500], [$preview['lines'][1]['side'], $preview['lines'][1]['role'], $preview['lines'][1]['number'], $preview['lines'][1]['amountCents']]);
 		$return = $preview['rows'][0]['return'];
 		$this->assertSame('insufficient_funds', $return['reasonClass']);
 		$this->assertFalse($return['suspendsMandate'], 'Deckung fehlt sperrt das Mandat nicht');

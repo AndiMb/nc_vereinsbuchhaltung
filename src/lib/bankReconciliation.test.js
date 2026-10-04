@@ -152,8 +152,8 @@ describe('Klartext', () => {
 	})
 
 	it('nennt Art und Zustand eines Umsatzes', () => {
-		expect(kindLabel('collection')).toBe('Einzugsgutschrift')
-		expect(kindLabel('return')).toBe('Rücklastschrift')
+		expect(kindLabel('einzug')).toBe('Einzugsgutschrift')
+		expect(kindLabel('ruecklastschrift')).toBe('Rücklastschrift')
 		expect(txStateLabel('offen')).toBe('wartet auf Urteil')
 		expect(txStateLabel('bereit')).toBe('bereit zum Verbuchen')
 		expect(detailStatusLabel('nicht_zuordenbar')).toBe('nicht zuordenbar')
@@ -196,12 +196,12 @@ describe('Buchungsvorschau', () => {
 
 	it('bucht eine Sammelgutschrift: Bank im Soll, Erlöskonten im Haben mit Zahl der Posten', () => {
 		const preview = {
-			direction: 'collection',
+			direction: 'einzug',
 			amountCents: 9000,
 			bank,
 			lines: [
-				{ accountId: 42, number: '4000', name: 'Mitgliedsbeiträge', side: 'haben', role: 'revenue', amountCents: 6000 },
-				{ accountId: 43, number: '4100', name: 'Spenden', side: 'haben', role: 'revenue', amountCents: 3000 },
+				{ accountId: 42, number: '4000', name: 'Mitgliedsbeiträge', side: 'haben', role: 'erloes', amountCents: 6000 },
+				{ accountId: 43, number: '4100', name: 'Spenden', side: 'haben', role: 'erloes', amountCents: 3000 },
 			],
 			rows: [
 				{ account: { accountId: 42 } },
@@ -212,19 +212,19 @@ describe('Buchungsvorschau', () => {
 
 		expect(bookingRows(preview)).toEqual([
 			{ side: 'soll', account: '1200 Bank', amountCents: 9000, role: 'bank', count: null },
-			{ side: 'haben', account: '4000 Mitgliedsbeiträge', amountCents: 6000, role: 'revenue', count: 2 },
-			{ side: 'haben', account: '4100 Spenden', amountCents: 3000, role: 'revenue', count: 1 },
+			{ side: 'haben', account: '4000 Mitgliedsbeiträge', amountCents: 6000, role: 'erloes', count: 2 },
+			{ side: 'haben', account: '4100 Spenden', amountCents: 3000, role: 'erloes', count: 1 },
 		])
 	})
 
 	it('bucht eine Rücklastschrift mit zwei Gegenkonto-Zeilen im Soll, die Bank im Haben', () => {
 		const preview = {
-			direction: 'return',
+			direction: 'ruecklastschrift',
 			amountCents: 5000,
 			bank,
 			lines: [
-				{ accountId: 42, number: '4000', name: 'Mitgliedsbeiträge', side: 'soll', role: 'revenue_back', amountCents: 4500 },
-				{ accountId: 99, number: '6800', name: 'Bankgebühren', side: 'soll', role: 'fee', amountCents: 500 },
+				{ accountId: 42, number: '4000', name: 'Mitgliedsbeiträge', side: 'soll', role: 'erloes_zurueck', amountCents: 4500 },
+				{ accountId: 99, number: '6800', name: 'Bankgebühren', side: 'soll', role: 'gebuehr', amountCents: 500 },
 			],
 			rows: [],
 		}
@@ -232,8 +232,8 @@ describe('Buchungsvorschau', () => {
 		const rows = bookingRows(preview)
 
 		expect(rows.map((r) => [r.side, r.role, r.amountCents])).toEqual([
-			['soll', 'revenue_back', 4500],
-			['soll', 'fee', 500],
+			['soll', 'erloes_zurueck', 4500],
+			['soll', 'gebuehr', 500],
 			['haben', 'bank', 5000],
 		])
 		expect(rows[2].account).toBe('1200 Bank')
@@ -251,8 +251,8 @@ describe('Buchungsvorschau', () => {
 	})
 
 	it('benennt die Rolle einer Gegenkonto-Zeile', () => {
-		expect(lineRoleLabel('revenue_back')).toBe('Erlös zurück')
-		expect(lineRoleLabel('fee')).toBe('Bankgebühr')
+		expect(lineRoleLabel('erloes_zurueck')).toBe('Erlös zurück')
+		expect(lineRoleLabel('gebuehr')).toBe('Bankgebühr')
 		expect(lineRoleLabel('bank')).toBe('')
 	})
 })

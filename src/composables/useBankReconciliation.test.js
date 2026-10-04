@@ -189,9 +189,9 @@ describe('Zahlungseingang', () => {
 
 describe('loadPreview', () => {
 	it('liefert die Vorschau des Servers', async () => {
-		api.bankReconciliationPreview.mockResolvedValue({ data: { direction: 'collection', blockers: [] } })
+		api.bankReconciliationPreview.mockResolvedValue({ data: { direction: 'einzug', blockers: [] } })
 
-		expect(await bank.loadPreview(1)).toEqual({ direction: 'collection', blockers: [] })
+		expect(await bank.loadPreview(1)).toEqual({ direction: 'einzug', blockers: [] })
 		expect(api.bankReconciliationPreview).toHaveBeenCalledWith(1)
 	})
 })

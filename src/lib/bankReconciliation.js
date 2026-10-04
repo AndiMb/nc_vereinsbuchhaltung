@@ -134,9 +134,9 @@ export function unambiguousOpenDetails(entry) {
 
 export function kindLabel(kind) {
 	return {
-		collection: t('Einzugsgutschrift'),
-		return: t('Rücklastschrift'),
-		mixed: t('Gutschrift und Rücklastschrift'),
+		einzug: t('Einzugsgutschrift'),
+		ruecklastschrift: t('Rücklastschrift'),
+		gemischt: t('Gutschrift und Rücklastschrift'),
 	}[kind] || kind
 }
 
@@ -227,9 +227,9 @@ export function returnConsequences(info) {
 /** Rolle einer Gegenkonto-Zeile in der Vorschau. */
 export function lineRoleLabel(role) {
 	return {
-		revenue: t('Erlös'),
-		revenue_back: t('Erlös zurück'),
-		fee: t('Bankgebühr'),
+		erloes: t('Erlös'),
+		erloes_zurueck: t('Erlös zurück'),
+		gebuehr: t('Bankgebühr'),
 	}[role] || ''
 }
 
@@ -253,7 +253,7 @@ export function accountLabel(account) {
  */
 export function bookingRows(preview) {
 	if (!preview?.direction) { return [] }
-	const isReturn = preview.direction === 'return'
+	const isReturn = preview.direction === 'ruecklastschrift'
 	const perAccount = {}
 	if (!isReturn) {
 		for (const row of preview.rows || []) {

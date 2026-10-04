@@ -145,7 +145,7 @@ export default {
 			bulkBusy: false,
 			// Verbuchen: der Umsatz, dessen Vorschau offen ist
 			settleTxId: null,
-			settleKind: 'collection',
+			settleKind: 'einzug',
 			settling: false,
 			settleError: null,
 		}
