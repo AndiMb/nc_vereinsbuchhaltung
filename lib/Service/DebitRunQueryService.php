@@ -56,7 +56,40 @@ class DebitRunQueryService {
 
 	/** @return array{count:int, sumCents:int} */
 	public function summary(string $dueDate): array {
-		$items = $this->preview($dueDate);
+		return self::summarize($this->preview($dueDate));
+	}
+
+	/**
+	 * {@see summary()} für ALLE Termine auf einmal – die Datengrundlage des
+	 * Zeitstrahls im Einzug-Unterreiter (Issue #102), der je Termin „N
+	 * Forderungen, Summe" zeigt. Dieselbe Auswahlregel wie {@see preview()}
+	 * (offen, nicht storniert, nicht in einem lebenden Lauf, einzugsfähig),
+	 * nur in EINEM Durchgang über die Forderungen statt einer Abfrage je Termin.
+	 *
+	 * @return array<string, array{count:int, sumCents:int}> nur Termine mit mindestens einer Forderung, Schlüssel = Fälligkeitsdatum
+	 */
+	public function summariesByDueDate(): array {
+		$alreadyBatched = $this->debitItems->findOpenItemIdsInLiveBatches();
+		/** @var array<string, OpenItem[]> $byDate */
+		$byDate = [];
+		foreach ($this->openItems->findClaims() as $item) {
+			if ($item->getDueDate() === null
+				|| $item->getStatus() !== 'open'
+				|| $item->getCancelledAt() !== null
+				|| in_array($item->getId(), $alreadyBatched, true)
+				|| !$this->eligibility->isEligible($item)) {
+				continue;
+			}
+			$byDate[$item->getDueDate()][] = $item;
+		}
+		return array_map(self::summarize(...), $byDate);
+	}
+
+	/**
+	 * @param OpenItem[] $items
+	 * @return array{count:int, sumCents:int}
+	 */
+	private static function summarize(array $items): array {
 		return [
 			'count' => count($items),
 			'sumCents' => array_sum(array_map(static fn (OpenItem $i) => $i->getAmountCents(), $items)),

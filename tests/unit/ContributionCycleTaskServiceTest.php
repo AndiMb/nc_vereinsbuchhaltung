@@ -184,4 +184,57 @@ class ContributionCycleTaskServiceTest extends TestCase {
 		$this->assertStringContainsString('2026-01-15', $runTasks[0]['message']);
 		$this->assertStringContainsString('30,00', $runTasks[0]['message']);
 	}
+
+	// --- Störfälle zu einem Termin (Geisterkarte, Issue #102) ----------------------------
+
+	public function testRunIssuesKombiniertKeinMandatMitVorabinfoProblemNurDesTermins(): void {
+		// Nur der Vorabinfo-Zweig: zwei Forderungen mit gerissener Frist, aber
+		// nur die am abgefragten Termin zaehlt.
+		$this->setMandateActive(true);
+		$onDate = $this->claim(5, 7, '2026-01-04');
+		$otherDate = $this->claim(6, 7, '2026-01-05');
+		$this->openItems->method('findClaimsAwaitingPrenotification')->willReturn([$onDate, $otherDate]);
+
+		$issues = $this->service('2026-01-01')->findRunIssues('2026-01-04');
+
+		$this->assertCount(1, $issues);
+		$this->assertSame(Task::SEVERITY_ACTION_REQUIRED, $issues[0]['severity']);
+		$this->assertSame(5, $issues[0]['objectId']);
+	}
+
+	public function testRunIssuesZaehltFehlendeMandateFuerJedenTermin(): void {
+		$this->setMandateActive(false);
+		$this->assignments->method('findActiveAsOf')->willReturn([$this->assignment(1, 7)]);
+
+		$issues = $this->service('2026-01-01')->findRunIssues('2026-03-01');
+
+		$this->assertCount(1, $issues);
+		$this->assertSame('assignment', $issues[0]['objectType']);
+		$this->assertSame(Task::SEVERITY_ACTION_REQUIRED, $issues[0]['severity']);
+	}
+
+	public function testRunIssuesWeistAufManuelleForderungOhneMandatAlsHinweisHin(): void {
+		$this->setMandateActive(false);
+		// Manuelle Forderung (kein assignment_id) ohne Mandat: kommt nicht in den
+		// Lauf, ist aber kein Handlungsbedarf (Spec §3.3).
+		$manual = $this->claim(30, 7, '2026-01-10', null, 4200);
+		$this->openItems->method('findClaimsDueOn')->with('2026-01-10')->willReturn([$manual]);
+
+		$issues = $this->service('2026-01-01')->findRunIssues('2026-01-10');
+
+		$this->assertCount(1, $issues);
+		$this->assertSame(Task::SEVERITY_HINT, $issues[0]['severity']);
+		$this->assertStringContainsString('42,00', $issues[0]['message']);
+		$this->assertNull($issues[0]['objectId']);
+	}
+
+	public function testRunIssuesIgnoriertUeberweiserForderungenOhneMandat(): void {
+		$this->setMandateActive(false);
+		// Turnus-Forderung einer Ueberweiser-Zuweisung: "nie Stoerfall" (Spec §3.5).
+		$transferClaim = $this->claim(31, 7, '2026-01-10', 1, 4200);
+		$this->openItems->method('findClaimsDueOn')->willReturn([$transferClaim]);
+		$this->assignments->method('find')->with(1)->willReturn($this->assignment(1, 7, Assignment::PAYMENT_METHOD_TRANSFER));
+
+		$this->assertSame([], $this->service('2026-01-01')->findRunIssues('2026-01-10'));
+	}
 }

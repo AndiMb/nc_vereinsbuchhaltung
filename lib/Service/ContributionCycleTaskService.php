@@ -68,6 +68,39 @@ class ContributionCycleTaskService {
 		];
 	}
 
+	/**
+	 * Die Störfälle zu EINEM Einzugstermin – die Datenquelle der Geisterkarte
+	 * im Einzug-Unterreiter (Issue #102, Spec §3.5/§6: „N Forderungen, Summe, M
+	 * Störfälle", zwei Schweregrade). Nur lesend und ab `revisor` abrufbar
+	 * (Spec §3.9 „Störfall-/Rücklastschriftlisten"), anders als die
+	 * Aufgabenliste insgesamt ({@see \OCA\Vereinsbuchhaltung\Controller\TaskController},
+	 * `buchhalter`).
+	 *
+	 * Setzt sich aus drei Quellen zusammen:
+	 * - **Kein Mandat + Lastschrift gewollt** (Handlungsbedarf): wie in der
+	 *   Vorwarn-Aufgabe zählen ALLE aktuell offenen Fälle, nicht nur die, deren
+	 *   nächste Periode auf genau diesen Termin zeigt (siehe Klassendoc).
+	 * - **Vorabinfo nicht rechtzeitig** (Handlungsbedarf): nur Forderungen, die
+	 *   an diesem Termin fällig sind.
+	 * - **Manuelle Forderung ohne einzugsfähiges Mandat** (Hinweis, aggregiert):
+	 *   Spec §3.3 erlaubt eine manuelle Einzelforderung „auch ohne aktives
+	 *   Mandat" – sie bleibt dann ein normaler offener Posten zur manuellen
+	 *   Klärung und kommt nicht in den Lauf. Kein Störfall im Sinne von
+	 *   Handlungsbedarf, aber wer den Lauf freigibt, soll wissen, dass sie zum
+	 *   Termin fällig und nicht dabei ist. (Überweiser-Zuweisungen bleiben
+	 *   bewusst außen vor: „nie Störfall", Spec §3.5.)
+	 *
+	 * @return list<array{severity:string,message:string,objectType:?string,objectId:?int}>
+	 */
+	public function findRunIssues(string $dueDate, ?string $today = null): array {
+		$today ??= $this->today();
+		return [
+			...$this->findMissingMandateTasks($today),
+			...$this->findBrokenLeadTimeTasks($today, $dueDate),
+			...$this->findManualClaimsWithoutMandateHint($dueDate),
+		];
+	}
+
 	/** @return list<array{severity:string,message:string,objectType:string,objectId:int}> */
 	private function findMissingMandateTasks(string $today): array {
 		$tasks = [];
@@ -90,12 +123,15 @@ class ContributionCycleTaskService {
 	}
 
 	/** @return list<array{severity:string,message:string,objectType:string,objectId:int}> */
-	private function findBrokenLeadTimeTasks(string $today): array {
+	private function findBrokenLeadTimeTasks(string $today, ?string $onlyDueDate = null): array {
 		$leadDays = $this->settings->prenotificationLeadDays();
 		$tasks = [];
 		// Grosszuegiges Fenster (weiter als "until" bei sendDue): wir wollen
 		// auch Forderungen sehen, deren Faelligkeit schon lange verstrichen ist.
 		foreach ($this->openItems->findClaimsAwaitingPrenotification('9999-12-31') as $item) {
+			if ($onlyDueDate !== null && $item->getDueDate() !== $onlyDueDate) {
+				continue;
+			}
 			if (!$this->eligibility->isEligible($item)) {
 				continue;
 			}
@@ -112,6 +148,33 @@ class ContributionCycleTaskService {
 			];
 		}
 		return $tasks;
+	}
+
+	/** @return list<array{severity:string,message:string,objectType:null,objectId:null}> */
+	private function findManualClaimsWithoutMandateHint(string $dueDate): array {
+		$count = 0;
+		$sumCents = 0;
+		foreach ($this->openItems->findClaimsDueOn($dueDate) as $item) {
+			if ($item->getAssignmentId() !== null || $this->eligibility->isEligible($item)) {
+				continue;
+			}
+			$count++;
+			$sumCents += $item->getAmountCents();
+		}
+		if ($count === 0) {
+			return [];
+		}
+		return [[
+			'severity' => Task::SEVERITY_HINT,
+			'message' => $this->l10n->n(
+				'%n manuelle Forderung zu diesem Termin hat kein einzugsfähiges Mandat und kommt nicht in den Lauf (%s €).',
+				'%n manuelle Forderungen zu diesem Termin haben kein einzugsfähiges Mandat und kommen nicht in den Lauf (zusammen %s €).',
+				$count,
+				[number_format($sumCents / 100, 2, ',', '.')],
+			),
+			'objectType' => null,
+			'objectId' => null,
+		]];
 	}
 
 	/** @return list<array{severity:string,message:string,objectType:null,objectId:null}> */
