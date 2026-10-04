@@ -188,8 +188,6 @@ Full manual in German and English: see documentation.
 	     registerBackgroundJob() gibt es am IRegistrationContext nicht. -->
 	<background-jobs>
 		<job>OCA\Vereinsbuchhaltung\BackgroundJob\ImportWatchFolderJob</job>
-		<job>OCA\Vereinsbuchhaltung\BackgroundJob\MembershipFeeDueJob</job>
-		<job>OCA\Vereinsbuchhaltung\BackgroundJob\SepaPreNotificationJob</job>
 		<job>OCA\Vereinsbuchhaltung\BackgroundJob\MandateExpiryJob</job>
 		<job>OCA\Vereinsbuchhaltung\BackgroundJob\MemberDepartureJob</job>
 		<job>OCA\Vereinsbuchhaltung\BackgroundJob\ContributionDueCycleJob</job>

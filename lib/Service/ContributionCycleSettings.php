@@ -21,11 +21,9 @@ use OCP\IConfig;
  * Validierung) nicht synchron gehalten werden. Spec §3.9 führt alle drei
  * zusammen mit der XML-Ablage als EINE `verwalter`-Einstellungsgruppe.
  *
- * `prenotificationLeadDays()` ersetzt fachlich
- * {@see SepaNotificationService::LEAD_DAYS} für das neue Assignment/Claim-
- * Modell (Spec §4: „ersetzt SepaNotificationService::LEAD_DAYS = 14") – der
- * alte, feste Wert bleibt für den alten `vbh_sepa_batches`-Zyklus unverändert
- * bestehen, beide Systeme laufen bis zu dessen Ablösung nebeneinander.
+ * `prenotificationLeadDays()` ersetzt die frühere feste Vorlaufzeit des
+ * flachen Alt-Moduls (Spec §4: „ersetzt SepaNotificationService::LEAD_DAYS =
+ * 14", Issue #107 hat den Dienst entfernt).
  */
 final class ContributionCycleSettings {
 

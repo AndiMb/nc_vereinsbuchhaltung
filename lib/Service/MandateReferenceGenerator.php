@@ -6,8 +6,8 @@ namespace OCA\Vereinsbuchhaltung\Service;
 
 /**
  * Mandatsreferenz `<Präfix>-<lfd. Nr.>` (Spec §2.2), frei überschreibbar –
- * anders als die zufällige Hex-Referenz des alten Mandatssystems
- * ({@see \OCA\Vereinsbuchhaltung\Service\Sepa\SepaReference}). Reine
+ * anders als die zufällige Hex-Referenz des früheren Mandatssystems
+ * ({@see \OCA\Vereinsbuchhaltung\Service\Sepa\SepaReference::mandate()}). Reine
  * Rechenklasse: nimmt die bereits vorhandenen Referenzen desselben Präfixes
  * entgegen (siehe {@see \OCA\Vereinsbuchhaltung\Db\MandateMapper::findReferencesWithPrefix()})
  * und ermittelt die nächste freie laufende Nummer daraus – ohne selbst eine

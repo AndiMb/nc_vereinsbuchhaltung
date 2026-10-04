@@ -95,7 +95,7 @@ Nextcloud-Nutzer oder -Gruppen mit einer Rolle ausgestattet:
 
 - **Verwalter** – darf alles, inkl. Berechtigungen, Geschäftsjahr, Alle-Daten-löschen.
 - **Buchhalter** – liest und schreibt Buchungen, Belege, Zuordnungen, sowie
-  Mitglieder, SEPA-Mandate und den Beitragseinzug (Kapitel 13.2–13.7).
+  Mitglieder, SEPA-Mandate und den Beitragseinzug (Kapitel 13.2–13.10).
 - **Revisor** – darf nur lesen (für die Kassenprüfung).
 
 > **Hinweis:** Nextcloud-Administratoren sind *immer* Verwalter, unabhängig
@@ -470,9 +470,12 @@ Fremddaten stammen; die App zeigt sie an und warnt beim Bearbeiten.
 
 Tab **Buchungen → Offene Posten**. Eine schlanke Liste für Forderungen, die
 noch nicht bezahlt sind – z. B. ein ausstehender Mitgliedsbeitrag oder eine
-gestellte Rechnung. **Wichtig: Das ist keine Mitgliederverwaltung** – der
-Debitor (Name der zahlungspflichtigen Person oder Stelle) wird als
-Freitext eingetragen, es gibt keine Mitglieder-Stammdaten dahinter.
+gestellte Rechnung. Der Debitor (Name der zahlungspflichtigen Person oder
+Stelle) wird hier als Freitext eingetragen, es gibt keine Mitglieder-Stammdaten
+dahinter. Die Forderungen an **Mitglieder** (Beiträge und Gebühren aus dem
+Beitragsmodul, Kapitel 13) stehen mit dem Mitgliedsnamen als Debitor ebenfalls
+in dieser Liste; angelegt und verwaltet werden sie im Reiter *Beiträge*
+(Kapitel 13.4 und 13.8).
 
 Ein neuer Posten braucht: **Debitor**, **Betrag**, optional **Fälligkeit**
 und ein **Konto** (für die spätere Buchung). Ist die Fälligkeit
@@ -877,10 +880,11 @@ vorherigen Zeitraum.
 
 Bewusst *nicht* umgestellt sind drei Dinge:
 
-- **Mitgliedsbeiträge, offene Posten und SEPA** (Kapitel 13) rechnen
-  weiterhin ab dem **Startdatum des Mitglieds**, nicht ab dem Beginn des
-  Geschäftsjahres. „Jährlich" heißt also zwölf Monate ab diesem Datum – wer
-  am 15. März eintritt, zahlt weiter jeden 15. März.
+- **Mitgliedsbeiträge und SEPA** (Kapitel 13) folgen ihrem eigenen
+  **Beitragsjahr** (Nextcloud-Einstellungen → Vereinsbuchhaltung → Beiträge &
+  SEPA) und dem Terminplan, nicht dem Beginn des Geschäftsjahres: wann eine
+  Periode fällig wird, richtet sich nach dem Einzugstag des Turnus und dem
+  Beginn der Zuweisung.
 - Die **Monatsgruppierung im Buchungsjournal** bleibt kalendarisch: die
   Gruppe „Oktober 2025" heißt Oktober 2025, egal wo im Geschäftsjahr sie
   liegt.
@@ -1104,10 +1108,10 @@ Zweifel die verwaltende Person fragen.
 ## 13. Mitgliedsbeiträge und SEPA-Lastschrift
 
 Ein **optionales Zusatzmodul**. Wer Beiträge per Überweisung bekommt oder gar
-keine erhebt, kann dieses Kapitel überspringen – ohne angelegtes Mandat
+keine erhebt, kann dieses Kapitel überspringen – ohne angelegtes Mitglied
 verhält sich die App genau wie bisher.
 
-Mitglieder, Mandate, Beiträge und den Einzug (13.2–13.7) dürfen **Verwalter
+Mitglieder, Mandate, Beiträge und den Einzug (13.2–13.10) dürfen **Verwalter
 und Buchhalter** pflegen – ein Mandat verknüpft zwar eine Person mit ihrer
 Bankverbindung, aber das ist keine schwerere Verantwortung als jede andere
 Buchung. Die **Grundeinstellungen** (13.1: Gläubiger-ID, einziehendes Konto,
@@ -1126,11 +1130,11 @@ laufende Arbeit.
 3. Ein **Geldkonto mit hinterlegter IBAN** in der Kontenliste. Auf dieses Konto
    wird eingezogen.
 
-Gläubiger-ID und einziehendes Konto tragen Sie unter *Zahnrad → Beiträge &
-SEPA → Grundeinstellungen* ein. Dort steht auch der Schalter, der den
-Reiter **„Beiträge"** in der Hauptnavigation einblendet (siehe 13.2) – ist
-bereits ein Mandat oder ein Beitrag angelegt, erscheint er automatisch,
-auch ohne den Schalter.
+Gläubiger-ID und einziehendes Konto tragen Sie unter *Nextcloud-Einstellungen
+→ Vereinsbuchhaltung → Beiträge & SEPA → Grundeinstellungen* ein. Dort steht
+auch der Schalter, der den Reiter **„Beiträge"** in der Hauptnavigation
+einblendet (siehe 13.2) – ist bereits ein Mitglied angelegt, erscheint er
+automatisch, auch ohne den Schalter.
 
 > **Zahlen fast alle Mitglieder denselben Beitrag** (z. B. 8 € monatlich, der
 > Normalfall bei einem Chor oder Sportverein)? Dann lohnt sich auf derselben
@@ -1141,47 +1145,56 @@ auch ohne den Schalter.
 > aber keinen eigenen Betrag hat – abweichende Einzelfälle (Ermäßigung,
 > Ehrenmitglied) tragen Sie einfach mit eigenem Betrag ein.
 
-### 13.2 Wo die Bankdaten der Mitglieder stehen
+### 13.2 Mitglieder, Mandate und Beiträge
 
-**Es gibt in dieser App keine Mitgliederverwaltung.** Das ist Absicht: eine
-Buchhaltung ist keine Mitgliederdatenbank, und die meisten Vereine führen ihre
-Mitglieder ohnehin anderswo. Was die App braucht, ist nur das, was zum Geld
-gehört.
+Im **Reiter „Beiträge" → Mitglieder** (Hauptnavigation, nicht die
+Nextcloud-Einstellungen – das ist laufende Arbeit, keine Einstellung) führen Sie
+die Mitglieder, soweit die App sie für das Geld braucht: Name (Person oder
+Organisation), Kontaktdaten, Mitgliedsnummer sowie Beitritts- und
+Austrittsdatum. Eine vollständige Mitgliederverwaltung ist das nicht, und ein
+Mitglied braucht kein Nextcloud-Konto; ein vorhandenes lässt sich in der Akte
+verknüpfen (*Nextcloud-Konto* → *Vorschläge suchen*, erst nach Ihrer
+Bestätigung – die Mailadresse liefert nur den Vorschlag).
 
-Ein „Mitglied" besteht hier deshalb aus zwei Angaben, die beide im
-**Reiter „Beiträge" → Mitglieder** stehen (Hauptnavigation, nicht das
-Zahnrad – das ist laufende Arbeit, keine Einstellung):
+Zwei weitere Angaben hängen am Mitglied, beide optional und jederzeit
+nachzutragen:
 
 | Angabe | Was dort hineingehört |
 |---|---|
-| **Mandat** | IBAN, optional BIC, E-Mail-Adresse und das Datum, an dem das Mandat unterschrieben wurde |
-| **Beitrag** | Betrag, Zahlungsfrequenz und die erste Fälligkeit |
+| **Mandat** | IBAN, optional BIC, Kontoinhaber, Unterschriftsart (Papier oder elektronisch) und das Datum, an dem das Mandat unterschrieben wurde |
+| **Beitrag** | die Zuweisung zu einer Beitragsgruppe: Monatsbeitrag, Turnus, Zahlungsart und Beginn (siehe 13.4) |
 
 **Die IBAN steht am Mandat, nicht am Mitglied** – ein Mitglied ohne Mandat hat
-in der App schlicht keine Bankverbindung. Beides legen Sie über den Knopf
-**„＋ Mitglied"** (Reiter „Beiträge" → Mitglieder) in einem Schritt an;
-jedes für sich ist ebenfalls möglich:
+in der App schlicht keine Bankverbindung. Der Knopf **„＋ Mitglied"** (Reiter
+„Beiträge" → Mitglieder) öffnet den dreistufigen **Aufnahme-Assistenten**:
+Stammdaten → Mandat → Beitrag. Die Schritte 2 und 3 lassen sich überspringen und
+später nachholen – das Mandat in der Personenakte (Menü ⋯ → **„Mandat
+verwalten"**), den Beitrag im Reiter *Beitragsgruppen* (13.4):
 
-- **nur Beitrag, keine IBAN** – für Überweiser und Barzahler. Die App legt bei
-  Fälligkeit trotzdem einen offenen Posten an, dann eben als Erinnerung.
-- **nur Mandat, kein Betrag** – wenn Sie nur gelegentlich etwas einziehen.
-
-Als Zahler wählen Sie entweder einen **Nextcloud-Nutzer** dieser Instanz oder
-tragen einen **freien Namen** ein. Das zweite ist der Normalfall: kaum ein
-Verein legt für jedes Mitglied ein Nextcloud-Konto an.
+- **nur das Mitglied** – ohne Bankverbindung und ohne Beitrag.
+- **Beitrag ohne Mandat** – für Überweiser und Barzahler (Zahlungsart
+  *Überweisung*). Die App legt bei Fälligkeit trotzdem eine Forderung an, dann
+  eben als Erinnerung.
+- **Mandat ohne Beitrag** – wenn Sie nur gelegentlich etwas einziehen (über eine
+  Einzelforderung, siehe 13.4).
 
 > **Tragen Sie die E-Mail-Adresse ein.** Ohne sie kann die App die gesetzlich
 > vorgeschriebene Vorankündigung nicht verschicken, und Sie müssen jedes
 > Mitglied selbst benachrichtigen. Die Liste weist Sie bei jeder Zeile ohne
-> Adresse darauf hin; über *nur Auffälligkeiten* sehen Sie alle auf einmal.
+> Adresse darauf hin; über *nur Auffälligkeiten* sehen Sie alle auf einmal. Ohne
+> Adresse lässt sich keine Lastschrift anlegen: der Assistent stellt die
+> Zahlungsart dann auf *Überweisung*.
 
-Die **Mandatsreferenz** vergibt die App selbst (etwa `M20260813-2DE3C1`). Sie
-erscheint auf dem Kontoauszug des Zahlers – teilen Sie sie ihm zusammen mit dem
-Mandatsformular mit.
+Die **Mandatsreferenz** vergibt die App selbst: Präfix und laufende Nummer (etwa
+`M-17`; das Präfix stellt die Verwaltung unter *Mandate* ein, im Assistenten und
+im Mandat lässt sich die Referenz auch von Hand vorgeben). Sie erscheint auf dem
+Kontoauszug des Zahlers – teilen Sie sie ihm zusammen mit dem Mandatsformular
+mit.
 
-> Ein Mandat wird **widerrufen, nicht gelöscht**. Bereits erzeugte
-> Einreichungen verweisen darauf, und dieser Nachweis muss erhalten bleiben.
-> Deshalb verschwindet der Löschen-Knopf, sobald ein Mandat verwendet wurde.
+> Ein Mandat wird **widerrufen, nicht gelöscht**. Bereits erzeugte Einzüge
+> verweisen darauf, und dieser Nachweis muss erhalten bleiben. Ein Mandat, das
+> nie wirksam war, lässt sich als Entwurf verwerfen (siehe unten); auch das
+> bleibt unter *Frühere Mandate* nachvollziehbar.
 
 **Das Mandat in der Personenakte führen.** Über das Menü (⋯) der Zeile →
 **„Mandat verwalten"** öffnet die Akte beim Abschnitt *SEPA-Mandat*. Er zeigt
@@ -1236,6 +1249,14 @@ erste Wahl an, was meist gemeint ist: *„Ich habe nur ein neues Konto → IBAN
 hoch (es landet im Nachweis-Ordner in Nextcloud) und können es wieder
 herunterladen; **Mandatsformular öffnen** zeigt das druckfertige Formular
 (Strg+P bzw. ⌘P).
+
+**Austritt und Löschen.** In der Akte erklären Sie mit **„Austritt erklären"**
+den Austritt zu einem Datum (auch in der Zukunft); er lässt sich zurücknehmen,
+solange er noch nicht wirksam sein muss. **Löschen** lässt sich ein Mitglied nur,
+solange nichts an ihm hängt: kein Mandat (auch kein Entwurf und kein beendetes –
+sie bleiben als Nachweis erhalten), keine Zuweisung und keine Forderung. Sonst
+nennt die Akte statt des Knopfes den Grund. Für Datenschutzfälle gibt es die
+Anonymisierung statt des Löschens.
 
 ### 13.3 Viele Mitglieder auf einmal aufnehmen
 
@@ -1298,83 +1319,157 @@ Bestätigung „die unterschriebenen Mandate liegen vor" – das ersetzt die son
 manuelle Freigabe je Mandat und setzt voraus, dass Sie die Papierform
 tatsächlich vorliegen haben.
 
-### 13.4 Beiträge, Fälligkeit und Rückstand
+### 13.4 Beitragsgruppen, Zuweisungen und Fälligkeit
 
-Bei Fälligkeit erzeugt die App automatisch einen **offenen Posten** – denselben,
-den Sie unter *Berichte → Offene Posten* sehen. Nur Posten *mit* Mandat kommen
-für den Lastschrifteinzug in Frage.
+Was ein Mitglied zahlt, steht in einer **Zuweisung** zu einer
+**Beitragsgruppe** (Reiter **„Beiträge" → Beitragsgruppen**):
 
-Liegt die nächste Fälligkeit in der Vergangenheit – etwa weil Sie einen Beitrag
-rückwirkend angelegt haben –, holt der Tageslauf **eine Periode pro Tag** nach,
-statt auf einen Schlag zwei Jahrgänge Forderungen zu erzeugen. Wie viel noch
-aussteht, steht in der Spalte *Nächste Fälligkeit*; über **„Nachholen"**
-erzeugen Sie den gesamten Rückstand sofort.
+- Die **Beitragsgruppe** trägt das Regelwerk: *Name*, *Untergrenze* und
+  *Standardbeitrag* (je Monat), die *erlaubten Turnusse* in Monaten samt
+  *Standard-Turnus* und ob die Gruppe *aktiv* ist. Eine höhere Untergrenze
+  setzen Sie über **„Untergrenze anheben"**: die Vorschau nennt vorher die
+  betroffenen Zuweisungen, und bereits eingezogene Perioden werden nie neu
+  berechnet.
+- Die **Zuweisung** verbindet ein Mitglied mit einer Gruppe: *Monatsbeitrag*,
+  *Turnus*, *Zahlungsart* (*Lastschrift* oder *Überweisung*) sowie *Gültig ab*
+  und optional *Gültig bis*. Der **Monatsbeitrag ist der Ausgangswert**: der
+  Betrag je Periode ergibt sich aus Monatsbeitrag × Turnus (10 € im Monat bei
+  einem Turnus von 3 Monaten heißen 30 € je Quartal). **„Vorschau"** nennt vor
+  dem Anlegen die erste Periode, den Einzugsbetrag und den voraussichtlichen
+  Einzugstermin. **„Beenden"** beendet eine Zuweisung zum heutigen Tag; bereits
+  erzeugte Forderungen bleiben unverändert.
+- **Zuweisungen gelten nie rückwirkend:** *Gültig ab* darf nicht in der
+  Vergangenheit liegen. Was für eine zurückliegende Zeit noch zu fordern ist,
+  legen Sie als **Einzelforderung** an (**„+ Einzelforderung"**: freier Betrag
+  mit eigenem Einzugstermin, auch ohne Mandat, z. B. für eine Nachzahlung oder
+  eine Sondergebühr).
 
-Haben Sie sich schlicht im Startdatum vertan, korrigieren Sie die nächste
-Fälligkeit über *Bearbeiten*, statt nachzuholen.
+Aus den Zuweisungen entstehen die **Forderungen** von selbst: der tägliche Lauf
+der App legt eine Forderung an, sobald der Einzugstermin ihrer Periode ins
+**Vorwarnfenster** fällt (Standard 21 Tage vorher, siehe 13.5). Eine Forderung
+ist dieselbe Zeile wie ein offener Posten und steht deshalb auch unter *Buchungen
+→ Offene Posten*; ihren Zustand, Mahnstand und die Störfälle zeigt das Segment
+*Forderungen* im Einzug (13.8).
 
-**Mitglieder, die über den Aufnahme-Assistenten oder den CSV-Import angelegt
-wurden**, zeigt die Liste mit Mandat (IBAN, bei Bedarf mit der Marke *Entwurf*
-oder *ausgesetzt*) und ihrer Beitragsgruppen-Zuweisung: *Betrag* ist der Betrag
-je Periode (Monatsbeitrag × Turnus), *Aktiv* nennt den Zustand der Zuweisung
-(*aktiv*, *ab …*, *beendet …*). Eine *Nächste Fälligkeit* gibt es dort nicht –
-sie entsteht erst mit der Forderung. Wer per Überweisung zahlt, steht mit
-„Überweisung" statt „kein Mandat" da. Solche Zuweisungen bearbeiten Sie nicht in
-der Zeile, sondern über **„Zuweisung verwalten"** im Reiter *Beitragsgruppen*.
+**Die Mitgliederliste** (Reiter *Beiträge → Mitglieder*) zeigt je Mitglied das
+Mandat (IBAN, bei Bedarf mit der Marke *Entwurf* oder *ausgesetzt*) und die
+Zuweisung: *Betrag* ist der Betrag je Periode (Monatsbeitrag × Turnus),
+*Frequenz* der Turnus, *Aktiv* nennt den Zustand der Zuweisung (*aktiv*,
+*ab …*, *beendet …*), und *Nächste Fälligkeit* ist der früheste Termin unter den
+noch fälligen Forderungen des Mitglieds (offen, im Einzug oder zurückgegeben;
+eine laufende Stundung zählt mit ihrem Ende). Wer per Überweisung zahlt, steht
+mit „Überweisung" statt „kein Mandat" da. Eine Zuweisung bearbeiten Sie nicht in
+der Zeile, sondern über **„Zuweisung verwalten"** im Reiter *Beitragsgruppen*;
+das Mandat führen Sie über das Menü (⋯) → **„Mandat verwalten"**. *nur
+Auffälligkeiten* zeigt Mitglieder ohne E-Mail-Adresse und solche, deren
+Lastschrift-Zuweisung kein Mandat hat.
 
-### 13.5 Einzug erzeugen und einreichen
+### 13.5 Einzug: Termin, Freigabe und Einreichung
 
-Im Reiter **„Beiträge" → Einzug** wählen Sie den **Fälligkeitstermin**. Die
-Vorschau zeigt alle offenen Posten mit aktivem Mandat, die bis dahin fällig
-sind und in keinem laufenden Einzug stecken.
+Im Reiter **„Beiträge" → Einzug** zeigt das Segment **„Zeitstrahl & Läufe"** das
+Beitragsjahr mit allen **Einzugsterminen** und einer Marke für HEUTE. Die Termine
+stammen aus dem **Terminplan** (Abschnitt *Terminplan* im Reiter
+*Beitragsgruppen* und im Einzug: je Turnus ein Standard-Einzugstag als Versatz zum
+Periodenbeginn, einzelne Perioden lassen sich überschreiben) und aus
+Einzelforderungen mit eigenem Termin. Ein Klick auf einen
+Termin zeigt seine Meilensteine und – solange nichts freigegeben ist – eine
+**Vorschau**: wie viele Forderungen mit welcher Summe eingezogen würden und
+welche Störfälle (13.9) dazu anstehen. Vor der Freigabe gibt es keinen Lauf, die
+Vorschau speichert nichts.
 
-> **Legen Sie den Termin mindestens 14 Tage in die Zukunft.** Das SEPA-Regelwerk
-> verlangt, dass Sie den Zahler vorher über Betrag und Termin informieren
-> („Vorankündigung"). Die App übernimmt das per E-Mail für alle Zahler mit
-> hinterlegter Adresse und nennt darin Betrag, Termin, Mandatsreferenz und Ihre
-> Gläubiger-ID. Bei kürzerem Vorlauf warnt sie. Zahler ohne Adresse müssen Sie
-> selbst informieren – die Zeilenansicht des Einzugs weist Sie darauf hin.
+**Ein Lauf gehört zu genau einem Einzugstermin** und bündelt alle einzugsfähigen
+Forderungen dieses Termins. Der Ablauf, mit den Standardwerten der einstellbaren
+Abstände:
 
-„Einzug erzeugen" legt den Sammeleinzug an; über „XML herunterladen" bekommen
-Sie die **pain.008-Datei**, die Sie im Online-Banking Ihrer Bank hochladen.
+| Zeitpunkt | Was geschieht |
+|---|---|
+| 21 Tage vor dem Einzug (*Vorwarnfenster*) | Die Forderungen entstehen, die Aufgabenliste (13.9) kündigt den nächsten Lauf an: Anzahl, Summe, Störfälle |
+| 14 Tage vor dem Einzug (*Vorabinfo-Vorlauf*) | Die App verschickt die **Vorabinfo** per E-Mail – gebündelt je Mitglied, mit Betrag, Termin, Mandatsreferenz, Gläubiger-ID und dem frühesten Einzugstag. Ab dann ist die Periode „zu": ihr Betrag ändert sich nicht mehr |
+| 5 Tage vor dem Einzug (*Freigabe-Vorlauf*) | Sie **geben den Lauf frei und reichen ihn ein**; ab hier steht „Freigabe fällig" in der Aufgabenliste |
+| Einzugstermin | Die Bank belastet, frühestens an diesem Tag; eine Verschiebung auf einen Geschäftstag rechnet die Bank |
+
+Die Vorabinfo verschickt die App nur an Mitglieder **mit E-Mail-Adresse**; allen
+anderen müssen Sie die Vorankündigung selbst geben, die Aufgabenliste führt sie.
+Überweiser bekommen Forderungen, aber nie Einzugsposten, Vorabinfo oder Störfall.
+Die Abstände stellen Sie ein: *Vorwarnfenster* und *Vorabinfo-Vorlauf* beim
+Terminplan, den *Freigabe-Vorlauf* in den Nextcloud-Einstellungen (*Beiträge &
+SEPA* → *Beitragsjahr und Einzugszyklus*).
+
+Freigabe und Einreichung sind zwei Schritte beim gewählten Termin:
+
+- **Schritt 1 von 2 – „Freigeben & Datei erzeugen":** Beträge, IBAN und
+  Kontoinhaber der Posten werden eingefroren und die **pain.008-Datei**
+  erzeugt. Jeder Posten bekommt eine eigene End-to-End-ID, die nie
+  wiederverwendet wird. Störfälle blockieren die Freigabe nicht: betroffene
+  Forderungen bleiben offen und kommen nicht in den Lauf. Auch ein Termin in der
+  Vergangenheit blockiert nichts.
+- **Schritt 2 von 2 – „Datei ist bei der Bank eingereicht":** Mit **„XML
+  herunterladen"** holen Sie die Datei und laden sie im Online-Banking hoch,
+  danach bestätigen Sie die Einreichung. Das ist endgültig: ab dann lässt sich
+  der Lauf weder verwerfen noch verschieben, und die beteiligten Mandate
+  vermerken den Einzug – davon hängen die 36-Monats-Frist und die Art des
+  Einzugs (Erst- oder Folgeeinzug) ab.
 
 > **Vor dem ersten echten Einzug** die Datei mit dem Prüftool Ihrer Hausbank
 > gegentesten. Das genaue Format weicht je nach Institut leicht ab.
 
-Ein versehentlich erzeugter Einzug lässt sich über **„Verwerfen"** wieder
-auflösen, solange keine Rücklastschrift eingegangen ist; die enthaltenen Posten
-stehen dann wieder zur Verfügung. Wurde die Datei schon eingereicht, ändert das
-Verwerfen daran natürlich nichts – dann müssen Sie den Einzug bei der Bank
-zurückrufen.
+Solange die Datei **nicht eingereicht** ist, lässt sich der Lauf noch ändern:
+
+- **„Lauf verwerfen"** (Begründung ist Pflicht) löst ihn auf: die Posten bleiben
+  als Historie stehen, die Forderungen sind wieder frei und gehen in einen neuen
+  Lauf, die End-to-End-IDs werden nie wieder verwendet. Haben sich Mandatsdaten
+  seit der Freigabe geändert, weist der Lauf darauf hin – verwerfen Sie ihn dann
+  und geben Sie den Termin neu frei, die neue Datei enthält die aktuellen Daten.
+- **„Termin verschieben"** geht nur nach hinten (ein früherer Termin würde die
+  Vorlauffristen unterschreiten); die Datei trägt dann den neuen Termin, Kennung
+  und End-to-End-IDs bleiben. Laden Sie sie danach neu herunter.
+
+Ist die Datei schon bei der Bank, verwerfen Sie **nicht**, sondern bestätigen die
+Einreichung: das Verwerfen ändert bei der Bank nichts, und die freien
+Forderungen könnten sonst ein zweites Mal eingezogen werden. Einen Einzug, der
+schon eingereicht ist, rufen Sie bei der Bank zurück.
+
+Auf Wunsch legt die App eine **Kopie der Datei** in einem Nextcloud-Ordner ab
+(*XML-Ablage*, Nextcloud-Einstellungen → *Beiträge & SEPA*; standardmäßig aus,
+weil die Datei alle IBANs im Klartext enthält). In der Lauf-Ansicht steht die
+IBAN dagegen immer maskiert.
 
 ### 13.6 Wenn das Geld da ist
 
-Sobald die Sammelgutschrift auf Ihrem Vereinskonto steht, klicken Sie beim
-Einzug auf **„Als ausgeführt verbuchen"**. Damit werden alle enthaltenen
-offenen Posten in einem Schritt als bezahlt geschlossen – bei 80 Mitgliedern
-also ein Klick statt achtzig.
+Sobald die Sammelgutschrift auf Ihrem Vereinskonto steht, importieren Sie den
+Kontoauszug wie gewohnt (Kapitel 3.2). Die Gutschrift erscheint dann im Segment
+**„Bankabgleich"** (13.10): die App schlägt vor, welche Posten des Laufs sie
+deckt, Sie beurteilen die Zeilen und **verbuchen** den Umsatz in einem Schritt –
+die enthaltenen Forderungen werden dabei als bezahlt erledigt, bei 80
+Mitgliedern also ein Verbuchen (nach dem Prüfen) statt achtzig Klicks.
+Zurückgebuchte Zeilen bleiben offen: dieses Geld ist nicht gekommen.
 
-Zurückgebuchte Zeilen bleiben dabei ausdrücklich offen: dieses Geld ist nicht
-gekommen. Ein abgeschlossener Einzug lässt sich nicht mehr verwerfen.
-
-Die Bankbuchung der Sammelgutschrift ordnen Sie wie jede andere Buchung einem
-Konto zu.
+Eine Buchung zum Einzug entsteht nie von selbst: der Kontoauszug ist die
+Wahrheit, und erst Ihr Verbuchen macht daraus die Buchung (Bank im Soll, die
+Erlöskonten im Haben).
 
 ### 13.7 Rücklastschriften
 
 Kommt ein Einzug zurück (Konto nicht gedeckt, Mandat widersprochen), erkennt die
-App das beim nächsten **Kontoauszugs-Import** und öffnet den zugehörigen offenen
-Posten wieder. Die zurückgebuchte Bankbuchung selbst ordnen Sie wie jede andere
-einem Konto zu – typischerweise Forderungsausfälle und Bankgebühren.
+App das beim nächsten **Kontoauszugs-Import**: die Rücklastschrift erscheint im
+Segment **„Bankabgleich"** (13.10), zugeordnet zu dem Posten, zu dem sie gehört,
+mit dem **Grund in Klartext**. Nach dem Import meldet der Import-Dialog, wie
+viele mögliche Rücklastschriften erkannt wurden; ein Lauf des Wachordners
+vermerkt es im Protokoll.
 
-Die Erkennung arbeitet mit dem, was die Bank im Verwendungszweck mitliefert, und
-liegt gelegentlich daneben. In der Zeilenansicht des Einzugs können Sie eine
-falsch erkannte Rückbuchung über **„Rückbuchung zurücknehmen"** wieder aufheben.
+Erst Ihr **Urteil und Verbuchen** löst aus, was die Zeile und die Vorschau
+ankündigen: die Forderung wird wieder offen, je nach Grund wird das Mandat
+gesperrt, und das Mitglied bekommt eine Zahlungsaufforderung (Tabelle der Folgen
+in 13.10, Mahnstufen in 13.8). Eine Forderung wird nach einer Rücklastschrift
+**nicht erneut per Lastschrift eingezogen**.
 
-Eine Rückgabe trifft oft erst ein, **nachdem** Sie den Einzug als ausgeführt
-verbucht haben. Auch dann wird sie erkannt: der betroffene Posten wird wieder
-geöffnet, und das Mandat gilt wieder als nicht eingelöst – der nächste Versuch
-läuft dadurch erneut als Ersteinzug.
+Die Erkennung nutzt die strukturierten Angaben des Kontoauszugs (CAMT:
+End-to-End-ID, Mandatsreferenz, Rückgabegrund); bei Formaten ohne diese Angaben
+liest sie notfalls den Verwendungszweck und liegt damit gelegentlich daneben.
+Deshalb ist nichts davon automatisch: Sie beurteilen jede Zeile (*Ablehnen* oder
+*Nicht zuordenbar*, ein Urteil lässt sich bis zum Verbuchen ändern). Eine
+Rückgabe trifft oft erst ein, **nachdem** die Sammelgutschrift schon verbucht ist
+– auch dann wird sie erkannt, und die Forderung wird wieder offen.
 
 ### 13.8 Forderungen, Mahnstand und Störfälle
 
@@ -1575,7 +1670,7 @@ ein Verwalter eines einstellt.
 
 ### 14.1 Rollen und Rechte
 
-| Rolle | Lesen | Buchen/Belege | Mitglieder/SEPA-Einzug (13.2–13.7) | Beiträge-Grundeinstellungen (13.1), Berechtigungen, Geschäftsjahr, Reset |
+| Rolle | Lesen | Buchen/Belege | Mitglieder/SEPA-Einzug (13.2–13.10) | Beiträge-Grundeinstellungen (13.1), Berechtigungen, Geschäftsjahr, Reset |
 |---|:---:|:---:|:---:|:---:|
 | Revisor | ✓ | – | – | – |
 | Buchhalter | ✓ | ✓ | ✓ | – |

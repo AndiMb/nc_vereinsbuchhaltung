@@ -135,17 +135,9 @@ export default {
 	// Aufgaben/Störfälle
 	listTasks: () => axios.get(url('/tasks')),
 
-	// SEPA-Lastschriftmandate (optionales Zusatzmodul)
-	listSepaMandates: () => axios.get(url('/sepa/mandates')),
-	createSepaMandate: (data) => axios.post(url('/sepa/mandates'), data),
-	updateSepaMandate: (id, data) => axios.put(url(`/sepa/mandates/${id}`), data),
-	revokeSepaMandate: (id) => axios.post(url(`/sepa/mandates/${id}/revoke`)),
-	changeSepaMandateBankAccount: (id, data) => axios.post(url(`/sepa/mandates/${id}/change-account`), data),
-	deleteSepaMandate: (id) => axios.delete(url(`/sepa/mandates/${id}`)),
-
-	// SEPA-Mandate, voller Lifecycle (Issue #66/#67) – parallel zum Alt-Bestand
-	// oben; genutzt vom Aufnahme-Assistenten (MemberDialog.vue, Issue #69) und
-	// für die Zeilen der Mitgliederliste (MembersList.vue).
+	// SEPA-Mandate, voller Lifecycle (Issue #66/#67); genutzt vom
+	// Aufnahme-Assistenten (MemberDialog.vue, Issue #69), für die Zeilen der
+	// Mitgliederliste (MembersList.vue) und die Mandat-Verwaltung in der Akte.
 	listMandates: () => axios.get(url('/mandates')),
 	createMandate: (data) => axios.post(url('/mandates'), data),
 	activateMandate: (id, signedAt) => axios.post(url(`/mandates/${id}/activate`), signedAt ? { signedAt } : {}),
@@ -171,13 +163,6 @@ export default {
 	// Nachweis-Download und druckfertiges Formular: Browser-Navigation, kein Axios
 	mandateDocumentUrl: (id) => generateUrl(base + `/mandates/${id}/document`),
 	mandateFormUrl: (id) => generateUrl(base + `/mandates/${id}/form`),
-
-	// Mitgliedsbeiträge mit Zahlungsfrequenz (optionales Zusatzmodul)
-	listMembershipFees: () => axios.get(url('/sepa/fees')),
-	createMembershipFee: (data) => axios.post(url('/sepa/fees'), data),
-	updateMembershipFee: (id, data) => axios.put(url(`/sepa/fees/${id}`), data),
-	deleteMembershipFee: (id) => axios.delete(url(`/sepa/fees/${id}`)),
-	catchUpMembershipFee: (id) => axios.post(url(`/sepa/fees/${id}/catch-up`)),
 
 	// Beitragsgruppen (Issue #68)
 	listContributionGroups: () => axios.get(url('/contribution-groups')),
@@ -287,16 +272,6 @@ export default {
 	// "Datenübersicht" (Issue #78, Spec §3.8): Art.-15-DSGVO-Auskunft als
 	// druckfertige Live-Ansicht, hier unter "Meine Daten".
 	selfDataOverviewUrl: () => generateUrl(base + '/self/data-overview'),
-
-	// SEPA-Sammeleinzüge (pain.008-Export)
-	previewSepaExport: (executionDate) => axios.get(url('/sepa/export/preview'), { params: executionDate ? { executionDate } : {} }),
-	listSepaBatches: () => axios.get(url('/sepa/export/batches')),
-	createSepaBatch: (executionDate) => axios.post(url('/sepa/export/batches'), { executionDate }),
-	deleteSepaBatch: (id) => axios.delete(url(`/sepa/export/batches/${id}`)),
-	settleSepaBatch: (id, journalId) => axios.post(url(`/sepa/export/batches/${id}/settle`), { journalId: journalId || undefined }),
-	listSepaBatchItems: (id) => axios.get(url(`/sepa/export/batches/${id}/items`)),
-	revertSepaReturn: (itemId) => axios.post(url(`/sepa/export/items/${itemId}/revert-return`)),
-	sepaBatchXmlUrl: (id) => generateUrl(base + `/sepa/export/batches/${id}/xml`),
 
 	// Export (CSV-Download – Browser-Navigation, kein Axios)
 	exportJournalUrl: (period) => generateUrl(base + '/export/journal') + (period ? `?period=${period}` : ''),

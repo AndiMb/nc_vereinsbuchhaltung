@@ -300,7 +300,7 @@ function emptyContactForm() {
  * Turnus danach verlangt eine neue Vorschau, weil der Vergleich dann nicht
  * mehr passt.
  *
- * Lädt seine Daten beim eigenen mounted() wie MembersList.vue/SepaBatchPanel.vue,
+ * Lädt seine Daten beim eigenen mounted() wie MembersList.vue/EinzugPanel.vue,
  * statt von App.vue vorgeladen zu werden.
  *
  * Dazu die informelle Beitragsbestätigung (Issue #77): eine druckfertige

@@ -2,8 +2,8 @@ import { test, expect } from '@playwright/test'
 import { api, openApp, switchTab, tabButton, visibleSection, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, USERS } from './fixtures/nextcloud.mjs'
 
 // Einzug-Unterreiter: Zeitstrahl, Geisterkarte und Läufe (Issue #102, Spec
-// §3.5/§6 Variante A). Er löst im Beiträge-Reiter das Alt-Einzug-Panel ab und
-// ist ab `revisor` lesend sichtbar (Spec §3.9, IBAN maskiert).
+// §3.5/§6 Variante A). Er löste im Beiträge-Reiter das flache Einzug-Panel des
+// Alt-Moduls ab und ist ab `revisor` lesend sichtbar (Spec §3.9, IBAN maskiert).
 //
 // Der Bestand ist NICHT leer: `api.resetBook()` räumt nur Buchungen, Konten und
 // offene Posten (Forderungen), nicht aber Mitglieder, Mandate, Zuweisungen und

@@ -101,7 +101,7 @@ import { formatDate, formatMoney } from '../lib/format.js'
  * dessen Inhalt wissen muss. Es gibt immer höchstens einen aufgeklappten Lauf
  * (`expandedId`, die Zeilenliste eines Laufs ist breit).
  *
- * Mobil als Kartenliste nach dem Muster von SepaBatchPanel/MembersList.
+ * Mobil als Kartenliste nach dem Muster von MembersList.
  */
 export default {
 	name: 'DebitRunList',

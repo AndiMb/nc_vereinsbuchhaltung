@@ -155,8 +155,8 @@ import { liveBatches } from '../lib/debitRun.js'
  * Einzug-Unterreiter des Beiträge-Reiters (Spec §6 Variante A, Issue #102):
  * Zeitstrahl über das Beitragsjahr mit HEUTE-Marker und Meilensteinen, die
  * „Geisterkarte“ als Vorschau des gewählten Termins und die Läufe samt Detail.
- * Ersetzt das alte Einzug-Panel (SepaBatchPanel.vue, Alt-Modell), das nach dem
- * Cutover (#107) samt Datei entfällt.
+ * Ersetzte das flache Einzug-Panel des Alt-Moduls (mit dem Cutover, #107,
+ * entfernt).
  *
  * Aufbau für die Folge-Tickets: eine Segmentleiste („Zeitstrahl & Läufe“,
  * „Forderungen“ (#104), „Bankabgleich“ (#105)), eigene

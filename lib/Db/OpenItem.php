@@ -10,10 +10,13 @@ use OCP\AppFramework\Db\Entity;
  * Offener Posten (unbezahlte Forderung, z. B. Mitgliedsbeitrag/Rechnung) mit
  * Fälligkeit. debtor ist Freitext – keine Mitgliederverwaltung in dieser App.
  *
- * mandateId ist die einzige Ausnahme: gesetzt, wenn der Posten aus einem
- * Mitgliedsbeitrag mit SEPA-Mandat stammt (siehe MembershipFeeService) – nur
- * dann ist der Posten für den SEPA-Export überhaupt sichtbar (siehe
- * Version000126). Für alle anderen offenen Posten bleibt es beim Freitext.
+ * mandateId stammt aus dem entfernten flachen Alt-Modul (Mitgliedsbeitrag
+ * mit SEPA-Mandat, `vbh_sepa_mandates`) und wird von nichts mehr geschrieben.
+ * Die Spalte bleibt bewusst stehen: `vbh_open_items` ist eine geteilte Tabelle
+ * der Kern-Buchhaltung und wird laut Spec §1.2 nur additiv migriert; der Wert
+ * ist für neue Posten immer NULL und verweist bei alten auf eine nicht mehr
+ * vorhandene Tabelle. Mandate des neuen Modells hängen am Einzugsposten
+ * (`vbh_debit_items`), nicht am offenen Posten.
  *
  * Seit Migration 000138 (Issue #68) bildet dieselbe Tabelle zusätzlich die
  * „Forderung (Claim)" aus Spec §2.2 ab: die Felder ab {@see getMemberId()}
@@ -22,8 +25,8 @@ use OCP\AppFramework\Db\Entity;
  * Forderung ist laut Spec „vollständig abgeleitet, kein Statusfeld" –
  * {@see \OCA\Vereinsbuchhaltung\Service\ClaimStateResolver} leitet ihn aus
  * `status` + den neuen Feldern ab; die bestehende `status`-Spalte bleibt
- * trotzdem die technische Grundlage (Rückwärtskompatibilität mit
- * OpenItemService/SepaBatchService, die weiterhin direkt darauf filtern).
+ * trotzdem die technische Grundlage (Rückwärtskompatibilität mit dem
+ * OpenItemService der freien Posten, der weiterhin direkt darauf filtert).
  *
  * @method string getDebtor()
  * @method void setDebtor(string $debtor)

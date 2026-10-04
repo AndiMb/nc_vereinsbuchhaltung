@@ -8,7 +8,7 @@ import { api, openApp, switchTab, visibleSection, BANK_ACCOUNT, BANK_ACCOUNT_IBA
 // Dialogen mit einem klaren ersten Feld - hier geprüft: sofort tippen, ohne
 // vorher zu klicken.
 
-const MEMBER_BANK = 'Sofort Bankwechsel'
+const today = () => new Date().toISOString().slice(0, 10)
 
 async function enableMembership(request) {
 	const bank = await api.accountByNumber(request, BANK_ACCOUNT)
@@ -57,30 +57,28 @@ test.describe('Sofort-Fokus beim Öffnen von NcModal-Dialogen', () => {
 		await expect(dialog).toBeHidden()
 	})
 
-	test('"Bankverbindung wechseln": das IBAN-Feld ist direkt nach dem Öffnen bedienbar', async ({ page, request }) => {
+	test('"Bankverbindung ändern" (Mandat in der Akte): das IBAN-Feld ist direkt nach dem Öffnen bedienbar', async ({ page, request }) => {
 		await enableMembership(request)
-		const member = await api.createMember(request, { firstName: 'Sofort', lastName: 'Bankwechsel' })
-		const mandate = await (await api.raw(request, 'POST', '/sepa/mandates', {
-			expectOk: true,
-			data: {
-				memberId: member.id,
-				iban: 'DE02120300000000202051',
-				bic: null,
-				mandateType: 'RCUR',
-				signedDate: '2026-01-15',
-			},
-		})).json()
-		expect(mandate.status).toBe('active')
+		// Eindeutiger Nachname: /reset räumt die Mitglieder nicht ab, ein Wiederholungslauf fände sonst zwei gleichnamige Zeilen.
+		const lastName = `Bankwechsel-${Math.random().toString(36).slice(2, 6)}`
+		const member = await api.createMember(request, { firstName: 'Sofort', lastName })
+		const mandate = await (await api.createMandate(request, { memberId: member.id, iban: 'DE02120300000000202051', signedAt: today() })).json()
+		await api.activateMandate(request, mandate.id)
 
 		await openApp(page, USERS.verwalter)
 		await switchTab(page, 'Beiträge')
-		const row = visibleSection(page).locator('tr', { hasText: MEMBER_BANK })
+		const row = visibleSection(page).locator('tr', { hasText: member.displayName })
 		await row.getByRole('button', { name: 'Aktionen' }).click()
-		await page.getByRole('menuitem', { name: 'Bankverbindung wechseln' }).click()
+		await page.getByRole('menuitem', { name: 'Mandat verwalten' }).click()
+		const akte = page.getByRole('dialog', { name: `Mitglied: ${member.displayName}` })
+		await akte.locator('section.vbh-mandate-panel').getByRole('button', { name: 'Bankverbindung ändern' }).click()
 
-		const dialog = page.getByRole('dialog', { name: 'Bankverbindung wechseln' })
+		const dialog = page.getByRole('dialog', { name: 'Bankverbindung ändern' })
 		await expect(dialog).toBeVisible()
-		await page.keyboard.type('DE33100000000000009911')
-		await expect(dialog.getByLabel('Neue IBAN')).toHaveValue('DE33100000000000009911')
+		// Das Feld ist mit der bisherigen IBAN vorbelegt: ohne vorheriges Klicken tippen und prüfen,
+		// dass das Zeichen im Feld ankommt – bei hängendem Fokus (Modal-Maske) ginge es ins Leere.
+		await page.keyboard.type('Q')
+		await expect(dialog.getByLabel('Neue IBAN')).toBeFocused()
+		await expect(dialog.getByLabel('Neue IBAN')).toHaveValue(/Q/)
 	})
 })

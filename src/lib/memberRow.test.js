@@ -1,24 +1,20 @@
 import { describe, expect, it } from 'vitest'
-import { buildMemberRow } from './memberRow.js'
+import { buildMemberRow, nextDueDates } from './memberRow.js'
 
-// Übergangs-Adapter der Mitgliederliste: neues Modell (Mandate/Assignment)
-// hat Vorrang, der Alt-Bestand greift nur, wenn es zu einem Mitglied nichts
-// Neues gibt. Die Fälle unterscheiden genau diese Vorrangregeln und die
-// abweichenden Datenformen (Monatsbetrag × Turnus statt Betrag je Periode).
+// Zeilenaufbau der Mitgliederliste: Mandat und Zuweisung in die gemeinsame
+// Anzeigeform, die nächste Fälligkeit aus den Forderungen. Die Datenformen
+// unterscheiden sich von der Anzeige (Monatsbetrag × Turnus statt Betrag je
+// Periode), genau dort liegen die Fälle.
 
 const TODAY = '2026-09-20'
 const MEMBER = { id: 1, displayName: 'Petra Aufnahme', email: 'petra@example.org' }
 
 function build(over = {}) {
-	return buildMemberRow(MEMBER, { mandates: [], sepaMandates: [], assignments: [], membershipFees: [], today: TODAY, ...over })
+	return buildMemberRow(MEMBER, { mandates: [], assignments: [], today: TODAY, ...over })
 }
 
 function mandate(over = {}) {
 	return { id: 10, memberId: 1, iban: 'DE02120300000000202051', mandateReference: 'M-1', status: 'aktiv', ...over }
-}
-
-function legacyMandate(over = {}) {
-	return { id: 10, memberId: 1, iban: 'DE89370400440532013000', mandateReference: 'ALT-1', status: 'active', ...over }
 }
 
 function assignment(over = {}) {
@@ -36,21 +32,18 @@ function assignment(over = {}) {
 	}
 }
 
-function legacyFee(over = {}) {
-	return { id: 20, memberId: 1, amount: 30, frequency: 'quarterly', nextDueDate: '2026-10-01', dueCount: 0, active: true, ...over }
+function claim(over = {}) {
+	return { id: 30, memberId: 1, state: 'offen', dueDate: '2026-10-01', deferred: false, deferredUntil: null, ...over }
 }
 
 describe('buildMemberRow – Mandat', () => {
-	it('ohne jede Quelle: kein Mandat', () => {
-		const row = build()
-		expect(row.mandate).toBeNull()
-		expect(row.legacyMandate).toBeNull()
+	it('ohne jedes Mandat: kein Mandat', () => {
+		expect(build().mandate).toBeNull()
 	})
 
-	it('zeigt ein aktives Mandat des neuen Modells ohne Marke und ohne Alt-Datensatz', () => {
+	it('zeigt ein aktives Mandat ohne Marke', () => {
 		const row = build({ mandates: [mandate()] })
 		expect(row.mandate).toMatchObject({ iban: 'DE02120300000000202051', mandateReference: 'M-1', statusTag: null })
-		expect(row.legacyMandate).toBeNull()
 	})
 
 	it('markiert Entwurf und ausgesetztes Mandat', () => {
@@ -67,52 +60,24 @@ describe('buildMemberRow – Mandat', () => {
 		const row = build({ mandates: [mandate({ status: 'erloschen' }), mandate({ memberId: 2 })] })
 		expect(row.mandate).toBeNull()
 	})
-
-	it('fällt auf den Alt-Bestand zurück und gibt nur dann den Roh-Datensatz für die Alt-Aktionen frei', () => {
-		const alt = legacyMandate()
-		const row = build({ sepaMandates: [alt] })
-		expect(row.mandate).toMatchObject({ iban: 'DE89370400440532013000', statusTag: null })
-		expect(row.legacyMandate).toBe(alt)
-	})
-
-	it('Alt-Bestand: aktiv sticht widerrufen, ein widerrufenes trägt die Marke', () => {
-		const widerrufen = legacyMandate({ id: 1, status: 'revoked' })
-		expect(build({ sepaMandates: [widerrufen] }).mandate.statusTag).toBe('widerrufen')
-		const row = build({ sepaMandates: [widerrufen, legacyMandate({ id: 2, iban: 'AKTIV' })] })
-		expect(row.mandate.iban).toBe('AKTIV')
-	})
-
-	it('das neue Modell sticht den Alt-Bestand', () => {
-		const row = build({ mandates: [mandate()], sepaMandates: [legacyMandate()] })
-		expect(row.mandate.iban).toBe('DE02120300000000202051')
-		expect(row.legacyMandate).toBeNull()
-	})
-
-	it('nur ein erloschenes neues Mandat lässt den Alt-Bestand durch', () => {
-		const row = build({ mandates: [mandate({ status: 'erloschen' })], sepaMandates: [legacyMandate()] })
-		expect(row.mandate.iban).toBe('DE89370400440532013000')
-	})
 })
 
 describe('buildMemberRow – Beitrag', () => {
-	it('ohne jede Quelle: kein Beitrag, Jahressumme null', () => {
+	it('ohne jede Zuweisung: kein Beitrag, Jahressumme null', () => {
 		const row = build()
 		expect(row.fee).toBeNull()
 		expect(row.yearlyAmount).toBe(0)
 	})
 
-	it('rechnet die Zuweisung auf Betrag je Periode um (Monatsbetrag × Turnus), Fälligkeit bleibt leer', () => {
+	it('rechnet die Zuweisung auf Betrag je Periode um (Monatsbetrag × Turnus)', () => {
 		const row = build({ assignments: [assignment({ intervalMonths: 3, monthlyAmountCents: 1050 })] })
 		expect(row.fee).toMatchObject({
 			amount: 31.5,
 			frequencyLabel: 'vierteljährlich',
-			nextDueDate: null,
-			dueCount: 0,
 			active: true,
 			statusLabel: 'aktiv',
 			needsMandate: true,
 		})
-		expect(row.legacyFee).toBeNull()
 		// Jahresbetrag = 12 Monatsbeiträge, unabhängig vom Turnus.
 		expect(row.yearlyAmount).toBe(126)
 	})
@@ -138,30 +103,10 @@ describe('buildMemberRow – Beitrag', () => {
 		expect(row.yearlyAmount).toBe(180)
 	})
 
-	it('die Zuweisung sticht den Alt-Beitrag', () => {
-		const row = build({ assignments: [assignment()], membershipFees: [legacyFee()] })
-		expect(row.fee.frequencyLabel).toBe('jährlich')
-		expect(row.legacyFee).toBeNull()
-	})
-
-	it('Alt-Beitrag: unveränderte Anzeigewerte, Roh-Datensatz für die Alt-Aktionen', () => {
-		const alt = legacyFee({ dueCount: 2 })
-		const row = build({ membershipFees: [alt] })
-		expect(row.fee).toMatchObject({
-			amount: 30,
-			frequencyLabel: 'vierteljährlich',
-			nextDueDate: '2026-10-01',
-			dueCount: 2,
-			active: true,
-			statusLabel: null,
-			needsMandate: true,
-		})
-		expect(row.legacyFee).toBe(alt)
-		expect(row.yearlyAmount).toBe(120)
-	})
-
-	it('inaktiver Alt-Beitrag zählt nicht in die Jahressumme', () => {
-		expect(build({ membershipFees: [legacyFee({ active: false })] }).yearlyAmount).toBe(0)
+	it('ignoriert Zuweisungen anderer Mitglieder', () => {
+		const row = build({ assignments: [assignment({ memberId: 2 })] })
+		expect(row.fee).toBeNull()
+		expect(row.yearlyAmount).toBe(0)
 	})
 
 	it('eine beendete Zuweisung bleibt sichtbar, zählt aber nicht', () => {
@@ -175,8 +120,66 @@ describe('buildMemberRow – Beitrag', () => {
 		expect(row.fee.statusLabel).toBe('ab 2026-12-01')
 	})
 
-	it('der Alt-Beitrag sticht eine nicht-aktive Zuweisung', () => {
-		const row = build({ assignments: [assignment({ active: false, validTo: '2026-06-30' })], membershipFees: [legacyFee()] })
-		expect(row.legacyFee).not.toBeNull()
+	it('unter mehreren nicht-aktiven wird die jüngste gezeigt', () => {
+		const row = build({
+			assignments: [
+				assignment({ id: 1, active: false, validFrom: '2024-01-01', validTo: '2024-12-31' }),
+				assignment({ id: 2, active: false, validFrom: '2025-01-01', validTo: '2025-12-31' }),
+			],
+		})
+		expect(row.fee.statusLabel).toBe('beendet 2025-12-31')
+	})
+})
+
+describe('nextDueDates', () => {
+	it('liefert je Mitglied das früheste Datum unter den fälligen Forderungen', () => {
+		const dates = nextDueDates([
+			claim({ id: 1, dueDate: '2026-12-01' }),
+			claim({ id: 2, dueDate: '2026-10-01' }),
+			claim({ id: 3, memberId: 2, dueDate: '2026-11-15' }),
+		])
+		expect(dates.get(1)).toBe('2026-10-01')
+		expect(dates.get(2)).toBe('2026-11-15')
+		expect(dates.has(3)).toBe(false)
+	})
+
+	it('zählt offene, im Einzug befindliche und zurückgegebene Forderungen', () => {
+		for (const state of ['offen', 'im_einzug', 'zurueckgegeben']) {
+			expect(nextDueDates([claim({ state })]).get(1)).toBe('2026-10-01')
+		}
+	})
+
+	it('übergeht eingezogene, erledigte und stornierte Forderungen', () => {
+		for (const state of ['eingezogen', 'erledigt', 'storniert']) {
+			expect(nextDueDates([claim({ state })]).size).toBe(0)
+		}
+	})
+
+	it('eine laufende Stundung verschiebt die Fälligkeit auf ihr Ende', () => {
+		const dates = nextDueDates([
+			claim({ id: 1, dueDate: '2026-09-01', deferred: true, deferredUntil: '2026-11-30' }),
+			claim({ id: 2, dueDate: '2026-12-01' }),
+		])
+		expect(dates.get(1)).toBe('2026-11-30')
+	})
+
+	it('übergeht Forderungen ohne Fälligkeitsdatum', () => {
+		expect(nextDueDates([claim({ dueDate: null })]).size).toBe(0)
+	})
+
+	it('ohne Forderungen ist die Zuordnung leer', () => {
+		expect(nextDueDates([]).size).toBe(0)
+	})
+})
+
+describe('buildMemberRow – nächste Fälligkeit', () => {
+	it('übernimmt das Datum des Mitglieds aus der Zuordnung', () => {
+		const row = build({ nextDueDates: new Map([[1, '2026-10-01'], [2, '2026-11-01']]) })
+		expect(row.nextDueDate).toBe('2026-10-01')
+	})
+
+	it('bleibt leer, wenn zum Mitglied keine fällige Forderung bekannt ist – auch ohne Zuordnung', () => {
+		expect(build({ nextDueDates: new Map([[2, '2026-11-01']]) }).nextDueDate).toBeNull()
+		expect(build().nextDueDate).toBeNull()
 	})
 })

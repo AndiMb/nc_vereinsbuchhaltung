@@ -7,8 +7,6 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
-use OCA\Vereinsbuchhaltung\Db\MembershipFeeMapper;
-use OCA\Vereinsbuchhaltung\Db\SepaMandateMapper;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\AttachmentWatchFolderService;
@@ -45,8 +43,6 @@ class SettingsController extends Controller {
 		private PermissionService $permissionService,
 		private DemoDataService $demoService,
 		private AccountMapper $accountMapper,
-		private SepaMandateMapper $sepaMandateMapper,
-		private MembershipFeeMapper $membershipFeeMapper,
 		private MemberMapper $memberMapper,
 		private IUserManager $userManager,
 		private SepaDebtorAccountService $sepaDebtorAccount,
@@ -156,16 +152,12 @@ class SettingsController extends Controller {
 			'default_fee_frequency' => $this->config->getAppValue(Application::APP_ID, 'default_fee_frequency', 'yearly'),
 			'membership_enabled' => $membershipEnabled,
 			// Steuert den Reiter „Beiträge": auch ohne den Schalter sichtbar,
-			// sobald bereits Mitglieder, Mandate oder Beiträge bestehen – siehe
-			// NAVIGATION-KONZEPT.md Abschnitt 4. Keine Migration noetig, die
-			// bestehende Installationen zeigen den Reiter dadurch sofort.
-			// Mitglieder zaehlen seit der Member-Entity (Issue #65) mit: anders
-			// als Mandat/Beitrag ist ein Mitglied jetzt unabhaengig von beiden
-			// anlegbar, ohne sie bliebe der Reiter fuer diesen Fall verborgen.
-			'membership_active' => $membershipEnabled
-				|| $this->sepaMandateMapper->count() > 0
-				|| $this->membershipFeeMapper->count() > 0
-				|| $this->memberMapper->count() > 0,
+			// sobald bereits Mitglieder bestehen – siehe NAVIGATION-KONZEPT.md
+			// Abschnitt 4. Mandate und Zuweisungen hängen immer an einem
+			// Mitglied (member_id ist Pflicht), ein Mitglied genügt deshalb als
+			// Kriterium; bestehende Installationen zeigen den Reiter dadurch
+			// ohne Migration sofort.
+			'membership_active' => $membershipEnabled || $this->memberMapper->count() > 0,
 			// Mandats-Lifecycle (Issue #66, Spec §4 „Neue Einstellungen"):
 			'mandate_reference_prefix' => $this->config->getAppValue(Application::APP_ID, MandateService::SETTING_REFERENCE_PREFIX, MandateReferenceGenerator::DEFAULT_PREFIX),
 			'mandate_document_folder' => $this->mandateDocuments->folderPath(),

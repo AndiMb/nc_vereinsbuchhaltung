@@ -11,7 +11,7 @@ use OCP\IL10N;
  * Prüfsummenrechnung: eine formal gültige, aber fremde IBAN würde sie ebenso
  * durchlassen, und eine zu strenge Prüfung sperrt am Ende jemanden mit einem
  * ausländischen Konto oder Mandat aus. Ursprünglich nur in AccountService,
- * jetzt auch von SepaMandateService genutzt.
+ * jetzt auch vom Mandatsdienst genutzt.
  */
 class IbanValidator {
 

@@ -5,7 +5,7 @@ import { errMsg } from '../lib/format.js'
 
 /**
  * Mitglieder-Stammdaten (Spec §2.2): geteilter Zustand, analog
- * useSepaMandates.js/useMembershipFees.js.
+ * useMandates.js.
  */
 const state = reactive({
 	members: [],

@@ -4,9 +4,8 @@ import api from '../api.js'
 import { errMsg } from '../lib/format.js'
 
 /**
- * SEPA-Mandate des neuen Modells (Issue #66, Tabelle `vbh_mandates`): geteilter
- * Zustand, analog useSepaMandates.js – die aber noch den Alt-Bestand
- * (`vbh_sepa_mandates`) lädt und bis zum Cutover daneben bestehen bleibt.
+ * SEPA-Mandate (Issue #66, Tabelle `vbh_mandates`): geteilter Zustand, analog
+ * useCostCenters.js.
  */
 const state = reactive({
 	mandates: [],

@@ -25,10 +25,8 @@ use OCP\IUserSession;
  *
  * Vollständig auf das neue Domänenmodell umgestellt (Issue #69, Spec §3.1):
  * vorher richtete sich dieselbe Klasse gegen die flachen Alt-Tabellen
- * `vbh_sepa_mandates`/`vbh_membership_fees` (siehe {@see SepaMandateService},
- * {@see MembershipFeeService}, weiterhin unverändert für den Alt-Bestand
- * nutzbar). Die beiden Systeme laufen bewusst nebeneinander, bis ein
- * gesondertes Migrationsticket den Alt-Bestand ablöst (Spec §3.1 „Umbaupfad").
+ * `vbh_sepa_mandates`/`vbh_membership_fees`, die der Cutover (Issue #107,
+ * Migration 000157) entfernt hat.
  *
  * **„CSV-Import legt nur an, gleicht nie ab"** (Spec §3.1) – diese Klasse
  * berührt nie ein bereits bestehendes Mitglied. Dublettenregeln:
@@ -41,14 +39,12 @@ use OCP\IUserSession;
  * Mailadresse ist ausdrücklich **kein** Dublettenschlüssel.
  *
  * **Betrag = Monatsbeitrag** (bewusste Modellentscheidung für dieses Ticket):
- * anders als beim alten `vbh_membership_fees`-Import (dort war „Betrag" der
+ * anders als beim früheren `vbh_membership_fees`-Import (dort war „Betrag" der
  * tatsächlich je Frequenz fällige Betrag) ist die Spalte „Betrag" hier direkt
  * `Assignment::monthlyAmountCents` – „Der Monatsbeitrag ist das Atom" (Spec
  * §3.3), genau wie es AssignmentDialog.vue für die manuelle Erfassung auch
  * verlangt. Eine Division des Altbetrags durch den Turnus hätte krumme Cent-
- * Beträge riskiert; diese Neuinterpretation der Spalte ist für den neuen,
- * vollständigen Import (Issue #69) tragbar, weil es die erste Version dieses
- * Imports mit Beitragsgruppen überhaupt ist.
+ * Beträge riskiert.
  *
  * **Mandats-Aktivierung** (Spec §3.1): ein per Import angelegtes Mandat hat
  * durch die Parser-Regel „IBAN verlangt ein Mandatsdatum" immer ein

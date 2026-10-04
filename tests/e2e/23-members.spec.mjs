@@ -98,20 +98,48 @@ test.describe('Mitglieder-Stammdaten', () => {
 	})
 
 	test('Löschsperre: aktives Mandat verhindert das Löschen mit erklärender Meldung', async ({ page, request }) => {
-		const member = await api.createMember(request, { firstName: 'Mit', lastName: 'Mandat' })
-		await api.raw(request, 'POST', '/sepa/mandates', {
-			expectOk: true,
-			data: { memberId: member.id, iban: 'DE02120300000000202051', bic: null, mandateType: 'RCUR', signedDate: '2026-01-15' },
-		})
+		// Eindeutiger Nachname: /reset räumt die Mitglieder nicht ab, ein Wiederholungslauf fände sonst zwei gleichnamige Zeilen.
+		const lastName = `Mandat-${Math.random().toString(36).slice(2, 6)}`
+		const member = await api.createMember(request, { firstName: 'Mit', lastName })
+		const mandate = await (await api.createMandate(request, { memberId: member.id, iban: 'DE02120300000000202051', signedAt: '2026-01-15' })).json()
+		await api.activateMandate(request, mandate.id)
 
 		await openApp(page, USERS.buchhalter)
 		await switchTab(page, 'Beiträge')
-		const row = visibleSection(page).locator('tr', { hasText: 'Mit Mandat' })
+		const row = visibleSection(page).locator('tr', { hasText: member.displayName })
 		await row.getByRole('button', { name: 'Aktionen' }).click()
 		await page.getByRole('menuitem', { name: 'Akte öffnen' }).click()
 
 		const dialog = page.getByRole('dialog')
 		await expect(dialog.getByText('aktives SEPA-Mandat')).toBeVisible()
 		await expect(dialog.getByRole('button', { name: 'Mitglied löschen' })).toHaveCount(0)
+
+		// Auch die API lehnt das Löschen ab, mit derselben Begründung.
+		const resp = await api.raw(request, 'DELETE', `/members/${member.id}`)
+		expect(resp.status()).toBe(400)
+		expect((await resp.json()).message).toContain('aktives SEPA-Mandat')
+	})
+
+	test('Löschsperre: auch ein Mandat im Entwurf und ein beendetes sperren, sonst bliebe eine verwaiste Zeile zurück', async ({ request }) => {
+		const draft = await api.createMember(request, { firstName: 'Mit', lastName: `Entwurf-${Math.random().toString(36).slice(2, 6)}` })
+		await api.createMandate(request, { memberId: draft.id, iban: 'DE02120300000000202051' })
+
+		const ended = await api.createMember(request, { firstName: 'Mit', lastName: `Widerruf-${Math.random().toString(36).slice(2, 6)}` })
+		const endedMandate = await (await api.createMandate(request, { memberId: ended.id, iban: 'DE02120300000000202051', signedAt: '2026-01-15' })).json()
+		await api.activateMandate(request, endedMandate.id)
+		await api.revokeMandate(request, endedMandate.id)
+
+		for (const member of [draft, ended]) {
+			const resp = await api.raw(request, 'DELETE', `/members/${member.id}`)
+			expect(resp.status(), `${member.displayName} darf nicht löschbar sein`).toBe(400)
+			const { message } = await resp.json()
+			expect(message).toContain('SEPA-Mandat')
+			expect(message).not.toContain('aktives SEPA-Mandat')
+		}
+
+		// Ohne Mandat, Zuweisung und Forderung lässt sich ein Mitglied dagegen löschen.
+		const free = await api.createMember(request, { firstName: 'Ohne', lastName: `Bindung-${Math.random().toString(36).slice(2, 6)}` })
+		await api.deleteMember(request, free.id)
+		expect((await api.listMembers(request)).some((m) => m.id === free.id)).toBe(false)
 	})
 })

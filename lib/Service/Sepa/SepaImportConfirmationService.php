@@ -414,9 +414,7 @@ class SepaImportConfirmationService {
 
 		// "zurückgegeben -> wieder offen" (Spec §2.2): war die Forderung schon
 		// als eingezogen/bezahlt vermerkt (Sammelgutschrift bereits vor der
-		// Rücklastschrift bestätigt), macht das die Rücklastschrift rückgängig -
-		// dieselbe Reopening-Logik wie im alten Mandatssystem
-		// (SepaReturnDetectionService::detect()).
+		// Rücklastschrift bestätigt), macht das die Rücklastschrift rückgängig.
 		$openItem->setStatus('open');
 		$openItem->setPaidJournalId(null);
 		$openItem->setSettledAt(null);

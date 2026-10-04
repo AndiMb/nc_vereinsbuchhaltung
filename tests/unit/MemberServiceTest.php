@@ -6,14 +6,12 @@ namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
 use OCA\Vereinsbuchhaltung\Db\Assignment;
 use OCA\Vereinsbuchhaltung\Db\AssignmentMapper;
+use OCA\Vereinsbuchhaltung\Db\Mandate;
+use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
-use OCA\Vereinsbuchhaltung\Db\MembershipFee;
-use OCA\Vereinsbuchhaltung\Db\MembershipFeeMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
-use OCA\Vereinsbuchhaltung\Db\SepaMandate;
-use OCA\Vereinsbuchhaltung\Db\SepaMandateMapper;
 use OCA\Vereinsbuchhaltung\Service\MemberService;
 use OCP\IL10N;
 use OCP\IUser;
@@ -23,24 +21,22 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * Stammdaten-CRUD und Störfall-Regeln der Mitglied-Entity (Spec §2.2/§3.1).
- * DB-Zugriffe sind gemockt (MemberMapper/SepaMandateMapper/MembershipFeeMapper) –
+ * DB-Zugriffe sind gemockt (MemberMapper/MandateMapper/AssignmentMapper/OpenItemMapper) –
  * echte Datenbankfragen bleiben wie im übrigen Bestand den E2E-Tests
  * vorbehalten (siehe tests/e2e/11-contributions.spec.mjs).
  */
 class MemberServiceTest extends TestCase {
 
 	private MemberMapper&MockObject $mapper;
-	private SepaMandateMapper&MockObject $mandateMapper;
-	private MembershipFeeMapper&MockObject $feeMapper;
+	private MandateMapper&MockObject $mandateMapper;
 	private AssignmentMapper&MockObject $assignmentMapper;
 	private OpenItemMapper&MockObject $openItemMapper;
 	private IUserManager&MockObject $userManager;
 
 	protected function setUp(): void {
 		$this->mapper = $this->createMock(MemberMapper::class);
-		$this->mandateMapper = $this->createMock(SepaMandateMapper::class);
-		$this->feeMapper = $this->createMock(MembershipFeeMapper::class);
-		// Kein Standard-Stub hier, analog zu mandateMapper/feeMapper: ein
+		$this->mandateMapper = $this->createMock(MandateMapper::class);
+		// Kein Standard-Stub hier, analog zu mandateMapper: ein
 		// nicht konfigurierter Mock-Aufruf liefert für einen als `array`
 		// typisierten Rückgabewert bereits [] - jeder Test stubt explizit,
 		// was er braucht (siehe restliche Tests in dieser Klasse).
@@ -54,7 +50,7 @@ class MemberServiceTest extends TestCase {
 		$l10n->method('t')->willReturnCallback(
 			static fn (string $text, array $parameters = []): string => vsprintf(str_replace('%s', '%1$s', $text), $parameters),
 		);
-		return new MemberService($this->mapper, $this->mandateMapper, $this->feeMapper, $this->assignmentMapper, $this->openItemMapper, $this->userManager, $l10n);
+		return new MemberService($this->mapper, $this->mandateMapper, $this->assignmentMapper, $this->openItemMapper, $this->userManager, $l10n);
 	}
 
 	// --- splitLabel(): reine Split-Heuristik (Spec §3.1 "Umbaupfad") ---
@@ -269,52 +265,57 @@ class MemberServiceTest extends TestCase {
 
 	// --- blockingReasons()/delete(): Löschsperre (Spec §3.1) ---
 
-	private function mandate(int $memberId, string $status = 'active'): SepaMandate {
-		$mandate = new SepaMandate();
+	private function mandate(int $memberId, string $status = Mandate::STATUS_ACTIVE): Mandate {
+		$mandate = new Mandate();
 		$mandate->setMemberId($memberId);
 		$mandate->setStatus($status);
 		return $mandate;
 	}
 
-	private function fee(int $memberId): MembershipFee {
-		$fee = new MembershipFee();
-		$fee->setMemberId($memberId);
-		return $fee;
-	}
-
 	public function testBlockingReasonsLeerWennNichtsVerweist(): void {
 		$this->mandateMapper->method('findAll')->willReturn([]);
-		$this->feeMapper->method('findAll')->willReturn([]);
 
 		$this->assertSame([], $this->service()->blockingReasons(1));
 	}
 
 	public function testBlockingReasonsAktivesMandatBlockiert(): void {
-		$this->mandateMapper->method('findAll')->willReturn([$this->mandate(1, 'active')]);
-		$this->feeMapper->method('findAll')->willReturn([]);
+		$this->mandateMapper->method('findAll')->willReturn([$this->mandate(1, Mandate::STATUS_ACTIVE)]);
 
 		$reasons = $this->service()->blockingReasons(1);
 
-		$this->assertNotEmpty($reasons);
+		$this->assertCount(1, $reasons);
 		$this->assertStringContainsString('aktives SEPA-Mandat', $reasons[0]);
 	}
 
-	public function testBlockingReasonsWiderrufenesMandatBlockiertAuch(): void {
-		$this->mandateMapper->method('findAll')->willReturn([$this->mandate(1, 'revoked')]);
-		$this->feeMapper->method('findAll')->willReturn([]);
+	/**
+	 * Auch Entwurf, ausgesetztes und beendetes Mandat (Widerruf, Verfall, verworfener
+	 * Entwurf) sperren: die Zeile bliebe sonst mit einer toten member_id zurück.
+	 *
+	 * @dataProvider nichtAktiveMandatszustaende
+	 */
+	public function testBlockingReasonsNichtAktivesMandatBlockiertAuch(string $status): void {
+		$this->mandateMapper->method('findAll')->willReturn([$this->mandate(1, $status)]);
 
 		$reasons = $this->service()->blockingReasons(1);
 
-		$this->assertNotEmpty($reasons);
+		$this->assertCount(1, $reasons);
+		$this->assertStringNotContainsString('aktives SEPA-Mandat', $reasons[0]);
+		$this->assertStringContainsString('SEPA-Mandat', $reasons[0]);
 	}
 
-	public function testBlockingReasonsBeitragBlockiert(): void {
-		$this->mandateMapper->method('findAll')->willReturn([]);
-		$this->feeMapper->method('findAll')->willReturn([$this->fee(1)]);
+	/** @return array<string, array{string}> */
+	public static function nichtAktiveMandatszustaende(): array {
+		return [
+			'Entwurf' => [Mandate::STATUS_DRAFT],
+			'ausgesetzt' => [Mandate::STATUS_SUSPENDED],
+			'erloschen' => [Mandate::STATUS_ENDED],
+		];
+	}
 
-		$reasons = $this->service()->blockingReasons(1);
+	public function testBlockingReasonsMandatEinesAnderenMitgliedsBlockiertNicht(): void {
+		$this->mandateMapper->method('findAll')->willReturn([$this->mandate(2, Mandate::STATUS_ACTIVE)]);
 
-		$this->assertNotEmpty($reasons);
+		$this->assertSame([], $this->service()->blockingReasons(1));
 	}
 
 	/** Issue #68: eine Zuweisung zu einer Beitragsgruppe blockiert die Löschung ebenso. */
@@ -342,11 +343,13 @@ class MemberServiceTest extends TestCase {
 		$this->assertStringContainsString('Forderung', $reasons[0]);
 	}
 
-	public function testBlockingReasonsForIdsBerechnetMehrereMitgliederInZweiAbfragen(): void {
+	public function testBlockingReasonsForIdsBerechnetMehrereMitgliederInWenigenAbfragen(): void {
 		// Batch-Fall (MemberController::index()): genau eine findAll()-Abfrage
 		// je Mapper bedient beliebig viele Mitglieder, nicht eine je Mitglied.
-		$this->mandateMapper->expects($this->once())->method('findAll')->willReturn([$this->mandate(1, 'active')]);
-		$this->feeMapper->expects($this->once())->method('findAll')->willReturn([$this->fee(2)]);
+		$assignment = new Assignment();
+		$assignment->setMemberId(2);
+		$this->mandateMapper->expects($this->once())->method('findAll')->willReturn([$this->mandate(1, Mandate::STATUS_ACTIVE)]);
+		$this->assignmentMapper->expects($this->once())->method('findAll')->willReturn([$assignment]);
 
 		$reasons = $this->service()->blockingReasonsForIds([1, 2, 3]);
 
@@ -359,8 +362,7 @@ class MemberServiceTest extends TestCase {
 		$member = new Member();
 		$member->setId(3);
 		$this->mapper->method('find')->with(3)->willReturn($member);
-		$this->mandateMapper->method('findAll')->willReturn([$this->mandate(3, 'active')]);
-		$this->feeMapper->method('findAll')->willReturn([]);
+		$this->mandateMapper->method('findAll')->willReturn([$this->mandate(3, Mandate::STATUS_ACTIVE)]);
 		$this->mapper->expects($this->never())->method('delete');
 
 		$this->expectException(\InvalidArgumentException::class);
@@ -372,7 +374,6 @@ class MemberServiceTest extends TestCase {
 		$member->setId(3);
 		$this->mapper->method('find')->with(3)->willReturn($member);
 		$this->mandateMapper->method('findAll')->willReturn([]);
-		$this->feeMapper->method('findAll')->willReturn([]);
 		$this->mapper->expects($this->once())->method('delete')->with($member);
 
 		$this->service()->delete(3);

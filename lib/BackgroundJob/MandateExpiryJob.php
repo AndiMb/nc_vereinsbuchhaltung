@@ -14,7 +14,7 @@ use Psr\Log\LoggerInterface;
  * Täglicher 36-Monats-Verfall (Spec §2.2/§7/§8, Issue #66): setzt fällige
  * Mandate automatisch auf `ended`/`verfallen`. Dünner Job, dicke Logik in
  * {@see MandateService::expireDueMandates()} – gleiches Muster wie
- * {@see SepaPreNotificationJob}/{@see MembershipFeeDueJob}.
+ * {@see ContributionDueCycleJob}.
  */
 class MandateExpiryJob extends TimedJob {
 

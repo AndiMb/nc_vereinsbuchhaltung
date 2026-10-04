@@ -1,12 +1,13 @@
 import { test, expect } from '@playwright/test'
-import { api, openApp, switchTab, visibleSection, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
+import { api, openApp, switchTab, visibleSection, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, USERS } from './fixtures/nextcloud.mjs'
 
-// Mitgliederliste auf dem neuen Domänenmodell (Folge-Scope aus Issue #69):
-// MembersList.vue dekorierte jede Zeile nur mit den ALTEN Tabellen
-// (SepaMandate/MembershipFee) – ein über den Aufnahme-Assistenten oder den
-// CSV-Import angelegtes Mitglied (Mandate/Assignment) stand dort für immer
-// als „kein Mandat" und ohne Beitrag. Jetzt hat das neue Modell Vorrang, der
-// Alt-Bestand greift nur, wo es nichts Neues gibt (lib/memberRow.js).
+// Mitgliederliste auf dem Domänenmodell (Folge-Scope aus Issue #69): jede
+// Zeile zeigt Mandat (Mandate) und Beitrag (Assignment) eines Mitglieds, wie
+// sie der Aufnahme-Assistent und der CSV-Import anlegen (lib/memberRow.js).
+// Seit dem Cutover (Issue #107) gibt es keinen Alt-Bestand mehr, den die Liste
+// daneben führt: die Fälle „Altmitglied" und „Inline-Bearbeitung des
+// Alt-Beitrags" entfallen, die Spalte „Nächste Fälligkeit" kommt aus den
+// Forderungen.
 //
 // Die Listenzeile wird ausdrücklich über die SICHTBARE Tabelle gesucht: die
 // Beitragsgruppen-Tabelle „Zuweisungen" hängt per v-show im DOM und führt
@@ -14,7 +15,6 @@ import { api, openApp, switchTab, visibleSection, BANK_ACCOUNT, BANK_ACCOUNT_IBA
 
 const GROUP_NAME = 'Testgruppe Mitgliederliste'
 const IBAN = 'DE02120300000000202051'
-const LEGACY_IBAN = 'DE89370400440532013000'
 
 const today = () => new Date().toISOString().slice(0, 10)
 /** Ein Jahr in der Zukunft – eine Zuweisung darf nicht in der Vergangenheit beginnen, wohl aber später. */
@@ -63,7 +63,7 @@ async function createAssignment(request, member, group, { intervalMonths, monthl
 }
 
 /**
- * Sieben Mitglieder, die je einen Pfad des Adapters abdecken – nur anlegen,
+ * Sechs Mitglieder, die je einen Pfad des Adapters abdecken – nur anlegen,
  * was noch fehlt (siehe ensureMemberWithFee in 11-contributions.spec.mjs).
  */
 async function ensureSeed(request) {
@@ -87,18 +87,6 @@ async function ensureSeed(request) {
 	const hans = await ensureMember(request, 'Hans', 'Ohnemandat')
 	await createAssignment(request, hans, group, { intervalMonths: 12, monthlyAmount: 6 })
 
-	// Altmitglied: nur die alten Tabellen (vbh_sepa_mandates/vbh_membership_fees).
-	const emil = await ensureMember(request, 'Emil', 'Altbestand')
-	const legacyMandate = await (await api.raw(request, 'POST', '/sepa/mandates', {
-		expectOk: true,
-		data: { memberId: emil.id, iban: LEGACY_IBAN, bic: null, mandateType: 'RCUR', signedDate: '2026-01-15' },
-	})).json()
-	const income = await api.accountByNumber(request, INCOME_ACCOUNT)
-	await api.raw(request, 'POST', '/sepa/fees', {
-		expectOk: true,
-		data: { memberId: emil.id, amount: 60, frequency: 'yearly', startDate: '2026-01-01', accountId: income.id, mandateId: legacyMandate.id },
-	})
-
 	await ensureMember(request, 'Frieda', 'Nichts', { email: null })
 }
 
@@ -114,7 +102,7 @@ test.describe('Mitgliederliste zeigt Mandat und Beitrag des neuen Modells', () =
 		await enableMembership(request)
 	})
 
-	test('neue Zeilen zeigen IBAN, Betrag je Periode und Turnus statt „kein Mandat"; Altmitglied bleibt unverändert', async ({ page, request }) => {
+	test('Zeilen zeigen IBAN, Betrag je Periode und Turnus statt „kein Mandat"', async ({ page, request }) => {
 		await ensureSeed(request)
 		await openApp(page, USERS.buchhalter)
 		await switchTab(page, 'Beiträge')
@@ -127,7 +115,7 @@ test.describe('Mitgliederliste zeigt Mandat und Beitrag des neuen Modells', () =
 		await expect(anna).toContainText('jährlich')
 		// Spalte „Aktiv": bei Zuweisungen Text statt Schalter (der Zeitraum ist der Status).
 		await expect(anna.locator('td').nth(5)).toHaveText('aktiv')
-		// Die Fälligkeit entsteht erst mit der Forderung – die Spalte bleibt bewusst leer.
+		// Die Fälligkeit entsteht erst mit der Forderung – ohne Forderung bleibt die Spalte leer.
 		await expect(anna.locator('td').nth(4)).toHaveText('–')
 		// Zuweisungen werden nicht inline bearbeitet.
 		await expect(anna.getByRole('button', { name: 'Beitrag bearbeiten' })).toHaveCount(0)
@@ -152,14 +140,6 @@ test.describe('Mitgliederliste zeigt Mandat und Beitrag des neuen Modells', () =
 		await expect(dieter).toContainText('120,00')
 		await expect(dieter).toContainText(`ab ${nextYear()}`)
 
-		// Altmitglied: Alt-Anzeige und Alt-Bearbeitung wie bisher.
-		const emil = memberRow(page, 'Emil Altbestand')
-		await expect(emil).toContainText(LEGACY_IBAN)
-		await expect(emil).toContainText('60,00')
-		await expect(emil).toContainText('jährlich')
-		await expect(emil.getByRole('button', { name: 'Beitrag bearbeiten' })).toBeVisible()
-		await expect(emil.getByRole('button', { name: 'Zuweisung verwalten' })).toHaveCount(0)
-
 		// Ohne alles bleibt es bei „kein Mandat" und Strichen.
 		const frieda = memberRow(page, 'Frieda Nichts')
 		await expect(frieda).toContainText('kein Mandat')
@@ -171,15 +151,24 @@ test.describe('Mitgliederliste zeigt Mandat und Beitrag des neuen Modells', () =
 		await expect(visibleSection(page).getByText(/\d+ von \d+ Mitgliedern · \d+ mit Mandat · Beitragsaufkommen [\d.,]+\s€ im Jahr/)).toBeVisible()
 	})
 
-	test('Inline-Bearbeitung trifft nur den Alt-Beitrag – eine gleiche Id in der Zuweisungstabelle öffnet keine zweite Zeile', async ({ page, request }) => {
+	test('„Nächste Fälligkeit" zeigt die früheste noch fällige Forderung – stornierte zählen nicht', async ({ page, request }) => {
 		await ensureSeed(request)
+		const berndId = (await api.listMembers(request)).find((m) => m.displayName === 'Bernd Entwurf').id
+		const claim = async (label, dueDate) => (await api.raw(request, 'POST', '/claims', {
+			expectOk: true,
+			data: { memberId: berndId, type: 'beitrag', amount: 15, label, dueDate },
+		})).json()
+		// Die früheste (2026-01-05) wird storniert, die nächste (2026-02-10) bleibt offen, die späteste liegt dahinter.
+		const cancelled = await claim('Storniert (Fälligkeitsspalte)', '2026-01-05')
+		await api.raw(request, 'POST', `/claims/${cancelled.id}/cancel`, { expectOk: true, data: { reason: 'Test' } })
+		await claim('Offen früh (Fälligkeitsspalte)', '2026-02-10')
+		await claim('Offen spät (Fälligkeitsspalte)', '2026-03-10')
+
 		await openApp(page, USERS.buchhalter)
 		await switchTab(page, 'Beiträge')
-
-		await memberRow(page, 'Emil Altbestand').getByRole('button', { name: 'Beitrag bearbeiten' }).click()
-		await expect(memberRow(page, 'Emil Altbestand').getByRole('button', { name: 'Speichern' })).toBeVisible()
-		await expect(visibleSection(page).getByRole('button', { name: 'Speichern', exact: true })).toHaveCount(1)
-		await memberRow(page, 'Emil Altbestand').getByRole('button', { name: 'Abbrechen' }).click()
+		await expect(memberRow(page, 'Bernd Entwurf').locator('td').nth(4)).toHaveText('2026-02-10')
+		// Ein Mitglied ohne Forderung behält den Strich.
+		await expect(memberRow(page, 'Cora Ueberweisung').locator('td').nth(4)).toHaveText('–')
 	})
 
 	test('„nur Auffälligkeiten": Lastschrift ohne Mandat fällt auf, Überweisung nicht', async ({ page, request }) => {
@@ -239,8 +228,16 @@ test.describe('Mitgliederliste auf dem Handy', () => {
 		await enableMembership(request)
 	})
 
-	test('die Karten zeigen dieselben Werte des neuen Modells und des Alt-Bestands', async ({ page, request }) => {
+	test('die Karten zeigen dieselben Werte wie die Tabelle, dazu die nächste Fälligkeit', async ({ page, request }) => {
 		await ensureSeed(request)
+		// Eine fällige Forderung für Anna: die Karte nennt dann ihre nächste Fälligkeit.
+		const dueDate = new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString().slice(0, 10)
+		const annaId = (await api.listMembers(request)).find((m) => m.displayName === 'Anna Aktiv').id
+		await api.raw(request, 'POST', '/claims', {
+			expectOk: true,
+			data: { memberId: annaId, type: 'beitrag', amount: 120, label: 'Jahresbeitrag (Karte)', dueDate },
+		})
+
 		await openApp(page, USERS.buchhalter)
 		await page.locator('.vbh-bottomnav').getByRole('button', { name: 'Beiträge' }).click()
 
@@ -249,16 +246,13 @@ test.describe('Mitgliederliste auf dem Handy', () => {
 		await expect(anna).not.toContainText('kein Mandat')
 		await expect(anna).toContainText('120,00')
 		await expect(anna).toContainText('jährlich')
+		await expect(anna).toContainText(`fällig ${dueDate}`)
 		await expect(anna.getByRole('button', { name: 'Bearbeiten', exact: true })).toHaveCount(0)
 		await expect(anna.getByRole('button', { name: 'Zuweisung verwalten' })).toBeVisible()
 
 		const cora = visibleSection(page).locator('.vbh-membercard', { hasText: 'Cora Ueberweisung' })
 		await expect(cora).toContainText('Überweisung')
 		await expect(cora).not.toContainText('kein Mandat')
-
-		const emil = visibleSection(page).locator('.vbh-membercard', { hasText: 'Emil Altbestand' })
-		await expect(emil).toContainText(LEGACY_IBAN)
-		await expect(emil).toContainText('60,00')
-		await expect(emil.getByRole('button', { name: 'Bearbeiten', exact: true })).toBeVisible()
+		await expect(cora).not.toContainText('fällig')
 	})
 })

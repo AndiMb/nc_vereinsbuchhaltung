@@ -11,13 +11,9 @@ namespace OCA\Vereinsbuchhaltung\Service\Sepa;
  * Heuristik als dokumentierter Fallback") als eigenständiges Wort auftauchen
  * können.
  *
- * Übernommen aus der bisherigen Liste in
- * {@see \OCA\Vereinsbuchhaltung\Service\SepaReturnDetectionService} (dort
- * gegen das alte `vbh_sepa_batches`-Modell verdrahtet) – hier zentral für die
- * neue, strukturierte Erkennung (Issue #72), damit beide Systeme nicht
- * unabhängig voneinander auseinanderlaufen können. Die alte Klasse bleibt
- * unverändert bestehen (bedient weiterhin das alte Mandatssystem, siehe
- * {@see \OCA\Vereinsbuchhaltung\Db\SepaMandate}).
+ * Übernommen aus der Liste der früheren, gegen das flache Alt-Modell
+ * verdrahteten Rücklastschrift-Heuristik (mit dem Cutover, Issue #107,
+ * entfernt) – hier zentral für die strukturierte Erkennung (Issue #72).
  */
 class SepaReturnReasonCodes {
 

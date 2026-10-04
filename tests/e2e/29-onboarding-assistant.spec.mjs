@@ -4,7 +4,7 @@ import { api, openApp, switchTab, visibleSection, USERS } from './fixtures/nextc
 // Aufnahme-Assistent & voller CSV-Import (Issue #69, Spec §3.1): der
 // dreistufige Weg Stammdaten → Mandat → Beitrag in MemberDialog.vue (Schritt
 // 2/3 überspringbar) und der auf das neue Domänenmodell (Member/Mandate/
-// Assignment statt der alten SepaMandate/MembershipFee-Tabellen) umgestellte
+// Assignment statt der früheren flachen Alt-Tabellen) umgestellte
 // CSV-Import in MemberImportDialog.vue.
 //
 // Für das neue Mandats-/Zuweisungs-Datenmodell gab es vor diesem Ticket keine

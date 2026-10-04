@@ -509,25 +509,11 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
    seltener genutzte Aktionen stecken bewusst im Menü, damit nie mehr als
    3 Buttons gleichzeitig erscheinen und die Zeile einzeilig bleibt. */
 .vbh-table thead th:empty { width: 160px; }
-/* Aktionsspalte der Mitgliederliste: bis zu ein Text-Button (Nachholen) plus
-   Bearbeiten-Icon-Button plus ein Menü-Button fuer die selteneren Aktionen
-   (Bankverbindung wechseln, Mandat widerrufen, Loeschen) - braucht mehr als
-   die 160px, die fuer reine Icon-Buttons reichen (siehe th:empty oben). */
+/* Aktionsspalte der Mitglieder-, Zuweisungs- und Laufliste: bis zu ein
+   Text- oder Icon-Button plus ein Menü-Button fuer die selteneren Aktionen -
+   braucht mehr als die 160px, die fuer reine Icon-Buttons reichen (siehe
+   th:empty oben). */
 .vbh-table thead th.vbh-col-memberactions { width: 230px; }
-/* Aktionsspalte der Sammeleinzuege: bis zu vier *Text*-Buttons ("Zeilen
-   anzeigen", "XML herunterladen", "Als ausgeführt verbuchen", "Verwerfen").
-   In den 160px von th:empty - die fuer Icon-Buttons gedacht sind - brechen sie
-   untereinander um, und der breiteste ragt aus der Zelle heraus: die Tabelle
-   wird breiter als ihr Rahmen, der Rahmen scrollt seitlich, und links wird die
-   Spalte "Erzeugt" angeschnitten. Ab 900px Fensterbreite ist deshalb Platz fuer
-   alle vier nebeneinander (gemessen 596px, "Zeilen ausblenden" etwas mehr);
-   darunter bleibt es beim Umbruch, dann aber innerhalb der Zelle. */
-.vbh-table thead th.vbh-col-batchactions { width: 230px; }
-@media (min-width: 900px) {
-	.vbh-table thead th.vbh-col-batchactions { width: 640px; }
-}
-/* Aktionsspalte der Einzugszeilen: ein Text-Button ("Rückbuchung zurücknehmen"). */
-.vbh-table thead th.vbh-col-itemactions { width: 240px; }
 /* "Nr." ist immer die erste Zahlenspalte und braucht wenig Platz (Beträge nie) */
 .vbh-table thead th.num:first-child { width: 56px; }
 
@@ -1128,8 +1114,8 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 .vbh-membercard .vbh-mcard-accounts { white-space: normal; overflow: visible; text-overflow: clip; }
 
 .vbh-mcard-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
-/* Aufgeklappte Einzugszeilen (SepaBatchPanel.vue, mobil) leicht eingerückt,
-   damit die Zugehörigkeit zum Einzug oben erkennbar bleibt. */
+/* Aufgeklappte Details (Läufe, Forderungen; mobil) leicht eingerückt,
+   damit die Zugehörigkeit zur Karte oben erkennbar bleibt. */
 .vbh-mcard-subcards { margin: 8px 0 0 10px; padding-inline-start: 10px; border-inline-start: 2px solid var(--color-border); }
 /* Zuordnen mobil: Vorschlag als große Primärtaste */
 .vbh-suggest-chip--big.vbh-suggest-chip--big { display: block; width: 100%; margin-top: 6px; padding: 10px 12px; font-size: 0.9em; text-align: center; border-radius: 8px; background: var(--color-primary-element); color: var(--color-primary-element-text); }

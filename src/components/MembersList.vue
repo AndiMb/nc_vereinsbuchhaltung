@@ -28,20 +28,6 @@
 				v-for="row in filteredRows"
 				:key="row.key"
 				:row="row"
-				:editing="isEditing(row) ? editing : null"
-				:frequencies="frequencies"
-				:saving="saving"
-				:isUsed="!!(row.legacyMandate && isUsed(row.legacyMandate))"
-				@toggleActive="toggleActive(row.legacyFee, $event)"
-				@catchUp="catchUp(row.legacyFee)"
-				@startEdit="startEdit(row.legacyFee)"
-				@saveEdit="saveEdit"
-				@cancelEdit="editing = null"
-				@updateEditing="editing = $event"
-				@bankChange="openBankChange(row.legacyMandate)"
-				@revokeMandate="revokeMandate(row.legacyMandate)"
-				@removeFee="removeFee(row.legacyFee)"
-				@removeMandate="removeMandate(row.legacyMandate)"
 				@manageAssignments="$emit('manage-assignments')"
 				@openMember="openMemberAkte(row.member)"
 				@openMandate="openMemberAkte(row.member, 'mandate')" />
@@ -78,147 +64,58 @@
 							<span v-else-if="row.fee && !row.fee.needsMandate" class="vbh-hint">{{ t('Überweisung') }}</span>
 							<span v-else class="vbh-hint">{{ t('kein Mandat') }}</span>
 						</td>
-
-						<template v-if="isEditing(row)">
-							<td class="num">
-								<AmountInput
-									v-model="editing.amount"
-									class="vbh-short" />
-							</td>
-							<td>
-								<select v-model="editing.frequency">
-									<option v-for="f in frequencies" :key="f.value" :value="f.value">
-										{{ f.label }}
-									</option>
-								</select>
-							</td>
-							<td><input v-model="editing.nextDueDate" type="date"></td>
-							<td><input v-model="editing.active" type="checkbox"></td>
-							<td class="nowrap right">
-								<div class="vbh-actions">
-									<NcButton
-										variant="primary"
-										size="small"
-										:disabled="saving"
-										@click="saveEdit">
-										{{ t('Speichern') }}
-									</NcButton>
-									<NcButton variant="tertiary" size="small" @click="editing = null">
-										{{ t('Abbrechen') }}
-									</NcButton>
-								</div>
-							</td>
-						</template>
-
-						<template v-else>
-							<td class="num nowrap">
-								{{ row.fee ? formatMoney(row.fee.amount) : '–' }}
-							</td>
-							<td>
-								{{ row.fee ? row.fee.frequencyLabel : '–' }}
-								<span v-if="row.moreFees > 0" class="vbh-hint">
-									{{ n('+ %n weitere Zuweisung', '+ %n weitere Zuweisungen', row.moreFees) }}
-								</span>
-							</td>
-							<td class="nowrap">
-								{{ row.fee && row.fee.nextDueDate ? row.fee.nextDueDate : '–' }}
-								<span v-if="row.fee && row.fee.dueCount > 0" class="vbh-hint vbh-hint--warning">
-									{{ n('%n Periode im Rückstand', '%n Perioden im Rückstand', row.fee.dueCount) }}
-								</span>
-							</td>
-							<td>
-								<input
-									v-if="row.legacyFee"
-									type="checkbox"
-									:checked="row.fee.active"
-									@change="toggleActive(row.legacyFee, $event.target.checked)">
-								<span v-else-if="row.fee">{{ row.fee.statusLabel }}</span>
-								<span v-else>–</span>
-							</td>
-							<td class="nowrap right">
-								<div class="vbh-actions">
-									<NcButton
-										v-if="row.fee && row.fee.dueCount > 0"
-										variant="secondary"
-										size="small"
-										@click="catchUp(row.legacyFee)">
-										{{ t('Nachholen') }}
-									</NcButton>
-									<NcButton
-										v-if="row.legacyFee"
-										variant="tertiary"
-										size="small"
-										:aria-label="t('Beitrag bearbeiten')"
-										:title="t('Bearbeiten')"
-										@click="startEdit(row.legacyFee)">
+						<td class="num nowrap">
+							{{ row.fee ? formatMoney(row.fee.amount) : '–' }}
+						</td>
+						<td>
+							{{ row.fee ? row.fee.frequencyLabel : '–' }}
+							<span v-if="row.moreFees > 0" class="vbh-hint">
+								{{ n('+ %n weitere Zuweisung', '+ %n weitere Zuweisungen', row.moreFees) }}
+							</span>
+						</td>
+						<td class="nowrap">
+							{{ row.nextDueDate || '–' }}
+						</td>
+						<td>
+							<span v-if="row.fee">{{ row.fee.statusLabel }}</span>
+							<span v-else>–</span>
+						</td>
+						<td class="nowrap right">
+							<div class="vbh-actions">
+								<!-- Zuweisungen werden nicht inline bearbeitet: Betrag, Turnus und
+									Laufzeit haben ihre Stelle bei den Beitragsgruppen. -->
+								<NcButton
+									v-if="row.fee"
+									variant="tertiary"
+									size="small"
+									:aria-label="t('Zuweisung verwalten')"
+									:title="t('In den Beitragsgruppen verwalten')"
+									@click="$emit('manage-assignments')">
+									<template #icon>
+										<NcIconSvgWrapper :path="mdiPencil" :size="20" />
+									</template>
+								</NcButton>
+								<!-- Seltener genutzte Aktionen im Menue, sonst wird die Zeile
+									durch weitere Icon-Buttons zu breit (dasselbe Muster wie im
+									Buchungsjournal, siehe BookingsTab.vue). -->
+								<NcActions :forceMenu="true">
+									<NcActionButton closeAfterClick @click="openMemberAkte(row.member)">
 										<template #icon>
-											<NcIconSvgWrapper :path="mdiPencil" :size="20" />
+											<NcIconSvgWrapper :path="mdiAccountEdit" :size="16" />
 										</template>
-									</NcButton>
-									<!-- Zuweisungen (neues Modell) werden nicht inline bearbeitet: Betrag,
-										Turnus und Laufzeit haben ihre Stelle bei den Beitragsgruppen. -->
-									<NcButton
-										v-else-if="row.fee"
-										variant="tertiary"
-										size="small"
-										:aria-label="t('Zuweisung verwalten')"
-										:title="t('In den Beitragsgruppen verwalten')"
-										@click="$emit('manage-assignments')">
+										{{ t('Akte öffnen') }}
+									</NcActionButton>
+									<!-- Das Mandat führen (aktivieren, sperren, widerrufen, IBAN ändern …):
+										springt in der Akte zum Mandat-Bereich (MandatePanel.vue, Issue #100). -->
+									<NcActionButton closeAfterClick @click="openMemberAkte(row.member, 'mandate')">
 										<template #icon>
-											<NcIconSvgWrapper :path="mdiPencil" :size="20" />
+											<NcIconSvgWrapper :path="mdiFileSign" :size="16" />
 										</template>
-									</NcButton>
-									<!-- Seltener genutzte Aktionen im Menue, sonst wird die Zeile
-										durch bis zu vier weitere Icon-Buttons zu breit (dasselbe
-										Muster wie im Buchungsjournal, siehe BookingsTab.vue). -->
-									<NcActions :forceMenu="true">
-										<NcActionButton closeAfterClick @click="openMemberAkte(row.member)">
-											<template #icon>
-												<NcIconSvgWrapper :path="mdiAccountEdit" :size="16" />
-											</template>
-											{{ t('Akte öffnen') }}
-										</NcActionButton>
-										<!-- Mandat des neuen Modells führen (aktivieren, sperren, widerrufen, IBAN ändern …):
-											springt in der Akte zum Mandat-Bereich (MandatePanel.vue, Issue #100). Alt-Mandate
-											haben ihre eigenen Aktionen darunter. -->
-										<NcActionButton v-if="!row.legacyMandate" closeAfterClick @click="openMemberAkte(row.member, 'mandate')">
-											<template #icon>
-												<NcIconSvgWrapper :path="mdiFileSign" :size="16" />
-											</template>
-											{{ t('Mandat verwalten') }}
-										</NcActionButton>
-										<NcActionButton
-											v-if="row.legacyMandate && row.legacyMandate.status === 'active'"
-											@click="openBankChange(row.legacyMandate)">
-											<template #icon>
-												<NcIconSvgWrapper :path="mdiBankTransfer" :size="16" />
-											</template>
-											{{ t('Bankverbindung wechseln') }}
-										</NcActionButton>
-										<NcActionButton
-											v-if="row.legacyMandate && row.legacyMandate.status === 'active'"
-											@click="revokeMandate(row.legacyMandate)">
-											<template #icon>
-												<NcIconSvgWrapper :path="mdiCancel" :size="16" />
-											</template>
-											{{ t('Mandat widerrufen') }}
-										</NcActionButton>
-										<NcActionButton v-if="row.legacyFee" @click="removeFee(row.legacyFee)">
-											<template #icon>
-												<NcIconSvgWrapper :path="mdiDelete" :size="16" />
-											</template>
-											{{ t('Beitrag löschen') }}
-										</NcActionButton>
-										<NcActionButton v-else-if="row.legacyMandate && !row.fee && !isUsed(row.legacyMandate)" @click="removeMandate(row.legacyMandate)">
-											<template #icon>
-												<NcIconSvgWrapper :path="mdiDelete" :size="16" />
-											</template>
-											{{ t('Mandat löschen') }}
-										</NcActionButton>
-									</NcActions>
-								</div>
-							</td>
-						</template>
+										{{ t('Mandat verwalten') }}
+									</NcActionButton>
+								</NcActions>
+							</div>
+						</td>
 					</tr>
 				</tbody>
 			</table>
@@ -245,51 +142,40 @@
 			@update:show="importDialogOpen = $event"
 			@close="importDialogOpen = false"
 			@imported="reload" />
-
-		<BankAccountChangeDialog
-			v-model:show="bankChangeOpen"
-			:mandate="bankChangeMandate"
-			:saving="bankChangeSaving"
-			@close="bankChangeOpen = false"
-			@save="saveBankChange" />
 	</div>
 </template>
 
 <script>
-import { mdiAccountEdit, mdiBankTransfer, mdiCancel, mdiDelete, mdiFileSign, mdiPencil } from '@mdi/js'
+import { mdiAccountEdit, mdiFileSign, mdiPencil } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { NcActionButton, NcActions, NcButton, NcEmptyContent, NcIconSvgWrapper } from '@nextcloud/vue'
 import { toRefs } from 'vue'
-import AmountInput from './AmountInput.vue'
-import BankAccountChangeDialog from './BankAccountChangeDialog.vue'
 import MemberCard from './MemberCard.vue'
 import MemberDialog from './MemberDialog.vue'
 import MemberImportDialog from './MemberImportDialog.vue'
 import api from '../api.js'
 import { useAssignments } from '../composables/useAssignments.js'
-import { useConfirm } from '../composables/useConfirm.js'
+import { useClaimOverview } from '../composables/useClaimOverview.js'
 import { useMandates } from '../composables/useMandates.js'
 import { useMemberAkteRequest } from '../composables/useMemberAkteRequest.js'
 import { useMembers } from '../composables/useMembers.js'
-import { useMembershipFees } from '../composables/useMembershipFees.js'
-import { useSepaMandates } from '../composables/useSepaMandates.js'
 import { errMsg, formatMoney } from '../lib/format.js'
-import { frequencyOptions } from '../lib/frequency.js'
 import { createMandateForMember } from '../lib/mandateCreate.js'
-import { buildMemberRow } from '../lib/memberRow.js'
+import { buildMemberRow, nextDueDates } from '../lib/memberRow.js'
 
 /**
  * Mitgliederliste (Spec §2.2/§3.1, docs/beitraege-sepa-modul-spec.md): jede
- * Zeile ist ein Mitglied, angereichert um sein SEPA-Mandat und seinen
- * Mitgliedsbeitrag, falls vorhanden – beides ist seit der Mitglied-Entity
- * unabhängig vom Mitglied selbst (siehe Migration 000137/000138/000139).
+ * Zeile ist ein Mitglied, angereichert um sein SEPA-Mandat, seine Zuweisung zu
+ * einer Beitragsgruppe und die nächste offene Forderung, falls vorhanden – alles
+ * ist unabhängig vom Mitglied selbst (siehe Migration 000137/000138/000139).
  *
- * Mandat und Beitrag kommen bevorzugt aus dem neuen Modell (Mandate/
- * Assignment – der Aufnahme-Assistent und der CSV-Import legen dort an), mit
- * Rückgriff auf den Alt-Bestand (SepaMandate/MembershipFee); die Normalisierung
- * beider Formen steckt in lib/memberRow.js. Nur Alt-Beiträge lassen sich hier
- * inline bearbeiten – Zuweisungen führen zu den Beitragsgruppen
- * (`manage-assignments`).
+ * Mandat und Beitrag kommen aus dem Mandats- und Zuweisungsmodell (Mandate/
+ * Assignment – der Aufnahme-Assistent und der CSV-Import legen dort an); die
+ * Normalisierung für die Anzeige steckt in lib/memberRow.js. Die „Nächste
+ * Fälligkeit" kommt aus der Forderungsübersicht (GET /claims/overview, eine
+ * Abfrage für die ganze Liste). Zuweisungen werden hier nicht inline
+ * bearbeitet – sie führen zu den Beitragsgruppen (`manage-assignments`), das
+ * Mandat zur Akte.
  *
  * Frueher SettingsMembers.vue im Einstellungen-Modal, jetzt Unterreiter
  * „Mitglieder" von ContributionsTab.vue, siehe NAVIGATION-KONZEPT.md
@@ -303,7 +189,7 @@ import { buildMemberRow } from '../lib/memberRow.js'
  */
 export default {
 	name: 'MembersList',
-	components: { NcButton, NcActions, NcActionButton, NcEmptyContent, NcIconSvgWrapper, AmountInput, BankAccountChangeDialog, MemberDialog, MemberImportDialog, MemberCard },
+	components: { NcButton, NcActions, NcActionButton, NcEmptyContent, NcIconSvgWrapper, MemberDialog, MemberImportDialog, MemberCard },
 	props: {
 		isMobile: { type: Boolean, default: false },
 		defaultFeeAmount: { type: [Number, String], default: '' },
@@ -312,24 +198,20 @@ export default {
 	emits: ['manage-assignments'],
 
 	setup() {
-		const membershipFees = useMembershipFees()
-		const sepaMandates = useSepaMandates()
 		const mandates = useMandates()
 		const assignments = useAssignments()
 		const members = useMembers()
+		const claimOverview = useClaimOverview()
 		const akteRequest = useMemberAkteRequest()
 		return {
-			...toRefs(membershipFees.state),
-			...toRefs(sepaMandates.state),
 			...toRefs(mandates.state),
 			...toRefs(assignments.state),
 			...toRefs(members.state),
-			loadMembershipFees: membershipFees.loadMembershipFees,
-			loadSepaMandates: sepaMandates.loadSepaMandates,
+			claimOverview: claimOverview.state,
+			loadClaimOverview: claimOverview.load,
 			loadMandates: mandates.loadMandates,
 			loadAssignments: assignments.loadAssignments,
 			loadMembers: members.loadMembers,
-			askConfirm: useConfirm().askConfirm,
 			akteRequest: akteRequest.request,
 			takeMemberAkteRequest: akteRequest.takeMemberAkteRequest,
 		}
@@ -338,22 +220,14 @@ export default {
 	data() {
 		return {
 			saving: false,
-			editing: null,
 			search: '',
 			onlyProblems: false,
-			frequencies: frequencyOptions(),
 			memberDialogOpen: false,
 			editingMember: null,
 			/** Abschnitt, zu dem die Akte beim Öffnen scrollt ('mandate' oder leer). */
 			akteSection: '',
 			importDialogOpen: false,
-			bankChangeOpen: false,
-			bankChangeMandate: null,
-			bankChangeSaving: false,
 			mdiAccountEdit,
-			mdiBankTransfer,
-			mdiCancel,
-			mdiDelete,
 			mdiFileSign,
 			mdiPencil,
 		}
@@ -364,9 +238,8 @@ export default {
 		rows() {
 			const sources = {
 				mandates: this.mandates,
-				sepaMandates: this.sepaMandates,
 				assignments: this.assignments,
-				membershipFees: this.membershipFees,
+				nextDueDates: nextDueDates(this.claimOverview.claims),
 			}
 			return this.members
 				.map((member) => buildMemberRow(member, sources))
@@ -401,10 +274,9 @@ export default {
 
 	mounted() {
 		this.loadMembers()
-		this.loadMembershipFees()
-		this.loadSepaMandates()
 		this.loadMandates()
 		this.loadAssignments()
+		this.loadClaimOverview()
 	},
 
 	methods: {
@@ -431,30 +303,18 @@ export default {
 			if (member) { this.openMemberAkte(member) } else { showError(this.t('Das Mitglied wurde nicht gefunden – vielleicht wurde es inzwischen gelöscht.')) }
 		},
 
-		/** Was der Verwalter sehen sollte: fehlende Adresse, Rückstand, kein Mandat. */
+		/** Was der Verwalter sehen sollte: fehlende Adresse, Lastschrift ohne Mandat. */
 		hasProblem(row) {
-			if (row.fee && row.fee.dueCount > 0) { return true }
 			if (row.fee && row.fee.active && row.fee.needsMandate && !row.mandate) { return true }
 			return !row.email
-		},
-
-		/** Inline bearbeitet wird nur der Alt-Beitrag – Ids von Alt-Beitrag und Zuweisung können kollidieren. */
-		isEditing(row) {
-			return !!(this.editing && row.legacyFee && this.editing.id === row.legacyFee.id)
-		},
-
-		isUsed(m) {
-			const u = m.usage || {}
-			return (u.batchItems || 0) + (u.fees || 0) + (u.openItems || 0) > 0
 		},
 
 		async reload() {
 			await Promise.all([
 				this.loadMembers(),
-				this.loadMembershipFees(),
-				this.loadSepaMandates(),
 				this.loadMandates(),
 				this.loadAssignments(),
+				this.loadClaimOverview(),
 			])
 			// Die offene Akte zeigt sonst weiter den Stand von vor dem Neuladen -
 			// nach @changed (verknuepft/geloest/Austritt) muss sie den frischen
@@ -503,115 +363,6 @@ export default {
 					assignment: this.t('Mitglied und Mandat wurden angelegt, der Beitrag nicht'),
 				}[stage]))
 			} finally { this.saving = false }
-		},
-
-		startEdit(fee) {
-			this.editing = {
-				id: fee.id,
-				amount: fee.amount,
-				frequency: fee.frequency,
-				nextDueDate: fee.nextDueDate,
-				active: fee.active,
-				accountId: fee.accountId,
-				mandateId: fee.mandateId,
-			}
-		},
-
-		async saveEdit() {
-			this.saving = true
-			try {
-				await api.updateMembershipFee(this.editing.id, {
-					amount: Number(this.editing.amount),
-					frequency: this.editing.frequency,
-					accountId: this.editing.accountId,
-					mandateId: this.editing.mandateId,
-					active: this.editing.active,
-					nextDueDate: this.editing.nextDueDate,
-				})
-				this.editing = null
-				await this.loadMembershipFees()
-				showSuccess(this.t('Beitrag gespeichert.'))
-			} catch (e) { showError(this.errMsg(e, this.t('Speichern fehlgeschlagen'))) } finally { this.saving = false }
-		},
-
-		async toggleActive(fee, active) {
-			try {
-				await api.updateMembershipFee(fee.id, {
-					amount: fee.amount,
-					frequency: fee.frequency,
-					accountId: fee.accountId,
-					mandateId: fee.mandateId,
-					active,
-					nextDueDate: fee.nextDueDate,
-				})
-				await this.loadMembershipFees()
-			} catch (e) { showError(this.errMsg(e, this.t('Speichern fehlgeschlagen'))) }
-		},
-
-		async catchUp(fee) {
-			if (!await this.askConfirm(
-				this.t('Rückstand nachholen'),
-				this.n(
-					'Für diesen Beitrag fehlt noch %n offener Posten. Soll er jetzt erzeugt werden?',
-					'Für diesen Beitrag fehlen noch %n offene Posten. Sollen sie jetzt alle erzeugt werden?',
-					fee.dueCount,
-				),
-				this.t('Erzeugen'),
-				'primary',
-			)) { return }
-			try {
-				const { data } = await api.catchUpMembershipFee(fee.id)
-				await this.loadMembershipFees()
-				showSuccess(this.n('%n offener Posten erzeugt.', '%n offene Posten erzeugt.', data.created))
-			} catch (e) { showError(this.errMsg(e, this.t('Nachholen fehlgeschlagen'))) }
-		},
-
-		async removeFee(fee) {
-			if (!await this.askConfirm(this.t('Beitrag löschen'), this.t('Beitrag für „{name}" endgültig löschen? Das Mandat bleibt bestehen.', { name: fee.displayName }))) { return }
-			try {
-				await api.deleteMembershipFee(fee.id)
-				await this.loadMembershipFees()
-				showSuccess(this.t('Beitrag gelöscht.'))
-			} catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
-		},
-
-		openBankChange(mandate) {
-			this.bankChangeMandate = mandate
-			this.bankChangeOpen = true
-		},
-
-		/**
-		 * Widerruft das alte Mandat und legt ein neues an; Beiträge und noch
-		 * offene Posten hängen dabei serverseitig automatisch um (siehe
-		 * SepaMandateService::changeBankAccount()) - ohne das fielen sie beim
-		 * nächsten Einzug sonst kommentarlos aus der Vorschau.
-		 */
-		async saveBankChange(data) {
-			this.bankChangeSaving = true
-			try {
-				await api.changeSepaMandateBankAccount(this.bankChangeMandate.id, data)
-				this.bankChangeOpen = false
-				await this.reload()
-				showSuccess(this.t('Bankverbindung gewechselt.'))
-			} catch (e) { showError(this.errMsg(e, this.t('Wechseln fehlgeschlagen'))) } finally { this.bankChangeSaving = false }
-		},
-
-		async revokeMandate(mandate) {
-			if (!await this.askConfirm(this.t('Mandat widerrufen'), this.t('Mandat für „{name}" widerrufen? Es wird danach nicht mehr für neue Einzüge verwendet.', { name: mandate.displayName }))) { return }
-			try {
-				await api.revokeSepaMandate(mandate.id)
-				await this.loadSepaMandates()
-				showSuccess(this.t('Mandat widerrufen.'))
-			} catch (e) { showError(this.errMsg(e, this.t('Widerrufen fehlgeschlagen'))) }
-		},
-
-		async removeMandate(mandate) {
-			if (!await this.askConfirm(this.t('Mandat löschen'), this.t('Mandat für „{name}" endgültig löschen?', { name: mandate.displayName }))) { return }
-			try {
-				await api.deleteSepaMandate(mandate.id)
-				await this.loadSepaMandates()
-				showSuccess(this.t('Mandat gelöscht.'))
-			} catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
 		},
 	},
 }

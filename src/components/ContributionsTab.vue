@@ -4,7 +4,6 @@
 			<div class="vbh-subtabs">
 				<button v-if="canWrite" :class="{ active: contribView === 'members' }" @click="$emit('update:contrib-view', 'members')">
 					{{ t('Mitglieder') }}
-					<span v-if="overdueMembershipCount > 0" class="vbh-badge vbh-badge--alert">{{ overdueMembershipCount }}</span>
 				</button>
 				<button :class="{ active: contribView === 'batch' }" @click="$emit('update:contrib-view', 'batch')">
 					{{ t('Einzug') }}
@@ -49,11 +48,9 @@
 <script>
 import { mdiPlus } from '@mdi/js'
 import { NcButton, NcIconSvgWrapper } from '@nextcloud/vue'
-import { toRefs } from 'vue'
 import ContributionGroupsPanel from './ContributionGroupsPanel.vue'
 import EinzugPanel from './EinzugPanel.vue'
 import MembersList from './MembersList.vue'
-import { useMembershipFees } from '../composables/useMembershipFees.js'
 
 /**
  * Reiter „Beiträge": Mitgliederpflege und SEPA-Sammeleinzug, vorher zwei
@@ -82,14 +79,6 @@ export default {
 	},
 
 	emits: ['update:contrib-view'],
-
-	setup() {
-		const membershipFees = useMembershipFees()
-		return {
-			...toRefs(membershipFees.state),
-			overdueMembershipCount: membershipFees.overdueCount,
-		}
-	},
 
 	data() {
 		return { mdiPlus }

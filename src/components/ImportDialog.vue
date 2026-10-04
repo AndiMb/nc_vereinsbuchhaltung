@@ -66,7 +66,7 @@
 						{{ t('{n} Buchungen warten auf die Zuordnung zu einem Konto.', { n: importDone.new - importDone.autoAssigned }) }}
 					</p>
 					<p v-if="importDone.sepaReturnsDetected > 0" class="vbh-hint vbh-hint--info">
-						{{ t('{n} SEPA-Rücklastschrift(en) erkannt: der zugehörige offene Posten wurde wieder geöffnet.', { n: importDone.sepaReturnsDetected }) }}
+						{{ t('{n} mögliche SEPA-Rücklastschrift(en) erkannt: bitte im Bankabgleich (Beiträge → Einzug) prüfen und verbuchen.', { n: importDone.sepaReturnsDetected }) }}
 					</p>
 					<div class="vbh-modal-actions">
 						<NcButton variant="tertiary" @click="$emit('update:show', false)">

@@ -32,7 +32,6 @@
 						<NcIconSvgWrapper :path="tab.icon" :size="18" inline />
 						{{ tab.label }}
 						<span v-if="tab.id === 'bookings' && unassignedCount > 0" class="vbh-badge vbh-badge--alert">{{ unassignedCount }}</span>
-						<span v-if="tab.id === 'contributions' && overdueMembershipCount > 0" class="vbh-badge vbh-badge--alert">{{ overdueMembershipCount }}</span>
 					</button>
 				</nav>
 				<!-- Zeitraum/Buchung/Hilfe beziehen sich auf die Buchhaltung - fuer ein
@@ -250,7 +249,6 @@
 			:tabs="visibleTabs"
 			:activeTab="activeTab"
 			:unassignedCount="unassignedCount"
-			:overdueMembershipCount="overdueMembershipCount"
 			:canWrite="canWrite"
 			@select="id => { activeTab = id }"
 			@newBooking="openNewBooking" />
@@ -428,13 +426,10 @@ import { useCostCenters } from './composables/useCostCenters.js'
 import { useEinzugRequest } from './composables/useEinzugRequest.js'
 import { useJournal } from './composables/useJournal.js'
 import { useMemberAkteRequest } from './composables/useMemberAkteRequest.js'
-import { useMembershipFees } from './composables/useMembershipFees.js'
 import { useOpenItems } from './composables/useOpenItems.js'
 import { usePeriods } from './composables/usePeriods.js'
 import { usePermissions } from './composables/usePermissions.js'
 import { useRules } from './composables/useRules.js'
-import { useSepaBatches } from './composables/useSepaBatches.js'
-import { useSepaMandates } from './composables/useSepaMandates.js'
 import { useSort } from './composables/useSort.js'
 import { useSync } from './composables/useSync.js'
 import { useTasks } from './composables/useTasks.js'
@@ -522,9 +517,6 @@ export default {
 		const attachmentInbox = useAttachmentInbox()
 		const costCenters = useCostCenters()
 		const rulesC = useRules()
-		const membershipFees = useMembershipFees()
-		const sepaMandates = useSepaMandates()
-		const sepaBatches = useSepaBatches()
 		const memberAkteRequest = useMemberAkteRequest()
 		const einzugRequest = useEinzugRequest()
 		const tasks = useTasks()
@@ -537,15 +529,9 @@ export default {
 			...toRefs(rulesC.state),
 			loadRules: rulesC.loadRules,
 			// Reiter „Beiträge" (ContributionsTab.vue): MembersList.vue/
-			// EinzugPanel.vue laden ihre Daten selbst beim eigenen mounted(),
-			// hier nur die Kennzahl fuer den Reiter-Badge und die Nachlade-
-			// Funktionen fuer refreshAfterRemoteChange() (siehe dort).
-			overdueMembershipCount: membershipFees.overdueCount,
+			// EinzugPanel.vue laden ihre Daten selbst beim eigenen mounted().
 			...toRefs(attachmentInbox.state),
 			loadInboxSummary: attachmentInbox.loadInboxSummary,
-			loadMembershipFees: membershipFees.loadMembershipFees,
-			loadSepaMandates: sepaMandates.loadSepaMandates,
-			loadSepaBatches: sepaBatches.loadSepaBatches,
 			requestMemberAkte: memberAkteRequest.requestMemberAkte,
 			requestEinzugClaims: einzugRequest.requestClaims,
 			// Aufgaben-Flyout (TasksFlyout.vue): hier nur fuer refreshAfterRemoteChange().
@@ -1384,9 +1370,6 @@ export default {
 			await this.loadPeriods()
 			const jobs = [this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions(), this.loadSphereReport(), this.loadOpenItems(), this.loadCostCenters()]
 			this.refreshInbox()
-			// Beitraege/Mandate/Einzuege: eigenes Zusatzmodul, ab Rolle Buchhalter
-			// (Backend-Gate) - siehe ContributionsTab.vue.
-			if (this.canWrite) { jobs.push(this.loadMembershipFees(), this.loadSepaMandates(), this.loadSepaBatches()) }
 			// Aufgaben-Flyout: eine Aenderung anderer Personen kann Aufgaben loesen/schaffen.
 			if (this.canWrite && this.membershipActive) { jobs.push(this.loadTasks()) }
 			if (this.activeTab === 'accounts' && this.selectedAccountId) { jobs.push(this.loadStatement(this.selectedAccountId)) }

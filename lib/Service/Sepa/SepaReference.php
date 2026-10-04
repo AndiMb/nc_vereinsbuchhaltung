@@ -10,11 +10,17 @@ namespace OCA\Vereinsbuchhaltung\Service\Sepa;
  * einzelnen Lastschrift.
  *
  * Erzeugen und Wiedererkennen stehen bewusst in derselben Klasse. Vorher lagen
- * die Muster in {@see \OCA\Vereinsbuchhaltung\Service\SepaReturnDetectionService}
- * als Regex, während zwei andere Klassen die Referenzen zusammenbauten. Ändert
- * jemand das Format – etwa weil eine Bank ein anderes Präfix verlangt – bricht
- * die Rücklastschrift-Erkennung dabei *still*: kein Fehler, nur ab sofort keine
- * Treffer mehr. Hier hält der Test in SepaReferenceTest beide Enden zusammen.
+ * die Muster als Regex in der (mit dem Cutover, Issue #107, entfernten)
+ * Rücklastschrift-Heuristik, während andere Klassen die Referenzen
+ * zusammenbauten. Ändert jemand das Format – etwa weil eine Bank ein anderes
+ * Präfix verlangt –, bricht die Rücklastschrift-Erkennung dabei *still*: kein
+ * Fehler, nur ab sofort keine Treffer mehr. Hier hält der Test in
+ * SepaReferenceTest beide Enden zusammen.
+ *
+ * {@see mandate()} erzeugt das Hex-Format des früheren Mandatssystems; Mandate
+ * des heutigen Modells tragen `<Präfix>-<lfd. Nr.>`
+ * ({@see \OCA\Vereinsbuchhaltung\Service\MandateReferenceGenerator}). Das
+ * Muster {@see MANDATE_PATTERN} erkennt deshalb nur die alte Form.
  *
  * Alle Formate bleiben innerhalb der 35 Zeichen aus dem pain.008-Schema und
  * benutzen nur Zeichen, die SEPA in Referenzfeldern erlaubt.
