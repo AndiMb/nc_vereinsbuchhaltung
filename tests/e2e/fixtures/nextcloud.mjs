@@ -500,8 +500,9 @@ export const api = {
 		return call(request, 'POST', `/mandates/${id}/suspend`, { user, expectOk, data: { note, origin } })
 	},
 
-	async resumeMandate(request, id, { user = 'admin', expectOk = true } = {}) {
-		return call(request, 'POST', `/mandates/${id}/resume`, { user, expectOk })
+	/** Entsperren verlangt eine Notiz (Spec §2.2, Issue #100) – ohne Angabe eine Standardnotiz, damit ältere Specs unverändert bleiben. */
+	async resumeMandate(request, id, { note = 'Geklärt', user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', `/mandates/${id}/resume`, { user, expectOk, data: { note } })
 	},
 
 	async revokeMandate(request, id, { user = 'admin', expectOk = true } = {}) {

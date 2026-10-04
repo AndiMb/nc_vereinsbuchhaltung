@@ -1171,6 +1171,45 @@ Mandatsformular mit.
 > Einreichungen verweisen darauf, und dieser Nachweis muss erhalten bleiben.
 > Deshalb verschwindet der Löschen-Knopf, sobald ein Mandat verwendet wurde.
 
+**Das Mandat in der Personenakte führen.** Über das Menü (⋯) der Zeile →
+**„Mandat verwalten"** öffnet die Akte beim Abschnitt *SEPA-Mandat*. Er zeigt
+den Zustand in Klartext, Referenz, Kontoinhaber, IBAN/BIC, Unterschriftsart
+und -datum, das Ablaufdatum nach der 36-Monats-Regel und ob ein Nachweis
+vorliegt – dazu die Hinweise, was gerade zu tun ist („Unterschrift fehlt",
+„Klärung offen", „neues Mandat einholen", „Mandat ohne Nachweis", „Mandat
+läuft in … Tagen ab"). *Verlauf* nennt zu jeder Änderung, wer sie wann
+gemacht hat; unter *Frühere Mandate* stehen die beendeten.
+
+| Zustand | Bedeutung | Das können Sie tun |
+|---|---|---|
+| **Entwurf** | Angaben liegen vor, die Unterschrift fehlt | Papier: das Unterschriftsdatum eintragen und **Aktivieren** – das Datum ist Pflicht und das Gate. Elektronisch: **Einmal-Link senden** bzw. erneut senden; die Akte zeigt, wann und an wen er ging und ob er abgelaufen ist |
+| **Aktiv** | einzugsfähig | **Bankverbindung ändern**, **Sperren**, **Mandat widerrufen** |
+| **Ausgesetzt** | vorübergehend nicht einzugsfähig | **Entsperren**, **Mandat widerrufen** |
+| **Erloschen** | widerrufen, ersetzt, verfallen oder beendet | **Mandat anlegen** für ein neues |
+
+**Sperren und Entsperren** verlangen jeweils eine Notiz; sie steht im Verlauf.
+Eine Sperre beendet nichts, offene Forderungen bleiben offen. Eine Sperre nach
+einer Rücklastschrift setzt die App selbst und kennzeichnet sie als solche –
+entsperren müssen Sie von Hand, sobald der Fall geklärt ist.
+
+**Bankverbindung ändern** deckt drei Fälle ab: nur die **IBAN** hat sich
+geändert (dasselbe Mandat bleibt, eine neue Unterschrift ist nicht nötig; die
+Änderung meldet die App der Bank mit dem nächsten Einzug, bis dahin steht sie
+als „offen" unter *Änderungen der Bankverbindung*), nur der **Name** war falsch
+geschrieben (stille Korrektur) oder der **Kontoinhaber wechselt** (ein neues
+Mandat entsteht, das alte ist „ersetzt"; mit Unterschriftsdatum ist es sofort
+aktiv, ohne bleibt es Entwurf).
+
+**Der Widerruf ist endgültig** – ein widerrufenes Mandat lässt sich nicht
+wieder aktivieren. Der Dialog zeigt die noch offene Summe und bietet als
+erste Wahl an, was meist gemeint ist: *„Ich habe nur ein neues Konto → IBAN
+ändern"*. Für offene Forderungen erhält das Mitglied eine Zahlungsaufforderung.
+
+**Nachweis und Formular:** Das unterschriebene Mandat laden Sie als Datei
+hoch (es landet im Nachweis-Ordner in Nextcloud) und können es wieder
+herunterladen; **Mandatsformular öffnen** zeigt das druckfertige Formular
+(Strg+P bzw. ⌘P).
+
 ### 13.3 Viele Mitglieder auf einmal aufnehmen
 
 Für einen Chor mit 200 Stimmen ist das Formular der falsche Weg. Nutzen Sie
