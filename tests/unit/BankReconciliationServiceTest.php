@@ -231,7 +231,7 @@ class BankReconciliationServiceTest extends TestCase {
 
 	// --- Arbeitsliste: Zustand, Art, Fortschritt -------------------------------------
 
-	public function testSammlerZaehltDieBeurteiltenZeilenUndWartetAufUrteil(): void {
+	public function testSammlerMitUnbeurteilterZeileWartetAufUrteil(): void {
 		$this->tx(1, 9000);
 		$this->givenDetails([
 			$this->detail(1, 1, 4500, status: BankTxSepaDetail::STATUS_ASSIGNED, debitItemId: 10),
@@ -248,10 +248,8 @@ class BankReconciliationServiceTest extends TestCase {
 
 		$this->assertCount(1, $list);
 		$this->assertSame(BankReconciliationService::KIND_COLLECTION, $list[0]['kind']);
-		$this->assertSame(BankReconciliationService::STATE_OPEN, $list[0]['state']);
-		$this->assertSame(2, $list[0]['total']);
-		$this->assertSame(1, $list[0]['judged']);
-		$this->assertSame(1, $list[0]['assigned']);
+		$this->assertSame(BankReconciliationService::STATE_OPEN, $list[0]['state'], 'eine Zeile ohne Urteil: der Umsatz wartet');
+		$this->assertCount(2, $list[0]['details']);
 	}
 
 	/** Ist die letzte Zeile beurteilt, bleibt der Umsatz in der Liste – bereit zum Verbuchen (genau das kann `pending()` nicht). */

@@ -122,10 +122,14 @@
 			<ClaimsSegment :canWrite="canWrite" :isMobile="isMobile" :active="active" />
 		</div>
 
-		<!-- Einhängepunkt für Ticket #105 (Bankabgleich): ein weiterer Eintrag in `segments` (Script) und hier
-		     ein eigener Block nach dem Muster oben:
-		     <div v-if="segment === 'bank'" id="vbh-einzug-panel-bank" role="tabpanel" aria-labelledby="vbh-einzug-tab-bank">…</div>
-		     Zustand und Nachladen kommen aus useDebitRuns() (reload), der Reiter selbst bleibt unverändert. -->
+		<!-- ============ SEGMENT „BANKABGLEICH“ (Issue #105) ============ -->
+		<div
+			v-if="segment === 'bankabgleich'"
+			id="vbh-einzug-panel-bankabgleich"
+			role="tabpanel"
+			aria-labelledby="vbh-einzug-tab-bankabgleich">
+			<BankReconciliationSegment :canWrite="canWrite" :active="active" />
+		</div>
 	</div>
 </template>
 
@@ -133,6 +137,7 @@
 import { mdiCalendarEdit } from '@mdi/js'
 import { NcButton, NcIconSvgWrapper, NcLoadingIcon } from '@nextcloud/vue'
 import { toRefs } from 'vue'
+import BankReconciliationSegment from './BankReconciliationSegment.vue'
 import ClaimsSegment from './ClaimsSegment.vue'
 import DebitGhostCard from './DebitGhostCard.vue'
 import DebitReleaseAction from './DebitReleaseAction.vue'
@@ -152,7 +157,7 @@ import { liveBatches } from '../lib/debitRun.js'
  * Cutover (#107) samt Datei entfällt.
  *
  * Aufbau für die Folge-Tickets: eine Segmentleiste („Zeitstrahl & Läufe“,
- * „Forderungen“ (#104); „Bankabgleich“ (#105) kommt dazu), eigene
+ * „Forderungen“ (#104), „Bankabgleich“ (#105)), eigene
  * Komponenten für Zeitstrahl, Geisterkarte, Lauf-Liste und Lauf-Detail mit
  * klaren Props/Slots, gemeinsamer Zustand in useDebitRuns(). Die Stellen, an
  * denen #103 Aktionen und #104/#105 Segmente einhängen, sind im Template
@@ -163,7 +168,7 @@ import { liveBatches } from '../lib/debitRun.js'
  */
 export default {
 	name: 'EinzugPanel',
-	components: { ClaimsSegment, DebitGhostCard, DebitReleaseAction, DebitRunActions, DebitRunDetail, DebitRunList, DebitTimeline, DueDateScheduleSettings, NcButton, NcIconSvgWrapper, NcLoadingIcon },
+	components: { BankReconciliationSegment, ClaimsSegment, DebitGhostCard, DebitReleaseAction, DebitRunActions, DebitRunDetail, DebitRunList, DebitTimeline, DueDateScheduleSettings, NcButton, NcIconSvgWrapper, NcLoadingIcon },
 	props: {
 		isMobile: { type: Boolean, default: false },
 		canWrite: { type: Boolean, default: false },
@@ -196,11 +201,11 @@ export default {
 	},
 
 	computed: {
-		// Einhängepunkt für #105: weitere Segmente hier anhängen ({ id: 'bank', label: this.t('Bankabgleich') }).
 		segments() {
 			return [
 				{ id: 'timeline', label: this.t('Zeitstrahl & Läufe') },
 				{ id: 'claims', label: this.t('Forderungen') },
+				{ id: 'bankabgleich', label: this.t('Bankabgleich') },
 			]
 		},
 

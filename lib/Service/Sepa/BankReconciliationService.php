@@ -184,10 +184,9 @@ class BankReconciliationService {
 			$result[] = [
 				'bankTx' => $this->txView($tx),
 				'kind' => $returns === 0 ? self::KIND_COLLECTION : ($returns === $total ? self::KIND_RETURN : self::KIND_MIXED),
+				// Nur für die Reihenfolge der Liste: nach jedem Urteil rechnet die Oberfläche
+				// Fortschritt und Zustand aus den Detail-Zeilen neu, ohne die Liste neu zu laden.
 				'state' => $judged < $total ? self::STATE_OPEN : ($assigned > 0 ? self::STATE_READY : self::STATE_NO_MATCH),
-				'total' => $total,
-				'judged' => $judged,
-				'assigned' => $assigned,
 				'details' => $detailViews,
 			];
 		}

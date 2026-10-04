@@ -3,6 +3,7 @@
 </template>
 
 <script>
+import { detailStatusLabel, detailStatusTone, txStateLabel, txStateTone } from '../lib/bankReconciliation.js'
 import { batchStatusLabel, batchStatusTone, claimStateLabel, claimStateTone, severityLabel, severityTone } from '../lib/debitRun.js'
 
 /**
@@ -14,6 +15,8 @@ import { batchStatusLabel, batchStatusTone, claimStateLabel, claimStateTone, sev
  * - `claim`: abgeleiteter Forderungszustand; `settlementType` unterscheidet
  *   beim Erledigungsvermerk bezahlt von erlassen
  * - `severity`: Schweregrad eines Störfalls (Handlungsbedarf, Hinweis)
+ * - `bank-tx`/`bank-detail`: Zustand eines Bankumsatzes bzw. Urteil über eine
+ *   seiner Detail-Zeilen im Bankabgleich (Issue #105)
  *
  * Die Farben sind Paare aus Fläche und darauf lesbarer Schrift (--color-*
  * und --color-*-text), nie ein einzelner Wert: so bleibt der Kontrast im
@@ -22,7 +25,7 @@ import { batchStatusLabel, batchStatusTone, claimStateLabel, claimStateTone, sev
 export default {
 	name: 'DebitStatusTag',
 	props: {
-		kind: { type: String, required: true, validator: (v) => ['batch', 'claim', 'severity'].includes(v) },
+		kind: { type: String, required: true, validator: (v) => ['batch', 'claim', 'severity', 'bank-tx', 'bank-detail'].includes(v) },
 		value: { type: String, required: true },
 		settlementType: { type: String, default: null },
 	},
@@ -31,12 +34,16 @@ export default {
 		label() {
 			if (this.kind === 'batch') { return batchStatusLabel(this.value) }
 			if (this.kind === 'claim') { return claimStateLabel(this.value, this.settlementType) }
+			if (this.kind === 'bank-tx') { return txStateLabel(this.value) }
+			if (this.kind === 'bank-detail') { return detailStatusLabel(this.value) }
 			return severityLabel(this.value)
 		},
 
 		tone() {
 			if (this.kind === 'batch') { return batchStatusTone(this.value) }
 			if (this.kind === 'claim') { return claimStateTone(this.value, this.settlementType) }
+			if (this.kind === 'bank-tx') { return txStateTone(this.value) }
+			if (this.kind === 'bank-detail') { return detailStatusTone(this.value) }
 			return severityTone(this.value)
 		},
 	},
