@@ -68,3 +68,20 @@ jedem Testlauf zurück, die Tests selbst starten also immer vom selben Stand.
   `exact: true` setzen. **Nicht pauschal**: die Untertabs *Zuzuordnen* und
   *Offene Posten* tragen eine Zähler-Badge im Knopf, ihr Accessible Name
   lautet dann „Zuzuordnen 2" – dort wäre `exact: true` falsch.
+
+## Mails prüfen
+
+Der Testserver hat keinen Mailserver. Zwei Wege, je nachdem, was die Spec wissen
+muss:
+
+- **Nur „wurde versandt?“**: NC-Mail-Modus `null` (`occ config:system:set
+  mail_smtpmode --value null`, siehe 28 und 43) – die Mail wird angenommen und
+  verworfen. Die Einstellung steht in `config.php`, nicht im Datenbank-Snapshot:
+  in `afterAll` wieder löschen.
+- **„Was wurde versandt?“** (Empfänger, Text, Anhänge): `fixtures/mail-capture.mjs`.
+  `startMailCapture()` stellt NC auf `sendmail` im Pipe-Modus um und legt einen
+  sendmail-Ersatz in den Container, der jede Mail als `.eml` ablegt;
+  `waitForMailsTo(adresse)` liest und zerlegt sie. `stopMailCapture()` in
+  `afterAll` räumt auf. Beispiel: 47-girocode-anhang (Anhänge einer Mahnmail,
+  Bildinhalt über `fixtures/girocode.mjs`). Nach dem Umschalten wartet
+  `startMailCapture()` kurz, weil Apache `config.php` über opcache liest.

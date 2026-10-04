@@ -80,8 +80,9 @@ spl_autoload_register(static function (string $class): void {
  * Autoloader für `OCA\Vereinsbuchhaltung\*` (dafür bleibt der erste
  * Autoloader oben zuständig, siehe dessen Klassendoc zur
  * `classmap-authoritative`-Falle), sondern liefert auch echten, im
- * Release-Tarball mitgelieferten Fremdcode. Nextcloud selbst lädt
- * vendor/autoload.php beim App-Start automatisch; für die Unit-Tests ohne
+ * Release-Tarball mitgelieferten Fremdcode. Nextcloud lädt
+ * vendor/autoload.php nicht, die App holt es deshalb selbst in
+ * Application::register() nach (Issue #120); für die Unit-Tests ohne
  * laufende Instanz braucht es diesen expliziten Require - bewusst NACH den
  * drei obigen Autoloadern registriert, damit deren gezielte, immer aktuelle
  * Ladewege unangetastet bleiben und nur echte Drittanbieter-Klassen hier

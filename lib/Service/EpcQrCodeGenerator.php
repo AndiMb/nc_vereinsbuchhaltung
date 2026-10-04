@@ -26,18 +26,26 @@ use chillerlan\QRCode\QROptions;
  * diesem Ticket, siehe composer.json-Kommentar) – die erste echte
  * Fremdcode-Abhängigkeit dieser App.
  *
+ * Bewusst nicht `final`: fehlendes `gd` oder eine fehlende Bibliothek lassen
+ * sich in einem laufenden PHP nicht herstellen, der Mahnversand muss in
+ * diesem Fall aber nachweislich ohne GiroCode weiterlaufen (Issue #120) – der
+ * Test des {@see DunningLadderService} ersetzt dafür {@see generatePng()}
+ * durch einen Fehlerfall.
+ *
  * @see https://www.europeanpaymentscouncil.eu/document-library/guidance-documents/quick-response-code-guidelines-enable-data-capture-initiation
  */
-final class EpcQrCodeGenerator {
+class EpcQrCodeGenerator {
 
 	private const SERVICE_TAG = 'BCD';
 	private const VERSION = '002';
 	private const CHARSET_UTF8 = '1';
 	private const IDENTIFICATION = 'SCT';
 
-	/** EPC069-12 Feldlängen-Obergrenzen. */
+	/** EPC069-12 Feldlängen-Obergrenzen (Zeichen). */
 	private const MAX_LENGTH_NAME = 70;
 	private const MAX_LENGTH_REMITTANCE = 140;
+	/** EPC069-12 Abschnitt 2.2: „The total payload is limited to 331 bytes" – Bytes in UTF-8, nicht Zeichen. */
+	private const MAX_PAYLOAD_BYTES = 331;
 
 	/**
 	 * @param string $creditorName Empfängername (Verein), wird auf 70 Zeichen gekürzt
@@ -81,7 +89,7 @@ final class EpcQrCodeGenerator {
 		$bic = $creditorBic !== null ? strtoupper(str_replace(' ', '', $creditorBic)) : '';
 		$amount = 'EUR' . number_format($amountCents / 100, 2, '.', '');
 
-		$lines = [
+		$head = [
 			self::SERVICE_TAG,
 			self::VERSION,
 			self::CHARSET_UTF8,
@@ -97,9 +105,21 @@ final class EpcQrCodeGenerator {
 			// der freie Grund-Satz je Position (Spec „eigener Grund-Satz je
 			// Position") lesbar in der Banking-App der Zahlerin/des Zahlers landet.
 			'',
-			$this->truncate($remittanceText, self::MAX_LENGTH_REMITTANCE),
 		];
-		return implode("\n", $lines);
+		$prefix = implode("\n", $head) . "\n";
+		// Die 331 Bytes zählen in UTF-8: ein Umlaut kostet zwei. Der Verwendungszweck
+		// ist das einzige frei wachsende Feld und bekommt, was nach den festen
+		// Feldern übrig bleibt (mb_strcut schneidet an einer Zeichengrenze).
+		$remittance = rtrim(mb_strcut(
+			$this->truncate($remittanceText, self::MAX_LENGTH_REMITTANCE),
+			0,
+			max(0, self::MAX_PAYLOAD_BYTES - strlen($prefix)),
+			'UTF-8',
+		));
+
+		// „The last populated element is not followed by any character or element
+		// separator" (EPC069-12 2.2): ohne Verwendungszweck enden die Zeilen früher.
+		return rtrim($prefix . $remittance, "\n");
 	}
 
 	private function truncate(string $value, int $maxLength): string {
