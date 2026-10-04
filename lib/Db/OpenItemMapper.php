@@ -35,6 +35,26 @@ class OpenItemMapper extends QBMapper {
 	}
 
 	/**
+	 * Mehrere offene Posten in einer Abfrage (Bankabgleich, Issue #105).
+	 *
+	 * @param list<int> $ids
+	 * @return array<int,OpenItem> Posten-ID => Posten (fehlende IDs fehlen auch hier)
+	 */
+	public function findByIds(array $ids): array {
+		$found = [];
+		foreach (array_chunk(array_values(array_unique($ids)), 1000) as $chunk) {
+			$qb = $this->db->getQueryBuilder();
+			$qb->select('*')
+				->from($this->getTableName())
+				->where($qb->expr()->in('id', $qb->createNamedParameter($chunk, IQueryBuilder::PARAM_INT_ARRAY)));
+			foreach ($this->findEntities($qb) as $item) {
+				$found[(int)$item->getId()] = $item;
+			}
+		}
+		return $found;
+	}
+
+	/**
 	 * Löscht alle offenen Posten. Anders als die übrigen Tabellen trägt
 	 * `vbh_open_items` keine `user_id` – die Liste gehört wie der restliche
 	 * Datenbestand dem gemeinsamen Vereins-Nutzer, daher ohne Filter.

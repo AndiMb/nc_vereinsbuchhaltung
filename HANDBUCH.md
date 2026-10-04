@@ -1461,6 +1461,101 @@ die Mitgliederverwaltung). Auch sie müssen nicht weggeklickt werden: sie
 verschwinden nach **30 Tagen**, früher, sobald das Mitglied wieder ein
 Nextcloud-Konto hat oder es nicht mehr gibt (gelöscht oder anonymisiert).
 
+### 13.10 Bankabgleich: Vorschläge prüfen und verbuchen
+
+**Der Bankauszug ist die Wahrheit.** Eine Buchung zu einem Einzug entsteht erst,
+wenn die Bank das Geld gebucht hat – und auch dann nicht von selbst: Im Reiter
+**„Beiträge" → Einzug** zeigt das Segment **„Bankabgleich"**, was aus dem
+Kontoauszugs-Import an Vorschlägen entstanden ist und auf Ihr Urteil wartet.
+Lesen dürfen es alle ab Revisor; urteilen und verbuchen dürfen Buchhalter und
+Verwalter.
+
+Zwei Ansichten, jeweils mit der Zahl der wartenden Umsätze:
+
+- **Einzüge und Rückgaben:** die Sammelgutschrift eines eigenen Einzugs und
+  Rücklastschriften.
+- **Zahlungseingänge:** Gutschriften ohne SEPA-Bezug (eine gewöhnliche
+  Überweisung), deren Betrag auf eine offene Forderung passt.
+
+**Einzugsgutschrift und Rücklastschrift.** Jeder Umsatz trägt oben Betrag, Art
+und Zustand (*wartet auf Urteil*, *bereit zum Verbuchen*, *ohne Zuordnung
+beurteilt*) sowie den Fortschritt, bei einem Sammler etwa **„4 von 12
+beurteilt"**. **„Zeilen prüfen"** klappt die Zeilen auf: je Zeile, was die Bank
+meldet (Betrag, End-to-End-ID, Mandatsreferenz), und die **Vorschläge** – alle
+passenden Posten mit Mitglied, Forderung, Betrag und Einzugstermin, dazu die
+**Begründung in Klartext**:
+
+| Begründung | Heißt |
+|---|---|
+| Gleiche End-to-End-ID | Die ID, die die App in die Datei geschrieben hat, kommt von der Bank zurück: der sicherste Treffer. |
+| Gleiche Mandatsreferenz und gleicher Betrag | Kein Treffer über die ID, aber Mandat und Betrag passen. Gibt es mehrere Posten dieses Mandats mit gleichem Betrag, stehen alle zur Auswahl. |
+| Gleicher Betrag und gleiche Zahler-IBAN | Nur bei einer Rücklastschrift, nur ohne Referenzen: der schwächste Treffer, die App sagt dazu, dass Sie genau prüfen sollen. |
+
+Eine Zahl wie „92 % sicher" gibt es nicht. Wo mehrere Posten passen, ist
+**keiner vorausgewählt** – Sie wählen. Je Zeile haben Sie drei Möglichkeiten:
+**Zuordnen** bzw. **Bestätigen** (bei genau einem Vorschlag), **Ablehnen** (der
+Vorschlag stimmt nicht) oder **Nicht zuordenbar** (es gibt keinen passenden
+Posten). Ein Urteil lässt sich mit **„Urteil ändern"** wieder ändern, solange
+der Umsatz nicht gebucht ist. Ein Posten gehört zu höchstens **einer** Zeile:
+hat ihn eine Zeile, bieten die anderen ihn nicht mehr an.
+
+Bei einem Sammler spart **„Eindeutige Vorschläge bestätigen"** die Klicks: Der
+Knopf bestätigt alle Zeilen, die genau einen Treffer über End-to-End-ID oder
+Mandatsreferenz haben. Mehrdeutiges und der schwächste Treffer bleiben Ihnen
+überlassen, und gebucht wird dabei noch nichts.
+
+**Verbuchen** geht erst, wenn **alle** Zeilen beurteilt sind und mindestens eine
+einem Posten zugeordnet ist – der Hinweis neben dem Knopf sagt, wie viele noch
+fehlen. **„Verbuchen…"** öffnet die **Vorschau der Buchung**:
+
+- **Sammelgutschrift:** die Bank im Soll, die Erlöse im Haben, **gruppiert nach
+  Erlöskonto** („4000 Mitgliedsbeiträge · 80 Posten"). Die enthaltenen
+  Forderungen werden als bezahlt erledigt und mit der Buchung verknüpft. Das
+  Erlöskonto kommt von der Forderung, sonst gilt das **Standard-Erlöskonto**
+  (Nextcloud-Einstellungen → Vereinsbuchhaltung → Beiträge & SEPA).
+- **Rücklastschrift:** zwei Gegenkonto-Zeilen im Soll – der **Erlös zurück** auf
+  das Erlöskonto der Forderung und die **Bankgebühr** auf das *Konto für
+  Rücklastschriftgebühren* (ebenda) –, die Bank im Haben.
+
+**Buchungsdatum ist das Datum des Bankumsatzes**, nicht das des ursprünglichen
+Einzugs. Liegt der Umsatz in einem **abgeschlossenen Geschäftsjahr**, sagt die
+Vorschau das, bevor Sie klicken, und der Knopf bleibt aus; ein Verwalter kann das
+Geschäftsjahr in den Nextcloud-Einstellungen (Vereinsbuchhaltung →
+Geschäftsjahr) wiedereröffnen. Dasselbe gilt für eine Summe, die nicht aufgeht:
+Haben Sie Zeilen abgelehnt, deckt der Rest den Umsatz nicht – die Vorschau nennt
+die Differenz, und den Umsatz buchen Sie dann unter *Buchungen → Zuzuordnen* von
+Hand. Ein bereits gebuchter Umsatz lässt sich nicht noch einmal verbuchen.
+
+**Rücklastschrift: Grund und Folgen.** Der **Grund steht in Klartext** („Mangels
+Kontodeckung zurückgegeben", „Konto nicht nutzbar", „Vom Zahlungspflichtigen
+widersprochen oder ohne gültiges Mandat" …); den **ISO-Code der Bank** sehen nur
+Buchhalter und Verwalter. Schon an der Zeile und noch einmal in der Vorschau
+steht, was beim Verbuchen **automatisch** geschieht, damit Sie nicht
+überrascht werden:
+
+| Grund | Mandat | Zahlungsaufforderung | Gebühr |
+|---|---|---|---|
+| Deckung fehlt | bleibt | sofort per E-Mail | Gebühren-Forderung, wenn die Weiterbelastung eingeschaltet ist |
+| Konto nicht nutzbar | wird gesperrt | sofort per E-Mail | Gebühren-Forderung, wenn die Weiterbelastung eingeschaltet ist |
+| Widerspruch, kein Mandat | wird gesperrt | sofort per E-Mail | – |
+| Zahlungspflichtiger verstorben | wird gesperrt | keine | – |
+| Technischer Fehler, unbekannt | bleibt | keine | – |
+
+Die Forderung wird in jedem Fall wieder offen und **nicht erneut per Lastschrift
+eingezogen**. Ist das Mandat schon gesperrt oder erloschen, bleibt es, wie es
+ist. Die Zahlungsaufforderung geht nur an Mitglieder mit E-Mail-Adresse.
+
+**Zahlungseingänge.** Jeder Vorschlag lautet „diese Gutschrift passt auf
+Forderung X" mit Begründung (Betrag passt; steht zusätzlich der Name im
+Zahlungstext, sagt die App es) und der Buchung, die entstünde: **Bank an
+Erlöskonto**. **„Bestätigen und verbuchen"** bucht den Umsatz auf das Erlöskonto
+der Forderung und schließt sie als bezahlt ab. **„Ablehnen"** merkt sich, dass
+diese Gutschrift nicht zu dieser Forderung gehört – der Vorschlag kommt nicht
+wieder; den Umsatz buchen Sie dann unter *Buchungen → Zuzuordnen* von Hand.
+Beides fragt vorher nach. Fehlt der Forderung ein Erlöskonto und ist kein
+Standard-Erlöskonto eingestellt, lässt sich der Vorschlag erst bestätigen, wenn
+ein Verwalter eines einstellt.
+
 ---
 
 ## 14. Anhang: Rollen, Kontotypen, Tastenkürzel, Glossar

@@ -240,6 +240,17 @@ export default {
 	rescheduleDebitBatch: (id, dueDate) => axios.post(url(`/debit-batches/${id}/reschedule`), { dueDate }),
 	debitBatchXmlUrl: (id) => generateUrl(base + `/debit-batches/${id}/xml`),
 
+	// Bankabgleich im Einzug-Unterreiter (Issue #105): Arbeitsliste und Vorschau lesend ab Revisor,
+	// Urteile (zuordnen, ablehnen, nicht zuordenbar), Verbuchen und Zahlungseingang ab Buchhalter.
+	bankReconciliation: () => axios.get(url('/bank-reconciliation')),
+	bankReconciliationPreview: (bankTxId) => axios.get(url(`/bank-reconciliation/${bankTxId}/preview`)),
+	assignSepaDetail: (detailId, debitItemId) => axios.post(url(`/sepa-import/details/${detailId}/assign`), { debitItemId }),
+	rejectSepaDetail: (detailId) => axios.post(url(`/sepa-import/details/${detailId}/reject`)),
+	markSepaDetailUnmatched: (detailId) => axios.post(url(`/sepa-import/details/${detailId}/unmatched`)),
+	settleSepaImport: (bankTxId) => axios.post(url(`/sepa-import/${bankTxId}/settle`)),
+	confirmIncomingPayment: (bankTxId, openItemId) => axios.post(url(`/sepa-import/${bankTxId}/incoming-payment-suggestions/${openItemId}`)),
+	rejectIncomingPayment: (bankTxId, openItemId) => axios.post(url(`/bank-reconciliation/${bankTxId}/incoming-payment-suggestions/${openItemId}/reject`)),
+
 	// Massenanlage aus einer CSV-Liste: erst pruefen, dann anlegen
 	previewMemberImport: (csv) => axios.post(url('/sepa/members/import/preview'), { csv }),
 	runMemberImport: (csv, mandatesConfirmed) => axios.post(url('/sepa/members/import'), { csv, mandatesConfirmed }),

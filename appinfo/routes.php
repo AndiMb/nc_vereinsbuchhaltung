@@ -282,6 +282,11 @@ return [
 		['name' => 'sepaImport#reject', 'url' => '/api/sepa-import/details/{id}/reject', 'verb' => 'POST'],
 		['name' => 'sepaImport#markUnmatched', 'url' => '/api/sepa-import/details/{id}/unmatched', 'verb' => 'POST'],
 
+		// Bankabgleich im Einzug-Unterreiter (Issue #105): Arbeitsliste, Vorschau der Buchung, Zahlungseingang ablehnen
+		['name' => 'bankReconciliation#index', 'url' => '/api/bank-reconciliation', 'verb' => 'GET'],
+		['name' => 'bankReconciliation#preview', 'url' => '/api/bank-reconciliation/{bankTxId}/preview', 'verb' => 'GET'],
+		['name' => 'bankReconciliation#rejectIncomingPayment', 'url' => '/api/bank-reconciliation/{bankTxId}/incoming-payment-suggestions/{openItemId}/reject', 'verb' => 'POST'],
+
 		// Export (CSV-Download)
 		['name' => 'export#journal',  'url' => '/api/export/journal',  'verb' => 'GET'],
 		['name' => 'export#balances', 'url' => '/api/export/balances', 'verb' => 'GET'],

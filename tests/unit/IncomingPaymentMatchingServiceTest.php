@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
 use OCA\Vereinsbuchhaltung\Db\BankTransaction;
+use OCA\Vereinsbuchhaltung\Db\IncomingPaymentRejectionMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Service\Sepa\IncomingPaymentMatchingService;
@@ -20,19 +21,22 @@ use PHPUnit\Framework\TestCase;
 class IncomingPaymentMatchingServiceTest extends TestCase {
 
 	private OpenItemMapper&MockObject $openItems;
+	private IncomingPaymentRejectionMapper&MockObject $rejections;
 
 	protected function setUp(): void {
 		$this->openItems = $this->createMock(OpenItemMapper::class);
+		$this->rejections = $this->createMock(IncomingPaymentRejectionMapper::class);
 	}
 
 	private function service(): IncomingPaymentMatchingService {
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(static fn (string $text, array $params = []): string => vsprintf($text, $params));
-		return new IncomingPaymentMatchingService($this->openItems, $l10n);
+		return new IncomingPaymentMatchingService($this->openItems, $this->rejections, $l10n);
 	}
 
-	private function tx(int $amountCents, ?string $counterparty = null, ?string $purpose = null): BankTransaction {
+	private function tx(int $amountCents, ?string $counterparty = null, ?string $purpose = null, ?int $id = null): BankTransaction {
 		$tx = new BankTransaction();
+		$tx->setId($id);
 		$tx->setAmountCents($amountCents);
 		$tx->setCounterparty($counterparty);
 		$tx->setPurpose($purpose);
@@ -93,5 +97,46 @@ class IncomingPaymentMatchingServiceTest extends TestCase {
 		$suggestions = $this->service()->suggestFor($this->tx(4500, 'Max Mustermann', 'Beitrag 2026'));
 
 		$this->assertStringContainsString('Zahlungstext', $suggestions[0]['reason']);
+	}
+
+	/** Das Gedächtnis des Bankabgleichs (Issue #105): ein abgelehntes Paar kommt nicht wieder. */
+	public function testAbgelehntesPaarWirdNichtErneutVorgeschlagen(): void {
+		$this->openItems->method('findClaims')->willReturn([
+			$this->claim(1, 5, 4500, 'Max Mustermann'),
+			$this->claim(2, 6, 4500, 'Erika Beispiel'),
+		]);
+		$this->rejections->method('findAllKeys')->willReturn([IncomingPaymentRejectionMapper::key(30, 1) => true]);
+
+		$suggestions = $this->service()->suggestFor($this->tx(4500, id: 30));
+
+		$this->assertCount(1, $suggestions);
+		$this->assertSame(2, $suggestions[0]['openItemId']);
+	}
+
+	/** Die Ablehnung gilt für genau diesen Umsatz: dieselbe Forderung bleibt für einen anderen Umsatz vorschlagbar. */
+	public function testAblehnungGiltNurFuerDenEinenUmsatz(): void {
+		$this->openItems->method('findClaims')->willReturn([$this->claim(1, 5, 4500, 'Max Mustermann')]);
+		$this->rejections->method('findAllKeys')->willReturn([IncomingPaymentRejectionMapper::key(30, 1) => true]);
+
+		$this->assertCount(1, $this->service()->suggestFor($this->tx(4500, id: 31)));
+	}
+
+	/** Die Sammelabfrage liest die Forderungen nur einmal, egal wie viele Umsätze anstehen. */
+	public function testSammelabfrageLiestDieForderungenNurEinmal(): void {
+		$this->openItems->expects($this->once())->method('findClaims')->willReturn([
+			$this->claim(1, 5, 4500, 'Max Mustermann'),
+			$this->claim(2, 6, 6000, 'Erika Beispiel'),
+		]);
+
+		$result = $this->service()->suggestForMany([
+			$this->tx(4500, id: 10),
+			$this->tx(6000, id: 11),
+			$this->tx(7000, id: 12),
+			$this->tx(-4500, id: 13),
+		]);
+
+		$this->assertSame([10, 11], array_keys($result));
+		$this->assertSame(1, $result[10][0]['openItemId']);
+		$this->assertSame(2, $result[11][0]['openItemId']);
 	}
 }

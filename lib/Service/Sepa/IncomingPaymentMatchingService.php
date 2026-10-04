@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service\Sepa;
 
 use OCA\Vereinsbuchhaltung\Db\BankTransaction;
+use OCA\Vereinsbuchhaltung\Db\IncomingPaymentRejectionMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Service\ClaimStateResolver;
@@ -25,6 +26,8 @@ use OCP\IL10N;
  * Mitglied stark variieren.
  *
  * Reine Vorschlags-Berechnung ohne Schreibzugriff, wie {@see SepaMatchingService}.
+ * Sie kennt nur ein Gedächtnis: abgelehnte Paare (Umsatz, Forderung) werden
+ * nicht erneut vorgeschlagen (Issue #105, Migration 000153).
  * Die Bestätigung eines Vorschlags läuft über den bestehenden, generischen
  * Zuordnungspfad (`BookingService::assign()`) plus Erledigungsvermerk –
  * siehe {@see SepaImportConfirmationService::confirmIncomingPayment()}.
@@ -33,6 +36,7 @@ class IncomingPaymentMatchingService {
 
 	public function __construct(
 		private OpenItemMapper $openItems,
+		private IncomingPaymentRejectionMapper $rejections,
 		private IL10N $l10n,
 	) {
 	}
@@ -41,28 +45,55 @@ class IncomingPaymentMatchingService {
 	 * @return list<array{openItemId:int, memberId:?int, reason:string}>
 	 */
 	public function suggestFor(BankTransaction $tx): array {
+		return $this->suggestForMany([$tx])[(int)$tx->getId()] ?? [];
+	}
+
+	/**
+	 * Die Vorschläge für mehrere Umsätze auf einmal (Bankabgleich, Issue #105):
+	 * die Forderungen werden nur EINMAL geladen und nach Betrag einsortiert,
+	 * statt je Umsatz die ganze Liste zu lesen – bei hunderten unzugeordneten
+	 * Umsätzen und tausenden Forderungen der Unterschied zwischen einer und
+	 * hunderten Abfragen.
+	 *
+	 * Ein Paar (Umsatz, Forderung), das jemand abgelehnt hat
+	 * ({@see IncomingPaymentRejectionMapper}), wird nie wieder vorgeschlagen.
+	 *
+	 * @param list<BankTransaction> $txs
+	 * @return array<int,list<array{openItemId:int, memberId:?int, reason:string}>> Umsatz-ID => Vorschläge; nur Umsätze mit mindestens einem
+	 */
+	public function suggestForMany(array $txs): array {
 		// Nur Geldeingänge kommen als Zahlung auf eine Forderung in Frage.
-		if ($tx->getAmountCents() <= 0) {
+		$incoming = array_values(array_filter($txs, static fn (BankTransaction $tx): bool => $tx->getAmountCents() > 0));
+		if ($incoming === []) {
 			return [];
 		}
-		$amount = $tx->getAmountCents();
-		$haystack = mb_strtolower(trim(($tx->getCounterparty() ?? '') . ' ' . ($tx->getPurpose() ?? '')));
 
-		$suggestions = [];
+		/** @var array<int,list<OpenItem>> $byAmount noch offene Forderungen je Betrag, in der Reihenfolge von findClaims() */
+		$byAmount = [];
 		foreach ($this->openItems->findClaims() as $item) {
-			if ($item->getAmountCents() !== $amount) {
-				continue;
+			if (ClaimStateResolver::resolveForItem($item) === ClaimStateResolver::STATE_OPEN) {
+				$byAmount[$item->getAmountCents()][] = $item;
 			}
-			if (ClaimStateResolver::resolveForItem($item) !== ClaimStateResolver::STATE_OPEN) {
-				continue;
-			}
-			$suggestions[] = [
-				'openItemId' => (int)$item->getId(),
-				'memberId' => $item->getMemberId(),
-				'reason' => $this->reason($item, $amount, $haystack),
-			];
 		}
-		return $suggestions;
+		$rejected = $this->rejections->findAllKeys();
+
+		$result = [];
+		foreach ($incoming as $tx) {
+			$txId = (int)$tx->getId();
+			$amount = $tx->getAmountCents();
+			$haystack = mb_strtolower(trim(($tx->getCounterparty() ?? '') . ' ' . ($tx->getPurpose() ?? '')));
+			foreach ($byAmount[$amount] ?? [] as $item) {
+				if (isset($rejected[IncomingPaymentRejectionMapper::key($txId, (int)$item->getId())])) {
+					continue;
+				}
+				$result[$txId][] = [
+					'openItemId' => (int)$item->getId(),
+					'memberId' => $item->getMemberId(),
+					'reason' => $this->reason($item, $amount, $haystack),
+				];
+			}
+		}
+		return $result;
 	}
 
 	private function reason(OpenItem $item, int $amount, string $haystack): string {

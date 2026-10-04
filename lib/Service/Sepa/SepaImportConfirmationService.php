@@ -16,9 +16,11 @@ use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\ReturnedDebit;
 use OCA\Vereinsbuchhaltung\Db\ReturnedDebitMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
+use OCA\Vereinsbuchhaltung\Exception\SettlementBlockedException;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\BookingService;
 use OCA\Vereinsbuchhaltung\Service\ClaimService;
+use OCA\Vereinsbuchhaltung\Service\ClaimStateResolver;
 use OCA\Vereinsbuchhaltung\Service\DunningLadderService;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -63,6 +65,11 @@ use OCP\IUserSession;
  */
 class SepaImportConfirmationService {
 
+	/** Gutschrift des Einzugs: Forderungen werden abgeschlossen (siehe {@see plan()}). */
+	public const DIRECTION_COLLECTION = 'einzug';
+	/** Rücklastschrift: Forderungen werden wieder geöffnet, Folgen nach Rückgabe-Klasse. */
+	public const DIRECTION_RETURN = 'ruecklastschrift';
+
 	public function __construct(
 		private BankTxSepaDetailMapper $details,
 		private BankTransactionMapper $txMapper,
@@ -95,10 +102,27 @@ class SepaImportConfirmationService {
 	 * Bestätigt einen Kandidaten aus {@see SepaMatchingService} für diese
 	 * Detail-Zeile – erst hier wird die Vermutung zur Zuordnung.
 	 *
+	 * Ein Einzugsposten gehört zu höchstens EINER Zeile je Richtung (Gutschrift
+	 * bzw. Rückgabe): bei mehreren Forderungen desselben Mandats mit gleichem
+	 * Betrag passen mehrere Zeilen auf dieselben Kandidaten, und zwei Zeilen auf
+	 * denselben Posten ergäben dieselbe Summe – eine Forderung würde doppelt
+	 * abgeschlossen, die andere bliebe offen, ohne dass die Prüfung der Summe es
+	 * bemerkt.
+	 *
 	 * @throws DoesNotExistException wenn es die Detail-Zeile oder den Einzugsposten nicht (mehr) gibt
+	 * @throws SettlementBlockedException (eine \InvalidArgumentException) wenn der Posten schon einer anderen Zeile zugeordnet ist
 	 */
 	public function assign(int $detailId, int $debitItemId): BankTxSepaDetail {
 		$this->debitItems->find($debitItemId); // wirft, wenn er nicht (mehr) existiert
+		$detail = $this->details->find($detailId);
+		foreach ($this->details->findAssignedToDebitItem($debitItemId) as $other) {
+			if ((int)$other->getId() !== $detailId && $other->getIsReturn() === $detail->getIsReturn()) {
+				throw new SettlementBlockedException(
+					$this->l10n->t('Dieser Einzugsposten ist bereits einer anderen Zeile zugeordnet. Ändern Sie zuerst deren Urteil.'),
+					SettlementBlockedException::REASON_ITEM_TAKEN,
+				);
+			}
+		}
 		return $this->decide($detailId, BankTxSepaDetail::STATUS_ASSIGNED, $debitItemId);
 	}
 
@@ -132,25 +156,71 @@ class SepaImportConfirmationService {
 	 *
 	 * @return array{settled:int, returned:int}
 	 * @throws DoesNotExistException wenn es den Bankumsatz nicht (mehr) gibt
-	 * @throws \InvalidArgumentException wenn noch nicht alle Detail-Zeilen
-	 *                                   beurteilt sind, es keine zuzuordnenden Zeilen gibt oder Geldein-/
-	 *                                   ausgang gemischt zugeordnet wurden
+	 * @throws SettlementBlockedException (eine \InvalidArgumentException) wenn
+	 *                                    noch nicht alle Detail-Zeilen beurteilt sind, es keine zuzuordnenden Zeilen
+	 *                                    gibt, Geldein-/ausgang gemischt zugeordnet wurden oder der Umsatz schon
+	 *                                    gebucht ist
 	 */
 	public function settle(int $bankTxId): array {
 		$tx = $this->txMapper->find($bankTxId, Application::BOOK);
-		$details = $this->details->findByBankTx($bankTxId);
+		return $this->transaction->run(function () use ($tx): array {
+			$plan = $this->plan($tx);
+			if ($plan['direction'] === self::DIRECTION_RETURN) {
+				return ['settled' => 0, 'returned' => $this->bookReturns($tx, $plan)];
+			}
+			return ['settled' => $this->bookSettlements($tx, $plan), 'returned' => 0];
+		});
+	}
+
+	/**
+	 * Was {@see settle()} buchen würde – ohne etwas zu schreiben. Eine einzige
+	 * Quelle für Verbuchung UND Vorschau des Bankabgleichs (Issue #105): die
+	 * Vorschau zeigt nie etwas anderes, als dann gebucht wird.
+	 *
+	 * `parts` ist die Aufteilung der Gegenseite (Konto, Betrag in Cent), wie sie
+	 * `BookingService::assignParts()` bekommt: bei der Gutschrift je Erlöskonto
+	 * zusammengefasst, bei der Rücklastschrift je Erlöskonto zurück plus eine
+	 * Zeile fürs Gebührenkonto. `rows` sind die Posten, die dabei abgeschlossen
+	 * (Gutschrift) bzw. zurückgegeben (Rücklastschrift) werden – eine
+	 * Rückgabe-Zeile, deren Posten schon eine Rücklastschrift trägt, fehlt
+	 * (Posten-Guard, Spec §3.6/§5: Dubletten verpuffen still).
+	 *
+	 * @return array{direction:string, rows:list<array{detail:BankTxSepaDetail, debitItem:DebitItem, openItem:OpenItem, accountId:int}>, parts:list<array{accountId:int, amountCents:int}>, chargesCents:int, feeAccountId:?int}
+	 * @throws SettlementBlockedException
+	 */
+	public function plan(BankTransaction $tx): array {
+		// Eine zweite Verbuchung würde die erste still ersetzen (doAssign() nimmt eine
+		// bestehende Zuordnung zurück): bei einer veralteten Ansicht oder einem Doppelklick
+		// wäre das ein Buchungssatz weniger, ohne dass es jemand wollte.
+		if ($tx->getJournalId() !== null) {
+			throw new SettlementBlockedException(
+				$this->l10n->t('Dieser Bankumsatz ist bereits gebucht.'),
+				SettlementBlockedException::REASON_ALREADY_BOOKED,
+			);
+		}
+
+		$details = $this->details->findByBankTx((int)$tx->getId());
 		if ($details === []) {
-			throw new \InvalidArgumentException($this->l10n->t('Für diesen Bankumsatz gibt es keine SEPA-Detail-Zeilen.'));
+			throw new SettlementBlockedException(
+				$this->l10n->t('Für diesen Bankumsatz gibt es keine SEPA-Detail-Zeilen.'),
+				SettlementBlockedException::REASON_NO_DETAILS,
+			);
 		}
 		foreach ($details as $detail) {
 			if (!$detail->isDecided()) {
-				throw new \InvalidArgumentException($this->l10n->t('Es sind noch nicht alle Detail-Vorschläge dieses Bankumsatzes beurteilt.'));
+				throw new SettlementBlockedException(
+					$this->l10n->t('Es sind noch nicht alle Detail-Vorschläge dieses Bankumsatzes beurteilt.'),
+					SettlementBlockedException::REASON_UNDECIDED,
+				);
 			}
 		}
 
 		$assigned = array_values(array_filter($details, static fn (BankTxSepaDetail $d): bool => $d->getStatus() === BankTxSepaDetail::STATUS_ASSIGNED && $d->getDebitItemId() !== null));
 		if ($assigned === []) {
-			throw new \InvalidArgumentException($this->l10n->t('Kein zugeordneter Einzugsposten – nichts zu verbuchen.'));
+			throw new SettlementBlockedException(
+				$this->l10n->t('Kein zugeordneter Einzugsposten – nichts zu verbuchen.'),
+				SettlementBlockedException::REASON_NOTHING_ASSIGNED,
+			);
 		}
 
 		$returns = array_values(array_filter($assigned, static fn (BankTxSepaDetail $d): bool => $d->getIsReturn()));
@@ -159,27 +229,20 @@ class SepaImportConfirmationService {
 			// In der Praxis bündelt eine Bank Gutschrift und Rückgabe nie in
 			// derselben Buchung (siehe Klassendoc) - lieber kontrolliert
 			// abbrechen als eine Seite stillschweigend zu verwerfen.
-			throw new \InvalidArgumentException($this->l10n->t('Dieser Bankumsatz enthält sowohl zugeordnete Gutschriften als auch Rücklastschriften – das kann nicht in einem Schritt verbucht werden.'));
+			throw new SettlementBlockedException(
+				$this->l10n->t('Dieser Bankumsatz enthält sowohl zugeordnete Gutschriften als auch Rücklastschriften – das kann nicht in einem Schritt verbucht werden.'),
+				SettlementBlockedException::REASON_MIXED_DIRECTIONS,
+			);
 		}
 
-		return $this->transaction->run(function () use ($tx, $returns, $settlements): array {
-			if ($returns !== []) {
-				return ['settled' => 0, 'returned' => $this->bookReturns($tx, $returns)];
-			}
-			return ['settled' => $this->bookSettlements($tx, $settlements), 'returned' => 0];
-		});
+		return $returns !== [] ? $this->planReturns($returns) : $this->planSettlements($settlements);
 	}
 
 	/**
-	 * Sammelbuchung des Einzugs (Spec §3.10): der bestehende
-	 * `BookingService::assignParts()`-Pfad wird wiederverwendet, Split
-	 * gruppiert nach `account_id`. Schließt anschließend jede beteiligte
-	 * Forderung ab, verknüpft mit der entstandenen Sammelbuchung.
-	 *
 	 * @param BankTxSepaDetail[] $settlements
+	 * @return array{direction:string, rows:list<array{detail:BankTxSepaDetail, debitItem:DebitItem, openItem:OpenItem, accountId:int}>, parts:list<array{accountId:int, amountCents:int}>, chargesCents:int, feeAccountId:?int}
 	 */
-	private function bookSettlements(BankTransaction $tx, array $settlements): int {
-		/** @var list<array{debitItem:DebitItem, openItem:OpenItem}> $rows */
+	private function planSettlements(array $settlements): array {
 		$rows = [];
 		$partsByAccount = [];
 		foreach ($settlements as $detail) {
@@ -187,47 +250,24 @@ class SepaImportConfirmationService {
 			$openItem = $this->openItems->find($debitItem->getOpenItemId());
 			$accountId = $this->revenueAccountId($openItem);
 			$partsByAccount[$accountId] = ($partsByAccount[$accountId] ?? 0) + $debitItem->getAmountCents();
-			$rows[] = ['debitItem' => $debitItem, 'openItem' => $openItem];
+			$rows[] = ['detail' => $detail, 'debitItem' => $debitItem, 'openItem' => $openItem, 'accountId' => $accountId];
 		}
 
 		$parts = [];
 		foreach ($partsByAccount as $accountId => $amountCents) {
 			$parts[] = ['accountId' => $accountId, 'amountCents' => $amountCents];
 		}
-		$tx = $this->bookingService->assignParts($tx, $parts);
-
-		foreach ($rows as $row) {
-			$openItem = $row['openItem'];
-			$openItem->setStatus('paid');
-			$openItem->setPaidJournalId($tx->getJournalId());
-			$openItem->setSettledAt($this->now());
-			$openItem->setSettledBy($this->currentUid());
-			$this->openItems->update($openItem);
-		}
-
-		$this->audit->log('SEPA-Sammeleinzug per Bankumsatz verbucht', 'bank_tx', (int)$tx->getId(), [
-			'anzahl' => count($settlements),
-			'summe' => array_sum(array_map(static fn (BankTxSepaDetail $d) => $d->getAmountCents(), $settlements)) / 100,
-			'journal' => $tx->getJournalId(),
-		]);
-		return count($settlements);
+		return ['direction' => self::DIRECTION_COLLECTION, 'rows' => $rows, 'parts' => $parts, 'chargesCents' => 0, 'feeAccountId' => null];
 	}
 
 	/**
-	 * Rücklastschrift-Buchung (Spec §3.10): zwei Gegenkonto-Zeilen – OAMT
-	 * zurück auf das ursprüngliche Erlöskonto der Forderung, COAM auf das
-	 * konfigurierbare Rücklastschriftgebühren-Konto. Fehlt der Bank-Beleg zur
-	 * Bankgebühr, entfällt die zweite Zeile (siehe splitReturnAmount()).
-	 *
 	 * @param BankTxSepaDetail[] $returns
-	 * @throws \InvalidArgumentException wenn eine Bankgebühr bekannt ist, aber
-	 *                                   kein Rücklastschriftgebühren-Konto eingestellt ist
+	 * @return array{direction:string, rows:list<array{detail:BankTxSepaDetail, debitItem:DebitItem, openItem:OpenItem, accountId:int}>, parts:list<array{accountId:int, amountCents:int}>, chargesCents:int, feeAccountId:?int}
+	 * @throws SettlementBlockedException wenn eine Bankgebühr bekannt ist, aber
+	 *                                    kein Rücklastschriftgebühren-Konto eingestellt ist
 	 */
-	private function bookReturns(BankTransaction $tx, array $returns): int {
-		$totalAbsCents = abs($tx->getAmountCents());
+	private function planReturns(array $returns): array {
 		$totalCharges = 0;
-		$byAccount = [];
-		/** @var array<int, array{debitItem:DebitItem, openItem:OpenItem, detail:BankTxSepaDetail}> $rows */
 		$rows = [];
 		foreach ($returns as $detail) {
 			$debitItem = $this->debitItems->find((int)$detail->getDebitItemId());
@@ -238,21 +278,25 @@ class SepaImportConfirmationService {
 				continue;
 			}
 			$openItem = $this->openItems->find($debitItem->getOpenItemId());
-			$rows[] = ['debitItem' => $debitItem, 'openItem' => $openItem, 'detail' => $detail];
+			$rows[] = ['detail' => $detail, 'debitItem' => $debitItem, 'openItem' => $openItem, 'accountId' => 0];
 			$totalCharges += max(0, $detail->getChargesCents() ?? 0);
 		}
 		if ($rows === []) {
-			return 0;
+			return ['direction' => self::DIRECTION_RETURN, 'rows' => [], 'parts' => [], 'chargesCents' => 0, 'feeAccountId' => null];
 		}
 
 		$feeAccountId = $this->settings->returnFeeAccountId();
 		if ($totalCharges > 0 && $feeAccountId === null) {
-			throw new \InvalidArgumentException($this->l10n->t('Bitte zuerst das Rücklastschriftgebühren-Konto in den Einstellungen hinterlegen.'));
+			throw new SettlementBlockedException(
+				$this->l10n->t('Bitte zuerst das Rücklastschriftgebühren-Konto in den Einstellungen hinterlegen.'),
+				SettlementBlockedException::REASON_FEE_ACCOUNT_MISSING,
+			);
 		}
 
-		foreach ($rows as $row) {
-			$openItem = $row['openItem'];
-			$accountId = $this->revenueAccountId($openItem);
+		$byAccount = [];
+		foreach ($rows as $index => $row) {
+			$accountId = $this->revenueAccountId($row['openItem']);
+			$rows[$index]['accountId'] = $accountId;
 			// OAMT = eigener Anteil dieser Detail-Zeile abzüglich ihrer eigenen
 			// Bankgebühr (nicht des Gesamt-Umsatzes) - bei mehreren gebündelten
 			// Rückgaben in einer Buchung trägt jede Zeile ihre eigene Gebühr.
@@ -266,10 +310,57 @@ class SepaImportConfirmationService {
 			}
 		}
 		if ($totalCharges > 0) {
-			$parts[] = ['accountId' => $feeAccountId, 'amountCents' => $totalCharges];
+			$parts[] = ['accountId' => (int)$feeAccountId, 'amountCents' => $totalCharges];
+		}
+		return ['direction' => self::DIRECTION_RETURN, 'rows' => $rows, 'parts' => $parts, 'chargesCents' => $totalCharges, 'feeAccountId' => $feeAccountId];
+	}
+
+	/**
+	 * Sammelbuchung des Einzugs (Spec §3.10): der bestehende
+	 * `BookingService::assignParts()`-Pfad wird wiederverwendet, Split
+	 * gruppiert nach `account_id`. Schließt anschließend jede beteiligte
+	 * Forderung ab, verknüpft mit der entstandenen Sammelbuchung.
+	 *
+	 * @param array{direction:string, rows:list<array{detail:BankTxSepaDetail, debitItem:DebitItem, openItem:OpenItem, accountId:int}>, parts:list<array{accountId:int, amountCents:int}>, chargesCents:int, feeAccountId:?int} $plan
+	 */
+	private function bookSettlements(BankTransaction $tx, array $plan): int {
+		$tx = $this->bookingService->assignParts($tx, $plan['parts']);
+
+		foreach ($plan['rows'] as $row) {
+			$openItem = $row['openItem'];
+			$openItem->setStatus('paid');
+			$openItem->setPaidJournalId($tx->getJournalId());
+			$openItem->setSettledAt($this->now());
+			$openItem->setSettledBy($this->currentUid());
+			$this->openItems->update($openItem);
 		}
 
-		$tx = $this->bookingService->assignParts($tx, $parts);
+		$this->audit->log('SEPA-Sammeleinzug per Bankumsatz verbucht', 'bank_tx', (int)$tx->getId(), [
+			'anzahl' => count($plan['rows']),
+			'summe' => array_sum(array_map(static fn (array $row): int => $row['detail']->getAmountCents(), $plan['rows'])) / 100,
+			'journal' => $tx->getJournalId(),
+		]);
+		return count($plan['rows']);
+	}
+
+	/**
+	 * Rücklastschrift-Buchung (Spec §3.10): zwei Gegenkonto-Zeilen – OAMT
+	 * zurück auf das ursprüngliche Erlöskonto der Forderung, COAM auf das
+	 * konfigurierbare Rücklastschriftgebühren-Konto. Fehlt der Bank-Beleg zur
+	 * Bankgebühr, entfällt die zweite Zeile (siehe planReturns()).
+	 *
+	 * @param array{direction:string, rows:list<array{detail:BankTxSepaDetail, debitItem:DebitItem, openItem:OpenItem, accountId:int}>, parts:list<array{accountId:int, amountCents:int}>, chargesCents:int, feeAccountId:?int} $plan
+	 */
+	private function bookReturns(BankTransaction $tx, array $plan): int {
+		$rows = $plan['rows'];
+		if ($rows === []) {
+			return 0;
+		}
+		$totalAbsCents = abs($tx->getAmountCents());
+		$totalCharges = $plan['chargesCents'];
+		$feeAccountId = $plan['feeAccountId'];
+
+		$tx = $this->bookingService->assignParts($tx, $plan['parts']);
 
 		$rechargeEnabled = $this->settings->isReturnFeeRechargeEnabled();
 		foreach ($rows as $row) {
@@ -377,12 +468,28 @@ class SepaImportConfirmationService {
 	 * Zahlungsnachweis ab.
 	 *
 	 * @throws DoesNotExistException wenn es den Bankumsatz oder die Forderung nicht (mehr) gibt
-	 * @throws \InvalidArgumentException wenn die Forderung kein Erlöskonto hat
-	 *                                   und keines eingestellt ist
+	 * @throws SettlementBlockedException (eine \InvalidArgumentException) wenn
+	 *                                    der Umsatz schon gebucht oder die Forderung nicht mehr offen ist oder
+	 *                                    wenn die Forderung kein Erlöskonto hat und keines eingestellt ist
 	 */
 	public function confirmIncomingPayment(int $bankTxId, int $openItemId): OpenItem {
 		$tx = $this->txMapper->find($bankTxId, Application::BOOK);
 		$openItem = $this->openItems->find($openItemId);
+		// Veraltete Ansicht oder Doppelklick: `assign()` nähme eine bestehende Zuordnung
+		// still zurück und buchte neu – hier soll nur ein noch ungebuchter Umsatz auf eine
+		// noch offene Forderung gebucht werden.
+		if ($tx->getJournalId() !== null) {
+			throw new SettlementBlockedException(
+				$this->l10n->t('Dieser Bankumsatz ist bereits gebucht.'),
+				SettlementBlockedException::REASON_ALREADY_BOOKED,
+			);
+		}
+		if (ClaimStateResolver::resolveForItem($openItem) !== ClaimStateResolver::STATE_OPEN) {
+			throw new SettlementBlockedException(
+				$this->l10n->t('Diese Forderung ist nicht mehr offen.'),
+				SettlementBlockedException::REASON_CLAIM_NOT_OPEN,
+			);
+		}
 		$accountId = $this->revenueAccountId($openItem);
 
 		return $this->transaction->run(function () use ($tx, $openItem, $accountId): OpenItem {
@@ -408,14 +515,22 @@ class SepaImportConfirmationService {
 	 * {@see SepaImportSettingsService}-Klassendoc: automatisch erzeugte
 	 * Beitragsforderungen tragen bislang kein eigenes `account_id`).
 	 *
-	 * @throws \InvalidArgumentException wenn keines von beiden gesetzt ist
+	 * @throws SettlementBlockedException wenn keines von beiden gesetzt ist
 	 */
 	private function revenueAccountId(OpenItem $openItem): int {
-		$accountId = $openItem->getAccountId() ?? $this->settings->contributionDefaultAccountId();
+		$accountId = $this->revenueAccountIdOrNull($openItem);
 		if ($accountId === null) {
-			throw new \InvalidArgumentException($this->l10n->t('Forderung #%d hat kein Erlöskonto, und es ist kein Standard-Erlöskonto für Beiträge eingestellt.', [(int)$openItem->getId()]));
+			throw new SettlementBlockedException(
+				$this->l10n->t('Forderung #%d hat kein Erlöskonto, und es ist kein Standard-Erlöskonto für Beiträge eingestellt.', [(int)$openItem->getId()]),
+				SettlementBlockedException::REASON_REVENUE_ACCOUNT_MISSING,
+			);
 		}
 		return $accountId;
+	}
+
+	/** Dieselbe Regel ohne Ausnahme – für die Anzeige im Bankabgleich, der „kein Konto" als Hinweis zeigt statt abzubrechen. */
+	public function revenueAccountIdOrNull(OpenItem $openItem): ?int {
+		return $openItem->getAccountId() ?? $this->settings->contributionDefaultAccountId();
 	}
 
 	private function currentUid(): ?string {

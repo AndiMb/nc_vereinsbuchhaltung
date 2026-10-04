@@ -45,6 +45,7 @@ class SepaImportController extends Controller {
 		private IncomingPaymentMatchingService $incomingPayments,
 		private SepaImportSettingsService $settings,
 		private SepaSettingsAccountValidator $accountValidator,
+		private PermissionService $permissions,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -53,6 +54,10 @@ class SepaImportController extends Controller {
 	/** @return array<string,mixed> */
 	private function decorate(BankTxSepaDetail $detail, BankTransaction $tx): array {
 		$data = $detail->jsonSerialize();
+		if (!$this->permissions->canWrite()) {
+			// Den Rückgabecode und den Freitext der Bank sieht nur die Buchhaltung (Spec §3.6 „Codes bleiben admin-only").
+			unset($data['returnReasonCode'], $data['returnReasonText']);
+		}
 		$data['candidates'] = $detail->isDecided() ? [] : $this->matching->candidatesFor($detail, $tx);
 		return $data;
 	}
@@ -105,6 +110,8 @@ class SepaImportController extends Controller {
 	public function assign(int $id, int $debitItemId): DataResponse {
 		try {
 			return new DataResponse($this->confirmation->assign($id, $debitItemId)->jsonSerialize());
+		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		} catch (DoesNotExistException) {
 			return new DataResponse(['message' => $this->l10n->t('Nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}

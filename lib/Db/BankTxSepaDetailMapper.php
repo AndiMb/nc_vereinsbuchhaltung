@@ -45,6 +45,52 @@ class BankTxSepaDetailMapper extends QBMapper {
 		return $this->findEntities($qb);
 	}
 
+	/**
+	 * Alle Detail-Zeilen der Bankumsätze, die noch nicht gebucht sind – egal ob
+	 * beurteilt oder nicht: die Arbeitsliste des Bankabgleichs (Issue #105)
+	 * zeigt auch einen Sammler, dessen letzte Zeile gerade beurteilt wurde und
+	 * der nur noch auf das Verbuchen wartet ({@see findOpen()} sähe ihn dann
+	 * nicht mehr). Die Verbindung zum Umsatz sortiert zugleich Waisen aus: nach
+	 * einem Zurücksetzen des Buchungsbestands bleiben Detail-Zeilen ohne
+	 * Umsatz zurück.
+	 *
+	 * @return BankTxSepaDetail[] je Umsatz in Reihenfolge der Detail-Zeilen
+	 */
+	public function findOnUnassignedTransactions(string $userId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('d.*')
+			->from($this->getTableName(), 'd')
+			->innerJoin('d', 'vbh_bank_tx', 't', $qb->expr()->eq('d.bank_tx_id', 't.id'))
+			->where($qb->expr()->eq('t.user_id', $qb->createNamedParameter($userId)))
+			->andWhere($qb->expr()->eq('t.status', $qb->createNamedParameter('unassigned')))
+			->orderBy('d.bank_tx_id', 'ASC')
+			->addOrderBy('d.detail_index', 'ASC');
+		return $this->findEntities($qb);
+	}
+
+	/**
+	 * Die Zeilen, die diesen Einzugsposten zugeordnet haben – Grundlage der Regel
+	 * „ein Posten gehört zu höchstens einer Zeile je Richtung“
+	 * ({@see \OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportConfirmationService::assign()}).
+	 *
+	 * @return BankTxSepaDetail[]
+	 */
+	public function findAssignedToDebitItem(int $debitItemId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('debit_item_id', $qb->createNamedParameter($debitItemId, IQueryBuilder::PARAM_INT)))
+			->andWhere($qb->expr()->eq('status', $qb->createNamedParameter(BankTxSepaDetail::STATUS_ASSIGNED)));
+		return $this->findEntities($qb);
+	}
+
+	/** Beim Zurücksetzen des Buchungsbestands (siehe ResetService): die Umsätze, zu denen sie gehören, sind weg. */
+	public function deleteAll(): void {
+		$qb = $this->db->getQueryBuilder();
+		$qb->delete($this->getTableName());
+		$qb->executeStatement();
+	}
+
 	public function findByEndToEndId(string $endToEndId): ?BankTxSepaDetail {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')
