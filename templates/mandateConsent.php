@@ -6,7 +6,11 @@ declare(strict_types=1);
  * Zustimmung ist ein normales HTML-Formular (POST auf dieselbe Route), damit
  * die Seite auch ohne Client-Skripte funktioniert. Nur Deutsch (Spec: der
  * Mandats-Rechtstext ist nicht Teil des l10n-Wegs) - deshalb hier auch die
- * umgebenden Bedienelemente hart auf Deutsch statt ueber $l->t().
+ * umgebenden Bedienelemente hart auf Deutsch statt ueber $l->t(). Die Seite ist
+ * oeffentlich und kennt keine Kontosprache des Besuchers: sie ist durchgehend
+ * Sie-Form (fuer Mitglieder ohne Konto gilt immer Sie, Spec §1.4), auch die
+ * Meldungen aus MandateActivationService::MESSAGE_* – die Du-Fassung aus
+ * l10n/de.json spielt hier nie hinein (Issue #106).
  *
  * Wird per TemplateResponse::RENDER_AS_PUBLIC in die Public-Hülle von
  * Nextcloud eingebettet - deshalb hier bewusst KEIN eigenes

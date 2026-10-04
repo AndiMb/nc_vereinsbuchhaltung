@@ -144,7 +144,6 @@
         "Wiedereröffnen": "Reopen",
         "Noch keine Geschäftsjahre mit Buchungen vorhanden.": "No fiscal years with entries yet.",
         "Alle Daten löschen": "Delete all data",
-        "Löscht alle Konten, Buchungen und Importe dieses Kontos unwiderruflich.": "Irrevocably deletes all accounts, entries, and imports of this account.",
         "Jahr {year} abschließen": "Close year {year}",
         "Das Geschäftsjahr {year} wird festgeschrieben: Buchungen, Belege und Zuordnungen dieses Jahres können danach nicht mehr geändert werden. Ein Verwalter kann das Jahr bei Bedarf wiedereröffnen.": "Fiscal year {year} will be locked: entries, receipts, and assignments for this year can no longer be changed afterwards. An administrator can reopen the year if needed.",
         "Geschäftsjahr {year} abgeschlossen.": "Fiscal year {year} closed.",
@@ -760,7 +759,6 @@
         "Diese Buchung wurde zwischenzeitlich von einer anderen Person geändert. Die Ansicht wurde aktualisiert – bitte erneut versuchen.": "This entry was changed by another person in the meantime. The view has been updated – please try again.",
         "Umbuchen fehlgeschlagen": "Reassignment failed",
         "Kontoauszug konnte nicht geladen werden": "Could not load account statement",
-        "Wirklich ALLE Konten, Buchungen und Importe löschen?": "Really delete ALL accounts, entries, and imports?",
         "Alle Daten gelöscht.": "All data deleted.",
         "Zurücksetzen fehlgeschlagen": "Reset failed",
         "Beispieldaten konnten nicht angelegt werden": "Could not create sample data",
@@ -2595,7 +2593,10 @@
         "Aktivkonto": "Asset account",
         "Passivkonto": "Liability account",
         "Eigenkapitalkonto": "Equity account",
-        "Beispielverein angelegt – schauen Sie sich gern um. Zum Starten mit echten Daten: Zurücksetzen.": "Sample club created – feel free to look around. To start with real data: reset."
+        "Beispielverein angelegt – schauen Sie sich gern um. Zum Starten mit echten Daten: Zurücksetzen.": "Sample club created – feel free to look around. To start with real data: reset.",
+        "Löscht unwiderruflich alle Konten, Buchungen und Importe sowie den Einzug (Lastschrift-Läufe, Einzugsposten, Rücklastschriften, Mahnstufen). Mitglieder, Mandate, Beitragsgruppen und Zuweisungen bleiben bestehen.": "Irrevocably deletes all accounts, entries and imports as well as the collection (direct-debit runs, collection items, returned direct debits, dunning levels). Members, mandates, contribution groups and assignments are kept.",
+        "Wirklich ALLE Konten, Buchungen und Importe sowie den Einzug (Läufe, Rücklastschriften, Mahnstufen) löschen? Mitglieder, Mandate, Beitragsgruppen und Zuweisungen bleiben bestehen.": "Really delete ALL accounts, entries and imports as well as the collection (runs, returned direct debits, dunning levels)? Members, mandates, contribution groups and assignments are kept.",
+        "Rücklastschriften konnten nicht geladen werden.": "Could not load the returned direct debits."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }
