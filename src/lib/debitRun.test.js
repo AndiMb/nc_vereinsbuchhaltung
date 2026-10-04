@@ -5,6 +5,7 @@ import {
 	claimStateLabel,
 	claimStateTone,
 	countIssues,
+	dateSourceText,
 	daysBetween,
 	entryState,
 	formatShortDate,
@@ -174,6 +175,18 @@ describe('Dringlichkeit der Freigabe', () => {
 		expect(releaseUrgency(open, '2026-10-28')).toBe('overdue')
 		expect(releaseUrgency(open, '2026-11-01')).toBe('overdue') // am Einzugstag selbst noch nicht „verstrichen“
 		expect(releaseUrgency(open, '2026-11-02')).toBe('late')
+	})
+})
+
+describe('Herkunft eines Termins', () => {
+	it('nennt die Turnusse des Terminplans', () => {
+		expect(dateSourceText([1, 12])).toBe('Termin aus dem Terminplan für: monatlich, jährlich.')
+		expect(dateSourceText([2])).toBe('Termin aus dem Terminplan für: alle 2 Monate.')
+	})
+
+	it('erklärt einen eigenen Termin ohne Turnus', () => {
+		expect(dateSourceText([])).toContain('außerhalb des Terminplans')
+		expect(dateSourceText(undefined)).toContain('außerhalb des Terminplans')
 	})
 })
 

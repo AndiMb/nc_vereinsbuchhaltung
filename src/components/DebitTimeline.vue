@@ -113,7 +113,36 @@
 			</ul>
 
 			<div v-if="milestones.length" class="vbh-tl-milestones-wrap">
-				<h5>{{ t('Meilensteine zum Einzug am {datum}', { datum: formatDate(selectedEntry.dueDate) }) }}</h5>
+				<div class="vbh-tl-milestoneshead">
+					<h5>{{ t('Meilensteine zum Einzug am {datum}', { datum: formatDate(selectedEntry.dueDate) }) }}</h5>
+					<!-- Termine dicht beieinander (Prorata-Erstforderung kurz nach einem Planungstermin) überdecken
+					     sich auf dem Strahl; so lässt sich trotzdem jeder per Knopf oder Tastatur ansteuern. -->
+					<div class="vbh-tl-stepper">
+						<NcButton
+							variant="tertiary"
+							size="small"
+							:disabled="!prevDate"
+							:aria-label="t('Früherer Termin')"
+							@click="$emit('select', prevDate)">
+							<template #icon>
+								<NcIconSvgWrapper :path="mdiChevronLeft" :size="20" />
+							</template>
+						</NcButton>
+						<NcButton
+							variant="tertiary"
+							size="small"
+							:disabled="!nextDate"
+							:aria-label="t('Späterer Termin')"
+							@click="$emit('select', nextDate)">
+							<template #icon>
+								<NcIconSvgWrapper :path="mdiChevronRight" :size="20" />
+							</template>
+						</NcButton>
+					</div>
+				</div>
+				<p class="vbh-hint vbh-tl-source">
+					{{ dateSourceText(selectedEntry.intervals) }}
+				</p>
 				<ul class="vbh-tl-milestones">
 					<li
 						v-for="m in milestones"
@@ -134,6 +163,7 @@
 import { mdiChevronLeft, mdiChevronRight } from '@mdi/js'
 import { NcButton, NcIconSvgWrapper } from '@nextcloud/vue'
 import {
+	dateSourceText,
 	daysBetween,
 	entryState,
 	entryStateLabel,
@@ -219,6 +249,16 @@ export default {
 				|| (this.timeline.next?.dueDate === this.selectedDate ? this.timeline.next : null)
 		},
 
+		// Nachbartermine des gewählten im angezeigten Jahr (auch wenn der gewählte selbst nicht darin steht).
+		prevDate() {
+			const earlier = this.timeline.dates.map((d) => d.dueDate).filter((d) => d < this.selectedDate)
+			return earlier.length ? earlier[earlier.length - 1] : null
+		},
+
+		nextDate() {
+			return this.timeline.dates.map((d) => d.dueDate).find((d) => d > this.selectedDate) || null
+		},
+
 		milestones() {
 			const entry = this.selectedEntry
 			if (!entry) { return [] }
@@ -252,6 +292,7 @@ export default {
 
 	methods: {
 		formatDate,
+		dateSourceText,
 
 		timingOf(date) {
 			const diff = daysBetween(this.timeline.today, date)
@@ -362,6 +403,12 @@ export default {
 	flex-direction: column;
 	align-items: center;
 	transform: translateX(-50%);
+}
+
+/* Dicht beieinander liegende Marker: der berührte/fokussierte liegt obenauf. */
+.vbh-tl-slot:hover,
+.vbh-tl-slot:focus-within {
+	z-index: 2;
 }
 
 .vbh-tl-date {
@@ -584,6 +631,24 @@ export default {
 
 .vbh-tl-milestones-wrap {
 	margin-top: 12px;
+}
+
+.vbh-tl-milestoneshead {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 4px 12px;
+}
+
+.vbh-tl-stepper {
+	display: flex;
+	gap: 2px;
+}
+
+.vbh-tl-source {
+	margin: 2px 0 0;
+	font-size: 0.85em;
 }
 
 .vbh-tl-milestones {

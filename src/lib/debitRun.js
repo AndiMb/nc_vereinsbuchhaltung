@@ -9,6 +9,7 @@
 // Server (Antwort des Zeitstrahls), nicht aus dem Browser: dieselbe Uhr wie
 // Cron, Aufgabenliste und Vorabinfo-Fristen.
 import { formatDate } from './format.js'
+import { intervalLabel } from './frequency.js'
 import { n, t } from './l10n.js'
 
 export const BATCH_STATUS_RELEASED = 'freigegeben'
@@ -85,6 +86,17 @@ export function milestoneExplanation(key, leadDays) {
 		release: t('Ab hier sollte der Lauf freigegeben und bei der Bank eingereicht sein ({tage} Tage vor dem Einzug).', { tage: leadDays.release }),
 		collection: t('Die Bank belastet frühestens an diesem Tag.'),
 	}[key] || ''
+}
+
+/**
+ * Woher ein Termin auf dem Strahl kommt: aus dem Terminplan (dann für welche
+ * Turnusse) oder als eigener Termin einer Forderung bzw. eines Laufs.
+ */
+export function dateSourceText(intervals) {
+	if (!intervals?.length) {
+		return t('Eigener Termin außerhalb des Terminplans (manuelle Forderung, Prorata-Erstforderung oder verschobener Lauf).')
+	}
+	return t('Termin aus dem Terminplan für: {turnusse}.', { turnusse: intervals.map(intervalLabel).join(', ') })
 }
 
 /** Schweregrad eines Störfalls (Spec §7: zwei Stufen, kein Quittieren). */

@@ -34,8 +34,9 @@
 			</div>
 
 			<template v-else>
+				<!-- Die Serverantwort steht nicht in einer t()-Variable (die würde sie HTML-escapen). -->
 				<p v-if="error" class="vbh-hint vbh-hint--warning" role="status">
-					{{ t('Die Ansicht konnte nicht aktualisiert werden: {fehler}', { fehler: error }) }}
+					{{ t('Die Ansicht konnte nicht aktualisiert werden:') }} {{ error }}
 				</p>
 
 				<DebitTimeline
