@@ -293,6 +293,11 @@ export default {
 	margin-top: 12px;
 }
 
+/* Hat die Freigabe nichts zu tun (keine Forderung), rendert der Slot nur einen Kommentar: dann auch keinen Außenabstand. */
+.vbh-ghost-actions:empty {
+	display: none;
+}
+
 /* Die Hinweise tragen ihre eigene Fläche – im hellen Grund der Karte gut lesbar, im dunklen ebenso. */
 .vbh-ghost .vbh-hint {
 	color: inherit;

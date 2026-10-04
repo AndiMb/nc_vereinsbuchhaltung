@@ -207,4 +207,9 @@ export default {
 	gap: 8px;
 	margin: 8px 0;
 }
+
+/* Ein verworfener Lauf hat keine Aktionen: der Slot rendert dann nur einen Kommentar. */
+.vbh-rd-actions:empty {
+	display: none;
+}
 </style>
