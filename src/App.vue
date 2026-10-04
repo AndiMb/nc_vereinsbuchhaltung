@@ -138,6 +138,7 @@
 				<BookingsTab
 					:isMobile="isMobile"
 					:bookingView="bookingView"
+					:membershipActive="membershipActive"
 					:attachmentCountMap="attachmentCountMap"
 					:suggestionsById="suggestionsById"
 					:openImport="openImport"
@@ -152,6 +153,7 @@
 					:openSplitAssign="openSplitAssign"
 					:applySuggestion="applySuggestion"
 					@update:bookingView="bookingView = $event"
+					@goClaims="goToClaims"
 					@help="openHelp('bookings')" />
 			</section>
 
@@ -423,6 +425,7 @@ import { useAuth } from './composables/useAuth.js'
 import { useBalances } from './composables/useBalances.js'
 import { useConfirm } from './composables/useConfirm.js'
 import { useCostCenters } from './composables/useCostCenters.js'
+import { useEinzugRequest } from './composables/useEinzugRequest.js'
 import { useJournal } from './composables/useJournal.js'
 import { useMemberAkteRequest } from './composables/useMemberAkteRequest.js'
 import { useMembershipFees } from './composables/useMembershipFees.js'
@@ -523,6 +526,7 @@ export default {
 		const sepaMandates = useSepaMandates()
 		const sepaBatches = useSepaBatches()
 		const memberAkteRequest = useMemberAkteRequest()
+		const einzugRequest = useEinzugRequest()
 		const tasks = useTasks()
 		return {
 			loadOpenItems: openItems.loadOpenItems,
@@ -543,6 +547,7 @@ export default {
 			loadSepaMandates: sepaMandates.loadSepaMandates,
 			loadSepaBatches: sepaBatches.loadSepaBatches,
 			requestMemberAkte: memberAkteRequest.requestMemberAkte,
+			requestEinzugClaims: einzugRequest.requestClaims,
 			// Aufgaben-Flyout (TasksFlyout.vue): hier nur fuer refreshAfterRemoteChange().
 			loadTasks: tasks.loadTasks,
 			...toRefs(auth.state),
@@ -1324,6 +1329,20 @@ export default {
 		goToOpenItems() {
 			this.activeTab = 'bookings'
 			this.bookingView = 'openitems'
+		},
+
+		/**
+		 * Sprung aus Buchungen → Offene Posten (BookingsTab.vue) von einer Forderung
+		 * des Beitragsmoduls in den Einzug-Unterreiter, Segment „Forderungen“, auf
+		 * die Forderungen ihres Mitglieds eingegrenzt (Issue #121): dort werden sie
+		 * bearbeitet, die generische Sicht zeigt sie nur.
+		 *
+		 * @param {number|null} memberId Mitglied der Forderung
+		 */
+		goToClaims(memberId) {
+			this.requestEinzugClaims(memberId)
+			this.activeTab = 'contributions'
+			this.contribView = 'batch'
 		},
 
 		// --- Kollaboration: Änderungen anderer Browser erkennen -------------
