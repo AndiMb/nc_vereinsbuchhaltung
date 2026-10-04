@@ -93,14 +93,44 @@ class MandateStateMachine {
 
 	/**
 	 * Widerruf ist terminal (Spec §2.2 „Widerruf/Austritt") – ein Entwurf hat
-	 * noch keine Einzugsermächtigung zu widerrufen (dafür einfach löschen/
-	 * verwerfen), ein bereits erloschenes Mandat ist bereits terminal.
+	 * noch keine Einzugsermächtigung zu widerrufen (dafür gibt es
+	 * {@see assertCanDiscardDraft()}), ein bereits erloschenes Mandat ist
+	 * bereits terminal.
 	 *
 	 * @throws \InvalidArgumentException
 	 */
 	public function assertCanRevoke(Mandate $mandate): void {
 		if (!in_array($mandate->getStatus(), [Mandate::STATUS_ACTIVE, Mandate::STATUS_SUSPENDED], true)) {
 			throw new \InvalidArgumentException($this->l10n->t('Nur ein aktives oder ausgesetztes Mandat lässt sich widerrufen.'));
+		}
+	}
+
+	/**
+	 * Einen Entwurf verwerfen (Issue #118): er wurde nie wirksam und nie
+	 * eingezogen, also gibt es nichts zu widerrufen – das Mandat endet mit
+	 * `end_reason: verworfen`, danach ist ein neues Mandat möglich. Ein aktives
+	 * oder ausgesetztes Mandat verwirft man nicht, es wird widerrufen
+	 * ({@see assertCanRevoke()}), weil daran bereits Einzüge hängen können.
+	 *
+	 * @throws \InvalidArgumentException
+	 */
+	public function assertCanDiscardDraft(Mandate $mandate): void {
+		if ($mandate->getStatus() !== Mandate::STATUS_DRAFT) {
+			throw new \InvalidArgumentException($this->l10n->t('Nur ein Mandat im Entwurf lässt sich verwerfen – ein aktives oder ausgesetztes Mandat wird widerrufen.'));
+		}
+	}
+
+	/**
+	 * Bankverbindung/Kontoinhaber eines Entwurfs direkt korrigieren (Issue
+	 * #118), ohne Amendment: eingezogen wurde noch nie, es gibt keine der Bank
+	 * gemeldete Verbindung, die ein Amendment nachziehen müsste. Sobald das
+	 * Mandat aktiv ist, gilt wieder {@see assertCanAmend()}.
+	 *
+	 * @throws \InvalidArgumentException
+	 */
+	public function assertCanCorrectDraft(Mandate $mandate): void {
+		if ($mandate->getStatus() !== Mandate::STATUS_DRAFT) {
+			throw new \InvalidArgumentException($this->l10n->t('Nur ein Mandat im Entwurf lässt sich auf diesem Weg korrigieren – bei einem aktiven Mandat ändert ein Amendment die Bankverbindung.'));
 		}
 	}
 

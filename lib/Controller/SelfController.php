@@ -35,7 +35,7 @@ use OCP\IRequest;
  *
  * Eigene Stammdaten (#74) plus zwei Aktionskataloge: Mandat (Issue #75 -
  * elektronisch erteilen/bestätigen, IBAN ändern, Kontoinhaber wechseln,
- * widerrufen) und Beitrag/Kontaktdaten (Issue #76 - Betrag/Turnus ändern,
+ * widerrufen, eigenen Entwurf verwerfen) und Beitrag/Kontaktdaten (Issue #76 - Betrag/Turnus ändern,
  * Kontaktstammdaten pflegen). Für Letzteres ist dieser Controller nur die
  * dünne HTTP-Hülle - die eigentliche Logik (IDOR-Schutz, Validierung,
  * Wirksamkeitsregel, Benachrichtigungen) steckt in
@@ -171,6 +171,18 @@ class SelfController extends Controller {
 	public function revokeMandate(): DataResponse {
 		$memberId = $this->requireMemberId();
 		return $this->guarded(fn () => $this->selfServiceMandate->revoke($memberId));
+	}
+
+	/**
+	 * Den eigenen Mandats-Entwurf verwerfen (Issue #118) - korrigieren darf das
+	 * Mitglied ihn bewusst nicht (das macht die Verwaltung). Wie jede Mandats-
+	 * Aktion ohne Mandats-ID: das eine lebende Mandat löst der Dienst über die
+	 * serverseitige member_id auf.
+	 */
+	#[NoAdminRequired]
+	public function discardMandateDraft(): DataResponse {
+		$memberId = $this->requireMemberId();
+		return $this->guarded(fn () => $this->selfServiceMandate->discardDraft($memberId));
 	}
 
 	/**

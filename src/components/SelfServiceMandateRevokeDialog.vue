@@ -36,8 +36,12 @@
 					</NcButton>
 				</div>
 			</template>
-			<p v-else class="vbh-hint">
+			<!-- Die Verwaltung kann ein ausgesetztes Mandat entsperren, das Mitglied nicht (Spec §3.4: „Mandat aktivieren/sperren“ ist nicht im Aktionskatalog). -->
+			<p v-else-if="staff" class="vbh-hint">
 				{{ t('Nur ein neues Konto? Entsperren Sie das Mandat zuerst – die IBAN lässt sich nur bei einem aktiven Mandat ändern, ganz ohne Widerruf und neues Mandat.') }}
+			</p>
+			<p v-else class="vbh-hint">
+				{{ t('Nur ein neues Konto? Solange Ihr Mandat ausgesetzt ist, lässt sich die IBAN nicht ändern – wenden Sie sich an Ihren Verein. Ist das Mandat wieder aktiv, geht das ganz ohne Widerruf und neues Mandat.') }}
 			</p>
 
 			<div class="vbh-modal-actions">
@@ -80,7 +84,10 @@ export default {
 		 */
 		staff: { type: Boolean, default: false },
 		memberName: { type: String, default: '' },
-		/** Ein ausgesetztes Mandat lässt sich nicht per Amendment ändern – dort entfällt der Ausweg-Knopf. */
+		/**
+		 * Ein ausgesetztes Mandat lässt sich nicht per Amendment ändern – dort entfällt der Ausweg-Knopf
+		 * (Akte: MandatePanel.vue, Mein Beitrag: SelfServiceTab.vue, Issue #118).
+		 */
 		ibanChangeBlocked: { type: Boolean, default: false },
 	},
 

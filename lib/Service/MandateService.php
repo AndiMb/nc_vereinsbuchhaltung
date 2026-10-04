@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Mandate;
+use OCA\Vereinsbuchhaltung\Db\MandateActivationTokenMapper;
 use OCA\Vereinsbuchhaltung\Db\MandateAmendment;
 use OCA\Vereinsbuchhaltung\Db\MandateAmendmentMapper;
 use OCA\Vereinsbuchhaltung\Db\MandateEvent;
@@ -41,6 +42,12 @@ use OCP\IUserSession;
  * Erweiterungspunkt, für den #74 diesen Dienst eingeführt hat. Der
  * automatische Verfalls-/Austritts-Cron bleibt fest auf `actor_type: system`
  * verdrahtet (läuft nicht über die Middleware, setzt den Kanal nirgends).
+ *
+ * Entwürfe (Issue #118): {@see correctDraft()} ändert IBAN/BIC/Kontoinhaber
+ * ohne Amendment, {@see discardDraft()} beendet den Entwurf mit
+ * `end_reason: verworfen` – beides macht einen ausgesendeten Einmal-Link
+ * ungültig. Ein Entwurf wurde nie eingezogen, deshalb gelten für ihn weder
+ * Amendment noch Widerruf.
  */
 class MandateService {
 
@@ -64,6 +71,7 @@ class MandateService {
 		private DunningLadderService $dunningLadder,
 		private IL10N $l10n,
 		private MandateExpirySettings $expirySettings,
+		private MandateActivationTokenMapper $activationTokens,
 	) {
 	}
 
@@ -602,6 +610,121 @@ class MandateService {
 			// Aktiviert im selben Zug (siehe Klassendoc grantElectronicSelfService())
 			// - protokolliert selbst als ACTOR_MEMBER, siehe activateElectronic().
 			return $this->activateElectronic((int)$new->getId(), $mandateTextVersionId, $this->now(), $consentIp, $consentUserAgent, $consentActor);
+		});
+	}
+
+	// --- Entwurf korrigieren oder verwerfen (Issue #118) ---------------------------
+
+	/**
+	 * Bankverbindung und Kontoinhaber eines Entwurfs direkt ändern - ohne
+	 * Amendment, denn eingezogen wurde über einen Entwurf nie (Spec §2.2:
+	 * Amendment gilt für ein wirksames Mandat, dessen Daten der Bank schon
+	 * bekannt sind). Der Weg für den Tippfehler in der IBAN eines noch nicht
+	 * bestätigten Mandats, den es vorher nur über Aktivieren + Amendment gab
+	 * (Papier) bzw. gar nicht (elektronisch).
+	 *
+	 * Bei einem elektronischen Entwurf macht jede Korrektur den ausgesendeten
+	 * Einmal-Link ungültig: die Zustimmung bezöge sich sonst auf Angaben, die
+	 * das Mitglied in dieser Form nie gesehen hat. Die Verwaltung versendet
+	 * danach einen neuen ({@see MandateActivationService::issueLink()}).
+	 *
+	 * Der Verlaufstext nennt geänderte Felder, die IBAN nur maskiert (den
+	 * Verlauf liest auch der Revisor, siehe Mandate::maskIban()) und den
+	 * Kontoinhaber gar nicht beim Namen - Namen in generierten Ereignistexten
+	 * entgehen der DSGVO-Anonymisierung (siehe MemberAnonymizationService).
+	 *
+	 * Gemeinsam mit {@see discardDraft()} nur für Entwürfe (Zustandsmaschine),
+	 * Rolle `buchhalter` am Controller; das Mitglied selbst darf im Self-Service
+	 * nur verwerfen, nicht korrigieren.
+	 *
+	 * @throws DoesNotExistException
+	 * @throws \InvalidArgumentException wenn das Mandat kein Entwurf ist, eine Angabe
+	 *                                   ungültig ist oder sich nichts ändert
+	 */
+	public function correctDraft(int $id, string $iban, ?string $bic, string $accountHolder): Mandate {
+		return $this->transaction->run(function () use ($id, $iban, $bic, $accountHolder): Mandate {
+			$mandate = $this->mapper->find($id);
+			$this->stateMachine->assertCanCorrectDraft($mandate);
+
+			$newIban = $this->requireIban($iban);
+			$newBic = $this->normalizeBic($bic);
+			$newHolder = trim($accountHolder);
+			if ($newHolder === '') {
+				throw new \InvalidArgumentException($this->l10n->t('Der Kontoinhaber ist Pflicht.'));
+			}
+
+			$changes = [];
+			if ($newIban !== $mandate->getIban()) {
+				$changes[] = $this->l10n->t('IBAN %1$s → %2$s', [(string)Mandate::maskIban($mandate->getIban()), (string)Mandate::maskIban($newIban)]);
+			}
+			if ($newBic !== $mandate->getBic()) {
+				$changes[] = $this->l10n->t('BIC %1$s → %2$s', [$mandate->getBic() ?? '–', $newBic ?? '–']);
+			}
+			if ($newHolder !== $mandate->getAccountHolder()) {
+				$changes[] = $this->l10n->t('Kontoinhaber');
+			}
+			if ($changes === []) {
+				throw new \InvalidArgumentException($this->l10n->t('IBAN, BIC und Kontoinhaber sind unverändert – es gibt nichts zu korrigieren.'));
+			}
+
+			$mandate->setIban($newIban);
+			$mandate->setBic($newBic);
+			$mandate->setAccountHolder($newHolder);
+			$mandate = $this->mapper->update($mandate);
+			$invalidatedLinks = $this->activationTokens->deleteOutstandingByMandate($id);
+
+			$this->audit->log('SEPA-Mandat-Entwurf korrigiert', 'mandate', $mandate->getId(), [
+				'referenz' => $mandate->getMandateReference(),
+				'felder' => $changes,
+				'einmalLinkUngueltig' => $invalidatedLinks > 0,
+			]);
+			$summary = implode(', ', $changes);
+			$this->logEvent($mandate, $invalidatedLinks > 0
+				? $this->l10n->t('Entwurf korrigiert: %s – der ausgesendete Einmal-Link ist damit ungültig', [$summary])
+				: $this->l10n->t('Entwurf korrigiert: %s', [$summary]), $this->actorContext->actorType());
+			return $mandate;
+		});
+	}
+
+	/**
+	 * Entwurf verwerfen: das Mandat endet mit `end_reason: verworfen`, danach
+	 * ist ein neues Mandat für das Mitglied möglich (die Eindeutigkeit „höchstens
+	 * ein lebendes Mandat“ gilt nur bis `erloschen`). Pflicht-Notiz wie bei Sperre
+	 * und Entsperren - sie steht im Verlauf und im Audit-Log. Kein Widerruf: der
+	 * Entwurf war nie wirksam, es gibt also weder eine Einzugsermächtigung
+	 * zurückzunehmen noch eine Zahlungsaufforderung auszulösen
+	 * ({@see Mandate::END_REASON_DISCARDED}).
+	 *
+	 * Von zwei Kanälen aufrufbar - der Admin-Akte (`buchhalter`) und, mit fester
+	 * Notiz, vom Self-Service ({@see SelfServiceMandateService::discardDraft()});
+	 * den tatsächlichen Kanal liefert der {@see ActorContextService}.
+	 *
+	 * Ein ausgesendeter Einmal-Link wird mit gelöscht: die Zustimmungsseite
+	 * zeigte sonst zu einem beendeten Mandat weiter ein Formular.
+	 *
+	 * @throws DoesNotExistException
+	 * @throws \InvalidArgumentException wenn die Notiz fehlt oder das Mandat kein Entwurf ist
+	 */
+	public function discardDraft(int $id, string $note): Mandate {
+		$note = trim($note);
+		if ($note === '') {
+			throw new \InvalidArgumentException($this->l10n->t('Zum Verwerfen eines Entwurfs ist eine Notiz Pflicht.'));
+		}
+		return $this->transaction->run(function () use ($id, $note): Mandate {
+			$mandate = $this->mapper->find($id);
+			$this->stateMachine->assertCanDiscardDraft($mandate);
+			$this->end($mandate, Mandate::END_REASON_DISCARDED);
+			$invalidatedLinks = $this->activationTokens->deleteOutstandingByMandate($id);
+
+			$this->audit->log('SEPA-Mandat-Entwurf verworfen', 'mandate', $mandate->getId(), [
+				'referenz' => $mandate->getMandateReference(),
+				'notiz' => $note,
+				'einmalLinkUngueltig' => $invalidatedLinks > 0,
+			]);
+			$this->logEvent($mandate, $invalidatedLinks > 0
+				? $this->l10n->t('Entwurf verworfen: %s – der ausgesendete Einmal-Link ist damit ungültig', [$note])
+				: $this->l10n->t('Entwurf verworfen: %s', [$note]), $this->actorContext->actorType());
+			return $mandate;
 		});
 	}
 

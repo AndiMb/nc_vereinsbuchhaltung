@@ -170,7 +170,7 @@ member_id
 iban (nullable — DSGVO-Löschkonzept, §3.8)   bic   account_holder (Pflicht, vorbefüllt = Anzeigename)
 signature_type: paper | electronic | qes     signed_at
 status: draft | active | suspended | ended
-activated_at   ended_at   end_reason: revoked | replaced | expired | terminated
+activated_at   ended_at   end_reason: revoked | replaced | expired | terminated | discarded
 suspended_at   suspended_by   suspension_origin: manual | returned_debit   suspension_note   returned_debit_id
 last_presented_due_date   → expires_at = COALESCE(last_presented_due_date, signed_at) + 36 Monate
 document_file_id (NC File-ID, nullable)
@@ -190,6 +190,22 @@ UNIQUE (member_id) WHERE status <> 'ended'   ← höchstens EIN LEBENDES Mandat 
 
 „Verfallen" ist **kein** eigener Zustand, sondern `end_reason: expired` — verhält sich wie
 Widerruf (terminal, kein Reaktivieren).
+
+**Entwurf korrigieren oder verwerfen** (Issue #118, ergänzt nach der Spec-Übergabe): Widerruf und
+Amendment setzen ein *aktives* Mandat voraus, und „höchstens ein lebendes Mandat" ließe einen
+`draft` mit Tippfehler in der IBAN sonst für immer stehen. Deshalb gibt es für den Zustand `draft`
+zwei eigene Wege, beide nur für `buchhalter` (Admin-Akte):
+
+- **Korrigieren:** IBAN, BIC und Kontoinhaber ändern **ohne** Amendment — über einen Entwurf wurde
+  nie eingezogen, es gibt keine der Bank gemeldete Verbindung nachzuziehen. Jede Korrektur steht im
+  `MandateEvent` (IBAN nur maskiert, Kontoinhaber ohne Namen); bei einem elektronischen Entwurf
+  macht sie den ausgesendeten Einmal-Link ungültig (neuer Link nötig).
+- **Verwerfen:** Pflicht-Notiz, Übergang `draft` → `ended` mit `end_reason: discarded`, danach ist ein
+  neues Mandat möglich. Ein eigener Wert statt `revoked`: ein Widerruf nimmt eine *erteilte*
+  Einzugsermächtigung zurück (und löst bei offenen Forderungen die Zahlungsaufforderung aus,
+  §3.6), ein nie wirksamer Entwurf hat nichts zurückzunehmen; `terminated` ist der automatische
+  Austritts-Übergang. Das Mitglied darf im Self-Service (§3.4) den **eigenen** Entwurf verwerfen
+  (feste Notiz, kein Freitext), aber nicht korrigieren.
 
 **Aktivierung** — zwei Wege, unterschiedlich streng ([T17](../tickets/T17-mitgliederverwaltung-light.md)
 ändert [T08](../tickets/T08-mandats-lifecycle.md)):
@@ -475,6 +491,7 @@ Buchhaltungs-Tab bei Personalunion.
 |---|---|
 | Mandat erfassen + elektronisch erteilen | Beitragsgruppe wechseln |
 | Mandat widerrufen (terminal, mit Reibung) | Mandat aktivieren/sperren |
+| Eigenen Mandat-Entwurf verwerfen (Issue #118) | Mandat-Entwurf korrigieren (das macht die Verwaltung) |
 | IBAN ändern (gleicher Kontoinhaber) | „Diesen Monat mal nicht abbuchen" |
 | Kontoinhaber wechseln (erzwingt neues Mandat) | Austritt erklären |
 | Monatsbeitrag: hoch frei, runter bis Untergrenze | Erledigungsvermerk setzen |

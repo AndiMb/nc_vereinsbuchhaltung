@@ -23,7 +23,8 @@ use OCP\AppFramework\Db\Entity;
  * die international übliche Abkürzung) und `suspension_origin`
  * (`manuell`/`ruecklastschrift` – „Rücklastschrift" ist bereits der
  * durchgängige deutsche Fachbegriff dieser Spec). `end_reason` folgt
- * `status` konsistent: `widerrufen`/`ersetzt`/`verfallen`/`beendet`.
+ * `status` konsistent: `widerrufen`/`ersetzt`/`verfallen`/`beendet`, seit
+ * Issue #118 dazu `verworfen` (ein Entwurf, der nie wirksam wurde).
  * `MandateAmendment::TYPE_*`/`::STATUS_*` und `MandateEvent::ACTOR_*` bleiben
  * dagegen englisch, wie im Issue-Feldkatalog selbst angegeben (dort nicht als
  * klärungsbedürftig markiert) – siehe {@see MandateAmendment}, {@see MandateEvent}.
@@ -135,12 +136,28 @@ class Mandate extends Entity implements \JsonSerializable {
 	public const STATUS_ENDED = 'erloschen';
 	public const STATUSES = [self::STATUS_DRAFT, self::STATUS_ACTIVE, self::STATUS_SUSPENDED, self::STATUS_ENDED];
 
-	/** „Verfallen" ist kein eigener Zustand: END_REASON_EXPIRED landet in status=erloschen (Spec §2.2). */
+	/**
+	 * „Verfallen" ist kein eigener Zustand: END_REASON_EXPIRED landet in status=erloschen (Spec §2.2).
+	 *
+	 * `verworfen` (Issue #118): ein Entwurf wird verworfen, bevor er je wirksam
+	 * war. Bewusst ein eigener Wert statt `widerrufen` oder `beendet` – ein
+	 * Widerruf nimmt eine *erteilte* Einzugsermächtigung zurück (und löst die
+	 * Zahlungsaufforderung bei offenen Forderungen aus), `beendet` ist der
+	 * automatische Austritts-Übergang; beides wäre für einen Entwurf, der nie
+	 * einzugsfähig war und nie etwas eingezogen hat, eine falsche Auskunft.
+	 */
 	public const END_REASON_REVOKED = 'widerrufen';
 	public const END_REASON_REPLACED = 'ersetzt';
 	public const END_REASON_EXPIRED = 'verfallen';
 	public const END_REASON_TERMINATED = 'beendet';
-	public const END_REASONS = [self::END_REASON_REVOKED, self::END_REASON_REPLACED, self::END_REASON_EXPIRED, self::END_REASON_TERMINATED];
+	public const END_REASON_DISCARDED = 'verworfen';
+	public const END_REASONS = [
+		self::END_REASON_REVOKED,
+		self::END_REASON_REPLACED,
+		self::END_REASON_EXPIRED,
+		self::END_REASON_TERMINATED,
+		self::END_REASON_DISCARDED,
+	];
 
 	/** `ruecklastschrift` wird ausschließlich automatisch gesetzt, siehe {@see \OCA\Vereinsbuchhaltung\Service\MandateService::suspendDueToReturnedDebit()} (Issue #73, Rücklastschrift-Fachlogik). */
 	public const SUSPENSION_MANUAL = 'manuell';
@@ -181,14 +198,23 @@ class Mandate extends Entity implements \JsonSerializable {
 	 * zuerkennen, ohne die vollständige Kontonummer preiszugeben.
 	 */
 	public function maskedIban(): ?string {
-		if ($this->iban === null || $this->iban === '') {
-			return $this->iban;
+		return self::maskIban($this->iban);
+	}
+
+	/**
+	 * Dieselbe Maskierung für einen beliebigen IBAN-Wert – für Ereignistexte der
+	 * Historie, die auch der Revisor liest (Issue #118: „IBAN alt → neu“ einer
+	 * Entwurfskorrektur soll keine volle Kontonummer in den Verlauf schreiben).
+	 */
+	public static function maskIban(?string $iban): ?string {
+		if ($iban === null || $iban === '') {
+			return $iban;
 		}
-		$len = strlen($this->iban);
+		$len = strlen($iban);
 		if ($len <= 8) {
 			return str_repeat('•', $len);
 		}
-		return substr($this->iban, 0, 4) . str_repeat('•', $len - 8) . substr($this->iban, -4);
+		return substr($iban, 0, 4) . str_repeat('•', $len - 8) . substr($iban, -4);
 	}
 
 	/**

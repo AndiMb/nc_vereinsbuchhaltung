@@ -128,13 +128,10 @@
 <script>
 import { NcButton, NcModal } from '@nextcloud/vue'
 import { formatMoney } from '../lib/format.js'
-import { formatIban } from '../lib/mandateView.js'
+import { formatIban, normalizeBankValue } from '../lib/mandateView.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 
 const emptyHolderForm = () => ({ iban: '', bic: '', accountHolder: '', signedAt: '' })
-
-/** Schreibweise für den Vergleich „hat sich etwas geändert“: ohne Leerzeichen, Großbuchstaben. */
-const normalize = (s) => String(s ?? '').replace(/\s+/g, '').toUpperCase()
 
 /**
  * Bankverbindung eines Mandats ändern – die drei Fälle der Tabelle „Amendment
@@ -180,8 +177,8 @@ export default {
 	computed: {
 		canSaveIban() {
 			if (!this.mandate || !this.ibanForm.iban.trim()) { return false }
-			return normalize(this.ibanForm.iban) !== normalize(this.mandate.iban)
-				|| normalize(this.ibanForm.bic) !== normalize(this.mandate.bic)
+			return normalizeBankValue(this.ibanForm.iban) !== normalizeBankValue(this.mandate.iban)
+				|| normalizeBankValue(this.ibanForm.bic) !== normalizeBankValue(this.mandate.bic)
 		},
 
 		canSaveName() {
