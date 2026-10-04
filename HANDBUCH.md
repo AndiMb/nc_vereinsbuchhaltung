@@ -1085,6 +1085,29 @@ erhalten.**
 Gleiches gilt für den Reset-Modus beim xbuc-Import. Beides ist
 unwiderruflich – also nur nach Rücksprache und nie aus Versehen.
 
+**Beiträge und SEPA (Kapitel 13):** Der Reset nimmt auch den Einzug mit – die
+**Lastschrift-Läufe** samt ihren Posten (mit den IBANs im Klartext), die
+**Rücklastschriften** und den **Mahnstand** der Forderungen. Sie hängen an den
+Forderungen, die mit den offenen Posten verschwinden, und blieben sonst ohne
+Bezug stehen; gelöscht wird alles zusammen oder gar nichts. **Mitglieder,
+Mandate samt Verlauf, Beitragsgruppen, Zuweisungen, der Rechtstext und die
+Einstellungen bleiben.** An den Mandaten fallen nur Verweise auf Gelöschtes weg:
+eine **Sperre nach Rücklastschrift bleibt** (entsperren müssen Sie wie immer von
+Hand, 13.7), verliert aber den Verweis auf die gelöschte Rücklastschrift, und eine
+**Kontoänderung**, die ein Einzug schon gemeldet hatte, gilt wieder als noch zu
+melden und läuft beim nächsten Einzug noch einmal mit. Das Datum der **letzten
+Vorlage** bleibt, damit die 36-Monats-Frist weiter von der tatsächlich letzten
+Lastschrift an läuft.
+
+Zwei Folgen, auf die Sie achten sollten: Die **Zuweisungen laufen weiter**, und
+der tägliche Lauf (13.4) legt ihre Forderungen deshalb neu an – ab dem Zeitraum,
+in dem die jeweilige Zuweisung beginnt, auch für Zeiträume, die schon abgerechnet
+waren. Wer das nicht möchte, beendet die Zuweisungen mindestens einen Tag vor dem
+Zurücksetzen (eine heute beendete Zuweisung gilt bis zum Abend noch als laufend)
+und legt sie danach mit heutigem Beginn neu an. Die **XML-Kopien** der Läufe in
+der Ablage (13.5) bleiben im Nextcloud-Ordner liegen: die App weiß nicht, welche
+Dateien dazugehören, und löscht dort nichts – Sie können sie von Hand entfernen.
+
 Derselbe Knopf ist der harmlose Weg aus den **Beispieldaten** heraus
 (Kapitel 2.0): Solange das Banner „Beispieldaten aktiv" steht, gibt es
 nichts zu verlieren.
