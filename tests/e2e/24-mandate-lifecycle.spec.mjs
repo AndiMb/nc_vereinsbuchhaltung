@@ -4,9 +4,8 @@ import { api, USERS } from './fixtures/nextcloud.mjs'
 // Mandats-Lifecycle-Kern, Papier-Weg (Issue #66, Spec §2.2/§3.2): Entwurf ->
 // aktivieren -> sperren -> entsperren, plus die Rollenprüfung aus Spec §3.9
 // (nur Buchhalter aktiviert/sperrt/entsperrt, Revisor liest nur mit
-// maskierter IBAN). Es gibt für dieses neue Datenmodell (Member/Mandate,
-// getrennt vom alten vbh_sepa_mandates-Bestand) noch keine Oberfläche –
-// dieselbe API-first-Vorgehensweise wie in 08-roles.spec.mjs für reine
+// maskierter IBAN). Die Oberfläche dazu prüft 39-mandate-management; hier läuft
+// der Ablauf über die HTTP-API – dieselbe API-first-Vorgehensweise wie in 08-roles.spec.mjs für reine
 // Rollenprüfungen, hier für den kompletten Ablauf: „geprüft wird über die
 // echte HTTP-API einer laufenden Instanz mit echter Rechteprüfung", nicht
 // nur mit gemockten Unit-Tests.
