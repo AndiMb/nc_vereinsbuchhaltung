@@ -85,3 +85,28 @@ muss:
   `afterAll` räumt auf. Beispiel: 47-girocode-anhang (Anhänge einer Mahnmail,
   Bildinhalt über `fixtures/girocode.mjs`). Nach dem Umschalten wartet
   `startMailCapture()` kurz, weil Apache `config.php` über opcache liest.
+
+## Einzug, Kontoauszug und Rücklastschrift seeden
+
+Der Weg „Einzug → Kontoauszug → Zuordnung → Verbuchung“ lässt sich ohne
+Oberfläche vorbereiten (Beispiel: 44-einzug-bankabgleich):
+
+1. Mitglied mit aktivem Mandat und eine Forderung über die API anlegen
+   (`api.createMember`, `api.createMandate`/`activateMandate`, `POST /claims`).
+2. `api.releaseAndSubmitDebitBatch(request, dueDate)` gibt den Lauf frei und
+   reicht ihn ein; die Antwort enthält die Posten (`items`) mit den
+   End-to-End-IDs und Mandatsreferenzen, die die Bank später zurückmeldet.
+3. `camtStatement()` baut daraus den Kontoauszug: `collectionEntry()` für die
+   Sammelgutschrift (eine Zeile je Posten, wahlweise ohne End-to-End-ID, dann
+   findet die Zeile nur über Mandatsreferenz und Betrag), `returnEntry()` für
+   die Rücklastschrift mit Rückgabegrund (z. B. `AM04` Deckung fehlt,
+   `AC04` Konto erloschen → Mandat wird gesperrt) und optionaler Bankgebühr.
+   `api.importCamtStatement()` importiert ihn.
+4. `api.bankReconciliation()` liefert die Arbeitsliste; Urteile und
+   Verbuchen gibt es auch als API-Helfer (`decideSepaDetail`,
+   `settleSepaImport`), die Konten der Verbuchung stellt
+   `api.setSepaImportSettings()` ein.
+
+Die Rücklastschrift löst eine Zahlungsaufforderung aus: dafür den Mail-Modus
+`null` setzen (siehe oben) und danach etwa vier Sekunden warten, weil sie aus
+einem Web-Request versandt wird und Apache `config.php` über opcache liest.

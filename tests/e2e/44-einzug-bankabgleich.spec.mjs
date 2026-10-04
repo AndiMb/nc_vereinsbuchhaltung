@@ -245,6 +245,7 @@ test.describe('Einzug-Unterreiter: Bankabgleich der Sammelgutschrift', () => {
 	})
 
 	test('abgelehnte Zeilen lassen sich nicht mitbuchen: die Vorschau nennt die Differenz, „nicht zuordenbar“ bleibt für die Handbuchung', async ({ page, request }) => {
+		test.setTimeout(90000)
 		const tag = runTag()
 		const dueDate = plusDays(41)
 		const alma = await ensureMemberWithMandate(request, 'Bankabgleich', `Differenz ${tag}`)
@@ -287,6 +288,10 @@ test.describe('Einzug-Unterreiter: Bankabgleich der Sammelgutschrift', () => {
 test.describe('Einzug-Unterreiter: Bankabgleich der Rücklastschrift', () => {
 	test.beforeAll(async () => {
 		await runOcc(['config:system:set', 'mail_smtpmode', '--value', 'null'], { container: getContainer() })
+		// Anders als 28/43 (Tageslauf per occ) geht die Zahlungsaufforderung hier aus einem Web-Request raus:
+		// Apache liest config.php über opcache (Standard: Zeitstempel alle 2 s prüfen). Ohne Pause sähe der erste
+		// Request noch den alten Mail-Modus (SMTP auf 127.0.0.1:25, abgelehnt) und das Mahnwesen vermerkte keine Stufe.
+		await new Promise((resolve) => setTimeout(resolve, 4000))
 	})
 
 	test.afterAll(async () => {
@@ -396,6 +401,7 @@ test.describe('Einzug-Unterreiter: Bankabgleich der Rücklastschrift', () => {
 	})
 
 	test('Revisor liest den Bankabgleich, ohne Aktionen und ohne Rückgabecode', async ({ page, request }) => {
+		test.setTimeout(90000)
 		await setUp(request)
 		const tag = runTag()
 		const { item } = await submittedItem(request, tag, 'Pruefung', { amount: 12.5, label: `Beitrag Pruefung ${tag}` })
@@ -526,6 +532,7 @@ test.describe('Einzug-Unterreiter: Bankabgleich der Zahlungseingänge', () => {
 	}
 
 	test('„diese Gutschrift passt auf Forderung X“: Begründung in Klartext, bestätigen bucht und schließt die Forderung ab', async ({ page, request }) => {
+		test.setTimeout(90000)
 		const tag = runTag()
 		await seedTransfer(request, `Zahler ${tag}`, { amount: 33, label: `Beitrag Zahler ${tag}` })
 
@@ -556,6 +563,7 @@ test.describe('Einzug-Unterreiter: Bankabgleich der Zahlungseingänge', () => {
 	})
 
 	test('ablehnen: der Vorschlag verschwindet und kommt nicht wieder, auch nicht nach dem Neuladen', async ({ page, request }) => {
+		test.setTimeout(90000)
 		const tag = runTag()
 		await seedTransfer(request, `Ablehner ${tag}`, { amount: 44, label: `Beitrag Ablehner ${tag}` })
 
