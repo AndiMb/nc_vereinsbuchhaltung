@@ -1349,6 +1349,67 @@ verbucht haben. Auch dann wird sie erkannt: der betroffene Posten wird wieder
 geöffnet, und das Mandat gilt wieder als nicht eingelöst – der nächste Versuch
 läuft dadurch erneut als Ersteinzug.
 
+### 13.8 Forderungen, Mahnstand und Störfälle
+
+Im Reiter **„Beiträge" → Einzug** zeigt das Segment **„Forderungen"** (neben
+*Zeitstrahl & Läufe*) alle Forderungen an Mitglieder: Bezeichnung, Art
+(*Beitrag* oder *Gebühr*), Fälligkeit, Betrag, **Zustand**, **Mahnstand** und
+mögliche **Störfälle**. Die allgemeinen offenen Posten ohne Mitglied (Rechnungen
+und Ähnliches) stehen weiter unter *Buchungen → Offene Posten*. Lesen dürfen es
+alle ab Revisor; vermerken, stunden, erlassen und stornieren dürfen Buchhalter
+und Verwalter.
+
+**Der Zustand** ist abgeleitet und steht in Klartext: *offen*, *im Einzug*
+(in einem freigegebenen oder eingereichten Lauf, der Termin liegt noch vor
+uns), *eingezogen* (Termin vorbei, keine Rückgabe), *zurückgegeben*
+(Rücklastschrift), *erledigt (bezahlt)* bzw. *erledigt (erlassen)* und
+*storniert*. Eine **gestundete** Forderung trägt zusätzlich die Marke
+*gestundet bis …*. Vorgabe der Liste sind die **nicht beglichenen** Forderungen
+(offen, im Einzug, zurückgegeben); über die Filter *Zustand*, *Störfall*,
+*Mitglied* (Namensteil) und *Fällig von/bis* grenzen Sie ein. **Details**
+klappt eine Forderung auf. **„Je Mitglied"** fasst dieselbe Auswahl je
+Mitglied zusammen – die Mahnstufen gehen gebündelt je Mitglied raus.
+
+**Der Mahnstand** zeigt die erreichte Stufe – *Zahlungsaufforderung*,
+*Zahlungserinnerung*, *Mahnung*, *An Vorstand eskaliert* –, wann sie versandt
+wurde und wann die **nächste Stufe fällig** wird (Abstand: *Mahnabstand* der
+Verwaltung, vorbelegt mit 14 Tagen). Eine **Stundung pausiert** Zahlungserinnerung,
+Mahnung und Eskalation bis einschließlich zu ihrem letzten Tag; danach läuft die
+Mahnuhr von der zuletzt erreichten Stufe weiter. Lastschrift-Forderungen
+bekommen die Zahlungsaufforderung erst nach einer Rücklastschrift oder einem
+Widerruf, Überweiser-Forderungen kurz vor der Fälligkeit.
+
+**Störfälle** haben zwei Schweregrade, *Handlungsbedarf* und *Hinweis*, und
+nennen die Ursache in Klartext – etwa „Vorabinfo konnte nicht rechtzeitig
+verschickt werden", „kein einzugsfähiges Mandat" oder eine Rücklastschrift.
+Niemand quittiert sie; sie verschwinden, sobald die Ursache behoben ist.
+**„Mitglieder-Akte öffnen"** springt in die Akte des Mitglieds. Bei einer
+Rücklastschrift steht der **Grund in Klartext**; den Rückgabecode der Bank sehen
+nur Buchhalter und Verwalter, ein Revisor nicht.
+
+**Erlass und Storno sind verschieden** – die Dialoge sagen es dazu:
+
+| | Erlass | Storno |
+|---|---|---|
+| Bedeutung | Die Forderung **war berechtigt**, wir verzichten darauf | Die Forderung **hätte nie existieren dürfen** (doppelt, irrtümlich) |
+| Wann | **jederzeit**, auch nach der Einreichung | **nur vor der Einreichung** |
+| Pflicht | Begründung | Begründung |
+
+Steckt eine Forderung schon in einem **eingereichten** Lauf, gibt es nur den
+Erlass (oder den Vermerk *bezahlt*); in einem **freigegebenen** Lauf verwerfen
+Sie zuerst den Lauf (*Zeitstrahl & Läufe*), weil die erzeugte Datei die
+Forderung sonst weiter enthielte. Beides weist die App an der Stelle selbst aus.
+
+**Als bezahlt markieren** vermerkt Zeitpunkt, Ihren Namen und eine optionale
+Notiz – eine Buchung entsteht dadurch nicht, die Zahlung ordnen Sie wie gewohnt
+dem Bankumsatz zu. **Stunden** verlangt das Datum „bis" und eine Begründung; je
+Forderung gibt es höchstens eine laufende Stundung, **„Stundung aufheben"** beendet
+sie vorzeitig. Eine Stundung (und ein Vermerk) hält einen Einzug nicht auf, der
+schon in einer Datei steht oder bei der Bank liegt – dann warnt die App.
+**„+ Einzelforderung"** legt eine manuelle Forderung an (freier Betrag, eigener
+Einzugstermin, auch ohne Mandat), dieselbe Eingabe wie im Reiter
+*Beitragsgruppen*.
+
 ---
 
 ## 14. Anhang: Rollen, Kontotypen, Tastenkürzel, Glossar

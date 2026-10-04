@@ -47,6 +47,23 @@ class DunningNoticeMapper extends QBMapper {
 		}
 	}
 
+	/**
+	 * Alle bisher versendeten Mahnstufen aller Forderungen auf einmal – die
+	 * Grundlage der lesenden Forderungsübersicht im Einzug-Unterreiter (Issue
+	 * #104), die den Mahnstand jeder Zeile braucht und deshalb nicht je
+	 * Forderung eine Abfrage stellen soll.
+	 *
+	 * @return DunningNotice[] je Forderung aufsteigend nach Stufe
+	 */
+	public function findAll(): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->orderBy('open_item_id', 'ASC')
+			->addOrderBy('stage', 'ASC');
+		return $this->findEntities($qb);
+	}
+
 	/** @return DunningNotice[] alle Zeilen einer Stufe – Grundlage der Eskalationsprüfung in DunningLadderService/DunningTaskService. */
 	public function findByStage(int $stage): array {
 		$qb = $this->db->getQueryBuilder();

@@ -66,4 +66,24 @@ class ReturnedDebitMapper extends QBMapper {
 		$result->closeCursor();
 		return $received;
 	}
+
+	/**
+	 * Alle Rücklastschriften, je Einzugsposten: `debit_item_id => Rücklastschrift`.
+	 * Anders als {@see findReceivedAtByBatch()} mit Grund und Gebühr – die
+	 * lesende Forderungsübersicht (Issue #104) zeigt die Ursache in Klartext,
+	 * für Buchhalter zusätzlich den Code. Eine Abfrage für alle Forderungen
+	 * statt einer je Zeile; Rücklastschriften sind die Ausnahme, die Menge
+	 * bleibt klein.
+	 *
+	 * @return array<int,ReturnedDebit>
+	 */
+	public function findAllByDebitItem(): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')->from($this->getTableName());
+		$returned = [];
+		foreach ($this->findEntities($qb) as $entity) {
+			$returned[$entity->getDebitItemId()] = $entity;
+		}
+		return $returned;
+	}
 }

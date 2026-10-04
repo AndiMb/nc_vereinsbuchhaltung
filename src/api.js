@@ -199,6 +199,9 @@ export default {
 	settleClaim: (id, settlementType, note) => axios.post(url(`/claims/${id}/settle`), { settlementType, note: note || undefined }),
 	cancelClaim: (id, reason) => axios.post(url(`/claims/${id}/cancel`), { reason }),
 	deferClaim: (id, deferredUntil, reason) => axios.post(url(`/claims/${id}/defer`), { deferredUntil, reason }),
+	undeferClaim: (id) => axios.post(url(`/claims/${id}/undefer`)),
+	// Forderungsübersicht des Einzug-Unterreiters (Issue #104): Zustand, Mahnstand, Einzug, Rücklastschrift, Störfälle
+	claimOverview: () => axios.get(url('/claims/overview')),
 
 	// Terminplan & Einzugszyklus-Einstellungen (Issue #70)
 	loadDueDateSchedule: () => axios.get(url('/due-date-schedule')),

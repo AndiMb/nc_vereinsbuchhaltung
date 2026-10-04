@@ -239,10 +239,12 @@ return [
 
 		// Forderungen inkl. manueller Einzelforderung (Issue #68)
 		['name' => 'claim#index', 'url' => '/api/claims', 'verb' => 'GET'],
+		['name' => 'claim#overview', 'url' => '/api/claims/overview', 'verb' => 'GET'],
 		['name' => 'claim#create', 'url' => '/api/claims', 'verb' => 'POST'],
 		['name' => 'claim#settle', 'url' => '/api/claims/{id}/settle', 'verb' => 'POST'],
 		['name' => 'claim#cancel', 'url' => '/api/claims/{id}/cancel', 'verb' => 'POST'],
 		['name' => 'claim#defer', 'url' => '/api/claims/{id}/defer', 'verb' => 'POST'],
+		['name' => 'claim#undefer', 'url' => '/api/claims/{id}/undefer', 'verb' => 'POST'],
 
 		// Terminplan & Einzugszyklus-Einstellungen (Issue #70)
 		['name' => 'dueDateSchedule#index', 'url' => '/api/due-date-schedule', 'verb' => 'GET'],
