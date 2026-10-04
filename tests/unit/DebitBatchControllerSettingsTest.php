@@ -5,14 +5,18 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
 use OCA\Vereinsbuchhaltung\Controller\DebitBatchController;
+use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Service\ContributionCycleSettings;
+use OCA\Vereinsbuchhaltung\Service\ContributionCycleTaskService;
 use OCA\Vereinsbuchhaltung\Service\DebitBatchService;
 use OCA\Vereinsbuchhaltung\Service\DebitBatchXmlStorageService;
+use OCA\Vereinsbuchhaltung\Service\DebitTimelineService;
 use OCA\Vereinsbuchhaltung\Service\FolderPathValidator;
 use OCP\AppFramework\Http;
 use OCP\IConfig;
 use OCP\IL10N;
 use OCP\IRequest;
+use OCP\IUserManager;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -52,6 +56,10 @@ class DebitBatchControllerSettingsTest extends TestCase {
 			new ContributionCycleSettings($config),
 			new FolderPathValidator($l10n),
 			$l10n,
+			$this->createMock(DebitTimelineService::class),
+			$this->createMock(ContributionCycleTaskService::class),
+			$this->createMock(MemberMapper::class),
+			$this->createMock(IUserManager::class),
 		);
 	}
 
