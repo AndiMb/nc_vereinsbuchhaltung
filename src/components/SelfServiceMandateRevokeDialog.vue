@@ -13,7 +13,7 @@
 
 			<div class="vbh-card vbh-card--danger">
 				<p v-if="staff">
-					{{ t('Der Widerruf ist endgültig – ein widerrufenes Mandat lässt sich nicht wieder aktivieren. Für künftige Einzüge braucht {name} danach ein neues Mandat mit neuer Unterschrift.', { name: memberName }) }}
+					{{ revokeStaffWarning(memberName) }}
 				</p>
 				<p v-else>
 					{{ t('Der Widerruf ist endgültig – ein widerrufenes Mandat lässt sich nicht wieder aktivieren. Für künftige Einzüge brauchen Sie danach ein neues Mandat.') }}
@@ -59,6 +59,7 @@
 <script>
 import { NcButton, NcModal } from '@nextcloud/vue'
 import { formatMoney } from '../lib/format.js'
+import { revokeStaffWarning } from '../lib/mandateView.js'
 
 /**
  * Reibungsdialog Widerruf (Spec §3.4): Endgültigkeit + offene Summe zeigen,
@@ -93,6 +94,6 @@ export default {
 
 	emits: ['close', 'save', 'switch-to-iban', 'update:show'],
 
-	methods: { formatMoney },
+	methods: { formatMoney, revokeStaffWarning },
 }
 </script>

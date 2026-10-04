@@ -22,7 +22,7 @@
 								{{ t('Standard') }}
 							</th>
 							<th>{{ t('Turnusse') }}</th>
-							<th>{{ t('Aktiv') }}</th>
+							<th>{{ tc('Zustand', 'Aktiv') }}</th>
 							<th class="vbh-col-memberactions" />
 						</tr>
 					</thead>
@@ -295,19 +295,19 @@ export default {
 				this.groupDialogOpen = false
 				await this.loadContributionGroups()
 				showSuccess(this.t('Beitragsgruppe gespeichert.'))
-			} catch (e) { showError(errMsg(e, 'Beitragsgruppe konnte nicht gespeichert werden')) }
+			} catch (e) { showError(errMsg(e, this.t('Beitragsgruppe konnte nicht gespeichert werden'))) }
 		},
 
 		async deleteGroup(g) {
 			const ok = await this.askConfirm(
 				this.t('Beitragsgruppe löschen'),
-				this.t('„{name}" wirklich löschen? Das geht nur, solange keine Zuweisung mehr daran hängt.', { name: g.name }),
+				this.tRaw('„{name}" wirklich löschen? Das geht nur, solange keine Zuweisung mehr daran hängt.', { name: g.name }),
 			)
 			if (!ok) { return }
 			try {
 				await api.deleteContributionGroup(g.id)
 				await this.loadContributionGroups()
-			} catch (e) { showError(errMsg(e, 'Beitragsgruppe konnte nicht gelöscht werden')) }
+			} catch (e) { showError(errMsg(e, this.t('Beitragsgruppe konnte nicht gelöscht werden'))) }
 		},
 
 		async saveAssignment(form) {
@@ -316,7 +316,7 @@ export default {
 				this.assignmentDialogOpen = false
 				await this.loadAssignments()
 				showSuccess(this.t('Zuweisung angelegt.'))
-			} catch (e) { showError(errMsg(e, 'Zuweisung konnte nicht angelegt werden')) }
+			} catch (e) { showError(errMsg(e, this.t('Zuweisung konnte nicht angelegt werden'))) }
 		},
 
 		async endAssignment(a) {
@@ -330,7 +330,7 @@ export default {
 			try {
 				await api.endAssignment(a.id, new Date().toISOString().slice(0, 10))
 				await this.loadAssignments()
-			} catch (e) { showError(errMsg(e, 'Zuweisung konnte nicht beendet werden')) }
+			} catch (e) { showError(errMsg(e, this.t('Zuweisung konnte nicht beendet werden'))) }
 		},
 
 		async saveClaim(form) {
@@ -339,14 +339,14 @@ export default {
 				this.claimDialogOpen = false
 				await this.loadClaims()
 				showSuccess(this.t('Einzelforderung angelegt.'))
-			} catch (e) { showError(errMsg(e, 'Einzelforderung konnte nicht angelegt werden')) }
+			} catch (e) { showError(errMsg(e, this.t('Einzelforderung konnte nicht angelegt werden'))) }
 		},
 
 		async settlePaid(c) {
 			try {
 				await api.settleClaim(c.id, 'paid')
 				await this.loadClaims()
-			} catch (e) { showError(errMsg(e, 'Forderung konnte nicht als bezahlt markiert werden')) }
+			} catch (e) { showError(errMsg(e, this.t('Forderung konnte nicht als bezahlt markiert werden'))) }
 		},
 	},
 }

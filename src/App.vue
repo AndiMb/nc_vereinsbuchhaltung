@@ -80,7 +80,7 @@
 		     Panel fuer genau diesen Fall). -->
 		<div v-if="me && !canRead && !selfServiceAvailable" class="vbh-noaccess">
 			<h3>{{ t('Kein Zugriff') }}</h3>
-			<p>{{ t('Du hast keine Berechtigung für die Vereinsbuchhaltung. Bitte wende dich an eine Verwalterin oder einen Verwalter.') }}</p>
+			<p>{{ t('Sie haben keine Berechtigung für die Vereinsbuchhaltung. Bitte wenden Sie sich an eine Verwalterin oder einen Verwalter.') }}</p>
 		</div>
 
 		<div v-if="demoActive" class="vbh-demobanner">
@@ -1597,7 +1597,7 @@ export default {
 			if (!fromAccountId || !toAccountId || fromAccountId === toAccountId) { return false }
 			try {
 				await api.reassignBooking(row.journalId, fromAccountId, toAccountId, row.updatedAt)
-				showSuccess(this.t('Buchung #{n} auf {account} umgebucht.', { n: row.entryNo, account: this.accountLabel(toAccountId) }))
+				showSuccess(this.tRaw('Buchung #{n} auf {account} umgebucht.', { n: row.entryNo, account: this.accountLabel(toAccountId) }))
 				await Promise.all([this.reloadStatement(), this.loadBalances(), this.loadJournal(), this.loadSphereReport()])
 				return true
 			} catch (e) {
@@ -1671,7 +1671,7 @@ export default {
 		async onImported() { await this.loadBalances(); await this.loadTransactions() },
 
 		async resetAll() {
-			if (!await this.askConfirm(this.t('Alle Daten löschen'), this.t('Wirklich ALLE Konten, Buchungen und Importe löschen?'))) { return }
+			if (!await this.askConfirm(this.t('Alle Daten löschen'), this.t('Wirklich ALLE Konten, Buchungen und Importe sowie den Einzug (Läufe, Rücklastschriften, Mahnstufen) löschen? Mitglieder, Mandate, Beitragsgruppen und Zuweisungen bleiben bestehen.'))) { return }
 			this.busy = true
 			try {
 				await api.reset(); showSuccess(this.t('Alle Daten gelöscht.'))
@@ -1693,7 +1693,7 @@ export default {
 				await api.seedDemo()
 				this.demoActive = true
 				await Promise.all([this.loadPeriods(), this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions()])
-				showSuccess(this.t('Beispielverein angelegt – schau dich gern um. Zum Starten mit echten Daten: Zurücksetzen.'))
+				showSuccess(this.t('Beispielverein angelegt – schauen Sie sich gern um. Zum Starten mit echten Daten: Zurücksetzen.'))
 			} catch (e) { showError(this.errMsg(e, this.t('Beispieldaten konnten nicht angelegt werden'))) } finally { this.busy = false }
 		},
 
@@ -1789,7 +1789,7 @@ export default {
 		},
 
 		async removeTransaction(tx) {
-			if (!await this.askConfirm(this.t('Umsatz löschen'), this.t('Umsatz über {amount} von/an „{counterparty}" endgültig löschen?', { amount: formatMoney(tx.amount), counterparty: tx.counterparty || '' }))) { return }
+			if (!await this.askConfirm(this.t('Umsatz löschen'), this.tRaw('Umsatz über {amount} von/an „{counterparty}" endgültig löschen?', { amount: formatMoney(tx.amount), counterparty: tx.counterparty || '' }))) { return }
 			try {
 				await api.deleteTransaction(tx.id)
 				await this.loadTransactions(); await this.loadBalances()
@@ -1874,7 +1874,7 @@ export default {
 			try {
 				await api.createRule({ matchField: 'counterparty', matchValue: value, contraAccountId: tx.contraAccountId })
 				await this.loadRules()
-				showSuccess(this.t('Regel angelegt: „{value}" wird künftig automatisch {account} zugeordnet.', { value, account: this.accountLabel(tx.contraAccountId) }))
+				showSuccess(this.tRaw('Regel angelegt: „{value}" wird künftig automatisch {account} zugeordnet.', { value, account: this.accountLabel(tx.contraAccountId) }))
 			} catch (e) { showError(this.errMsg(e, this.t('Regel konnte nicht angelegt werden'))) }
 		},
 
@@ -1919,9 +1919,9 @@ export default {
 			const ok = []
 			for (const file of files) {
 				if (file.type && !BELEG_MIMES.includes(file.type)) {
-					showError(this.t('{name}: Dieser Dateityp geht nicht – erlaubt sind PDF, JPG, PNG, GIF und WebP.', { name: file.name }))
+					showError(this.tRaw('{name}: Dieser Dateityp geht nicht – erlaubt sind PDF, JPG, PNG, GIF und WebP.', { name: file.name }))
 				} else if (file.size > BELEG_MAX_BYTES) {
-					showError(this.t('{name} ist zu groß – erlaubt sind höchstens 20 MB pro Beleg.', { name: file.name }))
+					showError(this.tRaw('{name} ist zu groß – erlaubt sind höchstens 20 MB pro Beleg.', { name: file.name }))
 				} else {
 					ok.push(file)
 				}
@@ -2148,7 +2148,7 @@ export default {
 			this.pendingFiles = failed
 			this.afterAttachmentsChanged()
 			if (failed.length) {
-				showError(this.t('Die Buchung steht, aber diese Belege kamen nicht an: {names} ({grund}). Sie warten weiter im Dialog.', {
+				showError(this.tRaw('Die Buchung steht, aber diese Belege kamen nicht an: {names} ({grund}). Sie warten weiter im Dialog.', {
 					names: failed.map((f) => f.name).join(', '),
 					grund: this.errMsg(lastError, this.t('Upload fehlgeschlagen')),
 				}))
@@ -2464,7 +2464,7 @@ export default {
 		},
 
 		async deleteAccount(acc) {
-			if (!await this.askConfirm(this.t('Konto löschen'), this.t('Konto "{number} {name}" löschen?', { number: acc.number, name: acc.name }))) { return }
+			if (!await this.askConfirm(this.t('Konto löschen'), this.tRaw('Konto "{number} {name}" löschen?', { number: acc.number, name: acc.name }))) { return }
 			try {
 				await api.deleteAccount(acc.id)
 				if (this.selectedAccountId === acc.id) { this.selectedAccountId = null; this.statement = null }
@@ -2478,7 +2478,7 @@ export default {
 				await api.setOpening(acc.id, Number(form.amount) || 0, form.date || null)
 				await this.loadAccounts(); await this.loadBalances(); await this.loadSphereReport()
 				if (this.selectedAccountId === acc.id) { await this.loadStatement(acc.id) }
-				showSuccess(this.t('Eröffnungssaldo für {name} gespeichert.', { name: acc.name }))
+				showSuccess(this.tRaw('Eröffnungssaldo für {name} gespeichert.', { name: acc.name }))
 			} catch (e) { showError(this.errMsg(e, this.t('Eröffnungssaldo konnte nicht gespeichert werden'))) }
 		},
 

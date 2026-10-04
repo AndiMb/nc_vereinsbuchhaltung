@@ -2,6 +2,7 @@ import { showError } from '@nextcloud/dialogs'
 import { computed, reactive } from 'vue'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
+import { t } from '../lib/l10n.js'
 import { isClaimItem } from '../lib/openItems.js'
 
 // Dieselbe Liste enthält freie Posten und die Forderungen des Beitragsmoduls
@@ -17,7 +18,7 @@ async function loadOpenItems() {
 	try {
 		const { data } = await api.listOpenItems()
 		state.openItems = data
-	} catch (e) { showError(errMsg(e, 'Offene Posten konnten nicht geladen werden')) }
+	} catch (e) { showError(errMsg(e, t('Offene Posten konnten nicht geladen werden'))) }
 }
 
 export function useOpenItems() {

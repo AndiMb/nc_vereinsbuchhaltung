@@ -62,7 +62,7 @@ function close(result) {
 }
 
 const buttons = computed(() => [
-	{ label: 'Abbrechen', variant: 'secondary', callback: () => close(false) },
+	{ label: t('Abbrechen'), variant: 'secondary', callback: () => close(false) },
 	{ label: state.confirmLabel, variant: state.confirmVariant, callback: () => close(true) },
 ])
 

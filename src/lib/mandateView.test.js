@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+	activationLinkSentText,
 	activationLinkState,
 	actorLabel,
 	amendmentStatusLabel,
@@ -9,7 +10,9 @@ import {
 	endReasonLabel,
 	formatIban,
 	formatStamp,
+	mandateAccountHint,
 	mandateNotices,
+	revokeStaffWarning,
 	signatureTooOld,
 	signatureTypeLabel,
 	statusLabel,
@@ -229,5 +232,24 @@ describe('Störfall-Hinweise je Zustand', () => {
 	it('Hinweise stapeln sich: gesperrt und ohne Nachweis und bald ablaufend', () => {
 		const m = mandate({ status: 'ausgesetzt', storyText: 'Klärung offen', hasDocument: false, showMissingDocumentWarning: true, expiryWarning: true, expiresAt: '2026-11-01' })
 		expect(keys(m)).toEqual(['suspended', 'expiry', 'document'])
+	})
+})
+
+// Issue #106: Sätze mit Nutzerdaten. Ein „&" oder „<" im Namen darf weder als
+// „&amp;" erscheinen noch verschwinden – die Anzeige geht als Text in die Seite.
+describe('Sätze mit Nutzerdaten', () => {
+	const NAME = 'Echo & Söhne <b>GmbH</b>'
+
+	it('Bankverbindungs-Kopfzeile: Kontoinhaber und Referenz unverändert', () => {
+		const hint = mandateAccountHint({ mandateReference: 'M&1', accountHolder: NAME, iban: 'DE12500105170648489890' })
+		expect(hint).toBe(`Mandat M&1 von ${NAME}, bisherige IBAN DE12 5001 0517 0648 4898 90.`)
+	})
+
+	it('Einmal-Link: Mailadresse unverändert (ein „&" ist im lokalen Teil erlaubt)', () => {
+		expect(activationLinkSentText('a&b@example.org')).toContain('Einmal-Link an a&b@example.org verschickt.')
+	})
+
+	it('Widerruf aus Sicht der Verwaltung: Mitgliedsname unverändert', () => {
+		expect(revokeStaffWarning(NAME)).toContain(`braucht ${NAME} danach ein neues Mandat`)
 	})
 })

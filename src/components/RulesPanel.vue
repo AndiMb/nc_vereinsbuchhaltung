@@ -84,7 +84,7 @@
 				</tbody>
 			</table>
 		</div>
-		<NcEmptyContent v-else :name="t('Keine Regeln')" :description="t('Lege oben eine Regel an – oder erzeuge sie im Journal direkt aus einer Bankbuchung.')" />
+		<NcEmptyContent v-else :name="t('Keine Regeln')" :description="t('Legen Sie oben eine Regel an – oder erzeugen Sie sie im Journal direkt aus einer Bankbuchung.')" />
 	</div>
 </template>
 
@@ -220,7 +220,7 @@ export default {
 		async deleteRule(rule) {
 			const ok = await this.askConfirm(
 				this.t('Regel löschen'),
-				this.t('Regel „{field} enthält {value} → {account}" wirklich löschen?', { field: this.matchFieldLabel(rule.matchField), value: rule.matchValue, account: this.accountLabel(rule.contraAccountId) }),
+				this.tRaw('Regel „{field} enthält {value} → {account}" wirklich löschen?', { field: this.matchFieldLabel(rule.matchField), value: rule.matchValue, account: this.accountLabel(rule.contraAccountId) }),
 			)
 			if (!ok) { return }
 			try {

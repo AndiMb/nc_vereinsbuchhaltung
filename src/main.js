@@ -1,7 +1,7 @@
 import { createApp } from 'vue'
 import App from './App.vue'
 import { usePermissions } from './composables/usePermissions.js'
-import { loadAppTranslations, n, t } from './lib/l10n.js'
+import { loadAppTranslations, n, t, tc, tRaw } from './lib/l10n.js'
 import router from './router.js'
 
 import '@nextcloud/dialogs/style.css'
@@ -42,7 +42,7 @@ window.addEventListener('unhandledrejection', (e) => recordUnexpectedError('unha
 // die uebersetzte Fassung ersetzt.
 loadAppTranslations().finally(() => {
 	const app = createApp(App)
-	app.mixin({ methods: { t, n } })
+	app.mixin({ methods: { t, n, tc, tRaw } })
 	app.config.errorHandler = (err) => recordUnexpectedError('vue-error-handler', err)
 	app.use(router)
 	app.mount('#vereinsbuchhaltung-app')

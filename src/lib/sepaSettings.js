@@ -6,7 +6,7 @@
 // und mit dem Namen des Feldes gemeldet wird. Massgeblich bleibt der Server
 // (SettingsController, DebitBatchController, SepaImportController): dessen
 // Meldung zeigen die Karten an, wenn sie dennoch eintrifft.
-import { t } from './l10n.js'
+import { t, tRaw } from './l10n.js'
 
 /** Plausibilitaetsgrenzen der Tage-Einstellungen, wie ContributionCycleSettings/DunningSettings/MandateExpirySettings. */
 export const DAYS_MIN = 1
@@ -47,11 +47,11 @@ export function monthOptions(language = 'de') {
 export function daysError(value, label) {
 	const isBlank = value === '' || value === null || value === undefined
 	if (isBlank || !Number.isInteger(Number(value))) {
-		return t('{label}: Bitte eine ganze Zahl von {min} bis {max} eingeben.', { label, min: DAYS_MIN, max: DAYS_MAX })
+		return tRaw('{label}: Bitte eine ganze Zahl von {min} bis {max} eingeben.', { label, min: DAYS_MIN, max: DAYS_MAX })
 	}
 	const days = Number(value)
 	if (days < DAYS_MIN || days > DAYS_MAX) {
-		return t('{label}: Der Wert muss zwischen {min} und {max} Tagen liegen.', { label, min: DAYS_MIN, max: DAYS_MAX })
+		return tRaw('{label}: Der Wert muss zwischen {min} und {max} Tagen liegen.', { label, min: DAYS_MIN, max: DAYS_MAX })
 	}
 	return null
 }

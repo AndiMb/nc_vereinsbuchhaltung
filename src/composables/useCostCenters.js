@@ -2,6 +2,7 @@ import { showError } from '@nextcloud/dialogs'
 import { computed, reactive } from 'vue'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
+import { t } from '../lib/l10n.js'
 
 /**
  * Frei definierbare Kostenstellen (Modus „manual"): geteilter Zustand, damit
@@ -25,7 +26,7 @@ async function loadCostCenters() {
 		state.costCenters = data
 		return data
 	} catch (e) {
-		showError(errMsg(e, 'Auswertungsgruppen konnten nicht geladen werden'))
+		showError(errMsg(e, t('Auswertungsgruppen konnten nicht geladen werden')))
 		return null
 	}
 }

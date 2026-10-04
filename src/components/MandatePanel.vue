@@ -63,7 +63,7 @@
 
 				<!-- Einmal-Link-Adresse zum Weitergeben, solange die Mail nicht ankommt (siehe MandateController::sendActivationLink()) -->
 				<div v-if="sentLink" class="vbh-hint vbh-hint--info vbh-mandate-link">
-					<span>{{ t('Einmal-Link an {email} verschickt. Kommt die Mail nicht an, können Sie den Link auch direkt weitergeben:', { email: sentLink.email }) }}</span>
+					<span>{{ activationLinkSentText(sentLink.email) }}</span>
 					<input
 						:value="sentLink.url"
 						readonly
@@ -351,6 +351,7 @@ import { useAuth } from '../composables/useAuth.js'
 import { errMsg, formatDate } from '../lib/format.js'
 import { createMandateForMember } from '../lib/mandateCreate.js'
 import {
+	activationLinkSentText,
 	activationLinkState,
 	amendmentStatusLabel,
 	daysUntil,
@@ -466,6 +467,7 @@ export default {
 		formatDate,
 		formatStamp,
 		formatIban,
+		activationLinkSentText,
 		statusLabel,
 		endReasonLabel,
 		amendmentStatusLabel,
@@ -544,7 +546,7 @@ export default {
 				rows.push({
 					key: 'consent',
 					label: this.t('Zustimmung'),
-					value: this.t('{zeit} durch {wer} (IP {ip})', { zeit: formatStamp(m.consentAt), wer: m.consentActor || '–', ip: m.consentIp || '–' }),
+					value: this.tRaw('{zeit} durch {wer} (IP {ip})', { zeit: formatStamp(m.consentAt), wer: m.consentActor || '–', ip: m.consentIp || '–' }),
 				})
 			}
 			if (m.status === 'aktiv' || m.status === 'ausgesetzt') {
@@ -573,7 +575,7 @@ export default {
 					value: this.t('{art} seit {zeit}{von}', {
 						art: suspensionOriginLabel(m.suspensionOrigin),
 						zeit: formatStamp(m.suspendedAt),
-						von: m.suspendedBy ? this.t(' (von {uid})', { uid: m.suspendedBy }) : '',
+						von: m.suspendedBy ? this.tRaw(' (von {uid})', { uid: m.suspendedBy }) : '',
 					}),
 				})
 				if (m.suspensionNote) {
@@ -592,7 +594,7 @@ export default {
 		/** Status des Einmal-Links in Klartext (gesendet am, abgelaufen). */
 		linkText(link) {
 			if (!link) { return this.t('noch nicht versendet') }
-			const sent = this.t('gesendet am {zeit} an {email}', { zeit: formatStamp(link.sentAt), email: link.email })
+			const sent = this.tRaw('gesendet am {zeit} an {email}', { zeit: formatStamp(link.sentAt), email: link.email })
 			const state = link.expired
 				? this.t('abgelaufen am {zeit}', { zeit: formatStamp(link.expiresAt) })
 				: this.t('gültig bis {zeit}', { zeit: formatStamp(link.expiresAt) })
@@ -630,7 +632,7 @@ export default {
 				})
 				this.sentLink = null
 				showSuccess(form.signatureType === 'elektronisch'
-					? this.t('Entwurf angelegt, Einmal-Link an {email} verschickt.', { email: this.member.email })
+					? this.tRaw('Entwurf angelegt, Einmal-Link an {email} verschickt.', { email: this.member.email })
 					: (form.signedAt ? this.t('Mandat angelegt und aktiviert.') : this.t('Mandat als Entwurf angelegt – die Unterschrift fehlt noch.')))
 				return created
 			}, this.t('Das Mandat konnte nicht angelegt werden'))
@@ -772,7 +774,7 @@ export default {
 			const ok = await this.run(async () => {
 				const { data } = await api.sendMandateActivationLink(this.current.id)
 				this.sentLink = { url: data.activationUrl, email: data.sentTo }
-				showSuccess(this.t('Einmal-Link an {email} verschickt.', { email: data.sentTo }))
+				showSuccess(this.tRaw('Einmal-Link an {email} verschickt.', { email: data.sentTo }))
 			}, this.t('Versand fehlgeschlagen'))
 			if (ok) { await this.afterChange() }
 		},

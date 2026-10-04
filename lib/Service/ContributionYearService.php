@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCP\IConfig;
+use OCP\IL10N;
 
 /**
  * Das Beitragsjahr (Spec §3.3/§4): „Ein Beitragsjahr pro Verein, Startmonat
@@ -21,11 +22,14 @@ use OCP\IConfig;
  * Beitragsjahr, nur den Startmonat).
  */
 class ContributionYearService {
+
+	use OptionalL10n;
 	private const SETTING_KEY = 'fiscal_year_start_month';
 	public const DEFAULT_START_MONTH = 1;
 
 	public function __construct(
 		private IConfig $config,
+		private ?IL10N $l10n = null,
 	) {
 	}
 
@@ -38,7 +42,7 @@ class ContributionYearService {
 	/** @throws \InvalidArgumentException wenn der Monat nicht zwischen 1 und 12 liegt */
 	public function setStartMonth(int $month): void {
 		if ($month < 1 || $month > 12) {
-			throw new \InvalidArgumentException('Startmonat muss zwischen 1 und 12 liegen.');
+			throw new \InvalidArgumentException($this->msg('Startmonat muss zwischen 1 und 12 liegen.'));
 		}
 		$this->config->setAppValue(Application::APP_ID, self::SETTING_KEY, (string)$month);
 	}
@@ -52,7 +56,7 @@ class ContributionYearService {
 	 */
 	public function periodRuleFor(int $intervalMonths): array {
 		if (!in_array($intervalMonths, PeriodRule::LENGTHS, true)) {
-			throw new \InvalidArgumentException('Turnus muss ein Teiler von 12 sein (1, 2, 3, 4, 6 oder 12).');
+			throw new \InvalidArgumentException($this->msg('Turnus muss ein Teiler von 12 sein (1, 2, 3, 4, 6 oder 12).'));
 		}
 		return ['startDay' => 1, 'startMonth' => $this->getStartMonth(), 'lengthMonths' => $intervalMonths];
 	}

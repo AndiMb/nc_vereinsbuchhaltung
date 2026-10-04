@@ -175,7 +175,7 @@ export default {
 				await this.loadDueDateSchedule()
 				this.$emit('changed')
 				showSuccess(this.t('Standard-Einzugstag gespeichert.'))
-			} catch (e) { showError(errMsg(e, 'Standard-Einzugstag konnte nicht gespeichert werden')) }
+			} catch (e) { showError(errMsg(e, this.t('Standard-Einzugstag konnte nicht gespeichert werden'))) }
 		},
 
 		async addOverride() {
@@ -184,7 +184,7 @@ export default {
 				await this.loadDueDateSchedule()
 				this.$emit('changed')
 				showSuccess(this.t('Überschreibung gespeichert.'))
-			} catch (e) { showError(errMsg(e, 'Überschreibung konnte nicht gespeichert werden')) }
+			} catch (e) { showError(errMsg(e, this.t('Überschreibung konnte nicht gespeichert werden'))) }
 		},
 
 		async removeOverride(interval, periodIndex) {
@@ -192,7 +192,7 @@ export default {
 				await api.setDueDateScheduleOverride(interval, periodIndex, null)
 				await this.loadDueDateSchedule()
 				this.$emit('changed')
-			} catch (e) { showError(errMsg(e, 'Überschreibung konnte nicht entfernt werden')) }
+			} catch (e) { showError(errMsg(e, this.t('Überschreibung konnte nicht entfernt werden'))) }
 		},
 
 		async saveLeadDays() {
@@ -202,7 +202,7 @@ export default {
 				await this.loadDueDateSchedule()
 				this.$emit('changed')
 				showSuccess(this.t('Einstellungen gespeichert.'))
-			} catch (e) { showError(errMsg(e, 'Einstellungen konnten nicht gespeichert werden')) }
+			} catch (e) { showError(errMsg(e, this.t('Einstellungen konnten nicht gespeichert werden'))) }
 		},
 	},
 }

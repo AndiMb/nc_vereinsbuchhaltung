@@ -6,7 +6,6 @@ namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\Db\Mandate;
 use OCA\Vereinsbuchhaltung\Db\MandateLegalTextVersion;
-use OCP\IL10N;
 
 /**
  * Gemeinsamer Renderer für Mandatsformular-PDF und elektronische
@@ -23,6 +22,15 @@ use OCP\IL10N;
  *   aus Spec §8 ("Mandatsreferenz/Name/IBAN/Gläubiger-ID/Zahlungsart/Datum/
  *   Unterschrift") als Definitionsliste.
  *
+ * **Bewusst nur Deutsch, ohne `t()`** (Spec §3.11 „Mandats-Rechtstext … Nur
+ * Deutsch", Issue #106): das Mandat ist ein Dokument, das ein Mitglied
+ * unterschreibt oder dem es elektronisch zustimmt – Rechtstext, Platzhalter-
+ * Ersatz („den Verein") und Pflichtangaben gehören zu EINEM deutschen
+ * Dokument. Übersetzte Beschriftungen um einen deutschen Rechtstext herum
+ * gäben ein Sprachgemisch, und der Ersatz für den Vereinsnamen steht mitten in
+ * einem deutschen Satz („Ich ermächtige …"). Die Sprache des Betrachters spielt
+ * hier keine Rolle – auch nicht, ob Du oder Sie: der Text ist durchgehend Sie.
+ *
  * Was NICHT hier ist: die "Hülle" selbst (Druck-Stylesheet der PrintableReportPage
  * vs. das `<button>Zustimmen</button>`-Formular der öffentlichen
  * Zustimmungsseite) - das unterscheidet sich laut Spec bewusst je Kontext und
@@ -31,17 +39,12 @@ use OCP\IL10N;
  */
 class MandateFormRenderer {
 
-	public function __construct(
-		private IL10N $l10n,
-	) {
-	}
-
 	/**
 	 * Reiner Rechtstext, HTML-escaped und mit Absätzen - identisch für PDF
 	 * und Zustimmungsseite (Spec §3.11).
 	 */
 	public function renderLegalText(MandateLegalTextVersion $legalText, string $creditorName): string {
-		$rendered = $legalText->render($creditorName !== '' ? $creditorName : $this->l10n->t('den Verein'));
+		$rendered = $legalText->render($creditorName !== '' ? $creditorName : 'den Verein');
 		// Pflichtblock und Rahmen stecken im selben Textkörper, getrennt durch
 		// einen HTML-Kommentar-Marker (siehe MandateLegalTextService). Der
 		// Marker ist reine Buchführung und darf nie als Text erscheinen -
@@ -70,12 +73,12 @@ class MandateFormRenderer {
 	 */
 	public function renderDataBlock(Mandate $mandate, string $creditorId, string $referenceDate): string {
 		$rows = [
-			[$this->l10n->t('Mandatsreferenz'), $mandate->getMandateReference()],
-			[$this->l10n->t('Kontoinhaber'), $mandate->getAccountHolder()],
-			[$this->l10n->t('IBAN'), $mandate->getIban() ?? '—'],
-			[$this->l10n->t('Gläubiger-Identifikationsnummer'), $creditorId !== '' ? $creditorId : '—'],
-			[$this->l10n->t('Zahlungsart'), $this->l10n->t('wiederkehrende Zahlung (SEPA-Basislastschrift)')],
-			[$this->l10n->t('Datum'), $referenceDate],
+			['Mandatsreferenz', $mandate->getMandateReference()],
+			['Kontoinhaber', $mandate->getAccountHolder()],
+			['IBAN', $mandate->getIban() ?? '—'],
+			['Gläubiger-Identifikationsnummer', $creditorId !== '' ? $creditorId : '—'],
+			['Zahlungsart', 'wiederkehrende Zahlung (SEPA-Basislastschrift)'],
+			['Datum', $referenceDate],
 		];
 		$html = '<dl class="vbh-mandate-data">';
 		foreach ($rows as [$label, $value]) {

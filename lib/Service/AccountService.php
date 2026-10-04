@@ -358,7 +358,7 @@ class AccountService {
 			if ($bookings > 0) {
 				throw new \InvalidArgumentException($this->l10n->t(
 					'Das Konto "%s %s" ist in %d Buchungszeile%s verwendet und kann nicht gelöscht werden. '
-					. 'Setze es stattdessen auf „inaktiv" – dann taucht es nicht mehr in den Auswahllisten auf, '
+					. 'Setzen Sie es stattdessen auf „inaktiv" – dann taucht es nicht mehr in den Auswahllisten auf, '
 					. 'die bisherigen Buchungen bleiben aber erhalten.',
 					[
 						$account->getNumber(),

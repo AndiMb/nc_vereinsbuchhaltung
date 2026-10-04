@@ -232,12 +232,14 @@ class MandateController extends Controller {
 		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '');
 		$creditorId = $this->config->getAppValue(Application::APP_ID, 'sepa_creditor_id', '');
 
-		$body = PrintableReportPage::header(null, $clubName, $this->l10n->t('SEPA-Lastschriftmandat'), PrintableReportPage::escape($mandate->getMandateReference()));
+		// Das Formular selbst ist ein deutsches Dokument ohne t() (siehe MandateFormRenderer);
+		// übersetzt ist nur der Druckhinweis oben, der beim Drucken wegfällt.
+		$body = PrintableReportPage::header(null, $clubName, 'SEPA-Lastschriftmandat', PrintableReportPage::escape($mandate->getMandateReference()));
 		$body .= '<section>' . $this->formRenderer->renderLegalText($legalText, $clubName) . '</section>';
 		$body .= '<section>' . $this->formRenderer->renderDataBlock($mandate, $creditorId, $mandate->getSignedAt() ?? date('Y-m-d')) . '</section>';
 		$body .= '<section class="signatures">' . $this->signatureSection($mandate) . '</section>';
 
-		$html = PrintableReportPage::document($this->l10n->t('SEPA-Lastschriftmandat %s', [$mandate->getMandateReference()]), PrintableReportPage::printHint($this->l10n->t('Zum Drucken oder Als-PDF-Speichern: <strong>Strg+P</strong> (Mac: ⌘P) im Browser.')) . $body);
+		$html = PrintableReportPage::document('SEPA-Lastschriftmandat ' . $mandate->getMandateReference(), PrintableReportPage::printHint($this->l10n->t('Zum Drucken oder Als-PDF-Speichern: <strong>Strg+P</strong> (Mac: ⌘P) im Browser.')) . $body);
 
 		$response = new DataDisplayResponse($html, Http::STATUS_OK, ['Content-Type' => 'text/html; charset=utf-8']);
 		$policy = new EmptyContentSecurityPolicy();
@@ -246,18 +248,19 @@ class MandateController extends Controller {
 		return $response;
 	}
 
-	/** Unterschriftsbereich des Formulars – Papier: leere Zeile, elektronisch: Zustimmungsvermerk, wenn schon erteilt. */
+	/**
+	 * Unterschriftsbereich des Formulars – Papier: leere Zeile, elektronisch: Zustimmungsvermerk, wenn schon erteilt.
+	 * Wie der Rest des Formulars bewusst nur Deutsch (siehe MandateFormRenderer).
+	 */
 	private function signatureSection(Mandate $mandate): string {
 		if ($mandate->getConsentAt() !== null) {
-			return '<div>' . $this->l10n->t('Elektronisch bestätigt am %1$s (IP %2$s)', [
-				PrintableReportPage::escape($mandate->getConsentAt()),
-				PrintableReportPage::escape((string)$mandate->getConsentIp()),
-			]) . '</div>';
+			return '<div>Elektronisch bestätigt am ' . PrintableReportPage::escape($mandate->getConsentAt())
+				. ' (IP ' . PrintableReportPage::escape((string)$mandate->getConsentIp()) . ')</div>';
 		}
 		if ($mandate->isElectronic()) {
-			return '<div>' . $this->l10n->t('Noch keine elektronische Zustimmung erteilt.') . '</div>';
+			return '<div>Noch keine elektronische Zustimmung erteilt.</div>';
 		}
-		return '<div><div class="line"></div>' . $this->l10n->t('Ort, Datum, Unterschrift') . '</div>';
+		return '<div><div class="line"></div>Ort, Datum, Unterschrift</div>';
 	}
 
 	#[NoAdminRequired]

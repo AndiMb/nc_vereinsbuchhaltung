@@ -59,7 +59,7 @@
 			<template v-if="bookingView === 'journal'">
 				<div v-if="journalNumberIssues" class="vbh-yearwarn">
 					<p class="vbh-warn-inline">
-						{{ t('⚠ Buchungsnummern {period} nicht lückenlos:', { period: selectedPeriod ? selectedPeriod.label : '' }) }}
+						{{ tRaw('⚠ Buchungsnummern {period} nicht lückenlos:', { period: selectedPeriod ? selectedPeriod.label : '' }) }}
 						<template v-if="journalNumberIssues.missing.length">
 							{{ t('fehlend {list}', { list: journalNumberIssues.missing.slice(0, 20).join(', ') }) }}<template v-if="journalNumberIssues.missing.length > 20">
 								…
@@ -167,7 +167,7 @@
 										<NcActions v-if="canWrite && (txByJournalId[r.id] || !isDateClosed(r.date))" :forceMenu="true">
 											<NcActionButton
 												v-if="txByJournalId[r.id]"
-												:title="t('Regel anlegen: {counterparty} künftig automatisch zuordnen', { counterparty: txByJournalId[r.id].counterparty })"
+												:title="tRaw('Regel anlegen: {counterparty} künftig automatisch zuordnen', { counterparty: txByJournalId[r.id].counterparty })"
 												@click="createRuleFromTx(txByJournalId[r.id])">
 												<template #icon>
 													<NcIconSvgWrapper :path="mdiFlash" :size="16" />
@@ -188,7 +188,7 @@
 					</table>
 				</div>
 				<NcEmptyContent v-else-if="bookingSearch || bookingFilterAccountId" :name="t('Keine Treffer')" :description="t('Suchfilter anpassen oder löschen.')" />
-				<NcEmptyContent v-else :name="t('Noch keine Buchungssätze')" :description="t('Lege mit ‛Neue Buchung\' einen ersten Buchungssatz an.')">
+				<NcEmptyContent v-else :name="t('Noch keine Buchungssätze')" :description="t('Legen Sie mit ‛Neue Buchung\' einen ersten Buchungssatz an.')">
 					<template #action>
 						<NcButton variant="tertiary" @click="$emit('help')">
 							{{ t('Mehr dazu') }}
@@ -239,7 +239,7 @@
 							type="button"
 							class="vbh-suggest-chip vbh-suggest-chip--big"
 							@click="applySuggestion(tx)">
-							{{ t('✓ Vorschlag übernehmen: {label}', { label: suggestionsById[tx.id].label }) }}
+							{{ tRaw('✓ Vorschlag übernehmen: {label}', { label: suggestionsById[tx.id].label }) }}
 						</button>
 						<template v-if="isSplitAssigned(tx)">
 							<span class="vbh-split-badge">{{ t('Aufgeteilt auf mehrere Konten') }}</span>
@@ -338,9 +338,9 @@
 											<button
 												v-if="canWrite && !tx.contraAccountId && suggestionsById[tx.id] && !isDateClosed(tx.bookingDate)"
 												class="vbh-suggest-chip"
-												:title="t('Vorschlag übernehmen: {label}', { label: suggestionsById[tx.id].label })"
+												:title="tRaw('Vorschlag übernehmen: {label}', { label: suggestionsById[tx.id].label })"
 												@click="applySuggestion(tx)">
-												{{ t('✓ Vorschlag: {label}', { label: suggestionsById[tx.id].label }) }}
+												{{ tRaw('✓ Vorschlag: {label}', { label: suggestionsById[tx.id].label }) }}
 											</button>
 											<button
 												v-if="canWrite && !isDateClosed(tx.bookingDate)"
@@ -496,7 +496,7 @@
 						</tbody>
 					</table>
 				</div>
-				<NcEmptyContent v-else :name="t('Keine offenen Posten')" :description="t('Lege oben einen neuen offenen Posten an, z. B. einen unbezahlten Mitgliedsbeitrag.')" />
+				<NcEmptyContent v-else :name="t('Keine offenen Posten')" :description="t('Legen Sie oben einen neuen offenen Posten an, z. B. einen unbezahlten Mitgliedsbeitrag.')" />
 			</template>
 
 			<!-- REGELN -->

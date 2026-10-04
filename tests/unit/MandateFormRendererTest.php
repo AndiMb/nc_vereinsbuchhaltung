@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
+use OCA\Vereinsbuchhaltung\Db\Mandate;
 use OCA\Vereinsbuchhaltung\Db\MandateLegalTextVersion;
 use OCA\Vereinsbuchhaltung\Service\MandateFormRenderer;
 use OCA\Vereinsbuchhaltung\Service\MandateLegalTextService;
-use OCP\IL10N;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -18,7 +18,7 @@ use PHPUnit\Framework\TestCase;
 class MandateFormRendererTest extends TestCase {
 
 	private function renderer(): MandateFormRenderer {
-		return new MandateFormRenderer($this->createMock(IL10N::class));
+		return new MandateFormRenderer();
 	}
 
 	private function version(string $body): MandateLegalTextVersion {
@@ -43,5 +43,32 @@ class MandateFormRendererTest extends TestCase {
 		$html = $this->renderer()->renderLegalText($this->version($body), 'Testverein');
 
 		$this->assertSame('<p>Pflichtblock.</p><p>Rahmen des Vereins.</p>', $html);
+	}
+
+	/**
+	 * Issue #106: das Mandat ist ein deutsches Dokument. Weder der Platzhalter-
+	 * Ersatz mitten im Rechtstext noch die Beschriftungen der Pflichtangaben
+	 * hängen von einer Übersetzung ab.
+	 */
+	public function testOhneVereinsnamenStehtDenVereinMittenImDeutschenSatz(): void {
+		$html = $this->renderer()->renderLegalText($this->version('Ich ermächtige {{creditor_name}}, zu buchen.'), '');
+
+		$this->assertSame('<p>Ich ermächtige den Verein, zu buchen.</p>', $html);
+	}
+
+	public function testPflichtangabenSindDeutsch(): void {
+		$mandate = new Mandate();
+		$mandate->setMandateReference('M-1');
+		$mandate->setAccountHolder('Echo & Söhne');
+		$mandate->setIban('DE12500105170648489890');
+
+		$html = $this->renderer()->renderDataBlock($mandate, 'DE98ZZZ09999999999', '2026-10-05');
+
+		foreach (['Mandatsreferenz', 'Kontoinhaber', 'IBAN', 'Gläubiger-Identifikationsnummer', 'Zahlungsart', 'Datum'] as $label) {
+			$this->assertStringContainsString('<dt>' . $label . '</dt>', $html);
+		}
+		$this->assertStringContainsString('<dd>wiederkehrende Zahlung (SEPA-Basislastschrift)</dd>', $html);
+		$this->assertStringContainsString('<dd>Echo &amp; Söhne</dd>', $html);
+		$this->assertStringContainsString('<dd>2026-10-05</dd>', $html);
 	}
 }

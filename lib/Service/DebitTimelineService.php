@@ -11,6 +11,7 @@ use OCA\Vereinsbuchhaltung\Db\DebitItemMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCP\AppFramework\Utility\ITimeFactory;
+use OCP\IL10N;
 
 /**
  * Datengrundlage des Zeitstrahls im Einzug-Unterreiter (Spec §3.5/§6 Variante
@@ -49,6 +50,8 @@ use OCP\AppFramework\Utility\ITimeFactory;
  */
 class DebitTimelineService {
 
+	use OptionalL10n;
+
 	public const MILESTONE_WARNING = 'warning';
 	public const MILESTONE_PRENOTIFICATION = 'prenotification';
 	public const MILESTONE_RELEASE = 'release';
@@ -64,6 +67,7 @@ class DebitTimelineService {
 		private ContributionCycleSettings $settings,
 		private DebitRunQueryService $runQuery,
 		private ITimeFactory $time,
+		private ?IL10N $l10n = null,
 	) {
 	}
 
@@ -86,7 +90,7 @@ class DebitTimelineService {
 		// Plausibilitätsgrenze gegen Tippfehler in der Adresse - und gegen
 		// Jahreszahlen, mit denen die Datumsarithmetik nichts mehr anfangen kann.
 		if ($anchorYear < 2000 || $anchorYear > 2200) {
-			throw new \InvalidArgumentException('Das Beitragsjahr muss zwischen 2000 und 2200 liegen.');
+			throw new \InvalidArgumentException($this->msg('Das Beitragsjahr muss zwischen 2000 und 2200 liegen.'));
 		}
 
 		$context = $this->loadContext();

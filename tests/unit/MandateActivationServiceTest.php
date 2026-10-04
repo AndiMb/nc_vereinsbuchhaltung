@@ -17,6 +17,7 @@ use OCA\Vereinsbuchhaltung\Exception\InvalidActivationTokenException;
 use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
 use OCA\Vereinsbuchhaltung\Service\MandateLegalTextService;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
+use OCA\Vereinsbuchhaltung\Service\RecipientL10n;
 use OCP\IConfig;
 use OCP\IL10N;
 use OCP\IURLGenerator;
@@ -64,6 +65,9 @@ class MandateActivationServiceTest extends TestCase {
 		$l10n->method('t')->willReturnCallback(static function (string $text, array $params = []): string {
 			return $params === [] ? $text : vsprintf(str_replace(['%1$s', '%2$s', '%3$d', '%d'], ['%s', '%s', '%s', '%s'], $text), $params);
 		});
+		// Die Sprache des Empfängers ist hier immer die des Mocks: Du/Sie und Sprache prüft RecipientL10nTest.
+		$recipient = $this->createMock(RecipientL10n::class);
+		$recipient->method('forMember')->willReturn($l10n);
 		return new MandateActivationService(
 			$this->tokenMapper,
 			$this->mandateMapper,
@@ -76,6 +80,7 @@ class MandateActivationServiceTest extends TestCase {
 			$this->urlGenerator,
 			$this->config,
 			$l10n,
+			$recipient,
 		);
 	}
 

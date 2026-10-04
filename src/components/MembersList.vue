@@ -43,7 +43,7 @@
 						</th>
 						<th>{{ t('Frequenz') }}</th>
 						<th>{{ t('Nächste Fälligkeit') }}</th>
-						<th>{{ t('Aktiv') }}</th>
+						<th>{{ tc('Zustand', 'Aktiv') }}</th>
 						<th class="vbh-col-memberactions" />
 					</tr>
 				</thead>
@@ -354,7 +354,7 @@ export default {
 				}
 				this.memberDialogOpen = false
 				await this.reload()
-				showSuccess(this.t(this.editingMember ? 'Mitglied gespeichert.' : 'Mitglied aufgenommen.'))
+				showSuccess(this.editingMember ? this.t('Mitglied gespeichert.') : this.t('Mitglied aufgenommen.'))
 			} catch (e) {
 				await this.reload()
 				showError(this.errMsg(e, {

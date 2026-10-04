@@ -184,7 +184,7 @@
 					{{ t('Nextcloud-Konto') }}
 				</h3>
 				<div v-if="member.ncUserId" class="vbh-form">
-					<span>{{ t('Verknüpft mit „{uid}".', { uid: member.ncUserId }) }}</span>
+					<span>{{ linkedAccountText(member.ncUserId) }}</span>
 					<NcButton
 						variant="tertiary"
 						size="small"
@@ -227,7 +227,7 @@
 					{{ t('Beitragsbestätigung') }}
 				</h3>
 				<p class="vbh-hint">
-					{{ t('Informelle Bestätigung der bezahlten Beiträge eines Beitragsjahres – kein amtlicher Spendennachweis nach § 10b EStG (siehe Issue #10). Stellvertretung durch den Kassenwart.') }}
+					{{ t('Informelle Bestätigung der bezahlten Beiträge eines Beitragsjahres – kein amtlicher Spendennachweis nach § 10b EStG. Stellvertretung durch den Kassenwart.') }}
 				</p>
 				<div class="vbh-form">
 					<label>{{ t('Beitragsjahr') }}
@@ -348,6 +348,7 @@ import api from '../api.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useContributionGroups } from '../composables/useContributionGroups.js'
 import { errMsg } from '../lib/format.js'
+import { linkedAccountText } from '../lib/memberAccount.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 
 function emptyForm(member, defaultFeeAmount) {
@@ -520,6 +521,7 @@ export default {
 
 	methods: {
 		errMsg,
+		linkedAccountText,
 
 		/** Springt zum Mandat-Bereich (Aktion „Mandat verwalten“ der Mitgliederliste). NcModal rendert seinen Inhalt erst nach dem Öffnen, deshalb mit kurzem Versatz. */
 		scrollToMandate() {
@@ -615,7 +617,7 @@ export default {
 		async doAnonymize() {
 			if (!await this.askConfirm(
 				this.t('Mitglied anonymisieren'),
-				this.t('Name, Kontaktdaten, Bankverbindungen und personenbezogene Freitexte von „{name}" unwiderruflich schwärzen? Das lässt sich nicht rückgängig machen.', { name: this.member.displayName }),
+				this.tRaw('Name, Kontaktdaten, Bankverbindungen und personenbezogene Freitexte von „{name}" unwiderruflich schwärzen? Das lässt sich nicht rückgängig machen.', { name: this.member.displayName }),
 				this.t('Jetzt anonymisieren'),
 				'error',
 			)) { return }
@@ -679,7 +681,7 @@ export default {
 		},
 
 		async doDelete() {
-			if (!await this.askConfirm(this.t('Mitglied löschen'), this.t('Mitglied „{name}" endgültig löschen?', { name: this.member.displayName }))) { return }
+			if (!await this.askConfirm(this.t('Mitglied löschen'), this.tRaw('Mitglied „{name}" endgültig löschen?', { name: this.member.displayName }))) { return }
 			this.deleting = true
 			try {
 				await api.deleteMember(this.member.id)

@@ -177,14 +177,16 @@ class BeitragsbescheinigungRendererTest extends TestCase {
 		$this->assertStringContainsString('01.03.2026', $html);
 	}
 
-	public function testDisclaimerVerweistAufIssue10UndParagraf10bEstg(): void {
+	/** Issue #106: der Hinweis nennt § 10b EStG, aber keine interne Ticketnummer – die liest kein Mitglied. */
+	public function testDisclaimerVerweistAufParagraf10bEstgOhneTicketnummer(): void {
 		$this->memberMapper->method('find')->willReturn($this->member());
 		$this->openItems->method('findByMember')->willReturn([]);
 
 		$html = $this->renderer()->render(1, 2026);
 
 		$this->assertStringContainsString('§ 10b EStG', $html);
-		$this->assertStringContainsString('#10', $html);
+		$this->assertStringNotContainsString('#10', $html);
+		$this->assertStringNotContainsString('Issue', $html);
 	}
 
 	public function testFehlendeAdresseZeigtHinweisbanner(): void {

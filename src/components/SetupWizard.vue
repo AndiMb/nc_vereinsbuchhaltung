@@ -11,7 +11,7 @@
 				{{ t('Willkommen bei der Vereinsbuchhaltung!') }}
 			</h3>
 			<p class="vbh-hint">
-				{{ t('Womit möchtest du starten? Das lässt sich jederzeit später ändern.') }}
+				{{ t('Womit möchten Sie starten? Das lässt sich jederzeit später ändern.') }}
 			</p>
 
 			<div class="vbh-wizard-choices">

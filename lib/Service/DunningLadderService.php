@@ -56,9 +56,15 @@ use Psr\Log\LoggerInterface;
  * Mail-Inhalt (Spec §3.11 T32): gebündelt je Mitglied, Einzelüberweisungen
  * (kein Sammelbetrag), eigener Grund-Satz je Position, GiroCode je Position
  * als Anhang ({@see EpcQrCodeGenerator}). Codes bleiben admin-only – diese
- * Klasse bekommt nur fertige Grund-Sätze (i. d. R. aus
+ * Klasse bekommt nur Grund-Sätze (i. d. R. aus
  * {@see \OCA\Vereinsbuchhaltung\Service\Sepa\ReturnReasonClassifier::memberFacingReason()})
  * übergeben, nie einen rohen ISO-Code.
+ *
+ * **Sprache:** die Mail entsteht im Cron oder im Request der Kassenführung,
+ * gelesen wird sie vom Mitglied – Du/Sie und Sprache kommen deshalb vom
+ * Empfänger ({@see RecipientL10n}). Aus demselben Grund sind die Grund-Sätze
+ * keine fertigen Texte, sondern Funktionen `fn (IL10N $l): string`: übersetzt
+ * wird erst, wenn der Empfänger feststeht.
  */
 class DunningLadderService {
 
@@ -77,7 +83,7 @@ class DunningLadderService {
 		private IConfig $config,
 		private ITimeFactory $time,
 		private LoggerInterface $logger,
-		private IL10N $l10n,
+		private RecipientL10n $recipientL10n,
 	) {
 	}
 
@@ -89,9 +95,10 @@ class DunningLadderService {
 	 * {@see \OCA\Vereinsbuchhaltung\Service\Sepa\ReturnReasonClassifier::shouldTriggerPaymentRequest()},
 	 * OB überhaupt getriggert wird – diese Methode kennt keine Rückgabe-Klasse.
 	 *
+	 * @param \Closure(IL10N): string $reasonSentence der Grund-Satz, in der Sprache des Empfängers
 	 * @return array{sent:int,skipped:int,failed:int} Mitglieder, nicht Positionen (wie runDaily())
 	 */
-	public function triggerPaymentRequest(OpenItem $claim, string $reasonSentence): array {
+	public function triggerPaymentRequest(OpenItem $claim, \Closure $reasonSentence): array {
 		return $this->sendStage($claim->getMemberId(), DunningNotice::STAGE_PAYMENT_REQUEST, [[$claim, $reasonSentence]]);
 	}
 
@@ -107,7 +114,7 @@ class DunningLadderService {
 	 * @return array{sent:int,skipped:int,failed:int}
 	 */
 	public function onMandateRevoked(int $memberId): array {
-		$reason = $this->l10n->t('Das SEPA-Mandat wurde widerrufen, ein Einzug per Lastschrift ist für diese Position nicht mehr möglich.');
+		$reason = static fn (IL10N $l): string => $l->t('Das SEPA-Mandat wurde widerrufen, ein Einzug per Lastschrift ist für diese Position nicht mehr möglich.');
 		$items = [];
 		foreach ($this->openItems->findByMember($memberId) as $item) {
 			if (!$item->isClaim() || ClaimStateResolver::resolveForItem($item) !== ClaimStateResolver::STATE_OPEN) {
@@ -147,11 +154,11 @@ class DunningLadderService {
 	 * Stufe-0-Kandidaten für Forderungen, die NIE per Lastschrift eingezogen
 	 * werden (siehe Klassendoc) – gruppiert nach Mitglied.
 	 *
-	 * @return array<int, list<array{0:OpenItem,1:string}>>
+	 * @return array<int, list<array{0:OpenItem,1:\Closure(IL10N): string}>>
 	 */
 	private function duePaymentRequestsByMember(string $today): array {
 		$leadDays = $this->cycleSettings->prenotificationLeadDays();
-		$reason = $this->l10n->t('Für diese Position liegt uns bislang kein Zahlungseingang vor.');
+		$reason = static fn (IL10N $l): string => $l->t('Für diese Position liegt uns bislang kein Zahlungseingang vor.');
 
 		$byMember = [];
 		foreach ($this->openItems->findClaims() as $item) {
@@ -178,13 +185,13 @@ class DunningLadderService {
 	 * gestundet" (Klassendoc) und die Mahnabstand-Frist seit dem `sent_at` der
 	 * zuletzt erreichten Stufe verstrichen.
 	 *
-	 * @return array<int, list<array{0:OpenItem,1:string}>>
+	 * @return array<int, list<array{0:OpenItem,1:\Closure(IL10N): string}>>
 	 */
 	private function dueEscalationsByMember(string $today, int $fromStage, int $toStage): array {
 		$intervalDays = $this->settings->intervalDays();
 		$reason = $toStage === DunningNotice::STAGE_REMINDER
-			? $this->l10n->t('Für diese Position liegt uns weiterhin kein Zahlungseingang vor.')
-			: $this->l10n->t('Trotz Erinnerung liegt für diese Position noch kein Zahlungseingang vor. Bitte gleichen Sie den Betrag zeitnah aus, andernfalls legen wir den Vorgang dem Vorstand vor.');
+			? static fn (IL10N $l): string => $l->t('Für diese Position liegt uns weiterhin kein Zahlungseingang vor.')
+			: static fn (IL10N $l): string => $l->t('Trotz Erinnerung liegt für diese Position noch kein Zahlungseingang vor. Bitte gleichen Sie den Betrag zeitnah aus, andernfalls legen wir den Vorgang dem Vorstand vor.');
 
 		$byMember = [];
 		foreach ($this->openItems->findClaims() as $item) {
@@ -214,7 +221,7 @@ class DunningLadderService {
 	// --- Versand ------------------------------------------------------------------
 
 	/**
-	 * @param array<int, array{0:OpenItem,1:string}> $itemsWithReasons
+	 * @param array<int, array{0:OpenItem,1:\Closure(IL10N): string}> $itemsWithReasons
 	 * @return array{sent:int,skipped:int,failed:int} "sent" zählt Mitglieder, nicht Positionen (wie ContributionPreNotificationService::sendDue())
 	 */
 	private function sendStage(?int $memberId, int $stage, array $itemsWithReasons): array {
@@ -243,7 +250,7 @@ class DunningLadderService {
 		[$email, $displayName] = $recipient;
 
 		try {
-			$message = $this->buildMessage($stage, $displayName, $email, $pending);
+			$message = $this->buildMessage($stage, $displayName, $email, $pending, $this->recipientL10n->forMember($member));
 			$failedRecipients = $this->mailer->send($message);
 		} catch (\Throwable $e) {
 			$this->logger->warning('Mahnwesen: Versand für Mitglied {id} fehlgeschlagen', [
@@ -271,36 +278,37 @@ class DunningLadderService {
 		return ['sent' => 1, 'skipped' => 0, 'failed' => 0];
 	}
 
-	/** @param list<array{0:OpenItem,1:string}> $pending */
-	private function buildMessage(int $stage, string $displayName, string $email, array $pending): IMessage {
+	/** @param list<array{0:OpenItem,1:\Closure(IL10N): string}> $pending */
+	private function buildMessage(int $stage, string $displayName, string $email, array $pending, IL10N $l): IMessage {
 		// "{organisationsname} statt {vereinsname}" (Spec §3.11 T32) - bewusst
 		// abweichend vom sonst in dieser App üblichen Fallback "Ihr Verein"
 		// (siehe z. B. ContributionPreNotificationService): die Mahntexte
 		// gelten laut Ticket ausdrücklich dem neutraleren Organisationsbegriff.
 		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '');
-		$clubName = $clubName !== '' ? $clubName : $this->l10n->t('Ihre Organisation');
+		$clubName = $clubName !== '' ? $clubName : $l->t('Ihre Organisation');
 
 		// Vor dem Mailtext: ob der Text einen GiroCode verspricht, hängt davon ab,
 		// ob für ALLE Positionen einer erzeugt werden konnte.
-		$giroCodes = $this->renderGiroCodes($pending, $clubName);
+		$giroCodes = $this->renderGiroCodes($pending, $clubName, $l);
 
 		$template = $this->mailer->createEMailTemplate('vereinsbuchhaltung.dunningStage' . $stage);
-		$template->setSubject($this->stageSubject($stage, $clubName));
+		$template->setSubject($this->stageSubject($stage, $clubName, $l));
 		$template->addHeader();
-		$template->addHeading($this->stageHeading($stage));
-		$template->addBodyText($this->l10n->t('Guten Tag %s,', [$displayName]));
-		$template->addBodyText($this->stageIntro($stage, $clubName));
+		$template->addHeading($this->stageHeading($stage, $l));
+		$template->addBodyText($l->t('Guten Tag %s,', [$displayName]));
+		$template->addBodyText($this->stageIntro($stage, $l));
 		foreach ($pending as [$item, $reason]) {
-			$template->addBodyText($reason);
-			$template->addBodyText('– ' . $this->positionLine($item));
+			$template->addBodyText($reason($l));
+			$template->addBodyText('– ' . $this->positionLine($item, $l));
 		}
 		if ($stage === DunningNotice::STAGE_DUNNING) {
-			$template->addBodyText($this->l10n->t('Sollte der Betrag weiterhin nicht eingehen, legen wir den Vorgang dem Vorstand vor.'));
+			$template->addBodyText($l->t('Sollte der Betrag weiterhin nicht eingehen, legen wir den Vorgang dem Vorstand vor.'));
 		}
 		$template->addBodyText(count($giroCodes) === count($pending)
-			? $this->l10n->t('Bitte überweisen Sie jede Position einzeln mit dem jeweils genannten Betrag – für jede Position liegt ein GiroCode zum Scannen mit Ihrer Banking-App bei.')
-			: $this->l10n->t('Bitte überweisen Sie jede Position einzeln mit dem jeweils genannten Betrag.'));
-		$template->addFooter();
+			? $l->t('Bitte überweisen Sie jede Position einzeln mit dem jeweils genannten Betrag – für jede Position liegt ein GiroCode zum Scannen mit Ihrer Banking-App bei.')
+			: $l->t('Bitte überweisen Sie jede Position einzeln mit dem jeweils genannten Betrag.'));
+		// Auch die Fußzeile von Nextcloud (der Slogan) in der Sprache des Empfängers.
+		$template->addFooter('', $l->getLanguageCode());
 
 		$message = $this->mailer->createMessage();
 		$message->setTo([$email => $displayName]);
@@ -324,10 +332,10 @@ class DunningLadderService {
 	 * Mail trotzdem ohne diesen Code raus und der Fehler steht im Log
 	 * (Issue #120). Bewusst `\Throwable`: eine fehlende Klasse ist ein `\Error`.
 	 *
-	 * @param list<array{0:OpenItem,1:string}> $pending
+	 * @param list<array{0:OpenItem,1:\Closure(IL10N): string}> $pending
 	 * @return array<int, string>
 	 */
-	private function renderGiroCodes(array $pending, string $clubName): array {
+	private function renderGiroCodes(array $pending, string $clubName, IL10N $l): array {
 		$iban = $this->giroCodeIban();
 		if ($iban === null) {
 			return [];
@@ -335,7 +343,7 @@ class DunningLadderService {
 		$codes = [];
 		foreach ($pending as [$item]) {
 			try {
-				$codes[(int)$item->getId()] = $this->qrCode->generatePng($clubName, $iban, null, $item->getAmountCents(), $this->positionLine($item));
+				$codes[(int)$item->getId()] = $this->qrCode->generatePng($clubName, $iban, null, $item->getAmountCents(), $this->positionLine($item, $l));
 			} catch (\Throwable $e) {
 				$this->logger->warning('Mahnwesen: GiroCode für Forderung {id} konnte nicht erzeugt werden, die Mail geht ohne diesen Anhang raus', [
 					'app' => Application::APP_ID,
@@ -361,37 +369,37 @@ class DunningLadderService {
 		return $iban !== null && trim($iban) !== '' ? $iban : null;
 	}
 
-	private function stageSubject(int $stage, string $clubName): string {
+	private function stageSubject(int $stage, string $clubName, IL10N $l): string {
 		return match ($stage) {
-			DunningNotice::STAGE_PAYMENT_REQUEST => $this->l10n->t('Zahlungsaufforderung von %s', [$clubName]),
-			DunningNotice::STAGE_REMINDER => $this->l10n->t('Zahlungserinnerung von %s', [$clubName]),
-			default => $this->l10n->t('Mahnung von %s', [$clubName]),
+			DunningNotice::STAGE_PAYMENT_REQUEST => $l->t('Zahlungsaufforderung von %s', [$clubName]),
+			DunningNotice::STAGE_REMINDER => $l->t('Zahlungserinnerung von %s', [$clubName]),
+			default => $l->t('Mahnung von %s', [$clubName]),
 		};
 	}
 
-	private function stageHeading(int $stage): string {
+	private function stageHeading(int $stage, IL10N $l): string {
 		return match ($stage) {
-			DunningNotice::STAGE_PAYMENT_REQUEST => $this->l10n->t('Zahlungsaufforderung'),
-			DunningNotice::STAGE_REMINDER => $this->l10n->t('Zahlungserinnerung'),
-			default => $this->l10n->t('Mahnung'),
+			DunningNotice::STAGE_PAYMENT_REQUEST => $l->t('Zahlungsaufforderung'),
+			DunningNotice::STAGE_REMINDER => $l->t('Zahlungserinnerung'),
+			default => $l->t('Mahnung'),
 		};
 	}
 
-	private function stageIntro(int $stage, string $clubName): string {
+	private function stageIntro(int $stage, IL10N $l): string {
 		return match ($stage) {
-			DunningNotice::STAGE_PAYMENT_REQUEST => $this->l10n->t('für die folgende(n) Position(en) bitten wir Sie um Ausgleich per Überweisung:'),
-			DunningNotice::STAGE_REMINDER => $this->l10n->t('wir möchten Sie an die folgende(n) noch offene(n) Position(en) erinnern:'),
-			default => $this->l10n->t('für die folgende(n) Position(en) bitten wir Sie dringend um umgehenden Ausgleich:'),
+			DunningNotice::STAGE_PAYMENT_REQUEST => $l->t('für die folgende(n) Position(en) bitten wir Sie um Ausgleich per Überweisung:'),
+			DunningNotice::STAGE_REMINDER => $l->t('wir möchten Sie an die folgende(n) noch offene(n) Position(en) erinnern:'),
+			default => $l->t('für die folgende(n) Position(en) bitten wir Sie dringend um umgehenden Ausgleich:'),
 		};
 	}
 
-	private function positionLine(OpenItem $item): string {
+	private function positionLine(OpenItem $item, IL10N $l): string {
 		$amount = number_format($item->getAmountCents() / 100, 2, ',', '.') . ' €';
-		$label = (string)($item->getDescription() ?? $this->l10n->t('Beitrag'));
+		$label = (string)($item->getDescription() ?? $l->t('Beitrag'));
 		if ($item->getPeriodStart() !== null && $item->getPeriodEnd() !== null) {
-			return $this->l10n->t('%1$s (%2$s – %3$s): %4$s, fällig %5$s', [$label, (string)$item->getPeriodStart(), (string)$item->getPeriodEnd(), $amount, (string)$item->getDueDate()]);
+			return $l->t('%1$s (%2$s – %3$s): %4$s, fällig %5$s', [$label, (string)$item->getPeriodStart(), (string)$item->getPeriodEnd(), $amount, (string)$item->getDueDate()]);
 		}
-		return $this->l10n->t('%1$s: %2$s, fällig %3$s', [$label, $amount, (string)$item->getDueDate()]);
+		return $l->t('%1$s: %2$s, fällig %3$s', [$label, $amount, (string)$item->getDueDate()]);
 	}
 
 	/**

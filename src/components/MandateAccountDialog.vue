@@ -12,7 +12,7 @@
 			</h2>
 
 			<p v-if="mandate" class="vbh-hint">
-				{{ t('Mandat {referenz} von {inhaber}, bisherige IBAN {iban}.', { referenz: mandate.mandateReference, inhaber: mandate.accountHolder, iban: formatIban(mandate.iban) }) }}
+				{{ mandateAccountHint(mandate) }}
 			</p>
 
 			<div class="vbh-form vbh-mandate-modes">
@@ -128,7 +128,7 @@
 <script>
 import { NcButton, NcModal } from '@nextcloud/vue'
 import { formatMoney } from '../lib/format.js'
-import { formatIban, normalizeBankValue } from '../lib/mandateView.js'
+import { formatIban, mandateAccountHint, normalizeBankValue } from '../lib/mandateView.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 
 const emptyHolderForm = () => ({ iban: '', bic: '', accountHolder: '', signedAt: '' })
@@ -210,6 +210,7 @@ export default {
 	methods: {
 		formatMoney,
 		formatIban,
+		mandateAccountHint,
 
 		saveIban() {
 			this.$emit('save-iban', { iban: this.ibanForm.iban.trim(), bic: this.ibanForm.bic.trim() || null })

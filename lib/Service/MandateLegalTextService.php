@@ -27,6 +27,16 @@ use OCP\IL10N;
  * passt nicht mehr zum Code) und legt eine neue, `system`-getriebene Version
  * an, die den bisherigen (admin-editierten) Rahmen unverändert übernimmt -
  * "system-getrieben (App-Update ändert Pflichtblock)" aus Spec §2.2.
+ *
+ * **Der Rechtstext bleibt bewusst nur Deutsch** (Spec §3.11, Issue #106): weder
+ * der Pflichtblock noch der Rahmen noch der Ersatz des Vereinsnamens laufen durch
+ * `t()`, und es gibt keine englische Fassung. Rechtlich maßgeblich ist EIN Text,
+ * den das Mitglied unterschreibt bzw. dem es zustimmt – eine zweite Sprache
+ * bräuchte eine eigene rechtliche Prüfung. Dasselbe gilt für alles, was das
+ * Dokument umgibt: {@see MandateFormRenderer}, das gedruckte Formular
+ * ({@see \OCA\Vereinsbuchhaltung\Controller\MandateController::form()}) und die
+ * öffentliche Zustimmungsseite (templates/mandateConsent.php). Der Text ist durchgehend
+ * Sie-Form; die Du-Fassung aus l10n/de.json gilt für ihn nicht.
  */
 class MandateLegalTextService {
 
