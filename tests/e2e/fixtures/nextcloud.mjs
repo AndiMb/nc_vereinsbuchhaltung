@@ -44,6 +44,139 @@ export const INCOME_ACCOUNT = '4000'
 // einziehendes Konto des SEPA-Sammeleinzugs taugt.
 export const BANK_ACCOUNT_IBAN = 'DE12500105170648489890'
 
+// ---------------------------------------------------------------------------
+// camt.053-Bausteine für den Bankabgleich (Issue #105)
+// ---------------------------------------------------------------------------
+//
+// Der Bankabgleich arbeitet mit dem, was die Bank im Kontoauszug meldet: die
+// Sammelgutschrift eines Einzugs mit einer Zeile je Posten (End-to-End-ID,
+// Mandatsreferenz, Betrag) und die Rücklastschrift mit Rückgabegrund. Die
+// Beispieldatei tests/fixtures/beispiel-camt053.xml kennt nichts davon (und
+// trägt feste IDs, die zu keinem frisch freigegebenen Lauf passen) – die
+// Specs bauen sich ihren Auszug deshalb aus den Posten ihres Laufs.
+
+const xmlText = (text) => String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+const euros = (cents) => (Math.abs(cents) / 100).toFixed(2)
+
+/**
+ * Eine Detail-Zeile (`TxDtls`). Nur gesetzte Felder erscheinen im XML – so lässt
+ * sich auch die Zeile ohne End-to-End-ID bauen, die nur über Mandatsreferenz
+ * und Betrag (Stufe 2) zu einem Posten findet.
+ *
+ * `amountCents` ist der eigene Betrag der Zeile (bei einer Rückgabe mit Gebühr:
+ * Original plus Gebühr), `originalAmountCents` der Ursprungsbetrag der
+ * Lastschrift, `chargesCents` die Bankgebühr.
+ */
+function camtDetail(detail, direction) {
+	const parts = []
+	if (detail.endToEndId || detail.mandateReference) {
+		parts.push(`<Refs>${detail.endToEndId ? `<EndToEndId>${xmlText(detail.endToEndId)}</EndToEndId>` : ''}${detail.mandateReference ? `<MndtId>${xmlText(detail.mandateReference)}</MndtId>` : ''}</Refs>`)
+	}
+	if (detail.amountCents !== undefined) {
+		parts.push(`<Amt Ccy="EUR">${euros(detail.amountCents)}</Amt><CdtDbtInd>${direction}</CdtDbtInd>`)
+	}
+	if (detail.originalAmountCents !== undefined) {
+		parts.push(`<AmtDtls><TxAmt><Amt Ccy="EUR">${euros(detail.originalAmountCents)}</Amt></TxAmt></AmtDtls>`)
+	}
+	if (detail.chargesCents !== undefined) {
+		parts.push(`<Chrgs><TotalChargesAndTaxAmt Ccy="EUR">${euros(detail.chargesCents)}</TotalChargesAndTaxAmt></Chrgs>`)
+	}
+	if (detail.counterparty) {
+		const side = direction === 'CRDT' ? 'Dbtr' : 'Cdtr'
+		parts.push(`<RltdPties><${side}><Nm>${xmlText(detail.counterparty)}</Nm></${side}>${detail.counterpartyIban ? `<${side}Acct><Id><IBAN>${detail.counterpartyIban}</IBAN></Id></${side}Acct>` : ''}</RltdPties>`)
+	}
+	if (detail.purpose) {
+		parts.push(`<RmtInf><Ustrd>${xmlText(detail.purpose)}</Ustrd></RmtInf>`)
+	}
+	if (detail.returnReasonCode) {
+		parts.push(`<RtrInf><Rsn><Cd>${detail.returnReasonCode}</Cd></Rsn>${detail.returnReasonText ? `<AddtlInf>${xmlText(detail.returnReasonText)}</AddtlInf>` : ''}</RtrInf>`)
+	}
+	return `<TxDtls>${parts.join('')}</TxDtls>`
+}
+
+/**
+ * Ein camt.053-Kontoauszug (XML) aus Umsätzen.
+ *
+ * Umsatz: `{ bookingDate, direction: 'CRDT'|'DBIT', amountCents, bookingText?,
+ * batchReference?, details: [...] }` – die Detail-Zeilen siehe camtDetail().
+ * Ohne `details` entsteht eine einzelne Zeile aus den Feldern des Umsatzes
+ * (`counterparty`, `counterpartyIban`, `purpose`), wie bei einer gewöhnlichen
+ * Überweisung: sie trägt keine SEPA-Referenzen und erzeugt deshalb keine
+ * Detail-Zeile im Bankabgleich.
+ */
+export function camtStatement({ iban = BANK_ACCOUNT_IBAN, entries }) {
+	const body = entries.map((entry) => {
+		const details = entry.details ?? [{ counterparty: entry.counterparty, counterpartyIban: entry.counterpartyIban, purpose: entry.purpose }]
+		return `<Ntry>
+				<Amt Ccy="EUR">${euros(entry.amountCents)}</Amt><CdtDbtInd>${entry.direction}</CdtDbtInd><Sts>BOOK</Sts>
+				<BookgDt><Dt>${entry.bookingDate}</Dt></BookgDt><ValDt><Dt>${entry.bookingDate}</Dt></ValDt>
+				<NtryDtls>
+					${entry.batchReference ? `<Btch><PmtInfId>${xmlText(entry.batchReference)}</PmtInfId></Btch>` : ''}
+					${details.map((detail) => camtDetail(detail, entry.direction)).join('\n\t\t\t\t\t')}
+				</NtryDtls>
+				<AddtlNtryInf>${xmlText(entry.bookingText ?? (entry.direction === 'CRDT' ? 'GUTSCHRIFT' : 'LASTSCHRIFT'))}</AddtlNtryInf>
+			</Ntry>`
+	}).join('\n\t\t\t')
+	return `<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.02">
+	<BkToCstmrStmt>
+		<GrpHdr><MsgId>E2E-${Date.now()}</MsgId><CreDtTm>${new Date().toISOString().slice(0, 19)}</CreDtTm></GrpHdr>
+		<Stmt>
+			<Id>AUSZUG-${Date.now()}</Id>
+			<Acct><Id><IBAN>${iban}</IBAN></Id><Ccy>EUR</Ccy></Acct>
+			${body}
+		</Stmt>
+	</BkToCstmrStmt>
+</Document>`
+}
+
+/**
+ * Die Sammelgutschrift eines eigenen Einzugs: ein Umsatz über die Summe, mit
+ * einer Zeile je Posten des Laufs (`batch.items` aus api.getDebitBatch()).
+ *
+ * @param opts.omitEndToEndId Posten-IDs, deren Zeile ohne End-to-End-ID gemeldet wird: sie findet nur über Mandatsreferenz und Betrag zu ihrem Posten
+ */
+export function collectionEntry({ bookingDate, items, omitEndToEndId = [], batchReference = `PMTINF-${Date.now()}` }) {
+	return {
+		bookingDate,
+		direction: 'CRDT',
+		amountCents: items.reduce((sum, item) => sum + item.amountCents, 0),
+		bookingText: 'SEPA-LASTSCHRIFT-EINREICHUNG',
+		batchReference,
+		details: items.map((item) => ({
+			endToEndId: omitEndToEndId.includes(item.id) ? undefined : item.endToEndId,
+			mandateReference: item.mandateReference,
+			amountCents: item.amountCents,
+			purpose: `${item.remittanceInfo} ${item.memberDisplayName}`,
+		})),
+	}
+}
+
+/**
+ * Die Rücklastschrift eines Postens: die Bank belastet das Konto um den
+ * Ursprungsbetrag plus ihre Gebühr und nennt Rückgabegrund und End-to-End-ID.
+ *
+ * @param opts.item Posten aus `batch.items` (api.getDebitBatch())
+ * @param opts.reasonCode ISO-Rückgabegrund, z. B. AM04 (Deckung fehlt: Zahlungsaufforderung) oder AC04 (Konto erloschen: Mandat wird gesperrt)
+ */
+export function returnEntry({ bookingDate, item, reasonCode, reasonText = undefined, chargesCents = undefined }) {
+	return {
+		bookingDate,
+		direction: 'DBIT',
+		amountCents: item.amountCents + (chargesCents ?? 0),
+		bookingText: 'LASTSCHRIFT-RUECKGABE',
+		details: [{
+			endToEndId: item.endToEndId,
+			mandateReference: item.mandateReference,
+			originalAmountCents: item.amountCents,
+			chargesCents,
+			purpose: `Rücklastschrift ${item.memberDisplayName}`,
+			returnReasonCode: reasonCode,
+			returnReasonText: reasonText,
+		}],
+	}
+}
+
 // Beleg-Fixture: ein 1×1-Pixel-PNG – klein, aber eine echte Bilddatei.
 export const BELEG_PNG = Buffer.from(
 	'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
@@ -362,6 +495,69 @@ export const api = {
 	async listTransactions(request, { status = null } = {}) {
 		const query = status ? `?status=${status}` : ''
 		return (await call(request, 'GET', `/transactions${query}`)).json()
+	},
+
+	// --- Einzug: Lauf freigeben und einreichen (Issue #103) ------------------------
+	// Die Oberfläche dafür gibt es seit #103 (Spec 42); wer nur einen eingereichten
+	// Lauf als Vorbedingung braucht, baut ihn hier über die API.
+
+	/** Lauf zu einem Einzugstermin freigeben (Schritt 1: die Posten werden eingefroren). */
+	async releaseDebitBatch(request, dueDate, { user = 'admin', expectOk = true } = {}) {
+		return (await call(request, 'POST', '/debit-batches', { user, expectOk, data: { dueDate } })).json()
+	},
+
+	/** „Datei ist bei der Bank eingereicht“ (Schritt 2): terminal, kein Storno mehr. */
+	async submitDebitBatch(request, id, { user = 'admin', expectOk = true } = {}) {
+		return (await call(request, 'POST', `/debit-batches/${id}/submit`, { user, expectOk })).json()
+	},
+
+	/** Ein Lauf samt Posten (`items`: endToEndId, mandateReference, amountCents, memberDisplayName, remittanceInfo, …). */
+	async getDebitBatch(request, id, { user = 'admin' } = {}) {
+		return (await call(request, 'GET', `/debit-batches/${id}`, { user })).json()
+	},
+
+	/** Freigeben und einreichen in einem Zug; liefert den eingereichten Lauf samt Posten. */
+	async releaseAndSubmitDebitBatch(request, dueDate, { user = 'admin' } = {}) {
+		const batch = await this.releaseDebitBatch(request, dueDate, { user })
+		await this.submitDebitBatch(request, batch.id, { user })
+		return this.getDebitBatch(request, batch.id, { user })
+	},
+
+	// --- Bankabgleich (Issue #105) --------------------------------------------------
+
+	/** Umsätze (camtStatement(), collectionEntry(), returnEntry()) als camt.053-Auszug importieren. */
+	async importCamtStatement(request, entries, { iban = BANK_ACCOUNT_IBAN, user = 'admin' } = {}) {
+		return this.importStatement(request, camtStatement({ iban, entries }), { filename: 'auszug.xml', user })
+	},
+
+	/** Die Arbeitsliste des Bankabgleichs: `items` (Einzüge, Rückgaben) und `incoming` (Zahlungseingänge). */
+	async bankReconciliation(request, { user = 'admin' } = {}) {
+		return (await call(request, 'GET', '/bank-reconciliation', { user })).json()
+	},
+
+	/** Der Umsatz zu einem Textstück im Verwendungszweck samt Detail-Zeilen – so findet eine Spec ihren Umsatz, ohne IDs zu kennen. */
+	async findReconciliationItem(request, purposePart, { user = 'admin' } = {}) {
+		const { items } = await this.bankReconciliation(request, { user })
+		const hit = items.find((entry) => (entry.bankTx.purpose || '').includes(purposePart))
+		if (!hit) {
+			throw new Error(`Kein Umsatz mit „${purposePart}“ im Bankabgleich – vorhanden: ${items.map((entry) => entry.bankTx.purpose).join(' | ')}`)
+		}
+		return hit
+	},
+
+	/** Einzelurteil über eine Detail-Zeile: `assign` (mit `debitItemId`), `reject` oder `unmatched`. */
+	async decideSepaDetail(request, detailId, action, { debitItemId, user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', `/sepa-import/details/${detailId}/${action}`, { user, expectOk, ...(action === 'assign' ? { data: { debitItemId } } : {}) })
+	},
+
+	/** Verbuchen; mit `expectOk: false` bekommt die Spec auch eine Ablehnung (423 geschlossene Periode, 403 Rolle) zurück. */
+	async settleSepaImport(request, bankTxId, { user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', `/sepa-import/${bankTxId}/settle`, { user, expectOk })
+	},
+
+	/** Rücklastschriftgebühren-Konto, Gebühren-Weiterbelastung ('1'/'0') und Standard-Erlöskonto (ab Verwalter; Konten als ID). */
+	async setSepaImportSettings(request, { returnFeeAccountId, returnFeeRechargeEnabled, contributionDefaultAccountId }, { user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', '/sepa-import/settings', { user, expectOk, data: { returnFeeAccountId, returnFeeRechargeEnabled, contributionDefaultAccountId } })
 	},
 
 	/** Alle Geschäftsjahre; legt serverseitig den laufenden Zeitraum an, falls er fehlt. */
