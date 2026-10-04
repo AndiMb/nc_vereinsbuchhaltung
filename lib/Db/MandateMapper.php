@@ -137,4 +137,27 @@ class MandateMapper extends QBMapper {
 		$res->closeCursor();
 		return $count;
 	}
+
+	/**
+	 * Löst den Verweis aller Mandate auf eine Rücklastschrift
+	 * (`returned_debit_id`, gesetzt bei der automatischen Sperre nach einer
+	 * Rücklastschrift, Spec §2.2). Beim Zurücksetzen (siehe
+	 * {@see \OCA\Vereinsbuchhaltung\Service\ContributionResetService}) sind die
+	 * Rücklastschriften weg; die Sperre selbst bleibt – sie hebt nur ein Mensch
+	 * mit Notiz auf, und der Grund steht weiter in `suspension_note`.
+	 *
+	 * Es gibt keine Fremdschlüssel im Schema: ohne dieses Aufräumen zeigte die
+	 * Sperre auf eine nicht mehr vorhandene ID – und je nach Zähler der
+	 * Datenbank später auf eine fremde Rücklastschrift. Die Aufgabenliste
+	 * kommt mit einem fehlenden Verweis zurecht (neutraler Text ohne Grund).
+	 *
+	 * @return int Anzahl betroffener Mandate
+	 */
+	public function clearReturnedDebitReferences(): int {
+		$qb = $this->db->getQueryBuilder();
+		$qb->update($this->getTableName())
+			->set('returned_debit_id', $qb->createNamedParameter(null, IQueryBuilder::PARAM_NULL))
+			->where($qb->expr()->isNotNull('returned_debit_id'));
+		return $qb->executeStatement();
+	}
 }

@@ -670,6 +670,26 @@ vollständige Texte in [§3.11](#311-textbausteine--t31-t34).
   unter „Meine Daten" — deckt Art. 15 DSGVO. **Kein** strukturierter Export (Art. 20) in v1.
 - NC-Konto-Löschung bleibt vollständig entkoppelt vom Anonymisierungs-Zeitpunkt (der
   T09-Zielkonflikt ist durch T16s Stellvertretungslösung bereits aufgelöst).
+- **Zurücksetzen („Alle Daten löschen", Issue #123):** löscht in *einer* Transaktion neben
+  Buchungen und offenen Posten (= Forderungen, §2.2) alles, was an den Forderungen hängt —
+  Lastschriftläufe, Einzugsposten (IBAN im Klartext), Rücklastschriften, Mahnversand — und die
+  Abgleich-Daten am Kontoauszug (§5). **Stammdaten bleiben:** Mitglieder, Mandate samt
+  Historie, Beitragsgruppen, Zuweisungen samt Historie, Rechtstext-Versionen, Einstellungen;
+  ebenso das Änderungsprotokoll. Zeiger auf Gelöschtes werden gelöst, nicht mitgelöscht:
+  `Mandate.returned_debit_id` → NULL, die Sperre bleibt (keine Auto-Entsperrung, §2.2);
+  `MandateAmendment` `transmitted` → `open` mit leerem Verweis auf den Posten („übermittelt"
+  setzt einen eingereichten Posten voraus). `Mandate.last_presented_due_date` bleibt: ein
+  Datum, kein Verweis, und die Vorlage bei der Bank ist geschehen — ein Zurücksetzen ließe die
+  36-Monats-Frist auf `signed_at` zurückfallen und den Verfall ein Mandat endgültig beenden.
+  Einen „erstmals genutzt"-Merker (FRST) gibt es nicht, der Sequenztyp ist immer `RCUR`.
+  Zuweisungen tragen keinen Zeiger: die Forderungserzeugung liest ihren Stand aus den
+  gespeicherten Forderungen (§3.5), der Tageslauf setzt nach dem Reset also wieder beim
+  Zeitraum von `valid_from` an und holt nach (Nachzügler-Termin) — Verhalten, nicht
+  Fehlerbehebung: ein Stichtag, ab dem erst gefordert wird, wäre eine eigene Entscheidung.
+  Die XML-Kopien der Läufe in der XML-Ablage (§3.5) bleiben liegen: keine gespeicherte
+  Datei-ID, Home eines echten Nutzers, ausdrücklich Compliance-Ablage. Umsetzung:
+  `ResetService` mit `ContributionResetService`; für jede neue Tabelle verlangt
+  `ResetServiceTest` die Entscheidung „Reset räumt sie" oder „bleibt Stammdatum".
 
 ### 3.9 Rollen & Rechte — [T19](../tickets/T19-rollen-rechtemodell.md)
 

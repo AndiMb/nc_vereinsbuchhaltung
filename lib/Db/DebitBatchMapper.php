@@ -70,4 +70,14 @@ class DebitBatchMapper extends QBMapper {
 			->orderBy('due_date', 'ASC');
 		return $this->findEntities($qb);
 	}
+
+	/**
+	 * Beim Zurücksetzen (siehe {@see \OCA\Vereinsbuchhaltung\Service\ContributionResetService}):
+	 * die Läufe gehören zum Buchungsbestand – sie bündeln Forderungen, die es
+	 * danach nicht mehr gibt, und tragen den Gläubiger als Schnappschuss.
+	 */
+	public function deleteAll(): void {
+		$qb = $this->db->getQueryBuilder();
+		$qb->delete($this->getTableName())->executeStatement();
+	}
 }

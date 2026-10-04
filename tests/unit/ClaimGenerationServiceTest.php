@@ -300,6 +300,34 @@ class ClaimGenerationServiceTest extends TestCase {
 		$this->assertSame('2027-01-01', $secondClaim->getDueDate());
 	}
 
+	/**
+	 * Der Stand der Forderungserzeugung steckt in den Forderungen selbst
+	 * (`latestGeneratedPeriodEnd()`), die Zuweisung trägt keinen Zähler. Sind
+	 * die Forderungen weg – etwa nach „Alle Daten löschen" (Issue #123) –,
+	 * beginnt der Tageslauf deshalb wieder bei dem Zeitraum, in dem die
+	 * Zuweisung beginnt, und holt alle Zeiträume bis zum Vorwarnfenster nach;
+	 * die Einzugstermine der nachgeholten Zeiträume fallen dabei auf den nächsten
+	 * Termin mit ausreichendem Vorlauf (Nachzügler-Regel). Das Handbuch (12.1)
+	 * nennt das so. Wer es ändern will (etwa ein Stichtag nach dem Reset),
+	 * passt diesen Test und das Handbuch an.
+	 */
+	public function testNachGeloeschtenForderungenBeginntDieErzeugungWiederBeimZeitraumDerZuweisung(): void {
+		$this->assignments->method('findActiveAsOf')->willReturn([$this->assignment(intervalMonths: 1, validFrom: '2026-01-01')]);
+		$this->groups->method('find')->willReturn($this->group());
+		$this->setMandateActive(true);
+
+		// Die Zuweisung läuft seit Januar, der Bestand ist leer (Forderungen gelöscht), heute ist der 10.3.
+		$result = $this->service('2026-03-10')->generateDue();
+
+		$this->assertSame(['created' => 3, 'blocked' => 0], $result);
+		$this->assertSame(
+			['2026-01-01', '2026-02-01', '2026-03-01'],
+			array_map(static fn (OpenItem $claim): ?string => $claim->getPeriodStart(), $this->store),
+		);
+		// Alle drei fahren am nächsten Termin mit ausreichendem Vorlauf (1.4.): die der früheren Zeiträume sind längst vorbei.
+		$this->assertSame(['2026-04-01', '2026-04-01', '2026-04-01'], array_map(static fn (OpenItem $claim): ?string => $claim->getDueDate(), $this->store));
+	}
+
 	public function testGenerateDueIstIdempotent(): void {
 		$this->assignments->method('findActiveAsOf')->willReturn([$this->assignment()]);
 		$this->groups->method('find')->willReturn($this->group());

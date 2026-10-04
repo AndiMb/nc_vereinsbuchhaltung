@@ -38,6 +38,7 @@ class ResetService {
 		private SepaImportSettingsService $sepaImportSettings,
 		private BankTxSepaDetailMapper $sepaDetails,
 		private IncomingPaymentRejectionMapper $incomingRejections,
+		private ContributionResetService $contribution,
 	) {
 	}
 
@@ -55,6 +56,11 @@ class ResetService {
 	 * erhaltenen Datensätzen. Für das einziehende Konto in den Einstellungen
 	 * gilt dasselbe – ebenso für das Rücklastschriftgebühren-Konto und das
 	 * Standard-Erlöskonto (Issue #101).
+	 *
+	 * Zum Buchungsbestand gehört auch alles, was an den Forderungen hängt:
+	 * Lastschrift-Läufe samt Posten, Rücklastschriften und Mahnstufen (Issue
+	 * #123, siehe {@see ContributionResetService}). Mitglieder, Mandate,
+	 * Beitragsgruppen, Zuweisungen und die Einstellungen bleiben.
 	 */
 	public function resetAll(string $userId): void {
 		// Vor dem Löschen der Datensätze merken, welche Dateien dazugehören –
@@ -78,9 +84,14 @@ class ResetService {
 			$this->costCenterMapper->deleteAllForUser($userId);
 			$this->budgetMapper->deleteAllForUser($userId);
 			$this->snapshotService->deleteAllForUser($userId);
+			// Läufe, Posten, Rücklastschriften und Mahnstufen verweisen auf die
+			// Forderungen darunter (Issue #123) – sie gehen vor ihnen, und die
+			// Zeiger der Mandate auf sie werden im selben Zug gelöst.
+			$this->contribution->deleteClaimDependents();
 			// Offene Posten enthalten Namen von Mitgliedern und Forderungsbeträge –
 			// sie müssen beim Zurücksetzen mit verschwinden, sonst bleiben
 			// personenbezogene Daten mit Verweisen auf gelöschte Konten zurück.
+			// Die Forderungen des Beitragsmoduls sind Zeilen derselben Tabelle.
 			$this->openItemMapper->deleteAll();
 			// Die Geschäftsjahre gehören zum Datenbestand und gehen mit; das
 			// Änderungsprotokoll bleibt bewusst erhalten (der Reset selbst wird

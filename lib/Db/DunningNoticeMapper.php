@@ -72,4 +72,15 @@ class DunningNoticeMapper extends QBMapper {
 			->where($qb->expr()->eq('stage', $qb->createNamedParameter($stage, IQueryBuilder::PARAM_INT)));
 		return $this->findEntities($qb);
 	}
+
+	/**
+	 * Beim Zurücksetzen (siehe {@see \OCA\Vereinsbuchhaltung\Service\ContributionResetService}):
+	 * die Mahnstufen gehören zu Forderungen, die es danach nicht mehr gibt.
+	 * Bliebe eine Zeile liegen, hielte sie – je nach Zähler der Posten-IDs der
+	 * Datenbank – eine neue, fremde Forderung für „schon gemahnt".
+	 */
+	public function deleteAll(): void {
+		$qb = $this->db->getQueryBuilder();
+		$qb->delete($this->getTableName())->executeStatement();
+	}
 }

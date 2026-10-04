@@ -108,4 +108,15 @@ class ReturnedDebitMapper extends QBMapper {
 		}
 		return $returned;
 	}
+
+	/**
+	 * Beim Zurücksetzen (siehe {@see \OCA\Vereinsbuchhaltung\Service\ContributionResetService}):
+	 * eine Rücklastschrift hängt an einem Einzugsposten (Unique-Index auf
+	 * `debit_item_id`) und verweist auf Gebührenforderung und Buchung – alles
+	 * Daten, die der Reset entfernt.
+	 */
+	public function deleteAll(): void {
+		$qb = $this->db->getQueryBuilder();
+		$qb->delete($this->getTableName())->executeStatement();
+	}
 }
