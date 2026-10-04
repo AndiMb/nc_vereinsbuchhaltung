@@ -133,6 +133,17 @@ class OpenItem extends Entity implements \JsonSerializable {
 		return $this->memberId !== null && $this->type !== null;
 	}
 
+	/**
+	 * Ob diese Zeile dem Beitragsmodul gehört, also `memberId` ODER `type` trägt
+	 * (Issue #121). Strenger als {@see isClaim()}: das Modul legt beide immer
+	 * zusammen an, eine Zeile mit nur einem von beiden gäbe es nur nach einem
+	 * Eingriff von außen – sie soll über die generischen Wege trotzdem nicht
+	 * bearbeitbar sein, denn ein freier Posten ist sie nicht.
+	 */
+	public function belongsToClaimModule(): bool {
+		return $this->memberId !== null || $this->type !== null;
+	}
+
 	public function jsonSerialize(): array {
 		return [
 			'id' => $this->id,
