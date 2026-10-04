@@ -10,9 +10,11 @@ use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\Export\PrintableReportPage;
 use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
 use OCA\Vereinsbuchhaltung\Service\MandateDocumentService;
+use OCA\Vereinsbuchhaltung\Service\MandateExpiryCalculator;
 use OCA\Vereinsbuchhaltung\Service\MandateFormRenderer;
 use OCA\Vereinsbuchhaltung\Service\MandateLegalTextService;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
+use OCA\Vereinsbuchhaltung\Service\OpenItemService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -48,6 +50,8 @@ class MandateController extends Controller {
 		private MandateActivationService $activation,
 		private MandateLegalTextService $legalText,
 		private MandateFormRenderer $formRenderer,
+		private MandateExpiryCalculator $expiryCalculator,
+		private OpenItemService $openItems,
 		private PermissionService $permissions,
 		private IUserSession $userSession,
 		private IConfig $config,
@@ -70,6 +74,15 @@ class MandateController extends Controller {
 		$data['storyText'] = $mandate->storyText($this->l10n);
 		$data['hasDocument'] = $this->documents->hasDocument($mandate);
 		$data['showMissingDocumentWarning'] = $this->documents->showMissingDocumentWarning() && !$data['hasDocument'] && $mandate->isLive();
+		// 36-Monats-Verfall (Issue #100, Mitglieder-Akte): nur ein tatsächlich
+		// vorgelegtes Mandat (aktiv/ausgesetzt) hat eine laufende Frist – bei
+		// einem Entwurf stünde sonst ein Ablaufdatum da, das erst mit der
+		// Aktivierung zu laufen beginnt. Das Warnfenster entscheidet der
+		// Rechner (nicht die Oberfläche), damit die Zahl nur an einer Stelle
+		// steht.
+		$running = in_array($mandate->getStatus(), [Mandate::STATUS_ACTIVE, Mandate::STATUS_SUSPENDED], true);
+		$data['expiresAt'] = $running ? $this->expiryCalculator->expiresAt($mandate)?->format('Y-m-d') : null;
+		$data['expiryWarning'] = $this->expiryCalculator->needsExpiryWarning($mandate, new \DateTimeImmutable('today'));
 		return $data;
 	}
 
@@ -96,6 +109,14 @@ class MandateController extends Controller {
 		$data = $this->decorate($mandate);
 		$data['history'] = array_map(fn ($e) => $e->jsonSerialize(), $this->service->history($id));
 		$data['amendments'] = array_map(fn ($a) => $a->jsonSerialize(), $this->service->amendments($id));
+		// Nur für die Akte (Issue #100), bewusst nicht in decorate(): das
+		// laufen index()/byMember() für jede Zeile der Mitgliederliste durch.
+		$data['activationLink'] = $mandate->isElectronic() && $mandate->getStatus() === Mandate::STATUS_DRAFT
+			? $this->activation->linkStatus($id)
+			: null;
+		// „Offene Summe“ der Reibungsdialoge (Widerruf, Kontoinhaberwechsel;
+		// Spec §3.4) – dieselbe Rechnung wie im Self-Service.
+		$data['openClaimsTotalCents'] = $this->openItems->openClaimsTotalCents($mandate->getMemberId());
 		return new DataResponse($data);
 	}
 
@@ -232,8 +253,8 @@ class MandateController extends Controller {
 
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
-	public function resume(int $id): DataResponse {
-		return $this->guarded(fn () => $this->service->resume($id));
+	public function resume(int $id, string $note): DataResponse {
+		return $this->guarded(fn () => $this->service->resume($id, $note));
 	}
 
 	#[NoAdminRequired]

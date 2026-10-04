@@ -294,11 +294,20 @@ class MandateService {
 
 	/**
 	 * Entsperren: nur manuell, keine Auto-Entsperrung (Spec §2.2) – dass
-	 * dieser Aufruf überhaupt stattfindet, ist bereits der manuelle Akt.
+	 * dieser Aufruf überhaupt stattfindet, ist bereits der manuelle Akt. Das
+	 * Aufheben verlangt wie die Sperre selbst eine Pflicht-Notiz („nur
+	 * manuelles Aufheben mit Pflicht-Notiz“, Spec §2.2, Issue #100): sie
+	 * landet in der Historie und im Audit-Log – das Mandat selbst vergisst
+	 * die Sperr-Felder mit dem Entsperren, ohne Notiz bliebe der Grund
+	 * („Klärung erfolgt“) nirgends festgehalten.
 	 *
-	 * @throws \InvalidArgumentException wenn der Übergang nicht erlaubt ist
+	 * @throws \InvalidArgumentException wenn die Notiz fehlt oder der Übergang nicht erlaubt ist
 	 */
-	public function resume(int $id): Mandate {
+	public function resume(int $id, string $note): Mandate {
+		$note = trim($note);
+		if ($note === '') {
+			throw new \InvalidArgumentException($this->l10n->t('Für das Entsperren ist eine Notiz Pflicht.'));
+		}
 		$mandate = $this->mapper->find($id);
 		$this->stateMachine->assertCanResume($mandate);
 
@@ -309,8 +318,8 @@ class MandateService {
 		$mandate->setSuspensionNote(null);
 		$mandate = $this->mapper->update($mandate);
 
-		$this->audit->log('SEPA-Mandat entsperrt', 'mandate', $mandate->getId(), ['referenz' => $mandate->getMandateReference()]);
-		$this->logEvent($mandate, $this->l10n->t('Mandat entsperrt'), MandateEvent::ACTOR_STAFF);
+		$this->audit->log('SEPA-Mandat entsperrt', 'mandate', $mandate->getId(), ['referenz' => $mandate->getMandateReference(), 'notiz' => $note]);
+		$this->logEvent($mandate, $this->l10n->t('Mandat entsperrt: %s', [$note]), MandateEvent::ACTOR_STAFF);
 		return $mandate;
 	}
 
