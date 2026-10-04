@@ -505,6 +505,11 @@ test.describe('Entwurf-Mandat im Self-Service (Mein Beitrag)', () => {
 
 	test('Ohne Self-Service-Zugang (kein verknüpftes Mitglied) gibt es 403', async ({ request }) => {
 		// USERS.revisor hat eine App-Rolle, aber keine Mitglieder-Verknüpfung – der Self-Service-Kanal braucht die Verknüpfung, keine Rolle.
+		// Andere Specs (23) verknüpfen dieses Konto und `resetBook()` räumt Mitglieder nicht: die Vorbedingung selbst herstellen,
+		// sonst käme die Anfrage mit aufgelöstem Mitglied beim Dienst an (400 „kein Entwurf“ statt 403).
+		for (const linked of (await api.listMembers(request)).filter((m) => m.ncUserId === USERS.revisor)) {
+			await api.unlinkMember(request, linked.id)
+		}
 		const resp = await api.selfDiscardMandateDraft(request, { user: USERS.revisor, expectOk: false })
 		expect(resp.status()).toBe(403)
 	})

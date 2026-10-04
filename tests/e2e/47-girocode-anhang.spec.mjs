@@ -72,14 +72,23 @@ async function runDunningJob() {
 	await runOcc(['background-job:execute', String(job.id), '--force-execute'], { container })
 }
 
+/**
+ * Die GiroCode-Anhänge einer Mail. Das Mail-Template von Nextcloud bettet außerdem das Instanz-Logo als PNG-Teil
+ * (`filename: "logo"`) ein; es ist kein Anhang des Mahnversands und zählt nicht mit.
+ */
+function giroCodesOf(mail) {
+	return mail.attachments.filter((a) => /^girocode-\d+\.png$/.test(a.filename || ''))
+}
+
 /** Eine Zahlungsaufforderung trägt je Position einen gültigen GiroCode mit den Daten dieser Position. */
 async function expectGiroCodePerPosition(mail, claims, positions, dueDate) {
 	expect(mail.subject).toContain(`Zahlungsaufforderung von ${CLUB_NAME}`)
 	expect(mail.text, 'Der Mailtext verweist auf die GiroCodes').toContain('GiroCode')
 
-	const byName = new Map(mail.attachments.map((a) => [a.filename, a]))
+	const giroCodes = giroCodesOf(mail)
+	const byName = new Map(giroCodes.map((a) => [a.filename, a]))
 	expect([...byName.keys()].sort(), 'ein Anhang je Position, kein Sammelbetrag').toEqual(claims.map((c) => `girocode-${c.id}.png`).sort())
-	for (const attachment of mail.attachments) {
+	for (const attachment of giroCodes) {
 		expect(attachment.contentType).toBe('image/png')
 		const info = pngInfo(attachment.data)
 		expect(info, `${attachment.filename} ist ein PNG (Signatur und IHDR)`).not.toBeNull()
@@ -160,7 +169,7 @@ test.describe('GiroCode-Anhang der Zahlungsaufforderung', () => {
 
 		const mails = await waitForMailsTo(member.email)
 		expect(mails, 'gebündelt: eine Mail je Mitglied, nicht je Position').toHaveLength(1)
-		expect(mails[0].attachments).toHaveLength(3)
+		expect(giroCodesOf(mails[0])).toHaveLength(3)
 		await expectGiroCodePerPosition(mails[0], claims, positions, dueDate)
 	})
 
@@ -197,7 +206,7 @@ test.describe('GiroCode-Anhang der Zahlungsaufforderung', () => {
 
 		const [mail] = await waitForMailsTo(member.email)
 		expect(mail.subject).toContain(`Zahlungsaufforderung von ${CLUB_NAME}`)
-		expect(mail.attachments, 'ohne Konto kein GiroCode').toHaveLength(0)
+		expect(giroCodesOf(mail), 'ohne Konto kein GiroCode').toHaveLength(0)
 		expect(mail.text).toContain('Giro Beitrag F')
 		expect(mail.text, 'der Text verspricht keinen Anhang, der nicht dran hängt').not.toContain('GiroCode')
 	})
