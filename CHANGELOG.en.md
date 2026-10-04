@@ -17,6 +17,12 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+**Changed:**
+- **Old contributions and SEPA module removed:** the mandates, fees and batch
+  collections of the previous flat module are deleted on update and not carried
+  over into the new model (issue #107); if you have such data, back it up first.
+  The members that arose from it are kept.
+
 ## [0.34.4] – 2026-09-29
 
 **Fixed:**

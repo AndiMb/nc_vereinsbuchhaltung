@@ -80,13 +80,16 @@ Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kon
 - **Prüfleitfaden** (Berichte → Auswertung): druckfertige 1-Seiten-Kurzanleitung für Kassenprüfer/innen – Rolle, Prüfschritte, wo was zu finden ist; mit Vereinsname im Kopf
 
 ### Mitgliedsbeiträge & SEPA-Lastschrift
-Optionales Zusatzmodul (Reiter „Beiträge", erscheint automatisch sobald genutzt oder über Zahnrad → Beiträge & SEPA einschaltbar), erreichbar für Verwalter **und Buchhalter** – nur die Grundeinstellungen (Gläubiger-ID, einziehendes Konto, Standardbeitrag) bleiben Verwaltern vorbehalten.
-- **Mitglieder** bestehen aus zwei unabhängigen Angaben statt einer eigenen Mitgliederverwaltung: einem **SEPA-Mandat** (IBAN, BIC, E-Mail, Unterschriftsdatum) und/oder einem **Beitrag** (Betrag, Zahlungsfrequenz, erste Fälligkeit); Zahler ist ein Nextcloud-Konto oder ein freier Name
+Optionales Zusatzmodul (Reiter „Beiträge", erscheint automatisch sobald ein Mitglied angelegt ist oder über Nextcloud-Einstellungen → Vereinsbuchhaltung → Beiträge & SEPA einschaltbar), erreichbar für Verwalter **und Buchhalter** (der Einzug lesend auch für Revisoren) – nur die Grundeinstellungen (Gläubiger-ID, einziehendes Konto, Standardbeitrag) bleiben Verwaltern vorbehalten.
+- **Mitglieder** (Person oder Organisation, auch ohne Nextcloud-Konto; eine Kontoverknüpfung entsteht nur nach Bestätigung) mit einem dreistufigen Aufnahme-Assistenten: Stammdaten → SEPA-Mandat → Beitrag
+- **Mandate mit Lebenszyklus**: Entwurf, aktiv, ausgesetzt, erloschen – auf Papier oder elektronisch per Einmal-Link, Änderung der Bankverbindung als Amendment, Nachweis-Upload, 36-Monats-Verfall mit Vorwarnung; **widerrufen statt gelöscht**, damit erzeugte Einzüge nachvollziehbar bleiben
+- **Beitragsgruppen und Zuweisungen**: Monatsbeitrag mit Untergrenze, Turnus und Zahlungsart (Lastschrift oder Überweisung) je Mitglied; die Forderungen entstehen automatisch aus dem Terminplan, manuelle Einzelforderungen sind möglich
 - **Standard-Beitrag**: einmal hinterlegter Betrag/Frequenz belegt „Mitglied aufnehmen" vor und greift auch im CSV-Import, wenn eine Zeile ein Startdatum, aber keinen eigenen Betrag hat – bei 80–100 Mitgliedern mit demselben Satz sonst 80–100 Mal derselbe Wert von Hand
-- **CSV-Massenimport**: Prüflauf zeigt je Zeile, was entstehen würde, bevor etwas angelegt wird; Spaltennamen deutsch/englisch, beliebige Reihenfolge, unbekannte Spalten werden übergangen; E-Mail-Validierung akzeptiert Umlaute im lokalen Teil (z. B. `m.müller@gmx.de`)
-- **Beitragsfälligkeit**: erzeugt automatisch offene Posten; Rückstand (rückwirkend angelegte Beiträge) lässt sich mit „Nachholen" auf einen Schlag erzeugen statt eine Periode pro Tag abzuwarten
-- **SEPA-Sammeleinzug**: Vorschau aller fälligen offenen Posten mit aktivem Mandat, Erzeugen, XML-Export (**pain.008**), Vorankündigung per E-Mail (14-Tage-Frist des SEPA-Regelwerks, mit Warnung bei kürzerem Vorlauf), Verbuchen als ausgeführt (schließt alle enthaltenen offenen Posten in einem Schritt), Rücklastschriften werden beim nächsten Kontoauszugs-Import automatisch erkannt und der Posten wieder geöffnet
-- **Mandat widerrufen statt löschen**: erzeugte Einreichungen bleiben nachvollziehbar; Bankverbindung wechseln hängt bestehende Beiträge und offene Posten korrekt auf das neue Mandat um
+- **CSV-Massenimport**: legt Mitglieder samt Mandat und Zuweisung an; Prüflauf zeigt je Zeile, was entstehen würde, bevor etwas angelegt wird; Spaltennamen deutsch/englisch, beliebige Reihenfolge, unbekannte Spalten werden übergangen; E-Mail-Validierung akzeptiert Umlaute im lokalen Teil (z. B. `m.müller@gmx.de`)
+- **Einzugszyklus**: Zeitstrahl der Einzugstermine, Vorabinfo per E-Mail (Standard 14 Tage vorher), **Freigabe** (Beträge und Bankdaten werden eingefroren, die **pain.008**-Datei entsteht) und Einreichung als zwei getrennte Schritte; Lauf verwerfen oder nach hinten verschieben, solange nichts eingereicht ist
+- **Bankabgleich**: Sammelgutschriften, Rücklastschriften (mit Grund in Klartext) und Zahlungseingänge aus dem Kontoauszugs-Import erscheinen als Vorschläge mit Begründung und werden erst nach Ihrem Urteil verbucht
+- **Mahnwesen und Aufgaben**: Zahlungsaufforderung, Zahlungserinnerung und Mahnung nach Abstand; Stundung, Erlass und Storno; eine Aufgabenliste für Störfälle statt stiller Fehler
+- **Mein Beitrag** (Self-Service für verknüpfte Konten), informelle **Beitragsbestätigung**, **Datenübersicht** nach Art. 15 DSGVO und Anonymisierung nach Ablauf der Aufbewahrungsfrist
 
 ### Organisation & Sicherheit
 - **Berechtigungsrollen**: Verwalter – Buchhalter – Revisor (nur Lesen); NC-Admins sind immer Verwalter; Rollen für Nutzer und Gruppen
@@ -112,19 +115,26 @@ vereinsbuchhaltung/
 │   │                  OpenItem, Branding (Logo/Farbe), Help (Handbuch,
 │   │                  Prüfleitfaden), Demo (Beispielverein),
 │   │                  Sync (Kollaboration), Year (Jahresabschluss), Audit,
-│   │                  CostCenter, SepaMandate, MembershipFee, SepaBatch,
-│   │                  MemberImport (Beiträge & SEPA, ab Rolle Buchhalter)
+│   │                  CostCenter, Member, MemberImport, Mandate, MandateConsent,
+│   │                  MandateLegalText, ContributionGroup, Assignment, Claim,
+│   │                  DueDateSchedule, DebitBatch, SepaImport,
+│   │                  BankReconciliation, Self, Task (Beiträge & SEPA, Rollen
+│   │                  siehe Handbuch 14.1)
 │   ├── Db/            Entities + QBMapper (accounts, bank_tx, journal, journal_line,
 │   │                  costcenters, budgets, budget_snapshots, open_items,
 │   │                  permissions, rules, attachments, year_close, audit_log,
-│   │                  sepa_mandates, membership_fees, sepa_batches,
-│   │                  sepa_batch_items)
+│   │                  members, mandates, contribution_groups, assignments,
+│   │                  debit_batches, debit_items, returned_debits,
+│   │                  dunning_notices, bank_tx_sepa_details, tasks)
 │   │                  + TransactionRunner (DB-Transaktionsklammer)
 │   ├── Middleware/    PermissionMiddleware (Rechteprüfung, 403/423),
 │   │                  RevisionMiddleware (Änderungsstand für das Polling),
 │   │                  RequiresRole (Attribut zur Rechteprüfung je Methode)
 │   ├── Migration/     Schema-Migrationen (vbh_* Tabellen)
-│   ├── BackgroundJob/ ImportWatchFolderJob (stündlicher Blick in den Wachordner)
+│   ├── BackgroundJob/ ImportWatchFolderJob (stündlicher Blick in den Wachordner),
+│   │                  ContributionDueCycleJob (täglicher Einzugszyklus:
+│   │                  Forderungen, Vorabinfo), DunningLadderJob (Mahnstufen),
+│   │                  MandateExpiryJob, MandateDepartureJob, MemberDepartureJob
 │   ├── Service/       CamtCsvParser, ImportService, WatchFolderService,
 │   │                  XbucParser, XbucImportService, AccountService,
 │   │                  BookingService, JournalService, EntryNumberService,
@@ -133,15 +143,18 @@ vereinsbuchhaltung/
 │   │                  BudgetSnapshotService, OpenItemService, RevisionService,
 │   │                  YearCloseService, AuditService, BrandingService,
 │   │                  CostCenterService, CsvFormatter, DemoDataService,
-│   │                  EmailValidator, IbanValidator, BillingPeriod (Beiträge:
-│   │                  Fälligkeits-/Rückstandsrechnung), SepaMandateService,
-│   │                  MembershipFeeService, SepaBatchService,
-│   │                  SepaNotificationService (Vorankündigung per Mail),
-│   │                  SepaReturnDetectionService (Rücklastschriften),
-│   │                  MemberImportService
+│   │                  EmailValidator, IbanValidator, BillingPeriod
+│   │                  (Frequenz-Schlüssel), MemberService, MemberImportService,
+│   │                  MandateService (Lebenszyklus), ContributionGroupService,
+│   │                  AssignmentService, ClaimService, ClaimGenerationService
+│   │                  (Forderungen aus dem Terminplan),
+│   │                  ContributionPreNotificationService (Vorabinfo per Mail),
+│   │                  DebitBatchService (Freigabe & Einreichung),
+│   │                  DunningLadderService (Mahnwesen)
 │   ├── Service/Sepa/  MemberCsvParser, PainXmlBuilder (pain.008-XML),
-│   │                  SepaCreditor, SepaReference (Mandatsreferenz),
-│   │                  SepaText
+│   │                  SepaCreditor, SepaReference (Referenzen), SepaText,
+│   │                  SepaMatchingService/SepaImportConfirmationService
+│   │                  (Bankabgleich)
 │   └── Service/Statement/
 │                      Umsatzquellen: StatementParser (Schnittstelle),
 │                      Camt053Parser, Mt940Parser, StatementParserRegistry
@@ -154,15 +167,16 @@ vereinsbuchhaltung/
 │   ├── composables/   geteilter Zustand als reactive()-Singletons je Fachbereich
 │   │                  (useAuth, useYears, useAccounts, useBalances, useJournal,
 │   │                  useOpenItems, usePermissions, useSync, useCostCenters,
-│   │                  useRules, useSort, useConfirm, useMembershipFees,
-│   │                  useSepaMandates, useSepaBatches)
+│   │                  useRules, useSort, useConfirm, useMembers, useMandates,
+│   │                  useAssignments, useContributionGroups, useClaims,
+│   │                  useDebitRuns)
 │   ├── components/    Tabs (DashboardTab/BookingsTab/AccountsTab/ReportsTab/
 │   │                  ContributionsTab), Dialoge (BookingDialog/
 │   │                  SplitAssignDialog/AccountDialog/ImportDialog/
 │   │                  BudgetSnapshotModal/HelpModal/SetupWizard),
 │   │                  Beiträge & SEPA (MembersList/MemberDialog/
-│   │                  MemberImportDialog/MemberCard/SepaBatchPanel/
-│   │                  BankAccountChangeDialog), Berichte-Pflege
+│   │                  MemberImportDialog/MemberCard/MandatePanel/
+│   │                  ContributionGroupsPanel/EinzugPanel), Berichte-Pflege
 │   │                  (RulesPanel/CostCenterPanel/SphereAssignPanel),
 │   │                  Settings-* (Club/Attachments/StatementWatch/
 │   │                  SepaBasics/Permissions/XbucImport/YearClose),
@@ -195,16 +209,19 @@ vereinsbuchhaltung/
 | `vbh_budgets` | Finanzplan (Konto × Jahr × Betrag in Cent + Notiz) |
 | `vbh_budget_snapshots` | eingefrorene Plan-Stände (Jahr, Label, Zeitpunkt) |
 | `vbh_budget_snap_items` | Positionen eines Plan-Stands (inkl. eingefrorener Konto-Stammdaten) |
-| `vbh_open_items` | offene Posten (Debitor, Betrag, Fälligkeit, Status, optional Konto/Buchung) |
+| `vbh_open_items` | offene Posten (Debitor, Betrag, Fälligkeit, Status, optional Konto/Buchung); zugleich die Forderungen des Beitragsmoduls (Mitglied, Art, Zuweisung, Periode, Stundung, Erledigungsvermerk) |
 | `vbh_rules` | Auto-Zuordnungsregeln (Feld, Suchtext, Gegenkonto, Priorität) |
 | `vbh_attachments` | Belege je Buchungssatz (Dateiname, MIME, Größe; im Wächter-Ordner zusätzlich Nextcloud-Datei-ID und Besitzer) |
 | `vbh_permissions` | Berechtigungen (principal_type, principal_id, Rolle) |
 | `vbh_periods` | Geschäftsjahre (Bezeichnung, Von/Bis) samt Festschreibung (wann, von wem) |
 | `vbh_audit_log` | Änderungsprotokoll (Zeitpunkt, Nutzer, Aktion, Objekt, Details) |
-| `vbh_sepa_mandates` | SEPA-Lastschriftmandate (IBAN, BIC, E-Mail, Mandatsreferenz, Status: aktiv/widerrufen) |
-| `vbh_membership_fees` | Mitgliedsbeiträge (Betrag in Cent, Frequenz, nächste Fälligkeit, optional verknüpftes Mandat/Konto) |
-| `vbh_sepa_batches` | erzeugte SEPA-Sammeleinzüge (Fälligkeitstag, Gläubiger-Angaben zum Erzeugungszeitpunkt, Status) |
-| `vbh_sepa_batch_items` | Zeilen eines Sammeleinzugs (Betrag, Mandat, offener Posten, Rücklastschrift-Status) – bleiben auch nach Bezahlung/Storno bestehen |
+| `vbh_members` | Mitglieder (Person oder Organisation, Kontaktdaten, Mitgliedsnummer, Ein-/Austritt, optionale Verknüpfung mit einem Nextcloud-Konto) |
+| `vbh_mandates` (+ `vbh_mandate_amendments`, `_events`, `_legal_text_versions`, `_activation_tokens`) | SEPA-Lastschriftmandate mit Lebenszyklus (Entwurf, aktiv, ausgesetzt, erloschen), Änderungen der Bankverbindung, Ereignisverlauf, Rechtstext-Fassungen und Einmal-Links |
+| `vbh_contribution_groups`, `vbh_assignments` (+ `vbh_assignment_events`) | Beitragsgruppen und die Zuweisungen der Mitglieder (Monatsbeitrag, Turnus, Zahlungsart, Gültigkeit) |
+| `vbh_debit_batches`, `vbh_debit_items` | Lastschriftläufe (freigegeben, eingereicht, verworfen) und ihre bei der Freigabe eingefrorenen Posten – bleiben auch nach einem Verwerfen als Historie bestehen |
+| `vbh_returned_debits`, `vbh_dunning_notices` | Rücklastschriften und versandte Mahnstufen |
+| `vbh_bank_tx_sepa_details`, `vbh_incoming_pay_rejects` | SEPA-Detailzeilen der importierten Bankumsätze (Bankabgleich) und abgelehnte Zahlungseingangs-Vorschläge |
+| `vbh_tasks` | Aufgaben und Hinweise, die aus Ereignissen entstehen |
 
 Beträge werden durchgängig als **Integer in Cent** gespeichert (keine Float-Rundungsfehler).
 

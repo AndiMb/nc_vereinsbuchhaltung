@@ -19,6 +19,12 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+**Geändert:**
+- **Altes Beitrags- und SEPA-Modul entfernt:** Die Mandate, Beiträge und
+  Sammeleinzüge des bisherigen flachen Moduls werden beim Update gelöscht und
+  nicht in das neue Modell übernommen (Issue #107); wer solche Daten hat, sichert
+  sie vorher. Die Mitglieder, die daraus entstanden sind, bleiben erhalten.
+
 ## [0.34.4] – 2026-09-29
 
 **Behoben:**

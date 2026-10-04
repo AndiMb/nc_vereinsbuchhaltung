@@ -81,13 +81,16 @@ A lightweight accounting app for nonprofit clubs, integrated directly into Nextc
 - **Audit guide** (Reports → Evaluation): a print-ready one-page quick guide for auditors – role, audit steps, where to find what; with the club name in the header
 
 ### Membership fees & SEPA direct debit
-An optional add-on module (the "Contributions" tab, appears automatically once used, or can be switched on under gear icon → Contributions & SEPA), available to administrators **and bookkeepers** – only the basic settings (creditor ID, collecting account, default fee) remain reserved for administrators.
-- **Members** consist of two independent pieces of information instead of a dedicated member-management system: a **SEPA mandate** (IBAN, BIC, email, signature date) and/or a **fee** (amount, payment frequency, first due date); the payer is a Nextcloud account or a free-text name
+An optional add-on module (the "Contributions" tab, appears automatically once a member exists, or can be switched on under Nextcloud settings → Vereinsbuchhaltung → Contributions & SEPA), available to administrators **and bookkeepers** (the collection tab read-only for auditors as well) – only the basic settings (creditor ID, collecting account, default fee) remain reserved for administrators.
+- **Members** (person or organization, also without a Nextcloud account; an account link only arises after confirmation) with a three-step intake wizard: master data → SEPA mandate → contribution
+- **Mandates with a lifecycle**: draft, active, suspended, ended – on paper or electronically via a one-time link, bank-detail changes as an amendment, proof upload, 36-month expiry with advance warning; **revoked instead of deleted**, so generated collections stay traceable
+- **Contribution groups and assignments**: a monthly fee with a lower limit, interval and payment method (direct debit or bank transfer) per member; claims arise automatically from the schedule, manual one-off claims are possible
 - **Default fee**: an amount/frequency stored once pre-fills "add member" and is also used in the CSV import when a row has a start date but no amount of its own – with 80–100 members on the same rate, otherwise the same value would need to be entered by hand 80–100 times
-- **CSV bulk import**: a dry run shows, row by row, what would be created before anything is actually created; column names in German/English, any order, unknown columns are ignored; email validation accepts umlauts in the local part (e.g. `m.müller@gmx.de`)
-- **Fee due dates**: automatically create open items; a backlog (retroactively created fees) can be caught up in one step with "catch up" instead of waiting one period at a time
-- **SEPA batch collection**: preview of all due open items with an active mandate, generation, XML export (**pain.008**), pre-notification by email (14-day notice per the SEPA rulebook, with a warning if the lead time is shorter), posting as executed (closes all included open items in one step); returned direct debits are detected automatically on the next bank-statement import and the item is reopened
-- **Revoke a mandate instead of deleting it**: generated batches stay traceable; changing a bank account correctly re-links existing fees and open items to the new mandate
+- **CSV bulk import**: creates members together with their mandate and assignment; a dry run shows, row by row, what would be created before anything is actually created; column names in German/English, any order, unknown columns are ignored; email validation accepts umlauts in the local part (e.g. `m.müller@gmx.de`)
+- **Collection cycle**: a timeline of collection dates, pre-notification by email (default 14 days ahead), **release** (amounts and bank details are frozen, the **pain.008** file is generated) and submission as two separate steps; a run can be discarded or postponed as long as nothing has been submitted
+- **Bank reconciliation**: batch credits, returned debits (with the reason in plain language) and incoming payments from the bank-statement import appear as suggestions with a justification and are only posted after your decision
+- **Dunning and tasks**: payment request, payment reminder and dunning letter by interval; deferral, waiver and cancellation; a task list for exceptions instead of silent failures
+- **My contribution** (self-service for linked accounts), an informal **contribution confirmation**, a **data overview** under Art. 15 GDPR and anonymization after the retention period
 
 ### Organization & security
 - **Permission roles**: administrator – bookkeeper – auditor (read-only); Nextcloud admins are always administrators; roles for users and groups
@@ -113,19 +116,26 @@ vereinsbuchhaltung/
 │   │                  OpenItem, Branding (logo/color), Help (manual,
 │   │                  audit guide), Demo (sample club),
 │   │                  Sync (collaboration), Year (year-end closing), Audit,
-│   │                  CostCenter, SepaMandate, MembershipFee, SepaBatch,
-│   │                  MemberImport (fees & SEPA, bookkeeper role or above)
+│   │                  CostCenter, Member, MemberImport, Mandate, MandateConsent,
+│   │                  MandateLegalText, ContributionGroup, Assignment, Claim,
+│   │                  DueDateSchedule, DebitBatch, SepaImport,
+│   │                  BankReconciliation, Self, Task (fees & SEPA, roles see
+│   │                  manual 14.1)
 │   ├── Db/            Entities + QBMapper (accounts, bank_tx, journal, journal_line,
 │   │                  costcenters, budgets, budget_snapshots, open_items,
 │   │                  permissions, rules, attachments, year_close, audit_log,
-│   │                  sepa_mandates, membership_fees, sepa_batches,
-│   │                  sepa_batch_items)
+│   │                  members, mandates, contribution_groups, assignments,
+│   │                  debit_batches, debit_items, returned_debits,
+│   │                  dunning_notices, bank_tx_sepa_details, tasks)
 │   │                  + TransactionRunner (DB transaction wrapper)
 │   ├── Middleware/    PermissionMiddleware (permission checks, 403/423),
 │   │                  RevisionMiddleware (change state for polling),
 │   │                  RequiresRole (attribute for per-method permission checks)
 │   ├── Migration/     schema migrations (vbh_* tables)
-│   ├── BackgroundJob/ ImportWatchFolderJob (hourly check of the watch folder)
+│   ├── BackgroundJob/ ImportWatchFolderJob (hourly check of the watch folder),
+│   │                  ContributionDueCycleJob (daily collection cycle: claims,
+│   │                  pre-notification), DunningLadderJob (dunning stages),
+│   │                  MandateExpiryJob, MandateDepartureJob, MemberDepartureJob
 │   ├── Service/       CamtCsvParser, ImportService, WatchFolderService,
 │   │                  XbucParser, XbucImportService, AccountService,
 │   │                  BookingService, JournalService, EntryNumberService,
@@ -134,15 +144,18 @@ vereinsbuchhaltung/
 │   │                  BudgetSnapshotService, OpenItemService, RevisionService,
 │   │                  YearCloseService, AuditService, BrandingService,
 │   │                  CostCenterService, CsvFormatter, DemoDataService,
-│   │                  EmailValidator, IbanValidator, BillingPeriod (fees:
-│   │                  due-date/backlog calculation), SepaMandateService,
-│   │                  MembershipFeeService, SepaBatchService,
-│   │                  SepaNotificationService (pre-notification by email),
-│   │                  SepaReturnDetectionService (returned direct debits),
-│   │                  MemberImportService
+│   │                  EmailValidator, IbanValidator, BillingPeriod
+│   │                  (frequency keys), MemberService, MemberImportService,
+│   │                  MandateService (lifecycle), ContributionGroupService,
+│   │                  AssignmentService, ClaimService, ClaimGenerationService
+│   │                  (claims from the schedule),
+│   │                  ContributionPreNotificationService (pre-notification by
+│   │                  email), DebitBatchService (release & submission),
+│   │                  DunningLadderService (dunning)
 │   ├── Service/Sepa/  MemberCsvParser, PainXmlBuilder (pain.008 XML),
-│   │                  SepaCreditor, SepaReference (mandate reference),
-│   │                  SepaText
+│   │                  SepaCreditor, SepaReference (references), SepaText,
+│   │                  SepaMatchingService/SepaImportConfirmationService
+│   │                  (bank reconciliation)
 │   └── Service/Statement/
 │                      transaction sources: StatementParser (interface),
 │                      Camt053Parser, Mt940Parser, StatementParserRegistry
@@ -155,15 +168,16 @@ vereinsbuchhaltung/
 │   ├── composables/   shared state as reactive() singletons per domain
 │   │                  (useAuth, useYears, useAccounts, useBalances, useJournal,
 │   │                  useOpenItems, usePermissions, useSync, useCostCenters,
-│   │                  useRules, useSort, useConfirm, useMembershipFees,
-│   │                  useSepaMandates, useSepaBatches)
+│   │                  useRules, useSort, useConfirm, useMembers, useMandates,
+│   │                  useAssignments, useContributionGroups, useClaims,
+│   │                  useDebitRuns)
 │   ├── components/    tabs (DashboardTab/BookingsTab/AccountsTab/ReportsTab/
 │   │                  ContributionsTab), dialogs (BookingDialog/
 │   │                  SplitAssignDialog/AccountDialog/ImportDialog/
 │   │                  BudgetSnapshotModal/HelpModal/SetupWizard),
 │   │                  fees & SEPA (MembersList/MemberDialog/
-│   │                  MemberImportDialog/MemberCard/SepaBatchPanel/
-│   │                  BankAccountChangeDialog), report maintenance
+│   │                  MemberImportDialog/MemberCard/MandatePanel/
+│   │                  ContributionGroupsPanel/EinzugPanel), report maintenance
 │   │                  (RulesPanel/CostCenterPanel/SphereAssignPanel),
 │   │                  Settings-* (Club/Attachments/StatementWatch/
 │   │                  SepaBasics/Permissions/XbucImport/YearClose),
@@ -196,16 +210,19 @@ vereinsbuchhaltung/
 | `vbh_budgets` | financial plan (account × year × amount in cents + note) |
 | `vbh_budget_snapshots` | frozen plan snapshots (year, label, timestamp) |
 | `vbh_budget_snap_items` | line items of a plan snapshot (incl. frozen account master data) |
-| `vbh_open_items` | open items (debtor, amount, due date, status, optional account/posting) |
+| `vbh_open_items` | open items (debtor, amount, due date, status, optional account/posting); also the claims of the fees module (member, type, assignment, period, deferral, settlement note) |
 | `vbh_rules` | auto-assignment rules (field, search text, counter-account, priority) |
 | `vbh_attachments` | receipts per posting (file name, MIME type, size; with a watch folder also the Nextcloud file id and owner) |
 | `vbh_permissions` | permissions (principal_type, principal_id, role) |
 | `vbh_periods` | fiscal years (label, from/to) including finalization (when, by whom) |
 | `vbh_audit_log` | change log (timestamp, user, action, object, details) |
-| `vbh_sepa_mandates` | SEPA direct debit mandates (IBAN, BIC, email, mandate reference, status: active/revoked) |
-| `vbh_membership_fees` | membership fees (amount in cents, frequency, next due date, optionally linked mandate/account) |
-| `vbh_sepa_batches` | generated SEPA batch collections (due date, creditor details at generation time, status) |
-| `vbh_sepa_batch_items` | line items of a batch (amount, mandate, open item, return-debit status) – kept even after payment/cancellation |
+| `vbh_members` | members (person or organization, contact details, member number, join/leave dates, optional link to a Nextcloud account) |
+| `vbh_mandates` (+ `vbh_mandate_amendments`, `_events`, `_legal_text_versions`, `_activation_tokens`) | SEPA direct debit mandates with a lifecycle (draft, active, suspended, ended), bank-detail amendments, event history, legal-text versions and one-time links |
+| `vbh_contribution_groups`, `vbh_assignments` (+ `vbh_assignment_events`) | contribution groups and the members' assignments (monthly fee, interval, payment method, validity) |
+| `vbh_debit_batches`, `vbh_debit_items` | direct debit runs (released, submitted, discarded) and their items, frozen at release – kept as history even after a run is discarded |
+| `vbh_returned_debits`, `vbh_dunning_notices` | returned direct debits and dunning notices sent |
+| `vbh_bank_tx_sepa_details`, `vbh_incoming_pay_rejects` | SEPA detail rows of imported bank transactions (bank reconciliation) and rejected incoming-payment suggestions |
+| `vbh_tasks` | tasks and notices that arise from events |
 
 Amounts are stored consistently as **integers in cents** (no float rounding errors).
 

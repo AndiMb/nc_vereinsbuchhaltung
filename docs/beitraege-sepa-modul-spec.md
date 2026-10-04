@@ -8,6 +8,7 @@
 > Punktes bitte im zugehörigen Scoping-Issue nachfragen.
 
 **Status:** Review-Durchgang mit Florian abgeschlossen (2026-09-16, HITL-Schritt von T18) — freigegeben zur Übergabe
+**Umsetzung:** Alt-Modul entfernt (Cutover, Issue #107, Migration `000157`): das flache Beiträge/SEPA-Modul (`vbh_sepa_mandates`, `vbh_membership_fees`, `vbh_sepa_batches`/`_items`) ist samt Diensten, Controllern, Jobs und Oberfläche weg. Der Rest dieses Dokuments bleibt unverändert und beschreibt in §1.5, §4, §11 und §12 auch den Zustand vor dem Umbau.
 **Stand:** 2026-09-16 · Quelle: [Wayfinder-Map](../map.md), 24 abgeschlossene Entscheidungs-/Research-/Prototyp-Tickets
 **Zielrepo bei Übergabe:** `docs/` in [AndiMb/nc_vereinsbuchhaltung](https://github.com/AndiMb/nc_vereinsbuchhaltung)
 
