@@ -52,7 +52,11 @@ jedem Testlauf zurück, die Tests selbst starten also immer vom selben Stand.
 - **Jede Spec-Datei setzt sich ihren Bestand selbst auf**: `api.resetBook()`
   im `beforeAll`, dann eigenes Seeding über die API-Helfer aus
   `fixtures/nextcloud.mjs`. Geprüft wird in der Oberfläche, aufgebaut über
-  die API – das hält die Läufe schnell.
+  die API – das hält die Läufe schnell. `resetBook()` räumt den Buchungsbestand
+  samt allem, was an den Forderungen hängt (Lastschrift-Läufe, Posten,
+  Rücklastschriften, Mahnstufen; Issue #123), **nicht** aber Mitglieder,
+  Mandate, Zuweisungen, Beitragsgruppen und die App-Config – die legt jede
+  Spec mit eigenen Namen an (find-or-create) bzw. stellt sie selbst wieder her.
 - **Kein Test verlässt sich stillschweigend auf seine Vorgänger**: schlägt
   ein Test fehl, startet Playwright den Worker neu und `beforeAll` läuft
   erneut (setzt also zurück!). Wer Daten aus einem früheren Test braucht,

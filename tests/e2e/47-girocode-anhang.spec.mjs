@@ -26,8 +26,9 @@ import { clearCapturedMails, startMailCapture, stopMailCapture, waitForMailsTo }
 // im laufenden Container nicht herstellen, ohne die Dateien des Checkouts
 // anzufassen (EpcQrCodeGeneratorTest und DunningLadderServiceTest bilden ihn nach).
 //
-// Der Bestand ist NICHT leer: api.resetBook() räumt Buchungen, Konten und offene
-// Posten, nicht aber Mitglieder, Mandate und Läufe früherer Specs. Jeder Test
+// Der Bestand ist NICHT leer: api.resetBook() räumt Buchungen, Konten, offene
+// Posten und alles, was daran hängt (Läufe, Mahnstufen), nicht aber Mitglieder
+// und Mandate früherer Specs. Jeder Test
 // legt deshalb ein Mitglied mit eigenem Namen an und seedet seine Forderungen
 // selbst.
 
