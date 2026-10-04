@@ -7,9 +7,9 @@
 > Begründung, sind in diesem Repo aber nicht auflösbar. Bei Rückfragen zur Begründung eines
 > Punktes bitte im zugehörigen Scoping-Issue nachfragen.
 
-**Status:** Review-Durchgang mit Florian abgeschlossen (2026-09-16, HITL-Schritt von T18) — freigegeben zur Übergabe
-**Umsetzung:** Alt-Modul entfernt (Cutover, Issue #107, Migration `000157`): das flache Beiträge/SEPA-Modul (`vbh_sepa_mandates`, `vbh_membership_fees`, `vbh_sepa_batches`/`_items`) ist samt Diensten, Controllern, Jobs und Oberfläche weg. Der Rest dieses Dokuments bleibt unverändert und beschreibt in §1.5, §4, §11 und §12 auch den Zustand vor dem Umbau.
-**Stand:** 2026-09-16 · Quelle: [Wayfinder-Map](../map.md), 24 abgeschlossene Entscheidungs-/Research-/Prototyp-Tickets
+**Status:** **umgesetzt** (2026-10-05). Davor: Review-Durchgang mit Florian abgeschlossen (2026-09-16, HITL-Schritt von T18), freigegeben zur Übergabe
+**Umsetzung:** Alle Tickets sind im zentralen PR [#98](https://github.com/AndiMb/nc_vereinsbuchhaltung/pull/98) (Integrationszweig `integration/beitraege-sepa`) zusammengeführt: #65–#78 (die Bereiche dieser Spec), #99–#105 (Oberfläche), #106 (Übersetzungen), #107 (Cutover), #108 (Release-Vorbereitung) und #117–#121 (Nachträge aus Review und Rollen-Audit) – Zuordnung in [§15.1](#151-tickets). Das Alt-Modul ist entfernt (Cutover, Issue #107, Migration `000157`): das flache Beiträge/SEPA-Modul (`vbh_sepa_mandates`, `vbh_membership_fees`, `vbh_sepa_batches`/`_items`) ist samt Diensten, Controllern, Jobs und Oberfläche weg. Wo die Umsetzung von dieser Spec abweicht, steht es in [§15.2](#152-abweichungen-und-konkretisierungen); der übrige Text bleibt unverändert und beschreibt in §1.5, §4, §11 und §12 auch den Zustand vor dem Umbau.
+**Stand:** 2026-09-16 (Spec), Umsetzungsstand 2026-10-05 · Quelle: [Wayfinder-Map](../map.md), 24 abgeschlossene Entscheidungs-/Research-/Prototyp-Tickets
 **Zielrepo bei Übergabe:** `docs/` in [AndiMb/nc_vereinsbuchhaltung](https://github.com/AndiMb/nc_vereinsbuchhaltung)
 
 Dieses Dokument ist die baubereite Spezifikation für das Beiträge/SEPA-Modul, wie es die
@@ -858,6 +858,7 @@ Querschnitts-Flyout mit Badge; Self-Service = Bereich „Mein Beitrag" in dersel
 erwarteten harten Umbau (heute flaches Formular ohne Lifecycle/Gruppen). Rollensicht-
 Rückstand notiert: `revisor` sieht die Beiträge-Sektion heute gar nicht — Implementierungslücke
 gegenüber der bereits getroffenen T19-Entscheidung, kein neuer Klärungsbedarf.
+*(Geschlossen mit Issue #102: der Einzug-Unterreiter ist ab `revisor` lesend sichtbar, Mitglieder und Beitragsgruppen bleiben ab `buchhalter`.)*
 
 ---
 
@@ -1069,3 +1070,104 @@ Gemäß [T18](../tickets/T18-spec-assemblieren.md) und
    Spec vorstellt.
 4. `/to-tickets` für die Einzelissues im Upstream-Repo, entlang der Bereiche aus §3/§12.
 5. Diese Datei nach `docs/` im Upstream-Repo übergeben.
+
+*Erledigt:* alle fünf Schritte; die Umsetzung steht in [§15](#15-umsetzungsstand-und-abweichungen).
+
+---
+
+## 15. Umsetzungsstand und Abweichungen
+
+Stand 2026-10-05: die Spec ist umgesetzt, die Tickets liegen gebündelt in PR
+[#98](https://github.com/AndiMb/nc_vereinsbuchhaltung/pull/98). Dieser Abschnitt hält
+fest, welches Ticket welchen Teil der Spec lieferte und wo die Umsetzung bewusst von
+der Spec abweicht. Maßgeblich für das Verhalten ist der Code, für die Bedienung das
+[Handbuch](../HANDBUCH.md) (Kapitel 13).
+
+### 15.1 Tickets
+
+| Bereich der Spec | Ticket(s) |
+|---|---|
+| §3.1 Mitgliederverwaltung, Migration der Alt-Zahler | #65 |
+| §3.2 Mandats-Lifecycle (Papier-Weg) | #66 |
+| §3.2/§3.11 Elektronische Mandatserteilung, Mandats-Rechtstext | #67 |
+| §3.3 Beitragsgruppen, Zuweisungen, Forderungen | #68 |
+| §3.1 Aufnahme-Assistent, vollständiger CSV-Import | #69 |
+| §3.5 Einzugszyklus: Terminplan, Vorabinfo | #70 |
+| §3.5 Freigabe und Einreichung | #71 |
+| §3.6/§3.10/§5 Bankimport-Härtung, Einzugs- und Rücklastschrift-Verbuchung | #72 |
+| §3.6/§3.11 Rücklastschrift-Klassifikation, Mahnwesen | #73 |
+| §3.4 Self-Service: Zugang, Mandat-Aktionen, Beitrag-Aktionen | #74, #75, #76 |
+| §3.7 Beitragsbescheinigung (in der Oberfläche „Beitragsbestätigung") | #77 |
+| §3.8 DSGVO: Anonymisierung, Datenübersicht | #78 |
+| §6 Oberfläche: Aufgaben-Flyout, Mandat in der Akte, Einstellungen, Einzug-Reiter, Freigabe, Forderungen, Bankabgleich | #99, #100, #101, #102, #103, #104, #105 |
+| §1.4/§3.11 Übersetzungen (`en.json`, Du-Variante) | #106 |
+| §12 Cutover: Alt-Modul entfernen | #107 |
+| Release-Vorbereitung (Changelog, Handbuch, „Was ist neu", Version) | #108 |
+| Nachträge: Aufgaben-Katalog (§7), Entwurf verwerfen/korrigieren (§3.2), Rollen-Härtung (§3.9), GiroCode in echter Nextcloud (§3.6/§3.11), Offene-Posten-Regeln (§11) | #117, #118, #119, #120, #121 |
+
+### 15.2 Abweichungen und Konkretisierungen
+
+- **Enum-Werte deutsch** (Entscheidung §13.1, beim Schreiben der Einzelissues
+  umgesetzt): Mandatszustand `entwurf`/`aktiv`/`ausgesetzt`/`erloschen`,
+  Unterschriftsart `papier`/`elektronisch`/`qes`, Beendigungsgrund `widerrufen`/
+  `ersetzt`/`verfallen`/`beendet`, Sperrursprung `manuell`/`ruecklastschrift`,
+  Mitgliedstyp `person`/`organisation`, Zahlungsart `direct_debit`/`ueberweisung`,
+  Forderungstyp `beitrag`/`gebuehr`, Laufstatus `freigegeben`/`eingereicht`/`verworfen`,
+  Schweregrad `handlungsbedarf`/`hinweis`. Der Status der Forderung in
+  `vbh_open_items` bleibt wie im Bestand `open`/`paid`/`cancelled`/`waived`.
+- **Löschsperre strenger als §3.1** (#65, erweitert in #68): ein Mitglied lässt sich nur
+  löschen, solange **kein** Mandat (auch kein Entwurf, ausgesetztes oder beendetes), keine
+  Zuweisung und keine Forderung an ihm hängt – die Spec nannte nur „keine Forderung und
+  nie ein aktives Mandat". Grund: kein `member_id` darf verwaisen, solange es keine
+  Kaskaden-Logik gibt; für Datenschutzfälle bleibt die Anonymisierung.
+- **Entwurf verwerfen oder korrigieren** (#118, in §3.2 nicht vorgesehen): ein
+  Entwurf lässt sich mit Pflicht-Notiz verwerfen (neuer Beendigungsgrund `verworfen`)
+  und in IBAN, BIC und Kontoinhaber korrigieren – beides ohne Amendment, weil über einen
+  Entwurf nie etwas eingezogen wurde. Eine Korrektur macht einen ausgesendeten Einmal-Link
+  ungültig. Das Mitglied darf im Self-Service den eigenen Entwurf verwerfen, nicht
+  korrigieren.
+- **Sperrfenster im Self-Service lehnt ab** (#76): eine Änderung von Betrag oder Turnus,
+  die nach der Wirksamkeitsregel (§3.3) erst später als heute wirken dürfte, weist der
+  Self-Service mit Erklärung zurück, statt sie zu verschieben. In der Akte (Kassenführung)
+  hält die Zuweisung die Wirksamkeit nur im Ereignis fest, erzwungen wird sie dort nicht.
+- **Anonymisierung mit zwei zusätzlichen Voraussetzungen** (#78): anonymisierungsreif ist ein
+  Mitglied nach der 10-Jahres-Frist (§3.8) nur, wenn es **ausgetreten** ist und **kein
+  lebendes Mandat** mehr hat; die Fristprüfung wiederholt der Anonymisierungs-Vorgang selbst.
+  Die Aufgabe „anonymisierungsreif" ist eine abgeleitete Abfrage der Aufgabenliste, kein
+  eigener Cron-Job (§7 ließ „täglich oder seltener" offen).
+- **Persistierte Hinweise laufen ab** (#117): „NC-Konto gelöscht, Adresse übernommen" und
+  „N Mitglieder übernommen" bleiben nicht für immer stehen, sondern verschwinden nach
+  30 Tagen oder früher, sobald das Mitglied wieder ein Nextcloud-Konto hat oder nicht mehr
+  existiert (gelöscht, anonymisiert). Der Aufgaben-Katalog (§7) ist vollständig im Backend
+  umgesetzt; der Schweregrad einer Rücklastschrift-Aufgabe folgt der Rückgabe-Klasse.
+- **Rollen** (#102, #119): der Einzug-Unterreiter ist ab `revisor` lesend sichtbar (IBAN
+  maskiert, auch die alte IBAN eines Amendments und im Mandatsverlauf); Zuweisungen sind
+  auch zum Lesen erst ab `buchhalter` verfügbar; Vorwarnfenster und Vorabinfo-Vorlauf
+  ändert nur `verwalter`, die Einzugstage des Terminplans `buchhalter`. Jede Methode des
+  Moduls trägt ein ausdrückliches `#[RequiresRole]` (Ausnahmen: Self-Service unter
+  `/api/self/*`, öffentliche Zustimmungsseite), ein Strukturtest sichert das; die
+  `PermissionMiddleware` ist für unbekannte Rollennamen fail-closed.
+- **GiroCode mit `chillerlan/php-qrcode ^5.0`** statt `^6` (#98, #120): 6.x verlangt
+  PHP ≥ 8.2, die App deklariert 8.1–8.5. Nextcloud lädt von einer App nur
+  `composer/autoload.php`, nicht `vendor/autoload.php`; `Application::register()` holt
+  Letzteres nach, das Release-Paket enthält `vendor/`. Fehlt `gd` oder die Bibliothek, geht
+  die Mahnmail ohne GiroCode raus und der Fehler steht im Log.
+- **Bankabgleich als Segment im Einzug-Unterreiter** (#105, §6 ließ den Ort offen):
+  neben „Zeitstrahl & Läufe" und „Forderungen". Ein abgelehnter Zahlungseingangs-Vorschlag
+  bleibt abgelehnt (`vbh_incoming_pay_rejects`).
+- **Alt-Spalte bleibt** (#107, §1.2): `vbh_open_items.mandate_id` des Alt-Moduls wird nicht
+  entfernt (geteilte Kerntabelle, nur additive Migrationen), sie wird nur nicht mehr
+  geschrieben. Die vier Alt-Tabellen und die beiden Alt-Jobs sind weg; die Mitglieder, die
+  Migration `000138` aus den Alt-Zahlern angelegt hat, bleiben.
+- **Forderungen in der Offene-Posten-Sicht nur lesbar** (#121, bereits in §11): die
+  generischen Schreibwege lehnen Zeilen mit `member_id`/`type` mit 400 ab.
+
+### 15.3 Bekannte Grenzen
+
+- Die Anonymisierung (#78) schwärzt die strukturierten Freitextfelder, nicht aber
+  Fragmente, die beim Entstehen eines Ereignisses bereits in dessen Satztext standen
+  (etwa eine Mailadresse in „Aktivierungslink versendet an …" oder Namen in
+  „Kontoinhaber korrigiert …"). Dokumentiert als bewusst nicht adressierte Lücke in
+  `MemberAnonymizationService`.
+- Offen bis zum Merge nach `main`: der vollständige CI-Lauf einschließlich E2E (letztes
+  Kriterium von #108).

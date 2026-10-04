@@ -19,11 +19,110 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+## [0.35.0] – 2026-10-05
+
+**Neu:**
+- **Mitglieder als eigene Stammdaten:** Person oder Organisation mit Akte,
+  Mitgliedsnummer, Eintritt und Austritt, auch ohne Nextcloud-Konto; ein Konto
+  wird nur nach Ihrer Bestätigung verknüpft. Die Zahler des bisherigen Moduls
+  werden beim Update zu Mitgliedern, eine Aufgabe bittet um Prüfung von Namen
+  und Mailadressen (Issue #65).
+- **Mandate mit Lebenszyklus:** Entwurf, aktiv, ausgesetzt, erloschen – auf
+  Papier (das Unterschriftsdatum schaltet das Mandat frei) oder elektronisch.
+  Bankverbindung ändern ohne neue Unterschrift, Nachweis als Datei in
+  Nextcloud, Verlauf zu jeder Änderung und automatischer Verfall nach 36
+  Monaten ohne Einzug mit Vorwarnung (Issue #66, #100).
+- **Elektronisches Mandat:** Das Mitglied erteilt es per Einmal-Link aus einer
+  Mail, die Zustimmung aktiviert das Mandat sofort. Der Mandatstext ist
+  versioniert (Pflichtblock plus eigener Rahmen) und in den Einstellungen
+  pflegbar (Issue #67, #101).
+- **Entwurf korrigieren oder verwerfen:** Ein Mandat im Entwurf lässt sich
+  berichtigen oder mit Begründung verwerfen, ohne es vorher zu aktivieren
+  (Issue #118).
+- **Beitragsgruppen, Zuweisungen und Forderungen:** Monatsbeitrag mit
+  Untergrenze, Turnus und Zahlungsart (Lastschrift oder Überweisung),
+  angebrochene Monate zählen voll. Forderungen entstehen von selbst, dazu gibt
+  es manuelle Einzelforderungen (Issue #68).
+- **Beitragsjahr unabhängig vom Geschäftsjahr:** Es beginnt in einem frei
+  wählbaren Monat und bestimmt die Beitragsperioden (Issue #68, #101).
+- **Aufnahme-Assistent und CSV-Import:** Stammdaten, Mandat und Beitrag in drei
+  Schritten, die letzten beiden lassen sich überspringen. Der CSV-Import legt
+  Mitglieder samt Mandat und Beitrag an und zeigt vorab per Prüflauf, was
+  entstünde (Issue #69).
+- **Einzugszyklus:** Terminplan je Turnus; der tägliche Lauf legt Forderungen
+  an, kündigt den nächsten Einzug an und verschickt die Vorabinfo per Mail
+  (Standard 14 Tage vorher). Eine versäumte Frist blockiert nichts, sie
+  erscheint als Aufgabe (Issue #70).
+- **Freigabe und Einreichung:** „Freigeben & Datei erzeugen" friert Beträge und
+  Bankdaten ein und erzeugt die pain.008-Datei, „Datei ist bei der Bank
+  eingereicht" ist ein eigener Schritt. Bis dahin lässt sich der Lauf
+  verwerfen oder nach hinten verschieben; eine Kopie der Datei in einem
+  Nextcloud-Ordner ist optional (Issue #71, #103).
+- **Reiter „Einzug":** Zeitstrahl mit Vorschau des nächsten Laufs, Läufe,
+  Forderungen mit Mahnstand, Störfällen, Stundung, Erlass und Storno sowie der
+  Bankabgleich. Revisoren sehen den Einzug lesend, die IBAN maskiert
+  (Issue #102–#105).
+- **Bankabgleich:** Der Kontoauszugs-Import erkennt End-to-End-ID,
+  Mandatsreferenz und Rückgabegrund (CAMT, MT940, CSV) und schlägt mit
+  Begründung vor, welche Posten ein Umsatz deckt. Gebucht wird erst nach Ihrem
+  Urteil: Sammelgutschriften nach Erlöskonto gruppiert, Rücklastschriften mit
+  Gebührenkonto, Zahlungseingänge als Vorschlag (Issue #72, #105).
+- **Rücklastschriften und Mahnwesen:** Der Rückgabegrund steht in Klartext, je
+  nach Grund wird das Mandat gesperrt. Zahlungsaufforderung,
+  Zahlungserinnerung und Mahnung gehen gebündelt je Mitglied raus (Abstand
+  einstellbar, eine Stundung pausiert), danach erscheint eine Aufgabe für den
+  Vorstand; die Bankgebühr lässt sich optional weiterbelasten
+  (Issue #72, #73).
+- **Mahnmails tragen erstmals den GiroCode:** Jede Position hängt mit eigenem
+  GiroCode (EPC-QR) an der Mail und lässt sich so einzeln per Banking-App
+  überweisen. Fehlt PHP die Erweiterung gd, geht die Mail ohne GiroCode raus
+  und der Fehler steht im Log (Issue #73, #120).
+- **„Mein Beitrag" für Mitglieder:** Mitglieder mit verknüpftem
+  Nextcloud-Konto pflegen dort Kontaktdaten, Monatsbeitrag (nicht unter die
+  Untergrenze) und Turnus und erteilen, ändern oder widerrufen ihr Mandat –
+  sofort wirksam, mit Vorschau und Quittungsmail. Der Bereich ist ab Werk aus
+  und wird unter Einstellungen → Beiträge & SEPA eingeschaltet
+  (Issue #74–#76).
+- **Beitragsbestätigung:** Eine druckfertige, informelle Bestätigung der
+  bezahlten Beiträge je Beitragsjahr, für Mitglieder unter „Mein Beitrag", für
+  die Kassenführung in der Akte. Sie ersetzt keine Zuwendungsbestätigung nach
+  § 10b EStG (Issue #77).
+- **Datenschutz:** Die Datenübersicht liefert die Auskunft nach Art. 15 DSGVO;
+  die Anonymisierung schwärzt Name, Kontaktdaten, Bankverbindungen und
+  Freitexte eines ausgetretenen Mitglieds, zehn Jahre nach Ende des Jahres der
+  letzten Buchung und nur auf Ihre Bestätigung (Issue #78).
+- **Aufgaben in der Kopfzeile:** Das Klemmbrett (ab Buchhalter) sammelt, was
+  Aufmerksamkeit braucht – vom fehlenden Mandat bis zur fälligen Freigabe; die
+  Zahl zählt nur Handlungsbedarf. Eine Aufgabe verschwindet von selbst, sobald
+  ihre Ursache behoben ist (Issue #99, #117).
+- **Einstellungen im Überblick:** Unter Nextcloud-Einstellungen →
+  Vereinsbuchhaltung → Beiträge & SEPA lässt sich das ganze Modul bedienen:
+  Mandatsreferenz-Präfix, Ablauf-Vorwarnung, Nachweis-Ordner, Beitragsjahr,
+  Freigabe-Vorlauf, Konten für Erlöse und Rücklastschriftgebühren,
+  Weiterbelastung, Mahnabstand, XML-Ablage und Self-Service (Issue #101).
+
 **Geändert:**
 - **Altes Beitrags- und SEPA-Modul entfernt:** Die Mandate, Beiträge und
   Sammeleinzüge des bisherigen flachen Moduls werden beim Update gelöscht und
   nicht in das neue Modell übernommen (Issue #107); wer solche Daten hat, sichert
   sie vorher. Die Mitglieder, die daraus entstanden sind, bleiben erhalten.
+- **Forderungen in der Offene-Posten-Sicht nur lesbar:** Beitrags- und
+  Gebührenforderungen lassen sich unter Buchungen → Offene Posten nicht mehr
+  bezahlen, stornieren, wieder öffnen oder löschen; „Im Einzug bearbeiten"
+  springt in den Reiter „Einzug". Freie Posten ohne Mitglied verhalten sich
+  wie bisher (Issue #121).
+- **Löschsperre für Mitglieder:** Ein Mitglied lässt sich nur löschen, solange
+  nichts an ihm hängt – kein Mandat (auch kein Entwurf oder beendetes), keine
+  Zuweisung, keine Forderung. Sonst nennt die Akte den Grund; für
+  Datenschutzfälle gibt es die Anonymisierung (Issue #65, #68).
+- **Rollen-Härtung:** Jede Schnittstelle des Beitragsmoduls verlangt
+  ausdrücklich eine Rolle. Vorwarnfenster und Vorabinfo-Vorlauf ändern nur
+  Verwalter, Zuweisungen sind erst ab Buchhalter lesbar, eine alte IBAN sehen
+  Revisoren nur maskiert; ein Tippfehler im Rollennamen sperrt zu, statt zu
+  öffnen (Issue #119).
+- **GiroCode-Bibliothek im Paket:** Die App bringt `chillerlan/php-qrcode`
+  (Version 5, PHP 8.1 genügt) im Verzeichnis `vendor/` mit; für den
+  GiroCode-Anhang sollte PHP die Erweiterung gd haben (Issue #73, #120).
 
 ## [0.34.4] – 2026-09-29
 

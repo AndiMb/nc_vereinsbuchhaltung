@@ -3,7 +3,7 @@
 [Deutsch](HANDBUCH.md) · **English**
 
 A practical manual for treasurers – from initial setup to the year-end
-closing. It describes app version **0.22.2** and follows the actual annual
+closing. It describes app version **0.35.0** and follows the actual annual
 cycle rather than the menu structure: what do I need to do, and when, and
 what should I watch out for?
 
@@ -93,10 +93,15 @@ Gear icon (settings) → **Permissions** section. There you assign a role to
 Nextcloud users or groups:
 
 - **Administrator** – can do everything, including permissions, the fiscal
-  year, delete-all-data.
+  year, delete-all-data and the settings of the fees module (chapter 13.1).
 - **Bookkeeper** – reads and writes postings, receipts, assignments, as
   well as members, SEPA mandates and fee collection (chapters 13.2–13.10).
-- **Auditor** – read-only (for the annual audit).
+- **Auditor** – read-only (for the annual audit); in the fees module, the
+  collection with the IBAN masked.
+
+Members who are meant to maintain their own details under "My contribution"
+(chapter 13.11) need **no** role – what counts for them is the link between
+their Nextcloud account and the member record.
 
 > **Note:** Nextcloud administrators are *always* administrators of this
 > app, regardless of this list. Usually two administrators and any number of
@@ -291,6 +296,13 @@ their headers – that works with the common banks, but not with certainty.
 - **Batch postings** (a single direct-debit submission with many individual
   items) remain *one* posting – the same way the bank posted it. The
   purpose text carries a note about the number of items.
+- **SEPA references (fees module):** if you use the fees module, you get an
+  additional evaluation. The app reads end-to-end ID, mandate reference and
+  return reason from the statement (most precisely with CAMT.053) and files
+  suggestions for collection credits, returned debits and matching incoming
+  payments in the *Bank reconciliation* segment (chapter 13.10). The
+  transactions themselves stay under *To assign*; nothing is posted before you
+  have judged it.
 - After the import, a preview shows *new* / *duplicates* / *total*.
 
 ### 3.3 Reading in bank statements automatically (watch folder)
@@ -1038,8 +1050,11 @@ readable page, so nothing needs to be looked up on GitHub.
 ### 12.1 "Delete all data" / reset
 
 Gear icon → *Data* → *Delete all data* (administrators only, with a
-confirmation dialog) removes accounts, postings, imports, receipts and the
-year-end closing markers. **The change log is kept.** The same applies to
+confirmation dialog) removes accounts, postings, imports, receipts, open items
+(including the claims against members) and the year-end closing markers.
+**The change log is kept.** Members, mandates, contribution groups, assignments
+and direct-debit runs (chapter 13) are not part of the posting records and stay
+untouched. The same applies to
 reset mode during the xbuc import. Both are irreversible – so only after
 checking with others, and never by accident.
 
@@ -1094,9 +1109,14 @@ the app behaves exactly as before.
 Members, mandates, fees and collection (13.2–13.10) may be maintained by
 **administrators and bookkeepers** – a mandate does link a person to their
 bank details, but that's no bigger a responsibility than any other posting.
-The **basic settings** (13.1: creditor ID, collecting account, default fee,
-the toggle for the tab) remain reserved for administrators – those are
-one-time decisions for the whole club, not ongoing work.
+**Auditors** see the collection (runs, claims, bank reconciliation) read-only,
+with the IBAN masked. All **settings** of the module (13.1: creditor ID,
+collecting account, lead times, accounts and intervals, mandate text, the
+toggles for the tab and for "My contribution") remain reserved for
+administrators – those are one-time decisions for the whole club, not ongoing
+work. The **members themselves** need no role: their "My contribution" area is
+described in 13.11, the contribution confirmation in 13.12, the data-protection
+tools in 13.13.
 
 ### 13.1 What you need beforehand
 
@@ -1123,6 +1143,31 @@ automatically, even without the toggle.
 > CSV import (13.3) when a row has a start date but no amount of its own –
 > deviating individual cases (reduced fee, honorary member) simply get
 > their own amount entered.
+
+**All settings at a glance.** What the module makes configurable is found under
+*Nextcloud settings → Vereinsbuchhaltung* – and is accessible to administrators
+only:
+
+| Card / section | What you set there |
+|---|---|
+| *Fees & SEPA → Basic settings* | **SEPA creditor ID**, **Collecting account**, the toggle for the "Contributions" tab and the toggle for the "My contribution" self-service (13.11) |
+| *… → Default fee* | amount and frequency that "Add a member" and the CSV import suggest |
+| *… → Contribution year and collection cycle* (*Beitragsjahr und Einzugszyklus*) | **Contribution year begins in** (month, default January – independent of the fiscal year; determines the contribution periods and the contribution confirmation, 13.12) and **Release lead time** (days before the collection, default 5; 13.5). Plus the link to the schedule with **warning window** and **pre-notification lead time** (13.5) |
+| *… → Storage of the collection file (XML)* (*Ablage der Einzugsdatei*) | an additional copy of the pain.008 file in a Nextcloud folder (13.5), off by default |
+| *… → Mandates* (*Mandate*) | **Mandate reference prefix**, **Expiry warning** (days before expiry, default 180), **Proof folder** and **Point out mandates without proof** (13.2, 13.9) |
+| *… → Returned debits and dunning* (*Rücklastschriften und Mahnwesen*) | **Account for return fees (expense)**, **Default revenue account for contribution claims (income)**, **Pass return fees on to the member** (off by default) and **Dunning interval (days)** (13.7, 13.8, 13.10) |
+| *Mandate legal text* (*Mandats-Rechtstext*, a section of its own) | the text on the mandate form and the consent page (13.2) |
+
+The proof folder and the XML storage live in the home of the user you chose
+under *Receipts* for storage in the Nextcloud file tree (2.4); without one,
+no proofs can be uploaded and the XML storage can't be switched on.
+
+The **schedule** (collection day per interval, individual periods can be
+overridden) can also be adjusted by bookkeepers – that is the rescheduling.
+The **warning window** and the **pre-notification lead time**, on the other
+hand, can only be changed by administrators: they determine when tasks and
+pre-notification emails are triggered and from when a period is locked
+against changes.
 
 ### 13.2 Members, mandates and contributions
 
@@ -1231,13 +1276,37 @@ request.
 proof folder in Nextcloud) and can download it again; **Open mandate form**
 (*Mandatsformular öffnen*) shows the print-ready form (Ctrl+P or ⌘P).
 
+**The electronic mandate – what the member sees.** **Send one-time link**
+sends the member an email at their address on file (without an address it
+can't be sent); if the email doesn't arrive, the record shows the link right
+after sending so you can pass it on directly. The link is valid for 14 days and
+can be used once; it opens, without signing in, a page with the
+mandate text, the account details and the button **"Ich stimme zu und erteile
+das Mandat"** ("I agree and grant the mandate"). With the consent the mandate
+is active at once – no paper form is needed. As proof, the mandate records when
+consent was given, from which IP address and with which browser, and under which
+version of the mandate text. If the link has expired or got lost, send a new
+one; the old one becomes invalid.
+
+**The mandate text.** The text on every mandate form and on the consent page
+consists of a **mandatory block**, which the direct-debit scheme prescribes and
+which can't be changed, and a **framing text** you can add to – for example
+notes on fee collection or on data protection. Administrators maintain it under
+*Nextcloud settings → Vereinsbuchhaltung → Mandate legal text* (*Mandats-
+Rechtstext*): the preview shows the text with your club's name, **"Save new
+version"** (*Neue Version speichern*) creates a new version. Earlier versions
+stay in the version history; existing mandates keep the version that was shown
+to them when they were granted. If an app update changes the mandatory block,
+the app creates a new version itself and carries over your framing text. The
+mandate text is available in German only.
+
 **Leaving and deleting.** In the record, **"Declare leaving"** (*Austritt
 erklären*) sets the member's leaving as of a date (also in the future); it
 can be withdrawn as long as it doesn't have to take effect yet. A member can
 only be **deleted** as long as nothing is attached to them: no mandate (not
 even a draft or an ended one – they are kept as proof), no assignment and no
 claim. Otherwise the record names the reason instead of the button. For
-data-protection cases there is anonymization instead of deletion.
+data-protection cases there is anonymization instead of deletion (13.13).
 
 ### 13.3 Adding many members at once
 
@@ -1494,6 +1563,15 @@ the dunning clock continues from the last level reached. Direct-debit claims
 get the payment request only after a returned direct debit or a revocation,
 bank-transfer claims shortly before the due date.
 
+**The emails** go out bundled per member – one email with one line per open
+claim, only to members with an email address. Each item carries its own
+**GiroCode** as an image attachment (EPC QR): the member's banking app scans it
+and prefills payee, IBAN, amount and purpose, so every claim is paid
+individually instead of as one lump sum. The payee is the *Collecting account*
+(13.1) – if it has no IBAN on file, there are no codes. If the server lacks the
+PHP gd extension, the email goes out without a GiroCode (the email text then
+doesn't promise one), and the error is written to the Nextcloud log.
+
 **Exceptions** have two severity levels, "action required"
 (*Handlungsbedarf*) and "notice" (*Hinweis*), and name the cause in plain
 words – such as "Pre-notification could not be sent in time" (*Vorabinfo
@@ -1551,17 +1629,17 @@ you to where you fix it.
 | Returned direct debit **without re-collection** (one line with count and total) | Notice; **action required** as soon as a cause is urgent (account not usable, objection, deceased, technical, unknown – only *insufficient funds* (*Deckung fehlt*) stays a notice) | Claim paid or waived |
 | Claims open **after revocation** of the mandate (one line) | Notice | Claim paid or waived; a new mandate takes them back into the collection |
 | **Bank-transfer claims overdue** (one line) | Notice | Assign the payment or settle the claim |
-| Pre-notification not sent in time, release due, submission overdue, dunning level escalated to the board, next run, member due for anonymization | depending on the case | see 13.5, 13.8 and the GDPR notes |
+| Pre-notification not sent in time, release due, submission overdue, dunning level escalated to the board, next run, member due for anonymization | depending on the case | see 13.5, 13.8 and 13.13 (member due for anonymization: a notice, never on its own) |
 
 For a member whose mandate is in draft, blocked or lapsed, only the more
 precise task is in the list instead of the general "no collectable mandate"
 (*kein einzugsfähiges Mandat*) – the same problem doesn't appear twice.
 
-Two notices arise from an **event** rather than a state: "The Nextcloud
-account of … was deleted – address taken over, please check" (*Das
-Nextcloud-Konto von … wurde gelöscht – Adresse übernommen, bitte prüfen*)
-and "N members taken over – check names and email addresses" (*N Mitglieder
-übernommen – Namen und Mailadressen prüfen*) (after the switch to member
+Two notices arise from an **event** rather than a state: "Name: Nextcloud
+account was deleted, the email address was taken over – please check"
+(*Name: Nextcloud-Konto wurde gelöscht, die Mailadresse wurde übernommen – bitte
+prüfen*) and "N members taken over — check names/email addresses" (*N Mitglieder
+übernommen — Namen/Mailadressen prüfen*) (after the switch to member
 management). These too don't have to be clicked away: they disappear after
 **30 days**, earlier as soon as the member has a Nextcloud account again or
 no longer exists (deleted or anonymized).
@@ -1673,18 +1751,175 @@ for confirmation first. If the claim has no revenue account and no default
 revenue account is set, the suggestion can only be confirmed once an
 administrator sets one.
 
+### 13.11 "My contribution": the area for members
+
+Members don't have to bother the treasurer for their own details: under **"My
+contribution"** (*Mein Beitrag*) – a tab of its own in the app – they maintain
+their contact details, change their fee and manage their direct-debit mandate
+themselves. **No bookkeeping role** is needed for that, there is no application,
+and every change takes effect at once; the only brake is a preview before
+saving.
+
+**Switching it on.** Two things have to come together:
+
+1. An administrator switches on **"Self-service "Mein Beitrag" for linked
+   Nextcloud accounts"** under *Nextcloud settings → Vereinsbuchhaltung → Fees &
+   SEPA → Basic settings*. It is off by default.
+2. The member is linked to their Nextcloud account in the record (13.2) – after
+   your confirmation, never on its own.
+
+Whoever meets both sees "My contribution", even without any role in the app. If
+the same person also has a role (say, the treasurer who is a member too), the
+tab sits next to the others. A member only ever sees **their own** details there,
+never those of other members; the record's internal note stays invisible to the
+member.
+
+| Area | The member can | The member cannot |
+|---|---|---|
+| **My master data** (*Meine Stammdaten*) | change name, email, phone and address (**"Edit"**). If the email address changes, the previous address also gets an email about it for safety | change member number or join and leave dates – those stay with the treasurer |
+| **My contribution** (*Mein Beitrag*) | raise the monthly fee or lower it down to the minimum, change the interval (only the allowed ones). The **"Preview"** (*Vorschau*) states "takes effect from … · first collection on … · amount …"; only then can they save | change the contribution group, skip a month, declare leaving, change their own minimum or see its reason |
+| **My SEPA direct-debit mandate** (*Mein SEPA-Lastschriftmandat*) | record a mandate and grant it electronically (**"Mandat jetzt erteilen"**), confirm (**"Jetzt bestätigen"**) or discard an electronic draft you created, **change the bank details**, **change the account holder**, **revoke** the mandate | activate or suspend a mandate – that stays with the treasurer |
+
+The IBAN is always shown to the member masked. **Changing the bank details**
+involves the same distinction as in the record (13.2): if only the IBAN changed
+(same account, same person), the mandate stays; if the account holder changes, a
+new mandate is granted electronically and the old one ends as "replaced".
+
+**The lock window.** Amount and interval no longer change once the
+pre-notification (13.5) has been sent for a period – the member was told an
+amount. A change that therefore could only take effect later is rejected by the
+app with an explanation – the message states the date from which it would be
+possible – instead of being silently postponed; the treasurer can make it in the
+record (13.4) – for periods already announced, nothing changes anyway.
+The **IBAN** has no lock window: the pre-notification doesn't name an IBAN, and
+the run only freezes it at release – so it can be changed until then.
+
+**Revocation.** The dialog shows the same things as in the record: the
+revocation is final, the still-open total is named (the member gets a payment
+request for it), and the first choice offered is "I only have a new account →
+change IBAN". For a **suspended** mandate the IBAN can't be changed; the dialog
+then refers the member to the club. A **draft** can be discarded by the member
+but not corrected (13.2).
+
+**Receipt and trail.** The app confirms every change to the member by email:
+what changed, from when, and which collection is the first one affected. The
+email is the copy; the area has no event list of its own. In addition, an entry
+appears in the member's Nextcloud **Activity** (Nextcloud only sends an email for
+it on revocation, unless the member turned that off in their personal
+settings). A mandate's history (13.2) shows the route of every change:
+*Member* (via "My contribution"), *Club* (via the record, also on one's own) or
+*System* (automatic) – for a person wearing both hats, the route counts, not the
+person.
+
+Members without a Nextcloud account can't reach "My contribution"; for them the
+treasurer maintains the details in the record (13.2) and under *Contribution
+groups* (13.4).
+
+### 13.12 Contribution confirmation
+
+An **informal confirmation** of the contributions paid in a contribution year –
+for instance for a member's own records. It is a **print-ready page** (Ctrl+P or
+⌘P, also to save as PDF), not a stored document: it is generated afresh from the
+current state every time it is opened. **It is not an official donation receipt
+under § 10b EStG** and has no tax effect – the page says so explicitly.
+
+**Where.** The member opens it themselves under *My contribution → My
+contribution confirmation* (*Meine Beitragsbestätigung*, 13.11): choose the
+**contribution year**, **"Open"** (*Öffnen*). The treasurer opens it in the
+record (13.2) in the **"Contribution confirmation"** (*Beitragsbestätigung*)
+section – the way for members without a Nextcloud account. There is no bulk run
+for all members, no sending from the app and no link without signing in. The
+choice offers the years with at least one paid contribution and the current one.
+
+**What it contains.** The member's name, address and member number, below it for
+each **paid contribution claim** the due period, the description and the
+amount, finally the **total**. The following applies:
+
+- **Contribution year, not fiscal year.** The contribution year begins in the
+  month an administrator sets under *Contribution year and collection cycle*
+  (13.1) – independent of the bookkeeping's fiscal year.
+- **By due period, not by payment date.** A contribution for a period of the old
+  year that is only paid in the new year counts towards the old year.
+- **Paid contributions only.** Fees (such as passed-on return fees), cancelled
+  and waived claims never count.
+
+If the member's address is missing, a notice on the screen ("Adresse jetzt
+hinterlegen" – "enter the address now") points it out; it doesn't appear in the
+printout.
+
+### 13.13 Data protection: data overview and anonymization
+
+The module stores names, contact details and bank details. Two tools help meet
+the obligations of the GDPR – both in the record (13.2), both for bookkeepers
+and administrators.
+
+**Data overview (information under Art. 15 GDPR).** A print-ready page with
+everything stored about a member: master data, SEPA direct-debit mandates (IBAN
+masked) including returned debits, claims and contribution assignments. In the
+record: section **"Data overview (Art. 15 GDPR)"** (*Datenübersicht (Art. 15
+DSGVO)*) → **"Open data overview"** (*Datenübersicht öffnen*); the member
+themselves finds it under *My contribution → My data* (*Meine Daten*, 13.11).
+Like the contribution confirmation, it is generated afresh on every opening and
+isn't stored. The module offers no **structured export** under Art. 20.
+
+**Anonymization (Art. 17 GDPR).** Whatever is an accounting record, the books
+may not delete – commercial law requires that. Instead of deleting, the app
+therefore blacks out the person and leaves the figures:
+
+- **When.** A member is **due for anonymization** ten years after the end of the
+  calendar year of their last related posting (paid claim, posted returned
+  debit): a posting in 2026 makes them due from 1 January 2037. The period is
+  fixed and not a setting. In addition the member must have **left** and may have
+  **no live mandate** any more (draft, active or suspended). Without any posting
+  no period runs.
+- **Who decides.** The app proposes: the task list (13.9) shows "… due for
+  anonymization". A bookkeeper or administrator confirms **member by member**
+  with **"Jetzt anonymisieren"** (*Anonymize now*) – after a clear confirmation
+  prompt, because it can't be undone. Nothing happens automatically. The
+  **"Anonymization (Art. 17 GDPR)"** section of the record states whether and
+  from when the member is due.
+- **What is blacked out.** The member's name, contact details and internal note;
+  IBAN, BIC and account holder of all their mandates, also in the frozen
+  collection items of the runs; IP address and browser of the electronic
+  consent; the mandate's uploaded proof file, as far as it can be removed; the
+  free text of the history – reasons for suspension, deferral, waiver and
+  cancellation, the reason for an individual minimum, representation notes and
+  the free text of a returned debit. The claims' debtor then reads "Anonymisiertes
+  Mitglied" ("anonymized member").
+- **What stays.** Amounts, dates, states, return codes and mandate references –
+  what the books document. The record is read-only afterwards and carries the
+  anonymization note.
+
+A deleted Nextcloud account doesn't trigger the anonymization, and the
+anonymization doesn't dissolve the account link: the two are independent (when
+an account is deleted, the member stays, the email address is taken over and a
+task asks for a check, 13.9).
+
 ---
 
 ## 14. Appendix: roles, account types, keyboard shortcuts, glossary
 
 ### 14.1 Roles and permissions
 
-| Role | Read | Post/receipts | Members/SEPA collection (13.2–13.10) | Fee basic settings (13.1), permissions, year-end closing, reset |
+| Role | Read | Post/receipts | Operate members, mandates, fees, collection (13.2–13.10) | Fees module settings (13.1), permissions, year-end closing, reset |
 |---|:---:|:---:|:---:|:---:|
 | Auditor | ✓ | – | – | – |
 | Bookkeeper | ✓ | ✓ | ✓ | – |
 | Administrator | ✓ | ✓ | ✓ | ✓ |
 | Nextcloud admin | ✓ | ✓ | ✓ | ✓ (always) |
+
+Within the **fees module** the boundaries are finer. The "Read" column applies
+there to the **collection** only; what goes beyond it is listed here:
+
+| In the fees module | Auditor | Bookkeeper | Administrator |
+|---|:---:|:---:|:---:|
+| View the collection: timeline, runs, claims, bank reconciliation (IBAN masked) | ✓ | ✓ | ✓ |
+| View and edit members, mandates, contribution groups and assignments (the "Members" and "Contribution groups" tabs) | – | ✓ | ✓ |
+| Release, submit, discard, reschedule, edit claims, judge and post in the bank reconciliation, anonymize | – | ✓ | ✓ |
+| Change collection days in the schedule (rescheduling) | – | ✓ | ✓ |
+| Tasks in the header (13.9) | – | ✓ | ✓ |
+| Warning window and pre-notification lead time, all settings (13.1), mandate legal text | – | – | ✓ |
+| "My contribution" (13.11) | independent of the role: the account link and the administration's toggle decide | | |
 
 ### 14.2 Account types and what they mean
 
@@ -1751,7 +1986,35 @@ This only applies to cash accounts (bank flag).
   posted amounts and history remain unchanged. The way to deal with
   accounts no longer needed but that can't be deleted because of existing
   postings (chapter 2.2).
+- **Member** – a person or organization in the fees module's member list,
+  also without a Nextcloud account (chapter 13.2).
+- **Mandate** – a member's direct-debit authorization with IBAN, account holder
+  and signature (paper or electronic); states *draft*, *active*, *suspended*,
+  *ended*. Revoked, not deleted (chapter 13.2).
+- **Mandate reference** – the identifier of a mandate (e.g. `M-17`) that appears
+  on the payer's bank statement (chapter 13.2).
+- **Contribution group / assignment** – the group carries the rules (minimum,
+  allowed intervals), the assignment links a member to it: monthly fee,
+  interval, payment method, validity (chapter 13.4).
+- **Contribution year** – the frame of the contribution periods; begins in a
+  configurable month and is independent of the fiscal year (chapter 13.1).
+- **Interval** – the distance between two collections in months (1, 2, 3, 4, 6
+  or 12; chapter 13.4).
+- **Claim** – a contribution or fee a member owes; technically an open item with
+  a member. The app derives its state (open, in collection, collected, returned,
+  settled, cancelled) (chapter 13.8).
+- **Pre-notification** – the email with which the app announces the collection;
+  from its dispatch the period's amount is locked (chapter 13.5).
+- **Run** – the collection for one date: items frozen at release together with
+  the pain.008 file (chapter 13.5).
+- **Returned debit** – a direct debit returned by the bank with a return reason;
+  the app recognizes it in the statement and posts it after your judgement
+  (chapters 13.7, 13.10).
+- **GiroCode** – a QR code (EPC QR) in the attachment of the dunning emails that
+  the banking app scans to prefill the transfer (chapter 13.8).
+- **Anonymization** – blacking out a member's personal details after the
+  retention period; amounts and dates stay (chapter 13.13).
 
 ---
 
-*As of app version 0.22.2. For questions, contact your administrator.*
+*As of app version 0.35.0. For questions, contact your administrator.*

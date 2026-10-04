@@ -25,6 +25,17 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.35.0',
+			roles: ['verwalter', 'buchhalter'],
+			items: [
+				t('Beiträge und SEPA-Lastschrift sind neu aufgebaut (Reiter „Beiträge"): Mitglieder mit Akte, Mandate mit Lebenszyklus – auf Papier oder elektronisch per Einmal-Link – und Beitragsgruppen mit Turnus, aus denen die Forderungen von selbst entstehen. Das bisherige Modul ist ersetzt: seine Mandate, Beiträge und Sammeleinzüge wurden nicht übernommen, die Mitglieder bleiben erhalten.'),
+				t('Der Einzug läuft in zwei Schritten: Im Reiter „Einzug" sehen Sie Zeitstrahl und Vorschau, die Vorabinfo geht per Mail raus, dann folgen „Freigeben & Datei erzeugen" und „Datei ist bei der Bank eingereicht". Der Kontoauszugs-Import schlägt vor, welche Posten ein Umsatz deckt – gebucht wird erst nach Ihrem Urteil im Segment „Bankabgleich".'),
+				t('Rücklastschriften erscheinen mit Grund in Klartext; danach gehen Zahlungsaufforderung, Zahlungserinnerung und Mahnung raus – jede Position mit einem GiroCode, den das Mitglied mit der Banking-App scannen kann.'),
+				t('Das Klemmbrett in der Kopfzeile sammelt, was Aufmerksamkeit braucht – vom fehlenden Mandat bis zur fälligen Freigabe. Eine Aufgabe verschwindet von selbst, sobald ihre Ursache behoben ist.'),
+				t('Mitglieder mit verknüpftem Nextcloud-Konto können unter „Mein Beitrag" ihre Kontaktdaten, ihren Beitrag und ihr Mandat selbst pflegen und eine Beitragsbestätigung drucken. Der Bereich ist ab Werk aus – Verwalter schalten ihn unter Nextcloud-Einstellungen → Vereinsbuchhaltung → Beiträge & SEPA ein.'),
+			],
+		},
+		{
 			version: '0.34.0',
 			roles: ['verwalter', 'buchhalter'],
 			items: [
