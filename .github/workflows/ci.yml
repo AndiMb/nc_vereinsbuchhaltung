@@ -192,12 +192,13 @@ jobs:
           coverage: none
 
       - name: App-Abhaengigkeiten installieren
-        # Der Testserver mountet das Checkout als App-Verzeichnis, und
-        # Nextcloud laedt dessen vendor/autoload.php beim App-Start. Ohne
-        # vendor/ fehlt chillerlan/php-qrcode (Issue #73, GiroCode-Anhang der
-        # Mahnwesen-Mails): jeder Pfad, der den Anhang erzeugt, bricht dann
-        # in der CI, waehrend er lokal (mit vendor/) laeuft. --no-dev wie im
-        # Release-Workflow, das Tarball enthaelt dieselbe vendor/-Auswahl.
+        # Der Testserver mountet das Checkout als App-Verzeichnis;
+        # Application::register() laedt dessen vendor/autoload.php (Nextcloud
+        # selbst tut das nicht). Ohne vendor/ fehlt chillerlan/php-qrcode
+        # (Issue #73, GiroCode-Anhang der Mahnwesen-Mails): Spec 47 prueft
+        # dann rot, dass die Mails ohne GiroCode rausgehen (Issue #120).
+        # --no-dev wie im Release-Workflow, das Tarball enthaelt dieselbe
+        # vendor/-Auswahl.
         run: composer install --no-dev --no-interaction --no-progress
 
       - name: Testserver starten (Docker-Nextcloud stable34)
