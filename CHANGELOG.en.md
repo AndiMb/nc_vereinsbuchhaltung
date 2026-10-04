@@ -76,8 +76,10 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 - **"My contribution" for members:** members with a linked Nextcloud account
   maintain their contact details, monthly fee (not below the minimum) and
   interval there, and grant, change or revoke their mandate – effective
-  immediately, with a preview and a receipt email. The area is off by default
-  and is switched on under Settings → Fees & SEPA (issues #74–#76).
+  immediately, with a preview and a receipt email; returned direct debits
+  appear there in plain language, never as a bank code. The area is off by
+  default and is switched on under Settings → Fees & SEPA (issues #74–#76,
+  #122).
 - **Contribution confirmation:** a print-ready, informal confirmation of the
   contributions paid per contribution year, for members under "My
   contribution", for the treasurer in the record. It does not replace a
@@ -86,6 +88,11 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   Art. 15 GDPR; the anonymization blacks out name, contact details, bank
   details and free text of a member who has left, ten years after the end of
   the year of the last booking and only on your confirmation (issue #78).
+- **Interface and emails in English, informal German for members:** all texts of
+  the module are translated, and the source texts use the formal form. Members
+  whose Nextcloud account is set to informal German are addressed informally in
+  emails and in "My contribution", without an account the formal form applies;
+  the mandate text stays German (issue #106).
 - **Tasks in the header:** the clipboard (from bookkeeper up) collects what
   needs attention – from a missing mandate to a release that is due; the number
   counts action items only. A task disappears by itself as soon as its cause
@@ -114,6 +121,10 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   pre-notification lead time, assignments are readable from bookkeeper up only,
   auditors see an old IBAN masked; a typo in a role name now locks out instead
   of letting everyone in (issue #119).
+- **Reset clears the collection too:** "Delete all data" now also removes
+  direct-debit runs, collection items, returned direct debits and dunning
+  levels that would otherwise point at deleted records; members, mandates,
+  contribution groups and assignments stay (issue #123).
 - **GiroCode library in the package:** the app now ships `chillerlan/php-qrcode`
   (version 5, PHP 8.1 is enough) in the `vendor/` directory; for the GiroCode
   attachment PHP should have the gd extension (issues #73, #120).

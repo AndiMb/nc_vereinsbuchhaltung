@@ -80,9 +80,9 @@ verwenden, z. B. `**Neu:**`.
 - **„Mein Beitrag" für Mitglieder:** Mitglieder mit verknüpftem
   Nextcloud-Konto pflegen dort Kontaktdaten, Monatsbeitrag (nicht unter die
   Untergrenze) und Turnus und erteilen, ändern oder widerrufen ihr Mandat –
-  sofort wirksam, mit Vorschau und Quittungsmail. Der Bereich ist ab Werk aus
-  und wird unter Einstellungen → Beiträge & SEPA eingeschaltet
-  (Issue #74–#76).
+  sofort wirksam, mit Vorschau und Quittungsmail; Rücklastschriften stehen dort
+  im Klartext, nie als Bankcode. Der Bereich ist ab Werk aus und wird unter
+  Einstellungen → Beiträge & SEPA eingeschaltet (Issue #74–#76, #122).
 - **Beitragsbestätigung:** Eine druckfertige, informelle Bestätigung der
   bezahlten Beiträge je Beitragsjahr, für Mitglieder unter „Mein Beitrag", für
   die Kassenführung in der Akte. Sie ersetzt keine Zuwendungsbestätigung nach
@@ -91,6 +91,11 @@ verwenden, z. B. `**Neu:**`.
   die Anonymisierung schwärzt Name, Kontaktdaten, Bankverbindungen und
   Freitexte eines ausgetretenen Mitglieds, zehn Jahre nach Ende des Jahres der
   letzten Buchung und nur auf Ihre Bestätigung (Issue #78).
+- **Oberfläche und Mails auf Englisch, Du-Form für Mitglieder:** Alle Texte des
+  Moduls sind übersetzt, die Quelltexte stehen in Sie-Form. Mitglieder mit einem
+  auf informelles Deutsch eingestellten Nextcloud-Konto werden in Mails und in
+  „Mein Beitrag" geduzt, ohne Konto gilt Sie; der Mandatstext bleibt Deutsch
+  (Issue #106).
 - **Aufgaben in der Kopfzeile:** Das Klemmbrett (ab Buchhalter) sammelt, was
   Aufmerksamkeit braucht – vom fehlenden Mandat bis zur fälligen Freigabe; die
   Zahl zählt nur Handlungsbedarf. Eine Aufgabe verschwindet von selbst, sobald
@@ -120,6 +125,10 @@ verwenden, z. B. `**Neu:**`.
   Verwalter, Zuweisungen sind erst ab Buchhalter lesbar, eine alte IBAN sehen
   Revisoren nur maskiert; ein Tippfehler im Rollennamen sperrt zu, statt zu
   öffnen (Issue #119).
+- **Zurücksetzen räumt den Einzug mit:** „Alle Daten löschen" entfernt jetzt auch
+  Lastschrift-Läufe, Einzugsposten, Rücklastschriften und Mahnstufen, die sonst
+  auf Gelöschtes zeigten; Mitglieder, Mandate, Beitragsgruppen und Zuweisungen
+  bleiben (Issue #123).
 - **GiroCode-Bibliothek im Paket:** Die App bringt `chillerlan/php-qrcode`
   (Version 5, PHP 8.1 genügt) im Verzeichnis `vendor/` mit; für den
   GiroCode-Anhang sollte PHP die Erweiterung gd haben (Issue #73, #120).

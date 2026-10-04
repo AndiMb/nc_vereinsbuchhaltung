@@ -1094,8 +1094,8 @@ Zahnrad → *Daten* → *Alle Daten löschen* (nur Verwalter, mit
 Bestätigungsdialog) entfernt Konten, Buchungen, Importe, Belege, offene Posten
 (auch die Forderungen an Mitglieder) und die Zeiträume samt ihrer
 Festschreibung. **Das Änderungsprotokoll bleibt erhalten.** Mitglieder,
-Mandate, Beitragsgruppen, Zuweisungen und Lastschrift-Läufe (Kapitel 13)
-gehören nicht zum Buchungsbestand und bleiben unberührt.
+Mandate, Beitragsgruppen und Zuweisungen (Kapitel 13) gehören nicht zum
+Buchungsbestand und bleiben unberührt (der Einzug wird mitgeräumt, siehe unten).
 Gleiches gilt für den Reset-Modus beim xbuc-Import. Beides ist
 unwiderruflich – also nur nach Rücksprache und nie aus Versehen.
 

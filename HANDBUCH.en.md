@@ -1052,9 +1052,9 @@ readable page, so nothing needs to be looked up on GitHub.
 Gear icon → *Data* → *Delete all data* (administrators only, with a
 confirmation dialog) removes accounts, postings, imports, receipts, open items
 (including the claims against members) and the year-end closing markers.
-**The change log is kept.** Members, mandates, contribution groups, assignments
-and direct-debit runs (chapter 13) are not part of the posting records and stay
-untouched. The same applies to
+**The change log is kept.** Members, mandates, contribution groups and
+assignments (chapter 13) are not part of the posting records and stay untouched
+(the collection is cleared with it, see below). The same applies to
 reset mode during the xbuc import. Both are irreversible – so only after
 checking with others, and never by accident.
 

@@ -8,7 +8,7 @@
 > Punktes bitte im zugehörigen Scoping-Issue nachfragen.
 
 **Status:** **umgesetzt** (2026-10-05). Davor: Review-Durchgang mit Florian abgeschlossen (2026-09-16, HITL-Schritt von T18), freigegeben zur Übergabe
-**Umsetzung:** Alle Tickets sind im zentralen PR [#98](https://github.com/AndiMb/nc_vereinsbuchhaltung/pull/98) (Integrationszweig `integration/beitraege-sepa`) zusammengeführt: #65–#78 (die Bereiche dieser Spec), #99–#105 (Oberfläche), #106 (Übersetzungen), #107 (Cutover), #108 (Release-Vorbereitung) und #117–#121 (Nachträge aus Review und Rollen-Audit) – Zuordnung in [§15.1](#151-tickets). Das Alt-Modul ist entfernt (Cutover, Issue #107, Migration `000157`): das flache Beiträge/SEPA-Modul (`vbh_sepa_mandates`, `vbh_membership_fees`, `vbh_sepa_batches`/`_items`) ist samt Diensten, Controllern, Jobs und Oberfläche weg. Wo die Umsetzung von dieser Spec abweicht, steht es in [§15.2](#152-abweichungen-und-konkretisierungen); der übrige Text bleibt unverändert und beschreibt in §1.5, §4, §11 und §12 auch den Zustand vor dem Umbau.
+**Umsetzung:** Alle Tickets sind im zentralen PR [#98](https://github.com/AndiMb/nc_vereinsbuchhaltung/pull/98) (Integrationszweig `integration/beitraege-sepa`) zusammengeführt: #65–#78 (die Bereiche dieser Spec), #99–#105 (Oberfläche), #106 (Übersetzungen), #107 (Cutover), #108 (Release-Vorbereitung) und #117–#123 (Nachträge aus Review, Rollen-Audit und Release-Abgleich) – Zuordnung in [§15.1](#151-tickets). Das Alt-Modul ist entfernt (Cutover, Issue #107, Migration `000157`): das flache Beiträge/SEPA-Modul (`vbh_sepa_mandates`, `vbh_membership_fees`, `vbh_sepa_batches`/`_items`) ist samt Diensten, Controllern, Jobs und Oberfläche weg. Wo die Umsetzung von dieser Spec abweicht, steht es in [§15.2](#152-abweichungen-und-konkretisierungen); der übrige Text bleibt unverändert und beschreibt in §1.5, §4, §11 und §12 auch den Zustand vor dem Umbau.
 **Stand:** 2026-09-16 (Spec), Umsetzungsstand 2026-10-05 · Quelle: [Wayfinder-Map](../map.md), 24 abgeschlossene Entscheidungs-/Research-/Prototyp-Tickets
 **Zielrepo bei Übergabe:** `docs/` in [AndiMb/nc_vereinsbuchhaltung](https://github.com/AndiMb/nc_vereinsbuchhaltung)
 
@@ -1103,7 +1103,7 @@ der Spec abweicht. Maßgeblich für das Verhalten ist der Code, für die Bedienu
 | §1.4/§3.11 Übersetzungen (`en.json`, Du-Variante) | #106 |
 | §12 Cutover: Alt-Modul entfernen | #107 |
 | Release-Vorbereitung (Changelog, Handbuch, „Was ist neu", Version) | #108 |
-| Nachträge: Aufgaben-Katalog (§7), Entwurf verwerfen/korrigieren (§3.2), Rollen-Härtung (§3.9), GiroCode in echter Nextcloud (§3.6/§3.11), Offene-Posten-Regeln (§11) | #117, #118, #119, #120, #121 |
+| Nachträge: Aufgaben-Katalog (§7), Entwurf verwerfen/korrigieren (§3.2), Rollen-Härtung (§3.9), GiroCode in echter Nextcloud (§3.6/§3.11), Offene-Posten-Regeln (§11), Rücklastschriften im Self-Service (§3.4), Zurücksetzen (§3.8) | #117, #118, #119, #120, #121, #122, #123 |
 
 ### 15.2 Abweichungen und Konkretisierungen
 
@@ -1169,5 +1169,14 @@ der Spec abweicht. Maßgeblich für das Verhalten ist der Code, für die Bedienu
   (etwa eine Mailadresse in „Aktivierungslink versendet an …" oder Namen in
   „Kontoinhaber korrigiert …"). Dokumentiert als bewusst nicht adressierte Lücke in
   `MemberAnonymizationService`.
+- **Nach einem Zurücksetzen holt der Tageslauf Forderungen nach (offene Entscheidung):** Die
+  Zuweisungen bleiben (siehe §3.8, Issue #123) und gelten weiter ab `valid_from`; der
+  Tageslauf legt die gelöschten Forderungen auch für längst abgerechnete Zeiträume neu an und
+  versendet dazu Vorabinfos. Das widerspricht „Zuweisungen gelten nie rückwirkend". Heute
+  hilft nur, Zuweisungen vor dem Zurücksetzen zu beenden und mit heutigem Beginn neu
+  anzulegen (Handbuch 12.1). Ein Stichtag, ab dem nach einem Reset erst gefordert wird,
+  bräuchte eine App-Einstellung und eine Änderung in `ClaimGenerationService`.
+- Die Ablage der Lauf-XML in einem frei gewählten Nextcloud-Ordner wird beim Zurücksetzen
+  nicht angefasst: die App speichert keine Datei-ID, und die Ablage dient der Compliance.
 - Offen bis zum Merge nach `main`: der vollständige CI-Lauf einschließlich E2E (letztes
   Kriterium von #108).
