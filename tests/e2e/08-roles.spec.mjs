@@ -30,7 +30,9 @@ test.describe('Rollen und Berechtigungen', () => {
 		await switchTab(page, 'Buchungen')
 		await expect(visibleSection(page).getByText('Sichtbar für alle Rollen').first()).toBeVisible()
 
-		// … aber es gibt weder den Buchen-Knopf noch den Beiträge-Tab.
+		// … aber es gibt keinen Buchen-Knopf. Den Beiträge-Tab gibt es hier ebenfalls nicht –
+		// weil das Beitragsmodul in diesem Bestand aus ist. Mit eingeschaltetem Modul sieht ein
+		// Revisor den Beiträge-Tab (nur den Einzug-Unterreiter, lesend): siehe 41-einzug-reiter.
 		await expect(page.locator('.vbh-newbooking-btn')).toHaveCount(0)
 		await expect(tabButton(page, 'Beiträge')).toHaveCount(0)
 	})
