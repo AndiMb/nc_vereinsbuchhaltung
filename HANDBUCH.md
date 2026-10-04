@@ -1385,18 +1385,18 @@ SEPA* → *Beitragsjahr und Einzugszyklus*).
 
 Freigabe und Einreichung sind zwei Schritte beim gewählten Termin:
 
-1. **„Freigeben & Datei erzeugen"** (Schritt 1 von 2): Beträge, IBAN und
-   Kontoinhaber der Posten werden eingefroren und die **pain.008-Datei**
-   erzeugt. Jeder Posten bekommt eine eigene End-to-End-ID, die nie
-   wiederverwendet wird. Störfälle blockieren die Freigabe nicht: betroffene
-   Forderungen bleiben offen und kommen nicht in den Lauf. Auch ein Termin in der
-   Vergangenheit blockiert nichts.
-2. Mit **„XML herunterladen"** holen Sie die Datei und laden sie im
-   Online-Banking hoch. Danach bestätigen Sie mit **„Datei ist bei der Bank
-   eingereicht"** (Schritt 2 von 2). Das ist endgültig: ab dann lässt sich der
-   Lauf weder verwerfen noch verschieben, und die beteiligten Mandate vermerken
-   den Einzug – davon hängen die 36-Monats-Frist und die Art des Einzugs
-   (Erst- oder Folgeeinzug) ab.
+- **Schritt 1 von 2 – „Freigeben & Datei erzeugen":** Beträge, IBAN und
+  Kontoinhaber der Posten werden eingefroren und die **pain.008-Datei**
+  erzeugt. Jeder Posten bekommt eine eigene End-to-End-ID, die nie
+  wiederverwendet wird. Störfälle blockieren die Freigabe nicht: betroffene
+  Forderungen bleiben offen und kommen nicht in den Lauf. Auch ein Termin in der
+  Vergangenheit blockiert nichts.
+- **Schritt 2 von 2 – „Datei ist bei der Bank eingereicht":** Mit **„XML
+  herunterladen"** holen Sie die Datei und laden sie im Online-Banking hoch,
+  danach bestätigen Sie die Einreichung. Das ist endgültig: ab dann lässt sich
+  der Lauf weder verwerfen noch verschieben, und die beteiligten Mandate
+  vermerken den Einzug – davon hängen die 36-Monats-Frist und die Art des
+  Einzugs (Erst- oder Folgeeinzug) ab.
 
 > **Vor dem ersten echten Einzug** die Datei mit dem Prüftool Ihrer Hausbank
 > gegentesten. Das genaue Format weicht je nach Institut leicht ab.

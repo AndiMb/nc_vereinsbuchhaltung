@@ -81,7 +81,7 @@ A lightweight accounting app for nonprofit clubs, integrated directly into Nextc
 - **Audit guide** (Reports → Evaluation): a print-ready one-page quick guide for auditors – role, audit steps, where to find what; with the club name in the header
 
 ### Membership fees & SEPA direct debit
-An optional add-on module (the "Contributions" tab, appears automatically once a member exists, or can be switched on under Nextcloud settings → Vereinsbuchhaltung → Contributions & SEPA), available to administrators **and bookkeepers** (the collection tab read-only for auditors as well) – only the basic settings (creditor ID, collecting account, default fee) remain reserved for administrators.
+An optional add-on module (the "Contributions" tab, appears automatically once a member exists, or can be switched on under Nextcloud settings → Vereinsbuchhaltung → Fees & SEPA), available to administrators **and bookkeepers** (the collection tab read-only for auditors as well) – only the basic settings (creditor ID, collecting account, default fee) remain reserved for administrators.
 - **Members** (person or organization, also without a Nextcloud account; an account link only arises after confirmation) with a three-step intake wizard: master data → SEPA mandate → contribution
 - **Mandates with a lifecycle**: draft, active, suspended, ended – on paper or electronically via a one-time link, bank-detail changes as an amendment, proof upload, 36-month expiry with advance warning; **revoked instead of deleted**, so generated collections stay traceable
 - **Contribution groups and assignments**: a monthly fee with a lower limit, interval and payment method (direct debit or bank transfer) per member; claims arise automatically from the schedule, manual one-off claims are possible
@@ -283,7 +283,7 @@ On the very first start, a **setup wizard** greets you with three options (take 
 4. Tab **Bookings → To assign** → assign each bank transaction a counter-account (apply suggestions with one click; rules automate recurring postings).
 5. Tab **Overview** → dashboard with KPI tiles and monthly chart.
 6. Tab **Reports** → evaluation (incl. treasurer's report, short report, receipt ZIP and audit guide), reporting groups, financial plan (incl. plan notes, plan snapshots and CSV export), spheres, reserves, log.
-7. If membership fees are collected via SEPA direct debit: the **"Contributions"** tab (appears after gear icon → Contributions & SEPA → toggle, or automatically on the first mandate).
+7. If membership fees are collected via SEPA direct debit: the **"Contributions"** tab (appears after gear icon → Fees & SEPA → toggle, or automatically on the first mandate).
 8. After the audit and formal discharge: **gear icon → Year-end closing** → close (finalize) the year.
 
 ## Roadmap
