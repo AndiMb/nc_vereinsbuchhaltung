@@ -36,11 +36,17 @@
 						{{ summary }}
 					</p>
 				</div>
+				<!-- Bewusst nie disabled: ein deaktivierter Knopf ist nicht fokussierbar.
+				     Waehrend des Ladens waere dann womoeglich gar nichts im Flyout
+				     fokussierbar (der Fokusfang des Popovers bricht ab, Escape
+				     laeuft ins Leere), und wer den Knopf eben angeklickt hat,
+				     verlore den Fokus an den body. aria-busy sagt dasselbe
+				     ohne den Fokus zu nehmen. -->
 				<NcButton
 					variant="tertiary"
 					:aria-label="t('Aufgaben aktualisieren')"
 					:title="t('Aufgaben aktualisieren')"
-					:disabled="loading"
+					:aria-busy="loading ? 'true' : null"
 					@click="loadTasks">
 					<template #icon>
 						<NcLoadingIcon v-if="loading" :size="20" />
@@ -62,7 +68,7 @@
 						<NcIconSvgWrapper :path="mdiAlertCircleOutline" class="vbh-tasks-erroricon" />
 					</template>
 					<template #action>
-						<NcButton variant="primary" :disabled="loading" @click="loadTasks">
+						<NcButton variant="primary" :aria-busy="loading ? 'true' : null" @click="loadTasks">
 							{{ t('Erneut versuchen') }}
 						</NcButton>
 					</template>
@@ -210,11 +216,36 @@ export default {
 		},
 	},
 
+	watch: {
+		// Escape auf Dokumentebene, solange das Flyout offen ist. Das Popover
+		// schliesst auf Escape nur, wenn der Fokus *im* Popover liegt (floating-vue
+		// hoert auf keyup am Popover-Element). Das ist im ersten Augenblick nach
+		// dem Oeffnen nicht so - der Fokus sitzt noch am Ausloeser, bis der
+		// Fokusfang des Popovers nachzieht - und wird auch spaeter nicht
+		// garantiert, sobald der fokussierte Knopf aus dem DOM verschwindet.
+		// Synchron, damit der Handler schon steht, wenn der Dialog sichtbar wird.
+		// Liegt der Fokus im Popover, haelt NcPopover das keydown selbst an
+		// (stopPropagation): dann schliesst dessen eigener Weg, dieser hier
+		// bleibt stumm - beide enden im selben Zustand.
+		open: {
+			handler(open) {
+				if (open) {
+					document.addEventListener('keydown', this.onKeydown)
+				} else {
+					document.removeEventListener('keydown', this.onKeydown)
+				}
+			},
+
+			flush: 'sync',
+		},
+	},
+
 	mounted() {
 		this.stopRefresh = this.startAutoRefresh()
 	},
 
 	beforeUnmount() {
+		document.removeEventListener('keydown', this.onKeydown)
 		if (this.stopRefresh) { this.stopRefresh() }
 	},
 
@@ -246,6 +277,10 @@ export default {
 			this.leaving = true
 			this.open = false
 			this.$emit('navigate', target)
+		},
+
+		onKeydown(event) {
+			if (event.key === 'Escape') { this.open = false }
 		},
 
 		/** setReturnFocus des Popovers: Fokus zurueck zum Knopf, ausser nach einem Sprung. */
