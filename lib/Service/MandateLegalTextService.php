@@ -40,6 +40,17 @@ class MandateLegalTextService {
 	 */
 	public const RAHMEN_MARKER = "\n<!-- vbh:rahmen -->\n";
 
+	/**
+	 * Alles, was mit diesem Präfix beginnt, ist für interne Marker reserviert
+	 * und darf nicht im vom Verwalter getippten Rahmen stehen (Issue #101):
+	 * sonst ließe sich ein zweiter Marker einschmuggeln, der Pflichtblock und
+	 * Rahmen beim Zerlegen verwechselt.
+	 */
+	public const RESERVED_MARKER_PREFIX = '<!-- vbh:';
+
+	/** Obergrenze für den Rahmen: ein Absatz bis eine Seite Zusatzhinweise, kein AGB-Werk. */
+	public const MAX_RAHMEN_LENGTH = 5000;
+
 	public function __construct(
 		private MandateLegalTextVersionMapper $mapper,
 		private IL10N $l10n,
@@ -74,14 +85,30 @@ class MandateLegalTextService {
 
 	/** Rahmen-Teil eines gespeicherten Textkörpers - für das Admin-Bearbeitungsformular. */
 	public function extractRahmen(string $body): string {
+		return $this->splitBody($body)['rahmen'];
+	}
+
+	/**
+	 * Zerlegt einen gespeicherten Textkörper in Pflichtblock und Rahmen – ohne
+	 * den internen Marker ({@see self::RAHMEN_MARKER}), der nach außen nie
+	 * auftauchen soll. Die Einstellungsseite (Issue #101) zeigt beide Teile
+	 * getrennt, auch für frühere Fassungen, deren Pflichtblock vom heutigen
+	 * abweichen kann (App-Update).
+	 *
+	 * @return array{pflichtblock: string, rahmen: string}
+	 */
+	public function splitBody(string $body): array {
 		$pos = strpos($body, self::RAHMEN_MARKER);
 		if ($pos === false) {
 			// Datensatz aus einer Zeit vor diesem Marker (sollte es nach diesem
 			// Ticket nicht mehr geben) - lieber ein leerer Rahmen als ein
 			// Formular, das den ganzen Pflichtblock als "Rahmen" anzeigt.
-			return '';
+			return ['pflichtblock' => $body, 'rahmen' => ''];
 		}
-		return substr($body, $pos + strlen(self::RAHMEN_MARKER));
+		return [
+			'pflichtblock' => substr($body, 0, $pos),
+			'rahmen' => substr($body, $pos + strlen(self::RAHMEN_MARKER)),
+		];
 	}
 
 	/** Ob der gespeicherte Pflichtblock (noch) mit dem aktuellen Code übereinstimmt. */
@@ -120,6 +147,35 @@ class MandateLegalTextService {
 	/** @return MandateLegalTextVersion[] neueste zuerst */
 	public function history(): array {
 		return $this->mapper->findAll();
+	}
+
+	/**
+	 * Der Weg des Bearbeitungsformulars (Issue #101): prüft den eingegebenen
+	 * Rahmen und legt daraus eine neue, `verwalter`-getriebene Version an.
+	 * Ein unveränderter Rahmen erzeugt KEINE neue Version – sonst füllte ein
+	 * Doppelklick oder ein versehentliches erneutes Speichern die Historie mit
+	 * wortgleichen Fassungen.
+	 *
+	 * @throws \InvalidArgumentException bei zu langem, unveränderten oder reservierten Inhalt
+	 */
+	public function saveRahmenAsNewVersion(string $rahmen): MandateLegalTextVersion {
+		$rahmen = $this->normalizeRahmen($rahmen);
+		if (str_contains($rahmen, self::RESERVED_MARKER_PREFIX)) {
+			throw new \InvalidArgumentException($this->l10n->t('Der Text enthält die Zeichenfolge „%s". Sie ist für die App reserviert – bitte entfernen Sie sie.', [self::RESERVED_MARKER_PREFIX]));
+		}
+		$length = mb_strlen($rahmen);
+		if ($length > self::MAX_RAHMEN_LENGTH) {
+			throw new \InvalidArgumentException($this->l10n->t('Der Rahmentext ist zu lang: %1$d Zeichen, erlaubt sind höchstens %2$d.', [$length, self::MAX_RAHMEN_LENGTH]));
+		}
+		if ($rahmen === $this->normalizeRahmen($this->currentRahmen())) {
+			throw new \InvalidArgumentException($this->l10n->t('Der Rahmentext ist unverändert – es gibt nichts, was als neue Fassung gespeichert werden müsste.'));
+		}
+		return $this->createVersion($rahmen, MandateLegalTextVersion::CREATED_BY_VERWALTER);
+	}
+
+	/** Vereinheitlichte Zeilenenden, Ränder getrimmt: Vergleichs- und Speicherform eines Rahmens. */
+	private function normalizeRahmen(string $rahmen): string {
+		return trim(str_replace(["\r\n", "\r"], "\n", $rahmen));
 	}
 
 	/**

@@ -74,4 +74,25 @@ class SepaImportSettingsService {
 		}
 		$this->config->setAppValue(Application::APP_ID, self::SETTING_CONTRIBUTION_DEFAULT_ACCOUNT, (string)$accountId);
 	}
+
+	/**
+	 * Räumt beide Konten-Einstellungen ab, die auf $accountId zeigen – das
+	 * Gegenstück zu {@see \OCA\Vereinsbuchhaltung\Service\SepaDebtorAccountService::forgetIfSetTo()}
+	 * (Issue #101): verschwindet das Konto, soll keine ID stehen bleiben, die
+	 * erst bei der nächsten Rücklastschrift-Verbuchung ins Leere läuft.
+	 */
+	public function forgetIfSetTo(int $accountId): void {
+		if ($this->returnFeeAccountId() === $accountId) {
+			$this->setReturnFeeAccountId(null);
+		}
+		if ($this->contributionDefaultAccountId() === $accountId) {
+			$this->setContributionDefaultAccountId(null);
+		}
+	}
+
+	/** Beim Zurücksetzen des Buchungsbestands: beide Konten-Einstellungen leeren, der Bestand ist weg. */
+	public function forgetAccounts(): void {
+		$this->setReturnFeeAccountId(null);
+		$this->setContributionDefaultAccountId(null);
+	}
 }

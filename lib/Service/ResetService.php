@@ -14,6 +14,7 @@ use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
+use OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportSettingsService;
 
 class ResetService {
 
@@ -32,6 +33,7 @@ class ResetService {
 		private PeriodService $periods,
 		private OpenItemMapper $openItemMapper,
 		private SepaDebtorAccountService $sepaDebtorAccount,
+		private SepaImportSettingsService $sepaImportSettings,
 	) {
 	}
 
@@ -47,7 +49,8 @@ class ResetService {
 	 * daher erst nach dem erfolgreichen Commit entfernt: bricht die
 	 * Datenbank-Seite ab, sind die Dateien noch da und passen weiter zu den
 	 * erhaltenen Datensätzen. Für das einziehende Konto in den Einstellungen
-	 * gilt dasselbe.
+	 * gilt dasselbe – ebenso für das Rücklastschriftgebühren-Konto und das
+	 * Standard-Erlöskonto (Issue #101).
 	 */
 	public function resetAll(string $userId): void {
 		// Vor dem Löschen der Datensätze merken, welche Dateien dazugehören –
@@ -76,7 +79,10 @@ class ResetService {
 			// nicht mehr gibt.
 			$this->periods->deleteAll($userId);
 
-			$this->transaction->afterCommit(fn () => $this->sepaDebtorAccount->setAccountId(null));
+			$this->transaction->afterCommit(function (): void {
+				$this->sepaDebtorAccount->setAccountId(null);
+				$this->sepaImportSettings->forgetAccounts();
+			});
 		});
 
 		$this->storageService->deleteAllFiles($attachments);

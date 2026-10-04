@@ -15,12 +15,11 @@ use OCA\Vereinsbuchhaltung\Db\Mandate;
  * PHPUnit prüfen lassen (siehe {@see MandateStateMachine} für dieselbe
  * Begründung).
  *
- * Vorwarnung: 180 Tage vor Ablauf (Spec §7 Aufgaben-Katalog). Bewusst als
- * Konstante statt Einstellung – die Spec sieht `expiry_warning_days` zwar im
- * vollständigen Einstellungskatalog (§4) vor, aber ohne dieses Ticket (#66)
- * als Quelle zu benennen; die zugehörige Aufgaben-Oberfläche ist laut Spec §7
- * ohnehin „abgeleitete Abfrage, kein Job – keine Entity" und Teil eines
- * eigenen, modulübergreifenden Aufgaben-Tickets.
+ * Vorwarnung: standardmäßig 180 Tage vor Ablauf (Spec §7 Aufgaben-Katalog).
+ * Die Frist ist die Einstellung `expiry_warning_days` (Spec §4, siehe
+ * {@see MandateExpirySettings}) – der Rechner bleibt bewusst frei von
+ * Konfigurationszugriff und bekommt den Wert vom Aufrufer; ohne Angabe gilt
+ * {@see self::WARNING_DAYS}.
  */
 class MandateExpiryCalculator {
 
@@ -57,8 +56,12 @@ class MandateExpiryCalculator {
 		return $expiresAt !== null && $expiresAt <= $today;
 	}
 
-	/** Vorwarnung „Mandat läuft in 180 Tagen ab" (Spec §7) – noch nicht verfallen, aber innerhalb des Warnfensters. */
-	public function needsExpiryWarning(Mandate $mandate, \DateTimeImmutable $today): bool {
+	/**
+	 * Vorwarnung „Mandat läuft bald ab" (Spec §7) – noch nicht verfallen, aber innerhalb des Warnfensters.
+	 *
+	 * @param int|null $warningDays Warnfenster in Tagen; null = {@see self::WARNING_DAYS}
+	 */
+	public function needsExpiryWarning(Mandate $mandate, \DateTimeImmutable $today, ?int $warningDays = null): bool {
 		if ($this->isDueForExpiry($mandate, $today)) {
 			return false;
 		}
@@ -69,6 +72,6 @@ class MandateExpiryCalculator {
 		if ($expiresAt === null) {
 			return false;
 		}
-		return $expiresAt <= $today->modify('+' . self::WARNING_DAYS . ' days');
+		return $expiresAt <= $today->modify('+' . ($warningDays ?? self::WARNING_DAYS) . ' days');
 	}
 }
