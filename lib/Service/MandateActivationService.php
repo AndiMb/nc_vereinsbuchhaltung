@@ -206,7 +206,8 @@ class MandateActivationService {
 		$template->addBodyText($l->t('Mit einem Klick auf die Schaltfläche sehen Sie den vollständigen Mandatstext und können zustimmen.'));
 		$template->addBodyButton($l->t('Jetzt bestätigen'), $url);
 		$template->addBodyText($l->t('Dieser Link ist %d Tage gültig und nur einmal verwendbar.', [MandateActivationToken::VALIDITY_DAYS]));
-		$template->addFooter();
+		// Auch die Fußzeile von Nextcloud (der Slogan) in der Sprache des Empfängers, nicht der Verwaltung.
+		$template->addFooter('', $l->getLanguageCode());
 
 		$message = $this->mailer->createMessage();
 		$message->setTo([$email => $member->displayName()]);

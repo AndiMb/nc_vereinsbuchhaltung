@@ -307,7 +307,8 @@ class DunningLadderService {
 		$template->addBodyText(count($giroCodes) === count($pending)
 			? $l->t('Bitte überweisen Sie jede Position einzeln mit dem jeweils genannten Betrag – für jede Position liegt ein GiroCode zum Scannen mit Ihrer Banking-App bei.')
 			: $l->t('Bitte überweisen Sie jede Position einzeln mit dem jeweils genannten Betrag.'));
-		$template->addFooter();
+		// Auch die Fußzeile von Nextcloud (der Slogan) in der Sprache des Empfängers.
+		$template->addFooter('', $l->getLanguageCode());
 
 		$message = $this->mailer->createMessage();
 		$message->setTo([$email => $displayName]);
