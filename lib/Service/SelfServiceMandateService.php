@@ -48,6 +48,7 @@ class SelfServiceMandateService {
 	public const SUBJECT_IBAN_CHANGED = 'mandate_iban_changed';
 	public const SUBJECT_HOLDER_CHANGED = 'mandate_holder_changed';
 	public const SUBJECT_REVOKED = 'mandate_revoked';
+	public const SUBJECT_DRAFT_DISCARDED = 'mandate_draft_discarded';
 
 	public function __construct(
 		private MandateService $mandateService,
@@ -227,6 +228,36 @@ class SelfServiceMandateService {
 		return $mandate;
 	}
 
+	/**
+	 * Den eigenen Entwurf verwerfen (Issue #118): wer sich bei der IBAN vertippt
+	 * hat oder das Mandat nicht mehr will, kommt aus einem unbestätigten Entwurf
+	 * sonst nicht heraus - er blockiert als lebendes Mandat jedes neue. Das
+	 * Mitglied darf einen Entwurf bewusst NUR verwerfen, nicht korrigieren
+	 * (die Verwaltung hat ihn angelegt, sie korrigiert ihn; das Mitglied erteilt
+	 * danach bei Bedarf selbst ein neues Mandat mit den richtigen Angaben).
+	 *
+	 * Die Pflicht-Notiz des Verwerfens ({@see MandateService::discardDraft()})
+	 * ist hier fest vorgegeben statt vom Mitglied zu verlangen: wer verworfen hat,
+	 * steht über `actor_type: member` ohnehin im Verlauf, ein Pflicht-Freitext
+	 * wäre reine Reibung. Wie bei jeder Self-Service-Aktion löst der Dienst das
+	 * Mandat über die member_id auf, nie über eine Mandats-ID (IDOR-Schutz).
+	 *
+	 * @throws \InvalidArgumentException wenn kein lebendes Mandat vorliegt oder es kein Entwurf ist
+	 */
+	public function discardDraft(int $memberId): Mandate {
+		$member = $this->memberMapper->find($memberId);
+		$mandate = $this->requireLiveMandate($memberId);
+		$mandate = $this->mandateService->discardDraft((int)$mandate->getId(), $this->l10n->t('Vom Mitglied selbst verworfen'));
+		$this->afterChange(
+			$member,
+			$mandate,
+			self::SUBJECT_DRAFT_DISCARDED,
+			$this->l10n->t('Sie haben den Entwurf Ihres SEPA-Lastschriftmandats verworfen (Referenz %s).', [$mandate->getMandateReference()]),
+			$this->l10n->t('Es wurde nie etwas darüber eingezogen. Sie können jederzeit ein neues Mandat erteilen.'),
+		);
+		return $mandate;
+	}
+
 	// --- Hilfsmethoden -----------------------------------------------------------
 
 	/** @throws \InvalidArgumentException wenn das Mitglied kein lebendes Mandat hat */
@@ -290,6 +321,7 @@ class SelfServiceMandateService {
 			self::SUBJECT_IBAN_CHANGED => $this->l10n->t('Bankverbindung geändert'),
 			self::SUBJECT_HOLDER_CHANGED => $this->l10n->t('Kontoinhaber gewechselt'),
 			self::SUBJECT_REVOKED => $this->l10n->t('SEPA-Lastschriftmandat widerrufen'),
+			self::SUBJECT_DRAFT_DISCARDED => $this->l10n->t('Mandats-Entwurf verworfen'),
 			default => $this->l10n->t('Änderung an Ihrem SEPA-Lastschriftmandat'),
 		};
 	}

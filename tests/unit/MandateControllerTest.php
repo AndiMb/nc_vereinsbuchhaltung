@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
 use OCA\Vereinsbuchhaltung\Controller\MandateController;
 use OCA\Vereinsbuchhaltung\Db\Mandate;
+use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
 use OCA\Vereinsbuchhaltung\Service\MandateDocumentService;
 use OCA\Vereinsbuchhaltung\Service\MandateExpiryCalculator;
@@ -14,6 +15,8 @@ use OCA\Vereinsbuchhaltung\Service\MandateLegalTextService;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
 use OCA\Vereinsbuchhaltung\Service\OpenItemService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
+use OCP\AppFramework\Db\DoesNotExistException;
+use OCP\AppFramework\Http;
 use OCP\IConfig;
 use OCP\IL10N;
 use OCP\IRequest;
@@ -171,5 +174,52 @@ class MandateControllerTest extends TestCase {
 		$response = $this->controller()->resume(7, 'Konto bestätigt');
 
 		$this->assertSame(200, $response->getStatus());
+	}
+
+	// --- Entwurf korrigieren/verwerfen (Issue #118) -----------------------------
+
+	private function declaredRole(string $method): ?string {
+		$attributes = (new \ReflectionMethod(MandateController::class, $method))->getAttributes(RequiresRole::class);
+		return $attributes === [] ? null : $attributes[0]->newInstance()->role;
+	}
+
+	/** Spec §3.9: Verwaltung nur `buchhalter` - ausdrücklich per #[RequiresRole], nicht über die Verb-Heuristik. */
+	public function testEntwurfKorrigierenUndVerwerfenVerlangenAusdruecklichDieBuchhalterRolle(): void {
+		$this->assertSame(PermissionService::ROLE_WRITE, $this->declaredRole('correctDraft'));
+		$this->assertSame(PermissionService::ROLE_WRITE, $this->declaredRole('discardDraft'));
+	}
+
+	public function testKorrekturReichtAlleDreiFelderAnDenDienstDurch(): void {
+		$this->service->expects($this->once())->method('correctDraft')
+			->with(7, 'DE89370400440532013000', 'COBADEFFXXX', 'Katrin Meier')
+			->willReturn($this->mandate(Mandate::STATUS_DRAFT));
+
+		$response = $this->controller()->correctDraft(7, 'DE89370400440532013000', 'COBADEFFXXX', 'Katrin Meier');
+
+		$this->assertSame(Http::STATUS_OK, $response->getStatus());
+		$this->assertSame('entwurf', $response->getData()['status']);
+	}
+
+	public function testVerwerfenReichtDiePflichtNotizAnDenDienstDurchUndMeldetDasErloschene(): void {
+		$ended = $this->mandate(Mandate::STATUS_ENDED);
+		$ended->setEndReason(Mandate::END_REASON_DISCARDED);
+		$this->service->expects($this->once())->method('discardDraft')->with(7, 'Tippfehler')->willReturn($ended);
+
+		$data = $this->controller()->discardDraft(7, 'Tippfehler')->getData();
+
+		$this->assertSame('erloschen', $data['status']);
+		$this->assertSame('verworfen', $data['endReason']);
+	}
+
+	public function testVerwerfenUndKorrekturMeldenFehlerDesDienstesAls400Und404(): void {
+		$this->service->method('discardDraft')->willThrowException(new \InvalidArgumentException('Zum Verwerfen eines Entwurfs ist eine Notiz Pflicht.'));
+		$this->service->method('correctDraft')->willThrowException(new DoesNotExistException('weg'));
+
+		$discard = $this->controller()->discardDraft(7, '');
+		$correct = $this->controller()->correctDraft(7, 'DE89370400440532013000', null, 'Katrin Brunner');
+
+		$this->assertSame(Http::STATUS_BAD_REQUEST, $discard->getStatus());
+		$this->assertSame('Zum Verwerfen eines Entwurfs ist eine Notiz Pflicht.', $discard->getData()['message']);
+		$this->assertSame(Http::STATUS_NOT_FOUND, $correct->getStatus());
 	}
 }

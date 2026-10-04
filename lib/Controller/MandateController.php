@@ -38,7 +38,9 @@ use OCP\IUserSession;
  * öffentlichen {@see MandateConsentController} (kein Login, auch für
  * Mitglieder ohne NC-Konto). Rollen laut Spec §3.9: Aktivierung/Sperren/
  * Entsperren/Ändern/Versenden nur `buchhalter`; `revisor` sieht nur lesend
- * mit maskierter IBAN.
+ * mit maskierter IBAN. Einen Entwurf korrigieren oder verwerfen (Issue #118)
+ * darf ebenfalls nur `buchhalter`; das Mitglied verwirft seinen eigenen
+ * Entwurf über den {@see SelfController}.
  */
 class MandateController extends Controller {
 
@@ -275,6 +277,25 @@ class MandateController extends Controller {
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function amendBankDetails(int $id, string $iban, ?string $bic = null): DataResponse {
 		return $this->guarded(fn () => $this->service->amendBankDetails($id, $iban, $bic));
+	}
+
+	/**
+	 * Entwurf korrigieren (Issue #118): IBAN, BIC und Kontoinhaber eines noch
+	 * nicht aktiven Mandats ändern, ohne Amendment; macht einen ausgesendeten
+	 * Einmal-Link ungültig. Bei einem aktiven Mandat bleibt es beim Amendment
+	 * ({@see amendBankDetails()}).
+	 */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	public function correctDraft(int $id, string $iban, ?string $bic = null, string $accountHolder = ''): DataResponse {
+		return $this->guarded(fn () => $this->service->correctDraft($id, $iban, $bic, $accountHolder));
+	}
+
+	/** Entwurf verwerfen (Issue #118): endet mit `end_reason: verworfen`, Pflicht-Notiz; danach ist ein neues Mandat möglich. */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	public function discardDraft(int $id, string $note = ''): DataResponse {
+		return $this->guarded(fn () => $this->service->discardDraft($id, $note));
 	}
 
 	#[NoAdminRequired]

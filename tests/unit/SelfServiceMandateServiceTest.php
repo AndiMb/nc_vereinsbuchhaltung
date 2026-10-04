@@ -156,6 +156,54 @@ class SelfServiceMandateServiceTest extends TestCase {
 		$this->assertSame(12, $result->getId());
 	}
 
+	public function testDiscardDraftLoestMandatAusschliesslichUeberDieMemberIdAufUndGibtEineFesteNotizMit(): void {
+		$this->memberMapper->method('find')->willReturn($this->member());
+		$this->mandateService->expects($this->once())->method('findLiveByMember')->with(42)->willReturn($this->mandate(13, Mandate::STATUS_DRAFT));
+		// Pflicht-Notiz des Dienstes (Issue #118): im Self-Service fest vorgegeben, das Mitglied tippt keine.
+		$this->mandateService->expects($this->once())->method('discardDraft')
+			->with(13, 'Vom Mitglied selbst verworfen')
+			->willReturn($this->mandate(13, Mandate::STATUS_ENDED));
+
+		$result = $this->service()->discardDraft(42);
+
+		$this->assertSame(Mandate::STATUS_ENDED, $result->getStatus());
+	}
+
+	public function testDiscardDraftOhneLebendesMandatWirftOhneMandateServiceAufzurufen(): void {
+		$this->memberMapper->method('find')->willReturn($this->member());
+		$this->mandateService->method('findLiveByMember')->willReturn(null);
+		$this->mandateService->expects($this->never())->method('discardDraft');
+		$this->receiptMailer->expects($this->never())->method('send');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->discardDraft(42);
+	}
+
+	/** Schlägt das Verwerfen im Dienst fehl (z. B. kein Entwurf mehr), gibt es weder Quittung noch Activity-Eintrag. */
+	public function testDiscardDraftOhneErfolgSchicktWederQuittungNochActivity(): void {
+		$this->memberMapper->method('find')->willReturn($this->member());
+		$this->mandateService->method('findLiveByMember')->willReturn($this->mandate(1));
+		$this->mandateService->method('discardDraft')->willThrowException(new \InvalidArgumentException('Nur ein Mandat im Entwurf lässt sich verwerfen'));
+		$this->receiptMailer->expects($this->never())->method('send');
+		$this->activityManager->expects($this->never())->method('publish');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->discardDraft(42);
+	}
+
+	public function testDiscardDraftSchicktQuittungUndVeroeffentlichtDenAllgemeinenActivityTyp(): void {
+		$this->memberMapper->method('find')->willReturn($this->member());
+		$this->mandateService->method('findLiveByMember')->willReturn($this->mandate(1, Mandate::STATUS_DRAFT));
+		$this->mandateService->method('discardDraft')->willReturn($this->mandate(1, Mandate::STATUS_ENDED));
+		$this->receiptMailer->expects($this->once())->method('send');
+		// Kein Widerruf: die Mail-Voreinstellung "an bei Widerruf" gilt für einen Entwurf nicht.
+		$this->event->expects($this->once())->method('setType')->with(SelfServiceSetting::TYPE)->willReturnSelf();
+		$this->event->expects($this->once())->method('setSubject')->with(SelfServiceMandateService::SUBJECT_DRAFT_DISCARDED)->willReturnSelf();
+		$this->activityManager->expects($this->once())->method('publish')->with($this->event);
+
+		$this->service()->discardDraft(42);
+	}
+
 	public function testGrantUebergibtDieAktuelleRechtstextversionUndDieNcUidAlsConsentActor(): void {
 		$this->memberMapper->method('find')->willReturn($this->member());
 		$this->mandateService->expects($this->once())->method('grantElectronicSelfService')
