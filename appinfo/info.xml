@@ -58,10 +58,12 @@ Mitgliederversammlung erzeugen.
   Vermögensverwaltung, Zweckbetrieb, wirtschaftlicher Geschäftsbetrieb) und
   Rücklagen nach § 62 AO
 - **Mitgliedsbeiträge & SEPA-Lastschrift** (optional, bei Bedarf aktivierbar):
-  Mitgliederverwaltung mit CSV-Import, Lastschriftmandate, Beiträge mit
-  individueller Zahlungsfrequenz, SEPA-Sammeleinzug als pain.008-Datei für die
-  Hausbank – eigener Reiter in der Hauptnavigation; wer das Modul nicht
-  braucht, sieht ihn gar nicht
+  Mitgliederverwaltung mit CSV-Import, Lastschriftmandate auf Papier oder
+  elektronisch, Beitragsgruppen mit Turnus, Vorabinfo und Einzug als
+  pain.008-Datei für die Hausbank mit Freigabe vor der Einreichung,
+  Bankabgleich, Rücklastschriften mit Mahnwesen und ein Bereich „Mein Beitrag"
+  für die Mitglieder – eigener Reiter in der Hauptnavigation; wer das Modul
+  nicht braucht, sieht ihn gar nicht
 - **Offene Posten** – unbezahlte Forderungen mit Fälligkeit im Blick
 - **Mehrjahres-Trend** und Ergebnis je Auswertungsgruppe
 - **Geschäftsjahr frei wählbar:** muss nicht dem Kalenderjahr entsprechen –
@@ -128,10 +130,12 @@ treasurer's report.
   (ideational, asset management, purpose-related business, commercial
   business) and reserves per § 62 AO
 - **Membership fees & SEPA direct debit** (optional, can be enabled as
-  needed): member management with CSV import, direct debit mandates, fees
-  with individual payment frequency, SEPA batch collection as a pain.008
-  file for your bank – its own tab in the main navigation; if you don't need
-  the module, you never see it
+  needed): member management with CSV import, direct debit mandates on paper
+  or electronic, contribution groups with an interval, pre-notification and
+  collection as a pain.008 file for your bank with a release before
+  submission, bank reconciliation, returned debits with dunning, and a "My
+  contribution" area for members – its own tab in the main navigation; if you
+  don't need the module, you never see it
 - **Open items** – keep track of unpaid receivables with due dates
 - **Multi-year trend** and result per reporting group
 - **Freely definable fiscal year:** it does not have to match the calendar
