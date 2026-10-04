@@ -19,6 +19,7 @@ use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
 use OCA\Vereinsbuchhaltung\Service\SelfContactService;
 use OCA\Vereinsbuchhaltung\Service\SelfContributionService;
+use OCA\Vereinsbuchhaltung\Service\SelfReturnedDebitService;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceMandateService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -41,7 +42,8 @@ use OCP\IRequest;
  * Wirksamkeitsregel, Benachrichtigungen) steckt in
  * {@see SelfContributionService}/{@see SelfContactService}. Dazu die
  * informelle Beitragsbestätigung (Issue #77) als druckfertige Live-Ansicht,
- * siehe {@see certificate()}.
+ * siehe {@see certificate()}, und die eigenen Rücklastschriften im Klartext
+ * (Issue #122), siehe {@see returnedDebits()}.
  *
  * Sicherheitsregel dieses Controllers, weil er die einzige Stelle im Modul
  * ist, die ohne Buchhaltungsrolle erreichbar ist: JEDE Methode liest die
@@ -71,6 +73,7 @@ class SelfController extends Controller {
 		private ContributionGroupMapper $groupMapper,
 		private BeitragsbescheinigungRenderer $certificateRenderer,
 		private DatenuebersichtRenderer $dataOverviewRenderer,
+		private SelfReturnedDebitService $selfReturnedDebits,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -307,6 +310,19 @@ class SelfController extends Controller {
 		} catch (DoesNotExistException) {
 			return new DataResponse(['message' => $this->l10n->t('Zuweisung nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
+	}
+
+	/**
+	 * Eigene Rücklastschriften im Klartext (Spec §3.4 Pflicht-UI, Issue #122),
+	 * neueste zuerst. `memberId` kommt wie überall in diesem Controller
+	 * ausschließlich aus dem ActorContextService (IDOR-Schutz) – es gibt
+	 * keinen Parameter, mit dem sich die Liste eines anderen Mitglieds anfordern
+	 * ließe. Die Zeilen tragen nie den rohen Rückgabecode, den Freitext der Bank
+	 * oder Kontodaten, siehe {@see SelfReturnedDebitService}.
+	 */
+	#[NoAdminRequired]
+	public function returnedDebits(): DataResponse {
+		return new DataResponse($this->selfReturnedDebits->findOwn($this->requireMemberId()));
 	}
 
 	/**

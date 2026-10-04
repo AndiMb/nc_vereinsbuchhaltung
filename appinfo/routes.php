@@ -128,6 +128,11 @@ return [
 		// SelfController::dataOverview().
 		['name' => 'self#dataOverview', 'url' => '/api/self/data-overview', 'verb' => 'GET'],
 
+		// Issue #122: eigene Rücklastschriften im Klartext (Spec §3.4
+		// Pflicht-UI) - nur lesend, ohne Parameter: member_id ausschließlich
+		// aus der Kontoverknüpfung, siehe SelfController::returnedDebits().
+		['name' => 'self#returnedDebits', 'url' => '/api/self/returned-debits', 'verb' => 'GET'],
+
 		// Rules
 		['name' => 'rule#index', 'url' => '/api/rules', 'verb' => 'GET'],
 		['name' => 'rule#create', 'url' => '/api/rules', 'verb' => 'POST'],
