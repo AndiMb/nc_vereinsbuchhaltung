@@ -45,7 +45,7 @@ export const FILTER_UNSETTLED = 'nicht_beglichen'
 /** Die Auswahl „Zustand" – der Vorgabewert zeigt, was noch aussteht, damit die Liste nicht mit jedem erledigten Jahr wächst. */
 export function stateFilterOptions() {
 	return [
-		{ value: FILTER_UNSETTLED, label: t('Nicht beglichen (offen, im Einzug, zurückgegeben)') },
+		{ value: FILTER_UNSETTLED, label: t('Nicht beglichen') },
 		{ value: FILTER_ALL, label: t('Alle Zustände') },
 		{ value: 'offen', label: t('offen') },
 		{ value: 'im_einzug', label: t('im Einzug') },
