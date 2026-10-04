@@ -143,7 +143,10 @@ class PermissionMiddleware extends Middleware {
 	 */
 	private function requireRole(string $role): void {
 		$current = $this->permissions->getRole();
-		if (PermissionService::RANK[$current] >= PermissionService::RANK[$role]) {
+		// Ein unbekannter Rollenname (Tippfehler im Attribut) hat keinen Rang. Fehlt er in RANK, wäre der Vergleich
+		// mit null immer wahr und die Methode stünde jedem offen: fail-closed, dann bekommt niemand Zugriff.
+		$required = PermissionService::RANK[$role] ?? PHP_INT_MAX;
+		if (PermissionService::RANK[$current] >= $required) {
 			return;
 		}
 		throw new ForbiddenException(match ($role) {

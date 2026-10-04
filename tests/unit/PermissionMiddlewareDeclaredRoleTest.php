@@ -11,6 +11,7 @@ use OCA\Vereinsbuchhaltung\Controller\DueDateScheduleController;
 use OCA\Vereinsbuchhaltung\Controller\SettingsController;
 use OCA\Vereinsbuchhaltung\Exception\ForbiddenException;
 use OCA\Vereinsbuchhaltung\Middleware\PermissionMiddleware;
+use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\ActorContextService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceService;
@@ -88,6 +89,26 @@ class PermissionMiddlewareDeclaredRoleTest extends TestCase {
 				$passed,
 				sprintf('%s::%s verlangt mindestens „%s“, Rolle „%s“ %s', (new \ReflectionClass($class))->getShortName(), $method, $minimum, $role, $allowed ? 'müsste durchkommen' : 'müsste eine 403 bekommen'),
 			);
+		}
+	}
+
+	/**
+	 * Fail-closed: Ein Tippfehler im Rollennamen des Attributs (hier „verwalterr“) darf eine Methode nie öffnen.
+	 * Ohne Rang im RANK-Array wäre der Vergleich mit null wahr gewesen, jede Rolle (auch „none“) wäre durchgekommen.
+	 */
+	public function testUnbekannteRolleImAttributLaesstNiemandsDurch(): void {
+		$controller = new class('vereinsbuchhaltung', $this->createMock(IRequest::class)) extends Controller {
+			#[RequiresRole('verwalterr')]
+			public function oops(): void {
+			}
+		};
+		foreach (self::ROLES as $role) {
+			try {
+				$this->middleware($role, 'POST')->beforeController($controller, 'oops');
+				$this->fail(sprintf('Rolle „%s“ kam durch eine Methode mit unbekannter Rolle', $role));
+			} catch (ForbiddenException) {
+				$this->addToAssertionCount(1);
+			}
 		}
 	}
 
