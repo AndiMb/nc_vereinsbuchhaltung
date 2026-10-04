@@ -488,6 +488,18 @@ manuell gebucht (Kapitel 4.2) – die App gleicht offene Posten aktuell
 **stornieren** (erledigt sich anders, z. B. Beitragsbefreiung) oder bei
 Bedarf **wieder öffnen**.
 
+**Forderungen an Mitglieder sehen Sie hier nur.** Beitrags- und
+Gebührenforderungen (Kapitel 13.8) stehen in derselben Liste, tragen die Marke
+*Beitrag* bzw. *Gebühr* und lassen sich an dieser Stelle nicht ändern: Statt
+*Bezahlt*, *Stornieren* und *Wieder öffnen* steht der Knopf **„Im Einzug
+bearbeiten"** (für Revisoren „Im Einzug ansehen"). Er springt nach *Beiträge →
+Einzug → Forderungen*, eingegrenzt auf das Mitglied. Nur dort gelten die Regeln
+der Forderungen: Der Vermerk „bezahlt" hält Ihren Namen und eine Notiz fest, ein
+Storno braucht eine Begründung und geht nur vor der Einreichung, ein Verzicht
+heißt Erlass – und eine Forderung wird nie gelöscht. Die freien Posten ohne
+Mitglied (Rechnungen und Ähnliches) bearbeiten Sie weiter hier, wie oben
+beschrieben.
+
 ---
 
 ## 5. Auswertungen verstehen
@@ -1370,9 +1382,10 @@ Im Reiter **„Beiträge" → Einzug** zeigt das Segment **„Forderungen"** (ne
 *Zeitstrahl & Läufe*) alle Forderungen an Mitglieder: Bezeichnung, Art
 (*Beitrag* oder *Gebühr*), Fälligkeit, Betrag, **Zustand**, **Mahnstand** und
 mögliche **Störfälle**. Die allgemeinen offenen Posten ohne Mitglied (Rechnungen
-und Ähnliches) stehen weiter unter *Buchungen → Offene Posten*. Lesen dürfen es
-alle ab Revisor; vermerken, stunden, erlassen und stornieren dürfen Buchhalter
-und Verwalter.
+und Ähnliches) stehen weiter unter *Buchungen → Offene Posten*; die Forderungen
+sehen Sie dort ebenfalls, aber nur zur Ansicht – bearbeitet werden sie
+ausschließlich hier (Kapitel 4.5). Lesen dürfen es alle ab Revisor; vermerken,
+stunden, erlassen und stornieren dürfen Buchhalter und Verwalter.
 
 **Der Zustand** ist abgeleitet und steht in Klartext: *offen*, *im Einzug*
 (in einem freigegebenen oder eingereichten Lauf, der Termin liegt noch vor

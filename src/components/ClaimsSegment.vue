@@ -361,6 +361,7 @@ import DebitStatusTag from './DebitStatusTag.vue'
 import ManualClaimDialog from './ManualClaimDialog.vue'
 import api from '../api.js'
 import { useClaimOverview } from '../composables/useClaimOverview.js'
+import { useEinzugRequest } from '../composables/useEinzugRequest.js'
 import { useMemberAkteRequest } from '../composables/useMemberAkteRequest.js'
 import {
 	claimCountText,
@@ -369,6 +370,7 @@ import {
 	dunningNextText,
 	dunningStageLabel,
 	emptyFilters,
+	FILTER_ALL,
 	filterClaims,
 	filtersChanged,
 	groupByMember,
@@ -411,7 +413,10 @@ export default {
 	setup() {
 		const overview = useClaimOverview()
 		const akte = useMemberAkteRequest()
+		const einzugRequest = useEinzugRequest()
 		return {
+			einzugRequest: einzugRequest.request,
+			takeMemberFocus: einzugRequest.takeMemberFocus,
 			...toRefs(overview.state),
 			load: overview.load,
 			requestMemberAkte: akte.requestMemberAkte,
@@ -461,6 +466,19 @@ export default {
 		active: {
 			immediate: true,
 			handler(value) { if (value) { this.load() } },
+		},
+
+		// Ein Sprung aus Buchungen → Offene Posten (Issue #121) grenzt die Liste auf das Mitglied der
+		// Forderung ein, und zwar auf alle Zustände: auch eine erledigte oder stornierte Forderung soll
+		// dort zu finden sein. Gilt einmal und wird dabei abgeräumt.
+		'einzugRequest.memberId': {
+			immediate: true,
+			handler(memberId) {
+				if (memberId === null) { return }
+				this.takeMemberFocus()
+				this.filters = { ...emptyFilters(), state: FILTER_ALL, memberId }
+				this.view = 'claims'
+			},
 		},
 
 		// Fällt die aufgeklappte Forderung aus der Auswahl (erledigt, storniert, anderer Filter), klappt ihr Detail

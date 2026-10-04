@@ -419,6 +419,14 @@
 					</button>
 				</div>
 
+				<!-- Forderungen des Beitragsmoduls stehen hier nur zur Ansicht: ihre Regeln (Erledigungsvermerk, Storno nur vor
+				     der Einreichung, Erlass statt Löschen) setzt der Einzug-Reiter durch (Issue #121). -->
+				<p v-if="hasClaimRows" class="vbh-hint vbh-hint--info" role="note">
+					{{ membershipActive
+						? t('Forderungen an Mitglieder (Beitrag oder Gebühr) sehen Sie hier nur. Bearbeitet werden sie im Reiter „Beiträge“ unter Einzug, Segment „Forderungen“: als bezahlt vermerken, stunden, erlassen, stornieren.')
+						: t('Forderungen an Mitglieder (Beitrag oder Gebühr) sehen Sie hier nur; bearbeitet werden sie im Beitragsmodul.') }}
+				</p>
+
 				<div v-if="filteredOpenItems.length" class="vbh-tablecard">
 					<table class="vbh-table">
 						<thead>
@@ -442,7 +450,10 @@
 						</thead>
 						<tbody>
 							<tr v-for="o in filteredOpenItems" :key="o.id">
-								<td>{{ o.debtor }}</td>
+								<td>
+									{{ o.debtor }}
+									<span v-if="isClaim(o)" class="vbh-typetag">{{ claimTypeLabel(o.type) }}</span>
+								</td>
 								<td class="vbh-col-hide-sm vbh-purpose">
 									<span class="vbh-clamp">{{ o.description }}</span>
 								</td>
@@ -459,7 +470,16 @@
 								<td><span class="vbh-typetag" :class="o.status">{{ openItemStatusLabel(o.status) }}</span></td>
 								<td class="right nowrap">
 									<div class="vbh-actions">
-										<template v-if="canWrite && o.status === 'open'">
+										<template v-if="isClaim(o)">
+											<NcButton
+												v-if="membershipActive"
+												variant="tertiary"
+												:aria-label="claimLinkLabel(o)"
+												@click="$emit('go-claims', o.memberId)">
+												{{ canWrite ? t('Im Einzug bearbeiten') : t('Im Einzug ansehen') }}
+											</NcButton>
+										</template>
+										<template v-else-if="canWrite && o.status === 'open'">
 											<NcButton variant="tertiary" @click="markOpenItemPaid(o)">
 												{{ t('Bezahlt') }}
 											</NcButton>
@@ -502,7 +522,9 @@ import { useJournal } from '../composables/useJournal.js'
 import { useOpenItems } from '../composables/useOpenItems.js'
 import { usePeriods } from '../composables/usePeriods.js'
 import { useSort } from '../composables/useSort.js'
+import { claimTypeLabel } from '../lib/claims.js'
 import { amountClass, errMsg, formatDate, formatMoney } from '../lib/format.js'
+import { openItemStatusLabel } from '../lib/openItems.js'
 
 export default {
 	name: 'BookingsTab',
@@ -510,6 +532,8 @@ export default {
 	props: {
 		isMobile: { type: Boolean, required: true },
 		bookingView: { type: String, required: true },
+		// Ob der Reiter „Beiträge“ da ist - nur dann führt der Hinweis an einer Forderung dorthin (Issue #121).
+		membershipActive: { type: Boolean, default: false },
 		attachmentCountMap: { type: Object, required: true },
 		// suggestionsById bleibt in App.vue berechnet (wird auch vom
 		// AccountPickerSheet-Flow dort gebraucht), hier nur als Prop gelesen.
@@ -527,7 +551,7 @@ export default {
 		applySuggestion: { type: Function, required: true },
 	},
 
-	emits: ['help', 'update:booking-view'],
+	emits: ['go-claims', 'help', 'update:booking-view'],
 
 	setup() {
 		const auth = useAuth()
@@ -548,6 +572,7 @@ export default {
 			...toRefs(openItemsC.state),
 			overdueOpenItemsCount: openItemsC.overdueCount,
 			loadOpenItems: openItemsC.loadOpenItems,
+			isClaim: openItemsC.isClaim,
 			// Sortierung aus dem gemeinsamen Zustand (dieselbe Einstellung nutzt
 			// die Saldenliste im Berichte-Tab), nicht mehr als Prop aus App.vue.
 			...useSort(),
@@ -709,6 +734,8 @@ export default {
 			if (this.openItemFilter === 'all') { return this.openItems }
 			return this.openItems.filter((o) => o.status === this.openItemFilter)
 		},
+
+		hasClaimRows() { return this.filteredOpenItems.some((o) => this.isClaim(o)) },
 	},
 
 	watch: {
@@ -737,8 +764,12 @@ export default {
 			return tx.status === 'assigned' && !tx.contraAccountId
 		},
 
-		openItemStatusLabel(status) {
-			return { open: this.t('Offen'), paid: this.t('Bezahlt'), cancelled: this.t('Storniert') }[status] || status
+		openItemStatusLabel,
+		claimTypeLabel,
+
+		/** Zugänglicher Name des Sprung-Knopfs. Der Debitor steht nicht in einer t()-Variable (HTML-Escaping). */
+		claimLinkLabel(o) {
+			return `${this.canWrite ? this.t('Im Einzug bearbeiten') : this.t('Im Einzug ansehen')}: ${o.debtor}`
 		},
 
 		async createOpenItem() {

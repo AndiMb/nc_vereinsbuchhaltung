@@ -148,6 +148,7 @@ import DebitRunList from './DebitRunList.vue'
 import DebitTimeline from './DebitTimeline.vue'
 import DueDateScheduleSettings from './DueDateScheduleSettings.vue'
 import { useDebitRuns } from '../composables/useDebitRuns.js'
+import { useEinzugRequest } from '../composables/useEinzugRequest.js'
 import { liveBatches } from '../lib/debitRun.js'
 
 /**
@@ -179,7 +180,10 @@ export default {
 
 	setup() {
 		const debitRuns = useDebitRuns()
+		const einzugRequest = useEinzugRequest()
 		return {
+			einzugRequest: einzugRequest.request,
+			takeSegmentRequest: einzugRequest.takeSegmentRequest,
 			...toRefs(debitRuns.state),
 			selectedEntry: debitRuns.selectedEntry,
 			selectedPreview: debitRuns.selectedPreview,
@@ -233,6 +237,17 @@ export default {
 		active: {
 			immediate: true,
 			handler(value) { if (value) { this.reload() } },
+		},
+
+		// Ein Sprung von außen wählt das Segment (z. B. aus Buchungen → Offene Posten in
+		// „Forderungen“, Issue #121); die Anfrage gilt einmal und wird dabei abgeräumt.
+		'einzugRequest.segment': {
+			immediate: true,
+			handler(wanted) {
+				if (wanted === null) { return }
+				const segment = this.takeSegmentRequest()
+				if (this.segments.some((seg) => seg.id === segment)) { this.segment = segment }
+			},
 		},
 	},
 
