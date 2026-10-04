@@ -20,6 +20,7 @@ use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
+use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\DataDisplayResponse;
 use OCP\AppFramework\Http\DataDownloadResponse;
 use OCP\AppFramework\Http\DataResponse;
@@ -196,6 +197,7 @@ class MandateController extends Controller {
 	 * Unterschriftszeile.
 	 */
 	#[NoAdminRequired]
+	#[NoCSRFRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function form(int $id): DataResponse|DataDisplayResponse {
 		try {
@@ -339,6 +341,7 @@ class MandateController extends Controller {
 	}
 
 	#[NoAdminRequired]
+	#[NoCSRFRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function downloadDocument(int $id): DataResponse|DataDownloadResponse {
 		try {
