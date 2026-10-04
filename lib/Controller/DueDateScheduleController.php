@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\ContributionCycleSettings;
 use OCA\Vereinsbuchhaltung\Service\DueDateScheduleService;
+use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -16,8 +18,14 @@ use OCP\IRequest;
 /**
  * Der Terminplan als Einstellung (Spec §2.2 „Terminplan (Due Date Schedule)",
  * Issue #70) – siehe {@see DueDateScheduleService} für Modell und Guards.
- * Lesen ist ab `revisor` erlaubt (Verb-Heuristik der PermissionMiddleware),
- * Schreiben ab `buchhalter`.
+ *
+ * Rollen laut Spec §3.9, jede Methode ausdrücklich (Issue #119): Lesen ab
+ * `revisor`; die Terminverschiebung – Standard-Einzugstag und Überschreibung
+ * einzelner Perioden – ab `buchhalter`; die beiden Vorlaufzeiten
+ * (Vorwarnfenster, Vorabinfo-Vorlauf) sind Einstellungen und damit nur für
+ * `verwalter`. Sie bestimmen, wann Aufgaben und Vorabinfo-Mails ausgelöst
+ * werden und ab wann eine Periode für Änderungen gesperrt ist – das gehört
+ * in dieselbe Hand wie die übrigen Einstellungen des Beitragsmoduls.
  */
 class DueDateScheduleController extends Controller {
 
@@ -30,6 +38,7 @@ class DueDateScheduleController extends Controller {
 	}
 
 	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_READ)]
 	public function index(): DataResponse {
 		return new DataResponse([
 			'schedule' => $this->schedule->getFullSchedule(),
@@ -39,6 +48,7 @@ class DueDateScheduleController extends Controller {
 	}
 
 	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function setDefaultDay(int $intervalMonths, int $offsetDays): DataResponse {
 		try {
 			$this->schedule->setDefaultOffsetDays($intervalMonths, $offsetDays);
@@ -50,6 +60,7 @@ class DueDateScheduleController extends Controller {
 
 	/** `offsetDays` weglassen/null entfernt die Überschreibung wieder. */
 	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function setOverride(int $intervalMonths, int $periodIndex, ?int $offsetDays = null): DataResponse {
 		try {
 			$this->schedule->setOverride($intervalMonths, $periodIndex, $offsetDays);
@@ -59,7 +70,9 @@ class DueDateScheduleController extends Controller {
 		}
 	}
 
+	/** Vorwarnfenster und Vorabinfo-Vorlauf – Einstellungen, deshalb `verwalter` (Spec §3.9). */
 	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_ADMIN)]
 	public function setLeadDays(?int $prenotificationLeadDays = null, ?int $warningLeadDays = null): DataResponse {
 		try {
 			if ($prenotificationLeadDays !== null) {

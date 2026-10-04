@@ -185,6 +185,7 @@ class SettingsController extends Controller {
 	}
 
 	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_READ)]
 	public function index(): DataResponse {
 		return new DataResponse($this->currentSettings());
 	}

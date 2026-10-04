@@ -20,11 +20,10 @@ use OCP\IUserSession;
 
 /**
  * Forderungen/manuelle Einzelforderungen (siehe {@see ClaimService}).
- * `index()` ist die „Offene-Posten-Sicht" (Spec §3.9): lesbar ab `revisor`
- * (Default-Heuristik, GET), maskiert – siehe ClaimService::listMasked().
- * Anlegen/Erledigen/Stornieren/Stunden sind laut Issue #68 ausdrücklich
- * `buchhalter`-only, deshalb überall ein explizites RequiresRole statt der
- * (hier ohnehin gleichlautenden) Verb-Heuristik.
+ * `index()` ist die „Offene-Posten-Sicht" (Spec §3.9): lesbar ab `revisor`,
+ * maskiert – siehe ClaimService::listMasked(). Anlegen/Erledigen/Stornieren/
+ * Stunden sind laut Issue #68 ausdrücklich `buchhalter`-only. Jede Methode
+ * trägt ihre Rolle ausdrücklich (Issue #119) statt der Verb-Heuristik.
  *
  * `overview()` (Issue #104) ist die Forderungsübersicht des Einzug-Unterreiters
  * – siehe {@see ClaimOverviewService}; `index()` bleibt davon unberührt.
@@ -47,6 +46,7 @@ class ClaimController extends Controller {
 	}
 
 	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_READ)]
 	public function index(): DataResponse {
 		return new DataResponse($this->service->listMasked());
 	}
