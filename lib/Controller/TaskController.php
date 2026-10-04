@@ -13,6 +13,7 @@ use OCA\Vereinsbuchhaltung\Service\DunningTaskService;
 use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCA\Vereinsbuchhaltung\Service\TaskService;
+use OCA\Vereinsbuchhaltung\Service\TaskTargetResolver;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
@@ -35,6 +36,9 @@ use OCP\IRequest;
  * „Mahnstufe an Vorstand eskaliert" nach demselben Muster. Issue #78 ergänzt
  * mit {@see AnonymizationCandidateService} „Mitglied X anonymisierungsreif"
  * (Spec §3.8/§7 „Anonymisierungs-Vorschlag").
+ *
+ * Jede Aufgabe trägt zusätzlich `memberId` (?int) als Sprungziel für die
+ * Oberfläche (Aufgaben-Flyout, Issue #99), siehe {@see TaskTargetResolver}.
  */
 class TaskController extends Controller {
 
@@ -46,6 +50,7 @@ class TaskController extends Controller {
 		private DebitBatchTaskService $debitBatchTasks,
 		private DunningTaskService $dunningTasks,
 		private AnonymizationCandidateService $anonymizationCandidates,
+		private TaskTargetResolver $targets,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -71,6 +76,6 @@ class TaskController extends Controller {
 		foreach ($this->anonymizationCandidates->findTasks() as $i => $task) {
 			$tasks[] = $task + ['id' => 'anonymization-' . ($task['objectId'] ?? 'run') . '-' . $i, 'createdAt' => null];
 		}
-		return new DataResponse($tasks);
+		return new DataResponse($this->targets->withMemberIds($tasks));
 	}
 }
