@@ -24,10 +24,13 @@ use OCP\IUserSession;
  * „Personalunion": der **Kanal** entscheidet, nicht die Identität); das
  * Mitglied ändert über den {@see SelfController}.
  *
- * Rollen (Spec §3.9, Issue #119), jede Methode ausdrücklich: Lesen (Liste und
- * Ereignisse) ab `revisor`, analog zu Mandat und dessen Verlauf; jede Änderung
- * und die Vorschau ab `buchhalter`. Die Vorschau ist ein POST ohne
- * Schreibwirkung, bleibt aber bewusst auf der Rolle der Änderung, weil sie nur
+ * Rollen (Spec §3.9, Issue #119), jede Methode ausdrücklich: alles ab
+ * `buchhalter`, auch das Lesen. Zuweisungen gehören zur Personenakte des
+ * Mitglieder-Unterreiters (dort „nicht revisor"): sie tragen die Begründung der
+ * individuellen Untergrenze, die Ereignisse die Freitext-Vermerke einer
+ * Stellvertretung – beides sollen Kassenprüfer nicht über die API lesen, auch
+ * wenn die Oberfläche es ihnen gar nicht erst anzeigt. Die Vorschau ist ein
+ * POST ohne Schreibwirkung, bleibt aber auf der Rolle der Änderung, weil sie nur
  * im Dialog zum Speichern vorkommt.
  */
 class AssignmentController extends Controller {
@@ -46,7 +49,7 @@ class AssignmentController extends Controller {
 	}
 
 	#[NoAdminRequired]
-	#[RequiresRole(PermissionService::ROLE_READ)]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function index(?int $memberId = null): DataResponse {
 		$assignments = $memberId !== null ? $this->service->findByMember($memberId) : $this->service->findAll();
 		return new DataResponse(array_map(fn ($a) => $a->jsonSerialize(), $assignments));
@@ -154,7 +157,7 @@ class AssignmentController extends Controller {
 	}
 
 	#[NoAdminRequired]
-	#[RequiresRole(PermissionService::ROLE_READ)]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function events(int $id): DataResponse {
 		return new DataResponse(array_map(fn ($e) => $e->jsonSerialize(), $this->service->findEvents($id)));
 	}

@@ -127,9 +127,15 @@ class PermissionMiddlewareDeclaredRoleTest extends TestCase {
 		}
 	}
 
-	public function testZuweisungenLesenAbRevisorAendernAbBuchhalter(): void {
+	/**
+	 * Zuweisungen tragen die Begründung der individuellen Untergrenze und die
+	 * Freitext-Vermerke der Ereignisse – Personenakte, deshalb auch Lesen erst ab
+	 * `buchhalter` (Spec §3.9, Mitglieder-Unterreiter „nicht revisor"). Vorher
+	 * ließ die Verb-Heuristik (GET = revisor) sie durch.
+	 */
+	public function testZuweisungenSindPersonenakteAlsoAuchLesenErstAbBuchhalter(): void {
 		foreach (['index', 'events'] as $method) {
-			$this->assertMinimumRole(AssignmentController::class, $method, 'GET', PermissionService::ROLE_READ);
+			$this->assertMinimumRole(AssignmentController::class, $method, 'GET', PermissionService::ROLE_WRITE);
 		}
 		foreach (['create', 'previewNew', 'update', 'end'] as $method) {
 			$this->assertMinimumRole(AssignmentController::class, $method, 'POST', PermissionService::ROLE_WRITE);
