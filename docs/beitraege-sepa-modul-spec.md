@@ -682,10 +682,13 @@ verwalter`, NC-Admins immer `verwalter`) wird unverändert übernommen.
 | Lauf-Freigabe/Einreichung, Mandats-Aktivierung/Sperren/Entsperren, individuelle Untergrenze, Erledigungsvermerk inkl. Erlass, Stundung, Stellvertretung, manuelle Einzelforderung, Import, Terminverschiebung | `buchhalter` |
 | Einstellungen (Beitragsjahr, Vorabinfo-Vorlauf, Vorlauf-Puffer, Vorwarnfenster, XML-Ablage, `self_service_enabled`, Rücklastschriftgebühren-Konto), Rechtevergabe | `verwalter` |
 | Einzug-Unterreiter lesend (Läufe, Forderungen, Erledigungsvermerke, Störfall-/Rücklastschriftlisten, Offene-Posten-Sicht), IBAN maskiert | `revisor` |
-| Mitglieder-Unterreiter (Personenakte, unmaskierte IBAN, Kontaktdaten) | `buchhalter` (nicht `revisor`) |
+| Mitglieder-Unterreiter (Personenakte samt Zuweisungen und deren Ereignissen, unmaskierte IBAN, Kontaktdaten) | `buchhalter` (nicht `revisor`) |
 
 **Konvention:** jede neue Controller-Methode trägt explizit `#[RequiresRole]` — die
-Fail-open-Verb-Heuristik des Gefäßes wird im Modul nicht genutzt.
+Fail-open-Verb-Heuristik des Gefäßes wird im Modul nicht genutzt. Durchgesetzt von
+`tests/unit/ControllerRoleDeclarationTest.php` (Issue #119): er liest die Routen, kennt die
+Grenze zwischen Modul und Kern und nennt bei einer neuen Methode, was zu tun ist. Ausgenommen
+sind namentlich der Self-Service (`/api/self/*`, §3.4) und die öffentliche Zustimmungsseite.
 
 **Personalunion:** der **Kanal** entscheidet `actor_type`, nicht die Identität — Änderung
 über „Mein Beitrag" → `actor_type: member`, über die Admin-Akte (auch an eigener Akte) →
