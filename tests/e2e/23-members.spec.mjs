@@ -92,6 +92,9 @@ test.describe('Mitglieder-Stammdaten', () => {
 
 		const updated = (await api.listMembers(request)).find((m) => m.id === member.id)
 		expect(updated.ncUserId).toBe(USERS.revisor)
+
+		// Aufräumen: eine bleibende Verknüpfung würde dem Self-Service anderer Specs ein Mitglied für `revisor` unterschieben.
+		await api.unlinkMember(request, member.id)
 	})
 
 	test('Löschsperre: aktives Mandat verhindert das Löschen mit erklärender Meldung', async ({ page, request }) => {
