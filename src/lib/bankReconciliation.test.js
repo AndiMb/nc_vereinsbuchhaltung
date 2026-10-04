@@ -15,6 +15,7 @@ import {
 	stageIsWeak,
 	stageReason,
 	summarize,
+	takenItemIds,
 	txStateLabel,
 	unambiguousOpenDetails,
 } from './bankReconciliation.js'
@@ -77,7 +78,7 @@ describe('Fortschritt eines Umsatzes', () => {
 describe('Eindeutige Vorschläge', () => {
 	it('nimmt Zeilen mit genau einem starken Kandidaten und ohne Urteil', () => {
 		const strong = detail('offen', [candidate(1)], { id: 1 })
-		const mandate = detail('offen', [candidate(2)], { id: 2 })
+		const mandate = detail('offen', [candidate(2, { debitItemId: 11 })], { id: 2 })
 
 		const result = unambiguousOpenDetails({ details: [strong, mandate] })
 
@@ -100,6 +101,41 @@ describe('Eindeutige Vorschläge', () => {
 		const none = detail('offen', [])
 
 		expect(unambiguousOpenDetails({ details: [decided, none] })).toEqual([])
+	})
+})
+
+describe('Ein Posten gehört zu höchstens einer Zeile', () => {
+	it('nennt die Posten, die eine andere Zeile derselben Richtung schon hat', () => {
+		const mine = detail('offen', [], { id: 1, isReturn: false })
+		const other = detail('zugeordnet', [], { id: 2, isReturn: false, debitItemId: 10 })
+		const returned = detail('zugeordnet', [], { id: 3, isReturn: true, debitItemId: 11 })
+		const rejected = detail('abgelehnt', [], { id: 4, isReturn: false, debitItemId: null })
+		const entry = { details: [mine, other, returned, rejected] }
+
+		expect(takenItemIds(entry, mine)).toEqual([10])
+	})
+
+	it('zählt die eigene Zuordnung der Zeile nicht als „schon vergeben“', () => {
+		const mine = detail('zugeordnet', [], { id: 1, isReturn: false, debitItemId: 10 })
+
+		expect(takenItemIds({ details: [mine] }, mine)).toEqual([])
+	})
+
+	it('hält einen Kandidaten nicht für eindeutig, den eine andere Zeile schon hat', () => {
+		const taken = detail('zugeordnet', [], { id: 1, debitItemId: 10 })
+		const open = detail('offen', [candidate(1, { debitItemId: 10 })], { id: 2 })
+
+		expect(unambiguousOpenDetails({ details: [taken, open] })).toEqual([])
+	})
+
+	it('hält zwei offene Zeilen mit demselben einzigen Kandidaten beide nicht für eindeutig', () => {
+		const first = detail('offen', [candidate(2, { debitItemId: 10 })], { id: 1 })
+		const second = detail('offen', [candidate(2, { debitItemId: 10 })], { id: 2 })
+		const third = detail('offen', [candidate(1, { debitItemId: 11 })], { id: 3 })
+
+		const result = unambiguousOpenDetails({ details: [first, second, third] })
+
+		expect(result.map((r) => r.detail.id)).toEqual([3])
 	})
 })
 

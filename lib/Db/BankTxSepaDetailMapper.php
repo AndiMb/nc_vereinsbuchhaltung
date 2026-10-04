@@ -68,6 +68,22 @@ class BankTxSepaDetailMapper extends QBMapper {
 		return $this->findEntities($qb);
 	}
 
+	/**
+	 * Die Zeilen, die diesen Einzugsposten zugeordnet haben – Grundlage der Regel
+	 * „ein Posten gehört zu höchstens einer Zeile je Richtung“
+	 * ({@see \OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportConfirmationService::assign()}).
+	 *
+	 * @return BankTxSepaDetail[]
+	 */
+	public function findAssignedToDebitItem(int $debitItemId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('debit_item_id', $qb->createNamedParameter($debitItemId, IQueryBuilder::PARAM_INT)))
+			->andWhere($qb->expr()->eq('status', $qb->createNamedParameter(BankTxSepaDetail::STATUS_ASSIGNED)));
+		return $this->findEntities($qb);
+	}
+
 	/** Beim Zurücksetzen des Buchungsbestands (siehe ResetService): die Umsätze, zu denen sie gehören, sind weg. */
 	public function deleteAll(): void {
 		$qb = $this->db->getQueryBuilder();

@@ -723,4 +723,42 @@ class SepaImportConfirmationServiceTest extends TestCase {
 			$this->assertSame(SettlementBlockedException::REASON_CLAIM_NOT_OPEN, $e->reason);
 		}
 	}
+
+	// --- Ein Posten gehört zu höchstens einer Zeile je Richtung (Einzelurteil) ---------
+
+	/** Bei zwei Forderungen desselben Mandats mit gleichem Betrag passen zwei Zeilen auf dieselben Kandidaten – dieselbe Summe, aber eine Forderung doppelt abgeschlossen. */
+	public function testEinPostenLaesstSichNichtZweiZeilenZuordnen(): void {
+		$this->debitItems->method('find')->with(10)->willReturn($this->debitItem(10, 100, 1000));
+		$this->details->method('find')->with(2)->willReturn($this->detail(2, 1, 0, 1000, false, BankTxSepaDetail::STATUS_OPEN));
+		$this->details->method('findAssignedToDebitItem')->with(10)->willReturn([$this->detail(1, 1, 10, 1000, false, BankTxSepaDetail::STATUS_ASSIGNED)]);
+		$this->details->expects($this->never())->method('update');
+
+		try {
+			$this->service()->assign(2, 10);
+			$this->fail('Erwartet: SettlementBlockedException');
+		} catch (SettlementBlockedException $e) {
+			$this->assertSame(SettlementBlockedException::REASON_ITEM_TAKEN, $e->reason);
+		}
+	}
+
+	public function testDieselbeZeileDarfIhrUrteilAufDenselbenPostenWiederholen(): void {
+		$this->debitItems->method('find')->with(10)->willReturn($this->debitItem(10, 100, 1000));
+		$this->details->method('find')->with(1)->willReturn($this->detail(1, 1, 10, 1000, false, BankTxSepaDetail::STATUS_ASSIGNED));
+		$this->details->method('findAssignedToDebitItem')->with(10)->willReturn([$this->detail(1, 1, 10, 1000, false, BankTxSepaDetail::STATUS_ASSIGNED)]);
+
+		$saved = $this->service()->assign(1, 10);
+
+		$this->assertSame(10, $saved->getDebitItemId());
+	}
+
+	/** Gutschrift und Rückgabe sind verschiedene Richtungen: derselbe Posten kann erst eingezogen und später zurückgegeben werden. */
+	public function testGutschriftUndRueckgabeDesselbenPostensSchliessenEinanderNichtAus(): void {
+		$this->debitItems->method('find')->with(10)->willReturn($this->debitItem(10, 100, 1000));
+		$this->details->method('find')->with(2)->willReturn($this->detail(2, 5, 0, -1000, true, BankTxSepaDetail::STATUS_OPEN));
+		$this->details->method('findAssignedToDebitItem')->with(10)->willReturn([$this->detail(1, 1, 10, 1000, false, BankTxSepaDetail::STATUS_ASSIGNED)]);
+
+		$saved = $this->service()->assign(2, 10);
+
+		$this->assertSame(BankTxSepaDetail::STATUS_ASSIGNED, $saved->getStatus());
+	}
 }

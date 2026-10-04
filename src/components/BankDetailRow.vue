@@ -99,6 +99,7 @@
 							</p>
 						</div>
 						<span v-if="isChosen(candidate)" class="vbh-typetag">{{ t('aktuell zugeordnet') }}</span>
+						<span v-else-if="isTaken(candidate)" class="vbh-typetag">{{ t('bereits einer anderen Zeile zugeordnet') }}</span>
 						<NcButton
 							v-else-if="canWrite"
 							size="small"
@@ -173,6 +174,8 @@ export default {
 		canWrite: { type: Boolean, default: false },
 		// Ein Urteil über diese Zeile ist unterwegs
 		busy: { type: Boolean, default: false },
+		// Einzugsposten, die schon eine andere Zeile dieses Umsatzes hat (ein Posten gehört zu höchstens einer Zeile)
+		takenItemIds: { type: Array, default: () => [] },
 	},
 
 	emits: ['assign', 'reject', 'unmatched'],
@@ -222,6 +225,10 @@ export default {
 
 		isChosen(candidate) {
 			return this.detail.status === 'zugeordnet' && this.detail.debitItemId === candidate.debitItemId
+		},
+
+		isTaken(candidate) {
+			return this.takenItemIds.includes(candidate.debitItemId)
 		},
 
 		assign(candidate) { this.$emit('assign', candidate) },

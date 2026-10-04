@@ -110,6 +110,8 @@ class SepaImportController extends Controller {
 	public function assign(int $id, int $debitItemId): DataResponse {
 		try {
 			return new DataResponse($this->confirmation->assign($id, $debitItemId)->jsonSerialize());
+		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		} catch (DoesNotExistException) {
 			return new DataResponse(['message' => $this->l10n->t('Nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}

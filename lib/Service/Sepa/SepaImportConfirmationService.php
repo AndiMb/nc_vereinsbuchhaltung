@@ -102,10 +102,27 @@ class SepaImportConfirmationService {
 	 * Bestätigt einen Kandidaten aus {@see SepaMatchingService} für diese
 	 * Detail-Zeile – erst hier wird die Vermutung zur Zuordnung.
 	 *
+	 * Ein Einzugsposten gehört zu höchstens EINER Zeile je Richtung (Gutschrift
+	 * bzw. Rückgabe): bei mehreren Forderungen desselben Mandats mit gleichem
+	 * Betrag passen mehrere Zeilen auf dieselben Kandidaten, und zwei Zeilen auf
+	 * denselben Posten ergäben dieselbe Summe – eine Forderung würde doppelt
+	 * abgeschlossen, die andere bliebe offen, ohne dass die Prüfung der Summe es
+	 * bemerkt.
+	 *
 	 * @throws DoesNotExistException wenn es die Detail-Zeile oder den Einzugsposten nicht (mehr) gibt
+	 * @throws SettlementBlockedException (eine \InvalidArgumentException) wenn der Posten schon einer anderen Zeile zugeordnet ist
 	 */
 	public function assign(int $detailId, int $debitItemId): BankTxSepaDetail {
 		$this->debitItems->find($debitItemId); // wirft, wenn er nicht (mehr) existiert
+		$detail = $this->details->find($detailId);
+		foreach ($this->details->findAssignedToDebitItem($debitItemId) as $other) {
+			if ((int)$other->getId() !== $detailId && $other->getIsReturn() === $detail->getIsReturn()) {
+				throw new SettlementBlockedException(
+					$this->l10n->t('Dieser Einzugsposten ist bereits einer anderen Zeile zugeordnet. Ändern Sie zuerst deren Urteil.'),
+					SettlementBlockedException::REASON_ITEM_TAKEN,
+				);
+			}
+		}
 		return $this->decide($detailId, BankTxSepaDetail::STATUS_ASSIGNED, $debitItemId);
 	}
 

@@ -55,6 +55,7 @@
 					:multiple="entry.details.length > 1"
 					:canWrite="canWrite"
 					:busy="bulkBusy || busyDetailId === detail.id"
+					:takenItemIds="takenFor(detail)"
 					@assign="(candidate) => $emit('decide', { detail, action: 'assign', candidate })"
 					@reject="$emit('decide', { detail, action: 'reject' })"
 					@unmatched="$emit('decide', { detail, action: 'unmatched' })" />
@@ -79,7 +80,7 @@
 import { NcButton } from '@nextcloud/vue'
 import BankDetailRow from './BankDetailRow.vue'
 import DebitStatusTag from './DebitStatusTag.vue'
-import { kindLabel, progressText, settleHint, summarize, unambiguousOpenDetails } from '../lib/bankReconciliation.js'
+import { kindLabel, progressText, settleHint, summarize, takenItemIds, unambiguousOpenDetails } from '../lib/bankReconciliation.js'
 import { formatDate, formatMoney } from '../lib/format.js'
 
 /**
@@ -134,6 +135,8 @@ export default {
 		formatMoney,
 		kindLabel,
 		progressText,
+
+		takenFor(detail) { return takenItemIds(this.entry, detail) },
 	},
 }
 </script>

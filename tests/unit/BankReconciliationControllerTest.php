@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\BankTransaction;
 use OCA\Vereinsbuchhaltung\Db\BankTransactionMapper;
 use OCA\Vereinsbuchhaltung\Db\BankTxSepaDetail;
 use OCA\Vereinsbuchhaltung\Db\BankTxSepaDetailMapper;
+use OCA\Vereinsbuchhaltung\Exception\SettlementBlockedException;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCA\Vereinsbuchhaltung\Service\Sepa\BankReconciliationService;
@@ -36,10 +37,12 @@ class BankReconciliationControllerTest extends TestCase {
 
 	private BankReconciliationService&MockObject $service;
 	private PermissionService&MockObject $permissions;
+	private SepaImportConfirmationService&MockObject $confirmation;
 
 	protected function setUp(): void {
 		$this->service = $this->createMock(BankReconciliationService::class);
 		$this->permissions = $this->createMock(PermissionService::class);
+		$this->confirmation = $this->createMock(SepaImportConfirmationService::class);
 	}
 
 	private function l10n(): IL10N&MockObject {
@@ -120,7 +123,7 @@ class BankReconciliationControllerTest extends TestCase {
 		$details->method('findOpen')->willReturn([$detail]);
 		$txMapper = $this->createMock(BankTransactionMapper::class);
 		$txMapper->method('find')->willReturn($tx);
-		$confirmation = $this->createMock(SepaImportConfirmationService::class);
+		$confirmation = $this->confirmation;
 		$confirmation->method('findByBankTx')->willReturn([$detail]);
 
 		return new SepaImportController(
@@ -156,5 +159,15 @@ class BankReconciliationControllerTest extends TestCase {
 
 		$this->assertSame('AM04', $controller->pending()->getData()[0]['details'][0]['returnReasonCode']);
 		$this->assertSame('AM04', $controller->show(1)->getData()['details'][0]['returnReasonCode']);
+	}
+
+	/** Ein Posten, der schon einer anderen Zeile gehört, ist ein Fehler mit lesbarer Meldung – keine Serverfehlerseite. */
+	public function testDoppelteZuordnungEinesPostensIstEine400MitMeldung(): void {
+		$this->confirmation->method('assign')->willThrowException(new SettlementBlockedException('Dieser Einzugsposten ist bereits einer anderen Zeile zugeordnet.', SettlementBlockedException::REASON_ITEM_TAKEN));
+
+		$response = $this->importController()->assign(7, 10);
+
+		$this->assertSame(Http::STATUS_BAD_REQUEST, $response->getStatus());
+		$this->assertSame('Dieser Einzugsposten ist bereits einer anderen Zeile zugeordnet.', $response->getData()['message']);
 	}
 }

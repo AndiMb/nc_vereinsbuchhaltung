@@ -31,6 +31,8 @@ class SettlementBlockedException extends \InvalidArgumentException {
 	public const REASON_REVENUE_ACCOUNT_MISSING = 'revenue_account_missing';
 	/** Die Forderung ist inzwischen bezahlt, erlassen oder storniert (Zahlungseingangs-Vorschlag). */
 	public const REASON_CLAIM_NOT_OPEN = 'claim_not_open';
+	/** Der Einzugsposten ist schon einer anderen Detail-Zeile zugeordnet (Einzelurteil). */
+	public const REASON_ITEM_TAKEN = 'item_taken';
 
 	public function __construct(
 		string $message,

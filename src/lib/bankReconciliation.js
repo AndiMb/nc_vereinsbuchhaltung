@@ -82,12 +82,37 @@ export function pendingCount(items) {
 }
 
 /**
+ * Die Einzugsposten, die schon einer ANDEREN Zeile desselben Umsatzes (und
+ * derselben Richtung) zugeordnet sind. Ein Posten gehört zu höchstens einer
+ * Zeile: bei mehreren Forderungen desselben Mandats mit gleichem Betrag passen
+ * mehrere Zeilen auf dieselben Kandidaten, und ein zweites Zuordnen desselben
+ * Postens würde eine Forderung doppelt abschließen. Der Server lehnt es ab
+ * (SepaImportConfirmationService::assign()); die Oberfläche bietet es gar
+ * nicht erst an.
+ *
+ * @param {{details: Array<object>}} entry Umsatz der Arbeitsliste
+ * @param {{id: number, isReturn: boolean}} detail die Zeile, für die gefragt wird
+ * @return {number[]} Posten-IDs
+ */
+export function takenItemIds(entry, detail) {
+	return entry.details
+		.filter((other) => other.id !== detail.id
+			&& other.status === DETAIL_ASSIGNED
+			&& other.debitItemId !== null
+			&& other.isReturn === detail.isReturn)
+		.map((other) => other.debitItemId)
+}
+
+/**
  * Zeilen mit genau einem Kandidaten einer starken Stufe (End-to-End-ID oder
  * Mandatsreferenz + Betrag), noch ohne Urteil: für „Eindeutige Vorschläge
  * bestätigen“. Mehrdeutige Zeilen und die schwächste Stufe (Betrag + IBAN)
  * bleiben bewusst draußen – dort entscheidet ein Mensch (Spec §5: bei
- * Mehrdeutigkeit alle Kandidaten zur Auswahl, keiner vorausgewählt).
+ * Mehrdeutigkeit alle Kandidaten zur Auswahl, keiner vorausgewählt). Ebenso
+ * ein Kandidat, den eine andere Zeile schon hat oder den sich zwei offene
+ * Zeilen teilen: eindeutig ist nur, was nur eine Zeile will.
  *
+ * @param {{details: Array<object>}} entry Umsatz der Arbeitsliste
  * @return {Array<{detail: object, candidate: object}>} Zeilen mit ihrem einzigen Kandidaten
  */
 export function unambiguousOpenDetails(entry) {
@@ -96,9 +121,13 @@ export function unambiguousOpenDetails(entry) {
 		if (detail.status !== DETAIL_OPEN || detail.candidates.length !== 1) { continue }
 		const candidate = detail.candidates[0]
 		if (candidate.stage > STAGE_MANDATE_AND_AMOUNT) { continue }
+		if (takenItemIds(entry, detail).includes(candidate.debitItemId)) { continue }
 		result.push({ detail, candidate })
 	}
-	return result
+	// Zwei Zeilen mit demselben einzigen Kandidaten: keine von beiden ist eindeutig.
+	return result.filter(({ detail, candidate }) => !result.some((other) => other.detail !== detail
+		&& other.detail.isReturn === detail.isReturn
+		&& other.candidate.debitItemId === candidate.debitItemId))
 }
 
 // --- Klartext -------------------------------------------------------------------------
