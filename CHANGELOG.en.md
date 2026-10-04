@@ -17,11 +17,104 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+**New:**
+- **Members as master data of their own:** a person or an organization with a
+  record, member number, join and leave dates, no Nextcloud account needed; an
+  account is only linked after you confirm it. The payers of the previous
+  module become members on update, and a task asks you to check names and
+  email addresses (issue #65).
+- **Mandates with a lifecycle:** draft, active, suspended, ended – on paper
+  (the signature date releases the mandate) or electronically. Change the bank
+  details without a new signature, proof stored as a file in Nextcloud, a
+  history of every change, and automatic expiry after 36 months without a
+  collection, with an advance warning (issues #66, #100).
+- **Electronic mandate:** the member grants it via a one-time link in an email,
+  and the consent activates the mandate at once. The mandate text is versioned
+  (mandatory block plus your own wording) and can be maintained in the settings
+  (issues #67, #101).
+- **Correct or discard a draft:** a mandate in draft can be corrected or
+  discarded with a reason, without activating it first (issue #118).
+- **Contribution groups, assignments and claims:** monthly fee with a minimum,
+  interval and payment method (direct debit or transfer); partial months count
+  in full. Claims are created automatically, plus manual one-off claims
+  (issue #68).
+- **Contribution year independent of the fiscal year:** it starts in a freely
+  chosen month and determines the contribution periods (issues #68, #101).
+- **Intake wizard and CSV import:** master data, mandate and contribution in
+  three steps, the last two can be skipped. The CSV import creates members
+  together with mandate and contribution and shows in a dry run beforehand what
+  would be created (issue #69).
+- **Collection cycle:** schedule per interval; the daily run creates claims,
+  announces the next collection and sends the pre-notification by email
+  (14 days ahead by default). A missed deadline blocks nothing, it shows up as
+  a task (issue #70).
+- **Release and submission:** "Freigeben & Datei erzeugen" freezes amounts and
+  bank details and creates the pain.008 file, "Datei ist bei der Bank
+  eingereicht" is a step of its own. Until then the run can be discarded or
+  postponed; a copy of the file in a Nextcloud folder is optional
+  (issues #71, #103).
+- **"Collection" tab:** timeline with a preview of the next run, runs, claims
+  with dunning status, exceptions, deferral, waiver and cancellation, and the
+  bank reconciliation. Auditors see the collection read-only, with the IBAN
+  masked (issues #102–#105).
+- **Bank reconciliation:** the bank statement import recognizes end-to-end ID,
+  mandate reference and return reason (CAMT, MT940, CSV) and suggests, with a
+  reason, which items a transaction covers. Nothing is posted before you have
+  judged it: collective credits grouped by revenue account, returned debits
+  with a fee account, incoming payments as a suggestion (issues #72, #105).
+- **Returned debits and dunning:** the return reason is shown in plain
+  language, and depending on the reason the mandate is suspended. Payment
+  request, payment reminder and dunning letter go out bundled per member
+  (interval adjustable, a deferral pauses them), after that a task for the
+  board appears; the bank fee can optionally be passed on (issues #72, #73).
+- **Dunning emails carry a GiroCode for the first time:** every item is
+  attached to the email with its own GiroCode (EPC QR) so it can be paid
+  individually with a banking app. If PHP lacks the gd extension, the email goes
+  out without a GiroCode and the error is logged (issues #73, #120).
+- **"My contribution" for members:** members with a linked Nextcloud account
+  maintain their contact details, monthly fee (not below the minimum) and
+  interval there, and grant, change or revoke their mandate – effective
+  immediately, with a preview and a receipt email. The area is off by default
+  and is switched on under Settings → Fees & SEPA (issues #74–#76).
+- **Contribution confirmation:** a print-ready, informal confirmation of the
+  contributions paid per contribution year, for members under "My
+  contribution", for the treasurer in the record. It does not replace a
+  donation receipt under § 10b EStG (issue #77).
+- **Data protection:** the data overview provides the information required by
+  Art. 15 GDPR; the anonymization blacks out name, contact details, bank
+  details and free text of a member who has left, ten years after the end of
+  the year of the last booking and only on your confirmation (issue #78).
+- **Tasks in the header:** the clipboard (from bookkeeper up) collects what
+  needs attention – from a missing mandate to a release that is due; the number
+  counts action items only. A task disappears by itself as soon as its cause
+  is resolved (issues #99, #117).
+- **Settings at a glance:** under Nextcloud settings → Vereinsbuchhaltung →
+  Fees & SEPA the whole module can be operated: mandate reference prefix,
+  expiry warning, proof folder, contribution year, release lead time, accounts
+  for revenue and return fees, passing on fees, dunning interval, XML storage
+  and self-service (issue #101).
+
 **Changed:**
 - **Old contributions and SEPA module removed:** the mandates, fees and batch
   collections of the previous flat module are deleted on update and not carried
   over into the new model (issue #107); if you have such data, back it up first.
   The members that arose from it are kept.
+- **Claims are read-only in the open-items view:** contribution and fee claims
+  can no longer be paid, cancelled, reopened or deleted under Bookings → Open
+  items; "Im Einzug bearbeiten" jumps to the "Collection" tab. Free items
+  without a member behave as before (issue #121).
+- **Delete lock for members:** a member can only be deleted as long as nothing
+  is attached to them – no mandate (not even a draft or an ended one), no
+  assignment, no claim. Otherwise the record names the reason; for data
+  protection cases there is anonymization (issues #65, #68).
+- **Role hardening:** every endpoint of the contributions module explicitly
+  requires a role. Only administrators change the warning window and the
+  pre-notification lead time, assignments are readable from bookkeeper up only,
+  auditors see an old IBAN masked; a typo in a role name now locks out instead
+  of letting everyone in (issue #119).
+- **GiroCode library in the package:** the app now ships `chillerlan/php-qrcode`
+  (version 5, PHP 8.1 is enough) in the `vendor/` directory; for the GiroCode
+  attachment PHP should have the gd extension (issues #73, #120).
 
 ## [0.34.4] – 2026-09-29
 
