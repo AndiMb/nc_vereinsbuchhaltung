@@ -110,7 +110,7 @@ export function signatureTooOld(signedAt, today = isoToday()) {
 }
 
 /** Schreibweise für den Vergleich „hat sich etwas geändert“: ohne Leerzeichen, Großbuchstaben (wie das Backend sie speichert). */
-function normalizeBankValue(value) {
+export function normalizeBankValue(value) {
 	return String(value ?? '').replace(/\s+/g, '').toUpperCase()
 }
 
