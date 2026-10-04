@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service;
 
+use OCA\Vereinsbuchhaltung\Db\DebitBatch;
+use OCA\Vereinsbuchhaltung\Db\DebitItemMapper;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
@@ -31,6 +33,8 @@ class ClaimService {
 		private MemberMapper $memberMapper,
 		private ITimeFactory $time,
 		private IL10N $l10n,
+		private DebitItemMapper $debitItems,
+		private AuditService $audit,
 	) {
 	}
 
@@ -95,11 +99,15 @@ class ClaimService {
 	 * `waived` (Pflicht-Begründung – Spec §3.6 „Erlass: war berechtigt, wir
 	 * verzichten").
 	 *
+	 * Der Urheber (`settledBy`) wird mitgeschrieben – Spec §3.6 „Erledigungs-
+	 * vermerk `paid` (Datum, Urheber, Notiz)"; die Oberfläche (Issue #104)
+	 * zeigt ihn im Forderungs-Detail.
+	 *
 	 * @param 'paid'|'waived' $settlementType
 	 * @throws \InvalidArgumentException bei ungültigem Zustand/fehlender Begründung
 	 * @throws DoesNotExistException wenn es die Forderung nicht gibt
 	 */
-	public function settle(int $id, string $settlementType, ?string $note): OpenItem {
+	public function settle(int $id, string $settlementType, ?string $note, string $actorUid): OpenItem {
 		if (!in_array($settlementType, ['paid', 'waived'], true)) {
 			throw new \InvalidArgumentException($this->l10n->t('Unbekannte Erledigungsart.'));
 		}
@@ -109,6 +117,7 @@ class ClaimService {
 			throw new \InvalidArgumentException($this->l10n->t('Ein Erlass braucht eine Begründung.'));
 		}
 		$item->setSettledAt($this->now());
+		$item->setSettledBy($actorUid);
 		$item->setSettlementNote($note !== null && trim($note) !== '' ? trim($note) : null);
 		$item->setStatus($settlementType);
 		return $this->mapper->update($item);
@@ -116,8 +125,14 @@ class ClaimService {
 
 	/**
 	 * Storno – „hätte nie existieren dürfen", nur vor Einreichung (Spec §3.6).
-	 * Die Einreichung selbst existiert erst ab Ticket #70 (DebitBatch); bis
-	 * dahin ist „vor Einreichung" für jede Forderung trivial wahr.
+	 * Seit dem Lastschriftlauf (Issue #71) ist das prüfbar: eine Forderung in
+	 * einem eingereichten Lauf ist storno-gesperrt („kein Storno nach
+	 * Einreichung", Spec §3.5) – für einen Verzicht gibt es den Erlass. Eine
+	 * Forderung in einem freigegebenen, noch nicht eingereichten Lauf steckt
+	 * als Zeile in der bereits erzeugten Datei; ein Storno ließe sie dort
+	 * stehen, die Bank belastete eine stornierte Forderung. Dieser Lauf wird
+	 * deshalb zuerst verworfen (Spec §3.5: „darf verworfen + neu freigegeben
+	 * werden") – dabei werden die Forderungen frei und lassen sich stornieren.
 	 *
 	 * @throws \InvalidArgumentException bei ungültigem Zustand/fehlender Begründung
 	 * @throws DoesNotExistException wenn es die Forderung nicht gibt
@@ -125,6 +140,13 @@ class ClaimService {
 	public function cancel(int $id, string $reason): OpenItem {
 		$item = $this->find($id);
 		$this->assertOpen($item, $this->l10n->t('Nur offene Forderungen können storniert werden.'));
+		$liveBatchStatus = $this->debitItems->findLiveBatchStatusByOpenItem($id);
+		if ($liveBatchStatus === DebitBatch::STATUS_SUBMITTED) {
+			throw new \InvalidArgumentException($this->l10n->t('Diese Forderung steckt in einem eingereichten Lauf und lässt sich nicht mehr stornieren. Ist sie berechtigt, aber nicht mehr zu erwarten, vermerken Sie einen Erlass.'));
+		}
+		if ($liveBatchStatus === DebitBatch::STATUS_RELEASED) {
+			throw new \InvalidArgumentException($this->l10n->t('Diese Forderung steckt in einem freigegebenen Lauf, dessen Datei sie bereits enthält. Verwerfen Sie zuerst den Lauf; danach lässt sich die Forderung stornieren.'));
+		}
 		$reason = trim($reason);
 		if ($reason === '') {
 			throw new \InvalidArgumentException($this->l10n->t('Ein Storno braucht eine Begründung.'));
@@ -160,6 +182,37 @@ class ClaimService {
 		$item->setDeferredReason($reason);
 		$item->setDeferredBy($actorUid);
 		$item->setDeferredAt($this->now());
+		return $this->mapper->update($item);
+	}
+
+	/**
+	 * Hebt eine noch laufende Stundung vorzeitig auf. Das Mahnwesen läuft
+	 * danach von der zuletzt erreichten Stufe weiter (Spec §3.6: „kein Reset");
+	 * die Stundungsfelder werden geleert, damit eine neue Stundung möglich ist
+	 * (genau eine aktive je Forderung). Dass es sie gab, hält das Änderungs-
+	 * protokoll fest – Zeitpunkt, Urheber und Begründung der aufgehobenen
+	 * Stundung stünden sonst nirgends mehr.
+	 *
+	 * @throws \InvalidArgumentException wenn die Forderung nicht (mehr) gestundet ist
+	 * @throws DoesNotExistException wenn es die Forderung nicht gibt
+	 */
+	public function undefer(int $id): OpenItem {
+		$item = $this->find($id);
+		$this->assertOpen($item, $this->l10n->t('Nur offene Forderungen können gestundet sein.'));
+		$until = $item->getDeferredUntil();
+		if ($until === null || $until < $this->today()) {
+			throw new \InvalidArgumentException($this->l10n->t('Diese Forderung ist nicht gestundet.'));
+		}
+		$this->audit->log('Stundung einer Forderung aufgehoben', 'open_item', $id, [
+			'bis' => $until,
+			'begruendung' => $item->getDeferredReason(),
+			'gestundet_von' => $item->getDeferredBy(),
+			'gestundet_am' => $item->getDeferredAt(),
+		]);
+		$item->setDeferredUntil(null);
+		$item->setDeferredReason(null);
+		$item->setDeferredBy(null);
+		$item->setDeferredAt(null);
 		return $this->mapper->update($item);
 	}
 

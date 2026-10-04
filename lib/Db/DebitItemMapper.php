@@ -80,6 +80,46 @@ class DebitItemMapper extends QBMapper {
 	}
 
 	/**
+	 * Status des lebenden (`freigegeben`/`eingereicht`, nicht `verworfen`)
+	 * Laufs, in dem diese Forderung steckt – oder null, wenn sie in keinem
+	 * lebenden Lauf ist. Grundlage der Storno-Regel „nur vor Einreichung" (Spec
+	 * §2.2/§3.6, {@see \OCA\Vereinsbuchhaltung\Service\ClaimService::cancel()}).
+	 * Eine Forderung hat höchstens einen Einzugsposten in einem lebenden Lauf,
+	 * die Abfrage ist deshalb eindeutig.
+	 */
+	public function findLiveBatchStatusByOpenItem(int $openItemId): ?string {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('b.status')
+			->from($this->getTableName(), 'i')
+			->innerJoin('i', 'vbh_debit_batches', 'b', $qb->expr()->eq('i.batch_id', 'b.id'))
+			->where($qb->expr()->eq('i.open_item_id', $qb->createNamedParameter($openItemId, IQueryBuilder::PARAM_INT)))
+			->andWhere($qb->expr()->neq('b.status', $qb->createNamedParameter(DebitBatch::STATUS_DISCARDED)))
+			->setMaxResults(1);
+		$result = $qb->executeQuery();
+		$status = $result->fetchOne();
+		$result->closeCursor();
+		return $status === false ? null : (string)$status;
+	}
+
+	/**
+	 * Alle Einzugsposten in lebenden (`freigegeben`/`eingereicht`) Läufen – die
+	 * Grundlage der lesenden Forderungsübersicht (Issue #104), die für jede
+	 * Forderung ihren Zustand im Einzug braucht und dafür nicht je Forderung
+	 * fragen soll.
+	 *
+	 * @return DebitItem[]
+	 */
+	public function findAllInLiveBatches(): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('i.*')
+			->from($this->getTableName(), 'i')
+			->innerJoin('i', 'vbh_debit_batches', 'b', $qb->expr()->eq('i.batch_id', 'b.id'))
+			->where($qb->expr()->neq('b.status', $qb->createNamedParameter(DebitBatch::STATUS_DISCARDED)))
+			->orderBy('i.id', 'ASC');
+		return $this->findEntities($qb);
+	}
+
+	/**
 	 * Die `open_item_id`s aller Forderungen, die gerade in einem lebenden
 	 * (`freigegeben`/`eingereicht`, also nicht `verworfen`) Lauf stecken – eine
 	 * Forderung hat laut Spec §2.2 „höchstens einen Einzugsposten", diese
