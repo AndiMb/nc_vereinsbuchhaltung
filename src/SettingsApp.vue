@@ -45,6 +45,13 @@
 					:membershipActive="membershipActive"
 					:storageSaving="storageSaving"
 					:saveSettings="saveSettings" />
+				<SettingsSepaModule :storageUser="storageUser" />
+			</NcSettingsSection>
+		</div>
+
+		<div id="settings-section_mandats-rechtstext">
+			<NcSettingsSection :name="t('Mandats-Rechtstext')">
+				<SettingsMandateLegalText :clubName="clubName" />
 			</NcSettingsSection>
 		</div>
 
@@ -97,9 +104,11 @@ import { showError, showSuccess } from '@nextcloud/dialogs'
 import { NcButton, NcDialog, NcSettingsSection } from '@nextcloud/vue'
 import SettingsAttachments from './components/SettingsAttachments.vue'
 import SettingsClub from './components/SettingsClub.vue'
+import SettingsMandateLegalText from './components/SettingsMandateLegalText.vue'
 import SettingsPeriods from './components/SettingsPeriods.vue'
 import SettingsPermissions from './components/SettingsPermissions.vue'
 import SettingsSepaBasics from './components/SettingsSepaBasics.vue'
+import SettingsSepaModule from './components/SettingsSepaModule.vue'
 import SettingsStatementWatch from './components/SettingsStatementWatch.vue'
 import SettingsXbucImport from './components/SettingsXbucImport.vue'
 import api from './api.js'
@@ -130,9 +139,11 @@ export default {
 		NcSettingsSection,
 		SettingsAttachments,
 		SettingsClub,
+		SettingsMandateLegalText,
 		SettingsPeriods,
 		SettingsPermissions,
 		SettingsSepaBasics,
+		SettingsSepaModule,
 		SettingsStatementWatch,
 		SettingsXbucImport,
 	},

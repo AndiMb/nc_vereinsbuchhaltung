@@ -200,7 +200,7 @@ class DebitBatchController extends Controller {
 		}
 		if ($xmlFolderEnabled === '1' && !$this->xmlStorage->isEnabled() && !$this->xmlStorage->isConfigured()) {
 			return new DataResponse(
-				['message' => $this->l10n->t('Für die XML-Ablage muss im Abschnitt „Belege" ein Nextcloud-Nutzer gewählt sein – die Dateien liegen im Home dieses Nutzers.')],
+				['message' => $this->l10n->t('Für die XML-Ablage muss im Abschnitt „Belege" ein Nextcloud-Nutzer gewählt und gespeichert sein – die Dateien liegen im Home dieses Nutzers.')],
 				Http::STATUS_BAD_REQUEST,
 			);
 		}
