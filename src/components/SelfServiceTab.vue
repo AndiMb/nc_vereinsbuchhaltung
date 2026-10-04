@@ -173,6 +173,10 @@
 								{{ t('Mandat widerrufen') }}
 							</NcButton>
 						</template>
+						<!-- Aus einem Entwurf (elektronisch oder Papier) kommt das Mitglied sonst nicht heraus (Issue #118) -->
+						<NcButton v-if="mandate.status === 'entwurf'" variant="error" @click="discardOpen = true">
+							{{ t('Entwurf verwerfen') }}
+						</NcButton>
 					</div>
 				</template>
 				<template v-else>
@@ -250,10 +254,16 @@
 		<SelfServiceMandateRevokeDialog
 			:show="revokeOpen"
 			:openClaimsTotalCents="openClaimsTotalCents"
+			:ibanChangeBlocked="ibanChangeBlocked"
 			:saving="saving"
 			@close="revokeOpen = false"
 			@switchToIban="switchToIbanFromRevoke"
 			@save="revoke" />
+		<MandateDraftDiscardDialog
+			:show="discardOpen"
+			:saving="saving"
+			@close="discardOpen = false"
+			@save="discardDraft" />
 	</div>
 </template>
 
@@ -261,6 +271,7 @@
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import AmountInput from './AmountInput.vue'
+import MandateDraftDiscardDialog from './MandateDraftDiscardDialog.vue'
 import SelfServiceMandateAccountDialog from './SelfServiceMandateAccountDialog.vue'
 import SelfServiceMandateGrantDialog from './SelfServiceMandateGrantDialog.vue'
 import SelfServiceMandateRevokeDialog from './SelfServiceMandateRevokeDialog.vue'
@@ -274,8 +285,8 @@ function emptyContactForm() {
 /**
  * Bereich „Mein Beitrag" (Spec §3.4): eigene Stammdaten (#74) plus zwei
  * Aktionskataloge - Mandat (Issue #75: erfassen/elektronisch erteilen,
- * bestehenden Entwurf bestätigen, IBAN ändern, Kontoinhaber wechseln,
- * widerrufen) und Beitrag/Kontaktdaten (Issue #76: Monatsbeitrag/Turnus
+ * bestehenden Entwurf bestätigen oder verwerfen, IBAN ändern, Kontoinhaber
+ * wechseln, widerrufen) und Beitrag/Kontaktdaten (Issue #76: Monatsbeitrag/Turnus
  * ändern, Kontaktstammdaten pflegen). Jede Aktion wirkt sofort (kein
  * Antragsmodell) - die einzige Bremse ist jeweils eine Vorschau vor dem
  * Speichern (Spec Pflicht-UI).
@@ -303,7 +314,7 @@ function emptyContactForm() {
  */
 export default {
 	name: 'SelfServiceTab',
-	components: { NcLoadingIcon, NcButton, AmountInput, SelfServiceMandateGrantDialog, SelfServiceMandateAccountDialog, SelfServiceMandateRevokeDialog },
+	components: { NcLoadingIcon, NcButton, AmountInput, MandateDraftDiscardDialog, SelfServiceMandateGrantDialog, SelfServiceMandateAccountDialog, SelfServiceMandateRevokeDialog },
 
 	data() {
 		return {
@@ -318,6 +329,7 @@ export default {
 			accountDialogOpen: false,
 			accountInitialMode: 'iban',
 			revokeOpen: false,
+			discardOpen: false,
 			saving: false,
 			requestingLink: false,
 			certificateYears: [],
@@ -344,6 +356,15 @@ export default {
 
 		openClaimsTotalCents() {
 			return (this.member && this.member.openClaimsTotalCents) || 0
+		},
+
+		/**
+		 * Die IBAN lässt sich nur bei einem AKTIVEN Mandat ändern (Amendment): bei einem ausgesetzten
+		 * Mandat entfällt im Widerrufsdialog der Ausweg „nur ein neues Konto → IBAN ändern“, den es
+		 * dort nicht gibt (Issue #118). Der Dialog öffnet nur für aktive/ausgesetzte Mandate.
+		 */
+		ibanChangeBlocked() {
+			return !this.mandate || this.mandate.status !== 'aktiv'
 		},
 
 		/** Ein von der Verwaltung angelegter elektronischer Entwurf, der noch auf Zustimmung wartet (Issue #67/#75). */
@@ -490,6 +511,21 @@ export default {
 		switchToIbanFromRevoke() {
 			this.revokeOpen = false
 			this.openAccountDialog('iban')
+		},
+
+		/** Den eigenen Entwurf verwerfen (Issue #118) - danach lässt sich ein neues Mandat erteilen; korrigieren kann nur die Verwaltung. */
+		async discardDraft() {
+			this.saving = true
+			try {
+				await api.selfDiscardMandateDraft()
+				this.discardOpen = false
+				await this.reload()
+				showSuccess(this.t('Entwurf verworfen.'))
+			} catch (e) {
+				showError(errMsg(e, this.t('Verwerfen fehlgeschlagen')))
+			} finally {
+				this.saving = false
+			}
 		},
 
 		withEditState(a) {

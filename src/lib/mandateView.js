@@ -46,6 +46,7 @@ export function endReasonLabel(reason) {
 		ersetzt: t('Ersetzt (Kontoinhaberwechsel)'),
 		verfallen: t('Verfallen (36 Monate ohne Einzug)'),
 		beendet: t('Beendet (Austritt)'),
+		verworfen: t('Entwurf verworfen'),
 	}[reason] ?? reason ?? ''
 }
 
@@ -106,6 +107,34 @@ export function signatureTooOld(signedAt, today = isoToday()) {
 	const limit = new Date(`${String(signedAt).slice(0, 10)}T00:00:00Z`)
 	limit.setUTCMonth(limit.getUTCMonth() + 36)
 	return limit.toISOString().slice(0, 10) <= today
+}
+
+/** Schreibweise für den Vergleich „hat sich etwas geändert“: ohne Leerzeichen, Großbuchstaben (wie das Backend sie speichert). */
+function normalizeBankValue(value) {
+	return String(value ?? '').replace(/\s+/g, '').toUpperCase()
+}
+
+/**
+ * Hat die Eingabe der Entwurfs-Korrektur (Issue #118) etwas gegenüber dem
+ * gespeicherten Entwurf verändert? Ohne Änderung bleibt „Entwurf korrigieren“
+ * gesperrt – das Backend lehnt sie ohnehin ab, und eine unnötige Korrektur
+ * würde einen ausgesendeten Einmal-Link ungültig machen.
+ *
+ * @param {{iban: ?string, bic: ?string, accountHolder: ?string}} mandate gespeicherter Entwurf
+ * @param {{iban: string, bic: string, accountHolder: string}} form Eingabe
+ */
+export function draftCorrectionChanged(mandate, form) {
+	if (!mandate) { return false }
+	return normalizeBankValue(form.iban) !== normalizeBankValue(mandate.iban)
+		|| normalizeBankValue(form.bic) !== normalizeBankValue(mandate.bic)
+		|| String(form.accountHolder ?? '').trim() !== String(mandate.accountHolder ?? '')
+}
+
+/** IBAN und Kontoinhaber sind Pflicht (die BIC nicht), und es muss sich etwas geändert haben. */
+export function canSaveDraftCorrection(mandate, form) {
+	return !!String(form.iban ?? '').trim()
+		&& !!String(form.accountHolder ?? '').trim()
+		&& draftCorrectionChanged(mandate, form)
 }
 
 /**

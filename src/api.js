@@ -163,6 +163,9 @@ export default {
 	amendMandateBankDetails: (id, iban, bic) => axios.post(url(`/mandates/${id}/amend-bank-details`), { iban, bic: bic || null }),
 	correctMandateAccountHolder: (id, accountHolder) => axios.post(url(`/mandates/${id}/correct-name`), { accountHolder }),
 	replaceMandate: (id, data) => axios.post(url(`/mandates/${id}/replace`), data),
+	// Issue #118: Entwurf korrigieren (ohne Amendment) bzw. mit Pflicht-Notiz verwerfen
+	correctMandateDraft: (id, data) => axios.post(url(`/mandates/${id}/correct-draft`), data),
+	discardMandateDraft: (id, note) => axios.post(url(`/mandates/${id}/discard-draft`), { note }),
 	reopenMandateAmendment: (amendmentId) => axios.post(url(`/mandates/amendments/${amendmentId}/reopen`)),
 	uploadMandateDocument: (id, formData) => axios.post(url(`/mandates/${id}/document`), formData),
 	// Nachweis-Download und druckfertiges Formular: Browser-Navigation, kein Axios
@@ -262,6 +265,7 @@ export default {
 	selfChangeMandateIban: (data) => axios.post(url('/self/mandate/iban'), data),
 	selfReplaceMandate: (data) => axios.post(url('/self/mandate/replace'), data),
 	selfRevokeMandate: () => axios.post(url('/self/mandate/revoke')),
+	selfDiscardMandateDraft: () => axios.post(url('/self/mandate/discard-draft')),
 
 	// Beitragsbestätigung (Issue #77, Spec §3.7): informelle Live-Ansicht -
 	// die Jahresliste ist ein normaler Axios-Aufruf, die eigentliche Seite

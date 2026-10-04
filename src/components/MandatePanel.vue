@@ -87,6 +87,13 @@
 							@click="doSendLink">
 							{{ linkState === 'none' ? t('Einmal-Link senden') : t('Einmal-Link erneut senden') }}
 						</NcButton>
+						<!-- Ausweg aus einem Entwurf (Issue #118): Widerruf/Amendment gibt es erst für ein aktives Mandat -->
+						<NcButton variant="secondary" :disabled="busy" @click="correctOpen = true">
+							{{ t('Entwurf korrigieren') }}
+						</NcButton>
+						<NcButton variant="error" :disabled="busy" @click="discardOpen = true">
+							{{ t('Entwurf verwerfen') }}
+						</NcButton>
 					</template>
 					<template v-else-if="current.status === 'aktiv'">
 						<NcButton variant="secondary" :disabled="busy" @click="openAccountDialog('iban')">
@@ -307,6 +314,20 @@
 			@saveIban="doAmend"
 			@saveName="doCorrectName"
 			@saveHolder="doReplace" />
+		<MandateDraftCorrectDialog
+			:show="correctOpen"
+			:mandate="current"
+			:saving="busy"
+			@close="correctOpen = false"
+			@save="doCorrectDraft" />
+		<MandateDraftDiscardDialog
+			:show="discardOpen"
+			:staff="true"
+			:electronic="!!current && current.signatureType === 'elektronisch'"
+			:saving="busy"
+			@close="discardOpen = false"
+			@switchToCorrect="switchToCorrectFromDiscard"
+			@save="doDiscardDraft" />
 		<SelfServiceMandateRevokeDialog
 			:show="revokeOpen"
 			:staff="true"
@@ -324,6 +345,8 @@
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import MandateAccountDialog from './MandateAccountDialog.vue'
+import MandateDraftCorrectDialog from './MandateDraftCorrectDialog.vue'
+import MandateDraftDiscardDialog from './MandateDraftDiscardDialog.vue'
 import MandateEventList from './MandateEventList.vue'
 import SelfServiceMandateRevokeDialog from './SelfServiceMandateRevokeDialog.vue'
 import api from '../api.js'
@@ -361,13 +384,17 @@ const emptyCreateForm = () => ({ signatureType: 'papier', iban: '', bic: '', acc
  * lädt dann die Liste neu). Lädt seine Daten selbst (`mandatesByMember` +
  * Einzelansicht des lebenden Mandats) und lädt nach jeder Aktion neu.
  *
+ * Ein Entwurf lässt sich korrigieren (IBAN/BIC/Kontoinhaber ohne Amendment) oder
+ * verwerfen (Pflicht-Notiz, Issue #118) – sonst hätte er keinen Ausweg, denn
+ * Widerruf und Amendment gibt es erst für ein aktives Mandat.
+ *
  * Rollen (Spec §3.9): Schreibaktionen nur ab `buchhalter` (Backend:
  * RequiresRole(ROLE_WRITE), hier zusätzlich ausgeblendet); die Akte selbst
  * erreicht `revisor` gar nicht – die IBAN steht deshalb unmaskiert da.
  */
 export default {
 	name: 'MandatePanel',
-	components: { NcButton, NcLoadingIcon, MandateAccountDialog, MandateEventList, SelfServiceMandateRevokeDialog },
+	components: { NcButton, NcLoadingIcon, MandateAccountDialog, MandateDraftCorrectDialog, MandateDraftDiscardDialog, MandateEventList, SelfServiceMandateRevokeDialog },
 	props: {
 		/** Die Akte (dekoriertes Mitglied): id, displayName, email. */
 		member: { type: Object, required: true },
@@ -405,6 +432,9 @@ export default {
 			accountDialogOpen: false,
 			accountInitialMode: 'iban',
 			revokeOpen: false,
+			/** Entwurf korrigieren/verwerfen (Issue #118), nur im Zustand `entwurf` erreichbar. */
+			correctOpen: false,
+			discardOpen: false,
 			/** Adresse des zuletzt verschickten Einmal-Links (nur diese Sitzung): { url, email }. */
 			sentLink: null,
 		}
@@ -669,6 +699,43 @@ export default {
 		switchToIbanFromRevoke() {
 			this.revokeOpen = false
 			this.openAccountDialog('iban')
+		},
+
+		/** Entwurf direkt korrigieren, ohne Amendment (Issue #118); ein ausgesendeter Einmal-Link wird dabei ungültig. */
+		async doCorrectDraft({ iban, bic, accountHolder }) {
+			const linkWasSent = this.current.signatureType === 'elektronisch' && this.linkState !== 'none'
+			const ok = await this.run(async () => {
+				await api.correctMandateDraft(this.current.id, { iban, bic, accountHolder })
+				// Die zuletzt gezeigte Link-Adresse gilt nicht mehr.
+				this.sentLink = null
+				showSuccess(linkWasSent
+					? this.t('Entwurf korrigiert. Der bisherige Einmal-Link ist ungültig – senden Sie dem Mitglied einen neuen.')
+					: this.t('Entwurf korrigiert.'))
+			}, this.t('Korrigieren fehlgeschlagen'))
+			if (ok) {
+				this.correctOpen = false
+				await this.afterChange()
+			}
+		},
+
+		/** Entwurf verwerfen (Issue #118): endet mit Pflicht-Notiz, danach lässt sich ein neues Mandat anlegen. */
+		async doDiscardDraft(note) {
+			const ok = await this.run(async () => {
+				await api.discardMandateDraft(this.current.id, note)
+				this.sentLink = null
+				showSuccess(this.t('Entwurf verworfen.'))
+			}, this.t('Verwerfen fehlgeschlagen'))
+			if (ok) {
+				this.discardOpen = false
+				this.closeAction()
+				await this.afterChange()
+			}
+		},
+
+		/** Der Ausweg im Verwerfen-Dialog („nur ein Tippfehler“): zur Korrektur wechseln. */
+		switchToCorrectFromDiscard() {
+			this.discardOpen = false
+			this.correctOpen = true
 		},
 
 		openAccountDialog(mode) {
