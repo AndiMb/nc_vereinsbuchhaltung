@@ -474,6 +474,49 @@ class MandateServiceTest extends TestCase {
 		$this->assertSame(MandateEvent::ACTOR_MEMBER, $captured->getActorType());
 	}
 
+	// --- Sperren/Entsperren mit Pflicht-Notiz (Spec §2.2, Issue #100) -----------
+
+	public function testEntsperrenVerlangtEineNotiz(): void {
+		$mandate = $this->activeMandate(1);
+		$mandate->setStatus(Mandate::STATUS_SUSPENDED);
+		$this->mandateMapper->method('find')->willReturn($mandate);
+		$this->mandateMapper->expects($this->never())->method('update');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->resume(1, "  \t ");
+	}
+
+	public function testEntsperrenSetztMandatAktivZurueckUndProtokolliertDieNotiz(): void {
+		$mandate = $this->activeMandate(1);
+		$mandate->setStatus(Mandate::STATUS_SUSPENDED);
+		$mandate->setSuspendedAt('2026-02-01 10:00:00');
+		$mandate->setSuspendedBy('kassenwart');
+		$mandate->setSuspensionOrigin(Mandate::SUSPENSION_MANUAL);
+		$mandate->setSuspensionNote('Rückfrage beim Mitglied');
+		$this->mandateMapper->method('find')->willReturn($mandate);
+		$captured = null;
+		$this->eventMapper->expects($this->once())->method('insert')
+			->with($this->callback(function (MandateEvent $e) use (&$captured): bool {
+				$captured = $e;
+				return true;
+			}));
+
+		$result = $this->service()->resume(1, ' Konto bestätigt ');
+
+		$this->assertSame(Mandate::STATUS_ACTIVE, $result->getStatus());
+		$this->assertNull($result->getSuspendedAt());
+		$this->assertNull($result->getSuspensionOrigin());
+		$this->assertNull($result->getSuspensionNote());
+		$this->assertSame(MandateEvent::ACTOR_STAFF, $captured->getActorType());
+	}
+
+	public function testEntsperrenEinesAktivenMandatsIstNichtErlaubt(): void {
+		$this->mandateMapper->method('find')->willReturn($this->activeMandate(1));
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->resume(1, 'unnötig');
+	}
+
 	// --- Automatische Rücklastschrift-Sperre (Issue #73) ------------------------
 
 	public function testSuspendDueToReturnedDebitSperrtAktivesMandat(): void {

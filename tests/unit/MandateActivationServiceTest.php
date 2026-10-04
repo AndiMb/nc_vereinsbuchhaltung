@@ -342,6 +342,48 @@ class MandateActivationServiceTest extends TestCase {
 		$this->service()->consent('selector123.validator123', '198.51.100.7', 'Mozilla/5.0');
 	}
 
+	// --- Link-Status für die Akte (Issue #100) -----------------------------------------
+
+	public function testLinkStatusMeldetGesendetAmGueltigBisUndNichtAbgelaufen(): void {
+		$token = $this->token([
+			'mandateId' => 1,
+			'createdAt' => '2026-01-10 08:30:00',
+			'expiresAt' => (new \DateTime())->modify('+5 days')->format('Y-m-d H:i:s'),
+		]);
+		$token->setRequestedBy('kassenwart');
+		$this->tokenMapper->method('findOutstandingByMandate')->with(1)->willReturn([$token]);
+
+		$status = $this->service()->linkStatus(1);
+
+		$this->assertSame('2026-01-10 08:30:00', $status['sentAt']);
+		$this->assertSame('katrin@example.org', $status['email']);
+		$this->assertSame('kassenwart', $status['requestedBy']);
+		$this->assertFalse($status['expired']);
+		$this->assertNull($status['firstViewedAt']);
+	}
+
+	public function testLinkStatusErkenntAbgelaufenenLink(): void {
+		$token = $this->token(['mandateId' => 1, 'createdAt' => '2020-01-01 00:00:00', 'expiresAt' => '2020-01-15 00:00:00']);
+		$this->tokenMapper->method('findOutstandingByMandate')->with(1)->willReturn([$token]);
+
+		$this->assertTrue($this->service()->linkStatus(1)['expired']);
+	}
+
+	/** Nach einem Neuversand bleibt nur der jüngste Link übrig – zählt im Zweifel der letzte der (älteste-zuerst) sortierten Liste. */
+	public function testLinkStatusNimmtDenJuengstenAusstehendenLink(): void {
+		$alt = $this->token(['id' => 1, 'mandateId' => 1, 'createdAt' => '2026-01-01 00:00:00']);
+		$neu = $this->token(['id' => 2, 'mandateId' => 1, 'createdAt' => '2026-01-12 00:00:00']);
+		$this->tokenMapper->method('findOutstandingByMandate')->with(1)->willReturn([$alt, $neu]);
+
+		$this->assertSame('2026-01-12 00:00:00', $this->service()->linkStatus(1)['sentAt']);
+	}
+
+	public function testLinkStatusIstNullOhneAusstehendenLink(): void {
+		$this->tokenMapper->method('findOutstandingByMandate')->with(1)->willReturn([]);
+
+		$this->assertNull($this->service()->linkStatus(1));
+	}
+
 	// --- Aufgabe "Link ist alt" (Issue #67) ------------------------------------------
 
 	public function testFindStaleElectronicDraftTasksMeldetHinweisUnterhalbDerFrist(): void {

@@ -118,6 +118,38 @@ class MandateActivationService {
 	}
 
 	/**
+	 * Zustand des ausstehenden Einmal-Links eines Mandats für die Akte (Issue
+	 * #100: „Status des Links (gesendet am, abgelaufen) für elektronische
+	 * Entwürfe sichtbar“): wann und an wen er ging, bis wann er gilt, ob er
+	 * schon abgelaufen ist und ob das Mitglied ihn schon geöffnet hat. Null,
+	 * wenn es keinen ausstehenden Link gibt (noch keiner versendet, oder die
+	 * Zustimmung ist bereits erfolgt – dann ist der Link verbraucht).
+	 *
+	 * Gibt weder Selector noch Validator her – der Klartext existiert nur in
+	 * der versendeten Mail (siehe {@see issueLink()}, das ihn ausnahmsweise
+	 * direkt im Versand-Response mitliefert).
+	 *
+	 * @return array{sentAt: string, expiresAt: string, expired: bool, email: string, requestedBy: ?string, firstViewedAt: ?string}|null
+	 */
+	public function linkStatus(int $mandateId): ?array {
+		$outstanding = $this->tokenMapper->findOutstandingByMandate($mandateId);
+		if ($outstanding === []) {
+			return null;
+		}
+		// Aelteste zuerst sortiert, ein Neuversand loescht die vorherigen
+		// (issueLink()) - zaehlen soll im Zweifel der juengste.
+		$token = $outstanding[array_key_last($outstanding)];
+		return [
+			'sentAt' => $token->getCreatedAt(),
+			'expiresAt' => $token->getExpiresAt(),
+			'expired' => $token->isExpired(new \DateTimeImmutable()),
+			'email' => $token->getEmail(),
+			'requestedBy' => $token->getRequestedBy(),
+			'firstViewedAt' => $token->getFirstViewedAt(),
+		];
+	}
+
+	/**
 	 * Mailadresse für den Einmal-Link (Spec §2.2: "an NC-Konto-Mailadresse
 	 * oder bestätigte Mitglieds-Mailadresse"). Vorrang hat die vom Verein
 	 * gepflegte Mitglieds-Mailadresse - sie ist die für DIESES Mitglied
