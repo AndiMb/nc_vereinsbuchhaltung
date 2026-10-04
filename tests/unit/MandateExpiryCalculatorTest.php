@@ -79,6 +79,16 @@ class MandateExpiryCalculatorTest extends TestCase {
 		$this->assertTrue($this->calculator()->needsExpiryWarning($mandate, new \DateTimeImmutable('2026-03-01')));
 	}
 
+	/** Die Frist ist einstellbar (Spec §4 expiry_warning_days): 153 Tage vor Ablauf liegen außerhalb eines 90-Tage-Fensters. */
+	public function testVorwarnfristLaesstSichPerParameterVerkuerzen(): void {
+		$mandate = $this->mandate(Mandate::STATUS_ACTIVE, signedAt: '2023-08-01');
+		$today = new \DateTimeImmutable('2026-03-01');
+
+		$this->assertFalse($this->calculator()->needsExpiryWarning($mandate, $today, 90));
+		$this->assertTrue($this->calculator()->needsExpiryWarning($mandate, $today, 153), 'genau am Rand des Fensters');
+		$this->assertTrue($this->calculator()->needsExpiryWarning($mandate, $today, 365));
+	}
+
 	public function testKeineVorwarnungWeitVorAblauf(): void {
 		$mandate = $this->mandate(Mandate::STATUS_ACTIVE, signedAt: '2026-01-01');
 		$this->assertFalse($this->calculator()->needsExpiryWarning($mandate, new \DateTimeImmutable('2026-06-01')));

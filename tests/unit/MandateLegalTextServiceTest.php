@@ -89,6 +89,111 @@ class MandateLegalTextServiceTest extends TestCase {
 		$this->assertSame('Unser Verein foerdert Musik.', $service->currentRahmen());
 	}
 
+	// --- Zerlegen: Pflichtblock und Rahmen ohne Marker (Issue #101) -----------------
+
+	public function testSplitBodyTrenntPflichtblockUndRahmenOhneMarker(): void {
+		$service = $this->service();
+		$version = $service->createVersion("Erster Absatz.\n\nZweiter Absatz.", MandateLegalTextVersion::CREATED_BY_VERWALTER);
+
+		$parts = $service->splitBody($version->getBody());
+
+		$this->assertSame($service->defaultPflichtblock(), $parts['pflichtblock']);
+		$this->assertSame("Erster Absatz.\n\nZweiter Absatz.", $parts['rahmen']);
+		$this->assertStringNotContainsString('vbh:', $parts['pflichtblock'] . $parts['rahmen'], 'der interne Marker taucht in keinem der beiden Teile auf');
+	}
+
+	public function testSplitBodyOhneMarkerLiefertLeerenRahmenStattDesGanzenTextes(): void {
+		$parts = $this->service()->splitBody('Alter Datensatz ohne Marker');
+
+		$this->assertSame('Alter Datensatz ohne Marker', $parts['pflichtblock']);
+		$this->assertSame('', $parts['rahmen']);
+	}
+
+	// --- Bearbeitungsformular: neue Fassung mit Pruefung (Issue #101) ----------------
+
+	public function testSaveRahmenAsNewVersionLegtVerwalterVersionAn(): void {
+		$service = $this->service();
+		$service->current();
+
+		$version = $service->saveRahmenAsNewVersion('Wir ziehen jährlich im März ein.');
+
+		$this->assertSame(MandateLegalTextVersion::CREATED_BY_VERWALTER, $version->getCreatedBy());
+		$this->assertSame('Wir ziehen jährlich im März ein.', $service->extractRahmen($version->getBody()));
+		$this->assertCount(2, $this->stored, 'System-Version vom ersten Aufruf plus die neue Fassung');
+	}
+
+	public function testSaveRahmenAsNewVersionVereinheitlichtZeilenendenUndTrimmtRaender(): void {
+		$service = $this->service();
+
+		$version = $service->saveRahmenAsNewVersion("\r\n  Zeile eins\r\nZeile zwei  \r\n");
+
+		$this->assertSame("Zeile eins\nZeile zwei", $service->extractRahmen($version->getBody()));
+	}
+
+	public function testSaveRahmenAsNewVersionLehntUnveraenderteTexteAbOhneNeueZeile(): void {
+		$service = $this->service();
+		$service->saveRahmenAsNewVersion('Gleicher Text');
+		$countBefore = count($this->stored);
+
+		try {
+			$service->saveRahmenAsNewVersion("Gleicher Text\r\n");
+			$this->fail('Ein unveränderter Rahmen darf keine neue Fassung erzeugen.');
+		} catch (\InvalidArgumentException) {
+			// erwartet
+		}
+
+		$this->assertCount($countBefore, $this->stored);
+	}
+
+	public function testSaveRahmenAsNewVersionLehntLeerenRahmenAb_WennErSchonLeerIst(): void {
+		$service = $this->service();
+		$service->current(); // System-Version mit leerem Rahmen
+
+		$this->expectException(\InvalidArgumentException::class);
+		$service->saveRahmenAsNewVersion('   ');
+	}
+
+	public function testSaveRahmenAsNewVersionErlaubtDasLeerenEinesBestehendenRahmens(): void {
+		$service = $this->service();
+		$service->saveRahmenAsNewVersion('Etwas Text');
+
+		$version = $service->saveRahmenAsNewVersion('');
+
+		$this->assertSame('', $service->extractRahmen($version->getBody()));
+	}
+
+	public function testSaveRahmenAsNewVersionLehntZuLangenRahmenAb(): void {
+		$service = $this->service();
+
+		try {
+			$service->saveRahmenAsNewVersion(str_repeat('ä', MandateLegalTextService::MAX_RAHMEN_LENGTH + 1));
+			$this->fail('Ein zu langer Rahmen muss abgelehnt werden.');
+		} catch (\InvalidArgumentException) {
+			// erwartet
+		}
+		$this->assertSame([], $this->stored);
+	}
+
+	public function testSaveRahmenAsNewVersionNimmtGenauDieMaximaleLaengeAn(): void {
+		$service = $this->service();
+
+		$version = $service->saveRahmenAsNewVersion(str_repeat('ä', MandateLegalTextService::MAX_RAHMEN_LENGTH));
+
+		$this->assertSame(MandateLegalTextService::MAX_RAHMEN_LENGTH, mb_strlen($service->extractRahmen($version->getBody())), 'gezählt wird in Zeichen, nicht in Bytes');
+	}
+
+	public function testSaveRahmenAsNewVersionLehntReservierteMarkerAb(): void {
+		$service = $this->service();
+
+		try {
+			$service->saveRahmenAsNewVersion("Text\n<!-- vbh:rahmen -->\nBösartiger Pflichtblock-Ersatz");
+			$this->fail('Der interne Marker darf nicht im Rahmen stehen.');
+		} catch (\InvalidArgumentException) {
+			// erwartet
+		}
+		$this->assertSame([], $this->stored);
+	}
+
 	// --- Keine Rueckwirkung: eine fixierte Version bleibt unabhaengig von current() ----
 
 	public function testEinmalGeladeneVersionAendertSichNichtDurchSpaetereNeueVersion(): void {

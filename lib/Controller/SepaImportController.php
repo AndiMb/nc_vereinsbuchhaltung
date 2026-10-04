@@ -15,6 +15,7 @@ use OCA\Vereinsbuchhaltung\Service\Sepa\IncomingPaymentMatchingService;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportConfirmationService;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportSettingsService;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaMatchingService;
+use OCA\Vereinsbuchhaltung\Service\Sepa\SepaSettingsAccountValidator;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
@@ -43,6 +44,7 @@ class SepaImportController extends Controller {
 		private SepaImportConfirmationService $confirmation,
 		private IncomingPaymentMatchingService $incomingPayments,
 		private SepaImportSettingsService $settings,
+		private SepaSettingsAccountValidator $accountValidator,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -176,17 +178,47 @@ class SepaImportController extends Controller {
 		]);
 	}
 
+	/**
+	 * Ein Konto ist eine ID; `0` hebt die Auswahl auf (nicht gesendet = nicht
+	 * anfassen, `?int` kann kein ausdrückliches „leer" ausdrücken). Der
+	 * Schalter wie überall als String '1'/'0'.
+	 *
+	 * Erst prüfen, dann schreiben (Issue #101): die Einstellungsseite schickt
+	 * alle drei Felder zusammen. Ein Konto wird nur geprüft, wenn es sich
+	 * ÄNDERT – ein unverändert mitgesendetes, inzwischen ungültig gewordenes
+	 * Konto (z. B. deaktiviert) soll das Speichern der übrigen Felder nicht
+	 * blockieren, dasselbe Muster wie beim einziehenden Konto
+	 * ({@see SettingsController::update()}).
+	 */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_ADMIN)]
 	public function updateSettings(?int $returnFeeAccountId = null, ?string $returnFeeRechargeEnabled = null, ?int $contributionDefaultAccountId = null): DataResponse {
+		$error = null;
+		if ($returnFeeAccountId !== null && $returnFeeAccountId !== 0 && $returnFeeAccountId !== $this->settings->returnFeeAccountId()) {
+			$error = $this->accountValidator->returnFeeAccountError($returnFeeAccountId);
+		}
+		if ($error === null && $contributionDefaultAccountId !== null && $contributionDefaultAccountId !== 0 && $contributionDefaultAccountId !== $this->settings->contributionDefaultAccountId()) {
+			$error = $this->accountValidator->contributionRevenueAccountError($contributionDefaultAccountId);
+		}
+		// Die Weiterbelastung bucht auf dem Rücklastschriftgebühren-Konto
+		// (Spec §3.6): ohne Konto gäbe es nichts, worauf sie bucht.
+		$feeAccountAfter = $returnFeeAccountId === null ? $this->settings->returnFeeAccountId() : ($returnFeeAccountId > 0 ? $returnFeeAccountId : null);
+		$rechargeAfter = $returnFeeRechargeEnabled === null ? $this->settings->isReturnFeeRechargeEnabled() : $returnFeeRechargeEnabled === '1';
+		if ($error === null && $rechargeAfter && $feeAccountAfter === null) {
+			$error = $this->l10n->t('Für die Weiterbelastung der Rücklastschriftgebühren muss zuerst ein Konto für Rücklastschriftgebühren gewählt sein.');
+		}
+		if ($error !== null) {
+			return new DataResponse(['message' => $error], Http::STATUS_BAD_REQUEST);
+		}
+
 		if ($returnFeeAccountId !== null) {
-			$this->settings->setReturnFeeAccountId($returnFeeAccountId);
+			$this->settings->setReturnFeeAccountId($returnFeeAccountId > 0 ? $returnFeeAccountId : null);
 		}
 		if ($returnFeeRechargeEnabled !== null) {
 			$this->settings->setReturnFeeRechargeEnabled($returnFeeRechargeEnabled === '1');
 		}
 		if ($contributionDefaultAccountId !== null) {
-			$this->settings->setContributionDefaultAccountId($contributionDefaultAccountId);
+			$this->settings->setContributionDefaultAccountId($contributionDefaultAccountId > 0 ? $contributionDefaultAccountId : null);
 		}
 		return $this->settings();
 	}

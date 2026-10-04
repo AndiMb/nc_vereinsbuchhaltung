@@ -1,6 +1,6 @@
 <template>
 	<div class="vbh-grow vbh-field">
-		<label :for="inputId">{{ t('Ordnerpfad im Nutzer-Home') }}</label>
+		<label :for="inputId">{{ label || t('Ordnerpfad im Nutzer-Home') }}</label>
 		<div class="vbh-inputgroup">
 			<input
 				:id="inputId"
@@ -45,6 +45,8 @@ export default {
 		modelValue: { type: String, required: true },
 		user: { type: String, required: true },
 		inputId: { type: String, required: true },
+		// Beschriftung des Feldes; ohne Angabe die allgemeine „Ordnerpfad im Nutzer-Home"
+		label: { type: String, default: '' },
 		placeholder: { type: String, default: '' },
 		readonly: { type: Boolean, default: false },
 	},

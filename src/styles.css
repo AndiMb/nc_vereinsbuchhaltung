@@ -278,6 +278,10 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-hint--warning { border-inline-start-color: var(--color-element-warning); background-color: var(--color-background-hover); }
 
+/* Fehlermeldung in einer Einstellungskarte (Pruefung oder Server-Antwort beim Speichern).
+   Das Statusfarben-Paar: --color-error ist der Flaechenton, --color-error-text die darauf lesbare Schrift. */
+.vbh-hint--error { opacity: 1; padding: 8px 12px; border-inline-start: 3px solid var(--color-element-error); border-radius: 0 4px 4px 0; background-color: var(--color-error); color: var(--color-error-text); }
+
 .vbh-empty { color: var(--color-main-text); opacity: 0.65; font-style: italic; }
 
 .vbh-warn-inline { color: var(--color-warning-text); font-weight: 600; margin-inline-start: 10px; }

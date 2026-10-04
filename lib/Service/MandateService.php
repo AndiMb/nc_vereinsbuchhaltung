@@ -63,6 +63,7 @@ class MandateService {
 		private IConfig $config,
 		private DunningLadderService $dunningLadder,
 		private IL10N $l10n,
+		private MandateExpirySettings $expirySettings,
 	) {
 	}
 
@@ -689,17 +690,19 @@ class MandateService {
 	}
 
 	/**
-	 * Kandidaten für die 180-Tage-Vorwarnung (Spec §7) – keine eigene
-	 * Persistenz, nur eine Abfrage für eine künftige, modulübergreifende
-	 * Aufgabenliste.
+	 * Kandidaten für die Ablauf-Vorwarnung (Spec §7, standardmäßig 180 Tage,
+	 * Einstellung `expiry_warning_days`, siehe {@see MandateExpirySettings}) –
+	 * keine eigene Persistenz, nur eine Abfrage für eine künftige,
+	 * modulübergreifende Aufgabenliste.
 	 *
 	 * @return Mandate[]
 	 */
 	public function findDueForExpiryWarning(?string $today = null): array {
 		$todayDate = new \DateTimeImmutable($today ?? 'today');
+		$warningDays = $this->expirySettings->warningDays();
 		return array_values(array_filter(
 			$this->mapper->findCandidatesForExpiry(),
-			fn (Mandate $m): bool => $this->expiryCalculator->needsExpiryWarning($m, $todayDate),
+			fn (Mandate $m): bool => $this->expiryCalculator->needsExpiryWarning($m, $todayDate, $warningDays),
 		));
 	}
 

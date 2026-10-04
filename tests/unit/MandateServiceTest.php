@@ -19,6 +19,7 @@ use OCA\Vereinsbuchhaltung\Service\DunningLadderService;
 use OCA\Vereinsbuchhaltung\Service\IbanValidator;
 use OCA\Vereinsbuchhaltung\Service\MandateDocumentService;
 use OCA\Vereinsbuchhaltung\Service\MandateExpiryCalculator;
+use OCA\Vereinsbuchhaltung\Service\MandateExpirySettings;
 use OCA\Vereinsbuchhaltung\Service\MandateReferenceGenerator;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
 use OCA\Vereinsbuchhaltung\Service\MandateStateMachine;
@@ -72,12 +73,15 @@ class MandateServiceTest extends TestCase {
 		$this->actorContext = new ActorContextService($this->userSession);
 	}
 
-	private function service(): MandateService {
+	/**
+	 * @param array<string, string> $appValues gespeicherte App-Einstellungen; was fehlt, liefert seinen Standardwert
+	 */
+	private function service(array $appValues = []): MandateService {
 		$transaction = $this->createMock(TransactionRunner::class);
 		$transaction->method('run')->willReturnCallback(static fn (callable $fn) => $fn());
 
 		$config = $this->createMock(IConfig::class);
-		$config->method('getAppValue')->willReturnCallback(static fn (string $app, string $key, string $default = '') => $default);
+		$config->method('getAppValue')->willReturnCallback(static fn (string $app, string $key, string $default = '') => $appValues[$key] ?? $default);
 
 		// insert()/update() geben in der echten QBMapper-Implementierung das
 		// (ggf. mit ID versehene) Entity zurück - hier reicht "gibt weiter,
@@ -111,6 +115,7 @@ class MandateServiceTest extends TestCase {
 			$config,
 			$this->dunningLadder,
 			$this->createMock(IL10N::class),
+			new MandateExpirySettings($config),
 		);
 	}
 
@@ -271,6 +276,33 @@ class MandateServiceTest extends TestCase {
 
 		$this->assertSame(0, $result['expired']);
 		$this->assertSame(Mandate::STATUS_ACTIVE, $nochGueltig->getStatus());
+	}
+
+	// --- Ablauf-Vorwarnung (Spec §4 expiry_warning_days) -------------------------
+
+	/** Verfall am 2026-09-01 (Unterschrift 2023-09-01 + 36 Monate); „heute" ist 2026-06-01, also 92 Tage davor. */
+	private function mandatMitVerfallAm20260901(): Mandate {
+		$mandate = $this->activeMandate(3);
+		$mandate->setSignedAt('2023-09-01');
+		return $mandate;
+	}
+
+	public function testVorwarnungNutztStandardfristOhneEinstellung(): void {
+		$mandate = $this->mandatMitVerfallAm20260901();
+		$this->mandateMapper->method('findCandidatesForExpiry')->willReturn([$mandate]);
+
+		// Standard 180 Tage: 92 Tage vor Verfall liegt mitten im Warnfenster.
+		$this->assertSame([$mandate], $this->service()->findDueForExpiryWarning('2026-06-01'));
+	}
+
+	public function testVorwarnungFolgtDerEingestelltenFrist(): void {
+		$mandate = $this->mandatMitVerfallAm20260901();
+		$this->mandateMapper->method('findCandidatesForExpiry')->willReturn([$mandate]);
+
+		// Bei 30 Tagen Vorwarnung ist es 92 Tage vor Verfall noch zu früh ...
+		$this->assertSame([], $this->service(['expiry_warning_days' => '30'])->findDueForExpiryWarning('2026-06-01'));
+		// ... und erst 30 Tage davor so weit.
+		$this->assertSame([$mandate], $this->service(['expiry_warning_days' => '30'])->findDueForExpiryWarning('2026-08-02'));
 	}
 
 	// --- Elektronische Erteilung (Issue #67) ------------------------------------

@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\ContributionCycleSettings;
 use OCA\Vereinsbuchhaltung\Service\DebitBatchService;
 use OCA\Vereinsbuchhaltung\Service\DebitBatchXmlStorageService;
+use OCA\Vereinsbuchhaltung\Service\FolderPathValidator;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -42,6 +43,7 @@ class DebitBatchController extends Controller {
 		private DebitBatchService $service,
 		private DebitBatchXmlStorageService $xmlStorage,
 		private ContributionCycleSettings $settings,
+		private FolderPathValidator $folderPaths,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -178,22 +180,42 @@ class DebitBatchController extends Controller {
 	 * Konvention wie überall sonst in dieser App (z. B.
 	 * `SettingsController::update()`: `show_missing_document_warning`), damit
 	 * ein Wert unabhängig vom genauen Content-Type des Requests ankommt.
+	 *
+	 * Erst prüfen, dann schreiben (Issue #101): ein abgelehntes Feld soll
+	 * keine halb gespeicherte Gruppe hinterlassen, die Einstellungsseite
+	 * schickt Vorlauf und XML-Ablage zusammen. Der Ablage-Nutzer wird nur beim
+	 * EINSCHALTEN verlangt – eine bereits eingeschaltete Ablage, deren Nutzer
+	 * inzwischen fehlt, darf das Speichern des Vorlaufs nicht blockieren (der
+	 * Einreichungs-Schritt meldet sie im Audit-Protokoll, siehe
+	 * {@see DebitBatchXmlStorageService::store()}).
 	 */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_ADMIN)]
 	public function updateSettings(?int $releaseLeadDays = null, ?string $xmlFolderEnabled = null, ?string $xmlFolderPath = null): DataResponse {
+		if ($xmlFolderPath !== null) {
+			$pathError = $this->folderPaths->validate($xmlFolderPath, $this->l10n->t('Ablageordner für die XML-Dateien'));
+			if ($pathError !== null) {
+				return new DataResponse(['message' => $pathError], Http::STATUS_BAD_REQUEST);
+			}
+		}
+		if ($xmlFolderEnabled === '1' && !$this->xmlStorage->isEnabled() && !$this->xmlStorage->isConfigured()) {
+			return new DataResponse(
+				['message' => $this->l10n->t('Für die XML-Ablage muss im Abschnitt „Belege" ein Nextcloud-Nutzer gewählt und gespeichert sein – die Dateien liegen im Home dieses Nutzers.')],
+				Http::STATUS_BAD_REQUEST,
+			);
+		}
 		try {
 			if ($releaseLeadDays !== null) {
 				$this->settings->setReleaseLeadDays($releaseLeadDays);
 			}
-			if ($xmlFolderEnabled !== null) {
-				$this->xmlStorage->setEnabled($xmlFolderEnabled === '1');
-			}
-			if ($xmlFolderPath !== null) {
-				$this->xmlStorage->setFolderPath($xmlFolderPath);
-			}
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		}
+		if ($xmlFolderEnabled !== null) {
+			$this->xmlStorage->setEnabled($xmlFolderEnabled === '1');
+		}
+		if ($xmlFolderPath !== null) {
+			$this->xmlStorage->setFolderPath($xmlFolderPath);
 		}
 		return $this->settings();
 	}

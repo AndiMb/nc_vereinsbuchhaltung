@@ -189,6 +189,18 @@ export default {
 	setDueDateScheduleOverride: (intervalMonths, periodIndex, offsetDays) => axios.post(url(`/due-date-schedule/${intervalMonths}/overrides/${periodIndex}`), { offsetDays }),
 	setDueDateScheduleLeadDays: (data) => axios.post(url('/due-date-schedule/lead-days'), data),
 
+	// Einstellungen des Beitrags-/SEPA-Moduls (Issue #101, ab Verwalter):
+	// Freigabe-Vorlauf + XML-Ablage, Konten der Rücklastschrift-Verbuchung
+	getDebitBatchSettings: () => axios.get(url('/debit-batches/settings')),
+	saveDebitBatchSettings: (data) => axios.post(url('/debit-batches/settings'), data),
+	getSepaImportSettings: () => axios.get(url('/sepa-import/settings')),
+	saveSepaImportSettings: (data) => axios.post(url('/sepa-import/settings'), data),
+
+	// Mandats-Rechtstext (Issue #101, Spec §3.11): Pflichtblock + Rahmen getrennt, neue Fassung, Verlauf
+	getMandateLegalText: () => axios.get(url('/mandate-legal-text')),
+	getMandateLegalTextHistory: () => axios.get(url('/mandate-legal-text/history')),
+	saveMandateLegalText: (rahmen) => axios.post(url('/mandate-legal-text'), { rahmen }),
+
 	// Massenanlage aus einer CSV-Liste: erst pruefen, dann anlegen
 	previewMemberImport: (csv) => axios.post(url('/sepa/members/import/preview'), { csv }),
 	runMemberImport: (csv, mandatesConfirmed) => axios.post(url('/sepa/members/import'), { csv, mandatesConfirmed }),
