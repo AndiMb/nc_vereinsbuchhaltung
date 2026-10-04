@@ -4,7 +4,7 @@
 
 Ein Praxis-Handbuch für Schatzmeisterinnen und Schatzmeister – von der
 Ersteinrichtung bis zum Jahresabschluss. Es beschreibt die App-Version
-**0.22.2** und orientiert sich am tatsächlichen Jahresablauf, nicht an
+**0.35.0** und orientiert sich am tatsächlichen Jahresablauf, nicht an
 Menüstrukturen: Was muss ich wann tun, und worauf ist dabei zu achten?
 
 ---
@@ -93,10 +93,16 @@ sie nicht braucht, blendet sie aus.
 Zahnrad-Symbol (Einstellungen) → Abschnitt **Berechtigungen**. Dort werden
 Nextcloud-Nutzer oder -Gruppen mit einer Rolle ausgestattet:
 
-- **Verwalter** – darf alles, inkl. Berechtigungen, Geschäftsjahr, Alle-Daten-löschen.
+- **Verwalter** – darf alles, inkl. Berechtigungen, Geschäftsjahr, Alle-Daten-löschen
+  und den Einstellungen des Beitragsmoduls (Kapitel 13.1).
 - **Buchhalter** – liest und schreibt Buchungen, Belege, Zuordnungen, sowie
   Mitglieder, SEPA-Mandate und den Beitragseinzug (Kapitel 13.2–13.10).
-- **Revisor** – darf nur lesen (für die Kassenprüfung).
+- **Revisor** – darf nur lesen (für die Kassenprüfung), im Beitragsmodul den
+  Einzug mit maskierter IBAN.
+
+Mitglieder, die ihre eigenen Angaben unter „Mein Beitrag" pflegen sollen
+(Kapitel 13.11), brauchen **keine** Rolle – für sie zählt die Verknüpfung ihres
+Nextcloud-Kontos mit der Mitgliederakte.
 
 > **Hinweis:** Nextcloud-Administratoren sind *immer* Verwalter, unabhängig
 > von dieser Liste. In der Regel genügen zwei Verwalter und beliebig viele
@@ -293,6 +299,12 @@ Instituten, aber eben nicht mit Sicherheit.
 - **Sammelbuchungen** (eine Lastschrifteinreichung mit vielen Einzelposten)
   bleiben *eine* Buchung – so, wie die Bank sie auch gebucht hat. Im
   Verwendungszweck steht ein Hinweis auf die Zahl der Posten.
+- **SEPA-Bezug (Beitragsmodul):** Wer das Beitragsmodul nutzt, bekommt eine
+  Zusatzauswertung. Die App liest aus dem Auszug End-to-End-ID, Mandatsreferenz
+  und Rückgabegrund (bei CAMT.053 am genauesten) und legt für Einzugsgutschriften,
+  Rücklastschriften und passende Zahlungseingänge Vorschläge im Segment
+  *Bankabgleich* ab (Kapitel 13.10). Die Umsätze selbst bleiben unter *Zuzuordnen*;
+  verbucht wird erst nach Ihrem Urteil.
 - Nach dem Import erscheint eine Vorschau mit *neu* / *Dubletten* / *gesamt*.
 
 ### 3.3 Kontoauszüge automatisch einlesen (Wachordner)
@@ -1079,9 +1091,11 @@ selbst als lesbare Seite aus, es muss also nichts auf GitHub gesucht werden.
 ### 12.1 „Alle Daten löschen" / Reset
 
 Zahnrad → *Daten* → *Alle Daten löschen* (nur Verwalter, mit
-Bestätigungsdialog) entfernt Konten, Buchungen, Importe, Belege und die
-Zeiträume samt ihrer Festschreibung. **Das Änderungsprotokoll bleibt
-erhalten.**
+Bestätigungsdialog) entfernt Konten, Buchungen, Importe, Belege, offene Posten
+(auch die Forderungen an Mitglieder) und die Zeiträume samt ihrer
+Festschreibung. **Das Änderungsprotokoll bleibt erhalten.** Mitglieder,
+Mandate, Beitragsgruppen, Zuweisungen und Lastschrift-Läufe (Kapitel 13)
+gehören nicht zum Buchungsbestand und bleiben unberührt.
 Gleiches gilt für den Reset-Modus beim xbuc-Import. Beides ist
 unwiderruflich – also nur nach Rücksprache und nie aus Versehen.
 
@@ -1114,10 +1128,14 @@ verhält sich die App genau wie bisher.
 Mitglieder, Mandate, Beiträge und den Einzug (13.2–13.10) dürfen **Verwalter
 und Buchhalter** pflegen – ein Mandat verknüpft zwar eine Person mit ihrer
 Bankverbindung, aber das ist keine schwerere Verantwortung als jede andere
-Buchung. Die **Grundeinstellungen** (13.1: Gläubiger-ID, einziehendes Konto,
-Standardbeitrag, der Schalter für den Reiter) bleiben Verwaltern vorbehalten
-– das sind einmalige Weichenstellungen für den ganzen Verein, keine
-laufende Arbeit.
+Buchung. **Revisoren** sehen den Einzug (Läufe, Forderungen, Bankabgleich) nur
+lesend, die IBAN bleibt für sie maskiert. Alle **Einstellungen** des Moduls
+(13.1: Gläubiger-ID, einziehendes Konto, Vorlaufzeiten, Konten und Abstände,
+Mandatstext, die Schalter für den Reiter und für „Mein Beitrag") bleiben
+Verwaltern vorbehalten – das sind einmalige Weichenstellungen für den ganzen
+Verein, keine laufende Arbeit. Die **Mitglieder selbst** brauchen keine Rolle:
+ihren Bereich „Mein Beitrag" beschreibt 13.11, die Beitragsbestätigung 13.12,
+die Datenschutz-Werkzeuge 13.13.
 
 ### 13.1 Was Sie vorher brauchen
 
@@ -1144,6 +1162,30 @@ automatisch, auch ohne den Schalter.
 > CSV-Import (13.3) greift der Standardsatz, wenn eine Zeile ein Startdatum,
 > aber keinen eigenen Betrag hat – abweichende Einzelfälle (Ermäßigung,
 > Ehrenmitglied) tragen Sie einfach mit eigenem Betrag ein.
+
+**Alle Einstellungen im Überblick.** Was das Modul einstellbar macht, steht unter
+*Nextcloud-Einstellungen → Vereinsbuchhaltung* – und ist nur Verwaltern
+zugänglich:
+
+| Karte / Abschnitt | Was Sie dort einstellen |
+|---|---|
+| *Beiträge & SEPA → Grundeinstellungen* | **SEPA-Gläubiger-ID**, **Einziehendes Konto**, der Schalter für den Reiter „Beiträge" und der Schalter für den Self-Service „Mein Beitrag" (13.11) |
+| *… → Standard-Beitrag* | Betrag und Frequenz, die „Mitglied aufnehmen" und der CSV-Import vorschlagen |
+| *… → Beitragsjahr und Einzugszyklus* | **Beitragsjahr beginnt im** (Monat, Standard Januar – unabhängig vom Geschäftsjahr; bestimmt die Beitragsperioden und die Beitragsbestätigung, 13.12) und **Freigabe-Vorlauf** (Tage vor dem Einzug, Standard 5; 13.5). Dazu der Link zum Terminplan mit **Vorwarnfenster** und **Vorabinfo-Vorlauf** (13.5) |
+| *… → Ablage der Einzugsdatei (XML)* | zusätzliche Kopie der pain.008-Datei in einem Nextcloud-Ordner (13.5), standardmäßig aus |
+| *… → Mandate* | **Mandatsreferenz-Präfix**, **Ablauf-Vorwarnung** (Tage vor Verfall, Standard 180), **Nachweis-Ordner** und **Auf Mandate ohne Nachweis hinweisen** (13.2, 13.9) |
+| *… → Rücklastschriften und Mahnwesen* | **Konto für Rücklastschriftgebühren (Aufwand)**, **Standard-Erlöskonto für Beitragsforderungen (Ertrag)**, **Rücklastschriftgebühren an das Mitglied weiterbelasten** (standardmäßig aus) und **Mahnabstand (Tage)** (13.7, 13.8, 13.10) |
+| *Mandats-Rechtstext* (eigener Abschnitt) | der Text auf Mandatsformular und Zustimmungsseite (13.2) |
+
+Nachweis-Ordner und XML-Ablage liegen im Home des Nutzers, den Sie unter
+*Belege* für die Ablage im Nextcloud-Dateibaum gewählt haben (2.4); ohne ihn
+lassen sich keine Nachweise hochladen und die XML-Ablage nicht einschalten.
+
+Der **Terminplan** (Einzugstag je Turnus, einzelne Perioden überschreibbar)
+lässt sich auch als Buchhalter anpassen – das ist die Terminverschiebung.
+**Vorwarnfenster** und **Vorabinfo-Vorlauf** dagegen ändern nur Verwalter: Sie
+bestimmen, wann Aufgaben und Vorabinfo-Mails ausgelöst werden und ab wann eine
+Periode für Änderungen gesperrt ist.
 
 ### 13.2 Mitglieder, Mandate und Beiträge
 
@@ -1250,13 +1292,37 @@ hoch (es landet im Nachweis-Ordner in Nextcloud) und können es wieder
 herunterladen; **Mandatsformular öffnen** zeigt das druckfertige Formular
 (Strg+P bzw. ⌘P).
 
+**Das elektronische Mandat – was das Mitglied sieht.** **Einmal-Link senden**
+schickt dem Mitglied eine Mail an seine hinterlegte Adresse (ohne Adresse geht
+das nicht); kommt die Mail nicht an, zeigt die Akte den Link gleich nach dem
+Senden zum direkten Weitergeben. Der Link gilt 14 Tage und nur einmal; er öffnet
+ohne Anmeldung eine Seite mit dem Mandatstext,
+den Angaben zum Konto und dem Knopf **„Ich stimme zu und erteile das Mandat"**.
+Mit der Zustimmung ist das Mandat sofort aktiv – ein Papierformular braucht es
+dafür nicht. Als Nachweis hält das Mandat fest, wann zugestimmt wurde, von
+welcher IP-Adresse und mit welchem Browser, und unter welcher Fassung des
+Mandatstexts. Ist der Link abgelaufen oder verloren, senden Sie einen neuen; der
+alte wird damit ungültig.
+
+**Der Mandatstext.** Der Text auf jedem Mandatsformular und auf der
+Zustimmungsseite besteht aus einem **Pflichtblock**, den das Lastschriftverfahren
+vorschreibt und der sich nicht ändern lässt, und einem **Rahmentext**, den Sie
+ergänzen können – etwa um Hinweise zum Beitragseinzug oder zum Datenschutz.
+Verwalter pflegen ihn unter *Nextcloud-Einstellungen → Vereinsbuchhaltung →
+Mandats-Rechtstext*: Die Vorschau zeigt den Text mit Ihrem Vereinsnamen,
+**„Neue Version speichern"** legt eine neue Fassung an. Frühere Fassungen bleiben
+im Versionsverlauf; bestehende Mandate behalten die Fassung, die ihnen beim
+Erteilen angezeigt wurde. Ändert ein App-Update den Pflichtblock, legt die App
+selbst eine neue Fassung an und übernimmt Ihren Rahmentext. Den Mandatstext gibt
+es nur auf Deutsch.
+
 **Austritt und Löschen.** In der Akte erklären Sie mit **„Austritt erklären"**
 den Austritt zu einem Datum (auch in der Zukunft); er lässt sich zurücknehmen,
 solange er noch nicht wirksam sein muss. **Löschen** lässt sich ein Mitglied nur,
 solange nichts an ihm hängt: kein Mandat (auch kein Entwurf und kein beendetes –
 sie bleiben als Nachweis erhalten), keine Zuweisung und keine Forderung. Sonst
 nennt die Akte statt des Knopfes den Grund. Für Datenschutzfälle gibt es die
-Anonymisierung statt des Löschens.
+Anonymisierung statt des Löschens (13.13).
 
 ### 13.3 Viele Mitglieder auf einmal aufnehmen
 
@@ -1502,6 +1568,16 @@ Mahnuhr von der zuletzt erreichten Stufe weiter. Lastschrift-Forderungen
 bekommen die Zahlungsaufforderung erst nach einer Rücklastschrift oder einem
 Widerruf, Überweiser-Forderungen kurz vor der Fälligkeit.
 
+**Die Mails** gehen gebündelt je Mitglied raus – eine Mail mit einer Zeile je
+offener Forderung, nur an Mitglieder mit E-Mail-Adresse. Jede Position trägt
+einen eigenen **GiroCode** als Bildanhang (EPC-QR): die Banking-App des
+Mitglieds scannt ihn und füllt Empfänger, IBAN, Betrag und Verwendungszweck
+vor, sodass jede Forderung einzeln überwiesen wird statt als Sammelbetrag.
+Empfänger ist das *Einziehende Konto* (13.1) – ist dort keine IBAN hinterlegt,
+gibt es keine Codes. Fehlt dem Server die PHP-Erweiterung gd, geht die Mail ohne
+GiroCode raus (der Mailtext sagt ihn dann nicht zu), und der Fehler steht im
+Nextcloud-Log.
+
 **Störfälle** haben zwei Schweregrade, *Handlungsbedarf* und *Hinweis*, und
 nennen die Ursache in Klartext – etwa „Vorabinfo konnte nicht rechtzeitig
 verschickt werden", „kein einzugsfähiges Mandat" oder eine Rücklastschrift.
@@ -1556,16 +1632,16 @@ wo Sie sie beheben.
 | Rücklastschrift **ohne Wiedereinzug** (eine Zeile mit Anzahl und Summe) | Hinweis; **Handlungsbedarf**, sobald eine Ursache dringend ist (Konto nicht nutzbar, Widerspruch, verstorben, technisch, unbekannt – nur *Deckung fehlt* bleibt ein Hinweis) | Forderung bezahlt oder erlassen |
 | Forderungen **nach Widerruf** des Mandats offen (eine Zeile) | Hinweis | Forderung bezahlt oder erlassen; ein neues Mandat nimmt sie wieder in den Einzug |
 | **Überweiser-Forderungen überfällig** (eine Zeile) | Hinweis | Zahlung zuordnen oder Forderung erledigen |
-| Vorabinfo nicht rechtzeitig verschickt, Freigabe fällig, Einreichung überfällig, Mahnstufe an den Vorstand eskaliert, nächster Lauf, anonymisierungsreifes Mitglied | je nach Fall | siehe 13.5, 13.8 und die DSGVO-Hinweise |
+| Vorabinfo nicht rechtzeitig verschickt, Freigabe fällig, Einreichung überfällig, Mahnstufe an den Vorstand eskaliert, nächster Lauf, anonymisierungsreifes Mitglied | je nach Fall | siehe 13.5, 13.8 und 13.13 (anonymisierungsreifes Mitglied: Hinweis, nie von selbst) |
 
 Für ein Mitglied, dessen Mandat entworfen, gesperrt oder erloschen ist, steht
 statt des allgemeinen „kein einzugsfähiges Mandat" nur die genauere Aufgabe in
 der Liste – dasselbe Problem erscheint nicht doppelt.
 
-Zwei Hinweise entstehen aus einem **Ereignis** statt aus einem Zustand: „Das
-Nextcloud-Konto von … wurde gelöscht – Adresse übernommen, bitte prüfen" und „N
-Mitglieder übernommen – Namen und Mailadressen prüfen" (nach der Umstellung auf
-die Mitgliederverwaltung). Auch sie müssen nicht weggeklickt werden: sie
+Zwei Hinweise entstehen aus einem **Ereignis** statt aus einem Zustand: „Name:
+Nextcloud-Konto wurde gelöscht, die Mailadresse wurde übernommen – bitte
+prüfen" und „N Mitglieder übernommen — Namen/Mailadressen prüfen" (nach der
+Umstellung auf die Mitgliederverwaltung). Auch sie müssen nicht weggeklickt werden: sie
 verschwinden nach **30 Tagen**, früher, sobald das Mitglied wieder ein
 Nextcloud-Konto hat oder es nicht mehr gibt (gelöscht oder anonymisiert).
 
@@ -1664,18 +1740,177 @@ Beides fragt vorher nach. Fehlt der Forderung ein Erlöskonto und ist kein
 Standard-Erlöskonto eingestellt, lässt sich der Vorschlag erst bestätigen, wenn
 ein Verwalter eines einstellt.
 
+### 13.11 „Mein Beitrag": der Bereich für Mitglieder
+
+Mitglieder müssen für ihre eigenen Angaben nicht die Kassenführung bemühen:
+Unter **„Mein Beitrag"** – ein eigener Reiter in der App – pflegen sie ihre
+Kontaktdaten, ändern ihren Beitrag und führen ihr Lastschriftmandat selbst.
+Dafür ist **keine Buchhaltungsrolle** nötig, es gibt keinen Antrag, und jede
+Änderung gilt sofort; die einzige Bremse ist eine Vorschau vor dem Speichern.
+
+**Freischalten.** Zwei Dinge müssen zusammenkommen:
+
+1. Ein Verwalter schaltet unter *Nextcloud-Einstellungen → Vereinsbuchhaltung →
+   Beiträge & SEPA → Grundeinstellungen* den Schalter **„Self-Service „Mein
+   Beitrag" für verknüpfte Nextcloud-Konten freischalten"** ein. Ab Werk ist er
+   aus.
+2. Das Mitglied ist in der Akte mit seinem Nextcloud-Konto verknüpft (13.2) –
+   nach Ihrer Bestätigung, nie von selbst.
+
+Wer beides erfüllt, sieht „Mein Beitrag", auch ohne jede Rolle in der App. Hat
+dieselbe Person zusätzlich eine Rolle (etwa die Schatzmeisterin, die selbst
+Mitglied ist), steht der Reiter neben den übrigen. Ein Mitglied sieht dort immer
+nur **seine eigenen** Angaben, nie die anderer Mitglieder; die interne Notiz der
+Akte bleibt für das Mitglied unsichtbar.
+
+| Bereich | Das Mitglied kann | Das Mitglied kann nicht |
+|---|---|---|
+| **Meine Stammdaten** | Name, E-Mail, Telefon und Adresse ändern (**„Bearbeiten"**). Ändert sich die E-Mail-Adresse, bekommt zur Sicherheit auch die bisherige Adresse eine Mail darüber | Mitgliedsnummer sowie Eintritts- und Austrittsdatum ändern – das bleibt bei der Kassenführung |
+| **Mein Beitrag** | den Monatsbeitrag erhöhen oder bis zur Untergrenze senken, den Turnus wechseln (nur die erlaubten). Die **„Vorschau"** nennt „Wirkt ab … · erster Einzug am … · Betrag …"; erst danach lässt sich speichern | die Beitragsgruppe wechseln, einen Monat aussetzen, den Austritt erklären, die eigene Untergrenze ändern oder deren Begründung sehen |
+| **Mein SEPA-Lastschriftmandat** | ein Mandat erfassen und elektronisch erteilen (**„Mandat jetzt erteilen"**), einen von Ihnen angelegten elektronischen Entwurf bestätigen (**„Jetzt bestätigen"**) oder verwerfen, die **Bankverbindung ändern**, den **Kontoinhaber wechseln**, das Mandat **widerrufen** | ein Mandat aktivieren oder sperren – das bleibt bei der Kassenführung |
+
+Die IBAN erscheint dem Mitglied immer maskiert. Zur **Bankverbindung ändern**
+gehört dieselbe Unterscheidung wie in der Akte (13.2): hat sich nur die IBAN
+geändert (dasselbe Konto, dieselbe Person), bleibt das Mandat bestehen; wechselt
+der Kontoinhaber, wird ein neues Mandat elektronisch erteilt und das alte
+erlischt als „ersetzt".
+
+**Das Sperrfenster.** Betrag und Turnus ändern sich nicht mehr, sobald für eine
+Periode die Vorabinfo (13.5) verschickt ist – dem Mitglied wurde ein Betrag
+angekündigt. Eine Änderung, die deshalb erst später wirken dürfte, weist die App
+zurück und erklärt warum – die Meldung nennt das Datum, ab dem sie möglich wäre –,
+statt sie stillschweigend zu verschieben; die Kassenführung kann sie in der Akte
+vornehmen (13.4) – für bereits angekündigte Perioden ändert sich dann trotzdem
+nichts mehr. Die **IBAN** kennt kein Sperrfenster: die Vorabinfo nennt
+keine IBAN, und der Lauf friert sie erst bei der Freigabe ein – sie lässt sich bis
+dahin ändern.
+
+**Widerruf.** Der Dialog zeigt dieselben Dinge wie in der Akte: der Widerruf ist
+endgültig, die noch offene Summe wird genannt (dafür geht dem Mitglied eine
+Zahlungsaufforderung zu), und als erste Wahl steht „Ich habe nur ein neues Konto
+→ IBAN ändern". Bei einem **ausgesetzten** Mandat lässt sich die IBAN nicht
+ändern; der Dialog verweist das Mitglied dann an den Verein. Einen **Entwurf**
+kann das Mitglied verwerfen, aber nicht korrigieren (13.2).
+
+**Quittung und Spur.** Jede Änderung bestätigt die App dem Mitglied per Mail:
+was sich geändert hat, ab wann und welcher Einzug als erster betroffen ist. Die
+Mail ist die Kopie, eine eigene Ereignisliste gibt es im Bereich nicht. Zusätzlich
+erscheint ein Eintrag in der Nextcloud-**Aktivität** des Mitglieds (eigene Mail
+dazu verschickt Nextcloud nur beim Widerruf, sofern das Mitglied es nicht in
+seinen persönlichen Einstellungen abgestellt hat). Im Verlauf eines Mandats (13.2)
+steht der Weg jeder Änderung: *Mitglied* (über „Mein Beitrag"), *Verein* (über
+die Akte, auch an der eigenen) oder *System* (automatisch) – bei einer Person mit
+beiden Rollen entscheidet der Weg, nicht die Person.
+
+Mitglieder ohne Nextcloud-Konto erreichen „Mein Beitrag" nicht; für sie führt die
+Kassenführung die Angaben in der Akte (13.2) und unter *Beitragsgruppen* (13.4).
+
+### 13.12 Beitragsbestätigung
+
+Eine **informelle Bestätigung** über die in einem Beitragsjahr bezahlten Beiträge –
+etwa für die Unterlagen eines Mitglieds. Sie ist eine **druckfertige Seite**
+(Strg+P bzw. ⌘P, auch zum Speichern als PDF), kein gespeichertes Dokument: bei
+jedem Öffnen entsteht sie neu aus dem aktuellen Stand. **Sie ist keine amtliche
+Zuwendungsbestätigung nach § 10b EStG** und hat keine steuerliche Wirkung – die
+Seite sagt das ausdrücklich.
+
+**Wo.** Das Mitglied öffnet sie selbst unter *Mein Beitrag → Meine
+Beitragsbestätigung* (13.11): **Beitragsjahr** wählen, **„Öffnen"**. Die
+Kassenführung öffnet sie in der Akte (13.2) im Abschnitt **„Beitragsbestätigung"**
+– der Weg für Mitglieder ohne Nextcloud-Konto. Einen Sammellauf für alle
+Mitglieder, einen Versand aus der App oder einen Link ohne Anmeldung gibt es
+nicht. Zur Wahl stehen die Jahre mit mindestens einem bezahlten Beitrag und das
+laufende.
+
+**Was drinsteht.** Name, Adresse und Mitgliedsnummer des Mitglieds, darunter je
+**bezahlter Beitragsforderung** die Fälligkeitsperiode, die Beschreibung und der
+Betrag, am Ende die **Summe**. Dabei gilt:
+
+- **Beitragsjahr, nicht Geschäftsjahr.** Das Beitragsjahr beginnt in dem Monat,
+  den ein Verwalter unter *Beitragsjahr und Einzugszyklus* einstellt (13.1) –
+  unabhängig vom Geschäftsjahr der Buchhaltung.
+- **Nach Fälligkeitsperiode, nicht nach Zahlungsdatum.** Ein Beitrag für eine
+  Periode des alten Jahres, der erst im neuen Jahr bezahlt wird, zählt zum alten
+  Jahr.
+- **Nur bezahlte Beiträge.** Gebühren (etwa weiterbelastete
+  Rücklastschriftgebühren), stornierte und erlassene Forderungen fließen nie ein.
+
+Fehlt dem Mitglied die Adresse, weist ein Hinweis auf dem Bildschirm („Adresse
+jetzt hinterlegen") darauf hin; im Ausdruck erscheint er nicht.
+
+### 13.13 Datenschutz: Datenübersicht und Anonymisierung
+
+Das Modul speichert Namen, Kontaktdaten und Bankverbindungen. Zwei Werkzeuge
+helfen, die Pflichten der DSGVO zu erfüllen – beide in der Akte (13.2), beide für
+Buchhalter und Verwalter.
+
+**Datenübersicht (Auskunft nach Art. 15 DSGVO).** Eine druckfertige Seite mit
+allem, was zu einem Mitglied gespeichert ist: Stammdaten, SEPA-Lastschriftmandate
+(die IBAN maskiert) samt Rücklastschriften, Forderungen und Beitragszuweisungen.
+In der Akte: Abschnitt **„Datenübersicht (Art. 15 DSGVO)"** →
+**„Datenübersicht öffnen"**; das Mitglied selbst findet sie unter *Mein Beitrag →
+Meine Daten* (13.11). Wie die Beitragsbestätigung entsteht sie bei jedem Öffnen
+neu und wird nicht gespeichert. Einen **strukturierten Export** nach Art. 20
+bietet das Modul nicht.
+
+**Anonymisierung (Art. 17 DSGVO).** Was ein Buchungsbeleg ist, darf die
+Buchhaltung nicht löschen – das verlangt das Handelsrecht. Statt zu löschen,
+schwärzt die App deshalb die Person und lässt die Zahlen stehen:
+
+- **Wann.** Ein Mitglied ist **anonymisierungsreif** zehn Jahre nach Ende des
+  Kalenderjahres seiner letzten zugehörigen Buchung (bezahlte Forderung,
+  gebuchte Rücklastschrift): eine Buchung im Jahr 2026 macht es ab dem
+  1. Januar 2037 reif. Die Frist ist fest und keine Einstellung. Zusätzlich muss
+  das Mitglied **ausgetreten** sein und darf **kein lebendes Mandat** mehr haben
+  (Entwurf, aktiv oder ausgesetzt). Ohne jede Buchung läuft keine Frist.
+- **Wer entscheidet.** Die App schlägt vor: In der Aufgabenliste (13.9) erscheint
+  „… anonymisierungsreif". Ein Buchhalter oder Verwalter bestätigt **je Mitglied
+  einzeln** mit **„Jetzt anonymisieren"** – nach einer deutlichen Rückfrage, denn
+  es lässt sich nicht rückgängig machen. Automatisch geschieht nichts. Der
+  Abschnitt **„Anonymisierung (Art. 17 DSGVO)"** der Akte nennt, ob und ab wann
+  das Mitglied reif ist.
+- **Was geschwärzt wird.** Name, Kontaktdaten und interne Notiz des Mitglieds;
+  IBAN, BIC und Kontoinhaber all seiner Mandate, auch in den eingefrorenen
+  Einzugsposten der Läufe; IP-Adresse und Browser der elektronischen Zustimmung;
+  die hochgeladene Nachweisdatei des Mandats, soweit sie sich entfernen lässt;
+  die Freitexte der Historie – Sperr-, Stundungs-, Erlass- und
+  Storno-Begründungen, die Begründung einer individuellen Untergrenze,
+  Vertretungsnotizen und der Freitext einer Rücklastschrift. Als Debitor der
+  Forderungen steht danach „Anonymisiertes Mitglied".
+- **Was bleibt.** Beträge, Daten, Zustände, Rückgabecodes und Mandatsreferenzen –
+  das, was die Buchhaltung belegt. Die Akte ist danach schreibgeschützt und
+  trägt den Vermerk der Anonymisierung.
+
+Ein gelöschtes Nextcloud-Konto löst die Anonymisierung nicht aus, und die
+Anonymisierung löst die Kontoverknüpfung nicht: beides ist voneinander
+unabhängig (bei einem gelöschten Konto bleibt das Mitglied, die Mailadresse wird
+übernommen und eine Aufgabe bittet um Prüfung, 13.9).
+
 ---
 
 ## 14. Anhang: Rollen, Kontotypen, Tastenkürzel, Glossar
 
 ### 14.1 Rollen und Rechte
 
-| Rolle | Lesen | Buchen/Belege | Mitglieder/SEPA-Einzug (13.2–13.10) | Beiträge-Grundeinstellungen (13.1), Berechtigungen, Geschäftsjahr, Reset |
+| Rolle | Lesen | Buchen/Belege | Mitglieder, Mandate, Beiträge, Einzug bedienen (13.2–13.10) | Einstellungen des Beitragsmoduls (13.1), Berechtigungen, Geschäftsjahr, Reset |
 |---|:---:|:---:|:---:|:---:|
 | Revisor | ✓ | – | – | – |
 | Buchhalter | ✓ | ✓ | ✓ | – |
 | Verwalter | ✓ | ✓ | ✓ | ✓ |
 | NC-Admin | ✓ | ✓ | ✓ | ✓ (immer) |
+
+Im **Beitragsmodul** sind die Grenzen feiner. Die Spalte „Lesen" gilt dort nur für
+den **Einzug**; was darüber hinausgeht, steht hier:
+
+| Im Beitragsmodul | Revisor | Buchhalter | Verwalter |
+|---|:---:|:---:|:---:|
+| Einzug ansehen: Zeitstrahl, Läufe, Forderungen, Bankabgleich (IBAN maskiert) | ✓ | ✓ | ✓ |
+| Mitglieder, Mandate, Beitragsgruppen und Zuweisungen sehen und bearbeiten (die Reiter „Mitglieder" und „Beitragsgruppen") | – | ✓ | ✓ |
+| Freigeben, Einreichen, Verwerfen, Termin verschieben, Forderungen bearbeiten, Bankabgleich beurteilen und verbuchen, anonymisieren | – | ✓ | ✓ |
+| Einzugstage im Terminplan ändern (Terminverschiebung) | – | ✓ | ✓ |
+| Aufgaben in der Kopfzeile (13.9) | – | ✓ | ✓ |
+| Vorwarnfenster und Vorabinfo-Vorlauf, alle Einstellungen (13.1), Mandats-Rechtstext | – | – | ✓ |
+| „Mein Beitrag" (13.11) | unabhängig von der Rolle: Kontoverknüpfung und der Schalter der Verwaltung entscheiden | | |
 
 ### 14.2 Kontotypen und ihre Bedeutung
 
@@ -1751,7 +1986,37 @@ Zeitraums. Das betrifft nur Geldkonten (Bank-Flag).
   dessen gebuchte Beträge und Historie aber unverändert bleiben. Der Weg für
   Konten, die nicht mehr gebraucht werden, sich wegen vorhandener Buchungen
   aber nicht löschen lassen (Kapitel 2.2).
+- **Mitglied** – eine Person oder Organisation in der Mitgliederliste des
+  Beitragsmoduls, auch ohne Nextcloud-Konto (Kapitel 13.2).
+- **Mandat** – die Einzugsermächtigung eines Mitglieds mit IBAN, Kontoinhaber
+  und Unterschrift (Papier oder elektronisch); Zustände *Entwurf*, *aktiv*,
+  *ausgesetzt*, *erloschen*. Wird widerrufen, nicht gelöscht (Kapitel 13.2).
+- **Mandatsreferenz** – die Kennung eines Mandats (z. B. `M-17`), die auf dem
+  Kontoauszug des Zahlers erscheint (Kapitel 13.2).
+- **Beitragsgruppe / Zuweisung** – die Gruppe trägt das Regelwerk (Untergrenze,
+  erlaubte Turnusse), die Zuweisung verbindet ein Mitglied mit ihr:
+  Monatsbeitrag, Turnus, Zahlungsart, Gültigkeit (Kapitel 13.4).
+- **Beitragsjahr** – der Rahmen der Beitragsperioden; beginnt in einem
+  einstellbaren Monat und ist vom Geschäftsjahr unabhängig (Kapitel 13.1).
+- **Turnus** – der Abstand zwischen zwei Einzügen in Monaten (1, 2, 3, 4, 6
+  oder 12; Kapitel 13.4).
+- **Forderung** – ein Beitrag oder eine Gebühr, die ein Mitglied schuldet;
+  technisch ein offener Posten mit Mitglied. Ihren Zustand (offen, im Einzug,
+  eingezogen, zurückgegeben, erledigt, storniert) leitet die App ab (Kapitel
+  13.8).
+- **Vorabinfo** – die Mail, mit der die App den Einzug ankündigt; ab ihrem
+  Versand ist der Betrag der Periode gesperrt (Kapitel 13.5).
+- **Lauf** – der Einzug zu einem Termin: bei der Freigabe eingefrorene Posten
+  samt pain.008-Datei (Kapitel 13.5).
+- **Rücklastschrift** – eine von der Bank zurückgegebene Lastschrift mit
+  Rückgabegrund; die App erkennt sie im Kontoauszug und verbucht sie nach Ihrem
+  Urteil (Kapitel 13.7, 13.10).
+- **GiroCode** – ein QR-Code (EPC-QR) im Anhang der Mahnmails, den die
+  Banking-App scannt und daraus die Überweisung vorbefüllt (Kapitel 13.8).
+- **Anonymisierung** – das Schwärzen der personenbezogenen Angaben eines
+  Mitglieds nach der Aufbewahrungsfrist; Beträge und Daten bleiben (Kapitel
+  13.13).
 
 ---
 
-*Stand: App-Version 0.22.2. Bei Fragen an die verwaltende Person wenden.*
+*Stand: App-Version 0.35.0. Bei Fragen an die verwaltende Person wenden.*
