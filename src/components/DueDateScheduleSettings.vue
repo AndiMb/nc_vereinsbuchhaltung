@@ -151,8 +151,12 @@ export default {
 			},
 		},
 
-		warningLeadDays(value) { this.leadDrafts.warningLeadDays = value },
-		prenotificationLeadDays(value) { this.leadDrafts.prenotificationLeadDays = value },
+		// `immediate`: der Zustand ist ein Modul-Singleton und kann beim Einhängen schon die
+		// geladenen Werte tragen (Wechsel zwischen Einzug und Beitragsgruppen). Ohne das bliebe
+		// ein Entwurf bei den Vorgaben 21/14 stehen, weil sich der Wert nicht mehr „ändert“ –
+		// die gesperrten Felder zeigten dann falsche Zahlen.
+		warningLeadDays: { immediate: true, handler(value) { this.leadDrafts.warningLeadDays = value } },
+		prenotificationLeadDays: { immediate: true, handler(value) { this.leadDrafts.prenotificationLeadDays = value } },
 	},
 
 	async mounted() {

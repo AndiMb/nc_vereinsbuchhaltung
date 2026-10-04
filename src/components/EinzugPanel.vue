@@ -46,8 +46,9 @@
 					@select="selectDate"
 					@shiftYear="shiftYear">
 					<template #toolbar>
-						<!-- Der Terminplan ist eine Einstellung der Buchhaltung (Schreiben ab Buchhalter,
-						     Spec §3.9); ein Revisor sieht seine Wirkung am Strahl, nicht die Eingabefelder. -->
+						<!-- Der Terminplan ist eine Einstellung der Buchhaltung (Terminverschiebung ab Buchhalter,
+						     die vorgelagerten Vorlaufzeiten darin nur für Verwalter, Spec §3.9); ein Revisor sieht
+						     seine Wirkung am Strahl, nicht die Eingabefelder. -->
 						<NcButton
 							v-if="canWrite"
 							variant="secondary"
