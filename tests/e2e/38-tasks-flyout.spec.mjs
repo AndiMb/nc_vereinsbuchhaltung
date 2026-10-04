@@ -152,6 +152,53 @@ test.describe('Aufgaben-Flyout', () => {
 		await expect(dialog).toBeHidden()
 	})
 
+	test('Escape schließt das Flyout auch dann, wenn die Liste beim Öffnen noch lädt', async ({ page }) => {
+		// Regression (CI-Flake von Spec 38): Hängt die Abfrage, steht im Flyout nur der
+		// Ladekreis - nichts Fokussierbares. Der Fokusfang des Popovers bricht dann
+		// ab, der Fokus bleibt am Auslöser, und das Popover schließt nur auf Escape
+		// *im* Popover: Escape lief ins Leere. Die Verzögerung stellt den Zustand
+		// her, statt auf eine langsame CI zu hoffen.
+		await page.route('**/apps/vereinsbuchhaltung/api/tasks', async (route) => {
+			await new Promise((resolve) => setTimeout(resolve, 4000))
+			await route.continue().catch(() => {}) // Seite ist inzwischen zu
+		})
+		await openApp(page, USERS.buchhalter)
+
+		const dialog = await openFlyout(page)
+		await expect(dialog.getByRole('status')).toBeVisible() // lädt wirklich noch
+		await page.keyboard.press('Escape')
+		await expect(dialog).toBeHidden()
+	})
+
+	test('Escape schließt das Flyout auch im allerersten Augenblick, solange der Fokus noch am Auslöser liegt', async ({ page }) => {
+		await openApp(page, USERS.buchhalter)
+		await expect(flyoutButton(page)).toBeVisible()
+
+		// Escape in dem Moment, in dem der Dialog ins DOM kommt: der Fokusfang des
+		// Popovers zieht erst einen Frame später nach. Wer genau da Escape drückt
+		// (oder dessen Fokus später verloren geht), muss das Flyout trotzdem zu
+		// bekommen. Per MutationObserver statt per Zeitraten, damit es deterministisch ist.
+		await page.evaluate(() => {
+			const observer = new MutationObserver(() => {
+				if (!document.querySelector('[role="dialog"][aria-label="Aufgaben"]')) { return }
+				observer.disconnect()
+				const target = document.activeElement ?? document.body
+				for (const type of ['keydown', 'keyup']) {
+					target.dispatchEvent(new KeyboardEvent(type, { key: 'Escape', bubbles: true, cancelable: true }))
+				}
+				window.__escapeSent = true
+			})
+			observer.observe(document.body, { childList: true, subtree: true })
+		})
+		await flyoutButton(page).click()
+		await page.waitForFunction(() => window.__escapeSent === true)
+		await expect(flyout(page)).toBeHidden()
+
+		// Danach ist alles wieder bedienbar.
+		await flyoutButton(page).click()
+		await expect(flyout(page)).toBeVisible()
+	})
+
 	test('Eintrag springt in die Mitglieder-Akte', async ({ page, request }) => {
 		await ensureSeed(request)
 		await openApp(page, USERS.buchhalter)
