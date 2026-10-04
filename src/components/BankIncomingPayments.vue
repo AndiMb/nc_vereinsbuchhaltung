@@ -100,6 +100,8 @@ export default {
 		canWrite: { type: Boolean, default: false },
 	},
 
+	emits: ['booked'],
+
 	setup() {
 		return { bank: useBankReconciliation(), askConfirm: useConfirm().askConfirm }
 	},
@@ -123,11 +125,14 @@ export default {
 			const message = this.t('Die Gutschrift vom {datum} über {betrag} wird gebucht und die Forderung als bezahlt erledigt.', { datum: formatDate(entry.bankTx.bookingDate), betrag: formatMoney(entry.bankTx.amountCents / 100) })
 				+ ' ' + this.t('Buchung: Bank an') + ' ' + accountLabel(suggestion.revenueAccount)
 			if (!await this.askConfirm(this.t('Zahlungseingang verbuchen'), message, this.t('Verbuchen'), 'primary')) { return }
-			await this.run(
+			if (await this.run(
 				() => this.bank.confirmIncoming(entry.bankTx.id, suggestion.openItemId),
 				this.t('Die Gutschrift ist der Forderung zugeordnet und gebucht.'),
 				this.t('Der Zahlungseingang konnte nicht verbucht werden.'),
-			)
+			)) {
+				// Die Forderung ist bezahlt: Zeitstrahl und Läufe sollen es auch zeigen.
+				this.$emit('booked')
+			}
 		},
 
 		async reject(entry, suggestion) {
@@ -140,13 +145,16 @@ export default {
 			)
 		},
 
+		/** @return {Promise<boolean>} ob die Aktion gelungen ist */
 		async run(action, successText, failureText) {
 			this.busy = true
 			try {
 				await action()
 				showSuccess(successText)
+				return true
 			} catch (e) {
 				showError(describeSettleError(e, failureText))
+				return false
 			} finally {
 				this.busy = false
 			}

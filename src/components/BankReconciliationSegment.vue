@@ -75,7 +75,11 @@
 			</template>
 
 			<!-- ============ ZAHLUNGSEINGÄNGE ============ -->
-			<BankIncomingPayments v-else :incoming="incoming" :canWrite="canWrite" />
+			<BankIncomingPayments
+				v-else
+				:incoming="incoming"
+				:canWrite="canWrite"
+				@booked="refreshRuns" />
 		</template>
 
 		<BankTxSettleDialog
@@ -100,6 +104,7 @@ import BankIncomingPayments from './BankIncomingPayments.vue'
 import BankTxSettleDialog from './BankTxSettleDialog.vue'
 import BankTxSuggestions from './BankTxSuggestions.vue'
 import { useBankReconciliation } from '../composables/useBankReconciliation.js'
+import { useDebitRuns } from '../composables/useDebitRuns.js'
 import { describeSettleError, pendingCount } from '../lib/bankReconciliation.js'
 import { n, t } from '../lib/l10n.js'
 
@@ -131,6 +136,7 @@ export default {
 			...toRefs(bank.state),
 			load: bank.load,
 			bank,
+			debitRuns: useDebitRuns(),
 		}
 	},
 
@@ -236,12 +242,18 @@ export default {
 				const result = await this.bank.settle(this.settleTxId)
 				this.settleTxId = null
 				showSuccess(this.settledText(result))
+				this.refreshRuns()
 			} catch (e) {
 				// Der Dialog bleibt offen: dort steht der Grund (z. B. geschlossenes Geschäftsjahr) neben der Vorschau.
 				this.settleError = describeSettleError(e, t('Der Bankumsatz konnte nicht verbucht werden.'))
 			} finally {
 				this.settling = false
 			}
+		},
+
+		/** Verbuchen ändert den Zustand von Forderungen, die auch im Zeitstrahl und in den Läufen stehen: dort nicht den alten Stand zeigen. */
+		refreshRuns() {
+			this.debitRuns.reload()
 		},
 
 		settledText(result) {
