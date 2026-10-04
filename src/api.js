@@ -225,6 +225,15 @@ export default {
 	listDebitBatches: () => axios.get(url('/debit-batches')),
 	getDebitBatch: (id) => axios.get(url(`/debit-batches/${id}`)),
 
+	// Freigabe, Einreichung, Verwerfen und Terminverschiebung (Issue #103, ab Buchhalter).
+	// Der XML-Download ist ein per Link geöffneter GET (Browser-Navigation, kein Axios);
+	// der Endpunkt trägt dafür #[NoCSRFRequired].
+	releaseDebitBatch: (dueDate) => axios.post(url('/debit-batches'), { dueDate }),
+	submitDebitBatch: (id) => axios.post(url(`/debit-batches/${id}/submit`)),
+	discardDebitBatch: (id, reason) => axios.post(url(`/debit-batches/${id}/discard`), { reason }),
+	rescheduleDebitBatch: (id, dueDate) => axios.post(url(`/debit-batches/${id}/reschedule`), { dueDate }),
+	debitBatchXmlUrl: (id) => generateUrl(base + `/debit-batches/${id}/xml`),
+
 	// Massenanlage aus einer CSV-Liste: erst pruefen, dann anlegen
 	previewMemberImport: (csv) => axios.post(url('/sepa/members/import/preview'), { csv }),
 	runMemberImport: (csv, mandatesConfirmed) => axios.post(url('/sepa/members/import'), { csv, mandatesConfirmed }),

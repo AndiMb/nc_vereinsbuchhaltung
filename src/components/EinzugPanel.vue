@@ -76,9 +76,10 @@
 					:today="timeline.today"
 					:isMobile="isMobile"
 					@retry="loadPreview(selectedDate, { force: true })">
-					<!-- Einhängepunkt für Ticket #103 (Freigabe): hier den Slot `actions` der Geisterkarte füllen, z. B.
-					     <template #actions="{ entry, preview }"><NcButton v-if="canWrite" …>Freigeben & Datei erzeugen</NcButton></template>
-					     Nach jeder Aktion `reload()` aus useDebitRuns() aufrufen. -->
+					<!-- Freigabe (Ticket #103): nur ab Buchhalter; für einen Revisor bleibt der Slot ungesetzt, die Karte rein lesend. -->
+					<template v-if="canWrite" #actions="{ entry, preview }">
+						<DebitReleaseAction :entry="entry" :preview="preview" :today="timeline.today" />
+					</template>
 				</DebitGhostCard>
 				<p v-else-if="pastNote" class="vbh-hint">
 					{{ pastNote }}
@@ -101,9 +102,10 @@
 								:error="runError"
 								:isMobile="isMobile"
 								@retry="loadRun(run.id, { force: true })">
-								<!-- Einhängepunkt für Ticket #103 (Einreichung): hier den Slot `actions` des Lauf-Details füllen
-								     (Datei herunterladen, „Datei ist bei der Bank eingereicht“, Verwerfen, Termin verschieben):
-								     <template #actions="{ run }"><NcButton v-if="canWrite" …>…</NcButton></template> -->
+								<!-- Download, Einreichung, Verwerfen, Termin verschieben (Ticket #103): nur ab Buchhalter. -->
+								<template v-if="canWrite" #actions="{ run: actionRun }">
+									<DebitRunActions :run="actionRun" :today="timeline.today" :releaseLeadDays="timeline.leadDays.release" />
+								</template>
 							</DebitRunDetail>
 						</template>
 					</DebitRunList>
@@ -123,6 +125,8 @@ import { mdiCalendarEdit } from '@mdi/js'
 import { NcButton, NcIconSvgWrapper, NcLoadingIcon } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import DebitGhostCard from './DebitGhostCard.vue'
+import DebitReleaseAction from './DebitReleaseAction.vue'
+import DebitRunActions from './DebitRunActions.vue'
 import DebitRunDetail from './DebitRunDetail.vue'
 import DebitRunList from './DebitRunList.vue'
 import DebitTimeline from './DebitTimeline.vue'
@@ -149,7 +153,7 @@ import { liveBatches } from '../lib/debitRun.js'
  */
 export default {
 	name: 'EinzugPanel',
-	components: { DebitGhostCard, DebitRunDetail, DebitRunList, DebitTimeline, DueDateScheduleSettings, NcButton, NcIconSvgWrapper, NcLoadingIcon },
+	components: { DebitGhostCard, DebitReleaseAction, DebitRunActions, DebitRunDetail, DebitRunList, DebitTimeline, DueDateScheduleSettings, NcButton, NcIconSvgWrapper, NcLoadingIcon },
 	props: {
 		isMobile: { type: Boolean, default: false },
 		canWrite: { type: Boolean, default: false },
