@@ -157,7 +157,7 @@ class ContributionCycleTaskServiceTest extends TestCase {
 
 	public function testUeberfaelligeUeberweiserForderungenWerdenAggregiert(): void {
 		$assignment = $this->assignment(1, 7, Assignment::PAYMENT_METHOD_TRANSFER);
-		$this->assignments->method('find')->with(1)->willReturn($assignment);
+		$this->assignments->method('findAll')->willReturn([$assignment]);
 		$overdue1 = $this->claim(10, 7, '2025-12-01', 1, 1500);
 		$overdue2 = $this->claim(11, 7, '2025-12-15', 1, 2500);
 		$this->openItems->method('findClaims')->willReturn([$overdue1, $overdue2]);
@@ -168,6 +168,93 @@ class ContributionCycleTaskServiceTest extends TestCase {
 		$this->assertSame(Task::SEVERITY_HINT, $tasks[0]['severity']);
 		$this->assertStringContainsString('2', $tasks[0]['message']);
 		$this->assertStringContainsString('40,00', $tasks[0]['message']);
+	}
+
+	public function testUeberfaelligeUeberweiserForderungenKostenNurEineZuweisungsAbfrage(): void {
+		// Viele überfällige Forderungen: die Zuweisungen werden einmal geladen, nicht je Forderung.
+		$transfer = $this->assignment(1, 7, Assignment::PAYMENT_METHOD_TRANSFER);
+		$claims = [];
+		for ($i = 0; $i < 30; $i++) {
+			$claims[] = $this->claim(100 + $i, 7, '2025-12-01', 1, 1000);
+		}
+		$this->openItems->method('findClaims')->willReturn($claims);
+		$this->assignments->expects($this->once())->method('findAll')->willReturn([$transfer]);
+		$this->assignments->expects($this->never())->method('find');
+
+		$tasks = $this->service('2026-01-01')->findTasks();
+
+		$this->assertCount(1, $tasks);
+		$this->assertStringContainsString('300,00', $tasks[0]['message']);
+	}
+
+	public function testLastschriftForderungenZaehlenNichtAlsUeberweiserForderung(): void {
+		$this->assignments->method('findAll')->willReturn([$this->assignment(1, 7, Assignment::PAYMENT_METHOD_DIRECT_DEBIT)]);
+		$this->openItems->method('findClaims')->willReturn([$this->claim(10, 7, '2025-12-01', 1, 1500)]);
+
+		$this->assertSame([], $this->service('2026-01-01')->findTasks());
+	}
+
+	// --- „Kein Mandat“ in der Aufgabenliste: nur ohne genauere Mandat-Aufgabe (Issue #117) ---
+
+	private function mandateOf(int $memberId, string $status, string $signatureType = Mandate::SIGNATURE_PAPER): Mandate {
+		$m = new Mandate();
+		$m->setMemberId($memberId);
+		$m->setStatus($status);
+		$m->setSignatureType($signatureType);
+		return $m;
+	}
+
+	/** @return array<string, array{0:Mandate,1:bool}> Mandat des Mitglieds => ob die allgemeine Zeile bleibt */
+	public static function explainedProvider(): array {
+		$mandate = static function (string $status, string $signatureType = Mandate::SIGNATURE_PAPER): Mandate {
+			$m = new Mandate();
+			$m->setMemberId(7);
+			$m->setStatus($status);
+			$m->setSignatureType($signatureType);
+			return $m;
+		};
+		return [
+			'Papier-Entwurf: eigene Aufgabe "Unterschrift fehlt"' => [$mandate(Mandate::STATUS_DRAFT), false],
+			'gesperrt: eigene Aufgabe "Klärung offen"' => [$mandate(Mandate::STATUS_SUSPENDED), false],
+			'erloschen: eigene Aufgabe "Lastschrift weiter gewollt"' => [$mandate(Mandate::STATUS_ENDED), false],
+			// Ob ein elektronischer Entwurf eine eigene Aufgabe hat, hängt am Link - die allgemeine Zeile bleibt als Netz.
+			'elektronischer Entwurf: allgemeine Zeile bleibt' => [$mandate(Mandate::STATUS_DRAFT, Mandate::SIGNATURE_ELECTRONIC), true],
+		];
+	}
+
+	/** @dataProvider explainedProvider */
+	public function testAllgemeineZeileEntfaelltInDerAufgabenlisteWennEineGenauereAufgabeDieUrsacheNennt(Mandate $mandate, bool $expectGeneric): void {
+		$this->mandates->method('findLiveByMember')->willReturn($mandate->getStatus() === Mandate::STATUS_ENDED ? [] : [$mandate]);
+		$this->mandates->method('findAll')->willReturn([$mandate]);
+		$this->assignments->method('findActiveAsOf')->willReturn([$this->assignment(1, 7)]);
+
+		$tasks = $this->service('2026-01-01')->findTasks(null, true);
+
+		$generic = array_values(array_filter($tasks, fn ($t) => $t['objectType'] === 'assignment'));
+		$this->assertCount($expectGeneric ? 1 : 0, $generic);
+	}
+
+	public function testAllgemeineZeileBleibtOhneJedesMandat(): void {
+		$this->mandates->method('findLiveByMember')->willReturn([]);
+		$this->mandates->method('findAll')->willReturn([]);
+		$this->assignments->method('findActiveAsOf')->willReturn([$this->assignment(1, 7)]);
+
+		$tasks = $this->service('2026-01-01')->findTasks(null, true);
+
+		$this->assertCount(1, array_filter($tasks, fn ($t) => $t['objectType'] === 'assignment'));
+	}
+
+	public function testAllgemeineZeileBleibtStandardmaessigUndInDerLaufVorschauUnveraendert(): void {
+		// Forderungsübersicht (Issue #104) und Geisterkarte (Issue #102) lesen weiter die
+		// allgemeine Aussage „nicht einzugsfähig“, egal warum.
+		$draft = $this->mandateOf(7, Mandate::STATUS_DRAFT);
+		$this->mandates->method('findLiveByMember')->willReturn([$draft]);
+		$this->mandates->method('findAll')->willReturn([$draft]);
+		$this->assignments->method('findActiveAsOf')->willReturn([$this->assignment(1, 7)]);
+		$service = $this->service('2026-01-01');
+
+		$this->assertCount(1, array_filter($service->findTasks(), fn ($t) => $t['objectType'] === 'assignment'));
+		$this->assertCount(1, array_filter($service->findRunIssues('2026-03-01'), fn ($t) => $t['objectType'] === 'assignment'));
 	}
 
 	public function testNaechsterLaufFasstForderungenDesselbenTerminsZusammen(): void {

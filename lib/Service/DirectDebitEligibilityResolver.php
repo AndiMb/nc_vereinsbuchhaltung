@@ -54,6 +54,34 @@ final class DirectDebitEligibilityResolver {
 		return $this->hasCollectibleMandate($item->getMemberId());
 	}
 
+	/**
+	 * Mandatslage ({@see MandateSituation}) aller Mitglieder mit mindestens
+	 * einem Mandat, aus EINER Abfrage – für Aufgaben, die nicht je Zuweisung
+	 * nachfragen wollen.
+	 *
+	 * @return array<int,string> Mitglieds-ID => Lage
+	 */
+	public function situationsByMember(): array {
+		return MandateSituation::byMember($this->mandates->findAll());
+	}
+
+	/**
+	 * IDs aller Zuweisungen mit Zahlungsart Überweisung, aus EINER Abfrage – für
+	 * Aufgaben, die viele Forderungen einordnen (Überweiser-Forderungen,
+	 * Forderungen nach Widerruf) statt je Forderung die Zuweisung zu laden.
+	 *
+	 * @return array<int,true>
+	 */
+	public function transferAssignmentIds(): array {
+		$ids = [];
+		foreach ($this->assignments->findAll() as $assignment) {
+			if ($assignment->getPaymentMethod() === Assignment::PAYMENT_METHOD_TRANSFER) {
+				$ids[(int)$assignment->getId()] = true;
+			}
+		}
+		return $ids;
+	}
+
 	public function hasCollectibleMandate(?int $memberId): bool {
 		if ($memberId === null) {
 			return false;

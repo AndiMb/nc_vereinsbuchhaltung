@@ -290,4 +290,41 @@ class AnonymizationCandidateServiceTest extends TestCase {
 		$this->assertSame('member', $tasks[0]['objectType']);
 		$this->assertSame(1, $tasks[0]['objectId']);
 	}
+
+	public function testAufgabentextNenntKeinenSpecAbschnittUndStehtNameUnmaskiertDavor(): void {
+		// Der Text geht an Endnutzer: kein Verweis auf Spec-Abschnitte, und der Name steht
+		// vor dem übersetzten Text statt als t()-Platzhalter (t() maskiert HTML-Zeichen).
+		$member = $this->inactiveMember(1);
+		$member->setMemberType(Member::TYPE_ORGANIZATION);
+		$member->setOrganizationName('Müller & Söhne');
+		$member->setLastName(null);
+		$this->members->method('findAll')->willReturn([$member]);
+		$this->members->method('find')->willReturn($member);
+		$item = new OpenItem();
+		$item->setMemberId(1);
+		$item->setPaidJournalId(100);
+		$this->openItems->method('findByMember')->willReturn([$item]);
+		$this->journals->method('find')->willReturn($this->journal(100, '2026-05-15'));
+
+		$tasks = $this->service('2037-06-01')->findTasks();
+
+		$this->assertCount(1, $tasks);
+		$this->assertSame(\OCA\Vereinsbuchhaltung\Db\Task::SEVERITY_HINT, $tasks[0]['severity']);
+		$this->assertStringStartsWith('Müller & Söhne: anonymisierungsreif', $tasks[0]['message']);
+		$this->assertStringNotContainsString('Spec', $tasks[0]['message']);
+		$this->assertStringNotContainsString('§', $tasks[0]['message']);
+	}
+
+	public function testFindTasksPrueftAktiveMitgliederGarNichtErst(): void {
+		// Ein aktives Mitglied kann nie reif sein: die Prüfung kostet mehrere Abfragen je
+		// Mitglied und läuft bei jedem Öffnen der Aufgabenliste - nur für Ausgetretene.
+		$active = $this->inactiveMember(1);
+		$active->setLeftAt(null);
+		$this->members->method('findAll')->willReturn([$active]);
+		$this->members->expects($this->never())->method('find');
+		$this->openItems->expects($this->never())->method('findByMember');
+		$this->mandates->expects($this->never())->method('findByMember');
+
+		$this->assertSame([], $this->service('2037-06-01')->findTasks());
+	}
 }

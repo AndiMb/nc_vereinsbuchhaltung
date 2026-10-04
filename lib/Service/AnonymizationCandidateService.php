@@ -153,7 +153,10 @@ class AnonymizationCandidateService {
 	public function findTasks(): array {
 		$tasks = [];
 		foreach ($this->members->findAll() as $member) {
-			if ($member->isRedacted()) {
+			// Ein aktives Mitglied kann nie reif sein (siehe statusFor()) - die teure
+			// Prüfung (mehrere Abfragen je Mitglied) bleibt den Ausgetretenen vorbehalten,
+			// statt bei jedem Öffnen der Aufgabenliste für den ganzen Bestand zu laufen.
+			if ($member->isRedacted() || $member->isActive()) {
 				continue;
 			}
 			if (!$this->isEligible((int)$member->getId())) {
@@ -161,7 +164,8 @@ class AnonymizationCandidateService {
 			}
 			$tasks[] = [
 				'severity' => Task::SEVERITY_HINT,
-				'message' => $this->l10n->t('Mitglied %s ist anonymisierungsreif: die letzte zugehörige Buchung liegt mehr als 10 Jahre zurück (Spec §3.8). Bestätigung durch den Buchhalter erforderlich, kein Automatismus.', [$member->displayName()]),
+				// Name vor den Text statt als t()-Variable (t() maskiert HTML-Zeichen in Variablen).
+				'message' => $member->displayName() . ': ' . $this->l10n->t('anonymisierungsreif, die letzte zugehörige Buchung liegt mehr als 10 Jahre zurück. Die Anonymisierung muss ein Buchhalter bestätigen, sie geschieht nie von selbst.'),
 				'objectType' => 'member',
 				'objectId' => (int)$member->getId(),
 			];
