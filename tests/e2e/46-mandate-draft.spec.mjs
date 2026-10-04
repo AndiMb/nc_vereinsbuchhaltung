@@ -441,7 +441,8 @@ test.describe('Entwurf-Mandat im Self-Service (Mein Beitrag)', () => {
 		// Für das Mitglied weder Pflicht-Notiz noch Korrektur-Ausweg, dafür der Hinweis aufs Neuerteilen.
 		await expect(dialog.locator('textarea')).toHaveCount(0)
 		await expect(dialog.getByRole('button', { name: 'Entwurf stattdessen korrigieren' })).toHaveCount(0)
-		await expect(dialog).toContainText('erteilen Sie das Mandat danach neu')
+		// test4 läuft auf informellem Deutsch: Mitgliedertexte erscheinen in der Du-Fassung (l10n/de.json, Issue #106).
+		await expect(dialog).toContainText('erteile das Mandat danach neu')
 		await dialog.getByRole('button', { name: 'Entwurf endgültig verwerfen' }).click()
 
 		await expect(successToast(page, 'Entwurf verworfen.')).toBeVisible()
@@ -529,7 +530,8 @@ test.describe('Entwurf-Mandat im Self-Service (Mein Beitrag)', () => {
 		let dialog = page.getByRole('dialog', { name: 'Mandat widerrufen' })
 		await expect(dialog).toBeVisible()
 		await expect(dialog.getByRole('button', { name: 'Ich habe nur ein neues Konto → IBAN ändern' })).toHaveCount(0)
-		await expect(dialog).toContainText('wenden Sie sich an Ihren Verein')
+		// Du-Fassung, siehe oben (test4 hat informelles Deutsch).
+		await expect(dialog).toContainText('wende dich an deinen Verein')
 		await dialog.getByRole('button', { name: 'Abbrechen' }).click()
 		await expect(dialog).toBeHidden()
 
@@ -541,7 +543,7 @@ test.describe('Entwurf-Mandat im Self-Service (Mein Beitrag)', () => {
 		await section.getByRole('button', { name: 'Mandat widerrufen' }).click()
 		dialog = page.getByRole('dialog', { name: 'Mandat widerrufen' })
 		await expect(dialog.getByRole('button', { name: 'Ich habe nur ein neues Konto → IBAN ändern' })).toBeVisible()
-		await expect(dialog).not.toContainText('wenden Sie sich an Ihren Verein')
+		await expect(dialog).not.toContainText('wende dich an deinen Verein')
 	})
 })
 
