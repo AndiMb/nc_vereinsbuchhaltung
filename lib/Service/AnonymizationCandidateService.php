@@ -37,11 +37,7 @@ use OCP\IL10N;
  * {@see \OCA\Vereinsbuchhaltung\Db\Journal}-Datensatz verbunden ist: einer
  * bezahlten Forderung ({@see \OCA\Vereinsbuchhaltung\Db\OpenItem::getPaidJournalId()})
  * und einer Rücklastschriftgebühr ({@see \OCA\Vereinsbuchhaltung\Db\ReturnedDebit::getJournalId()}
- * über die Einzugsposten der Mandate dieses Mitglieds). Das alte, an
- * `vbh_sepa_mandates`/`vbh_membership_fees` hängende Einzugssystem (siehe
- * {@see Member}-Klassendoc) bleibt dabei bewusst außen vor – dieselbe
- * Abgrenzung, die auch {@see MemberService::blockingReasonsForIds()} für den
- * neuen Mitglieds-Datensatz zieht. Ein Mitglied ganz ohne jede Buchung hat
+ * über die Einzugsposten der Mandate dieses Mitglieds). Ein Mitglied ganz ohne jede Buchung hat
  * damit auch keine laufende Frist (siehe {@see lastBookingDate()}) – die Uhr
  * tickt erst, sobald überhaupt Geld geflossen ist.
  *

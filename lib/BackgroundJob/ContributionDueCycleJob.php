@@ -12,9 +12,9 @@ use OCP\BackgroundJob\TimedJob;
 use Psr\Log\LoggerInterface;
 
 /**
- * Der tägliche Einzugszyklus-Cron für das neue Assignment/Claim-Modell (Spec
- * §3.5/§7, Issue #70) – Nachfolger von {@see SepaPreNotificationJob} für den
- * alten `vbh_sepa_batches`-Zyklus, der unverändert weiterläuft (Spec §1.2).
+ * Der tägliche Einzugszyklus-Cron für das Assignment/Claim-Modell (Spec
+ * §3.5/§7, Issue #70) – Nachfolger der Jobs des flachen Alt-Moduls (Beitrags-
+ * fälligkeit, Vorankündigung), die Issue #107 entfernt hat.
  *
  * Zwei Schritte, in dieser Reihenfolge, weil eine gerade erst erzeugte
  * Periode noch am selben Tag ins Vorabinfo-Fenster fallen kann (kurzer

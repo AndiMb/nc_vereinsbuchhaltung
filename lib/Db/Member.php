@@ -8,10 +8,11 @@ use OCP\AppFramework\Db\Entity;
 
 /**
  * Mitglied – unabhängig von einem Nextcloud-Konto, siehe Spec §2.2 (Member)
- * unter docs/beitraege-sepa-modul-spec.md. Löst die bisherige Modellierung
- * über member_uid/member_label an vbh_sepa_mandates/vbh_membership_fees ab
- * (siehe Migration 000137/000138): ein Mitglied existiert jetzt als eigener
- * Datensatz, ein SEPA-Mandat oder Beitrag verweist per member_id darauf.
+ * unter docs/beitraege-sepa-modul-spec.md. Löste die frühere Modellierung
+ * über member_uid/member_label an den (inzwischen entfernten) Tabellen
+ * vbh_sepa_mandates/vbh_membership_fees ab (siehe Migration 000137/000138):
+ * ein Mitglied existiert als eigener Datensatz, ein SEPA-Mandat, eine
+ * Zuweisung oder eine Forderung verweist per member_id darauf.
  *
  * Enum-Sprachentscheidung (siehe Spec §13.1, dort als offener Klärungsbedarf
  * markiert): `member_type` folgt dem Bestandsmuster „deutsch wo Fachbegriff" –

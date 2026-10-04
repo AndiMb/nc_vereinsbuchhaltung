@@ -216,10 +216,10 @@ class DebitBatchService {
 	 * {@see DebitRunQueryService}-Klassendoc).
 	 *
 	 * Bewusst KEINE Prüfung „Termin darf nicht in der Vergangenheit liegen"
-	 * (anders als das alte {@see SepaBatchService::createBatch()}): die neue
-	 * Spec verlangt ausdrücklich, dass eine gerissene Vorlauffrist „nichts
-	 * blockiert" (§3.5) – ein verspätet freigegebener Lauf muss möglich
-	 * bleiben, nur die Aufgabenliste macht auf die Verspätung aufmerksam.
+	 * (das flache Alt-Modul hatte sie): die Spec verlangt ausdrücklich, dass
+	 * eine gerissene Vorlauffrist „nichts blockiert" (§3.5) – ein verspätet
+	 * freigegebener Lauf muss möglich bleiben, nur die Aufgabenliste macht
+	 * auf die Verspätung aufmerksam.
 	 *
 	 * @throws \InvalidArgumentException wenn die Grundeinstellungen fehlen, das
 	 *                                   Datum ungültig ist oder nichts fällig ist
@@ -266,8 +266,11 @@ class DebitBatchService {
 			$batch->setCreditorId($creditorId);
 			$batch->setCreditorName($creditorName);
 			$batch->setCreditorIban((string)$collectingAccount->getIban());
-			// Bewusst leer, siehe SepaBatchService::createBatch() fuer die
-			// vollstaendige Begruendung (IBAN-only-Umstellung 2016).
+			// Bewusst leer: seit der IBAN-only-Umstellung 2016 ermittelt die Bank
+			// die BIC selbst, der Builder schreibt dafuer "NOTPROVIDED". Das Konto
+			// fuehrt deshalb gar keine BIC. Die Spalte bleibt trotzdem bestehen -
+			// fuer Einreichungen ausserhalb des einheitlichen Zahlungsraums, wo
+			// die BIC weiterhin verlangt wird.
 			$batch->setCreditorBic(null);
 			$batch = $this->batchMapper->insert($batch);
 

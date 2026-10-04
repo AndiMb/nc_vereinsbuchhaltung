@@ -66,50 +66,6 @@ class OpenItemMapper extends QBMapper {
 	}
 
 	/**
-	 * Offene Posten mit verknüpftem SEPA-Mandat – die Auswahlmenge für den
-	 * SEPA-Export (siehe SepaBatchService). Alle anderen offenen Posten
-	 * bleiben davon unberührt (mandate_id ist NULL, siehe OpenItem-Docblock).
-	 *
-	 * @param string|null $dueBy nur Posten, die bis zu diesem Tag fällig sind.
-	 *                           Ohne Eingrenzung stünde ein Beitrag, der erst nächstes Jahr fällig
-	 *                           wird, heute schon zum Einzug bereit – die App verspricht an drei
-	 *                           Stellen etwas anderes („fällige offene Posten").
-	 *                           Posten ohne Fälligkeitsdatum gelten als sofort fällig, so wie sie
-	 *                           auch in der Überfälligkeitsrechnung behandelt werden.
-	 * @return OpenItem[]
-	 */
-	public function findOpenWithMandate(?string $dueBy = null): array {
-		$qb = $this->db->getQueryBuilder();
-		$qb->select('*')
-			->from($this->getTableName())
-			->where($qb->expr()->eq('status', $qb->createNamedParameter('open')))
-			->andWhere($qb->expr()->isNotNull('mandate_id'));
-		if ($dueBy !== null) {
-			$qb->andWhere($qb->expr()->orX(
-				$qb->expr()->isNull('due_date'),
-				$qb->expr()->lte('due_date', $qb->createNamedParameter($dueBy)),
-			));
-		}
-		$qb->orderBy('due_date', 'ASC');
-		return $this->findEntities($qb);
-	}
-
-	/**
-	 * Offene Posten, die auf ein Mandat verweisen – gebraucht, um zu
-	 * entscheiden, ob sich ein Mandat noch löschen lässt
-	 * (SepaMandateService::delete()).
-	 *
-	 * @return OpenItem[]
-	 */
-	public function findByMandate(int $mandateId): array {
-		$qb = $this->db->getQueryBuilder();
-		$qb->select('*')
-			->from($this->getTableName())
-			->where($qb->expr()->eq('mandate_id', $qb->createNamedParameter($mandateId, IQueryBuilder::PARAM_INT)));
-		return $this->findEntities($qb);
-	}
-
-	/**
 	 * Alle Forderungen im Sinne von Issue #68 (memberId+type gesetzt), für die
 	 * „Offene-Posten-Sicht" (Spec §3.9, revisor+). Bewusst getrennt von
 	 * findAll(): die alten Freitext-Posten (OpenItemService) sollen dort nicht

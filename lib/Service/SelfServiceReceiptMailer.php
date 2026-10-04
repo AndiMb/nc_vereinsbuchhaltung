@@ -26,8 +26,8 @@ use OCP\Mail\IMailer;
  * „Modell A" ausschließlich über die Admin-Akte, nie über den Self-Service-
  * Kanal, den dieser Mailer bedient.
  *
- * Technisches Baumuster identisch zu {@see SepaNotificationService}/
- * {@see MandateActivationService}: `IMailer::createEMailTemplate()` +
+ * Technisches Baumuster identisch zu {@see MandateActivationService}:
+ * `IMailer::createEMailTemplate()` +
  * `IL10N::t()` (Quellsprache Deutsch, Zielbundle en.json, Spec §3.11).
  */
 class SelfServiceReceiptMailer {
@@ -57,8 +57,7 @@ class SelfServiceReceiptMailer {
 		$email = $this->resolveEmail($member);
 		if ($email === null) {
 			// Kein Empfänger ermittelbar: kein Fehler, der die eigentliche
-			// (bereits vollzogene) Aktion rückgängig macht oder blockiert -
-			// dieselbe Güterabwägung wie SepaNotificationService::notify().
+			// (bereits vollzogene) Aktion rückgängig macht oder blockiert.
 			return;
 		}
 

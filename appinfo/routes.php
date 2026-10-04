@@ -153,27 +153,11 @@ return [
 		// Aufgaben/Störfälle (Spec §7, Grundlage siehe lib/Db/Task.php)
 		['name' => 'task#index', 'url' => '/api/tasks', 'verb' => 'GET'],
 
-		// SEPA-Lastschriftmandate (optionales Zusatzmodul)
-		['name' => 'sepaMandate#index', 'url' => '/api/sepa/mandates', 'verb' => 'GET'],
-		['name' => 'sepaMandate#create', 'url' => '/api/sepa/mandates', 'verb' => 'POST'],
-		['name' => 'sepaMandate#update', 'url' => '/api/sepa/mandates/{id}', 'verb' => 'PUT'],
-		['name' => 'sepaMandate#revoke', 'url' => '/api/sepa/mandates/{id}/revoke', 'verb' => 'POST'],
-		['name' => 'sepaMandate#changeBankAccount', 'url' => '/api/sepa/mandates/{id}/change-account', 'verb' => 'POST'],
-		['name' => 'sepaMandate#destroy', 'url' => '/api/sepa/mandates/{id}', 'verb' => 'DELETE'],
-
-		// Mitgliedsbeiträge mit Zahlungsfrequenz (optionales Zusatzmodul)
-		['name' => 'membershipFee#index', 'url' => '/api/sepa/fees', 'verb' => 'GET'],
-		['name' => 'membershipFee#create', 'url' => '/api/sepa/fees', 'verb' => 'POST'],
-		['name' => 'membershipFee#update', 'url' => '/api/sepa/fees/{id}', 'verb' => 'PUT'],
-		['name' => 'membershipFee#destroy', 'url' => '/api/sepa/fees/{id}', 'verb' => 'DELETE'],
-		['name' => 'membershipFee#catchUp', 'url' => '/api/sepa/fees/{id}/catch-up', 'verb' => 'POST'],
-
 		// Massenanlage von Mitgliedern aus einer CSV-Liste
 		['name' => 'memberImport#preview', 'url' => '/api/sepa/members/import/preview', 'verb' => 'POST'],
 		['name' => 'memberImport#import', 'url' => '/api/sepa/members/import', 'verb' => 'POST'],
 
-		// Mandats-Lifecycle (Issue #66, Papier-Weg) – neues, additives Modell
-		// parallel zum alten sepaMandate#-Bestand (siehe MandateService).
+		// Mandats-Lifecycle (Issue #66, Papier-Weg), siehe MandateService.
 		['name' => 'mandate#index', 'url' => '/api/mandates', 'verb' => 'GET'],
 		['name' => 'mandate#create', 'url' => '/api/mandates', 'verb' => 'POST'],
 		['name' => 'mandate#byMember', 'url' => '/api/mandates/by-member/{memberId}', 'verb' => 'GET'],
@@ -207,16 +191,6 @@ return [
 		// PermissionMiddleware), die Absicherung übernimmt allein der Token.
 		['name' => 'mandateConsent#show', 'url' => '/mandate-consent/{token}', 'verb' => 'GET'],
 		['name' => 'mandateConsent#accept', 'url' => '/mandate-consent/{token}', 'verb' => 'POST'],
-
-		// SEPA-Sammeleinzüge (pain.008-Export)
-		['name' => 'sepaBatch#preview', 'url' => '/api/sepa/export/preview', 'verb' => 'GET'],
-		['name' => 'sepaBatch#index', 'url' => '/api/sepa/export/batches', 'verb' => 'GET'],
-		['name' => 'sepaBatch#create', 'url' => '/api/sepa/export/batches', 'verb' => 'POST'],
-		['name' => 'sepaBatch#destroy', 'url' => '/api/sepa/export/batches/{id}', 'verb' => 'DELETE'],
-		['name' => 'sepaBatch#settle', 'url' => '/api/sepa/export/batches/{id}/settle', 'verb' => 'POST'],
-		['name' => 'sepaBatch#items', 'url' => '/api/sepa/export/batches/{id}/items', 'verb' => 'GET'],
-		['name' => 'sepaBatch#xml', 'url' => '/api/sepa/export/batches/{id}/xml', 'verb' => 'GET'],
-		['name' => 'sepaBatch#revertReturn', 'url' => '/api/sepa/export/items/{itemId}/revert-return', 'verb' => 'POST'],
 
 		// Offene Posten
 		['name' => 'openItem#index', 'url' => '/api/open-items', 'verb' => 'GET'],

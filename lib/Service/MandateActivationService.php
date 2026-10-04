@@ -154,9 +154,8 @@ class MandateActivationService {
 	 * oder bestätigte Mitglieds-Mailadresse"). Vorrang hat die vom Verein
 	 * gepflegte Mitglieds-Mailadresse - sie ist die für DIESES Mitglied
 	 * bestimmte Kontaktadresse; das NC-Konto ist nur der technische Zugang
-	 * (dieselbe Priorität wie {@see SepaNotificationService::resolveRecipient()}
-	 * zwischen Mandat und Konto anlegt, hier ohne die dort zusätzliche
-	 * Mandats-Mailadresse, die es am neuen {@see Mandate} nicht gibt).
+	 * (der Mandats-Mailadresse des früheren flachen Alt-Moduls bedarf es nicht,
+	 * das {@see Mandate} trägt keine).
 	 */
 	private function resolveEmail(Member $member): ?string {
 		if ($member->getEmail() !== null && $member->getEmail() !== '') {

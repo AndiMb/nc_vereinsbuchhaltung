@@ -7,8 +7,6 @@ namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 use OCA\Vereinsbuchhaltung\Controller\SettingsController;
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
-use OCA\Vereinsbuchhaltung\Db\MembershipFeeMapper;
-use OCA\Vereinsbuchhaltung\Db\SepaMandateMapper;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\AttachmentWatchFolderService;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
@@ -44,7 +42,7 @@ class SettingsControllerSepaTest extends TestCase {
 		$this->request = $this->createMock(IRequest::class);
 	}
 
-	private function controller(): SettingsController {
+	private function controller(?MemberMapper $members = null): SettingsController {
 		$config = $this->createMock(IConfig::class);
 		$config->method('getAppValue')->willReturnCallback(fn (string $app, string $key, string $default = '') => $this->store[$key] ?? $default);
 		$config->method('setAppValue')->willReturnCallback(function (string $app, string $key, string $value): void {
@@ -69,9 +67,7 @@ class SettingsControllerSepaTest extends TestCase {
 			$permissions,
 			$this->createMock(DemoDataService::class),
 			$this->createMock(AccountMapper::class),
-			$this->createMock(SepaMandateMapper::class),
-			$this->createMock(MembershipFeeMapper::class),
-			$this->createMock(MemberMapper::class),
+			$members ?? $this->createMock(MemberMapper::class),
 			$this->createMock(IUserManager::class),
 			$this->createMock(SepaDebtorAccountService::class),
 			$attachmentStorage,
@@ -96,6 +92,29 @@ class SettingsControllerSepaTest extends TestCase {
 
 		$this->assertSame(180, $data['expiry_warning_days']);
 		$this->assertSame(14, $data['dunning_interval_days']);
+	}
+
+	/** Mandate und Zuweisungen hängen immer an einem Mitglied: seit dem Cutover (Issue #107) genügt es als Kriterium. */
+	public function testReiterBeitraegeIstOhneSchalterUndOhneMitgliederVerborgen(): void {
+		$members = $this->createMock(MemberMapper::class);
+		$members->method('count')->willReturn(0);
+
+		$this->assertFalse($this->controller($members)->index()->getData()['membership_active']);
+	}
+
+	public function testReiterBeitraegeErscheintSobaldEinMitgliedExistiert(): void {
+		$members = $this->createMock(MemberMapper::class);
+		$members->method('count')->willReturn(3);
+
+		$this->assertTrue($this->controller($members)->index()->getData()['membership_active']);
+	}
+
+	public function testReiterBeitraegeErscheintMitSchalterAuchOhneMitglieder(): void {
+		$this->store['membership_enabled'] = '1';
+		$members = $this->createMock(MemberMapper::class);
+		$members->method('count')->willReturn(0);
+
+		$this->assertTrue($this->controller($members)->index()->getData()['membership_active']);
 	}
 
 	public function testAblaufVorwarnungUndMahnabstandWerdenGeschriebenUndZurueckgegeben(): void {

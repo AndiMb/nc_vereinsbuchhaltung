@@ -62,8 +62,7 @@ class MandateMapper extends QBMapper {
 	 * ließe sich nicht portabel über MySQL/MariaDB, PostgreSQL *und* SQLite in
 	 * einem einzigen Doctrine-Schema-Aufruf ausdrücken (partielle/gefilterte
 	 * Indizes sind je Datenbank verschieden oder fehlen ganz) – die Invariante
-	 * „höchstens ein lebendes Mandat je Mitglied" (Spec §2.2) wird deshalb, wie
-	 * das Analogon bei {@see SepaMandateMapper::findActiveByIban()}, auf
+	 * „höchstens ein lebendes Mandat je Mitglied" (Spec §2.2) wird deshalb auf
 	 * Anwendungsebene in {@see \OCA\Vereinsbuchhaltung\Service\MandateService}
 	 * durchgesetzt statt per DB-Constraint.
 	 *

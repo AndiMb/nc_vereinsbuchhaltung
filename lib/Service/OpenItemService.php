@@ -57,7 +57,7 @@ class OpenItemService {
 		return $total;
 	}
 
-	public function create(string $debtor, ?string $description, int $amountCents, ?string $dueDate, ?int $accountId, ?int $mandateId = null): OpenItem {
+	public function create(string $debtor, ?string $description, int $amountCents, ?string $dueDate, ?int $accountId): OpenItem {
 		$debtor = trim($debtor);
 		if ($debtor === '') {
 			throw new \InvalidArgumentException($this->l10n->t('Debitor ist Pflicht.'));
@@ -72,7 +72,6 @@ class OpenItemService {
 		$item->setDueDate($dueDate !== null && $dueDate !== '' ? $dueDate : null);
 		$item->setStatus('open');
 		$item->setAccountId($accountId);
-		$item->setMandateId($mandateId);
 		$item->setCreatedAt((new \DateTime())->format(\DateTime::ATOM));
 		return $this->mapper->insert($item);
 	}

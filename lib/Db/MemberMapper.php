@@ -110,10 +110,9 @@ class MemberMapper extends QBMapper {
 	/**
 	 * Anzeigename eines Mitglieds oder ein Fallback-Text, falls die member_id
 	 * leer ist oder das Mitglied inzwischen gelöscht wurde. Zentraler Helfer
-	 * für SepaMandateService/MembershipFeeService/SepaBatchService und ihre
-	 * Controller, die alle denselben Namen zu einem Mandat/Beitrag anzeigen –
-	 * vorher fand sich an sieben Stellen dieselbe find()/catch-Konstruktion.
-	 * Auch von ContributionGroupService/ClaimService (Issue #68) genutzt.
+	 * für alle Dienste und Controller, die denselben Namen zu einem Mandat,
+	 * einer Zuweisung oder Forderung anzeigen – sonst stünde an jeder Stelle
+	 * dieselbe find()/catch-Konstruktion.
 	 */
 	public function displayNameOr(?int $memberId, string $fallback): string {
 		if ($memberId === null) {

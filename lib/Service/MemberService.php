@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\Db\AssignmentMapper;
+use OCA\Vereinsbuchhaltung\Db\Mandate;
+use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
-use OCA\Vereinsbuchhaltung\Db\MembershipFeeMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
-use OCA\Vereinsbuchhaltung\Db\SepaMandateMapper;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IL10N;
 use OCP\IUserManager;
@@ -23,8 +23,7 @@ class MemberService {
 
 	public function __construct(
 		private MemberMapper $mapper,
-		private SepaMandateMapper $mandateMapper,
-		private MembershipFeeMapper $feeMapper,
+		private MandateMapper $mandateMapper,
 		private AssignmentMapper $assignmentMapper,
 		private OpenItemMapper $openItemMapper,
 		private IUserManager $userManager,
@@ -145,14 +144,13 @@ class MemberService {
 	 * Oberfläche zeigt sie als erklärende Sperrmeldung statt den
 	 * Löschen-Knopf einfach auszugrauen (Spec §3.1).
 	 *
-	 * Referenzielle Sicherheit, damit member_id in keiner der vier
+	 * Referenzielle Sicherheit, damit member_id in keiner der drei
 	 * verweisenden Tabellen verwaist, solange es noch keine Kaskaden-Logik
-	 * gibt: aktives/widerrufenes SEPA-Mandat, Alt-Beitrag
-	 * (vbh_membership_fees), Zuweisung (vbh_assignments) und Forderung
-	 * (vbh_open_items mit gesetztem member_id) blockieren alle die Löschung.
-	 * Die beiden letzteren gibt es erst seit Issue #68 (Beitragsgruppen/
-	 * Zuweisungen) – zuvor war die Prüfung hier laut Akzeptanzkriterium noch
-	 * trivial erlaubt, weil es schlicht keine Forderungen mit member_id gab.
+	 * gibt: jedes SEPA-Mandat (vbh_mandates – auch ein Entwurf oder ein
+	 * beendetes, es bleibt als Nachweis erhalten), jede Zuweisung
+	 * (vbh_assignments) und jede Forderung (vbh_open_items mit gesetztem
+	 * member_id) blockieren die Löschung. Für DSGVO-Fälle gibt es statt des
+	 * Löschens die Anonymisierung (Spec §3.8).
 	 *
 	 * @return string[] leer = löschbar
 	 */
@@ -162,7 +160,7 @@ class MemberService {
 
 	/**
 	 * Dasselbe wie {@see blockingReasons()}, aber für beliebig viele Mitglieder
-	 * in wenigen Abfragen statt bis zu vier je Mitglied – wichtig, weil
+	 * in wenigen Abfragen statt bis zu drei je Mitglied – wichtig, weil
 	 * {@see \OCA\Vereinsbuchhaltung\Controller\MemberController::index()} das
 	 * für die gesamte Mitgliederliste auf einmal braucht (sonst N+1).
 	 *
@@ -174,13 +172,9 @@ class MemberService {
 		$anyMandateIds = [];
 		foreach ($this->mandateMapper->findAll() as $mandate) {
 			$anyMandateIds[$mandate->getMemberId()] = true;
-			if ($mandate->getStatus() === 'active') {
+			if ($mandate->getStatus() === Mandate::STATUS_ACTIVE) {
 				$activeMandateIds[$mandate->getMemberId()] = true;
 			}
-		}
-		$anyFeeIds = [];
-		foreach ($this->feeMapper->findAll() as $fee) {
-			$anyFeeIds[$fee->getMemberId()] = true;
 		}
 		$anyAssignmentIds = [];
 		foreach ($this->assignmentMapper->findAll() as $assignment) {
@@ -199,10 +193,7 @@ class MemberService {
 			if (isset($activeMandateIds[$id])) {
 				$reasons[] = $this->l10n->t('Es gibt noch ein aktives SEPA-Mandat für dieses Mitglied.');
 			} elseif (isset($anyMandateIds[$id])) {
-				$reasons[] = $this->l10n->t('Es gibt noch ein (widerrufenes) SEPA-Mandat für dieses Mitglied.');
-			}
-			if (isset($anyFeeIds[$id])) {
-				$reasons[] = $this->l10n->t('Es gibt noch einen Mitgliedsbeitrag für dieses Mitglied.');
+				$reasons[] = $this->l10n->t('Es gibt noch ein SEPA-Mandat für dieses Mitglied (Entwurf, ausgesetzt oder beendet).');
 			}
 			if (isset($anyAssignmentIds[$id])) {
 				$reasons[] = $this->l10n->t('Es gibt noch eine Zuweisung zu einer Beitragsgruppe für dieses Mitglied.');

@@ -63,8 +63,8 @@ class PainXmlBuilder {
 		$parent->appendChild($grpHdr);
 		$this->el($doc, $grpHdr, 'MsgId', $creditor->messageId);
 		// Issue #71: ein bei der Freigabe eingefrorener Zeitpunkt macht die Datei
-		// byte-identisch nachrenderbar (Spec §3.5) - ohne Angabe wie bisher der
-		// tatsächliche Erzeugungszeitpunkt (alter Einzugszyklus, SepaBatchService).
+		// byte-identisch nachrenderbar (Spec §3.5) - ohne Angabe der
+		// tatsächliche Erzeugungszeitpunkt.
 		$this->el($doc, $grpHdr, 'CreDtTm', $creditor->creationDateTime ?? (new \DateTime())->format('Y-m-d\TH:i:s'));
 		$this->el($doc, $grpHdr, 'NbOfTxs', (string)count($rows));
 		$this->el($doc, $grpHdr, 'CtrlSum', $this->formatAmount($this->sumCents($rows)));

@@ -24,7 +24,6 @@ class ImportService {
 		private BookingService $bookingService,
 		private JournalMapper $journalMapper,
 		private TransactionRunner $transaction,
-		private SepaReturnDetectionService $sepaReturns,
 		private SepaImportExtractionService $sepaDetails,
 	) {
 	}
@@ -104,18 +103,14 @@ class ImportService {
 			$tx = $this->buildEntity($userId, $row);
 			$tx = $this->txMapper->insert($tx);
 
-			// Unabhängig von $applyRules: die Rücklastschrift-Erkennung ist keine
-			// nutzerdefinierte Regel, sondern greift automatisch, sobald das
-			// SEPA-Modul überhaupt Sammeleinzüge kennt (sonst bleibt sie wirkungslos).
-			if ($this->sepaReturns->detect($tx)) {
-				$sepaReturnsDetected++;
-			}
-
-			// Strukturierte SEPA-Detail-Erkennung für das neue Mandats-/
-			// Einzugsposten-Modell (Issue #72) - additiv, unabhängig vom alten
-			// System oben. Erzeugt nur Vorschläge, bucht nichts automatisch
-			// (siehe SepaImportExtractionService-Klassendoc).
-			$this->sepaDetails->extract($tx, $row['sepaDetails'] ?? []);
+			// Strukturierte SEPA-Detail-Erkennung für das Mandats-/Einzugsposten-
+			// Modell (Issue #72) - unabhängig von $applyRules, denn sie ist keine
+			// nutzerdefinierte Regel, und additiv: erzeugt nur Vorschläge für den
+			// Bankabgleich, bucht nichts automatisch (siehe
+			// SepaImportExtractionService-Klassendoc). Was als Rücklastschrift
+			// erkannt wurde, meldet der Import zurück, damit ein unbeaufsichtigter
+			// Lauf (Wachordner) es im Protokoll vermerken kann.
+			$sepaReturnsDetected += $this->sepaDetails->extract($tx, $row['sepaDetails'] ?? []);
 
 			if ($applyRules) {
 				$accountId = $this->matchRule($tx, $rules);

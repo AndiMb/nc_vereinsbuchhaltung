@@ -9,12 +9,10 @@ use OCP\AppFramework\Db\Entity;
 /**
  * SEPA-Lastschriftmandat, voller Lebenszyklus – siehe Spec §2.2 „Mandat
  * (Mandate)" und §3.2 „Mandats-Lifecycle" unter docs/beitraege-sepa-modul-spec.md,
- * Issue #66. Löst das bisherige, flache `SepaMandate`/`vbh_sepa_mandates`
- * *nicht* ab (das bleibt vorerst am alten Einzugszyklus hängen, siehe
- * {@see SepaMandate}) – ein bewusst neues, additives Tabellenpaar
- * (`vbh_mandates`, `vbh_mandate_amendments`, `vbh_mandate_events`), das erst
- * mit dem Einzugszyklus-Ticket (T10) den alten Bestand ablöst. Bis dahin
- * existieren beide Mandatssysteme nebeneinander.
+ * Issue #66. Löste das frühere, flache `vbh_sepa_mandates` ab – ein bewusst
+ * neues Tabellenpaar (`vbh_mandates`, `vbh_mandate_amendments`,
+ * `vbh_mandate_events`) statt eines Umbaus der alten Tabelle, die erst mit
+ * dem Cutover (Issue #107, Migration 000157) wegfiel.
  *
  * Enum-Sprache (siehe Spec §13.1 und Entscheidung Florian 2026-09-16): die
  * dort *ausdrücklich genannten* Übersetzungen `draft/entwurf/aktiv/

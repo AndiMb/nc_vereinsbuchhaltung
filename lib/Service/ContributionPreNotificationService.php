@@ -19,13 +19,12 @@ use OCP\Mail\IMailer;
 use Psr\Log\LoggerInterface;
 
 /**
- * Die neue Vorabinfo (Spec §3.5/§3.11 „Vorabinfo-Mail" T31, Issue #70) –
- * arbeitet gegen `Assignment`/`vbh_open_items` (Claim-Modell aus Issue #68),
- * nicht gegen `vbh_membership_fees`/`vbh_sepa_batches` wie das ältere
- * {@see SepaNotificationService}. Beide Systeme laufen nebeneinander, bis ein
- * späteres Ticket den alten Zyklus ablöst (Spec §1.2 Umbau-Härte).
+ * Die Vorabinfo (Spec §3.5/§3.11 „Vorabinfo-Mail" T31, Issue #70) –
+ * arbeitet gegen `Assignment`/`vbh_open_items` (Claim-Modell aus Issue #68).
+ * Sie löste die Vorankündigung des flachen Alt-Moduls ab, die mit dem Cutover
+ * (Issue #107) entfernt wurde.
  *
- * Unterschiede zum alten Dienst, alle aus Spec §3.11/T31:
+ * Unterschiede zur früheren Vorankündigung, alle aus Spec §3.11/T31:
  * - **Ein Rendering-Pfad, gebündelt je Mitglied** statt einer Mail je Posten:
  *   hat ein Mitglied mehrere Forderungen mit Fälligkeit innerhalb der
  *   Vorlauffrist (z. B. Basis- + Sparten-Beitrag), bekommt es EINE Mail mit
@@ -35,8 +34,8 @@ use Psr\Log\LoggerInterface;
  *   „Frühester Einzug" als eigene Fakten-Zeile; Sperrgrenzen-Hinweis als
  *   eigener Satz; Betreff ohne „SEPA"; Anrede „Guten Tag {Name},".
  * - Empfänger kommt ausschließlich vom Mitglied (Member.email, sonst
- *   NC-Konto) – das neue Mandat (Issue #66) trägt anders als das alte
- *   `SepaMandate` keine eigene Mailadresse mehr.
+ *   NC-Konto) – das Mandat (Issue #66) trägt anders als das frühere
+ *   flache Mandat keine eigene Mailadresse.
  *
  * Setzt bei erfolgreichem Versand `prenotified_at` an jeder enthaltenen
  * Forderung – ab dann greift {@see EffectivityRuleService} scharf (vorher gab
@@ -173,9 +172,8 @@ class ContributionPreNotificationService {
 
 	/**
 	 * Empfänger der Vorabinfo (Spec §2.2 Mitglied „email"): vorrangig die
-	 * Mitglieds-Mailadresse, ersatzweise das verknüpfte NC-Konto. Anders als
-	 * beim alten {@see SepaNotificationService} gibt es hier keine
-	 * Mandats-Mailadresse mehr – das neue Mandat (Issue #66) trägt keine.
+	 * Mitglieds-Mailadresse, ersatzweise das verknüpfte NC-Konto. Eine
+	 * Mandats-Mailadresse gibt es nicht – das Mandat (Issue #66) trägt keine.
 	 *
 	 * @return array{0:string,1:string}|null [Adresse, Anzeigename]
 	 */

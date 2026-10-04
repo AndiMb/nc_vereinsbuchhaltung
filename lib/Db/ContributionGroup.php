@@ -11,8 +11,8 @@ use OCP\AppFramework\Db\Entity;
  * Turnusse), siehe Spec §2.2 „Beitragsgruppe (Contribution Group)" unter
  * docs/beitraege-sepa-modul-spec.md. Bewusst **keine Historisierung**: was
  * ein Mitglied wann schuldete, steht in der Forderung (vbh_open_items), nicht
- * an der Gruppe. Löst das bisherige, flache `vbh_membership_fees` fachlich ab
- * (siehe Migration 000138) – die alte Tabelle bleibt unangetastet stehen.
+ * an der Gruppe. Löste das frühere, flache `vbh_membership_fees` fachlich ab
+ * (siehe Migration 000138); die alte Tabelle fiel mit Migration 000157 weg.
  *
  * `allowedIntervals` speichert eine Teilmenge von {1,2,3,4,6,12} (Teiler von
  * 12, siehe auch {@see \OCA\Vereinsbuchhaltung\Service\PeriodRule::LENGTHS}

@@ -16,10 +16,8 @@ use OCP\AppFramework\Utility\ITimeFactory;
  * {@see BankTransaction} gespeichert ist (Issue #72, Spec §2.2/§5).
  *
  * Läuft nach {@see \OCA\Vereinsbuchhaltung\Service\ImportService::doCommit()}
- * für JEDE neu importierte Bankbuchung, unabhängig von SEPA-Bezug - genau wie
- * die bestehende {@see \OCA\Vereinsbuchhaltung\Service\SepaReturnDetectionService}
- * für das alte Mandatssystem. Rein additiv: `vbh_bank_tx` selbst bleibt
- * unangetastet.
+ * für JEDE neu importierte Bankbuchung, unabhängig von SEPA-Bezug. Rein
+ * additiv: `vbh_bank_tx` selbst bleibt unangetastet.
  *
  * Referenzlose Formate (Spec §5 "referenzlose Formate: bestehende
  * Text-Heuristik als dokumentierter Fallback"): liefert der Parser für eine
@@ -40,8 +38,9 @@ class SepaImportExtractionService {
 
 	/**
 	 * @param list<array<string,mixed>> $rawDetails aus dem Parser, siehe RowNormalizer::build()
+	 * @return int Anzahl der angelegten Detail-Zeilen, die als Rücklastschrift gekennzeichnet sind
 	 */
-	public function extract(BankTransaction $tx, array $rawDetails): void {
+	public function extract(BankTransaction $tx, array $rawDetails): int {
 		if ($rawDetails === []) {
 			$fallback = $this->textHeuristicFallback($tx);
 			if ($fallback !== null) {
@@ -49,6 +48,7 @@ class SepaImportExtractionService {
 			}
 		}
 
+		$returns = 0;
 		foreach (array_values($rawDetails) as $index => $raw) {
 			$detail = new BankTxSepaDetail();
 			$detail->setBankTxId((int)$tx->getId());
@@ -67,7 +67,11 @@ class SepaImportExtractionService {
 			$detail->setStatus(BankTxSepaDetail::STATUS_OPEN);
 			$detail->setCreatedAt($this->now());
 			$this->mapper->insert($detail);
+			if ($detail->getIsReturn()) {
+				$returns++;
+			}
 		}
+		return $returns;
 	}
 
 	/**
