@@ -372,38 +372,64 @@ class DunningLadderServiceTest extends TestCase {
 
 	// --- GiroCode-Anhang -----------------------------------------------------------
 
-	public function testGiroCodeWirdAlsAnhangJePositionAngehaengtWennKontoEingestelltIst(): void {
-		$item = $this->claim(1, 7, amountCents: 1234);
-		$this->notices->method('findByOpenItemAndStage')->willReturn(null);
+	/** @var list<array{data:string,filename:string,contentType:string}> von giroCodeService() mitgeschrieben: createAttachment()-Aufrufe */
+	private array $createdAttachments = [];
+	/** @var list<string> von giroCodeService() mitgeschrieben: addBodyText()-Aufrufe der Mail */
+	private array $bodyTexts = [];
+	private int $attachedCount = 0;
+	private int $sentCount = 0;
 
-		$this->configStore['sepa_debtor_account_id'] = '9'; // SepaDebtorAccountService ist final, siehe $this->debtorAccount-Klassendoc
+	/**
+	 * Dienst mit eingestelltem Zahlungskonto und einem Mailer, der Anhänge und
+	 * Texte mitschreibt. Bewusst ein frischer Mailer-Mock statt $this->mailer
+	 * wiederzuverwenden: PHPUnit lässt bei mehrfach konfigurierten method()-Stubs
+	 * ohne unterscheidendes with() den zuerst konfigurierten (hier: aus setUp())
+	 * gewinnen - ein Überschreiben von createMessage() hier griffe sonst nicht.
+	 *
+	 * @param string|null $iban IBAN des Zahlungskontos; null = Konto ohne IBAN
+	 * @param bool $accountConfigured false = gar kein Zahlungskonto eingestellt
+	 */
+	private function giroCodeService(?EpcQrCodeGenerator $generator = null, ?LoggerInterface $logger = null, ?string $iban = 'DE02120300000000202051', bool $accountConfigured = true): DunningLadderService {
+		$this->createdAttachments = [];
+		$this->bodyTexts = [];
+		$this->attachedCount = 0;
+		$this->sentCount = 0;
+
+		if ($accountConfigured) {
+			$this->configStore['sepa_debtor_account_id'] = '9'; // SepaDebtorAccountService ist final, siehe $this->debtorAccount-Klassendoc
+		}
 		$account = new \OCA\Vereinsbuchhaltung\Db\Account();
-		$account->setIban('DE02120300000000202051');
+		$account->setIban($iban);
 		$accounts = $this->createMock(AccountMapper::class);
 		$accounts->method('find')->willReturn($account);
 
-		// Bewusst ein frischer Mailer-Mock statt $this->mailer wiederzuverwenden:
-		// PHPUnit laesst bei mehrfach konfigurierten method()-Stubs ohne
-		// unterscheidendes with() den zuerst konfigurierten (hier: aus setUp())
-		// gewinnen - ein Ueberschreiben von createMessage() hier griffe sonst nicht.
-		$attached = [];
+		$template = $this->createMock(\OCP\Mail\IEMailTemplate::class);
+		$template->method('addBodyText')->willReturnCallback(function (string $text) {
+			$this->bodyTexts[] = $text;
+		});
 		$message = $this->createMock(\OCP\Mail\IMessage::class);
-		$message->method('attach')->willReturnCallback(function ($a) use (&$attached, $message) {
-			$attached[] = $a;
+		$message->method('attach')->willReturnCallback(function () use ($message) {
+			$this->attachedCount++;
 			return $message;
 		});
 		$mailer = $this->createMock(IMailer::class);
-		$mailer->method('createEMailTemplate')->willReturn($this->createMock(\OCP\Mail\IEMailTemplate::class));
+		$mailer->method('createEMailTemplate')->willReturn($template);
 		$mailer->method('createMessage')->willReturn($message);
-		$mailer->method('createAttachment')->willReturn($this->createMock(\OCP\Mail\IAttachment::class));
-		$mailer->method('send')->willReturn([]);
+		$mailer->method('createAttachment')->willReturnCallback(function ($data, $filename, $contentType) {
+			$this->createdAttachments[] = ['data' => $data, 'filename' => $filename, 'contentType' => $contentType];
+			return $this->createMock(\OCP\Mail\IAttachment::class);
+		});
+		$mailer->method('send')->willReturnCallback(function (): array {
+			$this->sentCount++;
+			return [];
+		});
 
 		$time = $this->createMock(ITimeFactory::class);
 		$time->method('getDateTime')->willReturn(new \DateTime('2026-10-10 12:00:00'));
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(static fn (string $text, array $params = []): string => vsprintf($text, $params));
 
-		$service = new DunningLadderService(
+		return new DunningLadderService(
 			$this->openItems,
 			$this->members,
 			$this->eligibility,
@@ -412,17 +438,208 @@ class DunningLadderServiceTest extends TestCase {
 			$this->cycleSettings,
 			$this->debtorAccount,
 			$accounts,
-			new EpcQrCodeGenerator(),
+			$generator ?? new EpcQrCodeGenerator(),
 			$this->createMock(IUserManager::class),
 			$mailer,
 			$this->config,
 			$time,
-			$this->createMock(LoggerInterface::class),
+			$logger ?? $this->createMock(LoggerInterface::class),
 			$l10n,
 		);
+	}
 
-		$service->triggerPaymentRequest($item, 'Grund');
+	/** Ein Erzeuger, der wie bei fehlendem gd oder fehlender Bibliothek scheitert. */
+	private function failingGenerator(\Throwable $failure): EpcQrCodeGenerator {
+		return new class($failure) extends EpcQrCodeGenerator {
+			public function __construct(
+				private \Throwable $failure,
+			) {
+			}
 
-		$this->assertCount(1, $attached);
+			public function generatePng(string $creditorName, string $creditorIban, ?string $creditorBic, int $amountCents, string $remittanceText): string {
+				throw $this->failure;
+			}
+		};
+	}
+
+	/** Bildinhalt eines mitgeschickten GiroCodes zurück in die EPC-Zeilen. */
+	private function readGiroCode(string $png): array {
+		$payload = (string)(new \chillerlan\QRCode\QRCode(new \chillerlan\QRCode\QROptions(['readerUseImagickIfAvailable' => false])))->readFromBlob($png);
+		return explode("\n", $payload);
+	}
+
+	public function testGiroCodeWirdAlsAnhangJePositionAngehaengtWennKontoEingestelltIst(): void {
+		$item = $this->claim(1, 7, amountCents: 1234);
+		$this->notices->method('findByOpenItemAndStage')->willReturn(null);
+
+		$this->giroCodeService()->triggerPaymentRequest($item, 'Grund');
+
+		$this->assertSame(1, $this->attachedCount);
+	}
+
+	public function testJedePositionBekommtEinenEigenenGiroCodeMitEigenemBetragUndDateinamen(): void {
+		$this->openItems->method('findByMember')->with(7)->willReturn([
+			$this->claim(11, 7, amountCents: 4500),
+			$this->claim(12, 7, amountCents: 1234),
+			$this->claim(13, 7, amountCents: 99900),
+		]);
+		$this->notices->method('findByOpenItemAndStage')->willReturn(null);
+
+		$result = $this->giroCodeService()->onMandateRevoked(7);
+
+		$this->assertSame(['sent' => 1, 'skipped' => 0, 'failed' => 0], $result);
+		$this->assertSame(3, $this->attachedCount, 'Eine Mail, ein Anhang je Position (kein Sammelbetrag)');
+		$this->assertSame(['girocode-11.png', 'girocode-12.png', 'girocode-13.png'], array_column($this->createdAttachments, 'filename'));
+		$this->assertSame(['image/png', 'image/png', 'image/png'], array_column($this->createdAttachments, 'contentType'));
+		$betraege = [];
+		foreach ($this->createdAttachments as $attachment) {
+			$this->assertStringStartsWith("\x89PNG\r\n\x1a\n", $attachment['data'], 'Der Anhang ist ein echtes PNG');
+			$betraege[] = $this->readGiroCode($attachment['data'])[7];
+		}
+		$this->assertSame(['EUR45.00', 'EUR12.34', 'EUR999.00'], $betraege, 'Jeder Code trägt den Betrag seiner Position');
+	}
+
+	/**
+	 * Zahlungsaufforderung, Zahlungserinnerung und Mahnung hängen denselben
+	 * GiroCode je Position an – die Stufe ändert nur den Text.
+	 *
+	 * @return array<string, array{0:int}>
+	 */
+	public static function stagesProvider(): array {
+		return [
+			'Stufe 0: Zahlungsaufforderung' => [DunningNotice::STAGE_PAYMENT_REQUEST],
+			'Stufe 1: Zahlungserinnerung' => [DunningNotice::STAGE_REMINDER],
+			'Stufe 2: Mahnung' => [DunningNotice::STAGE_DUNNING],
+		];
+	}
+
+	/** @dataProvider stagesProvider */
+	public function testAlleDreiStufenHaengenEinenGiroCodeJePositionAn(int $stage): void {
+		$a = $this->claim(21, 7, amountCents: 4500);
+		$b = $this->claim(22, 7, amountCents: 700);
+		$this->openItems->method('findClaims')->willReturn([$a, $b]);
+		$this->setEligible($stage !== DunningNotice::STAGE_PAYMENT_REQUEST); // Stufe 0 per Tageslauf nur für Überweiser
+		// Die jeweils vorherige Stufe liegt weit über den Mahnabstand zurück.
+		$this->notices->method('findByOpenItemAndStage')->willReturnCallback(
+			fn (int $itemId, int $askedStage) => $askedStage === $stage - 1
+				? $this->notice($itemId, $askedStage, '2026-09-01T00:00:00+00:00')
+				: null,
+		);
+
+		$result = $this->giroCodeService()->runDaily('2026-10-10');
+
+		$this->assertSame(1, $result['sent']);
+		$this->assertCount(2, $this->insertedNotices);
+		$this->assertSame($stage, $this->insertedNotices[0]->getStage());
+		$this->assertSame(['girocode-21.png', 'girocode-22.png'], array_column($this->createdAttachments, 'filename'));
+	}
+
+	public function testDerMailtextVersprichtDenGiroCodeNurWennJedePositionEinenHat(): void {
+		$this->notices->method('findByOpenItemAndStage')->willReturn(null);
+
+		$this->giroCodeService()->triggerPaymentRequest($this->claim(1, 7), 'Grund');
+
+		$this->assertContains('Bitte überweisen Sie jede Position einzeln mit dem jeweils genannten Betrag – für jede Position liegt ein GiroCode zum Scannen mit Ihrer Banking-App bei.', $this->bodyTexts);
+	}
+
+	// --- GiroCode-Fehlerfälle: der Mahnversand läuft weiter (Issue #120) ------------------
+
+	/**
+	 * Die beiden Gestalten des Ausfalls in einer echten Nextcloud:
+	 * fehlt die PHP-Erweiterung `gd`, wirft die Bibliothek eine
+	 * `QRCodeOutputException` („ext-gd not loaded"), fehlt die Bibliothek
+	 * selbst, ist es ein `\Error` („Class … not found" – so sah das aus, bevor
+	 * Application::register() den Composer-Autoloader lud).
+	 *
+	 * @return array<string, array{0:\Throwable}>
+	 */
+	public static function giroCodeFailuresProvider(): array {
+		return [
+			'gd fehlt' => [new \chillerlan\QRCode\Output\QRCodeOutputException('ext-gd not loaded')],
+			'Bibliothek fehlt' => [new \Error('Class "chillerlan\\QRCode\\QROptions" not found')],
+		];
+	}
+
+	/** @dataProvider giroCodeFailuresProvider */
+	public function testFehlendesGdOderFehlendeBibliothekStoertDenMahnversandNicht(\Throwable $failure): void {
+		$this->openItems->method('findByMember')->with(7)->willReturn([$this->claim(31, 7), $this->claim(32, 7)]);
+		$this->notices->method('findByOpenItemAndStage')->willReturn(null);
+		$logger = $this->createMock(LoggerInterface::class);
+
+		$result = $this->giroCodeService($this->failingGenerator($failure), $logger)->onMandateRevoked(7);
+
+		$this->assertSame(['sent' => 1, 'skipped' => 0, 'failed' => 0], $result, 'Die Mail geht trotzdem raus');
+		$this->assertSame(1, $this->sentCount);
+		$this->assertCount(2, $this->insertedNotices, 'Die Stufe gilt als erreicht, sonst ginge die Mail beim nächsten Lauf doppelt raus');
+		$this->assertSame(0, $this->attachedCount, 'Ohne Erzeugung gibt es keinen Anhang');
+		$this->assertSame([], $this->createdAttachments);
+	}
+
+	/** @dataProvider giroCodeFailuresProvider */
+	public function testDerAusfallDesGiroCodesStehtImLog(\Throwable $failure): void {
+		$this->openItems->method('findByMember')->with(7)->willReturn([$this->claim(31, 7), $this->claim(32, 7)]);
+		$this->notices->method('findByOpenItemAndStage')->willReturn(null);
+		$logged = [];
+		$logger = $this->createMock(LoggerInterface::class);
+		$logger->method('warning')->willReturnCallback(function (string $message, array $context) use (&$logged): void {
+			$logged[] = ['message' => $message, 'context' => $context];
+		});
+
+		$this->giroCodeService($this->failingGenerator($failure), $logger)->onMandateRevoked(7);
+
+		$this->assertCount(2, $logged, 'Eine Warnung je Position, damit sich der Ausfall im Log zuordnen lässt');
+		$this->assertStringContainsString('GiroCode', $logged[0]['message']);
+		$this->assertSame('vereinsbuchhaltung', $logged[0]['context']['app']);
+		$this->assertSame([31, 32], array_column(array_column($logged, 'context'), 'id'));
+		$this->assertSame($failure, $logged[0]['context']['exception'], 'Die Ursache hängt als Ausnahme am Eintrag (Meldung und Stacktrace im Log)');
+	}
+
+	/** @dataProvider giroCodeFailuresProvider */
+	public function testOhneGiroCodeVersprichtDieMailKeinenAnhang(\Throwable $failure): void {
+		$this->notices->method('findByOpenItemAndStage')->willReturn(null);
+
+		$this->giroCodeService($this->failingGenerator($failure))->triggerPaymentRequest($this->claim(1, 7), 'Grund');
+
+		$this->assertContains('Bitte überweisen Sie jede Position einzeln mit dem jeweils genannten Betrag.', $this->bodyTexts);
+		foreach ($this->bodyTexts as $text) {
+			$this->assertStringNotContainsString('GiroCode', $text, 'Kein Hinweis auf einen Anhang, der nicht dran hängt');
+		}
+	}
+
+	public function testScheitertNurEinePositionBekommenDieAnderenTrotzdemIhrenGiroCode(): void {
+		// Ein Betrag von 0 € lässt sich nicht als GiroCode darstellen (EPC069-12: mindestens 0,01 €).
+		$this->openItems->method('findByMember')->with(7)->willReturn([$this->claim(41, 7, amountCents: 4500), $this->claim(42, 7, amountCents: 0)]);
+		$this->notices->method('findByOpenItemAndStage')->willReturn(null);
+		$logger = $this->createMock(LoggerInterface::class);
+		$logger->expects($this->once())->method('warning');
+
+		$result = $this->giroCodeService(null, $logger)->onMandateRevoked(7);
+
+		$this->assertSame(1, $result['sent']);
+		$this->assertSame(['girocode-41.png'], array_column($this->createdAttachments, 'filename'));
+		$this->assertContains('Bitte überweisen Sie jede Position einzeln mit dem jeweils genannten Betrag.', $this->bodyTexts, 'Nicht jede Position hat einen Code: der Text verspricht keinen');
+	}
+
+	public function testOhneEingestelltesZahlungskontoGehtDieMailOhneGiroCodeUndOhneWarnungRaus(): void {
+		$this->notices->method('findByOpenItemAndStage')->willReturn(null);
+		$logger = $this->createMock(LoggerInterface::class);
+		$logger->expects($this->never())->method('warning');
+
+		$result = $this->giroCodeService(null, $logger, accountConfigured: false)->triggerPaymentRequest($this->claim(1, 7), 'Grund');
+
+		$this->assertSame(1, $result['sent']);
+		$this->assertSame(0, $this->attachedCount);
+		$this->assertContains('Bitte überweisen Sie jede Position einzeln mit dem jeweils genannten Betrag.', $this->bodyTexts);
+	}
+
+	public function testZahlungskontoOhneIbanGehtDieMailOhneGiroCodeRaus(): void {
+		$this->notices->method('findByOpenItemAndStage')->willReturn(null);
+		$logger = $this->createMock(LoggerInterface::class);
+		$logger->expects($this->never())->method('warning');
+
+		$result = $this->giroCodeService(null, $logger, iban: null)->triggerPaymentRequest($this->claim(1, 7), 'Grund');
+
+		$this->assertSame(1, $result['sent']);
+		$this->assertSame(0, $this->attachedCount);
 	}
 }
