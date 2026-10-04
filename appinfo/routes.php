@@ -252,6 +252,7 @@ return [
 
 		// Lastschriftlauf: Freigabe & Einreichung (Issue #71)
 		['name' => 'debitBatch#preview', 'url' => '/api/debit-batches/preview', 'verb' => 'GET'],
+		['name' => 'debitBatch#timeline', 'url' => '/api/debit-batches/timeline', 'verb' => 'GET'],
 		['name' => 'debitBatch#settings', 'url' => '/api/debit-batches/settings', 'verb' => 'GET'],
 		['name' => 'debitBatch#updateSettings', 'url' => '/api/debit-batches/settings', 'verb' => 'POST'],
 		['name' => 'debitBatch#index', 'url' => '/api/debit-batches', 'verb' => 'GET'],

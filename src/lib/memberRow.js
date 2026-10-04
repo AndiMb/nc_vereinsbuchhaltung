@@ -11,17 +11,11 @@
 //
 // Beim finalen Cutover (Alt-Tabellen fallen weg, Spec „Umbaupfad" §3.1) lassen
 // sich die legacy*-Zweige samt `legacyMandate`/`legacyFee` ersatzlos streichen.
-import { FREQUENCY_MONTHS, frequencyLabel } from './frequency.js'
+import { FREQUENCY_MONTHS, frequencyLabel, intervalLabel } from './frequency.js'
 import { t } from './l10n.js'
 
 function isoToday() {
 	return new Date().toISOString().slice(0, 10)
-}
-
-/** Turnus in Monaten als bekanntes Frequenz-Label; ungewöhnliche Turnusse („alle 2 Monate") ausgeschrieben. */
-function intervalLabel(months) {
-	const key = Object.keys(FREQUENCY_MONTHS).find((k) => FREQUENCY_MONTHS[k] === months)
-	return key ? frequencyLabel(key) : t('alle {monate} Monate', { monate: months })
 }
 
 /** Anzeigeform eines Mandats aus dem neuen Modell (`vbh_mandates`). */

@@ -218,6 +218,13 @@ export default {
 	getMandateLegalTextHistory: () => axios.get(url('/mandate-legal-text/history')),
 	saveMandateLegalText: (rahmen) => axios.post(url('/mandate-legal-text'), { rahmen }),
 
+	// Einzug-Unterreiter, lesend ab Revisor (Issue #102): Zeitstrahl, Vorschau
+	// (Geisterkarte, vor der Freigabe existiert kein Lauf) und Läufe.
+	debitTimeline: (year) => axios.get(url('/debit-batches/timeline'), { params: year ? { year } : {} }),
+	debitPreview: (dueDate) => axios.get(url('/debit-batches/preview'), { params: { dueDate } }),
+	listDebitBatches: () => axios.get(url('/debit-batches')),
+	getDebitBatch: (id) => axios.get(url(`/debit-batches/${id}`)),
+
 	// Massenanlage aus einer CSV-Liste: erst pruefen, dann anlegen
 	previewMemberImport: (csv) => axios.post(url('/sepa/members/import/preview'), { csv }),
 	runMemberImport: (csv, mandatesConfirmed) => axios.post(url('/sepa/members/import'), { csv, mandatesConfirmed }),

@@ -17,6 +17,7 @@ use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
+use OCA\Vereinsbuchhaltung\Db\ReturnedDebitMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Service\Sepa\PainXmlBuilder;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaCreditor;
@@ -59,6 +60,7 @@ class DebitBatchService {
 		private IUserSession $userSession,
 		private IConfig $config,
 		private IL10N $l10n,
+		private ReturnedDebitMapper $returnedDebits,
 	) {
 	}
 
@@ -90,19 +92,30 @@ class DebitBatchService {
 	}
 
 	/**
-	 * Die Zeilen eines Laufs, angereichert um Mitgliedsname/Forderungstext.
+	 * Die Zeilen eines Laufs, angereichert um Mitgliedsname/Forderungstext und
+	 * den abgeleiteten Forderungszustand (`claimState`, Spec §2.2 – siehe
+	 * {@see ClaimStateResolver::resolveForDebitItem()}; bei einem Erledigungs-
+	 * vermerk zusätzlich `settlementType` = `paid`/`waived`, bei einer
+	 * Rücklastschrift `returnedAt`). Den Rücklastschrift-Code liefert diese
+	 * Sicht bewusst nicht aus: Codes bleiben admin-only (Spec §3.6), der
+	 * Einzug-Unterreiter ist ab `revisor` lesbar.
+	 *
 	 * IBAN kommt bereits maskiert aus {@see DebitItem::jsonSerialize()} –
 	 * unabhängig von der Rolle des Aufrufers (Spec §3.9 „Einzug-Unterreiter
 	 * lesend … IBAN maskiert"), anders als bei {@see MandateController::decorate()}.
 	 *
+	 * @param string|null $today Stichtag für „im Einzug" vs. „eingezogen", sonst heute (für Tests)
 	 * @return array<int,array<string,mixed>>
 	 * @throws DoesNotExistException wenn es den Lauf nicht (mehr) gibt
 	 */
-	public function findItems(int $batchId): array {
-		$this->batchMapper->find($batchId);
+	public function findItems(int $batchId, ?string $today = null): array {
+		$batch = $this->batchMapper->find($batchId);
+		$today ??= date('Y-m-d');
+		$returnedAt = $this->returnedDebits->findReceivedAtByBatch($batchId);
 		$rows = [];
 		foreach ($this->itemMapper->findByBatch($batchId) as $item) {
 			$data = $item->jsonSerialize();
+			$claim = null;
 			try {
 				$claim = $this->openItems->find($item->getOpenItemId());
 				$data['memberId'] = $claim->getMemberId();
@@ -115,6 +128,10 @@ class DebitBatchService {
 				$data['memberId'] = null;
 				$data['memberDisplayName'] = $this->l10n->t('(Forderung gelöscht)');
 			}
+			$itemId = (int)$item->getId();
+			$data['claimState'] = ClaimStateResolver::resolveForDebitItem($claim, $batch, isset($returnedAt[$itemId]), $today);
+			$data['settlementType'] = $data['claimState'] === ClaimStateResolver::STATE_SETTLED ? $claim?->getStatus() : null;
+			$data['returnedAt'] = $returnedAt[$itemId] ?? null;
 			$rows[] = $data;
 		}
 		return $rows;

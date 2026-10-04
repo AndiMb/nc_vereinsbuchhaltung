@@ -6,10 +6,14 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\DebitBatch;
+use OCA\Vereinsbuchhaltung\Db\MemberMapper;
+use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\ContributionCycleSettings;
+use OCA\Vereinsbuchhaltung\Service\ContributionCycleTaskService;
 use OCA\Vereinsbuchhaltung\Service\DebitBatchService;
 use OCA\Vereinsbuchhaltung\Service\DebitBatchXmlStorageService;
+use OCA\Vereinsbuchhaltung\Service\DebitTimelineService;
 use OCA\Vereinsbuchhaltung\Service\FolderPathValidator;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCP\AppFramework\Controller;
@@ -21,6 +25,7 @@ use OCP\AppFramework\Http\DataDownloadResponse;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IL10N;
 use OCP\IRequest;
+use OCP\IUserManager;
 
 /**
  * Freigabe & Einreichung des Einzugszyklus (Spec §2.2/§3.5, Issue #71) – siehe
@@ -45,6 +50,10 @@ class DebitBatchController extends Controller {
 		private ContributionCycleSettings $settings,
 		private FolderPathValidator $folderPaths,
 		private IL10N $l10n,
+		private DebitTimelineService $timeline,
+		private ContributionCycleTaskService $cycleTasks,
+		private MemberMapper $members,
+		private IUserManager $userManager,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -61,7 +70,20 @@ class DebitBatchController extends Controller {
 		$data['driftWarning'] = $batch->getStatus() === DebitBatch::STATUS_RELEASED
 			? $this->service->driftWarning((int)$batch->getId())
 			: null;
+		// Anzeigenamen statt Konten-IDs für „wer/wann" im Einzug-Unterreiter
+		// (Issue #102) - die uid bleibt daneben unverändert erhalten.
+		$data['releasedByName'] = $this->displayNameOf($batch->getReleasedBy());
+		$data['submittedByName'] = $this->displayNameOf($batch->getSubmittedBy());
+		$data['discardedByName'] = $this->displayNameOf($batch->getDiscardedBy());
 		return $data;
+	}
+
+	/** Anzeigename eines Nextcloud-Kontos, ersatzweise die uid selbst (z. B. nach dem Löschen des Kontos). */
+	private function displayNameOf(?string $uid): ?string {
+		if ($uid === null || $uid === '') {
+			return null;
+		}
+		return $this->userManager->getDisplayName($uid) ?? $uid;
 	}
 
 	#[NoAdminRequired]
@@ -91,11 +113,36 @@ class DebitBatchController extends Controller {
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_READ)]
 	public function preview(string $dueDate): DataResponse {
+		$claims = $this->service->preview($dueDate);
 		return new DataResponse([
 			'dueDate' => $dueDate,
-			'claims' => array_map(static fn ($c) => $c->jsonSerialize(), $this->service->preview($dueDate)),
+			'claims' => array_map(fn (OpenItem $c): array => $c->jsonSerialize() + [
+				'memberDisplayName' => $c->getMemberId() !== null
+					? $this->members->displayNameOr($c->getMemberId(), $this->l10n->t('(unbekanntes Mitglied)'))
+					: null,
+			], $claims),
 			'summary' => $this->service->summary($dueDate),
+			// Störfälle zu diesem Termin in zwei Schweregraden (Spec §3.5/§7),
+			// die Datenquelle der Geisterkarte im Einzug-Unterreiter (Issue #102).
+			'issues' => $this->cycleTasks->findRunIssues($dueDate),
 		]);
+	}
+
+	/**
+	 * Zeitstrahl eines Beitragsjahres für den Einzug-Unterreiter (Issue #102,
+	 * Spec §6 Variante A): Einzugstermine mit Meilensteinen, Vorschau-
+	 * Zusammenfassung und vorhandenen Läufen, dazu der nächste noch
+	 * freizugebende Termin. Reine Abfrage ab `revisor` – siehe
+	 * {@see DebitTimelineService}. Muss in routes.php vor `{id}` stehen.
+	 */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_READ)]
+	public function timeline(?int $year = null): DataResponse {
+		try {
+			return new DataResponse($this->timeline->build($year));
+		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		}
 	}
 
 	/** Schritt 1 „Freigeben & Datei erzeugen" (Spec §3.5). */

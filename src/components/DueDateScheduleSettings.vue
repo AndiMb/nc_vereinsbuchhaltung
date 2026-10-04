@@ -111,6 +111,10 @@ export default {
 	name: 'DueDateScheduleSettings',
 	components: { NcButton },
 
+	// Nach jeder gespeicherten Änderung: der Einzug-Unterreiter (EinzugPanel)
+	// rechnet daraufhin den Zeitstrahl neu.
+	emits: ['changed'],
+
 	setup() {
 		const schedule = useDueDateSchedule()
 		return { ...toRefs(schedule.state), loadDueDateSchedule: schedule.loadDueDateSchedule }
@@ -153,6 +157,7 @@ export default {
 			try {
 				await api.setDueDateScheduleDefaultDay(interval, this.defaultDrafts[interval])
 				await this.loadDueDateSchedule()
+				this.$emit('changed')
 				showSuccess(this.t('Standard-Einzugstag gespeichert.'))
 			} catch (e) { showError(errMsg(e, 'Standard-Einzugstag konnte nicht gespeichert werden')) }
 		},
@@ -161,6 +166,7 @@ export default {
 			try {
 				await api.setDueDateScheduleOverride(this.overrideDraft.intervalMonths, this.overrideDraft.periodIndex, this.overrideDraft.offsetDays)
 				await this.loadDueDateSchedule()
+				this.$emit('changed')
 				showSuccess(this.t('Überschreibung gespeichert.'))
 			} catch (e) { showError(errMsg(e, 'Überschreibung konnte nicht gespeichert werden')) }
 		},
@@ -169,6 +175,7 @@ export default {
 			try {
 				await api.setDueDateScheduleOverride(interval, periodIndex, null)
 				await this.loadDueDateSchedule()
+				this.$emit('changed')
 			} catch (e) { showError(errMsg(e, 'Überschreibung konnte nicht entfernt werden')) }
 		},
 
@@ -176,6 +183,7 @@ export default {
 			try {
 				await api.setDueDateScheduleLeadDays(this.leadDrafts)
 				await this.loadDueDateSchedule()
+				this.$emit('changed')
 				showSuccess(this.t('Einstellungen gespeichert.'))
 			} catch (e) { showError(errMsg(e, 'Einstellungen konnten nicht gespeichert werden')) }
 		},

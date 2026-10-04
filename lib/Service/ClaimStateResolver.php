@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service;
 
+use OCA\Vereinsbuchhaltung\Db\DebitBatch;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 
 /**
@@ -29,11 +30,25 @@ use OCA\Vereinsbuchhaltung\Db\OpenItem;
  * Joins über `assignmentId`/die Forderung in „im Einzug"/„eingezogen"/
  * „zurückgegeben" – die beiden anderen Zweige (storniert/erledigt) bleiben
  * unverändert, weil sie mit dem Einzug nichts zu tun haben.
+ *
+ * Diese Verfeinerung steht in {@see resolveForDebitItem()} (Issue #102, Lauf-
+ * Detail im Einzug-Unterreiter): sie braucht den Einzugsposten samt Lauf und
+ * einer eventuellen Rücklastschrift – `resolve()`/`resolveForItem()` kennen
+ * die nicht und bleiben bewusst unverändert, weil mehrere Dienste ihr
+ * `STATE_OPEN` als „noch offen im Sinne des Erledigens" lesen
+ * ({@see ClaimService::assertOpen()}, die Aufgaben-Dienste).
  */
 final class ClaimStateResolver {
 	public const STATE_OPEN = 'offen';
 	public const STATE_CANCELLED = 'storniert';
 	public const STATE_SETTLED = 'erledigt';
+
+	/** Nur aus {@see resolveForDebitItem()} (Spec §2.2): Posten in `freigegeben`/`eingereicht`-Lauf, Termin noch nicht erreicht. */
+	public const STATE_IN_DEBIT = 'im_einzug';
+	/** Posten in `eingereicht`-Lauf, Termin erreicht, keine Rücklastschrift (Spec §2.2). */
+	public const STATE_COLLECTED = 'eingezogen';
+	/** Rücklastschrift am Posten – die Forderung ist damit wieder offen (Spec §2.2 „zurückgegeben → wieder offen"). */
+	public const STATE_RETURNED = 'zurueckgegeben';
 
 	public static function resolve(string $status, ?string $cancelledAt, ?string $settledAt): string {
 		if ($cancelledAt !== null || $status === 'cancelled') {
@@ -47,5 +62,40 @@ final class ClaimStateResolver {
 
 	public static function resolveForItem(OpenItem $item): string {
 		return self::resolve($item->getStatus(), $item->getCancelledAt(), $item->getSettledAt());
+	}
+
+	/**
+	 * Zustand einer Forderung aus Sicht ihres Einzugspostens (Spec §2.2,
+	 * Ableitungstabelle): wird im Lauf-Detail für jede Zeile gebraucht.
+	 *
+	 * Rangfolge: storniert und erledigt (Vermerk) gehen vor allem anderen – sie
+	 * gelten unabhängig vom Lauf. Danach entscheidet der Einzug: eine
+	 * Rücklastschrift macht aus dem Posten „zurückgegeben", ein verworfener
+	 * Lauf gibt die Forderung wieder frei („offen"), ein freigegebener Lauf
+	 * heißt „im Einzug", und im eingereichten Lauf entscheidet der Termin: bis
+	 * dahin „im Einzug", danach „eingezogen". Der Termin ist der des Laufs
+	 * (der bis zur Einreichung nach hinten verschoben sein kann), nicht der
+	 * Fälligkeitstag der Forderung.
+	 *
+	 * Eine zwischenzeitlich gelöschte Forderung (`$claim === null`) hat weder
+	 * Storno noch Vermerk – der Zustand folgt dann allein dem Lauf.
+	 *
+	 * @param string $today Stichtag (JJJJ-MM-TT)
+	 */
+	public static function resolveForDebitItem(?OpenItem $claim, DebitBatch $batch, bool $returned, string $today): string {
+		if ($claim !== null) {
+			$own = self::resolveForItem($claim);
+			if ($own === self::STATE_CANCELLED || $own === self::STATE_SETTLED) {
+				return $own;
+			}
+		}
+		if ($returned) {
+			return self::STATE_RETURNED;
+		}
+		return match ($batch->getStatus()) {
+			DebitBatch::STATUS_DISCARDED => self::STATE_OPEN,
+			DebitBatch::STATUS_RELEASED => self::STATE_IN_DEBIT,
+			default => $batch->getDueDate() > $today ? self::STATE_IN_DEBIT : self::STATE_COLLECTED,
+		};
 	}
 }

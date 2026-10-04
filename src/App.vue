@@ -220,13 +220,14 @@
 
 			<!-- ============ BEITRÄGE (MITGLIEDER + SEPA-SAMMELEINZUG) ============ -->
 			<section
-				v-if="canWrite && membershipActive"
+				v-if="canRead && membershipActive"
 				v-show="activeTab === 'contributions'"
 				class="vbh-section vbh-flex-col"
 				:class="{ 'vbh-fadein': sectionFade }">
 				<ContributionsTab
 					:contribView="contribView"
 					:isMobile="isMobile"
+					:canWrite="canWrite"
 					:defaultFeeAmount="defaultFeeAmount"
 					:defaultFeeFrequency="defaultFeeFrequency"
 					@update:contribView="contribView = $event" />
@@ -532,7 +533,7 @@ export default {
 			...toRefs(rulesC.state),
 			loadRules: rulesC.loadRules,
 			// Reiter „Beiträge" (ContributionsTab.vue): MembersList.vue/
-			// SepaBatchPanel.vue laden ihre Daten selbst beim eigenen mounted(),
+			// EinzugPanel.vue laden ihre Daten selbst beim eigenen mounted(),
 			// hier nur die Kennzahl fuer den Reiter-Badge und die Nachlade-
 			// Funktionen fuer refreshAfterRemoteChange() (siehe dort).
 			overdueMembershipCount: membershipFees.overdueCount,
@@ -596,8 +597,9 @@ export default {
 				{ id: 'accounts', label: this.t('Konten'), need: 'read', icon: mdiFileTreeOutline },
 				{ id: 'reports', label: this.t('Berichte'), need: 'read', icon: mdiChartBar },
 				// Nur sichtbar, wenn das Beitragsmodul genutzt wird (visibleTabs
-				// unten) - fuer Verwalter und Buchhalter (siehe ContributionsTab.vue).
-				{ id: 'contributions', label: this.t('Beiträge'), need: 'write', icon: mdiAccountCashOutline },
+				// unten) - ab Revisor, der darin nur den Einzug-Unterreiter lesend
+				// sieht (Spec §3.9, siehe ContributionsTab.vue).
+				{ id: 'contributions', label: this.t('Beiträge'), need: 'read', icon: mdiAccountCashOutline },
 				// Self-Service (Spec §3.4): additiv neben dem Buchhaltungs-Tab bei
 				// Personalunion, unabhaengig von der vbh-Rolle - siehe
 				// selfServiceAvailable/visibleTabs unten und SelfServiceTab.vue.

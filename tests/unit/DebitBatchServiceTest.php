@@ -17,6 +17,7 @@ use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
+use OCA\Vereinsbuchhaltung\Db\ReturnedDebitMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\DebitBatchService;
@@ -63,6 +64,7 @@ class DebitBatchServiceTest extends TestCase {
 	private TransactionRunner&MockObject $transaction;
 	private AuditService&MockObject $audit;
 	private IConfig&MockObject $config;
+	private ReturnedDebitMapper&MockObject $returnedDebits;
 
 	/** @var array<int, MandateAmendment[]> siehe amendmentMapper-Stub in setUp() */
 	private array $openAmendmentsByMandate = [];
@@ -84,6 +86,7 @@ class DebitBatchServiceTest extends TestCase {
 		$this->transaction->method('run')->willReturnCallback(static fn (callable $fn) => $fn());
 		$this->audit = $this->createMock(AuditService::class);
 		$this->config = $this->createMock(IConfig::class);
+		$this->returnedDebits = $this->createMock(ReturnedDebitMapper::class);
 
 		// Callback statt zweier method()->with()-Stubs: mehrere with()-Varianten
 		// auf demselben Methodennamen werden von PHPUnit in Registrierungs-
@@ -140,6 +143,7 @@ class DebitBatchServiceTest extends TestCase {
 			$userSession,
 			$this->config,
 			$l10n,
+			$this->returnedDebits,
 		);
 	}
 
@@ -494,5 +498,51 @@ class DebitBatchServiceTest extends TestCase {
 
 		$this->assertSame([], $this->service()->findDrift(1));
 		$this->assertNull($this->service()->driftWarning(1));
+	}
+
+	// --- Lauf-Detail: abgeleiteter Forderungszustand (Issue #102) ----------------------
+
+	public function testFindItemsLeitetDenForderungszustandAusLaufUndRuecklastschriftAb(): void {
+		$batch = $this->releasedBatch(1, '2026-10-01');
+		$batch->setStatus(DebitBatch::STATUS_SUBMITTED);
+		$this->batchMapper->method('find')->with(1)->willReturn($batch);
+		$this->itemMapper->method('findByBatch')->with(1)->willReturn([
+			$this->debitItem(10, 1, 3),
+			$this->debitItem(11, 1, 3),
+			$this->debitItem(12, 1, 3),
+		]);
+		// Posten 11 kam zurueck; Forderung 12 hat einen Erlass-Vermerk.
+		$this->returnedDebits->method('findReceivedAtByBatch')->with(1)->willReturn([11 => '2026-10-04']);
+		$erlassen = $this->claim(12, 7, 1000);
+		$erlassen->setStatus('waived');
+		$erlassen->setSettledAt('2026-10-02T10:00:00+00:00');
+		$this->openItems->method('find')->willReturnCallback(fn (int $id) => $id === 12 ? $erlassen : $this->claim($id, 7, 1000));
+		$this->memberMapper->method('displayNameOr')->willReturn('Katrin Brunner');
+
+		$rows = $this->service()->findItems(1, '2026-10-05');
+
+		$this->assertSame('eingezogen', $rows[0]['claimState']);
+		$this->assertNull($rows[0]['returnedAt']);
+		$this->assertSame('zurueckgegeben', $rows[1]['claimState']);
+		$this->assertSame('2026-10-04', $rows[1]['returnedAt']);
+		$this->assertSame('erledigt', $rows[2]['claimState']);
+		$this->assertSame('waived', $rows[2]['settlementType']);
+		$this->assertSame('Katrin Brunner', $rows[0]['memberDisplayName']);
+		// IBAN bleibt maskiert, der Rücklastschrift-Code wird nicht ausgeliefert.
+		$this->assertStringContainsString('•', $rows[0]['iban']);
+		$this->assertArrayNotHasKey('reasonCode', $rows[1]);
+	}
+
+	public function testFindItemsVorDemTerminImEinzugUndOhneForderungMitLaufzustand(): void {
+		$batch = $this->releasedBatch(1, '2026-10-01');
+		$this->batchMapper->method('find')->with(1)->willReturn($batch);
+		$this->itemMapper->method('findByBatch')->with(1)->willReturn([$this->debitItem(10, 1, 3)]);
+		$this->returnedDebits->method('findReceivedAtByBatch')->willReturn([]);
+		$this->openItems->method('find')->willThrowException(new \OCP\AppFramework\Db\DoesNotExistException('weg'));
+
+		$rows = $this->service()->findItems(1, '2026-10-05');
+
+		$this->assertSame('im_einzug', $rows[0]['claimState']);
+		$this->assertSame('(Forderung gelöscht)', $rows[0]['memberDisplayName']);
 	}
 }
