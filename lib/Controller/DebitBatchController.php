@@ -75,6 +75,11 @@ class DebitBatchController extends Controller {
 		$data['releasedByName'] = $this->displayNameOf($batch->getReleasedBy());
 		$data['submittedByName'] = $this->displayNameOf($batch->getSubmittedBy());
 		$data['discardedByName'] = $this->displayNameOf($batch->getDiscardedBy());
+		// Ablageordner der optionalen XML-Kopie (Issue #103): die Einstellung
+		// selbst ist `verwalter`-only (settings()), der Buchhalter, der die Datei
+		// freigibt, soll aber wissen, wo die Kopie liegt. Nur der Ordnername, kein
+		// Nutzer-Home - und null, solange die Ablage aus ist (Default).
+		$data['xmlStoragePath'] = $this->xmlStorage->isEnabled() ? $this->xmlStorage->folderPath() : null;
 		return $data;
 	}
 
