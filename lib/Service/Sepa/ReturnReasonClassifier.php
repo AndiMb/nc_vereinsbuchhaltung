@@ -144,6 +144,24 @@ final class ReturnReasonClassifier {
 	}
 
 	/**
+	 * Kurzer Klartext der Ursache für die Vereinsseite (Aufgabenliste,
+	 * {@see \OCA\Vereinsbuchhaltung\Service\MandateTaskService}: „Mandat
+	 * gesperrt nach Rücklastschrift (…)"). Anders als
+	 * {@see memberFacingReason()} spricht er die Kassenwartin an, nicht das
+	 * Mitglied – ohne Anrede, ohne den rohen Bankcode.
+	 */
+	public static function staffFacingReason(string $class, IL10N $l10n): string {
+		return match ($class) {
+			self::CLASS_INSUFFICIENT_FUNDS => $l10n->t('Deckung fehlt'),
+			self::CLASS_ACCOUNT_UNUSABLE => $l10n->t('Konto nicht nutzbar'),
+			self::CLASS_DISPUTED => $l10n->t('Widerspruch oder kein gültiges Mandat'),
+			self::CLASS_DECEASED => $l10n->t('Zahler verstorben'),
+			self::CLASS_TECHNICAL => $l10n->t('technischer Fehler bei der Bank'),
+			default => $l10n->t('Grund unbekannt'),
+		};
+	}
+
+	/**
 	 * Wahrheitsfester Mitglieder-Klartext je Klasse (Spec §3.6/§3.11: „Codes
 	 * bleiben admin-only") – wird nie mit dem rohen ISO-Code kombiniert
 	 * ausgeliefert. Für `deceased`/`technical`/`unknown` löst diese Klasse

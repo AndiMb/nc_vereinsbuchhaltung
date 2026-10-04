@@ -129,4 +129,22 @@ class ReturnReasonClassifierTest extends TestCase {
 			}
 		}
 	}
+
+	// --- Klartext für die Vereinsseite (Aufgabenliste) ---------------------------------
+
+	public function testVereinsKlartextJeKlasseOhneRohenCode(): void {
+		$l10n = $this->l10n();
+		$expected = [
+			ReturnReasonClassifier::CLASS_INSUFFICIENT_FUNDS => 'Deckung fehlt',
+			ReturnReasonClassifier::CLASS_ACCOUNT_UNUSABLE => 'Konto nicht nutzbar',
+			ReturnReasonClassifier::CLASS_DISPUTED => 'Widerspruch oder kein gültiges Mandat',
+			ReturnReasonClassifier::CLASS_DECEASED => 'Zahler verstorben',
+			ReturnReasonClassifier::CLASS_TECHNICAL => 'technischer Fehler bei der Bank',
+			ReturnReasonClassifier::CLASS_UNKNOWN => 'Grund unbekannt',
+		];
+		$this->assertSame(array_keys($expected), ReturnReasonClassifier::CLASSES, 'jede Klasse braucht einen Klartext');
+		foreach ($expected as $class => $text) {
+			$this->assertSame($text, ReturnReasonClassifier::staffFacingReason($class, $l10n));
+		}
+	}
 }

@@ -42,6 +42,8 @@ export function taskKindLabel(task) {
 		case 'mandate': return t('Mandat')
 		case 'assignment': return t('Zuweisung')
 		case 'claim': return t('Forderung')
+		// Aggregierte Zeile über mehrere Forderungen („N Forderungen nach Rücklastschrift weiter offen“).
+		case 'claims': return t('Forderungen')
 		default: return t('Einzug')
 	}
 }
@@ -56,7 +58,13 @@ export function taskKindLabel(task) {
  *   das es nicht mehr gibt bzw. ohne Mitglieds-ID, etwa der Hinweis aus der
  *   Datenübernahme)
  * - `{ kind: 'batch' }`: der Einzug-Unterreiter (Läufe, aggregierte
- *   Einzug-Aufgaben, Forderungen ohne auffindbares Mitglied)
+ *   Einzug-Aufgaben, aggregierte Forderungs-Aufgaben (`claims`: Rücklastschrift
+ *   ohne Wiedereinzug, Forderungen nach Widerruf), Forderungen ohne
+ *   auffindbares Mitglied)
+ *
+ * Die Mandat-Aufgaben des Katalogs (Entwurf, gesperrt, erloschen, ohne
+ * Nachweis, verfällt, ausgetreten) tragen `objectType: 'mandate'` samt
+ * `memberId` und springen damit in die Akte.
  */
 export function taskTarget(task) {
 	const memberId = Number.isInteger(task.memberId) ? task.memberId : null
@@ -71,6 +79,7 @@ export function taskTarget(task) {
 		case 'claim':
 			return memberId ? { kind: 'member', memberId } : { kind: 'batch' }
 		case 'debit_batch':
+		case 'claims':
 		case null:
 		case undefined:
 			return { kind: 'batch' }

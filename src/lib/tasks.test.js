@@ -61,6 +61,19 @@ describe('taskTarget', () => {
 		expect(taskTarget({ severity: SEVERITY_HINT, message: 'x' })).toEqual({ kind: 'batch' })
 	})
 
+	it('die Mandat-Aufgaben des Katalogs springen mit ihrer memberId in die Akte', () => {
+		// Entwurf, gesperrt, erloschen, ohne Nachweis, verfaellt, ausgetreten: alle objectType 'mandate'.
+		const mandateTask = task({ objectType: 'mandate', objectId: 12, memberId: 7, severity: SEVERITY_HINT })
+		expect(taskTarget(mandateTask)).toEqual({ kind: 'member', memberId: 7 })
+		expect(targetLabel(taskTarget(mandateTask))).toBe('Zur Akte')
+	})
+
+	it('aggregierte Forderungs-Aufgaben (Ruecklastschrift, Widerruf) fuehren in den Einzug, nicht in eine Akte', () => {
+		const aggregated = task({ objectType: 'claims', objectId: null, memberId: null })
+		expect(taskTarget(aggregated)).toEqual({ kind: 'batch' })
+		expect(targetLabel(taskTarget(aggregated))).toBe('Zum Einzug')
+	})
+
 	it('ein Mandat oder eine Zuweisung ohne auffindbares Mitglied und unbekannte Typen haben kein Ziel', () => {
 		expect(taskTarget(task({ objectType: 'mandate', objectId: 9, memberId: null }))).toBeNull()
 		expect(taskTarget(task({ objectType: 'assignment', objectId: 9, memberId: null }))).toBeNull()
@@ -78,6 +91,7 @@ describe('Beschriftungen', () => {
 		expect(taskKindLabel(task({ objectType: 'mandate' }))).toBe('Mandat')
 		expect(taskKindLabel(task({ objectType: 'assignment' }))).toBe('Zuweisung')
 		expect(taskKindLabel(task({ objectType: 'claim' }))).toBe('Forderung')
+		expect(taskKindLabel(task({ objectType: 'claims' }))).toBe('Forderungen')
 		expect(taskKindLabel(task({ objectType: 'debit_batch' }))).toBe('Einzug')
 		expect(taskKindLabel(task({ objectType: null }))).toBe('Einzug')
 	})

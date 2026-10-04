@@ -21,6 +21,11 @@ use OCP\AppFramework\Db\DoesNotExistException;
  * `memberId` ist `null`, wenn die Aufgabe kein Mitglied betrifft
  * (aggregierte Einzug-Aufgaben, Läufe) oder das Objekt inzwischen gelöscht
  * ist - dann gibt es auch keine Akte, in die man springen könnte.
+ *
+ * Eine Aufgabe, die `memberId` schon selbst mitbringt ({@see MandateTaskService}
+ * kennt Mandat und Mitglied aus seinen Sammelabfragen), wird unverändert
+ * durchgereicht - ohne den Punktzugriff, der bei vielen Mandaten je Öffnen des
+ * Flyouts eine Abfrage je Aufgabe wäre.
  */
 final class TaskTargetResolver {
 
@@ -41,6 +46,10 @@ final class TaskTargetResolver {
 		$resolved = [];
 		$out = [];
 		foreach ($tasks as $task) {
+			if (array_key_exists('memberId', $task)) {
+				$out[] = $task;
+				continue;
+			}
 			$type = $task['objectType'] ?? null;
 			$id = $task['objectId'] ?? null;
 			$memberId = null;

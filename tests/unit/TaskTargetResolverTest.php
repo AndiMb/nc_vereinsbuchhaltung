@@ -122,4 +122,20 @@ class TaskTargetResolverTest extends TestCase {
 		$this->assertSame('handlungsbedarf', $out[0]['severity']);
 		$this->assertSame([11, 11], array_column($out, 'memberId'));
 	}
+
+	public function testAufgabeMitEigenerMemberIdWirdOhneNachschlagenDurchgereicht(): void {
+		// MandateTaskService kennt Mandat und Mitglied aus seinen Sammelabfragen und
+		// liefert memberId mit: je Aufgabe ein Punktzugriff wäre bei vielen Mandaten
+		// bei jedem Öffnen des Flyouts eine Abfrage je Zeile.
+		$this->mandates->expects($this->never())->method('findOrNull');
+		$this->members->expects($this->never())->method('findOrNull');
+
+		$out = $this->resolver->withMemberIds([
+			$this->task('mandate', 3) + ['memberId' => 21],
+			$this->task('mandate', 4) + ['memberId' => null],
+			$this->task('claims', null) + ['memberId' => null],
+		]);
+
+		$this->assertSame([21, null, null], array_column($out, 'memberId'));
+	}
 }
