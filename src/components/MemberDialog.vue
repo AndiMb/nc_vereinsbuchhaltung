@@ -169,6 +169,17 @@
 					{{ t('Diese Mitgliedsakte wurde am {datum} DSGVO-anonymisiert. Name, Kontaktdaten und personenbezogene Freitexte sind unwiderruflich entfernt; Stammdaten können nicht mehr bearbeitet werden.', { datum: member.redactedAt.slice(0, 10) }) }}
 				</p>
 
+				<!-- Mandat-Verwaltung (Issue #100): eigene Komponente, die Akte reicht nur `changed` weiter.
+					NcModal hält seinen Inhalt per v-show dauerhaft im DOM – `v-if="show"` + `:key` lässt das Panel
+					bei jedem Öffnen (und jedem anderen Mitglied) neu laden statt den Stand der letzten Akte zu zeigen. -->
+				<MandatePanel
+					v-if="show"
+					ref="mandatePanel"
+					:key="member.id"
+					:member="member"
+					:readonly="isRedacted"
+					@changed="$emit('changed')" />
+
 				<h3 class="vbh-modal-subtitle">
 					{{ t('Nextcloud-Konto') }}
 				</h3>
@@ -332,6 +343,7 @@ import { showError, showSuccess } from '@nextcloud/dialogs'
 import { NcButton, NcModal } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import AmountInput from './AmountInput.vue'
+import MandatePanel from './MandatePanel.vue'
 import api from '../api.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useContributionGroups } from '../composables/useContributionGroups.js'
@@ -388,7 +400,7 @@ function emptyForm(member, defaultFeeAmount) {
  */
 export default {
 	name: 'MemberDialog',
-	components: { NcModal, NcButton, AmountInput },
+	components: { NcModal, NcButton, AmountInput, MandatePanel },
 	props: {
 		show: { type: Boolean, default: false },
 		saving: { type: Boolean, default: false },
@@ -399,6 +411,8 @@ export default {
 		// ist hier noch relevant – die Frequenz gibt seit Issue #69 die gewählte
 		// Beitragsgruppe vor (allowedIntervals/defaultInterval).
 		defaultFeeAmount: { type: [Number, String], default: '' },
+		/** Abschnitt der Akte, zu dem beim Öffnen gescrollt wird – bisher nur 'mandate' (Aktion „Mandat verwalten“ der Mitgliederliste). */
+		section: { type: String, default: '' },
 	},
 
 	emits: ['close', 'save', 'update:show', 'changed'],
@@ -476,7 +490,11 @@ export default {
 				this.loadCertificateYears()
 				if (!this.isRedacted) { this.loadAnonymizationStatus() }
 			}
-			focusOnOpen(this, () => this.$refs.nameInput || this.$refs.orgInput)
+			if (this.isEdit && this.section === 'mandate') {
+				this.scrollToMandate()
+			} else {
+				focusOnOpen(this, () => this.$refs.nameInput || this.$refs.orgInput)
+			}
 		},
 
 		// Spec §3.1: "fehlt die Mailadresse, fällt Schritt 3 sichtbar auf
@@ -502,6 +520,12 @@ export default {
 
 	methods: {
 		errMsg,
+
+		/** Springt zum Mandat-Bereich (Aktion „Mandat verwalten“ der Mitgliederliste). NcModal rendert seinen Inhalt erst nach dem Öffnen, deshalb mit kurzem Versatz. */
+		scrollToMandate() {
+			setTimeout(() => this.$refs.mandatePanel?.$el?.scrollIntoView?.({ block: 'start' }), 100)
+		},
+
 		euro(cents) { return (cents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }) },
 
 		stammdaten() {

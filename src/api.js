@@ -152,6 +152,23 @@ export default {
 	createMandateElectronic: (data) => axios.post(url('/mandates/electronic'), data),
 	sendMandateActivationLink: (id) => axios.post(url(`/mandates/${id}/send-activation-link`)),
 
+	// Mandat-Verwaltung in der Mitglieder-Akte (Issue #100, MandatePanel.vue):
+	// gesamte Historie eines Mitglieds, Einzelansicht mit Ereignishistorie/
+	// Amendments/Link-Status und die Schreibaktionen des Lifecycles.
+	mandatesByMember: (memberId) => axios.get(url(`/mandates/by-member/${memberId}`)),
+	getMandate: (id) => axios.get(url(`/mandates/${id}`)),
+	suspendMandate: (id, note) => axios.post(url(`/mandates/${id}/suspend`), { note }),
+	resumeMandate: (id, note) => axios.post(url(`/mandates/${id}/resume`), { note }),
+	revokeMandate: (id) => axios.post(url(`/mandates/${id}/revoke`)),
+	amendMandateBankDetails: (id, iban, bic) => axios.post(url(`/mandates/${id}/amend-bank-details`), { iban, bic: bic || null }),
+	correctMandateAccountHolder: (id, accountHolder) => axios.post(url(`/mandates/${id}/correct-name`), { accountHolder }),
+	replaceMandate: (id, data) => axios.post(url(`/mandates/${id}/replace`), data),
+	reopenMandateAmendment: (amendmentId) => axios.post(url(`/mandates/amendments/${amendmentId}/reopen`)),
+	uploadMandateDocument: (id, formData) => axios.post(url(`/mandates/${id}/document`), formData),
+	// Nachweis-Download und druckfertiges Formular: Browser-Navigation, kein Axios
+	mandateDocumentUrl: (id) => generateUrl(base + `/mandates/${id}/document`),
+	mandateFormUrl: (id) => generateUrl(base + `/mandates/${id}/form`),
+
 	// Mitgliedsbeiträge mit Zahlungsfrequenz (optionales Zusatzmodul)
 	listMembershipFees: () => axios.get(url('/sepa/fees')),
 	createMembershipFee: (data) => axios.post(url('/sepa/fees'), data),

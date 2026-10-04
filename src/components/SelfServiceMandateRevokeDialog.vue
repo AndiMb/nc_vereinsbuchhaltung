@@ -12,22 +12,33 @@
 			</h2>
 
 			<div class="vbh-card vbh-card--danger">
-				<p>
+				<p v-if="staff">
+					{{ t('Der Widerruf ist endgültig – ein widerrufenes Mandat lässt sich nicht wieder aktivieren. Für künftige Einzüge braucht {name} danach ein neues Mandat mit neuer Unterschrift.', { name: memberName }) }}
+				</p>
+				<p v-else>
 					{{ t('Der Widerruf ist endgültig – ein widerrufenes Mandat lässt sich nicht wieder aktivieren. Für künftige Einzüge brauchen Sie danach ein neues Mandat.') }}
 				</p>
 				<p v-if="openClaimsTotalCents > 0">
 					{{ t('Noch offen: {betrag}', { betrag: formatMoney(openClaimsTotalCents / 100) }) }}
+					<template v-if="staff">
+						{{ t('– dafür geht dem Mitglied eine Zahlungsaufforderung zu.') }}
+					</template>
 				</p>
 			</div>
 
-			<p class="vbh-hint">
-				{{ t('Nur ein neues Konto? Dafür reicht die IBAN-Änderung – ohne Widerruf, ohne neues Mandat.') }}
+			<template v-if="!ibanChangeBlocked">
+				<p class="vbh-hint">
+					{{ t('Nur ein neues Konto? Dafür reicht die IBAN-Änderung – ohne Widerruf, ohne neues Mandat.') }}
+				</p>
+				<div class="vbh-modal-actions">
+					<NcButton variant="primary" @click="$emit('switch-to-iban')">
+						{{ t('Ich habe nur ein neues Konto → IBAN ändern') }}
+					</NcButton>
+				</div>
+			</template>
+			<p v-else class="vbh-hint">
+				{{ t('Nur ein neues Konto? Entsperren Sie das Mandat zuerst – die IBAN lässt sich nur bei einem aktiven Mandat ändern, ganz ohne Widerruf und neues Mandat.') }}
 			</p>
-			<div class="vbh-modal-actions">
-				<NcButton variant="primary" @click="$emit('switch-to-iban')">
-					{{ t('Ich habe nur ein neues Konto → IBAN ändern') }}
-				</NcButton>
-			</div>
 
 			<div class="vbh-modal-actions">
 				<NcButton variant="tertiary" @click="$emit('close')">
@@ -51,8 +62,8 @@ import { formatMoney } from '../lib/format.js'
  * Widerruf bleibt bewusst `variant="error"`, nicht `"primary"`. Keine
  * Zweitfaktor-Bestätigung (Widerruf ist ein Recht, kein Anlass für ein
  * zusätzliches Tippen-Sie-'löschen'-Feld). `switch-to-iban` lässt die
- * aufrufende Seite (SelfServiceTab.vue) diesen Dialog schließen und den
- * Konto-Dialog im IBAN-Modus öffnen.
+ * aufrufende Seite (SelfServiceTab.vue, MandatePanel.vue) diesen Dialog
+ * schließen und den Konto-Dialog im IBAN-Modus öffnen.
  */
 export default {
 	name: 'SelfServiceMandateRevokeDialog',
@@ -61,6 +72,16 @@ export default {
 		show: { type: Boolean, default: false },
 		openClaimsTotalCents: { type: Number, default: 0 },
 		saving: { type: Boolean, default: false },
+		/**
+		 * Verwaltungssicht (Mitglieder-Akte, MandatePanel.vue, Issue #100): der
+		 * Text spricht über das Mitglied statt zu ihm. Derselbe Dialog, damit
+		 * Endgültigkeit/offene Summe/Ausweg-als-Primäraktion (Spec §3.4) an
+		 * einer Stelle stehen.
+		 */
+		staff: { type: Boolean, default: false },
+		memberName: { type: String, default: '' },
+		/** Ein ausgesetztes Mandat lässt sich nicht per Amendment ändern – dort entfällt der Ausweg-Knopf. */
+		ibanChangeBlocked: { type: Boolean, default: false },
 	},
 
 	emits: ['close', 'save', 'switch-to-iban', 'update:show'],

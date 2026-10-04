@@ -100,11 +100,17 @@
 				<!-- Seltener genutzte Aktionen im Menue, gleiches Muster wie in der
 					Desktop-Tabelle (MembersList.vue) und im Buchungsjournal. -->
 				<NcActions :forceMenu="true">
-					<NcActionButton @click="$emit('open-member')">
+					<NcActionButton closeAfterClick @click="$emit('open-member')">
 						<template #icon>
 							<NcIconSvgWrapper :path="mdiAccountEdit" :size="16" />
 						</template>
 						{{ t('Akte öffnen') }}
+					</NcActionButton>
+					<NcActionButton v-if="!row.legacyMandate" closeAfterClick @click="$emit('open-mandate')">
+						<template #icon>
+							<NcIconSvgWrapper :path="mdiFileSign" :size="16" />
+						</template>
+						{{ t('Mandat verwalten') }}
 					</NcActionButton>
 					<NcActionButton v-if="row.legacyMandate && row.legacyMandate.status === 'active'" @click="$emit('bank-change')">
 						<template #icon>
@@ -137,7 +143,7 @@
 </template>
 
 <script>
-import { mdiAccountEdit, mdiBankTransfer, mdiCancel, mdiDelete } from '@mdi/js'
+import { mdiAccountEdit, mdiBankTransfer, mdiCancel, mdiDelete, mdiFileSign } from '@mdi/js'
 import { NcActionButton, NcActions, NcButton, NcIconSvgWrapper } from '@nextcloud/vue'
 import AmountInput from './AmountInput.vue'
 import { formatMoney } from '../lib/format.js'
@@ -165,10 +171,10 @@ export default {
 		isUsed: { type: Boolean, default: false },
 	},
 
-	emits: ['bank-change', 'cancel-edit', 'catch-up', 'manage-assignments', 'open-member', 'remove-fee', 'remove-mandate', 'revoke-mandate', 'save-edit', 'start-edit', 'toggle-active', 'update-editing'],
+	emits: ['bank-change', 'cancel-edit', 'catch-up', 'manage-assignments', 'open-mandate', 'open-member', 'remove-fee', 'remove-mandate', 'revoke-mandate', 'save-edit', 'start-edit', 'toggle-active', 'update-editing'],
 
 	data() {
-		return { mdiAccountEdit, mdiBankTransfer, mdiCancel, mdiDelete }
+		return { mdiAccountEdit, mdiBankTransfer, mdiCancel, mdiDelete, mdiFileSign }
 	},
 
 	computed: {

@@ -43,7 +43,8 @@
 				@removeFee="removeFee(row.legacyFee)"
 				@removeMandate="removeMandate(row.legacyMandate)"
 				@manageAssignments="$emit('manage-assignments')"
-				@openMember="openMemberAkte(row.member)" />
+				@openMember="openMemberAkte(row.member)"
+				@openMandate="openMemberAkte(row.member, 'mandate')" />
 		</div>
 		<div v-else-if="filteredRows.length" class="vbh-tablecard">
 			<table class="vbh-table">
@@ -171,11 +172,20 @@
 										durch bis zu vier weitere Icon-Buttons zu breit (dasselbe
 										Muster wie im Buchungsjournal, siehe BookingsTab.vue). -->
 									<NcActions :forceMenu="true">
-										<NcActionButton @click="openMemberAkte(row.member)">
+										<NcActionButton closeAfterClick @click="openMemberAkte(row.member)">
 											<template #icon>
 												<NcIconSvgWrapper :path="mdiAccountEdit" :size="16" />
 											</template>
 											{{ t('Akte öffnen') }}
+										</NcActionButton>
+										<!-- Mandat des neuen Modells führen (aktivieren, sperren, widerrufen, IBAN ändern …):
+											springt in der Akte zum Mandat-Bereich (MandatePanel.vue, Issue #100). Alt-Mandate
+											haben ihre eigenen Aktionen darunter. -->
+										<NcActionButton v-if="!row.legacyMandate" closeAfterClick @click="openMemberAkte(row.member, 'mandate')">
+											<template #icon>
+												<NcIconSvgWrapper :path="mdiFileSign" :size="16" />
+											</template>
+											{{ t('Mandat verwalten') }}
 										</NcActionButton>
 										<NcActionButton
 											v-if="row.legacyMandate && row.legacyMandate.status === 'active'"
@@ -223,6 +233,7 @@
 			:saving="saving"
 			:member="editingMember"
 			:defaultFeeAmount="defaultFeeAmount"
+			:section="akteSection"
 			@update:show="memberDialogOpen = $event"
 			@close="memberDialogOpen = false"
 			@save="saveMember"
@@ -245,7 +256,7 @@
 </template>
 
 <script>
-import { mdiAccountEdit, mdiBankTransfer, mdiCancel, mdiDelete, mdiPencil } from '@mdi/js'
+import { mdiAccountEdit, mdiBankTransfer, mdiCancel, mdiDelete, mdiFileSign, mdiPencil } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { NcActionButton, NcActions, NcButton, NcEmptyContent, NcIconSvgWrapper } from '@nextcloud/vue'
 import { toRefs } from 'vue'
@@ -263,6 +274,7 @@ import { useMembershipFees } from '../composables/useMembershipFees.js'
 import { useSepaMandates } from '../composables/useSepaMandates.js'
 import { errMsg, formatMoney } from '../lib/format.js'
 import { frequencyOptions } from '../lib/frequency.js'
+import { createMandateForMember } from '../lib/mandateCreate.js'
 import { buildMemberRow } from '../lib/memberRow.js'
 
 /**
@@ -328,6 +340,8 @@ export default {
 			frequencies: frequencyOptions(),
 			memberDialogOpen: false,
 			editingMember: null,
+			/** Abschnitt, zu dem die Akte beim Öffnen scrollt ('mandate' oder leer). */
+			akteSection: '',
 			importDialogOpen: false,
 			bankChangeOpen: false,
 			bankChangeMandate: null,
@@ -336,6 +350,7 @@ export default {
 			mdiBankTransfer,
 			mdiCancel,
 			mdiDelete,
+			mdiFileSign,
 			mdiPencil,
 		}
 	},
@@ -383,9 +398,9 @@ export default {
 		errMsg,
 		formatMoney,
 		/** Von der Kopfzeile in ContributionsTab.vue per $refs aufgerufen. */
-		openMemberDialog() { this.editingMember = null; this.memberDialogOpen = true },
+		openMemberDialog() { this.editingMember = null; this.akteSection = ''; this.memberDialogOpen = true },
 		openImportDialog() { this.importDialogOpen = true },
-		openMemberAkte(member) { this.editingMember = member; this.memberDialogOpen = true },
+		openMemberAkte(member, section = '') { this.editingMember = member; this.akteSection = section; this.memberDialogOpen = true },
 		/** Was der Verwalter sehen sollte: fehlende Adresse, Rückstand, kein Mandat. */
 		hasProblem(row) {
 			if (row.fee && row.fee.dueCount > 0) { return true }
@@ -438,7 +453,9 @@ export default {
 					const { data: member } = await api.createMember(payload.stammdaten)
 					if (payload.mandate) {
 						stage = 'mandate'
-						await this.createOnboardingMandate(member.id, payload.mandate)
+						// Schritt 2 des Assistenten (Spec §3.1): Papier entscheidet per Datum
+						// aktiv/Entwurf, elektronisch verschickt den Einmal-Link (lib/mandateCreate.js).
+						await createMandateForMember(member.id, payload.mandate)
 					}
 					if (payload.assignment) {
 						stage = 'assignment'
@@ -456,37 +473,6 @@ export default {
 					assignment: this.t('Mitglied und Mandat wurden angelegt, der Beitrag nicht'),
 				}[stage]))
 			} finally { this.saving = false }
-		},
-
-		/**
-		 * Schritt 2 des Aufnahme-Assistenten (Spec §3.1): papier-Weg entscheidet
-		 * per Mandatsdatum sofort-aktiv vs. entwurf, elektronisch-Weg verschickt
-		 * sofort den Einmal-Link (Issue #67).
-		 */
-		async createOnboardingMandate(memberId, mandate) {
-			if (mandate.signatureType === 'elektronisch') {
-				const { data } = await api.createMandateElectronic({
-					memberId,
-					iban: mandate.iban,
-					bic: mandate.bic,
-					accountHolder: mandate.accountHolder,
-					mandateReference: mandate.mandateReference,
-				})
-				await api.sendMandateActivationLink(data.id)
-				return data
-			}
-			const { data } = await api.createMandate({
-				memberId,
-				iban: mandate.iban,
-				bic: mandate.bic,
-				accountHolder: mandate.accountHolder,
-				mandateReference: mandate.mandateReference,
-				signedAt: mandate.signedAt,
-			})
-			if (mandate.signedAt) {
-				await api.activateMandate(data.id)
-			}
-			return data
 		},
 
 		startEdit(fee) {
