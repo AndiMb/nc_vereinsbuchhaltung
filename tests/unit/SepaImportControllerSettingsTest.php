@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\Account;
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\BankTransactionMapper;
 use OCA\Vereinsbuchhaltung\Db\BankTxSepaDetailMapper;
+use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCA\Vereinsbuchhaltung\Service\Sepa\IncomingPaymentMatchingService;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportConfirmationService;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportSettingsService;
@@ -86,6 +87,7 @@ class SepaImportControllerSettingsTest extends TestCase {
 			$this->createMock(IncomingPaymentMatchingService::class),
 			$settings,
 			new SepaSettingsAccountValidator($this->accounts, $l10n),
+			$this->createMock(PermissionService::class),
 			$l10n,
 		);
 	}

@@ -15,6 +15,7 @@ use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\ReturnedDebit;
 use OCA\Vereinsbuchhaltung\Db\ReturnedDebitMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
+use OCA\Vereinsbuchhaltung\Exception\SettlementBlockedException;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\BookingService;
 use OCA\Vereinsbuchhaltung\Service\ClaimService;
@@ -562,5 +563,164 @@ class SepaImportConfirmationServiceTest extends TestCase {
 		$this->service()->settle(1);
 
 		$this->assertSame(['accountId' => 77, 'amountCents' => 4500], $capturedParts[0]);
+	}
+
+	// --- Vorschau-Rechnung und Schutz vor doppelter Verbuchung (Bankabgleich, Issue #105) ---
+
+	/** Dieselbe Rechnung wie die Verbuchung, ohne zu schreiben: die Vorschau des Bankabgleichs baut darauf. */
+	public function testPlanLiefertAufteilungUndPostenOhneZuBuchen(): void {
+		$tx = $this->tx(1, 9500);
+		$this->details->method('findByBankTx')->with(1)->willReturn([
+			$this->detail(1, 1, 10, 4500, false, BankTxSepaDetail::STATUS_ASSIGNED),
+			$this->detail(2, 1, 11, 5000, false, BankTxSepaDetail::STATUS_ASSIGNED),
+		]);
+		$this->debitItems->method('find')->willReturnMap([
+			[10, $this->debitItem(10, 100, 4500)],
+			[11, $this->debitItem(11, 101, 5000)],
+		]);
+		$this->openItems->method('find')->willReturnMap([
+			[100, $this->openItem(100, 7, 4500, 42)],
+			[101, $this->openItem(101, 8, 5000, 43)],
+		]);
+		$this->bookingService->expects($this->never())->method('assignParts');
+		$this->openItems->expects($this->never())->method('update');
+
+		$plan = $this->service()->plan($tx);
+
+		$this->assertSame(SepaImportConfirmationService::DIRECTION_COLLECTION, $plan['direction']);
+		$this->assertSame([['accountId' => 42, 'amountCents' => 4500], ['accountId' => 43, 'amountCents' => 5000]], $plan['parts']);
+		$this->assertCount(2, $plan['rows']);
+		$this->assertSame(0, $plan['chargesCents']);
+	}
+
+	public function testPlanDerRuecklastschriftTrenntGebuehrAbUndNenntDasKonto(): void {
+		$tx = $this->tx(1, -5000);
+		$this->details->method('findByBankTx')->with(1)->willReturn([
+			$this->detail(1, 1, 10, -5000, true, BankTxSepaDetail::STATUS_ASSIGNED, chargesCents: 500),
+		]);
+		$this->debitItems->method('find')->with(10)->willReturn($this->debitItem(10, 100, 4500));
+		$this->openItems->method('find')->with(100)->willReturn($this->openItem(100, 7, 4500, 42));
+		$this->settings->method('returnFeeAccountId')->willReturn(99);
+
+		$plan = $this->service()->plan($tx);
+
+		$this->assertSame(SepaImportConfirmationService::DIRECTION_RETURN, $plan['direction']);
+		$this->assertSame([['accountId' => 42, 'amountCents' => 4500], ['accountId' => 99, 'amountCents' => 500]], $plan['parts']);
+		$this->assertSame(500, $plan['chargesCents']);
+		$this->assertSame(99, $plan['feeAccountId']);
+	}
+
+	/** Eine zweite Verbuchung würde die erste still ersetzen (doAssign() nimmt die Zuordnung zurück): Doppelklick und veraltete Ansicht scheitern stattdessen. */
+	public function testBereitsGebuchterUmsatzWirdNichtErneutVerbucht(): void {
+		$this->txMapper->method('find')->willReturn($this->tx(1, 4500, 321));
+		$this->bookingService->expects($this->never())->method('assignParts');
+
+		try {
+			$this->service()->settle(1);
+			$this->fail('Erwartet: SettlementBlockedException');
+		} catch (SettlementBlockedException $e) {
+			$this->assertSame(SettlementBlockedException::REASON_ALREADY_BOOKED, $e->reason);
+		}
+	}
+
+	/** @return array<string, array{0:list<array{0:int,1:string}>, 1:string}> */
+	public static function blockerProvider(): array {
+		return [
+			'noch nicht alles beurteilt' => [[[1, BankTxSepaDetail::STATUS_OPEN]], SettlementBlockedException::REASON_UNDECIDED],
+			'nichts zugeordnet' => [[[1, BankTxSepaDetail::STATUS_REJECTED], [2, BankTxSepaDetail::STATUS_UNMATCHED]], SettlementBlockedException::REASON_NOTHING_ASSIGNED],
+		];
+	}
+
+	/**
+	 * @param list<array{0:int,1:string}> $rows Detail-ID und Status
+	 * @dataProvider blockerProvider
+	 */
+	public function testPlanNenntDenGrundDesHindernissesAlsCode(array $rows, string $reason): void {
+		$details = array_map(fn (array $row): BankTxSepaDetail => $this->detail($row[0], 1, 10, 4500, false, $row[1]), $rows);
+		$this->details->method('findByBankTx')->with(1)->willReturn($details);
+
+		try {
+			$this->service()->plan($this->tx(1, 4500));
+			$this->fail('Erwartet: SettlementBlockedException');
+		} catch (SettlementBlockedException $e) {
+			$this->assertSame($reason, $e->reason);
+		}
+	}
+
+	public function testGemischteRichtungenSindEinHindernis(): void {
+		$this->details->method('findByBankTx')->with(1)->willReturn([
+			$this->detail(1, 1, 10, 4500, false, BankTxSepaDetail::STATUS_ASSIGNED),
+			$this->detail(2, 1, 11, -4500, true, BankTxSepaDetail::STATUS_ASSIGNED),
+		]);
+
+		try {
+			$this->service()->plan($this->tx(1, 0));
+			$this->fail('Erwartet: SettlementBlockedException');
+		} catch (SettlementBlockedException $e) {
+			$this->assertSame(SettlementBlockedException::REASON_MIXED_DIRECTIONS, $e->reason);
+		}
+	}
+
+	public function testFehlendesErloeskontoIstEinHindernisMitCode(): void {
+		$this->details->method('findByBankTx')->with(1)->willReturn([
+			$this->detail(1, 1, 10, 4500, false, BankTxSepaDetail::STATUS_ASSIGNED),
+		]);
+		$this->debitItems->method('find')->with(10)->willReturn($this->debitItem(10, 100, 4500));
+		$this->openItems->method('find')->with(100)->willReturn($this->openItem(100, 7, 4500, null));
+		$this->settings->method('contributionDefaultAccountId')->willReturn(null);
+
+		try {
+			$this->service()->plan($this->tx(1, 4500));
+			$this->fail('Erwartet: SettlementBlockedException');
+		} catch (SettlementBlockedException $e) {
+			$this->assertSame(SettlementBlockedException::REASON_REVENUE_ACCOUNT_MISSING, $e->reason);
+		}
+	}
+
+	// --- Zahlungseingang bestätigen -----------------------------------------------------
+
+	public function testZahlungseingangBuchtAufDasErloeskontoUndSchliesstDieForderungAb(): void {
+		$this->txMapper->method('find')->willReturn($this->tx(1, 4500));
+		$openItem = $this->openItem(100, 7, 4500, 42);
+		$this->openItems->method('find')->with(100)->willReturn($openItem);
+		$this->bookingService->expects($this->once())->method('assign')->with($this->anything(), 42)->willReturnCallback(static function (BankTransaction $t) {
+			$t->setJournalId(900);
+			return $t;
+		});
+
+		$result = $this->service()->confirmIncomingPayment(1, 100);
+
+		$this->assertSame('paid', $result->getStatus());
+		$this->assertSame(900, $result->getPaidJournalId());
+		$this->assertSame('kassenwart', $result->getSettledBy());
+	}
+
+	public function testZahlungseingangAufBereitsGebuchtenUmsatzWirdAbgelehnt(): void {
+		$this->txMapper->method('find')->willReturn($this->tx(1, 4500, 321));
+		$this->openItems->method('find')->with(100)->willReturn($this->openItem(100, 7, 4500, 42));
+		$this->bookingService->expects($this->never())->method('assign');
+
+		try {
+			$this->service()->confirmIncomingPayment(1, 100);
+			$this->fail('Erwartet: SettlementBlockedException');
+		} catch (SettlementBlockedException $e) {
+			$this->assertSame(SettlementBlockedException::REASON_ALREADY_BOOKED, $e->reason);
+		}
+	}
+
+	public function testZahlungseingangAufNichtMehrOffeneForderungWirdAbgelehnt(): void {
+		$this->txMapper->method('find')->willReturn($this->tx(1, 4500));
+		$paid = $this->openItem(100, 7, 4500, 42);
+		$paid->setStatus('paid');
+		$paid->setSettledAt('2026-10-01 00:00:00');
+		$this->openItems->method('find')->with(100)->willReturn($paid);
+		$this->bookingService->expects($this->never())->method('assign');
+
+		try {
+			$this->service()->confirmIncomingPayment(1, 100);
+			$this->fail('Erwartet: SettlementBlockedException');
+		} catch (SettlementBlockedException $e) {
+			$this->assertSame(SettlementBlockedException::REASON_CLAIM_NOT_OPEN, $e->reason);
+		}
 	}
 }

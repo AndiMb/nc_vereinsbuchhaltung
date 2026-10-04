@@ -24,6 +24,27 @@ class DebitItemMapper extends QBMapper {
 		return $this->findEntity($qb);
 	}
 
+	/**
+	 * Mehrere Einzugsposten in einer Abfrage – der Bankabgleich (Issue #105)
+	 * braucht die Posten aller Vorschläge einer Arbeitsliste auf einmal.
+	 *
+	 * @param list<int> $ids
+	 * @return array<int,DebitItem> Posten-ID => Posten (fehlende IDs fehlen auch hier)
+	 */
+	public function findByIds(array $ids): array {
+		$found = [];
+		foreach (array_chunk(array_values(array_unique($ids)), 1000) as $chunk) {
+			$qb = $this->db->getQueryBuilder();
+			$qb->select('*')
+				->from($this->getTableName())
+				->where($qb->expr()->in('id', $qb->createNamedParameter($chunk, IQueryBuilder::PARAM_INT_ARRAY)));
+			foreach ($this->findEntities($qb) as $item) {
+				$found[(int)$item->getId()] = $item;
+			}
+		}
+		return $found;
+	}
+
 	/** @return DebitItem[] Einfügereihenfolge, damit Vorschau/pain.008 deterministisch bleiben */
 	public function findByBatch(int $batchId): array {
 		$qb = $this->db->getQueryBuilder();

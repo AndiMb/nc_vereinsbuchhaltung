@@ -7,8 +7,10 @@ namespace OCA\Vereinsbuchhaltung\Service;
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\AttachmentMapper;
 use OCA\Vereinsbuchhaltung\Db\BankTransactionMapper;
+use OCA\Vereinsbuchhaltung\Db\BankTxSepaDetailMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\CostCenterMapper;
+use OCA\Vereinsbuchhaltung\Db\IncomingPaymentRejectionMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
@@ -34,6 +36,8 @@ class ResetService {
 		private OpenItemMapper $openItemMapper,
 		private SepaDebtorAccountService $sepaDebtorAccount,
 		private SepaImportSettingsService $sepaImportSettings,
+		private BankTxSepaDetailMapper $sepaDetails,
+		private IncomingPaymentRejectionMapper $incomingRejections,
 	) {
 	}
 
@@ -63,6 +67,12 @@ class ResetService {
 			$this->lineMapper->deleteAllForUser($userId);
 			$this->journalMapper->deleteAllForUser($userId);
 			$this->txMapper->deleteAllForUser($userId);
+			// Die SEPA-Detail-Zeilen und abgelehnten Zahlungseingangs-Vorschläge hängen an den
+			// Bankumsätzen (Bankabgleich, Issue #105). Blieben sie liegen, zeigten sie nach
+			// einem Neustart des Datenbankservers – der Zähler der Umsatz-IDs beginnt je nach
+			// System wieder von vorn – auf fremde, neu importierte Umsätze.
+			$this->sepaDetails->deleteAll();
+			$this->incomingRejections->deleteAll();
 			$this->ruleMapper->deleteAllForUser($userId);
 			$this->accountMapper->deleteAllForUser($userId);
 			$this->costCenterMapper->deleteAllForUser($userId);
