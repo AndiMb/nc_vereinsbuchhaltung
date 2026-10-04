@@ -44,6 +44,28 @@ class ReturnedDebitMapper extends QBMapper {
 	}
 
 	/**
+	 * Die Rücklastschriften eines Mitglieds (Self-Service „Mein Beitrag", Issue
+	 * #122): maßgeblich ist, wem die zurückgegebene Forderung gehört –
+	 * Rücklastschrift → Einzugsposten → Forderung (`vbh_open_items.member_id`).
+	 * Der innere Join auf die Forderung ist Absicht: eine Rücklastschrift, deren
+	 * Forderung es nicht mehr gibt, lässt sich keinem Mitglied zuordnen und
+	 * bleibt deshalb draußen.
+	 *
+	 * @return list<ReturnedDebit> in der Reihenfolge der Datenbank; die Sortierung
+	 *                             (neueste zuerst) übernimmt
+	 *                             {@see \OCA\Vereinsbuchhaltung\Service\SelfReturnedDebitService}
+	 */
+	public function findByMember(int $memberId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('r.*')
+			->from($this->getTableName(), 'r')
+			->innerJoin('r', 'vbh_debit_items', 'i', $qb->expr()->eq('r.debit_item_id', 'i.id'))
+			->innerJoin('i', 'vbh_open_items', 'o', $qb->expr()->eq('i.open_item_id', 'o.id'))
+			->where($qb->expr()->eq('o.member_id', $qb->createNamedParameter($memberId, IQueryBuilder::PARAM_INT)));
+		return $this->findEntities($qb);
+	}
+
+	/**
 	 * Eingangsdatum der Rücklastschriften aller Posten eines Laufs, je
 	 * Einzugsposten: `debit_item_id => received_at`. Eine Abfrage statt einer
 	 * je Zeile, weil das Lauf-Detail (Issue #102) den abgeleiteten
@@ -85,5 +107,16 @@ class ReturnedDebitMapper extends QBMapper {
 			$returned[$entity->getDebitItemId()] = $entity;
 		}
 		return $returned;
+	}
+
+	/**
+	 * Beim Zurücksetzen (siehe {@see \OCA\Vereinsbuchhaltung\Service\ContributionResetService}):
+	 * eine Rücklastschrift hängt an einem Einzugsposten (Unique-Index auf
+	 * `debit_item_id`) und verweist auf Gebührenforderung und Buchung – alles
+	 * Daten, die der Reset entfernt.
+	 */
+	public function deleteAll(): void {
+		$qb = $this->db->getQueryBuilder();
+		$qb->delete($this->getTableName())->executeStatement();
 	}
 }

@@ -166,4 +166,15 @@ class DebitItemMapper extends QBMapper {
 		$result->closeCursor();
 		return $ids;
 	}
+
+	/**
+	 * Beim Zurücksetzen (siehe {@see \OCA\Vereinsbuchhaltung\Service\ContributionResetService}):
+	 * der Posten ist der Schnappschuss einer Forderung samt IBAN und
+	 * Kontoinhaber – ohne die Forderung ist er personenbezogener Rest ohne
+	 * Bezug.
+	 */
+	public function deleteAll(): void {
+		$qb = $this->db->getQueryBuilder();
+		$qb->delete($this->getTableName())->executeStatement();
+	}
 }

@@ -9,9 +9,10 @@ import { api, dav, openApp, switchTab, tabButton, visibleSection, BANK_ACCOUNT, 
 // verschieben. Die Oberfläche selbst ist Gegenstand dieser Spec; die
 // Statusmaschine des Backends deckt 30-debit-batch-release über die API ab.
 //
-// Der Bestand ist NICHT leer: `api.resetBook()` räumt nur Buchungen, Konten und
-// offene Posten (Forderungen), nicht aber Mitglieder, Mandate, Zuweisungen,
-// bereits freigegebene Läufe und die App-Config früherer Specs. Die Tests
+// Der Bestand ist NICHT leer: `api.resetBook()` räumt Buchungen, Konten, offene
+// Posten (Forderungen) und alles, was daran hängt (Läufe, Posten,
+// Rücklastschriften, Mahnstufen; Issue #123), nicht aber Mitglieder, Mandate,
+// Zuweisungen und die App-Config früherer Specs. Die Tests
 // legen deshalb ihre eigenen, eindeutig benannten Mitglieder an (find-or-create),
 // seeden ihre Forderungen im Test selbst und nutzen je Test einen eigenen
 // Einzugstermin relativ zu heute (der Server rechnet mit dem echten

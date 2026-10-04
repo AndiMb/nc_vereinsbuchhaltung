@@ -5,9 +5,10 @@ import { api, openApp, switchTab, tabButton, visibleSection, BANK_ACCOUNT, BANK_
 // §3.5/§6 Variante A). Er löste im Beiträge-Reiter das flache Einzug-Panel des
 // Alt-Moduls ab und ist ab `revisor` lesend sichtbar (Spec §3.9, IBAN maskiert).
 //
-// Der Bestand ist NICHT leer: `api.resetBook()` räumt nur Buchungen, Konten und
-// offene Posten (Forderungen), nicht aber Mitglieder, Mandate, Zuweisungen und
-// bereits freigegebene Läufe früherer Specs. Die Tests legen deshalb ihre
+// Der Bestand ist NICHT leer: `api.resetBook()` räumt Buchungen, Konten, offene
+// Posten (Forderungen) und alles, was daran hängt (Läufe, Posten,
+// Rücklastschriften, Mahnstufen; Issue #123), nicht aber Mitglieder, Mandate und
+// Zuweisungen früherer Specs. Die Tests legen deshalb ihre
 // eigenen, eindeutig benannten Mitglieder an (find-or-create), seeden ihre
 // Forderungen im Test selbst (beforeEach räumt sie weg) und suchen in der
 // Oberfläche gezielt nach ihrem Termin/Namen, statt auf „der nächste Termin“

@@ -11,9 +11,9 @@ import { api, openApp, switchTab, tabButton, visibleSection, BANK_ACCOUNT, BANK_
 // an ihr keine dieser Aktionen, sondern den Sprung in den Einzug-Reiter. Ein
 // freier Posten verhält sich unverändert (siehe auch 12-open-items).
 //
-// Der Bestand ist NICHT leer: `api.resetBook()` räumt Buchungen, Konten und
-// offene Posten (Forderungen), nicht aber Mitglieder, Mandate, Zuweisungen und
-// Läufe früherer Specs. Jeder Test legt deshalb Mitglieder mit eindeutigen
+// Der Bestand ist NICHT leer: `api.resetBook()` räumt Buchungen, Konten, offene
+// Posten (Forderungen) und die Läufe daran (Issue #123), nicht aber Mitglieder,
+// Mandate und Zuweisungen früherer Specs. Jeder Test legt deshalb Mitglieder mit
 // Namen an (find-or-create) und seedet seine Posten selbst (beforeEach räumt
 // sie weg). Der freigegebene Lauf des Lauf-Tests wird am Ende verworfen, damit
 // er keinem späteren Spec in die Quere kommt.

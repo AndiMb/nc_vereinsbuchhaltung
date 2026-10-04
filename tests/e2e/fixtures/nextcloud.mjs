@@ -765,6 +765,11 @@ export const api = {
 		return call(request, 'PUT', '/self/me', { user, expectOk, data })
 	},
 
+	/** Die eigenen Rücklastschriften im Klartext, neueste zuerst (Self-Service-Kanal, Issue #122). */
+	async selfReturnedDebits(request, { user, expectOk = true } = {}) {
+		return (await call(request, 'GET', '/self/returned-debits', { user, expectOk })).json()
+	},
+
 	/** Roher Zugriff für Spezialfälle; expectOk standardmäßig aus. */
 	async raw(request, method, path, opts = {}) {
 		return call(request, method, path, { expectOk: false, ...opts })

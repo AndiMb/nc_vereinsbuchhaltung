@@ -58,12 +58,16 @@ spl_autoload_register(static function (string $class): void {
 });
 
 /**
- * Dritter Autoloader: die wenigen serverinternen Schnittstellen (OC\*), auf
- * die die OCP-Stubs verweisen, ohne dass nextcloud/ocp sie mitliefert.
- * Nachbauten unter tests/stubs/ – siehe den Kommentar in der jeweiligen Datei.
+ * Dritter Autoloader: die wenigen serverinternen Schnittstellen (OC\*) und
+ * die paar Doctrine-DBAL-Konstanten (Doctrine\*), auf die die OCP-Stubs
+ * verweisen, ohne dass nextcloud/ocp sie mitliefert. Nachbauten unter
+ * tests/stubs/ – siehe den Kommentar in der jeweiligen Datei. Die
+ * Doctrine-Stubs braucht, wer IDBConnection oder IQueryBuilder mockt, etwa
+ * um einen echten Mapper gegen eine mitschreibende Datenbank laufen zu lassen
+ * (ResetServiceTest).
  */
 spl_autoload_register(static function (string $class): void {
-	if (!str_starts_with($class, 'OC\\')) {
+	if (!str_starts_with($class, 'OC\\') && !str_starts_with($class, 'Doctrine\\')) {
 		return;
 	}
 	$file = __DIR__ . '/stubs/' . str_replace('\\', '/', $class) . '.php';

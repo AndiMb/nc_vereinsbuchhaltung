@@ -7,10 +7,10 @@ import { api, openApp, switchTab, tabButton, visibleSection, BANK_ACCOUNT, BANK_
 // vermerk (bezahlt, Erlass), Stundung und Storno ab `buchhalter`, lesend ab
 // `revisor`.
 //
-// Der Bestand ist NICHT leer: `api.resetBook()` räumt Buchungen, Konten und
-// offene Posten (Forderungen), nicht aber Mitglieder, Mandate, Zuweisungen,
-// Läufe und Mahnversand früherer Specs. Jeder Test legt deshalb Mitglieder mit
-// eindeutigen Namen an (find-or-create), seedet seine Forderungen selbst
+// Der Bestand ist NICHT leer: `api.resetBook()` räumt Buchungen, Konten, offene
+// Posten (Forderungen) und alles, was daran hängt (Läufe, Mahnversand; Issue
+// #123), nicht aber Mitglieder, Mandate und Zuweisungen früherer Specs. Jeder
+// Test legt deshalb Mitglieder mit eindeutigen Namen an (find-or-create), seedet seine Forderungen selbst
 // (beforeEach räumt sie weg) und sucht in der Oberfläche gezielt nach ihnen.
 // Datumsangaben sind relativ zu heute (der Server rechnet mit dem echten
 // Kalendertag, es gibt keine Zeitreise).

@@ -1043,6 +1043,29 @@ year-end closing markers. **The change log is kept.** The same applies to
 reset mode during the xbuc import. Both are irreversible – so only after
 checking with others, and never by accident.
 
+**Fees and SEPA (chapter 13):** The reset takes the collection with it – the
+**direct-debit runs** with their items (including the IBANs in plain text), the
+**returned direct debits** and the **dunning status** of the claims. They hang
+on the claims that disappear with the open items and would otherwise be left
+without a reference; everything is deleted together or not at all. **Members,
+mandates with their history, contribution groups, assignments, the legal text
+and the settings stay.** On the mandates only references to deleted data go:
+a **suspension after a returned direct debit stays** (as always, you lift it by
+hand, 13.7) but loses its reference to the deleted return, and an **account
+change** that a collection had already reported counts as still to be reported
+again and goes along with the next collection once more. The date of the **last
+presentation** stays, so the 36-month period keeps running from the last
+collection that actually took place.
+
+Two consequences to keep in mind: the **assignments keep running**, so the daily
+run (13.4) creates their claims again – from the period in which the respective
+assignment starts, including periods that had already been billed. If you don't
+want that, end the assignments at least a day before the reset (an assignment
+ended today still counts as running until the evening) and recreate them
+afterwards with today's start date. The **XML copies** of the runs in the
+storage folder (13.5) stay in the Nextcloud folder: the app doesn't know which
+files belong to them and deletes nothing there – you can remove them by hand.
+
 The same button is the harmless way out of the **sample data**
 (chapter 2.0): as long as the "sample data active" banner is showing,
 there's nothing to lose.

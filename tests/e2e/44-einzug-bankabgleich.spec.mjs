@@ -16,8 +16,9 @@ import { api, collectionEntry, openApp, returnEntry, switchTab, visibleSection, 
 // Oberfläche.
 //
 // Der Bestand ist NICHT leer: `api.resetBook()` räumt Buchungen, Konten, offene
-// Posten, SEPA-Detail-Zeilen und abgelehnte Vorschläge, nicht aber Mitglieder,
-// Mandate und Läufe früherer Specs. Jeder Test legt deshalb Mitglieder mit
+// Posten, SEPA-Detail-Zeilen, abgelehnte Vorschläge und seit Issue #123 auch
+// Läufe, Posten, Rücklastschriften und Mahnstufen, nicht aber Mitglieder und
+// Mandate früherer Specs. Jeder Test legt deshalb Mitglieder mit
 // eigenem Namen an (mit Laufzeichen im Nachnamen, damit ein Wiederholungslauf
 // nach einem Fehlschlag nicht auf ein gesperrtes Mandat stößt) und sucht in der
 // Oberfläche gezielt nach seinen Umsätzen. Bankdaten tragen das heutige Datum:
