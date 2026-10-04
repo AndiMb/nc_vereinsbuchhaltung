@@ -128,7 +128,7 @@ export default {
 		},
 
 		async removePermission(p) {
-			if (!await this.askConfirm(this.t('Berechtigung entfernen'), this.t('Berechtigung für "{id}" entfernen?', { id: p.principalId }))) { return }
+			if (!await this.askConfirm(this.t('Berechtigung entfernen'), this.tRaw('Berechtigung für "{id}" entfernen?', { id: p.principalId }))) { return }
 			try { await api.deletePermission(p.id); await this.loadPermissions() } catch (e) { showError(this.errMsg(e, this.t('Entfernen fehlgeschlagen'))) }
 		},
 	},

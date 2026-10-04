@@ -210,7 +210,7 @@ export function mandateNotices(mandate, today = isoToday()) {
 			key: 'ended',
 			tone: 'warning',
 			title: mandate.storyText || t('neues Mandat einholen'),
-			text: t('Dieses Mandat ist erloschen ({grund}). Für Lastschrifteinzüge braucht das Mitglied ein neues Mandat.', { grund: endReasonLabel(mandate.endReason) }),
+			text: tRaw('Dieses Mandat ist erloschen ({grund}). Für Lastschrifteinzüge braucht das Mitglied ein neues Mandat.', { grund: endReasonLabel(mandate.endReason) }),
 		})
 	}
 

@@ -363,7 +363,7 @@ export default {
 				const prev = this.prevBalances.totals[key]
 				if (!prev || Math.abs(prev) < 0.005) { return null }
 				const pct = Math.round(((cur - prev) / Math.abs(prev)) * 100)
-				return { pct, up: pct >= 0, text: this.t('{sign}{pct} % ggü. {period}', { sign: pct >= 0 ? '+' : '', pct, period: previous.label }) }
+				return { pct, up: pct >= 0, text: this.tRaw('{sign}{pct} % ggü. {period}', { sign: pct >= 0 ? '+' : '', pct, period: previous.label }) }
 			}
 			return { income: mk('income'), expense: mk('expense'), result: mk('result') }
 		},

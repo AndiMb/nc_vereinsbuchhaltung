@@ -220,7 +220,7 @@ export default {
 		async deleteRule(rule) {
 			const ok = await this.askConfirm(
 				this.t('Regel löschen'),
-				this.t('Regel „{field} enthält {value} → {account}" wirklich löschen?', { field: this.matchFieldLabel(rule.matchField), value: rule.matchValue, account: this.accountLabel(rule.contraAccountId) }),
+				this.tRaw('Regel „{field} enthält {value} → {account}" wirklich löschen?', { field: this.matchFieldLabel(rule.matchField), value: rule.matchValue, account: this.accountLabel(rule.contraAccountId) }),
 			)
 			if (!ok) { return }
 			try {

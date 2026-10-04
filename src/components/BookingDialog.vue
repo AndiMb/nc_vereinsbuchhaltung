@@ -14,7 +14,7 @@
 			<!-- Ohne bekannten Zeitraum kein Banner: dann liesse sich nicht sagen,
 			     welches Geschäftsjahr gemeint ist. -->
 			<p v-if="bookingLocked && bookingPeriodLabel" class="vbh-hint vbh-hint--info">
-				{{ t('🔒 Das Geschäftsjahr {period} ist abgeschlossen – diese Buchung kann nur noch angesehen werden.', { period: bookingPeriodLabel }) }}
+				{{ tRaw('🔒 Das Geschäftsjahr {period} ist abgeschlossen – diese Buchung kann nur noch angesehen werden.', { period: bookingPeriodLabel }) }}
 			</p>
 			<div
 				v-if="bookingMode === 'simple'"
@@ -393,7 +393,7 @@
 							<button
 								v-else
 								class="vbh-attachment-name"
-								:title="t('Anzeigen: {name}', { name: a.fileName })"
+								:title="tRaw('Anzeigen: {name}', { name: a.fileName })"
 								@click="openViewer(a)">
 								{{ a.fileName }}
 							</button>

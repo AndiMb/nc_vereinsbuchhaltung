@@ -617,7 +617,7 @@ export default {
 		async doAnonymize() {
 			if (!await this.askConfirm(
 				this.t('Mitglied anonymisieren'),
-				this.t('Name, Kontaktdaten, Bankverbindungen und personenbezogene Freitexte von „{name}" unwiderruflich schwärzen? Das lässt sich nicht rückgängig machen.', { name: this.member.displayName }),
+				this.tRaw('Name, Kontaktdaten, Bankverbindungen und personenbezogene Freitexte von „{name}" unwiderruflich schwärzen? Das lässt sich nicht rückgängig machen.', { name: this.member.displayName }),
 				this.t('Jetzt anonymisieren'),
 				'error',
 			)) { return }
@@ -681,7 +681,7 @@ export default {
 		},
 
 		async doDelete() {
-			if (!await this.askConfirm(this.t('Mitglied löschen'), this.t('Mitglied „{name}" endgültig löschen?', { name: this.member.displayName }))) { return }
+			if (!await this.askConfirm(this.t('Mitglied löschen'), this.tRaw('Mitglied „{name}" endgültig löschen?', { name: this.member.displayName }))) { return }
 			this.deleting = true
 			try {
 				await api.deleteMember(this.member.id)

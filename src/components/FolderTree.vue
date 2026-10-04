@@ -3,7 +3,7 @@
 		v-if="root"
 		class="vbh-dirtree"
 		role="tree"
-		:aria-label="t('Ordner im Home von {user}', { user })">
+		:aria-label="tRaw('Ordner im Home von {user}', { user })">
 		<FolderTreeNode
 			:node="root"
 			:selected="modelValue"

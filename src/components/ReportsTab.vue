@@ -296,7 +296,7 @@
 							<span class="vbh-mcard-amount" :class="amountClass(row.balance)">{{ formatMoney(row.balance) }}</span>
 						</div>
 						<div class="vbh-mcard-bottom">
-							<span class="vbh-mcard-accounts">{{ t('{category} · Soll {debit} · Haben {credit}', { category: row.category || typeLabel(row.type), debit: formatMoney(row.debit), credit: formatMoney(row.credit) }) }}</span>
+							<span class="vbh-mcard-accounts">{{ tRaw('{category} · Soll {debit} · Haben {credit}', { category: row.category || typeLabel(row.type), debit: formatMoney(row.debit), credit: formatMoney(row.credit) }) }}</span>
 						</div>
 					</div>
 				</div>
@@ -748,7 +748,7 @@
 											v-model="row.plan"
 											:emptyValue="0"
 											class="vbh-num vbh-planinput"
-											:aria-label="t('Planwert für {number} {name}', { number: row.number, name: row.name })"
+											:aria-label="tRaw('Planwert für {number} {name}', { number: row.number, name: row.name })"
 											@change="saveBudget(row)" />
 										<span v-else>{{ formatMoney(row.plan) }}</span>
 									</td>
@@ -773,7 +773,7 @@
 								</tr>
 								<tr v-if="budgetNoteOpen[row.accountId]" class="vbh-note-row">
 									<td colspan="7">
-										<label class="vbh-note-label">{{ t('Notiz zu {number} {name}', { number: row.number, name: row.name }) }}
+										<label class="vbh-note-label">{{ tRaw('Notiz zu {number} {name}', { number: row.number, name: row.name }) }}
 											<textarea
 												v-if="canWrite"
 												v-model="row.note"
@@ -797,7 +797,7 @@
 				<!-- PLAN-STÄNDE (Snapshots) -->
 				<div v-if="budgetData" class="vbh-snapblock">
 					<div class="vbh-sectionhead">
-						<h4>{{ t('Plan-Stände {label}', { label: budgetData.label }) }}</h4>
+						<h4>{{ tRaw('Plan-Stände {label}', { label: budgetData.label }) }}</h4>
 						<form v-if="canWrite" class="vbh-addyear" @submit.prevent="saveBudgetSnapshot">
 							<input
 								v-model="newSnapshotLabel"
@@ -1394,7 +1394,7 @@ export default {
 			// Eintraegen aus alten Versionen und wird weiter angezeigt - das
 			// Protokoll wird nie umgeschrieben.
 			const label = d.zeitraum ?? d.geschaeftsjahr ?? d.jahr
-			if (label !== null && label !== undefined) { parts.push(this.t('Zeitraum {label}', { label })) }
+			if (label !== null && label !== undefined) { parts.push(this.tRaw('Zeitraum {label}', { label })) }
 			// Umbenennen, Grenze verschieben und Regelwechsel protokollieren ein
 			// Vorher/Nachher - ohne diese Zeile blieben ihre Details leer.
 			if (d.vorher !== undefined && d.nachher !== undefined) { parts.push(`${d.vorher} → ${d.nachher}`) }
@@ -1421,7 +1421,7 @@ export default {
 				const { data } = await api.createPeriod()
 				await this.loadPeriods()
 				this.selectedPeriodId = data.id
-				showSuccess(this.t('Zeitraum {label} angelegt.', { label: data.label }))
+				showSuccess(this.tRaw('Zeitraum {label} angelegt.', { label: data.label }))
 			} catch (e) { showError(this.errMsg(e, this.t('Zeitraum konnte nicht angelegt werden'))) } finally { this.creatingPeriod = false }
 		},
 
@@ -1449,7 +1449,7 @@ export default {
 		},
 
 		async deleteBudgetSnapshot(snap) {
-			if (!await this.askConfirm(this.t('Plan-Stand löschen'), this.t('Stand „{label}" wirklich löschen?', { label: snap.label }))) { return }
+			if (!await this.askConfirm(this.t('Plan-Stand löschen'), this.tRaw('Stand „{label}" wirklich löschen?', { label: snap.label }))) { return }
 			try {
 				await api.deleteBudgetSnapshot(snap.id)
 				this.$emit('snapshots-changed')

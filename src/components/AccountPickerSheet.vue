@@ -30,7 +30,7 @@
 				type="button"
 				class="vbh-suggest-chip vbh-suggest-chip--big vbh-sheet-suggest"
 				@click="$emit('suggest')">
-				{{ t('✓ Vorschlag übernehmen: {label}', { label: suggestion.label }) }}
+				{{ tRaw('✓ Vorschlag übernehmen: {label}', { label: suggestion.label }) }}
 			</button>
 			<input
 				v-model="search"

@@ -301,7 +301,7 @@ export default {
 		async deleteGroup(g) {
 			const ok = await this.askConfirm(
 				this.t('Beitragsgruppe löschen'),
-				this.t('„{name}" wirklich löschen? Das geht nur, solange keine Zuweisung mehr daran hängt.', { name: g.name }),
+				this.tRaw('„{name}" wirklich löschen? Das geht nur, solange keine Zuweisung mehr daran hängt.', { name: g.name }),
 			)
 			if (!ok) { return }
 			try {

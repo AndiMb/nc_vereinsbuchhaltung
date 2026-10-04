@@ -64,7 +64,10 @@ export function rahmenError(text) {
  * @return {string[]} Absaetze; innerhalb eines Absatzes bleiben Zeilenumbrueche stehen
  */
 export function legalTextParagraphs(pflichtblock, rahmen, clubName) {
-	const name = String(clubName ?? '').trim() || t('den Verein')
+	// „den Verein" steht mitten in einem deutschen Satz des Rechtstexts („Ich ermächtige …"):
+	// bewusst nicht übersetzt. Der Mandats-Rechtstext gilt nur auf Deutsch (Spec §3.11,
+	// MandateFormRenderer::renderLegalText() setzt dieselbe Formulierung ein).
+	const name = String(clubName ?? '').trim() || 'den Verein'
 	return [pflichtblock, normalizeRahmen(rahmen)]
 		.join('\n\n')
 		.split(CREDITOR_PLACEHOLDER)

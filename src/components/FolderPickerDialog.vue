@@ -11,7 +11,7 @@
 				{{ t('Ordner wählen') }}
 			</h2>
 			<p class="vbh-hint">
-				{{ t('Ordner im Home von {user}', { user }) }}
+				{{ tRaw('Ordner im Home von {user}', { user }) }}
 			</p>
 			<FolderTree v-if="show" v-model="draft" :user="user" />
 			<div class="vbh-modal-actions">

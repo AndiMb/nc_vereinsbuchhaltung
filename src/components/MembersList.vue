@@ -354,7 +354,7 @@ export default {
 				}
 				this.memberDialogOpen = false
 				await this.reload()
-				showSuccess(this.t(this.editingMember ? 'Mitglied gespeichert.' : 'Mitglied aufgenommen.'))
+				showSuccess(this.editingMember ? this.t('Mitglied gespeichert.') : this.t('Mitglied aufgenommen.'))
 			} catch (e) {
 				await this.reload()
 				showError(this.errMsg(e, {

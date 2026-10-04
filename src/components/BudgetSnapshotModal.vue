@@ -9,10 +9,10 @@
 		@update:show="$emit('update:show', $event)">
 		<div v-if="snapshot" class="vbh-modal-inner">
 			<h2 id="vbh-modal-title-budgetsnapshot" class="vbh-modal-title">
-				{{ t('Plan-Stand: {label}', { label: snapshot.label }) }}
+				{{ tRaw('Plan-Stand: {label}', { label: snapshot.label }) }}
 			</h2>
 			<p class="vbh-hint">
-				{{ t('Eingefroren am {date} · Geschäftsjahr {period}.', { date: formatDateTime(snapshot.createdAt), period: snapshot.periodLabel }) }}
+				{{ tRaw('Eingefroren am {date} · Geschäftsjahr {period}.', { date: formatDateTime(snapshot.createdAt), period: snapshot.periodLabel }) }}
 				{{ t('Die Spalte „Aktuell" zeigt den heutigen Planwert, „Δ" die Abweichung des aktuellen Plans zum Stand.') }}
 			</p>
 			<div v-if="snapshot.items && snapshot.items.length" class="vbh-tablecard">
