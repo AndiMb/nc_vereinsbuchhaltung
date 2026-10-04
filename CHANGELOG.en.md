@@ -17,6 +17,8 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+## [0.35.0] – 2026-10-05
+
 **New:**
 - **Members as master data of their own:** a person or an organization with a
   record, member number, join and leave dates, no Nextcloud account needed; an
