@@ -203,10 +203,9 @@ import { errMsg } from '../lib/format.js'
 
 /**
  * Reiter „Beitragsgruppen" (Issue #68): Gruppen-CRUD, Zuweisungen, manuelle
- * Einzelforderungen. Bewusst eigenständig statt in MembersList.vue/
- * SepaBatchPanel.vue integriert – die arbeiten noch auf dem alten
- * memberUid/memberLabel-Modell (Ticket #65 baut sie erst noch auf die neue
- * Member-Entity um, siehe PR-Beschreibung).
+ * Einzelforderungen. Bewusst eigenständig statt in MembersList.vue
+ * integriert: die Liste führt Mitglieder, mit Beitrag und Mandat nur zur
+ * Ansicht, die Verwaltung der Zuweisungen liegt hier.
  */
 export default {
 	name: 'ContributionGroupsPanel',

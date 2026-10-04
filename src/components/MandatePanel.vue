@@ -216,13 +216,10 @@
 
 			<!-- Kein lebendes Mandat -->
 			<div v-else class="vbh-card vbh-mandate-card">
-				<p v-if="legacyMandate" class="vbh-hint vbh-hint--info">
-					{{ t('Für dieses Mitglied besteht noch ein Mandat aus dem bisherigen Bestand (IBAN {iban}, Referenz {referenz}). Es wird weiterhin in der Mitgliederliste verwaltet; ein hier angelegtes Mandat ersetzt es nicht von selbst.', { iban: formatIban(legacyMandate.iban), referenz: legacyMandate.mandateReference }) }}
-				</p>
 				<p v-if="endedNotice" class="vbh-hint vbh-hint--warning">
 					<strong>{{ endedNotice.title }}</strong> – {{ endedNotice.text }}
 				</p>
-				<p v-else-if="!legacyMandate" class="vbh-hint">
+				<p v-else class="vbh-hint">
 					{{ t('Noch kein Mandat hinterlegt. Ohne aktives Mandat ist kein Lastschrifteinzug möglich.') }}
 				</p>
 
@@ -351,7 +348,6 @@ import MandateEventList from './MandateEventList.vue'
 import SelfServiceMandateRevokeDialog from './SelfServiceMandateRevokeDialog.vue'
 import api from '../api.js'
 import { useAuth } from '../composables/useAuth.js'
-import { useSepaMandates } from '../composables/useSepaMandates.js'
 import { errMsg, formatDate } from '../lib/format.js'
 import { createMandateForMember } from '../lib/mandateCreate.js'
 import {
@@ -405,9 +401,7 @@ export default {
 	emits: ['changed'],
 
 	setup() {
-		// Der Altbestand (vbh_sepa_mandates) liegt schon im geteilten Zustand, den die
-		// Mitgliederliste lädt – hier nur zum Hinweis, nicht zur Bearbeitung.
-		return { canWrite: useAuth().canWrite, sepaMandates: useSepaMandates().state }
+		return { canWrite: useAuth().canWrite }
 	},
 
 	data() {
@@ -446,11 +440,6 @@ export default {
 		hasEmail() { return !!(this.member.email && this.member.email.trim()) },
 
 		past() { return this.mandates.filter((m) => m.status === 'erloschen') },
-
-		/** Aktives Mandat aus dem Alt-Bestand – nur relevant, solange es im neuen Modell nichts Lebendes gibt (Übergang bis zum Cutover, siehe lib/memberRow.js). */
-		legacyMandate() {
-			return this.sepaMandates.sepaMandates.find((m) => m.memberId === this.member.id && m.status === 'active') ?? null
-		},
 
 		/** Ohne lebendes Mandat gilt der Störfall „neues Mandat einholen“ des zuletzt erloschenen. */
 		endedNotice() {

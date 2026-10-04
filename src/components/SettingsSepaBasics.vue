@@ -85,7 +85,7 @@ import { frequencyOptions } from '../lib/frequency.js'
  * lagen beide in getrennten Abschnitten, und jedes Mitglied musste zweimal
  * angelegt werden.
  *
- * Erreichbar ab Rolle Buchhalter (siehe SepaMandateController).
+ * Schreiben dürfen nur Verwalter (siehe SettingsController::update()).
  */
 export default {
 	name: 'SettingsSepaBasics',
