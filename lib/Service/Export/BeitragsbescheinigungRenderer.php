@@ -148,7 +148,7 @@ class BeitragsbescheinigungRenderer {
 
 	private function disclaimerSection(): string {
 		return '<section><p>' . PrintableReportPage::escape($this->l10n->t(
-			'Diese Bestätigung ist ein informeller Beleg über gezahlte Mitgliedsbeiträge. Sie ist KEINE amtliche Zuwendungsbestätigung nach § 10b EStG (siehe Issue #10) und hat keine steuerliche Wirkung.',
+			'Diese Bestätigung ist ein informeller Beleg über gezahlte Mitgliedsbeiträge. Sie ist KEINE amtliche Zuwendungsbestätigung nach § 10b EStG und hat keine steuerliche Wirkung.',
 		)) . '</p></section>';
 	}
 

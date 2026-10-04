@@ -74,6 +74,8 @@
 </template>
 
 <script>
+import { t } from '../lib/l10n.js'
+
 /**
  * Bottom-Sheet zur Kontoauswahl auf Mobilgeräten: durchsuchbare Liste mit
  * Kategorie-Gruppen (Optionen mit id === null sind Überschriften), optional
@@ -103,7 +105,7 @@ export default {
 	name: 'AccountPickerSheet',
 	props: {
 		open: { type: Boolean, default: false },
-		title: { type: String, default: 'Konto wählen' },
+		title: { type: String, default: () => t('Konto wählen') },
 		/** Einträge {id, label}; id === null markiert Gruppen-Überschriften */
 		options: { type: Array, default: () => [] },
 		/** Zuletzt gewählte Konten {id, label} – eigene Gruppe über der Liste */

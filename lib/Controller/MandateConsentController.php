@@ -21,7 +21,6 @@ use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\PublicPage;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\IConfig;
-use OCP\IL10N;
 use OCP\IRequest;
 use OCP\IURLGenerator;
 
@@ -61,7 +60,6 @@ class MandateConsentController extends Controller {
 		private MandateFormRenderer $formRenderer,
 		private IURLGenerator $urlGenerator,
 		private IConfig $config,
-		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -81,7 +79,7 @@ class MandateConsentController extends Controller {
 		} catch (DoesNotExistException) {
 			// Das Mandat wurde inzwischen gelöscht - praktisch nur durch einen
 			// parallelen Admin-Eingriff möglich.
-			return $this->errorPage('invalid', $this->l10n->t('Dieser Link ist ungültig.'), Http::STATUS_NOT_FOUND);
+			return $this->errorPage('invalid', MandateActivationService::MESSAGE_LINK_INVALID, Http::STATUS_NOT_FOUND);
 		}
 		return $this->renderView($view, $token);
 	}
@@ -104,13 +102,13 @@ class MandateConsentController extends Controller {
 			// beides zeigt sich der/dem Zustimmenden am ehrlichsten über den
 			// aktuellen Stand, nicht über eine Fehlerseite.
 		} catch (DoesNotExistException) {
-			return $this->errorPage('invalid', $this->l10n->t('Dieser Link ist ungültig.'), Http::STATUS_NOT_FOUND);
+			return $this->errorPage('invalid', MandateActivationService::MESSAGE_LINK_INVALID, Http::STATUS_NOT_FOUND);
 		}
 
 		try {
 			$view = $this->activation->view($token);
 		} catch (InvalidActivationTokenException|ExpiredActivationTokenException|DoesNotExistException) {
-			return $this->errorPage('invalid', $this->l10n->t('Dieser Link ist ungültig.'), Http::STATUS_NOT_FOUND);
+			return $this->errorPage('invalid', MandateActivationService::MESSAGE_LINK_INVALID, Http::STATUS_NOT_FOUND);
 		}
 		return $this->renderView($view, $token);
 	}

@@ -6,6 +6,8 @@ namespace OCA\Vereinsbuchhaltung\Service\Sepa;
 
 use OCA\Vereinsbuchhaltung\Service\BillingPeriod;
 use OCA\Vereinsbuchhaltung\Service\EmailValidator;
+use OCA\Vereinsbuchhaltung\Service\OptionalL10n;
+use OCP\IL10N;
 
 /**
  * Liest eine Mitgliederliste als CSV: Zahler, Bankverbindung und Beitrag in
@@ -18,7 +20,10 @@ use OCA\Vereinsbuchhaltung\Service\EmailValidator;
  *
  * Bewusst ohne Nextcloud-Abhängigkeiten, damit sich das Format ohne laufende
  * Instanz prüfen lässt (siehe tests/unit/MemberCsvParserTest.php) – gerade
- * hier lohnt das, weil jede Vereinstabelle anders aussieht.
+ * hier lohnt das, weil jede Vereinstabelle anders aussieht. Einzige Ausnahme
+ * ist der optionale `IL10N` für die Fehlermeldungen (siehe {@see OptionalL10n}):
+ * sie landen in der Vorschau des Imports; ohne ihn bleibt es beim deutschen
+ * Quelltext.
  *
  * Erwartete Spalten (Reihenfolge egal, Groß-/Kleinschreibung egal, deutsche
  * und englische Schreibweisen erlaubt; nicht erkannte Spalten werden
@@ -57,6 +62,8 @@ use OCA\Vereinsbuchhaltung\Service\EmailValidator;
  * }
  */
 class MemberCsvParser {
+
+	use OptionalL10n;
 
 	/**
 	 * Spaltenüberschrift → Feld. Der Schlüssel ist bereits normalisiert
@@ -171,6 +178,11 @@ class MemberCsvParser {
 		'year' => 'yearly',
 	];
 
+	public function __construct(
+		private ?IL10N $l10n = null,
+	) {
+	}
+
 	/**
 	 * @param int|null $defaultAmountCents Standard-Beitrag (Einstellungen ->
 	 *                                     Beiträge & SEPA), fuer Zeilen mit Start-Datum, aber ohne eigenen
@@ -184,13 +196,13 @@ class MemberCsvParser {
 	public function parse(string $csv, ?int $defaultAmountCents = null, ?string $defaultFrequency = null): array {
 		$lines = $this->splitLines($csv);
 		if ($lines === []) {
-			return ['rows' => [], 'error' => 'Die Datei ist leer.'];
+			return ['rows' => [], 'error' => $this->msg('Die Datei ist leer.')];
 		}
 
 		$delimiter = $this->detectDelimiter($lines[0]);
 		$header = $this->mapHeader(str_getcsv($lines[0], $delimiter, '"', '\\'));
 		if ($header === []) {
-			return ['rows' => [], 'error' => 'In der ersten Zeile wurde keine bekannte Spaltenüberschrift gefunden (erwartet z. B. Name, IBAN, Betrag).'];
+			return ['rows' => [], 'error' => $this->msg('In der ersten Zeile wurde keine bekannte Spaltenüberschrift gefunden (erwartet z. B. Name, IBAN, Betrag).')];
 		}
 
 		$rows = [];
@@ -224,12 +236,12 @@ class MemberCsvParser {
 			$memberLabel = null;
 		}
 		if ($memberUid === null && $memberLabel === null) {
-			$errors[] = 'Weder Name noch Nextcloud-Konto angegeben.';
+			$errors[] = $this->msg('Weder Name noch Nextcloud-Konto angegeben.');
 		}
 
 		$email = ($raw['email'] ?? '') !== '' ? $raw['email'] : null;
 		if ($email !== null && !EmailValidator::isValid($email)) {
-			$errors[] = sprintf('Keine gültige E-Mail-Adresse: %s', $email);
+			$errors[] = $this->msg('Keine gültige E-Mail-Adresse: %s', [$email]);
 			$email = null;
 		}
 
@@ -245,13 +257,13 @@ class MemberCsvParser {
 		if (($raw['signedDate'] ?? '') !== '') {
 			$signedDate = $this->parseDate($raw['signedDate']);
 			if ($signedDate === null) {
-				$errors[] = sprintf('Unlesbares Mandatsdatum: %s', $raw['signedDate']);
+				$errors[] = $this->msg('Unlesbares Mandatsdatum: %s', [$raw['signedDate']]);
 			}
 		} elseif ($iban !== null) {
 			// Das Unterschriftsdatum wandert als DtOfSgntr in jede Einreichung
 			// und ist der Nachweis, dass es das Mandat gibt. Ohne Datum kein
 			// Mandat – hier zu raten wäre in der Sache falsch.
-			$errors[] = 'Zu einer IBAN gehört das Datum, an dem das Mandat unterschrieben wurde.';
+			$errors[] = $this->msg('Zu einer IBAN gehört das Datum, an dem das Mandat unterschrieben wurde.');
 		}
 
 		$amountCents = null;
@@ -259,7 +271,7 @@ class MemberCsvParser {
 		if (($raw['amount'] ?? '') !== '') {
 			$amountCents = $this->parseAmount($raw['amount']);
 			if ($amountCents === null || $amountCents <= 0) {
-				$errors[] = sprintf('Unlesbarer oder nicht positiver Betrag: %s', $raw['amount']);
+				$errors[] = $this->msg('Unlesbarer oder nicht positiver Betrag: %s', [$raw['amount']]);
 				$amountCents = null;
 			}
 		} elseif ($defaultAmountCents !== null && ($raw['startDate'] ?? '') !== '') {
@@ -276,7 +288,7 @@ class MemberCsvParser {
 		if (($raw['frequency'] ?? '') !== '') {
 			$frequency = $this->parseFrequency($raw['frequency']);
 			if ($frequency === null) {
-				$errors[] = sprintf('Unbekannte Zahlungsfrequenz: %s', $raw['frequency']);
+				$errors[] = $this->msg('Unbekannte Zahlungsfrequenz: %s', [$raw['frequency']]);
 			}
 		} elseif ($usedDefaultAmount) {
 			$frequency = $defaultFrequency ?? 'yearly';
@@ -290,10 +302,10 @@ class MemberCsvParser {
 		if (($raw['startDate'] ?? '') !== '') {
 			$startDate = $this->parseDate($raw['startDate']);
 			if ($startDate === null) {
-				$errors[] = sprintf('Unlesbares Startdatum: %s', $raw['startDate']);
+				$errors[] = $this->msg('Unlesbares Startdatum: %s', [$raw['startDate']]);
 			}
 		} elseif ($amountCents !== null) {
-			$errors[] = 'Zu einem Betrag gehört ein Startdatum (erste Fälligkeit).';
+			$errors[] = $this->msg('Zu einem Betrag gehört ein Startdatum (erste Fälligkeit).');
 		}
 
 		// Seit Issue #69 (voller CSV-Import) ist eine Zeile ganz ohne Mandat und

@@ -2,6 +2,7 @@ import { showError } from '@nextcloud/dialogs'
 import { reactive } from 'vue'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
+import { t } from '../lib/l10n.js'
 import { usePeriods } from './usePeriods.js'
 
 const state = reactive({
@@ -28,7 +29,7 @@ async function loadBalances() {
 		state.balances = data
 	} catch (e) {
 		if (seq !== balancesSeq) { return }
-		showError(errMsg(e, 'Auswertung konnte nicht geladen werden'))
+		showError(errMsg(e, t('Auswertung konnte nicht geladen werden')))
 	}
 
 	// Der Zeitraum davor für den Kennzahlen-Vergleich (still im Hintergrund,
@@ -57,7 +58,7 @@ async function loadSphereReport() {
 		return data
 	} catch (e) {
 		if (seq !== sphereSeq) { return null }
-		showError(errMsg(e, 'Sphären-Bericht konnte nicht geladen werden'))
+		showError(errMsg(e, t('Sphären-Bericht konnte nicht geladen werden')))
 		return null
 	}
 }

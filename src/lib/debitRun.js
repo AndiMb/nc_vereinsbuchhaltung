@@ -156,11 +156,24 @@ export function yearPosition(date, start, end) {
 	return Math.min(100, Math.max(0, (daysBetween(start, date) / span) * 100))
 }
 
-/** Monatsanfänge im Beitragsjahr als Skalenstriche: `[{ date, label, position }]`. */
-export function monthTicks(start, end) {
+/**
+ * Monatsanfänge im Beitragsjahr als Skalenstriche: `[{ date, label, position }]`.
+ *
+ * @param {string} start erster Tag des Beitragsjahres (JJJJ-MM-TT)
+ * @param {string} end letzter Tag des Beitragsjahres (JJJJ-MM-TT)
+ * @param {string} language Sprache der Monatsnamen (de, en, de_DE, …) – die
+ *                          Oberflächensprache; ein unbrauchbarer Wert fällt auf
+ *                          Deutsch (Quellsprache) zurück, wie bei monthOptions()
+ */
+export function monthTicks(start, end, language = 'de') {
 	const ticks = []
 	const [sy, sm] = start.split('-').map(Number)
-	const format = new Intl.DateTimeFormat('de-DE', { month: 'short', timeZone: 'UTC' })
+	let format
+	try {
+		format = new Intl.DateTimeFormat(String(language).replace('_', '-'), { month: 'short', timeZone: 'UTC' })
+	} catch {
+		format = new Intl.DateTimeFormat('de-DE', { month: 'short', timeZone: 'UTC' })
+	}
 	for (let i = 0; i < 24; i++) {
 		const first = new Date(Date.UTC(sy, sm - 1 + i, 1))
 		const iso = first.toISOString().slice(0, 10)

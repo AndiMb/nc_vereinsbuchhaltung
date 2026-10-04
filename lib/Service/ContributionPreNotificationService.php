@@ -54,7 +54,7 @@ class ContributionPreNotificationService {
 		private ContributionCycleSettings $settings,
 		private ITimeFactory $time,
 		private LoggerInterface $logger,
-		private IL10N $l10n,
+		private RecipientL10n $recipientL10n,
 	) {
 	}
 
@@ -112,6 +112,8 @@ class ContributionPreNotificationService {
 			return 'skipped';
 		}
 		[$email, $displayName] = $recipient;
+		// Sprache des Empfängers, nicht die des Cron-Laufs (siehe RecipientL10n).
+		$l = $this->recipientL10n->forMember($member);
 
 		usort($items, static fn (OpenItem $a, OpenItem $b) => ((string)$a->getDueDate()) <=> ((string)$b->getDueDate()));
 
@@ -120,27 +122,27 @@ class ContributionPreNotificationService {
 		$mandateReference = $mandate?->getMandateReference() ?? '';
 
 		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '');
-		$clubName = $clubName !== '' ? $clubName : $this->l10n->t('Ihr Verein');
+		$clubName = $clubName !== '' ? $clubName : $l->t('Ihr Verein');
 		$creditorId = $this->config->getAppValue(Application::APP_ID, 'sepa_creditor_id', '');
 
 		$template = $this->mailer->createEMailTemplate('vereinsbuchhaltung.contributionPreNotification');
-		$template->setSubject($this->l10n->t('Bevorstehender Lastschrifteinzug von %s', [$clubName]));
+		$template->setSubject($l->t('Bevorstehender Lastschrifteinzug von %s', [$clubName]));
 		$template->addHeader();
-		$template->addHeading($this->l10n->t('Bevorstehender Lastschrifteinzug'));
-		$template->addBodyText($this->l10n->t('Guten Tag %s,', [$displayName]));
-		$template->addBodyText($this->l10n->t('%s wird die folgenden Beträge per Lastschrift von Ihrem Konto einziehen (Mandatsreferenz %s):', [$clubName, $mandateReference]));
+		$template->addHeading($l->t('Bevorstehender Lastschrifteinzug'));
+		$template->addBodyText($l->t('Guten Tag %s,', [$displayName]));
+		$template->addBodyText($l->t('%s wird die folgenden Beträge per Lastschrift von Ihrem Konto einziehen (Mandatsreferenz %s):', [$clubName, $mandateReference]));
 		foreach ($items as $item) {
-			$template->addBodyText('– ' . $this->positionLine($item));
+			$template->addBodyText('– ' . $this->positionLine($item, $l));
 		}
-		$template->addBodyText($this->l10n->t('Frühester Einzug: %s', [(string)$items[0]->getDueDate()]));
+		$template->addBodyText($l->t('Frühester Einzug: %s', [(string)$items[0]->getDueDate()]));
 		if ($creditorId !== '') {
-			$template->addBodyText($this->l10n->t('Gläubiger-Identifikationsnummer: %s', [$creditorId]));
+			$template->addBodyText($l->t('Gläubiger-Identifikationsnummer: %s', [$creditorId]));
 		}
 		// Sperrgrenzen-Hinweis als eigener Satz (Spec §3.11/T31) - ab jetzt
 		// greift die Wirksamkeitsregel (EffectivityRuleService) fuer diese
 		// Positionen scharf.
-		$template->addBodyText($this->l10n->t('Betrag und Turnus dieser Positionen stehen ab jetzt fest und lassen sich bis zum Einzug nicht mehr ändern.'));
-		$template->addBodyText($this->l10n->t('Bitte sorgen Sie für ausreichende Deckung Ihres Kontos. Bei Fragen wenden Sie sich an die Kassenführung.'));
+		$template->addBodyText($l->t('Betrag und Turnus dieser Positionen stehen ab jetzt fest und lassen sich bis zum Einzug nicht mehr ändern.'));
+		$template->addBodyText($l->t('Bitte sorgen Sie für ausreichende Deckung Ihres Kontos. Bei Fragen wenden Sie sich an die Kassenführung.'));
 		$template->addFooter();
 
 		$message = $this->mailer->createMessage();
@@ -161,13 +163,13 @@ class ContributionPreNotificationService {
 		return 'sent';
 	}
 
-	private function positionLine(OpenItem $item): string {
+	private function positionLine(OpenItem $item, IL10N $l): string {
 		$amount = number_format($item->getAmountCents() / 100, 2, ',', '.') . ' €';
-		$label = (string)($item->getDescription() ?? $this->l10n->t('Beitrag'));
+		$label = (string)($item->getDescription() ?? $l->t('Beitrag'));
 		if ($item->getPeriodStart() !== null && $item->getPeriodEnd() !== null) {
-			return $this->l10n->t('%1$s (%2$s – %3$s): %4$s, fällig %5$s', [$label, (string)$item->getPeriodStart(), (string)$item->getPeriodEnd(), $amount, (string)$item->getDueDate()]);
+			return $l->t('%1$s (%2$s – %3$s): %4$s, fällig %5$s', [$label, (string)$item->getPeriodStart(), (string)$item->getPeriodEnd(), $amount, (string)$item->getDueDate()]);
 		}
-		return $this->l10n->t('%1$s: %2$s, fällig %3$s', [$label, $amount, (string)$item->getDueDate()]);
+		return $l->t('%1$s: %2$s, fällig %3$s', [$label, $amount, (string)$item->getDueDate()]);
 	}
 
 	/**

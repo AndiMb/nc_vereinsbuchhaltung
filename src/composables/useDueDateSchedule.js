@@ -2,6 +2,7 @@ import { showError } from '@nextcloud/dialogs'
 import { reactive } from 'vue'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
+import { t } from '../lib/l10n.js'
 
 /**
  * Der Terminplan (Spec §2.2/§3.5, Issue #70): je Turnus ein
@@ -22,7 +23,7 @@ async function loadDueDateSchedule() {
 		state.schedule = data.schedule
 		state.prenotificationLeadDays = data.prenotificationLeadDays
 		state.warningLeadDays = data.warningLeadDays
-	} catch (e) { showError(errMsg(e, 'Terminplan konnte nicht geladen werden')) }
+	} catch (e) { showError(errMsg(e, t('Terminplan konnte nicht geladen werden'))) }
 }
 
 export function useDueDateSchedule() {

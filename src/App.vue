@@ -80,7 +80,7 @@
 		     Panel fuer genau diesen Fall). -->
 		<div v-if="me && !canRead && !selfServiceAvailable" class="vbh-noaccess">
 			<h3>{{ t('Kein Zugriff') }}</h3>
-			<p>{{ t('Du hast keine Berechtigung für die Vereinsbuchhaltung. Bitte wende dich an eine Verwalterin oder einen Verwalter.') }}</p>
+			<p>{{ t('Sie haben keine Berechtigung für die Vereinsbuchhaltung. Bitte wenden Sie sich an eine Verwalterin oder einen Verwalter.') }}</p>
 		</div>
 
 		<div v-if="demoActive" class="vbh-demobanner">

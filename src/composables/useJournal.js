@@ -2,6 +2,7 @@ import { showError } from '@nextcloud/dialogs'
 import { computed, reactive } from 'vue'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
+import { t } from '../lib/l10n.js'
 import { useAccounts } from './useAccounts.js'
 import { usePeriods } from './usePeriods.js'
 
@@ -69,7 +70,7 @@ async function loadJournal() {
 		state.journalData = data
 	} catch (e) {
 		if (seq !== journalSeq) { return }
-		showError(errMsg(e, 'Journal konnte nicht geladen werden'))
+		showError(errMsg(e, t('Journal konnte nicht geladen werden')))
 	}
 }
 
@@ -77,7 +78,7 @@ async function loadTransactions() {
 	try {
 		const { data } = await api.listTransactions('')
 		state.transactions = data
-	} catch (e) { showError(errMsg(e, 'Buchungen konnten nicht geladen werden')) }
+	} catch (e) { showError(errMsg(e, t('Buchungen konnten nicht geladen werden'))) }
 }
 
 export function useJournal() {

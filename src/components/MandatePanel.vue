@@ -63,7 +63,7 @@
 
 				<!-- Einmal-Link-Adresse zum Weitergeben, solange die Mail nicht ankommt (siehe MandateController::sendActivationLink()) -->
 				<div v-if="sentLink" class="vbh-hint vbh-hint--info vbh-mandate-link">
-					<span>{{ t('Einmal-Link an {email} verschickt. Kommt die Mail nicht an, können Sie den Link auch direkt weitergeben:', { email: sentLink.email }) }}</span>
+					<span>{{ activationLinkSentText(sentLink.email) }}</span>
 					<input
 						:value="sentLink.url"
 						readonly
@@ -351,6 +351,7 @@ import { useAuth } from '../composables/useAuth.js'
 import { errMsg, formatDate } from '../lib/format.js'
 import { createMandateForMember } from '../lib/mandateCreate.js'
 import {
+	activationLinkSentText,
 	activationLinkState,
 	amendmentStatusLabel,
 	daysUntil,
@@ -466,6 +467,7 @@ export default {
 		formatDate,
 		formatStamp,
 		formatIban,
+		activationLinkSentText,
 		statusLabel,
 		endReasonLabel,
 		amendmentStatusLabel,

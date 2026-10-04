@@ -227,7 +227,7 @@
 					@paperclip="clickPaperclip(r)" />
 			</div>
 		</template>
-		<NcEmptyContent v-else-if="!busy" :name="t('Noch keine Buchungen')" :description="t('Importiere Kontoumsätze oder lege manuell Buchungssätze an.')">
+		<NcEmptyContent v-else-if="!busy" :name="t('Noch keine Buchungen')" :description="t('Importieren Sie Kontoumsätze oder legen Sie manuell Buchungssätze an.')">
 			<template #action>
 				<NcButton variant="tertiary" @click="$emit('help', 'bookings')">
 					{{ t('Mehr dazu') }}

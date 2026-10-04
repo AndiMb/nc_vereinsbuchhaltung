@@ -43,7 +43,7 @@
 						</th>
 						<th>{{ t('Frequenz') }}</th>
 						<th>{{ t('Nächste Fälligkeit') }}</th>
-						<th>{{ t('Aktiv') }}</th>
+						<th>{{ tc('Zustand', 'Aktiv') }}</th>
 						<th class="vbh-col-memberactions" />
 					</tr>
 				</thead>

@@ -394,7 +394,7 @@ class SepaImportConfirmationServiceTest extends TestCase {
 		});
 
 		$this->mandates->expects($this->once())->method('suspendDueToReturnedDebit')->with(55, $this->isType('int'), $this->isType('string'));
-		$this->dunningLadder->expects($this->once())->method('triggerPaymentRequest')->with($this->callback(fn (OpenItem $i) => $i->getId() === 100), $this->isType('string'));
+		$this->dunningLadder->expects($this->once())->method('triggerPaymentRequest')->with($this->callback(fn (OpenItem $i) => $i->getId() === 100), $this->isInstanceOf(\Closure::class));
 
 		$this->service()->settle(1);
 	}

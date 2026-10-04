@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCP\IConfig;
+use OCP\IL10N;
 
 /**
  * Die konfigurierbare Ablauf-Vorwarnung der Mandate (Spec §4
@@ -22,6 +23,8 @@ use OCP\IConfig;
  */
 final class MandateExpirySettings {
 
+	use OptionalL10n;
+
 	public const SETTING_WARNING_DAYS = 'expiry_warning_days';
 	public const DEFAULT_WARNING_DAYS = MandateExpiryCalculator::WARNING_DAYS;
 
@@ -31,6 +34,7 @@ final class MandateExpirySettings {
 
 	public function __construct(
 		private IConfig $config,
+		private ?IL10N $l10n = null,
 	) {
 	}
 
@@ -42,7 +46,7 @@ final class MandateExpirySettings {
 	/** @throws \InvalidArgumentException außerhalb des Plausibilitätsbereichs */
 	public function setWarningDays(int $days): void {
 		if ($days < self::MIN_DAYS || $days > self::MAX_DAYS) {
-			throw new \InvalidArgumentException('Die Ablauf-Vorwarnung muss zwischen ' . self::MIN_DAYS . ' und ' . self::MAX_DAYS . ' Tagen liegen.');
+			throw new \InvalidArgumentException($this->msg('Die Ablauf-Vorwarnung muss zwischen %1$d und %2$d Tagen liegen.', [self::MIN_DAYS, self::MAX_DAYS]));
 		}
 		$this->config->setAppValue(Application::APP_ID, self::SETTING_WARNING_DAYS, (string)$days);
 	}

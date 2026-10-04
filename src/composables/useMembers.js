@@ -2,6 +2,7 @@ import { showError } from '@nextcloud/dialogs'
 import { reactive } from 'vue'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
+import { t } from '../lib/l10n.js'
 
 /**
  * Mitglieder-Stammdaten (Spec §2.2): geteilter Zustand, analog
@@ -17,7 +18,7 @@ async function loadMembers() {
 		state.members = data
 		return data
 	} catch (e) {
-		showError(errMsg(e, 'Mitglieder konnten nicht geladen werden'))
+		showError(errMsg(e, t('Mitglieder konnten nicht geladen werden')))
 		return null
 	}
 }

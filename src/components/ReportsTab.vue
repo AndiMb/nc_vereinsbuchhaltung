@@ -373,7 +373,7 @@
 						</div>
 					</div>
 					<p v-else class="vbh-hint">
-						{{ t('Keine Daten. Importiere oder erfasse zuerst Buchungen.') }}
+						{{ t('Keine Daten. Importieren oder erfassen Sie zuerst Buchungen.') }}
 					</p>
 				</div>
 
@@ -560,7 +560,7 @@
 						</div>
 					</div>
 					<p v-else class="vbh-hint">
-						{{ t('Keine Daten. Importiere oder erfasse zuerst Buchungen.') }}
+						{{ t('Keine Daten. Importieren oder erfassen Sie zuerst Buchungen.') }}
 					</p>
 				</div>
 
@@ -632,7 +632,7 @@
 			<!-- RÜCKLAGEN -->
 			<div v-show="reportView === 'reserves'">
 				<p class="vbh-hint">
-					{{ t('Rücklagen sind Eigenkapital-Konten mit festgelegter Rücklagen-Art (§ 62 AO). Zuweisungen erfolgen als normale Buchung (Experten-Modus im Buchungsdialog, Eigenkapital-zu-Eigenkapital-Umbuchung) – hier siehst du nur den aktuellen Stand je Art.') }}
+					{{ t('Rücklagen sind Eigenkapital-Konten mit festgelegter Rücklagen-Art (§ 62 AO). Zuweisungen erfolgen als normale Buchung (Experten-Modus im Buchungsdialog, Eigenkapital-zu-Eigenkapital-Umbuchung) – hier sehen Sie nur den aktuellen Stand je Art.') }}
 				</p>
 				<div v-if="reserveData" class="vbh-totals">
 					<div class="vbh-total" :class="reserveData.total >= 0 ? 'pos' : 'neg'">
@@ -691,7 +691,7 @@
 					</NcButton>
 				</div>
 				<p class="vbh-hint">
-					{{ t('Plane je Konto die erwarteten Einnahmen und Ausgaben (Spalte „Plan"). Die Spalte „Ist" zeigt die tatsächlichen Buchungen des gewählten Zeitraums, „Differenz" den Abstand zum Plan.') }}
+					{{ t('Planen Sie je Konto die erwarteten Einnahmen und Ausgaben (Spalte „Plan"). Die Spalte „Ist" zeigt die tatsächlichen Buchungen des gewählten Zeitraums, „Differenz" den Abstand zum Plan.') }}
 				</p>
 
 				<div v-if="budgetData" class="vbh-totals">
@@ -811,7 +811,7 @@
 						</form>
 					</div>
 					<p class="vbh-hint">
-						{{ t('Friere den aktuellen Finanzplan als benannten, datierten Stand ein (z.B. den in der Mitgliederversammlung beschlossenen Haushalt). Spätere Planänderungen lassen den Stand unberührt.') }}
+						{{ t('Frieren Sie den aktuellen Finanzplan als benannten, datierten Stand ein (z.B. den in der Mitgliederversammlung beschlossenen Haushalt). Spätere Planänderungen lassen den Stand unberührt.') }}
 					</p>
 					<div v-if="budgetSnapshots.length" class="vbh-tablecard">
 						<table class="vbh-table">

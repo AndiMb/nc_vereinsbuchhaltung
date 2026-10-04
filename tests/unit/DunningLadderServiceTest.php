@@ -19,6 +19,7 @@ use OCA\Vereinsbuchhaltung\Service\DirectDebitEligibilityResolver;
 use OCA\Vereinsbuchhaltung\Service\DunningLadderService;
 use OCA\Vereinsbuchhaltung\Service\DunningSettings;
 use OCA\Vereinsbuchhaltung\Service\EpcQrCodeGenerator;
+use OCA\Vereinsbuchhaltung\Service\RecipientL10n;
 use OCA\Vereinsbuchhaltung\Service\SepaDebtorAccountService;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IConfig;
@@ -142,8 +143,15 @@ class DunningLadderServiceTest extends TestCase {
 			$this->config,
 			$time,
 			$this->createMock(LoggerInterface::class),
-			$l10n,
+			$this->recipientL10n($l10n),
 		);
+	}
+
+	/** Die Sprache des Empfängers ist hier immer die des Mocks: Du/Sie und Sprache prüft RecipientL10nTest. */
+	private function recipientL10n(IL10N $l10n): RecipientL10n {
+		$recipient = $this->createMock(RecipientL10n::class);
+		$recipient->method('forMember')->willReturn($l10n);
+		return $recipient;
 	}
 
 	private function claim(int $id, int $memberId, int $amountCents = 4500, ?string $dueDate = '2026-10-01', ?int $assignmentId = null, ?string $deferredUntil = null): OpenItem {
@@ -180,7 +188,7 @@ class DunningLadderServiceTest extends TestCase {
 		$this->notices->method('findByOpenItemAndStage')->willReturn(null);
 		$this->mailer->method('send')->willReturn([]);
 
-		$result = $this->service()->triggerPaymentRequest($item, 'Die Lastschrift konnte nicht eingezogen werden.');
+		$result = $this->service()->triggerPaymentRequest($item, fn (): string => 'Die Lastschrift konnte nicht eingezogen werden.');
 
 		$this->assertSame(['sent' => 1, 'skipped' => 0, 'failed' => 0], $result);
 		$this->assertCount(1, $this->insertedNotices);
@@ -193,7 +201,7 @@ class DunningLadderServiceTest extends TestCase {
 		$this->notices->method('findByOpenItemAndStage')->willReturn($this->notice(1, DunningNotice::STAGE_PAYMENT_REQUEST, '2026-10-01T00:00:00+00:00'));
 		$this->mailer->expects($this->never())->method('send');
 
-		$result = $this->service()->triggerPaymentRequest($item, 'Grund');
+		$result = $this->service()->triggerPaymentRequest($item, fn (): string => 'Grund');
 
 		$this->assertSame(['sent' => 0, 'skipped' => 1, 'failed' => 0], $result);
 	}
@@ -444,7 +452,7 @@ class DunningLadderServiceTest extends TestCase {
 			$this->config,
 			$time,
 			$logger ?? $this->createMock(LoggerInterface::class),
-			$l10n,
+			$this->recipientL10n($l10n),
 		);
 	}
 
@@ -472,7 +480,7 @@ class DunningLadderServiceTest extends TestCase {
 		$item = $this->claim(1, 7, amountCents: 1234);
 		$this->notices->method('findByOpenItemAndStage')->willReturn(null);
 
-		$this->giroCodeService()->triggerPaymentRequest($item, 'Grund');
+		$this->giroCodeService()->triggerPaymentRequest($item, fn (): string => 'Grund');
 
 		$this->assertSame(1, $this->attachedCount);
 	}
@@ -537,7 +545,7 @@ class DunningLadderServiceTest extends TestCase {
 	public function testDerMailtextVersprichtDenGiroCodeNurWennJedePositionEinenHat(): void {
 		$this->notices->method('findByOpenItemAndStage')->willReturn(null);
 
-		$this->giroCodeService()->triggerPaymentRequest($this->claim(1, 7), 'Grund');
+		$this->giroCodeService()->triggerPaymentRequest($this->claim(1, 7), fn (): string => 'Grund');
 
 		$this->assertContains('Bitte überweisen Sie jede Position einzeln mit dem jeweils genannten Betrag – für jede Position liegt ein GiroCode zum Scannen mit Ihrer Banking-App bei.', $this->bodyTexts);
 	}
@@ -598,7 +606,7 @@ class DunningLadderServiceTest extends TestCase {
 	public function testOhneGiroCodeVersprichtDieMailKeinenAnhang(\Throwable $failure): void {
 		$this->notices->method('findByOpenItemAndStage')->willReturn(null);
 
-		$this->giroCodeService($this->failingGenerator($failure))->triggerPaymentRequest($this->claim(1, 7), 'Grund');
+		$this->giroCodeService($this->failingGenerator($failure))->triggerPaymentRequest($this->claim(1, 7), fn (): string => 'Grund');
 
 		$this->assertContains('Bitte überweisen Sie jede Position einzeln mit dem jeweils genannten Betrag.', $this->bodyTexts);
 		foreach ($this->bodyTexts as $text) {
@@ -625,7 +633,7 @@ class DunningLadderServiceTest extends TestCase {
 		$logger = $this->createMock(LoggerInterface::class);
 		$logger->expects($this->never())->method('warning');
 
-		$result = $this->giroCodeService(null, $logger, accountConfigured: false)->triggerPaymentRequest($this->claim(1, 7), 'Grund');
+		$result = $this->giroCodeService(null, $logger, accountConfigured: false)->triggerPaymentRequest($this->claim(1, 7), fn (): string => 'Grund');
 
 		$this->assertSame(1, $result['sent']);
 		$this->assertSame(0, $this->attachedCount);
@@ -637,7 +645,7 @@ class DunningLadderServiceTest extends TestCase {
 		$logger = $this->createMock(LoggerInterface::class);
 		$logger->expects($this->never())->method('warning');
 
-		$result = $this->giroCodeService(null, $logger, iban: null)->triggerPaymentRequest($this->claim(1, 7), 'Grund');
+		$result = $this->giroCodeService(null, $logger, iban: null)->triggerPaymentRequest($this->claim(1, 7), fn (): string => 'Grund');
 
 		$this->assertSame(1, $result['sent']);
 		$this->assertSame(0, $this->attachedCount);

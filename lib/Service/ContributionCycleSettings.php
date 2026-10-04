@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCP\IConfig;
+use OCP\IL10N;
 
 /**
  * Die konfigurierbaren Abstände des Einzugszyklus (Spec §3.5/§7/§3.9): D−21
@@ -27,6 +28,8 @@ use OCP\IConfig;
  */
 final class ContributionCycleSettings {
 
+	use OptionalL10n;
+
 	public const SETTING_PRENOTIFICATION_LEAD_DAYS = 'prenotification_lead_days';
 	public const DEFAULT_PRENOTIFICATION_LEAD_DAYS = 14;
 
@@ -42,6 +45,7 @@ final class ContributionCycleSettings {
 
 	public function __construct(
 		private IConfig $config,
+		private ?IL10N $l10n = null,
 	) {
 	}
 
@@ -80,7 +84,7 @@ final class ContributionCycleSettings {
 
 	private function writeDays(string $key, int $days): void {
 		if ($days < self::MIN_DAYS || $days > self::MAX_DAYS) {
-			throw new \InvalidArgumentException('Der Wert muss zwischen ' . self::MIN_DAYS . ' und ' . self::MAX_DAYS . ' Tagen liegen.');
+			throw new \InvalidArgumentException($this->msg('Der Wert muss zwischen %1$d und %2$d Tagen liegen.', [self::MIN_DAYS, self::MAX_DAYS]));
 		}
 		$this->config->setAppValue(Application::APP_ID, $key, (string)$days);
 	}

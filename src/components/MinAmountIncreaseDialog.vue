@@ -110,7 +110,7 @@ export default {
 				this.preview = data
 			} catch (e) {
 				this.preview = null
-				showError(errMsg(e, 'Vorschau konnte nicht geladen werden'))
+				showError(errMsg(e, this.t('Vorschau konnte nicht geladen werden')))
 			}
 		},
 
@@ -119,7 +119,7 @@ export default {
 				await api.applyMinAmountIncrease(this.groupId, Number(this.newMinMonthlyAmount))
 				this.$emit('applied')
 				this.$emit('close')
-			} catch (e) { showError(errMsg(e, 'Untergrenze konnte nicht angehoben werden')) }
+			} catch (e) { showError(errMsg(e, this.t('Untergrenze konnte nicht angehoben werden'))) }
 		},
 	},
 }

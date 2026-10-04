@@ -44,7 +44,7 @@
 					</select>
 				</label>
 				<NcCheckboxRadioSwitch v-model="form.isActive" type="switch">
-					{{ t('Aktiv') }}
+					{{ tc('Zustand', 'Aktiv') }}
 				</NcCheckboxRadioSwitch>
 			</div>
 			<div class="vbh-modal-actions">

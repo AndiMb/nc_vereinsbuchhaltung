@@ -161,6 +161,7 @@
 
 <script>
 import { mdiChevronLeft, mdiChevronRight } from '@mdi/js'
+import { getLanguage } from '@nextcloud/l10n'
 import { NcButton, NcIconSvgWrapper } from '@nextcloud/vue'
 import {
 	dateSourceText,
@@ -203,7 +204,7 @@ export default {
 	},
 
 	computed: {
-		ticks() { return monthTicks(this.timeline.year.start, this.timeline.year.end) },
+		ticks() { return monthTicks(this.timeline.year.start, this.timeline.year.end, getLanguage()) },
 
 		todayInYear() { return this.timeline.today >= this.timeline.year.start && this.timeline.today <= this.timeline.year.end },
 

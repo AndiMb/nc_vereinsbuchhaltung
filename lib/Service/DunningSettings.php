@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCP\IConfig;
+use OCP\IL10N;
 
 /**
  * Der konfigurierbare Mahnabstand (Spec §3.6 „nach konfigurierbarem
@@ -31,6 +32,8 @@ use OCP\IConfig;
  */
 final class DunningSettings {
 
+	use OptionalL10n;
+
 	public const SETTING_INTERVAL_DAYS = 'dunning_interval_days';
 	public const DEFAULT_INTERVAL_DAYS = 14;
 
@@ -40,6 +43,7 @@ final class DunningSettings {
 
 	public function __construct(
 		private IConfig $config,
+		private ?IL10N $l10n = null,
 	) {
 	}
 
@@ -51,7 +55,7 @@ final class DunningSettings {
 	/** @throws \InvalidArgumentException außerhalb des Plausibilitätsbereichs */
 	public function setIntervalDays(int $days): void {
 		if ($days < self::MIN_DAYS || $days > self::MAX_DAYS) {
-			throw new \InvalidArgumentException('Der Mahnabstand muss zwischen ' . self::MIN_DAYS . ' und ' . self::MAX_DAYS . ' Tagen liegen.');
+			throw new \InvalidArgumentException($this->msg('Der Mahnabstand muss zwischen %1$d und %2$d Tagen liegen.', [self::MIN_DAYS, self::MAX_DAYS]));
 		}
 		$this->config->setAppValue(Application::APP_ID, self::SETTING_INTERVAL_DAYS, (string)$days);
 	}

@@ -41,6 +41,21 @@ use OCP\Security\ISecureRandom;
  */
 class MandateActivationService {
 
+	/**
+	 * Meldungen der öffentlichen Zustimmungsseite
+	 * ({@see \OCA\Vereinsbuchhaltung\Controller\MandateConsentController}):
+	 * bewusst nur Deutsch und bewusst NICHT über `t()`. Die Seite zeigt den
+	 * Mandats-Rechtstext, der nur auf Deutsch gilt (Spec §3.11 „Nur Deutsch"), und
+	 * ihre Bedienelemente sind fest deutsch (templates/mandateConsent.php) –
+	 * übersetzte Fehlermeldungen in einer deutschen Seite gäben ein Sprachgemisch,
+	 * und die Sprache des Betrachters ist hier unbekannt: ein Besucher ohne
+	 * Anmeldung bekäme sonst je nach Browser die Du-Fassung zu sehen, obwohl für
+	 * Mitglieder ohne Konto immer Sie gilt.
+	 */
+	public const MESSAGE_LINK_INVALID = 'Dieser Link ist ungültig.';
+	public const MESSAGE_LINK_EXPIRED = 'Dieser Link ist abgelaufen. Bitte fordern Sie einen neuen an.';
+	public const MESSAGE_ALREADY_CONSENTED = 'Diesem Mandat wurde bereits zugestimmt.';
+
 	/** Alphabet ohne Sonderzeichen: URL-sicher ohne Prozent-Encoding. */
 	private const SELECTOR_LENGTH = 16;
 	private const VALIDATOR_LENGTH = 64;
@@ -57,6 +72,7 @@ class MandateActivationService {
 		private IURLGenerator $urlGenerator,
 		private IConfig $config,
 		private IL10N $l10n,
+		private RecipientL10n $recipientL10n,
 	) {
 	}
 
@@ -171,19 +187,25 @@ class MandateActivationService {
 	}
 
 	private function sendMail(Member $member, string $email, Mandate $mandate, string $url): void {
-		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '') ?: $this->l10n->t('Ihr Verein');
+		// Die Mail geht im Namen der Verwaltung raus (oder aus dem Self-Service),
+		// gelesen wird sie vom Mitglied: Sprache und Du/Sie kommen von dessen Konto
+		// (siehe RecipientL10n), nicht vom auslösenden Request.
+		$l = $this->recipientL10n->forMember($member);
+		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '') ?: $l->t('Ihr Verein');
 
+		// Die Mail ist übersetzt, die Seite hinter dem Link bewusst nicht: sie zeigt den
+		// Mandats-Rechtstext, und der gilt nur auf Deutsch (siehe MandateLegalTextService).
 		$template = $this->mailer->createEMailTemplate('vereinsbuchhaltung.mandateActivationLink');
-		$template->setSubject($this->l10n->t('Bitte bestätigen Sie Ihr SEPA-Lastschriftmandat'));
+		$template->setSubject($l->t('Bitte bestätigen Sie Ihr SEPA-Lastschriftmandat'));
 		$template->addHeader();
-		$template->addHeading($this->l10n->t('SEPA-Lastschriftmandat bestätigen'));
-		$template->addBodyText($this->l10n->t(
+		$template->addHeading($l->t('SEPA-Lastschriftmandat bestätigen'));
+		$template->addBodyText($l->t(
 			'%1$s bittet Sie, das SEPA-Lastschriftmandat mit der Referenz %2$s elektronisch zu bestätigen.',
 			[$clubName, $mandate->getMandateReference()]
 		));
-		$template->addBodyText($this->l10n->t('Mit einem Klick auf die Schaltfläche sehen Sie den vollständigen Mandatstext und können zustimmen.'));
-		$template->addBodyButton($this->l10n->t('Jetzt bestätigen'), $url);
-		$template->addBodyText($this->l10n->t('Dieser Link ist %d Tage gültig und nur einmal verwendbar.', [MandateActivationToken::VALIDITY_DAYS]));
+		$template->addBodyText($l->t('Mit einem Klick auf die Schaltfläche sehen Sie den vollständigen Mandatstext und können zustimmen.'));
+		$template->addBodyButton($l->t('Jetzt bestätigen'), $url);
+		$template->addBodyText($l->t('Dieser Link ist %d Tage gültig und nur einmal verwendbar.', [MandateActivationToken::VALIDITY_DAYS]));
 		$template->addFooter();
 
 		$message = $this->mailer->createMessage();
@@ -207,7 +229,7 @@ class MandateActivationService {
 	private function resolve(string $rawToken): MandateActivationToken {
 		$parts = explode('.', $rawToken, 2);
 		if (count($parts) !== 2 || $parts[0] === '' || $parts[1] === '') {
-			throw new InvalidActivationTokenException($this->l10n->t('Dieser Link ist ungültig.'));
+			throw new InvalidActivationTokenException(self::MESSAGE_LINK_INVALID);
 		}
 		[$selector, $validator] = $parts;
 		$token = $this->tokenMapper->findBySelector($selector);
@@ -215,10 +237,10 @@ class MandateActivationService {
 			// Bewusst dieselbe Fehlermeldung wie bei unbekanntem Selector: ob der
 			// Selector existierte, aber der Validator falsch war, darf von außen
 			// nicht unterscheidbar sein (Timing/Informationsleck).
-			throw new InvalidActivationTokenException($this->l10n->t('Dieser Link ist ungültig.'));
+			throw new InvalidActivationTokenException(self::MESSAGE_LINK_INVALID);
 		}
 		if ($token->isExpired(new \DateTimeImmutable())) {
-			throw new ExpiredActivationTokenException($this->l10n->t('Dieser Link ist abgelaufen. Bitte fordern Sie einen neuen an.'));
+			throw new ExpiredActivationTokenException(self::MESSAGE_LINK_EXPIRED);
 		}
 		return $token;
 	}
@@ -277,7 +299,7 @@ class MandateActivationService {
 	public function consent(string $rawToken, string $ip, string $userAgent): Mandate {
 		$token = $this->resolve($rawToken);
 		if ($token->isConsumed()) {
-			throw new ConsumedActivationTokenException($this->l10n->t('Diesem Mandat wurde bereits zugestimmt.'));
+			throw new ConsumedActivationTokenException(self::MESSAGE_ALREADY_CONSENTED);
 		}
 
 		// Verteidigungslinie: normalerweise ist die Version durch die

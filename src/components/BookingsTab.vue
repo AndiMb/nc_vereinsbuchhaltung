@@ -188,7 +188,7 @@
 					</table>
 				</div>
 				<NcEmptyContent v-else-if="bookingSearch || bookingFilterAccountId" :name="t('Keine Treffer')" :description="t('Suchfilter anpassen oder löschen.')" />
-				<NcEmptyContent v-else :name="t('Noch keine Buchungssätze')" :description="t('Lege mit ‛Neue Buchung\' einen ersten Buchungssatz an.')">
+				<NcEmptyContent v-else :name="t('Noch keine Buchungssätze')" :description="t('Legen Sie mit ‛Neue Buchung\' einen ersten Buchungssatz an.')">
 					<template #action>
 						<NcButton variant="tertiary" @click="$emit('help')">
 							{{ t('Mehr dazu') }}
@@ -496,7 +496,7 @@
 						</tbody>
 					</table>
 				</div>
-				<NcEmptyContent v-else :name="t('Keine offenen Posten')" :description="t('Lege oben einen neuen offenen Posten an, z. B. einen unbezahlten Mitgliedsbeitrag.')" />
+				<NcEmptyContent v-else :name="t('Keine offenen Posten')" :description="t('Legen Sie oben einen neuen offenen Posten an, z. B. einen unbezahlten Mitgliedsbeitrag.')" />
 			</template>
 
 			<!-- REGELN -->

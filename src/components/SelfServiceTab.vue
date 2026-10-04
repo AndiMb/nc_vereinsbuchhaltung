@@ -199,7 +199,7 @@
 			<div class="vbh-card">
 				<h4>{{ t('Meine Beitragsbestätigung') }}</h4>
 				<p class="vbh-hint">
-					{{ t('Informelle Bestätigung der bezahlten Beiträge eines Beitragsjahres – kein amtlicher Spendennachweis nach § 10b EStG (siehe Issue #10).') }}
+					{{ t('Informelle Bestätigung der bezahlten Beiträge eines Beitragsjahres – kein amtlicher Spendennachweis nach § 10b EStG.') }}
 				</p>
 				<div class="vbh-form">
 					<label>{{ t('Beitragsjahr') }}
@@ -220,7 +220,7 @@
 			<div class="vbh-card">
 				<h4>{{ t('Meine Daten') }}</h4>
 				<p class="vbh-hint">
-					{{ t('Druckfertige Auskunft nach Art. 15 DSGVO über alle zu deiner Mitgliedschaft gespeicherten Daten – kein strukturierter Export nach Art. 20 DSGVO.') }}
+					{{ t('Druckfertige Auskunft nach Art. 15 DSGVO über alle zu Ihrer Mitgliedschaft gespeicherten Daten – kein strukturierter Export nach Art. 20 DSGVO.') }}
 				</p>
 				<div class="vbh-form">
 					<a
@@ -232,7 +232,7 @@
 			</div>
 		</template>
 		<p v-else class="vbh-hint vbh-hint--warning">
-			{{ t('Deine Stammdaten konnten nicht geladen werden.') }}
+			{{ t('Ihre Stammdaten konnten nicht geladen werden.') }}
 		</p>
 
 		<SelfServiceMandateGrantDialog
@@ -420,7 +420,7 @@ export default {
 		statusLabel(status) {
 			return {
 				entwurf: this.t('Entwurf'),
-				aktiv: this.t('Aktiv'),
+				aktiv: this.tc('Zustand', 'Aktiv'),
 				ausgesetzt: this.t('Ausgesetzt'),
 				erloschen: this.t('Erloschen'),
 			}[status] || status

@@ -212,7 +212,7 @@ export default {
 				this.members.push(data)
 				this.form.memberId = data.id
 				this.quickAddOpen = false
-			} catch (e) { showError(errMsg(e, 'Mitglied konnte nicht angelegt werden')) }
+			} catch (e) { showError(errMsg(e, this.t('Mitglied konnte nicht angelegt werden'))) }
 		},
 
 		async loadPreview() {
@@ -225,7 +225,7 @@ export default {
 				this.preview = data
 			} catch (e) {
 				this.preview = null
-				showError(errMsg(e, 'Vorschau konnte nicht geladen werden'))
+				showError(errMsg(e, this.t('Vorschau konnte nicht geladen werden')))
 			}
 		},
 

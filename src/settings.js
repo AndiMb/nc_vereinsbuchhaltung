@@ -1,6 +1,6 @@
 import { createApp } from 'vue'
 import SettingsApp from './SettingsApp.vue'
-import { loadAppTranslations, n, t } from './lib/l10n.js'
+import { loadAppTranslations, n, t, tc, tRaw } from './lib/l10n.js'
 
 import '@nextcloud/dialogs/style.css'
 import './toast-position.css'
@@ -14,6 +14,6 @@ import './styles.css'
 // die uebersetzte Fassung ersetzt.
 loadAppTranslations().finally(() => {
 	const app = createApp(SettingsApp)
-	app.mixin({ methods: { t, n } })
+	app.mixin({ methods: { t, n, tc, tRaw } })
 	app.mount('#vereinsbuchhaltung-settings')
 })

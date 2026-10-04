@@ -136,6 +136,20 @@ describe('Zeitstrahl', () => {
 		expect(ticks[0].date).toBe('2026-10-01')
 		expect(ticks[3].date).toBe('2027-01-01')
 	})
+
+	// Issue #106: die Monatsnamen am Zeitstrahl folgen der Oberflächensprache,
+	// ein englischer Nutzer sah vorher „Mär", „Mai", „Okt", „Dez".
+	it('beschriftet die Monate in der Sprache der Oberfläche', () => {
+		const labels = (language) => monthTicks('2026-01-01', '2026-12-31', language).map((tick) => tick.label)
+		expect(labels('en')[2]).toBe('Mar')
+		expect(labels('en')[9]).toBe('Oct')
+		expect(labels('de')[2]).toBe('Mär')
+		expect(labels('de_DE')[9]).toBe('Okt')
+	})
+
+	it('fällt bei einer unbrauchbaren Sprache auf Deutsch zurück', () => {
+		expect(monthTicks('2026-01-01', '2026-12-31', '')[2].label).toBe('Mär')
+	})
 })
 
 describe('Einstufung eines Termins', () => {

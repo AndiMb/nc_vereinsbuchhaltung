@@ -40,7 +40,7 @@
 				</button>
 			</div>
 			<div v-if="bookingTour.active && bookingTour.step === 0" class="vbh-tour-tip">
-				<span>{{ t('Wähle zuerst, ob Geld reinkommt oder rausgeht – Schritt 1 von 3.') }}</span>
+				<span>{{ t('Wählen Sie zuerst, ob Geld reinkommt oder rausgeht – Schritt 1 von 3.') }}</span>
 				<div class="vbh-tour-actions">
 					<button type="button" class="vbh-tour-skip" @click="endTour">
 						{{ t('Überspringen') }}
@@ -216,7 +216,7 @@
 						</label>
 					</div>
 					<div v-if="bookingTour.active && bookingTour.step === 1" class="vbh-tour-tip">
-						<span>{{ t('Wähle die Kategorie (z. B. „Mitgliedsbeiträge") und das Geldkonto – die App bucht Soll/Haben automatisch richtig. Schritt 2 von 3.') }}</span>
+						<span>{{ t('Wählen Sie die Kategorie (z. B. „Mitgliedsbeiträge") und das Geldkonto – die App bucht Soll/Haben automatisch richtig. Schritt 2 von 3.') }}</span>
 						<div class="vbh-tour-actions">
 							<button type="button" class="vbh-tour-skip" @click="endTour">
 								{{ t('Überspringen') }}

@@ -14,6 +14,7 @@ use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Service\ContributionCycleSettings;
 use OCA\Vereinsbuchhaltung\Service\ContributionPreNotificationService;
 use OCA\Vereinsbuchhaltung\Service\DirectDebitEligibilityResolver;
+use OCA\Vereinsbuchhaltung\Service\RecipientL10n;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IConfig;
 use OCP\IL10N;
@@ -126,6 +127,9 @@ class ContributionPreNotificationServiceTest extends TestCase {
 		);
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(static fn (string $text, array $parameters = []): string => vsprintf($text, $parameters));
+		// Die Sprache des Empfängers ist hier immer die des Mocks: Du/Sie und Sprache prüft RecipientL10nTest.
+		$recipient = $this->createMock(RecipientL10n::class);
+		$recipient->method('forMember')->willReturn($l10n);
 		$time = $this->createMock(ITimeFactory::class);
 		$time->method('getDateTime')->willReturn(new \DateTime($today));
 
@@ -140,7 +144,7 @@ class ContributionPreNotificationServiceTest extends TestCase {
 			new ContributionCycleSettings($config),
 			$time,
 			$this->createMock(LoggerInterface::class),
-			$l10n,
+			$recipient,
 		);
 	}
 

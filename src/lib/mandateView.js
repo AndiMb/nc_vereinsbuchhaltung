@@ -8,7 +8,7 @@
 // `erloschen`, `papier`/`elektronisch`, `widerrufen`/`ersetzt`/…, siehe
 // Mandate.php); die Oberfläche zeigt nie den Rohwert, sondern Klartext.
 import { formatDate } from './format.js'
-import { t } from './l10n.js'
+import { t, tc, tRaw } from './l10n.js'
 
 const DAY_MS = 24 * 3600 * 1000
 
@@ -16,11 +16,37 @@ function isoToday() {
 	return new Date().toISOString().slice(0, 10)
 }
 
+// --- Sätze mit Nutzerdaten --------------------------------------------------
+//
+// Namen, Kontoinhaber, Mailadressen und Referenzen stehen NIE als Variablen in
+// t(): @nextcloud/l10n escaped sie als HTML, aus „Echo & Söhne" würde die
+// Anzeige „Echo &amp; Söhne" (siehe tRaw() in l10n.js). Die Sätze mit solchen
+// Werten stehen deshalb hier als Funktionen, damit sich das ohne
+// Komponententest-Umgebung prüfen lässt.
+
+/** Kopfzeile der Bankverbindungs-Dialoge: welches Mandat, wessen Konto, welche bisherige IBAN. */
+export function mandateAccountHint(mandate) {
+	return tRaw('Mandat {referenz} von {inhaber}, bisherige IBAN {iban}.', {
+		referenz: mandate.mandateReference,
+		inhaber: mandate.accountHolder,
+	}, { iban: formatIban(mandate.iban) })
+}
+
+/** Hinweis über dem Einmal-Link, solange die Mail vielleicht nicht ankommt (MandatePanel.vue). */
+export function activationLinkSentText(email) {
+	return tRaw('Einmal-Link an {email} verschickt. Kommt die Mail nicht an, können Sie den Link auch direkt weitergeben:', { email })
+}
+
+/** Endgültigkeit des Widerrufs im Dialog der Verwaltung: spricht über das Mitglied statt zu ihm. */
+export function revokeStaffWarning(memberName) {
+	return tRaw('Der Widerruf ist endgültig – ein widerrufenes Mandat lässt sich nicht wieder aktivieren. Für künftige Einzüge braucht {name} danach ein neues Mandat mit neuer Unterschrift.', { name: memberName })
+}
+
 /** Zustand des Mandats in Klartext (Spec §2.2 Zustandsmodell). */
 export function statusLabel(status) {
 	return {
 		entwurf: t('Entwurf'),
-		aktiv: t('Aktiv'),
+		aktiv: tc('Zustand', 'Aktiv'),
 		ausgesetzt: t('Ausgesetzt'),
 		erloschen: t('Erloschen'),
 	}[status] ?? status

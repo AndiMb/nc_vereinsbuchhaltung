@@ -2,6 +2,7 @@ import { showError } from '@nextcloud/dialogs'
 import { computed, reactive } from 'vue'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
+import { t } from '../lib/l10n.js'
 
 /**
  * Die Geschäftsjahre und das gerade gewählte.
@@ -104,7 +105,7 @@ async function loadPeriods() {
 		}
 	}
 	if (lastError) {
-		showError(errMsg(lastError, 'Zeiträume konnten nicht geladen werden'))
+		showError(errMsg(lastError, t('Zeiträume konnten nicht geladen werden')))
 		return
 	}
 	state.periods = data
