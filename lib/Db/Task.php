@@ -20,7 +20,13 @@ use OCP\AppFramework\Db\Entity;
  * dafür nötige, bewusst minimale Grundlage – ein generisches Aufgaben-Konzept
  * gab es im Bestand noch nicht (siehe PR-Beschreibung). Spätere Tickets
  * (Mandats-Lifecycle, Einzugszyklus, ...) entscheiden selbst, ob sie eigene
- * Fälle hier einhängen oder bei einer reinen Abfrage bleiben.
+ * Fälle hier einhängen oder bei einer reinen Abfrage bleiben – alle bisher
+ * haben sich für die Abfrage entschieden.
+ *
+ * Auch diese Hinweise werden nicht quittiert: wann ein Datensatz aus der
+ * Aufgabenliste verschwindet, regelt {@see \OCA\Vereinsbuchhaltung\Service\TaskService::findCurrent()}
+ * (Mitglied weg, Konto wieder verknüpft, Altersgrenze). Die Zeile selbst
+ * bleibt in der Tabelle stehen.
  *
  * @method string getSeverity()
  * @method void setSeverity(string $severity)

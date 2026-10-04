@@ -35,7 +35,8 @@ use OCP\IRequest;
  * überfällig" (Spec §7). Issue #73 ergänzt mit {@see DunningTaskService}
  * „Mahnstufe an Vorstand eskaliert" nach demselben Muster. Issue #78 ergänzt
  * mit {@see AnonymizationCandidateService} „Mitglied X anonymisierungsreif"
- * (Spec §3.8/§7 „Anonymisierungs-Vorschlag").
+ * (Spec §3.8/§7 „Anonymisierungs-Vorschlag"). Persistierte Hinweise kommen
+ * über {@see TaskService::findCurrent()} und lösen sich dort von selbst auf.
  *
  * Jede Aufgabe trägt zusätzlich `memberId` (?int) als Sprungziel für die
  * Oberfläche (Aufgaben-Flyout, Issue #99), siehe {@see TaskTargetResolver}.
@@ -58,7 +59,7 @@ class TaskController extends Controller {
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function index(): DataResponse {
-		$tasks = array_map(static fn ($t) => $t->jsonSerialize(), $this->service->findAll());
+		$tasks = array_map(static fn ($t) => $t->jsonSerialize(), $this->service->findCurrent());
 		foreach ($this->mandateActivation->findStaleElectronicDraftTasks() as $i => $task) {
 			// Synthetische, stabile id fuer Frontend-Listenschluessel - diese
 			// Eintraege sind nie in vbh_tasks persistiert (siehe Klassendoc).
