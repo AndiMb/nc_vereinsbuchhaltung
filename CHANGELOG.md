@@ -19,6 +19,8 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+## [0.35.0] – 2026-10-05
+
 **Neu:**
 - **Mitglieder als eigene Stammdaten:** Person oder Organisation mit Akte,
   Mitgliedsnummer, Eintritt und Austritt, auch ohne Nextcloud-Konto; ein Konto
