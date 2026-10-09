@@ -196,7 +196,7 @@
 					<h3 class="vbh-modal-subtitle">
 						{{ t('Nextcloud-Konto') }}
 					</h3>
-					<div v-if="member.ncUserId" class="vbh-form">
+					<div v-if="member.ncUserId" class="vbh-form vbh-form--center">
 						<span>{{ linkedAccountText(member.ncUserId) }}</span>
 						<NcButton
 							variant="tertiary"

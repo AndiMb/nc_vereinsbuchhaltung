@@ -762,6 +762,8 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 /* Forms */
 .vbh-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-top: 10px; }
+/* Zeile aus Text und Knopf ohne Feldbeschriftung: mittig statt an der Unterkante (sonst sitzt der Text zu tief). */
+.vbh-form--center { align-items: center; }
 
 .vbh-form label { display: flex; flex-direction: column; font-size: 0.85em; gap: 3px; }
 
