@@ -1434,10 +1434,13 @@ the assignment: *Amount* is the amount per period (monthly fee × interval),
 (*active*, *from …*, *ended …*), and *Next due date* is the earliest date
 among the member's still-due claims (open, in collection or returned; a
 running deferral counts with its end). Members who pay by bank transfer show
-"Bank transfer" instead of "no mandate". You do not edit an assignment in
-the row but via **"Manage assignment"** in the *Contribution groups* tab;
-you manage the mandate via the menu (⋯) → **"Manage mandate"**. *problems
-only* shows members without an email address and those whose direct-debit
+"Bank transfer" instead of "no mandate". Everything else about a member is in
+the menu (⋯) at the end of the row: **"Edit member"** (*Mitglied bearbeiten*)
+opens the file (master data, Nextcloud account, leaving), **"Manage mandate"**
+opens the file at the mandate, and **"Manage fee"** (without a fee: **"Assign
+fee"**) leads to the *Contribution groups* tab, because amount, interval and
+term are not edited in the row. Clicking the name also opens the file.
+*problems only* shows members without an email address and those whose direct-debit
 assignment has no mandate.
 
 ### 13.5 Collection: date, release and submission

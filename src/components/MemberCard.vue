@@ -2,17 +2,17 @@
 	<div class="vbh-mcard vbh-membercard">
 		<div class="vbh-mcard-top">
 			<span class="vbh-mcard-title vbh-namecell">
-				<!-- Der Name öffnet die Akte: der eine Weg dorthin. Das Menü führt nur zum Mandat. -->
+				<!-- Der Name öffnet die Akte; das Menü (⋯) bietet dasselbe mit Namen an, dazu Mandat und Beitrag. -->
 				<button
 					type="button"
 					class="vbh-linkbtn"
 					:aria-label="`${t('Akte öffnen')}: ${row.displayName}`"
-					@click="$emit('open-member')">
+					@click="$emit('open-member', '')">
 					{{ row.displayName }}
 				</button>
 				<span v-if="!row.member.active" class="vbh-pill vbh-pill--muted">{{ t('ausgetreten') }}</span>
-				<span v-if="!row.email" class="vbh-pill vbh-pill--warning" :title="t('keine E-Mail – keine Vorankündigung möglich')">
-					<NcIconSvgWrapper :path="mdiEmailOffOutline" :size="14" />
+				<span v-if="!row.email" class="vbh-pill vbh-pill--quiet" :title="t('keine E-Mail – keine Vorankündigung möglich')">
+					<NcIconSvgWrapper :path="mdiEmailOffOutline" :size="14" inline />
 					{{ t('keine E-Mail') }}
 				</span>
 			</span>
@@ -41,31 +41,19 @@
 			{{ n('+ %n weitere Zuweisung', '+ %n weitere Zuweisungen', row.moreFees) }}
 		</p>
 		<div class="vbh-mcard-actions">
-			<!-- Zuweisungen werden nicht inline bearbeitet, siehe MembersList.vue. -->
-			<NcButton
-				v-if="row.fee"
-				variant="tertiary"
-				size="small"
-				@click="$emit('manage-assignments')">
-				{{ t('Zuweisung verwalten') }}
-			</NcButton>
-			<!-- Das Mandat führen: springt in der Akte zum Mandat-Bereich, gleiches
-				Muster wie in der Desktop-Tabelle (MembersList.vue). -->
-			<NcActions :forceMenu="true">
-				<NcActionButton closeAfterClick @click="$emit('open-mandate')">
-					<template #icon>
-						<NcIconSvgWrapper :path="mdiFileSign" :size="16" />
-					</template>
-					{{ t('Mandat verwalten') }}
-				</NcActionButton>
-			</NcActions>
+			<!-- Dasselbe Menü wie in der Desktop-Tabelle (MembersList.vue): Mitglied, Mandat, Beitrag. -->
+			<MemberRowMenu
+				:row="row"
+				@openMember="(section) => $emit('open-member', section)"
+				@manageAssignments="$emit('manage-assignments')" />
 		</div>
 	</div>
 </template>
 
 <script>
-import { mdiEmailOffOutline, mdiFileSign } from '@mdi/js'
-import { NcActionButton, NcActions, NcButton, NcIconSvgWrapper } from '@nextcloud/vue'
+import { mdiEmailOffOutline } from '@mdi/js'
+import { NcIconSvgWrapper } from '@nextcloud/vue'
+import MemberRowMenu from './MemberRowMenu.vue'
 import { formatDate, formatMoney } from '../lib/format.js'
 
 /**
@@ -77,15 +65,15 @@ import { formatDate, formatMoney } from '../lib/format.js'
  */
 export default {
 	name: 'MemberCard',
-	components: { NcButton, NcActions, NcActionButton, NcIconSvgWrapper },
+	components: { NcIconSvgWrapper, MemberRowMenu },
 	props: {
 		row: { type: Object, required: true },
 	},
 
-	emits: ['manage-assignments', 'open-mandate', 'open-member'],
+	emits: ['manage-assignments', 'open-member'],
 
 	data() {
-		return { mdiEmailOffOutline, mdiFileSign }
+		return { mdiEmailOffOutline }
 	},
 
 	methods: { formatDate, formatMoney },

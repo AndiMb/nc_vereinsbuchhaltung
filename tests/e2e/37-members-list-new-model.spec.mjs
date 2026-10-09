@@ -121,7 +121,12 @@ test.describe('Mitgliederliste zeigt Mandat und Beitrag des neuen Modells', () =
 		await expect(anna.locator('td').nth(4)).toHaveText('–')
 		// Zuweisungen werden nicht inline bearbeitet.
 		await expect(anna.getByRole('button', { name: 'Beitrag bearbeiten' })).toHaveCount(0)
-		await expect(anna.getByRole('button', { name: 'Zuweisung verwalten' })).toBeVisible()
+		// Alles Weitere steht im Menü (⋯) mit Namen, kein Stift-Symbol mehr.
+		await anna.getByRole('button', { name: 'Aktionen' }).click()
+		await expect(page.getByRole('menuitem', { name: 'Mitglied bearbeiten' })).toBeVisible()
+		await expect(page.getByRole('menuitem', { name: 'Mandat verwalten' })).toBeVisible()
+		await expect(page.getByRole('menuitem', { name: 'Beitrag verwalten' })).toBeVisible()
+		await page.keyboard.press('Escape')
 
 		// Entwurfs-Mandat trägt die Marke, Turnus 3 → 3 × 5 € = 15 € je Quartal.
 		const bernd = memberRow(page, 'Bernd Entwurf')
@@ -187,12 +192,13 @@ test.describe('Mitgliederliste zeigt Mandat und Beitrag des neuen Modells', () =
 		await expect(memberRow(page, 'Cora Ueberweisung')).toHaveCount(0)
 	})
 
-	test('„Zuweisung verwalten" führt zu den Beitragsgruppen', async ({ page, request }) => {
+	test('„Beitrag verwalten" im Zeilenmenü führt zu den Beitragsgruppen', async ({ page, request }) => {
 		await ensureSeed(request)
 		await openApp(page, USERS.buchhalter)
 		await switchTab(page, 'Beiträge')
 
-		await memberRow(page, 'Anna Aktiv').getByRole('button', { name: 'Zuweisung verwalten' }).click()
+		await memberRow(page, 'Anna Aktiv').getByRole('button', { name: 'Aktionen' }).click()
+		await page.getByRole('menuitem', { name: 'Beitrag verwalten' }).click()
 		await expect(visibleSection(page).getByRole('button', { name: '+ Zuweisung' })).toBeVisible()
 	})
 
@@ -252,7 +258,9 @@ test.describe('Mitgliederliste auf dem Handy', () => {
 		await expect(anna).toContainText('jährlich')
 		await expect(anna).toContainText(`fällig ${german(dueDate)}`)
 		await expect(anna.getByRole('button', { name: 'Bearbeiten', exact: true })).toHaveCount(0)
-		await expect(anna.getByRole('button', { name: 'Zuweisung verwalten' })).toBeVisible()
+		await anna.getByRole('button', { name: 'Aktionen' }).click()
+		await expect(page.getByRole('menuitem', { name: 'Beitrag verwalten' })).toBeVisible()
+		await page.keyboard.press('Escape')
 
 		const cora = visibleSection(page).locator('.vbh-membercard', { hasText: 'Cora Ueberweisung' })
 		await expect(cora).toContainText('Überweisung')

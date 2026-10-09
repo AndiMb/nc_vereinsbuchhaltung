@@ -1342,9 +1342,7 @@
         "ab {datum}": "from {datum}",
         "beendet {datum}": "ended {datum}",
         "alle {monate} Monate": "every {monate} months",
-        "Zuweisung verwalten": "Manage assignment",
         "Beitragsgruppen": "Contribution groups",
-        "In den Beitragsgruppen verwalten": "Manage in contribution groups",
         "Reiter „Beiträge\" → Mitglieder: je Mitglied ein SEPA-Mandat (IBAN, Unterschriftsdatum) und/oder eine Zuweisung zu einer Beitragsgruppe (Monatsbeitrag, Turnus). Der Knopf „Mitglied\" nimmt ein Mitglied samt optionalem Mandat und Beitrag in einem Dialog auf. Aus den Zuweisungen entstehen die Forderungen.": "“Contributions” tab → Members: one SEPA mandate (IBAN, signing date) and/or one assignment to a contribution group (monthly fee, interval) per member. The “Member” button records a member together with an optional mandate and contribution in one dialog. Claims arise from the assignments.",
         "Reiter „Beiträge\" → Einzug: Vorschau des Einzugstermins prüfen, den Lauf freigeben (dabei entsteht die SEPA-Datei), die Datei bei der Hausbank einreichen und die Einreichung hier bestätigen. Vor dem ersten Einzug mit dem Prüftool der Bank testen.": "“Contributions” tab → Collection: check the preview of the collection date, release the run (this creates the SEPA file), submit the file to your bank and confirm the submission here. Test it with your bank's validation tool before the first real collection.",
         "Die Vorabinfo über Betrag und Termin (Standard: 14 Tage vor dem Einzug) verschickt die App automatisch an Mitglieder mit hinterlegter E-Mail-Adresse.": "The app automatically sends the pre-notification about amount and date (default: 14 days before the collection) to members who have an email address on file.",
@@ -2681,7 +2679,13 @@
         "Freigabe-Vorlauf: ab dann meldet die Aufgabenliste „Freigabe fällig\" (Standard 5 Tage).": "Release lead: from then on the task list reports “Release due” (default 5 days).",
         "Beitragsfrei: In dieser Zuweisung entstehen keine Forderungen, und es wird nichts eingezogen.": "Fee-free: this assignment creates no claims, and nothing is collected.",
         "beitragsfrei": "fee-free",
-        "Wirkt ab {from} · beitragsfrei: es wird nichts eingezogen.": "Effective from {from} · fee-free: nothing is collected."
+        "Wirkt ab {from} · beitragsfrei: es wird nichts eingezogen.": "Effective from {from} · fee-free: nothing is collected.",
+        "Mitglied bearbeiten": "Edit member",
+        "Beitrag verwalten": "Manage fee",
+        "Beitrag zuweisen": "Assign fee",
+        "Stammdaten, Konto, Austritt": "Master data, account, leaving",
+        "Sperren, IBAN ändern, widerrufen": "Suspend, change IBAN, revoke",
+        "Gruppe, Betrag und Turnus": "Group, amount and interval"
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

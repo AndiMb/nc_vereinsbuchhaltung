@@ -1522,6 +1522,11 @@ button.vbh-dirtree-label.vbh-dirtree-label.is-selected { background-color: var(-
 
 .vbh-pill--muted { background-color: transparent; color: var(--color-text-maxcontrast); }
 
+/* Leiser Hinweis neben dem Namen („keine E-Mail“): nur ein Rand und gedämpfte Schrift; allein das Icon trägt die Warnfarbe. */
+.vbh-pill--quiet { background-color: transparent; color: var(--color-text-maxcontrast); font-weight: 400; }
+
+.vbh-pill--quiet .icon-vue { color: var(--color-warning-text); }
+
 /* Leise Warnmarke an einer Zeile (Symbol und kurzer Text, keine Fläche): für
    „braucht Handlung" in einer Liste, in der das meiste in Ordnung ist. */
 .vbh-flag { display: inline-flex; align-items: center; gap: calc(var(--default-grid-baseline, 4px) * 1); color: var(--color-text-maxcontrast); font-size: 0.85em; font-weight: 600; white-space: nowrap; }

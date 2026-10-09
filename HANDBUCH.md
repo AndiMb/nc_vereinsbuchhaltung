@@ -1471,9 +1471,12 @@ Zuweisung: *Betrag* ist der Betrag je Periode (Monatsbeitrag × Turnus),
 *ab …*, *beendet …*), und *Nächste Fälligkeit* ist der früheste Termin unter den
 noch fälligen Forderungen des Mitglieds (offen, im Einzug oder zurückgegeben;
 eine laufende Stundung zählt mit ihrem Ende). Wer per Überweisung zahlt, steht
-mit „Überweisung" statt „kein Mandat" da. Eine Zuweisung bearbeiten Sie nicht in
-der Zeile, sondern über **„Zuweisung verwalten"** im Reiter *Beitragsgruppen*;
-das Mandat führen Sie über das Menü (⋯) → **„Mandat verwalten"**. *nur
+mit „Überweisung" statt „kein Mandat" da. Alles Weitere zu einem Mitglied steht im
+Menü (⋯) am Zeilenende: **„Mitglied bearbeiten"** öffnet die Akte (Stammdaten,
+Nextcloud-Konto, Austritt), **„Mandat verwalten"** die Akte beim Mandat und
+**„Beitrag verwalten"** (ohne Beitrag: **„Beitrag zuweisen"**) führt in den Reiter
+*Beitragsgruppen*, denn Betrag, Turnus und Laufzeit bearbeiten Sie nicht in der
+Zeile. Ein Klick auf den Namen öffnet ebenfalls die Akte. *nur
 Auffälligkeiten* zeigt Mitglieder ohne E-Mail-Adresse und solche, deren
 Lastschrift-Zuweisung kein Mandat hat.
 

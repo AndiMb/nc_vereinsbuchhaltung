@@ -24,8 +24,7 @@
 				:key="row.key"
 				:row="row"
 				@manageAssignments="$emit('manage-assignments')"
-				@openMember="openMemberAkte(row.member)"
-				@openMandate="openMemberAkte(row.member, 'mandate')" />
+				@openMember="(section) => openMemberAkte(row.member, section)" />
 		</div>
 		<div v-else-if="filteredRows.length" class="vbh-tablecard">
 			<table class="vbh-table">
@@ -64,8 +63,8 @@
 								</button>
 								<span v-if="row.member.memberNumber" class="vbh-hint">#{{ row.member.memberNumber }}</span>
 								<span v-if="!row.member.active" class="vbh-pill vbh-pill--muted">{{ t('ausgetreten') }}</span>
-								<span v-if="!row.email" class="vbh-pill vbh-pill--warning" :title="t('keine E-Mail – keine Vorankündigung möglich')">
-									<NcIconSvgWrapper :path="mdiEmailOffOutline" :size="14" />
+								<span v-if="!row.email" class="vbh-pill vbh-pill--quiet" :title="t('keine E-Mail – keine Vorankündigung möglich')">
+									<NcIconSvgWrapper :path="mdiEmailOffOutline" :size="14" inline />
 									{{ t('keine E-Mail') }}
 								</span>
 							</div>
@@ -97,31 +96,12 @@
 							<span v-else>–</span>
 						</td>
 						<td class="nowrap right">
-							<div class="vbh-rowactions">
-								<!-- Zuweisungen werden nicht inline bearbeitet: Betrag, Turnus und
-									Laufzeit haben ihre Stelle bei den Beitragsgruppen. -->
-								<NcButton
-									v-if="row.fee"
-									variant="tertiary"
-									size="small"
-									:aria-label="t('Zuweisung verwalten')"
-									:title="t('In den Beitragsgruppen verwalten')"
-									@click="$emit('manage-assignments')">
-									<template #icon>
-										<NcIconSvgWrapper :path="mdiPencil" :size="20" />
-									</template>
-								</NcButton>
-								<!-- Das Mandat führen (aktivieren, sperren, widerrufen, IBAN ändern …):
-									springt in der Akte zum Mandat-Bereich (MandatePanel.vue, Issue #100). -->
-								<NcActions :forceMenu="true">
-									<NcActionButton closeAfterClick @click="openMemberAkte(row.member, 'mandate')">
-										<template #icon>
-											<NcIconSvgWrapper :path="mdiFileSign" :size="16" />
-										</template>
-										{{ t('Mandat verwalten') }}
-									</NcActionButton>
-								</NcActions>
-							</div>
+							<!-- Alles Weitere zu einem Mitglied steht im Menü (⋯), mit Namen: Mitglied, Mandat, Beitrag.
+								Zuweisungen werden nicht inline bearbeitet, ihre Stelle sind die Beitragsgruppen. -->
+							<MemberRowMenu
+								:row="row"
+								@openMember="(section) => openMemberAkte(row.member, section)"
+								@manageAssignments="$emit('manage-assignments')" />
 						</td>
 					</tr>
 				</tbody>
@@ -153,13 +133,14 @@
 </template>
 
 <script>
-import { mdiEmailOffOutline, mdiFileSign, mdiPencil } from '@mdi/js'
+import { mdiEmailOffOutline } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { NcActionButton, NcActions, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper } from '@nextcloud/vue'
+import { NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import MemberCard from './MemberCard.vue'
 import MemberDialog from './MemberDialog.vue'
 import MemberImportDialog from './MemberImportDialog.vue'
+import MemberRowMenu from './MemberRowMenu.vue'
 import api from '../api.js'
 import { useAssignments } from '../composables/useAssignments.js'
 import { useClaimOverview } from '../composables/useClaimOverview.js'
@@ -197,7 +178,7 @@ import { buildMemberRow, nextDueDates } from '../lib/memberRow.js'
  */
 export default {
 	name: 'MembersList',
-	components: { NcButton, NcActions, NcActionButton, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, MemberDialog, MemberImportDialog, MemberCard },
+	components: { NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, MemberDialog, MemberImportDialog, MemberCard, MemberRowMenu },
 	props: {
 		isMobile: { type: Boolean, default: false },
 		defaultFeeAmount: { type: [Number, String], default: '' },
@@ -236,8 +217,6 @@ export default {
 			akteSection: '',
 			importDialogOpen: false,
 			mdiEmailOffOutline,
-			mdiFileSign,
-			mdiPencil,
 		}
 	},
 
