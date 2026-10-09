@@ -26,6 +26,10 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 **Fixed:**
 - **Account filter missed split entries:** The filter only checked the first
   debit and credit line of an entry. Every line counts now.
+- **Group headings in account fields were clickable:** In the entry dialog,
+  rules, assignment, open items, splitting and reassigning, a category heading
+  could be selected and merely cleared the field. The headings are now
+  locked.
 
 ## [0.34.4] – 2026-09-29
 

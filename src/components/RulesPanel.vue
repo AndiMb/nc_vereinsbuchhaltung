@@ -26,6 +26,7 @@
 						v-model="ruleFormContraOption"
 						:options="accountOptionsList"
 						:filterBy="accountFilterBy"
+						:selectable="isSelectableOption"
 						label="label"
 						:placeholder="t('– Konto wählen –')" />
 				</label>
@@ -98,6 +99,7 @@ import { buildAccountOptions, useAccounts } from '../composables/useAccounts.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useRules } from '../composables/useRules.js'
 import { errMsg } from '../lib/format.js'
+import { isSelectableOption } from '../lib/selectOptions.js'
 
 /**
  * Auto-Zuordnungsregeln. Frueher SettingsRules.vue im Einstellungen-Modal;
@@ -164,6 +166,8 @@ export default {
 		},
 
 		// Suchfilter fuer das Konto-Dropdown (Ziffern = Praefix der Kontonummer)
+		isSelectableOption,
+
 		accountFilterBy(option, label, search) {
 			const s = String(search || '').trim().toLowerCase()
 			if (!s) { return true }

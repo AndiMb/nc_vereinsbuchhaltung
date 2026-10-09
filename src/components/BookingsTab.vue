@@ -341,6 +341,7 @@
 												:modelValue="accountOptionFor(tx.contraAccountId)"
 												:options="accountOptionsList"
 												:filterBy="accountFilterBy"
+												:selectable="isSelectableOption"
 												:clearable="!!tx.contraAccountId"
 												:disabled="!canWrite || isDateClosed(tx.bookingDate)"
 												label="label"
@@ -410,6 +411,7 @@
 								v-model="openItemAccountOption"
 								:options="accountOptionsList"
 								:filterBy="accountFilterBy"
+								:selectable="isSelectableOption"
 								label="label"
 								:placeholder="t('optional')"
 								:clearable="true" />

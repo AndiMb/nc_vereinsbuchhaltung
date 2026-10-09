@@ -28,6 +28,10 @@ verwenden, z. B. `**Neu:**`.
 **Behoben:**
 - **Kontofilter übersah Splitbuchungen:** Der Filter prüfte nur die erste Soll-
   und Haben-Zeile einer Buchung. Jetzt zählt jede Buchungszeile.
+- **Gruppen-Überschriften in Kontofeldern waren anklickbar:** In Buchungsdialog,
+  Regeln, Zuordnen, Offene Posten, Aufteilen und Umbuchen ließ sich eine
+  Kategorie-Überschrift auswählen und leerte dabei nur das Feld. Die
+  Überschriften sind jetzt gesperrt.
 
 ## [0.34.4] – 2026-09-29
 

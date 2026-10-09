@@ -201,6 +201,7 @@
 								v-model="bookingFormCategoryOption"
 								:options="simpleCategoryOptions"
 								:filterBy="accountFilterBy"
+								:selectable="isSelectableOption"
 								:disabled="bookingLocked"
 								label="label"
 								:placeholder="t('– Kategorie wählen –')" />
@@ -210,6 +211,7 @@
 								v-model="bookingFormMoneyOption"
 								:options="moneyAccountOptions"
 								:filterBy="accountFilterBy"
+								:selectable="isSelectableOption"
 								:disabled="bookingLocked"
 								label="label"
 								:placeholder="t('– wählen –')" />
@@ -234,6 +236,7 @@
 								v-model="bookingFormDebitOption"
 								:options="accountOptionsList"
 								:filterBy="accountFilterBy"
+								:selectable="isSelectableOption"
 								:disabled="bookingLocked"
 								label="label"
 								:placeholder="t('– wählen –')" />
@@ -243,6 +246,7 @@
 								v-model="bookingFormCreditOption"
 								:options="accountOptionsList"
 								:filterBy="accountFilterBy"
+								:selectable="isSelectableOption"
 								:disabled="bookingLocked"
 								label="label"
 								:placeholder="t('– wählen –')" />
@@ -301,6 +305,7 @@
 							:modelValue="splitLineOption(i)"
 							:options="splitAccountOptions"
 							:filterBy="accountFilterBy"
+							:selectable="isSelectableOption"
 							:disabled="bookingLocked"
 							class="vbh-split-acc"
 							label="label"
@@ -483,6 +488,7 @@ import { useJournal } from '../composables/useJournal.js'
 import { usePeriods } from '../composables/usePeriods.js'
 import { autogrow } from '../lib/autogrow.js'
 import { formatFileSize, formatMoney } from '../lib/format.js'
+import { isSelectableOption } from '../lib/selectOptions.js'
 import { splitBalanced, splitRemainder, splitSideOf } from '../lib/split.js'
 
 export default {
@@ -821,6 +827,8 @@ export default {
 			const acc = this.accountsById[id]
 			return acc ? `${acc.number} ${acc.name}` : `#${id}`
 		},
+
+		isSelectableOption,
 
 		accountFilterBy(option, label, search) {
 			const s = String(search || '').trim().toLowerCase()
