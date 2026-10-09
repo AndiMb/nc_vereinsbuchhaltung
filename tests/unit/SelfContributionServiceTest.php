@@ -142,7 +142,7 @@ class SelfContributionServiceTest extends TestCase {
 		$this->assignments->method('previewChange')->willReturn($this->fixedPreview(effectiveFrom: '2026-07-01'));
 
 		$this->expectException(\InvalidArgumentException::class);
-		$this->expectExceptionMessageMatches('/2026-07-01/');
+		$this->expectExceptionMessageMatches('/erst ab 01\.07\.2026/');
 		$this->service('2026-06-15')->preview(self::ASSIGNMENT_ID, 1500, null);
 	}
 
