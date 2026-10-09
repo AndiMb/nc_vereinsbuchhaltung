@@ -486,7 +486,15 @@ created and managed in the *Contributions* tab (chapters 13.4 and 13.8).
 A new item needs: **debtor**, **amount**, optionally a **due date** and an
 **account** (for the later posting). If the due date has passed, the app
 marks the item as "overdue" – the dashboard then also shows an "overdue
-open items" tile with a direct link to the list.
+open items" tile with a direct link to the list. The **Open items** tab also
+carries a red **badge** with the number of overdue items; hovering over it
+spells it out ("3 overdue open items").
+
+**Filter chips with counts** above the list narrow the view: *Open*, *Overdue*
+(appears only while there are overdue items; they are a subset of *Open* and
+exactly the number on the badge), *Paid*, *Waived* (only when something has been
+waived), *Cancelled* and *All*. When the last overdue item is paid, the chip
+disappears and the list falls back to *Open* instead of an empty view.
 
 Once the money has arrived, the item is manually **marked as paid**
 ("Paid" button). The actual incoming payment is imported and assigned as a
@@ -494,6 +502,17 @@ bank transaction as usual (chapter 4.1) or posted manually (chapter 4.2) –
 the app currently does **not automatically** reconcile open items against
 bank transactions. An item can also be **cancelled** (resolved another way,
 e.g. a fee waiver) or, if needed, **reopened**.
+
+**You only see claims against members here.** Contribution and fee claims
+(chapter 13.8) appear in the same list, carry the tag *Contribution* or *Fee*
+and cannot be changed at this spot: instead of *Paid*, *Cancel* and *Reopen*
+there is the button **"Edit in Collection"** (for auditors "View in
+Collection"). It jumps to *Contributions → Collection → Claims*, narrowed to the
+member. Only there do the rules of claims apply: the "paid" mark records your
+name and a note, a cancellation needs a reason and works only before
+submission, giving up a claim is recorded as a waiver – and a claim is never deleted. The
+free items without a member (invoices and the like) you keep editing here, as
+described above.
 
 ---
 
@@ -1118,6 +1137,27 @@ work. The **members themselves** need no role: their "My contribution" area is
 described in 13.11, the contribution confirmation in 13.12, the data-protection
 tools in 13.13.
 
+### 13.0 The process at a glance
+
+Anyone introducing the module goes through these steps in order; each points to
+the section that describes it in detail.
+
+| Step | What happens | Where | Section |
+|---|---|---|---|
+| **1. Set up** | creditor ID, collecting account, lead times before collection, legal text of the mandate | *Nextcloud settings → Vereinsbuchhaltung → Contributions & SEPA* | 13.1 |
+| **2. Create contribution groups** | the rules per kind of member: lower limit, default fee, allowed intervals | *Contributions → Contribution groups* tab | 13.4 |
+| **3. Add members** | one by one with the intake wizard (master data → mandate → contribution) or as a list via CSV | *Contributions → Members* | 13.2, 13.3 |
+| **4. Obtain mandates** | signature on paper or via one-time link; only an **active** mandate can be collected | menu ⋯ → *Manage mandate* | 13.2 |
+| **5. Assign and maintain fees** | assignment to a contribution group; later change the fee, switch the group, end it – also fee-free for pauses | menu ⋯ on the member row, *Contribution groups* | 13.4 |
+| **6. Collect** | date, pre-notification to members, release, submission of the SEPA file to the bank | *Contributions → Collection* | 13.5 |
+| **7. Reconcile the money** | assign incoming payments to the runs, handle returned debits | *Collection*, bank reconciliation | 13.6, 13.7, 13.10 |
+| **8. Follow up** | open claims, dunning status, exceptions, tasks | *Collection → Claims*, tasks in the header | 13.8, 13.9 |
+| **9. As needed** | contribution confirmation, data overview, anonymization | the member's record or *My contribution* | 13.12, 13.13 |
+
+If members are to maintain their own details, also switch on "My contribution"
+(13.11). The rest of the chapter is meant for looking things up: you don't have
+to read it in order.
+
 ### 13.1 What you need beforehand
 
 1. A **creditor identification number**. Issued free of charge by the
@@ -1175,7 +1215,10 @@ against changes. The schedule only displays them.
 In the **"Contributions" tab → Members** (main navigation, not the Nextcloud
 settings – that's ongoing work, not a setting) you keep the members, as far
 as the app needs them for the money: name (person or organization), contact
-details, member number, and join and leave dates. This is not full member
+details, member number, and join and leave dates. For the address you choose the **country** from the
+list of all countries; it is preset to the country of the person currently using
+the app (from their Nextcloud language, otherwise the browser, otherwise
+Germany), and an existing member keeps the stored value. This is not full member
 management, and a member doesn't need a Nextcloud account; an existing one
 can be linked in the member's record ("Nextcloud account" (*Nextcloud-Konto*)
 → "Find suggestions" (*Vorschläge suchen*), only after your confirmation –
@@ -1813,7 +1856,7 @@ member.
 
 | Area | The member can | The member cannot |
 |---|---|---|
-| **My master data** (*Meine Stammdaten*) | change name, email, phone and address (**"Edit"**). If the email address changes, the previous address also gets an email about it for safety | change member number or join and leave dates – those stay with the treasurer |
+| **My master data** (*Meine Stammdaten*) | change name, email, phone and address (**"Edit"**; the country is chosen from the country list). If the email address changes, the previous address also gets an email about it for safety | change member number or join and leave dates – those stay with the treasurer |
 | **My contribution** (*Mein Beitrag*) | raise the monthly fee or lower it down to the minimum, change the interval (only the allowed ones). The **"Preview"** (*Vorschau*) states "takes effect from … · first collection on … · amount …"; only then can they save | change the contribution group, skip a month, declare leaving, change their own minimum or see its reason |
 | **My SEPA direct-debit mandate** (*Mein SEPA-Lastschriftmandat*) | record a mandate and grant it electronically (**"Mandat jetzt erteilen"**), confirm (**"Jetzt bestätigen"**) or discard an electronic draft you created, **change the bank details**, **change the account holder**, **revoke** the mandate | activate or suspend a mandate – that stays with the treasurer |
 
@@ -1978,6 +2021,7 @@ This only applies to cash accounts (bank flag).
 - **N** – create a new posting
 - **/** – focus search (the account-tree search in the Accounts tab,
   otherwise the posting search)
+- **Esc** – closes the topmost open dialog, even from within an input field
 
 ### 14.4 Glossary
 
@@ -1985,6 +2029,10 @@ This only applies to cash accounts (bank flag).
   from").
 - **Counter-account** – the account a bank transaction is assigned to (the
   "other side" next to the bank account).
+- **Fiscal year / period** – the named accounting period with a from and to
+  date, to which all reports refer. The default is the calendar year, but
+  October–September, the school year or a semester work too (chapter 8.1). In
+  the header the selection field is called "Period".
 - **Posting number** – a continuous number per posting, restarting at 1
   every calendar year. Important for the gap check. As long as a year is
   still open, the numbers are provisional: if a posting is deleted, the
@@ -1998,6 +2046,8 @@ This only applies to cash accounts (bank flag).
   or the trial balance.
 - **Reporting group** – a grouping (department, project), reported separately.
 - **Finalization** – a closed, immutable fiscal year.
+- **Short fiscal year** – a shortened fiscal year that arises when switching
+  from one fiscal year to another (chapter 8.1).
 - **Snapshot (plan snapshot)** – a frozen state of the financial plan at a
   point in time (e.g. "resolved at the general assembly").
 - **Log (audit log)** – tamper-proof chronicle of all changes.

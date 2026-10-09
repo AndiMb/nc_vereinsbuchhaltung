@@ -104,6 +104,10 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   and self-service (issue #101).
 
 **Changed:**
+- **Manual rendered readably:** the page opened by "Open full manual" in the help now shows
+  tables, numbered lists, code spans and a clickable table of contents instead
+  of raw Markdown lines. New is "The process at a glance" (13.0) at the start of
+  the contributions chapter.
 - **Old contributions and SEPA module removed:** the mandates, fees and batch
   collections of the previous flat module are deleted on update and not carried
   over into the new model (issue #107); if you have such data, back it up first.

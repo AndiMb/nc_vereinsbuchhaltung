@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Service\HandbookMarkdownRenderer;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -17,18 +18,10 @@ use OCP\IRequest;
 
 /**
  * Liefert das beiliegende HANDBUCH.md (bzw. HANDBUCH.en.md) als lesbare
- * HTML-Seite aus. Bewusst kein Markdown-Parser als Composer-Abhängigkeit,
- * sondern ein schlanker Eigenbau, der nur die im Handbuch tatsächlich
- * genutzte Syntax abdeckt (Überschriften, Listen, Zitate, Fett- und
- * Kursivschrift, Trennlinien).
- *
- * Überschriften bekommen zwei Anker: ein sprachabhängiges id-Attribut
- * (slugify des – ggf. übersetzten – Überschriftentexts, trägt das
- * Inhaltsverzeichnis am Dateianfang) sowie zusätzlich einen stabilen,
- * sprachunabhängigen Anker "section-<Kapitelnummer>" direkt davor. Das
- * HelpModal im Frontend verlinkt auf Letzteren, damit ein Kapitel-Deep-Link
- * unabhängig davon funktioniert, ob die deutsche oder die englische Fassung
- * ausgeliefert wird (siehe sectionAnchor()).
+ * HTML-Seite aus. Das Markdown wandelt der schlanke Eigenbau
+ * HandbookMarkdownRenderer um (dort auch die Anker-Regeln, auf die das
+ * HelpModal im Frontend verlinkt); hier stehen nur Seitenrahmen,
+ * Stylesheet und die Auslieferung.
  */
 class HelpController extends Controller {
 
@@ -36,6 +29,7 @@ class HelpController extends Controller {
 		IRequest $request,
 		private IConfig $config,
 		private IL10N $l10n,
+		private HandbookMarkdownRenderer $renderer,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -75,7 +69,7 @@ class HelpController extends Controller {
 			. '<meta name="viewport" content="width=device-width, initial-scale=1">'
 			. '<title>' . ($english ? 'Vereinsbuchhaltung Manual' : 'Handbuch Vereinsbuchhaltung') . '</title>'
 			. '<style>' . $this->css() . '</style></head><body>'
-			. $this->render((string)$md)
+			. $this->renderer->render((string)$md)
 			. '</body></html>';
 
 		return $this->printableResponse($html);
@@ -176,142 +170,43 @@ class HelpController extends Controller {
 		return $this->printableResponse($html);
 	}
 
-	private function render(string $md): string {
-		$lines = explode("\n", str_replace("\r\n", "\n", $md));
-		$html = '';
-		$inList = false;
-		$inQuote = false;
-		$para = [];
-
-		$flushPara = function () use (&$para, &$html) {
-			if ($para) {
-				$html .= '<p>' . $this->inline(implode(' ', $para)) . '</p>';
-				$para = [];
-			}
-		};
-		$closeBlocks = function () use (&$inList, &$inQuote, &$html) {
-			if ($inList) {
-				$html .= '</ul>';
-				$inList = false;
-			}
-			if ($inQuote) {
-				$html .= '</blockquote>';
-				$inQuote = false;
-			}
-		};
-
-		foreach ($lines as $line) {
-			$line = rtrim($line);
-
-			if (preg_match('/^(#{1,4})\s+(.*)$/', $line, $m)) {
-				$flushPara();
-				$closeBlocks();
-				$level = strlen($m[1]);
-				$id = $this->slugify($m[2]);
-				$sectionAnchor = $this->sectionAnchor($m[2]);
-				if ($sectionAnchor !== null) {
-					$html .= "<a id=\"{$sectionAnchor}\"></a>";
-				}
-				$html .= "<h{$level} id=\"{$id}\">" . $this->inline($m[2]) . "</h{$level}>";
-				continue;
-			}
-			if (trim($line) === '---') {
-				$flushPara();
-				$closeBlocks();
-				$html .= '<hr>';
-				continue;
-			}
-			if (preg_match('/^[-*]\s+(.*)$/', $line, $m)) {
-				$flushPara();
-				if ($inQuote) {
-					$html .= '</blockquote>';
-					$inQuote = false;
-				}
-				if (!$inList) {
-					$html .= '<ul>';
-					$inList = true;
-				}
-				$html .= '<li>' . $this->inline($m[1]) . '</li>';
-				continue;
-			}
-			if (preg_match('/^>\s?(.*)$/', $line, $m)) {
-				$flushPara();
-				if ($inList) {
-					$html .= '</ul>';
-					$inList = false;
-				}
-				if (!$inQuote) {
-					$html .= '<blockquote>';
-					$inQuote = true;
-				}
-				$html .= '<p>' . $this->inline($m[1]) . '</p>';
-				continue;
-			}
-			if (trim($line) === '') {
-				$flushPara();
-				$closeBlocks();
-				continue;
-			}
-			if (str_starts_with(trim($line), '|')) {
-				// Tabellen (nur vereinzelt im Dokument) als lesbare Fallback-Zeile.
-				$flushPara();
-				$closeBlocks();
-				$html .= '<p class="table-fallback">' . $this->inline($line) . '</p>';
-				continue;
-			}
-			$para[] = $line;
-		}
-		$flushPara();
-		$closeBlocks();
-		return $html;
-	}
-
-	private function inline(string $s): string {
-		$s = htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
-		$s = preg_replace('/\*\*(.+?)\*\*/', '<strong>$1</strong>', $s);
-		$s = preg_replace('/(?<!\*)\*([^*\n]+?)\*(?!\*)/', '<em>$1</em>', $s);
-		// Markdown-Links auf Text reduzieren statt eigene Slugs gegen GitHub-Anker zu raten.
-		$s = preg_replace('/\[(.+?)\]\([^)]*\)/', '$1', $s);
-		return $s;
-	}
-
-	/**
-	 * "2. Ersteinrichtung (einmalig)" -> "section-2", "2.2 Kontenrahmen anlegen"
-	 * -> "section-2-2". Liefert null für Überschriften ohne Kapitelnummer
-	 * (Haupttitel, Inhaltsverzeichnis) – die verlinkt niemand von außen an.
-	 */
-	private function sectionAnchor(string $heading): ?string {
-		if (!preg_match('/^(\d+)(?:\.(\d+))?\.?\s/', trim($heading), $m)) {
-			return null;
-		}
-		return isset($m[2]) ? "section-{$m[1]}-{$m[2]}" : "section-{$m[1]}";
-	}
-
-	private function slugify(string $s): string {
-		$s = str_replace(['ä', 'ö', 'ü', 'ß'], ['ae', 'oe', 'ue', 'ss'], mb_strtolower($s));
-		$s = preg_replace('/[^a-z0-9]+/', '-', $s);
-		return trim((string)$s, '-');
-	}
-
 	private function css(): string {
 		return '
 			* { box-sizing: border-box; }
-			body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #222; margin: 0 auto; padding: 24px; max-width: 760px; line-height: 1.55; }
+			body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #222; margin: 0 auto; padding: 24px; max-width: 860px; line-height: 1.55; }
 			h1 { font-size: 22pt; margin: 4px 0 16px; }
 			h2 { font-size: 15pt; margin: 32px 0 8px; border-bottom: 1px solid #ccc; padding-bottom: 4px; scroll-margin-top: 16px; }
 			h3 { font-size: 12pt; margin: 20px 0 6px; scroll-margin-top: 16px; }
+			h4 { font-size: 11pt; margin: 16px 0 4px; scroll-margin-top: 16px; }
 			blockquote { margin: 10px 0; padding: 4px 14px; border-left: 3px solid #999; color: #555; background: #f7f7f7; }
-			ul { padding-left: 22px; }
+			blockquote p { margin: 6px 0; }
+			ul, ol { padding-left: 24px; }
 			li { margin: 3px 0; }
-			.table-fallback { font-family: monospace; font-size: 9pt; color: #555; white-space: pre-wrap; }
+			code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.9em; background: #f0f0f0; border-radius: 3px; padding: 1px 4px; }
+			.table-wrap { overflow-x: auto; margin: 12px 0; }
+			table { border-collapse: collapse; width: 100%; font-size: 10pt; line-height: 1.4; }
+			th, td { border: 1px solid #d0d0d0; padding: 6px 10px; text-align: left; vertical-align: top; }
+			th { background: #f0f0f0; font-weight: 600; }
+			tbody tr:nth-child(even) td { background: #fafafa; }
+			.al-c { text-align: center; }
+			.al-r { text-align: right; }
 			hr { border: none; border-top: 1px solid #ddd; margin: 24px 0; }
 			a { color: #0669d6; }
 			@media (prefers-color-scheme: dark) {
 				body { background: #1b1b1b; color: #ddd; }
 				h2 { border-color: #444; }
 				blockquote { background: #262626; border-color: #555; color: #bbb; }
+				code { background: #2c2c2c; }
+				th, td { border-color: #444; }
+				th { background: #2c2c2c; }
+				tbody tr:nth-child(even) td { background: #222; }
 				hr { border-color: #333; }
 				a { color: #6cb6ff; }
+			}
+			@media print {
+				body { max-width: none; padding: 0; }
+				tr, blockquote { break-inside: avoid; }
+				h2, h3, h4 { break-after: avoid; }
 			}
 		';
 	}

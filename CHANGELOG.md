@@ -107,6 +107,10 @@ verwenden, z. B. `**Neu:**`.
   Weiterbelastung, Mahnabstand, XML-Ablage und Self-Service (Issue #101).
 
 **Geändert:**
+- **Handbuch lesbar dargestellt:** Die Seite „Vollständiges Handbuch öffnen" in der Hilfe zeigt
+  Tabellen, nummerierte Listen, Code-Stellen und ein klickbares
+  Inhaltsverzeichnis, statt rohe Markdown-Zeilen auszugeben. Neu ist der
+  Überblick „Der Ablauf im Überblick" (13.0) am Anfang des Beitragskapitels.
 - **Altes Beitrags- und SEPA-Modul entfernt:** Die Mandate, Beiträge und
   Sammeleinzüge des bisherigen flachen Moduls werden beim Update gelöscht und
   nicht in das neue Modell übernommen (Issue #107); wer solche Daten hat, sichert

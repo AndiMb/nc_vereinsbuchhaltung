@@ -493,7 +493,16 @@ Ein neuer Posten braucht: **Debitor**, **Betrag**, optional **Fälligkeit**
 und ein **Konto** (für die spätere Buchung). Ist die Fälligkeit
 überschritten, markiert die App den Posten als „überfällig" – das
 Dashboard zeigt dann zusätzlich eine Kachel „Überfällige offene Posten"
-mit Direktsprung zur Liste.
+mit Direktsprung zur Liste. Auch der Reiter **Offene Posten** trägt ein rotes
+**Abzeichen** mit der Zahl der überfälligen Posten; beim Daraufzeigen nennt die
+App sie ausgeschrieben („3 überfällige offene Posten").
+
+Über der Liste grenzen **Filter-Chips mit Zählern** die Ansicht ein: *Offen*,
+*Überfällig* (erscheint nur, solange es überfällige gibt; sie sind eine
+Teilmenge von *Offen* und genau die Zahl aus dem Abzeichen), *Bezahlt*,
+*Erlassen* (nur, wenn es Erlassenes gibt), *Storniert* und *Alle*. Wird der
+letzte überfällige Posten bezahlt, verschwindet der Chip, und die Liste fällt
+auf *Offen* zurück statt auf eine leere Ansicht.
 
 Sobald das Geld eingegangen ist, wird der Posten manuell **als bezahlt
 markiert** (Button „Bezahlt"). Der eigentliche Zahlungseingang wird wie
@@ -1160,6 +1169,27 @@ Verein, keine laufende Arbeit. Die **Mitglieder selbst** brauchen keine Rolle:
 ihren Bereich „Mein Beitrag" beschreibt 13.11, die Beitragsbestätigung 13.12,
 die Datenschutz-Werkzeuge 13.13.
 
+### 13.0 Der Ablauf im Überblick
+
+Wer das Modul neu einführt, geht diese Schritte der Reihe nach; jeder verweist
+auf den Abschnitt, der ihn genau beschreibt.
+
+| Schritt | Was passiert | Wo | Abschnitt |
+|---|---|---|---|
+| **1. Einrichten** | Gläubiger-ID, einziehendes Konto, Fristen vor dem Einzug, Rechtstext des Mandats | *Nextcloud-Einstellungen → Vereinsbuchhaltung → Beiträge & SEPA* | 13.1 |
+| **2. Beitragsgruppen anlegen** | das Regelwerk je Mitgliedsart: Untergrenze, Standardbeitrag, erlaubte Turnusse | Reiter *Beiträge → Beitragsgruppen* | 13.4 |
+| **3. Mitglieder aufnehmen** | einzeln mit dem Aufnahme-Assistenten (Stammdaten → Mandat → Beitrag) oder als Liste per CSV | *Beiträge → Mitglieder* | 13.2, 13.3 |
+| **4. Mandate einholen** | Unterschrift auf Papier oder per Einmal-Link; erst ein **aktives** Mandat ist einzugsfähig | Menü ⋯ → *Mandat verwalten* | 13.2 |
+| **5. Beiträge zuweisen und pflegen** | Zuweisung zu einer Beitragsgruppe; später Beitrag ändern, Gruppe wechseln, beenden – auch beitragsfrei für Pausen | Menü ⋯ der Mitgliederzeile, *Beitragsgruppen* | 13.4 |
+| **6. Einziehen** | Termin, Vorabinfo an die Mitglieder, Freigabe, Einreichung der SEPA-Datei bei der Bank | *Beiträge → Einzug* | 13.5 |
+| **7. Geld abgleichen** | Zahlungseingänge den Läufen zuordnen, Rücklastschriften bearbeiten | *Einzug*, Bankabgleich | 13.6, 13.7, 13.10 |
+| **8. Nachhalten** | offene Forderungen, Mahnstand, Störfälle, Aufgaben | *Einzug → Forderungen*, Aufgaben in der Kopfzeile | 13.8, 13.9 |
+| **9. Bei Bedarf** | Beitragsbestätigung, Datenübersicht, Anonymisierung | Akte des Mitglieds oder *Mein Beitrag* | 13.12, 13.13 |
+
+Sollen Mitglieder ihre Angaben selbst pflegen, schalten Sie zusätzlich „Mein
+Beitrag" frei (13.11). Der Rest des Kapitels ist zum Nachschlagen gedacht: Sie
+müssen es nicht der Reihe nach lesen.
+
 ### 13.1 Was Sie vorher brauchen
 
 1. Eine **Gläubiger-Identifikationsnummer**. Die vergibt die Deutsche
@@ -1218,8 +1248,12 @@ Im **Reiter „Beiträge" → Mitglieder** (Hauptnavigation, nicht die
 Nextcloud-Einstellungen – das ist laufende Arbeit, keine Einstellung) führen Sie
 die Mitglieder, soweit die App sie für das Geld braucht: Name (Person oder
 Organisation), Kontaktdaten, Mitgliedsnummer sowie Beitritts- und
-Austrittsdatum. Eine vollständige Mitgliederverwaltung ist das nicht, und ein
-Mitglied braucht kein Nextcloud-Konto; ein vorhandenes lässt sich in der Akte
+Austrittsdatum. Bei der Anschrift wählen Sie das **Land** aus der Liste aller
+Länder; vorbelegt ist das Land der Person, die die App gerade bedient (aus ihrer
+Nextcloud-Sprache, sonst aus dem Browser, sonst Deutschland), bei einem
+vorhandenen Mitglied bleibt der gespeicherte Wert. Eine vollständige
+Mitgliederverwaltung ist das nicht, und ein Mitglied braucht kein
+Nextcloud-Konto; ein vorhandenes lässt sich in der Akte
 verknüpfen (*Nextcloud-Konto* → *Vorschläge suchen*, erst nach Ihrer
 Bestätigung – die Mailadresse liefert nur den Vorschlag).
 
@@ -1830,7 +1864,7 @@ Akte bleibt für das Mitglied unsichtbar.
 
 | Bereich | Das Mitglied kann | Das Mitglied kann nicht |
 |---|---|---|
-| **Meine Stammdaten** | Name, E-Mail, Telefon und Adresse ändern (**„Bearbeiten"**). Ändert sich die E-Mail-Adresse, bekommt zur Sicherheit auch die bisherige Adresse eine Mail darüber | Mitgliedsnummer sowie Eintritts- und Austrittsdatum ändern – das bleibt bei der Kassenführung |
+| **Meine Stammdaten** | Name, E-Mail, Telefon und Adresse ändern (**„Bearbeiten"**; das Land wählt es aus der Länderliste). Ändert sich die E-Mail-Adresse, bekommt zur Sicherheit auch die bisherige Adresse eine Mail darüber | Mitgliedsnummer sowie Eintritts- und Austrittsdatum ändern – das bleibt bei der Kassenführung |
 | **Mein Beitrag** | den Monatsbeitrag erhöhen oder bis zur Untergrenze senken, den Turnus wechseln (nur die erlaubten). Die **„Vorschau"** nennt „Wirkt ab … · erster Einzug am … · Betrag …"; erst danach lässt sich speichern | die Beitragsgruppe wechseln, einen Monat aussetzen, den Austritt erklären, die eigene Untergrenze ändern oder deren Begründung sehen |
 | **Mein SEPA-Lastschriftmandat** | ein Mandat erfassen und elektronisch erteilen (**„Mandat jetzt erteilen"**), einen von Ihnen angelegten elektronischen Entwurf bestätigen (**„Jetzt bestätigen"**) oder verwerfen, die **Bankverbindung ändern**, den **Kontoinhaber wechseln**, das Mandat **widerrufen** | ein Mandat aktivieren oder sperren – das bleibt bei der Kassenführung |
 
@@ -1997,6 +2031,8 @@ Zeitraums. Das betrifft nur Geldkonten (Bank-Flag).
 - **N** – neue Buchung anlegen
 - **/** – Suche fokussieren (im Konten-Tab die Baumsuche, sonst die
   Buchungs-Suche)
+- **Esc** – schließt den obersten offenen Dialog, auch aus einem Eingabefeld
+  heraus
 
 ### 14.4 Glossar
 
