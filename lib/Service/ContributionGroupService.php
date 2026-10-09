@@ -153,6 +153,11 @@ class ContributionGroupService {
 
 		$group = $this->mapper->find($id);
 		$group->setMinMonthlyAmountCents($newMinAmountCents);
+		// Der Standardbeitrag der Gruppe darf nie unter ihrer Untergrenze liegen (applyFields() lehnt das ab): hebt die
+		// Erhöhung die Untergrenze darüber, zieht er mit – sonst ließe sich die Gruppe danach nicht mehr ändern.
+		if ($group->getDefaultMonthlyAmountCents() < $newMinAmountCents) {
+			$group->setDefaultMonthlyAmountCents($newMinAmountCents);
+		}
 		$this->mapper->update($group);
 
 		foreach ($preview['affected'] as $entry) {

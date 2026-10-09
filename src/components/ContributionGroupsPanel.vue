@@ -153,7 +153,7 @@
 			:groupId="minAmountGroupId"
 			@close="minAmountDialogOpen = false"
 			@update:show="minAmountDialogOpen = $event"
-			@applied="loadContributionGroups" />
+			@applied="onMinAmountApplied" />
 
 		<AssignmentDialog
 			:show="assignmentDialogOpen"
@@ -245,6 +245,11 @@ export default {
 	},
 
 	methods: {
+		/** Eine angehobene Untergrenze zieht Zuweisungen mit (Betrag je Zuweisung): auch die Tabelle „Zuweisungen“ neu laden. */
+		async onMinAmountApplied() {
+			await Promise.all([this.loadContributionGroups(), this.loadAssignments()])
+		},
+
 		formatDate,
 		intervalLabel,
 		isLive: (a) => isLiveAssignment(a),

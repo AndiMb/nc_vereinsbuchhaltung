@@ -168,6 +168,31 @@ class ContributionGroupServiceTest extends TestCase {
 		$this->assertSame([20], array_column($preview['affected'], 'assignmentId'));
 	}
 
+	/** Sonst ließe sich die Gruppe nach der Erhöhung nicht mehr speichern („Standard-Monatsbeitrag darf die Untergrenze nicht unterschreiten“). */
+	public function testApplyMinAmountIncreaseZiehtDenStandardbeitragMit(): void {
+		$group = $this->group(500);
+		$group->setDefaultMonthlyAmountCents(800);
+		$this->mapper->method('find')->willReturn($group);
+		$this->assignmentMapper->method('findByGroup')->willReturn([]);
+		$this->mapper->expects($this->once())->method('update')->with($this->callback(
+			static fn (ContributionGroup $g): bool => $g->getMinMonthlyAmountCents() === 1000 && $g->getDefaultMonthlyAmountCents() === 1000,
+		));
+
+		$this->service()->applyMinAmountIncrease(1, 1000, 'kassenwart');
+	}
+
+	public function testApplyMinAmountIncreaseLaesstEinenHoherenStandardbeitragStehen(): void {
+		$group = $this->group(500);
+		$group->setDefaultMonthlyAmountCents(1500);
+		$this->mapper->method('find')->willReturn($group);
+		$this->assignmentMapper->method('findByGroup')->willReturn([]);
+		$this->mapper->expects($this->once())->method('update')->with($this->callback(
+			static fn (ContributionGroup $g): bool => $g->getMinMonthlyAmountCents() === 1000 && $g->getDefaultMonthlyAmountCents() === 1500,
+		));
+
+		$this->service()->applyMinAmountIncrease(1, 1000, 'kassenwart');
+	}
+
 	public function testApplyMinAmountIncreaseHebtNurBetroffeneAn(): void {
 		$this->mapper->method('find')->willReturn($this->group(500));
 		$this->mapper->expects($this->once())->method('update');
