@@ -48,7 +48,7 @@ Lies diese Liste vor dem Testen. Was hier steht, ist **kein Fehler**, sondern be
 - **XML-Kopien bleiben beim Zurücksetzen liegen:** Die optionale Kopie der Einzugsdatei im Nextcloud-Ordner löscht der Reset nicht (die App kennt keine Datei-ID, die Ablage dient der Compliance).
 - **GiroCode braucht PHP-Erweiterung `gd`:** Die App nutzt `chillerlan/php-qrcode` in Version 5 (`^5.0`, PHP 8.1 genügt; Version 6 verlangt PHP 8.2). Fehlt `gd` oder die Bibliothek, geht die Mahnmail ohne GiroCode raus (der Mailtext erwähnt ihn dann nicht), und der Fehler steht im Nextcloud-Log. Prüfe das Docker-Image (Phase 0).
 - **IBAN nur formal geprüft:** Länderkürzel, Prüfziffern-Stellen und Länge, aber keine Prüfsummenrechnung. Eine IBAN mit falscher Prüfziffer wird angenommen, eine formal falsche abgelehnt (bewusste Entscheidung, siehe Klassendoc `IbanValidator`). Die Test-IBANs des Seeders haben eine gültige Prüfsumme. Ob du eine Prüfsumme willst, ist eine Frage für dein Feedback (16.3).
-- **Der Prüflauf des CSV-Imports meldet nicht alles:** Ungültige IBAN-Formate, Startdaten in der Vergangenheit und doppelte Mitgliedsnummern **innerhalb derselben Datei** erkennt erst das Übernehmen (dann scheitert die Zeile oder wird übersprungen). Bitte beobachten und im Feedback sagen, ob der Prüflauf das melden sollte (6.9).
+- **Der Prüflauf des CSV-Imports legt die Latte hoch, prüft aber keine Bankprüfsumme:** Er meldet fehlende Namen, ungültige E-Mail- und IBAN-Formate, Startdaten in der Vergangenheit und doppelte Mitgliedsnummern (auch innerhalb derselben Datei) schon vor dem Übernehmen. Eine IBAN mit falscher Prüfziffer geht durch (siehe „IBAN nur formal geprüft“).
 - **Zahlungseingangs-Vorschläge sind großzügig:** Sie berücksichtigen alle noch nicht erledigten Forderungen mit gleichem Betrag, auch solche, die schon in einem Lauf stecken. Du bestätigst jede Zuordnung selbst (8.9).
 - **Anonymisierungs-Kandidat nur mit zusätzlicher Buchung:** Die 10-Jahres-Frist läuft ab der letzten **verbuchten** Zahlung. Hans Becker (1010) ist deshalb im Seeder-Szenario erst dann reif, wenn der Seeder eine Buchung von 2014 anlegt (`--with-anonymization-booking`, legt die Geschäftsjahre 2014 bis 2025 an, siehe 0.4 und 12.0).
 - **Echter Cron:** Die Dev-Umgebung hat einen laufenden Cron, der die Tagesjobs frühestens am 06.10.2026 gegen 20:20 UTC selbst startet; Vorabinfos können dann ohne dein Zutun rausgehen (0.6).
@@ -143,7 +143,7 @@ curl -X DELETE -H "Host: mail.local" http://127.0.0.1/api/v1/messages
 3. Lade die App im Browser neu (⇧⌘R) und öffne **Beiträge**.
 
 **Erwartet:**
-- `--check` nennt: 16 Mitglieder (1001 bis 1016), 4 Beitragsgruppen, einen eingereichten Lauf (Nr. 9, Fälligkeit 2026-10-01, 10 Posten, 145,00 €) und 10 Forderungen für den 01.11.2026 (130,00 €), dazu die Aufgabenliste.
+- `--check` nennt: 16 Mitglieder (1001 bis 1016), 4 Beitragsgruppen, einen eingereichten Lauf (Fälligkeit 01.10.2026, 10 Posten, 145,00 €; die laufende Nummer hängt von der Instanz ab, in der Dev-Umgebung zuletzt Nr. 11) und 10 Forderungen für den 01.11.2026 (130,00 €), dazu die Aufgabenliste.
 - Im Reiter „Beiträge“ → „Mitglieder“ stehen 16 Mitglieder mit den Nummern #1001 bis #1016. Die Beitragsgruppen heißen Vollmitglied (15,00 € je Monat), Ermäßigt (7,50 €), Jugend (5,00 €) und Fördermitglied (5,00 € je Monat, also 60,00 € im Jahr).
 - Unter „Einzug“ steht ein eingereichter Lauf zum 01.10.2026 und eine Vorschau für den 01.11.2026.
 - Einstellungen laut Seeder: Gläubiger-ID `DE98ZZZ09999999999`, einziehendes Konto 1200, Erlöskonto 4000, Gebührenkonto 5400, Self-Service an, **Vorabinfo-Vorlauf 30 Tage** und **Vorwarnfenster 35 Tage** (Standard wären 14 und 21). Rollen: alice Buchhalter, bob Revisor. Sprachen: jane „Deutsch“, john „Deutsch (förmlich)“, user1 „English“.
@@ -316,7 +316,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 - Der Knopf trägt den zugänglichen Namen „Aufgaben – N mit Handlungsbedarf“. Die Zahl im Badge zählt **nur** Handlungsbedarf, nicht die Hinweise.
 - Das Fenster heißt „Aufgaben“ und zeigt die Überschriften „Handlungsbedarf“ und „Hinweise“.
 - Stand nach dem Seeder, **vor dem Tageslauf** (Einzelheiten laut Seeder – ggf. abweichend):
-  - unter „Handlungsbedarf“ **zehnmal** „Vorabinfo für {Name} ({Bezeichnung}, fällig 2026-11-01) konnte nicht rechtzeitig verschickt werden.“ (der 30-Tage-Vorlauf ist schon unterschritten, der Cron ist noch nicht gelaufen),
+  - unter „Handlungsbedarf“ **eine aufklappbare Zeile** „Vorabinfo nicht rechtzeitig verschickt“ mit Zähler **10** (aufgeklappt zehnmal „Vorabinfo für {Name} ({Bezeichnung}, fällig 01.11.2026) konnte nicht rechtzeitig verschickt werden.“; ab drei gleichartigen Meldungen fasst das Klemmbrett sie so zusammen) (der 30-Tage-Vorlauf ist schon unterschritten, der Cron ist noch nicht gelaufen),
   - eine Aufgabe zu **Jonas Richter** (sein Mandat ist ein Entwurf: kein einzugsfähiges Mandat, bzw. der Einmal-Link wartet auf Zustimmung),
   - unter „Hinweise“ bei Nadine Schuster „Mandat verfällt am 01.12.2026 (in N Tagen)“ und ggf. „Zum Mandat ist kein Nachweis hinterlegt (unterschriebenes Dokument).“ bei Papier-Mandaten sowie „Nächster Lauf am 01.11.2026 – N Forderung(en), X €, M Störfall/Störfälle.“
 - Jede Aufgabe führt mit „Zur Akte“ oder „Zum Einzug“ an die Stelle, an der du sie behebst; die Liste schließt sich dabei.
@@ -337,7 +337,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 - Das Hilfe-Fenster öffnet beim passenden Thema „Beiträge & SEPA“ mit mehreren Stichpunkten (aktuell sieben).
 - Das Handbuch öffnet im neuen Tab bei Kapitel 13 (Mitgliedsbeiträge und SEPA-Lastschrift).
 
-**Beachte:** Der Hilfetext sagt, der Knopf „Mitglied“ führe „in drei Schritten“ durch Stammdaten, Mandat und Beitrag. Prüfe in Phase 6, ob die Oberfläche das einlöst.
+**Beachte:** Der Hilfetext sagt, der Knopf „Mitglied“ nehme ein Mitglied „samt optionalem Mandat und Beitrag in einem Dialog“ auf (früher stand dort „in drei Schritten“). Prüfe in Phase 6, ob die Oberfläche das einlöst.
 
 ### 1.5 Reiter „Beiträge“ im Überblick
 
@@ -369,7 +369,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 2. Scrolle die Seite einmal von oben nach unten durch.
 
 **Erwartet:**
-- Die Seite hat die Abschnitte „Verein“, „Belege“, „Bankdaten“, „Beiträge & SEPA“, „Mandats-Rechtstext“, „Berechtigungen“, „Geschäftsjahr“ und „Daten“.
+- Die Seite hat die Abschnitte „Verein“, „Darstellung“ (Vorzeichen und Farbe an Beträgen, seit 0.34.6; ab Werk neutral), „Belege“, „Bankdaten“, „Beiträge & SEPA“, „Mandats-Rechtstext“, „Berechtigungen“, „Geschäftsjahr“ und „Daten“.
 - „Beiträge & SEPA“ beginnt mit dem Hinweis „Rein optionales Zusatzmodul für Vereine, die Mitgliedsbeiträge per Lastschrift einziehen …“ und enthält die Karten „Grundeinstellungen“, „Standard-Beitrag“, „Beitragsjahr und Einzugszyklus“, „Ablage der Einzugsdatei (XML)“, „Mandate“ und „Rücklastschriften und Mahnwesen“.
 - Alle Karten laden ohne Fehlermeldung. Ein Ladefehler zeigt „Die weiteren Einstellungen des Beitragsmoduls konnten nicht geladen werden.“ mit dem Knopf „Erneut versuchen“.
 
@@ -550,7 +550,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 **Erwartet:**
 - Hinweis: „Ein Mitglied wird unabhängig von einer Bankverbindung geführt – SEPA-Mandat und Beitrag sind optionale Ergänzungen …“.
 - Summenzeile „16 von 16 Mitgliedern · K mit Mandat · Beitragsaufkommen X € im Jahr“ (16 Mitglieder, Nummern 1001 bis 1016).
-- Tabellenspalten: „Mitglied“, „Bankverbindung“, „Betrag“, „Frequenz“, „Nächste Fälligkeit“, „Aktiv“. Hinter dem Namen steht die Mitgliedsnummer (z. B. „#1001“).
+- Tabellenspalten: „Mitglied“, „Bankverbindung“, „Betrag“, „Frequenz“, „Nächste Fälligkeit“, „Zuweisung“ (Zustand der Zuweisung mit Statuspunkt, z. B. „aktiv“ oder „beendet 31.12.2013“). Hinter dem Namen steht die Mitgliedsnummer (z. B. „#1001“).
 - „Betrag“ ist der Betrag je Periode (Monatsbeitrag × Turnus): Jana Hoffmann 15,00 € monatlich, Jonas Richter 45,00 € vierteljährlich, Lena Bergmann 22,50 € vierteljährlich, Sophie Krüger 180,00 € jährlich, Musikhaus Schmidt GmbH 60,00 € jährlich. Nadine Schuster hat keine Zuweisung (Betrag und Frequenz „–“).
 - Bei Mandaten steht die IBAN, bei Bedarf mit einer Marke: Jonas Richter trägt „Entwurf“. Wer per Überweisung zahlt, steht mit „Überweisung“ statt „kein Mandat“ da (Lena Bergmann, Tobias Brandt trotz widerrufenen Mandats, Musikhaus Schmidt GmbH).
 - Hans Becker (Austritt 31.12.2013) trägt die Marke „ausgetreten“ und hat keine E-Mail-Adresse.
@@ -569,7 +569,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 **Erwartet:**
 - Die Liste und die Summenzeile („N von N Mitgliedern“) passen sich beim Tippen an; `1004` findet Markus Fuchs.
 - Bei `zzz`: „Kein Eintrag passt zur Suche.“
-- „nur Auffälligkeiten“ zeigt Mitglieder ohne E-Mail-Adresse (Hans Becker) und solche mit Lastschrift-Zuweisung ohne Mandat; Überweiser wie Lena Bergmann, Tobias Brandt und das Musikhaus erscheinen nicht. Ob Jonas Richter (Mandat nur als Entwurf) dort steht, ist offen: Notiere es.
+- „nur Auffälligkeiten“ zeigt Mitglieder ohne E-Mail-Adresse (Hans Becker) und solche mit Lastschrift-Zuweisung ohne Mandat; Überweiser wie Lena Bergmann, Tobias Brandt und das Musikhaus erscheinen nicht. Auch Jonas Richter steht dort: Seine Lastschrift-Zuweisung hat nur ein Mandat im Entwurf, und ein Entwurf zieht nichts ein (das Klemmbrett meldet dieselbe Lage als Handlungsbedarf).
 
 ### 3.3 Spalte „Nächste Fälligkeit“
 
@@ -580,7 +580,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 2. Öffne **Einzug** → **Forderungen** und vergleiche mit der frühesten nicht beglichenen Forderung dieser Mitglieder.
 
 **Erwartet:**
-- Die Spalte zeigt das früheste Datum unter den noch fälligen Forderungen (offen, im Einzug oder zurückgegeben) im Format `JJJJ-MM-TT`, eine laufende Stundung zählt mit ihrem Ende. Ohne solche Forderung steht „–“.
+- Die Spalte zeigt das früheste Datum unter den noch fälligen Forderungen (offen, im Einzug oder zurückgegeben) im Format `TT.MM.JJJJ` (z. B. 01.11.2026), eine laufende Stundung zählt mit ihrem Ende. Ohne solche Forderung steht „–“.
 - Laut Seeder: Jana `2026-11-01` (September bezahlt, Oktober im Lauf bereits eingezogen, November offen), Nadine `2026-11-01` (Einzelforderung), Lena das Datum ihrer offenen Q4-Forderung.
 - Erledigte, stornierte und erlassene Forderungen zählen nicht.
 
@@ -591,7 +591,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 **Rolle:** admin (Verwalter)
 
 **Tun:**
-1. Klicke in der Zeile von Jana Hoffmann auf das Menü (⋯, „Aktionen“) und wähle „Akte öffnen“.
+1. Klicke in der Liste auf den Namen von Jana Hoffmann: Er öffnet die Akte (das Menü ⋯ der Zeile bietet nur „Mandat verwalten“).
 2. Scrolle durch die Akte.
 3. Trage bei „Interne Notiz“ `Testnotiz nur intern` ein und ändere „Telefon“ auf `+49 30 1234567`.
 4. Klicke „Speichern“.
@@ -996,7 +996,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 
 **Erwartet:**
 - Beim Wechseln der Gruppe ist der Monatsbeitrag mit dem Standardbeitrag der Gruppe vorbelegt (8,00 €).
-- Die Vorschau lautet „Erste Periode: {Beginn} bis {Ende} ({N Monate}) · Einzugsbetrag {Betrag}“, z. B. für den 15. November „Erste Periode: 2026-10-01 bis 2026-12-31 (2 Monate) · Einzugsbetrag 16,00 €“ (die Daten stehen im Format JJJJ-MM-TT). Gerechnet wird in ganzen Kalendermonaten ab dem Monat von „Gültig ab“ (der angebrochene Monat zählt voll) bis zum Periodenende: Monatsbeitrag × Anzahl.
+- Die Vorschau lautet „Erste Periode: {Beginn} bis {Ende} ({N Monate}) · Einzugsbetrag {Betrag}“, z. B. für den 15. November „Erste Periode: 01.10.2026 bis 31.12.2026 (2 Monate) · Einzugsbetrag 16,00 €“. Gerechnet wird in ganzen Kalendermonaten ab dem Monat von „Gültig ab“ (der angebrochene Monat zählt voll) bis zum Periodenende: Monatsbeitrag × Anzahl.
 - „Zuweisung angelegt.“ und eine neue Zeile in „Zuweisungen“. Zora Zuweisung steht in der Mitgliederliste mit „Überweisung“.
 
 ### 5.4 Pflichtregeln: nicht rückwirkend, keine Doppelzuweisung
@@ -1115,13 +1115,13 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 2. Scrolle den Dialog von oben nach unten, ohne etwas zu speichern. Schließe ihn mit „Abbrechen“.
 
 **Erwartet:**
-- Der Dialog „Mitglied aufnehmen“ enthält drei Abschnitte untereinander:
+- Der Dialog „Mitglied aufnehmen“ enthält drei Abschnitte untereinander (die letzten beiden tragen die Überschriften „SEPA-Mandat (optional)“ und „Beitrag (optional)“):
   - **Stammdaten:** „Mitgliedstyp“, „Vorname“ (Platzhalter „optional“), „Nachname“, „E-Mail“ (Platzhalter „Voraussetzung für Lastschrift“), „Telefon“, „Straße“, „PLZ“, „Ort“, „Mitgliedsnummer“, „Beigetreten am“, „Interne Notiz“.
   - **Mandat:** „Art der Unterschrift“, „IBAN“, „BIC“, „Kontoinhaber“ (Platzhalter „sonst Anzeigename des Mitglieds“), „Mandatsreferenz“ (Platzhalter „sonst automatisch vergeben“), „Mandat unterschrieben am“.
   - **Beitrag:** „Beitragsgruppe“ (Vorgabe „– keine Zuweisung –“), „Turnus (Monate)“, „Monatsbeitrag (€)“, „Zahlungsart“, „Gültig ab“, „Vorschau“.
-- Der Hinweis lautet: „Optional gleich ein SEPA-Mandat erfassen und einer Beitragsgruppe zuweisen – beides lässt sich auch später ergänzen (Schritt 2/3 des Aufnahme-Assistenten, überspringbar).“
+- Unter „SEPA-Mandat (optional)“ steht der Hinweis „Beides lässt sich auch später in der Akte ergänzen.“
 
-**Beachte:** Der „dreistufige Assistent“ aus Handbuch und Hilfe ist in der Oberfläche **ein** scrollbarer Dialog mit drei Abschnitten, ohne „Weiter“-Knöpfe. Notiere, ob dir das genügt.
+**Beachte:** Der Aufnahme-Dialog ist **ein** scrollbarer Dialog mit drei Abschnitten, ohne „Weiter“-Knöpfe (Hilfetext und Handbuch sprechen von „einem Dialog“). Notiere, ob dir das genügt.
 
 ### 6.2 Papier-Mandat mit Datum und Beitrag mit Vorschau
 
@@ -1252,7 +1252,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 - Summe laut Dateiinhalt: 14 Zeilen, 7 in Ordnung (Birte, Carsten, Ingo, Jana, Mia, Nils, Nora), 1 übersprungen, 6 fehlerhaft; weicht die Anzeige ab, notiere es.
 - Ein Fehler in einer Zeile macht die übrigen nicht wertlos: Gültige Zeilen bleiben übernehmbar, fehlerhafte werden übersprungen. Nach dem Übernehmen sind angelegt: Birte Voss, Ingo Kern (ohne Beitrag), Jana Hoffmann (zweite, mit Warnung) und Nils Otto.
 
-**Beachte:** Der Prüflauf meldet ungültige IBAN-Formate, Startdaten in der Vergangenheit und doppelte Mitgliedsnummern innerhalb derselben Datei **nicht**; das scheitert bzw. wird erst beim Übernehmen übersprungen (bekannte Beobachtung, siehe „Bekannte Grenzen“). Notiere als **Frage**, ob der Prüflauf das schon melden sollte.
+**Beachte:** Der Prüflauf meldet inzwischen auch ungültige IBAN-Formate (Carsten Ebert), Startdaten in der Vergangenheit (Mia Nolte) und doppelte Mitgliedsnummern innerhalb derselben Datei (Nora Otto) als Fehler beziehungsweise übersprungene Zeile. Die Zahlen oben ändern sich entsprechend: 14 Zeilen, **4 in Ordnung** (Birte, Ingo mit Warnung, Jana 1209 mit Warnung, Nils), 2 übersprungen (Dora Falk, Nora Otto), 8 fehlerhaft.
 
 ### 6.10 Derselbe Import noch einmal
 
@@ -1296,7 +1296,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 4. Klicke den Marker vom 01.10.2026.
 
 **Erwartet:**
-- Der gewählte Marker ist hervorgehoben. „Meilensteine zum Einzug am 01.11.2026“ nennt „Vorwarnung“, „Vorabinfo“, „Freigabe-Vorlauf“ und „Einzug“ mit Daten. Mit den Einstellungen des Seeders (35, 30 und 5 Tage) sind das 27.09., 02.10., 27.10. und 01.11.2026 (mit den Standardwerten 21 und 14 Tage wären es 11.10. und 18.10.).
+- Der gewählte Marker ist hervorgehoben. „Phasen bis zum Einzug am 01.11.2026“ nennt „Vorwarnung“, „Vorabinfo“, „Freigabe-Vorlauf“ und „Einzug“ mit Daten. Mit den Einstellungen des Seeders (35, 30 und 5 Tage) sind das 27.09., 02.10., 27.10. und 01.11.2026 (mit den Standardwerten 21 und 14 Tage wären es 11.10. und 18.10.).
 - Die Legende unterscheidet „Vorschau, noch nicht freigegeben“, „Lauf freigegeben“, „Lauf eingereicht“ und „nichts einzuziehen“.
 - Der Marker vom 01.10.2026 ist als „Lauf eingereicht“ gekennzeichnet; der vom 01.11.2026 als Vorschau.
 - Die Termine stammen aus dem Terminplan und aus Einzelforderungen mit eigenem Termin (auch Test A bis D aus 5.8 sind dort als Termine zu sehen).
@@ -1311,7 +1311,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 3. Prüfe die Posten.
 
 **Erwartet:**
-- Die Lauf-Zeile nennt Termin, Status „Eingereicht“, **10 Posten** und die Summe **145,00 €** (Lauf Nr. 9).
+- Die Lauf-Zeile nennt Termin, Status „Eingereicht“, **10 Posten** und die Summe **145,00 €** (die Nummer des Laufs hängt von der Instanz ab).
 - Das Detail zeigt „Kennung der Datei“ und je Posten Mitglied, Bezeichnung der Forderung, Mandatsreferenz, **maskierte** IBAN (z. B. `DE02••••2051`) und Betrag. Die Posten gehören Jana Hoffmann, Markus Fuchs, Sophie Krüger (anteilig 45,00 €), Mara Lindner, Anna Koch, Bernd Neumann, Clara Vogel, David Wolf, Eva Schröder und Felix Maier. Der Zustand der Forderungen steht in Klartext („eingezogen“: Termin vorbei, keine Rückgabe; die Rückgaben von Fuchs und Krüger kommen erst mit 8.1).
 - Der Hinweis „Die Datei ist bei der Bank eingereicht. Einen Storno gibt es nicht mehr: Der Lauf lässt sich weder verwerfen noch verschieben.“ erscheint, dazu der Knopf „XML herunterladen“.
 
@@ -1389,7 +1389,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 - **Jana (Konto auf „Deutsch“)** bekommt die **Du-Fassung** („Hallo Jana Hoffmann,“, „… von deinem Konto …“, „Bitte sorge für ausreichende Deckung deines Kontos …“); alle anderen, auch Nadine und Theo ohne Nextcloud-Konto, die Sie-Fassung.
 - Jonas Richter, Lena Bergmann, Tobias Brandt und das Musikhaus bekommen **keine Vorabinfo**. Lena (auf Englisch) und Tobias bekommen je eine **Zahlungsaufforderung** („Zahlungsaufforderung von …“) mit GiroCode (siehe 9.7 und 14.7).
 - Nadines Mail nennt ihre Einzelforderung; Theos Mail `Test D Lauf` mit „fällig 2026-11-01“.
-- Datumsangaben in den Mails stehen im Format JJJJ-MM-TT, Beträge deutsch (`15,00 €`).
+- Datumsangaben in den Mails stehen im Format TT.MM.JJJJ, Beträge deutsch (`15,00 €`).
 
 ### 7.8 Vorschau-Karte nach dem Tageslauf
 
@@ -2551,7 +2551,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 2. Prüfe das Format von Beträgen und Datumsangaben.
 
 **Erwartet:**
-- Der Text ist englisch (Sprache von Lenas Konto), **Beträge und Daten sind deutsch formatiert** (z. B. „22,50 €“, Daten im Format JJJJ-MM-TT). Das ist eine bekannte Grenze, kein Fehler.
+- Der Text ist englisch (Sprache von Lenas Konto), **Beträge und Daten sind deutsch formatiert** (z. B. „22,50 €“, Daten im Format TT.MM.JJJJ). Das ist eine bekannte Grenze, kein Fehler.
 - Lenas Zahlungsaufforderung trägt wie die anderen einen GiroCode je Position (9.4).
 
 ## Phase 15 – Mobil & Barrierefreiheit (Stichproben)
@@ -2586,7 +2586,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 
 **Erwartet:**
 - Die Liste besteht aus Karten (statt Tabelle) mit Name, Bankverbindung, Betrag, Frequenz und, falls vorhanden, „fällig {Datum}“.
-- Die Karte bietet „Zuweisung verwalten“ und das Menü „Aktionen“ mit „Akte öffnen“ und „Mandat verwalten“. Nichts ragt über den Rand.
+- Der Name auf der Karte öffnet die Akte; die Karte bietet „Zuweisung verwalten“ und das Menü „Aktionen“ mit „Mandat verwalten“. Nichts ragt über den Rand.
 
 ### 15.3 Einzug auf dem Handy
 
