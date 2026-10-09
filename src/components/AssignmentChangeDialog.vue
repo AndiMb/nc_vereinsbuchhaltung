@@ -12,7 +12,7 @@
 				{{ t('Beitrag ändern') }}
 			</h2>
 			<p class="vbh-hint">
-				{{ t('{name} · {group} · Untergrenze {min}', { name: memberName, group: group ? group.name : '', min: euro(effectiveMinCents) }) }}
+				{{ tRaw('{name} · {group} · Untergrenze {min}', { name: memberName, group: group ? group.name : '', min: euro(effectiveMinCents) }) }}
 			</p>
 
 			<div class="vbh-form">
