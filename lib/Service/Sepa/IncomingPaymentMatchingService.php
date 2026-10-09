@@ -82,18 +82,42 @@ class IncomingPaymentMatchingService {
 			$txId = (int)$tx->getId();
 			$amount = $tx->getAmountCents();
 			$haystack = mb_strtolower(trim(($tx->getCounterparty() ?? '') . ' ' . ($tx->getPurpose() ?? '')));
+			$referenced = self::referencedItemIds($tx->getPurpose());
 			foreach ($byAmount[$amount] ?? [] as $item) {
 				if (isset($rejected[IncomingPaymentRejectionMapper::key($txId, (int)$item->getId())])) {
 					continue;
 				}
-				$result[$txId][] = [
+				$byReference = in_array((int)$item->getId(), $referenced, true);
+				$suggestion = [
 					'openItemId' => (int)$item->getId(),
 					'memberId' => $item->getMemberId(),
-					'reason' => $this->reason($item, $amount, $haystack),
+					'reason' => $byReference
+						? $this->l10n->t('Betrag %1$s € passt zur offenen Forderung von %2$s, deren Nummer F-%3$d im Zahlungstext steht.', [number_format($amount / 100, 2, ',', '.'), trim($item->getDebtor()), (int)$item->getId()])
+						: $this->reason($item, $amount, $haystack),
 				];
+				// Die Forderung, deren Nummer im Zahlungstext steht, kommt zuerst.
+				if ($byReference) {
+					$result[$txId] = [$suggestion, ...($result[$txId] ?? [])];
+				} else {
+					$result[$txId][] = $suggestion;
+				}
 			}
 		}
 		return $result;
+	}
+
+	/**
+	 * Forderungsnummern „F-<ID>" aus dem Zahlungstext – so steht eine Forderung im Verwendungszweck der
+	 * Zahlungsaufforderung (siehe DunningLadderService).
+	 *
+	 * @return list<int>
+	 */
+	private static function referencedItemIds(?string $purpose): array {
+		if ($purpose === null || $purpose === '') {
+			return [];
+		}
+		preg_match_all('/\bF-(\d{1,9})\b/i', $purpose, $matches);
+		return array_map('intval', $matches[1]);
 	}
 
 	private function reason(OpenItem $item, int $amount, string $haystack): string {

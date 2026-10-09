@@ -75,8 +75,10 @@ verwenden, z. B. `**Neu:**`.
   (Issue #72, #73).
 - **Mahnmails tragen erstmals den GiroCode:** Jede Position hängt mit eigenem
   GiroCode (EPC-QR) an der Mail und lässt sich so einzeln per Banking-App
-  überweisen. Fehlt PHP die Erweiterung gd, geht die Mail ohne GiroCode raus
-  und der Fehler steht im Log (Issue #73, #120).
+  überweisen. Je Position stehen Empfänger, IBAN, Betrag und Verwendungszweck
+  (mit Forderungsnummer) zusätzlich im Text; der Bankabgleich schlägt die
+  Forderung mit genannter Nummer zuerst vor. Fehlt PHP die Erweiterung gd, geht
+  die Mail ohne GiroCode raus und der Fehler steht im Log (Issue #73, #120).
 - **„Mein Beitrag" für Mitglieder:** Mitglieder mit verknüpftem
   Nextcloud-Konto pflegen dort Kontaktdaten, Monatsbeitrag (nicht unter die
   Untergrenze) und Turnus und erteilen, ändern oder widerrufen ihr Mandat –

@@ -119,7 +119,8 @@ async function expectGiroCodePerPosition(mail, claims, positions, dueDate) {
 		expect(lines[6], `IBAN – ${where}`).toBe(BANK_ACCOUNT_IBAN)
 		expect(lines[7], `Betrag – ${where}`).toBe(`EUR${amount.toFixed(2)}`)
 		expect(lines[10], `Verwendungszweck – ${where}`).toContain(label)
-		expect(lines[10], `Verwendungszweck – ${where}`).toContain(dueDateDe)
+		expect(lines[10], `Verwendungszweck nennt die Forderungsnummer – ${where}`).toContain(`F-${claim.id}`)
+		expect(lines[10], `Verwendungszweck ohne Fälligkeit – ${where}`).not.toContain(dueDateDe)
 	})
 }
 

@@ -569,11 +569,14 @@ class DunningLadderServiceTest extends TestCase {
 		$this->assertCount(2, $bloecke, 'Ein Zahlungsdaten-Block je Position');
 		foreach ($bloecke as $block) {
 			$this->assertStringContainsString('IBAN: DE02 1203 0000 0000 2020 51', $block, 'IBAN des Einziehenden Kontos, in Vierergruppen');
-			$this->assertStringContainsString('Konto: Girokonto Verein', $block);
+			$this->assertStringNotContainsString('Konto: ', $block);
 			$this->assertStringContainsString('Verwendungszweck: ', $block);
 		}
 		$this->assertStringContainsString('Betrag: 45,00 €', $bloecke[0]);
 		$this->assertStringContainsString('Betrag: 12,34 €', $bloecke[1]);
+		$this->assertStringContainsString('Verwendungszweck: Beitrag, Forderung F-11', $bloecke[0], 'Der Verwendungszweck trägt die Forderungsnummer, nicht die Fälligkeit');
+		$this->assertStringContainsString('Verwendungszweck: Beitrag, Forderung F-12', $bloecke[1]);
+		$this->assertStringNotContainsString('fällig', $bloecke[0]);
 	}
 
 	public function testDieZahlungsdatenStehenAuchOhneGiroCodeImText(): void {

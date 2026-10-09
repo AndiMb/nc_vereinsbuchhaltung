@@ -71,8 +71,11 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   board appears; the bank fee can optionally be passed on (issues #72, #73).
 - **Dunning emails carry a GiroCode for the first time:** every item is
   attached to the email with its own GiroCode (EPC QR) so it can be paid
-  individually with a banking app. If PHP lacks the gd extension, the email goes
-  out without a GiroCode and the error is logged (issues #73, #120).
+  individually with a banking app. Per item the recipient, IBAN, amount and
+  payment reference (with the claim number) are also listed in the text; the
+  bank reconciliation suggests the claim whose number is named first. If PHP
+  lacks the gd extension, the email goes out without a GiroCode and the error is
+  logged (issues #73, #120).
 - **"My contribution" for members:** members with a linked Nextcloud account
   maintain their contact details, monthly fee (not below the minimum) and
   interval there, and grant, change or revoke their mandate – effective

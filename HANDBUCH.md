@@ -1689,11 +1689,13 @@ einen eigenen **GiroCode** als Bildanhang (EPC-QR): die Banking-App des
 Mitglieds scannt ihn und füllt Empfänger, IBAN, Betrag und Verwendungszweck
 vor, sodass jede Forderung einzeln überwiesen wird statt als Sammelbetrag.
 Die Positionen sind nummeriert, der Anhang „GiroCode-Position-1.png" gehört zu
-Position 1 und so weiter. Je Position stehen außerdem Empfänger, IBAN, Konto,
-Betrag und Verwendungszweck als Text in der Mail, zum Abschreiben oder Kopieren,
-falls die Banking-App den Code nicht liest. Alle Angaben kommen aus dem
-*Einziehenden Konto* (13.1) – ist dort keine IBAN hinterlegt, gibt es weder
-Codes noch Zahlungsdaten. Fehlt dem Server
+Position 1 und so weiter. Je Position stehen außerdem Empfänger, IBAN, Betrag
+und Verwendungszweck als Text in der Mail, zum Abschreiben oder Kopieren, falls
+die Banking-App den Code nicht liest. Die IBAN kommt aus dem *Einziehenden
+Konto* (13.1) – ist dort keine IBAN hinterlegt, gibt es weder Codes noch
+Zahlungsdaten. Der Verwendungszweck nennt Bezeichnung, Zeitraum und die
+**Forderungsnummer** („F-304"); steht sie im Zahlungstext der Gutschrift, schlägt
+der Bankabgleich genau diese Forderung zuerst vor. Fehlt dem Server
 die PHP-Erweiterung gd, geht die Mail ohne GiroCode raus (der Mailtext sagt ihn
 dann nicht zu), und der Fehler steht im Nextcloud-Log.
 

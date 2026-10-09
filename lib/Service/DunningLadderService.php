@@ -411,20 +411,21 @@ class DunningLadderService {
 
 	/**
 	 * Verwendungszweck einer Position: im GiroCode und im Mailtext derselbe Wortlaut, damit eine von Hand
-	 * ausgefüllte Überweisung dieselbe Zuordnung bekommt wie der gescannte Code. Der Betrag steht eigens
-	 * im Feld „Betrag", nicht im Verwendungszweck.
+	 * ausgefüllte Überweisung dieselbe Zuordnung bekommt wie der gescannte Code. Die Forderungsnummer „F-<ID>"
+	 * ordnet die Zahlung im Bankabgleich eindeutig zu ({@see \OCA\Vereinsbuchhaltung\Service\Sepa\IncomingPaymentMatchingService});
+	 * der Betrag steht eigens im Feld „Betrag", nicht im Verwendungszweck.
 	 */
 	private function remittanceText(OpenItem $item, IL10N $l): string {
 		$label = (string)($item->getDescription() ?? $l->t('Beitrag'));
-		$due = GermanDate::format($item->getDueDate());
+		$number = (int)$item->getId();
 		if ($item->getPeriodStart() !== null && $item->getPeriodEnd() !== null) {
-			return $l->t('%1$s (%2$s – %3$s), fällig %4$s', [$label, GermanDate::format($item->getPeriodStart()), GermanDate::format($item->getPeriodEnd()), $due]);
+			return $l->t('%1$s (%2$s – %3$s), Forderung F-%4$d', [$label, GermanDate::format($item->getPeriodStart()), GermanDate::format($item->getPeriodEnd()), $number]);
 		}
-		return $l->t('%1$s, fällig %2$s', [$label, $due]);
+		return $l->t('%1$s, Forderung F-%2$d', [$label, $number]);
 	}
 
 	/**
-	 * Zahlungsdaten einer Position als eigener Block (Empfänger, IBAN, Konto, Betrag, Verwendungszweck), alle
+	 * Zahlungsdaten einer Position als eigener Block (Empfänger, IBAN, Betrag, Verwendungszweck), die IBAN
 	 * aus dem „Einziehenden Konto" der Einstellungen. Eine BIC braucht eine SEPA-Überweisung innerhalb des
 	 * Euro-Raums seit 2016 nicht mehr; am Konto ist auch keine hinterlegt.
 	 */
@@ -432,7 +433,6 @@ class DunningLadderService {
 		$lines = [
 			$l->t('Empfänger') . ': ' . $clubName,
 			$l->t('IBAN') . ': ' . $this->formatIban((string)$account->getIban()),
-			$l->t('Konto') . ': ' . $account->getName(),
 			$l->t('Betrag') . ': ' . number_format($item->getAmountCents() / 100, 2, ',', '.') . ' €',
 			$l->t('Verwendungszweck') . ': ' . $this->remittanceText($item, $l),
 		];

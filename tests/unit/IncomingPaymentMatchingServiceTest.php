@@ -99,6 +99,28 @@ class IncomingPaymentMatchingServiceTest extends TestCase {
 		$this->assertStringContainsString('Zahlungstext', $suggestions[0]['reason']);
 	}
 
+	/** Die Forderungsnummer „F-<ID>" aus dem Verwendungszweck der Zahlungsaufforderung ordnet eindeutig zu. */
+	public function testForderungsnummerImZahlungstextStehtVorGleichemBetrag(): void {
+		$this->openItems->method('findClaims')->willReturn([
+			$this->claim(1, 5, 1500, 'Max Mustermann'),
+			$this->claim(2, 6, 1500, 'Erika Beispiel'),
+		]);
+
+		$suggestions = $this->service()->suggestFor($this->tx(1500, 'Frau E. Beispiel', 'Vollmitglied (01.11.2026 – 30.11.2026), Forderung F-2'));
+
+		$this->assertSame([2, 1], array_column($suggestions, 'openItemId'), 'Die genannte Forderung kommt zuerst');
+		$this->assertStringContainsString('F-2', $suggestions[0]['reason']);
+		$this->assertStringNotContainsString('F-', $suggestions[1]['reason']);
+	}
+
+	public function testForderungsnummerOhneBetragsTrefferErzeugtKeinenVorschlag(): void {
+		$this->openItems->method('findClaims')->willReturn([
+			$this->claim(2, 6, 1500, 'Erika Beispiel'),
+		]);
+
+		$this->assertSame([], $this->service()->suggestFor($this->tx(1000, null, 'Forderung F-2')), 'Der Betrag muss weiter stimmen');
+	}
+
 	/** Das Gedächtnis des Bankabgleichs (Issue #105): ein abgelehntes Paar kommt nicht wieder. */
 	public function testAbgelehntesPaarWirdNichtErneutVorgeschlagen(): void {
 		$this->openItems->method('findClaims')->willReturn([
