@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { actionCount, hintCount, SEVERITY_ACTION, SEVERITY_HINT, sortTasks, targetLabel, taskKindLabel, taskTarget } from './tasks.js'
+import { actionCount, groupTasks, hintCount, SEVERITY_ACTION, SEVERITY_HINT, sortTasks, targetLabel, taskKindLabel, taskKindTitle, taskTarget } from './tasks.js'
 
 // Aufgaben-Flyout (Issue #99): was die Oberflaeche aus der Antwort von
 // GET /api/tasks macht - sortieren, zaehlen, einordnen, Sprungziel. Der Text
@@ -100,5 +100,46 @@ describe('Beschriftungen', () => {
 		expect(targetLabel({ kind: 'member', memberId: 1 })).toBe('Zur Akte')
 		expect(targetLabel({ kind: 'members' })).toBe('Zur Mitgliederliste')
 		expect(targetLabel({ kind: 'batch' })).toBe('Zum Einzug')
+	})
+})
+
+describe('groupTasks', () => {
+	const late = (id, over = {}) => task({ id, kind: 'prenotification_late', objectType: 'claim', objectId: id, ...over })
+
+	it('fasst gleichartige Meldungen ab drei zu einer Gruppe zusammen und behält ihre Reihenfolge', () => {
+		const list = groupTasks([task({ id: 'a' }), late(1), late(2), late(3), task({ id: 'b' })])
+
+		expect(list.map((e) => e.type)).toEqual(['task', 'group', 'task'])
+		const group = list[1]
+		expect(group.title).toBe('Vorabinfo nicht rechtzeitig verschickt')
+		expect(group.tasks.map((t) => t.id)).toEqual([1, 2, 3])
+		expect(group.severity).toBe(SEVERITY_ACTION)
+	})
+
+	it('lässt zwei gleichartige Meldungen als Einzelzeilen stehen', () => {
+		const list = groupTasks([late(1), late(2)])
+		expect(list.map((e) => e.type)).toEqual(['task', 'task'])
+	})
+
+	it('gruppiert nur Meldungen mit bekannter Typkennung und gleichem Schweregrad', () => {
+		const list = groupTasks([
+			late(1),
+			late(2),
+			late(3, { severity: SEVERITY_HINT }),
+			task({ id: 'x', kind: 'unbekannt' }),
+			task({ id: 'y', kind: 'unbekannt' }),
+			task({ id: 'z', kind: 'unbekannt' }),
+		])
+		expect(list.every((e) => e.type === 'task')).toBe(true)
+	})
+
+	it('setzt die Gruppe an die Stelle der ersten Meldung, auch wenn andere dazwischen stehen', () => {
+		const list = groupTasks([late(1), task({ id: 'mitte' }), late(2), late(3)])
+		expect(list.map((e) => (e.type === 'group' ? 'G' : e.task.id))).toEqual(['G', 'mitte'])
+	})
+
+	it('kennt die Überschriften der Typkennungen und sonst keine', () => {
+		expect(taskKindTitle('mandate_without_proof')).toBe('Mandat ohne Nachweis')
+		expect(taskKindTitle('irgendwas')).toBeNull()
 	})
 })

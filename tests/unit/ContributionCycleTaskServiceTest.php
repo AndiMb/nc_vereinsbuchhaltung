@@ -287,6 +287,8 @@ class ContributionCycleTaskServiceTest extends TestCase {
 		$this->assertCount(1, $issues);
 		$this->assertSame(Task::SEVERITY_ACTION_REQUIRED, $issues[0]['severity']);
 		$this->assertSame(5, $issues[0]['objectId']);
+		// Die Oberfläche fasst gleichartige Meldungen über diese Kennung zusammen.
+		$this->assertSame('prenotification_late', $issues[0]['kind']);
 	}
 
 	public function testRunIssuesZaehltFehlendeMandateFuerJedenTermin(): void {

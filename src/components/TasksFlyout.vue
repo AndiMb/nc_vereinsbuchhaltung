@@ -97,28 +97,61 @@
 							<span class="vbh-badge" :class="{ 'vbh-badge--alert': group.key === 'action' }">{{ group.items.length }}</span>
 						</h4>
 						<ul class="vbh-tasks-list">
-							<li
-								v-for="task in group.items"
-								:key="task.id"
-								class="vbh-tasks-item"
-								:class="'vbh-tasks-item--' + group.key">
-								<NcIconSvgWrapper :path="group.icon" :size="20" class="vbh-tasks-icon" />
-								<div class="vbh-tasks-body">
-									<span class="vbh-typetag">{{ kindLabel(task) }}</span>
-									<p :id="messageId(task)" class="vbh-tasks-message">
-										{{ task.message }}
-									</p>
-								</div>
-								<NcButton
-									v-if="targetOf(task)"
-									variant="secondary"
-									size="small"
-									class="vbh-tasks-goto"
-									:aria-describedby="messageId(task)"
-									@click="go(task)">
-									{{ targetLabelOf(task) }}
-								</NcButton>
-							</li>
+							<template v-for="entry in group.entries" :key="entryKey(entry)">
+								<li
+									v-if="entry.type === 'task'"
+									class="vbh-tasks-item"
+									:class="'vbh-tasks-item--' + group.key">
+									<NcIconSvgWrapper :path="group.icon" :size="20" class="vbh-tasks-icon" />
+									<div class="vbh-tasks-body">
+										<span class="vbh-typetag">{{ kindLabel(entry.task) }}</span>
+										<p :id="messageId(entry.task)" class="vbh-tasks-message">
+											{{ entry.task.message }}
+										</p>
+									</div>
+									<NcButton
+										v-if="targetOf(entry.task)"
+										variant="secondary"
+										size="small"
+										class="vbh-tasks-goto"
+										:aria-describedby="messageId(entry.task)"
+										@click="go(entry.task)">
+										{{ targetLabelOf(entry.task) }}
+									</NcButton>
+								</li>
+								<!-- Gleichartige Meldungen (z. B. zehnmal „Vorabinfo nicht rechtzeitig …“) stehen als eine Zeile, die sich aufklappen lässt. -->
+								<li
+									v-else
+									class="vbh-tasks-item vbh-tasks-item--grouped"
+									:class="'vbh-tasks-item--' + group.key">
+									<NcIconSvgWrapper :path="group.icon" :size="20" class="vbh-tasks-icon" />
+									<div class="vbh-tasks-body">
+										<span class="vbh-typetag">{{ kindLabel(entry.tasks[0]) }}</span>
+										<details class="vbh-tasks-details">
+											<summary class="vbh-tasks-summary-row">
+												<span class="vbh-tasks-message">{{ entry.title }}</span>
+												<span class="vbh-badge" :class="{ 'vbh-badge--alert': group.key === 'action' }">{{ entry.tasks.length }}</span>
+											</summary>
+											<ul class="vbh-tasks-sublist">
+												<li v-for="task in entry.tasks" :key="task.id" class="vbh-tasks-subitem">
+													<p :id="messageId(task)" class="vbh-tasks-message">
+														{{ task.message }}
+													</p>
+													<NcButton
+														v-if="targetOf(task)"
+														variant="tertiary"
+														size="small"
+														class="vbh-tasks-goto"
+														:aria-describedby="messageId(task)"
+														@click="go(task)">
+														{{ targetLabelOf(task) }}
+													</NcButton>
+												</li>
+											</ul>
+										</details>
+									</div>
+								</li>
+							</template>
 						</ul>
 					</section>
 				</template>
@@ -132,7 +165,7 @@ import { mdiAlertCircle, mdiAlertCircleOutline, mdiCheckCircleOutline, mdiClipbo
 import { NcButton, NcEmptyContent, NcIconSvgWrapper, NcLoadingIcon, NcPopover } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import { useTasks } from '../composables/useTasks.js'
-import { SEVERITY_ACTION, targetLabel, taskKindLabel, taskTarget } from '../lib/tasks.js'
+import { groupTasks, SEVERITY_ACTION, targetLabel, taskKindLabel, taskTarget } from '../lib/tasks.js'
 
 /**
  * Aufgaben-Flyout in der Kopfzeile (Spec §6/§7, Issue #99): ein Knopf mit
@@ -212,7 +245,9 @@ export default {
 			return [
 				{ key: 'action', title: this.t('Handlungsbedarf'), icon: mdiAlertCircle, items: action },
 				{ key: 'hint', title: this.t('Hinweise'), icon: mdiInformation, items: hints },
-			].filter((group) => group.items.length > 0)
+			]
+				.filter((group) => group.items.length > 0)
+				.map((group) => ({ ...group, entries: groupTasks(group.items) }))
 		},
 	},
 
@@ -260,6 +295,10 @@ export default {
 
 		messageId(task) {
 			return `vbh-task-message-${task.id}`
+		},
+
+		entryKey(entry) {
+			return entry.type === 'group' ? `group-${entry.key}` : entry.task.id
 		},
 
 		/** Beim Oeffnen frisch laden: der Stand kann seit dem letzten Poll veraltet sein. */
@@ -426,6 +465,52 @@ export default {
 .vbh-tasks-message {
 	margin: 4px 0 0;
 	overflow-wrap: anywhere;
+}
+
+/* Zusammengefasste Meldungen: eine Zeile mit Zähler, darunter aufklappbar die einzelnen. */
+.vbh-tasks-item--grouped {
+	grid-template-columns: auto minmax(0, 1fr);
+}
+
+.vbh-tasks-summary-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	cursor: pointer;
+	font-weight: 600;
+}
+
+.vbh-tasks-summary-row .vbh-tasks-message {
+	margin: 4px 0 0;
+}
+
+.vbh-tasks-summary-row .vbh-badge {
+	margin-top: 4px;
+}
+
+.vbh-tasks-sublist {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	margin: 6px 0 0;
+	padding: 0;
+	list-style: none;
+	border-top: 1px solid var(--color-border);
+}
+
+.vbh-tasks-subitem {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 4px 0;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.vbh-tasks-subitem .vbh-tasks-message {
+	margin: 0;
+	font-size: 0.9em;
+	font-weight: 400;
 }
 
 /* Schmale Displays: der Sprungknopf rutscht unter den Text, sonst bleibt dem

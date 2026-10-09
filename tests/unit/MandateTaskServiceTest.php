@@ -427,6 +427,8 @@ class MandateTaskServiceTest extends TestCase {
 		$this->assertSame(Task::SEVERITY_HINT, $task['severity']);
 		$this->assertStringContainsString('kein Nachweis hinterlegt', $task['message']);
 		$this->assertSame(7, $task['memberId']);
+		// Die Oberfläche fasst gleichartige Hinweise über diese Kennung zusammen.
+		$this->assertSame('mandate_without_proof', $task['kind']);
 	}
 
 	public function testOhneNachweisVerschwindetMitDemUpload(): void {

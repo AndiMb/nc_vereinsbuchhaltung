@@ -122,13 +122,24 @@ export default {
 <style scoped>
 .vbh-release-action {
 	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 8px 12px;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 4px;
 }
 
 .vbh-release-action-note {
 	margin: 0;
-	font-size: 0.85em;
+	font-size: 0.8em;
+	text-align: end;
+}
+
+@media (max-width: 640px) {
+	.vbh-release-action {
+		align-items: flex-start;
+	}
+
+	.vbh-release-action-note {
+		text-align: start;
+	}
 }
 </style>

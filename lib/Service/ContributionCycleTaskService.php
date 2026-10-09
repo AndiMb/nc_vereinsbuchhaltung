@@ -48,6 +48,9 @@ use OCP\IL10N;
  */
 class ContributionCycleTaskService {
 
+	/** Typkennung der „Vorabinfo nicht rechtzeitig“-Meldungen; die Oberfläche fasst sie zusammen. */
+	public const KIND_PRENOTIFICATION_LATE = 'prenotification_late';
+
 	public function __construct(
 		private OpenItemMapper $openItems,
 		private AssignmentMapper $assignments,
@@ -141,7 +144,7 @@ class ContributionCycleTaskService {
 		return $tasks;
 	}
 
-	/** @return list<array{severity:string,message:string,objectType:string,objectId:int}> */
+	/** @return list<array{severity:string,message:string,objectType:string,objectId:int,kind:string}> */
 	private function findBrokenLeadTimeTasks(string $today, ?string $onlyDueDate = null): array {
 		$leadDays = $this->settings->prenotificationLeadDays();
 		$tasks = [];
@@ -164,6 +167,8 @@ class ContributionCycleTaskService {
 				'message' => $this->l10n->t('Vorabinfo für %1$s (%2$s, fällig %3$s) konnte nicht rechtzeitig verschickt werden.', [$name, (string)$item->getDescription(), (string)$item->getDueDate()]),
 				'objectType' => 'claim',
 				'objectId' => (int)$item->getId(),
+				// Gleichartige Meldungen fasst die Oberfläche zu einer Zeile zusammen (src/lib/tasks.js).
+				'kind' => self::KIND_PRENOTIFICATION_LATE,
 			];
 		}
 		return $tasks;

@@ -65,6 +65,9 @@ use OCP\IL10N;
  */
 class MandateTaskService {
 
+	/** Typkennung der „Mandat ohne Nachweis“-Hinweise; die Oberfläche fasst sie zusammen. */
+	public const KIND_WITHOUT_PROOF = 'mandate_without_proof';
+
 	/** Längere Sperr-Notizen werden in der Aufgabe gekürzt; die volle Notiz steht in der Akte. */
 	private const NOTE_MAX_LENGTH = 120;
 
@@ -207,7 +210,7 @@ class MandateTaskService {
 	/**
 	 * @param Mandate[] $mandates
 	 * @param array<int,Member> $members
-	 * @return list<array{severity:string,message:string,objectType:string,objectId:int,memberId:?int}>
+	 * @return list<array{severity:string,message:string,objectType:string,objectId:int,memberId:?int,kind?:string}>
 	 */
 	private function findMissingDocumentTasks(array $mandates, array $members): array {
 		if (!$this->documents->showMissingDocumentWarning()) {
@@ -229,6 +232,7 @@ class MandateTaskService {
 				$member,
 				$this->l10n->t('Zum Mandat ist kein Nachweis hinterlegt (unterschriebenes Dokument).'),
 				$mandate,
+				self::KIND_WITHOUT_PROOF,
 			);
 		}
 		return $tasks;
@@ -311,11 +315,11 @@ class MandateTaskService {
 	}
 
 	/**
-	 * @return array{severity:string,message:string,objectType:string,objectId:int,memberId:?int}
+	 * @return array{severity:string,message:string,objectType:string,objectId:int,memberId:?int,kind?:string}
 	 */
-	private function task(string $severity, ?Member $member, string $text, Mandate $mandate): array {
+	private function task(string $severity, ?Member $member, string $text, Mandate $mandate, ?string $kind = null): array {
 		$name = $member?->displayName() ?? '';
-		return [
+		$task = [
 			'severity' => $severity,
 			// Name vor den Text setzen statt in t() einzusetzen (siehe Klassendoc).
 			'message' => ($name !== '' ? $name : $this->l10n->t('unbekanntes Mitglied')) . ': ' . $text,
@@ -324,6 +328,11 @@ class MandateTaskService {
 			// Gleich mitgeben statt vom TaskTargetResolver je Aufgabe nachschlagen zu lassen.
 			'memberId' => $member !== null ? (int)$member->getId() : null,
 		];
+		// Typkennung nur, wo die Oberfläche gleichartige Meldungen zusammenfasst (src/lib/tasks.js).
+		if ($kind !== null) {
+			$task['kind'] = $kind;
+		}
+		return $task;
 	}
 
 	/** @return array<int,ReturnedDebit> */

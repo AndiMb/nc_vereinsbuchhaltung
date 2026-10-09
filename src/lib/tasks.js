@@ -96,3 +96,52 @@ export function targetLabel(target) {
 		default: return t('Zum Einzug')
 	}
 }
+
+/** Überschrift einer Gruppe gleichartiger Meldungen; unbekannte Typkennungen werden nicht gruppiert. */
+export function taskKindTitle(kind) {
+	return {
+		prenotification_late: t('Vorabinfo nicht rechtzeitig verschickt'),
+		mandate_without_proof: t('Mandat ohne Nachweis'),
+	}[kind] || null
+}
+
+/**
+ * Fasst gleichartige Aufgaben zu einer Zeile zusammen: zehn fast gleiche
+ * „Vorabinfo für … konnte nicht rechtzeitig verschickt werden“ sind für den
+ * Menschen eine einzige Aussage mit zehn Betroffenen. Gleichartig heißt: gleiche
+ * Typkennung (`kind`, vom Server) und gleicher Schweregrad. Erst ab `minSize`
+ * Aufgaben lohnt sich eine Gruppe; darunter bleiben die Einzelzeilen, weil
+ * zwei Namen in der Zeile mehr sagen als „2 × …“.
+ *
+ * Die Reihenfolge bleibt erhalten: Eine Gruppe steht dort, wo ihre erste
+ * Aufgabe stand. Aufgaben ohne bekannte Kennung bleiben einzeln.
+ *
+ * @param {Array<object>} tasks Aufgaben/Störfälle mit `severity`, `message`, optional `kind`
+ * @param {number} minSize Mindestanzahl für eine Gruppe
+ * @return {Array<{type: 'task', task: object}|{type: 'group', key: string, kind: string, severity: string, title: string, tasks: Array<object>}>}
+ */
+export function groupTasks(tasks, minSize = 3) {
+	const buckets = new Map()
+	for (const task of tasks) {
+		const title = task.kind ? taskKindTitle(task.kind) : null
+		if (!title) { continue }
+		const key = `${task.kind}|${task.severity}`
+		if (!buckets.has(key)) { buckets.set(key, []) }
+		buckets.get(key).push(task)
+	}
+
+	const out = []
+	const emitted = new Set()
+	for (const task of tasks) {
+		const key = task.kind && taskKindTitle(task.kind) ? `${task.kind}|${task.severity}` : null
+		const members = key ? buckets.get(key) : null
+		if (!key || members.length < minSize) {
+			out.push({ type: 'task', task })
+			continue
+		}
+		if (emitted.has(key)) { continue }
+		emitted.add(key)
+		out.push({ type: 'group', key, kind: task.kind, severity: task.severity, title: taskKindTitle(task.kind), tasks: members })
+	}
+	return out
+}

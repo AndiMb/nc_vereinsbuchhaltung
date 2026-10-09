@@ -1629,7 +1629,6 @@
         "Wird verworfen…": "Discarding…",
         "Abweichung von den aktuellen Mandatsdaten": "Deviation from the current mandate data",
         "Vorschau des Einzugs am {datum}": "Preview of the collection on {datum}",
-        "Das ist nur eine Vorschau: Vor der Freigabe gibt es keinen Lauf, es wird nichts gespeichert.": "This is only a preview: before release there is no run, nothing is saved.",
         "Störfälle zu diesem Termin": "Exceptions for this date",
         "Forderungen in der Vorschau": "Claims in the preview",
         "Alle {n} Forderungen anzeigen": "Show all {n} claims",
@@ -1708,7 +1707,6 @@
         "Lauf freigegeben": "Run released",
         "Vorschau, noch nicht freigegeben": "Preview, not yet released",
         "nichts einzuziehen": "nothing to collect",
-        "Meilensteine zum Einzug am {datum}": "Milestones for the collection on {datum}",
         "Früherer Termin": "Earlier date",
         "Späterer Termin": "Later date",
         "Einzugstermin {datum}: {zustand}": "Collection date {datum}: {zustand}",
@@ -2605,7 +2603,20 @@
         "(alle)": "(all)",
         "Beträge zeigen die Richtung: Einnahmen grün mit Plus, Ausgaben rot mit Minus – in Übersicht, Buchungen und „Zuzuordnen\".": "Amounts show their direction: income green with a plus, expenses red with a minus – on the overview, in entries and under “To assign”.",
         "Der Kontofilter im Journal kennt jetzt Kategorien wie „Einnahmen\" oder „Ausgaben\".": "The account filter in the journal now knows categories such as “Income” or “Expenses”.",
-        "Der Kassenbericht zeigt in der Sphärenübersicht nur noch Sphären mit Bewegung.": "The cash report only lists spheres with activity in the sphere overview."
+        "Der Kassenbericht zeigt in der Sphärenübersicht nur noch Sphären mit Bewegung.": "The cash report only lists spheres with activity in the sphere overview.",
+        "Nur eine Vorschau: Vor der Freigabe gibt es keinen Lauf, es wird nichts gespeichert.": "Preview only: before release there is no run, nothing is saved.",
+        "Phasen bis zum Einzug am {datum}": "Phases up to the collection on {datum}",
+        "Was bedeutet „{phase}“?": "What does “{phase}” mean?",
+        "Was zu tun ist:": "What to do:",
+        "Frühwarnung: Die Forderungen für diesen Einzug entstehen, und die Aufgabenliste kündigt den Lauf an – mit Anzahl, Summe und Störfällen.": "Early warning: the claims for this collection are created and the task list announces the run – with count, total and issues.",
+        "Es wird noch nichts verschickt oder gesperrt. Prüfen Sie jetzt Mandate und Beträge: Bis zur Vorabinfo lässt sich alles ohne Folgen korrigieren.": "Nothing is sent or locked yet. Check mandates and amounts now: until the pre-notification everything can be corrected without consequences.",
+        "Die App verschickt die Vorabinfo per E-Mail an alle Mitglieder mit Adresse – mit Betrag, Termin, Mandatsreferenz und frühestem Einzugstag.": "The app sends the pre-notification by email to all members with an address – with amount, date, mandate reference and earliest collection day.",
+        "Ab jetzt ist die Periode „zu“: Der Betrag ändert sich nicht mehr. Mitglieder ohne E-Mail-Adresse informieren Sie selbst, die Aufgabenliste führt sie.": "From now on the period is “closed”: the amount no longer changes. You inform members without an email address yourself; the task list lists them.",
+        "Jetzt sind Sie dran: „Freigeben & Datei erzeugen“ friert Beträge und Bankdaten ein und erzeugt die Einzugsdatei (pain.008).": "Now it is your turn: “Release & create file” freezes amounts and bank details and creates the collection file (pain.008).",
+        "Laden Sie die Datei bei Ihrer Bank hoch und bestätigen Sie danach „Datei ist bei der Bank eingereicht“. Sonst meldet die Aufgabenliste „Freigabe fällig“.": "Upload the file to your bank and then confirm “File has been submitted to the bank”. Otherwise the task list reports “Release due”.",
+        "Die Bank belastet frühestens an diesem Tag die Konten der Mitglieder; eine Verschiebung auf einen Geschäftstag rechnet die Bank.": "The bank debits the members’ accounts on this day at the earliest; the bank handles a shift to a business day.",
+        "Danach importieren Sie den Kontoauszug: Der Bankabgleich schlägt Zahlungen und Rücklastschriften zur Bestätigung vor.": "Afterwards you import the bank statement: the bank reconciliation proposes payments and returned direct debits for your confirmation.",
+        "Vorabinfo nicht rechtzeitig verschickt": "Pre-notification not sent in time"
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

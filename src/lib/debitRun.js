@@ -89,6 +89,35 @@ export function milestoneExplanation(key, leadDays) {
 }
 
 /**
+ * Was eine Phase des Einzugs bedeutet und was Sie dabei zu tun haben – für das
+ * Info-Symbol am Meilenstein. `what` beschreibt, was die App tut oder was
+ * gilt, `todo` was von Ihnen erwartet wird (Handbuch 13.5, Spec §3.5).
+ *
+ * @param {string} key warning | prenotification | release | collection
+ * @return {{what: string, todo: string}|null}
+ */
+export function milestoneInfo(key) {
+	return {
+		warning: {
+			what: t('Frühwarnung: Die Forderungen für diesen Einzug entstehen, und die Aufgabenliste kündigt den Lauf an – mit Anzahl, Summe und Störfällen.'),
+			todo: t('Es wird noch nichts verschickt oder gesperrt. Prüfen Sie jetzt Mandate und Beträge: Bis zur Vorabinfo lässt sich alles ohne Folgen korrigieren.'),
+		},
+		prenotification: {
+			what: t('Die App verschickt die Vorabinfo per E-Mail an alle Mitglieder mit Adresse – mit Betrag, Termin, Mandatsreferenz und frühestem Einzugstag.'),
+			todo: t('Ab jetzt ist die Periode „zu“: Der Betrag ändert sich nicht mehr. Mitglieder ohne E-Mail-Adresse informieren Sie selbst, die Aufgabenliste führt sie.'),
+		},
+		release: {
+			what: t('Jetzt sind Sie dran: „Freigeben & Datei erzeugen“ friert Beträge und Bankdaten ein und erzeugt die Einzugsdatei (pain.008).'),
+			todo: t('Laden Sie die Datei bei Ihrer Bank hoch und bestätigen Sie danach „Datei ist bei der Bank eingereicht“. Sonst meldet die Aufgabenliste „Freigabe fällig“.'),
+		},
+		collection: {
+			what: t('Die Bank belastet frühestens an diesem Tag die Konten der Mitglieder; eine Verschiebung auf einen Geschäftstag rechnet die Bank.'),
+			todo: t('Danach importieren Sie den Kontoauszug: Der Bankabgleich schlägt Zahlungen und Rücklastschriften zur Bestätigung vor.'),
+		},
+	}[key] || null
+}
+
+/**
  * Woher ein Termin auf dem Strahl kommt: aus dem Terminplan (dann für welche
  * Turnusse) oder als eigener Termin einer Forderung bzw. eines Laufs.
  */

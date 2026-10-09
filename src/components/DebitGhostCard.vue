@@ -1,13 +1,22 @@
 <template>
 	<section class="vbh-ghost" :aria-label="t('Vorschau des Einzugs am {datum}', { datum: formatDate(entry.dueDate) })">
 		<header class="vbh-ghost-head">
-			<span class="vbh-ghost-badge">{{ t('Vorschau') }}</span>
-			<h4>{{ t('Einzug am {datum}', { datum: formatDate(entry.dueDate) }) }}</h4>
-			<span class="vbh-ghost-when">{{ relativeDays(entry.dueDate, today) }}</span>
+			<div class="vbh-ghost-titleblock">
+				<div class="vbh-ghost-titleline">
+					<span class="vbh-ghost-badge">{{ t('Vorschau') }}</span>
+					<h4>{{ t('Einzug am {datum}', { datum: formatDate(entry.dueDate) }) }}</h4>
+					<span class="vbh-ghost-when">{{ relativeDays(entry.dueDate, today) }}</span>
+				</div>
+				<p class="vbh-ghost-note">
+					{{ t('Nur eine Vorschau: Vor der Freigabe gibt es keinen Lauf, es wird nichts gespeichert.') }}
+				</p>
+			</div>
+			<!-- Die Hauptaktion steht oben neben dem Titel (Slot `actions`, Props: entry, preview): sie soll
+			     nicht erst nach einer langen Liste von Störfällen und Forderungen zu finden sein. -->
+			<div v-if="$slots.actions" class="vbh-ghost-actions">
+				<slot name="actions" :entry="entry" :preview="preview" />
+			</div>
 		</header>
-		<p class="vbh-ghost-note">
-			{{ t('Das ist nur eine Vorschau: Vor der Freigabe gibt es keinen Lauf, es wird nichts gespeichert.') }}
-		</p>
 
 		<NcLoadingIcon v-if="loading && !preview" :size="24" :name="t('Wird geladen…')" />
 		<div v-else-if="error && !preview" class="vbh-hint vbh-hint--warning">
@@ -44,10 +53,27 @@
 			<div v-if="issues.length" class="vbh-ghost-issues">
 				<h5>{{ t('Störfälle zu diesem Termin') }}</h5>
 				<ul>
-					<li v-for="(issue, index) in sortedIssues" :key="index">
-						<DebitStatusTag kind="severity" :value="issue.severity" />
-						<span>{{ issue.message }}</span>
-					</li>
+					<template v-for="item in issueEntries" :key="item.type === 'group' ? item.key : item.index">
+						<li v-if="item.type === 'task'">
+							<DebitStatusTag kind="severity" :value="item.task.severity" />
+							<span>{{ item.task.message }}</span>
+						</li>
+						<!-- Gleichartige Störfälle (z. B. zehnmal „Vorabinfo nicht rechtzeitig …“) als eine aufklappbare Zeile. -->
+						<li v-else class="vbh-ghost-issuegroup">
+							<details>
+								<summary>
+									<DebitStatusTag kind="severity" :value="item.severity" />
+									<span class="vbh-ghost-issuegroup-title">{{ item.title }}</span>
+									<span class="vbh-ghost-count">{{ item.tasks.length }}</span>
+								</summary>
+								<ul class="vbh-ghost-issuegroup-list">
+									<li v-for="(task, i) in item.tasks" :key="i">
+										{{ task.message }}
+									</li>
+								</ul>
+							</details>
+						</li>
+					</template>
 				</ul>
 				<p class="vbh-hint">
 					{{ t('Störfälle blockieren nichts und müssen nicht quittiert werden – sie verschwinden von selbst, sobald ihre Ursache behoben ist.') }}
@@ -98,12 +124,6 @@
 				</NcButton>
 			</div>
 		</template>
-
-		<!-- Einhängepunkt für Ticket #103: hier kommt die Schaltfläche „Freigeben & Datei erzeugen“ hinein
-		     (Slot `actions`, Props: entry, preview). Bis dahin bleibt der Slot leer und rendert nichts. -->
-		<div v-if="$slots.actions" class="vbh-ghost-actions">
-			<slot name="actions" :entry="entry" :preview="preview" />
-		</div>
 	</section>
 </template>
 
@@ -112,9 +132,10 @@ import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import DebitStatusTag from './DebitStatusTag.vue'
 import { issueSummary, milestoneOf, relativeDays, releaseUrgency } from '../lib/debitRun.js'
 import { formatDate, formatMoney } from '../lib/format.js'
+import { groupTasks } from '../lib/tasks.js'
 
 /** So viele Forderungen zeigt die Vorschau zunächst; der Rest kommt auf Knopfdruck. */
-const LIMIT = 8
+const LIMIT = 5
 
 /**
  * Die „Geisterkarte“ (Spec §6 Variante A, Issue #102): Vorschau des gewählten
@@ -125,7 +146,8 @@ const LIMIT = 8
  * speichern ließe.
  *
  * Rein darstellend. Die Freigabe selbst (Schaltfläche, Bestätigungsdialog)
- * gehört zu Ticket #103 und hängt über den Slot `actions` ein.
+ * gehört zu Ticket #103 und hängt über den Slot `actions` ein; er steht in der
+ * Kopfzeile neben dem Titel.
  */
 export default {
 	name: 'DebitGhostCard',
@@ -156,6 +178,11 @@ export default {
 		sortedIssues() {
 			const rank = (i) => (i.severity === 'handlungsbedarf' ? 0 : 1)
 			return [...this.issues].sort((a, b) => rank(a) - rank(b))
+		},
+
+		// Handlungsbedarf zuerst, gleichartige Störfälle zusammengefasst (mit laufendem Index als Schlüssel für Einzelzeilen).
+		issueEntries() {
+			return groupTasks(this.sortedIssues).map((entry, index) => ({ ...entry, index }))
 		},
 
 		claims() { return this.preview?.claims || [] },
@@ -211,6 +238,19 @@ export default {
 .vbh-ghost-head {
 	display: flex;
 	flex-wrap: wrap;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 8px 16px;
+}
+
+.vbh-ghost-titleblock {
+	flex: 1 1 280px;
+	min-width: 0;
+}
+
+.vbh-ghost-titleline {
+	display: flex;
+	flex-wrap: wrap;
 	align-items: baseline;
 	gap: 4px 10px;
 }
@@ -235,15 +275,18 @@ export default {
 }
 
 .vbh-ghost-note {
-	margin: 4px 0 8px;
-	font-size: 0.85em;
+	margin: 2px 0 0;
+	font-size: 0.8em;
+	opacity: 0.8;
 }
 
 .vbh-ghost-stats {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 8px 28px;
-	margin: 8px 0;
+	margin: 12px 0 4px;
+	padding-top: 10px;
+	border-top: 1px solid color-mix(in srgb, currentcolor 20%, transparent);
 }
 
 .vbh-ghost-stats > div {
@@ -288,14 +331,50 @@ export default {
 
 .vbh-ghost-actions {
 	display: flex;
-	flex-wrap: wrap;
-	gap: 8px;
-	margin-top: 12px;
+	flex: 0 1 auto;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 4px;
 }
 
 /* Hat die Freigabe nichts zu tun (keine Forderung), rendert der Slot nur einen Kommentar: dann auch keinen Außenabstand. */
 .vbh-ghost-actions:empty {
 	display: none;
+}
+
+/* Zusammengefasste Störfälle: Kopfzeile mit Zähler, darunter aufklappbar die einzelnen. */
+.vbh-ghost-issuegroup summary {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 8px;
+	cursor: pointer;
+}
+
+.vbh-ghost-issuegroup-title {
+	font-weight: 600;
+}
+
+.vbh-ghost-count {
+	padding: 0 8px;
+	border-radius: 10px;
+	font-size: 0.8em;
+	font-weight: 700;
+	background-color: var(--color-main-background);
+	color: var(--color-main-text);
+}
+
+.vbh-ghost-issuegroup-list {
+	margin: 6px 0 4px 8px;
+	padding: 0;
+	font-size: 0.9em;
+}
+
+.vbh-ghost-issuegroup-list li {
+	display: list-item;
+	margin-inline-start: 16px;
+	padding: 1px 0;
+	list-style: disc;
 }
 
 /* Die Hinweise tragen ihre eigene Fläche – im hellen Grund der Karte gut lesbar, im dunklen ebenso. */

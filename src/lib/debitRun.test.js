@@ -12,6 +12,7 @@ import {
 	formatStamp,
 	issueSummary,
 	liveBatches,
+	milestoneInfo,
 	milestoneLabel,
 	monthTicks,
 	relativeDays,
@@ -220,5 +221,28 @@ describe('Störfälle', () => {
 		expect(issueSummary(issues)).toBe('2 Handlungsbedarf, 1 Hinweis')
 		expect(issueSummary([issues[2], issues[2]])).toBe('2 Hinweise')
 		expect(issueSummary([])).toBe('keine')
+	})
+})
+
+describe('Erklärung der Phasen (Info-Symbol)', () => {
+	const KEYS = ['warning', 'prenotification', 'release', 'collection']
+
+	it('erklärt jede Phase mit „was passiert“ und „was zu tun ist“', () => {
+		for (const key of KEYS) {
+			const info = milestoneInfo(key)
+			expect(info, key).not.toBeNull()
+			expect(info.what.length, `${key}: was`).toBeGreaterThan(20)
+			expect(info.todo.length, `${key}: tun`).toBeGreaterThan(20)
+		}
+	})
+
+	it('nennt bei der Freigabe die beiden Schritte und beim Einzug den Bankabgleich', () => {
+		expect(milestoneInfo('release').what).toContain('Freigeben & Datei erzeugen')
+		expect(milestoneInfo('release').todo).toContain('Datei ist bei der Bank eingereicht')
+		expect(milestoneInfo('collection').todo).toContain('Bankabgleich')
+	})
+
+	it('kennt keine Phase außerhalb des Katalogs', () => {
+		expect(milestoneInfo('unbekannt')).toBeNull()
 	})
 })
