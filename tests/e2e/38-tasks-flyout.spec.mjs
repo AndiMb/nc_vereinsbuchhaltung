@@ -133,8 +133,10 @@ test.describe('Aufgaben-Flyout', () => {
 		const dialog = await openFlyout(page)
 		await expect(dialog.getByRole('heading', { name: 'Handlungsbedarf' })).toBeVisible()
 		await expect(dialog.getByRole('heading', { name: 'Hinweise' })).toBeVisible()
-		await expect(dialog.locator('.vbh-tasks-item--action')).toHaveCount(tasks.action.length)
-		await expect(dialog.locator('.vbh-tasks-item--hint')).toHaveCount(tasks.hints.length)
+		// Gleichartige Meldungen (ab drei) stehen als eine aufklappbare Zeile: gezählt wird, was darin steht.
+		const leaves = (severity) => dialog.locator(`.vbh-tasks-item--${severity}:not(.vbh-tasks-item--grouped), .vbh-tasks-item--${severity} .vbh-tasks-subitem`)
+		await expect(leaves('action')).toHaveCount(tasks.action.length)
+		await expect(leaves('hint')).toHaveCount(tasks.hints.length)
 
 		const tessa = dialog.locator('.vbh-tasks-item--action', { hasText: name(TESSA) })
 		await expect(tessa).toContainText('hat eine Zuweisung mit Lastschrift, aber kein einzugsfähiges Mandat')

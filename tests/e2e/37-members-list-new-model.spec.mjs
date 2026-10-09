@@ -176,7 +176,9 @@ test.describe('Mitgliederliste zeigt Mandat und Beitrag des neuen Modells', () =
 		await openApp(page, USERS.buchhalter)
 		await switchTab(page, 'Beiträge')
 
-		await visibleSection(page).getByLabel('nur Auffälligkeiten').check()
+		// NcCheckboxRadioSwitch legt die sichtbare Beschriftung über das Eingabefeld: dort klicken, nicht ins Feld.
+		await visibleSection(page).getByText('nur Auffälligkeiten', { exact: true }).click()
+		await expect(visibleSection(page).getByLabel('nur Auffälligkeiten')).toBeChecked()
 		await expect(memberRow(page, 'Hans Ohnemandat')).toBeVisible()
 		await expect(memberRow(page, 'Frieda Nichts')).toBeVisible() // keine E-Mail
 		await expect(memberRow(page, 'Anna Aktiv')).toHaveCount(0)

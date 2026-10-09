@@ -1905,7 +1905,6 @@
         "Druckfertige Auskunft über alle gespeicherten Daten – kein strukturierter Export nach Art. 20 DSGVO.": "Print-ready information on all stored data – not a structured export under Art. 20 GDPR.",
         "Datenübersicht öffnen": "Open data overview",
         "Anonymisierung (Art. 17 DSGVO)": "Anonymization (Art. 17 GDPR)",
-        "Bereits am {datum} anonymisiert.": "Already anonymized on {datum}.",
         "Anonymisierungsreif: die letzte zugehörige Buchung liegt mehr als 10 Jahre zurück – die Bestätigung ist irreversibel.": "Ready for anonymization: the last related posting is more than 10 years ago – confirming is irreversible.",
         "Noch nicht anonymisierungsreif (frühestens ab {datum} – 10 Jahre nach der letzten zugehörigen Buchung).": "Not yet ready for anonymization (from {datum} at the earliest – 10 years after the last related posting).",
         "Noch keine zugehörige Buchung – die 10-Jahres-Frist läuft noch nicht.": "No related posting yet – the 10-year period has not started.",

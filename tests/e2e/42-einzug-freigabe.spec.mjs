@@ -139,6 +139,14 @@ async function expandRun(page, batchId) {
 	return detail
 }
 
+/**
+ * Die Zeile des aufgeklappten Laufs in der Läufe-Liste: Termin und Status stehen nur dort, das Detail
+ * darunter wiederholt sie nicht (UI-Politur: nichts doppelt).
+ */
+function openRunRow(page) {
+	return visibleSection(page).locator('tr.vbh-run-open')
+}
+
 test.describe('Einzug: Freigabe, Einreichung, Verwerfen und Terminverschiebung', () => {
 	test.beforeEach(async ({ request }) => {
 		await api.resetBook(request)
@@ -173,7 +181,7 @@ test.describe('Einzug: Freigabe, Einreichung, Verwerfen und Terminverschiebung',
 		expect((await api.getJson(request, '/debit-batches')).filter((b) => b.dueDate === dueDate)).toHaveLength(0)
 
 		const detail = await releaseInUi(page, dueDate)
-		await expect(detail.getByText('freigegeben', { exact: true })).toBeVisible()
+		await expect(openRunRow(page).getByText('freigegeben', { exact: true })).toBeVisible()
 		await expect(detail).toContainText('Freigabe Komplett')
 		const msgId = (await detail.locator('.vbh-rd-msgid').innerText()).trim()
 		expect(msgId).not.toBe('')
@@ -203,12 +211,12 @@ test.describe('Einzug: Freigabe, Einreichung, Verwerfen und Terminverschiebung',
 		// Zurückziehen ändert nichts.
 		await confirm.getByRole('button', { name: 'Abbrechen' }).click()
 		await expect(confirm).toBeHidden()
-		await expect(detail.getByText('freigegeben', { exact: true })).toBeVisible()
+		await expect(openRunRow(page).getByText('freigegeben', { exact: true })).toBeVisible()
 
 		await detail.getByRole('button', { name: 'Datei ist bei der Bank eingereicht' }).click()
 		await confirm.getByRole('button', { name: 'Ja, eingereicht' }).click()
 		await expect(confirm).toBeHidden()
-		await expect(detail.getByText('eingereicht', { exact: true })).toBeVisible()
+		await expect(openRunRow(page).getByText('eingereicht', { exact: true })).toBeVisible()
 
 		// Danach kein Storno und keine Verschiebung mehr: nur der Download bleibt.
 		await expect(detail.getByRole('button', { name: /verwerfen|verschieben|eingereicht/i })).toHaveCount(0)
@@ -254,7 +262,7 @@ test.describe('Einzug: Freigabe, Einreichung, Verwerfen und Terminverschiebung',
 
 		// Die Historie bleibt sichtbar (mit der Begründung, nicht HTML-escaped), der Lauf hat keine Aktionen mehr …
 		await expect(detail).toContainText('Falsches Datum & Betrag gewählt')
-		await expect(detail.getByText('verworfen', { exact: true })).toBeVisible()
+		await expect(openRunRow(page).getByText('verworfen', { exact: true })).toBeVisible()
 		await expect(detail.getByRole('button')).toHaveCount(0)
 		await expect(detail.getByRole('link')).toHaveCount(0)
 		// … und die Forderung ist wieder frei: die Geisterkarte des Termins bietet sie erneut an.
@@ -263,8 +271,8 @@ test.describe('Einzug: Freigabe, Einreichung, Verwerfen und Terminverschiebung',
 		await expect(ghost).toContainText('Freigabe Verwerfen')
 
 		// Neu freigeben: ein zweiter Lauf, der verworfene bleibt in der Liste.
-		const second = await releaseInUi(page, dueDate)
-		await expect(second.getByText('freigegeben', { exact: true })).toBeVisible()
+		await releaseInUi(page, dueDate)
+		await expect(openRunRow(page).getByText('freigegeben', { exact: true })).toBeVisible()
 		const dateRe = germanDate(dueDate).replaceAll('.', '\\.')
 		await expect(section.getByRole('row', { name: new RegExp(`^${dateRe} verworfen`) })).toHaveCount(1)
 		await expect(section.getByRole('row', { name: new RegExp(`^${dateRe} freigegeben`) })).toHaveCount(1)
@@ -304,7 +312,7 @@ test.describe('Einzug: Freigabe, Einreichung, Verwerfen und Terminverschiebung',
 		await confirm.click()
 		await expect(dialog).toBeHidden()
 
-		await expect(detail).toContainText(germanDate(newDate))
+		await expect(openRunRow(page)).toContainText(germanDate(newDate))
 		const moved = await api.getJson(request, `/debit-batches/${batch.id}`)
 		expect(moved.dueDate).toBe(newDate)
 		expect(moved.status).toBe('freigegeben')
@@ -342,7 +350,7 @@ test.describe('Einzug: Freigabe, Einreichung, Verwerfen und Terminverschiebung',
 
 		await detail.getByRole('button', { name: 'Datei ist bei der Bank eingereicht' }).click()
 		await page.getByRole('dialog', { name: 'Datei als eingereicht bestätigen' }).getByRole('button', { name: 'Ja, eingereicht' }).click()
-		await expect(detail.getByText('eingereicht', { exact: true })).toBeVisible()
+		await expect(openRunRow(page).getByText('eingereicht', { exact: true })).toBeVisible()
 		// Mit der Einreichung ist nichts mehr dringend.
 		await expect(detail).not.toContainText('Einreichung überfällig')
 	})
@@ -370,7 +378,7 @@ test.describe('Einzug: Freigabe, Einreichung, Verwerfen und Terminverschiebung',
 		await expect(dialog.getByLabel('Begründung (Pflicht)')).toHaveValue('Abweichung von den aktuellen Mandatsdaten')
 		await dialog.getByRole('button', { name: 'Lauf verwerfen' }).click()
 		await expect(dialog).toBeHidden()
-		await expect(detail.getByText('verworfen', { exact: true })).toBeVisible()
+		await expect(openRunRow(page).getByText('verworfen', { exact: true })).toBeVisible()
 
 		await selectDate(page, dueDate)
 		await expect(ghostCard(page, dueDate)).toContainText('Freigabe Abweichung')
@@ -451,7 +459,7 @@ test.describe('Einzug: Freigabe, Einreichung, Verwerfen und Terminverschiebung',
 
 		// Der Lauf zeigt seinen Zustand, aber weder Download noch Einreichen, Verschieben, Verwerfen.
 		const detail = await expandRun(page, batch.id)
-		await expect(detail.getByText('freigegeben', { exact: true })).toBeVisible()
+		await expect(openRunRow(page).getByText('freigegeben', { exact: true })).toBeVisible()
 		await expect(detail.getByRole('button')).toHaveCount(0)
 		await expect(detail.getByRole('link')).toHaveCount(0)
 

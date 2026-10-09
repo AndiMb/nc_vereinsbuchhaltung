@@ -152,10 +152,11 @@ test.describe('Übersetzungen (Issue #106)', () => {
 		await expect(section.locator('.vbh-tl h4')).toContainText('Contribution year')
 
 		await segments.getByRole('tab', { name: 'Claims' }).click()
-		await expect(section.getByText('Claims against members with state, exceptions and dunning status.')).toBeVisible()
+		await expect(section.getByText('Claims against members; general open items without a member are under Bookings.')).toBeVisible()
 
 		await segments.getByRole('tab', { name: /^Bank reconciliation/ }).click()
-		await expect(section.getByText('The bank statement is the truth:')).toBeVisible()
+		// Der Erklärsatz steht nur, wo es etwas zu beurteilen gibt – die Umschalter sind immer da.
+		await expect(section.getByRole('group', { name: 'View of the bank reconciliation' }).getByRole('button', { name: /^Incoming payments/ })).toBeVisible()
 
 		// Alle drei Segmente stehen im DOM (v-show): kein deutscher Rest in keinem davon.
 		await expect(section.locator('.vbh-einzug')).not.toContainText(GERMAN_REMNANTS)

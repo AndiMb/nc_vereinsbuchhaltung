@@ -327,35 +327,6 @@
 
 				<section class="vbh-akte-section">
 					<h3 class="vbh-modal-subtitle">
-						{{ t('Anonymisierung (Art. 17 DSGVO)') }}
-					</h3>
-					<!-- Dass die Akte schon anonymisiert ist, steht oben im Hinweis; hier nur der Zustand, nicht noch einmal der Satz. -->
-					<p v-if="member.redactedAt" class="vbh-hint">
-						{{ t('Bereits am {datum} anonymisiert.', { datum: member.redactedAt.slice(0, 10) }) }}
-					</p>
-					<template v-else>
-						<p v-if="anonymizationStatus && anonymizationStatus.eligible" class="vbh-hint vbh-hint--warning">
-							{{ t('Anonymisierungsreif: die letzte zugehörige Buchung liegt mehr als 10 Jahre zurück – die Bestätigung ist irreversibel.') }}
-						</p>
-						<p v-else-if="anonymizationStatus && anonymizationStatus.cutoffDate" class="vbh-hint">
-							{{ t('Noch nicht anonymisierungsreif (frühestens ab {datum} – 10 Jahre nach der letzten zugehörigen Buchung).', { datum: anonymizationStatus.cutoffDate }) }}
-						</p>
-						<p v-else-if="anonymizationStatus" class="vbh-hint">
-							{{ t('Noch keine zugehörige Buchung – die 10-Jahres-Frist läuft noch nicht.') }}
-						</p>
-						<NcButton
-							v-if="anonymizationStatus && anonymizationStatus.eligible"
-							variant="tertiary"
-							class="vbh-btn-danger"
-							:disabled="anonymizing"
-							@click="doAnonymize">
-							{{ t('Jetzt anonymisieren') }}
-						</NcButton>
-					</template>
-				</section>
-
-				<section class="vbh-akte-section">
-					<h3 class="vbh-modal-subtitle">
 						{{ t('Löschen') }}
 					</h3>
 					<p v-if="member.blockingReasons && member.blockingReasons.length" class="vbh-hint vbh-hint--warning">

@@ -580,7 +580,7 @@ test.describe('Einzug-Unterreiter: Bankabgleich der Zahlungseingänge', () => {
 		// Gemerkt: der Server schlägt dasselbe Paar nicht wieder vor
 		expect((await api.bankReconciliation(request)).incoming).toEqual([])
 		const reloaded = await openBankabgleich(page)
-		await expect(reloaded.getByRole('button', { name: /^Zahlungseingänge \(0\)/ })).toBeVisible()
+		await expect(reloaded.getByRole('button', { name: 'Zahlungseingänge', exact: true })).toBeVisible()
 		// Weder gebucht noch erledigt: die Forderung bleibt offen, der Umsatz liegt weiter unter Buchungen → Zuzuordnen
 		const overview = await api.getJson(request, '/claims/overview')
 		expect(overview.claims.find((c) => c.description === `Beitrag Ablehner ${tag}`).state).toBe('offen')
