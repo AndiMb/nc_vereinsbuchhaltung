@@ -17,6 +17,8 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+## [0.34.6] – 2026-10-09
+
 **Changed:**
 - **Sign and colour on amounts are now a setting:** the tables on the
   overview, under "All entries" and under "To assign" show the amount

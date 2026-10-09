@@ -19,6 +19,8 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+## [0.34.6] – 2026-10-09
+
 **Geändert:**
 - **Vorzeichen und Farbe bei Beträgen sind jetzt eine Einstellung:** Die
   Tabellen in Übersicht, „Alle Buchungen" und „Zuzuordnen" zeigen den Betrag
