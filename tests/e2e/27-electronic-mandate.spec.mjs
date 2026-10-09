@@ -78,7 +78,8 @@ test.describe('Elektronische Mandatserteilung', () => {
 		// Text beim Mitglied ankommen.
 		await expect(page.getByText('vbh:rahmen', { exact: false })).toHaveCount(0)
 		await expect(page.getByText('Lena Fischer', { exact: false })).toBeVisible()
-		await expect(page.getByText('DE89370400440532013000', { exact: false })).toBeVisible()
+		// Die IBAN steht in Vierergruppen, wie sie auch auf Papier und im Mandatsformular lesbar ist.
+		await expect(page.getByText('DE89 3704 0044 0532 0130 00', { exact: false })).toBeVisible()
 
 		const submit = page.getByRole('button', { name: 'Ich stimme zu und erteile das Mandat' })
 		await expect(submit).toBeVisible()

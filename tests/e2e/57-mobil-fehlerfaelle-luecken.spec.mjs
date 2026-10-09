@@ -383,12 +383,10 @@ test.describe('Tastatur und Namen', () => {
 		expect((await api.listMembers(request)).some((m) => m.displayName.includes(nachname))).toBe(false)
 	})
 
-	// VERDACHT, am laufenden System NICHT bestätigt: NcModal (@nextcloud/vue 9.11) registriert Escape über
-	// useHotKey(), und dessen shouldIgnoreEvent() verwirft jeden Tastendruck, dessen Ziel ein <input>, <textarea>
-	// oder <select> ist. Steht der Cursor – wie gleich nach dem Öffnen – im Feld „Vorname“, würde Escape den
-	// Dialog dann nicht schließen. Testprotokoll 15.5 erwartet das Gegenteil („Esc schließt … jeden Dialog“).
-	// Ausschalten, bis geklärt ist, ob das so ist; ein Fix (eigener Escape-Handler am Dialog) schaltet den Test an.
-	test.fixme('15.5 · Escape schließt „Mitglied aufnehmen“ auch mit dem Cursor im Feld „Vorname“', async ({ page }) => {
+	// NcModal (@nextcloud/vue 9.11) ignoriert Escape, solange der Fokus in einem <input>, <textarea> oder <select> steht
+	// (useHotKey/shouldIgnoreEvent). „Mitglied aufnehmen“ öffnet aber mit dem Cursor im Feld „Vorname“; die Brücke in
+	// src/lib/modalEscape.js klickt dann den Schließen-Knopf des Dialogs. Am laufenden System bestätigt (Testprotokoll 15.5).
+	test('15.5 · Escape schließt „Mitglied aufnehmen“ auch mit dem Cursor im Feld „Vorname“', async ({ page }) => {
 		await openApp(page, USERS.buchhalter)
 		await switchTab(page, 'Beiträge')
 		await visibleSection(page).getByRole('button', { name: 'Mitglied', exact: true }).click()

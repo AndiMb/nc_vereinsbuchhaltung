@@ -21,6 +21,8 @@ const IBAN = 'DE02120300000000202051'
 const today = () => new Date().toISOString().slice(0, 10)
 /** Heute in 30 Tagen: ein Einzugstermin, der nie in der Vergangenheit liegt, unabhängig vom Tag des Testlaufs. */
 const inThirtyDays = () => new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString().slice(0, 10)
+/** Die Oberfläche zeigt Daten als TT.MM.JJJJ. */
+const germanDate = (iso) => iso.split('-').reverse().join('.')
 
 async function enableModule(request) {
 	const bank = await api.accountByNumber(request, BANK_ACCOUNT)
@@ -124,7 +126,7 @@ test.describe('Beiträge und SEPA-Lastschrift', () => {
 		const row = visibleSection(page).locator('table.vbh-table:visible tr', { hasText: MEMBER })
 		// Spalte „Nächste Fälligkeit“ (die fünfte): alle Forderungen dieses Mitglieds in dieser
 		// Spec haben denselben Termin, /reset hat die aus früheren Specs entfernt.
-		await expect(row.locator('td').nth(4)).toHaveText(dueDate)
+		await expect(row.locator('td').nth(4)).toHaveText(germanDate(dueDate))
 	})
 
 	test('Der Lastschriftlauf erzeugt eine pain.008-Datei', async ({ request }) => {

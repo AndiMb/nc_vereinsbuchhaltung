@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import { usePermissions } from './composables/usePermissions.js'
 import { loadAppTranslations, n, t, tc, tRaw } from './lib/l10n.js'
+import { installModalEscape } from './lib/modalEscape.js'
 import router from './router.js'
 
 import '@nextcloud/dialogs/style.css'
@@ -36,6 +37,9 @@ function recordUnexpectedError(kind, err) {
 }
 window.addEventListener('error', (e) => recordUnexpectedError('window-error', e.error))
 window.addEventListener('unhandledrejection', (e) => recordUnexpectedError('unhandledrejection', e.reason))
+
+// Escape soll auch mit dem Cursor in einem Textfeld jeden Dialog schliessen (NcModal ignoriert es dort).
+installModalEscape()
 
 // Uebersetzungen fuer die aktuelle Sprache laden, bevor gemountet wird - sonst
 // blitzt beim ersten Render kurz der deutsche Quelltext auf und wird dann durch

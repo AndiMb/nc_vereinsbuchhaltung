@@ -83,6 +83,8 @@ function giroCodesOf(mail) {
 
 /** Eine Zahlungsaufforderung trägt je Position einen gültigen GiroCode mit den Daten dieser Position. */
 async function expectGiroCodePerPosition(mail, claims, positions, dueDate) {
+	// Der Verwendungszweck nennt die Fälligkeit als TT.MM.JJJJ.
+	const dueDateDe = dueDate.split('-').reverse().join('.')
 	expect(mail.subject).toContain(`Zahlungsaufforderung von ${CLUB_NAME}`)
 	expect(mail.text, 'Der Mailtext verweist auf die GiroCodes').toContain('GiroCode')
 
@@ -109,7 +111,7 @@ async function expectGiroCodePerPosition(mail, claims, positions, dueDate) {
 		expect(lines[6], `IBAN – ${where}`).toBe(BANK_ACCOUNT_IBAN)
 		expect(lines[7], `Betrag – ${where}`).toBe(`EUR${amount.toFixed(2)}`)
 		expect(lines[10], `Verwendungszweck – ${where}`).toContain(label)
-		expect(lines[10], `Verwendungszweck – ${where}`).toContain(dueDate)
+		expect(lines[10], `Verwendungszweck – ${where}`).toContain(dueDateDe)
 	})
 }
 

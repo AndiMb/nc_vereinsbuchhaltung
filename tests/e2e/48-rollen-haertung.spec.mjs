@@ -140,16 +140,16 @@ test.describe('Rollen-Härtung: Vorlaufzeiten nur für Verwalter', () => {
 		expect(await readLeadDays(request)).toEqual(before)
 	})
 
-	test('Oberfläche: im Panel Beitragsgruppen sind die Vorlaufzeiten für den Buchhalter ebenso gesperrt', async ({ page }) => {
+	test('Oberfläche: die Beitragsgruppen führen keinen zweiten Terminplan mehr, die Vorlaufzeiten stehen nur im Einzug', async ({ page }) => {
 		await openApp(page, USERS.buchhalter)
 		await switchTab(page, 'Beiträge')
 		const section = visibleSection(page)
 		await section.locator('.vbh-subtabs').getByRole('button', { name: 'Beitragsgruppen', exact: true }).click()
 
-		await expect(section.getByRole('heading', { name: 'Terminplan' })).toBeVisible()
-		await expect(section.getByLabel(WARNING_LABEL)).toBeDisabled()
-		await expect(section.getByLabel(PRENOTIFICATION_LABEL)).toBeDisabled()
-		await expect(section.getByText(ADMIN_ONLY_HINT)).toBeVisible()
+		await expect(section.getByRole('heading', { name: 'Beitragsgruppen' }).first()).toBeVisible()
+		await expect(section.getByRole('heading', { name: 'Terminplan' })).toHaveCount(0)
+		await expect(section.getByLabel(WARNING_LABEL)).toHaveCount(0)
+		await expect(section.getByLabel(PRENOTIFICATION_LABEL)).toHaveCount(0)
 	})
 
 	test('Oberfläche: der Verwalter ändert die Vorlaufzeiten', async ({ page, request }) => {
