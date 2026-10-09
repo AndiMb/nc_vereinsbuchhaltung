@@ -94,4 +94,35 @@ test.describe('Buchungen', () => {
 		const journal = await api.listJournal(request, { period: await api.periodIdForDate(request, '2031-06-01') })
 		expect(journal.some((j) => j.description === 'Spende Sommerfest')).toBe(false)
 	})
+
+	test('Kontofilter: Kategorie „Einnahmen“ trifft alle Einnahmekonten', async ({ page, request }) => {
+		// Zwei Einnahmen auf verschiedenen Konten derselben Kategorie, eine Ausgabe
+		// als Gegenprobe – alle über die API, damit der Test nicht von seinen
+		// Vorgängern abhängt.
+		const [bank, beitraege, spenden, miete] = await api.accountsByNumber(request, BANK_ACCOUNT, INCOME_ACCOUNT, '4100', '5000')
+		await api.createBooking(request, { date: '2031-05-02', description: 'Filtertest Beitrag', debitAccountId: bank.id, creditAccountId: beitraege.id, amount: 30 })
+		await api.createBooking(request, { date: '2031-05-03', description: 'Filtertest Spende', debitAccountId: bank.id, creditAccountId: spenden.id, amount: 40 })
+		await api.createBooking(request, { date: '2031-05-04', description: 'Filtertest Miete', debitAccountId: miete.id, creditAccountId: bank.id, amount: 50 })
+
+		await openApp(page, USERS.buchhalter)
+		await switchTab(page, 'Buchungen')
+		await selectPeriod(page, '2031')
+		const section = visibleSection(page)
+		await expect(section.getByText('Filtertest Miete').first()).toBeVisible({ timeout: 15000 })
+
+		// Die Kategorie-Überschrift ist im Filter eine echte Option.
+		await pickNcSelectOption(section, 'Konto filtern', 'Einnahmen')
+		await expect(section.getByText('Filtertest Beitrag').first()).toBeVisible()
+		await expect(section.getByText('Filtertest Spende').first()).toBeVisible()
+		await expect(section.getByText('Filtertest Miete')).toHaveCount(0)
+
+		// Filter leeren: alles wieder da.
+		await section.locator('.vbh-filter-select .vs__clear').click()
+		await expect(section.getByText('Filtertest Miete').first()).toBeVisible()
+
+		await pickNcSelectOption(section, 'Konto filtern', 'Ausgaben')
+		await expect(section.getByText('Filtertest Miete').first()).toBeVisible()
+		await expect(section.getByText('Filtertest Beitrag')).toHaveCount(0)
+		await expect(section.getByText('Filtertest Spende')).toHaveCount(0)
+	})
 })

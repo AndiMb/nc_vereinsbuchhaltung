@@ -22,6 +22,23 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   under "To assign", the amount now carries a sign and a colour: income green
   with a plus, expenses red with a minus, transfers neutral. Split bookings
   with a single cash account get the direction as well.
+- **Account filter by category:** In the journal, "Income", "Expenses" and the
+  other category headings can now be picked directly in the account filter and
+  show all entries on accounts of that category. Until now the headings were
+  mere separators.
+
+**Changed:**
+- **Cash report hides spheres without activity:** The sphere overview now
+  only lists spheres with income or expenses – matching how accounts without
+  activity are skipped in the income/expense statement.
+
+**Fixed:**
+- **Account filter missed split entries:** The filter only checked the first
+  debit and credit line of an entry. Every line counts now.
+- **Group headings in account fields were clickable:** In the entry dialog,
+  rules, assignment, open items, splitting and reassigning, a category heading
+  could be selected and merely cleared the field. The headings are now
+  locked.
 
 ## [0.34.4] – 2026-09-29
 
