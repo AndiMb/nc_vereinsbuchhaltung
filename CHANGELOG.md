@@ -19,6 +19,8 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+## [0.34.5] – 2026-10-09
+
 **Neu:**
 - **Einnahme oder Ausgabe auf einen Blick:** Beträge in Übersicht, „Alle
   Buchungen" und „Zuzuordnen" tragen jetzt Vorzeichen und Farbe – Einnahmen

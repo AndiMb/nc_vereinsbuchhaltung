@@ -17,6 +17,8 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+## [0.34.5] – 2026-10-09
+
 **New:**
 - **Income or expense at a glance:** amounts on the overview, under "All
   entries" and under "To assign" now carry a sign and a colour – income green,
