@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Db\Account;
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\DunningNotice;
 use OCA\Vereinsbuchhaltung\Db\DunningNoticeMapper;
@@ -17,6 +18,7 @@ use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IConfig;
 use OCP\IL10N;
 use OCP\IUserManager;
+use OCP\Mail\IEMailTemplate;
 use OCP\Mail\IMailer;
 use OCP\Mail\IMessage;
 use Psr\Log\LoggerInterface;
@@ -297,15 +299,25 @@ class DunningLadderService {
 		$template->addHeading($this->stageHeading($stage, $l));
 		$template->addBodyText($l->t('Guten Tag %s,', [$displayName]));
 		$template->addBodyText($this->stageIntro($stage, $l));
-		foreach ($pending as [$item, $reason]) {
+		// Positionen nummeriert: die Nummer verbindet die Zeile im Text mit dem Anhang „GiroCode-Position-N.png".
+		$positions = [];
+		$account = $this->paymentAccount();
+		foreach ($pending as $index => [$item, $reason]) {
+			$positions[(int)$item->getId()] = $index + 1;
 			$template->addBodyText($reason($l));
-			$template->addBodyText('– ' . $this->positionLine($item, $l));
+			$template->addBodyText($l->t('Position %1$d: %2$s', [$index + 1, $this->positionLine($item, $l)]));
+			// Die Zahlungsdaten stehen zusätzlich zum GiroCode im Text, zum Abschreiben oder Kopieren:
+			// nicht jede Banking-App liest den Code, und nicht jedes Mailprogramm zeigt Anhänge an.
+			// Ohne eingestelltes Zahlungskonto gibt es nichts anzugeben.
+			if ($account !== null) {
+				$this->addPaymentDetails($template, $clubName, $account, $item, $l);
+			}
 		}
 		if ($stage === DunningNotice::STAGE_DUNNING) {
 			$template->addBodyText($l->t('Sollte der Betrag weiterhin nicht eingehen, legen wir den Vorgang dem Vorstand vor.'));
 		}
 		$template->addBodyText(count($giroCodes) === count($pending)
-			? $l->t('Bitte überweisen Sie jede Position einzeln mit dem jeweils genannten Betrag – für jede Position liegt ein GiroCode zum Scannen mit Ihrer Banking-App bei.')
+			? $l->t('Bitte überweisen Sie jede Position einzeln mit dem jeweils genannten Betrag – für jede Position liegt ein GiroCode zum Scannen mit Ihrer Banking-App als Bild bei (die Datei „GiroCode-Position-1.png“ gehört zu Position 1 und so weiter).')
 			: $l->t('Bitte überweisen Sie jede Position einzeln mit dem jeweils genannten Betrag.'));
 		// Auch die Fußzeile von Nextcloud (der Slogan) in der Sprache des Empfängers.
 		$template->addFooter('', $l->getLanguageCode());
@@ -316,7 +328,7 @@ class DunningLadderService {
 		$message->useTemplate($template);
 
 		foreach ($giroCodes as $itemId => $png) {
-			$message->attach($this->mailer->createAttachment($png, 'girocode-' . $itemId . '.png', 'image/png'));
+			$message->attach($this->mailer->createAttachment($png, 'GiroCode-Position-' . $positions[$itemId] . '.png', 'image/png'));
 		}
 		return $message;
 	}
@@ -336,14 +348,14 @@ class DunningLadderService {
 	 * @return array<int, string>
 	 */
 	private function renderGiroCodes(array $pending, string $clubName, IL10N $l): array {
-		$iban = $this->giroCodeIban();
+		$iban = $this->paymentAccount()?->getIban();
 		if ($iban === null) {
 			return [];
 		}
 		$codes = [];
 		foreach ($pending as [$item]) {
 			try {
-				$codes[(int)$item->getId()] = $this->qrCode->generatePng($clubName, $iban, null, $item->getAmountCents(), $this->positionLine($item, $l));
+				$codes[(int)$item->getId()] = $this->qrCode->generatePng($clubName, $iban, null, $item->getAmountCents(), $this->remittanceText($item, $l));
 			} catch (\Throwable $e) {
 				$this->logger->warning('Mahnwesen: GiroCode für Forderung {id} konnte nicht erzeugt werden, die Mail geht ohne diesen Anhang raus', [
 					'app' => Application::APP_ID,
@@ -355,18 +367,22 @@ class DunningLadderService {
 		return $codes;
 	}
 
-	/** IBAN des Zahlungskontos, auf das überwiesen werden soll – `null`, solange keines eingestellt ist. */
-	private function giroCodeIban(): ?string {
+	/**
+	 * Das einziehende Konto aus den Einstellungen (Beiträge & SEPA), auf das überwiesen werden soll – `null`,
+	 * solange keines eingestellt ist oder ihm die IBAN fehlt.
+	 */
+	private function paymentAccount(): ?Account {
 		$accountId = $this->debtorAccount->getAccountId();
 		if ($accountId === null) {
 			return null;
 		}
 		try {
-			$iban = $this->accounts->find($accountId, Application::BOOK)->getIban();
+			$account = $this->accounts->find($accountId, Application::BOOK);
 		} catch (DoesNotExistException) {
 			return null;
 		}
-		return $iban !== null && trim($iban) !== '' ? $iban : null;
+		$iban = $account->getIban();
+		return $iban !== null && trim($iban) !== '' ? $account : null;
 	}
 
 	private function stageSubject(int $stage, string $clubName, IL10N $l): string {
@@ -391,6 +407,45 @@ class DunningLadderService {
 			DunningNotice::STAGE_REMINDER => $l->t('wir möchten Sie an die folgende(n) noch offene(n) Position(en) erinnern:'),
 			default => $l->t('für die folgende(n) Position(en) bitten wir Sie dringend um umgehenden Ausgleich:'),
 		};
+	}
+
+	/**
+	 * Verwendungszweck einer Position: im GiroCode und im Mailtext derselbe Wortlaut, damit eine von Hand
+	 * ausgefüllte Überweisung dieselbe Zuordnung bekommt wie der gescannte Code. Der Betrag steht eigens
+	 * im Feld „Betrag", nicht im Verwendungszweck.
+	 */
+	private function remittanceText(OpenItem $item, IL10N $l): string {
+		$label = (string)($item->getDescription() ?? $l->t('Beitrag'));
+		$due = GermanDate::format($item->getDueDate());
+		if ($item->getPeriodStart() !== null && $item->getPeriodEnd() !== null) {
+			return $l->t('%1$s (%2$s – %3$s), fällig %4$s', [$label, GermanDate::format($item->getPeriodStart()), GermanDate::format($item->getPeriodEnd()), $due]);
+		}
+		return $l->t('%1$s, fällig %2$s', [$label, $due]);
+	}
+
+	/**
+	 * Zahlungsdaten einer Position als eigener Block (Empfänger, IBAN, Konto, Betrag, Verwendungszweck), alle
+	 * aus dem „Einziehenden Konto" der Einstellungen. Eine BIC braucht eine SEPA-Überweisung innerhalb des
+	 * Euro-Raums seit 2016 nicht mehr; am Konto ist auch keine hinterlegt.
+	 */
+	private function addPaymentDetails(IEMailTemplate $template, string $clubName, Account $account, OpenItem $item, IL10N $l): void {
+		$lines = [
+			$l->t('Empfänger') . ': ' . $clubName,
+			$l->t('IBAN') . ': ' . $this->formatIban((string)$account->getIban()),
+			$l->t('Konto') . ': ' . $account->getName(),
+			$l->t('Betrag') . ': ' . number_format($item->getAmountCents() / 100, 2, ',', '.') . ' €',
+			$l->t('Verwendungszweck') . ': ' . $this->remittanceText($item, $l),
+		];
+
+		$template->addBodyText(
+			implode('<br>', array_map(static fn (string $line): string => htmlspecialchars($line, ENT_QUOTES), $lines)),
+			implode("\n", $lines),
+		);
+	}
+
+	/** IBAN in Vierergruppen, wie sie auf Kontoauszügen steht. */
+	private function formatIban(string $iban): string {
+		return trim(chunk_split(strtoupper(str_replace(' ', '', $iban)), 4, ' '));
 	}
 
 	private function positionLine(OpenItem $item, IL10N $l): string {

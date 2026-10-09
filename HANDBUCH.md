@@ -1688,10 +1688,14 @@ offener Forderung, nur an Mitglieder mit E-Mail-Adresse. Jede Position trägt
 einen eigenen **GiroCode** als Bildanhang (EPC-QR): die Banking-App des
 Mitglieds scannt ihn und füllt Empfänger, IBAN, Betrag und Verwendungszweck
 vor, sodass jede Forderung einzeln überwiesen wird statt als Sammelbetrag.
-Empfänger ist das *Einziehende Konto* (13.1) – ist dort keine IBAN hinterlegt,
-gibt es keine Codes. Fehlt dem Server die PHP-Erweiterung gd, geht die Mail ohne
-GiroCode raus (der Mailtext sagt ihn dann nicht zu), und der Fehler steht im
-Nextcloud-Log.
+Die Positionen sind nummeriert, der Anhang „GiroCode-Position-1.png" gehört zu
+Position 1 und so weiter. Je Position stehen außerdem Empfänger, IBAN, Konto,
+Betrag und Verwendungszweck als Text in der Mail, zum Abschreiben oder Kopieren,
+falls die Banking-App den Code nicht liest. Alle Angaben kommen aus dem
+*Einziehenden Konto* (13.1) – ist dort keine IBAN hinterlegt, gibt es weder
+Codes noch Zahlungsdaten. Fehlt dem Server
+die PHP-Erweiterung gd, geht die Mail ohne GiroCode raus (der Mailtext sagt ihn
+dann nicht zu), und der Fehler steht im Nextcloud-Log.
 
 **Störfälle** haben zwei Schweregrade, *Handlungsbedarf* und *Hinweis*, und
 nennen die Ursache in Klartext – etwa „Vorabinfo konnte nicht rechtzeitig

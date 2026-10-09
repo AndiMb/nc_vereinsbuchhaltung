@@ -408,6 +408,7 @@ class DunningLadderServiceTest extends TestCase {
 		}
 		$account = new \OCA\Vereinsbuchhaltung\Db\Account();
 		$account->setIban($iban);
+		$account->setName('Girokonto Verein');
 		$accounts = $this->createMock(AccountMapper::class);
 		$accounts->method('find')->willReturn($account);
 
@@ -497,7 +498,7 @@ class DunningLadderServiceTest extends TestCase {
 
 		$this->assertSame(['sent' => 1, 'skipped' => 0, 'failed' => 0], $result);
 		$this->assertSame(3, $this->attachedCount, 'Eine Mail, ein Anhang je Position (kein Sammelbetrag)');
-		$this->assertSame(['girocode-11.png', 'girocode-12.png', 'girocode-13.png'], array_column($this->createdAttachments, 'filename'));
+		$this->assertSame(['GiroCode-Position-1.png', 'GiroCode-Position-2.png', 'GiroCode-Position-3.png'], array_column($this->createdAttachments, 'filename'));
 		$this->assertSame(['image/png', 'image/png', 'image/png'], array_column($this->createdAttachments, 'contentType'));
 		$betraege = [];
 		foreach ($this->createdAttachments as $attachment) {
@@ -539,7 +540,7 @@ class DunningLadderServiceTest extends TestCase {
 		$this->assertSame(1, $result['sent']);
 		$this->assertCount(2, $this->insertedNotices);
 		$this->assertSame($stage, $this->insertedNotices[0]->getStage());
-		$this->assertSame(['girocode-21.png', 'girocode-22.png'], array_column($this->createdAttachments, 'filename'));
+		$this->assertSame(['GiroCode-Position-1.png', 'GiroCode-Position-2.png'], array_column($this->createdAttachments, 'filename'));
 	}
 
 	public function testDerMailtextVersprichtDenGiroCodeNurWennJedePositionEinenHat(): void {
@@ -547,7 +548,51 @@ class DunningLadderServiceTest extends TestCase {
 
 		$this->giroCodeService()->triggerPaymentRequest($this->claim(1, 7), fn (): string => 'Grund');
 
-		$this->assertContains('Bitte überweisen Sie jede Position einzeln mit dem jeweils genannten Betrag – für jede Position liegt ein GiroCode zum Scannen mit Ihrer Banking-App bei.', $this->bodyTexts);
+		$this->assertContains('Bitte überweisen Sie jede Position einzeln mit dem jeweils genannten Betrag – für jede Position liegt ein GiroCode zum Scannen mit Ihrer Banking-App als Bild bei (die Datei „GiroCode-Position-1.png“ gehört zu Position 1 und so weiter).', $this->bodyTexts);
+	}
+
+	public function testJedePositionNenntIhreZahlungsdatenZumAbschreibenImText(): void {
+		$this->openItems->method('findByMember')->with(7)->willReturn([
+			$this->claim(11, 7, amountCents: 4500),
+			$this->claim(12, 7, amountCents: 1234),
+		]);
+		$this->notices->method('findByOpenItemAndStage')->willReturn(null);
+
+		$this->giroCodeService()->onMandateRevoked(7);
+
+		$positionen = array_values(array_filter($this->bodyTexts, static fn (string $t): bool => str_starts_with($t, 'Position ')));
+		$this->assertCount(2, $positionen);
+		$this->assertStringStartsWith('Position 1: ', $positionen[0]);
+		$this->assertStringStartsWith('Position 2: ', $positionen[1]);
+
+		$bloecke = array_values(array_filter($this->bodyTexts, static fn (string $t): bool => str_starts_with($t, 'Empfänger: ')));
+		$this->assertCount(2, $bloecke, 'Ein Zahlungsdaten-Block je Position');
+		foreach ($bloecke as $block) {
+			$this->assertStringContainsString('IBAN: DE02 1203 0000 0000 2020 51', $block, 'IBAN des Einziehenden Kontos, in Vierergruppen');
+			$this->assertStringContainsString('Konto: Girokonto Verein', $block);
+			$this->assertStringContainsString('Verwendungszweck: ', $block);
+		}
+		$this->assertStringContainsString('Betrag: 45,00 €', $bloecke[0]);
+		$this->assertStringContainsString('Betrag: 12,34 €', $bloecke[1]);
+	}
+
+	public function testDieZahlungsdatenStehenAuchOhneGiroCodeImText(): void {
+		$this->notices->method('findByOpenItemAndStage')->willReturn(null);
+
+		$this->giroCodeService($this->failingGenerator(new \Error('Class not found')))->triggerPaymentRequest($this->claim(1, 7), fn (): string => 'Grund');
+
+		$bloecke = array_values(array_filter($this->bodyTexts, static fn (string $t): bool => str_starts_with($t, 'Empfänger: ')));
+		$this->assertCount(1, $bloecke, 'Fällt der Code aus, bleiben die Zahlungsdaten im Text');
+	}
+
+	public function testOhneZahlungskontoStehenKeineZahlungsdatenImText(): void {
+		$this->notices->method('findByOpenItemAndStage')->willReturn(null);
+
+		$this->giroCodeService(accountConfigured: false)->triggerPaymentRequest($this->claim(1, 7), fn (): string => 'Grund');
+
+		foreach ($this->bodyTexts as $text) {
+			$this->assertStringStartsNotWith('Empfänger: ', $text);
+		}
 	}
 
 	// --- GiroCode-Fehlerfälle: der Mahnversand läuft weiter (Issue #120) ------------------
@@ -624,7 +669,7 @@ class DunningLadderServiceTest extends TestCase {
 		$result = $this->giroCodeService(null, $logger)->onMandateRevoked(7);
 
 		$this->assertSame(1, $result['sent']);
-		$this->assertSame(['girocode-41.png'], array_column($this->createdAttachments, 'filename'));
+		$this->assertSame(['GiroCode-Position-1.png'], array_column($this->createdAttachments, 'filename'));
 		$this->assertContains('Bitte überweisen Sie jede Position einzeln mit dem jeweils genannten Betrag.', $this->bodyTexts, 'Nicht jede Position hat einen Code: der Text verspricht keinen');
 	}
 

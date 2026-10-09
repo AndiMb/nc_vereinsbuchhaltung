@@ -1788,7 +1788,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 
 **Erwartet:**
 - Betreff „Zahlungsaufforderung von {Vereinsname}“, Überschrift „Zahlungsaufforderung“.
-- Inhalt: Anrede („Guten Tag Markus Fuchs,“), „für die folgende(n) Position(en) bitten wir Sie um Ausgleich per Überweisung:“, je Position eine Zeile („Bezeichnung (Periode): Betrag, fällig Datum“) mit einem eigenen Grundsatz je Position (Fuchs: „Die Lastschrift konnte mangels Kontodeckung nicht eingezogen werden.“; Krüger: „Die Lastschrift konnte nicht eingezogen werden, weil das angegebene Konto nicht erreichbar ist.“). Die Mail fordert Einzelüberweisungen („Bitte überweisen Sie jede Position einzeln mit dem jeweils genannten Betrag – für jede Position liegt ein GiroCode zum Scannen mit Ihrer Banking-App bei.“), keinen Sammelbetrag. Es steht kein Rechtsvokabular darin.
+- Inhalt: Anrede („Guten Tag Markus Fuchs,“), „für die folgende(n) Position(en) bitten wir Sie um Ausgleich per Überweisung:“, je Position eine Zeile („Bezeichnung (Periode): Betrag, fällig Datum“) mit einem eigenen Grundsatz je Position (Fuchs: „Die Lastschrift konnte mangels Kontodeckung nicht eingezogen werden.“; Krüger: „Die Lastschrift konnte nicht eingezogen werden, weil das angegebene Konto nicht erreichbar ist.“). Die Positionen sind nummeriert („Position 1: …“). Die Mail fordert Einzelüberweisungen („Bitte überweisen Sie jede Position einzeln mit dem jeweils genannten Betrag – für jede Position liegt ein GiroCode zum Scannen mit Ihrer Banking-App als Bild bei (die Datei „GiroCode-Position-1.png“ gehört zu Position 1 und so weiter).“), keinen Sammelbetrag, und führt je Position die Zahlungsdaten zum Abschreiben auf („Empfänger“, „IBAN“ in Vierergruppen, „Konto“, „Betrag“, „Verwendungszweck“), alle aus dem Einziehenden Konto. Es steht kein Rechtsvokabular darin.
 - Gebündelt: eine Mail je Mitglied, nicht je Position.
 - Nur Mitglieder mit E-Mail-Adresse bekommen die Mail.
 
@@ -1798,13 +1798,13 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 
 **Tun:**
 1. Öffne in Mailhog die Mail an Markus Fuchs und die Anhänge.
-2. Speichere oder öffne einen Anhang `girocode-<Nummer>.png` und zeige ihn am Bildschirm.
+2. Speichere oder öffne einen Anhang `GiroCode-Position-<Nummer>.png` und zeige ihn am Bildschirm. (Mailhog zeigt Anhänge nur im Reiter „MIME“ an; ein normales Mailprogramm zeigt sie unter der Mail.)
 3. Scanne ihn mit der Banking-App deiner Wahl (Überweisung per QR-Code) oder einem QR-Scanner.
 4. Öffne die Mail an Sophie Krüger und vergleiche.
 5. Brich die Überweisung in der Banking-App **ab**.
 
 **Erwartet:**
-- **Ein Anhang je Position** (`girocode-{Forderungs-ID}.png`), jeweils ein quadratisches PNG (ca. 150 px oder größer), das sich scannen lässt.
+- **Ein Anhang je Position** (`GiroCode-Position-{Nummer der Position}.png`, passend zu „Position N“ im Text), jeweils ein quadratisches PNG (ca. 150 px oder größer), das sich scannen lässt.
 - Die Banking-App füllt die Überweisung vor: Empfänger (Vereinsname), IBAN (das **einziehende Konto** aus den Einstellungen), Betrag in EUR (der Betrag der Position) und Verwendungszweck mit Bezeichnung und Fälligkeitsdatum. Ein reiner QR-Scanner zeigt die EPC-Zeilen: `BCD`, `002`, `1`, `SCT`, Name, IBAN, `EUR…`, Zweck.
 - Fehlt PHP die Erweiterung `gd` (0.7) oder dem einziehenden Konto die IBAN, kommt die Mail **ohne** Anhänge und ohne den Satz zum GiroCode; der Fehler steht im Nextcloud-Log.
 

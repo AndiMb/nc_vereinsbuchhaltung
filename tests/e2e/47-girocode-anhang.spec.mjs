@@ -78,7 +78,7 @@ async function runDunningJob() {
  * (`filename: "logo"`) ein; es ist kein Anhang des Mahnversands und zählt nicht mit.
  */
 function giroCodesOf(mail) {
-	return mail.attachments.filter((a) => /^girocode-\d+\.png$/.test(a.filename || ''))
+	return mail.attachments.filter((a) => /^GiroCode-Position-\d+\.png$/.test(a.filename || ''))
 }
 
 /** Eine Zahlungsaufforderung trägt je Position einen gültigen GiroCode mit den Daten dieser Position. */
@@ -87,10 +87,18 @@ async function expectGiroCodePerPosition(mail, claims, positions, dueDate) {
 	const dueDateDe = dueDate.split('-').reverse().join('.')
 	expect(mail.subject).toContain(`Zahlungsaufforderung von ${CLUB_NAME}`)
 	expect(mail.text, 'Der Mailtext verweist auf die GiroCodes').toContain('GiroCode')
+	// Die Zahlungsdaten stehen je Position auch im Text, zum Abschreiben (IBAN in Vierergruppen).
+	const ibanGrouped = BANK_ACCOUNT_IBAN.replace(/\s+/g, '').replace(/(.{4})/g, '$1 ').trim()
+	positions.forEach((p, i) => {
+		expect(mail.text, `Position ${i + 1} ist nummeriert`).toContain(`Position ${i + 1}: `)
+		expect(mail.text, `Betrag von Position ${i + 1}`).toContain(`Betrag: ${p.amount.toFixed(2).replace('.', ',')} €`)
+	})
+	expect(mail.text.match(new RegExp(`IBAN: ${ibanGrouped}`, 'g'))?.length, 'ein IBAN-Block je Position').toBe(claims.length)
+	expect(mail.text, 'Verwendungszweck steht im Text').toContain('Verwendungszweck: ')
 
 	const giroCodes = giroCodesOf(mail)
 	const byName = new Map(giroCodes.map((a) => [a.filename, a]))
-	expect([...byName.keys()].sort(), 'ein Anhang je Position, kein Sammelbetrag').toEqual(claims.map((c) => `girocode-${c.id}.png`).sort())
+	expect([...byName.keys()].sort(), 'ein Anhang je Position, kein Sammelbetrag').toEqual(claims.map((c, i) => `GiroCode-Position-${i + 1}.png`).sort())
 	for (const attachment of giroCodes) {
 		expect(attachment.contentType).toBe('image/png')
 		const info = pngInfo(attachment.data)
@@ -100,7 +108,7 @@ async function expectGiroCodePerPosition(mail, claims, positions, dueDate) {
 		expect(info.bytes, 'kein leeres oder abgeschnittenes PNG').toBeGreaterThan(800)
 	}
 
-	const ordered = claims.map((claim) => byName.get(`girocode-${claim.id}.png`).data)
+	const ordered = claims.map((claim, i) => byName.get(`GiroCode-Position-${i + 1}.png`).data)
 	const payloads = await decodeGiroCodes(ordered)
 	claims.forEach((claim, i) => {
 		const lines = payloads[i]
