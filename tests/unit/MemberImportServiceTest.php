@@ -107,10 +107,14 @@ class MemberImportServiceTest extends TestCase {
 		);
 	}
 
-	private function group(int $id, string $name): ContributionGroup {
+	/** Eine Gruppe wie im echten Betrieb: alle Turnusse erlaubt, Standard jährlich, Untergrenze nach Bedarf. */
+	private function group(int $id, string $name, int $minMonthlyAmountCents = 0): ContributionGroup {
 		$group = new ContributionGroup();
 		$group->setId($id);
 		$group->setName($name);
+		$group->setMinMonthlyAmountCents($minMonthlyAmountCents);
+		$group->setAllowedIntervalsArray(ContributionGroup::VALID_INTERVALS);
+		$group->setDefaultInterval(12);
 		return $group;
 	}
 
@@ -218,6 +222,48 @@ class MemberImportServiceTest extends TestCase {
 		$result = $this->service()->import($csv, true);
 
 		$this->assertSame(7, $result['rows'][0]['assignmentId']);
+	}
+
+	/** Beitragsfrei (0 €): weder IBAN noch Startdatum noch Frequenz nötig – Beginn ist der Importtag, Turnus der Standard der Gruppe. */
+	public function testBeitragsfreieZeileBrauchtWederIbanNochStartNochFrequenz(): void {
+		$this->groupMapper->method('findAll')->willReturn([$this->group(4, 'Ruhend')]);
+		$this->assignments->expects($this->once())->method('create')
+			->with($this->anything(), 4, 12, 0, Assignment::PAYMENT_METHOD_DIRECT_DEBIT, '2026-01-01', null, null, null, $this->anything(), $this->anything())
+			->willReturn((function () {
+				$a = new Assignment();
+				$a->setId(21);
+				return $a;
+			})());
+
+		$csv = "Name;E-Mail;Beitragsgruppe;Betrag\nTina Passiv;t@example.org;Ruhend;0,00\n";
+		$result = $this->service('2026-01-01')->import($csv, true);
+
+		$this->assertSame([], $result['rows'][0]['errors']);
+		$this->assertSame(21, $result['rows'][0]['assignmentId']);
+		$this->assertNull($result['rows'][0]['mandateId']);
+		$this->assertSame(0.0, (float)$result['rows'][0]['amount']);
+		$this->assertSame('2026-01-01', $result['rows'][0]['startDate']);
+	}
+
+	/** Ein eigener Start bleibt auch bei 0 € maßgeblich, und die Vergangenheit-Regel gilt weiter. */
+	public function testBeitragsfreieZeileMitStartInDerVergangenheitBleibtEinFehler(): void {
+		$this->groupMapper->method('findAll')->willReturn([$this->group(4, 'Ruhend')]);
+
+		$csv = "Name;Betrag;Start\nTina Passiv;0;31.12.2025\n";
+		$result = $this->service('2026-01-01')->preview($csv);
+
+		$this->assertStringContainsString('Vergangenheit', $result['rows'][0]['errors'][0]);
+	}
+
+	/** 0 € in einer Gruppe mit Untergrenze: schon die Vorschau nennt es, nicht erst das Übernehmen. */
+	public function testBetragUnterDerUntergrenzeDerGruppeIstSchonInDerVorschauEinFehler(): void {
+		$this->groupMapper->method('findAll')->willReturn([$this->group(1, 'Vollmitglied', 1000)]);
+
+		$csv = "Name;Betrag\nTina Passiv;0\n";
+		$result = $this->service()->preview($csv);
+
+		$this->assertSame(1, $result['summary']['failed']);
+		$this->assertStringContainsString('Untergrenze von 10,00 €', $result['rows'][0]['errors'][0]);
 	}
 
 	public function testBeitragsgruppeWirdUeberNamenGrossKleinschreibungsUnabhaengigAufgeloest(): void {

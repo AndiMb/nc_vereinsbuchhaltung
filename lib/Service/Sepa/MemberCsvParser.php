@@ -382,8 +382,9 @@ class MemberCsvParser {
 		$usedDefaultAmount = false;
 		if (($raw['amount'] ?? '') !== '') {
 			$amountCents = $this->parseAmount($raw['amount']);
-			if ($amountCents === null || $amountCents <= 0) {
-				$errors[] = $this->msg('Unlesbarer oder nicht positiver Betrag: %s', [$raw['amount']]);
+			// 0 ist ein gültiger Betrag: beitragsfrei (Ehren-, Passiv- und Fördermitglieder, Pausen).
+			if ($amountCents === null || $amountCents < 0) {
+				$errors[] = $this->msg('Unlesbarer oder negativer Betrag: %s', [$raw['amount']]);
 				$amountCents = null;
 			}
 		} elseif ($defaultAmountCents !== null && ($raw['startDate'] ?? '') !== '') {
@@ -404,9 +405,11 @@ class MemberCsvParser {
 			}
 		} elseif ($usedDefaultAmount) {
 			$frequency = $defaultFrequency ?? 'yearly';
-		} elseif ($amountCents !== null) {
+		} elseif ($amountCents !== null && $amountCents > 0) {
 			// Ein Betrag ohne Frequenz ist fast immer ein Jahresbeitrag; das ist
-			// die häufigste Vereinstabelle überhaupt.
+			// die häufigste Vereinstabelle überhaupt. Bei einer beitragsfreien Zeile
+			// bleibt die Frequenz offen: es wird nichts eingezogen, der Turnus der
+			// Gruppe genügt (MemberImportService).
 			$frequency = 'yearly';
 		}
 
@@ -416,7 +419,9 @@ class MemberCsvParser {
 			if ($startDate === null) {
 				$errors[] = $this->msg('Unlesbares Startdatum: %s', [$raw['startDate']]);
 			}
-		} elseif ($amountCents !== null) {
+		} elseif ($amountCents !== null && $amountCents > 0) {
+			// Beitragsfrei (0 €): keine erste Fälligkeit, also auch kein Pflicht-Startdatum
+			// (die Zuweisung beginnt dann am Importtag, MemberImportService).
 			$errors[] = $this->msg('Zu einem Betrag gehört ein Startdatum (erste Fälligkeit).');
 		}
 

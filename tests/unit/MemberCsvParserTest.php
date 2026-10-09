@@ -105,6 +105,23 @@ class MemberCsvParserTest extends TestCase {
 		$this->assertNull($zeile['amountCents']);
 	}
 
+	/** Beitragsfrei (0 €) ist ein gültiger Betrag – ohne IBAN, Startdatum und Frequenz. */
+	public function testBeitragsfreiOhneIbanStartUndFrequenz(): void {
+		$csv = "Name;Betrag\nTina Passiv;0,00\n";
+		$zeile = $this->parser->parse($csv)['rows'][0];
+		$this->assertSame([], $zeile['errors']);
+		$this->assertSame(0, $zeile['amountCents']);
+		$this->assertNull($zeile['startDate']);
+		$this->assertNull($zeile['frequency']);
+		$this->assertNull($zeile['iban']);
+	}
+
+	/** Nur ein echter Betrag verlangt ein Startdatum (erste Fälligkeit). */
+	public function testBetragUeberNullBrauchtWeiterhinEinStartdatum(): void {
+		$zeile = $this->parser->parse("Name;Betrag\nTina Zahler;0,01\n")['rows'][0];
+		$this->assertStringContainsString('Zu einem Betrag gehört ein Startdatum', implode(' | ', $zeile['errors']));
+	}
+
 	/** Nur Beitrag, keine IBAN – zulässig (Barzahler, Überweiser). */
 	public function testNurBeitragOhneMandat(): void {
 		$csv = "Name;Betrag;Frequenz;Start\nBarzahler;10,00;monatlich;01.01.2026\n";
@@ -141,7 +158,7 @@ class MemberCsvParserTest extends TestCase {
 			],
 			'negativer Betrag' => [
 				"Name;Betrag;Frequenz;Start\nKatrin Brunner;-42,50;monatlich;01.01.2026\n",
-				'Unlesbarer oder nicht positiver Betrag',
+				'Unlesbarer oder negativer Betrag',
 			],
 			'ohne Zahler' => [
 				"Name;IBAN;Mandat am\n;DE02120300000000202051;15.01.2026\n",

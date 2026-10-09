@@ -91,4 +91,37 @@ test.describe('Beitragsfreie Zuweisung (0 €)', () => {
 		const rueckwirkend = (await claimsOf(request, member)).filter((c) => c.periodStart <= today())
 		expect(rueckwirkend).toEqual([])
 	})
+
+	test('der CSV-Import nimmt Betrag 0 ohne IBAN, Start und Frequenz an', async ({ page, request }) => {
+		test.setTimeout(90000)
+		const name = `Import Ruhend-${suffix()}`
+		const csv = ['Name;E-Mail;Beitragsgruppe;Betrag', `${name};import.ruhend-${suffix()}@example.org;${GROUP_NAME};0,00`].join('\r\n')
+
+		await openApp(page, USERS.buchhalter)
+		await switchTab(page, 'Beiträge')
+		await visibleSection(page).getByRole('button', { name: 'Liste einlesen', exact: true }).click()
+		const dialog = page.getByRole('dialog', { name: 'Mitgliederliste einlesen' })
+		await expect(dialog).toBeVisible()
+
+		await dialog.locator('input[type="file"]').setInputFiles({ name: 'ruhend.csv', mimeType: 'text/csv', buffer: Buffer.from(csv, 'utf-8') })
+		await dialog.getByRole('button', { name: 'Prüfen', exact: true }).click()
+
+		// Keine Fehlermeldung („Unlesbarer oder nicht positiver Betrag“ gab es früher für 0 €): die Zeile ist in Ordnung.
+		const row = dialog.locator('tr', { hasText: name })
+		await expect(row.getByText('nur Zuweisung', { exact: true })).toBeVisible()
+		await expect(row.getByText('Fehler', { exact: true })).toHaveCount(0)
+		await expect(dialog.getByText('1 von 1 Zeilen sind in Ordnung', { exact: false })).toBeVisible()
+
+		await dialog.getByRole('button', { name: '1 Zeile übernehmen', exact: true }).click()
+		await page.getByRole('dialog', { name: 'Mitglieder übernehmen' }).getByRole('button', { name: 'Übernehmen', exact: true }).click()
+		await expect(dialog.getByText('1 von 1 Zeilen übernommen', { exact: false })).toBeVisible()
+
+		const members = await api.getJson(request, '/members')
+		const imported = members.find((m) => m.displayName === name)
+		expect(imported, 'das Mitglied wurde angelegt').toBeTruthy()
+		const assignments = (await api.getJson(request, '/assignments')).filter((a) => a.memberId === imported.id)
+		expect(assignments).toHaveLength(1)
+		expect(assignments[0].monthlyAmount).toBe(0)
+		expect(assignments[0].validFrom).toBe(today())
+	})
 })

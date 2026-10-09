@@ -1374,13 +1374,17 @@ and extra columns (voice part …) are simply ignored:
 | Mandate on | `15.01.2026` | yes, as soon as there's an IBAN |
 | Mandate reference | `ALT-0001` | no, otherwise the app assigns one |
 | Contribution group | `Choir members` | yes, as soon as a fee should be created |
-| Amount | `8.00` | only if a fee should be created – the **monthly amount**, regardless of the interval |
+| Amount | `8.00` | only if a fee should be created – the **monthly amount**, regardless of the interval. **`0`** means fee-free (passive, honorary, supporting members, pauses) |
 | Frequency | `monthly` | no – **yearly** applies if not specified; only sets the interval, not the amount |
-| Start | `01.02.2026` | yes, as soon as there's an amount – must not lie in the past |
+| Start | `01.02.2026` | yes, as soon as there's an amount above 0 – must not lie in the past. For **0 €** it may be missing: the assignment then applies from the import day |
 
 A row without an IBAN and without an amount is valid – only the member is
 created then, a mandate and a fee can be added any time later through the
-member's record.
+member's record. A **fee-free** row (amount `0`) needs only the contribution
+group – e.g. "Ruhend" (dormant) with a 0 € lower limit (13.4): no IBAN or
+mandate, start date or frequency is needed, and nothing is ever collected. The
+preview checks beforehand whether the amount fits the lower limit and the
+interval fits the group.
 
 The name is read like this: if **Organization** is filled, an organization is
 created; otherwise a person with exactly the **First name**/**Last name** fields.

@@ -220,6 +220,12 @@ class MemberImportService {
 			return $this->describe($row, [], null, [], true, $this->l10n->t('Diese Mitgliedsnummer existiert bereits – Zeile übersprungen.'));
 		}
 
+		// Beitragsfrei (0 €) braucht kein Startdatum: es wird nichts fällig, die Zuweisung
+		// gilt ab dem Importtag.
+		if ($row['amountCents'] === 0 && $row['startDate'] === null) {
+			$row['startDate'] = $this->today();
+		}
+
 		$warnings = $row['warnings'];
 		$group = null;
 		$assignmentPlanned = false;
@@ -245,6 +251,16 @@ class MemberImportService {
 		}
 		if ($assignmentPlanned && (string)$row['startDate'] < $this->today()) {
 			$errors[] = $this->l10n->t('Der Beginn der Zuweisung (%s) liegt in der Vergangenheit – Zuweisungen gelten nie rückwirkend.', [$this->formatDate((string)$row['startDate'])]);
+		}
+		// Dieselben Regeln, die AssignmentService::create() beim Anlegen anwendet – sonst fiele die Zeile
+		// erst beim Übernehmen durch (etwa 0 € in einer Gruppe mit Untergrenze).
+		if ($group !== null && $row['amountCents'] !== null) {
+			if (!in_array($this->intervalMonthsFor($row, $group), $group->getAllowedIntervalsArray(), true)) {
+				$errors[] = $this->l10n->t('Dieser Turnus ist für die gewählte Beitragsgruppe nicht erlaubt.');
+			}
+			if ((int)$row['amountCents'] < $group->getMinMonthlyAmountCents()) {
+				$errors[] = $this->l10n->t('Der Monatsbeitrag darf die Untergrenze von %s € nicht unterschreiten.', [number_format($group->getMinMonthlyAmountCents() / 100, 2, ',', '.')]);
+			}
 		}
 		if ($errors !== []) {
 			return $this->describe($row, $errors);
@@ -279,6 +295,18 @@ class MemberImportService {
 		} catch (\Throwable $e) {
 			return $this->describe($row, [$e->getMessage()]);
 		}
+	}
+
+	/**
+	 * Turnus der Zuweisung: die Frequenz der Zeile, ohne Angabe (beitragsfreie Zeile) der Standard-Turnus der Gruppe.
+	 *
+	 * @param array<string, mixed> $row
+	 */
+	private function intervalMonthsFor(array $row, ContributionGroup $group): int {
+		if ($row['frequency'] === null) {
+			return (int)$group->getDefaultInterval();
+		}
+		return BillingPeriod::FREQUENCY_MONTHS[$row['frequency']] ?? 12;
 	}
 
 	/**
@@ -332,7 +360,7 @@ class MemberImportService {
 			// verknüpften NC-Konto kann die aus dessen Kontodaten stammen, auch
 			// wenn die CSV-Spalte selbst leer war (siehe buildMember()).
 			$paymentMethod = $member->getEmail() !== null ? Assignment::PAYMENT_METHOD_DIRECT_DEBIT : Assignment::PAYMENT_METHOD_TRANSFER;
-			$intervalMonths = BillingPeriod::FREQUENCY_MONTHS[$row['frequency']] ?? 12;
+			$intervalMonths = $this->intervalMonthsFor($row, $group);
 			$assignment = $this->assignments->create(
 				(int)$member->getId(),
 				(int)$group->getId(),

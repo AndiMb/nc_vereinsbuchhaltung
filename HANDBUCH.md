@@ -1405,13 +1405,17 @@ zusätzliche Spalten (Stimmlage …) werden einfach übergangen:
 | Mandat am | `15.01.2026` | ja, sobald eine IBAN dasteht |
 | Mandatsreferenz | `ALT-0001` | nein, sonst vergibt die App eine |
 | Beitragsgruppe | `Chormitglieder` | ja, sobald ein Beitrag entstehen soll |
-| Betrag | `8,00` | nur wenn ein Beitrag entstehen soll – der **Monatsbeitrag**, unabhängig vom Turnus |
+| Betrag | `8,00` | nur wenn ein Beitrag entstehen soll – der **Monatsbeitrag**, unabhängig vom Turnus. **`0`** bedeutet beitragsfrei (Passiv-, Ehren-, Fördermitglieder, Pausen) |
 | Frequenz | `monatlich` | nein – ohne Angabe gilt **jährlich**; bestimmt nur den Turnus, nicht den Betrag |
-| Start | `01.02.2026` | ja, sobald ein Betrag dasteht – darf nicht in der Vergangenheit liegen |
+| Start | `01.02.2026` | ja, sobald ein Betrag über 0 dasteht – darf nicht in der Vergangenheit liegen. Bei **0 €** darf er fehlen: die Zuweisung gilt dann ab dem Importtag |
 
 Eine Zeile ganz ohne IBAN und ohne Betrag ist gültig – dann entsteht nur das
 Mitglied, Mandat und Beitrag lassen sich jederzeit über die Personenakte
-nachtragen.
+nachtragen. Eine **beitragsfreie** Zeile (Betrag `0`) braucht dazu nur die
+Beitragsgruppe – etwa „Ruhend" mit 0 € Untergrenze (13.4): weder IBAN und
+Mandat noch Startdatum oder Frequenz sind nötig, es wird nie etwas eingezogen.
+Die Vorschau prüft vorher, ob der Betrag zur Untergrenze und der Turnus zur
+Gruppe passt.
 
 Den Namen liest die App so: Ist **Organisation** gefüllt, entsteht eine
 Organisation; sonst eine Person mit genau den Feldern **Vorname**/**Nachname**.

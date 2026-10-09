@@ -133,7 +133,9 @@ verwenden, z. B. `**Neu:**`.
 - **Beitragsfrei und Pausen:** Ein Monatsbeitrag von 0 € ist möglich (Untergrenze
   der Gruppe 0): Es entstehen keine Forderungen, nichts wird eingezogen, kein
   Mandat nötig; die Mitgliederliste zeigt „beitragsfrei“. Eine Gruppe „Ruhend“
-  taugt als Pause oder Passivmitgliedschaft.
+  taugt als Pause oder Passivmitgliedschaft. Auch der CSV-Import kennt Betrag 0:
+  ohne IBAN, Startdatum und Frequenz; die Vorschau prüft Untergrenze und Turnus
+  der Gruppe vorab.
 - **Land als Auswahl:** In der Akte, im Aufnahme-Dialog und in „Mein Beitrag“ wird
   das Land aus allen Ländern der Welt gewählt (in Ihrer Sprache benannt), neue
   Mitglieder beginnen in Ihrem Land. Die Dialoge zur Bankverbindung und zum

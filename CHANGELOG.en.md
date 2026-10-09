@@ -129,7 +129,8 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 - **Fee-free and pauses:** a monthly fee of €0 is possible (group lower limit 0):
   no claims are created, nothing is collected, no mandate is needed; the member
   list shows "fee-free". A "Ruhend" (dormant) group works as a pause or passive
-  membership.
+  membership. The CSV import knows amount 0 too: without IBAN, start date and
+  frequency; the preview checks the group's lower limit and interval beforehand.
 - **Country as a selection:** in the file, the admission dialog and "My
   contribution" the country is chosen from all countries of the world (named in
   your language); new members start in your country. The dialogs for the bank

@@ -19,7 +19,7 @@
 					<li><strong>{{ t('Name') }}:</strong> {{ t('Vorname und Nachname, Organisation oder nur „Name“ (wird am ersten Leerzeichen geteilt; mit einer Rechtsform wie GmbH oder e. V. gilt es als Organisation)') }}</li>
 					<li><strong>{{ t('Stammdaten') }}:</strong> {{ t('Mitgliedsnummer, Eintritt (leer = heute), Straße, PLZ, Ort, Telefon, E-Mail') }}</li>
 					<li><strong>{{ t('Lastschrift') }}:</strong> {{ t('IBAN, BIC, Kontoinhaber, Mandat am, Mandatsreferenz') }}</li>
-					<li><strong>{{ t('Beitrag') }}:</strong> {{ t('Beitragsgruppe, Betrag (Monatsbeitrag, unabhängig vom Turnus), Frequenz (wie oft eingezogen wird), Start (nicht in der Vergangenheit)') }}</li>
+					<li><strong>{{ t('Beitrag') }}:</strong> {{ t('Beitragsgruppe, Betrag (Monatsbeitrag, unabhängig vom Turnus; 0 = beitragsfrei), Frequenz (wie oft eingezogen wird), Start (nicht in der Vergangenheit; bei beitragsfreien Zeilen leer = heute)') }}</li>
 				</ul>
 				<p>{{ t('Reihenfolge und Schreibweise der Überschriften sind egal, weitere Spalten werden übergangen.') }}</p>
 			</details>
