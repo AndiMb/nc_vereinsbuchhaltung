@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service;
 
-use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Member;
-use OCP\IConfig;
 use OCP\IL10N;
 use OCP\IUserManager;
 use OCP\Mail\IMailer;
@@ -35,7 +33,6 @@ class SelfServiceReceiptMailer {
 	public function __construct(
 		private IMailer $mailer,
 		private IUserManager $userManager,
-		private IConfig $config,
 		private IL10N $l10n,
 	) {
 	}
@@ -61,8 +58,6 @@ class SelfServiceReceiptMailer {
 			return;
 		}
 
-		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '') ?: $this->l10n->t('Ihr Verein');
-
 		$template = $this->mailer->createEMailTemplate('vereinsbuchhaltung.selfServiceReceipt');
 		$template->setSubject($subject);
 		$template->addHeader();
@@ -77,8 +72,8 @@ class SelfServiceReceiptMailer {
 		if ($onBehalfText !== null) {
 			$template->addBodyText($onBehalfText);
 		}
-		$template->addBodyText($this->l10n->t('Diese Mail ist die einzige Bestätigung dieser Änderung – "Mein Beitrag" führt dafür keine gesonderte Liste.'));
-		$template->addBodyText($this->l10n->t('%s wurde von Ihnen selbst über „Mein Beitrag" veranlasst.', [$clubName]));
+		$template->addBodyText($this->l10n->t('Diese Mail ist die Bestätigung dieser Änderung – eine Handlung Ihrerseits ist nicht nötig.'));
+		$template->addBodyText($this->l10n->t('Sie haben diese Änderung selbst in „Mein Beitrag" vorgenommen.'));
 		$template->addFooter();
 
 		$message = $this->mailer->createMessage();
