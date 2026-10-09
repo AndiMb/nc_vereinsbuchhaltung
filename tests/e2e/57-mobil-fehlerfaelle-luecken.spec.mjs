@@ -731,7 +731,7 @@ test.describe('Mandate: Warnung und Reibungsdialoge', () => {
 		const p = panel(akte)
 		await p.getByRole('button', { name: 'Bankverbindung ändern' }).click()
 		const konto = page.getByRole('dialog', { name: 'Bankverbindung ändern' })
-		await konto.getByLabel('Der Kontoinhaber wechselt (andere Person)').check()
+		await konto.getByText('Der Kontoinhaber wechselt (andere Person)', { exact: true }).click()
 
 		const kasten = konto.locator('.vbh-card--danger')
 		await expect(kasten).toContainText('Das bisherige Mandat wird endgültig beendet')
@@ -752,7 +752,7 @@ test.describe('Mandate: Warnung und Reibungsdialoge', () => {
 		expect(await api.mandatesByMember(request, member.id)).toHaveLength(1)
 
 		// Dann doch der Wechsel: neuer Entwurf, das alte Mandat ist ersetzt.
-		await konto.getByLabel('Der Kontoinhaber wechselt (andere Person)').check()
+		await konto.getByText('Der Kontoinhaber wechselt (andere Person)', { exact: true }).click()
 		await konto.getByLabel('Neue IBAN').fill(IBAN_NEW_HOLDER)
 		await konto.getByLabel('Neuer Kontoinhaber').fill('Maria Neuinhaberin')
 		await wechseln.click()

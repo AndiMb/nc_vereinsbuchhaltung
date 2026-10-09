@@ -12,9 +12,9 @@
 			</h2>
 
 			<template v-if="mode === 'confirm'">
-				<p class="vbh-hint">
+				<NcNoteCard type="info">
 					{{ t('Für Sie liegt ein elektronischer Mandats-Entwurf vor. Mit der Bestätigung erteilen Sie das SEPA-Lastschriftmandat – wirksam ab sofort.') }}
-				</p>
+				</NcNoteCard>
 				<dl class="vbh-mandate-preview">
 					<dt>{{ t('IBAN') }}</dt>
 					<dd>{{ mandate && mandate.ibanMasked }}</dd>
@@ -23,21 +23,19 @@
 				</dl>
 			</template>
 			<template v-else>
-				<p class="vbh-hint">
+				<NcNoteCard type="info">
 					{{ t('Vorschau: Wirkt ab sofort – mit der Bestätigung erteilen Sie das SEPA-Lastschriftmandat elektronisch.') }}
-				</p>
-				<div class="vbh-form">
-					<label class="vbh-grow">{{ t('IBAN') }}
-						<input ref="ibanInput" v-model="form.iban" placeholder="DE12 5001 0517 0648 4898 90">
-					</label>
-					<label>{{ t('BIC') }}
-						<input v-model="form.bic" class="vbh-short" :placeholder="t('optional')">
-					</label>
-				</div>
-				<div class="vbh-form">
-					<label class="vbh-grow">{{ t('Kontoinhaber') }}
-						<input v-model="form.accountHolder" :placeholder="defaultAccountHolder">
-					</label>
+				</NcNoteCard>
+				<div class="vbh-mandate-fields">
+					<MandateBankFields
+						ref="bankFields"
+						v-model:iban="form.iban"
+						v-model:bic="form.bic"
+						:ibanLabel="t('IBAN')" />
+					<NcTextField
+						v-model="form.accountHolder"
+						:label="t('Kontoinhaber')"
+						:placeholder="defaultAccountHolder" />
 				</div>
 			</template>
 
@@ -62,7 +60,8 @@
 
 <script>
 import { showError } from '@nextcloud/dialogs'
-import { NcButton, NcLoadingIcon, NcModal } from '@nextcloud/vue'
+import { NcButton, NcLoadingIcon, NcModal, NcNoteCard, NcTextField } from '@nextcloud/vue'
+import MandateBankFields from './MandateBankFields.vue'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
@@ -82,7 +81,7 @@ function emptyForm() {
  */
 export default {
 	name: 'SelfServiceMandateGrantDialog',
-	components: { NcModal, NcButton, NcLoadingIcon },
+	components: { NcModal, NcButton, NcLoadingIcon, NcNoteCard, NcTextField, MandateBankFields },
 	props: {
 		show: { type: Boolean, default: false },
 		/** 'grant' (kein Mandat vorhanden) oder 'confirm' (Entwurf bestätigen). */
@@ -115,7 +114,7 @@ export default {
 			if (!open) { return }
 			this.form = emptyForm()
 			if (this.mode === 'grant') {
-				this.$nextTick(() => focusOnOpen(this, () => this.$refs.ibanInput))
+				this.$nextTick(() => focusOnOpen(this, () => this.$refs.bankFields))
 			}
 			this.loadLegalText()
 		},

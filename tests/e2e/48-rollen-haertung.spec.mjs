@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { api, openApp, switchTab, visibleSection, USERS } from './fixtures/nextcloud.mjs'
+import { api, openApp, openSettingsPage, switchTab, visibleSection, USERS } from './fixtures/nextcloud.mjs'
 
 // Rollen-Härtung des Beitragsmoduls (Issue #119, Spec §3.9): jede Methode trägt
 // ihre Rolle ausdrücklich, und was zur Einstellung gehört, ist `verwalter`-Sache.
@@ -26,7 +26,6 @@ const OLD_IBAN_MASKED = /^DE02•+2051$/
 
 const WARNING_LABEL = 'Vorwarnfenster (Tage vor Einzug)'
 const PRENOTIFICATION_LABEL = 'Vorabinfo-Vorlauf (Tage vor Einzug)'
-const ADMIN_ONLY_HINT = 'Nur Verwalter können die Vorlaufzeiten ändern.'
 
 const today = () => new Date().toISOString().slice(0, 10)
 
@@ -118,17 +117,16 @@ test.describe('Rollen-Härtung: Vorlaufzeiten nur für Verwalter', () => {
 		}
 	})
 
-	test('Oberfläche: der Buchhalter sieht die Vorlaufzeiten im Einzug-Reiter gesperrt, die Terminverschiebung bleibt bedienbar', async ({ page, request }) => {
+	test('Oberfläche: der Buchhalter sieht die Fristen im Einzug-Reiter nur als Text, die Terminverschiebung bleibt bedienbar', async ({ page, request }) => {
 		const before = await readLeadDays(request)
 		const schedule = await openSchedule(page, USERS.buchhalter)
 
-		await expect(schedule.getByLabel(WARNING_LABEL)).toBeDisabled()
-		await expect(schedule.getByLabel(WARNING_LABEL)).toHaveValue(String(before.warningLeadDays))
-		await expect(schedule.getByLabel(PRENOTIFICATION_LABEL)).toBeDisabled()
-		await expect(schedule.getByLabel(PRENOTIFICATION_LABEL)).toHaveValue(String(before.prenotificationLeadDays))
-		await expect(schedule.getByText(ADMIN_ONLY_HINT)).toBeVisible()
-		// Der Speichern-Knopf hinter den beiden Feldern ist der letzte der Karte.
-		await expect(schedule.getByRole('button', { name: 'Speichern' }).last()).toBeDisabled()
+		// Die Fristen werden in den Nextcloud-Einstellungen geändert; hier steht nur die Übersicht, ohne Eingabefelder und ohne Verweis.
+		await expect(schedule.getByTestId('lead-days-summary')).toContainText(`Vorwarnfenster: ${before.warningLeadDays} Tage`)
+		await expect(schedule.getByTestId('lead-days-summary')).toContainText(`Vorabinfo-Vorlauf: ${before.prenotificationLeadDays} Tage`)
+		await expect(schedule.getByLabel(WARNING_LABEL)).toHaveCount(0)
+		await expect(schedule.getByLabel(PRENOTIFICATION_LABEL)).toHaveCount(0)
+		await expect(schedule.getByRole('link', { name: 'Fristen in den Einstellungen ändern' })).toHaveCount(0)
 
 		// Terminverschiebung: Standard-Einzugstag und Überschreibung bleiben offen.
 		await expect(schedule.locator('tbody tr').first().locator('input[type="number"]')).toBeEnabled()
@@ -152,19 +150,22 @@ test.describe('Rollen-Härtung: Vorlaufzeiten nur für Verwalter', () => {
 		await expect(section.getByLabel(PRENOTIFICATION_LABEL)).toHaveCount(0)
 	})
 
-	test('Oberfläche: der Verwalter ändert die Vorlaufzeiten', async ({ page, request }) => {
+	test('Oberfläche: der Verwalter findet im Einzug den Verweis auf die Einstellungen, dort ändert er die Fristen', async ({ page, request }) => {
 		const before = await readLeadDays(request)
 		const warning = before.warningLeadDays + 7
 
 		try {
 			const schedule = await openSchedule(page, USERS.verwalter)
+			await expect(schedule.getByLabel(WARNING_LABEL)).toHaveCount(0)
+			await expect(schedule.getByRole('link', { name: 'Fristen in den Einstellungen ändern' })).toHaveAttribute('href', /\/settings\/(admin|user)\/vereinsbuchhaltung#settings-section_beitraege-sepa$/)
 
-			await expect(schedule.getByLabel(WARNING_LABEL)).toBeEnabled()
-			await expect(schedule.getByLabel(PRENOTIFICATION_LABEL)).toBeEnabled()
-			await expect(schedule.getByText(ADMIN_ONLY_HINT)).toHaveCount(0)
-
-			await schedule.getByLabel(WARNING_LABEL).fill(String(warning))
-			await schedule.getByRole('button', { name: 'Speichern' }).last().click()
+			// Ändern lassen sich die Fristen in den Einstellungen (Karte „Beitragsjahr und Einzugszyklus“); die Seite
+			// unter „Verwaltung“ öffnet der Nextcloud-Admin, derselbe Server-Stand.
+			await openSettingsPage(page, USERS.admin)
+			const cycle = page.locator('.vbh-card', { has: page.getByRole('heading', { name: 'Beitragsjahr und Einzugszyklus' }) })
+			await expect(cycle.getByLabel('Vorwarnfenster')).toHaveValue(String(before.warningLeadDays))
+			await cycle.getByLabel('Vorwarnfenster').fill(String(warning))
+			await cycle.getByRole('button', { name: 'Speichern' }).click()
 
 			await expect.poll(async () => (await readLeadDays(request)).warningLeadDays).toBe(warning)
 			expect((await readLeadDays(request)).prenotificationLeadDays).toBe(before.prenotificationLeadDays)

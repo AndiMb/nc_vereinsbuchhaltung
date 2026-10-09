@@ -45,7 +45,7 @@
 
 				<div v-else class="vbh-form-stack">
 					<div v-if="member.memberType === 'person'" class="vbh-form">
-						<label>{{ t('Vorname') }}
+						<label class="vbh-grow">{{ t('Vorname') }}
 							<input v-model="contactForm.firstName">
 						</label>
 						<label class="vbh-grow">{{ t('Nachname') }}
@@ -78,7 +78,7 @@
 							<input v-model="contactForm.city">
 						</label>
 						<label>{{ t('Land') }}
-							<input v-model="contactForm.country" class="vbh-short">
+							<CountrySelect v-model="contactForm.country" />
 						</label>
 					</div>
 					<p v-if="emailChangedInForm" class="vbh-hint">
@@ -280,13 +280,17 @@
 
 <script>
 import { showError, showSuccess } from '@nextcloud/dialogs'
+import { getLanguage } from '@nextcloud/l10n'
 import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import AmountInput from './AmountInput.vue'
+import CountrySelect from './CountrySelect.vue'
 import MandateDraftDiscardDialog from './MandateDraftDiscardDialog.vue'
 import SelfServiceMandateAccountDialog from './SelfServiceMandateAccountDialog.vue'
 import SelfServiceMandateGrantDialog from './SelfServiceMandateGrantDialog.vue'
 import SelfServiceMandateRevokeDialog from './SelfServiceMandateRevokeDialog.vue'
 import api from '../api.js'
+import { countryName } from '../lib/countries.js'
+import { defaultCountry } from '../lib/countryDefault.js'
 import { errMsg, formatDate, formatMoney } from '../lib/format.js'
 import { returnedDebitRows } from '../lib/selfReturnedDebits.js'
 
@@ -331,7 +335,7 @@ function emptyContactForm() {
  */
 export default {
 	name: 'SelfServiceTab',
-	components: { NcLoadingIcon, NcButton, AmountInput, MandateDraftDiscardDialog, SelfServiceMandateGrantDialog, SelfServiceMandateAccountDialog, SelfServiceMandateRevokeDialog },
+	components: { NcLoadingIcon, NcButton, AmountInput, CountrySelect, MandateDraftDiscardDialog, SelfServiceMandateGrantDialog, SelfServiceMandateAccountDialog, SelfServiceMandateRevokeDialog },
 
 	data() {
 		return {
@@ -363,7 +367,9 @@ export default {
 			if (!m) { return '' }
 			const line1 = m.street || ''
 			const line2 = [m.postalCode, m.city].filter(Boolean).join(' ')
-			return [line1, line2].filter(Boolean).join(', ')
+			// Das eigene Land bleibt weg, wie auf einem Brief im Inland; ein anderes steht dabei.
+			const line3 = m.country && m.country !== defaultCountry() ? countryName(m.country, getLanguage()) : ''
+			return [line1, line2, line3].filter(Boolean).join(', ')
 		},
 
 		emailChangedInForm() {
@@ -636,7 +642,8 @@ export default {
 				street: m.street || '',
 				postalCode: m.postalCode || '',
 				city: m.city || '',
-				country: m.country || '',
+				// Ohne gespeichertes Land steht das der bedienenden Person vorausgewählt da.
+				country: m.country || defaultCountry(),
 			}
 			this.editingContact = true
 		},

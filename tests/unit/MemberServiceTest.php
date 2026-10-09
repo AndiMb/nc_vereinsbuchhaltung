@@ -297,6 +297,45 @@ class MemberServiceTest extends TestCase {
 		$this->assertSame('katrin@example.org', $member->getEmail());
 	}
 
+	public function testLandWirdAlsGrossgeschriebenerZweibuchstabenCodeGespeichert(): void {
+		$this->mapper->method('insert')->willReturnArgument(0);
+
+		$member = $this->service()->create(['memberType' => Member::TYPE_PERSON, 'lastName' => 'Brunner', 'country' => ' at ']);
+
+		$this->assertSame('AT', $member->getCountry());
+	}
+
+	public function testLeeresLandBedeutetKeinLand(): void {
+		$this->mapper->method('insert')->willReturnArgument(0);
+
+		$member = $this->service()->create(['memberType' => Member::TYPE_PERSON, 'lastName' => 'Brunner', 'country' => '']);
+
+		$this->assertNull($member->getCountry());
+	}
+
+	public function testLandAlsKlartextSchlaegtFehl(): void {
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->create(['memberType' => Member::TYPE_PERSON, 'lastName' => 'Brunner', 'country' => 'Deutschland']);
+	}
+
+	public function testUpdateOwnContactDataLehntLandAlsKlartextAb(): void {
+		$this->mapper->method('find')->with(5)->willReturn($this->fullPerson());
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->updateOwnContactData(5, ['country' => 'Österreich']);
+	}
+
+	public function testUpdateOwnContactDataKannDasLandLeeren(): void {
+		$person = $this->fullPerson();
+		$person->setCountry('DE');
+		$this->mapper->method('find')->with(5)->willReturn($person);
+		$this->mapper->method('update')->willReturnArgument(0);
+
+		$result = $this->service()->updateOwnContactData(5, ['country' => '']);
+
+		$this->assertNull($result['member']->getCountry());
+	}
+
 	public function testUpdateOwnContactDataMeldetEmailWechselMitAlterAdresse(): void {
 		$this->mapper->method('find')->with(5)->willReturn($this->fullPerson());
 		$this->mapper->method('update')->willReturnArgument(0);

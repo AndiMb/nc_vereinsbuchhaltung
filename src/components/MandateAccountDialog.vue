@@ -15,32 +15,39 @@
 				{{ mandateAccountHint(mandate) }}
 			</p>
 
-			<div class="vbh-form vbh-mandate-modes">
-				<label>
-					<input v-model="targetMode" type="radio" value="iban">
+			<fieldset class="vbh-mandate-modes">
+				<legend class="hidden-visually">
+					{{ t('Was hat sich geändert?') }}
+				</legend>
+				<NcCheckboxRadioSwitch
+					v-model="targetMode"
+					type="radio"
+					name="vbh-staff-mandate-mode"
+					value="iban">
 					{{ t('Gleicher Kontoinhaber, nur die IBAN hat sich geändert') }}
-				</label>
-				<label>
-					<input v-model="targetMode" type="radio" value="name">
+				</NcCheckboxRadioSwitch>
+				<NcCheckboxRadioSwitch
+					v-model="targetMode"
+					type="radio"
+					name="vbh-staff-mandate-mode"
+					value="name">
 					{{ t('Derselbe Kontoinhaber, nur der Name war falsch geschrieben') }}
-				</label>
-				<label>
-					<input v-model="targetMode" type="radio" value="holder">
+				</NcCheckboxRadioSwitch>
+				<NcCheckboxRadioSwitch
+					v-model="targetMode"
+					type="radio"
+					name="vbh-staff-mandate-mode"
+					value="holder">
 					{{ t('Der Kontoinhaber wechselt (andere Person)') }}
-				</label>
-			</div>
+				</NcCheckboxRadioSwitch>
+			</fieldset>
 
 			<template v-if="targetMode === 'iban'">
-				<p class="vbh-hint">
+				<NcNoteCard type="info">
 					{{ t('Dasselbe Mandat bleibt bestehen, eine neue Unterschrift ist nicht nötig. Die Änderung wird der Bank beim nächsten Einzug als Amendment gemeldet.') }}
-				</p>
-				<div class="vbh-form">
-					<label class="vbh-grow">{{ t('Neue IBAN') }}
-						<input ref="ibanInput" v-model="ibanForm.iban" placeholder="DE12 5001 0517 0648 4898 90">
-					</label>
-					<label>{{ t('BIC') }}
-						<input v-model="ibanForm.bic" class="vbh-short" :placeholder="t('optional')">
-					</label>
+				</NcNoteCard>
+				<div class="vbh-mandate-fields">
+					<MandateBankFields ref="bankFields" v-model:iban="ibanForm.iban" v-model:bic="ibanForm.bic" />
 				</div>
 				<div class="vbh-modal-actions">
 					<NcButton variant="tertiary" @click="$emit('close')">
@@ -53,13 +60,11 @@
 			</template>
 
 			<template v-else-if="targetMode === 'name'">
-				<p class="vbh-hint">
+				<NcNoteCard type="info">
 					{{ t('Stille Korrektur (Tippfehler, Heirat): kein Amendment, kein neues Mandat. Nur wählen, wenn es dieselbe Person bleibt – sonst ist es ein Kontoinhaberwechsel.') }}
-				</p>
-				<div class="vbh-form">
-					<label class="vbh-grow">{{ t('Kontoinhaber') }}
-						<input v-model="nameForm.accountHolder">
-					</label>
+				</NcNoteCard>
+				<div class="vbh-mandate-fields">
+					<NcTextField v-model="nameForm.accountHolder" :label="t('Kontoinhaber')" />
 				</div>
 				<div class="vbh-modal-actions">
 					<NcButton variant="tertiary" @click="$emit('close')">
@@ -72,42 +77,37 @@
 			</template>
 
 			<template v-else>
-				<div class="vbh-card vbh-card--danger">
+				<NcNoteCard type="error">
 					<p>
 						{{ t('Das bisherige Mandat wird endgültig beendet. Für den neuen Kontoinhaber entsteht ein neues Mandat, das eine eigene Unterschrift braucht. Das lässt sich nicht rückgängig machen.') }}
 					</p>
 					<p v-if="openClaimsTotalCents > 0">
 						{{ t('Noch offen: {betrag}', { betrag: formatMoney(openClaimsTotalCents / 100) }) }}
 					</p>
-				</div>
+				</NcNoteCard>
 
-				<p class="vbh-hint">
-					{{ t('Nur ein neues Konto bei derselben Person? Dafür reicht die IBAN-Änderung – ohne neues Mandat.') }}
-				</p>
-				<div class="vbh-modal-actions">
-					<NcButton variant="primary" @click="targetMode = 'iban'">
+				<NcNoteCard type="info">
+					<p>
+						{{ t('Nur ein neues Konto bei derselben Person? Dafür reicht die IBAN-Änderung – ohne neues Mandat.') }}
+					</p>
+					<NcButton class="vbh-notecard-action" variant="primary" @click="targetMode = 'iban'">
 						{{ t('Ich habe nur ein neues Konto → IBAN ändern') }}
 					</NcButton>
-				</div>
+				</NcNoteCard>
 
 				<h3 class="vbh-modal-subtitle">
 					{{ t('Neues Mandat für den neuen Kontoinhaber') }}
 				</h3>
-				<div class="vbh-form">
-					<label class="vbh-grow">{{ t('Neue IBAN') }}
-						<input v-model="holderForm.iban" placeholder="DE12 5001 0517 0648 4898 90">
-					</label>
-					<label>{{ t('BIC') }}
-						<input v-model="holderForm.bic" class="vbh-short" :placeholder="t('optional')">
-					</label>
-				</div>
-				<div class="vbh-form">
-					<label class="vbh-grow">{{ t('Neuer Kontoinhaber') }}
-						<input v-model="holderForm.accountHolder" :placeholder="t('Vor- und Nachname')">
-					</label>
-					<label>{{ t('Neues Mandat unterschrieben am') }}
-						<input v-model="holderForm.signedAt" type="date">
-					</label>
+				<div class="vbh-mandate-fields">
+					<MandateBankFields v-model:iban="holderForm.iban" v-model:bic="holderForm.bic" />
+					<NcTextField
+						v-model="holderForm.accountHolder"
+						:label="t('Neuer Kontoinhaber')"
+						:placeholder="t('Vor- und Nachname')" />
+					<NcDateTimePickerNative
+						v-model="signedAtDate"
+						type="date"
+						:label="t('Neues Mandat unterschrieben am')" />
 				</div>
 				<p class="vbh-hint">
 					{{ t('Mit Unterschriftsdatum ist das neue Mandat sofort aktiv, ohne bleibt es ein Entwurf („Unterschrift fehlt“), bis Sie es aktivieren.') }}
@@ -126,7 +126,8 @@
 </template>
 
 <script>
-import { NcButton, NcModal } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcDateTimePickerNative, NcModal, NcNoteCard, NcTextField } from '@nextcloud/vue'
+import MandateBankFields from './MandateBankFields.vue'
 import { formatMoney } from '../lib/format.js'
 import { formatIban, mandateAccountHint, normalizeBankValue } from '../lib/mandateView.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
@@ -152,7 +153,7 @@ const emptyHolderForm = () => ({ iban: '', bic: '', accountHolder: '', signedAt:
  */
 export default {
 	name: 'MandateAccountDialog',
-	components: { NcModal, NcButton },
+	components: { NcModal, NcButton, NcCheckboxRadioSwitch, NcDateTimePickerNative, NcNoteCard, NcTextField, MandateBankFields },
 	props: {
 		show: { type: Boolean, default: false },
 		/** Das aktive Mandat (Mandat-API-Form); trägt die bisherigen Werte für den Vorbelegungs-/Änderungsvergleich. */
@@ -189,6 +190,16 @@ export default {
 		canSaveHolder() {
 			return !!this.holderForm.iban.trim() && !!this.holderForm.accountHolder.trim()
 		},
+
+		// Der Datumswähler arbeitet mit Date, die Schnittstelle mit „JJJJ-MM-TT“ (lokales Datum, ohne UTC-Versatz).
+		signedAtDate: {
+			get() { return this.holderForm.signedAt ? new Date(`${this.holderForm.signedAt}T00:00:00`) : null },
+			set(date) {
+				this.holderForm.signedAt = date instanceof Date && !Number.isNaN(date.getTime())
+					? [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-')
+					: ''
+			},
+		},
 	},
 
 	watch: {
@@ -202,7 +213,7 @@ export default {
 			this.nameForm = { accountHolder: this.mandate?.accountHolder ?? '' }
 			this.holderForm = emptyHolderForm()
 			if (this.targetMode === 'iban') {
-				focusOnOpen(this, () => this.$refs.ibanInput)
+				focusOnOpen(this, () => this.$refs.bankFields)
 			}
 		},
 	},
@@ -233,21 +244,10 @@ export default {
 </script>
 
 <style scoped>
-/*
- * Die drei Fälle als Radio-Liste untereinander. `.vbh-form label` stapelt
- * sonst Auswahlpunkt über Beschriftung (Feldbezeichnungen stehen über dem
- * Eingabefeld) – hier gehört der Punkt neben den Text.
- */
+/* Die Wahl der Fälle als Liste untereinander, ohne den Rahmen des Fieldsets. */
 .vbh-mandate-modes {
-	flex-direction: column;
-	align-items: flex-start;
-	gap: 6px;
-}
-
-.vbh-mandate-modes label {
-	flex-direction: row;
-	align-items: center;
-	gap: 8px;
-	font-size: 1em;
+	margin: 0 0 8px;
+	padding: 0;
+	border: 0;
 }
 </style>

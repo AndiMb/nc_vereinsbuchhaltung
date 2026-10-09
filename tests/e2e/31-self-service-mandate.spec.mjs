@@ -115,7 +115,7 @@ test.describe('Self-Service: Mandats-Aktionskatalog (Issue #75)', () => {
 		const dialog = page.getByRole('dialog', { name: 'Bankverbindung ändern' })
 		await expect(dialog).toBeVisible()
 
-		await dialog.getByRole('radio', { name: 'Der Kontoinhaber wechselt' }).check()
+		await dialog.getByText('Der Kontoinhaber wechselt', { exact: true }).click()
 		await expect(dialog.getByText('Das bisherige Mandat wird endgültig beendet', { exact: false })).toBeVisible()
 
 		// Ausweg als Primäraktion (Spec §3.4): schaltet zurück auf den
@@ -124,7 +124,7 @@ test.describe('Self-Service: Mandats-Aktionskatalog (Issue #75)', () => {
 		await expect(dialog.getByRole('radio', { name: 'Gleiches Konto, nur die IBAN hat sich geändert' })).toBeChecked()
 
 		// Tatsächlicher Kontoinhaberwechsel, erneut in den Modus gewechselt.
-		await dialog.getByRole('radio', { name: 'Der Kontoinhaber wechselt' }).check()
+		await dialog.getByText('Der Kontoinhaber wechselt', { exact: true }).click()
 		await dialog.getByLabel('Neue IBAN', { exact: true }).fill('DE89370400440532013000')
 		await dialog.getByLabel('Neuer Kontoinhaber', { exact: true }).fill('Neue Person')
 		await dialog.getByRole('button', { name: 'Kontoinhaber wechseln' }).click()

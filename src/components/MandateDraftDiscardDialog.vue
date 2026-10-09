@@ -12,7 +12,7 @@
 				{{ t('Mandats-Entwurf verwerfen') }}
 			</h2>
 
-			<div class="vbh-card vbh-card--danger">
+			<NcNoteCard type="error">
 				<p v-if="staff">
 					{{ t('Der Entwurf endet damit und lässt sich nicht wiederherstellen. Eingezogen wurde über ihn nie etwas; danach können Sie ein neues Mandat anlegen.') }}
 				</p>
@@ -22,34 +22,33 @@
 				<p v-if="staff && electronic">
 					{{ t('Ein bereits verschickter Einmal-Link wird ungültig.') }}
 				</p>
-			</div>
+			</NcNoteCard>
 
 			<template v-if="staff">
-				<p class="vbh-hint">
-					{{ t('Nur ein Tippfehler in den Angaben? Dann korrigieren Sie den Entwurf stattdessen – er bleibt bestehen.') }}
-				</p>
-				<div class="vbh-modal-actions">
-					<NcButton variant="primary" :disabled="saving" @click="$emit('switch-to-correct')">
+				<NcNoteCard type="info">
+					<p>
+						{{ t('Nur ein Tippfehler in den Angaben? Dann korrigieren Sie den Entwurf stattdessen – er bleibt bestehen.') }}
+					</p>
+					<NcButton
+						class="vbh-notecard-action"
+						variant="primary"
+						:disabled="saving"
+						@click="$emit('switch-to-correct')">
 						{{ t('Entwurf stattdessen korrigieren') }}
 					</NcButton>
-				</div>
+				</NcNoteCard>
 
-				<div class="vbh-form">
-					<label class="vbh-grow">{{ t('Grund des Verwerfens (Pflicht)') }}
-						<textarea
-							ref="noteInput"
-							v-model="note"
-							rows="2"
-							:placeholder="t('z. B. Mitglied wünscht kein Lastschriftmandat')" />
-					</label>
-				</div>
-				<p class="vbh-hint">
-					{{ t('Der Grund steht im Verlauf des Mandats.') }}
-				</p>
+				<NcTextArea
+					ref="noteInput"
+					v-model="note"
+					:label="t('Grund des Verwerfens (Pflicht)')"
+					:placeholder="t('z. B. Mitglied wünscht kein Lastschriftmandat')"
+					:helperText="t('Der Grund steht im Verlauf des Mandats.')"
+					rows="2" />
 			</template>
-			<p v-else class="vbh-hint">
+			<NcNoteCard v-else type="info">
 				{{ t('Nur die IBAN vertippt? Verwerfen Sie den Entwurf und erteilen Sie das Mandat danach neu, mit den richtigen Angaben.') }}
-			</p>
+			</NcNoteCard>
 
 			<div class="vbh-modal-actions">
 				<NcButton variant="tertiary" :disabled="saving" @click="$emit('close')">
@@ -64,7 +63,7 @@
 </template>
 
 <script>
-import { NcButton, NcModal } from '@nextcloud/vue'
+import { NcButton, NcModal, NcNoteCard, NcTextArea } from '@nextcloud/vue'
 import { focusOnOpen } from '../lib/modalFocus.js'
 
 /**
@@ -85,7 +84,7 @@ import { focusOnOpen } from '../lib/modalFocus.js'
  */
 export default {
 	name: 'MandateDraftDiscardDialog',
-	components: { NcModal, NcButton },
+	components: { NcModal, NcButton, NcNoteCard, NcTextArea },
 	props: {
 		show: { type: Boolean, default: false },
 		/** Verwaltungssicht (Mitglieder-Akte): Pflicht-Notiz und Korrektur-Ausweg statt der Mitgliedersicht. */

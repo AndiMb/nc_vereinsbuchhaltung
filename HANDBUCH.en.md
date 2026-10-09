@@ -1152,7 +1152,7 @@ only:
 |---|---|
 | *Fees & SEPA → Basic settings* | **SEPA creditor ID**, **Collecting account**, the toggle for the "Contributions" tab and the toggle for the "My contribution" self-service (13.11) |
 | *… → Default fee* | amount and frequency that "Add a member" and the CSV import suggest |
-| *… → Contribution year and collection cycle* (*Beitragsjahr und Einzugszyklus*) | **Contribution year begins in** (month, default January – independent of the fiscal year; determines the contribution periods and the contribution confirmation, 13.12) and **Release lead time** (days before the collection, default 5; 13.5). Plus the link to the schedule with **warning window** and **pre-notification lead time** (13.5) |
+| *… → Contribution year and collection cycle* (*Beitragsjahr und Einzugszyklus*) | **Contribution year begins in** (month, default January – independent of the fiscal year; determines the contribution periods and the contribution confirmation, 13.12) and the three **deadlines before the collection** – **warning window** (default 21 days), **pre-notification lead time** (default 14) and **release lead time** (default 5; all 13.5). An example line converts them to a collection date, and a note appears for an unusual order |
 | *… → Storage of the collection file (XML)* (*Ablage der Einzugsdatei*) | an additional copy of the pain.008 file in a Nextcloud folder (13.5), off by default |
 | *… → Mandates* (*Mandate*) | **Mandate reference prefix**, **Expiry warning** (days before expiry, default 180), **Proof folder** and **Point out mandates without proof** (13.2, 13.9) |
 | *… → Returned debits and dunning* (*Rücklastschriften und Mahnwesen*) | **Account for return fees (expense)**, **Default revenue account for contribution claims (income)**, **Pass return fees on to the member** (off by default) and **Dunning interval (days)** (13.7, 13.8, 13.10) |
@@ -1164,10 +1164,11 @@ no proofs can be uploaded and the XML storage can't be switched on.
 
 The **schedule** (collection day per interval, individual periods can be
 overridden) can also be adjusted by bookkeepers – that is the rescheduling.
-The **warning window** and the **pre-notification lead time**, on the other
-hand, can only be changed by administrators: they determine when tasks and
+The **deadlines before the collection** (warning window, pre-notification lead
+time, release lead time), on the other hand, can only be changed by
+administrators, in the Nextcloud settings: they determine when tasks and
 pre-notification emails are triggered and from when a period is locked
-against changes.
+against changes. The schedule only displays them.
 
 ### 13.2 Members, mandates and contributions
 
@@ -1457,10 +1458,11 @@ The app sends the pre-notification only to members **with an email
 address**; you have to give everyone else the pre-notification yourself, the
 task list tracks them. Members paying by bank transfer get claims, but never
 collection items, pre-notification or exceptions. You set the lead times:
-*early-warning window* and *pre-notification lead time* in the schedule, the
-*release lead time* in the Nextcloud settings under *Fees & SEPA* →
+*early-warning window*, *pre-notification lead time* and *release lead time*
+are found together in the Nextcloud settings under *Fees & SEPA* →
 "Contribution year and collection cycle" (*Beitragsjahr und
-Einzugszyklus*).
+Einzugszyklus*). SEPA requires the pre-notification at least 14 days before the
+collection unless the mandate agrees a shorter period.
 
 Release and submission are two steps for the chosen date:
 

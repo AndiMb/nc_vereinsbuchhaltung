@@ -12,28 +12,23 @@
 				{{ t('Entwurf korrigieren') }}
 			</h2>
 
-			<p class="vbh-hint">
+			<NcNoteCard type="info">
 				{{ t('Über diesen Entwurf wurde noch nie eingezogen – Sie ändern die Angaben deshalb direkt, ohne Amendment. Jede Korrektur steht im Verlauf.') }}
-			</p>
-			<p v-if="linkSent" class="vbh-hint vbh-hint--warning">
+			</NcNoteCard>
+			<NcNoteCard v-if="linkSent" type="warning">
 				{{ t('Der bereits verschickte Einmal-Link wird mit der Korrektur ungültig – danach senden Sie dem Mitglied einen neuen.') }}
-			</p>
-			<p v-else-if="paper" class="vbh-hint">
+			</NcNoteCard>
+			<NcNoteCard v-else-if="paper" type="info">
 				{{ t('Die Angaben müssen zum unterschriebenen Formular passen. Ein schon gedrucktes Formular mit den alten Angaben drucken Sie nach der Korrektur neu aus.') }}
-			</p>
+			</NcNoteCard>
 
-			<div class="vbh-form">
-				<label class="vbh-grow">{{ t('IBAN') }}
-					<input ref="ibanInput" v-model="form.iban" placeholder="DE12 5001 0517 0648 4898 90">
-				</label>
-				<label>{{ t('BIC') }}
-					<input v-model="form.bic" class="vbh-short" :placeholder="t('optional')">
-				</label>
-			</div>
-			<div class="vbh-form">
-				<label class="vbh-grow">{{ t('Kontoinhaber') }}
-					<input v-model="form.accountHolder">
-				</label>
+			<div class="vbh-mandate-fields">
+				<MandateBankFields
+					ref="bankFields"
+					v-model:iban="form.iban"
+					v-model:bic="form.bic"
+					:ibanLabel="t('IBAN')" />
+				<NcTextField v-model="form.accountHolder" :label="t('Kontoinhaber')" />
 			</div>
 
 			<div class="vbh-modal-actions">
@@ -49,7 +44,8 @@
 </template>
 
 <script>
-import { NcButton, NcModal } from '@nextcloud/vue'
+import { NcButton, NcModal, NcNoteCard, NcTextField } from '@nextcloud/vue'
+import MandateBankFields from './MandateBankFields.vue'
 import { canSaveDraftCorrection, formatIban } from '../lib/mandateView.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 
@@ -68,7 +64,7 @@ import { focusOnOpen } from '../lib/modalFocus.js'
  */
 export default {
 	name: 'MandateDraftCorrectDialog',
-	components: { NcModal, NcButton },
+	components: { NcModal, NcButton, NcNoteCard, NcTextField, MandateBankFields },
 	props: {
 		show: { type: Boolean, default: false },
 		/** Der Entwurf (Mandat-API-Form inkl. `activationLink` der Einzelansicht); trägt die gespeicherten Werte. */
@@ -99,7 +95,7 @@ export default {
 				bic: this.mandate?.bic ?? '',
 				accountHolder: this.mandate?.accountHolder ?? '',
 			}
-			focusOnOpen(this, () => this.$refs.ibanInput)
+			focusOnOpen(this, () => this.$refs.bankFields)
 		},
 	},
 

@@ -1194,7 +1194,7 @@ zugänglich:
 |---|---|
 | *Beiträge & SEPA → Grundeinstellungen* | **SEPA-Gläubiger-ID**, **Einziehendes Konto**, der Schalter für den Reiter „Beiträge" und der Schalter für den Self-Service „Mein Beitrag" (13.11) |
 | *… → Standard-Beitrag* | Betrag und Frequenz, die „Mitglied aufnehmen" und der CSV-Import vorschlagen |
-| *… → Beitragsjahr und Einzugszyklus* | **Beitragsjahr beginnt im** (Monat, Standard Januar – unabhängig vom Geschäftsjahr; bestimmt die Beitragsperioden und die Beitragsbestätigung, 13.12) und **Freigabe-Vorlauf** (Tage vor dem Einzug, Standard 5; 13.5). Dazu der Link zum Terminplan mit **Vorwarnfenster** und **Vorabinfo-Vorlauf** (13.5) |
+| *… → Beitragsjahr und Einzugszyklus* | **Beitragsjahr beginnt im** (Monat, Standard Januar – unabhängig vom Geschäftsjahr; bestimmt die Beitragsperioden und die Beitragsbestätigung, 13.12) und die drei **Fristen vor dem Einzug** – **Vorwarnfenster** (Standard 21 Tage), **Vorabinfo-Vorlauf** (Standard 14) und **Freigabe-Vorlauf** (Standard 5; alle 13.5). Eine Beispielzeile rechnet sie auf einen Einzugstermin um, ein Hinweis erscheint bei unüblicher Reihenfolge |
 | *… → Ablage der Einzugsdatei (XML)* | zusätzliche Kopie der pain.008-Datei in einem Nextcloud-Ordner (13.5), standardmäßig aus |
 | *… → Mandate* | **Mandatsreferenz-Präfix**, **Ablauf-Vorwarnung** (Tage vor Verfall, Standard 180), **Nachweis-Ordner** und **Auf Mandate ohne Nachweis hinweisen** (13.2, 13.9) |
 | *… → Rücklastschriften und Mahnwesen* | **Konto für Rücklastschriftgebühren (Aufwand)**, **Standard-Erlöskonto für Beitragsforderungen (Ertrag)**, **Rücklastschriftgebühren an das Mitglied weiterbelasten** (standardmäßig aus) und **Mahnabstand (Tage)** (13.7, 13.8, 13.10) |
@@ -1206,9 +1206,11 @@ lassen sich keine Nachweise hochladen und die XML-Ablage nicht einschalten.
 
 Der **Terminplan** (Einzugstag je Turnus, einzelne Perioden überschreibbar)
 lässt sich auch als Buchhalter anpassen – das ist die Terminverschiebung.
-**Vorwarnfenster** und **Vorabinfo-Vorlauf** dagegen ändern nur Verwalter: Sie
-bestimmen, wann Aufgaben und Vorabinfo-Mails ausgelöst werden und ab wann eine
-Periode für Änderungen gesperrt ist.
+Die **Fristen vor dem Einzug** (Vorwarnfenster, Vorabinfo-Vorlauf,
+Freigabe-Vorlauf) ändern dagegen nur Verwalter, und zwar in den
+Nextcloud-Einstellungen: Sie bestimmen, wann Aufgaben und Vorabinfo-Mails
+ausgelöst werden und ab wann eine Periode für Änderungen gesperrt ist. Im
+Terminplan stehen sie nur zur Ansicht.
 
 ### 13.2 Mitglieder, Mandate und Beiträge
 
@@ -1492,9 +1494,11 @@ Abstände:
 Die Vorabinfo verschickt die App nur an Mitglieder **mit E-Mail-Adresse**; allen
 anderen müssen Sie die Vorankündigung selbst geben, die Aufgabenliste führt sie.
 Überweiser bekommen Forderungen, aber nie Einzugsposten, Vorabinfo oder Störfall.
-Die Abstände stellen Sie ein: *Vorwarnfenster* und *Vorabinfo-Vorlauf* beim
-Terminplan, den *Freigabe-Vorlauf* in den Nextcloud-Einstellungen (*Beiträge &
-SEPA* → *Beitragsjahr und Einzugszyklus*).
+Die Abstände stellen Sie ein: *Vorwarnfenster*, *Vorabinfo-Vorlauf* und
+*Freigabe-Vorlauf* stehen zusammen in den Nextcloud-Einstellungen (*Beiträge &
+SEPA* → *Beitragsjahr und Einzugszyklus*). SEPA verlangt die Vorabinfo
+mindestens 14 Tage vor dem Einzug, sofern im Mandat nichts Kürzeres vereinbart
+ist.
 
 Freigabe und Einreichung sind zwei Schritte beim gewählten Termin:
 

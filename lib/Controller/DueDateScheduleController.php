@@ -44,6 +44,7 @@ class DueDateScheduleController extends Controller {
 			'schedule' => $this->schedule->getFullSchedule(),
 			'prenotificationLeadDays' => $this->settings->prenotificationLeadDays(),
 			'warningLeadDays' => $this->settings->warningLeadDays(),
+			'releaseLeadDays' => $this->settings->releaseLeadDays(),
 		]);
 	}
 
@@ -70,10 +71,10 @@ class DueDateScheduleController extends Controller {
 		}
 	}
 
-	/** Vorwarnfenster und Vorabinfo-Vorlauf – Einstellungen, deshalb `verwalter` (Spec §3.9). */
+	/** Vorwarnfenster, Vorabinfo-Vorlauf und Freigabe-Vorlauf – Einstellungen, deshalb `verwalter` (Spec §3.9). */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_ADMIN)]
-	public function setLeadDays(?int $prenotificationLeadDays = null, ?int $warningLeadDays = null): DataResponse {
+	public function setLeadDays(?int $prenotificationLeadDays = null, ?int $warningLeadDays = null, ?int $releaseLeadDays = null): DataResponse {
 		try {
 			if ($prenotificationLeadDays !== null) {
 				$this->settings->setPrenotificationLeadDays($prenotificationLeadDays);
@@ -81,9 +82,13 @@ class DueDateScheduleController extends Controller {
 			if ($warningLeadDays !== null) {
 				$this->settings->setWarningLeadDays($warningLeadDays);
 			}
+			if ($releaseLeadDays !== null) {
+				$this->settings->setReleaseLeadDays($releaseLeadDays);
+			}
 			return new DataResponse([
 				'prenotificationLeadDays' => $this->settings->prenotificationLeadDays(),
 				'warningLeadDays' => $this->settings->warningLeadDays(),
+				'releaseLeadDays' => $this->settings->releaseLeadDays(),
 			]);
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);

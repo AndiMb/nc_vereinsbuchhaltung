@@ -106,3 +106,67 @@ export function saveErrorMessage(e) {
 	if (serverMessage) { return serverMessage }
 	return t('Speichern fehlgeschlagen (HTTP {status})', { status: e?.response?.status ?? t('Netzwerkfehler') })
 }
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+/**
+ * Datum „JJJJ-MM-TT“ um Tage verschieben (negativ = früher), ohne Zeitzonen- und
+ * Sommerzeit-Versatz.
+ *
+ * @param {string} iso Ausgangsdatum
+ * @param {number} days Tage
+ * @return {string}
+ */
+export function shiftIsoDate(iso, days) {
+	const [y, m, d] = iso.split('-').map(Number)
+	return new Date(Date.UTC(y, m - 1, d) + days * DAY_MS).toISOString().slice(0, 10)
+}
+
+/**
+ * Der nächste Monatserste nach dem Stichtag – das Beispieldatum für die Fristen
+ * („Einzug am 1. des nächsten Monats“).
+ *
+ * @param {string} todayIso Stichtag „JJJJ-MM-TT“
+ * @return {string}
+ */
+export function nextMonthStart(todayIso) {
+	const [y, m] = todayIso.split('-').map(Number)
+	return new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 10)
+}
+
+/**
+ * Die drei Meilensteine eines Einzugs aus den Fristen (Tage vor dem Einzug),
+ * als Beispiel in den Einstellungen: ab wann die Forderungen entstehen, wann
+ * die Vorabinfo rausgeht, bis wann der Lauf freigegeben sein sollte.
+ *
+ * @param {string} dueIso Einzugstermin „JJJJ-MM-TT“
+ * @param {{ warningLeadDays: number, prenotificationLeadDays: number, releaseLeadDays: number }} leads Fristen
+ * @return {{ due: string, warning: string, prenotification: string, release: string }}
+ */
+export function leadDaysExample(dueIso, { warningLeadDays, prenotificationLeadDays, releaseLeadDays }) {
+	return {
+		due: dueIso,
+		warning: shiftIsoDate(dueIso, -Number(warningLeadDays)),
+		prenotification: shiftIsoDate(dueIso, -Number(prenotificationLeadDays)),
+		release: shiftIsoDate(dueIso, -Number(releaseLeadDays)),
+	}
+}
+
+/**
+ * Hinweise zu einer unüblichen Reihenfolge der Fristen. Es sind Hinweise, keine
+ * Sperren: der Server nimmt jede Zahl von 1 bis 365 an, und Vereine mit kurzer
+ * vereinbarter Frist stellen die Werte bewusst eng.
+ *
+ * @param {{ warningLeadDays: number, prenotificationLeadDays: number, releaseLeadDays: number }} leads Fristen
+ * @return {string[]}
+ */
+export function leadDaysOrderHints({ warningLeadDays, prenotificationLeadDays, releaseLeadDays }) {
+	const hints = []
+	if (Number(warningLeadDays) < Number(prenotificationLeadDays)) {
+		hints.push(t('Das Vorwarnfenster sollte nicht kürzer sein als der Vorabinfo-Vorlauf: Sonst entstehen die Forderungen erst, wenn die Vorabinfo schon hätte rausgehen sollen.'))
+	}
+	if (Number(prenotificationLeadDays) < Number(releaseLeadDays)) {
+		hints.push(t('Der Vorabinfo-Vorlauf sollte nicht kürzer sein als der Freigabe-Vorlauf: Sonst ist der Lauf schon freizugeben, bevor die Vorabinfo beim Mitglied ist.'))
+	}
+	return hints
+}

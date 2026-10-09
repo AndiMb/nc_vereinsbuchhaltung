@@ -11,28 +11,32 @@
 				{{ t('Bankverbindung ändern') }}
 			</h2>
 
-			<div class="vbh-form">
-				<label>
-					<input v-model="targetMode" type="radio" value="iban">
+			<fieldset class="vbh-mandate-modes">
+				<legend class="hidden-visually">
+					{{ t('Was hat sich geändert?') }}
+				</legend>
+				<NcCheckboxRadioSwitch
+					v-model="targetMode"
+					type="radio"
+					name="vbh-self-mandate-mode"
+					value="iban">
 					{{ t('Gleiches Konto, nur die IBAN hat sich geändert') }}
-				</label>
-				<label>
-					<input v-model="targetMode" type="radio" value="holder">
+				</NcCheckboxRadioSwitch>
+				<NcCheckboxRadioSwitch
+					v-model="targetMode"
+					type="radio"
+					name="vbh-self-mandate-mode"
+					value="holder">
 					{{ t('Der Kontoinhaber wechselt') }}
-				</label>
-			</div>
+				</NcCheckboxRadioSwitch>
+			</fieldset>
 
 			<template v-if="targetMode === 'iban'">
-				<p class="vbh-hint">
+				<NcNoteCard type="info">
 					{{ t('Vorschau: Wirkt ab sofort. Kein Sperrfenster – Sie können die IBAN bis zur Einreichung des nächsten Einzugs jederzeit ändern.') }}
-				</p>
-				<div class="vbh-form">
-					<label class="vbh-grow">{{ t('Neue IBAN') }}
-						<input ref="ibanInput" v-model="form.iban" placeholder="DE12 5001 0517 0648 4898 90">
-					</label>
-					<label>{{ t('BIC') }}
-						<input v-model="form.bic" class="vbh-short" :placeholder="t('optional')">
-					</label>
+				</NcNoteCard>
+				<div class="vbh-mandate-fields">
+					<MandateBankFields ref="bankFields" v-model:iban="form.iban" v-model:bic="form.bic" />
 				</div>
 				<div class="vbh-modal-actions">
 					<NcButton variant="tertiary" @click="$emit('close')">
@@ -45,39 +49,33 @@
 			</template>
 
 			<template v-else>
-				<div class="vbh-card vbh-card--danger">
+				<NcNoteCard type="error">
 					<p>
 						{{ t('Das bisherige Mandat wird endgültig beendet, ein neues wird sofort elektronisch erteilt. Das lässt sich nicht rückgängig machen.') }}
 					</p>
 					<p v-if="openClaimsTotalCents > 0">
 						{{ t('Noch offen: {betrag}', { betrag: formatMoney(openClaimsTotalCents / 100) }) }}
 					</p>
-				</div>
+				</NcNoteCard>
 
-				<p class="vbh-hint">
-					{{ t('Nur ein neues Konto bei derselben Person? Dafür reicht die IBAN-Änderung – ohne neues Mandat.') }}
-				</p>
-				<div class="vbh-modal-actions">
-					<NcButton variant="primary" @click="targetMode = 'iban'">
+				<NcNoteCard type="info">
+					<p>
+						{{ t('Nur ein neues Konto bei derselben Person? Dafür reicht die IBAN-Änderung – ohne neues Mandat.') }}
+					</p>
+					<NcButton class="vbh-notecard-action" variant="primary" @click="targetMode = 'iban'">
 						{{ t('Ich habe nur ein neues Konto → IBAN ändern') }}
 					</NcButton>
-				</div>
+				</NcNoteCard>
 
 				<h3 class="vbh-modal-subtitle">
 					{{ t('Neues Mandat für den neuen Kontoinhaber') }}
 				</h3>
-				<div class="vbh-form">
-					<label class="vbh-grow">{{ t('Neue IBAN') }}
-						<input v-model="form.iban" placeholder="DE12 5001 0517 0648 4898 90">
-					</label>
-					<label>{{ t('BIC') }}
-						<input v-model="form.bic" class="vbh-short" :placeholder="t('optional')">
-					</label>
-				</div>
-				<div class="vbh-form">
-					<label class="vbh-grow">{{ t('Neuer Kontoinhaber') }}
-						<input v-model="form.accountHolder" :placeholder="t('Vor- und Nachname')">
-					</label>
+				<div class="vbh-mandate-fields">
+					<MandateBankFields v-model:iban="form.iban" v-model:bic="form.bic" />
+					<NcTextField
+						v-model="form.accountHolder"
+						:label="t('Neuer Kontoinhaber')"
+						:placeholder="t('Vor- und Nachname')" />
 				</div>
 
 				<h3 class="vbh-modal-subtitle">
@@ -102,7 +100,8 @@
 
 <script>
 import { showError } from '@nextcloud/dialogs'
-import { NcButton, NcLoadingIcon, NcModal } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcModal, NcNoteCard, NcTextField } from '@nextcloud/vue'
+import MandateBankFields from './MandateBankFields.vue'
 import api from '../api.js'
 import { errMsg, formatMoney } from '../lib/format.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
@@ -121,7 +120,7 @@ function emptyForm() {
  */
 export default {
 	name: 'SelfServiceMandateAccountDialog',
-	components: { NcModal, NcButton, NcLoadingIcon },
+	components: { NcModal, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcNoteCard, NcTextField, MandateBankFields },
 	props: {
 		show: { type: Boolean, default: false },
 		/** Startmodus beim Öffnen - 'iban' (Standard) oder 'holder'. */
@@ -148,7 +147,7 @@ export default {
 			this.targetMode = this.initialMode
 			this.form = emptyForm()
 			if (this.targetMode === 'iban') {
-				this.$nextTick(() => focusOnOpen(this, () => this.$refs.ibanInput))
+				this.$nextTick(() => focusOnOpen(this, () => this.$refs.bankFields))
 			}
 		},
 
@@ -188,3 +187,12 @@ export default {
 	},
 }
 </script>
+
+<style scoped>
+/* Die Wahl „nur IBAN / neuer Inhaber“ als Liste untereinander, ohne den Rahmen des Fieldsets. */
+.vbh-mandate-modes {
+	margin: 0 0 8px;
+	padding: 0;
+	border: 0;
+}
+</style>

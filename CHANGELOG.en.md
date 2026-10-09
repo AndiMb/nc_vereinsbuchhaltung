@@ -112,6 +112,14 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   can no longer be paid, cancelled, reopened or deleted under Bookings → Open
   items; "Im Einzug bearbeiten" jumps to the "Collection" tab. Free items
   without a member behave as before (issue #121).
+- **Deadlines before the collection in one place:** early-warning window,
+  pre-notification lead and release lead are found together in the Nextcloud
+  settings (Fees & SEPA); an example line converts them to a collection date.
+  The schedule in the Collection tab only displays them.
+- **Country as a selection:** in the file, the admission dialog and "My
+  contribution" the country is chosen from all countries of the world (named in
+  your language); new members start in your country. The dialogs for the bank
+  details and the mandate use Nextcloud's standard components.
 - **Open items with counts:** the filters show their numbers, a new "Overdue"
   filter lists exactly the items the red badge on the tab counts; the table no
   longer clips the due date and the actions.

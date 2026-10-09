@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { accountMissing, accountOptions, DAYS_MAX, DAYS_MIN, daysError, monthOptions, saveErrorMessage } from './sepaSettings.js'
+import { accountMissing, accountOptions, DAYS_MAX, DAYS_MIN, daysError, leadDaysExample, leadDaysOrderHints, monthOptions, nextMonthStart, saveErrorMessage, shiftIsoDate } from './sepaSettings.js'
 
 // Die Pruefungen der Einstellungskarten spiegeln die des Servers. Hier steht,
 // was ohne laufende Nextcloud pruefbar ist.
@@ -123,5 +123,47 @@ describe('saveErrorMessage', () => {
 
 	it('nennt einen Netzwerkfehler als solchen', () => {
 		expect(saveErrorMessage(new Error('Network Error'))).toBe('Speichern fehlgeschlagen (HTTP Netzwerkfehler)')
+	})
+})
+
+describe('shiftIsoDate / nextMonthStart', () => {
+	it('verschiebt über Monats- und Jahresgrenzen', () => {
+		expect(shiftIsoDate('2026-11-01', -14)).toBe('2026-10-18')
+		expect(shiftIsoDate('2027-01-05', -10)).toBe('2026-12-26')
+		expect(shiftIsoDate('2026-03-01', -1)).toBe('2026-02-28')
+	})
+
+	it('liefert den nächsten Monatsersten nach dem Stichtag', () => {
+		expect(nextMonthStart('2026-10-09')).toBe('2026-11-01')
+		expect(nextMonthStart('2026-10-01')).toBe('2026-11-01')
+		expect(nextMonthStart('2026-12-31')).toBe('2027-01-01')
+	})
+})
+
+describe('leadDaysExample', () => {
+	it('rechnet die drei Meilensteine vom Einzugstermin zurück', () => {
+		expect(leadDaysExample('2026-11-01', { warningLeadDays: 21, prenotificationLeadDays: 14, releaseLeadDays: 5 })).toEqual({
+			due: '2026-11-01',
+			warning: '2026-10-11',
+			prenotification: '2026-10-18',
+			release: '2026-10-27',
+		})
+	})
+
+	it('nimmt auch Zahlen aus Eingabefeldern als Text', () => {
+		expect(leadDaysExample('2026-11-01', { warningLeadDays: '30', prenotificationLeadDays: '14', releaseLeadDays: '5' }).warning).toBe('2026-10-02')
+	})
+})
+
+describe('leadDaysOrderHints', () => {
+	it('schweigt bei der üblichen Reihenfolge, auch bei gleichen Werten', () => {
+		expect(leadDaysOrderHints({ warningLeadDays: 21, prenotificationLeadDays: 14, releaseLeadDays: 5 })).toEqual([])
+		expect(leadDaysOrderHints({ warningLeadDays: 14, prenotificationLeadDays: 14, releaseLeadDays: 14 })).toEqual([])
+	})
+
+	it('weist auf ein zu kurzes Vorwarnfenster und einen zu kurzen Vorabinfo-Vorlauf hin', () => {
+		expect(leadDaysOrderHints({ warningLeadDays: 7, prenotificationLeadDays: 14, releaseLeadDays: 5 })).toHaveLength(1)
+		expect(leadDaysOrderHints({ warningLeadDays: 21, prenotificationLeadDays: 3, releaseLeadDays: 5 })).toHaveLength(1)
+		expect(leadDaysOrderHints({ warningLeadDays: 2, prenotificationLeadDays: 3, releaseLeadDays: 5 })).toHaveLength(2)
 	})
 })

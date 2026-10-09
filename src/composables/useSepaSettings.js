@@ -14,9 +14,10 @@ import { useDueDateSchedule } from './useDueDateSchedule.js'
  * Die Karten arbeiten mit eigenen Entwuerfen und uebernehmen erst nach dem
  * Speichern, was der Server zurueckgibt.
  *
- * Nicht hier: Vorwarnfenster und Vorabinfo-Vorlauf. Die pflegt der Terminplan
- * (DueDateScheduleSettings.vue, Issue #70) - hier nur gelesen, fuer die
- * Uebersicht mit Verweis (siehe useDueDateSchedule).
+ * Die drei Fristen vor dem Einzug (Vorwarnfenster, Vorabinfo-Vorlauf, Freigabe-
+ * Vorlauf) stehen zusammen in der Karte „Beitragsjahr und Einzugszyklus“. Zwei
+ * davon liegen serverseitig beim Terminplan (`/due-date-schedule`, siehe
+ * useDueDateSchedule); der Reiter Einzug zeigt sie nur noch an.
  *
  * Alle Speichern-Funktionen werfen bei einem Fehler den Axios-Fehler weiter;
  * die Karte zeigt dann `saveErrorMessage(e)` (lib/sepaSettings.js).
@@ -82,10 +83,17 @@ async function loadSepaSettings() {
 	}
 }
 
-/** Beitragsjahr-Beginn (`/settings`) und Freigabe-Vorlauf (`/debit-batches/settings`). */
-async function saveCycleSettings({ fiscalYearStartMonth, releaseLeadDays }) {
-	const debitBatch = await api.saveDebitBatchSettings({ releaseLeadDays })
-	applyDebitBatchSettings(debitBatch.data)
+/**
+ * Beitragsjahr-Beginn (`/settings`) und die drei Fristen (`/due-date-schedule/lead-days`,
+ * ein Aufruf für Vorwarnfenster, Vorabinfo-Vorlauf und Freigabe-Vorlauf).
+ */
+async function saveCycleSettings({ fiscalYearStartMonth, releaseLeadDays, warningLeadDays, prenotificationLeadDays }) {
+	const { data: leads } = await api.setDueDateScheduleLeadDays({ warningLeadDays, prenotificationLeadDays, releaseLeadDays })
+	const schedule = useDueDateSchedule().state
+	schedule.warningLeadDays = leads.warningLeadDays
+	schedule.prenotificationLeadDays = leads.prenotificationLeadDays
+	schedule.releaseLeadDays = leads.releaseLeadDays
+	state.releaseLeadDays = leads.releaseLeadDays
 	const settings = await api.saveSettings({ fiscal_year_start_month: fiscalYearStartMonth })
 	applySettings(settings.data)
 }

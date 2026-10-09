@@ -1729,7 +1729,6 @@
         "+ Überschreibung": "+ Override",
         "Vorwarnfenster (Tage vor Einzug)": "Early-warning window (days before collection)",
         "Vorabinfo-Vorlauf (Tage vor Einzug)": "Pre-notification lead time (days before collection)",
-        "Nur Verwalter können die Vorlaufzeiten ändern.": "Only administrators can change the lead times.",
         "Standard-Einzugstag gespeichert.": "Default collection day saved.",
         "Standard-Einzugstag konnte nicht gespeichert werden": "Could not save the default collection day",
         "Überschreibung gespeichert.": "Override saved.",
@@ -2072,9 +2071,6 @@
         "Das Beitragsjahr ist unabhängig vom Geschäftsjahr der Buchhaltung: es bestimmt, wie die Beitragsperioden der Mitglieder liegen. Beginnt es nicht im Januar, heißt es z. B. „2026/27\". Stellen Sie den Beginn am besten ein, bevor die ersten Forderungen entstehen.": "The contribution year is independent of the bookkeeping fiscal year: it determines how the members' contribution periods are laid out. If it does not start in January, it is called e.g. “2026/27”. It is best to set the start before the first claims are created.",
         "Beitragsjahr beginnt im": "Contribution year starts in",
         "Freigabe-Vorlauf (Tage vor Einzug)": "Release lead time (days before collection)",
-        "Der Freigabe-Vorlauf (Standard 5 Tage) ist der Puffer, ab dem ein noch nicht freigegebener oder eingereichter Lauf in der Aufgabenliste als „Freigabe fällig\" bzw. „Einreichung überfällig\" auftaucht.": "The release lead time (default 5 days) is the buffer from which a run that has not yet been released or submitted shows up in the task list as “Release due” or “Submission overdue”.",
-        "Vorwarnfenster: {warning} Tage vor dem Einzug · Vorabinfo-Vorlauf: {prenotification} Tage vor dem Einzug.": "Early-warning window: {warning} days before collection · pre-notification lead time: {prenotification} days before collection.",
-        "Terminplan, Vorwarnfenster und Vorabinfo-Vorlauf im Einzug ändern": "Change schedule, warning window and pre-notification lead time under Collection",
         "Freigabe-Vorlauf": "Release lead time",
         "Mandate": "Mandates",
         "Wie neue Mandatsreferenzen aussehen, wo die Nachweise der Mandate (unterschriebenes Formular, Zustimmung) liegen und wann die App vor dem Verfall eines Mandats warnt.": "What new mandate references look like, where the mandate proofs (signed form, consent) are stored and when the app warns before a mandate lapses.",
@@ -2667,7 +2663,22 @@
         "_%n überfälliger offener Posten_::_%n überfällige offene Posten_": [
             "%n overdue open item",
             "%n overdue open items"
-        ]
+        ],
+        "Land wählen …": "Select country…",
+        "Was hat sich geändert?": "What has changed?",
+        "BIC (optional)": "BIC (optional)",
+        "Das Land muss als zweistelliger Ländercode angegeben werden (z. B. DE).": "The country must be given as a two-letter country code (e.g. DE).",
+        "Vorwarnfenster: {warning} Tage · Vorabinfo-Vorlauf: {prenotification} Tage · Freigabe-Vorlauf: {release} Tage vor dem Einzug.": "Early-warning window: {warning} days · pre-notification lead: {prenotification} days · release lead: {release} days before the collection.",
+        "Fristen in den Einstellungen ändern": "Change the deadlines in the settings",
+        "Fristen vor dem Einzug": "Deadlines before the collection",
+        "Beispiel – Einzug am {einzug}: Forderungen ab {warnung}, Vorabinfo am {vorabinfo}, Lauf freigegeben bis {freigabe}.": "Example – collection on {einzug}: claims from {warnung}, pre-notification on {vorabinfo}, run released by {freigabe}.",
+        "Vorwarnfenster": "Early-warning window",
+        "Vorabinfo-Vorlauf": "Pre-notification lead",
+        "Das Vorwarnfenster sollte nicht kürzer sein als der Vorabinfo-Vorlauf: Sonst entstehen die Forderungen erst, wenn die Vorabinfo schon hätte rausgehen sollen.": "The early-warning window should not be shorter than the pre-notification lead: otherwise the claims are only created when the pre-notification should already have gone out.",
+        "Der Vorabinfo-Vorlauf sollte nicht kürzer sein als der Freigabe-Vorlauf: Sonst ist der Lauf schon freizugeben, bevor die Vorabinfo beim Mitglied ist.": "The pre-notification lead should not be shorter than the release lead: otherwise the run is due for release before the pre-notification has reached the member.",
+        "Vorwarnfenster: ab dann entstehen die Forderungen (Standard 21 Tage).": "Early-warning window: from then on the claims are created (default 21 days).",
+        "Vorabinfo-Vorlauf: ab dann geht die Ankündigung per Mail an die Mitglieder (Standard 14 Tage; SEPA verlangt mindestens 14, sofern im Mandat nichts Kürzeres vereinbart ist).": "Pre-notification lead: from then on the announcement is emailed to the members (default 14 days; SEPA requires at least 14 unless the mandate agrees a shorter period).",
+        "Freigabe-Vorlauf: ab dann meldet die Aufgabenliste „Freigabe fällig\" (Standard 5 Tage).": "Release lead: from then on the task list reports “Release due” (default 5 days)."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

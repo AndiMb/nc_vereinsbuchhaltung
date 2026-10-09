@@ -621,9 +621,11 @@ test.describe('„Mein Beitrag“ im Überblick (Protokoll 11.1, 11.2, 11.9, 11.
 		await contact.getByRole('button', { name: 'Bearbeiten' }).click()
 
 		// Änderbar sind Name, E-Mail, Telefon und Anschrift – Mitgliedsnummer und Eintrittsdatum liegen bei der Kassenführung.
-		for (const label of ['Vorname', 'Nachname', 'E-Mail', 'Telefon', 'Straße', 'PLZ', 'Ort', 'Land']) {
+		for (const label of ['Vorname', 'Nachname', 'E-Mail', 'Telefon', 'Straße', 'PLZ', 'Ort']) {
 			await expect(contact.getByLabel(label, { exact: true })).toBeVisible()
 		}
+		// Das Land ist eine Auswahl (alle Länder), kein Textfeld.
+		await expect(contact.getByRole('combobox', { name: 'Land' })).toBeVisible()
 		await expect(contact.getByLabel('Mitgliedsnummer')).toHaveCount(0)
 		await expect(contact.getByLabel('Mitglied seit')).toHaveCount(0)
 

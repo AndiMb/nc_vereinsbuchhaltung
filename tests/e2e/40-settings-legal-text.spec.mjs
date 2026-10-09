@@ -61,9 +61,9 @@ async function resetSettings(request) {
 	await api.raw(request, 'POST', '/sepa-import/settings', {
 		data: { returnFeeAccountId: 0, returnFeeRechargeEnabled: '0', contributionDefaultAccountId: 0 },
 	})
-	// Terminplan-Abstände (Issue #70): die Spec liest sie nur, setzt sie aber auf den Standard
+	// Fristen vor dem Einzug (Vorwarnfenster, Vorabinfo-Vorlauf, Freigabe-Vorlauf): auf den Standard
 	await api.raw(request, 'POST', '/due-date-schedule/lead-days', {
-		data: { warningLeadDays: 21, prenotificationLeadDays: 14 },
+		data: { warningLeadDays: 21, prenotificationLeadDays: 14, releaseLeadDays: 5 },
 	})
 }
 
@@ -82,7 +82,7 @@ test.describe('Einstellungen Beiträge & SEPA', () => {
 		await resetSettings(request)
 	})
 
-	test('alle Karten des Beitragsmoduls stehen da, der Terminplan wird verlinkt statt nachgebaut', async ({ page }) => {
+	test('alle Karten des Beitragsmoduls stehen da, die drei Fristen vor dem Einzug stehen beisammen', async ({ page }) => {
 		await openSettings(page)
 
 		for (const title of ['Beitragsjahr und Einzugszyklus', 'Ablage der Einzugsdatei (XML)', 'Mandate', 'Rücklastschriften und Mahnwesen']) {
@@ -90,19 +90,22 @@ test.describe('Einstellungen Beiträge & SEPA', () => {
 		}
 		await expect(legalSection(page)).toBeVisible()
 
-		// Vorwarnfenster und Vorabinfo-Vorlauf gehören dem Terminplan (#70): hier nur als Übersicht
+		// Vorwarnfenster, Vorabinfo-Vorlauf und Freigabe-Vorlauf stehen in EINER Karte, nicht versteckt im Einzug
 		const cycle = card(page, 'Beitragsjahr und Einzugszyklus')
-		await expect(cycle.getByText(/Vorwarnfenster: 21 Tage/)).toBeVisible()
-		await expect(cycle.getByText(/Vorabinfo-Vorlauf: 14 Tage/)).toBeVisible()
-		await expect(cycle.getByLabel('Vorwarnfenster')).toHaveCount(0)
-		await expect(cycle.getByRole('link', { name: /Terminplan/ })).toHaveAttribute('href', /\/apps\/vereinsbuchhaltung\/contributions\/batch$/)
+		await expect(cycle.getByLabel('Vorwarnfenster')).toHaveValue('21')
+		await expect(cycle.getByLabel('Vorabinfo-Vorlauf')).toHaveValue('14')
+		await expect(cycle.getByLabel('Freigabe-Vorlauf')).toHaveValue('5')
+		// Das Beispiel rechnet die drei Werte auf einen Einzugstermin um.
+		await expect(cycle.getByTestId('cycle-example')).toContainText(/Einzug am \d{2}\.\d{2}\.\d{4}: Forderungen ab \d{2}\.\d{2}\.\d{4}, Vorabinfo am \d{2}\.\d{2}\.\d{4}/)
 	})
 
-	test('Beitragsjahr und Freigabe-Vorlauf ändern, nach Reload noch da', async ({ page, request }) => {
+	test('Beitragsjahr und die drei Fristen ändern, nach Reload noch da', async ({ page, request }) => {
 		await openSettings(page)
 		const cycle = card(page, 'Beitragsjahr und Einzugszyklus')
 
 		await cycle.getByLabel('Beitragsjahr beginnt im').selectOption({ label: 'April' })
+		await cycle.getByLabel('Vorwarnfenster').fill('18')
+		await cycle.getByLabel('Vorabinfo-Vorlauf').fill('10')
 		await cycle.getByLabel('Freigabe-Vorlauf').fill('7')
 		await cycle.getByRole('button', { name: 'Speichern' }).click()
 		await expect(savedToast(page)).toBeVisible()
@@ -111,9 +114,26 @@ test.describe('Einstellungen Beiträge & SEPA', () => {
 		await expect(card(page, 'Beitragsjahr und Einzugszyklus')).toBeVisible()
 		await expect(card(page, 'Beitragsjahr und Einzugszyklus').getByLabel('Beitragsjahr beginnt im')).toHaveValue('4')
 		await expect(card(page, 'Beitragsjahr und Einzugszyklus').getByLabel('Freigabe-Vorlauf')).toHaveValue('7')
+		await expect(card(page, 'Beitragsjahr und Einzugszyklus').getByLabel('Vorwarnfenster')).toHaveValue('18')
+		await expect(card(page, 'Beitragsjahr und Einzugszyklus').getByLabel('Vorabinfo-Vorlauf')).toHaveValue('10')
 
 		expect((await api.getSettings(request)).fiscal_year_start_month).toBe(4)
 		expect((await api.getJson(request, '/debit-batches/settings')).releaseLeadDays).toBe(7)
+		expect(await api.getJson(request, '/due-date-schedule')).toMatchObject({ warningLeadDays: 18, prenotificationLeadDays: 10, releaseLeadDays: 7 })
+	})
+
+	test('eine unübliche Reihenfolge der Fristen zeigt einen Hinweis, sperrt das Speichern aber nicht', async ({ page }) => {
+		await openSettings(page)
+		const cycle = card(page, 'Beitragsjahr und Einzugszyklus')
+
+		await cycle.getByLabel('Vorwarnfenster').fill('7')
+		await expect(cycle.getByText('Das Vorwarnfenster sollte nicht kürzer sein als der Vorabinfo-Vorlauf')).toBeVisible()
+		await cycle.getByLabel('Vorwarnfenster').fill('21')
+		await expect(cycle.getByText('Das Vorwarnfenster sollte nicht kürzer sein')).toHaveCount(0)
+
+		await cycle.getByLabel('Vorabinfo-Vorlauf').fill('3')
+		await expect(cycle.getByText('Der Vorabinfo-Vorlauf sollte nicht kürzer sein als der Freigabe-Vorlauf')).toBeVisible()
+		await expect(cycle.getByRole('button', { name: 'Speichern' })).toBeEnabled()
 	})
 
 	test('ein unsinniger Freigabe-Vorlauf wird mit Feldnamen gemeldet und nicht gespeichert', async ({ page, request }) => {

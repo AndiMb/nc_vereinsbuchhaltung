@@ -4,8 +4,8 @@ Ergebnis eines Durchgangs durch alle 172 Schritte von `testprotokoll.md` auf der
 
 | Ergebnis | Schritte | Bedeutung |
 |---|---|---|
-| ✅ OK | 98 | im Browser oder per Schnittstelle live geprüft, wie beschrieben |
-| 🔧 Korrigiert | 15 | Abweichung oder Schönheitsfehler gefunden und im selben Durchgang behoben |
+| ✅ OK | 97 | im Browser oder per Schnittstelle live geprüft, wie beschrieben |
+| 🔧 Korrigiert | 16 | Abweichung oder Schönheitsfehler gefunden und im selben Durchgang behoben |
 | 🧪 Nur E2E | 9 | nicht live nachgespielt; die E2E-Suite der CI deckt den Ablauf ab |
 | ⛔ Nicht prüfbar | 39 | braucht eine fremde Anmeldung (Mitglied, Buchhalter, Revisor), ein Gerät oder mehrere Tage |
 | 🚫 Nicht ausgeführt | 11 | nicht ausgeführt, weil unumkehrbar, zerstörerisch für die Buchhaltung dieser Instanz oder nicht freigegeben |
@@ -244,7 +244,7 @@ Ergebnis eines Durchgangs durch alle 172 Schritte von `testprotokoll.md` auf der
 | 15.2 | Mitglieder als Karten | ⛔ Nicht prüfbar | siehe 15.1 |
 | 15.3 | Einzug auf dem Handy | ⛔ Nicht prüfbar | siehe 15.1 |
 | 15.4 | Dialoge und Klemmbrett auf dem Handy | ⛔ Nicht prüfbar | siehe 15.1 |
-| 15.5 | Tastatur: Escape, Fokus, Reihenfolge | ✅ OK | Escape schließt Dialoge und Klemmbrett; Fokus beim Öffnen (Vorname) bewiesen |
+| 15.5 | Tastatur: Escape, Fokus, Reihenfolge | 🔧 Korrigiert | Escape schloss Dialoge nur, wenn der Fokus auf einem Knopf lag: stand der Cursor in einem Textfeld – und „Mitglied aufnehmen“ öffnet genau so, im Vornamen –, tat die Taste nichts (NcModal ignoriert sie dort). Jetzt schließt Escape den obersten Dialog auch aus Textfeldern; aufgeklappte Auswahllisten und Datumsfelder schließen zuerst ihr Popup. Live bestätigt; E2E-Spec 57 |
 | 15.6 | Fokus sichtbar, Namen und Zoom | ⛔ Nicht prüfbar | Zoom/Fokus-Ring nicht systematisch durchgespielt; E2E-Spec 22 |
 | 15.7 | Dunkles Design | ✅ OK | Dunkles Design (Stylesheet eingespielt): Zeitstrahl, Forderungen, Mitglieder, Offene Posten lesbar |
 

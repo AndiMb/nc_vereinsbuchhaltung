@@ -116,7 +116,7 @@ class MemberService {
 		$member->setStreet($this->nullIfEmpty($data['street'] ?? $member->getStreet()));
 		$member->setPostalCode($this->nullIfEmpty($data['postalCode'] ?? $member->getPostalCode()));
 		$member->setCity($this->nullIfEmpty($data['city'] ?? $member->getCity()));
-		$member->setCountry($this->nullIfEmpty($data['country'] ?? $member->getCountry()));
+		$member->setCountry($this->normalizeCountry($data['country'] ?? $member->getCountry()));
 
 		$member = $this->mapper->update($member);
 		return [
@@ -417,7 +417,7 @@ class MemberService {
 		$member->setStreet($this->nullIfEmpty($data['street'] ?? null));
 		$member->setPostalCode($this->nullIfEmpty($data['postalCode'] ?? null));
 		$member->setCity($this->nullIfEmpty($data['city'] ?? null));
-		$member->setCountry($this->nullIfEmpty($data['country'] ?? null));
+		$member->setCountry($this->normalizeCountry($data['country'] ?? null));
 		$member->setMemberNumber($this->normalizeMemberNumber($data['memberNumber'] ?? null, $member));
 		$member->setJoinedAt($this->requireDate(
 			(string)($data['joinedAt'] ?? (new \DateTime())->format('Y-m-d')),
@@ -429,6 +429,25 @@ class MemberService {
 	private function nullIfEmpty(mixed $value): ?string {
 		$value = trim((string)$value);
 		return $value === '' ? null : $value;
+	}
+
+	/**
+	 * Das Land als zweistelliger ISO-3166-1-Code („DE“), in Großbuchstaben; leer = kein Land.
+	 * Die Oberfläche bietet eine Auswahl an, die Schnittstelle prüft trotzdem selbst
+	 * (die Spalte fasst genau zwei Zeichen).
+	 *
+	 * @throws \InvalidArgumentException wenn der Wert kein zweistelliger Ländercode ist
+	 */
+	private function normalizeCountry(mixed $country): ?string {
+		$country = $this->nullIfEmpty($country);
+		if ($country === null) {
+			return null;
+		}
+		$country = strtoupper($country);
+		if (preg_match('/^[A-Z]{2}$/', $country) !== 1) {
+			throw new \InvalidArgumentException($this->l10n->t('Das Land muss als zweistelliger Ländercode angegeben werden (z. B. DE).'));
+		}
+		return $country;
 	}
 
 	private function normalizeEmail(mixed $email): ?string {

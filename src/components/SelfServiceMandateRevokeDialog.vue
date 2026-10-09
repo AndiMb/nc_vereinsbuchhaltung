@@ -11,7 +11,7 @@
 				{{ t('Mandat widerrufen') }}
 			</h2>
 
-			<div class="vbh-card vbh-card--danger">
+			<NcNoteCard type="error">
 				<p v-if="staff">
 					{{ revokeStaffWarning(memberName) }}
 				</p>
@@ -24,25 +24,23 @@
 						{{ t('– dafür geht dem Mitglied eine Zahlungsaufforderung zu.') }}
 					</template>
 				</p>
-			</div>
+			</NcNoteCard>
 
-			<template v-if="!ibanChangeBlocked">
-				<p class="vbh-hint">
+			<NcNoteCard v-if="!ibanChangeBlocked" type="info">
+				<p>
 					{{ t('Nur ein neues Konto? Dafür reicht die IBAN-Änderung – ohne Widerruf, ohne neues Mandat.') }}
 				</p>
-				<div class="vbh-modal-actions">
-					<NcButton variant="primary" @click="$emit('switch-to-iban')">
-						{{ t('Ich habe nur ein neues Konto → IBAN ändern') }}
-					</NcButton>
-				</div>
-			</template>
+				<NcButton class="vbh-notecard-action" variant="primary" @click="$emit('switch-to-iban')">
+					{{ t('Ich habe nur ein neues Konto → IBAN ändern') }}
+				</NcButton>
+			</NcNoteCard>
 			<!-- Die Verwaltung kann ein ausgesetztes Mandat entsperren, das Mitglied nicht (Spec §3.4: „Mandat aktivieren/sperren“ ist nicht im Aktionskatalog). -->
-			<p v-else-if="staff" class="vbh-hint">
+			<NcNoteCard v-else-if="staff" type="info">
 				{{ t('Nur ein neues Konto? Entsperren Sie das Mandat zuerst – die IBAN lässt sich nur bei einem aktiven Mandat ändern, ganz ohne Widerruf und neues Mandat.') }}
-			</p>
-			<p v-else class="vbh-hint">
+			</NcNoteCard>
+			<NcNoteCard v-else type="info">
 				{{ t('Nur ein neues Konto? Solange Ihr Mandat ausgesetzt ist, lässt sich die IBAN nicht ändern – wenden Sie sich an Ihren Verein. Ist das Mandat wieder aktiv, geht das ganz ohne Widerruf und neues Mandat.') }}
-			</p>
+			</NcNoteCard>
 
 			<div class="vbh-modal-actions">
 				<NcButton variant="tertiary" @click="$emit('close')">
@@ -57,7 +55,7 @@
 </template>
 
 <script>
-import { NcButton, NcModal } from '@nextcloud/vue'
+import { NcButton, NcModal, NcNoteCard } from '@nextcloud/vue'
 import { formatMoney } from '../lib/format.js'
 import { revokeStaffWarning } from '../lib/mandateView.js'
 
@@ -72,7 +70,7 @@ import { revokeStaffWarning } from '../lib/mandateView.js'
  */
 export default {
 	name: 'SelfServiceMandateRevokeDialog',
-	components: { NcModal, NcButton },
+	components: { NcModal, NcButton, NcNoteCard },
 	props: {
 		show: { type: Boolean, default: false },
 		openClaimsTotalCents: { type: Number, default: 0 },

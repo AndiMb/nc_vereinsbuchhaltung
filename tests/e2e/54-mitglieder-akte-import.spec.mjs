@@ -139,6 +139,36 @@ test.describe('Mitglieder: Aufnahme-Dialog, Liste, Akte und CSV-Import', () => {
 		await expect(dialog).toBeHidden()
 	})
 
+	test('Land: eine Auswahl mit allen Ländern statt eines Textfelds, mit Vorgabe; gespeichert wird der Ländercode', async ({ page, request }) => {
+		const nachname = `Landtest${Date.now() % 100000}`
+		await openApp(page, USERS.buchhalter)
+		await switchTab(page, 'Beiträge')
+		await visibleSection(page).getByRole('button', { name: 'Mitglied', exact: true }).click()
+		const dialog = page.getByRole('dialog', { name: 'Mitglied aufnehmen' })
+		await expect(dialog).toBeVisible()
+
+		// Ein neues Mitglied beginnt im Land der Person, die die App bedient (nie leer).
+		const land = dialog.getByRole('combobox', { name: 'Land' })
+		await expect(land).toBeVisible()
+		await expect(dialog.locator('.vbh-country-select .vs__selected')).not.toHaveText('')
+
+		// Die Liste führt alle 249 Länder, in der Sprache der Oberfläche benannt; getippt wird gefiltert.
+		await land.click()
+		await expect(page.locator('li.vs__dropdown-option')).toHaveCount(249)
+		await land.pressSequentially('Österreich', { delay: 20 })
+		await page.locator('li.vs__dropdown-option', { hasText: 'Österreich' }).first().waitFor()
+		await land.press('Enter')
+		await expect(dialog.locator('.vbh-country-select .vs__selected')).toHaveText('Österreich')
+
+		await dialog.getByRole('textbox', { name: 'Nachname', exact: true }).fill(nachname)
+		await dialog.getByRole('button', { name: 'Aufnehmen' }).click()
+		await expect(dialog).toBeHidden()
+
+		// Gespeichert ist der zweistellige Code, nicht der Name.
+		const stored = (await api.listMembers(request)).find((m) => m.lastName === nachname)
+		expect(stored?.country).toBe('AT')
+	})
+
 	test('„nur Auffälligkeiten“: Lastschrift mit bloßem Entwurfs-Mandat fällt auf, mit aktivem Mandat nicht', async ({ page, request }) => {
 		const group = await ensureGroup(request)
 		const suffix = unique()

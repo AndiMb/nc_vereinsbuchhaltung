@@ -167,6 +167,9 @@ test.describe('Mandat-Verwaltung in der Akte', () => {
 
 		const account = page.getByRole('dialog', { name: 'Bankverbindung ändern' })
 		await expect(account).toBeVisible()
+		// Die drei Fälle sind Standard-Auswahlschalter von Nextcloud (keine rohen Radio-Knöpfe), die Hinweise eine Notizkarte.
+		await expect(account.locator('.checkbox-radio-switch-radio')).toHaveCount(3)
+		await expect(account.locator('.notecard')).toBeVisible()
 		// Vorbelegt mit der bisherigen IBAN – unverändert lässt sich nichts speichern.
 		await expect(account.getByLabel('Neue IBAN')).toHaveValue(IBAN_GROUPED)
 		await expect(account.getByRole('button', { name: 'IBAN ändern' })).toBeDisabled()
@@ -198,7 +201,7 @@ test.describe('Mandat-Verwaltung in der Akte', () => {
 
 		// Reine Namenskorrektur: stille Korrektur, kein Amendment.
 		await p.getByRole('button', { name: 'Bankverbindung ändern' }).click()
-		await account.getByLabel('Derselbe Kontoinhaber, nur der Name war falsch geschrieben').check()
+		await account.getByText('Derselbe Kontoinhaber, nur der Name war falsch geschrieben', { exact: true }).click()
 		await account.getByLabel('Kontoinhaber', { exact: true }).fill('Karl Kontowechsler')
 		await account.getByRole('button', { name: 'Name korrigieren' }).click()
 		await expect(field(dialog, 'Kontoinhaber')).toHaveText('Karl Kontowechsler')
@@ -207,7 +210,7 @@ test.describe('Mandat-Verwaltung in der Akte', () => {
 
 		// Kontoinhaberwechsel: Reibungsdialog mit dem Ausweg, dann das neue Mandat.
 		await p.getByRole('button', { name: 'Bankverbindung ändern' }).click()
-		await account.getByLabel('Der Kontoinhaber wechselt (andere Person)').check()
+		await account.getByText('Der Kontoinhaber wechselt (andere Person)', { exact: true }).click()
 		await expect(account.getByRole('button', { name: 'Ich habe nur ein neues Konto → IBAN ändern' })).toBeVisible()
 		await account.getByLabel('Neue IBAN').fill(IBAN_NEW)
 		await account.getByLabel('Neuer Kontoinhaber').fill('Maria Neuinhaber')

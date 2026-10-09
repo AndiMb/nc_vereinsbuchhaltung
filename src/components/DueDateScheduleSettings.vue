@@ -72,35 +72,19 @@
 			</NcButton>
 		</div>
 
-		<div class="vbh-form">
-			<label>{{ t('Vorwarnfenster (Tage vor Einzug)') }}
-				<input
-					v-model.number="leadDrafts.warningLeadDays"
-					type="number"
-					class="vbh-short"
-					min="1"
-					:disabled="!isAdmin">
-			</label>
-			<label>{{ t('Vorabinfo-Vorlauf (Tage vor Einzug)') }}
-				<input
-					v-model.number="leadDrafts.prenotificationLeadDays"
-					type="number"
-					class="vbh-short"
-					min="1"
-					:disabled="!isAdmin">
-			</label>
-			<NcButton variant="primary" :disabled="!isAdmin" @click="saveLeadDays">
-				{{ t('Speichern') }}
-			</NcButton>
-		</div>
-		<p v-if="!isAdmin" class="vbh-hint vbh-hint--info" data-testid="lead-days-admin-only">
-			{{ t('Nur Verwalter können die Vorlaufzeiten ändern.') }}
+		<p class="vbh-hint vbh-hint--info" data-testid="lead-days-summary">
+			{{ t('Vorwarnfenster: {warning} Tage · Vorabinfo-Vorlauf: {prenotification} Tage · Freigabe-Vorlauf: {release} Tage vor dem Einzug.', { warning: warningLeadDays, prenotification: prenotificationLeadDays, release: releaseLeadDays }) }}
+			<template v-if="isAdmin">
+				<br>
+				<a class="vbh-settings-link" :href="settingsUrl">{{ t('Fristen in den Einstellungen ändern') }}</a>
+			</template>
 		</p>
 	</section>
 </template>
 
 <script>
 import { showError, showSuccess } from '@nextcloud/dialogs'
+import { generateUrl } from '@nextcloud/router'
 import { NcButton } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import InfoHint from './InfoHint.vue'
@@ -119,9 +103,9 @@ import { intervalLabel } from '../lib/frequency.js'
  *
  * Rollen (Spec §3.9, Issue #119): Die Terminverschiebung (Standard-Einzugstag,
  * Überschreibungen) ist `buchhalter`. Vorwarnfenster und Vorabinfo-Vorlauf sind
- * Einstellungen und nur für `verwalter` änderbar: für alle anderen bleiben die
- * Felder sichtbar, aber gesperrt, mit Hinweis - der Server lehnt den Aufruf
- * ohnehin mit 403 ab (DueDateScheduleController::setLeadDays).
+ * Einstellungen (nur `verwalter`) und stehen mit dem Freigabe-Vorlauf in den
+ * Nextcloud-Einstellungen (SettingsSepaCycle.vue); hier werden sie nur genannt,
+ * mit Verweis für Verwalter.
  */
 export default {
 	name: 'DueDateScheduleSettings',
@@ -133,16 +117,25 @@ export default {
 
 	setup() {
 		const schedule = useDueDateSchedule()
-		return { ...toRefs(schedule.state), loadDueDateSchedule: schedule.loadDueDateSchedule, isAdmin: useAuth().isAdmin }
+		const { state: auth, isAdmin } = useAuth()
+		return { ...toRefs(schedule.state), loadDueDateSchedule: schedule.loadDueDateSchedule, isAdmin, auth }
 	},
 
 	data() {
 		return {
 			intervals: [1, 2, 3, 4, 6, 12],
 			defaultDrafts: {},
-			leadDrafts: { warningLeadDays: 21, prenotificationLeadDays: 14 },
 			overrideDraft: { intervalMonths: 1, periodIndex: 0, offsetDays: 0 },
 		}
+	},
+
+	computed: {
+		// Verwaltung für Nextcloud-Admins, Persönlich für App-Verwalter ohne Nextcloud-Adminrechte
+		// (dieselbe Unterscheidung wie Settings\PersonalSettings::getSection()).
+		settingsUrl() {
+			const area = this.auth.me?.isServerAdmin ? 'admin' : 'user'
+			return generateUrl('/settings/' + area + '/vereinsbuchhaltung') + '#settings-section_beitraege-sepa'
+		},
 	},
 
 	watch: {
@@ -154,13 +147,6 @@ export default {
 				}
 			},
 		},
-
-		// `immediate`: der Zustand ist ein Modul-Singleton und kann beim Einhängen schon die
-		// geladenen Werte tragen (Wechsel zwischen Einzug und Beitragsgruppen). Ohne das bliebe
-		// ein Entwurf bei den Vorgaben 21/14 stehen, weil sich der Wert nicht mehr „ändert“ –
-		// die gesperrten Felder zeigten dann falsche Zahlen.
-		warningLeadDays: { immediate: true, handler(value) { this.leadDrafts.warningLeadDays = value } },
-		prenotificationLeadDays: { immediate: true, handler(value) { this.leadDrafts.prenotificationLeadDays = value } },
 	},
 
 	async mounted() {
@@ -200,21 +186,18 @@ export default {
 				this.$emit('changed')
 			} catch (e) { showError(errMsg(e, this.t('Überschreibung konnte nicht entfernt werden'))) }
 		},
-
-		async saveLeadDays() {
-			if (!this.isAdmin) { return }
-			try {
-				await api.setDueDateScheduleLeadDays(this.leadDrafts)
-				await this.loadDueDateSchedule()
-				this.$emit('changed')
-				showSuccess(this.t('Einstellungen gespeichert.'))
-			} catch (e) { showError(errMsg(e, this.t('Einstellungen konnten nicht gespeichert werden'))) }
-		},
 	},
 }
 </script>
 
 <style scoped>
+/* Hauptschriftfarbe mit Unterstreichung: lesbar in jedem Design, auch im dunklen */
+.vbh-settings-link {
+	color: var(--color-main-text);
+	font-weight: 600;
+	text-decoration: underline;
+}
+
 .vbh-cardhead {
 	display: flex;
 	align-items: center;

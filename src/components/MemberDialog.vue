@@ -21,7 +21,7 @@
 					</label>
 				</div>
 				<div v-if="form.memberType === 'person'" class="vbh-form">
-					<label>{{ t('Vorname') }}
+					<label class="vbh-grow">{{ t('Vorname') }}
 						<input ref="nameInput" v-model="form.firstName" :placeholder="t('optional')">
 					</label>
 					<label class="vbh-grow">{{ t('Nachname') }}
@@ -51,6 +51,11 @@
 					</label>
 					<label>{{ t('Ort') }}
 						<input v-model="form.city">
+					</label>
+				</div>
+				<div class="vbh-form">
+					<label>{{ t('Land') }}
+						<CountrySelect v-model="form.country" />
 					</label>
 				</div>
 				<div class="vbh-form">
@@ -367,10 +372,12 @@ import { showError, showSuccess } from '@nextcloud/dialogs'
 import { NcButton, NcIconSvgWrapper, NcModal } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import AmountInput from './AmountInput.vue'
+import CountrySelect from './CountrySelect.vue'
 import MandatePanel from './MandatePanel.vue'
 import api from '../api.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useContributionGroups } from '../composables/useContributionGroups.js'
+import { defaultCountry } from '../lib/countryDefault.js'
 import { errMsg, formatDate } from '../lib/format.js'
 import { linkedAccountText } from '../lib/memberAccount.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
@@ -386,6 +393,9 @@ function emptyForm(member, defaultFeeAmount) {
 		street: member?.street ?? '',
 		postalCode: member?.postalCode ?? '',
 		city: member?.city ?? '',
+		// Neue Mitglieder beginnen im Land der Person, die die App bedient; ein vorhandenes
+		// Mitglied behält, was gespeichert ist (auch „nichts“).
+		country: member ? (member.country ?? '') : defaultCountry(),
 		memberNumber: member?.memberNumber ?? '',
 		joinedAt: member?.joinedAt ?? new Date().toISOString().slice(0, 10),
 		internalNote: member?.internalNote ?? '',
@@ -425,7 +435,7 @@ function emptyForm(member, defaultFeeAmount) {
  */
 export default {
 	name: 'MemberDialog',
-	components: { NcModal, NcButton, NcIconSvgWrapper, AmountInput, MandatePanel },
+	components: { NcModal, NcButton, NcIconSvgWrapper, AmountInput, CountrySelect, MandatePanel },
 	props: {
 		show: { type: Boolean, default: false },
 		saving: { type: Boolean, default: false },
@@ -567,6 +577,8 @@ export default {
 				street: this.form.street.trim() || null,
 				postalCode: this.form.postalCode.trim() || null,
 				city: this.form.city.trim() || null,
+				// Leer = Land entfernen (null ließe den alten Wert stehen).
+				country: this.form.country || '',
 				memberNumber: this.form.memberNumber.trim() || null,
 				joinedAt: this.form.joinedAt,
 				internalNote: this.form.internalNote.trim() || null,

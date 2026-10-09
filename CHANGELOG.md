@@ -116,6 +116,14 @@ verwenden, z. B. `**Neu:**`.
   bezahlen, stornieren, wieder öffnen oder löschen; „Im Einzug bearbeiten"
   springt in den Reiter „Einzug". Freie Posten ohne Mitglied verhalten sich
   wie bisher (Issue #121).
+- **Fristen vor dem Einzug an einem Ort:** Vorwarnfenster, Vorabinfo-Vorlauf und
+  Freigabe-Vorlauf stehen zusammen in den Nextcloud-Einstellungen (Beiträge &
+  SEPA); eine Beispielzeile rechnet sie auf einen Einzugstermin um. Der
+  Terminplan im Einzug zeigt sie nur noch an.
+- **Land als Auswahl:** In der Akte, im Aufnahme-Dialog und in „Mein Beitrag“ wird
+  das Land aus allen Ländern der Welt gewählt (in Ihrer Sprache benannt), neue
+  Mitglieder beginnen in Ihrem Land. Die Dialoge zur Bankverbindung und zum
+  Mandat nutzen die Standardkomponenten von Nextcloud.
 - **Offene Posten mit Zählern:** Die Filter nennen ihre Anzahl, ein neuer Filter
   „Überfällig" zeigt genau die Posten, die der rote Badge am Reiter zählt; die
   Tabelle schneidet Fälligkeit und Aktionen nicht mehr ab.
