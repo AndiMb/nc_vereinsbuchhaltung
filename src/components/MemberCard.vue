@@ -32,7 +32,7 @@
 			<span class="vbh-mcard-accounts">
 				<template v-if="row.fee">{{ row.fee.frequencyLabel }}</template>
 				<template v-if="row.fee && row.nextDueDate"> · </template>
-				<template v-if="row.nextDueDate">{{ t('fällig {date}', { date: row.nextDueDate }) }}</template>
+				<template v-if="row.nextDueDate">{{ t('fällig {date}', { date: formatDate(row.nextDueDate) }) }}</template>
 			</span>
 			<span v-if="row.fee" class="vbh-status" :class="`vbh-status--${row.fee.statusTone}`">{{ row.fee.statusLabel }}</span>
 		</div>
@@ -65,7 +65,7 @@
 <script>
 import { mdiEmailOffOutline, mdiFileSign } from '@mdi/js'
 import { NcActionButton, NcActions, NcButton, NcIconSvgWrapper } from '@nextcloud/vue'
-import { formatMoney } from '../lib/format.js'
+import { formatDate, formatMoney } from '../lib/format.js'
 
 /**
  * Mobile Kartendarstellung einer Mitgliederzeile (MembersList.vue): dieselben
@@ -87,6 +87,6 @@ export default {
 		return { mdiEmailOffOutline, mdiFileSign }
 	},
 
-	methods: { formatMoney },
+	methods: { formatDate, formatMoney },
 }
 </script>

@@ -166,7 +166,7 @@ test.describe('Mitgliederliste zeigt Mandat und Beitrag des neuen Modells', () =
 
 		await openApp(page, USERS.buchhalter)
 		await switchTab(page, 'Beiträge')
-		await expect(memberRow(page, 'Bernd Entwurf').locator('td').nth(4)).toHaveText('2026-02-10')
+		await expect(memberRow(page, 'Bernd Entwurf').locator('td').nth(4)).toHaveText('10.02.2026')
 		// Ein Mitglied ohne Forderung behält den Strich.
 		await expect(memberRow(page, 'Cora Ueberweisung').locator('td').nth(4)).toHaveText('–')
 	})

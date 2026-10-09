@@ -50,9 +50,12 @@ $clubName = (string)($_['clubName'] ?? '');
 	.vbh-consent-card h1 { font-size: 1.3rem; margin: 0 0 4px; }
 	.vbh-club { color: #555; font-size: 0.9rem; margin-bottom: 20px; }
 	.vbh-legal-text p { line-height: 1.5; }
-	dl.vbh-mandate-data { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 20px 0; font-size: 0.95rem; }
+	dl.vbh-mandate-data { display: grid; grid-template-columns: minmax(0, max-content) minmax(0, 1fr); gap: 6px 16px; align-items: baseline; margin: 20px 0; font-size: 0.95rem; }
+	/* Nextcloud-Core formatiert dt/dd selbst (feste Breite, Float); ohne Zurücksetzen überlagert die lange
+	   Beschriftung „Gläubiger-Identifikationsnummer“ ihren Wert. */
+	dl.vbh-mandate-data dt, dl.vbh-mandate-data dd { display: block; float: none; position: static; width: auto; min-width: 0; margin: 0; padding: 0; text-align: start; white-space: normal; }
 	dl.vbh-mandate-data dt { font-weight: 600; color: #444; }
-	dl.vbh-mandate-data dd { margin: 0; word-break: break-word; }
+	dl.vbh-mandate-data dd { overflow-wrap: anywhere; }
 	.vbh-actions { margin-top: 24px; }
 	button.vbh-consent-submit {
 		background: #2d7d46;

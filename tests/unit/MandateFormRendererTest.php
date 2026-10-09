@@ -69,6 +69,7 @@ class MandateFormRendererTest extends TestCase {
 		}
 		$this->assertStringContainsString('<dd>wiederkehrende Zahlung (SEPA-Basislastschrift)</dd>', $html);
 		$this->assertStringContainsString('<dd>Echo &amp; Söhne</dd>', $html);
-		$this->assertStringContainsString('<dd>2026-10-05</dd>', $html);
+		$this->assertStringContainsString('<dd>05.10.2026</dd>', $html);
+		$this->assertStringContainsString('<dd>DE12 5001 0517 0648 4898 90</dd>', $html);
 	}
 }

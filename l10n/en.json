@@ -1341,7 +1341,7 @@
         "Zuweisung verwalten": "Manage assignment",
         "Beitragsgruppen": "Contribution groups",
         "In den Beitragsgruppen verwalten": "Manage in contribution groups",
-        "Reiter „Beiträge\" → Mitglieder: je Mitglied ein SEPA-Mandat (IBAN, Unterschriftsdatum) und/oder eine Zuweisung zu einer Beitragsgruppe (Monatsbeitrag, Turnus). Der Knopf „Mitglied\" führt in drei Schritten durch Stammdaten, Mandat und Beitrag. Aus den Zuweisungen entstehen die Forderungen.": "“Contributions” tab → Members: one SEPA mandate (IBAN, signing date) and/or one assignment to a contribution group (monthly fee, interval) per member. The “Member” button walks you through master data, mandate and contribution in three steps. Claims arise from the assignments.",
+        "Reiter „Beiträge\" → Mitglieder: je Mitglied ein SEPA-Mandat (IBAN, Unterschriftsdatum) und/oder eine Zuweisung zu einer Beitragsgruppe (Monatsbeitrag, Turnus). Der Knopf „Mitglied\" nimmt ein Mitglied samt optionalem Mandat und Beitrag in einem Dialog auf. Aus den Zuweisungen entstehen die Forderungen.": "“Contributions” tab → Members: one SEPA mandate (IBAN, signing date) and/or one assignment to a contribution group (monthly fee, interval) per member. The “Member” button records a member together with an optional mandate and contribution in one dialog. Claims arise from the assignments.",
         "Reiter „Beiträge\" → Einzug: Vorschau des Einzugstermins prüfen, den Lauf freigeben (dabei entsteht die SEPA-Datei), die Datei bei der Hausbank einreichen und die Einreichung hier bestätigen. Vor dem ersten Einzug mit dem Prüftool der Bank testen.": "“Contributions” tab → Collection: check the preview of the collection date, release the run (this creates the SEPA file), submit the file to your bank and confirm the submission here. Test it with your bank's validation tool before the first real collection.",
         "Die Vorabinfo über Betrag und Termin (Standard: 14 Tage vor dem Einzug) verschickt die App automatisch an Mitglieder mit hinterlegter E-Mail-Adresse.": "The app automatically sends the pre-notification about amount and date (default: 14 days before the collection) to members who have an email address on file.",
         "Einzug → Bankabgleich: Sammelgutschriften, Rücklastschriften und Zahlungseingänge aus dem Kontoauszugs-Import prüfen und verbuchen.": "Collection → Bank reconciliation: review and post batch credits, returned debits and incoming payments from the bank-statement import.",
@@ -1886,7 +1886,9 @@
         "Beigetreten am": "Joined on",
         "Interne Notiz": "Internal note",
         "nicht im Self-Service sichtbar": "not visible in self-service",
-        "Optional gleich ein SEPA-Mandat erfassen und einer Beitragsgruppe zuweisen – beides lässt sich später ergänzen.": "Optionally record a SEPA mandate right away and assign the member to a contribution group – both can be added later.",
+        "Beides lässt sich auch später in der Akte ergänzen.": "Both can also be added later in the member file.",
+        "SEPA-Mandat (optional)": "SEPA mandate (optional)",
+        "Beitrag (optional)": "Contribution (optional)",
         "Ohne Unterschriftsdatum bleibt das Mandat ein Entwurf – erst das Datum aktiviert es sofort.": "Without a signature date the mandate stays a draft – only the date activates it immediately.",
         "– keine Zuweisung –": "– no assignment –",
         "Ohne Mailadresse ist keine Vorabinformation und kein Lastschrifteinzug möglich – Zahlungsart wird auf Überweisung gesetzt.": "Without an email address no pre-notification and no direct debit collection is possible – the payment method is set to bank transfer.",
@@ -2631,9 +2633,9 @@
             "Next run on %s: %n claim, %s €",
             "Next run on %s: %n claims, %s €"
         ],
-        "_ – %n Störfall_::_ – %n Störfälle_": [
-            " – %n exception",
-            " – %n exceptions"
+        "_– %n Störfall_::_– %n Störfälle_": [
+            "– %n exception",
+            "– %n exceptions"
         ],
         "_Freigabe fällig: Lauf am %s (%n Forderung, %s €) ist noch nicht freigegeben._::_Freigabe fällig: Lauf am %s (%n Forderungen, %s €) ist noch nicht freigegeben._": [
             "Release due: the run on %s (%n claim, %s €) has not been released yet.",

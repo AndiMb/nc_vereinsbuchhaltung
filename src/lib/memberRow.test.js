@@ -111,13 +111,13 @@ describe('buildMemberRow – Beitrag', () => {
 
 	it('eine beendete Zuweisung bleibt sichtbar, zählt aber nicht', () => {
 		const row = build({ assignments: [assignment({ active: false, validTo: '2026-06-30' })] })
-		expect(row.fee.statusLabel).toBe('beendet 2026-06-30')
+		expect(row.fee.statusLabel).toBe('beendet 30.06.2026')
 		expect(row.yearlyAmount).toBe(0)
 	})
 
 	it('eine künftige Zuweisung zeigt ihr Startdatum', () => {
 		const row = build({ assignments: [assignment({ active: false, validFrom: '2026-12-01' })] })
-		expect(row.fee.statusLabel).toBe('ab 2026-12-01')
+		expect(row.fee.statusLabel).toBe('ab 01.12.2026')
 	})
 
 	it('unter mehreren nicht-aktiven wird die jüngste gezeigt', () => {
@@ -127,7 +127,7 @@ describe('buildMemberRow – Beitrag', () => {
 				assignment({ id: 2, active: false, validFrom: '2025-01-01', validTo: '2025-12-31' }),
 			],
 		})
-		expect(row.fee.statusLabel).toBe('beendet 2025-12-31')
+		expect(row.fee.statusLabel).toBe('beendet 31.12.2025')
 	})
 })
 
@@ -195,8 +195,8 @@ describe('Zustandston der Zuweisung', () => {
 		const running = build({ assignments: [assignment()] }).fee
 		expect(running).toMatchObject({ statusLabel: 'aktiv', statusTone: 'success' })
 		const future = build({ assignments: [assignment({ active: false, validFrom: '2027-01-01' })] }).fee
-		expect(future).toMatchObject({ statusLabel: 'ab 2027-01-01', statusTone: 'info' })
+		expect(future).toMatchObject({ statusLabel: 'ab 01.01.2027', statusTone: 'info' })
 		const ended = build({ assignments: [assignment({ active: false, validTo: '2026-06-30' })] }).fee
-		expect(ended).toMatchObject({ statusLabel: 'beendet 2026-06-30', statusTone: 'muted' })
+		expect(ended).toMatchObject({ statusLabel: 'beendet 30.06.2026', statusTone: 'muted' })
 	})
 })

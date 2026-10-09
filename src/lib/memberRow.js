@@ -7,6 +7,7 @@
 // und „Frequenz". Die Fälligkeit steht nicht an der Zuweisung, sondern erst an
 // der Forderung, die der Einzugszyklus daraus erzeugt – deshalb kommt die
 // „nächste Fälligkeit" aus den Forderungen (siehe nextDueDates()).
+import { formatDate } from './format.js'
 import { intervalLabel } from './frequency.js'
 import { t } from './l10n.js'
 
@@ -56,8 +57,8 @@ function mandateView(mandate) {
 /** Zustand einer Zuweisung als Text – der Zeitraum *ist* der Status (Spec §2.2). */
 function assignmentStatusLabel(assignment, today) {
 	if (assignment.active) { return t('aktiv') }
-	if (assignment.validFrom > today) { return t('ab {datum}', { datum: assignment.validFrom }) }
-	return t('beendet {datum}', { datum: assignment.validTo })
+	if (assignment.validFrom > today) { return t('ab {datum}', { datum: formatDate(assignment.validFrom) }) }
+	return t('beendet {datum}', { datum: formatDate(assignment.validTo) })
 }
 
 /**

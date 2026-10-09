@@ -80,8 +80,11 @@
 			</div>
 
 			<template v-if="!isEdit">
+				<h3 class="vbh-modal-subtitle">
+					{{ t('SEPA-Mandat (optional)') }}
+				</h3>
 				<p class="vbh-hint">
-					{{ t('Optional gleich ein SEPA-Mandat erfassen und einer Beitragsgruppe zuweisen – beides lässt sich später ergänzen.') }}
+					{{ t('Beides lässt sich auch später in der Akte ergänzen.') }}
 				</p>
 				<div class="vbh-form">
 					<label>{{ t('Art der Unterschrift') }}
@@ -119,6 +122,9 @@
 					{{ t('Nach dem Anlegen geht sofort ein Einmal-Link an die Mailadresse des Mitglieds – die Zustimmung dort aktiviert das Mandat.') }}
 				</p>
 
+				<h3 class="vbh-modal-subtitle">
+					{{ t('Beitrag (optional)') }}
+				</h3>
 				<div class="vbh-form">
 					<label class="vbh-grow">{{ t('Beitragsgruppe') }}
 						<select v-model.number="form.groupId">
@@ -166,18 +172,18 @@
 				</div>
 				<p v-if="assignmentPreview" class="vbh-hint">
 					{{ t('Erste Periode: {from} bis {to} ({months}) · Einzugsbetrag {amount} · voraussichtlicher Einzugstermin {due}', {
-						from: assignmentPreview.periodStart,
-						to: assignmentPreview.periodEnd,
+						from: formatDate(assignmentPreview.periodStart),
+						to: formatDate(assignmentPreview.periodEnd),
 						months: n('%n Monat', '%n Monate', assignmentPreview.months),
 						amount: euro(assignmentPreview.amountCents),
-						due: assignmentPreview.dueDate,
+						due: formatDate(assignmentPreview.dueDate),
 					}) }}
 				</p>
 			</template>
 
 			<template v-else>
 				<p v-if="member.redactedAt" class="vbh-hint vbh-hint--warning">
-					{{ t('Diese Mitgliedsakte wurde am {datum} DSGVO-anonymisiert. Name, Kontaktdaten und personenbezogene Freitexte sind unwiderruflich entfernt; Stammdaten können nicht mehr bearbeitet werden.', { datum: member.redactedAt.slice(0, 10) }) }}
+					{{ t('Diese Mitgliedsakte wurde am {datum} DSGVO-anonymisiert. Name, Kontaktdaten und personenbezogene Freitexte sind unwiderruflich entfernt; Stammdaten können nicht mehr bearbeitet werden.', { datum: formatDate(member.redactedAt) }) }}
 				</p>
 
 				<!-- Mandat-Verwaltung (Issue #100): eigene Komponente, die Akte reicht nur `changed` weiter.
@@ -279,7 +285,7 @@
 						{{ t('Austritt') }}
 					</h3>
 					<div v-if="member.leftAt" class="vbh-form">
-						<span>{{ t('Austritt zum {datum}.', { datum: member.leftAt }) }}</span>
+						<span>{{ t('Austritt zum {datum}.', { datum: formatDate(member.leftAt) }) }}</span>
 						<NcButton
 							variant="tertiary"
 							:disabled="leaving"
@@ -310,7 +316,7 @@
 						{{ t('Anonymisierungsreif: die letzte zugehörige Buchung liegt mehr als 10 Jahre zurück – die Bestätigung ist irreversibel.') }}
 					</p>
 					<p v-else-if="anonymizationStatus && anonymizationStatus.cutoffDate" class="vbh-hint">
-						{{ t('Noch nicht anonymisierungsreif (frühestens ab {datum} – 10 Jahre nach der letzten zugehörigen Buchung).', { datum: anonymizationStatus.cutoffDate }) }}
+						{{ t('Noch nicht anonymisierungsreif (frühestens ab {datum} – 10 Jahre nach der letzten zugehörigen Buchung).', { datum: formatDate(anonymizationStatus.cutoffDate) }) }}
 					</p>
 					<p v-else-if="anonymizationStatus" class="vbh-hint">
 						{{ t('Noch keine zugehörige Buchung – die 10-Jahres-Frist läuft noch nicht.') }}
@@ -365,7 +371,7 @@ import MandatePanel from './MandatePanel.vue'
 import api from '../api.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useContributionGroups } from '../composables/useContributionGroups.js'
-import { errMsg } from '../lib/format.js'
+import { errMsg, formatDate } from '../lib/format.js'
 import { linkedAccountText } from '../lib/memberAccount.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 
@@ -540,6 +546,7 @@ export default {
 
 	methods: {
 		errMsg,
+		formatDate,
 		linkedAccountText,
 
 		/** Springt zum Mandat-Bereich (Aktion „Mandat verwalten“ der Mitgliederliste). NcModal rendert seinen Inhalt erst nach dem Öffnen, deshalb mit kurzem Versatz. */

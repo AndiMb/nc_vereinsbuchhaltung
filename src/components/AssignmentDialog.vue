@@ -91,7 +91,7 @@
 			</div>
 
 			<p v-if="preview" class="vbh-hint">
-				{{ t('Erste Periode: {from} bis {to} ({months}) · Einzugsbetrag {amount}', { from: preview.periodStart, to: preview.periodEnd, months: n('%n Monat', '%n Monate', preview.months), amount: euro(preview.amountCents) }) }}
+				{{ t('Erste Periode: {from} bis {to} ({months}) · Einzugsbetrag {amount}', { from: formatDate(preview.periodStart), to: formatDate(preview.periodEnd), months: n('%n Monat', '%n Monate', preview.months), amount: euro(preview.amountCents) }) }}
 			</p>
 
 			<div class="vbh-modal-actions">
@@ -114,7 +114,7 @@ import AmountInput from './AmountInput.vue'
 import api from '../api.js'
 import { useContributionGroups } from '../composables/useContributionGroups.js'
 import { useMembers } from '../composables/useMembers.js'
-import { errMsg } from '../lib/format.js'
+import { errMsg, formatDate } from '../lib/format.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 
 function emptyForm() {
@@ -204,6 +204,7 @@ export default {
 	},
 
 	methods: {
+		formatDate,
 		euro(cents) { return (cents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }) },
 
 		async createQuickMember() {

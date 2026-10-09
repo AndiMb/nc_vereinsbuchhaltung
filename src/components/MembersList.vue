@@ -89,7 +89,7 @@
 							</span>
 						</td>
 						<td class="nowrap">
-							{{ row.nextDueDate || '–' }}
+							{{ row.nextDueDate ? formatDate(row.nextDueDate) : '–' }}
 						</td>
 						<td>
 							<span v-if="row.fee" class="vbh-status" :class="`vbh-status--${row.fee.statusTone}`">{{ row.fee.statusLabel }}</span>
@@ -165,7 +165,7 @@ import { useClaimOverview } from '../composables/useClaimOverview.js'
 import { useMandates } from '../composables/useMandates.js'
 import { useMemberAkteRequest } from '../composables/useMemberAkteRequest.js'
 import { useMembers } from '../composables/useMembers.js'
-import { errMsg, formatMoney } from '../lib/format.js'
+import { errMsg, formatDate, formatMoney } from '../lib/format.js'
 import { createMandateForMember } from '../lib/mandateCreate.js'
 import { buildMemberRow, nextDueDates } from '../lib/memberRow.js'
 
@@ -288,6 +288,7 @@ export default {
 
 	methods: {
 		errMsg,
+		formatDate,
 		formatMoney,
 		/** Von der Kopfzeile in ContributionsTab.vue per $refs aufgerufen. */
 		openMemberDialog() { this.editingMember = null; this.akteSection = ''; this.memberDialogOpen = true },
@@ -310,9 +311,9 @@ export default {
 			if (member) { this.openMemberAkte(member) } else { showError(this.t('Das Mitglied wurde nicht gefunden – vielleicht wurde es inzwischen gelöscht.')) }
 		},
 
-		/** Was der Verwalter sehen sollte: fehlende Adresse, Lastschrift ohne Mandat. */
+		/** Was der Verwalter sehen sollte: fehlende Adresse, Lastschrift ohne einzugsfähiges Mandat (auch ein Entwurf oder ausgesetztes Mandat zieht nicht ein). */
 		hasProblem(row) {
-			if (row.fee && row.fee.active && row.fee.needsMandate && !row.mandate) { return true }
+			if (row.fee && row.fee.active && row.fee.needsMandate && (!row.mandate || row.mandate.statusTag)) { return true }
 			return !row.email
 		},
 

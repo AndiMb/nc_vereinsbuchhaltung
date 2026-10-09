@@ -75,10 +75,10 @@ class MandateFormRenderer {
 		$rows = [
 			['Mandatsreferenz', $mandate->getMandateReference()],
 			['Kontoinhaber', $mandate->getAccountHolder()],
-			['IBAN', $mandate->getIban() ?? '—'],
+			['IBAN', $mandate->getIban() !== null ? trim(chunk_split($mandate->getIban(), 4, ' ')) : '—'],
 			['Gläubiger-Identifikationsnummer', $creditorId !== '' ? $creditorId : '—'],
 			['Zahlungsart', 'wiederkehrende Zahlung (SEPA-Basislastschrift)'],
-			['Datum', $referenceDate],
+			['Datum', GermanDate::format($referenceDate)],
 		];
 		$html = '<dl class="vbh-mandate-data">';
 		foreach ($rows as [$label, $value]) {

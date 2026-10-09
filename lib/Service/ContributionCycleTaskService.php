@@ -267,7 +267,7 @@ class ContributionCycleTaskService {
 				'Nächster Lauf am %s: %n Forderungen, %s €',
 				count($sameRun),
 				[GermanDate::format($nextDue), number_format($sum / 100, 2, ',', '.')],
-			) . ($problemCount > 0 ? $this->l10n->n(' – %n Störfall', ' – %n Störfälle', $problemCount) : ''),
+			) . ($problemCount > 0 ? ' ' . $this->l10n->n('– %n Störfall', '– %n Störfälle', $problemCount) : ''),
 			'objectType' => null,
 			'objectId' => null,
 		]];

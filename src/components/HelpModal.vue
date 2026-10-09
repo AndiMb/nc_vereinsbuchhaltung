@@ -119,7 +119,7 @@ function buildTopics() {
 			bullets: [
 				t('Optionales Zusatzmodul: wer keine Lastschriften einzieht, kann diesen Bereich ignorieren.'),
 				t('Nextcloud-Einstellungen → Vereinsbuchhaltung → Beiträge & SEPA: Gläubiger-ID, einziehendes Konto und der Schalter für den Reiter „Beiträge" in der Hauptnavigation.'),
-				t('Reiter „Beiträge" → Mitglieder: je Mitglied ein SEPA-Mandat (IBAN, Unterschriftsdatum) und/oder eine Zuweisung zu einer Beitragsgruppe (Monatsbeitrag, Turnus). Der Knopf „Mitglied" führt in drei Schritten durch Stammdaten, Mandat und Beitrag. Aus den Zuweisungen entstehen die Forderungen.'),
+				t('Reiter „Beiträge" → Mitglieder: je Mitglied ein SEPA-Mandat (IBAN, Unterschriftsdatum) und/oder eine Zuweisung zu einer Beitragsgruppe (Monatsbeitrag, Turnus). Der Knopf „Mitglied" nimmt ein Mitglied samt optionalem Mandat und Beitrag in einem Dialog auf. Aus den Zuweisungen entstehen die Forderungen.'),
 				t('Reiter „Beiträge" → Einzug: Vorschau des Einzugstermins prüfen, den Lauf freigeben (dabei entsteht die SEPA-Datei), die Datei bei der Hausbank einreichen und die Einreichung hier bestätigen. Vor dem ersten Einzug mit dem Prüftool der Bank testen.'),
 				t('Die Vorabinfo über Betrag und Termin (Standard: 14 Tage vor dem Einzug) verschickt die App automatisch an Mitglieder mit hinterlegter E-Mail-Adresse.'),
 				t('Einzug → Bankabgleich: Sammelgutschriften, Rücklastschriften und Zahlungseingänge aus dem Kontoauszugs-Import prüfen und verbuchen.'),
