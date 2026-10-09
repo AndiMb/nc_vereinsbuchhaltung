@@ -1,0 +1,5 @@
+﻿Name;Mitgliedsnummer;E-Mail;IBAN;BIC;Kontoinhaber;Mandat am;Mandatsreferenz;Beitragsgruppe;Betrag;Frequenz;Start
+Anna Beispiel;1001;anna.beispiel@example.org;DE02 1203 0000 0000 2020 51;;;15.09.2026;ALT-0001;Vollmitglied;15,00;monatlich;01.01.2027
+Ben Muster;1002;ben.muster@example.org;DE89 3704 0044 0532 0130 00;;Petra Muster;01.10.2026;;Jugend;5,00;jährlich;01.01.2027
+Clara Ohne-Mandat;1003;clara@example.org;;;;;;Ermäßigt;7,50;vierteljährlich;01.01.2027
+Musikhaus Beispiel GmbH;1004;info@musikhaus.example;;;;;;;;;
