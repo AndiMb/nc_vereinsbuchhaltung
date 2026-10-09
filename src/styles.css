@@ -620,6 +620,9 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 /* Knopf unter dem Text einer NcNoteCard. */
 .vbh-notecard-action { margin-block-start: 8px; }
 
+/* Aufzählung in einer Hinweiskarte (z. B. was ein Mitglied am Löschen hindert): Punkte statt Fließtext. */
+.vbh-blockers { list-style: disc; margin: 4px 0 8px; padding-inline-start: 20px; }
+
 /* Zähler im Filter-Chip: leiser als die Beschriftung, im aktiven Chip in dessen Textfarbe. */
 .vbh-chip-count { margin-inline-start: 6px; opacity: 0.7; font-variant-numeric: tabular-nums; }
 

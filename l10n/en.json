@@ -2501,10 +2501,6 @@
         "Dieses Mitglied ist anonymisiert; Stammdaten können nicht mehr bearbeitet werden.": "This member is anonymized; master data can no longer be edited.",
         "Der Nachname darf nicht leer sein.": "The last name must not be empty.",
         "Der Name darf nicht leer sein.": "The name must not be empty.",
-        "Es gibt noch ein aktives SEPA-Mandat für dieses Mitglied.": "There is still an active SEPA mandate for this member.",
-        "Es gibt noch ein SEPA-Mandat für dieses Mitglied (Entwurf, ausgesetzt oder beendet).": "There is still a SEPA mandate for this member (draft, suspended or ended).",
-        "Es gibt noch eine Zuweisung zu einer Beitragsgruppe für dieses Mitglied.": "There is still an assignment to a contribution group for this member.",
-        "Es gibt noch eine Forderung für dieses Mitglied.": "There is still a claim for this member.",
         "Ungültiges Austrittsdatum (erwartet JJJJ-MM-TT).": "Invalid leaving date (expected YYYY-MM-DD).",
         "Dieses Nextcloud-Konto gibt es nicht: %s": "This Nextcloud account does not exist: %s",
         "Dieses Nextcloud-Konto ist bereits mit einem anderen Mitglied verknüpft: %s": "This Nextcloud account is already linked to another member: %s",
@@ -2685,7 +2681,15 @@
         "Beitrag zuweisen": "Assign fee",
         "Stammdaten, Konto, Austritt": "Master data, account, leaving",
         "Sperren, IBAN ändern, widerrufen": "Suspend, change IBAN, revoke",
-        "Gruppe, Betrag und Turnus": "Group, amount and interval"
+        "Gruppe, Betrag und Turnus": "Group, amount and interval",
+        "Ein aktives SEPA-Mandat": "An active SEPA mandate",
+        "Ein SEPA-Mandat (Entwurf, ausgesetzt oder beendet)": "A SEPA mandate (draft, suspended or ended)",
+        "Eine Zuweisung zu einer Beitragsgruppe": "An assignment to a contribution group",
+        "Eine Forderung": "A claim",
+        "Das Mitglied lässt sich nicht löschen, es hängt noch daran: %s.": "The member cannot be deleted, the following still depend on it: %s.",
+        "Löschen nicht möglich": "Cannot delete",
+        "Es hängt noch am Mitglied:": "Still attached to the member:",
+        "Sie bleiben als Nachweis erhalten. Für Datenschutzfälle gibt es die Anonymisierung.": "They are kept as evidence. For data-protection cases there is anonymisation."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

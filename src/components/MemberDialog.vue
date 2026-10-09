@@ -340,9 +340,16 @@
 					<h3 class="vbh-modal-subtitle">
 						{{ t('Löschen') }}
 					</h3>
-					<p v-if="member.blockingReasons && member.blockingReasons.length" class="vbh-hint vbh-hint--warning">
-						{{ member.blockingReasons.join(' ') }}
-					</p>
+					<!-- Was am Mitglied hängt, als Liste statt als Fließtext; Mandate, Zuweisungen und Forderungen bleiben als Nachweis erhalten. -->
+					<NcNoteCard v-if="member.blockingReasons && member.blockingReasons.length" type="warning" :heading="t('Löschen nicht möglich')">
+						<p>{{ t('Es hängt noch am Mitglied:') }}</p>
+						<ul class="vbh-blockers">
+							<li v-for="reason in member.blockingReasons" :key="reason">
+								{{ reason }}
+							</li>
+						</ul>
+						<p>{{ t('Sie bleiben als Nachweis erhalten. Für Datenschutzfälle gibt es die Anonymisierung.') }}</p>
+					</NcNoteCard>
 					<NcButton
 						v-else
 						variant="tertiary"
@@ -369,7 +376,7 @@
 <script>
 import { mdiOpenInNew } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { NcButton, NcIconSvgWrapper, NcModal } from '@nextcloud/vue'
+import { NcButton, NcIconSvgWrapper, NcModal, NcNoteCard } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import AmountInput from './AmountInput.vue'
 import CountrySelect from './CountrySelect.vue'
@@ -435,7 +442,7 @@ function emptyForm(member, defaultFeeAmount) {
  */
 export default {
 	name: 'MemberDialog',
-	components: { NcModal, NcButton, NcIconSvgWrapper, AmountInput, CountrySelect, MandatePanel },
+	components: { NcModal, NcButton, NcIconSvgWrapper, NcNoteCard, AmountInput, CountrySelect, MandatePanel },
 	props: {
 		show: { type: Boolean, default: false },
 		saving: { type: Boolean, default: false },

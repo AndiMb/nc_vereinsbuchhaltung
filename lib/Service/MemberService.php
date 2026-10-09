@@ -134,7 +134,7 @@ class MemberService {
 		$member = $this->mapper->find($id);
 		$reasons = $this->blockingReasons($id);
 		if ($reasons !== []) {
-			throw new \InvalidArgumentException(implode(' ', $reasons));
+			throw new \InvalidArgumentException($this->l10n->t('Das Mitglied lässt sich nicht löschen, es hängt noch daran: %s.', [implode(', ', $reasons)]));
 		}
 		$this->mapper->delete($member);
 	}
@@ -191,15 +191,15 @@ class MemberService {
 		foreach ($memberIds as $id) {
 			$reasons = [];
 			if (isset($activeMandateIds[$id])) {
-				$reasons[] = $this->l10n->t('Es gibt noch ein aktives SEPA-Mandat für dieses Mitglied.');
+				$reasons[] = $this->l10n->t('Ein aktives SEPA-Mandat');
 			} elseif (isset($anyMandateIds[$id])) {
-				$reasons[] = $this->l10n->t('Es gibt noch ein SEPA-Mandat für dieses Mitglied (Entwurf, ausgesetzt oder beendet).');
+				$reasons[] = $this->l10n->t('Ein SEPA-Mandat (Entwurf, ausgesetzt oder beendet)');
 			}
 			if (isset($anyAssignmentIds[$id])) {
-				$reasons[] = $this->l10n->t('Es gibt noch eine Zuweisung zu einer Beitragsgruppe für dieses Mitglied.');
+				$reasons[] = $this->l10n->t('Eine Zuweisung zu einer Beitragsgruppe');
 			}
 			if (isset($anyClaimIds[$id])) {
-				$reasons[] = $this->l10n->t('Es gibt noch eine Forderung für dieses Mitglied.');
+				$reasons[] = $this->l10n->t('Eine Forderung');
 			}
 			$result[$id] = $reasons;
 		}
