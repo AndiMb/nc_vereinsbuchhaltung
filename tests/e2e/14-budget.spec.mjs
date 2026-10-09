@@ -83,4 +83,34 @@ test.describe('Finanzplan', () => {
 		await visibleSection(page).getByRole('button', { name: 'Finanzplan', exact: true }).click()
 		await expect(visibleSection(page).locator('.vbh-planinput').first()).toHaveValue(/^50\.000,50\s*€$/)
 	})
+
+	// Ein "&" im Kontonamen stand in den Beschriftungen des Finanzplans als
+	// "&amp;" ("Notiz zu 5930 Anschaffung &amp; Wartung Technik"):
+	// @nextcloud/l10n kodierte den Platzhalterwert als HTML, und Vue escapte
+	// im Template ein zweites Mal. Geprueft werden beide Stellen, an denen
+	// der Kontoname ueber t() in eine Beschriftung laeuft.
+	test('Sonderzeichen im Kontonamen bleiben in den Beschriftungen lesbar', async ({ page, request }) => {
+		const name = 'Anschaffung & Wartung Technik'
+		// Idempotent: nach einem Worker-Neustart laeuft beforeAll erneut, ohne
+		// Neustart waere das Konto aus einem frueheren Durchlauf noch da.
+		const vorhanden = (await api.listAccounts(request)).some((a) => a.number === '5930')
+		if (!vorhanden) {
+			await api.createAccount(request, { number: '5930', name, type: 'expense', category: 'Ausgaben' })
+		}
+
+		await openApp(page, USERS.verwalter)
+		await switchTab(page, 'Berichte')
+		await visibleSection(page).getByRole('button', { name: 'Finanzplan', exact: true }).click()
+
+		// Nur sichtbare Zeilen: die Saldenliste der (per v-show versteckten)
+		// Auswertung fuehrt dasselbe Konto ohne Planwert-Feld und kaeme sonst
+		// im DOM zuerst.
+		const zeile = visibleSection(page).locator('tr:visible', { hasText: name }).first()
+		await expect(zeile.locator('.vbh-planinput')).toHaveAttribute('aria-label', `Planwert für 5930 ${name}`)
+
+		await zeile.getByRole('button', { name: 'Notiz zur Planzahl hinzufügen' }).click()
+		const label = visibleSection(page).locator('.vbh-note-row .vbh-note-label').first()
+		await expect(label).toContainText(`Notiz zu 5930 ${name}`)
+		await expect(label).not.toContainText('&amp;')
+	})
 })

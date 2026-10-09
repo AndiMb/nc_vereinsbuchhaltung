@@ -41,6 +41,10 @@ verwenden, z. B. `**Neu:**`.
   Regeln, Zuordnen, Offene Posten, Aufteilen und Umbuchen ließ sich eine
   Kategorie-Überschrift auswählen und leerte dabei nur das Feld. Die
   Überschriften sind jetzt gesperrt.
+- **„&" im Kontonamen stand im Finanzplan als `&amp;`:** Die Beschriftung des
+  Notizfelds und des Planwert-Felds zeigte HTML-kodierte Sonderzeichen
+  („Notiz zu 5930 Anschaffung `&amp;` Wartung Technik"). Übersetzte Texte mit
+  Platzhaltern werden jetzt nicht mehr doppelt kodiert.
 
 ## [0.34.4] – 2026-09-29
 
