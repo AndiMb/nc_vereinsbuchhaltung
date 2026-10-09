@@ -1354,12 +1354,14 @@ im Reiter „Beiträge" → Mitglieder den Knopf **„Liste einlesen"**: eine
 **CSV-Datei**, eine Zeile je Mitglied.
 
 Erwartet werden diese Spalten – **Reihenfolge und Schreibweise sind egal**, und
-zusätzliche Spalten (Eintrittsdatum, Stimmlage …) werden einfach übergangen:
+zusätzliche Spalten (Stimmlage …) werden einfach übergangen:
 
 | Spalte | Beispiel | Pflicht? |
 |---|---|---|
-| Name *oder* Konto | `Katrin Brunner` bzw. `k.brunner` | ja |
+| Name *oder* Konto *oder* Vorname + Nachname *oder* Organisation | `Katrin Brunner`, `k.brunner`, `Katrin` + `Brunner`, `Musikhaus Beispiel GmbH` | ja – eines davon; bei Vorname/Nachname ist der Nachname Pflicht |
 | Mitgliedsnummer | `0815` | nein, aber harter Dublettenschlüssel (siehe unten) |
+| Eintritt | `01.03.2019` | nein – darf in der Vergangenheit liegen, ohne Angabe gilt der Importtag |
+| Straße, PLZ, Ort, Telefon | `Musterweg 12`, `12345`, `Musterstadt`, `0123 456789` | nein |
 | E-Mail | `k.brunner@example.org` | nein, aber dringend empfohlen |
 | IBAN | `DE02 1203 0000 0000 2020 51` | nur wenn eingezogen werden soll |
 | BIC | meist leer | nein |
@@ -1375,11 +1377,19 @@ Eine Zeile ganz ohne IBAN und ohne Betrag ist gültig – dann entsteht nur das
 Mitglied, Mandat und Beitrag lassen sich jederzeit über die Personenakte
 nachtragen.
 
+Den Namen liest die App so: Ist **Organisation** gefüllt, entsteht eine
+Organisation; sonst eine Person mit genau den Feldern **Vorname**/**Nachname**.
+Steht nur **Name** da, wird er am ersten Leerzeichen geteilt – ein Name ohne
+Leerzeichen oder mit Rechtsform (GmbH, e. V., eG, Stiftung …) gilt als
+Organisation. Die Vorschau kennzeichnet Organisationen; „Nachname" allein ohne
+Spalte „Vorname" wirkt wie „Name".
+
 Datumsangaben dürfen `15.01.2026` oder `2026-01-15` lauten, Beträge `42,50`
 oder `42.50`. Eine **Vorlage** zum Ausfüllen können Sie direkt herunterladen.
 
 Englische Spaltenüberschriften versteht die App ebenfalls (`Name`, `Email`,
-`IBAN`, `BIC`, `Mandate`, `Amount`, `Frequency`, `Start date`) – praktisch,
+`IBAN`, `BIC`, `Mandate`, `Amount`, `Frequency`, `Start date`, `First name`,
+`Last name`, `Organization`, `Street`, `ZIP`, `City`, `Phone`, `Joined`) – praktisch,
 wenn die Liste aus einem englischsprachigen Programm kommt. Bei der Frequenz
 gilt dasselbe: `monthly`, `quarterly`, `semiannual` und `yearly` werden neben
 den deutschen Wörtern erkannt.
@@ -1393,6 +1403,8 @@ Der Ablauf ist zweistufig: **„Prüfen"** ändert nichts und zeigt Ihnen für j
 Zeile, was entstehen würde und was nicht stimmt. Erst danach übernehmen Sie.
 Fehlerhafte Zeilen werden übersprungen und einzeln benannt – ein Tippfehler in
 Zeile 143 macht die 142 Zeilen davor nicht wertlos.
+Das Prüfen meldet auch eine ungültige IBAN-Form, einen Beitragsbeginn in der
+Vergangenheit und eine Mitgliedsnummer, die schon weiter oben in der Datei steht.
 
 **Der Import legt nur an, er gleicht nie ab:** eine Zeile, deren
 Mitgliedsnummer oder Nextcloud-Konto bereits existiert, wird komplett
@@ -1400,7 +1412,7 @@ Mitgliedsnummer oder Nextcloud-Konto bereits existiert, wird komplett
 denselben Namen wie ein bereits vorhandenes Mitglied, warnt die App nur –
 Namen sind in Vereinen zu oft mehrdeutig, um sie als Dublettenschlüssel zu
 verwenden. Eine Zeile ohne Mailadresse landet automatisch bei der Zahlungsart
-„Überweisung", nicht bei Lastschrift.
+„Überweisung", nicht bei Lastschrift (bei Zeilen mit IBAN warnt die Vorschau davor).
 
 **Jedes per Import angelegte Mandat wird sofort aktiv.** Sobald mindestens
 eine Zeile ein Mandat anlegen würde, verlangt die App vor dem Übernehmen die

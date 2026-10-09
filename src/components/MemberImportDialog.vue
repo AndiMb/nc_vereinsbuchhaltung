@@ -11,7 +11,7 @@
 				{{ t('Mitgliederliste einlesen') }}
 			</h2>
 			<p class="vbh-hint">
-				{{ t('Für die erstmalige Aufnahme vieler Mitglieder: eine CSV-Datei mit den Spalten Name, E-Mail, IBAN, BIC, Kontoinhaber, Mandat am, Mandatsreferenz, Mitgliedsnummer, Beitragsgruppe, Betrag, Frequenz und Start. Die Reihenfolge und die Schreibweise der Überschriften sind egal, zusätzliche Spalten werden übergangen. Jede Zeile legt nur an – ein bereits bestehendes Mitglied (Mitgliedsnummer/Nextcloud-Konto) wird nie geändert, sondern übersprungen. Vor dem Anlegen sehen Sie zuerst, was entstehen würde.') }}
+				{{ t('Für die erstmalige Aufnahme vieler Mitglieder: eine CSV-Datei mit den Spalten – Name: Vorname und Nachname (oder Organisation, oder nur Name); Stammdaten: Mitgliedsnummer, Eintritt, Straße, PLZ, Ort, Telefon, E-Mail; Lastschrift: IBAN, BIC, Kontoinhaber, Mandat am, Mandatsreferenz; Beitrag: Beitragsgruppe, Betrag, Frequenz, Start. Reihenfolge und Schreibweise der Überschriften sind egal, weitere Spalten werden übergangen; ein reiner Name wird am ersten Leerzeichen geteilt und gilt mit einer Rechtsform wie GmbH oder e. V. als Organisation, ein leerer Eintritt als heute, und ein Start darf nicht in der Vergangenheit liegen. Jede Zeile legt nur an – ein bereits bestehendes Mitglied (Mitgliedsnummer/Nextcloud-Konto) wird nie geändert, sondern übersprungen; vor dem Anlegen sehen Sie zuerst, was entstehen würde.') }}
 			</p>
 			<p class="vbh-hint vbh-hint--info">
 				{{ t('„Betrag" ist der Monatsbeitrag der Zuweisung, unabhängig vom Turnus – „Frequenz" bestimmt nur, wie oft eingezogen wird.') }}
@@ -37,7 +37,7 @@
 
 			<template v-if="importPreview">
 				<p class="vbh-hint" :class="importSummary.failed ? 'vbh-hint--warning' : 'vbh-hint--info'">
-					{{ t('{ok} von {total} Zeilen sind in Ordnung: {mandate} Mandate und {beitraege} Zuweisungen würden angelegt. {uebersprungen} bereits bestehende Zeilen werden übersprungen, {fehler} sind fehlerhaft.', {
+					{{ t('{ok} von {total} Zeilen sind in Ordnung: {mandate} Mandate und {beitraege} Zuweisungen würden angelegt. {uebersprungen} bereits vorhandene oder doppelte Zeilen werden übersprungen, {fehler} sind fehlerhaft.', {
 						ok: importSummary.ok,
 						total: importPreview.length,
 						mandate: importSummary.mandates,
@@ -45,7 +45,7 @@
 						uebersprungen: importSummary.skipped,
 						fehler: importSummary.failed,
 					}) }}
-					<span v-if="importSummary.warnings"> {{ n('%n Zeile mit Warnung (Namensgleichheit/Beitragsgruppe) – wird trotzdem angelegt.', '%n Zeilen mit Warnung (Namensgleichheit/Beitragsgruppe) – werden trotzdem angelegt.', importSummary.warnings) }}</span>
+					<span v-if="importSummary.warnings"> {{ n('%n Zeile mit Warnung – wird trotzdem angelegt.', '%n Zeilen mit Warnung – werden trotzdem angelegt.', importSummary.warnings) }}</span>
 				</p>
 
 				<div v-if="importSummary.mandates > 0" class="vbh-form">
@@ -60,7 +60,7 @@
 						<thead>
 							<tr>
 								<th>{{ t('Zeile') }}</th>
-								<th>{{ t('Zahler') }}</th>
+								<th>{{ t('Name') }}</th>
 								<th>{{ t('IBAN') }}</th>
 								<th>{{ t('Beitragsgruppe') }}</th>
 								<th class="num">
@@ -72,7 +72,10 @@
 						<tbody>
 							<tr v-for="row in importPreview" :key="row.line">
 								<td>{{ row.line }}</td>
-								<td>{{ row.name || '–' }}</td>
+								<td>
+									{{ row.name || '–' }}
+									<span v-if="row.memberType === 'organisation' && !row.errors.length && !row.skipped" class="vbh-typetag">{{ t('Organisation') }}</span>
+								</td>
 								<td class="nowrap">
 									{{ row.iban || '–' }}
 								</td>
@@ -118,6 +121,7 @@ import { NcButton, NcModal } from '@nextcloud/vue'
 import api from '../api.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { errMsg, formatMoney } from '../lib/format.js'
+import { memberImportTemplateUrl } from '../lib/memberImportTemplate.js'
 
 function emptySummary() {
 	return { ok: 0, skipped: 0, failed: 0, mandates: 0, assignments: 0, warnings: 0 }
@@ -162,12 +166,7 @@ export default {
 	computed: {
 		/** Vorlage als Daten-URL: kein zusätzlicher Endpunkt nötig. */
 		beispielCsv() {
-			const zeilen = [
-				'Name;E-Mail;IBAN;BIC;Mandat am;Mandatsreferenz;Mitgliedsnummer;Beitragsgruppe;Betrag;Frequenz;Start',
-				'Katrin Brunner;k.brunner@example.org;DE02120300000000202051;;15.01.2026;ALT-0001;0815;Chormitglieder;8,00;monatlich;01.02.2026',
-				'Hans Mertens;h.mertens@example.org;DE02120300000000202051;;15.01.2026;;0816;Chormitglieder;10,00;jährlich;01.01.2026',
-			].join('\r\n')
-			return 'data:text/csv;charset=utf-8,' + encodeURIComponent('﻿' + zeilen)
+			return memberImportTemplateUrl()
 		},
 
 		canRunImport() {
@@ -232,7 +231,7 @@ export default {
 		async runImport() {
 			if (!await this.askConfirm(
 				this.t('Mitglieder übernehmen'),
-				this.t('{ok} Zeilen werden jetzt angelegt ({mandate} Mandate, {beitraege} Zuweisungen). {uebersprungen} bereits bestehende Zeilen werden übersprungen, {fehler} fehlerhafte Zeilen bleiben unberührt.', {
+				this.t('{ok} Zeilen werden jetzt angelegt ({mandate} Mandate, {beitraege} Zuweisungen). {uebersprungen} bereits vorhandene oder doppelte Zeilen werden übersprungen, {fehler} fehlerhafte Zeilen bleiben unberührt.', {
 					ok: this.importSummary.ok,
 					mandate: this.importSummary.mandates,
 					beitraege: this.importSummary.assignments,
