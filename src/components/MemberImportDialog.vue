@@ -286,10 +286,10 @@ export default {
 		async runImport() {
 			if (!await this.askConfirm(
 				this.t('Mitglieder übernehmen'),
-				this.t('{ok} Zeilen werden jetzt angelegt ({mandate} Mandate, {beitraege} Zuweisungen). {uebersprungen} bereits vorhandene oder doppelte Zeilen werden übersprungen, {fehler} fehlerhafte Zeilen bleiben unberührt.', {
-					ok: this.importSummary.ok,
-					mandate: this.importSummary.mandates,
-					beitraege: this.importSummary.assignments,
+				this.t('Jetzt angelegt werden {zeilen} ({mandate} und {beitraege}). Bereits vorhandene oder doppelte Zeilen ({uebersprungen}) werden übersprungen, fehlerhafte ({fehler}) bleiben unberührt.', {
+					zeilen: this.n('%n Zeile', '%n Zeilen', this.importSummary.ok),
+					mandate: this.n('%n Mandat', '%n Mandate', this.importSummary.mandates),
+					beitraege: this.n('%n Zuweisung', '%n Zuweisungen', this.importSummary.assignments),
 					uebersprungen: this.importSummary.skipped,
 					fehler: this.importSummary.failed,
 				}),

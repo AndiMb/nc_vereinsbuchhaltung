@@ -19,6 +19,8 @@ const IBAN = 'DE02120300000000202051'
 const today = () => new Date().toISOString().slice(0, 10)
 /** Ein Jahr in der Zukunft – eine Zuweisung darf nicht in der Vergangenheit beginnen, wohl aber später. */
 const nextYear = () => new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString().slice(0, 10)
+// Die Oberfläche zeigt Daten als TT.MM.JJJJ.
+const german = (isoDate) => isoDate.split('-').reverse().join('.')
 
 async function enableMembership(request) {
 	const bank = await api.accountByNumber(request, BANK_ACCOUNT)
@@ -138,7 +140,7 @@ test.describe('Mitgliederliste zeigt Mandat und Beitrag des neuen Modells', () =
 		// Künftig beginnende Zuweisung bleibt sichtbar, samt Startdatum.
 		const dieter = memberRow(page, 'Dieter Zukunft')
 		await expect(dieter).toContainText('120,00')
-		await expect(dieter).toContainText(`ab ${nextYear()}`)
+		await expect(dieter).toContainText(`ab ${german(nextYear())}`)
 
 		// Ohne alles bleibt es bei „kein Mandat" und Strichen.
 		const frieda = memberRow(page, 'Frieda Nichts')
@@ -248,7 +250,7 @@ test.describe('Mitgliederliste auf dem Handy', () => {
 		await expect(anna).not.toContainText('kein Mandat')
 		await expect(anna).toContainText('120,00')
 		await expect(anna).toContainText('jährlich')
-		await expect(anna).toContainText(`fällig ${dueDate}`)
+		await expect(anna).toContainText(`fällig ${german(dueDate)}`)
 		await expect(anna.getByRole('button', { name: 'Bearbeiten', exact: true })).toHaveCount(0)
 		await expect(anna.getByRole('button', { name: 'Zuweisung verwalten' })).toBeVisible()
 

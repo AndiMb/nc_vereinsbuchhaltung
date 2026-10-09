@@ -1041,7 +1041,11 @@
         "nur Mandat": "mandate only",
         "z. B. Katrin Brunner": "e.g. Katrin Brunner",
         "{gezeigt} von {gesamt} Einträgen · {mitMandat} mit Mandat · Beitragsaufkommen {summe} im Jahr": "{gezeigt} of {gesamt} entries · {mitMandat} with a mandate · fee income {summe} per year",
-        "{ok} Zeilen werden jetzt angelegt ({mandate} Mandate, {beitraege} Beiträge). {fehler} fehlerhafte Zeilen werden übersprungen.": "{ok} lines will now be created ({mandate} mandates, {beitraege} fees). {fehler} faulty lines will be skipped.",
+        "Jetzt angelegt werden {zeilen} ({mandate} und {beitraege}). Bereits vorhandene oder doppelte Zeilen ({uebersprungen}) werden übersprungen, fehlerhafte ({fehler}) bleiben unberührt.": "{zeilen} will be created now ({mandate} and {beitraege}). Existing or duplicate rows ({uebersprungen}) are skipped, faulty ones ({fehler}) stay untouched.",
+        "_%n Zeile_::_%n Zeilen_": [
+            "%n row",
+            "%n rows"
+        ],
         "{ok} von {total} Zeilen sind in Ordnung: {mandate} Mandate und {beitraege} Beiträge würden angelegt. {fehler} Zeilen werden übersprungen.": "{ok} of {total} lines are fine: {mandate} mandates and {beitraege} fees would be created. {fehler} lines will be skipped.",
         "_%n Zeile übernehmen_::_%n Zeilen übernehmen_": [
             "Import %n line",
@@ -1969,7 +1973,6 @@
         "Beitragsgruppe, Betrag (Monatsbeitrag, unabhängig vom Turnus), Frequenz (wie oft eingezogen wird), Start (nicht in der Vergangenheit)": "Contribution group, amount (monthly contribution, independent of the interval), frequency (how often it is collected), start (not in the past)",
         "Reihenfolge und Schreibweise der Überschriften sind egal, weitere Spalten werden übergangen.": "Order and spelling of the headings do not matter; further columns are ignored.",
         "Jeder Kreis ist ein Einzugstermin – anklicken, um darunter seine Phasen und die Vorschau zu sehen.": "Each circle is a collection date – click it to see its phases and the preview below.",
-        "{ok} Zeilen werden jetzt angelegt ({mandate} Mandate, {beitraege} Zuweisungen). {uebersprungen} bereits vorhandene oder doppelte Zeilen werden übersprungen, {fehler} fehlerhafte Zeilen bleiben unberührt.": "{ok} rows are being created now ({mandate} mandates, {beitraege} assignments). {uebersprungen} existing or duplicate rows are skipped, {fehler} faulty rows are left untouched.",
         "Ein Mitglied wird unabhängig von einer Bankverbindung geführt – SEPA-Mandat und Beitrag sind optionale Ergänzungen, die sich jederzeit über „Aufnehmen\" bzw. die Akte nachtragen lassen.": "A member is managed independently of bank details – the SEPA mandate and contribution are optional additions that can be added at any time via “Add member” or the member record.",
         "Name, IBAN, Mitgliedsnummer oder E-Mail": "Name, IBAN, member number or email",
         "{gezeigt} von {gesamt} Mitgliedern · {mitMandat} mit Mandat · Beitragsaufkommen {summe} im Jahr": "{gezeigt} of {gesamt} members · {mitMandat} with mandate · annual contribution volume {summe}",
