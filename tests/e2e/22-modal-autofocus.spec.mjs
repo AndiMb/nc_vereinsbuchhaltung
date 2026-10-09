@@ -5,8 +5,14 @@ import { api, openApp, switchTab, visibleSection, BANK_ACCOUNT, BANK_ACCOUNT_IBA
 // focus-trap aktiviert sich erst nach der Öffnen-Animation und kann den Fokus
 // sonst dauerhaft auf der Modal-Maske hängen lassen. Dieselbe Reparatur
 // (Feld beim Öffnen sofort fokussieren) sitzt jetzt auch in den anderen
-// Dialogen mit einem klaren ersten Feld - hier geprüft: sofort tippen, ohne
-// vorher zu klicken.
+// Dialogen mit einem klaren ersten Feld - hier geprüft: tippen, ohne vorher
+// zu klicken.
+//
+// Vor dem Tippen wird der Fokus selbst geprüft (toBeFocused): der Dialog ist
+// einen Tick früher sichtbar als das Feld fokussiert, und Zeichen, die in
+// dieser Lücke ankommen, laufen ins Leere. Der Test meldete dann einen
+// leeren Wert statt des eigentlichen Befunds "Fokus liegt nicht im Feld" -
+// und das nur gelegentlich, je nachdem wer schneller war.
 
 const MEMBER = 'Sofort Mitglied'
 const MEMBER_BANK = 'Sofort Bankwechsel'
@@ -22,10 +28,29 @@ async function enableMembership(request) {
 	})
 }
 
+/**
+ * Beiträge und Mandate der Testmitglieder entfernen. resetBook() lässt sie
+ * stehen - sie gehören nicht zum Buchungsbestand. Nach einem fehlgeschlagenen
+ * Versuch startet Playwright den Worker neu, beforeAll läuft erneut, und
+ * ohne Aufräumen stünde "Sofort Bankwechsel" dann zweimal in der
+ * Mitgliederliste: die Zeile wäre nicht mehr eindeutig, und kein Retry
+ * könnte je bestehen.
+ */
+async function removeTestMembers(request) {
+	const isTestMember = (m) => [MEMBER, MEMBER_BANK].includes(m.memberLabel)
+	for (const fee of (await api.getJson(request, '/sepa/fees')).filter(isTestMember)) {
+		await api.raw(request, 'DELETE', `/sepa/fees/${fee.id}`, { expectOk: true })
+	}
+	for (const mandate of (await api.getJson(request, '/sepa/mandates')).filter(isTestMember)) {
+		await api.raw(request, 'DELETE', `/sepa/mandates/${mandate.id}`, { expectOk: true })
+	}
+}
+
 test.describe('Sofort-Fokus beim Öffnen von NcModal-Dialogen', () => {
 	test.beforeAll(async ({ request }) => {
 		await api.resetBook(request)
 		await api.seedDefaultAccounts(request)
+		await removeTestMembers(request)
 	})
 
 	test('"Neues Konto": das Nummernfeld ist direkt nach dem Öffnen bedienbar', async ({ page }) => {
@@ -35,6 +60,7 @@ test.describe('Sofort-Fokus beim Öffnen von NcModal-Dialogen', () => {
 
 		const dialog = page.getByRole('dialog', { name: 'Neues Konto' })
 		await expect(dialog).toBeVisible()
+		await expect(dialog.getByLabel('Nummer')).toBeFocused()
 		await page.keyboard.type('9876')
 		await expect(dialog.getByLabel('Nummer')).toHaveValue('9876')
 	})
@@ -48,8 +74,10 @@ test.describe('Sofort-Fokus beim Öffnen von NcModal-Dialogen', () => {
 
 		const dialog = page.getByRole('dialog', { name: 'Mitglied aufnehmen' })
 		await expect(dialog).toBeVisible()
+		const nameField = dialog.getByRole('textbox', { name: 'Name' })
+		await expect(nameField).toBeFocused()
 		await page.keyboard.type(MEMBER)
-		await expect(dialog.getByRole('textbox', { name: 'Name' })).toHaveValue(MEMBER)
+		await expect(nameField).toHaveValue(MEMBER)
 
 		await dialog.getByLabel('IBAN', { exact: true }).fill('DE02120300000000202051')
 		await dialog.getByLabel('Mandat unterschrieben am').fill('2026-01-15')
@@ -80,7 +108,9 @@ test.describe('Sofort-Fokus beim Öffnen von NcModal-Dialogen', () => {
 
 		const dialog = page.getByRole('dialog', { name: 'Bankverbindung wechseln' })
 		await expect(dialog).toBeVisible()
+		const ibanField = dialog.getByLabel('Neue IBAN')
+		await expect(ibanField).toBeFocused()
 		await page.keyboard.type('DE33100000000000009911')
-		await expect(dialog.getByLabel('Neue IBAN')).toHaveValue('DE33100000000000009911')
+		await expect(ibanField).toHaveValue('DE33100000000000009911')
 	})
 })
