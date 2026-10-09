@@ -46,9 +46,15 @@ jedem Testlauf zurück, die Tests selbst starten also immer vom selben Stand.
 
 ## Spielregeln für neue Tests
 
-- **Ein Worker, keine Parallelität** (playwright.config.mjs): alle Nutzer
-  teilen sich EINEN Buchungsbestand (`Application::BOOK`). Parallele Specs
-  würden sich gegenseitig die Daten unter den Füßen wegändern.
+- **Ein Worker, keine Parallelität auf einem Server** (playwright.config.mjs):
+  alle Nutzer teilen sich EINEN Buchungsbestand (`Application::BOOK`).
+  Parallele Specs auf derselben Instanz würden sich gegenseitig die Daten
+  unter den Füßen wegändern. Schnell wird es in der CI trotzdem: dort läuft
+  die Suite in vier Teilen (`playwright test --shard=N/4`) auf getrennten
+  Runnern, jeder mit eigener Docker-Nextcloud und eigenem Bestand. Verteilt
+  wird nach Spec-Dateien, deshalb darf sich keine Datei auf eine andere
+  verlassen (siehe die nächste Regel). Lokal gilt weiter: ein Server, ein
+  Lauf; einen Teil nachspielen geht mit `npx playwright test --shard=2/4`.
 - **Jede Spec-Datei setzt sich ihren Bestand selbst auf**: `api.resetBook()`
   im `beforeAll`, dann eigenes Seeding über die API-Helfer aus
   `fixtures/nextcloud.mjs`. Geprüft wird in der Oberfläche, aufgebaut über

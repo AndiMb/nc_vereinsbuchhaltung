@@ -151,9 +151,20 @@ jobs:
       - name: Formatpruefung
         run: .php-cs-fixer/vendor/bin/php-cs-fixer fix --dry-run --diff
 
-  e2e:
-    name: E2E (Playwright gegen Docker-Nextcloud)
+  e2e-shard:
+    # Die Suite laeuft in vier Teilen gleichzeitig: Jeder Teil bekommt einen
+    # EIGENEN Runner mit eigener Docker-Nextcloud und eigenem "init"-Snapshot,
+    # also auch einen eigenen Buchungsbestand. Innerhalb eines Runners bleibt
+    # es bei einem Worker (siehe playwright.config.mjs); verteilt wird nach
+    # Spec-Dateien. Jede Spec setzt ihren Bestand selbst auf und verlaesst sich
+    # nicht auf Vorgaenger (tests/e2e/README.md), deshalb ist die Aufteilung
+    # sicher.
+    name: E2E-Teil ${{ matrix.shard }} von 4
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v7
 
@@ -206,16 +217,32 @@ jobs:
         # "init"-Snapshot angelegt ist - ein eigener Warteschritt entfaellt.
         run: npm run test:e2e:server
 
-      - name: E2E-Tests
-        run: npm run test:e2e:run
+      - name: E2E-Tests (Teil ${{ matrix.shard }} von 4)
+        run: npx playwright test --shard=${{ matrix.shard }}/4
 
       - name: Testbericht hochladen
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: playwright-report/
           retention-days: 30
+
+  e2e:
+    # Sammelstelle mit dem bisherigen Namen: die Pflicht-Pruefung des Branch-
+    # Schutzes (und alles, was auf "E2E (Playwright gegen Docker-Nextcloud)"
+    # wartet) bleibt unveraendert, egal in wie viele Teile die Suite zerfaellt.
+    name: E2E (Playwright gegen Docker-Nextcloud)
+    needs: e2e-shard
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Alle Teile muessen gruen sein
+        run: |
+          if [ "${{ needs.e2e-shard.result }}" != "success" ]; then
+            echo "E2E-Teile: ${{ needs.e2e-shard.result }}"
+            exit 1
+          fi
 
   appinfo:
     name: info.xml gegen App-Store-Schema
