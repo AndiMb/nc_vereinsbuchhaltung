@@ -258,7 +258,7 @@ class MandateService {
 		$mandate = $this->mapper->update($mandate);
 
 		$this->audit->log('SEPA-Mandat aktiviert', 'mandate', $mandate->getId(), ['referenz' => $mandate->getMandateReference()]);
-		$this->logEvent($mandate, $this->l10n->t('Mandat aktiviert (Papier, unterschrieben am %s)', [(string)$mandate->getSignedAt()]), MandateEvent::ACTOR_STAFF);
+		$this->logEvent($mandate, $this->l10n->t('Mandat aktiviert (Papier, unterschrieben am %s)', [GermanDate::format((string)$mandate->getSignedAt())]), MandateEvent::ACTOR_STAFF);
 		return $mandate;
 	}
 

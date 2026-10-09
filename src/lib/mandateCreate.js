@@ -18,7 +18,8 @@ import api from '../api.js'
  *
  * @param {number} memberId
  * @param {{signatureType: string, iban: string, bic: ?string, accountHolder: ?string, mandateReference: ?string, signedAt: ?string}} mandate
- * @return {Promise<object>} das angelegte Mandat (im Zustand direkt nach dem Anlegen)
+ * @return {Promise<object>} das angelegte Mandat (im Zustand direkt nach dem Anlegen); beim elektronischen Weg mit
+ *                           `activationUrl` und `sentTo` des gerade verschickten Einmal-Links
  */
 export async function createMandateForMember(memberId, mandate) {
 	if (mandate.signatureType === 'elektronisch') {
@@ -29,8 +30,8 @@ export async function createMandateForMember(memberId, mandate) {
 			accountHolder: mandate.accountHolder,
 			mandateReference: mandate.mandateReference,
 		})
-		await api.sendMandateActivationLink(data.id)
-		return data
+		const { data: sent } = await api.sendMandateActivationLink(data.id)
+		return { ...data, activationUrl: sent.activationUrl, sentTo: sent.sentTo }
 	}
 	const { data } = await api.createMandate({
 		memberId,

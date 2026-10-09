@@ -675,7 +675,8 @@ export default {
 					mandateReference: form.mandateReference.trim() || null,
 					signedAt: form.signatureType === 'papier' ? (form.signedAt || null) : null,
 				})
-				this.sentLink = null
+				// Kommt die Mail nicht an, lässt sich der Link direkt weitergeben (Feld unter dem Zustand).
+				this.sentLink = created.activationUrl ? { url: created.activationUrl, email: created.sentTo } : null
 				showSuccess(form.signatureType === 'elektronisch'
 					? this.tRaw('Entwurf angelegt, Einmal-Link an {email} verschickt.', { email: this.member.email })
 					: (form.signedAt ? this.t('Mandat angelegt und aktiviert.') : this.t('Mandat als Entwurf angelegt – die Unterschrift fehlt noch.')))
