@@ -23,7 +23,7 @@
 				v-for="row in filteredRows"
 				:key="row.key"
 				:row="row"
-				@manageAssignments="$emit('manage-assignments')"
+				@manageAssignments="$emit('manage-assignments', row.member.id)"
 				@openMember="(section) => openMemberAkte(row.member, section)" />
 		</div>
 		<div v-else-if="filteredRows.length" class="vbh-tablecard">
@@ -101,7 +101,7 @@
 							<MemberRowMenu
 								:row="row"
 								@openMember="(section) => openMemberAkte(row.member, section)"
-								@manageAssignments="$emit('manage-assignments')" />
+								@manageAssignments="$emit('manage-assignments', row.member.id)" />
 						</td>
 					</tr>
 				</tbody>

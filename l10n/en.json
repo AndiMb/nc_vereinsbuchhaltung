@@ -2033,8 +2033,8 @@
         "Bestätigungslink wurde per Mail verschickt.": "The confirmation link was sent by email.",
         "IBAN geändert.": "IBAN changed.",
         "Kontoinhaber gewechselt, neues Mandat erteilt.": "Account holder changed, new mandate granted.",
-        "Beitrag geändert.": "Contribution changed.",
-        "Beitrag konnte nicht geändert werden": "Could not change the contribution",
+        "Beitrag geändert.": "Fee changed.",
+        "Beitrag konnte nicht geändert werden": "The fee could not be changed",
         "Kontaktdaten gespeichert.": "Contact details saved.",
         "Kontaktdaten konnten nicht gespeichert werden": "Could not save the contact details",
         "Dieser Text steht auf jedem SEPA-Lastschriftmandat – im druckfertigen Formular und auf der Seite, auf der Mitglieder elektronisch zustimmen. Er besteht aus dem Pflichtblock, den das Lastschriftverfahren vorschreibt, und einem Rahmen, den Sie frei ergänzen können, z. B. um Hinweise zum Beitragseinzug oder zum Datenschutz.": "This text appears on every SEPA direct debit mandate – in the print-ready form and on the page where members consent electronically. It consists of the mandatory block prescribed by the direct debit scheme and a frame that you can add to freely, e.g. notes on the collection of contributions or on data protection.",
@@ -2689,7 +2689,10 @@
         "Das Mitglied lässt sich nicht löschen, es hängt noch daran: %s.": "The member cannot be deleted, the following still depend on it: %s.",
         "Löschen nicht möglich": "Cannot delete",
         "Es hängt noch am Mitglied:": "Still attached to the member:",
-        "Sie bleiben als Nachweis erhalten. Für Datenschutzfälle gibt es die Anonymisierung.": "They are kept as evidence. For data-protection cases there is anonymisation."
+        "Sie bleiben als Nachweis erhalten. Für Datenschutzfälle gibt es die Anonymisierung.": "They are kept as evidence. For data-protection cases there is anonymisation.",
+        "Beitrag ändern": "Change fee",
+        "{name} · {group} · Untergrenze {min}": "{name} · {group} · lower limit {min}",
+        "Gezahlt werden darf beliebig mehr als die Untergrenze, etwa wenn das Mitglied ausnahmsweise mehr geben möchte.": "Any amount above the lower limit may be paid, for example when the member wants to give more this once."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

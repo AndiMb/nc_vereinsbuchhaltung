@@ -176,6 +176,7 @@ export default {
 	listAssignments: (memberId) => axios.get(url('/assignments'), { params: memberId ? { memberId } : {} }),
 	createAssignment: (data) => axios.post(url('/assignments'), data),
 	previewNewAssignment: (data) => axios.post(url('/assignments/preview'), data),
+	previewAssignmentChange: (id, data) => axios.post(url(`/assignments/${id}/preview-change`), data),
 	updateAssignment: (id, data) => axios.put(url(`/assignments/${id}`), data),
 	setAssignmentMinAmountOverride: (id, data) => axios.post(url(`/assignments/${id}/min-amount-override`), data),
 	endAssignment: (id, validTo) => axios.post(url(`/assignments/${id}/end`), { validTo }),

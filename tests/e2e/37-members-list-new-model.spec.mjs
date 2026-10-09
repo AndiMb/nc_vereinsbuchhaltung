@@ -202,6 +202,37 @@ test.describe('Mitgliederliste zeigt Mandat und Beitrag des neuen Modells', () =
 		await expect(visibleSection(page).getByRole('button', { name: '+ Zuweisung' })).toBeVisible()
 	})
 
+	test('„Beitrag verwalten“ öffnet „Beitrag ändern“: auch ein höherer Betrag lässt sich einstellen, einer unter der Untergrenze nicht', async ({ page, request }) => {
+		await ensureSeed(request)
+		const group = await ensureGroup(request)
+		const member = await ensureMember(request, 'Paula', 'Mehrzahler')
+		await createAssignment(request, member, group, { intervalMonths: 12, monthlyAmount: 10, paymentMethod: 'ueberweisung' })
+
+		await openApp(page, USERS.buchhalter)
+		await switchTab(page, 'Beiträge')
+		await memberRow(page, 'Paula Mehrzahler').getByRole('button', { name: 'Aktionen' }).click()
+		await page.getByRole('menuitem', { name: 'Beitrag verwalten' }).click()
+
+		const dialog = page.getByRole('dialog', { name: 'Beitrag ändern' })
+		await expect(dialog).toBeVisible()
+		await expect(dialog).toContainText(/Untergrenze 5,00/)
+
+		// Unter der Untergrenze lehnt der Server schon die Vorschau ab; gespeichert wird nichts.
+		const amount = dialog.getByLabel('Monatsbeitrag (€)')
+		await amount.fill('3')
+		await expect(dialog.getByText('Untergrenze von 5,00')).toBeVisible()
+		await expect(dialog.getByRole('button', { name: 'Speichern' })).toBeDisabled()
+
+		// Das Mitglied möchte ausnahmsweise mehr geben: nach oben ist nichts gedeckelt.
+		await amount.fill('25')
+		await expect(dialog.getByText(/Wirkt ab \d{2}\.\d{2}\.\d{4} · erster Einzug am \d{2}\.\d{2}\.\d{4} · Betrag/)).toBeVisible()
+		await dialog.getByRole('button', { name: 'Speichern' }).click()
+		await expect(dialog).toBeHidden()
+
+		const stored = (await api.getJson(request, '/assignments')).find((a) => a.memberId === member.id)
+		expect(stored.monthlyAmount).toBe(25)
+	})
+
 	test('Aufnahme-Assistent: das neu aufgenommene Mitglied erscheint sofort mit IBAN und Beitrag', async ({ page, request }) => {
 		const group = await ensureGroup(request)
 

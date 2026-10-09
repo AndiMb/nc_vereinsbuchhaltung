@@ -108,6 +108,12 @@
 							<td class="nowrap right">
 								<div v-if="a.active" class="vbh-rowactions">
 									<NcActions :forceMenu="true">
+										<NcActionButton closeAfterClick @click="openChange(a)">
+											<template #icon>
+												<NcIconSvgWrapper :path="mdiCashEdit" :size="16" />
+											</template>
+											{{ t('Beitrag ändern') }}
+										</NcActionButton>
 										<NcActionButton closeAfterClick @click="endAssignment(a)">
 											<template #icon>
 												<NcIconSvgWrapper :path="mdiCalendarRemove" :size="16" />
@@ -140,17 +146,28 @@
 
 		<AssignmentDialog
 			:show="assignmentDialogOpen"
+			:presetMemberId="presetMemberId"
 			@close="assignmentDialogOpen = false"
 			@update:show="assignmentDialogOpen = $event"
 			@save="saveAssignment" />
+
+		<AssignmentChangeDialog
+			:show="changeDialogOpen"
+			:assignment="changeAssignment"
+			:group="changeAssignment ? groups.find((g) => g.id === changeAssignment.groupId) : null"
+			:memberName="changeAssignment ? memberName(changeAssignment.memberId) : ''"
+			@close="changeDialogOpen = false"
+			@update:show="changeDialogOpen = $event"
+			@saved="onChanged" />
 	</div>
 </template>
 
 <script>
-import { mdiArrowUpBold, mdiCalendarRemove, mdiDelete } from '@mdi/js'
+import { mdiArrowUpBold, mdiCalendarRemove, mdiCashEdit, mdiDelete } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { NcActionButton, NcActions, NcButton, NcIconSvgWrapper } from '@nextcloud/vue'
 import { toRefs } from 'vue'
+import AssignmentChangeDialog from './AssignmentChangeDialog.vue'
 import AssignmentDialog from './AssignmentDialog.vue'
 import ContributionGroupDialog from './ContributionGroupDialog.vue'
 import MinAmountIncreaseDialog from './MinAmountIncreaseDialog.vue'
@@ -172,7 +189,17 @@ import { intervalLabel } from '../lib/frequency.js'
  */
 export default {
 	name: 'ContributionGroupsPanel',
-	components: { NcButton, NcActions, NcActionButton, NcIconSvgWrapper, ContributionGroupDialog, MinAmountIncreaseDialog, AssignmentDialog },
+	components: { NcButton, NcActions, NcActionButton, NcIconSvgWrapper, ContributionGroupDialog, MinAmountIncreaseDialog, AssignmentDialog, AssignmentChangeDialog },
+
+	props: {
+		/**
+		 * Mitglied, dessen Beitrag gezielt geöffnet werden soll (Menü „Beitrag verwalten“ der Mitgliederliste):
+		 * hat es eine laufende Zuweisung, öffnet „Beitrag ändern“, sonst „Zuweisung anlegen“ mit dem Mitglied vorbelegt.
+		 */
+		focusMemberId: { type: Number, default: null },
+	},
+
+	emits: ['focus-handled'],
 
 	setup() {
 		const groups = useContributionGroups()
@@ -196,6 +223,7 @@ export default {
 		return {
 			mdiArrowUpBold,
 			mdiCalendarRemove,
+			mdiCashEdit,
 			mdiDelete,
 			groupDialogOpen: false,
 			groupEditId: null,
@@ -203,7 +231,17 @@ export default {
 			minAmountDialogOpen: false,
 			minAmountGroupId: null,
 			assignmentDialogOpen: false,
+			presetMemberId: null,
+			changeDialogOpen: false,
+			changeAssignment: null,
 		}
+	},
+
+	watch: {
+		focusMemberId: {
+			immediate: true,
+			handler(id) { if (id !== null) { this.openForMember(id) } },
+		},
 	},
 
 	async mounted() {
@@ -213,6 +251,29 @@ export default {
 	methods: {
 		formatDate,
 		intervalLabel,
+
+		openChange(assignment) {
+			this.changeAssignment = assignment
+			this.changeDialogOpen = true
+		},
+
+		async onChanged() {
+			this.changeDialogOpen = false
+			await this.loadAssignments()
+		},
+
+		/** Aus der Mitgliederliste: der Beitrag dieses Mitglieds – ändern, wenn er läuft, sonst anlegen. */
+		async openForMember(memberId) {
+			await this.loadAssignments()
+			const running = this.assignments.find((a) => a.memberId === memberId && a.active)
+			if (running) {
+				this.openChange(running)
+			} else {
+				this.presetMemberId = memberId
+				this.assignmentDialogOpen = true
+			}
+			this.$emit('focus-handled')
+		},
 
 		euro(cents) { return (cents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }) },
 

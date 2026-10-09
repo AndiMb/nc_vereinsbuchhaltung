@@ -216,6 +216,7 @@ return [
 		['name' => 'assignment#index', 'url' => '/api/assignments', 'verb' => 'GET'],
 		['name' => 'assignment#create', 'url' => '/api/assignments', 'verb' => 'POST'],
 		['name' => 'assignment#previewNew', 'url' => '/api/assignments/preview', 'verb' => 'POST'],
+		['name' => 'assignment#previewChange', 'url' => '/api/assignments/{id}/preview-change', 'verb' => 'POST'],
 		['name' => 'assignment#update', 'url' => '/api/assignments/{id}', 'verb' => 'PUT'],
 		['name' => 'assignment#setMinAmountOverride', 'url' => '/api/assignments/{id}/min-amount-override', 'verb' => 'POST'],
 		['name' => 'assignment#end', 'url' => '/api/assignments/{id}/end', 'verb' => 'POST'],

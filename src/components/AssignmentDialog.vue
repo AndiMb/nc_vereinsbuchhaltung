@@ -147,6 +147,8 @@ export default {
 	components: { NcModal, NcButton, NcSelect, AmountInput },
 	props: {
 		show: { type: Boolean, default: false },
+		/** Mitglied, das beim Öffnen schon gewählt ist (Menü „Beitrag zuweisen“ der Mitgliederliste). */
+		presetMemberId: { type: Number, default: null },
 	},
 
 	emits: ['close', 'save', 'update:show'],
@@ -187,7 +189,7 @@ export default {
 	watch: {
 		show(open) {
 			if (open) {
-				this.form = emptyForm()
+				this.form = { ...emptyForm(), memberId: this.presetMemberId }
 				this.quickAddOpen = false
 				this.quickMember = emptyQuickMember()
 				this.preview = null

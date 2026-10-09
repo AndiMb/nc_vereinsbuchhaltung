@@ -105,6 +105,26 @@ class AssignmentController extends Controller {
 		}
 	}
 
+	/**
+	 * Vorschau einer Betrags-/Turnusänderung an einer bestehenden Zuweisung („Wirkt ab … · erster Einzug am … · Betrag …“),
+	 * ohne zu speichern – dieselbe Rechnung und Prüfung wie {@see update()} und das Self-Service-Gegenstück.
+	 */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	public function previewChange(int $id, ?float $monthlyAmount = null, ?int $intervalMonths = null): DataResponse {
+		try {
+			return new DataResponse($this->service->previewChange(
+				$id,
+				$monthlyAmount !== null ? (int)round($monthlyAmount * 100) : null,
+				$intervalMonths,
+			));
+		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Zuweisung nicht gefunden')], Http::STATUS_NOT_FOUND);
+		}
+	}
+
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function update(int $id, ?float $monthlyAmount = null, ?int $intervalMonths = null, ?int $groupId = null): DataResponse {
