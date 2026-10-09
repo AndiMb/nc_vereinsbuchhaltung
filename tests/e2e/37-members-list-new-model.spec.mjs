@@ -293,7 +293,7 @@ test.describe('Mitgliederliste zeigt Mandat und Beitrag des neuen Modells', () =
 		await openApp(page, USERS.buchhalter)
 		await switchTab(page, 'Beiträge')
 		await visibleSection(page).locator('.vbh-subtabs').getByRole('button', { name: 'Beitragsgruppen', exact: true }).click()
-		const row = visibleSection(page).locator('tr', { hasText: 'Zora Zukunft' })
+		const row = visibleSection(page).locator('table.vbh-table:visible tr', { hasText: 'Zora Zukunft' })
 		await expect(row).toContainText(`ab ${german(nextYear())}`)
 
 		// Auch an einer Zuweisung, die erst beginnt, gibt es das Menü: Beitrag ändern, Gruppe wechseln, zurücknehmen.

@@ -55,11 +55,11 @@ test.describe('Beitragsgruppen, Zuweisungen & Forderungen', () => {
 		// Die Turnusse tragen ihre Namen statt Monatszahlen: monatlich und jährlich sind vorgewählt, vierteljährlich kommt dazu.
 		const intervals = dialog.getByRole('group', { name: 'Erlaubte Turnusse' })
 		await expect(intervals.getByRole('checkbox')).toHaveCount(6)
-		await expect(intervals.getByRole('checkbox', { name: 'monatlich' })).toBeChecked()
-		await expect(intervals.getByRole('checkbox', { name: 'jährlich' })).toBeChecked()
-		await expect(intervals.getByRole('checkbox', { name: 'vierteljährlich' })).not.toBeChecked()
+		await expect(intervals.getByRole('checkbox', { name: 'monatlich', exact: true })).toBeChecked()
+		await expect(intervals.getByRole('checkbox', { name: 'jährlich', exact: true })).toBeChecked()
+		await expect(intervals.getByRole('checkbox', { name: 'vierteljährlich', exact: true })).not.toBeChecked()
 		await intervals.getByText('vierteljährlich', { exact: true }).click()
-		await expect(intervals.getByRole('checkbox', { name: 'vierteljährlich' })).toBeChecked()
+		await expect(intervals.getByRole('checkbox', { name: 'vierteljährlich', exact: true })).toBeChecked()
 		await expect(dialog.getByLabel('Standard-Turnus').locator('option')).toHaveText(['monatlich', 'vierteljährlich', 'jährlich'])
 
 		await dialog.getByRole('button', { name: 'Anlegen', exact: true }).click()
