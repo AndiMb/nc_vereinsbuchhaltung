@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Seeder mit Testdaten für das Beiträge/SEPA-Modul (docs/testprotokoll/).
+ * Seeder mit Testdaten für das Beiträge/SEPA-Modul.
  *
  *   docker compose exec -T -u www-data stable34 php \
  *     /var/www/html/apps-shared/vereinsbuchhaltung/tests/dev/seed-beitraege.php [Optionen]

@@ -3,8 +3,8 @@
 Werkzeuge für eine **Entwicklungsinstanz**: ein Seeder legt ein festes Szenario
 an (16 Mitglieder, Mandate, Beitragsgruppen, ein eingereichter Lauf, ein
 anstehender Lauf), ein Generator baut dazu den passenden Kontoauszug der Bank,
-ein Skript startet die Tagesjobs von Hand. Das Testprotokoll wird gegen dieses
-Szenario geschrieben (`docs/testprotokoll/`).
+ein Skript startet die Tagesjobs von Hand. Damit lässt sich die Beiträge-Strecke
+von Hand komplett durchklicken.
 
 > Nie gegen eine Instanz mit echten Vereinsdaten ausführen: der Seeder setzt
 > Einstellungen, vergibt Rollen und ändert Nutzersprachen (alles mit
@@ -41,7 +41,7 @@ tests/dev/in-container.sh seed-beitraege.php --wipe --wipe-bank
 # nur ansehen: Stand und Aufgabenliste (wie im Flyout), nichts ändern
 tests/dev/in-container.sh seed-beitraege.php --check
 
-# Bankdatei neu erzeugen (docs/testprotokoll/testdaten/bank-oktober-2026.camt053.xml)
+# Bankdatei neu erzeugen (tests/dev/testdaten/bank-oktober-2026.camt053.xml)
 tests/dev/make-camt053.sh
 
 # Tagesjobs von Hand: alle, oder einzeln (tageslauf, mahnwesen, verfall, austritt-zuweisungen, austritt-mandate)
@@ -114,7 +114,7 @@ Mitglieder außer Hans haben eine E-Mail-Adresse `…@example.org` (landet in Ma
 ## Ablauf eines Tests
 
 1. **Bankdatei importieren**: Buchungen → Kontoauszug importieren →
-   `docs/testprotokoll/testdaten/bank-oktober-2026.camt053.xml`. Sie enthält die
+   `tests/dev/testdaten/bank-oktober-2026.camt053.xml`. Sie enthält die
    Sammelgutschrift (8 Posten, 85,00 €), die Rückgaben Fuchs (**AM04**, 15,00 € + 3,50 €
    Gebühr) und Krüger (**AC04**, 45,00 € + 4,00 €), Lena Bergmanns Überweisung (22,50 €),
    eine Spende (50,00 €) und ein Kontoführungsentgelt (7,90 €).

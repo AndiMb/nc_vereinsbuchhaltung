@@ -14,7 +14,7 @@ declare(strict_types=1);
  * Fehlerausgabe) – der Container sieht den Worktree nur lesend, die Datei
  * schreibt deshalb der Aufruf auf dem Host:
  *
- *   … make-camt053.php > docs/testprotokoll/testdaten/bank-oktober-2026.camt053.xml
+ *   … make-camt053.php > tests/dev/testdaten/bank-oktober-2026.camt053.xml
  *
  * Ohne --batch-id gilt der eingereichte Lauf zum 01.10.2026 (der Lauf des Seeders).
  */

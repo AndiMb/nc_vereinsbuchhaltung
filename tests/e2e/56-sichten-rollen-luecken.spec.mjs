@@ -4,7 +4,7 @@ import { clearCapturedMails, startMailCapture, stopMailCapture, waitForMailsTo }
 import { api, authHeaders, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, BASE_URL, INCOME_ACCOUNT, openApp, returnEntry, switchTab, tabButton, USERS, visibleSection, waitForAppLoaded } from './fixtures/nextcloud.mjs'
 
 // Sichten und Rollen, die sich nur mit einem anderen Konto prüfen lassen
-// (Testprotokoll docs/testprotokoll/testprotokoll.md, Durchlauf vom 09.10.2026).
+// (Durchlauf vom 09./10.10.2026).
 //
 // Beim manuellen Durchgang ließen sich Schritte nicht live prüfen, die eine
 // Anmeldung als anderer Nutzer brauchen. Diese Spec schließt die Lücken, die die

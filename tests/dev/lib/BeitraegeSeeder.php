@@ -276,7 +276,7 @@ final class BeitraegeSeeder {
 
 	/** @return list<string> Hashes der Umsätze der Testdatei (Quelle: die Datei selbst, falls lesbar) */
 	private function seedBankHashes(): array {
-		$file = dirname(__DIR__, 3) . '/docs/testprotokoll/testdaten/bank-oktober-2026.camt053.xml';
+		$file = dirname(__DIR__) . '/testdaten/bank-oktober-2026.camt053.xml';
 		if (!is_file($file)) {
 			return [];
 		}

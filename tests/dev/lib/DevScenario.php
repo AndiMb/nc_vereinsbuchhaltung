@@ -9,7 +9,7 @@ namespace OCA\Vereinsbuchhaltung\Tests\Dev;
  * Beitragsgruppen, Zuweisungen und die Fälle des camt.053-Kontoauszugs.
  *
  * Verbindlich sind Namen, Nummern und Zuordnungen: gegen sie wird das
- * Testprotokoll geschrieben (docs/testprotokoll/). Der {@see BeitraegeSeeder}
+ * manuelle Komplett-Test geschrieben. Der {@see BeitraegeSeeder}
  * setzt sie um, der {@see CamtGenerator} baut die Bankdatei dazu. Die Datei
  * kennt weder Nextcloud noch die Datenbank, damit tests/unit/DevScenarioTest.php
  * sie ohne laufende Instanz auf Widersprüche prüfen kann (gültige IBANs,
