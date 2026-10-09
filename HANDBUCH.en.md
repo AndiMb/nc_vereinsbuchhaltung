@@ -1442,9 +1442,10 @@ running deferral counts with its end). Members who pay by bank transfer show
 "Bank transfer" instead of "no mandate". Everything else about a member is in
 the menu (⋯) at the end of the row: **"Edit member"** (*Mitglied bearbeiten*)
 opens the file (master data, Nextcloud account, leaving), **"Manage mandate"**
-opens the file at the mandate, and **"Manage fee"** (without a fee: **"Assign
-fee"**) leads to the *Contribution groups* tab, because amount, interval and
-term are not edited in the row. Clicking the name also opens the file.
+opens the file at the mandate, and **"Manage fee"** opens **"Change fee"**
+right in the list (amount and interval; without a fee: **"Create assignment"**
+with the member preselected). With several assignments the entry leads to the
+*Contribution groups* tab. Clicking the name also opens the file.
 *problems only* shows members without an email address and those whose direct-debit
 assignment has no mandate.
 

@@ -34,17 +34,13 @@
 				ref="membersList"
 				:isMobile="isMobile"
 				:defaultFeeAmount="defaultFeeAmount"
-				@manageAssignments="openAssignmentsFor" />
+				@manageAssignments="$emit('update:contrib-view', 'groups')" />
 			<EinzugPanel
 				v-show="contribView === 'batch'"
 				:isMobile="isMobile"
 				:canWrite="canWrite"
 				:active="contribView === 'batch'" />
-			<ContributionGroupsPanel
-				v-if="canWrite"
-				v-show="contribView === 'groups'"
-				:focusMemberId="focusMemberId"
-				@focusHandled="focusMemberId = null" />
+			<ContributionGroupsPanel v-if="canWrite" v-show="contribView === 'groups'" />
 		</div>
 	</div>
 </template>
@@ -85,7 +81,7 @@ export default {
 	emits: ['update:contrib-view'],
 
 	data() {
-		return { mdiPlus, focusMemberId: null }
+		return { mdiPlus }
 	},
 
 	watch: {
@@ -97,14 +93,6 @@ export default {
 			handler(view) {
 				if (!this.canWrite && view !== 'batch') { this.$emit('update:contrib-view', 'batch') }
 			},
-		},
-	},
-
-	methods: {
-		/** „Beitrag verwalten“ in der Mitgliederliste: Beitragsgruppen öffnen und den Beitrag dieses Mitglieds gleich aufrufen. */
-		openAssignmentsFor(memberId) {
-			this.focusMemberId = memberId ?? null
-			this.$emit('update:contrib-view', 'groups')
 		},
 	},
 }

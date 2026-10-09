@@ -23,7 +23,7 @@
 				v-for="row in filteredRows"
 				:key="row.key"
 				:row="row"
-				@manageAssignments="$emit('manage-assignments', row.member.id)"
+				@manageAssignments="manageFee(row.member)"
 				@openMember="(section) => openMemberAkte(row.member, section)" />
 		</div>
 		<div v-else-if="filteredRows.length" class="vbh-tablecard">
@@ -101,7 +101,7 @@
 							<MemberRowMenu
 								:row="row"
 								@openMember="(section) => openMemberAkte(row.member, section)"
-								@manageAssignments="$emit('manage-assignments', row.member.id)" />
+								@manageAssignments="manageFee(row.member)" />
 						</td>
 					</tr>
 				</tbody>
@@ -111,6 +111,22 @@
 			v-if="!filteredRows.length"
 			:name="rows.length ? t('Kein Eintrag passt zur Suche.') : t('Noch kein Mitglied aufgenommen.')"
 			:description="rows.length ? '' : t('Mit „＋ Mitglied“ oben ein erstes Mitglied anlegen, oder eine Liste als CSV einlesen.')" />
+
+		<!-- „Beitrag verwalten“ im Zeilenmenü: hier, ohne den Reiter zu wechseln. -->
+		<AssignmentChangeDialog
+			:show="changeDialogOpen"
+			:assignment="changeAssignment"
+			:group="changeAssignment ? groups.find((g) => g.id === changeAssignment.groupId) : null"
+			:memberName="changeMemberName"
+			@close="changeDialogOpen = false"
+			@update:show="changeDialogOpen = $event"
+			@saved="onFeeChanged" />
+		<AssignmentDialog
+			:show="assignDialogOpen"
+			:presetMemberId="presetMemberId"
+			@close="assignDialogOpen = false"
+			@update:show="assignDialogOpen = $event"
+			@save="saveNewAssignment" />
 
 		<MemberDialog
 			:show="memberDialogOpen"
@@ -137,6 +153,8 @@ import { mdiEmailOffOutline } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper } from '@nextcloud/vue'
 import { toRefs } from 'vue'
+import AssignmentChangeDialog from './AssignmentChangeDialog.vue'
+import AssignmentDialog from './AssignmentDialog.vue'
 import MemberCard from './MemberCard.vue'
 import MemberDialog from './MemberDialog.vue'
 import MemberImportDialog from './MemberImportDialog.vue'
@@ -144,6 +162,7 @@ import MemberRowMenu from './MemberRowMenu.vue'
 import api from '../api.js'
 import { useAssignments } from '../composables/useAssignments.js'
 import { useClaimOverview } from '../composables/useClaimOverview.js'
+import { useContributionGroups } from '../composables/useContributionGroups.js'
 import { useMandates } from '../composables/useMandates.js'
 import { useMemberAkteRequest } from '../composables/useMemberAkteRequest.js'
 import { useMembers } from '../composables/useMembers.js'
@@ -178,7 +197,7 @@ import { buildMemberRow, nextDueDates } from '../lib/memberRow.js'
  */
 export default {
 	name: 'MembersList',
-	components: { NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, MemberDialog, MemberImportDialog, MemberCard, MemberRowMenu },
+	components: { NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, AssignmentChangeDialog, AssignmentDialog, MemberDialog, MemberImportDialog, MemberCard, MemberRowMenu },
 	props: {
 		isMobile: { type: Boolean, default: false },
 		defaultFeeAmount: { type: [Number, String], default: '' },
@@ -192,7 +211,10 @@ export default {
 		const members = useMembers()
 		const claimOverview = useClaimOverview()
 		const akteRequest = useMemberAkteRequest()
+		const groups = useContributionGroups()
 		return {
+			...toRefs(groups.state),
+			loadContributionGroups: groups.loadContributionGroups,
 			...toRefs(mandates.state),
 			...toRefs(assignments.state),
 			...toRefs(members.state),
@@ -216,6 +238,11 @@ export default {
 			/** Abschnitt, zu dem die Akte beim Öffnen scrollt ('mandate' oder leer). */
 			akteSection: '',
 			importDialogOpen: false,
+			changeDialogOpen: false,
+			changeAssignment: null,
+			changeMemberName: '',
+			assignDialogOpen: false,
+			presetMemberId: null,
 			mdiEmailOffOutline,
 		}
 	},
@@ -264,6 +291,7 @@ export default {
 		this.loadMandates()
 		this.loadAssignments()
 		this.loadClaimOverview()
+		this.loadContributionGroups()
 	},
 
 	methods: {
@@ -273,6 +301,41 @@ export default {
 		/** Von der Kopfzeile in ContributionsTab.vue per $refs aufgerufen. */
 		openMemberDialog() { this.editingMember = null; this.akteSection = ''; this.memberDialogOpen = true },
 		openImportDialog() { this.importDialogOpen = true },
+
+		/**
+		 * „Beitrag verwalten“ im Zeilenmenü: hat das Mitglied genau eine laufende oder künftige Zuweisung,
+		 * öffnet „Beitrag ändern“; hat es keine, „Zuweisung anlegen“ mit dem Mitglied vorbelegt. Bei mehreren
+		 * führt der Weg in den Reiter Beitragsgruppen, wo alle Zuweisungen nebeneinander stehen.
+		 */
+		manageFee(member) {
+			const today = new Date().toISOString().slice(0, 10)
+			const live = this.assignments.filter((a) => a.memberId === member.id && (a.validTo === null || a.validTo >= today))
+			if (live.length === 1) {
+				this.changeAssignment = live[0]
+				this.changeMemberName = member.displayName
+				this.changeDialogOpen = true
+			} else if (live.length === 0) {
+				this.presetMemberId = member.id
+				this.assignDialogOpen = true
+			} else {
+				this.$emit('manage-assignments')
+			}
+		},
+
+		async onFeeChanged() {
+			this.changeDialogOpen = false
+			await this.reload()
+		},
+
+		async saveNewAssignment(form) {
+			try {
+				await api.createAssignment(form)
+				this.assignDialogOpen = false
+				await this.reload()
+				showSuccess(this.t('Zuweisung angelegt.'))
+			} catch (e) { showError(this.errMsg(e, this.t('Zuweisung konnte nicht angelegt werden'))) }
+		},
+
 		openMemberAkte(member, section = '') { this.editingMember = member; this.akteSection = section; this.memberDialogOpen = true },
 		/**
 		 * Öffnet die Akte, um die das Aufgaben-Flyout gebeten hat. Fehlt das

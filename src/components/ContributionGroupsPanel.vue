@@ -146,7 +146,6 @@
 
 		<AssignmentDialog
 			:show="assignmentDialogOpen"
-			:presetMemberId="presetMemberId"
 			@close="assignmentDialogOpen = false"
 			@update:show="assignmentDialogOpen = $event"
 			@save="saveAssignment" />
@@ -191,16 +190,6 @@ export default {
 	name: 'ContributionGroupsPanel',
 	components: { NcButton, NcActions, NcActionButton, NcIconSvgWrapper, ContributionGroupDialog, MinAmountIncreaseDialog, AssignmentDialog, AssignmentChangeDialog },
 
-	props: {
-		/**
-		 * Mitglied, dessen Beitrag gezielt geöffnet werden soll (Menü „Beitrag verwalten“ der Mitgliederliste):
-		 * hat es eine laufende Zuweisung, öffnet „Beitrag ändern“, sonst „Zuweisung anlegen“ mit dem Mitglied vorbelegt.
-		 */
-		focusMemberId: { type: Number, default: null },
-	},
-
-	emits: ['focus-handled'],
-
 	setup() {
 		const groups = useContributionGroups()
 		const assignments = useAssignments()
@@ -231,17 +220,9 @@ export default {
 			minAmountDialogOpen: false,
 			minAmountGroupId: null,
 			assignmentDialogOpen: false,
-			presetMemberId: null,
 			changeDialogOpen: false,
 			changeAssignment: null,
 		}
-	},
-
-	watch: {
-		focusMemberId: {
-			immediate: true,
-			handler(id) { if (id !== null) { this.openForMember(id) } },
-		},
 	},
 
 	async mounted() {
@@ -260,19 +241,6 @@ export default {
 		async onChanged() {
 			this.changeDialogOpen = false
 			await this.loadAssignments()
-		},
-
-		/** Aus der Mitgliederliste: der Beitrag dieses Mitglieds – ändern, wenn er läuft, sonst anlegen. */
-		async openForMember(memberId) {
-			await this.loadAssignments()
-			const running = this.assignments.find((a) => a.memberId === memberId && a.active)
-			if (running) {
-				this.openChange(running)
-			} else {
-				this.presetMemberId = memberId
-				this.assignmentDialogOpen = true
-			}
-			this.$emit('focus-handled')
 		},
 
 		euro(cents) { return (cents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }) },

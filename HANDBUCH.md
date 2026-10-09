@@ -1479,9 +1479,10 @@ eine laufende Stundung zählt mit ihrem Ende). Wer per Überweisung zahlt, steht
 mit „Überweisung" statt „kein Mandat" da. Alles Weitere zu einem Mitglied steht im
 Menü (⋯) am Zeilenende: **„Mitglied bearbeiten"** öffnet die Akte (Stammdaten,
 Nextcloud-Konto, Austritt), **„Mandat verwalten"** die Akte beim Mandat und
-**„Beitrag verwalten"** (ohne Beitrag: **„Beitrag zuweisen"**) führt in den Reiter
-*Beitragsgruppen*, denn Betrag, Turnus und Laufzeit bearbeiten Sie nicht in der
-Zeile. Ein Klick auf den Namen öffnet ebenfalls die Akte. *nur
+**„Beitrag verwalten"** öffnet gleich in der Liste **„Beitrag ändern"** (Betrag und
+Turnus; ohne Beitrag: **„Zuweisung anlegen"** mit dem Mitglied vorbelegt). Hat ein
+Mitglied mehrere Zuweisungen, führt der Eintrag in den Reiter *Beitragsgruppen*.
+Ein Klick auf den Namen öffnet ebenfalls die Akte. *nur
 Auffälligkeiten* zeigt Mitglieder ohne E-Mail-Adresse und solche, deren
 Lastschrift-Zuweisung kein Mandat hat.
 

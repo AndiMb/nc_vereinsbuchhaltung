@@ -192,14 +192,16 @@ test.describe('Mitgliederliste zeigt Mandat und Beitrag des neuen Modells', () =
 		await expect(memberRow(page, 'Cora Ueberweisung')).toHaveCount(0)
 	})
 
-	test('„Beitrag verwalten" im Zeilenmenü führt zu den Beitragsgruppen', async ({ page, request }) => {
+	test('„Beitrag verwalten" im Zeilenmenü öffnet „Beitrag ändern“ an Ort und Stelle, ohne den Reiter zu wechseln', async ({ page, request }) => {
 		await ensureSeed(request)
 		await openApp(page, USERS.buchhalter)
 		await switchTab(page, 'Beiträge')
 
 		await memberRow(page, 'Anna Aktiv').getByRole('button', { name: 'Aktionen' }).click()
 		await page.getByRole('menuitem', { name: 'Beitrag verwalten' }).click()
-		await expect(visibleSection(page).getByRole('button', { name: '+ Zuweisung' })).toBeVisible()
+		await expect(page.getByRole('dialog', { name: 'Beitrag ändern' })).toBeVisible()
+		// Die Mitgliederliste bleibt stehen: kein Sprung in die Beitragsgruppen.
+		await expect(visibleSection(page).getByRole('button', { name: '+ Zuweisung' })).toHaveCount(0)
 	})
 
 	test('„Beitrag verwalten“ öffnet „Beitrag ändern“: auch ein höherer Betrag lässt sich einstellen, einer unter der Untergrenze nicht', async ({ page, request }) => {
