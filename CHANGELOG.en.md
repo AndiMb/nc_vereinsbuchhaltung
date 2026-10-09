@@ -18,6 +18,10 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 ## [Unreleased]
 
 **New:**
+- **Income or expense at a glance:** on the overview, under "All entries" and
+  under "To assign", the amount now carries a sign and a colour: income green
+  with a plus, expenses red with a minus, transfers neutral. Split bookings
+  with a single cash account get the direction as well.
 - **Account filter by category:** In the journal, "Income", "Expenses" and the
   other category headings can now be picked directly in the account filter and
   show all entries on accounts of that category. Until now the headings were

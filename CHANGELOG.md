@@ -20,6 +20,10 @@ verwenden, z. B. `**Neu:**`.
 ## [Unreleased]
 
 **Neu:**
+- **Einnahme oder Ausgabe auf einen Blick:** In der Übersicht, unter „Alle
+  Buchungen" und unter „Zuzuordnen" steht der Betrag jetzt mit Vorzeichen und
+  Farbe: Einnahmen grün mit Plus, Ausgaben rot mit Minus, Umbuchungen neutral.
+  Splittbuchungen mit eindeutigem Geldkonto bekommen die Richtung ebenfalls.
 - **Kontofilter nach Kategorie:** Im Journal lassen sich „Einnahmen“, „Ausgaben“
   und die übrigen Kategorie-Überschriften jetzt direkt im Kontofilter wählen und
   zeigen alle Buchungen auf Konten dieser Kategorie. Bisher waren die
