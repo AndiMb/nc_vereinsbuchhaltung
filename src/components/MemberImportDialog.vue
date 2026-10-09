@@ -43,7 +43,7 @@
 				<NcButton :variant="importPreview ? 'secondary' : 'primary'" :disabled="!importCsv || importing" @click="previewImport">
 					{{ t('Prüfen') }}
 				</NcButton>
-				<NcButton variant="tertiary" :href="beispielCsv" download="mitglieder-vorlage.csv">
+				<NcButton class="vbh-importtemplate" variant="tertiary" :href="beispielCsv" download="mitglieder-vorlage.csv">
 					<template #icon>
 						<NcIconSvgWrapper :path="mdiDownload" :size="20" />
 					</template>
@@ -319,6 +319,11 @@ export default {
 </script>
 
 <style scoped>
+/* Die Vorlage gehört nicht zum Ablauf Datei wählen → Prüfen: rechts abgesetzt, damit sie nicht für „Prüfen“ gehalten wird. */
+.vbh-importtemplate {
+	margin-inline-start: auto;
+}
+
 .vbh-importhelp {
 	margin: 0 0 10px;
 	font-size: 0.9em;
