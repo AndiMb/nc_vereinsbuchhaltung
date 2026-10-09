@@ -260,7 +260,7 @@ class ContributionPreNotificationServiceTest extends TestCase {
 		$bodies = $this->sentBodyTexts('de');
 
 		$this->assertContains('Hallo Max Mustermann,', $bodies);
-		$this->assertContains('Bitte sorge für ausreichende Deckung deines Kontos. Bei Fragen wende dich an die Kassenführung.', $bodies);
+		$this->assertContains('Bitte sorge für ausreichende Deckung deines Kontos. Bei Fragen wende dich an den Vorstand.', $bodies);
 		$this->assertDoesNotMatchRegularExpression('/\b(Sie|Ihr\w*|Ihnen)\b/', implode("\n", $bodies), 'in der Du-Fassung bleibt keine förmliche Anrede');
 	}
 
@@ -268,7 +268,7 @@ class ContributionPreNotificationServiceTest extends TestCase {
 		$bodies = $this->sentBodyTexts('de_DE');
 
 		$this->assertContains('Guten Tag Max Mustermann,', $bodies);
-		$this->assertContains('Bitte sorgen Sie für ausreichende Deckung Ihres Kontos. Bei Fragen wenden Sie sich an die Kassenführung.', $bodies);
+		$this->assertContains('Bitte sorgen Sie für ausreichende Deckung Ihres Kontos. Bei Fragen wenden Sie sich an den Vorstand.', $bodies);
 	}
 
 	public function testMitgliedOhneKontoBekommtSieAuchWennDieInstanzAufDuStehtUndImCronKeinNutzerAngemeldetIst(): void {
@@ -276,14 +276,14 @@ class ContributionPreNotificationServiceTest extends TestCase {
 		$bodies = $this->sentBodyTexts(null);
 
 		$this->assertContains('Guten Tag Max Mustermann,', $bodies);
-		$this->assertContains('Bitte sorgen Sie für ausreichende Deckung Ihres Kontos. Bei Fragen wenden Sie sich an die Kassenführung.', $bodies);
+		$this->assertContains('Bitte sorgen Sie für ausreichende Deckung Ihres Kontos. Bei Fragen wenden Sie sich an den Vorstand.', $bodies);
 	}
 
 	public function testMitgliedMitEnglischemKontoBekommtEnglisch(): void {
 		$bodies = $this->sentBodyTexts('en');
 
 		$this->assertContains('Hello Max Mustermann,', $bodies);
-		$this->assertContains('Please make sure your account has sufficient funds. If you have any questions, contact the treasurer.', $bodies);
+		$this->assertContains('Please make sure your account has sufficient funds. If you have any questions, contact the board.', $bodies);
 		$this->assertDoesNotMatchRegularExpression('/[äöüß]|\bund\b|\bIhr\b/u', implode("\n", array_filter($bodies, static fn (string $text): bool => !str_starts_with($text, '– '))), 'ein englischer Empfänger sieht keine deutschen Reste');
 	}
 }

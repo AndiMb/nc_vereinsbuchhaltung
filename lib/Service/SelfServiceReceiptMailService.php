@@ -40,7 +40,7 @@ class SelfServiceReceiptMailService {
 	 * @param string|null $firstDueDate Slot „welcher Einzug" (JJJJ-MM-TT), null = ausgeblendet
 	 * @param string|null $onBehalfNote Slot „Stellvertretung" (Spec §3.4 Modell A), null = ausgeblendet
 	 * @param IL10N|null $l10n Sprache der Mail; ohne Angabe die der laufenden Anfrage (bei der Selbständerung die des
-	 *                         Mitglieds selbst, bei einer Änderung durch die Kassenführung muss die des Mitglieds übergeben werden)
+	 *                         Mitglieds selbst, bei einer Änderung durch den Vorstand muss die des Mitglieds übergeben werden)
 	 */
 	public function sendReceipt(
 		Member $member,
@@ -66,7 +66,7 @@ class SelfServiceReceiptMailService {
 			$template->addBodyText($l->t('Voraussichtlich erster betroffener Einzug: %s', [GermanDate::format($firstDueDate)]));
 		}
 		if ($onBehalfNote !== null) {
-			$template->addBodyText($l->t('Diese Änderung wurde von der Kassenführung in Ihrem Namen vorgenommen: %s', [$onBehalfNote]));
+			$template->addBodyText($l->t('Diese Änderung wurde vom Vorstand in Ihrem Namen vorgenommen: %s', [$onBehalfNote]));
 		}
 		$template->addBodyText($l->t('Diese Mail ist die Bestätigung dieser Änderung – eine Handlung Ihrerseits ist nicht nötig.'));
 		$template->addFooter();
@@ -95,7 +95,7 @@ class SelfServiceReceiptMailService {
 			'die für Ihre Mitgliedschaft bei %1$s hinterlegte E-Mail-Adresse wurde soeben von dieser Adresse auf %2$s geändert.',
 			[$clubName, self::maskEmail($newEmail)],
 		));
-		$template->addBodyText($this->l10n->t('Falls Ihnen diese Änderung nicht bekannt vorkommt, wenden Sie sich bitte direkt an die Kassenführung Ihres Vereins.'));
+		$template->addBodyText($this->l10n->t('Falls Ihnen diese Änderung nicht bekannt vorkommt, wenden Sie sich bitte direkt an den Vorstand Ihres Vereins.'));
 		$template->addFooter();
 
 		$message = $this->mailer->createMessage();

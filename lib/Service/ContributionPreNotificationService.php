@@ -142,7 +142,7 @@ class ContributionPreNotificationService {
 		// greift die Wirksamkeitsregel (EffectivityRuleService) fuer diese
 		// Positionen scharf.
 		$template->addBodyText($l->t('Betrag und Turnus dieser Positionen stehen ab jetzt fest und lassen sich bis zum Einzug nicht mehr ändern.'));
-		$template->addBodyText($l->t('Bitte sorgen Sie für ausreichende Deckung Ihres Kontos. Bei Fragen wenden Sie sich an die Kassenführung.'));
+		$template->addBodyText($l->t('Bitte sorgen Sie für ausreichende Deckung Ihres Kontos. Bei Fragen wenden Sie sich an den Vorstand.'));
 		// Auch die Fußzeile von Nextcloud (der Slogan) in der Sprache des Empfängers, nicht des Cron-Laufs.
 		$template->addFooter('', $l->getLanguageCode());
 

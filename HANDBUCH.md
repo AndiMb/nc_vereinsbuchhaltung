@@ -1864,7 +1864,7 @@ ein Verwalter eines einstellt.
 
 ### 13.11 „Mein Beitrag": der Bereich für Mitglieder
 
-Mitglieder müssen für ihre eigenen Angaben nicht die Kassenführung bemühen:
+Mitglieder müssen für ihre eigenen Angaben nicht den Vorstand bemühen:
 Unter **„Mein Beitrag"** – ein eigener Reiter in der App – pflegen sie ihre
 Kontaktdaten, ändern ihren Beitrag und führen ihr Lastschriftmandat selbst.
 Dafür ist **keine Buchhaltungsrolle** nötig, es gibt keinen Antrag, und jede
@@ -1887,9 +1887,9 @@ Akte bleibt für das Mitglied unsichtbar.
 
 | Bereich | Das Mitglied kann | Das Mitglied kann nicht |
 |---|---|---|
-| **Meine Stammdaten** | Name, E-Mail, Telefon und Adresse ändern (**„Bearbeiten"**; das Land wählt es aus der Länderliste). Ändert sich die E-Mail-Adresse, bekommt zur Sicherheit auch die bisherige Adresse eine Mail darüber | Mitgliedsnummer sowie Eintritts- und Austrittsdatum ändern – das bleibt bei der Kassenführung |
+| **Meine Stammdaten** | Name, E-Mail, Telefon und Adresse ändern (**„Bearbeiten"**; das Land wählt es aus der Länderliste). Ändert sich die E-Mail-Adresse, bekommt zur Sicherheit auch die bisherige Adresse eine Mail darüber | Mitgliedsnummer sowie Eintritts- und Austrittsdatum ändern – das bleibt beim Vorstand |
 | **Mein Beitrag** | den Monatsbeitrag erhöhen oder bis zur Untergrenze senken, den Turnus wechseln (nur die erlaubten). Die **„Vorschau"** nennt „Wirkt ab … · erster Einzug am … · Betrag …"; erst danach lässt sich speichern | die Beitragsgruppe wechseln, einen Monat aussetzen, den Austritt erklären, die eigene Untergrenze ändern oder deren Begründung sehen |
-| **Mein SEPA-Lastschriftmandat** | ein Mandat erfassen und elektronisch erteilen (**„Mandat jetzt erteilen"**), einen von Ihnen angelegten elektronischen Entwurf bestätigen (**„Jetzt bestätigen"**) oder verwerfen, die **Bankverbindung ändern**, den **Kontoinhaber wechseln**, das Mandat **widerrufen** | ein Mandat aktivieren oder sperren – das bleibt bei der Kassenführung |
+| **Mein SEPA-Lastschriftmandat** | ein Mandat erfassen und elektronisch erteilen (**„Mandat jetzt erteilen"**), einen von Ihnen angelegten elektronischen Entwurf bestätigen (**„Jetzt bestätigen"**) oder verwerfen, die **Bankverbindung ändern**, den **Kontoinhaber wechseln**, das Mandat **widerrufen** | ein Mandat aktivieren oder sperren – das bleibt beim Vorstand |
 
 Die IBAN erscheint dem Mitglied immer maskiert. Zur **Bankverbindung ändern**
 gehört dieselbe Unterscheidung wie in der Akte (13.2): hat sich nur die IBAN
@@ -1901,7 +1901,7 @@ erlischt als „ersetzt".
 Periode die Vorabinfo (13.5) verschickt ist – dem Mitglied wurde ein Betrag
 angekündigt. Eine Änderung, die deshalb erst später wirken dürfte, weist die App
 zurück und erklärt warum – die Meldung nennt das Datum, ab dem sie möglich wäre –,
-statt sie stillschweigend zu verschieben; die Kassenführung kann sie in der Akte
+statt sie stillschweigend zu verschieben; der Vorstand kann sie in der Akte
 vornehmen (13.4) – für bereits angekündigte Perioden ändert sich dann trotzdem
 nichts mehr. Die **IBAN** kennt kein Sperrfenster: die Vorabinfo nennt
 keine IBAN, und der Lauf friert sie erst bei der Freigabe ein – sie lässt sich bis
@@ -1916,8 +1916,8 @@ kann das Mitglied verwerfen, aber nicht korrigieren (13.2).
 
 **Quittung und Spur.** Jede Änderung bestätigt die App dem Mitglied per Mail:
 was sich geändert hat, ab wann und welcher Einzug als erster betroffen ist – auch
-dann, wenn die Kassenführung den Beitrag ändert (13.4; die Mail nennt sie dann als
-Urheberin). Die
+dann, wenn der Vorstand den Beitrag ändert (13.4; die Mail nennt ihn dann als
+Urheber). Die
 Mail ist die Kopie, eine eigene Ereignisliste gibt es im Bereich nicht. Zusätzlich
 erscheint ein Eintrag in der Nextcloud-**Aktivität** des Mitglieds (eigene Mail
 dazu verschickt Nextcloud nur beim Widerruf, sofern das Mitglied es nicht in
@@ -1926,8 +1926,8 @@ steht der Weg jeder Änderung: *Mitglied* (über „Mein Beitrag"), *Verein* (ü
 die Akte, auch an der eigenen) oder *System* (automatisch) – bei einer Person mit
 beiden Rollen entscheidet der Weg, nicht die Person.
 
-Mitglieder ohne Nextcloud-Konto erreichen „Mein Beitrag" nicht; für sie führt die
-Kassenführung die Angaben in der Akte (13.2) und unter *Beitragsgruppen* (13.4).
+Mitglieder ohne Nextcloud-Konto erreichen „Mein Beitrag" nicht; für sie führt der
+Vorstand die Angaben in der Akte (13.2) und unter *Beitragsgruppen* (13.4).
 
 ### 13.12 Beitragsbestätigung
 
@@ -1939,8 +1939,8 @@ Zuwendungsbestätigung nach § 10b EStG** und hat keine steuerliche Wirkung – 
 Seite sagt das ausdrücklich.
 
 **Wo.** Das Mitglied öffnet sie selbst unter *Mein Beitrag → Meine
-Beitragsbestätigung* (13.11): **Beitragsjahr** wählen, **„Öffnen"**. Die
-Kassenführung öffnet sie in der Akte (13.2) im Abschnitt **„Beitragsbestätigung"**
+Beitragsbestätigung* (13.11): **Beitragsjahr** wählen, **„Öffnen"**. Der
+Vorstand öffnet sie in der Akte (13.2) im Abschnitt **„Beitragsbestätigung"**
 – der Weg für Mitglieder ohne Nextcloud-Konto. Einen Sammellauf für alle
 Mitglieder, einen Versand aus der App oder einen Link ohne Anmeldung gibt es
 nicht. Zur Wahl stehen die Jahre mit mindestens einem bezahlten Beitrag und das

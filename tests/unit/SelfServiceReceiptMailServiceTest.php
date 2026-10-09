@@ -79,7 +79,7 @@ class SelfServiceReceiptMailServiceTest extends TestCase {
 		$this->assertStringContainsString('Wirkt ab: 01.07.2026', $joined);
 		$this->assertStringContainsString('Voraussichtlich erster betroffener Einzug: 05.07.2026', $joined);
 		// Kein Stellvertretungs-Hinweis, weil onBehalfNote nicht übergeben wurde.
-		$this->assertStringNotContainsString('Kassenführung', $joined);
+		$this->assertStringNotContainsString('Vorstand', $joined);
 	}
 
 	public function testSendReceiptMitStellvertretungsHinweis(): void {

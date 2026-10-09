@@ -452,7 +452,7 @@ class SepaImportConfirmationService {
 			try {
 				// Als Funktion: die Mail ist an das Mitglied gerichtet, der Satz wird
 				// erst in DER Sprache des Mitglieds übersetzt, nicht in der der
-				// Kassenführung, die diese Buchung gerade bestätigt.
+				// Vorstands, der diese Buchung gerade bestätigt.
 				$this->dunningLadder->triggerPaymentRequest($openItem, static fn (IL10N $l): string => ReturnReasonClassifier::memberFacingReason($class, $l));
 			} catch (\Throwable $e) {
 				$this->audit->log('Mahnwesen: Zahlungsaufforderung nach Rücklastschrift fehlgeschlagen', 'open_item', (int)$openItem->getId(), ['fehler' => $e->getMessage()]);

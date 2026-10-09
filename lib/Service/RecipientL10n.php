@@ -19,7 +19,7 @@ use OCP\L10N\IFactory;
  * aktuellen Requests. Die Vorabinfo und die Mahntreppe entstehen aber im
  * Cron (dort gilt die Standardsprache der Instanz, ein Nutzer gibt es nicht),
  * eine Zahlungsaufforderung nach einer Rücklastschrift im Request der
- * Kassenführung (dort gilt DEREN Sprache), und der Einmal-Link geht ebenfalls
+ * Vorstands (dort gilt DEREN Sprache), und der Einmal-Link geht ebenfalls
  * im Namen der Verwaltung raus. Die Mail soll aber in der Sprache lesbar sein,
  * auf die das Mitglied sein Konto gestellt hat.
  *

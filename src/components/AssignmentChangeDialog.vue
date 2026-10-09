@@ -80,7 +80,7 @@ import { intervalLabel } from '../lib/frequency.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 
 /**
- * „Beitrag ändern“ und „Beitragsgruppe wechseln“ für die Kassenführung: Monatsbeitrag und Turnus einer bestehenden Zuweisung beziehungsweise ihre Beitragsgruppe
+ * „Beitrag ändern“ und „Beitragsgruppe wechseln“ für den Vorstand: Monatsbeitrag und Turnus einer bestehenden Zuweisung beziehungsweise ihre Beitragsgruppe
  * (bisher konnte nur das Mitglied selbst unter „Mein Beitrag“ ändern, die Verwaltung nur beenden und
  * neu anlegen). Der Server prüft Untergrenze und erlaubte Turnusse und nennt in der Vorschau, ab wann
  * die Änderung gilt – bei einem schon angekündigten Einzug erst danach (Sperrfenster). Die Vorschau
@@ -223,7 +223,7 @@ export default {
 			}
 		},
 
-		/** Sagt der Kassenführung, ob die Quittungsmail an das Mitglied rausging – die Änderung selbst ist in jedem Fall gespeichert. */
+		/** Sagt dem Vorstand, ob die Quittungsmail an das Mitglied rausging – die Änderung selbst ist in jedem Fall gespeichert. */
 		reportReceipt(receipt) {
 			if (receipt === 'sent') {
 				showSuccess(this.t('Beitrag geändert. Das Mitglied hat eine Bestätigung per E-Mail bekommen.'))

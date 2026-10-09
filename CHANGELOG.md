@@ -88,7 +88,7 @@ verwenden, z. B. `**Neu:**`.
   Einstellungen → Beiträge & SEPA eingeschaltet (Issue #74–#76, #122).
 - **Beitragsbestätigung:** Eine druckfertige, informelle Bestätigung der
   bezahlten Beiträge je Beitragsjahr, für Mitglieder unter „Mein Beitrag", für
-  die Kassenführung in der Akte. Sie ersetzt keine Zuwendungsbestätigung nach
+  den Vorstand in der Akte. Sie ersetzt keine Zuwendungsbestätigung nach
   § 10b EStG (Issue #77).
 - **Datenschutz:** Die Datenübersicht liefert die Auskunft nach Art. 15 DSGVO;
   die Anonymisierung schwärzt Name, Kontaktdaten, Bankverbindungen und
@@ -134,7 +134,7 @@ verwenden, z. B. `**Neu:**`.
   Freigabe-Vorlauf stehen zusammen in den Nextcloud-Einstellungen (Beiträge &
   SEPA); eine Beispielzeile rechnet sie auf einen Einzugstermin um. Der
   Terminplan im Einzug zeigt sie nur noch an.
-- **Beitrag ändern für die Kassenführung:** Betrag und Turnus einer Zuweisung
+- **Beitrag ändern für den Vorstand:** Betrag und Turnus einer Zuweisung
   lassen sich jetzt in der Verwaltung ändern (beliebig über der Untergrenze), die
   Beitragsgruppe lässt sich wechseln, beides mit Vorschau „Wirkt ab …“ und direkt
   im ⋯-Menü der Mitgliederzeile; vorher konnte nur das Mitglied selbst ändern.

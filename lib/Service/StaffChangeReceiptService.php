@@ -16,15 +16,15 @@ use OCP\L10N\IFactory;
 use Psr\Log\LoggerInterface;
 
 /**
- * Quittungsmail an das Mitglied, wenn die **Kassenführung** seinen Beitrag ändert (Betrag, Turnus oder
+ * Quittungsmail an das Mitglied, wenn der **Vorstand** seinen Beitrag ändert (Betrag, Turnus oder
  * Beitragsgruppe): dasselbe Skelett wie die Quittung der Selbständerung
- * ({@see SelfServiceReceiptMailService}, „Quittungsmail an das Mitglied, immer"), nur nennt der Text die
- * Kassenführung als Urheberin. Das Mitglied erfährt so von jeder Änderung seines Beitrags, auch wenn es sie
+ * ({@see SelfServiceReceiptMailService}, „Quittungsmail an das Mitglied, immer"), nur nennt der Text den
+ * Vorstand als Urheber. Das Mitglied erfährt so von jeder Änderung seines Beitrags, auch wenn es sie
  * nicht selbst vorgenommen hat.
  *
  * Eine Mail, die nicht rausgeht (keine Adresse, Mailserver nicht erreichbar), darf die Änderung nicht
  * zurückrollen: sie ist dann schon gespeichert. Der Aufrufer bekommt deshalb nur den Ausgang gemeldet
- * (siehe die Konstanten) und zeigt ihn der Kassenführung an.
+ * (siehe die Konstanten) und zeigt ihn dem Vorstand an.
  */
 class StaffChangeReceiptService {
 
@@ -56,7 +56,7 @@ class StaffChangeReceiptService {
 	 */
 	public function send(Assignment $after, array $before, array $preview): string {
 		$member = $this->members->find($after->getMemberId());
-		// Die Mail folgt der Sprache des Mitglieds (Du-/Sie-Fassung, Englisch), nicht der der Kassenführung,
+		// Die Mail folgt der Sprache des Mitglieds (Du-/Sie-Fassung, Englisch), nicht der des Vorstands,
 		// die die Änderung gerade vornimmt.
 		$l = $this->l10nFor($member);
 		$what = $this->describeChanges($after, $before, $l);
@@ -97,19 +97,19 @@ class StaffChangeReceiptService {
 	private function describeChanges(Assignment $after, array $before, IL10N $l): array {
 		$what = [];
 		if ($after->getGroupId() !== $before['groupId']) {
-			$what[] = $l->t('Die Kassenführung hat Ihre Beitragsgruppe von „%1$s" auf „%2$s" gewechselt.', [
+			$what[] = $l->t('Der Vorstand hat Ihre Beitragsgruppe von „%1$s" auf „%2$s" gewechselt.', [
 				$this->groups->find($before['groupId'])->getName(),
 				$this->groups->find($after->getGroupId())->getName(),
 			]);
 		}
 		if ($after->getMonthlyAmountCents() !== $before['amountCents']) {
-			$what[] = $l->t('Die Kassenführung hat Ihren Monatsbeitrag von %1$s € auf %2$s € geändert.', [
+			$what[] = $l->t('Der Vorstand hat Ihren Monatsbeitrag von %1$s € auf %2$s € geändert.', [
 				$this->euro($before['amountCents']),
 				$this->euro($after->getMonthlyAmountCents()),
 			]);
 		}
 		if ($after->getIntervalMonths() !== $before['intervalMonths']) {
-			$what[] = $l->t('Die Kassenführung hat Ihren Zahlungsturnus von %1$s auf %2$s geändert.', [
+			$what[] = $l->t('Der Vorstand hat Ihren Zahlungsturnus von %1$s auf %2$s geändert.', [
 				$this->intervalName($before['intervalMonths'], $l),
 				$this->intervalName($after->getIntervalMonths(), $l),
 			]);

@@ -62,7 +62,7 @@ use Psr\Log\LoggerInterface;
  * {@see \OCA\Vereinsbuchhaltung\Service\Sepa\ReturnReasonClassifier::memberFacingReason()})
  * übergeben, nie einen rohen ISO-Code.
  *
- * **Sprache:** die Mail entsteht im Cron oder im Request der Kassenführung,
+ * **Sprache:** die Mail entsteht im Cron oder im Request des Vorstands,
  * gelesen wird sie vom Mitglied – Du/Sie und Sprache kommen deshalb vom
  * Empfänger ({@see RecipientL10n}). Aus demselben Grund sind die Grund-Sätze
  * keine fertigen Texte, sondern Funktionen `fn (IL10N $l): string`: übersetzt

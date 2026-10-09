@@ -620,7 +620,7 @@ test.describe('„Mein Beitrag“ im Überblick (Protokoll 11.1, 11.2, 11.9, 11.
 		const contact = cardWithHeading(section, 'Meine Stammdaten')
 		await contact.getByRole('button', { name: 'Bearbeiten' }).click()
 
-		// Änderbar sind Name, E-Mail, Telefon und Anschrift – Mitgliedsnummer und Eintrittsdatum liegen bei der Kassenführung.
+		// Änderbar sind Name, E-Mail, Telefon und Anschrift – Mitgliedsnummer und Eintrittsdatum liegen beim Vorstand.
 		for (const label of ['Vorname', 'Nachname', 'E-Mail', 'Telefon', 'Straße', 'PLZ', 'Ort']) {
 			await expect(contact.getByLabel(label, { exact: true })).toBeVisible()
 		}
@@ -644,7 +644,7 @@ test.describe('„Mein Beitrag“ im Überblick (Protokoll 11.1, 11.2, 11.9, 11.
 		await expect(contact.getByText('+49 30 5550123')).toBeVisible()
 		await expect(contact.getByText('Neuer Weg 7, 10115 Berlin')).toBeVisible()
 
-		// Die Kassenführung sieht die Änderung; die interne Notiz blieb unberührt.
+		// Der Vorstand sieht die Änderung; die interne Notiz blieb unberührt.
 		const stored = await api.getJson(request, `/members/${member.id}`)
 		expect(stored).toMatchObject({ phone: '+49 30 5550123', street: 'Neuer Weg 7', internalNote: NOTE })
 	})
@@ -1210,12 +1210,12 @@ test.describe('Quittungsmail der Beitragsänderung (Protokoll 11.9, 14.3, 14.7)'
 	})
 
 	/**
-	 * Wie receiptMail(), aber die KASSENFÜHRUNG ändert den Betrag (PUT /assignments/{id} als Verwalter): das Mitglied
-	 * bekommt dieselbe Quittung, in der Sprache seines Kontos und mit der Kassenführung als Urheberin.
+	 * Wie receiptMail(), aber der VORSTAND ändert den Betrag (PUT /assignments/{id} als Verwalter): das Mitglied
+	 * bekommt dieselbe Quittung, in der Sprache seines Kontos und mit dem Vorstand als Urheber.
 	 */
 	async function staffReceiptMail(request, uid, firstName) {
 		const group = await ensureGroup(request, GROUP_REDUCED)
-		const member = await createMember(request, firstName, 'Kassenführung')
+		const member = await createMember(request, firstName, 'Vorstand')
 		const assignment = await createAssignment(request, { memberId: member.id, groupId: group.id, intervalMonths: 3, monthlyAmount: 10 })
 		await linkOnly(request, member.id, uid)
 		await clearCapturedMails()
@@ -1228,22 +1228,22 @@ test.describe('Quittungsmail der Beitragsänderung (Protokoll 11.9, 14.3, 14.7)'
 		return { ...mail, text: mail.text.replace(/\s+/g, ' ') }
 	}
 
-	test('Beitragsänderung durch die Kassenführung: Quittung in der Du-Fassung des Mitglieds', async ({ request }) => {
+	test('Beitragsänderung durch den Vorstand: Quittung in der Du-Fassung des Mitglieds', async ({ request }) => {
 		test.setTimeout(90000)
 		const mail = await staffReceiptMail(request, USERS.ohneRolle, 'Lena')
 
 		expect(mail.subject).toBe('Dein Beitrag wurde geändert')
-		expect(mail.text).toContain('Die Kassenführung hat deinen Monatsbeitrag von 10,00 € auf 15,00 € geändert.')
+		expect(mail.text).toContain('Der Vorstand hat deinen Monatsbeitrag von 10,00 € auf 15,00 € geändert.')
 		expect(mail.text).toMatch(/Wirkt ab: \d{2}\.\d{2}\.\d{4}/)
 		expect(mail.text).toContain('eine Handlung deinerseits ist nicht nötig')
 	})
 
-	test('Beitragsänderung durch die Kassenführung: Konto auf Englisch bekommt die englische Quittung', async ({ request }) => {
+	test('Beitragsänderung durch den Vorstand: Konto auf Englisch bekommt die englische Quittung', async ({ request }) => {
 		test.setTimeout(90000)
 		const mail = await staffReceiptMail(request, USERS.englisch, 'Emil')
 
 		expect(mail.subject).toBe('Your contribution has been changed')
-		expect(mail.text).toContain('The treasurer has changed your monthly fee from 10,00 € to 15,00 €.')
+		expect(mail.text).toContain('The board has changed your monthly fee from 10,00 € to 15,00 €.')
 		expect(mail.text).toMatch(/Effective from: \d{2}\.\d{2}\.\d{4}/)
 		expect(mail.text).toContain('no action is needed on your part')
 	})

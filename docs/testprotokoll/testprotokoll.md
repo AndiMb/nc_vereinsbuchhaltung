@@ -506,7 +506,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 **Tun:**
 1. Öffne den Abschnitt „Mandats-Rechtstext“. Lies „Aktuell gültig: Fassung N vom … (…)“.
 2. Sieh dir „Pflichtblock (geschützt)“, das Feld „Rahmentext (optional)“ und die „Vorschau“ an.
-3. Tippe in „Rahmentext (optional)“: `Testzusatz: Rückfragen an {{creditor_name}} richten Sie bitte an die Kassenführung.`
+3. Tippe in „Rahmentext (optional)“: `Testzusatz: Rückfragen an {{creditor_name}} richten Sie bitte an den Vorstand.`
 4. Beobachte „Vorschau“, den Zähler und die Knöpfe „Neue Version speichern“ und „Änderungen verwerfen“.
 5. Klicke „Neue Version speichern“.
 6. Klicke im „Versionsverlauf“ bei der früheren Fassung auf „Anzeigen“, danach auf „Ausblenden“.
@@ -1388,7 +1388,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 
 **Erwartet:**
 - Je Mitglied mit einzugsfähigem Mandat und E-Mail **eine** gebündelte Vorabinfo: Jana Hoffmann, Markus Fuchs, Mara Lindner, Anna Koch, Bernd Neumann, Clara Vogel, David Wolf, Eva Schröder, Felix Maier und Nadine Schuster (zehn), dazu Theo Testlink. Betreff: „Bevorstehender Lastschrifteinzug von {Vereinsname}“, Überschrift „Bevorstehender Lastschrifteinzug“.
-- Inhalt in dieser Reihenfolge: Anrede („Guten Tag Markus Fuchs,“), der Satz „{Verein} wird die folgenden Beträge per Lastschrift von Ihrem Konto einziehen (Mandatsreferenz …):“, je Position eine Zeile („– Bezeichnung, Monat Jahr: 15,00 €, fällig 01.11.2026“, z. B. „Vollmitglied, November 2026: …“; eine Forderung ohne Zeitraum nennt keinen Monat), dann „Frühester Einzug: 01.11.2026“, „Gläubiger-Identifikationsnummer: DE98ZZZ09999999999“, „Betrag und Turnus dieser Positionen stehen ab jetzt fest und lassen sich bis zum Einzug nicht mehr ändern.“ und „Bitte sorgen Sie für ausreichende Deckung Ihres Kontos. Bei Fragen wenden Sie sich an die Kassenführung.“
+- Inhalt in dieser Reihenfolge: Anrede („Guten Tag Markus Fuchs,“), der Satz „{Verein} wird die folgenden Beträge per Lastschrift von Ihrem Konto einziehen (Mandatsreferenz …):“, je Position eine Zeile („– Bezeichnung, Monat Jahr: 15,00 €, fällig 01.11.2026“, z. B. „Vollmitglied, November 2026: …“; eine Forderung ohne Zeitraum nennt keinen Monat), dann „Frühester Einzug: 01.11.2026“, „Gläubiger-Identifikationsnummer: DE98ZZZ09999999999“, „Betrag und Turnus dieser Positionen stehen ab jetzt fest und lassen sich bis zum Einzug nicht mehr ändern.“ und „Bitte sorgen Sie für ausreichende Deckung Ihres Kontos. Bei Fragen wenden Sie sich an den Vorstand.“
 - **Jana (Konto auf „Deutsch“)** bekommt die **Du-Fassung** („Hallo Jana Hoffmann,“, „… von deinem Konto …“, „Bitte sorge für ausreichende Deckung deines Kontos …“); alle anderen, auch Nadine und Theo ohne Nextcloud-Konto, die Sie-Fassung.
 - Jonas Richter, Lena Bergmann, Tobias Brandt und das Musikhaus bekommen **keine Vorabinfo**. Lena (auf Englisch) und Tobias bekommen je eine **Zahlungsaufforderung** („Zahlungsaufforderung von …“) mit GiroCode (siehe 9.7 und 14.7).
 - Nadines Mail nennt ihre Einzelforderung; Theos Mail `Test D Lauf` mit „fällig 01.11.2026“.
@@ -1743,7 +1743,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 
 ## Phase 9 – Rücklastschrift & Mahnwesen
 
-**Ziel:** Du prüfst die Folgen einer Rücklastschrift (Klartext, Sperre, Zahlungsaufforderung mit GiroCode, Gebühren-Forderung) und die Instrumente der Kassenführung: Mahnstand, Stundung, Erlass, Storno, als bezahlt vermerken.
+**Ziel:** Du prüfst die Folgen einer Rücklastschrift (Klartext, Sperre, Zahlungsaufforderung mit GiroCode, Gebühren-Forderung) und die Instrumente des Vorstands: Mahnstand, Stundung, Erlass, Storno, als bezahlt vermerken.
 
 **Nutzer:** admin (Verwalter), Mailhog, ein Smartphone mit Banking-App.
 
@@ -2028,10 +2028,10 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 5. Stelle die ursprüngliche E-Mail-Adresse wieder ein und speichere.
 
 **Erwartet:**
-- Du kannst Vorname, Nachname, E-Mail, Telefon, Straße, PLZ, Ort und Land ändern; Mitgliedsnummer sowie Eintritts- und Austrittsdatum bleiben unveränderlich (das macht die Kassenführung).
+- Du kannst Vorname, Nachname, E-Mail, Telefon, Straße, PLZ, Ort und Land ändern; Mitgliedsnummer sowie Eintritts- und Austrittsdatum bleiben unveränderlich (das macht der Vorstand).
 - Der Hinweis bei geänderter E-Mail: „Bei einer Änderung der E-Mail-Adresse erhält die bisherige Adresse zur Sicherheit eine Mail darüber.“
 - Toast „Kontaktdaten gespeichert.“
-- Mailhog: eine Quittungsmail „Deine Kontaktdaten wurden aktualisiert“ (Du-Fassung) an die **neue** Adresse und eine Warnmail an die **alte** Adresse („E-Mail-Adresse geändert“; die neue Adresse ist darin maskiert, z. B. `j•••@e•••••.org`, ohne Rücknahme-Link, mit dem Hinweis, sich bei Unklarheit an die Kassenführung zu wenden). Die Du- oder Sie-Fassung der Warnmail richtet sich nach dem Konto.
+- Mailhog: eine Quittungsmail „Deine Kontaktdaten wurden aktualisiert“ (Du-Fassung) an die **neue** Adresse und eine Warnmail an die **alte** Adresse („E-Mail-Adresse geändert“; die neue Adresse ist darin maskiert, z. B. `j•••@e•••••.org`, ohne Rücknahme-Link, mit dem Hinweis, sich bei Unklarheit an den Vorstand zu wenden). Die Du- oder Sie-Fassung der Warnmail richtet sich nach dem Konto.
 
 ### 11.3 IBAN ändern mit Vorschau (jane)
 

@@ -131,7 +131,7 @@ class AssignmentController extends Controller {
 	/**
 	 * Betrag, Turnus und/oder Beitragsgruppe ändern. Das Mitglied bekommt dazu eine Quittungsmail
 	 * ({@see StaffChangeReceiptService}); in der Antwort steht unter `receipt`, ob sie rausging
-	 * (`sent`, `no_email`, `failed`, `not_needed`), damit die Oberfläche es der Kassenführung sagen kann.
+	 * (`sent`, `no_email`, `failed`, `not_needed`), damit die Oberfläche es dem Vorstand sagen kann.
 	 */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]

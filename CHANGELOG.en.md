@@ -86,7 +86,7 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   #122).
 - **Contribution confirmation:** a print-ready, informal confirmation of the
   contributions paid per contribution year, for members under "My
-  contribution", for the treasurer in the record. It does not replace a
+  contribution", for the board in the record. It does not replace a
   donation receipt under § 10b EStG (issue #77).
 - **Data protection:** the data overview provides the information required by
   Art. 15 GDPR; the anonymization blacks out name, contact details, bank

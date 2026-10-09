@@ -1850,7 +1850,7 @@ administrator sets one.
 
 ### 13.11 "My contribution": the area for members
 
-Members don't have to bother the treasurer for their own details: under **"My
+Members don't have to bother the board for their own details: under **"My
 contribution"** (*Mein Beitrag*) – a tab of its own in the app – they maintain
 their contact details, change their fee and manage their direct-debit mandate
 themselves. **No bookkeeping role** is needed for that, there is no application,
@@ -1873,9 +1873,9 @@ member.
 
 | Area | The member can | The member cannot |
 |---|---|---|
-| **My master data** (*Meine Stammdaten*) | change name, email, phone and address (**"Edit"**; the country is chosen from the country list). If the email address changes, the previous address also gets an email about it for safety | change member number or join and leave dates – those stay with the treasurer |
+| **My master data** (*Meine Stammdaten*) | change name, email, phone and address (**"Edit"**; the country is chosen from the country list). If the email address changes, the previous address also gets an email about it for safety | change member number or join and leave dates – those stay with the board |
 | **My contribution** (*Mein Beitrag*) | raise the monthly fee or lower it down to the minimum, change the interval (only the allowed ones). The **"Preview"** (*Vorschau*) states "takes effect from … · first collection on … · amount …"; only then can they save | change the contribution group, skip a month, declare leaving, change their own minimum or see its reason |
-| **My SEPA direct-debit mandate** (*Mein SEPA-Lastschriftmandat*) | record a mandate and grant it electronically (**"Mandat jetzt erteilen"**), confirm (**"Jetzt bestätigen"**) or discard an electronic draft you created, **change the bank details**, **change the account holder**, **revoke** the mandate | activate or suspend a mandate – that stays with the treasurer |
+| **My SEPA direct-debit mandate** (*Mein SEPA-Lastschriftmandat*) | record a mandate and grant it electronically (**"Mandat jetzt erteilen"**), confirm (**"Jetzt bestätigen"**) or discard an electronic draft you created, **change the bank details**, **change the account holder**, **revoke** the mandate | activate or suspend a mandate – that stays with the board |
 
 The IBAN is always shown to the member masked. **Changing the bank details**
 involves the same distinction as in the record (13.2): if only the IBAN changed
@@ -1886,7 +1886,7 @@ new mandate is granted electronically and the old one ends as "replaced".
 pre-notification (13.5) has been sent for a period – the member was told an
 amount. A change that therefore could only take effect later is rejected by the
 app with an explanation – the message states the date from which it would be
-possible – instead of being silently postponed; the treasurer can make it in the
+possible – instead of being silently postponed; the board can make it in the
 record (13.4) – for periods already announced, nothing changes anyway.
 The **IBAN** has no lock window: the pre-notification doesn't name an IBAN, and
 the run only freezes it at release – so it can be changed until then.
@@ -1900,7 +1900,7 @@ but not corrected (13.2).
 
 **Receipt and trail.** The app confirms every change to the member by email:
 what changed, from when, and which collection is the first one affected – also
-when the treasurer changes the fee (13.4; the email then names them as the
+when the board changes the fee (13.4; the email then names it as the
 originator). The
 email is the copy; the area has no event list of its own. In addition, an entry
 appears in the member's Nextcloud **Activity** (Nextcloud only sends an email for
@@ -1911,7 +1911,7 @@ settings). A mandate's history (13.2) shows the route of every change:
 person.
 
 Members without a Nextcloud account can't reach "My contribution"; for them the
-treasurer maintains the details in the record (13.2) and under *Contribution
+the board maintains the details in the record (13.2) and under *Contribution
 groups* (13.4).
 
 ### 13.12 Contribution confirmation
@@ -1924,7 +1924,7 @@ under § 10b EStG** and has no tax effect – the page says so explicitly.
 
 **Where.** The member opens it themselves under *My contribution → My
 contribution confirmation* (*Meine Beitragsbestätigung*, 13.11): choose the
-**contribution year**, **"Open"** (*Öffnen*). The treasurer opens it in the
+**contribution year**, **"Open"** (*Öffnen*). The board opens it in the
 record (13.2) in the **"Contribution confirmation"** (*Beitragsbestätigung*)
 section – the way for members without a Nextcloud account. There is no bulk run
 for all members, no sending from the app and no link without signing in. The

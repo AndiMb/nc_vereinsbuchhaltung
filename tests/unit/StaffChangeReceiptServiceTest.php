@@ -21,7 +21,7 @@ use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 
 /**
- * Quittungsmail an das Mitglied, wenn die Kassenführung seinen Beitrag ändert: wann sie rausgeht, was sie sagt
+ * Quittungsmail an das Mitglied, wenn der Vorstand seinen Beitrag ändert: wann sie rausgeht, was sie sagt
  * und dass ein gescheiterter Versand die (längst gespeicherte) Änderung nicht berührt.
  */
 class StaffChangeReceiptServiceTest extends TestCase {
@@ -99,7 +99,7 @@ class StaffChangeReceiptServiceTest extends TestCase {
 			$member,
 			'katrin@example.org',
 			'Ihr Beitrag wurde geändert',
-			'Die Kassenführung hat Ihren Monatsbeitrag von 10,00 € auf 15,50 € geändert.',
+			'Der Vorstand hat Ihren Monatsbeitrag von 10,00 € auf 15,50 € geändert.',
 			'2026-11-01',
 			'2027-01-15',
 		);
@@ -114,8 +114,8 @@ class StaffChangeReceiptServiceTest extends TestCase {
 			$this->anything(),
 			$this->anything(),
 			$this->anything(),
-			'Die Kassenführung hat Ihre Beitragsgruppe von „Vollmitglied" auf „Ermäßigt" gewechselt. '
-				. 'Die Kassenführung hat Ihren Zahlungsturnus von jährlich auf vierteljährlich geändert.',
+			'Der Vorstand hat Ihre Beitragsgruppe von „Vollmitglied" auf „Ermäßigt" gewechselt. '
+				. 'Der Vorstand hat Ihren Zahlungsturnus von jährlich auf vierteljährlich geändert.',
 			$this->anything(),
 			$this->anything(),
 		);
@@ -129,7 +129,7 @@ class StaffChangeReceiptServiceTest extends TestCase {
 			$this->anything(),
 			$this->anything(),
 			$this->anything(),
-			'Die Kassenführung hat Ihren Monatsbeitrag von 10,00 € auf 0,00 € geändert.',
+			'Der Vorstand hat Ihren Monatsbeitrag von 10,00 € auf 0,00 € geändert.',
 			'2026-11-01',
 			null,
 		);
@@ -137,7 +137,7 @@ class StaffChangeReceiptServiceTest extends TestCase {
 		$this->service()->send($this->assignment(0), $this->before(1000), $this->preview());
 	}
 
-	/** Die Mail folgt der Sprache des Mitglieds (seines Kontos), nicht der der Kassenführung, die gerade speichert. */
+	/** Die Mail folgt der Sprache des Mitglieds (seines Kontos), nicht der des Vorstands, der gerade speichert. */
 	public function testMailFolgtDerSpracheDesKontos(): void {
 		$member = $this->member(null, 'katrin.b');
 		$user = $this->createMock(IUser::class);
@@ -150,7 +150,7 @@ class StaffChangeReceiptServiceTest extends TestCase {
 			$member,
 			'konto@example.org',
 			'EN: Ihr Beitrag wurde geändert',
-			'EN: Die Kassenführung hat Ihren Monatsbeitrag von 10,00 € auf 15,00 € geändert.',
+			'EN: Der Vorstand hat Ihren Monatsbeitrag von 10,00 € auf 15,00 € geändert.',
 			$this->anything(),
 			$this->anything(),
 			null,
