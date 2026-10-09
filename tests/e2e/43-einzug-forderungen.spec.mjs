@@ -353,7 +353,9 @@ test.describe('Einzug-Unterreiter: Segment „Forderungen“', () => {
 		await panel.getByRole('button', { name: '+ Einzelforderung' }).click()
 		const dialog = page.getByRole('dialog', { name: 'Manuelle Einzelforderung' })
 		await expect(dialog).toBeVisible()
-		const memberSelect = dialog.getByRole('combobox', { name: 'Mitglieder' })
+		// Die Mehrfachauswahl hat keinen verlässlichen Rollennamen mehr (die gewählten Mitglieder stehen als Marken
+		// im selben Feld): das Suchfeld der Auswahl ist das einzige seiner Art im Dialog.
+		const memberSelect = dialog.locator('input.vs__search')
 		for (const name of ['Mehrfach Eins', 'Mehrfach Zwei']) {
 			await memberSelect.click()
 			await memberSelect.pressSequentially(name, { delay: 20 })

@@ -89,16 +89,24 @@ async function expectGiroCodePerPosition(mail, claims, positions, dueDate) {
 	expect(mail.text, 'Der Mailtext verweist auf die GiroCodes').toContain('GiroCode')
 	// Die Zahlungsdaten stehen je Position auch im Text, zum Abschreiben (IBAN in Vierergruppen).
 	const ibanGrouped = BANK_ACCOUNT_IBAN.replace(/\s+/g, '').replace(/(.{4})/g, '$1 ').trim()
-	positions.forEach((p, i) => {
-		expect(mail.text, `Position ${i + 1} ist nummeriert`).toContain(`Position ${i + 1}: `)
-		expect(mail.text, `Betrag von Position ${i + 1}`).toContain(`Betrag: ${p.amount.toFixed(2).replace('.', ',')} €`)
+	// Die Reihenfolge der Positionen im Mailtext folgt dem Server (Fälligkeit, ID), nicht der Anlegereihenfolge
+	// des Tests: die Nummer einer Forderung steht in „Position N: <Bezeichnung>…“.
+	const escapeRe = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+	const numbers = positions.map((p) => {
+		const found = new RegExp(`Position (\\d+): ${escapeRe(p.label)}`).exec(mail.text)
+		expect(found, `Position "${p.label}" steht nummeriert im Mailtext`).not.toBeNull()
+		return Number(found[1])
+	})
+	expect([...numbers].sort((x, y) => x - y), 'die Positionen sind von 1 an fortlaufend nummeriert').toEqual(claims.map((_, i) => i + 1))
+	positions.forEach((p) => {
+		expect(mail.text, `Betrag von "${p.label}"`).toContain(`Betrag: ${p.amount.toFixed(2).replace('.', ',')} €`)
 	})
 	expect(mail.text.match(new RegExp(`IBAN: ${ibanGrouped}`, 'g'))?.length, 'ein IBAN-Block je Position').toBe(claims.length)
 	expect(mail.text, 'Verwendungszweck steht im Text').toContain('Verwendungszweck: ')
 
 	const giroCodes = giroCodesOf(mail)
 	const byName = new Map(giroCodes.map((a) => [a.filename, a]))
-	expect([...byName.keys()].sort(), 'ein Anhang je Position, kein Sammelbetrag').toEqual(claims.map((c, i) => `GiroCode-Position-${i + 1}.png`).sort())
+	expect([...byName.keys()].sort(), 'ein Anhang je Position, kein Sammelbetrag').toEqual(numbers.map((n) => `GiroCode-Position-${n}.png`).sort())
 	for (const attachment of giroCodes) {
 		expect(attachment.contentType).toBe('image/png')
 		const info = pngInfo(attachment.data)
@@ -108,7 +116,7 @@ async function expectGiroCodePerPosition(mail, claims, positions, dueDate) {
 		expect(info.bytes, 'kein leeres oder abgeschnittenes PNG').toBeGreaterThan(800)
 	}
 
-	const ordered = claims.map((claim, i) => byName.get(`GiroCode-Position-${i + 1}.png`).data)
+	const ordered = numbers.map((n) => byName.get(`GiroCode-Position-${n}.png`).data)
 	const payloads = await decodeGiroCodes(ordered)
 	claims.forEach((claim, i) => {
 		const lines = payloads[i]
