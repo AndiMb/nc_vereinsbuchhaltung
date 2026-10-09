@@ -32,10 +32,19 @@ export async function loadAppTranslations() {
 	}
 }
 
+// Kein HTML-Escaping und kein DOMPurify in der Uebersetzung: die Texte landen
+// ausschliesslich in Vue-Templates ({{ }} und :attr-Bindings), und Vue
+// escapt dort selbst. Mit dem Standard (escape: true) wurde ein "&" im
+// Kontonamen doppelt kodiert und stand als "&amp;" sichtbar im Finanzplan
+// ("Notiz zu 5930 Anschaffung &amp; Wartung Technik"). v-html wird in der
+// App nirgends verwendet - sollte das einmal noetig werden, muss der Wert dort
+// gezielt escapt werden, nicht hier.
+const TRANSLATE_OPTIONS = { escape: false, sanitize: false }
+
 export function t(text, vars, count) {
-	return translate(APP_ID, text, vars, count)
+	return translate(APP_ID, text, vars, count, TRANSLATE_OPTIONS)
 }
 
 export function n(textSingular, textPlural, count, vars) {
-	return translatePlural(APP_ID, textSingular, textPlural, count, vars)
+	return translatePlural(APP_ID, textSingular, textPlural, count, vars, TRANSLATE_OPTIONS)
 }

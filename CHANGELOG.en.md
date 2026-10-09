@@ -39,6 +39,10 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   rules, assignment, open items, splitting and reassigning, a category heading
   could be selected and merely cleared the field. The headings are now
   locked.
+- **"&" in an account name showed up as `&amp;` in the budget view:** the
+  labels of the note field and the plan-value field displayed HTML-encoded
+  characters ("Note on 5930 Anschaffung `&amp;` Wartung Technik"). Translated
+  texts with placeholders are no longer encoded twice.
 
 ## [0.34.4] – 2026-09-29
 
