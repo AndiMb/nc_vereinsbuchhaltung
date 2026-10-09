@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\Assignment;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\AssignmentService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
+use OCA\Vereinsbuchhaltung\Service\StaffChangeReceiptService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
@@ -38,6 +39,7 @@ class AssignmentController extends Controller {
 	public function __construct(
 		IRequest $request,
 		private AssignmentService $service,
+		private StaffChangeReceiptService $receipts,
 		private IUserSession $userSession,
 		private IL10N $l10n,
 	) {
@@ -126,19 +128,33 @@ class AssignmentController extends Controller {
 		}
 	}
 
+	/**
+	 * Betrag, Turnus und/oder Beitragsgruppe ändern. Das Mitglied bekommt dazu eine Quittungsmail
+	 * ({@see StaffChangeReceiptService}); in der Antwort steht unter `receipt`, ob sie rausging
+	 * (`sent`, `no_email`, `failed`, `not_needed`), damit die Oberfläche es der Kassenführung sagen kann.
+	 */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function update(int $id, ?float $monthlyAmount = null, ?int $intervalMonths = null, ?int $groupId = null): DataResponse {
 		try {
+			$monthlyAmountCents = $monthlyAmount !== null ? (int)round($monthlyAmount * 100) : null;
+			$current = $this->service->find($id);
+			$before = [
+				'amountCents' => $current->getMonthlyAmountCents(),
+				'intervalMonths' => $current->getIntervalMonths(),
+				'groupId' => $current->getGroupId(),
+			];
+			// Dieselbe Prüfung und Rechnung wie das Speichern gleich; sie liefert „wirkt ab“ und den ersten Einzug für die Mail.
+			$preview = $this->service->previewChange($id, $monthlyAmountCents, $intervalMonths, $groupId);
 			$assignment = $this->service->update(
 				$id,
-				$monthlyAmount !== null ? (int)round($monthlyAmount * 100) : null,
+				$monthlyAmountCents,
 				$intervalMonths,
 				$groupId,
 				'staff',
 				$this->actorUid(),
 			);
-			return new DataResponse($assignment->jsonSerialize());
+			return new DataResponse($assignment->jsonSerialize() + ['receipt' => $this->receipts->send($assignment, $before, $preview)]);
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		} catch (DoesNotExistException) {

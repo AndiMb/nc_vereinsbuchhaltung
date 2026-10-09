@@ -1462,7 +1462,11 @@ group** (**"Contributions" tab → Contribution groups**):
   the lower limit, for example when a member wants to give more this once. The
   preview appears by itself and says from when the change applies – after an
   already announced collection only from then on; saving is possible only once
-  it matches the fields. **"End"** (*Beenden*) ends an assignment as of today; claims already
+  it matches the fields. **The member gets the change confirmed by email**
+  (amount, interval or contribution group, from when it applies, first affected
+  collection), in the language of their account; the message after saving says
+  whether the email went out – a member without an address gets none, and the
+  change applies anyway. **"End"** (*Beenden*) ends an assignment as of today; claims already
   generated remain unchanged. An assignment that only starts in the future can be
   changed as well; **"Withdraw assignment"** (*Zuweisung zurücknehmen*) withdraws
   it, and it then never takes effect. The table shows the **status** (active, from …,
@@ -1894,7 +1898,9 @@ then refers the member to the club. A **draft** can be discarded by the member
 but not corrected (13.2).
 
 **Receipt and trail.** The app confirms every change to the member by email:
-what changed, from when, and which collection is the first one affected. The
+what changed, from when, and which collection is the first one affected – also
+when the treasurer changes the fee (13.4; the email then names them as the
+originator). The
 email is the copy; the area has no event list of its own. In addition, an entry
 appears in the member's Nextcloud **Activity** (Nextcloud only sends an email for
 it on revocation, unless the member turned that off in their personal

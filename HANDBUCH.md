@@ -1490,7 +1490,11 @@ Was ein Mitglied zahlt, steht in einer **Zuweisung** zu einer
   neu ein: beliebig über der Untergrenze, etwa wenn ein Mitglied ausnahmsweise
   mehr geben möchte. Die Vorschau erscheint von selbst und nennt, ab wann die
   Änderung gilt – bei einem schon angekündigten Einzug erst danach; gespeichert
-  wird erst, wenn sie zum Stand der Felder passt. **„Beenden"** beendet eine
+  wird erst, wenn sie zum Stand der Felder passt. **Das Mitglied bekommt die
+  Änderung per E-Mail bestätigt** (Betrag, Turnus oder Beitragsgruppe, ab wann sie
+  gilt, erster betroffener Einzug), in der Sprache seines Kontos; die Meldung nach
+  dem Speichern sagt, ob die Mail rausging – ein Mitglied ohne Adresse bekommt keine,
+  und die Änderung gilt trotzdem. **„Beenden"** beendet eine
   Zuweisung zum heutigen Tag; bereits erzeugte Forderungen bleiben unverändert. Eine
   Zuweisung, die erst künftig beginnt, lässt sich ebenfalls ändern; **„Zuweisung
   zurücknehmen"** nimmt sie zurück, sie wird dann nie wirksam. Die Tabelle nennt den
@@ -1904,7 +1908,9 @@ Zahlungsaufforderung zu), und als erste Wahl steht „Ich habe nur ein neues Kon
 kann das Mitglied verwerfen, aber nicht korrigieren (13.2).
 
 **Quittung und Spur.** Jede Änderung bestätigt die App dem Mitglied per Mail:
-was sich geändert hat, ab wann und welcher Einzug als erster betroffen ist. Die
+was sich geändert hat, ab wann und welcher Einzug als erster betroffen ist – auch
+dann, wenn die Kassenführung den Beitrag ändert (13.4; die Mail nennt sie dann als
+Urheberin). Die
 Mail ist die Kopie, eine eigene Ereignisliste gibt es im Bereich nicht. Zusätzlich
 erscheint ein Eintrag in der Nextcloud-**Aktivität** des Mitglieds (eigene Mail
 dazu verschickt Nextcloud nur beim Widerruf, sofern das Mitglied es nicht in

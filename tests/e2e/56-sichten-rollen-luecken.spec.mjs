@@ -1208,4 +1208,43 @@ test.describe('Quittungsmail der Beitragsänderung (Protokoll 11.9, 14.3, 14.7)'
 		expect(mail.text).toContain('no action is needed on your part')
 		expect(mail.body).not.toMatch(/\b(Ihr|Ihre|Dein|Deine|Wirkt|Guten|Voraussichtlich|Beitrag|Monatsbeitrag)\b/)
 	})
+
+	/**
+	 * Wie receiptMail(), aber die KASSENFÜHRUNG ändert den Betrag (PUT /assignments/{id} als Verwalter): das Mitglied
+	 * bekommt dieselbe Quittung, in der Sprache seines Kontos und mit der Kassenführung als Urheberin.
+	 */
+	async function staffReceiptMail(request, uid, firstName) {
+		const group = await ensureGroup(request, GROUP_REDUCED)
+		const member = await createMember(request, firstName, 'Kassenführung')
+		const assignment = await createAssignment(request, { memberId: member.id, groupId: group.id, intervalMonths: 3, monthlyAmount: 10 })
+		await linkOnly(request, member.id, uid)
+		await clearCapturedMails()
+
+		const response = await api.raw(request, 'PUT', `/assignments/${assignment.id}`, { data: { monthlyAmount: 15 } })
+		expect(response.ok(), `Betrag ändern: ${response.status()} ${await response.text()}`).toBeTruthy()
+		expect((await response.json()).receipt, 'die Antwort sagt, dass die Quittung rausging').toBe('sent')
+
+		const [mail] = await waitForMailsTo(member.email)
+		return { ...mail, text: mail.text.replace(/\s+/g, ' ') }
+	}
+
+	test('Beitragsänderung durch die Kassenführung: Quittung in der Du-Fassung des Mitglieds', async ({ request }) => {
+		test.setTimeout(90000)
+		const mail = await staffReceiptMail(request, USERS.ohneRolle, 'Lena')
+
+		expect(mail.subject).toBe('Dein Beitrag wurde geändert')
+		expect(mail.text).toContain('Die Kassenführung hat deinen Monatsbeitrag von 10,00 € auf 15,00 € geändert.')
+		expect(mail.text).toMatch(/Wirkt ab: \d{2}\.\d{2}\.\d{4}/)
+		expect(mail.text).toContain('eine Handlung deinerseits ist nicht nötig')
+	})
+
+	test('Beitragsänderung durch die Kassenführung: Konto auf Englisch bekommt die englische Quittung', async ({ request }) => {
+		test.setTimeout(90000)
+		const mail = await staffReceiptMail(request, USERS.englisch, 'Emil')
+
+		expect(mail.subject).toBe('Your contribution has been changed')
+		expect(mail.text).toContain('The treasurer has changed your monthly fee from 10,00 € to 15,00 €.')
+		expect(mail.text).toMatch(/Effective from: \d{2}\.\d{2}\.\d{4}/)
+		expect(mail.text).toContain('no action is needed on your part')
+	})
 })

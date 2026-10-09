@@ -136,7 +136,8 @@ verwenden, z. B. `**Neu:**`.
   Beitragsgruppe lässt sich wechseln, beides mit Vorschau „Wirkt ab …“ und direkt
   im ⋯-Menü der Mitgliederzeile; vorher konnte nur das Mitglied selbst ändern.
   Auch eine erst künftig beginnende Zuweisung lässt sich ändern oder zurücknehmen,
-  die Zuweisungstabelle zeigt den Status.
+  die Zuweisungstabelle zeigt den Status. Das Mitglied bekommt die Änderung per
+  E-Mail bestätigt (in der Sprache seines Kontos); die Meldung sagt, ob sie rausging.
 - **Beitragsfrei und Pausen:** Ein Monatsbeitrag von 0 € ist möglich (Untergrenze
   der Gruppe 0): Es entstehen keine Forderungen, nichts wird eingezogen, kein
   Mandat nötig; die Mitgliederliste zeigt „beitragsfrei“. Eine Gruppe „Ruhend“

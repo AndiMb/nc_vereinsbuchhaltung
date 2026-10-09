@@ -54,6 +54,9 @@
 				{{ t('Wirkt ab {from} · erster Einzug am {due} · Betrag {amount}', { from: formatDate(preview.effectiveFrom), due: formatDate(preview.firstDueDate), amount: euro(preview.amountCents) }) }}
 			</NcNoteCard>
 			<NcLoadingIcon v-else-if="loadingPreview" :size="20" />
+			<p class="vbh-hint">
+				{{ t('Das Mitglied bekommt die Änderung per E-Mail bestätigt (sofern eine Adresse vorliegt).') }}
+			</p>
 
 			<div class="vbh-modal-actions">
 				<NcButton variant="tertiary" :disabled="saving" @click="$emit('close')">
@@ -68,7 +71,7 @@
 </template>
 
 <script>
-import { showError, showSuccess } from '@nextcloud/dialogs'
+import { showError, showSuccess, showWarning } from '@nextcloud/dialogs'
 import { NcButton, NcLoadingIcon, NcModal, NcNoteCard } from '@nextcloud/vue'
 import AmountInput from './AmountInput.vue'
 import api from '../api.js'
@@ -220,16 +223,29 @@ export default {
 			}
 		},
 
+		/** Sagt der Kassenführung, ob die Quittungsmail an das Mitglied rausging – die Änderung selbst ist in jedem Fall gespeichert. */
+		reportReceipt(receipt) {
+			if (receipt === 'sent') {
+				showSuccess(this.t('Beitrag geändert. Das Mitglied hat eine Bestätigung per E-Mail bekommen.'))
+			} else if (receipt === 'no_email') {
+				showSuccess(this.t('Beitrag geändert. Das Mitglied hat keine E-Mail-Adresse, daher gibt es keine Bestätigung per E-Mail.'))
+			} else if (receipt === 'failed') {
+				showWarning(this.t('Beitrag geändert, aber die Bestätigung per E-Mail konnte nicht verschickt werden.'))
+			} else {
+				showSuccess(this.t('Beitrag geändert.'))
+			}
+		},
+
 		async save() {
 			if (!this.canSave) { return }
 			this.saving = true
 			try {
-				await api.updateAssignment(this.assignment.id, {
+				const { data } = await api.updateAssignment(this.assignment.id, {
 					monthlyAmount: this.form.monthlyAmount,
 					intervalMonths: this.form.intervalMonths,
 					groupId: this.form.groupId,
 				})
-				showSuccess(this.t('Beitrag geändert.'))
+				this.reportReceipt(data.receipt)
 				this.$emit('saved')
 			} catch (e) {
 				showError(errMsg(e, this.t('Beitrag konnte nicht geändert werden')))

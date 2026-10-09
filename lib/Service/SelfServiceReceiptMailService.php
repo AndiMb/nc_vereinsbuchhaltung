@@ -39,6 +39,8 @@ class SelfServiceReceiptMailService {
 	 * @param string|null $effectiveFrom Slot „ab wann" (JJJJ-MM-TT), null = ausgeblendet
 	 * @param string|null $firstDueDate Slot „welcher Einzug" (JJJJ-MM-TT), null = ausgeblendet
 	 * @param string|null $onBehalfNote Slot „Stellvertretung" (Spec §3.4 Modell A), null = ausgeblendet
+	 * @param IL10N|null $l10n Sprache der Mail; ohne Angabe die der laufenden Anfrage (bei der Selbständerung die des
+	 *                         Mitglieds selbst, bei einer Änderung durch die Kassenführung muss die des Mitglieds übergeben werden)
 	 */
 	public function sendReceipt(
 		Member $member,
@@ -48,23 +50,25 @@ class SelfServiceReceiptMailService {
 		?string $effectiveFrom,
 		?string $firstDueDate,
 		?string $onBehalfNote = null,
+		?IL10N $l10n = null,
 	): void {
+		$l = $l10n ?? $this->l10n;
 		$template = $this->mailer->createEMailTemplate('vereinsbuchhaltung.selfServiceReceipt');
 		$template->setSubject($subject);
 		$template->addHeader();
 		$template->addHeading($subject);
-		$template->addBodyText($this->l10n->t('Guten Tag %s,', [$member->displayName()]));
+		$template->addBodyText($l->t('Guten Tag %s,', [$member->displayName()]));
 		$template->addBodyText($what);
 		if ($effectiveFrom !== null) {
-			$template->addBodyText($this->l10n->t('Wirkt ab: %s', [GermanDate::format($effectiveFrom)]));
+			$template->addBodyText($l->t('Wirkt ab: %s', [GermanDate::format($effectiveFrom)]));
 		}
 		if ($firstDueDate !== null) {
-			$template->addBodyText($this->l10n->t('Voraussichtlich erster betroffener Einzug: %s', [GermanDate::format($firstDueDate)]));
+			$template->addBodyText($l->t('Voraussichtlich erster betroffener Einzug: %s', [GermanDate::format($firstDueDate)]));
 		}
 		if ($onBehalfNote !== null) {
-			$template->addBodyText($this->l10n->t('Diese Änderung wurde von der Kassenführung in Ihrem Namen vorgenommen: %s', [$onBehalfNote]));
+			$template->addBodyText($l->t('Diese Änderung wurde von der Kassenführung in Ihrem Namen vorgenommen: %s', [$onBehalfNote]));
 		}
-		$template->addBodyText($this->l10n->t('Diese Mail ist die Bestätigung dieser Änderung – eine Handlung Ihrerseits ist nicht nötig.'));
+		$template->addBodyText($l->t('Diese Mail ist die Bestätigung dieser Änderung – eine Handlung Ihrerseits ist nicht nötig.'));
 		$template->addFooter();
 
 		$message = $this->mailer->createMessage();

@@ -131,7 +131,9 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   contribution group can be switched, both with an "effective from" preview and
   right in the ⋯ menu of the member row; before, only the member could change
   them. An assignment that only starts in the future can also be changed or
-  withdrawn, and the assignment table shows the status.
+  withdrawn, and the assignment table shows the status. The member gets the
+  change confirmed by email (in the language of their account); the message says
+  whether it went out.
 - **Fee-free and pauses:** a monthly fee of €0 is possible (group lower limit 0):
   no claims are created, nothing is collected, no mandate is needed; the member
   list shows "fee-free". A "Ruhend" (dormant) group works as a pause or passive
