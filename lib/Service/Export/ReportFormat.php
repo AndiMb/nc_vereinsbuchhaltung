@@ -32,9 +32,10 @@ final class ReportFormat {
 		if (!$iso) {
 			return '';
 		}
-		$parts = explode('-', $iso);
-		return count($parts) === 3
-			? $parts[2] . '.' . $parts[1] . '.' . $parts[0]
-			: $iso;
+		// Auch Zeitstempel („2026-10-09 12:53:41“, „2026-10-09T12:53:41“) kommen hier an: nur das Datum zählt.
+		if (preg_match('/^(\d{4})-(\d{2})-(\d{2})(?!\d)/', $iso, $m) === 1) {
+			return $m[3] . '.' . $m[2] . '.' . $m[1];
+		}
+		return $iso;
 	}
 }

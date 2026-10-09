@@ -1,34 +1,9 @@
 <template>
 	<div class="vbh-claimdetail">
-		<dl class="vbh-cd-facts">
-			<div>
-				<dt>{{ t('Fällig am') }}</dt>
-				<dd>{{ formatDate(claim.dueDate) || '–' }}</dd>
-			</div>
-			<div v-if="claim.periodStart && claim.periodEnd">
-				<dt>{{ t('Zeitraum') }}</dt>
-				<dd>{{ formatDate(claim.periodStart) }} – {{ formatDate(claim.periodEnd) }}</dd>
-			</div>
-			<div>
-				<dt>{{ t('Art') }}</dt>
-				<dd>{{ claimTypeLabel(claim.type) }}</dd>
-			</div>
-			<div>
-				<dt>{{ t('Betrag') }}</dt>
-				<dd>{{ formatMoney(claim.amount) }}</dd>
-			</div>
-			<div>
-				<dt>{{ t('Zustand') }}</dt>
-				<dd>
-					<DebitStatusTag kind="claim" :value="claim.state" :settlementType="claim.settlementType" />
-					<span v-if="claim.deferred" class="vbh-typetag">{{ t('gestundet bis {datum}', { datum: formatDate(claim.deferredUntil) }) }}</span>
-				</dd>
-			</div>
-			<div>
-				<dt>{{ t('Mitglied') }}</dt>
-				<dd>{{ claim.memberDisplayName }}</dd>
-			</div>
-		</dl>
+		<!-- Fälligkeit, Betrag, Zustand und Mitglied stehen schon in der Zeile darüber; hier nur, was dort fehlt. -->
+		<p v-if="claim.periodStart && claim.periodEnd" class="vbh-cd-period">
+			{{ t('Zeitraum') }}: {{ formatDate(claim.periodStart) }} – {{ formatDate(claim.periodEnd) }}
+		</p>
 
 		<!-- ============ Störfälle ============ -->
 		<section v-if="claim.issues.length" class="vbh-cd-section" :aria-label="t('Störfälle')">
@@ -63,7 +38,7 @@
 					<strong>{{ t('Rücklastschrift vom {datum}.', { datum: formatDate(claim.returned.receivedAt) }) }}</strong>
 				</p>
 				<!-- Der Grund steht in Klartext, nie als Code (Spec §3.6): der Text kommt fertig vom Server. -->
-				<p class="vbh-cd-line">
+				<p v-if="!reasonShownAsIssue" class="vbh-cd-line">
 					{{ claim.returned.reason }}
 				</p>
 				<!-- Den Rückgabecode liefert der Server nur an Buchhalter/Verwalter (Schlüssel fehlt sonst ganz). -->
@@ -242,6 +217,12 @@ export default {
 
 		steps() { return dunningSteps(this.claim.dunning) },
 
+		/** Der Störfall „Rücklastschrift: <Grund>“ nennt den Grund schon; dann steht er im Abschnitt Einzug nicht noch einmal. */
+		reasonShownAsIssue() {
+			const reason = this.claim.returned && this.claim.returned.reason
+			return !!reason && this.claim.issues.some((issue) => String(issue.message).includes(reason))
+		},
+
 		// Weder etwas versandt noch etwas angekündigt – und die Forderung ist noch offen.
 		noDunningExpected() {
 			const { stage, nextStage } = this.claim.dunning
@@ -328,33 +309,10 @@ export default {
 	padding: 4px 0;
 }
 
-.vbh-cd-facts {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-	gap: 8px 24px;
+.vbh-cd-period {
 	margin: 0 0 8px;
-	padding: 0;
-}
-
-.vbh-cd-facts > div {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-}
-
-/* Nextcloud gibt dt/dd Innenabstand und setzt dt rechtsbündig. */
-.vbh-cd-facts dt {
-	margin: 0;
-	padding: 0;
-	text-align: start;
-	font-size: 0.78em;
 	color: var(--color-text-maxcontrast);
-}
-
-.vbh-cd-facts dd {
-	margin: 0;
-	padding: 0;
-	overflow-wrap: anywhere;
+	font-size: 0.9em;
 }
 
 .vbh-cd-section {

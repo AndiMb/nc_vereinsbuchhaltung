@@ -82,7 +82,7 @@ class ContributionGroupService {
 	}
 
 	/**
-	 * Vorschau einer Untergrenzen-Erhöhung: welche aktiven Zuweisungen ohne
+	 * Vorschau einer Untergrenzen-Erhöhung: welche laufenden oder künftigen Zuweisungen ohne
 	 * individuelle Untergrenze müssten mit angehoben werden, welche
 	 * Zuweisungen mit individueller Untergrenze bleiben unberührt.
 	 *
@@ -102,8 +102,10 @@ class ContributionGroupService {
 
 		$affected = [];
 		$unaffected = [];
+		$today = $this->time->getDateTime()->format('Y-m-d');
 		foreach ($this->assignmentMapper->findByGroup($id) as $assignment) {
-			if (!$assignment->isActive()) {
+			// Auch eine erst künftig beginnende Zuweisung zählt: sie würde sonst unter der neuen Untergrenze starten.
+			if ($assignment->getValidTo() !== null && $assignment->getValidTo() < $today) {
 				continue;
 			}
 			$displayName = $this->memberDisplayName($assignment->getMemberId());

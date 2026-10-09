@@ -12,7 +12,7 @@
 			<table class="vbh-table">
 				<thead>
 					<tr>
-						<th>{{ t('Turnus (Monate)') }}</th>
+						<th>{{ t('Turnus') }}</th>
 						<th class="num">
 							{{ t('Standard-Versatz (Tage)') }}
 						</th>
@@ -22,7 +22,7 @@
 				</thead>
 				<tbody>
 					<tr v-for="interval in intervals" :key="interval">
-						<td>{{ interval }}</td>
+						<td>{{ intervalLabel(interval) }}</td>
 						<td class="num">
 							<input v-model.number="defaultDrafts[interval]" type="number" class="vbh-short">
 						</td>
@@ -53,7 +53,7 @@
 			<label>{{ t('Turnus') }}
 				<select v-model.number="overrideDraft.intervalMonths">
 					<option v-for="interval in intervals" :key="interval" :value="interval">
-						{{ interval }}
+						{{ intervalLabel(interval) }}
 					</option>
 				</select>
 			</label>
@@ -108,6 +108,7 @@ import api from '../api.js'
 import { useAuth } from '../composables/useAuth.js'
 import { useDueDateSchedule } from '../composables/useDueDateSchedule.js'
 import { errMsg } from '../lib/format.js'
+import { intervalLabel } from '../lib/frequency.js'
 
 /**
  * Terminplan-Einstellung (Spec §2.2/§3.5, Issue #70): Standard-Einzugstag je
@@ -167,6 +168,8 @@ export default {
 	},
 
 	methods: {
+		intervalLabel,
+
 		overrideList(interval) {
 			const overrides = this.schedule?.[interval]?.overrides || {}
 			return Object.keys(overrides).map((periodIndex) => ({ periodIndex: Number(periodIndex), offsetDays: overrides[periodIndex] }))

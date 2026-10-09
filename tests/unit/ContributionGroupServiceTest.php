@@ -143,6 +143,31 @@ class ContributionGroupServiceTest extends TestCase {
 		$this->assertSame(11, $preview['individualOverridesUnaffected'][0]['assignmentId']);
 	}
 
+	public function testPreviewNimmtAuchKuenftigBeginnendeUndKeineBeendetenZuweisungenMit(): void {
+		$this->mapper->method('find')->willReturn($this->group(500));
+
+		// „Heute“ ist im Test der 2026-06-15.
+		$future = new Assignment();
+		$future->setId(20);
+		$future->setMemberId(1);
+		$future->setMonthlyAmountCents(400);
+		$future->setValidFrom('2026-11-15');
+
+		$ended = new Assignment();
+		$ended->setId(21);
+		$ended->setMemberId(2);
+		$ended->setMonthlyAmountCents(400);
+		$ended->setValidFrom('2024-01-01');
+		$ended->setValidTo('2026-03-31');
+
+		$this->assignmentMapper->method('findByGroup')->willReturn([$future, $ended]);
+		$this->memberMapper->method('displayNameOr')->willReturnCallback(fn (int $id, string $fallback) => 'Mitglied ' . $id);
+
+		$preview = $this->service()->previewMinAmountIncrease(1, 600);
+
+		$this->assertSame([20], array_column($preview['affected'], 'assignmentId'));
+	}
+
 	public function testApplyMinAmountIncreaseHebtNurBetroffeneAn(): void {
 		$this->mapper->method('find')->willReturn($this->group(500));
 		$this->mapper->expects($this->once())->method('update');
