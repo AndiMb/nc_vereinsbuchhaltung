@@ -1555,7 +1555,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 
 **Erwartet:**
 - Die App weist die Änderung mit einer Erklärung zurück: „Für die laufende Periode wurde bereits eine Vorabinfo verschickt – Betrag und Turnus stehen bis zum Einzug fest. Möglich wäre diese Änderung erst ab {Datum}.“ Es erscheint keine „Wirkt ab …“-Vorschau, und „Speichern“ bleibt gesperrt.
-- Das Datum nennt die erste Periode ohne Vorabinfo: Jana hat für Oktober schon eine Vorabinfo (vom Seeder auf den 17.09. vermerkt), also frühestens ab 2026-11-01. Nach dem Tageslauf (7.6) ist auch die Novemberperiode vorabinformiert, dann steht dort 2026-12-01.
+- Das Datum nennt die erste Periode ohne Vorabinfo: Jana hat für Oktober schon eine Vorabinfo (vom Seeder auf den 17.09. vermerkt), also frühestens ab 01.11.2026. Nach dem Tageslauf (7.6) ist auch die Novemberperiode vorabinformiert, dann steht dort 01.12.2026.
 - Die IBAN bleibt änderbar (kein Sperrfenster, 11.3).
 
 **Beachte:** Der Erfolgsfall ist bei Jonas Richter (john) zu sehen: Er hat noch keine Forderung, also keine vorabinformierte Periode (11.9). Beide Ausgänge sind richtig, je nach Stand der Vorabinfo.

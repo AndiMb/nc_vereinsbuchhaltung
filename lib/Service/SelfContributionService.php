@@ -184,7 +184,7 @@ class SelfContributionService {
 		if ($preview['effectiveFrom'] > $this->today()) {
 			throw new \InvalidArgumentException($this->l10n->t(
 				'Für die laufende Periode wurde bereits eine Vorabinfo verschickt – Betrag und Turnus stehen bis zum Einzug fest. Möglich wäre diese Änderung erst ab %s.',
-				[$preview['effectiveFrom']],
+				[GermanDate::format($preview['effectiveFrom'])],
 			));
 		}
 	}

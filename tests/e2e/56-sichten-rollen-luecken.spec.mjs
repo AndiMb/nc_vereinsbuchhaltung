@@ -50,7 +50,7 @@ const SIE_FORM = /\b(Sie|Ihr|Ihre|Ihrem|Ihren|Ihrer|Ihres|Ihnen)\b/
 const GERMAN_REMNANTS = /\b(Zeitstrahl|Bankabgleich|Forderungen|Läufe|Beitragsjahr|Rücklastschrift|Rücklastschriften|Störfälle|Zahlungsaufforderung|Mahnstand|Mandat|Lastschrift|Kontoinhaber|Stammdaten|Mitgliedsnummer|Datenübersicht|Beitragsbestätigung)\b/
 
 const LOCK_EXPLANATION = 'Für die laufende Periode wurde bereits eine Vorabinfo verschickt – Betrag und Turnus stehen bis zum Einzug fest.'
-const lockMessage = (date) => `${LOCK_EXPLANATION} Möglich wäre diese Änderung erst ab ${date}.`
+const lockMessage = (date) => `${LOCK_EXPLANATION} Möglich wäre diese Änderung erst ab ${date.split('-').reverse().join('.')}.`
 
 const GROUP_LOCK = { name: 'Sichten-Gruppe Sperrfenster', min: 5, def: 10, intervals: [1, 3, 12], defaultInterval: 3 }
 const GROUP_FULL = { name: 'Sichten-Gruppe Vollmitglied', min: 12, def: 15, intervals: [1, 3, 6, 12], defaultInterval: 3 }
@@ -359,7 +359,7 @@ test.describe('Sperrfenster nach der Vorabinfo (Protokoll 7.17, 11.3, 11.9)', ()
 		const intervalPreview = await api.selfPreviewAssignment(request, assignment.id, { intervalMonths: 12, ...asMember })
 		expect(intervalPreview.status()).toBe(400)
 		const intervalMessage = (await intervalPreview.json()).message
-		expect(intervalMessage).toMatch(new RegExp(`^${LOCK_EXPLANATION} Möglich wäre diese Änderung erst ab \\d{4}-\\d{2}-\\d{2}\\.$`))
+		expect(intervalMessage).toMatch(new RegExp(`^${LOCK_EXPLANATION} Möglich wäre diese Änderung erst ab \\d{2}\\.\\d{2}\\.\\d{4}\\.$`))
 		section = await openMeinBeitrag(page, USERS.ohneRolle)
 		card = assignmentCard(section, GROUP_LOCK.name)
 		await card.getByLabel('Turnus').selectOption('12')
