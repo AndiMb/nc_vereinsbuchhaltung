@@ -1,0 +1,7 @@
+Name;Mitgliedsnummer;E-Mail;IBAN;BIC;Kontoinhaber;Mandat am;Mandatsreferenz;Beitragsgruppe;Betrag;Frequenz;Start
+Greta Hansen;1101;greta.hansen@example.org;DE86 5004 0000 0200 3004 00;COBADEFFXXX;;15.09.2026;ALT-0101;Vollmitglied;15,00;monatlich;01.12.2026
+Ole Petersen;1102;ole.petersen@example.org;DE06 2004 1111 0300 4005 00;;;15.09.2026;ALT-0102;Ermäßigt;7,50;vierteljährlich;01.12.2026
+Frieda Lorenz;1103;frieda.lorenz@example.org;DE11 3005 0110 0400 5006 00;;Karl Lorenz;01.10.2026;;Jugend;5,00;monatlich;01.12.2026
+Max Weidner;1104;max.weidner@example.org;;;;;;;;;
+Imke Sander;1105;;DE14 1005 0000 0500 6007 00;;;20.09.2026;;Ermäßigt;7,50;jährlich;01.01.2027
+Chorverband;1106;kontakt@chorverband.example;DE14 7605 0101 0600 7008 00;;;30.09.2026;;Fördermitglied;5,00;jährlich;01.01.2027
