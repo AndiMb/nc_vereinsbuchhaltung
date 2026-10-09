@@ -59,7 +59,8 @@ test.describe('Buchungen', () => {
 		// Ab Werk neutral: ein Buchungssatz hat kein Vorzeichen, auch wenn Bank
 		// im Soll und Erlöskonto im Haben eine Einnahme ergeben.
 		const row = visibleSection(page).locator('tr', { hasText: 'Spende Vereinsfest' }).first()
-		const amount = row.locator('td.num.strong')
+		// Die Betragszelle ist die letzte mit num/strong; die Spalte „Nr." trägt dieselben Klassen.
+		const amount = row.locator('td.num.strong').last()
 		await expect(amount).toHaveText(/^250,00\s*€$/)
 		await expect(amount).not.toHaveClass(/\bpos\b/)
 	})
