@@ -257,6 +257,7 @@ export default {
 			changeMemberName: '',
 			changeMode: 'fee',
 			assignDialogOpen: false,
+			assignSaving: false,
 			presetMemberId: null,
 			mdiEmailOffOutline,
 			mdiContentCopy,
@@ -351,12 +352,18 @@ export default {
 		},
 
 		async saveNewAssignment(form) {
+			if (this.assignSaving) { return }
+			this.assignSaving = true
 			try {
 				await api.createAssignment(form)
 				this.assignDialogOpen = false
 				await this.reload()
 				showSuccess(this.t('Zuweisung angelegt.'))
-			} catch (e) { showError(this.errMsg(e, this.t('Zuweisung konnte nicht angelegt werden'))) }
+			} catch (e) {
+				showError(this.errMsg(e, this.t('Zuweisung konnte nicht angelegt werden')))
+			} finally {
+				this.assignSaving = false
+			}
 		},
 
 		/** „E-Mail-Adressen kopieren“: sagt, wie viele es sind und wie viele Mitglieder mangels Adresse fehlen. */

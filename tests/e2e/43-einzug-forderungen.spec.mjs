@@ -333,11 +333,13 @@ test.describe('Einzug-Unterreiter: Segment „Forderungen“', () => {
 		await memberSelect.press('Enter')
 		await dialog.getByLabel('Betrag (€)').fill('15')
 		await dialog.getByLabel('Bezeichnung').fill('Nachzahlung im Segment')
-		await dialog.getByRole('button', { name: 'Anlegen', exact: true }).click()
+		// Ein Doppelklick legt genau eine Forderung an (Testprotokoll 16.2).
+		await dialog.getByRole('button', { name: 'Anlegen', exact: true }).dblclick()
 		await expect(dialog).toBeHidden()
 
 		const row = rowOf(panel, 'Nachzahlung im Segment')
 		await expect(row).toBeVisible()
+		await expect(panel.locator('tbody tr', { hasText: 'Nachzahlung im Segment' })).toHaveCount(1)
 		await expect(row).toContainText('Einzelsegment Forderung')
 		await expect(row).toContainText(/15,00\s*€/)
 		await expect(row.getByText('offen', { exact: true })).toBeVisible()

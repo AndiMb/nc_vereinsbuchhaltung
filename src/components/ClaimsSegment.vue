@@ -386,6 +386,7 @@
 		<ManualClaimDialog
 			v-if="canWrite"
 			:show="claimDialogOpen"
+			:saving="claimSaving"
 			@close="claimDialogOpen = false"
 			@update:show="claimDialogOpen = $event"
 			@save="saveClaim" />
@@ -475,6 +476,7 @@ export default {
 			expandedId: null,
 			limit: PAGE,
 			claimDialogOpen: false,
+			claimSaving: false,
 		}
 	},
 
@@ -611,12 +613,19 @@ export default {
 		},
 
 		async saveClaim(form) {
+			// Ein zweiter Klick, bevor der Server geantwortet hat, darf keine zweite Forderung anlegen.
+			if (this.claimSaving) { return }
+			this.claimSaving = true
 			try {
 				await api.createClaim(form)
 				this.claimDialogOpen = false
 				showSuccess(this.t('Einzelforderung angelegt.'))
 				await this.load()
-			} catch (e) { showError(errMsg(e, this.t('Einzelforderung konnte nicht angelegt werden'))) }
+			} catch (e) {
+				showError(errMsg(e, this.t('Einzelforderung konnte nicht angelegt werden')))
+			} finally {
+				this.claimSaving = false
+			}
 		},
 	},
 }

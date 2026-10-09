@@ -43,7 +43,11 @@
 				<NcButton :variant="importPreview ? 'secondary' : 'primary'" :disabled="!importCsv || importing" @click="previewImport">
 					{{ t('Prüfen') }}
 				</NcButton>
-				<NcButton class="vbh-importtemplate" variant="tertiary" :href="beispielCsv" download="mitglieder-vorlage.csv">
+				<NcButton
+					class="vbh-importtemplate"
+					variant="tertiary"
+					:href="beispielCsv"
+					download="mitglieder-vorlage.csv">
 					<template #icon>
 						<NcIconSvgWrapper :path="mdiDownload" :size="20" />
 					</template>

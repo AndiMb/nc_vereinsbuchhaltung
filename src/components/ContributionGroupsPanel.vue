@@ -229,6 +229,8 @@ export default {
 			mdiCashEdit,
 			mdiDelete,
 			groupDialogOpen: false,
+			groupSaving: false,
+			assignmentSaving: false,
 			groupEditId: null,
 			groupForm: {},
 			minAmountDialogOpen: false,
@@ -305,6 +307,9 @@ export default {
 		},
 
 		async saveGroup(form) {
+			// Ein zweiter Klick vor der Antwort des Servers darf keine zweite Gruppe anlegen.
+			if (this.groupSaving) { return }
+			this.groupSaving = true
 			try {
 				if (this.groupEditId) {
 					await api.updateContributionGroup(this.groupEditId, form)
@@ -314,7 +319,11 @@ export default {
 				this.groupDialogOpen = false
 				await this.loadContributionGroups()
 				showSuccess(this.t('Beitragsgruppe gespeichert.'))
-			} catch (e) { showError(errMsg(e, this.t('Beitragsgruppe konnte nicht gespeichert werden'))) }
+			} catch (e) {
+				showError(errMsg(e, this.t('Beitragsgruppe konnte nicht gespeichert werden')))
+			} finally {
+				this.groupSaving = false
+			}
 		},
 
 		async deleteGroup(g) {
@@ -330,12 +339,18 @@ export default {
 		},
 
 		async saveAssignment(form) {
+			if (this.assignmentSaving) { return }
+			this.assignmentSaving = true
 			try {
 				await api.createAssignment(form)
 				this.assignmentDialogOpen = false
 				await this.loadAssignments()
 				showSuccess(this.t('Zuweisung angelegt.'))
-			} catch (e) { showError(errMsg(e, this.t('Zuweisung konnte nicht angelegt werden'))) }
+			} catch (e) {
+				showError(errMsg(e, this.t('Zuweisung konnte nicht angelegt werden')))
+			} finally {
+				this.assignmentSaving = false
+			}
 		},
 
 		async endAssignment(a) {

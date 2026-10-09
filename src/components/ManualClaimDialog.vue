@@ -53,7 +53,7 @@
 				<NcButton variant="tertiary" @click="$emit('close')">
 					{{ t('Abbrechen') }}
 				</NcButton>
-				<NcButton variant="primary" :disabled="!canSave" @click="save">
+				<NcButton variant="primary" :disabled="!canSave || saving" @click="save">
 					{{ t('Anlegen') }}
 				</NcButton>
 			</div>
@@ -78,6 +78,8 @@ export default {
 	components: { NcModal, NcButton, NcSelect, AmountInput },
 	props: {
 		show: { type: Boolean, default: false },
+		/** Solange der Server speichert, ist „Anlegen" gesperrt – ein Doppelklick legt sonst zwei Forderungen an. */
+		saving: { type: Boolean, default: false },
 	},
 
 	emits: ['close', 'save', 'update:show'],
