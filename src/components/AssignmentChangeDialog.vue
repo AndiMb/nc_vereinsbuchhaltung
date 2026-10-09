@@ -30,10 +30,10 @@
 				<label>{{ t('Monatsbeitrag (€)') }}
 					<AmountInput ref="amountInput" v-model="form.monthlyAmount" class="vbh-short" />
 				</label>
-				<label>{{ t('Turnus (Monate)') }}
+				<label>{{ t('Turnus') }}
 					<select v-model.number="form.intervalMonths">
 						<option v-for="m in allowedIntervals" :key="m" :value="m">
-							{{ m }}
+							{{ intervalLabel(m) }}
 						</option>
 					</select>
 				</label>
@@ -73,6 +73,7 @@ import { NcButton, NcLoadingIcon, NcModal, NcNoteCard } from '@nextcloud/vue'
 import AmountInput from './AmountInput.vue'
 import api from '../api.js'
 import { errMsg, formatDate } from '../lib/format.js'
+import { intervalLabel } from '../lib/frequency.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 
 /**
@@ -174,6 +175,7 @@ export default {
 	beforeUnmount() { clearTimeout(this.timer) },
 
 	methods: {
+		intervalLabel,
 		formatDate,
 		euro(cents) { return (cents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }) },
 

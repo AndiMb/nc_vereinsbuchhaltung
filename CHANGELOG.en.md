@@ -104,6 +104,9 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   and self-service (issue #101).
 
 **Changed:**
+- **Interval with names:** contribution group, assignment and "My contribution"
+  say "monthly", "quarterly" or "every 2 months" instead of month numbers; a
+  group's allowed intervals are small checkboxes in one row.
 - **Manual rendered readably:** the page opened by "Open full manual" in the help now shows
   tables, numbered lists, code spans and a clickable table of contents instead
   of raw Markdown lines. New is "The process at a glance" (13.0) at the start of

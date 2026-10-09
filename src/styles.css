@@ -794,6 +794,10 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 /* Gruppiert mehrere .vbh-form-Zeilen hinter einem gemeinsamen disabled-Schalter (z.B. MemberDialog.vue nach einer DSGVO-Anonymisierung), ohne den Browser-Rahmen/-Innenabstand eines <fieldset> */
 .vbh-fieldset-reset { border: 0; padding: 0; margin: 0; min-width: 0; }
+/* Eine Reihe NcCheckboxRadioSwitch-Häkchen mit Legende, z.B. die erlaubten Turnusse einer Beitragsgruppe: wie die Feldbeschriftungen der .vbh-form, die Häkchen umbrechen auf schmalen Schirmen. */
+.vbh-legend { font-size: 0.85em; padding: 0; margin-bottom: 2px; }
+
+.vbh-checkrow { display: flex; flex-wrap: wrap; column-gap: 12px; }
 
 .vbh-inputgroup { display: flex; align-items: center; gap: 6px; }
 

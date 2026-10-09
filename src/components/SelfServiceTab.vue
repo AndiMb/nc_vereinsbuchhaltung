@@ -106,10 +106,10 @@
 						<label>{{ t('Monatsbeitrag (€)') }}
 							<AmountInput v-model="a._form.monthlyAmount" class="vbh-short" />
 						</label>
-						<label>{{ t('Turnus (Monate)') }}
+						<label>{{ t('Turnus') }}
 							<select v-model.number="a._form.intervalMonths">
 								<option v-for="n in a.allowedIntervals" :key="n" :value="n">
-									{{ n }}
+									{{ intervalLabel(n) }}
 								</option>
 							</select>
 						</label>
@@ -301,6 +301,7 @@ import api from '../api.js'
 import { countryName } from '../lib/countries.js'
 import { defaultCountry } from '../lib/countryDefault.js'
 import { errMsg, formatDate, formatMoney } from '../lib/format.js'
+import { intervalLabel } from '../lib/frequency.js'
 import { returnedDebitRows } from '../lib/selfReturnedDebits.js'
 
 function emptyContactForm() {
@@ -445,6 +446,7 @@ export default {
 	},
 
 	methods: {
+		intervalLabel,
 		formatDate,
 		formatMoney,
 

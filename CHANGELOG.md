@@ -107,6 +107,9 @@ verwenden, z. B. `**Neu:**`.
   Weiterbelastung, Mahnabstand, XML-Ablage und Self-Service (Issue #101).
 
 **Geändert:**
+- **Turnus mit Namen:** Beitragsgruppe, Zuweisung und „Mein Beitrag“ nennen
+  „monatlich“, „vierteljährlich“ oder „alle 2 Monate“ statt Monatszahlen; die
+  erlaubten Turnusse einer Gruppe sind kleine Häkchen in einer Reihe.
 - **Handbuch lesbar dargestellt:** Die Seite „Vollständiges Handbuch öffnen" in der Hilfe zeigt
   Tabellen, nummerierte Listen, Code-Stellen und ein klickbares
   Inhaltsverzeichnis, statt rohe Markdown-Zeilen auszugeben. Neu ist der

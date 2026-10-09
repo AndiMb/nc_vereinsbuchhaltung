@@ -140,7 +140,7 @@ test.describe('Mitgliederliste zeigt Mandat und Beitrag des neuen Modells', () =
 		await anna.getByRole('button', { name: 'Aktionen' }).click()
 		await expect(page.getByRole('menuitem', { name: 'Mitglied bearbeiten' })).toBeVisible()
 		await expect(page.getByRole('menuitem', { name: 'Mandat verwalten' })).toBeVisible()
-		await expect(page.getByRole('menuitem', { name: 'Beitrag ändern', exact: true })).toBeVisible()
+		await expect(page.getByRole('menuitem', { name: 'Beitrag ändern' })).toBeVisible()
 		await page.keyboard.press('Escape')
 
 		// Entwurfs-Mandat trägt die Marke, Turnus 3 → 3 × 5 € = 15 € je Quartal.
@@ -213,7 +213,7 @@ test.describe('Mitgliederliste zeigt Mandat und Beitrag des neuen Modells', () =
 		await switchTab(page, 'Beiträge')
 
 		await memberRow(page, 'Anna Aktiv').getByRole('button', { name: 'Aktionen' }).click()
-		await page.getByRole('menuitem', { name: 'Beitrag ändern', exact: true }).click()
+		await page.getByRole('menuitem', { name: 'Beitrag ändern' }).click()
 		await expect(page.getByRole('dialog', { name: 'Beitrag ändern' })).toBeVisible()
 		// Die Mitgliederliste bleibt stehen: kein Sprung in die Beitragsgruppen.
 		await expect(visibleSection(page).getByRole('button', { name: '+ Zuweisung' })).toHaveCount(0)
@@ -228,7 +228,7 @@ test.describe('Mitgliederliste zeigt Mandat und Beitrag des neuen Modells', () =
 		await openApp(page, USERS.buchhalter)
 		await switchTab(page, 'Beiträge')
 		await memberRow(page, 'Paula Mehrzahler').getByRole('button', { name: 'Aktionen' }).click()
-		await page.getByRole('menuitem', { name: 'Beitrag ändern', exact: true }).click()
+		await page.getByRole('menuitem', { name: 'Beitrag ändern' }).click()
 
 		const dialog = page.getByRole('dialog', { name: 'Beitrag ändern' })
 		await expect(dialog).toBeVisible()
@@ -278,7 +278,7 @@ test.describe('Mitgliederliste zeigt Mandat und Beitrag des neuen Modells', () =
 
 		// „Beitrag ändern“ zeigt die Gruppe nur an, die Auswahl gibt es nur beim Wechsel.
 		await memberRow(page, 'Gerda Gruppenwechsel').getByRole('button', { name: 'Aktionen' }).click()
-		await page.getByRole('menuitem', { name: 'Beitrag ändern', exact: true }).click()
+		await page.getByRole('menuitem', { name: 'Beitrag ändern' }).click()
 		const feeDialog = page.getByRole('dialog', { name: 'Beitrag ändern' })
 		await expect(feeDialog).toContainText(SECOND_GROUP_NAME)
 		await expect(feeDialog.getByLabel('Neue Beitragsgruppe')).toHaveCount(0)
@@ -367,7 +367,7 @@ test.describe('Mitgliederliste auf dem Handy', () => {
 		await expect(anna).toContainText(`fällig ${german(dueDate)}`)
 		await expect(anna.getByRole('button', { name: 'Bearbeiten', exact: true })).toHaveCount(0)
 		await anna.getByRole('button', { name: 'Aktionen' }).click()
-		await expect(page.getByRole('menuitem', { name: 'Beitrag ändern', exact: true })).toBeVisible()
+		await expect(page.getByRole('menuitem', { name: 'Beitrag ändern' })).toBeVisible()
 		await page.keyboard.press('Escape')
 
 		const cora = visibleSection(page).locator('.vbh-membercard', { hasText: 'Cora Ueberweisung' })

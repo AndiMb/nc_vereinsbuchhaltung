@@ -328,7 +328,7 @@ test.describe('Sperrfenster nach der Vorabinfo (Protokoll 7.17, 11.3, 11.9)', ()
 		await expect(save).toBeEnabled()
 
 		// Der Turnus ist eine weitere Änderung: die alte Vorschau passt nicht mehr, Speichern ist wieder gesperrt.
-		await card.getByLabel('Turnus (Monate)').selectOption('12')
+		await card.getByLabel('Turnus').selectOption('12')
 		await expect(save).toBeDisabled()
 		await card.getByRole('button', { name: 'Vorschau' }).click()
 		await expect(card.getByText(/Wirkt ab/)).toBeVisible()
@@ -362,7 +362,7 @@ test.describe('Sperrfenster nach der Vorabinfo (Protokoll 7.17, 11.3, 11.9)', ()
 		expect(intervalMessage).toMatch(new RegExp(`^${LOCK_EXPLANATION} Möglich wäre diese Änderung erst ab \\d{4}-\\d{2}-\\d{2}\\.$`))
 		section = await openMeinBeitrag(page, USERS.ohneRolle)
 		card = assignmentCard(section, GROUP_LOCK.name)
-		await card.getByLabel('Turnus (Monate)').selectOption('12')
+		await card.getByLabel('Turnus').selectOption('12')
 		await card.getByRole('button', { name: 'Vorschau' }).click()
 		await expect(toast(page, intervalMessage)).toBeVisible()
 		await expect(card.getByText(/Wirkt ab/)).toHaveCount(0)
@@ -676,7 +676,7 @@ test.describe('„Mein Beitrag“ im Überblick (Protokoll 11.1, 11.2, 11.9, 11.
 		await expect(save).toBeDisabled()
 
 		// Das Turnus-Feld bietet nur, was die Gruppe erlaubt.
-		await expect(card.getByLabel('Turnus (Monate)').locator('option')).toHaveText(['1', '3', '6', '12'])
+		await expect(card.getByLabel('Turnus').locator('option')).toHaveText(['monatlich', 'vierteljährlich', 'halbjährlich', 'jährlich'])
 
 		// Unter der Untergrenze: Meldung, keine Vorschau, nichts wird gespeichert.
 		await card.getByLabel('Monatsbeitrag (€)').fill('11')

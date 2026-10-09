@@ -974,7 +974,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 **Rolle:** admin (Verwalter)
 
 **Tun:**
-1. Klicke „+ Beitragsgruppe“. Trage „Name“ `Testgruppe Probe`, „Untergrenze (€/Monat)“ `5`, „Standardbeitrag (€/Monat)“ `8` ein, kreuze bei „Erlaubte Turnusse (Monate)“ 1, 3 und 12 an, wähle „Standard-Turnus“ 3 und lass „Aktiv“ an. Klicke „Anlegen“.
+1. Klicke „+ Beitragsgruppe“. Trage „Name“ `Testgruppe Probe`, „Untergrenze (€/Monat)“ `5`, „Standardbeitrag (€/Monat)“ `8` ein, kreuze bei „Erlaubte Turnusse“ „monatlich“, „vierteljährlich“ und „jährlich“ an, wähle „Standard-Turnus“ „vierteljährlich“ und lass „Aktiv“ an. Klicke „Anlegen“.
 2. Klicke bei der neuen Gruppe „Bearbeiten“, ändere den Namen auf `Testgruppe Probe 2` und klicke „Speichern“.
 3. Öffne „Bearbeiten“ noch einmal und lies den Hinweistext zur Untergrenze.
 
@@ -989,8 +989,8 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 **Tun:**
 1. Klicke bei „Zuweisungen“ auf „+ Zuweisung“.
 2. Klicke „+ neues Mitglied“, trage „Vorname“ `Zora` und „Nachname“ `Zuweisung` ein und klicke „Mitglied anlegen“.
-3. Wähle bei „Beitragsgruppe“ `Testgruppe Probe 2`. Beobachte „Monatsbeitrag (€)“, „Turnus (Monate)“ und „Zahlungsart“.
-4. Wähle „Turnus (Monate)“ 3 und „Zahlungsart“ „Überweisung“.
+3. Wähle bei „Beitragsgruppe“ `Testgruppe Probe 2`. Beobachte „Monatsbeitrag (€)“, „Turnus“ und „Zahlungsart“.
+4. Wähle „Turnus“ „vierteljährlich“ und „Zahlungsart“ „Überweisung“.
 5. Wähle bei „Gültig ab“ einen Tag **mitten im zweiten Monat eines Quartals** (bei Beitragsjahr ab Januar: der 15. Februar, Mai, August oder November, der nächste zukünftige) und klicke „Vorschau“.
 6. Klicke „Anlegen“.
 
@@ -1118,7 +1118,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 - Der Dialog „Mitglied aufnehmen“ enthält drei Abschnitte untereinander (die letzten beiden tragen die Überschriften „SEPA-Mandat (optional)“ und „Beitrag (optional)“):
   - **Stammdaten:** „Mitgliedstyp“, „Vorname“ (Platzhalter „optional“), „Nachname“, „E-Mail“ (Platzhalter „Voraussetzung für Lastschrift“), „Telefon“, „Straße“, „PLZ“, „Ort“, „Mitgliedsnummer“, „Beigetreten am“, „Interne Notiz“.
   - **Mandat:** „Art der Unterschrift“, „IBAN“, „BIC“, „Kontoinhaber“ (Platzhalter „sonst Anzeigename des Mitglieds“), „Mandatsreferenz“ (Platzhalter „sonst automatisch vergeben“), „Mandat unterschrieben am“.
-  - **Beitrag:** „Beitragsgruppe“ (Vorgabe „– keine Zuweisung –“), „Turnus (Monate)“, „Monatsbeitrag (€)“, „Zahlungsart“, „Gültig ab“, „Vorschau“.
+  - **Beitrag:** „Beitragsgruppe“ (Vorgabe „– keine Zuweisung –“), „Turnus“, „Monatsbeitrag (€)“, „Zahlungsart“, „Gültig ab“, „Vorschau“.
 - Unter „SEPA-Mandat (optional)“ steht der Hinweis „Beides lässt sich auch später in der Akte ergänzen.“
 
 **Beachte:** Der Aufnahme-Dialog ist **ein** scrollbarer Dialog mit drei Abschnitten, ohne „Weiter“-Knöpfe (Hilfetext und Handbuch sprechen von „einem Dialog“). Notiere, ob dir das genügt.
@@ -1136,7 +1136,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 6. Öffne bei Petra Aufnahme über das Menü (⋯) „Mandat verwalten“.
 
 **Erwartet:**
-- Nach der Wahl der Gruppe erscheinen „Turnus (Monate)“, „Monatsbeitrag (€)“, „Zahlungsart“ (Vorgabe „Lastschrift“) und „Gültig ab“ (mit Vorschau-Knopf).
+- Nach der Wahl der Gruppe erscheinen „Turnus“, „Monatsbeitrag (€)“, „Zahlungsart“ (Vorgabe „Lastschrift“) und „Gültig ab“ (mit Vorschau-Knopf).
 - Die Vorschau lautet „Erste Periode: {Beginn} bis {Ende} ({N Monate}) · Einzugsbetrag {Betrag} · voraussichtlicher Einzugstermin {Datum}“.
 - „Mitglied aufgenommen.“ Die Zeile zeigt IBAN, Betrag je Periode und Frequenz statt „kein Mandat“.
 - Das Mandat ist sofort „Aktiv“ (das Unterschriftsdatum entscheidet), mit automatisch vergebener Referenz.
@@ -1520,7 +1520,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 **Rolle:** admin (Verwalter), Terminal
 
 **Tun:**
-1. Lege unter **Beitragsgruppen** → „+ Zuweisung“ eine Zuweisung an: Mitglied `Theo Testlink`, Beitragsgruppe `Vollmitglied`, „Turnus (Monate)“ 1, „Zahlungsart“ „Lastschrift“, „Gültig ab“ heute. Sieh dir die „Vorschau“ an und klicke „Anlegen“.
+1. Lege unter **Beitragsgruppen** → „+ Zuweisung“ eine Zuweisung an: Mitglied `Theo Testlink`, Beitragsgruppe `Vollmitglied`, „Turnus“ „monatlich“, „Zahlungsart“ „Lastschrift“, „Gültig ab“ heute. Sieh dir die „Vorschau“ an und klicke „Anlegen“.
 2. Starte den Tageslauf:
 
 ```bash
@@ -1548,7 +1548,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 1. Lade in Fenster D (jane) neu und öffne „Mein Beitrag“.
 2. Erhöhe in der Karte „Mein Beitrag“ den „Monatsbeitrag (€)“ um 1 € und klicke „Vorschau“.
 3. Beobachte den Knopf „Speichern“.
-4. Wiederhole mit dem „Turnus (Monate)“ (Vollmitglied erlaubt 1, 3, 6 und 12).
+4. Wiederhole mit dem „Turnus“ (Vollmitglied erlaubt monatlich, vierteljährlich, halbjährlich und jährlich).
 
 **Erwartet:**
 - Die App weist die Änderung mit einer Erklärung zurück: „Für die laufende Periode wurde bereits eine Vorabinfo verschickt – Betrag und Turnus stehen bis zum Einzug fest. Möglich wäre diese Änderung erst ab {Datum}.“ Es erscheint keine „Wirkt ab …“-Vorschau, und „Speichern“ bleibt gesperrt.
@@ -2009,7 +2009,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 
 **Erwartet:**
 - Es gibt nur den Reiter „Mein Beitrag“. Zeitraum, Knopf „Buchung“, Hilfe, Klemmbrett und Geldbestand fehlen (sie gehören zur Buchhaltung).
-- Karten: „Meine Stammdaten“ (Name, E-Mail, Telefon, Adresse, Mitgliedsnummer, „Mitglied seit“; Knopf „Bearbeiten“), „Mein Beitrag“ (je Zuweisung: Gruppe, „Untergrenze: X“, „Monatsbeitrag (€)“, „Turnus (Monate)“, „Vorschau“, „Speichern“), „Mein SEPA-Lastschriftmandat“ (IBAN **maskiert**, z. B. `DE02••••2051`, Kontoinhaber, Status „Aktiv“ und die Knöpfe „Bankverbindung ändern“, „Kontoinhaber wechseln“, „Mandat widerrufen“; darunter „Rücklastschriften“), „Meine Beitragsbestätigung“ und „Meine Daten“.
+- Karten: „Meine Stammdaten“ (Name, E-Mail, Telefon, Adresse, Mitgliedsnummer, „Mitglied seit“; Knopf „Bearbeiten“), „Mein Beitrag“ (je Zuweisung: Gruppe, „Untergrenze: X“, „Monatsbeitrag (€)“, „Turnus“, „Vorschau“, „Speichern“), „Mein SEPA-Lastschriftmandat“ (IBAN **maskiert**, z. B. `DE02••••2051`, Kontoinhaber, Status „Aktiv“ und die Knöpfe „Bankverbindung ändern“, „Kontoinhaber wechseln“, „Mandat widerrufen“; darunter „Rücklastschriften“), „Meine Beitragsbestätigung“ und „Meine Daten“.
 - Die **interne Notiz** aus 3.4 erscheint nirgends. Du siehst nur deine eigenen Angaben, nie die anderer Mitglieder.
 - Die volle IBAN steht nirgends, nur die maskierte.
 
@@ -2136,14 +2136,14 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 3. Trage bei „Monatsbeitrag (€)“ `11` ein (unter der Untergrenze) und klicke „Vorschau“.
 4. Trage `20` ein und klicke „Vorschau“. Ändere danach den Betrag noch einmal auf `21` und beobachte „Speichern“.
 5. Setze `20` wieder ein, klicke „Vorschau“ und „Speichern“.
-6. Wechsle den „Turnus (Monate)“ von 3 auf 6, „Vorschau“, „Speichern“.
+6. Wechsle den „Turnus“ von „vierteljährlich“ auf „halbjährlich“, „Vorschau“, „Speichern“.
 7. Sieh in Mailhog nach den Quittungen.
-8. Stelle Betrag `15` und Turnus 3 wieder ein (jeweils mit „Vorschau“ und „Speichern“).
+8. Stelle Betrag `15` und Turnus „vierteljährlich“ wieder ein (jeweils mit „Vorschau“ und „Speichern“).
 
 **Erwartet:**
 - „Untergrenze: 12,00 €“. „Speichern“ ist gesperrt, bis eine Vorschau für **genau** die eingetragenen Werte geladen ist; nach einer weiteren Änderung ist es wieder gesperrt.
 - Bei `11`: die Meldung „Der Monatsbeitrag darf die Untergrenze von 12,00 € nicht unterschreiten.“ Keine Vorschau, nichts wird gespeichert.
-- Die Vorschau lautet „Wirkt ab {heute} · erster Einzug am {Datum} · Betrag {Betrag}“: Jonas hat noch keine Forderung, also keine vorabinformierte Periode (sein Mandat war bis eben ein Entwurf). Hoch ist frei, runter nur bis zur Untergrenze. Das Turnus-Feld bietet nur die erlaubten Turnusse der Gruppe Vollmitglied (1, 3, 6, 12).
+- Die Vorschau lautet „Wirkt ab {heute} · erster Einzug am {Datum} · Betrag {Betrag}“: Jonas hat noch keine Forderung, also keine vorabinformierte Periode (sein Mandat war bis eben ein Entwurf). Hoch ist frei, runter nur bis zur Untergrenze. Das Turnus-Feld bietet nur die erlaubten Turnusse der Gruppe Vollmitglied (monatlich, vierteljährlich, halbjährlich, jährlich).
 - Toast „Beitrag geändert.“ Quittungsmail „Ihr Beitrag wurde geändert“ mit „Ihr Monatsbeitrag wurde von 15,00 € auf 20,00 € geändert.“, „Wirkt ab: …“, „Voraussichtlich erster betroffener Einzug: …“ und „Diese Mail ist die Bestätigung dieser Änderung – eine Handlung Ihrerseits ist nicht nötig.“ (bei Turnuswechsel „Ihr Zahlungsturnus wurde von alle 3 Monate auf alle 6 Monate geändert.“).
 - Wäre für Johns Periode schon eine Vorabinfo raus, käme statt der Vorschau die Ablehnung aus 7.17.
 

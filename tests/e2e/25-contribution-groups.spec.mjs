@@ -51,6 +51,17 @@ test.describe('Beitragsgruppen, Zuweisungen & Forderungen', () => {
 		await dialog.getByLabel('Name').fill(GROUP_NAME)
 		await dialog.getByLabel('Untergrenze (€/Monat)').fill('5')
 		await dialog.getByLabel('Standardbeitrag (€/Monat)').fill('8')
+
+		// Die Turnusse tragen ihre Namen statt Monatszahlen: monatlich und jährlich sind vorgewählt, vierteljährlich kommt dazu.
+		const intervals = dialog.getByRole('group', { name: 'Erlaubte Turnusse' })
+		await expect(intervals.getByRole('checkbox')).toHaveCount(6)
+		await expect(intervals.getByRole('checkbox', { name: 'monatlich' })).toBeChecked()
+		await expect(intervals.getByRole('checkbox', { name: 'jährlich' })).toBeChecked()
+		await expect(intervals.getByRole('checkbox', { name: 'vierteljährlich' })).not.toBeChecked()
+		await intervals.getByText('vierteljährlich', { exact: true }).click()
+		await expect(intervals.getByRole('checkbox', { name: 'vierteljährlich' })).toBeChecked()
+		await expect(dialog.getByLabel('Standard-Turnus').locator('option')).toHaveText(['monatlich', 'vierteljährlich', 'jährlich'])
+
 		await dialog.getByRole('button', { name: 'Anlegen', exact: true }).click()
 		await expect(dialog).toBeHidden()
 
@@ -58,6 +69,7 @@ test.describe('Beitragsgruppen, Zuweisungen & Forderungen', () => {
 		await expect(row).toBeVisible()
 		await expect(row).toContainText('5,00') // Untergrenze
 		await expect(row).toContainText('8,00') // Standardbeitrag
+		await expect(row).toContainText('monatlich, vierteljährlich, jährlich')
 
 		await row.getByRole('button', { name: 'Bearbeiten' }).click()
 		dialog = page.getByRole('dialog', { name: 'Beitragsgruppe bearbeiten' })

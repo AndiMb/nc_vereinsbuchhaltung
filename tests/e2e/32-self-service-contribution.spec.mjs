@@ -121,7 +121,7 @@ test.describe('Self-Service Beitrag-Aktionen', () => {
 		await switchTab(page, 'Mein Beitrag')
 
 		const card = visibleSection(page).locator('.vbh-selfservice-assignment', { hasText: GROUP_NAME })
-		await card.getByLabel('Turnus (Monate)').selectOption('3')
+		await card.getByLabel('Turnus').selectOption('3')
 		await card.getByRole('button', { name: 'Vorschau' }).click()
 		await expect(card.getByText(/Wirkt ab/)).toBeVisible()
 

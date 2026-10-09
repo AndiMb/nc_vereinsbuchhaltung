@@ -143,10 +143,10 @@
 					</label>
 				</div>
 				<div v-if="selectedGroup" class="vbh-form">
-					<label>{{ t('Turnus (Monate)') }}
+					<label>{{ t('Turnus') }}
 						<select v-model.number="form.intervalMonths">
 							<option v-for="n in selectedGroup.allowedIntervals" :key="n" :value="n">
-								{{ n }}
+								{{ intervalLabel(n) }}
 							</option>
 						</select>
 					</label>
@@ -386,6 +386,7 @@ import { useConfirm } from '../composables/useConfirm.js'
 import { useContributionGroups } from '../composables/useContributionGroups.js'
 import { defaultCountry } from '../lib/countryDefault.js'
 import { errMsg, formatDate } from '../lib/format.js'
+import { intervalLabel } from '../lib/frequency.js'
 import { linkedAccountText } from '../lib/memberAccount.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 
@@ -562,6 +563,7 @@ export default {
 	},
 
 	methods: {
+		intervalLabel,
 		errMsg,
 		formatDate,
 		linkedAccountText,
