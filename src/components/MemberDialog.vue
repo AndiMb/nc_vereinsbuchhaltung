@@ -559,9 +559,21 @@ export default {
 		formatDate,
 		linkedAccountText,
 
-		/** Springt zum Mandat-Bereich (Aktion „Mandat verwalten“ der Mitgliederliste). NcModal rendert seinen Inhalt erst nach dem Öffnen, deshalb mit kurzem Versatz. */
-		scrollToMandate() {
-			setTimeout(() => this.$refs.mandatePanel?.$el?.scrollIntoView?.({ block: 'start' }), 100)
+		/**
+		 * Springt zum Mandat-Bereich (Aktion „Mandat verwalten“ der Mitgliederliste). NcModal zeigt seinen
+		 * Inhalt erst nach dem Öffnen, deshalb wird bis zu einer Sekunde lang gewartet, bis der Bereich da
+		 * und sichtbar ist. Zusätzlich bekommt er den Fokus: NcModals Fokusfang springt nach der
+		 * Öffnen-Animation sonst zum ersten Feld und scrollt den Dialog wieder nach oben – liegt der Fokus
+		 * schon im Dialog, lässt er ihn stehen.
+		 */
+		scrollToMandate(attempt = 0) {
+			const panel = this.$refs.mandatePanel?.$el
+			if (!panel || panel.offsetParent === null) {
+				if (attempt < 20) { setTimeout(() => this.scrollToMandate(attempt + 1), 50) }
+				return
+			}
+			panel.focus({ preventScroll: true })
+			panel.scrollIntoView({ block: 'start' })
 		},
 
 		euro(cents) { return (cents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }) },

@@ -1,5 +1,5 @@
 <template>
-	<section class="vbh-mandate-panel vbh-akte-section" aria-labelledby="vbh-mandate-heading">
+	<section class="vbh-mandate-panel vbh-akte-section" tabindex="-1" aria-labelledby="vbh-mandate-heading">
 		<h3 id="vbh-mandate-heading" class="vbh-modal-subtitle">
 			{{ t('SEPA-Mandat') }}
 		</h3>
@@ -854,6 +854,11 @@ export default {
 </script>
 
 <style scoped>
+/* Der Bereich bekommt nur programmatisch den Fokus (Sprung aus der Mitgliederliste); er ist kein Bedienelement, ein Rahmen wäre Lärm. */
+.vbh-mandate-panel:focus {
+	outline: none;
+}
+
 .vbh-mandate-head {
 	display: flex;
 	flex-wrap: wrap;

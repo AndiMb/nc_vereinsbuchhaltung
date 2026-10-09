@@ -64,10 +64,23 @@ async function openMandate(page, name) {
 	await page.getByRole('menuitem', { name: 'Mandat verwalten' }).click()
 	const dialog = page.getByRole('dialog', { name: `Mitglied: ${name}` })
 	await expect(dialog).toBeVisible()
+	await expectScrolledToMandate(dialog)
 	return dialog
 }
 
 const panel = (dialog) => dialog.locator('section.vbh-mandate-panel')
+
+/**
+ * „Mandat verwalten“ springt in der Akte zum Mandat-Bereich – und bleibt dort: NcModals Fokusfang setzt
+ * erst nach der Öffnen-Animation den Fokus und scrollte den Dialog früher wieder nach oben. Deshalb wird
+ * nach einer Pause ein zweites Mal geprüft, ob die Überschrift noch im sichtbaren Teil steht.
+ */
+async function expectScrolledToMandate(dialog) {
+	const heading = panel(dialog).getByRole('heading', { name: 'SEPA-Mandat', exact: true })
+	await expect(heading).toBeInViewport()
+	await dialog.page().waitForTimeout(1200)
+	await expect(heading).toBeInViewport()
+}
 const status = (dialog) => panel(dialog).locator('.vbh-mandate-status')
 
 /** Der Wert zu einer Bezeichnung der Definitionsliste des lebenden Mandats (beendete stehen in `details`). */
