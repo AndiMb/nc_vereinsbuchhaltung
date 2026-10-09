@@ -22,12 +22,18 @@
 						{{ t('Kontoauszug der Bank hierher ziehen') }}<br>
 						<span class="vbh-dropzone-or">{{ t('oder') }}</span>
 					</p>
-					<label class="vbh-filebtn">{{ t('Datei wählen') }}<input
+					<NcButton variant="secondary" @click="$refs.fileInput.click()">
+						<template #icon>
+							<NcIconSvgWrapper :path="mdiUpload" :size="20" />
+						</template>
+						{{ t('Datei wählen') }}
+					</NcButton>
+					<input
 						ref="fileInput"
 						type="file"
 						accept=".csv,.xml,.sta,.txt,text/csv,text/xml,application/xml"
 						hidden
-						@change="onFileSelected"></label>
+						@change="onFileSelected">
 					<p v-if="selectedFile" class="vbh-filename">
 						{{ selectedFile.name }}
 					</p>

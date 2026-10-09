@@ -101,6 +101,11 @@
 				</li>
 			</ul>
 
+			<!-- Dass die Kreise anklickbar sind, sieht man dem Strahl nicht an. Auf dem Handy sind die Termine ohnehin Zeilen mit Knopf. -->
+			<p v-if="!isMobile" class="vbh-tl-hint">
+				{{ t('Jeder Kreis ist ein Einzugstermin – anklicken, um darunter seine Phasen und die Vorschau zu sehen.') }}
+			</p>
+
 			<div v-if="milestones.length" class="vbh-tl-phases">
 				<div class="vbh-tl-phaseshead">
 					<h5>{{ t('Phasen bis zum Einzug am {datum}', { datum: formatDate(selectedEntry.dueDate) }) }}</h5>
@@ -352,6 +357,12 @@ export default {
 }
 
 /* --- Strahl (Desktop) ------------------------------------------------------ */
+
+.vbh-tl-hint {
+	margin: 2px 0 0;
+	font-size: 0.85em;
+	color: var(--color-text-maxcontrast);
+}
 
 .vbh-tl-scroll {
 	overflow-x: auto;

@@ -11,24 +11,44 @@
 				{{ t('Mitgliederliste einlesen') }}
 			</h2>
 			<p class="vbh-hint">
-				{{ t('Für die erstmalige Aufnahme vieler Mitglieder: eine CSV-Datei mit den Spalten – Name: Vorname und Nachname (oder Organisation, oder nur Name); Stammdaten: Mitgliedsnummer, Eintritt, Straße, PLZ, Ort, Telefon, E-Mail; Lastschrift: IBAN, BIC, Kontoinhaber, Mandat am, Mandatsreferenz; Beitrag: Beitragsgruppe, Betrag, Frequenz, Start. Reihenfolge und Schreibweise der Überschriften sind egal, weitere Spalten werden übergangen; ein reiner Name wird am ersten Leerzeichen geteilt und gilt mit einer Rechtsform wie GmbH oder e. V. als Organisation, ein leerer Eintritt als heute, und ein Start darf nicht in der Vergangenheit liegen. Jede Zeile legt nur an – ein bereits bestehendes Mitglied (Mitgliedsnummer/Nextcloud-Konto) wird nie geändert, sondern übersprungen; vor dem Anlegen sehen Sie zuerst, was entstehen würde.') }}
+				{{ t('Für die erstmalige Aufnahme vieler Mitglieder aus einer CSV-Datei. Bereits vorhandene Mitglieder bleiben unberührt und werden übersprungen; vor dem Anlegen sehen Sie zuerst, was entstehen würde.') }}
 			</p>
-			<p class="vbh-hint vbh-hint--info">
-				{{ t('„Betrag" ist der Monatsbeitrag der Zuweisung, unabhängig vom Turnus – „Frequenz" bestimmt nur, wie oft eingezogen wird.') }}
-			</p>
+			<details class="vbh-importhelp">
+				<summary>{{ t('Welche Spalten gibt es?') }}</summary>
+				<ul>
+					<li><strong>{{ t('Name') }}:</strong> {{ t('Vorname und Nachname, Organisation oder nur „Name“ (wird am ersten Leerzeichen geteilt; mit einer Rechtsform wie GmbH oder e. V. gilt es als Organisation)') }}</li>
+					<li><strong>{{ t('Stammdaten') }}:</strong> {{ t('Mitgliedsnummer, Eintritt (leer = heute), Straße, PLZ, Ort, Telefon, E-Mail') }}</li>
+					<li><strong>{{ t('Lastschrift') }}:</strong> {{ t('IBAN, BIC, Kontoinhaber, Mandat am, Mandatsreferenz') }}</li>
+					<li><strong>{{ t('Beitrag') }}:</strong> {{ t('Beitragsgruppe, Betrag (Monatsbeitrag, unabhängig vom Turnus), Frequenz (wie oft eingezogen wird), Start (nicht in der Vergangenheit)') }}</li>
+				</ul>
+				<p>{{ t('Reihenfolge und Schreibweise der Überschriften sind egal, weitere Spalten werden übergangen.') }}</p>
+			</details>
 			<p v-if="defaultFeeAmount" class="vbh-hint vbh-hint--info">
 				{{ t('Zeilen mit Start-Datum, aber ohne eigenen Betrag, bekommen automatisch Ihren Standardbeitrag ({amount}) – die Betrag-Spalte kann bei einheitlichen Sätzen also leer bleiben.', { amount: formatMoney(defaultFeeAmount) }) }}
 			</p>
-			<div class="vbh-form">
+			<div class="vbh-uploadrow vbh-importpick">
+				<NcButton variant="secondary" :disabled="importing" @click="$refs.csvInput.click()">
+					<template #icon>
+						<NcIconSvgWrapper :path="mdiUpload" :size="20" />
+					</template>
+					{{ t('Datei wählen') }}
+				</NcButton>
 				<input
 					ref="csvInput"
 					type="file"
 					accept=".csv,text/csv"
+					hidden
 					@change="onFileChosen">
-				<NcButton :disabled="!importCsv || importing" @click="previewImport">
+				<span class="vbh-filename">{{ csvFileName || t('keine Datei gewählt') }}</span>
+				<NcButton :variant="importPreview ? 'secondary' : 'primary'" :disabled="!importCsv || importing" @click="previewImport">
 					{{ t('Prüfen') }}
 				</NcButton>
-				<a :href="beispielCsv" download="mitglieder-vorlage.csv" class="vbh-export-btn">{{ t('Vorlage herunterladen') }}</a>
+				<NcButton variant="tertiary" :href="beispielCsv" download="mitglieder-vorlage.csv">
+					<template #icon>
+						<NcIconSvgWrapper :path="mdiDownload" :size="20" />
+					</template>
+					{{ t('Vorlage herunterladen') }}
+				</NcButton>
 			</div>
 
 			<p v-if="importError" class="vbh-hint vbh-hint--warning">
@@ -49,10 +69,9 @@
 				</p>
 
 				<div v-if="importSummary.mandates > 0" class="vbh-form">
-					<label class="vbh-grow">
-						<input v-model="mandatesConfirmed" type="checkbox">
+					<NcCheckboxRadioSwitch v-model="mandatesConfirmed">
 						{{ n('Das unterschriebene Mandat liegt vor – es wird sofort aktiviert.', 'Die unterschriebenen Mandate für %n Zeilen liegen vor – sie werden sofort aktiviert.', importSummary.mandates) }}
-					</label>
+					</NcCheckboxRadioSwitch>
 				</div>
 
 				<div class="vbh-tablecard">
@@ -83,7 +102,7 @@
 								<td class="num nowrap">
 									{{ row.amount === null ? '–' : formatMoney(row.amount) }}
 								</td>
-								<td>
+								<td class="vbh-importres">
 									<span v-if="row.errors.length" class="vbh-hint vbh-hint--warning">{{ row.errors.join(' ') }}</span>
 									<span v-else-if="row.skipped" class="vbh-typetag">{{ row.skipReason }}</span>
 									<template v-else>
@@ -116,8 +135,9 @@
 </template>
 
 <script>
+import { mdiDownload, mdiUpload } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { NcButton, NcModal } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper, NcModal } from '@nextcloud/vue'
 import api from '../api.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { errMsg, formatMoney } from '../lib/format.js'
@@ -140,7 +160,7 @@ function emptySummary() {
  */
 export default {
 	name: 'MemberImportDialog',
-	components: { NcModal, NcButton },
+	components: { NcModal, NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper },
 	props: {
 		show: { type: Boolean, default: false },
 		defaultFeeAmount: { type: [Number, String], default: '' },
@@ -154,6 +174,9 @@ export default {
 
 	data() {
 		return {
+			mdiDownload,
+			mdiUpload,
+			csvFileName: '',
 			importCsv: '',
 			importPreview: null,
 			importError: '',
@@ -201,6 +224,7 @@ export default {
 			const datei = event.target.files && event.target.files[0]
 			this.resetImport()
 			if (!datei) { return }
+			this.csvFileName = datei.name
 			const leser = new FileReader()
 			leser.onload = () => { this.importCsv = String(leser.result || '') }
 			leser.onerror = () => showError(this.t('Die Datei konnte nicht gelesen werden.'))
@@ -210,6 +234,7 @@ export default {
 		},
 
 		resetImport() {
+			this.csvFileName = ''
 			this.importCsv = ''
 			this.importPreview = null
 			this.importError = ''
@@ -251,6 +276,7 @@ export default {
 				this.importPreview = data.rows
 				this.importSummary = data.summary
 				this.importCsv = ''
+				this.csvFileName = ''
 				if (this.$refs.csvInput) { this.$refs.csvInput.value = '' }
 				this.$emit('imported')
 				showSuccess(this.n('%n Zeile übernommen.', '%n Zeilen übernommen.', data.summary.ok))
@@ -259,3 +285,30 @@ export default {
 	},
 }
 </script>
+
+<style scoped>
+.vbh-importhelp {
+	margin: 0 0 10px;
+	font-size: 0.9em;
+}
+
+.vbh-importhelp summary {
+	cursor: pointer;
+	font-weight: 600;
+}
+
+.vbh-importhelp ul {
+	margin: 6px 0 0;
+	padding-inline-start: 20px;
+}
+
+.vbh-importhelp p {
+	margin: 6px 0 0;
+	color: var(--color-text-maxcontrast);
+}
+
+/* Breit genug, dass „Mandat und Zuweisung“ in einer Zeile steht, statt am Rand der Tabelle abgeschnitten zu werden. */
+.vbh-importres {
+	min-width: 170px;
+}
+</style>

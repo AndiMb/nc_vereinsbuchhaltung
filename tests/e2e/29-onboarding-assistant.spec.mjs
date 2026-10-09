@@ -201,7 +201,9 @@ test.describe('Aufnahme-Assistent & voller CSV-Import', () => {
 		const runButton = dialog.getByRole('button', { name: 'Zeilen übernehmen', exact: false })
 		await expect(runButton).toBeDisabled()
 
-		await confirmCheckbox.check()
+		// NcCheckboxRadioSwitch legt die sichtbare Beschriftung über das Eingabefeld: dort klicken, nicht ins Feld.
+		await dialog.getByText('sofort aktiviert', { exact: false }).click()
+		await expect(confirmCheckbox).toBeChecked()
 		await expect(runButton).toBeEnabled()
 		await runButton.click()
 

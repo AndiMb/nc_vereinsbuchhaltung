@@ -6,12 +6,18 @@
 				{{ t('Übernimmt Kontenbaum und alle Buchungen aus einer .xbuc-Datei.') }}
 			</p>
 			<div class="vbh-uploadrow">
-				<label class="vbh-filebtn">{{ t('Datei wählen') }}<input
+				<NcButton variant="secondary" @click="$refs.xbucInput.click()">
+					<template #icon>
+						<NcIconSvgWrapper :path="mdiUpload" :size="20" />
+					</template>
+					{{ t('Datei wählen') }}
+				</NcButton>
+				<input
 					ref="xbucInput"
 					type="file"
 					accept=".xbuc,application/xml,text/xml"
 					hidden
-					@change="onXbucSelected"></label>
+					@change="onXbucSelected">
 				<span class="vbh-filename">{{ xbucFile ? xbucFile.name : t('keine Datei gewählt') }}</span>
 				<NcCheckboxRadioSwitch v-model="xbucReset">
 					{{ t('Vorher alle Daten löschen (frisch starten)') }}
@@ -114,8 +120,9 @@
 </template>
 
 <script>
+import { mdiUpload } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { NcButton, NcCheckboxRadioSwitch } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import api from '../api.js'
 import { useConfirm } from '../composables/useConfirm.js'
@@ -124,7 +131,7 @@ import { errMsg, formatDate, formatMoney } from '../lib/format.js'
 
 export default {
 	name: 'SettingsXbucImport',
-	components: { NcButton, NcCheckboxRadioSwitch },
+	components: { NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper },
 	props: {
 		// gemeinsames App-weites Ladeflag (blockiert z. B. auch andere Import-/Reset-
 		// Buttons und das Kollaborations-Polling), .sync-Prop wie NcModal:show.sync
@@ -144,6 +151,7 @@ export default {
 
 	data() {
 		return {
+			mdiUpload,
 			xbucFile: null,
 			xbucReset: false,
 			xbucClampDates: false,
