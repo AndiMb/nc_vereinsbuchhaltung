@@ -52,6 +52,7 @@
 							:modelValue="optionFor(i)"
 							:options="accountOptions"
 							:filterBy="accountFilterBy"
+							:selectable="isSelectableOption"
 							class="vbh-split-acc"
 							label="label"
 							:placeholder="t('– Konto wählen –')"
@@ -104,6 +105,7 @@ import { NcButton, NcIconSvgWrapper, NcModal, NcSelect } from '@nextcloud/vue'
 import AmountInput from './AmountInput.vue'
 import { useAccounts } from '../composables/useAccounts.js'
 import { formatDate, formatMoney } from '../lib/format.js'
+import { isSelectableOption } from '../lib/selectOptions.js'
 import { splitBalanced, splitRemainder } from '../lib/split.js'
 
 /**
@@ -180,6 +182,8 @@ export default {
 			const acc = this.accountsById[id]
 			return acc ? `${acc.number} ${acc.name}` : `#${id}`
 		},
+
+		isSelectableOption,
 
 		accountFilterBy(option, label, search) {
 			const s = String(search || '').trim().toLowerCase()

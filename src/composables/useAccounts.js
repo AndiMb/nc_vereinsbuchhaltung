@@ -1,6 +1,7 @@
 import { showError } from '@nextcloud/dialogs'
 import { computed, reactive } from 'vue'
 import api from '../api.js'
+import { accountCategoryLabel } from '../lib/accountFilter.js'
 import { errMsg } from '../lib/format.js'
 
 const state = reactive({
@@ -50,12 +51,19 @@ export function useAccounts() {
  * Haeufig verwendete Konten werden aus ihrer Kategorie-Gruppe ausgeschlossen, damit kein Konto
  * doppelt erscheint.
  *
+ * Die Kategorie-Ueberschriften sind normalerweise reine, nicht waehlbare Trenner. Mit
+ * selectableCategories werden sie zu echten Optionen (isCategory, eindeutige String-ID),
+ * mit denen der Kontofilter im Journal alle Konten der Kategorie auf einmal meint. In diesem
+ * Modus erscheint jede Kategorie auch dann, wenn alle ihre Konten in der "Haeufig
+ * verwendet"-Gruppe stehen - der Filter darf nicht davon abhaengen, was gerade oft gebucht wird.
+ *
  * @param {Array} accountsSorted alle Konten, nach Kontonummer sortiert
  * @param {object} usageCounts accountId -> Anzahl Buchungen
  * @param {(key: string) => string} t Uebersetzungsfunktion
+ * @param {{selectableCategories?: boolean}} [opts]
  * @return {Array} Options fuer NcSelect
  */
-export function buildAccountOptions(accountsSorted, usageCounts, t) {
+export function buildAccountOptions(accountsSorted, usageCounts, t, { selectableCategories = false } = {}) {
 	const active = accountsSorted.filter((acc) => acc.active)
 	const frequent = active
 		.filter((acc) => usageCounts[acc.id])
@@ -72,14 +80,19 @@ export function buildAccountOptions(accountsSorted, usageCounts, t) {
 		}
 	}
 
-	const groups = {}
+	// Reihenfolge der Gruppen: erstes Vorkommen in der Kontonummern-Sortierung.
+	const groups = new Map()
 	for (const acc of active) {
-		if (frequentIds.has(acc.id)) { continue }
-		const cat = acc.category || t('Sonstige')
-		;(groups[cat] = groups[cat] || []).push(acc)
+		const cat = accountCategoryLabel(acc, t)
+		if (!groups.has(cat)) { groups.set(cat, []) }
+		if (!frequentIds.has(acc.id)) { groups.get(cat).push(acc) }
 	}
-	for (const [cat, accs] of Object.entries(groups)) {
-		opts.push({ id: null, label: cat, $isDisabled: true })
+	for (const [cat, accs] of groups) {
+		if (selectableCategories) {
+			opts.push({ id: `category:${cat}`, label: cat, category: cat, isCategory: true })
+		} else if (accs.length) {
+			opts.push({ id: null, label: cat, $isDisabled: true })
+		}
 		for (const acc of accs) {
 			opts.push({ id: acc.id, label: `${acc.number} ${acc.name}`, number: acc.number })
 		}
