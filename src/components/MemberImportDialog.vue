@@ -56,19 +56,29 @@
 			</p>
 
 			<template v-if="importPreview">
-				<p class="vbh-hint" :class="importSummary.failed ? 'vbh-hint--warning' : 'vbh-hint--info'">
-					{{ t('{ok} von {total} Zeilen sind in Ordnung: {mandate} Mandate und {beitraege} Zuweisungen würden angelegt. {uebersprungen} bereits vorhandene oder doppelte Zeilen werden übersprungen, {fehler} sind fehlerhaft.', {
+				<p v-if="imported" class="vbh-hint vbh-hint--info">
+					{{ t('{ok} von {total} Zeilen übernommen: {mandate} und {beitraege} angelegt. {uebersprungen} bereits vorhandene oder doppelte Zeilen wurden übersprungen, {fehler} waren fehlerhaft.', {
 						ok: importSummary.ok,
 						total: importPreview.length,
-						mandate: importSummary.mandates,
-						beitraege: importSummary.assignments,
+						mandate: n('%n Mandat', '%n Mandate', importSummary.mandates),
+						beitraege: n('%n Zuweisung', '%n Zuweisungen', importSummary.assignments),
+						uebersprungen: importSummary.skipped,
+						fehler: importSummary.failed,
+					}) }}
+				</p>
+				<p v-else class="vbh-hint" :class="importSummary.failed ? 'vbh-hint--warning' : 'vbh-hint--info'">
+					{{ t('{ok} von {total} Zeilen sind in Ordnung: {mandate} und {beitraege} würden angelegt. {uebersprungen} bereits vorhandene oder doppelte Zeilen werden übersprungen, {fehler} sind fehlerhaft.', {
+						ok: importSummary.ok,
+						total: importPreview.length,
+						mandate: n('%n Mandat', '%n Mandate', importSummary.mandates),
+						beitraege: n('%n Zuweisung', '%n Zuweisungen', importSummary.assignments),
 						uebersprungen: importSummary.skipped,
 						fehler: importSummary.failed,
 					}) }}
 					<span v-if="importSummary.warnings"> {{ n('%n Zeile mit Warnung – wird trotzdem angelegt.', '%n Zeilen mit Warnung – werden trotzdem angelegt.', importSummary.warnings) }}</span>
 				</p>
 
-				<div v-if="importSummary.mandates > 0" class="vbh-form">
+				<div v-if="importSummary.mandates > 0 && !imported" class="vbh-form">
 					<NcCheckboxRadioSwitch v-model="mandatesConfirmed">
 						{{ n('Das unterschriebene Mandat liegt vor – es wird sofort aktiviert.', 'Die unterschriebenen Mandate für %n Zeilen liegen vor – sie werden sofort aktiviert.', importSummary.mandates) }}
 					</NcCheckboxRadioSwitch>
@@ -78,14 +88,22 @@
 					<table class="vbh-table">
 						<thead>
 							<tr>
-								<th>{{ t('Zeile') }}</th>
+								<th class="vbh-imp-line">
+									{{ t('Zeile') }}
+								</th>
 								<th>{{ t('Name') }}</th>
-								<th>{{ t('IBAN') }}</th>
-								<th>{{ t('Beitragsgruppe') }}</th>
-								<th class="num">
+								<th class="vbh-imp-iban">
+									{{ t('IBAN') }}
+								</th>
+								<th class="vbh-imp-group">
+									{{ t('Beitragsgruppe') }}
+								</th>
+								<th class="num vbh-imp-amount">
 									{{ t('Monatsbeitrag') }}
 								</th>
-								<th>{{ t('Ergebnis') }}</th>
+								<th class="vbh-importres">
+									{{ t('Ergebnis') }}
+								</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -103,11 +121,20 @@
 									{{ row.amount === null ? '–' : formatMoney(row.amount) }}
 								</td>
 								<td class="vbh-importres">
-									<span v-if="row.errors.length" class="vbh-hint vbh-hint--warning">{{ row.errors.join(' ') }}</span>
-									<span v-else-if="row.skipped" class="vbh-typetag">{{ row.skipReason }}</span>
+									<template v-if="row.errors.length">
+										<span class="vbh-importtag vbh-importtag--error">{{ t('Fehler') }}</span>
+										<span class="vbh-importmsg">{{ row.errors.join(' ') }}</span>
+									</template>
+									<template v-else-if="row.skipped">
+										<span class="vbh-importtag">{{ t('übersprungen') }}</span>
+										<span class="vbh-importmsg">{{ row.skipReason }}</span>
+									</template>
 									<template v-else>
 										<span class="vbh-typetag">{{ row.mandateId || row.assignmentId ? importResultLabel(row) : importLabel(row) }}</span>
-										<span v-if="row.warnings.length" class="vbh-hint vbh-hint--warning">{{ row.warnings.join(' ') }}</span>
+										<template v-if="row.warnings.length">
+											<span class="vbh-importtag vbh-importtag--warning">{{ t('Hinweis') }}</span>
+											<span class="vbh-importmsg">{{ row.warnings.join(' ') }}</span>
+										</template>
 									</template>
 								</td>
 							</tr>
@@ -115,7 +142,7 @@
 					</table>
 				</div>
 
-				<div class="vbh-modal-actions">
+				<div v-if="!imported" class="vbh-modal-actions">
 					<NcButton
 						variant="primary"
 						:disabled="!canRunImport || importing"
@@ -183,6 +210,8 @@ export default {
 			importing: false,
 			importSummary: emptySummary(),
 			mandatesConfirmed: false,
+			// Nach dem Übernehmen zeigt dieselbe Tabelle das Ergebnis; Zusammenfassung dann in der Vergangenheit.
+			imported: false,
 		}
 	},
 
@@ -240,6 +269,7 @@ export default {
 			this.importError = ''
 			this.importSummary = emptySummary()
 			this.mandatesConfirmed = false
+			this.imported = false
 			if (this.$refs.csvInput) { this.$refs.csvInput.value = '' }
 		},
 
@@ -275,6 +305,7 @@ export default {
 				}
 				this.importPreview = data.rows
 				this.importSummary = data.summary
+				this.imported = true
 				this.importCsv = ''
 				this.csvFileName = ''
 				if (this.$refs.csvInput) { this.$refs.csvInput.value = '' }
@@ -307,8 +338,52 @@ export default {
 	color: var(--color-text-maxcontrast);
 }
 
-/* Breit genug, dass „Mandat und Zuweisung“ in einer Zeile steht, statt am Rand der Tabelle abgeschnitten zu werden. */
+/* Die Ergebnisspalte trägt die Meldungen je Zeile und braucht deshalb den meisten Platz. */
+/* table-layout: fixed – die Breiten stehen in der Kopfzeile; der Name teilt sich den Rest. */
+.vbh-imp-line {
+	width: 66px;
+}
+
+.vbh-imp-iban {
+	width: 135px;
+}
+
+.vbh-imp-group {
+	width: 140px;
+}
+
+.vbh-imp-amount {
+	width: 128px;
+}
+
 .vbh-importres {
-	min-width: 170px;
+	width: 265px;
+}
+
+.vbh-importmsg {
+	display: block;
+	margin-top: 2px;
+	font-size: 0.9em;
+	line-height: 1.35;
+}
+
+/* Statusfarben als Paar: Flächenton plus darauf lesbare Schrift, nie die Fläche als Schriftfarbe. */
+.vbh-importtag {
+	display: inline-block;
+	padding: 1px 8px;
+	border-radius: 10px;
+	font-size: 0.82em;
+	background-color: var(--color-background-dark);
+	color: var(--color-main-text);
+}
+
+.vbh-importtag--error {
+	background-color: var(--color-error);
+	color: var(--color-error-text);
+}
+
+.vbh-importtag--warning {
+	background-color: var(--color-warning);
+	color: var(--color-warning-text);
 }
 </style>

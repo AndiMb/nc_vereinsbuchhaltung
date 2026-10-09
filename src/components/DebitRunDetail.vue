@@ -26,10 +26,12 @@
 			<br>
 			<strong>{{ t('Begründung:') }}</strong> {{ run.discardReason || '–' }}
 		</p>
-		<p v-else-if="run.status === 'freigegeben'" class="vbh-hint vbh-hint--info">
+		<!-- Wer den Lauf bearbeiten darf, liest denselben Zustand im Schritt-2-Hinweis der Aktionen; der Satz hier ist für die Lesenden. -->
+		<p v-else-if="run.status === 'freigegeben' && !$slots.actions" class="vbh-hint vbh-hint--info">
 			{{ t('Freigegeben, aber noch nicht eingereicht: Die Datei ist erzeugt, bei der Bank liegt sie noch nicht.') }}
 		</p>
-		<p v-if="run.driftWarning" class="vbh-hint vbh-hint--warning" role="status">
+		<!-- Mit Bearbeitungsrechten steht die Abweichung zusammen mit ihrem Ausweg (Verwerfen und neu freigeben) in den Aktionen darunter. -->
+		<p v-if="run.driftWarning && !$slots.actions" class="vbh-hint vbh-hint--warning" role="status">
 			{{ run.driftWarning }}
 		</p>
 

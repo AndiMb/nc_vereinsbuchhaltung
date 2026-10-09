@@ -202,8 +202,10 @@ class DebitTimelineService {
 			}
 			$intervalsByDate[$due] ??= [];
 		}
-		foreach (array_keys($context['batches']) as $due) {
-			if ($due >= $start && $due <= $end) {
+		// Ein Termin, an dem nur noch verworfene Läufe hängen (etwa nach Verschieben und Verwerfen), ist kein
+		// Einzugstermin mehr: Der Lauf bleibt als Historie in der Läufe-Liste, auf dem Strahl wäre er ein leerer Termin.
+		foreach ($context['batches'] as $due => $dueBatches) {
+			if ($due >= $start && $due <= $end && $this->hasLiveBatch(['batches' => $dueBatches])) {
 				$intervalsByDate[$due] ??= [];
 			}
 		}

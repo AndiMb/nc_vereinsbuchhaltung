@@ -1665,7 +1665,7 @@
         "Termin verschieben": "Move date",
         "Die Datei enthält noch die Daten vom Tag der Freigabe. Reichen Sie sie nur ein, wenn diese Abweichungen gewollt sind. Sonst verwerfen Sie den Lauf und geben den Termin neu frei: Die neue Datei enthält die aktuellen Mandatsdaten.": "The file still contains the data from the day of release. Only submit it if these deviations are intended. Otherwise discard the run and release the date again: the new file contains the current mandate data.",
         "Verwerfen und neu freigeben": "Discard and release again",
-        "Schritt 2 von 2: Laden Sie die Datei herunter, reichen Sie sie bei der Bank ein und bestätigen Sie das hier.": "Step 2 of 2: download the file, submit it to the bank and confirm that here.",
+        "Schritt 2 von 2: Die Datei ist erzeugt, bei der Bank liegt sie noch nicht. Laden Sie sie herunter, reichen Sie sie dort ein und bestätigen Sie das hier.": "Step 2 of 2: the file has been created but is not at the bank yet. Download it, submit it there and confirm that here.",
         "Die Datei ist bei der Bank eingereicht. Einen Storno gibt es nicht mehr: Der Lauf lässt sich weder verwerfen noch verschieben.": "The file has been submitted to the bank. There is no cancellation anymore: the run can neither be discarded nor moved.",
         "Die XML-Ablage ist eingeschaltet: Eine Kopie der Datei wird im Nextcloud-Ordner abgelegt:": "XML storage is switched on: a copy of the file is stored in the Nextcloud folder:",
         "Datei ist bei der Bank eingereicht": "File has been submitted to the bank",
@@ -1935,7 +1935,18 @@
         "Mitglied „{name}\" endgültig löschen?": "Permanently delete member “{name}”?",
         "Mitglied gelöscht.": "Member deleted.",
         "Zeilen mit Start-Datum, aber ohne eigenen Betrag, bekommen automatisch Ihren Standardbeitrag ({amount}) – die Betrag-Spalte kann bei einheitlichen Sätzen also leer bleiben.": "Rows with a start date but no amount of their own automatically get your default fee ({amount}) – so the amount column can stay empty for uniform rates.",
-        "{ok} von {total} Zeilen sind in Ordnung: {mandate} Mandate und {beitraege} Zuweisungen würden angelegt. {uebersprungen} bereits vorhandene oder doppelte Zeilen werden übersprungen, {fehler} sind fehlerhaft.": "{ok} of {total} rows are fine: {mandate} mandates and {beitraege} assignments would be created. {uebersprungen} existing or duplicate rows are skipped, {fehler} are faulty.",
+        "{ok} von {total} Zeilen sind in Ordnung: {mandate} und {beitraege} würden angelegt. {uebersprungen} bereits vorhandene oder doppelte Zeilen werden übersprungen, {fehler} sind fehlerhaft.": "{ok} of {total} rows are fine: {mandate} and {beitraege} would be created. {uebersprungen} existing or duplicate rows are skipped, {fehler} are faulty.",
+        "{ok} von {total} Zeilen übernommen: {mandate} und {beitraege} angelegt. {uebersprungen} bereits vorhandene oder doppelte Zeilen wurden übersprungen, {fehler} waren fehlerhaft.": "{ok} of {total} rows imported: {mandate} and {beitraege} created. {uebersprungen} existing or duplicate rows were skipped, {fehler} were faulty.",
+        "_%n Mandat_::_%n Mandate_": [
+            "%n mandate",
+            "%n mandates"
+        ],
+        "_%n Zuweisung_::_%n Zuweisungen_": [
+            "%n assignment",
+            "%n assignments"
+        ],
+        "Fehler": "Error",
+        "übersprungen": "skipped",
         "_%n Zeile mit Warnung – wird trotzdem angelegt._::_%n Zeilen mit Warnung – werden trotzdem angelegt._": [
             "%n row with a warning – will be created anyway.",
             "%n rows with a warning – will be created anyway."

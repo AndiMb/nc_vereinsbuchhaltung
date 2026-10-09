@@ -9,7 +9,8 @@
 
 			<!-- Weg aus der Drift-Warnung (die Meldung selbst steht darüber im Lauf-Detail): verwerfen und neu freigeben. -->
 			<div v-if="run.driftWarning" class="vbh-hint vbh-hint--warning vbh-run-drift">
-				<p>
+				<p role="status">
+					{{ run.driftWarning }}
 					{{ t('Die Datei enthält noch die Daten vom Tag der Freigabe. Reichen Sie sie nur ein, wenn diese Abweichungen gewollt sind. Sonst verwerfen Sie den Lauf und geben den Termin neu frei: Die neue Datei enthält die aktuellen Mandatsdaten.') }}
 				</p>
 				<NcButton
@@ -22,7 +23,7 @@
 			</div>
 
 			<p class="vbh-hint vbh-hint--info">
-				{{ t('Schritt 2 von 2: Laden Sie die Datei herunter, reichen Sie sie bei der Bank ein und bestätigen Sie das hier.') }}
+				{{ t('Schritt 2 von 2: Die Datei ist erzeugt, bei der Bank liegt sie noch nicht. Laden Sie sie herunter, reichen Sie sie dort ein und bestätigen Sie das hier.') }}
 			</p>
 		</template>
 

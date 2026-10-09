@@ -178,6 +178,18 @@ class DebitTimelineServiceTest extends TestCase {
 		$this->assertSame(7, $timeline['dates'][1]['batches'][0]['id']);
 	}
 
+	public function testNurVerworfenerLaufAmVerschobenenTerminIstKeinTermin(): void {
+		// Verschoben und danach verworfen: der Lauf bleibt Historie in der Läufe-Liste, der leere Termin
+		// 2026-11-02 darf aber nicht als Einzugstermin auf dem Strahl (und als „nächster“) stehen bleiben.
+		$this->assignments->method('findAll')->willReturn([$this->assignment(1)]);
+		$this->batches->method('findAll')->willReturn([$this->batch(7, '2026-11-02', DebitBatch::STATUS_DISCARDED)]);
+
+		$timeline = $this->service('2026-10-04')->build();
+
+		$this->assertNotContains('2026-11-02', $this->dueDates($timeline));
+		$this->assertSame('2026-11-01', $timeline['next']['dueDate']);
+	}
+
 	public function testStornierteForderungErzeugtKeinenTermin(): void {
 		$cancelled = $this->claim(1, '2026-10-17');
 		$cancelled->setCancelledAt('2026-10-01T00:00:00+00:00');

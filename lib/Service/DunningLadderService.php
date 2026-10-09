@@ -397,9 +397,9 @@ class DunningLadderService {
 		$amount = number_format($item->getAmountCents() / 100, 2, ',', '.') . ' €';
 		$label = (string)($item->getDescription() ?? $l->t('Beitrag'));
 		if ($item->getPeriodStart() !== null && $item->getPeriodEnd() !== null) {
-			return $l->t('%1$s (%2$s – %3$s): %4$s, fällig %5$s', [$label, (string)$item->getPeriodStart(), (string)$item->getPeriodEnd(), $amount, (string)$item->getDueDate()]);
+			return $l->t('%1$s (%2$s – %3$s): %4$s, fällig %5$s', [$label, GermanDate::format($item->getPeriodStart()), GermanDate::format($item->getPeriodEnd()), $amount, GermanDate::format($item->getDueDate())]);
 		}
-		return $l->t('%1$s: %2$s, fällig %3$s', [$label, $amount, (string)$item->getDueDate()]);
+		return $l->t('%1$s: %2$s, fällig %3$s', [$label, $amount, GermanDate::format($item->getDueDate())]);
 	}
 
 	/**
