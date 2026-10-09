@@ -19,7 +19,7 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
-## [0.35.0] – 2026-10-09
+## [0.35.0] – 2026-10-10
 
 **Neu:**
 - **Mitglieder als eigene Stammdaten:** Person oder Organisation mit Akte,
@@ -77,7 +77,8 @@ verwenden, z. B. `**Neu:**`.
   GiroCode (EPC-QR) an der Mail und lässt sich so einzeln per Banking-App
   überweisen. Je Position stehen Empfänger, IBAN, Betrag und Verwendungszweck
   (mit Forderungsnummer) zusätzlich im Text; der Bankabgleich schlägt die
-  Forderung mit genannter Nummer zuerst vor. Fehlt PHP die Erweiterung gd, geht
+  Forderung mit genannter Nummer zuerst vor. Die Mails nennen den Zeitraum in
+  Monatsnamen („Vollmitglied, November 2026"). Fehlt PHP die Erweiterung gd, geht
   die Mail ohne GiroCode raus und der Fehler steht im Log (Issue #73, #120).
 - **„Mein Beitrag" für Mitglieder:** Mitglieder mit verknüpftem
   Nextcloud-Konto pflegen dort Kontaktdaten, Monatsbeitrag (nicht unter die

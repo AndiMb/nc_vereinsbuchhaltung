@@ -579,6 +579,21 @@ class DunningLadderServiceTest extends TestCase {
 		$this->assertStringNotContainsString('fällig', $bloecke[0]);
 	}
 
+	public function testDieBeitragsperiodeStehtInMonatsnamenImText(): void {
+		$item = $this->claim(5, 7, amountCents: 1500, dueDate: '2026-11-01');
+		$item->setDescription('Vollmitglied');
+		$item->setPeriodStart('2026-11-01');
+		$item->setPeriodEnd('2026-11-30');
+		$this->notices->method('findByOpenItemAndStage')->willReturn(null);
+
+		$this->giroCodeService()->triggerPaymentRequest($item, fn (): string => 'Grund');
+
+		$position = array_values(array_filter($this->bodyTexts, static fn (string $t): bool => str_starts_with($t, 'Position ')));
+		$this->assertSame('Position 1: Vollmitglied, November 2026: 15,00 €, fällig 01.11.2026', $position[0]);
+		$block = array_values(array_filter($this->bodyTexts, static fn (string $t): bool => str_starts_with($t, 'Empfänger: ')));
+		$this->assertStringContainsString('Verwendungszweck: Vollmitglied, November 2026, Forderung F-5', $block[0]);
+	}
+
 	public function testDieZahlungsdatenStehenAuchOhneGiroCodeImText(): void {
 		$this->notices->method('findByOpenItemAndStage')->willReturn(null);
 

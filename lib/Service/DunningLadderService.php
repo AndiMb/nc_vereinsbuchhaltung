@@ -418,6 +418,10 @@ class DunningLadderService {
 	private function remittanceText(OpenItem $item, IL10N $l): string {
 		$label = (string)($item->getDescription() ?? $l->t('Beitrag'));
 		$number = (int)$item->getId();
+		$months = PeriodLabel::months($item->getPeriodStart(), $item->getPeriodEnd(), $l);
+		if ($months !== null) {
+			return $l->t('%1$s, %2$s, Forderung F-%3$d', [$label, $months, $number]);
+		}
 		if ($item->getPeriodStart() !== null && $item->getPeriodEnd() !== null) {
 			return $l->t('%1$s (%2$s – %3$s), Forderung F-%4$d', [$label, GermanDate::format($item->getPeriodStart()), GermanDate::format($item->getPeriodEnd()), $number]);
 		}
@@ -451,6 +455,10 @@ class DunningLadderService {
 	private function positionLine(OpenItem $item, IL10N $l): string {
 		$amount = number_format($item->getAmountCents() / 100, 2, ',', '.') . ' €';
 		$label = (string)($item->getDescription() ?? $l->t('Beitrag'));
+		$months = PeriodLabel::months($item->getPeriodStart(), $item->getPeriodEnd(), $l);
+		if ($months !== null) {
+			return $l->t('%1$s, %2$s: %3$s, fällig %4$s', [$label, $months, $amount, GermanDate::format($item->getDueDate())]);
+		}
 		if ($item->getPeriodStart() !== null && $item->getPeriodEnd() !== null) {
 			return $l->t('%1$s (%2$s – %3$s): %4$s, fällig %5$s', [$label, GermanDate::format($item->getPeriodStart()), GermanDate::format($item->getPeriodEnd()), $amount, GermanDate::format($item->getDueDate())]);
 		}

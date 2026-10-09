@@ -17,7 +17,7 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
-## [0.35.0] – 2026-10-09
+## [0.35.0] – 2026-10-10
 
 **New:**
 - **Members as master data of their own:** a person or an organization with a
@@ -73,7 +73,8 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   attached to the email with its own GiroCode (EPC QR) so it can be paid
   individually with a banking app. Per item the recipient, IBAN, amount and
   payment reference (with the claim number) are also listed in the text; the
-  bank reconciliation suggests the claim whose number is named first. If PHP
+  bank reconciliation suggests the claim whose number is named first. The
+  emails name the period in month names ("Vollmitglied, November 2026"). If PHP
   lacks the gd extension, the email goes out without a GiroCode and the error is
   logged (issues #73, #120).
 - **"My contribution" for members:** members with a linked Nextcloud account
