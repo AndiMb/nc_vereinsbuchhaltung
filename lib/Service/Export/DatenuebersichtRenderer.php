@@ -206,14 +206,33 @@ class DatenuebersichtRenderer {
 		foreach ($assignments as $assignment) {
 			$h .= '<tr>'
 				. '<td>' . PrintableReportPage::escape($this->groupName($assignment)) . '</td>'
-				. '<td>' . $assignment->getIntervalMonths() . '</td>'
+				. '<td>' . PrintableReportPage::escape($this->intervalName($assignment->getIntervalMonths())) . '</td>'
 				. '<td class="num">' . ReportFormat::cents($assignment->getMonthlyAmountCents()) . '</td>'
-				. '<td>' . PrintableReportPage::escape($assignment->getPaymentMethod()) . '</td>'
+				. '<td>' . PrintableReportPage::escape($this->paymentMethodName($assignment->getPaymentMethod())) . '</td>'
 				. '<td>' . ReportFormat::date($assignment->getValidFrom()) . '</td>'
 				. '<td>' . ReportFormat::date($assignment->getValidTo()) . '</td>'
 				. '</tr>';
 		}
 		return $h . '</table></section>';
+	}
+
+	/** Turnus in Worten statt als Monatszahl: die Übersicht liest das Mitglied selbst. */
+	private function intervalName(int $months): string {
+		return match ($months) {
+			1 => $this->l10n->t('monatlich'),
+			3 => $this->l10n->t('vierteljährlich'),
+			6 => $this->l10n->t('halbjährlich'),
+			12 => $this->l10n->t('jährlich'),
+			default => $this->l10n->t('alle %d Monate', [$months]),
+		};
+	}
+
+	private function paymentMethodName(string $method): string {
+		return match ($method) {
+			Assignment::PAYMENT_METHOD_DIRECT_DEBIT => $this->l10n->t('Lastschrift'),
+			Assignment::PAYMENT_METHOD_TRANSFER => $this->l10n->t('Überweisung'),
+			default => $method,
+		};
 	}
 
 	private function groupName(Assignment $assignment): string {
