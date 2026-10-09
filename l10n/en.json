@@ -2626,7 +2626,8 @@
         "_Freigabe fällig: Lauf am %s (%n Forderung, %s €) ist noch nicht freigegeben._::_Freigabe fällig: Lauf am %s (%n Forderungen, %s €) ist noch nicht freigegeben._": [
             "Release due: the run on %s (%n claim, %s €) has not been released yet.",
             "Release due: the run on %s (%n claims, %s €) has not been released yet."
-        ]
+        ],
+        "Wie funktioniert der Terminplan?": "How does the schedule work?"
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

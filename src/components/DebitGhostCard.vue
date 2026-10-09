@@ -36,10 +36,6 @@
 					<dt>{{ t('Summe') }}</dt>
 					<dd>{{ formatMoney(summary.sumCents / 100) }}</dd>
 				</div>
-				<div>
-					<dt>{{ t('Störfälle') }}</dt>
-					<dd>{{ issueSummary(issues) }}</dd>
-				</div>
 			</dl>
 
 			<!-- Eskalierender Hinweis, kein Sperrgrund: eine gerissene Vorlauffrist blockiert nichts (Spec §3.5). -->
@@ -51,7 +47,10 @@
 			</p>
 
 			<div v-if="issues.length" class="vbh-ghost-issues">
-				<h5>{{ t('Störfälle zu diesem Termin') }}</h5>
+				<div class="vbh-ghost-issueshead">
+					<h5>{{ t('Störfälle zu diesem Termin') }}</h5>
+					<span class="vbh-ghost-issuesummary">{{ issueSummary(issues) }}</span>
+				</div>
 				<ul>
 					<template v-for="item in issueEntries" :key="item.type === 'group' ? item.key : item.index">
 						<li v-if="item.type === 'task'">
@@ -314,6 +313,18 @@ export default {
 .vbh-ghost-issues h5,
 .vbh-ghost-claims h5 {
 	margin: 12px 0 4px;
+}
+
+.vbh-ghost-issueshead {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0 10px;
+}
+
+.vbh-ghost-issuesummary {
+	font-size: 0.85em;
+	opacity: 0.85;
 }
 
 .vbh-ghost-issues ul {

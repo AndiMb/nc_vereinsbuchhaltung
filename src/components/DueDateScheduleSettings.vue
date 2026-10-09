@@ -2,10 +2,12 @@
 	<section class="vbh-card">
 		<div class="vbh-cardhead">
 			<h4>{{ t('Terminplan') }}</h4>
+			<InfoHint :label="t('Wie funktioniert der Terminplan?')">
+				<p>
+					{{ t('Je Turnus ein Standard-Einzugstag (Tage-Versatz zum Periodenbeginn – 0 = am ersten Tag der Periode, negativ = vorgezogen). Einzelne Perioden lassen sich darunter überschreiben, die Überschreibung gilt jahresunabhängig für denselben Periodenindex.') }}
+				</p>
+			</InfoHint>
 		</div>
-		<p class="vbh-hint">
-			{{ t('Je Turnus ein Standard-Einzugstag (Tage-Versatz zum Periodenbeginn – 0 = am ersten Tag der Periode, negativ = vorgezogen). Einzelne Perioden lassen sich darunter überschreiben, die Überschreibung gilt jahresunabhängig für denselben Periodenindex.') }}
-		</p>
 		<div class="vbh-tablecard">
 			<table class="vbh-table">
 				<thead>
@@ -101,6 +103,7 @@
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { NcButton } from '@nextcloud/vue'
 import { toRefs } from 'vue'
+import InfoHint from './InfoHint.vue'
 import api from '../api.js'
 import { useAuth } from '../composables/useAuth.js'
 import { useDueDateSchedule } from '../composables/useDueDateSchedule.js'
@@ -121,7 +124,7 @@ import { errMsg } from '../lib/format.js'
  */
 export default {
 	name: 'DueDateScheduleSettings',
-	components: { NcButton },
+	components: { InfoHint, NcButton },
 
 	// Nach jeder gespeicherten Änderung: der Einzug-Unterreiter (EinzugPanel)
 	// rechnet daraufhin den Zeitstrahl neu.
@@ -212,9 +215,14 @@ export default {
 .vbh-cardhead {
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
-	gap: 8px;
+	justify-content: flex-start;
+	gap: 4px;
 	margin-bottom: 8px;
+}
+
+/* Die Versatz-Felder in der Tabelle brauchen keine Zellenbreite: drei Ziffern und ein Minus. */
+.vbh-tablecard td input.vbh-short {
+	width: 88px;
 }
 
 .vbh-cardhead h4 {

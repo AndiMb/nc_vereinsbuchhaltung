@@ -23,6 +23,9 @@
 						:aria-expanded="expandedId === run.id ? 'true' : 'false'"
 						:aria-controls="`vbh-run-detail-${run.id}`"
 						@click="$emit('toggle', run.id)">
+						<template #icon>
+							<NcIconSvgWrapper :path="expandedId === run.id ? mdiChevronUp : mdiChevronDown" :size="18" />
+						</template>
 						{{ expandedId === run.id ? t('Details ausblenden') : t('Details anzeigen') }}
 					</NcButton>
 				</div>
@@ -72,6 +75,9 @@
 									:aria-controls="`vbh-run-detail-${run.id}`"
 									:aria-label="t('Details zum Einzug am {datum}', { datum: formatDate(run.dueDate) })"
 									@click="$emit('toggle', run.id)">
+									<template #icon>
+										<NcIconSvgWrapper :path="expandedId === run.id ? mdiChevronUp : mdiChevronDown" :size="18" />
+									</template>
 									{{ expandedId === run.id ? t('Ausblenden') : t('Details') }}
 								</NcButton>
 							</td>
@@ -89,7 +95,8 @@
 </template>
 
 <script>
-import { NcButton } from '@nextcloud/vue'
+import { mdiChevronDown, mdiChevronUp } from '@mdi/js'
+import { NcButton, NcIconSvgWrapper } from '@nextcloud/vue'
 import DebitStatusTag from './DebitStatusTag.vue'
 import { formatStamp } from '../lib/debitRun.js'
 import { formatDate, formatMoney } from '../lib/format.js'
@@ -105,7 +112,7 @@ import { formatDate, formatMoney } from '../lib/format.js'
  */
 export default {
 	name: 'DebitRunList',
-	components: { DebitStatusTag, NcButton },
+	components: { DebitStatusTag, NcButton, NcIconSvgWrapper },
 	props: {
 		runs: { type: Array, required: true },
 		expandedId: { type: Number, default: null },
@@ -113,6 +120,10 @@ export default {
 	},
 
 	emits: ['toggle'],
+
+	data() {
+		return { mdiChevronDown, mdiChevronUp }
+	},
 
 	methods: {
 		formatDate,

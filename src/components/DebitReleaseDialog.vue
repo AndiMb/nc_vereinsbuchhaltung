@@ -14,10 +14,6 @@
 
 			<dl class="vbh-release-facts">
 				<div>
-					<dt>{{ t('Einzugstermin') }}</dt>
-					<dd>{{ formatDate(dueDate) }}</dd>
-				</div>
-				<div>
 					<dt>{{ t('Forderungen') }}</dt>
 					<dd>{{ summary.count }}</dd>
 				</div>
@@ -41,9 +37,16 @@
 					{{ t('Störfälle zu diesem Termin') }}
 				</h3>
 				<ul>
-					<li v-for="(issue, index) in shownIssues" :key="index">
-						<DebitStatusTag kind="severity" :value="issue.severity" />
-						<span>{{ issue.message }}</span>
+					<li v-for="(item, index) in shownIssues" :key="index">
+						<template v-if="item.type === 'task'">
+							<DebitStatusTag kind="severity" :value="item.task.severity" />
+							<span>{{ item.task.message }}</span>
+						</template>
+						<!-- Gleichartige Störfälle als eine Zeile mit Zähler; die einzelnen stehen in der Vorschau. -->
+						<template v-else>
+							<DebitStatusTag kind="severity" :value="item.severity" />
+							<span><strong>{{ item.title }}</strong> · {{ item.tasks.length }}</span>
+						</template>
 					</li>
 				</ul>
 				<p v-if="hiddenIssues > 0" class="vbh-hint">
@@ -92,6 +95,7 @@ import { NcButton, NcModal } from '@nextcloud/vue'
 import DebitStatusTag from './DebitStatusTag.vue'
 import { issueSummary } from '../lib/debitRun.js'
 import { formatDate, formatMoney } from '../lib/format.js'
+import { groupTasks } from '../lib/tasks.js'
 
 /** So viele Störfälle nennt der Dialog einzeln; der Rest steht in der Vorschau dahinter. */
 const ISSUE_LIMIT = 5
@@ -125,8 +129,12 @@ export default {
 	emits: ['close', 'confirm', 'update:show'],
 
 	computed: {
-		shownIssues() { return this.issues.slice(0, ISSUE_LIMIT) },
-		hiddenIssues() { return Math.max(0, this.issues.length - ISSUE_LIMIT) },
+		// Gleichartige Störfälle sind eine Zeile; gezählt wird, was dahinter verschwindet.
+		issueEntries() { return groupTasks(this.issues) },
+		shownIssues() { return this.issueEntries.slice(0, ISSUE_LIMIT) },
+		hiddenIssues() {
+			return this.issueEntries.slice(ISSUE_LIMIT).reduce((sum, item) => sum + (item.type === 'group' ? item.tasks.length : 1), 0)
+		},
 	},
 
 	watch: {

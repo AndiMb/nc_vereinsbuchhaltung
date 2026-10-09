@@ -1,22 +1,8 @@
 <template>
 	<div class="vbh-rundetail">
+		<!-- Termin, Status, Posten, Summe und Freigabe stehen schon in der Zeile der Läufe-Liste darüber; hier nur,
+		     was dort fehlt. -->
 		<dl class="vbh-rd-facts">
-			<div>
-				<dt>{{ t('Einzugstermin') }}</dt>
-				<dd>{{ formatDate(run.dueDate) }}</dd>
-			</div>
-			<div>
-				<dt>{{ t('Status') }}</dt>
-				<dd><DebitStatusTag kind="batch" :value="run.status" /></dd>
-			</div>
-			<div>
-				<dt>{{ t('Posten') }}</dt>
-				<dd>{{ run.itemCount }} · {{ formatMoney(run.sumCents / 100) }}</dd>
-			</div>
-			<div>
-				<dt>{{ t('Freigegeben') }}</dt>
-				<dd>{{ whoWhen(run.releasedByName || run.releasedBy, run.releasedAt) }}</dd>
-			</div>
 			<div v-if="run.submittedAt">
 				<dt>{{ t('Eingereicht') }}</dt>
 				<dd>{{ whoWhen(run.submittedByName || run.submittedBy, run.submittedAt) }}</dd>
