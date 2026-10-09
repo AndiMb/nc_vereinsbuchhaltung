@@ -56,6 +56,9 @@ test.describe('Buchungen', () => {
 		await switchTab(page, 'Buchungen')
 		await selectPeriod(page, '2031')
 		await expect(visibleSection(page).getByText('Spende Vereinsfest').first()).toBeVisible()
+		// Bank im Soll, Erlöskonto im Haben: eine Einnahme, grün und mit Plus.
+		const row = visibleSection(page).locator('tr', { hasText: 'Spende Vereinsfest' }).first()
+		await expect(row.locator('td.num.pos')).toHaveText(/^\+250,00\s*€$/)
 	})
 
 	test('Buchung bearbeiten: geänderter Text landet im Journal', async ({ page }) => {

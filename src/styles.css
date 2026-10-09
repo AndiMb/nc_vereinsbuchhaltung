@@ -509,7 +509,7 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
    immer auf td.num innerhalb einer .vbh-table). */
 .vbh-table .num.neg, .vbh-table .num.bad { color: var(--color-error-text); font-weight: 700; }
 
-.vbh-table .num.good { color: var(--color-success-text); font-weight: 700; }
+.vbh-table .num.pos, .vbh-table .num.good { color: var(--color-success-text); font-weight: 700; }
 /* Plan-Eingabefeld fuellt seine Zelle. Hohe Spezifitaet (0,3,1) ist noetig,
    damit die weiter unten definierte Regel `.vbh-num { width:120px }` (bzw. 90px
    mobil) es nicht per Quellreihenfolge ueberschreibt. */

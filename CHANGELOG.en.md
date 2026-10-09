@@ -17,6 +17,12 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+**New:**
+- **Income or expense at a glance:** on the overview, under "All entries" and
+  under "To assign", the amount now carries a sign and a colour: income green
+  with a plus, expenses red with a minus, transfers neutral. Split bookings
+  with a single cash account get the direction as well.
+
 ## [0.34.4] – 2026-09-29
 
 **Fixed:**

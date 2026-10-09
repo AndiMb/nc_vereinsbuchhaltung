@@ -8,7 +8,7 @@
 		@keyup.enter="tappable && $emit('open')">
 		<div class="vbh-mcard-top">
 			<span class="vbh-mcard-meta">#{{ row.entryNo }} · {{ formatDate(row.date) }}</span>
-			<span class="vbh-mcard-amount" :class="flowClass">{{ amountLabel }}</span>
+			<span class="vbh-mcard-amount" :class="amountClass" :title="amountTitle">{{ amountLabel }}</span>
 		</div>
 		<div class="vbh-mcard-title">
 			{{ row.description || t('(ohne Beschreibung)') }}
@@ -35,7 +35,8 @@
 <script>
 import { mdiPaperclip } from '@mdi/js'
 import { NcIconSvgWrapper } from '@nextcloud/vue'
-import { formatDate, formatMoney } from '../lib/format.js'
+import { flowClass, flowLabel, formatFlowMoney } from '../lib/flow.js'
+import { formatDate } from '../lib/format.js'
 
 /**
  * Mobile Kartendarstellung eines Buchungssatzes (journalRows-Zeile):
@@ -61,14 +62,16 @@ export default {
 	},
 
 	computed: {
-		flowClass() {
-			return this.flow === 'in' ? 'pos' : this.flow === 'out' ? 'neg' : ''
+		amountClass() {
+			return flowClass(this.flow)
+		},
+
+		amountTitle() {
+			return flowLabel(this.flow)
 		},
 
 		amountLabel() {
-			if (this.flow === 'in') { return '+' + formatMoney(this.row.amount) }
-			if (this.flow === 'out') { return formatMoney(-this.row.amount) }
-			return formatMoney(this.row.amount)
+			return formatFlowMoney(this.row.amount, this.flow)
 		},
 	},
 

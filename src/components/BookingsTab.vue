@@ -137,8 +137,8 @@
 								<td class="vbh-col-hide-sm">
 									{{ r.haben }}
 								</td>
-								<td class="num strong">
-									{{ formatMoney(r.amount) }}
+								<td class="num strong" :class="flowClass(rowFlow(r))" :title="flowLabel(rowFlow(r))">
+									{{ formatFlowMoney(r.amount, rowFlow(r)) }}
 								</td>
 								<td class="nowrap right">
 									<div class="vbh-actions">
@@ -216,7 +216,7 @@
 						:class="tx.status === 'assigned' ? '' : 'open'">
 						<div class="vbh-mcard-top">
 							<span class="vbh-mcard-meta">{{ formatDate(tx.bookingDate) }}</span>
-							<span class="vbh-mcard-amount" :class="tx.amount < 0 ? 'neg' : 'pos'">{{ formatMoney(tx.amount) }}</span>
+							<span class="vbh-mcard-amount" :class="flowClass(transactionFlow(tx))" :title="flowLabel(transactionFlow(tx))">{{ formatFlowMoney(tx.amount, transactionFlow(tx)) }}</span>
 							<NcButton
 								v-if="canWrite && tx.status === 'unassigned' && !isDateClosed(tx.bookingDate)"
 								variant="tertiary"
@@ -304,8 +304,8 @@
 								<td class="vbh-purpose vbh-col-hide-sm" :title="tx.purpose">
 									<span class="vbh-clamp">{{ tx.purpose }}</span>
 								</td>
-								<td class="num" :class="amountClass(tx.amount)">
-									{{ formatMoney(tx.amount) }}
+								<td class="num" :class="flowClass(transactionFlow(tx))" :title="flowLabel(transactionFlow(tx))">
+									{{ formatFlowMoney(tx.amount, transactionFlow(tx)) }}
 								</td>
 								<td class="vbh-assign-cell">
 									<!-- Aufgeteilter Umsatz: das Auswahlfeld fasst nur ein Konto
@@ -502,7 +502,8 @@ import { useJournal } from '../composables/useJournal.js'
 import { useOpenItems } from '../composables/useOpenItems.js'
 import { usePeriods } from '../composables/usePeriods.js'
 import { useSort } from '../composables/useSort.js'
-import { amountClass, errMsg, formatDate, formatMoney } from '../lib/format.js'
+import { bookingFlow, flowClass, flowLabel, formatFlowMoney, transactionFlow } from '../lib/flow.js'
+import { errMsg, formatDate, formatMoney } from '../lib/format.js'
 
 export default {
 	name: 'BookingsTab',
@@ -727,7 +728,10 @@ export default {
 	methods: {
 		formatMoney,
 		formatDate,
-		amountClass,
+		flowClass,
+		flowLabel,
+		formatFlowMoney,
+		transactionFlow,
 		/**
 		 * Zugeordnet, aber ohne einzelnes Gegenkonto = der Umsatz wurde auf
 		 * mehrere verteilt. contra_account_id bleibt dann leer, siehe
@@ -790,15 +794,9 @@ export default {
 			return String(label || '').toLowerCase().includes(s)
 		},
 
+		/** Geldrichtung der Journalzeile für Vorzeichen, Farbe und Tooltip, siehe lib/flow.js. */
 		rowFlow(r) {
-			if (r.isSplit) { return '' }
-			const d = this.accountsById[r.debitAccountId]
-			const c = this.accountsById[r.creditAccountId]
-			const dIn = !!(d && d.isBank)
-			const cOut = !!(c && c.isBank)
-			if (dIn && !cOut) { return 'in' }
-			if (cOut && !dIn) { return 'out' }
-			return ''
+			return bookingFlow(r, this.accountsById)
 		},
 	},
 }
