@@ -87,9 +87,11 @@ class DebitBatchTaskService {
 			$sumCents = array_sum(array_map(static fn (OpenItem $i): int => $i->getAmountCents(), $items));
 			$tasks[] = [
 				'severity' => Task::SEVERITY_ACTION_REQUIRED,
-				'message' => $this->l10n->t(
-					'Freigabe fällig: Lauf am %1$s (%2$d Forderung(en), %3$s €) ist noch nicht freigegeben.',
-					[$dueDate, count($items), number_format($sumCents / 100, 2, ',', '.')],
+				'message' => $this->l10n->n(
+					'Freigabe fällig: Lauf am %s (%n Forderung, %s €) ist noch nicht freigegeben.',
+					'Freigabe fällig: Lauf am %s (%n Forderungen, %s €) ist noch nicht freigegeben.',
+					count($items),
+					[GermanDate::format((string)$dueDate), number_format($sumCents / 100, 2, ',', '.')],
 				),
 				'objectType' => null,
 				'objectId' => null,
@@ -108,7 +110,7 @@ class DebitBatchTaskService {
 			}
 			$tasks[] = [
 				'severity' => Task::SEVERITY_ACTION_REQUIRED,
-				'message' => $this->l10n->t('Einreichung überfällig: Lauf vom %s ist freigegeben, aber noch nicht bei der Bank eingereicht.', [$batch->getDueDate()]),
+				'message' => $this->l10n->t('Einreichung überfällig: Lauf vom %s ist freigegeben, aber noch nicht bei der Bank eingereicht.', [GermanDate::format($batch->getDueDate())]),
 				'objectType' => 'debit_batch',
 				'objectId' => (int)$batch->getId(),
 			];

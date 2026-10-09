@@ -1,5 +1,9 @@
 <template>
-	<NcPopover popupRole="dialog" placement="bottom">
+	<NcPopover
+		:shown="open"
+		popupRole="dialog"
+		placement="bottom"
+		@update:shown="open = $event">
 		<template #trigger>
 			<NcButton
 				class="vbh-infohint"
@@ -41,7 +45,38 @@ export default {
 	},
 
 	data() {
-		return { mdiInformationOutline }
+		return { mdiInformationOutline, open: false }
+	},
+
+	watch: {
+		// Das Popover schließt auf Escape nur, wenn der Fokus darin liegt (floating-vue
+		// hört auf keyup am Popover). Nach einem Klick auf das Symbol sitzt er noch am
+		// Knopf, und beim Scrollen bliebe die Erklärung ohne ihr Symbol im Bild stehen –
+		// deshalb schließt beides hier, solange sie offen ist (wie im Aufgaben-Flyout).
+		open: {
+			handler(open) {
+				const method = open ? 'addEventListener' : 'removeEventListener'
+				document[method]('keydown', this.onKeydown)
+				document[method]('scroll', this.close, true)
+			},
+
+			flush: 'sync',
+		},
+	},
+
+	beforeUnmount() {
+		document.removeEventListener('keydown', this.onKeydown)
+		document.removeEventListener('scroll', this.close, true)
+	},
+
+	methods: {
+		onKeydown(event) {
+			if (event.key === 'Escape') { this.open = false }
+		},
+
+		close() {
+			this.open = false
+		},
 	},
 }
 </script>

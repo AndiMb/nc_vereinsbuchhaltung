@@ -268,8 +268,10 @@ class ContributionCycleTaskServiceTest extends TestCase {
 
 		$runTasks = array_values(array_filter($tasks, fn ($t) => str_contains($t['message'], 'Nächster Lauf')));
 		$this->assertCount(1, $runTasks);
-		$this->assertStringContainsString('2026-01-15', $runTasks[0]['message']);
+		// Datum in der Schreibweise des Vereins, nicht als ISO-String.
+		$this->assertStringContainsString('15.01.2026', $runTasks[0]['message']);
 		$this->assertStringContainsString('30,00', $runTasks[0]['message']);
+		$this->assertStringContainsString('2 Forderungen', $runTasks[0]['message']);
 	}
 
 	// --- Störfälle zu einem Termin (Geisterkarte, Issue #102) ----------------------------

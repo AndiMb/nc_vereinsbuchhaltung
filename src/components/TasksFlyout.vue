@@ -480,6 +480,21 @@ export default {
 	font-weight: 600;
 }
 
+.vbh-tasks-summary-row::after {
+	content: '';
+	width: 6px;
+	height: 6px;
+	margin-top: 4px;
+	border-inline-end: 2px solid currentcolor;
+	border-block-end: 2px solid currentcolor;
+	transform: rotate(45deg);
+	transition: transform 0.15s;
+}
+
+.vbh-tasks-details[open] .vbh-tasks-summary-row::after {
+	transform: rotate(-135deg);
+}
+
 .vbh-tasks-summary-row .vbh-tasks-message {
 	margin: 4px 0 0;
 }

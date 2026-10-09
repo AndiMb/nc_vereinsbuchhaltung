@@ -105,7 +105,7 @@ class ContributionCycleTaskService {
 	 *   Termin fällig und nicht dabei ist. (Überweiser-Zuweisungen bleiben
 	 *   bewusst außen vor: „nie Störfall", Spec §3.5.)
 	 *
-	 * @return list<array{severity:string,message:string,objectType:?string,objectId:?int}>
+	 * @return list<array{severity:string,message:string,objectType:?string,objectId:?int,kind?:string}>
 	 */
 	public function findRunIssues(string $dueDate, ?string $today = null): array {
 		$today ??= $this->today();
@@ -164,7 +164,7 @@ class ContributionCycleTaskService {
 			$name = $this->members->displayNameOr($item->getMemberId(), $this->l10n->t('unbekanntes Mitglied'));
 			$tasks[] = [
 				'severity' => Task::SEVERITY_ACTION_REQUIRED,
-				'message' => $this->l10n->t('Vorabinfo für %1$s (%2$s, fällig %3$s) konnte nicht rechtzeitig verschickt werden.', [$name, (string)$item->getDescription(), (string)$item->getDueDate()]),
+				'message' => $this->l10n->t('Vorabinfo für %1$s (%2$s, fällig %3$s) konnte nicht rechtzeitig verschickt werden.', [$name, (string)$item->getDescription(), GermanDate::format($item->getDueDate())]),
 				'objectType' => 'claim',
 				'objectId' => (int)$item->getId(),
 				// Gleichartige Meldungen fasst die Oberfläche zu einer Zeile zusammen (src/lib/tasks.js).
@@ -262,7 +262,12 @@ class ContributionCycleTaskService {
 
 		return [[
 			'severity' => Task::SEVERITY_HINT,
-			'message' => $this->l10n->t('Nächster Lauf am %1$s – %2$d Forderung(en), %3$s €, %4$d Störfall/Störfälle.', [$nextDue, count($sameRun), number_format($sum / 100, 2, ',', '.'), $problemCount]),
+			'message' => $this->l10n->n(
+				'Nächster Lauf am %s: %n Forderung, %s €',
+				'Nächster Lauf am %s: %n Forderungen, %s €',
+				count($sameRun),
+				[GermanDate::format($nextDue), number_format($sum / 100, 2, ',', '.')],
+			) . ($problemCount > 0 ? $this->l10n->n(' – %n Störfall', ' – %n Störfälle', $problemCount) : ''),
 			'objectType' => null,
 			'objectId' => null,
 		]];

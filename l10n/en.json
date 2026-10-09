@@ -2320,7 +2320,6 @@
             "%n overdue bank-transfer claim, %s € in total.",
             "%n overdue bank-transfer claims, %s € in total."
         ],
-        "Nächster Lauf am %1$s – %2$d Forderung(en), %3$s €, %4$d Störfall/Störfälle.": "Next run on %1$s – %2$d claim(s), %3$s €, %4$d exception(s).",
         "Eine Erhöhung der Untergrenze läuft über die eigene Vorschau-Funktion, nicht über das normale Speichern.": "Raising the lower limit goes through its own preview function, not through normal saving.",
         "Diese Beitragsgruppe hat noch Zuweisungen und kann nicht gelöscht werden. Stattdessen deaktivieren.": "This contribution group still has assignments and cannot be deleted. Deactivate it instead.",
         "Das ist keine Erhöhung der bisherigen Untergrenze.": "This is not an increase of the current lower limit.",
@@ -2351,7 +2350,6 @@
         "Nur ein freigegebener, noch nicht eingereichter Lauf lässt sich verwerfen.": "Only a released run that has not yet been submitted can be discarded.",
         "Nur ein freigegebener, noch nicht eingereichter Lauf lässt sich terminlich verschieben.": "Only a released run that has not yet been submitted can be rescheduled.",
         "Der Termin lässt sich nur nach hinten verschieben.": "The date can only be moved back.",
-        "Freigabe fällig: Lauf am %1$s (%2$d Forderung(en), %3$s €) ist noch nicht freigegeben.": "Release due: the run on %1$s (%2$d claim(s), %3$s €) has not been released yet.",
         "Einreichung überfällig: Lauf vom %s ist freigegeben, aber noch nicht bei der Bank eingereicht.": "Submission overdue: the run of %s is released but not yet submitted to the bank.",
         "Für die XML-Ablage ist noch kein Nextcloud-Nutzer eingerichtet (Einstellungen → Belegablage).": "No Nextcloud user has been set up for XML storage yet (Settings → Receipt storage).",
         "Das Beitragsjahr muss zwischen 2000 und 2200 liegen.": "The contribution year must be between 2000 and 2200.",
@@ -2616,7 +2614,19 @@
         "Laden Sie die Datei bei Ihrer Bank hoch und bestätigen Sie danach „Datei ist bei der Bank eingereicht“. Sonst meldet die Aufgabenliste „Freigabe fällig“.": "Upload the file to your bank and then confirm “File has been submitted to the bank”. Otherwise the task list reports “Release due”.",
         "Die Bank belastet frühestens an diesem Tag die Konten der Mitglieder; eine Verschiebung auf einen Geschäftstag rechnet die Bank.": "The bank debits the members’ accounts on this day at the earliest; the bank handles a shift to a business day.",
         "Danach importieren Sie den Kontoauszug: Der Bankabgleich schlägt Zahlungen und Rücklastschriften zur Bestätigung vor.": "Afterwards you import the bank statement: the bank reconciliation proposes payments and returned direct debits for your confirmation.",
-        "Vorabinfo nicht rechtzeitig verschickt": "Pre-notification not sent in time"
+        "Vorabinfo nicht rechtzeitig verschickt": "Pre-notification not sent in time",
+        "_Nächster Lauf am %s: %n Forderung, %s €_::_Nächster Lauf am %s: %n Forderungen, %s €_": [
+            "Next run on %s: %n claim, %s €",
+            "Next run on %s: %n claims, %s €"
+        ],
+        "_ – %n Störfall_::_ – %n Störfälle_": [
+            " – %n exception",
+            " – %n exceptions"
+        ],
+        "_Freigabe fällig: Lauf am %s (%n Forderung, %s €) ist noch nicht freigegeben._::_Freigabe fällig: Lauf am %s (%n Forderungen, %s €) ist noch nicht freigegeben._": [
+            "Release due: the run on %s (%n claim, %s €) has not been released yet.",
+            "Release due: the run on %s (%n claims, %s €) has not been released yet."
+        ]
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

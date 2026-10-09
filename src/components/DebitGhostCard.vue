@@ -351,6 +351,21 @@ export default {
 	cursor: pointer;
 }
 
+.vbh-ghost-issuegroup summary::after {
+	content: '';
+	align-self: center;
+	width: 6px;
+	height: 6px;
+	border-inline-end: 2px solid currentcolor;
+	border-block-end: 2px solid currentcolor;
+	transform: rotate(45deg);
+	transition: transform 0.15s;
+}
+
+.vbh-ghost-issuegroup details[open] summary::after {
+	transform: rotate(-135deg);
+}
+
 .vbh-ghost-issuegroup-title {
 	font-weight: 600;
 }
