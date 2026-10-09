@@ -281,7 +281,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 3. Schließe den Dialog mit „Verstanden“.
 
 **Erwartet:**
-- Der Dialog trägt die Überschrift „Was ist neu?“ und einen Block „Version 0.35.0“ mit **genau 5 Stichpunkten** zu: (1) Beiträge und SEPA neu aufgebaut, (2) Einzug in zwei Schritten mit Bankabgleich, (3) Rücklastschriften mit Grund in Klartext und GiroCode, (4) Klemmbrett in der Kopfzeile, (5) „Mein Beitrag“ für Mitglieder.
+- Der Dialog trägt die Überschrift „Was ist neu?“ und einen Block „Version 0.35.0“ mit **genau 5 Einzeilern** zu: (1) Beiträge und SEPA sind neu, (2) das bisherige Modul ist ersetzt (seine Mandate und Beiträge wurden nicht übernommen), (3) Einzug in zwei Schritten, (4) Bankabgleich schlägt Buchungen vor und Rücklastschriften mit Mahnstufen, (5) „Mein Beitrag“ für Mitglieder und Aufgaben-Klemmbrett.
 - Über den Hilfe-Link zeigt der Dialog zusätzlich ältere Versionen (z. B. 0.34.0).
 - Nach „Verstanden“ kommt der Dialog beim Neuladen nicht wieder.
 - Die Texte sind verständlich, in Sie-Form und nicht zu lang (deine Einschätzung).
