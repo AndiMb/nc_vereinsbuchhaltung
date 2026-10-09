@@ -5,9 +5,9 @@ Ergebnis eines Durchgangs durch alle 172 Schritte von `testprotokoll.md` auf der
 | Ergebnis | Schritte | Bedeutung |
 |---|---|---|
 | ✅ OK | 98 | im Browser oder per Schnittstelle live geprüft, wie beschrieben |
-| 🔧 Korrigiert | 14 | Abweichung oder Schönheitsfehler gefunden und im selben Durchgang behoben |
+| 🔧 Korrigiert | 15 | Abweichung oder Schönheitsfehler gefunden und im selben Durchgang behoben |
 | 🧪 Nur E2E | 9 | nicht live nachgespielt; die E2E-Suite der CI deckt den Ablauf ab |
-| ⛔ Nicht prüfbar | 40 | braucht eine fremde Anmeldung (Mitglied, Buchhalter, Revisor), ein Gerät oder mehrere Tage |
+| ⛔ Nicht prüfbar | 39 | braucht eine fremde Anmeldung (Mitglied, Buchhalter, Revisor), ein Gerät oder mehrere Tage |
 | 🚫 Nicht ausgeführt | 11 | nicht ausgeführt, weil unumkehrbar, zerstörerisch für die Buchhaltung dieser Instanz oder nicht freigegeben |
 
 **Grenzen dieses Durchgangs:** Ich darf keine Passwörter eingeben, deshalb gab es keine Anmeldung als alice, bob, jane, john oder user1. Alle Schritte aus Sicht dieser Konten (Phasen 11 und 13, Teile von 14) sind als „nicht prüfbar“ markiert; ihre Abläufe laufen in den E2E-Specs der CI, und für Lücken sind neue Specs entstanden (54 bis 57). Die Anonymisierung (Phase 12) braucht den Seeder mit der 2014-Buchung, den die Sitzung nicht freigegeben hat; „Alle Daten löschen“ (Phase 17) räumt die Buchhaltung dieser Instanz ab und wurde nicht ausgeführt. Fenstergröße und Smartphone-Scan waren im Browser nicht einstellbar (Phase 15, 9.4).
@@ -133,7 +133,7 @@ Ergebnis eines Durchgangs durch alle 172 Schritte von `testprotokoll.md` auf der
 | 7.12 | Drift-Warnung: Mandatsdaten ändern sich nach der Freigabe | 🔧 Korrigiert | Drift-Warnung nach IBAN-Änderung sichtbar; Hinweise zu einem Kasten zusammengelegt (vorher vier Kästen) |
 | 7.13 | Neu freigeben (neue EndToEndIds) | 🔧 Korrigiert | Verwerfen und neu freigeben ok; ein verschobener, verworfener Lauf blieb als leerer Termin auf dem Zeitstrahl – behoben |
 | 7.14 | „Datei ist bei der Bank eingereicht“ (Schritt 2 von 2) | ✅ OK | Einreichung bestätigt; Lauf „eingereicht“, kein Storno mehr |
-| 7.15 | XML-Ablage im Nextcloud-Ordner (falls in 2.7 eingeschaltet) | ⛔ Nicht prüfbar | XML-Ablage im Nextcloud-Ordner nicht eingeschaltet (schreibt IBANs in einen Ordner) |
+| 7.15 | XML-Ablage im Nextcloud-Ordner (falls in 2.7 eingeschaltet) | ✅ OK | Ablage eingeschaltet; nach „Eingereicht“ liegt die XML-Kopie im Ordner `SEPA-Einreichungen` des Kontos admin |
 | 7.16 | Nachzügler: eine neue Forderung bekommt keinen vergangenen Termin | ⛔ Nicht prüfbar | Nachzügler-Regel durch PHPUnit und E2E-Spec 28 abgedeckt, nicht live nachgestellt |
 | 7.17 | Sperrfenster: Betrag ändern wird nach der Vorabinfo abgelehnt | ⛔ Nicht prüfbar | Sperrfenster verlangt die Sicht von jane; E2E-Spec 32/46 |
 | 7.18 | Vorlaufzeiten auf den Standard zurückstellen (optional) | ✅ OK | Vorlaufzeiten nicht verändert (35/30 Tage) |
@@ -160,7 +160,7 @@ Ergebnis eines Durchgangs durch alle 172 Schritte von `testprotokoll.md` auf der
 | 9.1 | Rückgabegrund in Klartext an den Forderungen | 🔧 Korrigiert | Rückgabe-Detail mit Code AM04 und Hinweisen; Grund stand doppelt und Fakten wiederholten die Zeile – bereinigt |
 | 9.2 | Mandatssperre nach AC04 verstehen | ✅ OK | Sophie Krügers Mandat gesperrt (Rücklastschrift), Aufgabe im Klemmbrett |
 | 9.3 | Zahlungsaufforderung nach der Rücklastschrift (Mailhog) | ✅ OK | Zahlungsaufforderungen an Fuchs und Krüger mit Grundsatz je Position; Daten jetzt TT.MM.JJJJ |
-| 9.4 | GiroCode mit der Banking-App prüfen | ⛔ Nicht prüfbar | GiroCode-PNG je Position hängt an der Mail (girocode-237/245); Scannen mit Banking-App braucht ein Smartphone |
+| 9.4 | GiroCode mit der Banking-App prüfen | ⛔ Nicht prüfbar | GiroCode-PNG je Position hängt an der Mail und wurde angesehen (Empfänger, IBAN, Betrag, Zweck lesbar); das Scannen mit einer Banking-App braucht ein Smartphone |
 | 9.5 | Gebühren-Forderungen nach Rücklastschrift | ✅ OK | Gebühren-Forderungen 3,50 € und 4,00 € durch die Weiterbelastung (Buchung im Dialog gezeigt) |
 | 9.6 | Mahnstand und „Je Mitglied“ | ✅ OK | Mahnstand „Zahlungsaufforderung versandt am 09.10.2026“, Reihe bis „An Vorstand eskaliert“, Mahnabstand 14 Tage |
 | 9.7 | Zahlungsaufforderung für Überweiser | ✅ OK | Tobias Brandt und Lena Bergmann (englisch) erhielten die Zahlungsaufforderung vor der Fälligkeit/bei Überfälligkeit |
@@ -175,7 +175,7 @@ Ergebnis eines Durchgangs durch alle 172 Schritte von `testprotokoll.md` auf der
 
 | Schritt | Titel | Ergebnis | Notiz |
 |---|---|---|---|
-| 10.1 | Offene Posten öffnen | ✅ OK | Hinweis „Forderungen an Mitglieder … sehen Sie hier nur“ |
+| 10.1 | Offene Posten öffnen | 🔧 Korrigiert | Hinweis „Forderungen an Mitglieder … sehen Sie hier nur“ ist da. Gefunden beim Gegenlesen: der rote Badge „3“ am Reiter zählt nur überfällige Posten, die Liste unter „Offen“ zeigte 16 – das wirkte wie ein Fehler. Jetzt nennen die Filter ihre Anzahl (Offen 16, Überfällig 3, Bezahlt 13 …), „Überfällig“ zeigt genau die Badge-Posten, der Badge erklärt sich per Tooltip; zudem schnitt die Tabelle Fälligkeit und „Im Einzug bearbeiten“ ab (feste Spaltenbreiten); E2E-Spec 12 |
 | 10.2 | Keine Schreibaktionen an Forderungen | 🧪 Nur E2E | Schreibaktionen an Forderungen im generischen Weg: E2E-Spec 50 |
 | 10.3 | Sprung in den Einzug | 🧪 Nur E2E | Sprung in den Einzug: E2E-Spec 50 |
 | 10.4 | Freie Posten bleiben bedienbar | ✅ OK | Formular „Neuer offener Posten“ bleibt bedienbar |
