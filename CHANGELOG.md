@@ -25,6 +25,11 @@ verwenden, z. B. `**Neu:**`.
   zeigen alle Buchungen auf Konten dieser Kategorie. Bisher waren die
   Überschriften reine Trenner.
 
+**Geändert:**
+- **Kassenbericht blendet Sphären ohne Bewegung aus:** Die Sphärenübersicht
+  zeigt nur noch Sphären mit Einnahmen oder Ausgaben – wie bei Konten ohne
+  Bewegung in der Einnahmen-/Ausgaben-Rechnung.
+
 **Behoben:**
 - **Kontofilter übersah Splitbuchungen:** Der Filter prüfte nur die erste Soll-
   und Haben-Zeile einer Buchung. Jetzt zählt jede Buchungszeile.

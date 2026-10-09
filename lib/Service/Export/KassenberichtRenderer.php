@@ -145,12 +145,7 @@ class KassenberichtRenderer {
 		$report = $this->reportService->sphereReport($userId, $periodId);
 		$h = '<section><h2>' . $this->l10n->t('Sphärenübersicht (steuerlich)') . '</h2><table>';
 		$h .= '<tr><th>' . $this->l10n->t('Sphäre') . '</th><th class="num">' . $this->l10n->t('Einnahmen') . '</th><th class="num">' . $this->l10n->t('Ausgaben') . '</th><th class="num">' . $this->l10n->t('Ergebnis') . '</th></tr>';
-		foreach ($report['spheres'] as $s) {
-			$h .= '<tr><td>' . PrintableReportPage::escape((string)$s['name']) . '</td>'
-				. '<td class="num">' . ReportFormat::money((float)$s['income']) . ' €</td>'
-				. '<td class="num">' . ReportFormat::money((float)$s['expense']) . ' €</td>'
-				. '<td class="num">' . ReportFormat::money((float)$s['result']) . ' €</td></tr>';
-		}
+		$h .= self::sphereRows($report['spheres']);
 		$h .= '</table>';
 
 		$fg = $report['freigrenze'];
@@ -172,6 +167,30 @@ class KassenberichtRenderer {
 		}
 		$h .= '<p class="meta">' . $this->l10n->t('Ersetzt keine steuerliche Beratung.') . '</p>';
 		return $h . '</section>';
+	}
+
+	/**
+	 * Sphärenzeilen. Sphären ohne Einnahmen und ohne Ausgaben bleiben weg –
+	 * wie Konten ohne Bewegung in der Erfolgsrechnung. Der Sphärenbericht
+	 * selbst liefert weiterhin alle Sphären, damit die Oberfläche offene
+	 * Zuordnungen zeigen kann; im gedruckten Bericht wären Nullzeilen nur Länge.
+	 *
+	 * @param array<int, array<string, mixed>> $spheres aus ReportService::sphereReport()
+	 */
+	public static function sphereRows(array $spheres): string {
+		$h = '';
+		foreach ($spheres as $s) {
+			$income = (float)$s['income'];
+			$expense = (float)$s['expense'];
+			if ($income === 0.0 && $expense === 0.0) {
+				continue;
+			}
+			$h .= '<tr><td>' . PrintableReportPage::escape((string)$s['name']) . '</td>'
+				. '<td class="num">' . ReportFormat::money($income) . ' €</td>'
+				. '<td class="num">' . ReportFormat::money($expense) . ' €</td>'
+				. '<td class="num">' . ReportFormat::money((float)$s['result']) . ' €</td></tr>';
+		}
+		return $h;
 	}
 
 	/** @param array<string, mixed> $soll aus LedgerAggregator::planActual() */
