@@ -120,6 +120,9 @@ verwenden, z. B. `**Neu:**`.
   Freigabe-Vorlauf stehen zusammen in den Nextcloud-Einstellungen (Beiträge &
   SEPA); eine Beispielzeile rechnet sie auf einen Einzugstermin um. Der
   Terminplan im Einzug zeigt sie nur noch an.
+- **Beitrag ändern für die Kassenführung:** Betrag und Turnus einer Zuweisung
+  lassen sich jetzt in der Verwaltung ändern (beliebig über der Untergrenze),
+  mit Vorschau „Wirkt ab …“; vorher konnte nur das Mitglied selbst ändern.
 - **Beitragsfrei und Pausen:** Ein Monatsbeitrag von 0 € ist möglich (Untergrenze
   der Gruppe 0): Es entstehen keine Forderungen, nichts wird eingezogen, kein
   Mandat nötig; die Mitgliederliste zeigt „beitragsfrei“. Eine Gruppe „Ruhend“

@@ -1439,8 +1439,13 @@ Was ein Mitglied zahlt, steht in einer **Zuweisung** zu einer
   Betrag je Periode ergibt sich aus Monatsbeitrag × Turnus (10 € im Monat bei
   einem Turnus von 3 Monaten heißen 30 € je Quartal). **„Vorschau"** nennt vor
   dem Anlegen die erste Periode, den Einzugsbetrag und den voraussichtlichen
-  Einzugstermin. **„Beenden"** beendet eine Zuweisung zum heutigen Tag; bereits
-  erzeugte Forderungen bleiben unverändert.
+  Einzugstermin. **„Beitrag ändern"** (Menü ⋯ an der Zuweisung oder
+  Menü ⋯ des Mitglieds → *Beitrag verwalten*) stellt Monatsbeitrag und Turnus
+  neu ein: beliebig über der Untergrenze, etwa wenn ein Mitglied ausnahmsweise
+  mehr geben möchte. Die Vorschau erscheint von selbst und nennt, ab wann die
+  Änderung gilt – bei einem schon angekündigten Einzug erst danach; gespeichert
+  wird erst, wenn sie zum Stand der Felder passt. **„Beenden"** beendet eine
+  Zuweisung zum heutigen Tag; bereits erzeugte Forderungen bleiben unverändert.
 - **Beitragsfrei und Pausen:** Ein Monatsbeitrag von **0 €** ist erlaubt (die
   Untergrenze der Gruppe muss dafür 0 sein). Für eine solche Zuweisung entstehen
   **keine Forderungen**, es wird nichts eingezogen, und es ist kein Mandat nötig;

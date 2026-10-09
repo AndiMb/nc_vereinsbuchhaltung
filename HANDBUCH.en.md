@@ -1402,7 +1402,12 @@ group** (**"Contributions" tab → Contribution groups**):
   results from monthly fee × interval (€10 a month with an interval of 3
   months means €30 per quarter). **"Preview"** names the first period, the
   collection amount and the expected collection date before you create it.
-  **"End"** (*Beenden*) ends an assignment as of today; claims already
+  **"Change fee"** (*Beitrag ändern*; the ⋯ menu of the assignment or the member's ⋯
+  menu → *Manage fee*) sets the monthly fee and interval anew: any amount above
+  the lower limit, for example when a member wants to give more this once. The
+  preview appears by itself and says from when the change applies – after an
+  already announced collection only from then on; saving is possible only once
+  it matches the fields. **"End"** (*Beenden*) ends an assignment as of today; claims already
   generated remain unchanged.
 - **Fee-free and pauses:** a monthly fee of **€0** is allowed (the group's
   lower limit must be 0 for that). Such an assignment creates **no claims**,
