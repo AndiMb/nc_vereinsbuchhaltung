@@ -1122,6 +1122,7 @@ export default {
 			await this.applyRoute(this.$route)
 			this.routeReady = true
 			this.unwatchRoute = this.$router.afterEach((to) => this.applyRoute(to))
+			this.syncUrlAfterBoot()
 			if (this.isAdmin) {
 				// nicht awaiten, damit die Route/UI nicht auf die Berechtigungen wartet -
 				// aber die SetupChecklist (Punkt "Berechtigungen vergeben") erst zeigen,
@@ -1283,8 +1284,33 @@ export default {
 						if (row) { this.editBooking(row) } else { this.replaceKeepingPeriod(route.path) }
 					}
 				}
-			} else if (this.showBooking) {
+			} else if (this.showBooking && this.routeReady) {
+				// Nur nach dem ersten Abgleich: wer den Dialog geoeffnet hat, bevor die
+				// Start-URL ausgewertet war (Klick waehrend des Ladens), behaelt ihn -
+				// syncUrlAfterBoot() zieht die URL danach nach. Ein Vor/Zurueck ohne
+				// ?booking= schliesst ihn weiterhin.
 				this.closeBooking()
+			}
+		},
+
+		/**
+		 * Zieht die URL nach, wenn sich der Zustand schon vor dem ersten Abgleich
+		 * geaendert hat.
+		 *
+		 * Waehrend des Ladens (routeReady noch false) pusht der Watcher auf
+		 * vbhRouteLocation bewusst nicht - sonst ueberschriebe der Vorgabezustand
+		 * die Deep-Link-URL. Klickt jemand in dieser Zeit schon einen Reiter an oder
+		 * oeffnet den Buchungsdialog, bleibt die URL deshalb auf der Startseite, und
+		 * das Zurueck des Browsers, ein Reload oder ein geteilter Link passten nicht
+		 * zur Ansicht. Verglichen werden nur Pfad (= Reiter/Ansicht) und ?booking=;
+		 * der Zeitraum und andere Parameter hat der Erstabgleich schon aufgeloest.
+		 */
+		syncUrlAfterBoot() {
+			const target = this.$router.resolve(this.vbhRouteLocation)
+			const current = this.$route
+			const bookingOf = (r) => String((r.query && r.query.booking) || '')
+			if (target.path !== current.path || bookingOf(target) !== bookingOf(current)) {
+				this.$router.push(this.vbhRouteLocation)
 			}
 		},
 

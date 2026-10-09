@@ -102,6 +102,32 @@ test.describe('Deep-Linking', () => {
 		await expect(visibleSection(page).locator('.vbh-detail h3', { hasText: BANK_ACCOUNT })).toBeVisible()
 	})
 
+	test('Klick vor dem ersten Abgleich: Reiter und Buchungsdialog bleiben, die URL zieht nach', async ({ page }) => {
+		// Der Erstabgleich der URL (applyRoute) wartet auf die Start-Anfragen. Mit
+		// künstlich verzögerter Konten-Antwort liegt der Klick sicher davor - sonst
+		// hängt es vom Tempo des Servers ab, ob der Test das Fenster trifft. Früher
+		// blieb die URL dann auf der Startseite und der Erstabgleich schloss den
+		// schon geöffneten Dialog wieder.
+		await page.route('**/apps/vereinsbuchhaltung/api/accounts', async (route) => {
+			await new Promise((resolve) => setTimeout(resolve, 2500))
+			await route.continue()
+		})
+		await openApp(page, USERS.verwalter)
+
+		await switchTab(page, 'Buchungen')
+		await page.getByRole('button', { name: 'Buchung', exact: true }).click()
+		await expect(page.getByRole('dialog')).toBeVisible()
+
+		// Nach dem Erstabgleich: der Dialog ist noch offen, und die URL passt zur Ansicht.
+		await expect(page).toHaveURL(/\/bookings\?.*booking=new/, { timeout: 15000 })
+		await expect(page.getByRole('dialog')).toBeVisible()
+
+		// Zurück verlässt den nachgezogenen Eintrag und schließt den Dialog; die
+		// Startseite davor kannte den Reiter nie (der Klick lag vor dem Erstabgleich).
+		await page.goBack()
+		await expect(page.getByRole('dialog')).toBeHidden()
+	})
+
 	test('Browser-Zurück schließt den Buchungsdialog wieder', async ({ page }) => {
 		await openApp(page, USERS.verwalter)
 		await switchTab(page, 'Buchungen')
