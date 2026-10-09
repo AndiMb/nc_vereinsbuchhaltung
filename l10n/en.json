@@ -2074,7 +2074,7 @@
         "Freigabe-Vorlauf (Tage vor Einzug)": "Release lead time (days before collection)",
         "Der Freigabe-Vorlauf (Standard 5 Tage) ist der Puffer, ab dem ein noch nicht freigegebener oder eingereichter Lauf in der Aufgabenliste als „Freigabe fällig\" bzw. „Einreichung überfällig\" auftaucht.": "The release lead time (default 5 days) is the buffer from which a run that has not yet been released or submitted shows up in the task list as “Release due” or “Submission overdue”.",
         "Vorwarnfenster: {warning} Tage vor dem Einzug · Vorabinfo-Vorlauf: {prenotification} Tage vor dem Einzug.": "Early-warning window: {warning} days before collection · pre-notification lead time: {prenotification} days before collection.",
-        "Terminplan, Vorwarnfenster und Vorabinfo-Vorlauf im Regelwerk ändern": "Change schedule, early-warning window and pre-notification lead time in the rules",
+        "Terminplan, Vorwarnfenster und Vorabinfo-Vorlauf im Einzug ändern": "Change schedule, warning window and pre-notification lead time under Collection",
         "Freigabe-Vorlauf": "Release lead time",
         "Mandate": "Mandates",
         "Wie neue Mandatsreferenzen aussehen, wo die Nachweise der Mandate (unterschriebenes Formular, Zustimmung) liegen und wann die App vor dem Verfall eines Mandats warnt.": "What new mandate references look like, where the mandate proofs (signed form, consent) are stored and when the app warns before a mandate lapses.",

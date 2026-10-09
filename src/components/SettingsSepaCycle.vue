@@ -33,7 +33,7 @@
 		<p class="vbh-hint vbh-hint--info">
 			{{ t('Vorwarnfenster: {warning} Tage vor dem Einzug · Vorabinfo-Vorlauf: {prenotification} Tage vor dem Einzug.', { warning: warningLeadDays, prenotification: prenotificationLeadDays }) }}
 			<br>
-			<a class="vbh-settings-link" :href="scheduleUrl">{{ t('Terminplan, Vorwarnfenster und Vorabinfo-Vorlauf im Regelwerk ändern') }}</a>
+			<a class="vbh-settings-link" :href="scheduleUrl">{{ t('Terminplan, Vorwarnfenster und Vorabinfo-Vorlauf im Einzug ändern') }}</a>
 		</p>
 	</div>
 </template>
@@ -55,7 +55,7 @@ import { DAYS_MAX, DAYS_MIN, daysError, monthOptions } from '../lib/sepaSettings
  *
  * Der Terminplan selbst (Einzugstage je Turnus) sowie Vorwarnfenster und
  * Vorabinfo-Vorlauf gehören zur Terminplan-Einstellung aus #70
- * (DueDateScheduleSettings.vue, im Regelwerk der Beiträge) - sie sind dort
+ * (DueDateScheduleSettings.vue, im Reiter Einzug am Zeitstrahl) - sie sind dort
  * schon bedienbar und werden hier bewusst nicht ein zweites Mal gebaut,
  * sondern nur als Übersicht mit Verweis gezeigt.
  */
@@ -75,8 +75,8 @@ export default {
 			months: monthOptions(getLanguage()),
 			daysMin: DAYS_MIN,
 			daysMax: DAYS_MAX,
-			// Regelwerk der Beiträge (ContributionGroupsPanel.vue), dort liegt der Terminplan
-			scheduleUrl: generateUrl('/apps/vereinsbuchhaltung/contributions/groups'),
+			// Der Terminplan liegt im Reiter Einzug (Knopf „Terminplan“ am Zeitstrahl, EinzugPanel.vue)
+			scheduleUrl: generateUrl('/apps/vereinsbuchhaltung/contributions/batch'),
 			draft: {
 				fiscalYearStartMonth: this.settings.fiscalYearStartMonth,
 				releaseLeadDays: this.settings.releaseLeadDays,

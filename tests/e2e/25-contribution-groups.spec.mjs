@@ -3,7 +3,7 @@ import { api, openApp, switchTab, visibleSection, USERS } from './fixtures/nextc
 
 // Beitragsgruppen, Zuweisungen & manuelle Einzelforderungen (Issue #68):
 // Gruppen-CRUD, eine Zuweisung samt Inline-Mitgliedsanlage und Prorata-
-// Vorschau, sowie eine manuelle Einzelforderung mit Erledigungsvermerk.
+// Vorschau. Die manuellen Einzelforderungen stehen im Reiter Einzug (Segment „Forderungen“, Spec 43).
 //
 // Reiter „Beiträge" braucht `membership_enabled` UND mindestens die Rolle
 // Buchhalter (siehe ContributionsTab-Dokblock) - revisor sieht ihn gar
@@ -119,41 +119,6 @@ test.describe('Beitragsgruppen, Zuweisungen & Forderungen', () => {
 		await expect(row).toBeVisible()
 		await expect(row).toContainText(group.name)
 		await expect(row).toContainText('8,00')
-	})
-
-	test('Manuelle Einzelforderung anlegen und als bezahlt markieren', async ({ page, request }) => {
-		const [firstName, lastName] = CLAIM_MEMBER.split(' ')
-		await ensureMember(request, firstName, lastName)
-
-		await openApp(page, USERS.buchhalter)
-		await switchTab(page, 'Beiträge')
-		await visibleSection(page).getByRole('button', { name: 'Beitragsgruppen' }).click()
-
-		await visibleSection(page).getByRole('button', { name: '+ Einzelforderung' }).click()
-		const dialog = page.getByRole('dialog', { name: 'Manuelle Einzelforderung' })
-		await expect(dialog).toBeVisible()
-
-		// Innerhalb eines <label> trägt der NcSelect den Platzhalter nicht als
-		// Attribut (er steht nur als Text im Feld) – deshalb über den Namen des
-		// Comboboxes statt pickNcSelectOption(…, placeholder, …).
-		const memberSelect = dialog.getByRole('combobox', { name: 'Mitglied' })
-		await memberSelect.click()
-		await memberSelect.pressSequentially(firstName, { delay: 20 })
-		await page.locator('li.vs__dropdown-option', { hasText: firstName }).first().waitFor()
-		await memberSelect.press('Enter')
-		await dialog.getByLabel('Betrag (€)').fill('15')
-		await dialog.getByLabel('Bezeichnung').fill('Nachzahlung Sommerfest')
-		await dialog.getByRole('button', { name: 'Anlegen', exact: true }).click()
-		await expect(dialog).toBeHidden()
-
-		const row = visibleSection(page).locator('tr', { hasText: 'Nachzahlung Sommerfest' })
-		await expect(row).toBeVisible()
-		await expect(row).toContainText('15,00')
-		await expect(row).toContainText('offen')
-
-		await row.getByRole('button', { name: 'Als bezahlt markieren' }).click()
-		await expect(row).toContainText('erledigt')
-		await expect(row.getByRole('button', { name: 'Als bezahlt markieren' })).toBeHidden()
 	})
 
 	test('Offene-Posten-Sicht: revisor liest Forderungen ohne Mitglieds-Kontaktdaten', async ({ request }) => {

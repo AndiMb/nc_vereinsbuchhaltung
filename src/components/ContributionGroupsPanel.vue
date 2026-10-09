@@ -35,7 +35,7 @@
 							<td class="num">
 								{{ euro(g.defaultMonthlyAmountCents) }}
 							</td>
-							<td>{{ g.allowedIntervals.join(', ') }}</td>
+							<td>{{ g.allowedIntervals.map(intervalLabel).join(', ') }}</td>
 							<td>
 								<span class="vbh-status" :class="g.isActive ? 'vbh-status--success' : 'vbh-status--muted'">{{ g.isActive ? t('aktiv') : t('inaktiv') }}</span>
 							</td>
@@ -102,9 +102,9 @@
 							<td class="num">
 								{{ euro(a.monthlyAmountCents) }}
 							</td>
-							<td>{{ a.intervalMonths }}</td>
-							<td>{{ a.validFrom }}</td>
-							<td>{{ a.validTo || '–' }}</td>
+							<td>{{ intervalLabel(a.intervalMonths) }}</td>
+							<td>{{ formatDate(a.validFrom) }}</td>
+							<td>{{ a.validTo ? formatDate(a.validTo) : '–' }}</td>
 							<td class="nowrap right">
 								<div v-if="a.active" class="vbh-rowactions">
 									<NcActions :forceMenu="true">
@@ -122,58 +122,6 @@
 				</table>
 			</div>
 		</section>
-
-		<section class="vbh-card">
-			<div class="vbh-cardhead">
-				<h4>{{ t('Einzelforderungen') }}</h4>
-				<NcButton variant="secondary" @click="claimDialogOpen = true">
-					{{ t('+ Einzelforderung') }}
-				</NcButton>
-			</div>
-			<p v-if="claims.length === 0" class="vbh-hint">
-				{{ t('Noch keine manuelle Einzelforderung angelegt.') }}
-			</p>
-			<div v-else class="vbh-tablecard">
-				<table class="vbh-table">
-					<thead>
-						<tr>
-							<th>{{ t('Mitglied') }}</th>
-							<th>{{ t('Bezeichnung') }}</th>
-							<th class="num">
-								{{ t('Betrag') }}
-							</th>
-							<th>{{ t('Termin') }}</th>
-							<th>{{ t('Zustand') }}</th>
-							<th class="vbh-col-memberactions" />
-						</tr>
-					</thead>
-					<tbody>
-						<tr v-for="c in claims" :key="c.id">
-							<td>{{ c.memberDisplayName }}</td>
-							<td>{{ c.description }}</td>
-							<td class="num">
-								{{ euro(c.amountCents) }}
-							</td>
-							<td>{{ c.dueDate }}</td>
-							<td>
-								<span class="vbh-status" :class="claimStatusClass(c.state)">{{ c.state }}</span>
-							</td>
-							<td class="nowrap right">
-								<NcButton
-									v-if="c.state === 'offen'"
-									variant="secondary"
-									size="small"
-									@click="settlePaid(c)">
-									{{ t('Als bezahlt markieren') }}
-								</NcButton>
-							</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
-		</section>
-
-		<DueDateScheduleSettings />
 
 		<ContributionGroupDialog
 			:show="groupDialogOpen"
@@ -195,12 +143,6 @@
 			@close="assignmentDialogOpen = false"
 			@update:show="assignmentDialogOpen = $event"
 			@save="saveAssignment" />
-
-		<ManualClaimDialog
-			:show="claimDialogOpen"
-			@close="claimDialogOpen = false"
-			@update:show="claimDialogOpen = $event"
-			@save="saveClaim" />
 	</div>
 </template>
 
@@ -211,31 +153,30 @@ import { NcActionButton, NcActions, NcButton, NcIconSvgWrapper } from '@nextclou
 import { toRefs } from 'vue'
 import AssignmentDialog from './AssignmentDialog.vue'
 import ContributionGroupDialog from './ContributionGroupDialog.vue'
-import DueDateScheduleSettings from './DueDateScheduleSettings.vue'
-import ManualClaimDialog from './ManualClaimDialog.vue'
 import MinAmountIncreaseDialog from './MinAmountIncreaseDialog.vue'
 import api from '../api.js'
 import { useAssignments } from '../composables/useAssignments.js'
-import { useClaims } from '../composables/useClaims.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useContributionGroups } from '../composables/useContributionGroups.js'
 import { useMembers } from '../composables/useMembers.js'
-import { errMsg } from '../lib/format.js'
+import { errMsg, formatDate } from '../lib/format.js'
+import { intervalLabel } from '../lib/frequency.js'
 
 /**
- * Reiter „Beitragsgruppen" (Issue #68): Gruppen-CRUD, Zuweisungen, manuelle
- * Einzelforderungen. Bewusst eigenständig statt in MembersList.vue
+ * Reiter „Beitragsgruppen" (Issue #68): Gruppen-CRUD und Zuweisungen. Die
+ * manuellen Einzelforderungen und der Terminplan stehen im Reiter Einzug
+ * (Segment „Forderungen“ beziehungsweise Knopf „Terminplan“ am Zeitstrahl),
+ * damit es jede Ansicht nur einmal gibt. Bewusst eigenständig statt in MembersList.vue
  * integriert: die Liste führt Mitglieder, mit Beitrag und Mandat nur zur
  * Ansicht, die Verwaltung der Zuweisungen liegt hier.
  */
 export default {
 	name: 'ContributionGroupsPanel',
-	components: { NcButton, NcActions, NcActionButton, NcIconSvgWrapper, ContributionGroupDialog, MinAmountIncreaseDialog, AssignmentDialog, ManualClaimDialog, DueDateScheduleSettings },
+	components: { NcButton, NcActions, NcActionButton, NcIconSvgWrapper, ContributionGroupDialog, MinAmountIncreaseDialog, AssignmentDialog },
 
 	setup() {
 		const groups = useContributionGroups()
 		const assignments = useAssignments()
-		const claims = useClaims()
 		const members = useMembers()
 		const { askConfirm } = useConfirm()
 		return {
@@ -243,8 +184,6 @@ export default {
 			loadContributionGroups: groups.loadContributionGroups,
 			...toRefs(assignments.state),
 			loadAssignments: assignments.loadAssignments,
-			...toRefs(claims.state),
-			loadClaims: claims.loadClaims,
 			// Ohne den State fehlt memberName() `this.members` – die Zuweisungs-Tabelle
 			// warf beim ersten Rendern einen Vue-Fehler und der ganze Reiter blieb leer.
 			...toRefs(members.state),
@@ -264,22 +203,18 @@ export default {
 			minAmountDialogOpen: false,
 			minAmountGroupId: null,
 			assignmentDialogOpen: false,
-			claimDialogOpen: false,
 		}
 	},
 
 	async mounted() {
-		await Promise.all([this.loadMembers(), this.loadContributionGroups(), this.loadAssignments(), this.loadClaims()])
+		await Promise.all([this.loadMembers(), this.loadContributionGroups(), this.loadAssignments()])
 	},
 
 	methods: {
-		euro(cents) { return (cents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }) },
+		formatDate,
+		intervalLabel,
 
-		/** Statuspunkt einer Einzelforderung: erledigt grün, storniert gedämpft, sonst neutral (das Wort steht daneben). */
-		claimStatusClass(state) {
-			if (state === 'erledigt') { return 'vbh-status--success' }
-			return state === 'storniert' ? 'vbh-status--muted' : ''
-		},
+		euro(cents) { return (cents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }) },
 
 		memberName(memberId) {
 			const m = this.members.find((x) => x.id === memberId)
@@ -361,22 +296,6 @@ export default {
 				await api.endAssignment(a.id, new Date().toISOString().slice(0, 10))
 				await this.loadAssignments()
 			} catch (e) { showError(errMsg(e, this.t('Zuweisung konnte nicht beendet werden'))) }
-		},
-
-		async saveClaim(form) {
-			try {
-				await api.createClaim(form)
-				this.claimDialogOpen = false
-				await this.loadClaims()
-				showSuccess(this.t('Einzelforderung angelegt.'))
-			} catch (e) { showError(errMsg(e, this.t('Einzelforderung konnte nicht angelegt werden'))) }
-		},
-
-		async settlePaid(c) {
-			try {
-				await api.settleClaim(c.id, 'paid')
-				await this.loadClaims()
-			} catch (e) { showError(errMsg(e, this.t('Forderung konnte nicht als bezahlt markiert werden'))) }
 		},
 	},
 }

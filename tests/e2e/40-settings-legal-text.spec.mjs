@@ -95,7 +95,7 @@ test.describe('Einstellungen Beiträge & SEPA', () => {
 		await expect(cycle.getByText(/Vorwarnfenster: 21 Tage/)).toBeVisible()
 		await expect(cycle.getByText(/Vorabinfo-Vorlauf: 14 Tage/)).toBeVisible()
 		await expect(cycle.getByLabel('Vorwarnfenster')).toHaveCount(0)
-		await expect(cycle.getByRole('link', { name: /Terminplan/ })).toHaveAttribute('href', /\/apps\/vereinsbuchhaltung\/contributions\/groups$/)
+		await expect(cycle.getByRole('link', { name: /Terminplan/ })).toHaveAttribute('href', /\/apps\/vereinsbuchhaltung\/contributions\/batch$/)
 	})
 
 	test('Beitragsjahr und Freigabe-Vorlauf ändern, nach Reload noch da', async ({ page, request }) => {

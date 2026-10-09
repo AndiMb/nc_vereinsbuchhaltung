@@ -350,7 +350,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 **Erwartet:**
 - Drei Unterreiter: „Mitglieder“, „Einzug“, „Beitragsgruppen“. Bei „Mitglieder“ stehen oben rechts die Knöpfe „Liste einlesen“ und „Mitglied“.
 - „Einzug“ zeigt die Segmente „Zeitstrahl & Läufe“, „Forderungen“ und „Bankabgleich“.
-- „Beitragsgruppen“ zeigt die Karten „Beitragsgruppen“, „Zuweisungen“, „Einzelforderungen“ und „Terminplan“.
+- „Beitragsgruppen“ zeigt die Karten „Beitragsgruppen“ und „Zuweisungen“. Einzelforderungen legst du unter „Einzug“ → „Forderungen“ an, den Terminplan öffnest du über den Knopf „Terminplan“ am Zeitstrahl (beides gibt es nur dort, nicht doppelt).
 
 ## Phase 2 – Einstellungen
 
@@ -429,7 +429,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 - Beitragsjahr beginnt im Januar, Freigabe-Vorlauf 5 Tage (Standardwerte, der Seeder ändert sie nicht).
 - Für `0` erscheint eine Meldung, die „Freigabe-Vorlauf“ nennt und „zwischen 1 und 365“ verlangt; nichts wird gespeichert.
 - Nach dem Speichern von `5` erscheint „Einstellungen gespeichert.“.
-- Die Info-Zeile lautet „Vorwarnfenster: 35 Tage vor dem Einzug · Vorabinfo-Vorlauf: 30 Tage vor dem Einzug.“ (so setzt sie der Seeder, damit heute die Vorabinfo zum 01.11. fällig ist; die Standardwerte wären 21 und 14) und enthält den Link „Terminplan, Vorwarnfenster und Vorabinfo-Vorlauf im Regelwerk ändern“.
+- Die Info-Zeile lautet „Vorwarnfenster: 35 Tage vor dem Einzug · Vorabinfo-Vorlauf: 30 Tage vor dem Einzug.“ (so setzt sie der Seeder, damit heute die Vorabinfo zum 01.11. fällig ist; die Standardwerte wären 21 und 14) und enthält den Link „Terminplan, Vorwarnfenster und Vorabinfo-Vorlauf im Einzug ändern“.
 
 **Beachte:** Das Ändern des Beitragsjahr-Beginns probierst du in 5.9.
 
@@ -438,8 +438,8 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 **Rolle:** admin (Verwalter)
 
 **Tun:**
-1. Klicke den Link „Terminplan, Vorwarnfenster und Vorabinfo-Vorlauf im Regelwerk ändern“. Er öffnet die App im Reiter „Beiträge“ → „Beitragsgruppen“.
-2. Suche die Karte „Terminplan“ und darin die Felder „Vorwarnfenster (Tage vor Einzug)“ und „Vorabinfo-Vorlauf (Tage vor Einzug)“.
+1. Klicke den Link „Terminplan, Vorwarnfenster und Vorabinfo-Vorlauf im Einzug ändern“. Er öffnet die App im Reiter „Beiträge“ → „Einzug“.
+2. Klicke am Zeitstrahl auf „Terminplan“ und suche darin die Felder „Vorwarnfenster (Tage vor Einzug)“ und „Vorabinfo-Vorlauf (Tage vor Einzug)“.
 
 **Erwartet:**
 - Beide Felder sind für dich als Verwalter bedienbar, der Hinweis „Nur Verwalter können die Vorlaufzeiten ändern.“ fehlt.
@@ -965,9 +965,9 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 1. Öffne **Beiträge** → **Beitragsgruppen** und lies die Karten „Beitragsgruppen“ und „Zuweisungen“.
 
 **Erwartet:**
-- Karte „Beitragsgruppen“: Spalten „Name“, „Untergrenze“, „Standard“, „Turnusse“, „Aktiv“ (ja/nein) mit den Knöpfen „Bearbeiten“, „Untergrenze anheben“ und „Löschen“; oben „+ Beitragsgruppe“. Vier Gruppen (Untergrenze / Standard je Monat): Vollmitglied 12,00 € / 15,00 € (Turnusse 1, 3, 6, 12), Ermäßigt 5,00 € / 7,50 € (1, 3, 12), Jugend 3,00 € / 5,00 € (1, 12), Fördermitglied 4,00 € / 5,00 € (nur 12, also 60,00 € im Jahr). Eine Gruppe „50,00 € im Jahr“ gibt es nicht: Der Monatsbeitrag ist das Atom und lässt sich nicht in ganzen Cent aus 50,00 € ableiten.
+- Karte „Beitragsgruppen“: Spalten „Name“, „Untergrenze“, „Standard“, „Turnusse“ (als Worte: „monatlich, vierteljährlich, jährlich“), „Status“ (aktiv/inaktiv) mit den Knöpfen „Bearbeiten“, „Untergrenze anheben“ und „Löschen“; oben „+ Beitragsgruppe“. Vier Gruppen (Untergrenze / Standard je Monat): Vollmitglied 12,00 € / 15,00 € (Turnusse 1, 3, 6, 12), Ermäßigt 5,00 € / 7,50 € (1, 3, 12), Jugend 3,00 € / 5,00 € (1, 12), Fördermitglied 4,00 € / 5,00 € (nur 12, also 60,00 € im Jahr). Eine Gruppe „50,00 € im Jahr“ gibt es nicht: Der Monatsbeitrag ist das Atom und lässt sich nicht in ganzen Cent aus 50,00 € ableiten.
 - Karte „Zuweisungen“: Spalten „Mitglied“, „Beitragsgruppe“, „Monatsbeitrag“, „Turnus“, „Gültig ab“, „Gültig bis“ und bei aktiven Zuweisungen ein Knopf „Beenden“; oben „+ Zuweisung“.
-- Weiter unten die Karten „Einzelforderungen“ und „Terminplan“.
+- Mehr gibt es auf dieser Seite nicht: Einzelforderungen und Terminplan stehen im Reiter „Einzug“.
 
 ### 5.2 Beitragsgruppe anlegen, ändern und die Untergrenze nur absenken
 
@@ -979,7 +979,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 3. Öffne „Bearbeiten“ noch einmal und lies den Hinweistext zur Untergrenze.
 
 **Erwartet:**
-- Dialog „Neue Beitragsgruppe“, danach „Beitragsgruppe gespeichert.“ und die Zeile mit 5,00 und 8,00 und den Turnussen „1, 3, 12“.
+- Dialog „Neue Beitragsgruppe“, danach „Beitragsgruppe gespeichert.“ und die Zeile mit 5,00 und 8,00 und den Turnussen „monatlich, vierteljährlich, jährlich“.
 - Dialog „Beitragsgruppe bearbeiten“ mit dem Hinweis „Eine Erhöhung der Untergrenze läuft über die eigene Funktion „Untergrenze anheben“ in der Gruppenliste – hier lässt sie sich nur absenken.“
 
 ### 5.3 Zuweisung mit Vorschau: angebrochene Monate zählen voll
@@ -1066,7 +1066,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 **Rolle:** admin (Verwalter)
 
 **Tun:**
-1. Klicke bei „Einzelforderungen“ auf „+ Einzelforderung“.
+1. Öffne **Einzug** → „Forderungen“ und klicke auf „+ Einzelforderung“.
 2. Wähle bei „Mitglied“ `Eva Schröder` (tippe `Eva`), „Typ“ „Beitrag“, „Betrag (€)“ `15`, „Bezeichnung“ `Test A Stundung`, „Einzugstermin“ ein Datum **in 60 bis 90 Tagen**. Klicke „Anlegen“.
 3. Lege auf dieselbe Weise an: `Test B Erlass` und `Test C Storno` (jeweils 15 €, derselbe Termin, Eva Schröder).
 4. Lege bei **Jana Hoffmann** eine Forderung mit „Typ“ „Gebühr“, `20` €, „Bezeichnung“ `Test G Gebühr` und demselben Termin an.
@@ -2376,7 +2376,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 **Tun:**
 1. Öffne **Beiträge** → **Einzug** → „Terminplan“.
 2. Versuche, „Vorwarnfenster (Tage vor Einzug)“ zu ändern. Prüfe die Zeilen mit den Einzugstagen.
-3. Öffne **Beitragsgruppen** und prüfe die Karte „Terminplan“ dort.
+3. Öffne **Beitragsgruppen**: Dort gibt es keinen Terminplan mehr (er steht nur im Einzug).
 
 **Erwartet:**
 - „Vorwarnfenster (Tage vor Einzug)“ und „Vorabinfo-Vorlauf (Tage vor Einzug)“ sind **gesperrt** (die Werte stehen aber da), mit dem Hinweis „Nur Verwalter können die Vorlaufzeiten ändern.“; der „Speichern“-Knopf der Vorlaufzeiten ist gesperrt.
@@ -2690,7 +2690,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 **Rolle:** admin (Verwalter)
 
 **Tun:**
-1. Lege über „+ Einzelforderung“ (Beitragsgruppen) eine Forderung für Eva Schröder an (`Test E Doppelklick`, 5 €, Termin in 80 Tagen) und klicke „Anlegen“ schnell **zweimal**.
+1. Lege über „+ Einzelforderung“ (Einzug → Forderungen) eine Forderung für Eva Schröder an (`Test E Doppelklick`, 5 €, Termin in 80 Tagen) und klicke „Anlegen“ schnell **zweimal**.
 2. Öffne „Mitglied“ und lege `Doppel Klick` mit „Aufnehmen“ an, wieder mit zwei schnellen Klicks.
 3. Prüfe die Listen.
 
