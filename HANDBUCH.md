@@ -1722,7 +1722,8 @@ sie vorzeitig. Eine Stundung (und ein Vermerk) hält einen Einzug nicht auf, der
 schon in einer Datei steht oder bei der Bank liegt – dann warnt die App.
 **„+ Einzelforderung"** legt eine manuelle Forderung an (freier Betrag, eigener
 Einzugstermin, auch ohne Mandat), dieselbe Eingabe wie im Reiter
-*Beitragsgruppen*.
+*Beitragsgruppen*. Sie können **mehrere Mitglieder auf einmal** wählen: für
+jedes entsteht eine eigene Forderung mit denselben Angaben.
 
 ### 13.9 Aufgaben und Hinweise in der Kopfzeile
 

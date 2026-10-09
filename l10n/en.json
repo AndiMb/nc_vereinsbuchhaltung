@@ -2716,6 +2716,17 @@
         "Beitragsgruppe, Betrag und Turnus": "Contribution group, amount and interval",
         "In eine andere Gruppe, mit deren Regeln": "To another group, with its rules",
         "zurückgenommen": "withdrawn",
+        "Mitglieder wählen …": "Choose members …",
+        "Für jedes gewählte Mitglied entsteht eine eigene Forderung mit denselben Angaben.": "One separate claim is created for each selected member, with the same details.",
+        "_Für %n Mitglied anlegen_::_Für %n Mitglieder anlegen_": [
+            "Create for %n member",
+            "Create for %n members"
+        ],
+        "_%n Einzelforderung angelegt._::_%n Einzelforderungen angelegt._": [
+            "%n single claim created.",
+            "%n single claims created."
+        ],
+        "{created} von {total} Einzelforderungen angelegt. Nicht angelegt: {failed}": "{created} of {total} single claims created. Not created: {failed}",
         "Zuweisung zurücknehmen": "Withdraw assignment",
         "Zurücknehmen": "Withdraw",
         "Die Zuweisung hat noch nicht begonnen. Sie wird zurückgenommen und nie wirksam; es entstehen keine Forderungen daraus.": "The assignment has not started yet. It is withdrawn and never takes effect; no claims arise from it."

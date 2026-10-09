@@ -1699,7 +1699,8 @@ deferral"** (*Stundung aufheben*) ends it early. A deferral (and a paid mark)
 does not stop a collection that is already in a file or at the bank – the
 app warns you then. **"+ Single claim"** creates a manual claim (free
 amount, own collection date, also without a mandate), the same input as in
-the *Contribution groups* tab.
+the *Contribution groups* tab. You can pick **several members at once**: each
+gets its own claim with the same details.
 
 ### 13.9 Tasks and notices in the header
 

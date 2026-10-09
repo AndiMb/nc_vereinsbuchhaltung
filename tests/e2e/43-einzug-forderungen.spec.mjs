@@ -345,6 +345,34 @@ test.describe('Einzug-Unterreiter: Segment „Forderungen“', () => {
 		await expect(row.getByText('offen', { exact: true })).toBeVisible()
 	})
 
+	test('Einzelforderung für mehrere Mitglieder auf einmal', async ({ page, request }) => {
+		await ensureMember(request, 'Mehrfach', 'Eins')
+		await ensureMember(request, 'Mehrfach', 'Zwei')
+
+		const panel = await openClaims(page)
+		await panel.getByRole('button', { name: '+ Einzelforderung' }).click()
+		const dialog = page.getByRole('dialog', { name: 'Manuelle Einzelforderung' })
+		await expect(dialog).toBeVisible()
+		const memberSelect = dialog.getByRole('combobox', { name: 'Mitglieder' })
+		for (const name of ['Mehrfach Eins', 'Mehrfach Zwei']) {
+			await memberSelect.click()
+			await memberSelect.pressSequentially(name, { delay: 20 })
+			await page.locator('li.vs__dropdown-option', { hasText: name }).first().waitFor()
+			await memberSelect.press('Enter')
+		}
+		await dialog.getByLabel('Betrag (€)').fill('7')
+		await dialog.getByLabel('Bezeichnung').fill('Sammelforderung Mehrfach')
+		// Der Knopf nennt die Zahl der Mitglieder, für die etwas entsteht.
+		await dialog.getByRole('button', { name: 'Für 2 Mitglieder anlegen', exact: true }).click()
+		await expect(dialog).toBeHidden()
+
+		const rows = panel.locator('tbody tr', { hasText: 'Sammelforderung Mehrfach' })
+		await expect(rows).toHaveCount(2)
+		await expect(rows.filter({ hasText: 'Mehrfach Eins' })).toHaveCount(1)
+		await expect(rows.filter({ hasText: 'Mehrfach Zwei' })).toHaveCount(1)
+		await expect(rows.first()).toContainText(/7,00\s*€/)
+	})
+
 	test('Revisor liest die Forderungen, ohne Aktionen und ohne Akte', async ({ page, request }) => {
 		const member = await ensureMemberWithMandate(request, 'Forderungen', 'Revisor')
 		const claim = await createClaim(request, member.id, plusDays(2), { label: 'Beitrag Revisor' })

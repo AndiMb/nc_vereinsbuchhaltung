@@ -15,14 +15,19 @@
 			</p>
 
 			<div class="vbh-form">
-				<label class="vbh-grow">{{ t('Mitglied') }}
+				<label class="vbh-grow">{{ t('Mitglieder') }}
 					<NcSelect
 						ref="memberSelect"
-						v-model="memberOption"
+						v-model="selectedMembers"
 						:options="memberOptions"
+						:multiple="true"
+						:keepOpen="true"
 						label="label"
-						:placeholder="t('Mitglied wählen …')" />
+						:placeholder="t('Mitglieder wählen …')" />
 				</label>
+				<p class="vbh-hint">
+					{{ t('Für jedes gewählte Mitglied entsteht eine eigene Forderung mit denselben Angaben.') }}
+				</p>
 			</div>
 
 			<div class="vbh-form">
@@ -54,7 +59,7 @@
 					{{ t('Abbrechen') }}
 				</NcButton>
 				<NcButton variant="primary" :disabled="!canSave || saving" @click="save">
-					{{ t('Anlegen') }}
+					{{ form.memberIds.length > 1 ? n('Für %n Mitglied anlegen', 'Für %n Mitglieder anlegen', form.memberIds.length) : t('Anlegen') }}
 				</NcButton>
 			</div>
 		</div>
@@ -69,7 +74,7 @@ import { useMembers } from '../composables/useMembers.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 
 function emptyForm() {
-	return { memberId: null, type: 'beitrag', amount: '', label: '', dueDate: new Date().toISOString().slice(0, 10) }
+	return { memberIds: [], type: 'beitrag', amount: '', label: '', dueDate: new Date().toISOString().slice(0, 10) }
 }
 
 /** Manuelle Einzelforderung (Spec §3.3 „schmale Tür", Issue #68). */
@@ -98,13 +103,13 @@ export default {
 			return this.members.map((m) => ({ id: m.id, label: m.displayName || `#${m.id}` }))
 		},
 
-		memberOption: {
-			get() { return this.memberOptions.find((o) => o.id === this.form.memberId) ?? null },
-			set(v) { this.form.memberId = v ? v.id : null },
+		selectedMembers: {
+			get() { return this.form.memberIds.map((id) => this.memberOptions.find((o) => o.id === id)).filter(Boolean) },
+			set(v) { this.form.memberIds = (v ?? []).map((o) => o.id) },
 		},
 
 		canSave() {
-			return this.form.memberId && this.form.amount !== '' && this.form.label.trim() !== '' && this.form.dueDate
+			return this.form.memberIds.length > 0 && this.form.amount !== '' && this.form.label.trim() !== '' && this.form.dueDate
 		},
 	},
 
@@ -119,7 +124,12 @@ export default {
 
 	methods: {
 		save() {
-			this.$emit('save', { ...this.form })
+			this.$emit('save', { ...this.form, memberIds: [...this.form.memberIds], members: this.selectedMembers })
+		},
+
+		/** Nach einem Teilerfolg bleiben nur die Mitglieder gewählt, für die noch keine Forderung entstanden ist. */
+		keepMembers(ids) {
+			this.form.memberIds = this.form.memberIds.filter((id) => ids.includes(id))
 		},
 	},
 }

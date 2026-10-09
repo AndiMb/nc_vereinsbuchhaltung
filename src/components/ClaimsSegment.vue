@@ -385,6 +385,7 @@
 		<!-- Die vorhandene Erfassung aus den Beitragsgruppen (Issue #68), nicht ein zweites Formular. -->
 		<ManualClaimDialog
 			v-if="canWrite"
+			ref="claimDialog"
 			:show="claimDialogOpen"
 			:saving="claimSaving"
 			@close="claimDialogOpen = false"
@@ -405,6 +406,7 @@ import api from '../api.js'
 import { useClaimOverview } from '../composables/useClaimOverview.js'
 import { useEinzugRequest } from '../composables/useEinzugRequest.js'
 import { useMemberAkteRequest } from '../composables/useMemberAkteRequest.js'
+import { createClaimsForMembers } from '../lib/claimBatch.js'
 import {
 	claimCountText,
 	claimTypeTag,
@@ -613,16 +615,28 @@ export default {
 		},
 
 		async saveClaim(form) {
-			// Ein zweiter Klick, bevor der Server geantwortet hat, darf keine zweite Forderung anlegen.
+			// Ein zweiter Klick vor der Antwort des Servers darf keine zweite Forderung anlegen.
 			if (this.claimSaving) { return }
 			this.claimSaving = true
 			try {
-				await api.createClaim(form)
-				this.claimDialogOpen = false
-				showSuccess(this.t('Einzelforderung angelegt.'))
-				await this.load()
-			} catch (e) {
-				showError(errMsg(e, this.t('Einzelforderung konnte nicht angelegt werden')))
+				const { created, failed } = await createClaimsForMembers(api.createClaim, form, (e) => errMsg(e, ''))
+				if (failed.length === 0) {
+					this.claimDialogOpen = false
+					showSuccess(created.length === 1
+						? this.t('Einzelforderung angelegt.')
+						: this.n('%n Einzelforderung angelegt.', '%n Einzelforderungen angelegt.', created.length))
+				} else if (form.memberIds.length === 1) {
+					showError(failed[0].message || this.t('Einzelforderung konnte nicht angelegt werden'))
+				} else {
+					// Teilerfolg: der Dialog bleibt offen, nur die Fehlgeschlagenen bleiben gewählt – ein
+					// zweiter Versuch legt also nichts doppelt an.
+					const names = Object.fromEntries((form.members ?? []).map((m) => [m.id, m.label]))
+					this.$refs.claimDialog?.keepMembers(failed.map((f) => f.memberId))
+					showError(this.tRaw('{created} von {total} Einzelforderungen angelegt. Nicht angelegt: {failed}', {
+						failed: failed.map((f) => (f.message ? `${names[f.memberId] ?? f.memberId} (${f.message})` : (names[f.memberId] ?? String(f.memberId)))).join('; '),
+					}, { created: created.length, total: form.memberIds.length }))
+				}
+				if (created.length > 0) { await this.load() }
 			} finally {
 				this.claimSaving = false
 			}
