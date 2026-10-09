@@ -17,6 +17,16 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+**New:**
+- **Account filter by category:** In the journal, "Income", "Expenses" and the
+  other category headings can now be picked directly in the account filter and
+  show all entries on accounts of that category. Until now the headings were
+  mere separators.
+
+**Fixed:**
+- **Account filter missed split entries:** The filter only checked the first
+  debit and credit line of an entry. Every line counts now.
+
 ## [0.34.4] – 2026-09-29
 
 **Fixed:**

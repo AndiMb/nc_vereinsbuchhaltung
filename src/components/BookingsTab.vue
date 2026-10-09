@@ -42,12 +42,26 @@
 			<NcSelect
 				v-if="bookingView === 'journal'"
 				v-model="bookingFilterAccountOption"
-				:options="accountOptionsList"
+				:options="accountFilterOptions"
 				:filterBy="accountFilterBy"
+				:selectable="isSelectableOption"
 				label="label"
 				:clearable="true"
 				:placeholder="t('Konto filtern')"
-				class="vbh-filter-select" />
+				class="vbh-filter-select"
+				@search="bookingFilterSearch = $event">
+				<!-- Kategorie-Überschriften sind hier echte Filter („alle Konten der
+				     Kategorie“) und werden deshalb als wählbare Gruppenzeile gezeichnet.
+				     NcEllipsisedOption ist die Standarddarstellung von NcSelect
+				     (Ellipsis + Hervorhebung des Suchbegriffs). -->
+				<template #option="opt">
+					<span v-if="opt.isCategory" class="vbh-select-group">
+						<NcEllipsisedOption :name="opt.label" :search="bookingFilterSearch" />
+						<span class="vbh-select-group-hint">{{ t('(alle)') }}</span>
+					</span>
+					<NcEllipsisedOption v-else :name="opt.label" :search="bookingFilterSearch" />
+				</template>
+			</NcSelect>
 			<label v-if="bookingView === 'journal'" class="vbh-checkinline" :title="t('Nur Buchungen ohne angehängten Beleg zeigen (z. B. vor der Kassenprüfung)')">
 				<input v-model="journalOnlyNoAttachment" type="checkbox">
 				{{ t('nur ohne Beleg') }}
@@ -187,7 +201,7 @@
 						</tbody>
 					</table>
 				</div>
-				<NcEmptyContent v-else-if="bookingSearch || bookingFilterAccountId" :name="t('Keine Treffer')" :description="t('Suchfilter anpassen oder löschen.')" />
+				<NcEmptyContent v-else-if="bookingSearch || bookingFilter" :name="t('Keine Treffer')" :description="t('Suchfilter anpassen oder löschen.')" />
 				<NcEmptyContent v-else :name="t('Noch keine Buchungssätze')" :description="t('Lege mit ‛Neue Buchung\' einen ersten Buchungssatz an.')">
 					<template #action>
 						<NcButton variant="tertiary" @click="$emit('help')">
@@ -490,7 +504,7 @@
 <script>
 import { mdiDelete, mdiDownload, mdiFlash, mdiPaperclip, mdiPencil, mdiUpload } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { NcActionButton, NcActions, NcButton, NcEmptyContent, NcIconSvgWrapper, NcSelect } from '@nextcloud/vue'
+import { NcActionButton, NcActions, NcButton, NcEllipsisedOption, NcEmptyContent, NcIconSvgWrapper, NcSelect } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import AmountInput from './AmountInput.vue'
 import BookingCard from './BookingCard.vue'
@@ -502,11 +516,13 @@ import { useJournal } from '../composables/useJournal.js'
 import { useOpenItems } from '../composables/useOpenItems.js'
 import { usePeriods } from '../composables/usePeriods.js'
 import { useSort } from '../composables/useSort.js'
+import { journalRowMatchesAccountFilter } from '../lib/accountFilter.js'
 import { amountClass, errMsg, formatDate, formatMoney } from '../lib/format.js'
+import { isSelectableOption } from '../lib/selectOptions.js'
 
 export default {
 	name: 'BookingsTab',
-	components: { NcButton, NcActions, NcActionButton, NcSelect, NcEmptyContent, NcIconSvgWrapper, AmountInput, BookingCard, RulesPanel },
+	components: { NcButton, NcActions, NcActionButton, NcSelect, NcEllipsisedOption, NcEmptyContent, NcIconSvgWrapper, AmountInput, BookingCard, RulesPanel },
 	props: {
 		isMobile: { type: Boolean, required: true },
 		bookingView: { type: String, required: true },
@@ -563,7 +579,10 @@ export default {
 			mdiFlash,
 			mdiDelete,
 			bookingSearch: '',
-			bookingFilterAccountId: null,
+			// null | { accountId } | { category }: Kontofilter des Journals, siehe
+			// journalRowMatchesAccountFilter().
+			bookingFilter: null,
+			bookingFilterSearch: '',
 			journalOnlyNoAttachment: false,
 			openItemForm: { debtor: '', description: '', amount: '', dueDate: '', accountId: null },
 			openItemFilter: 'open',
@@ -592,13 +611,32 @@ export default {
 			return buildAccountOptions(this.accountsSorted, this.accountUsageCounts, this.t)
 		},
 
+		// Nur fuer den Journal-Filter: dort sind die Kategorie-Ueberschriften
+		// waehlbar und meinen alle Konten der Kategorie. In den Konto-Pickern
+		// (Zuordnen, Offene Posten) bleiben sie reine Trenner.
+		accountFilterOptions() {
+			return buildAccountOptions(this.accountsSorted, this.accountUsageCounts, this.t, { selectableCategories: true })
+		},
+
 		bookingFilterAccountOption: {
 			get() {
-				if (!this.bookingFilterAccountId) { return null }
-				return this.accountOptionsList.find((o) => o.id === this.bookingFilterAccountId) ?? null
+				const f = this.bookingFilter
+				if (!f) { return null }
+				return this.accountFilterOptions.find((o) => (f.accountId
+					? o.id === f.accountId
+					: o.isCategory && o.category === f.category)) ?? null
 			},
 
-			set(v) { this.bookingFilterAccountId = v ? v.id : null },
+			set(v) {
+				if (v && v.isCategory) {
+					this.bookingFilter = { category: v.category }
+				} else if (v && typeof v.id === 'number') {
+					this.bookingFilter = { accountId: v.id }
+				} else {
+					// Leeren oder eine reine Trenner-Option (id null): kein Filter.
+					this.bookingFilter = null
+				}
+			},
 		},
 
 		sortedJournalRows() { return this.applySort(this.journalRows, this.sort.journal) },
@@ -611,9 +649,8 @@ export default {
 					|| (r.soll || '').toLowerCase().includes(s)
 					|| (r.haben || '').toLowerCase().includes(s))
 			}
-			if (this.bookingFilterAccountId) {
-				rows = rows.filter((r) => r.debitAccountId === this.bookingFilterAccountId
-					|| r.creditAccountId === this.bookingFilterAccountId)
+			if (this.bookingFilter) {
+				rows = rows.filter((r) => journalRowMatchesAccountFilter(r, this.bookingFilter, this.accountsById, this.t))
 			}
 			if (this.journalOnlyNoAttachment) {
 				rows = rows.filter((r) => !this.attachmentCountMap[r.id])
@@ -777,6 +814,8 @@ export default {
 		accountOptionFor(id) {
 			return id ? (this.accountOptionsList.find((o) => o.id === id) ?? null) : null
 		},
+
+		isSelectableOption,
 
 		accountFilterBy(option, label, search) {
 			const s = String(search || '').trim().toLowerCase()
