@@ -161,7 +161,7 @@
 							<NcButton variant="secondary" @click="openAccountDialog('iban')">
 								{{ t('Bankverbindung ändern') }}
 							</NcButton>
-							<NcButton variant="tertiary" @click="openAccountDialog('holder')">
+							<NcButton variant="secondary" @click="openAccountDialog('holder')">
 								{{ t('Kontoinhaber wechseln') }}
 							</NcButton>
 							<NcButton variant="error" @click="revokeOpen = true">
@@ -190,7 +190,9 @@
 					</div>
 				</template>
 
-				<h4>{{ t('Rücklastschriften') }}</h4>
+				<h4 class="vbh-selfservice-subhead">
+					{{ t('Rücklastschriften') }}
+				</h4>
 				<!-- Der Leer-Hinweis nur, wenn die Liste wirklich geladen und leer ist - nie bei einem Ladefehler (Issue #122) -->
 				<ul v-if="returnedDebitRows.length" class="vbh-selfservice-returns">
 					<li v-for="(r, index) in returnedDebitRows" :key="index" class="vbh-selfservice-return">
@@ -220,11 +222,13 @@
 							</option>
 						</select>
 					</label>
-					<a
+					<NcButton
+						variant="secondary"
 						:href="certificateUrl"
 						target="_blank"
-						rel="noopener"
-						class="vbh-export-btn">{{ t('Öffnen') }}</a>
+						rel="noopener">
+						{{ t('Öffnen') }}
+					</NcButton>
 				</div>
 			</div>
 
@@ -234,11 +238,13 @@
 					{{ t('Druckfertige Auskunft nach Art. 15 DSGVO über alle zu Ihrer Mitgliedschaft gespeicherten Daten – kein strukturierter Export nach Art. 20 DSGVO.') }}
 				</p>
 				<div class="vbh-form">
-					<a
+					<NcButton
+						variant="secondary"
 						:href="dataOverviewUrl"
 						target="_blank"
-						rel="noopener"
-						class="vbh-export-btn">{{ t('Datenübersicht öffnen') }}</a>
+						rel="noopener">
+						{{ t('Datenübersicht öffnen') }}
+					</NcButton>
 				</div>
 			</div>
 		</template>
@@ -674,6 +680,17 @@ export default {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
+}
+
+/* Die Knöpfe unter der Datenliste brauchen Luft, und ein zweiter Abschnitt in derselben Karte eine Trennlinie. */
+.vbh-mcard-actions {
+	margin-top: 14px;
+}
+
+.vbh-selfservice-subhead {
+	margin-top: 24px;
+	padding-top: 16px;
+	border-top: 1px solid var(--color-border);
 }
 
 .vbh-selfservice-assignment {
