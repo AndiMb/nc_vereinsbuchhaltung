@@ -1253,6 +1253,14 @@ groups* tab (13.4):
 > you see them all at once. A direct debit cannot be set up without an
 > address: the wizard then sets the payment method to *Bank transfer*.
 
+**Bulk email to the members.** The **"Copy email addresses"** button above the
+list puts the addresses of the members currently shown on the clipboard,
+separated by semicolons – paste them into your email program, best into the
+"Bcc" field so the recipients don't see each other. Members who have left are
+left out, each address appears only once (families often share one), and the
+message says how many members are missing for lack of an address. Use the
+search or *problems only* beforehand to narrow down the recipients.
+
 The **mandate reference** is assigned by the app itself: prefix and running
 number (e.g. `M-17`; the prefix is set in the administration settings under
 "Mandates" (*Mandate*), and in the wizard and in the mandate the reference

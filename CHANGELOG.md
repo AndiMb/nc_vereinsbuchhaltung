@@ -107,6 +107,10 @@ verwenden, z. B. `**Neu:**`.
   Weiterbelastung, Mahnabstand, XML-Ablage und Self-Service (Issue #101).
 
 **Geändert:**
+- **E-Mail-Adressen kopieren:** Ein Knopf über der Mitgliederliste kopiert die
+  Adressen der gezeigten Mitglieder (ohne Ausgetretene, jede einmal) für
+  Sammelmails; im CSV-Import steht die Mandats-Bestätigung jetzt direkt über
+  „Übernehmen“.
 - **Turnus mit Namen:** Beitragsgruppe, Zuweisung und „Mein Beitrag“ nennen
   „monatlich“, „vierteljährlich“ oder „alle 2 Monate“ statt Monatszahlen; die
   erlaubten Turnusse einer Gruppe sind kleine Häkchen in einer Reihe.

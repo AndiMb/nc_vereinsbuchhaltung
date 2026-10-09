@@ -1037,6 +1037,17 @@
         "keine E-Mail": "no email",
         "keine E-Mail – keine Vorankündigung möglich": "no email – no pre-notification possible",
         "nur Auffälligkeiten": "problems only",
+        "E-Mail-Adressen kopieren": "Copy email addresses",
+        "Adressen der angezeigten Mitglieder (ohne ausgetretene), durch Semikolon getrennt – für eine Sammelmail am besten ins Feld „Bcc“ einfügen": "Addresses of the members shown (without those who have left), separated by semicolons – for a bulk mail best pasted into the \"Bcc\" field",
+        "Die Zwischenablage ist nicht erreichbar – die Adressen ließen sich nicht kopieren.": "The clipboard is not available – the addresses could not be copied.",
+        "_%n E-Mail-Adresse kopiert._::_%n E-Mail-Adressen kopiert._": [
+            "%n email address copied.",
+            "%n email addresses copied."
+        ],
+        "_%n Mitglied ohne E-Mail fehlt._::_%n Mitglieder ohne E-Mail fehlen._": [
+            "%n member without email is missing.",
+            "%n members without email are missing."
+        ],
         "nur Beitrag": "fee only",
         "nur Mandat": "mandate only",
         "z. B. Katrin Brunner": "e.g. Katrin Brunner",

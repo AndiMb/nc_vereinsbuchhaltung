@@ -7,6 +7,17 @@
 			<NcCheckboxRadioSwitch v-model="onlyProblems">
 				{{ t('nur Auffälligkeiten') }}
 			</NcCheckboxRadioSwitch>
+			<!-- Für Sammelmails: die Adressen der gerade gezeigten Mitglieder, also auch nur die Treffer der Suche. -->
+			<NcButton
+				variant="secondary"
+				:disabled="!mailList.addresses.length"
+				:title="t('Adressen der angezeigten Mitglieder (ohne ausgetretene), durch Semikolon getrennt – für eine Sammelmail am besten ins Feld „Bcc“ einfügen')"
+				@click="copyEmails">
+				<template #icon>
+					<NcIconSvgWrapper :path="mdiContentCopy" :size="20" />
+				</template>
+				{{ t('E-Mail-Adressen kopieren') }}
+			</NcButton>
 		</div>
 
 		<p v-if="rows.length" class="vbh-hint vbh-membersummary">
@@ -150,9 +161,9 @@
 </template>
 
 <script>
-import { mdiEmailOffOutline } from '@mdi/js'
+import { mdiContentCopy, mdiEmailOffOutline } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import AssignmentChangeDialog from './AssignmentChangeDialog.vue'
 import AssignmentDialog from './AssignmentDialog.vue'
@@ -167,8 +178,10 @@ import { useContributionGroups } from '../composables/useContributionGroups.js'
 import { useMandates } from '../composables/useMandates.js'
 import { useMemberAkteRequest } from '../composables/useMemberAkteRequest.js'
 import { useMembers } from '../composables/useMembers.js'
+import { copyText } from '../lib/clipboard.js'
 import { errMsg, formatDate, formatMoney } from '../lib/format.js'
 import { createMandateForMember } from '../lib/mandateCreate.js'
+import { collectEmails, EMAIL_SEPARATOR } from '../lib/memberEmails.js'
 import { buildMemberRow, isLiveAssignment, nextDueDates } from '../lib/memberRow.js'
 
 /**
@@ -198,7 +211,7 @@ import { buildMemberRow, isLiveAssignment, nextDueDates } from '../lib/memberRow
  */
 export default {
 	name: 'MembersList',
-	components: { NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, AssignmentChangeDialog, AssignmentDialog, MemberDialog, MemberImportDialog, MemberCard, MemberRowMenu },
+	components: { NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, AssignmentChangeDialog, AssignmentDialog, MemberDialog, MemberImportDialog, MemberCard, MemberRowMenu },
 	props: {
 		isMobile: { type: Boolean, default: false },
 		defaultFeeAmount: { type: [Number, String], default: '' },
@@ -246,6 +259,7 @@ export default {
 			assignDialogOpen: false,
 			presetMemberId: null,
 			mdiEmailOffOutline,
+			mdiContentCopy,
 		}
 	},
 
@@ -271,6 +285,11 @@ export default {
 					.filter(Boolean)
 					.some((v) => String(v).toLowerCase().includes(suche))
 			})
+		},
+
+		/** Die Adressen der gezeigten Mitglieder für die Sammelmail (siehe lib/memberEmails.js). */
+		mailList() {
+			return collectEmails(this.filteredRows)
 		},
 
 		/** Beitragsaufkommen aufs Jahr hochgerechnet – nur aktive Beiträge (je Zeile in buildMemberRow() gesummt). */
@@ -338,6 +357,19 @@ export default {
 				await this.reload()
 				showSuccess(this.t('Zuweisung angelegt.'))
 			} catch (e) { showError(this.errMsg(e, this.t('Zuweisung konnte nicht angelegt werden'))) }
+		},
+
+		/** „E-Mail-Adressen kopieren“: sagt, wie viele es sind und wie viele Mitglieder mangels Adresse fehlen. */
+		async copyEmails() {
+			const { addresses, withoutEmail } = this.mailList
+			if (!await copyText(addresses.join(EMAIL_SEPARATOR))) {
+				showError(this.t('Die Zwischenablage ist nicht erreichbar – die Adressen ließen sich nicht kopieren.'))
+				return
+			}
+			const copied = this.n('%n E-Mail-Adresse kopiert.', '%n E-Mail-Adressen kopiert.', addresses.length)
+			showSuccess(withoutEmail > 0
+				? `${copied} ${this.n('%n Mitglied ohne E-Mail fehlt.', '%n Mitglieder ohne E-Mail fehlen.', withoutEmail)}`
+				: copied)
 		},
 
 		openMemberAkte(member, section = '') { this.editingMember = member; this.akteSection = section; this.memberDialogOpen = true },
@@ -448,6 +480,11 @@ export default {
 
 .vbh-memberfilter-search input {
 	width: 100%;
+}
+
+/* Auf schmalen Schirmen bricht der Knopf in eine eigene Zeile um. */
+.vbh-memberfilter > .button-vue {
+	flex: 0 0 auto;
 }
 
 /*

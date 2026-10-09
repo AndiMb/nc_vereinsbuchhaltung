@@ -104,6 +104,9 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   and self-service (issue #101).
 
 **Changed:**
+- **Copy email addresses:** a button above the member list copies the addresses
+  of the members shown (without those who have left, each once) for bulk mails;
+  in the CSV import the mandate confirmation now sits directly above the import button.
 - **Interval with names:** contribution group, assignment and "My contribution"
   say "monthly", "quarterly" or "every 2 months" instead of month numbers; a
   group's allowed intervals are small checkboxes in one row.

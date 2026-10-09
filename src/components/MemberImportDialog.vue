@@ -78,12 +78,6 @@
 					<span v-if="importSummary.warnings"> {{ n('%n Zeile mit Warnung – wird trotzdem angelegt.', '%n Zeilen mit Warnung – werden trotzdem angelegt.', importSummary.warnings) }}</span>
 				</p>
 
-				<div v-if="importSummary.mandates > 0 && !imported" class="vbh-form">
-					<NcCheckboxRadioSwitch v-model="mandatesConfirmed">
-						{{ n('Das unterschriebene Mandat liegt vor – es wird sofort aktiviert.', 'Die unterschriebenen Mandate für %n Zeilen liegen vor – sie werden sofort aktiviert.', importSummary.mandates) }}
-					</NcCheckboxRadioSwitch>
-				</div>
-
 				<div class="vbh-tablecard">
 					<table class="vbh-table">
 						<thead>
@@ -140,6 +134,13 @@
 							</tr>
 						</tbody>
 					</table>
+				</div>
+
+				<!-- Die Bestätigung steht unmittelbar über „Übernehmen“: sie gehört zu diesem Knopf, nicht zur Tabelle. -->
+				<div v-if="importSummary.mandates > 0 && !imported" class="vbh-form">
+					<NcCheckboxRadioSwitch v-model="mandatesConfirmed">
+						{{ n('Das unterschriebene Mandat liegt vor – es wird sofort aktiviert.', 'Die unterschriebenen Mandate für %n Zeilen liegen vor – sie werden sofort aktiviert.', importSummary.mandates) }}
+					</NcCheckboxRadioSwitch>
 				</div>
 
 				<div v-if="!imported" class="vbh-modal-actions">

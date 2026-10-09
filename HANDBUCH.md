@@ -1286,6 +1286,14 @@ verwalten"**), den Beitrag im Reiter *Beitragsgruppen* (13.4):
 > Adresse lässt sich keine Lastschrift anlegen: der Assistent stellt die
 > Zahlungsart dann auf *Überweisung*.
 
+**Sammelmail an die Mitglieder.** Der Knopf **„E-Mail-Adressen kopieren"** über
+der Liste legt die Adressen der gerade gezeigten Mitglieder in die
+Zwischenablage, durch Semikolon getrennt – einfügen im E-Mail-Programm, am
+besten ins Feld „Bcc", damit die Empfänger einander nicht sehen. Ausgetretene
+Mitglieder fehlen, jede Adresse steht nur einmal (Familien teilen sich oft eine),
+und die Meldung nennt, wie viele Mitglieder mangels Adresse nicht dabei sind.
+Mit der Suche oder *nur Auffälligkeiten* schränken Sie den Empfängerkreis vorher ein.
+
 Die **Mandatsreferenz** vergibt die App selbst: Präfix und laufende Nummer (etwa
 `M-17`; das Präfix stellt die Verwaltung unter *Mandate* ein, im Assistenten und
 im Mandat lässt sich die Referenz auch von Hand vorgeben). Sie erscheint auf dem
