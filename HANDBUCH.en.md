@@ -1404,6 +1404,16 @@ group** (**"Contributions" tab → Contribution groups**):
   collection amount and the expected collection date before you create it.
   **"End"** (*Beenden*) ends an assignment as of today; claims already
   generated remain unchanged.
+- **Fee-free and pauses:** a monthly fee of **€0** is allowed (the group's
+  lower limit must be 0 for that). Such an assignment creates **no claims**,
+  nothing is collected, and no mandate is needed; the member list shows
+  "fee-free". This covers passive, supporting or pause periods: create a
+  contribution group "Ruhend" (dormant) with a lower limit and default fee of
+  €0. For a pause, end the running assignment at the start of the pause and
+  create a new one in that group, and switch back at the end. Membership and
+  mandate stay untouched. The app records fee-free periods in the background
+  (they show up in no list) so that a later fee increase does not claim them
+  retroactively.
 - **Assignments are never retroactive:** *valid from* must not lie in the
   past. Whatever is still to be claimed for a past period you create as a
   **single claim**: **"+ Single claim"** (*+ Einzelforderung*) offers a free

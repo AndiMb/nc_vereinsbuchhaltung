@@ -21,6 +21,9 @@ class OpenItemMapper extends QBMapper {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')
 			->from($this->getTableName())
+			// Beitragsfreie Perioden (0 €, siehe ClaimGenerationService) sind nur Buchführung des
+			// Tageslaufs, keine Forderung, die jemand sehen oder bearbeiten müsste.
+			->where($qb->expr()->gt('amount_cents', $qb->createNamedParameter(0, IQueryBuilder::PARAM_INT)))
 			->orderBy('due_date', 'ASC')
 			->addOrderBy('id', 'DESC');
 		return $this->findEntities($qb);
@@ -79,6 +82,8 @@ class OpenItemMapper extends QBMapper {
 			->from($this->getTableName())
 			->where($qb->expr()->isNotNull('member_id'))
 			->andWhere($qb->expr()->isNotNull('type'))
+			// Ohne beitragsfreie Perioden (0 €), siehe findAll().
+			->andWhere($qb->expr()->gt('amount_cents', $qb->createNamedParameter(0, IQueryBuilder::PARAM_INT)))
 			->orderBy('due_date', 'ASC')
 			->addOrderBy('id', 'DESC');
 		return $this->findEntities($qb);

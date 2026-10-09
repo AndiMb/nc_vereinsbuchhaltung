@@ -87,6 +87,12 @@ describe('buildMemberRow – Beitrag', () => {
 		expect(row.fee.frequencyLabel).toBe('alle 2 Monate')
 	})
 
+	it('beitragsfrei (0 €): kein Mandat nötig, keine Auffälligkeit', () => {
+		const fee = build({ assignments: [assignment({ monthlyAmountCents: 0 })] }).fee
+		expect(fee).toMatchObject({ free: true, amount: 0, needsMandate: false })
+		expect(build({ assignments: [assignment({ monthlyAmountCents: 1000 })] }).fee.free).toBe(false)
+	})
+
 	it('Überweisung braucht kein Mandat', () => {
 		expect(build({ assignments: [assignment({ paymentMethod: 'ueberweisung' })] }).fee.needsMandate).toBe(false)
 	})

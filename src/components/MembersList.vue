@@ -76,11 +76,12 @@
 								<span class="vbh-iban">{{ row.mandate.iban }}</span>
 								<span v-if="row.mandate.statusTag" class="vbh-pill vbh-pill--warning">{{ row.mandate.statusTag }}</span>
 							</template>
+							<span v-else-if="row.fee && row.fee.free" class="vbh-hint">–</span>
 							<span v-else-if="row.fee && !row.fee.needsMandate" class="vbh-hint">{{ t('Überweisung') }}</span>
 							<span v-else class="vbh-hint">{{ t('kein Mandat') }}</span>
 						</td>
 						<td class="num nowrap">
-							{{ row.fee ? formatMoney(row.fee.amount) : '–' }}
+							{{ row.fee ? (row.fee.free ? t('beitragsfrei') : formatMoney(row.fee.amount)) : '–' }}
 						</td>
 						<td>
 							{{ row.fee ? row.fee.frequencyLabel : '–' }}

@@ -16,7 +16,7 @@
 					{{ t('keine E-Mail') }}
 				</span>
 			</span>
-			<span v-if="row.fee" class="vbh-mcard-amount">{{ formatMoney(row.fee.amount) }}</span>
+			<span v-if="row.fee" class="vbh-mcard-amount">{{ row.fee.free ? t('beitragsfrei') : formatMoney(row.fee.amount) }}</span>
 		</div>
 		<div class="vbh-mcard-bottom">
 			<span class="vbh-mcard-accounts">
@@ -24,6 +24,7 @@
 					{{ row.mandate.iban }}
 					<span v-if="row.mandate.statusTag" class="vbh-pill vbh-pill--warning">{{ row.mandate.statusTag }}</span>
 				</template>
+				<span v-else-if="row.fee && row.fee.free">–</span>
 				<span v-else-if="row.fee && !row.fee.needsMandate">{{ t('Überweisung') }}</span>
 				<span v-else>{{ t('kein Mandat') }}</span>
 			</span>

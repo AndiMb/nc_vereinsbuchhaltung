@@ -90,7 +90,10 @@
 				</NcButton>
 			</div>
 
-			<p v-if="preview" class="vbh-hint">
+			<p v-if="preview && preview.amountCents === 0" class="vbh-hint">
+				{{ t('Beitragsfrei: In dieser Zuweisung entstehen keine Forderungen, und es wird nichts eingezogen.') }}
+			</p>
+			<p v-else-if="preview" class="vbh-hint">
 				{{ t('Erste Periode: {from} bis {to} ({months}) · Einzugsbetrag {amount}', { from: formatDate(preview.periodStart), to: formatDate(preview.periodEnd), months: n('%n Monat', '%n Monate', preview.months), amount: euro(preview.amountCents) }) }}
 			</p>
 

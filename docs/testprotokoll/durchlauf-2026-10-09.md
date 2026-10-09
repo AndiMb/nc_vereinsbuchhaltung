@@ -6,8 +6,8 @@ Ergebnis eines Durchgangs durch alle 172 Schritte von `testprotokoll.md` auf der
 |---|---|---|
 | ✅ OK | 97 | im Browser oder per Schnittstelle live geprüft, wie beschrieben |
 | 🔧 Korrigiert | 16 | Abweichung oder Schönheitsfehler gefunden und im selben Durchgang behoben |
-| 🧪 Nur E2E | 9 | nicht live nachgespielt; die E2E-Suite der CI deckt den Ablauf ab |
-| ⛔ Nicht prüfbar | 39 | braucht eine fremde Anmeldung (Mitglied, Buchhalter, Revisor), ein Gerät oder mehrere Tage |
+| 🧪 Nur E2E | 37 | nicht live nachgespielt; die E2E-Suite der CI deckt den Ablauf ab |
+| ⛔ Nicht prüfbar | 11 | braucht eine fremde Anmeldung (Mitglied, Buchhalter, Revisor), ein Gerät oder mehrere Tage |
 | 🚫 Nicht ausgeführt | 11 | nicht ausgeführt, weil unumkehrbar, zerstörerisch für die Buchhaltung dieser Instanz oder nicht freigegeben |
 
 **Grenzen dieses Durchgangs:** Ich darf keine Passwörter eingeben, deshalb gab es keine Anmeldung als alice, bob, jane, john oder user1. Alle Schritte aus Sicht dieser Konten (Phasen 11 und 13, Teile von 14) sind als „nicht prüfbar“ markiert; ihre Abläufe laufen in den E2E-Specs der CI, und für Lücken sind neue Specs entstanden (54 bis 57). Die Anonymisierung (Phase 12) braucht den Seeder mit der 2014-Buchung, den die Sitzung nicht freigegeben hat; „Alle Daten löschen“ (Phase 17) räumt die Buchhaltung dieser Instanz ab und wurde nicht ausgeführt. Fenstergröße und Smartphone-Scan waren im Browser nicht einstellbar (Phase 15, 9.4).
@@ -135,7 +135,7 @@ Ergebnis eines Durchgangs durch alle 172 Schritte von `testprotokoll.md` auf der
 | 7.14 | „Datei ist bei der Bank eingereicht“ (Schritt 2 von 2) | ✅ OK | Einreichung bestätigt; Lauf „eingereicht“, kein Storno mehr |
 | 7.15 | XML-Ablage im Nextcloud-Ordner (falls in 2.7 eingeschaltet) | ✅ OK | Ablage eingeschaltet; nach „Eingereicht“ liegt die XML-Kopie im Ordner `SEPA-Einreichungen` des Kontos admin |
 | 7.16 | Nachzügler: eine neue Forderung bekommt keinen vergangenen Termin | ⛔ Nicht prüfbar | Nachzügler-Regel durch PHPUnit und E2E-Spec 28 abgedeckt, nicht live nachgestellt |
-| 7.17 | Sperrfenster: Betrag ändern wird nach der Vorabinfo abgelehnt | ⛔ Nicht prüfbar | Sperrfenster verlangt die Sicht von jane; E2E-Spec 32/46 |
+| 7.17 | Sperrfenster: Betrag ändern wird nach der Vorabinfo abgelehnt | 🧪 Nur E2E | Sperre nach der Vorabinfo: Betrag und Turnus werden mit Erklärung und frühestem Datum abgelehnt (Oberfläche und Server), die IBAN bleibt änderbar – E2E-Spec 56 (S1–S3), dazu 32 |
 | 7.18 | Vorlaufzeiten auf den Standard zurückstellen (optional) | ✅ OK | Vorlaufzeiten nicht verändert (35/30 Tage) |
 
 ## Phase 8 – Bankabgleich
@@ -184,18 +184,18 @@ Ergebnis eines Durchgangs durch alle 172 Schritte von `testprotokoll.md` auf der
 
 | Schritt | Titel | Ergebnis | Notiz |
 |---|---|---|---|
-| 11.1 | Überblick und Datenhygiene (jane) | ⛔ Nicht prüfbar | Sicht eines Mitglieds: Anmeldung als jane/john/user1 nicht möglich; durch E2E-Specs 26, 32, 46, 52 in der CI abgedeckt |
-| 11.2 | Stammdaten ändern und E-Mail-Wechsel (jane) | ⛔ Nicht prüfbar | Sicht eines Mitglieds: Anmeldung als jane/john/user1 nicht möglich; durch E2E-Specs 26, 32, 46, 52 in der CI abgedeckt |
-| 11.3 | IBAN ändern mit Vorschau (jane) | ⛔ Nicht prüfbar | Sicht eines Mitglieds: Anmeldung als jane/john/user1 nicht möglich; durch E2E-Specs 26, 32, 46, 52 in der CI abgedeckt |
-| 11.4 | Kontoinhaber wechseln: Reibungsdialog (jane) | ⛔ Nicht prüfbar | Sicht eines Mitglieds: Anmeldung als jane/john/user1 nicht möglich; durch E2E-Specs 26, 32, 46, 52 in der CI abgedeckt |
-| 11.5 | Widerruf (jane) | ⛔ Nicht prüfbar | Sicht eines Mitglieds: Anmeldung als jane/john/user1 nicht möglich; durch E2E-Specs 26, 32, 46, 52 in der CI abgedeckt |
-| 11.6 | Mandat neu erteilen (jane) | ⛔ Nicht prüfbar | Sicht eines Mitglieds: Anmeldung als jane/john/user1 nicht möglich; durch E2E-Specs 26, 32, 46, 52 in der CI abgedeckt |
-| 11.7 | Aktivität und Benachrichtigungen (jane) | ⛔ Nicht prüfbar | Sicht eines Mitglieds: Anmeldung als jane/john/user1 nicht möglich; durch E2E-Specs 26, 32, 46, 52 in der CI abgedeckt |
-| 11.8 | Mandat-Entwurf bestätigen (john, Sie-Form) | ⛔ Nicht prüfbar | Sicht eines Mitglieds: Anmeldung als jane/john/user1 nicht möglich; durch E2E-Specs 26, 32, 46, 52 in der CI abgedeckt |
-| 11.9 | Beitrag ändern: Vorschau, Untergrenze, Turnus (john) | ⛔ Nicht prüfbar | Sicht eines Mitglieds: Anmeldung als jane/john/user1 nicht möglich; durch E2E-Specs 26, 32, 46, 52 in der CI abgedeckt |
-| 11.10 | Rücklastschriften im Klartext (Fall ohne und mit) | ⛔ Nicht prüfbar | Sicht eines Mitglieds: Anmeldung als jane/john/user1 nicht möglich; durch E2E-Specs 26, 32, 46, 52 in der CI abgedeckt |
-| 11.11 | Beitragsbestätigung und Datenübersicht aus Mitgliedssicht (john) | ⛔ Nicht prüfbar | Sicht eines Mitglieds: Anmeldung als jane/john/user1 nicht möglich; durch E2E-Specs 26, 32, 46, 52 in der CI abgedeckt |
-| 11.12 | Individuelle Untergrenze sehen (Anna Koch, optional) | ⛔ Nicht prüfbar | Sicht eines Mitglieds: Anmeldung als jane/john/user1 nicht möglich; durch E2E-Specs 26, 32, 46, 52 in der CI abgedeckt |
+| 11.1 | Überblick und Datenhygiene (jane) | 🧪 Nur E2E | Überblick eines Mitglieds: eigener Reiter, keine Werkzeuge der Kopfzeile, alle Karten, IBAN maskiert, nichts von anderen – E2E-Spec 56 (M1), 26 |
+| 11.2 | Stammdaten ändern und E-Mail-Wechsel (jane) | 🧪 Nur E2E | Stammdaten ändern, E-Mail-Hinweis, Speichern wirkt sofort, Notiz unberührt – E2E-Spec 56 (M2); die Sicherheitsmail nicht gelesen |
+| 11.3 | IBAN ändern mit Vorschau (jane) | 🧪 Nur E2E | IBAN ändern in „Mein Beitrag“, Du-Satz, Urheber „Mitglied“ – E2E-Spec 56 (S3), 31; die Quittungsmail nicht gelesen |
+| 11.4 | Kontoinhaber wechseln: Reibungsdialog (jane) | 🧪 Nur E2E | Kontoinhaberwechsel mit Reibungsdialog und Ausweg – E2E-Spec 31, 57 |
+| 11.5 | Widerruf (jane) | 🧪 Nur E2E | Widerruf-Dialog mit Ausweg – E2E-Spec 31, 39, 57; Mails und Klemmbrett-Hinweis nicht geprüft |
+| 11.6 | Mandat neu erteilen (jane) | 🧪 Nur E2E | Mandat erfassen und elektronisch erteilen – E2E-Spec 31 |
+| 11.7 | Aktivität und Benachrichtigungen (jane) | ⛔ Nicht prüfbar | Die Oberfläche der Nextcloud-Aktivitäten-App ist nicht E2E-fähig; die Ereignisse selbst (Datum TT.MM.JJJJ) sind durch PHPUnit abgedeckt |
+| 11.8 | Mandat-Entwurf bestätigen (john, Sie-Form) | 🧪 Nur E2E | Entwurf bestätigen in Du- und Sie-Fassung – E2E-Spec 56 (E1), 46 |
+| 11.9 | Beitrag ändern: Vorschau, Untergrenze, Turnus (john) | 🧪 Nur E2E | Beitrag ändern: Vorschau-Pflicht, Untergrenze, erlaubte Turnusse, Quittungsmail – E2E-Spec 56 (M4, Q1, Q2), 32 |
+| 11.10 | Rücklastschriften im Klartext (Fall ohne und mit) | 🧪 Nur E2E | Rücklastschriften im Klartext – E2E-Spec 52 |
+| 11.11 | Beitragsbestätigung und Datenübersicht aus Mitgliedssicht (john) | 🧪 Nur E2E | Beitragsbestätigung und Datenübersicht aus Mitgliedssicht, nur eigene Daten – E2E-Spec 56 (D1, D2), 35, 36 |
+| 11.12 | Individuelle Untergrenze sehen (Anna Koch, optional) | 🧪 Nur E2E | Individuelle Untergrenze sichtbar, ihre Begründung nie – E2E-Spec 56 (M5) |
 
 ## Phase 12 – Beitragsbestätigung & Datenschutz
 
@@ -205,7 +205,7 @@ Ergebnis eines Durchgangs durch alle 172 Schritte von `testprotokoll.md` auf der
 | 12.1 | Beitragsbestätigung (Kassenwart-Kanal) | ✅ OK | Beitragsbestätigung Jana 2026: 30,00 € (September, Oktober bezahlt) |
 | 12.2 | Gebühren und Unbezahltes fließen nie ein | ✅ OK | Gebühren und Unbezahltes fließen nicht ein (Fuchs: „Keine bezahlten Beitrags-Forderungen“) |
 | 12.3 | Fehlende Adresse: Hinweis nur am Bildschirm | 🧪 Nur E2E | Fehlende Adresse: E2E-Spec 35 |
-| 12.4 | Beitragsbestätigung aus Mitgliedssicht | ⛔ Nicht prüfbar | Mitgliedssicht (jane); Spec 35 |
+| 12.4 | Beitragsbestätigung aus Mitgliedssicht | 🧪 Nur E2E | Beitragsbestätigung aus Mitgliedssicht: nur eigene bezahlte Beiträge – E2E-Spec 56 (D1), 35 |
 | 12.5 | Datenübersicht (Art. 15 DSGVO) | 🔧 Korrigiert | Datenübersicht Jana gelesen; „Aktiviert am“ war „09 12:53:41.10.2026“ – behoben |
 | 12.6 | Anonymisierungsreife erkennen | 🚫 Nicht ausgeführt | Ohne die 2014-Buchung ist Hans Becker nicht reif (Status „nicht reif“ geprüft); siehe 12.0 |
 | 12.7 | Anonymisieren (Hans Becker) | 🚫 Nicht ausgeführt | Unumkehrbar und braucht die Seeder-Option (12.0); E2E-Spec 36 deckt Anonymisieren ab |
@@ -216,36 +216,36 @@ Ergebnis eines Durchgangs durch alle 172 Schritte von `testprotokoll.md` auf der
 
 | Schritt | Titel | Ergebnis | Notiz |
 |---|---|---|---|
-| 13.1 | Buchhalter: alles Operative | ⛔ Nicht prüfbar | Rollenwechsel (alice/bob/Konto ohne Rolle) braucht deren Anmeldung; E2E-Specs 41, 46, 48 in der CI |
-| 13.2 | Buchhalter: Vorlaufzeiten gesperrt, Einzugstage bedienbar | ⛔ Nicht prüfbar | Rollenwechsel (alice/bob/Konto ohne Rolle) braucht deren Anmeldung; E2E-Specs 41, 46, 48 in der CI |
-| 13.3 | Buchhalter: keine Einstellungen des Moduls | ⛔ Nicht prüfbar | Rollenwechsel (alice/bob/Konto ohne Rolle) braucht deren Anmeldung; E2E-Specs 41, 46, 48 in der CI |
-| 13.4 | Revisor: Einzug lesend, kein Klemmbrett | ⛔ Nicht prüfbar | Rollenwechsel (alice/bob/Konto ohne Rolle) braucht deren Anmeldung; E2E-Specs 41, 46, 48 in der CI |
-| 13.5 | Revisor: Bankabgleich lesend, kein Rückgabecode | ⛔ Nicht prüfbar | Rollenwechsel (alice/bob/Konto ohne Rolle) braucht deren Anmeldung; E2E-Specs 41, 46, 48 in der CI |
-| 13.6 | Konto ohne Rolle und ohne Verknüpfung | ⛔ Nicht prüfbar | Rollenwechsel (alice/bob/Konto ohne Rolle) braucht deren Anmeldung; E2E-Specs 41, 46, 48 in der CI |
-| 13.7 | „Mein Beitrag“ folgt Schalter und Verknüpfung, nicht der Rolle | ⛔ Nicht prüfbar | Rollenwechsel (alice/bob/Konto ohne Rolle) braucht deren Anmeldung; E2E-Specs 41, 46, 48 in der CI |
+| 13.1 | Buchhalter: alles Operative | ⛔ Nicht prüfbar | Verteilt auf E2E-Specs 23, 25, 37, 38, 41–44; eine Gesamtprobe mit Rollenwechsel gibt es nicht |
+| 13.2 | Buchhalter: Vorlaufzeiten gesperrt, Einzugstage bedienbar | 🧪 Nur E2E | Vorlaufzeiten nur für Verwalter (API und Oberfläche), Einzugstage bleiben bedienbar – E2E-Spec 48 |
+| 13.3 | Buchhalter: keine Einstellungen des Moduls | ⛔ Nicht prüfbar | Die Absperrung der Einstellungen ist nur per Schnittstelle (403, E2E-Spec 40) abgedeckt, nicht die Nextcloud-Seite selbst |
+| 13.4 | Revisor: Einzug lesend, kein Klemmbrett | 🧪 Nur E2E | Revisor: Einzug lesend, kein Klemmbrett, Rückgabecode nur dem Buchhalter – E2E-Spec 56 (R1), 08, 38, 41–44 |
+| 13.5 | Revisor: Bankabgleich lesend, kein Rückgabecode | 🧪 Nur E2E | Revisor liest den Bankabgleich, ohne Rückgabecode – E2E-Spec 44, 50, 56 |
+| 13.6 | Konto ohne Rolle und ohne Verknüpfung | 🧪 Nur E2E | Konto ohne Rolle und Verknüpfung: „Kein Zugriff“ und API-403 – E2E-Spec 56 (Z1), 26 |
+| 13.7 | „Mein Beitrag“ folgt Schalter und Verknüpfung, nicht der Rolle | 🧪 Nur E2E | „Mein Beitrag“ folgt Schalter und Verknüpfung – E2E-Spec 56 (Z1), 26 |
 
 ## Phase 14 – Übersetzungen
 
 | Schritt | Titel | Ergebnis | Notiz |
 |---|---|---|---|
-| 14.1 | „Mein Beitrag“ in Du-Form (jane) | ⛔ Nicht prüfbar | Sicht jane; E2E-Spec 51 |
-| 14.2 | „Mein Beitrag“ in Sie-Form (john) | ⛔ Nicht prüfbar | Sicht john; E2E-Spec 51 |
+| 14.1 | „Mein Beitrag“ in Du-Form (jane) | 🧪 Nur E2E | Du-Fassung in Seite und Dialogen, kein „Sie“/„Ihr“ – E2E-Spec 56 (M3), 51 |
+| 14.2 | „Mein Beitrag“ in Sie-Form (john) | 🧪 Nur E2E | Sie-Fassung (Sprache de_DE) im Bestätigungsdialog – E2E-Spec 56 (E1), 51 |
 | 14.3 | Mails: Du gegenüber Sie | ✅ OK | Mails: jane in Du-Form, die übrigen Sie-Form |
-| 14.4 | „Mein Beitrag“ auf Englisch (user1) | ⛔ Nicht prüfbar | Sicht user1; E2E-Spec 51 |
-| 14.5 | Einmal-Link-Mail auf Englisch und Zustimmungsseite auf Deutsch | ⛔ Nicht prüfbar | Einmal-Link-Mail auf Englisch braucht Mitglied mit englischem Konto; E2E-Spec 51 |
-| 14.6 | Einzug-Reiter auf Englisch (user1 mit Revisor-Rolle) | ⛔ Nicht prüfbar | Sicht user1; E2E-Spec 51 |
+| 14.4 | „Mein Beitrag“ auf Englisch (user1) | 🧪 Nur E2E | „My contribution“ ohne Mandat, ohne Anschrift und Notiz, keine deutschen Reste – E2E-Spec 56 (EN1), 51 |
+| 14.5 | Einmal-Link-Mail auf Englisch und Zustimmungsseite auf Deutsch | ⛔ Nicht prüfbar | Die deutsche Zustimmungsseite zu einer englischen Mail ist in keiner Spec abgedeckt (Mail: E2E-Spec 51, Seite: 27) |
+| 14.6 | Einzug-Reiter auf Englisch (user1 mit Revisor-Rolle) | 🧪 Nur E2E | Einzug-Reiter des Revisors auf Englisch („Collection“), lesend – E2E-Spec 56 (EN2), 51 |
 | 14.7 | Zahlen und Daten in englischen Mails | ✅ OK | Englische Mail (Lena): Beträge deutsch („22,50 €“), Daten jetzt TT.MM.JJJJ |
 
 ## Phase 15 – Mobil & Barrierefreiheit (Stichproben)
 
 | Schritt | Titel | Ergebnis | Notiz |
 |---|---|---|---|
-| 15.1 | Schmalen Viewport einstellen | ⛔ Nicht prüfbar | Fenstergröße lässt sich in diesem Browser nicht verkleinern; E2E-Spec 41/43 (Handy) |
-| 15.2 | Mitglieder als Karten | ⛔ Nicht prüfbar | siehe 15.1 |
-| 15.3 | Einzug auf dem Handy | ⛔ Nicht prüfbar | siehe 15.1 |
-| 15.4 | Dialoge und Klemmbrett auf dem Handy | ⛔ Nicht prüfbar | siehe 15.1 |
+| 15.1 | Schmalen Viewport einstellen | 🧪 Nur E2E | Handy-Navigation: „Hauptnavigation“ mit „Beiträge“, Buchen-Knopf, nichts läuft über – E2E-Spec 57 (T1), 15 |
+| 15.2 | Mitglieder als Karten | 🧪 Nur E2E | Mitglieder als Karten ohne sichtbare Tabelle, Aktionen-Menü und Akte passen – E2E-Spec 57 (T2), 37, 39 |
+| 15.3 | Einzug auf dem Handy | 🧪 Nur E2E | Zeitstrahl-Liste, Forderungen und Bankabgleich laufen nicht seitlich über – E2E-Spec 57 (T3), 41, 43, 44 |
+| 15.4 | Dialoge und Klemmbrett auf dem Handy | 🧪 Nur E2E | Aufnehmen, Liste einlesen, Einzug freigeben und Klemmbrett passen in die Breite – E2E-Spec 57 (T4–T7), 38, 44 |
 | 15.5 | Tastatur: Escape, Fokus, Reihenfolge | 🔧 Korrigiert | Escape schloss Dialoge nur, wenn der Fokus auf einem Knopf lag: stand der Cursor in einem Textfeld – und „Mitglied aufnehmen“ öffnet genau so, im Vornamen –, tat die Taste nichts (NcModal ignoriert sie dort). Jetzt schließt Escape den obersten Dialog auch aus Textfeldern; aufgeklappte Auswahllisten und Datumsfelder schließen zuerst ihr Popup. Live bestätigt; E2E-Spec 57 |
-| 15.6 | Fokus sichtbar, Namen und Zoom | ⛔ Nicht prüfbar | Zoom/Fokus-Ring nicht systematisch durchgespielt; E2E-Spec 22 |
+| 15.6 | Fokus sichtbar, Namen und Zoom | ⛔ Nicht prüfbar | Namen und Tooltips der Symbol-Knöpfe sind durch E2E-Spec 57 (T12) und 22 abgedeckt; Fokusrahmen und Zoom 200 % sind visuell und blieben ungeprüft |
 | 15.7 | Dunkles Design | ✅ OK | Dunkles Design (Stylesheet eingespielt): Zeitstrahl, Forderungen, Mitglieder, Offene Posten lesbar |
 
 ## Phase 16 – Randfälle & Fehlerfälle
@@ -256,8 +256,8 @@ Ergebnis eines Durchgangs durch alle 172 Schritte von `testprotokoll.md` auf der
 | 16.2 | Doppelklick | 🧪 Nur E2E | Doppelklick: E2E-Spec 42 |
 | 16.3 | Ungültige Eingaben und die IBAN-Prüfung | ✅ OK | Formal falsche IBAN abgelehnt, falsche Prüfziffer wird angenommen (bekannt, Frage 16.3) |
 | 16.4 | Einstellungen: mehrere Fehler und der Server-Check | ✅ OK | Server lehnt XYZ, ../fremd und Mahnabstand 0 mit klaren Meldungen ab |
-| 16.5 | Offline und Serverfehler ohne Rohtext | ⛔ Nicht prüfbar | Offline/Serverfehler brauchen Entwicklerwerkzeuge; E2E-Spec 21 |
-| 16.6 | Zwei Personen zugleich | ⛔ Nicht prüfbar | Zwei Sitzungen (admin und alice) nicht möglich |
+| 16.5 | Offline und Serverfehler ohne Rohtext | 🧪 Nur E2E | Serverfehler: Einzug, Forderungen und Bankabgleich zeigen „Erneut versuchen“, Offline-Hinweis, Klemmbrett – E2E-Spec 57 (T13–T17), 21, 52 |
+| 16.6 | Zwei Personen zugleich | 🧪 Nur E2E | Zwei Browser-Kontexte: das zweite „Sperren“ scheitert verständlich, Fensterfokus lädt neu – E2E-Spec 57 (T18, T19) |
 | 16.7 | Zurück-Taste und Deep-Links | ✅ OK | Deep-Links öffnen direkt; die Zurück-Taste ist durch E2E-Spec 21 abgedeckt |
 
 ## Phase 17 – Zurücksetzen („Alle Daten löschen“)

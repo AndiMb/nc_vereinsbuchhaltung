@@ -2678,7 +2678,10 @@
         "Der Vorabinfo-Vorlauf sollte nicht kürzer sein als der Freigabe-Vorlauf: Sonst ist der Lauf schon freizugeben, bevor die Vorabinfo beim Mitglied ist.": "The pre-notification lead should not be shorter than the release lead: otherwise the run is due for release before the pre-notification has reached the member.",
         "Vorwarnfenster: ab dann entstehen die Forderungen (Standard 21 Tage).": "Early-warning window: from then on the claims are created (default 21 days).",
         "Vorabinfo-Vorlauf: ab dann geht die Ankündigung per Mail an die Mitglieder (Standard 14 Tage; SEPA verlangt mindestens 14, sofern im Mandat nichts Kürzeres vereinbart ist).": "Pre-notification lead: from then on the announcement is emailed to the members (default 14 days; SEPA requires at least 14 unless the mandate agrees a shorter period).",
-        "Freigabe-Vorlauf: ab dann meldet die Aufgabenliste „Freigabe fällig\" (Standard 5 Tage).": "Release lead: from then on the task list reports “Release due” (default 5 days)."
+        "Freigabe-Vorlauf: ab dann meldet die Aufgabenliste „Freigabe fällig\" (Standard 5 Tage).": "Release lead: from then on the task list reports “Release due” (default 5 days).",
+        "Beitragsfrei: In dieser Zuweisung entstehen keine Forderungen, und es wird nichts eingezogen.": "Fee-free: this assignment creates no claims, and nothing is collected.",
+        "beitragsfrei": "fee-free",
+        "Wirkt ab {from} · beitragsfrei: es wird nichts eingezogen.": "Effective from {from} · fee-free: nothing is collected."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

@@ -117,7 +117,10 @@
 							{{ t('Vorschau') }}
 						</NcButton>
 					</div>
-					<p v-if="a._preview && previewMatchesForm(a)" class="vbh-hint">
+					<p v-if="a._preview && previewMatchesForm(a) && a._preview.amountCents === 0" class="vbh-hint">
+						{{ t('Wirkt ab {from} · beitragsfrei: es wird nichts eingezogen.', { from: formatDate(a._preview.effectiveFrom) }) }}
+					</p>
+					<p v-else-if="a._preview && previewMatchesForm(a)" class="vbh-hint">
 						{{ t('Wirkt ab {from} · erster Einzug am {due} · Betrag {amount}', {
 							from: formatDate(a._preview.effectiveFrom),
 							due: formatDate(a._preview.firstDueDate),

@@ -66,6 +66,7 @@ class ClaimGenerationServiceTest extends TestCase {
 			$this->store[] = $item;
 			return $item;
 		});
+		$this->openItems->method('update')->willReturnArgument(0);
 	}
 
 	/** Ob das Testmitglied ein einzugsfähiges (aktives) Mandat hat. */
@@ -156,6 +157,45 @@ class ClaimGenerationServiceTest extends TestCase {
 		$this->assertSame('2026-01-01', $claim->getPeriodStart());
 		$this->assertSame('2026-12-31', $claim->getPeriodEnd());
 		$this->assertSame(OpenItem::TYPE_CONTRIBUTION, $claim->getType());
+	}
+
+	public function testBeitragsfreieZuweisungHaeltDiePeriodeAlsErledigtenNulleintragFestOhneMandat(): void {
+		$this->assignments->method('findActiveAsOf')->willReturn([$this->assignment(monthlyAmountCents: 0)]);
+		$this->groups->method('find')->willReturn($this->group());
+		$this->setMandateActive(false); // beitragsfrei: nichts einzuziehen, also auch kein Mandat nötig
+
+		$result = $this->service('2025-12-14')->generateDue();
+
+		// Keine Forderung, kein Störfall – nur der Vermerk, wie weit der Lauf ist.
+		$this->assertSame(['created' => 0, 'blocked' => 0], $result);
+		$this->assertCount(1, $this->store);
+		$free = $this->store[0];
+		$this->assertSame(0, $free->getAmountCents());
+		$this->assertSame('waived', $free->getStatus());
+		$this->assertNotNull($free->getSettledAt());
+		$this->assertNull($free->getPrenotifiedAt());
+		$this->assertSame('2026-01-01', $free->getPeriodStart());
+		$this->assertSame('2026-12-31', $free->getPeriodEnd());
+	}
+
+	public function testEineSpaetereBetragserhoehungFordertBeitragsfreiePeriodenNichtRueckwirkendNach(): void {
+		$assignment = $this->assignment(monthlyAmountCents: 0);
+		$this->assignments->method('findActiveAsOf')->willReturn([$assignment]);
+		$this->groups->method('find')->willReturn($this->group());
+		$this->setMandateActive(true);
+
+		$this->service('2025-12-14')->generateDue(); // 2026: beitragsfrei, nur vermerkt
+		$assignment->setMonthlyAmountCents(1000);   // später auf 10 € je Monat angehoben
+		$result = $this->service('2026-12-12')->generateDue();
+
+		$this->assertSame(['created' => 1, 'blocked' => 0], $result);
+		$this->assertCount(2, $this->store);
+		// Berechnet wird erst die Periode NACH der beitragsfreien – 2026 bleibt 0 €.
+		$this->assertSame(0, $this->store[0]->getAmountCents());
+		$claim = $this->store[1];
+		$this->assertSame('2027-01-01', $claim->getPeriodStart());
+		$this->assertSame(12000, $claim->getAmountCents());
+		$this->assertSame('open', $claim->getStatus());
 	}
 
 	public function testErzeugtNichtsAusserhalbDesVorwarnfensters(): void {

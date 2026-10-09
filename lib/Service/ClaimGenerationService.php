@@ -40,6 +40,14 @@ use OCP\AppFramework\Utility\ITimeFactory;
  * „Überweiser bekommen Forderungen … nie … Störfall") braucht kein Mandat und
  * wird immer erzeugt.
  *
+ * **Beitragsfreie Zuweisung** (Monatsbeitrag 0 €, z. B. eine Gruppe „Ruhend“
+ * für Pausen): Die Periode wird trotzdem als Eintrag festgehalten, damit der
+ * Lauf weiß, wie weit er ist – sonst würde eine spätere Betragserhöhung die
+ * Perioden ab Beginn der Zuweisung rückwirkend nachfordern. Der Eintrag ist
+ * aber nie eine Forderung: Betrag 0, sofort erledigt (`waived`), ohne Mandats-
+ * prüfung, Vorabinfo, Einzug oder Mahnwesen, und die Listen blenden ihn aus
+ * ({@see OpenItemMapper::findAll()}).
+ *
  * **Nachzügler** (Spec §3.5): trägt eine neue Periode den natürlichen
  * Einzugstermin nicht mehr rechtzeitig vor Ablauf der Vorabinfo-Frist, fährt
  * sie am nächsten Termin desselben Turnus – die Periode selbst
@@ -114,6 +122,12 @@ class ClaimGenerationService {
 			$naturalDue = $this->schedule->dueDateForPeriod($assignment->getIntervalMonths(), $dueAnchor);
 			if ($naturalDue > $horizon) {
 				return [$created, 0]; // noch nicht im Vorwarnfenster - morgen wieder versuchen
+			}
+
+			if ($this->periodAmountCents($assignment, $periodStart, $periodEnd, $isFirst) === 0) {
+				// Beitragsfrei: nichts einzuziehen, also auch kein Mandat nötig und kein Nachzügler.
+				$this->createFeeFreePeriod($assignment, $periodStart, $periodEnd, $naturalDue, $isFirst);
+				continue;
 			}
 
 			if ($assignment->getPaymentMethod() === Assignment::PAYMENT_METHOD_DIRECT_DEBIT
@@ -222,23 +236,44 @@ class ClaimGenerationService {
 		throw new \RuntimeException('Kein Einzugstermin mit ausreichendem Vorlauf gefunden (Terminplan/Vorlauffrist prüfen).');
 	}
 
-	private function createClaim(Assignment $assignment, string $periodStart, string $periodEnd, string $dueDate, bool $isFirst): OpenItem {
-		// Prorata an beiden Enden (Spec §3.3): am Anfang bei der allerersten
-		// Periode (Beitritt mitten in der Periode), am Ende, wenn die
-		// Zuweisung (validTo) innerhalb dieser Periode endet. ProrataCalculator
-		// liefert bei unbeschnittenen Grenzen automatisch den vollen
-		// Turnusbetrag - keine separate Fallunterscheidung nötig.
+	/**
+	 * Betrag einer Periode: Prorata an beiden Enden (Spec §3.3) – am Anfang bei
+	 * der allerersten Periode (Beitritt mitten in der Periode), am Ende, wenn die
+	 * Zuweisung (validTo) innerhalb dieser Periode endet. ProrataCalculator
+	 * liefert bei unbeschnittenen Grenzen automatisch den vollen Turnusbetrag –
+	 * keine separate Fallunterscheidung nötig.
+	 *
+	 * @return array{0:int,1:string,2:string} Betrag in Cent, tatsächlicher Beginn und Ende der Periode
+	 */
+	private function periodFigures(Assignment $assignment, string $periodStart, string $periodEnd, bool $isFirst): array {
 		$effectiveFrom = $isFirst ? max($periodStart, $assignment->getValidFrom()) : $periodStart;
 		$effectiveTo = ($assignment->getValidTo() !== null && $assignment->getValidTo() < $periodEnd)
 			? $assignment->getValidTo()
 			: $periodEnd;
+		return [ProrataCalculator::amountCents($assignment->getMonthlyAmountCents(), $effectiveFrom, $effectiveTo), $effectiveFrom, $effectiveTo];
+	}
+
+	private function periodAmountCents(Assignment $assignment, string $periodStart, string $periodEnd, bool $isFirst): int {
+		return $this->periodFigures($assignment, $periodStart, $periodEnd, $isFirst)[0];
+	}
+
+	/** Hält eine beitragsfreie Periode fest (siehe Klassendoc): Betrag 0, sofort erledigt, nie eine Forderung. */
+	private function createFeeFreePeriod(Assignment $assignment, string $periodStart, string $periodEnd, string $dueDate, bool $isFirst): OpenItem {
+		$item = $this->createClaim($assignment, $periodStart, $periodEnd, $dueDate, $isFirst);
+		$item->setStatus('waived');
+		$item->setSettledAt($this->now());
+		return $this->openItems->update($item);
+	}
+
+	private function createClaim(Assignment $assignment, string $periodStart, string $periodEnd, string $dueDate, bool $isFirst): OpenItem {
+		[$amountCents, $effectiveFrom, $effectiveTo] = $this->periodFigures($assignment, $periodStart, $periodEnd, $isFirst);
 
 		$group = $this->groups->find($assignment->getGroupId());
 
 		$item = new OpenItem();
 		$item->setDebtor($this->members->displayNameOr($assignment->getMemberId(), 'Mitglied #' . $assignment->getMemberId()));
 		$item->setDescription($group->getName());
-		$item->setAmountCents(ProrataCalculator::amountCents($assignment->getMonthlyAmountCents(), $effectiveFrom, $effectiveTo));
+		$item->setAmountCents($amountCents);
 		$item->setDueDate($dueDate);
 		$item->setStatus('open');
 		$item->setMemberId($assignment->getMemberId());

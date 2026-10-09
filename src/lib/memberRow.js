@@ -82,15 +82,19 @@ export function assignmentStatusTone(assignment, today = isoToday()) {
  * solange die Zuweisung aktiv ist.
  */
 function assignmentView(assignment, today) {
+	const free = assignment.monthlyAmountCents === 0
 	return {
 		amount: assignment.monthlyAmountCents * assignment.intervalMonths / 100,
+		// Beitragsfrei (0 €, z. B. Gruppe „Ruhend“ für Pausen): es entstehen keine Forderungen
+		// und es wird nichts eingezogen – weder Betrag noch Mandat sind hier ein Thema.
+		free,
 		frequencyLabel: intervalLabel(assignment.intervalMonths),
 		active: assignment.active,
 		statusLabel: assignmentStatusLabel(assignment, today),
 		statusTone: assignmentStatusTone(assignment, today),
-		// Überweiser brauchen kein Mandat – „aktiver Beitrag ohne Mandat" ist
-		// dort keine Auffälligkeit.
-		needsMandate: assignment.paymentMethod === 'direct_debit',
+		// Überweiser und Beitragsfreie brauchen kein Mandat – „aktiver Beitrag ohne
+		// Mandat" ist dort keine Auffälligkeit.
+		needsMandate: assignment.paymentMethod === 'direct_debit' && !free,
 		yearlyAmount: assignment.active ? assignment.monthlyAmountCents * 12 / 100 : 0,
 	}
 }

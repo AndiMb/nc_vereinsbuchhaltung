@@ -116,6 +116,10 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   pre-notification lead and release lead are found together in the Nextcloud
   settings (Fees & SEPA); an example line converts them to a collection date.
   The schedule in the Collection tab only displays them.
+- **Fee-free and pauses:** a monthly fee of €0 is possible (group lower limit 0):
+  no claims are created, nothing is collected, no mandate is needed; the member
+  list shows "fee-free". A "Ruhend" (dormant) group works as a pause or passive
+  membership.
 - **Country as a selection:** in the file, the admission dialog and "My
   contribution" the country is chosen from all countries of the world (named in
   your language); new members start in your country. The dialogs for the bank

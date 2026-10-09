@@ -1441,6 +1441,16 @@ Was ein Mitglied zahlt, steht in einer **Zuweisung** zu einer
   dem Anlegen die erste Periode, den Einzugsbetrag und den voraussichtlichen
   Einzugstermin. **„Beenden"** beendet eine Zuweisung zum heutigen Tag; bereits
   erzeugte Forderungen bleiben unverändert.
+- **Beitragsfrei und Pausen:** Ein Monatsbeitrag von **0 €** ist erlaubt (die
+  Untergrenze der Gruppe muss dafür 0 sein). Für eine solche Zuweisung entstehen
+  **keine Forderungen**, es wird nichts eingezogen, und es ist kein Mandat nötig;
+  die Mitgliederliste zeigt „beitragsfrei“. So lassen sich Passiv-, Förder- oder
+  Pausenzeiten abbilden: Legen Sie eine Beitragsgruppe „Ruhend“ mit 0 €
+  Untergrenze und Standardbeitrag an. Für eine Pause beenden Sie die laufende
+  Zuweisung zum Pausenbeginn und legen eine neue in der Gruppe „Ruhend“ an, für
+  das Pausenende wieder zurück. Mitgliedschaft und Mandat bleiben unberührt.
+  Beitragsfreie Perioden hält die App im Hintergrund fest (sie erscheinen in
+  keiner Liste), damit eine spätere Betragserhöhung sie nicht nachfordert.
 - **Zuweisungen gelten nie rückwirkend:** *Gültig ab* darf nicht in der
   Vergangenheit liegen. Was für eine zurückliegende Zeit noch zu fordern ist,
   legen Sie als **Einzelforderung** an (**„+ Einzelforderung"**: freier Betrag

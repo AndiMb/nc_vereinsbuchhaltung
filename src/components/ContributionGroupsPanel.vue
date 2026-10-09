@@ -100,7 +100,7 @@
 							<td>{{ memberName(a.memberId) }}</td>
 							<td>{{ groupName(a.groupId) }}</td>
 							<td class="num">
-								{{ euro(a.monthlyAmountCents) }}
+								{{ a.monthlyAmountCents === 0 ? t('beitragsfrei') : euro(a.monthlyAmountCents) }}
 							</td>
 							<td>{{ intervalLabel(a.intervalMonths) }}</td>
 							<td>{{ formatDate(a.validFrom) }}</td>
