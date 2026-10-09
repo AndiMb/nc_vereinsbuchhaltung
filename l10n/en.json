@@ -2624,7 +2624,8 @@
             "Release due: the run on %s (%n claim, %s €) has not been released yet.",
             "Release due: the run on %s (%n claims, %s €) has not been released yet."
         ],
-        "Wie funktioniert der Terminplan?": "How does the schedule work?"
+        "Wie funktioniert der Terminplan?": "How does the schedule work?",
+        "Mandat ohne Nachweis": "Mandate without proof"
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }
