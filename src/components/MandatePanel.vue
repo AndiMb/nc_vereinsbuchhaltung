@@ -1,5 +1,5 @@
 <template>
-	<section class="vbh-mandate-panel" aria-labelledby="vbh-mandate-heading">
+	<section class="vbh-mandate-panel vbh-akte-section" aria-labelledby="vbh-mandate-heading">
 		<h3 id="vbh-mandate-heading" class="vbh-modal-subtitle">
 			{{ t('SEPA-Mandat') }}
 		</h3>
@@ -14,12 +14,13 @@
 
 		<template v-else>
 			<!-- Das lebende Mandat (höchstens eines je Mitglied, Spec §2.2) -->
-			<div v-if="current" class="vbh-card vbh-mandate-card">
+			<div v-if="current" class="vbh-mandate-card">
 				<div class="vbh-mandate-head">
 					<span class="vbh-mandate-status" :class="'vbh-mandate-status--' + tone(current.status)">{{ statusLabel(current.status) }}</span>
-					<span class="vbh-hint">{{ current.mandateReference }}</span>
+					<!-- Die Referenz steht nur hier, nicht noch einmal in der Liste darunter. -->
+					<span class="vbh-hint">{{ t('Mandatsreferenz') }} {{ current.mandateReference }}</span>
 					<!-- Sperre aus einer Rücklastschrift (setzt die App selbst, Spec §2.2) – auf einen Blick von der manuellen zu unterscheiden -->
-					<span v-if="current.status === 'ausgesetzt' && current.suspensionOrigin === 'ruecklastschrift'" class="vbh-typetag">{{ t('Rücklastschrift') }}</span>
+					<span v-if="current.status === 'ausgesetzt' && current.suspensionOrigin === 'ruecklastschrift'" class="vbh-pill vbh-pill--warning">{{ t('Rücklastschrift') }}</span>
 				</div>
 
 				<p
@@ -30,10 +31,17 @@
 					<strong>{{ notice.title }}</strong> – {{ notice.text }}
 				</p>
 
-				<dl class="vbh-mandate-fields">
+				<dl class="vbh-dl vbh-mandate-fields">
 					<template v-for="row in rows(current)" :key="row.key">
-						<dt>{{ row.label }}</dt>
-						<dd>{{ row.value }}</dd>
+						<dt :title="row.hint">
+							{{ row.label }}
+						</dt>
+						<dd>
+							<span v-if="row.tone" class="vbh-pill" :class="'vbh-pill--' + row.tone">{{ row.value }}</span>
+							<template v-else>
+								{{ row.value }}
+							</template>
+						</dd>
 					</template>
 				</dl>
 
@@ -48,7 +56,7 @@
 								{{ t('Bisherige IBAN {iban}', { iban: formatIban(a.oldIban) }) }}
 								<span class="vbh-hint">· {{ formatStamp(a.createdAt) }}</span>
 							</span>
-							<span class="vbh-typetag" :class="{ 'vbh-typetag--open': a.status === 'open' }">{{ amendmentStatusLabel(a.status) }}</span>
+							<span class="vbh-pill" :class="a.status === 'open' ? 'vbh-pill--warning' : 'vbh-pill--muted'">{{ amendmentStatusLabel(a.status) }}</span>
 							<NcButton
 								v-if="mayWrite && a.status === 'transmitted'"
 								variant="tertiary"
@@ -71,6 +79,8 @@
 						@focus="$event.target.select()">
 				</div>
 
+				<!-- Ein Satz Knöpfe: die Hauptaktion des Zustands primär (wo es eine gibt), der Rest sekundär,
+					Unumkehrbares als Textknopf im Fehlerton. -->
 				<div v-if="mayWrite" class="vbh-mcard-actions vbh-mandate-actions">
 					<template v-if="current.status === 'entwurf'">
 						<NcButton
@@ -91,7 +101,11 @@
 						<NcButton variant="secondary" :disabled="busy" @click="correctOpen = true">
 							{{ t('Entwurf korrigieren') }}
 						</NcButton>
-						<NcButton variant="error" :disabled="busy" @click="discardOpen = true">
+						<NcButton
+							variant="tertiary"
+							class="vbh-btn-danger"
+							:disabled="busy"
+							@click="discardOpen = true">
 							{{ t('Entwurf verwerfen') }}
 						</NcButton>
 					</template>
@@ -102,7 +116,11 @@
 						<NcButton variant="secondary" :disabled="busy" @click="openAction('suspend')">
 							{{ t('Sperren') }}
 						</NcButton>
-						<NcButton variant="error" :disabled="busy" @click="revokeOpen = true">
+						<NcButton
+							variant="tertiary"
+							class="vbh-btn-danger"
+							:disabled="busy"
+							@click="revokeOpen = true">
 							{{ t('Mandat widerrufen') }}
 						</NcButton>
 					</template>
@@ -110,7 +128,11 @@
 						<NcButton variant="primary" :disabled="busy" @click="openAction('resume')">
 							{{ t('Entsperren') }}
 						</NcButton>
-						<NcButton variant="error" :disabled="busy" @click="revokeOpen = true">
+						<NcButton
+							variant="tertiary"
+							class="vbh-btn-danger"
+							:disabled="busy"
+							@click="revokeOpen = true">
 							{{ t('Mandat widerrufen') }}
 						</NcButton>
 					</template>
@@ -132,9 +154,6 @@
 							{{ t('Abbrechen') }}
 						</NcButton>
 					</div>
-					<p class="vbh-hint">
-						{{ t('Das Unterschriftsdatum ist Pflicht – es ist das Gate: erst damit wird das Mandat einzugsfähig.') }}
-					</p>
 					<p v-if="activateTooOld" class="vbh-hint vbh-hint--warning">
 						{{ t('Das Unterschriftsdatum liegt mehr als 36 Monate zurück – das Mandat würde nach der Aktivierung sofort verfallen. Bitte prüfen Sie das Datum.') }}
 					</p>
@@ -149,7 +168,7 @@
 							:placeholder="t('z. B. Rückfrage beim Mitglied wegen Kontowechsel')" />
 					</label>
 					<p class="vbh-hint">
-						{{ t('Ein gesperrtes Mandat ist nicht einzugsfähig, beendet aber nichts – offene Forderungen bleiben offen.') }}
+						{{ t('Ein gesperrtes Mandat wird nicht eingezogen; offene Forderungen bleiben offen.') }}
 					</p>
 					<div class="vbh-modal-actions">
 						<NcButton variant="tertiary" @click="closeAction">
@@ -170,7 +189,7 @@
 							:placeholder="t('z. B. Kontoverbindung telefonisch bestätigt')" />
 					</label>
 					<p class="vbh-hint">
-						{{ t('Es gibt keine Auto-Entsperrung: Mit dem Entsperren sind Sie sicher, dass der Grund der Sperre ausgeräumt ist. Die Notiz steht im Verlauf.') }}
+						{{ t('Die Notiz steht im Verlauf. Entsperren Sie erst, wenn der Grund der Sperre ausgeräumt ist.') }}
 					</p>
 					<div class="vbh-modal-actions">
 						<NcButton variant="tertiary" @click="closeAction">
@@ -182,30 +201,40 @@
 					</div>
 				</div>
 
-				<!-- Nachweis und Formular -->
-				<h4 class="vbh-mandate-h4">
-					{{ t('Nachweis und Formular') }}
-				</h4>
-				<div class="vbh-uploadrow">
-					<template v-if="mayWrite">
-						<label class="vbh-filebtn">{{ current.hasDocument ? t('Nachweis ersetzen') : t('Nachweis hochladen') }}<input
+				<!-- Nachweis und Formular: ein Satz Knöpfe. Ob der Nachweis fehlt, sagt allein die Zeile „Nachweis“
+					in der Liste oben (mit Warnmarke, solange die Einstellung „auf Mandate ohne Nachweis hinweisen“ gilt). -->
+				<template v-if="mayWrite">
+					<h4 class="vbh-mandate-h4">
+						{{ t('Nachweis und Formular') }}
+					</h4>
+					<div class="vbh-uploadrow">
+						<NcButton variant="secondary" :disabled="uploading" @click="$refs.documentInput.click()">
+							<template #icon>
+								<NcIconSvgWrapper :path="mdiUpload" :size="20" />
+							</template>
+							{{ current.hasDocument ? t('Nachweis ersetzen') : t('Nachweis hochladen') }}
+						</NcButton>
+						<input
+							ref="documentInput"
 							type="file"
 							accept="application/pdf,image/png,image/jpeg,image/webp"
 							hidden
 							:disabled="uploading"
-							@change="onDocumentSelected"></label>
-						<a
-							v-if="current.hasDocument"
-							:href="documentUrl(current.id)"
-							class="vbh-export-btn">{{ t('Nachweis herunterladen') }}</a>
-						<a
-							:href="formUrl(current.id)"
-							target="_blank"
-							rel="noopener"
-							class="vbh-export-btn">{{ t('Mandatsformular öffnen') }}</a>
-					</template>
-					<span v-if="!current.hasDocument" class="vbh-hint">{{ t('Noch kein Nachweis hinterlegt.') }}</span>
-				</div>
+							@change="onDocumentSelected">
+						<NcButton v-if="current.hasDocument" variant="tertiary" :href="documentUrl(current.id)">
+							<template #icon>
+								<NcIconSvgWrapper :path="mdiDownload" :size="20" />
+							</template>
+							{{ t('Nachweis herunterladen') }}
+						</NcButton>
+						<NcButton variant="tertiary" :href="formUrl(current.id)" target="_blank">
+							<template #icon>
+								<NcIconSvgWrapper :path="mdiOpenInNew" :size="20" />
+							</template>
+							{{ t('Mandatsformular öffnen') }}
+						</NcButton>
+					</div>
+				</template>
 
 				<!-- Verlauf: wer, wann, was -->
 				<details class="vbh-mandate-history">
@@ -215,7 +244,7 @@
 			</div>
 
 			<!-- Kein lebendes Mandat -->
-			<div v-else class="vbh-card vbh-mandate-card">
+			<div v-else class="vbh-mandate-card">
 				<p v-if="endedNotice" class="vbh-hint vbh-hint--warning">
 					<strong>{{ endedNotice.title }}</strong> – {{ endedNotice.text }}
 				</p>
@@ -289,9 +318,11 @@
 					<summary>
 						{{ pastSummary(m) }}
 					</summary>
-					<dl class="vbh-mandate-fields">
+					<dl class="vbh-dl vbh-mandate-fields">
 						<template v-for="row in rows(m)" :key="row.key">
-							<dt>{{ row.label }}</dt>
+							<dt :title="row.hint">
+								{{ row.label }}
+							</dt>
 							<dd>{{ row.value }}</dd>
 						</template>
 					</dl>
@@ -339,8 +370,9 @@
 </template>
 
 <script>
+import { mdiDownload, mdiOpenInNew, mdiUpload } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcIconSvgWrapper, NcLoadingIcon } from '@nextcloud/vue'
 import MandateAccountDialog from './MandateAccountDialog.vue'
 import MandateDraftCorrectDialog from './MandateDraftCorrectDialog.vue'
 import MandateDraftDiscardDialog from './MandateDraftDiscardDialog.vue'
@@ -355,6 +387,7 @@ import {
 	activationLinkState,
 	amendmentStatusLabel,
 	daysUntil,
+	documentRowTone,
 	endReasonLabel,
 	formatIban,
 	formatStamp,
@@ -391,7 +424,7 @@ const emptyCreateForm = () => ({ signatureType: 'papier', iban: '', bic: '', acc
  */
 export default {
 	name: 'MandatePanel',
-	components: { NcButton, NcLoadingIcon, MandateAccountDialog, MandateDraftCorrectDialog, MandateDraftDiscardDialog, MandateEventList, SelfServiceMandateRevokeDialog },
+	components: { NcButton, NcIconSvgWrapper, NcLoadingIcon, MandateAccountDialog, MandateDraftCorrectDialog, MandateDraftDiscardDialog, MandateEventList, SelfServiceMandateRevokeDialog },
 	props: {
 		/** Die Akte (dekoriertes Mitglied): id, displayName, email. */
 		member: { type: Object, required: true },
@@ -407,6 +440,9 @@ export default {
 
 	data() {
 		return {
+			mdiDownload,
+			mdiOpenInNew,
+			mdiUpload,
 			loading: true,
 			/** Erst nach dem ersten Laden; danach tauscht load() die Anzeige leise aus. */
 			loaded: false,
@@ -531,8 +567,10 @@ export default {
 
 		/** Zeilen der Definitionsliste – für das lebende wie für beendete Mandate. */
 		rows(m) {
+			// Die Mandatsreferenz steht in der Kopfzeile des Mandats (und bei beendeten in der
+			// Zusammenfassung) – hier nicht noch einmal.
+			const expiryHint = this.t('36-Monats-Regel: Ein Mandat, über das 36 Monate lang nichts eingezogen wurde, erlischt.')
 			const rows = [
-				{ key: 'ref', label: this.t('Mandatsreferenz'), value: m.mandateReference },
 				{ key: 'holder', label: this.t('Kontoinhaber'), value: m.accountHolder },
 				{ key: 'iban', label: this.t('IBAN'), value: formatIban(m.iban) || '–' },
 				{ key: 'bic', label: this.t('BIC'), value: m.bic || '–' },
@@ -553,18 +591,25 @@ export default {
 				const days = daysUntil(m.expiresAt)
 				rows.push({
 					key: 'expires',
-					label: this.t('Läuft ab (36-Monats-Regel)'),
+					label: this.t('Läuft ab'),
+					hint: expiryHint,
 					value: m.expiresAt
 						? formatDate(m.expiresAt) + (days !== null && days >= 0 ? ' · ' + this.n('in %n Tag', 'in %n Tagen', days) : '')
 						: '–',
 				})
 			} else if (m.status === 'entwurf') {
-				rows.push({ key: 'expires', label: this.t('Läuft ab (36-Monats-Regel)'), value: this.t('beginnt mit der Aktivierung') })
+				rows.push({ key: 'expires', label: this.t('Läuft ab'), hint: expiryHint, value: this.t('beginnt mit der Aktivierung') })
 			}
 			if (m.lastPresentedDueDate) {
 				rows.push({ key: 'presented', label: this.t('Zuletzt eingereicht für'), value: formatDate(m.lastPresentedDueDate) })
 			}
-			rows.push({ key: 'document', label: this.t('Nachweis'), value: m.hasDocument ? this.t('vorhanden') : this.t('fehlt') })
+			// Der einzige Ort, der ein fehlendes Dokument nennt; die Warnmarke folgt der Einstellung „auf Mandate ohne Nachweis hinweisen“.
+			rows.push({
+				key: 'document',
+				label: this.t('Nachweis'),
+				value: m.hasDocument ? this.t('vorhanden') : this.t('fehlt'),
+				tone: documentRowTone(m),
+			})
 			if (m.activatedAt) {
 				rows.push({ key: 'activated', label: this.t('Aktiviert'), value: formatStamp(m.activatedAt) })
 			}
@@ -813,8 +858,14 @@ export default {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
-	gap: 8px 12px;
-	margin-bottom: 8px;
+	gap: calc(var(--default-grid-baseline, 4px) * 2) calc(var(--default-grid-baseline, 4px) * 3);
+	margin-bottom: calc(var(--default-grid-baseline, 4px) * 3);
+}
+
+/* Hinweise des Mandats (Störfälle) stehen über der Liste, mit etwas Luft nach unten. */
+.vbh-mandate-card > .vbh-hint--info,
+.vbh-mandate-card > .vbh-hint--warning {
+	margin: 0 0 calc(var(--default-grid-baseline, 4px) * 3);
 }
 
 /*
@@ -849,25 +900,14 @@ export default {
 	opacity: 0.85;
 }
 
+/* Die Definitionsliste selbst kommt aus styles.css (.vbh-dl). */
 .vbh-mandate-fields {
-	display: grid;
-	grid-template-columns: max-content 1fr;
-	column-gap: 16px;
-	row-gap: 6px;
-	margin: 8px 0 0;
+	margin-top: calc(var(--default-grid-baseline, 4px) * 2);
 }
 
-.vbh-mandate-fields dt {
-	color: var(--color-text-maxcontrast);
-}
-
-.vbh-mandate-fields dd {
-	margin: 0;
-	overflow-wrap: anywhere;
-}
-
+/* Zwischenüberschrift im Mandat: kleiner als der Abschnittstitel, ohne Linie. */
 .vbh-mandate-h4 {
-	margin: 18px 0 6px;
+	margin: calc(var(--default-grid-baseline, 4px) * 5) 0 calc(var(--default-grid-baseline, 4px) * 2);
 	font-size: 0.95em;
 }
 
@@ -886,12 +926,6 @@ export default {
 	gap: 6px 12px;
 }
 
-/* Noch nicht gemeldete Änderung: Warnpaar statt einfarbigem Rand, damit sie in beiden Designs lesbar bleibt. */
-.vbh-typetag--open {
-	background-color: var(--color-warning);
-	color: var(--color-warning-text);
-}
-
 .vbh-mandate-link {
 	display: flex;
 	flex-direction: column;
@@ -903,8 +937,8 @@ export default {
 }
 
 .vbh-mandate-actions {
-	margin-top: 12px;
-	gap: 8px;
+	margin-top: calc(var(--default-grid-baseline, 4px) * 4);
+	gap: calc(var(--default-grid-baseline, 4px) * 2);
 }
 
 .vbh-mandate-form {
@@ -926,7 +960,7 @@ export default {
 
 .vbh-mandate-history,
 .vbh-mandate-past {
-	margin-top: 12px;
+	margin-top: calc(var(--default-grid-baseline, 4px) * 4);
 }
 
 .vbh-mandate-history summary,
@@ -939,17 +973,5 @@ export default {
 	padding: 8px 12px;
 	border: 1px solid var(--color-border);
 	border-radius: var(--border-radius-large, 12px);
-}
-
-/* Schmale Displays: Bezeichnung über Wert statt nebeneinander (lange IBANs und Meldungen sprengen sonst die Breite). */
-@media (max-width: 640px) {
-	.vbh-mandate-fields {
-		grid-template-columns: 1fr;
-		row-gap: 0;
-	}
-
-	.vbh-mandate-fields dd {
-		margin-bottom: 8px;
-	}
 }
 </style>

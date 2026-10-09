@@ -118,7 +118,8 @@ test.describe('Einzug-Unterreiter: Segment „Forderungen“', () => {
 		// Vorgabe: was noch aussteht – die erledigte Forderung fehlt.
 		const first = rowOf(panel, 'Forderungen Listeeins')
 		await expect(first).toContainText('Beitrag Eins')
-		await expect(first.locator('.vbh-typetag', { hasText: 'Beitrag' })).toBeVisible()
+		// Die Art steht nur bei Abweichung vom Normalfall: ein Beitrag trägt kein Etikett, eine Gebühr schon (unten).
+		await expect(first.locator('.vbh-typetag')).toHaveCount(0)
 		await expect(first).toContainText(germanDate(early))
 		await expect(first).toContainText(/12,50\s*€/)
 		await expect(first.getByText('offen', { exact: true })).toBeVisible()

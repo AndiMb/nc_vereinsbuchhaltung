@@ -5,18 +5,22 @@
 				<span class="vbh-bank-tx-amount">{{ formatMoney(tx.amountCents / 100) }}</span>
 				<span class="vbh-typetag">{{ kindLabel(entry.kind) }}</span>
 				<DebitStatusTag kind="bank-tx" :value="summary.state" />
+				<strong class="vbh-bank-tx-progress">{{ progressText(summary) }}</strong>
 			</div>
-			<p class="vbh-bank-tx-meta">
+			<!-- Datum und Zahler in einer Zeile, bei Platzmangel gekürzt; der volle Text steht im Tooltip. -->
+			<p class="vbh-bank-tx-meta" :title="metaText">
 				{{ t('Bankumsatz vom {datum}', { datum: formatDate(tx.bookingDate) }) }}<template v-if="tx.counterparty">
 					· {{ tx.counterparty }}
 				</template>
 			</p>
-			<!-- Verwendungszweck und Zahler stammen aus dem Bankauszug: nie in einer t()-Variable (HTML-Escaping). -->
-			<p v-if="tx.purpose" class="vbh-bank-tx-purpose">
+			<!-- Verwendungszweck und Zahler stammen aus dem Bankauszug: nie in einer t()-Variable (HTML-Escaping).
+				Eine Sammelgutschrift trägt hier eine lange Kette von Namen: zwei Zeilen genügen, aufgeklappt steht alles da. -->
+			<p
+				v-if="tx.purpose"
+				class="vbh-bank-tx-purpose"
+				:class="{ 'vbh-bank-tx-purpose--full': expanded }"
+				:title="tx.purpose">
 				{{ tx.purpose }}
-			</p>
-			<p class="vbh-bank-tx-progress">
-				<strong>{{ progressText(summary) }}</strong>
 			</p>
 			<p v-if="summary.state === 'ohne_zuordnung'" class="vbh-hint">
 				{{ t('Dieser Umsatz ist ohne Zuordnung beurteilt. Ändern Sie ein Urteil, oder buchen Sie ihn unter Buchungen → Zuzuordnen von Hand.') }}
@@ -43,7 +47,7 @@
 					@click="$emit('bulk', bulkItems)">
 					{{ n('Eindeutigen Vorschlag bestätigen (%n)', 'Eindeutige Vorschläge bestätigen (%n)', bulkCount) }}
 				</NcButton>
-				<span class="vbh-hint">{{ t('Bestätigt nur Zeilen mit genau einem Treffer über End-to-End-ID oder Mandatsreferenz. Gebucht wird dabei noch nichts.') }}</span>
+				<span class="vbh-hint">{{ t('Nur Zeilen mit genau einem Treffer; gebucht wird dabei noch nichts.') }}</span>
 			</div>
 
 			<div class="vbh-bank-rows">
@@ -119,6 +123,12 @@ export default {
 		bulkItems() { return unambiguousOpenDetails(this.entry) },
 		bulkCount() { return this.bulkItems.length },
 
+		/** Datum und Zahler als Tooltip der gekürzten Zeile; der Zahler steht nicht in einer t()-Variable (HTML-Escaping). */
+		metaText() {
+			const date = this.t('Bankumsatz vom {datum}', { datum: formatDate(this.tx.bookingDate) })
+			return this.tx.counterparty ? `${date} · ${this.tx.counterparty}` : date
+		},
+
 		/** Name der Gruppe für Bildschirmleser. Der Zahler steht nicht in einer t()-Variable (HTML-Escaping). */
 		txLabel() {
 			return `${this.t('Bankumsatz vom {datum}', { datum: formatDate(this.tx.bookingDate) })}, ${formatMoney(this.tx.amountCents / 100)}`
@@ -148,7 +158,7 @@ export default {
 	gap: 8px 12px;
 	align-items: start;
 	margin: 10px 0;
-	padding: 12px 14px;
+	padding: 10px 14px;
 	border: 1px solid var(--color-border);
 	border-radius: var(--border-radius-large, 12px);
 	background-color: var(--color-background-hover);
@@ -166,7 +176,7 @@ export default {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
-	gap: 6px 12px;
+	gap: 4px 12px;
 }
 
 .vbh-bank-tx-amount {
@@ -175,15 +185,41 @@ export default {
 	font-variant-numeric: tabular-nums;
 }
 
-.vbh-bank-tx-meta,
-.vbh-bank-tx-purpose,
 .vbh-bank-tx-progress {
-	margin: 4px 0 0;
+	font-size: 0.9em;
+	font-weight: 600;
+	color: var(--color-text-maxcontrast);
+}
+
+.vbh-bank-tx-meta,
+.vbh-bank-tx-purpose {
+	margin: 2px 0 0;
 	overflow-wrap: anywhere;
 }
 
+/* Datum und Zahler: eine Zeile, gekürzt. */
+.vbh-bank-tx-meta {
+	overflow: hidden;
+	font-size: 0.9em;
+	color: var(--color-text-maxcontrast);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* Der Verwendungszweck ist höchstens zwei Zeilen hoch; die ungekürzte Fassung zeigt der aufgeklappte Umsatz. */
 .vbh-bank-tx-purpose {
-	opacity: 0.85;
+	display: -webkit-box;
+	overflow: hidden;
+	font-size: 0.9em;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
+}
+
+.vbh-bank-tx-purpose--full {
+	display: block;
+	-webkit-line-clamp: unset;
+	line-clamp: unset;
 }
 
 .vbh-bank-tx-body {

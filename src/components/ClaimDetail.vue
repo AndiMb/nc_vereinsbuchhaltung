@@ -333,6 +333,7 @@ export default {
 	grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
 	gap: 8px 24px;
 	margin: 0 0 8px;
+	padding: 0;
 }
 
 .vbh-cd-facts > div {

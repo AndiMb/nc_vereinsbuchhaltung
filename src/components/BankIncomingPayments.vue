@@ -1,8 +1,13 @@
 <template>
 	<div class="vbh-bank-incoming">
-		<p v-if="!incoming.length" class="vbh-hint">
-			{{ t('Es gibt keine Gutschrift, die zu einer offenen Forderung passt. Gutschriften, für die ein Vorschlag besteht, erscheinen hier nach dem Kontoauszugs-Import.') }}
-		</p>
+		<NcEmptyContent
+			v-if="!incoming.length"
+			:name="t('Es gibt keine Gutschrift, die zu einer offenen Forderung passt.')"
+			:description="t('Gutschriften mit Vorschlag erscheinen hier nach dem Kontoauszugs-Import.')">
+			<template #icon>
+				<NcIconSvgWrapper :path="mdiCashPlus" />
+			</template>
+		</NcEmptyContent>
 
 		<article
 			v-for="entry in incoming"
@@ -20,7 +25,7 @@
 					</template>
 				</p>
 				<!-- Zahler und Verwendungszweck stammen aus dem Bankauszug: nie in einer t()-Variable (HTML-Escaping). -->
-				<p v-if="entry.bankTx.purpose" class="vbh-bank-in-purpose">
+				<p v-if="entry.bankTx.purpose" class="vbh-bank-in-purpose" :title="entry.bankTx.purpose">
 					{{ entry.bankTx.purpose }}
 				</p>
 			</header>
@@ -73,8 +78,9 @@
 </template>
 
 <script>
+import { mdiCashPlus } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { NcButton } from '@nextcloud/vue'
+import { NcButton, NcEmptyContent, NcIconSvgWrapper } from '@nextcloud/vue'
 import { useBankReconciliation } from '../composables/useBankReconciliation.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { accountLabel, describeSettleError } from '../lib/bankReconciliation.js'
@@ -93,7 +99,7 @@ import { formatDate, formatMoney } from '../lib/format.js'
  */
 export default {
 	name: 'BankIncomingPayments',
-	components: { NcButton },
+	components: { NcButton, NcEmptyContent, NcIconSvgWrapper },
 	props: {
 		// GET /bank-reconciliation, `incoming`
 		incoming: { type: Array, default: () => [] },
@@ -107,7 +113,7 @@ export default {
 	},
 
 	data() {
-		return { busy: false }
+		return { busy: false, mdiCashPlus }
 	},
 
 	methods: {
@@ -192,15 +198,21 @@ export default {
 	overflow-wrap: anywhere;
 }
 
+/* Der Verwendungszweck ist höchstens zwei Zeilen hoch (eine Sammelgutschrift trägt hier eine lange Kette von Namen); der volle Text steht im Tooltip. */
 .vbh-bank-in-purpose {
+	display: -webkit-box;
+	overflow: hidden;
 	opacity: 0.85;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
 }
 
 .vbh-bank-in-suggestions {
 	display: flex;
 	flex-direction: column;
-	gap: 8px;
-	margin: 10px 0 0;
+	gap: 0;
+	margin: 6px 0 0;
 	padding: 0;
 	list-style: none;
 }
@@ -210,10 +222,11 @@ export default {
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 8px 14px;
-	padding: 8px 10px;
-	border: 1px solid var(--color-border-dark);
-	border-radius: var(--border-radius-large, 12px);
-	background-color: var(--color-main-background);
+	padding: 8px 0;
+}
+
+.vbh-bank-in-suggestion + .vbh-bank-in-suggestion {
+	border-top: 1px solid var(--color-border);
 }
 
 .vbh-bank-in-text {

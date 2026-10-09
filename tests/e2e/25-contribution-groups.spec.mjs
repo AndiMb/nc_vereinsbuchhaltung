@@ -68,7 +68,9 @@ test.describe('Beitragsgruppen, Zuweisungen & Forderungen', () => {
 		await expect(visibleSection(page).locator('tr', { hasText: GROUP_NAME_RENAMED })).toBeVisible()
 
 		const renamedRow = visibleSection(page).locator('tr', { hasText: GROUP_NAME_RENAMED })
-		await renamedRow.getByRole('button', { name: 'Löschen', exact: true }).click()
+		// „Löschen“ steht im Zeilenmenü (neben „Untergrenze anheben“), der gewöhnliche Knopf ist „Bearbeiten“.
+		await renamedRow.getByRole('button', { name: 'Aktionen' }).click()
+		await page.getByRole('menuitem', { name: 'Löschen' }).click()
 		const confirmDialog = page.getByRole('dialog', { name: 'Beitragsgruppe löschen' })
 		await expect(confirmDialog).toBeVisible()
 		await confirmDialog.getByRole('button', { name: 'Löschen', exact: true }).click()

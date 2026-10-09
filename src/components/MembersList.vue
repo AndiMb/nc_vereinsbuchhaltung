@@ -1,20 +1,15 @@
 <template>
 	<div>
-		<p class="vbh-hint">
-			{{ t('Ein Mitglied wird unabhängig von einer Bankverbindung geführt – SEPA-Mandat und Beitrag sind optionale Ergänzungen, die sich jederzeit über „Aufnehmen" bzw. die Akte nachtragen lassen.') }}
-		</p>
-
-		<div class="vbh-form">
-			<label class="vbh-grow">{{ t('Suchen') }}
+		<div class="vbh-memberfilter">
+			<label class="vbh-memberfilter-search">{{ t('Suchen') }}
 				<input v-model="search" type="search" :placeholder="t('Name, IBAN, Mitgliedsnummer oder E-Mail')">
 			</label>
-			<label>
-				<input v-model="onlyProblems" type="checkbox">
+			<NcCheckboxRadioSwitch v-model="onlyProblems">
 				{{ t('nur Auffälligkeiten') }}
-			</label>
+			</NcCheckboxRadioSwitch>
 		</div>
 
-		<p v-if="rows.length" class="vbh-hint">
+		<p v-if="rows.length" class="vbh-hint vbh-membersummary">
 			{{ t('{gezeigt} von {gesamt} Mitgliedern · {mitMandat} mit Mandat · Beitragsaufkommen {summe} im Jahr', {
 				gezeigt: filteredRows.length,
 				gesamt: rows.length,
@@ -37,29 +32,49 @@
 				<thead>
 					<tr>
 						<th>{{ t('Mitglied') }}</th>
-						<th>{{ t('Bankverbindung') }}</th>
+						<th class="vbh-mlist-col-bank">
+							{{ t('Bankverbindung') }}
+						</th>
 						<th class="num">
 							{{ t('Betrag') }}
 						</th>
-						<th>{{ t('Frequenz') }}</th>
-						<th>{{ t('Nächste Fälligkeit') }}</th>
-						<th>{{ tc('Zustand', 'Aktiv') }}</th>
-						<th class="vbh-col-memberactions" />
+						<th class="vbh-mlist-col-freq">
+							{{ t('Frequenz') }}
+						</th>
+						<th class="vbh-mlist-col-due">
+							{{ t('Nächste Fälligkeit') }}
+						</th>
+						<th class="vbh-mlist-col-state">
+							{{ t('Zuweisung') }}
+						</th>
+						<th class="vbh-col-rowactions" />
 					</tr>
 				</thead>
 				<tbody>
 					<tr v-for="row in filteredRows" :key="row.key">
 						<td>
-							{{ row.displayName }}
-							<span v-if="row.member.memberNumber" class="vbh-hint">#{{ row.member.memberNumber }}</span>
-							<span v-if="!row.member.active" class="vbh-typetag">{{ t('ausgetreten') }}</span>
-							<br v-if="!row.email">
-							<span v-if="!row.email" class="vbh-hint">{{ t('keine E-Mail – keine Vorankündigung möglich') }}</span>
+							<div class="vbh-namecell">
+								<!-- Der Name öffnet die Akte: der eine Weg dorthin. Das Zeilenmenü führt nur zum Mandat. -->
+								<button
+									type="button"
+									class="vbh-linkbtn"
+									:aria-label="`${t('Akte öffnen')}: ${row.displayName}`"
+									@click="openMemberAkte(row.member)">
+									{{ row.displayName }}
+								</button>
+								<span v-if="row.member.memberNumber" class="vbh-hint">#{{ row.member.memberNumber }}</span>
+								<span v-if="!row.member.active" class="vbh-pill vbh-pill--muted">{{ t('ausgetreten') }}</span>
+								<span v-if="!row.email" class="vbh-pill vbh-pill--warning" :title="t('keine E-Mail – keine Vorankündigung möglich')">
+									<NcIconSvgWrapper :path="mdiEmailOffOutline" :size="14" />
+									{{ t('keine E-Mail') }}
+								</span>
+							</div>
 						</td>
-						<td class="nowrap">
+						<td>
 							<template v-if="row.mandate">
-								{{ row.mandate.iban }}
-								<span v-if="row.mandate.statusTag" class="vbh-typetag">{{ row.mandate.statusTag }}</span>
+								<!-- Die IBAN steht ungekürzt: eine mit … abgeschnittene Nummer ist keine. Die Marke bricht darunter um. -->
+								<span class="vbh-iban">{{ row.mandate.iban }}</span>
+								<span v-if="row.mandate.statusTag" class="vbh-pill vbh-pill--warning">{{ row.mandate.statusTag }}</span>
 							</template>
 							<span v-else-if="row.fee && !row.fee.needsMandate" class="vbh-hint">{{ t('Überweisung') }}</span>
 							<span v-else class="vbh-hint">{{ t('kein Mandat') }}</span>
@@ -77,11 +92,11 @@
 							{{ row.nextDueDate || '–' }}
 						</td>
 						<td>
-							<span v-if="row.fee">{{ row.fee.statusLabel }}</span>
+							<span v-if="row.fee" class="vbh-status" :class="`vbh-status--${row.fee.statusTone}`">{{ row.fee.statusLabel }}</span>
 							<span v-else>–</span>
 						</td>
 						<td class="nowrap right">
-							<div class="vbh-actions">
+							<div class="vbh-rowactions">
 								<!-- Zuweisungen werden nicht inline bearbeitet: Betrag, Turnus und
 									Laufzeit haben ihre Stelle bei den Beitragsgruppen. -->
 								<NcButton
@@ -95,18 +110,9 @@
 										<NcIconSvgWrapper :path="mdiPencil" :size="20" />
 									</template>
 								</NcButton>
-								<!-- Seltener genutzte Aktionen im Menue, sonst wird die Zeile
-									durch weitere Icon-Buttons zu breit (dasselbe Muster wie im
-									Buchungsjournal, siehe BookingsTab.vue). -->
+								<!-- Das Mandat führen (aktivieren, sperren, widerrufen, IBAN ändern …):
+									springt in der Akte zum Mandat-Bereich (MandatePanel.vue, Issue #100). -->
 								<NcActions :forceMenu="true">
-									<NcActionButton closeAfterClick @click="openMemberAkte(row.member)">
-										<template #icon>
-											<NcIconSvgWrapper :path="mdiAccountEdit" :size="16" />
-										</template>
-										{{ t('Akte öffnen') }}
-									</NcActionButton>
-									<!-- Das Mandat führen (aktivieren, sperren, widerrufen, IBAN ändern …):
-										springt in der Akte zum Mandat-Bereich (MandatePanel.vue, Issue #100). -->
 									<NcActionButton closeAfterClick @click="openMemberAkte(row.member, 'mandate')">
 										<template #icon>
 											<NcIconSvgWrapper :path="mdiFileSign" :size="16" />
@@ -146,9 +152,9 @@
 </template>
 
 <script>
-import { mdiAccountEdit, mdiFileSign, mdiPencil } from '@mdi/js'
+import { mdiEmailOffOutline, mdiFileSign, mdiPencil } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { NcActionButton, NcActions, NcButton, NcEmptyContent, NcIconSvgWrapper } from '@nextcloud/vue'
+import { NcActionButton, NcActions, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import MemberCard from './MemberCard.vue'
 import MemberDialog from './MemberDialog.vue'
@@ -174,8 +180,9 @@ import { buildMemberRow, nextDueDates } from '../lib/memberRow.js'
  * Normalisierung für die Anzeige steckt in lib/memberRow.js. Die „Nächste
  * Fälligkeit" kommt aus der Forderungsübersicht (GET /claims/overview, eine
  * Abfrage für die ganze Liste). Zuweisungen werden hier nicht inline
- * bearbeitet – sie führen zu den Beitragsgruppen (`manage-assignments`), das
- * Mandat zur Akte.
+ * bearbeitet – sie führen zu den Beitragsgruppen (`manage-assignments`). Der
+ * Name öffnet die Akte (der eine Weg dorthin), das Zeilenmenü springt in der
+ * Akte zum Mandat.
  *
  * Frueher SettingsMembers.vue im Einstellungen-Modal, jetzt Unterreiter
  * „Mitglieder" von ContributionsTab.vue, siehe NAVIGATION-KONZEPT.md
@@ -189,7 +196,7 @@ import { buildMemberRow, nextDueDates } from '../lib/memberRow.js'
  */
 export default {
 	name: 'MembersList',
-	components: { NcButton, NcActions, NcActionButton, NcEmptyContent, NcIconSvgWrapper, MemberDialog, MemberImportDialog, MemberCard },
+	components: { NcButton, NcActions, NcActionButton, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, MemberDialog, MemberImportDialog, MemberCard },
 	props: {
 		isMobile: { type: Boolean, default: false },
 		defaultFeeAmount: { type: [Number, String], default: '' },
@@ -227,7 +234,7 @@ export default {
 			/** Abschnitt, zu dem die Akte beim Öffnen scrollt ('mandate' oder leer). */
 			akteSection: '',
 			importDialogOpen: false,
-			mdiAccountEdit,
+			mdiEmailOffOutline,
 			mdiFileSign,
 			mdiPencil,
 		}
@@ -367,3 +374,63 @@ export default {
 	},
 }
 </script>
+
+<style scoped>
+/*
+ * Suche und Auffälligkeiten in einer Zeile; die Checkbox sitzt auf der Höhe des
+ * Suchfelds. Bewusst nicht in einem .vbh-form: dessen `label`-Regel würde auch
+ * das Etikett der NcCheckboxRadioSwitch stapeln und verkleinern.
+ */
+.vbh-memberfilter {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: calc(var(--default-grid-baseline, 4px) * 2) calc(var(--default-grid-baseline, 4px) * 4);
+	margin-top: calc(var(--default-grid-baseline, 4px) * 2);
+}
+
+.vbh-memberfilter-search {
+	display: flex;
+	flex: 1 1 220px;
+	flex-direction: column;
+	gap: 3px;
+	min-width: 0;
+	font-size: 0.85em;
+}
+
+.vbh-memberfilter-search input {
+	width: 100%;
+}
+
+/*
+ * Spaltenbreiten (bei table-layout: fixed zählt nur die Kopfzeile): die IBAN-Spalte
+ * ist so breit, dass die Nummer ungekürzt passt; der Name bekommt den Rest.
+ */
+.vbh-table thead th.vbh-mlist-col-bank {
+	width: 230px;
+}
+
+.vbh-table thead th.vbh-mlist-col-freq {
+	width: 120px;
+}
+
+.vbh-table thead th.vbh-mlist-col-due {
+	width: 130px;
+}
+
+.vbh-table thead th.vbh-mlist-col-state {
+	width: 150px;
+}
+
+.vbh-iban {
+	margin-inline-end: calc(var(--default-grid-baseline, 4px) * 1);
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+/* Die Summenzeile ist eine Fußnote zur Tabelle, kein Absatz. */
+.vbh-membersummary {
+	margin: calc(var(--default-grid-baseline, 4px) * 2) 0 calc(var(--default-grid-baseline, 4px) * 1);
+	font-size: 0.9em;
+}
+</style>

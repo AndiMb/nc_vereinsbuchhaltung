@@ -1,22 +1,27 @@
 <template>
 	<div class="vbh-claims">
 		<div class="vbh-claims-head">
-			<h4>{{ t('Forderungen') }}</h4>
-			<div class="vbh-claims-views" role="group" :aria-label="t('Darstellung der Forderungen')">
-				<NcButton
-					size="small"
-					:variant="view === 'claims' ? 'primary' : 'secondary'"
+			<!-- Der Reiter „Forderungen" darüber nennt den Bereich schon; die Überschrift bleibt für Screenreader. -->
+			<h4 class="vbh-visually-hidden">
+				{{ t('Forderungen') }}
+			</h4>
+			<div class="vbh-segmented" role="group" :aria-label="t('Darstellung der Forderungen')">
+				<button
+					type="button"
+					class="vbh-segmented-item"
+					:class="{ active: view === 'claims' }"
 					:aria-pressed="view === 'claims' ? 'true' : 'false'"
 					@click="view = 'claims'">
 					{{ t('Je Forderung') }}
-				</NcButton>
-				<NcButton
-					size="small"
-					:variant="view === 'members' ? 'primary' : 'secondary'"
+				</button>
+				<button
+					type="button"
+					class="vbh-segmented-item"
+					:class="{ active: view === 'members' }"
 					:aria-pressed="view === 'members' ? 'true' : 'false'"
 					@click="view = 'members'">
 					{{ t('Je Mitglied') }}
-				</NcButton>
+				</button>
 			</div>
 			<span class="vbh-claims-spacer" />
 			<NcButton
@@ -34,13 +39,13 @@
 			<NcButton
 				v-if="canWrite"
 				size="small"
-				variant="primary"
+				variant="secondary"
 				@click="claimDialogOpen = true">
 				{{ t('+ Einzelforderung') }}
 			</NcButton>
 		</div>
 		<p class="vbh-hint">
-			{{ t('Forderungen an Mitglieder mit Zustand, Störfällen und Mahnstand. Vorgabe der Liste sind die nicht beglichenen (offen, im Einzug, zurückgegeben). Die allgemeinen offenen Posten (Rechnungen ohne Mitglied) bleiben unter Buchungen.') }}
+			{{ t('Forderungen an Mitglieder; allgemeine offene Posten ohne Mitglied stehen unter Buchungen.') }}
 		</p>
 
 		<NcLoadingIcon v-if="!loaded && loading" :size="32" :name="t('Wird geladen…')" />
@@ -111,31 +116,43 @@
 							<span class="vbh-mcard-amount">{{ formatMoney(claim.amount) }}</span>
 						</div>
 						<div class="vbh-mcard-bottom">
-							<span class="vbh-mcard-accounts">{{ claim.description }} <span class="vbh-typetag">{{ claimTypeLabel(claim.type) }}</span></span>
+							<span class="vbh-mcard-accounts">{{ claim.description }} <span v-if="claimTypeTag(claim.type)" class="vbh-typetag">{{ claimTypeTag(claim.type) }}</span></span>
 						</div>
 						<div class="vbh-mcard-bottom">
 							<span class="vbh-mcard-accounts">{{ t('Fällig am {datum}', { datum: formatDate(claim.dueDate) }) }}</span>
-							<span v-if="isOverdue(claim)" class="vbh-typetag">{{ t('überfällig') }}</span>
+							<span v-if="isOverdue(claim)" class="vbh-hint">{{ t('überfällig') }}</span>
 						</div>
 						<div class="vbh-mcard-bottom vbh-claims-tags">
 							<DebitStatusTag kind="claim" :value="claim.state" :settlementType="claim.settlementType" />
 							<span v-if="claim.deferred" class="vbh-typetag">{{ t('gestundet bis {datum}', { datum: formatDate(claim.deferredUntil) }) }}</span>
-							<DebitStatusTag v-if="severityOf(claim)" kind="severity" :value="severityOf(claim)" />
+							<span
+								v-if="severityMarkOf(claim)"
+								class="vbh-flag"
+								:class="`vbh-flag--${severityMarkOf(claim).tone}`"
+								:title="issueSummary(claim)">
+								<NcIconSvgWrapper :path="severityIcon(severityMarkOf(claim))" :size="16" />
+								{{ severityMarkOf(claim).label }}
+							</span>
 						</div>
-						<div v-if="dunningOf(claim).label || nextTextOf(claim)" class="vbh-mcard-bottom">
+						<div v-if="!dunningCellOf(claim).none" class="vbh-mcard-bottom">
 							<span class="vbh-mcard-accounts">
-								<strong v-if="dunningOf(claim).label">{{ dunningOf(claim).label }}</strong>
-								<template v-if="dunningOf(claim).detail"> · {{ dunningOf(claim).detail }}</template>
-								<template v-if="nextTextOf(claim)"><br>{{ t('Nächste Stufe:') }} {{ nextTextOf(claim) }}</template>
+								<strong v-if="dunningCellOf(claim).label">{{ dunningCellOf(claim).label }}</strong>
+								<template v-if="dunningCellOf(claim).detail"> · {{ dunningCellOf(claim).detail }}</template>
+								<template v-if="dunningCellOf(claim).next"><br v-if="dunningCellOf(claim).label">{{ t('Nächste Stufe:') }} {{ dunningCellOf(claim).next }}</template>
 							</span>
 						</div>
 						<div class="vbh-mcard-actions">
 							<NcButton
+								class="vbh-claims-detailbtn"
 								variant="tertiary"
 								size="small"
+								alignment="center-reverse"
 								:aria-expanded="expandedId === claim.id ? 'true' : 'false'"
 								:aria-controls="`vbh-claim-detail-${claim.id}`"
 								@click="toggle(claim.id)">
+								<template #icon>
+									<NcIconSvgWrapper :path="expandedId === claim.id ? mdiChevronUp : mdiChevronDown" :size="18" />
+								</template>
 								{{ expandedId === claim.id ? t('Details ausblenden') : t('Details anzeigen') }}
 							</NcButton>
 						</div>
@@ -176,12 +193,13 @@
 									<td>{{ claim.memberDisplayName }}</td>
 									<td>
 										{{ claim.description }}
-										<span class="vbh-typetag">{{ claimTypeLabel(claim.type) }}</span>
+										<!-- Die Art steht nur, wenn sie vom Normalfall (Beitrag) abweicht. -->
+										<span v-if="claimTypeTag(claim.type)" class="vbh-typetag">{{ claimTypeTag(claim.type) }}</span>
 									</td>
 									<td class="nowrap">
 										{{ formatDate(claim.dueDate) }}
-										<div v-if="isOverdue(claim)">
-											<span class="vbh-typetag">{{ t('überfällig') }}</span>
+										<div v-if="isOverdue(claim)" class="vbh-hint">
+											{{ t('überfällig') }}
 										</div>
 									</td>
 									<td class="num nowrap">
@@ -191,27 +209,44 @@
 										<div class="vbh-claims-tags">
 											<DebitStatusTag kind="claim" :value="claim.state" :settlementType="claim.settlementType" />
 											<span v-if="claim.deferred" class="vbh-typetag">{{ t('gestundet bis {datum}', { datum: formatDate(claim.deferredUntil) }) }}</span>
-											<DebitStatusTag v-if="severityOf(claim)" kind="severity" :value="severityOf(claim)" />
+											<span
+												v-if="severityMarkOf(claim)"
+												class="vbh-flag"
+												:class="`vbh-flag--${severityMarkOf(claim).tone}`"
+												:title="issueSummary(claim)">
+												<NcIconSvgWrapper :path="severityIcon(severityMarkOf(claim))" :size="16" />
+												{{ severityMarkOf(claim).label }}
+											</span>
 										</div>
 									</td>
 									<td>
-										<strong v-if="dunningOf(claim).label">{{ dunningOf(claim).label }}</strong>
-										<span v-else class="vbh-hint">–</span>
-										<div v-if="dunningOf(claim).detail" class="vbh-hint">
-											{{ dunningOf(claim).detail }}
-										</div>
-										<div v-if="nextTextOf(claim)" class="vbh-hint">
-											{{ t('Nächste Stufe:') }} {{ nextTextOf(claim) }}
-										</div>
+										<!-- Ein „–“ nur, wenn weder eine Stufe erreicht noch eine nächste in Sicht ist. -->
+										<template v-if="dunningCellOf(claim).none">
+											<span class="vbh-hint">–</span>
+										</template>
+										<template v-else>
+											<strong v-if="dunningCellOf(claim).label">{{ dunningCellOf(claim).label }}</strong>
+											<div v-if="dunningCellOf(claim).detail" class="vbh-hint">
+												{{ dunningCellOf(claim).detail }}
+											</div>
+											<div v-if="dunningCellOf(claim).next" class="vbh-hint">
+												{{ t('Nächste Stufe:') }} {{ dunningCellOf(claim).next }}
+											</div>
+										</template>
 									</td>
 									<td class="nowrap right">
 										<NcButton
+											class="vbh-claims-detailbtn"
 											variant="tertiary"
 											size="small"
+											alignment="center-reverse"
 											:aria-expanded="expandedId === claim.id ? 'true' : 'false'"
 											:aria-controls="`vbh-claim-detail-${claim.id}`"
 											:aria-label="detailsLabel(claim)"
 											@click="toggle(claim.id)">
+											<template #icon>
+												<NcIconSvgWrapper :path="expandedId === claim.id ? mdiChevronUp : mdiChevronDown" :size="18" />
+											</template>
 											{{ expandedId === claim.id ? t('Ausblenden') : t('Details') }}
 										</NcButton>
 									</td>
@@ -244,7 +279,7 @@
 			<!-- ============ JE MITGLIED ============ -->
 			<template v-else>
 				<p class="vbh-hint">
-					{{ t('Die Mahnstufen werden je Mitglied gebündelt versandt. Der Mahnstand zählt nur die noch nicht erledigten Forderungen der Auswahl.') }}
+					{{ t('Mahnstufen gehen gebündelt je Mitglied raus; gezählt wird nur Unerledigtes.') }}
 				</p>
 				<div v-if="isMobile" class="vbh-cardlist">
 					<div v-for="group in memberRows" :key="group.memberId" class="vbh-mcard">
@@ -254,13 +289,16 @@
 						</div>
 						<div class="vbh-mcard-bottom">
 							<span class="vbh-mcard-accounts">{{ claimCountText(group.count) }}<template v-if="group.deferredCount"> · {{ n('%n gestundet', '%n gestundet', group.deferredCount) }}</template></span>
-							<DebitStatusTag v-if="group.severity" kind="severity" :value="group.severity" />
+							<span v-if="severityMarkOfValue(group.severity)" class="vbh-flag" :class="`vbh-flag--${severityMarkOfValue(group.severity).tone}`">
+								<NcIconSvgWrapper :path="severityIcon(severityMarkOfValue(group.severity))" :size="16" />
+								{{ severityMarkOfValue(group.severity).label }}
+							</span>
 						</div>
 						<div class="vbh-mcard-bottom">
 							<span class="vbh-mcard-accounts">
-								<strong>{{ memberStageText(group) || t('keine Mahnung') }}</strong>
+								<strong v-if="memberStageText(group) || !memberNextText(group)">{{ memberStageText(group) || t('keine Mahnung') }}</strong>
 								<template v-if="group.lastSentAt"> · {{ t('zuletzt am {datum}', { datum: formatDate(group.lastSentAt) }) }}</template>
-								<template v-if="memberNextText(group)"><br>{{ t('Nächste Stufe:') }} {{ memberNextText(group) }}</template>
+								<template v-if="memberNextText(group)"><br v-if="memberStageText(group)">{{ t('Nächste Stufe:') }} {{ memberNextText(group) }}</template>
 							</span>
 						</div>
 						<div class="vbh-mcard-actions">
@@ -308,7 +346,7 @@
 								</td>
 								<td>
 									<strong v-if="memberStageText(group)">{{ memberStageText(group) }}</strong>
-									<span v-else class="vbh-hint">–</span>
+									<span v-else-if="!memberNextText(group)" class="vbh-hint">–</span>
 									<div v-if="group.lastSentAt" class="vbh-hint">
 										{{ t('zuletzt am {datum}', { datum: formatDate(group.lastSentAt) }) }}
 									</div>
@@ -317,7 +355,10 @@
 									</div>
 								</td>
 								<td>
-									<DebitStatusTag v-if="group.severity" kind="severity" :value="group.severity" />
+									<span v-if="severityMarkOfValue(group.severity)" class="vbh-flag" :class="`vbh-flag--${severityMarkOfValue(group.severity).tone}`">
+										<NcIconSvgWrapper :path="severityIcon(severityMarkOfValue(group.severity))" :size="16" />
+										{{ severityMarkOfValue(group.severity).label }}
+									</span>
 									<span v-else class="vbh-hint">–</span>
 								</td>
 								<td class="nowrap right">
@@ -352,7 +393,7 @@
 </template>
 
 <script>
-import { mdiRefresh } from '@mdi/js'
+import { mdiAlertOutline, mdiChevronDown, mdiChevronUp, mdiInformationOutline, mdiRefresh } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { NcButton, NcIconSvgWrapper, NcLoadingIcon } from '@nextcloud/vue'
 import { toRefs } from 'vue'
@@ -365,9 +406,8 @@ import { useEinzugRequest } from '../composables/useEinzugRequest.js'
 import { useMemberAkteRequest } from '../composables/useMemberAkteRequest.js'
 import {
 	claimCountText,
-	claimTypeLabel,
-	dunningCompact,
-	dunningNextText,
+	claimTypeTag,
+	dunningCell,
 	dunningStageLabel,
 	emptyFilters,
 	FILTER_ALL,
@@ -375,6 +415,7 @@ import {
 	filtersChanged,
 	groupByMember,
 	issueFilterOptions,
+	severityMark,
 	stateFilterOptions,
 	worstSeverity,
 } from '../lib/claims.js'
@@ -425,6 +466,8 @@ export default {
 
 	data() {
 		return {
+			mdiChevronDown,
+			mdiChevronUp,
 			mdiRefresh,
 			PAGE,
 			view: 'claims',
@@ -505,7 +548,7 @@ export default {
 	methods: {
 		formatDate,
 		formatMoney,
-		claimTypeLabel,
+		claimTypeTag,
 		claimCountText,
 
 		// Wer aus einem anderen Fenster zurückkommt, soll keinen veralteten Stand sehen (Vermerk, Stundung oder Rücklastschrift kann eine andere Person gemacht haben).
@@ -521,11 +564,17 @@ export default {
 			this.expandedId = this.expandedId === id ? null : id
 		},
 
-		severityOf(claim) { return worstSeverity(claim.issues) },
+		/** Störfall einer Forderung als leise Marke (Wort, Symbol, Tönung – nur Handlungsbedarf fällt auf). */
+		severityMarkOf(claim) { return severityMark(worstSeverity(claim.issues)) },
 
-		dunningOf(claim) { return dunningCompact(claim.dunning) },
+		severityMarkOfValue(severity) { return severityMark(severity) },
 
-		nextTextOf(claim) { return dunningNextText(claim.dunning) },
+		severityIcon(mark) { return mark.icon === 'alert' ? mdiAlertOutline : mdiInformationOutline },
+
+		/** Die Meldungen der Störfälle als Tooltip der Marke; die Namen der Mitglieder stehen im Text des Servers, nicht in t(). */
+		issueSummary(claim) { return (claim.issues ?? []).map((issue) => issue.message).filter(Boolean).join('\n') },
+
+		dunningCellOf(claim) { return dunningCell(claim.dunning) },
 
 		/** Offen oder zurückgegeben und die Fälligkeit liegt vor dem Stichtag; eine Stundung hält das an. */
 		isOverdue(claim) {
@@ -583,11 +632,6 @@ export default {
 
 .vbh-claims-head h4 {
 	margin: 0;
-}
-
-.vbh-claims-views {
-	display: inline-flex;
-	gap: 4px;
 }
 
 .vbh-claims-spacer {
@@ -656,7 +700,12 @@ export default {
 }
 
 .vbh-claims-table thead th.vbh-claims-col-actions {
-	width: 110px;
+	width: 130px;
+}
+
+/* „Details ⌄“ liest sich als Knopf zum Aufklappen: Linkfarbe, Pfeil hinter dem Wort. Dreifach, weil die Farbe an .button-vue--tertiary hängt. */
+.vbh-claims-detailbtn.vbh-claims-detailbtn.vbh-claims-detailbtn {
+	color: var(--color-primary-element);
 }
 
 .vbh-claims-table thead th.vbh-claims-col-memberactions {

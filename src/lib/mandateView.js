@@ -178,7 +178,11 @@ export function activationLinkState(link) {
  * Störfall-Hinweise je Zustand (Spec §3.2/§7), jeweils mit dem Klartext-Titel
  * aus dem Backend (`storyText`, dieselbe Formulierung wie in der Aufgabenliste)
  * und einer Erläuterung, was zu tun ist. `tone` ist `warning` (Handlungsbedarf)
- * oder `info` (Hinweis ohne Dringlichkeit, wie „Mandat ohne Nachweis“).
+ * oder `info` (Hinweis ohne Dringlichkeit).
+ *
+ * Das fehlende Dokument gehört nicht dazu: es steht einmal als Warnmarke in der
+ * Zeile „Nachweis“ der Mandatsliste (siehe {@link documentRowTone}), nicht noch
+ * ein zweites Mal als Hinweiskasten.
  *
  * @param {object} mandate Mandat der Mandat-API (inkl. storyText, hasDocument,
  *        showMissingDocumentWarning, expiresAt, expiryWarning; für elektronische
@@ -226,17 +230,20 @@ export function mandateNotices(mandate, today = isoToday()) {
 		})
 	}
 
-	// Dauer-Hinweis, in den Einstellungen abschaltbar (Server entscheidet: showMissingDocumentWarning).
-	if (mandate.showMissingDocumentWarning) {
-		notices.push({
-			key: 'document',
-			tone: 'info',
-			title: t('Mandat ohne Nachweis'),
-			text: t('Zum Mandat ist kein unterschriebenes Dokument hinterlegt. Laden Sie den Nachweis hoch, damit er im Streitfall zur Hand ist.'),
-		})
-	}
-
 	return notices
+}
+
+/**
+ * Ton der Zeile „Nachweis“ in der Mandatsliste: `warning`, wenn das Dokument
+ * fehlt und der Server den (in den Einstellungen abschaltbaren) Hinweis „Mandat
+ * ohne Nachweis“ meldet (`showMissingDocumentWarning`), sonst keiner – die Zeile
+ * sagt dann nur „fehlt“ oder „vorhanden“.
+ *
+ * @param {{hasDocument: boolean, showMissingDocumentWarning?: boolean}} mandate
+ * @return {'warning'|null}
+ */
+export function documentRowTone(mandate) {
+	return !mandate.hasDocument && mandate.showMissingDocumentWarning ? 'warning' : null
 }
 
 function draftExplanation(mandate) {

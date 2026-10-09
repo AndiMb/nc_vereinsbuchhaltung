@@ -1,29 +1,15 @@
 <template>
 	<section class="vbh-bank-detail" :class="`vbh-bank-detail--${detail.status}`" :aria-label="rowLabel">
+		<!-- Eine Zeile: Nummer, Betrag und – klein und gedämpft – was die Bank dazu meldet. Der Zustand steht erst,
+			wenn die Zeile beurteilt ist; „noch nicht beurteilt“ ist der Normalzustand und nur Rauschen. -->
 		<header class="vbh-bank-detail-head">
 			<strong v-if="multiple">{{ t('Zeile {n}', { n: index + 1 }) }}</strong>
 			<span class="vbh-bank-detail-amount">{{ formatMoney(detail.amountCents / 100) }}</span>
-			<DebitStatusTag kind="bank-detail" :value="detail.status" />
+			<DebitStatusTag v-if="detail.status !== DETAIL_OPEN" kind="bank-detail" :value="detail.status" />
+			<span v-if="detail.endToEndId" class="vbh-bank-fact">{{ t('End-to-End-ID') }} <span class="vbh-bank-mono">{{ detail.endToEndId }}</span></span>
+			<span v-if="detail.mandateReference" class="vbh-bank-fact">{{ t('Mandatsreferenz') }} <span class="vbh-bank-mono">{{ detail.mandateReference }}</span></span>
+			<span v-if="detail.isReturn && detail.chargesCents" class="vbh-bank-fact">{{ t('Bankgebühr') }} {{ formatMoney(detail.chargesCents / 100) }}</span>
 		</header>
-
-		<dl class="vbh-bank-facts">
-			<div v-if="detail.endToEndId">
-				<dt>{{ t('End-to-End-ID') }}</dt>
-				<dd class="vbh-bank-mono">
-					{{ detail.endToEndId }}
-				</dd>
-			</div>
-			<div v-if="detail.mandateReference">
-				<dt>{{ t('Mandatsreferenz') }}</dt>
-				<dd class="vbh-bank-mono">
-					{{ detail.mandateReference }}
-				</dd>
-			</div>
-			<div v-if="detail.isReturn && detail.chargesCents">
-				<dt>{{ t('Bankgebühr') }}</dt>
-				<dd>{{ formatMoney(detail.chargesCents / 100) }}</dd>
-			</div>
-		</dl>
 
 		<p v-if="detail.detectionSource === 'text_heuristik'" class="vbh-hint">
 			{{ t('Diese Zeile wurde aus dem Buchungstext erkannt, nicht aus strukturierten Feldern der Bank. Bitte besonders genau prüfen.') }}
@@ -117,7 +103,7 @@
 				<NcButton
 					v-if="detail.candidates.length && detail.status !== 'abgelehnt'"
 					size="small"
-					variant="secondary"
+					variant="tertiary"
 					:disabled="busy"
 					@click="reject">
 					{{ t('Ablehnen') }}
@@ -125,7 +111,7 @@
 				<NcButton
 					v-if="detail.status !== 'nicht_zuordenbar'"
 					size="small"
-					variant="secondary"
+					variant="tertiary"
 					:disabled="busy"
 					@click="unmatched">
 					{{ t('Nicht zuordenbar') }}
@@ -146,7 +132,7 @@
 <script>
 import { NcButton } from '@nextcloud/vue'
 import DebitStatusTag from './DebitStatusTag.vue'
-import { returnConsequences, returnReasonLabel, stageIsWeak, stageReason } from '../lib/bankReconciliation.js'
+import { DETAIL_OPEN, returnConsequences, returnReasonLabel, stageIsWeak, stageReason } from '../lib/bankReconciliation.js'
 import { formatDate, formatMoney } from '../lib/format.js'
 
 /**
@@ -181,7 +167,7 @@ export default {
 	emits: ['assign', 'reject', 'unmatched'],
 
 	data() {
-		return { changing: false }
+		return { changing: false, DETAIL_OPEN }
 	},
 
 	computed: {
@@ -239,11 +225,33 @@ export default {
 </script>
 
 <style scoped>
+/*
+ * Eine Bankzeile ist ein schmaler Streifen: oben links Betrag und Meldungen der Bank, oben rechts die Urteile
+ * „Ablehnen“ und „Nicht zuordenbar“ (im DOM hinter den Vorschlägen, damit die Tab-Reihenfolge beim Vorschlag
+ * beginnt), darunter der Vorschlag mit „Bestätigen“. Auf dem Handy bricht alles untereinander um.
+ */
 .vbh-bank-detail {
-	padding: 10px 12px;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	grid-template-areas: "head actions";
+	align-items: center;
+	gap: calc(var(--default-grid-baseline, 4px) * 1) calc(var(--default-grid-baseline, 4px) * 3);
+	padding: calc(var(--default-grid-baseline, 4px) * 2) calc(var(--default-grid-baseline, 4px) * 3);
 	border: 1px solid var(--color-border);
 	border-radius: var(--border-radius-large, 12px);
 	background-color: var(--color-main-background);
+}
+
+.vbh-bank-detail > * {
+	grid-column: 1 / -1;
+}
+
+.vbh-bank-detail > .vbh-bank-detail-head {
+	grid-area: head;
+}
+
+.vbh-bank-detail > .vbh-bank-actions {
+	grid-area: actions;
 }
 
 /* Der Rand ist die zweite Spur neben dem Zustandstext: zugeordnet = Erfolgsfarbe. */
@@ -254,8 +262,8 @@ export default {
 .vbh-bank-detail-head {
 	display: flex;
 	flex-wrap: wrap;
-	align-items: center;
-	gap: 6px 12px;
+	align-items: baseline;
+	gap: 2px calc(var(--default-grid-baseline, 4px) * 3);
 }
 
 .vbh-bank-detail-amount {
@@ -263,41 +271,19 @@ export default {
 	font-variant-numeric: tabular-nums;
 }
 
-.vbh-bank-facts {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 4px 24px;
-	margin: 6px 0 0;
-}
-
-.vbh-bank-facts > div {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-}
-
-/* Nextcloud gibt dt/dd Innenabstand und setzt dt rechtsbündig. */
-.vbh-bank-facts dt {
-	margin: 0;
-	padding: 0;
-	text-align: start;
-	font-size: 0.78em;
+/* Was die Bank meldet: klein und gedämpft, in der Zeile des Betrags. */
+.vbh-bank-fact {
+	font-size: 0.85em;
 	color: var(--color-text-maxcontrast);
-}
-
-.vbh-bank-facts dd {
-	margin: 0;
-	padding: 0;
 	overflow-wrap: anywhere;
 }
 
 .vbh-bank-mono {
 	font-family: var(--font-family-monospace, monospace);
-	font-size: 0.92em;
 }
 
 .vbh-bank-line {
-	margin: 6px 0 0;
+	margin: 0;
 	overflow-wrap: anywhere;
 }
 
@@ -325,15 +311,14 @@ export default {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
-	gap: 6px 12px;
-	margin-top: 6px;
+	gap: 2px calc(var(--default-grid-baseline, 4px) * 3);
 }
 
+/* Die Vorschläge: keine Kästen im Kasten, nur Trennlinien zwischen mehreren. */
 .vbh-bank-candidates {
 	display: flex;
 	flex-direction: column;
-	gap: 8px;
-	margin: 8px 0 0;
+	margin: 0;
 	padding: 0;
 	list-style: none;
 }
@@ -342,15 +327,17 @@ export default {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
-	gap: 6px 14px;
-	padding: 8px 10px;
-	border: 1px solid var(--color-border-dark);
-	border-radius: var(--border-radius-large, 12px);
-	background-color: var(--color-background-hover);
+	gap: 4px calc(var(--default-grid-baseline, 4px) * 3);
+	padding: calc(var(--default-grid-baseline, 4px) * 1) 0;
+}
+
+.vbh-bank-candidate + .vbh-bank-candidate {
+	border-top: 1px solid var(--color-border);
 }
 
 .vbh-bank-candidate--chosen {
-	border-color: var(--color-element-success);
+	padding-inline-start: calc(var(--default-grid-baseline, 4px) * 2);
+	box-shadow: inset 3px 0 0 var(--color-element-success);
 }
 
 .vbh-bank-candidate-text {
@@ -372,14 +359,32 @@ export default {
 }
 
 .vbh-bank-candidate-reason {
-	margin: 2px 0 0;
-	font-size: 0.92em;
+	margin: 0;
+	font-size: 0.88em;
+	color: var(--color-text-maxcontrast);
 }
 
 .vbh-bank-actions {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 8px;
-	margin-top: 8px;
+	justify-content: flex-end;
+	gap: 0 calc(var(--default-grid-baseline, 4px) * 1);
+}
+
+@media (max-width: 640px) {
+	.vbh-bank-detail {
+		grid-template-columns: minmax(0, 1fr);
+		grid-template-areas: none;
+	}
+
+	.vbh-bank-detail > .vbh-bank-detail-head,
+	.vbh-bank-detail > .vbh-bank-actions {
+		grid-area: auto;
+		grid-column: 1 / -1;
+	}
+
+	.vbh-bank-actions {
+		justify-content: flex-start;
+	}
 }
 </style>
