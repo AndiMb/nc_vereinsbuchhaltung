@@ -470,6 +470,7 @@
         "Journal als CSV exportieren": "Export journal as CSV",
         "Suche…": "Search…",
         "Konto filtern": "Filter by account",
+        "(alle)": "(all)",
         "Nur Buchungen ohne angehängten Beleg zeigen (z. B. vor der Kassenprüfung)": "Show only entries without an attached receipt (e.g. before the audit)",
         "nur ohne Beleg": "no receipt only",
         "⚠ Buchungsnummern {year} nicht lückenlos:": "⚠ Entry numbers for {year} are not gapless:",
