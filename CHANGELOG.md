@@ -19,6 +19,11 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+**Geändert:**
+- **Kassenbericht blendet Sphären ohne Bewegung aus:** Die Sphärenübersicht
+  zeigt nur noch Sphären mit Einnahmen oder Ausgaben – wie bei Konten ohne
+  Bewegung in der Einnahmen-/Ausgaben-Rechnung.
+
 ## [0.34.4] – 2026-09-29
 
 **Behoben:**

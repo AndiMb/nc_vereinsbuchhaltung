@@ -17,6 +17,11 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+**Changed:**
+- **Cash report hides spheres without activity:** The sphere overview now
+  only lists spheres with income or expenses – matching how accounts without
+  activity are skipped in the income/expense statement.
+
 ## [0.34.4] – 2026-09-29
 
 **Fixed:**
