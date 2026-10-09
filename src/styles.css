@@ -240,6 +240,12 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-filter-select { min-width: 200px; max-width: 280px; }
 
+/* Kategorie-Zeilen im Kontofilter: wählbare Gruppenüberschrift („Einnahmen (alle)“).
+   Flex, weil NcEllipsisedOption selbst ein Flex-Block ist und der Hinweis sonst umbricht. */
+.vbh-select-group { display: flex; align-items: baseline; gap: 4px; min-width: 0; font-weight: bold; }
+
+.vbh-select-group-hint { flex: 0 0 auto; font-weight: normal; font-size: 0.85em; opacity: 0.7; }
+
 .vbh-sectionbody { flex: 1 1 auto; min-height: 0; min-width: 0; overflow: auto; padding: 12px 16px 48px; }
 /* is-split (Kostenstellen/Sphären) enthaelt nur noch .vbh-splitinner (Baum +
    Detail) - die Pflege (CostCenterPanel/SphereAssignPanel) liegt seit der
@@ -523,7 +529,7 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
    immer auf td.num innerhalb einer .vbh-table). */
 .vbh-table .num.neg, .vbh-table .num.bad { color: var(--color-error-text); font-weight: 700; }
 
-.vbh-table .num.good { color: var(--color-success-text); font-weight: 700; }
+.vbh-table .num.pos, .vbh-table .num.good { color: var(--color-success-text); font-weight: 700; }
 /* Plan-Eingabefeld fuellt seine Zelle. Hohe Spezifitaet (0,3,1) ist noetig,
    damit die weiter unten definierte Regel `.vbh-num { width:120px }` (bzw. 90px
    mobil) es nicht per Quellreihenfolge ueberschreibt. */

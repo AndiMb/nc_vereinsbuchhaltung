@@ -2601,7 +2601,11 @@
         "Das bisherige Modul ist ersetzt – seine Mandate und Beiträge wurden nicht übernommen.": "The previous module has been replaced – its mandates and contributions were not carried over.",
         "Einzug in zwei Schritten: freigeben, dann als eingereicht markieren. Der Bankabgleich schlägt die Buchungen vor.": "Collection in two steps: release, then mark as submitted. The bank reconciliation suggests the postings.",
         "Rücklastschriften mit Mahnstufen; Zahlungsaufforderungen tragen einen GiroCode.": "Returned direct debits with dunning levels; payment requests carry a GiroCode.",
-        "Neu: „Mein Beitrag\" für Mitglieder (ab Werk aus) und das Aufgaben-Klemmbrett in der Kopfzeile.": "New: “My contribution” for members (off by default) and the task clipboard in the header."
+        "Neu: „Mein Beitrag\" für Mitglieder (ab Werk aus) und das Aufgaben-Klemmbrett in der Kopfzeile.": "New: “My contribution” for members (off by default) and the task clipboard in the header.",
+        "(alle)": "(all)",
+        "Beträge zeigen die Richtung: Einnahmen grün mit Plus, Ausgaben rot mit Minus – in Übersicht, Buchungen und „Zuzuordnen\".": "Amounts show their direction: income green with a plus, expenses red with a minus – on the overview, in entries and under “To assign”.",
+        "Der Kontofilter im Journal kennt jetzt Kategorien wie „Einnahmen\" oder „Ausgaben\".": "The account filter in the journal now knows categories such as “Income” or “Expenses”.",
+        "Der Kassenbericht zeigt in der Sphärenübersicht nur noch Sphären mit Bewegung.": "The cash report only lists spheres with activity in the sphere overview."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

@@ -1,23 +1,41 @@
 import { register, setLanguage, unregister } from '@nextcloud/l10n'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { CONTEXT_SEPARATOR, loadAppTranslations, t, tc, tRaw } from './l10n.js'
+import { CONTEXT_SEPARATOR, loadAppTranslations, n, t, tc, tRaw } from './l10n.js'
 
 // generateUrl() braucht eine Nextcloud-Seite (window.OC); hier genügt der Pfad.
 vi.mock('@nextcloud/router', () => ({ generateUrl: (path) => `/index.php${path}` }))
 
-// Nutzerdaten und @nextcloud/l10n (Issue #106): die Bibliothek escaped Variablen
-// als HTML, unser Text landet aber als Text in der Seite. Die Tests laufen gegen
-// die echte Bibliothek, nicht gegen einen Nachbau – genau ihr Verhalten ist der
-// Anlass.
+// @nextcloud/l10n kodiert Platzhalterwerte standardmaessig als HTML. Die
+// Texte landen aber in Vue-Templates, die selbst escapen - ein "&" im
+// Kontonamen stand deshalb als "&amp;" sichtbar im Finanzplan. Der Wrapper
+// schaltet das Escaping ab; hier wird das festgenagelt. (DOMPurify ist in
+// der Node-Testumgebung ohne DOM ohnehin inaktiv, geprueft wird das reine
+// Escaping.) Die Tests laufen gegen die echte Bibliothek, nicht gegen einen
+// Nachbau - genau ihr Verhalten ist der Anlass.
+describe('t()', () => {
+	it('laesst ein & im Platzhalterwert unveraendert', () => {
+		expect(t('Notiz zu {number} {name}', { number: '5930', name: 'Anschaffung & Wartung Technik' }))
+			.toBe('Notiz zu 5930 Anschaffung & Wartung Technik')
+	})
 
-const NAME = 'Echo & Söhne <b>fett</b>'
+	it('kodiert auch Anfuehrungszeichen und spitze Klammern nicht', () => {
+		expect(t('Konto "{number} {name}" löschen?', { number: '4000', name: 'Beiträge <Mitglieder>' }))
+			.toBe('Konto "4000 Beiträge <Mitglieder>" löschen?')
+	})
 
-describe('t() mit Nutzerdaten (der Fehlerfall, den tRaw() vermeidet)', () => {
-	it('escaped „&" und „<" in einer Variable als HTML', () => {
-		// Dokumentiert das Verhalten der Bibliothek: genau so soll Nutzerdaten nie ankommen.
-		expect(t('Hallo {name}', { name: NAME })).toBe('Hallo Echo &amp; Söhne &lt;b&gt;fett&lt;/b&gt;')
+	it('gibt Texte ohne Platzhalter unveraendert zurueck', () => {
+		expect(t('Finanzplan & Soll-Ist-Vergleich')).toBe('Finanzplan & Soll-Ist-Vergleich')
 	})
 })
+
+describe('n()', () => {
+	it('laesst Platzhalterwerte in Pluralformen unveraendert', () => {
+		expect(n('{count} Konto in „{group}"', '{count} Konten in „{group}"', 2, { count: 2, group: 'Technik & Wartung' }))
+			.toBe('2 Konten in „Technik & Wartung"')
+	})
+})
+
+const NAME = 'Echo & Söhne <b>fett</b>'
 
 describe('tRaw()', () => {
 	afterEach(() => unregister('vereinsbuchhaltung'))

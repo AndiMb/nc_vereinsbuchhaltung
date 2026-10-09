@@ -18,6 +18,7 @@
 				:modelValue="null"
 				:options="options"
 				:filterBy="accountFilterBy"
+				:selectable="isSelectableOption"
 				:disabled="busy"
 				label="label"
 				:placeholder="t('Neues Konto wählen…')"
@@ -39,6 +40,7 @@
 
 <script>
 import { NcButton, NcSelect } from '@nextcloud/vue'
+import { isSelectableOption } from '../lib/selectOptions.js'
 
 /**
  * Umbuchen einer Buchungsseite direkt im Kontoauszug.
@@ -73,6 +75,8 @@ export default {
 	methods: {
 		// Ziffern = Präfix der Kontonummer, sonst Textsuche – dieselbe reine
 		// Logik wie in SettingsRules.vue/AccountDialog.vue.
+		isSelectableOption,
+
 		accountFilterBy(option, label, search) {
 			const s = String(search || '').trim().toLowerCase()
 			if (!s) { return true }

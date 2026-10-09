@@ -38,12 +38,21 @@ export async function loadAppTranslations() {
 	}
 }
 
+// Kein HTML-Escaping und kein DOMPurify in der Uebersetzung: die Texte landen
+// ausschliesslich in Vue-Templates ({{ }} und :attr-Bindings), und Vue
+// escapt dort selbst. Mit dem Standard (escape: true) wurde ein "&" im
+// Kontonamen doppelt kodiert und stand als "&amp;" sichtbar im Finanzplan
+// ("Notiz zu 5930 Anschaffung &amp; Wartung Technik"). v-html wird in der
+// App nirgends verwendet - sollte das einmal noetig werden, muss der Wert dort
+// gezielt escapt werden, nicht hier.
+const TRANSLATE_OPTIONS = { escape: false, sanitize: false }
+
 export function t(text, vars, count) {
-	return translate(APP_ID, text, vars, count)
+	return translate(APP_ID, text, vars, count, TRANSLATE_OPTIONS)
 }
 
 export function n(textSingular, textPlural, count, vars) {
-	return translatePlural(APP_ID, textSingular, textPlural, count, vars)
+	return translatePlural(APP_ID, textSingular, textPlural, count, vars, TRANSLATE_OPTIONS)
 }
 
 /**
@@ -72,8 +81,8 @@ export const CONTEXT_SEPARATOR = '\u0004'
  */
 export function tc(context, text, vars, count) {
 	const key = `${context}${CONTEXT_SEPARATOR}${text}`
-	const translated = translate(APP_ID, key, vars, count)
-	return translated.startsWith(`${context}${CONTEXT_SEPARATOR}`) ? translate(APP_ID, text, vars, count) : translated
+	const translated = translate(APP_ID, key, vars, count, TRANSLATE_OPTIONS)
+	return translated.startsWith(`${context}${CONTEXT_SEPARATOR}`) ? translate(APP_ID, text, vars, count, TRANSLATE_OPTIONS) : translated
 }
 
 /**
@@ -81,12 +90,10 @@ export function tc(context, text, vars, count) {
  * eingesetzt werden – für alles, was ein Mensch eingetippt hat (Namen,
  * Freitext, Mailadressen, Kontoinhaber) oder der Server als Fehlertext liefert.
  *
- * Warum nicht einfach t('… {name} …', { name }): @nextcloud/l10n escaped jede
- * Variable als HTML und bereinigt das Ergebnis zusätzlich mit DOMPurify. Unser
- * Ergebnis geht aber nie als HTML in die Seite, sondern als Text ({{ }},
- * showError()), den Vue bzw. der Toast selbst schützt – aus „Echo & Söhne"
- * würde so die buchstäbliche Anzeige „Echo &amp; Söhne", und ein „<" im Namen
- * verschwände ganz. Nutzerdaten gehören deshalb nie als Variablen in t().
+ * Seit t() selbst nicht mehr escaped (TRANSLATE_OPTIONS oben) ist „Echo & Söhne"
+ * auch dort unverändert; tRaw() bleibt für Nutzerdaten die sichere Wahl, weil
+ * der Wert nie durch die Bibliothek läuft: ein Wert, der wie ein Platzhalter
+ * aussieht („{datum}", „%n"), wird nicht ein zweites Mal aufgelöst.
  *
  * Der Satz bleibt dabei ein Satz, den man übersetzen kann: der Platzhalter
  * steht im Schlüssel wie bei t(), nur der Wert kommt später. `vars` sind die

@@ -5,8 +5,14 @@ import { api, openApp, switchTab, visibleSection, BANK_ACCOUNT, BANK_ACCOUNT_IBA
 // focus-trap aktiviert sich erst nach der Öffnen-Animation und kann den Fokus
 // sonst dauerhaft auf der Modal-Maske hängen lassen. Dieselbe Reparatur
 // (Feld beim Öffnen sofort fokussieren) sitzt jetzt auch in den anderen
-// Dialogen mit einem klaren ersten Feld - hier geprüft: sofort tippen, ohne
-// vorher zu klicken.
+// Dialogen mit einem klaren ersten Feld - hier geprüft: tippen, ohne vorher
+// zu klicken.
+//
+// Vor dem Tippen wird der Fokus selbst geprüft (toBeFocused): der Dialog ist
+// einen Tick früher sichtbar als das Feld fokussiert, und Zeichen, die in
+// dieser Lücke ankommen, laufen ins Leere. Der Test meldete dann einen
+// leeren Wert statt des eigentlichen Befunds "Fokus liegt nicht im Feld" -
+// und das nur gelegentlich, je nachdem wer schneller war.
 
 const today = () => new Date().toISOString().slice(0, 10)
 
@@ -34,6 +40,7 @@ test.describe('Sofort-Fokus beim Öffnen von NcModal-Dialogen', () => {
 
 		const dialog = page.getByRole('dialog', { name: 'Neues Konto' })
 		await expect(dialog).toBeVisible()
+		await expect(dialog.getByLabel('Nummer')).toBeFocused()
 		await page.keyboard.type('9876')
 		await expect(dialog.getByLabel('Nummer')).toHaveValue('9876')
 	})
@@ -47,8 +54,11 @@ test.describe('Sofort-Fokus beim Öffnen von NcModal-Dialogen', () => {
 
 		const dialog = page.getByRole('dialog', { name: 'Mitglied aufnehmen' })
 		await expect(dialog).toBeVisible()
+		// Das neue Mitglieder-Modell trennt Vor- und Nachname; der Fokus liegt auf dem Vornamen.
+		const firstName = dialog.getByRole('textbox', { name: 'Vorname', exact: true })
+		await expect(firstName).toBeFocused()
 		await page.keyboard.type('Sofort')
-		await expect(dialog.getByRole('textbox', { name: 'Vorname', exact: true })).toHaveValue('Sofort')
+		await expect(firstName).toHaveValue('Sofort')
 
 		await dialog.getByRole('textbox', { name: 'Nachname', exact: true }).fill('Mitglied')
 		await dialog.getByLabel('IBAN', { exact: true }).fill('DE02120300000000202051')

@@ -36,6 +36,14 @@ export function buildWhatsNewEntries() {
 			],
 		},
 		{
+			version: '0.34.5',
+			items: [
+				t('Beträge zeigen die Richtung: Einnahmen grün mit Plus, Ausgaben rot mit Minus – in Übersicht, Buchungen und „Zuzuordnen".'),
+				t('Der Kontofilter im Journal kennt jetzt Kategorien wie „Einnahmen" oder „Ausgaben".'),
+				t('Der Kassenbericht zeigt in der Sphärenübersicht nur noch Sphären mit Bewegung.'),
+			],
+		},
+		{
 			version: '0.34.0',
 			roles: ['verwalter', 'buchhalter'],
 			items: [

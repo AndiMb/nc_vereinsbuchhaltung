@@ -208,8 +208,8 @@
 							<td class="vbh-col-hide-sm">
 								{{ r.haben }}
 							</td>
-							<td class="num strong">
-								{{ formatMoney(r.amount) }}
+							<td class="num strong" :class="flowClass(rowFlow(r))" :title="flowLabel(rowFlow(r))">
+								{{ formatFlowMoney(r.amount, rowFlow(r)) }}
 							</td>
 						</tr>
 					</tbody>
@@ -269,6 +269,7 @@ import { useOpenItems } from '../composables/useOpenItems.js'
 import { usePeriods } from '../composables/usePeriods.js'
 import { usePermissions } from '../composables/usePermissions.js'
 import { chartTheme, onThemeChange, withAlpha } from '../lib/chartTheme.js'
+import { bookingFlow, flowClass, flowLabel, formatFlowMoney } from '../lib/flow.js'
 import { formatDate, formatMoney } from '../lib/format.js'
 
 Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend)
@@ -434,6 +435,9 @@ export default {
 	methods: {
 		formatMoney,
 		formatDate,
+		flowClass,
+		flowLabel,
+		formatFlowMoney,
 		/**
 		 * Die Monate eines Zeitraums als „JJJJ-MM", von seinem Beginn bis zu
 		 * seinem Ende. Die Regel erzeugt höchstens zwölf Monate, aber der
@@ -461,15 +465,9 @@ export default {
 			return out
 		},
 
+		/** Geldrichtung der Journalzeile für Vorzeichen, Farbe und Tooltip, siehe lib/flow.js. */
 		rowFlow(r) {
-			if (r.isSplit) { return '' }
-			const d = this.accountsById[r.debitAccountId]
-			const c = this.accountsById[r.creditAccountId]
-			const dIn = !!(d && d.isBank)
-			const cOut = !!(c && c.isBank)
-			if (dIn && !cOut) { return 'in' }
-			if (cOut && !dIn) { return 'out' }
-			return ''
+			return bookingFlow(r, this.accountsById)
 		},
 
 		destroyChart(key) {

@@ -17,7 +17,7 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
-## [0.35.0] – 2026-10-05
+## [0.35.0] – 2026-10-09
 
 **New:**
 - **Members as master data of their own:** a person or an organization with a
@@ -128,6 +128,27 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 - **GiroCode library in the package:** the app now ships `chillerlan/php-qrcode`
   (version 5, PHP 8.1 is enough) in the `vendor/` directory; for the GiroCode
   attachment PHP should have the gd extension (issues #73, #120).
+
+## [0.34.5] – 2026-10-09
+
+**New:**
+- **Income or expense at a glance:** amounts on the overview, under "All
+  entries" and under "To assign" now carry a sign and a colour – income green,
+  expenses red, transfers neutral.
+- **Account filter by category:** in the journal, "Income", "Expenses" and the
+  other categories can be picked directly in the account filter.
+
+**Changed:**
+- **Cash report hides spheres without activity:** the sphere overview only
+  lists spheres with income or expenses.
+
+**Fixed:**
+- **Account filter missed split entries:** every line of an entry counts now,
+  not only the first debit and credit line.
+- **Group headings in account fields were clickable:** the category headings in
+  all account pickers are now locked.
+- **"&" in an account name showed up as `&amp;` in the budget view:** translated
+  texts with placeholders are no longer encoded twice.
 
 ## [0.34.4] – 2026-09-29
 

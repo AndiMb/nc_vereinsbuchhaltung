@@ -42,12 +42,26 @@
 			<NcSelect
 				v-if="bookingView === 'journal'"
 				v-model="bookingFilterAccountOption"
-				:options="accountOptionsList"
+				:options="accountFilterOptions"
 				:filterBy="accountFilterBy"
+				:selectable="isSelectableOption"
 				label="label"
 				:clearable="true"
 				:placeholder="t('Konto filtern')"
-				class="vbh-filter-select" />
+				class="vbh-filter-select"
+				@search="bookingFilterSearch = $event">
+				<!-- Kategorie-Überschriften sind hier echte Filter („alle Konten der
+				     Kategorie“) und werden deshalb als wählbare Gruppenzeile gezeichnet.
+				     NcEllipsisedOption ist die Standarddarstellung von NcSelect
+				     (Ellipsis + Hervorhebung des Suchbegriffs). -->
+				<template #option="opt">
+					<span v-if="opt.isCategory" class="vbh-select-group">
+						<NcEllipsisedOption :name="opt.label" :search="bookingFilterSearch" />
+						<span class="vbh-select-group-hint">{{ t('(alle)') }}</span>
+					</span>
+					<NcEllipsisedOption v-else :name="opt.label" :search="bookingFilterSearch" />
+				</template>
+			</NcSelect>
 			<label v-if="bookingView === 'journal'" class="vbh-checkinline" :title="t('Nur Buchungen ohne angehängten Beleg zeigen (z. B. vor der Kassenprüfung)')">
 				<input v-model="journalOnlyNoAttachment" type="checkbox">
 				{{ t('nur ohne Beleg') }}
@@ -137,8 +151,8 @@
 								<td class="vbh-col-hide-sm">
 									{{ r.haben }}
 								</td>
-								<td class="num strong">
-									{{ formatMoney(r.amount) }}
+								<td class="num strong" :class="flowClass(rowFlow(r))" :title="flowLabel(rowFlow(r))">
+									{{ formatFlowMoney(r.amount, rowFlow(r)) }}
 								</td>
 								<td class="nowrap right">
 									<div class="vbh-actions">
@@ -187,7 +201,7 @@
 						</tbody>
 					</table>
 				</div>
-				<NcEmptyContent v-else-if="bookingSearch || bookingFilterAccountId" :name="t('Keine Treffer')" :description="t('Suchfilter anpassen oder löschen.')" />
+				<NcEmptyContent v-else-if="bookingSearch || bookingFilter" :name="t('Keine Treffer')" :description="t('Suchfilter anpassen oder löschen.')" />
 				<NcEmptyContent v-else :name="t('Noch keine Buchungssätze')" :description="t('Legen Sie mit ‛Neue Buchung\' einen ersten Buchungssatz an.')">
 					<template #action>
 						<NcButton variant="tertiary" @click="$emit('help')">
@@ -216,7 +230,7 @@
 						:class="tx.status === 'assigned' ? '' : 'open'">
 						<div class="vbh-mcard-top">
 							<span class="vbh-mcard-meta">{{ formatDate(tx.bookingDate) }}</span>
-							<span class="vbh-mcard-amount" :class="tx.amount < 0 ? 'neg' : 'pos'">{{ formatMoney(tx.amount) }}</span>
+							<span class="vbh-mcard-amount" :class="flowClass(transactionFlow(tx))" :title="flowLabel(transactionFlow(tx))">{{ formatFlowMoney(tx.amount, transactionFlow(tx)) }}</span>
 							<NcButton
 								v-if="canWrite && tx.status === 'unassigned' && !isDateClosed(tx.bookingDate)"
 								variant="tertiary"
@@ -304,8 +318,8 @@
 								<td class="vbh-purpose vbh-col-hide-sm" :title="tx.purpose">
 									<span class="vbh-clamp">{{ tx.purpose }}</span>
 								</td>
-								<td class="num" :class="amountClass(tx.amount)">
-									{{ formatMoney(tx.amount) }}
+								<td class="num" :class="flowClass(transactionFlow(tx))" :title="flowLabel(transactionFlow(tx))">
+									{{ formatFlowMoney(tx.amount, transactionFlow(tx)) }}
 								</td>
 								<td class="vbh-assign-cell">
 									<!-- Aufgeteilter Umsatz: das Auswahlfeld fasst nur ein Konto
@@ -327,6 +341,7 @@
 												:modelValue="accountOptionFor(tx.contraAccountId)"
 												:options="accountOptionsList"
 												:filterBy="accountFilterBy"
+												:selectable="isSelectableOption"
 												:clearable="!!tx.contraAccountId"
 												:disabled="!canWrite || isDateClosed(tx.bookingDate)"
 												label="label"
@@ -396,6 +411,7 @@
 								v-model="openItemAccountOption"
 								:options="accountOptionsList"
 								:filterBy="accountFilterBy"
+								:selectable="isSelectableOption"
 								label="label"
 								:placeholder="t('optional')"
 								:clearable="true" />
@@ -510,7 +526,7 @@
 <script>
 import { mdiDelete, mdiDownload, mdiFlash, mdiPaperclip, mdiPencil, mdiUpload } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { NcActionButton, NcActions, NcButton, NcEmptyContent, NcIconSvgWrapper, NcSelect } from '@nextcloud/vue'
+import { NcActionButton, NcActions, NcButton, NcEllipsisedOption, NcEmptyContent, NcIconSvgWrapper, NcSelect } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import AmountInput from './AmountInput.vue'
 import BookingCard from './BookingCard.vue'
@@ -522,13 +538,16 @@ import { useJournal } from '../composables/useJournal.js'
 import { useOpenItems } from '../composables/useOpenItems.js'
 import { usePeriods } from '../composables/usePeriods.js'
 import { useSort } from '../composables/useSort.js'
+import { journalRowMatchesAccountFilter } from '../lib/accountFilter.js'
 import { claimTypeLabel } from '../lib/claims.js'
-import { amountClass, errMsg, formatDate, formatMoney } from '../lib/format.js'
+import { bookingFlow, flowClass, flowLabel, formatFlowMoney, transactionFlow } from '../lib/flow.js'
+import { errMsg, formatDate, formatMoney } from '../lib/format.js'
 import { openItemStatusLabel } from '../lib/openItems.js'
+import { isSelectableOption } from '../lib/selectOptions.js'
 
 export default {
 	name: 'BookingsTab',
-	components: { NcButton, NcActions, NcActionButton, NcSelect, NcEmptyContent, NcIconSvgWrapper, AmountInput, BookingCard, RulesPanel },
+	components: { NcButton, NcActions, NcActionButton, NcSelect, NcEllipsisedOption, NcEmptyContent, NcIconSvgWrapper, AmountInput, BookingCard, RulesPanel },
 	props: {
 		isMobile: { type: Boolean, required: true },
 		bookingView: { type: String, required: true },
@@ -588,7 +607,10 @@ export default {
 			mdiFlash,
 			mdiDelete,
 			bookingSearch: '',
-			bookingFilterAccountId: null,
+			// null | { accountId } | { category }: Kontofilter des Journals, siehe
+			// journalRowMatchesAccountFilter().
+			bookingFilter: null,
+			bookingFilterSearch: '',
 			journalOnlyNoAttachment: false,
 			openItemForm: { debtor: '', description: '', amount: '', dueDate: '', accountId: null },
 			openItemFilter: 'open',
@@ -617,13 +639,32 @@ export default {
 			return buildAccountOptions(this.accountsSorted, this.accountUsageCounts, this.t)
 		},
 
+		// Nur fuer den Journal-Filter: dort sind die Kategorie-Ueberschriften
+		// waehlbar und meinen alle Konten der Kategorie. In den Konto-Pickern
+		// (Zuordnen, Offene Posten) bleiben sie reine Trenner.
+		accountFilterOptions() {
+			return buildAccountOptions(this.accountsSorted, this.accountUsageCounts, this.t, { selectableCategories: true })
+		},
+
 		bookingFilterAccountOption: {
 			get() {
-				if (!this.bookingFilterAccountId) { return null }
-				return this.accountOptionsList.find((o) => o.id === this.bookingFilterAccountId) ?? null
+				const f = this.bookingFilter
+				if (!f) { return null }
+				return this.accountFilterOptions.find((o) => (f.accountId
+					? o.id === f.accountId
+					: o.isCategory && o.category === f.category)) ?? null
 			},
 
-			set(v) { this.bookingFilterAccountId = v ? v.id : null },
+			set(v) {
+				if (v && v.isCategory) {
+					this.bookingFilter = { category: v.category }
+				} else if (v && typeof v.id === 'number') {
+					this.bookingFilter = { accountId: v.id }
+				} else {
+					// Leeren oder eine reine Trenner-Option (id null): kein Filter.
+					this.bookingFilter = null
+				}
+			},
 		},
 
 		sortedJournalRows() { return this.applySort(this.journalRows, this.sort.journal) },
@@ -636,9 +677,8 @@ export default {
 					|| (r.soll || '').toLowerCase().includes(s)
 					|| (r.haben || '').toLowerCase().includes(s))
 			}
-			if (this.bookingFilterAccountId) {
-				rows = rows.filter((r) => r.debitAccountId === this.bookingFilterAccountId
-					|| r.creditAccountId === this.bookingFilterAccountId)
+			if (this.bookingFilter) {
+				rows = rows.filter((r) => journalRowMatchesAccountFilter(r, this.bookingFilter, this.accountsById, this.t))
 			}
 			if (this.journalOnlyNoAttachment) {
 				rows = rows.filter((r) => !this.attachmentCountMap[r.id])
@@ -754,7 +794,10 @@ export default {
 	methods: {
 		formatMoney,
 		formatDate,
-		amountClass,
+		flowClass,
+		flowLabel,
+		formatFlowMoney,
+		transactionFlow,
 		/**
 		 * Zugeordnet, aber ohne einzelnes Gegenkonto = der Umsatz wurde auf
 		 * mehrere verteilt. contra_account_id bleibt dann leer, siehe
@@ -809,6 +852,8 @@ export default {
 			return id ? (this.accountOptionsList.find((o) => o.id === id) ?? null) : null
 		},
 
+		isSelectableOption,
+
 		accountFilterBy(option, label, search) {
 			const s = String(search || '').trim().toLowerCase()
 			if (!s) { return true }
@@ -821,15 +866,9 @@ export default {
 			return String(label || '').toLowerCase().includes(s)
 		},
 
+		/** Geldrichtung der Journalzeile für Vorzeichen, Farbe und Tooltip, siehe lib/flow.js. */
 		rowFlow(r) {
-			if (r.isSplit) { return '' }
-			const d = this.accountsById[r.debitAccountId]
-			const c = this.accountsById[r.creditAccountId]
-			const dIn = !!(d && d.isBank)
-			const cOut = !!(c && c.isBank)
-			if (dIn && !cOut) { return 'in' }
-			if (cOut && !dIn) { return 'out' }
-			return ''
+			return bookingFlow(r, this.accountsById)
 		},
 	},
 }

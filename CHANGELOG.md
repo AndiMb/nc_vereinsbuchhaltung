@@ -19,7 +19,7 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
-## [0.35.0] – 2026-10-05
+## [0.35.0] – 2026-10-09
 
 **Neu:**
 - **Mitglieder als eigene Stammdaten:** Person oder Organisation mit Akte,
@@ -132,6 +132,27 @@ verwenden, z. B. `**Neu:**`.
 - **GiroCode-Bibliothek im Paket:** Die App bringt `chillerlan/php-qrcode`
   (Version 5, PHP 8.1 genügt) im Verzeichnis `vendor/` mit; für den
   GiroCode-Anhang sollte PHP die Erweiterung gd haben (Issue #73, #120).
+
+## [0.34.5] – 2026-10-09
+
+**Neu:**
+- **Einnahme oder Ausgabe auf einen Blick:** Beträge in Übersicht, „Alle
+  Buchungen" und „Zuzuordnen" tragen jetzt Vorzeichen und Farbe – Einnahmen
+  grün, Ausgaben rot, Umbuchungen neutral.
+- **Kontofilter nach Kategorie:** Im Journal lassen sich „Einnahmen", „Ausgaben"
+  und die anderen Kategorien direkt im Kontofilter wählen.
+
+**Geändert:**
+- **Kassenbericht blendet Sphären ohne Bewegung aus:** Die Sphärenübersicht
+  zeigt nur noch Sphären mit Einnahmen oder Ausgaben.
+
+**Behoben:**
+- **Kontofilter übersah Splitbuchungen:** Jetzt zählt jede Buchungszeile, nicht
+  nur die erste Soll- und Haben-Zeile.
+- **Gruppen-Überschriften in Kontofeldern waren anklickbar:** Die
+  Kategorie-Überschriften in allen Kontoauswahlfeldern sind jetzt gesperrt.
+- **„&" im Kontonamen stand im Finanzplan als `&amp;`:** Übersetzte Texte mit
+  Platzhaltern werden nicht mehr doppelt kodiert.
 
 ## [0.34.4] – 2026-09-29
 
