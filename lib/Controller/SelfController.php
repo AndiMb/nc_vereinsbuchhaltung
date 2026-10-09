@@ -97,10 +97,21 @@ class SelfController extends Controller {
 			// möglich, kein Nutzerfehler.
 			return new DataResponse(['message' => $this->l10n->t('Mitglied nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
+		return new DataResponse($this->overview($member));
+	}
+
+	/**
+	 * Die Stammdaten samt Mandat und offener Forderungssumme – dieselbe Gestalt für `me()` und `updateMe()`,
+	 * damit die Oberfläche nach dem Speichern der Kontaktdaten nicht ohne Mandat dasteht.
+	 *
+	 * @return array<string,mixed>
+	 */
+	private function overview(Member $member): array {
+		$memberId = (int)$member->getId();
 		$data = $this->contactData($member);
 		$data['mandate'] = $this->mandateData($this->selfServiceMandate->currentMandate($memberId));
 		$data['openClaimsTotalCents'] = $this->selfServiceMandate->openClaimsTotalCents($memberId);
-		return new DataResponse($data);
+		return $data;
 	}
 
 	/**
@@ -250,7 +261,7 @@ class SelfController extends Controller {
 				'city' => $city,
 				'country' => $country,
 			], static fn ($v) => $v !== null));
-			return new DataResponse($this->contactData($member));
+			return new DataResponse($this->overview($member));
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		}

@@ -667,7 +667,8 @@ export default {
 			this.savingContact = true
 			try {
 				const { data } = await api.selfUpdateMe(this.contactForm)
-				this.member = data
+				// Zusammenführen statt ersetzen: Mandat und offene Forderungssumme gehören zur Ansicht, nicht zur Antwort.
+				this.member = { ...this.member, ...data }
 				this.editingContact = false
 				showSuccess(this.t('Kontaktdaten gespeichert.'))
 			} catch (e) {

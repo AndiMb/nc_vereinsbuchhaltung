@@ -305,6 +305,25 @@ class SelfControllerTest extends TestCase {
 		$this->controller()->updateMe(phone: '+49 30 999');
 	}
 
+	/** Nach dem Speichern der Kontaktdaten darf die Oberfläche das Mandat nicht verlieren (Fund im Testprotokoll 11.2). */
+	public function testUpdateMeLiefertWieMeAuchMandatUndOffeneSumme(): void {
+		$mandate = new \OCA\Vereinsbuchhaltung\Db\Mandate();
+		$mandate->setId(5);
+		$mandate->setMandateReference('M-7');
+		$mandate->setIban('DE02120300000000202051');
+		$mandate->setStatus(\OCA\Vereinsbuchhaltung\Db\Mandate::STATUS_ACTIVE);
+		$selfServiceMandate = $this->createMock(SelfServiceMandateService::class);
+		$selfServiceMandate->method('currentMandate')->with(self::MEMBER_ID)->willReturn($mandate);
+		$selfServiceMandate->method('openClaimsTotalCents')->with(self::MEMBER_ID)->willReturn(1500);
+		$this->contact->method('update')->willReturn($this->fullMember());
+
+		$data = $this->controller($selfServiceMandate)->updateMe(phone: '+49 30 999')->getData();
+
+		$this->assertSame('M-7', $data['mandate']['mandateReference']);
+		$this->assertSame(1500, $data['openClaimsTotalCents']);
+		$this->assertSame('Katrin', $data['firstName']);
+	}
+
 	public function testUpdateMeLehntUngueltigeEingabeAbAls400(): void {
 		$this->contact->method('update')->willThrowException(new \InvalidArgumentException('ungültig'));
 
