@@ -17,6 +17,13 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+**Changed:**
+- **Sign and colour on amounts are now a setting:** the tables on the
+  overview, under "All entries" and under "To assign" show the amount
+  neutrally again by default, as before 0.34.5; sign and colour can be turned
+  on in the Nextcloud settings under "Display". The entry cards on mobile stay
+  as they were.
+
 ## [0.34.5] – 2026-10-09
 
 **New:**

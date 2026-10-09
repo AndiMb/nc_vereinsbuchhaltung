@@ -100,7 +100,7 @@
 							:key="g.key + '-' + r.id"
 							:row="r"
 							:attachmentCount="attachmentCountMap[r.id] ? attachmentCountMap[r.id].count : 0"
-							:flow="rowFlow(r)"
+							:flow="cardFlow(r)"
 							:tappable="canWrite || !!attachmentCountMap[r.id]"
 							@open="openBookingCard(r)"
 							@paperclip="clickPaperclip(r)" />
@@ -230,7 +230,7 @@
 						:class="tx.status === 'assigned' ? '' : 'open'">
 						<div class="vbh-mcard-top">
 							<span class="vbh-mcard-meta">{{ formatDate(tx.bookingDate) }}</span>
-							<span class="vbh-mcard-amount" :class="flowClass(transactionFlow(tx))" :title="flowLabel(transactionFlow(tx))">{{ formatFlowMoney(tx.amount, transactionFlow(tx)) }}</span>
+							<span class="vbh-mcard-amount" :class="txAmountClass(tx, true)" :title="flowLabel(txFlow(tx))">{{ formatFlowMoney(tx.amount, txFlow(tx)) }}</span>
 							<NcButton
 								v-if="canWrite && tx.status === 'unassigned' && !isDateClosed(tx.bookingDate)"
 								variant="tertiary"
@@ -318,8 +318,8 @@
 								<td class="vbh-purpose vbh-col-hide-sm" :title="tx.purpose">
 									<span class="vbh-clamp">{{ tx.purpose }}</span>
 								</td>
-								<td class="num" :class="flowClass(transactionFlow(tx))" :title="flowLabel(transactionFlow(tx))">
-									{{ formatFlowMoney(tx.amount, transactionFlow(tx)) }}
+								<td class="num" :class="txAmountClass(tx)" :title="flowLabel(txFlow(tx))">
+									{{ formatFlowMoney(tx.amount, txFlow(tx)) }}
 								</td>
 								<td class="vbh-assign-cell">
 									<!-- Aufgeteilter Umsatz: das Auswahlfeld fasst nur ein Konto
@@ -520,7 +520,7 @@ import { usePeriods } from '../composables/usePeriods.js'
 import { useSort } from '../composables/useSort.js'
 import { journalRowMatchesAccountFilter } from '../lib/accountFilter.js'
 import { bookingFlow, flowClass, flowLabel, formatFlowMoney, transactionFlow } from '../lib/flow.js'
-import { errMsg, formatDate, formatMoney } from '../lib/format.js'
+import { amountClass, errMsg, formatDate, formatMoney } from '../lib/format.js'
 import { isSelectableOption } from '../lib/selectOptions.js'
 
 export default {
@@ -528,6 +528,8 @@ export default {
 	components: { NcButton, NcActions, NcActionButton, NcSelect, NcEllipsisedOption, NcEmptyContent, NcIconSvgWrapper, AmountInput, BookingCard, RulesPanel },
 	props: {
 		isMobile: { type: Boolean, required: true },
+		// 'plain' | 'signed': Vorzeichen und Farbe am Betrag, siehe lib/flow.js
+		amountDisplay: { type: String, default: 'plain' },
 		bookingView: { type: String, required: true },
 		attachmentCountMap: { type: Object, required: true },
 		// suggestionsById bleibt in App.vue berechnet (wird auch vom
@@ -767,6 +769,7 @@ export default {
 	methods: {
 		formatMoney,
 		formatDate,
+		amountClass,
 		flowClass,
 		flowLabel,
 		formatFlowMoney,
@@ -835,9 +838,35 @@ export default {
 			return String(label || '').toLowerCase().includes(s)
 		},
 
-		/** Geldrichtung der Journalzeile für Vorzeichen, Farbe und Tooltip, siehe lib/flow.js. */
+		/** Geldrichtung der Journalzeile für Vorzeichen, Farbe und Tooltip, siehe lib/flow.js. Neutral ('') in der Standarddarstellung. */
 		rowFlow(r) {
-			return bookingFlow(r, this.accountsById)
+			return this.amountDisplay === 'signed' ? bookingFlow(r, this.accountsById) : ''
+		},
+
+		/**
+		 * Richtung für die mobile Buchungskarte. Die Karten zeigten Vorzeichen und
+		 * Farbe schon vor der Einstellung und bleiben davon unberührt: in der
+		 * Standarddarstellung wie bisher (Splittbuchungen neutral), mit
+		 * 'signed' mit der vollen Richtung aus lib/flow.js.
+		 */
+		cardFlow(r) {
+			return this.amountDisplay === 'signed' || !r.isSplit ? bookingFlow(r, this.accountsById) : ''
+		},
+
+		/** Richtung eines Bankumsatzes; neutral ('') in der Standarddarstellung. */
+		txFlow(tx) {
+			return this.amountDisplay === 'signed' ? transactionFlow(tx) : ''
+		},
+
+		/**
+		 * Farbklasse am Betrag eines Bankumsatzes. In der Standarddarstellung
+		 * bleibt es beim Stand vor der Einstellung: der Abgang rot, am Handy
+		 * zusätzlich der Eingang grün; das Vorzeichen liefert die Bank selbst.
+		 */
+		txAmountClass(tx, mobile = false) {
+			if (this.amountDisplay === 'signed') { return flowClass(transactionFlow(tx)) }
+			if (mobile) { return tx.amount < 0 ? 'neg' : 'pos' }
+			return amountClass(tx.amount)
 		},
 	},
 }

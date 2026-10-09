@@ -76,6 +76,30 @@ test.describe('Einstellungsseite: Belegablage', () => {
 	})
 })
 
+// Darstellung der Beträge: ab Werk neutral, der Verwalter schaltet Vorzeichen
+// und Farbe in den Einstellungen ein (die Wirkung in den Listen prüft
+// 03-bookings.spec.mjs).
+test.describe('Einstellungsseite: Darstellung', () => {
+	test.afterAll(async ({ request }) => {
+		await api.updateSettings(request, { amount_display: 'plain' })
+	})
+
+	test('ab Werk neutral, Umschalten auf Vorzeichen und Farbe lässt sich speichern', async ({ page, request }) => {
+		await api.updateSettings(request, { amount_display: 'plain' })
+		expect((await api.getJson(request, '/settings')).amount_display).toBe('plain')
+
+		await openSettingsPage(page, USERS.admin)
+		const section = page.locator('#settings-section_darstellung')
+		const select = section.locator('select')
+		await expect(select).toHaveValue('plain')
+		await select.selectOption('signed')
+		await section.getByRole('button', { name: 'Speichern' }).click()
+		await expect(page.getByRole('status').filter({ hasText: 'Einstellungen gespeichert.' }).first()).toBeVisible()
+
+		expect((await api.getJson(request, '/settings')).amount_display).toBe('signed')
+	})
+})
+
 // Das einziehende Konto zeigt als einzige Einstellung auf einen Datensatz der
 // App. Verwaist sie, darf das nicht die ganze Seite unspeicherbar machen –
 // die sendet immer den vollständigen Feldsatz.

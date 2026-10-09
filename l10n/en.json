@@ -1433,7 +1433,12 @@
         "Keine weiteren Dateien im Wächter-Ordner.": "No further files in the watch folder.",
         "Beträge zeigen die Richtung: Einnahmen grün mit Plus, Ausgaben rot mit Minus – in Übersicht, Buchungen und „Zuzuordnen\".": "Amounts show their direction: income green with a plus, expenses red with a minus – on the overview, in entries and under “To assign”.",
         "Der Kontofilter im Journal kennt jetzt Kategorien wie „Einnahmen\" oder „Ausgaben\".": "The account filter in the journal now knows categories such as “Income” or “Expenses”.",
-        "Der Kassenbericht zeigt in der Sphärenübersicht nur noch Sphären mit Bewegung.": "The cash report only lists spheres with activity in the sphere overview."
+        "Der Kassenbericht zeigt in der Sphärenübersicht nur noch Sphären mit Bewegung.": "The cash report only lists spheres with activity in the sphere overview.",
+        "Darstellung": "Display",
+        "Beträge in Buchungslisten": "Amounts in entry lists",
+        "Gilt für die Tabellen in Übersicht, „Alle Buchungen\" und „Zuzuordnen\" und für alle Nutzer; die Buchungskarten am Handy zeigen die Richtung immer. Ein Buchungssatz hat kein Vorzeichen – ob Geld hinein- oder hinausgeht, ergibt sich aus Soll und Haben. Wer die Richtung trotzdem auf einen Blick sehen will, schaltet Vorzeichen und Farbe ein.": "Applies to the tables in the overview, “All entries” and “To assign”, and to all users; the entry cards on mobile always show the direction. A journal entry has no sign – whether money comes in or goes out follows from debit and credit. If you still want to see the direction at a glance, turn on sign and colour.",
+        "Neutral: nur der Betrag": "Neutral: the amount only",
+        "Mit Vorzeichen und Farbe: Einnahmen grün (+), Ausgaben rot (−)": "With sign and colour: income green (+), expenses red (−)"
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

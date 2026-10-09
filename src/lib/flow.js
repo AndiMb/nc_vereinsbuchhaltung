@@ -2,10 +2,18 @@
 // Geld raus ('out') oder keins von beidem (''): Umbuchung zwischen Geldkonten,
 // Buchung ganz ohne Geldkonto, nicht auflösbare Splittbuchung.
 //
-// Alle Listen der App zeigen die Richtung auf dieselbe Weise: Einnahmen als
-// grünes "+120,00 €", Ausgaben als rotes "-45,00 €", Neutrales ohne Vorzeichen
-// und ohne Farbe. Das Vorzeichen ist das zweite Signal neben der Farbe, damit
-// die Richtung auch ohne Farbsehen lesbar bleibt; der Tooltip benennt sie.
+// Ob die Richtung überhaupt gezeigt wird, entscheidet die Einstellung
+// `amount_display` (Standard 'plain': neutral, ein Buchungssatz hat kein
+// Vorzeichen). Die Aufrufer (DashboardTab, BookingsTab) liefern bei 'plain'
+// die Richtung '' – damit sind alle Helfer unten ohne weiteres neutral.
+// Ausnahme sind die mobilen Buchungskarten (BookingCard), die Richtung schon
+// vor der Einstellung zeigten und sie weiter immer zeigen.
+//
+// Bei 'signed' zeigen alle Listen der App die Richtung auf dieselbe Weise:
+// Einnahmen als grünes "+120,00 €", Ausgaben als rotes "-45,00 €", Neutrales
+// ohne Vorzeichen und ohne Farbe. Das Vorzeichen ist das zweite Signal neben
+// der Farbe, damit die Richtung auch ohne Farbsehen lesbar bleibt; der
+// Tooltip benennt sie.
 import { formatMoney } from './format.js'
 import { t } from './l10n.js'
 
