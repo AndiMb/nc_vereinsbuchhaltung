@@ -221,7 +221,7 @@
 					:key="'m' + r.id"
 					:row="r"
 					:attachmentCount="attachmentCountMap[r.id] ? attachmentCountMap[r.id].count : 0"
-					:flow="rowFlow(r)"
+					:flow="cardFlow(r)"
 					:tappable="canWrite || !!attachmentCountMap[r.id]"
 					@open="openBookingCard(r)"
 					@paperclip="clickPaperclip(r)" />
@@ -294,6 +294,8 @@ export default {
 		isMobile: { type: Boolean, required: true },
 		busy: { type: Boolean, required: true },
 		clubName: { type: String, required: true },
+		// 'plain' | 'signed': Vorzeichen und Farbe am Betrag, siehe lib/flow.js
+		amountDisplay: { type: String, default: 'plain' },
 		// steuert, ob die SetupChecklist schon urteilsfaehig ist (siehe SetupChecklist.vue)
 		setupReady: { type: Boolean, required: true },
 		attachmentCountMap: { type: Object, required: true },
@@ -465,9 +467,19 @@ export default {
 			return out
 		},
 
-		/** Geldrichtung der Journalzeile für Vorzeichen, Farbe und Tooltip, siehe lib/flow.js. */
+		/** Geldrichtung der Journalzeile für Vorzeichen, Farbe und Tooltip, siehe lib/flow.js. Neutral ('') in der Standarddarstellung. */
 		rowFlow(r) {
-			return bookingFlow(r, this.accountsById)
+			return this.amountDisplay === 'signed' ? bookingFlow(r, this.accountsById) : ''
+		},
+
+		/**
+		 * Richtung für die mobile Buchungskarte. Die Karten zeigten Vorzeichen und
+		 * Farbe schon vor der Einstellung und bleiben davon unberührt: in der
+		 * Standarddarstellung wie bisher (Splittbuchungen neutral), mit
+		 * 'signed' mit der vollen Richtung aus lib/flow.js.
+		 */
+		cardFlow(r) {
+			return this.amountDisplay === 'signed' || !r.isSplit ? bookingFlow(r, this.accountsById) : ''
 		},
 
 		destroyChart(key) {

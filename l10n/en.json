@@ -2640,7 +2640,13 @@
             "Release due: the run on %s (%n claims, %s €) has not been released yet."
         ],
         "Wie funktioniert der Terminplan?": "How does the schedule work?",
-        "Mandat ohne Nachweis": "Mandate without proof"
+        "Mandat ohne Nachweis": "Mandate without proof",
+        "Darstellung": "Display",
+        "Beträge in Buchungslisten": "Amounts in entry lists",
+        "Gilt für die Tabellen in Übersicht, „Alle Buchungen\" und „Zuzuordnen\" und für alle Nutzer; die Buchungskarten am Handy zeigen die Richtung immer. Ein Buchungssatz hat kein Vorzeichen – ob Geld hinein- oder hinausgeht, ergibt sich aus Soll und Haben. Wer die Richtung trotzdem auf einen Blick sehen will, schaltet Vorzeichen und Farbe ein.": "Applies to the tables in the overview, “All entries” and “To assign”, and to all users; the entry cards on mobile always show the direction. A journal entry has no sign – whether money comes in or goes out follows from debit and credit. If you still want to see the direction at a glance, turn on sign and colour.",
+        "Neutral: nur der Betrag": "Neutral: the amount only",
+        "Mit Vorzeichen und Farbe: Einnahmen grün (+), Ausgaben rot (−)": "With sign and colour: income green (+), expenses red (−)",
+        "Vorzeichen und Farbe an Beträgen sind jetzt eine Einstellung (Nextcloud-Einstellungen → Darstellung) und ab Werk aus.": "Sign and colour on amounts are now a setting (Nextcloud settings → Display) and off by default."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

@@ -12,6 +12,15 @@
 			</NcSettingsSection>
 		</div>
 
+		<div id="settings-section_darstellung">
+			<NcSettingsSection :name="t('Darstellung')">
+				<SettingsDisplay
+					v-model:amountDisplay="amountDisplay"
+					:storageSaving="storageSaving"
+					:saveStorageSettings="saveSettings" />
+			</NcSettingsSection>
+		</div>
+
 		<div id="settings-section_belege">
 			<NcSettingsSection :name="t('Belege')">
 				<SettingsAttachments
@@ -104,6 +113,7 @@ import { showError, showSuccess } from '@nextcloud/dialogs'
 import { NcButton, NcDialog, NcSettingsSection } from '@nextcloud/vue'
 import SettingsAttachments from './components/SettingsAttachments.vue'
 import SettingsClub from './components/SettingsClub.vue'
+import SettingsDisplay from './components/SettingsDisplay.vue'
 import SettingsMandateLegalText from './components/SettingsMandateLegalText.vue'
 import SettingsPeriods from './components/SettingsPeriods.vue'
 import SettingsPermissions from './components/SettingsPermissions.vue'
@@ -139,6 +149,7 @@ export default {
 		NcSettingsSection,
 		SettingsAttachments,
 		SettingsClub,
+		SettingsDisplay,
 		SettingsMandateLegalText,
 		SettingsPeriods,
 		SettingsPermissions,
@@ -166,6 +177,8 @@ export default {
 			clubName: '',
 			brandColor: '',
 			hasLogo: false,
+			// Betragsdarstellung in den Buchungslisten: 'plain' | 'signed'
+			amountDisplay: 'plain',
 			storageSaving: false,
 			// Überwachter Ordner für Kontoauszüge (leer = aus); der stündliche
 			// Hintergrundjob liest daraus ein.
@@ -221,6 +234,7 @@ export default {
 				this.storagePath = data.storage_path || 'Vereinsbuchhaltung/Belege'
 				this.clubName = data.club_name || ''
 				this.brandColor = data.brand_color || ''
+				this.amountDisplay = data.amount_display === 'signed' ? 'signed' : 'plain'
 				this.hasLogo = !!data.has_logo
 				this.statementWatchUser = data.statement_watch_user || ''
 				this.statementWatchPath = data.statement_watch_path || ''
@@ -247,6 +261,7 @@ export default {
 					storage_path: this.storagePath || 'Vereinsbuchhaltung/Belege',
 					club_name: this.clubName,
 					brand_color: this.brandColor,
+					amount_display: this.amountDisplay,
 					statement_watch_user: this.statementWatchUser,
 					statement_watch_path: this.statementWatchPath,
 					sepa_creditor_id: this.sepaCreditorId,

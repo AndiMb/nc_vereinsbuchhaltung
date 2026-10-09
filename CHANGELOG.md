@@ -133,6 +133,15 @@ verwenden, z. B. `**Neu:**`.
   (Version 5, PHP 8.1 genügt) im Verzeichnis `vendor/` mit; für den
   GiroCode-Anhang sollte PHP die Erweiterung gd haben (Issue #73, #120).
 
+## [0.34.6] – 2026-10-09
+
+**Geändert:**
+- **Vorzeichen und Farbe bei Beträgen sind jetzt eine Einstellung:** Die
+  Tabellen in Übersicht, „Alle Buchungen" und „Zuzuordnen" zeigen den Betrag
+  ab Werk wieder neutral wie vor 0.34.5; Vorzeichen und Farbe lassen sich in
+  den Nextcloud-Einstellungen unter „Darstellung" einschalten. Die
+  Buchungskarten am Handy bleiben unverändert.
+
 ## [0.34.5] – 2026-10-09
 
 **Neu:**

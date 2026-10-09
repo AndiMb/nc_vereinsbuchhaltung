@@ -116,6 +116,7 @@
 				<DashboardTab
 					:isActive="activeTab === 'dashboard'"
 					:isMobile="isMobile"
+					:amountDisplay="amountDisplay"
 					:busy="busy"
 					:clubName="clubName"
 					:setupReady="setupReady"
@@ -136,6 +137,7 @@
 			<section v-show="activeTab === 'bookings'" class="vbh-section vbh-flex-col" :class="{ 'vbh-fadein': sectionFade }">
 				<BookingsTab
 					:isMobile="isMobile"
+					:amountDisplay="amountDisplay"
 					:bookingView="bookingView"
 					:membershipActive="membershipActive"
 					:attachmentCountMap="attachmentCountMap"
@@ -656,6 +658,9 @@ export default {
 			auditLoading: false,
 			auditEnd: false,
 			costCenterMode: 'group',
+			// Betragsdarstellung in den Buchungslisten ('plain' | 'signed'), vom
+			// Verwalter in den Nextcloud-Einstellungen gewählt, siehe lib/flow.js.
+			amountDisplay: 'plain',
 			clubName: '',
 			// Erst true, wenn alle Daten geladen sind, die SetupChecklist fuer ihre
 			// "erledigt"-Haekchen braucht - verhindert das Aufblitzen der Checkliste
@@ -1421,13 +1426,15 @@ export default {
 		// GET /api/settings ist ab Revisor erlaubt; App.vue braucht davon nur
 		// noch, was ausserhalb der (jetzt in Nextcloud-Einstellungen
 		// ausgelagerten) Einstellungsseite gebraucht wird: den Kostenstellen-
-		// Modus (ReportsTab, AccountDialog), den Vereinsnamen (SetupChecklist),
+		// Modus (ReportsTab, AccountDialog), die Betragsdarstellung (DashboardTab,
+		// BookingsTab), den Vereinsnamen (SetupChecklist),
 		// den Beitrags-Standardwert (ContributionsTab → MemberDialog,
 		// MemberImportDialog) sowie demoActive/membershipActive.
 		async loadStorageSettings() {
 			try {
 				const { data } = await api.getSettings()
 				this.costCenterMode = data.cost_center_mode || 'group'
+				this.amountDisplay = data.amount_display === 'signed' ? 'signed' : 'plain'
 				this.storageMode = data.storage_mode || 'appdata'
 				this.clubName = data.club_name || ''
 				this.demoActive = !!data.demo_active

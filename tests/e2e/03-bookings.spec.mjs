@@ -56,9 +56,25 @@ test.describe('Buchungen', () => {
 		await switchTab(page, 'Buchungen')
 		await selectPeriod(page, '2031')
 		await expect(visibleSection(page).getByText('Spende Vereinsfest').first()).toBeVisible()
-		// Bank im Soll, Erlöskonto im Haben: eine Einnahme, grün und mit Plus.
+		// Ab Werk neutral: ein Buchungssatz hat kein Vorzeichen, auch wenn Bank
+		// im Soll und Erlöskonto im Haben eine Einnahme ergeben.
 		const row = visibleSection(page).locator('tr', { hasText: 'Spende Vereinsfest' }).first()
-		await expect(row.locator('td.num.pos')).toHaveText(/^\+250,00\s*€$/)
+		const amount = row.locator('td.num.strong')
+		await expect(amount).toHaveText(/^250,00\s*€$/)
+		await expect(amount).not.toHaveClass(/\bpos\b/)
+	})
+
+	test('Einstellung „Darstellung“ zeigt Einnahmen grün und mit Plus', async ({ page, request }) => {
+		await api.updateSettings(request, { amount_display: 'signed' })
+		try {
+			await openApp(page, USERS.buchhalter)
+			await switchTab(page, 'Buchungen')
+			await selectPeriod(page, '2031')
+			const row = visibleSection(page).locator('tr', { hasText: 'Spende Vereinsfest' }).first()
+			await expect(row.locator('td.num.pos')).toHaveText(/^\+250,00\s*€$/)
+		} finally {
+			await api.updateSettings(request, { amount_display: 'plain' })
+		}
 	})
 
 	test('Buchung bearbeiten: geänderter Text landet im Journal', async ({ page }) => {

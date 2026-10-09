@@ -37,6 +37,16 @@ class SettingsController extends Controller {
 
 	use BookContext;
 
+	/**
+	 * Darstellung der Beträge in Übersicht, „Alle Buchungen" und „Zuzuordnen":
+	 * 'plain' zeigt Buchungsbeträge neutral, wie der Buchungssatz sie kennt
+	 * (ohne Vorzeichen und Farbe), Bankumsätze wie bisher mit dem Vorzeichen
+	 * der Bank und rotem Abgang. 'signed' macht Einnahmen und Ausgaben überall
+	 * mit Vorzeichen und Farbe kenntlich. Ab Werk 'plain' – Buchungssätze haben
+	 * kein Vorzeichen, die Richtung ergibt sich aus Soll und Haben.
+	 */
+	public const AMOUNT_DISPLAYS = ['plain', 'signed'];
+
 	public function __construct(
 		IRequest $request,
 		private IConfig $config,
@@ -120,6 +130,12 @@ class SettingsController extends Controller {
 		return $this->folderPathValidator->validate($path, $pathLabel);
 	}
 
+	/** Gespeicherte Betragsdarstellung; ein unbekannter Wert gilt als Standard. */
+	private function amountDisplay(): string {
+		$display = $this->config->getAppValue(Application::APP_ID, 'amount_display', 'plain');
+		return in_array($display, self::AMOUNT_DISPLAYS, true) ? $display : 'plain';
+	}
+
 	/**
 	 * Der vollständige, aktuell gespeicherte Einstellungssatz. Gemeinsame
 	 * Grundlage für index() und die Antwort von update(): zwei getrennte
@@ -138,6 +154,7 @@ class SettingsController extends Controller {
 			'storage_user' => $this->config->getAppValue(Application::APP_ID, AttachmentStorageService::SETTING_USER, ''),
 			'storage_path' => $this->config->getAppValue(Application::APP_ID, AttachmentStorageService::SETTING_PATH, AttachmentStorageService::DEFAULT_PATH),
 			'cost_center_mode' => $this->config->getAppValue(Application::APP_ID, 'cost_center_mode', 'group'),
+			'amount_display' => $this->amountDisplay(),
 			'club_name' => $this->config->getAppValue(Application::APP_ID, 'club_name', ''),
 			'brand_color' => $this->config->getAppValue(Application::APP_ID, 'brand_color', ''),
 			'has_logo' => $this->config->getAppValue(Application::APP_ID, 'brand_logo_mime', '') !== '',
@@ -296,6 +313,14 @@ class SettingsController extends Controller {
 				$ccMode = 'group';
 			}
 			$this->config->setAppValue($appId, 'cost_center_mode', $ccMode);
+		}
+
+		if (array_key_exists('amount_display', $params)) {
+			$amountDisplay = (string)$params['amount_display'];
+			if (!in_array($amountDisplay, self::AMOUNT_DISPLAYS, true)) {
+				$amountDisplay = 'plain';
+			}
+			$this->config->setAppValue($appId, 'amount_display', $amountDisplay);
 		}
 
 		if (array_key_exists('club_name', $params)) {
