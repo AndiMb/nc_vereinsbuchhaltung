@@ -1,20 +1,28 @@
 <template>
 	<div class="vbh-mcard vbh-membercard">
 		<div class="vbh-mcard-top">
-			<span class="vbh-mcard-title">
-				{{ row.displayName }}
-				<span v-if="!row.member.active" class="vbh-typetag">{{ t('ausgetreten') }}</span>
+			<span class="vbh-mcard-title vbh-namecell">
+				<!-- Der Name öffnet die Akte: der eine Weg dorthin. Das Menü führt nur zum Mandat. -->
+				<button
+					type="button"
+					class="vbh-linkbtn"
+					:aria-label="`${t('Akte öffnen')}: ${row.displayName}`"
+					@click="$emit('open-member')">
+					{{ row.displayName }}
+				</button>
+				<span v-if="!row.member.active" class="vbh-pill vbh-pill--muted">{{ t('ausgetreten') }}</span>
+				<span v-if="!row.email" class="vbh-pill vbh-pill--warning" :title="t('keine E-Mail – keine Vorankündigung möglich')">
+					<NcIconSvgWrapper :path="mdiEmailOffOutline" :size="14" />
+					{{ t('keine E-Mail') }}
+				</span>
 			</span>
 			<span v-if="row.fee" class="vbh-mcard-amount">{{ formatMoney(row.fee.amount) }}</span>
 		</div>
-		<p v-if="!row.email" class="vbh-hint">
-			{{ t('keine E-Mail – keine Vorankündigung möglich') }}
-		</p>
 		<div class="vbh-mcard-bottom">
 			<span class="vbh-mcard-accounts">
 				<template v-if="row.mandate">
 					{{ row.mandate.iban }}
-					<span v-if="row.mandate.statusTag" class="vbh-typetag">{{ row.mandate.statusTag }}</span>
+					<span v-if="row.mandate.statusTag" class="vbh-pill vbh-pill--warning">{{ row.mandate.statusTag }}</span>
 				</template>
 				<span v-else-if="row.fee && !row.fee.needsMandate">{{ t('Überweisung') }}</span>
 				<span v-else>{{ t('kein Mandat') }}</span>
@@ -26,7 +34,7 @@
 				<template v-if="row.fee && row.nextDueDate"> · </template>
 				<template v-if="row.nextDueDate">{{ t('fällig {date}', { date: row.nextDueDate }) }}</template>
 			</span>
-			<span v-if="row.fee" class="vbh-hint">{{ row.fee.statusLabel }}</span>
+			<span v-if="row.fee" class="vbh-status" :class="`vbh-status--${row.fee.statusTone}`">{{ row.fee.statusLabel }}</span>
 		</div>
 		<p v-if="row.moreFees > 0" class="vbh-hint">
 			{{ n('+ %n weitere Zuweisung', '+ %n weitere Zuweisungen', row.moreFees) }}
@@ -40,15 +48,9 @@
 				@click="$emit('manage-assignments')">
 				{{ t('Zuweisung verwalten') }}
 			</NcButton>
-			<!-- Seltener genutzte Aktionen im Menue, gleiches Muster wie in der
-				Desktop-Tabelle (MembersList.vue) und im Buchungsjournal. -->
+			<!-- Das Mandat führen: springt in der Akte zum Mandat-Bereich, gleiches
+				Muster wie in der Desktop-Tabelle (MembersList.vue). -->
 			<NcActions :forceMenu="true">
-				<NcActionButton closeAfterClick @click="$emit('open-member')">
-					<template #icon>
-						<NcIconSvgWrapper :path="mdiAccountEdit" :size="16" />
-					</template>
-					{{ t('Akte öffnen') }}
-				</NcActionButton>
 				<NcActionButton closeAfterClick @click="$emit('open-mandate')">
 					<template #icon>
 						<NcIconSvgWrapper :path="mdiFileSign" :size="16" />
@@ -61,7 +63,7 @@
 </template>
 
 <script>
-import { mdiAccountEdit, mdiFileSign } from '@mdi/js'
+import { mdiEmailOffOutline, mdiFileSign } from '@mdi/js'
 import { NcActionButton, NcActions, NcButton, NcIconSvgWrapper } from '@nextcloud/vue'
 import { formatMoney } from '../lib/format.js'
 
@@ -82,7 +84,7 @@ export default {
 	emits: ['manage-assignments', 'open-mandate', 'open-member'],
 
 	data() {
-		return { mdiAccountEdit, mdiFileSign }
+		return { mdiEmailOffOutline, mdiFileSign }
 	},
 
 	methods: { formatMoney },

@@ -41,8 +41,8 @@ test.describe('DSGVO: Datenübersicht & Anonymisierung', () => {
 		await openApp(page, USERS.buchhalter)
 		await switchTab(page, 'Beiträge')
 		const row = visibleSection(page).locator('tr', { hasText: 'Nora Neumitglied' })
-		await row.getByRole('button', { name: 'Aktionen' }).click()
-		await page.getByRole('menuitem', { name: 'Akte öffnen' }).click()
+		// Der Name der Zeile öffnet die Akte (der eine Weg dorthin); das Zeilenmenü führt nur zum Mandat.
+		await row.getByRole('button', { name: 'Akte öffnen' }).click()
 
 		const dialog = page.getByRole('dialog')
 		await expect(dialog).toBeVisible()

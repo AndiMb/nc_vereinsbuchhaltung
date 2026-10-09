@@ -1,22 +1,31 @@
 <template>
 	<div class="vbh-bank">
 		<div class="vbh-bank-head">
-			<h4>{{ t('Bankabgleich') }}</h4>
-			<div class="vbh-bank-views" role="group" :aria-label="t('Darstellung des Bankabgleichs')">
-				<NcButton
-					size="small"
-					:variant="view === 'sepa' ? 'primary' : 'secondary'"
+			<!-- Der Reiter „Bankabgleich" darüber nennt den Bereich schon; die Überschrift bleibt für Screenreader. -->
+			<h4 class="vbh-visually-hidden">
+				{{ t('Bankabgleich') }}
+			</h4>
+			<div class="vbh-segmented" role="group" :aria-label="t('Darstellung des Bankabgleichs')">
+				<button
+					type="button"
+					class="vbh-segmented-item"
+					:class="{ active: view === 'sepa' }"
 					:aria-pressed="view === 'sepa' ? 'true' : 'false'"
 					@click="view = 'sepa'">
-					{{ t('Einzüge und Rückgaben') }} ({{ sepaPending }})
-				</NcButton>
-				<NcButton
-					size="small"
-					:variant="view === 'incoming' ? 'primary' : 'secondary'"
+					{{ t('Einzüge und Rückgaben') }}<template v-if="sepaPending > 0">
+						({{ sepaPending }})
+					</template>
+				</button>
+				<button
+					type="button"
+					class="vbh-segmented-item"
+					:class="{ active: view === 'incoming' }"
 					:aria-pressed="view === 'incoming' ? 'true' : 'false'"
 					@click="view = 'incoming'">
-					{{ t('Zahlungseingänge') }} ({{ incoming.length }})
-				</NcButton>
+					{{ t('Zahlungseingänge') }}<template v-if="incoming.length > 0">
+						({{ incoming.length }})
+					</template>
+				</button>
 			</div>
 			<span class="vbh-bank-spacer" />
 			<NcButton
@@ -33,8 +42,9 @@
 				</template>
 			</NcButton>
 		</div>
-		<p class="vbh-hint">
-			{{ t('Der Bankauszug ist die Wahrheit: Hier prüfen Sie die Zuordnungsvorschläge zu importierten Bankumsätzen. Nichts wird automatisch gebucht – erst Ihr Urteil und das Verbuchen lösen eine Buchung aus.') }}
+		<!-- Eine Zeile Erklärung, und nur dort, wo es etwas zu beurteilen gibt; der leere Zustand sagt sich selbst. -->
+		<p v-if="loaded && (view === 'sepa' ? items.length : incoming.length)" class="vbh-hint">
+			{{ t('Nichts wird automatisch gebucht – erst Ihr Urteil und das Verbuchen lösen eine Buchung aus.') }}
 		</p>
 		<p v-if="!canWrite" class="vbh-hint">
 			{{ t('Sie sehen den Bankabgleich nur lesend. Urteile und Verbuchen sind ab der Rolle Buchhalter möglich.') }}
@@ -57,9 +67,14 @@
 
 			<!-- ============ EINZÜGE UND RÜCKGABEN ============ -->
 			<template v-if="view === 'sepa'">
-				<p v-if="!items.length" class="vbh-hint">
-					{{ t('Es warten keine Bankumsätze mit SEPA-Bezug auf ein Urteil. Einzugsgutschriften und Rücklastschriften erscheinen hier nach dem Kontoauszugs-Import (Buchungen → Import).') }}
-				</p>
+				<NcEmptyContent
+					v-if="!items.length"
+					:name="t('Es warten keine Bankumsätze mit SEPA-Bezug auf ein Urteil.')"
+					:description="t('Einzugsgutschriften und Rücklastschriften erscheinen hier nach dem Kontoauszugs-Import (Buchungen → Import).')">
+					<template #icon>
+						<NcIconSvgWrapper :path="mdiBankOutline" />
+					</template>
+				</NcEmptyContent>
 				<BankTxSuggestions
 					v-for="entry in items"
 					:key="entry.bankTx.id"
@@ -96,9 +111,9 @@
 </template>
 
 <script>
-import { mdiRefresh } from '@mdi/js'
+import { mdiBankOutline, mdiRefresh } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { NcButton, NcIconSvgWrapper, NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcEmptyContent, NcIconSvgWrapper, NcLoadingIcon } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import BankIncomingPayments from './BankIncomingPayments.vue'
 import BankTxSettleDialog from './BankTxSettleDialog.vue'
@@ -123,7 +138,7 @@ import { n, t } from '../lib/l10n.js'
  */
 export default {
 	name: 'BankReconciliationSegment',
-	components: { BankIncomingPayments, BankTxSettleDialog, BankTxSuggestions, NcButton, NcIconSvgWrapper, NcLoadingIcon },
+	components: { BankIncomingPayments, BankTxSettleDialog, BankTxSuggestions, NcButton, NcEmptyContent, NcIconSvgWrapper, NcLoadingIcon },
 	props: {
 		canWrite: { type: Boolean, default: false },
 		// Ob das Segment gerade angezeigt wird – geladen wird erst dann (und bei jeder Rückkehr frisch).
@@ -142,6 +157,7 @@ export default {
 
 	data() {
 		return {
+			mdiBankOutline,
 			mdiRefresh,
 			view: 'sepa',
 			// Die Ansicht wird einmal nach dem ersten Laden gewählt (die mit Arbeit), danach entscheiden die Knöpfe.
@@ -274,25 +290,8 @@ export default {
 	gap: 8px 12px;
 }
 
-.vbh-bank-head h4 {
-	margin: 0;
-}
-
-.vbh-bank-views {
-	display: inline-flex;
-	flex-wrap: wrap;
-	gap: 4px;
-}
-
 .vbh-bank-spacer {
 	flex: 1 1 auto;
 }
 
-/* Schmale Anzeige: Überschrift und Aktualisieren bleiben in einer Zeile, die Ansichten brechen darunter um. */
-@media (max-width: 600px) {
-	.vbh-bank-views {
-		order: 3;
-		flex: 1 1 100%;
-	}
-}
 </style>

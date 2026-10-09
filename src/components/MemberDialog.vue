@@ -68,9 +68,20 @@
 				</div>
 			</fieldset>
 
+			<!-- In der Akte gehört „Speichern“ zu den Stammdaten darüber – alle anderen Abschnitte wirken sofort.
+				Die Leiste steht deshalb gleich unter dem Formular, nicht am Ende eines langen Stapels. -->
+			<div v-if="isEdit" class="vbh-modal-actions">
+				<NcButton variant="tertiary" @click="$emit('close')">
+					{{ t('Abbrechen') }}
+				</NcButton>
+				<NcButton variant="primary" :disabled="!canSave || saving" @click="save">
+					{{ t('Speichern') }}
+				</NcButton>
+			</div>
+
 			<template v-if="!isEdit">
 				<p class="vbh-hint">
-					{{ t('Optional gleich ein SEPA-Mandat erfassen und einer Beitragsgruppe zuweisen – beides lässt sich auch später ergänzen (Schritt 2/3 des Aufnahme-Assistenten, überspringbar).') }}
+					{{ t('Optional gleich ein SEPA-Mandat erfassen und einer Beitragsgruppe zuweisen – beides lässt sich später ergänzen.') }}
 				</p>
 				<div class="vbh-form">
 					<label>{{ t('Art der Unterschrift') }}
@@ -180,91 +191,121 @@
 					:readonly="isRedacted"
 					@changed="$emit('changed')" />
 
-				<h3 class="vbh-modal-subtitle">
-					{{ t('Nextcloud-Konto') }}
-				</h3>
-				<div v-if="member.ncUserId" class="vbh-form">
-					<span>{{ linkedAccountText(member.ncUserId) }}</span>
-					<NcButton
-						variant="tertiary"
-						size="small"
-						:disabled="linking"
-						@click="doUnlink">
-						{{ t('Verknüpfung lösen') }}
-					</NcButton>
-				</div>
-				<div v-else>
-					<p v-if="!member.email" class="vbh-hint">
-						{{ t('Ohne Mailadresse gibt es keinen Vorschlag – erst speichern, dann verknüpfen.') }}
+				<!-- Die übrigen Abschnitte der Akte: je eine Trennlinie, dieselbe Überschrift, ein Satz Erläuterung höchstens. -->
+				<section class="vbh-akte-section">
+					<h3 class="vbh-modal-subtitle">
+						{{ t('Nextcloud-Konto') }}
+					</h3>
+					<div v-if="member.ncUserId" class="vbh-form">
+						<span>{{ linkedAccountText(member.ncUserId) }}</span>
+						<NcButton
+							variant="tertiary"
+							:disabled="linking"
+							@click="doUnlink">
+							{{ t('Verknüpfung lösen') }}
+						</NcButton>
+					</div>
+					<div v-else>
+						<p v-if="!member.email" class="vbh-hint">
+							{{ t('Ohne Mailadresse gibt es keinen Vorschlag – erst speichern, dann verknüpfen.') }}
+						</p>
+						<template v-else>
+							<NcButton
+								variant="secondary"
+								:disabled="linking"
+								@click="loadSuggestions">
+								{{ t('Vorschläge suchen') }}
+							</NcButton>
+							<ul v-if="suggestions.length" class="vbh-linksuggestions">
+								<li v-for="s in suggestions" :key="s.uid">
+									{{ s.displayName }} <span class="vbh-hint">({{ s.email }})</span>
+									<NcButton
+										variant="primary"
+										size="small"
+										:disabled="linking"
+										@click="doLink(s.uid)">
+										{{ t('Verknüpfen') }}
+									</NcButton>
+								</li>
+							</ul>
+							<p v-else-if="suggestionsLoaded" class="vbh-hint">
+								{{ t('Kein Nextcloud-Konto mit dieser Mailadresse gefunden.') }}
+							</p>
+						</template>
+					</div>
+				</section>
+
+				<section class="vbh-akte-section">
+					<h3 class="vbh-modal-subtitle">
+						{{ t('Beitragsbestätigung') }}
+					</h3>
+					<p class="vbh-hint">
+						{{ t('Bestätigung der bezahlten Beiträge eines Jahres – kein amtlicher Spendennachweis nach § 10b EStG.') }}
 					</p>
-					<template v-else>
+					<div class="vbh-form">
+						<label>{{ t('Beitragsjahr') }}
+							<select v-model.number="certificateYear">
+								<option v-for="y in certificateYears" :key="y" :value="y">
+									{{ y }}
+								</option>
+							</select>
+						</label>
+						<NcButton variant="secondary" :href="certificateUrl" target="_blank">
+							<template #icon>
+								<NcIconSvgWrapper :path="mdiOpenInNew" :size="20" />
+							</template>
+							{{ t('Öffnen') }}
+						</NcButton>
+					</div>
+				</section>
+
+				<section class="vbh-akte-section">
+					<h3 class="vbh-modal-subtitle">
+						{{ t('Datenübersicht (Art. 15 DSGVO)') }}
+					</h3>
+					<p class="vbh-hint">
+						{{ t('Druckfertige Auskunft über alle gespeicherten Daten – kein strukturierter Export nach Art. 20 DSGVO.') }}
+					</p>
+					<NcButton variant="secondary" :href="dataOverviewUrl" target="_blank">
+						<template #icon>
+							<NcIconSvgWrapper :path="mdiOpenInNew" :size="20" />
+						</template>
+						{{ t('Datenübersicht öffnen') }}
+					</NcButton>
+				</section>
+
+				<section class="vbh-akte-section">
+					<h3 class="vbh-modal-subtitle">
+						{{ t('Austritt') }}
+					</h3>
+					<div v-if="member.leftAt" class="vbh-form">
+						<span>{{ t('Austritt zum {datum}.', { datum: member.leftAt }) }}</span>
+						<NcButton
+							variant="tertiary"
+							:disabled="leaving"
+							@click="doReactivate">
+							{{ t('Austritt zurücknehmen') }}
+						</NcButton>
+					</div>
+					<div v-else class="vbh-form">
+						<label>{{ t('Austrittsdatum') }}
+							<input v-model="leaveDate" type="date">
+						</label>
 						<NcButton
 							variant="secondary"
-							size="small"
-							:disabled="linking"
-							@click="loadSuggestions">
-							{{ t('Vorschläge suchen') }}
+							:disabled="leaving || !leaveDate"
+							@click="doLeave">
+							{{ t('Austritt erklären') }}
 						</NcButton>
-						<ul v-if="suggestions.length" class="vbh-linksuggestions">
-							<li v-for="s in suggestions" :key="s.uid">
-								{{ s.displayName }} <span class="vbh-hint">({{ s.email }})</span>
-								<NcButton
-									variant="primary"
-									size="small"
-									:disabled="linking"
-									@click="doLink(s.uid)">
-									{{ t('Verknüpfen') }}
-								</NcButton>
-							</li>
-						</ul>
-						<p v-else-if="suggestionsLoaded" class="vbh-hint">
-							{{ t('Kein Nextcloud-Konto mit dieser Mailadresse gefunden.') }}
-						</p>
-					</template>
-				</div>
+					</div>
+				</section>
 
-				<h3 class="vbh-modal-subtitle">
-					{{ t('Beitragsbestätigung') }}
-				</h3>
-				<p class="vbh-hint">
-					{{ t('Informelle Bestätigung der bezahlten Beiträge eines Beitragsjahres – kein amtlicher Spendennachweis nach § 10b EStG. Stellvertretung durch den Kassenwart.') }}
-				</p>
-				<div class="vbh-form">
-					<label>{{ t('Beitragsjahr') }}
-						<select v-model.number="certificateYear">
-							<option v-for="y in certificateYears" :key="y" :value="y">
-								{{ y }}
-							</option>
-						</select>
-					</label>
-					<a
-						:href="certificateUrl"
-						target="_blank"
-						rel="noopener"
-						class="vbh-export-btn">{{ t('Öffnen') }}</a>
-				</div>
-
-				<h3 class="vbh-modal-subtitle">
-					{{ t('Datenübersicht (Art. 15 DSGVO)') }}
-				</h3>
-				<p class="vbh-hint">
-					{{ t('Druckfertige Auskunft über alle zu diesem Mitglied gespeicherten Daten – kein strukturierter Export nach Art. 20 DSGVO.') }}
-				</p>
-				<div class="vbh-form">
-					<a
-						:href="dataOverviewUrl"
-						target="_blank"
-						rel="noopener"
-						class="vbh-export-btn">{{ t('Datenübersicht öffnen') }}</a>
-				</div>
-
-				<h3 class="vbh-modal-subtitle">
-					{{ t('Anonymisierung (Art. 17 DSGVO)') }}
-				</h3>
-				<p v-if="member.redactedAt" class="vbh-hint">
-					{{ t('Bereits am {datum} anonymisiert.', { datum: member.redactedAt.slice(0, 10) }) }}
-				</p>
-				<template v-else>
+				<!-- Anonymisierung und Löschen sind die endgültigen Schritte: zuletzt, beide als Textknopf im Fehlerton.
+					Ist die Akte schon anonymisiert, sagt das der Hinweis ganz oben – dann entfällt der Abschnitt. -->
+				<section v-if="!member.redactedAt" class="vbh-akte-section">
+					<h3 class="vbh-modal-subtitle">
+						{{ t('Anonymisierung (Art. 17 DSGVO)') }}
+					</h3>
 					<p v-if="anonymizationStatus && anonymizationStatus.eligible" class="vbh-hint vbh-hint--warning">
 						{{ t('Anonymisierungsreif: die letzte zugehörige Buchung liegt mehr als 10 Jahre zurück – die Bestätigung ist irreversibel.') }}
 					</p>
@@ -276,62 +317,67 @@
 					</p>
 					<NcButton
 						v-if="anonymizationStatus && anonymizationStatus.eligible"
-						variant="error"
-						size="small"
+						variant="tertiary"
+						class="vbh-btn-danger"
 						:disabled="anonymizing"
 						@click="doAnonymize">
 						{{ t('Jetzt anonymisieren') }}
 					</NcButton>
-				</template>
+				</section>
 
-				<h3 class="vbh-modal-subtitle">
-					{{ t('Austritt') }}
-				</h3>
-				<div v-if="member.leftAt" class="vbh-form">
-					<span>{{ t('Austritt zum {datum}.', { datum: member.leftAt }) }}</span>
+				<section class="vbh-akte-section">
+					<h3 class="vbh-modal-subtitle">
+						{{ t('Anonymisierung (Art. 17 DSGVO)') }}
+					</h3>
+					<!-- Dass die Akte schon anonymisiert ist, steht oben im Hinweis; hier nur der Zustand, nicht noch einmal der Satz. -->
+					<p v-if="member.redactedAt" class="vbh-hint">
+						{{ t('Bereits am {datum} anonymisiert.', { datum: member.redactedAt.slice(0, 10) }) }}
+					</p>
+					<template v-else>
+						<p v-if="anonymizationStatus && anonymizationStatus.eligible" class="vbh-hint vbh-hint--warning">
+							{{ t('Anonymisierungsreif: die letzte zugehörige Buchung liegt mehr als 10 Jahre zurück – die Bestätigung ist irreversibel.') }}
+						</p>
+						<p v-else-if="anonymizationStatus && anonymizationStatus.cutoffDate" class="vbh-hint">
+							{{ t('Noch nicht anonymisierungsreif (frühestens ab {datum} – 10 Jahre nach der letzten zugehörigen Buchung).', { datum: anonymizationStatus.cutoffDate }) }}
+						</p>
+						<p v-else-if="anonymizationStatus" class="vbh-hint">
+							{{ t('Noch keine zugehörige Buchung – die 10-Jahres-Frist läuft noch nicht.') }}
+						</p>
+						<NcButton
+							v-if="anonymizationStatus && anonymizationStatus.eligible"
+							variant="tertiary"
+							class="vbh-btn-danger"
+							:disabled="anonymizing"
+							@click="doAnonymize">
+							{{ t('Jetzt anonymisieren') }}
+						</NcButton>
+					</template>
+				</section>
+
+				<section class="vbh-akte-section">
+					<h3 class="vbh-modal-subtitle">
+						{{ t('Löschen') }}
+					</h3>
+					<p v-if="member.blockingReasons && member.blockingReasons.length" class="vbh-hint vbh-hint--warning">
+						{{ member.blockingReasons.join(' ') }}
+					</p>
 					<NcButton
+						v-else
 						variant="tertiary"
-						size="small"
-						:disabled="leaving"
-						@click="doReactivate">
-						{{ t('Austritt zurücknehmen') }}
+						class="vbh-btn-danger"
+						:disabled="deleting"
+						@click="doDelete">
+						{{ t('Mitglied löschen') }}
 					</NcButton>
-				</div>
-				<div v-else class="vbh-form">
-					<label>{{ t('Austrittsdatum') }}
-						<input v-model="leaveDate" type="date">
-					</label>
-					<NcButton
-						variant="secondary"
-						size="small"
-						:disabled="leaving || !leaveDate"
-						@click="doLeave">
-						{{ t('Austritt erklären') }}
-					</NcButton>
-				</div>
-
-				<h3 class="vbh-modal-subtitle">
-					{{ t('Löschen') }}
-				</h3>
-				<p v-if="member.blockingReasons && member.blockingReasons.length" class="vbh-hint vbh-hint--warning">
-					{{ member.blockingReasons.join(' ') }}
-				</p>
-				<NcButton
-					v-else
-					variant="error"
-					size="small"
-					:disabled="deleting"
-					@click="doDelete">
-					{{ t('Mitglied löschen') }}
-				</NcButton>
+				</section>
 			</template>
 
-			<div class="vbh-modal-actions">
+			<div v-if="!isEdit" class="vbh-modal-actions">
 				<NcButton variant="tertiary" @click="$emit('close')">
 					{{ t('Abbrechen') }}
 				</NcButton>
 				<NcButton variant="primary" :disabled="!canSave || saving" @click="save">
-					{{ isEdit ? t('Speichern') : t('Aufnehmen') }}
+					{{ t('Aufnehmen') }}
 				</NcButton>
 			</div>
 		</div>
@@ -339,8 +385,9 @@
 </template>
 
 <script>
+import { mdiOpenInNew } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { NcButton, NcModal } from '@nextcloud/vue'
+import { NcButton, NcIconSvgWrapper, NcModal } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import AmountInput from './AmountInput.vue'
 import MandatePanel from './MandatePanel.vue'
@@ -401,7 +448,7 @@ function emptyForm(member, defaultFeeAmount) {
  */
 export default {
 	name: 'MemberDialog',
-	components: { NcModal, NcButton, AmountInput, MandatePanel },
+	components: { NcModal, NcButton, NcIconSvgWrapper, AmountInput, MandatePanel },
 	props: {
 		show: { type: Boolean, default: false },
 		saving: { type: Boolean, default: false },
@@ -424,6 +471,7 @@ export default {
 
 	data() {
 		return {
+			mdiOpenInNew,
 			form: emptyForm(this.member, this.defaultFeeAmount),
 			suggestions: [],
 			suggestionsLoaded: false,

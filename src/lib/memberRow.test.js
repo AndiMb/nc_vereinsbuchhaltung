@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildMemberRow, nextDueDates } from './memberRow.js'
+import { assignmentStatusTone, buildMemberRow, nextDueDates } from './memberRow.js'
 
 // Zeilenaufbau der Mitgliederliste: Mandat und Zuweisung in die gemeinsame
 // Anzeigeform, die nächste Fälligkeit aus den Forderungen. Die Datenformen
@@ -181,5 +181,22 @@ describe('buildMemberRow – nächste Fälligkeit', () => {
 	it('bleibt leer, wenn zum Mitglied keine fällige Forderung bekannt ist – auch ohne Zuordnung', () => {
 		expect(build({ nextDueDates: new Map([[2, '2026-11-01']]) }).nextDueDate).toBeNull()
 		expect(build().nextDueDate).toBeNull()
+	})
+})
+
+describe('Zustandston der Zuweisung', () => {
+	it('laufend ist grün, künftig blau, beendet gedämpft – das Wort steht immer daneben', () => {
+		expect(assignmentStatusTone(assignment(), TODAY)).toBe('success')
+		expect(assignmentStatusTone(assignment({ active: false, validFrom: '2026-10-01' }), TODAY)).toBe('info')
+		expect(assignmentStatusTone(assignment({ active: false, validTo: '2026-06-30' }), TODAY)).toBe('muted')
+	})
+
+	it('die Zeile trägt Wort und Ton zusammen', () => {
+		const running = build({ assignments: [assignment()] }).fee
+		expect(running).toMatchObject({ statusLabel: 'aktiv', statusTone: 'success' })
+		const future = build({ assignments: [assignment({ active: false, validFrom: '2027-01-01' })] }).fee
+		expect(future).toMatchObject({ statusLabel: 'ab 2027-01-01', statusTone: 'info' })
+		const ended = build({ assignments: [assignment({ active: false, validTo: '2026-06-30' })] }).fee
+		expect(ended).toMatchObject({ statusLabel: 'beendet 2026-06-30', statusTone: 'muted' })
 	})
 })

@@ -27,6 +27,33 @@ export function claimTypeLabel(type) {
 	return type === 'gebuehr' ? t('Gebühr') : t('Beitrag')
 }
 
+/**
+ * Das Etikett für die Art einer Forderung – nur, wenn sie vom Normalfall abweicht.
+ * Fast jede Forderung ist ein Beitrag; ein „Beitrag"-Etikett an jeder Zeile sagt
+ * nichts. Auffallen soll die Ausnahme (Gebühr), deshalb leer für den Normalfall.
+ *
+ * @param {string} type Art der Forderung (`beitrag`, `gebuehr`)
+ * @return {string} Etikett oder leer
+ */
+export function claimTypeTag(type) {
+	return type === 'gebuehr' ? claimTypeLabel(type) : ''
+}
+
+/**
+ * Wie ein Störfall in der Liste erscheint: Handlungsbedarf als Warnung, ein
+ * Hinweis gedämpft. `tone` ist der Modifikator von `vbh-flag--<ton>`, `icon` der
+ * Name des Symbols (die Komponente ordnet ihm den Pfad zu). Das Wort bleibt
+ * immer stehen, die Farbe ist nur die zweite Spur.
+ *
+ * @param {?string} severity `handlungsbedarf`, `hinweis` oder null
+ * @return {?{label: string, tone: string, icon: string}}
+ */
+export function severityMark(severity) {
+	if (severity === SEVERITY_ACTION) { return { label: t('Handlungsbedarf'), tone: 'warning', icon: 'alert' } }
+	if (severity === SEVERITY_HINT) { return { label: t('Hinweis'), tone: 'muted', icon: 'info' } }
+	return null
+}
+
 /** Die Mahnstufen wie in der Spec §3.6: 0 Zahlungsaufforderung, 1 Zahlungserinnerung, 2 Mahnung, danach die Eskalation. */
 export function dunningStageLabel(stage) {
 	return {
@@ -137,6 +164,22 @@ export function dunningCompact(dunning) {
 		detail: sentAt ? t('versandt am {datum}', { datum: formatDate(sentAt) }) : '',
 		escalated: false,
 	}
+}
+
+/**
+ * Was die Spalte „Mahnstand" zeigt, ohne etwas zweimal zu sagen: erreichte Stufe
+ * (`label`) mit Versanddatum (`detail`) und die nächste Stufe (`next`). `none`
+ * heißt: weder erreicht noch ausstehend – nur dann steht der Strich da. Folgt
+ * noch eine Stufe, ersetzt ihr Text den Strich (ein „–" mit einer Zeile darunter
+ * ist kein Zustand, sondern ein Widerspruch).
+ *
+ * @param {object} dunning Mahnstand der Forderung (`dunning` der Überblicksantwort)
+ * @return {{label: string, detail: string, next: string, none: boolean}}
+ */
+export function dunningCell(dunning) {
+	const { label, detail } = dunningCompact(dunning)
+	const next = dunningNextText(dunning)
+	return { label, detail, next, none: !label && !next }
 }
 
 /**

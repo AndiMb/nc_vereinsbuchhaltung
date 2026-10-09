@@ -3,7 +3,7 @@
 		<section class="vbh-card">
 			<div class="vbh-cardhead">
 				<h4>{{ t('Beitragsgruppen') }}</h4>
-				<NcButton variant="primary" @click="openNewGroup">
+				<NcButton variant="secondary" @click="openNewGroup">
 					{{ t('+ Beitragsgruppe') }}
 				</NcButton>
 			</div>
@@ -22,8 +22,8 @@
 								{{ t('Standard') }}
 							</th>
 							<th>{{ t('Turnusse') }}</th>
-							<th>{{ tc('Zustand', 'Aktiv') }}</th>
-							<th class="vbh-col-memberactions" />
+							<th>{{ t('Status') }}</th>
+							<th class="vbh-col-rowactions-text" />
 						</tr>
 					</thead>
 					<tbody>
@@ -36,18 +36,29 @@
 								{{ euro(g.defaultMonthlyAmountCents) }}
 							</td>
 							<td>{{ g.allowedIntervals.join(', ') }}</td>
-							<td>{{ g.isActive ? t('ja') : t('nein') }}</td>
+							<td>
+								<span class="vbh-status" :class="g.isActive ? 'vbh-status--success' : 'vbh-status--muted'">{{ g.isActive ? t('aktiv') : t('inaktiv') }}</span>
+							</td>
 							<td class="nowrap right">
-								<div class="vbh-actions">
-									<NcButton size="small" @click="openEditGroup(g)">
+								<!-- Die gewöhnliche Aktion steht da, die seltene und die endgültige im Menü. -->
+								<div class="vbh-rowactions">
+									<NcButton variant="tertiary" size="small" @click="openEditGroup(g)">
 										{{ t('Bearbeiten') }}
 									</NcButton>
-									<NcButton size="small" @click="openMinAmountIncrease(g)">
-										{{ t('Untergrenze anheben') }}
-									</NcButton>
-									<NcButton size="small" variant="tertiary" @click="deleteGroup(g)">
-										{{ t('Löschen') }}
-									</NcButton>
+									<NcActions :forceMenu="true">
+										<NcActionButton closeAfterClick @click="openMinAmountIncrease(g)">
+											<template #icon>
+												<NcIconSvgWrapper :path="mdiArrowUpBold" :size="16" />
+											</template>
+											{{ t('Untergrenze anheben') }}
+										</NcActionButton>
+										<NcActionButton closeAfterClick @click="deleteGroup(g)">
+											<template #icon>
+												<NcIconSvgWrapper :path="mdiDelete" :size="16" />
+											</template>
+											{{ t('Löschen') }}
+										</NcActionButton>
+									</NcActions>
 								</div>
 							</td>
 						</tr>
@@ -59,7 +70,7 @@
 		<section class="vbh-card">
 			<div class="vbh-cardhead">
 				<h4>{{ t('Zuweisungen') }}</h4>
-				<NcButton variant="primary" :disabled="groups.length === 0" @click="assignmentDialogOpen = true">
+				<NcButton variant="secondary" :disabled="groups.length === 0" @click="assignmentDialogOpen = true">
 					{{ t('+ Zuweisung') }}
 				</NcButton>
 			</div>
@@ -81,7 +92,7 @@
 							<th>{{ t('Turnus') }}</th>
 							<th>{{ t('Gültig ab') }}</th>
 							<th>{{ t('Gültig bis') }}</th>
-							<th class="vbh-col-memberactions" />
+							<th class="vbh-col-rowactions" />
 						</tr>
 					</thead>
 					<tbody>
@@ -95,13 +106,16 @@
 							<td>{{ a.validFrom }}</td>
 							<td>{{ a.validTo || '–' }}</td>
 							<td class="nowrap right">
-								<NcButton
-									v-if="a.active"
-									size="small"
-									variant="tertiary"
-									@click="endAssignment(a)">
-									{{ t('Beenden') }}
-								</NcButton>
+								<div v-if="a.active" class="vbh-rowactions">
+									<NcActions :forceMenu="true">
+										<NcActionButton closeAfterClick @click="endAssignment(a)">
+											<template #icon>
+												<NcIconSvgWrapper :path="mdiCalendarRemove" :size="16" />
+											</template>
+											{{ t('Zuweisung beenden') }}
+										</NcActionButton>
+									</NcActions>
+								</div>
 							</td>
 						</tr>
 					</tbody>
@@ -112,7 +126,7 @@
 		<section class="vbh-card">
 			<div class="vbh-cardhead">
 				<h4>{{ t('Einzelforderungen') }}</h4>
-				<NcButton variant="primary" @click="claimDialogOpen = true">
+				<NcButton variant="secondary" @click="claimDialogOpen = true">
 					{{ t('+ Einzelforderung') }}
 				</NcButton>
 			</div>
@@ -141,9 +155,15 @@
 								{{ euro(c.amountCents) }}
 							</td>
 							<td>{{ c.dueDate }}</td>
-							<td>{{ c.state }}</td>
+							<td>
+								<span class="vbh-status" :class="claimStatusClass(c.state)">{{ c.state }}</span>
+							</td>
 							<td class="nowrap right">
-								<NcButton v-if="c.state === 'offen'" size="small" @click="settlePaid(c)">
+								<NcButton
+									v-if="c.state === 'offen'"
+									variant="secondary"
+									size="small"
+									@click="settlePaid(c)">
 									{{ t('Als bezahlt markieren') }}
 								</NcButton>
 							</td>
@@ -185,8 +205,9 @@
 </template>
 
 <script>
+import { mdiArrowUpBold, mdiCalendarRemove, mdiDelete } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { NcButton } from '@nextcloud/vue'
+import { NcActionButton, NcActions, NcButton, NcIconSvgWrapper } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import AssignmentDialog from './AssignmentDialog.vue'
 import ContributionGroupDialog from './ContributionGroupDialog.vue'
@@ -209,7 +230,7 @@ import { errMsg } from '../lib/format.js'
  */
 export default {
 	name: 'ContributionGroupsPanel',
-	components: { NcButton, ContributionGroupDialog, MinAmountIncreaseDialog, AssignmentDialog, ManualClaimDialog, DueDateScheduleSettings },
+	components: { NcButton, NcActions, NcActionButton, NcIconSvgWrapper, ContributionGroupDialog, MinAmountIncreaseDialog, AssignmentDialog, ManualClaimDialog, DueDateScheduleSettings },
 
 	setup() {
 		const groups = useContributionGroups()
@@ -234,6 +255,9 @@ export default {
 
 	data() {
 		return {
+			mdiArrowUpBold,
+			mdiCalendarRemove,
+			mdiDelete,
 			groupDialogOpen: false,
 			groupEditId: null,
 			groupForm: {},
@@ -250,6 +274,12 @@ export default {
 
 	methods: {
 		euro(cents) { return (cents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }) },
+
+		/** Statuspunkt einer Einzelforderung: erledigt grün, storniert gedämpft, sonst neutral (das Wort steht daneben). */
+		claimStatusClass(state) {
+			if (state === 'erledigt') { return 'vbh-status--success' }
+			return state === 'storniert' ? 'vbh-status--muted' : ''
+		},
 
 		memberName(memberId) {
 			const m = this.members.find((x) => x.id === memberId)
@@ -358,6 +388,19 @@ export default {
  * einfache Kopfzeile (Überschrift + Aktions-Button) je Abschnitt, ohne das
  * geteilte Stylesheet für ein einzelnes neues Panel anzufassen.
  */
+
+/* Die Abschnitte sind keine Kästen um die Tabellenkästen: Überschrift, Tabelle, Luft dazwischen. */
+.vbh-cgroups-panel .vbh-card {
+	margin: calc(var(--default-grid-baseline, 4px) * 6) 0 0;
+	padding: 0;
+	border: none;
+	background: none;
+}
+
+.vbh-cgroups-panel .vbh-card:first-child {
+	margin-top: 0;
+}
+
 .vbh-cardhead {
 	display: flex;
 	align-items: center;

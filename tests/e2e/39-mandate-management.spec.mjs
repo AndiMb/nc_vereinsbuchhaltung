@@ -108,8 +108,8 @@ test.describe('Mandat-Verwaltung in der Akte', () => {
 		await p.getByRole('button', { name: 'Mandat aktivieren' }).click()
 		await expect(status(dialog)).toHaveText('Aktiv')
 		await expect(field(dialog, 'Läuft ab')).toContainText(expiryOfTodaysSignature())
-		await expect(field(dialog, 'Nachweis')).toHaveText('fehlt')
-		await expect(p).toContainText('Mandat ohne Nachweis')
+		await expect(field(dialog, 'Nachweis')).toHaveText('fehlt') // der einzige Ort, der es sagt: kein zusätzlicher Hinweiskasten
+		await expect(p.getByRole('button', { name: 'Nachweis hochladen' })).toBeVisible()
 
 		// Sperren: ohne Notiz nicht möglich.
 		await p.getByRole('button', { name: 'Sperren', exact: true }).click()
@@ -264,19 +264,19 @@ test.describe('Mandat-Verwaltung in der Akte', () => {
 			await api.updateSettings(request, { storage_user: '', storage_path: 'Vereinsbuchhaltung/Belege' })
 		})
 
-		test('hochladen und herunterladen; „Mandat ohne Nachweis“ verschwindet; Formular druckfertig öffnen', async ({ page, request }) => {
+		test('hochladen und herunterladen; die Zeile „Nachweis“ wechselt auf „vorhanden“; Formular druckfertig öffnen', async ({ page, request }) => {
 			const member = await createMember(request, 'Nora', 'Nachweis')
 			const mandate = await createActiveMandate(request, member)
 			const dialog = await openMandate(page, member.displayName)
 			const p = panel(dialog)
 
-			await expect(p).toContainText('Mandat ohne Nachweis')
 			await expect(field(dialog, 'Nachweis')).toHaveText('fehlt')
+			await expect(p.getByRole('button', { name: 'Nachweis hochladen' })).toBeVisible()
 			await expect(p.getByRole('link', { name: 'Nachweis herunterladen' })).toHaveCount(0)
 
 			await p.locator('input[type="file"]').setInputFiles({ name: 'mandat.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 Mandat') })
 			await expect(field(dialog, 'Nachweis')).toHaveText('vorhanden')
-			await expect(p).not.toContainText('Mandat ohne Nachweis')
+			await expect(p.getByRole('button', { name: 'Nachweis ersetzen' })).toBeVisible()
 
 			const download = p.getByRole('link', { name: 'Nachweis herunterladen' })
 			await expect(download).toBeVisible()

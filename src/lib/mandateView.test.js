@@ -6,6 +6,7 @@ import {
 	amendmentStatusLabel,
 	canSaveDraftCorrection,
 	daysUntil,
+	documentRowTone,
 	draftCorrectionChanged,
 	endReasonLabel,
 	formatIban,
@@ -207,12 +208,8 @@ describe('Störfall-Hinweise je Zustand', () => {
 		expect(notice.text).toContain('Entwurf verworfen')
 	})
 
-	it('„Mandat ohne Nachweis“ nur, wenn der Server den (abschaltbaren) Hinweis meldet – als Info, nicht als Warnung', () => {
-		expect(keys(mandate({ hasDocument: false, showMissingDocumentWarning: false }))).toEqual([])
-		const notices = mandateNotices(mandate({ hasDocument: false, showMissingDocumentWarning: true }), TODAY)
-		expect(notices.map((n) => n.key)).toEqual(['document'])
-		expect(notices[0].title).toBe('Mandat ohne Nachweis')
-		expect(notices[0].tone).toBe('info')
+	it('ein fehlendes Dokument ist kein Hinweiskasten mehr – es steht einmal als Warnmarke in der Zeile „Nachweis“', () => {
+		expect(keys(mandate({ hasDocument: false, showMissingDocumentWarning: true }))).toEqual([])
 	})
 
 	it('Ablauf-Warnung mit den verbleibenden Tagen, am Stichtag selbst „läuft heute ab“', () => {
@@ -229,9 +226,18 @@ describe('Störfall-Hinweise je Zustand', () => {
 		expect(keys(mandate({ expiryWarning: false, expiresAt: '2026-10-05' }))).toEqual([])
 	})
 
-	it('Hinweise stapeln sich: gesperrt und ohne Nachweis und bald ablaufend', () => {
-		const m = mandate({ status: 'ausgesetzt', storyText: 'Klärung offen', hasDocument: false, showMissingDocumentWarning: true, expiryWarning: true, expiresAt: '2026-11-01' })
-		expect(keys(m)).toEqual(['suspended', 'expiry', 'document'])
+	it('Hinweise stapeln sich: gesperrt und bald ablaufend', () => {
+		const m = mandate({ status: 'ausgesetzt', storyText: 'Klärung offen', expiryWarning: true, expiresAt: '2026-11-01' })
+		expect(keys(m)).toEqual(['suspended', 'expiry'])
+	})
+})
+
+describe('Zeile „Nachweis“ der Mandatsliste', () => {
+	it('warnt nur, wenn das Dokument fehlt und der Server den (abschaltbaren) Hinweis meldet', () => {
+		expect(documentRowTone({ hasDocument: false, showMissingDocumentWarning: true })).toBe('warning')
+		expect(documentRowTone({ hasDocument: false, showMissingDocumentWarning: false })).toBeNull()
+		expect(documentRowTone({ hasDocument: false })).toBeNull()
+		expect(documentRowTone({ hasDocument: true, showMissingDocumentWarning: true })).toBeNull()
 	})
 })
 

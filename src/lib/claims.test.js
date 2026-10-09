@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import {
 	cancelBlockText,
 	claimActions,
+	claimTypeTag,
 	debitWarning,
+	dunningCell,
 	dunningCompact,
 	dunningNextText,
 	dunningStageLabel,
@@ -14,6 +16,7 @@ import {
 	groupByMember,
 	isActionable,
 	isUnsettled,
+	severityMark,
 	worstSeverity,
 } from './claims.js'
 
@@ -290,5 +293,38 @@ describe('Je Mitglied', () => {
 		])
 
 		expect(groups.map((g) => g.name)).toEqual(['Bernd', 'Anna', 'Armin', 'Clara'])
+	})
+})
+
+describe('Anzeigeregeln der Liste', () => {
+	it('das Art-Etikett steht nur bei Abweichung vom Normalfall (Beitrag)', () => {
+		expect(claimTypeTag('beitrag')).toBe('')
+		expect(claimTypeTag('gebuehr')).toBe('Gebühr')
+		expect(claimTypeTag(undefined)).toBe('')
+	})
+
+	it('die Störfall-Marke: Handlungsbedarf warnt, ein Hinweis tritt zurück, ohne Störfall keine Marke', () => {
+		expect(severityMark('handlungsbedarf')).toEqual({ label: 'Handlungsbedarf', tone: 'warning', icon: 'alert' })
+		expect(severityMark('hinweis')).toEqual({ label: 'Hinweis', tone: 'muted', icon: 'info' })
+		expect(severityMark(null)).toBeNull()
+	})
+
+	it('Mahnstand: der Strich nur, wenn weder eine Stufe erreicht noch eine nächste in Sicht ist', () => {
+		expect(dunningCell(NO_DUNNING)).toEqual({ label: '', detail: '', next: '', none: true })
+
+		// Noch nichts versandt, die erste Stufe steht an: kein Strich, nur die nächste Stufe.
+		const upcoming = dunningCell({ ...NO_DUNNING, nextStage: 0, nextDueOn: '2026-09-01' })
+		expect(upcoming).toMatchObject({ label: '', detail: '', next: 'Zahlungsaufforderung ab 01.09.2026', none: false })
+
+		// Stufe erreicht, nächste folgt: beide Angaben.
+		const reached = dunningCell({
+			stage: 0,
+			escalated: false,
+			notices: [{ stage: 0, sentAt: '2026-09-02 08:00:00' }],
+			nextStage: 1,
+			nextDueOn: '2026-09-16',
+		})
+		expect(reached).toMatchObject({ label: 'Zahlungsaufforderung', next: 'Zahlungserinnerung ab 16.09.2026', none: false })
+		expect(reached.detail).toContain('02.09.2026')
 	})
 })

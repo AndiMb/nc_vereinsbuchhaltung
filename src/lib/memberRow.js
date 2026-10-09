@@ -61,6 +61,20 @@ function assignmentStatusLabel(assignment, today) {
 }
 
 /**
+ * Ton des Statuspunkts neben dem Zustand (`vbh-status--<ton>` in styles.css):
+ * laufend = `success`, künftig = `info`, beendet = `muted`. Die Farbe ist nur
+ * die zweite Spur, das Wort steht daneben.
+ *
+ * @param {{active: boolean, validFrom: string}} assignment
+ * @param {string} today Stichtag (JJJJ-MM-TT)
+ * @return {'success'|'info'|'muted'}
+ */
+export function assignmentStatusTone(assignment, today = isoToday()) {
+	if (assignment.active) { return 'success' }
+	return assignment.validFrom > today ? 'info' : 'muted'
+}
+
+/**
  * Anzeigeform eines Beitrags aus einer Zuweisung. `amount` ist der Betrag je
  * Periode (Monatsbetrag × Turnus), damit die Spalte „Betrag" neben der
  * Frequenz dasselbe bedeutet wie auf der Rechnung; `yearlyAmount` zählt nur,
@@ -72,6 +86,7 @@ function assignmentView(assignment, today) {
 		frequencyLabel: intervalLabel(assignment.intervalMonths),
 		active: assignment.active,
 		statusLabel: assignmentStatusLabel(assignment, today),
+		statusTone: assignmentStatusTone(assignment, today),
 		// Überweiser brauchen kein Mandat – „aktiver Beitrag ohne Mandat" ist
 		// dort keine Auffälligkeit.
 		needsMandate: assignment.paymentMethod === 'direct_debit',

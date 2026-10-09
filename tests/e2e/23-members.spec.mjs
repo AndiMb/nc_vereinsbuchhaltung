@@ -74,8 +74,8 @@ test.describe('Mitglieder-Stammdaten', () => {
 		await openApp(page, USERS.buchhalter)
 		await switchTab(page, 'Beiträge')
 		const row = visibleSection(page).locator('tr', { hasText: 'Ver Knuepfung' })
-		await row.getByRole('button', { name: 'Aktionen' }).click()
-		await page.getByRole('menuitem', { name: 'Akte öffnen' }).click()
+		// Der Name der Zeile öffnet die Akte (der eine Weg dorthin); das Zeilenmenü führt nur zum Mandat.
+		await row.getByRole('button', { name: 'Akte öffnen' }).click()
 
 		const dialog = page.getByRole('dialog')
 		await expect(dialog).toBeVisible()
@@ -107,8 +107,8 @@ test.describe('Mitglieder-Stammdaten', () => {
 		await openApp(page, USERS.buchhalter)
 		await switchTab(page, 'Beiträge')
 		const row = visibleSection(page).locator('tr', { hasText: member.displayName })
-		await row.getByRole('button', { name: 'Aktionen' }).click()
-		await page.getByRole('menuitem', { name: 'Akte öffnen' }).click()
+		// Der Name der Zeile öffnet die Akte (der eine Weg dorthin); das Zeilenmenü führt nur zum Mandat.
+		await row.getByRole('button', { name: 'Akte öffnen' }).click()
 
 		const dialog = page.getByRole('dialog')
 		await expect(dialog.getByText('aktives SEPA-Mandat')).toBeVisible()
