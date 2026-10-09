@@ -89,9 +89,9 @@ async function openOpenItems(page, user = USERS.buchhalter) {
 	await expect(chip(page, 'Offen')).toBeVisible()
 }
 
-/** Die Filter-Chips der Offene-Posten-Sicht (die Suchleiste darüber trägt dieselbe Klasse, daher über .vbh-chip). */
+/** Die Filter-Chips der Offene-Posten-Sicht (die Suchleiste darüber trägt dieselbe Klasse, daher über .vbh-chip); hinter der Beschriftung steht der Zähler. */
 function chip(page, label) {
-	return visibleSection(page).locator('.vbh-chip', { hasText: new RegExp(`^${label}$`) })
+	return visibleSection(page).locator('.vbh-chip', { hasText: new RegExp(`^${label}\\s*\\d*$`) })
 }
 
 function rowOf(page, text) {

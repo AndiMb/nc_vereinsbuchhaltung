@@ -116,6 +116,9 @@ verwenden, z. B. `**Neu:**`.
   bezahlen, stornieren, wieder öffnen oder löschen; „Im Einzug bearbeiten"
   springt in den Reiter „Einzug". Freie Posten ohne Mitglied verhalten sich
   wie bisher (Issue #121).
+- **Offene Posten mit Zählern:** Die Filter nennen ihre Anzahl, ein neuer Filter
+  „Überfällig" zeigt genau die Posten, die der rote Badge am Reiter zählt; die
+  Tabelle schneidet Fälligkeit und Aktionen nicht mehr ab.
 - **Löschsperre für Mitglieder:** Ein Mitglied lässt sich nur löschen, solange
   nichts an ihm hängt – kein Mandat (auch kein Entwurf oder beendetes), keine
   Zuweisung, keine Forderung. Sonst nennt die Akte den Grund; für

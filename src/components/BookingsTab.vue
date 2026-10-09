@@ -11,7 +11,10 @@
 				</button>
 				<button :class="{ active: bookingView === 'openitems' }" @click="$emit('update:booking-view', 'openitems')">
 					{{ t('Offene Posten') }}
-					<span v-if="overdueOpenItemsCount > 0" class="vbh-badge vbh-badge--alert">{{ overdueOpenItemsCount }}</span>
+					<span
+						v-if="overdueOpenItemsCount > 0"
+						class="vbh-badge vbh-badge--alert"
+						:title="n('%n überfälliger offener Posten', '%n überfällige offene Posten', overdueOpenItemsCount)">{{ overdueOpenItemsCount }}</span>
 				</button>
 				<button v-if="canWrite" :class="{ active: bookingView === 'rules' }" @click="$emit('update:booking-view', 'rules')">
 					{{ t('Regeln') }}
@@ -429,9 +432,9 @@
 						:key="f.key"
 						type="button"
 						class="vbh-chip"
-						:class="{ active: openItemFilter === f.key }"
+						:class="{ active: activeOpenItemFilter === f.key }"
 						@click="openItemFilter = f.key">
-						{{ f.label }}
+						{{ f.label }}<span class="vbh-chip-count">{{ f.count }}</span>
 					</button>
 				</div>
 
@@ -451,17 +454,19 @@
 								<th class="vbh-col-hide-sm">
 									{{ t('Notiz') }}
 								</th>
-								<th class="nowrap">
+								<th class="nowrap vbh-col-oi-due">
 									{{ t('Fällig') }}
 								</th>
-								<th class="num">
+								<th class="num vbh-col-oi-amount">
 									{{ t('Betrag') }}
 								</th>
-								<th class="vbh-col-hide-sm">
+								<th class="vbh-col-hide-sm vbh-col-oi-account">
 									{{ t('Konto') }}
 								</th>
-								<th>{{ t('Status') }}</th>
-								<th />
+								<th class="vbh-col-oi-status">
+									{{ t('Status') }}
+								</th>
+								<th class="vbh-col-memberactions" />
 							</tr>
 						</thead>
 						<tbody>
@@ -475,7 +480,7 @@
 								</td>
 								<td class="nowrap">
 									{{ o.dueDate ? formatDate(o.dueDate) : '–' }}
-									<span v-if="o.overdue" class="vbh-warn-inline">{{ t('überfällig') }}</span>
+									<span v-if="o.overdue" class="vbh-warn-inline vbh-warn-inline--block">{{ t('überfällig') }}</span>
 								</td>
 								<td class="num strong">
 									{{ formatMoney(o.amount) }}
@@ -616,12 +621,6 @@ export default {
 			journalOnlyNoAttachment: false,
 			openItemForm: { debtor: '', description: '', amount: '', dueDate: '', accountId: null },
 			openItemFilter: 'open',
-			openItemFilterOptions: [
-				{ key: 'open', label: this.t('Offen') },
-				{ key: 'paid', label: this.t('Bezahlt') },
-				{ key: 'cancelled', label: this.t('Storniert') },
-				{ key: 'all', label: this.t('Alle') },
-			],
 		}
 	},
 
@@ -772,9 +771,33 @@ export default {
 			set(v) { this.openItemForm.accountId = v ? v.id : null },
 		},
 
+		// Chips mit Zähler: „Überfällig“ (eine Teilmenge von „Offen“) und „Erlassen“
+		// (nur Forderungen) erscheinen erst, wenn es sie gibt. Der Reiter-Badge zählt
+		// genau die überfälligen; so lässt sich seine Zahl in der Liste nachvollziehen.
+		openItemFilterOptions() {
+			const count = (status) => this.openItems.filter((o) => o.status === status).length
+			const overdue = this.openItems.filter((o) => o.status === 'open' && o.overdue).length
+			return [
+				{ key: 'open', label: this.t('Offen'), count: count('open') },
+				...(overdue > 0 ? [{ key: 'overdue', label: this.t('Überfällig'), count: overdue }] : []),
+				{ key: 'paid', label: this.t('Bezahlt'), count: count('paid') },
+				...(count('waived') > 0 ? [{ key: 'waived', label: this.t('Erlassen'), count: count('waived') }] : []),
+				{ key: 'cancelled', label: this.t('Storniert'), count: count('cancelled') },
+				{ key: 'all', label: this.t('Alle'), count: this.openItems.length },
+			]
+		},
+
+		// Ein Filter, dessen Chip verschwunden ist (letzter überfälliger Posten
+		// bezahlt), fällt auf „Offen“ zurück statt auf eine leere Liste.
+		activeOpenItemFilter() {
+			return this.openItemFilterOptions.some((f) => f.key === this.openItemFilter) ? this.openItemFilter : 'open'
+		},
+
 		filteredOpenItems() {
-			if (this.openItemFilter === 'all') { return this.openItems }
-			return this.openItems.filter((o) => o.status === this.openItemFilter)
+			const key = this.activeOpenItemFilter
+			if (key === 'all') { return this.openItems }
+			if (key === 'overdue') { return this.openItems.filter((o) => o.status === 'open' && o.overdue) }
+			return this.openItems.filter((o) => o.status === key)
 		},
 
 		hasClaimRows() { return this.filteredOpenItems.some((o) => this.isClaim(o)) },

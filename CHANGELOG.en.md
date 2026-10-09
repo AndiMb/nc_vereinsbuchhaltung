@@ -112,6 +112,9 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   can no longer be paid, cancelled, reopened or deleted under Bookings → Open
   items; "Im Einzug bearbeiten" jumps to the "Collection" tab. Free items
   without a member behave as before (issue #121).
+- **Open items with counts:** the filters show their numbers, a new "Overdue"
+  filter lists exactly the items the red badge on the tab counts; the table no
+  longer clips the due date and the actions.
 - **Delete lock for members:** a member can only be deleted as long as nothing
   is attached to them – no mandate (not even a draft or an ended one), no
   assignment, no claim. Otherwise the record names the reason; for data
