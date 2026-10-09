@@ -60,7 +60,7 @@ Lies diese Liste vor dem Testen. Was hier steht, ist **kein Fehler**, sondern be
 ### Entscheidungen
 
 - **Löschsperre strenger als in der Spec:** Ein Mitglied lässt sich nur löschen, solange kein Mandat (auch kein Entwurf, kein beendetes und kein verworfenes), keine Zuweisung und keine Forderung an ihm hängt (Spec §3.1 nennt nur „keine Forderung und nie ein aktives Mandat“). Für Datenschutzfälle gibt es die Anonymisierung.
-- **Einzugstage im Terminplan ab Buchhalter:** Standard-Einzugstag und Überschreibungen (`setDefaultDay`) darf der Buchhalter ändern, **Vorwarnfenster** und **Vorabinfo-Vorlauf** nur der Verwalter.
+- **Einzugstage im Terminplan ab Buchhalter:** Standard-Einzugstag und Überschreibungen (`setDefaultDay`) darf der Buchhalter ändern, die Fristen (**Vorwarnfenster**, **Vorabinfo-Vorlauf** und **Freigabe-Vorlauf**) nur der Verwalter, und zwar in den Nextcloud-Einstellungen; der Terminplan zeigt sie nur an.
 - **Sperrfenster lehnt ab, statt zu verschieben:** Eine Änderung von Betrag oder Turnus, die wegen einer verschickten Vorabinfo erst später wirken dürfte, weist „Mein Beitrag“ mit Erklärung zurück. Die IBAN kennt kein Sperrfenster.
 - **Forderungen in „Offene Posten“ nur lesbar:** Bezahlt, Stornieren, Wieder öffnen und Löschen lehnt der generische Weg bei Forderungen an Mitglieder ab; bearbeitet wird im Reiter „Einzug“.
 - **Revisor sieht nur „Einzug“:** Mitglieder, Mandate, Beitragsgruppen und Zuweisungen sind erst ab Buchhalter lesbar; die IBAN bleibt für Revisoren maskiert, den Rückgabecode der Bank sehen sie nicht.
@@ -415,35 +415,36 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 - Die Frequenz bietet „monatlich“, „vierteljährlich“, „halbjährlich“ und „jährlich“.
 - Der Hinweis erklärt, dass „Mitglied aufnehmen“ und der CSV-Import Betrag und Frequenz vorschlagen. Nach dem neuen Beitragsmodell wirkt der Standard-Beitrag nur noch beim CSV-Import (Zeilen mit Startdatum, aber ohne eigenen Betrag, siehe 6.7). Notiere als Frage, falls du den Vorschlag im Aufnahme-Dialog erwartest.
 
-### 2.5 Beitragsjahr und Freigabe-Vorlauf
+### 2.5 Beitragsjahr und die drei Fristen vor dem Einzug
 
 **Rolle:** admin (Verwalter)
 
 **Tun:**
-1. Lies die Karte „Beitragsjahr und Einzugszyklus“: „Beitragsjahr beginnt im“ und „Freigabe-Vorlauf (Tage vor Einzug)“.
+1. Lies die Karte „Beitragsjahr und Einzugszyklus“: „Beitragsjahr beginnt im“ und darunter, unter „Fristen vor dem Einzug“, die drei Felder „Vorwarnfenster (Tage vor Einzug)“, „Vorabinfo-Vorlauf (Tage vor Einzug)“ und „Freigabe-Vorlauf (Tage vor Einzug)“.
 2. Trage bei „Freigabe-Vorlauf (Tage vor Einzug)“ `0` ein und klicke „Speichern“.
 3. Stelle den Wert wieder auf `5` und speichere.
-4. Lies die Info-Zeile unter der Karte und den Link darin.
+4. Lies die Hinweise unter den Feldern.
 
 **Erwartet:**
-- Beitragsjahr beginnt im Januar, Freigabe-Vorlauf 5 Tage (Standardwerte, der Seeder ändert sie nicht).
-- Für `0` erscheint eine Meldung, die „Freigabe-Vorlauf“ nennt und „zwischen 1 und 365“ verlangt; nichts wird gespeichert.
+- Beitragsjahr beginnt im Januar. Die Fristen stehen laut Seeder auf 35 Tage (Vorwarnfenster), 30 Tage (Vorabinfo-Vorlauf) und 5 Tage (Freigabe-Vorlauf), damit heute die Vorabinfo zum 01.11. fällig ist; die Standardwerte der App wären 21, 14 und 5.
+- Für `0` erscheint eine Meldung, die „Freigabe-Vorlauf“ nennt und „zwischen 1 und 365“ verlangt; nichts wird gespeichert. Für die beiden anderen Felder gilt dieselbe Grenze.
 - Nach dem Speichern von `5` erscheint „Einstellungen gespeichert.“.
-- Die Info-Zeile lautet „Vorwarnfenster: 35 Tage vor dem Einzug · Vorabinfo-Vorlauf: 30 Tage vor dem Einzug.“ (so setzt sie der Seeder, damit heute die Vorabinfo zum 01.11. fällig ist; die Standardwerte wären 21 und 14) und enthält den Link „Terminplan, Vorwarnfenster und Vorabinfo-Vorlauf im Einzug ändern“.
+- Die Hinweise beschreiben die Fristen statt auf einen Link zu verweisen: „Vorwarnfenster: ab dann entstehen die Forderungen (Standard 21 Tage).“, „Vorabinfo-Vorlauf: ab dann geht die Ankündigung per Mail an die Mitglieder (Standard 14 Tage; …)“ und „Freigabe-Vorlauf: ab dann meldet die Aufgabenliste „Freigabe fällig“ (Standard 5 Tage).“ Darunter steht ein Beispiel mit deinen Werten („Beispiel – Einzug am …“).
 
-**Beachte:** Das Ändern des Beitragsjahr-Beginns probierst du in 5.9.
+**Beachte:** Das Ändern des Beitragsjahr-Beginns probierst du in 5.9. Die Fristen lassen sich nur hier ändern; der Terminplan im Einzug zeigt sie bloß an (2.6).
 
-### 2.6 Vorwarnfenster und Vorabinfo-Vorlauf (nur Verwalter)
+### 2.6 Fristen im Terminplan: nur Anzeige, Link zurück in die Einstellungen
 
 **Rolle:** admin (Verwalter)
 
 **Tun:**
-1. Klicke den Link „Terminplan, Vorwarnfenster und Vorabinfo-Vorlauf im Einzug ändern“. Er öffnet die App im Reiter „Beiträge“ → „Einzug“.
-2. Klicke am Zeitstrahl auf „Terminplan“ und suche darin die Felder „Vorwarnfenster (Tage vor Einzug)“ und „Vorabinfo-Vorlauf (Tage vor Einzug)“.
+1. Öffne **Beiträge** → **Einzug** und klicke am Zeitstrahl auf „Terminplan“.
+2. Suche am Ende der Karte „Terminplan“ die Zeile mit den Fristen.
+3. Klicke den Link „Fristen in den Einstellungen ändern“.
 
 **Erwartet:**
-- Beide Felder sind für dich als Verwalter bedienbar, der Hinweis „Nur Verwalter können die Vorlaufzeiten ändern.“ fehlt.
-- Die Werte stehen auf 35 Tage (Vorwarnfenster) und 30 Tage (Vorabinfo-Vorlauf), wie vom Seeder gesetzt.
+- Die Fristen stehen nur als Anzeige da: „Vorwarnfenster: 35 Tage · Vorabinfo-Vorlauf: 30 Tage · Freigabe-Vorlauf: 5 Tage vor dem Einzug.“ (Werte vom Seeder). Es gibt dort keine Eingabefelder für sie; bearbeitet wird im Terminplan nur der Einzugstag (7.4).
+- Als Verwalter siehst du darunter den Link „Fristen in den Einstellungen ändern“. Er führt zurück in die Nextcloud-Einstellungen zum Abschnitt „Beiträge & SEPA“ (2.5).
 
 **Beachte:** Geändert wird hier nichts. Die Sicht des Buchhalters prüfst du in 13.2, das Zurückstellen auf 21 und 14 Tage ist optional (7.18).
 
@@ -545,17 +546,17 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 
 **Tun:**
 1. Öffne **Beiträge** → **Mitglieder**.
-2. Lies Hinweistext, Summenzeile und Tabelle.
+2. Lies Summenzeile und Tabelle und öffne in einer Zeile das Menü ⋯.
 
 **Erwartet:**
-- Hinweis: „Ein Mitglied wird unabhängig von einer Bankverbindung geführt – SEPA-Mandat und Beitrag sind optionale Ergänzungen …“.
+- Der Einleitungshinweis „Ein Mitglied wird unabhängig …“ steht nicht mehr da.
 - Summenzeile „16 von 16 Mitgliedern · K mit Mandat · Beitragsaufkommen X € im Jahr“ (16 Mitglieder, Nummern 1001 bis 1016).
 - Tabellenspalten: „Mitglied“, „Bankverbindung“, „Betrag“, „Frequenz“, „Nächste Fälligkeit“, „Zuweisung“ (Zustand der Zuweisung mit Statuspunkt, z. B. „aktiv“ oder „beendet 31.12.2013“). Hinter dem Namen steht die Mitgliedsnummer (z. B. „#1001“).
 - „Betrag“ ist der Betrag je Periode (Monatsbeitrag × Turnus): Jana Hoffmann 15,00 € monatlich, Jonas Richter 45,00 € vierteljährlich, Lena Bergmann 22,50 € vierteljährlich, Sophie Krüger 180,00 € jährlich, Musikhaus Schmidt GmbH 60,00 € jährlich. Nadine Schuster hat keine Zuweisung (Betrag und Frequenz „–“).
 - Bei Mandaten steht die IBAN, bei Bedarf mit einer Marke: Jonas Richter trägt „Entwurf“. Wer per Überweisung zahlt, steht mit „Überweisung“ statt „kein Mandat“ da (Lena Bergmann, Tobias Brandt trotz widerrufenen Mandats, Musikhaus Schmidt GmbH).
 - Hans Becker (Austritt 31.12.2013) trägt die Marke „ausgetreten“ und hat keine E-Mail-Adresse.
 - Zeilen ohne E-Mail zeigen „keine E-Mail – keine Vorankündigung möglich“ (laut Seeder nur Hans Becker).
-- Zuweisungen bearbeitest du nicht in der Zeile: der Stift-Knopf heißt „Zuweisung verwalten“ und führt zu den Beitragsgruppen.
+- Am Zeilenende steht das Menü ⋯ („Aktionen“). Es bietet „Mitglied bearbeiten“, „Mandat verwalten“, „Beitrag ändern“ und „Beitragsgruppe wechseln“. Bei Mitgliedern ohne Zuweisung (Nadine Schuster) sind es „Mitglied bearbeiten“, „Mandat verwalten“ und „Beitrag zuweisen“. Den Stift „Zuweisung verwalten“ gibt es nicht mehr.
 
 ### 3.2 Suche und „nur Auffälligkeiten“
 
@@ -581,7 +582,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 
 **Erwartet:**
 - Die Spalte zeigt das früheste Datum unter den noch fälligen Forderungen (offen, im Einzug oder zurückgegeben) im Format `TT.MM.JJJJ` (z. B. 01.11.2026), eine laufende Stundung zählt mit ihrem Ende. Ohne solche Forderung steht „–“.
-- Laut Seeder: Jana `2026-11-01` (September bezahlt, Oktober im Lauf bereits eingezogen, November offen), Nadine `2026-11-01` (Einzelforderung), Lena das Datum ihrer offenen Q4-Forderung.
+- Laut Seeder: Jana `01.11.2026` (September bezahlt, Oktober im Lauf bereits eingezogen, November offen), Nadine `01.11.2026` (Einzelforderung), Lena das Datum ihrer offenen Q4-Forderung.
 - Erledigte, stornierte und erlassene Forderungen zählen nicht.
 
 **Beachte:** Die Spalte verändert sich in den Phasen 7 bis 9, wenn Forderungen entstehen, eingezogen oder bezahlt werden. Schau danach noch einmal hin.
@@ -591,15 +592,15 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 **Rolle:** admin (Verwalter)
 
 **Tun:**
-1. Klicke in der Liste auf den Namen von Jana Hoffmann: Er öffnet die Akte (das Menü ⋯ der Zeile bietet nur „Mandat verwalten“).
+1. Öffne die Akte von Jana Hoffmann: Klicke in der Liste auf ihren Namen oder im Zeilenmenü ⋯ auf „Mitglied bearbeiten“.
 2. Scrolle durch die Akte.
 3. Trage bei „Interne Notiz“ `Testnotiz nur intern` ein und ändere „Telefon“ auf `+49 30 1234567`.
 4. Klicke „Speichern“.
 5. Öffne die Akte erneut.
 
 **Erwartet:**
-- Der Dialog heißt „Mitglied: Jana Hoffmann“. Felder: „Mitgliedstyp“, „Vorname“, „Nachname“, „E-Mail“, „Telefon“, „Straße“, „PLZ“, „Ort“, „Mitgliedsnummer“, „Beigetreten am“, „Interne Notiz“ (Platzhalter „nicht im Self-Service sichtbar“).
-- Darunter die Abschnitte „SEPA-Mandat“, „Nextcloud-Konto“ („Verknüpft mit „jane“.“), „Beitragsbestätigung“, „Datenübersicht (Art. 15 DSGVO)“, „Anonymisierung (Art. 17 DSGVO)“, „Austritt“ und „Löschen“.
+- Der Dialog heißt „Mitglied: Jana Hoffmann“. Felder: „Mitgliedstyp“, „Vorname“, „Nachname“, „E-Mail“, „Telefon“, „Straße“, „PLZ“, „Ort“, „Land“ (Auswahlliste), „Mitgliedsnummer“, „Beigetreten am“, „Interne Notiz“ (Platzhalter „nicht im Self-Service sichtbar“).
+- Darunter die Abschnitte „SEPA-Mandat“ (darin „Nachweis und Formular“), „Nextcloud-Konto“ („Verknüpft mit „jane“.“), „Beitragsbestätigung“, „Datenübersicht (Art. 15 DSGVO)“, „Anonymisierung (Art. 17 DSGVO)“, „Austritt“ und „Löschen“.
 - „Mitglied gespeichert.“ erscheint, die Änderungen stehen beim erneuten Öffnen noch da.
 
 **Beachte:** Die interne Notiz darf in „Mein Beitrag“ nie erscheinen (Prüfung in 11.1). Lass sie bis dahin stehen.
@@ -686,10 +687,10 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 3. Bestätige den Dialog.
 
 **Erwartet:**
-- Bei Jana steht statt eines Knopfes eine erklärende Meldung, z. B. „Es gibt noch ein aktives SEPA-Mandat für dieses Mitglied.“, „Es gibt noch eine Zuweisung zu einer Beitragsgruppe für dieses Mitglied.“ und „Es gibt noch eine Forderung für dieses Mitglied.“ (nicht ausgegraut).
+- Bei Jana ist „Mitglied löschen“ nicht möglich: Statt des Knopfes steht eine Hinweiskarte „Löschen nicht möglich“ mit „Es hängt noch am Mitglied:“ und einer Liste der Hindernisse („Ein aktives SEPA-Mandat“, „Eine Zuweisung zu einer Beitragsgruppe“, „Eine Forderung“; nicht ausgegraut). Darunter: „Sie bleiben als Nachweis erhalten. Für Datenschutzfälle gibt es die Anonymisierung.“
 - Bei Willi: Dialog „Mitglied löschen“ mit „Mitglied „Willi Wegwerf“ endgültig löschen?“. Nach dem Bestätigen: „Mitglied gelöscht.“ und die Zeile ist weg.
 
-**Beachte:** ⚠ Das Löschen ist unumkehrbar. Die Sperre ist strenger als die Spec: Auch ein beendetes oder verworfenes Mandat verhindert das Löschen (prüfst du in 4.12).
+**Beachte:** ⚠ Das Löschen ist unumkehrbar. Die Sperre ist strenger als die Spec: Auch ein beendetes oder verworfenes Mandat verhindert das Löschen (prüfst du in 4.12); die Liste nennt es dann als „Ein SEPA-Mandat (Entwurf, ausgesetzt oder beendet)“.
 
 ### 3.10 Doppelte Mitgliedsnummer
 
@@ -916,7 +917,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 - Dialog „Mandats-Entwurf verwerfen“: „Eingezogen wurde über ihn nie etwas …“; „Entwurf endgültig verwerfen“ bleibt gesperrt, solange der Grund leer oder nur Leerzeichen ist.
 - Toast „Entwurf verworfen.“, Hinweis „neues Mandat einholen“. Unter „Frühere Mandate“: „Entwurf verworfen“ (kein „Widerrufen“); der Verlauf nennt „Entwurf verworfen: Tippfehler, Mitglied meldet sich neu“ mit „Verein (admin)“.
 - „Mandat anlegen“ ist wieder möglich.
-- Beim Löschen steht statt des Knopfes die Meldung „Es gibt noch ein SEPA-Mandat für dieses Mitglied (Entwurf, ausgesetzt oder beendet).“
+- Beim Löschen steht statt des Knopfes die Hinweiskarte „Löschen nicht möglich“ mit „Es hängt noch am Mitglied:“ und der Liste „Ein SEPA-Mandat (Entwurf, ausgesetzt oder beendet)“ als einzigem Hindernis.
 - Bei einem elektronischen Entwurf nennt der Dialog: „Ein bereits verschickter Einmal-Link wird ungültig …“.
 
 **Beachte:** Das Verwerfen löst keine Zahlungsaufforderung aus, der Widerruf eines aktiven Mandats schon. Die Löschsperre gilt auch bei einem verworfenen Entwurf (bekannte Entscheidung, strenger als die Spec).
@@ -965,8 +966,8 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 1. Öffne **Beiträge** → **Beitragsgruppen** und lies die Karten „Beitragsgruppen“ und „Zuweisungen“.
 
 **Erwartet:**
-- Karte „Beitragsgruppen“: Spalten „Name“, „Untergrenze“, „Standard“, „Turnusse“ (als Worte: „monatlich, vierteljährlich, jährlich“), „Status“ (aktiv/inaktiv) mit den Knöpfen „Bearbeiten“, „Untergrenze anheben“ und „Löschen“; oben „+ Beitragsgruppe“. Vier Gruppen (Untergrenze / Standard je Monat): Vollmitglied 12,00 € / 15,00 € (Turnusse 1, 3, 6, 12), Ermäßigt 5,00 € / 7,50 € (1, 3, 12), Jugend 3,00 € / 5,00 € (1, 12), Fördermitglied 4,00 € / 5,00 € (nur 12, also 60,00 € im Jahr). Eine Gruppe „50,00 € im Jahr“ gibt es nicht: Der Monatsbeitrag ist das Atom und lässt sich nicht in ganzen Cent aus 50,00 € ableiten.
-- Karte „Zuweisungen“: Spalten „Mitglied“, „Beitragsgruppe“, „Monatsbeitrag“, „Turnus“, „Gültig ab“, „Gültig bis“ und bei aktiven Zuweisungen ein Knopf „Beenden“; oben „+ Zuweisung“.
+- Karte „Beitragsgruppen“: Spalten „Name“, „Untergrenze“, „Standard“, „Turnusse“ (als Worte, z. B. „monatlich, vierteljährlich, jährlich“), „Status“ (aktiv/inaktiv); je Zeile der Knopf „Bearbeiten“ und das Menü ⋯ mit „Untergrenze anheben“ und „Löschen“; oben „+ Beitragsgruppe“. Vier Gruppen (Untergrenze / Standard je Monat): Vollmitglied 12,00 € / 15,00 € (monatlich, vierteljährlich, halbjährlich, jährlich), Ermäßigt 5,00 € / 7,50 € (monatlich, vierteljährlich, jährlich), Jugend 3,00 € / 5,00 € (monatlich, jährlich), Fördermitglied 4,00 € / 5,00 € (nur jährlich, also 60,00 € im Jahr). Eine Gruppe „50,00 € im Jahr“ gibt es nicht: Der Monatsbeitrag ist das Atom und lässt sich nicht in ganzen Cent aus 50,00 € ableiten.
+- Karte „Zuweisungen“: Spalten „Mitglied“, „Beitragsgruppe“, „Monatsbeitrag“, „Turnus“ (als Wort), „Gültig ab“, „Gültig bis“ und „Status“ (z. B. „aktiv“, „beendet 31.12.2013“); bei laufenden und künftigen Zuweisungen ein Zeilenmenü ⋯ mit „Beitrag ändern“, „Beitragsgruppe wechseln“ und „Zuweisung beenden“ (bei einer künftigen Zuweisung „Zuweisung zurücknehmen“); oben „+ Zuweisung“.
 - Mehr gibt es auf dieser Seite nicht: Einzelforderungen und Terminplan stehen im Reiter „Einzug“.
 
 ### 5.2 Beitragsgruppe anlegen, ändern und die Untergrenze nur absenken
@@ -1017,15 +1018,15 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 **Rolle:** admin (Verwalter)
 
 **Tun:**
-1. Klicke bei `Testgruppe Probe 2` auf „Untergrenze anheben“. Trage bei „Neue Untergrenze (€/Monat)“ `10` ein und klicke „Vorschau laden“.
+1. Öffne bei `Testgruppe Probe 2` das Menü ⋯ und klicke „Untergrenze anheben“. Trage bei „Neue Untergrenze (€/Monat)“ `10` ein und klicke „Vorschau laden“.
 2. Lies die Tabelle „Betroffene Zuweisungen“. Klicke „Anheben“.
 3. Prüfe in „Zuweisungen“ Zoras Monatsbeitrag.
-4. Öffne zum Ansehen bei einer **Seeder-Gruppe** (z. B. Vollmitglied) „Untergrenze anheben“ mit `20`, klicke „Vorschau laden“, lies das Ergebnis und klicke dann „Abbrechen“.
+4. Öffne zum Ansehen bei einer **Seeder-Gruppe** (z. B. Vollmitglied) im Menü ⋯ „Untergrenze anheben“ mit `20`, klicke „Vorschau laden“, lies das Ergebnis und klicke dann „Abbrechen“.
 
 **Erwartet:**
 - Dialog „Untergrenze anheben“ mit dem Hinweis „Bereits eingezogene Perioden werden nie neu berechnet – die Änderung wirkt erst ab der nächsten Forderung.“
 - Die Vorschau nennt Mitglied, „Bisher“ und „Neu“ (Zora: 8,00 € → 10,00 €). Zuweisungen mit individueller Untergrenze stehen separat: „Unberührt (individuelle Untergrenze): N Zuweisung(en)“.
-- Nach „Anheben“ steht bei Zora der neue Monatsbeitrag.
+- Nach „Anheben“ steht bei Zora der neue Monatsbeitrag. Die Tabelle „Zuweisungen“ lädt dabei von selbst neu, und der Standardbeitrag der Gruppe zieht mit auf die neue Untergrenze (hier 8,00 € auf 10,00 €).
 - Bei der Gruppe Vollmitglied (Schritt 4) nennt die Vorschau neben den betroffenen Zuweisungen „Unberührt (individuelle Untergrenze): 1 Zuweisung“ (Anna Koch, siehe 5.6). Nichts wird übernommen.
 
 **Beachte:** ⚠ Das „Anheben“ bei `Testgruppe Probe 2` ändert Zoras Zuweisung endgültig. Bei den Seeder-Gruppen nur die Vorschau ansehen und abbrechen.
@@ -1045,21 +1046,23 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 
 **Beachte:** Notiere als **Frage**, wenn du eine Oberfläche dafür erwartest.
 
-### 5.7 Zuweisung beenden und Beitragsgruppe löschen
+### 5.7 Zuweisung zurücknehmen und Beitragsgruppe deaktivieren
 
 **Rolle:** admin (Verwalter)
 
 **Tun:**
-1. Versuche bei `Testgruppe Probe 2` (mit Zoras Zuweisung) „Löschen“ und bestätige.
-2. Klicke bei Zoras Zuweisung „Beenden“ und bestätige im Dialog „Zuweisung beenden“ mit „Beenden“.
-3. Klicke bei `Testgruppe Probe 2` „Löschen“ und bestätige im Dialog „Beitragsgruppe löschen“.
+1. Versuche bei `Testgruppe Probe 2` (mit Zoras Zuweisung) im Menü ⋯ „Löschen“ und bestätige.
+2. Öffne bei Zoras Zuweisung (sie beginnt erst in der Zukunft) das Zeilenmenü ⋯, klicke „Zuweisung zurücknehmen“ und bestätige im Dialog mit „Zurücknehmen“.
+3. Versuche bei `Testgruppe Probe 2` noch einmal „Löschen“ und bestätige im Dialog „Beitragsgruppe löschen“.
+4. Öffne bei `Testgruppe Probe 2` „Bearbeiten“, schalte „Aktiv“ aus und klicke „Speichern“.
 
 **Erwartet:**
-- Schritt 1: Dialog „Beitragsgruppe löschen“ mit „„Testgruppe Probe 2“ wirklich löschen? Das geht nur, solange keine Zuweisung mehr daran hängt.“ Danach eine Fehlermeldung („Beitragsgruppe konnte nicht gelöscht werden …“); die Gruppe bleibt.
-- Schritt 2: Dialog mit „Die Zuweisung wird zum heutigen Tag beendet. Bereits erzeugte Forderungen bleiben unverändert.“ Danach steht „Gültig bis“ mit dem heutigen Datum und der Knopf „Beenden“ fehlt.
-- Schritt 3: Die Gruppe verschwindet.
+- Schritt 1: Dialog „Beitragsgruppe löschen“ mit „„Testgruppe Probe 2“ wirklich löschen? Das geht nur, solange keine Zuweisung mehr daran hängt.“ Danach die Fehlermeldung „Diese Beitragsgruppe hat noch Zuweisungen und kann nicht gelöscht werden. Stattdessen deaktivieren.“; die Gruppe bleibt.
+- Schritt 2: Dialog „Zuweisung zurücknehmen“ mit „Die Zuweisung hat noch nicht begonnen. Sie wird zurückgenommen und nie wirksam; es entstehen keine Forderungen daraus.“ Danach steht in der Spalte „Status“ „zurückgenommen“ und das Zeilenmenü fehlt. (Eine Zuweisung, die schon läuft, heißt im Menü „Zuweisung beenden“; der Dialog sagt dann „Die Zuweisung wird zum heutigen Tag beendet. Bereits erzeugte Forderungen bleiben unverändert.“)
+- Schritt 3: Auch mit der zurückgenommenen Zuweisung lässt sich die Gruppe nicht löschen: dieselbe Meldung („… hat noch Zuweisungen … Stattdessen deaktivieren.“); die Gruppe bleibt.
+- Schritt 4: Die Gruppe steht mit dem Status „inaktiv“ in der Liste.
 
-**Beachte:** Die beendete Zuweisung bleibt als Historie bestehen; Zora lässt sich wegen der Zuweisung nicht löschen.
+**Beachte:** Auch die zurückgenommene Zuweisung bleibt als Historie bestehen und hält die Gruppe fest; eine Gruppe mit Zuweisungen wird deaktiviert statt gelöscht. Zora lässt sich wegen der Zuweisung nicht löschen.
 
 ### 5.8 Manuelle Einzelforderungen anlegen
 
@@ -1129,7 +1132,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 
 **Tun:**
 1. Klicke „Mitglied“. Trage „Vorname“ `Petra`, „Nachname“ `Aufnahme`, „E-Mail“ `petra.aufnahme@example.org` ein.
-2. Trage bei „IBAN“ `DE02 1203 0000 0000 2020 51` und bei „Mandat unterschrieben am“ das heutige Datum ein. „Art der Unterschrift“ bleibt „Papier“.
+2. Trage bei „IBAN“ `DE02 1203 0000 0000 2020 51` ein. „Mandat unterschrieben am“ ist schon mit dem heutigen Datum vorbelegt: Lass es so. „Art der Unterschrift“ bleibt „Papier“.
 3. Wähle bei „Beitragsgruppe“ `Vollmitglied` und beobachte die neuen Felder.
 4. Klicke „Vorschau“.
 5. Klicke „Aufnehmen“.
@@ -1137,18 +1140,19 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 
 **Erwartet:**
 - Nach der Wahl der Gruppe erscheinen „Turnus“, „Monatsbeitrag (€)“, „Zahlungsart“ (Vorgabe „Lastschrift“) und „Gültig ab“ (mit Vorschau-Knopf).
-- Die Vorschau lautet „Erste Periode: {Beginn} bis {Ende} ({N Monate}) · Einzugsbetrag {Betrag} · voraussichtlicher Einzugstermin {Datum}“.
+- Die Vorschau lautet „Erste Periode: {Beginn} bis {Ende} ({N Monate}) · Einzugsbetrag {Betrag} · voraussichtlicher Einzugstermin {Datum}“. Die Werte hängen vom heutigen Tag und vom gewählten Turnus ab.
 - „Mitglied aufgenommen.“ Die Zeile zeigt IBAN, Betrag je Periode und Frequenz statt „kein Mandat“.
-- Das Mandat ist sofort „Aktiv“ (das Unterschriftsdatum entscheidet), mit automatisch vergebener Referenz.
+- Das Mandat ist sofort „Aktiv“ (das vorbelegte Unterschriftsdatum entscheidet), mit automatisch vergebener Referenz.
 
 ### 6.3 Papier-Mandat ohne Datum bleibt Entwurf
 
 **Rolle:** admin (Verwalter)
 
 **Tun:**
-1. Klicke „Mitglied“. Trage „Vorname“ `Uwe`, „Nachname“ `Entwurf` und „IBAN“ `DE02 1203 0000 0000 2020 51` ein. Lass „Mandat unterschrieben am“ leer.
-2. Klicke „Aufnehmen“.
-3. Öffne das Klemmbrett.
+1. Klicke „Mitglied“ und leere als Erstes das Feld „Mandat unterschrieben am“. Es ist mit dem heutigen Datum vorbelegt; nur mit leerem Feld bleibt das Papier-Mandat ein Entwurf.
+2. Trage „Vorname“ `Uwe`, „Nachname“ `Entwurf` und „IBAN“ `DE02 1203 0000 0000 2020 51` ein.
+3. Klicke „Aufnehmen“.
+4. Öffne das Klemmbrett.
 
 **Erwartet:**
 - Hinweis unter dem Mandat-Abschnitt: „Ohne Unterschriftsdatum bleibt das Mandat ein Entwurf – erst das Datum aktiviert es sofort.“
@@ -1189,17 +1193,16 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 
 **Tun:**
 1. Klicke oben rechts auf „Liste einlesen“.
-2. Lies den Hinweistext im Dialog „Mitgliederliste einlesen“.
-3. Klicke „Vorlage herunterladen“ und öffne die Datei `mitglieder-vorlage.csv` in einem Texteditor.
-4. Wähle diese **unveränderte** Vorlage über das Dateifeld und klicke „Prüfen“.
+2. Lies den Hinweistext im Dialog „Mitgliederliste einlesen“ und klappe „Welche Spalten gibt es?“ auf.
+3. Klicke „Vorlage herunterladen“ (der Knopf steht rechtsbündig, abgesetzt von „Datei wählen“ und „Prüfen“) und öffne die Datei `mitglieder-vorlage.csv` in einem Texteditor.
+4. Wähle diese **unveränderte** Vorlage über „Datei wählen“ und klicke „Prüfen“.
 
 **Erwartet:**
-- Der Hinweis nennt die Spalten Name, E-Mail, IBAN, BIC, Kontoinhaber, Mandat am, Mandatsreferenz, Mitgliedsnummer, Beitragsgruppe, Betrag, Frequenz und Start; Reihenfolge und Schreibweise sind egal, zusätzliche Spalten werden übergangen. „Betrag“ ist der Monatsbeitrag, „Frequenz“ bestimmt nur den Turnus.
-- Die Vorlage enthält zwei Beispielzeilen (Katrin Brunner, Hans Mertens) mit der Beitragsgruppe „Chormitglieder“ und Startdaten aus dem Jahr 2026.
-- Beim Prüfen ohne Anpassung warnt die App je Zeile: „Unbekannte Beitragsgruppe „Chormitglieder“ – der Beitrag wird nicht angelegt.“ Mitglied und Mandat würden trotzdem angelegt (nur der Beitrag nicht); das Prüfen selbst ändert nichts.
-- Wer die Vorlage ohne Anpassung übernähme, bekäme also Mitglieder mit Mandat, aber ohne Beitrag.
+- Der Hinweis nennt den Zweck (erstmalige Aufnahme vieler Mitglieder aus einer CSV-Datei; vorhandene Mitglieder bleiben unberührt und werden übersprungen; vor dem Anlegen siehst du, was entstehen würde). Unter „Welche Spalten gibt es?“ stehen die Spalten in vier Gruppen (Name, Stammdaten, Lastschrift, Beitrag); Reihenfolge und Schreibweise der Überschriften sind egal, weitere Spalten werden übergangen. „Betrag“ ist der Monatsbeitrag (0 = beitragsfrei), „Frequenz“ sagt, wie oft eingezogen wird.
+- Die Vorlage hat die Spalten Vorname, Nachname, Organisation, Mitgliedsnummer, Eintritt, Straße, PLZ, Ort, Telefon, E-Mail, IBAN, BIC, Kontoinhaber, Mandat am, Mandatsreferenz, Beitragsgruppe, Betrag, Frequenz und Start. Drei Beispielzeilen: Anna Beispiel (1001, Mandat, Vollmitglied, monatlich), Musikhaus Beispiel GmbH (Organisation, 1002, nur Stammdaten) und Ben Muster (1003, Ermäßigt, jährlich). Die Beitragsgruppen gibt es in deiner Instanz; „Start“ ist der Erste des Folgemonats.
+- Beim Prüfen ohne Anpassung stehen alle drei Zeilen als „übersprungen“ („Diese Mitgliedsnummer existiert bereits – Zeile übersprungen.“), weil die Nummern 1001 bis 1003 schon an Mitglieder des Seeders vergeben sind. Die Zusammenfassung lautet dann „0 von 3 Zeilen sind in Ordnung … 3 bereits vorhandene oder doppelte Zeilen werden übersprungen, 0 sind fehlerhaft.“ (Zählung aus dem Dateiinhalt; weicht die Anzeige ab, notiere es.) Das Prüfen selbst ändert nichts.
 
-**Beachte:** Auffällig beim Lesen der Vorlage: Sie hat keine Spalte „Kontoinhaber“, obwohl der Hinweistext sie nennt, und die Beispielgruppe „Chormitglieder“ gibt es in deiner Instanz nicht; die Startdaten der Beispielzeilen (Februar und Januar 2026) liegen vor heute. Übernimm die Vorlage nicht. Notiere, ob dich das stört.
+**Beachte:** Die Vorlage ist ein Muster für eigene Listen. Wer sie unverändert prüft, sieht die Beispielzeilen nur deshalb als übersprungen, weil die Nummern schon vergeben sind. Notiere, ob dich das stört.
 
 ### 6.7 CSV-Prüflauf mit der gültigen Datei
 
@@ -1211,10 +1214,10 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 3. Beobachte den Knopf „Zeilen übernehmen“ und das Häkchen darüber.
 
 **Erwartet:**
-- Eine Zusammenfassung wie „6 von 6 Zeilen sind in Ordnung: 5 Mandate und 5 Zuweisungen würden angelegt. 0 bereits bestehende Zeilen werden übersprungen, 0 sind fehlerhaft.“ (Zählung aus dem Dateiinhalt; weicht die Anzeige ab, notiere es).
+- Eine Zusammenfassung wie „6 von 6 Zeilen sind in Ordnung: 5 Mandate und 5 Zuweisungen würden angelegt. 0 bereits vorhandene oder doppelte Zeilen werden übersprungen, 0 sind fehlerhaft.“ (Zählung aus dem Dateiinhalt; weicht die Anzeige ab, notiere es).
 - Die Datei enthält sechs neue Mitglieder: Greta Hansen (1101, Mandat `ALT-0101`, Vollmitglied 15,00 € monatlich), Ole Petersen (1102, `ALT-0102`, Ermäßigt 7,50 € vierteljährlich), Frieda Lorenz (1103, Kontoinhaber Karl Lorenz, Jugend 5,00 € monatlich), Max Weidner (1104, nur das Mitglied), Imke Sander (1105, ohne E-Mail, Ermäßigt jährlich ab 01.01.2027) und Chorverband (1106, Fördermitglied jährlich ab 01.01.2027). Die Startdaten liegen alle in der Zukunft.
-- Die Tabelle hat die Spalten „Zeile“, „Zahler“, „IBAN“, „Beitragsgruppe“, „Monatsbeitrag“, „Ergebnis“. Beim Prüfen ändert sich nichts in der Mitgliederliste.
-- Das Häkchen lautet „Die unterschriebenen Mandate für 5 Zeilen liegen vor – sie werden sofort aktiviert.“ Solange es nicht gesetzt ist, bleibt „Zeilen übernehmen“ gesperrt.
+- Die Tabelle hat die Spalten „Zeile“, „Name“, „IBAN“, „Beitragsgruppe“, „Monatsbeitrag“, „Ergebnis“. Beim Prüfen ändert sich nichts in der Mitgliederliste.
+- Das Häkchen lautet „Die unterschriebenen Mandate für 5 Zeilen liegen vor – sie werden sofort aktiviert.“ Es steht direkt über dem Knopf „Zeilen übernehmen“ (unter der Tabelle). Solange es nicht gesetzt ist, bleibt „Zeilen übernehmen“ gesperrt.
 - Imke Sander hat keine E-Mail-Adresse: Ihre Zuweisung steht auf Überweisung (kein Fehler).
 
 ### 6.8 CSV übernehmen
@@ -1244,7 +1247,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 4. Lies das Ergebnis je Zeile und die Mitgliederliste.
 
 **Erwartet:** Prüflauf, laut Code und Dateiinhalt:
-- **Fehlerhaft** (Fehlertext in „Ergebnis“): die Zeile ohne Namen („Weder Name noch Nextcloud-Konto angegeben.“), Emil Gross („Zu einer IBAN gehört das Datum, an dem das Mandat unterschrieben wurde.“), Fiona Haas („Unlesbarer oder nicht positiver Betrag: fünf Euro“), Gero Illner („Keine gültige E-Mail-Adresse: kein-at-zeichen“), Hanna Jung („Zu einem Betrag gehört ein Startdatum (erste Fälligkeit).“) und Kai Lange („Unbekannte Zahlungsfrequenz: zweiwöchentlich“).
+- **Fehlerhaft** (Fehlertext in „Ergebnis“): die Zeile ohne Namen („Weder Name noch Nextcloud-Konto angegeben.“), Emil Gross („Zu einer IBAN gehört das Datum, an dem das Mandat unterschrieben wurde.“), Fiona Haas („Unlesbarer oder negativer Betrag: fünf Euro“), Gero Illner („Keine gültige E-Mail-Adresse: kein-at-zeichen“), Hanna Jung („Zu einem Betrag gehört ein Startdatum (erste Fälligkeit).“) und Kai Lange („Unbekannte Zahlungsfrequenz: zweiwöchentlich“).
 - **Übersprungen:** Dora Falk, weil die Mitgliedsnummer 1001 schon Jana Hoffmann gehört („Diese Mitgliedsnummer existiert bereits – Zeile übersprungen.“).
 - **Mit Warnung, wird trotzdem angelegt:** Ingo Kern („Unbekannte Beitragsgruppe „Ehrenmitglied“ – der Beitrag wird nicht angelegt.“) und Jana Hoffmann 1209 („Ein Mitglied namens „Jana Hoffmann“ gibt es schon – trotzdem angelegt (Namensgleichheit ist keine Dublette).“).
 - **Im Prüflauf ohne Meldung, scheitert aber erst beim Übernehmen:** Carsten Ebert (IBAN `DE12 345` ist formal ungültig), Mia Nolte (Startdatum 01.01.2026 liegt in der Vergangenheit: „Der Beginn einer Zuweisung darf nicht in der Vergangenheit liegen.“) und Nora Otto (die Mitgliedsnummer 1213 kommt in der Datei zweimal vor; Nils Otto wird zuerst angelegt, Nora danach übersprungen).
@@ -1252,7 +1255,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 - Summe laut Dateiinhalt: 14 Zeilen, 7 in Ordnung (Birte, Carsten, Ingo, Jana, Mia, Nils, Nora), 1 übersprungen, 6 fehlerhaft; weicht die Anzeige ab, notiere es.
 - Ein Fehler in einer Zeile macht die übrigen nicht wertlos: Gültige Zeilen bleiben übernehmbar, fehlerhafte werden übersprungen. Nach dem Übernehmen sind angelegt: Birte Voss, Ingo Kern (ohne Beitrag), Jana Hoffmann (zweite, mit Warnung) und Nils Otto.
 
-**Beachte:** Der Prüflauf meldet inzwischen auch ungültige IBAN-Formate (Carsten Ebert), Startdaten in der Vergangenheit (Mia Nolte) und doppelte Mitgliedsnummern innerhalb derselben Datei (Nora Otto) als Fehler beziehungsweise übersprungene Zeile. Die Zahlen oben ändern sich entsprechend: 14 Zeilen, **4 in Ordnung** (Birte, Ingo mit Warnung, Jana 1209 mit Warnung, Nils), 2 übersprungen (Dora Falk, Nora Otto), 8 fehlerhaft.
+**Beachte:** Der Prüflauf meldet inzwischen auch ungültige IBAN-Formate (Carsten Ebert), Startdaten in der Vergangenheit (Mia Nolte) und doppelte Mitgliedsnummern innerhalb derselben Datei (Nora Otto) als Fehler beziehungsweise übersprungene Zeile. Die Zahlen oben ändern sich entsprechend: 14 Zeilen, **4 in Ordnung** (Birte, Ingo mit Warnung, Jana 1209 mit Warnung, Nils), 2 übersprungen (Dora Falk, Nora Otto), 8 fehlerhaft. Ein Betrag von 0 wäre dagegen gültig (die Testdatei enthält keine solche Zeile): Die Zeile ist beitragsfrei und braucht weder IBAN noch Startdatum oder Frequenz.
 
 ### 6.10 Derselbe Import noch einmal
 
@@ -1262,7 +1265,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 1. Wähle noch einmal `mitglieder-import.csv` und klicke „Prüfen“.
 
 **Erwartet:**
-- Alle sechs Zeilen stehen als übersprungen („Diese Mitgliedsnummer existiert bereits – Zeile übersprungen.“), kein doppeltes Mitglied, kein zweites Mandat. Die Zusammenfassung nennt „6 bereits bestehende Zeilen werden übersprungen“; „Zeilen übernehmen“ bleibt gesperrt, weil nichts zu tun ist.
+- Alle sechs Zeilen stehen als übersprungen („Diese Mitgliedsnummer existiert bereits – Zeile übersprungen.“), kein doppeltes Mitglied, kein zweites Mandat. Die Zusammenfassung nennt „6 bereits vorhandene oder doppelte Zeilen werden übersprungen“; „Zeilen übernehmen“ bleibt gesperrt, weil nichts zu tun ist.
 - Eine Zeile mit gleichem Namen, aber ohne Mitgliedsnummer, erzeugt dagegen nur eine Warnung und wird angelegt (Namensgleichheit ist keine Dublette).
 
 ## Phase 7 – Einzug
@@ -1326,7 +1329,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 4. Stelle den notierten Wert wieder ein und speichere.
 
 **Erwartet:**
-- Die Karte „Terminplan“ erklärt: „Je Turnus ein Standard-Einzugstag (Tage-Versatz zum Periodenbeginn – 0 = am ersten Tag der Periode, negativ = vorgezogen). Einzelne Perioden lassen sich darunter überschreiben …“. Die Spalte „Überschreibungen (Periodenindex: Versatz)“ und die Eingabe „Periodenindex“ mit „+ Überschreibung“ gehören dazu. Darüber stehen „Vorwarnfenster (Tage vor Einzug)“ mit 35 und „Vorabinfo-Vorlauf (Tage vor Einzug)“ mit 30 (Einstellung des Seeders).
+- Die Karte „Terminplan“ erklärt: „Je Turnus ein Standard-Einzugstag (Tage-Versatz zum Periodenbeginn – 0 = am ersten Tag der Periode, negativ = vorgezogen). Einzelne Perioden lassen sich darunter überschreiben …“. Die Spalte „Überschreibungen (Periodenindex: Versatz)“ und die Eingabe „Periodenindex“ mit „+ Überschreibung“ gehören dazu. Darunter stehen die Fristen nur als Anzeige: „Vorwarnfenster: 35 Tage · Vorabinfo-Vorlauf: 30 Tage · Freigabe-Vorlauf: 5 Tage vor dem Einzug.“ (Einstellungen des Seeders; es gibt dort keine Eingabefelder für sie) und als Verwalter dazu der Link „Fristen in den Einstellungen ändern“ (siehe 2.5).
 - Nach dem Speichern rücken die Termine der monatlichen Turnusse auf den 15. des Monats; der Zeitstrahl rechnet ohne Neuladen neu.
 - Nach dem Zurücksetzen stehen die Termine wieder an der alten Stelle.
 
@@ -1385,10 +1388,10 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 
 **Erwartet:**
 - Je Mitglied mit einzugsfähigem Mandat und E-Mail **eine** gebündelte Vorabinfo: Jana Hoffmann, Markus Fuchs, Mara Lindner, Anna Koch, Bernd Neumann, Clara Vogel, David Wolf, Eva Schröder, Felix Maier und Nadine Schuster (zehn), dazu Theo Testlink. Betreff: „Bevorstehender Lastschrifteinzug von {Vereinsname}“, Überschrift „Bevorstehender Lastschrifteinzug“.
-- Inhalt in dieser Reihenfolge: Anrede („Guten Tag Markus Fuchs,“), der Satz „{Verein} wird die folgenden Beträge per Lastschrift von Ihrem Konto einziehen (Mandatsreferenz …):“, je Position eine Zeile („– Bezeichnung (Periodenbeginn – Periodenende): 15,00 €, fällig 2026-11-01“), dann „Frühester Einzug: 2026-11-01“, „Gläubiger-Identifikationsnummer: DE98ZZZ09999999999“, „Betrag und Turnus dieser Positionen stehen ab jetzt fest und lassen sich bis zum Einzug nicht mehr ändern.“ und „Bitte sorgen Sie für ausreichende Deckung Ihres Kontos. Bei Fragen wenden Sie sich an die Kassenführung.“
+- Inhalt in dieser Reihenfolge: Anrede („Guten Tag Markus Fuchs,“), der Satz „{Verein} wird die folgenden Beträge per Lastschrift von Ihrem Konto einziehen (Mandatsreferenz …):“, je Position eine Zeile („– Bezeichnung (Periodenbeginn – Periodenende): 15,00 €, fällig 01.11.2026“), dann „Frühester Einzug: 01.11.2026“, „Gläubiger-Identifikationsnummer: DE98ZZZ09999999999“, „Betrag und Turnus dieser Positionen stehen ab jetzt fest und lassen sich bis zum Einzug nicht mehr ändern.“ und „Bitte sorgen Sie für ausreichende Deckung Ihres Kontos. Bei Fragen wenden Sie sich an die Kassenführung.“
 - **Jana (Konto auf „Deutsch“)** bekommt die **Du-Fassung** („Hallo Jana Hoffmann,“, „… von deinem Konto …“, „Bitte sorge für ausreichende Deckung deines Kontos …“); alle anderen, auch Nadine und Theo ohne Nextcloud-Konto, die Sie-Fassung.
 - Jonas Richter, Lena Bergmann, Tobias Brandt und das Musikhaus bekommen **keine Vorabinfo**. Lena (auf Englisch) und Tobias bekommen je eine **Zahlungsaufforderung** („Zahlungsaufforderung von …“) mit GiroCode (siehe 9.7 und 14.7).
-- Nadines Mail nennt ihre Einzelforderung; Theos Mail `Test D Lauf` mit „fällig 2026-11-01“.
+- Nadines Mail nennt ihre Einzelforderung; Theos Mail `Test D Lauf` mit „fällig 01.11.2026“.
 - Datumsangaben in den Mails stehen im Format TT.MM.JJJJ, Beträge deutsch (`15,00 €`).
 
 ### 7.8 Vorschau-Karte nach dem Tageslauf
@@ -1562,11 +1565,11 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 **Rolle:** admin (Verwalter)
 
 **Tun:**
-1. Stelle im Terminplan „Vorwarnfenster (Tage vor Einzug)“ auf `21` und „Vorabinfo-Vorlauf (Tage vor Einzug)“ auf `14` und speichere. Das ist nur nötig, wenn du den Standard sehen willst; der Seeder setzt 35 und 30 bei jedem erneuten Anlegen wieder.
-2. Lade die Seite neu und prüfe die Info-Zeile in den Einstellungen (Karte „Beitragsjahr und Einzugszyklus“).
+1. Stelle in den Einstellungen (Karte „Beitragsjahr und Einzugszyklus“) „Vorwarnfenster (Tage vor Einzug)“ auf `21` und „Vorabinfo-Vorlauf (Tage vor Einzug)“ auf `14` und speichere. Das ist nur nötig, wenn du den Standard sehen willst; der Seeder setzt 35 und 30 bei jedem erneuten Anlegen wieder.
+2. Öffne **Beiträge** → **Einzug** → „Terminplan“ und lies die Anzeige der Fristen.
 
 **Erwartet:**
-- Die Einstellungen zeigen „Vorwarnfenster: 21 Tage vor dem Einzug · Vorabinfo-Vorlauf: 14 Tage vor dem Einzug.“
+- Der Terminplan zeigt „Vorwarnfenster: 21 Tage · Vorabinfo-Vorlauf: 14 Tage · Freigabe-Vorlauf: 5 Tage vor dem Einzug.“
 - Die Meilensteine am Zeitstrahl (7.2) rücken entsprechend (Vorabinfo 18.10., Vorwarnung 11.10.).
 
 ## Phase 8 – Bankabgleich
@@ -1613,11 +1616,11 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 
 **Tun:**
 1. Öffne **Beiträge** → **Einzug** → „Bankabgleich“.
-2. Lies Kopfzeile und Hinweis. Klicke die beiden Darstellungen an.
+2. Lies Kopfzeile und Hinweis. Klicke die beiden Unterreiter an.
 
 **Erwartet:**
-- Überschrift „Bankabgleich“ und der Hinweis „Der Bankauszug ist die Wahrheit: Hier prüfen Sie die Zuordnungsvorschläge zu importierten Bankumsätzen. Nichts wird automatisch gebucht – erst Ihr Urteil und das Verbuchen lösen eine Buchung aus.“
-- Zwei Schaltflächen mit Zähler: „Einzüge und Rückgaben (3)“ (Sammelgutschrift und die zwei Rückgaben) und „Zahlungseingänge (1)“ (Lena Bergmanns Überweisung; die Spende hat keinen Vorschlag), dazu ein Aktualisieren-Symbol „Bankabgleich aktualisieren“.
+- Die Kopfzeile zeigt die beiden Unterreiter mit Zähler: „Einzüge und Rückgaben (3)“ (Sammelgutschrift und die zwei Rückgaben) und „Zahlungseingänge (1)“ (Lena Bergmanns Überweisung; die Spende hat keinen Vorschlag), rechts davon einen Aktualisieren-Knopf (Symbol, Beschriftung „Bankabgleich aktualisieren“).
+- Darunter der Hinweis „Nichts wird automatisch gebucht – erst Ihr Urteil und das Verbuchen lösen eine Buchung aus.“ Der Satz „Der Bankauszug ist die Wahrheit …“ steht nicht mehr da.
 - Als Verwalter oder Buchhalter steht dort **nicht** der Satz „Sie sehen den Bankabgleich nur lesend …“.
 
 ### 8.4 Sammelgutschrift: Zeilen und Vorschläge prüfen
@@ -2286,7 +2289,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 
 **Erwartet:**
 - Überschrift „Datenübersicht“ mit „Auskunft nach Art. 15 DSGVO (kein strukturierter Export nach Art. 20) · erstellt am …“ und dem Druckhinweis.
-- Abschnitte: „Stammdaten“ (Anzeigename, E-Mail, Telefon, Adresse, Mitgliedsnummer, „Mitglied seit“, „Austritt zum“), „SEPA-Lastschriftmandate“ (Referenz, IBAN **maskiert**, Kontoinhaber, Status, „Aktiviert am“, „Beendet am“) mit dem Unterabschnitt „Rücklastschriften“ („Eingegangen am“, „Grund“, „Gebühr“), „Forderungen“ („Zeitraum/Fälligkeit“, Beschreibung, Betrag, Zustand) und „Beitragszuweisungen“ („Beitragsgruppe“, „Turnus“, „Monatsbetrag“, „Zahlungsart“, „Gültig von“, „Gültig bis“).
+- Abschnitte: „Stammdaten“ (Anzeigename, E-Mail, Telefon, Adresse, Mitgliedsnummer, „Mitglied seit“, „Austritt zum“), „SEPA-Lastschriftmandate“ (Referenz, IBAN **maskiert**, Kontoinhaber, Status, „Aktiviert am“, „Beendet am“) mit dem Unterabschnitt „Rücklastschriften“ („Eingegangen am“, „Grund“, „Gebühr“), „Forderungen“ („Zeitraum/Fälligkeit“, Beschreibung, Betrag, Zustand) und „Beitragszuweisungen“ („Beitragsgruppe“, „Turnus“, „Monatsbetrag“, „Zahlungsart“, „Gültig von“, „Gültig bis“). Turnus und Zahlungsart stehen in Worten („monatlich“, „vierteljährlich“, „Lastschrift“ oder „Überweisung“), nicht als „1“ oder „direct_debit“.
 - Es gibt keinen Export-Knopf (kein Art. 20). Janas Übersicht zeigt nur ihre eigenen Daten.
 
 ### 12.6 Anonymisierungsreife erkennen
@@ -2369,17 +2372,17 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 - Alle drei Unterreiter stehen offen. Buchhalter dürfen Mitglieder, Mandate (aktivieren, sperren, entsperren, widerrufen), Zuweisungen, Einzelforderungen, Erledigungsvermerke, Stundung, Erlass, Freigabe, Einreichung, Verwerfen, Terminverschiebung, Bankabgleich (urteilen und verbuchen) und Anonymisierung bedienen.
 - Das Was-ist-neu-Fenster (1.1) erscheint auch für Buchhalter, falls noch nicht gesehen.
 
-### 13.2 Buchhalter: Vorlaufzeiten gesperrt, Einzugstage bedienbar
+### 13.2 Buchhalter: Fristen nur zur Ansicht, Einzugstage bedienbar
 
 **Rolle:** alice (Buchhalter)
 
 **Tun:**
 1. Öffne **Beiträge** → **Einzug** → „Terminplan“.
-2. Versuche, „Vorwarnfenster (Tage vor Einzug)“ zu ändern. Prüfe die Zeilen mit den Einzugstagen.
+2. Lies am Ende der Karte die Zeile mit den Fristen und suche dort ein Eingabefeld oder einen Link zum Ändern. Prüfe die Zeilen mit den Einzugstagen.
 3. Öffne **Beitragsgruppen**: Dort gibt es keinen Terminplan mehr (er steht nur im Einzug).
 
 **Erwartet:**
-- „Vorwarnfenster (Tage vor Einzug)“ und „Vorabinfo-Vorlauf (Tage vor Einzug)“ sind **gesperrt** (die Werte stehen aber da), mit dem Hinweis „Nur Verwalter können die Vorlaufzeiten ändern.“; der „Speichern“-Knopf der Vorlaufzeiten ist gesperrt.
+- Die Fristen stehen nur als Anzeige da („Vorwarnfenster: … Tage · Vorabinfo-Vorlauf: … Tage · Freigabe-Vorlauf: … Tage vor dem Einzug.“, die Werte stehen also da), ohne Eingabefeld und ohne den Link „Fristen in den Einstellungen ändern“, den nur Verwalter sehen. Geändert werden sie nur in den Einstellungen, die dem Buchhalter nicht offenstehen (13.3).
 - Die Einzugstage je Turnus, die Eingabe „Periodenindex“ und „+ Überschreibung“ sind bedienbar.
 - In der Karte unter „Beitragsgruppen“ gilt dasselbe.
 
@@ -2586,7 +2589,7 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 
 **Erwartet:**
 - Die Liste besteht aus Karten (statt Tabelle) mit Name, Bankverbindung, Betrag, Frequenz und, falls vorhanden, „fällig {Datum}“.
-- Der Name auf der Karte öffnet die Akte; die Karte bietet „Zuweisung verwalten“ und das Menü „Aktionen“ mit „Mandat verwalten“. Nichts ragt über den Rand.
+- Der Name auf der Karte öffnet die Akte; das Menü „Aktionen“ der Karte bietet dieselben Einträge wie das Zeilenmenü in der Tabelle (3.1): „Mitglied bearbeiten“, „Mandat verwalten“, „Beitrag ändern“ und „Beitragsgruppe wechseln“ (ohne Zuweisung: „Beitrag zuweisen“). Nichts ragt über den Rand.
 
 ### 15.3 Einzug auf dem Handy
 
@@ -2632,6 +2635,8 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 - Nach dem Schließen kehrt der Fokus zum Auslöser zurück (kein Verlust an den Seitenanfang).
 - Die Tab-Reihenfolge folgt der Lesereihenfolge (Kopfzeile, Reiter, Inhalt).
 
+**Beachte:** In einem Browser-Tab im Hintergrund laufen die Übergänge der Dialoge nicht. Führe die Fokus-Prüfungen (Esc, Fokusrückkehr) daher im vorderen Tab aus.
+
 ### 15.6 Fokus sichtbar, Namen und Zoom
 
 **Rolle:** admin (Verwalter)
@@ -2675,14 +2680,14 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 1. Tippe in der Mitgliedersuche `zzz`.
 2. Wähle in „Forderungen“ Filter, die nichts treffen (z. B. „Fällig von“ in ferner Zukunft).
 3. Öffne den Bankabgleich, wenn nichts mehr wartet, und beide Darstellungen.
-4. Blättere im Zeitstrahl mit „Nächstes Beitragsjahr“ einige Jahre nach vorn.
+4. Blättere im Zeitstrahl mit „Nächstes Beitragsjahr“ einige Jahre nach vorn und beobachte, ob er sich füllt.
 5. Öffne das Klemmbrett, wenn es keine Aufgaben gibt (sonst „übersprungen“).
 
 **Erwartet:**
 - Mitglieder: „Kein Eintrag passt zur Suche.“ (ohne jedes Mitglied: „Noch kein Mitglied aufgenommen.“ mit dem Hinweis, mit „＋ Mitglied“ oder per CSV zu beginnen).
 - Forderungen: „Keine Forderung passt zu den gewählten Filtern.“ (ohne jede Forderung: „Es gibt noch keine Forderung an ein Mitglied.“).
 - Bankabgleich: „Es warten keine Bankumsätze mit SEPA-Bezug auf ein Urteil. Einzugsgutschriften und Rücklastschriften erscheinen hier nach dem Kontoauszugs-Import (Buchungen → Import).“ bzw. „Es gibt keine Gutschrift, die zu einer offenen Forderung passt. …“.
-- Zeitstrahl: „In diesem Beitragsjahr gibt es noch keine Einzugstermine. Sie entstehen aus dem Terminplan, sobald Mitglieder einer Beitragsgruppe zugewiesen sind, oder durch manuelle Forderungen mit eigenem Termin.“
+- Zeitstrahl: Solange offene (laufende) Zuweisungen existieren, bleibt er in **jedem** Beitragsjahr gefüllt, weil der Terminplan jedes Jahr Termine erzeugt. Der Leerhinweis „In diesem Beitragsjahr gibt es noch keine Einzugstermine. Sie entstehen aus dem Terminplan, sobald Mitglieder einer Beitragsgruppe zugewiesen sind, oder durch manuelle Forderungen mit eigenem Termin.“ erscheint nur, wenn keine Zuweisung läuft. Das ist nur auf einer Instanz ohne Zuweisungen prüfbar; sonst setze diesen Punkt auf „übersprungen“.
 - Klemmbrett: „Nichts zu tun“ mit „Es gibt gerade keine Aufgaben und Hinweise.“ und kein Badge.
 
 ### 16.2 Doppelklick
@@ -2697,6 +2702,8 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 **Erwartet:**
 - Es entsteht jeweils **genau ein** Datensatz (der Dialog schließt sich nach dem ersten Klick bzw. der Knopf ist während des Speicherns gesperrt). Zwei Zeilen wären eine Abweichung.
 - Das Freigeben (7.13) und das Verbuchen (8.6) hast du bereits mit Blick auf Doppelklick geprüft; notiere dort Beobachtungen.
+
+**Beachte:** Die Sperre gegen Mehrfach-Absenden gilt auch für „Beitragsgruppe“ (Dialog „Neue Beitragsgruppe“, „Anlegen“) und „Zuweisung“ (Dialog „+ Zuweisung“, „Anlegen“). Probiere auch dort zwei schnelle Klicks; erwartet wird jeweils genau ein Datensatz.
 
 ### 16.3 Ungültige Eingaben und die IBAN-Prüfung
 
@@ -2721,11 +2728,12 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 **Rolle:** admin (Verwalter)
 
 **Tun:**
-1. Öffne in den Einstellungen die Karte „Rücklastschriften und Mahnwesen“ und wähle als „Konto für Rücklastschriftgebühren (Aufwand)“ ein Konto, das mit „(nicht geeignet)“ markiert ist, und als „Standard-Erlöskonto“ ein Aufwandskonto. Speichere.
+1. Öffne in den Einstellungen die Karte „Rücklastschriften und Mahnwesen“ und klappe die beiden Auswahllisten „Konto für Rücklastschriftgebühren (Aufwand)“ und „Standard-Erlöskonto für Beitragsforderungen (Ertrag)“ auf. Suche einen Eintrag mit „(nicht geeignet)“. Gibt es einen, wähle ihn und speichere.
 
 **Erwartet:**
-- Die App lehnt ungeeignete Konten ab, mit einer verständlichen Meldung (Aufwandskonto bzw. Ertragskonto erwartet, Geldkonto nicht erlaubt); nichts wird gespeichert.
-- Gibt es kein „(nicht geeignet)“-Konto in der Liste, setze den Schritt auf „übersprungen“.
+- Die Listen bieten nur geeignete Konten an: bei den Gebühren Aufwandskonten, beim Erlöskonto Ertragskonten (keine Geldkonten). Ein Eintrag „(nicht geeignet)“ fehlt daher meist; dann setze den Schritt auf „übersprungen“.
+- Gibt es einen solchen Eintrag und speicherst du ihn, lehnt die App das Konto mit einer verständlichen Meldung ab (Aufwandskonto bzw. Ertragskonto erwartet, Geldkonto nicht erlaubt); nichts wird gespeichert.
+- Der Server lehnt ein falsches Konto auch über die Schnittstelle mit klarer Meldung ab, z. B. „Das Konto für Rücklastschriftgebühren muss ein Aufwandskonto sein. Konto 4000 Mitgliedsbeiträge ist ein Ertragskonto.“
 
 ### 16.5 Offline und Serverfehler ohne Rohtext
 
@@ -2766,12 +2774,12 @@ docker compose exec -T stable34 php -m | grep -i '^gd$'
 
 **Tun:**
 1. Öffne **Beiträge** → „Einzug“, klicke dann „Mitglieder“ und drücke die **Zurück-Taste** des Browsers. Drücke die Vorwärts-Taste.
-2. Öffne „Mitglied aufnehmen“ und drücke Zurück.
+2. Öffne „Mitglied aufnehmen“ und drücke Zurück. Beobachte, ob der Dialog bleibt und was sich dahinter ändert.
 3. Öffne die Adressen `/index.php/apps/vereinsbuchhaltung/contributions/batch`, `/contributions/groups` und `/self` direkt.
 4. Öffne als bob `/index.php/apps/vereinsbuchhaltung/contributions`.
 
 **Erwartet:**
-- Zurück und Vorwärts wechseln den Reiter bzw. Unterreiter nachvollziehbar; die Adresse in der Zeile folgt dem Reiter. Ob Zurück einen **offenen Dialog** schließt, ist **nicht spezifiziert**: Notiere dein Verhalten und deine Erwartung als Frage.
+- Zurück und Vorwärts wechseln den Reiter bzw. Unterreiter nachvollziehbar; die Adresse in der Zeile folgt dem Reiter. Ob Zurück einen **offenen Dialog** schließt, ist **nicht spezifiziert**: Notiere dein Verhalten und deine Erwartung als Frage. Beobachtet (Schritt 2): „Zurück“ wechselt bei geöffnetem Dialog den Reiter dahinter, lässt den Dialog aber offen; ob das so bleiben soll, ist noch nicht entschieden.
 - Die Direktadressen öffnen den richtigen Reiter („Einzug“, „Beitragsgruppen“); `/self` öffnet „Mein Beitrag“ nur, wenn das Konto verknüpft und der Schalter an ist.
 - Ein Revisor landet bei `/contributions` auf „Einzug“ statt auf einer leeren Fläche.
 
