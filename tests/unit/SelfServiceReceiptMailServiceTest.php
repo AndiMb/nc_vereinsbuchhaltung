@@ -76,8 +76,8 @@ class SelfServiceReceiptMailServiceTest extends TestCase {
 
 		$joined = implode("\n", $bodyTexts);
 		$this->assertStringContainsString('Ihr Monatsbeitrag wurde von 10,00 € auf 15,00 € geändert.', $joined);
-		$this->assertStringContainsString('Wirkt ab: 2026-07-01', $joined);
-		$this->assertStringContainsString('Voraussichtlich erster betroffener Einzug: 2026-07-05', $joined);
+		$this->assertStringContainsString('Wirkt ab: 01.07.2026', $joined);
+		$this->assertStringContainsString('Voraussichtlich erster betroffener Einzug: 05.07.2026', $joined);
 		// Kein Stellvertretungs-Hinweis, weil onBehalfNote nicht übergeben wurde.
 		$this->assertStringNotContainsString('Kassenführung', $joined);
 	}

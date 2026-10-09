@@ -58,7 +58,7 @@ class SelfServiceProviderTest extends TestCase {
 			'from' => 1000, 'to' => 1500, 'effectiveFrom' => '2026-07-01',
 		]);
 		$event->expects($this->once())->method('setParsedSubject')
-			->with('Monatsbeitrag geändert: 10,00 € → 15,00 € (wirkt ab 2026-07-01)')
+			->with('Monatsbeitrag geändert: 10,00 € → 15,00 € (wirkt ab 01.07.2026)')
 			->willReturnSelf();
 
 		$this->provider()->parse('de', $event);
@@ -69,7 +69,7 @@ class SelfServiceProviderTest extends TestCase {
 			'from' => 1, 'to' => 12, 'effectiveFrom' => '2027-01-01',
 		]);
 		$event->expects($this->once())->method('setParsedSubject')
-			->with('Turnus geändert: alle 1 Monate → alle 12 Monate (wirkt ab 2027-01-01)')
+			->with('Turnus geändert: alle 1 Monate → alle 12 Monate (wirkt ab 01.01.2027)')
 			->willReturnSelf();
 
 		$this->provider()->parse('de', $event);

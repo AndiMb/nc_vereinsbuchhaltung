@@ -56,10 +56,10 @@ class SelfServiceReceiptMailService {
 		$template->addBodyText($this->l10n->t('Guten Tag %s,', [$member->displayName()]));
 		$template->addBodyText($what);
 		if ($effectiveFrom !== null) {
-			$template->addBodyText($this->l10n->t('Wirkt ab: %s', [$effectiveFrom]));
+			$template->addBodyText($this->l10n->t('Wirkt ab: %s', [GermanDate::format($effectiveFrom)]));
 		}
 		if ($firstDueDate !== null) {
-			$template->addBodyText($this->l10n->t('Voraussichtlich erster betroffener Einzug: %s', [$firstDueDate]));
+			$template->addBodyText($this->l10n->t('Voraussichtlich erster betroffener Einzug: %s', [GermanDate::format($firstDueDate)]));
 		}
 		if ($onBehalfNote !== null) {
 			$template->addBodyText($this->l10n->t('Diese Änderung wurde von der Kassenführung in Ihrem Namen vorgenommen: %s', [$onBehalfNote]));

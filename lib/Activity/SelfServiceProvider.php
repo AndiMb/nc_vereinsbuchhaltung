@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Activity;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Service\GermanDate;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceMandateService;
 use OCP\Activity\Exceptions\UnknownActivityException;
 use OCP\Activity\IEvent;
@@ -61,11 +62,11 @@ class SelfServiceProvider implements IProvider {
 			SelfServiceMandateService::SUBJECT_DRAFT_DISCARDED => $l->t('Mandats-Entwurf verworfen'),
 			self::SUBJECT_CONTRIBUTION_AMOUNT_CHANGED => $l->t(
 				'Monatsbeitrag geändert: %1$s € → %2$s € (wirkt ab %3$s)',
-				[$this->euro($params['from'] ?? 0), $this->euro($params['to'] ?? 0), $params['effectiveFrom'] ?? '?'],
+				[$this->euro($params['from'] ?? 0), $this->euro($params['to'] ?? 0), isset($params['effectiveFrom']) ? GermanDate::format((string)$params['effectiveFrom']) : '?'],
 			),
 			self::SUBJECT_CONTRIBUTION_INTERVAL_CHANGED => $l->t(
 				'Turnus geändert: alle %1$d Monate → alle %2$d Monate (wirkt ab %3$s)',
-				[$params['from'] ?? 0, $params['to'] ?? 0, $params['effectiveFrom'] ?? '?'],
+				[$params['from'] ?? 0, $params['to'] ?? 0, isset($params['effectiveFrom']) ? GermanDate::format((string)$params['effectiveFrom']) : '?'],
 			),
 			self::SUBJECT_CONTACT_UPDATED => $l->t('Kontaktdaten aktualisiert'),
 			default => throw new UnknownActivityException('Unbekanntes Self-Service-Ereignis: ' . $event->getSubject()),
