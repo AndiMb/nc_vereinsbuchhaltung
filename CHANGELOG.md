@@ -20,31 +20,23 @@ verwenden, z. B. `**Neu:**`.
 ## [Unreleased]
 
 **Neu:**
-- **Einnahme oder Ausgabe auf einen Blick:** In der Übersicht, unter „Alle
-  Buchungen" und unter „Zuzuordnen" steht der Betrag jetzt mit Vorzeichen und
-  Farbe: Einnahmen grün mit Plus, Ausgaben rot mit Minus, Umbuchungen neutral.
-  Splittbuchungen mit eindeutigem Geldkonto bekommen die Richtung ebenfalls.
-- **Kontofilter nach Kategorie:** Im Journal lassen sich „Einnahmen“, „Ausgaben“
-  und die übrigen Kategorie-Überschriften jetzt direkt im Kontofilter wählen und
-  zeigen alle Buchungen auf Konten dieser Kategorie. Bisher waren die
-  Überschriften reine Trenner.
+- **Einnahme oder Ausgabe auf einen Blick:** Beträge in Übersicht, „Alle
+  Buchungen" und „Zuzuordnen" tragen jetzt Vorzeichen und Farbe – Einnahmen
+  grün, Ausgaben rot, Umbuchungen neutral.
+- **Kontofilter nach Kategorie:** Im Journal lassen sich „Einnahmen", „Ausgaben"
+  und die anderen Kategorien direkt im Kontofilter wählen.
 
 **Geändert:**
 - **Kassenbericht blendet Sphären ohne Bewegung aus:** Die Sphärenübersicht
-  zeigt nur noch Sphären mit Einnahmen oder Ausgaben – wie bei Konten ohne
-  Bewegung in der Einnahmen-/Ausgaben-Rechnung.
+  zeigt nur noch Sphären mit Einnahmen oder Ausgaben.
 
 **Behoben:**
-- **Kontofilter übersah Splitbuchungen:** Der Filter prüfte nur die erste Soll-
-  und Haben-Zeile einer Buchung. Jetzt zählt jede Buchungszeile.
-- **Gruppen-Überschriften in Kontofeldern waren anklickbar:** In Buchungsdialog,
-  Regeln, Zuordnen, Offene Posten, Aufteilen und Umbuchen ließ sich eine
-  Kategorie-Überschrift auswählen und leerte dabei nur das Feld. Die
-  Überschriften sind jetzt gesperrt.
-- **„&" im Kontonamen stand im Finanzplan als `&amp;`:** Die Beschriftung des
-  Notizfelds und des Planwert-Felds zeigte HTML-kodierte Sonderzeichen
-  („Notiz zu 5930 Anschaffung `&amp;` Wartung Technik"). Übersetzte Texte mit
-  Platzhaltern werden jetzt nicht mehr doppelt kodiert.
+- **Kontofilter übersah Splitbuchungen:** Jetzt zählt jede Buchungszeile, nicht
+  nur die erste Soll- und Haben-Zeile.
+- **Gruppen-Überschriften in Kontofeldern waren anklickbar:** Die
+  Kategorie-Überschriften in allen Kontoauswahlfeldern sind jetzt gesperrt.
+- **„&" im Kontonamen stand im Finanzplan als `&amp;`:** Übersetzte Texte mit
+  Platzhaltern werden nicht mehr doppelt kodiert.
 
 ## [0.34.4] – 2026-09-29
 

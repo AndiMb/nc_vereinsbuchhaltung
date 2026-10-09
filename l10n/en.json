@@ -1430,7 +1430,10 @@
             "%n{plus} documents"
         ],
         "Diese Datei hängt bereits an der Buchung.": "This file is already attached to the entry.",
-        "Keine weiteren Dateien im Wächter-Ordner.": "No further files in the watch folder."
+        "Keine weiteren Dateien im Wächter-Ordner.": "No further files in the watch folder.",
+        "Beträge zeigen die Richtung: Einnahmen grün mit Plus, Ausgaben rot mit Minus – in Übersicht, Buchungen und „Zuzuordnen\".": "Amounts show their direction: income green with a plus, expenses red with a minus – on the overview, in entries and under “To assign”.",
+        "Der Kontofilter im Journal kennt jetzt Kategorien wie „Einnahmen\" oder „Ausgaben\".": "The account filter in the journal now knows categories such as “Income” or “Expenses”.",
+        "Der Kassenbericht zeigt in der Sphärenübersicht nur noch Sphären mit Bewegung.": "The cash report only lists spheres with activity in the sphere overview."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

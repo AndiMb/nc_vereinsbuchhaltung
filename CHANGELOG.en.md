@@ -18,30 +18,22 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 ## [Unreleased]
 
 **New:**
-- **Income or expense at a glance:** on the overview, under "All entries" and
-  under "To assign", the amount now carries a sign and a colour: income green
-  with a plus, expenses red with a minus, transfers neutral. Split bookings
-  with a single cash account get the direction as well.
-- **Account filter by category:** In the journal, "Income", "Expenses" and the
-  other category headings can now be picked directly in the account filter and
-  show all entries on accounts of that category. Until now the headings were
-  mere separators.
+- **Income or expense at a glance:** amounts on the overview, under "All
+  entries" and under "To assign" now carry a sign and a colour – income green,
+  expenses red, transfers neutral.
+- **Account filter by category:** in the journal, "Income", "Expenses" and the
+  other categories can be picked directly in the account filter.
 
 **Changed:**
-- **Cash report hides spheres without activity:** The sphere overview now
-  only lists spheres with income or expenses – matching how accounts without
-  activity are skipped in the income/expense statement.
+- **Cash report hides spheres without activity:** the sphere overview only
+  lists spheres with income or expenses.
 
 **Fixed:**
-- **Account filter missed split entries:** The filter only checked the first
-  debit and credit line of an entry. Every line counts now.
-- **Group headings in account fields were clickable:** In the entry dialog,
-  rules, assignment, open items, splitting and reassigning, a category heading
-  could be selected and merely cleared the field. The headings are now
-  locked.
-- **"&" in an account name showed up as `&amp;` in the budget view:** the
-  labels of the note field and the plan-value field displayed HTML-encoded
-  characters ("Note on 5930 Anschaffung `&amp;` Wartung Technik"). Translated
+- **Account filter missed split entries:** every line of an entry counts now,
+  not only the first debit and credit line.
+- **Group headings in account fields were clickable:** the category headings in
+  all account pickers are now locked.
+- **"&" in an account name showed up as `&amp;` in the budget view:** translated
   texts with placeholders are no longer encoded twice.
 
 ## [0.34.4] – 2026-09-29
