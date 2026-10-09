@@ -354,8 +354,8 @@ test.describe('Einzug-Unterreiter: Segment „Forderungen“', () => {
 		const dialog = page.getByRole('dialog', { name: 'Manuelle Einzelforderung' })
 		await expect(dialog).toBeVisible()
 		// Die Mehrfachauswahl hat keinen verlässlichen Rollennamen mehr (die gewählten Mitglieder stehen als Marken
-		// im selben Feld): das Suchfeld der Auswahl ist das einzige seiner Art im Dialog.
-		const memberSelect = dialog.locator('input.vs__search')
+		// im selben Feld): das Suchfeld der NcSelect ist das einzige seiner Art im Dialog.
+		const memberSelect = dialog.locator('.nc-select input').first()
 		for (const name of ['Mehrfach Eins', 'Mehrfach Zwei']) {
 			await memberSelect.click()
 			await memberSelect.pressSequentially(name, { delay: 20 })
