@@ -1315,12 +1315,14 @@ For a choir with 200 voices, the form is the wrong way. In the
 file**, one row per member.
 
 The following columns are expected – **order and spelling don't matter**,
-and extra columns (join date, voice part …) are simply ignored:
+and extra columns (voice part …) are simply ignored:
 
 | Column | Example | Required? |
 |---|---|---|
-| Name *or* account | `Katrin Brunner` or `k.brunner` | yes |
+| Name *or* account *or* first name + last name *or* organization | `Katrin Brunner`, `k.brunner`, `Katrin` + `Brunner`, `Musikhaus Beispiel GmbH` | yes – one of them; with first/last name, the last name is required |
 | Member number | `0815` | no, but a hard duplicate key (see below) |
+| Joined | `01.03.2019` | no – may lie in the past, the import day applies if empty |
+| Street, ZIP, City, Phone | `Musterweg 12`, `12345`, `Musterstadt`, `0123 456789` | no |
 | Email | `k.brunner@example.org` | no, but strongly recommended |
 | IBAN | `DE02 1203 0000 0000 2020 51` | only if collections are made |
 | BIC | usually empty | no |
@@ -1336,11 +1338,19 @@ A row without an IBAN and without an amount is valid – only the member is
 created then, a mandate and a fee can be added any time later through the
 member's record.
 
+The name is read like this: if **Organization** is filled, an organization is
+created; otherwise a person with exactly the **First name**/**Last name** fields.
+If only **Name** is there, it is split at the first space – a name without a
+space or with a legal form (GmbH, e. V., eG, Stiftung …) counts as an
+organization. The preview marks organizations; "Last name" alone without a
+"First name" column acts like "Name".
+
 Dates may be given as `15.01.2026` or `2026-01-15`, amounts as `42,50` or
 `42.50`. A **template** to fill in can be downloaded directly.
 
 German column headings are understood just as well (`Name`, `E-Mail`, `IBAN`,
-`BIC`, `Mandat`, `Betrag`, `Frequenz`, `Start`) – useful when the list comes
+`BIC`, `Mandat`, `Betrag`, `Frequenz`, `Start`, `Vorname`, `Nachname`,
+`Organisation`, `Straße`, `PLZ`, `Ort`, `Telefon`, `Eintritt`) – useful when the list comes
 out of a German program. The same goes for the frequency: `monatlich`,
 `vierteljährlich`, `halbjährlich` and `jährlich` work alongside the English
 words.
@@ -1354,13 +1364,16 @@ The process is two-stage: **"Check"** changes nothing and shows you, for
 every row, what would be created and what's wrong. Only afterwards do you
 apply it. Faulty rows are skipped and listed individually – a typo in row
 143 doesn't invalidate the 142 rows before it.
+The check also reports an invalid IBAN format, a fee start in the past and a
+member number that already appears further up in the file.
 
 **The import only creates, it never reconciles:** a row whose member number
 or Nextcloud account already exists is skipped entirely (no duplicate
 member, no second mandate). A row with the same name as an existing member
 only gets a warning – names are too often ambiguous in clubs to serve as a
 duplicate key. A row without an email address automatically lands on the
-"bank transfer" payment method rather than direct debit.
+"bank transfer" payment method rather than direct debit (the preview warns
+about this for rows with an IBAN).
 
 **Every mandate created by the import activates immediately.** As soon as
 at least one row would create a mandate, the app requires confirming "the

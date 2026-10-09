@@ -337,19 +337,42 @@ class MemberService {
 	}
 
 	/**
+	 * Rechtsformen und Vereinsbezeichnungen, an denen ein Freitextname als
+	 * Organisation zu erkennen ist (GmbH, gGmbH, mbH, UG, AG, KG, OHG, GbR,
+	 * e. V./e.V./eV, eG, Stiftung, Genossenschaft). Groß-/Kleinschreibung ist
+	 * egal. Gemeint ist immer ein eigenes Wort: „Wagner" enthält kein „AG", „Egon"
+	 * kein „eG". Nur „Stiftung" und „Genossenschaft" gelten auch als Wortende
+	 * („Bürgerstiftung", „Baugenossenschaft"). „e. V." gilt nur mit Punkt nach dem
+	 * „e" (oder zusammengeschrieben als „eV"); Initialen mit Punkten („Karl E. V.
+	 * Müller") lassen sich davon nicht unterscheiden und werden zur Organisation.
+	 */
+	private const LEGAL_FORM_PATTERN = '/(?<![\p{L}\p{N}])(?:(?:gGmbH|GmbH|mbH|UG|AG|KG|OHG|GbR|eG|eV|e\.\s?V\.?)|\p{L}*(?:Stiftung|Genossenschaft))(?![\p{L}\p{N}])/iu';
+
+	/**
+	 * Ob ein Freitextname nach einer Organisation aussieht: er nennt eine
+	 * Rechtsform (siehe {@see LEGAL_FORM_PATTERN}). Rein heuristisch – ob ein Name
+	 * ohne Rechtsform und ohne Leerzeichen („Musikverein") eine Organisation ist,
+	 * entscheidet {@see splitLabel()}.
+	 */
+	public static function looksLikeOrganization(string $name): bool {
+		return preg_match(self::LEGAL_FORM_PATTERN, $name) === 1;
+	}
+
+	/**
 	 * Split-Heuristik für einen Freitext-Zahlernamen (Spec §3.1 „Umbaupfad"):
-	 * enthält der Name ein Leerzeichen, ist er eine Person (Split am ersten
-	 * Leerzeichen in Vor-/Nachname), sonst eine Organisation. Bewusst eine
-	 * reine, abhängigkeitsfreie Funktion – sowohl von der Migration als auch
-	 * von {@see findOrCreateByNcUserId()}/{@see createFromLabel()} genutzt,
-	 * und direkt unit-testbar ohne Mock-Aufwand.
+	 * Nennt der Name eine Rechtsform (GmbH, e. V., Stiftung …, siehe
+	 * {@see looksLikeOrganization()}) oder enthält er kein Leerzeichen, ist er eine
+	 * Organisation; sonst eine Person (Split am ersten Leerzeichen in Vor-/Nachname).
+	 * Bewusst eine reine, abhängigkeitsfreie Funktion – sowohl von der Migration
+	 * als auch von {@see findOrCreateByNcUserId()}/{@see createFromLabel()} und dem
+	 * CSV-Import genutzt, und direkt unit-testbar ohne Mock-Aufwand.
 	 *
 	 * @return array{type:string, firstName:?string, lastName:?string, organizationName:?string}
 	 */
 	public static function splitLabel(string $label): array {
 		$label = trim($label);
 		$space = strpos($label, ' ');
-		if ($space === false) {
+		if ($space === false || self::looksLikeOrganization($label)) {
 			return ['type' => Member::TYPE_ORGANIZATION, 'firstName' => null, 'lastName' => null, 'organizationName' => $label];
 		}
 		return [

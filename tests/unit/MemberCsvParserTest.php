@@ -359,4 +359,349 @@ class MemberCsvParserTest extends TestCase {
 		$this->assertSame([], $zeile['errors']);
 		$this->assertNull($zeile['groupName']);
 	}
+
+	// --- Namensspalten: Vorname/Nachname/Organisation ---
+
+	public function testVornameUndNachnameErgebenEinePersonMitGenauDiesenFeldern(): void {
+		$csv = "Vorname;Nachname;E-Mail\nAnna Maria;Beispiel Müller;anna@example.org\n";
+		$zeile = $this->parser->parse($csv)['rows'][0];
+		$this->assertSame([], $zeile['errors']);
+		$this->assertSame('person', $zeile['memberType']);
+		$this->assertSame('Anna Maria', $zeile['firstName']);
+		$this->assertSame('Beispiel Müller', $zeile['lastName']);
+		$this->assertNull($zeile['organizationName']);
+		$this->assertNull($zeile['memberLabel']);
+	}
+
+	public function testNurNachnameInEinerDateiMitVornameSpalteIstEinePerson(): void {
+		$zeile = $this->parser->parse("Vorname;Nachname\n;Beispiel\n")['rows'][0];
+		$this->assertSame([], $zeile['errors']);
+		$this->assertSame('person', $zeile['memberType']);
+		$this->assertNull($zeile['firstName']);
+		$this->assertSame('Beispiel', $zeile['lastName']);
+	}
+
+	public function testVornameOhneNachnameIstEinZeilenfehler(): void {
+		$zeile = $this->parser->parse("Vorname;Nachname\nAnna;\n")['rows'][0];
+		$this->assertSame(['Bei einer Person ist der Nachname Pflicht.'], $zeile['errors']);
+	}
+
+	/** „Name;Vorname" meint in deutschen Listen oft den Nachnamen – geraten wird nicht, der Fehler nennt die Lösung. */
+	public function testNameNebenVornameWirdNichtAlsNachnameGeraten(): void {
+		$zeile = $this->parser->parse("Name;Vorname\nBeispiel;Anna\n")['rows'][0];
+		$this->assertCount(1, $zeile['errors']);
+		$this->assertStringContainsString('Spalte „Nachname"', $zeile['errors'][0]);
+	}
+
+	/** Sind Vorname und Nachname der Zeile leer, gilt „Name" wie bisher. */
+	public function testLeereNamensspaltenFallenAufDenFreitextnamenZurueck(): void {
+		$zeile = $this->parser->parse("Name;Vorname;Nachname\nKatrin Brunner;;\n")['rows'][0];
+		$this->assertSame([], $zeile['errors']);
+		$this->assertNull($zeile['memberType']);
+		$this->assertSame('Katrin Brunner', $zeile['memberLabel']);
+	}
+
+	/** Strukturierte Namen gehen dem Freitextnamen vor; „Name" ist dann redundant. */
+	public function testStrukturierterNameSchlaegtFreitextname(): void {
+		$zeile = $this->parser->parse("Name;Vorname;Nachname\nKatrin Brunner;Katrin;Brunner\n")['rows'][0];
+		$this->assertSame('person', $zeile['memberType']);
+		$this->assertNull($zeile['memberLabel']);
+	}
+
+	public function testNextcloudKontoBleibtNebenStrukturiertemNamenErhalten(): void {
+		$zeile = $this->parser->parse("Konto;Vorname;Nachname\nk.brunner;Katrin;Brunner\n")['rows'][0];
+		$this->assertSame('k.brunner', $zeile['memberUid']);
+		$this->assertSame('Brunner', $zeile['lastName']);
+	}
+
+	public function testOrganisationGefuelltErgibtEineOrganisation(): void {
+		$zeile = $this->parser->parse("Organisation;E-Mail\nMusikhaus Beispiel GmbH;info@example.org\n")['rows'][0];
+		$this->assertSame([], $zeile['errors']);
+		$this->assertSame('organisation', $zeile['memberType']);
+		$this->assertSame('Musikhaus Beispiel GmbH', $zeile['organizationName']);
+		$this->assertNull($zeile['firstName']);
+		$this->assertNull($zeile['memberLabel']);
+	}
+
+	/** Die Organisation geht vor; Vor-/Nachname daneben werden nicht still verschluckt, sondern gemeldet. */
+	public function testOrganisationSchlaegtVornameNachnameMitHinweis(): void {
+		$zeile = $this->parser->parse("Organisation;Vorname;Nachname\nMusikhaus;Anna;Beispiel\n")['rows'][0];
+		$this->assertSame([], $zeile['errors']);
+		$this->assertSame('organisation', $zeile['memberType']);
+		$this->assertNull($zeile['firstName']);
+		$this->assertNull($zeile['lastName']);
+		$this->assertCount(1, $zeile['warnings']);
+	}
+
+	public function testZeileMitLeererOrganisationFaelltAufPersonZurueck(): void {
+		$csv = "Organisation;Vorname;Nachname\n;Anna;Beispiel\nMusikhaus;;\n";
+		$rows = $this->parser->parse($csv)['rows'];
+		$this->assertSame('person', $rows[0]['memberType']);
+		$this->assertSame('organisation', $rows[1]['memberType']);
+		$this->assertSame([], $rows[1]['warnings']);
+	}
+
+	public function testWederNameNochVornameNochOrganisationIstEinFehler(): void {
+		$zeile = $this->parser->parse("Vorname;Nachname;Organisation;E-Mail\n;;;a@example.org\n")['rows'][0];
+		$this->assertStringContainsString('Weder Name noch Nextcloud-Konto', implode(' | ', $zeile['errors']));
+	}
+
+	/**
+	 * Abwärtskompatibilität: ohne Vorname-Spalte bleibt „Nachname" (und seine
+	 * englischen Verwandten) eine Schreibweise von „Name" – altes Verhalten.
+	 *
+	 * @return array<string, array{0:string}>
+	 */
+	public static function nachnameAlsAlias(): array {
+		return [
+			'Nachname' => ['Nachname'],
+			'Familienname' => ['Familienname'],
+			'surname' => ['surname'],
+			'lastname' => ['Last name'],
+		];
+	}
+
+	/**
+	 * @dataProvider nachnameAlsAlias
+	 */
+	public function testNachnameOhneVornameSpalteBleibtDerFreitextname(string $ueberschrift): void {
+		$zeile = $this->parser->parse("{$ueberschrift};Betrag;Start\nBeispiel;5,00;01.01.2027\n")['rows'][0];
+		$this->assertSame([], $zeile['errors']);
+		$this->assertSame('Beispiel', $zeile['memberLabel']);
+		$this->assertNull($zeile['memberType']);
+		$this->assertNull($zeile['lastName']);
+	}
+
+	/** Auch das alte Zusammenspiel „Name" + „Nachname" (die spätere Spalte gewinnt) ändert sich nicht. */
+	public function testNameUndNachnameOhneVornameSpalteVerhaltenSichWieVorher(): void {
+		$zeile = $this->parser->parse("Name;Nachname\nAnna Beispiel;Beispiel\n")['rows'][0];
+		$this->assertSame('Beispiel', $zeile['memberLabel']);
+		$this->assertNull($zeile['memberType']);
+	}
+
+	// --- Spaltenüberschriften der neuen Felder ---
+
+	/**
+	 * @return array<string, array{0:string, 1:string}> Überschrift, Feld im Ergebnis
+	 */
+	public static function neueUeberschriften(): array {
+		$cases = [];
+		$spec = [
+			'firstName' => ['Vorname', 'firstname', 'First Name', 'VORNAME'],
+			'organizationName' => ['Organisation', 'Firma', 'Verein', 'organization', 'company', 'ORGANISATION'],
+			'street' => ['Straße', 'Strasse', 'STRASSE', 'street', 'address'],
+			'postalCode' => ['PLZ', 'Postleitzahl', 'zip', 'Postal Code', 'plz'],
+			'city' => ['Ort', 'Stadt', 'city', 'ORT'],
+			'phone' => ['Telefon', 'Tel', 'Tel.', 'phone'],
+			'joinedAt' => ['Eintritt', 'Eintrittsdatum', 'Mitglied seit', 'Beigetreten am', 'joined', 'EINTRITT'],
+		];
+		foreach ($spec as $field => $ueberschriften) {
+			foreach ($ueberschriften as $ueberschrift) {
+				$cases["{$field}: {$ueberschrift}"] = [$ueberschrift, $field];
+			}
+		}
+		return $cases;
+	}
+
+	/**
+	 * @dataProvider neueUeberschriften
+	 */
+	public function testNeueUeberschriftenWerdenErkannt(string $ueberschrift, string $feld): void {
+		$wert = $feld === 'joinedAt' ? '01.05.2019' : 'Wert 1';
+		$erwartet = $feld === 'joinedAt' ? '2019-05-01' : 'Wert 1';
+		// „Nachname" daneben, damit auch Vorname/Organisation eine gültige Zeile ergeben.
+		$zeile = $this->parser->parse("Nachname;{$ueberschrift}\nBeispiel;{$wert}\n")['rows'][0];
+		$this->assertSame([], $zeile['errors']);
+		$this->assertSame($erwartet, $zeile[$feld]);
+	}
+
+	public function testStammdatenspaltenWerdenGetrimmtUndLeerIstNull(): void {
+		$csv = "Name;Straße;PLZ;Ort;Telefon\nAnna Beispiel;  Musterweg 12 ; 12345 ;Musterstadt; 0123 456789 \nBen Muster;;;;\n";
+		$rows = $this->parser->parse($csv)['rows'];
+		$this->assertSame([], $rows[0]['errors']);
+		$this->assertSame('Musterweg 12', $rows[0]['street']);
+		$this->assertSame('12345', $rows[0]['postalCode']);
+		$this->assertSame('Musterstadt', $rows[0]['city']);
+		$this->assertSame('0123 456789', $rows[0]['phone']);
+		$this->assertNull($rows[1]['street']);
+		$this->assertNull($rows[1]['postalCode']);
+		$this->assertNull($rows[1]['city']);
+		$this->assertNull($rows[1]['phone']);
+	}
+
+	/** Ohne diese Spalten bleiben die Felder null – wie bei jeder bisherigen Datei. */
+	public function testAlteDateiOhneStammdatenspaltenLiefertNullFelder(): void {
+		$zeile = $this->parser->parse("Name;E-Mail\nKatrin Brunner;k@example.org\n")['rows'][0];
+		foreach (['street', 'postalCode', 'city', 'phone', 'joinedAt', 'firstName', 'lastName', 'organizationName', 'memberType'] as $feld) {
+			$this->assertNull($zeile[$feld], $feld);
+		}
+		$this->assertSame([], $zeile['warnings']);
+	}
+
+	/**
+	 * @return array<string, array{0:string, 1:string, 2:string, 3:int}> Kopfzeile, Wertezeile mit Platz „%s", Bezeichnung in der Meldung, Höchstlänge
+	 */
+	public static function zuLangeWerte(): array {
+		return [
+			'Vorname' => ['Vorname;Nachname', '%s;Beispiel', 'Vorname', 128],
+			'Nachname' => ['Vorname;Nachname', 'Anna;%s', 'Nachname', 128],
+			'Straße' => ['Name;Straße', 'Anna Beispiel;%s', 'Straße', 255],
+			'PLZ' => ['Name;PLZ', 'Anna Beispiel;%s', 'PLZ', 16],
+			'Ort' => ['Name;Ort', 'Anna Beispiel;%s', 'Ort', 128],
+			'Telefon' => ['Name;Telefon', 'Anna Beispiel;%s', 'Telefon', 64],
+		];
+	}
+
+	/**
+	 * Die Spalten der Mitgliedertabelle sind begrenzt (Migration Version000137):
+	 * ein längerer Wert wird als Zeilenfehler gemeldet, nicht still gekürzt.
+	 *
+	 * @dataProvider zuLangeWerte
+	 */
+	public function testZuLangeWerteSindEinZeilenfehler(string $kopf, string $zeile, string $bezeichnung, int $grenze): void {
+		$zu = $this->parser->parse($kopf . "\n" . sprintf($zeile, str_repeat('x', $grenze + 1)) . "\n")['rows'][0];
+		$this->assertSame(["{$bezeichnung} ist zu lang (höchstens {$grenze} Zeichen)."], $zu['errors']);
+
+		$genau = $this->parser->parse($kopf . "\n" . sprintf($zeile, str_repeat('x', $grenze)) . "\n")['rows'][0];
+		$this->assertSame([], $genau['errors'], 'Genau die Höchstlänge ist erlaubt.');
+	}
+
+	public function testZuLangerOrganisationsnameIstEinZeilenfehler(): void {
+		$zeile = $this->parser->parse("Organisation\n" . str_repeat('x', 256) . "\n")['rows'][0];
+		$this->assertStringContainsString('Organisation ist zu lang (höchstens 255 Zeichen).', implode(' | ', $zeile['errors']));
+	}
+
+	public function testUmlauteZaehlenAlsEinZeichenBeiDerHoechstlaenge(): void {
+		$zeile = $this->parser->parse("Name;PLZ\nAnna Beispiel;" . str_repeat('ä', 16) . "\n")['rows'][0];
+		$this->assertSame([], $zeile['errors']);
+	}
+
+	// --- Eintrittsdatum ---
+
+	/**
+	 * @return array<string, array{0:string, 1:string}>
+	 */
+	public static function eintrittsdaten(): array {
+		return [
+			'deutsch' => ['01.05.2019', '2019-05-01'],
+			'ISO' => ['2019-05-01', '2019-05-01'],
+			'einstellig' => ['1.5.2019', '2019-05-01'],
+			'weit in der Vergangenheit' => ['15.03.1987', '1987-03-15'],
+			'in der Zukunft' => ['01.01.2099', '2099-01-01'],
+		];
+	}
+
+	/**
+	 * @dataProvider eintrittsdaten
+	 */
+	public function testEintrittDarfInDerVergangenheitLiegen(string $eingabe, string $erwartet): void {
+		$zeile = $this->parser->parse("Name;Eintritt\nAnna Beispiel;{$eingabe}\n")['rows'][0];
+		$this->assertSame([], $zeile['errors']);
+		$this->assertSame($erwartet, $zeile['joinedAt']);
+	}
+
+	public function testLeererEintrittBleibtNullDerServiceSetztDenImporttag(): void {
+		$this->assertNull($this->parser->parse("Name;Eintritt\nAnna Beispiel;\n")['rows'][0]['joinedAt']);
+	}
+
+	public function testUngueltigerEintrittIstEinZeilenfehler(): void {
+		foreach (['31.02.2019', 'Mai 2019', '2019', '05/01/2019'] as $eingabe) {
+			$zeile = $this->parser->parse("Name;Eintritt\nAnna Beispiel;{$eingabe}\n")['rows'][0];
+			$this->assertStringContainsString('Unlesbares Eintrittsdatum: ' . $eingabe, implode(' | ', $zeile['errors']), $eingabe);
+			$this->assertNull($zeile['joinedAt']);
+		}
+	}
+
+	/** Die Spalte „Eintritt" war bisher unbekannt und wurde übergangen – ein gültiger Wert ändert sonst nichts an der Zeile. */
+	public function testEintrittsspalteAendertNichtsAnDenUebrigenFeldern(): void {
+		$mit = $this->parser->parse("Name;Eintritt;IBAN;Mandat am\nKatrin Brunner;01.05.2019;DE02120300000000202051;15.01.2026\n")['rows'][0];
+		$ohne = $this->parser->parse("Name;IBAN;Mandat am\nKatrin Brunner;DE02120300000000202051;15.01.2026\n")['rows'][0];
+		unset($mit['joinedAt']);
+		unset($ohne['joinedAt']);
+		$this->assertSame($ohne, $mit);
+	}
+
+	// --- Vorlagen ---
+
+	/**
+	 * Die Vorlage in docs/mitglieder-import/ ist die Datei, die Vereine tatsächlich
+	 * ausfüllen – sie muss der Parser ohne Beanstandung lesen (der Beitragsbeginn
+	 * in der Vergangenheit prüft erst MemberImportService, nicht der Parser).
+	 */
+	public function testDieVorlageAusDerDokumentationIstFehlerfrei(): void {
+		$csv = (string)file_get_contents(__DIR__ . '/../../docs/mitglieder-import/vorlage-mitglieder-import.csv');
+		$this->assertStringStartsWith("\xEF\xBB\xBF", $csv, 'UTF-8 mit BOM, damit Excel die Umlaute richtig liest');
+
+		$ergebnis = $this->parser->parse($csv);
+		$this->assertNull($ergebnis['error']);
+		$this->assertCount(4, $ergebnis['rows']);
+		foreach ($ergebnis['rows'] as $zeile) {
+			$this->assertSame([], $zeile['errors'], 'Zeile ' . $zeile['line']);
+			$this->assertSame([], $zeile['warnings'], 'Zeile ' . $zeile['line']);
+		}
+		$this->assertSame('person', $ergebnis['rows'][0]['memberType']);
+		$this->assertSame('organisation', $ergebnis['rows'][3]['memberType']);
+		$this->assertSame('2019-03-01', $ergebnis['rows'][0]['joinedAt']);
+		$this->assertSame('Musterweg 12', $ergebnis['rows'][0]['street']);
+		$this->assertSame('Petra Muster', $ergebnis['rows'][1]['accountHolder']);
+	}
+
+	/**
+	 * Die Vorlage zum Download im Dialog (src/lib/memberImportTemplate.js) darf
+	 * keine Überschrift führen, die der Parser nicht kennt. Die Spaltenliste wird
+	 * aus der JS-Datei gelesen; ein neuer Eintrag dort braucht hier einen Beispielwert.
+	 */
+	public function testJedeUeberschriftDerDialogVorlageWirdVomParserErkannt(): void {
+		$js = (string)file_get_contents(__DIR__ . '/../../src/lib/memberImportTemplate.js');
+		$this->assertSame(1, preg_match('/TEMPLATE_HEADERS = \[(.*?)\]/s', $js, $block));
+		preg_match_all("/'([^']+)'/", $block[1], $treffer);
+		$ueberschriften = $treffer[1];
+		$this->assertCount(19, $ueberschriften);
+
+		// Überschrift → [Feld im Ergebnis, Beispielwert, erwarteter Wert]
+		$beispiele = [
+			'Vorname' => ['firstName', 'Anna', 'Anna'],
+			'Nachname' => ['lastName', 'Beispiel', 'Beispiel'],
+			'Organisation' => ['organizationName', 'Musikhaus', 'Musikhaus'],
+			'Mitgliedsnummer' => ['memberNumber', '1001', '1001'],
+			'Eintritt' => ['joinedAt', '01.03.2019', '2019-03-01'],
+			'Straße' => ['street', 'Musterweg 12', 'Musterweg 12'],
+			'PLZ' => ['postalCode', '12345', '12345'],
+			'Ort' => ['city', 'Musterstadt', 'Musterstadt'],
+			'Telefon' => ['phone', '0123 456789', '0123 456789'],
+			'E-Mail' => ['email', 'anna@example.org', 'anna@example.org'],
+			'IBAN' => ['iban', 'DE02 1203 0000 0000 2020 51', 'DE02120300000000202051'],
+			'BIC' => ['bic', 'BYLADEM1001', 'BYLADEM1001'],
+			'Kontoinhaber' => ['accountHolder', 'Petra Muster', 'Petra Muster'],
+			'Mandat am' => ['signedDate', '15.01.2025', '2025-01-15'],
+			'Mandatsreferenz' => ['mandateReference', 'ALT-1', 'ALT-1'],
+			'Beitragsgruppe' => ['groupName', 'Vollmitglied', 'Vollmitglied'],
+			'Betrag' => ['amountCents', '15,00', 1500],
+			'Frequenz' => ['frequency', 'monatlich', 'monthly'],
+			'Start' => ['startDate', '01.01.2027', '2027-01-01'],
+		];
+		$person = [];
+		$organisation = [];
+		foreach ($ueberschriften as $ueberschrift) {
+			$this->assertArrayHasKey($ueberschrift, $beispiele, "Für „{$ueberschrift}\" fehlt hier ein Beispielwert.");
+			// Eine Zeile ist Person ODER Organisation: die Organisation geht den Namensfeldern vor.
+			$person[] = $ueberschrift === 'Organisation' ? '' : $beispiele[$ueberschrift][1];
+			$organisation[] = $ueberschrift === 'Organisation' ? $beispiele[$ueberschrift][1] : '';
+		}
+		$kopf = implode(';', $ueberschriften);
+
+		$zeile = $this->parser->parse($kopf . "\n" . implode(';', $person) . "\n")['rows'][0];
+		$this->assertSame([], $zeile['errors']);
+		$this->assertSame([], $zeile['warnings']);
+		foreach ($ueberschriften as $ueberschrift) {
+			if ($ueberschrift !== 'Organisation') {
+				$this->assertSame($beispiele[$ueberschrift][2], $zeile[$beispiele[$ueberschrift][0]], $ueberschrift);
+			}
+		}
+
+		$zeile = $this->parser->parse($kopf . "\n" . implode(';', $organisation) . "\n")['rows'][0];
+		$this->assertSame([], $zeile['errors']);
+		$this->assertSame('Musikhaus', $zeile['organizationName']);
+		$this->assertSame('organisation', $zeile['memberType']);
+	}
 }

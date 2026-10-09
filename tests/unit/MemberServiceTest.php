@@ -82,6 +82,89 @@ class MemberServiceTest extends TestCase {
 		$this->assertNull($split['lastName']);
 	}
 
+	/**
+	 * Rechtsformen machen aus einem Namen mit Leerzeichen eine Organisation –
+	 * als eigenes Wort oder am Ende, Groß-/Kleinschreibung egal.
+	 *
+	 * @return array<string, array{0:string}>
+	 */
+	public static function organisationsNamen(): array {
+		return [
+			'GmbH' => ['Musikhaus Beispiel GmbH'],
+			'gGmbH' => ['Chorhaus gGmbH'],
+			'mbH' => ['Beispiel Verwaltung mbH'],
+			'UG' => ['Beispiel UG (haftungsbeschränkt)'],
+			'AG' => ['Beispiel Versicherungen AG'],
+			'KG' => ['Müller & Söhne KG'],
+			'GmbH & Co. KG' => ['Beispiel GmbH & Co. KG'],
+			'OHG' => ['Schmidt OHG'],
+			'GbR' => ['Beispiel Dienste GbR'],
+			'e.V.' => ['Chorgemeinschaft Beispiel e.V.'],
+			'e. V.' => ['Chorgemeinschaft Beispiel e. V.'],
+			'eV' => ['Chorgemeinschaft Beispiel eV'],
+			'E.V. großgeschrieben' => ['SANGESFREUNDE E.V.'],
+			'e.V. in der Mitte' => ['Musikverein e.V. Beispielstadt'],
+			'eG' => ['Volksbank Beispiel eG'],
+			'Stiftung' => ['Stiftung Beispiel'],
+			'Stiftung am Ende' => ['Beispiel Stiftung'],
+			'Bürgerstiftung' => ['Bürgerstiftung Beispielstadt'],
+			'Genossenschaft' => ['Beispiel Genossenschaft'],
+			'Baugenossenschaft' => ['Baugenossenschaft Nord'],
+			'kleingeschrieben' => ['musikhaus beispiel gmbh'],
+			'ohne Leerzeichen' => ['Musikverein'],
+		];
+	}
+
+	/**
+	 * @dataProvider organisationsNamen
+	 */
+	public function testSplitLabelErkenntRechtsformenAlsOrganisation(string $name): void {
+		$split = MemberService::splitLabel($name);
+
+		$this->assertSame(Member::TYPE_ORGANIZATION, $split['type'], $name);
+		$this->assertSame($name, $split['organizationName']);
+		$this->assertNull($split['firstName']);
+		$this->assertNull($split['lastName']);
+	}
+
+	/**
+	 * Wörter, die eine Rechtsform nur *enthalten*, machen keine Organisation:
+	 * „Wagner" hat kein „AG", „Egon" kein „eG", „Hugo" kein „UG".
+	 *
+	 * @return array<string, array{0:string}>
+	 */
+	public static function personenNamen(): array {
+		return [
+			'Wagner' => ['Anna Wagner'],
+			'Egon' => ['Egon Müller'],
+			'Hugo' => ['Hugo Beispiel'],
+			'Agnes' => ['Agnes Beispiel'],
+			'Kgalagadi' => ['Thabo Kgalagadi'],
+			'Stiftungsrat' => ['Peter Stiftungsrat'],
+			'mehrere Vornamen' => ['Anna Maria Beispiel'],
+			'Doppelname' => ['Anna Beispiel-Müller'],
+			'Initialen ohne Punkt' => ['Karl E V Müller'],
+			'Gomez' => ['Eva Gomez'],
+		];
+	}
+
+	/**
+	 * @dataProvider personenNamen
+	 */
+	public function testSplitLabelHaeltNamenOhneEigenstaendigeRechtsformFuerPersonen(string $name): void {
+		$split = MemberService::splitLabel($name);
+
+		$this->assertSame(Member::TYPE_PERSON, $split['type'], $name);
+		$this->assertNull($split['organizationName']);
+		$this->assertNotNull($split['lastName']);
+	}
+
+	public function testLooksLikeOrganizationPrueftNurDieRechtsform(): void {
+		$this->assertTrue(MemberService::looksLikeOrganization('Beispiel GmbH'));
+		$this->assertFalse(MemberService::looksLikeOrganization('Musikverein'), 'Ein einzelnes Wort ist keine Rechtsform – das entscheidet splitLabel().');
+		$this->assertFalse(MemberService::looksLikeOrganization('Anna Beispiel'));
+	}
+
 	// --- create(): Validierung ---
 
 	public function testCreatePersonOhneNachnameSchlaegtFehl(): void {

@@ -31,7 +31,14 @@ use OCP\IL10N;
  *
  *   Name              Freitext-Zahler – alternativ „Konto" für ein Nextcloud-Konto
  *   Konto             Nextcloud-Benutzername (optional)
+ *   Vorname           Person mit genau diesen Feldern (Nachname Pflicht)
+ *   Nachname          – ohne Vorname-Spalte bleibt „Nachname" ein Alias für „Name"
+ *   Organisation      Name einer Organisation (auch „Firma", „Verein") – gefüllt
+ *                     ⇒ Mitgliedstyp Organisation, geht Vorname/Nachname/Name vor
  *   Mitgliedsnummer   optional, harter Dublettenschlüssel (Issue #69)
+ *   Eintritt          Datum des Beitritts, darf in der Vergangenheit liegen;
+ *                     leer ⇒ Importtag (setzt der Service)
+ *   Straße, PLZ, Ort, Telefon   Freitext, getrimmt, leer ⇒ null
  *   E-Mail            für die SEPA-Vorankündigung (optional, aber dringend empfohlen)
  *   IBAN              ohne IBAN entsteht kein Mandat, sondern nur eine Zuweisung
  *   BIC               optional, seit IBAN-only fast nie nötig
@@ -46,8 +53,15 @@ use OCP\IL10N;
  *                     vom Turnus (Issue #69, siehe MemberImportService)
  *   Frequenz          monatlich / vierteljährlich / halbjährlich / jährlich
  *                     (bestimmt nur den Turnus, nicht den Betrag)
- *   Start             Beginn der Zuweisung (validFrom), darf nicht in der
- *                     Vergangenheit liegen
+ *   Start             Beginn der Zuweisung (validFrom). Dass er nicht in der
+ *                     Vergangenheit liegen darf, prüft MemberImportService (der
+ *                     Parser kennt kein „heute").
+ *
+ * Namensregeln je Zeile, in dieser Reihenfolge: (a) Organisation gefüllt ⇒
+ * Organisation; (b) Vorname und/oder Nachname gefüllt ⇒ Person mit genau diesen
+ * Feldern (ohne Nachname ein Zeilenfehler); (c) sonst Name bzw. Konto wie bisher –
+ * ob das eine Person oder eine Organisation ist, entscheidet dann
+ * MemberService::splitLabel() im Service.
  *
  * Eine Zeile ganz ohne Mandat/Beitrag ist gültig (Spec §3.1 „Zeile = ein
  * Mitglied mit zwei optionalen, atomaren Blöcken") – anders als vor Issue #69,
@@ -55,10 +69,14 @@ use OCP\IL10N;
  * gedacht war.
  *
  * @phpstan-type ParsedRow array{
- *     line:int, memberUid:?string, memberLabel:?string, memberNumber:?string,
+ *     line:int, memberUid:?string, memberLabel:?string,
+ *     memberType:?string, firstName:?string, lastName:?string, organizationName:?string,
+ *     memberNumber:?string, joinedAt:?string, street:?string, postalCode:?string,
+ *     city:?string, phone:?string,
  *     email:?string, iban:?string, bic:?string, accountHolder:?string,
  *     signedDate:?string, mandateReference:?string, groupName:?string,
- *     amountCents:?int, frequency:?string, startDate:?string, errors:string[],
+ *     amountCents:?int, frequency:?string, startDate:?string,
+ *     errors:string[], warnings:string[],
  * }
  */
 class MemberCsvParser {
@@ -73,7 +91,7 @@ class MemberCsvParser {
 		'name' => 'memberLabel',
 		'zahler' => 'memberLabel',
 		'mitglied' => 'memberLabel',
-		'nachname' => 'memberLabel',
+		'nachname' => 'lastName',
 		'konto' => 'memberUid',
 		'nutzer' => 'memberUid',
 		'benutzer' => 'memberUid',
@@ -107,8 +125,8 @@ class MemberCsvParser {
 		// Import ganz ab (siehe parseRow()).
 		'member' => 'memberLabel',
 		'payer' => 'memberLabel',
-		'surname' => 'memberLabel',
-		'lastname' => 'memberLabel',
+		'surname' => 'lastName',
+		'lastname' => 'lastName',
 		'user' => 'memberUid',
 		'username' => 'memberUid',
 		'login' => 'memberUid',
@@ -152,6 +170,53 @@ class MemberCsvParser {
 		'gruppe' => 'groupName',
 		'contributiongroup' => 'groupName',
 		'group' => 'groupName',
+
+		// Namens- und Stammdatenspalten (Vorname/Nachname/Organisation statt
+		// eines Freitextnamens, Anschrift, Telefon, Eintrittsdatum). „Nachname"
+		// und seine Verwandten stehen weiter oben als 'lastName' – mapHeader()
+		// macht daraus wieder einen Alias für 'memberLabel', solange die Datei
+		// keine Vorname-Spalte hat (alte Dateien ändern ihr Ergebnis nicht).
+		'vorname' => 'firstName',
+		'firstname' => 'firstName',
+		'familienname' => 'lastName',
+		'organisation' => 'organizationName',
+		'organization' => 'organizationName',
+		'firma' => 'organizationName',
+		'verein' => 'organizationName',
+		'company' => 'organizationName',
+		'strasse' => 'street',
+		'street' => 'street',
+		'address' => 'street',
+		'plz' => 'postalCode',
+		'postleitzahl' => 'postalCode',
+		'zip' => 'postalCode',
+		'postalcode' => 'postalCode',
+		'ort' => 'city',
+		'stadt' => 'city',
+		'city' => 'city',
+		'telefon' => 'phone',
+		'tel' => 'phone',
+		'phone' => 'phone',
+		'eintritt' => 'joinedAt',
+		'eintrittsdatum' => 'joinedAt',
+		'mitgliedseit' => 'joinedAt',
+		'beigetretenam' => 'joinedAt',
+		'joined' => 'joinedAt',
+		'joinedon' => 'joinedAt',
+	];
+
+	/**
+	 * Höchstlängen der Mitglieder-Spalten (Migration Version000137): Eine längere
+	 * Eingabe wird als Zeilenfehler gemeldet, nicht still gekürzt.
+	 */
+	private const MAX_LENGTHS = [
+		'firstName' => 128,
+		'lastName' => 128,
+		'organizationName' => 255,
+		'street' => 255,
+		'postalCode' => 16,
+		'city' => 128,
+		'phone' => 64,
 	];
 
 	/** Beschriftung → Schlüssel; die englischen Schlüssel gelten ebenfalls. */
@@ -227,22 +292,69 @@ class MemberCsvParser {
 		}
 
 		$errors = [];
+		$warnings = [];
 		$memberUid = ($raw['memberUid'] ?? '') !== '' ? $raw['memberUid'] : null;
 		$memberLabel = ($raw['memberLabel'] ?? '') !== '' ? $raw['memberLabel'] : null;
-		if ($memberUid !== null && $memberLabel !== null) {
+		$firstName = ($raw['firstName'] ?? '') !== '' ? $raw['firstName'] : null;
+		$lastName = ($raw['lastName'] ?? '') !== '' ? $raw['lastName'] : null;
+		$organizationName = ($raw['organizationName'] ?? '') !== '' ? $raw['organizationName'] : null;
+
+		// Namensregeln (siehe Klassendoc): Organisation vor Vorname/Nachname vor
+		// Name/Konto. $memberType bleibt null, wenn nur Name/Konto vorliegen –
+		// dann entscheidet MemberService::splitLabel() im Service.
+		$memberType = null;
+		if ($organizationName !== null) {
+			$memberType = 'organisation';
+			if ($firstName !== null || $lastName !== null) {
+				$warnings[] = $this->msg('Bei einer Organisation werden Vorname und Nachname nicht übernommen – es zählt nur der Organisationsname.');
+			}
+			$firstName = $lastName = null;
+			$memberLabel = null;
+		} elseif ($firstName !== null || $lastName !== null) {
+			$memberType = 'person';
+			if ($lastName === null) {
+				// „Name;Vorname" ist in deutschen Listen häufig, meint dort aber den
+				// Nachnamen – raten wollen wir das nicht, sondern darauf hinweisen.
+				$errors[] = $memberLabel !== null
+					? $this->msg('Neben „Vorname" wird „Name" nicht als Nachname gelesen – bitte die Spalte „Nachname" verwenden.')
+					: $this->msg('Bei einer Person ist der Nachname Pflicht.');
+			}
+			$memberLabel = null;
+		} elseif ($memberUid !== null && $memberLabel !== null) {
 			// Beide gesetzt ist kein Fehler des Nutzers, sondern eine typische
 			// Tabelle: Anzeigename UND Kontoname. Das Konto gewinnt, der Name
 			// ist dann redundant (den liefert Nextcloud selbst).
 			$memberLabel = null;
 		}
-		if ($memberUid === null && $memberLabel === null) {
+		if ($memberUid === null && $memberLabel === null && $memberType === null) {
 			$errors[] = $this->msg('Weder Name noch Nextcloud-Konto angegeben.');
 		}
+		$lengthChecked = ['firstName' => $firstName, 'lastName' => $lastName, 'organizationName' => $organizationName];
 
 		$email = ($raw['email'] ?? '') !== '' ? $raw['email'] : null;
 		if ($email !== null && !EmailValidator::isValid($email)) {
 			$errors[] = $this->msg('Keine gültige E-Mail-Adresse: %s', [$email]);
 			$email = null;
+		}
+
+		// Anschrift und Telefon: Freitext, nur getrimmt (der Rohwert ist es schon).
+		$street = ($raw['street'] ?? '') !== '' ? $raw['street'] : null;
+		$postalCode = ($raw['postalCode'] ?? '') !== '' ? $raw['postalCode'] : null;
+		$city = ($raw['city'] ?? '') !== '' ? $raw['city'] : null;
+		$phone = ($raw['phone'] ?? '') !== '' ? $raw['phone'] : null;
+		$lengthChecked += ['street' => $street, 'postalCode' => $postalCode, 'city' => $city, 'phone' => $phone];
+		foreach ($lengthChecked as $field => $value) {
+			if ($value !== null && mb_strlen($value) > self::MAX_LENGTHS[$field]) {
+				$errors[] = $this->msg('%1$s ist zu lang (höchstens %2$d Zeichen).', [$this->fieldLabel($field), self::MAX_LENGTHS[$field]]);
+			}
+		}
+
+		$joinedAt = null;
+		if (($raw['joinedAt'] ?? '') !== '') {
+			$joinedAt = $this->parseDate($raw['joinedAt']);
+			if ($joinedAt === null) {
+				$errors[] = $this->msg('Unlesbares Eintrittsdatum: %s', [$raw['joinedAt']]);
+			}
 		}
 
 		$memberNumber = ($raw['memberNumber'] ?? '') !== '' ? $raw['memberNumber'] : null;
@@ -325,7 +437,16 @@ class MemberCsvParser {
 			'line' => $line,
 			'memberUid' => $memberUid,
 			'memberLabel' => $memberLabel,
+			'memberType' => $memberType,
+			'firstName' => $firstName,
+			'lastName' => $lastName,
+			'organizationName' => $organizationName,
 			'memberNumber' => $memberNumber,
+			'joinedAt' => $joinedAt,
+			'street' => $street,
+			'postalCode' => $postalCode,
+			'city' => $city,
+			'phone' => $phone,
 			'email' => $email,
 			'iban' => $iban,
 			'bic' => $bic,
@@ -337,6 +458,7 @@ class MemberCsvParser {
 			'frequency' => $frequency,
 			'startDate' => $startDate,
 			'errors' => $errors,
+			'warnings' => $warnings,
 		];
 	}
 
@@ -352,7 +474,30 @@ class MemberCsvParser {
 				$header[$index] = self::HEADERS[$key];
 			}
 		}
+		// Ohne Vorname-Spalte ist „Nachname" (wie vor der Einführung der
+		// Vorname-/Nachname-Spalten) nur eine weitere Schreibweise für „Name":
+		// alte Dateien liefern so dasselbe Ergebnis wie vorher.
+		if (!in_array('firstName', $header, true)) {
+			foreach ($header as $index => $field) {
+				if ($field === 'lastName') {
+					$header[$index] = 'memberLabel';
+				}
+			}
+		}
 		return $header;
+	}
+
+	/** Spaltenbezeichnung für Fehlermeldungen (als Literal, damit sie übersetzt werden kann). */
+	private function fieldLabel(string $field): string {
+		return match ($field) {
+			'firstName' => $this->msg('Vorname'),
+			'lastName' => $this->msg('Nachname'),
+			'organizationName' => $this->msg('Organisation'),
+			'street' => $this->msg('Straße'),
+			'postalCode' => $this->msg('PLZ'),
+			'city' => $this->msg('Ort'),
+			default => $this->msg('Telefon'),
+		};
 	}
 
 	/**
