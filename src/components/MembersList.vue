@@ -23,7 +23,7 @@
 				v-for="row in filteredRows"
 				:key="row.key"
 				:row="row"
-				@manageAssignments="manageFee(row.member)"
+				@manageAssignments="(mode) => manageFee(row.member, mode)"
 				@openMember="(section) => openMemberAkte(row.member, section)" />
 		</div>
 		<div v-else-if="filteredRows.length" class="vbh-tablecard">
@@ -101,7 +101,7 @@
 							<MemberRowMenu
 								:row="row"
 								@openMember="(section) => openMemberAkte(row.member, section)"
-								@manageAssignments="manageFee(row.member)" />
+								@manageAssignments="(mode) => manageFee(row.member, mode)" />
 						</td>
 					</tr>
 				</tbody>
@@ -116,8 +116,9 @@
 		<AssignmentChangeDialog
 			:show="changeDialogOpen"
 			:assignment="changeAssignment"
-			:group="changeAssignment ? groups.find((g) => g.id === changeAssignment.groupId) : null"
+			:groups="groups"
 			:memberName="changeMemberName"
+			:mode="changeMode"
 			@close="changeDialogOpen = false"
 			@update:show="changeDialogOpen = $event"
 			@saved="onFeeChanged" />
@@ -168,7 +169,7 @@ import { useMemberAkteRequest } from '../composables/useMemberAkteRequest.js'
 import { useMembers } from '../composables/useMembers.js'
 import { errMsg, formatDate, formatMoney } from '../lib/format.js'
 import { createMandateForMember } from '../lib/mandateCreate.js'
-import { buildMemberRow, nextDueDates } from '../lib/memberRow.js'
+import { buildMemberRow, isLiveAssignment, nextDueDates } from '../lib/memberRow.js'
 
 /**
  * Mitgliederliste (Spec §2.2/§3.1, docs/beitraege-sepa-modul-spec.md): jede
@@ -241,6 +242,7 @@ export default {
 			changeDialogOpen: false,
 			changeAssignment: null,
 			changeMemberName: '',
+			changeMode: 'fee',
 			assignDialogOpen: false,
 			presetMemberId: null,
 			mdiEmailOffOutline,
@@ -303,15 +305,17 @@ export default {
 		openImportDialog() { this.importDialogOpen = true },
 
 		/**
-		 * „Beitrag verwalten“ im Zeilenmenü: hat das Mitglied genau eine laufende oder künftige Zuweisung,
-		 * öffnet „Beitrag ändern“; hat es keine, „Zuweisung anlegen“ mit dem Mitglied vorbelegt. Bei mehreren
-		 * führt der Weg in den Reiter Beitragsgruppen, wo alle Zuweisungen nebeneinander stehen.
+		 * „Beitrag ändern“ und „Beitragsgruppe wechseln“ im Zeilenmenü (`mode` 'fee' oder 'group'): hat das Mitglied
+		 * genau eine laufende oder künftige Zuweisung, öffnet der Dialog gleich hier; hat es keine, „Zuweisung
+		 * anlegen“ mit dem Mitglied vorbelegt. Bei mehreren führt der Weg in den Reiter Beitragsgruppen, wo alle
+		 * Zuweisungen nebeneinander stehen.
 		 */
-		manageFee(member) {
+		manageFee(member, mode = 'fee') {
 			const today = new Date().toISOString().slice(0, 10)
-			const live = this.assignments.filter((a) => a.memberId === member.id && (a.validTo === null || a.validTo >= today))
+			const live = this.assignments.filter((a) => a.memberId === member.id && isLiveAssignment(a, today))
 			if (live.length === 1) {
 				this.changeAssignment = live[0]
+				this.changeMode = mode
 				this.changeMemberName = member.displayName
 				this.changeDialogOpen = true
 			} else if (live.length === 0) {

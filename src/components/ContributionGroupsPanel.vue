@@ -92,6 +92,7 @@
 							<th>{{ t('Turnus') }}</th>
 							<th>{{ t('Gültig ab') }}</th>
 							<th>{{ t('Gültig bis') }}</th>
+							<th>{{ t('Status') }}</th>
 							<th class="vbh-col-rowactions" />
 						</tr>
 					</thead>
@@ -105,20 +106,30 @@
 							<td>{{ intervalLabel(a.intervalMonths) }}</td>
 							<td>{{ formatDate(a.validFrom) }}</td>
 							<td>{{ a.validTo ? formatDate(a.validTo) : '–' }}</td>
+							<td>
+								<span class="vbh-status" :class="`vbh-status--${statusTone(a)}`">{{ statusLabel(a) }}</span>
+							</td>
 							<td class="nowrap right">
-								<div v-if="a.active" class="vbh-rowactions">
+								<!-- Laufende und künftige Zuweisungen lassen sich ändern und beenden; an beendeten und zurückgenommenen gibt es nichts mehr zu tun, der Status daneben sagt es. -->
+								<div v-if="isLive(a)" class="vbh-rowactions">
 									<NcActions :forceMenu="true">
-										<NcActionButton closeAfterClick @click="openChange(a)">
+										<NcActionButton closeAfterClick @click="openChange(a, 'fee')">
 											<template #icon>
 												<NcIconSvgWrapper :path="mdiCashEdit" :size="16" />
 											</template>
 											{{ t('Beitrag ändern') }}
 										</NcActionButton>
+										<NcActionButton closeAfterClick @click="openChange(a, 'group')">
+											<template #icon>
+												<NcIconSvgWrapper :path="mdiAccountSwitch" :size="16" />
+											</template>
+											{{ t('Beitragsgruppe wechseln') }}
+										</NcActionButton>
 										<NcActionButton closeAfterClick @click="endAssignment(a)">
 											<template #icon>
 												<NcIconSvgWrapper :path="mdiCalendarRemove" :size="16" />
 											</template>
-											{{ t('Zuweisung beenden') }}
+											{{ a.validFrom > today() ? t('Zuweisung zurücknehmen') : t('Zuweisung beenden') }}
 										</NcActionButton>
 									</NcActions>
 								</div>
@@ -153,8 +164,9 @@
 		<AssignmentChangeDialog
 			:show="changeDialogOpen"
 			:assignment="changeAssignment"
-			:group="changeAssignment ? groups.find((g) => g.id === changeAssignment.groupId) : null"
+			:groups="groups"
 			:memberName="changeAssignment ? memberName(changeAssignment.memberId) : ''"
+			:mode="changeMode"
 			@close="changeDialogOpen = false"
 			@update:show="changeDialogOpen = $event"
 			@saved="onChanged" />
@@ -162,7 +174,7 @@
 </template>
 
 <script>
-import { mdiArrowUpBold, mdiCalendarRemove, mdiCashEdit, mdiDelete } from '@mdi/js'
+import { mdiAccountSwitch, mdiArrowUpBold, mdiCalendarRemove, mdiCashEdit, mdiDelete } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { NcActionButton, NcActions, NcButton, NcIconSvgWrapper } from '@nextcloud/vue'
 import { toRefs } from 'vue'
@@ -177,6 +189,7 @@ import { useContributionGroups } from '../composables/useContributionGroups.js'
 import { useMembers } from '../composables/useMembers.js'
 import { errMsg, formatDate } from '../lib/format.js'
 import { intervalLabel } from '../lib/frequency.js'
+import { assignmentStatusLabel, assignmentStatusTone, isLiveAssignment } from '../lib/memberRow.js'
 
 /**
  * Reiter „Beitragsgruppen" (Issue #68): Gruppen-CRUD und Zuweisungen. Die
@@ -211,6 +224,7 @@ export default {
 	data() {
 		return {
 			mdiArrowUpBold,
+			mdiAccountSwitch,
 			mdiCalendarRemove,
 			mdiCashEdit,
 			mdiDelete,
@@ -222,6 +236,7 @@ export default {
 			assignmentDialogOpen: false,
 			changeDialogOpen: false,
 			changeAssignment: null,
+			changeMode: 'fee',
 		}
 	},
 
@@ -232,8 +247,13 @@ export default {
 	methods: {
 		formatDate,
 		intervalLabel,
+		isLive: (a) => isLiveAssignment(a),
+		statusLabel: (a) => assignmentStatusLabel(a),
+		statusTone: (a) => assignmentStatusTone(a),
+		today: () => new Date().toISOString().slice(0, 10),
 
-		openChange(assignment) {
+		openChange(assignment, mode = 'fee') {
+			this.changeMode = mode
 			this.changeAssignment = assignment
 			this.changeDialogOpen = true
 		},
@@ -314,12 +334,21 @@ export default {
 		},
 
 		async endAssignment(a) {
-			const ok = await this.askConfirm(
-				this.t('Zuweisung beenden'),
-				this.t('Die Zuweisung wird zum heutigen Tag beendet. Bereits erzeugte Forderungen bleiben unverändert.'),
-				this.t('Beenden'),
-				'primary',
-			)
+			// Eine Zuweisung, die erst künftig beginnt, wird zurückgenommen: sie wird nie wirksam.
+			const notStarted = a.validFrom > this.today()
+			const ok = notStarted
+				? await this.askConfirm(
+						this.t('Zuweisung zurücknehmen'),
+						this.t('Die Zuweisung hat noch nicht begonnen. Sie wird zurückgenommen und nie wirksam; es entstehen keine Forderungen daraus.'),
+						this.t('Zurücknehmen'),
+						'primary',
+					)
+				: await this.askConfirm(
+						this.t('Zuweisung beenden'),
+						this.t('Die Zuweisung wird zum heutigen Tag beendet. Bereits erzeugte Forderungen bleiben unverändert.'),
+						this.t('Beenden'),
+						'primary',
+					)
 			if (!ok) { return }
 			try {
 				await api.endAssignment(a.id, new Date().toISOString().slice(0, 10))

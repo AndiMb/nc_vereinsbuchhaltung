@@ -1440,12 +1440,16 @@ Was ein Mitglied zahlt, steht in einer **Zuweisung** zu einer
   einem Turnus von 3 Monaten heißen 30 € je Quartal). **„Vorschau"** nennt vor
   dem Anlegen die erste Periode, den Einzugsbetrag und den voraussichtlichen
   Einzugstermin. **„Beitrag ändern"** (Menü ⋯ an der Zuweisung oder
-  Menü ⋯ des Mitglieds → *Beitrag verwalten*) stellt Monatsbeitrag und Turnus
+  Menü ⋯ des Mitglieds → *Beitrag ändern*) stellt Monatsbeitrag und Turnus
   neu ein: beliebig über der Untergrenze, etwa wenn ein Mitglied ausnahmsweise
   mehr geben möchte. Die Vorschau erscheint von selbst und nennt, ab wann die
   Änderung gilt – bei einem schon angekündigten Einzug erst danach; gespeichert
   wird erst, wenn sie zum Stand der Felder passt. **„Beenden"** beendet eine
-  Zuweisung zum heutigen Tag; bereits erzeugte Forderungen bleiben unverändert.
+  Zuweisung zum heutigen Tag; bereits erzeugte Forderungen bleiben unverändert. Eine
+  Zuweisung, die erst künftig beginnt, lässt sich ebenfalls ändern; **„Zuweisung
+  zurücknehmen"** nimmt sie zurück, sie wird dann nie wirksam. Die Tabelle nennt den
+  **Status** (aktiv, ab …, beendet …, zurückgenommen); an beendeten und
+  zurückgenommenen Zuweisungen gibt es keine Aktionen mehr.
 - **Beitragsfrei und Pausen:** Ein Monatsbeitrag von **0 €** ist erlaubt (die
   Untergrenze der Gruppe muss dafür 0 sein). Für eine solche Zuweisung entstehen
   **keine Forderungen**, es wird nichts eingezogen, und es ist kein Mandat nötig;
@@ -1479,9 +1483,12 @@ eine laufende Stundung zählt mit ihrem Ende). Wer per Überweisung zahlt, steht
 mit „Überweisung" statt „kein Mandat" da. Alles Weitere zu einem Mitglied steht im
 Menü (⋯) am Zeilenende: **„Mitglied bearbeiten"** öffnet die Akte (Stammdaten,
 Nextcloud-Konto, Austritt), **„Mandat verwalten"** die Akte beim Mandat und
-**„Beitrag verwalten"** öffnet gleich in der Liste **„Beitrag ändern"** (Betrag und
-Turnus; ohne Beitrag: **„Zuweisung anlegen"** mit dem Mitglied vorbelegt). Hat ein
-Mitglied mehrere Zuweisungen, führt der Eintrag in den Reiter *Beitragsgruppen*.
+**„Beitrag ändern"** öffnet gleich in der Liste den Dialog für Betrag und Turnus
+(ohne Beitrag heißt der Eintrag **„Beitrag zuweisen"** und öffnet „Zuweisung anlegen"
+mit dem Mitglied vorbelegt), **„Beitragsgruppe wechseln"** den Wechsel in eine
+andere Gruppe: deren Standardbeitrag ist eingetragen, die Vorschau prüft Untergrenze
+und erlaubten Turnus der neuen Gruppe. Hat ein Mitglied mehrere Zuweisungen, führen
+beide Einträge in den Reiter *Beitragsgruppen*.
 Ein Klick auf den Namen öffnet ebenfalls die Akte. *nur
 Auffälligkeiten* zeigt Mitglieder ohne E-Mail-Adresse und solche, deren
 Lastschrift-Zuweisung kein Mandat hat.

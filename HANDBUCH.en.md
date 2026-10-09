@@ -1408,7 +1408,10 @@ group** (**"Contributions" tab → Contribution groups**):
   preview appears by itself and says from when the change applies – after an
   already announced collection only from then on; saving is possible only once
   it matches the fields. **"End"** (*Beenden*) ends an assignment as of today; claims already
-  generated remain unchanged.
+  generated remain unchanged. An assignment that only starts in the future can be
+  changed as well; **"Withdraw assignment"** (*Zuweisung zurücknehmen*) withdraws
+  it, and it then never takes effect. The table shows the **status** (active, from …,
+  ended …, withdrawn); ended and withdrawn assignments have no actions left.
 - **Fee-free and pauses:** a monthly fee of **€0** is allowed (the group's
   lower limit must be 0 for that). Such an assignment creates **no claims**,
   nothing is collected, and no mandate is needed; the member list shows

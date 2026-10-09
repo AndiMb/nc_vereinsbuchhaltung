@@ -127,6 +127,10 @@ class ContributionCycleTaskService {
 			if ($assignment->getPaymentMethod() !== Assignment::PAYMENT_METHOD_DIRECT_DEBIT) {
 				continue;
 			}
+			// Beitragsfrei (0 €): es wird nichts eingezogen, also fehlt auch kein Mandat.
+			if ($assignment->getMonthlyAmountCents() === 0) {
+				continue;
+			}
 			if (isset($explained[$assignment->getMemberId()])) {
 				continue;
 			}

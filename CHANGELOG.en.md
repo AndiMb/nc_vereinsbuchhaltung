@@ -117,8 +117,11 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   settings (Fees & SEPA); an example line converts them to a collection date.
   The schedule in the Collection tab only displays them.
 - **Change the fee as an administrator:** amount and interval of an assignment
-  can now be changed in the administration (any amount above the lower limit),
-  with an "effective from" preview; before, only the member could change them.
+  can now be changed in the administration (any amount above the lower limit), the
+  contribution group can be switched, both with an "effective from" preview and
+  right in the ⋯ menu of the member row; before, only the member could change
+  them. An assignment that only starts in the future can also be changed or
+  withdrawn, and the assignment table shows the status.
 - **Fee-free and pauses:** a monthly fee of €0 is possible (group lower limit 0):
   no claims are created, nothing is collected, no mandate is needed; the member
   list shows "fee-free". A "Ruhend" (dormant) group works as a pause or passive

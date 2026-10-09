@@ -45,6 +45,21 @@ async function ensureGroup(request) {
 	return group
 }
 
+const SECOND_GROUP_NAME = 'Testgruppe Ermäßigt (Gruppenwechsel)'
+
+/** Eine zweite, günstigere Gruppe: Untergrenze 3 €, Standardbeitrag 4 €. */
+async function ensureSecondGroup(request) {
+	const groups = await api.getJson(request, '/contribution-groups')
+	let group = groups.find((g) => g.name === SECOND_GROUP_NAME)
+	if (!group) {
+		group = await (await api.raw(request, 'POST', '/contribution-groups', {
+			expectOk: true,
+			data: { name: SECOND_GROUP_NAME, minMonthlyAmount: 3, defaultMonthlyAmount: 4, allowedIntervals: [1, 12], defaultInterval: 12, isActive: true },
+		})).json()
+	}
+	return group
+}
+
 async function ensureMember(request, firstName, lastName, { email = `${firstName.toLowerCase()}@example.org` } = {}) {
 	const displayName = `${firstName} ${lastName}`
 	const existing = (await api.listMembers(request)).find((m) => m.displayName === displayName)
@@ -125,7 +140,7 @@ test.describe('Mitgliederliste zeigt Mandat und Beitrag des neuen Modells', () =
 		await anna.getByRole('button', { name: 'Aktionen' }).click()
 		await expect(page.getByRole('menuitem', { name: 'Mitglied bearbeiten' })).toBeVisible()
 		await expect(page.getByRole('menuitem', { name: 'Mandat verwalten' })).toBeVisible()
-		await expect(page.getByRole('menuitem', { name: 'Beitrag verwalten' })).toBeVisible()
+		await expect(page.getByRole('menuitem', { name: 'Beitrag ändern', exact: true })).toBeVisible()
 		await page.keyboard.press('Escape')
 
 		// Entwurfs-Mandat trägt die Marke, Turnus 3 → 3 × 5 € = 15 € je Quartal.
@@ -192,19 +207,19 @@ test.describe('Mitgliederliste zeigt Mandat und Beitrag des neuen Modells', () =
 		await expect(memberRow(page, 'Cora Ueberweisung')).toHaveCount(0)
 	})
 
-	test('„Beitrag verwalten" im Zeilenmenü öffnet „Beitrag ändern“ an Ort und Stelle, ohne den Reiter zu wechseln', async ({ page, request }) => {
+	test('„Beitrag ändern" im Zeilenmenü öffnet den Dialog an Ort und Stelle, ohne den Reiter zu wechseln', async ({ page, request }) => {
 		await ensureSeed(request)
 		await openApp(page, USERS.buchhalter)
 		await switchTab(page, 'Beiträge')
 
 		await memberRow(page, 'Anna Aktiv').getByRole('button', { name: 'Aktionen' }).click()
-		await page.getByRole('menuitem', { name: 'Beitrag verwalten' }).click()
+		await page.getByRole('menuitem', { name: 'Beitrag ändern', exact: true }).click()
 		await expect(page.getByRole('dialog', { name: 'Beitrag ändern' })).toBeVisible()
 		// Die Mitgliederliste bleibt stehen: kein Sprung in die Beitragsgruppen.
 		await expect(visibleSection(page).getByRole('button', { name: '+ Zuweisung' })).toHaveCount(0)
 	})
 
-	test('„Beitrag verwalten“ öffnet „Beitrag ändern“: auch ein höherer Betrag lässt sich einstellen, einer unter der Untergrenze nicht', async ({ page, request }) => {
+	test('„Beitrag ändern“: auch ein höherer Betrag lässt sich einstellen, einer unter der Untergrenze nicht', async ({ page, request }) => {
 		await ensureSeed(request)
 		const group = await ensureGroup(request)
 		const member = await ensureMember(request, 'Paula', 'Mehrzahler')
@@ -213,7 +228,7 @@ test.describe('Mitgliederliste zeigt Mandat und Beitrag des neuen Modells', () =
 		await openApp(page, USERS.buchhalter)
 		await switchTab(page, 'Beiträge')
 		await memberRow(page, 'Paula Mehrzahler').getByRole('button', { name: 'Aktionen' }).click()
-		await page.getByRole('menuitem', { name: 'Beitrag verwalten' }).click()
+		await page.getByRole('menuitem', { name: 'Beitrag ändern', exact: true }).click()
 
 		const dialog = page.getByRole('dialog', { name: 'Beitrag ändern' })
 		await expect(dialog).toBeVisible()
@@ -233,6 +248,66 @@ test.describe('Mitgliederliste zeigt Mandat und Beitrag des neuen Modells', () =
 
 		const stored = (await api.getJson(request, '/assignments')).find((a) => a.memberId === member.id)
 		expect(stored.monthlyAmount).toBe(25)
+	})
+
+	test('„Beitragsgruppe wechseln“ ist ein eigener Menüeintrag: Standardbeitrag und Regeln der neuen Gruppe gelten', async ({ page, request }) => {
+		await ensureSeed(request)
+		const group = await ensureGroup(request)
+		const second = await ensureSecondGroup(request)
+		const member = await ensureMember(request, 'Gerda', 'Gruppenwechsel')
+		await createAssignment(request, member, group, { intervalMonths: 12, monthlyAmount: 10, paymentMethod: 'ueberweisung' })
+
+		await openApp(page, USERS.buchhalter)
+		await switchTab(page, 'Beiträge')
+		await memberRow(page, 'Gerda Gruppenwechsel').getByRole('button', { name: 'Aktionen' }).click()
+		await page.getByRole('menuitem', { name: 'Beitragsgruppe wechseln' }).click()
+
+		const dialog = page.getByRole('dialog', { name: 'Beitragsgruppe wechseln' })
+		await expect(dialog.getByLabel('Neue Beitragsgruppe')).toHaveValue(String(group.id))
+		await dialog.getByLabel('Neue Beitragsgruppe').selectOption({ label: SECOND_GROUP_NAME })
+
+		// Die neue Gruppe bringt ihren Standardbeitrag und ihre Untergrenze mit; die Vorschau nennt den Stand.
+		await expect(dialog.getByLabel('Monatsbeitrag (€)')).toHaveValue(/^4,00/)
+		await expect(dialog).toContainText(/Untergrenze der gewählten Gruppe: 3,00/)
+		await expect(dialog.getByText(/Wirkt ab \d{2}\.\d{2}\.\d{4} · erster Einzug am \d{2}\.\d{2}\.\d{4} · Betrag/)).toBeVisible()
+		await dialog.getByRole('button', { name: 'Speichern' }).click()
+		await expect(dialog).toBeHidden()
+
+		const stored = (await api.getJson(request, '/assignments')).find((a) => a.memberId === member.id)
+		expect(stored).toMatchObject({ groupId: second.id, monthlyAmount: 4, intervalMonths: 12 })
+
+		// „Beitrag ändern“ zeigt die Gruppe nur an, die Auswahl gibt es nur beim Wechsel.
+		await memberRow(page, 'Gerda Gruppenwechsel').getByRole('button', { name: 'Aktionen' }).click()
+		await page.getByRole('menuitem', { name: 'Beitrag ändern', exact: true }).click()
+		const feeDialog = page.getByRole('dialog', { name: 'Beitrag ändern' })
+		await expect(feeDialog).toContainText(SECOND_GROUP_NAME)
+		await expect(feeDialog.getByLabel('Neue Beitragsgruppe')).toHaveCount(0)
+	})
+
+	test('Zuweisungen in den Beitragsgruppen: auch eine künftige lässt sich ändern und zurücknehmen, beendete zeigen nur ihren Status', async ({ page, request }) => {
+		await ensureSeed(request)
+		const group = await ensureGroup(request)
+		const member = await ensureMember(request, 'Zora', 'Zukunft')
+		await createAssignment(request, member, group, { intervalMonths: 12, monthlyAmount: 10, paymentMethod: 'ueberweisung', validFrom: nextYear() })
+
+		await openApp(page, USERS.buchhalter)
+		await switchTab(page, 'Beiträge')
+		await visibleSection(page).locator('.vbh-subtabs').getByRole('button', { name: 'Beitragsgruppen', exact: true }).click()
+		const row = visibleSection(page).locator('tr', { hasText: 'Zora Zukunft' })
+		await expect(row).toContainText(`ab ${german(nextYear())}`)
+
+		// Auch an einer Zuweisung, die erst beginnt, gibt es das Menü: Beitrag ändern, Gruppe wechseln, zurücknehmen.
+		await row.getByRole('button', { name: 'Aktionen' }).click()
+		await expect(page.getByRole('menuitem', { name: 'Beitrag ändern' })).toBeVisible()
+		await expect(page.getByRole('menuitem', { name: 'Beitragsgruppe wechseln' })).toBeVisible()
+		await page.getByRole('menuitem', { name: 'Zuweisung zurücknehmen' }).click()
+		await page.getByRole('dialog').getByRole('button', { name: 'Zurücknehmen' }).click()
+
+		// Danach steht dort „zurückgenommen“, und es gibt keine Aktionen mehr.
+		await expect(row).toContainText('zurückgenommen')
+		await expect(row.getByRole('button', { name: 'Aktionen' })).toHaveCount(0)
+		const stored = (await api.getJson(request, '/assignments')).find((a) => a.memberId === member.id)
+		expect(stored.validTo < stored.validFrom).toBe(true)
 	})
 
 	test('Aufnahme-Assistent: das neu aufgenommene Mitglied erscheint sofort mit IBAN und Beitrag', async ({ page, request }) => {
@@ -292,7 +367,7 @@ test.describe('Mitgliederliste auf dem Handy', () => {
 		await expect(anna).toContainText(`fällig ${german(dueDate)}`)
 		await expect(anna.getByRole('button', { name: 'Bearbeiten', exact: true })).toHaveCount(0)
 		await anna.getByRole('button', { name: 'Aktionen' }).click()
-		await expect(page.getByRole('menuitem', { name: 'Beitrag verwalten' })).toBeVisible()
+		await expect(page.getByRole('menuitem', { name: 'Beitrag ändern', exact: true })).toBeVisible()
 		await page.keyboard.press('Escape')
 
 		const cora = visibleSection(page).locator('.vbh-membercard', { hasText: 'Cora Ueberweisung' })

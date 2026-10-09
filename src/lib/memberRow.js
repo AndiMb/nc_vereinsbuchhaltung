@@ -54,8 +54,32 @@ function mandateView(mandate) {
 	}
 }
 
+/**
+ * Eine zurückgenommene Zuweisung: sie hatte noch nicht begonnen, als sie beendet wurde; ihr Ende liegt deshalb vor
+ * ihrem Beginn (AssignmentService::end()). Sie wird nie wirksam.
+ *
+ * @param {{validFrom: string, validTo: string|null}} assignment
+ * @return {boolean}
+ */
+export function isWithdrawnAssignment(assignment) {
+	return assignment.validTo !== null && assignment.validTo < assignment.validFrom
+}
+
+/**
+ * Ob an der Zuweisung noch etwas zu tun ist (ändern, Gruppe wechseln, beenden): sie läuft oder beginnt erst, ist aber
+ * weder beendet noch zurückgenommen.
+ *
+ * @param {{validFrom: string, validTo: string|null}} assignment
+ * @param {string} today Stichtag (JJJJ-MM-TT)
+ * @return {boolean}
+ */
+export function isLiveAssignment(assignment, today = isoToday()) {
+	return !isWithdrawnAssignment(assignment) && (assignment.validTo === null || assignment.validTo >= today)
+}
+
 /** Zustand einer Zuweisung als Text – der Zeitraum *ist* der Status (Spec §2.2). */
-function assignmentStatusLabel(assignment, today) {
+export function assignmentStatusLabel(assignment, today = isoToday()) {
+	if (isWithdrawnAssignment(assignment)) { return t('zurückgenommen') }
 	if (assignment.active) { return t('aktiv') }
 	if (assignment.validFrom > today) { return t('ab {datum}', { datum: formatDate(assignment.validFrom) }) }
 	return t('beendet {datum}', { datum: formatDate(assignment.validTo) })
@@ -72,6 +96,7 @@ function assignmentStatusLabel(assignment, today) {
  */
 export function assignmentStatusTone(assignment, today = isoToday()) {
 	if (assignment.active) { return 'success' }
+	if (isWithdrawnAssignment(assignment)) { return 'muted' }
 	return assignment.validFrom > today ? 'info' : 'muted'
 }
 

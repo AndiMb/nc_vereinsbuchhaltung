@@ -6,7 +6,8 @@
 //    genau mit dem Fokus im ersten Feld (focusOnOpen);
 //  - der Handler schliesst nur, wenn der Fokusfang des Dialogs der oberste ist.
 //    Der wird erst nach der Oeffnen-Animation aktiv; ein Escape davor, oder
-//    wenn der Fokus auf der Maske liegt, bleibt wirkungslos.
+//    wenn der Fokus auf der Maske oder noch hinter dem Dialog liegt, bleibt
+//    wirkungslos.
 // Dieser Bruecken-Listener klickt deshalb den Schliessen-Knopf des obersten
 // Dialogs; er respektiert damit `noClose` und das close-Ereignis der Komponente.
 // Danach stoppt er das Ereignis, damit NcModal nicht zusaetzlich schliesst.
@@ -27,7 +28,7 @@ export function escapeClosesModal(ev) {
 		&& !ev.insidePopup
 }
 
-const POPUP_SELECTOR = '.v-select, .vs__dropdown-menu, .mx-datepicker, [aria-expanded="true"]'
+const POPUP_SELECTOR = '.v-select, .vs__dropdown-menu, .mx-datepicker, .v-popper__popper, [aria-expanded="true"]'
 const CLOSE_SELECTOR = '.modal-container__close, .header-close'
 
 /**
@@ -48,7 +49,10 @@ export function installModalEscape(doc = document) {
 
 		const masks = [...doc.querySelectorAll('.modal-mask')].filter((mask) => mask.checkVisibility?.() ?? true)
 		const top = masks.at(-1)
-		if (!top?.contains(target)) { return }
+		if (!top) { return }
+		// Liegt der Fokus noch auf der Seite hinter dem Dialog (der Fokusfang lief nicht an), schließt Escape den
+		// Dialog trotzdem; nur ein Ziel in einem anderen Dialog lässt der Brücke den Vortritt.
+		if (!top.contains(target) && target?.closest?.('.modal-mask')) { return }
 		const closeButton = top.querySelector(CLOSE_SELECTOR)
 		if (!closeButton) { return }
 		event.preventDefault()

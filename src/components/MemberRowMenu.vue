@@ -20,25 +20,36 @@
 		</NcActionButton>
 		<NcActionButton
 			closeAfterClick
-			:description="t('Gruppe, Betrag und Turnus')"
-			@click="$emit('manage-assignments')">
+			:description="row.fee ? t('Betrag und Turnus') : t('Beitragsgruppe, Betrag und Turnus')"
+			@click="$emit('manage-assignments', 'fee')">
 			<template #icon>
 				<NcIconSvgWrapper :path="mdiCashEdit" :size="20" />
 			</template>
-			{{ row.fee ? t('Beitrag verwalten') : t('Beitrag zuweisen') }}
+			{{ row.fee ? t('Beitrag ändern') : t('Beitrag zuweisen') }}
+		</NcActionButton>
+		<NcActionButton
+			v-if="row.fee"
+			closeAfterClick
+			:description="t('In eine andere Gruppe, mit deren Regeln')"
+			@click="$emit('manage-assignments', 'group')">
+			<template #icon>
+				<NcIconSvgWrapper :path="mdiAccountSwitch" :size="20" />
+			</template>
+			{{ t('Beitragsgruppe wechseln') }}
 		</NcActionButton>
 	</NcActions>
 </template>
 
 <script>
-import { mdiAccountEdit, mdiCashEdit, mdiFileSign } from '@mdi/js'
+import { mdiAccountEdit, mdiAccountSwitch, mdiCashEdit, mdiFileSign } from '@mdi/js'
 import { NcActionButton, NcActions, NcIconSvgWrapper } from '@nextcloud/vue'
 
 /**
  * Das Zeilenmenü (⋯) eines Mitglieds in der Liste und auf der Karte: alles, was sich
  * zu einem Mitglied tun lässt, mit Namen statt Symbolen – die Akte (Stammdaten),
- * das Mandat (springt in der Akte zum Mandat-Bereich) und der Beitrag (Zuweisung,
- * liegt bei den Beitragsgruppen).
+ * das Mandat (springt in der Akte zum Mandat-Bereich) und der Beitrag (Betrag und
+ * Turnus ändern, in eine andere Beitragsgruppe wechseln – beides öffnet einen Dialog
+ * gleich in der Liste).
  */
 export default {
 	name: 'MemberRowMenu',
@@ -52,7 +63,7 @@ export default {
 	emits: ['open-member', 'manage-assignments'],
 
 	setup() {
-		return { mdiAccountEdit, mdiCashEdit, mdiFileSign }
+		return { mdiAccountEdit, mdiAccountSwitch, mdiCashEdit, mdiFileSign }
 	},
 }
 </script>

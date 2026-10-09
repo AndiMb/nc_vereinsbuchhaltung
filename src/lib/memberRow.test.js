@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { assignmentStatusTone, buildMemberRow, nextDueDates } from './memberRow.js'
+import { assignmentStatusLabel, assignmentStatusTone, buildMemberRow, isLiveAssignment, isWithdrawnAssignment, nextDueDates } from './memberRow.js'
 
 // Zeilenaufbau der Mitgliederliste: Mandat und Zuweisung in die gemeinsame
 // Anzeigeform, die nächste Fälligkeit aus den Forderungen. Die Datenformen
@@ -204,5 +204,32 @@ describe('Zustandston der Zuweisung', () => {
 		expect(future).toMatchObject({ statusLabel: 'ab 01.01.2027', statusTone: 'info' })
 		const ended = build({ assignments: [assignment({ active: false, validTo: '2026-06-30' })] }).fee
 		expect(ended).toMatchObject({ statusLabel: 'beendet 30.06.2026', statusTone: 'muted' })
+	})
+})
+
+describe('zurückgenommene und künftige Zuweisungen', () => {
+	const future = assignment({ active: false, validFrom: '2026-12-01', validTo: null })
+	const withdrawn = assignment({ active: false, validFrom: '2026-12-01', validTo: '2026-11-30' })
+	const ended = assignment({ active: false, validFrom: '2025-01-01', validTo: '2025-12-31' })
+
+	it('erkennt eine zurückgenommene Zuweisung am Ende vor dem Beginn', () => {
+		expect(isWithdrawnAssignment(withdrawn)).toBe(true)
+		expect(isWithdrawnAssignment(future)).toBe(false)
+		expect(isWithdrawnAssignment(ended)).toBe(false)
+	})
+
+	it('an laufenden und künftigen Zuweisungen ist noch etwas zu tun, an beendeten und zurückgenommenen nicht', () => {
+		expect(isLiveAssignment(assignment(), TODAY)).toBe(true)
+		expect(isLiveAssignment(future, TODAY)).toBe(true)
+		expect(isLiveAssignment(ended, TODAY)).toBe(false)
+		expect(isLiveAssignment(withdrawn, TODAY)).toBe(false)
+	})
+
+	it('nennt den Zustand: aktiv, ab …, beendet …, zurückgenommen', () => {
+		expect(assignmentStatusLabel(assignment(), TODAY)).toBe('aktiv')
+		expect(assignmentStatusLabel(future, TODAY)).toBe('ab 01.12.2026')
+		expect(assignmentStatusLabel(ended, TODAY)).toBe('beendet 31.12.2025')
+		expect(assignmentStatusLabel(withdrawn, TODAY)).toBe('zurückgenommen')
+		expect(assignmentStatusTone(withdrawn, TODAY)).toBe('muted')
 	})
 })

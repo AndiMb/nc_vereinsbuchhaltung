@@ -136,6 +136,10 @@ class AssignmentService {
 
 		if ($groupId !== null && $groupId !== $assignment->getGroupId()) {
 			$this->assertNoOverlap($assignment->getMemberId(), $groupId, $effectiveFrom, $assignment->getValidTo(), $assignment->getId());
+			// Turnus und Betrag bleiben beim Gruppenwechsel stehen, müssen aber zur NEUEN Gruppe passen
+			// (erlaubter Turnus, Untergrenze) – sonst entstünde eine Zuweisung, die die Gruppe nie zugelassen hätte.
+			$this->assertValidInterval($group, $intervalMonths ?? $assignment->getIntervalMonths());
+			$this->assertAtLeastMinimum($assignment, $group, $monthlyAmountCents ?? $assignment->getMonthlyAmountCents());
 			$this->logEvent($id, AssignmentEvent::TYPE_GROUP_CHANGED, $actorType, $actorUid, $onBehalfNote, [
 				'from' => $assignment->getGroupId(), 'to' => $groupId, 'effectiveFrom' => $effectiveFrom,
 			]);
@@ -155,10 +159,7 @@ class AssignmentService {
 		}
 
 		if ($monthlyAmountCents !== null && $monthlyAmountCents !== $assignment->getMonthlyAmountCents()) {
-			$effectiveMin = $assignment->effectiveMinMonthlyAmountCents($group);
-			if ($monthlyAmountCents < $effectiveMin) {
-				throw new \InvalidArgumentException($this->l10n->t('Der Monatsbeitrag darf die Untergrenze von %s € nicht unterschreiten.', [number_format($effectiveMin / 100, 2, ',', '.')]));
-			}
+			$this->assertAtLeastMinimum($assignment, $group, $monthlyAmountCents);
 			$this->logEvent($id, AssignmentEvent::TYPE_AMOUNT_CHANGED, $actorType, $actorUid, $onBehalfNote, [
 				'from' => $assignment->getMonthlyAmountCents(), 'to' => $monthlyAmountCents, 'effectiveFrom' => $effectiveFrom,
 			]);
@@ -206,13 +207,24 @@ class AssignmentService {
 	 * Zuweisung beenden (manuell, z.B. Sparte gewechselt) – rückt `validTo`
 	 * nur vor, verlängert es nie über einen bereits gesetzten Wert hinaus.
 	 *
-	 * @throws \InvalidArgumentException wenn $validTo vor dem Beginn läge
+	 * @throws \InvalidArgumentException wenn $validTo vor dem Beginn läge (und die Zuweisung schon begonnen hat)
 	 * @throws DoesNotExistException wenn es die Zuweisung nicht gibt
 	 */
 	public function end(int $id, string $validTo, string $actorType, ?string $actorUid, ?string $onBehalfNote = null): Assignment {
 		$assignment = $this->mapper->find($id);
 		if ($validTo < $assignment->getValidFrom()) {
-			throw new \InvalidArgumentException($this->l10n->t('Ende der Zuweisung darf nicht vor ihrem Beginn liegen.'));
+			if ($assignment->getValidFrom() <= $this->today()) {
+				throw new \InvalidArgumentException($this->l10n->t('Ende der Zuweisung darf nicht vor ihrem Beginn liegen.'));
+			}
+			// Noch nicht begonnen: „beenden“ heißt zurücknehmen. Das Ende liegt dann einen Tag vor dem Beginn, die
+			// Zuweisung wird nie wirksam, erzeugt nie eine Forderung und bleibt als Ereignis nachvollziehbar.
+			$withdrawnTo = (new \DateTimeImmutable($assignment->getValidFrom()))->modify('-1 day')->format('Y-m-d');
+			if ($assignment->getValidTo() !== null && $assignment->getValidTo() <= $withdrawnTo) {
+				return $assignment;
+			}
+			$assignment->setValidTo($withdrawnTo);
+			$this->logEvent($id, AssignmentEvent::TYPE_ASSIGNMENT_ENDED, $actorType, $actorUid, $onBehalfNote, ['validTo' => $withdrawnTo, 'reason' => 'withdrawn']);
+			return $this->mapper->update($assignment);
 		}
 		if ($assignment->getValidTo() !== null && $assignment->getValidTo() <= $validTo) {
 			return $assignment; // bereits (frueher oder gleich) beendet - nichts zu tun
@@ -307,6 +319,11 @@ class AssignmentService {
 	 *                                    `null`/gleicher Wert wie bisher = generische Regel.
 	 */
 	private function effectiveFromFor(Assignment $assignment, ?int $newIntervalMonths = null): string {
+		// Eine Zuweisung, die erst künftig beginnt, wirkt nie vor ihrem Beginn – auch wenn heute noch nichts gesperrt ist.
+		return max($this->effectiveFromWithoutStart($assignment, $newIntervalMonths), $assignment->getValidFrom());
+	}
+
+	private function effectiveFromWithoutStart(Assignment $assignment, ?int $newIntervalMonths): string {
 		$periods = array_map(
 			static fn ($item) => [
 				'periodStart' => (string)$item->getPeriodStart(),
@@ -352,26 +369,28 @@ class AssignmentService {
 	 * @throws \InvalidArgumentException bei ungültigen Werten
 	 * @throws DoesNotExistException wenn es die Zuweisung/Gruppe nicht gibt
 	 */
-	public function previewChange(int $id, ?int $monthlyAmountCents, ?int $intervalMonths): array {
+	public function previewChange(int $id, ?int $monthlyAmountCents, ?int $intervalMonths, ?int $groupId = null): array {
 		$assignment = $this->mapper->find($id);
-		$group = $this->groupMapper->find($assignment->getGroupId());
+		$groupChanged = $groupId !== null && $groupId !== $assignment->getGroupId();
+		$group = $this->groupMapper->find($groupChanged ? $groupId : $assignment->getGroupId());
 
-		if ($intervalMonths !== null) {
-			$this->assertValidInterval($group, $intervalMonths);
-		}
 		$effectiveIntervalMonths = $intervalMonths ?? $assignment->getIntervalMonths();
-
-		if ($monthlyAmountCents !== null) {
-			$effectiveMin = $assignment->effectiveMinMonthlyAmountCents($group);
-			if ($monthlyAmountCents < $effectiveMin) {
-				throw new \InvalidArgumentException($this->l10n->t('Der Monatsbeitrag darf die Untergrenze von %s € nicht unterschreiten.', [number_format($effectiveMin / 100, 2, ',', '.')]));
-			}
+		// Bei einem Gruppenwechsel zählt der Turnus auch dann, wenn er unverändert bleibt: die neue Gruppe muss ihn erlauben.
+		if ($intervalMonths !== null || $groupChanged) {
+			$this->assertValidInterval($group, $effectiveIntervalMonths);
 		}
+
 		$effectiveAmountCents = $monthlyAmountCents ?? $assignment->getMonthlyAmountCents();
+		if ($monthlyAmountCents !== null || $groupChanged) {
+			$this->assertAtLeastMinimum($assignment, $group, $effectiveAmountCents);
+		}
 
 		$effectiveFrom = ($intervalMonths !== null && $intervalMonths !== $assignment->getIntervalMonths())
 			? $this->effectiveFromFor($assignment, $intervalMonths)
 			: $this->effectiveFromFor($assignment);
+		if ($groupChanged) {
+			$this->assertNoOverlap($assignment->getMemberId(), $groupId, $effectiveFrom, $assignment->getValidTo(), $assignment->getId());
+		}
 
 		[$periodStart, $periodEnd] = $this->contributionYear->periodContaining($effectiveIntervalMonths, $effectiveFrom);
 		$from = max($periodStart, $effectiveFrom);
@@ -383,6 +402,14 @@ class AssignmentService {
 			'firstDueDate' => $this->dueDateSchedule->dueDateForPeriod($effectiveIntervalMonths, $from),
 			'amountCents' => ProrataCalculator::amountCents($effectiveAmountCents, $from, $periodEnd),
 		];
+	}
+
+	/** Der Monatsbeitrag darf die wirksame Untergrenze (individuelle, sonst die der Gruppe) nicht unterschreiten. */
+	private function assertAtLeastMinimum(Assignment $assignment, ContributionGroup $group, int $monthlyAmountCents): void {
+		$effectiveMin = $assignment->effectiveMinMonthlyAmountCents($group);
+		if ($monthlyAmountCents < $effectiveMin) {
+			throw new \InvalidArgumentException($this->l10n->t('Der Monatsbeitrag darf die Untergrenze von %s € nicht unterschreiten.', [number_format($effectiveMin / 100, 2, ',', '.')]));
+		}
 	}
 
 	private function assertValidInterval(ContributionGroup $group, int $intervalMonths): void {

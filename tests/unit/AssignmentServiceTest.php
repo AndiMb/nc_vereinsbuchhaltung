@@ -246,6 +246,104 @@ class AssignmentServiceTest extends TestCase {
 		$this->service('2026-01-10')->update(5, null, 12, null, AssignmentEvent::ACTOR_MEMBER, null);
 	}
 
+	private function assignmentInGroup1(): Assignment {
+		$assignment = new Assignment();
+		$assignment->setId(5);
+		$assignment->setMemberId(7);
+		$assignment->setGroupId(1);
+		$assignment->setIntervalMonths(12);
+		$assignment->setMonthlyAmountCents(1000);
+		$assignment->setValidFrom('2026-01-01');
+		return $assignment;
+	}
+
+	/** Eine zweite Gruppe (ID 2) mit eigener Untergrenze und eigenen Turnussen. */
+	private function secondGroup(int $minCents, array $allowedIntervals): ContributionGroup {
+		$group = $this->group($minCents, $allowedIntervals);
+		$group->setId(2);
+		return $group;
+	}
+
+	public function testEndeBeiNochNichtBegonnenerZuweisungNimmtSieZurueck(): void {
+		$assignment = $this->assignmentInGroup1();
+		$assignment->setValidFrom('2026-09-01'); // heute (Standard im Test): 2026-06-15
+		$this->mapper->method('find')->willReturn($assignment);
+		$this->mapper->method('update')->willReturnArgument(0);
+		$this->eventMapper->expects($this->once())->method('insert')
+			->with($this->callback(static fn (AssignmentEvent $e): bool => $e->getType() === AssignmentEvent::TYPE_ASSIGNMENT_ENDED
+				&& $e->getDetailsArray()['reason'] === 'withdrawn'));
+
+		$ended = $this->service()->end(5, '2026-06-15', AssignmentEvent::ACTOR_STAFF, 'buchhalter');
+
+		// Einen Tag vor dem Beginn: die Zuweisung wird nie wirksam.
+		$this->assertSame('2026-08-31', $ended->getValidTo());
+		$this->assertFalse($ended->isActive('2026-09-01'));
+	}
+
+	public function testEndeVorDemBeginnEinerSchonBegonnenenZuweisungBleibtEinFehler(): void {
+		$assignment = $this->assignmentInGroup1(); // Beginn 2026-01-01, heute 2026-06-15
+		$this->mapper->method('find')->willReturn($assignment);
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->end(5, '2025-12-31', AssignmentEvent::ACTOR_STAFF, 'buchhalter');
+	}
+
+	public function testPreviewChangeEinerKuenftigenZuweisungWirktErstAbIhremBeginn(): void {
+		$assignment = $this->assignmentInGroup1();
+		$assignment->setValidFrom('2027-01-01');
+		$this->mapper->method('find')->willReturn($assignment);
+		$this->groupMapper->method('find')->willReturn($this->group());
+
+		$preview = $this->service('2026-06-15')->previewChange(5, 1500, null);
+
+		$this->assertSame('2027-01-01', $preview['effectiveFrom']);
+	}
+
+	public function testUpdateGruppenwechselLogtEreignisUndBehaeltBetragUndTurnus(): void {
+		$this->mapper->method('find')->willReturn($this->assignmentInGroup1());
+		$this->mapper->method('update')->willReturnArgument(0);
+		$this->groupMapper->method('find')->willReturn($this->secondGroup(500, [1, 12]));
+
+		$this->eventMapper->expects($this->once())->method('insert')
+			->with($this->callback(static fn (AssignmentEvent $e): bool => $e->getType() === AssignmentEvent::TYPE_GROUP_CHANGED
+				&& $e->getDetailsArray()['from'] === 1 && $e->getDetailsArray()['to'] === 2));
+
+		$updated = $this->service()->update(5, null, null, 2, AssignmentEvent::ACTOR_STAFF, 'buchhalter');
+
+		$this->assertSame(2, $updated->getGroupId());
+		$this->assertSame(1000, $updated->getMonthlyAmountCents());
+		$this->assertSame(12, $updated->getIntervalMonths());
+	}
+
+	public function testUpdateGruppenwechselLehntBetragUnterDerUntergrenzeDerNeuenGruppeAb(): void {
+		$this->mapper->method('find')->willReturn($this->assignmentInGroup1());
+		$this->groupMapper->method('find')->willReturn($this->secondGroup(1500, [1, 12])); // 10 € < 15 €
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->update(5, null, null, 2, AssignmentEvent::ACTOR_STAFF, 'buchhalter');
+	}
+
+	public function testUpdateGruppenwechselLehntEinenTurnusAbDenDieNeueGruppeNichtKennt(): void {
+		$this->mapper->method('find')->willReturn($this->assignmentInGroup1()); // Turnus 12
+		$this->groupMapper->method('find')->willReturn($this->secondGroup(500, [1, 3]));
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->update(5, null, null, 2, AssignmentEvent::ACTOR_STAFF, 'buchhalter');
+	}
+
+	public function testPreviewChangeMitGruppenwechselPrueftDieNeueGruppe(): void {
+		$this->mapper->method('find')->willReturn($this->assignmentInGroup1());
+		$this->groupMapper->method('find')->willReturn($this->secondGroup(1500, [1, 12]));
+
+		// Mit einem Betrag, der für die neue Gruppe reicht, geht es durch …
+		$preview = $this->service()->previewChange(5, 1500, null, 2);
+		$this->assertSame('2026-06-15', $preview['effectiveFrom']);
+
+		// … mit dem bisherigen (zu niedrigen) nicht.
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->previewChange(5, null, null, 2);
+	}
+
 	/**
 	 * previewChange() ist die Grundlage der Pflicht-UI "Vorschau vor jedem
 	 * Speichern" (Spec §3.4, Issue #76 Self-Service Beitrag-Aktionen). Ohne

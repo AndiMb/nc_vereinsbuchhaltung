@@ -111,12 +111,13 @@ class AssignmentController extends Controller {
 	 */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
-	public function previewChange(int $id, ?float $monthlyAmount = null, ?int $intervalMonths = null): DataResponse {
+	public function previewChange(int $id, ?float $monthlyAmount = null, ?int $intervalMonths = null, ?int $groupId = null): DataResponse {
 		try {
 			return new DataResponse($this->service->previewChange(
 				$id,
 				$monthlyAmount !== null ? (int)round($monthlyAmount * 100) : null,
 				$intervalMonths,
+				$groupId,
 			));
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);

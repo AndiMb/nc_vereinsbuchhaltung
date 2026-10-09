@@ -125,6 +125,15 @@ class ContributionCycleTaskServiceTest extends TestCase {
 		$this->assertSame(1, $missingMandateTasks[0]['objectId']);
 	}
 
+	public function testBeitragsfreieZuweisungOhneMandatErzeugtKeinenStoerfall(): void {
+		$this->setMandateActive(false);
+		$free = $this->assignment(1, 7);
+		$free->setMonthlyAmountCents(0);
+		$this->assignments->method('findActiveAsOf')->willReturn([$free]);
+
+		$this->assertSame([], $this->service('2026-01-01')->findTasks());
+	}
+
 	public function testAktivesMandatErzeugtKeineAufgabe(): void {
 		$this->setMandateActive(true);
 		$this->assignments->method('findActiveAsOf')->willReturn([$this->assignment(1, 7)]);

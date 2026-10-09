@@ -45,7 +45,7 @@
 			<MemberRowMenu
 				:row="row"
 				@openMember="(section) => $emit('open-member', section)"
-				@manageAssignments="$emit('manage-assignments')" />
+				@manageAssignments="(mode) => $emit('manage-assignments', mode)" />
 		</div>
 	</div>
 </template>

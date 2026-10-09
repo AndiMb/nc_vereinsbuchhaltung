@@ -116,12 +116,11 @@ const field = (akte, label) => panel(akte).locator('.vbh-mandate-card').first().
 const variante = (name) => new RegExp(`(^|\\s)button-vue--${name}(\\s|$)`)
 
 /**
- * Escape drücken, bis der Dialog zu ist. Escape wirkt erst, wenn der Fokus im Dialog
- * liegt (auch auf der Maske selbst, siehe src/lib/modalEscape.js); davor wird die
- * Taste wiederholt, bis die Öffnen-Animation durch ist.
+ * Escape drücken, bis der Dialog zu ist. Egal, wohin der Fokus gerade zeigt (ins Formular, auf einen Knopf, auf die
+ * Maske oder noch hinter den Dialog): src/lib/modalEscape.js schließt den obersten Dialog. Während die
+ * Öffnen-Animation läuft, wird die Taste wiederholt.
  */
 async function mitEscapeSchliessen(page, dialog) {
-	await expect(page.locator('.modal-mask:focus-within')).toHaveCount(1)
 	await expect(async () => {
 		await page.keyboard.press('Escape')
 		await expect(dialog).toBeHidden({ timeout: 1500 })
@@ -450,7 +449,7 @@ test.describe('Mandate: Warnung und Reibungsdialoge', () => {
 
 		await p.getByRole('button', { name: 'Mandat widerrufen' }).click()
 		const widerruf = page.getByRole('dialog', { name: 'Mandat widerrufen' })
-		const kasten = widerruf.locator('.vbh-card--danger')
+		const kasten = widerruf.locator('.notecard--error')
 		await expect(kasten).toContainText('Der Widerruf ist endgültig')
 		await expect(kasten).toContainText('lässt sich nicht wieder aktivieren')
 		await expect(kasten).toContainText(`braucht ${member.displayName} danach ein neues Mandat mit neuer Unterschrift`)
@@ -498,7 +497,7 @@ test.describe('Mandate: Warnung und Reibungsdialoge', () => {
 		const konto = page.getByRole('dialog', { name: 'Bankverbindung ändern' })
 		await konto.getByText('Der Kontoinhaber wechselt (andere Person)', { exact: true }).click()
 
-		const kasten = konto.locator('.vbh-card--danger')
+		const kasten = konto.locator('.notecard--error')
 		await expect(kasten).toContainText('Das bisherige Mandat wird endgültig beendet')
 		await expect(kasten).toContainText('eine eigene Unterschrift')
 		await expect(kasten).toContainText('Das lässt sich nicht rückgängig machen')

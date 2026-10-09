@@ -2677,11 +2677,9 @@
         "beitragsfrei": "fee-free",
         "Wirkt ab {from} · beitragsfrei: es wird nichts eingezogen.": "Effective from {from} · fee-free: nothing is collected.",
         "Mitglied bearbeiten": "Edit member",
-        "Beitrag verwalten": "Manage fee",
         "Beitrag zuweisen": "Assign fee",
         "Stammdaten, Konto, Austritt": "Master data, account, leaving",
         "Sperren, IBAN ändern, widerrufen": "Suspend, change IBAN, revoke",
-        "Gruppe, Betrag und Turnus": "Group, amount and interval",
         "Ein aktives SEPA-Mandat": "An active SEPA mandate",
         "Ein SEPA-Mandat (Entwurf, ausgesetzt oder beendet)": "A SEPA mandate (draft, suspended or ended)",
         "Eine Zuweisung zu einer Beitragsgruppe": "An assignment to a contribution group",
@@ -2691,8 +2689,18 @@
         "Es hängt noch am Mitglied:": "Still attached to the member:",
         "Sie bleiben als Nachweis erhalten. Für Datenschutzfälle gibt es die Anonymisierung.": "They are kept as evidence. For data-protection cases there is anonymisation.",
         "Beitrag ändern": "Change fee",
+        "Gezahlt werden darf beliebig mehr als die Untergrenze, etwa wenn das Mitglied ausnahmsweise mehr geben möchte.": "Any amount above the lower limit may be paid, for example when the member wants to give more this once.",
         "{name} · {group} · Untergrenze {min}": "{name} · {group} · lower limit {min}",
-        "Gezahlt werden darf beliebig mehr als die Untergrenze, etwa wenn das Mitglied ausnahmsweise mehr geben möchte.": "Any amount above the lower limit may be paid, for example when the member wants to give more this once."
+        "Beitragsgruppe wechseln": "Change contribution group",
+        "{name} · bisher {group}": "{name} · currently {group}",
+        "Untergrenze der gewählten Gruppe: {min}. Beim Wechsel ist deren Standardbeitrag eingetragen; Sie können ihn anpassen.": "Lower limit of the chosen group: {min}. When you change, its default fee is entered; you can adjust it.",
+        "Betrag und Turnus": "Amount and interval",
+        "Beitragsgruppe, Betrag und Turnus": "Contribution group, amount and interval",
+        "In eine andere Gruppe, mit deren Regeln": "To another group, with its rules",
+        "zurückgenommen": "withdrawn",
+        "Zuweisung zurücknehmen": "Withdraw assignment",
+        "Zurücknehmen": "Withdraw",
+        "Die Zuweisung hat noch nicht begonnen. Sie wird zurückgenommen und nie wirksam; es entstehen keine Forderungen daraus.": "The assignment has not started yet. It is withdrawn and never takes effect; no claims arise from it."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }
