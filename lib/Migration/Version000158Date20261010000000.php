@@ -54,7 +54,13 @@ class Version000158Date20261010000000 extends SimpleMigrationStep {
 		$schema = $schemaClosure();
 		$changed = false;
 		foreach (Version000157Date20261004130000::LEGACY_TABLES as $table) {
-			if ($schema->hasTable($table) && $this->isEmpty($table)) {
+			if (!$schema->hasTable($table)) {
+				continue;
+			}
+			// Bei einer Neuinstallation (und beim erstmaligen Aktivieren) führt Nextcloud nur die Schema-Teile aller
+			// Migrationen hintereinander aus (`migrateSchemaOnly`): die Tabelle gibt es dann nur im Schema im Speicher,
+			// nicht in der Datenbank – es gibt nichts zu verlieren und nichts abzufragen.
+			if (!$this->db->tableExists($table) || $this->isEmpty($table)) {
 				$schema->dropTable($table);
 				$changed = true;
 			}
