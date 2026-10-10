@@ -120,10 +120,14 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   tables, numbered lists, code spans and a clickable table of contents instead
   of raw Markdown lines. New is "The process at a glance" (13.0) at the start of
   the contributions chapter.
-- **Old contributions and SEPA module removed:** the mandates, fees and batch
-  collections of the previous flat module are deleted on update and not carried
-  over into the new model (issue #107); if you have such data, back it up first.
-  The members that arose from it are kept.
+- **Old contributions and SEPA module replaced:** mandates and fees of the
+  previous flat module are carried over on update (issue #107): each mandate
+  keeps its old reference and signing date, each fee becomes an assignment in a
+  group named "Beitrag … im Monat (übernommen)". An amount that cannot be split
+  into equal monthly amounts (for example 100.00 € yearly) is not carried over:
+  the old amount is written to the member record's note and a task points to it.
+  Carried-over rows leave the old tables; the old batch collections have no
+  counterpart in the new model and stay untouched in the database.
 - **Claims are read-only in the open-items view:** contribution and fee claims
   can no longer be paid, cancelled, reopened or deleted under Bookings → Open
   items; "Im Einzug bearbeiten" jumps to the "Collection" tab. Free items

@@ -1157,8 +1157,14 @@ der Spec abweicht. Maßgeblich für das Verhalten ist der Code, für die Bedienu
   bleibt abgelehnt (`vbh_incoming_pay_rejects`).
 - **Alt-Spalte bleibt** (#107, §1.2): `vbh_open_items.mandate_id` des Alt-Moduls wird nicht
   entfernt (geteilte Kerntabelle, nur additive Migrationen), sie wird nur nicht mehr
-  geschrieben. Die vier Alt-Tabellen und die beiden Alt-Jobs sind weg; die Mitglieder, die
-  Migration `000138` aus den Alt-Zahlern angelegt hat, bleiben.
+  geschrieben. Die beiden Alt-Jobs sind weg. Mandate und Beiträge des Alt-Moduls werden nicht
+  verworfen (die Annahme „keine Produktivnutzer" aus §1.2 stimmte für die veröffentlichten
+  0.22–0.34 nicht), sondern von Migration `000158` in das neue Modell **verschoben**: Mandat →
+  Mandat (`papier`, alte Referenz und Unterschrift bleiben), Beitrag → Zuweisung in einer
+  Gruppe „Beitrag … im Monat (übernommen)". Was sich nicht ohne Rest in Monatsbeträge teilen
+  lässt, bleibt in der Alt-Tabelle, steht in der Mitgliedernotiz und als Aufgabe. Leere
+  Alt-Tabellen entfernt `000158`; die Alt-Sammeleinzüge bleiben unangetastet liegen. Die
+  Mitglieder, die Migration `000138` aus den Alt-Zahlern angelegt hat, bleiben.
 - **Forderungen in der Offene-Posten-Sicht nur lesbar** (#121, bereits in §11): die
   generischen Schreibwege lehnen Zeilen mit `member_id`/`type` mit 400 ab.
 
