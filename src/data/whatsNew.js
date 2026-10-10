@@ -29,7 +29,7 @@ export function buildWhatsNewEntries() {
 			roles: ['verwalter', 'buchhalter'],
 			items: [
 				t('Beiträge und SEPA sind neu: Mitglieder, Mandate, Beitragsgruppen, Forderungen.'),
-				t('Das bisherige Modul ist ersetzt – seine Mandate und Beiträge wurden nicht übernommen.'),
+				t('Mandate und Beiträge des bisherigen Moduls sind übernommen – was sich nicht teilen ließ, steht in der Mitgliedernotiz.'),
 				t('Einzug in zwei Schritten: freigeben, dann als eingereicht markieren.'),
 				t('Bankabgleich schlägt Buchungen vor; Rücklastschriften mit Mahnstufen.'),
 				t('„Mein Beitrag" für Mitglieder (ab Werk aus) und Aufgaben-Klemmbrett in der Kopfzeile.'),

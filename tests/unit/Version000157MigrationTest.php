@@ -12,7 +12,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Der Cutover-Schritt (Issue #107): Alt-Tabellen löschen, Alt-Jobs austragen.
+ * Der Cutover-Schritt (Issue #107): Alt-Jobs austragen, Alt-Tabellen stehen lassen.
  * Geprüft wird das Verhalten gegen einen gemockten Schema-Wrapper – die
  * Datenbank selbst (MySQL/PostgreSQL/SQLite) bleibt dem Lauf gegen eine echte
  * Instanz vorbehalten (`occ migrations:migrate vereinsbuchhaltung`).
@@ -56,51 +56,36 @@ class Version000157MigrationTest extends TestCase {
 		return $this->step()->changeSchema($this->output, static fn () => $schema, []);
 	}
 
-	public function testUpgradeVonDerAltenInstanzLoeschtAlleVierAltTabellen(): void {
+	/**
+	 * Ein Update darf weder Mandate noch Beiträge des alten Moduls vernichten: die Alt-Tabellen bleiben stehen
+	 * (Version000158 übernimmt ihren Inhalt, die Sammeleinzüge liegen als Archiv weiter dort).
+	 */
+	public function testAltTabellenWerdenNichtGeloescht(): void {
 		$dropped = [];
 		$result = $this->changeSchema(['vbh_sepa_mandates', 'vbh_membership_fees', 'vbh_sepa_batches', 'vbh_sepa_batch_items', 'vbh_mandates', 'vbh_open_items'], $dropped);
 
-		$this->assertInstanceOf(ISchemaWrapper::class, $result);
-		$this->assertEqualsCanonicalizing(['vbh_sepa_batch_items', 'vbh_sepa_batches', 'vbh_membership_fees', 'vbh_sepa_mandates'], $dropped);
+		$this->assertNull($result, 'Kein Schema-Eingriff: Nextcloud migriert nichts.');
+		$this->assertSame([], $dropped);
 	}
 
-	/** Die Tabellen des neuen Modells und der Kern-Buchhaltung sind nie Teil der Löschliste. */
-	public function testNeueModellTabellenUndKernTabellenBleibenStehen(): void {
-		$bleibt = [
+	/** Die Tabellen des neuen Modells und der Kern-Buchhaltung sind nie Teil der Alt-Liste. */
+	public function testNeueModellTabellenUndKernTabellenSindNichtTeilDerAltListe(): void {
+		$neu = [
 			'vbh_members', 'vbh_mandates', 'vbh_mandate_amendments', 'vbh_mandate_events', 'vbh_assignments',
 			'vbh_contribution_groups', 'vbh_debit_batches', 'vbh_debit_items', 'vbh_returned_debits',
 			'vbh_dunning_notices', 'vbh_bank_tx', 'vbh_bank_tx_sepa_details', 'vbh_open_items', 'vbh_journal',
 		];
-		$dropped = [];
-		$result = $this->changeSchema($bleibt, $dropped);
 
-		$this->assertNull($result);
-		$this->assertSame([], $dropped);
-		$this->assertSame([], array_intersect($bleibt, Version000157Date20261004130000::LEGACY_TABLES));
+		$this->assertSame([], array_intersect($neu, Version000157Date20261004130000::LEGACY_TABLES));
 	}
 
-	/** Ein zweiter Lauf (oder eine Neuinstallation, in der nichts davon existiert) ist ein leerer Schritt ohne Fehler. */
-	public function testIdempotentOhneAltTabellenWirdNichtsGeaendert(): void {
+	/** Eine Neuinstallation (nichts davon existiert) ist ein leerer Schritt ohne Fehler. */
+	public function testNeuinstallationOhneAltTabellenIstEinLeererSchritt(): void {
 		$dropped = [];
 		$result = $this->changeSchema(['vbh_mandates', 'vbh_open_items'], $dropped);
 
-		$this->assertNull($result, 'Ohne Änderung kein Schema zurückgeben, damit Nextcloud nichts migriert.');
+		$this->assertNull($result);
 		$this->assertSame([], $dropped);
-	}
-
-	/** Nach einem abgebrochenen Versuch fehlen manche Tabellen schon: nur der Rest wird gelöscht. */
-	public function testTeilweiseVorhandeneAltTabellenWerdenEinzelnGeloescht(): void {
-		$dropped = [];
-		$result = $this->changeSchema(['vbh_sepa_mandates', 'vbh_sepa_batch_items'], $dropped);
-
-		$this->assertNotNull($result);
-		$this->assertEqualsCanonicalizing(['vbh_sepa_batch_items', 'vbh_sepa_mandates'], $dropped);
-	}
-
-	public function testDieMeldungNenntDieGeloeschtenTabellen(): void {
-		$this->output->expects($this->once())->method('info')->with($this->stringContains('vbh_sepa_mandates'));
-		$dropped = [];
-		$this->changeSchema(['vbh_sepa_mandates'], $dropped);
 	}
 
 	public function testAltJobsWerdenAusDerJobListeAusgetragen(): void {

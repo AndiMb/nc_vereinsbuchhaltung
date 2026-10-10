@@ -12,18 +12,19 @@ use OCP\Migration\SimpleMigrationStep;
 
 /**
  * Cutover des Beiträge/SEPA-Moduls (Issue #107, Spec §12 „Umbaupfad", §1.2):
- * räumt das flache Alt-Modul der Expand-Phase aus der Datenbank.
+ * trägt die Hintergrundjobs des flachen Alt-Moduls der Expand-Phase aus.
  *
- * **Tabellen.** `vbh_sepa_batch_items`, `vbh_sepa_batches`,
- * `vbh_membership_fees` und `vbh_sepa_mandates` (angelegt von Version000124 bis
- * Version000130, `member_uid`/`member_label` von Version000137 bis 000139 auf
- * `member_id` umgestellt) hatten laut Spec §1.2 keine Produktivnutzer und
- * werden hart entfernt – samt ihrem Inhalt, es gibt keine Datenübernahme in
- * das neue Modell (`vbh_mandates`, `vbh_assignments`, `vbh_debit_batches` …).
- * Die Mitglieder, die Version000138 aus den Alt-Zahlern angelegt hat, bleiben
- * als `vbh_members` bestehen. Die Alt-Migrationen selbst bleiben unverändert,
- * Nextcloud führt sie bei einer Neuinstallation noch aus: dort entstehen die
- * Tabellen und verschwinden hier sofort wieder.
+ * **Tabellen bleiben stehen.** Dieser Schritt räumte ursprünglich
+ * `vbh_sepa_batch_items`, `vbh_sepa_batches`, `vbh_membership_fees` und
+ * `vbh_sepa_mandates` samt Inhalt ab (Spec §1.2: „keine Produktivnutzer").
+ * Der Alt-Stand war aber ab 0.22 veröffentlicht, und ein Update soll weder
+ * Mandate noch Beiträge vernichten. Deshalb wird hier nichts mehr gelöscht:
+ * {@see Version000158Date20261010000000} verschiebt Mandate und Beiträge in das
+ * neue Modell und entfernt die Alt-Tabellen nur, wenn sie leer sind; die
+ * Sammeleinzüge des alten Moduls haben im neuen Einzugsmodell keine
+ * Entsprechung und bleiben liegen. Auch die Mitglieder, die Version000138 aus
+ * den Alt-Zahlern angelegt hat, bleiben bestehen. Die Alt-Migrationen selbst
+ * bleiben unverändert.
  *
  * Bewusst **nicht** angefasst: `vbh_open_items` (geteilte Tabelle der
  * Kern-Buchhaltung, Spec §1.2 erlaubt dort nur additive Migrationen) behält
@@ -39,17 +40,17 @@ use OCP\Migration\SimpleMigrationStep;
  * Schritt die beiden Alt-Jobs ausdrücklich aus. Die Klassennamen stehen als
  * Zeichenketten da: die Klassen gibt es nicht mehr.
  *
- * **Idempotenz.** Jede Tabelle wird nur gelöscht, wenn sie existiert, und
- * `IJobList::remove()` ist ohne Eintrag ein leeres DELETE: der Schritt läuft
- * auf einer Neuinstallation, auf einer 0.34.x-Instanz mit Alt-Tabellen (mit und
- * ohne Daten) und nach einem abgebrochenen Versuch ohne Fehler durch.
+ * **Idempotenz.** `IJobList::remove()` ist ohne Eintrag ein leeres DELETE: der
+ * Schritt läuft auf einer Neuinstallation, auf einer 0.34.x-Instanz mit
+ * Alt-Tabellen (mit und ohne Daten) und nach einem abgebrochenen Versuch ohne
+ * Fehler durch.
  *
  * Versionsnummer 000157: dem Ticket #107 vorab zugewiesen (parallele Agenten,
  * siehe Version000153).
  */
 class Version000157Date20261004130000 extends SimpleMigrationStep {
 
-	/** Die Alt-Tabellen, Kind-Tabelle zuerst (Fremdschlüssel gibt es nicht, die Reihenfolge ist nur Ordnung). */
+	/** Die Alt-Tabellen des flachen Moduls; Version000158 verschiebt ihren Inhalt und entfernt leere. */
 	public const LEGACY_TABLES = [
 		'vbh_sepa_batch_items',
 		'vbh_sepa_batches',
@@ -69,22 +70,8 @@ class Version000157Date20261004130000 extends SimpleMigrationStep {
 	}
 
 	public function changeSchema(IOutput $output, Closure $schemaClosure, array $options): ?ISchemaWrapper {
-		/** @var ISchemaWrapper $schema */
-		$schema = $schemaClosure();
-
-		$dropped = [];
-		foreach (self::LEGACY_TABLES as $table) {
-			if ($schema->hasTable($table)) {
-				$schema->dropTable($table);
-				$dropped[] = $table;
-			}
-		}
-		if ($dropped === []) {
-			return null;
-		}
-
-		$output->info('Vereinsbuchhaltung: Alt-Tabellen des flachen Beiträge/SEPA-Moduls entfernt: ' . implode(', ', $dropped));
-		return $schema;
+		// Kein Schema-Eingriff: die Alt-Tabellen bleiben, siehe Klassenkommentar.
+		return null;
 	}
 
 	public function postSchemaChange(IOutput $output, Closure $schemaClosure, array $options): void {

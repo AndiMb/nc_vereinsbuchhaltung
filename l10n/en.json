@@ -2639,7 +2639,7 @@
         "Wirklich ALLE Konten, Buchungen und Importe sowie den Einzug (Läufe, Rücklastschriften, Mahnstufen) löschen? Mitglieder, Mandate, Beitragsgruppen und Zuweisungen bleiben bestehen.": "Really delete ALL accounts, entries and imports as well as the collection (runs, returned direct debits, dunning levels)? Members, mandates, contribution groups and assignments are kept.",
         "Rücklastschriften konnten nicht geladen werden.": "Could not load the returned direct debits.",
         "Beiträge und SEPA sind neu: Mitglieder, Mandate, Beitragsgruppen, Forderungen.": "Contributions and SEPA are new: members, mandates, contribution groups, claims.",
-        "Das bisherige Modul ist ersetzt – seine Mandate und Beiträge wurden nicht übernommen.": "The previous module has been replaced – its mandates and contributions were not carried over.",
+        "Mandate und Beiträge des bisherigen Moduls sind übernommen – was sich nicht teilen ließ, steht in der Mitgliedernotiz.": "Mandates and contributions of the previous module have been carried over – amounts that could not be split are noted on the member record.",
         "Einzug in zwei Schritten: freigeben, dann als eingereicht markieren.": "Collection in two steps: release, then mark as submitted.",
         "Bankabgleich schlägt Buchungen vor; Rücklastschriften mit Mahnstufen.": "Bank reconciliation suggests postings; returned debits with dunning levels.",
         "„Mein Beitrag\" für Mitglieder (ab Werk aus) und Aufgaben-Klemmbrett in der Kopfzeile.": "“My contribution” for members (off by default) and the task clipboard in the header.",

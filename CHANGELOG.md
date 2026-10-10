@@ -123,10 +123,15 @@ verwenden, z. B. `**Neu:**`.
   Tabellen, nummerierte Listen, Code-Stellen und ein klickbares
   Inhaltsverzeichnis, statt rohe Markdown-Zeilen auszugeben. Neu ist der
   Überblick „Der Ablauf im Überblick" (13.0) am Anfang des Beitragskapitels.
-- **Altes Beitrags- und SEPA-Modul entfernt:** Die Mandate, Beiträge und
-  Sammeleinzüge des bisherigen flachen Moduls werden beim Update gelöscht und
-  nicht in das neue Modell übernommen (Issue #107); wer solche Daten hat, sichert
-  sie vorher. Die Mitglieder, die daraus entstanden sind, bleiben erhalten.
+- **Altes Beitrags- und SEPA-Modul abgelöst:** Mandate und Beiträge des
+  bisherigen flachen Moduls werden beim Update übernommen (Issue #107): jedes
+  Mandat mit alter Referenz und altem Unterschriftsdatum, jeder Beitrag als
+  Zuweisung in einer Gruppe „Beitrag … im Monat (übernommen)". Ein Betrag, der
+  sich nicht in gleiche Monatsbeträge teilen lässt (etwa 100,00 € jährlich),
+  wird nicht übernommen: der alte Betrag steht in der Notiz der Mitgliederakte,
+  eine Aufgabe weist darauf hin. Übernommene Zeilen verlassen die alten
+  Tabellen; die alten Sammeleinzüge haben im neuen Modell keine Entsprechung und
+  bleiben unverändert in der Datenbank.
 - **Forderungen in der Offene-Posten-Sicht nur lesbar:** Beitrags- und
   Gebührenforderungen lassen sich unter Buchungen → Offene Posten nicht mehr
   bezahlen, stornieren, wieder öffnen oder löschen; „Im Einzug bearbeiten"
