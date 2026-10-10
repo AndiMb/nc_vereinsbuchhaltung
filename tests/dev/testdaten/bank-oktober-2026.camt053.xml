@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.02">
+	<BkToCstmrStmt>
+		<GrpHdr>
+			<MsgId>TESTDATEN-BANK-20261001</MsgId>
+			<CreDtTm>2026-10-05T08:00:00</CreDtTm>
+		</GrpHdr>
+		<Stmt>
+			<Id>AUSZUG-2026-10-TESTDATEN</Id>
+			<Acct><Id><IBAN>DE12500105170648489890</IBAN></Id><Ccy>EUR</Ccy></Acct>
+			<Ntry>
+				<Amt Ccy="EUR">85.00</Amt><CdtDbtInd>CRDT</CdtDbtInd><Sts>BOOK</Sts>
+				<BookgDt><Dt>2026-10-01</Dt></BookgDt><ValDt><Dt>2026-10-01</Dt></ValDt>
+				<NtryDtls>
+					<Btch><PmtInfId>MSG-20260926-091000-5EED0001-RCUR</PmtInfId></Btch>
+					<TxDtls><Refs><EndToEndId>E2E-20260926-091000-5EED1001</EndToEndId><MndtId>M-1</MndtId></Refs><Amt Ccy="EUR">15.00</Amt><CdtDbtInd>CRDT</CdtDbtInd><RmtInf><Ustrd>Vollmitglied Jana Hoffmann</Ustrd></RmtInf></TxDtls>
+					<TxDtls><Refs><EndToEndId>E2E-20260926-091000-5EED1008</EndToEndId><MndtId>M-7</MndtId></Refs><Amt Ccy="EUR">5.00</Amt><CdtDbtInd>CRDT</CdtDbtInd><RmtInf><Ustrd>Jugend Mara Lindner</Ustrd></RmtInf></TxDtls>
+					<TxDtls><Refs><EndToEndId>E2E-20260926-091000-5EED1011</EndToEndId><MndtId>M-9</MndtId></Refs><Amt Ccy="EUR">15.00</Amt><CdtDbtInd>CRDT</CdtDbtInd><RmtInf><Ustrd>Vollmitglied Anna Koch</Ustrd></RmtInf></TxDtls>
+					<TxDtls><Refs><EndToEndId>E2E-20260926-091000-5EED1012</EndToEndId><MndtId>M-10</MndtId></Refs><Amt Ccy="EUR">15.00</Amt><CdtDbtInd>CRDT</CdtDbtInd><RmtInf><Ustrd>Vollmitglied Bernd Neumann</Ustrd></RmtInf></TxDtls>
+					<TxDtls><Refs><EndToEndId>E2E-20260926-091000-5EED1013</EndToEndId><MndtId>M-11</MndtId></Refs><Amt Ccy="EUR">7.50</Amt><CdtDbtInd>CRDT</CdtDbtInd><RmtInf><Ustrd>Ermäßigt Clara Vogel</Ustrd></RmtInf></TxDtls>
+					<TxDtls><Refs><EndToEndId>E2E-20260926-091000-5EED1014</EndToEndId><MndtId>M-12</MndtId></Refs><Amt Ccy="EUR">5.00</Amt><CdtDbtInd>CRDT</CdtDbtInd><RmtInf><Ustrd>Jugend David Wolf</Ustrd></RmtInf></TxDtls>
+					<TxDtls><Refs><EndToEndId>E2E-20260926-091000-5EED1015</EndToEndId><MndtId>M-13</MndtId></Refs><Amt Ccy="EUR">15.00</Amt><CdtDbtInd>CRDT</CdtDbtInd><RmtInf><Ustrd>Vollmitglied Eva Schröder</Ustrd></RmtInf></TxDtls>
+					<TxDtls><Refs><EndToEndId>E2E-20260926-091000-5EED1016</EndToEndId><MndtId>M-14</MndtId></Refs><Amt Ccy="EUR">7.50</Amt><CdtDbtInd>CRDT</CdtDbtInd><RmtInf><Ustrd>Ermäßigt Felix Maier</Ustrd></RmtInf></TxDtls>
+				</NtryDtls>
+				<AddtlNtryInf>SEPA-LASTSCHRIFT-EINREICHUNG</AddtlNtryInf>
+			</Ntry>
+			<Ntry>
+				<Amt Ccy="EUR">18.50</Amt><CdtDbtInd>DBIT</CdtDbtInd><Sts>BOOK</Sts>
+				<BookgDt><Dt>2026-10-02</Dt></BookgDt><ValDt><Dt>2026-10-02</Dt></ValDt>
+				<NtryDtls>
+					<TxDtls><Refs><EndToEndId>E2E-20260926-091000-5EED1004</EndToEndId><MndtId>M-3</MndtId></Refs><AmtDtls><TxAmt><Amt Ccy="EUR">15.00</Amt></TxAmt></AmtDtls><Chrgs><TotalChargesAndTaxAmt Ccy="EUR">3.50</TotalChargesAndTaxAmt></Chrgs><RmtInf><Ustrd>Vollmitglied Markus Fuchs</Ustrd></RmtInf><RtrInf><Rsn><Cd>AM04</Cd></Rsn><AddtlInf>Insufficient funds</AddtlInf></RtrInf></TxDtls>
+				</NtryDtls>
+				<AddtlNtryInf>LASTSCHRIFT-RUECKGABE</AddtlNtryInf>
+			</Ntry>
+			<Ntry>
+				<Amt Ccy="EUR">22.50</Amt><CdtDbtInd>CRDT</CdtDbtInd><Sts>BOOK</Sts>
+				<BookgDt><Dt>2026-10-02</Dt></BookgDt><ValDt><Dt>2026-10-02</Dt></ValDt>
+				<NtryDtls>
+					<TxDtls><RltdPties><Dbtr><Nm>Lena Bergmann</Nm></Dbtr><DbtrAcct><Id><IBAN>DE44500105175407324931</IBAN></Id></DbtrAcct></RltdPties><RmtInf><Ustrd>Mitgliedsbeitrag 4. Quartal 2026 Lena Bergmann</Ustrd></RmtInf></TxDtls>
+				</NtryDtls>
+				<AddtlNtryInf>ÜBERWEISUNGSGUTSCHRIFT</AddtlNtryInf>
+			</Ntry>
+			<Ntry>
+				<Amt Ccy="EUR">50.00</Amt><CdtDbtInd>CRDT</CdtDbtInd><Sts>BOOK</Sts>
+				<BookgDt><Dt>2026-10-02</Dt></BookgDt><ValDt><Dt>2026-10-02</Dt></ValDt>
+				<NtryDtls>
+					<TxDtls><RltdPties><Dbtr><Nm>Familie Winter</Nm></Dbtr><DbtrAcct><Id><IBAN>DE34370400440987654321</IBAN></Id></DbtrAcct></RltdPties><RmtInf><Ustrd>Spende Herbstkonzert 2026</Ustrd></RmtInf></TxDtls>
+				</NtryDtls>
+				<AddtlNtryInf>ÜBERWEISUNGSGUTSCHRIFT</AddtlNtryInf>
+			</Ntry>
+			<Ntry>
+				<Amt Ccy="EUR">49.00</Amt><CdtDbtInd>DBIT</CdtDbtInd><Sts>BOOK</Sts>
+				<BookgDt><Dt>2026-10-05</Dt></BookgDt><ValDt><Dt>2026-10-05</Dt></ValDt>
+				<NtryDtls>
+					<TxDtls><Refs><EndToEndId>E2E-20260926-091000-5EED1005</EndToEndId><MndtId>M-4</MndtId></Refs><AmtDtls><TxAmt><Amt Ccy="EUR">45.00</Amt></TxAmt></AmtDtls><Chrgs><TotalChargesAndTaxAmt Ccy="EUR">4.00</TotalChargesAndTaxAmt></Chrgs><RmtInf><Ustrd>Vollmitglied Sophie Krüger</Ustrd></RmtInf><RtrInf><Rsn><Cd>AC04</Cd></Rsn><AddtlInf>Closed account number</AddtlInf></RtrInf></TxDtls>
+				</NtryDtls>
+				<AddtlNtryInf>LASTSCHRIFT-RUECKGABE</AddtlNtryInf>
+			</Ntry>
+			<Ntry>
+				<Amt Ccy="EUR">7.90</Amt><CdtDbtInd>DBIT</CdtDbtInd><Sts>BOOK</Sts>
+				<BookgDt><Dt>2026-10-05</Dt></BookgDt><ValDt><Dt>2026-10-05</Dt></ValDt>
+				<NtryDtls>
+					<TxDtls><RmtInf><Ustrd>Kontoführungsentgelt Oktober 2026</Ustrd></RmtInf></TxDtls>
+				</NtryDtls>
+				<AddtlNtryInf>ENTGELTABSCHLUSS</AddtlNtryInf>
+			</Ntry>
+		</Stmt>
+	</BkToCstmrStmt>
+</Document>

@@ -35,6 +35,13 @@ export default createRouter({
 
 		{ path: '/contributions', name: 'contributions', component: RouteHost },
 		{ path: '/contributions/batch', name: 'contributions-batch', component: RouteHost },
+		{ path: '/contributions/groups', name: 'contributions-groups', component: RouteHost },
+
+		// Self-Service ("Mein Beitrag", Spec §3.4) - eigene Route, damit
+		// Personalunion-Nutzer (Rolle + Kontoverknüpfung) den Tab per Deep-Link
+		// wiederfinden; für rein self-service-verknüpfte Konten ohne Rolle läuft
+		// applyRoute() gar nicht erst (siehe App.vue::mounted()).
+		{ path: '/self', name: 'self', component: RouteHost },
 
 		{ path: '/:pathMatch(.*)*', name: 'not-found', component: RouteHost },
 	],

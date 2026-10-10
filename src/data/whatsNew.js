@@ -25,6 +25,17 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.35.0',
+			roles: ['verwalter', 'buchhalter'],
+			items: [
+				t('Beiträge und SEPA sind neu: Mitglieder, Mandate, Beitragsgruppen, Forderungen.'),
+				t('Das bisherige Modul ist ersetzt – seine Mandate und Beiträge wurden nicht übernommen.'),
+				t('Einzug in zwei Schritten: freigeben, dann als eingereicht markieren.'),
+				t('Bankabgleich schlägt Buchungen vor; Rücklastschriften mit Mahnstufen.'),
+				t('„Mein Beitrag" für Mitglieder (ab Werk aus) und Aufgaben-Klemmbrett in der Kopfzeile.'),
+			],
+		},
+		{
 			version: '0.34.6',
 			items: [
 				t('Vorzeichen und Farbe an Beträgen sind jetzt eine Einstellung (Nextcloud-Einstellungen → Darstellung) und ab Werk aus.'),

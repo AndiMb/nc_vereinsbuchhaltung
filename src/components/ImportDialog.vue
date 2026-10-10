@@ -22,12 +22,18 @@
 						{{ t('Kontoauszug der Bank hierher ziehen') }}<br>
 						<span class="vbh-dropzone-or">{{ t('oder') }}</span>
 					</p>
-					<label class="vbh-filebtn">{{ t('Datei wählen') }}<input
+					<NcButton variant="secondary" @click="$refs.fileInput.click()">
+						<template #icon>
+							<NcIconSvgWrapper :path="mdiUpload" :size="20" />
+						</template>
+						{{ t('Datei wählen') }}
+					</NcButton>
+					<input
 						ref="fileInput"
 						type="file"
 						accept=".csv,.xml,.sta,.txt,text/csv,text/xml,application/xml"
 						hidden
-						@change="onFileSelected"></label>
+						@change="onFileSelected">
 					<p v-if="selectedFile" class="vbh-filename">
 						{{ selectedFile.name }}
 					</p>
@@ -66,7 +72,7 @@
 						{{ t('{n} Buchungen warten auf die Zuordnung zu einem Konto.', { n: importDone.new - importDone.autoAssigned }) }}
 					</p>
 					<p v-if="importDone.sepaReturnsDetected > 0" class="vbh-hint vbh-hint--info">
-						{{ t('{n} SEPA-Rücklastschrift(en) erkannt: der zugehörige offene Posten wurde wieder geöffnet.', { n: importDone.sepaReturnsDetected }) }}
+						{{ t('{n} mögliche SEPA-Rücklastschrift(en) erkannt: bitte im Bankabgleich (Beiträge → Einzug) prüfen und verbuchen.', { n: importDone.sepaReturnsDetected }) }}
 					</p>
 					<div class="vbh-modal-actions">
 						<NcButton variant="tertiary" @click="$emit('update:show', false)">

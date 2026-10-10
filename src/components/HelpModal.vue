@@ -119,9 +119,10 @@ function buildTopics() {
 			bullets: [
 				t('Optionales Zusatzmodul: wer keine Lastschriften einzieht, kann diesen Bereich ignorieren.'),
 				t('Nextcloud-Einstellungen → Vereinsbuchhaltung → Beiträge & SEPA: Gläubiger-ID, einziehendes Konto und der Schalter für den Reiter „Beiträge" in der Hauptnavigation.'),
-				t('Reiter „Beiträge" → Mitglieder: je Zahler ein Mandat (IBAN, Unterschriftsdatum) und/oder ein Beitrag (Betrag, Frequenz) – Zahler ist ein Nextcloud-Nutzer oder ein frei eingetragener Name. Bei Fälligkeit entsteht automatisch ein offener Posten.'),
-				t('Reiter „Beiträge" → Einzug: Vorschau prüfen, Einzug erzeugen und die XML-Datei bei der Hausbank einreichen. Vor dem ersten Einzug mit dem Prüftool der Bank testen.'),
-				t('Fälligkeitstermin mindestens 14 Tage in die Zukunft legen: so lange vorher muss der Zahler über Betrag und Termin informiert werden. Die App verschickt diese Ankündigung an Mitglieder mit hinterlegter E-Mail-Adresse.'),
+				t('Reiter „Beiträge" → Mitglieder: je Mitglied ein SEPA-Mandat (IBAN, Unterschriftsdatum) und/oder eine Zuweisung zu einer Beitragsgruppe (Monatsbeitrag, Turnus). Der Knopf „Mitglied" nimmt ein Mitglied samt optionalem Mandat und Beitrag in einem Dialog auf. Aus den Zuweisungen entstehen die Forderungen.'),
+				t('Reiter „Beiträge" → Einzug: Vorschau des Einzugstermins prüfen, den Lauf freigeben (dabei entsteht die SEPA-Datei), die Datei bei der Hausbank einreichen und die Einreichung hier bestätigen. Vor dem ersten Einzug mit dem Prüftool der Bank testen.'),
+				t('Die Vorabinfo über Betrag und Termin (Standard: 14 Tage vor dem Einzug) verschickt die App automatisch an Mitglieder mit hinterlegter E-Mail-Adresse.'),
+				t('Einzug → Bankabgleich: Sammelgutschriften, Rücklastschriften und Zahlungseingänge aus dem Kontoauszugs-Import prüfen und verbuchen.'),
 				t('Ein Mandat wird widerrufen, nicht gelöscht – erzeugte Einreichungen müssen nachvollziehbar bleiben.'),
 			],
 		},

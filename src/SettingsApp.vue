@@ -50,9 +50,17 @@
 					v-model:defaultFeeAmount="defaultFeeAmount"
 					v-model:defaultFeeFrequency="defaultFeeFrequency"
 					v-model:membershipEnabled="membershipEnabled"
+					v-model:selfServiceEnabled="selfServiceEnabled"
 					:membershipActive="membershipActive"
 					:storageSaving="storageSaving"
 					:saveSettings="saveSettings" />
+				<SettingsSepaModule :storageUser="storageUser" />
+			</NcSettingsSection>
+		</div>
+
+		<div id="settings-section_mandats-rechtstext">
+			<NcSettingsSection :name="t('Mandats-Rechtstext')">
+				<SettingsMandateLegalText :clubName="clubName" />
 			</NcSettingsSection>
 		</div>
 
@@ -77,7 +85,7 @@
 				<div class="vbh-card vbh-card--danger">
 					<h4>{{ t('Alle Daten löschen') }}</h4>
 					<p class="vbh-hint">
-						{{ t('Löscht alle Konten, Buchungen und Importe dieses Kontos unwiderruflich.') }}
+						{{ t('Löscht unwiderruflich alle Konten, Buchungen und Importe sowie den Einzug (Lastschrift-Läufe, Einzugsposten, Rücklastschriften, Mahnstufen). Mitglieder, Mandate, Beitragsgruppen und Zuweisungen bleiben bestehen.') }}
 					</p>
 					<NcButton variant="error" :disabled="busy" @click="resetAll">
 						{{ t('Alle Daten löschen') }}
@@ -106,9 +114,11 @@ import { NcButton, NcDialog, NcSettingsSection } from '@nextcloud/vue'
 import SettingsAttachments from './components/SettingsAttachments.vue'
 import SettingsClub from './components/SettingsClub.vue'
 import SettingsDisplay from './components/SettingsDisplay.vue'
+import SettingsMandateLegalText from './components/SettingsMandateLegalText.vue'
 import SettingsPeriods from './components/SettingsPeriods.vue'
 import SettingsPermissions from './components/SettingsPermissions.vue'
 import SettingsSepaBasics from './components/SettingsSepaBasics.vue'
+import SettingsSepaModule from './components/SettingsSepaModule.vue'
 import SettingsStatementWatch from './components/SettingsStatementWatch.vue'
 import SettingsXbucImport from './components/SettingsXbucImport.vue'
 import api from './api.js'
@@ -140,9 +150,11 @@ export default {
 		SettingsAttachments,
 		SettingsClub,
 		SettingsDisplay,
+		SettingsMandateLegalText,
 		SettingsPeriods,
 		SettingsPermissions,
 		SettingsSepaBasics,
+		SettingsSepaModule,
 		SettingsStatementWatch,
 		SettingsXbucImport,
 	},
@@ -183,6 +195,9 @@ export default {
 			// Beitraege, siehe SettingsController::index()).
 			membershipEnabled: false,
 			membershipActive: false,
+			// Self-Service-Zugang (Spec §3.4): einfacher Bool-Schalter, ab
+			// Verwalter änderbar (siehe SettingsSepaBasics.vue).
+			selfServiceEnabled: false,
 			// Gemeinsames Ladeflag fuer xbuc-Import und "Alle Daten löschen".
 			busy: false,
 		}
@@ -229,11 +244,12 @@ export default {
 				this.defaultFeeFrequency = data.default_fee_frequency || 'yearly'
 				this.membershipEnabled = !!data.membership_enabled
 				this.membershipActive = !!data.membership_active
+				this.selfServiceEnabled = !!data.self_service_enabled
 			} catch { /* ignorieren */ }
 		},
 
 		// Gemeinsame Speichern-Funktion aller Abschnitte ausser "Daten": schreibt
-		// den vollstaendigen Satz dieser Seite (elf Felder, alles ausser
+		// den vollstaendigen Satz dieser Seite (zwoelf Felder, alles ausser
 		// cost_center_mode - das bleibt bei ReportsTab/App.vue, siehe
 		// SettingsController::update()).
 		async saveSettings() {
@@ -253,6 +269,7 @@ export default {
 					default_fee_amount: this.defaultFeeAmount || '',
 					default_fee_frequency: this.defaultFeeFrequency,
 					membership_enabled: this.membershipEnabled ? '1' : '0',
+					self_service_enabled: this.selfServiceEnabled ? '1' : '0',
 				})
 				this.membershipActive = !!data.membership_active
 				// Die Auswahl „intern" räumt den Nutzer serverseitig ab – die Felder
@@ -274,7 +291,7 @@ export default {
 		},
 
 		async resetAll() {
-			if (!await this.askConfirm(this.t('Alle Daten löschen'), this.t('Wirklich ALLE Konten, Buchungen und Importe löschen?'))) { return }
+			if (!await this.askConfirm(this.t('Alle Daten löschen'), this.t('Wirklich ALLE Konten, Buchungen und Importe sowie den Einzug (Läufe, Rücklastschriften, Mahnstufen) löschen? Mitglieder, Mandate, Beitragsgruppen und Zuweisungen bleiben bestehen.'))) { return }
 			this.busy = true
 			try {
 				await api.reset()

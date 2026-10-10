@@ -3,6 +3,7 @@ import { computed, reactive } from 'vue'
 import api from '../api.js'
 import { accountCategoryLabel } from '../lib/accountFilter.js'
 import { errMsg } from '../lib/format.js'
+import { t } from '../lib/l10n.js'
 
 const state = reactive({
 	accounts: [],
@@ -31,7 +32,7 @@ async function loadAccounts() {
 		state.accounts = data
 		return data
 	} catch (e) {
-		showError(errMsg(e, 'Konten konnten nicht geladen werden'))
+		showError(errMsg(e, t('Konten konnten nicht geladen werden')))
 		return null
 	}
 }

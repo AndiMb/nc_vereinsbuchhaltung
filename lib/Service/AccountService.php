@@ -11,6 +11,7 @@ use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Exception\PeriodClosedException;
+use OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportSettingsService;
 use OCA\Vereinsbuchhaltung\Service\Statement\RowNormalizer;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IL10N;
@@ -73,6 +74,7 @@ class AccountService {
 		private AuditService $audit,
 		private IbanValidator $ibanValidator,
 		private SepaDebtorAccountService $sepaDebtorAccount,
+		private SepaImportSettingsService $sepaImportSettings,
 		private IL10N $l10n,
 	) {
 	}
@@ -356,7 +358,7 @@ class AccountService {
 			if ($bookings > 0) {
 				throw new \InvalidArgumentException($this->l10n->t(
 					'Das Konto "%s %s" ist in %d Buchungszeile%s verwendet und kann nicht gelöscht werden. '
-					. 'Setze es stattdessen auf „inaktiv" – dann taucht es nicht mehr in den Auswahllisten auf, '
+					. 'Setzen Sie es stattdessen auf „inaktiv" – dann taucht es nicht mehr in den Auswahllisten auf, '
 					. 'die bisherigen Buchungen bleiben aber erhalten.',
 					[
 						$account->getNumber(),
@@ -388,7 +390,10 @@ class AccountService {
 			// Die App-Config läuft über einen eigenen Cache an der Transaktion
 			// vorbei – ein Rollback nähme die Änderung nicht zurück, das Konto
 			// wäre wieder da und die Einstellung trotzdem weg.
-			$this->transaction->afterCommit(fn () => $this->sepaDebtorAccount->forgetIfSetTo($id));
+			$this->transaction->afterCommit(function () use ($id): void {
+				$this->sepaDebtorAccount->forgetIfSetTo($id);
+				$this->sepaImportSettings->forgetIfSetTo($id);
+			});
 
 			$this->audit->log('Konto gelöscht', 'account', $id, [
 				'konto' => $account->getNumber() . ' ' . $account->getName(),

@@ -1,0 +1,86 @@
+<?php
+
+declare(strict_types=1);
+
+namespace OCA\Vereinsbuchhaltung\Db;
+
+use OCP\AppFramework\Db\DoesNotExistException;
+use OCP\AppFramework\Db\MultipleObjectsReturnedException;
+use OCP\AppFramework\Db\QBMapper;
+use OCP\DB\QueryBuilder\IQueryBuilder;
+use OCP\IDBConnection;
+
+/**
+ * @extends QBMapper<DunningNotice>
+ */
+class DunningNoticeMapper extends QBMapper {
+	public function __construct(IDBConnection $db) {
+		parent::__construct($db, 'vbh_dunning_notices', DunningNotice::class);
+	}
+
+	/** @return DunningNotice[] alle bisher versendeten Stufen einer Forderung, aufsteigend. */
+	public function findByOpenItem(int $openItemId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('open_item_id', $qb->createNamedParameter($openItemId, IQueryBuilder::PARAM_INT)))
+			->orderBy('stage', 'ASC');
+		return $this->findEntities($qb);
+	}
+
+	/**
+	 * Für den Idempotenz-Guard vor dem Versand einer Stufe (Spec: „eine Zeile
+	 * je (Forderung, Stufe)" – ein zweiter Versand derselben Stufe darf nicht
+	 * passieren, weder bei einem doppelten Cron-Lauf noch bei einem erneuten
+	 * ereignisgetriebenen Trigger).
+	 */
+	public function findByOpenItemAndStage(int $openItemId, int $stage): ?DunningNotice {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('open_item_id', $qb->createNamedParameter($openItemId, IQueryBuilder::PARAM_INT)))
+			->andWhere($qb->expr()->eq('stage', $qb->createNamedParameter($stage, IQueryBuilder::PARAM_INT)));
+		try {
+			return $this->findEntity($qb);
+		} catch (DoesNotExistException|MultipleObjectsReturnedException) {
+			return null;
+		}
+	}
+
+	/**
+	 * Alle bisher versendeten Mahnstufen aller Forderungen auf einmal – die
+	 * Grundlage der lesenden Forderungsübersicht im Einzug-Unterreiter (Issue
+	 * #104), die den Mahnstand jeder Zeile braucht und deshalb nicht je
+	 * Forderung eine Abfrage stellen soll.
+	 *
+	 * @return DunningNotice[] je Forderung aufsteigend nach Stufe
+	 */
+	public function findAll(): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->orderBy('open_item_id', 'ASC')
+			->addOrderBy('stage', 'ASC');
+		return $this->findEntities($qb);
+	}
+
+	/** @return DunningNotice[] alle Zeilen einer Stufe – Grundlage der Eskalationsprüfung in DunningLadderService/DunningTaskService. */
+	public function findByStage(int $stage): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('stage', $qb->createNamedParameter($stage, IQueryBuilder::PARAM_INT)));
+		return $this->findEntities($qb);
+	}
+
+	/**
+	 * Beim Zurücksetzen (siehe {@see \OCA\Vereinsbuchhaltung\Service\ContributionResetService}):
+	 * die Mahnstufen gehören zu Forderungen, die es danach nicht mehr gibt.
+	 * Bliebe eine Zeile liegen, hielte sie – je nach Zähler der Posten-IDs der
+	 * Datenbank – eine neue, fremde Forderung für „schon gemahnt".
+	 */
+	public function deleteAll(): void {
+		$qb = $this->db->getQueryBuilder();
+		$qb->delete($this->getTableName())->executeStatement();
+	}
+}

@@ -55,13 +55,3 @@ parameters:
 	# annotiert, in den Stubs aber nur als Entity gefuehrt. Ein Cast an jeder
 	# Aufrufstelle waere Laerm ohne Erkenntnis.
 	treatPhpDocTypesAsCertain: false
-
-	ignoreErrors:
-		# Der Markdown-Renderer haelt seinen Zustand (offene Liste, offenes
-		# Zitat, gesammelter Absatz) in Variablen, die mehrere Closures per
-		# Referenz teilen. PHPStan verfolgt Zuweisungen aus einer fremden
-		# Closure nicht und haelt die Pruefungen deshalb fuer immer falsch -
-		# sie sind es nicht, sonst kaeme aus dem Handbuch kein <ul> heraus.
-		-
-			identifier: if.alwaysFalse
-			path: lib/Controller/HelpController.php

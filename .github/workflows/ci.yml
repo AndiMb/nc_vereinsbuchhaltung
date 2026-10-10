@@ -60,6 +60,9 @@ jobs:
         with:
           php-version: ${{ matrix.php-version }}
           tools: composer, phpunit:10.5
+          # gd seit Issue #73 fuer chillerlan/php-qrcode (GiroCode-PNG-Anhang)
+          # explizit angefordert statt auf das setup-php-Standardbild zu vertrauen.
+          extensions: gd
           coverage: none
 
       - name: Syntaxpruefung aller PHP-Dateien
@@ -67,6 +70,16 @@ jobs:
 
       - name: composer.json/lock validieren
         run: composer validate --strict --no-check-publish
+
+      - name: App-Abhaengigkeiten installieren
+        # Seit Issue #73 hat die App mit chillerlan/php-qrcode (GiroCode-Anhang
+        # der Mahnwesen-Mails) erstmals eine echte Produktivabhaengigkeit -
+        # tests/bootstrap.php laedt deren vendor/autoload.php als vierten,
+        # nachrangigen Autoloader (siehe Kommentar dort). Die App-eigenen
+        # OCA\Vereinsbuchhaltung-Klassen kommen weiterhin ausschliesslich ueber
+        # den ersten, klassmap-unabhaengigen Autoloader - dieser Schritt betrifft
+        # nur den echten Fremdcode unter vendor/.
+        run: composer install --no-interaction --no-progress
 
       - name: OCP-Stubs holen
         # Die App-Klassen laedt tests/bootstrap.php per PSR-4 direkt aus lib/,
@@ -104,6 +117,15 @@ jobs:
         # unbemerkt zwischen CI-Laeufen, siehe Issue #2.
         run: composer install --working-dir=.phpstan --no-interaction --no-progress
 
+      - name: App-Abhaengigkeiten installieren
+        # Seit Issue #73 nutzt lib/ mit chillerlan/php-qrcode Fremdcode aus
+        # dem Root-vendor/ (EpcQrCodeGenerator). PHPStan laedt dessen
+        # vendor/autoload.php im Arbeitsverzeichnis von selbst; ohne diesen
+        # Schritt meldet es die Klassen als "not found". Die gd-Erweiterung
+        # braucht es hier nicht - die Analyse liest nur den Quelltext, ruft
+        # aber nichts auf (anders als der Backend-Job mit den Unit-Tests).
+        run: composer install --no-interaction --no-progress
+
       - name: PHPStan
         run: .phpstan/vendor/bin/phpstan analyse --no-progress
 
@@ -129,9 +151,20 @@ jobs:
       - name: Formatpruefung
         run: .php-cs-fixer/vendor/bin/php-cs-fixer fix --dry-run --diff
 
-  e2e:
-    name: E2E (Playwright gegen Docker-Nextcloud)
+  e2e-shard:
+    # Die Suite laeuft in vier Teilen gleichzeitig: Jeder Teil bekommt einen
+    # EIGENEN Runner mit eigener Docker-Nextcloud und eigenem "init"-Snapshot,
+    # also auch einen eigenen Buchungsbestand. Innerhalb eines Runners bleibt
+    # es bei einem Worker (siehe playwright.config.mjs); verteilt wird nach
+    # Spec-Dateien. Jede Spec setzt ihren Bestand selbst auf und verlaesst sich
+    # nicht auf Vorgaenger (tests/e2e/README.md), deshalb ist die Aufteilung
+    # sicher.
+    name: E2E-Teil ${{ matrix.shard }} von 4
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v7
 
@@ -159,21 +192,57 @@ jobs:
         # gegen genau die Bundles, die auch ausgeliefert wuerden.
         run: npm run build
 
+      - uses: shivammathur/setup-php@v2
+        with:
+          # Wie in den anderen PHP-Jobs die niedrigste unterstuetzte Version:
+          # das composer.lock muss dort installierbar sein. Im Container
+          # laeuft spaeter PHP 8.3; welche Version vendor/ gebaut hat, spielt
+          # keine Rolle, die Versionen kommen aus dem Lockfile.
+          php-version: '8.1'
+          tools: composer
+          coverage: none
+
+      - name: App-Abhaengigkeiten installieren
+        # Der Testserver mountet das Checkout als App-Verzeichnis;
+        # Application::register() laedt dessen vendor/autoload.php (Nextcloud
+        # selbst tut das nicht). Ohne vendor/ fehlt chillerlan/php-qrcode
+        # (Issue #73, GiroCode-Anhang der Mahnwesen-Mails): Spec 47 prueft
+        # dann rot, dass die Mails ohne GiroCode rausgehen (Issue #120).
+        # --no-dev wie im Release-Workflow, das Tarball enthaelt dieselbe
+        # vendor/-Auswahl.
+        run: composer install --no-dev --no-interaction --no-progress
+
       - name: Testserver starten (Docker-Nextcloud stable34)
         # Kehrt erst zurueck, wenn die Instanz eingerichtet und der
         # "init"-Snapshot angelegt ist - ein eigener Warteschritt entfaellt.
         run: npm run test:e2e:server
 
-      - name: E2E-Tests
-        run: npm run test:e2e:run
+      - name: E2E-Tests (Teil ${{ matrix.shard }} von 4)
+        run: npx playwright test --shard=${{ matrix.shard }}/4
 
       - name: Testbericht hochladen
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: playwright-report/
           retention-days: 30
+
+  e2e:
+    # Sammelstelle mit dem bisherigen Namen: die Pflicht-Pruefung des Branch-
+    # Schutzes (und alles, was auf "E2E (Playwright gegen Docker-Nextcloud)"
+    # wartet) bleibt unveraendert, egal in wie viele Teile die Suite zerfaellt.
+    name: E2E (Playwright gegen Docker-Nextcloud)
+    needs: e2e-shard
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Alle Teile muessen gruen sein
+        run: |
+          if [ "${{ needs.e2e-shard.result }}" != "success" ]; then
+            echo "E2E-Teile: ${{ needs.e2e-shard.result }}"
+            exit 1
+          fi
 
   appinfo:
     name: info.xml gegen App-Store-Schema

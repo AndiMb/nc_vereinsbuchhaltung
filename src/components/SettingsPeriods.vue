@@ -133,12 +133,12 @@
 									:value="p.endDate"
 									:disabled="!canMoveEnd(i)"
 									:title="endTitle(i)"
-									:aria-label="t('Ende des Zeitraums {label}', { label: p.label })"
+									:aria-label="tRaw('Ende des Zeitraums {label}', { label: p.label })"
 									@change="moveEnd(p, $event)">
 							</td>
 							<td>
 								<template v-if="p.closedAt">
-									{{ t('🔒 abgeschlossen am {date} von {who}', { date: formatDate(String(p.closedAt).slice(0, 10)), who: p.closedBy }) }}
+									{{ tRaw('🔒 abgeschlossen am {date} von {who}', { date: formatDate(String(p.closedAt).slice(0, 10)), who: p.closedBy }) }}
 								</template>
 								<template v-else>
 									{{ t('offen') }}
@@ -484,7 +484,7 @@ export default {
 			try {
 				const { data } = await api.createPeriod()
 				await this.loadPeriods()
-				showSuccess(this.t('Zeitraum {label} angelegt.', { label: data.label }))
+				showSuccess(this.tRaw('Zeitraum {label} angelegt.', { label: data.label }))
 			} catch (e) { showError(this.errMsg(e, this.t('Zeitraum konnte nicht angelegt werden'))) } finally { this.creating = false }
 		},
 
@@ -539,10 +539,10 @@ export default {
 			const period = this.periods[index]
 			const next = this.following(index)
 			if (period.closedAt) {
-				return this.t('{label} ist abgeschlossen – die Grenze lässt sich nicht mehr verschieben.', { label: period.label })
+				return this.tRaw('{label} ist abgeschlossen – die Grenze lässt sich nicht mehr verschieben.', { label: period.label })
 			}
 			if (next && next.closedAt) {
-				return this.t('Der folgende Zeitraum {label} ist abgeschlossen – die gemeinsame Grenze lässt sich nicht mehr verschieben.', { label: next.label })
+				return this.tRaw('Der folgende Zeitraum {label} ist abgeschlossen – die gemeinsame Grenze lässt sich nicht mehr verschieben.', { label: next.label })
 			}
 			return this.t('Ende verschieben – der folgende Zeitraum beginnt dann am Tag darauf.')
 		},
@@ -563,7 +563,7 @@ export default {
 			try {
 				await api.updatePeriod(period.id, { endDate })
 				await this.loadPeriods()
-				showSuccess(this.t('Grenze von {label} verschoben.', { label: period.label }))
+				showSuccess(this.tRaw('Grenze von {label} verschoben.', { label: period.label }))
 			} catch (e) {
 				input.value = period.endDate
 				await this.reportError(e, this.t('Grenze konnte nicht verschoben werden'))
@@ -581,43 +581,43 @@ export default {
 
 		async removePeriod(period) {
 			if (!await this.askConfirm(
-				this.t('Zeitraum {label} entfernen', { label: period.label }),
-				this.t('Der Zeitraum {label} enthält weder Buchungen noch Planwerte und wird entfernt.', { label: period.label }),
+				this.tRaw('Zeitraum {label} entfernen', { label: period.label }),
+				this.tRaw('Der Zeitraum {label} enthält weder Buchungen noch Planwerte und wird entfernt.', { label: period.label }),
 				this.t('Entfernen'),
 				'error',
 			)) { return }
 			try {
 				await api.deletePeriod(period.id)
 				await this.loadPeriods()
-				showSuccess(this.t('Zeitraum {label} entfernt.', { label: period.label }))
+				showSuccess(this.tRaw('Zeitraum {label} entfernt.', { label: period.label }))
 			} catch (e) { await this.reportError(e, this.t('Entfernen fehlgeschlagen')) }
 		},
 
 		async closePeriod(period) {
 			if (!await this.askConfirm(
-				this.t('Zeitraum {label} abschließen', { label: period.label }),
-				this.t('Der Zeitraum {label} ({from} – {to}) wird festgeschrieben: Buchungen, Belege und Zuordnungen dieses Zeitraums können danach nicht mehr geändert werden. Ein Verwalter kann ihn bei Bedarf wiedereröffnen.', { label: period.label, from: formatDate(period.startDate), to: formatDate(period.endDate) }),
+				this.tRaw('Zeitraum {label} abschließen', { label: period.label }),
+				this.tRaw('Der Zeitraum {label} ({from} – {to}) wird festgeschrieben: Buchungen, Belege und Zuordnungen dieses Zeitraums können danach nicht mehr geändert werden. Ein Verwalter kann ihn bei Bedarf wiedereröffnen.', { label: period.label, from: formatDate(period.startDate), to: formatDate(period.endDate) }),
 				this.t('Abschließen'),
 				'primary',
 			)) { return }
 			try {
 				await api.closePeriod(period.id)
 				await this.loadPeriods()
-				showSuccess(this.t('Zeitraum {label} abgeschlossen.', { label: period.label }))
+				showSuccess(this.tRaw('Zeitraum {label} abgeschlossen.', { label: period.label }))
 			} catch (e) { await this.reportError(e, this.t('Abschließen fehlgeschlagen')) }
 		},
 
 		async reopenPeriod(period) {
 			if (!await this.askConfirm(
-				this.t('Zeitraum {label} wiedereröffnen', { label: period.label }),
-				this.t('Der Zeitraum {label} wird wieder änderbar. Das sollte nur in Ausnahmefällen geschehen (z. B. Korrektur vor der Kassenprüfung) und wird protokolliert.', { label: period.label }),
+				this.tRaw('Zeitraum {label} wiedereröffnen', { label: period.label }),
+				this.tRaw('Der Zeitraum {label} wird wieder änderbar. Das sollte nur in Ausnahmefällen geschehen (z. B. Korrektur vor der Kassenprüfung) und wird protokolliert.', { label: period.label }),
 				this.t('Wiedereröffnen'),
 				'error',
 			)) { return }
 			try {
 				await api.reopenPeriod(period.id)
 				await this.loadPeriods()
-				showSuccess(this.t('Zeitraum {label} wiedereröffnet.', { label: period.label }))
+				showSuccess(this.tRaw('Zeitraum {label} wiedereröffnet.', { label: period.label }))
 			} catch (e) { await this.reportError(e, this.t('Wiedereröffnen fehlgeschlagen')) }
 		},
 	},

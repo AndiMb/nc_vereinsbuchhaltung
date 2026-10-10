@@ -42,7 +42,7 @@
 							v-if="pick"
 							type="checkbox"
 							:checked="selected.has(f.fileId)"
-							:aria-label="t('Auswählen: {name}', { name: f.name })"
+							:aria-label="tRaw('Auswählen: {name}', { name: f.name })"
 							@change="toggle(f.fileId)">
 						<NcIconSvgWrapper
 							v-else
@@ -50,7 +50,7 @@
 							:size="16"
 							class="vbh-attachment-icon" />
 						<div class="vbh-folder-main">
-							<button class="vbh-attachment-name" :title="t('Anzeigen: {name}', { name: f.name })" @click="preview(f)">
+							<button class="vbh-attachment-name" :title="tRaw('Anzeigen: {name}', { name: f.name })" @click="preview(f)">
 								{{ f.name }}
 							</button>
 							<span class="vbh-folder-meta">

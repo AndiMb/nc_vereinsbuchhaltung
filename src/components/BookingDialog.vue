@@ -14,7 +14,7 @@
 			<!-- Ohne bekannten Zeitraum kein Banner: dann liesse sich nicht sagen,
 			     welches Geschäftsjahr gemeint ist. -->
 			<p v-if="bookingLocked && bookingPeriodLabel" class="vbh-hint vbh-hint--info">
-				{{ t('🔒 Das Geschäftsjahr {period} ist abgeschlossen – diese Buchung kann nur noch angesehen werden.', { period: bookingPeriodLabel }) }}
+				{{ tRaw('🔒 Das Geschäftsjahr {period} ist abgeschlossen – diese Buchung kann nur noch angesehen werden.', { period: bookingPeriodLabel }) }}
 			</p>
 			<div
 				v-if="bookingMode === 'simple'"
@@ -40,7 +40,7 @@
 				</button>
 			</div>
 			<div v-if="bookingTour.active && bookingTour.step === 0" class="vbh-tour-tip">
-				<span>{{ t('Wähle zuerst, ob Geld reinkommt oder rausgeht – Schritt 1 von 3.') }}</span>
+				<span>{{ t('Wählen Sie zuerst, ob Geld reinkommt oder rausgeht – Schritt 1 von 3.') }}</span>
 				<div class="vbh-tour-actions">
 					<button type="button" class="vbh-tour-skip" @click="endTour">
 						{{ t('Überspringen') }}
@@ -218,7 +218,7 @@
 						</label>
 					</div>
 					<div v-if="bookingTour.active && bookingTour.step === 1" class="vbh-tour-tip">
-						<span>{{ t('Wähle die Kategorie (z. B. „Mitgliedsbeiträge") und das Geldkonto – die App bucht Soll/Haben automatisch richtig. Schritt 2 von 3.') }}</span>
+						<span>{{ t('Wählen Sie die Kategorie (z. B. „Mitgliedsbeiträge") und das Geldkonto – die App bucht Soll/Haben automatisch richtig. Schritt 2 von 3.') }}</span>
 						<div class="vbh-tour-actions">
 							<button type="button" class="vbh-tour-skip" @click="endTour">
 								{{ t('Überspringen') }}
@@ -398,7 +398,7 @@
 							<button
 								v-else
 								class="vbh-attachment-name"
-								:title="t('Anzeigen: {name}', { name: a.fileName })"
+								:title="tRaw('Anzeigen: {name}', { name: a.fileName })"
 								@click="openViewer(a)">
 								{{ a.fileName }}
 							</button>

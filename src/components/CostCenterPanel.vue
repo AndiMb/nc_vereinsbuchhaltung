@@ -267,7 +267,7 @@ export default {
 		async remove(cc) {
 			const count = this.accountCount(cc.id)
 			const hint = count ? ' ' + this.t('Die Zuordnung von {count} Konto/Konten wird gelöst; Buchungen bleiben unverändert.', { count }) : ''
-			if (!await this.askConfirm(this.t('Auswertungsgruppe löschen'), this.t('Auswertungsgruppe „{code} {name}" löschen?', { code: cc.code, name: cc.name }) + hint)) { return }
+			if (!await this.askConfirm(this.t('Auswertungsgruppe löschen'), this.tRaw('Auswertungsgruppe „{code} {name}" löschen?', { code: cc.code, name: cc.name }) + hint)) { return }
 			try {
 				await api.deleteCostCenter(cc.id)
 				await this.loadCostCenters()

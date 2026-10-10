@@ -81,6 +81,27 @@ class BankTransactionMapper extends QBMapper {
 		return $found;
 	}
 
+	/**
+	 * Mehrere Umsätze in einer Abfrage (Bankabgleich, Issue #105).
+	 *
+	 * @param list<int> $ids
+	 * @return array<int,BankTransaction> Umsatz-ID => Umsatz (fehlende IDs fehlen auch hier)
+	 */
+	public function findByIds(string $userId, array $ids): array {
+		$found = [];
+		foreach (array_chunk(array_values(array_unique($ids)), 1000) as $chunk) {
+			$qb = $this->db->getQueryBuilder();
+			$qb->select('*')
+				->from($this->getTableName())
+				->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+				->andWhere($qb->expr()->in('id', $qb->createNamedParameter($chunk, IQueryBuilder::PARAM_INT_ARRAY)));
+			foreach ($this->findEntities($qb) as $tx) {
+				$found[(int)$tx->getId()] = $tx;
+			}
+		}
+		return $found;
+	}
+
 	public function deleteAllForUser(string $userId): void {
 		$qb = $this->db->getQueryBuilder();
 		$qb->delete($this->getTableName())

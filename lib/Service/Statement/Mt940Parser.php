@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service\Statement;
 
+use OCA\Vereinsbuchhaltung\Service\Sepa\DkReturnReasonCodes;
+use OCA\Vereinsbuchhaltung\Service\Sepa\SepaPurposeFields;
 use OCP\IL10N;
 
 /**
@@ -175,6 +177,19 @@ class Mt940Parser implements StatementParser {
 			$negative = !$negative;
 		}
 
+		// Manche Institute hängen bei einer Rücklastschrift Ursprungsbetrag/
+		// Bankgebühr direkt an die Buchungszeile an, als "/OCMT/EUR55,00/CHGS/
+		// EUR5,00/" im freien Rest hinter Betrag/Geschäftsvorfall (Spec §5:
+		// "original_amount_cents ... :61:/OCMT/", "charges_cents ... :61:/CHGS/").
+		// Andere Institute tragen dieselben Werte stattdessen als OAMT+/COAM+
+		// im :86:-Verwendungszweck (siehe applyDetails()) - beide Quellen werden
+		// unterstützt, da unklar ist, welche Form die tatsächlich verwendeten
+		// Vereinskonten liefern (siehe Spec §5 Implementierungs-Hinweis).
+		// Über das ganze Feld gesucht (nicht nur $line): Zusatzangaben können auf
+		// einer Fortsetzungszeile des :61:-Felds stehen.
+		$originalAmountCents = $this->extractSlashField($value, 'OCMT');
+		$chargesCents = $this->extractSlashField($value, 'CHGS');
+
 		return [
 			'ownAccount' => $ownAccount,
 			'bookingDate' => $bookingDate,
@@ -186,7 +201,20 @@ class Mt940Parser implements StatementParser {
 			'counterpartyBic' => null,
 			'amountCents' => $negative ? -$cents : $cents,
 			'currency' => null,
+			// Scratch-Felder, ausschließlich für applyDetails()/sepaDetails()
+			// gedacht - RowNormalizer::build() kennt nur die festen Schlüssel
+			// oben plus 'sepaDetails' und ignoriert alles andere.
+			'_returnOriginalAmountCents' => $originalAmountCents,
+			'_returnChargesCents' => $chargesCents,
 		];
+	}
+
+	/** "/OCMT/EUR55,00/" -> 5500 (Cent), oder null, wenn das Feld fehlt. */
+	private function extractSlashField(string $text, string $field): ?int {
+		if (!preg_match('/\/' . $field . '\/([A-Z]{3})?([\d.,]+)/', $text, $m)) {
+			return null;
+		}
+		return SepaPurposeFields::amountCents($m[2]);
 	}
 
 	/**
@@ -201,12 +229,20 @@ class Mt940Parser implements StatementParser {
 
 		if ($sub === []) {
 			// Ohne Schlüssel ist das Feld reiner Freitext (kommt bei manchen
-			// Instituten vor) – dann ist er der Verwendungszweck.
+			// Instituten vor) – dann ist er der Verwendungszweck. Ohne
+			// strukturierte Felder bleibt auch die SEPA-Detail-Erkennung leer
+			// (referenzlose Formate laufen über den Text-Heuristik-Fallback in
+			// der Import-Verarbeitung, siehe Spec §5).
 			$row['purpose'] = trim($text) !== '' ? trim($text) : null;
+			$row['sepaDetails'] = [];
 			return $row;
 		}
 
 		$row['bookingText'] = $sub['00'] ?? null;
+		// Geschäftsvorfallcode am :86:-Anfang (Spec §5 "MT940 GVC am
+		// :86:-Anfang") - NICHT aus subfields() (siehe dortiger Kommentar: der
+		// GVC landet dort als fehlgedeuteter Schlüssel '?NN', nicht gebraucht).
+		$gvc = $this->leadingGvc($text);
 
 		$purpose = '';
 		foreach (array_keys($sub) as $key) {
@@ -216,14 +252,76 @@ class Mt940Parser implements StatementParser {
 				$purpose .= $sub[$key];
 			}
 		}
-		$row['purpose'] = trim($purpose) !== '' ? trim($purpose) : null;
+		$purpose = trim($purpose);
+		$row['purpose'] = $purpose !== '' ? $purpose : null;
 
 		$name = trim(($sub['32'] ?? '') . ($sub['33'] ?? ''));
 		$row['counterparty'] = $name !== '' ? $name : null;
 		$row['counterpartyBic'] = $sub['30'] ?? null;
 		$row['counterpartyIban'] = $sub['31'] ?? null;
 
+		// SEPA-strukturierte Felder aus dem konkatenierten Verwendungszweck
+		// (Spec §5 Implementierungs-Hinweis: "?20–29/?60–63 konkatenieren, dann
+		// an SEPA-Präfixen splitten"). MT940 liefert höchstens eine
+		// Detail-Zeile je Buchung (anders als camt, siehe Camt053Parser).
+		$fields = SepaPurposeFields::parse($purpose);
+		$endToEndId = $fields['EREF'] ?? null;
+		$mandateReference = $fields['MREF'] ?? null;
+		$batchReference = $fields['KREF'] ?? null;
+		$originalAmountCents = $row['_returnOriginalAmountCents'] ?? SepaPurposeFields::amountCents($fields['OAMT'] ?? null);
+		$chargesCents = $row['_returnChargesCents'] ?? SepaPurposeFields::amountCents($fields['COAM'] ?? null);
+		unset($row['_returnOriginalAmountCents'], $row['_returnChargesCents']);
+
+		// "ist Rückgabe" (Spec §5): GVC am :86:-Anfang, dieselben Kernwerte wie
+		// bei camt (108/109 - der GVC-Katalog ist formatunabhängig derselbe,
+		// Anlage 3 DFÜ-Abkommen).
+		$isReturn = $gvc !== null && in_array($gvc, ['108', '109'], true);
+
+		$hasAnyField = $endToEndId !== null || $mandateReference !== null || $batchReference !== null
+			|| $originalAmountCents !== null || $chargesCents !== null || $isReturn;
+		$row['sepaDetails'] = $hasAnyField ? [[
+			'endToEndId' => $endToEndId,
+			'mandateReference' => $mandateReference,
+			// MT940 hat keinen eigenen Rückgabegrund-Text/-Code-Pfad außer dem
+			// DK-Nummerncode - siehe applyDetails()-Aufrufer/Mt940Parser-weite
+			// Reason-Code-Erkennung, die den Verwendungszweck nach ?34 absucht.
+			'returnReasonCode' => $this->returnReasonCode($sub),
+			'returnReasonText' => null,
+			'originalAmountCents' => $originalAmountCents,
+			'chargesCents' => $chargesCents,
+			'gvc' => $gvc,
+			'batchReference' => $batchReference,
+			'amountCents' => $row['amountCents'],
+			'isReturn' => $isReturn,
+		]] : [];
+
 		return $row;
+	}
+
+	/** GVC am Anfang von :86: (Spec §5), oder null ohne erkennbaren 3-stelligen Code. */
+	private function leadingGvc(string $text): ?string {
+		return preg_match('/^(\d{3})\?/', $text, $m) === 1 ? $m[1] : null;
+	}
+
+	/**
+	 * DK-Retourencode `?34` (Textschlüsselergänzung, Anlage 3 DFÜ-Abkommen) auf
+	 * den ISO-20022-Rückgabegrund übersetzt - "nur DK-Kernwerte 901–918, nie
+	 * raten" (Spec §5): unbekannte/mehrdeutige Codes liefern bewusst `null`
+	 * statt eines geratenen Werts, siehe {@see DkReturnReasonCodes}.
+	 *
+	 * @param array<string, string> $sub
+	 */
+	private function returnReasonCode(array $sub): ?string {
+		$code = $sub['34'] ?? null;
+		if ($code === null) {
+			return null;
+		}
+		// Nur die ersten drei Ziffern zählen - ?34 kann laut Konvention weitere
+		// Zusatzinformation anhängen.
+		if (!preg_match('/^(\d{3})/', trim($code), $m)) {
+			return null;
+		}
+		return DkReturnReasonCodes::translate($m[1]);
 	}
 
 	/**

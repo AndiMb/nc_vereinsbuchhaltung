@@ -29,7 +29,15 @@ class RowNormalizer {
 	 *
 	 * Erwartete Schlüssel in $raw (alle optional außer bookingDate/amountCents):
 	 * ownAccount, bookingDate, valueDate, bookingText, purpose, counterparty,
-	 * counterpartyIban, counterpartyBic, amountCents, currency.
+	 * counterpartyIban, counterpartyBic, amountCents, currency, sepaDetails.
+	 *
+	 * `sepaDetails` (Issue #72, Spec §5) ist reine Durchreiche: eine Liste
+	 * bereits vom jeweiligen Parser extrahierter SEPA-Detail-Rohdaten (eine je
+	 * `TxDtls` bei camt, sonst höchstens eine). Sie geht bewusst NICHT in
+	 * {@see computeHash()} ein – der Dedup-Hash von `vbh_bank_tx` muss stabil
+	 * bleiben, siehe Klassendoc. Die Detail-Zeilen selbst landen erst nach dem
+	 * Insert der Bankbuchung in `vbh_bank_tx_sepa_details` (siehe
+	 * {@see \OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportExtractionService}).
 	 *
 	 * @param array<string, mixed> $raw
 	 * @return array<string, mixed>|null null, wenn die Zeile nicht buchbar ist
@@ -70,6 +78,8 @@ class RowNormalizer {
 			'currency' => $this->str($raw['currency'] ?? null) ?: 'EUR',
 		];
 		$row['hash'] = $this->computeHash($row);
+		// Additiv, siehe Docblock oben - geht NICHT in computeHash() ein.
+		$row['sepaDetails'] = $raw['sepaDetails'] ?? [];
 		return $row;
 	}
 

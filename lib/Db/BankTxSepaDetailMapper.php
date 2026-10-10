@@ -1,0 +1,105 @@
+<?php
+
+declare(strict_types=1);
+
+namespace OCA\Vereinsbuchhaltung\Db;
+
+use OCP\AppFramework\Db\QBMapper;
+use OCP\DB\QueryBuilder\IQueryBuilder;
+use OCP\IDBConnection;
+
+/**
+ * @extends QBMapper<BankTxSepaDetail>
+ */
+class BankTxSepaDetailMapper extends QBMapper {
+	public function __construct(IDBConnection $db) {
+		parent::__construct($db, 'vbh_bank_tx_sepa_details', BankTxSepaDetail::class);
+	}
+
+	public function find(int $id): BankTxSepaDetail {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('id', $qb->createNamedParameter($id, IQueryBuilder::PARAM_INT)));
+		return $this->findEntity($qb);
+	}
+
+	/** @return BankTxSepaDetail[] Reihenfolge wie extrahiert (detail_index) */
+	public function findByBankTx(int $bankTxId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('bank_tx_id', $qb->createNamedParameter($bankTxId, IQueryBuilder::PARAM_INT)))
+			->orderBy('detail_index', 'ASC');
+		return $this->findEntities($qb);
+	}
+
+	/** @return BankTxSepaDetail[] noch nicht beurteilte Detail-Zeilen aller Bankumsätze */
+	public function findOpen(): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('status', $qb->createNamedParameter(BankTxSepaDetail::STATUS_OPEN)))
+			->orderBy('bank_tx_id', 'ASC')
+			->addOrderBy('detail_index', 'ASC');
+		return $this->findEntities($qb);
+	}
+
+	/**
+	 * Alle Detail-Zeilen der Bankumsätze, die noch nicht gebucht sind – egal ob
+	 * beurteilt oder nicht: die Arbeitsliste des Bankabgleichs (Issue #105)
+	 * zeigt auch einen Sammler, dessen letzte Zeile gerade beurteilt wurde und
+	 * der nur noch auf das Verbuchen wartet ({@see findOpen()} sähe ihn dann
+	 * nicht mehr). Die Verbindung zum Umsatz sortiert zugleich Waisen aus: nach
+	 * einem Zurücksetzen des Buchungsbestands bleiben Detail-Zeilen ohne
+	 * Umsatz zurück.
+	 *
+	 * @return BankTxSepaDetail[] je Umsatz in Reihenfolge der Detail-Zeilen
+	 */
+	public function findOnUnassignedTransactions(string $userId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('d.*')
+			->from($this->getTableName(), 'd')
+			->innerJoin('d', 'vbh_bank_tx', 't', $qb->expr()->eq('d.bank_tx_id', 't.id'))
+			->where($qb->expr()->eq('t.user_id', $qb->createNamedParameter($userId)))
+			->andWhere($qb->expr()->eq('t.status', $qb->createNamedParameter('unassigned')))
+			->orderBy('d.bank_tx_id', 'ASC')
+			->addOrderBy('d.detail_index', 'ASC');
+		return $this->findEntities($qb);
+	}
+
+	/**
+	 * Die Zeilen, die diesen Einzugsposten zugeordnet haben – Grundlage der Regel
+	 * „ein Posten gehört zu höchstens einer Zeile je Richtung“
+	 * ({@see \OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportConfirmationService::assign()}).
+	 *
+	 * @return BankTxSepaDetail[]
+	 */
+	public function findAssignedToDebitItem(int $debitItemId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('debit_item_id', $qb->createNamedParameter($debitItemId, IQueryBuilder::PARAM_INT)))
+			->andWhere($qb->expr()->eq('status', $qb->createNamedParameter(BankTxSepaDetail::STATUS_ASSIGNED)));
+		return $this->findEntities($qb);
+	}
+
+	/** Beim Zurücksetzen des Buchungsbestands (siehe ResetService): die Umsätze, zu denen sie gehören, sind weg. */
+	public function deleteAll(): void {
+		$qb = $this->db->getQueryBuilder();
+		$qb->delete($this->getTableName());
+		$qb->executeStatement();
+	}
+
+	public function findByEndToEndId(string $endToEndId): ?BankTxSepaDetail {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('end_to_end_id', $qb->createNamedParameter($endToEndId)));
+		try {
+			return $this->findEntity($qb);
+		} catch (\OCP\AppFramework\Db\DoesNotExistException|\OCP\AppFramework\Db\MultipleObjectsReturnedException) {
+			return null;
+		}
+	}
+}

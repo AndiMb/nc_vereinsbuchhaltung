@@ -18,11 +18,18 @@
 				{{ t('Logo und Akzentfarbe erscheinen im Kurzbericht für Vorstandssitzungen (Berichte → Auswertung).') }}
 			</p>
 			<div class="vbh-uploadrow">
-				<label class="vbh-filebtn">{{ t('Logo wählen') }}<input
+				<NcButton variant="secondary" :disabled="logoBusy" @click="$refs.logoInput.click()">
+					<template #icon>
+						<NcIconSvgWrapper :path="mdiUpload" :size="20" />
+					</template>
+					{{ t('Logo wählen') }}
+				</NcButton>
+				<input
+					ref="logoInput"
 					type="file"
 					accept="image/png,image/jpeg,image/webp"
 					hidden
-					@change="onLogoSelected"></label>
+					@change="onLogoSelected">
 				<img
 					v-if="hasLogo"
 					:src="logoPreviewUrl"
@@ -50,8 +57,9 @@
 </template>
 
 <script>
+import { mdiUpload } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { NcButton } from '@nextcloud/vue'
+import { NcButton, NcIconSvgWrapper } from '@nextcloud/vue'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
 
@@ -62,7 +70,7 @@ import { errMsg } from '../lib/format.js'
  */
 export default {
 	name: 'SettingsClub',
-	components: { NcButton },
+	components: { NcButton, NcIconSvgWrapper },
 	props: {
 		// per .sync (App.vue behaelt den Zustand, da clubName auch ausserhalb
 		// des Einstellungsdialogs gebraucht wird, z. B. SetupChecklist-Prop)
@@ -82,6 +90,7 @@ export default {
 
 	data() {
 		return {
+			mdiUpload,
 			logoBusy: false,
 			// Cache-Buster fuer das <img>, da die Logo-URL nach einem Upload
 			// unveraendert bleibt und der Browser sonst die alte Datei zeigt.

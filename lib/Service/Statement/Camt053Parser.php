@@ -175,7 +175,130 @@ class Camt053Parser implements StatementParser {
 			'counterpartyBic' => $partyBic,
 			'amountCents' => $cents,
 			'currency' => $currency,
+			'sepaDetails' => $this->sepaDetails($ntry, $p, $cents),
 		]);
+	}
+
+	/**
+	 * SEPA-Detail-Rohdaten je `TxDtls` (Spec §5/§2.2, Issue #72): eine
+	 * Sammelbuchung (Einzug oder R-Transaktions-Bündel) bleibt EIN
+	 * `vbh_bank_tx`-Umsatz (siehe {@see purpose()}), trägt aber unter
+	 * `NtryDtls/TxDtls` eine Zeile je enthaltener Einzeltransaktion mit ihrer
+	 * eigenen `EndToEndId`/Mandatsreferenz/Rückgabegrund – genau diese
+	 * Struktur wird hier in die additive Nebentabelle
+	 * `vbh_bank_tx_sepa_details` überführt, ohne den Bankumsatz selbst
+	 * anzufassen.
+	 *
+	 * `Btch/PmtInfId` und der Geschäftsvorfallcode (`BkTxCd/Prtry/Cd`) stehen
+	 * in der Praxis auf `NtryDtls`- bzw. `Ntry`-Ebene (für alle enthaltenen
+	 * `TxDtls` gemeinsam) – hier einmal ermittelt und an jede Detail-Zeile
+	 * weitergereicht, mit optionalem Override auf `TxDtls`-Ebene.
+	 *
+	 * @return list<array<string,mixed>>
+	 */
+	private function sepaDetails(\SimpleXMLElement $ntry, string $p, int $entryTotalCents): array {
+		$txDtlsList = $ntry->xpath('.//' . $p . 'NtryDtls/' . $p . 'TxDtls') ?: [];
+		if ($txDtlsList === []) {
+			return [];
+		}
+
+		$entryBatchRef = $this->firstValue($ntry, './/' . $p . 'NtryDtls/' . $p . 'Btch/' . $p . 'PmtInfId');
+		$entryGvc = $this->firstValue($ntry, './/' . $p . 'BkTxCd/' . $p . 'Prtry/' . $p . 'Cd');
+		// Der Namensraum ist je Dokument fix - einmal ermitteln statt je TxDtls
+		// neu (eine Sammelbuchung kann viele TxDtls enthalten).
+		$defaultNs = $this->docDefaultNs($ntry);
+
+		$details = [];
+		foreach ($txDtlsList as $tx) {
+			if ($defaultNs !== null) {
+				$tx->registerXPathNamespace('c', $defaultNs);
+			}
+			$gvc = $this->firstValue($tx, './/' . $p . 'BkTxCd/' . $p . 'Prtry/' . $p . 'Cd') ?? $entryGvc;
+			$hasRtrInf = ($tx->xpath('.//' . $p . 'RtrInf') ?: []) !== [];
+			// "ist Rückgabe" (Spec §5): camt GVC 109/108 ODER RtrInf vorhanden.
+			$isReturn = $hasRtrInf || ($gvc !== null && in_array($gvc, ['108', '109'], true));
+
+			$endToEndId = $this->firstValue($tx, './/' . $p . 'Refs/' . $p . 'EndToEndId');
+			$mandateReference = $this->firstValue($tx, './/' . $p . 'Refs/' . $p . 'MndtId');
+			$returnReasonCode = $this->firstValue($tx, './/' . $p . 'RtrInf/' . $p . 'Rsn/' . $p . 'Cd');
+			$returnReasonText = $this->firstValue($tx, './/' . $p . 'RtrInf/' . $p . 'AddtlInf');
+			$originalAmountCents = $this->amountCentsOf($tx, $p, './/' . $p . 'AmtDtls/' . $p . 'TxAmt/' . $p . 'Amt')
+				?? $this->amountCentsOf($tx, $p, './/' . $p . 'AmtDtls/' . $p . 'InstdAmt/' . $p . 'Amt');
+			$chargesCents = $this->chargesCentsOf($tx, $p);
+			$batchReference = $this->firstValue($tx, './/' . $p . 'Refs/' . $p . 'PmtInfId') ?? $entryBatchRef;
+
+			// Jede normale camt-Buchung trägt ihren Verwendungszweck ebenfalls
+			// unter NtryDtls/TxDtls (siehe purpose()) - ohne dieses Gatter
+			// entstünde für JEDEN Umsatz eine inhaltsleere Detail-Zeile. Ein
+			// bloßer GVC allein (z. B. eine gewöhnliche Überweisung) zählt
+			// bewusst nicht als "SEPA-relevant" - er dient nur der
+			// Rückgabe-Erkennung an einem sonst schon relevanten Datensatz.
+			$hasAnyField = $endToEndId !== null || $mandateReference !== null || $returnReasonCode !== null
+				|| $returnReasonText !== null || $originalAmountCents !== null || $chargesCents !== null
+				|| $batchReference !== null || $isReturn;
+			if (!$hasAnyField) {
+				continue;
+			}
+
+			$details[] = [
+				'endToEndId' => $endToEndId,
+				'mandateReference' => $mandateReference,
+				'returnReasonCode' => $returnReasonCode,
+				'returnReasonText' => $returnReasonText,
+				'originalAmountCents' => $originalAmountCents,
+				'chargesCents' => $chargesCents,
+				'gvc' => $gvc,
+				'batchReference' => $batchReference,
+				'amountCents' => $this->detailAmountCents($tx, $p, $entryTotalCents),
+				'isReturn' => $isReturn,
+			];
+		}
+		return $details;
+	}
+
+	/** Eigener Betrag/Richtung einer TxDtls-Zeile, mit Rückfall auf den Umsatzbetrag (siehe sepaDetails()). */
+	private function detailAmountCents(\SimpleXMLElement $tx, string $p, int $entryTotalCents): int {
+		$amount = $this->firstValue($tx, './' . $p . 'Amt');
+		if ($amount === null) {
+			// Kein eigener Betrag je TxDtls (minimale Exporte, kommt bei echten
+			// Sammelbuchungen praktisch nicht vor): der ganze Umsatzbetrag ist
+			// die einzig verfügbare Näherung - bei genau einer Detail-Zeile ist
+			// das sogar exakt richtig.
+			return $entryTotalCents;
+		}
+		$cents = $this->toCents($amount);
+		if ($cents === null) {
+			return 0;
+		}
+		$direction = $this->firstValue($tx, './' . $p . 'CdtDbtInd');
+		return $direction !== null && strtoupper($direction) === 'DBIT' ? -$cents : $cents;
+	}
+
+	private function amountCentsOf(\SimpleXMLElement $node, string $p, string $xpath): ?int {
+		$value = $this->firstValue($node, $xpath);
+		return $value !== null ? $this->toCents($value) : null;
+	}
+
+	/** Summe aller Entgelt-Einträge (`Chrgs/Rcrd/Amt`), oder die aggregierte Gesamtsumme, falls vorhanden. */
+	private function chargesCentsOf(\SimpleXMLElement $tx, string $p): ?int {
+		$total = $this->firstValue($tx, './/' . $p . 'Chrgs/' . $p . 'TotalChargesAndTaxAmt');
+		if ($total !== null) {
+			return $this->toCents($total);
+		}
+		$records = $tx->xpath('.//' . $p . 'Chrgs/' . $p . 'Rcrd/' . $p . 'Amt') ?: [];
+		if ($records === []) {
+			return null;
+		}
+		$sum = 0;
+		foreach ($records as $r) {
+			$sum += $this->toCents(trim((string)$r)) ?? 0;
+		}
+		return $sum;
+	}
+
+	private function docDefaultNs(\SimpleXMLElement $node): ?string {
+		$ns = $node->getDocNamespaces(false, true);
+		return ($ns[''] ?? '') !== '' ? $ns[''] : null;
 	}
 
 	/**

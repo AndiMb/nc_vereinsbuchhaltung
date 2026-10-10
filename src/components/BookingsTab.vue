@@ -11,7 +11,10 @@
 				</button>
 				<button :class="{ active: bookingView === 'openitems' }" @click="$emit('update:booking-view', 'openitems')">
 					{{ t('Offene Posten') }}
-					<span v-if="overdueOpenItemsCount > 0" class="vbh-badge vbh-badge--alert">{{ overdueOpenItemsCount }}</span>
+					<span
+						v-if="overdueOpenItemsCount > 0"
+						class="vbh-badge vbh-badge--alert"
+						:title="n('%n überfälliger offener Posten', '%n überfällige offene Posten', overdueOpenItemsCount)">{{ overdueOpenItemsCount }}</span>
 				</button>
 				<button v-if="canWrite" :class="{ active: bookingView === 'rules' }" @click="$emit('update:booking-view', 'rules')">
 					{{ t('Regeln') }}
@@ -73,7 +76,7 @@
 			<template v-if="bookingView === 'journal'">
 				<div v-if="journalNumberIssues" class="vbh-yearwarn">
 					<p class="vbh-warn-inline">
-						{{ t('⚠ Buchungsnummern {period} nicht lückenlos:', { period: selectedPeriod ? selectedPeriod.label : '' }) }}
+						{{ tRaw('⚠ Buchungsnummern {period} nicht lückenlos:', { period: selectedPeriod ? selectedPeriod.label : '' }) }}
 						<template v-if="journalNumberIssues.missing.length">
 							{{ t('fehlend {list}', { list: journalNumberIssues.missing.slice(0, 20).join(', ') }) }}<template v-if="journalNumberIssues.missing.length > 20">
 								…
@@ -181,7 +184,7 @@
 										<NcActions v-if="canWrite && (txByJournalId[r.id] || !isDateClosed(r.date))" :forceMenu="true">
 											<NcActionButton
 												v-if="txByJournalId[r.id]"
-												:title="t('Regel anlegen: {counterparty} künftig automatisch zuordnen', { counterparty: txByJournalId[r.id].counterparty })"
+												:title="tRaw('Regel anlegen: {counterparty} künftig automatisch zuordnen', { counterparty: txByJournalId[r.id].counterparty })"
 												@click="createRuleFromTx(txByJournalId[r.id])">
 												<template #icon>
 													<NcIconSvgWrapper :path="mdiFlash" :size="16" />
@@ -202,7 +205,7 @@
 					</table>
 				</div>
 				<NcEmptyContent v-else-if="bookingSearch || bookingFilter" :name="t('Keine Treffer')" :description="t('Suchfilter anpassen oder löschen.')" />
-				<NcEmptyContent v-else :name="t('Noch keine Buchungssätze')" :description="t('Lege mit ‛Neue Buchung\' einen ersten Buchungssatz an.')">
+				<NcEmptyContent v-else :name="t('Noch keine Buchungssätze')" :description="t('Legen Sie mit ‛Neue Buchung\' einen ersten Buchungssatz an.')">
 					<template #action>
 						<NcButton variant="tertiary" @click="$emit('help')">
 							{{ t('Mehr dazu') }}
@@ -253,7 +256,7 @@
 							type="button"
 							class="vbh-suggest-chip vbh-suggest-chip--big"
 							@click="applySuggestion(tx)">
-							{{ t('✓ Vorschlag übernehmen: {label}', { label: suggestionsById[tx.id].label }) }}
+							{{ tRaw('✓ Vorschlag übernehmen: {label}', { label: suggestionsById[tx.id].label }) }}
 						</button>
 						<template v-if="isSplitAssigned(tx)">
 							<span class="vbh-split-badge">{{ t('Aufgeteilt auf mehrere Konten') }}</span>
@@ -353,9 +356,9 @@
 											<button
 												v-if="canWrite && !tx.contraAccountId && suggestionsById[tx.id] && !isDateClosed(tx.bookingDate)"
 												class="vbh-suggest-chip"
-												:title="t('Vorschlag übernehmen: {label}', { label: suggestionsById[tx.id].label })"
+												:title="tRaw('Vorschlag übernehmen: {label}', { label: suggestionsById[tx.id].label })"
 												@click="applySuggestion(tx)">
-												{{ t('✓ Vorschlag: {label}', { label: suggestionsById[tx.id].label }) }}
+												{{ tRaw('✓ Vorschlag: {label}', { label: suggestionsById[tx.id].label }) }}
 											</button>
 											<button
 												v-if="canWrite && !isDateClosed(tx.bookingDate)"
@@ -429,11 +432,19 @@
 						:key="f.key"
 						type="button"
 						class="vbh-chip"
-						:class="{ active: openItemFilter === f.key }"
+						:class="{ active: activeOpenItemFilter === f.key }"
 						@click="openItemFilter = f.key">
-						{{ f.label }}
+						{{ f.label }}<span class="vbh-chip-count">{{ f.count }}</span>
 					</button>
 				</div>
+
+				<!-- Forderungen des Beitragsmoduls stehen hier nur zur Ansicht: ihre Regeln (Erledigungsvermerk, Storno nur vor
+				     der Einreichung, Erlass statt Löschen) setzt der Einzug-Reiter durch (Issue #121). -->
+				<p v-if="hasClaimRows" class="vbh-hint vbh-hint--info" role="note">
+					{{ membershipActive
+						? t('Forderungen an Mitglieder (Beitrag oder Gebühr) sehen Sie hier nur. Bearbeitet werden sie im Reiter „Beiträge“ unter Einzug, Segment „Forderungen“: als bezahlt vermerken, stunden, erlassen, stornieren.')
+						: t('Forderungen an Mitglieder (Beitrag oder Gebühr) sehen Sie hier nur; bearbeitet werden sie im Beitragsmodul.') }}
+				</p>
 
 				<div v-if="filteredOpenItems.length" class="vbh-tablecard">
 					<table class="vbh-table">
@@ -443,28 +454,33 @@
 								<th class="vbh-col-hide-sm">
 									{{ t('Notiz') }}
 								</th>
-								<th class="nowrap">
+								<th class="nowrap vbh-col-oi-due">
 									{{ t('Fällig') }}
 								</th>
-								<th class="num">
+								<th class="num vbh-col-oi-amount">
 									{{ t('Betrag') }}
 								</th>
-								<th class="vbh-col-hide-sm">
+								<th class="vbh-col-hide-sm vbh-col-oi-account">
 									{{ t('Konto') }}
 								</th>
-								<th>{{ t('Status') }}</th>
-								<th />
+								<th class="vbh-col-oi-status">
+									{{ t('Status') }}
+								</th>
+								<th class="vbh-col-memberactions" />
 							</tr>
 						</thead>
 						<tbody>
 							<tr v-for="o in filteredOpenItems" :key="o.id">
-								<td>{{ o.debtor }}</td>
+								<td>
+									{{ o.debtor }}
+									<span v-if="isClaim(o)" class="vbh-typetag">{{ claimTypeLabel(o.type) }}</span>
+								</td>
 								<td class="vbh-col-hide-sm vbh-purpose">
 									<span class="vbh-clamp">{{ o.description }}</span>
 								</td>
 								<td class="nowrap">
 									{{ o.dueDate ? formatDate(o.dueDate) : '–' }}
-									<span v-if="o.overdue" class="vbh-warn-inline">{{ t('überfällig') }}</span>
+									<span v-if="o.overdue" class="vbh-warn-inline vbh-warn-inline--block">{{ t('überfällig') }}</span>
 								</td>
 								<td class="num strong">
 									{{ formatMoney(o.amount) }}
@@ -475,7 +491,16 @@
 								<td><span class="vbh-typetag" :class="o.status">{{ openItemStatusLabel(o.status) }}</span></td>
 								<td class="right nowrap">
 									<div class="vbh-actions">
-										<template v-if="canWrite && o.status === 'open'">
+										<template v-if="isClaim(o)">
+											<NcButton
+												v-if="membershipActive"
+												variant="tertiary"
+												:aria-label="claimLinkLabel(o)"
+												@click="$emit('go-claims', o.memberId)">
+												{{ canWrite ? t('Im Einzug bearbeiten') : t('Im Einzug ansehen') }}
+											</NcButton>
+										</template>
+										<template v-else-if="canWrite && o.status === 'open'">
 											<NcButton variant="tertiary" @click="markOpenItemPaid(o)">
 												{{ t('Bezahlt') }}
 											</NcButton>
@@ -492,7 +517,7 @@
 						</tbody>
 					</table>
 				</div>
-				<NcEmptyContent v-else :name="t('Keine offenen Posten')" :description="t('Lege oben einen neuen offenen Posten an, z. B. einen unbezahlten Mitgliedsbeitrag.')" />
+				<NcEmptyContent v-else :name="t('Keine offenen Posten')" :description="t('Legen Sie oben einen neuen offenen Posten an, z. B. einen unbezahlten Mitgliedsbeitrag.')" />
 			</template>
 
 			<!-- REGELN -->
@@ -519,8 +544,10 @@ import { useOpenItems } from '../composables/useOpenItems.js'
 import { usePeriods } from '../composables/usePeriods.js'
 import { useSort } from '../composables/useSort.js'
 import { journalRowMatchesAccountFilter } from '../lib/accountFilter.js'
+import { claimTypeLabel } from '../lib/claims.js'
 import { bookingFlow, flowClass, flowLabel, formatFlowMoney, transactionFlow } from '../lib/flow.js'
 import { amountClass, errMsg, formatDate, formatMoney } from '../lib/format.js'
+import { openItemStatusLabel } from '../lib/openItems.js'
 import { isSelectableOption } from '../lib/selectOptions.js'
 
 export default {
@@ -531,6 +558,8 @@ export default {
 		// 'plain' | 'signed': Vorzeichen und Farbe am Betrag, siehe lib/flow.js
 		amountDisplay: { type: String, default: 'plain' },
 		bookingView: { type: String, required: true },
+		// Ob der Reiter „Beiträge“ da ist - nur dann führt der Hinweis an einer Forderung dorthin (Issue #121).
+		membershipActive: { type: Boolean, default: false },
 		attachmentCountMap: { type: Object, required: true },
 		// suggestionsById bleibt in App.vue berechnet (wird auch vom
 		// AccountPickerSheet-Flow dort gebraucht), hier nur als Prop gelesen.
@@ -548,7 +577,7 @@ export default {
 		applySuggestion: { type: Function, required: true },
 	},
 
-	emits: ['help', 'update:booking-view'],
+	emits: ['go-claims', 'help', 'update:booking-view'],
 
 	setup() {
 		const auth = useAuth()
@@ -569,6 +598,7 @@ export default {
 			...toRefs(openItemsC.state),
 			overdueOpenItemsCount: openItemsC.overdueCount,
 			loadOpenItems: openItemsC.loadOpenItems,
+			isClaim: openItemsC.isClaim,
 			// Sortierung aus dem gemeinsamen Zustand (dieselbe Einstellung nutzt
 			// die Saldenliste im Berichte-Tab), nicht mehr als Prop aus App.vue.
 			...useSort(),
@@ -591,12 +621,6 @@ export default {
 			journalOnlyNoAttachment: false,
 			openItemForm: { debtor: '', description: '', amount: '', dueDate: '', accountId: null },
 			openItemFilter: 'open',
-			openItemFilterOptions: [
-				{ key: 'open', label: this.t('Offen') },
-				{ key: 'paid', label: this.t('Bezahlt') },
-				{ key: 'cancelled', label: this.t('Storniert') },
-				{ key: 'all', label: this.t('Alle') },
-			],
 		}
 	},
 
@@ -747,10 +771,36 @@ export default {
 			set(v) { this.openItemForm.accountId = v ? v.id : null },
 		},
 
-		filteredOpenItems() {
-			if (this.openItemFilter === 'all') { return this.openItems }
-			return this.openItems.filter((o) => o.status === this.openItemFilter)
+		// Chips mit Zähler: „Überfällig“ (eine Teilmenge von „Offen“) und „Erlassen“
+		// (nur Forderungen) erscheinen erst, wenn es sie gibt. Der Reiter-Badge zählt
+		// genau die überfälligen; so lässt sich seine Zahl in der Liste nachvollziehen.
+		openItemFilterOptions() {
+			const count = (status) => this.openItems.filter((o) => o.status === status).length
+			const overdue = this.openItems.filter((o) => o.status === 'open' && o.overdue).length
+			return [
+				{ key: 'open', label: this.t('Offen'), count: count('open') },
+				...(overdue > 0 ? [{ key: 'overdue', label: this.t('Überfällig'), count: overdue }] : []),
+				{ key: 'paid', label: this.t('Bezahlt'), count: count('paid') },
+				...(count('waived') > 0 ? [{ key: 'waived', label: this.t('Erlassen'), count: count('waived') }] : []),
+				{ key: 'cancelled', label: this.t('Storniert'), count: count('cancelled') },
+				{ key: 'all', label: this.t('Alle'), count: this.openItems.length },
+			]
 		},
+
+		// Ein Filter, dessen Chip verschwunden ist (letzter überfälliger Posten
+		// bezahlt), fällt auf „Offen“ zurück statt auf eine leere Liste.
+		activeOpenItemFilter() {
+			return this.openItemFilterOptions.some((f) => f.key === this.openItemFilter) ? this.openItemFilter : 'open'
+		},
+
+		filteredOpenItems() {
+			const key = this.activeOpenItemFilter
+			if (key === 'all') { return this.openItems }
+			if (key === 'overdue') { return this.openItems.filter((o) => o.status === 'open' && o.overdue) }
+			return this.openItems.filter((o) => o.status === key)
+		},
+
+		hasClaimRows() { return this.filteredOpenItems.some((o) => this.isClaim(o)) },
 	},
 
 	watch: {
@@ -783,8 +833,12 @@ export default {
 			return tx.status === 'assigned' && !tx.contraAccountId
 		},
 
-		openItemStatusLabel(status) {
-			return { open: this.t('Offen'), paid: this.t('Bezahlt'), cancelled: this.t('Storniert') }[status] || status
+		openItemStatusLabel,
+		claimTypeLabel,
+
+		/** Zugänglicher Name des Sprung-Knopfs. Der Debitor steht nicht in einer t()-Variable (HTML-Escaping). */
+		claimLinkLabel(o) {
+			return `${this.canWrite ? this.t('Im Einzug bearbeiten') : this.t('Im Einzug ansehen')}: ${o.debtor}`
 		},
 
 		async createOpenItem() {

@@ -22,7 +22,7 @@
 				</div>
 				<NcLoadingIcon v-if="busy" :size="24" :name="t('Wird geladen…')" />
 			</div>
-			<div v-if="canRead" class="vbh-navbar" :class="{ 'vbh-navbar--mobile': isMobile }">
+			<div v-if="canRead || selfServiceAvailable" class="vbh-navbar" :class="{ 'vbh-navbar--mobile': isMobile }">
 				<nav v-if="!isMobile" class="vbh-tabs">
 					<button
 						v-for="tab in visibleTabs"
@@ -32,10 +32,12 @@
 						<NcIconSvgWrapper :path="tab.icon" :size="18" inline />
 						{{ tab.label }}
 						<span v-if="tab.id === 'bookings' && unassignedCount > 0" class="vbh-badge vbh-badge--alert">{{ unassignedCount }}</span>
-						<span v-if="tab.id === 'contributions' && overdueMembershipCount > 0" class="vbh-badge vbh-badge--alert">{{ overdueMembershipCount }}</span>
 					</button>
 				</nav>
-				<div class="vbh-navright">
+				<!-- Zeitraum/Buchung/Hilfe beziehen sich auf die Buchhaltung - fuer ein
+				     nur per Self-Service verknuepftes Konto (kein canRead) ergeben sie
+				     keinen Sinn, siehe "Mein Beitrag" (SelfServiceTab.vue). -->
+				<div v-if="canRead" class="vbh-navright">
 					<NcButton
 						v-if="canWrite && !isMobile"
 						variant="primary"
@@ -58,6 +60,7 @@
 							<option v-for="p in periods" :key="p.id" :value="p.id">{{ p.label }}{{ p.closedAt ? ' 🔒' : '' }}</option>
 						</select>
 					</label>
+					<TasksFlyout v-if="canWrite && membershipActive" @navigate="onTaskNavigate" />
 					<NcButton
 						variant="tertiary"
 						:aria-label="t('Hilfe')"
@@ -71,9 +74,13 @@
 			</div>
 		</header>
 
-		<div v-if="me && !canRead" class="vbh-noaccess">
+		<!-- "Kein Zugriff" nur ohne jede Berechtigung: ein verknuepftes,
+		     Self-Service-faehiges Konto ohne vbh-Rolle bekommt statt dessen den
+		     Bereich "Mein Beitrag" weiter unten (Spec §3.4 - ersetzt dieses
+		     Panel fuer genau diesen Fall). -->
+		<div v-if="me && !canRead && !selfServiceAvailable" class="vbh-noaccess">
 			<h3>{{ t('Kein Zugriff') }}</h3>
-			<p>{{ t('Du hast keine Berechtigung für die Vereinsbuchhaltung. Bitte wende dich an eine Verwalterin oder einen Verwalter.') }}</p>
+			<p>{{ t('Sie haben keine Berechtigung für die Vereinsbuchhaltung. Bitte wenden Sie sich an eine Verwalterin oder einen Verwalter.') }}</p>
 		</div>
 
 		<div v-if="demoActive" class="vbh-demobanner">
@@ -103,7 +110,7 @@
 			</div>
 		</div>
 
-		<main v-show="canRead" class="vbh-main">
+		<main v-show="canRead || selfServiceAvailable" class="vbh-main">
 			<!-- ============ ÜBERSICHT (DASHBOARD) ============ -->
 			<section v-show="activeTab === 'dashboard'" class="vbh-section scroll" :class="{ 'vbh-fadein': sectionFade }">
 				<DashboardTab
@@ -132,6 +139,7 @@
 					:isMobile="isMobile"
 					:amountDisplay="amountDisplay"
 					:bookingView="bookingView"
+					:membershipActive="membershipActive"
 					:attachmentCountMap="attachmentCountMap"
 					:suggestionsById="suggestionsById"
 					:openImport="openImport"
@@ -146,6 +154,7 @@
 					:openSplitAssign="openSplitAssign"
 					:applySuggestion="applySuggestion"
 					@update:bookingView="bookingView = $event"
+					@goClaims="goToClaims"
 					@help="openHelp('bookings')" />
 			</section>
 
@@ -214,25 +223,34 @@
 
 			<!-- ============ BEITRÄGE (MITGLIEDER + SEPA-SAMMELEINZUG) ============ -->
 			<section
-				v-if="canWrite && membershipActive"
+				v-if="canRead && membershipActive"
 				v-show="activeTab === 'contributions'"
 				class="vbh-section vbh-flex-col"
 				:class="{ 'vbh-fadein': sectionFade }">
 				<ContributionsTab
 					:contribView="contribView"
 					:isMobile="isMobile"
+					:canWrite="canWrite"
 					:defaultFeeAmount="defaultFeeAmount"
 					:defaultFeeFrequency="defaultFeeFrequency"
 					@update:contribView="contribView = $event" />
 			</section>
+
+			<!-- ============ MEIN BEITRAG (SELF-SERVICE) ============ -->
+			<section
+				v-if="selfServiceAvailable"
+				v-show="activeTab === 'self'"
+				class="vbh-section scroll"
+				:class="{ 'vbh-fadein': sectionFade }">
+				<SelfServiceTab />
+			</section>
 		</main>
 
 		<MobileNav
-			v-if="canRead && isMobile"
+			v-if="(canRead || selfServiceAvailable) && isMobile"
 			:tabs="visibleTabs"
 			:activeTab="activeTab"
 			:unassignedCount="unassignedCount"
-			:overdueMembershipCount="overdueMembershipCount"
 			:canWrite="canWrite"
 			@select="id => { activeTab = id }"
 			@newBooking="openNewBooking" />
@@ -372,7 +390,7 @@
 </template>
 
 <script>
-import { mdiAccountCashOutline, mdiChartBar, mdiFileTreeOutline, mdiHelpCircleOutline, mdiPlus, mdiPrinter, mdiSwapHorizontal, mdiViewDashboardOutline } from '@mdi/js'
+import { mdiAccountCashOutline, mdiCardAccountDetailsOutline, mdiChartBar, mdiFileTreeOutline, mdiHelpCircleOutline, mdiPlus, mdiPrinter, mdiSwapHorizontal, mdiViewDashboardOutline } from '@mdi/js'
 import { showError, showInfo, showSuccess, showUndo } from '@nextcloud/dialogs'
 import { generateUrl } from '@nextcloud/router'
 import {
@@ -395,8 +413,10 @@ import HelpModal from './components/HelpModal.vue'
 import ImportDialog from './components/ImportDialog.vue'
 import MobileNav from './components/MobileNav.vue'
 import ReportsTab from './components/ReportsTab.vue'
+import SelfServiceTab from './components/SelfServiceTab.vue'
 import SetupWizard from './components/SetupWizard.vue'
 import SplitAssignDialog from './components/SplitAssignDialog.vue'
+import TasksFlyout from './components/TasksFlyout.vue'
 import WhatsNewDialog from './components/WhatsNewDialog.vue'
 import api from './api.js'
 import { buildAccountOptions, useAccounts } from './composables/useAccounts.js'
@@ -405,16 +425,16 @@ import { useAuth } from './composables/useAuth.js'
 import { useBalances } from './composables/useBalances.js'
 import { useConfirm } from './composables/useConfirm.js'
 import { useCostCenters } from './composables/useCostCenters.js'
+import { useEinzugRequest } from './composables/useEinzugRequest.js'
 import { useJournal } from './composables/useJournal.js'
-import { useMembershipFees } from './composables/useMembershipFees.js'
+import { useMemberAkteRequest } from './composables/useMemberAkteRequest.js'
 import { useOpenItems } from './composables/useOpenItems.js'
 import { usePeriods } from './composables/usePeriods.js'
 import { usePermissions } from './composables/usePermissions.js'
 import { useRules } from './composables/useRules.js'
-import { useSepaBatches } from './composables/useSepaBatches.js'
-import { useSepaMandates } from './composables/useSepaMandates.js'
 import { useSort } from './composables/useSort.js'
 import { useSync } from './composables/useSync.js'
+import { useTasks } from './composables/useTasks.js'
 import { buildWhatsNewEntries, filterWhatsNewEntries } from './data/whatsNew.js'
 import { amountClass, budgetDiffClass, errMsg, formatDate, formatDateTime, formatMoney, typeLabel } from './lib/format.js'
 import { splitBalanced, splitRemainder, splitSideOf } from './lib/split.js'
@@ -453,6 +473,8 @@ const ROUTE_META = {
 	'reports-audit': { tab: 'reports', reportView: 'audit' },
 	contributions: { tab: 'contributions', contribView: 'members' },
 	'contributions-batch': { tab: 'contributions', contribView: 'batch' },
+	'contributions-groups': { tab: 'contributions', contribView: 'groups' },
+	self: { tab: 'self' },
 }
 
 /** Erkennungsmerkmal einer Datei, um dieselbe Auswahl nicht doppelt zu sammeln. */
@@ -476,10 +498,12 @@ export default {
 		BookingsTab,
 		ReportsTab,
 		ContributionsTab,
+		SelfServiceTab,
 		MobileNav,
 		AccountPickerSheet,
 		HelpModal,
 		SetupWizard,
+		TasksFlyout,
 		WhatsNewDialog,
 	},
 
@@ -495,9 +519,9 @@ export default {
 		const attachmentInbox = useAttachmentInbox()
 		const costCenters = useCostCenters()
 		const rulesC = useRules()
-		const membershipFees = useMembershipFees()
-		const sepaMandates = useSepaMandates()
-		const sepaBatches = useSepaBatches()
+		const memberAkteRequest = useMemberAkteRequest()
+		const einzugRequest = useEinzugRequest()
+		const tasks = useTasks()
 		return {
 			loadOpenItems: openItems.loadOpenItems,
 			loadCostCenters: costCenters.loadCostCenters,
@@ -507,15 +531,13 @@ export default {
 			...toRefs(rulesC.state),
 			loadRules: rulesC.loadRules,
 			// Reiter „Beiträge" (ContributionsTab.vue): MembersList.vue/
-			// SepaBatchPanel.vue laden ihre Daten selbst beim eigenen mounted(),
-			// hier nur die Kennzahl fuer den Reiter-Badge und die Nachlade-
-			// Funktionen fuer refreshAfterRemoteChange() (siehe dort).
-			overdueMembershipCount: membershipFees.overdueCount,
+			// EinzugPanel.vue laden ihre Daten selbst beim eigenen mounted().
 			...toRefs(attachmentInbox.state),
 			loadInboxSummary: attachmentInbox.loadInboxSummary,
-			loadMembershipFees: membershipFees.loadMembershipFees,
-			loadSepaMandates: sepaMandates.loadSepaMandates,
-			loadSepaBatches: sepaBatches.loadSepaBatches,
+			requestMemberAkte: memberAkteRequest.requestMemberAkte,
+			requestEinzugClaims: einzugRequest.requestClaims,
+			// Aufgaben-Flyout (TasksFlyout.vue): hier nur fuer refreshAfterRemoteChange().
+			loadTasks: tasks.loadTasks,
 			...toRefs(auth.state),
 			canRead: auth.canRead,
 			canWrite: auth.canWrite,
@@ -568,8 +590,13 @@ export default {
 				{ id: 'accounts', label: this.t('Konten'), need: 'read', icon: mdiFileTreeOutline },
 				{ id: 'reports', label: this.t('Berichte'), need: 'read', icon: mdiChartBar },
 				// Nur sichtbar, wenn das Beitragsmodul genutzt wird (visibleTabs
-				// unten) - fuer Verwalter und Buchhalter (siehe ContributionsTab.vue).
-				{ id: 'contributions', label: this.t('Beiträge'), need: 'write', icon: mdiAccountCashOutline },
+				// unten) - ab Revisor, der darin nur den Einzug-Unterreiter lesend
+				// sieht (Spec §3.9, siehe ContributionsTab.vue).
+				{ id: 'contributions', label: this.t('Beiträge'), need: 'read', icon: mdiAccountCashOutline },
+				// Self-Service (Spec §3.4): additiv neben dem Buchhaltungs-Tab bei
+				// Personalunion, unabhaengig von der vbh-Rolle - siehe
+				// selfServiceAvailable/visibleTabs unten und SelfServiceTab.vue.
+				{ id: 'self', label: this.t('Mein Beitrag'), need: 'self', icon: mdiCardAccountDetailsOutline },
 			],
 
 			bookingView: 'journal',
@@ -727,10 +754,20 @@ export default {
 				// Eigenes Zusatzmodul: ohne genutzte Beitragsverwaltung kein fuenfter
 				// Reiter, siehe NAVIGATION-KONZEPT.md Abschnitt 4.
 				if (t.id === 'contributions' && !this.membershipActive) { return false }
+				// "Mein Beitrag" folgt der Kontoverknuepfung, nicht der vbh-Rolle
+				// (Spec §3.4) - unabhaengig von canRead/canWrite/isAdmin.
+				if (t.need === 'self') { return this.selfServiceAvailable }
 				if (t.need === 'admin') { return this.isAdmin }
 				if (t.need === 'write') { return this.canWrite }
 				return this.canRead
 			})
+		},
+
+		// Ob der Bereich "Mein Beitrag" ueberhaupt zustande kommt: Backend prueft
+		// self_service_enabled UND Kontoverknuepfung gemeinsam (SelfServiceService),
+		// hier nur die vorgerechnete Auskunft aus permission#me uebernehmen.
+		selfServiceAvailable() {
+			return !!(this.me && this.me.selfService && this.me.selfService.available)
 		},
 
 		// Hilfe-Kapitel, das zum gerade aktiven Tab passt (HelpModal-Default)
@@ -976,7 +1013,11 @@ export default {
 				return { name: names[this.reportView] || 'reports', query }
 			}
 			if (this.activeTab === 'contributions') {
-				return { name: this.contribView === 'batch' ? 'contributions-batch' : 'contributions', query }
+				const contribNames = { batch: 'contributions-batch', groups: 'contributions-groups' }
+				return { name: contribNames[this.contribView] || 'contributions', query }
+			}
+			if (this.activeTab === 'self') {
+				return { name: 'self', query }
 			}
 			return { name: 'dashboard', query }
 		},
@@ -1086,6 +1127,7 @@ export default {
 			await this.applyRoute(this.$route)
 			this.routeReady = true
 			this.unwatchRoute = this.$router.afterEach((to) => this.applyRoute(to))
+			this.syncUrlAfterBoot()
 			if (this.isAdmin) {
 				// nicht awaiten, damit die Route/UI nicht auf die Berechtigungen wartet -
 				// aber die SetupChecklist (Punkt "Berechtigungen vergeben") erst zeigen,
@@ -1125,7 +1167,9 @@ export default {
 			if ((e.key === 'n' || e.key === 'N') && this.canWrite) {
 				e.preventDefault()
 				this.openNewBooking()
-			} else if (e.key === '/') {
+			} else if (e.key === '/' && this.canRead) {
+				// Ohne canRead (z. B. nur Self-Service) gibt es weder Buchungen
+				// noch eine Suche, die dieses Kürzel fokussieren könnte.
 				e.preventDefault()
 				if (this.activeTab === 'accounts') {
 					this.$el.querySelector('.vbh-treesearch input')?.focus()
@@ -1245,8 +1289,33 @@ export default {
 						if (row) { this.editBooking(row) } else { this.replaceKeepingPeriod(route.path) }
 					}
 				}
-			} else if (this.showBooking) {
+			} else if (this.showBooking && this.routeReady) {
+				// Nur nach dem ersten Abgleich: wer den Dialog geoeffnet hat, bevor die
+				// Start-URL ausgewertet war (Klick waehrend des Ladens), behaelt ihn -
+				// syncUrlAfterBoot() zieht die URL danach nach. Ein Vor/Zurueck ohne
+				// ?booking= schliesst ihn weiterhin.
 				this.closeBooking()
+			}
+		},
+
+		/**
+		 * Zieht die URL nach, wenn sich der Zustand schon vor dem ersten Abgleich
+		 * geaendert hat.
+		 *
+		 * Waehrend des Ladens (routeReady noch false) pusht der Watcher auf
+		 * vbhRouteLocation bewusst nicht - sonst ueberschriebe der Vorgabezustand
+		 * die Deep-Link-URL. Klickt jemand in dieser Zeit schon einen Reiter an oder
+		 * oeffnet den Buchungsdialog, bleibt die URL deshalb auf der Startseite, und
+		 * das Zurueck des Browsers, ein Reload oder ein geteilter Link passten nicht
+		 * zur Ansicht. Verglichen werden nur Pfad (= Reiter/Ansicht) und ?booking=;
+		 * der Zeitraum und andere Parameter hat der Erstabgleich schon aufgeloest.
+		 */
+		syncUrlAfterBoot() {
+			const target = this.$router.resolve(this.vbhRouteLocation)
+			const current = this.$route
+			const bookingOf = (r) => String((r.query && r.query.booking) || '')
+			if (target.path !== current.path || bookingOf(target) !== bookingOf(current)) {
+				this.$router.push(this.vbhRouteLocation)
 			}
 		},
 
@@ -1254,6 +1323,19 @@ export default {
 		replaceKeepingPeriod(path) {
 			const period = this.$route.query.period
 			this.$router.replace({ path, query: period !== undefined ? { period } : {} })
+		},
+
+		/**
+		 * Sprung aus dem Aufgaben-Flyout (TasksFlyout.vue): in den Beiträge-Reiter,
+		 * je nach Ziel auf die Mitgliederliste (mit geöffneter Akte) oder in den
+		 * Einzug-Unterreiter.
+		 *
+		 * @param {{ kind: 'member'|'members'|'batch', memberId?: number }} target Ziel laut lib/tasks.js::taskTarget()
+		 */
+		onTaskNavigate(target) {
+			this.activeTab = 'contributions'
+			this.contribView = target.kind === 'batch' ? 'batch' : 'members'
+			if (target.kind === 'member') { this.requestMemberAkte(target.memberId) }
 		},
 
 		goToUnassigned() {
@@ -1264,6 +1346,20 @@ export default {
 		goToOpenItems() {
 			this.activeTab = 'bookings'
 			this.bookingView = 'openitems'
+		},
+
+		/**
+		 * Sprung aus Buchungen → Offene Posten (BookingsTab.vue) von einer Forderung
+		 * des Beitragsmoduls in den Einzug-Unterreiter, Segment „Forderungen“, auf
+		 * die Forderungen ihres Mitglieds eingegrenzt (Issue #121): dort werden sie
+		 * bearbeitet, die generische Sicht zeigt sie nur.
+		 *
+		 * @param {number|null} memberId Mitglied der Forderung
+		 */
+		goToClaims(memberId) {
+			this.requestEinzugClaims(memberId)
+			this.activeTab = 'contributions'
+			this.contribView = 'batch'
 		},
 
 		// --- Kollaboration: Änderungen anderer Browser erkennen -------------
@@ -1305,9 +1401,8 @@ export default {
 			await this.loadPeriods()
 			const jobs = [this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions(), this.loadSphereReport(), this.loadOpenItems(), this.loadCostCenters()]
 			this.refreshInbox()
-			// Beitraege/Mandate/Einzuege: eigenes Zusatzmodul, ab Rolle Buchhalter
-			// (Backend-Gate) - siehe ContributionsTab.vue.
-			if (this.canWrite) { jobs.push(this.loadMembershipFees(), this.loadSepaMandates(), this.loadSepaBatches()) }
+			// Aufgaben-Flyout: eine Aenderung anderer Personen kann Aufgaben loesen/schaffen.
+			if (this.canWrite && this.membershipActive) { jobs.push(this.loadTasks()) }
 			if (this.activeTab === 'accounts' && this.selectedAccountId) { jobs.push(this.loadStatement(this.selectedAccountId)) }
 			if (this.activeTab === 'reports') {
 				if (this.reportView === 'costcenters') { jobs.push(this.loadReport()) } else if (this.reportView === 'budget') { jobs.push(this.loadBudget()) }
@@ -1535,7 +1630,7 @@ export default {
 			if (!fromAccountId || !toAccountId || fromAccountId === toAccountId) { return false }
 			try {
 				await api.reassignBooking(row.journalId, fromAccountId, toAccountId, row.updatedAt)
-				showSuccess(this.t('Buchung #{n} auf {account} umgebucht.', { n: row.entryNo, account: this.accountLabel(toAccountId) }))
+				showSuccess(this.tRaw('Buchung #{n} auf {account} umgebucht.', { n: row.entryNo, account: this.accountLabel(toAccountId) }))
 				await Promise.all([this.reloadStatement(), this.loadBalances(), this.loadJournal(), this.loadSphereReport()])
 				return true
 			} catch (e) {
@@ -1609,7 +1704,7 @@ export default {
 		async onImported() { await this.loadBalances(); await this.loadTransactions() },
 
 		async resetAll() {
-			if (!await this.askConfirm(this.t('Alle Daten löschen'), this.t('Wirklich ALLE Konten, Buchungen und Importe löschen?'))) { return }
+			if (!await this.askConfirm(this.t('Alle Daten löschen'), this.t('Wirklich ALLE Konten, Buchungen und Importe sowie den Einzug (Läufe, Rücklastschriften, Mahnstufen) löschen? Mitglieder, Mandate, Beitragsgruppen und Zuweisungen bleiben bestehen.'))) { return }
 			this.busy = true
 			try {
 				await api.reset(); showSuccess(this.t('Alle Daten gelöscht.'))
@@ -1631,7 +1726,7 @@ export default {
 				await api.seedDemo()
 				this.demoActive = true
 				await Promise.all([this.loadPeriods(), this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions()])
-				showSuccess(this.t('Beispielverein angelegt – schau dich gern um. Zum Starten mit echten Daten: Zurücksetzen.'))
+				showSuccess(this.t('Beispielverein angelegt – schauen Sie sich gern um. Zum Starten mit echten Daten: Zurücksetzen.'))
 			} catch (e) { showError(this.errMsg(e, this.t('Beispieldaten konnten nicht angelegt werden'))) } finally { this.busy = false }
 		},
 
@@ -1727,7 +1822,7 @@ export default {
 		},
 
 		async removeTransaction(tx) {
-			if (!await this.askConfirm(this.t('Umsatz löschen'), this.t('Umsatz über {amount} von/an „{counterparty}" endgültig löschen?', { amount: formatMoney(tx.amount), counterparty: tx.counterparty || '' }))) { return }
+			if (!await this.askConfirm(this.t('Umsatz löschen'), this.tRaw('Umsatz über {amount} von/an „{counterparty}" endgültig löschen?', { amount: formatMoney(tx.amount), counterparty: tx.counterparty || '' }))) { return }
 			try {
 				await api.deleteTransaction(tx.id)
 				await this.loadTransactions(); await this.loadBalances()
@@ -1812,7 +1907,7 @@ export default {
 			try {
 				await api.createRule({ matchField: 'counterparty', matchValue: value, contraAccountId: tx.contraAccountId })
 				await this.loadRules()
-				showSuccess(this.t('Regel angelegt: „{value}" wird künftig automatisch {account} zugeordnet.', { value, account: this.accountLabel(tx.contraAccountId) }))
+				showSuccess(this.tRaw('Regel angelegt: „{value}" wird künftig automatisch {account} zugeordnet.', { value, account: this.accountLabel(tx.contraAccountId) }))
 			} catch (e) { showError(this.errMsg(e, this.t('Regel konnte nicht angelegt werden'))) }
 		},
 
@@ -1857,9 +1952,9 @@ export default {
 			const ok = []
 			for (const file of files) {
 				if (file.type && !BELEG_MIMES.includes(file.type)) {
-					showError(this.t('{name}: Dieser Dateityp geht nicht – erlaubt sind PDF, JPG, PNG, GIF und WebP.', { name: file.name }))
+					showError(this.tRaw('{name}: Dieser Dateityp geht nicht – erlaubt sind PDF, JPG, PNG, GIF und WebP.', { name: file.name }))
 				} else if (file.size > BELEG_MAX_BYTES) {
-					showError(this.t('{name} ist zu groß – erlaubt sind höchstens 20 MB pro Beleg.', { name: file.name }))
+					showError(this.tRaw('{name} ist zu groß – erlaubt sind höchstens 20 MB pro Beleg.', { name: file.name }))
 				} else {
 					ok.push(file)
 				}
@@ -2086,7 +2181,7 @@ export default {
 			this.pendingFiles = failed
 			this.afterAttachmentsChanged()
 			if (failed.length) {
-				showError(this.t('Die Buchung steht, aber diese Belege kamen nicht an: {names} ({grund}). Sie warten weiter im Dialog.', {
+				showError(this.tRaw('Die Buchung steht, aber diese Belege kamen nicht an: {names} ({grund}). Sie warten weiter im Dialog.', {
 					names: failed.map((f) => f.name).join(', '),
 					grund: this.errMsg(lastError, this.t('Upload fehlgeschlagen')),
 				}))
@@ -2402,7 +2497,7 @@ export default {
 		},
 
 		async deleteAccount(acc) {
-			if (!await this.askConfirm(this.t('Konto löschen'), this.t('Konto "{number} {name}" löschen?', { number: acc.number, name: acc.name }))) { return }
+			if (!await this.askConfirm(this.t('Konto löschen'), this.tRaw('Konto "{number} {name}" löschen?', { number: acc.number, name: acc.name }))) { return }
 			try {
 				await api.deleteAccount(acc.id)
 				if (this.selectedAccountId === acc.id) { this.selectedAccountId = null; this.statement = null }
@@ -2416,7 +2511,7 @@ export default {
 				await api.setOpening(acc.id, Number(form.amount) || 0, form.date || null)
 				await this.loadAccounts(); await this.loadBalances(); await this.loadSphereReport()
 				if (this.selectedAccountId === acc.id) { await this.loadStatement(acc.id) }
-				showSuccess(this.t('Eröffnungssaldo für {name} gespeichert.', { name: acc.name }))
+				showSuccess(this.tRaw('Eröffnungssaldo für {name} gespeichert.', { name: acc.name }))
 			} catch (e) { showError(this.errMsg(e, this.t('Eröffnungssaldo konnte nicht gespeichert werden'))) }
 		},
 

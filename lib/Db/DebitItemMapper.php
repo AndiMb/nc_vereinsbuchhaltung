@@ -1,0 +1,180 @@
+<?php
+
+declare(strict_types=1);
+
+namespace OCA\Vereinsbuchhaltung\Db;
+
+use OCP\AppFramework\Db\QBMapper;
+use OCP\DB\QueryBuilder\IQueryBuilder;
+use OCP\IDBConnection;
+
+/**
+ * @extends QBMapper<DebitItem>
+ */
+class DebitItemMapper extends QBMapper {
+	public function __construct(IDBConnection $db) {
+		parent::__construct($db, 'vbh_debit_items', DebitItem::class);
+	}
+
+	public function find(int $id): DebitItem {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('id', $qb->createNamedParameter($id, IQueryBuilder::PARAM_INT)));
+		return $this->findEntity($qb);
+	}
+
+	/**
+	 * Mehrere Einzugsposten in einer Abfrage – der Bankabgleich (Issue #105)
+	 * braucht die Posten aller Vorschläge einer Arbeitsliste auf einmal.
+	 *
+	 * @param list<int> $ids
+	 * @return array<int,DebitItem> Posten-ID => Posten (fehlende IDs fehlen auch hier)
+	 */
+	public function findByIds(array $ids): array {
+		$found = [];
+		foreach (array_chunk(array_values(array_unique($ids)), 1000) as $chunk) {
+			$qb = $this->db->getQueryBuilder();
+			$qb->select('*')
+				->from($this->getTableName())
+				->where($qb->expr()->in('id', $qb->createNamedParameter($chunk, IQueryBuilder::PARAM_INT_ARRAY)));
+			foreach ($this->findEntities($qb) as $item) {
+				$found[(int)$item->getId()] = $item;
+			}
+		}
+		return $found;
+	}
+
+	/** @return DebitItem[] Einfügereihenfolge, damit Vorschau/pain.008 deterministisch bleiben */
+	public function findByBatch(int $batchId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('batch_id', $qb->createNamedParameter($batchId, IQueryBuilder::PARAM_INT)))
+			->orderBy('id', 'ASC');
+		return $this->findEntities($qb);
+	}
+
+	/**
+	 * Matching Stufe 1 (Spec §5, Issue #72): `end_to_end_id` exakt. Der
+	 * Unique-Index auf der Spalte (Migration 000143) macht das Ergebnis von
+	 * Natur aus eindeutig.
+	 */
+	public function findByEndToEndId(string $endToEndId): ?DebitItem {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('end_to_end_id', $qb->createNamedParameter($endToEndId)));
+		try {
+			return $this->findEntity($qb);
+		} catch (\OCP\AppFramework\Db\DoesNotExistException|\OCP\AppFramework\Db\MultipleObjectsReturnedException) {
+			return null;
+		}
+	}
+
+	/**
+	 * Matching Stufe 3 (Spec §5, Issue #72): "Betrag + Zahler-IBAN unter
+	 * offenen Posten, nur bei Rückgabe-Signal" - schwächste Stufe, deshalb
+	 * bewusst ohne Eingrenzung auf einen Lauf (eine Rücklastschrift kann
+	 * Wochen nach der Einreichung eintreffen).
+	 *
+	 * @return DebitItem[]
+	 */
+	public function findByAmountAndIban(int $amountCents, string $iban): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('amount_cents', $qb->createNamedParameter($amountCents, IQueryBuilder::PARAM_INT)))
+			->andWhere($qb->expr()->eq('iban', $qb->createNamedParameter($iban)))
+			->orderBy('id', 'DESC');
+		return $this->findEntities($qb);
+	}
+
+	/** @return DebitItem[] */
+	public function findByMandate(int $mandateId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('mandate_id', $qb->createNamedParameter($mandateId, IQueryBuilder::PARAM_INT)))
+			->orderBy('id', 'DESC');
+		return $this->findEntities($qb);
+	}
+
+	/**
+	 * Status des lebenden (`freigegeben`/`eingereicht`, nicht `verworfen`)
+	 * Laufs, in dem diese Forderung steckt – oder null, wenn sie in keinem
+	 * lebenden Lauf ist. Grundlage der Storno-Regel „nur vor Einreichung" (Spec
+	 * §2.2/§3.6, {@see \OCA\Vereinsbuchhaltung\Service\ClaimService::cancel()}).
+	 * Eine Forderung hat höchstens einen Einzugsposten in einem lebenden Lauf,
+	 * die Abfrage ist deshalb eindeutig.
+	 */
+	public function findLiveBatchStatusByOpenItem(int $openItemId): ?string {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('b.status')
+			->from($this->getTableName(), 'i')
+			->innerJoin('i', 'vbh_debit_batches', 'b', $qb->expr()->eq('i.batch_id', 'b.id'))
+			->where($qb->expr()->eq('i.open_item_id', $qb->createNamedParameter($openItemId, IQueryBuilder::PARAM_INT)))
+			->andWhere($qb->expr()->neq('b.status', $qb->createNamedParameter(DebitBatch::STATUS_DISCARDED)))
+			->setMaxResults(1);
+		$result = $qb->executeQuery();
+		$status = $result->fetchOne();
+		$result->closeCursor();
+		return $status === false ? null : (string)$status;
+	}
+
+	/**
+	 * Alle Einzugsposten in lebenden (`freigegeben`/`eingereicht`) Läufen – die
+	 * Grundlage der lesenden Forderungsübersicht (Issue #104), die für jede
+	 * Forderung ihren Zustand im Einzug braucht und dafür nicht je Forderung
+	 * fragen soll.
+	 *
+	 * @return DebitItem[]
+	 */
+	public function findAllInLiveBatches(): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('i.*')
+			->from($this->getTableName(), 'i')
+			->innerJoin('i', 'vbh_debit_batches', 'b', $qb->expr()->eq('i.batch_id', 'b.id'))
+			->where($qb->expr()->neq('b.status', $qb->createNamedParameter(DebitBatch::STATUS_DISCARDED)))
+			->orderBy('i.id', 'ASC');
+		return $this->findEntities($qb);
+	}
+
+	/**
+	 * Die `open_item_id`s aller Forderungen, die gerade in einem lebenden
+	 * (`freigegeben`/`eingereicht`, also nicht `verworfen`) Lauf stecken – eine
+	 * Forderung hat laut Spec §2.2 „höchstens einen Einzugsposten", diese
+	 * Abfrage ist die Durchsetzung davon:
+	 * {@see \OCA\Vereinsbuchhaltung\Service\DebitBatchService::release()}
+	 * schließt sie von einem neuen Lauf aus, ein `verworfen`er Lauf gibt seine
+	 * Forderungen automatisch wieder frei, einfach weil sein Status hier nicht
+	 * mehr mitzählt (keine Änderung an `vbh_open_items` nötig).
+	 *
+	 * @return list<int>
+	 */
+	public function findOpenItemIdsInLiveBatches(): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('i.open_item_id')
+			->from($this->getTableName(), 'i')
+			->innerJoin('i', 'vbh_debit_batches', 'b', $qb->expr()->eq('i.batch_id', 'b.id'))
+			->where($qb->expr()->neq('b.status', $qb->createNamedParameter(DebitBatch::STATUS_DISCARDED)));
+		$result = $qb->executeQuery();
+		$ids = [];
+		while (($row = $result->fetch()) !== false) {
+			$ids[] = (int)$row['open_item_id'];
+		}
+		$result->closeCursor();
+		return $ids;
+	}
+
+	/**
+	 * Beim Zurücksetzen (siehe {@see \OCA\Vereinsbuchhaltung\Service\ContributionResetService}):
+	 * der Posten ist der Schnappschuss einer Forderung samt IBAN und
+	 * Kontoinhaber – ohne die Forderung ist er personenbezogener Rest ohne
+	 * Bezug.
+	 */
+	public function deleteAll(): void {
+		$qb = $this->db->getQueryBuilder();
+		$qb->delete($this->getTableName())->executeStatement();
+	}
+}

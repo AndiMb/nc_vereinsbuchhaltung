@@ -18,6 +18,7 @@ use OCA\Vereinsbuchhaltung\Service\CostCenterService;
 use OCA\Vereinsbuchhaltung\Service\IbanValidator;
 use OCA\Vereinsbuchhaltung\Service\OpeningBalanceService;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
+use OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportSettingsService;
 use OCA\Vereinsbuchhaltung\Service\SepaDebtorAccountService;
 use OCA\Vereinsbuchhaltung\Service\Statement\RowNormalizer;
 use OCP\IL10N;
@@ -172,6 +173,7 @@ class AccountCategoryTest extends TestCase {
 			$this->createMock(AuditService::class),
 			$this->createMock(IbanValidator::class),
 			$this->createMock(SepaDebtorAccountService::class),
+			$this->createMock(SepaImportSettingsService::class),
 			$this->createMock(IL10N::class),
 		);
 	}

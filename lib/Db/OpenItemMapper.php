@@ -21,6 +21,9 @@ class OpenItemMapper extends QBMapper {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')
 			->from($this->getTableName())
+			// Beitragsfreie Perioden (0 €, siehe ClaimGenerationService) sind nur Buchführung des
+			// Tageslaufs, keine Forderung, die jemand sehen oder bearbeiten müsste.
+			->where($qb->expr()->gt('amount_cents', $qb->createNamedParameter(0, IQueryBuilder::PARAM_INT)))
 			->orderBy('due_date', 'ASC')
 			->addOrderBy('id', 'DESC');
 		return $this->findEntities($qb);
@@ -35,6 +38,26 @@ class OpenItemMapper extends QBMapper {
 	}
 
 	/**
+	 * Mehrere offene Posten in einer Abfrage (Bankabgleich, Issue #105).
+	 *
+	 * @param list<int> $ids
+	 * @return array<int,OpenItem> Posten-ID => Posten (fehlende IDs fehlen auch hier)
+	 */
+	public function findByIds(array $ids): array {
+		$found = [];
+		foreach (array_chunk(array_values(array_unique($ids)), 1000) as $chunk) {
+			$qb = $this->db->getQueryBuilder();
+			$qb->select('*')
+				->from($this->getTableName())
+				->where($qb->expr()->in('id', $qb->createNamedParameter($chunk, IQueryBuilder::PARAM_INT_ARRAY)));
+			foreach ($this->findEntities($qb) as $item) {
+				$found[(int)$item->getId()] = $item;
+			}
+		}
+		return $found;
+	}
+
+	/**
 	 * Löscht alle offenen Posten. Anders als die übrigen Tabellen trägt
 	 * `vbh_open_items` keine `user_id` – die Liste gehört wie der restliche
 	 * Datenbestand dem gemeinsamen Vereins-Nutzer, daher ohne Filter.
@@ -46,46 +69,94 @@ class OpenItemMapper extends QBMapper {
 	}
 
 	/**
-	 * Offene Posten mit verknüpftem SEPA-Mandat – die Auswahlmenge für den
-	 * SEPA-Export (siehe SepaBatchService). Alle anderen offenen Posten
-	 * bleiben davon unberührt (mandate_id ist NULL, siehe OpenItem-Docblock).
+	 * Alle Forderungen im Sinne von Issue #68 (memberId+type gesetzt), für die
+	 * „Offene-Posten-Sicht" (Spec §3.9, revisor+). Bewusst getrennt von
+	 * findAll(): die alten Freitext-Posten (OpenItemService) sollen dort nicht
+	 * mit auftauchen, und umgekehrt.
 	 *
-	 * @param string|null $dueBy nur Posten, die bis zu diesem Tag fällig sind.
-	 *                           Ohne Eingrenzung stünde ein Beitrag, der erst nächstes Jahr fällig
-	 *                           wird, heute schon zum Einzug bereit – die App verspricht an drei
-	 *                           Stellen etwas anderes („fällige offene Posten").
-	 *                           Posten ohne Fälligkeitsdatum gelten als sofort fällig, so wie sie
-	 *                           auch in der Überfälligkeitsrechnung behandelt werden.
 	 * @return OpenItem[]
 	 */
-	public function findOpenWithMandate(?string $dueBy = null): array {
+	public function findClaims(): array {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')
 			->from($this->getTableName())
-			->where($qb->expr()->eq('status', $qb->createNamedParameter('open')))
-			->andWhere($qb->expr()->isNotNull('mandate_id'));
-		if ($dueBy !== null) {
-			$qb->andWhere($qb->expr()->orX(
-				$qb->expr()->isNull('due_date'),
-				$qb->expr()->lte('due_date', $qb->createNamedParameter($dueBy)),
-			));
-		}
-		$qb->orderBy('due_date', 'ASC');
+			->where($qb->expr()->isNotNull('member_id'))
+			->andWhere($qb->expr()->isNotNull('type'))
+			// Ohne beitragsfreie Perioden (0 €), siehe findAll().
+			->andWhere($qb->expr()->gt('amount_cents', $qb->createNamedParameter(0, IQueryBuilder::PARAM_INT)))
+			->orderBy('due_date', 'ASC')
+			->addOrderBy('id', 'DESC');
+		return $this->findEntities($qb);
+	}
+
+	/** @return OpenItem[] */
+	public function findByMember(int $memberId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('member_id', $qb->createNamedParameter($memberId, IQueryBuilder::PARAM_INT)))
+			->orderBy('due_date', 'ASC');
+		return $this->findEntities($qb);
+	}
+
+	/** @return OpenItem[] */
+	public function findByAssignment(int $assignmentId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('assignment_id', $qb->createNamedParameter($assignmentId, IQueryBuilder::PARAM_INT)))
+			->orderBy('period_start', 'ASC');
 		return $this->findEntities($qb);
 	}
 
 	/**
-	 * Offene Posten, die auf ein Mandat verweisen – gebraucht, um zu
-	 * entscheiden, ob sich ein Mandat noch löschen lässt
-	 * (SepaMandateService::delete()).
+	 * Forderungen, deren Vorabinfo noch aussteht: offen, nicht storniert, mit
+	 * Fälligkeitsdatum, `prenotified_at` noch NULL, fällig bis spätestens
+	 * `$until` (Issue #70, D−14-Vorlauf). Die Prüfung, ob die Forderung
+	 * überhaupt lastschriftfähig ist (Zahlungsart, Mandat), macht bewusst
+	 * nicht diese Abfrage, sondern
+	 * {@see \OCA\Vereinsbuchhaltung\Service\DirectDebitEligibilityResolver} -
+	 * das braucht Zuweisung/Mandat, die diese Tabelle nicht kennt.
 	 *
 	 * @return OpenItem[]
 	 */
-	public function findByMandate(int $mandateId): array {
+	public function findClaimsAwaitingPrenotification(string $until): array {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')
 			->from($this->getTableName())
-			->where($qb->expr()->eq('mandate_id', $qb->createNamedParameter($mandateId, IQueryBuilder::PARAM_INT)));
+			->where($qb->expr()->isNotNull('member_id'))
+			->andWhere($qb->expr()->isNotNull('type'))
+			->andWhere($qb->expr()->eq('status', $qb->createNamedParameter('open')))
+			->andWhere($qb->expr()->isNull('cancelled_at'))
+			->andWhere($qb->expr()->isNull('prenotified_at'))
+			->andWhere($qb->expr()->isNotNull('due_date'))
+			->andWhere($qb->expr()->lte('due_date', $qb->createNamedParameter($until)))
+			->orderBy('due_date', 'ASC');
+		return $this->findEntities($qb);
+	}
+
+	/**
+	 * Alle (noch offenen, nicht stornierten) Forderungen mit Fälligkeit genau
+	 * `$dueDate` – die „rein als Abfrage" gebündelte Sicht auf einen Lauf
+	 * (Issue #70/Spec §3.5: „Ein Lauf bündelt Forderungen aller Turnusse …
+	 * plus manuelle Einzelforderungen und Prorata-Erstforderungen mit diesem
+	 * Termin"). Weil {@see \OCA\Vereinsbuchhaltung\Service\ClaimGenerationService}
+	 * jede Forderung – Turnus, manuell oder Prorata-Erstforderung – gleich als
+	 * Zeile mit `due_date` anlegt, ist das Bündeln hier nichts weiter als
+	 * dieser einfache Datumsfilter.
+	 *
+	 * @return OpenItem[]
+	 */
+	public function findClaimsDueOn(string $dueDate): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->isNotNull('member_id'))
+			->andWhere($qb->expr()->isNotNull('type'))
+			->andWhere($qb->expr()->eq('status', $qb->createNamedParameter('open')))
+			->andWhere($qb->expr()->isNull('cancelled_at'))
+			->andWhere($qb->expr()->eq('due_date', $qb->createNamedParameter($dueDate)))
+			->orderBy('id', 'ASC');
 		return $this->findEntities($qb);
 	}
 

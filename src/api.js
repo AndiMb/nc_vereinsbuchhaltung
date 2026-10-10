@@ -115,34 +115,169 @@ export default {
 	reopenOpenItem: (id) => axios.post(url(`/open-items/${id}/reopen`)),
 	deleteOpenItem: (id) => axios.delete(url(`/open-items/${id}`)),
 
-	// SEPA-Lastschriftmandate (optionales Zusatzmodul)
-	listSepaMandates: () => axios.get(url('/sepa/mandates')),
-	createSepaMandate: (data) => axios.post(url('/sepa/mandates'), data),
-	updateSepaMandate: (id, data) => axios.put(url(`/sepa/mandates/${id}`), data),
-	revokeSepaMandate: (id) => axios.post(url(`/sepa/mandates/${id}/revoke`)),
-	changeSepaMandateBankAccount: (id, data) => axios.post(url(`/sepa/mandates/${id}/change-account`), data),
-	deleteSepaMandate: (id) => axios.delete(url(`/sepa/mandates/${id}`)),
+	// Mitglieder-Stammdaten (Spec §2.2, docs/beitraege-sepa-modul-spec.md)
+	listMembers: () => axios.get(url('/members')),
+	getMember: (id) => axios.get(url(`/members/${id}`)),
+	createMember: (data) => axios.post(url('/members'), data),
+	updateMember: (id, data) => axios.put(url(`/members/${id}`), data),
+	deleteMember: (id) => axios.delete(url(`/members/${id}`)),
+	leaveMember: (id, leftAt) => axios.post(url(`/members/${id}/leave`), { leftAt }),
+	reactivateMember: (id) => axios.post(url(`/members/${id}/reactivate`)),
+	memberLinkSuggestions: (id) => axios.get(url(`/members/${id}/link-suggestions`)),
+	linkMember: (id, ncUserId) => axios.post(url(`/members/${id}/link`), { ncUserId }),
+	unlinkMember: (id) => axios.post(url(`/members/${id}/unlink`)),
 
-	// Mitgliedsbeiträge mit Zahlungsfrequenz (optionales Zusatzmodul)
-	listMembershipFees: () => axios.get(url('/sepa/fees')),
-	createMembershipFee: (data) => axios.post(url('/sepa/fees'), data),
-	updateMembershipFee: (id, data) => axios.put(url(`/sepa/fees/${id}`), data),
-	deleteMembershipFee: (id) => axios.delete(url(`/sepa/fees/${id}`)),
-	catchUpMembershipFee: (id) => axios.post(url(`/sepa/fees/${id}/catch-up`)),
+	// DSGVO-Anonymisierung (Issue #78, Spec §3.8): Reife-Anzeige + manuelle,
+	// irreversible Bestätigung je Mitglied.
+	memberAnonymizationStatus: (id) => axios.get(url(`/members/${id}/anonymization`)),
+	anonymizeMember: (id) => axios.post(url(`/members/${id}/anonymize`)),
+
+	// Aufgaben/Störfälle
+	listTasks: () => axios.get(url('/tasks')),
+
+	// SEPA-Mandate, voller Lifecycle (Issue #66/#67); genutzt vom
+	// Aufnahme-Assistenten (MemberDialog.vue, Issue #69), für die Zeilen der
+	// Mitgliederliste (MembersList.vue) und die Mandat-Verwaltung in der Akte.
+	listMandates: () => axios.get(url('/mandates')),
+	createMandate: (data) => axios.post(url('/mandates'), data),
+	activateMandate: (id, signedAt) => axios.post(url(`/mandates/${id}/activate`), signedAt ? { signedAt } : {}),
+	createMandateElectronic: (data) => axios.post(url('/mandates/electronic'), data),
+	sendMandateActivationLink: (id) => axios.post(url(`/mandates/${id}/send-activation-link`)),
+
+	// Mandat-Verwaltung in der Mitglieder-Akte (Issue #100, MandatePanel.vue):
+	// gesamte Historie eines Mitglieds, Einzelansicht mit Ereignishistorie/
+	// Amendments/Link-Status und die Schreibaktionen des Lifecycles.
+	mandatesByMember: (memberId) => axios.get(url(`/mandates/by-member/${memberId}`)),
+	getMandate: (id) => axios.get(url(`/mandates/${id}`)),
+	suspendMandate: (id, note) => axios.post(url(`/mandates/${id}/suspend`), { note }),
+	resumeMandate: (id, note) => axios.post(url(`/mandates/${id}/resume`), { note }),
+	revokeMandate: (id) => axios.post(url(`/mandates/${id}/revoke`)),
+	amendMandateBankDetails: (id, iban, bic) => axios.post(url(`/mandates/${id}/amend-bank-details`), { iban, bic: bic || null }),
+	correctMandateAccountHolder: (id, accountHolder) => axios.post(url(`/mandates/${id}/correct-name`), { accountHolder }),
+	replaceMandate: (id, data) => axios.post(url(`/mandates/${id}/replace`), data),
+	// Issue #118: Entwurf korrigieren (ohne Amendment) bzw. mit Pflicht-Notiz verwerfen
+	correctMandateDraft: (id, data) => axios.post(url(`/mandates/${id}/correct-draft`), data),
+	discardMandateDraft: (id, note) => axios.post(url(`/mandates/${id}/discard-draft`), { note }),
+	reopenMandateAmendment: (amendmentId) => axios.post(url(`/mandates/amendments/${amendmentId}/reopen`)),
+	uploadMandateDocument: (id, formData) => axios.post(url(`/mandates/${id}/document`), formData),
+	// Nachweis-Download und druckfertiges Formular: Browser-Navigation, kein Axios
+	mandateDocumentUrl: (id) => generateUrl(base + `/mandates/${id}/document`),
+	mandateFormUrl: (id) => generateUrl(base + `/mandates/${id}/form`),
+
+	// Beitragsgruppen (Issue #68)
+	listContributionGroups: () => axios.get(url('/contribution-groups')),
+	createContributionGroup: (data) => axios.post(url('/contribution-groups'), data),
+	updateContributionGroup: (id, data) => axios.put(url(`/contribution-groups/${id}`), data),
+	deleteContributionGroup: (id) => axios.delete(url(`/contribution-groups/${id}`)),
+	previewMinAmountIncrease: (id, newMinMonthlyAmount) => axios.get(url(`/contribution-groups/${id}/min-amount-preview`), { params: { newMinMonthlyAmount } }),
+	applyMinAmountIncrease: (id, newMinMonthlyAmount) => axios.post(url(`/contribution-groups/${id}/min-amount-increase`), { newMinMonthlyAmount }),
+
+	// Zuweisungen (Issue #68)
+	listAssignments: (memberId) => axios.get(url('/assignments'), { params: memberId ? { memberId } : {} }),
+	createAssignment: (data) => axios.post(url('/assignments'), data),
+	previewNewAssignment: (data) => axios.post(url('/assignments/preview'), data),
+	previewAssignmentChange: (id, data) => axios.post(url(`/assignments/${id}/preview-change`), data),
+	updateAssignment: (id, data) => axios.put(url(`/assignments/${id}`), data),
+	setAssignmentMinAmountOverride: (id, data) => axios.post(url(`/assignments/${id}/min-amount-override`), data),
+	endAssignment: (id, validTo) => axios.post(url(`/assignments/${id}/end`), { validTo }),
+	assignmentEvents: (id) => axios.get(url(`/assignments/${id}/events`)),
+
+	// Forderungen inkl. manueller Einzelforderung (Issue #68)
+	listClaims: () => axios.get(url('/claims')),
+	createClaim: (data) => axios.post(url('/claims'), data),
+	settleClaim: (id, settlementType, note) => axios.post(url(`/claims/${id}/settle`), { settlementType, note: note || undefined }),
+	cancelClaim: (id, reason) => axios.post(url(`/claims/${id}/cancel`), { reason }),
+	deferClaim: (id, deferredUntil, reason) => axios.post(url(`/claims/${id}/defer`), { deferredUntil, reason }),
+	undeferClaim: (id) => axios.post(url(`/claims/${id}/undefer`)),
+	// Forderungsübersicht des Einzug-Unterreiters (Issue #104): Zustand, Mahnstand, Einzug, Rücklastschrift, Störfälle
+	claimOverview: () => axios.get(url('/claims/overview')),
+
+	// Terminplan & Einzugszyklus-Einstellungen (Issue #70)
+	loadDueDateSchedule: () => axios.get(url('/due-date-schedule')),
+	setDueDateScheduleDefaultDay: (intervalMonths, offsetDays) => axios.post(url(`/due-date-schedule/${intervalMonths}/default-day`), { offsetDays }),
+	setDueDateScheduleOverride: (intervalMonths, periodIndex, offsetDays) => axios.post(url(`/due-date-schedule/${intervalMonths}/overrides/${periodIndex}`), { offsetDays }),
+	setDueDateScheduleLeadDays: (data) => axios.post(url('/due-date-schedule/lead-days'), data),
+
+	// Einstellungen des Beitrags-/SEPA-Moduls (Issue #101, ab Verwalter):
+	// Freigabe-Vorlauf + XML-Ablage, Konten der Rücklastschrift-Verbuchung
+	getDebitBatchSettings: () => axios.get(url('/debit-batches/settings')),
+	saveDebitBatchSettings: (data) => axios.post(url('/debit-batches/settings'), data),
+	getSepaImportSettings: () => axios.get(url('/sepa-import/settings')),
+	saveSepaImportSettings: (data) => axios.post(url('/sepa-import/settings'), data),
+
+	// Mandats-Rechtstext (Issue #101, Spec §3.11): Pflichtblock + Rahmen getrennt, neue Fassung, Verlauf
+	getMandateLegalText: () => axios.get(url('/mandate-legal-text')),
+	getMandateLegalTextHistory: () => axios.get(url('/mandate-legal-text/history')),
+	saveMandateLegalText: (rahmen) => axios.post(url('/mandate-legal-text'), { rahmen }),
+
+	// Einzug-Unterreiter, lesend ab Revisor (Issue #102): Zeitstrahl, Vorschau
+	// (Geisterkarte, vor der Freigabe existiert kein Lauf) und Läufe.
+	debitTimeline: (year) => axios.get(url('/debit-batches/timeline'), { params: year ? { year } : {} }),
+	debitPreview: (dueDate) => axios.get(url('/debit-batches/preview'), { params: { dueDate } }),
+	listDebitBatches: () => axios.get(url('/debit-batches')),
+	getDebitBatch: (id) => axios.get(url(`/debit-batches/${id}`)),
+
+	// Freigabe, Einreichung, Verwerfen und Terminverschiebung (Issue #103, ab Buchhalter).
+	// Der XML-Download ist ein per Link geöffneter GET (Browser-Navigation, kein Axios);
+	// der Endpunkt trägt dafür #[NoCSRFRequired].
+	releaseDebitBatch: (dueDate) => axios.post(url('/debit-batches'), { dueDate }),
+	submitDebitBatch: (id) => axios.post(url(`/debit-batches/${id}/submit`)),
+	discardDebitBatch: (id, reason) => axios.post(url(`/debit-batches/${id}/discard`), { reason }),
+	rescheduleDebitBatch: (id, dueDate) => axios.post(url(`/debit-batches/${id}/reschedule`), { dueDate }),
+	debitBatchXmlUrl: (id) => generateUrl(base + `/debit-batches/${id}/xml`),
+
+	// Bankabgleich im Einzug-Unterreiter (Issue #105): Arbeitsliste und Vorschau lesend ab Revisor,
+	// Urteile (zuordnen, ablehnen, nicht zuordenbar), Verbuchen und Zahlungseingang ab Buchhalter.
+	bankReconciliation: () => axios.get(url('/bank-reconciliation')),
+	bankReconciliationPreview: (bankTxId) => axios.get(url(`/bank-reconciliation/${bankTxId}/preview`)),
+	assignSepaDetail: (detailId, debitItemId) => axios.post(url(`/sepa-import/details/${detailId}/assign`), { debitItemId }),
+	rejectSepaDetail: (detailId) => axios.post(url(`/sepa-import/details/${detailId}/reject`)),
+	markSepaDetailUnmatched: (detailId) => axios.post(url(`/sepa-import/details/${detailId}/unmatched`)),
+	settleSepaImport: (bankTxId) => axios.post(url(`/sepa-import/${bankTxId}/settle`)),
+	confirmIncomingPayment: (bankTxId, openItemId) => axios.post(url(`/sepa-import/${bankTxId}/incoming-payment-suggestions/${openItemId}`)),
+	rejectIncomingPayment: (bankTxId, openItemId) => axios.post(url(`/bank-reconciliation/${bankTxId}/incoming-payment-suggestions/${openItemId}/reject`)),
 
 	// Massenanlage aus einer CSV-Liste: erst pruefen, dann anlegen
 	previewMemberImport: (csv) => axios.post(url('/sepa/members/import/preview'), { csv }),
-	runMemberImport: (csv) => axios.post(url('/sepa/members/import'), { csv }),
+	runMemberImport: (csv, mandatesConfirmed) => axios.post(url('/sepa/members/import'), { csv, mandatesConfirmed }),
 
-	// SEPA-Sammeleinzüge (pain.008-Export)
-	previewSepaExport: (executionDate) => axios.get(url('/sepa/export/preview'), { params: executionDate ? { executionDate } : {} }),
-	listSepaBatches: () => axios.get(url('/sepa/export/batches')),
-	createSepaBatch: (executionDate) => axios.post(url('/sepa/export/batches'), { executionDate }),
-	deleteSepaBatch: (id) => axios.delete(url(`/sepa/export/batches/${id}`)),
-	settleSepaBatch: (id, journalId) => axios.post(url(`/sepa/export/batches/${id}/settle`), { journalId: journalId || undefined }),
-	listSepaBatchItems: (id) => axios.get(url(`/sepa/export/batches/${id}/items`)),
-	revertSepaReturn: (itemId) => axios.post(url(`/sepa/export/items/${itemId}/revert-return`)),
-	sepaBatchXmlUrl: (id) => generateUrl(base + `/sepa/export/batches/${id}/xml`),
+	// Self-Service ("Mein Beitrag"): eigene Stammdaten, Zugang ausschließlich
+	// über die Kontoverknüpfung (siehe PermissionMiddleware/SelfController).
+	selfMe: () => axios.get(url('/self/me')),
+	selfUpdateMe: (data) => axios.put(url('/self/me'), data),
+
+	// Self-Service Beitrag-Aktionen (Issue #76): Betrag/Turnus, bewusst ohne
+	// groupId - Beitragsgruppe wechseln ist im Self-Service nicht erlaubt.
+	selfAssignments: () => axios.get(url('/self/assignments')),
+	selfPreviewAssignment: (id, data) => axios.post(url(`/self/assignments/${id}/preview`), data),
+	selfUpdateAssignment: (id, data) => axios.put(url(`/self/assignments/${id}`), data),
+
+	// Self-Service-Mandats-Aktionskatalog (Issue #75, Spec §3.4): keiner
+	// dieser Aufrufe nimmt eine Mandats-ID entgegen - der Server löst das
+	// eigene, einzige lebende Mandat selbst auf (siehe SelfServiceMandateService).
+	selfMandateLegalText: () => axios.get(url('/self/mandate/legal-text')),
+	selfGrantMandate: (data) => axios.post(url('/self/mandate'), data),
+	selfConfirmMandate: () => axios.post(url('/self/mandate/confirm')),
+	selfRequestMandateActivationLink: () => axios.post(url('/self/mandate/request-link')),
+	selfChangeMandateIban: (data) => axios.post(url('/self/mandate/iban'), data),
+	selfReplaceMandate: (data) => axios.post(url('/self/mandate/replace'), data),
+	selfRevokeMandate: () => axios.post(url('/self/mandate/revoke')),
+	selfDiscardMandateDraft: () => axios.post(url('/self/mandate/discard-draft')),
+
+	// Eigene Rücklastschriften im Klartext (Issue #122, Spec §3.4 Pflicht-UI):
+	// ohne Parameter - der Server liefert nur die des eigenen Mitglieds, nie
+	// einen Rückgabecode (siehe SelfReturnedDebitService).
+	selfReturnedDebits: () => axios.get(url('/self/returned-debits')),
+
+	// Beitragsbestätigung (Issue #77, Spec §3.7): informelle Live-Ansicht -
+	// die Jahresliste ist ein normaler Axios-Aufruf, die eigentliche Seite
+	// wird per Browser-Navigation geöffnet (druckfertiges HTML, kein Axios).
+	selfCertificateYears: () => axios.get(url('/self/certificate/years')),
+	selfCertificateUrl: (year) => generateUrl(base + '/self/certificate') + (year ? `?year=${year}` : ''),
+
+	// "Datenübersicht" (Issue #78, Spec §3.8): Art.-15-DSGVO-Auskunft als
+	// druckfertige Live-Ansicht, hier unter "Meine Daten".
+	selfDataOverviewUrl: () => generateUrl(base + '/self/data-overview'),
 
 	// Export (CSV-Download – Browser-Navigation, kein Axios)
 	exportJournalUrl: (period) => generateUrl(base + '/export/journal') + (period ? `?period=${period}` : ''),
@@ -153,6 +288,16 @@ export default {
 	kassenberichtUrl: (period) => generateUrl(base + '/export/kassenbericht') + (period ? `?period=${period}` : ''),
 	kurzberichtUrl: (since) => generateUrl(base + '/export/kurzbericht') + (since ? `?since=${since}` : ''),
 	exportAttachmentsUrl: (period) => generateUrl(base + '/export/attachments') + (period ? `?period=${period}` : ''),
+
+	// Beitragsbestätigung, Stellvertretung durch den Kassenwart über die
+	// Admin-Akte (Issue #77, Spec §3.7) - dieselbe Live-Ansicht wie
+	// selfCertificateUrl(), hier für ein beliebiges Mitglied.
+	memberCertificateYears: (memberId) => axios.get(url(`/export/beitragsbescheinigung/${memberId}/years`)),
+	memberCertificateUrl: (memberId, year) => generateUrl(base + `/export/beitragsbescheinigung/${memberId}`) + (year ? `?year=${year}` : ''),
+
+	// "Datenübersicht" eines Mitglieds, Stellvertretung durch den Kassenwart
+	// über die Admin-Akte (Issue #78, Spec §3.8).
+	memberDataOverviewUrl: (memberId) => generateUrl(base + `/export/datenuebersicht/${memberId}`),
 
 	// Hilfe (Handbuch als lesbare Seite, optional mit Kapitel-Anker; druckfertige Kassenprüfer-Kurzanleitung)
 	handbuchUrl: (anchor) => generateUrl(base + '/help/handbuch') + (anchor ? `#${anchor}` : ''),

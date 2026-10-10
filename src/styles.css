@@ -284,9 +284,15 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-hint--warning { border-inline-start-color: var(--color-element-warning); background-color: var(--color-background-hover); }
 
+/* Fehlermeldung in einer Einstellungskarte (Pruefung oder Server-Antwort beim Speichern).
+   Das Statusfarben-Paar: --color-error ist der Flaechenton, --color-error-text die darauf lesbare Schrift. */
+.vbh-hint--error { opacity: 1; padding: 8px 12px; border-inline-start: 3px solid var(--color-element-error); border-radius: 0 4px 4px 0; background-color: var(--color-error); color: var(--color-error-text); }
+
 .vbh-empty { color: var(--color-main-text); opacity: 0.65; font-style: italic; }
 
 .vbh-warn-inline { color: var(--color-warning-text); font-weight: 600; margin-inline-start: 10px; }
+/* Unter statt hinter dem Wert (schmale Datumsspalte): kein Außenabstand, eigene Zeile. */
+.vbh-warn-inline.vbh-warn-inline--block { display: block; margin-inline-start: 0; font-size: 0.85em; }
 
 /* Cards */
 .vbh-card { border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); padding: 14px 16px; margin: 10px 0; background-color: var(--color-background-hover); }
@@ -295,11 +301,31 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-card--danger { border-color: var(--color-element-error); }
 
+/* Bereich "Mein Beitrag" (SelfServiceTab.vue) */
+.vbh-selfservice { max-width: 640px; }
+
+.vbh-selfservice-fields { display: grid; grid-template-columns: max-content 1fr; column-gap: 16px; row-gap: 8px; margin: 0; }
+
+.vbh-selfservice-fields dt { color: var(--color-text-maxcontrast); }
+
+.vbh-selfservice-fields dd { margin: 0; }
+
+/* Self-Service-Mandatsdialoge (Issue #75): Vorschau des bestehenden Entwurfs
+   (SelfServiceMandateGrantDialog.vue) und der serverseitig gerenderte
+   Mandatstext (MandateFormRenderer::renderLegalText(), dieselbe Klasse wie
+   .vbh-selfservice-fields für die Definitionsliste, plus ein abgegrenzter,
+   scrollbarer Block für den - potenziell langen - Rechtstext). */
+.vbh-mandate-preview { display: grid; grid-template-columns: max-content 1fr; column-gap: 16px; row-gap: 8px; margin: 0 0 10px; }
+
+.vbh-mandate-preview dt { color: var(--color-text-maxcontrast); }
+
+.vbh-mandate-preview dd { margin: 0; }
+
+.vbh-mandate-legaltext { max-height: 220px; overflow-y: auto; border: 1px solid var(--color-border); border-radius: var(--border-radius, 4px); padding: 8px 12px; font-size: 0.9em; }
+
+.vbh-mandate-legaltext p:first-child { margin-top: 0; }
+
 .vbh-uploadrow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-
-.vbh-filebtn { display: inline-block; background: var(--color-background-dark); border: 1px solid var(--color-border); border-radius: var(--border-radius-element, 8px); padding: 6px 14px; cursor: pointer; font-weight: 600; }
-
-.vbh-filebtn:hover { background: var(--color-primary-element); color: var(--color-primary-element-text); }
 
 .vbh-filename { opacity: 0.8; font-size: 0.9em; }
 
@@ -487,25 +513,19 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
    seltener genutzte Aktionen stecken bewusst im Menü, damit nie mehr als
    3 Buttons gleichzeitig erscheinen und die Zeile einzeilig bleibt. */
 .vbh-table thead th:empty { width: 160px; }
-/* Aktionsspalte der Mitgliederliste: bis zu ein Text-Button (Nachholen) plus
-   Bearbeiten-Icon-Button plus ein Menü-Button fuer die selteneren Aktionen
-   (Bankverbindung wechseln, Mandat widerrufen, Loeschen) - braucht mehr als
-   die 160px, die fuer reine Icon-Buttons reichen (siehe th:empty oben). */
+/* Aktionsspalte der Mitglieder-, Zuweisungs- und Laufliste: bis zu ein
+   Text- oder Icon-Button plus ein Menü-Button fuer die selteneren Aktionen -
+   braucht mehr als die 160px, die fuer reine Icon-Buttons reichen (siehe
+   th:empty oben). */
 .vbh-table thead th.vbh-col-memberactions { width: 230px; }
-/* Aktionsspalte der Sammeleinzuege: bis zu vier *Text*-Buttons ("Zeilen
-   anzeigen", "XML herunterladen", "Als ausgeführt verbuchen", "Verwerfen").
-   In den 160px von th:empty - die fuer Icon-Buttons gedacht sind - brechen sie
-   untereinander um, und der breiteste ragt aus der Zelle heraus: die Tabelle
-   wird breiter als ihr Rahmen, der Rahmen scrollt seitlich, und links wird die
-   Spalte "Erzeugt" angeschnitten. Ab 900px Fensterbreite ist deshalb Platz fuer
-   alle vier nebeneinander (gemessen 596px, "Zeilen ausblenden" etwas mehr);
-   darunter bleibt es beim Umbruch, dann aber innerhalb der Zelle. */
-.vbh-table thead th.vbh-col-batchactions { width: 230px; }
-@media (min-width: 900px) {
-	.vbh-table thead th.vbh-col-batchactions { width: 640px; }
-}
-/* Aktionsspalte der Einzugszeilen: ein Text-Button ("Rückbuchung zurücknehmen"). */
-.vbh-table thead th.vbh-col-itemactions { width: 240px; }
+/* Offene Posten: Datum (bei Überfälligkeit mit Hinweis darunter), Konto, Status. */
+.vbh-table thead th.vbh-col-oi-due { width: 110px; }
+
+.vbh-table thead th.num.vbh-col-oi-amount { width: 110px; }
+
+.vbh-table thead th.vbh-col-oi-account { width: 160px; }
+
+.vbh-table thead th.vbh-col-oi-status { width: 100px; }
 /* "Nr." ist immer die erste Zahlenspalte und braucht wenig Platz (Beträge nie) */
 .vbh-table thead th.num:first-child { width: 56px; }
 
@@ -593,6 +613,18 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 .vbh-chip.vbh-chip { display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: 15px; background: var(--color-main-background); color: var(--color-main-text); font-size: 0.85em; cursor: pointer; }
 
 .vbh-chip.vbh-chip:hover { background: var(--color-background-hover); }
+
+/* Eingabefelder der Mandat-Dialoge (NcTextField & Co.): ein Stapel mit gleichmäßigem Abstand. */
+.vbh-mandate-fields { display: flex; flex-direction: column; gap: 8px; margin-block: 8px 12px; }
+
+/* Knopf unter dem Text einer NcNoteCard. */
+.vbh-notecard-action { margin-block-start: 8px; }
+
+/* Aufzählung in einer Hinweiskarte (z. B. was ein Mitglied am Löschen hindert): Punkte statt Fließtext. */
+.vbh-blockers { list-style: disc; margin: 4px 0 8px; padding-inline-start: 20px; }
+
+/* Zähler im Filter-Chip: leiser als die Beschriftung, im aktiven Chip in dessen Textfarbe. */
+.vbh-chip-count { margin-inline-start: 6px; opacity: 0.7; font-variant-numeric: tabular-nums; }
 
 .vbh-chip.vbh-chip.vbh-chip.vbh-chip.active { background: var(--color-primary-element); color: var(--color-primary-element-text); border-color: var(--color-primary-element); }
 
@@ -748,6 +780,8 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 /* Forms */
 .vbh-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-top: 10px; }
+/* Zeile aus Text und Knopf ohne Feldbeschriftung: mittig statt an der Unterkante (sonst sitzt der Text zu tief). */
+.vbh-form--center { align-items: center; }
 
 .vbh-form label { display: flex; flex-direction: column; font-size: 0.85em; gap: 3px; }
 
@@ -757,6 +791,13 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 /* Feld mit Knopf am Eingabefeld (FolderPathField.vue): wie ein label gebaut, weil ein Knopf nicht in ein label gehoert */
 .vbh-form .vbh-field { display: flex; flex-direction: column; gap: 3px; }
+
+/* Gruppiert mehrere .vbh-form-Zeilen hinter einem gemeinsamen disabled-Schalter (z.B. MemberDialog.vue nach einer DSGVO-Anonymisierung), ohne den Browser-Rahmen/-Innenabstand eines <fieldset> */
+.vbh-fieldset-reset { border: 0; padding: 0; margin: 0; min-width: 0; }
+/* Eine Reihe NcCheckboxRadioSwitch-Häkchen mit Legende, z.B. die erlaubten Turnusse einer Beitragsgruppe: wie die Feldbeschriftungen der .vbh-form, die Häkchen umbrechen auf schmalen Schirmen. */
+.vbh-legend { font-size: 0.85em; padding: 0; margin-bottom: 2px; }
+
+.vbh-checkrow { display: flex; flex-wrap: wrap; column-gap: 12px; }
 
 .vbh-inputgroup { display: flex; align-items: center; gap: 6px; }
 
@@ -841,6 +882,17 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
    eingebaute :name-Balken aktiv - dort deckt sich seine Position tatsaechlich
    mit der Box (siehe deren eigene Kommentare). */
 .vbh-modal-title { margin: 0 44px 14px 0; }
+
+/* Zwischenüberschriften in der Mitglied-Akte (MemberDialog.vue): NC-Konto,
+   Austritt, Löschen - eigene Abschnitte im selben Formular-Dialog statt
+   separater Modals, siehe Kommentar dort. */
+.vbh-modal-subtitle { margin: 20px 0 8px; font-size: 15px; font-weight: bold; }
+
+/* Vorschlagsliste für die NC-Kontoverknüpfung: jeder Treffer eine Zeile mit
+   eigenem Bestätigungsknopf, keiner vorausgewählt (Spec §3.1). */
+.vbh-linksuggestions { list-style: none; margin: 8px 0; padding: 0; }
+
+.vbh-linksuggestions li { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
 
 /* Einnahme/Ausgabe-Umschalter (Einfach-Modus) */
 /* Bewusst OHNE overflow: hidden. Nextclouds Fokusring besteht aus outline
@@ -1092,8 +1144,8 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 .vbh-membercard .vbh-mcard-accounts { white-space: normal; overflow: visible; text-overflow: clip; }
 
 .vbh-mcard-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
-/* Aufgeklappte Einzugszeilen (SepaBatchPanel.vue, mobil) leicht eingerückt,
-   damit die Zugehörigkeit zum Einzug oben erkennbar bleibt. */
+/* Aufgeklappte Details (Läufe, Forderungen; mobil) leicht eingerückt,
+   damit die Zugehörigkeit zur Karte oben erkennbar bleibt. */
 .vbh-mcard-subcards { margin: 8px 0 0 10px; padding-inline-start: 10px; border-inline-start: 2px solid var(--color-border); }
 /* Zuordnen mobil: Vorschlag als große Primärtaste */
 .vbh-suggest-chip--big.vbh-suggest-chip--big { display: block; width: 100%; margin-top: 6px; padding: 10px 12px; font-size: 0.9em; text-align: center; border-radius: 8px; background: var(--color-primary-element); color: var(--color-primary-element-text); }
@@ -1410,3 +1462,123 @@ button.vbh-dirtree-label.vbh-dirtree-label.is-selected { background-color: var(-
 
 .vbh-attachments-actions { display: flex; align-items: center; gap: 6px; }
 
+
+/* ============================================================
+   Ruhige Bausteine der Beiträge-Oberfläche
+   ============================================================
+   Gemeinsame, bewusst kleine Bausteine für Mitgliederliste, Akte, Mandat,
+   Beitragsgruppen, Forderungen und Bankabgleich: Definitionsliste, Statuspunkt,
+   Statusmarke, Namensknopf, Umschalter und Warnmarke. Farben immer als Paar
+   aus Fläche und darauf lesbarer Schrift (siehe Kopfkommentar), nie als fester
+   Wert - so bleiben sie im dunklen Design lesbar. */
+
+/* Definitionsliste (Bezeichnung links, Wert rechts).
+   Nextcloud formt in core/css/apps.scss jedes <dt>/<dd> zu einem
+   Inline-Block mit 12px Innenabstand und gibt <dt> 130px feste Breite,
+   rechtsbündig und ohne Umbruch (`dt, dd { display: inline-block; padding: 12px }`,
+   `dt { width: 130px; white-space: nowrap; text-align: end }`), <dl> dazu
+   12px Abstand oben und unten. Daher die ~52px hohen Zeilen und die
+   Bezeichnungen, die in den Wert hineinliefen. Hier ist alles zurückgesetzt:
+   die Bezeichnungsspalte ist so breit wie die längste Bezeichnung. */
+.vbh-dl { display: grid; grid-template-columns: minmax(0, max-content) minmax(0, 1fr); column-gap: calc(var(--default-grid-baseline, 4px) * 4); row-gap: var(--default-grid-baseline, 4px); align-items: baseline; margin: 0; padding: 0; }
+
+.vbh-dl dt, .vbh-dl dd { display: block; width: auto; margin: 0; padding: 0; text-align: start; white-space: normal; }
+
+.vbh-dl dt { color: var(--color-text-maxcontrast); }
+
+.vbh-dl dd { overflow-wrap: anywhere; }
+
+/* Schmale Anzeige: Bezeichnung über Wert (lange IBANs und Meldungen sprengen sonst die Breite). */
+@media (max-width: 640px) {
+	.vbh-dl { grid-template-columns: minmax(0, 1fr); row-gap: 0; }
+
+	.vbh-dl dd { margin-bottom: calc(var(--default-grid-baseline, 4px) * 2); }
+}
+
+/* Dieselbe Nextcloud-Grundregel traf die älteren Definitionslisten von
+   „Mein Beitrag" und der Mandatsvorschau (Grid-Regeln oben im File). */
+.vbh-selfservice-fields, .vbh-mandate-preview { padding: 0; }
+
+.vbh-selfservice-fields dt, .vbh-selfservice-fields dd, .vbh-mandate-preview dt, .vbh-mandate-preview dd { display: block; width: auto; padding: 0; text-align: start; white-space: normal; }
+
+/* Statuspunkt: der Normalzustand in einer Liste, ohne Fläche. Der Punkt ist die
+   zweite Spur, die Auskunft gibt das Wort daneben. */
+.vbh-status { display: inline-flex; align-items: center; gap: calc(var(--default-grid-baseline, 4px) * 1.5); white-space: nowrap; }
+
+.vbh-status::before { content: ''; flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background-color: var(--color-text-maxcontrast); }
+
+.vbh-status--success::before { background-color: var(--color-element-success); }
+
+.vbh-status--info::before { background-color: var(--color-primary-element); }
+
+.vbh-status--warning::before { background-color: var(--color-element-warning); }
+
+.vbh-status--error::before { background-color: var(--color-element-error); }
+
+.vbh-status--muted { color: var(--color-text-maxcontrast); }
+
+/* Statusmarke: nur dort, wo etwas auffallen soll (Entwurf, gesperrt, fehlt) oder
+   etwas Ungewöhnliches dasteht (ausgetreten). */
+.vbh-pill { display: inline-flex; align-items: center; gap: calc(var(--default-grid-baseline, 4px) * 1); padding: 0 calc(var(--default-grid-baseline, 4px) * 2); border-radius: var(--border-radius-pill, 999px); background-color: var(--color-background-dark); color: var(--color-main-text); box-shadow: inset 0 0 0 1px var(--color-border); font-size: 0.82em; font-weight: 600; line-height: 1.6; white-space: nowrap; }
+
+.vbh-pill--success { background-color: var(--color-success); color: var(--color-success-text); box-shadow: inset 0 0 0 1px var(--color-element-success); }
+
+.vbh-pill--warning { background-color: var(--color-warning); color: var(--color-warning-text); box-shadow: inset 0 0 0 1px var(--color-element-warning); }
+
+.vbh-pill--error { background-color: var(--color-error); color: var(--color-error-text); box-shadow: inset 0 0 0 1px var(--color-element-error); }
+
+.vbh-pill--muted { background-color: transparent; color: var(--color-text-maxcontrast); }
+
+/* Leiser Hinweis neben dem Namen („keine E-Mail“): nur ein Rand und gedämpfte Schrift; allein das Icon trägt die Warnfarbe. */
+.vbh-pill--quiet { background-color: transparent; color: var(--color-text-maxcontrast); font-weight: 400; }
+
+.vbh-pill--quiet .icon-vue { color: var(--color-warning-text); }
+
+/* Leise Warnmarke an einer Zeile (Symbol und kurzer Text, keine Fläche): für
+   „braucht Handlung" in einer Liste, in der das meiste in Ordnung ist. */
+.vbh-flag { display: inline-flex; align-items: center; gap: calc(var(--default-grid-baseline, 4px) * 1); color: var(--color-text-maxcontrast); font-size: 0.85em; font-weight: 600; white-space: nowrap; }
+
+.vbh-flag--warning { color: var(--color-warning-text); }
+
+.vbh-flag--error { color: var(--color-error-text); }
+
+/* Name in einer Tabellenzeile oder Karte als Knopf, der die Akte öffnet.
+   Nackter <button>: doppelte Klasse gegen Nextclouds Grundstil. */
+.vbh-linkbtn.vbh-linkbtn { display: inline-flex; align-items: center; width: auto; min-height: 0; margin: 0; padding: 0; border: none; border-radius: var(--border-radius-small, 4px); background: none; color: inherit; font: inherit; font-weight: 600; text-align: start; cursor: pointer; }
+
+.vbh-linkbtn.vbh-linkbtn:hover { background: none; color: var(--color-primary-element); text-decoration: underline; }
+
+/* Namenszelle: Name, Nummer und Marken in einer Zeile, die bei Platzmangel umbricht. */
+.vbh-namecell { display: flex; flex-wrap: wrap; align-items: center; gap: 2px calc(var(--default-grid-baseline, 4px) * 2); }
+
+/* Untergeordneter Umschalter (zweite Ebene unter den Reitern): klein, ohne
+   Primärfarbe - die gewählte Ansicht hebt sich nur durch Fläche und Schriftfarbe
+   ab. Die Knöpfe sind nackte <button>, daher die doppelte Klasse. */
+.vbh-segmented { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 2px; border-radius: var(--border-radius-element, 8px); background-color: var(--color-background-dark); }
+
+.vbh-segmented-item.vbh-segmented-item { flex: 0 0 auto; width: auto; min-height: 28px; margin: 0; padding: 0 calc(var(--default-grid-baseline, 4px) * 3); border: none; border-radius: calc(var(--border-radius-element, 8px) - 2px); background: none; color: var(--color-text-maxcontrast); font-size: 0.9em; font-weight: 600; white-space: nowrap; cursor: pointer; }
+
+.vbh-segmented-item.vbh-segmented-item:hover { background: none; color: var(--color-main-text); }
+
+.vbh-segmented-item.vbh-segmented-item.active { background-color: var(--color-main-background); color: var(--color-main-text); box-shadow: 0 0 0 1px var(--color-border); }
+
+/* Zerstörerische Aktion als Textknopf im Fehlerton (NcButton variant="tertiary"):
+   dreifach, weil Nextclouds eigene Knopffarbe an .button-vue--tertiary hängt. */
+.vbh-btn-danger.vbh-btn-danger.vbh-btn-danger { color: var(--color-error-text); }
+
+/* Abschnitt in der Akte: Trennlinie statt Kasten, gleiche Überschrift überall. */
+.vbh-akte-section { margin-top: calc(var(--default-grid-baseline, 4px) * 5); padding-top: calc(var(--default-grid-baseline, 4px) * 4); border-top: 1px solid var(--color-border); }
+
+.vbh-akte-section > .vbh-modal-subtitle { margin: 0 0 calc(var(--default-grid-baseline, 4px) * 2); }
+
+.vbh-akte-section > .vbh-hint { margin: 0 0 calc(var(--default-grid-baseline, 4px) * 2); }
+
+/* Aktionsspalte mit einem Symbolknopf und einem Menü (Mitgliederliste): muss nach
+   `th:empty { width: 160px }` stehen (gleiche Spezifität, die Reihenfolge entscheidet). */
+.vbh-table thead th.vbh-col-rowactions { width: 96px; }
+
+/* Wie oben, mit einem Textknopf („Bearbeiten") vor dem Menü. */
+.vbh-table thead th.vbh-col-rowactions-text { width: 150px; }
+
+/* Nur Zeilenaktionen ohne Beschriftung der Spalte: Menü rechtsbündig, ohne Umbruch. */
+.vbh-rowactions { display: inline-flex; align-items: center; justify-content: flex-end; gap: 2px; }

@@ -36,6 +36,12 @@ class ExportFormatTest extends TestCase {
 	 * Ein unbekanntes Format bleibt stehen. Ein roher Wert im Bericht ist
 	 * erkennbar falsch; ein stillschweigend umgedeutetes Datum nicht.
 	 */
+	public function testZeitstempelWerdenAufDasDatumGekuerzt(): void {
+		// Regression: „2026-10-09 12:53:41“ wurde als „09 12:53:41.10.2026“ ausgegeben (Datenübersicht, Aktiviert am).
+		$this->assertSame('09.10.2026', ReportFormat::date('2026-10-09 12:53:41'));
+		$this->assertSame('09.10.2026', ReportFormat::date('2026-10-09T12:53:41'));
+	}
+
 	public function testUnbekanntesDatumsformatBleibtStehen(): void {
 		$this->assertSame('irgendwas', ReportFormat::date('irgendwas'));
 	}

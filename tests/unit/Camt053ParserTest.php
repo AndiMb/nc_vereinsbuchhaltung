@@ -109,6 +109,103 @@ class Camt053ParserTest extends TestCase {
 		$this->assertStringContainsString('Sammelbuchung (3 Posten)', (string)$rows[0]['purpose']);
 	}
 
+	/**
+	 * Sammelgutschrift eines eigenen SEPA-Einzugs (GVC 171, Spec §5 "Trägt
+	 * auch die Gutschrift-Seite des eigenen Sammeleinzugs") - je TxDtls eine
+	 * SEPA-Detail-Zeile mit eigener EndToEndId und eigenem Teilbetrag, obwohl
+	 * der Bankumsatz selbst eine einzige Zeile bleibt (Issue #72).
+	 */
+	public function testSepaDetailsJeTxDtlsBeiSammelgutschrift(): void {
+		$xml = <<<'XML'
+			<?xml version="1.0" encoding="UTF-8"?>
+			<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.02">
+			<BkToCstmrStmt><Stmt>
+			<Acct><Id><IBAN>DE12500105170648489890</IBAN></Id></Acct>
+			<Ntry>
+				<Amt Ccy="EUR">75.00</Amt><CdtDbtInd>CRDT</CdtDbtInd><Sts>BOOK</Sts>
+				<BookgDt><Dt>2026-10-05</Dt></BookgDt>
+				<BkTxCd><Prtry><Cd>171</Cd></Prtry></BkTxCd>
+				<NtryDtls>
+					<Btch><PmtInfId>MSG-42-RCUR</PmtInfId></Btch>
+					<TxDtls>
+						<Refs><EndToEndId>E2E-1</EndToEndId><MndtId>M-1</MndtId></Refs>
+						<Amt Ccy="EUR">45.00</Amt><CdtDbtInd>CRDT</CdtDbtInd>
+						<RmtInf><Ustrd>Beitrag A</Ustrd></RmtInf>
+					</TxDtls>
+					<TxDtls>
+						<Refs><EndToEndId>E2E-2</EndToEndId><MndtId>M-2</MndtId></Refs>
+						<Amt Ccy="EUR">30.00</Amt><CdtDbtInd>CRDT</CdtDbtInd>
+						<RmtInf><Ustrd>Beitrag B</Ustrd></RmtInf>
+					</TxDtls>
+				</NtryDtls>
+			</Ntry>
+			</Stmt></BkToCstmrStmt></Document>
+			XML;
+
+		$rows = $this->parser->parse($xml);
+
+		$this->assertCount(1, $rows, 'Der Bankumsatz bleibt eine Zeile');
+		$this->assertSame(7500, $rows[0]['amountCents']);
+		$details = $rows[0]['sepaDetails'];
+		$this->assertCount(2, $details);
+		$this->assertSame('E2E-1', $details[0]['endToEndId']);
+		$this->assertSame('M-1', $details[0]['mandateReference']);
+		$this->assertSame(4500, $details[0]['amountCents']);
+		$this->assertSame('MSG-42-RCUR', $details[0]['batchReference']);
+		$this->assertSame('171', $details[0]['gvc']);
+		$this->assertFalse($details[0]['isReturn']);
+		$this->assertSame('E2E-2', $details[1]['endToEndId']);
+		$this->assertSame(3000, $details[1]['amountCents']);
+	}
+
+	/**
+	 * Rücklastschrift (GVC 108 + RtrInf): Rückgabegrund, Ursprungsbetrag und
+	 * Bankgebühr müssen strukturiert herauskommen, damit die Verbuchung mit
+	 * zwei Gegenkonto-Zeilen (Spec §3.10) daraus rechnen kann.
+	 */
+	public function testSepaDetailsErkenntRuecklastschrift(): void {
+		$xml = <<<'XML'
+			<?xml version="1.0" encoding="UTF-8"?>
+			<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.02">
+			<BkToCstmrStmt><Stmt>
+			<Acct><Id><IBAN>DE12500105170648489890</IBAN></Id></Acct>
+			<Ntry>
+				<Amt Ccy="EUR">50.00</Amt><CdtDbtInd>DBIT</CdtDbtInd><Sts>BOOK</Sts>
+				<BookgDt><Dt>2026-10-06</Dt></BookgDt>
+				<BkTxCd><Prtry><Cd>108</Cd></Prtry></BkTxCd>
+				<NtryDtls>
+					<TxDtls>
+						<Refs><EndToEndId>E2E-3</EndToEndId><MndtId>M-3</MndtId></Refs>
+						<AmtDtls><TxAmt><Amt Ccy="EUR">45.00</Amt></TxAmt></AmtDtls>
+						<Chrgs><TotalChargesAndTaxAmt Ccy="EUR">5.00</TotalChargesAndTaxAmt></Chrgs>
+						<RtrInf><Rsn><Cd>MD01</Cd></Rsn><AddtlInf>Mandat nicht gefunden</AddtlInf></RtrInf>
+					</TxDtls>
+				</NtryDtls>
+			</Ntry>
+			</Stmt></BkToCstmrStmt></Document>
+			XML;
+
+		$rows = $this->parser->parse($xml);
+
+		$this->assertSame(-5000, $rows[0]['amountCents']);
+		$details = $rows[0]['sepaDetails'];
+		$this->assertCount(1, $details);
+		$this->assertTrue($details[0]['isReturn']);
+		$this->assertSame('E2E-3', $details[0]['endToEndId']);
+		$this->assertSame('M-3', $details[0]['mandateReference']);
+		$this->assertSame('MD01', $details[0]['returnReasonCode']);
+		$this->assertSame('Mandat nicht gefunden', $details[0]['returnReasonText']);
+		$this->assertSame(4500, $details[0]['originalAmountCents']);
+		$this->assertSame(500, $details[0]['chargesCents']);
+	}
+
+	/** Ein Umsatz ohne TxDtls (Normalfall) erzeugt keine SEPA-Detail-Zeilen. */
+	public function testSepaDetailsLeerOhneTxDtls(): void {
+		$rows = $this->parser->parse($this->fixture());
+
+		$this->assertSame([], $rows[0]['sepaDetails']);
+	}
+
 	public function testErkenntDasFormat(): void {
 		$this->assertTrue($this->parser->supports($this->fixture()));
 		$this->assertFalse($this->parser->supports("Buchungstag;Betrag\n02.01.2026;60,00\n"));

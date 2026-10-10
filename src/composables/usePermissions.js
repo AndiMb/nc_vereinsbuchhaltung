@@ -2,6 +2,7 @@ import { showError } from '@nextcloud/dialogs'
 import { reactive } from 'vue'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
+import { t } from '../lib/l10n.js'
 
 const state = reactive({
 	permissions: [],
@@ -30,7 +31,7 @@ async function loadPermissions() {
 		state.groups = g.data
 		state.users = u.data
 		recordHistory('loadPermissions')
-	} catch (e) { showError(errMsg(e, 'Berechtigungen konnten nicht geladen werden')) }
+	} catch (e) { showError(errMsg(e, t('Berechtigungen konnten nicht geladen werden'))) }
 }
 
 export function usePermissions() {

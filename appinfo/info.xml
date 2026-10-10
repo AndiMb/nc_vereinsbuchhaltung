@@ -13,8 +13,8 @@
 	     22.08.2026). <summary>/<description> sind davon nicht betroffen und
 	     bleiben zweisprachig. -->
 	<name>Vereinsbuchhaltung</name>
-	<summary lang="de">Buchhaltung für Vereine: CSV-CAMT-Import, Kontenrahmen und doppelte Buchführung</summary>
-	<summary lang="en">Accounting for nonprofit clubs: CSV-CAMT import, chart of accounts and double-entry bookkeeping</summary>
+	<summary lang="de">Buchhaltung für Vereine: Kontoauszug-Import, doppelte Buchführung, Mitglieder und SEPA-Lastschrift</summary>
+	<summary lang="en">Accounting for nonprofit clubs: bank import, double-entry bookkeeping, members and SEPA direct debit</summary>
 	<description lang="de"><![CDATA[
 **Buchhaltung für Vereine – vollständig in der eigenen Nextcloud.**
 
@@ -58,10 +58,12 @@ Mitgliederversammlung erzeugen.
   Vermögensverwaltung, Zweckbetrieb, wirtschaftlicher Geschäftsbetrieb) und
   Rücklagen nach § 62 AO
 - **Mitgliedsbeiträge & SEPA-Lastschrift** (optional, bei Bedarf aktivierbar):
-  Mitgliederverwaltung mit CSV-Import, Lastschriftmandate, Beiträge mit
-  individueller Zahlungsfrequenz, SEPA-Sammeleinzug als pain.008-Datei für die
-  Hausbank – eigener Reiter in der Hauptnavigation; wer das Modul nicht
-  braucht, sieht ihn gar nicht
+  Mitgliederverwaltung mit CSV-Import, Lastschriftmandate auf Papier oder
+  elektronisch, Beitragsgruppen mit Turnus, Vorabinfo und Einzug als
+  pain.008-Datei für die Hausbank mit Freigabe vor der Einreichung,
+  Bankabgleich, Rücklastschriften mit Mahnwesen und ein Bereich „Mein Beitrag"
+  für die Mitglieder – eigener Reiter in der Hauptnavigation; wer das Modul
+  nicht braucht, sieht ihn gar nicht
 - **Offene Posten** – unbezahlte Forderungen mit Fälligkeit im Blick
 - **Mehrjahres-Trend** und Ergebnis je Auswertungsgruppe
 - **Geschäftsjahr frei wählbar:** muss nicht dem Kalenderjahr entsprechen –
@@ -75,6 +77,30 @@ Mitgliederversammlung erzeugen.
 - **Für unterwegs:** eigene Ansicht für das Smartphone, Beleg direkt abfotografieren
 - **Kassenprüfung:** alle Belege eines Jahres als ZIP, druckfertige
   Kurzanleitung für die Prüfperson, Vollständigkeitsprüfung der Buchungsnummern
+
+## Mitgliederverwaltung & SEPA-Lastschrift (optional)
+
+Für Vereine, die ihre Beiträge per Lastschrift einziehen: ein eigener Reiter
+„Beiträge", bei Bedarf aktivierbar. Wer das Modul nicht braucht, sieht ihn gar
+nicht.
+
+- **Mitglieder:** Mitgliederliste mit Akte, Aufnahme-Assistent, CSV-Import ganzer
+  Mitgliederlisten, Austritt, Auskunft nach Art. 15 DSGVO und Anonymisierung;
+  die E-Mail-Adressen für eine Sammelmail lassen sich mit einem Klick kopieren
+- **SEPA-Mandate:** auf Papier oder elektronisch per Einmal-Link, mit Verlauf,
+  Sperre, Widerruf und Warnung vor dem Verfall
+- **Beitragsgruppen:** Untergrenze und erlaubte Turnusse (monatlich bis
+  jährlich), Zuweisungen mit Vorschau, beitragsfreie Mitglieder
+- **Einzug:** Vorabinfo per Mail, Freigabe vor der Einreichung, Einzugsdatei
+  (pain.008) für die Hausbank, Zeitstrahl der Einzugstermine und Bankabgleich
+  mit Zuordnungsvorschlägen
+- **Rücklastschriften & Mahnwesen:** Gründe im Klartext, Zahlungsaufforderung
+  mit Zahlungsdaten und GiroCode je Position, Mahnstufen, Gebühren auf
+  Wunsch weiterbelasten
+- **„Mein Beitrag" für Mitglieder:** Kontaktdaten, Beitrag, Turnus und Mandat
+  selbst pflegen – mit Vorschau und Quittungsmail –, dazu Beitragsbestätigung
+  und Datenübersicht
+- **Aufgaben-Klemmbrett:** zeigt in der Kopfzeile, was als Nächstes zu tun ist
 
 Ein **Beispielverein** lässt sich mit einem Klick anlegen, um alles gefahrlos
 auszuprobieren, und mit einem weiteren Klick wieder entfernen.
@@ -128,10 +154,12 @@ treasurer's report.
   (ideational, asset management, purpose-related business, commercial
   business) and reserves per § 62 AO
 - **Membership fees & SEPA direct debit** (optional, can be enabled as
-  needed): member management with CSV import, direct debit mandates, fees
-  with individual payment frequency, SEPA batch collection as a pain.008
-  file for your bank – its own tab in the main navigation; if you don't need
-  the module, you never see it
+  needed): member management with CSV import, direct debit mandates on paper
+  or electronic, contribution groups with an interval, pre-notification and
+  collection as a pain.008 file for your bank with a release before
+  submission, bank reconciliation, returned debits with dunning, and a "My
+  contribution" area for members – its own tab in the main navigation; if you
+  don't need the module, you never see it
 - **Open items** – keep track of unpaid receivables with due dates
 - **Multi-year trend** and result per reporting group
 - **Freely definable fiscal year:** it does not have to match the calendar
@@ -147,6 +175,31 @@ treasurer's report.
 - **Annual audit:** all receipts for a year as a ZIP, print-ready quick
   guide for the auditor, completeness check of posting numbers
 
+## Member management & SEPA direct debit (optional)
+
+For clubs that collect their membership fees by direct debit: a tab of its own
+("Contributions"), enabled when needed. If you don't need the module, you
+never see it.
+
+- **Members:** member list with a record per member, intake assistant, CSV
+  import of whole member lists, leaving, information under Art. 15 GDPR and
+  anonymization; the email addresses for a bulk mail can be copied with one
+  click
+- **SEPA mandates:** on paper or electronically via a one-time link, with
+  history, suspension, revocation and a warning before they expire
+- **Contribution groups:** lower limit and allowed intervals (monthly to
+  annual), assignments with a preview, members who pay no fee
+- **Collection:** pre-notification by email, release before submission,
+  collection file (pain.008) for your bank, timeline of collection dates and
+  bank reconciliation with matching suggestions
+- **Returned debits & dunning:** reasons in plain language, payment request
+  with payment details and a GiroCode per item, dunning levels, fees passed on
+  if you wish
+- **"My contribution" for members:** maintain contact details, contribution,
+  interval and mandate themselves – with a preview and a confirmation email –,
+  plus contribution confirmation and data overview
+- **Task clipboard:** shows in the header what needs doing next
+
 A **sample club** can be created with one click to try everything out
 risk-free, and removed again with another click.
 
@@ -154,7 +207,7 @@ Existing data from "zero Buchhaltung" can be taken over via its xbuc files.
 
 Full manual in German and English: see documentation.
 	]]></description>
-	<version>0.34.6</version>
+	<version>0.35.0</version>
 	<licence>agpl</licence>
 	<author mail="hauffe.andreas@googlemail.com">Andreas Hauffe</author>
 	<namespace>Vereinsbuchhaltung</namespace>
@@ -172,6 +225,8 @@ Full manual in German and English: see documentation.
 	     Erzeugt aus der Demo-Instanz (Beispielverein). -->
 	<screenshot>https://raw.githubusercontent.com/AndiMb/nc_vereinsbuchhaltung/main/img/screenshots/uebersicht.png</screenshot>
 	<screenshot>https://raw.githubusercontent.com/AndiMb/nc_vereinsbuchhaltung/main/img/screenshots/buchungen.png</screenshot>
+	<screenshot>https://raw.githubusercontent.com/AndiMb/nc_vereinsbuchhaltung/main/img/screenshots/zeitstrahl.png</screenshot>
+	<screenshot>https://raw.githubusercontent.com/AndiMb/nc_vereinsbuchhaltung/main/img/screenshots/mitglieder.png</screenshot>
 	<screenshot>https://raw.githubusercontent.com/AndiMb/nc_vereinsbuchhaltung/main/img/screenshots/berichte.png</screenshot>
 	<screenshot>https://raw.githubusercontent.com/AndiMb/nc_vereinsbuchhaltung/main/img/screenshots/konten.png</screenshot>
 	<screenshot>https://raw.githubusercontent.com/AndiMb/nc_vereinsbuchhaltung/main/img/screenshots/mobil.png</screenshot>
@@ -188,8 +243,11 @@ Full manual in German and English: see documentation.
 	     registerBackgroundJob() gibt es am IRegistrationContext nicht. -->
 	<background-jobs>
 		<job>OCA\Vereinsbuchhaltung\BackgroundJob\ImportWatchFolderJob</job>
-		<job>OCA\Vereinsbuchhaltung\BackgroundJob\MembershipFeeDueJob</job>
-		<job>OCA\Vereinsbuchhaltung\BackgroundJob\SepaPreNotificationJob</job>
+		<job>OCA\Vereinsbuchhaltung\BackgroundJob\MandateExpiryJob</job>
+		<job>OCA\Vereinsbuchhaltung\BackgroundJob\MemberDepartureJob</job>
+		<job>OCA\Vereinsbuchhaltung\BackgroundJob\ContributionDueCycleJob</job>
+		<job>OCA\Vereinsbuchhaltung\BackgroundJob\MandateDepartureJob</job>
+		<job>OCA\Vereinsbuchhaltung\BackgroundJob\DunningLadderJob</job>
 	</background-jobs>
 	<!-- Dieselbe Section-Klasse fuer admin-section und personal-section: die
 	     Registrierung ist intern nach Typ getrennt (siehe Settings\Section).
@@ -202,6 +260,21 @@ Full manual in German and English: see documentation.
 		<personal>OCA\Vereinsbuchhaltung\Settings\PersonalSettings</personal>
 		<personal-section>OCA\Vereinsbuchhaltung\Settings\Section</personal-section>
 	</settings>
+	<!-- Benachrichtigungsgerüst für Self-Service-Änderungen (Spec §3.4).
+	     #74 registrierte den Provider noch ohne konkrete Ereignisse; Issue
+	     #75 (Mandats-Aktionskatalog) füllt ihn mit den ersten Subjekten und
+	     ergänzt den zweiten Settings-Typ für den Widerruf-Sonderfall
+	     ("Mail-Voreinstellung: an bei Widerruf, aus sonst" - siehe
+	     SelfServiceMandateRevocationSetting-Klassendoc). -->
+	<activity>
+		<settings>
+			<setting>OCA\Vereinsbuchhaltung\Activity\SelfServiceSetting</setting>
+			<setting>OCA\Vereinsbuchhaltung\Activity\SelfServiceMandateRevocationSetting</setting>
+		</settings>
+		<providers>
+			<provider>OCA\Vereinsbuchhaltung\Activity\SelfServiceProvider</provider>
+		</providers>
+	</activity>
 	<navigations>
 		<navigation>
 			<name>Vereinsbuchhaltung</name>

@@ -46,13 +46,23 @@ jedem Testlauf zurück, die Tests selbst starten also immer vom selben Stand.
 
 ## Spielregeln für neue Tests
 
-- **Ein Worker, keine Parallelität** (playwright.config.mjs): alle Nutzer
-  teilen sich EINEN Buchungsbestand (`Application::BOOK`). Parallele Specs
-  würden sich gegenseitig die Daten unter den Füßen wegändern.
+- **Ein Worker, keine Parallelität auf einem Server** (playwright.config.mjs):
+  alle Nutzer teilen sich EINEN Buchungsbestand (`Application::BOOK`).
+  Parallele Specs auf derselben Instanz würden sich gegenseitig die Daten
+  unter den Füßen wegändern. Schnell wird es in der CI trotzdem: dort läuft
+  die Suite in vier Teilen (`playwright test --shard=N/4`) auf getrennten
+  Runnern, jeder mit eigener Docker-Nextcloud und eigenem Bestand. Verteilt
+  wird nach Spec-Dateien, deshalb darf sich keine Datei auf eine andere
+  verlassen (siehe die nächste Regel). Lokal gilt weiter: ein Server, ein
+  Lauf; einen Teil nachspielen geht mit `npx playwright test --shard=2/4`.
 - **Jede Spec-Datei setzt sich ihren Bestand selbst auf**: `api.resetBook()`
   im `beforeAll`, dann eigenes Seeding über die API-Helfer aus
   `fixtures/nextcloud.mjs`. Geprüft wird in der Oberfläche, aufgebaut über
-  die API – das hält die Läufe schnell.
+  die API – das hält die Läufe schnell. `resetBook()` räumt den Buchungsbestand
+  samt allem, was an den Forderungen hängt (Lastschrift-Läufe, Posten,
+  Rücklastschriften, Mahnstufen; Issue #123), **nicht** aber Mitglieder,
+  Mandate, Zuweisungen, Beitragsgruppen und die App-Config – die legt jede
+  Spec mit eigenen Namen an (find-or-create) bzw. stellt sie selbst wieder her.
 - **Kein Test verlässt sich stillschweigend auf seine Vorgänger**: schlägt
   ein Test fehl, startet Playwright den Worker neu und `beforeAll` läuft
   erneut (setzt also zurück!). Wer Daten aus einem früheren Test braucht,
@@ -68,3 +78,45 @@ jedem Testlauf zurück, die Tests selbst starten also immer vom selben Stand.
   `exact: true` setzen. **Nicht pauschal**: die Untertabs *Zuzuordnen* und
   *Offene Posten* tragen eine Zähler-Badge im Knopf, ihr Accessible Name
   lautet dann „Zuzuordnen 2" – dort wäre `exact: true` falsch.
+
+## Mails prüfen
+
+Der Testserver hat keinen Mailserver. Zwei Wege, je nachdem, was die Spec wissen
+muss:
+
+- **Nur „wurde versandt?“**: NC-Mail-Modus `null` (`occ config:system:set
+  mail_smtpmode --value null`, siehe 28 und 43) – die Mail wird angenommen und
+  verworfen. Die Einstellung steht in `config.php`, nicht im Datenbank-Snapshot:
+  in `afterAll` wieder löschen.
+- **„Was wurde versandt?“** (Empfänger, Text, Anhänge): `fixtures/mail-capture.mjs`.
+  `startMailCapture()` stellt NC auf `sendmail` im Pipe-Modus um und legt einen
+  sendmail-Ersatz in den Container, der jede Mail als `.eml` ablegt;
+  `waitForMailsTo(adresse)` liest und zerlegt sie. `stopMailCapture()` in
+  `afterAll` räumt auf. Beispiel: 47-girocode-anhang (Anhänge einer Mahnmail,
+  Bildinhalt über `fixtures/girocode.mjs`). Nach dem Umschalten wartet
+  `startMailCapture()` kurz, weil Apache `config.php` über opcache liest.
+
+## Einzug, Kontoauszug und Rücklastschrift seeden
+
+Der Weg „Einzug → Kontoauszug → Zuordnung → Verbuchung“ lässt sich ohne
+Oberfläche vorbereiten (Beispiel: 44-einzug-bankabgleich):
+
+1. Mitglied mit aktivem Mandat und eine Forderung über die API anlegen
+   (`api.createMember`, `api.createMandate`/`activateMandate`, `POST /claims`).
+2. `api.releaseAndSubmitDebitBatch(request, dueDate)` gibt den Lauf frei und
+   reicht ihn ein; die Antwort enthält die Posten (`items`) mit den
+   End-to-End-IDs und Mandatsreferenzen, die die Bank später zurückmeldet.
+3. `camtStatement()` baut daraus den Kontoauszug: `collectionEntry()` für die
+   Sammelgutschrift (eine Zeile je Posten, wahlweise ohne End-to-End-ID, dann
+   findet die Zeile nur über Mandatsreferenz und Betrag), `returnEntry()` für
+   die Rücklastschrift mit Rückgabegrund (z. B. `AM04` Deckung fehlt,
+   `AC04` Konto erloschen → Mandat wird gesperrt) und optionaler Bankgebühr.
+   `api.importCamtStatement()` importiert ihn.
+4. `api.bankReconciliation()` liefert die Arbeitsliste; Urteile und
+   Verbuchen gibt es auch als API-Helfer (`decideSepaDetail`,
+   `settleSepaImport`), die Konten der Verbuchung stellt
+   `api.setSepaImportSettings()` ein.
+
+Die Rücklastschrift löst eine Zahlungsaufforderung aus: dafür den Mail-Modus
+`null` setzen (siehe oben) und danach etwa vier Sekunden warten, weil sie aus
+einem Web-Request versandt wird und Apache `config.php` über opcache liest.

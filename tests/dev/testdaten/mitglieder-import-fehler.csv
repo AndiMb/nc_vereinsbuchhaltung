@@ -1,0 +1,15 @@
+Name;Mitgliedsnummer;E-Mail;IBAN;BIC;Kontoinhaber;Mandat am;Mandatsreferenz;Beitragsgruppe;Betrag;Frequenz;Start
+Birte Voss;1201;birte.voss@example.org;DE24 2501 0030 0700 8009 00;;;10.09.2026;;Vollmitglied;15,00;monatlich;01.12.2026
+Carsten Ebert;1202;carsten.ebert@example.org;DE12 345;;;01.09.2026;;Vollmitglied;15,00;monatlich;01.12.2026
+;1203;ohne.name@example.org;;;;;;;;;
+Dora Falk;1001;dora.falk@example.org;;;;;;;;;
+Emil Gross;1204;emil.gross@example.org;DE06 1002 0500 0900 1002 00;;;;;Vollmitglied;15,00;monatlich;01.12.2026
+Fiona Haas;1205;fiona.haas@example.org;;;;;;Jugend;fünf Euro;monatlich;01.12.2026
+Gero Illner;1206;kein-at-zeichen;;;;;;;;;
+Hanna Jung;1207;hanna.jung@example.org;;;;;;Ermäßigt;7,50;monatlich;
+Ingo Kern;1208;ingo.kern@example.org;;;;;;Ehrenmitglied;10,00;monatlich;01.12.2026
+Jana Hoffmann;1209;jana.hoffmann2@example.org;;;;;;;;;
+Kai Lange;1210;kai.lange@example.org;;;;;;Jugend;5,00;zweiwöchentlich;01.12.2026
+Mia Nolte;1212;mia.nolte@example.org;;;;;;Vollmitglied;15,00;monatlich;01.01.2026
+Nils Otto;1213;nils.otto@example.org;;;;;;;;;
+Nora Otto;1213;nora.otto@example.org;;;;;;;;;
