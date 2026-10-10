@@ -110,6 +110,8 @@ verwenden, z. B. `**Neu:**`.
   Weiterbelastung, Mahnabstand, XML-Ablage und Self-Service (Issue #101).
 
 **Geändert:**
+- **App-Store-Beschreibung:** Eigener Abschnitt zu Mitgliederverwaltung und SEPA-Lastschrift,
+  dazu zwei Screenshots (Zeitstrahl, Mitgliederliste).
 - **E-Mail-Adressen kopieren:** Ein Knopf über der Mitgliederliste kopiert die
   Adressen der gezeigten Mitglieder (ohne Ausgetretene, jede einmal) für
   Sammelmails; im CSV-Import steht die Mandats-Bestätigung jetzt direkt über

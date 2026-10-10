@@ -13,8 +13,8 @@
 	     22.08.2026). <summary>/<description> sind davon nicht betroffen und
 	     bleiben zweisprachig. -->
 	<name>Vereinsbuchhaltung</name>
-	<summary lang="de">Buchhaltung für Vereine: CSV-CAMT-Import, Kontenrahmen und doppelte Buchführung</summary>
-	<summary lang="en">Accounting for nonprofit clubs: CSV-CAMT import, chart of accounts and double-entry bookkeeping</summary>
+	<summary lang="de">Buchhaltung für Vereine: Kontoauszug-Import, doppelte Buchführung, Mitglieder und SEPA-Lastschrift</summary>
+	<summary lang="en">Accounting for nonprofit clubs: bank import, double-entry bookkeeping, members and SEPA direct debit</summary>
 	<description lang="de"><![CDATA[
 **Buchhaltung für Vereine – vollständig in der eigenen Nextcloud.**
 
@@ -77,6 +77,30 @@ Mitgliederversammlung erzeugen.
 - **Für unterwegs:** eigene Ansicht für das Smartphone, Beleg direkt abfotografieren
 - **Kassenprüfung:** alle Belege eines Jahres als ZIP, druckfertige
   Kurzanleitung für die Prüfperson, Vollständigkeitsprüfung der Buchungsnummern
+
+## Mitgliederverwaltung & SEPA-Lastschrift (optional)
+
+Für Vereine, die ihre Beiträge per Lastschrift einziehen: ein eigener Reiter
+„Beiträge", bei Bedarf aktivierbar. Wer das Modul nicht braucht, sieht ihn gar
+nicht.
+
+- **Mitglieder:** Mitgliederliste mit Akte, Aufnahme-Assistent, CSV-Import ganzer
+  Mitgliederlisten, Austritt, Auskunft nach Art. 15 DSGVO und Anonymisierung;
+  die E-Mail-Adressen für eine Sammelmail lassen sich mit einem Klick kopieren
+- **SEPA-Mandate:** auf Papier oder elektronisch per Einmal-Link, mit Verlauf,
+  Sperre, Widerruf und Warnung vor dem Verfall
+- **Beitragsgruppen:** Untergrenze und erlaubte Turnusse (monatlich bis
+  jährlich), Zuweisungen mit Vorschau, beitragsfreie Mitglieder
+- **Einzug:** Vorabinfo per Mail, Freigabe vor der Einreichung, Einzugsdatei
+  (pain.008) für die Hausbank, Zeitstrahl der Einzugstermine und Bankabgleich
+  mit Zuordnungsvorschlägen
+- **Rücklastschriften & Mahnwesen:** Gründe im Klartext, Zahlungsaufforderung
+  mit Zahlungsdaten und GiroCode je Position, Mahnstufen, Gebühren auf
+  Wunsch weiterbelasten
+- **„Mein Beitrag" für Mitglieder:** Kontaktdaten, Beitrag, Turnus und Mandat
+  selbst pflegen – mit Vorschau und Quittungsmail –, dazu Beitragsbestätigung
+  und Datenübersicht
+- **Aufgaben-Klemmbrett:** zeigt in der Kopfzeile, was als Nächstes zu tun ist
 
 Ein **Beispielverein** lässt sich mit einem Klick anlegen, um alles gefahrlos
 auszuprobieren, und mit einem weiteren Klick wieder entfernen.
@@ -151,6 +175,31 @@ treasurer's report.
 - **Annual audit:** all receipts for a year as a ZIP, print-ready quick
   guide for the auditor, completeness check of posting numbers
 
+## Member management & SEPA direct debit (optional)
+
+For clubs that collect their membership fees by direct debit: a tab of its own
+("Contributions"), enabled when needed. If you don't need the module, you
+never see it.
+
+- **Members:** member list with a record per member, intake assistant, CSV
+  import of whole member lists, leaving, information under Art. 15 GDPR and
+  anonymization; the email addresses for a bulk mail can be copied with one
+  click
+- **SEPA mandates:** on paper or electronically via a one-time link, with
+  history, suspension, revocation and a warning before they expire
+- **Contribution groups:** lower limit and allowed intervals (monthly to
+  annual), assignments with a preview, members who pay no fee
+- **Collection:** pre-notification by email, release before submission,
+  collection file (pain.008) for your bank, timeline of collection dates and
+  bank reconciliation with matching suggestions
+- **Returned debits & dunning:** reasons in plain language, payment request
+  with payment details and a GiroCode per item, dunning levels, fees passed on
+  if you wish
+- **"My contribution" for members:** maintain contact details, contribution,
+  interval and mandate themselves – with a preview and a confirmation email –,
+  plus contribution confirmation and data overview
+- **Task clipboard:** shows in the header what needs doing next
+
 A **sample club** can be created with one click to try everything out
 risk-free, and removed again with another click.
 
@@ -176,6 +225,8 @@ Full manual in German and English: see documentation.
 	     Erzeugt aus der Demo-Instanz (Beispielverein). -->
 	<screenshot>https://raw.githubusercontent.com/AndiMb/nc_vereinsbuchhaltung/main/img/screenshots/uebersicht.png</screenshot>
 	<screenshot>https://raw.githubusercontent.com/AndiMb/nc_vereinsbuchhaltung/main/img/screenshots/buchungen.png</screenshot>
+	<screenshot>https://raw.githubusercontent.com/AndiMb/nc_vereinsbuchhaltung/main/img/screenshots/zeitstrahl.png</screenshot>
+	<screenshot>https://raw.githubusercontent.com/AndiMb/nc_vereinsbuchhaltung/main/img/screenshots/mitglieder.png</screenshot>
 	<screenshot>https://raw.githubusercontent.com/AndiMb/nc_vereinsbuchhaltung/main/img/screenshots/berichte.png</screenshot>
 	<screenshot>https://raw.githubusercontent.com/AndiMb/nc_vereinsbuchhaltung/main/img/screenshots/konten.png</screenshot>
 	<screenshot>https://raw.githubusercontent.com/AndiMb/nc_vereinsbuchhaltung/main/img/screenshots/mobil.png</screenshot>

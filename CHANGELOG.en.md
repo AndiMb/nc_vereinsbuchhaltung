@@ -108,6 +108,8 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   and self-service (issue #101).
 
 **Changed:**
+- **App Store description:** A section of its own on member management and SEPA
+  direct debit, plus two screenshots (timeline, member list).
 - **Copy email addresses:** a button above the member list copies the addresses
   of the members shown (without those who have left, each once) for bulk mails;
   in the CSV import the mandate confirmation now sits directly above the import button.
