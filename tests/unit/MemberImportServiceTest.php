@@ -18,7 +18,6 @@ use OCA\Vereinsbuchhaltung\Service\MandateService;
 use OCA\Vereinsbuchhaltung\Service\MemberImportService;
 use OCA\Vereinsbuchhaltung\Service\Sepa\MemberCsvParser;
 use OCP\AppFramework\Utility\ITimeFactory;
-use OCP\IConfig;
 use OCP\IL10N;
 use OCP\IUser;
 use OCP\IUserManager;
@@ -81,9 +80,6 @@ class MemberImportServiceTest extends TestCase {
 		$transaction = $this->createMock(TransactionRunner::class);
 		$transaction->method('run')->willReturnCallback(static fn (callable $fn) => $fn());
 
-		$config = $this->createMock(IConfig::class);
-		$config->method('getAppValue')->willReturnCallback(static fn (string $app, string $key, string $default = '') => $default);
-
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(static fn (string $text, array $parameters = []): string => vsprintf(str_replace('%s', '%1$s', $text), $parameters));
 
@@ -100,22 +96,32 @@ class MemberImportServiceTest extends TestCase {
 			$transaction,
 			$this->createMock(AuditService::class),
 			$this->createMock(IUserSession::class),
-			$config,
 			$l10n,
 			$time,
 			new IbanValidator($l10n),
 		);
 	}
 
-	/** Eine Gruppe wie im echten Betrieb: alle Turnusse erlaubt, Standard jährlich, Untergrenze nach Bedarf. */
-	private function group(int $id, string $name, int $minMonthlyAmountCents = 0): ContributionGroup {
+	/**
+	 * Eine Gruppe wie im echten Betrieb: alle Turnusse erlaubt, Standard-Turnus
+	 * jährlich, Untergrenze und üblicher Monatsbeitrag nach Bedarf.
+	 */
+	private function group(int $id, string $name, int $minMonthlyAmountCents = 0, int $defaultMonthlyAmountCents = 0, int $defaultInterval = 12): ContributionGroup {
 		$group = new ContributionGroup();
 		$group->setId($id);
 		$group->setName($name);
 		$group->setMinMonthlyAmountCents($minMonthlyAmountCents);
+		$group->setDefaultMonthlyAmountCents($defaultMonthlyAmountCents);
 		$group->setAllowedIntervalsArray(ContributionGroup::VALID_INTERVALS);
-		$group->setDefaultInterval(12);
+		$group->setDefaultInterval($defaultInterval);
 		return $group;
+	}
+
+	/** Ein Assignment-Rückgabewert für die Mocks von {@see AssignmentService::create()}. */
+	private function createdAssignment(int $id): Assignment {
+		$assignment = new Assignment();
+		$assignment->setId($id);
+		return $assignment;
 	}
 
 	public function testReineStammdatenzeileLegtNurEinMitgliedAn(): void {
@@ -306,6 +312,169 @@ class MemberImportServiceTest extends TestCase {
 		$this->assertNotNull($result['rows'][0]['memberId'], 'Mitglied entsteht trotzdem');
 		$this->assertNull($result['rows'][0]['assignmentId']);
 		$this->assertNotEmpty($result['rows'][0]['warnings']);
+	}
+
+	// --- Betrag und Turnus aus der Beitragsgruppe (Zeile mit Start, aber ohne Betrag) ---
+
+	/** Genau eine Gruppe: Betrag und Turnus kommen von ihr – die Datei muss weder Gruppe noch Betrag noch Frequenz nennen. */
+	public function testStartOhneBetragNimmtBetragUndTurnusDerEinzigenGruppe(): void {
+		$this->groupMapper->method('findAll')->willReturn([$this->group(1, 'Vollmitglied', 500, 800, 1)]);
+		$this->assignments->expects($this->once())->method('create')
+			->with($this->anything(), 1, 1, 800, Assignment::PAYMENT_METHOD_DIRECT_DEBIT, '2026-02-01', null, null, null, $this->anything(), $this->anything())
+			->willReturn($this->createdAssignment(31));
+
+		$csv = "Name;E-Mail;Start\nKatrin Brunner;k.brunner@example.org;01.02.2026\n";
+		$result = $this->service()->import($csv, true);
+
+		$this->assertSame([], $result['rows'][0]['errors']);
+		$this->assertSame([], $result['rows'][0]['warnings']);
+		$this->assertSame(31, $result['rows'][0]['assignmentId']);
+		$this->assertSame(8.0, (float)$result['rows'][0]['amount']);
+		$this->assertSame(1, $result['summary']['assignments']);
+	}
+
+	/** Die Vorschau sagt es schon voraus: Betrag der Gruppe in der Zeile, Zuweisung geplant, nichts angelegt. */
+	public function testVorschauZeigtDenBetragDerGruppe(): void {
+		$this->groupMapper->method('findAll')->willReturn([$this->group(1, 'Vollmitglied', 500, 800, 1)]);
+		$this->assignments->expects($this->never())->method('create');
+
+		$result = $this->service()->preview("Name;Start\nKatrin Brunner;01.02.2026\n");
+
+		$this->assertSame(8.0, (float)$result['rows'][0]['amount']);
+		$this->assertTrue($result['rows'][0]['willCreateAssignment']);
+		$this->assertSame(1, $result['summary']['assignments']);
+		$this->assertSame([], $this->inserted, 'Vorschau legt nichts an');
+	}
+
+	/** Mit mehreren Gruppen entscheidet die Spalte „Beitragsgruppe“: deren Betrag und deren Turnus gelten. */
+	public function testStartOhneBetragNimmtBetragDerBenanntenGruppe(): void {
+		$this->groupMapper->method('findAll')->willReturn([
+			$this->group(1, 'Vollmitglied', 500, 1500, 1),
+			$this->group(2, 'Ermäßigt', 300, 400, 3),
+		]);
+		$this->assignments->expects($this->once())->method('create')
+			->with($this->anything(), 2, 3, 400, Assignment::PAYMENT_METHOD_DIRECT_DEBIT, '2026-02-01', null, null, null, $this->anything(), $this->anything())
+			->willReturn($this->createdAssignment(32));
+
+		$csv = "Name;E-Mail;Beitragsgruppe;Start\nKatrin Brunner;k.brunner@example.org;ermäßigt;01.02.2026\n";
+		$result = $this->service()->import($csv, true);
+
+		$this->assertSame(32, $result['rows'][0]['assignmentId']);
+		$this->assertSame(4.0, (float)$result['rows'][0]['amount']);
+	}
+
+	/** Mehrere Gruppen, keine Spalte: keine Gruppe auflösbar – das Mitglied entsteht, der Beitrag nicht, die Warnung sagt warum. */
+	public function testStartOhneBetragUndMehrereGruppenOhneSpalteLegtKeinenBeitragAn(): void {
+		$this->groupMapper->method('findAll')->willReturn([
+			$this->group(1, 'Vollmitglied', 500, 1500, 1),
+			$this->group(2, 'Ermäßigt', 300, 400, 3),
+		]);
+		$this->assignments->expects($this->never())->method('create');
+
+		$result = $this->service()->import("Name;E-Mail;Start\nKatrin Brunner;k.brunner@example.org;01.02.2026\n", true);
+
+		$this->assertSame(1, $result['summary']['ok']);
+		$this->assertNotNull($result['rows'][0]['memberId'], 'Mitglied entsteht trotzdem');
+		$this->assertNull($result['rows'][0]['assignmentId']);
+		$this->assertNull($result['rows'][0]['amount']);
+		$this->assertFalse($result['rows'][0]['willCreateAssignment']);
+		$this->assertCount(1, $result['rows'][0]['warnings']);
+		$this->assertStringContainsString('Keine Beitragsgruppe angegeben', $result['rows'][0]['warnings'][0]);
+	}
+
+	/** Eine Gruppe, die es nicht gibt, bleibt eine Warnung – auch ohne eigenen Betrag wird nicht auf eine andere ausgewichen. */
+	public function testStartOhneBetragMitUnbekannterGruppeIstNurEineWarnung(): void {
+		$this->groupMapper->method('findAll')->willReturn([$this->group(1, 'Vollmitglied', 500, 800, 1)]);
+		$this->assignments->expects($this->never())->method('create');
+
+		$result = $this->service()->import("Name;Beitragsgruppe;Start\nKatrin Brunner;Gibtsnicht;01.02.2026\n", true);
+
+		$this->assertSame(1, $result['summary']['ok']);
+		$this->assertNull($result['rows'][0]['assignmentId']);
+		$this->assertStringContainsString('Unbekannte Beitragsgruppe', $result['rows'][0]['warnings'][0]);
+	}
+
+	/** Gar keine Beitragsgruppe angelegt: kein Beitrag, dieselbe Warnung. */
+	public function testStartOhneBetragUndOhneBeitragsgruppenLegtKeinenBeitragAn(): void {
+		$this->assignments->expects($this->never())->method('create');
+
+		$result = $this->service()->preview("Name;Start\nKatrin Brunner;01.02.2026\n");
+
+		$this->assertSame(1, $result['summary']['ok']);
+		$this->assertSame(0, $result['summary']['assignments']);
+		$this->assertNotEmpty($result['rows'][0]['warnings']);
+	}
+
+	/** Reine Mandatszeile („nur IBAN“, kein Start): nie ungefragt ein Beitrag, auch wenn es genau eine Gruppe gibt. */
+	public function testOhneStartdatumBekommtNieEinenBeitragAusDerGruppe(): void {
+		$this->groupMapper->method('findAll')->willReturn([$this->group(1, 'Vollmitglied', 500, 800, 1)]);
+		$this->assignments->expects($this->never())->method('create');
+
+		$csv = "Name;IBAN;Mandat am\nÜberweiser;DE02120300000000202051;15.01.2026\n";
+		$result = $this->service()->preview($csv);
+
+		$this->assertSame([], $result['rows'][0]['errors']);
+		$this->assertSame([], $result['rows'][0]['warnings']);
+		$this->assertNull($result['rows'][0]['amount']);
+		$this->assertFalse($result['rows'][0]['willCreateAssignment']);
+		$this->assertSame(0, $result['summary']['assignments']);
+	}
+
+	/** Ein Betrag in der Zeile geht dem der Gruppe immer vor. */
+	public function testEigenerBetragGehtDemBetragDerGruppeVor(): void {
+		$this->groupMapper->method('findAll')->willReturn([$this->group(1, 'Vollmitglied', 300, 800, 1)]);
+		$this->assignments->expects($this->once())->method('create')
+			->with($this->anything(), 1, 1, 400, Assignment::PAYMENT_METHOD_DIRECT_DEBIT, '2026-02-01', null, null, null, $this->anything(), $this->anything())
+			->willReturn($this->createdAssignment(33));
+
+		$csv = "Name;E-Mail;Betrag;Frequenz;Start\nSonderfall;s@example.org;4,00;monatlich;01.02.2026\n";
+		$this->service()->import($csv, true);
+	}
+
+	/** Eine Frequenz in der Zeile gilt weiter: nur der Betrag kommt von der Gruppe, der Turnus ist der der Zeile. */
+	public function testStartMitFrequenzOhneBetragNimmtNurDenBetragDerGruppe(): void {
+		$this->groupMapper->method('findAll')->willReturn([$this->group(1, 'Vollmitglied', 500, 800, 12)]);
+		$this->assignments->expects($this->once())->method('create')
+			->with($this->anything(), 1, 3, 800, Assignment::PAYMENT_METHOD_DIRECT_DEBIT, '2026-02-01', null, null, null, $this->anything(), $this->anything())
+			->willReturn($this->createdAssignment(34));
+
+		$csv = "Name;E-Mail;Frequenz;Start\nKatrin Brunner;k.brunner@example.org;vierteljährlich;01.02.2026\n";
+		$this->service()->import($csv, true);
+	}
+
+	/** Eine beitragsfreie Gruppe (üblicher Betrag 0 €) ergibt eine Zuweisung über 0 € – kein Fehler, kein „kein Betrag“. */
+	public function testStartOhneBetragInBeitragsfreierGruppeErgibtNullEuro(): void {
+		$this->groupMapper->method('findAll')->willReturn([$this->group(4, 'Ruhend', 0, 0, 12)]);
+		$this->assignments->expects($this->once())->method('create')
+			->with($this->anything(), 4, 12, 0, Assignment::PAYMENT_METHOD_DIRECT_DEBIT, '2026-02-01', null, null, null, $this->anything(), $this->anything())
+			->willReturn($this->createdAssignment(35));
+
+		$result = $this->service()->import("Name;E-Mail;Start\nTina Passiv;t@example.org;01.02.2026\n", true);
+
+		$this->assertSame([], $result['rows'][0]['errors']);
+		$this->assertSame(0.0, (float)$result['rows'][0]['amount']);
+	}
+
+	/** Die Vergangenheit-Regel gilt für den Betrag aus der Gruppe genauso wie für einen eingetragenen. */
+	public function testStartInDerVergangenheitOhneBetragIstEinFehler(): void {
+		$this->groupMapper->method('findAll')->willReturn([$this->group(1, 'Vollmitglied', 500, 800, 1)]);
+		$this->assignments->expects($this->never())->method('create');
+
+		$result = $this->service('2026-01-01')->import("Name;Start\nKatrin Brunner;31.12.2025\n", true);
+
+		$this->assertSame(1, $result['summary']['failed']);
+		$this->assertStringContainsString('Vergangenheit', $result['rows'][0]['errors'][0]);
+		$this->assertSame([], $this->inserted);
+	}
+
+	/** Betrag ohne Startdatum bleibt ein Parser-Fehler – daran ändert die Gruppe nichts. */
+	public function testBetragOhneStartdatumBleibtEinFehler(): void {
+		$this->groupMapper->method('findAll')->willReturn([$this->group(1, 'Vollmitglied', 500, 800, 1)]);
+
+		$result = $this->service()->preview("Name;Betrag\nKatrin Brunner;8,00\n");
+
+		$this->assertSame(1, $result['summary']['failed']);
+		$this->assertStringContainsString('Startdatum', $result['rows'][0]['errors'][0]);
 	}
 
 	// --- Namensspalten, Stammdaten, Eintritt ---

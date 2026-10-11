@@ -10,7 +10,6 @@ use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\AttachmentWatchFolderService;
-use OCA\Vereinsbuchhaltung\Service\BillingPeriod;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCA\Vereinsbuchhaltung\Service\DemoDataService;
 use OCA\Vereinsbuchhaltung\Service\DunningSettings;
@@ -148,7 +147,6 @@ class SettingsController extends Controller {
 	 */
 	private function currentSettings(): array {
 		$membershipEnabled = $this->config->getAppValue(Application::APP_ID, 'membership_enabled', '0') === '1';
-		$defaultFeeAmountCents = $this->config->getAppValue(Application::APP_ID, 'default_fee_amount_cents', '');
 		return [
 			'storage_mode' => $this->attachmentStorage->mode(),
 			'storage_user' => $this->config->getAppValue(Application::APP_ID, AttachmentStorageService::SETTING_USER, ''),
@@ -163,10 +161,6 @@ class SettingsController extends Controller {
 			'statement_watch_path' => $this->config->getAppValue(Application::APP_ID, WatchFolderService::SETTING_PATH, ''),
 			'sepa_creditor_id' => $this->config->getAppValue(Application::APP_ID, 'sepa_creditor_id', ''),
 			'sepa_debtor_account_id' => $this->sepaDebtorAccount->getAccountId(),
-			// Vorbelegung fuer "Mitglied aufnehmen" und den CSV-Import, siehe
-			// SettingsSepaBasics.vue ("Standard-Beitrag").
-			'default_fee_amount' => $defaultFeeAmountCents !== '' ? ((int)$defaultFeeAmountCents) / 100 : null,
-			'default_fee_frequency' => $this->config->getAppValue(Application::APP_ID, 'default_fee_frequency', 'yearly'),
 			'membership_enabled' => $membershipEnabled,
 			// Steuert den Reiter „Beiträge": auch ohne den Schalter sichtbar,
 			// sobald bereits Mitglieder bestehen – siehe NAVIGATION-KONZEPT.md
@@ -366,27 +360,6 @@ class SettingsController extends Controller {
 				return new DataResponse(['message' => $this->l10n->t('Das sieht nicht nach einer SEPA-Gläubiger-ID aus (erwartet wird z. B. DE98ZZZ09999999999).')], Http::STATUS_BAD_REQUEST);
 			}
 			$this->config->setAppValue($appId, 'sepa_creditor_id', $creditorId);
-		}
-
-		if (array_key_exists('default_fee_amount', $params)) {
-			$defaultFeeAmountParam = trim((string)$params['default_fee_amount']);
-			$defaultFeeAmountCents = '';
-			if ($defaultFeeAmountParam !== '') {
-				$defaultFeeAmount = (float)str_replace(',', '.', $defaultFeeAmountParam);
-				if ($defaultFeeAmount <= 0) {
-					return new DataResponse(['message' => $this->l10n->t('Der Standard-Beitrag muss größer als 0 sein.')], Http::STATUS_BAD_REQUEST);
-				}
-				$defaultFeeAmountCents = (string)(int)round($defaultFeeAmount * 100);
-			}
-			$this->config->setAppValue($appId, 'default_fee_amount_cents', $defaultFeeAmountCents);
-		}
-
-		if (array_key_exists('default_fee_frequency', $params)) {
-			$defaultFeeFrequency = (string)$params['default_fee_frequency'];
-			if (!isset(BillingPeriod::FREQUENCY_MONTHS[$defaultFeeFrequency])) {
-				$defaultFeeFrequency = 'yearly';
-			}
-			$this->config->setAppValue($appId, 'default_fee_frequency', $defaultFeeFrequency);
 		}
 
 		if (array_key_exists('sepa_debtor_account_id', $params)) {
