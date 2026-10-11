@@ -1247,6 +1247,31 @@ can be linked in the member's record ("Nextcloud account" (*Nextcloud-Konto*)
 → "Find suggestions" (*Vorschläge suchen*), only after your confirmation –
 the email address merely supplies the suggestion).
 
+The member list shows in the **"Nextcloud account?"** column (*Nextcloud-Konto?*)
+whether an account is linked: "Yes", a link **"Link suggestion …"** (exactly one
+account carries the member's email address; it is linked after a
+confirmation), a button into the record when there are several matches,
+otherwise "No".
+
+When **admitting** a member you can **create a Nextcloud account** right away
+(*Create a Nextcloud account for this member*): account name (suggested from
+the name), display name, email, password – empty means Nextcloud sends an
+invitation with a link to set the password –, groups, storage and language,
+the same details as in the user management. Only Nextcloud administrators,
+delegated administrators and group administrators (for their groups) see the
+section; the rights and password rules are Nextcloud's. The new account is
+linked to the record. If creating it fails, the member is admitted anyway – it
+can be done later in the record under *Nextcloud account* → *Create a new
+Nextcloud account …*.
+
+The **welcome email** goes to the email address of the record, regardless of
+whether the member has an account. The template (subject and text with
+placeholders such as `{name}`, `{vorname}`, `{verein}`, `{mitgliedsnummer}`,
+`{beitritt}` and `{cloud}`) is maintained by administrators in the Nextcloud
+settings under *Welcome email* (*Willkommens-Mail*). When admitting, it is
+collapsed and can be adapted for the individual member; from the record,
+*Send welcome email …* sends it later.
+
 Two more pieces of information attach to the member, both optional and
 possible to add at any time:
 

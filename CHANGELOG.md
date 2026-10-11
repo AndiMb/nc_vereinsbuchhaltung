@@ -19,7 +19,21 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+**Neu:**
+- **Spalte „Nextcloud-Konto?“ in der Mitgliederliste:** „Ja“ bei verknüpftem
+  Konto, „Vorschlag … verknüpfen“, wenn genau ein Konto die Mailadresse des
+  Mitglieds trägt, sonst „Nein“.
+- **Nextcloud-Konto beim Aufnehmen anlegen:** „Mitglied aufnehmen“ fragt auf
+  Wunsch die Angaben der Benutzerverwaltung ab (Kontoname, Passwort oder
+  Einladung per Mail, Gruppen, Speicherplatz, Sprache); nachholen geht in der
+  Akte. Nur Administratoren und Gruppen-Administratoren sehen den Abschnitt.
+- **Willkommens-Mail:** Eine Vorlage in den Einstellungen („Willkommens-Mail“)
+  lässt sich beim Aufnehmen und aus der Akte an die Mailadresse des Mitglieds
+  schicken – unabhängig vom Nextcloud-Konto, für den Einzelfall anpassbar.
+
 **Geändert:**
+- **Bankverbindung ändern (Mein Beitrag):** Die erste Auswahl heißt „Gleicher
+  Kontoinhaber, nur die IBAN hat sich geändert“.
 - **Standard-Beitrag entfernt:** Die Einstellung entfällt, Betrag und Turnus
   kommen von der Beitragsgruppe. Im CSV-Import nutzt eine Zeile mit
   Startdatum, aber ohne Betrag den üblichen Betrag ihrer Beitragsgruppe.

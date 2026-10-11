@@ -17,7 +17,21 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+**New:**
+- **"Nextcloud account?" column in the member list:** "Yes" for a linked
+  account, "Link suggestion …" when exactly one account carries the member's
+  email address, otherwise "No".
+- **Create a Nextcloud account when admitting a member:** "Admit member" can
+  ask for the details of the user management (account name, password or
+  invitation by email, groups, storage, language); it can be done later in the
+  record. Only administrators and group administrators see the section.
+- **Welcome email:** A template in the settings ("Welcome email") can be sent
+  when admitting a member and from the record to the member's email address –
+  independent of the Nextcloud account, adaptable for the individual case.
+
 **Changed:**
+- **Change bank details (My contribution):** The first choice now reads "Same
+  account holder, only the IBAN has changed".
 - **Default fee setting removed:** The setting is gone; amount and interval
   come from the contribution group. In the CSV import, a row with a start
   date but no amount uses the usual amount of its contribution group.

@@ -1281,6 +1281,31 @@ Nextcloud-Konto; ein vorhandenes lässt sich in der Akte
 verknüpfen (*Nextcloud-Konto* → *Vorschläge suchen*, erst nach Ihrer
 Bestätigung – die Mailadresse liefert nur den Vorschlag).
 
+Die Mitgliederliste zeigt in der Spalte **„Nextcloud-Konto?"**, ob ein Konto
+verknüpft ist: „Ja", ein Link **„Vorschlag … verknüpfen"** (genau ein Konto
+trägt die Mailadresse des Mitglieds; verknüpft wird nach einer Rückfrage), bei
+mehreren Treffern ein Knopf in die Akte, sonst „Nein".
+
+Beim **Aufnehmen** lässt sich gleich ein **Nextcloud-Konto anlegen**
+(*Nextcloud-Konto für dieses Mitglied anlegen*): Kontoname (aus dem Namen
+vorgeschlagen), Anzeigename, E-Mail, Passwort – leer heißt: Nextcloud schickt
+eine Einladung mit einem Link zum Passwort-Setzen –, Gruppen, Speicherplatz und
+Sprache, also dieselben Angaben wie in der Benutzerverwaltung. Den Abschnitt
+sehen nur Nextcloud-Administratoren, delegierte Administratoren und
+Gruppen-Administratoren (diese für ihre Gruppen); die Rechte und
+Passwortregeln sind die von Nextcloud. Das neue Konto wird mit der Akte
+verknüpft. Scheitert das Anlegen, ist das Mitglied trotzdem aufgenommen – in
+der Akte unter *Nextcloud-Konto* → *Neues Nextcloud-Konto anlegen …* lässt es
+sich nachholen.
+
+Die **Willkommens-Mail** geht an die Mailadresse der Akte, unabhängig davon, ob
+das Mitglied ein Konto hat. Die Vorlage (Betreff und Text mit Platzhaltern wie
+`{name}`, `{vorname}`, `{verein}`, `{mitgliedsnummer}`, `{beitritt}` und
+`{cloud}`) pflegen Verwalter in den Nextcloud-Einstellungen unter
+*Willkommens-Mail*. Beim Aufnehmen ist sie eingeklappt und lässt sich für das
+einzelne Mitglied anpassen; aus der Akte schickt *Willkommens-Mail senden …*
+sie später nach.
+
 Zwei weitere Angaben hängen am Mitglied, beide optional und jederzeit
 nachzutragen:
 
