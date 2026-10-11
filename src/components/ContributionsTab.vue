@@ -33,7 +33,6 @@
 				v-show="contribView === 'members'"
 				ref="membersList"
 				:isMobile="isMobile"
-				:defaultFeeAmount="defaultFeeAmount"
 				@manageAssignments="$emit('update:contrib-view', 'groups')" />
 			<EinzugPanel
 				v-show="contribView === 'batch'"
@@ -75,7 +74,6 @@ export default {
 		contribView: { type: String, required: true },
 		isMobile: { type: Boolean, default: false },
 		canWrite: { type: Boolean, default: false },
-		defaultFeeAmount: { type: [Number, String], default: '' },
 	},
 
 	emits: ['update:contrib-view'],

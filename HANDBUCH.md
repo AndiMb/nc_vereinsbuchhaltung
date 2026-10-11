@@ -1233,13 +1233,13 @@ einblendet (siehe 13.2) – ist bereits ein Mitglied angelegt, erscheint er
 automatisch, auch ohne den Schalter.
 
 > **Zahlen fast alle Mitglieder denselben Beitrag** (z. B. 8 € monatlich, der
-> Normalfall bei einem Chor oder Sportverein)? Dann lohnt sich auf derselben
-> Seite die Karte **„Standard-Beitrag"**: Betrag und Frequenz einmal
-> hinterlegen, und „Mitglied aufnehmen" (13.2) schlägt beides künftig vor,
-> statt dass Sie es bei jedem einzelnen Mitglied neu eintippen. Auch beim
-> CSV-Import (13.3) greift der Standardsatz, wenn eine Zeile ein Startdatum,
-> aber keinen eigenen Betrag hat – abweichende Einzelfälle (Ermäßigung,
-> Ehrenmitglied) tragen Sie einfach mit eigenem Betrag ein.
+> Normalfall bei einem Chor oder Sportverein)? Dann legen Sie dafür eine
+> **Beitragsgruppe** an (13.4): Ihren *Standardbeitrag* und *Standard-Turnus*
+> schlägt „Mitglied aufnehmen" (13.2) künftig vor, statt dass Sie ihn bei jedem
+> einzelnen Mitglied neu eintippen. Auch beim CSV-Import (13.3) greift der
+> Standardbeitrag der Gruppe, wenn eine Zeile ein Startdatum, aber keinen
+> eigenen Betrag hat – abweichende Einzelfälle (Ermäßigung, Ehrenmitglied)
+> tragen Sie einfach mit eigenem Betrag ein.
 
 **Alle Einstellungen im Überblick.** Was das Modul einstellbar macht, steht unter
 *Nextcloud-Einstellungen → Vereinsbuchhaltung* – und ist nur Verwaltern
@@ -1248,7 +1248,6 @@ zugänglich:
 | Karte / Abschnitt | Was Sie dort einstellen |
 |---|---|
 | *Beiträge & SEPA → Grundeinstellungen* | **SEPA-Gläubiger-ID**, **Einziehendes Konto**, der Schalter für den Reiter „Beiträge" und der Schalter für den Self-Service „Mein Beitrag" (13.11) |
-| *… → Standard-Beitrag* | Betrag und Frequenz, die „Mitglied aufnehmen" und der CSV-Import vorschlagen |
 | *… → Beitragsjahr und Einzugszyklus* | **Beitragsjahr beginnt im** (Monat, Standard Januar – unabhängig vom Geschäftsjahr; bestimmt die Beitragsperioden und die Beitragsbestätigung, 13.12) und die drei **Fristen vor dem Einzug** – **Vorwarnfenster** (Standard 21 Tage), **Vorabinfo-Vorlauf** (Standard 14) und **Freigabe-Vorlauf** (Standard 5; alle 13.5). Eine Beispielzeile rechnet sie auf einen Einzugstermin um, ein Hinweis erscheint bei unüblicher Reihenfolge |
 | *… → Ablage der Einzugsdatei (XML)* | zusätzliche Kopie der pain.008-Datei in einem Nextcloud-Ordner (13.5), standardmäßig aus |
 | *… → Mandate* | **Mandatsreferenz-Präfix**, **Ablauf-Vorwarnung** (Tage vor Verfall, Standard 180), **Nachweis-Ordner** und **Auf Mandate ohne Nachweis hinweisen** (13.2, 13.9) |
@@ -1437,9 +1436,9 @@ zusätzliche Spalten (Stimmlage …) werden einfach übergangen:
 | Kontoinhaber | `Peter Brunner` | nein, sonst Anzeigename des Mitglieds |
 | Mandat am | `15.01.2026` | ja, sobald eine IBAN dasteht |
 | Mandatsreferenz | `ALT-0001` | nein, sonst vergibt die App eine |
-| Beitragsgruppe | `Chormitglieder` | ja, sobald ein Beitrag entstehen soll |
-| Betrag | `8,00` | nur wenn ein Beitrag entstehen soll – der **Monatsbeitrag**, unabhängig vom Turnus. **`0`** bedeutet beitragsfrei (Passiv-, Ehren-, Fördermitglieder, Pausen) |
-| Frequenz | `monatlich` | nein – ohne Angabe gilt **jährlich**; bestimmt nur den Turnus, nicht den Betrag |
+| Beitragsgruppe | `Chormitglieder` | ja, sobald ein Beitrag entstehen soll – gibt es nur eine Gruppe, darf die Spalte fehlen |
+| Betrag | `8,00` | nur wenn ein Beitrag entstehen soll – der **Monatsbeitrag**, unabhängig vom Turnus. **`0`** bedeutet beitragsfrei (Passiv-, Ehren-, Fördermitglieder, Pausen). Leer, aber mit Start: der Standardbeitrag der Beitragsgruppe |
+| Frequenz | `monatlich` | nein – ohne Angabe gilt **jährlich**, bei leerem Betrag der Standard-Turnus der Beitragsgruppe; bestimmt nur den Turnus, nicht den Betrag |
 | Start | `01.02.2026` | ja, sobald ein Betrag über 0 dasteht – darf nicht in der Vergangenheit liegen. Bei **0 €** darf er fehlen: die Zuweisung gilt dann ab dem Importtag |
 
 Eine Zeile ganz ohne IBAN und ohne Betrag ist gültig – dann entsteht nur das
@@ -1467,10 +1466,12 @@ wenn die Liste aus einem englischsprachigen Programm kommt. Bei der Frequenz
 gilt dasselbe: `monthly`, `quarterly`, `semiannual` und `yearly` werden neben
 den deutschen Wörtern erkannt.
 
-> **Standardbeitrag hinterlegt (13.1)?** Dann darf die Betrag-Spalte für
-> Zeilen mit demselben Satz leer bleiben – solange ein Startdatum dasteht,
-> übernimmt die App automatisch Betrag und Frequenz aus den Einstellungen.
-> Nur Sonderfälle brauchen dann noch einen eigenen Betrag.
+> **Beitragsgruppe mit Standardbeitrag (13.4)?** Dann darf die Betrag-Spalte
+> für Zeilen mit demselben Satz leer bleiben – solange ein Startdatum dasteht,
+> übernimmt die App automatisch Standardbeitrag und Standard-Turnus der
+> Beitragsgruppe der Zeile. Nur Sonderfälle brauchen dann noch einen eigenen
+> Betrag. Lässt sich keine Gruppe bestimmen (mehrere Gruppen, aber keine Spalte
+> „Beitragsgruppe"), entsteht kein Beitrag; die Vorschau nennt den Grund.
 
 Der Ablauf ist zweistufig: **„Prüfen"** ändert nichts und zeigt Ihnen für jede
 Zeile, was entstehen würde und was nicht stimmt. Erst danach übernehmen Sie.

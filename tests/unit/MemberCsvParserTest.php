@@ -229,47 +229,27 @@ class MemberCsvParserTest extends TestCase {
 	}
 
 	/**
-	 * Standardbeitrag (SettingsSepaBasics.vue): eine Zeile mit Start-Datum,
-	 * aber ohne eigenen Betrag, uebernimmt den hinterlegten Satz - sonst
-	 * muesste er bei 90 gleich zahlenden Chormitgliedern 90 Mal wiederholt
-	 * werden.
+	 * Eine Zeile mit Start-Datum, aber ohne Betrag, bleibt im Parser ohne Betrag
+	 * und ohne Fehler: den üblichen Satz ihrer Beitragsgruppe setzt erst
+	 * MemberImportService, der Parser kennt keine Gruppen. Die Pflicht-Prüfung
+	 * „Betrag braucht Startdatum“ bleibt davon unberührt.
 	 */
-	public function testStandardbeitragWirdBeiFehlendemBetragUebernommen(): void {
+	public function testStartdatumOhneBetragLaesstBetragUndFrequenzOffen(): void {
 		$csv = "Name;Start\nKatrin Brunner;01.01.2026\n";
-		$zeile = $this->parser->parse($csv, 800, 'monthly')['rows'][0];
-		$this->assertSame([], $zeile['errors']);
-		$this->assertSame(800, $zeile['amountCents']);
-		$this->assertSame('monthly', $zeile['frequency']);
-	}
-
-	/** Ein eigener Betrag in der Zeile geht immer vor den Standardbeitrag. */
-	public function testEigenerBetragUeberschreibtStandardbeitrag(): void {
-		$csv = "Name;Betrag;Frequenz;Start\nSonderfall;4,00;monatlich;01.01.2026\n";
-		$zeile = $this->parser->parse($csv, 800, 'monthly')['rows'][0];
-		$this->assertSame(400, $zeile['amountCents']);
-	}
-
-	/**
-	 * Ohne Start-Datum bleibt eine reine Mandatszeile ("nur IBAN") auch bei
-	 * hinterlegtem Standardbeitrag ein reines Mandat - sonst bekäme jeder
-	 * Überweiser ungefragt einen Beitrag.
-	 */
-	public function testStandardbeitragOhneStartdatumBleibtAus(): void {
-		$csv = "Name;IBAN;Mandat am\nÜberweiser;DE02120300000000202051;15.01.2026\n";
-		$zeile = $this->parser->parse($csv, 800, 'monthly')['rows'][0];
+		$zeile = $this->parser->parse($csv)['rows'][0];
 		$this->assertSame([], $zeile['errors']);
 		$this->assertNull($zeile['amountCents']);
+		$this->assertNull($zeile['frequency']);
+		$this->assertSame('2026-01-01', $zeile['startDate']);
 	}
 
-	/**
-	 * Ein Betrag ohne Frequenz bleibt weiterhin ein Jahresbeitrag (bestehende,
-	 * getestete Konvention) - der Standard-Frequenz-Fallback gilt nur, wenn
-	 * auch der Betrag selbst aus dem Standardbeitrag stammt.
-	 */
-	public function testBetragOhneFrequenzIgnoriertStandardfrequenz(): void {
-		$csv = "Name;Betrag;Start\nKatrin Brunner;96,00;01.01.2026\n";
-		$zeile = $this->parser->parse($csv, 800, 'monthly')['rows'][0];
-		$this->assertSame('yearly', $zeile['frequency']);
+	/** Eine reine Mandatszeile („nur IBAN“) bleibt ein reines Mandat: weder Betrag noch Start. */
+	public function testMandatszeileOhneStartdatumBleibtOhneBetrag(): void {
+		$csv = "Name;IBAN;Mandat am\nÜberweiser;DE02120300000000202051;15.01.2026\n";
+		$zeile = $this->parser->parse($csv)['rows'][0];
+		$this->assertSame([], $zeile['errors']);
+		$this->assertNull($zeile['amountCents']);
+		$this->assertNull($zeile['startDate']);
 	}
 
 	/**
@@ -328,16 +308,14 @@ class MemberCsvParserTest extends TestCase {
 		}
 	}
 
-	/**
-	 * Eine englische Zeile ohne eigenen Betrag zahlt den Standardbeitrag -
-	 * derselbe Weg wie bei der deutschen Tabelle, nur über "Start date".
-	 */
-	public function testEnglischeZeileNutztStandardbeitrag(): void {
+	/** Dasselbe in englischen Überschriften: „Start date“ ohne „Amount“ lässt den Betrag für den Service offen. */
+	public function testEnglischeZeileMitStartOhneBetragLaesstBetragOffen(): void {
 		$csv = "Name;IBAN;Mandate;Start date\nBen Fisher;DE02120300000000202051;2026-01-15;2026-02-01\n";
-		$zeile = $this->parser->parse($csv, 6000, 'yearly')['rows'][0];
+		$zeile = $this->parser->parse($csv)['rows'][0];
 		$this->assertSame([], $zeile['errors']);
-		$this->assertSame(6000, $zeile['amountCents']);
-		$this->assertSame('yearly', $zeile['frequency']);
+		$this->assertNull($zeile['amountCents']);
+		$this->assertNull($zeile['frequency']);
+		$this->assertSame('2026-02-01', $zeile['startDate']);
 	}
 
 	/**

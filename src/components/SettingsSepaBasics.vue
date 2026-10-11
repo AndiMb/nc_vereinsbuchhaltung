@@ -40,47 +40,19 @@
 				{{ t('Betrifft nur Mitglieder, deren Nextcloud-Konto in der Mitgliederakte verknüpft ist – sie sehen dann ihre eigenen Stammdaten, unabhängig von einer Buchhaltungsrolle.') }}
 			</p>
 		</div>
-
-		<div class="vbh-card">
-			<h4>{{ t('Standard-Beitrag') }}</h4>
-			<p class="vbh-hint">
-				{{ t('Haben fast alle Mitglieder denselben Beitrag (z. B. 8 € monatlich), hier einmal hinterlegen: „Mitglied aufnehmen" schlägt Betrag und Frequenz dann vor, statt bei jedem Mitglied neu einzutippen. Abweichende Einzelfälle lassen sich weiterhin frei überschreiben.') }}
-			</p>
-			<div class="vbh-form">
-				<label>{{ t('Betrag (€)') }}
-					<AmountInput
-						v-model="defaultFeeAmountModel"
-						class="vbh-short"
-						placeholder="8,00" />
-				</label>
-				<label>{{ t('Frequenz') }}
-					<select v-model="defaultFeeFrequencyModel">
-						<option v-for="f in frequencies" :key="f.value" :value="f.value">
-							{{ f.label }}
-						</option>
-					</select>
-				</label>
-				<NcButton variant="primary" :disabled="storageSaving" @click="saveSettings">
-					{{ t('Speichern') }}
-				</NcButton>
-			</div>
-		</div>
 	</div>
 </template>
 
 <script>
 import { NcButton, NcCheckboxRadioSwitch } from '@nextcloud/vue'
 import { toRefs } from 'vue'
-import AmountInput from './AmountInput.vue'
 import { useAccounts } from '../composables/useAccounts.js'
-import { frequencyOptions } from '../lib/frequency.js'
 
 /**
- * Die beiden Angaben, ohne die kein Sammeleinzug zustande kommt, der Schalter
- * fuer den Reiter „Beiträge" (ContributionsTab.vue), und der optionale
- * Standard-Beitrag (Betrag/Frequenz), den MemberDialog.vue beim Anlegen eines
- * neuen Mitglieds vorschlaegt - bei 80-100 Mitgliedern mit einheitlichem Satz
- * sonst 80-100 Mal derselbe Wert von Hand. Die Pflege der Mandate selbst steht
+ * Die beiden Angaben, ohne die kein Sammeleinzug zustande kommt, und der Schalter
+ * fuer den Reiter „Beiträge" (ContributionsTab.vue). Betrag und Turnus eines
+ * Mitglieds kommen von seiner Beitragsgruppe (ContributionGroupDialog.vue), nicht
+ * aus einer vereinsweiten Einstellung. Die Pflege der Mandate selbst steht
  * in MembersList.vue, wo sie zusammen mit den Beiträgen hingehört – vorher
  * lagen beide in getrennten Abschnitten, und jedes Mitglied musste zweimal
  * angelegt werden.
@@ -89,12 +61,10 @@ import { frequencyOptions } from '../lib/frequency.js'
  */
 export default {
 	name: 'SettingsSepaBasics',
-	components: { NcButton, NcCheckboxRadioSwitch, AmountInput },
+	components: { NcButton, NcCheckboxRadioSwitch },
 	props: {
 		sepaCreditorId: { type: String, default: '' },
 		sepaDebtorAccountId: { type: Number, default: null },
-		defaultFeeAmount: { type: [Number, String], default: '' },
-		defaultFeeFrequency: { type: String, default: 'yearly' },
 		membershipEnabled: { type: Boolean, default: false },
 		// nur lesend - zeigt an, ob der Reiter unabhaengig vom Schalter schon
 		// sichtbar ist (siehe App.vue::loadStorageSettings())
@@ -107,14 +77,10 @@ export default {
 		saveSettings: { type: Function, required: true },
 	},
 
-	emits: ['update:defaultFeeAmount', 'update:defaultFeeFrequency', 'update:membershipEnabled', 'update:selfServiceEnabled', 'update:sepaCreditorId', 'update:sepaDebtorAccountId'],
+	emits: ['update:membershipEnabled', 'update:selfServiceEnabled', 'update:sepaCreditorId', 'update:sepaDebtorAccountId'],
 
 	setup() {
 		return { ...toRefs(useAccounts().state) }
-	},
-
-	data() {
-		return { frequencies: frequencyOptions() }
 	},
 
 	computed: {
@@ -127,16 +93,6 @@ export default {
 		sepaDebtorAccountIdModel: {
 			get() { return this.sepaDebtorAccountId },
 			set(v) { this.$emit('update:sepaDebtorAccountId', v) },
-		},
-
-		defaultFeeAmountModel: {
-			get() { return this.defaultFeeAmount },
-			set(v) { this.$emit('update:defaultFeeAmount', v) },
-		},
-
-		defaultFeeFrequencyModel: {
-			get() { return this.defaultFeeFrequency },
-			set(v) { this.$emit('update:defaultFeeFrequency', v) },
 		},
 	},
 

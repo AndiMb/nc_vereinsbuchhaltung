@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service;
 
 /**
- * Die Zahlungsfrequenz-Schlüssel, die der Standard-Beitrag in den
- * Einstellungen und der CSV-Import („monatlich", „monthly" …) verwenden,
- * samt ihrer Länge in Monaten. Mehr ist von der früheren Beitragsfortschreibung
+ * Die Zahlungsfrequenz-Schlüssel, die der CSV-Import („monatlich",
+ * „monthly" …) verwendet, samt ihrer Länge in Monaten. Mehr ist von der
+ * früheren Beitragsfortschreibung
  * des flachen Alt-Moduls nicht geblieben (Issue #107): die Fälligkeiten
  * ergeben sich seither aus dem Terminplan und dem Turnus der Zuweisung
  * ({@see DueDateScheduleService}).

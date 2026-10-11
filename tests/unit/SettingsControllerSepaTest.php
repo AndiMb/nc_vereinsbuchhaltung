@@ -94,6 +94,27 @@ class SettingsControllerSepaTest extends TestCase {
 		$this->assertSame(14, $data['dunning_interval_days']);
 	}
 
+	/** Betrag und Turnus kommen von der Beitragsgruppe: die frühere Einstellung „Standard-Beitrag“ gibt es nicht mehr. */
+	public function testEinstellungssatzKenntKeinenStandardBeitragMehr(): void {
+		$this->store['default_fee_amount_cents'] = '800';
+		$this->store['default_fee_frequency'] = 'monthly';
+
+		$data = $this->controller()->index()->getData();
+
+		$this->assertArrayNotHasKey('default_fee_amount', $data);
+		$this->assertArrayNotHasKey('default_fee_frequency', $data);
+	}
+
+	/** Ein alter Client, der die Felder noch mitschickt, schreibt nichts mehr und bekommt keinen Fehler. */
+	public function testStandardBeitragFelderEinesAltenClientsWerdenIgnoriert(): void {
+		$response = $this->update(['default_fee_amount' => '8,00', 'default_fee_frequency' => 'monthly', 'sepa_creditor_id' => 'DE98ZZZ09999999999']);
+
+		$this->assertSame(Http::STATUS_OK, $response->getStatus());
+		$this->assertSame('DE98ZZZ09999999999', $this->store['sepa_creditor_id']);
+		$this->assertArrayNotHasKey('default_fee_amount_cents', $this->store);
+		$this->assertArrayNotHasKey('default_fee_frequency', $this->store);
+	}
+
 	/** Mandate und Zuweisungen hängen immer an einem Mitglied: seit dem Cutover (Issue #107) genügt es als Kriterium. */
 	public function testReiterBeitraegeIstOhneSchalterUndOhneMitgliederVerborgen(): void {
 		$members = $this->createMock(MemberMapper::class);

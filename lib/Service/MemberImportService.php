@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service;
 
-use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Assignment;
 use OCA\Vereinsbuchhaltung\Db\AssignmentEvent;
 use OCA\Vereinsbuchhaltung\Db\ContributionGroup;
@@ -14,7 +13,6 @@ use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Service\Sepa\MemberCsvParser;
 use OCP\AppFramework\Utility\ITimeFactory;
-use OCP\IConfig;
 use OCP\IL10N;
 use OCP\IUserManager;
 use OCP\IUserSession;
@@ -46,6 +44,14 @@ use OCP\IUserSession;
  * §3.3), genau wie es AssignmentDialog.vue für die manuelle Erfassung auch
  * verlangt. Eine Division des Altbetrags durch den Turnus hätte krumme Cent-
  * Beträge riskiert.
+ *
+ * **Betrag aus der Beitragsgruppe:** eine Zeile mit Startdatum, aber ohne
+ * Betrag, bekommt den üblichen Monatsbeitrag (`default_monthly_amount_cents`)
+ * und den üblichen Turnus (`default_interval`) der aufgelösten Beitragsgruppe –
+ * der Parser kennt keine Gruppen, die Entscheidung fällt deshalb hier in
+ * {@see processRow()}. Lässt sich keine Gruppe auflösen, entsteht kein Beitrag
+ * (mit der Warnung aus {@see resolveGroup()}); ohne Startdatum entsteht nie
+ * ungefragt einer.
  *
  * **Mandats-Aktivierung** (Spec §3.1): ein per Import angelegtes Mandat hat
  * durch die Parser-Regel „IBAN verlangt ein Mandatsdatum" immer ein
@@ -82,27 +88,10 @@ class MemberImportService {
 		private TransactionRunner $transaction,
 		private AuditService $audit,
 		private IUserSession $userSession,
-		private IConfig $config,
 		private IL10N $l10n,
 		private ITimeFactory $time,
 		private IbanValidator $ibanValidator,
 	) {
-	}
-
-	/**
-	 * Standard-Beitrag aus den Einstellungen (SettingsSepaBasics.vue), fuer
-	 * Zeilen mit Start-Datum, aber ohne eigenen Betrag - siehe
-	 * MemberCsvParser::parseRow(). Cents ist null, wenn kein Standardbeitrag
-	 * hinterlegt ist.
-	 *
-	 * @return array{0: ?int, 1: ?string}
-	 */
-	private function defaultFee(): array {
-		$cents = $this->config->getAppValue(Application::APP_ID, 'default_fee_amount_cents', '');
-		if ($cents === '') {
-			return [null, null];
-		}
-		return [(int)$cents, $this->config->getAppValue(Application::APP_ID, 'default_fee_frequency', 'yearly')];
 	}
 
 	/**
@@ -132,8 +121,7 @@ class MemberImportService {
 	 * @return array{error: ?string, rows: list<array<string, mixed>>, summary: array<string, int>}
 	 */
 	private function run(string $csv, bool $persist, bool $mandatesConfirmed): array {
-		[$defaultAmountCents, $defaultFrequency] = $this->defaultFee();
-		$parsed = $this->parser->parse($csv, $defaultAmountCents, $defaultFrequency);
+		$parsed = $this->parser->parse($csv);
 		if ($parsed['error'] !== null) {
 			return ['error' => $parsed['error'], 'rows' => [], 'summary' => $this->emptySummary()];
 		}
@@ -229,8 +217,17 @@ class MemberImportService {
 		$warnings = $row['warnings'];
 		$group = null;
 		$assignmentPlanned = false;
-		if ($row['amountCents'] !== null) {
+		// Ein Beitrag entsteht, sobald die Zeile einen Betrag oder ein Startdatum
+		// nennt. Ohne Betrag gilt der übliche Monatsbeitrag der Beitragsgruppe (ihren
+		// Turnus liefert intervalMonthsFor(), solange keine Frequenz in der Zeile
+		// steht) – sonst müsste der gemeinsame Satz in jeder Zeile wiederholt werden.
+		// Ohne Startdatum bleibt eine reine Mandatszeile ("nur IBAN") ein reines
+		// Mandat: niemand bekommt ungefragt einen Beitrag.
+		if ($row['amountCents'] !== null || $row['startDate'] !== null) {
 			[$group, $groupWarning] = $this->resolveGroup($row['groupName'], $groups);
+			if ($group !== null && $row['amountCents'] === null) {
+				$row['amountCents'] = (int)$group->getDefaultMonthlyAmountCents();
+			}
 			$assignmentPlanned = $group !== null;
 			if ($groupWarning !== null) {
 				$warnings[] = $groupWarning;

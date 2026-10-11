@@ -235,8 +235,6 @@
 					:contribView="contribView"
 					:isMobile="isMobile"
 					:canWrite="canWrite"
-					:defaultFeeAmount="defaultFeeAmount"
-					:defaultFeeFrequency="defaultFeeFrequency"
 					@update:contribView="contribView = $event" />
 			</section>
 
@@ -676,11 +674,6 @@ export default {
 			// "erledigt"-Haekchen braucht - verhindert das Aufblitzen der Checkliste
 			// mit noch leeren/veralteten Werten waehrend des initialen Ladens.
 			setupReady: false,
-			// Vorbelegung fuer "Mitglied aufnehmen" (MemberDialog.vue), wenn fast
-			// alle Mitglieder denselben Beitrag zahlen - leerer String heisst
-			// "kein Standardbeitrag hinterlegt".
-			defaultFeeAmount: '',
-			defaultFeeFrequency: 'yearly',
 			// membershipActive kommt vom Backend (Schalter in den Nextcloud-
 			// Einstellungen ODER bereits vorhandene Mandate/Beitraege, siehe
 			// SettingsController::index()) und entscheidet, ob der Reiter
@@ -1448,9 +1441,8 @@ export default {
 		// noch, was ausserhalb der (jetzt in Nextcloud-Einstellungen
 		// ausgelagerten) Einstellungsseite gebraucht wird: den Kostenstellen-
 		// Modus (ReportsTab, AccountDialog), die Betragsdarstellung (DashboardTab,
-		// BookingsTab), den Vereinsnamen (SetupChecklist),
-		// den Beitrags-Standardwert (ContributionsTab → MemberDialog,
-		// MemberImportDialog) sowie demoActive/membershipActive.
+		// BookingsTab), den Vereinsnamen (SetupChecklist) sowie
+		// demoActive/membershipActive.
 		async loadStorageSettings() {
 			try {
 				const { data } = await api.getSettings()
@@ -1459,8 +1451,6 @@ export default {
 				this.storageMode = data.storage_mode || 'appdata'
 				this.clubName = data.club_name || ''
 				this.demoActive = !!data.demo_active
-				this.defaultFeeAmount = data.default_fee_amount ?? ''
-				this.defaultFeeFrequency = data.default_fee_frequency || 'yearly'
 				this.membershipActive = !!data.membership_active
 			} catch { /* ignorieren */ }
 		},

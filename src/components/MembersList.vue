@@ -156,7 +156,6 @@
 			:show="memberDialogOpen"
 			:saving="saving"
 			:member="editingMember"
-			:defaultFeeAmount="defaultFeeAmount"
 			:section="akteSection"
 			@update:show="memberDialogOpen = $event"
 			@close="memberDialogOpen = false"
@@ -165,7 +164,6 @@
 
 		<MemberImportDialog
 			:show="importDialogOpen"
-			:defaultFeeAmount="defaultFeeAmount"
 			@update:show="importDialogOpen = $event"
 			@close="importDialogOpen = false"
 			@imported="reload" />
@@ -229,7 +227,6 @@ export default {
 	components: { NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, AssignmentChangeDialog, AssignmentDialog, MemberAccountCell, MemberDialog, MemberImportDialog, MemberCard, MemberRowMenu },
 	props: {
 		isMobile: { type: Boolean, default: false },
-		defaultFeeAmount: { type: [Number, String], default: '' },
 	},
 
 	emits: ['manage-assignments'],

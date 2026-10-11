@@ -19,6 +19,11 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+**Geändert:**
+- **Standard-Beitrag entfernt:** Die Einstellung entfällt, Betrag und Turnus
+  kommen von der Beitragsgruppe. Im CSV-Import nutzt eine Zeile mit
+  Startdatum, aber ohne Betrag den üblichen Betrag ihrer Beitragsgruppe.
+
 ## [0.36.0] – 2026-10-11
 
 **Neu:**
