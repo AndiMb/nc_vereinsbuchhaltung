@@ -1,23 +1,21 @@
 <template>
-	<span class="vbh-account-cell">
-		<span v-if="member.ncUserId" :title="linkedAccountText(member.ncUserId)">{{ t('Ja') }}</span>
-		<button
-			v-else-if="member.ncAccountSuggestion"
-			type="button"
-			class="vbh-linkbtn vbh-linkbtn--plain"
-			:disabled="busy"
-			@click="$emit('link')">
-			{{ tRaw('Vorschlag {email} verknüpfen', { email: member.ncAccountSuggestion.email || member.email || '' }) }}
-		</button>
-		<button
-			v-else-if="member.ncAccountCandidates > 1"
-			type="button"
-			class="vbh-linkbtn vbh-linkbtn--plain"
-			@click="$emit('open')">
-			{{ t('{count} Vorschläge prüfen', { count: member.ncAccountCandidates }) }}
-		</button>
-		<span v-else>{{ t('Nein') }}</span>
-	</span>
+	<span v-if="member.ncUserId" :title="linkedAccountText(member.ncUserId)">{{ t('Ja') }}</span>
+	<button
+		v-else-if="suggestions.length === 1"
+		type="button"
+		class="vbh-linkbtn vbh-linkbtn--plain"
+		:disabled="busy"
+		@click="$emit('link')">
+		{{ tRaw('Vorschlag {email} verknüpfen', { email: suggestions[0].email || member.email || '' }) }}
+	</button>
+	<button
+		v-else-if="suggestions.length > 1"
+		type="button"
+		class="vbh-linkbtn vbh-linkbtn--plain"
+		@click="$emit('open')">
+		{{ t('{count} Vorschläge prüfen', { count: suggestions.length }) }}
+	</button>
+	<span v-else>{{ t('Nein') }}</span>
 </template>
 
 <script>
@@ -31,8 +29,10 @@ import { linkedAccountText } from '../lib/memberAccount.js'
 export default {
 	name: 'MemberAccountCell',
 	props: {
-		/** Das Mitglied der Liste (`ncUserId`, `ncAccountSuggestion`, `ncAccountCandidates`, `email`). */
+		/** Das Mitglied der Liste (`ncUserId`, `email`). */
 		member: { type: Object, required: true },
+		/** Die Konten, die zur Mailadresse des Mitglieds passen und noch frei sind (`GET /member-link-suggestions`). */
+		suggestions: { type: Array, default: () => [] },
 		/** Während die Verknüpfung läuft, ist der Vorschlag gesperrt. */
 		busy: { type: Boolean, default: false },
 	},

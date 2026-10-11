@@ -11,13 +11,14 @@
 				{{ t('Nextcloud-Konto anlegen') }}
 			</h2>
 			<p class="vbh-hint">
-				{{ tRaw('Legt ein Nextcloud-Konto für {name} an und verknüpft es mit der Akte.', { name: memberName }) }}
+				{{ tRaw('Legt ein Nextcloud-Konto für {name} an und verknüpft es mit der Akte.', { name: member.displayName }) }}
 			</p>
 			<NcNoteCard v-if="options && !options.canCreate" type="warning">
 				{{ t('Nextcloud-Konten können nur Administratoren und Gruppen-Administratoren anlegen.') }}
 			</NcNoteCard>
 			<NextcloudAccountFields
 				v-else-if="options && account"
+				ref="fields"
 				v-model:account="account"
 				:options="options" />
 			<div class="vbh-modal-actions">
@@ -39,7 +40,8 @@ import NextcloudAccountFields from './NextcloudAccountFields.vue'
 import api from '../api.js'
 import { accountPayload, emptyAccount, missingAccountFields } from '../lib/accountForm.js'
 import { errMsg } from '../lib/format.js'
-import { createNextcloudAccount } from '../lib/nextcloudAccount.js'
+import { focusOnOpen } from '../lib/modalFocus.js'
+import { createAndLinkAccount } from '../lib/nextcloudAccount.js'
 
 /**
  * „Nextcloud-Konto anlegen“ für ein schon vorhandenes Mitglied (Akte): dieselben Angaben wie im
@@ -62,8 +64,6 @@ export default {
 	},
 
 	computed: {
-		memberName() { return this.member.displayName },
-
 		canSave() {
 			return !!this.options?.canCreate && !!this.account && missingAccountFields(this.account, this.options).length === 0
 		},
@@ -76,6 +76,8 @@ export default {
 			try {
 				const { data } = await api.nextcloudAccountOptions()
 				this.options = data
+				// Die Felder gibt es erst jetzt: der Cursor kommt ins erste (siehe NcModal-Fokus-Race in modalFocus.js).
+				focusOnOpen(this, () => this.$refs.fields?.focus())
 			} catch (e) {
 				this.options = null
 				showError(errMsg(e, this.t('Die Angaben für das Konto konnten nicht geladen werden')))
@@ -87,17 +89,15 @@ export default {
 		async save() {
 			if (!this.canSave) { return }
 			this.saving = true
-			let created = null
 			try {
-				created = await createNextcloudAccount(accountPayload(this.account))
-				await api.linkMember(this.member.id, created)
+				await createAndLinkAccount(this.member.id, accountPayload(this.account))
 				showSuccess(this.t('Nextcloud-Konto angelegt und verknüpft.'))
 				this.$emit('changed')
 				this.$emit('close')
 			} catch (e) {
-				if (created !== null) {
+				if (e.createdUid) {
 					// Das Konto gibt es, nur die Verknüpfung fehlt: in der Akte lässt sie sich über den Vorschlag nachholen.
-					showError(errMsg(e, this.tRaw('Das Konto „{uid}" wurde angelegt, die Verknüpfung nicht. Bitte in der Akte verknüpfen.', { uid: created })))
+					showError(this.tRaw('Das Nextcloud-Konto „{uid}" wurde angelegt, die Verknüpfung mit der Akte nicht.', { uid: e.createdUid }))
 					this.$emit('changed')
 				} else {
 					showError(errMsg(e, this.t('Das Nextcloud-Konto konnte nicht angelegt werden')))

@@ -14,9 +14,10 @@ export const DEFAULT_CHOICE = 'default'
  *        Stammdaten (Formular der Aufnahme oder Akte)
  */
 export function emptyAccount(source = {}) {
+	const names = source.memberType === 'organisation' ? [source.organizationName] : [source.firstName, source.lastName]
 	return {
-		userId: suggestedUserId(source),
-		displayName: displayNameOf(source),
+		userId: suggestUserId(...names),
+		displayName: names.map((part) => String(part ?? '').trim()).filter(Boolean).join(' '),
 		email: String(source.email ?? ''),
 		password: '',
 		groups: [],
@@ -25,18 +26,12 @@ export function emptyAccount(source = {}) {
 	}
 }
 
-export function displayNameOf(source) {
-	if (source.memberType === 'organisation') {
-		return String(source.organizationName ?? '').trim()
-	}
-	return [source.firstName, source.lastName].map((part) => String(part ?? '').trim()).filter(Boolean).join(' ')
-}
-
-export function suggestedUserId(source) {
-	if (source.memberType === 'organisation') {
-		return suggestUserId(source.organizationName)
-	}
-	return suggestUserId(source.firstName, source.lastName)
+/**
+ * Ob die E-Mail-Adresse ausgefüllt sein muss: ohne Passwort geht die Einladung dorthin, und manche
+ * Instanzen verlangen sie immer (`newUser.requireEmail`). Eine Regel für Beschriftung und Prüfung.
+ */
+export function isEmailRequired(account, options) {
+	return options.requireEmail || account.password === ''
 }
 
 /**
@@ -51,9 +46,7 @@ export function missingAccountFields(account, options) {
 	if (!options.generateUserId && account.userId.trim() === '') {
 		missing.push('userId')
 	}
-	if (account.password === '' && account.email.trim() === '') {
-		missing.push('email')
-	} else if (options.requireEmail && account.email.trim() === '') {
+	if (isEmailRequired(account, options) && account.email.trim() === '') {
 		missing.push('email')
 	}
 	if (options.groupRequired && account.groups.length === 0) {

@@ -1,6 +1,7 @@
 <template>
-	<div class="vbh-account-fields">
+	<div class="vbh-form-stack">
 		<NcTextField
+			ref="userId"
 			:modelValue="account.userId"
 			:label="options.generateUserId ? t('Kontoname (Nextcloud vergibt ihn selbst)') : t('Kontoname')"
 			:disabled="options.generateUserId"
@@ -53,7 +54,7 @@
 
 <script>
 import { NcPasswordField, NcSelect, NcTextField } from '@nextcloud/vue'
-import { DEFAULT_CHOICE } from '../lib/accountForm.js'
+import { DEFAULT_CHOICE, isEmailRequired } from '../lib/accountForm.js'
 
 /**
  * Die Felder von „Nextcloud-Konto anlegen“ – dieselben Angaben, die Nextcloud selbst in der
@@ -73,7 +74,7 @@ export default {
 
 	computed: {
 		emailRequired() {
-			return this.options.requireEmail || this.account.password === ''
+			return isEmailRequired(this.account, this.options)
 		},
 
 		passwordHint() {
@@ -104,6 +105,9 @@ export default {
 	},
 
 	methods: {
+		/** Setzt den Cursor in den Kontonamen (siehe focusOnOpen()). */
+		focus() { this.$refs.userId?.focus() },
+
 		set(field, value) {
 			this.$emit('update:account', { ...this.account, [field]: value })
 		},
@@ -112,14 +116,7 @@ export default {
 </script>
 
 <style scoped>
-.vbh-account-fields {
-	display: flex;
-	flex-direction: column;
-	gap: calc(var(--default-grid-baseline, 4px) * 3);
-	margin-top: calc(var(--default-grid-baseline, 4px) * 2);
-}
-
-.vbh-account-fields .vbh-hint {
+.vbh-form-stack .vbh-hint {
 	margin: calc(var(--default-grid-baseline, 4px) * -2) 0 0;
 }
 </style>

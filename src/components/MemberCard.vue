@@ -42,6 +42,7 @@
 				{{ t('Nextcloud-Konto?') }}
 				<MemberAccountCell
 					:member="row.member"
+					:suggestions="suggestions"
 					:busy="linkingMemberId === row.member.id"
 					@link="$emit('link-account')"
 					@open="$emit('open-member', '')" />
@@ -79,6 +80,8 @@ export default {
 	components: { NcIconSvgWrapper, MemberAccountCell, MemberRowMenu },
 	props: {
 		row: { type: Object, required: true },
+		/** Die freien Konten zur Mailadresse des Mitglieds (Spalte „Nextcloud-Konto?“). */
+		suggestions: { type: Array, default: () => [] },
 		/** Mitglied, dessen Konto-Vorschlag gerade verknüpft wird (sperrt den Knopf). */
 		linkingMemberId: { type: Number, default: null },
 	},

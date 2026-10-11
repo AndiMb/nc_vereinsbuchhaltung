@@ -1,6 +1,7 @@
 <template>
-	<div class="vbh-welcome-fields">
+	<div class="vbh-form-stack">
 		<NcTextField
+			ref="subject"
 			:modelValue="subject"
 			:label="t('Betreff')"
 			@update:modelValue="$emit('update:subject', $event)" />
@@ -34,17 +35,15 @@ export default {
 	},
 
 	emits: ['update:subject', 'update:body'],
+
+	methods: {
+		/** Setzt den Cursor in den Betreff (siehe focusOnOpen()). */
+		focus() { this.$refs.subject?.focus() },
+	},
 }
 </script>
 
 <style scoped>
-.vbh-welcome-fields {
-	display: flex;
-	flex-direction: column;
-	gap: calc(var(--default-grid-baseline, 4px) * 3);
-	margin-top: calc(var(--default-grid-baseline, 4px) * 2);
-}
-
 .vbh-placeholder {
 	margin-inline-end: calc(var(--default-grid-baseline, 4px) * 2);
 	white-space: nowrap;

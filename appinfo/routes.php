@@ -148,6 +148,8 @@ return [
 		['name' => 'member#leave', 'url' => '/api/members/{id}/leave', 'verb' => 'POST'],
 		['name' => 'member#reactivate', 'url' => '/api/members/{id}/reactivate', 'verb' => 'POST'],
 		['name' => 'member#linkSuggestions', 'url' => '/api/members/{id}/link-suggestions', 'verb' => 'GET'],
+		// Vorschläge aller Mitglieder auf einmal (Spalte „Nextcloud-Konto?“ der Liste)
+		['name' => 'member#allLinkSuggestions', 'url' => '/api/member-link-suggestions', 'verb' => 'GET'],
 		['name' => 'member#link', 'url' => '/api/members/{id}/link', 'verb' => 'POST'],
 		['name' => 'member#unlink', 'url' => '/api/members/{id}/unlink', 'verb' => 'POST'],
 		// Willkommens-Mail an die Mailadresse der Akte, unabhängig vom Nextcloud-Konto: Vorlage in den

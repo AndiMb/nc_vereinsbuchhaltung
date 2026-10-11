@@ -2781,7 +2781,6 @@
         "Konto anlegen und verknüpfen": "Create account and link",
         "Die Angaben für das Konto konnten nicht geladen werden": "The account options could not be loaded",
         "Nextcloud-Konto angelegt und verknüpft.": "Nextcloud account created and linked.",
-        "Das Konto „{uid}\" wurde angelegt, die Verknüpfung nicht. Bitte in der Akte verknüpfen.": "The account “{uid}” was created, but not linked. Please link it in the record.",
         "Kontoname (Nextcloud vergibt ihn selbst)": "Account name (Nextcloud assigns it)",
         "E-Mail (erforderlich)": "Email (required)",
         "Passwort (optional)": "Password (optional)",
@@ -2801,9 +2800,6 @@
         "Noch keine eigene Vorlage gespeichert – es gilt der Standardtext.": "No template saved yet – the default text applies.",
         "Standardtext wiederherstellen": "Restore default text",
         "Die Vorlage konnte nicht geladen werden": "The template could not be loaded",
-        "Vorlage gespeichert.": "Template saved.",
-        "Die Vorlage konnte nicht gespeichert werden": "The template could not be saved",
-        "Standardtext wiederhergestellt.": "Default text restored.",
         "Willkommens-Mail senden": "Send welcome email",
         "Geht an {email}. Der Text kommt aus der Vorlage der Einstellungen und lässt sich hier für diese eine Mail anpassen.": "Goes to {email}. The text comes from the template in the settings and can be adapted here for this one email.",
         "Mail senden": "Send email",
@@ -2818,7 +2814,8 @@
         "Guten Tag {name},\n\nwillkommen bei {verein}! Schön, dass Sie dabei sind.\n\nBei Fragen melden Sie sich gern beim Vorstand.": "Hello {name},\n\nwelcome to {verein}! We are glad to have you.\n\nIf you have any questions, please contact the board.",
         "Betreff und Text der Willkommens-Mail dürfen nicht leer sein.": "Subject and text of the welcome email must not be empty.",
         "Der Betreff ist zu lang (höchstens %d Zeichen).": "The subject is too long (at most %d characters).",
-        "Der Text ist zu lang (höchstens %d Zeichen).": "The text is too long (at most %d characters)."
+        "Der Text ist zu lang (höchstens %d Zeichen).": "The text is too long (at most %d characters).",
+        "Unbekannter Platzhalter {%1$s}. Erlaubt sind: %2$s": "Unknown placeholder {%1$s}. Allowed are: %2$s"
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

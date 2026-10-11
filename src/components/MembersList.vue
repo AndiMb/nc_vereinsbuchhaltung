@@ -34,6 +34,7 @@
 				v-for="row in filteredRows"
 				:key="row.key"
 				:row="row"
+				:suggestions="linkSuggestions[row.member.id] || []"
 				:linkingMemberId="linkingMemberId"
 				@manageAssignments="(mode) => manageFee(row.member, mode)"
 				@linkAccount="linkSuggestedAccount(row.member)"
@@ -114,6 +115,7 @@
 						<td>
 							<MemberAccountCell
 								:member="row.member"
+								:suggestions="linkSuggestions[row.member.id] || []"
 								:busy="linkingMemberId === row.member.id"
 								@link="linkSuggestedAccount(row.member)"
 								@open="openMemberAkte(row.member)" />
@@ -195,7 +197,7 @@ import { errMsg, formatDate, formatMoney } from '../lib/format.js'
 import { createMandateForMember } from '../lib/mandateCreate.js'
 import { collectEmails, EMAIL_SEPARATOR } from '../lib/memberEmails.js'
 import { buildMemberRow, isLiveAssignment, nextDueDates } from '../lib/memberRow.js'
-import { createNextcloudAccount } from '../lib/nextcloudAccount.js'
+import { createAndLinkAccount } from '../lib/nextcloudAccount.js'
 
 /**
  * Mitgliederliste (Spec §2.2/§3.1, docs/beitraege-sepa-modul-spec.md): jede
@@ -272,6 +274,8 @@ export default {
 			assignDialogOpen: false,
 			assignSaving: false,
 			presetMemberId: null,
+			/** Mitglieds-ID => freie Nextcloud-Konten zur Mailadresse (Spalte „Nextcloud-Konto?“). */
+			linkSuggestions: {},
 			/** Mitglied, dessen Konto-Vorschlag gerade verknüpft wird (sperrt den Knopf). */
 			linkingMemberId: null,
 			mdiEmailOffOutline,
@@ -329,6 +333,7 @@ export default {
 		this.loadAssignments()
 		this.loadClaimOverview()
 		this.loadContributionGroups()
+		this.loadLinkSuggestions()
 	},
 
 	methods: {
@@ -418,12 +423,23 @@ export default {
 			return !row.email
 		},
 
+		/** Die Vorschläge für die Spalte „Nextcloud-Konto?“; ohne sie bleibt die Liste benutzbar (dann „Nein“), deshalb still. */
+		async loadLinkSuggestions() {
+			try {
+				const { data } = await api.allMemberLinkSuggestions()
+				this.linkSuggestions = data
+			} catch {
+				this.linkSuggestions = {}
+			}
+		},
+
 		async reload() {
 			await Promise.all([
 				this.loadMembers(),
 				this.loadMandates(),
 				this.loadAssignments(),
 				this.loadClaimOverview(),
+				this.loadLinkSuggestions(),
 			])
 			// Die offene Akte zeigt sonst weiter den Stand von vor dem Neuladen -
 			// nach @changed (verknuepft/geloest/Austritt) muss sie den frischen
@@ -456,14 +472,12 @@ export default {
 				} else {
 					const { data: member } = await api.createMember(payload.stammdaten)
 					if (payload.account) {
-						let uid = null
 						try {
-							uid = await createNextcloudAccount(payload.account)
-							await api.linkMember(member.id, uid)
+							await createAndLinkAccount(member.id, payload.account)
 						} catch (e) {
-							problems.push(uid === null
-								? this.errMsg(e, this.t('Das Nextcloud-Konto konnte nicht angelegt werden'))
-								: this.tRaw('Das Nextcloud-Konto „{uid}" wurde angelegt, die Verknüpfung mit der Akte nicht.', { uid }))
+							problems.push(e.createdUid
+								? this.tRaw('Das Nextcloud-Konto „{uid}" wurde angelegt, die Verknüpfung mit der Akte nicht.', { uid: e.createdUid })
+								: this.errMsg(e, this.t('Das Nextcloud-Konto konnte nicht angelegt werden')))
 						}
 					}
 					if (payload.welcomeMail) {
@@ -487,7 +501,6 @@ export default {
 				this.memberDialogOpen = false
 				await this.reload()
 				showSuccess(this.editingMember ? this.t('Mitglied gespeichert.') : this.t('Mitglied aufgenommen.'))
-				this.reportProblems(problems)
 			} catch (e) {
 				await this.reload()
 				showError(this.errMsg(e, {
@@ -495,8 +508,10 @@ export default {
 					mandate: this.t('Das Mitglied wurde angelegt, das Mandat nicht'),
 					assignment: this.t('Mitglied und Mandat wurden angelegt, der Beitrag nicht'),
 				}[stage]))
+			} finally {
+				this.saving = false
 				this.reportProblems(problems)
-			} finally { this.saving = false }
+			}
 		},
 
 		/** Was beim Aufnehmen nicht geklappt hat, obwohl das Mitglied angelegt wurde. */
@@ -511,7 +526,8 @@ export default {
 		 * sagt „dieses Konto ist dieses Mitglied“ (Spec §3.1: Vorschlag, nie Vollzug).
 		 */
 		async linkSuggestedAccount(member) {
-			const suggestion = member.ncAccountSuggestion
+			const candidates = this.linkSuggestions[member.id] || []
+			const suggestion = candidates.length === 1 ? candidates[0] : null
 			if (!suggestion || this.linkingMemberId !== null) { return }
 			const confirmed = await this.askConfirm(
 				this.t('Mit Nextcloud-Konto verknüpfen'),

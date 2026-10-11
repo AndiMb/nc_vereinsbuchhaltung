@@ -55,19 +55,22 @@ class MemberController extends Controller {
 			static fn (Member $m): int => (int)$m->getId(),
 			$members,
 		));
-		// Verknüpfungsvorschläge für die Spalte „Nextcloud-Konto“: einer wird als Knopf gezeigt,
-		// mehrere führen in die Akte (dort stehen sie zur Auswahl).
-		$suggestions = $this->service->linkSuggestionsFor($members);
 		return new DataResponse(array_map(
-			function (Member $m) use ($reasons, $suggestions): array {
-				$candidates = $suggestions[(int)$m->getId()] ?? [];
-				return $this->decorate($m, $reasons[$m->getId()]) + [
-					'ncAccountSuggestion' => count($candidates) === 1 ? $candidates[0] : null,
-					'ncAccountCandidates' => count($candidates),
-				];
-			},
+			fn (Member $m): array => $this->decorate($m, $reasons[$m->getId()]),
 			$members,
 		));
+	}
+
+	/**
+	 * Die Verknüpfungsvorschläge aller Mitglieder auf einmal, für die Spalte „Nextcloud-Konto?“
+	 * der Mitgliederliste. Bewusst nicht Teil von {@see index()}: dort holen vier Ansichten die
+	 * Mitglieder, und die Vorschläge kosten je Mailadresse eine Abfrage beim Benutzer-Backend.
+	 */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	public function allLinkSuggestions(): DataResponse {
+		// Als Objekt, damit „keine Vorschläge“ als {} ankommt und nicht als [].
+		return new DataResponse((object)$this->service->linkSuggestionsFor($this->service->findAll()));
 	}
 
 	#[NoAdminRequired]

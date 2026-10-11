@@ -247,14 +247,14 @@ test.describe('Nextcloud-Konto und Willkommens-Mail', () => {
 		await section.getByRole('textbox', { name: 'Betreff', exact: true }).fill('Schön, dass du da bist, {vorname}!')
 		await section.getByRole('textbox', { name: 'Text', exact: true }).fill('Hallo {name}, willkommen im Chor.')
 		await section.getByRole('button', { name: 'Speichern', exact: true }).click()
-		await expect(page.getByText('Vorlage gespeichert.').first()).toBeVisible()
+		await expect(page.getByText('Einstellungen gespeichert.').first()).toBeVisible()
 
 		const template = await api.getJson(request, '/welcome-mail/template')
 		expect(template.subject).toBe('Schön, dass du da bist, {vorname}!')
 		expect(template.isDefault).toBe(false)
 
 		await section.getByRole('button', { name: 'Standardtext wiederherstellen' }).click()
-		await expect(page.getByText('Standardtext wiederhergestellt.').first()).toBeVisible()
+		await expect(page.getByText('Einstellungen gespeichert.').first()).toBeVisible()
 		expect((await api.getJson(request, '/welcome-mail/template')).isDefault).toBe(true)
 	})
 })

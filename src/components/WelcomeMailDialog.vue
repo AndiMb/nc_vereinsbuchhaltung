@@ -15,6 +15,7 @@
 			</p>
 			<WelcomeMailFields
 				v-if="template"
+				ref="fields"
 				v-model:subject="subject"
 				v-model:body="body"
 				:placeholders="template.placeholders" />
@@ -36,6 +37,7 @@ import { NcButton, NcModal } from '@nextcloud/vue'
 import WelcomeMailFields from './WelcomeMailFields.vue'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
+import { focusOnOpen } from '../lib/modalFocus.js'
 
 /** Willkommens-Mail an ein Mitglied der Akte schicken, mit dem Text der Vorlage oder einem angepassten. */
 export default {
@@ -66,6 +68,7 @@ export default {
 				this.template = data
 				this.subject = data.subject
 				this.body = data.body
+				focusOnOpen(this, () => this.$refs.fields?.focus())
 			} catch (e) {
 				this.template = null
 				showError(errMsg(e, this.t('Die Vorlage konnte nicht geladen werden')))
@@ -78,7 +81,11 @@ export default {
 			if (!this.canSend) { return }
 			this.sending = true
 			try {
-				await api.sendWelcomeMail(this.member.id, { subject: this.subject, body: this.body })
+				// Unveränderte Texte gehen als null raus: dann gilt die Vorlage so, wie sie beim Versand in den Einstellungen steht.
+				await api.sendWelcomeMail(this.member.id, {
+					subject: this.subject.trim() === this.template.subject ? null : this.subject.trim(),
+					body: this.body.trim() === this.template.body ? null : this.body.trim(),
+				})
 				showSuccess(this.t('Willkommens-Mail gesendet.'))
 				this.$emit('close')
 			} catch (e) {

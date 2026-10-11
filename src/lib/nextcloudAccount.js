@@ -1,5 +1,6 @@
 import axios from '@nextcloud/axios'
 import { generateOcsUrl } from '@nextcloud/router'
+import api from '../api.js'
 
 /**
  * Nextcloud-Konten legen wir nicht selbst an, sondern über die OCS-Schnittstelle von
@@ -12,31 +13,41 @@ import { generateOcsUrl } from '@nextcloud/router'
 
 /**
  * Legt das Konto an. Fehler von Nextcloud (Konto gibt es schon, Passwort zu schwach,
- * keine Berechtigung für die Gruppe …) kommen mit dem Text von Nextcloud selbst zurück
- * und lassen sich wie die Fehler der eigenen Schnittstelle mit `errMsg()` lesen.
+ * keine Berechtigung für die Gruppe …) tragen den Text von Nextcloud selbst und lassen
+ * sich wie die der eigenen Schnittstelle mit `errMsg()` lesen.
  *
  * @param {{userId: string, password: string, displayName: string, email: string, groups: string[], quota: string, language: string}} account
  * @return {Promise<string>} die ID des angelegten Kontos
  */
 export async function createNextcloudAccount(account) {
+	const { data } = await axios.post(generateOcsUrl('/cloud/users'), {
+		userid: account.userId,
+		password: account.password,
+		displayName: account.displayName,
+		email: account.email,
+		groups: account.groups,
+		quota: account.quota,
+		language: account.language,
+	})
+	return String(data?.ocs?.data?.id ?? account.userId)
+}
+
+/**
+ * Legt das Konto an und verknüpft es mit der Akte. Scheitert nur die Verknüpfung, gibt es das
+ * Konto bereits: der Fehler trägt dann dessen ID als `createdUid`, damit der Aufrufer „Konto da,
+ * Verknüpfung fehlt“ von „Konto nicht angelegt“ unterscheiden kann.
+ *
+ * @param {number} memberId
+ * @param {object} account siehe {@link createNextcloudAccount}
+ * @return {Promise<string>} die ID des angelegten und verknüpften Kontos
+ */
+export async function createAndLinkAccount(memberId, account) {
+	const uid = await createNextcloudAccount(account)
 	try {
-		const { data } = await axios.post(generateOcsUrl('/cloud/users'), {
-			userid: account.userId,
-			password: account.password || '',
-			displayName: account.displayName || '',
-			email: account.email || '',
-			groups: account.groups || [],
-			quota: account.quota || '',
-			language: account.language || '',
-		})
-		return String(data?.ocs?.data?.id ?? account.userId)
+		await api.linkMember(memberId, uid)
 	} catch (e) {
-		const message = e?.response?.data?.ocs?.meta?.message
-		if (message) {
-			const error = new Error(message)
-			error.response = { data: { message } }
-			throw error
-		}
+		e.createdUid = uid
 		throw e
 	}
+	return uid
 }

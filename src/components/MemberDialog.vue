@@ -284,7 +284,7 @@
 							</p>
 						</template>
 						<NcButton
-							class="vbh-akte-create-account"
+							v-if="!member.redactedAt"
 							variant="tertiary"
 							:disabled="linking"
 							@click="accountDialogOpen = true">
@@ -510,7 +510,7 @@ function emptyForm(member) {
 					paymentMethod: 'ueberweisung',
 					validFrom: new Date().toISOString().slice(0, 10),
 					// Nextcloud-Konto und Willkommens-Mail (beide optional, beide aus): die Vorbelegung der
-					// Kontoangaben aus den Stammdaten übernimmt der Watcher `accountSource`.
+					// Kontoangaben aus den Stammdaten übernimmt der Watcher `suggestedAccount`.
 					createAccount: false,
 					account: emptyAccount(),
 					sendWelcome: false,
@@ -598,15 +598,9 @@ export default {
 			return this.groups.find((g) => g.id === this.form.groupId) ?? null
 		},
 
-		/** Stammdaten, aus denen die Kontoangaben vorbelegt werden (nur Aufnahme). */
-		accountSource() {
-			return {
-				memberType: this.form.memberType,
-				firstName: this.form.firstName,
-				lastName: this.form.lastName,
-				organizationName: this.form.organizationName,
-				email: this.form.email,
-			}
+		/** Die Kontoangaben, die zu den Stammdaten passen (nur Aufnahme): Kontoname, Anzeigename, E-Mail. */
+		suggestedAccount() {
+			return emptyAccount(this.form)
 		},
 
 		canPreviewAssignment() {
@@ -627,10 +621,8 @@ export default {
 			if (this.form.createAccount && this.accountOptions && missingAccountFields(this.form.account, this.accountOptions).length > 0) {
 				return false
 			}
-			if (this.form.sendWelcome && (!this.hasEmail || this.form.welcomeSubject.trim() === '' || this.form.welcomeBody.trim() === '')) {
-				return false
-			}
-			return true
+			// (Der Schalter der Willkommens-Mail ist ohne Mailadresse gesperrt und fällt mit ihr von selbst zurück.)
+			return !this.form.sendWelcome || (this.form.welcomeSubject.trim() !== '' && this.form.welcomeBody.trim() !== '')
 		},
 
 		/** Druckfertige Live-Ansicht der Beitragsbestätigung (Issue #77) - öffnet in neuem Tab. */
@@ -672,13 +664,11 @@ export default {
 
 		// Kontoname, Anzeigename und E-Mail folgen den Stammdaten, solange niemand sie von Hand geändert hat
 		// (der Wert entspricht noch dem Vorschlag zu den vorherigen Stammdaten).
-		accountSource(next, previous) {
+		suggestedAccount(next, previous) {
 			if (this.isEdit) { return }
-			const before = emptyAccount(previous)
-			const after = emptyAccount(next)
 			for (const field of ['userId', 'displayName', 'email']) {
-				if (this.form.account[field] === before[field]) {
-					this.form.account[field] = after[field]
+				if (this.form.account[field] === previous[field]) {
+					this.form.account[field] = next[field]
 				}
 			}
 		},
@@ -755,8 +745,9 @@ export default {
 			try {
 				const { data } = await api.nextcloudAccountOptions()
 				this.accountOptions = data
-			} catch {
+			} catch (e) {
 				this.accountOptions = null
+				showError(this.errMsg(e, this.t('Die Angaben für das Konto konnten nicht geladen werden')))
 			}
 		},
 
@@ -767,8 +758,9 @@ export default {
 				this.welcomeTemplate = data
 				this.form.welcomeSubject = data.subject
 				this.form.welcomeBody = data.body
-			} catch {
+			} catch (e) {
 				this.welcomeTemplate = null
+				showError(this.errMsg(e, this.t('Die Vorlage konnte nicht geladen werden')))
 			}
 		},
 
@@ -798,8 +790,13 @@ export default {
 				payload.account = this.form.createAccount && this.accountOptions
 					? accountPayload(this.form.account)
 					: null
-				payload.welcomeMail = this.form.sendWelcome && this.hasEmail
-					? { subject: this.form.welcomeSubject.trim(), body: this.form.welcomeBody.trim() }
+				// Unveränderte Texte gehen als null raus: dann gilt die Vorlage so, wie sie beim Versand in den Einstellungen steht.
+				const unchanged = (text, template) => (text.trim() === template ? null : text.trim())
+				payload.welcomeMail = this.form.sendWelcome
+					? {
+							subject: unchanged(this.form.welcomeSubject, this.welcomeTemplate.subject),
+							body: unchanged(this.form.welcomeBody, this.welcomeTemplate.body),
+						}
 					: null
 			}
 			this.$emit('save', payload)

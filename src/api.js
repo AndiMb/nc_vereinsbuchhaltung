@@ -124,6 +124,7 @@ export default {
 	leaveMember: (id, leftAt) => axios.post(url(`/members/${id}/leave`), { leftAt }),
 	reactivateMember: (id) => axios.post(url(`/members/${id}/reactivate`)),
 	memberLinkSuggestions: (id) => axios.get(url(`/members/${id}/link-suggestions`)),
+	allMemberLinkSuggestions: () => axios.get(url('/member-link-suggestions')),
 	linkMember: (id, ncUserId) => axios.post(url(`/members/${id}/link`), { ncUserId }),
 	unlinkMember: (id) => axios.post(url(`/members/${id}/unlink`)),
 	// Nextcloud-Konto anlegen (Auswahlen und Rechte; das Konto selbst legt lib/nextcloudAccount.js über OCS an)

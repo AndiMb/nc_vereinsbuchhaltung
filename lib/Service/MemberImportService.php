@@ -295,7 +295,8 @@ class MemberImportService {
 	}
 
 	/**
-	 * Turnus der Zuweisung: die Frequenz der Zeile, ohne Angabe (beitragsfreie Zeile) der Standard-Turnus der Gruppe.
+	 * Turnus der Zuweisung: die Frequenz der Zeile; ohne Angabe (beitragsfreie Zeile, oder eine Zeile nur mit
+	 * Startdatum, deren Betrag aus der Gruppe kommt) der Standard-Turnus der Gruppe.
 	 *
 	 * @param array<string, mixed> $row
 	 */

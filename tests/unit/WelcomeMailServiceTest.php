@@ -96,6 +96,25 @@ class WelcomeMailServiceTest extends TestCase {
 		$this->assertSame('Text {cloud}', $template['body']);
 	}
 
+	public function testUnbekannterPlatzhalterWirdBeimSpeichernAbgelehnt(): void {
+		try {
+			$this->service()->saveTemplate('Hallo {Name}', 'Text');
+			$this->fail('Erwartet: InvalidArgumentException');
+		} catch (\InvalidArgumentException $e) {
+			$this->assertStringContainsString('{Name}', $e->getMessage());
+			$this->assertStringContainsString('{vorname}', $e->getMessage(), 'Die Meldung nennt die erlaubten Platzhalter.');
+		}
+	}
+
+	public function testUnbekannterPlatzhalterImEinzelfallTextWirdBeimSendenAbgelehnt(): void {
+		$this->members->method('find')->willReturn($this->member());
+		$this->mailer->expects($this->never())->method('send');
+
+		$this->expectException(\InvalidArgumentException::class);
+
+		$this->service()->send(7, 'Betreff', 'Guten Tag {anrede}');
+	}
+
 	public function testBeideFelderLeerStelltDenStandardtextWiederHer(): void {
 		$service = $this->service();
 		$service->saveTemplate('Betreff', 'Text');
@@ -141,6 +160,20 @@ class WelcomeMailServiceTest extends TestCase {
 			'Mitgliedsnummer 42, dabei seit 01.10.2026.',
 			'Zur Cloud: https://cloud.example.org/',
 		], $paragraphs);
+	}
+
+	public function testAlleBekanntenPlatzhalterWerdenErsetzt(): void {
+		$this->members->method('find')->willReturn($this->member());
+		$paragraphs = [];
+		$this->template->method('addBodyText')->willReturnCallback(function (string $html, $plain = false) use (&$paragraphs): void {
+			$paragraphs[] = $plain;
+		});
+		$all = implode(' ', array_map(static fn (string $key): string => '{' . $key . '}', WelcomeMailService::PLACEHOLDERS));
+
+		$this->service()->send(7, 'Betreff', $all);
+
+		$this->assertCount(1, $paragraphs);
+		$this->assertDoesNotMatchRegularExpression('/\{[a-z]+\}/', $paragraphs[0], 'Kein Platzhalter bleibt stehen.');
 	}
 
 	public function testBetreffUndTextFuerDenEinzelfallUeberschreibenDieVorlage(): void {

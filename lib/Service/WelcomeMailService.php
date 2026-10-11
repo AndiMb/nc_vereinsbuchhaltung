@@ -184,5 +184,15 @@ class WelcomeMailService {
 		if (mb_strlen($body) > self::MAX_BODY) {
 			throw new \InvalidArgumentException($this->l10n->t('Der Text ist zu lang (höchstens %d Zeichen).', [self::MAX_BODY]));
 		}
+		// Ein Tippfehler im Platzhalter („{Name}“) ginge sonst wörtlich an das Mitglied.
+		preg_match_all('/\{([^{}\s]+)\}/u', $subject . "\n" . $body, $found);
+		foreach ($found[1] as $token) {
+			if (!in_array($token, self::PLACEHOLDERS, true)) {
+				throw new \InvalidArgumentException($this->l10n->t(
+					'Unbekannter Platzhalter {%1$s}. Erlaubt sind: %2$s',
+					[$token, implode(', ', array_map(static fn (string $key): string => '{' . $key . '}', self::PLACEHOLDERS))],
+				));
+			}
+		}
 	}
 }

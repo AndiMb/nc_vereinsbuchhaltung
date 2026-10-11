@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { accountPayload, DEFAULT_CHOICE, emptyAccount, missingAccountFields } from './accountForm.js'
+import { accountPayload, DEFAULT_CHOICE, emptyAccount, isEmailRequired, missingAccountFields } from './accountForm.js'
 
 const OPTIONS = { generateUserId: false, requireEmail: false, groupRequired: false }
 
@@ -30,8 +30,16 @@ describe('emptyAccount()', () => {
 	})
 })
 
+describe('isEmailRequired()', () => {
+	it('verlangt die Adresse ohne Passwort, mit Passwort nur auf Wunsch der Instanz', () => {
+		expect(isEmailRequired({ password: '' }, OPTIONS)).toBe(true)
+		expect(isEmailRequired({ password: 'geheim-1234' }, OPTIONS)).toBe(false)
+		expect(isEmailRequired({ password: 'geheim-1234' }, { ...OPTIONS, requireEmail: true })).toBe(true)
+	})
+})
+
 describe('missingAccountFields()', () => {
-	const filled = () => ({ ...emptyAccount({ firstName: 'Anna', lastName: 'Koch', email: 'anna@example.org' }) })
+	const filled = () => emptyAccount({ firstName: 'Anna', lastName: 'Koch', email: 'anna@example.org' })
 
 	it('ist vollständig, wenn Kontoname und E-Mail da sind', () => {
 		expect(missingAccountFields(filled(), OPTIONS)).toEqual([])
@@ -65,7 +73,7 @@ describe('missingAccountFields()', () => {
 
 describe('accountPayload()', () => {
 	it('macht aus „Standard“ leere Angaben, die Nextcloud selbst auffüllt', () => {
-		const payload = accountPayload({ ...emptyAccount({ firstName: 'Anna', lastName: 'Koch' }), quota: DEFAULT_CHOICE, language: DEFAULT_CHOICE })
+		const payload = accountPayload(emptyAccount({ firstName: 'Anna', lastName: 'Koch' }))
 
 		expect(payload.quota).toBe('')
 		expect(payload.language).toBe('')

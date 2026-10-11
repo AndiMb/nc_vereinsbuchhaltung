@@ -1590,7 +1590,9 @@ button.vbh-dirtree-label.vbh-dirtree-label.is-selected { background-color: var(-
 
 .vbh-linkbtn.vbh-linkbtn:hover { background: none; color: var(--color-primary-element); text-decoration: underline; }
 /* Als Link in Fließtext und Tabellenzellen (Konto-Vorschlag der Mitgliederliste): nicht fett, immer als Link erkennbar. */
-.vbh-linkbtn.vbh-linkbtn--plain { color: var(--color-primary-element); font-weight: normal; text-align: start; text-decoration: underline; }
+.vbh-linkbtn.vbh-linkbtn--plain { color: var(--color-primary-element); font-weight: normal; text-decoration: underline; }
+/* Formularfelder (NcTextField, NcSelect …) untereinander: Nextcloud-Konto anlegen, Willkommens-Mail. */
+.vbh-form-stack { display: flex; flex-direction: column; gap: calc(var(--default-grid-baseline, 4px) * 3); margin-top: calc(var(--default-grid-baseline, 4px) * 2); }
 
 /* Namenszelle: Name, Nummer und Marken in einer Zeile, die bei Platzmangel umbricht. */
 .vbh-namecell { display: flex; flex-wrap: wrap; align-items: center; gap: 2px calc(var(--default-grid-baseline, 4px) * 2); }

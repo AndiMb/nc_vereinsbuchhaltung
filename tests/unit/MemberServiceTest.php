@@ -584,6 +584,23 @@ class MemberServiceTest extends TestCase {
 		$this->assertSame('ben', $result[2][0]['uid']);
 	}
 
+	public function testLinkSuggestionsForFragtJedeMailadresseNurEinmal(): void {
+		$members = [];
+		foreach ([1, 2, 3] as $id) {
+			$member = new Member();
+			$member->setId($id);
+			$member->setEmail($id === 3 ? 'Familie@Example.org' : 'familie@example.org');
+			$members[] = $member;
+		}
+		$this->userManager->expects($this->once())->method('getByEmail')->willReturn([
+			$this->user('papa', 'Papa Muster', 'familie@example.org'),
+		]);
+
+		$result = $this->service()->linkSuggestionsFor($members);
+
+		$this->assertSame([1, 2, 3], array_keys($result), 'Alle drei Mitglieder bekommen denselben Vorschlag.');
+	}
+
 	public function testLinkOhneExistierendesKontoSchlaegtFehl(): void {
 		$this->mapper->method('find')->willReturn(new Member());
 		$this->userManager->method('userExists')->willReturn(false);

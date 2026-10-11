@@ -58,7 +58,9 @@ export function budgetDiffClass(row) {
 }
 
 export function errMsg(e, fallback) {
-	return (e && e.response && e.response.data && e.response.data.message) || fallback
+	// Die Schnittstellen der App antworten mit `message`, die OCS-Schnittstelle von Nextcloud (Konto anlegen) mit `ocs.meta.message`.
+	const data = e && e.response && e.response.data
+	return (data && (data.message || (data.ocs && data.ocs.meta && data.ocs.meta.message))) || fallback
 }
 
 // --- Betragsfelder -------------------------------------------------------
