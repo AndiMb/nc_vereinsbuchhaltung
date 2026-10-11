@@ -1,0 +1,134 @@
+name: App Store melden
+
+# Meldet ein bereits veroeffentlichtes GitHub-Release an den Nextcloud App
+# Store. Laeuft als letzter Schritt von release.yml und laesst sich von Hand
+# starten (Actions -> "App Store melden" -> Run workflow), wenn die Meldung
+# eines Releases fehlgeschlagen ist.
+#
+# Bewusst getrennt vom Bauen: ein erneuter Lauf von release.yml laedt den
+# Tarball neu hoch und meldet ihn Sekunden spaeter - der Store lud dann bei
+# v0.36.0 zweimal etwas, das kein tar.gz war ("is not a valid tar.gz
+# archive"), waehrend die Datei kurz darauf einwandfrei abrufbar war. Hier
+# wird deshalb erst gemeldet, wenn die Datei unter der Download-URL
+# vollstaendig und mit der Pruefsumme des Releases ankommt, und ein
+# Fehlschlag wird nach einer Pause wiederholt.
+#
+# Signiert wird das Tarball, das unter der URL liegt - also genau das, was der
+# Store herunterlaedt.
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'Version ohne v, z. B. 0.36.0'
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version ohne v, z. B. 0.36.0'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  APP_ID: vereinsbuchhaltung
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Voraussetzungen pruefen
+        id: pre
+        env:
+          APPSTORE_TOKEN: ${{ secrets.APPSTORE_TOKEN }}
+          APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+        run: |
+          if [ -z "$APPSTORE_TOKEN" ] || [ -z "$APP_PRIVATE_KEY" ]; then
+            echo "::notice::Kein Store-Upload (APPSTORE_TOKEN oder APP_PRIVATE_KEY fehlt)."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Tarball abrufen und gegen die Pruefsumme pruefen
+        if: steps.pre.outputs.publish == 'true'
+        env:
+          VER: ${{ inputs.version }}
+          BASE: https://github.com/${{ github.repository }}/releases/download/v${{ inputs.version }}
+        run: |
+          set -uo pipefail
+          TARBALL="$RUNNER_TEMP/$APP_ID-$VER.tar.gz"
+          # Bis zu 10 Minuten: frisch hochgeladene Release-Dateien kommen bei
+          # GitHub nicht immer sofort vollstaendig an.
+          for i in $(seq 1 20); do
+            if curl -fsSL -o "$RUNNER_TEMP/sum" "$BASE/$APP_ID-$VER.tar.gz.sha256" \
+              && curl -fsSL -o "$TARBALL" "$BASE/$APP_ID-$VER.tar.gz" \
+              && [ "$(cut -d' ' -f1 "$RUNNER_TEMP/sum")" = "$(sha256sum "$TARBALL" | cut -d' ' -f1)" ] \
+              && tar -tzf "$TARBALL" > /dev/null; then
+              echo "Tarball abrufbar und unversehrt (Versuch $i)."
+              exit 0
+            fi
+            echo "Versuch $i: Tarball noch nicht verlaesslich abrufbar, neuer Versuch in 30 s."
+            sleep 30
+          done
+          echo "::error::$BASE/$APP_ID-$VER.tar.gz war nach 10 Minuten nicht verlaesslich abrufbar."
+          exit 1
+
+      - name: An Nextcloud App Store melden
+        if: steps.pre.outputs.publish == 'true'
+        env:
+          APPSTORE_TOKEN: ${{ secrets.APPSTORE_TOKEN }}
+          APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+          VER: ${{ inputs.version }}
+          DOWNLOAD_URL: https://github.com/${{ github.repository }}/releases/download/v${{ inputs.version }}/vereinsbuchhaltung-${{ inputs.version }}.tar.gz
+        run: |
+          set -euo pipefail
+          TARBALL="$RUNNER_TEMP/$APP_ID-$VER.tar.gz"
+          KEY="$RUNNER_TEMP/$APP_ID.key"
+          ( umask 077; printf '%s\n' "$APP_PRIVATE_KEY" | sed 's/\r$//' > "$KEY" )
+
+          # Signatur ueber genau das Paket, das unter DOWNLOAD_URL liegt.
+          SIGNATURE=$(openssl dgst -sha512 -sign "$KEY" "$TARBALL" | openssl base64 -A)
+          rm -f "$KEY"
+          # Eine Fehlermeldung darf nicht als "Signatur" beim Store landen.
+          if ! printf '%s' "$SIGNATURE" | grep -qE '^[A-Za-z0-9+/]{100,}={0,2}$'; then
+            echo "::error::Keine gueltige Signatur erzeugt."
+            exit 1
+          fi
+          echo "Signatur erzeugt (${#SIGNATURE} Zeichen)."
+
+          PAYLOAD=$(mktemp)
+          printf '{"download":"%s","signature":"%s","nightly":false}' "$DOWNLOAD_URL" "$SIGNATURE" > "$PAYLOAD"
+          BODY=$(mktemp)
+          # Der Store laedt das Tarball selbst von GitHub; scheitert das
+          # (HTTP 400 "not a valid tar.gz archive", 5xx), nach einer Pause
+          # erneut. Andere Antworten sind echte Fehler und brechen sofort ab.
+          for i in 1 2 3 4 5; do
+            STATUS=$(curl -sS -o "$BODY" -w '%{http_code}' -X POST \
+              https://apps.nextcloud.com/api/v1/apps/releases \
+              -H "Authorization: Token $APPSTORE_TOKEN" \
+              -H 'Content-Type: application/json' \
+              --data-binary "@$PAYLOAD" || true)
+            # Ohne Verbindung liefert -w selbst "000".
+            STATUS=${STATUS:-000}
+            # Antwortkoerper mit ausgeben: die Fehlermeldung des Stores ist
+            # die einzige brauchbare Diagnose, wenn etwas nicht passt.
+            echo "Versuch $i: App Store antwortete mit HTTP $STATUS"
+            cat "$BODY"; echo
+            case "$STATUS" in
+              200|201)
+                rm -f "$PAYLOAD"
+                echo "::notice::$APP_ID $VER im Nextcloud App Store veroeffentlicht."
+                exit 0 ;;
+              400) grep -q 'not a valid tar.gz archive' "$BODY" || break ;;
+              000|5*) ;;
+              *) break ;;
+            esac
+            [ "$i" -lt 5 ] && sleep 60
+          done
+          rm -f "$PAYLOAD"
+          echo "::error::Store-Upload fehlgeschlagen (HTTP $STATUS)."
+          exit 1
