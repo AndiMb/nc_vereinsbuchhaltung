@@ -247,6 +247,10 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 .vbh-select-group-hint { flex: 0 0 auto; font-weight: normal; font-size: 0.85em; opacity: 0.7; }
 
 .vbh-sectionbody { flex: 1 1 auto; min-height: 0; min-width: 0; overflow: auto; padding: 12px 16px 48px; }
+/* Die Höhe kommt vom Flex-Container, gescrollt wird innen. Ohne size-Containment
+   misst Chrome bei jedem Layout die Inhaltshöhe neu (flex-basis auto) – mit
+   einigen hundert Journalzeilen kostete schon ein Zeichen im Suchfeld ~50 ms. */
+.vbh-sectionbody--contained { contain: size; }
 /* is-split (Kostenstellen/Sphären) enthaelt nur noch .vbh-splitinner (Baum +
    Detail) - die Pflege (CostCenterPanel/SphereAssignPanel) liegt seit der
    Modal-Umstellung nicht mehr darunter im selben Container, sondern in einem
@@ -668,6 +672,15 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
    gemeinsamen Zeile, solange die Spaltenbreite reicht, und bricht erst danach
    sauber um (Muster wie .vbh-actions weiter unten). */
 .vbh-assign-btns { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 4px; }
+
+/* In „Zuzuordnen“ vorgemerkte Belege (werden beim Zuordnen verknüpft) */
+.vbh-txfiles { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0 0; padding: 0; list-style: none; }
+
+.vbh-txfile { display: inline-flex; align-items: center; gap: 2px; max-width: 100%; padding: 1px 4px 1px 8px; border-radius: 12px; background: var(--color-primary-element-light); color: var(--color-primary-element-light-text); font-size: 0.82em; }
+
+.vbh-txfile-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: inherit; }
+
+.vbh-txfile-remove.vbh-txfile-remove { min-height: 0; margin: 0; padding: 0 5px; border: none; background: transparent; color: inherit; font-size: 1.1em; line-height: 1.2; cursor: pointer; }
 
 /* Master-Detail layout */
 .vbh-tree { flex: 0 0 clamp(280px, 32vw, 440px); min-width: 280px; overflow-y: auto; border-inline-end: 1px solid var(--color-border); display: flex; flex-direction: column; }
@@ -1434,6 +1447,35 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 .vbh-folder-meta { font-size: 0.8em; color: var(--color-text-lighter); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .vbh-folder-subtitle { font-size: 1em; margin: 18px 0 4px; }
+
+/* Ordnerbaum: Ordnerzeilen mit Zählern, Status je Datei */
+.vbh-folder-summary { margin: 0 0 6px; font-size: 0.9em; color: var(--color-text-maxcontrast); }
+
+.vbh-folder-dir { display: flex; align-items: center; gap: 8px; min-height: 36px; padding-inline-end: 8px; list-style: none; }
+
+.vbh-folder-toggle.vbh-folder-toggle { display: inline-flex; align-items: center; gap: 4px; min-width: 0; min-height: 32px; margin: 0; padding: 2px 6px; border: none; border-radius: var(--border-radius, 6px); background: transparent; color: var(--color-main-text); font-weight: bold; cursor: pointer; }
+
+.vbh-folder-toggle.vbh-folder-toggle:hover:not(:disabled) { background: var(--color-background-hover); }
+
+.vbh-folder-toggle:disabled { cursor: default; opacity: 1; }
+
+.vbh-folder-dirname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.vbh-folder-counts { margin-inline-start: auto; font-size: 0.82em; color: var(--color-text-maxcontrast); white-space: nowrap; }
+
+.vbh-folder-open { color: var(--color-element-warning, var(--color-warning)); font-weight: bold; }
+
+.vbh-folder-dir--done .vbh-folder-toggle.vbh-folder-toggle { font-weight: normal; color: var(--color-text-maxcontrast); }
+
+.vbh-folder-status { flex: 0 0 auto; font-size: 0.8em; white-space: nowrap; }
+
+.vbh-folder-status--open { padding: 1px 8px; border-radius: 10px; background: var(--color-warning, #e9a700); color: var(--color-warning-text, #000); }
+
+.vbh-folder-status--linked { color: var(--color-text-maxcontrast); }
+
+.vbh-folder-booking.vbh-folder-booking { min-height: 0; margin: 0 0 0 4px; padding: 0; border: none; background: transparent; color: var(--color-primary-element); font-size: inherit; }
+
+button.vbh-folder-booking { cursor: pointer; text-decoration: underline; }
 
 .vbh-folder-warn { color: var(--color-element-error); }
 

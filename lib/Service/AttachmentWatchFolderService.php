@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\Db\Attachment;
 use OCA\Vereinsbuchhaltung\Db\AttachmentMapper;
+use OCA\Vereinsbuchhaltung\Db\Journal;
 use OCP\Files\File;
 use OCP\Files\Folder;
 use OCP\Files\IRootFolder;
@@ -154,6 +155,29 @@ class AttachmentWatchFolderService {
 			'files' => $files,
 			'missing' => $this->missingAmong($linked, $scan['files']),
 		];
+	}
+
+	/**
+	 * Ergänzt die Dateien aus {@see inbox()} um ihre Buchungen mit Nummer und
+	 * Datum. Eine Buchung, die es nicht (mehr) gibt, bleibt mit leerer Nummer
+	 * stehen – die Datei gilt trotzdem als zugeordnet, wie in `journalIds`.
+	 *
+	 * @param list<array{journalIds: list<int>}&array<string,mixed>> $files
+	 * @param array<int, Journal> $journals nach ID, aus JournalMapper::findByIds()
+	 * @return list<array<string,mixed>>
+	 */
+	public static function withBookings(array $files, array $journals): array {
+		return array_map(static function (array $file) use ($journals): array {
+			$file['bookings'] = array_map(static function (int $journalId) use ($journals): array {
+				$journal = $journals[$journalId] ?? null;
+				return [
+					'journalId' => $journalId,
+					'entryNo' => $journal?->getEntryNo(),
+					'date' => $journal !== null ? (string)$journal->getDate() : null,
+				];
+			}, $file['journalIds']);
+			return $file;
+		}, $files);
 	}
 
 	/**

@@ -46,6 +46,9 @@ test.describe('Was ist neu', () => {
 		await openApp(page, USERS.verwalter)
 
 		const splash = page.locator('.vbh-whatsnew')
+		// Erst wenn der Splash offen ist, steht seine Liste fest – vorher liest
+		// allInnerTexts() nichts oder einen Zwischenstand.
+		await expect(splash.locator('.vbh-whatsnew-entry').first()).toBeVisible()
 		const laufend = (await api.getJson(request, '/whatsnew', { user: USERS.verwalter })).currentVersion
 		for (const ueberschrift of await splash.locator('.vbh-whatsnew-entry h4').allInnerTexts()) {
 			const version = ueberschrift.replace(/\D*([\d.]+).*/, '$1')

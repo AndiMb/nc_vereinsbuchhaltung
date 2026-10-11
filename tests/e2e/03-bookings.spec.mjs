@@ -128,10 +128,12 @@ test.describe('Buchungen', () => {
 		await expect(section.getByText('Filtertest Miete').first()).toBeVisible({ timeout: 15000 })
 
 		// Die Kategorie-Überschrift ist im Filter eine echte Option.
+		// Ausgefilterte Zeilen bleiben im DOM (nur hidden, damit die Tabelle beim
+		// Tippen nicht neu rendert) – gezählt werden deshalb nur sichtbare.
 		await pickNcSelectOption(section, 'Konto filtern', 'Einnahmen')
 		await expect(section.getByText('Filtertest Beitrag').first()).toBeVisible()
 		await expect(section.getByText('Filtertest Spende').first()).toBeVisible()
-		await expect(section.getByText('Filtertest Miete')).toHaveCount(0)
+		await expect(section.getByText('Filtertest Miete').filter({ visible: true })).toHaveCount(0)
 
 		// Filter leeren: alles wieder da.
 		await section.locator('.vbh-filter-select .vs__clear').click()
@@ -139,7 +141,7 @@ test.describe('Buchungen', () => {
 
 		await pickNcSelectOption(section, 'Konto filtern', 'Ausgaben')
 		await expect(section.getByText('Filtertest Miete').first()).toBeVisible()
-		await expect(section.getByText('Filtertest Beitrag')).toHaveCount(0)
-		await expect(section.getByText('Filtertest Spende')).toHaveCount(0)
+		await expect(section.getByText('Filtertest Beitrag').filter({ visible: true })).toHaveCount(0)
+		await expect(section.getByText('Filtertest Spende').filter({ visible: true })).toHaveCount(0)
 	})
 })

@@ -167,14 +167,21 @@ class AttachmentController extends Controller {
 	 * Der Eingangskorb: alle Dateien des Wächter-Ordners mit ihren Buchungen,
 	 * dazu die Belege ohne Datei samt Buchung – damit die Übersicht sagen
 	 * kann, wo nachzusehen ist.
+	 *
+	 * Jede Datei trägt zusätzlich ihre Buchungen mit Nummer und Datum
+	 * (`bookings`), damit der Ordnerbaum „zugeordnet · #12“ zeigen kann – auch
+	 * für Buchungen außerhalb des gerade gewählten Zeitraums. Eine Abfrage für
+	 * alle Buchungen zusammen.
 	 */
 	#[NoAdminRequired]
 	public function inbox(): DataResponse {
 		$inbox = $this->watchFolder->inbox($this->userId());
-		$journals = $this->journalMapper->findByIds($this->userId(), array_map(
-			static fn (Attachment $a): int => $a->getJournalId(),
-			$inbox['missing'],
-		));
+		$journalIds = array_map(static fn (Attachment $a): int => $a->getJournalId(), $inbox['missing']);
+		foreach ($inbox['files'] as $file) {
+			array_push($journalIds, ...$file['journalIds']);
+		}
+		$journals = $this->journalMapper->findByIds($this->userId(), $journalIds);
+		$inbox['files'] = AttachmentWatchFolderService::withBookings($inbox['files'], $journals);
 		$inbox['missing'] = array_map(function (Attachment $a) use ($journals): array {
 			$row = $a->jsonSerialize();
 			$journal = $journals[$a->getJournalId()] ?? null;

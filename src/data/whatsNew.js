@@ -25,6 +25,15 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.36.0',
+			roles: ['verwalter', 'buchhalter'],
+			items: [
+				t('Die Suche unter „Alle Buchungen" und „Zuzuordnen" findet jetzt auch Beträge, z. B. 12,50 – und tippt sich bei vielen Buchungen flüssig.'),
+				t('Belege aus dem Wächter-Ordner lassen sich schon unter „Zuzuordnen" per Büroklammer vormerken und hängen nach dem Zuordnen an der Buchung.'),
+				t('Der Wächter-Ordner zeigt seine Ordner mit offenen und zugeordneten Belegen; „Ordner anzeigen" schaltet auf die einfache Liste zurück.'),
+			],
+		},
+		{
 			version: '0.35.0',
 			roles: ['verwalter', 'buchhalter'],
 			items: [

@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
 use OCA\Vereinsbuchhaltung\Db\Attachment;
 use OCA\Vereinsbuchhaltung\Db\AttachmentMapper;
+use OCA\Vereinsbuchhaltung\Db\Journal;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\AttachmentWatchFolderService;
 use OCP\Files\File;
@@ -120,6 +121,25 @@ class AttachmentWatchFolderServiceTest extends TestCase {
 		$this->assertSame([[7, 8], []], array_column($inbox['files'], 'journalIds'));
 		$this->assertSame([], $inbox['missing']);
 		$this->assertSame(AttachmentWatchFolderService::MAX_FILES, $inbox['limit']);
+	}
+
+	/** Der Ordnerbaum zeigt Nummer und Datum der Buchungen; eine verschwundene Buchung bleibt ohne Nummer stehen. */
+	public function testWithBookingsErgaenztNummerUndDatum(): void {
+		$journal = new Journal();
+		$journal->setEntryNo(12);
+		$journal->setDate('2026-03-01');
+
+		$files = AttachmentWatchFolderService::withBookings([
+			['fileId' => 31, 'journalIds' => []],
+			['fileId' => 32, 'journalIds' => [7, 9]],
+		], [7 => $journal]);
+
+		$this->assertSame([], $files[0]['bookings']);
+		$this->assertSame([
+			['journalId' => 7, 'entryNo' => 12, 'date' => '2026-03-01'],
+			['journalId' => 9, 'entryNo' => null, 'date' => null],
+		], $files[1]['bookings']);
+		$this->assertSame([7, 9], $files[1]['journalIds']);
 	}
 
 	/** Die Obergrenze bricht den Scan ab und wird gemeldet. */

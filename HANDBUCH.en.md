@@ -369,6 +369,19 @@ posting is created automatically from the assignment:
   bookkeepers only). During import, rules can be applied automatically
   (checkbox "apply auto-assignment rules"); via the watch folder
   (chapter 3.3) this always happens.
+- **Search by text or amount:** The search field above the list finds
+  payment partner and purpose – and with a number such as `12,50`, `1.250`
+  or `18,75 €` also transactions of exactly that amount. A dot separates
+  thousands, the comma the cents (German notation). The same search applies
+  under *All entries*; there an amount also finds a single part of a split
+  posting, and text or entry number match as before.
+- **Hand over receipts right away:** With a watch folder set up (chapter
+  2.4) every row has a **paperclip**. Through it you queue one or more
+  receipts from the folder; they appear as small chips below the
+  transaction, an × takes one out again. As soon as you assign the
+  transaction – via the dropdown, a suggestion or "Split…" – the queued
+  receipts are attached to the new posting. A queued receipt is no longer
+  offered for the other transactions.
 
 Anyone who assigned something by mistake can remove it again at any time
 ("– not assigned –") – as long as the period is still open.
@@ -436,11 +449,22 @@ max. 20 MB per file). Four ways:
 - **Afterwards:** open the posting (pencil icon) → *Receipts* section →
   "attach".
 - **From the watch folder** (if set up, chapter 2.4): "Pick from folder"
-  lists the files of the folder, newest first, with a search across file
-  name and subfolder and a preview before assigning. By default only the
-  ones not yet assigned; the same file may, however, be attached to several
-  postings (e.g. a split invoice).
+  lists the files of the folder with a search across file name, subfolder
+  and entry number and a preview before assigning. By default only the ones
+  not yet assigned ("open only"); the same file may, however, be attached
+  to several postings (e.g. a split invoice).
+- **While assigning** a bank transaction, via the paperclip in its row
+  (chapter 4.1) – no detour through *All entries*.
 - **Several files** at once are possible.
+
+**Folder tree or list:** The files of the watch folder appear as a **folder
+tree**. Each folder shows how many receipts in it are still open and how
+many are already assigned (subfolders included); on opening, only folders
+with open receipts are expanded. Each file shows its status – *open*, or
+*assigned* with the entry number; clicking the number opens the posting.
+If you prefer the plain list of all files, untick **"Show folders"**; the
+folder then appears in small print below the file name. The browser
+remembers the choice.
 
 With a watch folder the **overview** also shows "x documents not yet
 assigned to a posting": everything that lies in the folder but is not

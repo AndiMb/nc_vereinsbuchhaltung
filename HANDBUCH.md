@@ -372,6 +372,19 @@ der Zuordnung entsteht automatisch der Buchungssatz:
   nur Verwalter/Buchhalter). Beim Import
   können Regeln automatisch angewendet werden (Häkchen „Auto-Zuordnungsregeln
   anwenden"); über den Wachordner (Kapitel 3.3) geschieht das immer.
+- **Suche nach Text oder Betrag:** Das Suchfeld über der Liste findet
+  Zahlungspartner und Verwendungszweck – und mit einer Zahl wie `12,50`,
+  `1.250` oder `18,75 €` auch Umsätze über genau diesen Betrag. Ein Punkt
+  trennt Tausender, das Komma die Cent. Dieselbe Suche gilt unter *Alle
+  Buchungen*; dort findet ein Betrag auch einen einzelnen Teilbetrag einer
+  Splittbuchung, und Text oder Buchungsnummer passen wie bisher.
+- **Belege gleich mitgeben:** Mit eingerichtetem Wächter-Ordner (Abschnitt
+  2.4) trägt jede Zeile eine **Büroklammer**. Darüber merken Sie einen oder
+  mehrere Belege aus dem Ordner vor; sie erscheinen als kleine Marken unter
+  dem Umsatz, ein × nimmt einen wieder heraus. Sobald Sie den Umsatz
+  zuordnen – über die Auswahl, einen Vorschlag oder „Aufteilen…" –, hängen
+  die vorgemerkten Belege an der neuen Buchung. Ein vorgemerkter Beleg wird
+  bei den anderen Umsätzen nicht mehr angeboten.
 
 Wer eine Zuordnung versehentlich vorgenommen hat, kann sie jederzeit wieder
 entfernen („– nicht zugeordnet –") – solange der Zeitraum noch offen ist.
@@ -440,11 +453,23 @@ max. 20 MB pro Datei). Vier Wege:
 - **Nachträglich:** Buchung öffnen (Stift-Symbol) → Bereich *Belege* →
   „Anhängen".
 - **Aus dem Wächter-Ordner** (wenn eingerichtet, Abschnitt 2.4): „Aus
-  Ordner wählen" zeigt die Dateien des Ordners, neueste zuerst, mit Suche
-  über Dateiname und Unterordner und einer Vorschau vor der Zuordnung.
-  Standardmäßig nur die noch nicht zugewiesenen; dieselbe Datei darf aber
-  auch an mehreren Buchungen hängen (z. B. eine aufgeteilte Sammelrechnung).
+  Ordner wählen" zeigt die Dateien des Ordners mit Suche über Dateiname,
+  Unterordner und Buchungsnummer und einer Vorschau vor der Zuordnung.
+  Standardmäßig nur die noch nicht zugewiesenen („nur offene"); dieselbe
+  Datei darf aber auch an mehreren Buchungen hängen (z. B. eine aufgeteilte
+  Sammelrechnung).
+- **Schon beim Zuordnen** eines Bankumsatzes über die Büroklammer in der
+  Zeile (Abschnitt 4.1) – ohne Umweg über *Alle Buchungen*.
 - **Mehrere Dateien** gleichzeitig sind möglich.
+
+**Ordnerbaum oder Liste:** Die Dateien des Wächter-Ordners erscheinen als
+**Ordnerbaum**. Jeder Ordner nennt, wie viele Belege darin noch offen und
+wie viele schon zugeordnet sind (Unterordner eingerechnet); aufgeklappt sind
+beim Öffnen nur die Ordner mit offenen Belegen. Jede Datei trägt ihren
+Status – *offen* oder *zugeordnet* mit der Buchungsnummer, ein Klick auf die
+Nummer öffnet die Buchung. Wer lieber die einfache Liste aller Dateien sieht,
+nimmt den Haken **„Ordner anzeigen"** heraus; der Ordner steht dann klein
+unter dem Dateinamen. Die Wahl merkt sich der Browser.
 
 Mit Wächter-Ordner zeigt die **Übersicht** außerdem „x Dokumente noch
 keiner Buchung zugewiesen": alles, was im Ordner liegt, aber noch an keiner

@@ -2638,6 +2638,9 @@
         "Löscht unwiderruflich alle Konten, Buchungen und Importe sowie den Einzug (Lastschrift-Läufe, Einzugsposten, Rücklastschriften, Mahnstufen). Mitglieder, Mandate, Beitragsgruppen und Zuweisungen bleiben bestehen.": "Irrevocably deletes all accounts, entries and imports as well as the collection (direct-debit runs, collection items, returned direct debits, dunning levels). Members, mandates, contribution groups and assignments are kept.",
         "Wirklich ALLE Konten, Buchungen und Importe sowie den Einzug (Läufe, Rücklastschriften, Mahnstufen) löschen? Mitglieder, Mandate, Beitragsgruppen und Zuweisungen bleiben bestehen.": "Really delete ALL accounts, entries and imports as well as the collection (runs, returned direct debits, dunning levels)? Members, mandates, contribution groups and assignments are kept.",
         "Rücklastschriften konnten nicht geladen werden.": "Could not load the returned direct debits.",
+        "Die Suche unter „Alle Buchungen\" und „Zuzuordnen\" findet jetzt auch Beträge, z. B. 12,50 – und tippt sich bei vielen Buchungen flüssig.": "The search under “All entries” and “To assign” now also finds amounts, e.g. 12,50 – and stays smooth with many postings.",
+        "Belege aus dem Wächter-Ordner lassen sich schon unter „Zuzuordnen\" per Büroklammer vormerken und hängen nach dem Zuordnen an der Buchung.": "Receipts from the watch folder can be queued right under “To assign” via the paperclip and are attached to the posting once it is assigned.",
+        "Der Wächter-Ordner zeigt seine Ordner mit offenen und zugeordneten Belegen; „Ordner anzeigen\" schaltet auf die einfache Liste zurück.": "The watch folder shows its folders with open and assigned receipts; “Show folders” switches back to the plain list.",
         "Beiträge und SEPA sind neu: Mitglieder, Mandate, Beitragsgruppen, Forderungen.": "Contributions and SEPA are new: members, mandates, contribution groups, claims.",
         "Mandate und Beiträge des bisherigen Moduls sind übernommen – was sich nicht teilen ließ, steht in der Mitgliedernotiz.": "Mandates and contributions of the previous module have been carried over – amounts that could not be split are noted on the member record.",
         "Einzug in zwei Schritten: freigeben, dann als eingereicht markieren.": "Collection in two steps: release, then mark as submitted.",
@@ -2738,7 +2741,22 @@
         "{created} von {total} Einzelforderungen angelegt. Nicht angelegt: {failed}": "{created} of {total} single claims created. Not created: {failed}",
         "Zuweisung zurücknehmen": "Withdraw assignment",
         "Zurücknehmen": "Withdraw",
-        "Die Zuweisung hat noch nicht begonnen. Sie wird zurückgenommen und nie wirksam; es entstehen keine Forderungen daraus.": "The assignment has not started yet. It is withdrawn and never takes effect; no claims arise from it."
+        "Die Zuweisung hat noch nicht begonnen. Sie wird zurückgenommen und nie wirksam; es entstehen keine Forderungen daraus.": "The assignment has not started yet. It is withdrawn and never takes effect; no claims arise from it.",
+        "Suche (Text oder Betrag)…": "Search (text or amount)…",
+        "Sucht in Text und Nummer; eine Zahl wie 12,50 findet auch Buchungen über genau diesen Betrag.": "Searches text and number; a number such as 12.50 also finds entries of exactly this amount.",
+        "Beleg vormerken…": "Queue receipt…",
+        "Vormerkung entfernen: {name}": "Remove from queue: {name}",
+        "Beleg aus dem Wächter-Ordner vormerken": "Queue a receipt from the watch folder",
+        "Beleg aus dem Wächter-Ordner vormerken – er wird beim Zuordnen mit der Buchung verknüpft": "Queue a receipt from the watch folder – it is linked to the entry when the transaction is assigned",
+        "Buchung angelegt, aber Beleg nicht verknüpft: {names}": "Entry created, but receipt not linked: {names}",
+        "Dateiname, Ordner oder Buchungsnummer suchen": "Search file name, folder or entry number",
+        "nur offene": "open only",
+        "Ordner anzeigen": "Show folders",
+        "Wird in diesem Browser gemerkt.": "Remembered in this browser.",
+        "{open} offen · {linked} zugeordnet": "{open} open · {linked} assigned",
+        "{n} offen": "{n} open",
+        "{n} zugeordnet": "{n} assigned",
+        "Belege im Wächter-Ordner": "Receipts in the watch folder"
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

@@ -37,11 +37,16 @@
 		</div>
 
 		<div class="vbh-filterbar">
+			<!-- Bewusst ohne v-model: ein reaktiver Wert würde bei jedem Tastendruck
+			     die ganze Komponente samt Journal-Tabelle neu rendern. Gefiltert wird
+			     erst über den entprellten bookingSearch (onSearchInput). -->
 			<input
-				v-model="bookingSearch"
+				ref="searchField"
 				type="search"
-				:placeholder="t('Suche…')"
-				class="vbh-search">
+				:placeholder="t('Suche (Text oder Betrag)…')"
+				:title="t('Sucht in Text und Nummer; eine Zahl wie 12,50 findet auch Buchungen über genau diesen Betrag.')"
+				class="vbh-search"
+				@input="onSearchInput">
 			<NcSelect
 				v-if="bookingView === 'journal'"
 				v-model="bookingFilterAccountOption"
@@ -71,7 +76,7 @@
 			</label>
 		</div>
 
-		<div class="vbh-sectionbody">
+		<div class="vbh-sectionbody vbh-sectionbody--contained">
 			<!-- JOURNAL VIEW -->
 			<template v-if="bookingView === 'journal'">
 				<div v-if="journalNumberIssues" class="vbh-yearwarn">
@@ -109,11 +114,18 @@
 							@paperclip="clickPaperclip(r)" />
 					</template>
 				</div>
-				<div v-else-if="filteredJournalRows.length" class="vbh-tablecard">
-					<div class="vbh-tablecount">
+				<!-- Desktop: die Tabelle bleibt gemountet, solange es überhaupt Buchungen
+				     gibt, und der Filter blendet Zeilen nur aus (hidden-Attribut, gesetzt
+				     in applyJournalVisibility()). So muss beim Tippen und Löschen keine
+				     Zeile samt Aktionsmenü neu aufgebaut oder gepatcht werden; v-memo
+				     überspringt alle Zeilen, deren Daten gleich bleiben. Strg+F findet
+				     weiter alle sichtbaren. -->
+				<div v-else-if="!isMobile && sortedJournalRows.length" class="vbh-tablecard">
+					<div v-show="filteredJournalRows.length" class="vbh-tablecount">
 						{{ filteredJournalRows.length !== sortedJournalRows.length ? t('{n} von {total} Buchungssätze', { n: filteredJournalRows.length, total: sortedJournalRows.length }) : t('{n} Buchungssätze', { n: filteredJournalRows.length }) }}
 					</div>
-					<table class="vbh-table">
+					<NcEmptyContent v-if="!filteredJournalRows.length" :name="t('Keine Treffer')" :description="t('Suchfilter anpassen oder löschen.')" />
+					<table v-show="filteredJournalRows.length" class="vbh-table">
 						<thead>
 							<tr>
 								<th class="sortable num vbh-col-hide-sm" @click="toggleSort('journal', 'entryNo')">
@@ -137,8 +149,12 @@
 								<th />
 							</tr>
 						</thead>
-						<tbody>
-							<tr v-for="r in filteredJournalRows" :key="r.id">
+						<tbody ref="journalBody">
+							<tr
+								v-for="r in sortedJournalRows"
+								:key="r.id"
+								v-memo="[r, attachmentCountMap[r.id], txByJournalId[r.id], canWrite, amountDisplay, accountsById, isDateClosed(r.date)]"
+								:data-id="r.id">
 								<td class="num strong vbh-col-hide-sm">
 									{{ r.entryNo }}
 								</td>
@@ -204,7 +220,7 @@
 						</tbody>
 					</table>
 				</div>
-				<NcEmptyContent v-else-if="bookingSearch || bookingFilter" :name="t('Keine Treffer')" :description="t('Suchfilter anpassen oder löschen.')" />
+				<NcEmptyContent v-else-if="sortedJournalRows.length" :name="t('Keine Treffer')" :description="t('Suchfilter anpassen oder löschen.')" />
 				<NcEmptyContent v-else :name="t('Noch keine Buchungssätze')" :description="t('Legen Sie mit ‛Neue Buchung\' einen ersten Buchungssatz an.')">
 					<template #action>
 						<NcButton variant="tertiary" @click="$emit('help')">
@@ -287,6 +303,29 @@
 								@click="openSplitAssign(tx)">
 								{{ t('Aufteilen…') }}
 							</button>
+							<button
+								v-if="canAttachToTx(tx)"
+								type="button"
+								class="vbh-suggest-chip"
+								@click="openFolderPickerForTx(tx)">
+								{{ t('Beleg vormerken…') }}
+							</button>
+							<ul v-if="pendingFor(tx).length" class="vbh-txfiles">
+								<li v-for="f in pendingFor(tx)" :key="f.fileId" class="vbh-txfile">
+									<a
+										:href="inboxViewUrl(f.fileId)"
+										target="_blank"
+										rel="noopener"
+										class="vbh-txfile-name">{{ f.name }}</a>
+									<button
+										type="button"
+										class="vbh-txfile-remove"
+										:aria-label="tRaw('Vormerkung entfernen: {name}', { name: f.name })"
+										@click="removeTxPendingFile(tx.id, f.fileId)">
+										×
+									</button>
+								</li>
+							</ul>
 						</template>
 					</div>
 				</div>
@@ -368,6 +407,19 @@
 												{{ t('Aufteilen…') }}
 											</button>
 											<NcButton
+												v-if="canAttachToTx(tx)"
+												:variant="pendingFor(tx).length ? 'secondary' : 'tertiary'"
+												:aria-label="t('Beleg aus dem Wächter-Ordner vormerken')"
+												:title="t('Beleg aus dem Wächter-Ordner vormerken – er wird beim Zuordnen mit der Buchung verknüpft')"
+												@click="openFolderPickerForTx(tx)">
+												<template #icon>
+													<NcIconSvgWrapper :path="mdiPaperclip" :size="18" />
+												</template>
+												<template v-if="pendingFor(tx).length">
+													{{ pendingFor(tx).length }}
+												</template>
+											</NcButton>
+											<NcButton
 												v-if="canWrite && !isDateClosed(tx.bookingDate)"
 												variant="tertiary"
 												:aria-label="t('Umsatz löschen')"
@@ -378,6 +430,22 @@
 												</template>
 											</NcButton>
 										</div>
+										<ul v-if="pendingFor(tx).length" class="vbh-txfiles">
+											<li v-for="f in pendingFor(tx)" :key="f.fileId" class="vbh-txfile">
+												<a
+													:href="inboxViewUrl(f.fileId)"
+													target="_blank"
+													rel="noopener"
+													class="vbh-txfile-name">{{ f.name }}</a>
+												<button
+													type="button"
+													class="vbh-txfile-remove"
+													:aria-label="tRaw('Vormerkung entfernen: {name}', { name: f.name })"
+													@click="removeTxPendingFile(tx.id, f.fileId)">
+													×
+												</button>
+											</li>
+										</ul>
 									</div>
 								</td>
 							</tr>
@@ -548,6 +616,7 @@ import { claimTypeLabel } from '../lib/claims.js'
 import { bookingFlow, flowClass, flowLabel, formatFlowMoney, transactionFlow } from '../lib/flow.js'
 import { amountClass, errMsg, formatDate, formatMoney } from '../lib/format.js'
 import { openItemStatusLabel } from '../lib/openItems.js'
+import { buildSearchIndex, journalSearch, matchesQuery, prepareQuery, transactionSearch } from '../lib/search.js'
 import { isSelectableOption } from '../lib/selectOptions.js'
 
 export default {
@@ -575,6 +644,12 @@ export default {
 		onAssign: { type: Function, required: true },
 		openSplitAssign: { type: Function, required: true },
 		applySuggestion: { type: Function, required: true },
+		// Belege direkt in „Zuzuordnen“ vormerken (nur mit Wächter-Ordner), siehe
+		// txPendingFiles/linkTxPendingFiles() in App.vue.
+		watchMode: { type: Boolean, default: false },
+		txPendingFiles: { type: Object, default: () => ({}) },
+		openFolderPickerForTx: { type: Function, default: () => {} },
+		removeTxPendingFile: { type: Function, default: () => {} },
 	},
 
 	emits: ['go-claims', 'help', 'update:booking-view'],
@@ -613,6 +688,7 @@ export default {
 			mdiPencil,
 			mdiFlash,
 			mdiDelete,
+			// Der entprellte Suchtext, nach dem gefiltert wird (onSearchInput).
 			bookingSearch: '',
 			// null | { accountId } | { category }: Kontofilter des Journals, siehe
 			// journalRowMatchesAccountFilter().
@@ -669,14 +745,15 @@ export default {
 		},
 
 		sortedJournalRows() { return this.applySort(this.journalRows, this.sort.journal) },
+		// Einmal je Datenstand statt je Tastendruck, siehe lib/search.js.
+		journalSearchIndex() { return buildSearchIndex(this.journalRows, journalSearch.fields, journalSearch.cents) },
+		searchQuery() { return prepareQuery(this.bookingSearch) },
 		filteredJournalRows() {
 			let rows = this.sortedJournalRows
-			const s = this.bookingSearch.trim().toLowerCase()
-			if (s) {
-				rows = rows.filter((r) => (r.description || '').toLowerCase().includes(s)
-					|| String(r.entryNo || '').includes(s)
-					|| (r.soll || '').toLowerCase().includes(s)
-					|| (r.haben || '').toLowerCase().includes(s))
+			const q = this.searchQuery
+			if (q) {
+				const index = this.journalSearchIndex
+				rows = rows.filter((r) => matchesQuery(index.get(r.id), q))
 			}
 			if (this.bookingFilter) {
 				rows = rows.filter((r) => journalRowMatchesAccountFilter(r, this.bookingFilter, this.accountsById, this.t))
@@ -685,6 +762,14 @@ export default {
 				rows = rows.filter((r) => !this.attachmentCountMap[r.id])
 			}
 			return rows
+		},
+
+		visibleJournalIds() { return new Set(this.filteredJournalRows.map((r) => r.id)) },
+
+		// Mobil: fest nach Datum absteigend – einmal je Datenstand sortiert,
+		// journalCardGroups filtert dann nur noch.
+		journalRowsByDateDesc() {
+			return [...this.journalRows].sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || (b.entryNo || 0) - (a.entryNo || 0))
 		},
 
 		// Mobil: Journal fest nach Datum absteigend, gruppiert nach Monat
@@ -696,7 +781,8 @@ export default {
 		// Zeitraums. Das ist kein Rest der alten Jahres-Logik – bitte nicht auf
 		// die Geschäftsjahr-Grenzen umstellen.
 		journalCardGroups() {
-			const rows = [...this.filteredJournalRows].sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || (b.entryNo || 0) - (a.entryNo || 0))
+			const visible = this.visibleJournalIds
+			const rows = this.journalRowsByDateDesc.filter((r) => visible.has(r.id))
 			const names = [this.t('Januar'), this.t('Februar'), this.t('März'), this.t('April'), this.t('Mai'), this.t('Juni'), this.t('Juli'), this.t('August'), this.t('September'), this.t('Oktober'), this.t('November'), this.t('Dezember')]
 			const groups = []
 			let cur = null
@@ -745,17 +831,15 @@ export default {
 			return map
 		},
 
+		unassignedTransactions() { return this.transactions.filter((t) => t.status === 'unassigned') },
+		transactionSearchIndex() { return buildSearchIndex(this.unassignedTransactions, transactionSearch.fields, transactionSearch.cents) },
+
 		currentTransactions() {
-			const status = 'unassigned'
-			let txs = this.applySort(
-				this.transactions.filter((t) => t.status === status),
-				this.sort.transactions,
-			)
-			const s = this.bookingSearch.trim().toLowerCase()
-			if (s) {
-				txs = txs.filter((t) => (t.counterparty || '').toLowerCase().includes(s)
-					|| (t.purpose || '').toLowerCase().includes(s)
-					|| (t.bookingDate || '').includes(s))
+			let txs = this.applySort(this.unassignedTransactions, this.sort.transactions)
+			const q = this.searchQuery
+			if (q) {
+				const index = this.transactionSearchIndex
+				txs = txs.filter((t) => matchesQuery(index.get(t.id), q))
 			}
 			return txs
 		},
@@ -807,6 +891,8 @@ export default {
 		// Suchfeld beim Wechsel zwischen "Alle Buchungen"/"Zuzuordnen" leeren
 		// (Original-Verhalten aus App.vue's bookingView-Watcher).
 		bookingView(v) {
+			clearTimeout(this.searchTimer)
+			if (this.$refs.searchField) { this.$refs.searchField.value = '' }
 			this.bookingSearch = ''
 			if (v === 'openitems') { this.loadOpenItems() }
 		},
@@ -814,6 +900,17 @@ export default {
 
 	mounted() {
 		if (this.bookingView === 'openitems') { this.loadOpenItems() }
+		this.applyJournalVisibility()
+	},
+
+	// Nach jedem Rendern: neue oder umsortierte Zeilen bekommen ihre
+	// Sichtbarkeit. Jede Filteränderung rendert (Zähler), läuft also hier durch.
+	updated() {
+		this.applyJournalVisibility()
+	},
+
+	beforeUnmount() {
+		clearTimeout(this.searchTimer)
 	},
 
 	methods: {
@@ -831,6 +928,46 @@ export default {
 		 */
 		isSplitAssigned(tx) {
 			return tx.status === 'assigned' && !tx.contraAccountId
+		},
+
+		// Entprellt: gefiltert wird erst, wenn die Eingabe kurz ruht. Leeren
+		// wirkt sofort.
+		onSearchInput(event) {
+			const v = event.target.value
+			clearTimeout(this.searchTimer)
+			if (!v.trim()) {
+				this.bookingSearch = ''
+				return
+			}
+			this.searchTimer = setTimeout(() => { this.bookingSearch = v }, 150)
+		},
+
+		/**
+		 * Blendet die Zeilen der Journal-Tabelle direkt am DOM ein und aus.
+		 * Über die Vorlage (v-show) müsste Vue jede Zeile, deren Sichtbarkeit
+		 * wechselt, samt Knöpfen und Aktionsmenü patchen – bei einigen hundert
+		 * Zeilen spürbar. Das hidden-Attribut kennt Vue nicht und lässt es stehen.
+		 */
+		applyJournalVisibility() {
+			const body = this.$refs.journalBody
+			if (!body) { return }
+			const visible = this.visibleJournalIds
+			for (const tr of body.children) {
+				const hide = !visible.has(Number(tr.dataset.id))
+				if (tr.hidden !== hide) { tr.hidden = hide }
+			}
+		},
+
+		canAttachToTx(tx) {
+			return this.watchMode && this.canWrite && !this.isDateClosed(tx.bookingDate)
+		},
+
+		pendingFor(tx) {
+			return this.txPendingFiles[tx.id] || []
+		},
+
+		inboxViewUrl(fileId) {
+			return api.attachmentInboxViewUrl(fileId)
 		},
 
 		openItemStatusLabel,
