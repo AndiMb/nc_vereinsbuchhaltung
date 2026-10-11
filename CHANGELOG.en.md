@@ -17,6 +17,25 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+**New:**
+- **Search by amount:** A number in the search field such as `12,50` or
+  `1.250` now also finds postings and transactions of exactly that amount
+  under *All entries* and *To assign* – for split postings also a single
+  part. Text and entry number match as before.
+- **Receipts right while assigning:** Under *To assign* every row has a
+  paperclip. It queues one or more receipts from the watch folder; on
+  assigning they are attached to the new posting – also via a suggestion or
+  "Split…".
+- **Folder tree in the watch folder:** The dialog shows the subfolders with
+  counts of open and assigned receipts, and for each file its status and a
+  clickable entry number. Only folders with open receipts are expanded; the
+  search also knows entry numbers. If you prefer the plain list, untick
+  "Show folders".
+
+**Changed:**
+- **Smoother search with many postings:** Under *All entries* the search
+  field no longer lags while typing, even with several hundred postings.
+
 ## [0.35.0] – 2026-10-10
 
 **New:**

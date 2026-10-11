@@ -153,6 +153,10 @@
 					:onAssign="onAssign"
 					:openSplitAssign="openSplitAssign"
 					:applySuggestion="applySuggestion"
+					:watchMode="watchMode"
+					:txPendingFiles="txPendingFiles"
+					:openFolderPickerForTx="openFolderPickerForTx"
+					:removeTxPendingFile="removeTxPendingFile"
 					@update:bookingView="bookingView = $event"
 					@goClaims="goToClaims"
 					@help="openHelp('bookings')" />
@@ -649,8 +653,14 @@ export default {
 			// Wächter-Ordner-Dialog frei
 			storageMode: 'appdata',
 			// Wächter-Ordner-Dialog: pick = Auswahl für die offene Buchung,
-			// sonst der Eingangskorb von der Übersicht aus
-			folderDialog: { open: false, pick: false },
+			// sonst der Eingangskorb von der Übersicht aus. txId: die Auswahl
+			// gilt einem Bankumsatz in „Zuzuordnen“ (Vormerkung, siehe
+			// txPendingFiles).
+			folderDialog: { open: false, pick: false, txId: null },
+			// In „Zuzuordnen“ vorgemerkte Belege je Bankumsatz:
+			// { [txId]: [{ fileId, name, size }] }. Reiner UI-Zustand – verknüpft
+			// wird erst, wenn der Umsatz zugeordnet ist (linkTxPendingFiles()).
+			txPendingFiles: {},
 			// Zuletzt im Auswahl-Sheet gewählte Konten (localStorage, max. 5)
 			recentAccountIds: [],
 			// Änderungsprotokoll (Berichte → Protokoll)
@@ -704,6 +714,11 @@ export default {
 		// Was schon an der offenen Buchung hängt oder wartet, soll der
 		// Ordner-Dialog nicht noch einmal anbieten.
 		folderExcludeIds() {
+			// Für einen Bankumsatz: alles, was schon irgendwo vorgemerkt ist –
+			// derselbe Beleg soll nicht versehentlich an zwei Umsätzen landen.
+			if (this.folderDialog.txId) {
+				return Object.values(this.txPendingFiles).flat().map((f) => f.fileId)
+			}
 			return [
 				...this.bookingAttachments.map((a) => a.fileId),
 				...this.pendingFiles.map((f) => f.fileId),
@@ -1035,6 +1050,8 @@ export default {
 		// DashboardTab.vue (eigener Watcher auf sein eigenes journalData).
 		// bookingSearch-Reset bei bookingView-Wechsel ist jetzt Teil von
 		// BookingsTab.vue (eigener Watcher auf sein bookingView-Prop).
+		transactions() { this.pruneTxPendingFiles() },
+
 		bookingView(v) {
 			if (v === 'journal') { this.loadJournal() }
 		},
@@ -1812,7 +1829,8 @@ export default {
 						})
 					}
 				} else {
-					await api.assignTransaction(tx.id, Number(value))
+					const { data } = await api.assignTransaction(tx.id, Number(value))
+					await this.linkTxPendingFiles(tx.id, data && data.journalId)
 				}
 				// loadPeriods() muss mit: eine Zuordnung legt eine Buchung an (bzw.
 				// loest sie wieder auf), und periods[].bookings speist die
@@ -1865,9 +1883,10 @@ export default {
 				return
 			}
 			try {
-				await api.assignTransactionParts(tx.id, rows.map((p) => ({ accountId: p.accountId, amount: Number(p.amount) })))
+				const { data } = await api.assignTransactionParts(tx.id, rows.map((p) => ({ accountId: p.accountId, amount: Number(p.amount) })))
 				showSuccess(this.t('Umsatz aufgeteilt zugeordnet.'))
 				this.closeSplitAssign()
+				await this.linkTxPendingFiles(tx.id, data && data.journalId)
 				// loadPeriods() muss mit: die Aufteilung legt Buchungen an, und
 				// periods[].bookings speist die "Erste Schritte"-Karte (Issue #60).
 				await this.loadTransactions(); await this.loadBalances(); await this.loadJournal(); await this.loadSphereReport(); await this.loadPeriods()
@@ -2016,8 +2035,45 @@ export default {
 		},
 
 		// --- Wächter-Ordner für Belege ---------------------------------------
-		openFolderPicker() { this.folderDialog = { open: true, pick: true } },
-		openInbox() { this.folderDialog = { open: true, pick: false } },
+		openFolderPicker() { this.folderDialog = { open: true, pick: true, txId: null } },
+		openInbox() { this.folderDialog = { open: true, pick: false, txId: null } },
+		openFolderPickerForTx(tx) { this.folderDialog = { open: true, pick: true, txId: tx.id } },
+
+		removeTxPendingFile(txId, fileId) {
+			const rest = (this.txPendingFiles[txId] || []).filter((f) => f.fileId !== fileId)
+			if (rest.length) { this.txPendingFiles[txId] = rest } else { delete this.txPendingFiles[txId] }
+		},
+
+		/**
+		 * Verknüpft die in „Zuzuordnen“ vorgemerkten Belege mit der Buchung, die
+		 * das Zuordnen eben angelegt hat. Schlägt eine Verknüpfung fehl, bleibt
+		 * die Buchung trotzdem bestehen – der Beleg lässt sich im Buchungsdialog
+		 * nachtragen; die Meldung nennt die betroffenen Dateien.
+		 *
+		 * @param {number} txId Bankumsatz
+		 * @param {number|null} journalId die neue Buchung
+		 */
+		async linkTxPendingFiles(txId, journalId) {
+			const files = this.txPendingFiles[txId] || []
+			delete this.txPendingFiles[txId]
+			if (!files.length || !journalId) { return }
+			const failed = []
+			for (const f of files) {
+				try { await api.linkAttachment(journalId, f.fileId) } catch { failed.push(f.name) }
+			}
+			if (failed.length) {
+				showError(this.tRaw('Buchung angelegt, aber Beleg nicht verknüpft: {names}', { names: failed.join(', ') }))
+			}
+			this.refreshInbox()
+		},
+
+		/** Vormerkungen für Umsätze, die nicht mehr offen sind (z. B. per Regel zugeordnet), verwerfen. */
+		pruneTxPendingFiles() {
+			const open = new Set(this.transactions.filter((t) => t.status === 'unassigned').map((t) => t.id))
+			for (const id of Object.keys(this.txPendingFiles)) {
+				if (!open.has(Number(id))) { delete this.txPendingFiles[id] }
+			}
+		},
 
 		/** Eine Ordnerdatei als Eintrag der Warteliste (siehe pendingFiles in data()). */
 		pendingLink(file) {
@@ -2034,6 +2090,11 @@ export default {
 		async onFolderPick(files) {
 			this.folderDialog.open = false
 			if (!files.length) { return }
+			const txId = this.folderDialog.txId
+			if (txId) {
+				this.txPendingFiles[txId] = [...(this.txPendingFiles[txId] || []), ...files.map((f) => ({ fileId: f.fileId, name: f.name, size: f.size }))]
+				return
+			}
 			if (!this.bookingForm.id) {
 				this.pendingFiles.push(...files.map(this.pendingLink))
 				return

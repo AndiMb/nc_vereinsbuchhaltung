@@ -4,8 +4,12 @@
 // formatMoney(...) etc. wie bisher auf) und sind hier unabhaengig testbar.
 import { t } from './l10n.js'
 
+// Einmal anlegen: ein neues Intl.NumberFormat je Aufruf war bei langen
+// Buchungslisten der teuerste Teil des Zeilen-Renderings.
+const EUR = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' })
+
 export function formatMoney(v) {
-	return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(v || 0)
+	return EUR.format(v || 0)
 }
 
 export function formatDate(s) {

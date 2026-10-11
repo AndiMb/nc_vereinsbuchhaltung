@@ -19,6 +19,26 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+**Neu:**
+- **Suche nach Betrag:** Eine Zahl im Suchfeld wie `12,50` oder `1.250`
+  findet unter *Alle Buchungen* und *Zuzuordnen* auch Buchungen und Umsätze
+  über genau diesen Betrag – bei Splittbuchungen auch einen einzelnen
+  Teilbetrag. Text und Buchungsnummer passen wie bisher.
+- **Belege direkt beim Zuordnen:** Unter *Zuzuordnen* trägt jede Zeile eine
+  Büroklammer. Damit lassen sich ein oder mehrere Belege aus dem
+  Wächter-Ordner vormerken; beim Zuordnen hängen sie an der neuen Buchung –
+  auch über einen Vorschlag oder „Aufteilen…".
+- **Ordnerbaum im Wächter-Ordner:** Der Dialog zeigt die Unterordner mit
+  Zählern für offene und zugeordnete Belege, je Datei den Status und die
+  Buchungsnummer zum Anklicken. Aufgeklappt sind nur Ordner mit offenen
+  Belegen; die Suche kennt auch Buchungsnummern. Wer die einfache Liste
+  bevorzugt, nimmt den Haken „Ordner anzeigen" heraus.
+
+**Geändert:**
+- **Flüssigere Suche bei vielen Buchungen:** Unter *Alle Buchungen* reagiert
+  das Suchfeld auch bei mehreren hundert Buchungen ohne Verzögerung beim
+  Tippen.
+
 ## [0.35.0] – 2026-10-10
 
 **Neu:**
