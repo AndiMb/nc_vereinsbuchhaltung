@@ -253,6 +253,51 @@ class MemberService {
 	}
 
 	/**
+	 * Die Verknüpfungsvorschläge für die Mitgliederliste, alle auf einmal: je Mitglied
+	 * ohne Konto, aber mit Mailadresse, die Nextcloud-Konten mit genau dieser Adresse.
+	 * Ein Konto, das schon ein Mitglied trägt, ist kein Vorschlag mehr (die Verknüpfung
+	 * würde ohnehin abgelehnt, siehe {@see link()}). Wie in {@see findLinkSuggestions()}
+	 * wählt das nie etwas aus: die Liste zeigt nur, was zur Bestätigung ansteht.
+	 *
+	 * @param Member[] $members
+	 * @return array<int, list<array{uid:string, displayName:string, email:?string}>> Mitglieds-ID => Treffer
+	 *                                                                                (nur Mitglieder mit mindestens einem)
+	 */
+	public function linkSuggestionsFor(array $members): array {
+		$taken = [];
+		foreach ($members as $member) {
+			$uid = $member->getNcUserId();
+			if ($uid !== null && $uid !== '') {
+				$taken[$uid] = true;
+			}
+		}
+
+		$result = [];
+		foreach ($members as $member) {
+			$email = $member->getEmail();
+			$uid = $member->getNcUserId();
+			if (($uid !== null && $uid !== '') || $email === null || $email === '' || $member->isRedacted()) {
+				continue;
+			}
+			$candidates = [];
+			foreach ($this->userManager->getByEmail($email) as $user) {
+				if (isset($taken[$user->getUID()])) {
+					continue;
+				}
+				$candidates[] = [
+					'uid' => $user->getUID(),
+					'displayName' => $user->getDisplayName(),
+					'email' => $user->getEMailAddress(),
+				];
+			}
+			if ($candidates !== []) {
+				$result[(int)$member->getId()] = $candidates;
+			}
+		}
+		return $result;
+	}
+
+	/**
 	 * Verknüpft ein Mitglied mit einem Nextcloud-Konto – ausschließlich nach
 	 * menschlicher Bestätigung (Spec §3.1); diese Methode wählt nichts selbst
 	 * aus. 1:1-Identität „NC-Konto ist dieses Mitglied", kein Zugriffsrecht.

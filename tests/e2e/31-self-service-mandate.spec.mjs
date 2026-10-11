@@ -121,7 +121,7 @@ test.describe('Self-Service: Mandats-Aktionskatalog (Issue #75)', () => {
 		// Ausweg als Primäraktion (Spec §3.4): schaltet zurück auf den
 		// IBAN-Modus, statt das Mandat zu ersetzen.
 		await dialog.getByRole('button', { name: 'Ich habe nur ein neues Konto → IBAN ändern' }).click()
-		await expect(dialog.getByRole('radio', { name: 'Gleiches Konto, nur die IBAN hat sich geändert' })).toBeChecked()
+		await expect(dialog.getByRole('radio', { name: 'Gleicher Kontoinhaber, nur die IBAN hat sich geändert' })).toBeChecked()
 
 		// Tatsächlicher Kontoinhaberwechsel, erneut in den Modus gewechselt.
 		await dialog.getByText('Der Kontoinhaber wechselt', { exact: true }).click()
@@ -151,7 +151,7 @@ test.describe('Self-Service: Mandats-Aktionskatalog (Issue #75)', () => {
 		await revokeDialog.getByRole('button', { name: 'Ich habe nur ein neues Konto → IBAN ändern' }).click()
 		const accountDialog = page.getByRole('dialog', { name: 'Bankverbindung ändern' })
 		await expect(accountDialog).toBeVisible()
-		await expect(accountDialog.getByRole('radio', { name: 'Gleiches Konto, nur die IBAN hat sich geändert' })).toBeChecked()
+		await expect(accountDialog.getByRole('radio', { name: 'Gleicher Kontoinhaber, nur die IBAN hat sich geändert' })).toBeChecked()
 		await accountDialog.getByRole('button', { name: 'Abbrechen' }).click()
 
 		// Ausgangszustand unverändert - kein Widerruf durch den Ausweg ausgelöst.

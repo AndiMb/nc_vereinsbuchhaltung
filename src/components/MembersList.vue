@@ -34,7 +34,9 @@
 				v-for="row in filteredRows"
 				:key="row.key"
 				:row="row"
+				:linkingMemberId="linkingMemberId"
 				@manageAssignments="(mode) => manageFee(row.member, mode)"
+				@linkAccount="linkSuggestedAccount(row.member)"
 				@openMember="(section) => openMemberAkte(row.member, section)" />
 		</div>
 		<div v-else-if="filteredRows.length" class="vbh-tablecard">
@@ -56,6 +58,9 @@
 						</th>
 						<th class="vbh-mlist-col-state">
 							{{ t('Zuweisung') }}
+						</th>
+						<th class="vbh-mlist-col-account">
+							{{ t('Nextcloud-Konto?') }}
 						</th>
 						<th class="vbh-col-rowactions" />
 					</tr>
@@ -105,6 +110,13 @@
 						<td>
 							<span v-if="row.fee" class="vbh-status" :class="`vbh-status--${row.fee.statusTone}`">{{ row.fee.statusLabel }}</span>
 							<span v-else>–</span>
+						</td>
+						<td>
+							<MemberAccountCell
+								:member="row.member"
+								:busy="linkingMemberId === row.member.id"
+								@link="linkSuggestedAccount(row.member)"
+								@open="openMemberAkte(row.member)" />
 						</td>
 						<td class="nowrap right">
 							<!-- Alles Weitere zu einem Mitglied steht im Menü (⋯), mit Namen: Mitglied, Mandat, Beitrag.
@@ -167,6 +179,7 @@ import { NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper } fro
 import { toRefs } from 'vue'
 import AssignmentChangeDialog from './AssignmentChangeDialog.vue'
 import AssignmentDialog from './AssignmentDialog.vue'
+import MemberAccountCell from './MemberAccountCell.vue'
 import MemberCard from './MemberCard.vue'
 import MemberDialog from './MemberDialog.vue'
 import MemberImportDialog from './MemberImportDialog.vue'
@@ -174,6 +187,7 @@ import MemberRowMenu from './MemberRowMenu.vue'
 import api from '../api.js'
 import { useAssignments } from '../composables/useAssignments.js'
 import { useClaimOverview } from '../composables/useClaimOverview.js'
+import { useConfirm } from '../composables/useConfirm.js'
 import { useContributionGroups } from '../composables/useContributionGroups.js'
 import { useMandates } from '../composables/useMandates.js'
 import { useMemberAkteRequest } from '../composables/useMemberAkteRequest.js'
@@ -183,6 +197,7 @@ import { errMsg, formatDate, formatMoney } from '../lib/format.js'
 import { createMandateForMember } from '../lib/mandateCreate.js'
 import { collectEmails, EMAIL_SEPARATOR } from '../lib/memberEmails.js'
 import { buildMemberRow, isLiveAssignment, nextDueDates } from '../lib/memberRow.js'
+import { createNextcloudAccount } from '../lib/nextcloudAccount.js'
 
 /**
  * Mitgliederliste (Spec §2.2/§3.1, docs/beitraege-sepa-modul-spec.md): jede
@@ -211,7 +226,7 @@ import { buildMemberRow, isLiveAssignment, nextDueDates } from '../lib/memberRow
  */
 export default {
 	name: 'MembersList',
-	components: { NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, AssignmentChangeDialog, AssignmentDialog, MemberDialog, MemberImportDialog, MemberCard, MemberRowMenu },
+	components: { NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, AssignmentChangeDialog, AssignmentDialog, MemberAccountCell, MemberDialog, MemberImportDialog, MemberCard, MemberRowMenu },
 	props: {
 		isMobile: { type: Boolean, default: false },
 		defaultFeeAmount: { type: [Number, String], default: '' },
@@ -239,6 +254,7 @@ export default {
 			loadMembers: members.loadMembers,
 			akteRequest: akteRequest.request,
 			takeMemberAkteRequest: akteRequest.takeMemberAkteRequest,
+			askConfirm: useConfirm().askConfirm,
 		}
 	},
 
@@ -259,6 +275,8 @@ export default {
 			assignDialogOpen: false,
 			assignSaving: false,
 			presetMemberId: null,
+			/** Mitglied, dessen Konto-Vorschlag gerade verknüpft wird (sperrt den Knopf). */
+			linkingMemberId: null,
 			mdiEmailOffOutline,
 			mdiContentCopy,
 		}
@@ -426,15 +444,38 @@ export default {
 		 * → Beitrag, Schritt 2/3 überspringbar). Schlägt eine spätere Stufe fehl,
 		 * bleibt stehen, was schon entstanden ist – die Meldung sagt ausdrücklich,
 		 * was das war, statt nur „fehlgeschlagen".
+		 *
+		 * Nextcloud-Konto und Willkommens-Mail sind Zusätze: scheitern sie, wird trotzdem
+		 * Mandat und Beitrag angelegt, und am Ende steht, was nicht geklappt hat (beides
+		 * lässt sich in der Akte nachholen).
 		 */
 		async saveMember(payload) {
 			this.saving = true
 			let stage = 'member'
+			const problems = []
 			try {
 				if (this.editingMember) {
 					await api.updateMember(this.editingMember.id, payload.stammdaten)
 				} else {
 					const { data: member } = await api.createMember(payload.stammdaten)
+					if (payload.account) {
+						let uid = null
+						try {
+							uid = await createNextcloudAccount(payload.account)
+							await api.linkMember(member.id, uid)
+						} catch (e) {
+							problems.push(uid === null
+								? this.errMsg(e, this.t('Das Nextcloud-Konto konnte nicht angelegt werden'))
+								: this.tRaw('Das Nextcloud-Konto „{uid}" wurde angelegt, die Verknüpfung mit der Akte nicht.', { uid }))
+						}
+					}
+					if (payload.welcomeMail) {
+						try {
+							await api.sendWelcomeMail(member.id, payload.welcomeMail)
+						} catch (e) {
+							problems.push(this.errMsg(e, this.t('Die Willkommens-Mail konnte nicht gesendet werden')))
+						}
+					}
 					if (payload.mandate) {
 						stage = 'mandate'
 						// Schritt 2 des Assistenten (Spec §3.1): Papier entscheidet per Datum
@@ -449,6 +490,7 @@ export default {
 				this.memberDialogOpen = false
 				await this.reload()
 				showSuccess(this.editingMember ? this.t('Mitglied gespeichert.') : this.t('Mitglied aufgenommen.'))
+				this.reportProblems(problems)
 			} catch (e) {
 				await this.reload()
 				showError(this.errMsg(e, {
@@ -456,7 +498,43 @@ export default {
 					mandate: this.t('Das Mitglied wurde angelegt, das Mandat nicht'),
 					assignment: this.t('Mitglied und Mandat wurden angelegt, der Beitrag nicht'),
 				}[stage]))
+				this.reportProblems(problems)
 			} finally { this.saving = false }
+		},
+
+		/** Was beim Aufnehmen nicht geklappt hat, obwohl das Mitglied angelegt wurde. */
+		reportProblems(problems) {
+			for (const problem of problems) {
+				showError(this.tRaw('Das Mitglied wurde angelegt, aber: {problem} Das lässt sich in der Akte nachholen.', { problem }))
+			}
+		},
+
+		/**
+		 * Den Vorschlag aus der Spalte „Nextcloud-Konto?“ verknüpfen – erst nach Rückfrage: die Verknüpfung
+		 * sagt „dieses Konto ist dieses Mitglied“ (Spec §3.1: Vorschlag, nie Vollzug).
+		 */
+		async linkSuggestedAccount(member) {
+			const suggestion = member.ncAccountSuggestion
+			if (!suggestion || this.linkingMemberId !== null) { return }
+			const confirmed = await this.askConfirm(
+				this.t('Mit Nextcloud-Konto verknüpfen'),
+				this.tRaw('{name} mit dem Nextcloud-Konto „{konto}" ({email}) verknüpfen? Das Konto gilt danach als dieses Mitglied.', {
+					name: member.displayName,
+					konto: suggestion.displayName,
+					email: suggestion.email || '',
+				}),
+				this.t('Verknüpfen'),
+				'primary',
+			)
+			if (!confirmed) { return }
+			this.linkingMemberId = member.id
+			try {
+				await api.linkMember(member.id, suggestion.uid)
+				showSuccess(this.t('Verknüpft.'))
+				await this.reload()
+			} catch (e) {
+				showError(this.errMsg(e, this.t('Verknüpfen fehlgeschlagen')))
+			} finally { this.linkingMemberId = null }
 		},
 	},
 }
@@ -512,6 +590,10 @@ export default {
 
 .vbh-table thead th.vbh-mlist-col-state {
 	width: 150px;
+}
+
+.vbh-table thead th.vbh-mlist-col-account {
+	width: 190px;
 }
 
 .vbh-iban {

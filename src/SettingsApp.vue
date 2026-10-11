@@ -64,6 +64,12 @@
 			</NcSettingsSection>
 		</div>
 
+		<div id="settings-section_willkommens-mail">
+			<NcSettingsSection :name="t('Willkommens-Mail')">
+				<SettingsWelcomeMail />
+			</NcSettingsSection>
+		</div>
+
 		<div id="settings-section_berechtigungen">
 			<NcSettingsSection :name="t('Berechtigungen')">
 				<SettingsPermissions @help="openHandbuch" />
@@ -120,6 +126,7 @@ import SettingsPermissions from './components/SettingsPermissions.vue'
 import SettingsSepaBasics from './components/SettingsSepaBasics.vue'
 import SettingsSepaModule from './components/SettingsSepaModule.vue'
 import SettingsStatementWatch from './components/SettingsStatementWatch.vue'
+import SettingsWelcomeMail from './components/SettingsWelcomeMail.vue'
 import SettingsXbucImport from './components/SettingsXbucImport.vue'
 import api from './api.js'
 import { useAccounts } from './composables/useAccounts.js'
@@ -156,6 +163,7 @@ export default {
 		SettingsSepaBasics,
 		SettingsSepaModule,
 		SettingsStatementWatch,
+		SettingsWelcomeMail,
 		SettingsXbucImport,
 	},
 

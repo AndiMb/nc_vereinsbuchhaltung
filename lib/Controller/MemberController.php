@@ -55,8 +55,17 @@ class MemberController extends Controller {
 			static fn (Member $m): int => (int)$m->getId(),
 			$members,
 		));
+		// Verknüpfungsvorschläge für die Spalte „Nextcloud-Konto“: einer wird als Knopf gezeigt,
+		// mehrere führen in die Akte (dort stehen sie zur Auswahl).
+		$suggestions = $this->service->linkSuggestionsFor($members);
 		return new DataResponse(array_map(
-			fn (Member $m): array => $this->decorate($m, $reasons[$m->getId()]),
+			function (Member $m) use ($reasons, $suggestions): array {
+				$candidates = $suggestions[(int)$m->getId()] ?? [];
+				return $this->decorate($m, $reasons[$m->getId()]) + [
+					'ncAccountSuggestion' => count($candidates) === 1 ? $candidates[0] : null,
+					'ncAccountCandidates' => count($candidates),
+				];
+			},
 			$members,
 		));
 	}

@@ -184,6 +184,46 @@
 						due: formatDate(assignmentPreview.dueDate),
 					}) }}
 				</p>
+
+				<!-- Nextcloud-Konto: nur, wer in Nextcloud Konten anlegen darf (Administrator, delegierter oder Gruppen-Administrator). -->
+				<template v-if="accountOptions && accountOptions.canCreate">
+					<h3 class="vbh-modal-subtitle">
+						{{ t('Nextcloud-Konto (optional)') }}
+					</h3>
+					<NcCheckboxRadioSwitch v-model="form.createAccount" type="switch">
+						{{ t('Nextcloud-Konto für dieses Mitglied anlegen') }}
+					</NcCheckboxRadioSwitch>
+					<NextcloudAccountFields
+						v-if="form.createAccount"
+						v-model:account="form.account"
+						:options="accountOptions" />
+				</template>
+
+				<h3 class="vbh-modal-subtitle">
+					{{ t('Willkommens-Mail (optional)') }}
+				</h3>
+				<NcCheckboxRadioSwitch v-model="form.sendWelcome" type="switch" :disabled="!hasEmail || !welcomeTemplate">
+					{{ t('Willkommens-Mail an die Adresse des Mitglieds senden') }}
+				</NcCheckboxRadioSwitch>
+				<p v-if="!hasEmail" class="vbh-hint">
+					{{ t('Dafür wird eine E-Mail-Adresse gebraucht.') }}
+				</p>
+				<p v-else class="vbh-hint">
+					{{ t('Unabhängig davon, ob das Mitglied ein Nextcloud-Konto bekommt. Die Vorlage steht in den Einstellungen unter „Willkommens-Mail“.') }}
+				</p>
+				<template v-if="form.sendWelcome && welcomeTemplate">
+					<NcButton
+						variant="tertiary"
+						:aria-expanded="welcomeOpen ? 'true' : 'false'"
+						@click="welcomeOpen = !welcomeOpen">
+						{{ welcomeOpen ? t('Vorlage ausblenden') : t('Vorlage anzeigen und für dieses Mitglied anpassen') }}
+					</NcButton>
+					<WelcomeMailFields
+						v-show="welcomeOpen"
+						v-model:subject="form.welcomeSubject"
+						v-model:body="form.welcomeBody"
+						:placeholders="welcomeTemplate.placeholders" />
+				</template>
 			</template>
 
 			<template v-else>
@@ -243,7 +283,29 @@
 								{{ t('Kein Nextcloud-Konto mit dieser Mailadresse gefunden.') }}
 							</p>
 						</template>
+						<NcButton
+							class="vbh-akte-create-account"
+							variant="tertiary"
+							:disabled="linking"
+							@click="accountDialogOpen = true">
+							{{ t('Neues Nextcloud-Konto anlegen …') }}
+						</NcButton>
 					</div>
+				</section>
+
+				<section v-if="!member.redactedAt" class="vbh-akte-section">
+					<h3 class="vbh-modal-subtitle">
+						{{ t('Willkommens-Mail') }}
+					</h3>
+					<p v-if="!member.email" class="vbh-hint">
+						{{ t('Ohne Mailadresse lässt sich keine Willkommens-Mail senden.') }}
+					</p>
+					<NcButton
+						v-else
+						variant="secondary"
+						@click="welcomeDialogOpen = true">
+						{{ t('Willkommens-Mail senden …') }}
+					</NcButton>
 				</section>
 
 				<section class="vbh-akte-section">
@@ -369,6 +431,20 @@
 					{{ t('Aufnehmen') }}
 				</NcButton>
 			</div>
+
+			<template v-if="isEdit && !isRedacted">
+				<NextcloudAccountDialog
+					:show="accountDialogOpen"
+					:member="member"
+					@update:show="accountDialogOpen = $event"
+					@close="accountDialogOpen = false"
+					@changed="$emit('changed')" />
+				<WelcomeMailDialog
+					:show="welcomeDialogOpen"
+					:member="member"
+					@update:show="welcomeDialogOpen = $event"
+					@close="welcomeDialogOpen = false" />
+			</template>
 		</div>
 	</NcModal>
 </template>
@@ -376,14 +452,19 @@
 <script>
 import { mdiOpenInNew } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { NcButton, NcIconSvgWrapper, NcModal, NcNoteCard } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper, NcModal, NcNoteCard } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import AmountInput from './AmountInput.vue'
 import CountrySelect from './CountrySelect.vue'
 import MandatePanel from './MandatePanel.vue'
+import NextcloudAccountDialog from './NextcloudAccountDialog.vue'
+import NextcloudAccountFields from './NextcloudAccountFields.vue'
+import WelcomeMailDialog from './WelcomeMailDialog.vue'
+import WelcomeMailFields from './WelcomeMailFields.vue'
 import api from '../api.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useContributionGroups } from '../composables/useContributionGroups.js'
+import { accountPayload, emptyAccount, missingAccountFields } from '../lib/accountForm.js'
 import { defaultCountry } from '../lib/countryDefault.js'
 import { errMsg, formatDate } from '../lib/format.js'
 import { intervalLabel } from '../lib/frequency.js'
@@ -427,6 +508,13 @@ function emptyForm(member, defaultFeeAmount) {
 					// eine eingetragen wird, schaltet der Watcher hasEmail auf Lastschrift.
 					paymentMethod: 'ueberweisung',
 					validFrom: new Date().toISOString().slice(0, 10),
+					// Nextcloud-Konto und Willkommens-Mail (beide optional, beide aus): die Vorbelegung der
+					// Kontoangaben aus den Stammdaten übernimmt der Watcher `accountSource`.
+					createAccount: false,
+					account: emptyAccount(),
+					sendWelcome: false,
+					welcomeSubject: '',
+					welcomeBody: '',
 				}),
 	}
 }
@@ -443,7 +531,21 @@ function emptyForm(member, defaultFeeAmount) {
  */
 export default {
 	name: 'MemberDialog',
-	components: { NcModal, NcButton, NcIconSvgWrapper, NcNoteCard, AmountInput, CountrySelect, MandatePanel },
+	components: {
+		NcModal,
+		NcButton,
+		NcCheckboxRadioSwitch,
+		NcIconSvgWrapper,
+		NcNoteCard,
+		AmountInput,
+		CountrySelect,
+		MandatePanel,
+		NextcloudAccountDialog,
+		NextcloudAccountFields,
+		WelcomeMailDialog,
+		WelcomeMailFields,
+	},
+
 	props: {
 		show: { type: Boolean, default: false },
 		saving: { type: Boolean, default: false },
@@ -479,6 +581,13 @@ export default {
 			certificateYear: null,
 			anonymizationStatus: null,
 			anonymizing: false,
+			/** Auswahlen und Rechte für „Nextcloud-Konto anlegen“; null, solange nicht geladen (oder nicht erlaubt). */
+			accountOptions: null,
+			/** Vorlage der Willkommens-Mail aus den Einstellungen; null, solange nicht geladen. */
+			welcomeTemplate: null,
+			welcomeOpen: false,
+			accountDialogOpen: false,
+			welcomeDialogOpen: false,
 		}
 	},
 
@@ -493,6 +602,17 @@ export default {
 			return this.groups.find((g) => g.id === this.form.groupId) ?? null
 		},
 
+		/** Stammdaten, aus denen die Kontoangaben vorbelegt werden (nur Aufnahme). */
+		accountSource() {
+			return {
+				memberType: this.form.memberType,
+				firstName: this.form.firstName,
+				lastName: this.form.lastName,
+				organizationName: this.form.organizationName,
+				email: this.form.email,
+			}
+		},
+
 		canPreviewAssignment() {
 			return this.form.intervalMonths && this.form.monthlyAmount !== '' && this.form.validFrom
 		},
@@ -503,9 +623,18 @@ export default {
 			// Spiegelung in MemberService::update()) - explizit statt sich darauf
 			// zu verlassen, dass Vor-/Nachname nach der Schwärzung ohnehin leer sind.
 			if (this.isRedacted) { return false }
-			return this.form.memberType === 'organisation'
+			const named = this.form.memberType === 'organisation'
 				? !!this.form.organizationName.trim()
 				: !!this.form.lastName.trim()
+			if (!named || this.isEdit) { return named }
+			// Aufnahme: die optionalen Zusätze müssen vollständig sein, sobald sie eingeschaltet sind.
+			if (this.form.createAccount && this.accountOptions && missingAccountFields(this.form.account, this.accountOptions).length > 0) {
+				return false
+			}
+			if (this.form.sendWelcome && (!this.hasEmail || this.form.welcomeSubject.trim() === '' || this.form.welcomeBody.trim() === '')) {
+				return false
+			}
+			return true
 		},
 
 		/** Druckfertige Live-Ansicht der Beitragsbestätigung (Issue #77) - öffnet in neuem Tab. */
@@ -530,14 +659,31 @@ export default {
 			this.certificateYears = []
 			this.certificateYear = null
 			this.anonymizationStatus = null
+			this.welcomeOpen = false
 			if (this.isEdit) {
 				this.loadCertificateYears()
 				if (!this.isRedacted) { this.loadAnonymizationStatus() }
+			} else {
+				this.loadAccountOptions()
+				this.loadWelcomeTemplate()
 			}
 			if (this.isEdit && this.section === 'mandate') {
 				this.scrollToMandate()
 			} else {
 				focusOnOpen(this, () => this.$refs.nameInput || this.$refs.orgInput)
+			}
+		},
+
+		// Kontoname, Anzeigename und E-Mail folgen den Stammdaten, solange niemand sie von Hand geändert hat
+		// (der Wert entspricht noch dem Vorschlag zu den vorherigen Stammdaten).
+		accountSource(next, previous) {
+			if (this.isEdit) { return }
+			const before = emptyAccount(previous)
+			const after = emptyAccount(next)
+			for (const field of ['userId', 'displayName', 'email']) {
+				if (this.form.account[field] === before[field]) {
+					this.form.account[field] = after[field]
+				}
 			}
 		},
 
@@ -548,6 +694,8 @@ export default {
 		hasEmail(has) {
 			if (this.isEdit) { return } // die Akte kennt keinen Beitrag-Schritt
 			this.form.paymentMethod = has ? 'direct_debit' : 'ueberweisung'
+			// Ohne Adresse geht keine Willkommens-Mail.
+			if (!has) { this.form.sendWelcome = false }
 		},
 
 		selectedGroup(group) {
@@ -606,6 +754,28 @@ export default {
 			}
 		},
 
+		/** Was die angemeldete Person beim Konto-Anlegen darf und auswählen kann; ohne Recht bleibt der Abschnitt weg. */
+		async loadAccountOptions() {
+			try {
+				const { data } = await api.nextcloudAccountOptions()
+				this.accountOptions = data
+			} catch {
+				this.accountOptions = null
+			}
+		},
+
+		/** Die Vorlage der Willkommens-Mail als Vorbelegung (für diese eine Mail anpassbar). */
+		async loadWelcomeTemplate() {
+			try {
+				const { data } = await api.welcomeMailTemplate()
+				this.welcomeTemplate = data
+				this.form.welcomeSubject = data.subject
+				this.form.welcomeBody = data.body
+			} catch {
+				this.welcomeTemplate = null
+			}
+		},
+
 		save() {
 			if (!this.canSave) { return }
 			const payload = { stammdaten: this.stammdaten() }
@@ -628,6 +798,12 @@ export default {
 							paymentMethod: this.form.paymentMethod,
 							validFrom: this.form.validFrom,
 						}
+					: null
+				payload.account = this.form.createAccount && this.accountOptions
+					? accountPayload(this.form.account)
+					: null
+				payload.welcomeMail = this.form.sendWelcome && this.hasEmail
+					? { subject: this.form.welcomeSubject.trim(), body: this.form.welcomeBody.trim() }
 					: null
 			}
 			this.$emit('save', payload)
