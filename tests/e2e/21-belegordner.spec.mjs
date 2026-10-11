@@ -125,7 +125,7 @@ test.describe('Wächter-Ordner für Belege', () => {
 		// Der Fokus kommt erst, wenn die Einblend-Animation des Popups durch ist; auf einem langsamen Runner liegt
 		// zwischen „sichtbar“ und „fokussiert“ eine spürbare Zeit. Das Suchfeld muss ihn trotzdem von selbst
 		// bekommen – abgewartet wird er, nicht ersetzt (kein Klick ins Feld).
-		await expect(folderDialog.getByPlaceholder(/Dateiname oder Ordner/)).toBeFocused()
+		await expect(folderDialog.getByPlaceholder(/Dateiname, Ordner/)).toBeFocused()
 		await page.keyboard.type('suchtest-eins')
 		await expect(folderDialog.getByText('suchtest-eins.png')).toBeVisible()
 		await expect(folderDialog.getByText('suchtest-zwei.png')).toBeHidden()

@@ -754,6 +754,10 @@ export default {
 		// in loadWhatsNew) und "was steht drin?" (Anzeige). Zwei Aufrufe mit
 		// denselben Eingaben koennten auseinanderlaufen, einer nicht.
 		whatsNewEntries() {
+			// Vor der Antwort von GET /whatsnew ist die laufende Version
+			// unbekannt; ohne sie fiele die Obergrenze weg und vorbereitete
+			// Eintraege kuenftiger Versionen stuenden im (noch verborgenen) DOM.
+			if (!this.whatsNewCurrentVersion) { return [] }
 			return filterWhatsNewEntries(
 				buildWhatsNewEntries(),
 				this.me && this.me.role,
