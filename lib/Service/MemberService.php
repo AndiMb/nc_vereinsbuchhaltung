@@ -12,6 +12,7 @@ use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IL10N;
+use OCP\IUser;
 use OCP\IUserManager;
 
 /**
@@ -241,15 +242,57 @@ class MemberService {
 		if ($member->getEmail() === null || $member->getEmail() === '') {
 			return [];
 		}
-		$suggestions = [];
-		foreach ($this->userManager->getByEmail($member->getEmail()) as $user) {
-			$suggestions[] = [
-				'uid' => $user->getUID(),
-				'displayName' => $user->getDisplayName(),
-				'email' => $user->getEMailAddress(),
-			];
+		return array_map($this->describeUser(...), $this->userManager->getByEmail($member->getEmail()));
+	}
+
+	/** @return array{uid:string, displayName:string, email:?string} */
+	private function describeUser(IUser $user): array {
+		return [
+			'uid' => $user->getUID(),
+			'displayName' => $user->getDisplayName(),
+			'email' => $user->getEMailAddress(),
+		];
+	}
+
+	/**
+	 * Die Verknüpfungsvorschläge für die Mitgliederliste, alle auf einmal: je Mitglied
+	 * ohne Konto, aber mit Mailadresse, die Nextcloud-Konten mit genau dieser Adresse.
+	 * Ein Konto, das schon ein Mitglied trägt, ist kein Vorschlag mehr (die Verknüpfung
+	 * würde ohnehin abgelehnt, siehe {@see link()}). Wie in {@see findLinkSuggestions()}
+	 * wählt das nie etwas aus: die Liste zeigt nur, was zur Bestätigung ansteht.
+	 *
+	 * Je Mailadresse wird das Benutzer-Backend nur einmal gefragt (Familien teilen sich oft eine).
+	 *
+	 * @param Member[] $members die vollständige Mitgliederliste – aus ihr ergibt sich, welche Konten schon vergeben sind
+	 * @return array<int, list<array{uid:string, displayName:string, email:?string}>> Mitglieds-ID => Treffer
+	 *                                                                                (nur Mitglieder mit mindestens einem)
+	 */
+	public function linkSuggestionsFor(array $members): array {
+		$taken = [];
+		foreach ($members as $member) {
+			$uid = (string)$member->getNcUserId();
+			if ($uid !== '') {
+				$taken[$uid] = true;
+			}
 		}
-		return $suggestions;
+
+		$byEmail = [];
+		$result = [];
+		foreach ($members as $member) {
+			$email = (string)$member->getEmail();
+			if ((string)$member->getNcUserId() !== '' || $email === '' || $member->isRedacted()) {
+				continue;
+			}
+			$key = mb_strtolower($email);
+			$byEmail[$key] ??= array_values(array_filter(
+				array_map($this->describeUser(...), $this->userManager->getByEmail($email)),
+				static fn (array $account): bool => !isset($taken[$account['uid']]),
+			));
+			if ($byEmail[$key] !== []) {
+				$result[(int)$member->getId()] = $byEmail[$key];
+			}
+		}
+		return $result;
 	}
 
 	/**

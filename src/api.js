@@ -124,8 +124,15 @@ export default {
 	leaveMember: (id, leftAt) => axios.post(url(`/members/${id}/leave`), { leftAt }),
 	reactivateMember: (id) => axios.post(url(`/members/${id}/reactivate`)),
 	memberLinkSuggestions: (id) => axios.get(url(`/members/${id}/link-suggestions`)),
+	allMemberLinkSuggestions: () => axios.get(url('/member-link-suggestions')),
 	linkMember: (id, ncUserId) => axios.post(url(`/members/${id}/link`), { ncUserId }),
 	unlinkMember: (id) => axios.post(url(`/members/${id}/unlink`)),
+	// Nextcloud-Konto anlegen (Auswahlen und Rechte; das Konto selbst legt lib/nextcloudAccount.js über OCS an)
+	// und die Willkommens-Mail an die Mailadresse der Akte (Vorlage in den Einstellungen).
+	nextcloudAccountOptions: () => axios.get(url('/nextcloud-account/options')),
+	welcomeMailTemplate: () => axios.get(url('/welcome-mail/template')),
+	saveWelcomeMailTemplate: (data) => axios.put(url('/welcome-mail/template'), data),
+	sendWelcomeMail: (memberId, data = {}) => axios.post(url(`/members/${memberId}/welcome-mail`), data),
 
 	// DSGVO-Anonymisierung (Issue #78, Spec §3.8): Reife-Anzeige + manuelle,
 	// irreversible Bestätigung je Mitglied.

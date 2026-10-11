@@ -388,7 +388,7 @@ test.describe('Sperrfenster nach der Vorabinfo (Protokoll 7.17, 11.3, 11.9)', ()
 		await card.getByRole('button', { name: 'Bankverbindung ändern' }).click()
 
 		const dialog = page.getByRole('dialog', { name: 'Bankverbindung ändern' })
-		await expect(dialog.getByRole('radio', { name: 'Gleiches Konto, nur die IBAN hat sich geändert' })).toBeChecked()
+		await expect(dialog.getByRole('radio', { name: 'Gleicher Kontoinhaber, nur die IBAN hat sich geändert' })).toBeChecked()
 		await expect(dialog).toContainText('Kein Sperrfenster – du kannst die IBAN bis zur Einreichung des nächsten Einzugs jederzeit ändern.')
 		await dialog.getByLabel('Neue IBAN', { exact: true }).fill(IBAN_NEW)
 		await dialog.getByRole('button', { name: 'IBAN ändern', exact: true }).click()

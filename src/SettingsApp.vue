@@ -47,8 +47,6 @@
 				<SettingsSepaBasics
 					v-model:sepaCreditorId="sepaCreditorId"
 					v-model:sepaDebtorAccountId="sepaDebtorAccountId"
-					v-model:defaultFeeAmount="defaultFeeAmount"
-					v-model:defaultFeeFrequency="defaultFeeFrequency"
 					v-model:membershipEnabled="membershipEnabled"
 					v-model:selfServiceEnabled="selfServiceEnabled"
 					:membershipActive="membershipActive"
@@ -61,6 +59,12 @@
 		<div id="settings-section_mandats-rechtstext">
 			<NcSettingsSection :name="t('Mandats-Rechtstext')">
 				<SettingsMandateLegalText :clubName="clubName" />
+			</NcSettingsSection>
+		</div>
+
+		<div id="settings-section_willkommens-mail">
+			<NcSettingsSection :name="t('Willkommens-Mail')">
+				<SettingsWelcomeMail />
 			</NcSettingsSection>
 		</div>
 
@@ -120,6 +124,7 @@ import SettingsPermissions from './components/SettingsPermissions.vue'
 import SettingsSepaBasics from './components/SettingsSepaBasics.vue'
 import SettingsSepaModule from './components/SettingsSepaModule.vue'
 import SettingsStatementWatch from './components/SettingsStatementWatch.vue'
+import SettingsWelcomeMail from './components/SettingsWelcomeMail.vue'
 import SettingsXbucImport from './components/SettingsXbucImport.vue'
 import api from './api.js'
 import { useAccounts } from './composables/useAccounts.js'
@@ -156,6 +161,7 @@ export default {
 		SettingsSepaBasics,
 		SettingsSepaModule,
 		SettingsStatementWatch,
+		SettingsWelcomeMail,
 		SettingsXbucImport,
 	},
 
@@ -187,9 +193,6 @@ export default {
 			// SEPA-Lastschrift (optionales Zusatzmodul, siehe SettingsSepaBasics.vue)
 			sepaCreditorId: '',
 			sepaDebtorAccountId: null,
-			// Vorbelegung fuer "Mitglied aufnehmen" (MemberDialog.vue in der App)
-			defaultFeeAmount: '',
-			defaultFeeFrequency: 'yearly',
 			// Schalter fuer den Reiter „Beiträge" in der App; membershipActive
 			// kommt vom Backend (Schalter ODER bereits vorhandene Mandate/
 			// Beitraege, siehe SettingsController::index()).
@@ -240,8 +243,6 @@ export default {
 				this.statementWatchPath = data.statement_watch_path || ''
 				this.sepaCreditorId = data.sepa_creditor_id || ''
 				this.sepaDebtorAccountId = data.sepa_debtor_account_id || null
-				this.defaultFeeAmount = data.default_fee_amount ?? ''
-				this.defaultFeeFrequency = data.default_fee_frequency || 'yearly'
 				this.membershipEnabled = !!data.membership_enabled
 				this.membershipActive = !!data.membership_active
 				this.selfServiceEnabled = !!data.self_service_enabled
@@ -266,8 +267,6 @@ export default {
 					statement_watch_path: this.statementWatchPath,
 					sepa_creditor_id: this.sepaCreditorId,
 					sepa_debtor_account_id: this.sepaDebtorAccountId || '',
-					default_fee_amount: this.defaultFeeAmount || '',
-					default_fee_frequency: this.defaultFeeFrequency,
 					membership_enabled: this.membershipEnabled ? '1' : '0',
 					self_service_enabled: this.selfServiceEnabled ? '1' : '0',
 				})

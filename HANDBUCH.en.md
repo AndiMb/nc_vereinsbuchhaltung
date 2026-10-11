@@ -1200,10 +1200,10 @@ navigation (see 13.2) – if a member has already been created, it appears
 automatically, even without the toggle.
 
 > **Do almost all members pay the same fee** (e.g. €8 monthly, the normal
-> case for a choir or sports club)? Then the **"Default fee"** card on the
-> same page is worth using: enter the amount and frequency once, and "Add a
-> member" (13.2) will suggest both from then on, instead of you typing them
-> in again for every single member. The default also applies during the
+> case for a choir or sports club)? Then create a **contribution group** for
+> it (13.4): its "default fee" and "default interval" are what "Add a member"
+> (13.2) will suggest from then on, instead of you typing them in again for
+> every single member. The group's default fee also applies during the
 > CSV import (13.3) when a row has a start date but no amount of its own –
 > deviating individual cases (reduced fee, honorary member) simply get
 > their own amount entered.
@@ -1215,7 +1215,6 @@ only:
 | Card / section | What you set there |
 |---|---|
 | *Fees & SEPA → Basic settings* | **SEPA creditor ID**, **Collecting account**, the toggle for the "Contributions" tab and the toggle for the "My contribution" self-service (13.11) |
-| *… → Default fee* | amount and frequency that "Add a member" and the CSV import suggest |
 | *… → Contribution year and collection cycle* (*Beitragsjahr und Einzugszyklus*) | **Contribution year begins in** (month, default January – independent of the fiscal year; determines the contribution periods and the contribution confirmation, 13.12) and the three **deadlines before the collection** – **warning window** (default 21 days), **pre-notification lead time** (default 14) and **release lead time** (default 5; all 13.5). An example line converts them to a collection date, and a note appears for an unusual order |
 | *… → Storage of the collection file (XML)* (*Ablage der Einzugsdatei*) | an additional copy of the pain.008 file in a Nextcloud folder (13.5), off by default |
 | *… → Mandates* (*Mandate*) | **Mandate reference prefix**, **Expiry warning** (days before expiry, default 180), **Proof folder** and **Point out mandates without proof** (13.2, 13.9) |
@@ -1247,6 +1246,31 @@ management, and a member doesn't need a Nextcloud account; an existing one
 can be linked in the member's record ("Nextcloud account" (*Nextcloud-Konto*)
 → "Find suggestions" (*Vorschläge suchen*), only after your confirmation –
 the email address merely supplies the suggestion).
+
+The member list shows in the **"Nextcloud account?"** column (*Nextcloud-Konto?*)
+whether an account is linked: "Yes", a link **"Link suggestion …"** (exactly one
+account carries the member's email address; it is linked after a
+confirmation), a button into the record when there are several matches,
+otherwise "No".
+
+When **admitting** a member you can **create a Nextcloud account** right away
+(*Create a Nextcloud account for this member*): account name (suggested from
+the name), display name, email, password – empty means Nextcloud sends an
+invitation with a link to set the password –, groups, storage and language,
+the same details as in the user management. Only Nextcloud administrators,
+delegated administrators and group administrators (for their groups) see the
+section; the rights and password rules are Nextcloud's. The new account is
+linked to the record. If creating it fails, the member is admitted anyway – it
+can be done later in the record under *Nextcloud account* → *Create a new
+Nextcloud account …*.
+
+The **welcome email** goes to the email address of the record, regardless of
+whether the member has an account. The template (subject and text with
+placeholders such as `{name}`, `{vorname}`, `{verein}`, `{mitgliedsnummer}`,
+`{beitritt}` and `{cloud}`) is maintained by administrators in the Nextcloud
+settings under *Welcome email* (*Willkommens-Mail*). When admitting, it is
+collapsed and can be adapted for the individual member; from the record,
+*Send welcome email …* sends it later.
 
 Two more pieces of information attach to the member, both optional and
 possible to add at any time:
@@ -1405,9 +1429,9 @@ and extra columns (voice part …) are simply ignored:
 | Account holder | `Peter Brunner` | no, otherwise the member's display name |
 | Mandate on | `15.01.2026` | yes, as soon as there's an IBAN |
 | Mandate reference | `ALT-0001` | no, otherwise the app assigns one |
-| Contribution group | `Choir members` | yes, as soon as a fee should be created |
-| Amount | `8.00` | only if a fee should be created – the **monthly amount**, regardless of the interval. **`0`** means fee-free (passive, honorary, supporting members, pauses) |
-| Frequency | `monthly` | no – **yearly** applies if not specified; only sets the interval, not the amount |
+| Contribution group | `Choir members` | yes, as soon as a fee should be created – if there is only one group, the column may be missing |
+| Amount | `8.00` | only if a fee should be created – the **monthly amount**, regardless of the interval. **`0`** means fee-free (passive, honorary, supporting members, pauses). Empty but with a start: the default fee of the contribution group |
+| Frequency | `monthly` | no – **yearly** applies if not specified, or the default interval of the contribution group when the amount is empty; only sets the interval, not the amount |
 | Start | `01.02.2026` | yes, as soon as there's an amount above 0 – must not lie in the past. For **0 €** it may be missing: the assignment then applies from the import day |
 
 A row without an IBAN and without an amount is valid – only the member is
@@ -1435,10 +1459,13 @@ out of a German program. The same goes for the frequency: `monatlich`,
 `vierteljährlich`, `halbjährlich` and `jährlich` work alongside the English
 words.
 
-> **Default fee set (13.1)?** Then the amount column may stay empty for
-> rows on the same rate – as long as a start date is present, the app
-> automatically takes over amount and frequency from the settings. Only
-> special cases then need their own amount.
+> **Contribution group with a default fee (13.4)?** Then the amount column
+> may stay empty for rows on the same rate – as long as a start date is
+> present, the app automatically takes over the default fee and default
+> interval of the row's contribution group. Only special cases then need
+> their own amount. If no group can be determined (several groups, but no
+> "Contribution group" column), no fee is created; the preview names the
+> reason.
 
 The process is two-stage: **"Check"** changes nothing and shows you, for
 every row, what would be created and what's wrong. Only afterwards do you

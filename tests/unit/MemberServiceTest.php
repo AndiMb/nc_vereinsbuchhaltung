@@ -557,6 +557,50 @@ class MemberServiceTest extends TestCase {
 		$this->assertSame(['vater', 'mutter'], array_column($suggestions, 'uid'));
 	}
 
+	public function testLinkSuggestionsForListetNurFreieKontenDerUnverknuepftenMitgliederMitMail(): void {
+		$linked = new Member();
+		$linked->setId(1);
+		$linked->setEmail('anna@example.org');
+		$linked->setNcUserId('anna');
+		$open = new Member();
+		$open->setId(2);
+		$open->setEmail('ben@example.org');
+		$noMail = new Member();
+		$noMail->setId(3);
+		$twin = new Member();
+		$twin->setId(4);
+		$twin->setEmail('anna@example.org');
+		$this->userManager->method('getByEmail')->willReturnCallback(fn (string $email): array => match ($email) {
+			'ben@example.org' => [$this->user('ben', 'Ben Beispiel', 'ben@example.org')],
+			'anna@example.org' => [$this->user('anna', 'Anna Koch', 'anna@example.org')],
+			default => [],
+		});
+
+		$result = $this->service()->linkSuggestionsFor([$linked, $open, $noMail, $twin]);
+
+		// Anna ist verknüpft (kein Vorschlag mehr, auch nicht für das Mitglied mit gleicher Adresse),
+		// ohne Mailadresse gibt es keinen Vorschlag.
+		$this->assertSame([2], array_keys($result));
+		$this->assertSame('ben', $result[2][0]['uid']);
+	}
+
+	public function testLinkSuggestionsForFragtJedeMailadresseNurEinmal(): void {
+		$members = [];
+		foreach ([1, 2, 3] as $id) {
+			$member = new Member();
+			$member->setId($id);
+			$member->setEmail($id === 3 ? 'Familie@Example.org' : 'familie@example.org');
+			$members[] = $member;
+		}
+		$this->userManager->expects($this->once())->method('getByEmail')->willReturn([
+			$this->user('papa', 'Papa Muster', 'familie@example.org'),
+		]);
+
+		$result = $this->service()->linkSuggestionsFor($members);
+
+		$this->assertSame([1, 2, 3], array_keys($result), 'Alle drei Mitglieder bekommen denselben Vorschlag.');
+	}
+
 	public function testLinkOhneExistierendesKontoSchlaegtFehl(): void {
 		$this->mapper->method('find')->willReturn(new Member());
 		$this->userManager->method('userExists')->willReturn(false);

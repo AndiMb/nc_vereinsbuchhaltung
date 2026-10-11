@@ -46,11 +46,14 @@ use OCP\IL10N;
  *   Mandat am         Unterschriftsdatum des Mandats – vorhanden ⇒ das Mandat
  *                     wird beim Import sofort aktiviert (Issue #69)
  *   Mandatsreferenz   optional, freie Eingabe aus Fremdsystemen (Issue #69)
- *   Beitragsgruppe    Name einer bestehenden Beitragsgruppe – Pflicht, sobald
- *                     ein Betrag/Standardbeitrag greift (Issue #69)
+ *   Beitragsgruppe    Name einer bestehenden Beitragsgruppe – bei mehreren
+ *                     Gruppen Pflicht, sobald ein Beitrag entsteht (Issue #69)
  *   Betrag            „42,50" oder „42.50" – der MONATSBEITRAG der Zuweisung
  *                     (Spec §3.3 „Der Monatsbeitrag ist das Atom"), unabhängig
- *                     vom Turnus (Issue #69, siehe MemberImportService)
+ *                     vom Turnus (Issue #69, siehe MemberImportService). Leer
+ *                     bei vorhandenem Start ⇒ der übliche Monatsbeitrag der
+ *                     Beitragsgruppe; das entscheidet der Service, nicht der
+ *                     Parser (er kennt keine Gruppen).
  *   Frequenz          monatlich / vierteljährlich / halbjährlich / jährlich
  *                     (bestimmt nur den Turnus, nicht den Betrag)
  *   Start             Beginn der Zuweisung (validFrom). Dass er nicht in der
@@ -249,16 +252,11 @@ class MemberCsvParser {
 	}
 
 	/**
-	 * @param int|null $defaultAmountCents Standard-Beitrag (Einstellungen ->
-	 *                                     Beiträge & SEPA), fuer Zeilen mit Start-Datum, aber ohne eigenen
-	 *                                     Betrag - siehe parseRow(). Null bedeutet: kein Standardbeitrag
-	 *                                     hinterlegt, Verhalten wie zuvor.
-	 * @param string|null $defaultFrequency Frequenz dazu, siehe BillingPeriod::FREQUENCY_MONTHS.
 	 * @return array{rows: list<ParsedRow>, error: ?string} `error` ist gesetzt,
 	 *                                                      wenn schon die Datei als Ganzes unbrauchbar ist (keine Kopfzeile,
 	 *                                                      keine erkennbare Spalte) – dann ist `rows` leer.
 	 */
-	public function parse(string $csv, ?int $defaultAmountCents = null, ?string $defaultFrequency = null): array {
+	public function parse(string $csv): array {
 		$lines = $this->splitLines($csv);
 		if ($lines === []) {
 			return ['rows' => [], 'error' => $this->msg('Die Datei ist leer.')];
@@ -275,7 +273,7 @@ class MemberCsvParser {
 			if ($index === 0 || trim($line) === '') {
 				continue;
 			}
-			$rows[] = $this->parseRow(str_getcsv($line, $delimiter, '"', '\\'), $header, $index + 1, $defaultAmountCents, $defaultFrequency);
+			$rows[] = $this->parseRow(str_getcsv($line, $delimiter, '"', '\\'), $header, $index + 1);
 		}
 		return ['rows' => $rows, 'error' => null];
 	}
@@ -285,7 +283,7 @@ class MemberCsvParser {
 	 * @param array<int, string> $header Spaltenindex → Feldname
 	 * @return ParsedRow
 	 */
-	private function parseRow(array $values, array $header, int $line, ?int $defaultAmountCents = null, ?string $defaultFrequency = null): array {
+	private function parseRow(array $values, array $header, int $line): array {
 		$raw = [];
 		foreach ($header as $index => $field) {
 			$raw[$field] = isset($values[$index]) ? trim((string)$values[$index]) : '';
@@ -378,8 +376,10 @@ class MemberCsvParser {
 			$errors[] = $this->msg('Zu einer IBAN gehört das Datum, an dem das Mandat unterschrieben wurde.');
 		}
 
+		// Eine Zeile mit Startdatum, aber ohne Betrag, zahlt den üblichen Satz ihrer
+		// Beitragsgruppe: der Betrag bleibt hier null, MemberImportService setzt ihn
+		// nach Auflösung der Gruppe (der Parser kennt keine Gruppen).
 		$amountCents = null;
-		$usedDefaultAmount = false;
 		if (($raw['amount'] ?? '') !== '') {
 			$amountCents = $this->parseAmount($raw['amount']);
 			// 0 ist ein gültiger Betrag: beitragsfrei (Ehren-, Passiv- und Fördermitglieder, Pausen).
@@ -387,14 +387,6 @@ class MemberCsvParser {
 				$errors[] = $this->msg('Unlesbarer oder negativer Betrag: %s', [$raw['amount']]);
 				$amountCents = null;
 			}
-		} elseif ($defaultAmountCents !== null && ($raw['startDate'] ?? '') !== '') {
-			// Standardbeitrag (Einstellungen -> Beiträge & SEPA): eine Zeile mit
-			// Start-Datum, aber ohne eigenen Betrag, zahlt den üblichen Satz -
-			// sonst müsste er in jeder Zeile wiederholt werden. Ohne Start-Datum
-			// wäre aus einer reinen Mandatszeile ("nur IBAN") ungefragt ein
-			// Beitrag geworden.
-			$amountCents = $defaultAmountCents;
-			$usedDefaultAmount = true;
 		}
 
 		$frequency = null;
@@ -403,8 +395,6 @@ class MemberCsvParser {
 			if ($frequency === null) {
 				$errors[] = $this->msg('Unbekannte Zahlungsfrequenz: %s', [$raw['frequency']]);
 			}
-		} elseif ($usedDefaultAmount) {
-			$frequency = $defaultFrequency ?? 'yearly';
 		} elseif ($amountCents !== null && $amountCents > 0) {
 			// Ein Betrag ohne Frequenz ist fast immer ein Jahresbeitrag; das ist
 			// die häufigste Vereinstabelle überhaupt. Bei einer beitragsfreien Zeile

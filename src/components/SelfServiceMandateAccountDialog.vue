@@ -20,7 +20,7 @@
 					type="radio"
 					name="vbh-self-mandate-mode"
 					value="iban">
-					{{ t('Gleiches Konto, nur die IBAN hat sich geändert') }}
+					{{ t('Gleicher Kontoinhaber, nur die IBAN hat sich geändert') }}
 				</NcCheckboxRadioSwitch>
 				<NcCheckboxRadioSwitch
 					v-model="targetMode"

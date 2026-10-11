@@ -138,6 +138,7 @@ describe('errMsg', () => {
 		// Netzwerkabbruch, HTML-Fehlerseite, leerer Koerper: in all diesen
 		// Faellen soll der Nutzer den fachlichen Ersatztext sehen.
 		expect(errMsg(null, 'Ersatz')).toBe('Ersatz')
+		expect(errMsg({ response: { data: { ocs: { meta: { message: 'User already exists' } } } } }, 'Ersatz')).toBe('User already exists')
 		expect(errMsg({}, 'Ersatz')).toBe('Ersatz')
 		expect(errMsg({ response: {} }, 'Ersatz')).toBe('Ersatz')
 		expect(errMsg({ response: { data: {} } }, 'Ersatz')).toBe('Ersatz')

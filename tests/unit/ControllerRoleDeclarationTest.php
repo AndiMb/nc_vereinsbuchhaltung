@@ -51,9 +51,11 @@ class ControllerRoleDeclarationTest extends TestCase {
 		'MandateLegalTextController',
 		'MemberController',
 		'MemberImportController',
+		'NextcloudAccountController',
 		'SepaImportController',
 		'SettingsController',
 		'TaskController',
+		'WelcomeMailController',
 	];
 
 	/**

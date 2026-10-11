@@ -37,6 +37,17 @@
 			</span>
 			<span v-if="row.fee" class="vbh-status" :class="`vbh-status--${row.fee.statusTone}`">{{ row.fee.statusLabel }}</span>
 		</div>
+		<div class="vbh-mcard-bottom">
+			<span class="vbh-mcard-accounts">
+				{{ t('Nextcloud-Konto?') }}
+				<MemberAccountCell
+					:member="row.member"
+					:suggestions="suggestions"
+					:busy="linkingMemberId === row.member.id"
+					@link="$emit('link-account')"
+					@open="$emit('open-member', '')" />
+			</span>
+		</div>
 		<p v-if="row.moreFees > 0" class="vbh-hint">
 			{{ n('+ %n weitere Zuweisung', '+ %n weitere Zuweisungen', row.moreFees) }}
 		</p>
@@ -53,6 +64,7 @@
 <script>
 import { mdiEmailOffOutline } from '@mdi/js'
 import { NcIconSvgWrapper } from '@nextcloud/vue'
+import MemberAccountCell from './MemberAccountCell.vue'
 import MemberRowMenu from './MemberRowMenu.vue'
 import { formatDate, formatMoney } from '../lib/format.js'
 
@@ -65,12 +77,16 @@ import { formatDate, formatMoney } from '../lib/format.js'
  */
 export default {
 	name: 'MemberCard',
-	components: { NcIconSvgWrapper, MemberRowMenu },
+	components: { NcIconSvgWrapper, MemberAccountCell, MemberRowMenu },
 	props: {
 		row: { type: Object, required: true },
+		/** Die freien Konten zur Mailadresse des Mitglieds (Spalte „Nextcloud-Konto?“). */
+		suggestions: { type: Array, default: () => [] },
+		/** Mitglied, dessen Konto-Vorschlag gerade verknüpft wird (sperrt den Knopf). */
+		linkingMemberId: { type: Number, default: null },
 	},
 
-	emits: ['manage-assignments', 'open-member'],
+	emits: ['manage-assignments', 'open-member', 'link-account'],
 
 	data() {
 		return { mdiEmailOffOutline }

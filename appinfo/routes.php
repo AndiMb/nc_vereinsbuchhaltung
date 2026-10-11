@@ -148,8 +148,17 @@ return [
 		['name' => 'member#leave', 'url' => '/api/members/{id}/leave', 'verb' => 'POST'],
 		['name' => 'member#reactivate', 'url' => '/api/members/{id}/reactivate', 'verb' => 'POST'],
 		['name' => 'member#linkSuggestions', 'url' => '/api/members/{id}/link-suggestions', 'verb' => 'GET'],
+		// Vorschläge aller Mitglieder auf einmal (Spalte „Nextcloud-Konto?“ der Liste)
+		['name' => 'member#allLinkSuggestions', 'url' => '/api/member-link-suggestions', 'verb' => 'GET'],
 		['name' => 'member#link', 'url' => '/api/members/{id}/link', 'verb' => 'POST'],
 		['name' => 'member#unlink', 'url' => '/api/members/{id}/unlink', 'verb' => 'POST'],
+		// Willkommens-Mail an die Mailadresse der Akte, unabhängig vom Nextcloud-Konto: Vorlage in den
+		// Einstellungen, beim Aufnehmen für den einzelnen Fall überschreibbar.
+		['name' => 'welcomeMail#template', 'url' => '/api/welcome-mail/template', 'verb' => 'GET'],
+		['name' => 'welcomeMail#saveTemplate', 'url' => '/api/welcome-mail/template', 'verb' => 'PUT'],
+		['name' => 'welcomeMail#send', 'url' => '/api/members/{id}/welcome-mail', 'verb' => 'POST'],
+		// Auswahlen und Rechte für „Nextcloud-Konto anlegen“ (das Konto legt das Frontend über OCS an).
+		['name' => 'nextcloudAccount#options', 'url' => '/api/nextcloud-account/options', 'verb' => 'GET'],
 		// DSGVO-Anonymisierung (Spec §3.8, Issue #78) - Reife-Anzeige +
 		// manuelle, irreversible Bestätigung je Mitglied durch den Buchhalter.
 		['name' => 'member#anonymizationStatus', 'url' => '/api/members/{id}/anonymization', 'verb' => 'GET'],

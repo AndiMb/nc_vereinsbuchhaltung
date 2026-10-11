@@ -61,6 +61,18 @@ class MemberController extends Controller {
 		));
 	}
 
+	/**
+	 * Die Verknüpfungsvorschläge aller Mitglieder auf einmal, für die Spalte „Nextcloud-Konto?“
+	 * der Mitgliederliste. Bewusst nicht Teil von {@see index()}: dort holen vier Ansichten die
+	 * Mitglieder, und die Vorschläge kosten je Mailadresse eine Abfrage beim Benutzer-Backend.
+	 */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	public function allLinkSuggestions(): DataResponse {
+		// Als Objekt, damit „keine Vorschläge“ als {} ankommt und nicht als [].
+		return new DataResponse((object)$this->service->linkSuggestionsFor($this->service->findAll()));
+	}
+
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function show(int $id): DataResponse {

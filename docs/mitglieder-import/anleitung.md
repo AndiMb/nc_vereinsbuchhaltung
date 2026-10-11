@@ -48,8 +48,8 @@ Reihenfolge, Groß-/Kleinschreibung, Umlaute und Leerzeichen der Überschriften 
 | Spalte | Pflicht? | Was hineingehört |
 |---|---|---|
 | Beitragsgruppe | bei Beitrag | Name einer **vorhandenen** Beitragsgruppe (Reiter „Beitragsgruppen“), Groß-/Kleinschreibung egal. Gibt es nur eine Gruppe, darf die Spalte fehlen. Eine unbekannte Gruppe ist nur eine Warnung: das Mitglied entsteht, der Beitrag nicht. |
-| Betrag | bei Beitrag | **Der Monatsbeitrag**, unabhängig vom Turnus. Jahresbeitrag 60 € → `5,00` und Frequenz `jährlich`. Leer = Standardbeitrag aus den Einstellungen (nur mit Start). |
-| Frequenz | bei Beitrag | `monatlich`, `vierteljährlich`, `halbjährlich` oder `jährlich`; ohne Angabe `jährlich` (beim Standardbeitrag: dessen Frequenz). |
+| Betrag | bei Beitrag | **Der Monatsbeitrag**, unabhängig vom Turnus. Jahresbeitrag 60 € → `5,00` und Frequenz `jährlich`. Leer (aber mit Start) = der übliche Monatsbeitrag der Beitragsgruppe. |
+| Frequenz | bei Beitrag | `monatlich`, `vierteljährlich`, `halbjährlich` oder `jährlich`; ohne Angabe `jährlich`, bei leerem Betrag der übliche Turnus der Beitragsgruppe. |
 | Start | bei Beitrag | Erster Beitragsmonat, `TT.MM.JJJJ`. **Nicht in der Vergangenheit** (Zuweisungen gelten nie rückwirkend); heute ist erlaubt. |
 
 Eine Zeile ohne IBAN und ohne Beitrag legt nur das Mitglied an.
