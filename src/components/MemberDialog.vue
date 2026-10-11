@@ -390,7 +390,7 @@ import { intervalLabel } from '../lib/frequency.js'
 import { linkedAccountText } from '../lib/memberAccount.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 
-function emptyForm(member, defaultFeeAmount) {
+function emptyForm(member) {
 	return {
 		memberType: member?.memberType ?? 'person',
 		firstName: member?.firstName ?? '',
@@ -422,7 +422,8 @@ function emptyForm(member, defaultFeeAmount) {
 					signedDate: new Date().toISOString().slice(0, 10),
 					groupId: null,
 					intervalMonths: 12,
-					monthlyAmount: defaultFeeAmount ?? '',
+					// Leer: den üblichen Betrag liefert die gewählte Beitragsgruppe (Watcher selectedGroup).
+					monthlyAmount: '',
 					// Ohne Mailadresse (beim Öffnen leer) ist nur Überweisung möglich; sobald
 					// eine eingetragen wird, schaltet der Watcher hasEmail auf Lastschrift.
 					paymentMethod: 'ueberweisung',
@@ -449,11 +450,6 @@ export default {
 		saving: { type: Boolean, default: false },
 		/** null = Aufnahme, sonst die zu bearbeitende Mitglied-Akte (dekoriert, inkl. blockingReasons). */
 		member: { type: Object, default: null },
-		// Vorbelegung aus Einstellungen -> Beiträge & SEPA (SettingsSepaBasics.vue),
-		// leerer String heisst "kein Standardbeitrag hinterlegt". Nur der Betrag
-		// ist hier noch relevant – die Frequenz gibt seit Issue #69 die gewählte
-		// Beitragsgruppe vor (allowedIntervals/defaultInterval).
-		defaultFeeAmount: { type: [Number, String], default: '' },
 		/** Abschnitt der Akte, zu dem beim Öffnen gescrollt wird – bisher nur 'mandate' (Aktion „Mandat verwalten“ der Mitgliederliste). */
 		section: { type: String, default: '' },
 	},
@@ -467,7 +463,7 @@ export default {
 	data() {
 		return {
 			mdiOpenInNew,
-			form: emptyForm(this.member, this.defaultFeeAmount),
+			form: emptyForm(this.member),
 			suggestions: [],
 			suggestionsLoaded: false,
 			linking: false,
@@ -522,7 +518,7 @@ export default {
 	watch: {
 		show(open) {
 			if (!open) { return }
-			this.form = emptyForm(this.member, this.defaultFeeAmount)
+			this.form = emptyForm(this.member)
 			this.suggestions = []
 			this.suggestionsLoaded = false
 			this.leaveDate = new Date().toISOString().slice(0, 10)

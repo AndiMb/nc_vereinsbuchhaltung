@@ -27,8 +27,3 @@ export function intervalLabel(months) {
 	const key = Object.keys(FREQUENCY_MONTHS).find((k) => FREQUENCY_MONTHS[k] === months)
 	return key ? frequencyLabel(key) : t('alle {monate} Monate', { monate: months })
 }
-
-/** Für <select>-Optionslisten: [{ value, label }, …]. */
-export function frequencyOptions() {
-	return Object.entries(frequencyLabels()).map(([value, label]) => ({ value, label }))
-}

@@ -23,8 +23,8 @@
 				</ul>
 				<p>{{ t('Reihenfolge und Schreibweise der Überschriften sind egal, weitere Spalten werden übergangen.') }}</p>
 			</details>
-			<p v-if="defaultFeeAmount" class="vbh-hint vbh-hint--info">
-				{{ t('Zeilen mit Start-Datum, aber ohne eigenen Betrag, bekommen automatisch Ihren Standardbeitrag ({amount}) – die Betrag-Spalte kann bei einheitlichen Sätzen also leer bleiben.', { amount: formatMoney(defaultFeeAmount) }) }}
+			<p class="vbh-hint vbh-hint--info">
+				{{ t('Zeilen mit Start-Datum, aber ohne eigenen Betrag, bekommen den üblichen Betrag ihrer Beitragsgruppe – die Betrag-Spalte kann bei einheitlichen Sätzen also leer bleiben.') }}
 			</p>
 			<div class="vbh-uploadrow vbh-importpick">
 				<NcButton variant="secondary" :disabled="importing" @click="$refs.csvInput.click()">
@@ -195,7 +195,6 @@ export default {
 	components: { NcModal, NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper },
 	props: {
 		show: { type: Boolean, default: false },
-		defaultFeeAmount: { type: [Number, String], default: '' },
 	},
 
 	emits: ['close', 'imported', 'update:show'],

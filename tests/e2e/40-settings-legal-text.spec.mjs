@@ -89,6 +89,8 @@ test.describe('Einstellungen Beiträge & SEPA', () => {
 			await expect(card(page, title)).toBeVisible()
 		}
 		await expect(legalSection(page)).toBeVisible()
+		// Die frühere Karte „Standard-Beitrag“ gibt es nicht mehr: Betrag und Turnus kommen von der Beitragsgruppe.
+		await expect(card(page, 'Standard-Beitrag')).toHaveCount(0)
 
 		// Vorwarnfenster, Vorabinfo-Vorlauf und Freigabe-Vorlauf stehen in EINER Karte, nicht versteckt im Einzug
 		const cycle = card(page, 'Beitragsjahr und Einzugszyklus')
