@@ -17,6 +17,8 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+## [0.36.0] – 2026-10-11
+
 **New:**
 - **Search by amount:** A number in the search field such as `12,50` or
   `1.250` now also finds postings and transactions of exactly that amount

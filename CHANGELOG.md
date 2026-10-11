@@ -19,6 +19,8 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+## [0.36.0] – 2026-10-11
+
 **Neu:**
 - **Suche nach Betrag:** Eine Zahl im Suchfeld wie `12,50` oder `1.250`
   findet unter *Alle Buchungen* und *Zuzuordnen* auch Buchungen und Umsätze
