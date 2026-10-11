@@ -226,7 +226,7 @@ test.describe('Nextcloud-Konto und Willkommens-Mail', () => {
 		await account.getByRole('textbox', { name: 'Kontoname', exact: true }).fill('e2e.nachholer')
 		await account.getByLabel('Passwort (optional)').fill(PASSWORD)
 		await account.getByRole('button', { name: 'Konto anlegen und verknüpfen' }).click()
-		await expect(page.getByText('Nextcloud-Konto angelegt und verknüpft.')).toBeVisible()
+		await expect(page.getByText('Nextcloud-Konto angelegt und verknüpft.').first()).toBeVisible()
 		expect((await api.listMembers(request)).find((m) => m.id === member.id).ncUserId).toBe('e2e.nachholer')
 
 		await clearCapturedMails()
@@ -234,7 +234,7 @@ test.describe('Nextcloud-Konto und Willkommens-Mail', () => {
 		const mail = page.getByRole('dialog', { name: 'Willkommens-Mail senden' })
 		await expect(mail.getByRole('textbox', { name: 'Betreff', exact: true })).toHaveValue('Willkommen bei {verein}')
 		await mail.getByRole('button', { name: 'Mail senden' }).click()
-		await expect(page.getByText('Willkommens-Mail gesendet.')).toBeVisible()
+		await expect(page.getByText('Willkommens-Mail gesendet.').first()).toBeVisible()
 
 		await waitForSubject('nora.nachholer@example.org', `Willkommen bei ${CLUB_NAME}`)
 	})
@@ -247,14 +247,14 @@ test.describe('Nextcloud-Konto und Willkommens-Mail', () => {
 		await section.getByRole('textbox', { name: 'Betreff', exact: true }).fill('Schön, dass du da bist, {vorname}!')
 		await section.getByRole('textbox', { name: 'Text', exact: true }).fill('Hallo {name}, willkommen im Chor.')
 		await section.getByRole('button', { name: 'Speichern', exact: true }).click()
-		await expect(page.getByText('Vorlage gespeichert.')).toBeVisible()
+		await expect(page.getByText('Vorlage gespeichert.').first()).toBeVisible()
 
 		const template = await api.getJson(request, '/welcome-mail/template')
 		expect(template.subject).toBe('Schön, dass du da bist, {vorname}!')
 		expect(template.isDefault).toBe(false)
 
 		await section.getByRole('button', { name: 'Standardtext wiederherstellen' }).click()
-		await expect(page.getByText('Standardtext wiederhergestellt.')).toBeVisible()
+		await expect(page.getByText('Standardtext wiederhergestellt.').first()).toBeVisible()
 		expect((await api.getJson(request, '/welcome-mail/template')).isDefault).toBe(true)
 	})
 })

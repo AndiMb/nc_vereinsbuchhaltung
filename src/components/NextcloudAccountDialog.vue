@@ -1,13 +1,13 @@
 <template>
 	<NcModal
 		:show="show"
-		labelId="vbh-modal-title-account"
+		labelId="vbh-modal-title-nextcloud-account"
 		size="normal"
 		:closeOnClickOutside="true"
 		@close="$emit('close')"
 		@update:show="$emit('update:show', $event)">
 		<div class="vbh-modal-inner">
-			<h2 id="vbh-modal-title-account" class="vbh-modal-title">
+			<h2 id="vbh-modal-title-nextcloud-account" class="vbh-modal-title">
 				{{ t('Nextcloud-Konto anlegen') }}
 			</h2>
 			<p class="vbh-hint">
