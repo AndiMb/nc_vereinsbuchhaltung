@@ -395,6 +395,10 @@ abgebildet), `DunningNotice`, `SettlementProposal`, `DebitBatch`, `DebitItem`,
   aktiviert Mandate**: Zeile mit IBAN + Kontoinhaber + Mandatsdatum → `active`; die
   Preview-Bestätigung *ist* die vom Aktivierungs-Gate verlangte Admin-Handlung
   (Bestätigungs-Checkbox „die unterschriebenen Mandate liegen vor").
+  **Betrag aus der Beitragsgruppe:** Zeile mit Startdatum, aber ohne Betrag ⇒ `default_monthly_amount`
+  und (ohne Frequenz) `default_interval` der aufgelösten Gruppe (Spalte, sonst die einzige
+  vorhandene); lässt sich keine Gruppe auflösen, entsteht kein Beitrag (Warnung). Ohne Startdatum
+  bekommt eine Zeile nie ungefragt einen Beitrag. Eine vereinsweite Vorbelegung gibt es nicht.
 - **NC-Verknüpfung entsteht nur mit menschlicher Bestätigung.** Mailadresse ist
   Vorschlagsschlüssel, nie Vollzug — bei mehreren Treffern werden alle gezeigt, keiner
   vorausgewählt. Grund: Mailadressen sind in Vereinen nicht eindeutig (Familienadresse),

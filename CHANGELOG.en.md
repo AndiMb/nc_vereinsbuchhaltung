@@ -17,6 +17,11 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+**Changed:**
+- **Default fee setting removed:** The setting is gone; amount and interval
+  come from the contribution group. In the CSV import, a row with a start
+  date but no amount uses the usual amount of its contribution group.
+
 ## [0.36.0] – 2026-10-11
 
 **New:**

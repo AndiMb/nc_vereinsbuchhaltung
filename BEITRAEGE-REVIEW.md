@@ -51,7 +51,7 @@ vollständig, nicht nur Komfort.
 | 2 | kritisch | Mitgliederliste auf dem Handy unlesbar (Buchstaben-Stapel-Bug) | Sofia | Mobile Kartenansicht (`vbh-cardlist`), analog `BookingCard.vue` | neu: `MemberCard.vue`; `MembersList.vue`, `SepaBatchPanel.vue` |
 | 3 | hoch | E-Mails mit Umlaut im lokalen Teil („m.müller@gmx.de") galten als ungültig | Katrin (Import) | Eigener `EmailValidator` statt reinem `FILTER_VALIDATE_EMAIL` | neu: `EmailValidator.php`; `MemberCsvParser.php`, `SepaMandateService.php` |
 | 4 | hoch | Bestätigungsdialog „Mitglieder übernehmen" zeigte roten „Löschen"-Button | Katrin | `askConfirm()` mit `confirmLabel`/`confirmVariant` aufgerufen | `MemberImportDialog.vue`, `MembersList.vue` |
-| 5 | mittel | Kein vereinsweiter Standard-Beitragssatz – Betrag musste pro Mitglied/CSV-Zeile eingetippt werden | Katrin | Neue Einstellung „Standardbeitrag", befüllt Dialog vor und greift im CSV-Import (nur bei Start-Datum ohne eigenen Betrag) | `SettingsSepaBasics.vue`, `MemberDialog.vue`, `MemberImportDialog.vue`, `SettingsController.php`, `MemberCsvParser.php`, `MemberImportService.php` |
+| 5 | mittel | Kein vereinsweiter Standard-Beitragssatz – Betrag musste pro Mitglied/CSV-Zeile eingetippt werden | Katrin | Neue Einstellung „Standardbeitrag", befüllt Dialog vor und greift im CSV-Import (nur bei Start-Datum ohne eigenen Betrag) – später ersatzlos durch den Standardbeitrag der Beitragsgruppe abgelöst | `SettingsSepaBasics.vue`, `MemberDialog.vue`, `MemberImportDialog.vue`, `SettingsController.php`, `MemberCsvParser.php`, `MemberImportService.php` |
 | 6 | mittel | Aktionsspalte der Mitgliederliste auch am Desktop (1374 px) abgeschnitten | Katrin | Seltene Aktionen ins `NcActions`-Menü, Muster aus dem Buchungsjournal übernommen | `MembersList.vue`, `MemberCard.vue`, `styles.css` |
 | 7 | niedrig | Reiter „Beiträge" blitzte beim Laden kurz auf | – | `loadStorageSettings()` in den Haupt-`Promise.all()` von `mounted()` verschoben | `App.vue` |
 
@@ -104,19 +104,21 @@ enthalten sein sollten:
 - eine Zeile mit Betrag `0` (muss übersprungen werden).
 - zwei Zeilen mit identischem Zahlernamen (muss als Dublette erkannt werden).
 - für Befund 5: einzelne Zeilen ganz ohne Betrag-Spalte, aber mit
-  Start-Datum, sobald ein Standardbeitrag in den Einstellungen hinterlegt
-  ist – erwartet wird automatische Übernahme des Standardsatzes.
+  Start-Datum, sobald die Zeile eine Beitragsgruppe nennt (oder es nur eine
+  gibt) – erwartet wird automatische Übernahme des Standardbeitrags und
+  Standard-Turnus dieser Gruppe.
 
 ### 6.2 Persona Katrin (Verwalter, Desktop)
 
-1. Beiträge & SEPA-Einstellungen: Standardbeitrag setzen (z. B. 8,00 € /
-   monatlich) → speichern → Erfolgstoast.
-2. „Mitglied aufnehmen" öffnen → Betrag/Frequenz müssen mit dem
-   Standardbeitrag vorbelegt sein, änderbar für Einzelfälle.
+1. Beiträge → Beitragsgruppen: eine Gruppe mit Standardbeitrag anlegen (z. B.
+   8,00 € / monatlich) → speichern → Erfolgstoast.
+2. „Mitglied aufnehmen" öffnen → Beitragsgruppe wählen: Betrag/Turnus müssen
+   mit dem Standardbeitrag der Gruppe vorbelegt sein, änderbar für
+   Einzelfälle.
 3. „Liste einlesen" → Testdaten-CSV (6.1) auswählen → „Prüfen" → Vorschau
    zeigt je Zeile ein nachvollziehbares Ergebnis, Umlaut-E-Mails werden
    **nicht** als „ungültig" abgelehnt, Zeilen ohne Betrag mit Start-Datum
-   übernehmen den Standardbeitrag.
+   übernehmen den Standardbeitrag ihrer Beitragsgruppe.
 4. „N Zeilen übernehmen" klicken → Bestätigungsdialog zeigt einen **blauen**
    „Übernehmen"-Button, nicht rot/„Löschen".
 5. Mitgliederliste nach Import: Suche/Filter funktionieren, Summenzeile
