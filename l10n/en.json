@@ -2815,7 +2815,11 @@
         "Betreff und Text der Willkommens-Mail dürfen nicht leer sein.": "Subject and text of the welcome email must not be empty.",
         "Der Betreff ist zu lang (höchstens %d Zeichen).": "The subject is too long (at most %d characters).",
         "Der Text ist zu lang (höchstens %d Zeichen).": "The text is too long (at most %d characters).",
-        "Unbekannter Platzhalter {%1$s}. Erlaubt sind: %2$s": "Unknown placeholder {%1$s}. Allowed are: %2$s"
+        "Unbekannter Platzhalter {%1$s}. Erlaubt sind: %2$s": "Unknown placeholder {%1$s}. Allowed are: %2$s",
+        "Die Mitgliederliste zeigt in der neuen Spalte „Nextcloud-Konto?\", wer verknüpft ist, und schlägt passende Konten zum Verknüpfen vor.": "The member list shows in the new “Nextcloud account?” column who is linked, and suggests matching accounts to link.",
+        "Nextcloud-Administratoren können ein Mitglied beim Aufnehmen gleich mit einem Nextcloud-Konto anlegen – mit Einladung per Mail oder festem Passwort.": "Nextcloud administrators can create a Nextcloud account right when admitting a member – with an invitation by email or a fixed password.",
+        "Die neue Willkommens-Mail (Vorlage in den Einstellungen) geht beim Aufnehmen oder später aus der Akte an die Adresse des Mitglieds.": "The new welcome email (template in the settings) goes to the member’s address when admitting them or later from the record.",
+        "Den Standard-Beitrag in den Einstellungen gibt es nicht mehr – Betrag und Turnus kommen von der Beitragsgruppe.": "The default fee in the settings is gone – amount and interval come from the contribution group."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

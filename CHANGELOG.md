@@ -19,6 +19,8 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+## [0.36.1] – 2026-10-11
+
 **Neu:**
 - **Spalte „Nextcloud-Konto?“ in der Mitgliederliste:** „Ja“ bei verknüpftem
   Konto, „Vorschlag … verknüpfen“, wenn genau ein Konto die Mailadresse des

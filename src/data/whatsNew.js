@@ -25,6 +25,16 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.36.1',
+			roles: ['verwalter', 'buchhalter'],
+			items: [
+				t('Die Mitgliederliste zeigt in der neuen Spalte „Nextcloud-Konto?", wer verknüpft ist, und schlägt passende Konten zum Verknüpfen vor.'),
+				t('Nextcloud-Administratoren können ein Mitglied beim Aufnehmen gleich mit einem Nextcloud-Konto anlegen – mit Einladung per Mail oder festem Passwort.'),
+				t('Die neue Willkommens-Mail (Vorlage in den Einstellungen) geht beim Aufnehmen oder später aus der Akte an die Adresse des Mitglieds.'),
+				t('Den Standard-Beitrag in den Einstellungen gibt es nicht mehr – Betrag und Turnus kommen von der Beitragsgruppe.'),
+			],
+		},
+		{
 			version: '0.36.0',
 			roles: ['verwalter', 'buchhalter'],
 			items: [

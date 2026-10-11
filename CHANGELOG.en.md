@@ -17,6 +17,8 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+## [0.36.1] – 2026-10-11
+
 **New:**
 - **"Nextcloud account?" column in the member list:** "Yes" for a linked
   account, "Link suggestion …" when exactly one account carries the member's
