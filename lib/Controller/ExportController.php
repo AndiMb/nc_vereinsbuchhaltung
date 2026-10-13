@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
+use OCA\Vereinsbuchhaltung\Service\Export\AccountStatementRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\AttachmentArchive;
 use OCA\Vereinsbuchhaltung\Service\Export\BeitragsbescheinigungRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\CsvExportService;
@@ -57,6 +58,7 @@ class ExportController extends Controller {
 		private KurzberichtRenderer $kurzbericht,
 		private BeitragsbescheinigungRenderer $beitragsbescheinigung,
 		private DatenuebersichtRenderer $datenuebersicht,
+		private AccountStatementRenderer $accountStatement,
 		private PeriodService $periods,
 		private IL10N $l10n,
 	) {
@@ -95,6 +97,28 @@ class ExportController extends Controller {
 	#[NoCSRFRequired]
 	public function balances(?int $period = null): DataDownloadResponse {
 		return $this->download($this->csv->balances($this->userId(), $period));
+	}
+
+	/** Kontenblatt eines Kontos (optional mit Unterkonten) als CSV. */
+	#[NoAdminRequired]
+	#[NoCSRFRequired]
+	public function accountStatement(int $id, int $includeChildren = 1, ?int $period = null): DataDownloadResponse|DataResponse {
+		try {
+			return $this->download($this->csv->accountStatement($this->userId(), $id, (bool)$includeChildren, $period));
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Konto nicht gefunden')], Http::STATUS_NOT_FOUND);
+		}
+	}
+
+	/** Kontenblatt eines Kontos als druckfertige HTML-Seite. */
+	#[NoAdminRequired]
+	#[NoCSRFRequired]
+	public function accountStatementPrint(int $id, int $includeChildren = 1, ?int $period = null): DataDisplayResponse|DataResponse {
+		try {
+			return $this->printableResponse($this->accountStatement->render($this->userId(), $id, (bool)$includeChildren, $period));
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Konto nicht gefunden')], Http::STATUS_NOT_FOUND);
+		}
 	}
 
 	/** Einnahmen-/Ausgaben-Übersicht als CSV. */

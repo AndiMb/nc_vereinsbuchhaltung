@@ -71,6 +71,7 @@ export default {
 	updateBooking: (id, data) => axios.put(url(`/journal/${id}`), data),
 	deleteBooking: (id) => axios.delete(url(`/journal/${id}`)),
 	// Eine Seite einer Buchung auf ein anderes Konto umbuchen (aus dem Kontoauszug)
+	updateBookingComment: (id, comment, updatedAt) => axios.put(url(`/journal/${id}/comment`), { comment, updatedAt: updatedAt || null }),
 	reassignBooking: (id, fromAccountId, toAccountId, updatedAt) => axios.post(url(`/journal/${id}/reassign`), { fromAccountId, toAccountId, updatedAt: updatedAt || null }),
 
 	// Auswertung
@@ -288,6 +289,9 @@ export default {
 
 	// Export (CSV-Download – Browser-Navigation, kein Axios)
 	exportJournalUrl: (period) => generateUrl(base + '/export/journal') + (period ? `?period=${period}` : ''),
+	// Kontenblatt: Zeitraum und "inkl. Unterkonten" wie im Kontoauszug.
+	accountStatementCsvUrl: (id, period, includeChildren) => generateUrl(base + `/export/account/${id}`) + `?includeChildren=${includeChildren ? 1 : 0}` + (period ? `&period=${period}` : ''),
+	accountStatementPrintUrl: (id, period, includeChildren) => generateUrl(base + `/export/account/${id}/print`) + `?includeChildren=${includeChildren ? 1 : 0}` + (period ? `&period=${period}` : ''),
 	exportBalancesUrl: (period) => generateUrl(base + '/export/balances') + (period ? `?period=${period}` : ''),
 	exportReportUrl: (period) => generateUrl(base + '/export/report') + (period ? `?period=${period}` : ''),
 	exportBudgetUrl: (period) => generateUrl(base + '/export/budget') + (period ? `?period=${period}` : ''),

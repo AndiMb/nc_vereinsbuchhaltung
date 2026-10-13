@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\BankTransactionMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Exception\ConflictException;
+use OCA\Vereinsbuchhaltung\Service\AccountStatementService;
 use OCA\Vereinsbuchhaltung\Service\JournalService;
 use OCA\Vereinsbuchhaltung\Service\LedgerAggregator;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
@@ -33,6 +34,7 @@ class JournalController extends Controller {
 		private BankTransactionMapper $txMapper,
 		private PeriodService $periods,
 		private JournalService $journalService,
+		private AccountStatementService $statements,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -364,6 +366,25 @@ class JournalController extends Controller {
 		}
 	}
 
+	/**
+	 * Nur den Kommentar einer Buchung ändern – auch im abgeschlossenen
+	 * Geschäftsjahr, siehe {@see JournalService::updateComment()}. Schreibrecht
+	 * verlangt die PermissionMiddleware wie bei jedem nicht lesenden Aufruf.
+	 */
+	#[NoAdminRequired]
+	public function comment(int $id, ?string $comment = null, ?string $updatedAt = null): DataResponse {
+		try {
+			$journal = $this->journalService->updateComment($id, $this->userId(), $comment, $updatedAt);
+			return new DataResponse($journal);
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Buchung nicht gefunden')], Http::STATUS_NOT_FOUND);
+		} catch (ConflictException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_CONFLICT);
+		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		}
+	}
+
 	#[NoAdminRequired]
 	public function destroy(int $id): DataResponse {
 		try {
@@ -379,150 +400,10 @@ class JournalController extends Controller {
 	 */
 	#[NoAdminRequired]
 	public function byAccount(int $id, int $includeChildren = 1, ?int $period = null): DataResponse {
-		$userId = $this->userId();
-		[$from, $to] = $this->periods->range($userId, $period);
-		$accounts = $this->accountMapper->findAll($userId);
-		$labels = [];
-		$childrenByParent = [];
-		foreach ($accounts as $a) {
-			$labels[$a->getId()] = $a->getNumber() . ' ' . $a->getName();
-			$pid = $a->getParentId();
-			if ($pid !== null) {
-				$childrenByParent[$pid][] = $a->getId();
-			}
+		try {
+			return new DataResponse($this->statements->build($this->userId(), $id, (bool)$includeChildren, $period));
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Konto nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
-
-		$ids = [$id];
-		if ($includeChildren) {
-			$ids = $this->collectDescendants($id, $childrenByParent);
-		}
-		$idSet = array_flip($ids);
-
-		// Saldovortrag je Zeile anhand des Zeilen-Kontos: nur Geldkonten tragen
-		// einen Bestand über die Grenze des Geschäftsjahres. So verfälscht bei "inkl. Unterkonten"
-		// weder ein jahresbezogenes Unterkonto den Vortrag des Überkontos, noch
-		// verliert ein Geldkonto seinen Vortrag unter einem jahresbezogenen Parent.
-		$stockIdSet = [];
-		foreach ($accounts as $a) {
-			if ($a->isStockAccount()) {
-				$stockIdSet[$a->getId()] = true;
-			}
-		}
-
-		$journalIds = $this->lineMapper->findJournalIdsForAccounts($userId, $ids);
-		// Buchungsköpfe und -zeilen gebündelt laden statt je Buchung einzeln.
-		$journalsById = $this->journalMapper->findByIds($userId, $journalIds);
-		$linesByJournal = $this->lineMapper->findByJournals($journalIds);
-
-		$rows = [];
-		$sumDebit = 0;
-		$sumCredit = 0;
-		// Saldovortrag: Bewegung auf diesen Konten vor Beginn des Geschäftsjahres.
-		$carryDebit = 0;
-		$carryCredit = 0;
-		foreach ($journalIds as $jid) {
-			$journal = $journalsById[$jid] ?? null;
-			if ($journal === null) {
-				continue;
-			}
-			$date = (string)$journal->getDate();
-			$beforePeriod = $from !== null && $date < $from;
-			$afterPeriod = $to !== null && $date > $to;
-			if ($afterPeriod) {
-				continue;
-			}
-			$lines = $linesByJournal[$jid] ?? [];
-			$contra = [];
-			// Die Gegenkonten einzeln (nicht nur als Text): der Kontoauszug
-			// bietet das Umbuchen für beide Seiten an, siehe reassign().
-			$contraAccounts = [];
-			foreach ($lines as $line) {
-				if (!isset($idSet[$line->getAccountId()])) {
-					$label = $labels[$line->getAccountId()] ?? ('#' . $line->getAccountId());
-					$contra[] = $label;
-					$contraAccounts[] = ['accountId' => $line->getAccountId(), 'label' => $label];
-				}
-			}
-			foreach ($lines as $line) {
-				if (!isset($idSet[$line->getAccountId()])) {
-					continue;
-				}
-				if ($beforePeriod) {
-					if (isset($stockIdSet[$line->getAccountId()])) {
-						$carryDebit += $line->getDebitCents();
-						$carryCredit += $line->getCreditCents();
-					}
-					continue;
-				}
-				$sumDebit += $line->getDebitCents();
-				$sumCredit += $line->getCreditCents();
-				$rows[] = [
-					'journalId' => $jid,
-					'entryNo' => $journal->getEntryNo(),
-					'date' => $journal->getDate(),
-					'description' => $journal->getDescription(),
-					'documentRef' => $journal->getDocumentRef(),
-					'accountId' => $line->getAccountId(),
-					'account' => $labels[$line->getAccountId()] ?? ('#' . $line->getAccountId()),
-					'contra' => implode(', ', $contra),
-					'contraAccounts' => $contraAccounts,
-					// Für das optimistische Locking beim Umbuchen (siehe reassign()).
-					'updatedAt' => $journal->getUpdatedAt(),
-					'debit' => $line->getDebitCents() / 100,
-					'credit' => $line->getCreditCents() / 100,
-				];
-			}
-		}
-
-		usort($rows, static function ($a, $b) {
-			return [$a['date'], $a['entryNo']] <=> [$b['date'], $b['entryNo']];
-		});
-
-		$account = $this->accountMapper->find($id, $userId);
-
-		// Saldovortrag nur bei gewähltem Zeitraum; beigetragen haben oben ohnehin
-		// nur Zeilen von Geldkonten (debit-Natur), daher Soll − Haben.
-		$carryCents = 0;
-		if ($from !== null) {
-			$carryCents = $carryDebit - $carryCredit;
-		}
-		$periodNet = $account->isCreditNature() ? ($sumCredit - $sumDebit) : ($sumDebit - $sumCredit);
-		$balanceCents = $carryCents + $periodNet;
-
-		return new DataResponse([
-			'account' => $account,
-			'includeChildren' => (bool)$includeChildren,
-			'periodId' => $period,
-			// Datum der Vortragszeile im Kontoauszug. Es ist der erste Tag des
-			// gewählten Geschäftsjahres – seit Issue #8 nicht mehr zwingend
-			// der 01.01., und deshalb schickt der Server ihn mit, statt ihn
-			// die Oberfläche aus einer Jahreszahl basteln zu lassen.
-			'carryDate' => $from,
-			'carry' => $carryCents / 100,
-			'rows' => $rows,
-			'totals' => [
-				'debit' => $sumDebit / 100,
-				'credit' => $sumCredit / 100,
-				'balance' => $balanceCents / 100,
-				'count' => count($rows),
-			],
-		]);
-	}
-
-	/**
-	 * @param array<int, int[]> $childrenByParent
-	 * @return int[] das Konto selbst plus alle Nachfahren
-	 */
-	private function collectDescendants(int $id, array $childrenByParent): array {
-		$result = [$id];
-		$stack = [$id];
-		while ($stack) {
-			$current = array_pop($stack);
-			foreach ($childrenByParent[$current] ?? [] as $child) {
-				$result[] = $child;
-				$stack[] = $child;
-			}
-		}
-		return array_values(array_unique($result));
 	}
 }

@@ -14,7 +14,10 @@
 			<!-- Ohne bekannten Zeitraum kein Banner: dann liesse sich nicht sagen,
 			     welches Geschäftsjahr gemeint ist. -->
 			<p v-if="bookingLocked && bookingPeriodLabel" class="vbh-hint vbh-hint--info">
-				{{ tRaw('🔒 Das Geschäftsjahr {period} ist abgeschlossen – diese Buchung kann nur noch angesehen werden.', { period: bookingPeriodLabel }) }}
+				<!-- Mit Schreibrecht bleibt der Kommentar aenderbar (kein Teil des Buchungssatzes). -->
+				{{ canWrite
+					? tRaw('🔒 Das Geschäftsjahr {period} ist abgeschlossen – an dieser Buchung lässt sich nur noch der Kommentar ändern.', { period: bookingPeriodLabel })
+					: tRaw('🔒 Das Geschäftsjahr {period} ist abgeschlossen – diese Buchung kann nur noch angesehen werden.', { period: bookingPeriodLabel }) }}
 			</p>
 			<div
 				v-if="bookingMode === 'simple'"
@@ -352,6 +355,21 @@
 				</NcCheckboxRadioSwitch>
 			</div>
 
+			<!-- Kommentar: kein Teil des Buchungssatzes und deshalb nicht an
+			     bookingLocked gebunden - Hinweise aus der Kassenpruefung entstehen
+			     meist erst nach dem Jahresabschluss (gespeichert ueber einen eigenen
+			     Endpunkt, siehe App.vue::saveBookingComment). -->
+			<div class="vbh-form">
+				<label class="vbh-grow">{{ t('Kommentar') }}<textarea
+					v-model="formComment"
+					v-autogrow
+					class="vbh-autogrow"
+					rows="2"
+					:maxlength="2000"
+					:placeholder="t('optional, z. B. Hinweis für die Kassenprüfung')"
+					:disabled="!canWrite" /></label>
+			</div>
+
 			<!-- Belegablage: bei einer bestehenden Buchung die bereits gespeicherten
 			     Belege, beim Anlegen die noch lokal gesammelten Dateien (der Upload
 			     folgt direkt nach dem Speichern). Mobil stehen die Sammel-Knoepfe
@@ -463,15 +481,17 @@
 				<!-- Waehrend des Speicherns gesperrt: daran haengt der Upload der
 				     gesammelten Belege, und ein zweiter Klick wuerde in dieser Zeit
 				     eine zweite Buchung anlegen (bookingForm.id ist noch leer). -->
+				<!-- Im abgeschlossenen Zeitraum bleibt nur der Kommentar aenderbar;
+				     der Knopf erscheint dort erst, wenn er geaendert wurde. -->
 				<NcButton
-					v-if="!bookingLocked"
+					v-if="!bookingLocked || (canWrite && commentChanged)"
 					variant="primary"
 					:disabled="bookingSaving"
 					@click="$emit('save')">
 					<template v-if="bookingSaving" #icon>
 						<NcLoadingIcon :size="20" />
 					</template>
-					{{ bookingSaving ? t('Wird gespeichert…') : (bookingForm.id ? t('Speichern') : t('Buchen')) }}
+					{{ bookingSaving ? t('Wird gespeichert…') : (bookingLocked ? t('Kommentar speichern') : (bookingForm.id ? t('Speichern') : t('Buchen'))) }}
 				</NcButton>
 			</div>
 		</div>
@@ -554,6 +574,10 @@ export default {
 	},
 
 	computed: {
+		commentChanged() {
+			return (this.bookingForm.comment || '').trim() !== (this.bookingForm.originalComment || '').trim()
+		},
+
 		bookingTitle() {
 			return this.bookingForm.id
 				? this.t('Buchung bearbeiten #{n}', { n: this.bookingForm.entryNo })
@@ -600,6 +624,11 @@ export default {
 		formDocumentRef: {
 			get() { return this.bookingForm.documentRef },
 			set(v) { this.updateForm({ documentRef: v }) },
+		},
+
+		formComment: {
+			get() { return this.bookingForm.comment },
+			set(v) { this.updateForm({ comment: v }) },
 		},
 
 		accountUsageCounts() {

@@ -25,6 +25,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setCreatedAt(string $createdAt)
  * @method string|null getUpdatedAt()
  * @method void setUpdatedAt(?string $updatedAt)
+ * @method string|null getComment()
+ * @method void setComment(?string $comment)
  */
 class Journal extends Entity implements \JsonSerializable {
 	protected $userId;
@@ -49,6 +51,11 @@ class Journal extends Entity implements \JsonSerializable {
 	protected $bankTxId;
 	protected $createdAt;
 	protected $updatedAt;
+	/**
+	 * Freier Hinweis zur Buchung (z. B. für die Kassenprüfung). Kein Teil des
+	 * Buchungssatzes: auch im abgeschlossenen Geschäftsjahr änderbar.
+	 */
+	protected $comment;
 
 	public function __construct() {
 		$this->addType('entryNo', 'integer');
@@ -80,6 +87,7 @@ class Journal extends Entity implements \JsonSerializable {
 			'bankTxId' => $this->bankTxId,
 			'createdAt' => $this->createdAt,
 			'updatedAt' => $this->updatedAt,
+			'comment' => $this->comment,
 		];
 	}
 }

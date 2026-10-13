@@ -175,6 +175,14 @@
 								</td>
 								<td class="nowrap right">
 									<div class="vbh-actions">
+										<span
+											v-if="r.comment"
+											class="vbh-commentmark"
+											:title="r.comment"
+											role="img"
+											:aria-label="t('Kommentar: {text}', { text: r.comment })">
+											<NcIconSvgWrapper :path="mdiCommentTextOutline" :size="16" />
+										</span>
 										<NcButton
 											v-if="attachmentCountMap[r.id]"
 											variant="tertiary"
@@ -597,7 +605,7 @@
 </template>
 
 <script>
-import { mdiDelete, mdiDownload, mdiFlash, mdiPaperclip, mdiPencil, mdiUpload } from '@mdi/js'
+import { mdiCommentTextOutline, mdiDelete, mdiDownload, mdiFlash, mdiPaperclip, mdiPencil, mdiUpload } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { NcActionButton, NcActions, NcButton, NcEllipsisedOption, NcEmptyContent, NcIconSvgWrapper, NcSelect } from '@nextcloud/vue'
 import { toRefs } from 'vue'
@@ -686,6 +694,7 @@ export default {
 			mdiUpload,
 			mdiPaperclip,
 			mdiPencil,
+			mdiCommentTextOutline,
 			mdiFlash,
 			mdiDelete,
 			// Der entprellte Suchtext, nach dem gefiltert wird (onSearchInput).

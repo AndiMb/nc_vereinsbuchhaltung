@@ -51,6 +51,7 @@ const journalRows = computed(() => state.journalData.map((item) => {
 			: (cl.length === 1 && dl.length > 1 ? 'debit' : null),
 		amount: lines.reduce((s, l) => s + (l.debitCents || 0), 0) / 100,
 		updatedAt: j.updatedAt || null,
+		comment: j.comment || '',
 	}
 }))
 

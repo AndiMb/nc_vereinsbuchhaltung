@@ -1501,6 +1501,10 @@ export default {
 				moneyAccountId: null,
 				categoryId: null,
 				updatedAt: null,
+				// Kommentar und sein Stand beim Oeffnen: gespeichert wird er nur,
+				// wenn er sich geaendert hat (saveBookingComment).
+				comment: '',
+				originalComment: '',
 				// Splittbuchung: eine Seite bleibt einzeilig (Geldkonto bzw. im
 				// Experten-Modus die gewaehlte Seite), die andere wird zur Liste.
 				// splitSide nennt die aufgeteilte Seite; im Einfach-Modus ergibt
@@ -2292,7 +2296,7 @@ export default {
 				showError(this.t('Diese Buchung hat auf beiden Seiten mehrere Konten – so eine Buchung kann die App nicht bearbeiten.'))
 				return
 			}
-			this.bookingForm = { ...this.emptyBookingForm(), id: r.id, entryNo: r.entryNo, date: r.date, documentRef: r.documentRef || '', amount: r.amount, debitAccountId: r.debitAccountId, creditAccountId: r.creditAccountId, description: r.description || '', updatedAt: r.updatedAt || null }
+			this.bookingForm = { ...this.emptyBookingForm(), id: r.id, entryNo: r.entryNo, date: r.date, documentRef: r.documentRef || '', amount: r.amount, debitAccountId: r.debitAccountId, creditAccountId: r.creditAccountId, description: r.description || '', updatedAt: r.updatedAt || null, comment: r.comment || '', originalComment: r.comment || '' }
 			if (r.isSplit) {
 				this.loadSplitIntoForm(r)
 			} else {
@@ -2394,20 +2398,33 @@ export default {
 		async saveBooking() {
 			if (this.bookingSaving) { return }
 			const f = this.bookingForm
-			const payload = f.splitMode ? this.buildSplitPayload() : this.buildSimplePayload()
-			if (!payload) { return }
+			// Abgeschlossener Zeitraum: nur der Kommentar ist noch aenderbar.
+			const commentOnly = this.bookingLocked
+			const payload = commentOnly ? null : (f.splitMode ? this.buildSplitPayload() : this.buildSimplePayload())
+			if (!commentOnly && !payload) { return }
 			this.bookingSaving = true
 			try {
-				if (f.id) {
-					await api.updateBooking(f.id, { ...payload, updatedAt: f.updatedAt || null })
+				if (commentOnly) {
+					await this.saveBookingComment(f.id, f.updatedAt)
+				} else if (f.id) {
+					const { data } = await api.updateBooking(f.id, { ...payload, updatedAt: f.updatedAt || null })
+					// Neuer Stand sofort ins Formular: scheitert der Kommentar, soll
+					// ein erneuter Klick nicht an der eigenen Aenderung (409) haengen.
+					f.updatedAt = data.updatedAt || null
+					f.updatedAt = await this.saveBookingComment(f.id, f.updatedAt)
 				} else {
 					const { data } = await api.createBooking(payload)
+					// Ab hier existiert die Buchung: scheitert danach Kommentar oder
+					// Beleg-Upload, macht ein erneuter Klick daraus ein Bearbeiten
+					// statt einer zweiten Buchung.
+					Object.assign(f, { id: data.id, entryNo: data.entryNo, updatedAt: data.updatedAt || null })
+					f.updatedAt = await this.saveBookingComment(data.id, f.updatedAt)
 					if (await this.uploadPendingFiles(data && data.id)) {
 						// Die Buchung steht, nur die Belege fehlen: aus dem Anlegen
 						// wird das Bearbeiten dieser Buchung. So legt ein weiterer
 						// Klick keine zweite Buchung an und die haengengebliebenen
 						// Dateien lassen sich im offenen Dialog erneut hochladen.
-						this.bookingForm = { ...f, id: data.id, entryNo: data.entryNo, updatedAt: data.updatedAt || null }
+						this.bookingForm = { ...f }
 						await this.loadAttachments(data.id)
 						await this.loadJournal(); await this.loadBalances(); await this.loadPeriods(); await this.loadSphereReport(); await this.reloadStatement()
 						return
@@ -2429,6 +2446,23 @@ export default {
 				}
 				showError(this.errMsg(e, this.t('Buchung konnte nicht gespeichert werden')))
 			} finally { this.bookingSaving = false }
+		},
+
+		/**
+		 * Speichert den Kommentar der Buchung ueber seinen eigenen Endpunkt -
+		 * nur wenn er sich geaendert hat. Der Endpunkt prueft den Zeitraum
+		 * nicht, deshalb geht das auch im abgeschlossenen Geschaeftsjahr.
+		 *
+		 * @param {number} id Buchung
+		 * @param {string|null} updatedAt Stand fuer das optimistische Locking
+		 * @return {Promise<string|null>} neuer updatedAt-Stand
+		 */
+		async saveBookingComment(id, updatedAt) {
+			const f = this.bookingForm
+			if ((f.comment || '').trim() === (f.originalComment || '').trim()) { return updatedAt || null }
+			const { data } = await api.updateBookingComment(id, f.comment || null, updatedAt)
+			f.originalComment = data.comment || ''
+			return data.updatedAt || null
 		},
 
 		async removeBooking(r) {

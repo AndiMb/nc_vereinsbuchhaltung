@@ -698,6 +698,7 @@
         "Buchung gelöscht": "Entry deleted",
         "Buchung geändert": "Entry changed",
         "Buchung umgebucht": "Entry reassigned",
+        "Buchungskommentar geändert": "Entry comment changed",
         "CSV-Import": "CSV import",
         "Eröffnungssaldo gesetzt": "Opening balance set",
         "Jahr abgeschlossen": "Year closed",
@@ -1315,6 +1316,7 @@
         "⛔ Import blockiert, bis die Beträge am Zeitraumübergang übereinstimmen.": "⛔ Import blocked until the amounts at the period transition match.",
         "⛔ Umstellung nicht möglich: diese Zeiträume sind festgeschrieben und müssten zuerst wiedereröffnet werden.": "⛔ Change not possible: these periods are locked and would have to be reopened first.",
         "🔒 Das Geschäftsjahr {period} ist abgeschlossen – diese Buchung kann nur noch angesehen werden.": "🔒 Fiscal year {period} is closed – this entry can only be viewed.",
+        "🔒 Das Geschäftsjahr {period} ist abgeschlossen – an dieser Buchung lässt sich nur noch der Kommentar ändern.": "🔒 Fiscal year {period} is closed – only the comment on this entry can still be changed.",
         "Ordner im Home von {user}": "Folders in the home of {user}",
         "Ordner konnte nicht gelesen werden": "Folder could not be read",
         "Aufklappen": "Expand",
@@ -2819,7 +2821,26 @@
         "Die Mitgliederliste zeigt in der neuen Spalte „Nextcloud-Konto?\", wer verknüpft ist, und schlägt passende Konten zum Verknüpfen vor.": "The member list shows in the new “Nextcloud account?” column who is linked, and suggests matching accounts to link.",
         "Nextcloud-Administratoren können ein Mitglied beim Aufnehmen gleich mit einem Nextcloud-Konto anlegen – mit Einladung per Mail oder festem Passwort.": "Nextcloud administrators can create a Nextcloud account right when admitting a member – with an invitation by email or a fixed password.",
         "Die neue Willkommens-Mail (Vorlage in den Einstellungen) geht beim Aufnehmen oder später aus der Akte an die Adresse des Mitglieds.": "The new welcome email (template in the settings) goes to the member’s address when admitting them or later from the record.",
-        "Den Standard-Beitrag in den Einstellungen gibt es nicht mehr – Betrag und Turnus kommen von der Beitragsgruppe.": "The default fee in the settings is gone – amount and interval come from the contribution group."
+        "Den Standard-Beitrag in den Einstellungen gibt es nicht mehr – Betrag und Turnus kommen von der Beitragsgruppe.": "The default fee in the settings is gone – amount and interval come from the contribution group.",
+        "Kontenblatt als CSV exportieren": "Export account sheet as CSV",
+        "Druckfertiges Kontenblatt (öffnet in neuem Tab, dort drucken oder als PDF speichern)": "Print-ready account sheet (opens in a new tab; print or save as PDF there)",
+        "Drucken": "Print",
+        "Kommentar: {text}": "Comment: {text}",
+        "Kommentar": "Comment",
+        "optional, z. B. Hinweis für die Kassenprüfung": "optional, e.g. a note for the audit",
+        "Kommentar speichern": "Save comment",
+        "alle Zeiträume": "all periods",
+        "Kontenblatt %s": "Account sheet %s",
+        "Zeitraum: %s": "Period: %s",
+        "_Summe (%n Buchung)_::_Summe (%n Buchungen)_": [
+            "Total (%n entry)",
+            "Total (%n entries)"
+        ],
+        "Der Kommentar darf höchstens %d Zeichen lang sein.": "The comment may be at most %d characters long.",
+        "Buchungen können einen Kommentar tragen, etwa für die Kassenprüfung – auch im abgeschlossenen Geschäftsjahr noch änderbar.": "Entries can carry a comment, e.g. for the audit – still editable in a closed fiscal year.",
+        "Das Kontenblatt eines Kontos gibt es jetzt als CSV und als druckfertige Seite (Reiter Konten, neben den Summen).": "An account's account sheet is now available as CSV and as a print-ready page (Accounts tab, next to the totals).",
+        "Die Tabelle im Kontoauszug lässt sich per Klick auf die Spaltenüberschrift sortieren.": "The account statement table can be sorted by clicking a column header.",
+        "Kommentare an Buchungen (z. B. Hinweise der Kassenprüfung) erscheinen in den Listen als Symbol; beim Daraufzeigen steht der Text.": "Comments on entries (e.g. notes from the audit) appear as an icon in the lists; hovering shows the text."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

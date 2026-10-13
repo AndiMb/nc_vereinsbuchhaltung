@@ -72,7 +72,7 @@ class ControllerRoleDeclarationTest extends TestCase {
 	];
 
 	private const MIXED_CORE_METHODS = [
-		'ExportController' => ['attachments', 'balances', 'budget', 'journal', 'kassenbericht', 'kurzbericht', 'multiyear', 'report'],
+		'ExportController' => ['accountStatement', 'accountStatementPrint', 'attachments', 'balances', 'budget', 'journal', 'kassenbericht', 'kurzbericht', 'multiyear', 'report'],
 	];
 
 	/**

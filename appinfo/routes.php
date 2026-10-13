@@ -37,6 +37,7 @@ return [
 		['name' => 'journal#create', 'url' => '/api/journal', 'verb' => 'POST'],
 		['name' => 'journal#update', 'url' => '/api/journal/{id}', 'verb' => 'PUT'],
 		['name' => 'journal#reassign', 'url' => '/api/journal/{id}/reassign', 'verb' => 'POST'],
+		['name' => 'journal#comment', 'url' => '/api/journal/{id}/comment', 'verb' => 'PUT'],
 		['name' => 'journal#destroy', 'url' => '/api/journal/{id}', 'verb' => 'DELETE'],
 
 		// Kollaboration: Änderungsstand für das Polling anderer Browser
@@ -279,6 +280,8 @@ return [
 		// Export (CSV-Download)
 		['name' => 'export#journal',  'url' => '/api/export/journal',  'verb' => 'GET'],
 		['name' => 'export#balances', 'url' => '/api/export/balances', 'verb' => 'GET'],
+		['name' => 'export#accountStatement', 'url' => '/api/export/account/{id}', 'verb' => 'GET'],
+		['name' => 'export#accountStatementPrint', 'url' => '/api/export/account/{id}/print', 'verb' => 'GET'],
 		['name' => 'export#report',   'url' => '/api/export/report',   'verb' => 'GET'],
 		['name' => 'export#budget',   'url' => '/api/export/budget',   'verb' => 'GET'],
 		['name' => 'export#multiyear', 'url' => '/api/export/multiyear', 'verb' => 'GET'],

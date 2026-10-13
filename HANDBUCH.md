@@ -503,6 +503,18 @@ aufgeht. Nur Buchungen, die auf **beiden** Seiten mehrere Konten haben, bleiben
 außen vor – die App erzeugt solche nicht, sie könnten allenfalls aus
 Fremddaten stammen; die App zeigt sie an und warnt beim Bearbeiten.
 
+**Kommentar an einer Buchung.** Im Buchungsdialog steht unter den Konten das
+Feld **Kommentar** – für Hinweise, die zur Buchung gehören, aber nicht in den
+Buchungstext: „Beleg nachgereicht", „mit Vorstand abgestimmt", eine Rückfrage
+der Kassenprüfung. Eine Buchung mit Kommentar trägt in den Listen (Reiter
+**Buchungen** und Kontoauszug) ein Sprechblasen-Symbol; beim Daraufzeigen
+erscheint der Text, mobil steht er direkt auf der Karte. Der Kommentar gehört
+**nicht zum Buchungssatz**: Er lässt sich auch in einem **abgeschlossenen**
+Geschäftsjahr noch ergänzen oder ändern (der Dialog zeigt dann nur
+*Kommentar speichern*). Ändern dürfen ihn Buchhalter und Verwalter, die
+Kassenprüfung liest ihn. Jede Änderung steht mit altem und neuem Text im
+**Änderungsprotokoll**. In den Exporten erscheint der Kommentar nicht.
+
 ### 4.5 Offene Posten (unbezahlte Forderungen)
 
 Tab **Buchungen → Offene Posten**. Eine schlanke Liste für Forderungen, die
@@ -584,6 +596,22 @@ Auf jedes Konto klicken (in der Saldenliste oder im Konten-Tab) zeigt den
 **Kontoauszug**: jede Buchung mit laufendem Saldo und Saldovortrag vom
 ersten Tag des gewählten Zeitraums. Ideal, um einen einzelnen Bank- oder
 Kassenbestand gegen den Bankauszug abzugleichen.
+
+**Sortieren.** Ein Klick auf eine Spaltenüberschrift (Nr., Datum,
+Beschreibung, Gegenkonto, Soll, Haben, Saldo) sortiert die Tabelle danach, ein
+zweiter Klick dreht die Richtung. Jede Zeile behält dabei ihren laufenden
+Saldo aus der zeitlichen Reihenfolge, der Saldovortrag bleibt oben. Beim
+Wechsel auf ein anderes Konto gilt wieder die zeitliche Reihenfolge.
+
+**Kontenblatt exportieren.** Neben den Summen stehen **CSV** und **Drucken**:
+Sie liefern das Kontenblatt des Kontos für den gewählten Zeitraum – mit
+Saldovortrag, laufendem Saldo und Summenzeile, bei „inkl. Unterkonten" samt
+der Buchungen der Unterkonten. *Drucken* öffnet eine druckfertige Seite in
+einem neuen Tab (dort drucken oder als PDF speichern), etwa zum Abheften für
+die Kassenprüfung. Exportiert wird immer in zeitlicher Reihenfolge.
+
+Lange Kontonamen kürzt die Kontenliste links ab; beim Daraufzeigen erscheint
+der vollständige Name.
 
 **Buchung bearbeiten.** Fällt beim Durchsehen ein Fehler auf, korrigieren Sie
 ihn an Ort und Stelle – ohne ins Journal zu wechseln und ohne sich die

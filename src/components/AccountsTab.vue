@@ -61,7 +61,9 @@
 					     stehende Punkt sah aus wie ein Aufzaehlungszeichen. -->
 					<span v-else class="vbh-caret empty" aria-hidden="true" />
 					<span class="vbh-treenum">{{ node.number }}</span>
-					<span class="vbh-treename">{{ node.name }}</span>
+					<!-- Die Spalte ist fest breit und kuerzt lange Namen mit "…" ab;
+					     der Tooltip zeigt sie vollstaendig. -->
+					<span class="vbh-treename" :title="node.number + ' ' + node.name">{{ node.name }}</span>
 					<span v-if="!node.active" class="vbh-treeinactive" :title="t('Inaktiv – taucht in keiner Auswahlliste mehr auf')">{{ t('inaktiv') }}</span>
 					<span class="vbh-treesaldo" :class="[amountClass(balanceFor(node.id)), { zero: !balanceFor(node.id) }]">{{ formatMoney(balanceFor(node.id)) }}</span>
 				</div>
@@ -119,6 +121,22 @@
 						<span class="vbh-badge muted">{{ t('Haben {amount}', { amount: formatMoney(statement.totals.credit) }) }}</span>
 						<span class="vbh-badge pos">{{ t('Saldo {amount}', { amount: formatMoney(statement.totals.balance) }) }}</span>
 					</div>
+					<!-- Kontenblatt-Export: Zeitraum und "inkl. Unterkonten" wie hier
+					     angezeigt, aber immer chronologisch (unabhaengig von der
+					     Spaltensortierung der Tabelle). -->
+					<div class="vbh-statementexport">
+						<a
+							:href="accountStatementCsvUrl"
+							download
+							class="vbh-export-btn"
+							:title="t('Kontenblatt als CSV exportieren')"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> CSV</a>
+						<a
+							:href="accountStatementPrintUrl"
+							target="_blank"
+							rel="noopener"
+							class="vbh-export-btn"
+							:title="t('Druckfertiges Kontenblatt (öffnet in neuem Tab, dort drucken oder als PDF speichern)')"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> {{ t('Drucken') }}</a>
+					</div>
 				</div>
 
 				<div v-if="statementRows.length && isMobile" class="vbh-cardlist">
@@ -135,6 +153,12 @@
 						</div>
 						<div class="vbh-mcard-title">
 							{{ row.description }}
+						</div>
+						<!-- Mobil gibt es keinen Tooltip: der Kommentar steht deshalb als
+						     gekuerzte Zeile direkt auf der Karte. -->
+						<div v-if="row.comment" class="vbh-mcard-comment">
+							<NcIconSvgWrapper :path="mdiCommentTextOutline" :size="14" inline />
+							<span class="vbh-clamp">{{ row.comment }}</span>
 						</div>
 						<div class="vbh-mcard-bottom">
 							<span class="vbh-mcard-accounts">{{ row.contra }}</span>
@@ -200,19 +224,28 @@
 					<table class="vbh-table">
 						<thead>
 							<tr>
-								<th class="num vbh-col-hide-sm">
-									{{ t('Nr.') }}
-								</th><th class="nowrap">
-									{{ t('Datum') }}
-								</th><th>{{ t('Beschreibung') }}</th><th class="vbh-col-hide-sm">
-									{{ t('Gegenkonto') }}
-								</th><th class="num vbh-col-hide-sm">
-									{{ t('Soll') }}
-								</th><th class="num vbh-col-hide-sm">
-									{{ t('Haben') }}
-								</th><th class="num">
-									{{ t('Saldo') }}
-								</th><th />
+								<th class="sortable num vbh-col-hide-sm" @click="toggleSort('statement', 'entryNo')">
+									{{ t('Nr.') }}{{ sortArrow('statement', 'entryNo') }}
+								</th>
+								<th class="sortable nowrap" @click="toggleSort('statement', 'date')">
+									{{ t('Datum') }}{{ sortArrow('statement', 'date') }}
+								</th>
+								<th class="sortable" @click="toggleSort('statement', 'description')">
+									{{ t('Beschreibung') }}{{ sortArrow('statement', 'description') }}
+								</th>
+								<th class="sortable vbh-col-hide-sm" @click="toggleSort('statement', 'contra')">
+									{{ t('Gegenkonto') }}{{ sortArrow('statement', 'contra') }}
+								</th>
+								<th class="sortable num vbh-col-hide-sm" @click="toggleSort('statement', 'debit')">
+									{{ t('Soll') }}{{ sortArrow('statement', 'debit') }}
+								</th>
+								<th class="sortable num vbh-col-hide-sm" @click="toggleSort('statement', 'credit')">
+									{{ t('Haben') }}{{ sortArrow('statement', 'credit') }}
+								</th>
+								<th class="sortable num" @click="toggleSort('statement', 'saldo')">
+									{{ t('Saldo') }}{{ sortArrow('statement', 'saldo') }}
+								</th>
+								<th />
 							</tr>
 						</thead>
 						<tbody>
@@ -234,7 +267,11 @@
 							</tr>
 							<!-- :key gehoert unter Vue 3 aufs <template>, nicht mehr auf die
 							     einzelnen <tr> (umgekehrt zu Vue 2) -->
-							<template v-for="(row, i) in statementRows" :key="i">
+							<!-- Sortiert wird nur im Browser; jede Zeile behaelt ihren
+							     chronologisch berechneten Saldo, der Vortrag bleibt oben.
+							     Schluessel ist rowKey statt Index, damit Umbuchen-Panel
+							     und DOM beim Umsortieren an der richtigen Zeile haengen. -->
+							<template v-for="row in sortedStatementRows" :key="rowKey(row)">
 								<tr>
 									<td class="num vbh-col-hide-sm">
 										{{ row.entryNo }}
@@ -264,6 +301,14 @@
 										     treiben die Zeile auf schmalen Fenstern in die
 										     zweite Zeile. -->
 										<div class="vbh-actions">
+											<span
+												v-if="row.comment"
+												class="vbh-commentmark"
+												:title="row.comment"
+												role="img"
+												:aria-label="t('Kommentar: {text}', { text: row.comment })">
+												<NcIconSvgWrapper :path="mdiCommentTextOutline" :size="16" />
+											</span>
 											<NcButton
 												v-if="attachmentCountMap[row.journalId]"
 												variant="tertiary"
@@ -329,15 +374,17 @@
 </template>
 
 <script>
-import { mdiDelete, mdiPaperclip, mdiPencil, mdiPlus, mdiSwapHorizontal } from '@mdi/js'
+import { mdiCommentTextOutline, mdiDelete, mdiDownload, mdiPaperclip, mdiPencil, mdiPlus, mdiPrinter, mdiSwapHorizontal } from '@mdi/js'
 import { NcActionButton, NcActions, NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import AmountInput from './AmountInput.vue'
 import ReassignPanel from './ReassignPanel.vue'
+import api from '../api.js'
 import { useAccounts } from '../composables/useAccounts.js'
 import { useAuth } from '../composables/useAuth.js'
 import { useBalances } from '../composables/useBalances.js'
 import { usePeriods } from '../composables/usePeriods.js'
+import { useSort } from '../composables/useSort.js'
 import { amountClass, formatDate, formatMoney, typeLabel } from '../lib/format.js'
 
 export default {
@@ -393,6 +440,7 @@ export default {
 			accountsSorted: accounts.accountsSorted,
 			childrenOf: accounts.childrenOf,
 			...toRefs(balances.state),
+			...useSort(),
 		}
 	},
 
@@ -400,6 +448,9 @@ export default {
 		return {
 			mdiPlus,
 			mdiPencil,
+			mdiCommentTextOutline,
+			mdiDownload,
+			mdiPrinter,
 			mdiDelete,
 			mdiPaperclip,
 			mdiSwapHorizontal,
@@ -520,21 +571,28 @@ export default {
 			return opts
 		},
 
-		statementRows() {
-			if (!this.statement) { return [] }
-			const isCredit = ['income', 'liability', 'equity'].includes(this.statement.account.type)
-			let run = this.statement.carry || 0
-			return this.statement.rows.map((r) => {
-				run += isCredit ? (r.credit - r.debit) : (r.debit - r.credit)
-				return { ...r, saldo: run }
-			})
+		// Den laufenden Saldo je Zeile rechnet der Server (AccountStatementService),
+		// damit Bildschirm und Kontenblatt-Export dieselben Zahlen zeigen.
+		statementRows() { return this.statement ? this.statement.rows : [] },
+
+		accountStatementCsvUrl() {
+			return api.accountStatementCsvUrl(this.statement.account.id, this.statement.periodId, this.statement.includeChildren)
 		},
+
+		accountStatementPrintUrl() {
+			return api.accountStatementPrintUrl(this.statement.account.id, this.statement.periodId, this.statement.includeChildren)
+		},
+
+		// Ohne gewaehlte Spalte bleibt die chronologische Reihenfolge des
+		// Servers. applySort sortiert stabil, gleiche Werte bleiben also
+		// chronologisch.
+		sortedStatementRows() { return this.applySort(this.statementRows, this.sort.statement, ['date']) },
 	},
 
 	watch: {
 		// Kontowechsel oder neu geladener Auszug: das Umbuchen-Panel gehoert zu
 		// einer bestimmten Zeile und darf nicht auf die naechste ueberspringen.
-		selectedAccountId() { this.cancelReassign() },
+		selectedAccountId() { this.cancelReassign(); this.sort.statement.key = null },
 		statement() { this.cancelReassign() },
 	},
 

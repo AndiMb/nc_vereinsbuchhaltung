@@ -339,6 +339,59 @@ class JournalService {
 		});
 	}
 
+	/** Höchstlänge eines Buchungskommentars in Zeichen. */
+	public const COMMENT_MAX_LENGTH = 2000;
+
+	/**
+	 * Setzt den Kommentar einer Buchung – ohne den Buchungssatz anzufassen.
+	 *
+	 * Bewusst ohne {@see PeriodService::assertOpen()}: der Kommentar ist ein
+	 * Hinweis an der Buchung (etwa aus der Kassenprüfung) und gehört nicht zum
+	 * festgeschriebenen Inhalt. Hinweise der Prüfer entstehen typischerweise
+	 * erst nach dem Jahresabschluss. Nachvollziehbar bleibt jede Änderung über
+	 * das Änderungsprotokoll mit altem und neuem Text.
+	 *
+	 * @param string|null $expectedUpdatedAt siehe {@see updateBooking()}
+	 * @throws DoesNotExistException wenn die Buchung fehlt
+	 * @throws ConflictException bei zwischenzeitlicher Fremdänderung
+	 * @throws \InvalidArgumentException wenn der Kommentar zu lang ist
+	 */
+	public function updateComment(int $id, string $userId, ?string $comment, ?string $expectedUpdatedAt = null): Journal {
+		$comment = self::normalizeComment($comment);
+		if ($comment !== null && mb_strlen($comment) > self::COMMENT_MAX_LENGTH) {
+			throw new \InvalidArgumentException($this->l10n->t('Der Kommentar darf höchstens %d Zeichen lang sein.', [self::COMMENT_MAX_LENGTH]));
+		}
+		return $this->transaction->run(function () use ($id, $userId, $comment, $expectedUpdatedAt): Journal {
+			$journal = $this->journalMapper->find($id, $userId);
+			if (($journal->getUpdatedAt() ?? '') !== ($expectedUpdatedAt ?? '')) {
+				throw new ConflictException($this->l10n->t('Die Buchung wurde zwischenzeitlich von einer anderen Person geändert.'));
+			}
+			$old = $journal->getComment();
+			if ($old === $comment) {
+				return $journal;
+			}
+			$journal->setComment($comment);
+			$journal->setUpdatedAt(self::now());
+			$journal = $this->journalMapper->update($journal);
+
+			$this->audit->log('Buchungskommentar geändert', 'journal', $journal->getId(), [
+				'entryNo' => $journal->getEntryNo(),
+				'date' => $journal->getDate(),
+				// vorher/nachher zeigt der Protokoll-Reiter als „alt → neu";
+				// ein fehlender Kommentar erscheint dort als Gedankenstrich.
+				'vorher' => $old ?? '–',
+				'nachher' => $comment ?? '–',
+			]);
+			return $journal;
+		});
+	}
+
+	/** Leerraum an den Rändern weg; ein leerer Kommentar ist „kein Kommentar". */
+	public static function normalizeComment(?string $comment): ?string {
+		$comment = trim((string)$comment);
+		return $comment === '' ? null : $comment;
+	}
+
 	/**
 	 * Entscheidet, welche Buchungszeilen umzuhängen sind – ohne Datenbank,
 	 * damit die Fallunterscheidung prüfbar bleibt.

@@ -1,6 +1,6 @@
 import { reactive } from 'vue'
 
-// Die Sortierung der drei Tabellen (Bankumsaetze, Saldenliste, Journal).
+// Die Sortierung der Tabellen (Bankumsaetze, Saldenliste, Journal, Kontoauszug).
 //
 // Der Zustand lag in App.vue und wurde als sort-Objekt samt toggleSort und
 // sortArrow an BookingsTab und ReportsTab durchgereicht - drei Props fuer
@@ -13,13 +13,16 @@ const state = reactive({
 	transactions: { key: 'bookingDate', dir: 'desc' },
 	balances: { key: 'number', dir: 'asc' },
 	journal: { key: 'entryNo', dir: 'desc' },
+	// key null = Reihenfolge des Servers (chronologisch); AccountsTab setzt
+	// das bei jedem Kontowechsel zurueck.
+	statement: { key: null, dir: 'asc' },
 })
 
 /**
  * Schaltet die Sortierung einer Tabelle um: dieselbe Spalte dreht die
  * Richtung, eine andere Spalte beginnt aufsteigend.
  *
- * @param {string} table 'transactions' | 'balances' | 'journal'
+ * @param {string} table 'transactions' | 'balances' | 'journal' | 'statement'
  * @param {string} key Feldname der Spalte
  */
 function toggleSort(table, key) {
