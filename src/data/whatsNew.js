@@ -25,6 +25,23 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.36.2',
+			roles: ['verwalter', 'buchhalter'],
+			items: [
+				t('Buchungen können einen Kommentar tragen, etwa für die Kassenprüfung – auch im abgeschlossenen Geschäftsjahr noch änderbar.'),
+				t('Das Kontenblatt eines Kontos gibt es jetzt als CSV und als druckfertige Seite (Reiter Konten, neben den Summen).'),
+				t('Die Tabelle im Kontoauszug lässt sich per Klick auf die Spaltenüberschrift sortieren.'),
+			],
+		},
+		{
+			version: '0.36.2',
+			roles: ['revisor'],
+			items: [
+				t('Kommentare an Buchungen (z. B. Hinweise der Kassenprüfung) erscheinen in den Listen als Symbol; beim Daraufzeigen steht der Text.'),
+				t('Das Kontenblatt eines Kontos gibt es jetzt als CSV und als druckfertige Seite (Reiter Konten, neben den Summen).'),
+			],
+		},
+		{
 			version: '0.36.1',
 			roles: ['verwalter', 'buchhalter'],
 			items: [
