@@ -1,5 +1,6 @@
 <template>
 	<NcModal
+		v-if="show"
 		:show="show"
 		labelId="vbh-modal-title-whatsnew"
 		size="normal"

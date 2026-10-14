@@ -1,5 +1,6 @@
 <template>
 	<NcModal
+		v-if="show"
 		:show="show"
 		:name="isMobile ? t('Umsatz aufteilen') : ''"
 		:labelId="isMobile ? undefined : 'vbh-modal-title-split'"

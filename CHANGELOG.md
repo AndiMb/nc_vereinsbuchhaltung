@@ -41,7 +41,9 @@ verwenden, z. B. `**Neu:**`.
 **Behoben:**
 - „Aus Ordner wählen" im Buchungsdialog: Beim ersten Öffnen nach dem Laden
   der Seite zog der Buchungsdialog den Fokus immer wieder aus dem Suchfeld
-  des Popups zurück; Tippen lief ins Leere.
+  des Popups zurück; Tippen lief ins Leere. Buchungs-, Konto-, Import-,
+  Aufteilen-, Hilfe-, Einrichtungs- und „Was ist neu"-Dialog holen sich den
+  Fokus jetzt ebenfalls bei jedem Öffnen zuverlässig.
 
 ## [0.36.1] – 2026-10-11
 
