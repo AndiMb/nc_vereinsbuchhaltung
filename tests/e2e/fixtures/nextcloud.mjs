@@ -448,6 +448,11 @@ export const api = {
 		})
 	},
 
+	/** Kommentar einer Buchung setzen (auch im abgeschlossenen Geschäftsjahr). */
+	async setBookingComment(request, id, comment, updatedAt, { user = 'admin', expectOk = true } = {}) {
+		return call(request, 'PUT', `/journal/${id}/comment`, { user, expectOk, data: { comment, updatedAt } })
+	},
+
 	/** Buchung löschen – für Tests, die ihren Bestand hinterher wieder herstellen. */
 	async deleteBooking(request, id, { user = 'admin' } = {}) {
 		return call(request, 'DELETE', `/journal/${id}`, { user })

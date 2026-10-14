@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\Period;
+use OCA\Vereinsbuchhaltung\Service\AccountStatementService;
 use OCA\Vereinsbuchhaltung\Service\CsvFormatter;
 use OCA\Vereinsbuchhaltung\Service\JournalService;
 use OCA\Vereinsbuchhaltung\Service\LedgerAggregator;
@@ -17,8 +18,8 @@ use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCA\Vereinsbuchhaltung\Service\ReportService;
 
 /**
- * Die CSV-Exporte: Journal, Saldenliste, Einnahmen-/Ausgaben-Übersicht,
- * Finanzplan und Mehrjahresübersicht.
+ * Die CSV-Exporte: Journal, Kontenblatt, Saldenliste, Einnahmen-/Ausgaben-
+ * Übersicht, Finanzplan und Mehrjahresübersicht.
  *
  * Getrennt vom Controller, weil hier keine HTTP-Entscheidung mehr fällt –
  * herauskommt eine Zeichenkette und ein Dateiname. Die Zahlen selbst stammen
@@ -41,6 +42,7 @@ class CsvExportService {
 		private BudgetMapper $budgetMapper,
 		private ReportService $reportService,
 		private PeriodService $periods,
+		private AccountStatementService $statements,
 	) {
 	}
 
@@ -130,6 +132,42 @@ class CsvExportService {
 		}
 
 		return new CsvFile($csv, 'journal_' . $this->periodLabel($userId, $periodId) . '.csv');
+	}
+
+	/**
+	 * Kontenblatt: die Buchungen eines Kontos (optional mit Unterkonten) samt
+	 * Saldovortrag, laufendem Saldo und Summenzeile – dieselben Zahlen wie der
+	 * Kontoauszug im Reiter Konten, immer chronologisch.
+	 * Format: Nr.;Datum;Beschreibung;Belegnr.;Konto;Gegenkonto;Soll (EUR);Haben (EUR);Saldo (EUR)
+	 *
+	 * @throws \OCP\AppFramework\Db\DoesNotExistException wenn das Konto fehlt
+	 */
+	public function accountStatement(string $userId, int $accountId, bool $includeChildren, ?int $periodId = null): CsvFile {
+		$statement = $this->statements->build($userId, $accountId, $includeChildren, $periodId);
+
+		$csv = self::BOM;
+		$csv .= self::line(['Nr.', 'Datum', 'Beschreibung', 'Belegnr.', 'Konto', 'Gegenkonto', 'Soll (EUR)', 'Haben (EUR)', 'Saldo (EUR)']);
+		if ($statement['carryDate'] !== null) {
+			$csv .= self::line(['', ReportFormat::date($statement['carryDate']), 'Saldovortrag', '', '', '', '', '', ReportFormat::money((float)$statement['carry'])]);
+		}
+		foreach ($statement['rows'] as $row) {
+			$csv .= self::line([
+				(string)($row['entryNo'] ?? ''),
+				ReportFormat::date((string)$row['date']),
+				(string)($row['description'] ?? ''),
+				(string)($row['documentRef'] ?? ''),
+				(string)$row['account'],
+				(string)$row['contra'],
+				$row['debit'] ? ReportFormat::money((float)$row['debit']) : '',
+				$row['credit'] ? ReportFormat::money((float)$row['credit']) : '',
+				ReportFormat::money((float)$row['saldo']),
+			]);
+		}
+		$totals = $statement['totals'];
+		$csv .= self::line(['', '', 'Summe', '', '', '', ReportFormat::money((float)$totals['debit']), ReportFormat::money((float)$totals['credit']), ReportFormat::money((float)$totals['balance'])]);
+
+		$number = AttachmentArchive::slug((string)$statement['account']->getNumber());
+		return new CsvFile($csv, 'kontenblatt_' . $number . '_' . $this->periodLabel($userId, $periodId) . '.csv');
 	}
 
 	/**

@@ -17,6 +17,24 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+## [0.36.2] – 2026-10-13
+
+**New:**
+- **Comments on entries:** The entry dialog can hold a note on the entry,
+  e.g. for a later review or the audit. It is not part of the posting itself
+  and therefore stays editable in a closed fiscal year; every change is
+  recorded in the change log. In the lists an icon shows the comment as a
+  tooltip; on mobile it appears on the card.
+- **Account sheet as CSV and print view:** The account statement in the
+  Accounts tab can be exported for the selected period – with the balance
+  carried forward, running balance and a totals row, optionally including
+  sub-accounts.
+- **Sortable account statement:** Clicking a column header sorts the table;
+  each row keeps its running balance.
+
+**Improved:**
+- Long account names in the account list show the full name on hover.
+
 ## [0.36.1] – 2026-10-11
 
 **New:**

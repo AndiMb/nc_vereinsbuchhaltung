@@ -19,6 +19,25 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+## [0.36.2] – 2026-10-13
+
+**Neu:**
+- **Kommentar an Buchungen:** Im Buchungsdialog lässt sich ein Hinweis zur
+  Buchung hinterlegen, etwa für eine spätere Prüfung oder die Kassenprüfung.
+  Er gehört nicht zum Buchungssatz und bleibt deshalb auch im abgeschlossenen
+  Geschäftsjahr änderbar; jede Änderung steht im Änderungsprotokoll. In den
+  Listen zeigt ein Symbol den Kommentar als Tooltip, mobil steht er auf der
+  Karte.
+- **Kontenblatt als CSV und Druckansicht:** Der Kontoauszug im Reiter Konten
+  lässt sich für den gewählten Zeitraum exportieren – mit Saldovortrag,
+  laufendem Saldo und Summenzeile, auf Wunsch inklusive Unterkonten.
+- **Kontoauszug sortierbar:** Ein Klick auf eine Spaltenüberschrift sortiert
+  die Tabelle; der laufende Saldo jeder Zeile bleibt erhalten.
+
+**Verbessert:**
+- Lange Kontonamen in der Kontenliste zeigen beim Daraufzeigen den
+  vollständigen Namen.
+
 ## [0.36.1] – 2026-10-11
 
 **Neu:**

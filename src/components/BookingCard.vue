@@ -13,6 +13,12 @@
 		<div class="vbh-mcard-title">
 			{{ row.description || t('(ohne Beschreibung)') }}
 		</div>
+		<!-- Mobil gibt es keinen Tooltip: der Kommentar steht deshalb als
+		     gekuerzte Zeile direkt auf der Karte. -->
+		<div v-if="row.comment" class="vbh-mcard-comment">
+			<NcIconSvgWrapper :path="mdiCommentTextOutline" :size="14" inline />
+			<span class="vbh-clamp">{{ row.comment }}</span>
+		</div>
 		<div class="vbh-mcard-bottom">
 			<!-- Bei einer Splittbuchung stehen in soll/haben mehrere Konten; die
 			     zu zeigen ist nuetzlicher als der blosse Hinweis, dass es eine
@@ -33,7 +39,7 @@
 </template>
 
 <script>
-import { mdiPaperclip } from '@mdi/js'
+import { mdiCommentTextOutline, mdiPaperclip } from '@mdi/js'
 import { NcIconSvgWrapper } from '@nextcloud/vue'
 import { flowClass, flowLabel, formatFlowMoney } from '../lib/flow.js'
 import { formatDate } from '../lib/format.js'
@@ -58,7 +64,7 @@ export default {
 	emits: ['open', 'paperclip'],
 
 	data() {
-		return { mdiPaperclip }
+		return { mdiCommentTextOutline, mdiPaperclip }
 	},
 
 	computed: {

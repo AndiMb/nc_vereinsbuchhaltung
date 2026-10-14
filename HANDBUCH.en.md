@@ -497,6 +497,18 @@ on **both** sides are excluded – the app doesn't create those itself, they
 could at most come from external data; the app shows them and warns when
 editing.
 
+**Comment on a posting.** Below the accounts, the entry dialog has a
+**Comment** field – for notes that belong to the posting but not into its
+description: "receipt handed in later", "agreed with the board", a question
+from the audit. A posting with a comment carries a speech-bubble icon in the
+lists (**Entries** tab and account statement); hovering shows the text, on
+mobile it is shown right on the card. The comment is **not part of the
+posting itself**: it can still be added or changed in a **closed** fiscal
+year (the dialog then only offers *Save comment*). Accountants and
+administrators may change it, auditors can read it. Every change is recorded
+in the **change log** with the old and new text. Comments do not appear in
+the exports.
+
 ### 4.5 Open items (unpaid receivables)
 
 **Bookings → Open items** tab. A lean list for receivables that haven't
@@ -572,6 +584,22 @@ Clicking an account (in the trial balance or the Accounts tab) shows the
 **account statement**: every posting with a running balance and the balance
 carried forward from the first day of the selected period. Ideal for
 reconciling a single bank or cash balance against the bank statement.
+
+**Sorting.** Clicking a column header (No., date, description, contra account,
+debit, credit, balance) sorts the table by it; a second click reverses the
+order. Each row keeps its running balance from the chronological order, and
+the balance carried forward stays on top. Switching to another account
+returns to chronological order.
+
+**Exporting the account sheet.** Next to the totals are **CSV** and
+**Print**: they produce the account sheet for the selected period – with the
+balance carried forward, running balance and a totals row, and with "incl.
+sub-accounts" also the postings of the sub-accounts. *Print* opens a
+print-ready page in a new tab (print or save as PDF there), e.g. to file for
+the audit. Exports are always in chronological order.
+
+The account list on the left shortens long account names; hovering shows the
+full name.
 
 **Editing a posting.** If you notice a mistake while reviewing, correct it
 right there – without switching to the journal and without noting down the
