@@ -116,6 +116,10 @@ test.describe('Wächter-Ordner für Belege', () => {
 		await page.getByRole('button', { name: 'Buchung', exact: true }).click()
 		const bookingDialog = page.getByRole('dialog', { name: 'Neue Buchung' })
 		await skipBookingTour(bookingDialog)
+		// Erst wenn der Buchungsdialog den Fokus hält, ist seine Fokusfalle aktiv (nach der Einblend-Animation).
+		// Öffnet das Popup vorher, schiebt sich die Falle des Buchungsdialogs danach darüber und zieht den Fokus
+		// zurück – so schnell klickt kein Mensch, ein Runner schon.
+		await expect(bookingDialog.locator(':focus')).toHaveCount(1)
 		await bookingDialog.getByRole('button', { name: 'Aus Ordner wählen' }).click()
 
 		// Aus dem verschachtelten Popup heraus: sofort tippen, ohne vorher zu

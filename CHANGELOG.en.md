@@ -35,6 +35,13 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 **Improved:**
 - Long account names in the account list show the full name on hover.
 
+**Fixed:**
+- "Pick from folder" in the entry dialog: on the first open after loading
+  the page, the entry dialog kept pulling the focus out of the popup's search
+  field, so typing went nowhere. The entry, account, import, split, help,
+  setup and "What's new" dialogs now also reliably take the focus every time
+  they open.
+
 ## [0.36.1] – 2026-10-11
 
 **New:**

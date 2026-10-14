@@ -1,5 +1,6 @@
 <template>
 	<NcModal
+		v-if="show"
 		:show="show"
 		:name="isMobile ? title : ''"
 		:labelId="isMobile ? undefined : 'vbh-modal-title-folder'"
@@ -7,6 +8,11 @@
 		:closeOnClickOutside="true"
 		@close="$emit('close')"
 		@update:show="$emit('update:show', $event)">
+		<!-- v-if statt nur :show: Ein dauerhaft eingehaengtes NcModal legt seine
+		     Fokusfalle schon beim Laden der Seite an (unsichtbar) und verwendet sie
+		     beim ersten Oeffnen weiter, statt sie oben auf den Stapel zu legen. Aus
+		     dem Buchungsdialog heraus zog dessen Falle den Fokus dann immer wieder
+		     aus dem Suchfeld zurueck. Frisch eingehaengt kommt die Falle nach oben. -->
 		<div class="vbh-modal-inner">
 			<h2 v-if="!isMobile" id="vbh-modal-title-folder" class="vbh-modal-title">
 				{{ title }}

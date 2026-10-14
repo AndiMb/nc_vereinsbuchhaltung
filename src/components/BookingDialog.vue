@@ -1,5 +1,6 @@
 <template>
 	<NcModal
+		v-if="show"
 		:show="show"
 		:name="isMobile ? bookingTitle : ''"
 		:labelId="isMobile ? undefined : 'vbh-modal-title-booking'"
@@ -7,6 +8,8 @@
 		:closeOnClickOutside="!bookingSaving"
 		@close="requestClose"
 		@update:show="requestShow">
+		<!-- v-if: frische Fokusfalle bei jedem Oeffnen, sonst kommt sie beim
+		     ersten Mal nicht nach oben (siehe AttachmentFolderDialog.vue). -->
 		<div class="vbh-modal-inner">
 			<h2 v-if="!isMobile" id="vbh-modal-title-booking" class="vbh-modal-title">
 				{{ bookingTitle }}
