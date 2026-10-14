@@ -38,6 +38,11 @@ verwenden, z. B. `**Neu:**`.
 - Lange Kontonamen in der Kontenliste zeigen beim Daraufzeigen den
   vollständigen Namen.
 
+**Behoben:**
+- „Aus Ordner wählen" im Buchungsdialog: Beim ersten Öffnen nach dem Laden
+  der Seite zog der Buchungsdialog den Fokus immer wieder aus dem Suchfeld
+  des Popups zurück; Tippen lief ins Leere.
+
 ## [0.36.1] – 2026-10-11
 
 **Neu:**
