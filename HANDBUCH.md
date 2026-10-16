@@ -773,6 +773,37 @@ Semester-Regel also je Semester. Die App zeigt daneben den **Ist-Wert** und
 die farbige **Abweichung** – so sehen Sie frühzeitig, ob z. B. die
 Versicherungen über dem Plan liegen.
 
+**Planen auf Ober- und Unterkonten.** Der Finanzplan folgt der
+Kontenhierarchie (Überkonto im Kontenplan). Oft wird auf einem
+Sammelkonto geplant („544 01 Mitgliedsbeiträge", 50.000 €), gebucht aber
+auf dessen Unterkonten („544 01 02 Dachverband"). Deshalb gilt:
+
+- **Ist und Differenz schließen alle Unterkonten ein.** Das Sammelkonto
+  zeigt die Summe seiner Unterkonten und vergleicht sie mit seinem Plan.
+  Wurde zusätzlich direkt auf dem Sammelkonto gebucht, steht darunter
+  „davon direkt …".
+- **Je Zweig wird auf genau einer Ebene geplant.** Trägt ein Konto einen
+  Planwert, sind die Planfelder seiner Ober- und Unterkonten gesperrt; sie
+  zeigen stattdessen, auf welchem Konto der Plan liegt. Ein Oberkonto ohne
+  eigenen Plan zeigt die Summe der Pläne darunter. Ein Planwert von 0 zählt
+  nicht als Plan.
+- **Aufklappen:** Beim Öffnen ist jeder Zweig bis zu dem Konto aufgeklappt,
+  das den Plan trägt. Mit dem Pfeil vor dem Kontonamen, „Alle aufklappen"
+  und „Alle zuklappen" sehen Sie mehr oder weniger Details.
+- **Auffälligkeiten:** „überschritten" markiert Ausgaben über Plan, „ohne
+  Plan" Buchungen auf Konten, für die weder dort noch auf einem Oberkonto
+  geplant wurde. Ein eingeklapptes Konto mit solchen Buchungen darunter
+  trägt „ungeplant darunter". Der Schalter **Nur Auffälligkeiten** blendet
+  alles andere aus. Mindereinnahmen gelten bewusst nicht als
+  Auffälligkeit – im laufenden Jahr sind sie der Normalfall; die Farbe der
+  Differenz zeigt sie trotzdem.
+- **Plankonflikt:** Stammen Planwerte aus der Zeit vor dieser Regel und
+  liegen in einem Zweig auf mehreren Ebenen, weist ein Hinweis darauf hin
+  und die Summen zählen beide. Setzen Sie einen der Werte auf 0.
+- **Drucken / PDF:** Der Soll-Ist-Vergleich lässt sich als druckfertige
+  Seite für den Vorstand öffnen – bis zur Planungsebene, bis zu einer
+  festen Ebene oder mit allen Unterkonten.
+
 - **Notiz je Planzahl:** Herleitung festhalten, z. B. „40 Mitglieder ×
   25 €". Macht den Plan nachvollziehbar und bei der MV verteidigbar.
 - **Plan-Stände (Snapshots):** Den kompletten Plan als benannten, datierten
@@ -792,7 +823,9 @@ Download-Buttons (Pfeil-nach-unten-Symbol):
 - **Journal** (alle Buchungssätze des gewählten Zeitraums)
 - **Saldenliste**
 - **Einnahmen-/Ausgaben-Übersicht**
-- **Soll-Ist-Vergleich** (Finanzplan, inkl. Notizen)
+- **Soll-Ist-Vergleich** (Finanzplan, inkl. Notizen; mit Spalte „Ebene"
+  für die Gliederung in Excel, Plan/Ist je Konto und über die Unterkonten
+  summiert sowie den Auffälligkeiten als Text)
 - **Mehrjahresübersicht** (Matrix: Erfolgsrechnung + Vermögen + Auswertungsgruppen
   + steuerliche Sphären über alle Zeiträume)
 

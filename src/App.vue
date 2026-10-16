@@ -337,7 +337,6 @@
 		<BudgetSnapshotModal
 			:show="snapshotView.open"
 			:snapshot="snapshotView.data"
-			:currentPlanForAccount="currentPlanForAccount"
 			@update:show="snapshotView.open = $event"
 			@close="closeSnapshot" />
 
@@ -2669,15 +2668,6 @@ export default {
 		},
 
 		closeSnapshot() { this.snapshotView = { open: false, data: null } },
-		/**
-		 * Planwert eines Kontos im aktuellen Plan (für Vergleich im Stand-Detail).
-		 *
-		 * @param accountId
-		 */
-		currentPlanForAccount(accountId) {
-			const row = this.budgetData && this.budgetData.rows.find((r) => r.accountId === accountId)
-			return row ? row.plan : 0
-		},
 
 		// --- Berechtigungen ---
 		async loadMe() {

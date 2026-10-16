@@ -1063,6 +1063,32 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-parentrow td .vbh-treeglyph { font-weight: 400; }
 
+/* Finanzplan als Baum (BudgetTreeTable.vue) */
+.vbh-budgettree-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 8px 0; }
+
+.vbh-budgettree-counts { color: var(--color-text-maxcontrast); font-size: 0.9em; }
+
+/* Schmal lieber waagerecht scrollen (.vbh-tablecard) als das Planfeld über den Kontonamen schieben. */
+.vbh-budgettree .vbh-table { min-width: 600px; }
+
+.vbh-budgettree-name { display: flex; align-items: flex-start; gap: 4px; }
+
+.vbh-budgettree-name .vbh-pill { margin-inline-start: 4px; }
+
+.vbh-budgettree-toggle.vbh-budgettree-toggle { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 24px; height: 24px; min-height: 0; margin: 0; padding: 0; border: none; border-radius: var(--border-radius); background: transparent; color: inherit; cursor: pointer; }
+
+.vbh-budgettree-toggle.vbh-budgettree-toggle:hover, .vbh-budgettree-toggle.vbh-budgettree-toggle:focus-visible { background: var(--color-background-hover); }
+
+.vbh-budgettree-spacer { flex: 0 0 24px; }
+
+.vbh-budgettree-locked { color: var(--color-text-maxcontrast); font-style: italic; font-weight: 400; cursor: help; }
+
+.vbh-budgettree-direct { color: var(--color-text-maxcontrast); font-size: 0.85em; font-weight: 400; }
+
+.vbh-budgettree .vbh-parentrow td { font-weight: 500; }
+
+.vbh-budgettree .vbh-budgettree-planitem td { font-weight: 600; }
+
 /* Info: Anfangsbestände (xbuc-Import) */
 .vbh-openinfo { margin: 8px 0; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: var(--border-radius, 6px); background: var(--color-background-hover); }
 

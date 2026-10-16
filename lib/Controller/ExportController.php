@@ -12,6 +12,7 @@ use OCA\Vereinsbuchhaltung\Service\Export\BeitragsbescheinigungRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\CsvExportService;
 use OCA\Vereinsbuchhaltung\Service\Export\CsvFile;
 use OCA\Vereinsbuchhaltung\Service\Export\DatenuebersichtRenderer;
+use OCA\Vereinsbuchhaltung\Service\Export\FinanzplanRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\KassenberichtRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\KurzberichtRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\PrintableReportPage;
@@ -59,6 +60,7 @@ class ExportController extends Controller {
 		private BeitragsbescheinigungRenderer $beitragsbescheinigung,
 		private DatenuebersichtRenderer $datenuebersicht,
 		private AccountStatementRenderer $accountStatement,
+		private FinanzplanRenderer $finanzplan,
 		private PeriodService $periods,
 		private IL10N $l10n,
 	) {
@@ -133,6 +135,17 @@ class ExportController extends Controller {
 	#[NoCSRFRequired]
 	public function budget(?int $period = null): DataDownloadResponse {
 		return $this->download($this->csv->budget($this->userId(), $period));
+	}
+
+	/**
+	 * Soll-Ist-Vergleich als druckfertige HTML-Seite für den Vorstand.
+	 *
+	 * @param string $depth `plan` (bis zur Planungsebene), Tiefe ab 0 oder `all`
+	 */
+	#[NoAdminRequired]
+	#[NoCSRFRequired]
+	public function finanzplan(?int $period = null, string $depth = 'plan'): DataDisplayResponse {
+		return $this->printableResponse($this->finanzplan->render($this->userId(), $period, $depth));
 	}
 
 	/** Mehrjahresübersicht als CSV-Matrix. */

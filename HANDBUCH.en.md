@@ -758,6 +758,38 @@ means per semester. The app shows the **actual value** next to it and the
 color-coded **deviation** – so you can see early whether, for example,
 insurance is over budget.
 
+**Budgeting on parent and sub-accounts.** The financial plan follows the
+account hierarchy (parent account in the chart of accounts). Often the
+budget sits on a summary account ("544 01 Membership fees", €50,000)
+while entries are posted to its sub-accounts ("544 01 02 Umbrella association"). That is
+why:
+
+- **Actual and difference include all sub-accounts.** The summary account
+  shows the total of its sub-accounts and compares it with its budget. If
+  entries were also posted directly to the summary account, "of which
+  directly …" appears below.
+- **Each branch is budgeted on exactly one level.** Once an account has a
+  budget figure, the budget fields of its parent and sub-accounts are
+  locked; they show which account carries the budget instead. A parent
+  account without a budget of its own shows the total of the budgets
+  below it. A budget figure of 0 does not count as a budget.
+- **Expanding:** on opening, every branch is expanded down to the account
+  that carries the budget. Use the arrow in front of the account name,
+  "Expand all" and "Collapse all" to see more or less detail.
+- **Items needing attention:** "over budget" marks expenses above the
+  budget, "unbudgeted" marks entries on accounts with no budget on the
+  account itself or any parent. A collapsed account with such entries
+  below it shows "unbudgeted below". The **Only items needing attention**
+  switch hides everything else. Income below budget deliberately does not
+  count – during the year it is the normal case; the colour of the
+  difference still shows it.
+- **Budget conflict:** if budget figures from before this rule sit on
+  several levels of one branch, a notice points this out and the totals
+  count both. Set one of the figures to 0.
+- **Print / PDF:** the budget vs. actual comparison opens as a
+  print-ready page for the board – down to the budget level, down to a
+  fixed level, or with all sub-accounts.
+
 - **Note per plan figure:** record the rationale, e.g. "40 members ×
   €25". Makes the plan traceable and defensible at the general assembly.
 - **Plan snapshots:** freeze the entire plan as a named, dated snapshot –
@@ -777,7 +809,9 @@ The **Bookings** and **Reports** tabs each have download buttons
 - **Journal** (all postings of the selected period)
 - **Trial balance**
 - **Income/expense overview**
-- **Plan/actual comparison** (financial plan, including notes)
+- **Plan/actual comparison** (financial plan, including notes; with a
+  "Level" column for outlining in Excel, budget/actual per account and
+  summed over the sub-accounts, and the items needing attention as text)
 - **Multi-year overview** (matrix: income statement + assets + cost
   centers + tax spheres across all periods)
 
