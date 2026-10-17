@@ -141,6 +141,22 @@
 					download
 					class="vbh-export-btn"
 					:title="t('Soll-Ist-Vergleich als CSV exportieren')"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> {{ t('Soll-Ist-Vergleich') }}</a>
+				<NcActions
+					v-if="reportView === 'budget'"
+					:menuName="t('Drucken / PDF')"
+					:aria-label="t('Soll-Ist-Vergleich drucken')">
+					<template #icon>
+						<NcIconSvgWrapper :path="mdiPrinter" :size="16" />
+					</template>
+					<NcActionLink
+						v-for="d in budgetPrintDepths"
+						:key="d.value"
+						:href="budgetPrintUrl(d.value)"
+						target="_blank"
+						:closeAfterClick="true">
+						{{ d.label }}
+					</NcActionLink>
+				</NcActions>
 
 				<!-- Gruppierung + Pflege-Einstieg: nur in den beiden Split-Ansichten,
 				     dort wo bis 0.23.1 das Pflegepanel als zweiter Block unter dem
@@ -691,7 +707,7 @@
 					</NcButton>
 				</div>
 				<p class="vbh-hint">
-					{{ t('Planen Sie je Konto die erwarteten Einnahmen und Ausgaben (Spalte „Plan"). Die Spalte „Ist" zeigt die tatsächlichen Buchungen des gewählten Zeitraums, „Differenz" den Abstand zum Plan.') }}
+					{{ t('Planen Sie je Konto die erwarteten Einnahmen und Ausgaben (Spalte „Plan"). Geplant wird je Zweig auf genau einer Ebene – ein Oberkonto zeigt die Summe der Pläne darunter. „Ist" zeigt die tatsächlichen Buchungen des gewählten Zeitraums einschließlich aller Unterkonten, „Differenz" den Abstand zum Plan.') }}
 				</p>
 
 				<div v-if="budgetData" class="vbh-totals">
@@ -709,87 +725,13 @@
 					</div>
 				</div>
 
-				<div v-if="budgetData && budgetData.rows.length" class="vbh-tablecard">
-					<table class="vbh-table">
-						<thead>
-							<tr>
-								<th class="nowrap vbh-col-hide-sm">
-									{{ t('Nr.') }}
-								</th>
-								<th>{{ t('Konto') }}</th>
-								<th class="vbh-col-hide-sm">
-									{{ t('Art') }}
-								</th>
-								<th class="num vbh-col-plan">
-									{{ t('Plan (Soll)') }}
-								</th>
-								<th class="vbh-col-note" :title="t('Notiz zur Planzahl')" />
-								<th class="num">
-									{{ t('Ist') }}
-								</th>
-								<th class="num">
-									{{ t('Differenz') }}
-								</th>
-							</tr>
-						</thead>
-						<tbody>
-							<template v-for="row in budgetData.rows" :key="row.accountId">
-								<tr>
-									<td class="nowrap vbh-col-hide-sm">
-										{{ row.number }}
-									</td>
-									<td>{{ row.name }}</td>
-									<td class="vbh-col-hide-sm">
-										<span class="vbh-typetag" :class="row.type">{{ typeLabel(row.type) }}</span>
-									</td>
-									<td class="num vbh-col-plan">
-										<AmountInput
-											v-if="canWrite"
-											v-model="row.plan"
-											:emptyValue="0"
-											class="vbh-num vbh-planinput"
-											:aria-label="tRaw('Planwert für {number} {name}', { number: row.number, name: row.name })"
-											@change="saveBudget(row)" />
-										<span v-else>{{ formatMoney(row.plan) }}</span>
-									</td>
-									<td class="vbh-col-note">
-										<NcButton
-											v-if="canWrite || row.note"
-											variant="tertiary"
-											:aria-label="row.note ? t('Notiz zur Planzahl anzeigen') : t('Notiz zur Planzahl hinzufügen')"
-											:title="row.note || t('Notiz hinzufügen')"
-											@click="toggleBudgetNote(row)">
-											<template #icon>
-												<NcIconSvgWrapper :path="row.note ? mdiCommentText : mdiCommentPlusOutline" :size="18" :class="{ 'vbh-noteicon--set': row.note }" />
-											</template>
-										</NcButton>
-									</td>
-									<td class="num strong" :class="amountClass(row.actual)">
-										{{ formatMoney(row.actual) }}
-									</td>
-									<td class="num strong" :class="budgetDiffClass(row)">
-										{{ formatMoney(row.diff) }}
-									</td>
-								</tr>
-								<tr v-if="budgetNoteOpen[row.accountId]" class="vbh-note-row">
-									<td colspan="7">
-										<label class="vbh-note-label">{{ tRaw('Notiz zu {number} {name}', { number: row.number, name: row.name }) }}
-											<textarea
-												v-if="canWrite"
-												v-model="row.note"
-												maxlength="1000"
-												rows="2"
-												class="vbh-note-textarea"
-												:placeholder="t('z. B. Herleitung: 40 Mitglieder × 25 € Beitrag')"
-												@change="saveBudget(row)" />
-											<p v-else class="vbh-note-text">{{ row.note }}</p>
-										</label>
-									</td>
-								</tr>
-							</template>
-						</tbody>
-					</table>
-				</div>
+				<BudgetTreeTable
+					v-if="budgetData && budgetData.rows.length"
+					:rows="budgetData.rows"
+					:canWrite="canWrite"
+					:conflictCount="budgetData.conflictCount || 0"
+					:resetKey="budgetData.periodId"
+					@save="saveBudget" />
 				<p v-else-if="budgetData" class="vbh-empty">
 					{{ t('Keine Einnahmen-/Ausgabenkonten vorhanden.') }}
 				</p>
@@ -958,7 +900,7 @@
 </template>
 
 <script>
-import { mdiCalendarRange, mdiCommentPlusOutline, mdiCommentText, mdiDelete, mdiDownload, mdiPaperclip, mdiPrinter } from '@mdi/js'
+import { mdiCalendarRange, mdiDelete, mdiDownload, mdiPaperclip, mdiPrinter } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { NcActionInput, NcActionLink, NcActions, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, NcModal } from '@nextcloud/vue'
 import {
@@ -972,7 +914,7 @@ import {
 	Tooltip,
 } from 'chart.js'
 import { toRefs } from 'vue'
-import AmountInput from './AmountInput.vue'
+import BudgetTreeTable from './BudgetTreeTable.vue'
 import CostCenterPanel from './CostCenterPanel.vue'
 import SphereAssignPanel from './SphereAssignPanel.vue'
 import api from '../api.js'
@@ -989,7 +931,7 @@ Chart.register(LineController, LineElement, PointElement, CategoryScale, LinearS
 
 export default {
 	name: 'ReportsTab',
-	components: { NcButton, NcActions, NcActionInput, NcActionLink, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, NcModal, AmountInput, CostCenterPanel, SphereAssignPanel },
+	components: { NcButton, NcActions, NcActionInput, NcActionLink, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, NcModal, BudgetTreeTable, CostCenterPanel, SphereAssignPanel },
 	props: {
 		// Kostenstellen-Modus (group|account|manual), gesteuert ueber den
 		// Gruppierungs-Waehler in der Kopfzeile (nur reportView==='costcenters').
@@ -1068,8 +1010,6 @@ export default {
 			mdiPaperclip,
 			mdiDownload,
 			mdiDelete,
-			mdiCommentText,
-			mdiCommentPlusOutline,
 			mdiCalendarRange,
 			balancesIncludeChildren: false,
 			multiyearTrendData: null,
@@ -1078,7 +1018,6 @@ export default {
 			// Doppelklick-Schutz fuer „Nächsten Zeitraum anlegen" - der Aufruf
 			// legt serverseitig an, ein zweiter waere ein zweiter Zeitraum.
 			creatingPeriod: false,
-			budgetNoteOpen: {},
 			newSnapshotLabel: '',
 			// Protokoll: Importe (CSV/xbuc/Wachordner/Beispieldaten) ausblenden, wenn
 			// nicht gebraucht - ersetzt die frühere separate Liste unter
@@ -1100,6 +1039,16 @@ export default {
 		exportReportUrl() { return api.exportReportUrl(this.selectedPeriodId) },
 		exportMultiyearUrl() { return api.exportMultiyearUrl() },
 		exportBudgetUrl() { return api.exportBudgetUrl(this.selectedPeriodId) },
+		budgetPrintDepths() {
+			return [
+				{ value: 'plan', label: this.t('Bis zur Planungsebene') },
+				{ value: '0', label: this.t('Nur Kontengruppen') },
+				{ value: '1', label: this.t('Bis zur 2. Ebene') },
+				{ value: '2', label: this.t('Bis zur 3. Ebene') },
+				{ value: 'all', label: this.t('Alle Unterkonten') },
+			]
+		},
+
 		// Import-Aktionen tragen alle objectType 'import' (CSV-/xbuc-/Wachordner-
 		// Import, Beispieldaten) - siehe die audit->log()-Aufrufe im Backend.
 		filteredAuditEntries() {
@@ -1425,16 +1374,18 @@ export default {
 			} catch (e) { showError(this.errMsg(e, this.t('Zeitraum konnte nicht angelegt werden'))) } finally { this.creatingPeriod = false }
 		},
 
+		budgetPrintUrl(depth) { return api.exportFinanzplanUrl(this.selectedPeriodId, depth) },
+
 		async saveBudget(row) {
 			if (!this.budgetData) { return }
 			try {
 				await api.setBudget(row.accountId, this.budgetData.periodId, Number(row.plan) || 0, (row.note || '').trim())
 				this.$emit('budget-changed')
-			} catch (e) { showError(this.errMsg(e, this.t('Planwert konnte nicht gespeichert werden'))) }
-		},
-
-		toggleBudgetNote(row) {
-			this.budgetNoteOpen[row.accountId] = !this.budgetNoteOpen[row.accountId]
+			} catch (e) {
+				showError(this.errMsg(e, this.t('Planwert konnte nicht gespeichert werden')))
+				// Abgelehnter Wert (z. B. Zweig schon anderswo geplant): Stand vom Server zurückholen.
+				this.$emit('budget-changed')
+			}
 		},
 
 		async saveBudgetSnapshot() {

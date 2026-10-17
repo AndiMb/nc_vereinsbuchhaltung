@@ -105,7 +105,86 @@ class BudgetSnapshotService {
 		$items = $this->itemMapper->findBySnapshot($id);
 		$detail = $this->summarize($userId, $snapshot, $items);
 		$detail['items'] = array_map(static fn (BudgetSnapshotItem $i) => $i->jsonSerialize(), $items);
+		$detail['tree'] = $this->tree($userId, (int)$snapshot->getPeriodId(), $items);
 		return $detail;
+	}
+
+	/**
+	 * Stand und aktueller Plan als Planbaum (siehe BudgetTree), damit ein
+	 * Stand genauso gelesen wird wie der Finanzplan selbst.
+	 *
+	 * Die Hierarchie kommt aus dem heutigen Kontenplan – ein Stand friert nur
+	 * Beträge ein. Positionen inzwischen gelöschter (oder nicht mehr
+	 * budgetierbarer) Konten stehen mit eingefrorener Nummer und Bezeichnung
+	 * als eigene Zeilen am Ende. Zweige, die in beiden Spalten leer sind,
+	 * entfallen.
+	 *
+	 * @param BudgetSnapshotItem[] $items
+	 * @return list<array<string, mixed>>
+	 */
+	private function tree(string $userId, int $periodId, array $items): array {
+		$accounts = [];
+		foreach ($this->accountMapper->findAll($userId) as $account) {
+			$accounts[(int)$account->getId()] = $account;
+		}
+		$snapshotCents = [];
+		foreach ($items as $item) {
+			$snapshotCents[(int)$item->getAccountId()] = (int)$item->getAmountCents();
+		}
+		$currentCents = [];
+		foreach ($this->budgetMapper->findByPeriod($userId, $periodId) as $accountId => $entry) {
+			$currentCents[(int)$accountId] = (int)$entry['amount'];
+		}
+
+		$nodes = BudgetTree::prune(
+			BudgetTree::annotate(
+				BudgetTree::build(BudgetTree::describe($accounts), ['snapshot' => $snapshotCents, 'current' => $currentCents]),
+				'snapshot',
+			),
+			['snapshot', 'current'],
+		);
+
+		$rows = [];
+		$inTree = [];
+		foreach ($nodes as $n) {
+			$inTree[$n['id']] = true;
+			$account = $accounts[$n['id']];
+			$rows[] = [
+				'accountId' => $n['id'],
+				'number' => $account->getNumber(),
+				'name' => $account->getName(),
+				'type' => $n['type'],
+				'treeParentId' => $n['treeParentId'],
+				'depth' => $n['depth'],
+				'hasChildren' => $n['hasChildren'],
+				// Aufgeklappt, solange darunter in einer der beiden Spalten
+				// noch etwas steht.
+				'expanded' => $n['below']['snapshot'] || $n['below']['current'],
+				'deleted' => false,
+				'snapshotSum' => $n['sum']['snapshot'] / 100,
+				'currentSum' => $n['sum']['current'] / 100,
+			];
+		}
+		foreach ($items as $item) {
+			$accountId = (int)$item->getAccountId();
+			if (isset($inTree[$accountId])) {
+				continue;
+			}
+			$rows[] = [
+				'accountId' => $accountId,
+				'number' => $item->getAccountNumber(),
+				'name' => $item->getAccountName(),
+				'type' => $item->getAccountType(),
+				'treeParentId' => null,
+				'depth' => 0,
+				'hasChildren' => false,
+				'expanded' => false,
+				'deleted' => !isset($accounts[$accountId]),
+				'snapshotSum' => (int)$item->getAmountCents() / 100,
+				'currentSum' => ($currentCents[$accountId] ?? 0) / 100,
+			];
+		}
+		return $rows;
 	}
 
 	/**

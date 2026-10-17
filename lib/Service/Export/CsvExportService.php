@@ -6,11 +6,12 @@ namespace OCA\Vereinsbuchhaltung\Service\Export;
 
 use OCA\Vereinsbuchhaltung\Db\Account;
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
-use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\Period;
 use OCA\Vereinsbuchhaltung\Service\AccountStatementService;
+use OCA\Vereinsbuchhaltung\Service\BudgetOverviewService;
+use OCA\Vereinsbuchhaltung\Service\BudgetTree;
 use OCA\Vereinsbuchhaltung\Service\CsvFormatter;
 use OCA\Vereinsbuchhaltung\Service\JournalService;
 use OCA\Vereinsbuchhaltung\Service\LedgerAggregator;
@@ -39,10 +40,10 @@ class CsvExportService {
 		private AccountMapper $accountMapper,
 		private JournalMapper $journalMapper,
 		private JournalLineMapper $lineMapper,
-		private BudgetMapper $budgetMapper,
 		private ReportService $reportService,
 		private PeriodService $periods,
 		private AccountStatementService $statements,
+		private BudgetOverviewService $budgetOverview,
 	) {
 	}
 
@@ -260,56 +261,76 @@ class CsvExportService {
 	}
 
 	/**
-	 * Finanzplan / Soll-Ist-Vergleich eines Geschäftsjahres.
-	 * Format: Typ;Nr.;Konto;Kategorie;Plan (EUR);Ist (EUR);Differenz (EUR);Notiz
+	 * Finanzplan / Soll-Ist-Vergleich eines Geschäftsjahres als Planbaum.
+	 * Format: Typ;Ebene;Nr.;Konto;Kategorie;Plan (EUR);Plan Σ (EUR);Ist (EUR);
+	 * Ist Σ (EUR);Differenz Σ (EUR);Status;Notiz
+	 *
+	 * „Ebene“ (1 = Wurzel) erlaubt in Excel die Gliederung nach Kontenebenen.
+	 * Plan/Ist sind die Werte direkt auf dem Konto, die Σ-Spalten schließen
+	 * alle Unterkonten ein (siehe BudgetTree).
 	 */
 	public function budget(string $userId, ?int $periodId = null): CsvFile {
-		$period = $this->periods->selectedOrCurrent($userId, $periodId);
-		$accounts = $this->accountMapper->findAll($userId);
-		$plan = $this->budgetMapper->findByPeriod($userId, (int)$period->getId());
-		$actualSums = $this->lineMapper->sumByAccount($userId, $period->getStartDate(), $period->getEndDate());
-
-		$soll = LedgerAggregator::planActual($accounts, $actualSums, $plan);
-		$rows = $soll['rows'];
-		usort($rows, static fn ($a, $b) => strcmp(
-			(string)$a['account']->getNumber(),
-			(string)$b['account']->getNumber(),
-		));
+		$data = $this->budgetOverview->build($userId, $periodId);
+		$period = $data['period'];
 
 		$csv = self::BOM;
-		$csv .= self::line(['Typ', 'Nr.', 'Konto', 'Kategorie', 'Plan (EUR)', 'Ist (EUR)', 'Differenz (EUR)', 'Notiz']);
-		foreach ($rows as $r) {
-			$account = $r['account'];
+		$csv .= self::line(['Typ', 'Ebene', 'Nr.', 'Konto', 'Kategorie', 'Plan (EUR)', 'Plan Σ (EUR)', 'Ist (EUR)', 'Ist Σ (EUR)', 'Differenz Σ (EUR)', 'Status', 'Notiz']);
+		foreach ($data['nodes'] as $node) {
+			$account = $data['accounts'][$node['id']];
 			$csv .= self::line([
 				$account->getType() === 'income' ? 'Einnahmen' : 'Ausgaben',
+				(string)($node['depth'] + 1),
 				(string)$account->getNumber(),
 				(string)$account->getName(),
 				(string)$account->getCategory(),
-				ReportFormat::money($r['planCents'] / 100),
-				ReportFormat::money($r['actualCents'] / 100),
-				ReportFormat::money(($r['actualCents'] - $r['planCents']) / 100),
-				$r['note'],
+				ReportFormat::money($node['own']['plan'] / 100),
+				ReportFormat::money($node['sum']['plan'] / 100),
+				ReportFormat::money($node['own']['actual'] / 100),
+				ReportFormat::money($node['sum']['actual'] / 100),
+				$node['comparable'] ? ReportFormat::money(($node['sum']['actual'] - $node['sum']['plan']) / 100) : '',
+				self::budgetStatus($node['flags']),
+				$data['notes'][$node['id']] ?? '',
 			]);
 		}
 
-		$planResult = $soll['planIncomeCents'] - $soll['planExpenseCents'];
-		$actualResult = $soll['actualIncomeCents'] - $soll['actualExpenseCents'];
-
-		$csv .= self::line(['', '', '', '', '', '', '', '']);
-		$csv .= self::planTotalLine('Einnahmen (Plan/Ist)', $soll['planIncomeCents'], $soll['actualIncomeCents']);
-		$csv .= self::planTotalLine('Ausgaben (Plan/Ist)', $soll['planExpenseCents'], $soll['actualExpenseCents']);
-		$csv .= self::planTotalLine('Ergebnis (Plan/Ist)', $planResult, $actualResult);
+		$t = $data['totals'];
+		$csv .= self::line(array_fill(0, 12, ''));
+		$csv .= self::planTotalLine('Einnahmen (Plan/Ist)', $t['planIncome'], $t['actualIncome']);
+		$csv .= self::planTotalLine('Ausgaben (Plan/Ist)', $t['planExpense'], $t['actualExpense']);
+		$csv .= self::planTotalLine('Ergebnis (Plan/Ist)', $t['planIncome'] - $t['planExpense'], $t['actualIncome'] - $t['actualExpense']);
 
 		return new CsvFile($csv, 'finanzplan_soll_ist_' . AttachmentArchive::slug($period->getLabel()) . '.csv');
 	}
 
+	/**
+	 * Auffälligkeiten einer Zeile im Klartext, wie sie der Bildschirm zeigt.
+	 *
+	 * @param list<string> $flags
+	 */
+	private static function budgetStatus(array $flags): string {
+		$labels = [
+			BudgetTree::FLAG_CONFLICT => 'Plankonflikt',
+			BudgetTree::FLAG_OVERRUN => 'überschritten',
+			BudgetTree::FLAG_UNPLANNED => 'ohne Plan',
+			BudgetTree::FLAG_UNPLANNED_BELOW => 'ungeplant darunter',
+		];
+		$out = [];
+		foreach ($flags as $flag) {
+			if (isset($labels[$flag])) {
+				$out[] = $labels[$flag];
+			}
+		}
+		return implode(', ', $out);
+	}
+
 	private static function planTotalLine(string $label, int $plan, int $actual): string {
 		return self::line([
-			$label, '', '', '',
+			$label, '', '', '', '', '',
 			ReportFormat::money($plan / 100),
+			'',
 			ReportFormat::money($actual / 100),
 			ReportFormat::money(($actual - $plan) / 100),
-			'',
+			'', '',
 		]);
 	}
 

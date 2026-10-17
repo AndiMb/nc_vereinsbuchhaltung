@@ -5,11 +5,9 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
-use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
-use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
+use OCA\Vereinsbuchhaltung\Service\BudgetOverviewService;
 use OCA\Vereinsbuchhaltung\Service\BudgetSnapshotService;
-use OCA\Vereinsbuchhaltung\Service\LedgerAggregator;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
@@ -24,9 +22,8 @@ class BudgetController extends Controller {
 
 	public function __construct(
 		IRequest $request,
-		private AccountMapper $accountMapper,
 		private BudgetMapper $budgetMapper,
-		private JournalLineMapper $lineMapper,
+		private BudgetOverviewService $overview,
 		private BudgetSnapshotService $snapshotService,
 		private PeriodService $periods,
 		private IL10N $l10n,
@@ -35,51 +32,64 @@ class BudgetController extends Controller {
 	}
 
 	/**
-	 * Finanzplan eines Geschäftsjahres: je Erfolgskonto Plan (Soll) und Ist
-	 * sowie Differenz.
+	 * Finanzplan eines Geschäftsjahres als Planbaum: je Erfolgskonto Plan und
+	 * Ist – eigen und über die Unterkonten summiert (Σ) – samt Sperren und
+	 * Auffälligkeiten (siehe BudgetTree). `diff` ist Ist Σ − Plan Σ, oder null
+	 * unter einem Planposten.
 	 */
 	#[NoAdminRequired]
 	public function index(?int $period = null): DataResponse {
-		$userId = $this->userId();
-		$p = $this->periods->selectedOrCurrent($userId, $period);
-
-		$accounts = $this->accountMapper->findAll($userId);
-		$plan = $this->budgetMapper->findByPeriod($userId, (int)$p->getId());
-		$actualSums = $this->lineMapper->sumByAccount($userId, $p->getStartDate(), $p->getEndDate());
-
-		$plan = LedgerAggregator::planActual($accounts, $actualSums, $plan);
+		$data = $this->overview->build($this->userId(), $period);
+		$p = $data['period'];
+		$accounts = $data['accounts'];
 
 		$rows = [];
-		foreach ($plan['rows'] as $row) {
-			$account = $row['account'];
+		foreach ($data['nodes'] as $node) {
+			$account = $accounts[$node['id']];
+			$locked = $node['planLockedBy'] !== null ? ($accounts[$node['planLockedBy']] ?? null) : null;
 			$rows[] = [
-				'accountId' => $account->getId(),
+				'accountId' => $node['id'],
 				'number' => $account->getNumber(),
 				'name' => $account->getName(),
 				'type' => $account->getType(),
 				'category' => $account->getCategory(),
-				'plan' => $row['planCents'] / 100,
-				'note' => $row['note'],
-				'actual' => $row['actualCents'] / 100,
-				'diff' => ($row['actualCents'] - $row['planCents']) / 100,
+				'plan' => $node['own']['plan'] / 100,
+				'note' => $data['notes'][$node['id']] ?? '',
+				'actual' => $node['own']['actual'] / 100,
+				'planSum' => $node['sum']['plan'] / 100,
+				'actualSum' => $node['sum']['actual'] / 100,
+				// null: Unterkonto eines Planpostens, verglichen wird dort.
+				'diff' => $node['comparable'] ? ($node['sum']['actual'] - $node['sum']['plan']) / 100 : null,
+				'treeParentId' => $node['treeParentId'],
+				'depth' => $node['depth'],
+				'hasChildren' => $node['hasChildren'],
+				'isPlanItem' => $node['isPlanItem'],
+				'planBelow' => $node['firstPlanBelow'] !== null,
+				'expanded' => $node['expanded'],
+				'planLockedBy' => $locked === null ? null : [
+					'accountId' => (int)$locked->getId(),
+					'number' => $locked->getNumber(),
+					'name' => $locked->getName(),
+				],
+				'flags' => $node['flags'],
 			];
 		}
 
-		usort($rows, static fn ($a, $b) => strcmp((string)$a['number'], (string)$b['number']));
-
+		$t = $data['totals'];
 		return new DataResponse([
 			'periodId' => (int)$p->getId(),
 			'label' => $p->getLabel(),
 			'startDate' => $p->getStartDate(),
 			'endDate' => $p->getEndDate(),
 			'rows' => $rows,
+			'conflictCount' => $data['conflictCount'],
 			'totals' => [
-				'planIncome' => $plan['planIncomeCents'] / 100,
-				'actualIncome' => $plan['actualIncomeCents'] / 100,
-				'planExpense' => $plan['planExpenseCents'] / 100,
-				'actualExpense' => $plan['actualExpenseCents'] / 100,
-				'planResult' => ($plan['planIncomeCents'] - $plan['planExpenseCents']) / 100,
-				'actualResult' => ($plan['actualIncomeCents'] - $plan['actualExpenseCents']) / 100,
+				'planIncome' => $t['planIncome'] / 100,
+				'actualIncome' => $t['actualIncome'] / 100,
+				'planExpense' => $t['planExpense'] / 100,
+				'actualExpense' => $t['actualExpense'] / 100,
+				'planResult' => ($t['planIncome'] - $t['planExpense']) / 100,
+				'actualResult' => ($t['actualIncome'] - $t['actualExpense']) / 100,
 			],
 		]);
 	}
@@ -87,6 +97,11 @@ class BudgetController extends Controller {
 	/**
 	 * Planwert eines Kontos für einen Zeitraum setzen (Betrag in Euro),
 	 * optional mit Notiz. Sind Betrag UND Notiz leer, wird der Eintrag entfernt.
+	 *
+	 * Je Zweig gibt es eine Planungsebene: Ist auf einem Vor- oder Nachfahren
+	 * schon geplant, wird ein Betrag ≠ 0 mit 409 abgelehnt. 0 geht immer (so
+	 * lassen sich Altkonflikte bereinigen), ebenso eine reine Notizänderung
+	 * bei unverändertem Betrag.
 	 */
 	#[NoAdminRequired]
 	public function set(int $accountId, int $period, float $amount = 0, string $note = ''): DataResponse {
@@ -95,10 +110,23 @@ class BudgetController extends Controller {
 		// erfundenen ID ein Planwert, den keine Ansicht je zeigt und den weder
 		// das Entfernen eines Zeitraums noch eine Umstellung wiederfindet.
 		// Eine unbekannte ID endet als 404 (PeriodNotFoundException).
-		$this->periods->find($this->userId(), $period);
+		$userId = $this->userId();
+		$this->periods->find($userId, $period);
 		$cents = (int)round($amount * 100);
 		$note = mb_substr(trim($note), 0, 1000);
-		$this->budgetMapper->upsert($this->userId(), $accountId, $period, $cents, $note);
+
+		if ($cents !== 0) {
+			$current = (int)($this->budgetMapper->findByPeriod($userId, $period)[$accountId]['amount'] ?? 0);
+			$blocking = $cents !== $current ? $this->overview->blockingPlan($userId, $period, $accountId) : null;
+			if ($blocking !== null) {
+				return new DataResponse([
+					'message' => $this->l10n->t('In diesem Zweig ist bereits auf %1$s %2$s geplant. Je Zweig gibt es nur eine Planungsebene.', [$blocking->getNumber(), $blocking->getName()]),
+					'blockingAccountId' => (int)$blocking->getId(),
+				], Http::STATUS_CONFLICT);
+			}
+		}
+
+		$this->budgetMapper->upsert($userId, $accountId, $period, $cents, $note);
 		return new DataResponse(['accountId' => $accountId, 'periodId' => $period, 'amount' => $cents / 100, 'note' => $note]);
 	}
 

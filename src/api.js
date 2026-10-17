@@ -295,6 +295,7 @@ export default {
 	exportBalancesUrl: (period) => generateUrl(base + '/export/balances') + (period ? `?period=${period}` : ''),
 	exportReportUrl: (period) => generateUrl(base + '/export/report') + (period ? `?period=${period}` : ''),
 	exportBudgetUrl: (period) => generateUrl(base + '/export/budget') + (period ? `?period=${period}` : ''),
+	exportFinanzplanUrl: (period, depth = 'plan') => generateUrl(base + '/export/finanzplan') + `?depth=${encodeURIComponent(depth)}` + (period ? `&period=${period}` : ''),
 	exportMultiyearUrl: () => generateUrl(base + '/export/multiyear'),
 	kassenberichtUrl: (period) => generateUrl(base + '/export/kassenbericht') + (period ? `?period=${period}` : ''),
 	kurzberichtUrl: (since) => generateUrl(base + '/export/kurzbericht') + (since ? `?since=${since}` : ''),
