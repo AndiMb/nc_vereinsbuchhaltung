@@ -28,24 +28,39 @@ class BudgetOverviewService {
 	}
 
 	/**
+	 * Mit Vergleich (Issue #114) kommt die Spalte `compare` hinzu: je Konto das
+	 * Ist oder der Plan der Vergleichsperiode, wie Plan und Ist über die
+	 * Unterkonten summiert.
+	 *
+	 * @param ?int $compareId null = die Periode davor, 0 = kein Vergleich,
+	 *                        sonst die ID der Vergleichsperiode
+	 * @param string $basis {@see BudgetComparison::BASIS_ACTUAL} oder BASIS_PLAN
 	 * @return array{
 	 *     period: Period,
 	 *     accounts: array<int, Account>,
 	 *     nodes: list<array<string, mixed>>,
 	 *     notes: array<int, string>,
-	 *     totals: array{planIncome:int, actualIncome:int, planExpense:int, actualExpense:int},
+	 *     totals: array{planIncome:int, actualIncome:int, planExpense:int, actualExpense:int, compareIncome:int, compareExpense:int},
 	 *     conflictCount: int,
+	 *     comparison: ?array{period: Period, basis: string},
 	 * }
 	 */
-	public function build(string $userId, ?int $periodId): array {
+	public function build(string $userId, ?int $periodId, ?int $compareId = 0, string $basis = BudgetComparison::BASIS_ACTUAL): array {
 		$period = $this->periods->selectedOrCurrent($userId, $periodId);
+		$compare = $this->comparePeriod($userId, $period, $compareId);
+		$basis = BudgetComparison::basis($basis);
 		$accounts = $this->accountMapper->findAll($userId);
 		$plan = $this->budgetMapper->findByPeriod($userId, (int)$period->getId());
 		$sums = $this->lineMapper->sumByAccount($userId, $period->getStartDate(), $period->getEndDate());
+		$comparePlan = $compare !== null && $basis === BudgetComparison::BASIS_PLAN
+			? $this->budgetMapper->findByPeriod($userId, (int)$compare->getId()) : [];
+		$compareSums = $compare !== null && $basis === BudgetComparison::BASIS_ACTUAL
+			? $this->lineMapper->sumByAccount($userId, $compare->getStartDate(), $compare->getEndDate()) : [];
 
 		$byId = [];
 		$planCents = [];
 		$actualCents = [];
+		$compareCents = [];
 		$notes = [];
 		foreach ($accounts as $account) {
 			$id = (int)$account->getId();
@@ -56,15 +71,23 @@ class BudgetOverviewService {
 			$planCents[$id] = (int)($plan[$id]['amount'] ?? 0);
 			$actualCents[$id] = LedgerAggregator::net($account, $sums);
 			$notes[$id] = (string)($plan[$id]['note'] ?? '');
+			$compareCents[$id] = $basis === BudgetComparison::BASIS_PLAN
+				? (int)($comparePlan[$id]['amount'] ?? 0)
+				: LedgerAggregator::net($account, $compareSums);
 		}
 
+		$columns = ['plan' => $planCents, 'actual' => $actualCents];
+		if ($compare !== null) {
+			$columns['compare'] = $compareCents;
+		}
 		$nodes = BudgetTree::annotate(
-			BudgetTree::build(BudgetTree::describe($accounts), ['plan' => $planCents, 'actual' => $actualCents]),
+			BudgetTree::build(BudgetTree::describe($accounts), $columns),
 			'plan',
 			'actual',
 		);
 		$planTotals = BudgetTree::totals($nodes, 'plan');
 		$actualTotals = BudgetTree::totals($nodes, 'actual');
+		$compareTotals = $compare !== null ? BudgetTree::totals($nodes, 'compare') : ['income' => 0, 'expense' => 0];
 
 		$conflicts = 0;
 		foreach ($nodes as $n) {
@@ -83,9 +106,28 @@ class BudgetOverviewService {
 				'actualIncome' => $actualTotals['income'],
 				'planExpense' => $planTotals['expense'],
 				'actualExpense' => $actualTotals['expense'],
+				'compareIncome' => $compareTotals['income'],
+				'compareExpense' => $compareTotals['expense'],
 			],
 			'conflictCount' => $conflicts,
+			'comparison' => $compare === null ? null : ['period' => $compare, 'basis' => $basis],
 		];
+	}
+
+	/**
+	 * Die Vergleichsperiode – oder null, wenn nicht verglichen wird. Die
+	 * gewählte Periode selbst ergibt keinen Vergleich.
+	 *
+	 * @throws \OCA\Vereinsbuchhaltung\Exception\PeriodNotFoundException bei unbekannter ID
+	 */
+	private function comparePeriod(string $userId, Period $period, ?int $compareId): ?Period {
+		if ($compareId === null) {
+			return $this->periods->previous($userId, $period);
+		}
+		if ($compareId <= 0 || $compareId === (int)$period->getId()) {
+			return null;
+		}
+		return $this->periods->find($userId, $compareId);
 	}
 
 	/**

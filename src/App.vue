@@ -194,6 +194,7 @@
 					:reportView="reportView"
 					:reportData="reportData"
 					:budgetData="budgetData"
+					:budgetCompareBasis="budgetCompareBasis"
 					:budgetSnapshots="budgetSnapshots"
 					:auditEntries="auditEntries"
 					:auditLoading="auditLoading"
@@ -222,6 +223,7 @@
 					@spheresChanged="onSpheresChanged"
 					@help="openHelp"
 					@budgetChanged="loadBudget"
+					@budgetCompareChanged="setBudgetCompare"
 					@snapshotsChanged="loadBudgetSnapshots" />
 			</section>
 
@@ -604,6 +606,10 @@ export default {
 			reportView: 'summary',
 			contribView: 'members',
 			budgetData: null,
+			// Vergleich im Finanzplan (Issue #114): null = Periode davor (wählt
+			// der Server), 0 = kein Vergleich, sonst die ID der Vergleichsperiode
+			budgetCompare: null,
+			budgetCompareBasis: 'actual',
 			budgetSnapshots: [],
 			snapshotView: { open: false, data: null },
 			busy: false,
@@ -1092,6 +1098,9 @@ export default {
 			// Jahresbezogene Caches invalidieren
 			this.ccBookings = {}
 			this.ccExpanded = {}
+			// Ein neuer Zeitraum vergleicht wieder mit dem Zeitraum davor
+			this.budgetCompare = null
+			this.budgetCompareBasis = 'actual'
 			this.busy = true
 			try {
 				const jobs = [this.loadBalances(), this.loadJournal(), this.loadSphereReport()]
@@ -2644,11 +2653,18 @@ export default {
 		// --- Finanzplan / Budget ---
 		async loadBudget() {
 			try {
-				const { data } = await api.budget(this.selectedPeriodId)
+				const { data } = await api.budget(this.selectedPeriodId, this.budgetCompare, this.budgetCompareBasis)
 				this.budgetData = data
 				await this.loadBudgetSnapshots()
 			} catch (e) { showError(this.errMsg(e, this.t('Finanzplan konnte nicht geladen werden'))) }
 		},
+
+		setBudgetCompare({ compare, basis }) {
+			this.budgetCompare = compare
+			this.budgetCompareBasis = basis
+			this.loadBudget()
+		},
+
 		// saveBudget/toggleBudgetNote/saveBudgetSnapshot/deleteBudgetSnapshot
 		// und das Anlegen des nächsten Zeitraums sind Teil von ReportsTab.vue.
 

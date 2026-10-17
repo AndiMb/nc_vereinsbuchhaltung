@@ -710,18 +710,61 @@
 					{{ t('Planen Sie je Konto die erwarteten Einnahmen und Ausgaben (Spalte „Plan"). Geplant wird je Zweig auf genau einer Ebene – ein Oberkonto zeigt die Summe der Pläne darunter. „Ist" zeigt die tatsächlichen Buchungen des gewählten Zeitraums einschließlich aller Unterkonten, „Differenz" den Abstand zum Plan.') }}
 				</p>
 
+				<!-- Vergleich mit einer anderen Periode (Issue #114). Angezeigt wird,
+				     womit der Server tatsächlich verglichen hat – bei einem neuen
+				     Zeitraum wählt er selbst den Zeitraum davor. -->
+				<div v-if="budgetData" class="vbh-budget-compare">
+					<label class="vbh-budget-compare-period">{{ t('Vergleich mit') }}
+						<NcSelect
+							v-model="budgetCompareOption"
+							:options="budgetCompareOptions"
+							label="label"
+							:clearable="false"
+							:searchable="false" />
+					</label>
+					<div class="vbh-budget-compare-basis" role="radiogroup" :aria-label="t('Verglichen wird')">
+						<NcCheckboxRadioSwitch
+							:modelValue="budgetCompareBasis"
+							type="radio"
+							name="vbh-budget-compare-basis"
+							value="actual"
+							:disabled="!budgetData.comparison"
+							@update:modelValue="setCompareBasis">
+							{{ t('Ist') }}
+						</NcCheckboxRadioSwitch>
+						<NcCheckboxRadioSwitch
+							:modelValue="budgetCompareBasis"
+							type="radio"
+							name="vbh-budget-compare-basis"
+							value="plan"
+							:disabled="!budgetData.comparison"
+							@update:modelValue="setCompareBasis">
+							{{ t('Plan') }}
+						</NcCheckboxRadioSwitch>
+					</div>
+				</div>
+
 				<div v-if="budgetData" class="vbh-totals">
 					<div class="vbh-total pos">
 						<span>{{ t('Einnahmen (Plan / Ist)') }}</span>
 						<strong>{{ formatMoney(budgetData.totals.planIncome) }} / {{ formatMoney(budgetData.totals.actualIncome) }}</strong>
+						<small v-if="budgetData.comparison" class="vbh-total-delta" :class="trendClass('income', budgetData.totals.planIncome - budgetData.totals.compareIncome)">
+							{{ compareTotalText(budgetData.totals.compareIncome, budgetData.totals.compareIncomePercent) }}
+						</small>
 					</div>
 					<div class="vbh-total neg">
 						<span>{{ t('Ausgaben (Plan / Ist)') }}</span>
 						<strong>{{ formatMoney(budgetData.totals.planExpense) }} / {{ formatMoney(budgetData.totals.actualExpense) }}</strong>
+						<small v-if="budgetData.comparison" class="vbh-total-delta" :class="trendClass('expense', budgetData.totals.planExpense - budgetData.totals.compareExpense)">
+							{{ compareTotalText(budgetData.totals.compareExpense, budgetData.totals.compareExpensePercent) }}
+						</small>
 					</div>
 					<div class="vbh-total" :class="budgetData.totals.actualResult >= 0 ? 'pos' : 'neg'">
 						<span>{{ t('Ergebnis (Plan / Ist)') }}</span>
 						<strong>{{ formatMoney(budgetData.totals.planResult) }} / {{ formatMoney(budgetData.totals.actualResult) }}</strong>
+						<small v-if="budgetData.comparison" class="vbh-total-delta" :class="trendClass('income', budgetData.totals.planResult - budgetData.totals.compareResult)">
+							{{ compareTotalText(budgetData.totals.compareResult, budgetData.totals.compareResultPercent) }}
+						</small>
 					</div>
 				</div>
 
@@ -731,6 +774,7 @@
 					:canWrite="canWrite"
 					:conflictCount="budgetData.conflictCount || 0"
 					:resetKey="budgetData.periodId"
+					:comparison="budgetData.comparison"
 					@save="saveBudget" />
 				<p v-else-if="budgetData" class="vbh-empty">
 					{{ t('Keine Einnahmen-/Ausgabenkonten vorhanden.') }}
@@ -902,7 +946,7 @@
 <script>
 import { mdiCalendarRange, mdiDelete, mdiDownload, mdiPaperclip, mdiPrinter } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { NcActionInput, NcActionLink, NcActions, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, NcModal } from '@nextcloud/vue'
+import { NcActionInput, NcActionLink, NcActions, NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, NcModal, NcSelect } from '@nextcloud/vue'
 import {
 	CategoryScale,
 	Chart,
@@ -925,13 +969,13 @@ import { useConfirm } from '../composables/useConfirm.js'
 import { usePeriods } from '../composables/usePeriods.js'
 import { useSort } from '../composables/useSort.js'
 import { chartTheme, onThemeChange, withAlpha } from '../lib/chartTheme.js'
-import { amountClass, budgetDiffClass, formatDate, formatDateTime, formatMoney, roleLabel, typeLabel } from '../lib/format.js'
+import { amountClass, budgetDiffClass, formatDate, formatDateTime, formatMoney, formatPercent, roleLabel, trendClass, typeLabel } from '../lib/format.js'
 
 Chart.register(LineController, LineElement, PointElement, CategoryScale, LinearScale, Tooltip, Legend)
 
 export default {
 	name: 'ReportsTab',
-	components: { NcButton, NcActions, NcActionInput, NcActionLink, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, NcModal, BudgetTreeTable, CostCenterPanel, SphereAssignPanel },
+	components: { NcButton, NcActions, NcActionInput, NcActionLink, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, NcModal, NcSelect, BudgetTreeTable, CostCenterPanel, SphereAssignPanel },
 	props: {
 		// Kostenstellen-Modus (group|account|manual), gesteuert ueber den
 		// Gruppierungs-Waehler in der Kopfzeile (nur reportView==='costcenters').
@@ -951,6 +995,9 @@ export default {
 		// refreshAfterRemoteChange() geladen) - hier nur als Props gelesen.
 		reportData: { type: Object, default: null },
 		budgetData: { type: Object, default: null },
+		// Ist oder Plan der Vergleichsperiode; die Periode selbst steht in
+		// budgetData.comparison (Issue #114)
+		budgetCompareBasis: { type: String, default: 'actual' },
 		budgetSnapshots: { type: Array, required: true },
 		auditEntries: { type: Array, required: true },
 		auditLoading: { type: Boolean, required: true },
@@ -974,7 +1021,7 @@ export default {
 		openSnapshot: { type: Function, required: true },
 	},
 
-	emits: ['budget-changed', 'cost-centers-changed', 'help', 'snapshots-changed', 'spheres-changed', 'update:cost-center-mode', 'update:rename-name', 'update:report-view', 'update:selected-c-c-code', 'update:selected-sphere-code'],
+	emits: ['budget-changed', 'budget-compare-changed', 'cost-centers-changed', 'help', 'snapshots-changed', 'spheres-changed', 'update:cost-center-mode', 'update:rename-name', 'update:report-view', 'update:selected-c-c-code', 'update:selected-sphere-code'],
 
 	setup() {
 		const auth = useAuth()
@@ -1038,7 +1085,25 @@ export default {
 		exportBalancesUrl() { return api.exportBalancesUrl(this.selectedPeriodId) },
 		exportReportUrl() { return api.exportReportUrl(this.selectedPeriodId) },
 		exportMultiyearUrl() { return api.exportMultiyearUrl() },
-		exportBudgetUrl() { return api.exportBudgetUrl(this.selectedPeriodId) },
+		// Druck und CSV bekommen immer die tatsächliche Wahl (ID oder 0), damit
+		// sie nie stillschweigend anders vergleichen als der Bildschirm.
+		budgetCompareId() { return this.budgetData?.comparison?.periodId ?? 0 },
+		exportBudgetUrl() { return api.exportBudgetUrl(this.selectedPeriodId, this.budgetCompareId, this.budgetCompareBasis) },
+		budgetCompareOptions() {
+			const own = this.budgetData?.periodId
+			return [
+				{ id: 0, label: this.t('Kein Vergleich') },
+				...this.periods.filter((p) => p.id !== own).map((p) => ({ id: p.id, label: p.label })),
+			]
+		},
+
+		budgetCompareOption: {
+			get() { return this.budgetCompareOptions.find((o) => o.id === this.budgetCompareId) ?? this.budgetCompareOptions[0] },
+			set(option) {
+				this.$emit('budget-compare-changed', { compare: option ? option.id : 0, basis: this.budgetCompareBasis })
+			},
+		},
+
 		budgetPrintDepths() {
 			return [
 				{ value: 'plan', label: this.t('Bis zur Planungsebene') },
@@ -1222,6 +1287,7 @@ export default {
 		typeLabel,
 		amountClass,
 		budgetDiffClass,
+		trendClass,
 		roleLabel,
 		errMsg(e, fallback) {
 			return (e?.response?.data?.message) || fallback
@@ -1374,7 +1440,19 @@ export default {
 			} catch (e) { showError(this.errMsg(e, this.t('Zeitraum konnte nicht angelegt werden'))) } finally { this.creatingPeriod = false }
 		},
 
-		budgetPrintUrl(depth) { return api.exportFinanzplanUrl(this.selectedPeriodId, depth) },
+		budgetPrintUrl(depth) { return api.exportFinanzplanUrl(this.selectedPeriodId, depth, this.budgetCompareId, this.budgetCompareBasis) },
+
+		setCompareBasis(basis) {
+			this.$emit('budget-compare-changed', { compare: this.budgetCompareId, basis })
+		},
+
+		// „Ist 2025: 12.300,00 € · Δ +4,2 %" unter einer Summenkachel
+		compareTotalText(value, percent) {
+			const head = this.budgetData.comparison.basis === 'plan'
+				? this.tRaw('Plan {label}', { label: this.budgetData.comparison.label })
+				: this.tRaw('Ist {label}', { label: this.budgetData.comparison.label })
+			return head + ': ' + formatMoney(value) + ' · Δ ' + formatPercent(percent)
+		},
 
 		async saveBudget(row) {
 			if (!this.budgetData) { return }

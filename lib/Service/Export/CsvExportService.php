@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\Period;
 use OCA\Vereinsbuchhaltung\Service\AccountStatementService;
+use OCA\Vereinsbuchhaltung\Service\BudgetComparison;
 use OCA\Vereinsbuchhaltung\Service\BudgetOverviewService;
 use OCA\Vereinsbuchhaltung\Service\BudgetTree;
 use OCA\Vereinsbuchhaltung\Service\CsvFormatter;
@@ -268,15 +269,33 @@ class CsvExportService {
 	 * „Ebene“ (1 = Wurzel) erlaubt in Excel die Gliederung nach Kontenebenen.
 	 * Plan/Ist sind die Werte direkt auf dem Konto, die Σ-Spalten schließen
 	 * alle Unterkonten ein (siehe BudgetTree).
+	 *
+	 * Mit Vergleichsperiode (Issue #114) folgen drei Spalten am Ende, damit
+	 * Auswertungen über die Spaltenposition weiter passen: Vergleichswert Σ,
+	 * Δ (Plan Σ − Vergleich) und Δ in Prozent. Ohne Vergleich bleibt das
+	 * Format unverändert.
+	 *
+	 * @param int $compareId Vergleichsperiode, 0 = keine
 	 */
-	public function budget(string $userId, ?int $periodId = null): CsvFile {
-		$data = $this->budgetOverview->build($userId, $periodId);
+	public function budget(string $userId, ?int $periodId = null, int $compareId = 0, string $basis = 'actual'): CsvFile {
+		$data = $this->budgetOverview->build($userId, $periodId, $compareId, $basis);
 		$period = $data['period'];
+		$cmp = $data['comparison'];
+
+		$head = ['Typ', 'Ebene', 'Nr.', 'Konto', 'Kategorie', 'Plan (EUR)', 'Plan Σ (EUR)', 'Ist (EUR)', 'Ist Σ (EUR)', 'Differenz Σ (EUR)', 'Status', 'Notiz'];
+		if ($cmp !== null) {
+			$label = $cmp['period']->getLabel();
+			$head[] = ($cmp['basis'] === BudgetComparison::BASIS_PLAN ? 'Plan ' : 'Ist ') . $label . ' Σ (EUR)';
+			$head[] = 'Δ zu ' . $label . ' (EUR)';
+			$head[] = 'Δ zu ' . $label . ' (%)';
+		}
+		$width = count($head);
 
 		$csv = self::BOM;
-		$csv .= self::line(['Typ', 'Ebene', 'Nr.', 'Konto', 'Kategorie', 'Plan (EUR)', 'Plan Σ (EUR)', 'Ist (EUR)', 'Ist Σ (EUR)', 'Differenz Σ (EUR)', 'Status', 'Notiz']);
+		$csv .= self::line($head);
 		foreach ($data['nodes'] as $node) {
 			$account = $data['accounts'][$node['id']];
+			$compare = $cmp === null ? [] : self::compareFields($node['sum']['plan'], $node['sum']['compare'], $node['comparable']);
 			$csv .= self::line([
 				$account->getType() === 'income' ? 'Einnahmen' : 'Ausgaben',
 				(string)($node['depth'] + 1),
@@ -290,14 +309,17 @@ class CsvExportService {
 				$node['comparable'] ? ReportFormat::money(($node['sum']['actual'] - $node['sum']['plan']) / 100) : '',
 				self::budgetStatus($node['flags']),
 				$data['notes'][$node['id']] ?? '',
+				...$compare,
 			]);
 		}
 
 		$t = $data['totals'];
-		$csv .= self::line(array_fill(0, 12, ''));
-		$csv .= self::planTotalLine('Einnahmen (Plan/Ist)', $t['planIncome'], $t['actualIncome']);
-		$csv .= self::planTotalLine('Ausgaben (Plan/Ist)', $t['planExpense'], $t['actualExpense']);
-		$csv .= self::planTotalLine('Ergebnis (Plan/Ist)', $t['planIncome'] - $t['planExpense'], $t['actualIncome'] - $t['actualExpense']);
+		$withCompare = $cmp !== null;
+		$csv .= self::line(array_fill(0, $width, ''));
+		$csv .= self::planTotalLine('Einnahmen (Plan/Ist)', $t['planIncome'], $t['actualIncome'], $withCompare ? $t['compareIncome'] : null);
+		$csv .= self::planTotalLine('Ausgaben (Plan/Ist)', $t['planExpense'], $t['actualExpense'], $withCompare ? $t['compareExpense'] : null);
+		$csv .= self::planTotalLine('Ergebnis (Plan/Ist)', $t['planIncome'] - $t['planExpense'], $t['actualIncome'] - $t['actualExpense'],
+			$withCompare ? $t['compareIncome'] - $t['compareExpense'] : null);
 
 		return new CsvFile($csv, 'finanzplan_soll_ist_' . AttachmentArchive::slug($period->getLabel()) . '.csv');
 	}
@@ -323,7 +345,7 @@ class CsvExportService {
 		return implode(', ', $out);
 	}
 
-	private static function planTotalLine(string $label, int $plan, int $actual): string {
+	private static function planTotalLine(string $label, int $plan, int $actual, ?int $compare = null): string {
 		return self::line([
 			$label, '', '', '', '', '',
 			ReportFormat::money($plan / 100),
@@ -331,7 +353,22 @@ class CsvExportService {
 			ReportFormat::money($actual / 100),
 			ReportFormat::money(($actual - $plan) / 100),
 			'', '',
+			...($compare === null ? [] : self::compareFields($plan, $compare)),
 		]);
+	}
+
+	/**
+	 * Vergleichswert, Δ und Δ % für die drei Vergleichsspalten.
+	 *
+	 * @return list<string>
+	 */
+	private static function compareFields(int $plan, int $compare, bool $comparable = true): array {
+		// Unter einem Planposten gibt es keinen eigenen Plan, also auch kein Δ
+		return [
+			ReportFormat::money($compare / 100),
+			$comparable ? ReportFormat::money(BudgetComparison::delta($plan, $compare) / 100) : '',
+			$comparable ? ReportFormat::percent(BudgetComparison::percent($plan, $compare)) : '',
+		];
 	}
 
 	/**

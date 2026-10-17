@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { api, openApp, switchTab, visibleSection, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
+import { api, openApp, selectPeriod, switchTab, visibleSection, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
 
 // Finanzplan: Planwert setzen, im Berichts-Tab wiederfinden und einen
 // eingefrorenen Planstand (Snapshot) anlegen und abrufen.
@@ -167,6 +167,75 @@ test.describe('Finanzplan', () => {
 
 			await visibleSection(page).getByRole('button', { name: 'Unterkonten von 6100 Verwaltung gesamt einklappen' }).click()
 			await expect(kind).toHaveCount(0)
+		})
+	})
+
+	// Issue #114: der Plan des nächsten Zeitraums im Vergleich mit dem
+	// laufenden. Verglichen wird mit dessen Plan, weil der frische Mandant
+	// keine Buchungen hat: 500 € jetzt, 600 € geplant → +100 € / +20 %.
+	test.describe('Vergleichsperiode', () => {
+		let income
+		let next
+
+		test.beforeAll(async ({ request }) => {
+			income = await api.accountByNumber(request, INCOME_ACCOUNT)
+			next = await (await api.raw(request, 'POST', '/periods')).json()
+			await api.raw(request, 'POST', '/budget', { data: { accountId: income.id, period, amount: 500 } })
+			await api.raw(request, 'POST', '/budget', { data: { accountId: income.id, period: next.id, amount: 600 } })
+		})
+
+		test('Vorbelegung, Basis und kein Vergleich (API)', async ({ request }) => {
+			// Ohne Angabe vergleicht der Server mit dem Zeitraum davor.
+			const byDefault = await api.getJson(request, `/budget?period=${next.id}`)
+			expect(byDefault.comparison.periodId).toBe(period)
+			expect(byDefault.comparison.basis).toBe('actual')
+
+			const plan = await api.getJson(request, `/budget?period=${next.id}&basis=plan`)
+			const row = plan.rows.find((r) => r.accountId === income.id)
+			expect(row.compareSum).toBe(500)
+			expect(row.compareDelta).toBe(100)
+			expect(row.comparePercent).toBe(20)
+
+			const none = await api.getJson(request, `/budget?period=${next.id}&compare=0`)
+			expect(none.comparison).toBeNull()
+			expect(none.rows.find((r) => r.accountId === income.id).compareSum).toBeUndefined()
+
+			// Der erste Zeitraum hat keinen Vorgänger.
+			const first = await api.getJson(request, `/budget?period=${period}`)
+			expect(first.comparison).toBeNull()
+		})
+
+		test('CSV und Druckansicht übernehmen den Vergleich', async ({ request }) => {
+			const label = (await api.getJson(request, `/budget?period=${period}`)).label
+			const csv = await (await api.raw(request, 'GET', `/export/budget?period=${next.id}&compare=${period}&basis=plan`)).text()
+			const head = csv.split(/\r?\n/)[0]
+			expect(head).toContain(`"Plan ${label} Σ (EUR)"`)
+			expect(head.split(';')).toHaveLength(15)
+			// Ohne Vergleich bleibt das Format wie bisher.
+			const plain = await (await api.raw(request, 'GET', `/export/budget?period=${next.id}&compare=0`)).text()
+			expect(plain.split(/\r?\n/)[0].split(';')).toHaveLength(12)
+
+			const html = await (await api.raw(request, 'GET', `/export/finanzplan?period=${next.id}&compare=${period}&basis=plan`)).text()
+			expect(html).toContain(`Vergleich: Plan ${label}`)
+			expect(html).toContain('landscape')
+		})
+
+		test('Vergleichsspalten im Finanzplan, umschaltbar auf den Plan', async ({ page, request }) => {
+			const label = (await api.getJson(request, `/budget?period=${period}`)).label
+			await openApp(page, USERS.verwalter)
+			await selectPeriod(page, next.label)
+			await switchTab(page, 'Berichte')
+			await visibleSection(page).getByRole('button', { name: 'Finanzplan', exact: true }).click()
+
+			const kopf = visibleSection(page).locator('.vbh-budgettree thead')
+			await expect(kopf).toContainText(`Ist ${label}`)
+			await expect(kopf).toContainText(`Δ zu ${label}`)
+
+			await visibleSection(page).locator('.vbh-budget-compare-basis').getByText('Plan', { exact: true }).click()
+			await expect(kopf).toContainText(`Plan ${label}`)
+			const zeile = visibleSection(page).locator('.vbh-budgettree tbody tr', { has: page.locator('.vbh-planinput') }).filter({ hasText: INCOME_ACCOUNT }).first()
+			await expect(zeile).toContainText('+100,00')
+			await expect(zeile).toContainText('+20,0 %')
 		})
 	})
 })

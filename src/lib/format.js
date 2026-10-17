@@ -51,10 +51,29 @@ export function amountClass(v) {
 	return v < 0 ? 'neg' : ''
 }
 
-export function budgetDiffClass(row) {
-	if (!row.diff) { return '' }
-	const good = row.type === 'income' ? row.diff > 0 : row.diff < 0
+// Gut ist mehr Einnahme oder weniger Ausgabe – für jede Größe, die als
+// „Ist minus Plan“ oder „Plan minus Vergleich“ gerechnet ist.
+export function trendClass(type, value) {
+	if (!value) { return '' }
+	const good = type === 'income' ? value > 0 : value < 0
 	return good ? 'good' : 'bad'
+}
+
+export function budgetDiffClass(row) {
+	return trendClass(row.type, row.diff)
+}
+
+// Betrag mit Vorzeichen, damit eine Veränderung nicht nur an der Farbe
+// erkennbar ist: 100 → „+100,00 €“.
+export function formatSigned(v) {
+	return (v > 0 ? '+' : '') + formatMoney(v)
+}
+
+const PERCENT = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1, signDisplay: 'exceptZero' })
+
+// Prozentwert mit Vorzeichen; null (kein Bezugswert) → „—“.
+export function formatPercent(v) {
+	return v === null || v === undefined ? '—' : PERCENT.format(v) + ' %'
 }
 
 export function errMsg(e, fallback) {

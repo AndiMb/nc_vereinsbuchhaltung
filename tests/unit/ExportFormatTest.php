@@ -21,6 +21,18 @@ class ExportFormatTest extends TestCase {
 		$this->assertSame('-42,00', ReportFormat::money(-42));
 	}
 
+	public function testVorzeichenFuerVeraenderungen(): void {
+		$this->assertSame('+100,00', ReportFormat::signedMoney(10000));
+		$this->assertSame('-100,00', ReportFormat::signedMoney(-10000));
+		$this->assertSame('0,00', ReportFormat::signedMoney(0));
+		$this->assertSame('+9,1', ReportFormat::signedPercent(9.1));
+		$this->assertSame('-25,0', ReportFormat::signedPercent(-25.0));
+		$this->assertSame('', ReportFormat::signedPercent(null));
+		$this->assertSame('9,1', ReportFormat::percent(9.1));
+		$this->assertSame('-25,0', ReportFormat::percent(-25.0));
+		$this->assertSame('', ReportFormat::percent(null));
+	}
+
 	public function testCentBetragMitWaehrung(): void {
 		$this->assertSame('1.234,56 €', ReportFormat::cents(123456));
 		$this->assertSame('-3,00 €', ReportFormat::cents(-300));

@@ -19,6 +19,15 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+**Neu:**
+- **Finanzplan mit Vergleichsperiode** (#114): Der Finanzplan zeigt je
+  Konto den Wert eines anderen Zeitraums – vorbelegt das Ist des Vorjahres,
+  umschaltbar auf dessen Plan – samt Veränderung in Euro und Prozent. Die
+  Summenkacheln, die Druckansicht (dann im Querformat) und der CSV-Export
+  (drei Spalten am Ende) übernehmen den Vergleich.
+- Inaktive Konten tragen im Finanzplan den Hinweis „nicht mehr aktiv" und
+  bekommen kein Planfeld mehr, solange sie keinen Plan haben.
+
 ## [0.37.0] – 2026-10-17
 
 **Neu:**
