@@ -6,10 +6,10 @@ namespace OCA\Vereinsbuchhaltung\Service\Export;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
-use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\Period;
+use OCA\Vereinsbuchhaltung\Service\BudgetOverviewService;
 use OCA\Vereinsbuchhaltung\Service\LedgerAggregator;
 use OCA\Vereinsbuchhaltung\Service\PeriodRule;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
@@ -34,7 +34,7 @@ class KassenberichtRenderer {
 		private AccountMapper $accountMapper,
 		private JournalMapper $journalMapper,
 		private JournalLineMapper $lineMapper,
-		private BudgetMapper $budgetMapper,
+		private BudgetOverviewService $budgetOverview,
 		private PeriodService $periods,
 		private ReportService $reportService,
 		private IConfig $config,
@@ -58,8 +58,8 @@ class KassenberichtRenderer {
 
 		$erfolg = LedgerAggregator::incomeExpense($accounts, $moveSums);
 		$vermoegen = LedgerAggregator::wealthRows($accounts, $cumStart, $cumEnd);
-		$plan = $this->budgetMapper->findByPeriod($userId, (int)$period->getId());
-		$soll = $plan !== [] ? LedgerAggregator::planActual($accounts, $moveSums, $plan) : null;
+		$budget = $this->budgetOverview->build($userId, (int)$period->getId());
+		$hasPlan = array_filter($budget['nodes'], static fn (array $n): bool => $n['isPlanItem']) !== [];
 
 		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '');
 		$title = ($clubName !== '' ? $clubName . ' – ' : '') . $this->l10n->t('Kassenbericht %s', [$period->getLabel()]);
@@ -74,8 +74,8 @@ class KassenberichtRenderer {
 		$h .= $this->wealthSection($vermoegen, $from, $to);
 		$h .= $this->resultSection($erfolg);
 		$h .= $this->sphereSection($userId, (int)$period->getId());
-		if ($soll !== null) {
-			$h .= $this->planSection($soll);
+		if ($hasPlan) {
+			$h .= $this->planSection($budget);
 		}
 		$h .= '<section><h2>' . $this->l10n->t('Vollständigkeit') . '</h2><p>'
 			. PrintableReportPage::escape($this->numberingNote($userId, $period, $from, $to))
@@ -193,39 +193,90 @@ class KassenberichtRenderer {
 		return $h;
 	}
 
-	/** @param array<string, mixed> $soll aus LedgerAggregator::planActual() */
-	private function planSection(array $soll): string {
-		// Konten ohne Plan und ohne Ist verlängern nur die Tabelle.
-		$rows = array_values(array_filter(
-			$soll['rows'],
-			static fn (array $r): bool => $r['planCents'] !== 0 || $r['actualCents'] !== 0,
-		));
-		if ($rows === []) {
+	/**
+	 * Soll-Ist-Vergleich bis zur Planungsebene, wie der Finanzplan-Druck in
+	 * der Startansicht: Ein Konto mit Plan zeigt Plan und Ist samt aller
+	 * Unterkonten, die Unterkonten selbst erscheinen nicht. Flach verglichen
+	 * stünde der Plan sonst gegen 0 € Ist und das Ist der Unterkonten gegen
+	 * 0 € Plan – eine Überschreitung wäre nicht zu erkennen.
+	 *
+	 * @param array<string, mixed> $budget aus BudgetOverviewService::build()
+	 */
+	private function planSection(array $budget): string {
+		$nodes = self::planNodes($budget['nodes']);
+		if ($nodes === []) {
 			return '';
 		}
-		usort($rows, static fn (array $a, array $b): int => strcmp(
-			(string)$a['account']->getNumber(),
-			(string)$b['account']->getNumber(),
-		));
-
-		$h = '<section><h2>' . $this->l10n->t('Soll-Ist-Vergleich (Finanzplan)') . '</h2><table>';
-		$h .= '<tr><th colspan="2">' . $this->l10n->t('Konto') . '</th><th class="num">' . $this->l10n->t('Plan') . '</th><th class="num">' . $this->l10n->t('Ist') . '</th><th class="num">' . $this->l10n->t('Differenz') . '</th></tr>';
-		foreach ($rows as $r) {
-			$h .= '<tr><td class="nr">' . PrintableReportPage::escape((string)$r['account']->getNumber()) . '</td>'
-				. '<td>' . PrintableReportPage::escape((string)$r['account']->getName()) . '</td>'
-				. '<td class="num">' . ReportFormat::cents($r['planCents']) . '</td>'
-				. '<td class="num">' . ReportFormat::cents($r['actualCents']) . '</td>'
-				. '<td class="num">' . ReportFormat::cents($r['actualCents'] - $r['planCents']) . '</td></tr>';
+		$names = [];
+		foreach ($budget['accounts'] as $id => $account) {
+			$names[$id] = (string)$account->getName();
 		}
-		$h .= $this->planTotalRow('sum', $this->l10n->t('Einnahmen'), $soll['planIncomeCents'], $soll['actualIncomeCents']);
-		$h .= $this->planTotalRow('sum', $this->l10n->t('Ausgaben'), $soll['planExpenseCents'], $soll['actualExpenseCents']);
+		$t = $budget['totals'];
+
+		$h = '<section><h2>' . $this->l10n->t('Soll-Ist-Vergleich (Finanzplan)') . '</h2>';
+		$h .= BudgetMarks::conflictNote($this->l10n, $budget['conflictCount']);
+		$h .= '<table>';
+		foreach (['income' => $this->l10n->t('Einnahmen'), 'expense' => $this->l10n->t('Ausgaben')] as $type => $title) {
+			$rows = self::planRows($nodes, $names, $type);
+			if ($rows === '') {
+				continue;
+			}
+			$h .= '<tr><th colspan="2">' . $title . '</th><th class="num">' . $this->l10n->t('Plan') . '</th><th class="num">' . $this->l10n->t('Ist') . '</th><th class="num">' . $this->l10n->t('Differenz') . '</th></tr>';
+			$h .= $rows;
+		}
+		$h .= $this->planTotalRow('sum', $this->l10n->t('Einnahmen'), $t['planIncome'], $t['actualIncome']);
+		$h .= $this->planTotalRow('sum', $this->l10n->t('Ausgaben'), $t['planExpense'], $t['actualExpense']);
 		$h .= $this->planTotalRow(
 			'result',
 			$this->l10n->t('Ergebnis'),
-			$soll['planIncomeCents'] - $soll['planExpenseCents'],
-			$soll['actualIncomeCents'] - $soll['actualExpenseCents'],
+			$t['planIncome'] - $t['planExpense'],
+			$t['actualIncome'] - $t['actualExpense'],
 		);
-		return $h . '</table></section>';
+		return $h . '</table>' . BudgetMarks::legend($this->l10n) . '</section>';
+	}
+
+	/**
+	 * Die Knoten, die der Kassenbericht zeigt: bis zur Planungsebene, ohne
+	 * Zeilen, die weder Plan noch Ist haben. Gefiltert wird über Σ, damit ein
+	 * leerer Zweig ganz wegfällt.
+	 *
+	 * @param list<array<string, mixed>> $nodes aus BudgetOverviewService::build()
+	 * @return list<array<string, mixed>>
+	 */
+	public static function planNodes(array $nodes): array {
+		return array_values(array_filter(
+			BudgetOverviewService::visibleAtDepth($nodes, 'plan'),
+			static fn (array $n): bool => $n['sum']['plan'] !== 0 || $n['sum']['actual'] !== 0,
+		));
+	}
+
+	/**
+	 * Zeilen einer Seite (Einnahmen oder Ausgaben) des Soll-Ist-Vergleichs.
+	 *
+	 * Eingerückt nach Tiefe wie im Finanzplan-Druck. Ein Unterkonto, dessen
+	 * Plan auf einem Vorfahren liegt, ist nur bei einem Plankonflikt sichtbar;
+	 * eine eigene Differenz hat es nicht – dort stünde sonst das volle Ist als
+	 * scheinbare Überschreitung.
+	 *
+	 * @param list<array<string, mixed>> $nodes aus planNodes()
+	 * @param array<int, string> $names Kontoname je Konto-ID
+	 */
+	public static function planRows(array $nodes, array $names, string $type): string {
+		$h = '';
+		foreach ($nodes as $n) {
+			if ($n['type'] !== $type) {
+				continue;
+			}
+			$marks = BudgetMarks::marks($n['flags']);
+			$style = $n['depth'] > 0 ? ' style="padding-left:' . (4 + min((int)$n['depth'], 6) * 14) . 'px"' : '';
+			$h .= '<tr><td class="nr"' . $style . '>' . PrintableReportPage::escape((string)$n['number']) . '</td>'
+				. '<td>' . PrintableReportPage::escape($names[$n['id']] ?? '')
+				. ($marks !== '' ? '<span style="white-space:nowrap">' . $marks . '</span>' : '') . '</td>'
+				. '<td class="num">' . ReportFormat::cents($n['sum']['plan']) . '</td>'
+				. '<td class="num">' . ReportFormat::cents($n['sum']['actual']) . '</td>'
+				. '<td class="num">' . ($n['comparable'] ? ReportFormat::cents($n['sum']['actual'] - $n['sum']['plan']) : '') . '</td></tr>';
+		}
+		return $h;
 	}
 
 	private function planTotalRow(string $class, string $label, int $plan, int $actual): string {

@@ -19,6 +19,14 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+**Geändert:**
+- **Kassenbericht: Soll-Ist-Vergleich bis zur Planungsebene.** Steht der Plan
+  auf einem Sammelkonto und wird auf dessen Unterkonten gebucht, zeigt der
+  Kassenbericht jetzt eine Zeile mit Plan und Ist samt Unterkonten – statt
+  Plan gegen 0 € und Ist gegen 0 € Plan auf getrennten Zeilen. Einnahmen und
+  Ausgaben stehen getrennt, Auffälligkeiten tragen dieselben Zeichen wie im
+  Finanzplan-Druck. Die Summen und das Ergebnis bleiben unverändert (#139).
+
 ## [0.36.2] – 2026-10-13
 
 **Neu:**

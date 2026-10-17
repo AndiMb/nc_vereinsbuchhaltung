@@ -846,7 +846,10 @@ period selected). Opens a dedicated, print-optimized page with:
   reference dates: with a fiscal year from October to September that is
   *balance 01/10/2025* and *balance 30/09/2026*, not 01/01 and 31/12.
 - **income/expense statement** by account with totals and the result
-- **plan/actual comparison**, if plan figures exist
+- **plan/actual comparison**, if plan figures exist – down to the budget
+  level: an account with a budget shows plan and actual including all its
+  sub-accounts; items needing attention are marked as in the financial-plan
+  print
 - **completeness notice** (posting count, number range, gap/duplicate
   check)
 - **closing note** ("closed on … by …" or "not yet closed")
