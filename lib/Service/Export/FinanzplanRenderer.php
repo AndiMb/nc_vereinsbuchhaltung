@@ -6,7 +6,6 @@ namespace OCA\Vereinsbuchhaltung\Service\Export;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Service\BudgetOverviewService;
-use OCA\Vereinsbuchhaltung\Service\BudgetTree;
 use OCP\IConfig;
 use OCP\IL10N;
 
@@ -20,14 +19,6 @@ use OCP\IL10N;
  * Schwarzweiß-Ausdruck erkennbar bleiben.
  */
 class FinanzplanRenderer {
-
-	/** Zeichen der Auffälligkeiten, in der Reihenfolge der Legende. */
-	private const MARKS = [
-		BudgetTree::FLAG_OVERRUN => '▲',
-		BudgetTree::FLAG_UNPLANNED => '○',
-		BudgetTree::FLAG_UNPLANNED_BELOW => '◌',
-		BudgetTree::FLAG_CONFLICT => '⚠',
-	];
 
 	public function __construct(
 		private BudgetOverviewService $overview,
@@ -53,13 +44,7 @@ class FinanzplanRenderer {
 
 		$h = PrintableReportPage::printHint($this->l10n->t('Zum Drucken oder Als-PDF-Speichern: <strong>Strg+P</strong> (Mac: ⌘P) im Browser.'));
 		$h .= PrintableReportPage::header(null, $clubName, $heading, implode(' · ', $meta));
-		if ($data['conflictCount'] > 0) {
-			$h .= '<p><strong>⚠ ' . PrintableReportPage::escape($this->l10n->n(
-				'%n Plankonflikt: In einem Zweig ist auf mehreren Ebenen geplant, die Summen zählen diese Pläne doppelt.',
-				'%n Plankonflikte: In einem Zweig ist auf mehreren Ebenen geplant, die Summen zählen diese Pläne doppelt.',
-				$data['conflictCount'],
-			)) . '</strong></p>';
-		}
+		$h .= BudgetMarks::conflictNote($this->l10n, $data['conflictCount']);
 
 		$t = $data['totals'];
 		$h .= $this->section($this->l10n->t('Einnahmen'), $nodes, $data['accounts'], 'income', $t['planIncome'], $t['actualIncome']);
@@ -72,7 +57,7 @@ class FinanzplanRenderer {
 			. '<td class="num">' . ReportFormat::cents(($t['actualIncome'] - $t['actualExpense']) - ($t['planIncome'] - $t['planExpense'])) . '</td>'
 			. '<td class="num"></td></tr>';
 		$h .= '</table></section>';
-		$h .= $this->legend();
+		$h .= BudgetMarks::legend($this->l10n);
 
 		return PrintableReportPage::document(($clubName !== '' ? $clubName . ' – ' : '') . $heading, $h);
 	}
@@ -93,12 +78,7 @@ class FinanzplanRenderer {
 				continue;
 			}
 			$account = $accounts[$n['id']];
-			$marks = '';
-			foreach (self::MARKS as $flag => $mark) {
-				if (in_array($flag, $n['flags'], true)) {
-					$marks .= ' ' . $mark;
-				}
-			}
+			$marks = BudgetMarks::marks($n['flags']);
 			$label = trim($account->getNumber() . ' ' . $account->getName());
 			$style = $n['depth'] > 0 ? ' style="padding-left:' . (4 + min((int)$n['depth'], 6) * 14) . 'px"' : '';
 			$strong = $n['depth'] === 0;
@@ -133,20 +113,5 @@ class FinanzplanRenderer {
 			return $this->l10n->t('Bis Ebene %s', [(string)((int)$depth + 1)]);
 		}
 		return $this->l10n->t('Bis zur Planungsebene');
-	}
-
-	private function legend(): string {
-		$texts = [
-			BudgetTree::FLAG_OVERRUN => $this->l10n->t('Ausgaben über Plan'),
-			BudgetTree::FLAG_UNPLANNED => $this->l10n->t('Ist ohne Plan'),
-			BudgetTree::FLAG_UNPLANNED_BELOW => $this->l10n->t('ungeplante Buchungen in Unterkonten'),
-			BudgetTree::FLAG_CONFLICT => $this->l10n->t('Plankonflikt'),
-		];
-		$parts = [];
-		foreach (self::MARKS as $flag => $mark) {
-			$parts[] = $mark . ' ' . PrintableReportPage::escape($texts[$flag]);
-		}
-		return '<p class="meta">' . implode(' · ', $parts) . '<br>'
-			. PrintableReportPage::escape($this->l10n->t('Plan und Ist schließen alle Unterkonten ein.')) . '</p>';
 	}
 }

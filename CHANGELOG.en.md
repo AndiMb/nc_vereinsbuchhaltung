@@ -17,6 +17,15 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+**Changed:**
+- **Treasurer's report: budget vs. actual down to the budget level.** When
+  the budget sits on a summary account and entries are posted to its
+  sub-accounts, the treasurer's report now shows one row with plan and actual
+  including the sub-accounts – instead of the budget against €0 and the
+  actual against a €0 budget on separate rows. Income and expenses are listed
+  separately, items needing attention carry the same marks as the
+  financial-plan print. Totals and the result are unchanged (#139).
+
 ## [0.36.2] – 2026-10-13
 
 **New:**

@@ -861,7 +861,9 @@ gewähltem Zeitraum). Öffnet eine eigene, druckoptimierte Seite mit:
   echten Stichtage: bei einem Geschäftsjahr Oktober bis September also
   *Bestand 01.10.2025* und *Bestand 30.09.2026* statt 01.01./31.12.
 - **Einnahmen-/Ausgaben-Rechnung** nach Konten mit Summen und Ergebnis
-- **Soll-Ist-Vergleich**, sofern Planwerte existieren
+- **Soll-Ist-Vergleich**, sofern Planwerte existieren – bis zur
+  Planungsebene: Ein Konto mit Plan zeigt Plan und Ist einschließlich aller
+  Unterkonten, Auffälligkeiten sind wie im Finanzplan-Druck markiert
 - **Vollständigkeitshinweis** (Buchungszahl, Nummernkreis,
   Lücken-/Dublettenprüfung)
 - **Abschlussvermerk** („abgeschlossen am … von …" bzw. „noch nicht
