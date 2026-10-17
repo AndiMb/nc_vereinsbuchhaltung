@@ -93,7 +93,8 @@ export default {
 	reserveReport: () => axios.get(url('/report/reserves')),
 
 	// Finanzplan / Budget
-	budget: (period) => axios.get(url('/budget'), { params: { period: period || undefined } }),
+	// compare: null = Periode davor (Vorgabe des Servers), 0 = kein Vergleich, sonst Perioden-ID
+	budget: (period, compare = null, basis = 'actual') => axios.get(url('/budget'), { params: { period: period || undefined, compare: compare ?? undefined, basis } }),
 	setBudget: (accountId, period, amount, note = '') => axios.post(url('/budget'), { accountId, period, amount, note }),
 
 	// Finanzplan-Stände (Snapshots)
@@ -294,8 +295,8 @@ export default {
 	accountStatementPrintUrl: (id, period, includeChildren) => generateUrl(base + `/export/account/${id}/print`) + `?includeChildren=${includeChildren ? 1 : 0}` + (period ? `&period=${period}` : ''),
 	exportBalancesUrl: (period) => generateUrl(base + '/export/balances') + (period ? `?period=${period}` : ''),
 	exportReportUrl: (period) => generateUrl(base + '/export/report') + (period ? `?period=${period}` : ''),
-	exportBudgetUrl: (period) => generateUrl(base + '/export/budget') + (period ? `?period=${period}` : ''),
-	exportFinanzplanUrl: (period, depth = 'plan') => generateUrl(base + '/export/finanzplan') + `?depth=${encodeURIComponent(depth)}` + (period ? `&period=${period}` : ''),
+	exportBudgetUrl: (period, compare = 0, basis = 'actual') => generateUrl(base + '/export/budget') + `?compare=${compare}&basis=${basis}` + (period ? `&period=${period}` : ''),
+	exportFinanzplanUrl: (period, depth = 'plan', compare = 0, basis = 'actual') => generateUrl(base + '/export/finanzplan') + `?depth=${encodeURIComponent(depth)}&compare=${compare}&basis=${basis}` + (period ? `&period=${period}` : ''),
 	exportMultiyearUrl: () => generateUrl(base + '/export/multiyear'),
 	kassenberichtUrl: (period) => generateUrl(base + '/export/kassenbericht') + (period ? `?period=${period}` : ''),
 	kurzberichtUrl: (since) => generateUrl(base + '/export/kurzbericht') + (since ? `?since=${since}` : ''),

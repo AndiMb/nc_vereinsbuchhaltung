@@ -803,6 +803,18 @@ auf dessen Unterkonten („544 01 02 Dachverband"). Deshalb gilt:
 - **Drucken / PDF:** Der Soll-Ist-Vergleich lässt sich als druckfertige
   Seite für den Vorstand öffnen – bis zur Planungsebene, bis zu einer
   festen Ebene oder mit allen Unterkonten.
+- **Vergleich mit dem Vorjahr:** Über der Tabelle wählen Sie unter
+  **Vergleich mit** einen anderen Zeitraum – vorbelegt ist der Zeitraum
+  davor – und ob mit dessen **Ist** oder dessen **Plan** verglichen wird.
+  Drei Spalten zeigen dann den Vergleichswert, die Veränderung Δ (Plan
+  minus Vergleichswert, eine Erhöhung ist also positiv) und Δ in Prozent;
+  auch die Summenkacheln nennen den Vergleich. Grün heißt mehr Einnahmen
+  oder weniger Ausgaben. Unter einem Planposten steht nur der
+  Vergleichswert, verglichen wird beim Planposten. Druckansicht und
+  CSV-Export übernehmen den gewählten Vergleich (gedruckt wird dann im
+  Querformat, im CSV stehen die drei Spalten am Ende). Inaktive Konten
+  bleiben mit ihrem Vergleichswert sichtbar, tragen „nicht mehr aktiv"
+  und bekommen kein Planfeld mehr.
 
 - **Notiz je Planzahl:** Herleitung festhalten, z. B. „40 Mitglieder ×
   25 €". Macht den Plan nachvollziehbar und bei der MV verteidigbar.

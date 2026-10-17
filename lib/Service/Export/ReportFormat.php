@@ -18,6 +18,28 @@ final class ReportFormat {
 		return number_format($eur, 2, ',', '.');
 	}
 
+	/** Betrag in Cent mit Vorzeichen, ohne Währung: 10000 → "+100,00", 0 → "0,00" */
+	public static function signedMoney(int $cents): string {
+		return ($cents > 0 ? '+' : '') . self::money($cents / 100);
+	}
+
+	/**
+	 * Prozentwert mit einer Nachkommastelle, ohne Zeichen „%“: 9.1 → "9,1";
+	 * null → "". Für CSV: ein führendes „+“ hielte Excel für eine Formel, der
+	 * CSV-Schutz setzte dann ein Hochkomma davor.
+	 */
+	public static function percent(?float $percent): string {
+		return $percent === null ? '' : number_format($percent, 1, ',', '.');
+	}
+
+	/** Prozentwert mit Vorzeichen, ohne Zeichen „%“: 9.1 → "+9,1"; null → "" */
+	public static function signedPercent(?float $percent): string {
+		if ($percent === null) {
+			return '';
+		}
+		return ($percent > 0 ? '+' : '') . number_format($percent, 1, ',', '.');
+	}
+
 	/** Betrag in Cent, mit Währungszeichen: 123450 → "1.234,50 €" */
 	public static function cents(int $cents): string {
 		return self::money($cents / 100) . ' €';

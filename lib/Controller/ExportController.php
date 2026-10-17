@@ -133,19 +133,22 @@ class ExportController extends Controller {
 	/** Finanzplan / Soll-Ist-Vergleich eines Geschäftsjahres als CSV. */
 	#[NoAdminRequired]
 	#[NoCSRFRequired]
-	public function budget(?int $period = null): DataDownloadResponse {
-		return $this->download($this->csv->budget($this->userId(), $period));
+	public function budget(?int $period = null, int $compare = 0, string $basis = 'actual'): DataDownloadResponse {
+		return $this->download($this->csv->budget($this->userId(), $period, $compare, $basis));
 	}
 
 	/**
 	 * Soll-Ist-Vergleich als druckfertige HTML-Seite für den Vorstand.
 	 *
 	 * @param string $depth `plan` (bis zur Planungsebene), Tiefe ab 0 oder `all`
+	 * @param int $compare Vergleichsperiode, 0 = keine (die Oberfläche übergibt
+	 *                     immer ihre aktuelle Wahl, siehe Issue #114)
+	 * @param string $basis `actual` oder `plan`
 	 */
 	#[NoAdminRequired]
 	#[NoCSRFRequired]
-	public function finanzplan(?int $period = null, string $depth = 'plan'): DataDisplayResponse {
-		return $this->printableResponse($this->finanzplan->render($this->userId(), $period, $depth));
+	public function finanzplan(?int $period = null, string $depth = 'plan', int $compare = 0, string $basis = 'actual'): DataDisplayResponse {
+		return $this->printableResponse($this->finanzplan->render($this->userId(), $period, $depth, $compare, $basis));
 	}
 
 	/** Mehrjahresübersicht als CSV-Matrix. */

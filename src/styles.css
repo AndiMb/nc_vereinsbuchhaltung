@@ -1065,6 +1065,10 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 /* Finanzplan als Baum (BudgetTreeTable.vue) */
 .vbh-budgettree-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 8px 0; }
+/* Vergleich mit einer anderen Periode (Issue #114) */
+.vbh-budget-compare { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 4px 16px; margin: 8px 0 12px; }
+.vbh-budget-compare-period { display: flex; flex-direction: column; gap: 2px; min-width: 200px; }
+.vbh-budget-compare-basis { display: flex; gap: 4px 12px; }
 
 .vbh-budgettree-counts { color: var(--color-text-maxcontrast); font-size: 0.9em; }
 

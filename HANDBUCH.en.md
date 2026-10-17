@@ -789,6 +789,17 @@ why:
 - **Print / PDF:** the budget vs. actual comparison opens as a
   print-ready page for the board – down to the budget level, down to a
   fixed level, or with all sub-accounts.
+- **Comparison with the previous year:** above the table, choose another
+  period under **Compare with** – the period before is preselected – and
+  whether to compare with its **actual** or its **plan**. Three columns
+  then show the comparison value, the change Δ (plan minus comparison
+  value, so an increase is positive) and Δ in percent; the total tiles
+  mention the comparison too. Green means more income or less expense.
+  Below a budget item only the comparison value is shown; the comparison
+  happens on the budget item. The print view and the CSV export use the
+  selected comparison (printed in landscape; in the CSV the three columns
+  come last). Inactive accounts stay visible with their comparison value,
+  are marked "inactive" and no longer get a budget field.
 
 - **Note per plan figure:** record the rationale, e.g. "40 members ×
   €25". Makes the plan traceable and defensible at the general assembly.

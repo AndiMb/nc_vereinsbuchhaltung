@@ -233,4 +233,22 @@ class BudgetTreeTest extends TestCase {
 		$this->assertSame(['5', '544', '544 01', '544 01 02'], array_column($nodes, 'number'));
 		$this->assertFalse($nodes[3]['hasChildren']);
 	}
+
+	public function testVergleichsspalteWirdWiePlanUndIstSummiert(): void {
+		// Issue #114: der Vorjahreswert ist eine weitere Spalte des Baums
+		$this->mitgliedsbeitraege();
+		$this->konto('411 01', 'income');
+		$nodes = BudgetTree::build($this->accounts, [
+			'plan' => $this->cents(['544 01' => 120000]),
+			'compare' => $this->cents(['544 01 01' => 80000, '544 01 02' => 30000, '411 01' => 7000]),
+		]);
+		$t = [];
+		foreach ($nodes as $n) {
+			$t[$n['number']] = $n;
+		}
+
+		$this->assertSame(110000, $t['544 01']['sum']['compare']);
+		$this->assertSame(110000, $t['5']['sum']['compare']);
+		$this->assertSame(['income' => 7000, 'expense' => 110000], BudgetTree::totals($nodes, 'compare'));
+	}
 }

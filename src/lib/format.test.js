@@ -8,9 +8,12 @@ import {
 	formatDate,
 	formatDateTime,
 	formatMoney,
+	formatPercent,
+	formatSigned,
 	parseAmountInput,
 	roleLabel,
 	roundCents,
+	trendClass,
 	typeLabel,
 } from './format.js'
 
@@ -125,6 +128,41 @@ describe('budgetDiffClass', () => {
 
 	it('markiert eine Punktlandung gar nicht', () => {
 		expect(budgetDiffClass({ type: 'income', diff: 0 })).toBe('')
+	})
+})
+
+describe('trendClass', () => {
+	// Δ zum Vorjahr (Issue #114) ist Plan minus Vergleich: mehr geplante
+	// Einnahmen sind gut, mehr geplante Ausgaben nicht.
+	it('liest Einnahmen und Ausgaben gegenläufig', () => {
+		expect(trendClass('income', 100)).toBe('good')
+		expect(trendClass('income', -100)).toBe('bad')
+		expect(trendClass('expense', -100)).toBe('good')
+		expect(trendClass('expense', 100)).toBe('bad')
+	})
+
+	it('markiert keine Veränderung gar nicht', () => {
+		expect(trendClass('expense', 0)).toBe('')
+		expect(trendClass('income', null)).toBe('')
+	})
+})
+
+describe('formatSigned / formatPercent', () => {
+	// Vorzeichen immer sichtbar, damit die Aussage nicht an der Farbe hängt
+	it('setzt ein Plus vor Erhöhungen', () => {
+		expect(formatSigned(100)).toBe('+' + formatMoney(100))
+		expect(formatSigned(-100)).toBe(formatMoney(-100))
+		expect(formatSigned(0)).toBe(formatMoney(0))
+	})
+
+	it('zeigt Prozent mit einer Nachkommastelle und Vorzeichen', () => {
+		expect(formatPercent(9.1)).toBe('+9,1 %')
+		expect(formatPercent(-25)).toBe('-25,0 %')
+		expect(formatPercent(0)).toBe('0,0 %')
+	})
+
+	it('zeigt ohne Bezugswert einen Strich', () => {
+		expect(formatPercent(null)).toBe('—')
 	})
 })
 

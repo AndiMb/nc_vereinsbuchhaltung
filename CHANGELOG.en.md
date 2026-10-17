@@ -17,6 +17,15 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+**New:**
+- **Financial plan with a comparison period** (#114): for every account the
+  financial plan shows the value of another period – the previous year's
+  actual by default, switchable to its plan – together with the change in
+  euros and percent. The total tiles, the print view (then in landscape)
+  and the CSV export (three columns at the end) use the comparison too.
+- Inactive accounts are marked "inactive" in the financial plan and no
+  longer get a budget field unless they already have a budget.
+
 ## [0.37.0] – 2026-10-17
 
 **New:**

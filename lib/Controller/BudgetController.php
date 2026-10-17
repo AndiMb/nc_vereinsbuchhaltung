@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
+use OCA\Vereinsbuchhaltung\Service\BudgetComparison;
 use OCA\Vereinsbuchhaltung\Service\BudgetOverviewService;
 use OCA\Vereinsbuchhaltung\Service\BudgetSnapshotService;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
@@ -36,18 +37,24 @@ class BudgetController extends Controller {
 	 * Ist – eigen und über die Unterkonten summiert (Σ) – samt Sperren und
 	 * Auffälligkeiten (siehe BudgetTree). `diff` ist Ist Σ − Plan Σ, oder null
 	 * unter einem Planposten.
+	 *
+	 * Vergleich (Issue #114): `compare` fehlt = die Periode davor, 0 = keiner,
+	 * sonst eine Perioden-ID; `basis` ist `actual` oder `plan`. Je Zeile
+	 * kommen dann `compareSum`, `compareDelta` (Plan Σ − compareSum) und
+	 * `comparePercent` hinzu; Δ ist wie `diff` null unter einem Planposten.
 	 */
 	#[NoAdminRequired]
-	public function index(?int $period = null): DataResponse {
-		$data = $this->overview->build($this->userId(), $period);
+	public function index(?int $period = null, ?int $compare = null, string $basis = BudgetComparison::BASIS_ACTUAL): DataResponse {
+		$data = $this->overview->build($this->userId(), $period, $compare, $basis);
 		$p = $data['period'];
 		$accounts = $data['accounts'];
+		$cmp = $data['comparison'];
 
 		$rows = [];
 		foreach ($data['nodes'] as $node) {
 			$account = $accounts[$node['id']];
 			$locked = $node['planLockedBy'] !== null ? ($accounts[$node['planLockedBy']] ?? null) : null;
-			$rows[] = [
+			$row = [
 				'accountId' => $node['id'],
 				'number' => $account->getNumber(),
 				'name' => $account->getName(),
@@ -72,10 +79,37 @@ class BudgetController extends Controller {
 					'name' => $locked->getName(),
 				],
 				'flags' => $node['flags'],
+				'active' => (bool)$account->getActive(),
 			];
+			if ($cmp !== null) {
+				$row['compareSum'] = $node['sum']['compare'] / 100;
+				$row['compareDelta'] = $node['comparable'] ? BudgetComparison::delta($node['sum']['plan'], $node['sum']['compare']) / 100 : null;
+				$row['comparePercent'] = $node['comparable'] ? BudgetComparison::percent($node['sum']['plan'], $node['sum']['compare']) : null;
+			}
+			$rows[] = $row;
 		}
 
 		$t = $data['totals'];
+		$totals = [
+			'planIncome' => $t['planIncome'] / 100,
+			'actualIncome' => $t['actualIncome'] / 100,
+			'planExpense' => $t['planExpense'] / 100,
+			'actualExpense' => $t['actualExpense'] / 100,
+			'planResult' => ($t['planIncome'] - $t['planExpense']) / 100,
+			'actualResult' => ($t['actualIncome'] - $t['actualExpense']) / 100,
+		];
+		if ($cmp !== null) {
+			$planResult = $t['planIncome'] - $t['planExpense'];
+			$compareResult = $t['compareIncome'] - $t['compareExpense'];
+			$totals += [
+				'compareIncome' => $t['compareIncome'] / 100,
+				'compareExpense' => $t['compareExpense'] / 100,
+				'compareResult' => $compareResult / 100,
+				'compareIncomePercent' => BudgetComparison::percent($t['planIncome'], $t['compareIncome']),
+				'compareExpensePercent' => BudgetComparison::percent($t['planExpense'], $t['compareExpense']),
+				'compareResultPercent' => BudgetComparison::percent($planResult, $compareResult),
+			];
+		}
 		return new DataResponse([
 			'periodId' => (int)$p->getId(),
 			'label' => $p->getLabel(),
@@ -83,14 +117,12 @@ class BudgetController extends Controller {
 			'endDate' => $p->getEndDate(),
 			'rows' => $rows,
 			'conflictCount' => $data['conflictCount'],
-			'totals' => [
-				'planIncome' => $t['planIncome'] / 100,
-				'actualIncome' => $t['actualIncome'] / 100,
-				'planExpense' => $t['planExpense'] / 100,
-				'actualExpense' => $t['actualExpense'] / 100,
-				'planResult' => ($t['planIncome'] - $t['planExpense']) / 100,
-				'actualResult' => ($t['actualIncome'] - $t['actualExpense']) / 100,
+			'comparison' => $cmp === null ? null : [
+				'periodId' => (int)$cmp['period']->getId(),
+				'label' => $cmp['period']->getLabel(),
+				'basis' => $cmp['basis'],
 			],
+			'totals' => $totals,
 		]);
 	}
 

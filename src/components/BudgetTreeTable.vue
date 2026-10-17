@@ -46,6 +46,17 @@
 						<th class="num">
 							{{ t('Differenz') }}
 						</th>
+						<template v-if="comparison">
+							<th class="num vbh-col-hide-sm">
+								{{ compareHead }}
+							</th>
+							<th class="num" :title="tRaw('Plan minus {head}', { head: compareHead })">
+								{{ tRaw('Δ zu {label}', { label: comparison.label }) }}
+							</th>
+							<th class="num vbh-col-hide-sm" :title="tRaw('Veränderung des Plans gegenüber {head} in Prozent', { head: compareHead })">
+								{{ t('Δ %') }}
+							</th>
+						</template>
 					</tr>
 				</thead>
 				<tbody>
@@ -71,6 +82,7 @@
 										<span v-if="has(row, 'overrun')" class="vbh-pill vbh-pill--error">{{ t('überschritten') }}</span>
 										<span v-if="has(row, 'conflict')" class="vbh-pill vbh-pill--error">{{ t('Plankonflikt') }}</span>
 										<span v-if="has(row, 'unplanned')" class="vbh-pill vbh-pill--warning">{{ t('ohne Plan') }}</span>
+										<span v-if="row.active === false" class="vbh-pill vbh-pill--quiet">{{ t('nicht mehr aktiv') }}</span>
 										<span
 											v-if="has(row, 'unplannedBelow') && !expanded.has(row.accountId) && !onlyAttention"
 											class="vbh-pill vbh-pill--quiet">{{ t('ungeplant darunter') }}</span>
@@ -88,6 +100,9 @@
 									{{ row.planSum ? formatMoney(row.planSum) : '—' }}
 									<span class="hidden-visually">{{ tRaw('Plan liegt auf {number} {name}', { number: row.planLockedBy.number, name: row.planLockedBy.name }) }}</span>
 								</span>
+								<span v-else-if="row.active === false && !row.plan">
+									{{ row.planSum ? formatMoney(row.planSum) : '—' }}
+								</span>
 								<template v-else>
 									<AmountInput
 										v-if="canWrite"
@@ -101,7 +116,7 @@
 							</td>
 							<td class="vbh-col-note">
 								<NcButton
-									v-if="(canWrite && !row.planLockedBy) || row.note"
+									v-if="(canWrite && !row.planLockedBy && (row.active !== false || row.plan)) || row.note"
 									variant="tertiary"
 									:aria-label="row.note ? t('Notiz zur Planzahl anzeigen') : t('Notiz zur Planzahl hinzufügen')"
 									:title="row.note || t('Notiz hinzufügen')"
@@ -123,9 +138,23 @@
 									{{ formatMoney(row.diff) }}
 								</template>
 							</td>
+							<template v-if="comparison">
+								<td class="num vbh-col-hide-sm">
+									{{ formatMoney(row.compareSum) }}
+								</td>
+								<td class="num strong" :class="trendClass(row.type, row.compareDelta)">
+									<span v-if="row.compareDelta === null" class="vbh-budgettree-locked" :title="t('Verglichen wird beim Oberkonto mit dem Plan')">—</span>
+									<template v-else>
+										{{ formatSigned(row.compareDelta) }}
+									</template>
+								</td>
+								<td class="num vbh-col-hide-sm" :class="trendClass(row.type, row.compareDelta)">
+									{{ formatPercent(row.comparePercent) }}
+								</td>
+							</template>
 						</tr>
 						<tr v-if="noteOpen[row.accountId]" class="vbh-note-row">
-							<td colspan="7">
+							<td :colspan="comparison ? 10 : 7">
 								<label class="vbh-note-label">{{ tRaw('Notiz zu {number} {name}', { number: row.number, name: row.name }) }}
 									<textarea
 										v-if="canWrite"
@@ -151,12 +180,17 @@ import { mdiChevronDown, mdiChevronRight, mdiCommentPlusOutline, mdiCommentText 
 import { NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper, NcNoteCard } from '@nextcloud/vue'
 import AmountInput from './AmountInput.vue'
 import { allExpandable, attentionCounts, initialExpanded, visibleRows } from '../lib/budgetTree.js'
-import { amountClass, budgetDiffClass, formatMoney, typeLabel } from '../lib/format.js'
+import { amountClass, budgetDiffClass, formatMoney, formatPercent, formatSigned, trendClass, typeLabel } from '../lib/format.js'
 
 // Der Finanzplan als aufklappbarer Baum (siehe lib/Service/BudgetTree.php).
 // Plan steht dort, wo geplant wurde; Ist und Differenz schließen alle
 // Unterkonten ein. Konten, deren Zweig schon anderswo geplant ist, zeigen
 // statt des Eingabefelds die Plansumme mit einem Hinweis, wo der Plan liegt.
+//
+// Mit `comparison` (Issue #114) folgen drei Spalten: der Wert der
+// Vergleichsperiode, Δ = Plan Σ − Vergleich und Δ in Prozent. Inaktive
+// Konten ohne Plan bekommen kein Eingabefeld mehr; ein noch vorhandener
+// Plan bleibt bearbeitbar, damit er sich auf 0 setzen lässt.
 export default {
 	name: 'BudgetTreeTable',
 	components: { AmountInput, NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper, NcNoteCard },
@@ -167,6 +201,8 @@ export default {
 		// Wechselt der Zeitraum, gilt wieder der Startzustand. Ein Neuladen
 		// nach dem Speichern eines Planwerts lässt den Klappzustand stehen.
 		resetKey: { type: [Number, String], default: null },
+		// { periodId, label, basis } oder null (kein Vergleich)
+		comparison: { type: Object, default: null },
 	},
 
 	emits: ['save'],
@@ -186,6 +222,12 @@ export default {
 	computed: {
 		shown() { return visibleRows(this.rows, this.expanded, this.onlyAttention) },
 		counts() { return attentionCounts(this.rows) },
+		compareHead() {
+			if (!this.comparison) { return '' }
+			return this.comparison.basis === 'plan'
+				? this.tRaw('Plan {label}', { label: this.comparison.label })
+				: this.tRaw('Ist {label}', { label: this.comparison.label })
+		},
 	},
 
 	watch: {
@@ -196,6 +238,9 @@ export default {
 		amountClass,
 		budgetDiffClass,
 		formatMoney,
+		formatPercent,
+		formatSigned,
+		trendClass,
 		typeLabel,
 		has(row, flag) { return (row.flags || []).includes(flag) },
 		toggle(row) {
