@@ -30,3 +30,7 @@ composer.phar
 # Planungsnotizen aus der Arbeit an einzelnen Issues (Anforderungen,
 # Umsetzungsplaene) - Arbeitsmaterial, keine Projektdokumentation
 /claudedocs/
+# Vereinsspezifische Vorlagen (Kontenrahmen, Excel-Berichte) - Beispielmaterial
+# eines einzelnen Vereins, nicht oeffentlich; die Tests nutzen eine anonymisierte
+# Fassung unter tests/fixtures/
+/example/
