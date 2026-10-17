@@ -17,7 +17,28 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+## [0.37.0] – 2026-10-17
+
+**New:**
+- **Financial plan as a tree:** budget and actual are summed over the account
+  hierarchy. When the budget sits on a summary account and entries are posted
+  to its sub-accounts, those entries count towards the summary account – an
+  overrun is visible at a glance. The financial plan opens expanded down to
+  the budget level, can be fully expanded or collapsed and filtered to "Only
+  items needing attention" (expenses over budget, entries without a budget,
+  budget conflicts). Budget snapshots are shown as a tree, too.
+- **One budget level per branch:** once an account has a budget, its parent
+  and sub-accounts are locked for further budget figures ("Budgeted on …").
+  Older double budgets are marked as budget conflicts and can be resolved by
+  setting one of the figures to 0.
+- **Budget vs. actual as a print page** for the board, down to the budget
+  level, to a fixed level or complete; items needing attention are marked
+  with symbols that remain readable in black and white.
+
 **Changed:**
+- **Financial-plan CSV export:** new columns level, budget Σ, actual Σ,
+  difference Σ and status – **the column order has changed**. If you process
+  the file in your own spreadsheet, adjust the column mapping.
 - **Treasurer's report: budget vs. actual down to the budget level.** When
   the budget sits on a summary account and entries are posted to its
   sub-accounts, the treasurer's report now shows one row with plan and actual

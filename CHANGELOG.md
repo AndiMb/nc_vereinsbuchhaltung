@@ -19,7 +19,29 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+## [0.37.0] – 2026-10-17
+
+**Neu:**
+- **Finanzplan als Baum:** Plan und Ist werden über die Kontenhierarchie
+  summiert. Steht der Plan auf einem Sammelkonto und wird auf dessen
+  Unterkonten gebucht, zählen diese Buchungen beim Sammelkonto mit – eine
+  Überschreitung ist so auf einen Blick zu sehen. Der Finanzplan öffnet bis
+  zur Planungsebene aufgeklappt, lässt sich ganz auf- und zuklappen und auf
+  „Nur Auffälligkeiten" filtern (Ausgaben über Plan, Buchungen ohne Plan,
+  Plankonflikte). Plan-Stände erscheinen ebenfalls als Baum.
+- **Eine Planungsebene je Zweig:** Hat ein Konto einen Plan, sind seine Ober-
+  und Unterkonten für weitere Planwerte gesperrt („Plan liegt auf …").
+  Ältere Doppelplanungen werden als Plankonflikt markiert und lassen sich
+  bereinigen, indem einer der Werte auf 0 gesetzt wird.
+- **Soll-Ist-Vergleich als Druckseite** für den Vorstand, wahlweise bis zur
+  Planungsebene, bis zu einer festen Ebene oder vollständig; Auffälligkeiten
+  stehen als Zeichen in der Zeile und bleiben auch schwarzweiß erkennbar.
+
 **Geändert:**
+- **CSV-Export des Finanzplans:** neue Spalten Ebene, Plan Σ, Ist Σ,
+  Differenz Σ und Status – **die Spaltenfolge hat sich geändert**. Wer die
+  Datei in einer eigenen Tabelle weiterverarbeitet, muss die Zuordnung der
+  Spalten anpassen.
 - **Kassenbericht: Soll-Ist-Vergleich bis zur Planungsebene.** Steht der Plan
   auf einem Sammelkonto und wird auf dessen Unterkonten gebucht, zeigt der
   Kassenbericht jetzt eine Zeile mit Plan und Ist samt Unterkonten – statt

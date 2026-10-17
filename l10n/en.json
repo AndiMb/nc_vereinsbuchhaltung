@@ -2880,7 +2880,11 @@
         "Unterkonten von {number} {name} einklappen": "Collapse sub-accounts of {number} {name}",
         "Unterkonten von {number} {name} aufklappen": "Expand sub-accounts of {number} {name}",
         "Ist/Plan": "Actual/budget",
-        "Verglichen wird beim Oberkonto mit dem Plan": "Compared with the budget on the parent account"
+        "Verglichen wird beim Oberkonto mit dem Plan": "Compared with the budget on the parent account",
+        "Der Finanzplan rechnet Plan und Ist über die Unterkonten zusammen: Steht der Plan auf einem Sammelkonto, zählen die Buchungen der Unterkonten mit. Überschreitungen und Buchungen ohne Plan sind markiert.": "The financial plan now sums budget and actual over sub-accounts: when the budget sits on a summary account, entries on its sub-accounts count towards it. Overruns and entries without a budget are marked.",
+        "Geplant wird je Zweig auf genau einer Ebene. Der Finanzplan öffnet bis zu dieser Planungsebene und lässt sich auf Auffälligkeiten filtern.": "Each branch is budgeted on exactly one level. The financial plan opens down to this budget level and can be filtered to items needing attention.",
+        "Den Soll-Ist-Vergleich gibt es als druckfertige Seite für den Vorstand; auch der Kassenbericht vergleicht jetzt bis zur Planungsebene.": "Budget vs. actual is available as a print-ready page for the board; the treasurer's report now also compares down to the budget level.",
+        "Achtung: Im CSV-Export des Finanzplans hat sich die Spaltenfolge geändert.": "Note: the column order of the financial-plan CSV export has changed."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

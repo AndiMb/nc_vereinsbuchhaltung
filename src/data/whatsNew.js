@@ -25,6 +25,24 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.37.0',
+			roles: ['verwalter', 'buchhalter'],
+			items: [
+				t('Der Finanzplan rechnet Plan und Ist über die Unterkonten zusammen: Steht der Plan auf einem Sammelkonto, zählen die Buchungen der Unterkonten mit. Überschreitungen und Buchungen ohne Plan sind markiert.'),
+				t('Geplant wird je Zweig auf genau einer Ebene. Der Finanzplan öffnet bis zu dieser Planungsebene und lässt sich auf Auffälligkeiten filtern.'),
+				t('Den Soll-Ist-Vergleich gibt es als druckfertige Seite für den Vorstand; auch der Kassenbericht vergleicht jetzt bis zur Planungsebene.'),
+				t('Achtung: Im CSV-Export des Finanzplans hat sich die Spaltenfolge geändert.'),
+			],
+		},
+		{
+			version: '0.37.0',
+			roles: ['revisor'],
+			items: [
+				t('Der Finanzplan rechnet Plan und Ist über die Unterkonten zusammen: Steht der Plan auf einem Sammelkonto, zählen die Buchungen der Unterkonten mit. Überschreitungen und Buchungen ohne Plan sind markiert.'),
+				t('Den Soll-Ist-Vergleich gibt es als druckfertige Seite für den Vorstand; auch der Kassenbericht vergleicht jetzt bis zur Planungsebene.'),
+			],
+		},
+		{
 			version: '0.36.2',
 			roles: ['verwalter', 'buchhalter'],
 			items: [
