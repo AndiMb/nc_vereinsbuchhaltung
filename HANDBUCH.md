@@ -901,6 +901,62 @@ unter Zahnrad → *Verein* (Kapitel 2.6) ein Logo und eine Akzentfarbe
 hinterlegt, erscheinen beide automatisch im Kopf des Berichts.
 Wie beim Kassenbericht: Drucken oder „Als PDF speichern" über den Browser.
 
+### 7.4 Gliederungsbericht nach Vorlage (druckfertig)
+
+Tab **Berichte → Gliederung**. Derselbe Plan und dieselben Buchungen wie im
+Finanzplan, aber gegliedert nach einer **Vorlage** – etwa so, wie ein
+Zuwendungsgeber den Haushaltsplan oder Verwendungsnachweis sehen möchte, oder
+so, wie der Vorstand sehen will, was die Projekte den Verein kosten.
+
+**Mitgeliefert** werden zwei Vorlagen:
+
+- **Haushaltsplan nach Titelgruppen (Zuwendungsgeber):** zuerst die
+  Einnahmen, dann die Ausgaben; darin jeweils der ideelle Bereich nach
+  Kontenhierarchie und danach die Projekte je Auswertungsgruppe mit
+  „Summe der Titelgruppe". Am Ende eine Zusammenfassung nach Hauptgruppen
+  (oberste Kontoebene). Spalten: Plan Vorjahr und Plan des gewählten
+  Zeitraums; Plannotizen erscheinen als Erläuterung unter dem Konto.
+- **Ergebnis je Bereich und Projekt:** der ideelle Bereich mit Einnahmen,
+  Ausgaben und Ergebnis, danach je Projekt Einnahmen, Ausgaben und
+  Differenz und zuletzt der Saldo – so ist auf einen Blick zu sehen, was der
+  Verein aus eigenen Mitteln für seine Projekte aufbringt. Spalten: Plan und
+  Ist des Vorjahres und des gewählten Zeitraums.
+
+Beide trennen den ideellen Bereich von den Projekten über die **Sphäre** der
+Konten (Kapitel 5.6); Projekte sind die Auswertungsgruppen der Konten mit
+Sphäre Zweckbetrieb (Kapitel 5.4). Ohne gepflegte Sphären steht alles unter
+„Ohne Sphäre" – der Bericht weist darauf hin.
+
+**Eigene Vorlagen.** Mitgelieferte Vorlagen lassen sich nicht ändern, aber
+mit **Kopieren und anpassen** als eigene Vorlage übernehmen (Rolle
+Buchhalter oder Verwalter). Der Dialog hat vier Bereiche:
+
+- **Allgemein:** Name, Plannotizen als Erläuterung, Gesamtzeile am Ende.
+- **Struktur:** Abschnitte schränken die Konten nach Kontoart, Sphäre oder
+  Gruppe ein und können weitere Abschnitte enthalten. Gliederungsebenen
+  teilen die Konten eines Abschnitts weiter auf – nach Kontoart, Sphäre,
+  Gruppe oder einzeln als Konto (als Baum, bis zur Planungsebene, bis zu
+  einer festen Ebene oder vollständig). Mit ↑/↓ werden Abschnitte und Ebenen
+  verschoben; rechts zeigt eine Vorschau das Gerüst des Berichts.
+- **Spalten:** bis zu acht Spalten aus Plan, Ist oder „Ist − Plan", jeweils
+  für den gewählten Zeitraum oder bis zu drei Zeiträume davor.
+- **Gruppen:** Auswertungsgruppen umbenennen, mehrere zu einer Gruppe
+  zusammenfassen oder einzelne Konten samt Unterkonten einer anderen Gruppe
+  zuordnen – ohne Konten oder Auswertungsgruppen selbst zu ändern.
+
+Ob eine Summenzeile eine **Summe** oder ein **Ergebnis** (Einnahmen −
+Ausgaben) zeigt, ergibt sich von selbst: Sind an ihrer Stelle nur Einnahmen
+oder nur Ausgaben erlaubt, ist es eine Summe, sonst ein Ergebnis.
+
+**Nichts geht verloren:** Erfasst kein Abschnitt ein Konto mit Werten, steht
+es am Ende unter „Nicht erfasste Konten", und ein Hinweis nennt es. Zählt ein
+Konto in mehreren Abschnitten, wird es markiert. Die Gesamtzeile umfasst
+immer alle Einnahmen und Ausgaben und stimmt mit dem Finanzplan überein.
+
+**Drucken / PDF** öffnet den Bericht als druckfertige Seite (ab fünf Spalten
+im Querformat), **CSV** liefert dieselben Zeilen mit einer Spalte „Ebene" zum
+Gliedern in der Tabellenkalkulation.
+
 ---
 
 ## 8. Geschäftsjahr und Festschreibung
@@ -1201,8 +1257,8 @@ selbst als lesbare Seite aus, es muss also nichts auf GitHub gesucht werden.
 
 Zahnrad → *Daten* → *Alle Daten löschen* (nur Verwalter, mit
 Bestätigungsdialog) entfernt Konten, Buchungen, Importe, Belege, offene Posten
-(auch die Forderungen an Mitglieder) und die Zeiträume samt ihrer
-Festschreibung. **Das Änderungsprotokoll bleibt erhalten.** Mitglieder,
+(auch die Forderungen an Mitglieder), die eigenen Vorlagen des
+Gliederungsberichts und die Zeiträume samt ihrer Festschreibung. **Das Änderungsprotokoll bleibt erhalten.** Mitglieder,
 Mandate, Beitragsgruppen und Zuweisungen (Kapitel 13) gehören nicht zum
 Buchungsbestand und bleiben unberührt (der Einzug wird mitgeräumt, siehe unten).
 Gleiches gilt für den Reset-Modus beim xbuc-Import. Beides ist

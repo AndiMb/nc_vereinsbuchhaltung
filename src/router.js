@@ -31,6 +31,7 @@ export default createRouter({
 		{ path: '/reports/spheres', name: 'reports-spheres', component: RouteHost },
 		{ path: '/reports/reserves', name: 'reports-reserves', component: RouteHost },
 		{ path: '/reports/budget', name: 'reports-budget', component: RouteHost },
+		{ path: '/reports/structure', name: 'reports-structure', component: RouteHost },
 		{ path: '/reports/audit', name: 'reports-audit', component: RouteHost },
 
 		{ path: '/contributions', name: 'contributions', component: RouteHost },

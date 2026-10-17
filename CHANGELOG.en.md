@@ -18,6 +18,16 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 ## [Unreleased]
 
 **New:**
+- **Structured report by template** (Reports → Structured report): the same
+  budget and postings, structured by a template – with a print page and CSV
+  export. Built in are "Budget by title groups (funding body)" (income and
+  expenses, each split into the non-profit area and the projects per title
+  group) and "Result by area and project" (non-profit area, then income,
+  expenses and difference per project). Own templates are created as a copy:
+  sections, grouping levels, columns (budget, actual, actual − budget, also
+  for earlier periods) and groups can be set freely without changing accounts
+  or analysis groups. Accounts no template covers appear under "Accounts not
+  covered", so the grand total always matches the financial plan.
 - **Financial plan with a comparison period** (#114): for every account the
   financial plan shows the value of another period – the previous year's
   actual by default, switchable to its plan – together with the change in

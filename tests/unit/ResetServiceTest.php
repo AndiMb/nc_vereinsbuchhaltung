@@ -19,6 +19,7 @@ use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\MandateAmendmentMapper;
 use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
+use OCA\Vereinsbuchhaltung\Db\ReportTemplateMapper;
 use OCA\Vereinsbuchhaltung\Db\ReturnedDebitMapper;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
@@ -71,6 +72,7 @@ class ResetServiceTest extends TestCase {
 		'vbh_budgets',
 		'vbh_budget_snapshots',
 		'vbh_budget_snap_items',
+		'vbh_report_templates',
 		'vbh_returned_debits',
 		'vbh_dunning_notices',
 		'vbh_debit_items',
@@ -261,6 +263,7 @@ class ResetServiceTest extends TestCase {
 				new DebitItemMapper($this->db),
 				new DebitBatchMapper($this->db),
 			),
+			new ReportTemplateMapper($this->db),
 		);
 	}
 

@@ -13,11 +13,14 @@ use OCA\Vereinsbuchhaltung\Service\Export\CsvExportService;
 use OCA\Vereinsbuchhaltung\Service\Export\CsvFile;
 use OCA\Vereinsbuchhaltung\Service\Export\DatenuebersichtRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\FinanzplanRenderer;
+use OCA\Vereinsbuchhaltung\Service\Export\GliederungsberichtRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\KassenberichtRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\KurzberichtRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\PrintableReportPage;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
+use OCA\Vereinsbuchhaltung\Service\Report\ReportTemplateService;
+use OCA\Vereinsbuchhaltung\Service\Report\StructuredReportService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
@@ -61,6 +64,9 @@ class ExportController extends Controller {
 		private DatenuebersichtRenderer $datenuebersicht,
 		private AccountStatementRenderer $accountStatement,
 		private FinanzplanRenderer $finanzplan,
+		private GliederungsberichtRenderer $gliederungsbericht,
+		private ReportTemplateService $reportTemplates,
+		private StructuredReportService $structuredReport,
 		private PeriodService $periods,
 		private IL10N $l10n,
 	) {
@@ -149,6 +155,33 @@ class ExportController extends Controller {
 	#[NoCSRFRequired]
 	public function finanzplan(?int $period = null, string $depth = 'plan', int $compare = 0, string $basis = 'actual'): DataDisplayResponse {
 		return $this->printableResponse($this->finanzplan->render($this->userId(), $period, $depth, $compare, $basis));
+	}
+
+	/** Gliederungsbericht einer Vorlage als druckfertige HTML-Seite. */
+	#[NoAdminRequired]
+	#[NoCSRFRequired]
+	public function gliederungsbericht(string $template, ?int $period = null): DataDisplayResponse|DataResponse {
+		$report = $this->structuredReport($template, $period);
+		return $report === null ? $this->templateNotFound() : $this->printableResponse($this->gliederungsbericht->render($report));
+	}
+
+	/** Gliederungsbericht einer Vorlage als CSV. */
+	#[NoAdminRequired]
+	#[NoCSRFRequired]
+	public function gliederungsberichtCsv(string $template, ?int $period = null): DataDownloadResponse|DataResponse {
+		$report = $this->structuredReport($template, $period);
+		return $report === null ? $this->templateNotFound() : $this->download($this->csv->gliederungsbericht($report));
+	}
+
+	/** @return array<string, mixed>|null */
+	private function structuredReport(string $template, ?int $period): ?array {
+		$userId = $this->userId();
+		$found = $this->reportTemplates->find($userId, $template);
+		return $found === null ? null : $this->structuredReport->build($userId, $found, $period);
+	}
+
+	private function templateNotFound(): DataResponse {
+		return new DataResponse(['message' => $this->l10n->t('Vorlage nicht gefunden')], Http::STATUS_NOT_FOUND);
 	}
 
 	/** Mehrjahresübersicht als CSV-Matrix. */
