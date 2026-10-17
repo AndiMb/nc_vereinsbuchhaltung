@@ -111,6 +111,7 @@ function buildTopics() {
 				t('Kassenbericht (Berichte → Auswertung): druckfertige Zusammenfassung für die Mitgliederversammlung.'),
 				t('Prüfleitfaden (Berichte → Auswertung): druckfertige Kurzanleitung für Kassenprüfer/innen.'),
 				t('Auswertungsgruppen, Sphären und Finanzplan: Ergebnis je Projekt, je Steuerkategorie bzw. Soll-Ist-Vergleich.'),
+				t('Gliederung: Plan und Buchungen nach einer Vorlage gegliedert, z. B. für einen Zuwendungsgeber; eigene Vorlagen entstehen als Kopie (Kapitel 7.4).'),
 			],
 		},
 		{

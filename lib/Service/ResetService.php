@@ -14,6 +14,7 @@ use OCA\Vereinsbuchhaltung\Db\IncomingPaymentRejectionMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
+use OCA\Vereinsbuchhaltung\Db\ReportTemplateMapper;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportSettingsService;
@@ -39,6 +40,7 @@ class ResetService {
 		private BankTxSepaDetailMapper $sepaDetails,
 		private IncomingPaymentRejectionMapper $incomingRejections,
 		private ContributionResetService $contribution,
+		private ReportTemplateMapper $reportTemplates,
 	) {
 	}
 
@@ -84,6 +86,9 @@ class ResetService {
 			$this->costCenterMapper->deleteAllForUser($userId);
 			$this->budgetMapper->deleteAllForUser($userId);
 			$this->snapshotService->deleteAllForUser($userId);
+			// Vorlagen des Gliederungsberichts verweisen auf Konten und
+			// Kostenstellen; ohne sie hätten sie keinen Bezug mehr.
+			$this->reportTemplates->deleteAllForUser($userId);
 			// Läufe, Posten, Rücklastschriften und Mahnstufen verweisen auf die
 			// Forderungen darunter (Issue #123) – sie gehen vor ihnen, und die
 			// Zeiger der Mandate auf sie werden im selben Zug gelöst.

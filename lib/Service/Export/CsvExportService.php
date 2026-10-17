@@ -325,6 +325,49 @@ class CsvExportService {
 	}
 
 	/**
+	 * Gliederungsbericht einer Vorlage.
+	 * Format: Ebene;Art;Nr.;Bezeichnung;<eine Spalte je Wertspalte>
+	 *
+	 * `Ebene` = Einrückung + 1, wie beim Finanzplan – daran lässt sich in
+	 * Excel gliedern (Daten → Gliederung). Eine Spalte ohne Periode bleibt leer.
+	 *
+	 * @param array<string, mixed> $report aus {@see \OCA\Vereinsbuchhaltung\Service\Report\StructuredReportService::build()}
+	 */
+	public function gliederungsbericht(array $report): CsvFile {
+		$kinds = [
+			'heading' => 'Überschrift',
+			'account' => 'Konto',
+			'note' => 'Erläuterung',
+			'line' => 'Zeile',
+			'footer' => 'Summe',
+			'total' => 'Gesamt',
+		];
+		$head = ['Ebene', 'Art', 'Nr.', 'Bezeichnung'];
+		foreach ($report['columns'] as $c) {
+			$head[] = $c['label'] . ' (EUR)';
+		}
+
+		$csv = self::BOM;
+		$csv .= self::line($head);
+		foreach ($report['rows'] as $row) {
+			$fields = [
+				(string)($row['depth'] + 1),
+				$kinds[$row['kind']] ?? $row['kind'],
+				(string)($row['number'] ?? ''),
+				(string)$row['label'],
+			];
+			foreach ($report['columns'] as $i => $_) {
+				$value = $row['values'][$i] ?? null;
+				$fields[] = $value === null ? '' : ReportFormat::money($value / 100);
+			}
+			$csv .= self::line($fields);
+		}
+
+		$name = AttachmentArchive::slug($report['template']['name']) . '_' . AttachmentArchive::slug($report['period']->getLabel());
+		return new CsvFile($csv, $name . '.csv');
+	}
+
+	/**
 	 * Auffälligkeiten einer Zeile im Klartext, wie sie der Bildschirm zeigt.
 	 *
 	 * @param list<string> $flags

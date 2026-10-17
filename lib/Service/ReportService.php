@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\CostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\Period;
+use OCA\Vereinsbuchhaltung\Service\Report\CostCenterResolver;
 use OCP\IConfig;
 use OCP\IL10N;
 
@@ -100,29 +101,21 @@ class ReportService {
 		$accounts = $this->accountMapper->findAll($userId);
 		[$from, $to] = $this->periods->range($userId, $periodId);
 		$sums = $this->lineMapper->sumByAccount($userId, $from, $to);
-		$mode = $this->costCenterMode();
-
-		$names = [];
-		$defined = [];
-		foreach ($this->costCenterMapper->findAll($userId) as $cc) {
-			$names[$cc->getCode()] = $cc->getName();
-			$defined[$cc->getId()] = $cc;
-		}
+		$resolver = $this->costCenterResolver($userId);
+		$mode = $resolver->mode();
 
 		$groups = [];
-		if ($mode === 'manual') {
-			// Alle angelegten Kostenstellen erscheinen, auch ohne zugeordnetes
-			// Konto: sonst wäre eine gerade angelegte Kostenstelle im Bericht
-			// unsichtbar und man könnte nicht sehen, dass die Zuordnung fehlt.
-			foreach ($defined as $cc) {
-				$groups[(string)self::manualGroupKey($cc->getId(), $defined)] = [
-					'code' => $cc->getCode(),
-					'name' => $cc->getName(),
-					'incomeCents' => 0,
-					'expenseCents' => 0,
-					'accounts' => [],
-				];
-			}
+		// Im Modus 'manual' erscheinen alle angelegten Kostenstellen, auch ohne
+		// zugeordnetes Konto: sonst wäre eine gerade angelegte Kostenstelle im
+		// Bericht unsichtbar und man könnte nicht sehen, dass die Zuordnung fehlt.
+		foreach ($resolver->definedGroups() as $g) {
+			$groups[$g['key']] = [
+				'code' => $g['code'],
+				'name' => $g['name'],
+				'incomeCents' => 0,
+				'expenseCents' => 0,
+				'accounts' => [],
+			];
 		}
 		foreach ($accounts as $a) {
 			// Erfolgswirksam sind alle Nicht-Geldkonten außer Eigenkapital
@@ -131,41 +124,23 @@ class ReportService {
 				continue;
 			}
 			$type = $a->getType();
-			if ($mode === 'account') {
-				// Jedes Erfolgskonto mit Bewegung ist seine eigene Kostenstelle.
-				$id = $a->getId();
-				if (($sums[$id]['debit'] ?? 0) === 0 && ($sums[$id]['credit'] ?? 0) === 0) {
-					continue;
-				}
-				$code = $a->getNumber();
-				$key = 'acc-' . $id;
-				if (!isset($groups[$key])) {
-					$groups[$key] = [
-						'code' => $code,
-						'name' => mb_substr($a->getName(), 0, 255),
-						'incomeCents' => 0,
-						'expenseCents' => 0,
-						'accounts' => [],
-					];
-				}
-			} elseif ($mode === 'manual') {
-				$manualKey = self::manualGroupKey($a->getCostCenterId(), $defined);
-				$code = $manualKey !== null ? $defined[$a->getCostCenterId()]->getCode() : null;
-				$key = $manualKey ?? '';
-			} else {
-				$code = self::costCode($a->getNumber());
-				$key = $code ?? '';
+			$id = $a->getId();
+			// Im Modus 'account' ist jedes Erfolgskonto mit Bewegung seine
+			// eigene Kostenstelle; Konten ohne Bewegung fehlen.
+			if ($mode === 'account' && ($sums[$id]['debit'] ?? 0) === 0 && ($sums[$id]['credit'] ?? 0) === 0) {
+				continue;
 			}
+			$group = $resolver->resolve($a);
+			$key = $group['key'];
 			if (!isset($groups[$key])) {
 				$groups[$key] = [
-					'code' => $code,
-					'name' => $this->resolveName($code, $names),
+					'code' => $group['code'],
+					'name' => $group['name'],
 					'incomeCents' => 0,
 					'expenseCents' => 0,
 					'accounts' => [],
 				];
 			}
-			$id = $a->getId();
 			$balCents = LedgerAggregator::net($a, $sums);
 			if ($a->isCreditNature()) {
 				$groups[$key]['incomeCents'] += $balCents;
@@ -433,19 +408,16 @@ class ReportService {
 	}
 
 	/**
-	 * @param array<string,string> $names
+	 * Zuordnung Konto → Kostenstelle nach dem eingestellten Modus, mit den
+	 * Namen der angelegten Kostenstellen.
 	 */
-	private function resolveName(?string $code, array $names): string {
-		if ($code === null) {
-			return $this->l10n->t('(ohne Auswertungsgruppe)');
+	public function costCenterResolver(string $userId): CostCenterResolver {
+		$names = [];
+		$defined = [];
+		foreach ($this->costCenterMapper->findAll($userId) as $cc) {
+			$names[$cc->getCode()] = $cc->getName();
+			$defined[$cc->getId()] = ['code' => $cc->getCode(), 'name' => $cc->getName()];
 		}
-		if (isset($names[$code])) {
-			return $names[$code];
-		}
-		return match ($code) {
-			'01' => $this->l10n->t('Ideeller Bereich'),
-			'11' => $this->l10n->t('Verbandszeitung'),
-			default => $this->l10n->t('Auswertungsgruppe %s', [$code]),
-		};
+		return new CostCenterResolver($this->costCenterMode(), $names, $defined, $this->l10n);
 	}
 }

@@ -214,6 +214,7 @@
 					:openSnapshot="openSnapshot"
 					:costCenterMode="costCenterMode"
 					:saveCostCenterMode="saveCostCenterMode"
+					:structuredRefreshKey="structuredRefreshKey"
 					@update:reportView="reportView = $event"
 					@update:selectedCCCode="selectedCCCode = $event"
 					@update:selectedSphereCode="selectedSphereCode = $event"
@@ -473,6 +474,7 @@ const ROUTE_META = {
 	'reports-spheres': { tab: 'reports', reportView: 'spheres' },
 	'reports-reserves': { tab: 'reports', reportView: 'reserves' },
 	'reports-budget': { tab: 'reports', reportView: 'budget' },
+	'reports-structure': { tab: 'reports', reportView: 'structure' },
 	'reports-audit': { tab: 'reports', reportView: 'audit' },
 	contributions: { tab: 'contributions', contribView: 'members' },
 	'contributions-batch': { tab: 'contributions', contribView: 'batch' },
@@ -604,6 +606,8 @@ export default {
 
 			bookingView: 'journal',
 			reportView: 'summary',
+			// Gliederungsbericht laedt selbst; hochzaehlen = neu laden (fremde Aenderungen)
+			structuredRefreshKey: 0,
 			contribView: 'members',
 			budgetData: null,
 			// Vergleich im Finanzplan (Issue #114): null = Periode davor (wählt
@@ -1023,7 +1027,7 @@ export default {
 					: { name: 'accounts', query }
 			}
 			if (this.activeTab === 'reports') {
-				const names = { costcenters: 'reports-costcenters', spheres: 'reports-spheres', reserves: 'reports-reserves', budget: 'reports-budget', audit: 'reports-audit' }
+				const names = { costcenters: 'reports-costcenters', spheres: 'reports-spheres', reserves: 'reports-reserves', budget: 'reports-budget', structure: 'reports-structure', audit: 'reports-audit' }
 				if (this.reportView === 'costcenters' && this.selectedCCCode !== false) { query.cc = this.selectedCCCode }
 				if (this.reportView === 'spheres' && this.selectedSphereCode !== false) { query.sphere = this.selectedSphereCode }
 				if (this.reportView === 'budget' && this.snapshotView.open && this.snapshotView.data) { query.snapshot = this.snapshotView.data.id }
@@ -1109,7 +1113,7 @@ export default {
 					jobs.push(this.loadAccounts())
 					if (this.selectedAccountId) { jobs.push(this.loadStatement(this.selectedAccountId)) }
 				} else if (tab === 'reports') {
-					if (this.reportView === 'costcenters') { jobs.push(this.loadReport()) } else if (this.reportView === 'budget') { jobs.push(this.loadBudget()) }
+					if (this.reportView === 'costcenters') { jobs.push(this.loadReport()) } else if (this.reportView === 'budget') { jobs.push(this.loadBudget()) } else if (this.reportView === 'structure') { this.structuredRefreshKey++ }
 				}
 				await Promise.all(jobs)
 			} finally { this.busy = false }
@@ -1427,7 +1431,7 @@ export default {
 			if (this.canWrite && this.membershipActive) { jobs.push(this.loadTasks()) }
 			if (this.activeTab === 'accounts' && this.selectedAccountId) { jobs.push(this.loadStatement(this.selectedAccountId)) }
 			if (this.activeTab === 'reports') {
-				if (this.reportView === 'costcenters') { jobs.push(this.loadReport()) } else if (this.reportView === 'budget') { jobs.push(this.loadBudget()) }
+				if (this.reportView === 'costcenters') { jobs.push(this.loadReport()) } else if (this.reportView === 'budget') { jobs.push(this.loadBudget()) } else if (this.reportView === 'structure') { this.structuredRefreshKey++ }
 			}
 			try { await Promise.all(jobs) } catch { /* nächster Poll versucht es erneut */ }
 		},

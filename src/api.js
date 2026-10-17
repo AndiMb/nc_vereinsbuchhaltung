@@ -92,6 +92,13 @@ export default {
 	multiyearTrend: () => axios.get(url('/report/multiyear-trend')),
 	reserveReport: () => axios.get(url('/report/reserves')),
 
+	// Gliederungsbericht: Vorlagen (mitgelieferte heißen „builtin:…“) und Auswertung
+	reportTemplates: () => axios.get(url('/report-templates')),
+	createReportTemplate: (name, definition) => axios.post(url('/report-templates'), { name, definition }),
+	updateReportTemplate: (id, name, definition) => axios.put(url(`/report-templates/${encodeURIComponent(id)}`), { name, definition }),
+	deleteReportTemplate: (id) => axios.delete(url(`/report-templates/${encodeURIComponent(id)}`)),
+	structuredReport: (template, period) => axios.get(url('/report/structured'), { params: { template, period: period || undefined } }),
+
 	// Finanzplan / Budget
 	// compare: null = Periode davor (Vorgabe des Servers), 0 = kein Vergleich, sonst Perioden-ID
 	budget: (period, compare = null, basis = 'actual') => axios.get(url('/budget'), { params: { period: period || undefined, compare: compare ?? undefined, basis } }),
@@ -298,6 +305,8 @@ export default {
 	exportBudgetUrl: (period, compare = 0, basis = 'actual') => generateUrl(base + '/export/budget') + `?compare=${compare}&basis=${basis}` + (period ? `&period=${period}` : ''),
 	exportFinanzplanUrl: (period, depth = 'plan', compare = 0, basis = 'actual') => generateUrl(base + '/export/finanzplan') + `?depth=${encodeURIComponent(depth)}&compare=${compare}&basis=${basis}` + (period ? `&period=${period}` : ''),
 	exportMultiyearUrl: () => generateUrl(base + '/export/multiyear'),
+	gliederungsberichtUrl: (template, period) => generateUrl(base + '/export/gliederungsbericht') + `?template=${encodeURIComponent(template)}` + (period ? `&period=${period}` : ''),
+	gliederungsberichtCsvUrl: (template, period) => generateUrl(base + '/export/gliederungsbericht-csv') + `?template=${encodeURIComponent(template)}` + (period ? `&period=${period}` : ''),
 	kassenberichtUrl: (period) => generateUrl(base + '/export/kassenbericht') + (period ? `?period=${period}` : ''),
 	kurzberichtUrl: (since) => generateUrl(base + '/export/kurzbericht') + (since ? `?since=${since}` : ''),
 	exportAttachmentsUrl: (period) => generateUrl(base + '/export/attachments') + (period ? `?period=${period}` : ''),

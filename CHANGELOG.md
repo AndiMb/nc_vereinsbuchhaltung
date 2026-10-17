@@ -20,6 +20,17 @@ verwenden, z. B. `**Neu:**`.
 ## [Unreleased]
 
 **Neu:**
+- **Gliederungsbericht nach Vorlage** (Berichte → Gliederung): derselbe Plan
+  und dieselben Buchungen, gegliedert nach einer Vorlage – mit Druckseite und
+  CSV-Export. Mitgeliefert sind „Haushaltsplan nach Titelgruppen
+  (Zuwendungsgeber)" (Einnahmen und Ausgaben, darin ideeller Bereich und
+  Projekte je Titelgruppe) und „Ergebnis je Bereich und Projekt" (ideeller
+  Bereich, dann Einnahmen, Ausgaben und Differenz je Projekt). Eigene
+  Vorlagen entstehen als Kopie: Abschnitte, Gliederungsebenen, Spalten (Plan,
+  Ist, Ist − Plan, auch für Vorperioden) und Gruppen lassen sich frei
+  einstellen, ohne Konten oder Auswertungsgruppen zu ändern. Konten, die
+  keine Vorlage erfasst, erscheinen unter „Nicht erfasste Konten", damit die
+  Gesamtsumme immer zum Finanzplan passt.
 - **Finanzplan mit Vergleichsperiode** (#114): Der Finanzplan zeigt je
   Konto den Wert eines anderen Zeitraums – vorbelegt das Ist des Vorjahres,
   umschaltbar auf dessen Plan – samt Veränderung in Euro und Prozent. Die

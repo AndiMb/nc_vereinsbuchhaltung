@@ -25,6 +25,21 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.38.0',
+			roles: ['verwalter', 'buchhalter'],
+			items: [
+				t('Neu unter Berichte → Gliederung: Plan und Buchungen nach einer Vorlage gegliedert, etwa für einen Zuwendungsgeber oder als Ergebnis je Projekt – mit Druckseite und CSV.'),
+				t('Die mitgelieferten Vorlagen lassen sich kopieren und anpassen: Abschnitte, Spalten und Gruppen frei wählbar, ohne den Kontenrahmen zu ändern.'),
+			],
+		},
+		{
+			version: '0.38.0',
+			roles: ['revisor'],
+			items: [
+				t('Neu unter Berichte → Gliederung: Plan und Buchungen nach einer Vorlage gegliedert, etwa für einen Zuwendungsgeber oder als Ergebnis je Projekt – mit Druckseite und CSV.'),
+			],
+		},
+		{
 			version: '0.37.0',
 			roles: ['verwalter', 'buchhalter'],
 			items: [

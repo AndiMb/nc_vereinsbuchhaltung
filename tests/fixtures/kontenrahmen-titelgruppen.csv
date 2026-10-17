@@ -1,0 +1,175 @@
+# Kontonummer;Kontoart – Aufbau „Titel Titelgruppe [Unterkonto]“, ohne Namen und Beträge
+1;income
+111;income
+111 01;income
+111 11;income
+111 51;income
+111 51 2021;income
+111 52;income
+111 53;income
+111 54;income
+111 57;income
+111 58;income
+111 59;income
+111 73;income
+119;income
+119 01;income
+119 51;income
+119 51 2021;income
+119 52;income
+119 55;income
+119 62;income
+2;income
+231;income
+231 01;income
+231 71;income
+232;income
+232 01;income
+232 69;income
+232 70;income
+233;income
+233 52;income
+233 54;income
+233 55;income
+3;income
+352;income
+352 01;income
+4;expense
+412;expense
+412 01;expense
+412 55;expense
+427;expense
+427 01;expense
+427 51;expense
+427 51 2021;expense
+427 52;expense
+427 53;expense
+427 54;expense
+427 55;expense
+427 57;expense
+427 58;expense
+427 65;expense
+427 65 05;expense
+427 68;expense
+427 68 03;expense
+428;expense
+428 01;expense
+428 01 01;expense
+428 01 02;expense
+428 01 03;expense
+428 01 04;expense
+428 01 05;expense
+428 01 06;expense
+428 01 07;expense
+428 01 08;expense
+428 02;expense
+428 02 01;expense
+439;expense
+439 01;expense
+5;expense
+511;expense
+511 01;expense
+511 01 01;expense
+511 01 02;expense
+511 01 03;expense
+511 51;expense
+511 51 2021;expense
+518;expense
+518 01;expense
+518 51;expense
+518 51 2021;expense
+518 52;expense
+518 54;expense
+518 55;expense
+518 57;expense
+518 58;expense
+527;expense
+527 01;expense
+527 51;expense
+527 51 2021;expense
+527 52;expense
+527 55;expense
+527 57;expense
+527 65;expense
+527 65 05;expense
+527 68;expense
+527 68 03;expense
+529;expense
+529 01;expense
+531;expense
+531 01;expense
+531 11;expense
+531 11 01;expense
+531 11 02;expense
+531 51;expense
+531 51 2021;expense
+531 52;expense
+531 54;expense
+531 55;expense
+531 57;expense
+531 65;expense
+531 65 05;expense
+541;expense
+541 01;expense
+542;expense
+542 01;expense
+544;expense
+544 01;expense
+544 01 01;expense
+544 01 02;expense
+544 01 03;expense
+544 01 04;expense
+544 01 05;expense
+544 01 06;expense
+546;expense
+546 01;expense
+546 01 01;expense
+546 01 02;expense
+546 01 03;expense
+546 01 04;expense
+546 49;expense
+546 49 01;expense
+546 49 02;expense
+546 49 03;expense
+546 49 04;expense
+546 49 05;expense
+546 51;expense
+546 51 2021;expense
+546 52;expense
+546 53;expense
+546 54;expense
+546 55;expense
+546 57;expense
+546 58;expense
+546 59;expense
+546 60;expense
+546 60 2021;expense
+546 62;expense
+546 63;expense
+546 64;expense
+546 65;expense
+546 65 01;expense
+546 65 02;expense
+546 65 03;expense
+546 65 04;expense
+546 65 05;expense
+546 66;expense
+546 67;expense
+546 68;expense
+546 68 01;expense
+546 68 02;expense
+546 68 03;expense
+546 69;expense
+546 70;expense
+546 71;expense
+546 72;expense
+546 73;expense
+6;expense
+681;expense
+681 01;expense
+681 01 01;expense
+681 01 02;expense
+681 54;expense
+9;expense
+912;expense
+912 01;expense

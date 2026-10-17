@@ -17,6 +17,9 @@
 				<button :class="{ active: reportView === 'budget' }" @click="$emit('update:report-view', 'budget')">
 					{{ t('Finanzplan') }}
 				</button>
+				<button :class="{ active: reportView === 'structure' }" @click="$emit('update:report-view', 'structure')">
+					{{ t('Gliederung') }}
+				</button>
 				<button :class="{ active: reportView === 'audit' }" @click="$emit('update:report-view', 'audit')">
 					{{ t('Protokoll') }}
 				</button>
@@ -860,6 +863,13 @@
 				</div>
 			</div>
 
+			<!-- GLIEDERUNGSBERICHT: lädt seine Daten selbst, deshalb erst eingehängt,
+			     wenn der Reiter offen ist -->
+			<StructuredReportView
+				v-if="reportView === 'structure'"
+				:refreshKey="structuredRefreshKey"
+				@openSpheres="spherePanelOpen = true" />
+
 			<!-- ÄNDERUNGSPROTOKOLL -->
 			<div v-show="reportView === 'audit'">
 				<p class="vbh-hint">
@@ -961,6 +971,7 @@ import { toRefs } from 'vue'
 import BudgetTreeTable from './BudgetTreeTable.vue'
 import CostCenterPanel from './CostCenterPanel.vue'
 import SphereAssignPanel from './SphereAssignPanel.vue'
+import StructuredReportView from './StructuredReportView.vue'
 import api from '../api.js'
 import { useAccounts } from '../composables/useAccounts.js'
 import { useAuth } from '../composables/useAuth.js'
@@ -975,7 +986,7 @@ Chart.register(LineController, LineElement, PointElement, CategoryScale, LinearS
 
 export default {
 	name: 'ReportsTab',
-	components: { NcButton, NcActions, NcActionInput, NcActionLink, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, NcModal, NcSelect, BudgetTreeTable, CostCenterPanel, SphereAssignPanel },
+	components: { NcButton, NcActions, NcActionInput, NcActionLink, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, NcModal, NcSelect, BudgetTreeTable, CostCenterPanel, SphereAssignPanel, StructuredReportView },
 	props: {
 		// Kostenstellen-Modus (group|account|manual), gesteuert ueber den
 		// Gruppierungs-Waehler in der Kopfzeile (nur reportView==='costcenters').
@@ -1019,6 +1030,9 @@ export default {
 		loadAudit: { type: Function, required: true },
 		// oeffnet ein Top-Level-Modal ausserhalb dieser Komponente (App.vue).
 		openSnapshot: { type: Function, required: true },
+		// App.vue zaehlt hoch, wenn der Gliederungsbericht neu laden soll
+		// (Zeitraum-Umstellung durch andere, fremde Aenderungen).
+		structuredRefreshKey: { type: Number, default: 0 },
 	},
 
 	emits: ['budget-changed', 'budget-compare-changed', 'cost-centers-changed', 'help', 'snapshots-changed', 'spheres-changed', 'update:cost-center-mode', 'update:rename-name', 'update:report-view', 'update:selected-c-c-code', 'update:selected-sphere-code'],

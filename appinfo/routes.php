@@ -73,6 +73,13 @@ return [
 		['name' => 'report#multiyearTrend', 'url' => '/api/report/multiyear-trend', 'verb' => 'GET'],
 		['name' => 'report#reserves', 'url' => '/api/report/reserves', 'verb' => 'GET'],
 
+		// Gliederungsbericht: Vorlagen und Auswertung
+		['name' => 'reportTemplate#index', 'url' => '/api/report-templates', 'verb' => 'GET'],
+		['name' => 'reportTemplate#create', 'url' => '/api/report-templates', 'verb' => 'POST'],
+		['name' => 'reportTemplate#update', 'url' => '/api/report-templates/{id}', 'verb' => 'PUT'],
+		['name' => 'reportTemplate#destroy', 'url' => '/api/report-templates/{id}', 'verb' => 'DELETE'],
+		['name' => 'reportTemplate#evaluate', 'url' => '/api/report/structured', 'verb' => 'GET'],
+
 		// Finanzplan / Budget
 		['name' => 'budget#index', 'url' => '/api/budget', 'verb' => 'GET'],
 		['name' => 'budget#set', 'url' => '/api/budget', 'verb' => 'POST'],
@@ -285,6 +292,8 @@ return [
 		['name' => 'export#report',   'url' => '/api/export/report',   'verb' => 'GET'],
 		['name' => 'export#budget',   'url' => '/api/export/budget',   'verb' => 'GET'],
 		['name' => 'export#finanzplan', 'url' => '/api/export/finanzplan', 'verb' => 'GET'],
+		['name' => 'export#gliederungsbericht', 'url' => '/api/export/gliederungsbericht', 'verb' => 'GET'],
+		['name' => 'export#gliederungsberichtCsv', 'url' => '/api/export/gliederungsbericht-csv', 'verb' => 'GET'],
 		['name' => 'export#multiyear', 'url' => '/api/export/multiyear', 'verb' => 'GET'],
 		['name' => 'export#kassenbericht', 'url' => '/api/export/kassenbericht', 'verb' => 'GET'],
 		['name' => 'export#kurzbericht', 'url' => '/api/export/kurzbericht', 'verb' => 'GET'],

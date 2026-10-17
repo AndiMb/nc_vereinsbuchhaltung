@@ -885,6 +885,62 @@ If a logo and an accent color are set under gear icon → *Club*
 (chapter 2.6), both appear automatically in the header of the report. As
 with the treasurer's report: print or "save as PDF" via the browser.
 
+### 7.4 Structured report by template (print-ready)
+
+Tab **Reports → Structured report**. The same budget and postings as in the
+financial plan, but structured by a **template** – for instance the way a
+funding body wants to see the budget or the proof of use, or the way the
+board wants to see what the projects cost the club.
+
+Two templates are **built in**:
+
+- **Budget by title groups (funding body):** income first, then expenses;
+  within each, the non-profit area following the account hierarchy and then
+  the projects per analysis group with "Total of the title group". At the
+  end a summary by main groups (top account level). Columns: previous year's
+  budget and the budget of the selected period; budget notes appear as an
+  explanation below the account.
+- **Result by area and project:** the non-profit area with income, expenses
+  and result, then income, expenses and difference per project and finally
+  the balance – so you can see at a glance how much the club contributes to
+  its projects from its own funds. Columns: budget and actual of the previous
+  year and of the selected period.
+
+Both separate the non-profit area from the projects by the **sphere** of the
+accounts (chapter 5.6); projects are the analysis groups of the accounts with
+the sphere purpose-related operations (chapter 5.4). Without spheres,
+everything appears under "No sphere" – the report points this out.
+
+**Own templates.** Built-in templates cannot be changed, but **Copy and
+adapt** turns them into an own template (role bookkeeper or administrator).
+The dialog has four areas:
+
+- **General:** name, budget notes as explanation, grand total at the end.
+- **Structure:** sections narrow the accounts down by account type, sphere
+  or group and can contain further sections. Grouping levels split the
+  accounts of a section further – by account type, sphere, group or
+  individually by account (as a tree, down to the planning level, to a fixed
+  level or completely). ↑/↓ move sections and levels; a preview on the right
+  shows the skeleton of the report.
+- **Columns:** up to eight columns of budget, actual or "actual − budget",
+  each for the selected period or up to three periods earlier.
+- **Groups:** rename analysis groups, merge several into one group or assign
+  individual accounts including their sub-accounts to another group –
+  without changing the accounts or analysis groups themselves.
+
+Whether a total line shows a **total** or a **result** (income − expenses)
+follows automatically: if only income or only expenses are allowed at its
+position, it is a total, otherwise a result.
+
+**Nothing gets lost:** if no section covers an account with amounts, it
+appears at the end under "Accounts not covered" and a notice names it. An
+account counted in several sections is marked. The grand total always
+covers all income and expenses and matches the financial plan.
+
+**Print / PDF** opens the report as a print-ready page (landscape from five
+columns on), **CSV** delivers the same lines with a "level" column for
+outlining in a spreadsheet.
+
 ---
 
 ## 8. Fiscal year and finalization
@@ -1170,7 +1226,8 @@ readable page, so nothing needs to be looked up on GitHub.
 
 Gear icon → *Data* → *Delete all data* (administrators only, with a
 confirmation dialog) removes accounts, postings, imports, receipts, open items
-(including the claims against members) and the year-end closing markers.
+(including the claims against members), the own templates of the
+structured report and the year-end closing markers.
 **The change log is kept.** Members, mandates, contribution groups and
 assignments (chapter 13) are not part of the posting records and stay untouched
 (the collection is cleared with it, see below). The same applies to
