@@ -63,9 +63,10 @@ Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kon
 - **Kontoauszug**: Buchungshistorie je Konto inkl. laufendem Saldo und Saldovortrag; falsch zugeordnete Buchungen lassen sich direkt dort auf ein anderes Konto **umbuchen** (jede Seite der Buchung, nur die Kontozuordnung ändert sich, protokolliert, gesperrt in abgeschlossenen Jahren); Spalten per Klick sortierbar, **Kontenblatt** als CSV oder druckfertige Seite
 - **Auswertungsgruppen**: Einnahmen/Ausgaben/Ergebnis je Auswertungsgruppe mit Buchungs-Drilldown; drei Modi (2. Zahlengruppe der Kontonummer, je Konto oder **frei definierte Auswertungsgruppen** mit ausdrücklicher Konto-Zuordnung einzeln bzw. per Mehrfachauswahl), Namen per UI änderbar
 - **Steuerliche Sphären** (ideeller Bereich, Vermögensverwaltung, Zweckbetrieb, wirtschaftlicher Geschäftsbetrieb): je Konto zuweisbar (einzeln oder per Mehrfachauswahl im Bericht „Sphären"), eigener Bericht mit Einnahmen/Ausgaben/Ergebnis je Sphäre; Dashboard-Warnleiste bei Annäherung an die Freigrenze für den wirtschaftlichen Geschäftsbetrieb (§ 64 Abs. 3 AO) – ersetzt keine steuerliche Beratung
-- **Finanzplan**: geplante Beträge je Konto und Jahr, Soll-Ist-Vergleich mit farbiger Abweichung – als Baum über die Kontenhierarchie summiert (eine Planungsebene je Zweig, Filter „Nur Auffälligkeiten"), auch als druckfertige Seite für den Vorstand
+- **Finanzplan**: geplante Beträge je Konto und Jahr, Soll-Ist-Vergleich mit farbiger Abweichung – als Baum über die Kontenhierarchie summiert (eine Planungsebene je Zweig, Filter „Nur Auffälligkeiten"), auch als druckfertige Seite für den Vorstand; Vergleich mit einem anderen Zeitraum (vorbelegt: Ist des Vorjahres) samt Veränderung in Euro und Prozent
   - **Notizen je Planzahl** (z. B. Herleitung „40 Mitglieder × 25 €")
   - **Plan-Stände**: kompletten Plan als benannten, datierten Stand einfrieren (z. B. „Beschluss MV") und später mit dem aktuellen Plan vergleichen
+- **Gliederungsbericht nach Vorlage**: Plan und Buchungen nach einer Vorlage gegliedert – mitgeliefert als Haushaltsplan nach Titelgruppen für Zuwendungsgeber und als Ergebnis je Bereich und Projekt; eigene Vorlagen als Kopie mit frei wählbaren Abschnitten, Spalten (Plan/Ist, auch Vorperioden) und Gruppen; druckfertig und als CSV
 - **Kassenbericht (druckfertig)**: eigenständige Druckseite für die Mitgliederversammlung – Vereinsname, Vermögensübersicht der Geldkonten (Bestand 01.01./31.12.), Einnahmen-/Ausgaben-Rechnung, Soll-Ist-Vergleich, Sphärenübersicht (steuerlich) mit Freigrenzen-Hinweis, Vollständigkeitsvermerk, Abschlussvermerk und Unterschriftszeilen; Drucken/Als-PDF-speichern über den Browser
 - **Kurzbericht für Vorstandssitzungen (druckfertig)**: kompakte Druckseite mit wählbarem Stichtag – Kontostände seither, Bewegungen, Finanzplan-Kurzfassung; optional im Corporate Design (Vereinslogo + Akzentfarbe, unter Zahnrad → Verein hinterlegbar)
 - **CSV-Exporte** (für Kassenprüfung/Excel): Journal, Saldenliste, Einnahmen-/Ausgaben-Übersicht, Soll-Ist-Vergleich (inkl. Notizen)
@@ -210,6 +211,7 @@ vereinsbuchhaltung/
 | `vbh_budgets` | Finanzplan (Konto × Jahr × Betrag in Cent + Notiz) |
 | `vbh_budget_snapshots` | eingefrorene Plan-Stände (Jahr, Label, Zeitpunkt) |
 | `vbh_budget_snap_items` | Positionen eines Plan-Stands (inkl. eingefrorener Konto-Stammdaten) |
+| `vbh_report_templates` | eigene Vorlagen des Gliederungsberichts (Name, Definition als JSON) |
 | `vbh_open_items` | offene Posten (Debitor, Betrag, Fälligkeit, Status, optional Konto/Buchung); zugleich die Forderungen des Beitragsmoduls (Mitglied, Art, Zuweisung, Periode, Stundung, Erledigungsvermerk) |
 | `vbh_rules` | Auto-Zuordnungsregeln (Feld, Suchtext, Gegenkonto, Priorität) |
 | `vbh_attachments` | Belege je Buchungssatz (Dateiname, MIME, Größe; im Wächter-Ordner zusätzlich Nextcloud-Datei-ID und Besitzer) |
@@ -282,7 +284,7 @@ Beim allerersten Start begrüßt ein **Setup-Assistent** mit drei Wegen (xbuc ü
 3. Tab **Buchungen** → *Kontoumsätze importieren* → Kontoauszug der Bank hochladen (CSV-CAMT, CAMT.053 oder MT940). Wer das regelmäßig tut: Zahnrad → *Bankdaten* erspart den Upload.
 4. Tab **Buchungen → Zuzuordnen** → jede Bankbuchung einem Gegenkonto zuordnen (Vorschläge per Klick übernehmen; Regeln automatisieren wiederkehrende Buchungen).
 5. Tab **Übersicht** → Dashboard mit KPI-Kacheln und Monatschart.
-6. Tab **Berichte** → Auswertung (inkl. Kassenbericht, Kurzbericht, Beleg-ZIP und Prüfleitfaden), Auswertungsgruppen, Finanzplan (inkl. Plan-Notizen, Plan-Ständen und CSV-Export), Sphären, Rücklagen, Protokoll.
+6. Tab **Berichte** → Auswertung (inkl. Kassenbericht, Kurzbericht, Beleg-ZIP und Prüfleitfaden), Auswertungsgruppen, Finanzplan (inkl. Plan-Notizen, Plan-Ständen und CSV-Export), Gliederung, Sphären, Rücklagen, Protokoll.
 7. Werden Mitgliedsbeiträge per SEPA-Lastschrift eingezogen: Reiter **„Beiträge"** (erscheint nach Zahnrad → Beiträge & SEPA → Schalter, oder automatisch beim ersten Mandat).
 8. Nach Kassenprüfung und Entlastung: **Zahnrad → Jahresabschluss** → Jahr abschließen (festschreiben).
 

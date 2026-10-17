@@ -30,6 +30,7 @@ export function buildWhatsNewEntries() {
 			items: [
 				t('Neu unter Berichte → Gliederung: Plan und Buchungen nach einer Vorlage gegliedert, etwa für einen Zuwendungsgeber oder als Ergebnis je Projekt – mit Druckseite und CSV.'),
 				t('Die mitgelieferten Vorlagen lassen sich kopieren und anpassen: Abschnitte, Spalten und Gruppen frei wählbar, ohne den Kontenrahmen zu ändern.'),
+				t('Der Finanzplan vergleicht mit einem anderen Zeitraum – vorbelegt das Ist des Vorjahres – und zeigt die Veränderung in Euro und Prozent, auch im Druck und im CSV.'),
 			],
 		},
 		{
@@ -37,6 +38,7 @@ export function buildWhatsNewEntries() {
 			roles: ['revisor'],
 			items: [
 				t('Neu unter Berichte → Gliederung: Plan und Buchungen nach einer Vorlage gegliedert, etwa für einen Zuwendungsgeber oder als Ergebnis je Projekt – mit Druckseite und CSV.'),
+				t('Der Finanzplan vergleicht mit einem anderen Zeitraum – vorbelegt das Ist des Vorjahres – und zeigt die Veränderung in Euro und Prozent, auch im Druck und im CSV.'),
 			],
 		},
 		{

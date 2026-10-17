@@ -3048,7 +3048,8 @@
         "Ist − Plan %s": "Actual − budget %s",
         "Neu unter Berichte → Gliederung: Plan und Buchungen nach einer Vorlage gegliedert, etwa für einen Zuwendungsgeber oder als Ergebnis je Projekt – mit Druckseite und CSV.": "New under Reports → Structured report: budget and postings structured by a template, for example for a funding body or as a result per project – with a print page and CSV.",
         "Die mitgelieferten Vorlagen lassen sich kopieren und anpassen: Abschnitte, Spalten und Gruppen frei wählbar, ohne den Kontenrahmen zu ändern.": "The built-in templates can be copied and adapted: sections, columns and groups are freely selectable without changing the chart of accounts.",
-        "Gliederung: Plan und Buchungen nach einer Vorlage gegliedert, z. B. für einen Zuwendungsgeber; eigene Vorlagen entstehen als Kopie (Kapitel 7.4).": "Structured report: budget and postings structured by a template, e.g. for a funding body; own templates are created as a copy (chapter 7.4)."
+        "Gliederung: Plan und Buchungen nach einer Vorlage gegliedert, z. B. für einen Zuwendungsgeber; eigene Vorlagen entstehen als Kopie (Kapitel 7.4).": "Structured report: budget and postings structured by a template, e.g. for a funding body; own templates are created as a copy (chapter 7.4).",
+        "Der Finanzplan vergleicht mit einem anderen Zeitraum – vorbelegt das Ist des Vorjahres – und zeigt die Veränderung in Euro und Prozent, auch im Druck und im CSV.": "The financial plan compares with another period – by default the previous year's actual – and shows the change in euros and percent, also in print and CSV."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

@@ -53,7 +53,8 @@ Mitgliederversammlung erzeugen.
   Standard-Kontenrahmen für Vereine ist mitgeliefert
 - **Kassenbericht** und **Kurzbericht** als druckfertige Seiten (Strg+P), auf
   Wunsch mit Vereinslogo und Akzentfarbe
-- **Finanzplan** mit Plan-Ist-Vergleich und einfrierbaren Planständen
+- **Finanzplan** mit Plan-Ist-Vergleich, Vergleich mit dem Vorjahr und einfrierbaren Planständen
+- **Gliederungsbericht** nach Vorlage, etwa als Haushaltsplan für Zuwendungsgeber oder als Ergebnis je Projekt
 - **Gemeinnützigkeit:** Sphären nach dem Vier-Sphären-Modell (ideell,
   Vermögensverwaltung, Zweckbetrieb, wirtschaftlicher Geschäftsbetrieb) und
   Rücklagen nach § 62 AO
@@ -149,7 +150,8 @@ treasurer's report.
   standard chart of accounts for clubs is included
 - **Treasurer's report** and **short report** as print-ready pages (Ctrl+P),
   optionally with your club's logo and accent color
-- **Financial plan** with plan/actual comparison and freezable plan snapshots
+- **Financial plan** with plan/actual comparison, comparison with the previous year and freezable plan snapshots
+- **Structured report** by template, e.g. as a budget for funding bodies or as a result per project
 - **Nonprofit status:** spheres following the German four-sphere model
   (ideational, asset management, purpose-related business, commercial
   business) and reserves per § 62 AO
@@ -207,7 +209,7 @@ Existing data from "zero Buchhaltung" can be taken over via its xbuc files.
 
 Full manual in German and English: see documentation.
 	]]></description>
-	<version>0.37.0</version>
+	<version>0.38.0</version>
 	<licence>agpl</licence>
 	<author mail="hauffe.andreas@googlemail.com">Andreas Hauffe</author>
 	<namespace>Vereinsbuchhaltung</namespace>

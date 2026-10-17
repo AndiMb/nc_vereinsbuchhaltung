@@ -64,9 +64,10 @@ A lightweight accounting app for nonprofit clubs, integrated directly into Nextc
 - **Account statement**: posting history per account including running balance and carried-forward balance; wrongly assigned postings can be **rebooked** to a different account right there (either side of the posting, only the account assignment changes, logged, locked in closed years); columns sortable by click, **account sheet** as CSV or print-ready page
 - **Reporting groups**: income/expenses/result per reporting group with posting drill-down; three modes (2nd digit group of the account number, per account, or **freely defined reporting groups** with explicit account assignment individually or via multi-select), names editable in the UI
 - **Tax spheres** (ideational sphere, asset management, purpose-related business, commercial business): assignable per account (individually or via multi-select in the "Spheres" report), own report with income/expenses/result per sphere; dashboard warning banner when approaching the exemption threshold for commercial business (§ 64 (3) AO, German tax code) – does not replace tax advice
-- **Financial plan**: planned amounts per account and year, plan/actual comparison with color-coded deviation – as a tree summed over the account hierarchy (one budget level per branch, "only items needing attention" filter), also as a print-ready page for the board
+- **Financial plan**: planned amounts per account and year, plan/actual comparison with color-coded deviation – as a tree summed over the account hierarchy (one budget level per branch, "only items needing attention" filter), also as a print-ready page for the board; comparison with another period (default: previous year's actual) including the change in euros and percent
   - **Notes per plan figure** (e.g. rationale "40 members × €25")
   - **Plan snapshots**: freeze the entire plan as a named, dated snapshot (e.g. "resolved at the general assembly") and compare it later against the current plan
+- **Structured report by template**: budget and postings structured by a template – built in as a budget by title groups for funding bodies and as a result by area and project; own templates as a copy with freely chosen sections, columns (budget/actual, also earlier periods) and groups; print-ready and as CSV
 - **Treasurer's report (print-ready)**: a standalone print page for the general assembly – club name, cash-account overview (balance on 01/01 and 12/31), income/expense statement, plan/actual comparison, tax-sphere overview with an exemption-threshold notice, completeness note, closing note and signature lines; print or save as PDF via the browser
 - **Short report for board meetings (print-ready)**: a compact print page with a selectable reference date – account balances since then, movements, short financial-plan summary; optionally in your corporate design (club logo + accent color, configurable under gear icon → Club)
 - **CSV exports** (for the audit / Excel): journal, trial balance, income/expense overview, plan/actual comparison (including notes)
@@ -211,6 +212,7 @@ vereinsbuchhaltung/
 | `vbh_budgets` | financial plan (account × year × amount in cents + note) |
 | `vbh_budget_snapshots` | frozen plan snapshots (year, label, timestamp) |
 | `vbh_budget_snap_items` | line items of a plan snapshot (incl. frozen account master data) |
+| `vbh_report_templates` | own templates of the structured report (name, definition as JSON) |
 | `vbh_open_items` | open items (debtor, amount, due date, status, optional account/posting); also the claims of the fees module (member, type, assignment, period, deferral, settlement note) |
 | `vbh_rules` | auto-assignment rules (field, search text, counter-account, priority) |
 | `vbh_attachments` | receipts per posting (file name, MIME type, size; with a watch folder also the Nextcloud file id and owner) |
@@ -283,7 +285,7 @@ On the very first start, a **setup wizard** greets you with three options (take 
 3. Tab **Bookings** → *Import bank transactions* → upload your bank statement (CSV-CAMT, CAMT.053 or MT940). Doing this regularly: gear icon → *Bank data* saves you the manual upload.
 4. Tab **Bookings → To assign** → assign each bank transaction a counter-account (apply suggestions with one click; rules automate recurring postings).
 5. Tab **Overview** → dashboard with KPI tiles and monthly chart.
-6. Tab **Reports** → evaluation (incl. treasurer's report, short report, receipt ZIP and audit guide), reporting groups, financial plan (incl. plan notes, plan snapshots and CSV export), spheres, reserves, log.
+6. Tab **Reports** → evaluation (incl. treasurer's report, short report, receipt ZIP and audit guide), reporting groups, financial plan (incl. plan notes, plan snapshots and CSV export), structured report, spheres, reserves, log.
 7. If membership fees are collected via SEPA direct debit: the **"Contributions"** tab (appears after gear icon → Fees & SEPA → toggle, or automatically on the first mandate).
 8. After the audit and formal discharge: **gear icon → Year-end closing** → close (finalize) the year.
 

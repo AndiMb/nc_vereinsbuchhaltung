@@ -17,6 +17,8 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+## [0.38.0] – 2026-10-17
+
 **New:**
 - **Structured report by template** (Reports → Structured report): the same
   budget and postings, structured by a template – with a print page and CSV

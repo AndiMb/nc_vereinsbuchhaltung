@@ -19,6 +19,8 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+## [0.38.0] – 2026-10-17
+
 **Neu:**
 - **Gliederungsbericht nach Vorlage** (Berichte → Gliederung): derselbe Plan
   und dieselben Buchungen, gegliedert nach einer Vorlage – mit Druckseite und
