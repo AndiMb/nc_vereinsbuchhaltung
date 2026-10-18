@@ -62,8 +62,23 @@
 						v-else
 						class="vbh-attachment-item vbh-folder-item"
 						:style="showFolders ? { paddingInlineStart: (row.depth * 20 + 26) + 'px' } : null">
+						<!-- Direktübernahme: ein Klick übernimmt die Datei sofort, sie
+						     verschwindet dann aus der Liste (excludeFileIds) und steht
+						     links unter den Belegen. -->
+						<NcButton
+							v-if="pick && instantPick"
+							variant="tertiary"
+							size="small"
+							:disabled="busy"
+							:aria-label="tRaw('Auswählen: {name}', { name: row.file.name })"
+							:title="tRaw('Auswählen: {name}', { name: row.file.name })"
+							@click="$emit('pick', [row.file])">
+							<template #icon>
+								<NcIconSvgWrapper :path="mdiPlus" :size="18" />
+							</template>
+						</NcButton>
 						<input
-							v-if="pick"
+							v-else-if="pick"
 							type="checkbox"
 							:checked="selected.has(row.file.fileId)"
 							:aria-label="tRaw('Auswählen: {name}', { name: row.file.name })"
@@ -138,7 +153,7 @@
 			</template>
 		</template>
 
-		<div class="vbh-modal-actions vbh-folder-panel-actions">
+		<div v-if="!instantPick" class="vbh-modal-actions vbh-folder-panel-actions">
 			<NcButton variant="tertiary" @click="$emit('close')">
 				{{ pick ? t('Abbrechen') : t('Schließen') }}
 			</NcButton>
@@ -154,7 +169,7 @@
 </template>
 
 <script>
-import { mdiAlertCircleOutline, mdiChevronDown, mdiChevronRight, mdiFileDocumentOutline, mdiFolderOpenOutline, mdiFolderOutline } from '@mdi/js'
+import { mdiAlertCircleOutline, mdiChevronDown, mdiChevronRight, mdiFileDocumentOutline, mdiFolderOpenOutline, mdiFolderOutline, mdiPlus } from '@mdi/js'
 import { showError } from '@nextcloud/dialogs'
 import { NcButton, NcIconSvgWrapper } from '@nextcloud/vue'
 import api from '../api.js'
@@ -199,6 +214,13 @@ export default {
 		// Suchfeld beim Einhängen nicht fokussieren - mobil, da die aufspringende
 		// Tastatur würde die Liste verdecken).
 		noAutofocus: { type: Boolean, default: false },
+		// Jede Datei einzeln per Klick übernehmen, ohne Mehrfachauswahl und
+		// ohne Knopfleiste (Seitenleiste im Buchungsdialog am Desktop;
+		// geschlossen wird dort über „Aus Ordner wählen“ bzw. das X).
+		instantPick: { type: Boolean, default: false },
+		// Übernehmen gesperrt, solange eine Verknüpfung noch läuft - sonst
+		// ließe sich dieselbe Datei doppelt anklicken, bevor sie verschwindet.
+		busy: { type: Boolean, default: false },
 	},
 
 	emits: ['close', 'create-booking', 'open-booking', 'pick'],
@@ -211,6 +233,7 @@ export default {
 			mdiFileDocumentOutline,
 			mdiFolderOpenOutline,
 			mdiFolderOutline,
+			mdiPlus,
 			files: [],
 			missing: [],
 			capped: false,

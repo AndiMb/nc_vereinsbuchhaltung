@@ -10,13 +10,13 @@
 		@update:show="requestShow">
 		<!-- v-if: frische Fokusfalle bei jedem Oeffnen, sonst kommt sie beim
 		     ersten Mal nicht nach oben (siehe AttachmentFolderDialog.vue). -->
-		<div class="vbh-modal-inner vbh-booking-dialog" :class="{ 'is-split': folderPanelOpen && !isMobile }">
+		<div ref="inner" class="vbh-modal-inner vbh-booking-dialog" :class="{ 'is-split': folderPanelOpen && !isMobile }">
 			<!-- Mit geoeffneter Belegauswahl zwei Spalten: links das Formular,
 			     rechts der Wächter-Ordner - so bleibt beim Aussuchen sichtbar,
 			     wofuer der Beleg ist. Mobil reicht der Platz dafuer nicht, dort
 			     ersetzt die Auswahl das Formular, bis sie geschlossen wird. -->
 			<div class="vbh-booking-layout">
-				<div v-show="!(isMobile && folderPanelOpen)" class="vbh-booking-main">
+				<div v-show="!(isMobile && folderPanelOpen)" ref="main" class="vbh-booking-main">
 					<h2 v-if="!isMobile" id="vbh-modal-title-booking" class="vbh-modal-title">
 						{{ bookingTitle }}
 					</h2>
@@ -491,11 +491,29 @@
 				</div>
 
 				<aside v-if="folderPanelOpen" class="vbh-booking-folder" aria-labelledby="vbh-booking-folder-title">
-					<h3 id="vbh-booking-folder-title" class="vbh-booking-folder-title">
-						{{ t('Beleg aus Ordner wählen') }}
-					</h3>
+					<div class="vbh-booking-folder-head">
+						<h3 id="vbh-booking-folder-title" class="vbh-booking-folder-title">
+							{{ t('Beleg aus Ordner wählen') }}
+						</h3>
+						<NcButton
+							v-if="!isMobile"
+							variant="tertiary"
+							:aria-label="t('Schließen')"
+							:title="t('Schließen')"
+							@click="toggleFolderPanel">
+							<template #icon>
+								<NcIconSvgWrapper :path="mdiClose" :size="20" />
+							</template>
+						</NcButton>
+					</div>
+					<!-- Am Desktop uebernimmt ein Klick die Datei sofort, die
+					     Seitenleiste bleibt fuer weitere offen. Mobil, wo die Auswahl
+					     das Formular ersetzt, bleibt es bei Mehrfachauswahl mit
+					     Abbrechen/Übernehmen als Weg zurueck. -->
 					<AttachmentFolderPanel
 						pick
+						:instantPick="!isMobile"
+						:busy="attachmentUploading"
 						:canWrite="canWrite"
 						:excludeFileIds="folderExcludeIds"
 						:noAutofocus="isMobile"
@@ -536,7 +554,7 @@
 </template>
 
 <script>
-import { mdiAlertCircleOutline, mdiCamera, mdiDelete, mdiFolderOutline, mdiFolderSearchOutline, mdiLinkVariantOff, mdiPaperclip } from '@mdi/js'
+import { mdiAlertCircleOutline, mdiCamera, mdiClose, mdiDelete, mdiFolderOutline, mdiFolderSearchOutline, mdiLinkVariantOff, mdiPaperclip } from '@mdi/js'
 import { NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper, NcLoadingIcon, NcModal, NcSelect } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import AmountInput from './AmountInput.vue'
@@ -616,6 +634,7 @@ export default {
 		return {
 			mdiAlertCircleOutline,
 			mdiCamera,
+			mdiClose,
 			mdiDelete,
 			mdiFolderOutline,
 			mdiFolderSearchOutline,
@@ -968,15 +987,33 @@ export default {
 			})
 		},
 
+		/**
+		 * Seitenleiste auf/zu. Mit offener Leiste scrollt am Desktop nicht mehr
+		 * der Dialog, sondern jede Spalte fuer sich (styles.css, .is-split) -
+		 * die Scrollposition wandert dabei mit, sonst sprang das Formular nach
+		 * oben und "Aus Ordner wählen" war aus dem Blick.
+		 */
 		toggleFolderPanel() {
+			const from = this.folderPanelOpen ? this.$refs.main : this.modalScroller()
+			const top = from ? from.scrollTop : 0
 			this.folderPanelOpen = !this.folderPanelOpen
+			if (this.isMobile) { return }
+			this.$nextTick(() => {
+				const to = this.folderPanelOpen ? this.$refs.main : this.modalScroller()
+				if (to) { to.scrollTop = top }
+			})
+		},
+
+		/** Der scrollende Inhalt von NcModal (ohne Seitenleiste). */
+		modalScroller() {
+			return this.$refs.inner?.closest('.modal-container__content') ?? null
 		},
 
 		/**
 		 * @param {Array<{fileId:number,name:string,size:number}>} files gewählte Dateien
 		 */
 		async onFolderPick(files) {
-			this.folderPanelOpen = false
+			if (this.isMobile) { this.folderPanelOpen = false }
 			await this.pickFolderFiles(files)
 		},
 

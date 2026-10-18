@@ -918,17 +918,39 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 .vbh-modal-actions--sticky.is-stuck { border-top-color: var(--color-border); box-shadow: 0 -8px 12px -8px rgba(0, 0, 0, 0.25); }
 
 /* Belegauswahl als Seitenleiste neben dem Formular statt als zweiter Dialog
-   darueber: der Dialog wird breiter, die Auswahl bleibt beim Scrollen des
-   Formulars oben stehen. :has() statt einer Klasse am NcModal, weil dessen
-   Wurzel teleportiert wird; (0,4,0) gegen die Groessenregel der Bibliothek
+   darueber (BookingDialog.vue, .is-split nur am Desktop).
+
+   Der Dialog bekommt dafuer eine feste Hoehe (die Hoechsthoehe der
+   Bibliothek) und scrollt selbst nicht mehr: Formular und Dateiliste
+   scrollen jede fuer sich, die Knopfleiste steht darunter. Vorher scrollte
+   der Dialog und darin noch einmal die Dateiliste - zwei Rollbalken
+   ineinander, und die Leiste begann je nach Scrollstand des Formulars
+   mittendrin.
+
+   :has() statt einer Klasse am NcModal, weil dessen Wurzel teleportiert
+   wird; (0,4,0) gegen die Groessenregel der Bibliothek
    (.modal-wrapper--large > .modal-container[data-v-…], 0,3,0). */
-.modal-wrapper .modal-container:has(.vbh-booking-dialog.is-split) { width: 1150px; }
+.modal-wrapper .modal-container:has(.vbh-booking-dialog.is-split) { width: 1150px; height: min(90vh, 100vh - 2 * var(--header-height, 50px) - 2 * var(--body-container-margin, 0px)); }
 
-.vbh-booking-dialog.is-split .vbh-booking-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+.modal-container .modal-container__content:has(.vbh-booking-dialog.is-split) { overflow: hidden; }
 
-.vbh-booking-dialog.is-split .vbh-booking-folder { position: sticky; top: 0; padding: 16px 0 0 24px; border-inline-start: 1px solid var(--color-border); }
+.vbh-modal-inner.vbh-booking-dialog.is-split { display: flex; flex-direction: column; box-sizing: border-box; height: 100%; }
 
-.vbh-booking-folder-title { margin: 0 0 8px; font-size: 1.1em; font-weight: 600; }
+.vbh-booking-dialog.is-split .vbh-booking-layout { display: grid; flex: 1 1 auto; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; min-height: 0; }
+
+.vbh-booking-dialog.is-split .vbh-booking-main { min-height: 0; overflow-y: auto; padding-inline-end: 4px; }
+
+.vbh-booking-dialog.is-split .vbh-booking-folder { display: flex; flex-direction: column; min-height: 0; padding: 12px 0 0 24px; border-inline-start: 1px solid var(--color-border); }
+
+.vbh-booking-dialog.is-split .vbh-folder-panel { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
+
+.vbh-booking-dialog.is-split .vbh-folder-panel .vbh-folder-list { flex: 1 1 auto; min-height: 0; max-height: none; }
+
+.vbh-booking-dialog.is-split .vbh-modal-actions--sticky { margin-top: 0; }
+
+.vbh-booking-folder-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+
+.vbh-booking-folder-title { margin: 0; font-size: 1.1em; font-weight: 600; }
 
 .vbh-booking-folder .vbh-folder-panel-actions { margin-top: 10px; }
 /* NcModals `:name`-Titel schwebt per Bibliotheks-CSS (.modal-header, position:
