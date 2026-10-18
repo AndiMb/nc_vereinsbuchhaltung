@@ -941,6 +941,7 @@
         "XML herunterladen": "Download XML",
         "Verwerfen": "Discard",
         "Änderungen verwerfen?": "Discard changes?",
+        "Wird beim Speichern angehängt": "Will be attached when you save",
         "Die Buchung enthält ungespeicherte Änderungen. Beim Schließen gehen sie verloren.": "This entry has unsaved changes. They will be lost when you close it.",
         "Vorankündigung": "Pre-notification",
         "zurückgebucht": "returned",

@@ -28,6 +28,10 @@ verwenden, z. B. `**Neu:**`.
 - **Buchungsdialog: Speichern und Abbrechen immer sichtbar.** Die Knopfleiste
   bleibt am unteren Rand stehen; ein Schatten zeigt, dass darunter noch
   Inhalt liegt.
+- **Belege erst beim Speichern.** Auch bei einer bestehenden Buchung werden
+  angehängte und aus dem Ordner gewählte Belege erst mit „Speichern"
+  hochgeladen bzw. verknüpft; bis dahin stehen sie unter „Wird beim Speichern
+  angehängt" und Schließen fragt nach.
 - **Kommentar als Popover.** Das Kommentar-Symbol in Buchungsliste und
   Kontoauszug zeigt den Kommentar beim Überfahren (oder per Tastatur) in einem
   Popover statt in einem Tooltip.

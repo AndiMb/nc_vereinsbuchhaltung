@@ -398,24 +398,24 @@
 									type="button"
 									class="vbh-upload-trigger"
 									:aria-expanded="folderPanelOpen ? 'true' : 'false'"
-									:disabled="attachmentUploading"
+									:disabled="bookingSaving"
 									@click="toggleFolderPanel">
 									<span class="vbh-upload-btn" :class="{ 'is-active': folderPanelOpen }">
 										<NcIconSvgWrapper :path="mdiFolderSearchOutline" :size="16" inline />
 										{{ t('Aus Ordner wählen') }}
 									</span>
 								</button>
-								<label class="vbh-upload-label" :class="{ 'is-uploading': attachmentUploading }">
+								<label class="vbh-upload-label" :class="{ 'is-uploading': bookingSaving }">
 									<input
 										type="file"
 										accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
 										multiple
-										:disabled="attachmentUploading"
+										:disabled="bookingSaving"
 										class="vbh-upload-input"
-										@change="attachOrCollectFiles">
+										@change="addPendingFiles">
 									<span class="vbh-upload-btn">
 										<NcIconSvgWrapper :path="mdiPaperclip" :size="16" inline />
-										{{ attachmentUploading ? t('Lädt hoch…') : t('Anhängen') }}
+										{{ t('Anhängen') }}
 									</span>
 								</label>
 							</div>
@@ -461,15 +461,14 @@
 								{{ t('Noch kein Beleg angehängt.') }}
 							</p>
 						</template>
-						<!-- Wartende Dateien: beim Anlegen die getroffene Auswahl, nach einem
-						     fehlgeschlagenen Upload die Reste samt Knopf fuer den zweiten
-						     Anlauf (dann hat die Buchung schon eine ID). -->
+						<!-- Wartende Dateien: angehängt oder aus dem Ordner gewählt, aber
+						     noch nicht gespeichert - beim Anlegen wie beim Bearbeiten gehen
+						     sie erst mit Buchen/Speichern an den Server (App.vue::saveBooking).
+						     Was dabei nicht ankommt, bleibt hier stehen; ein weiterer Klick
+						     auf Speichern versucht es erneut. -->
 						<div v-if="pendingFiles.length" class="vbh-pending">
 							<div v-if="bookingForm.id" class="vbh-pending-header">
-								<span class="vbh-pending-title">{{ t('Noch nicht hochgeladen') }}</span>
-								<NcButton variant="secondary" :disabled="attachmentUploading" @click="retryPendingFiles">
-									{{ attachmentUploading ? t('Lädt hoch…') : t('Erneut hochladen') }}
-								</NcButton>
+								<span class="vbh-pending-title">{{ t('Wird beim Speichern angehängt') }}</span>
 							</div>
 							<ul class="vbh-attachment-list">
 								<li v-for="(pf, i) in pendingFiles" :key="i" class="vbh-attachment-item">
@@ -504,7 +503,7 @@
 					<AttachmentFolderPanel
 						pick
 						:instantPick="!isMobile"
-						:busy="attachmentUploading"
+						:busy="bookingSaving"
 						:canWrite="canWrite"
 						:excludeFileIds="folderExcludeIds"
 						:noAutofocus="isMobile"
@@ -580,7 +579,6 @@ export default {
 		canWrite: { type: Boolean, required: true },
 		pendingFiles: { type: Array, required: true },
 		bookingAttachments: { type: Array, required: true },
-		attachmentUploading: { type: Boolean, required: true },
 		// Belegablage im Wächter-Ordner: dann gibt es "Aus Ordner wählen".
 		watchMode: { type: Boolean, default: false },
 		// App.vue-Funktionen (Muster wie askConfirm): bleiben dort, da teils mit
@@ -590,11 +588,9 @@ export default {
 		setBookingMode: { type: Function, required: true },
 		openAccountPicker: { type: Function, required: true },
 		addPendingFiles: { type: Function, required: true },
-		// Uebernimmt die in der Seitenleiste gewaehlten Ordner-Dateien (beim
-		// Anlegen in die Warteliste, sonst sofort verknuepft).
+		// Uebernimmt die in der Seitenleiste gewaehlten Ordner-Dateien in die
+		// Warteliste; verknuepft wird erst beim Speichern.
 		pickFolderFiles: { type: Function, required: true },
-		retryPendingFiles: { type: Function, required: true },
-		uploadAttachment: { type: Function, required: true },
 		deleteAttachment: { type: Function, required: true },
 		openViewer: { type: Function, required: true },
 		attachmentDownloadUrl: { type: Function, required: true },
@@ -923,21 +919,6 @@ export default {
 		 */
 		updateForm(patch) {
 			this.$emit('update:bookingForm', { ...this.bookingForm, ...patch })
-		},
-
-		/**
-		 * Dateiauswahl aus der Belegablage: bei einer bestehenden Buchung geht
-		 * die Datei sofort an den Server, beim Anlegen wandert sie erst in die
-		 * Warteliste - hochgeladen wird sie, sobald die Buchung eine ID hat.
-		 *
-		 * @param {Event} event change-Event des Datei-Feldes
-		 */
-		attachOrCollectFiles(event) {
-			if (this.bookingForm.id) {
-				this.uploadAttachment(event)
-			} else {
-				this.addPendingFiles(event)
-			}
 		},
 
 		/**

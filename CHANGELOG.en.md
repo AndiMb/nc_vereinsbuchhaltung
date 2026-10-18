@@ -24,6 +24,9 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   (on mobile the picker replaces the form until it is closed).
 - **Entry dialog: Save and Cancel always visible.** The button bar sticks to
   the bottom; a shadow shows that there is more content below.
+- **Receipts are stored on save.** For existing entries too, attached files
+  and files picked from the folder are only uploaded or linked when you click
+  "Save"; until then they are listed as pending and closing asks first.
 - **Comment as popover.** The comment icon in the entry list and account
   statement shows the comment in a popover on hover (or keyboard focus)
   instead of a tooltip.
