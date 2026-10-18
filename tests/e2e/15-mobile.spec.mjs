@@ -73,7 +73,8 @@ test.describe('Mobile Ansicht', () => {
 	// Finger erreichbar ist; die Leisten sind fuer alle Tabs dieselbe Klasse,
 	// und welche Reiter es gibt, haengt an Rolle und Konfiguration.
 	test('jeder Tab der unteren Navigation liegt im Sichtfeld', async ({ page }) => {
-		await openApp(page, USERS.verwalter)
+		// Gezählt wird ohne Warten: erst nach dem Start stehen alle Reiter fest.
+		await openApp(page, USERS.verwalter, { booted: true })
 
 		const breite = page.viewportSize().width
 		const eintraege = page.locator('.vbh-bottomnav .vbh-bottomnav-item')
@@ -94,7 +95,7 @@ test.describe('Mobile Ansicht', () => {
 	})
 
 	test('jeder Unterreiter ist durch Scrollen seiner Leiste erreichbar', async ({ page }) => {
-		await openApp(page, USERS.verwalter)
+		await openApp(page, USERS.verwalter, { booted: true })
 
 		const eintraege = page.locator('.vbh-bottomnav .vbh-bottomnav-item')
 		const anzahl = await eintraege.count()

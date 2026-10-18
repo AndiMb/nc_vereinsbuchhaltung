@@ -1,3 +1,4 @@
+import { expect } from '@playwright/test'
 import { existsSync, mkdirSync, readFileSync } from 'fs'
 import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
@@ -297,11 +298,23 @@ export async function waitForAppLoaded(page) {
 	await page.locator('.vbh').waitFor({ timeout: 15000 })
 }
 
-/** Öffnet die App und wartet, bis die Oberfläche steht. */
-export async function openApp(page, username) {
+/**
+ * Öffnet die App und wartet, bis die Oberfläche steht.
+ *
+ * Mit `booted` zusätzlich, bis der Start durch ist: GET /whatsnew stellt die
+ * App erst nach dem Erstabgleich der URL (applyRoute, syncUrlAfterBoot). Ein
+ * Klick davor landet in keinem eigenen History-Eintrag, und die Reiter der
+ * unteren Navigation stehen noch nicht fest. Nur für Lesende: ohne Leserecht
+ * fragt die App /whatsnew nie an.
+ */
+export async function openApp(page, username, { booted = false } = {}) {
 	await login(page, username)
+	const started = booted
+		? page.waitForResponse((r) => r.request().method() === 'GET' && r.url().endsWith('/api/whatsnew'), { timeout: 30000 })
+		: null
 	await page.goto(`${BASE_URL}/index.php/apps/vereinsbuchhaltung/`)
 	await waitForAppLoaded(page)
+	await started
 }
 
 /**
@@ -309,11 +322,27 @@ export async function openApp(page, username) {
  * (SettingsApp.vue) unter Verwaltung. App-Verwalter ohne Server-Admin-Rechte
  * finden dieselbe Seite unter Persönlich (/settings/user/...), siehe
  * PersonalSettings::getSection().
+ *
+ * Wartet auch auf GET /settings: SettingsApp.loadSettings() überschreibt die
+ * Felder mit dem gespeicherten Stand, eine Auswahl davor ginge verloren. Die
+ * Seite fragt zweimal an (dazu useSepaSettings), deshalb zählen alle Anfragen
+ * bis zum Einhängen.
  */
 export async function openSettingsPage(page, username) {
 	await login(page, username)
-	await page.goto(`${BASE_URL}/index.php/settings/admin/vereinsbuchhaltung`)
-	await page.locator('#settings-section_belege').waitFor({ timeout: 15000 })
+	const responses = []
+	const track = (request) => {
+		if (request.method() === 'GET' && request.url().endsWith('/api/settings')) { responses.push(request.response()) }
+	}
+	page.on('request', track)
+	try {
+		await page.goto(`${BASE_URL}/index.php/settings/admin/vereinsbuchhaltung`)
+		await page.locator('#settings-section_belege').waitFor({ timeout: 15000 })
+		await expect.poll(() => responses.length, { message: 'GET /settings angefragt' }).toBeGreaterThan(0)
+		await Promise.all(responses)
+	} finally {
+		page.off('request', track)
+	}
 }
 
 /**

@@ -129,7 +129,9 @@ test.describe('Deep-Linking', () => {
 	})
 
 	test('Browser-Zurück schließt den Buchungsdialog wieder', async ({ page }) => {
-		await openApp(page, USERS.verwalter)
+		// Erst nach dem Erstabgleich: ein Klick davor bekäme keinen eigenen
+		// History-Eintrag (siehe den Test davor).
+		await openApp(page, USERS.verwalter, { booted: true })
 		await switchTab(page, 'Buchungen')
 
 		await page.getByRole('button', { name: 'Buchung', exact: true }).click()
