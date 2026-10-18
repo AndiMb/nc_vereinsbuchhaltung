@@ -31,7 +31,9 @@ verwenden, z. B. `**Neu:**`.
 - **Belege erst beim Speichern.** Auch bei einer bestehenden Buchung werden
   angehängte und aus dem Ordner gewählte Belege erst mit „Speichern"
   hochgeladen bzw. verknüpft; bis dahin stehen sie unter „Wird beim Speichern
-  angehängt" und Schließen fragt nach.
+  angehängt" und Schließen fragt nach. Ebenso wirken „Verknüpfung lösen" und
+  „Beleg löschen" erst beim Speichern – bis dahin steht der Beleg
+  durchgestrichen da und lässt sich mit „Rückgängig" zurückholen.
 - **Kommentar als Popover.** Das Kommentar-Symbol in Buchungsliste und
   Kontoauszug zeigt den Kommentar beim Überfahren (oder per Tastatur) in einem
   Popover statt in einem Tooltip.

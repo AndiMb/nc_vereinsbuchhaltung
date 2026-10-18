@@ -209,6 +209,11 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-attachment-item { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 4px; background: var(--color-background-hover); }
 
+/* Zum Lösen/Löschen markiert, wirksam erst beim Speichern (BookingDialog.vue). */
+.vbh-attachment-item.is-removed .vbh-attachment-name { text-decoration: line-through; opacity: 0.6; }
+
+.vbh-attachment-removal { flex: 0 0 auto; font-size: 0.8em; color: var(--color-text-maxcontrast); }
+
 .vbh-attachment-icon { flex-shrink: 0; color: var(--color-text-lighter); }
 
 .vbh-attachment-size { font-size: 0.8em; color: var(--color-text-lighter); white-space: nowrap; flex-shrink: 0; }

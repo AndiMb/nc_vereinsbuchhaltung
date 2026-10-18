@@ -287,7 +287,6 @@
 			:addPendingFiles="addPendingFiles"
 			:pickFolderFiles="attachFolderFiles"
 			:watchMode="watchMode"
-			:deleteAttachment="deleteAttachment"
 			:openViewer="openViewer"
 			:attachmentDownloadUrl="attachmentDownloadUrl"
 			:nextTourStep="nextTourStep"
@@ -1520,6 +1519,10 @@ export default {
 				splitMode: false,
 				splitSide: 'credit',
 				splitLines: [],
+				// Gespeicherte Belege, die im Dialog zum Lösen bzw. Löschen
+				// markiert sind - ausgeführt erst beim Speichern
+				// (removeMarkedAttachments), bis dahin gilt der Dialog als geändert.
+				removedAttachmentIds: [],
 			}
 		},
 
@@ -1987,16 +1990,31 @@ export default {
 			return ok
 		},
 
-		async deleteAttachment(a) {
-			const ok = a.unlinkOnly
-				? await this.askConfirm(this.t('Verknüpfung lösen'), this.t('Die Verknüpfung zu dieser Buchung wird gelöst. Die Datei bleibt im Ordner und zählt wieder als „noch keiner Buchung zugewiesen".'), this.t('Verknüpfung lösen'), 'primary')
-				: await this.askConfirm(this.t('Beleg löschen'), this.t('Diesen Beleg wirklich unwiderruflich löschen?'))
-			if (!ok) { return }
-			try {
-				await api.deleteAttachment(a.id)
-				await this.loadAttachments(this.bookingForm.id)
-				this.afterAttachmentsChanged()
-			} catch (e) { showError(this.errMsg(e, this.t('Beleg konnte nicht gelöscht werden'))) }
+		/**
+		 * Löst bzw. löscht die im Dialog markierten Belege der gespeicherten
+		 * Buchung. Jeder einzeln, damit ein Fehler die übrigen nicht aufhält;
+		 * was nicht klappt, bleibt markiert.
+		 *
+		 * @return {Promise<number>} Anzahl der Belege, die nicht entfernt wurden
+		 */
+		async removeMarkedAttachments() {
+			const ids = this.bookingForm.removedAttachmentIds || []
+			if (!ids.length) { return 0 }
+			const failed = []
+			let lastError = null
+			for (const id of ids) {
+				try { await api.deleteAttachment(id) } catch (e) { failed.push(id); lastError = e }
+			}
+			this.bookingForm.removedAttachmentIds = failed
+			this.afterAttachmentsChanged()
+			if (failed.length) {
+				const names = this.bookingAttachments.filter((a) => failed.includes(a.id)).map((a) => a.fileName)
+				showError(this.tRaw('Die Buchung ist gespeichert, aber diese Belege ließen sich nicht entfernen: {names} ({grund}).', {
+					names: names.join(', '),
+					grund: this.errMsg(lastError, this.t('Beleg konnte nicht gelöscht werden')),
+				}))
+			}
+			return failed.length
 		},
 
 		attachmentDownloadUrl(id) { return api.attachmentDownloadUrl(id) },
@@ -2398,7 +2416,10 @@ export default {
 					// wurden, gehen erst jetzt an den Server. Was nicht ankommt,
 					// bleibt in der Warteliste, der Dialog bleibt offen - ein
 					// weiterer Klick auf Speichern versucht es erneut.
-					if (this.pendingFiles.length && await this.uploadPendingFiles(f.id)) {
+					// Ebenso die zum Lösen/Löschen markierten Belege.
+					const removeFailed = await this.removeMarkedAttachments()
+					const uploadFailed = this.pendingFiles.length ? await this.uploadPendingFiles(f.id) : 0
+					if (removeFailed || uploadFailed) {
 						await this.loadAttachments(f.id)
 						await this.loadJournal(); await this.loadBalances(); await this.loadPeriods(); await this.loadSphereReport(); await this.reloadStatement()
 						return

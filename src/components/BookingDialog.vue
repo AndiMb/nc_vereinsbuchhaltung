@@ -422,7 +422,13 @@
 						</div>
 						<template v-if="bookingForm.id">
 							<ul v-if="bookingAttachments.length" class="vbh-attachment-list">
-								<li v-for="a in bookingAttachments" :key="a.id" class="vbh-attachment-item">
+								<!-- Lösen/Löschen wirkt erst beim Speichern: bis dahin steht der
+								     Beleg durchgestrichen da und lässt sich zurückholen. -->
+								<li
+									v-for="a in bookingAttachments"
+									:key="a.id"
+									class="vbh-attachment-item"
+									:class="{ 'is-removed': isMarkedForRemoval(a) }">
 									<NcIconSvgWrapper
 										:path="a.missing ? mdiAlertCircleOutline : mdiPaperclip"
 										:size="14"
@@ -438,19 +444,32 @@
 										@click="openViewer(a)">
 										{{ a.fileName }}
 									</button>
-									<span class="vbh-attachment-size">{{ formatFileSize(a.fileSize) }}</span>
+									<span v-if="isMarkedForRemoval(a)" class="vbh-attachment-removal">
+										{{ a.unlinkOnly ? t('Wird beim Speichern gelöst') : t('Wird beim Speichern gelöscht') }}
+									</span>
+									<span v-else class="vbh-attachment-size">{{ formatFileSize(a.fileSize) }}</span>
 									<a
-										v-if="!a.missing"
+										v-if="!a.missing && !isMarkedForRemoval(a)"
 										:href="attachmentDownloadUrl(a.id)"
 										class="vbh-attachment-dl"
 										:title="t('Herunterladen')"
 										download>↓</a>
 									<NcButton
-										v-if="canWrite && !bookingLocked"
+										v-if="canWrite && !bookingLocked && isMarkedForRemoval(a)"
+										variant="tertiary"
+										:aria-label="tRaw('Rückgängig: {name}', { name: a.fileName })"
+										:title="t('Rückgängig')"
+										@click="toggleRemoval(a)">
+										<template #icon>
+											<NcIconSvgWrapper :path="mdiUndo" :size="14" />
+										</template>
+									</NcButton>
+									<NcButton
+										v-else-if="canWrite && !bookingLocked"
 										variant="tertiary"
 										:aria-label="a.unlinkOnly ? t('Verknüpfung lösen') : t('Beleg löschen')"
 										:title="a.unlinkOnly ? t('Verknüpfung lösen – die Datei bleibt im Ordner') : t('Beleg löschen')"
-										@click="deleteAttachment(a)">
+										@click="toggleRemoval(a)">
 										<template #icon>
 											<NcIconSvgWrapper :path="a.unlinkOnly ? mdiLinkVariantOff : mdiDelete" :size="14" />
 										</template>
@@ -544,7 +563,7 @@
 </template>
 
 <script>
-import { mdiAlertCircleOutline, mdiCamera, mdiDelete, mdiFolderOutline, mdiFolderSearchOutline, mdiLinkVariantOff, mdiPaperclip } from '@mdi/js'
+import { mdiAlertCircleOutline, mdiCamera, mdiDelete, mdiFolderOutline, mdiFolderSearchOutline, mdiLinkVariantOff, mdiPaperclip, mdiUndo } from '@mdi/js'
 import { NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper, NcLoadingIcon, NcModal, NcSelect } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import AmountInput from './AmountInput.vue'
@@ -591,7 +610,6 @@ export default {
 		// Uebernimmt die in der Seitenleiste gewaehlten Ordner-Dateien in die
 		// Warteliste; verknuepft wird erst beim Speichern.
 		pickFolderFiles: { type: Function, required: true },
-		deleteAttachment: { type: Function, required: true },
 		openViewer: { type: Function, required: true },
 		attachmentDownloadUrl: { type: Function, required: true },
 		nextTourStep: { type: Function, required: true },
@@ -626,6 +644,7 @@ export default {
 			mdiFolderSearchOutline,
 			mdiLinkVariantOff,
 			mdiPaperclip,
+			mdiUndo,
 			folderPanelOpen: false,
 			// Formularstand beim Oeffnen, Vergleichsbasis fuer isDirty.
 			snapshot: null,
@@ -981,6 +1000,24 @@ export default {
 			this.$nextTick(() => {
 				const to = this.folderPanelOpen ? this.$refs.main : this.modalScroller()
 				if (to) { to.scrollTop = top }
+			})
+		},
+
+		isMarkedForRemoval(a) {
+			return (this.bookingForm.removedAttachmentIds || []).includes(a.id)
+		},
+
+		/**
+		 * Beleg zum Lösen/Löschen markieren oder die Markierung zurücknehmen.
+		 * Ausgeführt wird erst beim Speichern (App.vue::removeMarkedAttachments);
+		 * die Markierung steckt im Formular und zählt damit für isDirty.
+		 *
+		 * @param {object} a gespeicherter Beleg
+		 */
+		toggleRemoval(a) {
+			const ids = this.bookingForm.removedAttachmentIds || []
+			this.updateForm({
+				removedAttachmentIds: ids.includes(a.id) ? ids.filter((id) => id !== a.id) : [...ids, a.id],
 			})
 		},
 

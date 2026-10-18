@@ -27,6 +27,8 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 - **Receipts are stored on save.** For existing entries too, attached files
   and files picked from the folder are only uploaded or linked when you click
   "Save"; until then they are listed as pending and closing asks first.
+  Likewise, unlinking or deleting a receipt only takes effect on save – until
+  then it is shown struck through and can be restored with "Undo".
 - **Comment as popover.** The comment icon in the entry list and account
   statement shows the comment in a popover on hover (or keyboard focus)
   instead of a tooltip.
