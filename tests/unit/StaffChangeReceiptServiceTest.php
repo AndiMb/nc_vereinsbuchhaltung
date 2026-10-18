@@ -123,7 +123,7 @@ class StaffChangeReceiptServiceTest extends TestCase {
 		$this->service()->send($this->assignment(1000, 3, 2), $this->before(1000, 12, 1), $this->preview());
 	}
 
-	public function testUmstellungAufUeberweisungNenntDasWeiterbestehendeMandatUndKeinenEinzug(): void {
+	public function testUmstellungAufUeberweisungNenntDasWeiterbestehendeMandatUndEineFaelligkeitStattEinesEinzugs(): void {
 		$this->member();
 		$after = $this->assignment(1000);
 		$after->setPaymentMethod(Assignment::PAYMENT_METHOD_TRANSFER);
@@ -133,7 +133,10 @@ class StaffChangeReceiptServiceTest extends TestCase {
 			$this->anything(),
 			$this->logicalAnd($this->stringContains('auf Überweisung umgestellt'), $this->stringContains('bleibt gültig, wird aber nicht mehr genutzt')),
 			'2026-11-01',
-			null, // per Überweisung gibt es keinen „ersten betroffenen Einzug“
+			'2027-01-15',
+			null,
+			$this->anything(),
+			true, // per Überweisung ist der Termin eine Fälligkeit, kein Einzug
 		);
 
 		$before = $this->before(1000) + ['paymentMethod' => Assignment::PAYMENT_METHOD_DIRECT_DEBIT];
@@ -151,6 +154,9 @@ class StaffChangeReceiptServiceTest extends TestCase {
 			$this->stringContains('auf Lastschrift umgestellt'),
 			'2026-11-01',
 			'2027-01-15',
+			null,
+			$this->anything(),
+			false,
 		);
 
 		$before = $this->before(1000) + ['paymentMethod' => Assignment::PAYMENT_METHOD_TRANSFER];

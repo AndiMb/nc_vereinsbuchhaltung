@@ -164,8 +164,11 @@ class SelfContributionService {
 				$this->l10n->t('Ihr Beitrag wurde geändert'),
 				implode(' ', $whatParts),
 				$preview['effectiveFrom'],
-				// Per Überweisung gibt es keinen Einzug mehr – der Termin wäre eine Fälligkeit, die Mail nennt ihn nicht.
-				($newPaymentMethod ?? $oldPaymentMethod) === Assignment::PAYMENT_METHOD_TRANSFER ? null : $preview['firstDueDate'],
+				$preview['firstDueDate'],
+				null,
+				null,
+				// Per Überweisung ist der Termin eine Fälligkeit, kein Einzug – die Mail sagt es so.
+				($newPaymentMethod ?? $oldPaymentMethod) === Assignment::PAYMENT_METHOD_TRANSFER,
 			);
 		}
 	}

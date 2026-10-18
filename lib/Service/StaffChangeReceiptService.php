@@ -76,11 +76,12 @@ class StaffChangeReceiptService {
 				$l->t('Ihr Beitrag wurde geändert'),
 				implode(' ', $what),
 				$preview['effectiveFrom'],
-				// Beitragsfrei: nichts wird eingezogen, also gibt es auch keinen betroffenen Einzug. Bei
-				// Überweisung ebenso: der Termin ist dann eine Fälligkeit, kein Einzug – die Mail nennt ihn nicht.
-				$after->getMonthlyAmountCents() === 0 || $after->getPaymentMethod() === Assignment::PAYMENT_METHOD_TRANSFER ? null : $preview['firstDueDate'],
+				// Beitragsfrei: nichts wird eingezogen, also gibt es auch keinen betroffenen Einzug.
+				$after->getMonthlyAmountCents() === 0 ? null : $preview['firstDueDate'],
 				null,
 				$l,
+				// Per Überweisung ist der Termin eine Fälligkeit, kein Einzug – die Mail sagt es so.
+				$after->getPaymentMethod() === Assignment::PAYMENT_METHOD_TRANSFER,
 			);
 		} catch (\Throwable $e) {
 			$this->logger->warning('Quittungsmail zur Beitragsänderung konnte nicht verschickt werden', ['exception' => $e, 'assignmentId' => $after->getId()]);

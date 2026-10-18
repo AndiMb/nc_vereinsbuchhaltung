@@ -218,9 +218,9 @@ class SelfContributionServiceTest extends TestCase {
 
 		$this->activity->expects($this->once())->method('publish')
 			->with('katrin.b', SelfServiceProvider::SUBJECT_CONTRIBUTION_PAYMENT_METHOD_CHANGED, ['from' => 'direct_debit', 'to' => 'ueberweisung'], 'assignment', self::ASSIGNMENT_ID);
-		// Per Überweisung gibt es keinen „ersten betroffenen Einzug“ – die Mail nennt keinen Termin.
+		// Per Überweisung ist der Termin eine Fälligkeit, kein Einzug – die Mail bekommt das Kennzeichen dafür.
 		$this->receiptMail->expects($this->once())->method('sendReceipt')
-			->with($this->anything(), 'katrin@example.org', $this->anything(), $this->stringContains('Mandat bleibt gültig'), '2026-07-01', null);
+			->with($this->anything(), 'katrin@example.org', $this->anything(), $this->stringContains('Mandat bleibt gültig'), '2026-07-01', '2026-07-01', null, null, true);
 
 		$result = $this->service()->apply(self::ASSIGNMENT_ID, null, null, Assignment::PAYMENT_METHOD_TRANSFER);
 

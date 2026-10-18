@@ -38,6 +38,7 @@ class SelfServiceReceiptMailService {
 	 *                     von 10,00 € auf 15,00 € geändert."
 	 * @param string|null $effectiveFrom Slot „ab wann" (JJJJ-MM-TT), null = ausgeblendet
 	 * @param string|null $firstDueDate Slot „welcher Einzug" (JJJJ-MM-TT), null = ausgeblendet
+	 * @param bool $byTransfer true bei Zahlungsart Überweisung: der Termin heißt dann „Fälligkeit", nicht „Einzug"
 	 * @param string|null $onBehalfNote Slot „Stellvertretung" (Spec §3.4 Modell A), null = ausgeblendet
 	 * @param IL10N|null $l10n Sprache der Mail; ohne Angabe die der laufenden Anfrage (bei der Selbständerung die des
 	 *                         Mitglieds selbst, bei einer Änderung durch den Vorstand muss die des Mitglieds übergeben werden)
@@ -51,6 +52,7 @@ class SelfServiceReceiptMailService {
 		?string $firstDueDate,
 		?string $onBehalfNote = null,
 		?IL10N $l10n = null,
+		bool $byTransfer = false,
 	): void {
 		$l = $l10n ?? $this->l10n;
 		$template = $this->mailer->createEMailTemplate('vereinsbuchhaltung.selfServiceReceipt');
@@ -63,7 +65,10 @@ class SelfServiceReceiptMailService {
 			$template->addBodyText($l->t('Wirkt ab: %s', [GermanDate::format($effectiveFrom)]));
 		}
 		if ($firstDueDate !== null) {
-			$template->addBodyText($l->t('Voraussichtlich erster betroffener Einzug: %s', [GermanDate::format($firstDueDate)]));
+			// Überweiser: der Termin ist eine Fälligkeit, kein Einzug – die Mail darf keinen Einzug ankündigen.
+			$template->addBodyText($byTransfer
+				? $l->t('Voraussichtlich erste betroffene Fälligkeit: %s', [GermanDate::format($firstDueDate)])
+				: $l->t('Voraussichtlich erster betroffener Einzug: %s', [GermanDate::format($firstDueDate)]));
 		}
 		if ($onBehalfNote !== null) {
 			$template->addBodyText($l->t('Diese Änderung wurde vom Vorstand in Ihrem Namen vorgenommen: %s', [$onBehalfNote]));

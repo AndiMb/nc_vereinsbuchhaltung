@@ -3083,7 +3083,8 @@
         "Der Vorstand hat Ihre Zahlungsart auf Überweisung umgestellt: Ihr Beitrag wird nicht mehr per Lastschrift eingezogen, bitte überweisen Sie ihn künftig selbst. Ein bestehendes SEPA-Lastschriftmandat bleibt gültig, wird aber nicht mehr genutzt.": "The board has switched your payment method to bank transfer: your fee is no longer collected by direct debit, please transfer it yourself from now on. An existing SEPA direct-debit mandate stays valid but is no longer used.",
         "Der Vorstand hat Ihre Zahlungsart auf Lastschrift umgestellt: Ihr Beitrag wird künftig per SEPA-Lastschrift von Ihrem Konto eingezogen.": "The board has switched your payment method to direct debit: from now on your fee is collected from your account by SEPA direct debit.",
         "„Beitrag ändern“ stellt jetzt auch die Zahlungsart um: einzelne Mitglieder lassen sich von Lastschrift auf Überweisung umstellen (und zurück), ohne die Zuweisung neu anzulegen – das Mandat bleibt gültig und wird nur nicht mehr genutzt.": "“Change fee” now also switches the payment method: individual members can be moved from direct debit to bank transfer (and back) without re-creating the assignment – the mandate stays valid and is simply no longer used.",
-        "Neuer Schalter in den Grundeinstellungen: Mitglieder dürfen unter „Mein Beitrag“ selbst von Lastschrift auf Überweisung umstellen.": "New toggle in the basic settings: members may switch from direct debit to bank transfer themselves under “My contribution”."
+        "Neuer Schalter in den Grundeinstellungen: Mitglieder dürfen unter „Mein Beitrag“ selbst von Lastschrift auf Überweisung umstellen.": "New toggle in the basic settings: members may switch from direct debit to bank transfer themselves under “My contribution”.",
+        "Voraussichtlich erste betroffene Fälligkeit: %s": "Expected first affected due date: %s"
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

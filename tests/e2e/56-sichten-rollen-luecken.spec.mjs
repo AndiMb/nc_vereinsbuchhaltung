@@ -1191,7 +1191,8 @@ test.describe('Quittungsmail der Beitragsänderung (Protokoll 11.9, 14.3, 14.7)'
 		expect(mail.text).toContain('Dein Monatsbeitrag wurde von 10,00 € auf 15,00 € geändert.')
 		expect(mail.text).toContain('Dein Zahlungsturnus wurde von alle 3 Monate auf alle 12 Monate geändert.')
 		expect(mail.text).toMatch(/Wirkt ab: \d{2}\.\d{2}\.\d{4}/)
-		expect(mail.text).toMatch(/Voraussichtlich erster betroffener Einzug: \d{2}\.\d{2}\.\d{4}/)
+		// Überweiser-Zuweisung: der Termin ist eine Fälligkeit, kein Einzug.
+		expect(mail.text).toMatch(/Voraussichtlich erste betroffene Fälligkeit: \d{2}\.\d{2}\.\d{4}/)
 		expect(mail.text).toContain('eine Handlung deinerseits ist nicht nötig')
 		expect(mail.body).not.toMatch(SIE_FORM)
 	})
@@ -1204,7 +1205,7 @@ test.describe('Quittungsmail der Beitragsänderung (Protokoll 11.9, 14.3, 14.7)'
 		expect(mail.text).toContain('Your monthly fee has been changed from 10,00 € to 15,00 €.')
 		expect(mail.text).toContain('Your payment interval has been changed from every 3 months to every 12 months.')
 		expect(mail.text).toMatch(/Effective from: \d{2}\.\d{2}\.\d{4}/)
-		expect(mail.text).toMatch(/Expected first affected collection: \d{2}\.\d{2}\.\d{4}/)
+		expect(mail.text).toMatch(/Expected first affected due date: \d{2}\.\d{2}\.\d{4}/)
 		expect(mail.text).toContain('no action is needed on your part')
 		expect(mail.body).not.toMatch(/\b(Ihr|Ihre|Dein|Deine|Wirkt|Guten|Voraussichtlich|Beitrag|Monatsbeitrag)\b/)
 	})

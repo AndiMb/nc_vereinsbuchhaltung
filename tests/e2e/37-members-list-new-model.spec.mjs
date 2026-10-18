@@ -240,9 +240,10 @@ test.describe('Mitgliederliste zeigt Mandat und Beitrag des neuen Modells', () =
 		await expect(dialog.getByText('Untergrenze von 5,00')).toBeVisible()
 		await expect(dialog.getByRole('button', { name: 'Speichern' })).toBeDisabled()
 
-		// Das Mitglied möchte ausnahmsweise mehr geben: nach oben ist nichts gedeckelt.
+		// Das Mitglied möchte ausnahmsweise mehr geben: nach oben ist nichts gedeckelt. Eine Überweiser-Zuweisung
+		// hat keinen Einzug, die Vorschau nennt die Fälligkeit.
 		await amount.fill('25')
-		await expect(dialog.getByText(/Wirkt ab \d{2}\.\d{2}\.\d{4} · erster Einzug am \d{2}\.\d{2}\.\d{4} · Betrag/)).toBeVisible()
+		await expect(dialog.getByText(/Wirkt ab \d{2}\.\d{2}\.\d{4} · fällig am \d{2}\.\d{2}\.\d{4} · Betrag/)).toBeVisible()
 		await dialog.getByRole('button', { name: 'Speichern' }).click()
 		await expect(dialog).toBeHidden()
 
@@ -269,7 +270,7 @@ test.describe('Mitgliederliste zeigt Mandat und Beitrag des neuen Modells', () =
 		// Die neue Gruppe bringt ihren Standardbeitrag und ihre Untergrenze mit; die Vorschau nennt den Stand.
 		await expect(dialog.getByLabel('Monatsbeitrag (€)')).toHaveValue(/^4,00/)
 		await expect(dialog).toContainText(/Untergrenze der gewählten Gruppe: 3,00/)
-		await expect(dialog.getByText(/Wirkt ab \d{2}\.\d{2}\.\d{4} · erster Einzug am \d{2}\.\d{2}\.\d{4} · Betrag/)).toBeVisible()
+		await expect(dialog.getByText(/Wirkt ab \d{2}\.\d{2}\.\d{4} · fällig am \d{2}\.\d{2}\.\d{4} · Betrag/)).toBeVisible()
 		await dialog.getByRole('button', { name: 'Speichern' }).click()
 		await expect(dialog).toBeHidden()
 
