@@ -23,7 +23,7 @@
 		</p>
 
 		<div class="vbh-structured-toolbar">
-			<div class="vbh-structured-picker">
+			<div v-if="templates.length" class="vbh-structured-picker">
 				<NcSelect
 					:modelValue="selectedOption"
 					:options="templateOptions"
@@ -32,34 +32,71 @@
 					:inputLabel="t('Vorlage')"
 					@update:modelValue="selectTemplate($event && $event.id)" />
 			</div>
-			<template v-if="canWrite && selected">
-				<NcButton variant="secondary" @click="openCopy">
-					{{ t('Kopieren und anpassen') }}
-				</NcButton>
-				<NcButton v-if="!selected.builtin" variant="secondary" @click="openEdit">
-					{{ t('Bearbeiten') }}
-				</NcButton>
-				<NcButton v-if="!selected.builtin" variant="tertiary" @click="remove">
+			<template v-if="canWrite">
+				<NcButton variant="secondary" @click="openNew">
 					<template #icon>
-						<NcIconSvgWrapper :path="mdiDelete" :size="18" />
+						<NcIconSvgWrapper :path="mdiPlus" :size="18" />
 					</template>
-					{{ t('Löschen') }}
+					{{ t('Neue Vorlage') }}
 				</NcButton>
+				<template v-if="selected">
+					<NcButton variant="secondary" @click="openCopy">
+						{{ t('Kopieren und anpassen') }}
+					</NcButton>
+					<NcButton variant="secondary" @click="openEdit">
+						{{ t('Bearbeiten') }}
+					</NcButton>
+					<NcButton variant="tertiary" @click="remove">
+						<template #icon>
+							<NcIconSvgWrapper :path="mdiDelete" :size="18" />
+						</template>
+						{{ t('Löschen') }}
+					</NcButton>
+				</template>
+				<NcActions :menuName="t('Weitere Aktionen')" :forceMenu="true">
+					<NcActionButton :closeAfterClick="true" @click="addStandard">
+						<template #icon>
+							<NcIconSvgWrapper :path="mdiFileRestore" :size="18" />
+						</template>
+						{{ t('Standardvorlagen hinzufügen') }}
+					</NcActionButton>
+				</NcActions>
 			</template>
 		</div>
 
-		<NcNoteCard v-if="report && !report.hasSpheres" type="info">
-			<p>{{ t('Noch kein Einnahmen- oder Ausgabenkonto hat eine Sphäre. Die mitgelieferten Vorlagen trennen danach den ideellen Bereich von den Projekten – bis dahin steht alles unter „Ohne Sphäre“.') }}</p>
+		<NcEmptyContent
+			v-if="loaded && !templates.length"
+			:name="t('Noch keine Vorlage')"
+			:description="canWrite
+				? t('Legen Sie eine neue Vorlage an oder holen Sie die beiden Standardvorlagen zurück („Haushaltsplan nach Titelgruppen“ und „Ergebnis je Bereich und Projekt“).')
+				: t('Für den Gliederungsbericht ist noch keine Vorlage angelegt.')">
+			<template #icon>
+				<NcIconSvgWrapper :path="mdiFileTreeOutline" :size="48" />
+			</template>
+			<template v-if="canWrite" #action>
+				<div class="vbh-structured-empty-actions">
+					<NcButton variant="primary" @click="openNew">
+						{{ t('Neue Vorlage') }}
+					</NcButton>
+					<NcButton variant="secondary" @click="addStandard">
+						{{ t('Standardvorlagen hinzufügen') }}
+					</NcButton>
+				</div>
+			</template>
+		</NcEmptyContent>
+
+		<NcNoteCard v-if="report && selected && !report.hasSpheres" type="info">
+			<p>{{ t('Noch kein Einnahmen- oder Ausgabenkonto hat eine Sphäre. Die Standardvorlagen trennen danach den ideellen Bereich von den Projekten – bis dahin steht alles unter „Ohne Sphäre“.') }}</p>
 			<NcButton v-if="canWrite" variant="secondary" @click="$emit('open-spheres')">
 				{{ t('Sphären zuordnen') }}
 			</NcButton>
 		</NcNoteCard>
-		<NcNoteCard v-for="w in (report ? report.warnings : [])" :key="w.code" type="warning">
+		<NcNoteCard v-for="w in (report && selected ? report.warnings : [])" :key="w.code" type="warning">
 			{{ w.message }}
 		</NcNoteCard>
 
 		<NcLoadingIcon v-if="loading && !report" :size="32" />
-		<div v-else-if="report" class="vbh-tablecard">
+		<div v-else-if="report && selected" class="vbh-tablecard">
 			<table class="vbh-table vbh-structured-table">
 				<thead>
 					<tr>
@@ -113,9 +150,9 @@
 </template>
 
 <script>
-import { mdiDelete, mdiDownload, mdiPrinter } from '@mdi/js'
-import { showError, showSuccess } from '@nextcloud/dialogs'
-import { NcButton, NcIconSvgWrapper, NcLoadingIcon, NcNoteCard, NcSelect } from '@nextcloud/vue'
+import { mdiDelete, mdiDownload, mdiFileRestore, mdiFileTreeOutline, mdiPlus, mdiPrinter } from '@mdi/js'
+import { showError, showSuccess, showWarning } from '@nextcloud/dialogs'
+import { NcActionButton, NcActions, NcButton, NcEmptyContent, NcIconSvgWrapper, NcLoadingIcon, NcNoteCard, NcSelect } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import ReportTemplateDialog from './ReportTemplateDialog.vue'
 import api from '../api.js'
@@ -123,6 +160,7 @@ import { useAuth } from '../composables/useAuth.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { usePeriods } from '../composables/usePeriods.js'
 import { errMsg, formatMoney, trendClass } from '../lib/format.js'
+import { starterDefinition } from '../lib/reportDefinition.js'
 
 const STORAGE_KEY = 'vbh.structuredReport.template'
 
@@ -134,7 +172,7 @@ const STORAGE_KEY = 'vbh.structuredReport.template'
  */
 export default {
 	name: 'StructuredReportView',
-	components: { NcButton, NcIconSvgWrapper, NcLoadingIcon, NcNoteCard, NcSelect, ReportTemplateDialog },
+	components: { NcActionButton, NcActions, NcButton, NcEmptyContent, NcIconSvgWrapper, NcLoadingIcon, NcNoteCard, NcSelect, ReportTemplateDialog },
 	props: {
 		refreshKey: { type: Number, default: 0 },
 	},
@@ -155,8 +193,13 @@ export default {
 		return {
 			mdiDelete,
 			mdiDownload,
+			mdiFileRestore,
+			mdiFileTreeOutline,
+			mdiPlus,
 			mdiPrinter,
 			templates: [],
+			// Erst nach dem ersten Laden zeigt eine leere Liste den Hinweis
+			loaded: false,
 			groups: [],
 			templateId: localStorage.getItem(STORAGE_KEY) || '',
 			report: null,
@@ -174,7 +217,7 @@ export default {
 		},
 
 		templateOptions() {
-			return this.templates.map((x) => ({ id: x.id, label: x.builtin ? x.name : this.tRaw('{name} (eigene Vorlage)', { name: x.name }) }))
+			return this.templates.map((x) => ({ id: x.id, label: x.name }))
 		},
 
 		selectedOption() {
@@ -200,12 +243,20 @@ export default {
 				const { data } = await api.reportTemplates()
 				this.templates = data.templates
 				this.groups = data.groups
+				this.loaded = true
 			} catch (e) {
 				showError(errMsg(e, this.t('Vorlagen konnten nicht geladen werden')))
 				return
 			}
-			if (!this.selected && this.templates.length) {
-				this.templateId = this.templates[0].id
+			// Eine gemerkte Auswahl, die es nicht mehr gibt – gelöscht oder eine
+			// der bis 0.38.0 mitgelieferten Vorlagen („builtin:…“) –, fällt auf
+			// die erste Vorlage zurück.
+			if (!this.selected) {
+				this.templateId = this.templates.length ? this.templates[0].id : ''
+			}
+			if (!this.templateId) {
+				this.report = null
+				return
 			}
 			await this.loadReport()
 		},
@@ -232,6 +283,30 @@ export default {
 			this.templateId = id
 			localStorage.setItem(STORAGE_KEY, id)
 			this.loadReport()
+		},
+
+		openNew() {
+			this.editor = {
+				isNew: true,
+				template: { id: null, name: '', definition: starterDefinition() },
+			}
+		},
+
+		async addStandard() {
+			try {
+				const { data } = await api.addStandardReportTemplates()
+				showSuccess(this.t('Standardvorlagen hinzugefügt'))
+				if (data.duplicateNames.length) {
+					showWarning(this.tRaw('Es gibt jetzt mehrere Vorlagen mit dem Namen „{names}“ – zum Unterscheiden eine davon umbenennen.', { names: data.duplicateNames.join('“, „') }))
+				}
+				if (data.templates.length) {
+					this.templateId = data.templates[0].id
+					localStorage.setItem(STORAGE_KEY, this.templateId)
+				}
+				await this.loadTemplates()
+			} catch (e) {
+				showError(errMsg(e, this.t('Standardvorlagen konnten nicht hinzugefügt werden')))
+			}
 		},
 
 		openCopy() {
@@ -316,6 +391,8 @@ export default {
 .vbh-structured-picker { display: flex; flex-direction: column; gap: 2px; min-width: min(420px, 100%); }
 
 .vbh-structured-table { min-width: 560px; }
+
+.vbh-structured-empty-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
 
 .vbh-structured-nr { width: 110px; }
 

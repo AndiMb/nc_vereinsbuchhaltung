@@ -892,7 +892,7 @@ financial plan, but structured by a **template** – for instance the way a
 funding body wants to see the budget or the proof of use, or the way the
 board wants to see what the projects cost the club.
 
-Two templates are **built in**:
+The app creates **two standard templates** the first time the tab is opened:
 
 - **Budget by title groups (funding body):** income first, then expenses;
   within each, the non-profit area following the account hierarchy and then
@@ -911,9 +911,15 @@ accounts (chapter 5.6); projects are the analysis groups of the accounts with
 the sphere purpose-related operations (chapter 5.4). Without spheres,
 everything appears under "No sphere" – the report points this out.
 
-**Own templates.** Built-in templates cannot be changed, but **Copy and
-adapt** turns them into an own template (role bookkeeper or administrator).
-The dialog has four areas:
+**Adapting templates.** The standard templates are ordinary templates: they
+can be **edited**, **copied** and **deleted** (role bookkeeper or
+administrator). Deleted templates do not come back by themselves; **More
+actions → Add standard templates** creates both again in their current
+version – existing templates stay untouched. **New template** starts from
+scratch: the skeleton shows all accounts with budget, actual and balance and
+only needs a name. If there is no template, the tab offers both ways directly.
+
+The dialog for creating and editing has four areas:
 
 - **General:** name, budget notes as explanation, grand total at the end.
 - **Structure:** sections narrow the accounts down by account type, sphere
@@ -1226,8 +1232,9 @@ readable page, so nothing needs to be looked up on GitHub.
 
 Gear icon → *Data* → *Delete all data* (administrators only, with a
 confirmation dialog) removes accounts, postings, imports, receipts, open items
-(including the claims against members), the own templates of the
-structured report and the year-end closing markers.
+(including the claims against members), the templates of the
+structured report (afterwards the two standard templates are available
+again) and the year-end closing markers.
 **The change log is kept.** Members, mandates, contribution groups and
 assignments (chapter 13) are not part of the posting records and stay untouched
 (the collection is cleared with it, see below). The same applies to

@@ -76,6 +76,7 @@ return [
 		// Gliederungsbericht: Vorlagen und Auswertung
 		['name' => 'reportTemplate#index', 'url' => '/api/report-templates', 'verb' => 'GET'],
 		['name' => 'reportTemplate#create', 'url' => '/api/report-templates', 'verb' => 'POST'],
+		['name' => 'reportTemplate#addStandard', 'url' => '/api/report-templates/standard', 'verb' => 'POST'],
 		['name' => 'reportTemplate#update', 'url' => '/api/report-templates/{id}', 'verb' => 'PUT'],
 		['name' => 'reportTemplate#destroy', 'url' => '/api/report-templates/{id}', 'verb' => 'DELETE'],
 		['name' => 'reportTemplate#evaluate', 'url' => '/api/report/structured', 'verb' => 'GET'],

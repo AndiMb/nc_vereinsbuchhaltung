@@ -29,7 +29,7 @@ class GliederungsberichtExportTest extends TestCase {
 		$period->setId(7);
 		$period->setLabel('2026');
 		return [
-			'template' => ['id' => 'builtin:bereiche', 'name' => 'Ergebnis je Bereich', 'builtin' => true],
+			'template' => ['id' => '3', 'name' => 'Ergebnis je Bereich'],
 			'period' => $period,
 			'columns' => [
 				['source' => 'plan', 'periodOffset' => -1, 'periodId' => null, 'label' => 'Plan (keine Periode)'],

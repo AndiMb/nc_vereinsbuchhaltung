@@ -25,6 +25,13 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.39.0',
+			roles: ['verwalter', 'buchhalter'],
+			items: [
+				t('Gliederungsbericht: Die beiden Standardvorlagen lassen sich jetzt direkt bearbeiten und löschen; „Neue Vorlage“ startet bei null, „Standardvorlagen hinzufügen“ holt sie zurück.'),
+			],
+		},
+		{
 			version: '0.38.0',
 			roles: ['verwalter', 'buchhalter'],
 			items: [

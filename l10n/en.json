@@ -2971,9 +2971,7 @@
         "Derselbe Plan und dieselben Buchungen, gegliedert nach einer Vorlage – etwa für einen Zuwendungsgeber oder für die Mitgliederversammlung. Die Vorlage legt fest, nach welchen Merkmalen gegliedert wird und welche Spalten erscheinen.": "The same budget and entries, structured by a template – for example for a funding body or the general meeting. The template defines the grouping criteria and the columns shown.",
         "Vorlage": "Template",
         "Kopieren und anpassen": "Copy and adapt",
-        "Noch kein Einnahmen- oder Ausgabenkonto hat eine Sphäre. Die mitgelieferten Vorlagen trennen danach den ideellen Bereich von den Projekten – bis dahin steht alles unter „Ohne Sphäre“.": "No income or expense account has a sphere yet. The built-in templates use it to separate the non-profit area from the projects – until then everything appears under “No sphere”.",
         "doppelt gezählt": "counted twice",
-        "{name} (eigene Vorlage)": "{name} (own template)",
         "Vorlagen konnten nicht geladen werden": "Templates could not be loaded",
         "Gliederungsbericht konnte nicht geladen werden": "Structured report could not be loaded",
         "{name} (Kopie)": "{name} (copy)",
@@ -3039,7 +3037,6 @@
         "Unbekannte Berichtsgruppe „%s“ im Filter.": "Unknown report group “%s” in the filter.",
         "Unbekannte Gliederungsebene „%s“.": "Unknown grouping level “%s”.",
         "Ungültige Kontotiefe „%s“.": "Invalid account depth “%s”.",
-        "Mitgelieferte Vorlagen lassen sich nicht ändern. Bitte eine Kopie anlegen.": "Built-in templates cannot be changed. Please create a copy.",
         "Nicht erfasste Konten": "Accounts not covered",
         "Ergebnis nicht erfasster Konten": "Result of accounts not covered",
         "Plan (keine Periode)": "Budget (no period)",
@@ -3049,7 +3046,17 @@
         "Neu unter Berichte → Gliederung: Plan und Buchungen nach einer Vorlage gegliedert, etwa für einen Zuwendungsgeber oder als Ergebnis je Projekt – mit Druckseite und CSV.": "New under Reports → Structured report: budget and postings structured by a template, for example for a funding body or as a result per project – with a print page and CSV.",
         "Die mitgelieferten Vorlagen lassen sich kopieren und anpassen: Abschnitte, Spalten und Gruppen frei wählbar, ohne den Kontenrahmen zu ändern.": "The built-in templates can be copied and adapted: sections, columns and groups are freely selectable without changing the chart of accounts.",
         "Gliederung: Plan und Buchungen nach einer Vorlage gegliedert, z. B. für einen Zuwendungsgeber; eigene Vorlagen entstehen als Kopie (Kapitel 7.4).": "Structured report: budget and postings structured by a template, e.g. for a funding body; own templates are created as a copy (chapter 7.4).",
-        "Der Finanzplan vergleicht mit einem anderen Zeitraum – vorbelegt das Ist des Vorjahres – und zeigt die Veränderung in Euro und Prozent, auch im Druck und im CSV.": "The financial plan compares with another period – by default the previous year's actual – and shows the change in euros and percent, also in print and CSV."
+        "Der Finanzplan vergleicht mit einem anderen Zeitraum – vorbelegt das Ist des Vorjahres – und zeigt die Veränderung in Euro und Prozent, auch im Druck und im CSV.": "The financial plan compares with another period – by default the previous year's actual – and shows the change in euros and percent, also in print and CSV.",
+        "Weitere Aktionen": "More actions",
+        "Standardvorlagen hinzufügen": "Add standard templates",
+        "Noch keine Vorlage": "No template yet",
+        "Legen Sie eine neue Vorlage an oder holen Sie die beiden Standardvorlagen zurück („Haushaltsplan nach Titelgruppen“ und „Ergebnis je Bereich und Projekt“).": "Create a new template or bring back the two standard templates (“Budget by title groups” and “Result by area and project”).",
+        "Für den Gliederungsbericht ist noch keine Vorlage angelegt.": "No template has been created for the structured report yet.",
+        "Noch kein Einnahmen- oder Ausgabenkonto hat eine Sphäre. Die Standardvorlagen trennen danach den ideellen Bereich von den Projekten – bis dahin steht alles unter „Ohne Sphäre“.": "No income or expense account has a sphere yet. The standard templates use it to separate the non-profit area from the projects – until then everything appears under “No sphere”.",
+        "Standardvorlagen hinzugefügt": "Standard templates added",
+        "Es gibt jetzt mehrere Vorlagen mit dem Namen „{names}“ – zum Unterscheiden eine davon umbenennen.": "There are now several templates named “{names}” – rename one of them to tell them apart.",
+        "Standardvorlagen konnten nicht hinzugefügt werden": "Standard templates could not be added",
+        "Gliederungsbericht: Die beiden Standardvorlagen lassen sich jetzt direkt bearbeiten und löschen; „Neue Vorlage“ startet bei null, „Standardvorlagen hinzufügen“ holt sie zurück.": "Structured report: the two standard templates can now be edited and deleted directly; “New template” starts from scratch, “Add standard templates” brings them back."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

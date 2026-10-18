@@ -14,9 +14,9 @@ use OCA\Vereinsbuchhaltung\Db\IncomingPaymentRejectionMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
-use OCA\Vereinsbuchhaltung\Db\ReportTemplateMapper;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
+use OCA\Vereinsbuchhaltung\Service\Report\ReportTemplateService;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportSettingsService;
 
 class ResetService {
@@ -40,7 +40,7 @@ class ResetService {
 		private BankTxSepaDetailMapper $sepaDetails,
 		private IncomingPaymentRejectionMapper $incomingRejections,
 		private ContributionResetService $contribution,
-		private ReportTemplateMapper $reportTemplates,
+		private ReportTemplateService $reportTemplates,
 	) {
 	}
 
@@ -108,6 +108,9 @@ class ResetService {
 			$this->transaction->afterCommit(function (): void {
 				$this->sepaDebtorAccount->setAccountId(null);
 				$this->sepaImportSettings->forgetAccounts();
+				// Wie in einem frischen Verein: der nächste Abruf legt die
+				// Standardvorlagen des Gliederungsberichts wieder an.
+				$this->reportTemplates->forgetSeeded();
 			});
 		});
 

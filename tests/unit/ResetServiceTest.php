@@ -19,7 +19,6 @@ use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\MandateAmendmentMapper;
 use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
-use OCA\Vereinsbuchhaltung\Db\ReportTemplateMapper;
 use OCA\Vereinsbuchhaltung\Db\ReturnedDebitMapper;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
@@ -28,6 +27,7 @@ use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\BudgetSnapshotService;
 use OCA\Vereinsbuchhaltung\Service\ContributionResetService;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
+use OCA\Vereinsbuchhaltung\Service\Report\ReportTemplateService;
 use OCA\Vereinsbuchhaltung\Service\ResetService;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportSettingsService;
 use OCA\Vereinsbuchhaltung\Service\SepaDebtorAccountService;
@@ -207,6 +207,10 @@ class ResetServiceTest extends TestCase {
 		$importSettings->method('forgetAccounts')->willReturnCallback(function (): void {
 			$this->log[] = 'AFTER_COMMIT import settings';
 		});
+		$reportTemplates = $this->recordingService(ReportTemplateService::class, 'deleteAllForUser', 'vbh_report_templates');
+		$reportTemplates->method('forgetSeeded')->willReturnCallback(function (): void {
+			$this->log[] = 'AFTER_COMMIT report templates seeded';
+		});
 
 		$transaction = $this->createMock(TransactionRunner::class);
 		$transaction->method('run')->willReturnCallback(function (callable $fn) {
@@ -263,7 +267,7 @@ class ResetServiceTest extends TestCase {
 				new DebitItemMapper($this->db),
 				new DebitBatchMapper($this->db),
 			),
-			new ReportTemplateMapper($this->db),
+			$reportTemplates,
 		);
 	}
 
@@ -345,6 +349,9 @@ class ResetServiceTest extends TestCase {
 		$this->assertGreaterThan($commit, $this->position('FILES'));
 		$this->assertGreaterThan($commit, $this->position('AFTER_COMMIT debtor account'));
 		$this->assertGreaterThan($commit, $this->position('AFTER_COMMIT import settings'));
+		// Der nächste Abruf legt die Standardvorlagen wieder an – aber erst,
+		// wenn feststeht, dass die alten Vorlagen wirklich weg sind.
+		$this->assertGreaterThan($commit, $this->position('AFTER_COMMIT report templates seeded'));
 	}
 
 	/** Bricht ein Teil ab, ist die Transaktion zurückgerollt – und weder Dateien noch Einstellungen sind angefasst. */

@@ -908,7 +908,7 @@ Finanzplan, aber gegliedert nach einer **Vorlage** – etwa so, wie ein
 Zuwendungsgeber den Haushaltsplan oder Verwendungsnachweis sehen möchte, oder
 so, wie der Vorstand sehen will, was die Projekte den Verein kosten.
 
-**Mitgeliefert** werden zwei Vorlagen:
+**Zwei Standardvorlagen** legt die App beim ersten Öffnen des Reiters an:
 
 - **Haushaltsplan nach Titelgruppen (Zuwendungsgeber):** zuerst die
   Einnahmen, dann die Ausgaben; darin jeweils der ideelle Bereich nach
@@ -927,9 +927,16 @@ Konten (Kapitel 5.6); Projekte sind die Auswertungsgruppen der Konten mit
 Sphäre Zweckbetrieb (Kapitel 5.4). Ohne gepflegte Sphären steht alles unter
 „Ohne Sphäre" – der Bericht weist darauf hin.
 
-**Eigene Vorlagen.** Mitgelieferte Vorlagen lassen sich nicht ändern, aber
-mit **Kopieren und anpassen** als eigene Vorlage übernehmen (Rolle
-Buchhalter oder Verwalter). Der Dialog hat vier Bereiche:
+**Vorlagen anpassen.** Die Standardvorlagen sind gewöhnliche Vorlagen: Sie
+lassen sich **bearbeiten**, **kopieren** und **löschen** (Rolle Buchhalter
+oder Verwalter). Gelöschte Vorlagen kommen nicht von selbst zurück; über
+**Weitere Aktionen → Standardvorlagen hinzufügen** legt die App beide in der
+aktuellen Fassung erneut an – vorhandene Vorlagen bleiben dabei unberührt.
+Mit **Neue Vorlage** beginnen Sie bei null: Das Gerüst zeigt alle Konten mit
+Plan, Ist und Saldo und braucht nur noch einen Namen. Gibt es keine Vorlage,
+bietet der Reiter beide Wege direkt an.
+
+Der Dialog zum Anlegen und Bearbeiten hat vier Bereiche:
 
 - **Allgemein:** Name, Plannotizen als Erläuterung, Gesamtzeile am Ende.
 - **Struktur:** Abschnitte schränken die Konten nach Kontoart, Sphäre oder
@@ -1257,8 +1264,9 @@ selbst als lesbare Seite aus, es muss also nichts auf GitHub gesucht werden.
 
 Zahnrad → *Daten* → *Alle Daten löschen* (nur Verwalter, mit
 Bestätigungsdialog) entfernt Konten, Buchungen, Importe, Belege, offene Posten
-(auch die Forderungen an Mitglieder), die eigenen Vorlagen des
-Gliederungsberichts und die Zeiträume samt ihrer Festschreibung. **Das Änderungsprotokoll bleibt erhalten.** Mitglieder,
+(auch die Forderungen an Mitglieder), die Vorlagen des
+Gliederungsberichts (danach stehen wieder die beiden Standardvorlagen bereit)
+und die Zeiträume samt ihrer Festschreibung. **Das Änderungsprotokoll bleibt erhalten.** Mitglieder,
 Mandate, Beitragsgruppen und Zuweisungen (Kapitel 13) gehören nicht zum
 Buchungsbestand und bleiben unberührt (der Einzug wird mitgeräumt, siehe unten).
 Gleiches gilt für den Reset-Modus beim xbuc-Import. Beides ist
