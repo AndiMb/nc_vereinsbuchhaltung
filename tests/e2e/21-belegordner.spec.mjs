@@ -108,7 +108,7 @@ test.describe('Wächter-Ordner für Belege', () => {
 		expect((await download.body()).length).toBe(BELEG_PNG.length)
 	})
 
-	test('Suchfeld im „Aus Ordner wählen"-Popup ist direkt nach dem Öffnen bedienbar', async ({ page, request }) => {
+	test('„Aus Ordner wählen" öffnet die Auswahl neben dem Formular, Suchfeld direkt bedienbar', async ({ page, request }) => {
 		await dav.put(request, 'admin', `${FOLDER}/2026/suchtest-eins.png`, BELEG_PNG, 'image/png')
 		await dav.put(request, 'admin', `${FOLDER}/2026/suchtest-zwei.png`, BELEG_PNG, 'image/png')
 
@@ -122,13 +122,13 @@ test.describe('Wächter-Ordner für Belege', () => {
 		await expect(bookingDialog.locator(':focus')).toHaveCount(1)
 		await bookingDialog.getByRole('button', { name: 'Aus Ordner wählen' }).click()
 
-		// Aus dem verschachtelten Popup heraus: sofort tippen, ohne vorher zu
-		// klicken – das Suchfeld muss beim Öffnen selbst schon den Fokus haben.
-		const folderDialog = page.getByRole('dialog', { name: 'Beleg aus Ordner wählen' })
+		// Kein zweiter Dialog darüber: die Auswahl steht als Seitenleiste im
+		// Buchungsdialog, das Formular bleibt daneben sichtbar. Sofort tippen,
+		// ohne vorher zu klicken – das Suchfeld hat beim Öffnen den Fokus.
+		await expect(page.getByRole('dialog')).toHaveCount(1)
+		const folderDialog = bookingDialog.getByRole('complementary', { name: 'Beleg aus Ordner wählen' })
 		await expect(folderDialog).toBeVisible()
-		// Der Fokus kommt erst, wenn die Einblend-Animation des Popups durch ist; auf einem langsamen Runner liegt
-		// zwischen „sichtbar“ und „fokussiert“ eine spürbare Zeit. Das Suchfeld muss ihn trotzdem von selbst
-		// bekommen – abgewartet wird er, nicht ersetzt (kein Klick ins Feld).
+		await expect(bookingDialog.getByText('Buchungstext')).toBeVisible()
 		await expect(folderDialog.getByPlaceholder(/Dateiname, Ordner/)).toBeFocused()
 		await page.keyboard.type('suchtest-eins')
 		await expect(folderDialog.getByText('suchtest-eins.png')).toBeVisible()

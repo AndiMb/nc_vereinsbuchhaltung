@@ -286,7 +286,7 @@
 			:setBookingMode="setBookingMode"
 			:openAccountPicker="openAccountPicker"
 			:addPendingFiles="addPendingFiles"
-			:openFolderPicker="openFolderPicker"
+			:pickFolderFiles="attachFolderFiles"
 			:retryPendingFiles="retryPendingFiles"
 			:watchMode="watchMode"
 			:uploadAttachment="uploadAttachment"
@@ -2045,7 +2045,6 @@ export default {
 		},
 
 		// --- Wächter-Ordner für Belege ---------------------------------------
-		openFolderPicker() { this.folderDialog = { open: true, pick: true, txId: null } },
 		openInbox() { this.folderDialog = { open: true, pick: false, txId: null } },
 		openFolderPickerForTx(tx) { this.folderDialog = { open: true, pick: true, txId: tx.id } },
 
@@ -2105,6 +2104,18 @@ export default {
 				this.txPendingFiles[txId] = [...(this.txPendingFiles[txId] || []), ...files.map((f) => ({ fileId: f.fileId, name: f.name, size: f.size }))]
 				return
 			}
+			await this.attachFolderFiles(files)
+		},
+
+		/**
+		 * Ordner-Dateien an die offene Buchung: beim Anlegen in die Warteliste,
+		 * bei einer bestehenden Buchung sofort verknüpft. Aufgerufen aus der
+		 * Belegauswahl in der Seitenleiste des Buchungsdialogs.
+		 *
+		 * @param {Array<{fileId:number,name:string,size:number}>} files gewählte Dateien
+		 */
+		async attachFolderFiles(files) {
+			if (!files.length) { return }
 			if (!this.bookingForm.id) {
 				this.pendingFiles.push(...files.map(this.pendingLink))
 				return

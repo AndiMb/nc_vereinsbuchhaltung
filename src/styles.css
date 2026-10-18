@@ -181,6 +181,26 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-upload-btn.vbh-upload-btn:hover { background: var(--color-background-hover); }
 
+.vbh-upload-btn.vbh-upload-btn.is-active { border-color: var(--color-primary-element); background: var(--color-primary-element-light); color: var(--color-primary-element-light-text, var(--color-main-text)); }
+
+/* Huelle um einen .vbh-upload-btn, wenn der Knopf ein echtes <button> sein muss
+   ("Aus Ordner wählen"). Sichtbar ist nur der <span> darin - genau wie beim
+   <label> fuer "Anhängen" daneben. Die Huelle selbst wird vollstaendig
+   zurueckgesetzt: Nextclouds Grundregel fuer nackte Buttons (core/css/
+   inputs.scss: width 130px, min-height, padding, margin, border, background;
+   (0,2,1) per :not()-Kette) hatte das Icon im Knopf trotz frueherer Korrektur
+   weiter verschoben. Drei Klassen (0,3,0) bzw. vier mit Pseudo-Klasse
+   gewinnen dagegen. */
+.vbh-upload-trigger.vbh-upload-trigger.vbh-upload-trigger { display: inline-flex; align-items: center; width: auto; min-width: 0; height: auto; min-height: 0; margin: 0; padding: 0; border: 0; border-radius: var(--border-radius, 6px); background: none; color: inherit; font: inherit; cursor: pointer; }
+
+.vbh-upload-trigger.vbh-upload-trigger.vbh-upload-trigger:is(:hover, :focus, :active) { border: 0; background: none; }
+
+.vbh-upload-trigger.vbh-upload-trigger.vbh-upload-trigger:focus-visible { outline: none; }
+
+.vbh-upload-trigger:focus-visible > .vbh-upload-btn { outline: 2px solid var(--color-primary-element); outline-offset: 2px; }
+
+.vbh-upload-trigger.vbh-upload-trigger.vbh-upload-trigger:disabled { opacity: 0.6; cursor: default; }
+
 .vbh-attachment-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 
 .vbh-attachment-item { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 4px; background: var(--color-background-hover); }
@@ -884,6 +904,33 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 .vbh-modal-inner { padding: 4px 24px 20px; }
 
 .vbh-modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px; }
+
+/* Buchungsdialog: Speichern/Abbrechen bleiben am unteren Rand stehen, wenn das
+   Formular laenger ist als der Dialog (BookingDialog.vue). Der Innenabstand
+   unten wandert dafuer vom Dialog in die Leiste, die seitlichen negativen
+   Raender lassen ihren Hintergrund bis an den Dialogrand reichen - sonst
+   schimmerte darunterliegender Inhalt links und rechts durch. Den Schatten
+   setzt lib/stickyShadow.js, solange noch Inhalt unter der Leiste liegt. */
+.vbh-modal-inner.vbh-booking-dialog { padding-bottom: 0; }
+
+.vbh-modal-actions--sticky { position: sticky; bottom: 0; z-index: 2; margin: 16px -24px 0; padding: 12px 24px 20px; border-top: 1px solid transparent; background-color: var(--color-main-background); transition: box-shadow 0.15s ease, border-color 0.15s ease; }
+
+.vbh-modal-actions--sticky.is-stuck { border-top-color: var(--color-border); box-shadow: 0 -8px 12px -8px rgba(0, 0, 0, 0.25); }
+
+/* Belegauswahl als Seitenleiste neben dem Formular statt als zweiter Dialog
+   darueber: der Dialog wird breiter, die Auswahl bleibt beim Scrollen des
+   Formulars oben stehen. :has() statt einer Klasse am NcModal, weil dessen
+   Wurzel teleportiert wird; (0,4,0) gegen die Groessenregel der Bibliothek
+   (.modal-wrapper--large > .modal-container[data-v-…], 0,3,0). */
+.modal-wrapper .modal-container:has(.vbh-booking-dialog.is-split) { width: 1150px; }
+
+.vbh-booking-dialog.is-split .vbh-booking-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+
+.vbh-booking-dialog.is-split .vbh-booking-folder { position: sticky; top: 0; padding: 16px 0 0 24px; border-inline-start: 1px solid var(--color-border); }
+
+.vbh-booking-folder-title { margin: 0 0 8px; font-size: 1.1em; font-weight: 600; }
+
+.vbh-booking-folder .vbh-folder-panel-actions { margin-top: 10px; }
 /* NcModals `:name`-Titel schwebt per Bibliotheks-CSS (.modal-header, position:
    absolute relativ zur fixed .modal-mask) am oberen Browserfensterrand statt im
    Popup - er ist NICHT im .modal-container verschachtelt, sondern dessen
@@ -1117,7 +1164,20 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 .vbh-actions { display: inline-flex; gap: 2px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
 
 /* Kommentar an einer Buchung: nur Hinweis, kein Knopf - der Text steht im Tooltip. */
-.vbh-commentmark { display: inline-flex; align-items: center; padding: 0 8px; color: var(--color-text-maxcontrast); cursor: help; }
+/* Echter <button> als Popover-Ausloeser (per Tastatur erreichbar). Drei
+   Klassen (0,3,0) gegen Nextclouds Grundregel fuer nackte Buttons (Breite
+   130px, Mindesthoehe, Rand, Hintergrund), siehe .vbh-upload-trigger. */
+.vbh-commentmark.vbh-commentmark.vbh-commentmark { display: inline-flex; align-items: center; justify-content: center; width: auto; min-width: 0; min-height: 0; margin: 0; padding: 0 8px; border: 0; background: none; color: var(--color-text-maxcontrast); cursor: help; }
+
+.vbh-commentmark.vbh-commentmark:hover, .vbh-commentmark.vbh-commentmark:focus-visible { color: var(--color-main-text); }
+
+/* Inhalt des Kommentar-Popovers (BookingsTab.vue) - wird an <body>
+   teleportiert, deshalb global und nicht unter .vbh. */
+.vbh-comment-popover { display: flex; flex-direction: column; gap: 4px; box-sizing: border-box; max-width: 360px; max-height: 50vh; overflow-y: auto; padding: 10px 14px; font-size: 0.9em; line-height: 1.45; }
+
+.vbh-comment-popover p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.vbh-comment-popover-title { font-size: 0.85em; color: var(--color-text-maxcontrast); text-transform: uppercase; letter-spacing: 0.04em; }
 
 /* Chart grid — minmax(0,1fr) + min-width:0: verhindert, dass die Canvas-
    Attributbreite (Chart.js setzt Breite × devicePixelRatio) das Grid und damit

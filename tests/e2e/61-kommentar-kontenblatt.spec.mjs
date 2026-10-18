@@ -130,10 +130,10 @@ test.describe('Kommentar an Buchungen', () => {
 		await dialog.getByRole('button', { name: 'Speichern', exact: true }).click()
 		await expect(page.getByRole('dialog')).toBeHidden()
 
-		await expect(zeile.locator('.vbh-commentmark')).toHaveAttribute('title', TEXT, { timeout: 15000 })
+		await expect(zeile.locator('.vbh-commentmark')).toHaveAttribute('aria-label', `Kommentar: ${TEXT}`, { timeout: 15000 })
 
 		await switchTab(page, 'Buchungen')
-		await expect(visibleSection(page).locator('tr', { hasText: 'Beitrag Dora' }).locator('.vbh-commentmark')).toHaveAttribute('title', TEXT)
+		await expect(visibleSection(page).locator('tr', { hasText: 'Beitrag Dora' }).locator('.vbh-commentmark')).toHaveAttribute('aria-label', `Kommentar: ${TEXT}`)
 	})
 
 	test('im abgeschlossenen Geschäftsjahr bleibt nur der Kommentar änderbar', async ({ page, request }) => {
@@ -186,7 +186,7 @@ test.describe('Kommentar an Buchungen', () => {
 		await switchTab(page, 'Konten')
 		await selectPeriod(page, String(JAHR))
 		await openAccountTreeNode(page, BANK_ACCOUNT)
-		await expect(auszugsZeile(page, 'Beitrag Dora').locator('.vbh-commentmark')).toHaveAttribute('title', 'Kassenprüfung: geprüft', { timeout: 15000 })
+		await expect(auszugsZeile(page, 'Beitrag Dora').locator('.vbh-commentmark')).toHaveAttribute('aria-label', 'Kommentar: Kassenprüfung: geprüft', { timeout: 15000 })
 
 		const b = await buchung(request)
 		const resp = await api.setBookingComment(request, b.id, 'vom Revisor', b.updatedAt, { user: USERS.revisor, expectOk: false })

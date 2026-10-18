@@ -940,6 +940,8 @@
         "Zeilen ausblenden": "Hide rows",
         "XML herunterladen": "Download XML",
         "Verwerfen": "Discard",
+        "Änderungen verwerfen?": "Discard changes?",
+        "Die Buchung enthält ungespeicherte Änderungen. Beim Schließen gehen sie verloren.": "This entry has unsaved changes. They will be lost when you close it.",
         "Vorankündigung": "Pre-notification",
         "zurückgebucht": "returned",
         "einmalig": "one-off",
