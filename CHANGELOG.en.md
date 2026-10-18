@@ -17,6 +17,8 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+## [0.40.0] – 2026-10-19
+
 **Changed:**
 - **Entry dialog: receipt picker next to the form.** "Pick from folder" no
   longer opens a second dialog; the entry dialog widens and shows the watched

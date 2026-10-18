@@ -25,6 +25,14 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.40.0',
+			roles: ['verwalter', 'buchhalter'],
+			items: [
+				t('Buchungsdialog: „Aus Ordner wählen“ zeigt den Belegordner als Seitenleiste neben dem Formular; Belege werden erst mit „Speichern“ angehängt, gelöst oder gelöscht – bis dahin lässt sich alles rückgängig machen.'),
+				t('Wer den Buchungsdialog mit ungespeicherten Änderungen schließt, wird vorher gefragt.'),
+			],
+		},
+		{
 			version: '0.39.0',
 			roles: ['verwalter', 'buchhalter'],
 			items: [

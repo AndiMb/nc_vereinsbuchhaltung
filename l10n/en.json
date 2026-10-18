@@ -3064,7 +3064,9 @@
         "Standardvorlagen hinzugefügt": "Standard templates added",
         "Es gibt jetzt mehrere Vorlagen mit dem Namen „{names}“ – zum Unterscheiden eine davon umbenennen.": "There are now several templates named “{names}” – rename one of them to tell them apart.",
         "Standardvorlagen konnten nicht hinzugefügt werden": "Standard templates could not be added",
-        "Gliederungsbericht: Die beiden Standardvorlagen lassen sich jetzt direkt bearbeiten und löschen; „Neue Vorlage“ startet bei null, „Standardvorlagen hinzufügen“ holt sie zurück.": "Structured report: the two standard templates can now be edited and deleted directly; “New template” starts from scratch, “Add standard templates” brings them back."
+        "Gliederungsbericht: Die beiden Standardvorlagen lassen sich jetzt direkt bearbeiten und löschen; „Neue Vorlage“ startet bei null, „Standardvorlagen hinzufügen“ holt sie zurück.": "Structured report: the two standard templates can now be edited and deleted directly; “New template” starts from scratch, “Add standard templates” brings them back.",
+        "Buchungsdialog: „Aus Ordner wählen“ zeigt den Belegordner als Seitenleiste neben dem Formular; Belege werden erst mit „Speichern“ angehängt, gelöst oder gelöscht – bis dahin lässt sich alles rückgängig machen.": "Entry dialog: “Pick from folder” shows the receipt folder as a side panel next to the form; receipts are only attached, unlinked or deleted when you click “Save” – until then everything can be undone.",
+        "Wer den Buchungsdialog mit ungespeicherten Änderungen schließt, wird vorher gefragt.": "Closing the entry dialog with unsaved changes asks first."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

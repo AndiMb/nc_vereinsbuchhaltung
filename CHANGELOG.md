@@ -19,6 +19,8 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+## [0.40.0] – 2026-10-19
+
 **Geändert:**
 - **Buchungsdialog: Belegauswahl neben dem Formular.** „Aus Ordner wählen"
   öffnet keinen zweiten Dialog mehr, sondern verbreitert den Buchungsdialog
