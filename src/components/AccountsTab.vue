@@ -245,7 +245,7 @@
 								<th class="sortable num" @click="toggleSort('statement', 'saldo')">
 									{{ t('Saldo') }}{{ sortArrow('statement', 'saldo') }}
 								</th>
-								<th />
+								<th class="vbh-col-actions--wide" />
 							</tr>
 						</thead>
 						<tbody>
@@ -301,14 +301,7 @@
 										     treiben die Zeile auf schmalen Fenstern in die
 										     zweite Zeile. -->
 										<div class="vbh-actions">
-											<span
-												v-if="row.comment"
-												class="vbh-commentmark"
-												:title="row.comment"
-												role="img"
-												:aria-label="t('Kommentar: {text}', { text: row.comment })">
-												<NcIconSvgWrapper :path="mdiCommentTextOutline" :size="16" />
-											</span>
+											<CommentMark v-if="row.comment" :text="row.comment" />
 											<NcButton
 												v-if="attachmentCountMap[row.journalId]"
 												variant="tertiary"
@@ -378,6 +371,7 @@ import { mdiCommentTextOutline, mdiDelete, mdiDownload, mdiPaperclip, mdiPencil,
 import { NcActionButton, NcActions, NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import AmountInput from './AmountInput.vue'
+import CommentMark from './CommentMark.vue'
 import ReassignPanel from './ReassignPanel.vue'
 import api from '../api.js'
 import { useAccounts } from '../composables/useAccounts.js'
@@ -389,7 +383,7 @@ import { amountClass, formatDate, formatMoney, typeLabel } from '../lib/format.j
 
 export default {
 	name: 'AccountsTab',
-	components: { NcActionButton, NcActions, NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper, AmountInput, ReassignPanel },
+	components: { NcActionButton, NcActions, NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper, AmountInput, CommentMark, ReassignPanel },
 	props: {
 		isMobile: { type: Boolean, required: true },
 		// selectedAccountId/statement/statementIncludeChildren bleiben in App.vue

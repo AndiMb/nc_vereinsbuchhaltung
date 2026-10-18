@@ -19,6 +19,33 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+**Geändert:**
+- **Buchungsdialog: Belegauswahl neben dem Formular.** „Aus Ordner wählen"
+  öffnet keinen zweiten Dialog mehr, sondern verbreitert den Buchungsdialog
+  und zeigt den Wächter-Ordner als Seitenleiste – Datum, Betrag und
+  Buchungstext bleiben beim Aussuchen sichtbar (mobil ersetzt die Auswahl das
+  Formular, bis sie geschlossen wird).
+- **Buchungsdialog: Speichern und Abbrechen immer sichtbar.** Die Knopfleiste
+  bleibt am unteren Rand stehen; ein Schatten zeigt, dass darunter noch
+  Inhalt liegt.
+- **Belege erst beim Speichern.** Auch bei einer bestehenden Buchung werden
+  angehängte und aus dem Ordner gewählte Belege erst mit „Speichern"
+  hochgeladen bzw. verknüpft; bis dahin stehen sie unter „Wird beim Speichern
+  angehängt" und Schließen fragt nach. Ebenso wirken „Verknüpfung lösen" und
+  „Beleg löschen" erst beim Speichern – bis dahin steht der Beleg
+  durchgestrichen da und lässt sich mit „Rückgängig" zurückholen.
+- **Kommentar als Popover.** Das Kommentar-Symbol in Buchungsliste und
+  Kontoauszug zeigt den Kommentar beim Überfahren (oder per Tastatur) in einem
+  Popover statt in einem Tooltip.
+
+**Neu:**
+- **Warnung vor ungespeicherten Änderungen.** Wer den Buchungsdialog mit
+  geänderten Feldern oder noch nicht hochgeladenen Belegen schließt, wird
+  gefragt, ob die Änderungen verworfen werden sollen.
+
+**Behoben:**
+- Das Icon im Knopf „Aus Ordner wählen" saß weiterhin verschoben.
+
 ## [0.39.0] – 2026-10-18
 
 **Geändert:**

@@ -281,16 +281,12 @@
 			:isMobile="isMobile"
 			:canWrite="canWrite"
 			:bookingAttachments="bookingAttachments"
-			:attachmentUploading="attachmentUploading"
 			:setBookingKind="setBookingKind"
 			:setBookingMode="setBookingMode"
 			:openAccountPicker="openAccountPicker"
 			:addPendingFiles="addPendingFiles"
-			:openFolderPicker="openFolderPicker"
-			:retryPendingFiles="retryPendingFiles"
+			:pickFolderFiles="attachFolderFiles"
 			:watchMode="watchMode"
-			:uploadAttachment="uploadAttachment"
-			:deleteAttachment="deleteAttachment"
 			:openViewer="openViewer"
 			:attachmentDownloadUrl="attachmentDownloadUrl"
 			:nextTourStep="nextTourStep"
@@ -642,7 +638,6 @@ export default {
 			mdiPlus,
 			mdiPrinter,
 			bookingAttachments: [],
-			attachmentUploading: false,
 			attachmentCountMap: {},
 			// Kollaboration: Poll-Timer (Änderungsstand selbst kommt aus useSync)
 			syncTimer: null,
@@ -1524,6 +1519,10 @@ export default {
 				splitMode: false,
 				splitSide: 'credit',
 				splitLines: [],
+				// Gespeicherte Belege, die im Dialog zum Lösen bzw. Löschen
+				// markiert sind - ausgeführt erst beim Speichern
+				// (removeMarkedAttachments), bis dahin gilt der Dialog als geändert.
+				removedAttachmentIds: [],
 			}
 		},
 
@@ -1991,31 +1990,31 @@ export default {
 			return ok
 		},
 
-		async uploadAttachment(event) {
-			const files = this.belegeAnnehmbar(Array.from(event.target.files || []))
-			if (!files.length || !this.bookingForm.id) { event.target.value = ''; return }
-			this.attachmentUploading = true
-			try {
-				for (const file of files) {
-					const fd = new FormData()
-					fd.append('file', file)
-					await api.uploadAttachment(this.bookingForm.id, fd)
-				}
-				await this.loadAttachments(this.bookingForm.id)
-				this.afterAttachmentsChanged()
-			} catch (e) { showError(this.errMsg(e, this.t('Upload fehlgeschlagen'))) } finally { this.attachmentUploading = false; event.target.value = '' }
-		},
-
-		async deleteAttachment(a) {
-			const ok = a.unlinkOnly
-				? await this.askConfirm(this.t('Verknüpfung lösen'), this.t('Die Verknüpfung zu dieser Buchung wird gelöst. Die Datei bleibt im Ordner und zählt wieder als „noch keiner Buchung zugewiesen".'), this.t('Verknüpfung lösen'), 'primary')
-				: await this.askConfirm(this.t('Beleg löschen'), this.t('Diesen Beleg wirklich unwiderruflich löschen?'))
-			if (!ok) { return }
-			try {
-				await api.deleteAttachment(a.id)
-				await this.loadAttachments(this.bookingForm.id)
-				this.afterAttachmentsChanged()
-			} catch (e) { showError(this.errMsg(e, this.t('Beleg konnte nicht gelöscht werden'))) }
+		/**
+		 * Löst bzw. löscht die im Dialog markierten Belege der gespeicherten
+		 * Buchung. Jeder einzeln, damit ein Fehler die übrigen nicht aufhält;
+		 * was nicht klappt, bleibt markiert.
+		 *
+		 * @return {Promise<number>} Anzahl der Belege, die nicht entfernt wurden
+		 */
+		async removeMarkedAttachments() {
+			const ids = this.bookingForm.removedAttachmentIds || []
+			if (!ids.length) { return 0 }
+			const failed = []
+			let lastError = null
+			for (const id of ids) {
+				try { await api.deleteAttachment(id) } catch (e) { failed.push(id); lastError = e }
+			}
+			this.bookingForm.removedAttachmentIds = failed
+			this.afterAttachmentsChanged()
+			if (failed.length) {
+				const names = this.bookingAttachments.filter((a) => failed.includes(a.id)).map((a) => a.fileName)
+				showError(this.tRaw('Die Buchung ist gespeichert, aber diese Belege ließen sich nicht entfernen: {names} ({grund}).', {
+					names: names.join(', '),
+					grund: this.errMsg(lastError, this.t('Beleg konnte nicht gelöscht werden')),
+				}))
+			}
+			return failed.length
 		},
 
 		attachmentDownloadUrl(id) { return api.attachmentDownloadUrl(id) },
@@ -2045,7 +2044,6 @@ export default {
 		},
 
 		// --- Wächter-Ordner für Belege ---------------------------------------
-		openFolderPicker() { this.folderDialog = { open: true, pick: true, txId: null } },
 		openInbox() { this.folderDialog = { open: true, pick: false, txId: null } },
 		openFolderPickerForTx(tx) { this.folderDialog = { open: true, pick: true, txId: tx.id } },
 
@@ -2105,16 +2103,19 @@ export default {
 				this.txPendingFiles[txId] = [...(this.txPendingFiles[txId] || []), ...files.map((f) => ({ fileId: f.fileId, name: f.name, size: f.size }))]
 				return
 			}
-			if (!this.bookingForm.id) {
-				this.pendingFiles.push(...files.map(this.pendingLink))
-				return
-			}
-			this.attachmentUploading = true
-			try {
-				for (const f of files) { await api.linkAttachment(this.bookingForm.id, f.fileId) }
-				await this.loadAttachments(this.bookingForm.id)
-				this.afterAttachmentsChanged()
-			} catch (e) { showError(this.errMsg(e, this.t('Beleg konnte nicht verknüpft werden'))) } finally { this.attachmentUploading = false }
+			await this.attachFolderFiles(files)
+		},
+
+		/**
+		 * Ordner-Dateien an die offene Buchung – immer erst in die Warteliste,
+		 * auch bei einer bestehenden Buchung: verknüpft wird beim Speichern
+		 * (saveBooking), bis dahin gilt der Dialog als geändert und Schließen
+		 * fragt nach. Aufgerufen aus der Belegauswahl im Buchungsdialog.
+		 *
+		 * @param {Array<{fileId:number,name:string,size:number}>} files gewählte Dateien
+		 */
+		attachFolderFiles(files) {
+			this.pendingFiles.push(...files.map(this.pendingLink))
 		},
 
 		createBookingFromFile(file) {
@@ -2212,8 +2213,8 @@ export default {
 			this.statement = null
 		},
 
-		// Belege beim Anlegen sammeln (mobil wie am Desktop), der Upload folgt
-		// nach dem Speichern, sobald die Buchung eine ID hat
+		// Belege im Buchungsdialog sammeln (mobil wie am Desktop, beim Anlegen
+		// wie beim Bearbeiten), der Upload folgt erst mit Buchen/Speichern
 		addPendingFiles(event) {
 			const known = new Set(this.pendingFiles.map(dateiSchluessel))
 			for (const file of this.belegeAnnehmbar(Array.from(event.target.files || []))) {
@@ -2226,7 +2227,7 @@ export default {
 		},
 
 		/**
-		 * Haengt die gesammelten Belege an die eben angelegte Buchung. Jede Datei
+		 * Haengt die gesammelten Belege an die eben gespeicherte Buchung. Jede Datei
 		 * einzeln, damit eine abgelehnte die uebrigen nicht mitreisst; was nicht
 		 * ankommt, bleibt in der Warteliste und laesst sich erneut hochladen.
 		 *
@@ -2258,19 +2259,6 @@ export default {
 				}))
 			}
 			return failed.length
-		},
-
-		/** Zweiter Anlauf fuer Belege, die nach dem Speichern haengen geblieben sind. */
-		async retryPendingFiles() {
-			if (!this.bookingForm.id || !this.pendingFiles.length) { return }
-			this.attachmentUploading = true
-			try {
-				const offen = await this.uploadPendingFiles(this.bookingForm.id)
-				// Erst die Liste nachladen, dann Vollzug melden - sonst steht in
-				// der Belegablage fuer einen Wimpernschlag noch "kein Beleg".
-				await this.loadAttachments(this.bookingForm.id)
-				if (offen === 0) { showSuccess(this.t('Beleg gespeichert.')) }
-			} finally { this.attachmentUploading = false }
 		},
 
 		// Mobil: Tippen auf eine Buchungskarte
@@ -2424,6 +2412,18 @@ export default {
 					// ein erneuter Klick nicht an der eigenen Aenderung (409) haengen.
 					f.updatedAt = data.updatedAt || null
 					f.updatedAt = await this.saveBookingComment(f.id, f.updatedAt)
+					// Belege, die im Dialog angehängt oder aus dem Ordner gewählt
+					// wurden, gehen erst jetzt an den Server. Was nicht ankommt,
+					// bleibt in der Warteliste, der Dialog bleibt offen - ein
+					// weiterer Klick auf Speichern versucht es erneut.
+					// Ebenso die zum Lösen/Löschen markierten Belege.
+					const removeFailed = await this.removeMarkedAttachments()
+					const uploadFailed = this.pendingFiles.length ? await this.uploadPendingFiles(f.id) : 0
+					if (removeFailed || uploadFailed) {
+						await this.loadAttachments(f.id)
+						await this.loadJournal(); await this.loadBalances(); await this.loadPeriods(); await this.loadSphereReport(); await this.reloadStatement()
+						return
+					}
 				} else {
 					const { data } = await api.createBooking(payload)
 					// Ab hier existiert die Buchung: scheitert danach Kommentar oder

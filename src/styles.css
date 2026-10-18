@@ -138,6 +138,10 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 /* Belegablage im Buchungs-Modal */
 .vbh-attachments { border-top: 1px solid var(--color-border); margin-top: 12px; padding-top: 12px; }
 
+/* Fokusanker beim Entfernen einer Belegzeile (BookingDialog.vue,
+   keepFocusInAttachments) - nur ein Halt fuer den Fokus, kein Rahmen. */
+:is(.vbh-attachments, .vbh-mfield)[tabindex="-1"]:focus { outline: none; }
+
 .vbh-attachments-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 
 .vbh-attachments-title { font-weight: 600; font-size: 0.9em; color: var(--color-text-lighter); text-transform: uppercase; letter-spacing: 0.04em; }
@@ -181,9 +185,34 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-upload-btn.vbh-upload-btn:hover { background: var(--color-background-hover); }
 
+.vbh-upload-btn.vbh-upload-btn.is-active { border-color: var(--color-primary-element); background: var(--color-primary-element-light); color: var(--color-primary-element-light-text, var(--color-main-text)); }
+
+/* Huelle um einen .vbh-upload-btn, wenn der Knopf ein echtes <button> sein muss
+   ("Aus Ordner wählen"). Sichtbar ist nur der <span> darin - genau wie beim
+   <label> fuer "Anhängen" daneben. Die Huelle selbst wird vollstaendig
+   zurueckgesetzt: Nextclouds Grundregel fuer nackte Buttons (core/css/
+   inputs.scss: width 130px, min-height, padding, margin, border, background;
+   (0,2,1) per :not()-Kette) hatte das Icon im Knopf trotz frueherer Korrektur
+   weiter verschoben. Drei Klassen (0,3,0) bzw. vier mit Pseudo-Klasse
+   gewinnen dagegen. */
+.vbh-upload-trigger.vbh-upload-trigger.vbh-upload-trigger { display: inline-flex; align-items: center; width: auto; min-width: 0; height: auto; min-height: 0; margin: 0; padding: 0; border: 0; border-radius: var(--border-radius, 6px); background: none; color: inherit; font: inherit; cursor: pointer; }
+
+.vbh-upload-trigger.vbh-upload-trigger.vbh-upload-trigger:is(:hover, :focus, :active) { border: 0; background: none; }
+
+.vbh-upload-trigger.vbh-upload-trigger.vbh-upload-trigger:focus-visible { outline: none; }
+
+.vbh-upload-trigger:focus-visible > .vbh-upload-btn { outline: 2px solid var(--color-primary-element); outline-offset: 2px; }
+
+.vbh-upload-trigger.vbh-upload-trigger.vbh-upload-trigger:disabled { opacity: 0.6; cursor: default; }
+
 .vbh-attachment-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 
 .vbh-attachment-item { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 4px; background: var(--color-background-hover); }
+
+/* Zum Lösen/Löschen markiert, wirksam erst beim Speichern (BookingDialog.vue). */
+.vbh-attachment-item.is-removed .vbh-attachment-name { text-decoration: line-through; opacity: 0.6; }
+
+.vbh-attachment-removal { flex: 0 0 auto; font-size: 0.8em; color: var(--color-text-maxcontrast); }
 
 .vbh-attachment-icon { flex-shrink: 0; color: var(--color-text-lighter); }
 
@@ -517,6 +546,10 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
    seltener genutzte Aktionen stecken bewusst im Menü, damit nie mehr als
    3 Buttons gleichzeitig erscheinen und die Zeile einzeilig bleibt. */
 .vbh-table thead th:empty { width: 160px; }
+/* Journal und Kontoauszug zeigen davor noch das Kommentar-Symbol
+   (CommentMark.vue, ein NcButton wie die anderen): 4×44 + 3×2 + 20 ≈ 202.
+   Mit den 160px oben rutschte das Menü „…“ sonst in eine zweite Zeile. */
+.vbh-table thead th.vbh-col-actions--wide { width: 204px; }
 /* Aktionsspalte der Mitglieder-, Zuweisungs- und Laufliste: bis zu ein
    Text- oder Icon-Button plus ein Menü-Button fuer die selteneren Aktionen -
    braucht mehr als die 160px, die fuer reine Icon-Buttons reichen (siehe
@@ -884,6 +917,58 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 .vbh-modal-inner { padding: 4px 24px 20px; }
 
 .vbh-modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px; }
+
+/* Buchungsdialog: Speichern/Abbrechen bleiben am unteren Rand stehen, wenn das
+   Formular laenger ist als der Dialog (BookingDialog.vue). Der Innenabstand
+   unten wandert dafuer vom Dialog in die Leiste, die seitlichen negativen
+   Raender lassen ihren Hintergrund bis an den Dialogrand reichen - sonst
+   schimmerte darunterliegender Inhalt links und rechts durch. Den Schatten
+   setzt lib/stickyShadow.js, solange noch Inhalt unter der Leiste liegt. */
+.vbh-modal-inner.vbh-booking-dialog { padding-bottom: 0; }
+
+.vbh-modal-actions--sticky { position: sticky; bottom: 0; z-index: 2; margin: 16px -24px 0; padding: 12px 24px 20px; border-top: 1px solid transparent; background-color: var(--color-main-background); transition: box-shadow 0.15s ease, border-color 0.15s ease; }
+
+.vbh-modal-actions--sticky.is-stuck { border-top-color: var(--color-border); box-shadow: 0 -8px 12px -8px rgba(0, 0, 0, 0.25); }
+
+/* Belegauswahl als Seitenleiste neben dem Formular statt als zweiter Dialog
+   darueber (BookingDialog.vue, .is-split nur am Desktop).
+
+   Der Dialog bekommt dafuer eine feste Hoehe (die Hoechsthoehe der
+   Bibliothek) und scrollt selbst nicht mehr: Formular und Dateiliste
+   scrollen jede fuer sich, die Knopfleiste steht darunter. Vorher scrollte
+   der Dialog und darin noch einmal die Dateiliste - zwei Rollbalken
+   ineinander, und die Leiste begann je nach Scrollstand des Formulars
+   mittendrin.
+
+   grid-template-rows ist dabei Pflicht: ohne waechst die Rasterzeile mit
+   dem hoeheren Spalteninhalt, keine Spalte scrollt selbst, und am Ende
+   scrollte doch wieder der ganze Dialog samt Knopfleiste.
+
+   :has() statt einer Klasse am NcModal, weil dessen Wurzel teleportiert
+   wird; (0,4,0) gegen die Groessenregel der Bibliothek
+   (.modal-wrapper--large > .modal-container[data-v-…], 0,3,0). */
+.modal-wrapper .modal-container:has(.vbh-booking-dialog.is-split) { overflow: hidden; width: 1150px; height: min(90vh, 100vh - 2 * var(--header-height, 50px) - 2 * var(--body-container-margin, 0px)); }
+
+.modal-container .modal-container__content:has(.vbh-booking-dialog.is-split) { overflow: hidden; }
+
+.vbh-modal-inner.vbh-booking-dialog.is-split { display: flex; flex-direction: column; box-sizing: border-box; height: 100%; }
+
+.vbh-booking-dialog.is-split .vbh-booking-layout { display: grid; flex: 1 1 auto; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: 24px; min-height: 0; }
+
+.vbh-booking-dialog.is-split .vbh-booking-main { min-height: 0; overflow-y: auto; padding-inline-end: 4px; }
+
+.vbh-booking-dialog.is-split .vbh-booking-folder { display: flex; flex-direction: column; min-height: 0; padding: 12px 0 0 24px; border-inline-start: 1px solid var(--color-border); }
+
+.vbh-booking-dialog.is-split .vbh-folder-panel { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
+
+.vbh-booking-dialog.is-split .vbh-folder-panel .vbh-folder-list { flex: 1 1 auto; min-height: 0; max-height: none; }
+
+.vbh-booking-dialog.is-split .vbh-modal-actions--sticky { margin-top: 0; }
+
+/* Rechts frei fuer das Schliessen-X von NcModal (absolut oben rechts). */
+.vbh-booking-folder-title { margin: 0 0 4px; padding-inline-end: calc(var(--default-clickable-area, 34px) + 8px); font-size: 1.1em; font-weight: 600; }
+
+.vbh-booking-folder .vbh-folder-panel-actions { margin-top: 10px; }
 /* NcModals `:name`-Titel schwebt per Bibliotheks-CSS (.modal-header, position:
    absolute relativ zur fixed .modal-mask) am oberen Browserfensterrand statt im
    Popup - er ist NICHT im .modal-container verschachtelt, sondern dessen
@@ -1117,7 +1202,23 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 .vbh-actions { display: inline-flex; gap: 2px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
 
 /* Kommentar an einer Buchung: nur Hinweis, kein Knopf - der Text steht im Tooltip. */
-.vbh-commentmark { display: inline-flex; align-items: center; padding: 0 8px; color: var(--color-text-maxcontrast); cursor: help; }
+/* Kommentar-Symbol in der Aktionsspalte (CommentMark.vue): ein NcButton wie
+   Beleg und Bearbeiten, nur gedaempft. Die Huelle von NcPopover (ein <div>)
+   wird zum Inline-Flex, sonst sitzt der Knopf auf der Grundlinie einer
+   Textzeile und rutscht nach oben. */
+.vbh-commentmark-popover { display: inline-flex; align-items: center; }
+
+.vbh-commentmark.vbh-commentmark.vbh-commentmark { color: var(--color-text-maxcontrast); cursor: help; }
+
+.vbh-commentmark.vbh-commentmark.vbh-commentmark:hover, .vbh-commentmark.vbh-commentmark.vbh-commentmark:focus-visible { color: var(--color-main-text); }
+
+/* Inhalt des Kommentar-Popovers (BookingsTab.vue) - wird an <body>
+   teleportiert, deshalb global und nicht unter .vbh. */
+.vbh-comment-popover { display: flex; flex-direction: column; gap: 4px; box-sizing: border-box; max-width: 360px; max-height: 50vh; overflow-y: auto; padding: 10px 14px; font-size: 0.9em; line-height: 1.45; }
+
+.vbh-comment-popover p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.vbh-comment-popover-title { font-size: 0.85em; color: var(--color-text-maxcontrast); text-transform: uppercase; letter-spacing: 0.04em; }
 
 /* Chart grid — minmax(0,1fr) + min-width:0: verhindert, dass die Canvas-
    Attributbreite (Chart.js setzt Breite × devicePixelRatio) das Grid und damit

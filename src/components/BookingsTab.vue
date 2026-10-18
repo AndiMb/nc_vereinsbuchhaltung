@@ -146,7 +146,7 @@
 								<th class="sortable num" @click="toggleSort('journal', 'amount')">
 									{{ t('Betrag') }}{{ sortArrow('journal', 'amount') }}
 								</th>
-								<th />
+								<th class="vbh-col-actions--wide" />
 							</tr>
 						</thead>
 						<tbody ref="journalBody">
@@ -175,14 +175,7 @@
 								</td>
 								<td class="nowrap right">
 									<div class="vbh-actions">
-										<span
-											v-if="r.comment"
-											class="vbh-commentmark"
-											:title="r.comment"
-											role="img"
-											:aria-label="t('Kommentar: {text}', { text: r.comment })">
-											<NcIconSvgWrapper :path="mdiCommentTextOutline" :size="16" />
-										</span>
+										<CommentMark v-if="r.comment" :text="r.comment" />
 										<NcButton
 											v-if="attachmentCountMap[r.id]"
 											variant="tertiary"
@@ -605,12 +598,13 @@
 </template>
 
 <script>
-import { mdiCommentTextOutline, mdiDelete, mdiDownload, mdiFlash, mdiPaperclip, mdiPencil, mdiUpload } from '@mdi/js'
+import { mdiDelete, mdiDownload, mdiFlash, mdiPaperclip, mdiPencil, mdiUpload } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { NcActionButton, NcActions, NcButton, NcEllipsisedOption, NcEmptyContent, NcIconSvgWrapper, NcSelect } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import AmountInput from './AmountInput.vue'
 import BookingCard from './BookingCard.vue'
+import CommentMark from './CommentMark.vue'
 import RulesPanel from './RulesPanel.vue'
 import api from '../api.js'
 import { buildAccountOptions, useAccounts } from '../composables/useAccounts.js'
@@ -629,7 +623,7 @@ import { isSelectableOption } from '../lib/selectOptions.js'
 
 export default {
 	name: 'BookingsTab',
-	components: { NcButton, NcActions, NcActionButton, NcSelect, NcEllipsisedOption, NcEmptyContent, NcIconSvgWrapper, AmountInput, BookingCard, RulesPanel },
+	components: { NcButton, NcActions, NcActionButton, NcSelect, NcEllipsisedOption, NcEmptyContent, NcIconSvgWrapper, AmountInput, BookingCard, CommentMark, RulesPanel },
 	props: {
 		isMobile: { type: Boolean, required: true },
 		// 'plain' | 'signed': Vorzeichen und Farbe am Betrag, siehe lib/flow.js
@@ -694,7 +688,6 @@ export default {
 			mdiUpload,
 			mdiPaperclip,
 			mdiPencil,
-			mdiCommentTextOutline,
 			mdiFlash,
 			mdiDelete,
 			// Der entprellte Suchtext, nach dem gefiltert wird (onSearchInput).
