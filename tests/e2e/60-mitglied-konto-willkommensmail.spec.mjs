@@ -254,7 +254,9 @@ test.describe('Nextcloud-Konto und Willkommens-Mail', () => {
 		expect(template.isDefault).toBe(false)
 
 		await section.getByRole('button', { name: 'Standardtext wiederherstellen' }).click()
-		await expect(page.getByText('Einstellungen gespeichert.').first()).toBeVisible()
+		// Der Toast vom ersten Speichern steht noch; erst der zurückgesetzte
+		// Betreff zeigt, dass die Antwort da ist.
+		await expect(section.getByRole('textbox', { name: 'Betreff', exact: true })).toHaveValue('Willkommen bei {verein}')
 		expect((await api.getJson(request, '/welcome-mail/template')).isDefault).toBe(true)
 	})
 })

@@ -361,7 +361,7 @@ test.describe('Zwei Personen zugleich', () => {
 			await panel(akteB).getByLabel('Grund der Sperre (Pflicht)').fill('Fenster B')
 			await panel(akteB).getByRole('button', { name: 'Mandat sperren' }).click()
 
-			await expect(pageB.getByText('Nur ein aktives Mandat lässt sich aussetzen.')).toBeVisible()
+			await expect(pageB.getByText('Nur ein aktives Mandat lässt sich aussetzen.', { exact: true })).toBeVisible()
 			await expect(pageB.locator('body')).not.toContainText(ROHTEXT)
 
 			// Das Mandat bleibt gesperrt, mit der Notiz aus Fenster A, und die Historie hat nur einen Eintrag „gesperrt“.
