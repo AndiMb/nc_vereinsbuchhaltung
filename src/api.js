@@ -92,9 +92,10 @@ export default {
 	multiyearTrend: () => axios.get(url('/report/multiyear-trend')),
 	reserveReport: () => axios.get(url('/report/reserves')),
 
-	// Gliederungsbericht: Vorlagen (mitgelieferte heißen „builtin:…“) und Auswertung
+	// Gliederungsbericht: Vorlagen und Auswertung
 	reportTemplates: () => axios.get(url('/report-templates')),
 	createReportTemplate: (name, definition) => axios.post(url('/report-templates'), { name, definition }),
+	addStandardReportTemplates: () => axios.post(url('/report-templates/standard')),
 	updateReportTemplate: (id, name, definition) => axios.put(url(`/report-templates/${encodeURIComponent(id)}`), { name, definition }),
 	deleteReportTemplate: (id) => axios.delete(url(`/report-templates/${encodeURIComponent(id)}`)),
 	structuredReport: (template, period) => axios.get(url('/report/structured'), { params: { template, period: period || undefined } }),

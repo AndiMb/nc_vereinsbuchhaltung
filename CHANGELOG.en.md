@@ -17,6 +17,16 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+**Changed:**
+- **Structured report: manage templates freely.** The app creates the two
+  formerly built-in templates as ordinary templates the first time the tab is
+  opened – they can now be edited and deleted directly. "More actions → Add
+  standard templates" brings them back in their current version. New is "New
+  template" to start from scratch (all accounts with budget, actual and
+  balance). Saved print or CSV links to the former built-in templates
+  (`template=builtin:…`) no longer work; the interface then selects the first
+  existing template.
+
 ## [0.38.0] – 2026-10-17
 
 **New:**

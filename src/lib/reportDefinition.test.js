@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { footerKind, moved, narrow, newGroup, newLevel, newSection, outline, validate, withLevelBy } from './reportDefinition.js'
+import { footerKind, moved, narrow, newGroup, newLevel, newSection, outline, starterDefinition, validate, withLevelBy } from './reportDefinition.js'
 
 // Dieselben Fälle wie tests/unit/ReportDefinitionTest.php: Client und Server
 // sollen eine Vorlage gleich beurteilen.
@@ -62,6 +62,16 @@ describe('reportDefinition', () => {
 		expect(errors).toContain('Ein Konto ist mehreren Berichtsgruppen zugeordnet.')
 		expect(errors).toContain('Ungültiger Schlüssel einer Berichtsgruppe.')
 		expect(errors).toContain('Jede Berichtsgruppe braucht einen Namen.')
+	})
+
+	it('startet eine neue Vorlage mit einem gültigen Gerüst', () => {
+		const def = starterDefinition()
+		expect(validate(def)).toEqual([])
+		expect(def.columns.map((c) => c.source)).toEqual(['plan', 'actual'])
+		expect(def.sections[0].levels).toEqual([newLevel('account')])
+		expect(def.grandTotal).toEqual({ label: 'Saldo' })
+		// jedes Mal ein frisches Objekt, kein geteilter Zustand zwischen zwei Dialogen
+		expect(starterDefinition()).not.toBe(def)
 	})
 
 	it('vergibt freie Gruppenschlüssel', () => {

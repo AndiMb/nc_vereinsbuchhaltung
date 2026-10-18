@@ -19,6 +19,16 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+**Geändert:**
+- **Gliederungsbericht: Vorlagen frei verwalten.** Die beiden bisher
+  mitgelieferten Vorlagen legt die App beim ersten Öffnen als gewöhnliche
+  Vorlagen an – sie lassen sich jetzt direkt bearbeiten und löschen. Über
+  „Weitere Aktionen → Standardvorlagen hinzufügen" kommen sie in der aktuellen
+  Fassung zurück. Neu ist „Neue Vorlage" für den Start bei null (alle Konten
+  mit Plan, Ist und Saldo). Gespeicherte Druck- oder CSV-Links auf die
+  früheren mitgelieferten Vorlagen (`template=builtin:…`) funktionieren nicht
+  mehr; die Oberfläche wählt dann die erste vorhandene Vorlage.
+
 ## [0.38.0] – 2026-10-17
 
 **Neu:**

@@ -7,11 +7,13 @@ namespace OCA\Vereinsbuchhaltung\Service\Report;
 use OCP\IL10N;
 
 /**
- * Die mitgelieferten Vorlagen des Gliederungsberichts.
+ * Die Standardvorlagen des Gliederungsberichts.
  *
- * Sie stehen im Code, nicht in der Datenbank: so sind ihre Texte in jeder
- * Sprache übersetzt und eine verbesserte Fassung erreicht alle Vereine mit
- * dem nächsten Update. Ändern lässt sich nur eine Kopie.
+ * Bis 0.38.0 standen sie schreibgeschützt neben den eigenen Vorlagen. Seither
+ * legt {@see ReportTemplateService} sie beim ersten Öffnen einmalig als ganz
+ * normale Vorlagen an – danach lassen sie sich ändern und löschen. Diese
+ * Klasse liefert nur noch Name und Definition zum Anlegen, übersetzt in die
+ * Sprache des laufenden Requests.
  *
  * Beide setzen voraus, dass die Konten eine Sphäre haben; Projekte sind die
  * Auswertungsgruppen des Zweckbetriebs. Ohne Sphären landet alles unter
@@ -19,9 +21,8 @@ use OCP\IL10N;
  */
 class BuiltinReportTemplates {
 
-	public const PREFIX = 'builtin:';
-	public const GRANTOR = 'builtin:zuwendungsgeber';
-	public const AREAS = 'builtin:bereiche';
+	public const GRANTOR = 'zuwendungsgeber';
+	public const AREAS = 'bereiche';
 
 	public function __construct(
 		private IL10N $l10n,
@@ -29,29 +30,27 @@ class BuiltinReportTemplates {
 	}
 
 	/**
-	 * @return list<array{id:string, name:string, builtin:true, definition:array<string, mixed>}>
+	 * @return list<array{key:string, name:string, definition:array<string, mixed>}>
 	 */
 	public function all(): array {
 		return [
 			[
-				'id' => self::GRANTOR,
+				'key' => self::GRANTOR,
 				'name' => $this->l10n->t('Haushaltsplan nach Titelgruppen (Zuwendungsgeber)'),
-				'builtin' => true,
 				'definition' => ReportDefinition::normalize($this->grantor()),
 			],
 			[
-				'id' => self::AREAS,
+				'key' => self::AREAS,
 				'name' => $this->l10n->t('Ergebnis je Bereich und Projekt'),
-				'builtin' => true,
 				'definition' => ReportDefinition::normalize($this->areas()),
 			],
 		];
 	}
 
-	/** @return array{id:string, name:string, builtin:true, definition:array<string, mixed>}|null */
-	public function find(string $id): ?array {
+	/** @return array{key:string, name:string, definition:array<string, mixed>}|null */
+	public function find(string $key): ?array {
 		foreach ($this->all() as $template) {
-			if ($template['id'] === $id) {
+			if ($template['key'] === $key) {
 				return $template;
 			}
 		}

@@ -20,7 +20,7 @@ use OCP\IRequest;
  *
  * Lesen dürfen alle mit Lesezugriff, ändern alle mit Schreibrecht – die
  * {@see \OCA\Vereinsbuchhaltung\Middleware\PermissionMiddleware} leitet das
- * aus dem HTTP-Verb ab. Mitgelieferte Vorlagen sind schreibgeschützt (403).
+ * aus dem HTTP-Verb ab.
  */
 class ReportTemplateController extends Controller {
 
@@ -71,6 +71,16 @@ class ReportTemplateController extends Controller {
 			return new DataResponse($template);
 		}
 		return $errors !== [] ? $this->invalid($errors) : $this->notFound();
+	}
+
+	/**
+	 * Die Standardvorlagen erneut anlegen – etwa nachdem sie gelöscht wurden
+	 * oder um die Fassung eines neueren Updates zu bekommen.
+	 */
+	#[NoAdminRequired]
+	public function addStandard(): DataResponse {
+		[$templates, $duplicates] = $this->templates->addStandard($this->userId());
+		return new DataResponse(['templates' => $templates, 'duplicateNames' => $duplicates], Http::STATUS_CREATED);
 	}
 
 	#[NoAdminRequired]

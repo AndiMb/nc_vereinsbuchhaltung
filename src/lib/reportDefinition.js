@@ -81,6 +81,27 @@ export function newSection(title = '') {
 	}
 }
 
+/**
+ * Startpunkt für „Neue Vorlage“: alle Konten bis zur Planungsebene mit Plan
+ * und Ist des gewählten Zeitraums und dem Saldo darunter. Besteht validate()
+ * ohne Fehler – nur der Name fehlt noch.
+ *
+ * @return {object} Definition
+ */
+export function starterDefinition() {
+	return {
+		version: 1,
+		columns: [
+			{ source: 'plan', periodOffset: 0 },
+			{ source: 'actual', periodOffset: 0 },
+		],
+		showPlanNotes: false,
+		groups: [],
+		sections: [newSection(t('Konten'))],
+		grandTotal: { label: t('Saldo') },
+	}
+}
+
 /** Eine neue Berichtsgruppe mit einem Schlüssel, den es noch nicht gibt. */
 export function newGroup(groups, label = '') {
 	const used = new Set(groups.map((g) => g.key))

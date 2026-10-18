@@ -68,9 +68,9 @@ class ReportDefinitionTest extends TestCase {
 		$this->assertSame([], $this->errors($this->minimal()));
 	}
 
-	public function testMitgelieferteVorlagenSindGueltig(): void {
+	public function testStandardvorlagenSindGueltig(): void {
 		foreach ((new BuiltinReportTemplates($this->l10n()))->all() as $template) {
-			$this->assertSame([], ReportDefinition::validate($template['definition'], $this->l10n()), $template['id']);
+			$this->assertSame([], ReportDefinition::validate($template['definition'], $this->l10n()), $template['key']);
 		}
 	}
 

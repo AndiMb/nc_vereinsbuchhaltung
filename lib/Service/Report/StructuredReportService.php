@@ -35,9 +35,9 @@ class StructuredReportService {
 	}
 
 	/**
-	 * @param array{id:string, name:string, builtin:bool, definition:array<string, mixed>} $template
+	 * @param array{id:string, name:string, definition:array<string, mixed>} $template
 	 * @return array{
-	 *     template: array{id:string, name:string, builtin:bool},
+	 *     template: array{id:string, name:string},
 	 *     period: Period,
 	 *     columns: list<array{source:string, periodOffset:int, periodId:?int, label:string}>,
 	 *     rows: list<array<string, mixed>>,
@@ -138,7 +138,7 @@ class StructuredReportService {
 		]);
 
 		return [
-			'template' => ['id' => $template['id'], 'name' => $template['name'], 'builtin' => $template['builtin']],
+			'template' => ['id' => $template['id'], 'name' => $template['name']],
 			'period' => $period,
 			'columns' => $columns,
 			'rows' => $result['rows'],
