@@ -146,7 +146,7 @@
 								<th class="sortable num" @click="toggleSort('journal', 'amount')">
 									{{ t('Betrag') }}{{ sortArrow('journal', 'amount') }}
 								</th>
-								<th />
+								<th class="vbh-col-actions--wide" />
 							</tr>
 						</thead>
 						<tbody ref="journalBody">

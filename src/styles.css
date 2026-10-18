@@ -537,6 +537,10 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
    seltener genutzte Aktionen stecken bewusst im Menü, damit nie mehr als
    3 Buttons gleichzeitig erscheinen und die Zeile einzeilig bleibt. */
 .vbh-table thead th:empty { width: 160px; }
+/* Journal und Kontoauszug zeigen davor noch das Kommentar-Symbol
+   (CommentMark.vue, ein NcButton wie die anderen): 4×44 + 3×2 + 20 ≈ 202.
+   Mit den 160px oben rutschte das Menü „…“ sonst in eine zweite Zeile. */
+.vbh-table thead th.vbh-col-actions--wide { width: 204px; }
 /* Aktionsspalte der Mitglieder-, Zuweisungs- und Laufliste: bis zu ein
    Text- oder Icon-Button plus ein Menü-Button fuer die selteneren Aktionen -
    braucht mehr als die 160px, die fuer reine Icon-Buttons reichen (siehe

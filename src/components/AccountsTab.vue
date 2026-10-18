@@ -245,7 +245,7 @@
 								<th class="sortable num" @click="toggleSort('statement', 'saldo')">
 									{{ t('Saldo') }}{{ sortArrow('statement', 'saldo') }}
 								</th>
-								<th />
+								<th class="vbh-col-actions--wide" />
 							</tr>
 						</thead>
 						<tbody>
