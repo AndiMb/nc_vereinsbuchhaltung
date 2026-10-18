@@ -129,10 +129,14 @@ class AssignmentService {
 		string $actorType,
 		?string $actorUid,
 		?string $onBehalfNote = null,
+		?string $paymentMethod = null,
 	): Assignment {
 		$assignment = $this->mapper->find($id);
 		$group = $this->groupMapper->find($groupId ?? $assignment->getGroupId());
 		$effectiveFrom = $this->effectiveFromFor($assignment);
+		if ($paymentMethod !== null) {
+			$this->assertValidPaymentMethod($paymentMethod);
+		}
 
 		if ($groupId !== null && $groupId !== $assignment->getGroupId()) {
 			$this->assertNoOverlap($assignment->getMemberId(), $groupId, $effectiveFrom, $assignment->getValidTo(), $assignment->getId());
@@ -164,6 +168,19 @@ class AssignmentService {
 				'from' => $assignment->getMonthlyAmountCents(), 'to' => $monthlyAmountCents, 'effectiveFrom' => $effectiveFrom,
 			]);
 			$assignment->setMonthlyAmountCents($monthlyAmountCents);
+		}
+
+		if ($paymentMethod !== null && $paymentMethod !== $assignment->getPaymentMethod()) {
+			// Zahlungsart wirkt sofort und kennt kein Sperrfenster: die
+			// Einzugsfähigkeit liest DirectDebitEligibilityResolver bei jedem
+			// Lauf frisch von der Zuweisung – eine Überweiser-Zuweisung liefert
+			// ab jetzt keine Einzugsposten mehr, offene Forderungen bleiben
+			// bestehen und werden zur Überweisung angemahnt. Das Mandat selbst
+			// bleibt unberührt (es wird nur nicht mehr genutzt), siehe Spec §3.5.
+			$this->logEvent($id, AssignmentEvent::TYPE_PAYMENT_METHOD_CHANGED, $actorType, $actorUid, $onBehalfNote, [
+				'from' => $assignment->getPaymentMethod(), 'to' => $paymentMethod,
+			]);
+			$assignment->setPaymentMethod($paymentMethod);
 		}
 
 		return $this->mapper->update($assignment);
@@ -358,7 +375,7 @@ class AssignmentService {
 	}
 
 	/**
-	 * Vorschau einer Betrags-/Turnusänderung, OHNE zu speichern (Spec §3.4
+	 * Vorschau einer Betrags-/Turnus-/Zahlungsartänderung, OHNE zu speichern (Spec §3.4
 	 * Pflicht-UI: "Vorschau vor jedem Speichern - Wirkt ab … · erster Einzug
 	 * am … · Betrag"). Dieselbe Validierung wie {@see update()} (Untergrenze,
 	 * erlaubter Turnus), damit Vorschau und tatsächliche Änderung nie
@@ -369,8 +386,13 @@ class AssignmentService {
 	 * @throws \InvalidArgumentException bei ungültigen Werten
 	 * @throws DoesNotExistException wenn es die Zuweisung/Gruppe nicht gibt
 	 */
-	public function previewChange(int $id, ?int $monthlyAmountCents, ?int $intervalMonths, ?int $groupId = null): array {
+	public function previewChange(int $id, ?int $monthlyAmountCents, ?int $intervalMonths, ?int $groupId = null, ?string $paymentMethod = null): array {
 		$assignment = $this->mapper->find($id);
+		if ($paymentMethod !== null) {
+			// Nur die Gültigkeit – die Zahlungsart ändert weder Periode noch Betrag, die Vorschau soll aber
+			// dieselbe Ablehnung liefern wie update() gleich.
+			$this->assertValidPaymentMethod($paymentMethod);
+		}
 		$groupChanged = $groupId !== null && $groupId !== $assignment->getGroupId();
 		$group = $this->groupMapper->find($groupChanged ? $groupId : $assignment->getGroupId());
 

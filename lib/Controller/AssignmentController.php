@@ -113,13 +113,14 @@ class AssignmentController extends Controller {
 	 */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
-	public function previewChange(int $id, ?float $monthlyAmount = null, ?int $intervalMonths = null, ?int $groupId = null): DataResponse {
+	public function previewChange(int $id, ?float $monthlyAmount = null, ?int $intervalMonths = null, ?int $groupId = null, ?string $paymentMethod = null): DataResponse {
 		try {
 			return new DataResponse($this->service->previewChange(
 				$id,
 				$monthlyAmount !== null ? (int)round($monthlyAmount * 100) : null,
 				$intervalMonths,
 				$groupId,
+				$paymentMethod,
 			));
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
@@ -129,13 +130,15 @@ class AssignmentController extends Controller {
 	}
 
 	/**
-	 * Betrag, Turnus und/oder Beitragsgruppe ändern. Das Mitglied bekommt dazu eine Quittungsmail
+	 * Betrag, Turnus, Beitragsgruppe und/oder Zahlungsart ändern. Die Zahlungsart wirkt sofort; ein
+	 * bestehendes Mandat bleibt beim Wechsel auf Überweisung unberührt und wird nur nicht mehr genutzt.
+	 * Das Mitglied bekommt dazu eine Quittungsmail
 	 * ({@see StaffChangeReceiptService}); in der Antwort steht unter `receipt`, ob sie rausging
 	 * (`sent`, `no_email`, `failed`, `not_needed`), damit die Oberfläche es dem Vorstand sagen kann.
 	 */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
-	public function update(int $id, ?float $monthlyAmount = null, ?int $intervalMonths = null, ?int $groupId = null): DataResponse {
+	public function update(int $id, ?float $monthlyAmount = null, ?int $intervalMonths = null, ?int $groupId = null, ?string $paymentMethod = null): DataResponse {
 		try {
 			$monthlyAmountCents = $monthlyAmount !== null ? (int)round($monthlyAmount * 100) : null;
 			$current = $this->service->find($id);
@@ -143,9 +146,10 @@ class AssignmentController extends Controller {
 				'amountCents' => $current->getMonthlyAmountCents(),
 				'intervalMonths' => $current->getIntervalMonths(),
 				'groupId' => $current->getGroupId(),
+				'paymentMethod' => $current->getPaymentMethod(),
 			];
 			// Dieselbe Prüfung und Rechnung wie das Speichern gleich; sie liefert „wirkt ab“ und den ersten Einzug für die Mail.
-			$preview = $this->service->previewChange($id, $monthlyAmountCents, $intervalMonths, $groupId);
+			$preview = $this->service->previewChange($id, $monthlyAmountCents, $intervalMonths, $groupId, $paymentMethod);
 			$assignment = $this->service->update(
 				$id,
 				$monthlyAmountCents,
@@ -153,6 +157,8 @@ class AssignmentController extends Controller {
 				$groupId,
 				'staff',
 				$this->actorUid(),
+				null,
+				$paymentMethod,
 			);
 			return new DataResponse($assignment->jsonSerialize() + ['receipt' => $this->receipts->send($assignment, $before, $preview)]);
 		} catch (\InvalidArgumentException $e) {

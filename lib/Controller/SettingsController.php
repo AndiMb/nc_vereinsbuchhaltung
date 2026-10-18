@@ -184,6 +184,9 @@ class SettingsController extends Controller {
 			// Self-Service-Zugang (Spec §3.4): einfacher Bool-Schalter, nur ab
 			// Verwalter änderbar (siehe update(), RequiresRole ROLE_ADMIN).
 			'self_service_enabled' => $this->config->getAppValue(Application::APP_ID, 'self_service_enabled', '0') === '1',
+			// Zusatzschalter: Mitglieder dürfen ihre Zahlungsart selbst auf Überweisung umstellen
+			// (siehe SelfServiceService::canSwitchToTransfer()). Standard aus.
+			'self_service_transfer_switch_enabled' => $this->config->getAppValue(Application::APP_ID, 'self_service_transfer_switch_enabled', '0') === '1',
 		];
 	}
 
@@ -445,6 +448,11 @@ class SettingsController extends Controller {
 		if (array_key_exists('self_service_enabled', $params)) {
 			$selfServiceEnabled = (string)$params['self_service_enabled'] === '1';
 			$this->config->setAppValue($appId, 'self_service_enabled', $selfServiceEnabled ? '1' : '0');
+		}
+
+		if (array_key_exists('self_service_transfer_switch_enabled', $params)) {
+			$transferSwitchEnabled = (string)$params['self_service_transfer_switch_enabled'] === '1';
+			$this->config->setAppValue($appId, 'self_service_transfer_switch_enabled', $transferSwitchEnabled ? '1' : '0');
 		}
 
 		$settings = $this->currentSettings();

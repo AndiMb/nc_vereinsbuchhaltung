@@ -20,6 +20,7 @@ use OCA\Vereinsbuchhaltung\Service\SelfContactService;
 use OCA\Vereinsbuchhaltung\Service\SelfContributionService;
 use OCA\Vereinsbuchhaltung\Service\SelfReturnedDebitService;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceMandateService;
+use OCA\Vereinsbuchhaltung\Service\SelfServiceService;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\DataDisplayResponse;
@@ -57,7 +58,11 @@ class SelfControllerTest extends TestCase {
 	private DatenuebersichtRenderer&MockObject $dataOverviewRenderer;
 	private SelfReturnedDebitService&MockObject $returnedDebits;
 
+	/** Nur gesetzt, wenn ein Test den Schalter „Zahlungsart selbst umstellen“ braucht. */
+	private ?SelfServiceService $selfService = null;
+
 	protected function setUp(): void {
+		$this->selfService = null;
 		$userSession = $this->createMock(IUserSession::class);
 		$this->actorContext = new ActorContextService($userSession);
 		$this->memberMapper = $this->createMock(MemberMapper::class);
@@ -94,6 +99,7 @@ class SelfControllerTest extends TestCase {
 			$this->certificateRenderer,
 			$this->dataOverviewRenderer,
 			$this->returnedDebits,
+			$this->selfService ?? $this->createMock(SelfServiceService::class),
 			$this->l10n,
 		);
 	}
@@ -285,6 +291,27 @@ class SelfControllerTest extends TestCase {
 
 		$this->assertSame(1550, $data['assignment']['monthlyAmountCents']);
 		$this->assertSame('2026-06-15', $data['preview']['effectiveFrom']);
+	}
+
+	public function testUpdateAssignmentReichtDieZahlungsartDurch(): void {
+		$this->contributions->expects($this->once())->method('apply')
+			->with(1, null, null, 'ueberweisung')
+			->willReturn(['assignment' => $this->assignment(), 'preview' => ['effectiveFrom' => '2026-06-15']]);
+
+		$response = $this->controller()->updateAssignment(1, null, null, 'ueberweisung');
+
+		$this->assertSame(Http::STATUS_OK, $response->getStatus());
+	}
+
+	public function testMeNenntObDieUmstellungAufUeberweisungFreigeschaltetIst(): void {
+		$this->actorContext->setMemberChannel(self::MEMBER_ID);
+		$this->memberMapper->method('findOrNull')->with(self::MEMBER_ID)->willReturn($this->fullMember());
+		$this->selfService = $this->createMock(SelfServiceService::class);
+		$this->selfService->method('canSwitchToTransfer')->willReturn(true);
+
+		$data = $this->controller()->me()->getData();
+
+		$this->assertTrue($data['canSwitchToTransfer']);
 	}
 
 	public function testUpdateAssignmentFremderZuweisungLiefert404(): void {

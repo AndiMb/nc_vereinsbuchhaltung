@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Activity;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Db\Assignment;
 use OCA\Vereinsbuchhaltung\Service\GermanDate;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceMandateService;
 use OCP\Activity\Exceptions\UnknownActivityException;
 use OCP\Activity\IEvent;
 use OCP\Activity\IProvider;
+use OCP\IL10N;
 use OCP\L10N\IFactory;
 
 /**
@@ -39,6 +41,7 @@ class SelfServiceProvider implements IProvider {
 
 	public const SUBJECT_CONTRIBUTION_AMOUNT_CHANGED = 'contribution_amount_changed';
 	public const SUBJECT_CONTRIBUTION_INTERVAL_CHANGED = 'contribution_interval_changed';
+	public const SUBJECT_CONTRIBUTION_PAYMENT_METHOD_CHANGED = 'contribution_payment_method_changed';
 	public const SUBJECT_CONTACT_UPDATED = 'contact_updated';
 
 	public function __construct(
@@ -68,12 +71,24 @@ class SelfServiceProvider implements IProvider {
 				'Turnus geändert: alle %1$d Monate → alle %2$d Monate (wirkt ab %3$s)',
 				[$params['from'] ?? 0, $params['to'] ?? 0, isset($params['effectiveFrom']) ? GermanDate::format((string)$params['effectiveFrom']) : '?'],
 			),
+			self::SUBJECT_CONTRIBUTION_PAYMENT_METHOD_CHANGED => $l->t(
+				'Zahlungsart geändert: %1$s → %2$s',
+				[$this->paymentMethodName((string)($params['from'] ?? ''), $l), $this->paymentMethodName((string)($params['to'] ?? ''), $l)],
+			),
 			self::SUBJECT_CONTACT_UPDATED => $l->t('Kontaktdaten aktualisiert'),
 			default => throw new UnknownActivityException('Unbekanntes Self-Service-Ereignis: ' . $event->getSubject()),
 		};
 
 		$event->setParsedSubject($text);
 		return $event;
+	}
+
+	private function paymentMethodName(string $method, IL10N $l): string {
+		return match ($method) {
+			Assignment::PAYMENT_METHOD_DIRECT_DEBIT => $l->t('Lastschrift'),
+			Assignment::PAYMENT_METHOD_TRANSFER => $l->t('Überweisung'),
+			default => $method,
+		};
 	}
 
 	private function euro(int $cents): string {

@@ -1354,7 +1354,7 @@ only:
 
 | Card / section | What you set there |
 |---|---|
-| *Fees & SEPA → Basic settings* | **SEPA creditor ID**, **Collecting account**, the toggle for the "Contributions" tab and the toggle for the "My contribution" self-service (13.11) |
+| *Fees & SEPA → Basic settings* | **SEPA creditor ID**, **Collecting account**, the toggle for the "Contributions" tab, the toggle for the "My contribution" self-service and the additional toggle that lets members **switch their payment method to bank transfer** themselves there (13.11) |
 | *… → Contribution year and collection cycle* (*Beitragsjahr und Einzugszyklus*) | **Contribution year begins in** (month, default January – independent of the fiscal year; determines the contribution periods and the contribution confirmation, 13.12) and the three **deadlines before the collection** – **warning window** (default 21 days), **pre-notification lead time** (default 14) and **release lead time** (default 5; all 13.5). An example line converts them to a collection date, and a note appears for an unusual order |
 | *… → Storage of the collection file (XML)* (*Ablage der Einzugsdatei*) | an additional copy of the pain.008 file in a Nextcloud folder (13.5), off by default |
 | *… → Mandates* (*Mandate*) | **Mandate reference prefix**, **Expiry warning** (days before expiry, default 180), **Proof folder** and **Point out mandates without proof** (13.2, 13.9) |
@@ -1649,13 +1649,20 @@ group** (**"Contributions" tab → Contribution groups**):
   months means €30 per quarter). **"Preview"** names the first period, the
   collection amount and the expected collection date before you create it.
   **"Change fee"** (*Beitrag ändern*; the ⋯ menu of the assignment or the member's ⋯
-  menu → *Manage fee*) sets the monthly fee and interval anew: any amount above
-  the lower limit, for example when a member wants to give more this once. The
-  preview appears by itself and says from when the change applies – after an
-  already announced collection only from then on; saving is possible only once
-  it matches the fields. **The member gets the change confirmed by email**
-  (amount, interval or contribution group, from when it applies, first affected
-  collection), in the language of their account; the message after saving says
+  menu → *Manage fee*) sets the monthly fee, interval and payment method anew: any
+  amount above the lower limit, for example when a member wants to give more this
+  once. The preview appears by itself and says from when the change applies –
+  after an already announced collection only from then on; saving is possible
+  only once it matches the fields. **The payment method takes effect at once**
+  and has no lock window: switch to *Bank transfer* and nothing is collected
+  from now on – the member transfers open and future claims themselves (with
+  payment request and GiroCode, 13.8). An existing **mandate stays valid** and is
+  simply no longer used; you can switch back to *Direct debit* at any time
+  (without a collectible mandate a task then appears, 13.9). This is how you
+  switch individual people without ending and re-creating the assignment. **The
+  member gets the change confirmed by email** (amount, interval, contribution
+  group or payment method, from when it applies, first affected collection), in
+  the language of their account; the message after saving says
   whether the email went out – a member without an address gets none, and the
   change applies anyway. **"End"** (*Beenden*) ends an assignment as of today; claims already
   generated remain unchanged. An assignment that only starts in the future can be
@@ -1906,11 +1913,11 @@ you to where you fix it.
 
 | Task | Severity | How it disappears |
 |---|---|---|
-| Direct debit wanted, but **no mandate** created yet | Action required | Create and activate a mandate, or switch the assignment to bank transfer |
+| Direct debit wanted, but **no mandate** created yet | Action required | Create and activate a mandate, or switch the assignment to bank transfer (*Change fee* → payment method, 13.4) |
 | **Paper mandate in draft**, signature missing | Action required | Enter the signature date and activate the mandate |
 | Electronic mandate: link expired (notice as long as it is still valid) | Action required / notice | Send the link again or switch to paper |
 | **Mandate blocked**, clarification pending – for a block after a returned direct debit with the reason in plain words | Action required | Resolve the case, unblock the mandate (note mandatory) |
-| **Mandate lapsed**, but the assignment still requires direct debit | Action required | Obtain a new mandate or switch to bank transfer |
+| **Mandate lapsed**, but the assignment still requires direct debit | Action required | Obtain a new mandate or switch to bank transfer (*Change fee* → payment method, 13.4) |
 | Mandate **without proof** (only active paper mandates; can be switched off with "Notify about mandates without proof" (*Auf Mandate ohne Nachweis hinweisen*) in the administration settings) | Notice | Upload the signed document in the mandate |
 | Mandate **expires in N days** (N: "Expiry warning (days before expiry)" (*Ablauf-Vorwarnung (Tage vor Verfall)*) in the administration settings, preset to 180) | Notice | A submitted collection restarts the 36-month period |
 | **Left**, but claims still open – the mandate stays active | Notice | Settle or waive the claims; the mandate then ends by itself |
@@ -2056,6 +2063,12 @@ saving.
 2. The member is linked to their Nextcloud account in the record (13.2) – after
    your confirmation, never on its own.
 
+Optionally, right below it: **"Members may switch their payment method to bank
+transfer themselves under 'My contribution'"** (off by default). Only with this
+additional toggle do members see the switch *Transfer it myself from now on
+instead of direct debit* under *My contribution*; without it the payment method
+stays with the board (13.4).
+
 Whoever meets both sees "My contribution", even without any role in the app. If
 the same person also has a role (say, the treasurer who is a member too), the
 tab sits next to the others. A member only ever sees **their own** details there,
@@ -2065,7 +2078,7 @@ member.
 | Area | The member can | The member cannot |
 |---|---|---|
 | **My master data** (*Meine Stammdaten*) | change name, email, phone and address (**"Edit"**; the country is chosen from the country list). If the email address changes, the previous address also gets an email about it for safety | change member number or join and leave dates – those stay with the board |
-| **My contribution** (*Mein Beitrag*) | raise the monthly fee or lower it down to the minimum, change the interval (only the allowed ones). The **"Preview"** (*Vorschau*) states "takes effect from … · first collection on … · amount …"; only then can they save | change the contribution group, skip a month, declare leaving, change their own minimum or see its reason |
+| **My contribution** (*Mein Beitrag*) | raise the monthly fee or lower it down to the minimum, change the interval (only the allowed ones). The **"Preview"** (*Vorschau*) states "takes effect from … · first collection on … · amount …"; only then can they save. If the additional toggle is set (above), also: **switch the payment method from direct debit to bank transfer** (*Transfer it myself from now on instead of direct debit*) – the mandate stays in place and is simply no longer used; the member transfers open and future fees themselves | change the contribution group, skip a month, declare leaving, change their own minimum or see its reason; switch the payment method back to direct debit – the board does that via *Change fee* (13.4) |
 | **My SEPA direct-debit mandate** (*Mein SEPA-Lastschriftmandat*) | record a mandate and grant it electronically (**"Mandat jetzt erteilen"**), confirm (**"Jetzt bestätigen"**) or discard an electronic draft you created, **change the bank details**, **change the account holder**, **revoke** the mandate | activate or suspend a mandate – that stays with the board |
 
 The IBAN is always shown to the member masked. **Changing the bank details**
@@ -2073,7 +2086,7 @@ involves the same distinction as in the record (13.2): if only the IBAN changed
 (same account, same person), the mandate stays; if the account holder changes, a
 new mandate is granted electronically and the old one ends as "replaced".
 
-**The lock window.** Amount and interval no longer change once the
+**The lock window.** Amount, interval and payment method no longer change once the
 pre-notification (13.5) has been sent for a period – the member was told an
 amount. A change that therefore could only take effect later is rejected by the
 app with an explanation – the message states the date from which it would be

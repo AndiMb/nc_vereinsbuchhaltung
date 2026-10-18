@@ -53,6 +53,8 @@ class AssignmentEvent extends Entity implements \JsonSerializable {
 	public const TYPE_GROUP_CHANGED = 'group_changed';
 	public const TYPE_ASSIGNMENT_STARTED = 'assignment_started';
 	public const TYPE_ASSIGNMENT_ENDED = 'assignment_ended';
+	/** Zahlungsart gewechselt (Lastschrift ↔ Überweisung); `details`: `{"from":…,"to":…}`. Das Mandat bleibt davon unberührt. */
+	public const TYPE_PAYMENT_METHOD_CHANGED = 'payment_method_changed';
 	public const TYPES = [
 		self::TYPE_AMOUNT_CHANGED,
 		self::TYPE_INTERVAL_CHANGED,
@@ -60,6 +62,7 @@ class AssignmentEvent extends Entity implements \JsonSerializable {
 		self::TYPE_GROUP_CHANGED,
 		self::TYPE_ASSIGNMENT_STARTED,
 		self::TYPE_ASSIGNMENT_ENDED,
+		self::TYPE_PAYMENT_METHOD_CHANGED,
 	];
 
 	public const ACTOR_MEMBER = 'member';

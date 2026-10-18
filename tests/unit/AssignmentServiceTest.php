@@ -315,6 +315,54 @@ class AssignmentServiceTest extends TestCase {
 		$this->assertSame(12, $updated->getIntervalMonths());
 	}
 
+	public function testUpdateZahlungsartLogtEreignisUndLaesstAllesAndereStehen(): void {
+		$assignment = $this->assignmentInGroup1();
+		$assignment->setPaymentMethod(Assignment::PAYMENT_METHOD_DIRECT_DEBIT);
+		$this->mapper->method('find')->willReturn($assignment);
+		$this->mapper->method('update')->willReturnArgument(0);
+		$this->groupMapper->method('find')->willReturn($this->group());
+
+		$this->eventMapper->expects($this->once())->method('insert')
+			->with($this->callback(static fn (AssignmentEvent $e): bool => $e->getType() === AssignmentEvent::TYPE_PAYMENT_METHOD_CHANGED
+				&& $e->getActorType() === AssignmentEvent::ACTOR_STAFF
+				&& $e->getDetailsArray() === ['from' => 'direct_debit', 'to' => 'ueberweisung']));
+
+		$updated = $this->service()->update(5, null, null, null, AssignmentEvent::ACTOR_STAFF, 'buchhalter', null, Assignment::PAYMENT_METHOD_TRANSFER);
+
+		$this->assertSame(Assignment::PAYMENT_METHOD_TRANSFER, $updated->getPaymentMethod());
+		$this->assertSame(1000, $updated->getMonthlyAmountCents());
+		$this->assertSame(12, $updated->getIntervalMonths());
+		$this->assertSame(1, $updated->getGroupId());
+	}
+
+	public function testUpdateUnveraenderteZahlungsartLogtNichts(): void {
+		$assignment = $this->assignmentInGroup1();
+		$assignment->setPaymentMethod(Assignment::PAYMENT_METHOD_DIRECT_DEBIT);
+		$this->mapper->method('find')->willReturn($assignment);
+		$this->mapper->method('update')->willReturnArgument(0);
+		$this->groupMapper->method('find')->willReturn($this->group());
+		$this->eventMapper->expects($this->never())->method('insert');
+
+		$this->service()->update(5, null, null, null, AssignmentEvent::ACTOR_STAFF, 'buchhalter', null, Assignment::PAYMENT_METHOD_DIRECT_DEBIT);
+	}
+
+	public function testUpdateLehntUnbekannteZahlungsartAbUndSpeichertNichts(): void {
+		$this->mapper->method('find')->willReturn($this->assignmentInGroup1());
+		$this->groupMapper->method('find')->willReturn($this->group());
+		$this->mapper->expects($this->never())->method('update');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->update(5, null, null, null, AssignmentEvent::ACTOR_STAFF, 'buchhalter', null, 'bar');
+	}
+
+	public function testPreviewChangeLehntUnbekannteZahlungsartAb(): void {
+		$this->mapper->method('find')->willReturn($this->assignmentInGroup1());
+		$this->groupMapper->method('find')->willReturn($this->group());
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->previewChange(5, null, null, null, 'bar');
+	}
+
 	public function testUpdateGruppenwechselLehntBetragUnterDerUntergrenzeDerNeuenGruppeAb(): void {
 		$this->mapper->method('find')->willReturn($this->assignmentInGroup1());
 		$this->groupMapper->method('find')->willReturn($this->secondGroup(1500, [1, 12])); // 10 € < 15 €

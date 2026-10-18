@@ -39,6 +39,16 @@
 			<p class="vbh-hint">
 				{{ t('Betrifft nur Mitglieder, deren Nextcloud-Konto in der Mitgliederakte verknüpft ist – sie sehen dann ihre eigenen Stammdaten, unabhängig von einer Buchhaltungsrolle.') }}
 			</p>
+			<NcCheckboxRadioSwitch
+				:modelValue="selfServiceTransferSwitchEnabled"
+				:disabled="!selfServiceEnabled"
+				type="switch"
+				@update:modelValue="changeSelfServiceTransferSwitchEnabled">
+				{{ t('Mitglieder dürfen ihre Zahlungsart unter „Mein Beitrag" selbst auf Überweisung umstellen') }}
+			</NcCheckboxRadioSwitch>
+			<p class="vbh-hint">
+				{{ t('Nur in diese Richtung: zurück zur Lastschrift stellt der Vorstand um („Beitrag ändern"). Das Mandat bleibt bei der Umstellung bestehen und wird nur nicht mehr genutzt.') }}
+			</p>
 		</div>
 	</div>
 </template>
@@ -72,12 +82,15 @@ export default {
 		// Self-Service-Zugang (Spec §3.4): einfacher Bool-Schalter, siehe
 		// SelfServiceService/SettingsController.
 		selfServiceEnabled: { type: Boolean, default: false },
+		// Zusatzschalter zum Self-Service: Zahlungsart selbst auf Überweisung umstellen
+		// (SelfServiceService::canSwitchToTransfer()); ohne Self-Service wirkungslos.
+		selfServiceTransferSwitchEnabled: { type: Boolean, default: false },
 		storageSaving: { type: Boolean, default: false },
 		// gemeinsame Speichern-Funktion des Elternteils, siehe SettingsGeneral.vue
 		saveSettings: { type: Function, required: true },
 	},
 
-	emits: ['update:membershipEnabled', 'update:selfServiceEnabled', 'update:sepaCreditorId', 'update:sepaDebtorAccountId'],
+	emits: ['update:membershipEnabled', 'update:selfServiceEnabled', 'update:selfServiceTransferSwitchEnabled', 'update:sepaCreditorId', 'update:sepaDebtorAccountId'],
 
 	setup() {
 		return { ...toRefs(useAccounts().state) }
@@ -107,6 +120,11 @@ export default {
 
 		changeSelfServiceEnabled(v) {
 			this.$emit('update:selfServiceEnabled', v)
+			this.saveSettings()
+		},
+
+		changeSelfServiceTransferSwitchEnabled(v) {
+			this.$emit('update:selfServiceTransferSwitchEnabled', v)
 			this.saveSettings()
 		},
 	},

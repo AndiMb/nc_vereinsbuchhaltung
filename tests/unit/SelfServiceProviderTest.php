@@ -75,6 +75,17 @@ class SelfServiceProviderTest extends TestCase {
 		$this->provider()->parse('de', $event);
 	}
 
+	public function testFormatiertZahlungsartWechselMitKlartextnamen(): void {
+		$event = $this->event(SelfServiceProvider::SUBJECT_CONTRIBUTION_PAYMENT_METHOD_CHANGED, [
+			'from' => 'direct_debit', 'to' => 'ueberweisung',
+		]);
+		$event->expects($this->once())->method('setParsedSubject')
+			->with('Zahlungsart geändert: Lastschrift → Überweisung')
+			->willReturnSelf();
+
+		$this->provider()->parse('de', $event);
+	}
+
 	public function testFormatiertKontaktdatenAktualisiert(): void {
 		$event = $this->event(SelfServiceProvider::SUBJECT_CONTACT_UPDATED, []);
 		$event->expects($this->once())->method('setParsedSubject')->with('Kontaktdaten aktualisiert')->willReturnSelf();

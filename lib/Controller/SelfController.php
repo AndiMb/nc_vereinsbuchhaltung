@@ -21,6 +21,7 @@ use OCA\Vereinsbuchhaltung\Service\SelfContactService;
 use OCA\Vereinsbuchhaltung\Service\SelfContributionService;
 use OCA\Vereinsbuchhaltung\Service\SelfReturnedDebitService;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceMandateService;
+use OCA\Vereinsbuchhaltung\Service\SelfServiceService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
@@ -74,6 +75,7 @@ class SelfController extends Controller {
 		private BeitragsbescheinigungRenderer $certificateRenderer,
 		private DatenuebersichtRenderer $dataOverviewRenderer,
 		private SelfReturnedDebitService $selfReturnedDebits,
+		private SelfServiceService $selfService,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -111,6 +113,9 @@ class SelfController extends Controller {
 		$data = $this->contactData($member);
 		$data['mandate'] = $this->mandateData($this->selfServiceMandate->currentMandate($memberId));
 		$data['openClaimsTotalCents'] = $this->selfServiceMandate->openClaimsTotalCents($memberId);
+		// Darf das Mitglied seine Zahlungsart selbst auf Überweisung umstellen? (Schalter des Vereins,
+		// siehe SelfServiceService::canSwitchToTransfer(); die SPA blendet die Option sonst aus.)
+		$data['canSwitchToTransfer'] = $this->selfService->canSwitchToTransfer();
 		return $data;
 	}
 
@@ -282,12 +287,13 @@ class SelfController extends Controller {
 	 * Speichern - Wirkt ab … · erster Einzug am … · Betrag").
 	 */
 	#[NoAdminRequired]
-	public function previewAssignment(int $id, ?float $monthlyAmount = null, ?int $intervalMonths = null): DataResponse {
+	public function previewAssignment(int $id, ?float $monthlyAmount = null, ?int $intervalMonths = null, ?string $paymentMethod = null): DataResponse {
 		try {
 			$preview = $this->contributions->preview(
 				$id,
 				$monthlyAmount !== null ? (int)round($monthlyAmount * 100) : null,
 				$intervalMonths,
+				$paymentMethod,
 			);
 			return new DataResponse($preview);
 		} catch (\InvalidArgumentException $e) {
@@ -298,19 +304,21 @@ class SelfController extends Controller {
 	}
 
 	/**
-	 * Monatsbeitrag und/oder Turnus der eigenen Zuweisung ändern (Spec §3.4
-	 * Aktionskatalog „Darf": „Monatsbeitrag … Turnus wechseln"). Absichtlich
-	 * OHNE `groupId`-Parameter - eine Beitragsgruppe zu wechseln ist im
-	 * Self-Service nicht erlaubt ("Darf nicht"), diese Methode kann es also
-	 * technisch gar nicht anfordern.
+	 * Monatsbeitrag, Turnus und/oder Zahlungsart der eigenen Zuweisung ändern
+	 * (Spec §3.4 Aktionskatalog „Darf": „Monatsbeitrag … Turnus wechseln";
+	 * Zahlungsart nur auf Überweisung und nur, wenn der Verein es freigeschaltet
+	 * hat – siehe SelfContributionService). Absichtlich OHNE `groupId`-Parameter -
+	 * eine Beitragsgruppe zu wechseln ist im Self-Service nicht erlaubt ("Darf
+	 * nicht"), diese Methode kann es also technisch gar nicht anfordern.
 	 */
 	#[NoAdminRequired]
-	public function updateAssignment(int $id, ?float $monthlyAmount = null, ?int $intervalMonths = null): DataResponse {
+	public function updateAssignment(int $id, ?float $monthlyAmount = null, ?int $intervalMonths = null, ?string $paymentMethod = null): DataResponse {
 		try {
 			$result = $this->contributions->apply(
 				$id,
 				$monthlyAmount !== null ? (int)round($monthlyAmount * 100) : null,
 				$intervalMonths,
+				$paymentMethod,
 			);
 			return new DataResponse([
 				'assignment' => $this->assignmentData($result['assignment']),

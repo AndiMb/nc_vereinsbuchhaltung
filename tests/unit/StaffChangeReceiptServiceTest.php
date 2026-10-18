@@ -123,6 +123,49 @@ class StaffChangeReceiptServiceTest extends TestCase {
 		$this->service()->send($this->assignment(1000, 3, 2), $this->before(1000, 12, 1), $this->preview());
 	}
 
+	public function testUmstellungAufUeberweisungNenntDasWeiterbestehendeMandatUndKeinenEinzug(): void {
+		$this->member();
+		$after = $this->assignment(1000);
+		$after->setPaymentMethod(Assignment::PAYMENT_METHOD_TRANSFER);
+		$this->receiptMail->expects($this->once())->method('sendReceipt')->with(
+			$this->anything(),
+			$this->anything(),
+			$this->anything(),
+			$this->logicalAnd($this->stringContains('auf Überweisung umgestellt'), $this->stringContains('bleibt gültig, wird aber nicht mehr genutzt')),
+			'2026-11-01',
+			null, // per Überweisung gibt es keinen „ersten betroffenen Einzug“
+		);
+
+		$before = $this->before(1000) + ['paymentMethod' => Assignment::PAYMENT_METHOD_DIRECT_DEBIT];
+		$this->assertSame(StaffChangeReceiptService::SENT, $this->service()->send($after, $before, $this->preview()));
+	}
+
+	public function testUmstellungAufLastschriftNenntDenKuenftigenEinzug(): void {
+		$this->member();
+		$after = $this->assignment(1000);
+		$after->setPaymentMethod(Assignment::PAYMENT_METHOD_DIRECT_DEBIT);
+		$this->receiptMail->expects($this->once())->method('sendReceipt')->with(
+			$this->anything(),
+			$this->anything(),
+			$this->anything(),
+			$this->stringContains('auf Lastschrift umgestellt'),
+			'2026-11-01',
+			'2027-01-15',
+		);
+
+		$before = $this->before(1000) + ['paymentMethod' => Assignment::PAYMENT_METHOD_TRANSFER];
+		$this->service()->send($after, $before, $this->preview());
+	}
+
+	public function testOhneZahlungsartImVorherStandGiltSieAlsUnveraendert(): void {
+		$this->member();
+		$after = $this->assignment(1000);
+		$after->setPaymentMethod(Assignment::PAYMENT_METHOD_TRANSFER);
+
+		// Ein Aufrufer, der nur Betrag/Turnus/Gruppe kennt, löst keine Zahlungsart-Mail aus.
+		$this->assertSame(StaffChangeReceiptService::NOT_NEEDED, $this->service()->send($after, $this->before(1000), $this->preview()));
+	}
+
 	public function testBeitragsfreiHatKeinenErstenEinzug(): void {
 		$this->member();
 		$this->receiptMail->expects($this->once())->method('sendReceipt')->with(

@@ -1386,7 +1386,7 @@ zugänglich:
 
 | Karte / Abschnitt | Was Sie dort einstellen |
 |---|---|
-| *Beiträge & SEPA → Grundeinstellungen* | **SEPA-Gläubiger-ID**, **Einziehendes Konto**, der Schalter für den Reiter „Beiträge" und der Schalter für den Self-Service „Mein Beitrag" (13.11) |
+| *Beiträge & SEPA → Grundeinstellungen* | **SEPA-Gläubiger-ID**, **Einziehendes Konto**, der Schalter für den Reiter „Beiträge", der Schalter für den Self-Service „Mein Beitrag" und der Zusatzschalter, ob Mitglieder dort ihre **Zahlungsart selbst auf Überweisung** umstellen dürfen (13.11) |
 | *… → Beitragsjahr und Einzugszyklus* | **Beitragsjahr beginnt im** (Monat, Standard Januar – unabhängig vom Geschäftsjahr; bestimmt die Beitragsperioden und die Beitragsbestätigung, 13.12) und die drei **Fristen vor dem Einzug** – **Vorwarnfenster** (Standard 21 Tage), **Vorabinfo-Vorlauf** (Standard 14) und **Freigabe-Vorlauf** (Standard 5; alle 13.5). Eine Beispielzeile rechnet sie auf einen Einzugstermin um, ein Hinweis erscheint bei unüblicher Reihenfolge |
 | *… → Ablage der Einzugsdatei (XML)* | zusätzliche Kopie der pain.008-Datei in einem Nextcloud-Ordner (13.5), standardmäßig aus |
 | *… → Mandate* | **Mandatsreferenz-Präfix**, **Ablauf-Vorwarnung** (Tage vor Verfall, Standard 180), **Nachweis-Ordner** und **Auf Mandate ohne Nachweis hinweisen** (13.2, 13.9) |
@@ -1676,13 +1676,21 @@ Was ein Mitglied zahlt, steht in einer **Zuweisung** zu einer
   einem Turnus von 3 Monaten heißen 30 € je Quartal). **„Vorschau"** nennt vor
   dem Anlegen die erste Periode, den Einzugsbetrag und den voraussichtlichen
   Einzugstermin. **„Beitrag ändern"** (Menü ⋯ an der Zuweisung oder
-  Menü ⋯ des Mitglieds → *Beitrag ändern*) stellt Monatsbeitrag und Turnus
-  neu ein: beliebig über der Untergrenze, etwa wenn ein Mitglied ausnahmsweise
-  mehr geben möchte. Die Vorschau erscheint von selbst und nennt, ab wann die
-  Änderung gilt – bei einem schon angekündigten Einzug erst danach; gespeichert
-  wird erst, wenn sie zum Stand der Felder passt. **Das Mitglied bekommt die
-  Änderung per E-Mail bestätigt** (Betrag, Turnus oder Beitragsgruppe, ab wann sie
-  gilt, erster betroffener Einzug), in der Sprache seines Kontos; die Meldung nach
+  Menü ⋯ des Mitglieds → *Beitrag ändern*) stellt Monatsbeitrag, Turnus und
+  Zahlungsart neu ein: beliebig über der Untergrenze, etwa wenn ein Mitglied
+  ausnahmsweise mehr geben möchte. Die Vorschau erscheint von selbst und nennt, ab
+  wann die Änderung gilt – bei einem schon angekündigten Einzug erst danach;
+  gespeichert wird erst, wenn sie zum Stand der Felder passt. **Die Zahlungsart
+  wirkt sofort** und kennt kein Sperrfenster: Stellen Sie auf *Überweisung* um,
+  wird ab jetzt nichts mehr eingezogen – offene wie künftige Forderungen
+  überweist das Mitglied selbst (mit Zahlungsaufforderung und GiroCode, 13.8).
+  Ein bestehendes **Mandat bleibt dabei gültig** und wird nur nicht mehr genutzt;
+  Sie können jederzeit auf *Lastschrift* zurückstellen (ohne einzugsfähiges
+  Mandat erscheint dann eine Aufgabe, 13.9). So stellen Sie einzelne Personen
+  um, ohne die Zuweisung zu beenden und neu anzulegen. **Das Mitglied bekommt die
+  Änderung per E-Mail bestätigt** (Betrag, Turnus, Beitragsgruppe oder
+  Zahlungsart, ab wann sie gilt, erster betroffener Einzug), in der Sprache
+  seines Kontos; die Meldung nach
   dem Speichern sagt, ob die Mail rausging – ein Mitglied ohne Adresse bekommt keine,
   und die Änderung gilt trotzdem. **„Beenden"** beendet eine
   Zuweisung zum heutigen Tag; bereits erzeugte Forderungen bleiben unverändert. Eine
@@ -1933,11 +1941,11 @@ wo Sie sie beheben.
 
 | Aufgabe | Schweregrad | So verschwindet sie |
 |---|---|---|
-| Lastschrift gewollt, aber noch **kein Mandat** angelegt | Handlungsbedarf | Mandat anlegen und aktivieren, oder die Zuweisung auf Überweisung umstellen |
+| Lastschrift gewollt, aber noch **kein Mandat** angelegt | Handlungsbedarf | Mandat anlegen und aktivieren, oder die Zuweisung auf Überweisung umstellen (*Beitrag ändern* → Zahlungsart, 13.4) |
 | **Papier-Mandat im Entwurf**, Unterschrift fehlt | Handlungsbedarf | Unterschriftsdatum eintragen und das Mandat aktivieren |
 | Elektronisches Mandat: Link abgelaufen (Hinweis, solange er noch gilt) | Handlungsbedarf / Hinweis | Link erneut senden oder auf Papier wechseln |
 | **Mandat gesperrt**, Klärung offen – bei einer Sperre nach Rücklastschrift mit dem Grund in Klartext | Handlungsbedarf | Fall klären, Mandat entsperren (Notiz Pflicht) |
-| **Mandat erloschen**, die Zuweisung verlangt aber weiter Lastschrift | Handlungsbedarf | Neues Mandat einholen oder auf Überweisung umstellen |
+| **Mandat erloschen**, die Zuweisung verlangt aber weiter Lastschrift | Handlungsbedarf | Neues Mandat einholen oder auf Überweisung umstellen (*Beitrag ändern* → Zahlungsart, 13.4) |
 | Mandat **ohne Nachweis** (nur aktive Papier-Mandate; abschaltbar mit *Auf Mandate ohne Nachweis hinweisen* in der Verwaltung) | Hinweis | Unterschriebenes Dokument im Mandat hochladen |
 | Mandat **verfällt in N Tagen** (N: *Ablauf-Vorwarnung (Tage vor Verfall)* in der Verwaltung, vorbelegt mit 180) | Hinweis | Ein eingereichter Einzug setzt die 36-Monats-Frist neu in Gang |
 | **Ausgetreten**, aber noch offene Forderungen – das Mandat bleibt aktiv | Hinweis | Forderungen begleichen oder erlassen; danach endet das Mandat von selbst |
@@ -2069,6 +2077,12 @@ Dafür ist **keine Buchhaltungsrolle** nötig, es gibt keinen Antrag, und jede
 2. Das Mitglied ist in der Akte mit seinem Nextcloud-Konto verknüpft (13.2) –
    nach Ihrer Bestätigung, nie von selbst.
 
+Optional dazu, direkt darunter: **„Mitglieder dürfen ihre Zahlungsart unter
+„Mein Beitrag" selbst auf Überweisung umstellen"** (ab Werk aus). Erst mit
+diesem Zusatzschalter sehen Mitglieder unter *Mein Beitrag* den Schalter
+*Künftig selbst überweisen statt Lastschrift*; ohne ihn bleibt die Zahlungsart
+Sache des Vorstands (13.4).
+
 Wer beides erfüllt, sieht „Mein Beitrag", auch ohne jede Rolle in der App. Hat
 dieselbe Person zusätzlich eine Rolle (etwa die Schatzmeisterin, die selbst
 Mitglied ist), steht der Reiter neben den übrigen. Ein Mitglied sieht dort immer
@@ -2078,7 +2092,7 @@ Akte bleibt für das Mitglied unsichtbar.
 | Bereich | Das Mitglied kann | Das Mitglied kann nicht |
 |---|---|---|
 | **Meine Stammdaten** | Name, E-Mail, Telefon und Adresse ändern (**„Bearbeiten"**; das Land wählt es aus der Länderliste). Ändert sich die E-Mail-Adresse, bekommt zur Sicherheit auch die bisherige Adresse eine Mail darüber | Mitgliedsnummer sowie Eintritts- und Austrittsdatum ändern – das bleibt beim Vorstand |
-| **Mein Beitrag** | den Monatsbeitrag erhöhen oder bis zur Untergrenze senken, den Turnus wechseln (nur die erlaubten). Die **„Vorschau"** nennt „Wirkt ab … · erster Einzug am … · Betrag …"; erst danach lässt sich speichern | die Beitragsgruppe wechseln, einen Monat aussetzen, den Austritt erklären, die eigene Untergrenze ändern oder deren Begründung sehen |
+| **Mein Beitrag** | den Monatsbeitrag erhöhen oder bis zur Untergrenze senken, den Turnus wechseln (nur die erlaubten). Die **„Vorschau"** nennt „Wirkt ab … · erster Einzug am … · Betrag …"; erst danach lässt sich speichern. Ist der Zusatzschalter gesetzt (oben), außerdem: die **Zahlungsart von Lastschrift auf Überweisung** umstellen (*Künftig selbst überweisen statt Lastschrift*) – das Mandat bleibt bestehen und wird nur nicht mehr genutzt, offene und künftige Beiträge überweist das Mitglied selbst | die Beitragsgruppe wechseln, einen Monat aussetzen, den Austritt erklären, die eigene Untergrenze ändern oder deren Begründung sehen; die Zahlungsart zurück auf Lastschrift stellen – das macht der Vorstand über *Beitrag ändern* (13.4) |
 | **Mein SEPA-Lastschriftmandat** | ein Mandat erfassen und elektronisch erteilen (**„Mandat jetzt erteilen"**), einen von Ihnen angelegten elektronischen Entwurf bestätigen (**„Jetzt bestätigen"**) oder verwerfen, die **Bankverbindung ändern**, den **Kontoinhaber wechseln**, das Mandat **widerrufen** | ein Mandat aktivieren oder sperren – das bleibt beim Vorstand |
 
 Die IBAN erscheint dem Mitglied immer maskiert. Zur **Bankverbindung ändern**
@@ -2087,7 +2101,7 @@ geändert (dasselbe Konto, dieselbe Person), bleibt das Mandat bestehen; wechsel
 der Kontoinhaber, wird ein neues Mandat elektronisch erteilt und das alte
 erlischt als „ersetzt".
 
-**Das Sperrfenster.** Betrag und Turnus ändern sich nicht mehr, sobald für eine
+**Das Sperrfenster.** Betrag, Turnus und Zahlungsart ändern sich nicht mehr, sobald für eine
 Periode die Vorabinfo (13.5) verschickt ist – dem Mitglied wurde ein Betrag
 angekündigt. Eine Änderung, die deshalb erst später wirken dürfte, weist die App
 zurück und erklärt warum – die Meldung nennt das Datum, ab dem sie möglich wäre –,
