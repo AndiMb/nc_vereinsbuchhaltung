@@ -1,18 +1,25 @@
 <template>
 	<NcPopover
+		class="vbh-commentmark-popover"
 		:triggers="['hover', 'focus']"
 		:popoverTriggers="['hover']"
 		:delay="{ show: 150, hide: 100 }"
 		noFocusTrap
 		placement="left"
 		popupRole="tooltip">
+		<!-- NcButton wie Beleg und Bearbeiten daneben: gleiche Groesse und
+		     Ausrichtung in der Aktionsspalte, und NcPopover haengt seine
+		     aria-Attribute (haspopup, expanded) selbst an. Ein eigener <button>
+		     liefe in Nextclouds Grundregeln fuer nackte Buttons. -->
 		<template #trigger>
-			<button
-				type="button"
+			<NcButton
+				variant="tertiary"
 				class="vbh-commentmark"
 				:aria-label="t('Kommentar: {text}', { text })">
-				<NcIconSvgWrapper :path="mdiCommentTextOutline" :size="16" />
-			</button>
+				<template #icon>
+					<NcIconSvgWrapper :path="mdiCommentTextOutline" :size="16" />
+				</template>
+			</NcButton>
 		</template>
 		<div class="vbh-comment-popover">
 			<strong class="vbh-comment-popover-title">{{ t('Kommentar') }}</strong>
@@ -23,7 +30,7 @@
 
 <script>
 import { mdiCommentTextOutline } from '@mdi/js'
-import { NcIconSvgWrapper, NcPopover } from '@nextcloud/vue'
+import { NcButton, NcIconSvgWrapper, NcPopover } from '@nextcloud/vue'
 
 /**
  * Kommentar-Symbol in einer Buchungszeile (Reiter Buchungen, Kontoauszug).
@@ -34,7 +41,7 @@ import { NcIconSvgWrapper, NcPopover } from '@nextcloud/vue'
  */
 export default {
 	name: 'CommentMark',
-	components: { NcIconSvgWrapper, NcPopover },
+	components: { NcButton, NcIconSvgWrapper, NcPopover },
 	props: {
 		text: { type: String, required: true },
 	},

@@ -1164,12 +1164,15 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 .vbh-actions { display: inline-flex; gap: 2px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
 
 /* Kommentar an einer Buchung: nur Hinweis, kein Knopf - der Text steht im Tooltip. */
-/* Echter <button> als Popover-Ausloeser (per Tastatur erreichbar). Drei
-   Klassen (0,3,0) gegen Nextclouds Grundregel fuer nackte Buttons (Breite
-   130px, Mindesthoehe, Rand, Hintergrund), siehe .vbh-upload-trigger. */
-.vbh-commentmark.vbh-commentmark.vbh-commentmark { display: inline-flex; align-items: center; justify-content: center; width: auto; min-width: 0; min-height: 0; margin: 0; padding: 0 8px; border: 0; background: none; color: var(--color-text-maxcontrast); cursor: help; }
+/* Kommentar-Symbol in der Aktionsspalte (CommentMark.vue): ein NcButton wie
+   Beleg und Bearbeiten, nur gedaempft. Die Huelle von NcPopover (ein <div>)
+   wird zum Inline-Flex, sonst sitzt der Knopf auf der Grundlinie einer
+   Textzeile und rutscht nach oben. */
+.vbh-commentmark-popover { display: inline-flex; align-items: center; }
 
-.vbh-commentmark.vbh-commentmark:hover, .vbh-commentmark.vbh-commentmark:focus-visible { color: var(--color-main-text); }
+.vbh-commentmark.vbh-commentmark.vbh-commentmark { color: var(--color-text-maxcontrast); cursor: help; }
+
+.vbh-commentmark.vbh-commentmark.vbh-commentmark:hover, .vbh-commentmark.vbh-commentmark.vbh-commentmark:focus-visible { color: var(--color-main-text); }
 
 /* Inhalt des Kommentar-Popovers (BookingsTab.vue) - wird an <body>
    teleportiert, deshalb global und nicht unter .vbh. */
