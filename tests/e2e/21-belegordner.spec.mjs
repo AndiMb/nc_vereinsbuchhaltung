@@ -134,10 +134,15 @@ test.describe('Wächter-Ordner für Belege', () => {
 		await expect(folderDialog.getByText('suchtest-eins.png')).toBeVisible()
 		await expect(folderDialog.getByText('suchtest-zwei.png')).toBeHidden()
 
-		await folderDialog.getByRole('checkbox', { name: /suchtest-eins.png/ }).check()
-		await folderDialog.getByRole('button', { name: 'Übernehmen' }).click()
-		await expect(folderDialog).toBeHidden()
-		await expect(bookingDialog.getByText('suchtest-eins.png')).toBeVisible()
+		// Am Desktop übernimmt ein Klick die Datei sofort: sie wandert links in
+		// die Warteliste und fällt aus der Auswahl, die Leiste bleibt offen.
+		// Der Fokus landet im Suchfeld statt (über die Fokusfalle) oben im
+		// Formular – sonst sprang die linke Spalte bei jedem Klick nach oben.
+		await folderDialog.getByRole('button', { name: /Auswählen: suchtest-eins.png/ }).click()
+		await expect(bookingDialog.locator('.vbh-booking-main').getByText('suchtest-eins.png')).toBeVisible()
+		await expect(folderDialog.getByText('suchtest-eins.png')).toBeHidden()
+		await expect(folderDialog).toBeVisible()
+		await expect(folderDialog.getByPlaceholder(/Dateiname, Ordner/)).toBeFocused()
 	})
 
 	test('Upload landet im Jahresordner, Löschen lässt die Datei stehen', async ({ request }) => {
