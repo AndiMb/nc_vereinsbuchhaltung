@@ -19,6 +19,8 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+## [0.39.0] – 2026-10-18
+
 **Geändert:**
 - **Gliederungsbericht: Vorlagen frei verwalten.** Die beiden bisher
   mitgelieferten Vorlagen legt die App beim ersten Öffnen als gewöhnliche

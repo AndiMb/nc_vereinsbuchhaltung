@@ -17,6 +17,8 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+## [0.39.0] – 2026-10-18
+
 **Changed:**
 - **Structured report: manage templates freely.** The app creates the two
   formerly built-in templates as ordinary templates the first time the tab is
