@@ -138,6 +138,10 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 /* Belegablage im Buchungs-Modal */
 .vbh-attachments { border-top: 1px solid var(--color-border); margin-top: 12px; padding-top: 12px; }
 
+/* Fokusanker beim Entfernen einer Belegzeile (BookingDialog.vue,
+   keepFocusInAttachments) - nur ein Halt fuer den Fokus, kein Rahmen. */
+:is(.vbh-attachments, .vbh-mfield)[tabindex="-1"]:focus { outline: none; }
+
 .vbh-attachments-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 
 .vbh-attachments-title { font-weight: 600; font-size: 0.9em; color: var(--color-text-lighter); text-transform: uppercase; letter-spacing: 0.04em; }
@@ -931,16 +935,20 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
    ineinander, und die Leiste begann je nach Scrollstand des Formulars
    mittendrin.
 
+   grid-template-rows ist dabei Pflicht: ohne waechst die Rasterzeile mit
+   dem hoeheren Spalteninhalt, keine Spalte scrollt selbst, und am Ende
+   scrollte doch wieder der ganze Dialog samt Knopfleiste.
+
    :has() statt einer Klasse am NcModal, weil dessen Wurzel teleportiert
    wird; (0,4,0) gegen die Groessenregel der Bibliothek
    (.modal-wrapper--large > .modal-container[data-v-…], 0,3,0). */
-.modal-wrapper .modal-container:has(.vbh-booking-dialog.is-split) { width: 1150px; height: min(90vh, 100vh - 2 * var(--header-height, 50px) - 2 * var(--body-container-margin, 0px)); }
+.modal-wrapper .modal-container:has(.vbh-booking-dialog.is-split) { overflow: hidden; width: 1150px; height: min(90vh, 100vh - 2 * var(--header-height, 50px) - 2 * var(--body-container-margin, 0px)); }
 
 .modal-container .modal-container__content:has(.vbh-booking-dialog.is-split) { overflow: hidden; }
 
 .vbh-modal-inner.vbh-booking-dialog.is-split { display: flex; flex-direction: column; box-sizing: border-box; height: 100%; }
 
-.vbh-booking-dialog.is-split .vbh-booking-layout { display: grid; flex: 1 1 auto; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; min-height: 0; }
+.vbh-booking-dialog.is-split .vbh-booking-layout { display: grid; flex: 1 1 auto; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: 24px; min-height: 0; }
 
 .vbh-booking-dialog.is-split .vbh-booking-main { min-height: 0; overflow-y: auto; padding-inline-end: 4px; }
 
@@ -952,9 +960,8 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-booking-dialog.is-split .vbh-modal-actions--sticky { margin-top: 0; }
 
-.vbh-booking-folder-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
-
-.vbh-booking-folder-title { margin: 0; font-size: 1.1em; font-weight: 600; }
+/* Rechts frei fuer das Schliessen-X von NcModal (absolut oben rechts). */
+.vbh-booking-folder-title { margin: 0 0 4px; padding-inline-end: calc(var(--default-clickable-area, 34px) + 8px); font-size: 1.1em; font-weight: 600; }
 
 .vbh-booking-folder .vbh-folder-panel-actions { margin-top: 10px; }
 /* NcModals `:name`-Titel schwebt per Bibliotheks-CSS (.modal-header, position:

@@ -72,7 +72,7 @@
 							:disabled="busy"
 							:aria-label="tRaw('Auswählen: {name}', { name: row.file.name })"
 							:title="tRaw('Auswählen: {name}', { name: row.file.name })"
-							@click="$emit('pick', [row.file])">
+							@click="pickOne(row.file)">
 							<template #icon>
 								<NcIconSvgWrapper :path="mdiPlus" :size="18" />
 							</template>
@@ -216,7 +216,7 @@ export default {
 		noAutofocus: { type: Boolean, default: false },
 		// Jede Datei einzeln per Klick übernehmen, ohne Mehrfachauswahl und
 		// ohne Knopfleiste (Seitenleiste im Buchungsdialog am Desktop;
-		// geschlossen wird dort über „Aus Ordner wählen“ bzw. das X).
+		// geschlossen wird dort über „Aus Ordner wählen“).
 		instantPick: { type: Boolean, default: false },
 		// Übernehmen gesperrt, solange eine Verknüpfung noch läuft - sonst
 		// ließe sich dieselbe Datei doppelt anklicken, bevor sie verschwindet.
@@ -312,6 +312,22 @@ export default {
 
 		toggle(fileId) {
 			if (this.selected.has(fileId)) { this.selected.delete(fileId) } else { this.selected.add(fileId) }
+		},
+
+		/**
+		 * Direktübernahme einer Datei. Der Fokus wandert vorher ins Suchfeld:
+		 * der angeklickte Knopf verschwindet gleich aus der Liste (die Datei
+		 * ist dann ausgeschlossen), und focus-trap setzt den Fokus nach dem
+		 * Entfernen des fokussierten Elements auf das erste Feld im Dialog -
+		 * im Buchungsdialog oben im Formular, dessen Spalte damit jedes Mal
+		 * nach oben sprang. preventScroll, damit das Suchfeld selbst nichts
+		 * verschiebt.
+		 *
+		 * @param {object} file die gewählte Datei
+		 */
+		pickOne(file) {
+			this.$refs.searchInput?.focus({ preventScroll: true })
+			this.$emit('pick', [file])
 		},
 
 		confirmPick() {

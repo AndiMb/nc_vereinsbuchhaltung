@@ -491,21 +491,12 @@
 				</div>
 
 				<aside v-if="folderPanelOpen" class="vbh-booking-folder" aria-labelledby="vbh-booking-folder-title">
-					<div class="vbh-booking-folder-head">
-						<h3 id="vbh-booking-folder-title" class="vbh-booking-folder-title">
-							{{ t('Beleg aus Ordner wählen') }}
-						</h3>
-						<NcButton
-							v-if="!isMobile"
-							variant="tertiary"
-							:aria-label="t('Schließen')"
-							:title="t('Schließen')"
-							@click="toggleFolderPanel">
-							<template #icon>
-								<NcIconSvgWrapper :path="mdiClose" :size="20" />
-							</template>
-						</NcButton>
-					</div>
+					<!-- Kein eigenes X: oben rechts sitzt schon das von NcModal, das
+					     den ganzen Dialog schliesst. Zugeklappt wird die Leiste ueber
+					     den hervorgehobenen Knopf "Aus Ordner wählen". -->
+					<h3 id="vbh-booking-folder-title" class="vbh-booking-folder-title">
+						{{ t('Beleg aus Ordner wählen') }}
+					</h3>
 					<!-- Am Desktop uebernimmt ein Klick die Datei sofort, die
 					     Seitenleiste bleibt fuer weitere offen. Mobil, wo die Auswahl
 					     das Formular ersetzt, bleibt es bei Mehrfachauswahl mit
@@ -554,7 +545,7 @@
 </template>
 
 <script>
-import { mdiAlertCircleOutline, mdiCamera, mdiClose, mdiDelete, mdiFolderOutline, mdiFolderSearchOutline, mdiLinkVariantOff, mdiPaperclip } from '@mdi/js'
+import { mdiAlertCircleOutline, mdiCamera, mdiDelete, mdiFolderOutline, mdiFolderSearchOutline, mdiLinkVariantOff, mdiPaperclip } from '@mdi/js'
 import { NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper, NcLoadingIcon, NcModal, NcSelect } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import AmountInput from './AmountInput.vue'
@@ -634,7 +625,6 @@ export default {
 		return {
 			mdiAlertCircleOutline,
 			mdiCamera,
-			mdiClose,
 			mdiDelete,
 			mdiFolderOutline,
 			mdiFolderSearchOutline,
@@ -861,6 +851,15 @@ export default {
 	},
 
 	watch: {
+		// Vor dem Neuzeichnen der Belegliste (flush: 'pre'): steht der Fokus
+		// auf einem Knopf in einer Zeile, die gleich verschwindet (Verknüpfung
+		// lösen, Beleg löschen, wartenden Beleg entfernen), wandert er auf den
+		// umgebenden Belegbereich. Sonst setzt focus-trap ihn nach dem
+		// Entfernen auf das erste Feld im Dialog, und das Formular sprang
+		// jedes Mal nach oben.
+		bookingAttachments: { handler() { this.keepFocusInAttachments() }, flush: 'pre' },
+		pendingFiles: { handler() { this.keepFocusInAttachments() }, flush: 'pre' },
+
 		show: {
 			handler(open) {
 				this.folderPanelOpen = false
@@ -1002,6 +1001,17 @@ export default {
 				const to = this.folderPanelOpen ? this.$refs.main : this.modalScroller()
 				if (to) { to.scrollTop = top }
 			})
+		},
+
+		/** Siehe die Watcher auf bookingAttachments/pendingFiles. */
+		keepFocusInAttachments() {
+			const el = document.activeElement
+			const row = el && el.closest ? el.closest('.vbh-attachment-list') : null
+			if (!row || !this.$refs.main?.contains(row)) { return }
+			const anchor = row.closest('.vbh-attachments, .vbh-mfield')
+			if (!anchor) { return }
+			anchor.setAttribute('tabindex', '-1')
+			anchor.focus({ preventScroll: true })
 		},
 
 		/** Der scrollende Inhalt von NcModal (ohne Seitenleiste). */
