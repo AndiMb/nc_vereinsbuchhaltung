@@ -23,8 +23,9 @@ verwenden, z. B. `**Neu:**`.
 - **Zahlungsart nachträglich umstellen.** „Beitrag ändern" bietet jetzt auch die
   Zahlungsart an: einzelne Mitglieder lassen sich von Lastschrift auf Überweisung
   umstellen (und zurück), ohne die Zuweisung zu beenden und neu anzulegen. Die
-  Umstellung wirkt sofort; ein bestehendes Mandat bleibt gültig und wird nur
-  nicht mehr genutzt. Das Mitglied bekommt die Änderung per E-Mail bestätigt, der
+  Umstellung wirkt sofort und kennt kein Sperrfenster – ein schon angekündigter
+  Einzug entfällt, die Zahlungsaufforderung kommt mit dem nächsten Tageslauf;
+  ein bestehendes Mandat bleibt gültig und wird nur nicht mehr genutzt. Das Mitglied bekommt die Änderung per E-Mail bestätigt, der
   Verlauf der Zuweisung hält sie fest.
 - **Self-Service: selbst auf Überweisung umstellen.** Ein neuer Schalter in den
   Grundeinstellungen (ab Werk aus) erlaubt Mitgliedern unter „Mein Beitrag",

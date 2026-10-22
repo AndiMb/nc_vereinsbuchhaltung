@@ -1682,8 +1682,10 @@ Was ein Mitglied zahlt, steht in einer **Zuweisung** zu einer
   wann die Änderung gilt – bei einem schon angekündigten Einzug erst danach;
   gespeichert wird erst, wenn sie zum Stand der Felder passt. **Die Zahlungsart
   wirkt sofort** und kennt kein Sperrfenster: Stellen Sie auf *Überweisung* um,
-  wird ab jetzt nichts mehr eingezogen – offene wie künftige Forderungen
-  überweist das Mitglied selbst (mit Zahlungsaufforderung und GiroCode, 13.8).
+  wird ab jetzt nichts mehr eingezogen, auch ein schon angekündigter Einzug
+  nicht – offene wie künftige Forderungen überweist das Mitglied selbst, die
+  Zahlungsaufforderung mit GiroCode kommt mit dem nächsten Tageslauf (13.8);
+  nur ein bereits freigegebener Lauf wird noch ausgeführt.
   Ein bestehendes **Mandat bleibt dabei gültig** und wird nur nicht mehr genutzt;
   Sie können jederzeit auf *Lastschrift* zurückstellen (ohne einzugsfähiges
   Mandat erscheint dann eine Aufgabe, 13.9). So stellen Sie einzelne Personen
@@ -2101,7 +2103,7 @@ geändert (dasselbe Konto, dieselbe Person), bleibt das Mandat bestehen; wechsel
 der Kontoinhaber, wird ein neues Mandat elektronisch erteilt und das alte
 erlischt als „ersetzt".
 
-**Das Sperrfenster.** Betrag, Turnus und Zahlungsart ändern sich nicht mehr, sobald für eine
+**Das Sperrfenster.** Betrag und Turnus ändern sich nicht mehr, sobald für eine
 Periode die Vorabinfo (13.5) verschickt ist – dem Mitglied wurde ein Betrag
 angekündigt. Eine Änderung, die deshalb erst später wirken dürfte, weist die App
 zurück und erklärt warum – die Meldung nennt das Datum, ab dem sie möglich wäre –,
@@ -2109,7 +2111,11 @@ statt sie stillschweigend zu verschieben; der Vorstand kann sie in der Akte
 vornehmen (13.4) – für bereits angekündigte Perioden ändert sich dann trotzdem
 nichts mehr. Die **IBAN** kennt kein Sperrfenster: die Vorabinfo nennt
 keine IBAN, und der Lauf friert sie erst bei der Freigabe ein – sie lässt sich bis
-dahin ändern.
+dahin ändern. Auch die **Zahlungsart** kennt keines: wechselt ein Mitglied nach
+der Vorabinfo auf Überweisung, entfällt der angekündigte Einzug, die Forderung
+bleibt offen, und der nächste Tageslauf schickt die Zahlungsaufforderung mit
+GiroCode (13.8). Steckt die Forderung schon in einem freigegebenen Lauf, wird
+dieser Einzug noch ausgeführt.
 
 **Widerruf.** Der Dialog zeigt dieselben Dinge wie in der Akte: der Widerruf ist
 endgültig, die noch offene Summe wird genannt (dafür geht dem Mitglied eine

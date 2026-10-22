@@ -405,6 +405,48 @@ test.describe('Sperrfenster nach der Vorabinfo (Protokoll 7.17, 11.3, 11.9)', ()
 		expect(detail.amendments.length).toBeGreaterThanOrEqual(1)
 		expect(detail.history.some((entry) => entry.actorType === 'member')).toBe(true)
 	})
+
+	test('nach der Vorabinfo wechselt das Mitglied auf Überweisung: kein Sperrfenster, Vorschau „Wirkt ab“ heute, der Schalter braucht die Freigabe des Vereins', async ({ page, request }) => {
+		test.setTimeout(180000)
+		await sendPrenotification(request, assignment.id)
+		const asMember = { user: USERS.ohneRolle, expectOk: false }
+
+		// Ohne den Zusatzschalter gibt es den Wechsel nicht – weder in der Karte noch an der Schnittstelle.
+		await api.updateSettings(request, { self_service_transfer_switch_enabled: '0' })
+		let section = await openMeinBeitrag(page, USERS.ohneRolle)
+		let card = assignmentCard(section, GROUP_LOCK.name)
+		await expect(card.getByText('Zahlungsart: Lastschrift – dein Beitrag wird per SEPA-Lastschrift eingezogen.')).toBeVisible()
+		await expect(card.getByText('Künftig selbst überweisen statt Lastschrift')).toHaveCount(0)
+		const blocked = await api.selfUpdateAssignment(request, assignment.id, { paymentMethod: 'ueberweisung', ...asMember })
+		expect(blocked.status()).toBe(400)
+		expect((await blocked.json()).message).toContain('nicht freigeschaltet')
+
+		// Mit Schalter: Vorschau wirkt ab heute (Fälligkeit statt Einzug), Speichern geht trotz Vorabinfo durch.
+		await api.updateSettings(request, { self_service_transfer_switch_enabled: '1' })
+		try {
+			section = await openMeinBeitrag(page, USERS.ohneRolle)
+			card = assignmentCard(section, GROUP_LOCK.name)
+			await card.getByText('Künftig selbst überweisen statt Lastschrift').click()
+			await expect(card.getByText(/Dein SEPA-Lastschriftmandat bleibt gültig, wird aber nicht mehr genutzt\./)).toBeVisible()
+			await card.getByRole('button', { name: 'Vorschau' }).click()
+			const todayGerman = today().split('-').reverse().join('.')
+			await expect(card.getByText(new RegExp(`^Wirkt ab ${todayGerman.replaceAll('.', '\\.')} · fällig am \\d{2}\\.\\d{2}\\.\\d{4} · Betrag`))).toBeVisible()
+			await card.getByRole('button', { name: 'Speichern' }).click()
+			await expect(toast(page, 'Beitrag geändert.')).toBeVisible()
+			await expect(card.getByText('Zahlungsart: Überweisung – du überweist deinen Beitrag selbst.')).toBeVisible()
+			await expect(card.getByText('Künftig selbst überweisen statt Lastschrift')).toHaveCount(0)
+
+			const own = (await api.selfAssignments(request, { user: USERS.ohneRolle })).find((a) => a.id === assignment.id)
+			expect(own).toMatchObject({ paymentMethod: 'ueberweisung', monthlyAmount: 10, intervalMonths: 3 })
+			// Zurück zur Lastschrift bleibt dem Verein vorbehalten; das Mandat ist unberührt.
+			const back = await api.selfUpdateAssignment(request, assignment.id, { paymentMethod: 'direct_debit', ...asMember })
+			expect(back.status()).toBe(400)
+			const [live] = (await api.mandatesByMember(request, member.id)).filter((m) => m.status === 'aktiv')
+			expect(live).toBeTruthy()
+		} finally {
+			await api.updateSettings(request, { self_service_transfer_switch_enabled: '0' })
+		}
+	})
 })
 
 // ---------------------------------------------------------------------------

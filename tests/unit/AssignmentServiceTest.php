@@ -474,6 +474,42 @@ class AssignmentServiceTest extends TestCase {
 		$this->assertSame(1500, $preview['amountCents']);
 	}
 
+	/** Die Zahlungsart kennt kein Sperrfenster: nur sie zu ändern wirkt auch in einer vorangekündigten Periode sofort. */
+	public function testPreviewChangeNurZahlungsartIgnoriertDasSperrfenster(): void {
+		$assignment = new Assignment();
+		$assignment->setId(5);
+		$assignment->setGroupId(1);
+		$assignment->setIntervalMonths(1);
+		$assignment->setMonthlyAmountCents(1000);
+		$assignment->setPaymentMethod(Assignment::PAYMENT_METHOD_DIRECT_DEBIT);
+		$assignment->setValidFrom('2026-01-01');
+		$this->mapper->method('find')->willReturn($assignment);
+		$this->groupMapper->method('find')->willReturn($this->group(allowedIntervals: [1, 12]));
+
+		$locked = new OpenItem();
+		$locked->setPeriodStart('2026-01-01');
+		$locked->setPeriodEnd('2026-01-31');
+		$locked->setPrenotifiedAt('2025-12-15T00:00:00+00:00');
+		$this->openItemsByAssignment[5] = [$locked];
+
+		// Betrag und Turnus kommen wie aus dem Dialog unverändert mit – das ist keine Änderung.
+		$preview = $this->service('2026-01-10')->previewChange(5, 1000, 1, null, Assignment::PAYMENT_METHOD_TRANSFER);
+
+		$this->assertSame('2026-01-10', $preview['effectiveFrom']);
+		$this->assertSame('2026-01-01', $preview['periodStart']);
+	}
+
+	public function testPreviewChangeNurZahlungsartEinerKuenftigenZuweisungWirktAbIhremBeginn(): void {
+		$assignment = $this->assignmentInGroup1();
+		$assignment->setValidFrom('2027-01-01');
+		$this->mapper->method('find')->willReturn($assignment);
+		$this->groupMapper->method('find')->willReturn($this->group());
+
+		$preview = $this->service('2026-06-15')->previewChange(5, null, null, null, Assignment::PAYMENT_METHOD_TRANSFER);
+
+		$this->assertSame('2027-01-01', $preview['effectiveFrom']);
+	}
+
 	/**
 	 * Turnuswechsel-Sonderfall (Spec §3.4): wirkt ab der ersten Periode des
 	 * NEUEN Turnus, die vollständig hinter der letzten eingezogenen liegt -

@@ -45,7 +45,7 @@
 				</label>
 			</div>
 			<p v-if="paymentMethodChanged && form.paymentMethod === 'ueberweisung'" class="vbh-hint">
-				{{ t('Ab sofort wird nichts mehr per Lastschrift eingezogen; offene und künftige Forderungen überweist das Mitglied selbst. Ein bestehendes Mandat bleibt gültig und wird nur nicht mehr genutzt.') }}
+				{{ t('Ab sofort wird nichts mehr per Lastschrift eingezogen, auch ein schon angekündigter Einzug nicht; offene und künftige Forderungen überweist das Mitglied selbst (Zahlungsaufforderung kommt mit dem nächsten Tageslauf). Ein bestehendes Mandat bleibt gültig und wird nur nicht mehr genutzt.') }}
 			</p>
 			<p v-else-if="paymentMethodChanged" class="vbh-hint">
 				{{ t('Lastschrift setzt ein aktives Mandat voraus – fehlt es, erscheint eine Aufgabe und die Forderung wartet, bis ein Mandat vorliegt.') }}

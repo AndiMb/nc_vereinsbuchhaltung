@@ -21,7 +21,9 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 - **Change the payment method later.** "Change fee" now also offers the payment
   method: individual members can be switched from direct debit to bank transfer
   (and back) without ending and re-creating the assignment. The switch takes
-  effect at once; an existing mandate stays valid and is simply no longer used.
+  effect at once and has no lock window – a collection already announced is
+  dropped and the payment request goes out with the next daily run; an existing
+  mandate stays valid and is simply no longer used.
   The member gets the change confirmed by email, and the assignment history
   records it.
 - **Self-service: switch to bank transfer yourself.** A new toggle in the basic

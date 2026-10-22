@@ -1655,8 +1655,10 @@ group** (**"Contributions" tab → Contribution groups**):
   after an already announced collection only from then on; saving is possible
   only once it matches the fields. **The payment method takes effect at once**
   and has no lock window: switch to *Bank transfer* and nothing is collected
-  from now on – the member transfers open and future claims themselves (with
-  payment request and GiroCode, 13.8). An existing **mandate stays valid** and is
+  from now on, not even a collection already announced – the member transfers
+  open and future claims themselves; the payment request with GiroCode goes out
+  with the next daily run (13.8). Only a run that is already released still goes
+  ahead. An existing **mandate stays valid** and is
   simply no longer used; you can switch back to *Direct debit* at any time
   (without a collectible mandate a task then appears, 13.9). This is how you
   switch individual people without ending and re-creating the assignment. **The
@@ -2086,12 +2088,16 @@ involves the same distinction as in the record (13.2): if only the IBAN changed
 (same account, same person), the mandate stays; if the account holder changes, a
 new mandate is granted electronically and the old one ends as "replaced".
 
-**The lock window.** Amount, interval and payment method no longer change once the
+**The lock window.** Amount and interval no longer change once the
 pre-notification (13.5) has been sent for a period – the member was told an
 amount. A change that therefore could only take effect later is rejected by the
 app with an explanation – the message states the date from which it would be
 possible – instead of being silently postponed; the board can make it in the
 record (13.4) – for periods already announced, nothing changes anyway.
+The **payment method** has none either: if a member switches to bank transfer
+after the pre-notification, the announced collection is dropped, the claim stays
+open, and the next daily run sends the payment request with GiroCode (13.8). If
+the claim is already in a released run, that collection still goes ahead.
 The **IBAN** has no lock window: the pre-notification doesn't name an IBAN, and
 the run only freezes it at release – so it can be changed until then.
 

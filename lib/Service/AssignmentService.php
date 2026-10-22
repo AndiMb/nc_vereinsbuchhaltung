@@ -407,9 +407,19 @@ class AssignmentService {
 			$this->assertAtLeastMinimum($assignment, $group, $effectiveAmountCents);
 		}
 
-		$effectiveFrom = ($intervalMonths !== null && $intervalMonths !== $assignment->getIntervalMonths())
-			? $this->effectiveFromFor($assignment, $intervalMonths)
-			: $this->effectiveFromFor($assignment);
+		$intervalChanged = $intervalMonths !== null && $intervalMonths !== $assignment->getIntervalMonths();
+		$amountChanged = $monthlyAmountCents !== null && $monthlyAmountCents !== $assignment->getMonthlyAmountCents();
+		if ($intervalChanged) {
+			$effectiveFrom = $this->effectiveFromFor($assignment, $intervalMonths);
+		} elseif ($amountChanged || $groupChanged) {
+			$effectiveFrom = $this->effectiveFromFor($assignment);
+		} else {
+			// Nur die Zahlungsart ändert sich (oder gar nichts): das Sperrfenster nach der Vorabinfo
+			// schützt den angekündigten BETRAG, die Zahlungsart wirkt sofort – frühestens ab Beginn der
+			// Zuweisung (siehe update()). Ein angekündigter Einzug entfällt dann, die Forderung bleibt
+			// offen, und der tägliche Mahnlauf schickt die Zahlungsaufforderung zur Überweisung.
+			$effectiveFrom = max($this->today(), $assignment->getValidFrom());
+		}
 		if ($groupChanged) {
 			$this->assertNoOverlap($assignment->getMemberId(), $groupId, $effectiveFrom, $assignment->getValidTo(), $assignment->getId());
 		}
