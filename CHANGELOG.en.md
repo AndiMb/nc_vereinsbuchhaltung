@@ -17,20 +17,36 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+## [0.41.0] – 2026-10-23
+
 **New:**
-- **Change the payment method later.** "Change fee" now also offers the payment
-  method: individual members can be switched from direct debit to bank transfer
-  (and back) without ending and re-creating the assignment. The switch takes
-  effect at once and has no lock window – a collection already announced is
-  dropped and the payment request goes out with the next daily run; an existing
-  mandate stays valid and is simply no longer used.
-  The member gets the change confirmed by email, and the assignment history
-  records it.
-- **Self-service: switch to bank transfer yourself.** A new toggle in the basic
-  settings (off by default) lets members switch their payment method from direct
-  debit to bank transfer under "My contribution" – in this direction only;
-  switching back to direct debit is done by the board. Receipt email and
-  activity entry as for amount and interval changes.
+- **Change the payment method later.** "Change fee" now also offers the
+  payment method. Individual members can be switched from direct debit to bank
+  transfer and back without ending and re-creating the assignment. The switch
+  takes effect at once; there is no lock window: a collection already
+  announced is dropped, the claim stays open, and the next daily run sends the
+  payment request with GiroCode. Only a run that has already been released is
+  still collected. An existing mandate stays valid and is simply no longer
+  used. The member gets the change confirmed by email, and the assignment
+  history records it.
+- **Self-service: members switch to bank transfer themselves.** A new toggle
+  in the basic settings (off by default, requires the "My contribution"
+  self-service) lets members switch their payment method there from direct
+  debit to bank transfer – in this direction only. Switching back to direct
+  debit is done by the board via "Change fee". Receipt email and activity
+  entry as for amount and interval changes.
+
+**Changed:**
+- **"Change fee" for bank-transfer payers.** Preview and receipt email name
+  the next due date ("due on …") instead of a first collection.
+
+**Fixed:**
+- **Member list: fee total for the selected period.** The summary row only
+  projected today's running fees to twelve months and ignored the period
+  selector – assignments starting in the future were missing even when that
+  future year was selected. It now sums the fees of all assignments within the
+  period selected above and names it ("… in 2027"); with no financial year
+  selected, the next twelve months from today apply.
 
 ## [0.40.0] – 2026-10-19
 
