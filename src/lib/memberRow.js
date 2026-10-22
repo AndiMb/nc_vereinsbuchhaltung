@@ -101,57 +101,6 @@ export function assignmentStatusTone(assignment, today = isoToday()) {
 }
 
 /**
- * Kalendermonate von `from` bis `to`, beide Enden inklusive und jeweils voll
- * gezählt – dieselbe Regel wie ProrataCalculator::monthsSpanned() auf dem
- * Server (Spec §3.3: angebrochene Monate zählen an beiden Enden voll). Der
- * 20. Januar bis zum 5. März sind 3 Monate; liegt `to` vor `from`, sind es 0.
- *
- * @param {string} from JJJJ-MM-TT
- * @param {string} to JJJJ-MM-TT
- * @return {number}
- */
-export function monthsSpanned(from, to) {
-	if (to < from) { return 0 }
-	const [fy, fm] = from.split('-').map(Number)
-	const [ty, tm] = to.split('-').map(Number)
-	return (ty - fy) * 12 + (tm - fm) + 1
-}
-
-/**
- * Beitrag einer Zuweisung innerhalb eines Zeitraums (Geschäftsjahr aus
- * usePeriods): Monatsbetrag × Monate, in denen die Zuweisung im Zeitraum gilt.
- * Eine ab 1.7. beginnende Zuweisung bringt im Kalenderjahr sechs Monate, eine
- * zurückgenommene nichts. Ob sie *heute* aktiv ist, spielt keine Rolle – der
- * Zeitraum kann in der Zukunft liegen.
- *
- * @param {{validFrom: string, validTo: string|null, monthlyAmountCents: number}} assignment
- * @param {{startDate: string, endDate: string}} period
- * @return {number} in Euro
- */
-export function periodAmount(assignment, period) {
-	if (isWithdrawnAssignment(assignment)) { return 0 }
-	const from = assignment.validFrom > period.startDate ? assignment.validFrom : period.startDate
-	const to = assignment.validTo !== null && assignment.validTo < period.endDate ? assignment.validTo : period.endDate
-	return assignment.monthlyAmountCents * monthsSpanned(from, to) / 100
-}
-
-/**
- * Jahresbetrag aller Zuweisungen eines Mitglieds: mit Zeitraum der Beitrag
- * innerhalb dieses Zeitraums (siehe periodAmount()), sonst – „alle Zeiträume" –
- * die heute aktiven Zuweisungen auf zwölf Monate hochgerechnet.
- *
- * @param {Array} assignments die Zuweisungen des Mitglieds
- * @param {{startDate: string, endDate: string}|null} period
- * @return {number} in Euro
- */
-function yearlyAmountOf(assignments, period) {
-	if (period) {
-		return assignments.reduce((sum, a) => sum + periodAmount(a, period), 0)
-	}
-	return assignments.reduce((sum, a) => sum + (a.active ? a.monthlyAmountCents * 12 / 100 : 0), 0)
-}
-
-/**
  * Anzeigeform eines Beitrags aus einer Zuweisung. `amount` ist der Betrag je
  * Periode (Monatsbetrag × Turnus), damit die Spalte „Betrag" neben der
  * Frequenz dasselbe bedeutet wie auf der Rechnung.
@@ -199,15 +148,13 @@ function pickFee(assignments, today) {
 }
 
 /**
- * Eine Zeile der Mitgliederliste. `nextDueDates` kommt aus {@link nextDueDates}
- * und wird einmal je Liste berechnet. `period` ist der gewählte Zeitraum
- * (usePeriods, null bei „alle Zeiträume"); er bestimmt, worauf sich
- * `yearlyAmount` bezieht (siehe periodAmount()), nicht aber den Zustand der
- * Zuweisung – „aktiv" oder „ab …" beschreibt die Zuweisung von heute aus.
+ * Eine Zeile der Mitgliederliste – der Stand von heute aus. `nextDueDates`
+ * kommt aus {@link nextDueDates} und wird einmal je Liste berechnet. Das
+ * Beitragsaufkommen für den gewählten Zeitraum rechnet die Liste selbst über
+ * die Zuweisungen (lib/prorata.js), nicht je Zeile.
  */
-export function buildMemberRow(member, { mandates, assignments, nextDueDates: dueDates = new Map(), today = isoToday(), period = null }) {
-	const mine = assignments.filter((a) => a.memberId === member.id)
-	const fee = pickFee(mine, today)
+export function buildMemberRow(member, { mandates, assignments, nextDueDates: dueDates = new Map(), today = isoToday() }) {
+	const fee = pickFee(assignments.filter((a) => a.memberId === member.id), today)
 	return {
 		key: `member-${member.id}`,
 		member,
@@ -216,7 +163,6 @@ export function buildMemberRow(member, { mandates, assignments, nextDueDates: du
 		mandate: pickMandate(member.id, mandates),
 		fee: fee.view,
 		moreFees: fee.moreFees,
-		yearlyAmount: yearlyAmountOf(mine, period),
 		nextDueDate: dueDates.get(member.id) ?? null,
 	}
 }
