@@ -1987,6 +1987,7 @@
         "Ein Mitglied wird unabhängig von einer Bankverbindung geführt – SEPA-Mandat und Beitrag sind optionale Ergänzungen, die sich jederzeit über „Aufnehmen\" bzw. die Akte nachtragen lassen.": "A member is managed independently of bank details – the SEPA mandate and contribution are optional additions that can be added at any time via “Add member” or the member record.",
         "Name, IBAN, Mitgliedsnummer oder E-Mail": "Name, IBAN, member number or email",
         "{gezeigt} von {gesamt} Mitgliedern · {mitMandat} mit Mandat · Beitragsaufkommen {summe} im Jahr": "{gezeigt} of {gesamt} members · {mitMandat} with mandate · annual contribution volume {summe}",
+        "{gezeigt} von {gesamt} Mitgliedern · {mitMandat} mit Mandat · Beitragsaufkommen {summe} in {zeitraum}": "{gezeigt} of {gesamt} members · {mitMandat} with mandate · contribution volume {summe} in {zeitraum}",
         "Das Mitglied wurde nicht gefunden – vielleicht wurde es inzwischen gelöscht.": "The member was not found – perhaps it has been deleted in the meantime.",
         "Mitglied gespeichert.": "Member saved.",
         "Mitglied konnte nicht gespeichert werden": "Could not save the member",

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { assignmentStatusLabel, assignmentStatusTone, buildMemberRow, isLiveAssignment, isWithdrawnAssignment, nextDueDates } from './memberRow.js'
+import { assignmentStatusLabel, assignmentStatusTone, buildMemberRow, isLiveAssignment, isWithdrawnAssignment, monthsSpanned, nextDueDates, periodAmount } from './memberRow.js'
 
 // Zeilenaufbau der Mitgliederliste: Mandat und Zuweisung in die gemeinsame
 // Anzeigeform, die nächste Fälligkeit aus den Forderungen. Die Datenformen
@@ -231,5 +231,61 @@ describe('zurückgenommene und künftige Zuweisungen', () => {
 		expect(assignmentStatusLabel(ended, TODAY)).toBe('beendet 31.12.2025')
 		expect(assignmentStatusLabel(withdrawn, TODAY)).toBe('zurückgenommen')
 		expect(assignmentStatusTone(withdrawn, TODAY)).toBe('muted')
+	})
+})
+
+describe('Beitragsaufkommen im gewählten Zeitraum', () => {
+	const Y2026 = { startDate: '2026-01-01', endDate: '2026-12-31' }
+	const Y2027 = { startDate: '2027-01-01', endDate: '2027-12-31' }
+	// Eine erst künftig beginnende Zuweisung: heute (2026-09-20) nicht aktiv.
+	const ab2027 = assignment({ active: false, validFrom: '2027-01-01' })
+
+	it('zählt Kalendermonate wie der Server: angebrochene Monate an beiden Enden voll', () => {
+		expect(monthsSpanned('2027-01-01', '2027-12-31')).toBe(12)
+		expect(monthsSpanned('2027-01-20', '2027-03-05')).toBe(3)
+		expect(monthsSpanned('2027-01-15', '2027-01-31')).toBe(1)
+		expect(monthsSpanned('2027-02-01', '2027-01-31')).toBe(0)
+	})
+
+	it('eine Zuweisung ab 1.1.2027 zählt im Zeitraum 2027 voll, im Zeitraum 2026 gar nicht', () => {
+		expect(periodAmount(ab2027, Y2027)).toBe(120)
+		expect(periodAmount(ab2027, Y2026)).toBe(0)
+		expect(build({ assignments: [ab2027], period: Y2027 }).yearlyAmount).toBe(120)
+		expect(build({ assignments: [ab2027], period: Y2026 }).yearlyAmount).toBe(0)
+	})
+
+	it('der Zustand der Zuweisung bleibt auf heute bezogen, auch wenn der Zeitraum in der Zukunft liegt', () => {
+		const row = build({ assignments: [ab2027], period: Y2027 })
+		expect(row.fee.statusLabel).toBe('ab 01.01.2027')
+		expect(row.fee.active).toBe(false)
+	})
+
+	it('eine ab 1.7. beginnende Zuweisung bringt sechs Monate', () => {
+		const abJuli = assignment({ active: false, validFrom: '2027-07-01' })
+		expect(build({ assignments: [abJuli], period: Y2027 }).yearlyAmount).toBe(60)
+	})
+
+	it('eine innerhalb des Zeitraums endende Zuweisung zählt bis zum Ende', () => {
+		const bisMaerz = assignment({ validFrom: '2026-01-01', validTo: '2027-03-31' })
+		expect(build({ assignments: [bisMaerz], period: Y2027 }).yearlyAmount).toBe(30)
+		expect(build({ assignments: [bisMaerz], period: Y2026 }).yearlyAmount).toBe(120)
+	})
+
+	it('beendete und zurückgenommene Zuweisungen zählen nicht', () => {
+		const ended = assignment({ active: false, validFrom: '2025-01-01', validTo: '2025-12-31' })
+		const withdrawn = assignment({ active: false, validFrom: '2027-03-01', validTo: '2027-02-28' })
+		expect(build({ assignments: [ended, withdrawn], period: Y2027 }).yearlyAmount).toBe(0)
+	})
+
+	it('Gruppenwechsel zum Monatsersten: alter und neuer Beitrag ergänzen sich zu zwölf Monaten', () => {
+		const alt = assignment({ id: 1, monthlyAmountCents: 1000, validFrom: '2026-01-01', validTo: '2027-03-31' })
+		const neu = assignment({ id: 2, active: false, monthlyAmountCents: 2000, validFrom: '2027-04-01' })
+		// 3 × 10 € + 9 × 20 €
+		expect(build({ assignments: [alt, neu], period: Y2027 }).yearlyAmount).toBe(210)
+	})
+
+	it('ohne Zeitraum („alle Zeiträume") gilt weiter: heute aktive Beiträge × 12', () => {
+		expect(build({ assignments: [ab2027] }).yearlyAmount).toBe(0)
+		expect(build({ assignments: [assignment()] }).yearlyAmount).toBe(120)
 	})
 })

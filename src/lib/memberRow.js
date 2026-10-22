@@ -101,10 +101,60 @@ export function assignmentStatusTone(assignment, today = isoToday()) {
 }
 
 /**
+ * Kalendermonate von `from` bis `to`, beide Enden inklusive und jeweils voll
+ * gezählt – dieselbe Regel wie ProrataCalculator::monthsSpanned() auf dem
+ * Server (Spec §3.3: angebrochene Monate zählen an beiden Enden voll). Der
+ * 20. Januar bis zum 5. März sind 3 Monate; liegt `to` vor `from`, sind es 0.
+ *
+ * @param {string} from JJJJ-MM-TT
+ * @param {string} to JJJJ-MM-TT
+ * @return {number}
+ */
+export function monthsSpanned(from, to) {
+	if (to < from) { return 0 }
+	const [fy, fm] = from.split('-').map(Number)
+	const [ty, tm] = to.split('-').map(Number)
+	return (ty - fy) * 12 + (tm - fm) + 1
+}
+
+/**
+ * Beitrag einer Zuweisung innerhalb eines Zeitraums (Geschäftsjahr aus
+ * usePeriods): Monatsbetrag × Monate, in denen die Zuweisung im Zeitraum gilt.
+ * Eine ab 1.7. beginnende Zuweisung bringt im Kalenderjahr sechs Monate, eine
+ * zurückgenommene nichts. Ob sie *heute* aktiv ist, spielt keine Rolle – der
+ * Zeitraum kann in der Zukunft liegen.
+ *
+ * @param {{validFrom: string, validTo: string|null, monthlyAmountCents: number}} assignment
+ * @param {{startDate: string, endDate: string}} period
+ * @return {number} in Euro
+ */
+export function periodAmount(assignment, period) {
+	if (isWithdrawnAssignment(assignment)) { return 0 }
+	const from = assignment.validFrom > period.startDate ? assignment.validFrom : period.startDate
+	const to = assignment.validTo !== null && assignment.validTo < period.endDate ? assignment.validTo : period.endDate
+	return assignment.monthlyAmountCents * monthsSpanned(from, to) / 100
+}
+
+/**
+ * Jahresbetrag aller Zuweisungen eines Mitglieds: mit Zeitraum der Beitrag
+ * innerhalb dieses Zeitraums (siehe periodAmount()), sonst – „alle Zeiträume" –
+ * die heute aktiven Zuweisungen auf zwölf Monate hochgerechnet.
+ *
+ * @param {Array} assignments die Zuweisungen des Mitglieds
+ * @param {{startDate: string, endDate: string}|null} period
+ * @return {number} in Euro
+ */
+function yearlyAmountOf(assignments, period) {
+	if (period) {
+		return assignments.reduce((sum, a) => sum + periodAmount(a, period), 0)
+	}
+	return assignments.reduce((sum, a) => sum + (a.active ? a.monthlyAmountCents * 12 / 100 : 0), 0)
+}
+
+/**
  * Anzeigeform eines Beitrags aus einer Zuweisung. `amount` ist der Betrag je
  * Periode (Monatsbetrag × Turnus), damit die Spalte „Betrag" neben der
- * Frequenz dasselbe bedeutet wie auf der Rechnung; `yearlyAmount` zählt nur,
- * solange die Zuweisung aktiv ist.
+ * Frequenz dasselbe bedeutet wie auf der Rechnung.
  */
 function assignmentView(assignment, today) {
 	const free = assignment.monthlyAmountCents === 0
@@ -120,7 +170,6 @@ function assignmentView(assignment, today) {
 		// Überweiser und Beitragsfreie brauchen kein Mandat – „aktiver Beitrag ohne
 		// Mandat" ist dort keine Auffälligkeit.
 		needsMandate: assignment.paymentMethod === 'direct_debit' && !free,
-		yearlyAmount: assignment.active ? assignment.monthlyAmountCents * 12 / 100 : 0,
 	}
 }
 
@@ -133,36 +182,32 @@ function pickMandate(memberId, mandates) {
 
 /**
  * Der anzuzeigende Beitrag: die früheste aktive Zuweisung (weitere aktive
- * zählt `moreFees`, ihr Jahresbetrag fließt in `yearlyAmount` ein), sonst die
- * jüngste nicht-aktive – damit auch eine erst künftig beginnende oder gerade
- * beendete Zuweisung sichtbar bleibt statt als „kein Beitrag" zu erscheinen.
+ * zählt `moreFees`), sonst die jüngste nicht-aktive – damit auch eine erst
+ * künftig beginnende oder gerade beendete Zuweisung sichtbar bleibt statt als
+ * „kein Beitrag" zu erscheinen.
  */
-function pickFee(memberId, assignments, today) {
-	const mine = assignments.filter((a) => a.memberId === memberId)
-	const active = mine
+function pickFee(assignments, today) {
+	const active = assignments
 		.filter((a) => a.active)
 		.sort((a, b) => a.validFrom.localeCompare(b.validFrom) || a.id - b.id)
-		.map((a) => assignmentView(a, today))
 	if (active.length) {
-		return {
-			view: active[0],
-			moreFees: active.length - 1,
-			yearlyAmount: active.reduce((sum, v) => sum + v.yearlyAmount, 0),
-		}
+		return { view: assignmentView(active[0], today), moreFees: active.length - 1 }
 	}
 
-	const latest = mine.sort((a, b) => b.validFrom.localeCompare(a.validFrom) || b.id - a.id)[0]
-	return latest
-		? { view: assignmentView(latest, today), moreFees: 0, yearlyAmount: 0 }
-		: { view: null, moreFees: 0, yearlyAmount: 0 }
+	const latest = [...assignments].sort((a, b) => b.validFrom.localeCompare(a.validFrom) || b.id - a.id)[0]
+	return { view: latest ? assignmentView(latest, today) : null, moreFees: 0 }
 }
 
 /**
  * Eine Zeile der Mitgliederliste. `nextDueDates` kommt aus {@link nextDueDates}
- * und wird einmal je Liste berechnet.
+ * und wird einmal je Liste berechnet. `period` ist der gewählte Zeitraum
+ * (usePeriods, null bei „alle Zeiträume"); er bestimmt, worauf sich
+ * `yearlyAmount` bezieht (siehe periodAmount()), nicht aber den Zustand der
+ * Zuweisung – „aktiv" oder „ab …" beschreibt die Zuweisung von heute aus.
  */
-export function buildMemberRow(member, { mandates, assignments, nextDueDates: dueDates = new Map(), today = isoToday() }) {
-	const fee = pickFee(member.id, assignments, today)
+export function buildMemberRow(member, { mandates, assignments, nextDueDates: dueDates = new Map(), today = isoToday(), period = null }) {
+	const mine = assignments.filter((a) => a.memberId === member.id)
+	const fee = pickFee(mine, today)
 	return {
 		key: `member-${member.id}`,
 		member,
@@ -171,7 +216,7 @@ export function buildMemberRow(member, { mandates, assignments, nextDueDates: du
 		mandate: pickMandate(member.id, mandates),
 		fee: fee.view,
 		moreFees: fee.moreFees,
-		yearlyAmount: fee.yearlyAmount,
+		yearlyAmount: yearlyAmountOf(mine, period),
 		nextDueDate: dueDates.get(member.id) ?? null,
 	}
 }

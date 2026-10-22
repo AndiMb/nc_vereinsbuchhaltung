@@ -20,13 +20,23 @@
 			</NcButton>
 		</div>
 
+		<!-- Das Beitragsaufkommen bezieht sich auf den gewählten Zeitraum (lib/memberRow.js::periodAmount);
+		     bei „alle Zeiträume" auf die heute laufenden Beiträge, aufs Jahr hochgerechnet. -->
 		<p v-if="rows.length" class="vbh-hint vbh-membersummary">
-			{{ t('{gezeigt} von {gesamt} Mitgliedern · {mitMandat} mit Mandat · Beitragsaufkommen {summe} im Jahr', {
-				gezeigt: filteredRows.length,
-				gesamt: rows.length,
-				mitMandat: rows.filter(r => r.mandate).length,
-				summe: formatMoney(jahresSumme),
-			}) }}
+			{{ selectedPeriod
+				? t('{gezeigt} von {gesamt} Mitgliedern · {mitMandat} mit Mandat · Beitragsaufkommen {summe} in {zeitraum}', {
+					gezeigt: filteredRows.length,
+					gesamt: rows.length,
+					mitMandat: rows.filter(r => r.mandate).length,
+					summe: formatMoney(jahresSumme),
+					zeitraum: selectedPeriod.label,
+				})
+				: t('{gezeigt} von {gesamt} Mitgliedern · {mitMandat} mit Mandat · Beitragsaufkommen {summe} im Jahr', {
+					gezeigt: filteredRows.length,
+					gesamt: rows.length,
+					mitMandat: rows.filter(r => r.mandate).length,
+					summe: formatMoney(jahresSumme),
+				}) }}
 		</p>
 
 		<div v-if="filteredRows.length && isMobile" class="vbh-cardlist">
@@ -192,6 +202,7 @@ import { useContributionGroups } from '../composables/useContributionGroups.js'
 import { useMandates } from '../composables/useMandates.js'
 import { useMemberAkteRequest } from '../composables/useMemberAkteRequest.js'
 import { useMembers } from '../composables/useMembers.js'
+import { usePeriods } from '../composables/usePeriods.js'
 import { copyText } from '../lib/clipboard.js'
 import { errMsg, formatDate, formatMoney } from '../lib/format.js'
 import { createMandateForMember } from '../lib/mandateCreate.js'
@@ -242,6 +253,7 @@ export default {
 		const groups = useContributionGroups()
 		return {
 			...toRefs(groups.state),
+			selectedPeriod: usePeriods().selectedPeriod,
 			loadContributionGroups: groups.loadContributionGroups,
 			...toRefs(mandates.state),
 			...toRefs(assignments.state),
@@ -290,6 +302,7 @@ export default {
 				mandates: this.mandates,
 				assignments: this.assignments,
 				nextDueDates: nextDueDates(this.claimOverview.claims),
+				period: this.selectedPeriod,
 			}
 			return this.members
 				.map((member) => buildMemberRow(member, sources))
@@ -312,7 +325,7 @@ export default {
 			return collectEmails(this.filteredRows)
 		},
 
-		/** Beitragsaufkommen aufs Jahr hochgerechnet – nur aktive Beiträge (je Zeile in buildMemberRow() gesummt). */
+		/** Beitragsaufkommen im gewählten Zeitraum (je Zeile in buildMemberRow() gerechnet, siehe lib/memberRow.js). */
 		jahresSumme() {
 			return this.rows.reduce((summe, r) => summe + r.yearlyAmount, 0)
 		},
