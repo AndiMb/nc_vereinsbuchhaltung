@@ -67,19 +67,20 @@ class StaffChangeReceiptServiceTest extends TestCase {
 		return $member;
 	}
 
-	private function assignment(int $amountCents, int $intervalMonths = 12, int $groupId = 1): Assignment {
+	private function assignment(int $amountCents, int $intervalMonths = 12, int $groupId = 1, string $paymentMethod = Assignment::PAYMENT_METHOD_DIRECT_DEBIT): Assignment {
 		$a = new Assignment();
 		$a->setId(42);
 		$a->setMemberId(5);
 		$a->setGroupId($groupId);
 		$a->setMonthlyAmountCents($amountCents);
 		$a->setIntervalMonths($intervalMonths);
+		$a->setPaymentMethod($paymentMethod);
 		return $a;
 	}
 
-	/** @return array{amountCents:int, intervalMonths:int, groupId:int} */
-	private function before(int $amountCents, int $intervalMonths = 12, int $groupId = 1): array {
-		return ['amountCents' => $amountCents, 'intervalMonths' => $intervalMonths, 'groupId' => $groupId];
+	/** @return array{amountCents:int, intervalMonths:int, groupId:int, paymentMethod:string} */
+	private function before(int $amountCents, int $intervalMonths = 12, int $groupId = 1, string $paymentMethod = Assignment::PAYMENT_METHOD_DIRECT_DEBIT): array {
+		return ['amountCents' => $amountCents, 'intervalMonths' => $intervalMonths, 'groupId' => $groupId, 'paymentMethod' => $paymentMethod];
 	}
 
 	private function preview(): array {
@@ -121,6 +122,42 @@ class StaffChangeReceiptServiceTest extends TestCase {
 		);
 
 		$this->service()->send($this->assignment(1000, 3, 2), $this->before(1000, 12, 1), $this->preview());
+	}
+
+	public function testUmstellungAufUeberweisungNenntDasWeiterbestehendeMandatUndEineFaelligkeitStattEinesEinzugs(): void {
+		$this->member();
+		$after = $this->assignment(1000, paymentMethod: Assignment::PAYMENT_METHOD_TRANSFER);
+		$this->receiptMail->expects($this->once())->method('sendReceipt')->with(
+			$this->anything(),
+			$this->anything(),
+			$this->anything(),
+			$this->logicalAnd($this->stringContains('auf Überweisung umgestellt'), $this->stringContains('bleibt gültig, wird aber nicht mehr genutzt')),
+			'2026-11-01',
+			'2027-01-15',
+			null,
+			$this->anything(),
+			true, // per Überweisung ist der Termin eine Fälligkeit, kein Einzug
+		);
+
+		$this->assertSame(StaffChangeReceiptService::SENT, $this->service()->send($after, $this->before(1000), $this->preview()));
+	}
+
+	public function testUmstellungAufLastschriftNenntDenKuenftigenEinzug(): void {
+		$this->member();
+		$after = $this->assignment(1000);
+		$this->receiptMail->expects($this->once())->method('sendReceipt')->with(
+			$this->anything(),
+			$this->anything(),
+			$this->anything(),
+			$this->stringContains('auf Lastschrift umgestellt'),
+			'2026-11-01',
+			'2027-01-15',
+			null,
+			$this->anything(),
+			false,
+		);
+
+		$this->service()->send($after, $this->before(1000, paymentMethod: Assignment::PAYMENT_METHOD_TRANSFER), $this->preview());
 	}
 
 	public function testBeitragsfreiHatKeinenErstenEinzug(): void {

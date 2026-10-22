@@ -785,13 +785,13 @@ export const api = {
 	},
 
 	/** Vorschau vor dem Speichern (Spec §3.4 Pflicht-UI) - Self-Service-Kanal. */
-	async selfPreviewAssignment(request, id, { monthlyAmount, intervalMonths, user, expectOk = true } = {}) {
-		return call(request, 'POST', `/self/assignments/${id}/preview`, { user, expectOk, data: { monthlyAmount, intervalMonths } })
+	async selfPreviewAssignment(request, id, { monthlyAmount, intervalMonths, paymentMethod, user, expectOk = true } = {}) {
+		return call(request, 'POST', `/self/assignments/${id}/preview`, { user, expectOk, data: { monthlyAmount, intervalMonths, paymentMethod } })
 	},
 
-	/** Betrag/Turnus der eigenen Zuweisung ändern (Self-Service-Kanal). */
-	async selfUpdateAssignment(request, id, { monthlyAmount, intervalMonths, user, expectOk = true } = {}) {
-		return call(request, 'PUT', `/self/assignments/${id}`, { user, expectOk, data: { monthlyAmount, intervalMonths } })
+	/** Betrag/Turnus/Zahlungsart der eigenen Zuweisung ändern (Self-Service-Kanal). */
+	async selfUpdateAssignment(request, id, { monthlyAmount, intervalMonths, paymentMethod, user, expectOk = true } = {}) {
+		return call(request, 'PUT', `/self/assignments/${id}`, { user, expectOk, data: { monthlyAmount, intervalMonths, paymentMethod } })
 	},
 
 	/** Eigene Kontaktstammdaten pflegen (Self-Service-Kanal). */

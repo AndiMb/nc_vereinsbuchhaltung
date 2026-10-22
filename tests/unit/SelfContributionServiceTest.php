@@ -13,6 +13,7 @@ use OCA\Vereinsbuchhaltung\Service\AssignmentService;
 use OCA\Vereinsbuchhaltung\Service\SelfContributionService;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceActivityPublisher;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceReceiptMailService;
+use OCA\Vereinsbuchhaltung\Service\SelfServiceService;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IL10N;
@@ -40,6 +41,7 @@ class SelfContributionServiceTest extends TestCase {
 	private SelfServiceReceiptMailService&MockObject $receiptMail;
 	private SelfServiceActivityPublisher&MockObject $activity;
 	private IUserManager&MockObject $userManager;
+	private SelfServiceService&MockObject $selfService;
 	private ActorContextService $actorContext;
 
 	protected function setUp(): void {
@@ -48,6 +50,7 @@ class SelfContributionServiceTest extends TestCase {
 		$this->receiptMail = $this->createMock(SelfServiceReceiptMailService::class);
 		$this->activity = $this->createMock(SelfServiceActivityPublisher::class);
 		$this->userManager = $this->createMock(IUserManager::class);
+		$this->selfService = $this->createMock(SelfServiceService::class);
 		$userSession = $this->createMock(IUserSession::class);
 		$this->actorContext = new ActorContextService($userSession);
 	}
@@ -62,15 +65,16 @@ class SelfContributionServiceTest extends TestCase {
 		$l10n->method('t')->willReturnCallback(static fn (string $text, array $parameters = []): string => vsprintf($text, $parameters));
 		$time = $this->createMock(ITimeFactory::class);
 		$time->method('getDateTime')->willReturn(new \DateTime($today));
-		return new SelfContributionService($this->actorContext, $this->assignments, $this->members, $this->receiptMail, $this->activity, $this->userManager, $time, $l10n);
+		return new SelfContributionService($this->actorContext, $this->assignments, $this->selfService, $this->members, $this->receiptMail, $this->activity, $this->userManager, $time, $l10n);
 	}
 
-	private function ownAssignment(int $amountCents = 1000, int $intervalMonths = 1): Assignment {
+	private function ownAssignment(int $amountCents = 1000, int $intervalMonths = 1, string $paymentMethod = Assignment::PAYMENT_METHOD_DIRECT_DEBIT): Assignment {
 		$a = new Assignment();
 		$a->setId(self::ASSIGNMENT_ID);
 		$a->setMemberId(self::OWN_MEMBER_ID);
 		$a->setMonthlyAmountCents($amountCents);
 		$a->setIntervalMonths($intervalMonths);
+		$a->setPaymentMethod($paymentMethod);
 		return $a;
 	}
 
@@ -198,6 +202,73 @@ class SelfContributionServiceTest extends TestCase {
 		$result = $this->service()->apply(self::ASSIGNMENT_ID, 1500, null);
 
 		$this->assertSame(1500, $result['assignment']->getMonthlyAmountCents());
+	}
+
+	// --- Zahlungsart: nur auf Überweisung, nur wenn freigeschaltet, Mandat bleibt unberührt ---
+
+	public function testApplyUmstellungAufUeberweisungSendetQuittungOhneEinzugsterminUndActivity(): void {
+		$this->actorContext->setMemberChannel(self::OWN_MEMBER_ID);
+		$this->selfService->method('canSwitchToTransfer')->willReturn(true);
+		$this->assignments->method('find')->willReturn($this->ownAssignment());
+		$this->assignments->method('previewChange')->with(self::ASSIGNMENT_ID, null, null, null, Assignment::PAYMENT_METHOD_TRANSFER)->willReturn($this->fixedPreview());
+		$this->assignments->expects($this->once())->method('update')
+			->with(self::ASSIGNMENT_ID, null, null, null, ActorContextService::TYPE_MEMBER, $this->anything(), null, Assignment::PAYMENT_METHOD_TRANSFER)
+			->willReturn($this->ownAssignment(paymentMethod: Assignment::PAYMENT_METHOD_TRANSFER));
+		$this->members->method('find')->willReturn($this->member());
+
+		$this->activity->expects($this->once())->method('publish')
+			->with('katrin.b', SelfServiceProvider::SUBJECT_CONTRIBUTION_PAYMENT_METHOD_CHANGED, ['from' => 'direct_debit', 'to' => 'ueberweisung'], 'assignment', self::ASSIGNMENT_ID);
+		// Per Überweisung ist der Termin eine Fälligkeit, kein Einzug – die Mail bekommt das Kennzeichen dafür.
+		$this->receiptMail->expects($this->once())->method('sendReceipt')
+			->with($this->anything(), 'katrin@example.org', $this->anything(), $this->stringContains('Mandat bleibt gültig'), '2026-07-01', '2026-07-01', null, null, true);
+
+		$result = $this->service()->apply(self::ASSIGNMENT_ID, null, null, Assignment::PAYMENT_METHOD_TRANSFER);
+
+		$this->assertSame(Assignment::PAYMENT_METHOD_TRANSFER, $result['assignment']->getPaymentMethod());
+	}
+
+	public function testApplyUmstellungAufUeberweisungOhneFreischaltungWirdAbgelehntUndSpeichertNichts(): void {
+		$this->actorContext->setMemberChannel(self::OWN_MEMBER_ID);
+		$this->selfService->method('canSwitchToTransfer')->willReturn(false);
+		$this->assignments->method('find')->willReturn($this->ownAssignment());
+		$this->assignments->expects($this->never())->method('update');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->expectExceptionMessageMatches('/nicht freigeschaltet/');
+		$this->service()->apply(self::ASSIGNMENT_ID, null, null, Assignment::PAYMENT_METHOD_TRANSFER);
+	}
+
+	public function testPreviewUmstellungAufUeberweisungOhneFreischaltungWirdAbgelehnt(): void {
+		$this->actorContext->setMemberChannel(self::OWN_MEMBER_ID);
+		$this->selfService->method('canSwitchToTransfer')->willReturn(false);
+		$this->assignments->method('find')->willReturn($this->ownAssignment());
+		$this->assignments->expects($this->never())->method('previewChange');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->preview(self::ASSIGNMENT_ID, null, null, Assignment::PAYMENT_METHOD_TRANSFER);
+	}
+
+	public function testApplyZurueckZurLastschriftBleibtAuchMitFreischaltungDemVorstandVorbehalten(): void {
+		$this->actorContext->setMemberChannel(self::OWN_MEMBER_ID);
+		$this->selfService->method('canSwitchToTransfer')->willReturn(true);
+		$this->assignments->method('find')->willReturn($this->ownAssignment(paymentMethod: Assignment::PAYMENT_METHOD_TRANSFER));
+		$this->assignments->expects($this->never())->method('update');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->expectExceptionMessageMatches('/nur auf Überweisung/');
+		$this->service()->apply(self::ASSIGNMENT_ID, null, null, Assignment::PAYMENT_METHOD_DIRECT_DEBIT);
+	}
+
+	public function testApplyMitUnveraenderterZahlungsartBrauchtKeineFreischaltung(): void {
+		$this->actorContext->setMemberChannel(self::OWN_MEMBER_ID);
+		$this->selfService->expects($this->never())->method('canSwitchToTransfer');
+		$this->assignments->method('find')->willReturn($this->ownAssignment());
+		$this->assignments->method('previewChange')->willReturn($this->fixedPreview());
+		$this->assignments->expects($this->once())->method('update')->willReturn($this->ownAssignment(amountCents: 1500));
+		$this->members->method('find')->willReturn($this->member());
+
+		// Die SPA schickt die aktuelle Zahlungsart immer mit - das ist keine Umstellung.
+		$this->service()->apply(self::ASSIGNMENT_ID, 1500, null, Assignment::PAYMENT_METHOD_DIRECT_DEBIT);
 	}
 
 	public function testApplyOhneTatsaechlicheAenderungSendetNichts(): void {

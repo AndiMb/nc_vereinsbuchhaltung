@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Db;
 
 use OCP\AppFramework\Db\Entity;
+use OCP\IL10N;
 
 /**
  * Zuweisung – zeitraumbehaftete n:m-Kante Mitglied↔Beitragsgruppe, siehe Spec
@@ -70,6 +71,15 @@ class Assignment extends Entity implements \JsonSerializable {
 	public const PAYMENT_METHOD_DIRECT_DEBIT = 'direct_debit';
 	public const PAYMENT_METHOD_TRANSFER = 'ueberweisung';
 	public const PAYMENT_METHODS = [self::PAYMENT_METHOD_DIRECT_DEBIT, self::PAYMENT_METHOD_TRANSFER];
+
+	/** Anzeigename einer Zahlungsart – eine Stelle für Datenübersicht, Activity-Feed und Co. */
+	public static function paymentMethodName(string $method, IL10N $l10n): string {
+		return match ($method) {
+			self::PAYMENT_METHOD_DIRECT_DEBIT => $l10n->t('Lastschrift'),
+			self::PAYMENT_METHOD_TRANSFER => $l10n->t('Überweisung'),
+			default => $method,
+		};
+	}
 
 	public function __construct() {
 		$this->addType('memberId', 'integer');

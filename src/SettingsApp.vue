@@ -49,6 +49,7 @@
 					v-model:sepaDebtorAccountId="sepaDebtorAccountId"
 					v-model:membershipEnabled="membershipEnabled"
 					v-model:selfServiceEnabled="selfServiceEnabled"
+					v-model:selfServiceTransferSwitchEnabled="selfServiceTransferSwitchEnabled"
 					:membershipActive="membershipActive"
 					:storageSaving="storageSaving"
 					:saveSettings="saveSettings" />
@@ -201,6 +202,7 @@ export default {
 			// Self-Service-Zugang (Spec §3.4): einfacher Bool-Schalter, ab
 			// Verwalter änderbar (siehe SettingsSepaBasics.vue).
 			selfServiceEnabled: false,
+			selfServiceTransferSwitchEnabled: false,
 			// Gemeinsames Ladeflag fuer xbuc-Import und "Alle Daten löschen".
 			busy: false,
 		}
@@ -246,6 +248,7 @@ export default {
 				this.membershipEnabled = !!data.membership_enabled
 				this.membershipActive = !!data.membership_active
 				this.selfServiceEnabled = !!data.self_service_enabled
+				this.selfServiceTransferSwitchEnabled = !!data.self_service_transfer_switch_enabled
 			} catch { /* ignorieren */ }
 		},
 
@@ -269,6 +272,7 @@ export default {
 					sepa_debtor_account_id: this.sepaDebtorAccountId || '',
 					membership_enabled: this.membershipEnabled ? '1' : '0',
 					self_service_enabled: this.selfServiceEnabled ? '1' : '0',
+					self_service_transfer_switch_enabled: this.selfServiceTransferSwitchEnabled ? '1' : '0',
 				})
 				this.membershipActive = !!data.membership_active
 				// Die Auswahl „intern" räumt den Nutzer serverseitig ab – die Felder

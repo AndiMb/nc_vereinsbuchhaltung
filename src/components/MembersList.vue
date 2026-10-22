@@ -21,12 +21,7 @@
 		</div>
 
 		<p v-if="rows.length" class="vbh-hint vbh-membersummary">
-			{{ t('{gezeigt} von {gesamt} Mitgliedern · {mitMandat} mit Mandat · Beitragsaufkommen {summe} im Jahr', {
-				gezeigt: filteredRows.length,
-				gesamt: rows.length,
-				mitMandat: rows.filter(r => r.mandate).length,
-				summe: formatMoney(jahresSumme),
-			}) }}
+			{{ summaryText }}
 		</p>
 
 		<div v-if="filteredRows.length && isMobile" class="vbh-cardlist">
@@ -192,12 +187,14 @@ import { useContributionGroups } from '../composables/useContributionGroups.js'
 import { useMandates } from '../composables/useMandates.js'
 import { useMemberAkteRequest } from '../composables/useMemberAkteRequest.js'
 import { useMembers } from '../composables/useMembers.js'
+import { usePeriods } from '../composables/usePeriods.js'
 import { copyText } from '../lib/clipboard.js'
 import { errMsg, formatDate, formatMoney } from '../lib/format.js'
 import { createMandateForMember } from '../lib/mandateCreate.js'
 import { collectEmails, EMAIL_SEPARATOR } from '../lib/memberEmails.js'
 import { buildMemberRow, isLiveAssignment, nextDueDates } from '../lib/memberRow.js'
 import { createAndLinkAccount } from '../lib/nextcloudAccount.js'
+import { nextTwelveMonths, periodAmount } from '../lib/prorata.js'
 
 /**
  * Mitgliederliste (Spec §2.2/§3.1, docs/beitraege-sepa-modul-spec.md): jede
@@ -242,6 +239,7 @@ export default {
 		const groups = useContributionGroups()
 		return {
 			...toRefs(groups.state),
+			selectedPeriod: usePeriods().selectedPeriod,
 			loadContributionGroups: groups.loadContributionGroups,
 			...toRefs(mandates.state),
 			...toRefs(assignments.state),
@@ -312,9 +310,24 @@ export default {
 			return collectEmails(this.filteredRows)
 		},
 
-		/** Beitragsaufkommen aufs Jahr hochgerechnet – nur aktive Beiträge (je Zeile in buildMemberRow() gesummt). */
-		jahresSumme() {
-			return this.rows.reduce((summe, r) => summe + r.yearlyAmount, 0)
+		/**
+		 * Beitragsaufkommen aller Mitglieder im gewählten Zeitraum, sonst in den
+		 * nächsten zwölf Monaten (lib/prorata.js). Bewusst nicht je Zeile: die
+		 * Zeilen beschreiben den Stand von heute, nur diese Summe folgt dem Zeitraum.
+		 */
+		beitragsSumme() {
+			const zeitraum = this.selectedPeriod ?? nextTwelveMonths(new Date().toISOString().slice(0, 10))
+			return this.assignments.reduce((summe, a) => summe + periodAmount(a, zeitraum), 0)
+		},
+
+		summaryText() {
+			return this.t('{gezeigt} von {gesamt} Mitgliedern · {mitMandat} mit Mandat · Beitragsaufkommen {summe} in {zeitraum}', {
+				gezeigt: this.filteredRows.length,
+				gesamt: this.rows.length,
+				mitMandat: this.rows.filter((r) => r.mandate).length,
+				summe: formatMoney(this.beitragsSumme),
+				zeitraum: this.selectedPeriod ? this.selectedPeriod.label : this.t('den nächsten zwölf Monaten'),
+			})
 		},
 	},
 

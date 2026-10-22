@@ -117,15 +117,21 @@
 							{{ t('Vorschau') }}
 						</NcButton>
 					</div>
-					<p v-if="a._preview && previewMatchesForm(a) && a._preview.amountCents === 0" class="vbh-hint">
-						{{ t('Wirkt ab {from} · beitragsfrei: es wird nichts eingezogen.', { from: formatDate(a._preview.effectiveFrom) }) }}
+					<p class="vbh-hint">
+						{{ a.paymentMethod === 'ueberweisung'
+							? t('Zahlungsart: Überweisung – Sie überweisen Ihren Beitrag selbst.')
+							: t('Zahlungsart: Lastschrift – Ihr Beitrag wird per SEPA-Lastschrift eingezogen.') }}
 					</p>
-					<p v-else-if="a._preview && previewMatchesForm(a)" class="vbh-hint">
-						{{ t('Wirkt ab {from} · erster Einzug am {due} · Betrag {amount}', {
-							from: formatDate(a._preview.effectiveFrom),
-							due: formatDate(a._preview.firstDueDate),
-							amount: formatMoney(a._preview.amountCents / 100),
-						}) }}
+					<template v-if="a.paymentMethod === 'direct_debit' && canSwitchToTransfer">
+						<NcCheckboxRadioSwitch :modelValue="a._form.paymentMethod === 'ueberweisung'" type="switch" @update:modelValue="a._form.paymentMethod = $event ? 'ueberweisung' : 'direct_debit'">
+							{{ t('Künftig selbst überweisen statt Lastschrift') }}
+						</NcCheckboxRadioSwitch>
+						<p v-if="a._form.paymentMethod === 'ueberweisung'" class="vbh-hint">
+							{{ t('Ihr SEPA-Lastschriftmandat bleibt gültig, wird aber nicht mehr genutzt. Offene und künftige Beiträge überweisen Sie dann selbst; zurück zur Lastschrift geht es nur über Ihren Verein.') }}
+						</p>
+					</template>
+					<p v-if="a._preview && previewMatchesForm(a)" class="vbh-hint">
+						{{ previewText(a) }}
 					</p>
 					<div class="vbh-modal-actions">
 						<NcButton variant="primary" :disabled="!canSave(a)" @click="save(a)">
@@ -290,7 +296,7 @@
 <script>
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { getLanguage } from '@nextcloud/l10n'
-import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
 import AmountInput from './AmountInput.vue'
 import CountrySelect from './CountrySelect.vue'
 import MandateDraftDiscardDialog from './MandateDraftDiscardDialog.vue'
@@ -318,7 +324,9 @@ function emptyContactForm() {
  * Speichern (Spec Pflicht-UI).
  *
  * Beitrag-Teil (#76) bewusst OHNE Beitragsgruppen-Auswahl (Zuweisung.groupId
- * ist nicht editierbar, siehe SelfController.updateAssignment()) und ohne
+ * ist nicht editierbar, siehe SelfController.updateAssignment()); die Zahlungsart
+ * lässt sich – nur wenn der Verein es freigeschaltet hat (me.canSwitchToTransfer) –
+ * von Lastschrift auf Überweisung umstellen, nie zurück; und ohne
  * groupId-Feld überhaupt im Formular. Pflicht-UI „Vorschau vor jedem
  * Speichern": der Speichern-Knopf einer Zuweisung bleibt deaktiviert, bis
  * eine Vorschau für GENAU die aktuell eingetragenen Werte geladen wurde
@@ -345,7 +353,7 @@ function emptyContactForm() {
  */
 export default {
 	name: 'SelfServiceTab',
-	components: { NcLoadingIcon, NcButton, AmountInput, CountrySelect, MandateDraftDiscardDialog, SelfServiceMandateGrantDialog, SelfServiceMandateAccountDialog, SelfServiceMandateRevokeDialog },
+	components: { NcLoadingIcon, NcButton, NcCheckboxRadioSwitch, AmountInput, CountrySelect, MandateDraftDiscardDialog, SelfServiceMandateGrantDialog, SelfServiceMandateAccountDialog, SelfServiceMandateRevokeDialog },
 
 	data() {
 		return {
@@ -392,6 +400,11 @@ export default {
 
 		openClaimsTotalCents() {
 			return (this.member && this.member.openClaimsTotalCents) || 0
+		},
+
+		/** Schalter des Vereins (SelfServiceService::canSwitchToTransfer()), kommt mit „me“. */
+		canSwitchToTransfer() {
+			return !!(this.member && this.member.canSwitchToTransfer)
 		},
 
 		/**
@@ -589,7 +602,7 @@ export default {
 		withEditState(a) {
 			return {
 				...a,
-				_form: { monthlyAmount: a.monthlyAmount, intervalMonths: a.intervalMonths },
+				_form: { monthlyAmount: a.monthlyAmount, intervalMonths: a.intervalMonths, paymentMethod: a.paymentMethod },
 				_preview: null,
 				_previewedFor: null,
 				_loadingPreview: false,
@@ -598,11 +611,23 @@ export default {
 
 		/** Schlüssel der aktuellen Formularwerte - Grundlage für den Vorschau-Abgleich. */
 		formKey(a) {
-			return `${a._form.monthlyAmount}|${a._form.intervalMonths}`
+			return `${a._form.monthlyAmount}|${a._form.intervalMonths}|${a._form.paymentMethod}`
 		},
 
 		previewMatchesForm(a) {
 			return a._previewedFor === this.formKey(a)
+		},
+
+		/** Die Vorschau-Zeile: beitragsfrei, Fälligkeit (Überweisung) oder erster Einzug (Lastschrift). */
+		previewText(a) {
+			const p = a._preview
+			if (p.amountCents === 0) {
+				return this.t('Wirkt ab {from} · beitragsfrei: es wird nichts eingezogen.', { from: formatDate(p.effectiveFrom) })
+			}
+			const params = { from: formatDate(p.effectiveFrom), due: formatDate(p.firstDueDate), amount: formatMoney(p.amountCents / 100) }
+			return a._form.paymentMethod === 'ueberweisung'
+				? this.t('Wirkt ab {from} · fällig am {due} · Betrag {amount}', params)
+				: this.t('Wirkt ab {from} · erster Einzug am {due} · Betrag {amount}', params)
 		},
 
 		/** Speichern ist erst erlaubt, wenn eine Vorschau GENAU für die aktuellen Werte vorliegt (Pflicht-UI). */
@@ -616,6 +641,7 @@ export default {
 				const { data } = await api.selfPreviewAssignment(a.id, {
 					monthlyAmount: a._form.monthlyAmount,
 					intervalMonths: a._form.intervalMonths,
+					paymentMethod: a._form.paymentMethod,
 				})
 				a._preview = data
 				a._previewedFor = this.formKey(a)
@@ -634,6 +660,7 @@ export default {
 				const { data } = await api.selfUpdateAssignment(a.id, {
 					monthlyAmount: a._form.monthlyAmount,
 					intervalMonths: a._form.intervalMonths,
+					paymentMethod: a._form.paymentMethod,
 				})
 				Object.assign(a, this.withEditState(data.assignment))
 				showSuccess(this.t('Beitrag geändert.'))

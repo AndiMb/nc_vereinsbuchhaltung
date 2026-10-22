@@ -103,8 +103,7 @@ export function assignmentStatusTone(assignment, today = isoToday()) {
 /**
  * Anzeigeform eines Beitrags aus einer Zuweisung. `amount` ist der Betrag je
  * Periode (Monatsbetrag × Turnus), damit die Spalte „Betrag" neben der
- * Frequenz dasselbe bedeutet wie auf der Rechnung; `yearlyAmount` zählt nur,
- * solange die Zuweisung aktiv ist.
+ * Frequenz dasselbe bedeutet wie auf der Rechnung.
  */
 function assignmentView(assignment, today) {
 	const free = assignment.monthlyAmountCents === 0
@@ -120,7 +119,6 @@ function assignmentView(assignment, today) {
 		// Überweiser und Beitragsfreie brauchen kein Mandat – „aktiver Beitrag ohne
 		// Mandat" ist dort keine Auffälligkeit.
 		needsMandate: assignment.paymentMethod === 'direct_debit' && !free,
-		yearlyAmount: assignment.active ? assignment.monthlyAmountCents * 12 / 100 : 0,
 	}
 }
 
@@ -133,36 +131,30 @@ function pickMandate(memberId, mandates) {
 
 /**
  * Der anzuzeigende Beitrag: die früheste aktive Zuweisung (weitere aktive
- * zählt `moreFees`, ihr Jahresbetrag fließt in `yearlyAmount` ein), sonst die
- * jüngste nicht-aktive – damit auch eine erst künftig beginnende oder gerade
- * beendete Zuweisung sichtbar bleibt statt als „kein Beitrag" zu erscheinen.
+ * zählt `moreFees`), sonst die jüngste nicht-aktive – damit auch eine erst
+ * künftig beginnende oder gerade beendete Zuweisung sichtbar bleibt statt als
+ * „kein Beitrag" zu erscheinen.
  */
-function pickFee(memberId, assignments, today) {
-	const mine = assignments.filter((a) => a.memberId === memberId)
-	const active = mine
+function pickFee(assignments, today) {
+	const active = assignments
 		.filter((a) => a.active)
 		.sort((a, b) => a.validFrom.localeCompare(b.validFrom) || a.id - b.id)
-		.map((a) => assignmentView(a, today))
 	if (active.length) {
-		return {
-			view: active[0],
-			moreFees: active.length - 1,
-			yearlyAmount: active.reduce((sum, v) => sum + v.yearlyAmount, 0),
-		}
+		return { view: assignmentView(active[0], today), moreFees: active.length - 1 }
 	}
 
-	const latest = mine.sort((a, b) => b.validFrom.localeCompare(a.validFrom) || b.id - a.id)[0]
-	return latest
-		? { view: assignmentView(latest, today), moreFees: 0, yearlyAmount: 0 }
-		: { view: null, moreFees: 0, yearlyAmount: 0 }
+	const latest = [...assignments].sort((a, b) => b.validFrom.localeCompare(a.validFrom) || b.id - a.id)[0]
+	return { view: latest ? assignmentView(latest, today) : null, moreFees: 0 }
 }
 
 /**
- * Eine Zeile der Mitgliederliste. `nextDueDates` kommt aus {@link nextDueDates}
- * und wird einmal je Liste berechnet.
+ * Eine Zeile der Mitgliederliste – der Stand von heute aus. `nextDueDates`
+ * kommt aus {@link nextDueDates} und wird einmal je Liste berechnet. Das
+ * Beitragsaufkommen für den gewählten Zeitraum rechnet die Liste selbst über
+ * die Zuweisungen (lib/prorata.js), nicht je Zeile.
  */
 export function buildMemberRow(member, { mandates, assignments, nextDueDates: dueDates = new Map(), today = isoToday() }) {
-	const fee = pickFee(member.id, assignments, today)
+	const fee = pickFee(assignments.filter((a) => a.memberId === member.id), today)
 	return {
 		key: `member-${member.id}`,
 		member,
@@ -171,7 +163,6 @@ export function buildMemberRow(member, { mandates, assignments, nextDueDates: du
 		mandate: pickMandate(member.id, mandates),
 		fee: fee.view,
 		moreFees: fee.moreFees,
-		yearlyAmount: fee.yearlyAmount,
 		nextDueDate: dueDates.get(member.id) ?? null,
 	}
 }

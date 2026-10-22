@@ -182,6 +182,15 @@ class SettingsControllerSepaTest extends TestCase {
 		$this->assertSame('SEPA-Mandate', $this->store['mandate_document_folder']);
 	}
 
+	public function testSelfServiceUmstellungAufUeberweisungIstStandardmaessigAusUndWirdGeschrieben(): void {
+		$this->assertFalse($this->controller()->index()->getData()['self_service_transfer_switch_enabled']);
+
+		$data = $this->update(['self_service_transfer_switch_enabled' => '1'])->getData();
+
+		$this->assertTrue($data['self_service_transfer_switch_enabled']);
+		$this->assertSame('1', $this->store['self_service_transfer_switch_enabled']);
+	}
+
 	public function testNichtGeschickteFelderBleibenUnangetastet(): void {
 		$this->store['expiry_warning_days'] = '45';
 

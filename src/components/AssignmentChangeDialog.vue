@@ -37,7 +37,19 @@
 						</option>
 					</select>
 				</label>
+				<label v-if="!isGroupMode">{{ t('Zahlungsart') }}
+					<select v-model="form.paymentMethod">
+						<option value="direct_debit">{{ t('Lastschrift') }}</option>
+						<option value="ueberweisung">{{ t('Überweisung') }}</option>
+					</select>
+				</label>
 			</div>
+			<p v-if="paymentMethodChanged && form.paymentMethod === 'ueberweisung'" class="vbh-hint">
+				{{ t('Ab sofort wird nichts mehr per Lastschrift eingezogen, auch ein schon angekündigter Einzug nicht; offene und künftige Forderungen überweist das Mitglied selbst (Zahlungsaufforderung kommt mit dem nächsten Tageslauf). Ein bestehendes Mandat bleibt gültig und wird nur nicht mehr genutzt.') }}
+			</p>
+			<p v-else-if="paymentMethodChanged" class="vbh-hint">
+				{{ t('Lastschrift setzt ein aktives Mandat voraus – fehlt es, erscheint eine Aufgabe und die Forderung wartet, bis ein Mandat vorliegt.') }}
+			</p>
 			<p class="vbh-hint">
 				{{ isGroupMode
 					? tRaw('Untergrenze der gewählten Gruppe: {min}. Beim Wechsel ist deren Standardbeitrag eingetragen; Sie können ihn anpassen.', { min: euro(effectiveMinCents) })
@@ -47,11 +59,8 @@
 			<NcNoteCard v-if="previewError" type="error">
 				{{ previewError }}
 			</NcNoteCard>
-			<NcNoteCard v-else-if="preview && preview.amountCents === 0" type="info">
-				{{ t('Wirkt ab {from} · beitragsfrei: es wird nichts eingezogen.', { from: formatDate(preview.effectiveFrom) }) }}
-			</NcNoteCard>
 			<NcNoteCard v-else-if="preview" type="info">
-				{{ t('Wirkt ab {from} · erster Einzug am {due} · Betrag {amount}', { from: formatDate(preview.effectiveFrom), due: formatDate(preview.firstDueDate), amount: euro(preview.amountCents) }) }}
+				{{ previewText }}
 			</NcNoteCard>
 			<NcLoadingIcon v-else-if="loadingPreview" :size="20" />
 			<p class="vbh-hint">
@@ -80,12 +89,13 @@ import { intervalLabel } from '../lib/frequency.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 
 /**
- * „Beitrag ändern“ und „Beitragsgruppe wechseln“ für den Vorstand: Monatsbeitrag und Turnus einer bestehenden Zuweisung beziehungsweise ihre Beitragsgruppe
+ * „Beitrag ändern“ und „Beitragsgruppe wechseln“ für den Vorstand: Monatsbeitrag, Turnus und Zahlungsart einer bestehenden Zuweisung beziehungsweise ihre Beitragsgruppe
  * (bisher konnte nur das Mitglied selbst unter „Mein Beitrag“ ändern, die Verwaltung nur beenden und
  * neu anlegen). Der Server prüft Untergrenze und erlaubte Turnusse und nennt in der Vorschau, ab wann
  * die Änderung gilt – bei einem schon angekündigten Einzug erst danach (Sperrfenster). Die Vorschau
  * erscheint von selbst, sobald sich ein Wert ändert; gespeichert wird erst, wenn sie zum Stand der
- * Felder passt.
+ * Felder passt. Die Zahlungsart wirkt sofort und kennt kein Sperrfenster; ein bestehendes Mandat bleibt beim
+ * Wechsel auf Überweisung unberührt und wird nur nicht mehr genutzt.
  */
 export default {
 	name: 'AssignmentChangeDialog',
@@ -106,7 +116,7 @@ export default {
 
 	data() {
 		return {
-			form: { monthlyAmount: '', intervalMonths: 1, groupId: null },
+			form: { monthlyAmount: '', intervalMonths: 1, groupId: null, paymentMethod: 'direct_debit' },
 			preview: null,
 			previewedFor: null,
 			previewError: '',
@@ -138,6 +148,23 @@ export default {
 			return !!this.assignment && this.form.groupId !== this.assignment.groupId
 		},
 
+		paymentMethodChanged() {
+			return !!this.assignment && this.form.paymentMethod !== this.assignment.paymentMethod
+		},
+
+		/** Die Vorschau-Zeile: beitragsfrei, Fälligkeit (Überweisung) oder erster Einzug (Lastschrift). */
+		previewText() {
+			const p = this.preview
+			if (!p) { return '' }
+			if (p.amountCents === 0) {
+				return this.t('Wirkt ab {from} · beitragsfrei: es wird nichts eingezogen.', { from: formatDate(p.effectiveFrom) })
+			}
+			const params = { from: formatDate(p.effectiveFrom), due: formatDate(p.firstDueDate), amount: this.euro(p.amountCents) }
+			return this.form.paymentMethod === 'ueberweisung'
+				? this.t('Wirkt ab {from} · fällig am {due} · Betrag {amount}', params)
+				: this.t('Wirkt ab {from} · erster Einzug am {due} · Betrag {amount}', params)
+		},
+
 		effectiveMinCents() {
 			if (!this.assignment) { return 0 }
 			return this.assignment.minMonthlyAmountOverrideCents ?? (this.selectedGroup ? this.selectedGroup.minMonthlyAmountCents : 0)
@@ -153,9 +180,10 @@ export default {
 				&& Number(this.form.monthlyAmount) === this.assignment.monthlyAmount
 				&& this.form.intervalMonths === this.assignment.intervalMonths
 				&& !this.groupChanged
+				&& !this.paymentMethodChanged
 		},
 
-		formKey() { return `${this.form.groupId}|${this.form.monthlyAmount}|${this.form.intervalMonths}` },
+		formKey() { return `${this.form.groupId}|${this.form.monthlyAmount}|${this.form.intervalMonths}|${this.form.paymentMethod}` },
 
 		canSave() {
 			return this.form.monthlyAmount !== '' && !this.unchanged && !this.previewError && !!this.preview && this.previewedFor === this.formKey
@@ -165,7 +193,7 @@ export default {
 	watch: {
 		show(open) {
 			if (!open || !this.assignment) { return }
-			this.form = { monthlyAmount: this.assignment.monthlyAmount, intervalMonths: this.assignment.intervalMonths, groupId: this.assignment.groupId }
+			this.form = { monthlyAmount: this.assignment.monthlyAmount, intervalMonths: this.assignment.intervalMonths, groupId: this.assignment.groupId, paymentMethod: this.assignment.paymentMethod }
 			this.preview = null
 			this.previewedFor = null
 			this.previewError = ''
@@ -211,6 +239,7 @@ export default {
 					monthlyAmount: this.form.monthlyAmount,
 					intervalMonths: this.form.intervalMonths,
 					groupId: this.form.groupId,
+					paymentMethod: this.form.paymentMethod,
 				})
 				if (key !== this.formKey) { return }
 				this.preview = data
@@ -244,6 +273,7 @@ export default {
 					monthlyAmount: this.form.monthlyAmount,
 					intervalMonths: this.form.intervalMonths,
 					groupId: this.form.groupId,
+					paymentMethod: this.form.paymentMethod,
 				})
 				this.reportReceipt(data.receipt)
 				this.$emit('saved')

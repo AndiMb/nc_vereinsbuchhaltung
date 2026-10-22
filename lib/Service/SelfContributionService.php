@@ -16,8 +16,13 @@ use OCP\IUserManager;
 
 /**
  * Beitrags-Aktionen im Self-Service (Spec §3.4 Aktionskatalog, Issue #76):
- * Betrag ändern (hoch frei, runter bis Untergrenze) und Turnus wechseln (aus
- * `allowed_intervals`) – NICHT Beitragsgruppe wechseln, „diesen Monat mal
+ * Betrag ändern (hoch frei, runter bis Untergrenze), Turnus wechseln (aus
+ * `allowed_intervals`) und – wenn der Verein es freigeschaltet hat
+ * ({@see SelfServiceService::canSwitchToTransfer()}) – die Zahlungsart von
+ * Lastschrift auf Überweisung umstellen (nur in diese Richtung: zurück zur
+ * Lastschrift braucht ein einzugsfähiges Mandat und bleibt beim Vorstand;
+ * das Mandat selbst bleibt bei der Umstellung unberührt und wird nur nicht
+ * mehr genutzt) – NICHT Beitragsgruppe wechseln, „diesen Monat mal
  * nicht abbuchen", Austritt, Erledigungsvermerk oder individuelle
  * Untergrenze (siehe Aktionskatalog „Darf nicht").
  *
@@ -38,6 +43,7 @@ class SelfContributionService {
 	public function __construct(
 		private ActorContextService $actorContext,
 		private AssignmentService $assignments,
+		private SelfServiceService $selfService,
 		private MemberMapper $members,
 		private SelfServiceReceiptMailService $receiptMail,
 		private SelfServiceActivityPublisher $activity,
@@ -62,9 +68,10 @@ class SelfContributionService {
 	 * @throws \InvalidArgumentException bei ungültigen Werten oder gesperrter Änderung
 	 * @throws DoesNotExistException wenn die Zuweisung nicht existiert oder nicht dem eigenen Mitglied gehört
 	 */
-	public function preview(int $assignmentId, ?int $monthlyAmountCents, ?int $intervalMonths): array {
-		$this->assertOwnership($assignmentId);
-		$preview = $this->assignments->previewChange($assignmentId, $monthlyAmountCents, $intervalMonths);
+	public function preview(int $assignmentId, ?int $monthlyAmountCents, ?int $intervalMonths, ?string $paymentMethod = null): array {
+		$assignment = $this->assertOwnership($assignmentId);
+		$this->assertPaymentMethodAllowed($assignment, $paymentMethod);
+		$preview = $this->assignments->previewChange($assignmentId, $monthlyAmountCents, $intervalMonths, null, $paymentMethod);
 		$this->assertNotLocked($preview);
 		return $preview;
 	}
@@ -81,17 +88,16 @@ class SelfContributionService {
 	 * @throws \InvalidArgumentException bei ungültigen Werten oder gesperrter Änderung
 	 * @throws DoesNotExistException wenn die Zuweisung nicht existiert oder nicht dem eigenen Mitglied gehört
 	 */
-	public function apply(int $assignmentId, ?int $monthlyAmountCents, ?int $intervalMonths): array {
+	public function apply(int $assignmentId, ?int $monthlyAmountCents, ?int $intervalMonths, ?string $paymentMethod = null): array {
 		$assignment = $this->assertOwnership($assignmentId);
+		$this->assertPaymentMethodAllowed($assignment, $paymentMethod);
 		// Erst die Vorschau (validiert Untergrenze/erlaubten Turnus und
 		// berechnet "wirkt ab" GENAU wie update() es gleich tun wird) - bei
 		// einem Fehler wird gar nichts gespeichert.
-		$preview = $this->assignments->previewChange($assignmentId, $monthlyAmountCents, $intervalMonths);
+		$preview = $this->assignments->previewChange($assignmentId, $monthlyAmountCents, $intervalMonths, null, $paymentMethod);
 		$this->assertNotLocked($preview);
 
-		$oldAmountCents = $assignment->getMonthlyAmountCents();
-		$oldIntervalMonths = $assignment->getIntervalMonths();
-
+		// $assignment bleibt der Stand VOR der Änderung: update() lädt sich seine eigene Kopie.
 		$updated = $this->assignments->update(
 			$assignmentId,
 			$monthlyAmountCents,
@@ -99,34 +105,42 @@ class SelfContributionService {
 			null, // Beitragsgruppe wechseln ist im Self-Service nicht erlaubt (Spec §3.4 "Darf nicht")
 			ActorContextService::TYPE_MEMBER,
 			$this->actorContext->actorUid(),
+			paymentMethod: $paymentMethod,
 		);
 
-		$this->notify($assignment->getMemberId(), $assignmentId, $oldAmountCents, $monthlyAmountCents, $oldIntervalMonths, $intervalMonths, $preview);
+		$this->notify($assignment, $updated, $preview);
 
 		return ['assignment' => $updated, 'preview' => $preview];
 	}
 
-	private function notify(int $memberId, int $assignmentId, int $oldAmountCents, ?int $newAmountCents, int $oldIntervalMonths, ?int $newIntervalMonths, array $preview): void {
-		$member = $this->members->find($memberId);
+	/** Quittungsmail und Activity-Eintrag je tatsächlich geändertem Feld – `$before`/`$after` wie in {@see StaffChangeReceiptService}. */
+	private function notify(Assignment $before, Assignment $after, array $preview): void {
+		$member = $this->members->find($before->getMemberId());
 		$ncUserId = $member->getNcUserId();
-
-		$amountChanged = $newAmountCents !== null && $newAmountCents !== $oldAmountCents;
-		$intervalChanged = $newIntervalMonths !== null && $newIntervalMonths !== $oldIntervalMonths;
+		$assignmentId = (int)$before->getId();
 
 		$whatParts = [];
-		if ($amountChanged) {
-			$whatParts[] = $this->l10n->t('Ihr Monatsbeitrag wurde von %1$s € auf %2$s € geändert.', [$this->euro($oldAmountCents), $this->euro($newAmountCents)]);
+		if ($after->getMonthlyAmountCents() !== $before->getMonthlyAmountCents()) {
+			$whatParts[] = $this->l10n->t('Ihr Monatsbeitrag wurde von %1$s € auf %2$s € geändert.', [$this->euro($before->getMonthlyAmountCents()), $this->euro($after->getMonthlyAmountCents())]);
 			if ($ncUserId !== null) {
 				$this->activity->publish($ncUserId, SelfServiceProvider::SUBJECT_CONTRIBUTION_AMOUNT_CHANGED, [
-					'from' => $oldAmountCents, 'to' => $newAmountCents, 'effectiveFrom' => $preview['effectiveFrom'],
+					'from' => $before->getMonthlyAmountCents(), 'to' => $after->getMonthlyAmountCents(), 'effectiveFrom' => $preview['effectiveFrom'],
 				], 'assignment', $assignmentId);
 			}
 		}
-		if ($intervalChanged) {
-			$whatParts[] = $this->l10n->t('Ihr Zahlungsturnus wurde von alle %1$d Monate auf alle %2$d Monate geändert.', [$oldIntervalMonths, $newIntervalMonths]);
+		if ($after->getIntervalMonths() !== $before->getIntervalMonths()) {
+			$whatParts[] = $this->l10n->t('Ihr Zahlungsturnus wurde von alle %1$d Monate auf alle %2$d Monate geändert.', [$before->getIntervalMonths(), $after->getIntervalMonths()]);
 			if ($ncUserId !== null) {
 				$this->activity->publish($ncUserId, SelfServiceProvider::SUBJECT_CONTRIBUTION_INTERVAL_CHANGED, [
-					'from' => $oldIntervalMonths, 'to' => $newIntervalMonths, 'effectiveFrom' => $preview['effectiveFrom'],
+					'from' => $before->getIntervalMonths(), 'to' => $after->getIntervalMonths(), 'effectiveFrom' => $preview['effectiveFrom'],
+				], 'assignment', $assignmentId);
+			}
+		}
+		if ($after->getPaymentMethod() !== $before->getPaymentMethod()) {
+			$whatParts[] = $this->l10n->t('Ihre Zahlungsart wurde auf Überweisung umgestellt: Ihr Beitrag wird nicht mehr per Lastschrift eingezogen, bitte überweisen Sie ihn künftig selbst. Ihr SEPA-Lastschriftmandat bleibt gültig, wird aber nicht mehr genutzt.');
+			if ($ncUserId !== null) {
+				$this->activity->publish($ncUserId, SelfServiceProvider::SUBJECT_CONTRIBUTION_PAYMENT_METHOD_CHANGED, [
+					'from' => $before->getPaymentMethod(), 'to' => $after->getPaymentMethod(),
 				], 'assignment', $assignmentId);
 			}
 		}
@@ -144,6 +158,7 @@ class SelfContributionService {
 				implode(' ', $whatParts),
 				$preview['effectiveFrom'],
 				$preview['firstDueDate'],
+				byTransfer: $after->getPaymentMethod() === Assignment::PAYMENT_METHOD_TRANSFER,
 			);
 		}
 	}
@@ -186,6 +201,27 @@ class SelfContributionService {
 				'Für die laufende Periode wurde bereits eine Vorabinfo verschickt – Betrag und Turnus stehen bis zum Einzug fest. Möglich wäre diese Änderung erst ab %s.',
 				[GermanDate::format($preview['effectiveFrom'])],
 			));
+		}
+	}
+
+	/**
+	 * Zahlungsart im Self-Service: nur von Lastschrift AUF Überweisung, und nur,
+	 * wenn der Verein das freigeschaltet hat. Die Gegenrichtung (zurück zur
+	 * Lastschrift) braucht ein einzugsfähiges Mandat und bleibt beim Vorstand
+	 * (Spec §3.4 „Darf nicht"). Eine unveränderte Zahlungsart ist immer
+	 * erlaubt – die SPA schickt den aktuellen Wert mit.
+	 *
+	 * @throws \InvalidArgumentException wenn die Umstellung nicht zulässig ist
+	 */
+	private function assertPaymentMethodAllowed(Assignment $assignment, ?string $paymentMethod): void {
+		if ($paymentMethod === null || $paymentMethod === $assignment->getPaymentMethod()) {
+			return;
+		}
+		if ($paymentMethod !== Assignment::PAYMENT_METHOD_TRANSFER) {
+			throw new \InvalidArgumentException($this->l10n->t('Im Self-Service lässt sich die Zahlungsart nur auf Überweisung umstellen. Für die Rückkehr zur Lastschrift wenden Sie sich an Ihren Verein.'));
+		}
+		if (!$this->selfService->canSwitchToTransfer()) {
+			throw new \InvalidArgumentException($this->l10n->t('Die Umstellung auf Überweisung ist im Self-Service nicht freigeschaltet. Wenden Sie sich an Ihren Verein.'));
 		}
 	}
 

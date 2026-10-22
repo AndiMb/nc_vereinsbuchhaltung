@@ -63,10 +63,8 @@ describe('buildMemberRow – Mandat', () => {
 })
 
 describe('buildMemberRow – Beitrag', () => {
-	it('ohne jede Zuweisung: kein Beitrag, Jahressumme null', () => {
-		const row = build()
-		expect(row.fee).toBeNull()
-		expect(row.yearlyAmount).toBe(0)
+	it('ohne jede Zuweisung: kein Beitrag', () => {
+		expect(build().fee).toBeNull()
 	})
 
 	it('rechnet die Zuweisung auf Betrag je Periode um (Monatsbetrag × Turnus)', () => {
@@ -78,8 +76,6 @@ describe('buildMemberRow – Beitrag', () => {
 			statusLabel: 'aktiv',
 			needsMandate: true,
 		})
-		// Jahresbetrag = 12 Monatsbeiträge, unabhängig vom Turnus.
-		expect(row.yearlyAmount).toBe(126)
 	})
 
 	it('schreibt ungewöhnliche Turnusse aus', () => {
@@ -97,7 +93,7 @@ describe('buildMemberRow – Beitrag', () => {
 		expect(build({ assignments: [assignment({ paymentMethod: 'ueberweisung' })] }).fee.needsMandate).toBe(false)
 	})
 
-	it('mehrere aktive Zuweisungen: früheste wird gezeigt, alle zählen in die Jahressumme', () => {
+	it('mehrere aktive Zuweisungen: früheste wird gezeigt, weitere gezählt', () => {
 		const row = build({
 			assignments: [
 				assignment({ id: 2, validFrom: '2026-05-01', monthlyAmountCents: 500, intervalMonths: 1 }),
@@ -106,19 +102,15 @@ describe('buildMemberRow – Beitrag', () => {
 		})
 		expect(row.fee.amount).toBe(120)
 		expect(row.moreFees).toBe(1)
-		expect(row.yearlyAmount).toBe(180)
 	})
 
 	it('ignoriert Zuweisungen anderer Mitglieder', () => {
-		const row = build({ assignments: [assignment({ memberId: 2 })] })
-		expect(row.fee).toBeNull()
-		expect(row.yearlyAmount).toBe(0)
+		expect(build({ assignments: [assignment({ memberId: 2 })] }).fee).toBeNull()
 	})
 
-	it('eine beendete Zuweisung bleibt sichtbar, zählt aber nicht', () => {
+	it('eine beendete Zuweisung bleibt sichtbar', () => {
 		const row = build({ assignments: [assignment({ active: false, validTo: '2026-06-30' })] })
 		expect(row.fee.statusLabel).toBe('beendet 30.06.2026')
-		expect(row.yearlyAmount).toBe(0)
 	})
 
 	it('eine künftige Zuweisung zeigt ihr Startdatum', () => {

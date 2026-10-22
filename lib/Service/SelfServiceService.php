@@ -16,6 +16,10 @@ use OCP\IUserSession;
  *
  *  - `self_service_enabled` – globaler An/Aus-Schalter der App, nur ab
  *    Rolle Verwalter änderbar (siehe SettingsController).
+ *  - `self_service_transfer_switch_enabled` – Zusatzschalter (Standard aus): darf
+ *    ein Mitglied unter „Mein Beitrag" seine Zahlungsart selbst von Lastschrift
+ *    auf Überweisung umstellen? Gilt nur, wenn der Self-Service überhaupt an ist
+ *    (siehe {@see canSwitchToTransfer()}).
  *  - Kontoverknüpfung – das angemeldete NC-Konto muss per `nc_user_id`
  *    genau einem {@see Member} zugeordnet sein.
  *
@@ -26,6 +30,9 @@ use OCP\IUserSession;
  */
 class SelfServiceService {
 
+	public const SETTING_ENABLED = 'self_service_enabled';
+	public const SETTING_TRANSFER_SWITCH = 'self_service_transfer_switch_enabled';
+
 	public function __construct(
 		private IConfig $config,
 		private MemberMapper $memberMapper,
@@ -34,7 +41,19 @@ class SelfServiceService {
 	}
 
 	public function isEnabled(): bool {
-		return $this->config->getAppValue(Application::APP_ID, 'self_service_enabled', '0') === '1';
+		return $this->config->getAppValue(Application::APP_ID, self::SETTING_ENABLED, '0') === '1';
+	}
+
+	/**
+	 * Ob Mitglieder im Self-Service ihre Zahlungsart selbst auf Überweisung
+	 * umstellen dürfen – nur in diese Richtung (zurück zur Lastschrift bleibt
+	 * beim Vorstand, der dafür ein einzugsfähiges Mandat braucht) und nur,
+	 * wenn der Self-Service überhaupt freigeschaltet ist. Das Mandat bleibt
+	 * bei der Umstellung unberührt, es wird nur nicht mehr genutzt.
+	 */
+	public function canSwitchToTransfer(): bool {
+		return $this->isEnabled()
+			&& $this->config->getAppValue(Application::APP_ID, self::SETTING_TRANSFER_SWITCH, '0') === '1';
 	}
 
 	/**

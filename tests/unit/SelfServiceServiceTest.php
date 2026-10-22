@@ -59,6 +59,30 @@ class SelfServiceServiceTest extends TestCase {
 		$this->assertFalse($this->service()->isEnabled());
 	}
 
+	public function testCanSwitchToTransferBrauchtBeideSchalter(): void {
+		$this->config->method('getAppValue')->willReturnCallback(
+			static fn (string $app, string $key, string $default = '') => $key === 'self_service_enabled' || $key === 'self_service_transfer_switch_enabled' ? '1' : $default,
+		);
+
+		$this->assertTrue($this->service()->canSwitchToTransfer());
+	}
+
+	public function testCanSwitchToTransferIstOhneSelfServiceAusAuchWennDerZusatzschalterAnIst(): void {
+		$this->config->method('getAppValue')->willReturnCallback(
+			static fn (string $app, string $key, string $default = '') => $key === 'self_service_transfer_switch_enabled' ? '1' : $default,
+		);
+
+		$this->assertFalse($this->service()->canSwitchToTransfer());
+	}
+
+	public function testCanSwitchToTransferIstStandardmaessigAus(): void {
+		$this->config->method('getAppValue')->willReturnCallback(
+			static fn (string $app, string $key, string $default = '') => $key === 'self_service_enabled' ? '1' : $default,
+		);
+
+		$this->assertFalse($this->service()->canSwitchToTransfer());
+	}
+
 	public function testOhneAngemeldetenNutzerKeinMitglied(): void {
 		$this->userSession->method('getUser')->willReturn(null);
 
