@@ -28,8 +28,9 @@ export function buildWhatsNewEntries() {
 			version: '0.41.0',
 			roles: ['verwalter', 'buchhalter'],
 			items: [
-				t('„Beitrag ändern“ stellt jetzt auch die Zahlungsart um: einzelne Mitglieder lassen sich von Lastschrift auf Überweisung umstellen (und zurück), ohne die Zuweisung neu anzulegen – das Mandat bleibt gültig und wird nur nicht mehr genutzt.'),
-				t('Neuer Schalter in den Grundeinstellungen: Mitglieder dürfen unter „Mein Beitrag“ selbst von Lastschrift auf Überweisung umstellen.'),
+				t('„Beitrag ändern“ kann jetzt auch die Zahlungsart umstellen: von Lastschrift auf Überweisung und zurück, ohne die Zuweisung neu anzulegen. Die Umstellung wirkt sofort; das Mandat bleibt gültig und wird nur nicht mehr genutzt.'),
+				t('Neuer Schalter in den Grundeinstellungen: Mitglieder dürfen unter „Mein Beitrag“ selbst von Lastschrift auf Überweisung umstellen – zurück auf Lastschrift stellt der Vorstand.'),
+				t('Die Mitgliederliste rechnet das Beitragsaufkommen jetzt für den gewählten Zeitraum und nennt ihn in der Summenzeile.'),
 			],
 		},
 		{
