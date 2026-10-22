@@ -130,22 +130,8 @@
 							{{ t('Ihr SEPA-Lastschriftmandat bleibt gültig, wird aber nicht mehr genutzt. Offene und künftige Beiträge überweisen Sie dann selbst; zurück zur Lastschrift geht es nur über Ihren Verein.') }}
 						</p>
 					</template>
-					<p v-if="a._preview && previewMatchesForm(a) && a._preview.amountCents === 0" class="vbh-hint">
-						{{ t('Wirkt ab {from} · beitragsfrei: es wird nichts eingezogen.', { from: formatDate(a._preview.effectiveFrom) }) }}
-					</p>
-					<p v-else-if="a._preview && previewMatchesForm(a) && a._form.paymentMethod === 'ueberweisung'" class="vbh-hint">
-						{{ t('Wirkt ab {from} · fällig am {due} · Betrag {amount}', {
-							from: formatDate(a._preview.effectiveFrom),
-							due: formatDate(a._preview.firstDueDate),
-							amount: formatMoney(a._preview.amountCents / 100),
-						}) }}
-					</p>
-					<p v-else-if="a._preview && previewMatchesForm(a)" class="vbh-hint">
-						{{ t('Wirkt ab {from} · erster Einzug am {due} · Betrag {amount}', {
-							from: formatDate(a._preview.effectiveFrom),
-							due: formatDate(a._preview.firstDueDate),
-							amount: formatMoney(a._preview.amountCents / 100),
-						}) }}
+					<p v-if="a._preview && previewMatchesForm(a)" class="vbh-hint">
+						{{ previewText(a) }}
 					</p>
 					<div class="vbh-modal-actions">
 						<NcButton variant="primary" :disabled="!canSave(a)" @click="save(a)">
@@ -416,11 +402,7 @@ export default {
 			return (this.member && this.member.openClaimsTotalCents) || 0
 		},
 
-		/**
-		 * Darf das Mitglied seine Zahlungsart selbst auf Überweisung umstellen? Schalter des Vereins
-		 * (SelfServiceService::canSwitchToTransfer()), kommt mit „me“. Nur in diese Richtung – zurück zur
-		 * Lastschrift bleibt beim Vorstand; das Mandat bleibt bei der Umstellung bestehen.
-		 */
+		/** Schalter des Vereins (SelfServiceService::canSwitchToTransfer()), kommt mit „me“. */
 		canSwitchToTransfer() {
 			return !!(this.member && this.member.canSwitchToTransfer)
 		},
@@ -634,6 +616,18 @@ export default {
 
 		previewMatchesForm(a) {
 			return a._previewedFor === this.formKey(a)
+		},
+
+		/** Die Vorschau-Zeile: beitragsfrei, Fälligkeit (Überweisung) oder erster Einzug (Lastschrift). */
+		previewText(a) {
+			const p = a._preview
+			if (p.amountCents === 0) {
+				return this.t('Wirkt ab {from} · beitragsfrei: es wird nichts eingezogen.', { from: formatDate(p.effectiveFrom) })
+			}
+			const params = { from: formatDate(p.effectiveFrom), due: formatDate(p.firstDueDate), amount: formatMoney(p.amountCents / 100) }
+			return a._form.paymentMethod === 'ueberweisung'
+				? this.t('Wirkt ab {from} · fällig am {due} · Betrag {amount}', params)
+				: this.t('Wirkt ab {from} · erster Einzug am {due} · Betrag {amount}', params)
 		},
 
 		/** Speichern ist erst erlaubt, wenn eine Vorschau GENAU für die aktuellen Werte vorliegt (Pflicht-UI). */

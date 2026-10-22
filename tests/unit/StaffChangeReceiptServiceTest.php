@@ -67,19 +67,20 @@ class StaffChangeReceiptServiceTest extends TestCase {
 		return $member;
 	}
 
-	private function assignment(int $amountCents, int $intervalMonths = 12, int $groupId = 1): Assignment {
+	private function assignment(int $amountCents, int $intervalMonths = 12, int $groupId = 1, string $paymentMethod = Assignment::PAYMENT_METHOD_DIRECT_DEBIT): Assignment {
 		$a = new Assignment();
 		$a->setId(42);
 		$a->setMemberId(5);
 		$a->setGroupId($groupId);
 		$a->setMonthlyAmountCents($amountCents);
 		$a->setIntervalMonths($intervalMonths);
+		$a->setPaymentMethod($paymentMethod);
 		return $a;
 	}
 
-	/** @return array{amountCents:int, intervalMonths:int, groupId:int} */
-	private function before(int $amountCents, int $intervalMonths = 12, int $groupId = 1): array {
-		return ['amountCents' => $amountCents, 'intervalMonths' => $intervalMonths, 'groupId' => $groupId];
+	/** @return array{amountCents:int, intervalMonths:int, groupId:int, paymentMethod:string} */
+	private function before(int $amountCents, int $intervalMonths = 12, int $groupId = 1, string $paymentMethod = Assignment::PAYMENT_METHOD_DIRECT_DEBIT): array {
+		return ['amountCents' => $amountCents, 'intervalMonths' => $intervalMonths, 'groupId' => $groupId, 'paymentMethod' => $paymentMethod];
 	}
 
 	private function preview(): array {
@@ -125,8 +126,7 @@ class StaffChangeReceiptServiceTest extends TestCase {
 
 	public function testUmstellungAufUeberweisungNenntDasWeiterbestehendeMandatUndEineFaelligkeitStattEinesEinzugs(): void {
 		$this->member();
-		$after = $this->assignment(1000);
-		$after->setPaymentMethod(Assignment::PAYMENT_METHOD_TRANSFER);
+		$after = $this->assignment(1000, paymentMethod: Assignment::PAYMENT_METHOD_TRANSFER);
 		$this->receiptMail->expects($this->once())->method('sendReceipt')->with(
 			$this->anything(),
 			$this->anything(),
@@ -139,14 +139,12 @@ class StaffChangeReceiptServiceTest extends TestCase {
 			true, // per Überweisung ist der Termin eine Fälligkeit, kein Einzug
 		);
 
-		$before = $this->before(1000) + ['paymentMethod' => Assignment::PAYMENT_METHOD_DIRECT_DEBIT];
-		$this->assertSame(StaffChangeReceiptService::SENT, $this->service()->send($after, $before, $this->preview()));
+		$this->assertSame(StaffChangeReceiptService::SENT, $this->service()->send($after, $this->before(1000), $this->preview()));
 	}
 
 	public function testUmstellungAufLastschriftNenntDenKuenftigenEinzug(): void {
 		$this->member();
 		$after = $this->assignment(1000);
-		$after->setPaymentMethod(Assignment::PAYMENT_METHOD_DIRECT_DEBIT);
 		$this->receiptMail->expects($this->once())->method('sendReceipt')->with(
 			$this->anything(),
 			$this->anything(),
@@ -159,17 +157,7 @@ class StaffChangeReceiptServiceTest extends TestCase {
 			false,
 		);
 
-		$before = $this->before(1000) + ['paymentMethod' => Assignment::PAYMENT_METHOD_TRANSFER];
-		$this->service()->send($after, $before, $this->preview());
-	}
-
-	public function testOhneZahlungsartImVorherStandGiltSieAlsUnveraendert(): void {
-		$this->member();
-		$after = $this->assignment(1000);
-		$after->setPaymentMethod(Assignment::PAYMENT_METHOD_TRANSFER);
-
-		// Ein Aufrufer, der nur Betrag/Turnus/Gruppe kennt, löst keine Zahlungsart-Mail aus.
-		$this->assertSame(StaffChangeReceiptService::NOT_NEEDED, $this->service()->send($after, $this->before(1000), $this->preview()));
+		$this->service()->send($after, $this->before(1000, paymentMethod: Assignment::PAYMENT_METHOD_TRANSFER), $this->preview());
 	}
 
 	public function testBeitragsfreiHatKeinenErstenEinzug(): void {

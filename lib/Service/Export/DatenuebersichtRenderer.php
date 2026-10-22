@@ -208,7 +208,7 @@ class DatenuebersichtRenderer {
 				. '<td>' . PrintableReportPage::escape($this->groupName($assignment)) . '</td>'
 				. '<td>' . PrintableReportPage::escape($this->intervalName($assignment->getIntervalMonths())) . '</td>'
 				. '<td class="num">' . ReportFormat::cents($assignment->getMonthlyAmountCents()) . '</td>'
-				. '<td>' . PrintableReportPage::escape($this->paymentMethodName($assignment->getPaymentMethod())) . '</td>'
+				. '<td>' . PrintableReportPage::escape(Assignment::paymentMethodName($assignment->getPaymentMethod(), $this->l10n)) . '</td>'
 				. '<td>' . ReportFormat::date($assignment->getValidFrom()) . '</td>'
 				. '<td>' . ReportFormat::date($assignment->getValidTo()) . '</td>'
 				. '</tr>';
@@ -224,14 +224,6 @@ class DatenuebersichtRenderer {
 			6 => $this->l10n->t('halbjährlich'),
 			12 => $this->l10n->t('jährlich'),
 			default => $this->l10n->t('alle %d Monate', [$months]),
-		};
-	}
-
-	private function paymentMethodName(string $method): string {
-		return match ($method) {
-			Assignment::PAYMENT_METHOD_DIRECT_DEBIT => $this->l10n->t('Lastschrift'),
-			Assignment::PAYMENT_METHOD_TRANSFER => $this->l10n->t('Überweisung'),
-			default => $method,
 		};
 	}
 

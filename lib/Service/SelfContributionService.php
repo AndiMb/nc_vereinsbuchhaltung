@@ -97,10 +97,7 @@ class SelfContributionService {
 		$preview = $this->assignments->previewChange($assignmentId, $monthlyAmountCents, $intervalMonths, null, $paymentMethod);
 		$this->assertNotLocked($preview);
 
-		$oldAmountCents = $assignment->getMonthlyAmountCents();
-		$oldIntervalMonths = $assignment->getIntervalMonths();
-		$oldPaymentMethod = $assignment->getPaymentMethod();
-
+		// $assignment bleibt der Stand VOR der Änderung: update() lädt sich seine eigene Kopie.
 		$updated = $this->assignments->update(
 			$assignmentId,
 			$monthlyAmountCents,
@@ -108,46 +105,42 @@ class SelfContributionService {
 			null, // Beitragsgruppe wechseln ist im Self-Service nicht erlaubt (Spec §3.4 "Darf nicht")
 			ActorContextService::TYPE_MEMBER,
 			$this->actorContext->actorUid(),
-			null,
-			$paymentMethod,
+			paymentMethod: $paymentMethod,
 		);
 
-		$this->notify($assignment->getMemberId(), $assignmentId, $oldAmountCents, $monthlyAmountCents, $oldIntervalMonths, $intervalMonths, $preview, $oldPaymentMethod, $paymentMethod);
+		$this->notify($assignment, $updated, $preview);
 
 		return ['assignment' => $updated, 'preview' => $preview];
 	}
 
-	private function notify(int $memberId, int $assignmentId, int $oldAmountCents, ?int $newAmountCents, int $oldIntervalMonths, ?int $newIntervalMonths, array $preview, ?string $oldPaymentMethod = null, ?string $newPaymentMethod = null): void {
-		$member = $this->members->find($memberId);
+	/** Quittungsmail und Activity-Eintrag je tatsächlich geändertem Feld – `$before`/`$after` wie in {@see StaffChangeReceiptService}. */
+	private function notify(Assignment $before, Assignment $after, array $preview): void {
+		$member = $this->members->find($before->getMemberId());
 		$ncUserId = $member->getNcUserId();
-
-		$amountChanged = $newAmountCents !== null && $newAmountCents !== $oldAmountCents;
-		$intervalChanged = $newIntervalMonths !== null && $newIntervalMonths !== $oldIntervalMonths;
-		$paymentMethodChanged = $newPaymentMethod !== null && $newPaymentMethod !== $oldPaymentMethod;
+		$assignmentId = (int)$before->getId();
 
 		$whatParts = [];
-		if ($amountChanged) {
-			$whatParts[] = $this->l10n->t('Ihr Monatsbeitrag wurde von %1$s € auf %2$s € geändert.', [$this->euro($oldAmountCents), $this->euro($newAmountCents)]);
+		if ($after->getMonthlyAmountCents() !== $before->getMonthlyAmountCents()) {
+			$whatParts[] = $this->l10n->t('Ihr Monatsbeitrag wurde von %1$s € auf %2$s € geändert.', [$this->euro($before->getMonthlyAmountCents()), $this->euro($after->getMonthlyAmountCents())]);
 			if ($ncUserId !== null) {
 				$this->activity->publish($ncUserId, SelfServiceProvider::SUBJECT_CONTRIBUTION_AMOUNT_CHANGED, [
-					'from' => $oldAmountCents, 'to' => $newAmountCents, 'effectiveFrom' => $preview['effectiveFrom'],
+					'from' => $before->getMonthlyAmountCents(), 'to' => $after->getMonthlyAmountCents(), 'effectiveFrom' => $preview['effectiveFrom'],
 				], 'assignment', $assignmentId);
 			}
 		}
-		if ($intervalChanged) {
-			$whatParts[] = $this->l10n->t('Ihr Zahlungsturnus wurde von alle %1$d Monate auf alle %2$d Monate geändert.', [$oldIntervalMonths, $newIntervalMonths]);
+		if ($after->getIntervalMonths() !== $before->getIntervalMonths()) {
+			$whatParts[] = $this->l10n->t('Ihr Zahlungsturnus wurde von alle %1$d Monate auf alle %2$d Monate geändert.', [$before->getIntervalMonths(), $after->getIntervalMonths()]);
 			if ($ncUserId !== null) {
 				$this->activity->publish($ncUserId, SelfServiceProvider::SUBJECT_CONTRIBUTION_INTERVAL_CHANGED, [
-					'from' => $oldIntervalMonths, 'to' => $newIntervalMonths, 'effectiveFrom' => $preview['effectiveFrom'],
+					'from' => $before->getIntervalMonths(), 'to' => $after->getIntervalMonths(), 'effectiveFrom' => $preview['effectiveFrom'],
 				], 'assignment', $assignmentId);
 			}
 		}
-
-		if ($paymentMethodChanged) {
+		if ($after->getPaymentMethod() !== $before->getPaymentMethod()) {
 			$whatParts[] = $this->l10n->t('Ihre Zahlungsart wurde auf Überweisung umgestellt: Ihr Beitrag wird nicht mehr per Lastschrift eingezogen, bitte überweisen Sie ihn künftig selbst. Ihr SEPA-Lastschriftmandat bleibt gültig, wird aber nicht mehr genutzt.');
 			if ($ncUserId !== null) {
 				$this->activity->publish($ncUserId, SelfServiceProvider::SUBJECT_CONTRIBUTION_PAYMENT_METHOD_CHANGED, [
-					'from' => $oldPaymentMethod, 'to' => $newPaymentMethod,
+					'from' => $before->getPaymentMethod(), 'to' => $after->getPaymentMethod(),
 				], 'assignment', $assignmentId);
 			}
 		}
@@ -165,10 +158,7 @@ class SelfContributionService {
 				implode(' ', $whatParts),
 				$preview['effectiveFrom'],
 				$preview['firstDueDate'],
-				null,
-				null,
-				// Per Überweisung ist der Termin eine Fälligkeit, kein Einzug – die Mail sagt es so.
-				($newPaymentMethod ?? $oldPaymentMethod) === Assignment::PAYMENT_METHOD_TRANSFER,
+				byTransfer: $after->getPaymentMethod() === Assignment::PAYMENT_METHOD_TRANSFER,
 			);
 		}
 	}

@@ -20,6 +20,7 @@ use OCA\Vereinsbuchhaltung\Service\MandateReferenceGenerator;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCA\Vereinsbuchhaltung\Service\ReportService;
+use OCA\Vereinsbuchhaltung\Service\SelfServiceService;
 use OCA\Vereinsbuchhaltung\Service\SepaDebtorAccountService;
 use OCA\Vereinsbuchhaltung\Service\WatchFolderService;
 use OCP\AppFramework\Controller;
@@ -183,10 +184,9 @@ class SettingsController extends Controller {
 			'fiscal_year_start_month' => $this->contributionYear->getStartMonth(),
 			// Self-Service-Zugang (Spec §3.4): einfacher Bool-Schalter, nur ab
 			// Verwalter änderbar (siehe update(), RequiresRole ROLE_ADMIN).
-			'self_service_enabled' => $this->config->getAppValue(Application::APP_ID, 'self_service_enabled', '0') === '1',
-			// Zusatzschalter: Mitglieder dürfen ihre Zahlungsart selbst auf Überweisung umstellen
-			// (siehe SelfServiceService::canSwitchToTransfer()). Standard aus.
-			'self_service_transfer_switch_enabled' => $this->config->getAppValue(Application::APP_ID, 'self_service_transfer_switch_enabled', '0') === '1',
+			'self_service_enabled' => $this->config->getAppValue(Application::APP_ID, SelfServiceService::SETTING_ENABLED, '0') === '1',
+			// Zusatzschalter, siehe SelfServiceService::canSwitchToTransfer(). Standard aus.
+			'self_service_transfer_switch_enabled' => $this->config->getAppValue(Application::APP_ID, SelfServiceService::SETTING_TRANSFER_SWITCH, '0') === '1',
 		];
 	}
 
@@ -447,12 +447,12 @@ class SettingsController extends Controller {
 
 		if (array_key_exists('self_service_enabled', $params)) {
 			$selfServiceEnabled = (string)$params['self_service_enabled'] === '1';
-			$this->config->setAppValue($appId, 'self_service_enabled', $selfServiceEnabled ? '1' : '0');
+			$this->config->setAppValue($appId, SelfServiceService::SETTING_ENABLED, $selfServiceEnabled ? '1' : '0');
 		}
 
 		if (array_key_exists('self_service_transfer_switch_enabled', $params)) {
 			$transferSwitchEnabled = (string)$params['self_service_transfer_switch_enabled'] === '1';
-			$this->config->setAppValue($appId, 'self_service_transfer_switch_enabled', $transferSwitchEnabled ? '1' : '0');
+			$this->config->setAppValue($appId, SelfServiceService::SETTING_TRANSFER_SWITCH, $transferSwitchEnabled ? '1' : '0');
 		}
 
 		$settings = $this->currentSettings();

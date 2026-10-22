@@ -11,7 +11,6 @@ use OCA\Vereinsbuchhaltung\Service\SelfServiceMandateService;
 use OCP\Activity\Exceptions\UnknownActivityException;
 use OCP\Activity\IEvent;
 use OCP\Activity\IProvider;
-use OCP\IL10N;
 use OCP\L10N\IFactory;
 
 /**
@@ -73,7 +72,7 @@ class SelfServiceProvider implements IProvider {
 			),
 			self::SUBJECT_CONTRIBUTION_PAYMENT_METHOD_CHANGED => $l->t(
 				'Zahlungsart geändert: %1$s → %2$s',
-				[$this->paymentMethodName((string)($params['from'] ?? ''), $l), $this->paymentMethodName((string)($params['to'] ?? ''), $l)],
+				[Assignment::paymentMethodName((string)($params['from'] ?? ''), $l), Assignment::paymentMethodName((string)($params['to'] ?? ''), $l)],
 			),
 			self::SUBJECT_CONTACT_UPDATED => $l->t('Kontaktdaten aktualisiert'),
 			default => throw new UnknownActivityException('Unbekanntes Self-Service-Ereignis: ' . $event->getSubject()),
@@ -81,14 +80,6 @@ class SelfServiceProvider implements IProvider {
 
 		$event->setParsedSubject($text);
 		return $event;
-	}
-
-	private function paymentMethodName(string $method, IL10N $l): string {
-		return match ($method) {
-			Assignment::PAYMENT_METHOD_DIRECT_DEBIT => $l->t('Lastschrift'),
-			Assignment::PAYMENT_METHOD_TRANSFER => $l->t('Überweisung'),
-			default => $method,
-		};
 	}
 
 	private function euro(int $cents): string {

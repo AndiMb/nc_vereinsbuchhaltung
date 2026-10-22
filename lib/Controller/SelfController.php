@@ -113,8 +113,6 @@ class SelfController extends Controller {
 		$data = $this->contactData($member);
 		$data['mandate'] = $this->mandateData($this->selfServiceMandate->currentMandate($memberId));
 		$data['openClaimsTotalCents'] = $this->selfServiceMandate->openClaimsTotalCents($memberId);
-		// Darf das Mitglied seine Zahlungsart selbst auf Überweisung umstellen? (Schalter des Vereins,
-		// siehe SelfServiceService::canSwitchToTransfer(); die SPA blendet die Option sonst aus.)
 		$data['canSwitchToTransfer'] = $this->selfService->canSwitchToTransfer();
 		return $data;
 	}

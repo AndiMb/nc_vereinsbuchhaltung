@@ -65,7 +65,6 @@ class SelfServiceReceiptMailService {
 			$template->addBodyText($l->t('Wirkt ab: %s', [GermanDate::format($effectiveFrom)]));
 		}
 		if ($firstDueDate !== null) {
-			// Überweiser: der Termin ist eine Fälligkeit, kein Einzug – die Mail darf keinen Einzug ankündigen.
 			$template->addBodyText($byTransfer
 				? $l->t('Voraussichtlich erste betroffene Fälligkeit: %s', [GermanDate::format($firstDueDate)])
 				: $l->t('Voraussichtlich erster betroffener Einzug: %s', [GermanDate::format($firstDueDate)]));

@@ -58,11 +58,10 @@ class SelfControllerTest extends TestCase {
 	private DatenuebersichtRenderer&MockObject $dataOverviewRenderer;
 	private SelfReturnedDebitService&MockObject $returnedDebits;
 
-	/** Nur gesetzt, wenn ein Test den Schalter „Zahlungsart selbst umstellen“ braucht. */
-	private ?SelfServiceService $selfService = null;
+	private SelfServiceService&MockObject $selfService;
 
 	protected function setUp(): void {
-		$this->selfService = null;
+		$this->selfService = $this->createMock(SelfServiceService::class);
 		$userSession = $this->createMock(IUserSession::class);
 		$this->actorContext = new ActorContextService($userSession);
 		$this->memberMapper = $this->createMock(MemberMapper::class);
@@ -99,7 +98,7 @@ class SelfControllerTest extends TestCase {
 			$this->certificateRenderer,
 			$this->dataOverviewRenderer,
 			$this->returnedDebits,
-			$this->selfService ?? $this->createMock(SelfServiceService::class),
+			$this->selfService,
 			$this->l10n,
 		);
 	}
@@ -306,7 +305,6 @@ class SelfControllerTest extends TestCase {
 	public function testMeNenntObDieUmstellungAufUeberweisungFreigeschaltetIst(): void {
 		$this->actorContext->setMemberChannel(self::MEMBER_ID);
 		$this->memberMapper->method('findOrNull')->with(self::MEMBER_ID)->willReturn($this->fullMember());
-		$this->selfService = $this->createMock(SelfServiceService::class);
 		$this->selfService->method('canSwitchToTransfer')->willReturn(true);
 
 		$data = $this->controller()->me()->getData();

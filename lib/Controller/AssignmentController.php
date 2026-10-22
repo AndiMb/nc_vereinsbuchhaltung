@@ -157,8 +157,7 @@ class AssignmentController extends Controller {
 				$groupId,
 				'staff',
 				$this->actorUid(),
-				null,
-				$paymentMethod,
+				paymentMethod: $paymentMethod,
 			);
 			return new DataResponse($assignment->jsonSerialize() + ['receipt' => $this->receipts->send($assignment, $before, $preview)]);
 		} catch (\InvalidArgumentException $e) {

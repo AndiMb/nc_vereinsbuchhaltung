@@ -50,7 +50,7 @@ class StaffChangeReceiptService {
 	}
 
 	/**
-	 * @param array{amountCents:int, intervalMonths:int, groupId:int, paymentMethod?:string} $before der Stand vor der Änderung
+	 * @param array{amountCents:int, intervalMonths:int, groupId:int, paymentMethod:string} $before der Stand vor der Änderung
 	 * @param array{effectiveFrom:string, firstDueDate:string} $preview Ergebnis von AssignmentService::previewChange() für dieselbe Änderung
 	 * @return string eine der Konstanten SENT, NO_EMAIL, FAILED, NOT_NEEDED
 	 */
@@ -80,8 +80,7 @@ class StaffChangeReceiptService {
 				$after->getMonthlyAmountCents() === 0 ? null : $preview['firstDueDate'],
 				null,
 				$l,
-				// Per Überweisung ist der Termin eine Fälligkeit, kein Einzug – die Mail sagt es so.
-				$after->getPaymentMethod() === Assignment::PAYMENT_METHOD_TRANSFER,
+				byTransfer: $after->getPaymentMethod() === Assignment::PAYMENT_METHOD_TRANSFER,
 			);
 		} catch (\Throwable $e) {
 			$this->logger->warning('Quittungsmail zur Beitragsänderung konnte nicht verschickt werden', ['exception' => $e, 'assignmentId' => $after->getId()]);
@@ -93,13 +92,12 @@ class StaffChangeReceiptService {
 	/**
 	 * Ein Satz je tatsächlich geänderter Größe.
 	 *
-	 * @param array{amountCents:int, intervalMonths:int, groupId:int, paymentMethod?:string} $before
+	 * @param array{amountCents:int, intervalMonths:int, groupId:int, paymentMethod:string} $before
 	 * @return list<string>
 	 */
 	private function describeChanges(Assignment $after, array $before, IL10N $l): array {
 		$what = [];
-		$paymentMethodBefore = $before['paymentMethod'] ?? $after->getPaymentMethod();
-		if ($after->getPaymentMethod() !== $paymentMethodBefore) {
+		if ($after->getPaymentMethod() !== $before['paymentMethod']) {
 			$what[] = $after->getPaymentMethod() === Assignment::PAYMENT_METHOD_TRANSFER
 				? $l->t('Der Vorstand hat Ihre Zahlungsart auf Überweisung umgestellt: Ihr Beitrag wird nicht mehr per Lastschrift eingezogen, bitte überweisen Sie ihn künftig selbst. Ein bestehendes SEPA-Lastschriftmandat bleibt gültig, wird aber nicht mehr genutzt.')
 				: $l->t('Der Vorstand hat Ihre Zahlungsart auf Lastschrift umgestellt: Ihr Beitrag wird künftig per SEPA-Lastschrift von Ihrem Konto eingezogen.');

@@ -44,10 +44,10 @@
 					</select>
 				</label>
 			</div>
-			<p v-if="switchedToTransfer" class="vbh-hint">
+			<p v-if="paymentMethodChanged && form.paymentMethod === 'ueberweisung'" class="vbh-hint">
 				{{ t('Ab sofort wird nichts mehr per Lastschrift eingezogen; offene und künftige Forderungen überweist das Mitglied selbst. Ein bestehendes Mandat bleibt gültig und wird nur nicht mehr genutzt.') }}
 			</p>
-			<p v-else-if="switchedToDirectDebit" class="vbh-hint">
+			<p v-else-if="paymentMethodChanged" class="vbh-hint">
 				{{ t('Lastschrift setzt ein aktives Mandat voraus – fehlt es, erscheint eine Aufgabe und die Forderung wartet, bis ein Mandat vorliegt.') }}
 			</p>
 			<p class="vbh-hint">
@@ -59,14 +59,8 @@
 			<NcNoteCard v-if="previewError" type="error">
 				{{ previewError }}
 			</NcNoteCard>
-			<NcNoteCard v-else-if="preview && preview.amountCents === 0" type="info">
-				{{ t('Wirkt ab {from} · beitragsfrei: es wird nichts eingezogen.', { from: formatDate(preview.effectiveFrom) }) }}
-			</NcNoteCard>
-			<NcNoteCard v-else-if="preview && form.paymentMethod === 'ueberweisung'" type="info">
-				{{ t('Wirkt ab {from} · fällig am {due} · Betrag {amount}', { from: formatDate(preview.effectiveFrom), due: formatDate(preview.firstDueDate), amount: euro(preview.amountCents) }) }}
-			</NcNoteCard>
 			<NcNoteCard v-else-if="preview" type="info">
-				{{ t('Wirkt ab {from} · erster Einzug am {due} · Betrag {amount}', { from: formatDate(preview.effectiveFrom), due: formatDate(preview.firstDueDate), amount: euro(preview.amountCents) }) }}
+				{{ previewText }}
 			</NcNoteCard>
 			<NcLoadingIcon v-else-if="loadingPreview" :size="20" />
 			<p class="vbh-hint">
@@ -158,8 +152,18 @@ export default {
 			return !!this.assignment && this.form.paymentMethod !== this.assignment.paymentMethod
 		},
 
-		switchedToTransfer() { return this.paymentMethodChanged && this.form.paymentMethod === 'ueberweisung' },
-		switchedToDirectDebit() { return this.paymentMethodChanged && this.form.paymentMethod === 'direct_debit' },
+		/** Die Vorschau-Zeile: beitragsfrei, Fälligkeit (Überweisung) oder erster Einzug (Lastschrift). */
+		previewText() {
+			const p = this.preview
+			if (!p) { return '' }
+			if (p.amountCents === 0) {
+				return this.t('Wirkt ab {from} · beitragsfrei: es wird nichts eingezogen.', { from: formatDate(p.effectiveFrom) })
+			}
+			const params = { from: formatDate(p.effectiveFrom), due: formatDate(p.firstDueDate), amount: this.euro(p.amountCents) }
+			return this.form.paymentMethod === 'ueberweisung'
+				? this.t('Wirkt ab {from} · fällig am {due} · Betrag {amount}', params)
+				: this.t('Wirkt ab {from} · erster Einzug am {due} · Betrag {amount}', params)
+		},
 
 		effectiveMinCents() {
 			if (!this.assignment) { return 0 }
