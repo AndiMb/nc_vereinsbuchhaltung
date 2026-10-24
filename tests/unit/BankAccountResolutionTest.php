@@ -104,6 +104,18 @@ class BankAccountResolutionTest extends TestCase {
 		$this->assertSame($giro, $service->resolveBankAccount('book', 'Girokonto'));
 	}
 
+	/**
+	 * Der Standard-Kontenrahmen startet mit Bankkonto und Kasse, beide ohne
+	 * IBAN. Dann gibt es nichts zu vergleichen – es bleibt beim ersten
+	 * Bankkonto wie bisher, statt jede Zuordnung abzulehnen.
+	 */
+	public function testOhneIbanAnDenGeldkontenBleibtEsBeimErstenBankkonto(): void {
+		$service = $this->service($bank = $this->bank(1, null), $this->bank(2, null));
+
+		$this->assertSame($bank, $service->resolveBankAccount('book', 'DE12500105170648489890'));
+		$this->assertSame($bank, $service->resolveBankAccount('book', '0648489890'));
+	}
+
 	public function testGeldkontoOhneIbanIstKeinKandidat(): void {
 		$service = $this->service($this->bank(1, null), $giro = $this->bank(2, self::GIRO_IBAN));
 

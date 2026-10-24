@@ -28,9 +28,11 @@ verwenden, z. B. `**Neu:**`.
 - **Kontoauszüge mit Kontonummer statt IBAN auf dem richtigen Geldkonto**
   (Issue #154). MT940-Auszüge mit „BLZ/Kontonummer" (in beiden Reihenfolgen)
   und CSV-Dateien mit bloßer Kontonummer ordnet die App über die IBAN am
-  Geldkonto zu. Passt ein Umsatz bei mehreren Bankkonten zu keinem oder zu
-  mehreren, bucht die App nicht mehr still auf das erste Bankkonto, sondern
-  erklärt, was fehlt; die Import-Vorschau weist vorab darauf hin.
+  Geldkonto zu. Steht an einem Geldkonto eine IBAN und passt ein Umsatz bei
+  mehreren Bankkonten zu keinem oder zu mehreren, bucht die App nicht mehr
+  still auf das erste Bankkonto, sondern erklärt, was fehlt; die
+  Import-Vorschau weist vorab darauf hin. Ohne hinterlegte IBAN ändert sich
+  nichts.
 
 **Geändert:**
 - **Terminplan zeigt den Einzugstag als Datum** (Issue #149): neben jedem

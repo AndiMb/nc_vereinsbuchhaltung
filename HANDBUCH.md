@@ -134,10 +134,11 @@ Jedes Konto hat:
   sie nicht. Bei mehreren Konten entscheidet sie darüber, auf welchem
   Geldkonto ein importierter Umsatz gebucht wird. Das klappt auch mit
   Auszügen, die statt der IBAN nur die Kontonummer oder „BLZ/Kontonummer"
-  nennen (MT940, manche CSV) – beides steckt in der IBAN. Passt ein Umsatz
-  zu keinem oder zu mehreren Geldkonten, lehnt die App die Zuordnung mit
-  einer Erklärung ab, statt zu raten; die Import-Vorschau weist vorab darauf
-  hin. Leerzeichen spielen keine Rolle, die App speichert sie einheitlich.
+  nennen (MT940, manche CSV) – beides steckt in der IBAN. Steht an einem
+  Geldkonto eine IBAN und passt ein Umsatz zu keinem oder zu mehreren
+  Geldkonten, lehnt die App die Zuordnung mit einer Erklärung ab, statt zu
+  raten; die Import-Vorschau weist vorab darauf hin. Ohne jede IBAN landet
+  alles auf dem ersten Bankkonto. Leerzeichen spielen keine Rolle, die App speichert sie einheitlich.
   Wird das Bankkonto-Kennzeichen wieder entfernt, verschwindet auch die IBAN,
 - bei Geldkonten das Kennzeichen **„Zählt in den Geldbestand oben in der
   Kopfzeile"** (Vorgabe: an). Es steuert allein die eine Zahl über der

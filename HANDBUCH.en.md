@@ -132,10 +132,11 @@ Every account has:
   account doesn't need it. With several accounts, it decides which cash
   account an imported transaction is posted on. This also works with
   statements that name only the account number or "bank code/account number"
-  instead of the IBAN (MT940, some CSV files) – both are part of the IBAN. If
-  a transaction matches no cash account or several, the app refuses the
-  assignment with an explanation instead of guessing; the import preview
-  points this out beforehand. Spaces don't matter, the app stores it
+  instead of the IBAN (MT940, some CSV files) – both are part of the IBAN.
+  Once a cash account has an IBAN, a transaction that matches no cash account
+  or several is refused with an explanation instead of a guess; the import
+  preview points this out beforehand. Without any IBAN, everything ends up on
+  the first bank account. Spaces don't matter, the app stores it
   consistently. Removing the bank-account flag again also removes the IBAN,
 - for cash accounts, the **"Counts towards the funds shown in the header"**
   flag (default: on). It only governs the single figure above the interface –

@@ -26,10 +26,11 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 - **Statements with an account number instead of an IBAN end up on the right
   cash account** (issue #154). The app matches MT940 statements with "bank
   code/account number" (in either order) and CSV files with a bare account
-  number via the IBAN on the cash account. With several bank accounts, a
-  transaction that matches none or several is no longer silently posted to the
-  first bank account; the app explains what is missing, and the import preview
-  points it out beforehand.
+  number via the IBAN on the cash account. Once a cash account has an IBAN, a
+  transaction that matches none or several of multiple bank accounts is no
+  longer silently posted to the first bank account; the app explains what is
+  missing, and the import preview points it out beforehand. Without any IBAN
+  on file, nothing changes.
 
 **Changed:**
 - **The schedule shows the collection day as a date** (issue #149): next to

@@ -488,11 +488,13 @@ class AccountService {
 	 * Umsätze aus der Zeit davor aber nicht – die trügen die Schreibweise der
 	 * Bank ("DE12 3456 …") und würden sonst nie treffen.
 	 *
-	 * Ohne eindeutigen Treffer nimmt die App das erste Bankkonto nur noch, wenn
-	 * das keine Verwechslung sein kann: es gibt nur ein Bankkonto, oder der
-	 * Umsatz nennt gar kein Konto. Nennt er eines, das zu keinem oder zu mehreren
-	 * Geldkonten passt, scheitert die Zuordnung mit einer Erklärung, statt still
-	 * auf ein womöglich falsches Konto zu buchen (Issue #154).
+	 * Ohne eindeutigen Treffer nimmt die App das erste Bankkonto, solange es
+	 * nichts zu vergleichen gibt: nur ein Bankkonto, kein Konto im Umsatz, oder
+	 * an keinem Geldkonto eine IBAN – so wie der Standard-Kontenrahmen mit
+	 * Bankkonto und Kasse startet. Steht dagegen eine IBAN da und der Umsatz
+	 * nennt ein Konto, das zu keinem oder zu mehreren Geldkonten passt,
+	 * scheitert die Zuordnung mit einer Erklärung, statt still auf ein
+	 * womöglich falsches Konto zu buchen (Issue #154).
 	 *
 	 * @throws DoesNotExistException ohne Bankkonto im Kontenrahmen
 	 * @throws \InvalidArgumentException wenn das genannte Konto keinem Geldkonto eindeutig entspricht
@@ -508,7 +510,8 @@ class AccountService {
 		if (count($hits) === 1) {
 			return $hits[0];
 		}
-		if (count($banks) === 1 || !$matcher->identifiesAccount($ownAccount)) {
+		$anyIban = array_filter($banks, fn (Account $a): bool => $this->normalizer->normalizeOwnAccount($a->getIban()) !== null) !== [];
+		if (count($banks) === 1 || !$anyIban || !$matcher->identifiesAccount($ownAccount)) {
 			return $banks[0];
 		}
 		if ($hits === []) {
