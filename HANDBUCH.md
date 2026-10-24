@@ -132,10 +132,14 @@ Jedes Konto hat:
   die Geschäftsjahresgrenze),
 - bei Geldkonten optional die **IBAN**. Wer nur ein Bankkonto führt, braucht
   sie nicht. Bei mehreren Konten entscheidet sie darüber, auf welchem
-  Geldkonto ein importierter Umsatz gebucht wird – ohne sie landet alles auf
-  dem ersten Bankkonto des Kontenrahmens. Leerzeichen spielen keine Rolle,
-  die App speichert sie einheitlich. Wird das Bankkonto-Kennzeichen wieder
-  entfernt, verschwindet auch die IBAN,
+  Geldkonto ein importierter Umsatz gebucht wird. Das klappt auch mit
+  Auszügen, die statt der IBAN nur die Kontonummer oder „BLZ/Kontonummer"
+  nennen (MT940, manche CSV) – beides steckt in der IBAN. Steht an einem
+  Geldkonto eine IBAN und passt ein Umsatz zu keinem oder zu mehreren
+  Geldkonten, lehnt die App die Zuordnung mit einer Erklärung ab, statt zu
+  raten; die Import-Vorschau weist vorab darauf hin. Ohne jede IBAN landet
+  alles auf dem ersten Bankkonto. Leerzeichen spielen keine Rolle, die App speichert sie einheitlich.
+  Wird das Bankkonto-Kennzeichen wieder entfernt, verschwindet auch die IBAN,
 - bei Geldkonten das Kennzeichen **„Zählt in den Geldbestand oben in der
   Kopfzeile"** (Vorgabe: an). Es steuert allein die eine Zahl über der
   Oberfläche – Kassenbericht, Vermögensübersicht und Saldenliste rechnen
@@ -281,10 +285,12 @@ Spalten anhand ihrer Überschriften erraten – das klappt bei den gängigen
 Instituten, aber eben nicht mit Sicherheit.
 
 > **Mehrere Bankkonten?** Dann kommt es zusätzlich darauf an, dass der Auszug
-> die **IBAN** des Kontos mitbringt – nur daran erkennt die App, auf welchem
-> Geldkonto zu buchen ist (Kapitel 2.2). CAMT.053 führt sie immer, MT940
-> häufig nur die Kontonummer, und die CSV je nach Institut. Im Zweifel
-> CAMT.053 nehmen.
+> das eigene Konto nennt und an jedem Geldkonto die **IBAN** steht – daran
+> erkennt die App, auf welchem Geldkonto zu buchen ist (Kapitel 2.2).
+> CAMT.053 führt die IBAN immer, MT940 häufig nur „BLZ/Kontonummer", die CSV
+> je nach Institut; Kontonummer und BLZ gleicht die App mit der IBAN am
+> Geldkonto ab. Ein Auszug ganz ohne Kontoangabe landet auf dem ersten
+> Bankkonto – im Zweifel CAMT.053 nehmen.
 
 - **Dublettenprüfung:** bereits importierte Buchungen werden automatisch
   erkannt – auch gegen zuvor per xbuc importierte und **auch über
@@ -1399,6 +1405,9 @@ lassen sich keine Nachweise hochladen und die XML-Ablage nicht einschalten.
 
 Der **Terminplan** (Einzugstag je Turnus, einzelne Perioden überschreibbar)
 lässt sich auch als Buchhalter anpassen – das ist die Terminverschiebung.
+Perioden beginnen am Monatsersten, der Versatz zählt Tage ab dort: Wer
+jeweils am 15. einziehen will, trägt beim monatlichen Turnus **14** ein.
+Neben jedem Versatz zeigt die Tabelle, welcher Tag sich daraus ergibt.
 Die **Fristen vor dem Einzug** (Vorwarnfenster, Vorabinfo-Vorlauf,
 Freigabe-Vorlauf) ändern dagegen nur Verwalter, und zwar in den
 Nextcloud-Einstellungen: Sie bestimmen, wann Aufgaben und Vorabinfo-Mails
@@ -1747,9 +1756,9 @@ Lastschrift-Zuweisung kein Mandat hat.
 
 Im Reiter **„Beiträge" → Einzug** zeigt das Segment **„Zeitstrahl & Läufe"** das
 Beitragsjahr mit allen **Einzugsterminen** und einer Marke für HEUTE. Die Termine
-stammen aus dem **Terminplan** (Abschnitt *Terminplan* im Reiter
-*Beitragsgruppen* und im Einzug: je Turnus ein Standard-Einzugstag als Versatz zum
-Periodenbeginn, einzelne Perioden lassen sich überschreiben) und aus
+stammen aus dem **Terminplan** (Knopf *Terminplan* am Zeitstrahl: je Turnus ein
+Standard-Einzugstag als Versatz zum Periodenbeginn, einzelne Perioden lassen sich
+überschreiben) und aus
 Einzelforderungen mit eigenem Termin. Ein Klick auf einen
 Termin zeigt seine Meilensteine und – solange nichts freigegeben ist – eine
 **Vorschau**: wie viele Forderungen mit welcher Summe eingezogen würden und

@@ -355,7 +355,7 @@ class BankReconciliationService {
 		try {
 			$bank = $this->accountService->resolveBankAccount(Application::BOOK, $tx->getOwnAccount());
 			$preview['bank'] = $this->accountView((int)$bank->getId(), $accountNames);
-		} catch (DoesNotExistException $e) {
+		} catch (DoesNotExistException|\InvalidArgumentException $e) {
 			$preview['blockers'][] = ['code' => self::BLOCKER_NO_BANK_ACCOUNT, 'message' => $e->getMessage()];
 		}
 

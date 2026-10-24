@@ -17,6 +17,26 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+**Fixed:**
+- **Creating a Nextcloud account failed with "Password confirmation is
+  required"** (issue #150). Like the user management, Nextcloud requires a
+  recently confirmed password for this; the app now asks for it when needed.
+  Cancelling the dialog leaves the member record or the admission dialog open
+  and unchanged.
+- **Statements with an account number instead of an IBAN end up on the right
+  cash account** (issue #154). The app matches MT940 statements with "bank
+  code/account number" (in either order) and CSV files with a bare account
+  number via the IBAN on the cash account. Once a cash account has an IBAN, a
+  transaction that matches none or several of multiple bank accounts is no
+  longer silently posted to the first bank account; the app explains what is
+  missing, and the import preview points it out beforehand. Without any IBAN
+  on file, nothing changes.
+
+**Changed:**
+- **The schedule shows the collection day as a date** (issue #149): next to
+  each offset it says what it results in, e.g. "on day 15 of each month" for
+  offset 14.
+
 ## [0.41.0] – 2026-10-23
 
 **New:**

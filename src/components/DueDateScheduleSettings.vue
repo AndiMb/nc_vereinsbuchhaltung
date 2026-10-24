@@ -6,6 +6,9 @@
 				<p>
 					{{ t('Je Turnus ein Standard-Einzugstag (Tage-Versatz zum Periodenbeginn – 0 = am ersten Tag der Periode, negativ = vorgezogen). Einzelne Perioden lassen sich darunter überschreiben, die Überschreibung gilt jahresunabhängig für denselben Periodenindex.') }}
 				</p>
+				<p>
+					{{ t('Beispiel: Versatz 14 beim monatlichen Turnus zieht jeweils am 15. ein.') }}
+				</p>
 			</InfoHint>
 		</div>
 		<div class="vbh-tablecard">
@@ -25,6 +28,9 @@
 						<td>{{ intervalLabel(interval) }}</td>
 						<td class="num">
 							<input v-model.number="defaultDrafts[interval]" type="number" class="vbh-short">
+							<div class="vbh-hint vbh-offset-meaning" :data-testid="'offset-meaning-' + interval">
+								{{ offsetMeaning(interval, defaultDrafts[interval]) }}
+							</div>
 						</td>
 						<td>
 							<span v-if="overrideList(interval).length === 0" class="vbh-hint">{{ t('keine') }}</span>
@@ -156,6 +162,26 @@ export default {
 	methods: {
 		intervalLabel,
 
+		/**
+		 * Was der Versatz als Datum heißt (Issue #149): „am 15. jedes Monats" liest
+		 * sich leichter als „Versatz 14". Perioden beginnen immer am Monatsersten,
+		 * deshalb ergibt Versatz 0–27 in jedem Monat denselben Tag; alles darüber
+		 * hinaus nennt die Ansicht in Tagen.
+		 */
+		offsetMeaning(interval, offset) {
+			if (!Number.isInteger(offset)) {
+				return ''
+			}
+			if (offset >= 0 && offset <= 27) {
+				return interval === 1
+					? this.t('am {day}. jedes Monats', { day: offset + 1 })
+					: this.t('am {day}. des ersten Periodenmonats', { day: offset + 1 })
+			}
+			return offset < 0
+				? this.n('%n Tag vor Periodenbeginn', '%n Tage vor Periodenbeginn', -offset)
+				: this.n('%n Tag nach Periodenbeginn', '%n Tage nach Periodenbeginn', offset)
+		},
+
 		overrideList(interval) {
 			const overrides = this.schedule?.[interval]?.overrides || {}
 			return Object.keys(overrides).map((periodIndex) => ({ periodIndex: Number(periodIndex), offsetDays: overrides[periodIndex] }))
@@ -209,6 +235,11 @@ export default {
 /* Die Versatz-Felder in der Tabelle brauchen keine Zellenbreite: drei Ziffern und ein Minus. */
 .vbh-tablecard td input.vbh-short {
 	width: 88px;
+}
+
+.vbh-offset-meaning {
+	margin-top: 2px;
+	white-space: nowrap;
 }
 
 .vbh-cardhead h4 {

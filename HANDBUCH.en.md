@@ -130,10 +130,14 @@ Every account has:
   accumulate across the fiscal-year boundary),
 - for cash accounts, optionally the **IBAN**. Anyone running just one bank
   account doesn't need it. With several accounts, it decides which cash
-  account an imported transaction is posted on – without it, everything
-  ends up on the first bank account in the chart of accounts. Spaces don't
-  matter, the app stores it consistently. Removing the bank-account flag
-  again also removes the IBAN,
+  account an imported transaction is posted on. This also works with
+  statements that name only the account number or "bank code/account number"
+  instead of the IBAN (MT940, some CSV files) – both are part of the IBAN.
+  Once a cash account has an IBAN, a transaction that matches no cash account
+  or several is refused with an explanation instead of a guess; the import
+  preview points this out beforehand. Without any IBAN, everything ends up on
+  the first bank account. Spaces don't matter, the app stores it
+  consistently. Removing the bank-account flag again also removes the IBAN,
 - for cash accounts, the **"Counts towards the funds shown in the header"**
   flag (default: on). It only governs the single figure above the interface –
   the cash report, the assets overview and the trial balance keep counting
@@ -277,11 +281,13 @@ Why CAMT.053 is the best choice: sign, date and payment parties are
 explicitly tagged there. With CSV, the app has to guess the columns from
 their headers – that works with the common banks, but not with certainty.
 
-> **Several bank accounts?** Then it also matters that the statement carries
-> the account's **IBAN** – that's the only way the app can tell which cash
-> account to post on (chapter 2.2). CAMT.053 always carries it, MT940 often
-> only the account number, and CSV depending on the bank. When in doubt, use
-> CAMT.053.
+> **Several bank accounts?** Then it also matters that the statement names
+> its own account and that every cash account has its **IBAN** – that's how
+> the app tells which cash account to post on (chapter 2.2). CAMT.053 always
+> carries the IBAN, MT940 often only "bank code/account number", and CSV
+> depending on the bank; the app matches account number and bank code
+> against the IBAN on the cash account. A statement without any account
+> details ends up on the first bank account – when in doubt, use CAMT.053.
 
 - **Duplicate check:** postings already imported are automatically
   recognized – also against those previously imported via xbuc, and **also
@@ -1367,6 +1373,9 @@ no proofs can be uploaded and the XML storage can't be switched on.
 
 The **schedule** (collection day per interval, individual periods can be
 overridden) can also be adjusted by bookkeepers – that is the rescheduling.
+Periods start on the first of a month and the offset counts days from there:
+to collect on the 15th of each month, enter **14** for the monthly interval.
+Next to each offset, the table shows which day it results in.
 The **deadlines before the collection** (warning window, pre-notification lead
 time, release lead time), on the other hand, can only be changed by
 administrators, in the Nextcloud settings: they determine when tasks and
@@ -1716,9 +1725,9 @@ assignment has no mandate.
 In the **"Contributions" → Collection** tab, the **"Timeline & runs"**
 (*Zeitstrahl & Läufe*) segment shows the contribution year with all
 **collection dates** and a marker for TODAY (*HEUTE*). The dates come from
-the **schedule** (the "Schedule" section (*Terminplan*) in the *Contribution
-groups* tab and in Collection: for each interval a default collection day as
-an offset from the period start, individual periods can be overridden) and
+the **schedule** (the "Schedule" (*Terminplan*) button at the timeline: for
+each interval a default collection day as an offset from the period start,
+individual periods can be overridden) and
 from single claims with their own date. A click on a date shows its
 milestones and – as long as nothing has been released – a **preview**: how
 many claims with what total would be collected and which exceptions (13.9)

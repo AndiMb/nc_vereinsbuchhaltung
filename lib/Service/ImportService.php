@@ -13,6 +13,7 @@ use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportExtractionService;
 use OCA\Vereinsbuchhaltung\Service\Statement\RowNormalizer;
 use OCA\Vereinsbuchhaltung\Service\Statement\StatementParserRegistry;
+use OCP\AppFramework\Db\DoesNotExistException;
 
 class ImportService {
 
@@ -25,13 +26,14 @@ class ImportService {
 		private JournalMapper $journalMapper,
 		private TransactionRunner $transaction,
 		private SepaImportExtractionService $sepaDetails,
+		private AccountService $accounts,
 	) {
 	}
 
 	/**
 	 * Analysiert die Datei, ohne etwas zu speichern.
 	 *
-	 * @return array{total:int, new:int, duplicate:int, format:string, sample:array<int, array<string,mixed>>}
+	 * @return array{total:int, new:int, duplicate:int, format:string, sample:array<int, array<string,mixed>>, unresolvedAccounts:array<int, array{ownAccount:string, count:int, message:string}>}
 	 */
 	public function preview(string $userId, string $content): array {
 		[$rows, $format] = $this->parsers->parse($content);
@@ -54,7 +56,37 @@ class ImportService {
 			'existingBookings' => $existingBookings,
 			'format' => $format,
 			'sample' => $sample,
+			'unresolvedAccounts' => $this->unresolvedAccounts($userId, $new),
 		];
+	}
+
+	/**
+	 * Eigene Konten der neuen Umsätze, die zu keinem Geldkonto eindeutig
+	 * passen. Die Vorschau nennt sie, bevor der Import sie in „Zuzuordnen"
+	 * legt – zuordnen lassen sie sich erst, wenn die IBAN am richtigen
+	 * Geldkonto steht (Issue #154, siehe AccountService::resolveBankAccount()).
+	 *
+	 * @param array<int, array<string,mixed>> $rows
+	 * @return array<int, array{ownAccount:string, count:int, message:string}>
+	 */
+	private function unresolvedAccounts(string $userId, array $rows): array {
+		$counts = [];
+		foreach ($rows as $row) {
+			$own = (string)($row['ownAccount'] ?? '');
+			$counts[$own] = ($counts[$own] ?? 0) + 1;
+		}
+
+		$out = [];
+		foreach ($counts as $own => $count) {
+			try {
+				$this->accounts->resolveBankAccount($userId, $own === '' ? null : (string)$own);
+			} catch (\InvalidArgumentException $e) {
+				$out[] = ['ownAccount' => (string)$own, 'count' => $count, 'message' => $e->getMessage()];
+			} catch (DoesNotExistException) {
+				// Ohne Bankkonto meldet schon die Zuordnung selbst, was fehlt.
+			}
+		}
+		return $out;
 	}
 
 	/**

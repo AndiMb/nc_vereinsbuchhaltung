@@ -19,6 +19,25 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+**Behoben:**
+- **Nextcloud-Konto anlegen scheiterte mit „Password confirmation is
+  required"** (Issue #150). Nextcloud verlangt dafür wie in der
+  Benutzerverwaltung ein kürzlich bestätigtes Passwort; die App fragt es jetzt
+  bei Bedarf ab. Wer den Dialog abbricht, behält Akte bzw. Aufnahme-Dialog
+  unverändert offen.
+- **Kontoauszüge mit Kontonummer statt IBAN auf dem richtigen Geldkonto**
+  (Issue #154). MT940-Auszüge mit „BLZ/Kontonummer" (in beiden Reihenfolgen)
+  und CSV-Dateien mit bloßer Kontonummer ordnet die App über die IBAN am
+  Geldkonto zu. Steht an einem Geldkonto eine IBAN und passt ein Umsatz bei
+  mehreren Bankkonten zu keinem oder zu mehreren, bucht die App nicht mehr
+  still auf das erste Bankkonto, sondern erklärt, was fehlt; die
+  Import-Vorschau weist vorab darauf hin. Ohne hinterlegte IBAN ändert sich
+  nichts.
+
+**Geändert:**
+- **Terminplan zeigt den Einzugstag als Datum** (Issue #149): neben jedem
+  Versatz steht, was er ergibt, z. B. „am 15. jedes Monats" bei Versatz 14.
+
 ## [0.41.0] – 2026-10-23
 
 **Neu:**

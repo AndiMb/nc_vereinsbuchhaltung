@@ -102,6 +102,23 @@ class Mt940ParserTest extends TestCase {
 	}
 
 	/**
+	 * Steht die BLZ hinten ("Kontonummer/BLZ", Issue #154), bleibt trotzdem die
+	 * Kontonummer – woran sie sich gegen die IBAN am Geldkonto halten lässt.
+	 * Die übliche Reihenfolge ergibt denselben Wert und damit denselben Hash
+	 * wie vor der Änderung.
+	 */
+	public function testEigenesKontoAuchBeiUmgedrehterReihenfolge(): void {
+		$buchung = ":61:2601020102C60,00NTRFNONREF\n:86:166?00GUTSCHRIFT?20Beitrag?32Max Mustermann\n";
+
+		$umgedreht = $this->parser->parse(":20:TEST\n:25:0648489890/50010517\n" . $buchung);
+		$ueblich = $this->parser->parse(":20:TEST\n:25:50010517/0648489890\n" . $buchung);
+
+		$this->assertSame('0648489890', $umgedreht[0]['ownAccount']);
+		$this->assertSame('0648489890', $ueblich[0]['ownAccount']);
+		$this->assertSame($ueblich[0]['hash'], $umgedreht[0]['hash']);
+	}
+
+	/**
 	 * SEPA-strukturierte Felder aus dem Verwendungszweck (EREF+/MREF+/KREF+,
 	 * Spec §5) - MT940 liefert höchstens eine Detail-Zeile je Buchung.
 	 */

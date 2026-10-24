@@ -3086,7 +3086,25 @@
         "„Beitrag ändern“ kann jetzt auch die Zahlungsart umstellen: von Lastschrift auf Überweisung und zurück, ohne die Zuweisung neu anzulegen. Die Umstellung wirkt sofort; das Mandat bleibt gültig und wird nur nicht mehr genutzt.": "“Change fee” can now also switch the payment method: from direct debit to bank transfer and back, without re-creating the assignment. The switch takes effect at once; the mandate stays valid and is simply no longer used.",
         "Neuer Schalter in den Grundeinstellungen: Mitglieder dürfen unter „Mein Beitrag“ selbst von Lastschrift auf Überweisung umstellen – zurück auf Lastschrift stellt der Vorstand.": "New toggle in the basic settings: members may switch from direct debit to bank transfer themselves under “My contribution” – switching back to direct debit is done by the board.",
         "Die Mitgliederliste rechnet das Beitragsaufkommen jetzt für den gewählten Zeitraum und nennt ihn in der Summenzeile.": "The member list now calculates the fee total for the selected period and names it in the summary row.",
-        "Voraussichtlich erste betroffene Fälligkeit: %s": "Expected first affected due date: %s"
+        "Voraussichtlich erste betroffene Fälligkeit: %s": "Expected first affected due date: %s",
+        "Beispiel: Versatz 14 beim monatlichen Turnus zieht jeweils am 15. ein.": "Example: offset 14 for the monthly interval collects on the 15th of each month.",
+        "am {day}. jedes Monats": "on day {day} of each month",
+        "am {day}. des ersten Periodenmonats": "on day {day} of the first month of the period",
+        "_%n Tag vor Periodenbeginn_::_%n Tage vor Periodenbeginn_": [
+            "%n day before the period starts",
+            "%n days before the period starts"
+        ],
+        "_%n Tag nach Periodenbeginn_::_%n Tage nach Periodenbeginn_": [
+            "%n day after the period starts",
+            "%n days after the period starts"
+        ],
+        "Der Umsatz gehört zum Konto %s, das zu keinem Geldkonto passt. Tragen Sie dessen IBAN am richtigen Geldkonto ein (Tab Konten).": "The transaction belongs to account %s, which matches no cash/bank account. Enter its IBAN on the right cash/bank account (Accounts tab).",
+        "Der Umsatz gehört zum Konto %s, das zu mehreren Geldkonten passt (%s). Prüfen Sie die IBANs der Geldkonten (Tab Konten).": "The transaction belongs to account %s, which matches several cash/bank accounts (%s). Check the IBANs of the cash/bank accounts (Accounts tab).",
+        "Nicht jeder Umsatz lässt sich einem Geldkonto zuordnen. Die Datei wird trotzdem eingelesen; zuordnen können Sie diese Umsätze, sobald die IBAN am richtigen Geldkonto steht.": "Not every transaction can be matched to a cash/bank account. The file is imported anyway; you can assign these transactions once the IBAN is on the right cash/bank account.",
+        "_%n Umsatz: {message}_::_%n Umsätze: {message}_": [
+            "%n transaction: {message}",
+            "%n transactions: {message}"
+        ]
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

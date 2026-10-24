@@ -433,7 +433,9 @@
 			</div>
 
 			<template v-if="isEdit && !isRedacted">
+				<!-- v-if: ein dauerhaft eingehängtes NcModal behält seine veraltete Fokusfalle und zieht den Fokus aus dem Passwort-Dialog (Issue #150) zurück. -->
 				<NextcloudAccountDialog
+					v-if="accountDialogOpen"
 					:show="accountDialogOpen"
 					:member="member"
 					@update:show="accountDialogOpen = $event"
