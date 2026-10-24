@@ -70,4 +70,17 @@ class JournalFingerprintTest extends TestCase {
 	public function testBuchungOhneDatumHatKeinenSchluessel(): void {
 		$this->assertNull(RowNormalizer::journalFingerprint('', 10000, [20], [7], ''));
 	}
+
+	/**
+	 * Issue #112: dieselbe Belegnummer aus derselben xbuc-Datei – vom Import bis
+	 * 0.41.1 als "B&ü1" gespeichert, unrepariert als "B&amp;#252;1", heute als
+	 * "Bü1" gelesen. Ein erneuter Import darf keine Dublette anlegen.
+	 */
+	public function testBelegnummerMitKodiertenSonderzeichenBleibtDieselbe(): void {
+		$heute = RowNormalizer::journalFingerprint('2026-03-01', 1200, [7], [12], 'Bü1');
+
+		$this->assertSame($heute, RowNormalizer::journalFingerprint('2026-03-01', 1200, [7], [12], 'B&ü1'));
+		$this->assertSame($heute, RowNormalizer::journalFingerprint('2026-03-01', 1200, [7], [12], 'B&amp;#252;1'));
+		$this->assertNotSame($heute, RowNormalizer::journalFingerprint('2026-03-01', 1200, [7], [12], 'Bü2'));
+	}
 }

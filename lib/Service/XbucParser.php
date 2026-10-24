@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service;
 
+use OCA\Vereinsbuchhaltung\Service\Text\EntityDecoder;
 use OCP\IL10N;
 
 /**
@@ -373,18 +374,10 @@ class XbucParser {
 	}
 
 	/**
-	 * Dekodiert die teils doppelt kodierten Entities (z.B. "&#246;" oder "#20;")
-	 * und entfernt Steuerzeichen.
+	 * Dekodiert die teils mehrfach kodierten Entities (z.B. "&#246;", "#20;"
+	 * oder "&amp;#252;") und entfernt Steuerzeichen.
 	 */
 	private function decode(string $s): string {
-		$s = preg_replace('/&?#(\d+);/', '&#$1;', $s) ?? $s;
-		// Referenzen auf Steuerzeichen (&#0; bis &#31;, z.B. "#20;" als
-		// Leerzeichen-Ersatz von zero Buchhaltung) zu Leerzeichen machen –
-		// html_entity_decode lässt sie sonst als Literal stehen.
-		$s = preg_replace('/&#(?:\d|[12]\d|3[01]);/', ' ', $s) ?? $s;
-		$s = html_entity_decode($s, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-		// Steuerzeichen (außer Tab/Zeilenumbruch) entfernen
-		$s = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/u', '', $s) ?? $s;
-		return trim($s);
+		return EntityDecoder::clean($s);
 	}
 }

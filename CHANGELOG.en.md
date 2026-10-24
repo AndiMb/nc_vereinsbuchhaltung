@@ -17,6 +17,16 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+**Fixed:**
+- **Special characters from the xbuc import** (issue #112). Multiply encoded
+  umlauts such as `M&amp;#252;ller` are now read as "Müller" instead of
+  `M&üller`. The update repairs booking texts, document numbers and account
+  names already stored with such codes once – in closed fiscal years too,
+  since only the spelling changes, never amount, account or date. Every change
+  is listed in the audit log with the old and new text ("Special characters
+  repaired"). Re-importing a file that was already imported does not create
+  duplicates because of this.
+
 ## [0.41.1] – 2026-10-24
 
 **Fixed:**
