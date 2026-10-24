@@ -41,7 +41,7 @@ import api from '../api.js'
 import { accountPayload, emptyAccount, missingAccountFields } from '../lib/accountForm.js'
 import { errMsg } from '../lib/format.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
-import { createAndLinkAccount } from '../lib/nextcloudAccount.js'
+import { confirmAccountCreation, createAndLinkAccount } from '../lib/nextcloudAccount.js'
 
 /**
  * „Nextcloud-Konto anlegen“ für ein schon vorhandenes Mitglied (Akte): dieselben Angaben wie im
@@ -70,7 +70,15 @@ export default {
 	},
 
 	watch: {
-		async show(open) {
+		// immediate: MemberDialog hängt den Dialog erst beim Öffnen ein (v-if), show ist dann schon true.
+		show: {
+			immediate: true,
+			handler: 'load',
+		},
+	},
+
+	methods: {
+		async load(open) {
 			if (!open) { return }
 			this.account = emptyAccount(this.member)
 			try {
@@ -83,13 +91,13 @@ export default {
 				showError(errMsg(e, this.t('Die Angaben für das Konto konnten nicht geladen werden')))
 			}
 		},
-	},
 
-	methods: {
 		async save() {
 			if (!this.canSave) { return }
 			this.saving = true
 			try {
+				// Abgebrochene Passwortbestätigung: der Dialog bleibt offen, nichts ist angelegt.
+				if (!await confirmAccountCreation()) { return }
 				await createAndLinkAccount(this.member.id, accountPayload(this.account))
 				showSuccess(this.t('Nextcloud-Konto angelegt und verknüpft.'))
 				this.$emit('changed')

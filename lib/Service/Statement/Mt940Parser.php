@@ -133,6 +133,12 @@ class Mt940Parser implements StatementParser {
 	 * :25: trägt entweder eine IBAN oder "BLZ/Kontonummer".
 	 * Bei der zweiten Form wird der Kontoteil genommen, weil die CSV-Exporte
 	 * derselben Bank dort ebenfalls nur die Kontonummer führen.
+	 *
+	 * Manche Banken drehen die Reihenfolge um ("Kontonummer/BLZ", Issue #154).
+	 * Die BLZ ist der Teil mit genau acht Ziffern; nur wenn beide Teile so
+	 * aussehen, bleibt es beim hinteren. Für die übliche Reihenfolge ändert
+	 * sich damit nichts – auch nicht am Import-Hash, in den der Wert eingeht
+	 * (siehe RowNormalizer::computeHash()).
 	 */
 	private function ownAccount(string $value): ?string {
 		$v = trim(explode("\n", $value)[0]);
@@ -143,10 +149,17 @@ class Mt940Parser implements StatementParser {
 			return $m[0];
 		}
 		if (str_contains($v, '/')) {
-			$parts = explode('/', $v);
-			return trim(end($parts));
+			$parts = array_map('trim', explode('/', $v));
+			if (count($parts) === 2 && $this->isBankCode($parts[1]) && !$this->isBankCode($parts[0])) {
+				return $parts[0];
+			}
+			return end($parts);
 		}
 		return $v;
+	}
+
+	private function isBankCode(string $part): bool {
+		return preg_match('/^\d{8}$/', $part) === 1;
 	}
 
 	/**

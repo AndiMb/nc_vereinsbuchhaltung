@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
+use OCA\Vereinsbuchhaltung\Db\Account;
 use OCA\Vereinsbuchhaltung\Db\BankTransaction;
 use OCA\Vereinsbuchhaltung\Db\BankTransactionMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
+use OCA\Vereinsbuchhaltung\Service\AccountService;
 use OCA\Vereinsbuchhaltung\Service\BookingService;
 use OCA\Vereinsbuchhaltung\Service\ImportService;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportExtractionService;
@@ -45,7 +47,7 @@ class ImportServiceTest extends TestCase {
 		$this->sepaDetails = $this->createMock(SepaImportExtractionService::class);
 	}
 
-	private function service(): ImportService {
+	private function service(?StatementParserRegistry $parsers = null, ?AccountService $accounts = null): ImportService {
 		$rules = $this->createMock(RuleMapper::class);
 		$rules->method('findAll')->willReturn([]);
 		$journals = $this->createMock(JournalMapper::class);
@@ -54,7 +56,7 @@ class ImportServiceTest extends TestCase {
 		$transaction->method('run')->willReturnCallback(static fn (callable $work) => $work());
 
 		return new ImportService(
-			$this->createMock(StatementParserRegistry::class),
+			$parsers ?? $this->createMock(StatementParserRegistry::class),
 			$this->normalizer,
 			$this->txMapper,
 			$rules,
@@ -62,6 +64,7 @@ class ImportServiceTest extends TestCase {
 			$journals,
 			$transaction,
 			$this->sepaDetails,
+			$accounts ?? $this->createMock(AccountService::class),
 		);
 	}
 
@@ -138,5 +141,31 @@ class ImportServiceTest extends TestCase {
 		$this->assertSame(0, $result['new']);
 		$this->assertSame(1, $result['duplicate']);
 		$this->assertSame(0, $result['sepaReturnsDetected']);
+	}
+
+	/**
+	 * Die Vorschau nennt eigene Konten, die zu keinem Geldkonto eindeutig
+	 * passen, je Konto einmal mit der Zahl der Umsätze (Issue #154). Konten,
+	 * die sich auflösen lassen, und Zeilen ohne eigenes Konto bleiben stumm.
+	 */
+	public function testVorschauNenntKontenOhneEindeutigesGeldkonto(): void {
+		$rows = [$this->row('h1', 100), $this->row('h2', 200), $this->row('h3', 300), $this->row('h4', 400)];
+		$rows[0]['ownAccount'] = '0648489890';
+		$rows[1]['ownAccount'] = '0648489890';
+		$rows[2]['ownAccount'] = 'DE02120300000000202051';
+		$parsers = $this->createMock(StatementParserRegistry::class);
+		$parsers->method('parse')->willReturn([$rows, 'mt940']);
+
+		$accounts = $this->createMock(AccountService::class);
+		$accounts->method('resolveBankAccount')->willReturnCallback(static function (string $userId, ?string $own): Account {
+			if ($own === '0648489890') {
+				throw new \InvalidArgumentException('passt zu keinem Geldkonto');
+			}
+			return new Account();
+		});
+
+		$preview = $this->service($parsers, $accounts)->preview('book', 'egal');
+
+		$this->assertSame([['ownAccount' => '0648489890', 'count' => 2, 'message' => 'passt zu keinem Geldkonto']], $preview['unresolvedAccounts']);
 	}
 }

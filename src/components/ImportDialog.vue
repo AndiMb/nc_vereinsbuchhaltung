@@ -54,6 +54,15 @@
 					<p v-if="previewResult.existingBookings > 0" class="vbh-hint">
 						{{ t('Davon {n} bereits als vorhandene Buchung erkannt (z. B. aus einem XBUC-Import) und daher übersprungen.', { n: previewResult.existingBookings }) }}
 					</p>
+					<!-- Issue #154: Umsätze, deren eigenes Konto zu keinem Geldkonto eindeutig passt, lassen sich erst nach Eintragen der IBAN zuordnen. -->
+					<NcNoteCard v-if="previewResult.unresolvedAccounts?.length" type="warning" data-testid="import-unresolved-accounts">
+						<p>{{ t('Nicht jeder Umsatz lässt sich einem Geldkonto zuordnen. Die Datei wird trotzdem eingelesen; zuordnen können Sie diese Umsätze, sobald die IBAN am richtigen Geldkonto steht.') }}</p>
+						<ul>
+							<li v-for="item in previewResult.unresolvedAccounts" :key="item.ownAccount">
+								{{ n('%n Umsatz: {message}', '%n Umsätze: {message}', item.count, { message: item.message }) }}
+							</li>
+						</ul>
+					</NcNoteCard>
 					<NcButton variant="primary" :disabled="busy || previewResult.new === 0" @click="commit">
 						{{ t('{n} Buchungen importieren', { n: previewResult.new }) }}
 					</NcButton>
@@ -92,13 +101,13 @@
 <script>
 import { mdiCheckCircle, mdiUpload } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper, NcModal } from '@nextcloud/vue'
+import { NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper, NcModal, NcNoteCard } from '@nextcloud/vue'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
 
 export default {
 	name: 'ImportDialog',
-	components: { NcModal, NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper },
+	components: { NcModal, NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper, NcNoteCard },
 	props: {
 		show: { type: Boolean, default: false },
 		// gemeinsames App-weites Ladeflag (.sync)

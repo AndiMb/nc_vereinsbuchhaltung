@@ -12,6 +12,7 @@ use OCA\Vereinsbuchhaltung\Db\RuleMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Exception\PeriodClosedException;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportSettingsService;
+use OCA\Vereinsbuchhaltung\Service\Statement\BankAccountMatcher;
 use OCA\Vereinsbuchhaltung\Service\Statement\RowNormalizer;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IL10N;
@@ -478,35 +479,45 @@ class AccountService {
 	/**
 	 * Ermittelt das Geldkonto, auf das ein importierter Umsatz gehört.
 	 *
-	 * Führt der Verein mehrere Bankkonten, entscheidet die IBAN: der Umsatz
-	 * bringt aus dem Auszug das Konto mit, auf dem er gebucht wurde, und das
-	 * wird gegen die am Geldkonto hinterlegte IBAN gehalten.
+	 * Führt der Verein mehrere Bankkonten, entscheidet die IBAN am Geldkonto:
+	 * der Umsatz bringt aus dem Auszug das Konto mit, auf dem er gebucht wurde,
+	 * als IBAN, als Kontonummer oder als BLZ – siehe {@see BankAccountMatcher}.
 	 *
 	 * Beide Seiten werden vor dem Vergleich normalisiert. Neu importierte
 	 * Umsätze und neu gespeicherte IBANs liegen zwar bereits in Normalform vor,
 	 * Umsätze aus der Zeit davor aber nicht – die trügen die Schreibweise der
 	 * Bank ("DE12 3456 …") und würden sonst nie treffen.
 	 *
-	 * Ohne Treffer bleibt es beim ersten Bankkonto, wie bisher. Das ist bewusst
-	 * kein Fehler: Die CSV mancher Bank führt im Feld „Auftragskonto" nur eine
-	 * Kontonummer statt der IBAN, und daran darf die Zuordnung nicht scheitern.
-	 * Wer mehrere Konten führt, sollte deshalb CAMT.053 oder MT940 exportieren –
-	 * dort steht die IBAN verlässlich.
+	 * Ohne eindeutigen Treffer nimmt die App das erste Bankkonto nur noch, wenn
+	 * das keine Verwechslung sein kann: es gibt nur ein Bankkonto, oder der
+	 * Umsatz nennt gar kein Konto. Nennt er eines, das zu keinem oder zu mehreren
+	 * Geldkonten passt, scheitert die Zuordnung mit einer Erklärung, statt still
+	 * auf ein womöglich falsches Konto zu buchen (Issue #154).
+	 *
+	 * @throws DoesNotExistException ohne Bankkonto im Kontenrahmen
+	 * @throws \InvalidArgumentException wenn das genannte Konto keinem Geldkonto eindeutig entspricht
 	 */
 	public function resolveBankAccount(string $userId, ?string $ownAccount): Account {
-		$wanted = $this->normalizer->normalizeOwnAccount($ownAccount);
-		if ($wanted !== null) {
-			foreach ($this->mapper->findAll($userId) as $account) {
-				if (!$account->getIsBank()) {
-					continue;
-				}
-				$iban = $this->normalizer->normalizeOwnAccount($account->getIban());
-				if ($iban !== null && $iban === $wanted) {
-					return $account;
-				}
-			}
+		$banks = array_values(array_filter($this->mapper->findAll($userId), static fn (Account $a): bool => (bool)$a->getIsBank()));
+		if ($banks === []) {
+			throw new DoesNotExistException($this->l10n->t('Kein Bankkonto im Kontenrahmen definiert.'));
 		}
-		return $this->getDefaultBankAccount($userId);
+
+		$matcher = new BankAccountMatcher($this->normalizer);
+		$hits = $matcher->candidates($ownAccount, $banks);
+		if (count($hits) === 1) {
+			return $hits[0];
+		}
+		if (count($banks) === 1 || !$matcher->identifiesAccount($ownAccount)) {
+			return $banks[0];
+		}
+		if ($hits === []) {
+			throw new \InvalidArgumentException($this->l10n->t('Der Umsatz gehört zum Konto %s, das zu keinem Geldkonto passt. Tragen Sie dessen IBAN am richtigen Geldkonto ein (Tab Konten).', [(string)$ownAccount]));
+		}
+		throw new \InvalidArgumentException($this->l10n->t('Der Umsatz gehört zum Konto %s, das zu mehreren Geldkonten passt (%s). Prüfen Sie die IBANs der Geldkonten (Tab Konten).', [
+			(string)$ownAccount,
+			implode(', ', array_map(static fn (Account $a): string => $a->getNumber() . ' ' . $a->getName(), $hits)),
+		]));
 	}
 
 	/**

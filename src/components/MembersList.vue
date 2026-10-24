@@ -193,7 +193,7 @@ import { errMsg, formatDate, formatMoney } from '../lib/format.js'
 import { createMandateForMember } from '../lib/mandateCreate.js'
 import { collectEmails, EMAIL_SEPARATOR } from '../lib/memberEmails.js'
 import { buildMemberRow, isLiveAssignment, nextDueDates } from '../lib/memberRow.js'
-import { createAndLinkAccount } from '../lib/nextcloudAccount.js'
+import { confirmAccountCreation, createAndLinkAccount } from '../lib/nextcloudAccount.js'
 import { nextTwelveMonths, periodAmount } from '../lib/prorata.js'
 
 /**
@@ -476,6 +476,9 @@ export default {
 		 * lässt sich in der Akte nachholen).
 		 */
 		async saveMember(payload) {
+			// Das Passwort fragt Nextcloud fürs Konto ab (Issue #150) – vor dem ersten
+			// Speichern, damit ein Abbruch keine Akte ohne das gewünschte Konto hinterlässt.
+			if (!this.editingMember && payload.account && !await confirmAccountCreation()) { return }
 			this.saving = true
 			let stage = 'member'
 			const problems = []
