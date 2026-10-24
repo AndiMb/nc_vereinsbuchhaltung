@@ -19,6 +19,8 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+## [0.41.2] – 2026-10-24
+
 **Behoben:**
 - **Sonderzeichen aus dem xbuc-Import** (Issue #112). Mehrfach kodierte
   Umlaute wie `M&amp;#252;ller` liest der Import jetzt als „Müller" statt

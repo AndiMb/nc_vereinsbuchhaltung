@@ -17,6 +17,8 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+## [0.41.2] – 2026-10-24
+
 **Fixed:**
 - **Special characters from the xbuc import** (issue #112). Multiply encoded
   umlauts such as `M&amp;#252;ller` are now read as "Müller" instead of
