@@ -19,6 +19,8 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+## [0.41.1] – 2026-10-24
+
 **Behoben:**
 - **Nextcloud-Konto anlegen scheiterte mit „Password confirmation is
   required"** (Issue #150). Nextcloud verlangt dafür wie in der

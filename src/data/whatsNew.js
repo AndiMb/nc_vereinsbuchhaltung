@@ -25,6 +25,15 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.41.1',
+			roles: ['verwalter', 'buchhalter'],
+			items: [
+				t('Kontoauszüge, die statt der IBAN nur Kontonummer und BLZ nennen (MT940, manche CSV), landen auf dem richtigen Geldkonto – vorausgesetzt, die IBAN steht am Geldkonto.'),
+				t('Der Terminplan zeigt neben jedem Versatz den Einzugstag als Datum, z. B. „am 15. jedes Monats“.'),
+				t('„Nextcloud-Konto anlegen“ fragt bei Bedarf das Passwort ab und scheitert nicht mehr mit „Password confirmation is required“.'),
+			],
+		},
+		{
 			version: '0.41.0',
 			roles: ['verwalter', 'buchhalter'],
 			items: [

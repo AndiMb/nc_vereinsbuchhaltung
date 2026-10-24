@@ -3104,7 +3104,10 @@
         "_%n Umsatz: {message}_::_%n Umsätze: {message}_": [
             "%n transaction: {message}",
             "%n transactions: {message}"
-        ]
+        ],
+        "Kontoauszüge, die statt der IBAN nur Kontonummer und BLZ nennen (MT940, manche CSV), landen auf dem richtigen Geldkonto – vorausgesetzt, die IBAN steht am Geldkonto.": "Statements that name only the account number and bank code instead of the IBAN (MT940, some CSV files) end up on the right cash account – provided the IBAN is set on the cash account.",
+        "Der Terminplan zeigt neben jedem Versatz den Einzugstag als Datum, z. B. „am 15. jedes Monats“.": "The schedule shows the collection day as a date next to each offset, e.g. “on day 15 of each month”.",
+        "„Nextcloud-Konto anlegen“ fragt bei Bedarf das Passwort ab und scheitert nicht mehr mit „Password confirmation is required“.": "“Create Nextcloud account” asks for your password when needed and no longer fails with “Password confirmation is required”."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

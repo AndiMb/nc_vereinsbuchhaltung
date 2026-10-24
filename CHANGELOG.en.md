@@ -17,6 +17,8 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+## [0.41.1] – 2026-10-24
+
 **Fixed:**
 - **Creating a Nextcloud account failed with "Password confirmation is
   required"** (issue #150). Like the user management, Nextcloud requires a
