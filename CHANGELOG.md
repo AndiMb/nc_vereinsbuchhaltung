@@ -19,6 +19,16 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+**Behoben:**
+- **Sonderzeichen aus dem xbuc-Import** (Issue #112). Mehrfach kodierte
+  Umlaute wie `M&amp;#252;ller` liest der Import jetzt als „Müller" statt
+  `M&üller`. Bereits gespeicherte Buchungstexte, Belegnummern und Kontonamen
+  mit solchen Codes repariert das Update einmalig – auch in abgeschlossenen
+  Geschäftsjahren, denn geändert wird nur die Schreibweise, nie Betrag, Konto
+  oder Datum. Jede Änderung steht mit altem und neuem Text im Protokoll
+  („Sonderzeichen repariert"). Ein erneuter Import einer schon übernommenen
+  Datei legt dadurch keine Dubletten an.
+
 ## [0.41.1] – 2026-10-24
 
 **Behoben:**

@@ -263,6 +263,14 @@ and postings completely: gear icon → *Data* → *From "zero Buchhaltung"
 > already **closed** (chapter 8). A closed period is finalized and can no
 > longer be changed – not even by an import.
 
+**Umlauts and special characters:** zero Buchhaltung sometimes writes them as
+codes (`M&#252;ller`, `M#252;ller`, also multiply encoded). The import turns
+every one of these forms back into the character. Texts that older versions
+of the app stored with such codes were repaired once by the update to 0.41.2;
+the changes are listed under *Reports* → *Log* as "Special characters
+repaired", with the old and new text. This also applies to closed periods –
+only the spelling was changed.
+
 ### 3.2 Importing bank statements (transactions)
 
 For ongoing transactions: **Bookings** tab → *Import transactions* → drag

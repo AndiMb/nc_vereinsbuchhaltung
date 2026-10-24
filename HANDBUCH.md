@@ -265,6 +265,14 @@ Datei wählen.
 > ist festgeschrieben und darf nicht mehr verändert werden – auch nicht per
 > Import.
 
+**Umlaute und Sonderzeichen:** zero Buchhaltung schreibt sie teils als Code
+(`M&#252;ller`, `M#252;ller`, auch mehrfach kodiert). Der Import übersetzt
+jede dieser Formen zurück. Texte, die ältere Versionen der App mit solchen
+Codes gespeichert haben, hat das Update auf 0.41.2 einmalig repariert; die
+Änderungen stehen unter *Berichte* → *Protokoll* als „Sonderzeichen
+repariert", mit altem und neuem Text. Das gilt auch für abgeschlossene
+Zeiträume – geändert wurde nur die Schreibweise.
+
 ### 3.2 Kontoauszüge importieren (Bankumsätze)
 
 Für die laufenden Umsätze: Tab **Buchungen** → *Umsätze importieren* →

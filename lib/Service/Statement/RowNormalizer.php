@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service\Statement;
 
+use OCA\Vereinsbuchhaltung\Service\Text\EntityDecoder;
+
 /**
  * Bringt die Rohdaten aller Umsatzquellen auf dieselbe kanonische Zeilenform
  * und berechnet den Dedup-Hash.
@@ -202,6 +204,12 @@ class RowNormalizer {
 	 * und eine eingehende Buchung, die zufällig darauf passte, stillschweigend
 	 * als Dublette verworfen wurde.
 	 *
+	 * Die Belegnummer geht ohne Entitäten und ohne "&" ein (Issue #112). Bis
+	 * 0.41.1 las der xbuc-Import "B&amp;#252;1" als "B&ü1", seither als "Bü1";
+	 * ohne diese Angleichung gälte jede so importierte Buchung beim erneuten
+	 * Import derselben Datei als neu. Verglichen wird ohnehin im Speicher,
+	 * gespeichert wird der Schlüssel nirgends.
+	 *
 	 * @param int[] $debitAccountIds Konten der Sollseite
 	 * @param int[] $creditAccountIds Konten der Habenseite
 	 * @return string|null null, wenn eine Seite fehlt (kaputte Altdaten)
@@ -215,7 +223,7 @@ class RowNormalizer {
 		return $date . '|' . abs($amountCents)
 			. '|' . implode(',', $debitAccountIds)
 			. '|' . implode(',', $creditAccountIds)
-			. '|' . $docRef;
+			. '|' . str_replace('&', '', EntityDecoder::decode($docRef));
 	}
 
 	/**
@@ -243,7 +251,7 @@ class RowNormalizer {
 	 * und würden sonst nie zum Bankumsatz passen (Issue #112).
 	 */
 	public function normalizeText(string $s): string {
-		return preg_replace('/[^\p{L}\p{N}]+/u', '', mb_strtolower($this->decodeEntities($s))) ?? '';
+		return preg_replace('/[^\p{L}\p{N}]+/u', '', mb_strtolower(EntityDecoder::decode($s))) ?? '';
 	}
 
 	/**
@@ -269,24 +277,6 @@ class RowNormalizer {
 			$texts[] = $purpose;
 		}
 		return $texts;
-	}
-
-	/**
-	 * Löst HTML-Entitäten bis zum Fixpunkt auf, dazu die in xbuc-Dateien
-	 * vorkommende Form ohne "&" ("#252;"). Reihenfolge wichtig: erst
-	 * dekodieren, dann "#252;" ergänzen – andersherum würde aus "&amp;#252;"
-	 * zuerst "&amp;&#252;" und am Ende "&ü".
-	 */
-	private function decodeEntities(string $s): string {
-		for ($i = 0; $i < 5 && (str_contains($s, '&') || str_contains($s, '#')); $i++) {
-			$next = html_entity_decode($s, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-			$next = preg_replace('/(?<!&)#(\d+);/', '&#$1;', $next) ?? $next;
-			if ($next === $s) {
-				break;
-			}
-			$s = $next;
-		}
-		return $s;
 	}
 
 	private function limit(?string $value, int $max): ?string {
