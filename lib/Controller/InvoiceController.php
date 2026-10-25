@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Db\BankTransactionMapper;
 use OCA\Vereinsbuchhaltung\Exception\ConflictException;
 use OCA\Vereinsbuchhaltung\Exception\InvoiceNotIssuableException;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
+use OCA\Vereinsbuchhaltung\Service\InvoicePaymentService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
 use OCA\Vereinsbuchhaltung\Service\NumberRangeService;
@@ -42,6 +44,8 @@ class InvoiceController extends Controller {
 		private InvoiceService $service,
 		private InvoiceSettings $settings,
 		private NumberRangeService $numberRanges,
+		private InvoicePaymentService $paymentService,
+		private BankTransactionMapper $txMapper,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -141,6 +145,49 @@ class InvoiceController extends Controller {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_CONFLICT);
 		} catch (InvoiceNotIssuableException $e) {
 			return new DataResponse(['message' => $e->getMessage(), 'problems' => $e->getProblems()], Http::STATUS_BAD_REQUEST);
+		} catch (\InvalidArgumentException $e) {
+			return $this->bad($e);
+		}
+	}
+
+	/** Ordnet einen Zahlungseingang der Rechnung zu und bucht ihn. */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	public function pay(int $id, int $bankTxId): DataResponse {
+		try {
+			$tx = $this->txMapper->find($bankTxId, $this->userId());
+			$this->paymentService->payFromBankTransaction($tx, $id);
+			return new DataResponse($this->service->detail($id));
+		} catch (DoesNotExistException) {
+			return $this->notFound();
+		} catch (\InvalidArgumentException $e) {
+			return $this->bad($e);
+		}
+	}
+
+	/** Barzahlung: bucht Geldkonto an Erlöskonten, ohne Bankumsatz. */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	public function payManually(int $id, string $date, int $accountId, ?int $amountCents = null): DataResponse {
+		try {
+			$this->paymentService->payManually($id, $date, $accountId, $amountCents);
+			return new DataResponse($this->service->detail($id));
+		} catch (DoesNotExistException) {
+			return $this->notFound();
+		} catch (\InvalidArgumentException $e) {
+			return $this->bad($e);
+		}
+	}
+
+	/** Nimmt eine Zahlung zurück (löst die Zuordnung bzw. löscht die Barbuchung). */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	public function revertPayment(int $id, int $paymentId): DataResponse {
+		try {
+			$this->paymentService->revertPayment($id, $paymentId);
+			return new DataResponse($this->service->detail($id));
+		} catch (DoesNotExistException) {
+			return $this->notFound();
 		} catch (\InvalidArgumentException $e) {
 			return $this->bad($e);
 		}

@@ -13,6 +13,7 @@ use OCA\Vereinsbuchhaltung\Db\InvoiceDocumentMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoiceLine;
 use OCA\Vereinsbuchhaltung\Db\InvoiceLineMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoiceMapper;
+use OCA\Vereinsbuchhaltung\Db\InvoicePaymentMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
@@ -45,6 +46,7 @@ class InvoiceService {
 		private InvoiceMapper $invoices,
 		private InvoiceLineMapper $lines,
 		private InvoiceDocumentMapper $documents,
+		private InvoicePaymentMapper $payments,
 		private DebtorMapper $debtors,
 		private OpenItemMapper $openItems,
 		private AccountMapper $accounts,
@@ -92,6 +94,7 @@ class InvoiceService {
 		$out = $this->decorate($invoice, $item, $debtor);
 		$out['lines'] = $lines;
 		$out['documents'] = $this->documents->findByInvoice($id);
+		$out['payments'] = $this->payments->findByInvoice($id);
 		$credit = $invoice->isCredit() ? null : $this->invoices->findCreditFor($id);
 		$out['creditInvoiceId'] = $credit?->getId();
 		if ($invoice->isDraft()) {

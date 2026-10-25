@@ -17,6 +17,7 @@ use OCA\Vereinsbuchhaltung\Db\IncomingPaymentRejectionMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoiceDocumentMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoiceLineMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoiceMapper;
+use OCA\Vereinsbuchhaltung\Db\InvoicePaymentMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\MandateAmendmentMapper;
@@ -87,6 +88,7 @@ class ResetServiceTest extends TestCase {
 		'vbh_invoices',
 		'vbh_invoice_lines',
 		'vbh_invoice_documents',
+		'vbh_invoice_payments',
 	];
 
 	/**
@@ -286,6 +288,7 @@ class ResetServiceTest extends TestCase {
 			new InvoiceLineMapper($this->db),
 			new InvoiceDocumentMapper($this->db),
 			$this->createMock(InvoiceSettings::class),
+			new InvoicePaymentMapper($this->db),
 		);
 	}
 

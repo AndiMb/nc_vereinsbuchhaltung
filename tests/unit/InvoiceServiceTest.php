@@ -13,6 +13,7 @@ use OCA\Vereinsbuchhaltung\Db\InvoiceDocumentMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoiceLine;
 use OCA\Vereinsbuchhaltung\Db\InvoiceLineMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoiceMapper;
+use OCA\Vereinsbuchhaltung\Db\InvoicePaymentMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
@@ -113,6 +114,8 @@ class InvoiceServiceTest extends TestCase {
 
 		$documents = $this->createMock(InvoiceDocumentMapper::class);
 		$documents->method('findByInvoice')->willReturn([]);
+		$payments = $this->createMock(InvoicePaymentMapper::class);
+		$payments->method('findByInvoice')->willReturn([]);
 
 		$this->debtors = $this->createMock(DebtorMapper::class);
 		$this->debtors->method('find')->willReturnCallback(fn (int $id) => $id === 5 ? $debtor : throw new DoesNotExistException(''));
@@ -157,6 +160,7 @@ class InvoiceServiceTest extends TestCase {
 			$invoices,
 			$lines,
 			$documents,
+			$payments,
 			$this->debtors,
 			$openItems,
 			$this->accounts,

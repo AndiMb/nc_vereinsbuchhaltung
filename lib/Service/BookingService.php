@@ -40,6 +40,7 @@ class BookingService {
 		private EntryNumberService $entryNumbers,
 		private TransactionRunner $transaction,
 		private IL10N $l10n,
+		private ?InvoicePaymentLedger $invoicePayments = null,
 	) {
 	}
 
@@ -295,6 +296,8 @@ class BookingService {
 			return;
 		}
 		$periodId = (int)$journal->getPeriodId();
+		// Lief eine Rechnungszahlung über diesen Buchungssatz, wird sie zurückgenommen.
+		$this->invoicePayments?->revertForJournal($journal->getId());
 		$this->attachmentStorage->deleteForJournal($journal->getId());
 		$this->lineMapper->deleteByJournal($journal->getId());
 		$this->journalMapper->delete($journal);
