@@ -4,7 +4,7 @@
 	"type": "project",
 	"license": "AGPL-3.0-or-later",
 	"require": {
-		"php": ">=8.1",
+		"php": ">=8.2",
 		"chillerlan/php-qrcode": "^5.0"
 	},
 	"//": [
@@ -18,9 +18,9 @@
 		"war die Bibliothek in der laufenden Instanz nicht ladbar und kein",
 		"Mahnmail trug je einen GiroCode). Das Release-Tarball enthaelt vendor/",
 		"deshalb bewusst mit.",
-		"Bewusst ^5.0 statt ^6.0: 6.x verlangt PHP ^8.2, die App deklariert aber",
-		"PHP >=8.1 (appinfo/info.xml, CI-Matrix) - mit 6.x liesse sich composer",
-		"install unter 8.1 nicht ausfuehren und das Tarball liefe dort nicht.",
+		"Bewusst ^5.0 statt ^6.0: 6.x verlangt PHP ^8.2, die App deklarierte aber frueher",
+		"PHP >=8.2 (appinfo/info.xml, CI-Matrix). 6.x laeuft seit der Anhebung auch,",
+		"der Wechsel ist aber ein eigener Schritt (API-Aenderungen), nicht Teil der Anhebung.",
 		"Lokal: 'phpunit --configuration phpunit.xml' nach 'composer install'."
 	],
 	"autoload": {

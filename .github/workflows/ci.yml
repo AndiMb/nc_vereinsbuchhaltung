@@ -61,7 +61,7 @@ jobs:
       fail-fast: false
       matrix:
         # Spanne aus appinfo/info.xml
-        php-version: ['8.1', '8.4']
+        php-version: ['8.2', '8.5']
     steps:
       - uses: actions/checkout@v7
 
@@ -112,7 +112,7 @@ jobs:
         with:
           # Die niedrigste unterstuetzte Version: was hier durchgeht, laeuft
           # auch auf den neueren. .phpstan/composer.json setzt dieselbe Plattform.
-          php-version: '8.1'
+          php-version: '8.2'
           tools: composer
           coverage: none
 
@@ -146,7 +146,7 @@ jobs:
 
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.1'
+          php-version: '8.2'
           tools: composer
           coverage: none
 
@@ -207,7 +207,7 @@ jobs:
           # das composer.lock muss dort installierbar sein. Im Container
           # laeuft spaeter PHP 8.3; welche Version vendor/ gebaut hat, spielt
           # keine Rolle, die Versionen kommen aus dem Lockfile.
-          php-version: '8.1'
+          php-version: '8.2'
           tools: composer
           coverage: none
 

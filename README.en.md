@@ -235,11 +235,11 @@ The app is published in the **Nextcloud App Store** (signed): in Nextcloud, go t
 
 Alternatively, unpack the tarball from a [GitHub release](https://github.com/AndiMb/nc_vereinsbuchhaltung/releases) into `<nextcloud>/apps/` (see also [`deploy/README.md`](deploy/README.md) for server automation).
 
-**Supported:** Nextcloud 31–35, PHP 8.1–8.5, SQLite/MySQL/PostgreSQL.
+**Supported:** Nextcloud 33–35, PHP 8.2–8.5, SQLite/MySQL/PostgreSQL.
 
 ## Development
 
-**Requirements:** PHP ≥ 8.1, Node ≥ 22 / npm ≥ 10, a Nextcloud instance (≥ 31).
+**Requirements:** PHP ≥ 8.2, Node ≥ 22 / npm ≥ 10, a Nextcloud instance (≥ 33).
 
 ```bash
 # 1. Build the frontend
