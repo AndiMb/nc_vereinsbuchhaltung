@@ -1,7 +1,7 @@
 <template>
 	<div class="vbh-interval" :data-testid="'schedule-interval-' + intervalMonths">
 		<div class="vbh-interval-head">
-			<h5>{{ label }}</h5>
+			<h3>{{ label }}</h3>
 			<span class="vbh-hint">{{ n('%n Mitglied', '%n Mitglieder', memberCount) }}</span>
 		</div>
 
@@ -178,8 +178,9 @@ export default {
 		offsetRange: { type: Object, required: true },
 	},
 
-	// `saved` trägt den gespeicherten Terminplan des Turnus aus der Antwort des Servers.
-	emits: ['saved'],
+	// saved: der gespeicherte Terminplan des Turnus aus der Antwort des Servers;
+	// dirty: ob ein ungespeicherter Entwurf besteht (für die Rückfrage beim Schließen).
+	emits: ['saved', 'dirty'],
 
 	data() {
 		return {
@@ -290,6 +291,13 @@ export default {
 			},
 		},
 
+		dirty: {
+			immediate: true,
+			handler(value) {
+				this.$emit('dirty', value)
+			},
+		},
+
 		previewKey() {
 			this.previewPending = true
 			clearTimeout(this.previewTimer)
@@ -303,6 +311,8 @@ export default {
 
 	beforeUnmount() {
 		clearTimeout(this.previewTimer)
+		// Ein eingeklappter Turnus verwirft seinen Entwurf.
+		this.$emit('dirty', false)
 	},
 
 	methods: {
@@ -390,8 +400,9 @@ export default {
 	gap: 4px 12px;
 }
 
-.vbh-interval-head h5 {
+.vbh-interval-head h3 {
 	margin: 0;
+	font-size: 1em;
 	font-weight: 700;
 }
 

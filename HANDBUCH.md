@@ -1771,21 +1771,23 @@ Termin zeigt seine Meilensteine und – solange nichts freigegeben ist – eine
 welche Störfälle (13.9) dazu anstehen. Vor der Freigabe gibt es keinen Lauf, die
 Vorschau speichert nichts.
 
-**Terminplan.** Der Knopf *Terminplan* am Zeitstrahl klappt ihn auf. Je Turnus
+**Terminplan.** Der Knopf *Terminplan* am Zeitstrahl öffnet ihn als Dialog. Je Turnus
 steht der Einzugstag als Satz: „Einzug **14** Tage **nach** Beginn jeder
 Periode". Perioden beginnen am Monatsersten; wer jeweils am 15. einziehen will,
 trägt also 14 ein, und die Ansicht nennt den Tag („am 15. des ersten
 Periodenmonats"). „vor" zieht den Einzug vor den Periodenbeginn. Darunter stehen
-die Perioden des Beitragsjahrs, das der Zeitstrahl gerade zeigt („1. Quartal ·
-Jan.–März"), mit ihrem Einzugstermin samt Wochentag; die Termine rechnen beim
-Tippen mit. **Termin ändern** gibt einer einzelnen Periode einen abweichenden
-Termin, gewählt als Datum. Er gilt in jedem Beitragsjahr für dieselbe Periode,
+die Perioden eines Beitragsjahrs („1. Quartal · Jan.–März") mit ihrem
+Einzugstermin samt Wochentag; die Termine rechnen beim Tippen mit. Der Dialog
+beginnt mit dem Jahr, das der Zeitstrahl zeigt, die Pfeile blättern weiter.
+**Termin ändern** gibt einer einzelnen Periode einen abweichenden Termin,
+gewählt als Datum. Er gilt in jedem Beitragsjahr für dieselbe Periode,
 denn gespeichert wird der Abstand zum Periodenbeginn – liegt ein Februar-Ende
 dazwischen, kann der Tag deshalb in Schaltjahren um einen wandern, die Ansicht
 weist darauf hin. Zwei Regeln prüft die App schon vor dem Speichern und nennt die
 betroffenen Perioden mit Datum: Kein Termin darf auf oder vor dem der vorherigen
 Periode liegen, und jeder bleibt im Beitragsjahr seiner Periode. Gespeichert wird
 je Turnus mit **Speichern**; **Verwerfen** holt den gespeicherten Stand zurück.
+Wer den Dialog mit ungespeicherten Änderungen schließt, wird vorher gefragt.
 Turnusse, die kein Mitglied nutzt, sind eingeklappt. Tritt ein Mitglied mitten
 in einer Periode ein, zählen die Tage für seine erste Forderung ab dem
 Eintrittsdatum. Unten zeigt eine Fristen-Leiste, wann für den nächsten Einzug

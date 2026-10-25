@@ -53,9 +53,8 @@
 							v-if="canWrite"
 							variant="secondary"
 							size="small"
-							:aria-expanded="showSchedule ? 'true' : 'false'"
-							aria-controls="vbh-einzug-schedule"
-							@click="showSchedule = !showSchedule">
+							aria-haspopup="dialog"
+							@click="showSchedule = true">
 							<template #icon>
 								<NcIconSvgWrapper :path="mdiCalendarEdit" :size="18" />
 							</template>
@@ -64,14 +63,14 @@
 					</template>
 				</DebitTimeline>
 
-				<div v-if="canWrite && showSchedule" id="vbh-einzug-schedule">
-					<DueDateScheduleSettings
-						:year="timeline.year.anchorYear"
-						:yearLabel="timeline.year.label"
-						:today="timeline.today"
-						:nextDueDate="timeline.next?.dueDate ?? null"
-						@changed="reload" />
-				</div>
+				<DueDateScheduleDialog
+					v-if="canWrite && showSchedule"
+					:initialYear="timeline.year.anchorYear"
+					:initialYearLabel="timeline.year.label"
+					:today="timeline.today"
+					:nextDueDate="timeline.next?.dueDate ?? null"
+					@changed="reload"
+					@close="showSchedule = false" />
 
 				<DebitGhostCard
 					v-if="showGhost"
@@ -151,7 +150,7 @@ import DebitRunActions from './DebitRunActions.vue'
 import DebitRunDetail from './DebitRunDetail.vue'
 import DebitRunList from './DebitRunList.vue'
 import DebitTimeline from './DebitTimeline.vue'
-import DueDateScheduleSettings from './DueDateScheduleSettings.vue'
+import DueDateScheduleDialog from './DueDateScheduleDialog.vue'
 import { useDebitRuns } from '../composables/useDebitRuns.js'
 import { useEinzugRequest } from '../composables/useEinzugRequest.js'
 import { liveBatches } from '../lib/debitRun.js'
@@ -175,7 +174,7 @@ import { liveBatches } from '../lib/debitRun.js'
  */
 export default {
 	name: 'EinzugPanel',
-	components: { BankReconciliationSegment, ClaimsSegment, DebitGhostCard, DebitReleaseAction, DebitRunActions, DebitRunDetail, DebitRunList, DebitTimeline, DueDateScheduleSettings, NcButton, NcIconSvgWrapper, NcLoadingIcon },
+	components: { BankReconciliationSegment, ClaimsSegment, DebitGhostCard, DebitReleaseAction, DebitRunActions, DebitRunDetail, DebitRunList, DebitTimeline, DueDateScheduleDialog, NcButton, NcIconSvgWrapper, NcLoadingIcon },
 	props: {
 		isMobile: { type: Boolean, default: false },
 		canWrite: { type: Boolean, default: false },

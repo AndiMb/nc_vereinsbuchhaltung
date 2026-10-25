@@ -25,7 +25,8 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   single period is picked as a date instead of a period index with an offset.
   Dates that would overtake the previous period or fall outside the
   contribution year are reported before saving, with both dates. Intervals
-  without members are collapsed.
+  without members are collapsed. The schedule opens as its own dialog
+  instead of below the timeline and pages through the contribution years.
 - **Deadlines before the collection as a timeline.** The schedule and the
   settings show on a real date when the claims are created, the
   pre-notification goes out and the run should be released. The fields in

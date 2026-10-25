@@ -42,7 +42,7 @@ async function writeLeadDays(request, values) {
 	expect(resp.ok()).toBeTruthy()
 }
 
-/** Öffnet Beiträge → Einzug und klappt den Terminplan auf; liefert dessen Bereich. */
+/** Öffnet Beiträge → Einzug und dort den Terminplan-Dialog; liefert den Dialog. */
 async function openSchedule(page, user) {
 	await openApp(page, user)
 	await switchTab(page, 'Beiträge')
@@ -50,8 +50,8 @@ async function openSchedule(page, user) {
 	await section.locator('.vbh-subtabs').getByRole('button', { name: 'Einzug', exact: true }).click()
 	await expect(section.getByRole('tab', { name: 'Zeitstrahl & Läufe' })).toBeVisible()
 	await section.getByRole('button', { name: 'Terminplan', exact: true }).click()
-	const schedule = section.locator('#vbh-einzug-schedule')
-	await expect(schedule.getByRole('heading', { name: 'Terminplan' })).toBeVisible()
+	const schedule = page.getByRole('dialog', { name: 'Terminplan' })
+	await expect(schedule).toBeVisible()
 	return schedule
 }
 

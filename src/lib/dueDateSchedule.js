@@ -1,4 +1,4 @@
-// Zustandslose Helfer des Terminplans (DueDateScheduleSettings.vue,
+// Zustandslose Helfer des Terminplans (DueDateScheduleDialog.vue,
 // DueDateIntervalSchedule.vue): Eingabe „[Tage] [nach|vor] Beginn jeder
 // Periode“ und Klartext für Perioden, Termine und Verstöße. Ohne Vue-/DOM-Bezug,
 // damit sie ohne laufende Nextcloud-Instanz testbar sind.

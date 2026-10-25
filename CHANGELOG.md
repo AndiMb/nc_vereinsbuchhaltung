@@ -27,7 +27,9 @@ verwenden, z. B. `**Neu:**`.
   einzelne Periode wird als Datum gewählt statt als Periodenindex mit Versatz.
   Termine, die die vorherige Periode überholen oder aus dem Beitragsjahr
   fallen, meldet die Ansicht schon vor dem Speichern mit beiden Daten.
-  Turnusse ohne Mitglieder sind eingeklappt.
+  Turnusse ohne Mitglieder sind eingeklappt. Der Terminplan öffnet sich als
+  eigener Dialog statt unter dem Zeitstrahl und blättert durch die
+  Beitragsjahre.
 - **Fristen vor dem Einzug als Zeitstrahl.** Terminplan und Einstellungen
   zeigen an einem echten Termin, wann die Forderungen entstehen, die
   Vorabinfo rausgeht und der Lauf freigegeben sein sollte. Die Felder in den

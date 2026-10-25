@@ -1740,14 +1740,15 @@ milestones and – as long as nothing has been released – a **preview**: how
 many claims with what total would be collected and which exceptions (13.9)
 are pending. Before release there is no run, the preview saves nothing.
 
-**Schedule.** The "Schedule" button at the timeline opens it. For each
+**Schedule.** The "Schedule" button at the timeline opens it as a dialog. For each
 interval the collection day reads as a sentence: "Collection **14** days
 **after** the start of each period". Periods start on the first of a month; to
 collect on the 15th, enter 14, and the view names the day ("on day 15 of the
 first month of the period"). "before" moves the collection ahead of the period
-start. Below, the periods of the contribution year the timeline is showing
-("Quarter 1 · Jan–Mar") are listed with their collection date and weekday; the
-dates update as you type. **Change date** gives a single period a custom date,
+start. Below, the periods of a contribution year ("Quarter 1 · Jan–Mar") are listed
+with their collection date and weekday; the dates update as you type. The
+dialog starts with the year the timeline is showing, and the arrows page
+through the years. **Change date** gives a single period a custom date,
 picked as a date. It applies to the same period in every contribution year,
 because what is stored is the distance from the period start – if the end of
 February lies in between, the day can therefore shift by one in leap years, and
@@ -1755,6 +1756,7 @@ the view points this out. The app checks two rules before saving and names the
 affected periods with their dates: no date may fall on or before that of the
 previous period, and each stays within the contribution year of its period.
 Each interval is saved with **Save**; **Discard** brings back the saved state.
+Closing the dialog with unsaved changes asks first.
 Intervals that no member uses are collapsed. If a member joins in the middle of
 a period, the days for their first claim count from the joining date. At the
 bottom, a deadline strip shows when, for the next collection, the claims are

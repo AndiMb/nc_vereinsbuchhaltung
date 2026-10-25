@@ -102,7 +102,8 @@ test.describe('Terminplan: Einzugstag als Satz, Termine als Datum', () => {
 		const section = visibleSection(page)
 		await section.locator('.vbh-subtabs').getByRole('button', { name: 'Einzug', exact: true }).click()
 		await section.getByRole('button', { name: 'Terminplan', exact: true }).click()
-		const quarterly = section.getByTestId('schedule-interval-3')
+		const dialog = page.getByRole('dialog', { name: 'Terminplan' })
+		const quarterly = dialog.getByTestId('schedule-interval-3')
 		await expect(quarterly).toBeVisible()
 		await expect(quarterly).toContainText('Mitglied')
 
@@ -132,11 +133,23 @@ test.describe('Terminplan: Einzugstag als Satz, Termine als Datum', () => {
 		await expect(quarterly.getByRole('alert')).toHaveCount(0)
 
 		// Die Fristen stehen an einem echten Termin.
-		await expect(section.getByTestId('lead-days-summary')).toContainText('Forderungen entstehen')
+		await expect(dialog.getByTestId('lead-days-summary')).toContainText('Forderungen entstehen')
 
 		await quarterly.getByRole('button', { name: 'Speichern' }).click()
 		await expect(page.getByText('Terminplan für vierteljährlich gespeichert.', { exact: true })).toBeVisible()
 		await expect(quarterly.getByText('Änderungen noch nicht gespeichert.')).toHaveCount(0)
 		expect((await api.getJson(request, '/due-date-schedule')).schedule['3']).toMatchObject({ defaultOffsetDays: 14, overrides: {} })
+
+		// Turnusse ohne Mitglieder klappen direkt unter dem Knopf auf, im Blick statt darüber.
+		await dialog.getByRole('button', { name: /^Turnusse ohne Mitglieder:/ }).click()
+		await expect(dialog.getByTestId('schedule-interval-2')).toBeInViewport()
+
+		// Schließen mit ungespeichertem Entwurf fragt erst nach.
+		await quarterly.getByLabel('Tage ab Periodenbeginn').fill('20')
+		await dialog.locator('.vbh-modal-actions').getByRole('button', { name: 'Schließen' }).click()
+		const confirm = page.getByRole('dialog', { name: 'Änderungen verwerfen?' })
+		await confirm.getByRole('button', { name: 'Verwerfen', exact: true }).click()
+		await expect(dialog).toHaveCount(0)
+		expect((await api.getJson(request, '/due-date-schedule')).schedule['3']).toMatchObject({ defaultOffsetDays: 14 })
 	})
 })

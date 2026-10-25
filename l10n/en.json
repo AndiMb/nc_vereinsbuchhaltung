@@ -3106,7 +3106,6 @@
         "Terminplan konnte nicht gespeichert werden": "Could not save the schedule",
         "Je Turnus gilt ein Einzugstag, gezählt in Tagen ab Beginn jeder Periode. Einzelne Perioden können einen abweichenden Termin bekommen; er gilt in jedem Beitragsjahr für dieselbe Periode.": "Each interval has one collection day, counted in days from the start of each period. Individual periods can get a custom date; it applies to the same period in every contribution year.",
         "Tritt ein Mitglied mitten in einer Periode ein, zählen die Tage für seine erste Forderung ab dem Eintrittsdatum.": "If a member joins in the middle of a period, the days for their first claim count from the joining date.",
-        "An welchen Tagen die Beiträge fällig sind und eingezogen werden. Die Termine unten gelten für das Beitragsjahr {year}.": "On which days contributions fall due and are collected. The dates below are for the contribution year {year}.",
         "Turnusse ohne Mitglieder ausblenden": "Hide intervals without members",
         "Turnusse ohne Mitglieder: {list}": "Intervals without members: {list}",
         "Am Beispiel des Einzugs am {date}. Die Fristen gelten für alle Turnusse.": "Shown for the collection on {date}. The deadlines apply to all intervals.",
@@ -3132,7 +3131,10 @@
         "_%n Tag vorher_::_%n Tage vorher_": [
             "%n day before",
             "%n days before"
-        ]
+        ],
+        "An welchen Tagen die Beiträge fällig sind und eingezogen werden.": "On which days contributions fall due and are collected.",
+        "Termine im Beitragsjahr {jahr}": "Dates in contribution year {jahr}",
+        "Im Terminplan sind ungespeicherte Änderungen. Beim Schließen gehen sie verloren.": "The schedule has unsaved changes. They will be lost when you close it."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

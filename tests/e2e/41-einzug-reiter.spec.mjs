@@ -203,8 +203,8 @@ test.describe('Einzug-Unterreiter: Zeitstrahl, Geisterkarte und Läufe', () => {
 			// Die Turnusse erscheinen erst nach dem Laden des Terminplans; „Speichern“
 			// wird bedienbar, sobald die Vorschau den Entwurf geprüft hat.
 			await section.getByRole('button', { name: 'Terminplan', exact: true }).click()
-			const schedule = section.locator('#vbh-einzug-schedule')
-			await expect(schedule.getByRole('heading', { name: 'Terminplan' })).toBeVisible()
+			const schedule = page.getByRole('dialog', { name: 'Terminplan' })
+			await expect(schedule).toBeVisible()
 			const monthly = schedule.getByTestId('schedule-interval-1')
 			await monthly.getByLabel('Tage ab Periodenbeginn').fill('14')
 			await monthly.getByRole('button', { name: 'Speichern' }).click()
