@@ -35,7 +35,8 @@ class InvoiceDunningService {
 
 	public const DEFAULT_SUBJECT = '{stufe} zu Rechnung {nummer} von {verein}';
 
-	private const DEFAULT_BODIES = [
+	/** Die Standardtexte je Stufe, mit Platzhaltern. */
+	public const DEFAULT_BODIES = [
 		1 => "Guten Tag {empfaenger},\n\nzu unserer Rechnung {nummer} vom {rechnungsdatum} über {betrag} konnten wir bisher keinen Zahlungseingang feststellen. Vielleicht hat sich Ihre Zahlung mit diesem Schreiben überschnitten, dann betrachten Sie es bitte als gegenstandslos.\n\nBitte überweisen Sie den offenen Betrag von {rest} bis zum {frist}.\n\nMit freundlichen Grüßen\n{verein}",
 		2 => "Guten Tag {empfaenger},\n\ntrotz unserer Zahlungserinnerung ist die Rechnung {nummer} vom {rechnungsdatum} noch offen. Wir bitten Sie, den Betrag von {rest} bis zum {frist} zu überweisen.\n\nSollten Sie bereits gezahlt haben, melden Sie sich bitte kurz bei uns.\n\nMit freundlichen Grüßen\n{verein}",
 		3 => "Guten Tag {empfaenger},\n\nleider haben wir auch auf unsere Mahnung keinen Zahlungseingang für die Rechnung {nummer} vom {rechnungsdatum} festgestellt. Dies ist unsere letzte Mahnung: Bitte überweisen Sie {rest} bis zum {frist}. Andernfalls behalten wir uns weitere Schritte vor.\n\nMit freundlichen Grüßen\n{verein}",

@@ -117,5 +117,7 @@ export default {
 
 .vbh-newmenu-list button { width: 100%; display: flex; align-items: center; gap: 10px; padding: 8px 12px; border: none; border-radius: var(--border-radius, 8px); background: transparent; color: var(--color-main-text); font-size: 1em; text-align: start; cursor: pointer; min-height: 40px; }
 
+.vbh-newmenu-list button :deep(.icon-vue) { flex: none; width: 22px; height: 22px; min-width: 0; min-height: 0; display: flex; align-items: center; justify-content: center; }
+
 .vbh-newmenu-list button:hover, .vbh-newmenu-list button:focus-visible { background: var(--color-background-hover); }
 </style>

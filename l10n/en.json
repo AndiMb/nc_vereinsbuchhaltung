@@ -3375,7 +3375,6 @@
         "Ablageordner für Rechnungs-Dateien": "Storage folder for invoice files",
         "Die PDFs liegen als Dateien im Ordner des Nutzers der Belegablage, jeweils in einem Unterordner je Jahr. Ist keiner eingerichtet, speichert die App sie intern.": "The PDFs are stored as files in the folder of the user set for receipt storage, each in a subfolder per year. If none is set up, the app stores them internally.",
         "E-Mail-Vorlage für den Versand": "Email template for sending",
-        "Platzhalter: {nummer}, {betrag}, {faellig}, {verein}, {empfaenger}. Beim Versand lässt sich der Text noch anpassen. Leer lassen für den Standardtext.": "Placeholders: {nummer}, {betrag}, {faellig}, {verein}, {empfaenger}. The text can still be adjusted when sending. Leave empty for the default text.",
         "Rechnungsnummern": "Invoice numbers",
         "Rechnungsnummern müssen fortlaufend und einmalig sein. Platzhalter: {JJJJ} (Jahr), {JJ} (zweistelliges Jahr) und {NNNN} (Zähler, die Zahl der N bestimmt die Stellen).": "Invoice numbers have to be consecutive and unique. Placeholders: {JJJJ} (year), {JJ} (two-digit year) and {NNNN} (counter, the number of Ns sets the digits).",
         "Stornorechnungen": "Credit notes",
@@ -3645,7 +3644,6 @@
         "1. Mahnung nach der Erinnerung (Tage)": "1st dunning letter after the reminder (days)",
         "2. Mahnung nach der 1. Mahnung (Tage)": "2nd dunning letter after the 1st dunning letter (days)",
         "Zahlungsfrist im Schreiben (Tage)": "Payment deadline in the letter (days)",
-        "Platzhalter: {stufe}, {nummer}, {rechnungsdatum}, {betrag}, {rest}, {faellig}, {frist}, {verein}, {empfaenger}. Leer lassen für den Standardtext.": "Placeholders: {stufe}, {nummer}, {rechnungsdatum}, {betrag}, {rest}, {faellig}, {frist}, {verein}, {empfaenger}. Leave empty for the default text.",
         "1. Mahnung": "1st dunning letter",
         "2. Mahnung": "2nd dunning letter",
         "alle {months} Monate": "every {months} months",
@@ -3696,7 +3694,6 @@
         ],
         "Wiederkehrende Rechnungen, Positionsvorlagen und Mahnwesen: ein Plan legt Rechnungen im Takt an, Zahlungserinnerung und Mahnungen gehen als PDF mit GiroCode per E-Mail raus. Die Rechnungen stehen samt Prüfsummen im Beleg-ZIP für die Kassenprüfung.": "Recurring invoices, line item templates and dunning: a plan creates invoices at an interval, payment reminders and dunning letters go out by email as a PDF with a GiroCode. The invoices are in the receipts ZIP for the audit, with checksums.",
         "Mahnwesen für Rechnungen": "Dunning for invoices",
-        "Leer = Standardtext": "Empty = default text",
         "Mahnstufe": "Dunning stage",
         "Plan speichern": "Save plan",
         "Einmalige Rechnung": "One-off invoice",
@@ -3718,7 +3715,18 @@
         "Ganz bequem Code mit der Banking-App scannen.": "Simply scan the code with your banking app.",
         "Rechnungsbetrag muss größer als 0 € sein": "Invoice amount must be greater than €0",
         "Der Betrag muss größer als 0 € sein.": "The amount must be greater than €0.",
-        "Zahlungsreferenz": "Payment reference"
+        "Zahlungsreferenz": "Payment reference",
+        "Beschreibung, Rabatt …": "Description, discount …",
+        "Zusammenfassung": "Summary",
+        "Bereit zum Festschreiben": "Ready to finalize",
+        "Weitere Angaben": "More details",
+        "Referenz: {ref}": "Reference: {ref}",
+        "Bestellnummer: {ref}": "Order number: {ref}",
+        "Referenzen, Umsatzsteuer, Einleitungs- und Schlusstext, Zahlungsbedingungen": "References, VAT, intro and closing text, payment terms",
+        "Zum Festschreiben": "To finalize",
+        "Der Entwurf wird beim Eingeben gespeichert. Danach steht hier, was zum Festschreiben noch fehlt.": "The draft is saved as you type. After that, what is still missing to finalize appears here.",
+        "Platzhalter: {nummer}, {betrag}, {faellig}, {verein}, {empfaenger}. Beim Versand lässt sich der Text noch anpassen. Bleibt ein Feld leer, gilt der grau angezeigte Standardtext.": "Placeholders: {nummer}, {betrag}, {faellig}, {verein}, {empfaenger}. The text can still be adjusted when sending. If a field stays empty, the default text shown in grey applies.",
+        "Platzhalter: {stufe}, {nummer}, {rechnungsdatum}, {betrag}, {rest}, {faellig}, {frist}, {verein}, {empfaenger}. Bleibt ein Feld leer, gilt der grau angezeigte Standardtext.": "Placeholders: {stufe}, {nummer}, {rechnungsdatum}, {betrag}, {rest}, {faellig}, {frist}, {verein}, {empfaenger}. If a field stays empty, the default text shown in grey applies."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

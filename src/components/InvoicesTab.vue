@@ -211,7 +211,7 @@ export default {
 		newRequest: { type: Object, default: () => ({ kind: null, n: 0 }) },
 	},
 
-	emits: ['update:invoiceId', 'changed'],
+	emits: ['update:invoiceId', 'changed', 'editing'],
 
 	setup() {
 		return { mdiPlus }
@@ -309,6 +309,9 @@ export default {
 		},
 
 		reloadKey() { this.loadInvoices() },
+
+		/** Der App-Kopf blendet den schwebenden „+“-Knopf aus, solange der Editor offen ist (er läge über der Summe). */
+		view(view) { this.$emit('editing', view === 'edit') },
 
 		newRequest(request) {
 			if (request.kind === 'plan') { this.newPlan() } else if (request.kind === 'invoice') { this.newInvoice() }

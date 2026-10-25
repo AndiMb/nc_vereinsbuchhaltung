@@ -174,6 +174,7 @@
 					:accounts="accountsSorted"
 					:reloadKey="invoicesReloadKey"
 					:newRequest="invoiceRequest"
+					@editing="invoiceEditing = $event"
 					@changed="onInvoicesChanged" />
 			</section>
 
@@ -272,7 +273,7 @@
 			:tabs="visibleTabs"
 			:activeTab="activeTab"
 			:unassignedCount="unassignedCount"
-			:canWrite="canWrite"
+			:canWrite="canWrite && !(activeTab === 'invoices' && invoiceEditing)"
 			:invoicesActive="invoicesActive"
 			:membershipActive="membershipActive"
 			@select="id => { activeTab = id }"
@@ -722,6 +723,7 @@ export default {
 			selectedInvoiceId: null,
 			invoicesReloadKey: 0,
 			invoiceRequest: { kind: null, n: 0 },
+			invoiceEditing: false,
 			memberRequest: { n: 0 },
 			// Hilfe-Modal (HelpModal.vue): Kapitel folgt standardmäßig dem aktiven Tab,
 			// kann aber gezielt überschrieben werden (z. B. Links aus Leerzuständen).

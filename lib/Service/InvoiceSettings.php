@@ -6,6 +6,8 @@ namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Invoice;
+use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceDunningService;
+use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceMailService;
 use OCP\IConfig;
 use OCP\IL10N;
 
@@ -143,6 +145,24 @@ class InvoiceSettings {
 		return $raw === '' ? self::DUNNING_DEFAULT_GRACE_DAYS : max(1, min(self::MAX_DUNNING_DAYS, (int)$raw));
 	}
 
+	/**
+	 * Die Standardtexte für Mail und Mahnungen in der Sprache des Aufrufers, mit
+	 * Platzhaltern. Die Einstellungen zeigen sie als Platzhalter der Felder: wer das
+	 * Feld leer lässt, bekommt genau diesen Text.
+	 *
+	 * @return array<string, string>
+	 */
+	public function defaultTexts(): array {
+		return [
+			'invoice_mail_subject' => $this->msg(InvoiceMailService::DEFAULT_SUBJECT),
+			'invoice_mail_body' => $this->msg(InvoiceMailService::DEFAULT_BODY),
+			'invoice_dunning_subject' => $this->msg(InvoiceDunningService::DEFAULT_SUBJECT),
+			'invoice_dunning_body_1' => $this->msg(InvoiceDunningService::DEFAULT_BODIES[1]),
+			'invoice_dunning_body_2' => $this->msg(InvoiceDunningService::DEFAULT_BODIES[2]),
+			'invoice_dunning_body_3' => $this->msg(InvoiceDunningService::DEFAULT_BODIES[3]),
+		];
+	}
+
 	public function taxMode(): string {
 		$mode = $this->get(self::SETTING_TAX_MODE, Invoice::TAX_SMALL_BUSINESS);
 		return in_array($mode, self::AVAILABLE_TAX_MODES, true) ? $mode : Invoice::TAX_SMALL_BUSINESS;
@@ -262,6 +282,7 @@ class InvoiceSettings {
 			self::SETTING_AUTO_ASSIGN => $this->autoAssign(),
 			self::SETTING_EINVOICE_AUTO => $this->eInvoiceAuto(),
 			self::SETTING_RF_REFERENCE => $this->rfReference(),
+			'invoice_default_texts' => $this->defaultTexts(),
 			self::SETTING_DUNNING_AUTO => $this->dunningAuto(),
 			self::SETTING_DUNNING_GRACE_DAYS => $this->dunningGraceDays(),
 			self::SETTING_DUNNING_SUBJECT => $this->get(self::SETTING_DUNNING_SUBJECT),

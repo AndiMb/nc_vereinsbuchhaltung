@@ -1,5 +1,5 @@
 <template>
-	<div v-if="loaded">
+	<div v-if="loaded" class="vbh-inv-settings">
 		<div class="vbh-card">
 			<h4>{{ t('Rechnungen schreiben') }}</h4>
 			<p class="vbh-hint">
@@ -213,11 +213,11 @@
 		<div class="vbh-card">
 			<h4>{{ t('E-Mail-Vorlage für den Versand') }}</h4>
 			<p class="vbh-hint">
-				{{ t('Platzhalter: {nummer}, {betrag}, {faellig}, {verein}, {empfaenger}. Beim Versand lässt sich der Text noch anpassen. Leer lassen für den Standardtext.') }}
+				{{ t('Platzhalter: {nummer}, {betrag}, {faellig}, {verein}, {empfaenger}. Beim Versand lässt sich der Text noch anpassen. Bleibt ein Feld leer, gilt der grau angezeigte Standardtext.') }}
 			</p>
 			<div class="vbh-form">
 				<label class="vbh-grow">{{ t('Betreff') }}
-					<input v-model="form.invoice_mail_subject" maxlength="200" placeholder="Rechnung {nummer} von {verein}">
+					<input v-model="form.invoice_mail_subject" maxlength="200" :placeholder="defaults.invoice_mail_subject">
 				</label>
 			</div>
 			<div class="vbh-form">
@@ -225,7 +225,8 @@
 					<textarea
 						v-model="form.invoice_mail_body"
 						class="vbh-note-textarea"
-						rows="6"
+						:placeholder="defaults.invoice_mail_body"
+						rows="9"
 						maxlength="5000" />
 				</label>
 			</div>
@@ -284,11 +285,11 @@
 				</label>
 			</div>
 			<p class="vbh-hint">
-				{{ t('Platzhalter: {stufe}, {nummer}, {rechnungsdatum}, {betrag}, {rest}, {faellig}, {frist}, {verein}, {empfaenger}. Leer lassen für den Standardtext.') }}
+				{{ t('Platzhalter: {stufe}, {nummer}, {rechnungsdatum}, {betrag}, {rest}, {faellig}, {frist}, {verein}, {empfaenger}. Bleibt ein Feld leer, gilt der grau angezeigte Standardtext.') }}
 			</p>
 			<div class="vbh-form">
 				<label class="vbh-grow">{{ t('Betreff') }}
-					<input v-model="form.invoice_dunning_subject" maxlength="200" placeholder="{stufe} zu Rechnung {nummer} von {verein}">
+					<input v-model="form.invoice_dunning_subject" maxlength="200" :placeholder="defaults.invoice_dunning_subject">
 				</label>
 			</div>
 			<div v-for="level in [1, 2, 3]" :key="level" class="vbh-form">
@@ -296,8 +297,8 @@
 					<textarea
 						v-model="form['invoice_dunning_body_' + level]"
 						class="vbh-note-textarea"
-						:placeholder="t('Leer = Standardtext')"
-						rows="5"
+						:placeholder="defaults['invoice_dunning_body_' + level]"
+						rows="9"
 						maxlength="5000" />
 				</label>
 			</div>
@@ -419,6 +420,7 @@ export default {
 			saving: false,
 			form: {},
 			missing: [],
+			defaults: {},
 			accounts: [],
 			ranges: [],
 			stateError: '',
@@ -459,6 +461,7 @@ export default {
 			form.invoice_default_due_days = data.invoice_default_due_days ?? 14
 			this.form = form
 			this.missing = data.invoice_missing_issuer_fields || []
+			this.defaults = data.invoice_default_texts || {}
 		},
 
 		preview(range) {
@@ -524,3 +527,14 @@ export default {
 	},
 }
 </script>
+
+<style scoped>
+/* Die Felder füllen ihre Zeile: je Feld mindestens 220 px, kurze Angaben (PLZ, Registernummer, Tage) nur 150 px. */
+.vbh-inv-settings .vbh-form label { flex: 1 1 220px; min-width: 0; }
+
+.vbh-inv-settings .vbh-form label:has(> .vbh-short) { flex: 0 1 150px; }
+
+.vbh-inv-settings .vbh-form label > input:not([type="checkbox"]), .vbh-inv-settings .vbh-form label > select, .vbh-inv-settings .vbh-form label > textarea { width: 100%; min-width: 0; box-sizing: border-box; }
+
+.vbh-inv-settings .vbh-form label :deep(.v-select) { width: 100%; }
+</style>

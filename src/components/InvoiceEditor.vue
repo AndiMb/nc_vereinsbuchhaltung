@@ -46,27 +46,6 @@
 		</div>
 
 		<div v-else class="vbh-sectionbody vbh-inv-body">
-			<fieldset v-if="canChooseKind" class="vbh-fieldset-reset vbh-inv-kind">
-				<legend class="vbh-legend">
-					{{ t('Art') }}
-				</legend>
-				<label class="vbh-inv-radio">
-					<input v-model="isPlan" type="radio" :value="false"> {{ t('Einmalige Rechnung') }}
-				</label>
-				<label class="vbh-inv-radio" :title="isAdmin ? '' : t('Wiederkehrende Rechnungen legt nur ein Verwalter an.')">
-					<input
-						v-model="isPlan"
-						type="radio"
-						:value="true"
-						:disabled="!isAdmin"> {{ t('Wiederkehrende Rechnung') }}
-				</label>
-			</fieldset>
-			<p v-if="isPlan && !plan" class="vbh-hint vbh-hint--info">
-				{{ t('Ein Plan legt im gewählten Takt neue Rechnungen mit diesen Angaben an. Jetzt entsteht noch keine Rechnung; die erste folgt am gewählten Datum.') }}
-			</p>
-			<p v-else-if="!isPlan && !isAdmin" class="vbh-hint vbh-hint--info">
-				{{ t('Festschreiben und Versenden darf nur ein Verwalter. Sie können den Entwurf anlegen und vorbereiten.') }}
-			</p>
 			<p v-if="meta && meta.missingIssuerFields.length" class="vbh-hint vbh-hint--warning">
 				{{ t('In den Einstellungen fehlen noch Angaben des Vereins (Anschrift, Steuernummer). Ohne sie lässt sich keine Rechnung festschreiben.') }}
 			</p>
@@ -74,15 +53,40 @@
 				{{ error }}
 			</p>
 
-			<section class="vbh-card vbh-inv-head">
-				<div class="vbh-inv-recipient">
+			<div class="vbh-inv-layout">
+				<!-- 0 · Art: einmalig oder wiederkehrend -->
+				<div v-if="canChooseKind" class="vbh-inv-intro">
+					<div class="vbh-inv-seg" role="radiogroup" :aria-label="t('Art')">
+						<label :class="{ on: !isPlan }">
+							<input v-model="isPlan" type="radio" :value="false"> {{ t('Einmalige Rechnung') }}
+						</label>
+						<label :class="{ on: isPlan, disabled: !isAdmin }" :title="isAdmin ? '' : t('Wiederkehrende Rechnungen legt nur ein Verwalter an.')">
+							<input
+								v-model="isPlan"
+								type="radio"
+								:value="true"
+								:disabled="!isAdmin"> {{ t('Wiederkehrende Rechnung') }}
+						</label>
+					</div>
+				</div>
+				<p v-if="isPlan && !plan" class="vbh-hint vbh-hint--info vbh-inv-intro">
+					{{ t('Ein Plan legt im gewählten Takt neue Rechnungen mit diesen Angaben an. Jetzt entsteht noch keine Rechnung; die erste folgt am gewählten Datum.') }}
+				</p>
+				<p v-else-if="!isPlan && !isAdmin" class="vbh-hint vbh-hint--info vbh-inv-intro">
+					{{ t('Festschreiben und Versenden darf nur ein Verwalter. Sie können den Entwurf anlegen und vorbereiten.') }}
+				</p>
+
+				<!-- 1 · Empfänger -->
+				<section class="vbh-card vbh-inv-card">
 					<h3>{{ t('Empfänger') }}</h3>
 					<DebtorSelect v-model="form.debtorId" @debtor="debtor = $event" />
-				</div>
-				<div v-if="isPlan" class="vbh-inv-dates">
+				</section>
+
+				<!-- 2 · Rechnungsdaten bzw. Wiederholung -->
+				<section v-if="isPlan" class="vbh-card vbh-inv-card">
 					<h3>{{ t('Wiederholung') }}</h3>
 					<div class="vbh-inv-grid">
-						<label class="vbh-inv-wide">{{ t('Name des Plans') }}
+						<label class="vbh-inv-span">{{ t('Name des Plans') }}
 							<input v-model="planForm.name" maxlength="255" :placeholder="t('z. B. Hallenmiete Sportstudio')">
 						</label>
 						<label>{{ t('Takt') }}
@@ -104,7 +108,7 @@
 						<label>{{ t('Ende (optional)') }}
 							<input v-model="planForm.endDate" type="date" :min="planForm.startDate || undefined">
 						</label>
-						<label class="vbh-inv-wide">{{ t('Leistungszeitraum') }}
+						<label class="vbh-inv-span">{{ t('Leistungszeitraum') }}
 							<select v-model="planForm.periodMode">
 								<option value="interval">{{ t('der Zeitraum des Taktes, der mit der Rechnung beginnt') }}</option>
 								<option value="issue_date">{{ t('Leistungsdatum = Rechnungsdatum') }}</option>
@@ -123,8 +127,8 @@
 					<p class="vbh-hint">
 						{{ t('In Bezeichnungen und Texten ersetzt der Lauf {monat}, {jahr}, {quartal} und {zeitraum} durch die Angaben des Termins.') }}
 					</p>
-				</div>
-				<div v-else class="vbh-inv-dates">
+				</section>
+				<section v-else class="vbh-card vbh-inv-card">
 					<h3>{{ t('Rechnungsdaten') }}</h3>
 					<div class="vbh-inv-grid">
 						<label>{{ t('Rechnungsdatum') }}
@@ -135,274 +139,292 @@
 						</label>
 					</div>
 					<fieldset class="vbh-fieldset-reset vbh-inv-delivery">
-						<legend class="vbh-legend">
+						<legend class="vbh-inv-legend">
 							{{ t('Leistungszeitpunkt (Pflichtangabe)') }}
 						</legend>
-						<label class="vbh-inv-radio">
-							<input v-model="leistungMode" type="radio" value="date"> {{ t('Datum') }}
-						</label>
-						<label class="vbh-inv-radio">
-							<input v-model="leistungMode" type="radio" value="period"> {{ t('Zeitraum') }}
-						</label>
-						<div class="vbh-inv-grid">
-							<template v-if="leistungMode === 'date'">
-								<label>{{ t('Leistungsdatum') }}
-									<input v-model="form.deliveryDate" type="date">
+						<div class="vbh-inv-delivery-row">
+							<div class="vbh-inv-seg vbh-inv-seg--small" role="radiogroup" :aria-label="t('Leistungszeitpunkt (Pflichtangabe)')">
+								<label :class="{ on: leistungMode === 'date' }">
+									<input v-model="leistungMode" type="radio" value="date"> {{ t('Datum') }}
 								</label>
-							</template>
+								<label :class="{ on: leistungMode === 'period' }">
+									<input v-model="leistungMode" type="radio" value="period"> {{ t('Zeitraum') }}
+								</label>
+							</div>
+							<input
+								v-if="leistungMode === 'date'"
+								v-model="form.deliveryDate"
+								type="date"
+								:aria-label="t('Leistungsdatum')">
 							<template v-else>
-								<label>{{ t('von') }}
-									<input v-model="form.periodStart" type="date">
-								</label>
-								<label>{{ t('bis') }}
-									<input v-model="form.periodEnd" type="date" :min="form.periodStart || undefined">
-								</label>
+								<input v-model="form.periodStart" type="date" :aria-label="t('von')">
+								<span class="vbh-inv-dash" aria-hidden="true">–</span>
+								<input
+									v-model="form.periodEnd"
+									type="date"
+									:min="form.periodStart || undefined"
+									:aria-label="t('bis')">
 							</template>
 						</div>
 					</fieldset>
-				</div>
-				<div class="vbh-inv-refs">
-					<h3>{{ t('Referenzen (optional)') }}</h3>
-					<div class="vbh-inv-grid">
-						<label>{{ t('Ihre Referenz / Leitweg-ID') }}
-							<input v-model="form.buyerReference" maxlength="255">
-						</label>
-						<label>{{ t('Bestellnummer') }}
-							<input v-model="form.orderReference" maxlength="255">
-						</label>
-					</div>
-				</div>
-			</section>
+				</section>
 
-			<section class="vbh-card">
-				<h3>{{ t('Positionen') }}</h3>
-				<div class="vbh-inv-lines" role="table" :aria-label="t('Positionen')">
-					<div class="vbh-inv-line vbh-inv-line--head" :class="{ 'vbh-inv-line--tax': regular }" role="row">
-						<span role="columnheader">{{ t('Pos.') }}</span>
-						<span role="columnheader">{{ t('Bezeichnung') }}</span>
-						<span role="columnheader">{{ t('Menge') }}</span>
-						<span role="columnheader">{{ t('Einheit') }}</span>
-						<span role="columnheader">{{ t('Einzelpreis') }}</span>
-						<span role="columnheader">{{ t('Rabatt %') }}</span>
-						<span role="columnheader">{{ t('Erlöskonto') }}</span>
-						<span v-if="regular" role="columnheader">{{ t('USt') }}</span>
-						<span role="columnheader" class="vbh-inv-num">{{ t('Netto') }}</span>
-						<span role="columnheader" />
+				<!-- 3 · Positionen -->
+				<section class="vbh-card vbh-inv-card">
+					<h3>{{ t('Positionen') }}</h3>
+					<div class="vbh-inv-lines">
+						<div class="vbh-inv-l1 vbh-inv-l1--head" aria-hidden="true">
+							<span>{{ t('Bezeichnung') }}</span>
+							<span class="vbh-inv-r">{{ t('Menge') }}</span>
+							<span>{{ t('Einheit') }}</span>
+							<span class="vbh-inv-r">{{ t('Einzelpreis') }}</span>
+							<span class="vbh-inv-r">{{ t('Netto') }}</span>
+							<span />
+						</div>
+						<div v-for="(line, i) in form.lines" :key="line.key" class="vbh-inv-line">
+							<div class="vbh-inv-l1">
+								<input
+									v-model="line.name"
+									class="vbh-inv-name"
+									:aria-label="t('Bezeichnung')"
+									maxlength="255"
+									:placeholder="t('Leistung, z. B. Hallenmiete')">
+								<input
+									v-model="line.quantity"
+									class="vbh-inv-r"
+									inputmode="decimal"
+									:aria-label="t('Menge')"
+									:class="{ 'vbh-inv-invalid': quantityInvalid(line) }">
+								<select v-model="line.unitCode" :aria-label="t('Einheit')">
+									<option v-for="code in unitCodes" :key="code" :value="code">
+										{{ unitLabel(code) }}
+									</option>
+								</select>
+								<AmountInput
+									v-model="line.unitPrice"
+									class="vbh-inv-price"
+									:aria-label="t('Einzelpreis')" />
+								<span class="vbh-inv-r vbh-inv-net">{{ netText(line) }}</span>
+								<span class="vbh-inv-actions">
+									<NcButton
+										v-if="form.lines.length > 1"
+										variant="tertiary"
+										:disabled="i === 0"
+										:aria-label="t('Position nach oben')"
+										:title="t('Nach oben')"
+										@click="moveLine(i, -1)">
+										<template #icon>
+											<NcIconSvgWrapper :path="mdiArrowUp" :size="18" />
+										</template>
+									</NcButton>
+									<NcButton
+										v-if="form.lines.length > 1"
+										variant="tertiary"
+										:disabled="i === form.lines.length - 1"
+										:aria-label="t('Position nach unten')"
+										:title="t('Nach unten')"
+										@click="moveLine(i, 1)">
+										<template #icon>
+											<NcIconSvgWrapper :path="mdiArrowDown" :size="18" />
+										</template>
+									</NcButton>
+									<NcButton
+										variant="tertiary"
+										:aria-label="t('Position entfernen')"
+										:title="t('Entfernen')"
+										@click="removeLine(i)">
+										<template #icon>
+											<NcIconSvgWrapper :path="mdiDelete" :size="18" />
+										</template>
+									</NcButton>
+								</span>
+							</div>
+							<div class="vbh-inv-l2">
+								<label>{{ t('Erlöskonto') }}
+									<select
+										v-model="line.accountId"
+										:class="{ 'vbh-inv-invalid': !line.accountId && !isEmptyLine(line) }"
+										@change="onAccountChange(line)">
+										<option :value="null">
+											{{ t('– Konto wählen –') }}
+										</option>
+										<option v-for="a in accounts" :key="a.id" :value="a.id">
+											{{ a.number }} {{ a.name }}
+										</option>
+									</select>
+								</label>
+								<label v-if="regular">{{ t('USt') }}
+									<select v-model="line.taxKey" :aria-label="t('Umsatzsteuer der Position')" @change="line.taxTouched = true">
+										<option v-for="key in taxKeys" :key="key" :value="key">
+											{{ taxKeyLabel(key) }}
+										</option>
+									</select>
+								</label>
+								<button
+									v-if="!detailsOpen(line)"
+									type="button"
+									class="vbh-inv-linkbtn"
+									@click="line.showDetails = true">
+									{{ t('Beschreibung, Rabatt …') }}
+								</button>
+							</div>
+							<div v-if="detailsOpen(line)" class="vbh-inv-l3">
+								<label class="vbh-inv-l3-desc">{{ t('Beschreibung') }}
+									<textarea
+										v-model="line.description"
+										rows="2"
+										maxlength="2000"
+										:placeholder="t('Beschreibung (optional)')" />
+								</label>
+								<label class="vbh-inv-l3-discount">{{ t('Rabatt %') }}
+									<input
+										v-model="line.discountPercent"
+										class="vbh-inv-r"
+										inputmode="decimal"
+										placeholder="0">
+								</label>
+							</div>
+						</div>
 					</div>
-					<div
-						v-for="(line, i) in form.lines"
-						:key="line.key"
-						class="vbh-inv-line"
-						:class="{ 'vbh-inv-line--tax': regular }"
-						role="row">
-						<span class="vbh-inv-pos" role="cell">{{ i + 1 }}</span>
-						<div class="vbh-inv-name" role="cell">
-							<input
-								v-model="line.name"
-								:aria-label="t('Bezeichnung')"
-								maxlength="255"
-								:placeholder="t('Leistung, z. B. Hallenmiete')">
-							<textarea
-								v-if="line.showDescription || line.description"
-								v-model="line.description"
-								:aria-label="t('Beschreibung')"
-								rows="2"
-								maxlength="2000"
-								:placeholder="t('Beschreibung (optional)')" />
-							<button
-								v-else
-								type="button"
-								class="vbh-inv-linkbtn"
-								@click="line.showDescription = true">
-								{{ t('+ Beschreibung') }}
-							</button>
-						</div>
-						<input
-							v-model="line.quantity"
-							class="vbh-inv-qty"
-							inputmode="decimal"
-							:aria-label="t('Menge')"
-							:class="{ 'vbh-inv-invalid': quantityInvalid(line) }">
-						<select v-model="line.unitCode" :aria-label="t('Einheit')">
-							<option v-for="code in unitCodes" :key="code" :value="code">
-								{{ unitLabel(code) }}
-							</option>
-						</select>
-						<AmountInput
-							v-model="line.unitPrice"
-							class="vbh-inv-price"
-							:aria-label="t('Einzelpreis')" />
-						<input
-							v-model="line.discountPercent"
-							class="vbh-inv-discount"
-							inputmode="decimal"
-							:aria-label="t('Rabatt in Prozent')"
-							placeholder="0">
+					<div class="vbh-inv-linebar">
+						<NcButton variant="secondary" @click="addLine">
+							<template #icon>
+								<NcIconSvgWrapper :path="mdiPlus" :size="20" />
+							</template>
+							{{ t('Position hinzufügen') }}
+						</NcButton>
 						<select
-							v-model="line.accountId"
-							:aria-label="t('Erlöskonto')"
-							:class="{ 'vbh-inv-invalid': !line.accountId && !isEmptyLine(line) }"
-							@change="onAccountChange(line)">
-							<option :value="null">
-								{{ t('– Konto wählen –') }}
+							v-if="templates.length"
+							v-model="templatePick"
+							class="vbh-inv-tplpick"
+							:aria-label="t('Position aus Vorlage einfügen')"
+							@change="addFromTemplate">
+							<option value="">
+								{{ t('Aus Vorlage einfügen …') }}
 							</option>
-							<option v-for="a in accounts" :key="a.id" :value="a.id">
-								{{ a.number }} {{ a.name }}
-							</option>
-						</select>
-						<select
-							v-if="regular"
-							v-model="line.taxKey"
-							:aria-label="t('Umsatzsteuer der Position')"
-							@change="line.taxTouched = true">
-							<option v-for="key in taxKeys" :key="key" :value="key">
-								{{ taxKeyLabel(key) }}
+							<option v-for="tpl in templates" :key="tpl.id" :value="tpl.id">
+								{{ tpl.name }}
 							</option>
 						</select>
-						<span class="vbh-inv-num vbh-inv-net" role="cell">{{ netText(line) }}</span>
-						<span class="vbh-inv-actions" role="cell">
-							<NcButton
-								variant="tertiary"
-								:disabled="i === 0"
-								:aria-label="t('Position nach oben')"
-								:title="t('Nach oben')"
-								@click="moveLine(i, -1)">
-								<template #icon>
-									<NcIconSvgWrapper :path="mdiArrowUp" :size="18" />
-								</template>
-							</NcButton>
-							<NcButton
-								variant="tertiary"
-								:disabled="i === form.lines.length - 1"
-								:aria-label="t('Position nach unten')"
-								:title="t('Nach unten')"
-								@click="moveLine(i, 1)">
-								<template #icon>
-									<NcIconSvgWrapper :path="mdiArrowDown" :size="18" />
-								</template>
-							</NcButton>
-							<NcButton
-								variant="tertiary"
-								:aria-label="t('Position entfernen')"
-								:title="t('Entfernen')"
-								@click="removeLine(i)">
-								<template #icon>
-									<NcIconSvgWrapper :path="mdiDelete" :size="18" />
-								</template>
-							</NcButton>
-						</span>
-					</div>
-				</div>
-				<div class="vbh-inv-linebar">
-					<NcButton variant="secondary" @click="addLine">
-						<template #icon>
-							<NcIconSvgWrapper :path="mdiPlus" :size="20" />
-						</template>
-						{{ t('Position hinzufügen') }}
-					</NcButton>
-					<select
-						v-if="templates.length"
-						v-model="templatePick"
-						class="vbh-inv-tplpick"
-						:aria-label="t('Position aus Vorlage einfügen')"
-						@change="addFromTemplate">
-						<option value="">
-							{{ t('Aus Vorlage einfügen …') }}
-						</option>
-						<option v-for="tpl in templates" :key="tpl.id" :value="tpl.id">
-							{{ tpl.name }}
-						</option>
-					</select>
-				</div>
-
-				<div class="vbh-inv-totals">
-					<template v-if="regular">
-						<div class="vbh-inv-totals-row">
-							<span>{{ t('Summe netto') }}</span>
-							<span>{{ formatMoney(sums.netCents / 100) }}</span>
-						</div>
-						<div v-for="g in sums.taxBreakdown" :key="g.rateBp" class="vbh-inv-totals-row">
-							<span>{{ t('zzgl. {rate} USt', { rate: formatRate(g.rateBp) }) }}</span>
-							<span>{{ formatMoney(g.taxCents / 100) }}</span>
-						</div>
-					</template>
-					<div class="vbh-inv-totals-row vbh-inv-totals-row--grand">
-						<span>{{ t('Rechnungsbetrag') }}</span>
-						<strong>{{ formatMoney(sums.grossCents / 100) }}</strong>
 					</div>
 					<p v-if="sums.invalid" class="vbh-hint vbh-hint--error">
 						{{ t('Mindestens eine Menge oder ein Rabatt ist keine gültige Zahl.') }}
 					</p>
-				</div>
-			</section>
+				</section>
 
-			<section class="vbh-card">
-				<h3>{{ t('Steuer und Texte') }}</h3>
-				<div v-if="!isPlan" class="vbh-inv-grid vbh-inv-grid--wide">
-					<label>{{ t('Umsatzsteuer') }}
-						<select v-model="form.taxMode">
-							<option v-for="mode in taxModes" :key="mode" :value="mode">
-								{{ taxModeLabel(mode) }}
-							</option>
-						</select>
-					</label>
-				</div>
-				<p v-if="isPlan" class="vbh-hint">
-					{{ t('Die Umsatzsteuer gilt so, wie sie in den Einstellungen steht, wenn der Plan die Rechnung anlegt.') }}
-				</p>
-				<p v-if="!isPlan && form.taxMode === 'kleinunternehmer'" class="vbh-hint">
-					{{ t('Ausgewiesen wird keine Umsatzsteuer. Auf der Rechnung steht der Hinweis:') }}
-					<em>{{ form.exemptionText || (meta && meta.smallBusinessNotice) }}</em>
-				</p>
-				<p v-if="regular" class="vbh-hint">
-					{{ t('Die Umsatzsteuer wird je Position gewählt (19 %, 7 %, 0 % oder steuerfrei). Beim Festschreiben braucht jeder verwendete Satz ein Umsatzsteuerkonto in den Einstellungen.') }}
-				</p>
-				<label v-if="!isPlan && (form.taxMode === 'kleinunternehmer' || form.taxMode === 'exempt' || needsExemptionText)" class="vbh-inv-wide">
-					{{ form.taxMode === 'kleinunternehmer' ? t('Eigener Hinweistext (optional, ersetzt den Standardtext)') : t('Hinweis auf die Steuerbefreiung (Pflicht)') }}
-					<input
-						v-model="form.exemptionText"
-						maxlength="500"
-						:placeholder="form.taxMode === 'kleinunternehmer' ? '' : t('z. B. Steuerfrei nach § 4 Nr. 22 UStG')">
-				</label>
-				<label class="vbh-inv-wide">{{ t('Einleitungstext') }}
-					<textarea
-						v-model="form.noteHead"
-						rows="2"
-						maxlength="2000"
-						:placeholder="t('Steht über den Positionen')" />
-				</label>
-				<label class="vbh-inv-wide">{{ t('Schlusstext') }}
-					<textarea
-						v-model="form.noteFoot"
-						rows="2"
-						maxlength="2000"
-						:placeholder="t('Steht unter dem Zahlungsblock')" />
-				</label>
-				<label class="vbh-inv-wide">{{ t('Zahlungsbedingungen') }}
-					<textarea
-						v-model="form.paymentTerms"
-						rows="2"
-						maxlength="1000"
-						:placeholder="t('z. B. Zahlbar innerhalb von 14 Tagen ohne Abzug.')" />
-				</label>
-			</section>
+				<!-- Seitenleiste: Summe und, was zum Festschreiben noch fehlt (mobil unter den Positionen) -->
+				<aside class="vbh-inv-side" :aria-label="t('Zusammenfassung')">
+					<div class="vbh-card vbh-inv-card vbh-inv-sum">
+						<h3>{{ t('Summe') }}</h3>
+						<dl class="vbh-inv-totals">
+							<template v-if="regular">
+								<div>
+									<dt>{{ t('Summe netto') }}</dt>
+									<dd>{{ formatMoney(sums.netCents / 100) }}</dd>
+								</div>
+								<div v-for="g in sums.taxBreakdown" :key="g.rateBp">
+									<dt>{{ t('zzgl. {rate} USt', { rate: formatRate(g.rateBp) }) }}</dt>
+									<dd>{{ formatMoney(g.taxCents / 100) }}</dd>
+								</div>
+							</template>
+							<div class="vbh-inv-totals-grand">
+								<dt>{{ t('Rechnungsbetrag') }}</dt>
+								<dd>{{ formatMoney(sums.grossCents / 100) }}</dd>
+							</div>
+						</dl>
+						<p class="vbh-hint vbh-inv-taxline">
+							{{ taxModeLabel(form.taxMode) }}
+						</p>
+					</div>
 
-			<section v-if="!isPlan && openChecks.length" class="vbh-card vbh-inv-checks">
-				<h3>{{ t('Zum Festschreiben fehlt noch') }}</h3>
-				<ul class="vbh-blockers">
-					<li v-for="c in openChecks" :key="c.key">
-						{{ c.label }}
-					</li>
-				</ul>
-			</section>
+					<div v-if="!isPlan" class="vbh-card vbh-inv-card vbh-inv-checks" role="status">
+						<h3>{{ requiredChecks.length === 0 ? t('Zum Festschreiben') : openChecks.length ? t('Zum Festschreiben fehlt noch') : t('Bereit zum Festschreiben') }}</h3>
+						<p v-if="requiredChecks.length === 0" class="vbh-hint">
+							{{ t('Der Entwurf wird beim Eingeben gespeichert. Danach steht hier, was zum Festschreiben noch fehlt.') }}
+						</p>
+						<ul v-else class="vbh-inv-checklist">
+							<li v-for="c in requiredChecks" :key="c.key" :class="c.ok ? 'ok' : 'open'">
+								<NcIconSvgWrapper :path="c.ok ? mdiCheckCircleOutline : mdiCircleOutline" :size="18" />
+								<span>{{ c.label }}</span>
+							</li>
+						</ul>
+					</div>
+					<div v-if="currentId && !isPlan" class="vbh-inv-discard">
+						<NcButton variant="tertiary" @click="discardOpen = true">
+							<template #icon>
+								<NcIconSvgWrapper :path="mdiDelete" :size="20" />
+							</template>
+							{{ t('Entwurf verwerfen') }}
+						</NcButton>
+					</div>
+				</aside>
 
-			<div v-if="currentId && !isPlan" class="vbh-inv-discard">
-				<NcButton variant="tertiary" @click="discardOpen = true">
-					<template #icon>
-						<NcIconSvgWrapper :path="mdiDelete" :size="20" />
-					</template>
-					{{ t('Entwurf verwerfen') }}
-				</NcButton>
+				<!-- 4 · Weitere Angaben (meist unverändert) -->
+				<details class="vbh-card vbh-inv-card vbh-inv-more" :open="moreOpen" @toggle="moreOpen = $event.target.open">
+					<summary>
+						<strong>{{ t('Weitere Angaben') }}</strong>
+						<span class="vbh-hint">{{ moreHint }}</span>
+					</summary>
+					<div class="vbh-inv-more-body">
+						<div class="vbh-inv-grid">
+							<label>{{ t('Ihre Referenz / Leitweg-ID') }}
+								<input v-model="form.buyerReference" maxlength="255">
+							</label>
+							<label>{{ t('Bestellnummer') }}
+								<input v-model="form.orderReference" maxlength="255">
+							</label>
+						</div>
+						<template v-if="!isPlan">
+							<div class="vbh-inv-grid">
+								<label>{{ t('Umsatzsteuer') }}
+									<select v-model="form.taxMode">
+										<option v-for="mode in taxModes" :key="mode" :value="mode">
+											{{ taxModeLabel(mode) }}
+										</option>
+									</select>
+								</label>
+							</div>
+							<p v-if="form.taxMode === 'kleinunternehmer'" class="vbh-hint">
+								{{ t('Ausgewiesen wird keine Umsatzsteuer. Auf der Rechnung steht der Hinweis:') }}
+								<em>{{ form.exemptionText || (meta && meta.smallBusinessNotice) }}</em>
+							</p>
+							<p v-if="regular" class="vbh-hint">
+								{{ t('Die Umsatzsteuer wird je Position gewählt (19 %, 7 %, 0 % oder steuerfrei). Beim Festschreiben braucht jeder verwendete Satz ein Umsatzsteuerkonto in den Einstellungen.') }}
+							</p>
+							<label v-if="form.taxMode === 'kleinunternehmer' || form.taxMode === 'exempt' || needsExemptionText" class="vbh-inv-wide">
+								{{ form.taxMode === 'kleinunternehmer' ? t('Eigener Hinweistext (optional, ersetzt den Standardtext)') : t('Hinweis auf die Steuerbefreiung (Pflicht)') }}
+								<input
+									v-model="form.exemptionText"
+									maxlength="500"
+									:placeholder="form.taxMode === 'kleinunternehmer' ? '' : t('z. B. Steuerfrei nach § 4 Nr. 22 UStG')">
+							</label>
+						</template>
+						<p v-else class="vbh-hint">
+							{{ t('Die Umsatzsteuer gilt so, wie sie in den Einstellungen steht, wenn der Plan die Rechnung anlegt.') }}
+						</p>
+						<label class="vbh-inv-wide">{{ t('Einleitungstext') }}
+							<textarea
+								v-model="form.noteHead"
+								rows="2"
+								maxlength="2000"
+								:placeholder="t('Steht über den Positionen')" />
+						</label>
+						<label class="vbh-inv-wide">{{ t('Schlusstext') }}
+							<textarea
+								v-model="form.noteFoot"
+								rows="2"
+								maxlength="2000"
+								:placeholder="t('Steht unter dem Zahlungsblock')" />
+						</label>
+						<label class="vbh-inv-wide">{{ t('Zahlungsbedingungen') }}
+							<textarea
+								v-model="form.paymentTerms"
+								rows="2"
+								maxlength="1000"
+								:placeholder="t('z. B. Zahlbar innerhalb von 14 Tagen ohne Abzug.')" />
+						</label>
+					</div>
+				</details>
 			</div>
 		</div>
 
@@ -465,7 +487,7 @@
 </template>
 
 <script>
-import { mdiArrowDown, mdiArrowLeft, mdiArrowUp, mdiDelete, mdiFilePdfBox, mdiPlus } from '@mdi/js'
+import { mdiArrowDown, mdiArrowLeft, mdiArrowUp, mdiCheckCircleOutline, mdiCircleOutline, mdiDelete, mdiFilePdfBox, mdiPlus } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
@@ -528,7 +550,7 @@ export default {
 	emits: ['close', 'changed', 'issued', 'planSaved'],
 
 	setup() {
-		return { mdiArrowDown, mdiArrowLeft, mdiArrowUp, mdiDelete, mdiFilePdfBox, mdiPlus }
+		return { mdiArrowDown, mdiArrowLeft, mdiArrowUp, mdiCheckCircleOutline, mdiCircleOutline, mdiDelete, mdiFilePdfBox, mdiPlus }
 	},
 
 	data() {
@@ -552,6 +574,7 @@ export default {
 			isPlan: Boolean(this.plan || this.startAsPlan || this.fromInvoice),
 			planForm: this.blankPlanForm(),
 			leaveOpen: false,
+			moreOpen: false,
 		}
 	},
 
@@ -564,6 +587,18 @@ export default {
 		accountsById() { return Object.fromEntries(this.accounts.map((a) => [a.id, a])) },
 		needsExemptionText() { return this.regular && this.form.lines.some((l) => l.taxKey === 'E' && !isEmptyLine(l)) },
 		sums() { return editorTotals(this.form.lines, this.regular) },
+		requiredChecks() { return this.checklist.filter((c) => c.required) },
+		/** Kurzer Hinweis neben „Weitere Angaben“, damit man nicht aufklappen muss, um zu sehen, was drinsteht. */
+		moreHint() {
+			const f = this.form
+			const parts = []
+			if (f.buyerReference) { parts.push(this.tRaw('Referenz: {ref}', { ref: f.buyerReference })) }
+			if (f.orderReference) { parts.push(this.tRaw('Bestellnummer: {ref}', { ref: f.orderReference })) }
+			if (!this.isPlan && f.taxMode !== (this.meta?.taxMode || 'kleinunternehmer')) { parts.push(this.taxModeLabel(f.taxMode)) }
+			if (parts.length === 0) { return this.t('Referenzen, Umsatzsteuer, Einleitungs- und Schlusstext, Zahlungsbedingungen') }
+			return parts.join(' · ')
+		},
+
 		openChecks() { return this.checklist.filter((c) => c.required && !c.ok) },
 		planIntervals() { return PLAN_INTERVALS },
 		/** Die Art (einmalig oder wiederkehrend) lässt sich nur beim Anlegen wählen. */
@@ -667,6 +702,11 @@ export default {
 			}
 		},
 
+		/** Beschreibung und Rabatt stehen erst offen, wenn sie gebraucht werden oder schon etwas enthalten. */
+		detailsOpen(line) {
+			return Boolean(line.showDetails || line.description || line.discountPercent)
+		},
+
 		taxModeLabel(mode) {
 			return {
 				exempt: this.t('Steuerbefreit (Hinweis nach § 4 UStG)'),
@@ -702,6 +742,7 @@ export default {
 				paymentTerms: plan.paymentTerms || '',
 				lines: plan.lines.length ? plan.lines.map(lineFromPlan) : [emptyLine()],
 			}
+			this.moreOpen = Boolean(this.form.buyerReference || this.form.orderReference)
 			this.planForm = {
 				name: plan.name,
 				intervalMonths: plan.intervalMonths,
@@ -763,6 +804,7 @@ export default {
 				paymentTerms: data.paymentTerms || '',
 				lines: data.lines.length ? data.lines.map(lineFromServer) : [emptyLine()],
 			}
+			this.moreOpen = Boolean(this.form.buyerReference || this.form.orderReference)
 		},
 
 		payload() {
@@ -990,71 +1032,150 @@ export default {
 
 .vbh-inv-saved { font-size: 0.85em; opacity: 0.7; white-space: nowrap; }
 
-.vbh-inv-body { display: flex; flex-direction: column; gap: 12px; }
+.vbh-inv-body { container-type: inline-size; }
 
-.vbh-inv-head { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px 28px; }
+/* Zwei Spalten: links das Formular in der Reihenfolge, in der man es ausfüllt,
+   rechts mitwandernd die Summe und was noch fehlt. Schmal rutscht alles untereinander,
+   die Seitenleiste landet dabei direkt unter den Positionen. */
+.vbh-inv-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; column-gap: 20px; align-items: start; max-width: 1280px; }
 
-.vbh-inv-refs { grid-column: 1 / -1; }
+.vbh-inv-layout > * { grid-column: 1; }
 
-h3 { margin: 0 0 8px; font-size: 1em; }
+.vbh-inv-layout > .vbh-inv-side { grid-column: 2; grid-row: 1 / span 8; position: sticky; top: 8px; }
 
-.vbh-inv-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.vbh-inv-intro { margin: 0 0 4px; }
 
-.vbh-inv-grid--wide { grid-template-columns: minmax(0, 360px); }
+.vbh-inv-card { margin: 0 0 12px; }
 
-.vbh-inv-grid label, .vbh-inv-wide { display: flex; flex-direction: column; gap: 3px; font-size: 0.88em; font-weight: 600; }
+h3 { margin: 0 0 10px; font-size: 1.05em; }
+
+/* Umschalter wie ein Reiter: „Einmalig | Wiederkehrend“ */
+.vbh-inv-seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 10px; background: var(--color-background-dark); }
+
+.vbh-inv-seg label { display: inline-flex; align-items: center; padding: 6px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9em; }
+
+.vbh-inv-seg label.on { background: var(--color-primary-element); color: var(--color-primary-element-text); }
+
+.vbh-inv-seg label.disabled { opacity: 0.5; cursor: not-allowed; }
+
+.vbh-inv-seg input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+
+.vbh-inv-seg label:focus-within { outline: 2px solid var(--color-main-text); outline-offset: 1px; }
+
+.vbh-inv-seg--small label { padding: 4px 10px; font-size: 0.85em; }
+
+.vbh-inv-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; }
+
+.vbh-inv-grid label, .vbh-inv-wide, .vbh-inv-l2 label, .vbh-inv-l3 label { display: flex; flex-direction: column; gap: 3px; font-size: 0.85em; font-weight: 600; }
+
+.vbh-inv-grid input, .vbh-inv-grid select, .vbh-inv-wide input, .vbh-inv-wide textarea { width: 100%; box-sizing: border-box; margin: 0; font-weight: normal; }
+
+.vbh-inv-span { grid-column: 1 / -1; }
 
 .vbh-inv-wide { margin-top: 10px; }
 
-.vbh-inv-grid > .vbh-inv-wide { grid-column: 1 / -1; margin-top: 0; }
+.vbh-inv-legend { padding: 0; margin: 0 0 4px; font-size: 0.85em; font-weight: 600; }
 
-.vbh-inv-kind { margin: 0 0 4px; }
+.vbh-inv-delivery { margin: 12px 0 0; }
 
-.vbh-inv-wide textarea, .vbh-inv-wide input { width: 100%; box-sizing: border-box; font-weight: normal; }
+.vbh-inv-delivery-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 
-.vbh-inv-delivery { margin-top: 10px; }
+.vbh-inv-delivery-row input[type="date"] { margin: 0; }
 
-.vbh-inv-radio { display: inline-flex; align-items: center; gap: 4px; margin-inline-end: 14px; font-size: 0.9em; }
+.vbh-inv-dash { opacity: 0.6; }
 
-.vbh-inv-lines { display: flex; flex-direction: column; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+/* Positionen: je Position ein Block. Oben das Wesentliche, darunter Konto und Steuer. */
+.vbh-inv-lines { display: flex; flex-direction: column; gap: 0; }
 
-.vbh-inv-line { display: grid; grid-template-columns: 28px minmax(220px, 3fr) 78px 110px 118px 70px minmax(150px, 1.6fr) 100px 108px; gap: 6px; align-items: start; min-width: 980px; }
+.vbh-inv-l1 { display: grid; grid-template-columns: minmax(0, 1fr) 76px 112px 124px 104px 96px; gap: 8px; align-items: center; }
 
-.vbh-inv-line--tax { grid-template-columns: 28px minmax(200px, 3fr) 78px 110px 118px 70px minmax(150px, 1.6fr) 96px 100px 108px; min-width: 1100px; }
+.vbh-inv-l1--head { font-size: 0.78em; font-weight: 600; opacity: 0.7; padding-bottom: 4px; }
 
-.vbh-inv-line--head { font-size: 0.8em; font-weight: 600; opacity: 0.75; align-items: end; }
+.vbh-inv-line { padding: 10px 0; border-top: 1px solid var(--color-border); }
 
-.vbh-inv-line input, .vbh-inv-line select, .vbh-inv-line textarea { width: 100%; min-width: 0; box-sizing: border-box; margin: 0; }
+.vbh-inv-l1 input, .vbh-inv-l1 select { width: 100%; min-width: 0; box-sizing: border-box; margin: 0; }
 
-.vbh-inv-name { display: flex; flex-direction: column; gap: 4px; }
+.vbh-inv-r { text-align: end; }
 
-.vbh-inv-pos { padding-top: 8px; opacity: 0.6; text-align: end; }
+.vbh-inv-net { font-weight: 600; font-variant-numeric: tabular-nums; }
 
-.vbh-inv-qty, .vbh-inv-discount, .vbh-inv-price { text-align: end; }
+.vbh-inv-actions { display: inline-flex; justify-content: flex-end; }
 
-.vbh-inv-num { text-align: end; font-variant-numeric: tabular-nums; }
+.vbh-inv-l2 { display: flex; flex-wrap: wrap; align-items: end; gap: 6px 14px; margin-top: 6px; }
 
-.vbh-inv-net { padding-top: 8px; font-weight: 600; }
+.vbh-inv-l2 label { flex: 0 1 260px; min-width: 150px; font-weight: 500; opacity: 0.9; }
 
-.vbh-inv-actions { display: inline-flex; }
+.vbh-inv-l2 select { width: 100%; min-width: 0; margin: 0; box-sizing: border-box; }
+
+.vbh-inv-l2 label:nth-of-type(2) { flex-basis: 150px; }
+
+.vbh-inv-l3 { display: grid; grid-template-columns: minmax(0, 1fr) 110px; gap: 8px 14px; margin-top: 8px; }
+
+.vbh-inv-l3 textarea, .vbh-inv-l3 input { width: 100%; box-sizing: border-box; margin: 0; }
 
 .vbh-inv-invalid { border-color: var(--color-element-error) !important; }
 
-.vbh-inv-linkbtn { align-self: flex-start; background: none; border: 0; padding: 0; color: var(--color-primary-element); cursor: pointer; font-size: 0.85em; }
+.vbh-inv-linkbtn { background: none; border: 0; padding: 4px 0; margin: 0; color: var(--color-primary-element); cursor: pointer; font-size: 0.85em; }
 
-.vbh-inv-linebar { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.vbh-inv-linebar { margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--color-border); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 
 .vbh-inv-tplpick { max-width: 260px; }
 
-.vbh-inv-totals { display: flex; flex-direction: column; align-items: flex-end; margin-top: 12px; }
+/* Summe */
+.vbh-inv-totals { margin: 0; }
 
-.vbh-inv-totals-row { display: flex; gap: 24px; justify-content: space-between; min-width: 280px; padding: 8px 0; border-top: 1px solid var(--color-border-dark, var(--color-border)); }
+.vbh-inv-totals > div { display: flex; justify-content: space-between; gap: 16px; padding: 6px 0; }
 
-.vbh-inv-totals-row--grand { font-size: 1.15em; }
+.vbh-inv-totals dt, .vbh-inv-totals dd { margin: 0; }
 
-.vbh-inv-discard { margin-top: 4px; }
+.vbh-inv-totals dd { font-variant-numeric: tabular-nums; }
 
-@media (max-width: 900px) {
-	.vbh-inv-head { grid-template-columns: minmax(0, 1fr); }
+.vbh-inv-totals-grand { border-top: 1px solid var(--color-border-dark, var(--color-border)); margin-top: 4px; padding-top: 10px !important; font-size: 1.2em; font-weight: 700; }
+
+.vbh-inv-taxline { margin: 6px 0 0; }
+
+/* Checkliste */
+.vbh-inv-checklist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+
+.vbh-inv-checklist li { display: flex; gap: 8px; align-items: flex-start; font-size: 0.92em; }
+
+.vbh-inv-checklist li.ok { opacity: 0.65; }
+
+.vbh-inv-checklist li.open { font-weight: 600; }
+
+.vbh-inv-checklist .icon-vue { flex: 0 0 auto; }
+
+.vbh-inv-discard { margin: 0 0 12px; }
+
+/* Weitere Angaben */
+.vbh-inv-more > summary { cursor: pointer; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+
+.vbh-inv-more > summary .vbh-hint { margin: 0; }
+
+.vbh-inv-more-body { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+
+.vbh-inv-more-body .vbh-inv-wide { margin-top: 0; }
+
+/* Schmal: eine Spalte, Seitenleiste unter den Positionen, Positionen einspaltig */
+@container (max-width: 1000px) {
+	.vbh-inv-layout { grid-template-columns: minmax(0, 1fr); }
+
+	.vbh-inv-layout > .vbh-inv-side { grid-column: 1; grid-row: auto; position: static; }
+}
+
+@container (max-width: 720px) {
+	.vbh-inv-grid { grid-template-columns: minmax(0, 1fr); }
+
+	.vbh-inv-l1--head { display: none; }
+
+	.vbh-inv-l1 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+	.vbh-inv-l1 .vbh-inv-name { grid-column: 1 / -1; }
+
+	.vbh-inv-l1 .vbh-inv-net { grid-column: 1 / 3; text-align: start; }
+
+	.vbh-inv-l1 .vbh-inv-actions { grid-column: 3; }
+
+	.vbh-inv-l3 { grid-template-columns: minmax(0, 1fr); }
 }
 </style>

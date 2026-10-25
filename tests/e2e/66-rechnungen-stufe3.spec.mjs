@@ -72,7 +72,7 @@ test.describe.serial('Rechnungen Stufe 3', () => {
 		await switchTab(page, 'Rechnungen')
 		await neuAnlegen(page, 'Rechnung')
 		await page.locator('select.vbh-inv-tplpick').selectOption({ label: 'Hallenmiete' })
-		await expect(page.locator('.vbh-inv-name input').first()).toHaveValue('Hallenmiete')
+		await expect(page.locator('input.vbh-inv-name').first()).toHaveValue('Hallenmiete')
 	})
 
 	test('Wiederkehrende Rechnung: Plan legt am Termin einen Entwurf mit Zeitraum an', async ({ request }) => {
@@ -203,7 +203,7 @@ test.describe.serial('Rechnungen Stufe 3', () => {
 		// Der Plan lässt sich im selben Editor ändern, die Positionen eingeschlossen.
 		await plan.getByRole('button', { name: 'Bearbeiten' }).click()
 		await expect(page.getByText('Plan bearbeiten', { exact: true })).toBeVisible()
-		await expect(page.locator('.vbh-inv-name input').first()).not.toHaveValue('')
+		await expect(page.locator('input.vbh-inv-name').first()).not.toHaveValue('')
 		await page.getByLabel('Name des Plans').fill('Plan geändert E2E')
 		await page.getByRole('button', { name: 'Plan speichern' }).click()
 		await expect(section.locator('.vbh-inv-plan', { hasText: 'Plan geändert E2E' })).toBeVisible()
