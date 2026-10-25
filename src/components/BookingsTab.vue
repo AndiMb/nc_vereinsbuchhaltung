@@ -128,6 +128,16 @@
 					<table v-show="filteredJournalRows.length" class="vbh-table">
 						<thead>
 							<tr>
+								<th v-if="bulkSelectable" class="vbh-col-check">
+									<input
+										type="checkbox"
+										:checked="allVisibleSelected"
+										:indeterminate="selectedVisibleIds.length > 0 && !allVisibleSelected"
+										:disabled="!selectableVisibleRows.length"
+										:aria-label="t('Alle angezeigten Buchungen auswählen')"
+										:title="t('Alle angezeigten Buchungen auswählen')"
+										@change="selectAllVisible($event.target.checked)">
+								</th>
 								<th class="sortable num vbh-col-hide-sm" @click="toggleSort('journal', 'entryNo')">
 									{{ t('Nr.') }}{{ sortArrow('journal', 'entryNo') }}
 								</th>
@@ -153,8 +163,17 @@
 							<tr
 								v-for="r in sortedJournalRows"
 								:key="r.id"
-								v-memo="[r, attachmentCountMap[r.id], txByJournalId[r.id], canWrite, amountDisplay, accountsById, isDateClosed(r.date)]"
+								v-memo="[r, attachmentCountMap[r.id], txByJournalId[r.id], canWrite, amountDisplay, accountsById, isDateClosed(r.date), bulkSelectable, bulkSelectable && selectedJournalIds.has(r.id)]"
 								:data-id="r.id">
+								<td v-if="bulkSelectable" class="vbh-col-check">
+									<input
+										type="checkbox"
+										:checked="selectedJournalIds.has(r.id)"
+										:disabled="isDateClosed(r.date)"
+										:aria-label="t('Buchung #{n} auswählen', { n: r.entryNo })"
+										:title="isDateClosed(r.date) ? t('Geschäftsjahr abgeschlossen') : t('Mit Umschalt-Klick einen Bereich auswählen')"
+										@click="onSelectClick(r.id, $event)">
+								</td>
 								<td class="num strong vbh-col-hide-sm">
 									{{ r.entryNo }}
 								</td>
@@ -229,6 +248,22 @@
 						</NcButton>
 					</template>
 				</NcEmptyContent>
+				<!-- Mehrfachauswahl: hinter der Tabelle und unten angeheftet
+				     (.vbh-bulkbar), damit ihr Erscheinen keine Zeile unter dem
+				     Mauszeiger verschiebt. Zählt und handelt nur auf den gerade
+				     sichtbaren markierten Zeilen. -->
+				<div v-if="bulkSelectable && selectedVisibleIds.length" class="vbh-bulkbar">
+					<span class="vbh-bulkbar-count">{{ n('%n Buchung ausgewählt', '%n Buchungen ausgewählt', selectedVisibleIds.length) }}</span>
+					<NcButton variant="primary" :disabled="bulkBusy" @click="attachReceiptToSelected">
+						<template #icon>
+							<NcIconSvgWrapper :path="mdiPaperclip" :size="18" />
+						</template>
+						{{ t('Beleg zuordnen…') }}
+					</NcButton>
+					<NcButton variant="tertiary" :disabled="bulkBusy" @click="clearJournalSelection">
+						{{ t('Auswahl aufheben') }}
+					</NcButton>
+				</div>
 			</template>
 
 			<!-- TRANSACTIONS VIEW (unassigned / assigned) -->
@@ -618,6 +653,7 @@ import { claimTypeLabel } from '../lib/claims.js'
 import { bookingFlow, flowClass, flowLabel, formatFlowMoney, transactionFlow } from '../lib/flow.js'
 import { amountClass, errMsg, formatDate, formatMoney } from '../lib/format.js'
 import { openItemStatusLabel } from '../lib/openItems.js'
+import { rangeIds } from '../lib/receiptBatch.js'
 import { buildSearchIndex, journalSearch, matchesQuery, prepareQuery, transactionSearch } from '../lib/search.js'
 import { isSelectableOption } from '../lib/selectOptions.js'
 
@@ -652,6 +688,10 @@ export default {
 		txPendingFiles: { type: Object, default: () => ({}) },
 		openFolderPickerForTx: { type: Function, default: () => {} },
 		removeTxPendingFile: { type: Function, default: () => {} },
+		// Einen Beleg an alle markierten Buchungen des Journals (ebenfalls nur
+		// mit Wächter-Ordner); löst mit true auf, wenn alles verknüpft ist,
+		// siehe openFolderPickerForBookings() in App.vue.
+		openFolderPickerForBookings: { type: Function, default: async () => false },
 	},
 
 	emits: ['go-claims', 'help', 'update:booking-view'],
@@ -697,6 +737,13 @@ export default {
 			bookingFilter: null,
 			bookingFilterSearch: '',
 			journalOnlyNoAttachment: false,
+			// Mehrfachauswahl im Journal. Markierte Zeilen, die ein Filter
+			// ausblendet, bleiben markiert, zählen aber erst wieder, wenn sie
+			// sichtbar sind (selectedVisibleIds).
+			selectedJournalIds: new Set(),
+			// Anker für Umschalt-Klick (onSelectClick).
+			lastSelectedId: null,
+			bulkBusy: false,
 			openItemForm: { debtor: '', description: '', amount: '', dueDate: '', accountId: null },
 			openItemFilter: 'open',
 		}
@@ -767,6 +814,14 @@ export default {
 		},
 
 		visibleJournalIds() { return new Set(this.filteredJournalRows.map((r) => r.id)) },
+
+		// Mehrfachauswahl nur am Desktop und nur, solange es eine Aktion dafür
+		// gibt: „Beleg zuordnen“ braucht den Wächter-Ordner.
+		bulkSelectable() { return !this.isMobile && this.watchMode && this.canWrite },
+		// Buchungen abgeschlossener Geschäftsjahre bekommen keinen Beleg mehr.
+		selectableVisibleRows() { return this.filteredJournalRows.filter((r) => !this.isDateClosed(r.date)) },
+		selectedVisibleIds() { return this.selectableVisibleRows.filter((r) => this.selectedJournalIds.has(r.id)).map((r) => r.id) },
+		allVisibleSelected() { return this.selectableVisibleRows.length > 0 && this.selectedVisibleIds.length === this.selectableVisibleRows.length },
 
 		// Mobil: fest nach Datum absteigend – einmal je Datenstand sortiert,
 		// journalCardGroups filtert dann nur noch.
@@ -896,8 +951,14 @@ export default {
 			clearTimeout(this.searchTimer)
 			if (this.$refs.searchField) { this.$refs.searchField.value = '' }
 			this.bookingSearch = ''
+			this.clearJournalSelection()
 			if (v === 'openitems') { this.loadOpenItems() }
 		},
+
+		// Eine Auswahl gilt für die Buchungen, die gerade auf dem Schirm sind:
+		// anderer Zeitraum oder Wächter-Ordner aus, dann von vorn.
+		selectedPeriodId() { this.clearJournalSelection() },
+		bulkSelectable(v) { if (!v) { this.clearJournalSelection() } },
 	},
 
 	mounted() {
@@ -962,6 +1023,44 @@ export default {
 
 		canAttachToTx(tx) {
 			return this.watchMode && this.canWrite && !this.isDateClosed(tx.bookingDate)
+		},
+
+		/**
+		 * Klick auf das Kästchen einer Zeile. Das Kästchen hat beim click schon
+		 * umgeschaltet; mit Umschalttaste bekommen alle sichtbaren Zeilen
+		 * zwischen dem letzten Klick und dieser denselben Zustand.
+		 *
+		 * @param {number} id Buchung
+		 * @param {MouseEvent} event der Klick
+		 */
+		onSelectClick(id, event) {
+			const ids = event.shiftKey ? rangeIds(this.selectableVisibleRows, this.lastSelectedId, id) : [id]
+			this.setSelected(ids, event.target.checked)
+			this.lastSelectedId = id
+		},
+
+		selectAllVisible(checked) {
+			this.setSelected(this.selectableVisibleRows.map((r) => r.id), checked)
+		},
+
+		setSelected(ids, checked) {
+			const next = new Set(this.selectedJournalIds)
+			for (const id of ids) {
+				if (checked) { next.add(id) } else { next.delete(id) }
+			}
+			this.selectedJournalIds = next
+		},
+
+		clearJournalSelection() {
+			this.selectedJournalIds = new Set()
+			this.lastSelectedId = null
+		},
+
+		async attachReceiptToSelected() {
+			this.bulkBusy = true
+			try {
+				if (await this.openFolderPickerForBookings(this.selectedVisibleIds)) { this.clearJournalSelection() }
+			} finally { this.bulkBusy = false }
 		},
 
 		pendingFor(tx) {

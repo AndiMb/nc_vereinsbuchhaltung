@@ -28,6 +28,15 @@ verwenden, z. B. `**Neu:**`.
   Das Update verschlüsselt den Bestand einmalig; in der App ändert sich nichts.
   **Wichtig für Backups:** Ohne die zugehörige `config.php` sind die IBANs nach
   einer Wiederherstellung nicht mehr lesbar (Handbuch 12.3 und 13.13).
+- **Einen Beleg an mehrere Buchungen auf einmal** – mit eingerichtetem
+  Wächter-Ordner. Unter *Alle Buchungen* hat das Journal am Desktop vorne eine
+  Auswahlspalte; mit Umschalt-Klick lässt sich ein Bereich markieren, das
+  Kästchen im Kopf nimmt alle angezeigten Buchungen. „Beleg zuordnen…" in der
+  Leiste unter der Liste öffnet den Ordner, die gewählte Datei hängt danach an
+  jeder markierten Buchung – etwa eine Sammelrechnung oder ein Jahresvertrag.
+  Was schon an einer Buchung hängt, wird übergangen; Buchungen abgeschlossener
+  Geschäftsjahre lassen sich nicht markieren. Zusammen mit „nur ohne Beleg"
+  und der Suche findet man so schnell alle Buchungen, denen ein Beleg fehlt.
 
 **Geändert:**
 - **Terminplan ohne „Versatz" und „Periodenindex".** Der Einzugstag steht

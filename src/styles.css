@@ -602,6 +602,10 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
    Platz weg und die Konto-/Zuordnungsspalten daneben werden bis zur
    Unlesbarkeit zusammengequetscht. */
 .vbh-table thead th.vbh-col-check { width: 40px; }
+/* Journal mit Mehrfachauswahl (BookingsTab.vue): vor „Nr." steht die
+   Checkbox-Spalte, „Nr." ist dann nicht mehr erstes Kind (th.num:first-child
+   oben) und behielte sonst nicht seine schmale Breite. */
+.vbh-table thead th.vbh-col-check + th.num { width: 56px; }
 /* Zeitpunkt-Spalten mit Datum+Uhrzeit (Protokoll, Plan-Stände): "2026-08-15
    14:23" braucht mehr als die 96px einer reinen Datumsspalte (.nowrap),
    sonst wird die Uhrzeit abgeschnitten. */
@@ -626,6 +630,14 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 .vbh-table tr.assigned td { opacity: 0.85; }
 
 .vbh-tablecount { padding: 4px 10px; font-size: 0.82em; opacity: 0.7; }
+/* Aktionsleiste der Mehrfachauswahl im Journal (BookingsTab.vue): steht hinter
+   der Tabelle und klebt am unteren Rand des scrollenden .vbh-sectionbody, so
+   bleibt sie beim Markieren weit unten in der Liste sichtbar. Nur so breit wie
+   ihr Inhalt und mittig: über die volle Breite verdeckte sie die Kästchen der
+   untersten sichtbaren Zeile, genau dort, wo man weiter markiert. */
+.vbh-bulkbar { position: sticky; bottom: 0; z-index: 3; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; width: fit-content; max-width: 100%; box-sizing: border-box; margin: 8px auto; padding: 8px 12px;border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); background-color: var(--color-main-background); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2); }
+
+.vbh-bulkbar-count { font-weight: 600; }
 
 /* Badges */
 .vbh-badge { padding: 2px 8px; border-radius: 10px; font-size: 0.82em; background-color: var(--color-background-dark); color: var(--color-main-text); }

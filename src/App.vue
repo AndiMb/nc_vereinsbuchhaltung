@@ -157,6 +157,7 @@
 					:txPendingFiles="txPendingFiles"
 					:openFolderPickerForTx="openFolderPickerForTx"
 					:removeTxPendingFile="removeTxPendingFile"
+					:openFolderPickerForBookings="openFolderPickerForBookings"
 					@update:bookingView="bookingView = $event"
 					@goClaims="goToClaims"
 					@help="openHelp('bookings')" />
@@ -312,6 +313,7 @@
 		<AttachmentFolderDialog
 			:show="folderDialog.open"
 			:pick="folderDialog.pick"
+			:heading="folderDialog.journalIds ? n('Beleg für %n Buchung wählen', 'Beleg für %n Buchungen wählen', folderDialog.journalIds.length) : ''"
 			:isMobile="isMobile"
 			:canWrite="canWrite"
 			:excludeFileIds="folderExcludeIds"
@@ -437,6 +439,7 @@ import { useSync } from './composables/useSync.js'
 import { useTasks } from './composables/useTasks.js'
 import { buildWhatsNewEntries, filterWhatsNewEntries } from './data/whatsNew.js'
 import { amountClass, budgetDiffClass, errMsg, formatDate, formatDateTime, formatMoney, typeLabel } from './lib/format.js'
+import { linkFilesToBookings } from './lib/receiptBatch.js'
 import { splitBalanced, splitRemainder, splitSideOf } from './lib/split.js'
 
 // Abstand zwischen zwei Abgleichen mit dem Server. Die Frist, in der eine
@@ -658,7 +661,9 @@ export default {
 			// sonst der Eingangskorb von der Übersicht aus. txId: die Auswahl
 			// gilt einem Bankumsatz in „Zuzuordnen“ (Vormerkung, siehe
 			// txPendingFiles).
-			folderDialog: { open: false, pick: false, txId: null },
+			// txId: Auswahl für einen Bankumsatz; journalIds: für die im Journal
+			// markierten Buchungen (openFolderPickerForBookings).
+			folderDialog: { open: false, pick: false, txId: null, journalIds: null },
 			// In „Zuzuordnen“ vorgemerkte Belege je Bankumsatz:
 			// { [txId]: [{ fileId, name, size }] }. Reiner UI-Zustand – verknüpft
 			// wird erst, wenn der Umsatz zugeordnet ist (linkTxPendingFiles()).
@@ -716,6 +721,9 @@ export default {
 			if (this.folderDialog.txId) {
 				return Object.values(this.txPendingFiles).flat().map((f) => f.fileId)
 			}
+			// Für mehrere Buchungen ist derselbe Beleg an vielen gerade gewollt;
+			// was schon an einer davon hängt, übergeht linkFolderFilesToBookings().
+			if (this.folderDialog.journalIds) { return [] }
 			return [
 				...this.bookingAttachments.map((a) => a.fileId),
 				...this.pendingFiles.map((f) => f.fileId),
@@ -1052,6 +1060,9 @@ export default {
 		// bookingSearch-Reset bei bookingView-Wechsel ist jetzt Teil von
 		// BookingsTab.vue (eigener Watcher auf sein bookingView-Prop).
 		transactions() { this.pruneTxPendingFiles() },
+		// Wie auch immer der Ordner-Dialog zugeht (Abbrechen, Esc, daneben
+		// geklickt): die wartende Mehrfachauswahl erfährt, dass nichts kam.
+		'folderDialog.open': function(open) { if (!open) { this.settleFolderPick(false) } },
 
 		bookingView(v) {
 			if (v === 'journal') { this.loadJournal() }
@@ -2044,8 +2055,28 @@ export default {
 		},
 
 		// --- Wächter-Ordner für Belege ---------------------------------------
-		openInbox() { this.folderDialog = { open: true, pick: false, txId: null } },
-		openFolderPickerForTx(tx) { this.folderDialog = { open: true, pick: true, txId: tx.id } },
+		openInbox() { this.folderDialog = { open: true, pick: false, txId: null, journalIds: null } },
+		openFolderPickerForTx(tx) { this.folderDialog = { open: true, pick: true, txId: tx.id, journalIds: null } },
+
+		/**
+		 * Belegauswahl für die im Journal markierten Buchungen. Das Versprechen
+		 * erfüllt sich, sobald der Dialog zu ist: true, wenn alles verknüpft
+		 * ist – dann hebt das Journal die Auswahl auf –, sonst false.
+		 *
+		 * @param {number[]} journalIds markierte Buchungen
+		 * @return {Promise<boolean>}
+		 */
+		openFolderPickerForBookings(journalIds) {
+			this.settleFolderPick(false)
+			this.folderDialog = { open: true, pick: true, txId: null, journalIds }
+			return new Promise((resolve) => { this.folderPickDone = resolve })
+		},
+
+		settleFolderPick(result) {
+			const done = this.folderPickDone
+			this.folderPickDone = null
+			done?.(result)
+		},
 
 		removeTxPendingFile(txId, fileId) {
 			const rest = (this.txPendingFiles[txId] || []).filter((f) => f.fileId !== fileId)
@@ -2075,6 +2106,37 @@ export default {
 			this.refreshInbox()
 		},
 
+		/**
+		 * Hängt die gewählten Ordnerdateien an jede der im Journal markierten
+		 * Buchungen (lib/receiptBatch.js) und meldet, was dabei herauskam.
+		 *
+		 * @param {Array<{fileId:number,name:string,journalIds:number[]}>} files gewählte Dateien
+		 * @param {number[]} journalIds markierte Buchungen
+		 * @return {Promise<boolean>} ob alles angekommen ist
+		 */
+		async linkFolderFilesToBookings(files, journalIds) {
+			const { linked, failed, error } = await linkFilesToBookings(api.linkAttachment, files, journalIds)
+			this.afterAttachmentsChanged()
+			if (failed.length) {
+				const entryNo = new Map(this.journalRows.map((r) => [r.id, r.entryNo]))
+				showError(this.tRaw('Bei diesen Buchungen kam der Beleg nicht an: {bookings} ({grund}). Die Auswahl bleibt stehen.', {
+					bookings: failed.map((id) => '#' + (entryNo.get(id) ?? id)).join(', '),
+					grund: this.errMsg(error, this.t('Verknüpfen fehlgeschlagen')),
+				}))
+				return false
+			}
+			if (!linked.length) {
+				showInfo(files.length === 1
+					? this.t('Der Beleg hing schon an allen markierten Buchungen.')
+					: this.t('Die Belege hingen schon an allen markierten Buchungen.'))
+			} else {
+				showSuccess(files.length === 1
+					? this.n('Beleg an %n Buchung angehängt.', 'Beleg an %n Buchungen angehängt.', linked.length)
+					: this.n('Belege an %n Buchung angehängt.', 'Belege an %n Buchungen angehängt.', linked.length))
+			}
+			return true
+		},
+
 		/** Vormerkungen für Umsätze, die nicht mehr offen sind (z. B. per Regel zugeordnet), verwerfen. */
 		pruneTxPendingFiles() {
 			const open = new Set(this.transactions.filter((t) => t.status === 'unassigned').map((t) => t.id))
@@ -2096,7 +2158,16 @@ export default {
 		 * @param {Array<{fileId:number,name:string,size:number}>} files gewählte Dateien
 		 */
 		async onFolderPick(files) {
+			// Vor dem Schließen abholen, sonst meldet der Watcher auf
+			// folderDialog.open der Mehrfachauswahl „nichts gewählt“.
+			const done = this.folderPickDone
+			this.folderPickDone = null
 			this.folderDialog.open = false
+			const journalIds = this.folderDialog.journalIds
+			if (journalIds) {
+				done?.(files.length ? await this.linkFolderFilesToBookings(files, journalIds) : false)
+				return
+			}
 			if (!files.length) { return }
 			const txId = this.folderDialog.txId
 			if (txId) {
