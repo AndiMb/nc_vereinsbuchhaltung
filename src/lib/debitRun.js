@@ -139,7 +139,7 @@ export function severityTone(severity) {
 
 // --- Datum und Zeit -----------------------------------------------------------
 
-function toUtcDay(iso) {
+export function toUtcDay(iso) {
 	const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number)
 	return Date.UTC(y, m - 1, d)
 }

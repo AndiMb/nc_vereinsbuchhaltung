@@ -52,7 +52,7 @@ class DueDateScheduleController extends Controller {
 	#[RequiresRole(PermissionService::ROLE_READ)]
 	public function index(): DataResponse {
 		return new DataResponse([
-			'schedule' => $this->schedule->getFullSchedule(),
+			'schedule' => array_map(fn (array $entry) => ['defaultOffsetDays' => $entry['defaultOffsetDays'], 'overrides' => self::overridesJson($entry['overrides'])], $this->schedule->getFullSchedule()),
 			'prenotificationLeadDays' => $this->settings->prenotificationLeadDays(),
 			'warningLeadDays' => $this->settings->warningLeadDays(),
 			'releaseLeadDays' => $this->settings->releaseLeadDays(),
@@ -73,10 +73,8 @@ class DueDateScheduleController extends Controller {
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_READ)]
 	public function preview(int $intervalMonths, int $defaultOffsetDays, array $overrides = [], ?int $year = null): DataResponse {
-		// Die Grenzen schützen nur vor Unsinn in der Anfrage; die Ansicht blättert jahrweise.
-		$year = max(1971, min(2199, $year ?? $this->contributionYear->anchorYearFor($this->today())));
 		try {
-			return new DataResponse($this->schedule->preview($intervalMonths, $defaultOffsetDays, $overrides, $year));
+			return new DataResponse($this->schedule->preview($intervalMonths, $defaultOffsetDays, $overrides, $year ?? $this->contributionYear->anchorYearFor($this->today())));
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		}
@@ -95,7 +93,7 @@ class DueDateScheduleController extends Controller {
 			$this->schedule->setSchedule($intervalMonths, $defaultOffsetDays, $overrides);
 			return new DataResponse([
 				'defaultOffsetDays' => $this->schedule->getDefaultOffsetDays($intervalMonths),
-				'overrides' => $this->schedule->getOverrides($intervalMonths),
+				'overrides' => self::overridesJson($this->schedule->getOverrides($intervalMonths)),
 			]);
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
@@ -119,7 +117,7 @@ class DueDateScheduleController extends Controller {
 	public function setOverride(int $intervalMonths, int $periodIndex, ?int $offsetDays = null): DataResponse {
 		try {
 			$this->schedule->setOverride($intervalMonths, $periodIndex, $offsetDays);
-			return new DataResponse(['overrides' => $this->schedule->getOverrides($intervalMonths)]);
+			return new DataResponse(['overrides' => self::overridesJson($this->schedule->getOverrides($intervalMonths))]);
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		}
@@ -147,6 +145,17 @@ class DueDateScheduleController extends Controller {
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		}
+	}
+
+	/**
+	 * Überschreibungen immer als JSON-Objekt: json_encode machte aus [0 => 5]
+	 * eine Liste `[5]`, aus [1 => 31] aber `{"1":31}` – die Form hinge sonst an
+	 * den Daten.
+	 *
+	 * @param array<int,int> $overrides
+	 */
+	private static function overridesJson(array $overrides): object {
+		return (object)$overrides;
 	}
 
 	private function today(): string {

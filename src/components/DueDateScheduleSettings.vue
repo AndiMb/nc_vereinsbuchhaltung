@@ -12,9 +12,7 @@
 			</InfoHint>
 		</div>
 		<p class="vbh-hint vbh-schedule-intro">
-			{{ yearLabel
-				? t('An welchen Tagen die Beiträge fällig sind und eingezogen werden. Die Termine unten gelten für das Beitragsjahr {year}.', { year: yearLabel })
-				: t('An welchen Tagen die Beiträge fällig sind und eingezogen werden.') }}
+			{{ t('An welchen Tagen die Beiträge fällig sind und eingezogen werden. Die Termine unten gelten für das Beitragsjahr {year}.', { year: yearLabel }) }}
 		</p>
 
 		<NcLoadingIcon v-if="!loaded" :size="24" />
@@ -26,8 +24,7 @@
 			:memberCount="memberCount(interval)"
 			:year="year"
 			:offsetRange="offsetRange"
-			@saved="onSaved"
-			@dueDates="dueDatesByInterval[interval] = $event" />
+			@saved="onSaved(interval, $event)" />
 
 		<NcButton
 			v-if="usedIntervals.length > 0 && unusedIntervals.length > 0"
@@ -43,12 +40,12 @@
 				: t('Turnusse ohne Mitglieder: {list}', { list: unusedIntervals.map(intervalLabel).join(', ') }) }}
 		</NcButton>
 
-		<div v-if="exampleDue" class="vbh-schedule-leads" data-testid="lead-days-summary">
+		<div class="vbh-schedule-leads" data-testid="lead-days-summary">
 			<h5>{{ t('Fristen vor dem Einzug') }}</h5>
 			<p class="vbh-hint">
 				{{ t('Am Beispiel des Einzugs am {date}. Die Fristen gelten für alle Turnusse.', { date: dueDateLabel(exampleDue, language) }) }}
 			</p>
-			<LeadDaysStrip :dueDate="exampleDue" :leadDays="leadDays" />
+			<LeadDaysStrip :dueDate="exampleDue" :leadDays="{ warningLeadDays, prenotificationLeadDays, releaseLeadDays }" />
 			<a v-if="isAdmin" class="vbh-settings-link" :href="settingsUrl">{{ t('Fristen in den Einstellungen ändern') }}</a>
 		</div>
 	</section>
@@ -65,8 +62,9 @@ import InfoHint from './InfoHint.vue'
 import LeadDaysStrip from './LeadDaysStrip.vue'
 import { useAuth } from '../composables/useAuth.js'
 import { useDueDateSchedule } from '../composables/useDueDateSchedule.js'
-import { dueDateLabel, exampleDueDate } from '../lib/dueDateSchedule.js'
+import { dueDateLabel } from '../lib/dueDateSchedule.js'
 import { intervalLabel } from '../lib/frequency.js'
+import { nextMonthStart } from '../lib/sepaSettings.js'
 
 /**
  * Terminplan-Einstellung (Spec §2.2/§3.5, Issue #70): je Turnus ein
@@ -74,7 +72,8 @@ import { intervalLabel } from '../lib/frequency.js'
  * ist ein eigener Entwurf mit Live-Vorschau der Termine
  * (DueDateIntervalSchedule.vue); Turnusse ohne Mitglieder treten zurück,
  * solange es genutzte gibt. Die Vorschau zeigt das Beitragsjahr, das der
- * Zeitstrahl darüber gerade zeigt.
+ * Zeitstrahl darüber gerade zeigt, die Fristen-Leiste dessen nächsten
+ * Einzug.
  *
  * Rollen (Spec §3.9, Issue #119): Die Terminverschiebung (Standard-Einzugstag,
  * Überschreibungen) ist `buchhalter`. Vorwarnfenster, Vorabinfo-Vorlauf und
@@ -87,12 +86,14 @@ export default {
 	components: { DueDateIntervalSchedule, InfoHint, LeadDaysStrip, NcButton, NcIconSvgWrapper, NcLoadingIcon },
 
 	props: {
-		/** Anker-Kalenderjahr des Beitragsjahrs, das der Zeitstrahl zeigt; null = das laufende */
-		year: { type: Number, default: null },
+		/** Anker-Kalenderjahr des Beitragsjahrs, das der Zeitstrahl zeigt */
+		year: { type: Number, required: true },
 		/** dessen Bezeichnung („2026“ oder „2026/27“) */
-		yearLabel: { type: String, default: '' },
-		/** Stichtag „JJJJ-MM-TT“ für das Beispiel der Fristen */
+		yearLabel: { type: String, required: true },
+		/** Stichtag „JJJJ-MM-TT“ */
 		today: { type: String, required: true },
+		/** nächster Einzugstermin des Zeitstrahls, null ohne jeden Termin */
+		nextDueDate: { type: String, default: null },
 	},
 
 	// Nach jeder gespeicherten Änderung: der Einzug-Unterreiter (EinzugPanel)
@@ -112,7 +113,6 @@ export default {
 			// Erst nach dem Laden zeigen: sonst rechnete jeder Turnus zuerst eine Vorschau mit Versatz 0.
 			loaded: false,
 			showUnused: false,
-			dueDatesByInterval: {},
 		}
 	},
 
@@ -126,20 +126,17 @@ export default {
 		},
 
 		// Ohne ein einziges zugewiesenes Mitglied gibt es nichts zurückzustellen: dann alle.
+		relevantIntervals() {
+			return this.usedIntervals.length > 0 ? this.usedIntervals : this.intervals
+		},
+
 		shownIntervals() {
-			if (this.usedIntervals.length === 0 || this.showUnused) {
-				return this.intervals
-			}
-			return this.usedIntervals
+			return this.showUnused ? this.intervals : this.relevantIntervals
 		},
 
+		// Ohne jeden Termin (noch keine Zuweisung) wie in den Einstellungen: der nächste Monatserste.
 		exampleDue() {
-			const relevant = this.usedIntervals.length > 0 ? this.usedIntervals : this.intervals
-			return exampleDueDate(relevant.flatMap((interval) => this.dueDatesByInterval[interval] ?? []), this.today)
-		},
-
-		leadDays() {
-			return { warning: this.warningLeadDays, prenotification: this.prenotificationLeadDays, release: this.releaseLeadDays }
+			return this.nextDueDate ?? nextMonthStart(this.today)
 		},
 
 		// Verwaltung für Nextcloud-Admins, Persönlich für App-Verwalter ohne Nextcloud-Adminrechte
@@ -163,8 +160,9 @@ export default {
 			return this.memberCounts?.[interval] ?? 0
 		},
 
-		async onSaved() {
-			await this.loadDueDateSchedule()
+		// Nur der gespeicherte Turnus bekommt einen neuen Stand: die Entwürfe der anderen bleiben stehen.
+		onSaved(interval, saved) {
+			this.schedule[interval] = saved
 			this.$emit('changed')
 		},
 	},

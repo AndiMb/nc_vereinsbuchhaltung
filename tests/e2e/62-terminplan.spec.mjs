@@ -137,6 +137,6 @@ test.describe('Terminplan: Einzugstag als Satz, Termine als Datum', () => {
 		await quarterly.getByRole('button', { name: 'Speichern' }).click()
 		await expect(page.getByText('Terminplan für vierteljährlich gespeichert.', { exact: true })).toBeVisible()
 		await expect(quarterly.getByText('Änderungen noch nicht gespeichert.')).toHaveCount(0)
-		expect((await api.getJson(request, '/due-date-schedule')).schedule['3']).toMatchObject({ defaultOffsetDays: 14, overrides: [] })
+		expect((await api.getJson(request, '/due-date-schedule')).schedule['3']).toMatchObject({ defaultOffsetDays: 14, overrides: {} })
 	})
 })

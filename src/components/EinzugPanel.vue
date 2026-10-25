@@ -69,6 +69,7 @@
 						:year="timeline.year.anchorYear"
 						:yearLabel="timeline.year.label"
 						:today="timeline.today"
+						:nextDueDate="timeline.next?.dueDate ?? null"
 						@changed="reload" />
 				</div>
 

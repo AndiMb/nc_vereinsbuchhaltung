@@ -56,7 +56,7 @@
 		</ul>
 		<div v-if="exampleDue" class="vbh-cycle-example" data-testid="cycle-example">
 			<p>{{ t('Beispiel: Einzug am {date}', { date: formatDate(exampleDue) }) }}</p>
-			<LeadDaysStrip :dueDate="exampleDue" :leadDays="stripLeadDays" />
+			<LeadDaysStrip :dueDate="exampleDue" :leadDays="leads" />
 		</div>
 		<NcNoteCard v-for="hint in orderHints" :key="hint" type="warning">
 			{{ hint }}
@@ -129,10 +129,6 @@ export default {
 			const values = Object.values(this.leads)
 			if (values.some((v) => v === '' || v === null || !Number.isInteger(Number(v)))) { return null }
 			return nextMonthStart(new Date().toISOString().slice(0, 10))
-		},
-
-		stripLeadDays() {
-			return { warning: Number(this.draft.warningLeadDays), prenotification: Number(this.draft.prenotificationLeadDays), release: Number(this.draft.releaseLeadDays) }
 		},
 
 		orderHints() {

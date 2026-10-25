@@ -5,8 +5,9 @@
 //
 // Gerechnet und geprüft wird auf dem Server (DueDateScheduleService::preview()):
 // er liefert Termine und Verstöße, diese Helfer machen daraus Text.
+import { toUtcDay } from './debitRun.js'
 import { formatDate } from './format.js'
-import { n, t } from './l10n.js'
+import { t } from './l10n.js'
 
 /**
  * Tage-Versatz als Eingabe „[Tage] [nach|vor]“ – ohne negative Zahlen im Feld.
@@ -71,8 +72,7 @@ export function offsetMeaning(intervalMonths, offset) {
 }
 
 function utcDate(iso) {
-	const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number)
-	return new Date(Date.UTC(y, m - 1, d))
+	return new Date(toUtcDay(iso))
 }
 
 function formatter(language, options) {
@@ -180,10 +180,8 @@ export function leapShiftNote(startIso, dueIso) {
  * @return {string}
  */
 export function violationMessage(violation, intervalMonths, periods, language = 'de') {
-	const name = (index) => {
-		const period = periods.find((p) => p.periodIndex === index)
-		return period ? periodName(intervalMonths, index, period.start, language) : t('{n}. Periode', { n: index + 1 })
-	}
+	// Ein Verstoß nennt nur Periodenindizes, die es im Zyklus gibt – also auch in den gezeigten Perioden.
+	const name = (index) => periodName(intervalMonths, index, periods.find((p) => p.periodIndex === index).start, language)
 	if (violation.kind === 'outsideYear') {
 		return t('{periodName}: Der Einzug am {date} läge außerhalb des Beitragsjahrs ({from} bis {to}).', {
 			periodName: name(violation.periodIndex),
@@ -203,37 +201,13 @@ export function violationMessage(violation, intervalMonths, periods, language = 
 /**
  * Ob der Entwurf eines Turnus vom gespeicherten Stand abweicht.
  *
- * @param {{defaultOffsetDays: number, overrides: object}|undefined} saved gespeicherter Terminplan des Turnus
- * @param {number|null} defaultOffsetDays Entwurf des Standard-Versatzes
+ * @param {{defaultOffsetDays: number, overrides: object}} saved gespeicherter Terminplan des Turnus
+ * @param {number|null} defaultOffsetDays Entwurf des Standard-Versatzes (null bei ungültiger Eingabe)
  * @param {object} overrides Entwurf der Überschreibungen (Periodenindex => Versatz)
  * @return {boolean}
  */
 export function scheduleChanged(saved, defaultOffsetDays, overrides) {
-	if ((saved?.defaultOffsetDays ?? 0) !== defaultOffsetDays) { return true }
-	const before = saved?.overrides || {}
-	const keys = new Set([...Object.keys(before), ...Object.keys(overrides)])
-	return [...keys].some((key) => before[key] !== overrides[key])
-}
-
-/**
- * Der Termin, an dem die Fristen beispielhaft gezeigt werden: der nächste ab
- * heute, sonst (Vorschau eines vergangenen Jahres) der erste.
- *
- * @param {string[]} dueDates Termine „JJJJ-MM-TT“
- * @param {string} today Stichtag
- * @return {string|null}
- */
-export function exampleDueDate(dueDates, today) {
-	const sorted = [...dueDates].sort()
-	return sorted.find((date) => date >= today) ?? sorted[0] ?? null
-}
-
-/**
- * „vor“-Text einer Frist („21 Tage vorher“).
- *
- * @param {number} days Tage vor dem Einzug
- * @return {string}
- */
-export function daysBeforeLabel(days) {
-	return n('%n Tag vorher', '%n Tage vorher', Number(days))
+	if (saved.defaultOffsetDays !== defaultOffsetDays) { return true }
+	const keys = new Set([...Object.keys(saved.overrides), ...Object.keys(overrides)])
+	return [...keys].some((key) => saved.overrides[key] !== overrides[key])
 }

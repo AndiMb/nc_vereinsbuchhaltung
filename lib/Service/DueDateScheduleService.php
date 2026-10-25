@@ -97,12 +97,7 @@ class DueDateScheduleService {
 	 */
 	public function setDefaultOffsetDays(int $intervalMonths, int $offsetDays): void {
 		$this->assertValidInterval($intervalMonths);
-		$this->assertValidOffset($offsetDays);
-		$this->assertGuards($intervalMonths, $offsetDays, $this->getOverrides($intervalMonths));
-
-		$schedule = $this->readRaw();
-		$schedule[(string)$intervalMonths]['defaultOffsetDays'] = $offsetDays;
-		$this->writeRaw($schedule);
+		$this->setSchedule($intervalMonths, $offsetDays, $this->getOverrides($intervalMonths));
 	}
 
 	/**
@@ -119,14 +114,9 @@ class DueDateScheduleService {
 		if ($offsetDays === null) {
 			unset($overrides[$periodIndex]);
 		} else {
-			$this->assertValidOffset($offsetDays);
 			$overrides[$periodIndex] = $offsetDays;
 		}
-		$this->assertGuards($intervalMonths, $this->getDefaultOffsetDays($intervalMonths), $overrides);
-
-		$schedule = $this->readRaw();
-		$schedule[(string)$intervalMonths]['overrides'] = $overrides;
-		$this->writeRaw($schedule);
+		$this->setSchedule($intervalMonths, $this->getDefaultOffsetDays($intervalMonths), $overrides);
 	}
 
 	/**
@@ -163,33 +153,21 @@ class DueDateScheduleService {
 	 * @param array<int|string,int> $overrides Periodenindex => Tage-Versatz
 	 * @param int $year Anker-Kalenderjahr des gezeigten Beitragsjahrs, siehe {@see ContributionYearService::anchorYearFor()}
 	 * @return array{
-	 *     yearLabel:string, yearStart:string, yearEnd:string,
 	 *     periods:list<array{periodIndex:int, start:string, end:string, offsetDays:int, overridden:bool, dueDate:string}>,
 	 *     violations:list<array<string,int|string>>
 	 * }
-	 * @throws \InvalidArgumentException bei ungültigem Turnus/Periodenindex/Versatz
+	 * @throws \InvalidArgumentException bei ungültigem Turnus/Periodenindex/Versatz/Beitragsjahr
 	 */
 	public function preview(int $intervalMonths, int $defaultOffsetDays, array $overrides, int $year): array {
 		$this->assertValidInterval($intervalMonths);
 		$this->assertValidOffset($defaultOffsetDays);
+		$this->contributionYear->assertPlausibleAnchorYear($year);
 		$overrides = $this->normalizeOverrides($intervalMonths, $overrides);
 
-		$shown = $this->simulateCycle($intervalMonths, $defaultOffsetDays, $overrides, $year);
-		$violations = [];
-		foreach ([$shown, ...array_map(fn (int $anchor) => $this->simulateCycle($intervalMonths, $defaultOffsetDays, $overrides, $anchor), self::GUARD_ANCHOR_YEARS)] as $cycle) {
-			foreach ($cycle['violations'] as $violation) {
-				$violations[$violation['kind'] . ':' . $violation['periodIndex']] ??= $violation;
-			}
-		}
-
-		[$yearStart, $yearEnd] = $this->contributionYear->yearBounds($year);
 		return [
-			'yearLabel' => $this->contributionYear->yearLabel($year),
-			'yearStart' => $yearStart,
-			'yearEnd' => $yearEnd,
 			// Ohne den Wraparound-Eintrag: der gehört schon zum nächsten Beitragsjahr.
-			'periods' => array_slice($shown['periods'], 0, intdiv(12, $intervalMonths)),
-			'violations' => array_values($violations),
+			'periods' => array_slice($this->simulateCycle($intervalMonths, $defaultOffsetDays, $overrides, $year)['periods'], 0, intdiv(12, $intervalMonths)),
+			'violations' => $this->guardViolations($intervalMonths, $defaultOffsetDays, $overrides, $year),
 		];
 	}
 
@@ -269,8 +247,7 @@ class DueDateScheduleService {
 	}
 
 	/**
-	 * Spielt den Terminplan in jeder Schaltjahr-Lage durch
-	 * ({@see GUARD_ANCHOR_YEARS}) und lehnt beim ersten Verstoß ab:
+	 * Lehnt beim ersten Verstoß aus {@see guardViolations()} ab:
 	 *
 	 * - **Termin im Beitragsjahr**: der berechnete Termin muss im selben
 	 *   Beitragsjahres-Zyklus liegen wie die Periode selbst (Turnus-unabhängig,
@@ -281,13 +258,30 @@ class DueDateScheduleService {
 	 * @throws \InvalidArgumentException bei Verletzung einer der beiden Guards
 	 */
 	private function assertGuards(int $intervalMonths, int $defaultOffsetDays, array $overrides): void {
-		foreach (self::GUARD_ANCHOR_YEARS as $anchorYear) {
+		$violations = $this->guardViolations($intervalMonths, $defaultOffsetDays, $overrides);
+		if ($violations !== []) {
+			throw new \InvalidArgumentException($violations[0]['kind'] === 'outsideYear'
+				? $this->l10n->t('Dieser Einzugstermin läge außerhalb des Beitragsjahres der Periode.')
+				: $this->l10n->t('Dieser Einzugstermin würde den Termin der vorherigen Periode überholen.'));
+		}
+	}
+
+	/**
+	 * Die Verstöße gegen die Guards in jeder Schaltjahr-Lage
+	 * ({@see GUARD_ANCHOR_YEARS}), je Art und Periode nur der erste –
+	 * `$firstYears` werden davor durchgespielt, damit ihre Daten gewinnen.
+	 *
+	 * @param array<int,int> $overrides
+	 * @return list<array<string,int|string>>
+	 */
+	private function guardViolations(int $intervalMonths, int $defaultOffsetDays, array $overrides, int ...$firstYears): array {
+		$violations = [];
+		foreach ([...$firstYears, ...self::GUARD_ANCHOR_YEARS] as $anchorYear) {
 			foreach ($this->simulateCycle($intervalMonths, $defaultOffsetDays, $overrides, $anchorYear)['violations'] as $violation) {
-				throw new \InvalidArgumentException($violation['kind'] === 'outsideYear'
-					? $this->l10n->t('Dieser Einzugstermin läge außerhalb des Beitragsjahres der Periode.')
-					: $this->l10n->t('Dieser Einzugstermin würde den Termin der vorherigen Periode überholen.'));
+				$violations[$violation['kind'] . ':' . $violation['periodIndex']] ??= $violation;
 			}
 		}
+		return array_values($violations);
 	}
 
 	/**
@@ -310,7 +304,7 @@ class DueDateScheduleService {
 
 		$periods = [];
 		$violations = [];
-		$date = sprintf('%04d-%02d-01', $anchorYear, $rule['startMonth']);
+		[$date] = $this->contributionYear->yearBounds($anchorYear);
 		$previous = null;
 		for ($i = 0; $i <= $perCycle; $i++) {
 			[$periodStart, $periodEnd] = PeriodRule::containing($rule, $date);

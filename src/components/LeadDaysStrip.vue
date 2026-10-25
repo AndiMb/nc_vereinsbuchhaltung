@@ -10,7 +10,7 @@
 			<span class="vbh-leadstrip-text">
 				<strong>{{ formatDate(step.date) }}</strong>
 				<span>{{ step.title }}</span>
-				<span v-if="step.days" class="vbh-leadstrip-days">{{ daysBeforeLabel(step.days) }}</span>
+				<span v-if="step.days" class="vbh-leadstrip-days">{{ n('%n Tag vorher', '%n Tage vorher', step.days) }}</span>
 			</span>
 		</li>
 	</ol>
@@ -18,7 +18,6 @@
 
 <script>
 import { milestoneExplanation } from '../lib/debitRun.js'
-import { daysBeforeLabel } from '../lib/dueDateSchedule.js'
 import { formatDate } from '../lib/format.js'
 import { leadDaysExample } from '../lib/sepaSettings.js'
 
@@ -36,32 +35,30 @@ export default {
 	props: {
 		/** Einzugstermin „JJJJ-MM-TT“ */
 		dueDate: { type: String, required: true },
-		/** Tage vor dem Einzug: { warning, prenotification, release } */
+		/** Tage vor dem Einzug, wie die Einstellungen sie führen: { warningLeadDays, prenotificationLeadDays, releaseLeadDays } */
 		leadDays: { type: Object, required: true },
 	},
 
 	computed: {
 		steps() {
-			const dates = leadDaysExample(this.dueDate, {
-				warningLeadDays: this.leadDays.warning,
-				prenotificationLeadDays: this.leadDays.prenotification,
-				releaseLeadDays: this.leadDays.release,
-			})
+			const { warningLeadDays, prenotificationLeadDays, releaseLeadDays } = this.leadDays
+			const dates = leadDaysExample(this.dueDate, this.leadDays)
+			// milestoneExplanation() spricht die Schlüssel des Zeitstrahls.
+			const byMilestone = { warning: warningLeadDays, prenotification: prenotificationLeadDays, release: releaseLeadDays }
 			const steps = [
-				{ key: 'warning', date: dates.warning, days: this.leadDays.warning, title: this.t('Forderungen entstehen') },
-				{ key: 'prenotification', date: dates.prenotification, days: this.leadDays.prenotification, title: this.t('Vorabinfo an Mitglieder') },
-				{ key: 'release', date: dates.release, days: this.leadDays.release, title: this.t('Lauf freigeben bis') },
+				{ key: 'warning', date: dates.warning, days: Number(warningLeadDays), title: this.t('Forderungen entstehen') },
+				{ key: 'prenotification', date: dates.prenotification, days: Number(prenotificationLeadDays), title: this.t('Vorabinfo an Mitglieder') },
+				{ key: 'release', date: dates.release, days: Number(releaseLeadDays), title: this.t('Lauf freigeben bis') },
 				{ key: 'collection', date: dates.due, days: 0, title: this.t('Einzug') },
 			]
 			// Nach Datum, damit auch unübliche Fristen (Einstellungen warnen davor) richtig herum stehen.
 			return steps
-				.map((step) => ({ ...step, explanation: milestoneExplanation(step.key, this.leadDays) }))
+				.map((step) => ({ ...step, explanation: milestoneExplanation(step.key, byMilestone) }))
 				.sort((a, b) => a.date.localeCompare(b.date))
 		},
 	},
 
 	methods: {
-		daysBeforeLabel,
 		formatDate,
 	},
 }

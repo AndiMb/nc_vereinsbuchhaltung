@@ -1,11 +1,11 @@
 <template>
 	<div class="vbh-interval" :data-testid="'schedule-interval-' + intervalMonths">
 		<div class="vbh-interval-head">
-			<h5>{{ intervalLabel(intervalMonths) }}</h5>
+			<h5>{{ label }}</h5>
 			<span class="vbh-hint">{{ n('%n Mitglied', '%n Mitglieder', memberCount) }}</span>
 		</div>
 
-		<div class="vbh-interval-rule" role="group" :aria-label="t('Einzugstag für {interval}', { interval: intervalLabel(intervalMonths) })">
+		<div class="vbh-interval-rule" role="group" :aria-label="t('Einzugstag für {interval}', { interval: label })">
 			<span>{{ t('Einzug') }}</span>
 			<input
 				v-model.number="draftDays"
@@ -47,22 +47,20 @@
 				<tbody>
 					<template v-if="preview">
 						<tr
-							v-for="period in periods"
-							:key="period.periodIndex"
-							:class="{ 'vbh-schedule-row--conflict': conflicted.has(period.periodIndex) }">
+							v-for="row in rows"
+							:key="row.periodIndex"
+							:class="{ 'vbh-schedule-row--conflict': conflicted.has(row.periodIndex) }">
 							<td>
-								{{ periodName(intervalMonths, period.periodIndex, period.start, language) }}
-								<span v-if="periodRange(period.start, period.end, language)" class="vbh-schedule-range">
-									{{ periodRange(period.start, period.end, language) }}
-								</span>
+								{{ row.name }}
+								<span v-if="row.range" class="vbh-schedule-range">{{ row.range }}</span>
 							</td>
 							<td>
-								<template v-if="isEditing(period)">
+								<template v-if="isEditing(row)">
 									<input
 										v-model="editing.date"
 										type="date"
-										:aria-label="t('Einzugstermin für {periodName}', { periodName: periodName(intervalMonths, period.periodIndex, period.start, language) })"
-										@keydown.enter.prevent="applyEdit(period)"
+										:aria-label="t('Einzugstermin für {periodName}', { periodName: row.name })"
+										@keydown.enter.prevent="applyEdit"
 										@keydown.esc.prevent="editing = null">
 									<p v-if="editError" class="vbh-hint vbh-hint--error" role="alert">
 										{{ editError }}
@@ -71,15 +69,15 @@
 										{{ editLeapNote }}
 									</p>
 								</template>
-								<span v-else class="nowrap">{{ dueDateLabel(period.dueDate, language) }}</span>
+								<span v-else class="nowrap">{{ row.dueLabel }}</span>
 							</td>
 							<td>
-								<span v-if="period.overridden" class="vbh-pill">{{ t('Abweichend') }}</span>
+								<span v-if="row.overridden" class="vbh-pill">{{ t('Abweichend') }}</span>
 								<span v-else class="vbh-pill vbh-pill--quiet">{{ t('Standard') }}</span>
 							</td>
 							<td class="right">
-								<template v-if="isEditing(period)">
-									<NcButton size="small" @click="applyEdit(period)">
+								<template v-if="isEditing(row)">
+									<NcButton size="small" @click="applyEdit">
 										{{ t('Übernehmen') }}
 									</NcButton>
 									<NcButton size="small" variant="tertiary" @click="editing = null">
@@ -87,14 +85,14 @@
 									</NcButton>
 								</template>
 								<template v-else>
-									<NcButton size="small" variant="tertiary" @click="startEdit(period)">
+									<NcButton size="small" variant="tertiary" @click="startEdit(row)">
 										{{ t('Termin ändern') }}
 									</NcButton>
 									<NcButton
-										v-if="period.overridden"
+										v-if="row.overridden"
 										size="small"
 										variant="tertiary"
-										@click="resetOverride(period.periodIndex)">
+										@click="setDraftOverride(row.periodIndex, null)">
 										{{ t('Zurücksetzen') }}
 									</NcButton>
 								</template>
@@ -172,15 +170,16 @@ export default {
 	props: {
 		intervalMonths: { type: Number, required: true },
 		/** gespeicherter Terminplan des Turnus: { defaultOffsetDays, overrides } */
-		saved: { type: Object, default: () => ({ defaultOffsetDays: 0, overrides: {} }) },
+		saved: { type: Object, required: true },
 		memberCount: { type: Number, default: 0 },
-		/** Anker-Kalenderjahr des gezeigten Beitragsjahrs; null = das laufende */
-		year: { type: Number, default: null },
+		/** Anker-Kalenderjahr des gezeigten Beitragsjahrs */
+		year: { type: Number, required: true },
 		/** Grenzen des Tage-Versatzes: { min, max } */
 		offsetRange: { type: Object, required: true },
 	},
 
-	emits: ['saved', 'due-dates'],
+	// `saved` trägt den gespeicherten Terminplan des Turnus aus der Antwort des Servers.
+	emits: ['saved'],
 
 	data() {
 		return {
@@ -189,6 +188,8 @@ export default {
 			draftDirection: 'after',
 			draftOverrides: {},
 			preview: null,
+			// Die Vorschau gehört noch zu einem älteren Entwurf (Eingabe ruht noch nicht oder Antwort steht aus).
+			previewPending: false,
 			previewError: '',
 			previewSeq: 0,
 			previewTimer: null,
@@ -198,6 +199,10 @@ export default {
 	},
 
 	computed: {
+		label() {
+			return intervalLabel(this.intervalMonths)
+		},
+
 		draftDefault() {
 			return joinOffset(this.draftDays, this.draftDirection)
 		},
@@ -211,11 +216,21 @@ export default {
 		},
 
 		dirty() {
-			return this.draftDefault === null || scheduleChanged(this.saved, this.draftDefault, this.draftOverrides)
+			return scheduleChanged(this.saved, this.draftDefault, this.draftOverrides)
 		},
 
 		periods() {
 			return this.preview?.periods ?? []
+		},
+
+		/** Die Perioden mit ihren Texten, einmal je Vorschau statt bei jedem Rendern. */
+		rows() {
+			return this.periods.map((period) => ({
+				...period,
+				name: periodName(this.intervalMonths, period.periodIndex, period.start, this.language),
+				range: periodRange(period.start, period.end, this.language),
+				dueLabel: dueDateLabel(period.dueDate, this.language),
+			}))
 		},
 
 		violations() {
@@ -239,7 +254,7 @@ export default {
 		},
 
 		canSave() {
-			return !this.saving && !this.inputError && !this.editing && this.preview !== null && !this.previewError && this.violations.length === 0
+			return !this.saving && !this.inputError && !this.editing && this.preview !== null && !this.previewPending && !this.previewError && this.violations.length === 0
 		},
 
 		/** Alles, wovon die Vorschau abhängt. */
@@ -276,6 +291,7 @@ export default {
 		},
 
 		previewKey() {
+			this.previewPending = true
 			clearTimeout(this.previewTimer)
 			this.previewTimer = setTimeout(() => this.requestPreview(), PREVIEW_DELAY_MS)
 		},
@@ -290,17 +306,11 @@ export default {
 	},
 
 	methods: {
-		dueDateLabel,
-		intervalLabel,
-		periodName,
-		periodRange,
-
 		reset() {
-			const { days, direction } = splitOffset(this.saved?.defaultOffsetDays ?? 0)
+			const { days, direction } = splitOffset(this.saved.defaultOffsetDays)
 			this.draftDays = days
 			this.draftDirection = direction
-			// Ein PHP-Array mit Index 0, 1, … kommt als JSON-Liste – der Spread macht daraus wieder Periodenindex => Versatz.
-			this.draftOverrides = { ...(this.saved?.overrides || {}) }
+			this.draftOverrides = { ...this.saved.overrides }
 			this.editing = null
 		},
 
@@ -316,11 +326,11 @@ export default {
 				if (seq !== this.previewSeq) { return }
 				this.preview = data
 				this.previewError = ''
-				this.$emit('due-dates', data.periods.map((p) => p.dueDate))
 			} catch (e) {
 				if (seq !== this.previewSeq) { return }
 				this.previewError = errMsg(e, this.t('Die Termine konnten nicht berechnet werden'))
 			}
+			this.previewPending = false
 		},
 
 		isEditing(period) {
@@ -331,22 +341,21 @@ export default {
 			this.editing = { periodIndex: period.periodIndex, date: period.dueDate }
 		},
 
-		applyEdit(period) {
+		applyEdit() {
 			if (this.editError) { return }
-			const overrides = { ...this.draftOverrides }
 			// Ein Termin, der genau dem Standard entspricht, ist keine Abweichung.
-			if (this.editOffset === this.draftDefault) {
-				delete overrides[period.periodIndex]
-			} else {
-				overrides[period.periodIndex] = this.editOffset
-			}
-			this.draftOverrides = overrides
+			this.setDraftOverride(this.editing.periodIndex, this.editOffset === this.draftDefault ? null : this.editOffset)
 			this.editing = null
 		},
 
-		resetOverride(periodIndex) {
+		/** Abweichung einer Periode setzen oder mit null entfernen (zurück zum Standard). */
+		setDraftOverride(periodIndex, offsetDays) {
 			const overrides = { ...this.draftOverrides }
-			delete overrides[periodIndex]
+			if (offsetDays === null) {
+				delete overrides[periodIndex]
+			} else {
+				overrides[periodIndex] = offsetDays
+			}
 			this.draftOverrides = overrides
 		},
 
@@ -354,9 +363,9 @@ export default {
 			if (!this.canSave) { return }
 			this.saving = true
 			try {
-				await api.saveDueDateSchedule(this.intervalMonths, { defaultOffsetDays: this.draftDefault, overrides: this.draftOverrides })
-				showSuccess(this.t('Terminplan für {interval} gespeichert.', { interval: intervalLabel(this.intervalMonths) }))
-				this.$emit('saved')
+				const { data } = await api.saveDueDateSchedule(this.intervalMonths, { defaultOffsetDays: this.draftDefault, overrides: this.draftOverrides })
+				showSuccess(this.t('Terminplan für {interval} gespeichert.', { interval: this.label }))
+				this.$emit('saved', data)
 			} catch (e) {
 				showError(errMsg(e, this.t('Terminplan konnte nicht gespeichert werden')))
 			} finally {

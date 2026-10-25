@@ -16,9 +16,9 @@ const state = reactive({
 	prenotificationLeadDays: 14,
 	warningLeadDays: 21,
 	releaseLeadDays: 5,
-	// Mitglieder je Turnus (Zuweisungen ab heute) und die Grenzen des Tage-Versatzes
+	// Mitglieder je Turnus (Zuweisungen ab heute) und die Grenzen des Tage-Versatzes (vom Server)
 	memberCounts: {},
-	offsetRange: { min: -90, max: 270 },
+	offsetRange: null,
 })
 
 async function loadDueDateSchedule() {
@@ -28,8 +28,8 @@ async function loadDueDateSchedule() {
 		state.prenotificationLeadDays = data.prenotificationLeadDays
 		state.warningLeadDays = data.warningLeadDays
 		state.releaseLeadDays = data.releaseLeadDays ?? 5
-		state.memberCounts = data.memberCounts ?? {}
-		state.offsetRange = data.offsetRange ?? state.offsetRange
+		state.memberCounts = data.memberCounts
+		state.offsetRange = data.offsetRange
 	} catch (e) { showError(errMsg(e, t('Terminplan konnte nicht geladen werden'))) }
 }
 

@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-	daysBeforeLabel,
 	dueDateLabel,
-	exampleDueDate,
 	joinOffset,
 	leapShiftNote,
 	offsetError,
@@ -111,24 +109,13 @@ describe('Verstöße aus der Vorschau', () => {
 	})
 })
 
-describe('Entwurf und Beispiel', () => {
+describe('Entwurf', () => {
 	it('erkennt Änderungen am Standard und an den Überschreibungen', () => {
 		const saved = { defaultOffsetDays: 14, overrides: { 1: 31 } }
 		expect(scheduleChanged(saved, 14, { 1: 31 })).toBe(false)
 		expect(scheduleChanged(saved, 15, { 1: 31 })).toBe(true)
 		expect(scheduleChanged(saved, 14, {})).toBe(true)
-		// Eine Überschreibung auf Index 0 kommt aus PHP als JSON-Liste.
-		expect(scheduleChanged({ defaultOffsetDays: 0, overrides: [5] }, 0, { 0: 5 })).toBe(false)
-	})
-
-	it('nimmt für die Fristen den nächsten Termin ab heute, sonst den ersten', () => {
-		expect(exampleDueDate(['2027-04-15', '2027-01-15', '2027-07-15'], '2027-02-01')).toBe('2027-04-15')
-		expect(exampleDueDate(['2025-01-15', '2025-04-15'], '2027-02-01')).toBe('2025-01-15')
-		expect(exampleDueDate([], '2027-02-01')).toBeNull()
-	})
-
-	it('zählt die Frist in Tagen vorher', () => {
-		expect(daysBeforeLabel(21)).toBe('21 Tage vorher')
-		expect(daysBeforeLabel(1)).toBe('1 Tag vorher')
+		// Eine ungültige Eingabe (null) ist nie der gespeicherte Stand.
+		expect(scheduleChanged(saved, null, { 1: 31 })).toBe(true)
 	})
 })

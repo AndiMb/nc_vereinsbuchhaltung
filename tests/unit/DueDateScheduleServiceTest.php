@@ -198,8 +198,6 @@ class DueDateScheduleServiceTest extends TestCase {
 		$service = $this->service();
 		$preview = $service->preview(3, 14, [1 => 31], 2027);
 
-		$this->assertSame('2027', $preview['yearLabel']);
-		$this->assertSame(['2027-01-01', '2027-12-31'], [$preview['yearStart'], $preview['yearEnd']]);
 		$this->assertSame([
 			['periodIndex' => 0, 'start' => '2027-01-01', 'end' => '2027-03-31', 'offsetDays' => 14, 'overridden' => false, 'dueDate' => '2027-01-15'],
 			['periodIndex' => 1, 'start' => '2027-04-01', 'end' => '2027-06-30', 'offsetDays' => 31, 'overridden' => true, 'dueDate' => '2027-05-02'],
@@ -214,7 +212,6 @@ class DueDateScheduleServiceTest extends TestCase {
 
 	public function testPreviewFolgtDemBeitragsjahrBeginn(): void {
 		$preview = $this->service(10)->preview(6, 0, [], 2026);
-		$this->assertSame('2026/27', $preview['yearLabel']);
 		$this->assertSame(['2026-10-01', '2027-04-01'], array_column($preview['periods'], 'start'));
 	}
 
@@ -250,6 +247,12 @@ class DueDateScheduleServiceTest extends TestCase {
 	public function testPreviewLehntVersatzAusserhalbDerGrenzenAb(): void {
 		$this->expectException(\InvalidArgumentException::class);
 		$this->service()->preview(3, 0, [0 => 400], 2027);
+	}
+
+	public function testPreviewLehntUnplausiblesBeitragsjahrAb(): void {
+		$this->expectException(\InvalidArgumentException::class);
+		$this->expectExceptionMessage('zwischen 2000 und 2200');
+		$this->service()->preview(3, 0, [], 1999);
 	}
 
 	public function testFullScheduleEnthaeltAlleErlaubtenTurnusse(): void {
