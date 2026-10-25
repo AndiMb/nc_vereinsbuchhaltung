@@ -4,16 +4,25 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Db;
 
-use OCP\AppFramework\Db\QBMapper;
+use OCA\Vereinsbuchhaltung\Service\FieldCipher;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 
 /**
- * @extends QBMapper<Rule>
+ * @extends EncryptingMapper<Rule>
  */
-class RuleMapper extends QBMapper {
-	public function __construct(IDBConnection $db) {
-		parent::__construct($db, 'vbh_rules', Rule::class);
+class RuleMapper extends EncryptingMapper {
+	public function __construct(IDBConnection $db, FieldCipher $cipher) {
+		parent::__construct($db, 'vbh_rules', Rule::class, $cipher);
+	}
+
+	/**
+	 * Der Suchwert jeder Regel, nicht nur von IBAN-Regeln: Namen sind ebenso
+	 * personenbezogen, und hinge die Verschlüsselung am Suchfeld, bliebe eine
+	 * nachträglich zur IBAN-Regel gemachte im Klartext stehen.
+	 */
+	protected function encryptedProperties(): array {
+		return ['matchValue'];
 	}
 
 	public function find(int $id, string $userId): Rule {
