@@ -115,7 +115,9 @@
 
 <script>
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { NcButton, NcDialog, NcSettingsSection } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcDialog from '@nextcloud/vue/components/NcDialog'
+import NcSettingsSection from '@nextcloud/vue/components/NcSettingsSection'
 import SettingsAttachments from './components/SettingsAttachments.vue'
 import SettingsClub from './components/SettingsClub.vue'
 import SettingsDisplay from './components/SettingsDisplay.vue'

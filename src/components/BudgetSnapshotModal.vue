@@ -95,7 +95,9 @@
 
 <script>
 import { mdiChevronDown, mdiChevronRight } from '@mdi/js'
-import { NcButton, NcIconSvgWrapper, NcModal } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
+import NcModal from '@nextcloud/vue/components/NcModal'
 import { initialExpanded, visibleRows } from '../lib/budgetTree.js'
 import { amountClass, formatDateTime, formatMoney } from '../lib/format.js'
 

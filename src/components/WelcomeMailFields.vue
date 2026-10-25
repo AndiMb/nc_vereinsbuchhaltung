@@ -18,7 +18,8 @@
 </template>
 
 <script>
-import { NcTextArea, NcTextField } from '@nextcloud/vue'
+import NcTextArea from '@nextcloud/vue/components/NcTextArea'
+import NcTextField from '@nextcloud/vue/components/NcTextField'
 
 /**
  * Betreff und Text der Willkommens-Mail (Vorlage in den Einstellungen, im Aufnahme-Dialog und in

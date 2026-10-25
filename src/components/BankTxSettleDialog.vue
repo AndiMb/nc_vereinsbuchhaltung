@@ -110,7 +110,9 @@
 </template>
 
 <script>
-import { NcButton, NcLoadingIcon, NcModal } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
+import NcModal from '@nextcloud/vue/components/NcModal'
 import { useBankReconciliation } from '../composables/useBankReconciliation.js'
 import { blockerText, bookingRows, lineRoleLabel, returnConsequences, returnReasonLabel, sideLabel } from '../lib/bankReconciliation.js'
 import { errMsg, formatDate, formatMoney } from '../lib/format.js'

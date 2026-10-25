@@ -53,7 +53,9 @@
 </template>
 
 <script>
-import { NcPasswordField, NcSelect, NcTextField } from '@nextcloud/vue'
+import NcPasswordField from '@nextcloud/vue/components/NcPasswordField'
+import NcSelect from '@nextcloud/vue/components/NcSelect'
+import NcTextField from '@nextcloud/vue/components/NcTextField'
 import { DEFAULT_CHOICE, isEmailRequired } from '../lib/accountForm.js'
 
 /**

@@ -42,7 +42,8 @@
 
 <script>
 import { mdiDatabaseImportOutline, mdiFlaskOutline, mdiPlusBoxOutline } from '@mdi/js'
-import { NcIconSvgWrapper, NcModal } from '@nextcloud/vue'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
+import NcModal from '@nextcloud/vue/components/NcModal'
 
 export default {
 	name: 'SetupWizard',

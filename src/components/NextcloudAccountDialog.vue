@@ -35,7 +35,9 @@
 
 <script>
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { NcButton, NcModal, NcNoteCard } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcModal from '@nextcloud/vue/components/NcModal'
+import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NextcloudAccountFields from './NextcloudAccountFields.vue'
 import api from '../api.js'
 import { accountPayload, emptyAccount, missingAccountFields } from '../lib/accountForm.js'

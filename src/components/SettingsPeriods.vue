@@ -260,8 +260,10 @@
 
 <script>
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { NcButton, NcCheckboxRadioSwitch, NcModal } from '@nextcloud/vue'
 import { toRefs } from 'vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
+import NcModal from '@nextcloud/vue/components/NcModal'
 import api from '../api.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { usePeriods } from '../composables/usePeriods.js'

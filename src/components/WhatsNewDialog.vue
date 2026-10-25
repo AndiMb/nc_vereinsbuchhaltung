@@ -46,7 +46,8 @@
 </template>
 
 <script>
-import { NcButton, NcModal } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcModal from '@nextcloud/vue/components/NcModal'
 
 export default {
 	name: 'WhatsNewDialog',

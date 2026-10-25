@@ -247,7 +247,6 @@
 </template>
 
 <script>
-import { NcButton, NcEmptyContent } from '@nextcloud/vue'
 import {
 	BarController,
 	BarElement,
@@ -258,6 +257,8 @@ import {
 	Tooltip,
 } from 'chart.js'
 import { toRefs } from 'vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import BookingCard from './BookingCard.vue'
 import SetupChecklist from './SetupChecklist.vue'
 import { useAccounts } from '../composables/useAccounts.js'

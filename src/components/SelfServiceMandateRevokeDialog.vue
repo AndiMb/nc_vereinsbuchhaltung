@@ -55,7 +55,9 @@
 </template>
 
 <script>
-import { NcButton, NcModal, NcNoteCard } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcModal from '@nextcloud/vue/components/NcModal'
+import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import { formatMoney } from '../lib/format.js'
 import { revokeStaffWarning } from '../lib/mandateView.js'
 

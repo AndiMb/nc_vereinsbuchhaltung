@@ -397,8 +397,10 @@
 <script>
 import { mdiAlertOutline, mdiChevronDown, mdiChevronUp, mdiInformationOutline, mdiRefresh } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { NcButton, NcIconSvgWrapper, NcLoadingIcon } from '@nextcloud/vue'
 import { toRefs } from 'vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
+import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import ClaimDetail from './ClaimDetail.vue'
 import DebitStatusTag from './DebitStatusTag.vue'
 import ManualClaimDialog from './ManualClaimDialog.vue'

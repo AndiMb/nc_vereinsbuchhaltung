@@ -19,7 +19,7 @@
 </template>
 
 <script>
-import { NcButton } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
 
 /**
  * Darstellung der Beträge in den Buchungslisten (Einstellung

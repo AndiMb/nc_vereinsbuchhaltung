@@ -58,7 +58,8 @@
 </template>
 
 <script>
-import { NcButton, NcModal } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcModal from '@nextcloud/vue/components/NcModal'
 import { earliestRescheduleDate, isLaterDate } from '../lib/debitRunActions.js'
 import { formatDate } from '../lib/format.js'
 import { focusOnOpen } from '../lib/modalFocus.js'

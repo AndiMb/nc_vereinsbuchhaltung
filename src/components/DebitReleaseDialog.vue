@@ -91,7 +91,8 @@
 </template>
 
 <script>
-import { NcButton, NcModal } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcModal from '@nextcloud/vue/components/NcModal'
 import DebitStatusTag from './DebitStatusTag.vue'
 import { issueSummary } from '../lib/debitRun.js'
 import { formatDate, formatMoney } from '../lib/format.js'

@@ -162,7 +162,8 @@
 <script>
 import { mdiChevronLeft, mdiChevronRight } from '@mdi/js'
 import { getLanguage } from '@nextcloud/l10n'
-import { NcButton, NcIconSvgWrapper } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import InfoHint from './InfoHint.vue'
 import {
 	dateSourceText,

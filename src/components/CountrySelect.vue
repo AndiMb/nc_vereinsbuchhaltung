@@ -11,7 +11,7 @@
 
 <script>
 import { getLanguage } from '@nextcloud/l10n'
-import { NcSelect } from '@nextcloud/vue'
+import NcSelect from '@nextcloud/vue/components/NcSelect'
 import { countryOptions } from '../lib/countries.js'
 
 /**

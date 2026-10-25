@@ -243,7 +243,10 @@
 
 <script>
 import { mdiArrowDown, mdiArrowUp, mdiChevronDown, mdiChevronRight, mdiDelete } from '@mdi/js'
-import { NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper, NcSelect } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
+import NcSelect from '@nextcloud/vue/components/NcSelect'
 import { useConfirm } from '../composables/useConfirm.js'
 import {
 	DEPTHS,

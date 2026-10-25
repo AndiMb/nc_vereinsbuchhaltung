@@ -80,7 +80,9 @@
 <script>
 import { mdiCashPlus } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { NcButton, NcEmptyContent, NcIconSvgWrapper } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import { useBankReconciliation } from '../composables/useBankReconciliation.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { accountLabel, describeSettleError } from '../lib/bankReconciliation.js'

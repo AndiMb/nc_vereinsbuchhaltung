@@ -102,7 +102,10 @@
 
 <script>
 import { mdiDelete } from '@mdi/js'
-import { NcButton, NcIconSvgWrapper, NcModal, NcSelect } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
+import NcModal from '@nextcloud/vue/components/NcModal'
+import NcSelect from '@nextcloud/vue/components/NcSelect'
 import AmountInput from './AmountInput.vue'
 import { useAccounts } from '../composables/useAccounts.js'
 import { formatDate, formatMoney } from '../lib/format.js'

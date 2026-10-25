@@ -42,7 +42,9 @@
 
 <script>
 import { mdiAccountEdit, mdiAccountSwitch, mdiCashEdit, mdiFileSign } from '@mdi/js'
-import { NcActionButton, NcActions, NcIconSvgWrapper } from '@nextcloud/vue'
+import NcActionButton from '@nextcloud/vue/components/NcActionButton'
+import NcActions from '@nextcloud/vue/components/NcActions'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 
 /**
  * Das Zeilenmenü (⋯) eines Mitglieds in der Liste und auf der Karte: alles, was sich

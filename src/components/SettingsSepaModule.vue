@@ -19,8 +19,9 @@
 </template>
 
 <script>
-import { NcButton, NcLoadingIcon } from '@nextcloud/vue'
 import { toRefs } from 'vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import SettingsSepaCycle from './SettingsSepaCycle.vue'
 import SettingsSepaMandates from './SettingsSepaMandates.vue'
 import SettingsSepaReturns from './SettingsSepaReturns.vue'

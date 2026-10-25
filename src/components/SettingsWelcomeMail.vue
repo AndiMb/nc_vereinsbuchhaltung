@@ -28,7 +28,7 @@
 
 <script>
 import { showError } from '@nextcloud/dialogs'
-import { NcButton } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
 import WelcomeMailFields from './WelcomeMailFields.vue'
 import api from '../api.js'
 import { useSettingsCardSave } from '../composables/useSettingsCardSave.js'

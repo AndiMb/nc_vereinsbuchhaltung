@@ -51,6 +51,10 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   pre-notification goes out and the run should be released. The fields in
   the settings are named after what happens ("Claims are created",
   "Pre-notification to members", "Release the run by").
+- **The app loads faster.** The app's JavaScript bundle is about half its
+  previous size (main page 5.4 → 2.8 MiB, settings 4.0 → 1.4 MiB) because only
+  the Nextcloud building blocks actually used are shipped. Noticeable on the
+  first open after the update and on slow connections.
 
 **Fixed:**
 - **Schedule also checks years without 29 February.** A date that only

@@ -16,7 +16,7 @@
 </template>
 
 <script>
-import { NcTextField } from '@nextcloud/vue'
+import NcTextField from '@nextcloud/vue/components/NcTextField'
 
 /**
  * IBAN und BIC eines Mandats nebeneinander (untereinander auf schmalem Schirm) –

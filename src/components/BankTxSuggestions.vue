@@ -81,7 +81,7 @@
 </template>
 
 <script>
-import { NcButton } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
 import BankDetailRow from './BankDetailRow.vue'
 import DebitStatusTag from './DebitStatusTag.vue'
 import { kindLabel, progressText, settleHint, summarize, takenItemIds, unambiguousOpenDetails } from '../lib/bankReconciliation.js'

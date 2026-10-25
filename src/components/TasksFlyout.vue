@@ -162,8 +162,12 @@
 
 <script>
 import { mdiAlertCircle, mdiAlertCircleOutline, mdiCheckCircleOutline, mdiClipboardCheckOutline, mdiInformation, mdiRefresh } from '@mdi/js'
-import { NcButton, NcEmptyContent, NcIconSvgWrapper, NcLoadingIcon, NcPopover } from '@nextcloud/vue'
 import { toRefs } from 'vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
+import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
+import NcPopover from '@nextcloud/vue/components/NcPopover'
 import { useTasks } from '../composables/useTasks.js'
 import { groupTasks, SEVERITY_ACTION, targetLabel, taskKindLabel, taskTarget } from '../lib/tasks.js'
 

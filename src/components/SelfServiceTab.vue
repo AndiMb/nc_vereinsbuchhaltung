@@ -296,7 +296,9 @@
 <script>
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { getLanguage } from '@nextcloud/l10n'
-import { NcButton, NcCheckboxRadioSwitch, NcLoadingIcon } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
+import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import AmountInput from './AmountInput.vue'
 import CountrySelect from './CountrySelect.vue'
 import MandateDraftDiscardDialog from './MandateDraftDiscardDialog.vue'

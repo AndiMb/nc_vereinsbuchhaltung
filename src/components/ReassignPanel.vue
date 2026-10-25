@@ -39,7 +39,8 @@
 </template>
 
 <script>
-import { NcButton, NcSelect } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcSelect from '@nextcloud/vue/components/NcSelect'
 import { isSelectableOption } from '../lib/selectOptions.js'
 
 /**

@@ -67,7 +67,9 @@
 </template>
 
 <script>
-import { NcButton, NcCheckboxRadioSwitch, NcModal } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
+import NcModal from '@nextcloud/vue/components/NcModal'
 import AmountInput from './AmountInput.vue'
 import { intervalLabel } from '../lib/frequency.js'
 import { focusOnOpen } from '../lib/modalFocus.js'

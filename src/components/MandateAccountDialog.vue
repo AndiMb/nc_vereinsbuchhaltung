@@ -126,7 +126,12 @@
 </template>
 
 <script>
-import { NcButton, NcCheckboxRadioSwitch, NcDateTimePickerNative, NcModal, NcNoteCard, NcTextField } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
+import NcDateTimePickerNative from '@nextcloud/vue/components/NcDateTimePickerNative'
+import NcModal from '@nextcloud/vue/components/NcModal'
+import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
+import NcTextField from '@nextcloud/vue/components/NcTextField'
 import MandateBankFields from './MandateBankFields.vue'
 import { formatMoney } from '../lib/format.js'
 import { formatIban, mandateAccountHint, normalizeBankValue } from '../lib/mandateView.js'

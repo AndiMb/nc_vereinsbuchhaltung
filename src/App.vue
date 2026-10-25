@@ -395,13 +395,11 @@
 import { mdiAccountCashOutline, mdiCardAccountDetailsOutline, mdiChartBar, mdiFileTreeOutline, mdiHelpCircleOutline, mdiPlus, mdiPrinter, mdiSwapHorizontal, mdiViewDashboardOutline } from '@mdi/js'
 import { showError, showInfo, showSuccess, showUndo } from '@nextcloud/dialogs'
 import { generateUrl } from '@nextcloud/router'
-import {
-	NcButton,
-	NcDialog,
-	NcIconSvgWrapper,
-	NcLoadingIcon,
-} from '@nextcloud/vue'
 import { toRefs } from 'vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcDialog from '@nextcloud/vue/components/NcDialog'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
+import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import AccountDialog from './components/AccountDialog.vue'
 import AccountPickerSheet from './components/AccountPickerSheet.vue'
 import AccountsTab from './components/AccountsTab.vue'

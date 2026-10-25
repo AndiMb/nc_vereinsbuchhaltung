@@ -46,7 +46,8 @@
 
 <script>
 import { mdiPlus } from '@mdi/js'
-import { NcButton, NcIconSvgWrapper } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import ContributionGroupsPanel from './ContributionGroupsPanel.vue'
 import EinzugPanel from './EinzugPanel.vue'
 import MembersList from './MembersList.vue'

@@ -44,7 +44,10 @@
 </template>
 
 <script>
-import { NcButton, NcModal, NcNoteCard, NcTextField } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcModal from '@nextcloud/vue/components/NcModal'
+import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
+import NcTextField from '@nextcloud/vue/components/NcTextField'
 import MandateBankFields from './MandateBankFields.vue'
 import { canSaveDraftCorrection, formatIban } from '../lib/mandateView.js'
 import { focusOnOpen } from '../lib/modalFocus.js'

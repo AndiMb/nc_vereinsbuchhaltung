@@ -28,7 +28,8 @@
 <script>
 import { mdiFileSendOutline } from '@mdi/js'
 import { showSuccess } from '@nextcloud/dialogs'
-import { NcButton, NcIconSvgWrapper } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import DebitReleaseDialog from './DebitReleaseDialog.vue'
 import { useDebitRunActions } from '../composables/useDebitRunActions.js'
 import { errMsg, formatMoney } from '../lib/format.js'

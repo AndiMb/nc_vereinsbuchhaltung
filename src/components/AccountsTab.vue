@@ -368,8 +368,12 @@
 
 <script>
 import { mdiCommentTextOutline, mdiDelete, mdiDownload, mdiPaperclip, mdiPencil, mdiPlus, mdiPrinter, mdiSwapHorizontal } from '@mdi/js'
-import { NcActionButton, NcActions, NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper } from '@nextcloud/vue'
 import { toRefs } from 'vue'
+import NcActionButton from '@nextcloud/vue/components/NcActionButton'
+import NcActions from '@nextcloud/vue/components/NcActions'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import AmountInput from './AmountInput.vue'
 import CommentMark from './CommentMark.vue'
 import ReassignPanel from './ReassignPanel.vue'
