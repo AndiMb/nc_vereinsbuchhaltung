@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Exception\ConflictException;
 use OCA\Vereinsbuchhaltung\Exception\InvoiceNotIssuableException;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceDocumentService;
+use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceMailService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceMatchingService;
 use OCA\Vereinsbuchhaltung\Service\InvoicePaymentService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceService;
@@ -52,6 +53,7 @@ class InvoiceController extends Controller {
 		private InvoicePaymentService $paymentService,
 		private InvoiceMatchingService $matching,
 		private InvoiceDocumentService $documents,
+		private InvoiceMailService $mail,
 		private BankTransactionMapper $txMapper,
 		private IL10N $l10n,
 	) {
@@ -270,6 +272,33 @@ class InvoiceController extends Controller {
 		}
 		$type = str_starts_with($doc['kind'], 'xrechnung') ? 'application/xml' : 'application/pdf';
 		return $this->file($doc['content'], $doc['fileName'], $type, true);
+	}
+
+	/** Vorgaben für den Versanddialog: Empfängeradresse, Betreff und Text. */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_READ)]
+	public function mailDefaults(int $id): DataResponse {
+		try {
+			return new DataResponse($this->mail->defaults($id));
+		} catch (DoesNotExistException) {
+			return $this->notFound();
+		}
+	}
+
+	/** Verschickt die Rechnung per E-Mail mit dem PDF im Anhang. */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	public function send(int $id, string $to, ?string $subject = null, ?string $body = null): DataResponse {
+		try {
+			$this->mail->send($id, $to, $subject, $body);
+			return new DataResponse($this->detail($id));
+		} catch (DoesNotExistException) {
+			return $this->notFound();
+		} catch (\InvalidArgumentException $e) {
+			return $this->bad($e);
+		} catch (\RuntimeException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_GATEWAY);
+		}
 	}
 
 	#[NoAdminRequired]

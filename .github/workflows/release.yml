@@ -84,6 +84,23 @@ jobs:
       - name: Composer-Autoloader (ohne Dev)
         run: composer install --no-dev --optimize-autoloader --no-interaction
 
+      - name: TCPDF auf die benötigten Schriften kürzen
+        # TCPDF bringt rund 24 MB Schriften mit, die Rechnungen nutzen nur
+        # DejaVu Sans (vier Schnitte, eingebettet wegen PDF/A) und die
+        # winzigen Definitionen der Standardschriften. Der Rest bläht den
+        # App-Store-Tarball nur auf. Beispiele und Werkzeuge fliegen ebenfalls raus.
+        run: |
+          set -e
+          TCPDF=vendor/tecnickcom/tcpdf
+          rm -rf "$TCPDF/examples" "$TCPDF/tools"
+          cd "$TCPDF/fonts"
+          find . -mindepth 1 -maxdepth 1 \
+            ! -name 'dejavusans.*' ! -name 'dejavusansb.*' ! -name 'dejavusansi.*' ! -name 'dejavusansbi.*' \
+            ! -name 'helvetica*' ! -name 'times*' ! -name 'courier*' ! -name 'pdfa*' \
+            ! -name 'symbol.php' ! -name 'zapfdingbats.php' ! -name 'index.php' \
+            -exec rm -rf {} +
+          du -sh .
+
       - name: App-Verzeichnis zusammenstellen
         run: |
           set -e

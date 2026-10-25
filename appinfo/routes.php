@@ -245,6 +245,8 @@ return [
 		['name' => 'invoice#issue', 'url' => '/api/invoices/{id}/issue', 'verb' => 'POST'],
 		['name' => 'invoice#pdf', 'url' => '/api/invoices/{id}/pdf', 'verb' => 'GET'],
 		['name' => 'invoice#document', 'url' => '/api/invoices/{id}/documents/{documentId}', 'verb' => 'GET'],
+		['name' => 'invoice#mailDefaults', 'url' => '/api/invoices/{id}/mail-defaults', 'verb' => 'GET'],
+		['name' => 'invoice#send', 'url' => '/api/invoices/{id}/send', 'verb' => 'POST'],
 		['name' => 'invoice#cancel', 'url' => '/api/invoices/{id}/cancel', 'verb' => 'POST'],
 		['name' => 'invoice#pay', 'url' => '/api/invoices/{id}/payments', 'verb' => 'POST'],
 		['name' => 'invoice#payManually', 'url' => '/api/invoices/{id}/payments/manual', 'verb' => 'POST'],
