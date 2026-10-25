@@ -1302,6 +1302,14 @@ Before every update that includes a database migration, a database backup
 (mysqldump) should be made – the app deployment only restores the program
 code, not the database schema. When in doubt, ask your administrator.
 
+A complete backup includes Nextcloud's `config.php` as well as the database.
+Members' IBANs are stored encrypted in the database, and the key depends on the
+`secret` in `config.php` (13.13). A database restored without the matching
+`config.php` loads fine, but the bank details can no longer be read. So back
+up `config.php`, but keep it **separate** from the database dump: if both are
+stored together, the encryption offers no protection when the backup goes
+missing.
+
 ---
 
 ## 13. Membership fees and SEPA direct debit
@@ -2227,6 +2235,17 @@ A deleted Nextcloud account doesn't trigger the anonymization, and the
 anonymization doesn't dissolve the account link: the two are independent (when
 an account is deleted, the member stays, the email address is taken over and a
 task asks for a check, 13.9).
+
+**Encrypted bank details.** The IBANs of members and payers – on mandates, in
+collection items and in bank transactions – and the search values of the
+assignment rules are stored encrypted in the database (AES-256-GCM). A database dump or backup that falls into the
+wrong hands without the Nextcloud configuration doesn't reveal them. Nothing
+changes in the app: whoever may see an IBAN sees it as before. The key is
+derived from the `secret` in Nextcloud's `config.php`. Two things follow from
+that: whoever controls the server itself can still read the IBANs – encryption
+is no substitute for securing the server. And a backup is only complete with
+the matching `config.php` (12.3). The club's own IBANs (money accounts,
+creditor IBAN) stay unencrypted; they are printed on every mandate form anyway.
 
 ---
 

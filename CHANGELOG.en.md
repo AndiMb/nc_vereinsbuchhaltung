@@ -18,6 +18,14 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 ## [Unreleased]
 
 **New:**
+- **IBANs encrypted in the database.** The bank details of members and payers –
+  on mandates, amendments and collection items and the counterparty accounts
+  of bank transactions – and the search values of the assignment rules are now
+  stored encrypted in the database (AES-256-GCM, key derived from the `secret` in
+  `config.php`). A database dump or backup no longer reveals them. The update
+  encrypts existing data once; nothing changes in the app. **Important for
+  backups:** without the matching `config.php` the IBANs can no longer be read
+  after a restore (handbook 12.3 and 13.13).
 - **One receipt for several entries at once** – with a watch folder set up.
   Under *All entries*, the journal on desktop now has a selection column at
   the front; shift-click selects a range, the box in the header takes all

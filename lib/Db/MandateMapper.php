@@ -4,17 +4,21 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Db;
 
+use OCA\Vereinsbuchhaltung\Service\FieldCipher;
 use OCP\AppFramework\Db\DoesNotExistException;
-use OCP\AppFramework\Db\QBMapper;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 
 /**
- * @extends QBMapper<Mandate>
+ * @extends EncryptingMapper<Mandate>
  */
-class MandateMapper extends QBMapper {
-	public function __construct(IDBConnection $db) {
-		parent::__construct($db, 'vbh_mandates', Mandate::class);
+class MandateMapper extends EncryptingMapper {
+	public function __construct(IDBConnection $db, FieldCipher $cipher) {
+		parent::__construct($db, 'vbh_mandates', Mandate::class, $cipher);
+	}
+
+	protected function encryptedProperties(): array {
+		return ['iban'];
 	}
 
 	/** @return Mandate[] */
