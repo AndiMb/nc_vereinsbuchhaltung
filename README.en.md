@@ -94,6 +94,12 @@ An optional add-on module (the "Contributions" tab, appears automatically once a
 - **Dunning and tasks**: payment request, payment reminder and dunning letter by interval; deferral, waiver and cancellation; a task list for exceptions instead of silent failures
 - **My contribution** (self-service for linked accounts), an informal **contribution confirmation**, a **data overview** under Art. 15 GDPR and anonymization after the retention period
 
+### Invoices
+- **Invoices in the name of the association** (optional *Invoices* tab, turned on in the settings): recipients from master data or members, several line items with quantity, unit, price, discount and revenue account, service date or period, notice under section 19 UStG (small business) or tax exemption – with all mandatory details under section 14 (4) UStG
+- **Finalizing**: consecutive, unique number (`RE-2026-0042`, pattern configurable), immutable afterwards; PDF/A-3b with GiroCode, stored as a file with a checksum; corrections only through a **credit note**
+- **Open item and payment matching**: every invoice is an open item with a reference; the bank statement import books payments with a matching invoice number and the exact amount on its own, otherwise *Entries → To assign* suggests the invoice (number, amount and name, amount). Partial payments are spread to the cent over the revenue accounts, cash payments can be booked directly
+- **Sending by email** with the PDF attached and an adjustable template
+
 ### Organization & security
 - **Permission roles**: administrator – bookkeeper – auditor (read-only); Nextcloud admins are always administrators; roles for users and groups
 - **Shared dataset** (`user_id = '__verein__'`): all authorized users work on the same data

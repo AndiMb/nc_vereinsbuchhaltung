@@ -15,6 +15,39 @@ Markdown headings as "[object Object]" since `marked` v18 (wrong renderer
 callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 **bold lead-in** at the start of a line instead, e.g. `**New:**`.
 
+## [0.43.0] – 2026-10-25
+
+**New:**
+- **Invoice module (optional).** The association issues invoices in its own
+  name: *Invoices* tab, turned on under Nextcloud settings → Vereinsbuchhaltung
+  → Invoices. Recipients come from their own master data or from the members;
+  an invoice has several line items with quantity, unit, price, discount and
+  revenue account, plus service date or period and the notice for small
+  businesses (section 19 UStG) or tax exemption. The draft saves itself;
+  **finalizing** (administrators only) checks the mandatory details under
+  section 14 (4) UStG, assigns a consecutive number (`RE-2026-0042`, pattern
+  and counter configurable), creates the open item and generates the PDF
+  (PDF/A-3b with GiroCode, stored as a file with its SHA-256). Corrections are
+  made with a **credit note** from its own number range.
+- **Payment matching for invoices.** The bank statement import books a payment
+  whose reference contains the invoice number (also `RE 2026 0042`) and whose
+  amount matches exactly on its own (cash account to revenue account, with the
+  invoice number as document reference; can be turned off). Everything else is
+  suggested in *Entries → To assign* as a "✓ Invoice …" chip – by number, by
+  amount and name, or by amount alone. **Partial payments** are spread to the
+  cent over the revenue accounts, **cash payments** can be booked directly,
+  and every payment can be reverted.
+- **Invoice by email** with the PDF attached, template with placeholders.
+  **Duplicate** copies an invoice as a new draft.
+
+**Changed:**
+- **Minimum version: Nextcloud 33 and PHP 8.2.** Nextcloud 31 and 32 are past
+  their end of maintenance; the PDF library of the invoice module requires
+  PHP 8.2. The release package now contains TCPDF (LGPL-3.0, trimmed to the
+  fonts that are needed).
+- Open items that belong to an invoice can no longer be paid or deleted by
+  hand in *Entries → Open items*; that happens through the invoice.
+
 ## [0.42.0] – 2026-10-25
 
 **New:**

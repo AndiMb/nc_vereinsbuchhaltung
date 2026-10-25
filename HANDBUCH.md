@@ -25,6 +25,7 @@ Menüstrukturen: Was muss ich wann tun, und worauf ist dabei zu achten?
 12. [Wenn etwas schiefgeht – Hilfe und Sicherheit](#12-wenn-etwas-schiefgeht--hilfe-und-sicherheit)
 13. [Mitgliedsbeiträge und SEPA-Lastschrift](#13-mitgliedsbeitr%C3%A4ge-und-sepa-lastschrift)
 14. [Anhang: Rollen, Kontotypen, Tastenkürzel, Glossar](#14-anhang-rollen-kontotypen-tastenk%C3%BCrzel-glossar)
+15. [Rechnungen schreiben (optional)](#15-rechnungen-schreiben-optional)
 
 ---
 
@@ -2419,6 +2420,72 @@ Zeitraums. Das betrifft nur Geldkonten (Bank-Flag).
 - **Anonymisierung** – das Schwärzen der personenbezogenen Angaben eines
   Mitglieds nach der Aufbewahrungsfrist; Beträge und Daten bleiben (Kapitel
   13.13).
+
+---
+
+## 15. Rechnungen schreiben (optional)
+
+Mit dem Rechnungsmodul stellt der Verein Rechnungen in seinem eigenen Namen aus – etwa für Hallenmiete, Kursgebühren, Sponsoring oder eine Festschrift. Jede festgeschriebene Rechnung steht als **offener Posten** in der App und wird beim Import des Kontoauszugs automatisch ihrer Zahlung zugeordnet. Das Modul ist optional und erscheint als Reiter **Rechnungen**, sobald es eingeschaltet ist.
+
+> **Was es nicht ist:** Mitgliedsbeiträge laufen weiter über das Beitragsmodul (Kapitel 13). Ein echter Mitgliedsbeitrag ist umsatzsteuerlich keine Leistung gegen Entgelt; eine „Rechnung" dafür ist meist nicht nötig.
+
+### 15.1 Einschalten und Angaben des Vereins
+
+*Nextcloud-Einstellungen → Vereinsbuchhaltung → Rechnungen* (nur Verwalter):
+
+1. **Rechnungsmodul einschalten.**
+2. **Angaben des Vereins** eintragen. Pflicht nach § 14 Abs. 4 UStG sind Name und Anschrift sowie die **Steuernummer** (vom Finanzamt) oder die USt-IdNr. Register, Vorstand, Telefon und E-Mail erscheinen zusätzlich im Fuß der Rechnung. Den Vereinsnamen pflegen Sie weiter oben unter „Verein".
+3. **Steuer und Zahlung:** Die meisten kleinen Vereine sind **Kleinunternehmer** (§ 19 UStG) und weisen keine Umsatzsteuer aus; auf der Rechnung steht dann der vorgeschriebene Hinweis. Ob das für Ihren Verein gilt, klärt das Finanzamt oder Ihre Steuerberatung. Wählen Sie außerdem das **Konto für Zahlungsangaben und GiroCode** (ein Geldkonto mit IBAN), das Zahlungsziel und bei Bedarf Standardtexte.
+4. **Rechnungsnummern:** Voreingestellt ist `RE-{JJJJ}-{NNNN}` (z. B. `RE-2026-0042`), jedes Jahr neu ab 1; Stornorechnungen zählen getrennt (`ST-…`). Die Nummern sind fortlaufend und einmalig – ändern Sie das Muster nur, bevor Sie die erste Rechnung schreiben.
+
+Solange Pflichtangaben fehlen, lässt sich keine Rechnung festschreiben; die App sagt, was fehlt.
+
+### 15.2 Empfänger
+
+Beim Schreiben wählen Sie den Empfänger aus den bereits angelegten Empfängern oder aus den **Mitgliedern** (die Adresse kommt aus der Mitgliederakte); mit **Neu** legen Sie einen Empfänger an, auch mit E-Mail-Adresse für den Versand und – für Behörden – der **Leitweg-ID**. Die Anschrift wird beim Festschreiben in die Rechnung übernommen: Spätere Änderungen am Empfänger ändern eine fertige Rechnung nie.
+
+### 15.3 Eine Rechnung schreiben
+
+**Rechnungen → Neue Rechnung.** Der Entwurf speichert sich kurz nach jeder Änderung selbst.
+
+- **Rechnungsdaten:** Rechnungsdatum, Zahlungsziel und der **Leistungszeitpunkt** – ein Datum oder ein Zeitraum, beides ist Pflichtangabe.
+- **Positionen:** Bezeichnung, Menge, Einheit, Einzelpreis, optional Rabatt und eine Beschreibung. Jede Position braucht ein **Erlöskonto** (ein Einnahmenkonto); darauf wird später die Zahlung gebucht. Mit den Pfeilen sortieren Sie um. Die Summe rechnet mit.
+- **Steuer und Texte:** Bei Kleinunternehmern steht der Hinweis nach § 19 UStG automatisch auf der Rechnung. Wer steuerbefreit ist, trägt den Befreiungshinweis ein (z. B. „Steuerfrei nach § 4 Nr. 22 UStG"). Einleitung, Schlusstext und Zahlungsbedingungen sind frei.
+- **Vorschau** zeigt das PDF mit dem Wasserzeichen „ENTWURF".
+
+Buchhalter dürfen Entwürfe anlegen; **Festschreiben, Versenden und Stornieren** sind Verwaltern vorbehalten.
+
+### 15.4 Festschreiben
+
+**Festschreiben …** prüft die Pflichtangaben (Anschrift und Steuernummer des Vereins, Empfänger, Leistungszeitpunkt, Positionen, Betrag). Danach:
+
+- bekommt die Rechnung ihre **Nummer** und ist **unveränderlich** – korrigieren lässt sie sich nur durch Stornieren;
+- entsteht das **PDF** (PDF/A-3b, mit GiroCode zum Scannen in der Banking-App) und liegt als Datei im Ordner der Belegablage unter `Vereinsbuchhaltung/Rechnungen/<Jahr>/`; die Prüfsumme (SHA-256) zeigt später, ob die Datei verändert wurde;
+- entsteht der **offene Posten** mit der Rechnungsnummer als Referenz.
+
+Es wird noch **nichts gebucht**: Die App arbeitet nach dem Ist-Prinzip, gebucht wird erst, wenn das Geld da ist.
+
+### 15.5 Versenden
+
+Im Detail der Rechnung: **Per E-Mail senden**. Empfänger-Adresse, Betreff und Text sind vorbelegt und vor dem Senden änderbar, das PDF hängt an. Die Vorlage und ihre Platzhalter (`{nummer}`, `{betrag}`, `{faellig}`, `{verein}`, `{empfaenger}`) pflegen Sie in den Einstellungen. Alternativ laden Sie das PDF herunter und verschicken oder drucken es selbst.
+
+### 15.6 Zahlungseingang zuordnen
+
+- **Beim Import:** Steht die Rechnungsnummer im Verwendungszweck (auch als `RE 2026 0042` oder `RE20260042`) und stimmt der Betrag genau, bucht der Import die Zahlung **selbst**: Geldkonto an Erlöskonto, mit der Rechnungsnummer als Belegnummer. Das lässt sich in den Einstellungen abschalten.
+- **In Buchungen → Zuzuordnen:** Für alles andere erscheint beim Zahlungseingang ein Chip **„✓ Rechnung RE-…"** – Nummer im Text, oder Betrag und Name passen, oder nur der Betrag bei genau einer offenen Rechnung. Ein Klick bucht. Ist der Betrag niedriger, heißt der Chip „Teilzahlung auf …" und die Rechnung bleibt offen; ist er höher, teilen Sie den Umsatz auf („Aufteilen…") und ordnen den Rest einem anderen Konto zu.
+- **Von der Rechnung aus:** **Zahlung erfassen** ordnet einen Umsatz zu oder bucht eine **Barzahlung** (Geldkonto/Kasse an Erlöskonten).
+- **Teilzahlungen** verteilen sich im Verhältnis auf die Erlöskonten der Positionen; mit der letzten Zahlung stimmen die Summen je Konto genau.
+- **Zurücknehmen:** Löst eine Zuordnung oder löscht die Buchung die Zahlung, öffnet sich die Rechnung wieder. Im Detail geht das auch mit dem Pfeil neben der Zahlung.
+
+### 15.7 Stornieren und Duplizieren
+
+**Stornieren …** (Verwalter) erzeugt eine **Stornorechnung** mit eigener Nummer, die alle Positionen umkehrt und auf die Rechnung verweist; die Rechnung gilt als storniert. Eine Begründung ist Pflicht. War schon gezahlt, bleibt die Buchung bestehen: Die Rückzahlung ordnen Sie wie jede Auszahlung dem Erlöskonto zu, der Betrag steht in der Stornorechnung.
+
+**Duplizieren** kopiert eine Rechnung als neuen Entwurf – praktisch für wiederkehrende Leistungen.
+
+### 15.8 Aufbewahrung
+
+Rechnungen müssen **acht Jahre** aufbewahrt werden. Die PDFs liegen als Dateien in Nextcloud; sie gehören mit in Ihr Backup. Eine festgeschriebene Rechnung lässt sich in der App nicht mehr ändern; die Prüfsumme in der Dokumentliste zeigt, falls die Datei außerhalb der App verändert wurde.
 
 ---
 

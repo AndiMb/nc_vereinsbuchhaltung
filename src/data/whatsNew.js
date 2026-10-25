@@ -25,6 +25,15 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.43.0',
+			roles: ['verwalter', 'buchhalter'],
+			items: [
+				t('Neu und optional: Rechnungen im Namen des Vereins. Einschalten unter Nextcloud-Einstellungen → Vereinsbuchhaltung → Rechnungen; danach gibt es den Reiter „Rechnungen“. Mehrere Positionen, Hinweis für Kleinunternehmer, Festschreiben mit fortlaufender Nummer, PDF mit GiroCode, Versand per E-Mail, Korrektur per Stornorechnung.'),
+				t('Der Kontoauszug-Import ordnet Zahlungen ihrer Rechnung zu: bei passender Rechnungsnummer und genauem Betrag bucht er selbst, sonst schlägt „Zuzuordnen“ die Rechnung vor. Teilzahlungen und Barzahlungen sind möglich.'),
+				t('Neue Mindestversion: Nextcloud 33 und PHP 8.2.'),
+			],
+		},
+		{
 			version: '0.42.0',
 			roles: ['verwalter', 'buchhalter'],
 			items: [

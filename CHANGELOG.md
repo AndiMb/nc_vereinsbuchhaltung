@@ -17,6 +17,40 @@ als „[object Object]" (falsche Renderer-Callback-Signatur, Nextcloud-
 Core-Bug, reproduziert 23.08.2026). Stattdessen **Fettdruck als Zeilenanfang**
 verwenden, z. B. `**Neu:**`.
 
+## [0.43.0] – 2026-10-25
+
+**Neu:**
+- **Rechnungsmodul (optional).** Der Verein stellt Rechnungen in seinem Namen
+  aus: Reiter *Rechnungen*, einzuschalten unter Nextcloud-Einstellungen →
+  Vereinsbuchhaltung → Rechnungen. Empfänger kommen aus eigenen Stammdaten
+  oder den Mitgliedern; eine Rechnung hat mehrere Positionen mit Menge,
+  Einheit, Preis, Rabatt und Erlöskonto, dazu Leistungsdatum oder -zeitraum
+  und den Hinweis für Kleinunternehmer (§ 19 UStG) oder Steuerbefreiung.
+  Der Entwurf speichert sich selbst; **Festschreiben** (nur Verwalter) prüft
+  die Pflichtangaben nach § 14 Abs. 4 UStG, vergibt eine fortlaufende Nummer
+  (`RE-2026-0042`, Muster und Zähler einstellbar), legt den offenen Posten an
+  und erzeugt das PDF (PDF/A-3b mit GiroCode, als Datei mit SHA-256 abgelegt).
+  Korrigiert wird durch eine **Stornorechnung** mit eigenem Nummernkreis.
+- **Zahlungsabgleich für Rechnungen.** Der Kontoauszug-Import bucht eine
+  Zahlung, deren Verwendungszweck die Rechnungsnummer enthält (auch `RE 2026
+  0042`) und deren Betrag genau stimmt, selbst (Geldkonto an Erlöskonto, mit
+  der Rechnungsnummer als Belegnummer; abschaltbar). Alles andere schlägt
+  *Buchungen → Zuzuordnen* als Chip „✓ Rechnung …" vor – nach Nummer, nach
+  Betrag und Name oder nach dem Betrag allein. **Teilzahlungen** verteilen
+  sich cent-genau auf die Erlöskonten, **Barzahlungen** lassen sich direkt
+  buchen, jede Zahlung lässt sich zurücknehmen.
+- **Rechnung per E-Mail** mit dem PDF im Anhang, Vorlage mit Platzhaltern.
+  **Duplizieren** kopiert eine Rechnung als neuen Entwurf.
+
+**Geändert:**
+- **Mindestversion: Nextcloud 33 und PHP 8.2.** Nextcloud 31 und 32 sind am
+  Ende ihrer Wartung; die PDF-Bibliothek des Rechnungsmoduls verlangt PHP 8.2.
+  Das Release-Paket enthält neu TCPDF (LGPL-3.0, auf die benötigten Schriften
+  gekürzt).
+- Offene Posten, die zu einer Rechnung gehören, lassen sich im Reiter
+  *Buchungen → Offene Posten* nicht mehr von Hand bezahlen oder löschen; das
+  geschieht über die Rechnung.
+
 ## [0.42.0] – 2026-10-25
 
 **Neu:**

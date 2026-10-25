@@ -25,6 +25,7 @@ what should I watch out for?
 12. [When something goes wrong – help and safety](#12-when-something-goes-wrong--help-and-safety)
 13. [Membership fees and SEPA direct debit](#13-membership-fees-and-sepa-direct-debit)
 14. [Appendix: roles, account types, keyboard shortcuts, glossary](#14-appendix-roles-account-types-keyboard-shortcuts-glossary)
+15. [Writing invoices (optional)](#15-writing-invoices-optional)
 
 ---
 
@@ -2395,6 +2396,72 @@ This only applies to cash accounts (bank flag).
   the banking app scans to prefill the transfer (chapter 13.8).
 - **Anonymization** – blacking out a member's personal details after the
   retention period; amounts and dates stay (chapter 13.13).
+
+---
+
+## 15. Writing invoices (optional)
+
+With the invoice module the association issues invoices in its own name – for hall rental, course fees, sponsoring or an anniversary booklet. Every finalized invoice is an **open item** in the app and is assigned to its payment automatically when the bank statement is imported. The module is optional and appears as the **Invoices** tab once it is turned on.
+
+> **What it is not:** Membership fees stay in the membership module (chapter 13). A genuine membership fee is not a supply for consideration in VAT terms; an "invoice" for it is usually not needed.
+
+### 15.1 Turning it on and the association's details
+
+*Nextcloud settings → Vereinsbuchhaltung → Invoices* (administrators only):
+
+1. **Turn on the invoice module.**
+2. Enter the **details of the association**. Section 14 (4) UStG requires the name and address and the **tax number** (from the tax office) or the VAT ID. Register, board, phone and email additionally appear in the footer of the invoice. You maintain the name of the association further up under "Club".
+3. **Tax and payment:** Most small associations are **small businesses** (section 19 UStG) and do not show value added tax; the invoice then carries the required notice. Whether this applies to your association is determined by the tax office or your tax adviser. Also choose the **account for payment details and GiroCode** (a cash account with an IBAN), the payment term and, if you like, default texts.
+4. **Invoice numbers:** The default is `RE-{JJJJ}-{NNNN}` (e.g. `RE-2026-0042`), restarting at 1 every year; credit notes are counted separately (`ST-…`). Numbers are consecutive and unique – change the pattern only before you write the first invoice.
+
+As long as mandatory details are missing, no invoice can be finalized; the app tells you what is missing.
+
+### 15.2 Recipients
+
+When writing an invoice you choose the recipient from the recipients already created or from the **members** (the address comes from the member record); **New** creates a recipient, optionally with an email address for sending and – for authorities – the **Leitweg ID**. The address is copied into the invoice when it is finalized: later changes to the recipient never change a finished invoice.
+
+### 15.3 Writing an invoice
+
+**Invoices → New invoice.** The draft saves itself shortly after every change.
+
+- **Invoice details:** invoice date, payment term and the **time of service** – a date or a period; either is mandatory.
+- **Line items:** description, quantity, unit, unit price, optionally a discount and a description. Every line needs a **revenue account** (an income account); the payment is booked to it later. Use the arrows to reorder. The total updates as you type.
+- **Tax and texts:** For small businesses the notice under section 19 UStG is added to the invoice automatically. If you are tax-exempt, enter the exemption notice (e.g. "Tax-exempt under section 4 no. 22 UStG"). Introduction, closing text and payment terms are free.
+- **Preview** shows the PDF with a "DRAFT" watermark.
+
+Accountants may create drafts; **finalizing, sending and cancelling** are reserved for administrators.
+
+### 15.4 Finalizing
+
+**Finalize …** checks the mandatory details (address and tax number of the association, recipient, time of service, line items, amount). After that:
+
+- the invoice receives its **number** and is **immutable** – it can only be corrected by cancelling it;
+- the **PDF** is created (PDF/A-3b, with a GiroCode to scan in the banking app) and stored as a file in the folder of the receipt storage under `Vereinsbuchhaltung/Rechnungen/<year>/`; the checksum (SHA-256) later shows whether the file was changed;
+- the **open item** is created with the invoice number as its reference.
+
+**Nothing is booked yet**: the app works on a cash basis, booking happens when the money arrives.
+
+### 15.5 Sending
+
+In the invoice details: **Send by email**. Recipient address, subject and text are prefilled and can be changed before sending; the PDF is attached. You maintain the template and its placeholders (`{nummer}`, `{betrag}`, `{faellig}`, `{verein}`, `{empfaenger}`) in the settings. Alternatively download the PDF and send or print it yourself.
+
+### 15.6 Assigning a payment
+
+- **On import:** If the invoice number appears in the payment reference (also as `RE 2026 0042` or `RE20260042`) and the amount matches exactly, the import books the payment **on its own**: cash account to revenue account, with the invoice number as document reference. You can turn this off in the settings.
+- **In Entries → To assign:** For everything else an incoming payment shows a **"✓ Invoice RE-…"** chip – number in the text, or amount and name match, or only the amount with exactly one open invoice. One click books it. If the amount is lower the chip reads "Partial payment on …" and the invoice stays open; if it is higher, split the transaction ("Split…") and assign the rest to another account.
+- **From the invoice:** **Record payment** assigns a transaction or books a **cash payment** (cash account/cash box to revenue accounts).
+- **Partial payments** are spread proportionally over the revenue accounts of the line items; with the last payment the totals per account match exactly.
+- **Reverting:** If a payment's assignment is removed or its booking is deleted, the invoice opens again. In the details you can also do it with the arrow next to the payment.
+
+### 15.7 Cancelling and duplicating
+
+**Cancel …** (administrator) creates a **credit note** with its own number that reverses all line items and refers to the invoice; the invoice counts as cancelled. A reason is required. If it was already paid, the booking stays: you assign the refund to the revenue account like any other outgoing payment, the amount is shown in the credit note.
+
+**Duplicate** copies an invoice as a new draft – handy for recurring services.
+
+### 15.8 Retention
+
+Invoices have to be kept for **eight years**. The PDFs are files in Nextcloud; include them in your backup. A finalized invoice can no longer be changed in the app; the checksum in the document list shows if the file was changed outside the app.
 
 ---
 

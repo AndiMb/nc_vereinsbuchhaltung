@@ -3508,7 +3508,10 @@
         "Der nächste Zählerstand muss mindestens 1 sein.": "The next counter value has to be at least 1.",
         "Das Rechnungsdatum liegt vor dem Jahr der zuletzt vergebenen Rechnungsnummer (%s). Bitte ein Datum ab diesem Jahr wählen.": "The invoice date is before the year of the most recently assigned invoice number (%s). Please choose a date from this year onward.",
         "Die Rechnungsnummer konnte nicht vergeben werden. Bitte noch einmal versuchen.": "The invoice number could not be assigned. Please try again.",
-        "Dieser Posten gehört zu einer Rechnung. Zahlung, Storno und Änderungen laufen im Reiter „Rechnungen“.": "This item belongs to an invoice. Payment, cancellation and changes are handled in the “Invoices” tab."
+        "Dieser Posten gehört zu einer Rechnung. Zahlung, Storno und Änderungen laufen im Reiter „Rechnungen“.": "This item belongs to an invoice. Payment, cancellation and changes are handled in the “Invoices” tab.",
+        "Neu und optional: Rechnungen im Namen des Vereins. Einschalten unter Nextcloud-Einstellungen → Vereinsbuchhaltung → Rechnungen; danach gibt es den Reiter „Rechnungen“. Mehrere Positionen, Hinweis für Kleinunternehmer, Festschreiben mit fortlaufender Nummer, PDF mit GiroCode, Versand per E-Mail, Korrektur per Stornorechnung.": "New and optional: invoices in the name of the association. Turn them on under Nextcloud settings → Vereinsbuchhaltung → Invoices; then the “Invoices” tab appears. Several line items, notice for small businesses, finalizing with a consecutive number, PDF with GiroCode, sending by email, correction by credit note.",
+        "Der Kontoauszug-Import ordnet Zahlungen ihrer Rechnung zu: bei passender Rechnungsnummer und genauem Betrag bucht er selbst, sonst schlägt „Zuzuordnen“ die Rechnung vor. Teilzahlungen und Barzahlungen sind möglich.": "The bank statement import assigns payments to their invoice: with a matching invoice number and the exact amount it books on its own, otherwise “To assign” suggests the invoice. Partial payments and cash payments are possible.",
+        "Neue Mindestversion: Nextcloud 33 und PHP 8.2.": "New minimum version: Nextcloud 33 and PHP 8.2."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

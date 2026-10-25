@@ -93,6 +93,12 @@ Optionales Zusatzmodul (Reiter „Beiträge", erscheint automatisch sobald ein M
 - **Mahnwesen und Aufgaben**: Zahlungsaufforderung, Zahlungserinnerung und Mahnung nach Abstand; Stundung, Erlass und Storno; eine Aufgabenliste für Störfälle statt stiller Fehler
 - **Mein Beitrag** (Self-Service für verknüpfte Konten), informelle **Beitragsbestätigung**, **Datenübersicht** nach Art. 15 DSGVO und Anonymisierung nach Ablauf der Aufbewahrungsfrist
 
+### Rechnungen
+- **Rechnungen im Namen des Vereins** (optionaler Reiter *Rechnungen*, in den Einstellungen einzuschalten): Empfänger aus Stammdaten oder Mitgliedern, mehrere Positionen mit Menge, Einheit, Preis, Rabatt und Erlöskonto, Leistungsdatum oder -zeitraum, Hinweis nach § 19 UStG (Kleinunternehmer) oder Steuerbefreiung – mit allen Pflichtangaben nach § 14 Abs. 4 UStG
+- **Festschreiben**: fortlaufende, einmalige Nummer (`RE-2026-0042`, Muster einstellbar), danach unveränderlich; PDF/A-3b mit GiroCode, abgelegt als Datei mit Prüfsumme; Korrektur nur per **Stornorechnung**
+- **Offener Posten und Zahlungsabgleich**: jede Rechnung ist ein offener Posten mit Referenz; der Kontoauszug-Import bucht Zahlungen mit passender Rechnungsnummer und genauem Betrag selbst, sonst schlägt *Buchungen → Zuzuordnen* die Rechnung vor (Nummer, Betrag und Name, Betrag). Teilzahlungen verteilen sich cent-genau auf die Erlöskonten, Barzahlungen lassen sich direkt buchen
+- **Versand per E-Mail** mit PDF im Anhang und anpassbarer Vorlage
+
 ### Organisation & Sicherheit
 - **Berechtigungsrollen**: Verwalter – Buchhalter – Revisor (nur Lesen); NC-Admins sind immer Verwalter; Rollen für Nutzer und Gruppen
 - **Gemeinsamer Datenbestand** (`user_id = '__verein__'`): alle berechtigten Nutzer arbeiten auf denselben Daten
