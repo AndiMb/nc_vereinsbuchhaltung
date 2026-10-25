@@ -78,6 +78,8 @@
 
 .vbh-navright { display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; }
 
+.vbh-navright .vbh-newmenu { margin-inline-end: 10px; }
+
 /* Reiter und Werkzeuge bleiben in einer Zeile. Wird es eng, schrumpfen zuerst die
    Reiter (kleinerer Abstand, dann ohne Symbole), dann tragen Zeitraum und Buchung
    nur noch ihr Symbol bzw. Feld; bleibt es zu schmal, scrollen die Reiter. Die
