@@ -459,7 +459,7 @@ wählen, **welche Seite** aufgeteilt wird (Soll oder Haben).
 ### 4.3 Belege anhängen
 
 An jede Buchung lassen sich **Belege** anhängen (PDF, JPG, PNG, GIF, WebP;
-max. 20 MB pro Datei). Vier Wege:
+max. 20 MB pro Datei). Fünf Wege:
 
 - **Beim Anlegen:** im Dialog *Neue Buchung* im Bereich *Belege* über
   „Anhängen" – mobil zusätzlich über „Fotografieren" direkt mit der Kamera.
@@ -474,6 +474,13 @@ max. 20 MB pro Datei). Vier Wege:
   Sammelrechnung).
 - **Schon beim Zuordnen** eines Bankumsatzes über die Büroklammer in der
   Zeile (Abschnitt 4.1) – ohne Umweg über *Alle Buchungen*.
+- **An mehrere Buchungen auf einmal** (mit Wächter-Ordner, am Desktop): in
+  *Alle Buchungen* die Buchungen über die Kästchen vorne markieren – mit
+  Umschalt-Klick einen ganzen Bereich, mit dem Kästchen im Kopf alle
+  angezeigten –, dann in der Leiste unter der Liste „Beleg zuordnen…". Die
+  gewählte Datei hängt danach an jeder markierten Buchung; wo sie schon hing,
+  bleibt es bei einer Verknüpfung. Praktisch zusammen mit „nur ohne Beleg"
+  und der Suche, etwa für alle Abbuchungen eines Jahresvertrags.
 - **Mehrere Dateien** gleichzeitig sind möglich.
 
 **Ordnerbaum oder Liste:** Die Dateien des Wächter-Ordners erscheinen als

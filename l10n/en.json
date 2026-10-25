@@ -3108,7 +3108,31 @@
         ],
         "Kontoauszüge, die statt der IBAN nur Kontonummer und BLZ nennen (MT940, manche CSV), landen auf dem richtigen Geldkonto – vorausgesetzt, die IBAN steht am Geldkonto.": "Statements that name only the account number and bank code instead of the IBAN (MT940, some CSV files) end up on the right cash account – provided the IBAN is set on the cash account.",
         "Der Terminplan zeigt neben jedem Versatz den Einzugstag als Datum, z. B. „am 15. jedes Monats“.": "The schedule shows the collection day as a date next to each offset, e.g. “on day 15 of each month”.",
-        "„Nextcloud-Konto anlegen“ fragt bei Bedarf das Passwort ab und scheitert nicht mehr mit „Password confirmation is required“.": "“Create Nextcloud account” asks for your password when needed and no longer fails with “Password confirmation is required”."
+        "„Nextcloud-Konto anlegen“ fragt bei Bedarf das Passwort ab und scheitert nicht mehr mit „Password confirmation is required“.": "“Create Nextcloud account” asks for your password when needed and no longer fails with “Password confirmation is required”.",
+        "Alle angezeigten Buchungen auswählen": "Select all entries shown",
+        "Buchung #{n} auswählen": "Select entry #{n}",
+        "Mit Umschalt-Klick einen Bereich auswählen": "Shift-click to select a range",
+        "_%n Buchung ausgewählt_::_%n Buchungen ausgewählt_": [
+            "%n entry selected",
+            "%n entries selected"
+        ],
+        "Beleg zuordnen…": "Assign receipt…",
+        "Auswahl aufheben": "Clear selection",
+        "_Beleg für %n Buchung wählen_::_Beleg für %n Buchungen wählen_": [
+            "Pick receipt for %n entry",
+            "Pick receipt for %n entries"
+        ],
+        "Bei diesen Buchungen kam der Beleg nicht an: {bookings} ({grund}). Die Auswahl bleibt stehen.": "The receipt could not be linked to these entries: {bookings} ({grund}). The selection is kept.",
+        "Der Beleg hing schon an allen markierten Buchungen.": "The receipt was already attached to all selected entries.",
+        "Die Belege hingen schon an allen markierten Buchungen.": "The receipts were already attached to all selected entries.",
+        "_Beleg an %n Buchung angehängt._::_Beleg an %n Buchungen angehängt._": [
+            "Receipt attached to %n entry.",
+            "Receipt attached to %n entries."
+        ],
+        "_Belege an %n Buchung angehängt._::_Belege an %n Buchungen angehängt._": [
+            "Receipts attached to %n entry.",
+            "Receipts attached to %n entries."
+        ]
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

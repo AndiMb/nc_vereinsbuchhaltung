@@ -19,6 +19,17 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+**Neu:**
+- **Einen Beleg an mehrere Buchungen auf einmal** – mit eingerichtetem
+  Wächter-Ordner. Unter *Alle Buchungen* hat das Journal am Desktop vorne eine
+  Auswahlspalte; mit Umschalt-Klick lässt sich ein Bereich markieren, das
+  Kästchen im Kopf nimmt alle angezeigten Buchungen. „Beleg zuordnen…" in der
+  Leiste unter der Liste öffnet den Ordner, die gewählte Datei hängt danach an
+  jeder markierten Buchung – etwa eine Sammelrechnung oder ein Jahresvertrag.
+  Was schon an einer Buchung hängt, wird übergangen; Buchungen abgeschlossener
+  Geschäftsjahre lassen sich nicht markieren. Zusammen mit „nur ohne Beleg"
+  und der Suche findet man so schnell alle Buchungen, denen ein Beleg fehlt.
+
 ## [0.41.2] – 2026-10-24
 
 **Behoben:**

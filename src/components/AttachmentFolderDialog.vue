@@ -37,10 +37,11 @@ import AttachmentFolderPanel from './AttachmentFolderPanel.vue'
 /**
  * Die Dateien des Wächter-Ordners als eigener Dialog – in zwei Rollen:
  *
- * - pick: Auswahl für einen Bankumsatz unter „Zuzuordnen“, Mehrfachauswahl,
- *   Ergebnis geht per pick-Event an App.vue. Standardmäßig nur offene
- *   Belege. (Im Buchungsdialog steht dieselbe Auswahl als Seitenleiste,
- *   siehe BookingDialog.vue.)
+ * - pick: Auswahl für einen Bankumsatz unter „Zuzuordnen“ oder für die im
+ *   Journal markierten Buchungen, Mehrfachauswahl, Ergebnis geht per
+ *   pick-Event an App.vue. Standardmäßig nur offene Belege. (Im
+ *   Buchungsdialog steht dieselbe Auswahl als Seitenleiste, siehe
+ *   BookingDialog.vue.)
  * - Eingangskorb von der Übersicht aus: alle Belege mit ihrem Status,
  *   "Buchung anlegen" bei offenen, Sprung zur Buchung bei zugeordneten,
  *   darunter Belege, deren Datei fehlt.
@@ -53,6 +54,9 @@ export default {
 	props: {
 		show: { type: Boolean, default: false },
 		pick: { type: Boolean, default: false },
+		// Eigene Überschrift statt der Standardtitel, z. B. „Beleg für 5
+		// Buchungen wählen“ bei der Mehrfachauswahl im Journal.
+		heading: { type: String, default: '' },
 		isMobile: { type: Boolean, required: true },
 		canWrite: { type: Boolean, required: true },
 		excludeFileIds: { type: Array, default: () => [] },
@@ -62,7 +66,7 @@ export default {
 
 	computed: {
 		title() {
-			return this.pick ? this.t('Beleg aus Ordner wählen') : this.t('Belege im Wächter-Ordner')
+			return this.heading || (this.pick ? this.t('Beleg aus Ordner wählen') : this.t('Belege im Wächter-Ordner'))
 		},
 	},
 }
