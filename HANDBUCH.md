@@ -1327,6 +1327,14 @@ Datenbank-Backup (mysqldump) gemacht werden – das App-Deployment
 stellt nur den Programmcode, nicht das Datenbankschema wieder her. Im
 Zweifel die verwaltende Person fragen.
 
+Zu einer vollständigen Sicherung gehört neben der Datenbank die `config.php`
+der Nextcloud. Die IBANs der Mitglieder liegen verschlüsselt in der Datenbank,
+der Schlüssel hängt am `secret` in der `config.php` (13.13). Eine Datenbank
+ohne die passende `config.php` lässt sich zwar einspielen, die
+Bankverbindungen sind danach aber nicht mehr lesbar. Die `config.php` deshalb
+sichern, aber **getrennt** vom Datenbank-Dump aufbewahren: Liegen beide
+zusammen, schützt die Verschlüsselung nicht, wenn das Backup abhandenkommt.
+
 ---
 
 ## 13. Mitgliedsbeiträge und SEPA-Lastschrift
@@ -2259,6 +2267,18 @@ Ein gelöschtes Nextcloud-Konto löst die Anonymisierung nicht aus, und die
 Anonymisierung löst die Kontoverknüpfung nicht: beides ist voneinander
 unabhängig (bei einem gelöschten Konto bleibt das Mitglied, die Mailadresse wird
 übernommen und eine Aufgabe bittet um Prüfung, 13.9).
+
+**Verschlüsselte Bankverbindungen.** Die IBANs der Mitglieder und Zahler – am
+Mandat, in den Einzugsposten und in den Bankumsätzen – und die Suchwerte der
+Zuordnungsregeln legt die App verschlüsselt in der Datenbank ab (AES-256-GCM). Ein Datenbank-Dump oder
+-Backup, das ohne die Nextcloud-Konfiguration in falsche Hände gerät, verrät sie
+nicht. In der App ändert sich nichts: Wer die IBAN sehen darf, sieht sie wie
+bisher. Der Schlüssel wird aus dem `secret` in der `config.php` der Nextcloud
+abgeleitet. Daraus folgt zweierlei: Wer den Server selbst unter Kontrolle hat,
+liest die IBANs weiterhin – die Verschlüsselung ersetzt keine Absicherung des
+Servers. Und ein Backup ist nur mit der zugehörigen `config.php` vollständig
+(12.3). Die IBANs des Vereins selbst (Geldkonten, Gläubiger-IBAN) bleiben
+unverschlüsselt; sie stehen ohnehin auf jedem Mandatsformular.
 
 ---
 

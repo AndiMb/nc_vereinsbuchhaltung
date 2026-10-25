@@ -4,16 +4,20 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Db;
 
-use OCP\AppFramework\Db\QBMapper;
+use OCA\Vereinsbuchhaltung\Service\FieldCipher;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 
 /**
- * @extends QBMapper<MandateAmendment>
+ * @extends EncryptingMapper<MandateAmendment>
  */
-class MandateAmendmentMapper extends QBMapper {
-	public function __construct(IDBConnection $db) {
-		parent::__construct($db, 'vbh_mandate_amendments', MandateAmendment::class);
+class MandateAmendmentMapper extends EncryptingMapper {
+	public function __construct(IDBConnection $db, FieldCipher $cipher) {
+		parent::__construct($db, 'vbh_mandate_amendments', MandateAmendment::class, $cipher);
+	}
+
+	protected function encryptedProperties(): array {
+		return ['oldIban'];
 	}
 
 	public function find(int $id): MandateAmendment {

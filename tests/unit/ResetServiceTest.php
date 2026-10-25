@@ -26,6 +26,7 @@ use OCA\Vereinsbuchhaltung\Migration\Version000157Date20261004130000;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\BudgetSnapshotService;
 use OCA\Vereinsbuchhaltung\Service\ContributionResetService;
+use OCA\Vereinsbuchhaltung\Service\FieldCipher;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCA\Vereinsbuchhaltung\Service\Report\ReportTemplateService;
 use OCA\Vereinsbuchhaltung\Service\ResetService;
@@ -109,6 +110,8 @@ class ResetServiceTest extends TestCase {
 	private array $afterCommit = [];
 
 	private IDBConnection&MockObject $db;
+	/** Die Mapper verschlüsseln IBANs; gelöscht wird hier nur, der Mock bleibt stumm. */
+	private FieldCipher&MockObject $cipher;
 
 	/** Das Statement, das gerade aufgebaut wird: Art, Tabelle, gesetzte Spalten */
 	private ?string $verb = null;
@@ -123,6 +126,7 @@ class ResetServiceTest extends TestCase {
 		$this->table = null;
 		$this->sets = [];
 		$this->db = $this->recordingConnection();
+		$this->cipher = $this->createMock(FieldCipher::class);
 	}
 
 	/**
@@ -245,8 +249,8 @@ class ResetServiceTest extends TestCase {
 			$transaction,
 			$this->journalLines(),
 			new JournalMapper($this->db),
-			new BankTransactionMapper($this->db),
-			new RuleMapper($this->db),
+			new BankTransactionMapper($this->db, $this->cipher),
+			new RuleMapper($this->db, $this->cipher),
 			new AccountMapper($this->db),
 			new CostCenterMapper($this->db),
 			new BudgetMapper($this->db),
@@ -260,11 +264,11 @@ class ResetServiceTest extends TestCase {
 			new BankTxSepaDetailMapper($this->db),
 			new IncomingPaymentRejectionMapper($this->db),
 			$contribution ?? new ContributionResetService(
-				new MandateMapper($this->db),
-				new MandateAmendmentMapper($this->db),
+				new MandateMapper($this->db, $this->cipher),
+				new MandateAmendmentMapper($this->db, $this->cipher),
 				new ReturnedDebitMapper($this->db),
 				new DunningNoticeMapper($this->db),
-				new DebitItemMapper($this->db),
+				new DebitItemMapper($this->db, $this->cipher),
 				new DebitBatchMapper($this->db),
 			),
 			$reportTemplates,
@@ -363,11 +367,11 @@ class ResetServiceTest extends TestCase {
 			->getMock();
 		$broken->method('deleteAll')->willThrowException(new \RuntimeException('Datenbank weg'));
 		$service = $this->service(new ContributionResetService(
-			new MandateMapper($this->db),
-			new MandateAmendmentMapper($this->db),
+			new MandateMapper($this->db, $this->cipher),
+			new MandateAmendmentMapper($this->db, $this->cipher),
 			new ReturnedDebitMapper($this->db),
 			new DunningNoticeMapper($this->db),
-			new DebitItemMapper($this->db),
+			new DebitItemMapper($this->db, $this->cipher),
 			$broken,
 		));
 
