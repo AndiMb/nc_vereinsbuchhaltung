@@ -231,6 +231,18 @@ return [
 		['name' => 'debtor#destroy', 'url' => '/api/debtors/{id}', 'verb' => 'DELETE'],
 		['name' => 'debtor#fromMember', 'url' => '/api/debtors/from-member/{memberId}', 'verb' => 'POST'],
 
+		// Rechnungsmodul (Epic #168): Rechnungen und Nummernkreise
+		['name' => 'invoice#index', 'url' => '/api/invoices', 'verb' => 'GET'],
+		['name' => 'invoice#meta', 'url' => '/api/invoices/meta', 'verb' => 'GET'],
+		['name' => 'invoice#numberRanges', 'url' => '/api/invoice-number-ranges', 'verb' => 'GET'],
+		['name' => 'invoice#updateNumberRange', 'url' => '/api/invoice-number-ranges/{kind}', 'verb' => 'PUT'],
+		['name' => 'invoice#create', 'url' => '/api/invoices', 'verb' => 'POST'],
+		['name' => 'invoice#show', 'url' => '/api/invoices/{id}', 'verb' => 'GET'],
+		['name' => 'invoice#update', 'url' => '/api/invoices/{id}', 'verb' => 'PUT'],
+		['name' => 'invoice#destroy', 'url' => '/api/invoices/{id}', 'verb' => 'DELETE'],
+		['name' => 'invoice#duplicate', 'url' => '/api/invoices/{id}/duplicate', 'verb' => 'POST'],
+		['name' => 'invoice#issue', 'url' => '/api/invoices/{id}/issue', 'verb' => 'POST'],
+
 		// Beitragsgruppen & Zuweisungen (Issue #68)
 		['name' => 'contributionGroup#index', 'url' => '/api/contribution-groups', 'verb' => 'GET'],
 		['name' => 'contributionGroup#create', 'url' => '/api/contribution-groups', 'verb' => 'POST'],

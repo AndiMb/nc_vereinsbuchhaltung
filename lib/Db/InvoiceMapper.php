@@ -70,6 +70,22 @@ class InvoiceMapper extends QBMapper {
 		return $rows[0] ?? null;
 	}
 
+	/**
+	 * Sichert sich das Festschreiben eines Entwurfs: setzt `issued_at` nur,
+	 * wenn die Rechnung noch nicht festgeschrieben ist. Zwei gleichzeitige
+	 * Aufrufe können so nicht beide durchlaufen; der zweite bekommt `false`
+	 * und bricht ab, bevor er eine Nummer verbraucht.
+	 */
+	public function claimIssue(int $id, string $issuedAt): bool {
+		$qb = $this->db->getQueryBuilder();
+		$qb->update($this->getTableName())
+			->set('issued_at', $qb->createNamedParameter($issuedAt))
+			->where($qb->expr()->eq('id', $qb->createNamedParameter($id, IQueryBuilder::PARAM_INT)))
+			->andWhere($qb->expr()->isNull('issued_at'))
+			->andWhere($qb->expr()->eq('status', $qb->createNamedParameter(Invoice::STATUS_DRAFT)));
+		return $qb->executeStatement() === 1;
+	}
+
 	/** Stornorechnung zu einer Rechnung, falls schon vorhanden. */
 	public function findCreditFor(int $invoiceId): ?Invoice {
 		$qb = $this->db->getQueryBuilder();
