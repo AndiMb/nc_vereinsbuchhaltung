@@ -11,7 +11,11 @@ namespace OCA\Vereinsbuchhaltung\Service\EInvoice;
 class EInvoiceException extends \RuntimeException {
 
 	/** @param list<string> $problems */
-	public function __construct(string $message, private array $problems = [], ?\Throwable $previous = null) {
+	public function __construct(
+		string $message,
+		private array $problems = [],
+		?\Throwable $previous = null,
+	) {
 		parent::__construct($message, 0, $previous);
 	}
 
