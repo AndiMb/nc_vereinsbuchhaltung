@@ -8,6 +8,7 @@ use OCA\Vereinsbuchhaltung\Db\Debtor;
 use OCA\Vereinsbuchhaltung\Db\DebtorMapper;
 use OCA\Vereinsbuchhaltung\Db\Invoice;
 use OCA\Vereinsbuchhaltung\Db\InvoiceMapper;
+use OCA\Vereinsbuchhaltung\Db\InvoicePlanMapper;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -30,6 +31,7 @@ class DebtorService {
 		private MemberMapper $memberMapper,
 		private InvoiceMapper $invoiceMapper,
 		private ?IL10N $l10n = null,
+		private ?InvoicePlanMapper $plans = null,
 	) {
 	}
 
@@ -104,6 +106,9 @@ class DebtorService {
 		$debtor = $this->mapper->find($id);
 		if ($this->invoiceMapper->findFiltered(Invoice::STATUS_DRAFT, null, $id) !== []) {
 			throw new \InvalidArgumentException($this->msg('Der Empfänger wird noch in einem Rechnungsentwurf verwendet.'));
+		}
+		if ($this->plans !== null && $this->plans->countByDebtor($id) > 0) {
+			throw new \InvalidArgumentException($this->msg('Der Empfänger wird noch in einem Plan für wiederkehrende Rechnungen verwendet.'));
 		}
 		$this->mapper->delete($debtor);
 	}

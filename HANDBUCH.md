@@ -2516,6 +2516,40 @@ Seit 2025 müssen Unternehmen E-Rechnungen **empfangen** können; das **Ausstell
 - **Versand:** Im Versanddialog lassen sich vorhandene E-Rechnungen mitsenden. Ein ZUGFeRD-PDF ersetzt dabei das einfache PDF, XRechnung-XML geht als zusätzlicher Anhang mit. Behörden nehmen XRechnungen meist über ein Portal entgegen; dafür laden Sie die XML-Datei herunter.
 - **Stornorechnung:** Sie wird als Gutschrift (Typ 381) mit Verweis auf die Ursprungsrechnung erzeugt.
 
+### 15.11 Positionsvorlagen
+
+*Nextcloud-Einstellungen → Vereinsbuchhaltung → Rechnungen → Positionsvorlagen* (Verwalter): Wiederkehrende Leistungen wie „Hallenmiete" oder „Kursgebühr" legen Sie einmal an – mit Beschreibung, Einheit, Preis, Erlöskonto und Steuer. Im Rechnungseditor fügt **Aus Vorlage einfügen …** unter den Positionen die gewählte Vorlage als **Kopie** ein; Preis, Menge und Text bleiben danach änderbar, und spätere Änderungen an der Vorlage berühren bestehende Rechnungen nicht. Buchhalter dürfen die Vorlagen nutzen, aber nicht ändern.
+
+### 15.12 Wiederkehrende Rechnungen
+
+Für Leistungen im festen Takt (Hallenmiete, Sponsoring, Jahresgebühr) legt ein **Plan** die Rechnungen von selbst an. Einen Plan erstellen Sie aus einer vorhandenen Rechnung: im Detail **Wiederkehrend …** (Verwalter). Empfänger, Positionen und Texte kommen aus dieser Rechnung; Sie wählen:
+
+- **Takt:** monatlich, vierteljährlich, halbjährlich oder jährlich, mit **erster Rechnung am** und optionalem **Ende**. Die Termine rechnen immer vom Beginn aus; der 31. wird im Februar zum 28. oder 29., springt danach aber wieder auf den 31.
+- **Leistungszeitraum:** der Zeitraum des Taktes, der mit der Rechnung beginnt (bei monatlicher Rechnung zum 1. Juni also 1. bis 30. Juni), oder Leistungsdatum gleich Rechnungsdatum.
+- **Zahlungsziel** in Tagen (leer = Standard der Einstellungen).
+- **Festschreiben und Versenden:** Ohne Haken legt der Plan **Entwürfe** an, die Sie prüfen und festschreiben. Mit **Rechnung gleich festschreiben** schreibt der Plan fest, erzeugt PDF und E-Rechnung und kann die Rechnung **per E-Mail** senden. Fehlen beim Festschreiben Angaben, bleibt der Entwurf liegen, und der Plan nennt in seiner Übersicht den Grund.
+
+In Bezeichnungen und Texten ersetzt der Lauf `{monat}`, `{jahr}`, `{quartal}` und `{zeitraum}`: aus „Hallenmiete {monat} {jahr}" wird „Hallenmiete Juni 2027".
+
+Die Übersicht öffnet **Wiederkehrend** oben in der Rechnungsliste: Takt, nächster Termin, letzter Lauf mit Link zur Rechnung, Fehler. Pläne lassen sich **bearbeiten**, **pausieren** und **löschen** (angelegte Rechnungen bleiben). Ein pausierter oder neu angelegter Plan **holt vergangene Termine nicht nach**; er beginnt mit dem nächsten Termin ab heute. Die Positionen eines Plans ändern Sie, indem Sie aus einer angepassten Rechnung einen neuen Plan anlegen und den alten löschen. Der Nextcloud-Hintergrundjob prüft stündlich; **Fällige jetzt ausführen** stößt ihn von Hand an.
+
+### 15.13 Mahnwesen
+
+Rechnungen, die nach dem Zahlungsziel unbezahlt sind, mahnt die App in **drei Stufen**: **Zahlungserinnerung**, **1. Mahnung** und **2. Mahnung** (letzte Mahnung). Jede Stufe ist ein **Mahnschreiben als PDF** mit der offenen Rechnung und einem **GiroCode über den Restbetrag**, das per E-Mail verschickt und wie die Rechnung unveränderlich abgelegt wird.
+
+- **Fristen:** Die Erinnerung ist 7 Tage nach dem Zahlungsziel fällig, die 1. Mahnung 14 Tage nach der Erinnerung, die 2. Mahnung 14 Tage nach der 1. Mahnung. Alle Fristen und die Zahlungsfrist im Schreiben (7 Tage) stellen Sie in den Einstellungen unter **Mahnwesen** ein, ebenso Betreff und Text je Stufe. Platzhalter: `{stufe}`, `{nummer}`, `{rechnungsdatum}`, `{betrag}`, `{rest}`, `{faellig}`, `{frist}`, `{verein}`, `{empfaenger}`.
+- **In der Liste** zeigt eine Rechnung ihre **Mahnstufe** und **Mahnung fällig**; der Filter **Mahnung fällig** sammelt sie.
+- **Mahnen** (Verwalter): im Detail **Mahnen …**. Der Dialog schlägt die nächste Stufe, Adresse, Betreff und Text vor; alles lässt sich vor dem Senden ändern. Eine Stufe lässt sich nicht wiederholen, aber überspringen. Der Verlauf steht im Abschnitt **Mahnungen**, die PDFs bei den Dokumenten.
+- **Automatisch:** Mit **Fällige Mahnungen automatisch per E-Mail verschicken** (aus, solange Sie es nicht einschalten) versendet der tägliche Hintergrundjob fällige Stufen selbst. Rechnungen, deren Empfänger keine E-Mail-Adresse hat, übergeht er; sie bleiben als „Mahnung fällig" in der Liste.
+- **Sperren:** Bezahlte, stornierte und noch nicht fällige Rechnungen, Stornorechnungen und Entwürfe werden nie gemahnt. Teilzahlungen mindern den Betrag im Schreiben. Nach der 2. Mahnung mahnt die App nicht weiter; wie es weitergeht (Mahnbescheid, Verzicht), entscheidet der Verein.
+
+Die App berechnet keine Mahngebühren oder Verzugszinsen und gibt keine Rechtsberatung: Texte und Fristen sollten zum Verein passen.
+
+### 15.14 Zahlungsreferenz (RF) und Prüfung
+
+- **RF-Referenz (ISO 11649):** Auf Wunsch (Einstellung, standardmäßig an) druckt die Rechnung neben dem Verwendungszweck eine **strukturierte Zahlungsreferenz** wie `RF18 RE20 2600 42`. Sie enthält die Rechnungsnummer und zwei Prüfziffern und steckt im **GiroCode**. Der Bankabgleich erkennt sie als sicherstes Merkmal: Steht die Referenz im Verwendungszweck und stimmt der Betrag, bucht der Import selbst, auch wenn der Zahler Leerzeichen eingefügt hat.
+- **Kassenprüfung:** Das Beleg-ZIP (Button „Beleg-ZIP" in *Berichte → Auswertung*, Kapitel 9.2) enthält bei eingeschaltetem Rechnungsmodul den Ordner `rechnungen/`: je Rechnung ein Unterordner mit allen Dokumenten (PDF, ZUGFeRD-PDF, XRechnung-XML, Mahnschreiben), dazu `uebersicht.csv` (Nummer, Datum, Empfänger, Netto, Steuer, Brutto, bezahlt, offen, Status, Mahnstufe) und `pruefsummen.txt` mit dem SHA-256 jeder Datei und dem Befund `ok`, `changed` (verändert) oder `missing` (fehlt). Die Rechnungen eines Zeitraums werden nach dem Rechnungsdatum gewählt.
+
 ---
 
 *Stand: App-Version 0.35.0. Bei Fragen an die verwaltende Person wenden.*

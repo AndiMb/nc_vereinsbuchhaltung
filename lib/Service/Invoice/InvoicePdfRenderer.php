@@ -102,6 +102,106 @@ class InvoicePdfRenderer {
 		return $pdf->Output('', 'S');
 	}
 
+	/**
+	 * Das Schreiben einer Zahlungserinnerung oder Mahnung zu einer Rechnung: Anschrift,
+	 * Text, die offene Rechnung als Zeile und der Zahlungsblock mit GiroCode über den Restbetrag.
+	 *
+	 * @param int $level 1 Zahlungserinnerung, 2 erste Mahnung, 3 zweite und letzte Mahnung
+	 * @param string $body Text des Schreibens (Absätze durch Leerzeilen getrennt)
+	 * @param int $remainingCents offener Betrag zum Zeitpunkt des Schreibens
+	 * @param string $letterDate Datum des Schreibens (Y-m-d)
+	 * @param bool $compress false erzeugt lesbare Streams (nur für Tests)
+	 * @throws \RuntimeException wenn die PDF-Bibliothek nicht verfügbar ist
+	 */
+	public function renderDunning(InvoicePdfData $data, int $level, string $body, int $remainingCents, string $letterDate, bool $compress = true): string {
+		if (!class_exists(\TCPDF::class)) {
+			throw new \RuntimeException($this->msg('Die PDF-Bibliothek (TCPDF) ist nicht installiert.'));
+		}
+		$invoice = $data->invoice;
+		$issuer = $data->issuer;
+		$title = $this->dunningTitle($level);
+
+		$pdf = new InvoicePdfDocument('P', 'mm', 'A4', true, 'UTF-8', false, 3);
+		$pdf->setCompression($compress);
+		$pdf->SetCreator('Vereinsbuchhaltung für Nextcloud');
+		$pdf->SetAuthor((string)($issuer['name'] ?? ''));
+		$pdf->SetTitle($title . ' ' . $invoice->getNumber());
+		$pdf->SetSubject($title);
+		$pdf->SetMargins(self::MARGIN_LEFT, 20, self::MARGIN_RIGHT);
+		$pdf->SetAutoPageBreak(true, 30);
+		$pdf->setPrintHeader(false);
+		$pdf->setPrintFooter(true);
+		$pdf->setFooterMargin(10);
+		$pdf->setFontSubsetting(true);
+		$pdf->pageLabel = $this->msg('Seite {page} von {pages}');
+		[$pdf->footerLeft, $pdf->footerMiddle, $pdf->footerRight] = $this->footer($data);
+
+		$pdf->AddPage();
+		$this->letterhead($pdf, $data);
+
+		$x = 125;
+		$y = 45;
+		$pdf->SetFont(self::FONT, '', 8.5, '', true);
+		$rows = [[$this->msg('Datum'), $this->date($letterDate)], [$this->msg('Rechnungs-Nr.'), (string)$invoice->getNumber()]];
+		$customerNo = (string)($data->debtor['customerNo'] ?? '');
+		if ($customerNo !== '') {
+			$rows[] = [$this->msg('Kundennummer'), $customerNo];
+		}
+		foreach ($rows as [$label, $value]) {
+			$pdf->SetXY($x, $y);
+			$pdf->SetTextColor(100, 100, 100);
+			$pdf->Cell(28, 4.4, $label, 0, 0, 'L');
+			$pdf->SetTextColor(0, 0, 0);
+			$pdf->Cell(37, 4.4, $value, 0, 0, 'L');
+			$y += 4.6;
+		}
+
+		$pdf->SetY(98);
+		$pdf->SetFont(self::FONT, 'B', 14, '', true);
+		$pdf->Cell(0, 7, $title . ' ' . $this->msg('zu Rechnung %s', [(string)$invoice->getNumber()]), 0, 1, 'L');
+		$pdf->Ln(2);
+		$pdf->SetFont(self::FONT, '', 9, '', true);
+		foreach (preg_split('/\R{2,}/', trim($body)) ?: [] as $paragraph) {
+			$this->paragraph($pdf, trim($paragraph));
+		}
+
+		// Die offene Rechnung als eine Zeile.
+		$pdf->Ln(2);
+		$pdf->SetFont(self::FONT, 'B', 8.5, '', true);
+		$pdf->SetFillColor(240, 240, 240);
+		$widths = [30, 24, 24, 30, 30, 32];
+		$heads = [$this->msg('Rechnung'), $this->msg('Datum'), $this->msg('Fällig'), $this->msg('Betrag'), $this->msg('Bereits gezahlt'), $this->msg('Offen')];
+		foreach ($heads as $i => $head) {
+			$pdf->Cell($widths[$i], 6, $head, 0, 0, $i < 3 ? 'L' : 'R', true);
+		}
+		$pdf->Ln();
+		$pdf->SetFont(self::FONT, '', 8.5, '', true);
+		$cells = [
+			(string)$invoice->getNumber(),
+			$this->date($invoice->getIssueDate()),
+			$this->date($invoice->getDueDate()),
+			$this->money($invoice->getGrossCents()),
+			$this->money(max(0, $invoice->getGrossCents() - $remainingCents)),
+			$this->money($remainingCents),
+		];
+		foreach ($cells as $i => $cell) {
+			$pdf->Cell($widths[$i], 6, $cell, 'B', 0, $i < 3 ? 'L' : 'R');
+		}
+		$pdf->Ln(8);
+
+		$this->payment($pdf, $data, $remainingCents, $this->msg('Bitte überweisen Sie den offenen Betrag von %s auf das folgende Konto:', [$this->money($remainingCents)]));
+
+		return $pdf->Output('', 'S');
+	}
+
+	public function dunningTitle(int $level): string {
+		return match ($level) {
+			1 => $this->msg('Zahlungserinnerung'),
+			2 => $this->msg('1. Mahnung'),
+			default => $this->msg('2. Mahnung'),
+		};
+	}
+
 	// ------------------------------------------------------------------
 
 	private function letterhead(InvoicePdfDocument $pdf, InvoicePdfData $data): void {
@@ -271,7 +371,11 @@ class InvoicePdfRenderer {
 		}
 	}
 
-	private function payment(InvoicePdfDocument $pdf, InvoicePdfData $data): void {
+	/**
+	 * @param int|null $amountCents zu zahlender Betrag für den GiroCode; sonst der Rechnungsbetrag
+	 * @param string|null $intro Einleitung des Blocks; sonst der Standardsatz zur Rechnung
+	 */
+	private function payment(InvoicePdfDocument $pdf, InvoicePdfData $data, ?int $amountCents = null, ?string $intro = null): void {
 		$invoice = $data->invoice;
 		if ($invoice->isCredit() || $data->bank === null || $data->bank['iban'] === '') {
 			return;
@@ -287,9 +391,9 @@ class InvoicePdfRenderer {
 		$pdf->Cell(110, 5, $this->msg('Zahlung'), 0, 1, 'L');
 		$pdf->SetFont(self::FONT, '', 9, '', true);
 		$due = $invoice->getDueDate() !== null ? $this->date($invoice->getDueDate()) : '';
-		$pdf->MultiCell(110, 4.5, $due !== ''
+		$pdf->MultiCell(110, 4.5, $intro ?? ($due !== ''
 			? $this->msg('Bitte überweisen Sie den Rechnungsbetrag bis zum %s auf das folgende Konto:', [$due])
-			: $this->msg('Bitte überweisen Sie den Rechnungsbetrag auf das folgende Konto:'), 0, 'L', false, 1);
+			: $this->msg('Bitte überweisen Sie den Rechnungsbetrag auf das folgende Konto:')), 0, 'L', false, 1);
 		$rows = [
 			[$this->msg('Kontoinhaber'), $bank['holder']],
 			[$this->msg('IBAN'), $this->formatIban($bank['iban'])],
@@ -309,7 +413,7 @@ class InvoicePdfRenderer {
 		}
 
 		// GiroCode rechts neben dem Zahlungsblock
-		$payload = $this->giroCodePayload($data);
+		$payload = $this->giroCodePayload($data, $amountCents);
 		if ($payload !== null) {
 			$size = 28;
 			$x = $pdf->getPageWidth() - self::MARGIN_RIGHT - $size;
@@ -321,14 +425,15 @@ class InvoicePdfRenderer {
 		}
 	}
 
-	private function giroCodePayload(InvoicePdfData $data): ?string {
+	private function giroCodePayload(InvoicePdfData $data, ?int $amountCents = null): ?string {
 		$bank = $data->bank;
 		$invoice = $data->invoice;
-		if ($bank === null || $bank['iban'] === '' || $invoice->getGrossCents() <= 0 || $invoice->getNumber() === null) {
+		$amount = $amountCents ?? $invoice->getGrossCents();
+		if ($bank === null || $bank['iban'] === '' || $amount <= 0 || $invoice->getNumber() === null) {
 			return null;
 		}
 		try {
-			return $this->epc->buildPayload($bank['holder'], $bank['iban'], $bank['bic'] !== '' ? $bank['bic'] : null, $invoice->getGrossCents(), (string)$invoice->getNumber(), $data->paymentReference);
+			return $this->epc->buildPayload($bank['holder'], $bank['iban'], $bank['bic'] !== '' ? $bank['bic'] : null, $amount, (string)$invoice->getNumber(), $data->paymentReference);
 		} catch (\InvalidArgumentException) {
 			return null;
 		}

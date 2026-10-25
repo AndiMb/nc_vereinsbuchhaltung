@@ -51,6 +51,20 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   and attaches it to the email on request. It is built on the library
   `horstoeko/invoicesuite`; in CI the official KoSIT validator checks the sample
   invoices against XRechnung 3.0.
+- **Line item templates.** Create recurring services once (unit, price,
+  revenue account, tax); the editor inserts them as a copy.
+- **Recurring invoices.** A plan creates drafts at an interval (monthly to
+  yearly) and, if you want, finalizes and sends them. Placeholders `{monat}`,
+  `{jahr}`, `{quartal}`, `{zeitraum}`; pausing and an overview with the last
+  run and errors.
+- **Dunning for invoices.** Payment reminder, 1st and 2nd dunning letter as
+  a PDF with a GiroCode for the remaining amount, by email, with deadlines and
+  texts in the settings. Dunning stage and "Dunning due" in the list; on
+  request the daily background job dunns by itself (off by default).
+- **RF reference (ISO 11649)** on the invoice and in the GiroCode; the bank
+  matching recognizes it as the most reliable feature.
+- **Audit:** the receipts ZIP contains the invoices with documents, an
+  overview (CSV) and checksums.
 
 **Changed:**
 - **Minimum version: Nextcloud 33 and PHP 8.2.** Nextcloud 31 and 32 are past

@@ -14,7 +14,9 @@ use OCP\IL10N;
 use OCP\ITempManager;
 
 /**
- * Alle Belege eines Geschäftsjahres als ZIP – für die Kassenprüfung.
+ * Alle Belege eines Geschäftsjahres als ZIP – für die Kassenprüfung. Ist das
+ * Rechnungsmodul eingeschaltet, liegen die Rechnungen des Zeitraums samt
+ * Übersicht und Prüfsummen im Ordner `rechnungen/` ({@see InvoiceArchive}).
  *
  * Ordner je Buchung: "NNNN_Datum_Beschreibung/<BelegID>_<Dateiname>". Eine
  * nicht lesbare Datei bricht den Export nicht ab, sondern landet mitsamt Grund
@@ -30,6 +32,7 @@ class AttachmentArchive {
 		private PeriodService $periods,
 		private ITempManager $tempManager,
 		private IL10N $l10n,
+		private ?InvoiceArchive $invoiceArchive = null,
 	) {
 	}
 
@@ -93,7 +96,9 @@ class AttachmentArchive {
 			}
 		}
 
-		if ($count === 0) {
+		$invoiceCount = $this->invoiceArchive?->addTo($zip, $from, $to) ?? 0;
+
+		if ($count === 0 && $invoiceCount === 0) {
 			$zip->addFromString('hinweis.txt', "Keine Belege im gewählten Zeitraum gefunden.\n");
 		}
 		if ($problems !== []) {

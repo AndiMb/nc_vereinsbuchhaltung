@@ -62,11 +62,23 @@
 						</template>
 						{{ invoice.sentAt ? t('Erneut senden') : t('Per E-Mail senden') }}
 					</NcButton>
+					<NcButton v-if="canDun" :variant="dunning.due ? 'primary' : 'secondary'" @click="dun.open = true">
+						<template #icon>
+							<NcIconSvgWrapper :path="mdiBellRing" :size="20" />
+						</template>
+						{{ t('Mahnen …') }}
+					</NcButton>
 					<NcButton v-if="canWrite && invoice.status !== 'draft'" variant="tertiary" @click="duplicate">
 						<template #icon>
 							<NcIconSvgWrapper :path="mdiContentCopy" :size="20" />
 						</template>
 						{{ t('Duplizieren') }}
+					</NcButton>
+					<NcButton v-if="canPlan" variant="tertiary" @click="plan.open = true">
+						<template #icon>
+							<NcIconSvgWrapper :path="mdiCalendarSync" :size="20" />
+						</template>
+						{{ t('Wiederkehrend …') }}
 					</NcButton>
 					<NcButton v-if="canCancel" variant="tertiary" @click="cancel.open = true">
 						<template #icon>
@@ -227,6 +239,31 @@
 							</li>
 						</ul>
 					</section>
+					<section v-if="showDunning">
+						<h3>{{ t('Mahnungen') }}</h3>
+						<p v-if="dunning.due" class="vbh-hint vbh-hint--warning" role="status">
+							{{ t('Fällig: {stage}.', { stage: dunningLabel(dunning.next) }) }}
+						</p>
+						<p v-else-if="dunning.next" class="vbh-hint">
+							{{ t('Nächste Stufe: {stage} ab {date}.', { stage: dunningLabel(dunning.next), date: formatDate(dunning.dueOn) }) }}
+						</p>
+						<p v-else-if="dunning.level >= 3" class="vbh-hint">
+							{{ t('Die letzte Mahnstufe ist erreicht. Wie es weitergeht, entscheidet der Verein.') }}
+						</p>
+						<p v-if="!history.length" class="vbh-empty">
+							{{ t('Noch nicht gemahnt.') }}
+						</p>
+						<ul v-else class="vbh-inv-list">
+							<li v-for="d in history" :key="d.id">
+								<span>{{ dunningLabel(d.level) }} · {{ formatDate(d.sentAt) }} <small>{{ d.auto ? t('automatisch') : '' }} {{ d.sentTo }}</small></span>
+								<a
+									v-if="d.documentId"
+									:href="documentUrl({ id: d.documentId })"
+									target="_blank"
+									rel="noopener">{{ t('PDF') }}</a>
+							</li>
+						</ul>
+					</section>
 					<section>
 						<h3>{{ t('Dokumente') }}</h3>
 						<p v-if="!invoice.documents.length" class="vbh-empty">
@@ -293,6 +330,20 @@
 				@close="pay.open = false"
 				@update:show="pay.open = $event"
 				@paid="onPaid" />
+			<InvoiceDunningDialog
+				v-if="invoice"
+				:show="dun.open"
+				:invoice="invoice"
+				@close="dun.open = false"
+				@update:show="dun.open = $event"
+				@sent="onDunned" />
+			<InvoicePlanDialog
+				v-if="invoice"
+				:show="plan.open"
+				:invoice="invoice"
+				@close="plan.open = false"
+				@update:show="plan.open = $event"
+				@saved="onPlanSaved" />
 			<InvoiceMailDialog
 				v-if="invoice"
 				:show="mail.open"
@@ -312,18 +363,20 @@
 </template>
 
 <script>
-import { mdiCancel, mdiCashPlus, mdiContentCopy, mdiDownload, mdiEmailOutline, mdiFilePdfBox, mdiPencil, mdiUndo } from '@mdi/js'
+import { mdiBellRing, mdiCalendarSync, mdiCancel, mdiCashPlus, mdiContentCopy, mdiDownload, mdiEmailOutline, mdiFilePdfBox, mdiPencil, mdiUndo } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcModal from '@nextcloud/vue/components/NcModal'
 import InvoiceCancelDialog from './InvoiceCancelDialog.vue'
+import InvoiceDunningDialog from './InvoiceDunningDialog.vue'
 import InvoiceMailDialog from './InvoiceMailDialog.vue'
 import InvoicePayDialog from './InvoicePayDialog.vue'
+import InvoicePlanDialog from './InvoicePlanDialog.vue'
 import api from '../api.js'
 import { errMsg, formatDate, formatDateTime, formatMoney } from '../lib/format.js'
-import { displayStatusLabel, formatDiscount, formatQuantity, missingEInvoiceFormats, statusClass, unitShort } from '../lib/invoices.js'
+import { displayStatusLabel, dunningLabel, formatDiscount, formatQuantity, missingEInvoiceFormats, statusClass, unitShort } from '../lib/invoices.js'
 
 /**
  * Detailansicht einer Rechnung (Epic #168): Kopf, Positionen, Zahlungen,
@@ -331,7 +384,7 @@ import { displayStatusLabel, formatDiscount, formatQuantity, missingEInvoiceForm
  */
 export default {
 	name: 'InvoiceDetail',
-	components: { NcModal, NcButton, NcIconSvgWrapper, NcLoadingIcon, InvoicePayDialog, InvoiceMailDialog, InvoiceCancelDialog },
+	components: { NcModal, NcButton, NcIconSvgWrapper, NcLoadingIcon, InvoicePayDialog, InvoiceMailDialog, InvoiceCancelDialog, InvoiceDunningDialog, InvoicePlanDialog },
 	props: {
 		show: { type: Boolean, default: false },
 		invoiceId: { type: Number, default: null },
@@ -344,7 +397,7 @@ export default {
 	emits: ['close', 'changed', 'edit', 'open', 'update:show'],
 
 	setup() {
-		return { mdiCancel, mdiCashPlus, mdiContentCopy, mdiDownload, mdiEmailOutline, mdiFilePdfBox, mdiPencil, mdiUndo }
+		return { mdiBellRing, mdiCalendarSync, mdiCancel, mdiCashPlus, mdiContentCopy, mdiDownload, mdiEmailOutline, mdiFilePdfBox, mdiPencil, mdiUndo }
 	},
 
 	data() {
@@ -355,6 +408,8 @@ export default {
 			pay: { open: false },
 			mail: { open: false },
 			cancel: { open: false },
+			dun: { open: false },
+			plan: { open: false },
 			eFormat: '',
 			eBusy: false,
 			eError: '',
@@ -387,6 +442,16 @@ export default {
 			return this.isAdmin && !!i && i.status !== 'draft' && i.status !== 'cancelled'
 		},
 
+		/** Mahnstand der Rechnung (Stufe, nächste Stufe, ob sie fällig ist). */
+		dunning() { return this.invoice?.dunning?.state || { level: 0, next: null, due: false, blocked: 'draft' } },
+		history() { return this.invoice?.dunning?.history || [] },
+		showDunning() { return !!this.invoice && this.invoice.status !== 'draft' && this.invoice.kind !== 'storno' && (this.history.length > 0 || this.dunning.blocked === null) },
+		canDun() { return this.isAdmin && this.dunning.blocked === null && this.dunning.next !== null },
+		canPlan() {
+			const i = this.invoice
+			return this.isAdmin && !!i && i.kind !== 'storno' && ['issued', 'sent', 'paid'].includes(i.status) && !!i.debtorId
+		},
+
 		canCancel() {
 			const i = this.invoice
 			return this.isAdmin && !!i && i.kind !== 'storno' && ['issued', 'sent', 'paid'].includes(i.status)
@@ -398,6 +463,9 @@ export default {
 			const rows = [{ at: i.createdAt, text: this.tRaw('Entwurf angelegt von {user}', { user: i.createdBy }) }]
 			if (i.issuedAt) { rows.push({ at: i.issuedAt, text: this.tRaw('Festgeschrieben als {number} von {user}', { number: i.number, user: i.issuedBy }) }) }
 			if (i.sentAt) { rows.push({ at: i.sentAt, text: this.t('Per E-Mail versendet') }) }
+			for (const d of this.history) {
+				rows.push({ at: d.sentAt, text: this.tRaw('{stage} an {to} verschickt', { stage: dunningLabel(d.level), to: d.sentTo }) })
+			}
 			for (const p of i.payments || []) {
 				rows.push({ at: p.createdAt, text: this.tRaw('Zahlung {amount} gebucht von {user}', { amount: formatMoney(p.amountCents / 100), user: p.createdBy }) })
 			}
@@ -525,6 +593,20 @@ export default {
 				showError(errMsg(e, this.t('Die Zahlung konnte nicht zurückgenommen werden.')))
 			}
 		},
+
+		onDunned(data) {
+			this.dun.open = false
+			this.invoice = data
+			showSuccess(this.t('Mahnung verschickt.'))
+			this.$emit('changed')
+		},
+
+		onPlanSaved() {
+			this.plan.open = false
+			showSuccess(this.t('Plan gespeichert. Die wiederkehrenden Rechnungen finden Sie unter „Wiederkehrend“ in der Rechnungsliste.'))
+		},
+
+		dunningLabel,
 
 		onPaid(data) {
 			this.pay.open = false

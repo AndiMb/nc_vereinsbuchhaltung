@@ -31,7 +31,9 @@ class InvoiceDocument extends Entity implements \JsonSerializable {
 	public const KIND_ZUGFERD_PDF = 'zugferd_pdf';
 	public const KIND_XRECHNUNG_CII = 'xrechnung_cii';
 	public const KIND_XRECHNUNG_UBL = 'xrechnung_ubl';
-	public const KINDS = [self::KIND_PDF, self::KIND_ZUGFERD_PDF, self::KIND_XRECHNUNG_CII, self::KIND_XRECHNUNG_UBL];
+	/** Zahlungserinnerung oder Mahnung als PDF; `profile` nennt die Stufe. */
+	public const KIND_DUNNING = 'dunning';
+	public const KINDS = [self::KIND_PDF, self::KIND_ZUGFERD_PDF, self::KIND_XRECHNUNG_CII, self::KIND_XRECHNUNG_UBL, self::KIND_DUNNING];
 
 	protected $invoiceId;
 	protected $kind;

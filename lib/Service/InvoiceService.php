@@ -650,6 +650,23 @@ class InvoiceService {
 	}
 
 	/**
+	 * Prüft Positionen so, wie der Editor sie beim Speichern prüft, ohne etwas zu speichern.
+	 * Gedacht für wiederkehrende Rechnungen, deren Positionen lange vor dem Lauf feststehen.
+	 *
+	 * @param array<int|string, mixed> $rows
+	 * @throws \InvalidArgumentException bei ungültigen Angaben oder wenn keine Position übrig bleibt
+	 */
+	public function validateLines(array $rows): void {
+		$probe = new Invoice();
+		$probe->setId(0);
+		$probe->setKind(Invoice::KIND_INVOICE);
+		$probe->setTaxMode($this->settings->taxMode());
+		if ($this->buildLines($probe, $rows) === []) {
+			throw new \InvalidArgumentException($this->msg('Mindestens eine Position ist nötig.'));
+		}
+	}
+
+	/**
 	 * @param array<int|string, mixed> $rows
 	 * @return list<InvoiceLine>
 	 */
@@ -841,7 +858,7 @@ class InvoiceService {
 	}
 
 	private function actor(): string {
-		return $this->userSession->getUser()?->getUID() ?? '?';
+		return $this->userSession->getUser()?->getUID() ?? 'system';
 	}
 
 	/** @param list<int|string> $params */

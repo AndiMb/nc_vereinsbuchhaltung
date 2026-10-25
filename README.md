@@ -100,6 +100,8 @@ Optionales Zusatzmodul (Reiter „Beiträge", erscheint automatisch sobald ein M
 - **Versand per E-Mail** mit PDF im Anhang und anpassbarer Vorlage
 - **Regelbesteuerung**: Steuersatz je Position (19 %, 7 %, 0 %, steuerfrei), Summen je Satz, Zahlung cent-genau auf Erlös- und Umsatzsteuerkonten
 - **E-Rechnung**: ZUGFeRD (EN 16931, Hybrid-PDF) und XRechnung (CII und UBL), Formatvorschlag nach Empfänger, Schemaprüfung vor dem Speichern, Beispielrechnungen in der CI gegen den KoSIT-Validator
+- **Positionsvorlagen**, **wiederkehrende Rechnungen** (Pläne mit Takt, Entwurf oder automatisches Festschreiben und Versand) und **Mahnwesen** (Erinnerung, 1. und 2. Mahnung als PDF mit GiroCode, manuell oder per Hintergrundjob)
+- **RF-Referenz (ISO 11649)** auf der Rechnung und im GiroCode, Zuordnung im Bankabgleich; Rechnungen mit Übersicht und Prüfsummen im Kassenprüfungs-ZIP
 
 ### Organisation & Sicherheit
 - **Berechtigungsrollen**: Verwalter – Buchhalter – Revisor (nur Lesen); NC-Admins sind immer Verwalter; Rollen für Nutzer und Gruppen

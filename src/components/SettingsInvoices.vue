@@ -239,6 +239,77 @@
 			</div>
 		</div>
 
+		<SettingsInvoiceTemplates :accounts="accounts" />
+
+		<div class="vbh-card">
+			<h4>{{ t('Mahnwesen') }}</h4>
+			<p class="vbh-hint">
+				{{ t('Drei Stufen: Zahlungserinnerung, 1. und 2. Mahnung. Das Mahnschreiben (PDF mit GiroCode über den Restbetrag) geht per E-Mail an den Empfänger. Mahnen kann der Verwalter in der Rechnung; wer will, lässt den täglichen Hintergrundjob fällige Stufen selbst verschicken. Bezahlte und stornierte Rechnungen werden nie gemahnt.') }}
+			</p>
+			<label class="vbh-checkrow">
+				<input v-model="form.invoice_dunning_auto" type="checkbox"> {{ t('Fällige Mahnungen automatisch per E-Mail verschicken') }}
+			</label>
+			<div class="vbh-form">
+				<label>{{ t('Erinnerung nach Fälligkeit (Tage)') }}
+					<input
+						v-model.number="form.invoice_dunning_days_1"
+						class="vbh-short"
+						type="number"
+						min="0"
+						max="365">
+				</label>
+				<label>{{ t('1. Mahnung nach der Erinnerung (Tage)') }}
+					<input
+						v-model.number="form.invoice_dunning_days_2"
+						class="vbh-short"
+						type="number"
+						min="0"
+						max="365">
+				</label>
+				<label>{{ t('2. Mahnung nach der 1. Mahnung (Tage)') }}
+					<input
+						v-model.number="form.invoice_dunning_days_3"
+						class="vbh-short"
+						type="number"
+						min="0"
+						max="365">
+				</label>
+				<label>{{ t('Zahlungsfrist im Schreiben (Tage)') }}
+					<input
+						v-model.number="form.invoice_dunning_grace_days"
+						class="vbh-short"
+						type="number"
+						min="1"
+						max="365">
+				</label>
+			</div>
+			<p class="vbh-hint">
+				{{ t('Platzhalter: {stufe}, {nummer}, {rechnungsdatum}, {betrag}, {rest}, {faellig}, {frist}, {verein}, {empfaenger}. Leer lassen für den Standardtext.') }}
+			</p>
+			<div class="vbh-form">
+				<label class="vbh-grow">{{ t('Betreff') }}
+					<input v-model="form.invoice_dunning_subject" maxlength="200" placeholder="{stufe} zu Rechnung {nummer} von {verein}">
+				</label>
+			</div>
+			<div v-for="level in [1, 2, 3]" :key="level" class="vbh-form">
+				<label class="vbh-grow">{{ dunningLabel(level) }}
+					<textarea
+						v-model="form['invoice_dunning_body_' + level]"
+						class="vbh-note-textarea"
+						rows="5"
+						maxlength="5000" />
+				</label>
+			</div>
+			<p v-if="dunningError" class="vbh-hint vbh-hint--error" role="alert">
+				{{ dunningError }}
+			</p>
+			<div class="vbh-form">
+				<NcButton variant="primary" :disabled="saving" @click="saveDunning">
+					{{ t('Speichern') }}
+				</NcButton>
+			</div>
+		</div>
+
 		<div class="vbh-card">
 			<h4>{{ t('Rechnungsnummern') }}</h4>
 			<p class="vbh-hint">
@@ -284,15 +355,25 @@ import { showError, showSuccess } from '@nextcloud/dialogs'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import CountrySelect from './CountrySelect.vue'
+import SettingsInvoiceTemplates from './SettingsInvoiceTemplates.vue'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
-import { formatNumberPattern } from '../lib/invoices.js'
+import { dunningLabel, formatNumberPattern } from '../lib/invoices.js'
 
 const KEYS = [
 	'invoice_module_active',
 	'invoice_auto_assign',
 	'invoice_einvoice_auto',
 	'invoice_rf_reference',
+	'invoice_dunning_auto',
+	'invoice_dunning_days_1',
+	'invoice_dunning_days_2',
+	'invoice_dunning_days_3',
+	'invoice_dunning_grace_days',
+	'invoice_dunning_subject',
+	'invoice_dunning_body_1',
+	'invoice_dunning_body_2',
+	'invoice_dunning_body_3',
 	'invoice_tax_mode',
 	'invoice_default_exemption_text',
 	'invoice_default_due_days',
@@ -329,7 +410,7 @@ const KEYS = [
  */
 export default {
 	name: 'SettingsInvoices',
-	components: { NcButton, NcLoadingIcon, CountrySelect },
+	components: { NcButton, NcLoadingIcon, CountrySelect, SettingsInvoiceTemplates },
 
 	data() {
 		return {
@@ -343,6 +424,7 @@ export default {
 			issuerError: '',
 			taxError: '',
 			mailError: '',
+			dunningError: '',
 			rangeErrors: {},
 		}
 	},
@@ -412,6 +494,12 @@ export default {
 		saveTax() {
 			return this.store(['invoice_tax_mode', 'invoice_vat_account_19', 'invoice_vat_account_7', 'invoice_rate_zweckbetrieb', 'invoice_rate_wirtschaftlich', 'invoice_default_due_days', 'invoice_default_exemption_text', 'invoice_account_id', 'invoice_bic', 'invoice_payment_terms', 'invoice_note_head', 'invoice_note_foot', 'invoice_folder'], 'taxError')
 		},
+
+		saveDunning() {
+			return this.store(['invoice_dunning_auto', 'invoice_dunning_days_1', 'invoice_dunning_days_2', 'invoice_dunning_days_3', 'invoice_dunning_grace_days', 'invoice_dunning_subject', 'invoice_dunning_body_1', 'invoice_dunning_body_2', 'invoice_dunning_body_3'], 'dunningError')
+		},
+
+		dunningLabel,
 
 		saveMail() { return this.store(['invoice_mail_subject', 'invoice_mail_body'], 'mailError') },
 

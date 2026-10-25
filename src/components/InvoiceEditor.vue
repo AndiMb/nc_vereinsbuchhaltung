@@ -227,6 +227,19 @@
 						</template>
 						{{ t('Position hinzufügen') }}
 					</NcButton>
+					<select
+						v-if="templates.length"
+						v-model="templatePick"
+						class="vbh-inv-tplpick"
+						:aria-label="t('Position aus Vorlage einfügen')"
+						@change="addFromTemplate">
+						<option value="">
+							{{ t('Aus Vorlage einfügen …') }}
+						</option>
+						<option v-for="tpl in templates" :key="tpl.id" :value="tpl.id">
+							{{ tpl.name }}
+						</option>
+					</select>
 				</div>
 
 				<div class="vbh-inv-totals">
@@ -371,6 +384,7 @@ import {
 	emptyLine,
 	isEmptyLine,
 	lineFromServer,
+	lineFromTemplate,
 	linesToPayload,
 	quantityToE4,
 	suggestTaxKey,
@@ -423,6 +437,8 @@ export default {
 			saveQueue: Promise.resolve(),
 			discardOpen: false,
 			issue: { open: false, busy: false, error: '' },
+			templates: [],
+			templatePick: '',
 		}
 	},
 
@@ -481,6 +497,7 @@ export default {
 	},
 
 	async mounted() {
+		this.loadTemplates()
 		await this.load()
 	},
 
@@ -686,6 +703,30 @@ export default {
 			this.$emit('close')
 		},
 
+		/** Die Vorlagen sind eine Annehmlichkeit: fehlen sie, schreibt man die Position eben von Hand. */
+		async loadTemplates() {
+			try {
+				const { data } = await api.invoiceTemplates()
+				this.templates = data
+			} catch {
+				this.templates = []
+			}
+		},
+
+		/** Fügt die gewählte Vorlage als Kopie ein; eine leere letzte Zeile wird dafür verwendet. */
+		addFromTemplate() {
+			const tpl = this.templates.find((x) => x.id === Number(this.templatePick))
+			this.templatePick = ''
+			if (!tpl) { return }
+			const line = lineFromTemplate(tpl)
+			const last = this.form.lines[this.form.lines.length - 1]
+			if (last && isEmptyLine(last)) {
+				this.form.lines.splice(this.form.lines.length - 1, 1, line)
+			} else {
+				this.form.lines.push(line)
+			}
+		},
+
 		addLine() {
 			const last = this.form.lines[this.form.lines.length - 1]
 			this.form.lines.push(emptyLine(last ? last.accountId : null, last ? last.taxKey : 'S1900'))
@@ -771,7 +812,9 @@ h3 { margin: 0 0 8px; font-size: 1em; }
 
 .vbh-inv-linkbtn { align-self: flex-start; background: none; border: 0; padding: 0; color: var(--color-primary-element); cursor: pointer; font-size: 0.85em; }
 
-.vbh-inv-linebar { margin-top: 8px; }
+.vbh-inv-linebar { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+.vbh-inv-tplpick { max-width: 260px; }
 
 .vbh-inv-totals { display: flex; flex-direction: column; align-items: flex-end; margin-top: 12px; }
 

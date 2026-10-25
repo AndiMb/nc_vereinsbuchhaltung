@@ -52,6 +52,27 @@ class InvoiceMapper extends QBMapper {
 		return $this->findEntities($qb);
 	}
 
+	/**
+	 * Festgeschriebene Rechnungen und Stornorechnungen, deren Rechnungsdatum im Zeitraum liegt
+	 * (ohne Angabe: alle), nach Nummer geordnet. Entwürfe fehlen.
+	 *
+	 * @return Invoice[]
+	 */
+	public function findIssuedBetween(?string $from, ?string $to): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')->from($this->getTableName())
+			->where($qb->expr()->isNotNull('issued_at'))
+			->orderBy('issue_date', 'ASC')
+			->addOrderBy('number', 'ASC');
+		if ($from !== null) {
+			$qb->andWhere($qb->expr()->gte('issue_date', $qb->createNamedParameter($from)));
+		}
+		if ($to !== null) {
+			$qb->andWhere($qb->expr()->lte('issue_date', $qb->createNamedParameter($to)));
+		}
+		return $this->findEntities($qb);
+	}
+
 	public function findByNumber(string $number): ?Invoice {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')->from($this->getTableName())

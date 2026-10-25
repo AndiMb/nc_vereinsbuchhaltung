@@ -301,7 +301,62 @@ export function missingEInvoiceFormats(documents) {
 	return EINVOICE_FORMATS.filter((f) => !kinds.has(EINVOICE_KIND[f]))
 }
 
-/** Dokumente, die mehr sind als das einfache PDF, also E-Rechnungen. */
+/** Dokumente, die E-Rechnungen sind (nicht das einfache PDF und nicht die Mahnschreiben). */
 export function eInvoiceDocuments(documents) {
-	return (documents || []).filter((d) => d.kind !== 'pdf')
+	const kinds = new Set(Object.values(EINVOICE_KIND))
+	return (documents || []).filter((d) => kinds.has(d.kind))
+}
+
+/** Bezeichnung der Mahnstufe: 1 Zahlungserinnerung, 2 erste, 3 zweite Mahnung. */
+export function dunningLabel(level) {
+	return { 1: t('Zahlungserinnerung'), 2: t('1. Mahnung'), 3: t('2. Mahnung') }[level] || ''
+}
+
+/** Gibt es für die Rechnung eine fällige Mahnstufe? */
+export function isDunningDue(invoice) {
+	return Boolean(invoice?.dunning?.due)
+}
+
+/** Takte wiederkehrender Rechnungen in Monaten. */
+export const PLAN_INTERVALS = [1, 3, 6, 12]
+
+export function planIntervalLabel(months) {
+	return { 1: t('monatlich'), 3: t('vierteljährlich'), 6: t('halbjährlich'), 12: t('jährlich') }[months] || t('alle {months} Monate', { months })
+}
+
+/**
+ * Positionen einer Rechnung in der Form, die der Server für Entwürfe und Pläne annimmt
+ * (Menge als Text, Rabatt in Prozent, Steuer als Kategorie und Satz).
+ */
+export function planLinesFromInvoice(invoice) {
+	return (invoice.lines || []).map((l) => ({
+		name: l.name,
+		description: l.description || '',
+		quantity: formatQuantity(l.quantityE4),
+		unitCode: l.unitCode,
+		unitPriceCents: l.unitPriceCents,
+		discountPercent: l.discountBp ? String(l.discountBp / 100).replace('.', ',') : '',
+		accountId: l.accountId,
+		taxCategory: l.taxCategory,
+		taxRateBp: l.taxRateBp,
+	}))
+}
+
+/** Tage zwischen Rechnungsdatum und Zahlungsziel; null, wenn eines fehlt. */
+export function dueDaysOf(invoice) {
+	if (!invoice.issueDate || !invoice.dueDate) { return null }
+	const [y1, m1, d1] = invoice.issueDate.split('-').map(Number)
+	const [y2, m2, d2] = invoice.dueDate.split('-').map(Number)
+	return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000)
+}
+
+/** Zeile des Editors aus einer Positionsvorlage: eine Kopie, die nicht mehr an die Vorlage hängt. */
+export function lineFromTemplate(template) {
+	const line = emptyLine(template.accountId ?? null, taxKeyOf(template.taxCategory, template.taxRateBp))
+	line.name = template.name
+	line.description = template.description || ''
+	line.unitCode = template.unitCode
+	line.unitPrice = template.unitPriceCents === 0 ? '' : template.unitPriceCents / 100
+	line.taxTouched = true
+	return line
 }

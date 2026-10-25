@@ -2492,6 +2492,40 @@ Since 2025 businesses must be able to **receive** e-invoices; **issuing** them i
 - **Sending:** the send dialog can attach existing e-invoices. A ZUGFeRD PDF replaces the plain PDF, XRechnung XML is attached in addition. Authorities usually receive XRechnungen through a portal; download the XML file for that.
 - **Credit note:** it is created as a credit note document (type 381) referring to the original invoice.
 
+### 15.11 Line item templates
+
+*Nextcloud settings → Vereinsbuchhaltung → Invoices → Line item templates* (administrator): create recurring services such as "Hall rental" or "Course fee" once, with description, unit, price, revenue account and tax. In the invoice editor, **Insert from template …** below the line items adds the chosen template as a **copy**; price, quantity and text stay editable afterwards, and later changes to the template do not affect existing invoices. Bookkeepers can use the templates but not change them.
+
+### 15.12 Recurring invoices
+
+For services at a fixed interval (hall rental, sponsoring, annual fee) a **plan** creates the invoices by itself. You create a plan from an existing invoice: in its details click **Recurring …** (administrator). Recipient, line items and texts come from that invoice; you choose:
+
+- **Interval:** monthly, quarterly, half-yearly or yearly, with **first invoice on** and an optional **end**. Dates are always counted from the start; the 31st becomes the 28th or 29th in February but goes back to the 31st afterwards.
+- **Service period:** the period of the interval that starts with the invoice (for a monthly invoice on 1 June that is 1 to 30 June), or service date equal to invoice date.
+- **Payment term** in days (empty = default from the settings).
+- **Finalizing and sending:** Without the tick the plan creates **drafts** that you check and finalize. With **Finalize the invoice right away** the plan finalizes, creates the PDF and e-invoice and can **send the invoice by email**. If details are missing when finalizing, the draft stays and the plan states the reason in its overview.
+
+In names and texts the run replaces `{monat}`, `{jahr}`, `{quartal}` and `{zeitraum}`: "Hall rental {monat} {jahr}" becomes "Hall rental June 2027".
+
+The overview opens with **Recurring** at the top of the invoice list: interval, next date, last run with a link to the invoice, errors. Plans can be **edited**, **paused** and **deleted** (invoices already created remain). A paused or newly created plan **does not catch up on past dates**; it starts with the next date from today. To change the line items of a plan, create a new plan from a corrected invoice and delete the old one. The Nextcloud background job checks hourly; **Run due plans now** triggers it by hand.
+
+### 15.13 Dunning
+
+Invoices that are unpaid after the payment term are dunned in **three stages**: **payment reminder**, **1st dunning letter** and **2nd dunning letter** (final). Every stage is a **dunning letter as a PDF** with the open invoice and a **GiroCode for the remaining amount**, sent by email and stored unchangeably like the invoice.
+
+- **Deadlines:** the reminder is due 7 days after the payment term, the 1st dunning letter 14 days after the reminder, the 2nd 14 days after the 1st. You set all deadlines and the payment deadline in the letter (7 days) under **Dunning** in the settings, and the subject and text per stage. Placeholders: `{stufe}`, `{nummer}`, `{rechnungsdatum}`, `{betrag}`, `{rest}`, `{faellig}`, `{frist}`, `{verein}`, `{empfaenger}`.
+- **In the list** an invoice shows its **dunning stage** and **Dunning due**; the filter **Dunning due** collects them.
+- **Dun** (administrator): in the details click **Dun …**. The dialog suggests the next stage, address, subject and text; everything can be changed before sending. A stage cannot be repeated but can be skipped. The history is in the **Reminders and dunning letters** section, the PDFs are with the documents.
+- **Automatic:** With **Send due dunning letters automatically by email** (off until you turn it on) the daily background job sends due stages by itself. Invoices whose recipient has no email address are skipped; they stay in the list as "Dunning due".
+- **Locks:** paid, cancelled and not yet due invoices, credit notes and drafts are never dunned. Partial payments reduce the amount in the letter. After the 2nd dunning letter the app stops; the association decides how to proceed (court order, waiver).
+
+The app does not calculate dunning fees or default interest and does not give legal advice: texts and deadlines should suit your association.
+
+### 15.14 Payment reference (RF) and audit
+
+- **RF reference (ISO 11649):** On request (setting, on by default) the invoice prints a **structured payment reference** such as `RF18 RE20 2600 42` next to the payment reference. It contains the invoice number and two check digits and is part of the **GiroCode**. The bank matching recognizes it as the most reliable feature: if the reference is in the payment reference field and the amount matches, the import books by itself, even if the payer inserted spaces.
+- **Audit:** with the invoice module on, the receipts ZIP (button "Beleg-ZIP" in *Reports → Evaluation*, chapter 9.2) contains the folder `rechnungen/`: one subfolder per invoice with all documents (PDF, ZUGFeRD PDF, XRechnung XML, dunning letters), plus `uebersicht.csv` (number, date, recipient, net, tax, gross, paid, open, status, dunning stage) and `pruefsummen.txt` with the SHA-256 of every file and the finding `ok`, `changed` or `missing`. The invoices of a period are chosen by invoice date.
+
 ---
 
 *As of app version 0.35.0. For questions, contact your administrator.*

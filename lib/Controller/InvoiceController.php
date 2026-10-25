@@ -14,6 +14,7 @@ use OCA\Vereinsbuchhaltung\Service\EInvoice\EInvoiceException;
 use OCA\Vereinsbuchhaltung\Service\EInvoice\EInvoiceFormat;
 use OCA\Vereinsbuchhaltung\Service\EInvoice\EInvoiceService;
 use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceDocumentService;
+use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceDunningService;
 use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceMailService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceMatchingService;
 use OCA\Vereinsbuchhaltung\Service\InvoicePaymentService;
@@ -59,6 +60,7 @@ class InvoiceController extends Controller {
 		private InvoiceDocumentService $documents,
 		private InvoiceMailService $mail,
 		private EInvoiceService $eInvoice,
+		private InvoiceDunningService $dunning,
 		private BankTransactionMapper $txMapper,
 		private IL10N $l10n,
 	) {
@@ -68,7 +70,7 @@ class InvoiceController extends Controller {
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_READ)]
 	public function index(?string $status = null, ?int $year = null, ?int $debtorId = null): DataResponse {
-		return new DataResponse($this->service->list($status, $year, $debtorId));
+		return new DataResponse($this->dunning->annotate($this->service->list($status, $year, $debtorId)));
 	}
 
 	/** Auswahlwerte und Voreinstellungen für den Editor. */
@@ -345,6 +347,35 @@ class InvoiceController extends Controller {
 		}
 	}
 
+	/** Vorgaben für den Mahndialog: Stufe, Empfängeradresse, Betreff und Text. */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_READ)]
+	public function dunningDefaults(int $id, ?int $level = null): DataResponse {
+		try {
+			return new DataResponse($this->dunning->defaults($id, $level));
+		} catch (DoesNotExistException) {
+			return $this->notFound();
+		} catch (\InvalidArgumentException $e) {
+			return $this->bad($e);
+		}
+	}
+
+	/** Mahnt die Rechnung: Mahnschreiben als PDF mit GiroCode, per E-Mail. */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	public function dun(int $id, string $to, ?string $subject = null, ?string $body = null, ?int $level = null): DataResponse {
+		try {
+			$this->dunning->send($id, $to, $subject, $body, $level);
+			return new DataResponse($this->detail($id));
+		} catch (DoesNotExistException) {
+			return $this->notFound();
+		} catch (\InvalidArgumentException $e) {
+			return $this->bad($e);
+		} catch (\RuntimeException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_GATEWAY);
+		}
+	}
+
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_READ)]
 	public function numberRanges(): DataResponse {
@@ -370,6 +401,7 @@ class InvoiceController extends Controller {
 	private function detail(int $id): array {
 		$detail = $this->service->detail($id);
 		$detail['documents'] = $this->documents->listWithIntegrity($id);
+		$detail['dunning'] = $this->dunning->forDetail($detail);
 		if ($detail['status'] !== Invoice::STATUS_DRAFT) {
 			$detail['eInvoice'] = [
 				'suggested' => EInvoiceFormat::suggestFor($detail['debtor']['kind'] ?? null),

@@ -27,6 +27,15 @@ class InvoiceSettings {
 	public const SETTING_AUTO_ASSIGN = 'invoice_auto_assign';
 	public const SETTING_EINVOICE_AUTO = 'invoice_einvoice_auto';
 	public const SETTING_RF_REFERENCE = 'invoice_rf_reference';
+	public const SETTING_DUNNING_AUTO = 'invoice_dunning_auto';
+	public const SETTING_DUNNING_GRACE_DAYS = 'invoice_dunning_grace_days';
+	public const SETTING_DUNNING_SUBJECT = 'invoice_dunning_subject';
+	/** Tage bis zur Stufe 1/2/3: nach dem Zahlungsziel, nach der Erinnerung, nach der 1. Mahnung. */
+	public const SETTING_DUNNING_DAYS = [1 => 'invoice_dunning_days_1', 2 => 'invoice_dunning_days_2', 3 => 'invoice_dunning_days_3'];
+	public const SETTING_DUNNING_BODY = [1 => 'invoice_dunning_body_1', 2 => 'invoice_dunning_body_2', 3 => 'invoice_dunning_body_3'];
+	public const DUNNING_DEFAULT_DAYS = [1 => 7, 2 => 14, 3 => 14];
+	public const DUNNING_DEFAULT_GRACE_DAYS = 7;
+	public const MAX_DUNNING_DAYS = 365;
 	public const SETTING_TAX_MODE = 'invoice_tax_mode';
 	public const SETTING_EXEMPTION_TEXT = 'invoice_default_exemption_text';
 	public const SETTING_DUE_DAYS = 'invoice_default_due_days';
@@ -105,6 +114,33 @@ class InvoiceSettings {
 	/** Druckt die Rechnung eine strukturierte Zahlungsreferenz (ISO 11649) und trägt sie in den GiroCode ein? */
 	public function rfReference(): bool {
 		return $this->get(self::SETTING_RF_REFERENCE, '1') === '1';
+	}
+
+	/** Mahnt der tägliche Hintergrundjob fällige Rechnungen selbst? Aus, bis der Verein es einschaltet. */
+	public function dunningAuto(): bool {
+		return $this->get(self::SETTING_DUNNING_AUTO, '0') === '1';
+	}
+
+	/**
+	 * Tage, nach denen die Mahnstufe fällig wird: Stufe 1 nach dem Zahlungsziel,
+	 * Stufe 2 nach der Erinnerung, Stufe 3 nach der ersten Mahnung.
+	 *
+	 * @return array{1: int, 2: int, 3: int}
+	 */
+	public function dunningDays(): array {
+		$out = [];
+		foreach (self::SETTING_DUNNING_DAYS as $level => $key) {
+			$raw = $this->get($key, '');
+			$out[$level] = $raw === '' ? self::DUNNING_DEFAULT_DAYS[$level] : max(0, min(self::MAX_DUNNING_DAYS, (int)$raw));
+		}
+		/** @var array{1: int, 2: int, 3: int} $out */
+		return $out;
+	}
+
+	/** Frist, die das Schreiben für die Zahlung setzt (Tage nach dem Datum des Schreibens). */
+	public function dunningGraceDays(): int {
+		$raw = $this->get(self::SETTING_DUNNING_GRACE_DAYS, '');
+		return $raw === '' ? self::DUNNING_DEFAULT_GRACE_DAYS : max(1, min(self::MAX_DUNNING_DAYS, (int)$raw));
 	}
 
 	public function taxMode(): string {
@@ -226,6 +262,15 @@ class InvoiceSettings {
 			self::SETTING_AUTO_ASSIGN => $this->autoAssign(),
 			self::SETTING_EINVOICE_AUTO => $this->eInvoiceAuto(),
 			self::SETTING_RF_REFERENCE => $this->rfReference(),
+			self::SETTING_DUNNING_AUTO => $this->dunningAuto(),
+			self::SETTING_DUNNING_GRACE_DAYS => $this->dunningGraceDays(),
+			self::SETTING_DUNNING_SUBJECT => $this->get(self::SETTING_DUNNING_SUBJECT),
+			'invoice_dunning_days_1' => $this->dunningDays()[1],
+			'invoice_dunning_days_2' => $this->dunningDays()[2],
+			'invoice_dunning_days_3' => $this->dunningDays()[3],
+			'invoice_dunning_body_1' => $this->get(self::SETTING_DUNNING_BODY[1]),
+			'invoice_dunning_body_2' => $this->get(self::SETTING_DUNNING_BODY[2]),
+			'invoice_dunning_body_3' => $this->get(self::SETTING_DUNNING_BODY[3]),
 			self::SETTING_TAX_MODE => $this->taxMode(),
 			self::SETTING_VAT_ACCOUNT_19 => $this->vatAccountId(1900),
 			self::SETTING_VAT_ACCOUNT_7 => $this->vatAccountId(700),
@@ -269,6 +314,23 @@ class InvoiceSettings {
 
 		if (array_key_exists(self::SETTING_AUTO_ASSIGN, $params)) {
 			$writes[self::SETTING_AUTO_ASSIGN] = (string)$params[self::SETTING_AUTO_ASSIGN] === '1' ? '1' : '0';
+		}
+
+		if (array_key_exists(self::SETTING_DUNNING_AUTO, $params)) {
+			$writes[self::SETTING_DUNNING_AUTO] = (string)$params[self::SETTING_DUNNING_AUTO] === '1' ? '1' : '0';
+		}
+
+		$dayFields = array_merge(self::SETTING_DUNNING_DAYS, [0 => self::SETTING_DUNNING_GRACE_DAYS]);
+		foreach ($dayFields as $level => $key) {
+			if (!array_key_exists($key, $params)) {
+				continue;
+			}
+			$days = (int)$params[$key];
+			$min = $level === 0 ? 1 : 0;
+			if ($days < $min || $days > self::MAX_DUNNING_DAYS) {
+				return $this->msg('Die Tage für das Mahnwesen müssen zwischen %1$d und %2$d liegen.', [$min, self::MAX_DUNNING_DAYS]);
+			}
+			$writes[$key] = (string)$days;
 		}
 
 		if (array_key_exists(self::SETTING_RF_REFERENCE, $params)) {
@@ -331,6 +393,10 @@ class InvoiceSettings {
 			self::SETTING_NOTE_FOOT => 2000,
 			self::SETTING_MAIL_SUBJECT => 200,
 			self::SETTING_MAIL_BODY => 5000,
+			self::SETTING_DUNNING_SUBJECT => 200,
+			self::SETTING_DUNNING_BODY[1] => 5000,
+			self::SETTING_DUNNING_BODY[2] => 5000,
+			self::SETTING_DUNNING_BODY[3] => 5000,
 		];
 		foreach ($textFields as $key => $max) {
 			if (!array_key_exists($key, $params)) {

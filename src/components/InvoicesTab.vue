@@ -25,6 +25,12 @@
 					</button>
 				</div>
 				<div v-if="canWrite" class="vbh-sectiontop-actions">
+					<NcButton variant="tertiary" @click="plans.open = true">
+						<template #icon>
+							<NcIconSvgWrapper :path="mdiCalendarSync" :size="20" />
+						</template>
+						{{ t('Wiederkehrend') }}
+					</NcButton>
 					<NcButton variant="primary" @click="newInvoice">
 						<template #icon>
 							<NcIconSvgWrapper :path="mdiPlus" :size="20" />
@@ -123,6 +129,14 @@
 								</td>
 								<td>
 									<span :class="statusClass(inv)">{{ displayStatusLabel(inv) }}</span>
+									<span
+										v-if="inv.dunning && inv.dunning.level > 0"
+										class="vbh-inv-dunlevel"
+										:title="dunningLabel(inv.dunning.level)">{{ inv.dunning.level }}. {{ t('Mahnstufe') }}</span>
+									<span
+										v-if="inv.dunning && inv.dunning.due"
+										class="vbh-inv-dundue"
+										:title="t('Die nächste Mahnstufe ist fällig.')">{{ t('Mahnung fällig') }}</span>
 								</td>
 							</tr>
 						</tbody>
@@ -133,6 +147,16 @@
 				</div>
 			</div>
 		</template>
+
+		<InvoicePlansDialog
+			v-if="plans.open"
+			:show="plans.open"
+			:isAdmin="isAdmin"
+			:invoices="invoices"
+			@close="plans.open = false"
+			@update:show="plans.open = $event"
+			@changed="loadInvoices"
+			@open="openFromPlans" />
 
 		<InvoiceDetail
 			v-if="detail.open"
@@ -150,16 +174,17 @@
 </template>
 
 <script>
-import { mdiPlus } from '@mdi/js'
+import { mdiCalendarSync, mdiPlus } from '@mdi/js'
 import { showError } from '@nextcloud/dialogs'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import InvoiceDetail from './InvoiceDetail.vue'
 import InvoiceEditor from './InvoiceEditor.vue'
+import InvoicePlansDialog from './InvoicePlansDialog.vue'
 import api from '../api.js'
 import { errMsg, formatDate, formatMoney } from '../lib/format.js'
-import { displayStatus, displayStatusLabel, statusClass } from '../lib/invoices.js'
+import { displayStatus, displayStatusLabel, dunningLabel, isDunningDue, statusClass } from '../lib/invoices.js'
 
 /**
  * Reiter „Rechnungen" (Epic #168): Liste mit Filtern, Editor für Entwürfe und
@@ -169,7 +194,7 @@ import { displayStatus, displayStatusLabel, statusClass } from '../lib/invoices.
  */
 export default {
 	name: 'InvoicesTab',
-	components: { NcButton, NcIconSvgWrapper, NcLoadingIcon, InvoiceEditor, InvoiceDetail },
+	components: { NcButton, NcIconSvgWrapper, NcLoadingIcon, InvoiceEditor, InvoiceDetail, InvoicePlansDialog },
 	props: {
 		isMobile: { type: Boolean, default: false },
 		canWrite: { type: Boolean, default: false },
@@ -185,7 +210,7 @@ export default {
 	emits: ['update:invoiceId', 'changed'],
 
 	setup() {
-		return { mdiPlus }
+		return { mdiCalendarSync, mdiPlus }
 	},
 
 	data() {
@@ -200,6 +225,7 @@ export default {
 			editId: null,
 			editKey: 0,
 			detail: { open: false, id: null },
+			plans: { open: false },
 		}
 	},
 
@@ -212,15 +238,16 @@ export default {
 				{ id: 'draft', label: this.t('Entwürfe') },
 				{ id: 'open', label: this.t('Offen') },
 				{ id: 'overdue', label: this.t('Überfällig') },
+				{ id: 'dunning', label: this.t('Mahnung fällig') },
 				{ id: 'paid', label: this.t('Bezahlt') },
 				{ id: 'cancelled', label: this.t('Storniert') },
 			]
 		},
 
 		counts() {
-			const c = { all: this.invoices.length, draft: 0, open: 0, overdue: 0, paid: 0, cancelled: 0 }
+			const c = { all: this.invoices.length, draft: 0, open: 0, overdue: 0, dunning: 0, paid: 0, cancelled: 0 }
 			for (const inv of this.invoices) {
-				for (const f of ['draft', 'open', 'overdue', 'paid', 'cancelled']) {
+				for (const f of ['draft', 'open', 'overdue', 'dunning', 'paid', 'cancelled']) {
 					if (this.matchesFilter(inv, f)) { c[f]++ }
 				}
 			}
@@ -284,6 +311,7 @@ export default {
 		formatDate,
 		formatMoney,
 		displayStatusLabel,
+		dunningLabel,
 		statusClass,
 
 		matchesFilter(inv, filter) {
@@ -293,6 +321,7 @@ export default {
 				case 'draft': return inv.status === 'draft'
 				case 'open': return ['issued', 'sent', 'partial', 'overdue'].includes(s) && inv.kind !== 'storno'
 				case 'overdue': return s === 'overdue'
+				case 'dunning': return isDunningDue(inv)
 				case 'paid': return inv.status === 'paid'
 				case 'cancelled': return inv.status === 'cancelled' || inv.kind === 'storno'
 				default: return true
@@ -354,6 +383,11 @@ export default {
 			this.openById(inv.id)
 		},
 
+		openFromPlans(id) {
+			this.plans.open = false
+			this.openById(id)
+		},
+
 		openById(id) {
 			this.detail = { open: true, id }
 			this.$emit('update:invoiceId', id)
@@ -385,6 +419,10 @@ export default {
 .vbh-inv-row:hover, .vbh-inv-row:focus-visible { background: var(--color-background-hover); }
 
 .vbh-inv-who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.vbh-inv-dunlevel, .vbh-inv-dundue { margin-inline-start: 6px; font-size: 0.8em; white-space: nowrap; }
+
+.vbh-inv-dundue { color: var(--color-error-text, inherit); font-weight: 700; }
 
 .vbh-inv-late { color: var(--color-error-text, inherit); font-weight: 600; }
 

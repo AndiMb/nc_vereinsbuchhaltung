@@ -2,17 +2,22 @@ import { describe, expect, it } from 'vitest'
 import {
 	addDays,
 	displayStatus,
+	dueDaysOf,
 	editorLineNet,
 	editorTotals,
 	eInvoiceDocuments,
 	emptyLine,
 	formatNumberPattern,
 	formatQuantity,
+	isDunningDue,
 	isEmptyLine,
+	lineFromTemplate,
 	lineNet,
 	linesToPayload,
 	missingEInvoiceFormats,
 	parseDecimal,
+	planIntervalLabel,
+	planLinesFromInvoice,
 	quantityToE4,
 	roundDiv,
 	suggestTaxKey,
@@ -197,6 +202,41 @@ describe('E-Rechnung', () => {
 		expect(missingEInvoiceFormats(undefined)).toHaveLength(3)
 	})
 	it('trennt E-Rechnungen vom einfachen PDF', () => {
-		expect(eInvoiceDocuments([{ kind: 'pdf' }, { kind: 'xrechnung_ubl' }])).toEqual([{ kind: 'xrechnung_ubl' }])
+		expect(eInvoiceDocuments([{ kind: 'pdf' }, { kind: 'dunning' }, { kind: 'xrechnung_ubl' }])).toEqual([{ kind: 'xrechnung_ubl' }])
+	})
+})
+
+describe('Positionsvorlagen', () => {
+	it('übernimmt eine Vorlage als Kopie in eine Editor-Zeile', () => {
+		const line = lineFromTemplate({ name: 'Hallenmiete', description: 'pro Stunde', unitCode: 'HUR', unitPriceCents: 4550, taxCategory: 'S', taxRateBp: 700, accountId: 8 })
+		expect(line).toMatchObject({ name: 'Hallenmiete', description: 'pro Stunde', unitCode: 'HUR', unitPrice: 45.5, accountId: 8, taxKey: 'S700', quantity: '1', taxTouched: true })
+		expect(editorLineNet(line)).toBe(4550)
+	})
+	it('lässt den Preis bei einer Vorlage ohne Preis leer', () => {
+		expect(lineFromTemplate({ name: 'Spende', unitCode: 'LS', unitPriceCents: 0, taxCategory: 'E', taxRateBp: 0, accountId: null })).toMatchObject({ unitPrice: '', taxKey: 'E', accountId: null })
+	})
+})
+
+describe('Wiederkehrende Rechnungen', () => {
+	it('bereitet die Positionen einer Rechnung für den Plan auf', () => {
+		const lines = planLinesFromInvoice({ lines: [{ name: 'Miete', description: null, quantityE4: 15000, unitCode: 'MON', unitPriceCents: 12000, discountBp: 1050, accountId: 4, taxCategory: 'S', taxRateBp: 1900 }] })
+		expect(lines).toEqual([{ name: 'Miete', description: '', quantity: '1,5', unitCode: 'MON', unitPriceCents: 12000, discountPercent: '10,5', accountId: 4, taxCategory: 'S', taxRateBp: 1900 }])
+	})
+	it('liest das Zahlungsziel in Tagen aus der Rechnung', () => {
+		expect(dueDaysOf({ issueDate: '2026-03-05', dueDate: '2026-03-19' })).toBe(14)
+		expect(dueDaysOf({ issueDate: '2026-12-20', dueDate: '2027-01-03' })).toBe(14)
+		expect(dueDaysOf({ issueDate: '2026-03-05' })).toBeNull()
+	})
+	it('benennt den Takt', () => {
+		expect(planIntervalLabel(1)).toBe('monatlich')
+		expect(planIntervalLabel(12)).toBe('jährlich')
+	})
+})
+
+describe('Mahnwesen', () => {
+	it('erkennt eine fällige Mahnstufe', () => {
+		expect(isDunningDue({ dunning: { due: true } })).toBe(true)
+		expect(isDunningDue({ dunning: { due: false } })).toBe(false)
+		expect(isDunningDue({})).toBe(false)
 	})
 })

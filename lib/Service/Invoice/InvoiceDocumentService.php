@@ -112,6 +112,19 @@ class InvoiceDocumentService {
 		return $out;
 	}
 
+	/**
+	 * Das Mahnschreiben (Zahlungserinnerung oder Mahnung) zur Rechnung als PDF, abgelegt
+	 * wie die Rechnung. Anders als die Rechnung entsteht je Mahnung ein neues Dokument.
+	 *
+	 * @throws \RuntimeException wenn PDF-Erzeugung oder Ablage scheitern
+	 */
+	public function createDunningLetter(Invoice $invoice, int $level, string $body, int $remainingCents, string $letterDate): InvoiceDocument {
+		$bytes = $this->renderer->renderDunning($this->pdfData($invoice, false), $level, $body, $remainingCents, $letterDate);
+		$doc = $this->storage->store($invoice, InvoiceDocument::KIND_DUNNING, $bytes, 'pdf', $this->renderer->dunningTitle($level), '-mahnung-' . $level);
+		$this->audit->log('Mahnschreiben erzeugt', 'invoice', (int)$invoice->getId(), ['number' => $invoice->getNumber(), 'level' => $level, 'sha256' => $doc->getSha256()]);
+		return $doc;
+	}
+
 	/** Die Angaben der festgeschriebenen Rechnung für die E-Rechnung. */
 	public function eInvoiceData(Invoice $invoice): EInvoiceData {
 		$data = $this->pdfData($invoice, false);

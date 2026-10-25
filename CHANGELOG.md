@@ -53,6 +53,20 @@ verwenden, z. B. `**Neu:**`.
   Prüfsumme ab und hängt es auf Wunsch an die Mail. Grundlage ist die
   Bibliothek `horstoeko/invoicesuite`; in der CI prüft der offizielle
   KoSIT-Validator die Beispielrechnungen gegen XRechnung 3.0.
+- **Positionsvorlagen.** Wiederkehrende Leistungen einmal anlegen (Einheit,
+  Preis, Erlöskonto, Steuer); der Editor fügt sie als Kopie ein.
+- **Wiederkehrende Rechnungen.** Ein Plan legt im Takt (monatlich bis jährlich)
+  Entwürfe an, auf Wunsch schreibt er sie fest und verschickt sie. Platzhalter
+  `{monat}`, `{jahr}`, `{quartal}`, `{zeitraum}`; Pausieren und Übersicht mit
+  letztem Lauf und Fehlern.
+- **Mahnwesen für Rechnungen.** Zahlungserinnerung, 1. und 2. Mahnung als
+  PDF mit GiroCode über den Restbetrag, per E-Mail, mit Fristen und Texten in
+  den Einstellungen. Mahnstufe und „Mahnung fällig" in der Liste; auf Wunsch
+  mahnt der tägliche Hintergrundjob selbst (standardmäßig aus).
+- **RF-Referenz (ISO 11649)** auf der Rechnung und im GiroCode; der
+  Bankabgleich erkennt sie als sicherstes Merkmal.
+- **Kassenprüfung:** Das Beleg-ZIP enthält die Rechnungen samt Dokumenten,
+  Übersicht (CSV) und Prüfsummen.
 
 **Geändert:**
 - **Mindestversion: Nextcloud 33 und PHP 8.2.** Nextcloud 31 und 32 sind am

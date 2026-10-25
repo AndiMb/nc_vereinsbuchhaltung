@@ -101,6 +101,8 @@ An optional add-on module (the "Contributions" tab, appears automatically once a
 - **Sending by email** with the PDF attached and an adjustable template
 - **Standard taxation**: tax rate per line item (19 %, 7 %, 0 %, exempt), totals per rate, payments to the cent over revenue and VAT accounts
 - **E-invoice**: ZUGFeRD (EN 16931, hybrid PDF) and XRechnung (CII and UBL), format suggested by recipient, schema check before storing, sample invoices checked in CI with the KoSIT validator
+- **Line item templates**, **recurring invoices** (plans with interval, draft or automatic finalizing and sending) and **dunning** (reminder, 1st and 2nd dunning letter as a PDF with GiroCode, manual or by background job)
+- **RF reference (ISO 11649)** on the invoice and in the GiroCode, matching in the bank reconciliation; invoices with overview and checksums in the audit ZIP
 
 ### Organization & security
 - **Permission roles**: administrator – bookkeeper – auditor (read-only); Nextcloud admins are always administrators; roles for users and groups
