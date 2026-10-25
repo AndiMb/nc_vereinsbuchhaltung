@@ -71,7 +71,7 @@ jobs:
           tools: composer, phpunit:10.5
           # gd seit Issue #73 fuer chillerlan/php-qrcode (GiroCode-PNG-Anhang)
           # explizit angefordert statt auf das setup-php-Standardbild zu vertrauen.
-          extensions: gd
+          extensions: gd, zip
           coverage: none
 
       - name: Syntaxpruefung aller PHP-Dateien
@@ -101,6 +101,70 @@ jobs:
 
       - name: PHPUnit
         run: phpunit --configuration phpunit.xml
+
+  e-rechnung:
+    # Prueft erzeugte E-Rechnungen (ZUGFeRD/Factur-X EN 16931, XRechnung CII und UBL, jeweils
+    # Rechnung, Kleinunternehmer und Storno) mit dem offiziellen KoSIT-Validator gegen die
+    # Schematron-Regeln von EN 16931 und XRechnung. Das Schema allein (Unit-Tests) faengt
+    # nicht, was die Regeln pruefen, etwa BR-CO-26 (Verkaeuferkennung) oder die Summen.
+    # Versionen von Validator und Konfiguration stehen hier fest; wer sie anhebt, prueft die
+    # Konfiguration auf die aktuelle XRechnung-Version.
+    name: E-Rechnung (KoSIT-Validator)
+    runs-on: ubuntu-latest
+    env:
+      KOSIT_VALIDATOR_URL: https://github.com/itplr-kosit/validator/releases/download/v1.6.2/validator-1.6.2-standalone.jar
+      KOSIT_CONFIG_URL: https://github.com/itplr-kosit/validator-configuration-xrechnung/releases/download/v2026-01-31/xrechnung-3.0.2-validator-configuration-2026-01-31.zip
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer, phpunit:10.5
+          extensions: gd, zip
+          coverage: none
+
+      - name: App-Abhaengigkeiten installieren
+        run: composer install --no-interaction --no-progress
+
+      - name: OCP-Stubs holen
+        run: composer install --working-dir=.phpstan --no-dev --no-interaction --no-progress
+
+      - name: Beispielrechnungen erzeugen
+        env:
+          EINVOICE_DUMP_DIR: ${{ runner.temp }}/einvoice
+        run: phpunit --configuration phpunit.xml --filter testBeispieleFuerDieExternePruefungSchreiben
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: KoSIT-Validator und XRechnung-Konfiguration holen
+        run: |
+          set -e
+          mkdir -p "$RUNNER_TEMP/kosit/config"
+          curl -fsSL -o "$RUNNER_TEMP/kosit/validator.jar" "$KOSIT_VALIDATOR_URL"
+          curl -fsSL -o "$RUNNER_TEMP/kosit/config.zip" "$KOSIT_CONFIG_URL"
+          unzip -q "$RUNNER_TEMP/kosit/config.zip" -d "$RUNNER_TEMP/kosit/config"
+
+      - name: Beispielrechnungen pruefen
+        run: |
+          set -e
+          mkdir -p "$RUNNER_TEMP/kosit/out"
+          java -jar "$RUNNER_TEMP/kosit/validator.jar" \
+            -s "$RUNNER_TEMP/kosit/config/scenarios.xml" \
+            -r "$RUNNER_TEMP/kosit/config" \
+            -o "$RUNNER_TEMP/kosit/out" \
+            -p "$RUNNER_TEMP/einvoice"
+
+      - name: Pruefberichte sichern
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: kosit-pruefberichte
+          path: ${{ runner.temp }}/kosit/out
+          retention-days: 14
 
   static-analysis:
     name: PHPStan
