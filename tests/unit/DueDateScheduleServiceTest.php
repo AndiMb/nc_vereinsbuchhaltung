@@ -156,6 +156,105 @@ class DueDateScheduleServiceTest extends TestCase {
 		$this->assertSame('2026-06-30', $end);
 	}
 
+	public function testUeberholenNurImNichtSchaltjahrWirdAuchAbgelehnt(): void {
+		// Monatlich, Februar (Index 1) 28 Tage nach Periodenbeginn: im Schaltjahr der
+		// 29. Februar, sonst der 1. März – derselbe Tag wie der Einzug für März. Die
+		// Prüfung spielte früher nur das Jahr 2000 (Schaltjahr) durch und ließ das zu.
+		$this->expectException(\InvalidArgumentException::class);
+		$this->expectExceptionMessage('überholen');
+		$this->service()->setOverride(1, 1, 28);
+	}
+
+	public function testSetScheduleSpeichertStandardUndUeberschreibungenZusammen(): void {
+		// Vierteljährlich: das 1. Quartal fährt dank Überschreibung erst am 22. März.
+		// Ziel: Standard -30 Tage (2. Quartal also am 2. März), 1. Quartal zurück auf
+		// Periodenbeginn. Einzeln, Standard zuerst, überholte das 2. Quartal das
+		// 1. – zusammen ist der Terminplan gültig.
+		$service = $this->service();
+		$service->setOverride(3, 0, 80);
+		try {
+			$service->setDefaultOffsetDays(3, -30);
+			$this->fail('Der Zwischenstand hätte überholen müssen.');
+		} catch (\InvalidArgumentException) {
+		}
+
+		$service->setSchedule(3, -30, ['0' => 0]);
+		$this->assertSame(-30, $service->getDefaultOffsetDays(3));
+		$this->assertSame([0 => 0], $service->getOverrides(3));
+		$this->assertSame('2026-03-02', $service->dueDateForPeriod(3, '2026-04-01'));
+	}
+
+	public function testSetScheduleLehntUngueltigenPeriodenindexAbUndSpeichertNichts(): void {
+		$service = $this->service();
+		try {
+			$service->setSchedule(6, 5, [2 => 0]);
+			$this->fail('Turnus 6 hat nur die Periodenindizes 0 und 1.');
+		} catch (\InvalidArgumentException) {
+		}
+		$this->assertSame(0, $service->getDefaultOffsetDays(6));
+	}
+
+	public function testPreviewLiefertDiePeriodenDesBeitragsjahrsMitTermin(): void {
+		$service = $this->service();
+		$preview = $service->preview(3, 14, [1 => 31], 2027);
+
+		$this->assertSame([
+			['periodIndex' => 0, 'start' => '2027-01-01', 'end' => '2027-03-31', 'offsetDays' => 14, 'overridden' => false, 'dueDate' => '2027-01-15'],
+			['periodIndex' => 1, 'start' => '2027-04-01', 'end' => '2027-06-30', 'offsetDays' => 31, 'overridden' => true, 'dueDate' => '2027-05-02'],
+			['periodIndex' => 2, 'start' => '2027-07-01', 'end' => '2027-09-30', 'offsetDays' => 14, 'overridden' => false, 'dueDate' => '2027-07-15'],
+			['periodIndex' => 3, 'start' => '2027-10-01', 'end' => '2027-12-31', 'offsetDays' => 14, 'overridden' => false, 'dueDate' => '2027-10-15'],
+		], $preview['periods']);
+		$this->assertSame([], $preview['violations']);
+		// Eine Vorschau speichert nichts.
+		$this->assertSame(0, $service->getDefaultOffsetDays(3));
+		$this->assertSame([], $service->getOverrides(3));
+	}
+
+	public function testPreviewFolgtDemBeitragsjahrBeginn(): void {
+		$preview = $this->service(10)->preview(6, 0, [], 2026);
+		$this->assertSame(['2026-10-01', '2027-04-01'], array_column($preview['periods'], 'start'));
+	}
+
+	public function testPreviewNenntVerstoesseMitDenDatenDesGezeigtenJahres(): void {
+		$preview = $this->service()->preview(3, 0, [1 => 100], 2027);
+		// 2. Quartal am 10. Juli, 3. Quartal am 1. Juli – das 3. liegt nicht danach.
+		$this->assertContains(
+			['kind' => 'overtakes', 'periodIndex' => 2, 'dueDate' => '2027-07-01', 'previousPeriodIndex' => 1, 'previousDueDate' => '2027-07-10'],
+			$preview['violations'],
+		);
+	}
+
+	public function testPreviewNenntAuchVerstoesseAusAnderenSchaltjahrLagen(): void {
+		// Im gezeigten Schaltjahr 2028 passt der 29. Februar; im Jahr danach wäre es
+		// der 1. März, derselbe Tag wie der März-Einzug. Die Vorschau sagt das mit den
+		// Daten des Jahres, in dem es passiert.
+		$preview = $this->service()->preview(1, 0, [1 => 28], 2028);
+		$this->assertSame('2028-02-29', $preview['periods'][1]['dueDate']);
+		$this->assertCount(1, $preview['violations']);
+		$this->assertSame('overtakes', $preview['violations'][0]['kind']);
+		$this->assertSame(2, $preview['violations'][0]['periodIndex']);
+		$this->assertSame('-03-01', substr((string)$preview['violations'][0]['dueDate'], 4));
+	}
+
+	public function testPreviewMeldetTerminAusserhalbDesBeitragsjahrs(): void {
+		$preview = $this->service()->preview(12, -10, [], 2027);
+		$this->assertSame(
+			[['kind' => 'outsideYear', 'periodIndex' => 0, 'dueDate' => '2026-12-22', 'yearStart' => '2027-01-01', 'yearEnd' => '2027-12-31']],
+			$preview['violations'],
+		);
+	}
+
+	public function testPreviewLehntVersatzAusserhalbDerGrenzenAb(): void {
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->preview(3, 0, [0 => 400], 2027);
+	}
+
+	public function testPreviewLehntUnplausiblesBeitragsjahrAb(): void {
+		$this->expectException(\InvalidArgumentException::class);
+		$this->expectExceptionMessage('zwischen 2000 und 2200');
+		$this->service()->preview(3, 0, [], 1999);
+	}
+
 	public function testFullScheduleEnthaeltAlleErlaubtenTurnusse(): void {
 		$service = $this->service();
 		$schedule = $service->getFullSchedule();

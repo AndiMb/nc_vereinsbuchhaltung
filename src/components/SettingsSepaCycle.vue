@@ -18,7 +18,9 @@
 			{{ t('Fristen vor dem Einzug') }}
 		</h5>
 		<div class="vbh-form">
-			<label>{{ t('Vorwarnfenster (Tage vor Einzug)') }}
+			<label>
+				<span>{{ t('Forderungen entstehen') }}</span>
+				<span class="vbh-cycle-term">{{ t('Vorwarnfenster, Tage vor Einzug') }}</span>
 				<input
 					v-model.number="draft.warningLeadDays"
 					type="number"
@@ -26,7 +28,9 @@
 					:min="daysMin"
 					:max="daysMax">
 			</label>
-			<label>{{ t('Vorabinfo-Vorlauf (Tage vor Einzug)') }}
+			<label>
+				<span>{{ t('Vorabinfo an Mitglieder') }}</span>
+				<span class="vbh-cycle-term">{{ t('Vorabinfo-Vorlauf, Tage vor Einzug') }}</span>
 				<input
 					v-model.number="draft.prenotificationLeadDays"
 					type="number"
@@ -34,7 +38,9 @@
 					:min="daysMin"
 					:max="daysMax">
 			</label>
-			<label>{{ t('Freigabe-Vorlauf (Tage vor Einzug)') }}
+			<label>
+				<span>{{ t('Lauf freigeben bis') }}</span>
+				<span class="vbh-cycle-term">{{ t('Freigabe-Vorlauf, Tage vor Einzug') }}</span>
 				<input
 					v-model.number="draft.releaseLeadDays"
 					type="number"
@@ -48,9 +54,10 @@
 			<li>{{ t('Vorabinfo-Vorlauf: ab dann geht die Ankündigung per Mail an die Mitglieder (Standard 14 Tage; SEPA verlangt mindestens 14, sofern im Mandat nichts Kürzeres vereinbart ist).') }}</li>
 			<li>{{ t('Freigabe-Vorlauf: ab dann meldet die Aufgabenliste „Freigabe fällig" (Standard 5 Tage).') }}</li>
 		</ul>
-		<p v-if="example" class="vbh-cycle-example" data-testid="cycle-example">
-			{{ t('Beispiel – Einzug am {einzug}: Forderungen ab {warnung}, Vorabinfo am {vorabinfo}, Lauf freigegeben bis {freigabe}.', example) }}
-		</p>
+		<div v-if="exampleDue" class="vbh-cycle-example" data-testid="cycle-example">
+			<p>{{ t('Beispiel: Einzug am {date}', { date: formatDate(exampleDue) }) }}</p>
+			<LeadDaysStrip :dueDate="exampleDue" :leadDays="leads" />
+		</div>
 		<NcNoteCard v-for="hint in orderHints" :key="hint" type="warning">
 			{{ hint }}
 		</NcNoteCard>
@@ -67,11 +74,12 @@
 <script>
 import { getLanguage } from '@nextcloud/l10n'
 import { NcButton, NcNoteCard } from '@nextcloud/vue'
+import LeadDaysStrip from './LeadDaysStrip.vue'
 import { useDueDateSchedule } from '../composables/useDueDateSchedule.js'
 import { useSepaSettings } from '../composables/useSepaSettings.js'
 import { useSettingsCardSave } from '../composables/useSettingsCardSave.js'
 import { formatDate } from '../lib/format.js'
-import { DAYS_MAX, DAYS_MIN, daysError, leadDaysExample, leadDaysOrderHints, monthOptions, nextMonthStart } from '../lib/sepaSettings.js'
+import { DAYS_MAX, DAYS_MIN, daysError, leadDaysOrderHints, monthOptions, nextMonthStart } from '../lib/sepaSettings.js'
 
 /**
  * Beitragsjahr und Einzugszyklus in den Einstellungen (Spec §4, Issue #101):
@@ -82,7 +90,7 @@ import { DAYS_MAX, DAYS_MIN, daysError, leadDaysExample, leadDaysOrderHints, mon
  */
 export default {
 	name: 'SettingsSepaCycle',
-	components: { NcButton, NcNoteCard },
+	components: { LeadDaysStrip, NcButton, NcNoteCard },
 
 	setup() {
 		const { state, saveCycleSettings } = useSepaSettings()
@@ -114,26 +122,23 @@ export default {
 			}
 		},
 
-		// Beispiel mit den eingetragenen Werten: Einzug am nächsten Monatsersten. Bei einer
-		// unfertigen Eingabe (leeres Feld) gibt es keins.
-		example() {
+		// Beispiel mit den eingetragenen Werten: Einzug am nächsten Monatsersten, als
+		// dieselbe Fristen-Leiste wie im Terminplan. Bei einer unfertigen Eingabe
+		// (leeres Feld) gibt es keins.
+		exampleDue() {
 			const values = Object.values(this.leads)
 			if (values.some((v) => v === '' || v === null || !Number.isInteger(Number(v)))) { return null }
-			const dates = leadDaysExample(nextMonthStart(new Date().toISOString().slice(0, 10)), this.leads)
-			return {
-				einzug: formatDate(dates.due),
-				warnung: formatDate(dates.warning),
-				vorabinfo: formatDate(dates.prenotification),
-				freigabe: formatDate(dates.release),
-			}
+			return nextMonthStart(new Date().toISOString().slice(0, 10))
 		},
 
 		orderHints() {
-			return this.example ? leadDaysOrderHints(this.leads) : []
+			return this.exampleDue ? leadDaysOrderHints(this.leads) : []
 		},
 	},
 
 	methods: {
+		formatDate,
+
 		save() {
 			return this.run(
 				() => daysError(this.draft.warningLeadDays, this.t('Vorwarnfenster'))
@@ -159,6 +164,14 @@ export default {
 
 .vbh-cycle-example {
 	margin: 8px 0 12px;
+}
+
+.vbh-cycle-example p {
+	margin: 0;
 	font-weight: 600;
+}
+
+.vbh-cycle-term {
+	color: var(--color-text-maxcontrast);
 }
 </style>

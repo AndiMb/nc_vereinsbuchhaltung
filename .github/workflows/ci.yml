@@ -13,6 +13,15 @@ on:
   # was hier rot ist, wird nicht veroeffentlicht.
   workflow_call:
 
+# Ein neuer Push auf einen offenen Pull Request macht den laufenden Lauf fuer
+# den alten Stand wertlos: er wird abgebrochen, statt Compute-Minuten zu
+# verbrauchen (vor allem die vier E2E-Teile). Pushes auf main und der Aufruf aus
+# dem Release-Workflow bekommen je Lauf eine eigene Gruppe (run_id) und laufen
+# damit wie bisher vollstaendig durch, ohne zu warten oder abgebrochen zu werden.
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('ci-pr-{0}', github.event.pull_request.number) || format('ci-run-{0}', github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   frontend:
     name: Frontend (Lint + Build)

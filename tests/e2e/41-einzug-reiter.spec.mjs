@@ -200,17 +200,15 @@ test.describe('Einzug-Unterreiter: Zeitstrahl, Geisterkarte und Läufe', () => {
 			await expect(marker(page, `${currentYear()}-12-01`)).toBeVisible()
 			await expect(marker(page, `${currentYear()}-01-15`)).toHaveCount(0)
 
-			// Die Tabelle steht schon aus dem geteilten Zustand; der Abruf beim
-			// Einhängen setzt die Eingabefelder danach zurück. Erst ihn abwarten,
-			// sonst ginge die Eingabe verloren.
-			const scheduleLoaded = page.waitForResponse((r) => r.request().method() === 'GET' && r.url().endsWith('/api/due-date-schedule'))
+			// Die Turnusse erscheinen erst nach dem Laden des Terminplans; „Speichern“
+			// in der Fußleiste wird bedienbar, sobald die Vorschau den Entwurf geprüft hat.
 			await section.getByRole('button', { name: 'Terminplan', exact: true }).click()
-			const schedule = section.locator('#vbh-einzug-schedule')
-			await expect(schedule.getByRole('heading', { name: 'Terminplan' })).toBeVisible()
-			await scheduleLoaded
-			const monthlyRow = schedule.locator('tbody tr').first()
-			await monthlyRow.locator('input[type="number"]').fill('14')
-			await monthlyRow.getByRole('button', { name: 'Speichern' }).click()
+			const schedule = page.getByRole('dialog', { name: 'Terminplan' })
+			await expect(schedule).toBeVisible()
+			const monthly = schedule.getByTestId('schedule-interval-1')
+			await monthly.getByLabel('Tage ab Periodenbeginn').fill('14')
+			await schedule.getByRole('button', { name: 'Speichern', exact: true }).click()
+			await expect(schedule).toHaveCount(0)
 
 			// Ohne neues Laden der Seite: die Termine rücken auf den 15.
 			// (Der erste Januar bleibt als Termin anderer Turnusse im Bestand, deshalb kein Test auf sein Verschwinden.)
