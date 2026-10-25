@@ -3137,7 +3137,31 @@
         "Im Terminplan sind ungespeicherte Änderungen. Sollen sie gespeichert oder verworfen werden?": "The schedule has unsaved changes. Save or discard them?",
         "Weiter bearbeiten": "Keep editing",
         "Terminplan gespeichert.": "Schedule saved.",
-        "Terminplan für {interval} konnte nicht gespeichert werden": "Could not save the schedule for {interval}"
+        "Terminplan für {interval} konnte nicht gespeichert werden": "Could not save the schedule for {interval}",
+        "Alle angezeigten Buchungen auswählen": "Select all entries shown",
+        "Buchung #{n} auswählen": "Select entry #{n}",
+        "Mit Umschalt-Klick einen Bereich auswählen": "Shift-click to select a range",
+        "_%n Buchung ausgewählt_::_%n Buchungen ausgewählt_": [
+            "%n entry selected",
+            "%n entries selected"
+        ],
+        "Beleg zuordnen…": "Assign receipt…",
+        "Auswahl aufheben": "Clear selection",
+        "_Beleg für %n Buchung wählen_::_Beleg für %n Buchungen wählen_": [
+            "Pick receipt for %n entry",
+            "Pick receipt for %n entries"
+        ],
+        "Bei diesen Buchungen kam der Beleg nicht an: {bookings} ({grund}). Die Auswahl bleibt stehen.": "The receipt could not be linked to these entries: {bookings} ({grund}). The selection is kept.",
+        "Der Beleg hing schon an allen markierten Buchungen.": "The receipt was already attached to all selected entries.",
+        "Die Belege hingen schon an allen markierten Buchungen.": "The receipts were already attached to all selected entries.",
+        "_Beleg an %n Buchung angehängt._::_Beleg an %n Buchungen angehängt._": [
+            "Receipt attached to %n entry.",
+            "Receipt attached to %n entries."
+        ],
+        "_Belege an %n Buchung angehängt._::_Belege an %n Buchungen angehängt._": [
+            "Receipts attached to %n entry.",
+            "Receipts attached to %n entries."
+        ]
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

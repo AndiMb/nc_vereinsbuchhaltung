@@ -455,7 +455,7 @@ can additionally choose **which side** is split (debit or credit).
 ### 4.3 Attaching receipts
 
 **Receipts** can be attached to every posting (PDF, JPG, PNG, GIF, WebP;
-max. 20 MB per file). Four ways:
+max. 20 MB per file). Five ways:
 
 - **When creating:** in the *New posting* dialog under *Receipts* via
   "attach" – on mobile also via "photograph" straight from the camera. The
@@ -469,6 +469,13 @@ max. 20 MB per file). Four ways:
   to several postings (e.g. a split invoice).
 - **While assigning** a bank transaction, via the paperclip in its row
   (chapter 4.1) – no detour through *All entries*.
+- **To several postings at once** (with the watch folder, on desktop): in
+  *All entries*, select the postings with the boxes at the front – shift-click
+  for a whole range, the box in the header for all shown –, then "Assign
+  receipt…" in the bar below the list. The chosen file is then attached to
+  every selected posting; where it was already attached, it stays a single
+  link. Handy together with "no receipt only" and the search, e.g. for
+  all debits of an annual contract.
 - **Several files** at once are possible.
 
 **Folder tree or list:** The files of the watch folder appear as a **folder

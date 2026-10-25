@@ -26,6 +26,15 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   encrypts existing data once; nothing changes in the app. **Important for
   backups:** without the matching `config.php` the IBANs can no longer be read
   after a restore (handbook 12.3 and 13.13).
+- **One receipt for several entries at once** – with a watch folder set up.
+  Under *All entries*, the journal on desktop now has a selection column at
+  the front; shift-click selects a range, the box in the header takes all
+  entries shown. "Assign receipt…" in the bar below the list opens the
+  folder, and the chosen file is then attached to every selected entry – for
+  example a collective invoice or an annual contract. Links that already
+  exist are skipped; entries of closed fiscal years cannot be selected.
+  Together with "no receipt only" and the search, this quickly finds all
+  entries that still lack a receipt.
 
 **Changed:**
 - **Schedule without "offset" and "period index".** The collection day now
