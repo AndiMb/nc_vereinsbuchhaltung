@@ -103,6 +103,27 @@ class InvoiceMailServiceTest extends TestCase {
 		$s->send(1, ' buchhaltung@muster.example ');
 	}
 
+	public function testZugferdPdfErsetztDasPdfUndXmlKommtAlsAnhangDazu(): void {
+		$s = $this->service();
+		$message = $this->mockMessage();
+		$this->documents->method('documentContent')->willReturnMap([
+			[1, 10, ['content' => '%PDF-zugferd', 'fileName' => 'RE-2026-0042-zugferd.pdf', 'kind' => 'zugferd_pdf']],
+			[1, 11, ['content' => '<xml/>', 'fileName' => 'RE-2026-0042-xrechnung.xml', 'kind' => 'xrechnung_cii']],
+		]);
+		$sent = [];
+		$this->mailer->method('createAttachment')->willReturnCallback(function (string $content, string $name, string $type) use (&$sent) {
+			$sent[] = [$name, $type];
+			return $this->createMock(IAttachment::class);
+		});
+		$message->expects($this->exactly(2))->method('attach');
+		$this->mailer->method('send')->willReturn([]);
+		$this->service->method('markSent')->willReturn($this->invoice);
+
+		$s->send(1, 'a@b.example', null, null, [10, 11]);
+
+		$this->assertSame([['RE-2026-0042-zugferd.pdf', 'application/pdf'], ['RE-2026-0042-xrechnung.xml', 'application/xml']], $sent);
+	}
+
 	public function testUngueltigeAdresseVerschicktNichts(): void {
 		$s = $this->service();
 		$this->mailer->expects($this->never())->method('send');

@@ -235,9 +235,43 @@
 						<ul v-else class="vbh-inv-list">
 							<li v-for="d in invoice.documents" :key="d.id">
 								<a :href="documentUrl(d)" target="_blank" rel="noopener">{{ d.fileName }}</a>
+								<small v-if="d.profile" class="vbh-inv-profile">{{ d.profile }}</small>
 								<small :class="'vbh-inv-int vbh-inv-int--' + d.integrity" :title="integrityHint(d)">{{ integrityLabel(d) }}</small>
 							</li>
 						</ul>
+						<div v-if="canWrite && eInvoiceChoices.length" class="vbh-inv-einvoice">
+							<div class="vbh-form">
+								<label class="vbh-grow">{{ t('E-Rechnung erzeugen') }}
+									<select v-model="eFormat" :disabled="eBusy">
+										<option v-for="f in eInvoiceChoices" :key="f" :value="f">
+											{{ eFormatLabel(f) }}{{ f === suggestedFormat ? ' · ' + t('empfohlen') : '' }}
+										</option>
+									</select>
+								</label>
+								<NcButton variant="secondary" :disabled="eBusy || eMissing.length > 0" @click="generateEInvoice">
+									{{ t('Erzeugen') }}
+								</NcButton>
+							</div>
+							<div v-if="eMissing.length" class="vbh-hint vbh-hint--error" role="status">
+								{{ t('Für dieses Format fehlen noch Angaben:') }}
+								<ul>
+									<li v-for="m in eMissing" :key="m">
+										{{ m }}
+									</li>
+								</ul>
+							</div>
+							<div v-if="eError" class="vbh-hint vbh-hint--error" role="alert">
+								{{ eError }}
+								<ul v-if="eProblems.length">
+									<li v-for="m in eProblems" :key="m">
+										{{ m }}
+									</li>
+								</ul>
+							</div>
+							<p v-if="!eMissing.length && !eError" class="vbh-hint">
+								{{ t('Wird unveränderlich abgelegt, wie das PDF. Das ZUGFeRD-PDF enthält die Rechnungsdaten als XML, XRechnung ist eine reine XML-Datei.') }}
+							</p>
+						</div>
 					</section>
 				</div>
 
@@ -289,7 +323,7 @@ import InvoiceMailDialog from './InvoiceMailDialog.vue'
 import InvoicePayDialog from './InvoicePayDialog.vue'
 import api from '../api.js'
 import { errMsg, formatDate, formatDateTime, formatMoney } from '../lib/format.js'
-import { displayStatusLabel, formatDiscount, formatQuantity, statusClass, unitShort } from '../lib/invoices.js'
+import { displayStatusLabel, formatDiscount, formatQuantity, missingEInvoiceFormats, statusClass, unitShort } from '../lib/invoices.js'
 
 /**
  * Detailansicht einer Rechnung (Epic #168): Kopf, Positionen, Zahlungen,
@@ -321,10 +355,22 @@ export default {
 			pay: { open: false },
 			mail: { open: false },
 			cancel: { open: false },
+			eFormat: '',
+			eBusy: false,
+			eError: '',
+			eProblems: [],
 		}
 	},
 
 	computed: {
+		/** Formate, die sich noch erzeugen lassen. */
+		eInvoiceChoices() {
+			return this.invoice && this.invoice.status !== 'draft' ? missingEInvoiceFormats(this.invoice.documents) : []
+		},
+
+		suggestedFormat() { return this.invoice?.eInvoice?.suggested || '' },
+		/** Was dem gewählten Format noch fehlt (Pflichtangaben von XRechnung und Anschrift). */
+		eMissing() { return this.invoice?.eInvoice?.missing?.[this.eFormat] || [] },
 		pdfUrl() { return this.invoice ? api.invoicePdfUrl(this.invoice.id) : '' },
 		pdfDownloadUrl() { return this.invoice ? api.invoicePdfUrl(this.invoice.id, true) : '' },
 		accountsById() { return Object.fromEntries(this.accounts.map((a) => [a.id, a])) },
@@ -368,6 +414,12 @@ export default {
 		invoiceId() {
 			if (this.show) { this.load() }
 		},
+
+		invoice() {
+			this.pickFormat()
+			this.eError = ''
+			this.eProblems = []
+		},
 	},
 
 	mounted() {
@@ -407,6 +459,39 @@ export default {
 		accountLabel(id) {
 			const a = this.accountsById[id]
 			return a ? `${a.number} ${a.name}` : ''
+		},
+
+		eFormatLabel(format) {
+			return {
+				zugferd: this.t('ZUGFeRD-PDF (EN 16931)'),
+				xrechnung_cii: this.t('XRechnung (CII-XML)'),
+				xrechnung_ubl: this.t('XRechnung (UBL-XML)'),
+			}[format] || format
+		},
+
+		/** Wählt das empfohlene Format, solange es sich noch erzeugen lässt. */
+		pickFormat() {
+			const open = this.eInvoiceChoices
+			if (!open.includes(this.eFormat)) {
+				this.eFormat = open.includes(this.suggestedFormat) ? this.suggestedFormat : (open[0] || '')
+			}
+		},
+
+		async generateEInvoice() {
+			this.eBusy = true
+			this.eError = ''
+			this.eProblems = []
+			try {
+				const { data } = await api.createInvoiceEInvoice(this.invoice.id, this.eFormat)
+				this.invoice = data
+				showSuccess(this.t('E-Rechnung erzeugt.'))
+				this.$emit('changed')
+			} catch (e) {
+				this.eError = errMsg(e, this.t('Die E-Rechnung konnte nicht erzeugt werden.'))
+				this.eProblems = e?.response?.data?.problems || []
+			} finally {
+				this.eBusy = false
+			}
 		},
 
 		documentUrl(d) { return api.invoiceDocumentUrl(this.invoice.id, d.id) },

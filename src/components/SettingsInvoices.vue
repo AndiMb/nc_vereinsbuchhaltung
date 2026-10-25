@@ -11,6 +11,9 @@
 			<label class="vbh-checkrow">
 				<input v-model="form.invoice_auto_assign" type="checkbox"> {{ t('Der Import bucht Zahlungen mit passender Rechnungsnummer und genauem Betrag selbst') }}
 			</label>
+			<label class="vbh-checkrow">
+				<input v-model="form.invoice_einvoice_auto" type="checkbox"> {{ t('Beim Festschreiben zugleich die E-Rechnung erzeugen (ZUGFeRD für Unternehmen, XRechnung für Behörden)') }}
+			</label>
 			<p v-if="stateError" class="vbh-hint vbh-hint--error" role="alert">
 				{{ stateError }}
 			</p>
@@ -285,6 +288,7 @@ import { formatNumberPattern } from '../lib/invoices.js'
 const KEYS = [
 	'invoice_module_active',
 	'invoice_auto_assign',
+	'invoice_einvoice_auto',
 	'invoice_tax_mode',
 	'invoice_default_exemption_text',
 	'invoice_default_due_days',
@@ -395,7 +399,7 @@ export default {
 			}
 		},
 
-		saveModule() { return this.store(['invoice_module_active', 'invoice_auto_assign'], 'stateError') },
+		saveModule() { return this.store(['invoice_module_active', 'invoice_auto_assign', 'invoice_einvoice_auto'], 'stateError') },
 
 		saveIssuer() {
 			return this.store(['club_street', 'club_postal_code', 'club_city', 'club_country', 'club_tax_number', 'club_vat_id', 'club_register_court', 'club_register_no', 'club_representatives', 'club_phone', 'club_email'], 'issuerError')

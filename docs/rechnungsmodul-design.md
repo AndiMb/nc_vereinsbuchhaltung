@@ -20,15 +20,9 @@ Der Verein stellt jederzeit Rechnungen in seinem Namen aus. Jede Rechnung landet
 | Mindestversion | Nextcloud 33 und PHP 8.2 (NC 31/32 sind EOL, TCPDF und invoicesuite verlangen PHP 8.2). |
 | Umsatzsteuer | Stufe 1 nur Kleinunternehmer und Befreiungstext. Regelbesteuerung in Stufe 2. Spalten `tax_category` und `tax_rate` gibt es ab Stufe 1. |
 
-## Offenes Risiko: Lizenz von mPDF
+## Lizenz von mPDF (entschieden, siehe ADR-0002)
 
-`invoicesuite` verlangt `mpdf/mpdf` (GPL-2.0-only) als Pflichtabhängigkeit, nutzt es aber nur im Visualizer. Die App steht unter AGPL-3.0-or-later, GPL-2.0-only ist damit nicht kombinierbar. Vor dem Release von Stufe 2:
-
-1. Upstream-Issue anlegen, mPDF von `require` nach `suggest` zu verschieben.
-2. Bis dahin mPDF per `composer replace` aus dem Bundle halten und prüfen, dass kein Codepfad den Visualizer lädt.
-3. Rückfall, falls beides scheitert: `horstoeko/zugferd` (MIT, nur CII).
-
-`invoicesuite` steht Stand Oktober 2026 bei 0.0.x. Die Pin-Version wird exakt festgelegt, Updates laufen bewusst.
+`invoicesuite` verlangt `mpdf/mpdf` (GPL-2.0-only) als Pflichtabhängigkeit, nutzt es aber nur im Visualizer. Die App steht unter AGPL-3.0-or-later, GPL-2.0-only ist damit nicht kombinierbar. Die App hält mPDF per `composer replace` aus dem Paket und lädt den Visualizer nie. Rückfall, falls das nicht tragen sollte: `horstoeko/zugferd` (MIT, nur CII). Begründung, Prüfung und Pflege stehen in [ADR-0002](adr/0002-invoicesuite-fuer-die-e-rechnung.md).
 
 ## Rechtliche Leitplanken
 

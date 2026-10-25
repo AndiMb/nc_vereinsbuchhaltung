@@ -29,10 +29,12 @@ use horstoeko\invoicesuite\documents\dto\InvoiceSuiteTaxDTO;
 use horstoeko\invoicesuite\InvoiceSuiteDocumentBuilder;
 use horstoeko\invoicesuite\InvoiceSuitePdfDocumentBuilder;
 use horstoeko\invoicesuite\InvoiceSuitePdfDocumentReader;
+use horstoeko\invoicesuite\InvoiceSuiteSettings;
 use horstoeko\invoicesuite\validators\InvoiceSuiteXsdDocumentValidator;
 use OCA\Vereinsbuchhaltung\Db\InvoiceLine;
 use OCA\Vereinsbuchhaltung\Service\InvoiceCalculator;
 use OCP\IL10N;
+use OCP\ITempManager;
 
 /**
  * {@see EInvoiceWriter} mit horstoeko/invoicesuite (MIT).
@@ -61,19 +63,68 @@ class InvoiceSuiteEInvoiceWriter implements EInvoiceWriter {
 
 	public function __construct(
 		private ?IL10N $l10n = null,
+		private ?ITempManager $tempManager = null,
 	) {
+	}
+
+	/**
+	 * Nextcloud sperrt beim Start jedes Laden externer Entitäten durch libxml
+	 * (lib/base.php). Die Schemas der E-Rechnung bestehen aber aus mehreren
+	 * Dateien, die einander einbinden, und auch die Metadaten für das PDF liegen
+	 * als XML bei der Bibliothek. Für die Dauer eines Aufrufs erlaubt ein eigener
+	 * Lader deshalb genau die Dateien unter dem Verzeichnis der Bibliothek und
+	 * sonst nichts. Danach gilt in Nextcloud wieder die Sperre.
+	 *
+	 * @template T
+	 * @param callable(): T $run
+	 * @return T
+	 */
+	private function withSchemaLoader(callable $run): mixed {
+		$root = realpath(dirname((string)(new \ReflectionClass(InvoiceSuiteXsdDocumentValidator::class))->getFileName(), 2));
+		libxml_set_external_entity_loader(static function (?string $public, string $system) use ($root): ?string {
+			$path = realpath(str_starts_with($system, 'file://') ? substr($system, 7) : $system);
+			if ($root === false || $path === false || !str_starts_with($path, $root . DIRECTORY_SEPARATOR)) {
+				return null;
+			}
+			return $path;
+		});
+		try {
+			return $run();
+		} finally {
+			// Außerhalb von Nextcloud (Tests, Kommandozeile) gilt wieder der Standardlader.
+			libxml_set_external_entity_loader(class_exists(\OC::class, false) ? static fn (): ?string => null : null);
+		}
+	}
+
+	/**
+	 * Die Bibliothek legt Zwischenspeicher für die Serialisierung standardmäßig im
+	 * eigenen Verzeichnis unter vendor/ an. Das ist in einer Nextcloud meist nicht
+	 * beschreibbar (Apps gehören dem Installationsnutzer); deshalb liegt er im
+	 * temporären Verzeichnis von Nextcloud. Der Zwischenspeicher darf jederzeit
+	 * verschwinden, er wird dann neu aufgebaut.
+	 */
+	private function useWritableCache(): void {
+		$base = $this->tempManager !== null ? $this->tempManager->getTempBaseDir() : sys_get_temp_dir();
+		$dir = rtrim($base, '/') . '/vbh-invoicesuite-' . substr(hash('sha256', __DIR__), 0, 12);
+		if (!is_dir($dir) && !@mkdir($dir, 0700, true) && !is_dir($dir)) {
+			return;
+		}
+		InvoiceSuiteSettings::setSerializerCacheDirectory($dir);
 	}
 
 	public function buildXml(EInvoiceData $data, string $format): string {
 		$this->assertFormat($format);
-		$problems = $this->missingForFormat($data, $format);
+		$this->useWritableCache();
+		$problems = $this->missing($data, $format);
 		if ($problems !== []) {
 			throw new EInvoiceException($this->msg('Für dieses Format fehlen noch Angaben.'), $problems);
 		}
 		try {
-			$builder = InvoiceSuiteDocumentBuilder::createByProviderUniqueId($this->provider($data, $format));
-			$builder->createFromDTO($this->header($data, $format));
-			return $builder->getContent();
+			return $this->withSchemaLoader(function () use ($data, $format): string {
+				$builder = InvoiceSuiteDocumentBuilder::createByProviderUniqueId($this->provider($data, $format));
+				$builder->createFromDTO($this->header($data, $format));
+				return $builder->getContent();
+			});
 		} catch (EInvoiceException $e) {
 			throw $e;
 		} catch (\Throwable $e) {
@@ -85,11 +136,12 @@ class InvoiceSuiteEInvoiceWriter implements EInvoiceWriter {
 		if (!EInvoiceFormat::isHybridPdf($format) && $format !== EInvoiceFormat::XRECHNUNG_CII) {
 			throw new EInvoiceException($this->msg('Dieses Format lässt sich nicht in ein PDF einbetten.'));
 		}
+		$this->useWritableCache();
 		try {
-			return InvoiceSuitePdfDocumentBuilder::createFromDocumentContentAndPdfContent($xml, $pdf)
+			return $this->withSchemaLoader(static fn (): string => InvoiceSuitePdfDocumentBuilder::createFromDocumentContentAndPdfContent($xml, $pdf)
 				->setAdditionalCreatorTool('Vereinsbuchhaltung für Nextcloud')
 				->setDocumentRelationshipTypeToAlternative()
-				->generatePdfDocumentAndGetContent();
+				->generatePdfDocumentAndGetContent());
 		} catch (\Throwable $e) {
 			throw new EInvoiceException($this->msg('Das XML konnte nicht in das PDF eingebettet werden: %s', [$e->getMessage()]), [], $e);
 		}
@@ -97,8 +149,9 @@ class InvoiceSuiteEInvoiceWriter implements EInvoiceWriter {
 
 	public function validate(string $xml, string $format): array {
 		$this->assertFormat($format);
+		$this->useWritableCache();
 		try {
-			$validator = InvoiceSuiteXsdDocumentValidator::createFromContent($xml)->validate();
+			$validator = $this->withSchemaLoader(static fn () => InvoiceSuiteXsdDocumentValidator::createFromContent($xml)->validate());
 		} catch (\Throwable $e) {
 			return [$this->msg('Die Schemaprüfung konnte nicht laufen: %s', [$e->getMessage()])];
 		}
@@ -110,8 +163,9 @@ class InvoiceSuiteEInvoiceWriter implements EInvoiceWriter {
 	}
 
 	public function extractXml(string $pdf): string {
+		$this->useWritableCache();
 		try {
-			$attachment = InvoiceSuitePdfDocumentReader::createFromContent($pdf)->getInvoiceDocumentAttachment();
+			$attachment = $this->withSchemaLoader(static fn () => InvoiceSuitePdfDocumentReader::createFromContent($pdf)->getInvoiceDocumentAttachment());
 		} catch (\Throwable $e) {
 			throw new EInvoiceException($this->msg('Das PDF konnte nicht gelesen werden: %s', [$e->getMessage()]), [], $e);
 		}
@@ -128,7 +182,7 @@ class InvoiceSuiteEInvoiceWriter implements EInvoiceWriter {
 	 *
 	 * @return list<string>
 	 */
-	private function missingForFormat(EInvoiceData $data, string $format): array {
+	public function missing(EInvoiceData $data, string $format): array {
 		$problems = [];
 		$issuer = $data->issuer;
 		if (($issuer['vatId'] ?? '') === '' && ($issuer['taxNumber'] ?? '') === '') {

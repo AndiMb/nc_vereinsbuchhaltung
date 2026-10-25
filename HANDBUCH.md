@@ -2487,6 +2487,35 @@ Im Detail der Rechnung: **Per E-Mail senden**. Empfänger-Adresse, Betreff und T
 
 Rechnungen müssen **acht Jahre** aufbewahrt werden. Die PDFs liegen als Dateien in Nextcloud; sie gehören mit in Ihr Backup. Eine festgeschriebene Rechnung lässt sich in der App nicht mehr ändern; die Prüfsumme in der Dokumentliste zeigt, falls die Datei außerhalb der App verändert wurde.
 
+### 15.9 Regelbesteuerung (Umsatzsteuer ausweisen)
+
+Wer nicht Kleinunternehmer ist (oder auf die Kleinunternehmerregelung verzichtet hat), stellt in den Einstellungen unter **Steuer** auf **Regelbesteuerung** um und legt fest:
+
+- **Umsatzsteuerkonten** für 19 % und 7 % (Verbindlichkeitenkonten, etwa 1776 und 1771 im SKR 42). Ohne sie lässt sich keine Rechnung mit Steuer festschreiben.
+- **Voreingestellte Sätze** nach Sphäre des Erlöskontos: Zweckbetrieb 7 % oder 0 %, wirtschaftlicher Geschäftsbetrieb 19 %. Der Satz ist nur ein Vorschlag.
+
+Im Editor hat dann jede Position eine Steuerauswahl: **19 %**, **7 %**, **0 %** oder **steuerfrei** (mit Befreiungshinweis). Die Rechnung weist die Summen je Steuersatz aus; die Steuer wird je Satz einmal aus der Netto-Summe berechnet und kaufmännisch gerundet, so wie es auch die E-Rechnung verlangt. Bei der Zahlung verteilt sich der Betrag im Verhältnis auf die **Erlöskonten und die Umsatzsteuerkonten**; mit der letzten Zahlung stimmen alle Konten auf den Cent. Eine Stornorechnung kehrt Netto, Steuer und Brutto um.
+
+Die Umstellung gilt nur für **neue** Rechnungen. Festgeschriebene Rechnungen behalten ihre Steuerart.
+
+> **Hinweis:** Ob und mit welchem Satz ein Umsatz steuerpflichtig ist, hängt von der Sphäre und vom Einzelfall ab. Das klären das Finanzamt oder Ihre Steuerberatung; die App rechnet nur mit dem, was Sie festlegen.
+
+### 15.10 E-Rechnung (ZUGFeRD und XRechnung)
+
+Seit 2025 müssen Unternehmen E-Rechnungen **empfangen** können; das **Ausstellen** wird für Umsätze zwischen Unternehmen schrittweise Pflicht (ab 2027 bei mehr als 800.000 € Vorjahresumsatz, ab 2028 für alle). Kleinunternehmer und Rechnungen an Privatpersonen sind ausgenommen (§ 34a UStDV). Wenn Ihr Verein an Unternehmen oder Behörden Rechnungen stellt, kann die App die passende E-Rechnung gleich mit erzeugen. Eine festgeschriebene Rechnung bietet im Abschnitt **Dokumente** drei Formate an:
+
+| Format | Datei | Für wen |
+| --- | --- | --- |
+| **ZUGFeRD-PDF (EN 16931)** | PDF mit eingebettetem XML; für Menschen ein gewöhnliches PDF | Unternehmen, die Rechnungen maschinell einlesen |
+| **XRechnung (CII-XML)** | reine XML-Datei | Behörden und Kommunen |
+| **XRechnung (UBL-XML)** | reine XML-Datei | Empfänger, die UBL verlangen (z. B. über Peppol) |
+
+- **Vorschlag nach Empfänger:** Behörden → XRechnung, Unternehmen und Vereine → ZUGFeRD, Privatpersonen → keine. Ist in den Einstellungen *Beim Festschreiben zugleich die E-Rechnung erzeugen* gewählt (Standard), entsteht das vorgeschlagene Format beim Festschreiben von selbst, sofern alle Angaben da sind.
+- **Pflichtangaben:** ZUGFeRD braucht eine vollständige Anschrift des Empfängers. **XRechnung** verlangt zusätzlich die **Leitweg-ID** (beim Empfänger) oder eine Käuferreferenz (an der Rechnung), Telefonnummer und E-Mail-Adresse des Vereins, die E-Mail-Adresse des Empfängers und das Konto mit IBAN. Was fehlt, zeigt die Auswahl *E-Rechnung erzeugen* als Liste, bevor Sie erzeugen.
+- **Geprüft und unveränderlich:** Jedes XML wird vor dem Speichern gegen das Schema des Formats geprüft; ein ungültiges Dokument wird nicht abgelegt. Wie das PDF liegt es mit Prüfsumme in der Belegablage, je Rechnung und Format gibt es genau ein Dokument (das XML ist das Original, § 14 UStG). Die Beispielrechnungen der App prüft die Entwicklung in der CI zusätzlich mit dem offiziellen KoSIT-Validator gegen die Regeln von EN 16931 und XRechnung 3.0.
+- **Versand:** Im Versanddialog lassen sich vorhandene E-Rechnungen mitsenden. Ein ZUGFeRD-PDF ersetzt dabei das einfache PDF, XRechnung-XML geht als zusätzlicher Anhang mit. Behörden nehmen XRechnungen meist über ein Portal entgegen; dafür laden Sie die XML-Datei herunter.
+- **Stornorechnung:** Sie wird als Gutschrift (Typ 381) mit Verweis auf die Ursprungsrechnung erzeugt.
+
 ---
 
 *Stand: App-Version 0.35.0. Bei Fragen an die verwaltende Person wenden.*

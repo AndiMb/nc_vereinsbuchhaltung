@@ -41,12 +41,24 @@ verwenden, z. B. `**Neu:**`.
   buchen, jede Zahlung lässt sich zurücknehmen.
 - **Rechnung per E-Mail** mit dem PDF im Anhang, Vorlage mit Platzhaltern.
   **Duplizieren** kopiert eine Rechnung als neuen Entwurf.
+- **Regelbesteuerung für Rechnungen.** Neben Kleinunternehmern können Vereine
+  Umsatzsteuer ausweisen: Steuersatz je Position (19 %, 7 %, 0 %, steuerfrei),
+  Summen je Satz, Voreinstellung nach Sphäre des Erlöskontos. Zahlungen
+  verteilen sich cent-genau auf Erlös- und Umsatzsteuerkonten.
+- **E-Rechnung.** Zu jeder festgeschriebenen Rechnung entsteht auf Wunsch
+  **ZUGFeRD** (EN 16931, PDF mit eingebettetem XML) oder **XRechnung** (CII
+  oder UBL, Gutschrift für Stornorechnungen). Die App schlägt das Format nach
+  Art des Empfängers vor, nennt fehlende Pflichtangaben (Leitweg-ID, Kontakt,
+  Bankverbindung), prüft jedes XML gegen das Schema, legt es unveränderlich mit
+  Prüfsumme ab und hängt es auf Wunsch an die Mail. Grundlage ist die
+  Bibliothek `horstoeko/invoicesuite`; in der CI prüft der offizielle
+  KoSIT-Validator die Beispielrechnungen gegen XRechnung 3.0.
 
 **Geändert:**
 - **Mindestversion: Nextcloud 33 und PHP 8.2.** Nextcloud 31 und 32 sind am
   Ende ihrer Wartung; die PDF-Bibliothek des Rechnungsmoduls verlangt PHP 8.2.
   Das Release-Paket enthält neu TCPDF (LGPL-3.0, auf die benötigten Schriften
-  gekürzt).
+  gekürzt) und `horstoeko/invoicesuite` (MIT) für die E-Rechnung.
 - Offene Posten, die zu einer Rechnung gehören, lassen sich im Reiter
   *Buchungen → Offene Posten* nicht mehr von Hand bezahlen oder löschen; das
   geschieht über die Rechnung.

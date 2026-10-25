@@ -99,6 +99,8 @@ An optional add-on module (the "Contributions" tab, appears automatically once a
 - **Finalizing**: consecutive, unique number (`RE-2026-0042`, pattern configurable), immutable afterwards; PDF/A-3b with GiroCode, stored as a file with a checksum; corrections only through a **credit note**
 - **Open item and payment matching**: every invoice is an open item with a reference; the bank statement import books payments with a matching invoice number and the exact amount on its own, otherwise *Entries → To assign* suggests the invoice (number, amount and name, amount). Partial payments are spread to the cent over the revenue accounts, cash payments can be booked directly
 - **Sending by email** with the PDF attached and an adjustable template
+- **Standard taxation**: tax rate per line item (19 %, 7 %, 0 %, exempt), totals per rate, payments to the cent over revenue and VAT accounts
+- **E-invoice**: ZUGFeRD (EN 16931, hybrid PDF) and XRechnung (CII and UBL), format suggested by recipient, schema check before storing, sample invoices checked in CI with the KoSIT validator
 
 ### Organization & security
 - **Permission roles**: administrator – bookkeeper – auditor (read-only); Nextcloud admins are always administrators; roles for users and groups

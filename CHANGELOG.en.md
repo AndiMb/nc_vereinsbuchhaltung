@@ -39,12 +39,24 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   and every payment can be reverted.
 - **Invoice by email** with the PDF attached, template with placeholders.
   **Duplicate** copies an invoice as a new draft.
+- **Standard taxation for invoices.** Besides small businesses, associations
+  can show VAT: tax rate per line item (19 %, 7 %, 0 %, exempt), totals per
+  rate, default by sphere of the revenue account. Payments are spread to the
+  cent over revenue and VAT accounts.
+- **E-invoice.** For every finalized invoice you can create **ZUGFeRD** (EN
+  16931, PDF with embedded XML) or **XRechnung** (CII or UBL, credit note
+  document for cancellation invoices). The app suggests the format by recipient
+  type, lists missing mandatory details (Leitweg ID, contact, bank details),
+  checks every XML against the schema, stores it unchangeably with a checksum
+  and attaches it to the email on request. It is built on the library
+  `horstoeko/invoicesuite`; in CI the official KoSIT validator checks the sample
+  invoices against XRechnung 3.0.
 
 **Changed:**
 - **Minimum version: Nextcloud 33 and PHP 8.2.** Nextcloud 31 and 32 are past
   their end of maintenance; the PDF library of the invoice module requires
   PHP 8.2. The release package now contains TCPDF (LGPL-3.0, trimmed to the
-  fonts that are needed).
+  fonts that are needed) and `horstoeko/invoicesuite` (MIT) for the e-invoice.
 - Open items that belong to an invoice can no longer be paid or deleted by
   hand in *Entries → Open items*; that happens through the invoice.
 

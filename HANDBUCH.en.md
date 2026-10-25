@@ -2463,6 +2463,35 @@ In the invoice details: **Send by email**. Recipient address, subject and text a
 
 Invoices have to be kept for **eight years**. The PDFs are files in Nextcloud; include them in your backup. A finalized invoice can no longer be changed in the app; the checksum in the document list shows if the file was changed outside the app.
 
+### 15.9 Standard taxation (showing VAT)
+
+If the association is not a small business (or has waived the small-business rule), switch the settings under **Tax** to **Standard taxation** and define:
+
+- **VAT accounts** for 19 % and 7 % (liability accounts, for instance 1776 and 1771 in SKR 42). Without them an invoice with tax cannot be finalized.
+- **Default rates** by sphere of the revenue account: ideal-purpose operation 7 % or 0 %, commercial operation 19 %. The rate is only a suggestion.
+
+In the editor every line item then has a tax choice: **19 %**, **7 %**, **0 %** or **tax-exempt** (with exemption notice). The invoice shows the totals per tax rate; tax is calculated once per rate from the net total and rounded commercially, as the e-invoice requires. When a payment arrives, the amount is split proportionally over the **revenue accounts and the VAT accounts**; with the last payment all accounts match to the cent. A credit note reverses net, tax and gross.
+
+The change only applies to **new** invoices. Finalized invoices keep their tax mode.
+
+> **Note:** Whether and at which rate a supply is taxable depends on the sphere and the individual case. The tax office or your tax adviser decides that; the app only calculates with what you set.
+
+### 15.10 E-invoice (ZUGFeRD and XRechnung)
+
+Since 2025 businesses must be able to **receive** e-invoices; **issuing** them is becoming mandatory step by step for supplies between businesses (from 2027 above EUR 800,000 prior-year turnover, from 2028 for everyone). Small businesses and invoices to private persons are exempt (section 34a UStDV). If your association invoices businesses or public authorities, the app can create the matching e-invoice right away. A finalized invoice offers three formats in the **Documents** section:
+
+| Format | File | For whom |
+| --- | --- | --- |
+| **ZUGFeRD PDF (EN 16931)** | PDF with embedded XML; an ordinary PDF to a human | Businesses that read invoices automatically |
+| **XRechnung (CII XML)** | plain XML file | Authorities and municipalities |
+| **XRechnung (UBL XML)** | plain XML file | Recipients that require UBL (for example via Peppol) |
+
+- **Suggestion by recipient:** authorities → XRechnung, businesses and associations → ZUGFeRD, private persons → none. With *Create the e-invoice when issuing* ticked in the settings (default), the suggested format is created when you finalize, provided all details are there.
+- **Mandatory details:** ZUGFeRD needs a complete address of the recipient. **XRechnung** additionally needs the **Leitweg ID** (on the recipient) or a buyer reference (on the invoice), phone number and email address of the association, the recipient's email address and the account with IBAN. The *Create e-invoice* choice lists what is missing before you create.
+- **Checked and unchangeable:** every XML is checked against the schema of its format before it is stored; an invalid document is not saved. Like the PDF it is stored with a checksum in the receipt storage, one document per invoice and format (the XML is the original, section 14 UStG). The development team additionally checks the app's sample invoices in CI with the official KoSIT validator against the EN 16931 and XRechnung 3.0 rules.
+- **Sending:** the send dialog can attach existing e-invoices. A ZUGFeRD PDF replaces the plain PDF, XRechnung XML is attached in addition. Authorities usually receive XRechnungen through a portal; download the XML file for that.
+- **Credit note:** it is created as a credit note document (type 381) referring to the original invoice.
+
 ---
 
 *As of app version 0.35.0. For questions, contact your administrator.*

@@ -30,6 +30,8 @@ export function buildWhatsNewEntries() {
 			items: [
 				t('Neu und optional: Rechnungen im Namen des Vereins. Einschalten unter Nextcloud-Einstellungen → Vereinsbuchhaltung → Rechnungen; danach gibt es den Reiter „Rechnungen“. Mehrere Positionen, Hinweis für Kleinunternehmer, Festschreiben mit fortlaufender Nummer, PDF mit GiroCode, Versand per E-Mail, Korrektur per Stornorechnung.'),
 				t('Der Kontoauszug-Import ordnet Zahlungen ihrer Rechnung zu: bei passender Rechnungsnummer und genauem Betrag bucht er selbst, sonst schlägt „Zuzuordnen“ die Rechnung vor. Teilzahlungen und Barzahlungen sind möglich.'),
+				t('Rechnungen mit Umsatzsteuer: Steuersatz je Position, Summen je Satz, Zahlungen verteilen sich auf Erlös- und Umsatzsteuerkonten.'),
+				t('E-Rechnung: Zu festgeschriebenen Rechnungen erzeugt die App ZUGFeRD-PDF oder XRechnung (CII, UBL), schlägt das Format nach Empfänger vor und nennt fehlende Pflichtangaben.'),
 				t('Neue Mindestversion: Nextcloud 33 und PHP 8.2.'),
 			],
 		},

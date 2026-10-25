@@ -133,6 +133,7 @@ export default {
 	revertInvoicePayment: (id, paymentId) => axios.delete(url(`/invoices/${id}/payments/${paymentId}`)),
 	invoiceMailDefaults: (id) => axios.get(url(`/invoices/${id}/mail-defaults`)),
 	sendInvoice: (id, data) => axios.post(url(`/invoices/${id}/send`), data),
+	createInvoiceEInvoice: (id, format) => axios.post(url(`/invoices/${id}/e-invoice`), { format }),
 	invoicePdfUrl: (id, download = false) => url(`/invoices/${id}/pdf`) + (download ? '?download=1' : ''),
 	invoiceDocumentUrl: (id, documentId) => url(`/invoices/${id}/documents/${documentId}`),
 	invoiceNumberRanges: () => axios.get(url('/invoice-number-ranges')),

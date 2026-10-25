@@ -244,6 +244,7 @@ return [
 		['name' => 'invoice#duplicate', 'url' => '/api/invoices/{id}/duplicate', 'verb' => 'POST'],
 		['name' => 'invoice#issue', 'url' => '/api/invoices/{id}/issue', 'verb' => 'POST'],
 		['name' => 'invoice#pdf', 'url' => '/api/invoices/{id}/pdf', 'verb' => 'GET'],
+		['name' => 'invoice#eInvoice', 'url' => '/api/invoices/{id}/e-invoice', 'verb' => 'POST'],
 		['name' => 'invoice#document', 'url' => '/api/invoices/{id}/documents/{documentId}', 'verb' => 'GET'],
 		['name' => 'invoice#mailDefaults', 'url' => '/api/invoices/{id}/mail-defaults', 'verb' => 'GET'],
 		['name' => 'invoice#send', 'url' => '/api/invoices/{id}/send', 'verb' => 'POST'],

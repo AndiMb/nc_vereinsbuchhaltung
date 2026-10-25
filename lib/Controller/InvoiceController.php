@@ -6,9 +6,13 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\BankTransactionMapper;
+use OCA\Vereinsbuchhaltung\Db\Invoice;
 use OCA\Vereinsbuchhaltung\Exception\ConflictException;
 use OCA\Vereinsbuchhaltung\Exception\InvoiceNotIssuableException;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
+use OCA\Vereinsbuchhaltung\Service\EInvoice\EInvoiceException;
+use OCA\Vereinsbuchhaltung\Service\EInvoice\EInvoiceFormat;
+use OCA\Vereinsbuchhaltung\Service\EInvoice\EInvoiceService;
 use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceDocumentService;
 use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceMailService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceMatchingService;
@@ -54,6 +58,7 @@ class InvoiceController extends Controller {
 		private InvoiceMatchingService $matching,
 		private InvoiceDocumentService $documents,
 		private InvoiceMailService $mail,
+		private EInvoiceService $eInvoice,
 		private BankTransactionMapper $txMapper,
 		private IL10N $l10n,
 	) {
@@ -177,6 +182,12 @@ class InvoiceController extends Controller {
 				// über den Download jederzeit nachholen.
 				$pdfError = $e->getMessage();
 			}
+			// Die E-Rechnung ist wie das PDF ein Zusatz: scheitert sie, bleibt die Rechnung
+			// festgeschrieben, und sie lässt sich nachholen.
+			try {
+				$this->eInvoice->generateSuggested($id);
+			} catch (\Throwable) {
+			}
 			return new DataResponse($this->detail($id) + ['pdfError' => $pdfError]);
 		} catch (DoesNotExistException) {
 			return $this->notFound();
@@ -268,7 +279,29 @@ class InvoiceController extends Controller {
 	}
 
 	/**
-	 * Ein gespeichertes Dokument der Rechnung (später auch XML der E-Rechnung).
+	 * Erzeugt die E-Rechnung im gewünschten Format (zugferd, xrechnung_cii,
+	 * xrechnung_ubl); ein vorhandenes Dokument bleibt unverändert. Fehlen Angaben,
+	 * antwortet der Server mit der Liste der Lücken.
+	 */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	public function eInvoice(int $id, string $format): DataResponse {
+		try {
+			$this->eInvoice->generate($id, $format);
+			return new DataResponse($this->detail($id));
+		} catch (DoesNotExistException) {
+			return $this->notFound();
+		} catch (EInvoiceException $e) {
+			return new DataResponse(['message' => $e->getMessage(), 'problems' => $e->getProblems()], Http::STATUS_BAD_REQUEST);
+		} catch (\InvalidArgumentException $e) {
+			return $this->bad($e);
+		} catch (\RuntimeException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_INTERNAL_SERVER_ERROR);
+		}
+	}
+
+	/**
+	 * Ein gespeichertes Dokument der Rechnung (PDF oder XML der E-Rechnung).
 	 */
 	#[NoAdminRequired]
 	#[NoCSRFRequired]
@@ -299,9 +332,9 @@ class InvoiceController extends Controller {
 	/** Verschickt die Rechnung per E-Mail mit dem PDF im Anhang. */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_ADMIN)]
-	public function send(int $id, string $to, ?string $subject = null, ?string $body = null): DataResponse {
+	public function send(int $id, string $to, ?string $subject = null, ?string $body = null, array $documentIds = []): DataResponse {
 		try {
-			$this->mail->send($id, $to, $subject, $body);
+			$this->mail->send($id, $to, $subject, $body, array_values(array_map('intval', $documentIds)));
 			return new DataResponse($this->detail($id));
 		} catch (DoesNotExistException) {
 			return $this->notFound();
@@ -337,6 +370,12 @@ class InvoiceController extends Controller {
 	private function detail(int $id): array {
 		$detail = $this->service->detail($id);
 		$detail['documents'] = $this->documents->listWithIntegrity($id);
+		if ($detail['status'] !== Invoice::STATUS_DRAFT) {
+			$detail['eInvoice'] = [
+				'suggested' => EInvoiceFormat::suggestFor($detail['debtor']['kind'] ?? null),
+				'missing' => $this->eInvoice->missing($id),
+			];
+		}
 		return $detail;
 	}
 

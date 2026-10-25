@@ -25,6 +25,7 @@ class InvoiceSettings {
 
 	public const SETTING_ACTIVE = 'invoice_module_active';
 	public const SETTING_AUTO_ASSIGN = 'invoice_auto_assign';
+	public const SETTING_EINVOICE_AUTO = 'invoice_einvoice_auto';
 	public const SETTING_TAX_MODE = 'invoice_tax_mode';
 	public const SETTING_EXEMPTION_TEXT = 'invoice_default_exemption_text';
 	public const SETTING_DUE_DAYS = 'invoice_default_due_days';
@@ -93,6 +94,11 @@ class InvoiceSettings {
 	/** Bucht der Import einen eindeutigen Zahlungseingang (Rechnungsnummer und Betrag stimmen) selbst? Ab Werk ja. */
 	public function autoAssign(): bool {
 		return $this->get(self::SETTING_AUTO_ASSIGN, '1') === '1';
+	}
+
+	/** Erzeugt das Festschreiben zugleich die E-Rechnung, die zum Empfänger passt? */
+	public function eInvoiceAuto(): bool {
+		return $this->get(self::SETTING_EINVOICE_AUTO, '1') === '1';
 	}
 
 	public function taxMode(): string {
@@ -212,6 +218,7 @@ class InvoiceSettings {
 		$out = [
 			self::SETTING_ACTIVE => $this->isActive(),
 			self::SETTING_AUTO_ASSIGN => $this->autoAssign(),
+			self::SETTING_EINVOICE_AUTO => $this->eInvoiceAuto(),
 			self::SETTING_TAX_MODE => $this->taxMode(),
 			self::SETTING_VAT_ACCOUNT_19 => $this->vatAccountId(1900),
 			self::SETTING_VAT_ACCOUNT_7 => $this->vatAccountId(700),
@@ -255,6 +262,10 @@ class InvoiceSettings {
 
 		if (array_key_exists(self::SETTING_AUTO_ASSIGN, $params)) {
 			$writes[self::SETTING_AUTO_ASSIGN] = (string)$params[self::SETTING_AUTO_ASSIGN] === '1' ? '1' : '0';
+		}
+
+		if (array_key_exists(self::SETTING_EINVOICE_AUTO, $params)) {
+			$writes[self::SETTING_EINVOICE_AUTO] = (string)$params[self::SETTING_EINVOICE_AUTO] === '1' ? '1' : '0';
 		}
 
 		if (array_key_exists(self::SETTING_TAX_MODE, $params)) {

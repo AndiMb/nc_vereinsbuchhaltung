@@ -13,6 +13,7 @@ use OCA\Vereinsbuchhaltung\Db\InvoiceDocumentMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoiceLineMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoiceMapper;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
+use OCA\Vereinsbuchhaltung\Service\EInvoice\EInvoiceData;
 use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IL10N;
@@ -109,6 +110,12 @@ class InvoiceDocumentService {
 			$out[] = $doc->jsonSerialize() + ['integrity' => $this->storage->verify($doc)];
 		}
 		return $out;
+	}
+
+	/** Die Angaben der festgeschriebenen Rechnung für die E-Rechnung. */
+	public function eInvoiceData(Invoice $invoice): EInvoiceData {
+		$data = $this->pdfData($invoice, false);
+		return new EInvoiceData($data->invoice, $data->lines, $data->debtor, $data->issuer, $data->bank, $data->precedingNumber, $data->precedingDate);
 	}
 
 	private function pdfData(Invoice $invoice, bool $preview): InvoicePdfData {

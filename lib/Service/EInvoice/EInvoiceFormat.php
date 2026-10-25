@@ -47,6 +47,28 @@ final class EInvoiceFormat {
 		return $format === self::ZUGFERD ? 'EN 16931' : 'XRechnung 3.0';
 	}
 
+	/** Zusatz im Dateinamen, damit das E-Rechnungs-Dokument neben dem einfachen PDF steht. */
+	public static function fileNameSuffix(string $format): string {
+		return match ($format) {
+			self::ZUGFERD => '-zugferd',
+			self::XRECHNUNG_CII => '-xrechnung',
+			default => '-xrechnung-ubl',
+		};
+	}
+
+	/**
+	 * Das Format, das zum Empfänger passt: Behörden erwarten XRechnung,
+	 * Unternehmen und Vereine nehmen ZUGFeRD, Privatpersonen brauchen
+	 * keine E-Rechnung (null).
+	 */
+	public static function suggestFor(?string $debtorKind): ?string {
+		return match ($debtorKind) {
+			'behoerde' => self::XRECHNUNG_CII,
+			'organisation' => self::ZUGFERD,
+			default => null,
+		};
+	}
+
 	public static function fileExtension(string $format): string {
 		return $format === self::ZUGFERD ? 'pdf' : 'xml';
 	}

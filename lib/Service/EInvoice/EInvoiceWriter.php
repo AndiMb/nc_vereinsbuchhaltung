@@ -23,6 +23,14 @@ interface EInvoiceWriter {
 	public function buildXml(EInvoiceData $data, string $format): string;
 
 	/**
+	 * Pflichtangaben, die das Format über die der Rechnung hinaus verlangt und die
+	 * noch fehlen. Dieselben Punkte meldet {@see buildXml()} in der Ausnahme.
+	 *
+	 * @return list<string>
+	 */
+	public function missing(EInvoiceData $data, string $format): array;
+
+	/**
 	 * Bettet das XML in ein PDF ein (Hybrid-PDF). Nur für Formate, für die
 	 * {@see EInvoiceFormat::isHybridPdf()} gilt.
 	 *

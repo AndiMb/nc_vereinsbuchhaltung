@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Service\Invoice;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Invoice;
+use OCA\Vereinsbuchhaltung\Db\InvoiceDocument;
 use OCA\Vereinsbuchhaltung\Db\InvoiceMapper;
 use OCA\Vereinsbuchhaltung\Service\EmailValidator;
 use OCA\Vereinsbuchhaltung\Service\InvoiceService;
@@ -67,7 +68,12 @@ class InvoiceMailService {
 	 * @throws \InvalidArgumentException wenn die Rechnung nicht versendbar oder die Adresse ungültig ist
 	 * @throws \RuntimeException wenn der Mailversand scheitert
 	 */
-	public function send(int $invoiceId, string $to, ?string $subject = null, ?string $body = null): Invoice {
+	/**
+	 * @param list<int> $documentIds E-Rechnungs-Dokumente, die mitgehen. Ein ZUGFeRD-PDF
+	 *                               ersetzt das einfache PDF, XML-Dateien kommen als
+	 *                               weitere Anhänge dazu.
+	 */
+	public function send(int $invoiceId, string $to, ?string $subject = null, ?string $body = null, array $documentIds = []): Invoice {
 		$invoice = $this->invoices->find($invoiceId);
 		if (!$invoice->isIssued() || $invoice->getStatus() === Invoice::STATUS_CANCELLED) {
 			throw new \InvalidArgumentException($this->l10n->t('Nur festgeschriebene, nicht stornierte Rechnungen lassen sich versenden.'));
@@ -97,7 +103,19 @@ class InvoiceMailService {
 		$message->setTo($recipientName !== '' ? [$to => $recipientName] : [$to]);
 		$message->setSubject($template->renderSubject());
 		$message->useTemplate($template);
+		$extra = [];
+		foreach ($documentIds as $documentId) {
+			$doc = $this->documents->documentContent($invoiceId, $documentId);
+			if ($doc['kind'] === InvoiceDocument::KIND_ZUGFERD_PDF) {
+				$pdf = ['content' => $doc['content'], 'fileName' => $doc['fileName']];
+			} elseif ($doc['kind'] !== InvoiceDocument::KIND_PDF) {
+				$extra[] = $doc;
+			}
+		}
 		$message->attach($this->mailer->createAttachment($pdf['content'], $pdf['fileName'], 'application/pdf'));
+		foreach ($extra as $doc) {
+			$message->attach($this->mailer->createAttachment($doc['content'], $doc['fileName'], 'application/xml'));
+		}
 
 		try {
 			$failed = $this->mailer->send($message);

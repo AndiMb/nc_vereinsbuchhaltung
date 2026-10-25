@@ -35,6 +35,16 @@
 				<p class="vbh-hint">
 					{{ tRaw('Angehängt wird das PDF „{name}“.', { name: fileName }) }}
 				</p>
+				<fieldset v-if="eDocuments.length" class="vbh-inv-attach">
+					<legend>{{ t('E-Rechnung mitsenden') }}</legend>
+					<label v-for="d in eDocuments" :key="d.id" class="vbh-checkinline">
+						<input v-model="documentIds" type="checkbox" :value="d.id">
+						{{ tRaw('{name} ({profile})', { name: d.fileName, profile: d.profile }) }}
+					</label>
+					<p class="vbh-hint">
+						{{ t('Ein ZUGFeRD-PDF ersetzt das einfache PDF, XML-Dateien gehen zusätzlich als Anhang mit.') }}
+					</p>
+				</fieldset>
 			</template>
 			<p v-if="error" class="vbh-hint vbh-hint--error" role="alert">
 				{{ error }}
@@ -57,6 +67,7 @@ import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcModal from '@nextcloud/vue/components/NcModal'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
+import { eInvoiceDocuments } from '../lib/invoices.js'
 
 /** Rechnung per Mail senden (Epic #168): Vorgaben vom Server, Text vor dem Senden anpassbar. */
 export default {
@@ -70,7 +81,11 @@ export default {
 	emits: ['close', 'sent', 'update:show'],
 
 	data() {
-		return { loading: false, busy: false, error: '', fileName: '', form: { to: '', subject: '', body: '' } }
+		return { loading: false, busy: false, error: '', fileName: '', documentIds: [], form: { to: '', subject: '', body: '' } }
+	},
+
+	computed: {
+		eDocuments() { return eInvoiceDocuments(this.invoice?.documents) },
 	},
 
 	watch: {
@@ -87,6 +102,8 @@ export default {
 				const { data } = await api.invoiceMailDefaults(this.invoice.id)
 				this.form = { to: data.to, subject: data.subject, body: data.body }
 				this.fileName = data.fileName
+				// Was an E-Rechnung schon da ist, geht standardmäßig mit.
+				this.documentIds = this.eDocuments.map((d) => d.id)
 			} catch (e) {
 				this.error = errMsg(e, this.t('Die Vorgaben konnten nicht geladen werden.'))
 			} finally {
@@ -98,7 +115,7 @@ export default {
 			this.busy = true
 			this.error = ''
 			try {
-				const { data } = await api.sendInvoice(this.invoice.id, this.form)
+				const { data } = await api.sendInvoice(this.invoice.id, { ...this.form, documentIds: this.documentIds })
 				this.$emit('sent', data)
 			} catch (e) {
 				this.error = errMsg(e, this.t('Die E-Mail konnte nicht gesendet werden.'))

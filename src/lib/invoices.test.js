@@ -4,12 +4,14 @@ import {
 	displayStatus,
 	editorLineNet,
 	editorTotals,
+	eInvoiceDocuments,
 	emptyLine,
 	formatNumberPattern,
 	formatQuantity,
 	isEmptyLine,
 	lineNet,
 	linesToPayload,
+	missingEInvoiceFormats,
 	parseDecimal,
 	quantityToE4,
 	roundDiv,
@@ -185,5 +187,16 @@ describe('formatNumberPattern', () => {
 		expect(formatNumberPattern('RE-{JJJJ}-{NNNN}', date, 42)).toBe('RE-2026-0042')
 		expect(formatNumberPattern('{JJ}/{NNN}', date, 7)).toBe('26/007')
 		expect(formatNumberPattern('R{NNNNN}', date, 123456)).toBe('R123456')
+	})
+})
+
+describe('E-Rechnung', () => {
+	it('bietet nur Formate an, die es noch nicht gibt', () => {
+		expect(missingEInvoiceFormats([])).toEqual(['zugferd', 'xrechnung_cii', 'xrechnung_ubl'])
+		expect(missingEInvoiceFormats([{ kind: 'pdf' }, { kind: 'zugferd_pdf' }])).toEqual(['xrechnung_cii', 'xrechnung_ubl'])
+		expect(missingEInvoiceFormats(undefined)).toHaveLength(3)
+	})
+	it('trennt E-Rechnungen vom einfachen PDF', () => {
+		expect(eInvoiceDocuments([{ kind: 'pdf' }, { kind: 'xrechnung_ubl' }])).toEqual([{ kind: 'xrechnung_ubl' }])
 	})
 })

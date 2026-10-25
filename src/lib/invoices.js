@@ -288,3 +288,20 @@ export function formatNumberPattern(pattern, date, no) {
 		.replace('{JJ}', year.slice(2))
 		.replace(/\{(N+)\}/, (_m, ns) => String(no).padStart(ns.length, '0'))
 }
+
+/** Formate der E-Rechnung in der Reihenfolge der Auswahl. */
+export const EINVOICE_FORMATS = ['zugferd', 'xrechnung_cii', 'xrechnung_ubl']
+
+/** Dokumentart (`kind` des Dokuments), die ein Format erzeugt. */
+export const EINVOICE_KIND = { zugferd: 'zugferd_pdf', xrechnung_cii: 'xrechnung_cii', xrechnung_ubl: 'xrechnung_ubl' }
+
+/** Formate, zu denen die Rechnung noch kein Dokument hat. */
+export function missingEInvoiceFormats(documents) {
+	const kinds = new Set((documents || []).map((d) => d.kind))
+	return EINVOICE_FORMATS.filter((f) => !kinds.has(EINVOICE_KIND[f]))
+}
+
+/** Dokumente, die mehr sind als das einfache PDF, also E-Rechnungen. */
+export function eInvoiceDocuments(documents) {
+	return (documents || []).filter((d) => d.kind !== 'pdf')
+}

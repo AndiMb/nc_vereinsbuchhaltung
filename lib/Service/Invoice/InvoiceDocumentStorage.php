@@ -57,9 +57,9 @@ class InvoiceDocumentStorage {
 	 *
 	 * @throws \RuntimeException wenn die Ablage nicht beschreibbar ist
 	 */
-	public function store(Invoice $invoice, string $kind, string $content, string $extension, ?string $profile = null): InvoiceDocument {
+	public function store(Invoice $invoice, string $kind, string $content, string $extension, ?string $profile = null, string $nameSuffix = ''): InvoiceDocument {
 		$baseName = SafeFileName::of((string)($invoice->getNumber() ?? ('Rechnung-' . $invoice->getId())), 100);
-		$fileName = $baseName . '.' . $extension;
+		$fileName = $baseName . $nameSuffix . '.' . $extension;
 
 		$doc = new InvoiceDocument();
 		$doc->setInvoiceId((int)$invoice->getId());
