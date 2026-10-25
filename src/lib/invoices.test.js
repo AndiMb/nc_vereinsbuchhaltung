@@ -13,6 +13,8 @@ import {
 	parseDecimal,
 	quantityToE4,
 	roundDiv,
+	suggestTaxKey,
+	taxKeyOf,
 	totals,
 } from './invoices.js'
 
@@ -39,10 +41,54 @@ describe('lineNet (wie InvoiceCalculator.php)', () => {
 
 describe('totals', () => {
 	it('summiert ohne Steuerausweis', () => {
-		expect(totals([{ lineNetCents: 1000 }, { lineNetCents: 550 }])).toEqual({ netCents: 1550, taxCents: 0, grossCents: 1550 })
+		expect(totals([{ lineNetCents: 1000 }, { lineNetCents: 550 }])).toEqual({ netCents: 1550, taxCents: 0, grossCents: 1550, taxBreakdown: [] })
 	})
 	it('leer ist null', () => {
 		expect(totals([]).grossCents).toBe(0)
+	})
+	it('rechnet die Steuer je Satz einmal aus der Summe (wie der Server)', () => {
+		const result = totals([
+			{ lineNetCents: 333, taxCategory: 'S', taxRateBp: 1900 },
+			{ lineNetCents: 333, taxCategory: 'S', taxRateBp: 1900 },
+			{ lineNetCents: 1000, taxCategory: 'S', taxRateBp: 700 },
+			{ lineNetCents: 200, taxCategory: 'E', taxRateBp: 0 },
+		], true)
+		// 666 × 19 % = 126,54 → 127; 1000 × 7 % = 70; befreit bleibt ohne Steuer.
+		expect(result.netCents).toBe(1866)
+		expect(result.taxCents).toBe(197)
+		expect(result.grossCents).toBe(2063)
+		expect(result.taxBreakdown).toEqual([{ rateBp: 1900, baseCents: 666, taxCents: 127 }, { rateBp: 700, baseCents: 1000, taxCents: 70 }])
+	})
+	it('ignoriert die Steuer, solange keine Regelbesteuerung gilt', () => {
+		expect(totals([{ lineNetCents: 1000, taxCategory: 'S', taxRateBp: 1900 }], false).taxCents).toBe(0)
+	})
+})
+
+describe('Steuerauswahl', () => {
+	it('findet den Schlüssel zu Kategorie und Satz', () => {
+		expect(taxKeyOf('S', 1900)).toBe('S1900')
+		expect(taxKeyOf('S', 700)).toBe('S700')
+		expect(taxKeyOf('E', 0)).toBe('E')
+		expect(taxKeyOf('Z', 0)).toBe('Z')
+	})
+	it('schlägt den Satz nach der Sphäre des Erlöskontos vor', () => {
+		const rates = { zweckbetrieb: 700, wirtschaftlich: 1900 }
+		expect(suggestTaxKey({ sphere: 'zweckbetrieb' }, rates)).toBe('S700')
+		expect(suggestTaxKey({ sphere: 'wirtschaftlich' }, rates)).toBe('S1900')
+		expect(suggestTaxKey({ sphere: null }, rates)).toBe('S1900')
+		expect(suggestTaxKey(null, rates)).toBe('S1900')
+		expect(suggestTaxKey({ sphere: 'zweckbetrieb' }, { zweckbetrieb: 0, wirtschaftlich: 1900 })).toBe('Z')
+	})
+	it('schickt die Steuer nur bei Regelbesteuerung zum Server', () => {
+		const line = { ...emptyLine(4, 'S700'), name: 'x', unitPrice: 10 }
+		expect(linesToPayload([line])[0]).not.toHaveProperty('taxCategory')
+		expect(linesToPayload([line], true)[0]).toMatchObject({ taxCategory: 'S', taxRateBp: 700 })
+	})
+	it('summiert die Editor-Zeilen mit Steuer', () => {
+		const a = { ...emptyLine(4, 'S1900'), name: 'a', unitPrice: 100 }
+		const b = { ...emptyLine(4, 'E'), name: 'b', unitPrice: 50 }
+		expect(editorTotals([a, b], true)).toMatchObject({ netCents: 15000, taxCents: 1900, grossCents: 16900 })
+		expect(editorTotals([a, b], false)).toMatchObject({ netCents: 15000, taxCents: 0, grossCents: 15000 })
 	})
 })
 
@@ -94,7 +140,7 @@ describe('Editor', () => {
 		expect(isEmptyLine(line())).toBe(false)
 	})
 	it('summiert ohne leere Zeilen und meldet Fehler', () => {
-		expect(editorTotals([line(), emptyLine()])).toEqual({ netCents: 7650, taxCents: 0, grossCents: 7650, invalid: false })
+		expect(editorTotals([line(), emptyLine()])).toEqual({ netCents: 7650, taxCents: 0, grossCents: 7650, taxBreakdown: [], invalid: false })
 		expect(editorTotals([line({ quantity: 'viel' })]).invalid).toBe(true)
 	})
 	it('bereitet die Positionen für den Server auf', () => {

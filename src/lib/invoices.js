@@ -22,10 +22,30 @@ export function lineNet(quantityE4, unitPriceCents, discountBp = 0) {
 	return base - roundDiv(base * discountBp, 10000)
 }
 
-/** Summen einer Rechnung ohne Steuerausweis (Stufe 1); Steuer folgt mit der Regelbesteuerung. */
-export function totals(lines) {
+/**
+ * Summen einer Rechnung. Ohne Regelbesteuerung wird keine Steuer ausgewiesen;
+ * mit ihr rechnet die Steuer je Satz einmal aus der Summe der Nettobeträge
+ * dieses Satzes (wie InvoiceCalculator::totals()).
+ *
+ * @param {Array<{lineNetCents: number, taxCategory?: string, taxRateBp?: number}>} lines
+ * @param {boolean} regular Regelbesteuerung
+ * @return {{netCents: number, taxCents: number, grossCents: number, taxBreakdown: Array<{rateBp: number, baseCents: number, taxCents: number}>}}
+ */
+export function totals(lines, regular = false) {
 	const net = lines.reduce((sum, l) => sum + l.lineNetCents, 0)
-	return { netCents: net, taxCents: 0, grossCents: net }
+	const groups = new Map()
+	if (regular) {
+		for (const l of lines) {
+			if ((l.taxCategory || 'S') !== 'S') { continue }
+			const rate = l.taxRateBp || 0
+			groups.set(rate, (groups.get(rate) || 0) + l.lineNetCents)
+		}
+	}
+	const taxBreakdown = [...groups.entries()]
+		.sort((a, b) => b[0] - a[0])
+		.map(([rateBp, baseCents]) => ({ rateBp, baseCents, taxCents: roundDiv(baseCents * rateBp, 10000) }))
+	const tax = taxBreakdown.reduce((sum, g) => sum + g.taxCents, 0)
+	return { netCents: net, taxCents: tax, grossCents: net + tax, taxBreakdown }
 }
 
 /**
@@ -146,10 +166,44 @@ export function addDays(iso, days) {
 	return date.toISOString().slice(0, 10)
 }
 
+/** Steuerauswahl einer Position bei Regelbesteuerung: Schlüssel → Kategorie und Satz in Basispunkten. */
+export const TAX_KEYS = {
+	S1900: { category: 'S', rateBp: 1900 },
+	S700: { category: 'S', rateBp: 700 },
+	Z: { category: 'Z', rateBp: 0 },
+	E: { category: 'E', rateBp: 0 },
+}
+
+export function taxKeyLabel(key) {
+	return { S1900: '19 %', S700: '7 %', Z: t('0 % (Nullsatz)'), E: t('steuerfrei') }[key] || key
+}
+
+/** Schlüssel der Steuerauswahl zu Kategorie und Satz einer gespeicherten Position. */
+export function taxKeyOf(category, rateBp) {
+	if (category === 'E') { return 'E' }
+	if (category === 'Z') { return 'Z' }
+	return rateBp === 700 ? 'S700' : 'S1900'
+}
+
+/**
+ * Vorgeschlagene Steuerauswahl zu einem Erlöskonto: die Sphäre entscheidet.
+ * Zweckbetrieb und wirtschaftlicher Geschäftsbetrieb nehmen den in den
+ * Einstellungen gewählten Satz, alles andere den Satz des wirtschaftlichen
+ * Geschäftsbetriebs.
+ *
+ * @param {{sphere?: string|null}|null} account
+ * @param {{zweckbetrieb: number, wirtschaftlich: number}} rates Sätze in Basispunkten
+ */
+export function suggestTaxKey(account, rates) {
+	const rate = account && account.sphere === 'zweckbetrieb' ? rates.zweckbetrieb : rates.wirtschaftlich
+	if (rate === 0) { return 'Z' }
+	return rate === 700 ? 'S700' : 'S1900'
+}
+
 let lineKey = 0
 
 /** Leere Positionszeile des Editors; `key` hält die Zeile beim Umsortieren stabil. */
-export function emptyLine(accountId = null) {
+export function emptyLine(accountId = null, taxKey = 'S1900') {
 	lineKey++
 	return {
 		key: 'l' + lineKey,
@@ -160,6 +214,9 @@ export function emptyLine(accountId = null) {
 		unitPrice: '',
 		discountPercent: '',
 		accountId,
+		taxKey,
+		// Hat jemand den Satz von Hand gewählt, folgt er dem Konto nicht mehr.
+		taxTouched: false,
 	}
 }
 
@@ -175,6 +232,8 @@ export function lineFromServer(line) {
 		unitPrice: line.unitPriceCents === 0 ? '' : (line.unitPriceCents / 100),
 		discountPercent: line.discountBp > 0 ? formatDiscount(line.discountBp) : '',
 		accountId: line.accountId,
+		taxKey: taxKeyOf(line.taxCategory, line.taxRateBp),
+		taxTouched: true,
 	}
 }
 
@@ -192,8 +251,8 @@ export function isEmptyLine(line) {
 	return String(line.name).trim() === '' && String(line.description).trim() === '' && (line.unitPrice === '' || Number(line.unitPrice) === 0)
 }
 
-/** Positionen für den Server; leere Zeilen entfallen. */
-export function linesToPayload(lines) {
+/** Positionen für den Server; leere Zeilen entfallen. Die Steuer geht nur bei Regelbesteuerung mit. */
+export function linesToPayload(lines, regular = false) {
 	return lines.filter((l) => !isEmptyLine(l)).map((l) => ({
 		name: l.name,
 		description: l.description,
@@ -202,18 +261,20 @@ export function linesToPayload(lines) {
 		unitPriceCents: l.unitPrice === '' ? 0 : Math.round(Number(l.unitPrice) * 100),
 		discountPercent: l.discountPercent === '' ? 0 : l.discountPercent,
 		accountId: l.accountId,
+		...(regular ? { taxCategory: TAX_KEYS[l.taxKey || 'S1900'].category, taxRateBp: TAX_KEYS[l.taxKey || 'S1900'].rateBp } : {}),
 	}))
 }
 
 /** Summen der Editor-Zeilen; unlesbare Zeilen zählen mit 0 und melden `invalid`. */
-export function editorTotals(lines) {
+export function editorTotals(lines, regular = false) {
 	let invalid = false
 	const nets = lines.filter((l) => !isEmptyLine(l)).map((l) => {
 		const net = editorLineNet(l)
 		if (net === null) { invalid = true }
-		return { lineNetCents: net ?? 0 }
+		const tax = TAX_KEYS[l.taxKey || 'S1900']
+		return { lineNetCents: net ?? 0, taxCategory: tax.category, taxRateBp: tax.rateBp }
 	})
-	return { ...totals(nets), invalid }
+	return { ...totals(nets, regular), invalid }
 }
 
 /**

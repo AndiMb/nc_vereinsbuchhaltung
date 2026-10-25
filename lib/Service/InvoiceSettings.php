@@ -36,13 +36,22 @@ class InvoiceSettings {
 	public const SETTING_FOLDER = 'invoice_folder';
 	public const SETTING_MAIL_SUBJECT = 'invoice_mail_subject';
 	public const SETTING_MAIL_BODY = 'invoice_mail_body';
+	/** Umsatzsteuerkonten je Satz (Konto-ID), nur bei Regelbesteuerung gebraucht. */
+	public const SETTING_VAT_ACCOUNT_19 = 'invoice_vat_account_19';
+	public const SETTING_VAT_ACCOUNT_7 = 'invoice_vat_account_7';
+	/** Vorgeschlagener Steuersatz (Basispunkte) je Sphäre des Erlöskontos. */
+	public const SETTING_RATE_ZWECKBETRIEB = 'invoice_rate_zweckbetrieb';
+	public const SETTING_RATE_WIRTSCHAFTLICH = 'invoice_rate_wirtschaftlich';
+
+	/** Steuersätze, die die Einstellungen als Vorschlag kennen (Basispunkte). */
+	public const SELECTABLE_RATES = [0, 700, 1900];
 
 	public const DEFAULT_FOLDER = 'Vereinsbuchhaltung/Rechnungen';
 	public const DEFAULT_DUE_DAYS = 14;
 	public const MAX_DUE_DAYS = 365;
 
-	/** Steuer-Modi, die diese Ausbaustufe anbietet. Die Regelbesteuerung kommt mit Stufe 2. */
-	public const AVAILABLE_TAX_MODES = [Invoice::TAX_SMALL_BUSINESS, Invoice::TAX_EXEMPT];
+	/** Steuer-Modi, die der Editor anbietet. */
+	public const AVAILABLE_TAX_MODES = [Invoice::TAX_SMALL_BUSINESS, Invoice::TAX_EXEMPT, Invoice::TAX_REGULAR];
 
 	/**
 	 * Schlüssel der Ausstellerangaben => Feld im Ausstellerblock und Höchstlänge.
@@ -111,6 +120,50 @@ class InvoiceSettings {
 	}
 
 	/**
+	 * Das Umsatzsteuerkonto für einen Steuersatz (Basispunkte), oder null, wenn
+	 * keines eingestellt ist. Es gibt Konten für 19 % und 7 %.
+	 */
+	public function vatAccountId(int $rateBp): ?int {
+		$key = match ($rateBp) {
+			1900 => self::SETTING_VAT_ACCOUNT_19,
+			700 => self::SETTING_VAT_ACCOUNT_7,
+			default => null,
+		};
+		if ($key === null) {
+			return null;
+		}
+		$id = (int)$this->get($key, '0');
+		return $id > 0 ? $id : null;
+	}
+
+	public function setVatAccountId(string $key, ?int $accountId): void {
+		if (!in_array($key, [self::SETTING_VAT_ACCOUNT_19, self::SETTING_VAT_ACCOUNT_7], true)) {
+			throw new \InvalidArgumentException('Unbekanntes Umsatzsteuerkonto');
+		}
+		if ($accountId === null) {
+			$this->config->deleteAppValue(Application::APP_ID, $key);
+			return;
+		}
+		$this->config->setAppValue(Application::APP_ID, $key, (string)$accountId);
+	}
+
+	/**
+	 * Vorgeschlagene Steuersätze je Sphäre des Erlöskontos (Basispunkte).
+	 *
+	 * @return array{zweckbetrieb: int, wirtschaftlich: int}
+	 */
+	public function defaultRates(): array {
+		$read = function (string $key, int $default): int {
+			$value = (int)$this->get($key, (string)$default);
+			return in_array($value, self::SELECTABLE_RATES, true) ? $value : $default;
+		};
+		return [
+			'zweckbetrieb' => $read(self::SETTING_RATE_ZWECKBETRIEB, 700),
+			'wirtschaftlich' => $read(self::SETTING_RATE_WIRTSCHAFTLICH, 1900),
+		];
+	}
+
+	/**
 	 * Die Angaben des Ausstellers, wie sie auf der Rechnung stehen.
 	 *
 	 * @return array<string, string>
@@ -160,6 +213,10 @@ class InvoiceSettings {
 			self::SETTING_ACTIVE => $this->isActive(),
 			self::SETTING_AUTO_ASSIGN => $this->autoAssign(),
 			self::SETTING_TAX_MODE => $this->taxMode(),
+			self::SETTING_VAT_ACCOUNT_19 => $this->vatAccountId(1900),
+			self::SETTING_VAT_ACCOUNT_7 => $this->vatAccountId(700),
+			self::SETTING_RATE_ZWECKBETRIEB => $this->defaultRates()['zweckbetrieb'],
+			self::SETTING_RATE_WIRTSCHAFTLICH => $this->defaultRates()['wirtschaftlich'],
 			self::SETTING_EXEMPTION_TEXT => $this->get(self::SETTING_EXEMPTION_TEXT),
 			self::SETTING_DUE_DAYS => $this->defaultDueDays(),
 			self::SETTING_PAYMENT_TERMS => $this->get(self::SETTING_PAYMENT_TERMS),
@@ -206,6 +263,17 @@ class InvoiceSettings {
 				return $this->msg('Dieser Steuer-Modus ist noch nicht verfügbar.');
 			}
 			$writes[self::SETTING_TAX_MODE] = $mode;
+		}
+
+		foreach ([self::SETTING_RATE_ZWECKBETRIEB, self::SETTING_RATE_WIRTSCHAFTLICH] as $rateKey) {
+			if (!array_key_exists($rateKey, $params)) {
+				continue;
+			}
+			$rate = (int)$params[$rateKey];
+			if (!in_array($rate, self::SELECTABLE_RATES, true)) {
+				return $this->msg('Der Steuersatz muss 0, 7 oder 19 Prozent sein.');
+			}
+			$writes[$rateKey] = (string)$rate;
 		}
 
 		foreach (self::ISSUER_KEYS as $key => ['max' => $max]) {

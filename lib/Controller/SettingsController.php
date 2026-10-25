@@ -474,6 +474,25 @@ class SettingsController extends Controller {
 			}
 			$this->invoiceSettings->setAccountId($invoiceAccountId);
 		}
+		// Umsatzsteuerkonten (Regelbesteuerung): ein Konto, das kein Geldkonto ist.
+		foreach ([InvoiceSettings::SETTING_VAT_ACCOUNT_19, InvoiceSettings::SETTING_VAT_ACCOUNT_7] as $vatKey) {
+			if (!array_key_exists($vatKey, $params)) {
+				continue;
+			}
+			$vatParam = $params[$vatKey];
+			$vatAccountId = $vatParam !== null && $vatParam !== '' ? (int)$vatParam : null;
+			if ($vatAccountId !== null) {
+				try {
+					$vatAccount = $this->accountMapper->find($vatAccountId, $this->userId());
+				} catch (DoesNotExistException) {
+					return new DataResponse(['message' => $this->l10n->t('Das gewählte Umsatzsteuerkonto wurde nicht gefunden.')], Http::STATUS_BAD_REQUEST);
+				}
+				if ($vatAccount->getIsBank() || !in_array($vatAccount->getType(), ['liability', 'income'], true)) {
+					return new DataResponse(['message' => $this->l10n->t('Das Umsatzsteuerkonto muss ein Passiv- oder Ertragskonto sein, kein Geldkonto.')], Http::STATUS_BAD_REQUEST);
+				}
+			}
+			$this->invoiceSettings->setVatAccountId($vatKey, $vatAccountId);
+		}
 		$invoiceError = $this->invoiceSettings->update($params);
 		if ($invoiceError !== null) {
 			return new DataResponse(['message' => $invoiceError], Http::STATUS_BAD_REQUEST);

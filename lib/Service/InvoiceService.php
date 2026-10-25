@@ -93,6 +93,11 @@ class InvoiceService {
 		$debtor = $this->liveDebtor($invoice);
 		$out = $this->decorate($invoice, $item, $debtor);
 		$out['lines'] = $lines;
+		$out['taxBreakdown'] = InvoiceCalculator::totals(array_map(static fn (InvoiceLine $l): array => [
+			'lineNetCents' => $l->getLineNetCents(),
+			'taxRateBp' => $l->getTaxRateBp(),
+			'taxCategory' => $l->getTaxCategory(),
+		], $lines), $invoice->getTaxMode())['taxBreakdown'];
 		$out['documents'] = $this->documents->findByInvoice($id);
 		$out['payments'] = $this->payments->findByInvoice($id);
 		$credit = $invoice->isCredit() ? null : $this->invoices->findCreditFor($id);
@@ -151,6 +156,23 @@ class InvoiceService {
 
 		if ($invoice->getTaxMode() === Invoice::TAX_EXEMPT) {
 			$add('exemption', $this->msg('Hinweis auf die Steuerbefreiung (z. B. § 4 Nr. 22 UStG)'), trim((string)$invoice->getExemptionText()) !== '');
+		}
+		if ($invoice->getTaxMode() === Invoice::TAX_REGULAR) {
+			$rates = [];
+			$hasExemptLine = false;
+			foreach ($lines as $line) {
+				if ($line->getTaxCategory() === InvoiceLine::TAX_STANDARD) {
+					$rates[$line->getTaxRateBp()] = true;
+				}
+				if ($line->getTaxCategory() === InvoiceLine::TAX_EXEMPT) {
+					$hasExemptLine = true;
+				}
+			}
+			$missingVat = array_filter(array_keys($rates), fn (int $rate): bool => $this->settings->vatAccountId($rate) === null);
+			$add('vatAccounts', $this->msg('Umsatzsteuerkonto für jeden verwendeten Steuersatz (Einstellungen)'), $missingVat === []);
+			if ($hasExemptLine) {
+				$add('exemption', $this->msg('Hinweis auf die Steuerbefreiung (z. B. § 4 Nr. 22 UStG)'), trim((string)$invoice->getExemptionText()) !== '');
+			}
 		}
 		$add('bank', $this->msg('Bankverbindung für die Überweisung'), $this->settings->accountId() !== null, false);
 		return $items;
@@ -244,6 +266,9 @@ class InvoiceService {
 					'unitCode' => $line->getUnitCode(),
 					'unitPriceCents' => $line->getUnitPriceCents(),
 					'discountBp' => $line->getDiscountBp(),
+					'taxCategory' => $line->getTaxCategory(),
+					'taxRateBp' => $line->getTaxRateBp(),
+					'taxExemptionText' => $line->getTaxExemptionText(),
 					'accountId' => $line->getAccountId(),
 					'costCenterId' => $line->getCostCenterId(),
 				];
@@ -674,11 +699,7 @@ class InvoiceService {
 			}
 			$line->setDiscountBp($discountBp);
 
-			// Ohne Regelbesteuerung (Stufe 1) gibt es keinen Steuerausweis:
-			// befreit, Satz 0. Der Hinweistext steht an der Rechnung.
-			$line->setTaxCategory(InvoiceLine::TAX_EXEMPT);
-			$line->setTaxRateBp(0);
-			$line->setTaxExemptionText(null);
+			$this->applyTax($invoice, $line, $row, $position);
 
 			$accountId = isset($row['accountId']) && $row['accountId'] !== '' ? (int)$row['accountId'] : null;
 			if ($accountId !== null) {
@@ -691,6 +712,44 @@ class InvoiceService {
 			$lines[] = $line;
 		}
 		return $lines;
+	}
+
+	/**
+	 * Steuer der Position. Ohne Regelbesteuerung gibt es keinen Steuerausweis:
+	 * befreit, Satz 0, der Hinweistext steht an der Rechnung. Bei
+	 * Regelbesteuerung trägt jede Position ihre Kategorie (S Regelsatz, E
+	 * steuerbefreit, Z Nullsatz) und ihren Satz in Basispunkten.
+	 *
+	 * @param array<string, mixed> $row
+	 */
+	private function applyTax(Invoice $invoice, InvoiceLine $line, array $row, int $position): void {
+		if ($invoice->getTaxMode() !== Invoice::TAX_REGULAR) {
+			$line->setTaxCategory(InvoiceLine::TAX_EXEMPT);
+			$line->setTaxRateBp(0);
+			$line->setTaxExemptionText(null);
+			return;
+		}
+		$category = strtoupper(trim((string)($row['taxCategory'] ?? InvoiceLine::TAX_STANDARD)));
+		if (!in_array($category, [InvoiceLine::TAX_STANDARD, InvoiceLine::TAX_EXEMPT, InvoiceLine::TAX_ZERO], true)) {
+			throw new \InvalidArgumentException($this->msg('Position %d: Diese Steuerkategorie ist nicht möglich.', [$position]));
+		}
+		$rateBp = 0;
+		if ($category === InvoiceLine::TAX_STANDARD) {
+			if (isset($row['taxRateBp']) && $row['taxRateBp'] !== '') {
+				$rateBp = (int)$row['taxRateBp'];
+			} elseif (isset($row['taxRatePercent']) && $row['taxRatePercent'] !== '') {
+				$rateBp = (int)round($this->parseDecimal($row['taxRatePercent']) * 100);
+			} else {
+				$rateBp = $this->settings->defaultRates()['wirtschaftlich'];
+			}
+			if ($rateBp < 1 || $rateBp > 2500) {
+				throw new \InvalidArgumentException($this->msg('Position %d: Der Steuersatz muss zwischen 0,01 und 25 Prozent liegen.', [$position]));
+			}
+		}
+		$line->setTaxCategory($category);
+		$line->setTaxRateBp($rateBp);
+		$text = $this->blankToNull(mb_substr(trim((string)($row['taxExemptionText'] ?? '')), 0, 255));
+		$line->setTaxExemptionText($category === InvoiceLine::TAX_EXEMPT ? $text : null);
 	}
 
 	/**

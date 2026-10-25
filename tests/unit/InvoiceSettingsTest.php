@@ -77,13 +77,33 @@ class InvoiceSettingsTest extends TestCase {
 		$this->assertSame('DE123456789', $s->issuer()['vatId']);
 	}
 
-	public function testRegelbesteuerungIstInStufeEinsNichtWaehlbar(): void {
+	public function testSteuerModusWirdGespeichertUndUnbekannteWerdenAbgelehnt(): void {
 		$s = $this->settings();
 
-		$this->assertNotNull($s->update(['invoice_tax_mode' => Invoice::TAX_REGULAR]));
-		$this->assertSame(Invoice::TAX_SMALL_BUSINESS, $s->taxMode());
+		$this->assertNull($s->update(['invoice_tax_mode' => Invoice::TAX_REGULAR]));
+		$this->assertSame(Invoice::TAX_REGULAR, $s->taxMode());
 		$this->assertNull($s->update(['invoice_tax_mode' => Invoice::TAX_EXEMPT]));
 		$this->assertSame(Invoice::TAX_EXEMPT, $s->taxMode());
+		$this->assertNotNull($s->update(['invoice_tax_mode' => 'frei erfunden']));
+		$this->assertSame(Invoice::TAX_EXEMPT, $s->taxMode());
+	}
+
+	public function testVorgabeSaetzeUndUmsatzsteuerkonten(): void {
+		$s = $this->settings();
+
+		$this->assertSame(['zweckbetrieb' => 700, 'wirtschaftlich' => 1900], $s->defaultRates());
+		$this->assertNull($s->vatAccountId(1900));
+		$s->setVatAccountId(InvoiceSettings::SETTING_VAT_ACCOUNT_19, 31);
+		$s->setVatAccountId(InvoiceSettings::SETTING_VAT_ACCOUNT_7, 32);
+		$this->assertSame(31, $s->vatAccountId(1900));
+		$this->assertSame(32, $s->vatAccountId(700));
+		$this->assertNull($s->vatAccountId(1600), 'Für andere Sätze gibt es kein Konto.');
+		$s->setVatAccountId(InvoiceSettings::SETTING_VAT_ACCOUNT_19, null);
+		$this->assertNull($s->vatAccountId(1900));
+
+		$this->assertNull($s->update(['invoice_rate_zweckbetrieb' => 0, 'invoice_rate_wirtschaftlich' => 700]));
+		$this->assertSame(['zweckbetrieb' => 0, 'wirtschaftlich' => 700], $s->defaultRates());
+		$this->assertNotNull($s->update(['invoice_rate_wirtschaftlich' => 1600]));
 	}
 
 	public function testFehlerSchreibtNichts(): void {

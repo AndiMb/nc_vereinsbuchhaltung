@@ -129,12 +129,13 @@
 					<div class="vbh-tablecard">
 						<table class="vbh-table vbh-inv-linestable">
 							<colgroup>
-								<col style="width: 7%">
-								<col style="width: 38%">
+								<col style="width: 6%">
+								<col :style="{ width: regular ? '32%' : '38%' }">
 								<col style="width: 14%">
 								<col style="width: 15%">
 								<col style="width: 10%">
-								<col style="width: 16%">
+								<col v-if="regular" style="width: 8%">
+								<col :style="{ width: regular ? '15%' : '17%' }">
 							</colgroup>
 							<thead>
 								<tr>
@@ -150,6 +151,9 @@
 									</th>
 									<th class="vbh-inv-r">
 										{{ t('Rabatt') }}
+									</th>
+									<th v-if="regular" class="vbh-inv-r">
+										{{ t('USt') }}
 									</th>
 									<th class="vbh-inv-r">
 										{{ t('Netto') }}
@@ -175,6 +179,9 @@
 									<td class="vbh-inv-r">
 										{{ line.discountBp ? formatDiscount(line.discountBp) + ' %' : '' }}
 									</td>
+									<td v-if="regular" class="vbh-inv-r">
+										{{ taxLabel(line) }}
+									</td>
 									<td class="vbh-inv-r">
 										{{ formatMoney(line.lineNetCents / 100) }}
 									</td>
@@ -182,6 +189,17 @@
 							</tbody>
 						</table>
 					</div>
+					<dl v-if="regular" class="vbh-inv-sums">
+						<dt>{{ t('Summe netto') }}</dt><dd>{{ formatMoney(invoice.netCents / 100) }}</dd>
+						<template v-for="g in taxGroups" :key="g.rateBp">
+							<dt>{{ t('zzgl. {rate} USt', { rate: formatDiscount(g.rateBp) + ' %' }) }}</dt><dd>{{ formatMoney(g.taxCents / 100) }}</dd>
+						</template>
+						<dt class="vbh-inv-sums-total">
+							{{ t('Rechnungsbetrag') }}
+						</dt><dd class="vbh-inv-sums-total">
+							{{ formatMoney(invoice.grossCents / 100) }}
+						</dd>
+					</dl>
 					<p v-if="invoice.exemptionText" class="vbh-hint">
 						{{ invoice.exemptionText }}
 					</p>
@@ -310,6 +328,8 @@ export default {
 		pdfUrl() { return this.invoice ? api.invoicePdfUrl(this.invoice.id) : '' },
 		pdfDownloadUrl() { return this.invoice ? api.invoicePdfUrl(this.invoice.id, true) : '' },
 		accountsById() { return Object.fromEntries(this.accounts.map((a) => [a.id, a])) },
+		regular() { return this.invoice?.taxMode === 'regular' },
+		taxGroups() { return (this.invoice?.taxBreakdown || []).filter((g) => g.category === 'S') },
 
 		canPay() {
 			const i = this.invoice
@@ -376,6 +396,12 @@ export default {
 			} finally {
 				this.loading = false
 			}
+		},
+
+		/** Steuer der Position für die Tabelle: „19 %", „7 %", „0 %" oder „steuerfrei". */
+		taxLabel(line) {
+			if (line.taxCategory === 'E') { return this.t('steuerfrei') }
+			return formatDiscount(line.taxRateBp) + ' %'
 		},
 
 		accountLabel(id) {
@@ -469,6 +495,14 @@ export default {
 .vbh-inv-c-pos { width: 48px; }
 
 .vbh-inv-desc { display: block; opacity: 0.7; font-size: 0.85em; white-space: pre-line; }
+
+.vbh-inv-sums { display: grid; grid-template-columns: 1fr max-content; justify-content: end; gap: 3px 28px; margin: 10px 0 0; }
+
+.vbh-inv-sums dt { text-align: end; opacity: 0.8; }
+
+.vbh-inv-sums dd { margin: 0; text-align: end; font-variant-numeric: tabular-nums; }
+
+.vbh-inv-sums-total { font-weight: 700; opacity: 1 !important; }
 
 .vbh-inv-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 

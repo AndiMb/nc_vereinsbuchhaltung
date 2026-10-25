@@ -13,6 +13,7 @@ use OCA\Vereinsbuchhaltung\Db\InvoicePaymentMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Service\InvoicePaymentLedger;
+use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -25,6 +26,7 @@ class InvoicePaymentLedgerTest extends TestCase {
 	private array $payments = [];
 	private Invoice $invoice;
 	private OpenItem $item;
+	private InvoiceSettings&\PHPUnit\Framework\MockObject\MockObject $settings;
 
 	protected function setUp(): void {
 		$this->payments = [];
@@ -37,6 +39,12 @@ class InvoicePaymentLedgerTest extends TestCase {
 		$this->item->setAmountCents(10001);
 		$this->item->setStatus('open');
 		$this->item->setSettledCents(0);
+		$this->settings = $this->createMock(InvoiceSettings::class);
+		$this->settings->method('vatAccountId')->willReturnCallback(static fn (int $rate): ?int => match ($rate) {
+			1900 => 31,
+			700 => 32,
+			default => null,
+		});
 	}
 
 	private function ledger(): InvoicePaymentLedger {
@@ -63,7 +71,7 @@ class InvoicePaymentLedgerTest extends TestCase {
 			$this->line(3001, 10),
 			$this->line(7000, 11),
 		]);
-		return new InvoicePaymentLedger($payments, $invoices, $openItems, $lines);
+		return new InvoicePaymentLedger($payments, $invoices, $openItems, $lines, $this->settings);
 	}
 
 	private function line(int $netCents, int $accountId): InvoiceLine {
@@ -175,5 +183,74 @@ class InvoicePaymentLedgerTest extends TestCase {
 		$ledger->revertForJournal(999);
 
 		$this->assertSame(3000, $this->item->getSettledCents());
+	}
+
+	public function testRegelbesteuerungLegtDieUmsatzsteuerAufIhrKontoUndTeiltDieZahlungAnteilig(): void {
+		$this->invoice->setTaxMode(Invoice::TAX_REGULAR);
+		$ledger = $this->regularLedger([
+			[$this->taxedLine(10000, 10, 'S', 1900)],
+			[$this->taxedLine(5000, 11, 'S', 700)],
+		]);
+
+		// 100,00 + 19 % und 50,00 + 7 %: Steuer 19,00 und 3,50, Brutto 172,50.
+		$this->assertSame([10 => 10000, 11 => 5000, 31 => 1900, 32 => 350], $ledger->remainingWeights($this->invoice));
+
+		$parts = $ledger->allocate($this->invoice, 17250);
+		$this->assertSame([10 => 10000, 11 => 5000, 31 => 1900, 32 => 350], $parts);
+	}
+
+	public function testRegelbesteuerungTeilzahlungVerliertKeinenCent(): void {
+		$this->invoice->setTaxMode(Invoice::TAX_REGULAR);
+		$ledger = $this->regularLedger([[$this->taxedLine(10000, 10, 'S', 1900)]]);
+
+		$first = $ledger->allocate($this->invoice, 5000);
+		$this->assertSame(5000, array_sum($first));
+		$ledger->record($this->invoice, $this->item, 5000, null, 100, $first, 'admin');
+		$rest = $ledger->allocate($this->invoice, 6900);
+
+		$this->assertSame(6900, array_sum($rest));
+		$this->assertSame(10000, ($first[10] ?? 0) + ($rest[10] ?? 0));
+		$this->assertSame(1900, ($first[31] ?? 0) + ($rest[31] ?? 0));
+	}
+
+	public function testBefreiteUndNullsatzPositionenBrauchenKeinUmsatzsteuerkonto(): void {
+		$this->invoice->setTaxMode(Invoice::TAX_REGULAR);
+		$ledger = $this->regularLedger([[$this->taxedLine(8000, 10, 'E', 0)], [$this->taxedLine(2000, 10, 'Z', 0)]]);
+
+		$this->assertSame([10 => 10000], $ledger->remainingWeights($this->invoice));
+	}
+
+	public function testFehltDasUmsatzsteuerkontoWirdDasAbgelehnt(): void {
+		$this->invoice->setTaxMode(Invoice::TAX_REGULAR);
+		$ledger = $this->regularLedger([[$this->taxedLine(10000, 10, 'S', 1600)]]);
+
+		$this->expectException(\InvalidArgumentException::class);
+		$ledger->remainingWeights($this->invoice);
+	}
+
+	private function taxedLine(int $net, int $accountId, string $category, int $rateBp): InvoiceLine {
+		$line = $this->line($net, $accountId);
+		$line->setTaxCategory($category);
+		$line->setTaxRateBp($rateBp);
+		return $line;
+	}
+
+	/** @param list<list<InvoiceLine>> $groups */
+	private function regularLedger(array $groups): InvoicePaymentLedger {
+		$flat = array_merge(...$groups);
+		$payments = $this->createMock(InvoicePaymentMapper::class);
+		$payments->method('insert')->willReturnCallback(function (InvoicePayment $p): InvoicePayment {
+			$p->setId(count($this->payments) + 1);
+			$this->payments[(int)$p->getId()] = $p;
+			return $p;
+		});
+		$payments->method('findByInvoice')->willReturnCallback(fn () => array_values($this->payments));
+		$invoices = $this->createMock(InvoiceMapper::class);
+		$invoices->method('update')->willReturnArgument(0);
+		$openItems = $this->createMock(OpenItemMapper::class);
+		$openItems->method('update')->willReturnArgument(0);
+		$lines = $this->createMock(InvoiceLineMapper::class);
+		$lines->method('findByInvoice')->willReturn($flat);
+		return new InvoicePaymentLedger($payments, $invoices, $openItems, $lines, $this->settings);
 	}
 }

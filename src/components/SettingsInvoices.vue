@@ -98,6 +98,7 @@
 					<select v-model="form.invoice_tax_mode">
 						<option value="kleinunternehmer">{{ t('Kleinunternehmer (§ 19 UStG)') }}</option>
 						<option value="exempt">{{ t('Steuerbefreit (Hinweis nach § 4 UStG)') }}</option>
+						<option value="regular">{{ t('Regelbesteuerung (Umsatzsteuer ausweisen)') }}</option>
 					</select>
 				</label>
 				<label>{{ t('Zahlungsziel (Tage)') }}
@@ -109,6 +110,41 @@
 						max="365">
 				</label>
 			</div>
+			<template v-if="form.invoice_tax_mode === 'regular'">
+				<p class="vbh-hint">
+					{{ t('Bei Regelbesteuerung wird die Umsatzsteuer je Position ausgewiesen und beim Zahlungseingang auf das Umsatzsteuerkonto gebucht. Legen Sie die Konten im Kontenrahmen an (Passivkonto) und wählen Sie sie hier.') }}
+				</p>
+				<div class="vbh-form">
+					<label>{{ t('Umsatzsteuerkonto 19 %') }}
+						<select v-model="form.invoice_vat_account_19">
+							<option :value="null">{{ t('– kein Konto –') }}</option>
+							<option v-for="a in vatAccounts" :key="a.id" :value="a.id">{{ a.number }} {{ a.name }}</option>
+						</select>
+					</label>
+					<label>{{ t('Umsatzsteuerkonto 7 %') }}
+						<select v-model="form.invoice_vat_account_7">
+							<option :value="null">{{ t('– kein Konto –') }}</option>
+							<option v-for="a in vatAccounts" :key="a.id" :value="a.id">{{ a.number }} {{ a.name }}</option>
+						</select>
+					</label>
+				</div>
+				<div class="vbh-form">
+					<label>{{ t('Vorgeschlagener Satz im Zweckbetrieb') }}
+						<select v-model.number="form.invoice_rate_zweckbetrieb">
+							<option :value="700">7 %</option>
+							<option :value="1900">19 %</option>
+							<option :value="0">{{ t('0 % (Nullsatz)') }}</option>
+						</select>
+					</label>
+					<label>{{ t('Vorgeschlagener Satz im wirtschaftlichen Geschäftsbetrieb') }}
+						<select v-model.number="form.invoice_rate_wirtschaftlich">
+							<option :value="1900">19 %</option>
+							<option :value="700">7 %</option>
+							<option :value="0">{{ t('0 % (Nullsatz)') }}</option>
+						</select>
+					</label>
+				</div>
+			</template>
 			<div class="vbh-form">
 				<label class="vbh-grow">{{ t('Standard-Hinweistext zur Steuer (optional)') }}
 					<input v-model="form.invoice_default_exemption_text" maxlength="500" :placeholder="t('leer = Standardtext nach § 19 UStG')">
@@ -257,6 +293,10 @@ const KEYS = [
 	'invoice_note_foot',
 	'invoice_account_id',
 	'invoice_bic',
+	'invoice_vat_account_19',
+	'invoice_vat_account_7',
+	'invoice_rate_zweckbetrieb',
+	'invoice_rate_wirtschaftlich',
 	'invoice_folder',
 	'invoice_mail_subject',
 	'invoice_mail_body',
@@ -301,6 +341,7 @@ export default {
 
 	computed: {
 		bankAccounts() { return this.accounts.filter((a) => a.isBank && a.iban) },
+		vatAccounts() { return this.accounts.filter((a) => !a.isBank && a.active && ['liability', 'income'].includes(a.type)) },
 	},
 
 	async mounted() {
@@ -320,6 +361,10 @@ export default {
 			const form = {}
 			for (const key of KEYS) { form[key] = data[key] ?? '' }
 			form.invoice_account_id = data.invoice_account_id ?? null
+			form.invoice_vat_account_19 = data.invoice_vat_account_19 ?? null
+			form.invoice_vat_account_7 = data.invoice_vat_account_7 ?? null
+			form.invoice_rate_zweckbetrieb = data.invoice_rate_zweckbetrieb ?? 700
+			form.invoice_rate_wirtschaftlich = data.invoice_rate_wirtschaftlich ?? 1900
 			form.invoice_default_due_days = data.invoice_default_due_days ?? 14
 			this.form = form
 			this.missing = data.invoice_missing_issuer_fields || []
@@ -357,7 +402,7 @@ export default {
 		},
 
 		saveTax() {
-			return this.store(['invoice_tax_mode', 'invoice_default_due_days', 'invoice_default_exemption_text', 'invoice_account_id', 'invoice_bic', 'invoice_payment_terms', 'invoice_note_head', 'invoice_note_foot', 'invoice_folder'], 'taxError')
+			return this.store(['invoice_tax_mode', 'invoice_vat_account_19', 'invoice_vat_account_7', 'invoice_rate_zweckbetrieb', 'invoice_rate_wirtschaftlich', 'invoice_default_due_days', 'invoice_default_exemption_text', 'invoice_account_id', 'invoice_bic', 'invoice_payment_terms', 'invoice_note_head', 'invoice_note_foot', 'invoice_folder'], 'taxError')
 		},
 
 		saveMail() { return this.store(['invoice_mail_subject', 'invoice_mail_body'], 'mailError') },

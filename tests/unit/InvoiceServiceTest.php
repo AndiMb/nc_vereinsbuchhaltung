@@ -237,7 +237,9 @@ class InvoiceServiceTest extends TestCase {
 			'Zeitraum verkehrt' => [['periodStart' => '2026-03-10', 'periodEnd' => '2026-03-01']],
 			'Zahlungsziel vor Rechnungsdatum' => [['dueDate' => '2026-03-01']],
 			'Empfänger unbekannt' => [['debtorId' => 99]],
-			'Regelbesteuerung noch nicht verfügbar' => [['taxMode' => 'regular']],
+			'Steuer-Modus unbekannt' => [['taxMode' => 'frei']],
+			'Steuersatz zu hoch' => [['taxMode' => 'regular', 'lines' => [['name' => 'x', 'unitPriceCents' => 100, 'accountId' => 10, 'taxCategory' => 'S', 'taxRatePercent' => 30]]]],
+			'Steuerkategorie unbekannt' => [['taxMode' => 'regular', 'lines' => [['name' => 'x', 'unitPriceCents' => 100, 'accountId' => 10, 'taxCategory' => 'AE']]]],
 			'Menge null' => [['lines' => [['name' => 'x', 'quantity' => 0, 'unitPriceCents' => 100]]]],
 			'Einheit unbekannt' => [['lines' => [['name' => 'x', 'unitCode' => 'XYZ', 'unitPriceCents' => 100]]]],
 			'Rabatt über 100 %' => [['lines' => [['name' => 'x', 'discountPercent' => 120, 'unitPriceCents' => 100]]]],
@@ -565,5 +567,100 @@ class InvoiceServiceTest extends TestCase {
 		$credit = $s->cancel((int)$original->getId(), 'Grund');
 
 		$this->assertSame('RE-2026-0002', $credit->getNumber(), 'Im Test liefert der Nummernkreis-Dienst eine laufende Nummer.');
+	}
+
+	private function regularDraft(InvoiceService $s, ?array $lines = null): Invoice {
+		return $s->createDraft($this->draftData([
+			'taxMode' => 'regular',
+			'lines' => $lines ?? [
+				['name' => 'Kursgebuehr', 'quantity' => 1, 'unitCode' => 'LS', 'unitPriceCents' => 10000, 'accountId' => 10, 'taxCategory' => 'S', 'taxRatePercent' => 19],
+				['name' => 'Eintritt', 'quantity' => 2, 'unitCode' => 'C62', 'unitPriceCents' => 2500, 'accountId' => 11, 'taxCategory' => 'S', 'taxRateBp' => 700],
+				['name' => 'Raumnutzung', 'quantity' => 1, 'unitCode' => 'LS', 'unitPriceCents' => 3000, 'accountId' => 11, 'taxCategory' => 'E'],
+			],
+		]));
+	}
+
+	public function testRegelbesteuerungRechnetSteuerJeSatz(): void {
+		$s = $this->service();
+
+		$invoice = $this->regularDraft($s);
+
+		// Netto 100 + 50 + 30 = 180; USt 19 % auf 100 = 19,00 und 7 % auf 50 = 3,50.
+		$this->assertSame(18000, $invoice->getNetCents());
+		$this->assertSame(2250, $invoice->getTaxCents());
+		$this->assertSame(20250, $invoice->getGrossCents());
+		$lines = $this->lineRows[(int)$invoice->getId()];
+		$this->assertSame([['S', 1900], ['S', 700], ['E', 0]], array_map(static fn ($l) => [$l->getTaxCategory(), $l->getTaxRateBp()], $lines));
+		$breakdown = $s->detail((int)$invoice->getId())['taxBreakdown'];
+		$this->assertEqualsCanonicalizing([1900, 700, 0], array_column($breakdown, 'rateBp'));
+	}
+
+	public function testRegelbesteuerungBrauchtFuerJedenSatzEinUmsatzsteuerkonto(): void {
+		$s = $this->service();
+		$invoice = $this->regularDraft($s);
+
+		try {
+			$s->issue((int)$invoice->getId());
+			$this->fail('Ohne Umsatzsteuerkonten lässt sich nicht festschreiben.');
+		} catch (InvoiceNotIssuableException $e) {
+			$this->assertContains('Umsatzsteuerkonto für jeden verwendeten Steuersatz (Einstellungen)', $e->getProblems());
+		}
+
+		$this->config['invoice_vat_account_19'] = '31';
+		$this->config['invoice_vat_account_7'] = '32';
+		$this->config['invoice_default_exemption_text'] = 'Steuerfrei nach § 4 Nr. 12 UStG';
+		$s2 = $this->service();
+		$invoice = $this->regularDraft($s2);
+		$issued = $s2->issue((int)$invoice->getId());
+
+		$this->assertSame(20250, $this->openItemRows[(int)$issued->getOpenItemId()]->getAmountCents(), 'Der offene Posten trägt den Bruttobetrag.');
+		$this->assertSame('Steuerfrei nach § 4 Nr. 12 UStG', $issued->getExemptionText());
+	}
+
+	public function testRegelbesteuerungMitBefreitenPositionenBrauchtDenHinweis(): void {
+		$this->config['invoice_vat_account_19'] = '31';
+		$s = $this->service();
+		$invoice = $this->regularDraft($s, [['name' => 'Raum', 'unitPriceCents' => 1000, 'accountId' => 10, 'taxCategory' => 'E']]);
+
+		try {
+			$s->issue((int)$invoice->getId());
+			$this->fail('Ohne Befreiungshinweis lässt sich nicht festschreiben.');
+		} catch (InvoiceNotIssuableException $e) {
+			$this->assertContains('Hinweis auf die Steuerbefreiung (z. B. § 4 Nr. 22 UStG)', $e->getProblems());
+		}
+	}
+
+	public function testStandardsatzEinerPositionOhneAngabeIstDerWirtschaftlicheSatz(): void {
+		$s = $this->service();
+
+		$invoice = $this->regularDraft($s, [['name' => 'Ohne Satz', 'unitPriceCents' => 10000, 'accountId' => 10]]);
+
+		$this->assertSame(1900, $this->lineRows[(int)$invoice->getId()][0]->getTaxRateBp());
+		$this->assertSame(1900, $invoice->getTaxCents());
+	}
+
+	public function testStornoEinerRechnungMitSteuerKehrtAuchDieSteuerUm(): void {
+		$this->config['invoice_vat_account_19'] = '31';
+		$s = $this->service();
+		$invoice = $s->issue((int)$this->regularDraft($s, [['name' => 'Kurs', 'unitPriceCents' => 10000, 'accountId' => 10, 'taxCategory' => 'S', 'taxRatePercent' => 19]])->getId());
+
+		$credit = $s->cancel((int)$invoice->getId(), 'Irrtum');
+
+		$this->assertSame(-10000, $credit->getNetCents());
+		$this->assertSame(-1900, $credit->getTaxCents());
+		$this->assertSame(-11900, $credit->getGrossCents());
+	}
+
+	public function testDuplizierenBehaeltDieSteuerDerPositionen(): void {
+		$this->config['invoice_vat_account_19'] = '31';
+		$this->config['invoice_vat_account_7'] = '32';
+		$this->config['invoice_default_exemption_text'] = 'Steuerfrei nach § 4 Nr. 12 UStG';
+		$s = $this->service();
+		$invoice = $s->issue((int)$this->regularDraft($s)->getId());
+
+		$copy = $s->duplicate((int)$invoice->getId());
+
+		$this->assertSame('regular', $copy->getTaxMode());
+		$this->assertSame($invoice->getTaxCents(), $copy->getTaxCents());
 	}
 }

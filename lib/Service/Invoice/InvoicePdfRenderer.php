@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Service\Invoice;
 use OCA\Vereinsbuchhaltung\Db\Invoice;
 use OCA\Vereinsbuchhaltung\Db\InvoiceLine;
 use OCA\Vereinsbuchhaltung\Service\EpcQrCodeGenerator;
+use OCA\Vereinsbuchhaltung\Service\InvoiceCalculator;
 use OCP\IL10N;
 
 /**
@@ -186,15 +187,20 @@ class InvoicePdfRenderer {
 	}
 
 	private function linesTable(InvoicePdfDocument $pdf, InvoicePdfData $data): void {
+		$regular = $data->invoice->getTaxMode() === Invoice::TAX_REGULAR;
+		// Spaltenbreiten in Prozent; bei Regelbesteuerung kommt die Spalte „USt" dazu.
+		$w = $regular ? [5, 29, 13, 15, 11, 9, 18] : [7, 39, 14, 14, 9, 0, 17];
 		$th = 'style="background-color:#eeeeee;font-weight:bold;"';
+		$td = 'style="border-bottom:0.3px solid #cccccc;"';
 		$html = '<table cellpadding="3" cellspacing="0" border="0" width="100%">'
 			. '<tr nobr="true">'
-			. '<td ' . $th . ' width="7%">' . $this->e($this->msg('Pos.')) . '</td>'
-			. '<td ' . $th . ' width="39%">' . $this->e($this->msg('Bezeichnung')) . '</td>'
-			. '<td ' . $th . ' width="14%" align="right">' . $this->e($this->msg('Menge')) . '</td>'
-			. '<td ' . $th . ' width="14%" align="right">' . $this->e($this->msg('Einzelpreis')) . '</td>'
-			. '<td ' . $th . ' width="9%" align="right">' . $this->e($this->msg('Rabatt')) . '</td>'
-			. '<td ' . $th . ' width="17%" align="right">' . $this->e($this->msg('Gesamt')) . '</td>'
+			. '<td ' . $th . ' width="' . $w[0] . '%">' . $this->e($this->msg('Pos.')) . '</td>'
+			. '<td ' . $th . ' width="' . $w[1] . '%">' . $this->e($this->msg('Bezeichnung')) . '</td>'
+			. '<td ' . $th . ' width="' . $w[2] . '%" align="right">' . $this->e($this->msg('Menge')) . '</td>'
+			. '<td ' . $th . ' width="' . $w[3] . '%" align="right">' . $this->e($this->msg('Einzelpreis')) . '</td>'
+			. '<td ' . $th . ' width="' . $w[4] . '%" align="right">' . $this->e($this->msg('Rabatt')) . '</td>'
+			. ($regular ? '<td ' . $th . ' width="' . $w[5] . '%" align="right">' . $this->e($this->msg('USt')) . '</td>' : '')
+			. '<td ' . $th . ' width="' . $w[6] . '%" align="right">' . $this->e($this->msg('Gesamt')) . '</td>'
 			. '</tr>';
 		foreach ($data->lines as $line) {
 			$name = '<b>' . $this->e($line->getName()) . '</b>';
@@ -203,28 +209,53 @@ class InvoicePdfRenderer {
 			}
 			$discount = $line->getDiscountBp() > 0 ? $this->percent($line->getDiscountBp()) : '';
 			$html .= '<tr nobr="true">'
-				. '<td style="border-bottom:0.3px solid #cccccc;" width="7%">' . $line->getPosition() . '</td>'
-				. '<td style="border-bottom:0.3px solid #cccccc;" width="39%">' . $name . '</td>'
-				. '<td style="border-bottom:0.3px solid #cccccc;" width="14%" align="right">' . $this->e($this->quantity($line)) . '</td>'
-				. '<td style="border-bottom:0.3px solid #cccccc;" width="14%" align="right">' . $this->e($this->money($line->getUnitPriceCents())) . '</td>'
-				. '<td style="border-bottom:0.3px solid #cccccc;" width="9%" align="right">' . $this->e($discount) . '</td>'
-				. '<td style="border-bottom:0.3px solid #cccccc;" width="17%" align="right">' . $this->e($this->money($line->getLineNetCents())) . '</td>'
+				. '<td ' . $td . ' width="' . $w[0] . '%">' . $line->getPosition() . '</td>'
+				. '<td ' . $td . ' width="' . $w[1] . '%">' . $name . '</td>'
+				. '<td ' . $td . ' width="' . $w[2] . '%" align="right">' . $this->e($this->quantity($line)) . '</td>'
+				. '<td ' . $td . ' width="' . $w[3] . '%" align="right">' . $this->e($this->money($line->getUnitPriceCents())) . '</td>'
+				. '<td ' . $td . ' width="' . $w[4] . '%" align="right">' . $this->e($discount) . '</td>'
+				. ($regular ? '<td ' . $td . ' width="' . $w[5] . '%" align="right">' . $this->e($this->taxLabel($line)) . '</td>' : '')
+				. '<td ' . $td . ' width="' . $w[6] . '%" align="right">' . $this->e($this->money($line->getLineNetCents())) . '</td>'
 				. '</tr>';
 		}
 		$html .= '</table>';
 		$pdf->writeHTML($html, true, false, true, false, '');
 	}
 
+	/** Steuersatz der Position für die Tabelle: „19 %", „7 %" oder „frei". */
+	private function taxLabel(InvoiceLine $line): string {
+		if ($line->getTaxCategory() === InvoiceLine::TAX_STANDARD) {
+			return $this->percent($line->getTaxRateBp());
+		}
+		return $line->getTaxCategory() === InvoiceLine::TAX_ZERO ? '0 %' : $this->msg('frei');
+	}
+
 	private function totals(InvoicePdfDocument $pdf, InvoicePdfData $data): void {
 		$invoice = $data->invoice;
 		$pdf->Ln(2);
-		$labelWidth = 45;
-		$width = 35;
+		$labelWidth = 62;
+		$width = 28;
 		$x = $pdf->getPageWidth() - self::MARGIN_RIGHT - $labelWidth - $width;
-		$pdf->SetFont(self::FONT, 'B', 10, '', true);
-		$pdf->SetX($x);
-		$pdf->Cell($labelWidth, 6, $invoice->isCredit() ? $this->msg('Erstattungsbetrag') : $this->msg('Rechnungsbetrag'), 'T', 0, 'L');
-		$pdf->Cell($width, 6, $this->money($invoice->getGrossCents()), 'T', 1, 'R');
+		$row = function (string $label, string $value, bool $bold, bool $line) use ($pdf, $x, $labelWidth, $width): void {
+			$pdf->SetFont(self::FONT, $bold ? 'B' : '', $bold ? 10 : 9, '', true);
+			$pdf->SetX($x);
+			$pdf->Cell($labelWidth, $bold ? 6 : 5, $label, $line ? 'T' : 0, 0, 'L');
+			$pdf->Cell($width, $bold ? 6 : 5, $value, $line ? 'T' : 0, 1, 'R');
+		};
+		if ($invoice->getTaxMode() === Invoice::TAX_REGULAR) {
+			$totals = InvoiceCalculator::totals(array_map(static fn (InvoiceLine $l): array => [
+				'lineNetCents' => $l->getLineNetCents(),
+				'taxRateBp' => $l->getTaxRateBp(),
+				'taxCategory' => $l->getTaxCategory(),
+			], $data->lines), Invoice::TAX_REGULAR);
+			$row($this->msg('Summe netto'), $this->money($totals['netCents']), false, true);
+			foreach ($totals['taxBreakdown'] as $group) {
+				if ($group['category'] === InvoiceLine::TAX_STANDARD) {
+					$row($this->msg('zzgl. %1$s USt auf %2$s', [$this->percent($group['rateBp']), $this->money($group['baseCents'])]), $this->money($group['taxCents']), false, false);
+				}
+			}
+		}
+		$row($invoice->isCredit() ? $this->msg('Erstattungsbetrag') : $this->msg('Rechnungsbetrag'), $this->money($invoice->getGrossCents()), true, true);
 		$pdf->SetFont(self::FONT, '', 9, '', true);
 	}
 

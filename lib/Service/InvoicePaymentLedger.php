@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\Db\Invoice;
+use OCA\Vereinsbuchhaltung\Db\InvoiceLine;
 use OCA\Vereinsbuchhaltung\Db\InvoiceLineMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoiceMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoicePayment;
@@ -37,6 +38,7 @@ class InvoicePaymentLedger {
 		private InvoiceMapper $invoices,
 		private OpenItemMapper $openItems,
 		private InvoiceLineMapper $lines,
+		private InvoiceSettings $settings,
 		private ?IL10N $l10n = null,
 	) {
 	}
@@ -48,12 +50,31 @@ class InvoicePaymentLedger {
 	 */
 	public function remainingWeights(Invoice $invoice): array {
 		$weights = [];
-		foreach ($this->lines->findByInvoice((int)$invoice->getId()) as $line) {
+		$lines = $this->lines->findByInvoice((int)$invoice->getId());
+		foreach ($lines as $line) {
 			$accountId = $line->getAccountId();
 			if ($accountId === null) {
 				continue;
 			}
 			$weights[$accountId] = ($weights[$accountId] ?? 0) + $line->getLineNetCents();
+		}
+		// Regelbesteuerung: die Umsatzsteuer je Satz gehört auf das Umsatzsteuerkonto.
+		if ($invoice->getTaxMode() === Invoice::TAX_REGULAR) {
+			$totals = InvoiceCalculator::totals(array_map(static fn (InvoiceLine $l): array => [
+				'lineNetCents' => $l->getLineNetCents(),
+				'taxRateBp' => $l->getTaxRateBp(),
+				'taxCategory' => $l->getTaxCategory(),
+			], $lines), Invoice::TAX_REGULAR);
+			foreach ($totals['taxBreakdown'] as $group) {
+				if ($group['taxCents'] === 0) {
+					continue;
+				}
+				$vatAccount = $this->settings->vatAccountId($group['rateBp']);
+				if ($vatAccount === null) {
+					throw new \InvalidArgumentException($this->msg('Für den Steuersatz %s Prozent ist kein Umsatzsteuerkonto eingestellt.', [rtrim(rtrim(number_format($group['rateBp'] / 100, 2, ',', ''), '0'), ',')]));
+				}
+				$weights[$vatAccount] = ($weights[$vatAccount] ?? 0) + $group['taxCents'];
+			}
 		}
 		foreach ($this->payments->findByInvoice((int)$invoice->getId()) as $payment) {
 			foreach ($payment->partsMap() as $accountId => $cents) {

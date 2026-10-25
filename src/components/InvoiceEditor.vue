@@ -104,7 +104,7 @@
 			<section class="vbh-card">
 				<h3>{{ t('Positionen') }}</h3>
 				<div class="vbh-inv-lines" role="table" :aria-label="t('Positionen')">
-					<div class="vbh-inv-line vbh-inv-line--head" role="row">
+					<div class="vbh-inv-line vbh-inv-line--head" :class="{ 'vbh-inv-line--tax': regular }" role="row">
 						<span role="columnheader">{{ t('Pos.') }}</span>
 						<span role="columnheader">{{ t('Bezeichnung') }}</span>
 						<span role="columnheader">{{ t('Menge') }}</span>
@@ -112,6 +112,7 @@
 						<span role="columnheader">{{ t('Einzelpreis') }}</span>
 						<span role="columnheader">{{ t('Rabatt %') }}</span>
 						<span role="columnheader">{{ t('Erlöskonto') }}</span>
+						<span v-if="regular" role="columnheader">{{ t('USt') }}</span>
 						<span role="columnheader" class="vbh-inv-num">{{ t('Netto') }}</span>
 						<span role="columnheader" />
 					</div>
@@ -119,6 +120,7 @@
 						v-for="(line, i) in form.lines"
 						:key="line.key"
 						class="vbh-inv-line"
+						:class="{ 'vbh-inv-line--tax': regular }"
 						role="row">
 						<span class="vbh-inv-pos" role="cell">{{ i + 1 }}</span>
 						<div class="vbh-inv-name" role="cell">
@@ -163,12 +165,25 @@
 							inputmode="decimal"
 							:aria-label="t('Rabatt in Prozent')"
 							placeholder="0">
-						<select v-model="line.accountId" :aria-label="t('Erlöskonto')" :class="{ 'vbh-inv-invalid': !line.accountId && !isEmptyLine(line) }">
+						<select
+							v-model="line.accountId"
+							:aria-label="t('Erlöskonto')"
+							:class="{ 'vbh-inv-invalid': !line.accountId && !isEmptyLine(line) }"
+							@change="onAccountChange(line)">
 							<option :value="null">
 								{{ t('– Konto wählen –') }}
 							</option>
 							<option v-for="a in accounts" :key="a.id" :value="a.id">
 								{{ a.number }} {{ a.name }}
+							</option>
+						</select>
+						<select
+							v-if="regular"
+							v-model="line.taxKey"
+							:aria-label="t('Umsatzsteuer der Position')"
+							@change="line.taxTouched = true">
+							<option v-for="key in taxKeys" :key="key" :value="key">
+								{{ taxKeyLabel(key) }}
 							</option>
 						</select>
 						<span class="vbh-inv-num vbh-inv-net" role="cell">{{ netText(line) }}</span>
@@ -215,6 +230,16 @@
 				</div>
 
 				<div class="vbh-inv-totals">
+					<template v-if="regular">
+						<div class="vbh-inv-totals-row">
+							<span>{{ t('Summe netto') }}</span>
+							<span>{{ formatMoney(sums.netCents / 100) }}</span>
+						</div>
+						<div v-for="g in sums.taxBreakdown" :key="g.rateBp" class="vbh-inv-totals-row">
+							<span>{{ t('zzgl. {rate} USt', { rate: formatRate(g.rateBp) }) }}</span>
+							<span>{{ formatMoney(g.taxCents / 100) }}</span>
+						</div>
+					</template>
 					<div class="vbh-inv-totals-row vbh-inv-totals-row--grand">
 						<span>{{ t('Rechnungsbetrag') }}</span>
 						<strong>{{ formatMoney(sums.grossCents / 100) }}</strong>
@@ -240,12 +265,15 @@
 					{{ t('Ausgewiesen wird keine Umsatzsteuer. Auf der Rechnung steht der Hinweis:') }}
 					<em>{{ form.exemptionText || (meta && meta.smallBusinessNotice) }}</em>
 				</p>
-				<label v-if="form.taxMode === 'kleinunternehmer' || form.taxMode === 'exempt'" class="vbh-inv-wide">
-					{{ form.taxMode === 'exempt' ? t('Hinweis auf die Steuerbefreiung (Pflicht)') : t('Eigener Hinweistext (optional, ersetzt den Standardtext)') }}
+				<p v-if="regular" class="vbh-hint">
+					{{ t('Die Umsatzsteuer wird je Position gewählt (19 %, 7 %, 0 % oder steuerfrei). Beim Festschreiben braucht jeder verwendete Satz ein Umsatzsteuerkonto in den Einstellungen.') }}
+				</p>
+				<label v-if="form.taxMode === 'kleinunternehmer' || form.taxMode === 'exempt' || needsExemptionText" class="vbh-inv-wide">
+					{{ form.taxMode === 'kleinunternehmer' ? t('Eigener Hinweistext (optional, ersetzt den Standardtext)') : t('Hinweis auf die Steuerbefreiung (Pflicht)') }}
 					<input
 						v-model="form.exemptionText"
 						maxlength="500"
-						:placeholder="form.taxMode === 'exempt' ? t('z. B. Steuerfrei nach § 4 Nr. 22 UStG') : ''">
+						:placeholder="form.taxMode === 'kleinunternehmer' ? '' : t('z. B. Steuerfrei nach § 4 Nr. 22 UStG')">
 				</label>
 				<label class="vbh-inv-wide">{{ t('Einleitungstext') }}
 					<textarea
@@ -345,6 +373,8 @@ import {
 	lineFromServer,
 	linesToPayload,
 	quantityToE4,
+	suggestTaxKey,
+	taxKeyLabel,
 	todayIso,
 	unitLabel,
 } from '../lib/invoices.js'
@@ -399,7 +429,12 @@ export default {
 	computed: {
 		unitCodes() { return this.meta?.unitCodes || ['C62', 'HUR', 'DAY', 'MON', 'LS'] },
 		taxModes() { return this.meta?.taxModes || ['kleinunternehmer'] },
-		sums() { return editorTotals(this.form.lines) },
+		regular() { return this.form.taxMode === 'regular' },
+		taxKeys() { return ['S1900', 'S700', 'Z', 'E'] },
+		rates() { return this.meta?.rates || { zweckbetrieb: 700, wirtschaftlich: 1900 } },
+		accountsById() { return Object.fromEntries(this.accounts.map((a) => [a.id, a])) },
+		needsExemptionText() { return this.regular && this.form.lines.some((l) => l.taxKey === 'E' && !isEmptyLine(l)) },
+		sums() { return editorTotals(this.form.lines, this.regular) },
 		openChecks() { return this.checklist.filter((c) => c.required && !c.ok) },
 		hasContent() { return this.form.debtorId !== null || this.form.lines.some((l) => !isEmptyLine(l)) },
 
@@ -419,6 +454,11 @@ export default {
 				this.dirty = true
 				this.scheduleAutosave()
 			},
+		},
+
+		'form.taxMode': function(mode) {
+			if (this.loading || mode !== 'regular') { return }
+			for (const line of this.form.lines) { this.onAccountChange(line) }
 		},
 
 		leistungMode(mode) {
@@ -476,7 +516,22 @@ export default {
 		},
 
 		taxModeLabel(mode) {
-			return mode === 'exempt' ? this.t('Steuerbefreit (Hinweis nach § 4 UStG)') : this.t('Kleinunternehmer (§ 19 UStG)')
+			return {
+				exempt: this.t('Steuerbefreit (Hinweis nach § 4 UStG)'),
+				regular: this.t('Regelbesteuerung (Umsatzsteuer ausweisen)'),
+			}[mode] || this.t('Kleinunternehmer (§ 19 UStG)')
+		},
+
+		taxKeyLabel,
+
+		formatRate(rateBp) {
+			return new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 }).format(rateBp / 100) + ' %'
+		},
+
+		/** Ein neues Erlöskonto schlägt den Steuersatz vor, solange er nicht von Hand gewählt wurde. */
+		onAccountChange(line) {
+			if (!this.regular || line.taxTouched) { return }
+			line.taxKey = suggestTaxKey(this.accountsById[line.accountId] || null, this.rates)
 		},
 
 		async load() {
@@ -539,7 +594,7 @@ export default {
 				noteHead: f.noteHead,
 				noteFoot: f.noteFoot,
 				paymentTerms: f.paymentTerms,
-				lines: linesToPayload(f.lines),
+				lines: linesToPayload(f.lines, this.regular),
 			}
 		},
 
@@ -633,7 +688,7 @@ export default {
 
 		addLine() {
 			const last = this.form.lines[this.form.lines.length - 1]
-			this.form.lines.push(emptyLine(last ? last.accountId : null))
+			this.form.lines.push(emptyLine(last ? last.accountId : null, last ? last.taxKey : 'S1900'))
 		},
 
 		removeLine(i) {
@@ -693,6 +748,8 @@ h3 { margin: 0 0 8px; font-size: 1em; }
 .vbh-inv-lines { display: flex; flex-direction: column; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
 
 .vbh-inv-line { display: grid; grid-template-columns: 28px minmax(220px, 3fr) 78px 110px 118px 70px minmax(150px, 1.6fr) 100px 108px; gap: 6px; align-items: start; min-width: 980px; }
+
+.vbh-inv-line--tax { grid-template-columns: 28px minmax(200px, 3fr) 78px 110px 118px 70px minmax(150px, 1.6fr) 96px 100px 108px; min-width: 1100px; }
 
 .vbh-inv-line--head { font-size: 0.8em; font-weight: 600; opacity: 0.75; align-items: end; }
 

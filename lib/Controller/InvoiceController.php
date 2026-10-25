@@ -80,6 +80,9 @@ class InvoiceController extends Controller {
 			'missingIssuerFields' => array_keys($this->settings->missingIssuerFields()),
 			'active' => $this->settings->isActive(),
 			// Vorgaben für einen neuen Entwurf; der Server übernimmt dieselben Texte beim Anlegen.
+			// Steuer bei Regelbesteuerung: vorgeschlagene Sätze je Sphäre und die Umsatzsteuerkonten.
+			'rates' => $this->settings->defaultRates(),
+			'vatAccounts' => ['1900' => $this->settings->vatAccountId(1900), '700' => $this->settings->vatAccountId(700)],
 			'defaults' => [
 				'paymentTerms' => (string)$all[InvoiceSettings::SETTING_PAYMENT_TERMS],
 				'noteHead' => (string)$all[InvoiceSettings::SETTING_NOTE_HEAD],
