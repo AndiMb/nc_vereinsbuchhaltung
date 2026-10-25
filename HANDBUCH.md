@@ -1785,9 +1785,11 @@ denn gespeichert wird der Abstand zum Periodenbeginn – liegt ein Februar-Ende
 dazwischen, kann der Tag deshalb in Schaltjahren um einen wandern, die Ansicht
 weist darauf hin. Zwei Regeln prüft die App schon vor dem Speichern und nennt die
 betroffenen Perioden mit Datum: Kein Termin darf auf oder vor dem der vorherigen
-Periode liegen, und jeder bleibt im Beitragsjahr seiner Periode. Gespeichert wird
-je Turnus mit **Speichern**; **Verwerfen** holt den gespeicherten Stand zurück.
-Wer den Dialog mit ungespeicherten Änderungen schließt, wird vorher gefragt.
+Periode liegen, und jeder bleibt im Beitragsjahr seiner Periode. **Speichern** in der
+Fußleiste des Dialogs speichert alle geänderten Turnusse und schließt ihn;
+**Verwerfen** an einem Turnus holt dessen gespeicherten Stand zurück. Wer mit
+ungespeicherten Änderungen schließt (Abbrechen, Kreuz, Esc), wird vorher
+gefragt, ob gespeichert oder verworfen werden soll.
 Turnusse, die kein Mitglied nutzt, sind eingeklappt. Tritt ein Mitglied mitten
 in einer Periode ein, zählen die Tage für seine erste Forderung ab dem
 Eintrittsdatum. Unten zeigt eine Fristen-Leiste, wann für den nächsten Einzug

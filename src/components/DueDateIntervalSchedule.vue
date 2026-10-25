@@ -117,20 +117,18 @@
 			</li>
 		</ul>
 
+		<!-- Gespeichert wird über die Fußleiste des Dialogs, für alle Turnusse zusammen. -->
 		<div v-if="dirty" class="vbh-interval-actions">
 			<span class="vbh-hint">{{ t('Änderungen noch nicht gespeichert.') }}</span>
 			<NcButton variant="tertiary" @click="reset">
 				{{ t('Verwerfen') }}
-			</NcButton>
-			<NcButton variant="primary" :disabled="!canSave" @click="save">
-				{{ t('Speichern') }}
 			</NcButton>
 		</div>
 	</div>
 </template>
 
 <script>
-import { showError, showSuccess } from '@nextcloud/dialogs'
+import { showError } from '@nextcloud/dialogs'
 import { getLanguage } from '@nextcloud/l10n'
 import { NcButton } from '@nextcloud/vue'
 import api from '../api.js'
@@ -161,7 +159,8 @@ const PREVIEW_DELAY_MS = 250
  * gespeichert. Termine und Verstöße rechnet der Server
  * (DueDateScheduleService::preview()) mit denselben Guards wie beim
  * Speichern, deshalb steht ein Fehler schon vor dem Speichern an der Periode.
- * Gespeichert wird der ganze Turnus in einem Schritt.
+ * Gespeichert wird der ganze Turnus in einem Schritt, ausgelöst vom Dialog
+ * (DueDateScheduleDialog.vue) über save().
  */
 export default {
 	name: 'DueDateIntervalSchedule',
@@ -179,8 +178,11 @@ export default {
 	},
 
 	// saved: der gespeicherte Terminplan des Turnus aus der Antwort des Servers;
-	// dirty: ob ein ungespeicherter Entwurf besteht (für die Rückfrage beim Schließen).
-	emits: ['saved', 'dirty'],
+	// state: { dirty, valid } – ob ein ungespeicherter Entwurf besteht und ob er
+	// sich so speichern ließe (für die Fußleiste und die Rückfrage beim Schließen).
+	emits: ['saved', 'state'],
+
+	expose: ['save'],
 
 	data() {
 		return {
@@ -195,7 +197,6 @@ export default {
 			previewSeq: 0,
 			previewTimer: null,
 			editing: null,
-			saving: false,
 		}
 	},
 
@@ -254,8 +255,13 @@ export default {
 			return indices
 		},
 
-		canSave() {
-			return !this.saving && !this.inputError && !this.editing && this.preview !== null && !this.previewPending && !this.previewError && this.violations.length === 0
+		/** Ob sich der Entwurf so speichern ließe: geprüft, ohne Verstoß, ohne offene Datumseingabe. */
+		valid() {
+			return !this.inputError && !this.editing && this.preview !== null && !this.previewPending && !this.previewError && this.violations.length === 0
+		},
+
+		state() {
+			return { dirty: this.dirty, valid: this.valid }
 		},
 
 		/** Alles, wovon die Vorschau abhängt. */
@@ -291,10 +297,10 @@ export default {
 			},
 		},
 
-		dirty: {
+		state: {
 			immediate: true,
 			handler(value) {
-				this.$emit('dirty', value)
+				this.$emit('state', value)
 			},
 		},
 
@@ -312,7 +318,7 @@ export default {
 	beforeUnmount() {
 		clearTimeout(this.previewTimer)
 		// Ein eingeklappter Turnus verwirft seinen Entwurf.
-		this.$emit('dirty', false)
+		this.$emit('state', { dirty: false, valid: true })
 	},
 
 	methods: {
@@ -369,17 +375,20 @@ export default {
 			this.draftOverrides = overrides
 		},
 
+		/**
+		 * Speichert den Entwurf; aufgerufen vom Dialog.
+		 *
+		 * @return {Promise<boolean>} ob gespeichert wurde
+		 */
 		async save() {
-			if (!this.canSave) { return }
-			this.saving = true
+			if (!this.valid) { return false }
 			try {
 				const { data } = await api.saveDueDateSchedule(this.intervalMonths, { defaultOffsetDays: this.draftDefault, overrides: this.draftOverrides })
-				showSuccess(this.t('Terminplan für {interval} gespeichert.', { interval: this.label }))
 				this.$emit('saved', data)
+				return true
 			} catch (e) {
-				showError(errMsg(e, this.t('Terminplan konnte nicht gespeichert werden')))
-			} finally {
-				this.saving = false
+				showError(errMsg(e, this.t('Terminplan für {interval} konnte nicht gespeichert werden', { interval: this.label })))
+				return false
 			}
 		},
 	},

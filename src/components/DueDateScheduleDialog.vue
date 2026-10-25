@@ -1,11 +1,13 @@
 <template>
+	<!-- show bleibt fest auf true und update:show wird abgefangen: sonst blendete sich
+	     NcModal beim Kreuz selbst aus, bevor die Rückfrage zu ungespeicherten Änderungen käme. -->
 	<NcModal
 		:show="true"
 		labelId="vbh-modal-title-schedule"
 		size="large"
 		:closeOnClickOutside="false"
-		@close="requestClose">
-		<div class="vbh-modal-inner">
+		@update:show="$event || requestClose()">
+		<div class="vbh-modal-inner vbh-schedule-dialog">
 			<div class="vbh-schedule-head">
 				<h2 id="vbh-modal-title-schedule" class="vbh-modal-title">
 					{{ t('Terminplan') }}
@@ -49,9 +51,10 @@
 				<DueDateIntervalSchedule
 					v-for="interval in relevantIntervals"
 					:key="interval"
+					:ref="(el) => setIntervalRef(interval, el)"
 					v-bind="intervalProps(interval)"
 					@saved="onSaved(interval, $event)"
-					@dirty="dirty[interval] = $event" />
+					@state="states[interval] = $event" />
 
 				<!-- Die Turnusse ohne Mitglieder klappen unter dem Knopf auf, nicht dazwischen:
 				     sonst landeten sie über dem Knopf und damit außer Sicht. -->
@@ -72,9 +75,10 @@
 						<DueDateIntervalSchedule
 							v-for="interval in unusedIntervals"
 							:key="interval"
+							:ref="(el) => setIntervalRef(interval, el)"
 							v-bind="intervalProps(interval)"
 							@saved="onSaved(interval, $event)"
-							@dirty="dirty[interval] = $event" />
+							@state="states[interval] = $event" />
 					</template>
 				</template>
 			</template>
@@ -88,30 +92,48 @@
 				<a v-if="isAdmin" class="vbh-settings-link" :href="settingsUrl">{{ t('Fristen in den Einstellungen ändern') }}</a>
 			</div>
 
-			<div class="vbh-modal-actions">
+			<!-- Speichern/Abbrechen bleiben am Fuß des Dialogs stehen, auch wenn die Turnusse
+			     länger sind als der Dialog (wie im Buchungsdialog, lib/stickyShadow.js). -->
+			<div v-stickyShadow class="vbh-modal-actions vbh-modal-actions--sticky">
+				<span v-if="dirtyIntervals.length > 0 && !allValid" class="vbh-hint vbh-schedule-blocked">
+					{{ t('Speichern geht erst, wenn kein Turnus mehr einen Fehler oder eine offene Eingabe hat.') }}
+				</span>
 				<NcButton @click="requestClose">
-					{{ t('Schließen') }}
+					{{ t('Abbrechen') }}
+				</NcButton>
+				<NcButton variant="primary" :disabled="!canSaveAll" @click="saveAndClose">
+					{{ t('Speichern') }}
 				</NcButton>
 			</div>
+
+			<!-- Schließen mit ungespeicherten Änderungen: erst fragen, der Dialog bleibt so lange stehen. -->
+			<NcDialog
+				v-if="askingClose"
+				:name="t('Ungespeicherte Änderungen')"
+				size="normal"
+				:message="t('Im Terminplan sind ungespeicherte Änderungen. Sollen sie gespeichert oder verworfen werden?')"
+				:buttons="closeButtons"
+				@update:open="askingClose = false" />
 		</div>
 	</NcModal>
 </template>
 
 <script>
 import { mdiChevronDown, mdiChevronLeft, mdiChevronRight } from '@mdi/js'
+import { showSuccess } from '@nextcloud/dialogs'
 import { getLanguage } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { NcButton, NcIconSvgWrapper, NcLoadingIcon, NcModal } from '@nextcloud/vue'
+import { NcButton, NcDialog, NcIconSvgWrapper, NcLoadingIcon, NcModal } from '@nextcloud/vue'
 import { toRefs } from 'vue'
 import DueDateIntervalSchedule from './DueDateIntervalSchedule.vue'
 import InfoHint from './InfoHint.vue'
 import LeadDaysStrip from './LeadDaysStrip.vue'
 import { useAuth } from '../composables/useAuth.js'
-import { useConfirm } from '../composables/useConfirm.js'
 import { useDueDateSchedule } from '../composables/useDueDateSchedule.js'
 import { dueDateLabel } from '../lib/dueDateSchedule.js'
 import { intervalLabel } from '../lib/frequency.js'
 import { nextMonthStart } from '../lib/sepaSettings.js'
+import { stickyShadow } from '../lib/stickyShadow.js'
 
 /**
  * Der Terminplan als Dialog (Spec §2.2/§3.5, Issue #70): je Turnus ein
@@ -122,6 +144,10 @@ import { nextMonthStart } from '../lib/sepaSettings.js'
  * der Zeitstrahl gerade zeigt, und blättert im Dialog weiter; die
  * Fristen-Leiste zeigt den nächsten echten Einzug des Zeitstrahls.
  *
+ * Gespeichert wird über die Fußleiste, alle geänderten Turnusse zusammen.
+ * Wer mit ungespeicherten Änderungen schließt (Abbrechen, Kreuz, Esc), wird
+ * gefragt: speichern, verwerfen oder weiter bearbeiten.
+ *
  * Rollen (Spec §3.9, Issue #119): Die Terminverschiebung (Standard-Einzugstag,
  * Überschreibungen) ist `buchhalter`. Vorwarnfenster, Vorabinfo-Vorlauf und
  * Freigabe-Vorlauf sind Einstellungen (nur `verwalter`) und stehen in den
@@ -130,7 +156,8 @@ import { nextMonthStart } from '../lib/sepaSettings.js'
  */
 export default {
 	name: 'DueDateScheduleDialog',
-	components: { DueDateIntervalSchedule, InfoHint, LeadDaysStrip, NcButton, NcIconSvgWrapper, NcLoadingIcon, NcModal },
+	components: { DueDateIntervalSchedule, InfoHint, LeadDaysStrip, NcButton, NcDialog, NcIconSvgWrapper, NcLoadingIcon, NcModal },
+	directives: { stickyShadow },
 
 	props: {
 		/** Anker-Kalenderjahr des Beitragsjahrs, das der Zeitstrahl zeigt */
@@ -153,7 +180,6 @@ export default {
 		return {
 			...toRefs(schedule.state),
 			loadDueDateSchedule: schedule.loadDueDateSchedule,
-			askConfirm: useConfirm().askConfirm,
 			isAdmin,
 			auth,
 			mdiChevronDown,
@@ -170,9 +196,10 @@ export default {
 			// Erst nach dem Laden zeigen: sonst rechnete jeder Turnus zuerst eine Vorschau mit Versatz 0.
 			loaded: false,
 			showUnused: false,
-			// Turnusmonate => ungespeicherter Entwurf
-			dirty: {},
-			confirmingClose: false,
+			// Turnusmonate => { dirty, valid } aus DueDateIntervalSchedule
+			states: {},
+			saving: false,
+			askingClose: false,
 		}
 	},
 
@@ -190,6 +217,32 @@ export default {
 			return this.usedIntervals.length > 0 ? this.usedIntervals : this.intervals
 		},
 
+		dirtyIntervals() {
+			return Object.keys(this.states).map(Number).filter((interval) => this.states[interval].dirty)
+		},
+
+		allValid() {
+			return this.dirtyIntervals.every((interval) => this.states[interval].valid)
+		},
+
+		canSaveAll() {
+			return !this.saving && this.dirtyIntervals.length > 0 && this.allValid
+		},
+
+		closeButtons() {
+			return [
+				{ label: this.t('Weiter bearbeiten'), variant: 'tertiary', callback: () => {} },
+				{ label: this.t('Verwerfen'), variant: 'error', callback: () => this.$emit('close') },
+				{
+					label: this.t('Speichern'),
+					variant: 'primary',
+					disabled: !this.allValid,
+					// false lässt die Rückfrage offen, wenn das Speichern scheitert.
+					callback: async () => (await this.saveAll()) ? this.$emit('close') : false,
+				},
+			]
+		},
+
 		// Ohne jeden Termin (noch keine Zuweisung) wie in den Einstellungen: der nächste Monatserste.
 		exampleDue() {
 			return this.nextDueDate ?? nextMonthStart(this.today)
@@ -201,6 +254,11 @@ export default {
 			const area = this.auth.me?.isServerAdmin ? 'admin' : 'user'
 			return generateUrl('/settings/' + area + '/vereinsbuchhaltung') + '#settings-section_beitraege-sepa'
 		},
+	},
+
+	created() {
+		// Die Turnus-Komponenten für saveAll(); bewusst nicht reaktiv.
+		this.intervalRefs = {}
 	},
 
 	async mounted() {
@@ -237,28 +295,58 @@ export default {
 			return this.initialYearLabel.includes('/') ? `${year}/${String((year + 1) % 100).padStart(2, '0')}` : String(year)
 		},
 
+		setIntervalRef(interval, el) {
+			if (el) {
+				this.intervalRefs[interval] = el
+			} else {
+				delete this.intervalRefs[interval]
+			}
+		},
+
 		// Nur der gespeicherte Turnus bekommt einen neuen Stand: die Entwürfe der anderen bleiben stehen.
 		onSaved(interval, saved) {
 			this.schedule[interval] = saved
-			this.$emit('changed')
 		},
 
-		/** Schließen (X, Esc, „Schließen“): mit ungespeicherten Entwürfen erst nachfragen. */
-		async requestClose() {
-			if (this.confirmingClose) { return }
-			if (Object.values(this.dirty).some(Boolean)) {
-				this.confirmingClose = true
-				try {
-					const discard = await this.askConfirm(
-						this.t('Änderungen verwerfen?'),
-						this.t('Im Terminplan sind ungespeicherte Änderungen. Beim Schließen gehen sie verloren.'),
-						this.t('Verwerfen'),
-						'error',
-					)
-					if (!discard) { return }
-				} finally { this.confirmingClose = false }
+		/**
+		 * Speichert alle geänderten Turnusse nacheinander; beim ersten Fehler ist
+		 * Schluss (der Turnus meldet ihn selbst).
+		 *
+		 * @return {Promise<boolean>} ob alles gespeichert ist
+		 */
+		async saveAll() {
+			if (!this.allValid) { return false }
+			this.saving = true
+			try {
+				const pending = [...this.dirtyIntervals]
+				for (const interval of pending) {
+					if (!(await this.intervalRefs[interval].save())) {
+						return false
+					}
+				}
+				if (pending.length > 0) {
+					showSuccess(this.t('Terminplan gespeichert.'))
+					this.$emit('changed')
+				}
+				return true
+			} finally {
+				this.saving = false
 			}
-			this.$emit('close')
+		},
+
+		async saveAndClose() {
+			if (await this.saveAll()) {
+				this.$emit('close')
+			}
+		},
+
+		/** Schließen (Abbrechen, Kreuz, Esc): mit ungespeicherten Änderungen erst fragen. */
+		requestClose() {
+			if (this.dirtyIntervals.length > 0) {
+				this.askingClose = true
+			} else {
+				this.$emit('close')
+			}
 		},
 	},
 }
@@ -293,6 +381,15 @@ export default {
 	align-items: center;
 	gap: 4px;
 	font-weight: 600;
+}
+
+.vbh-modal-inner.vbh-schedule-dialog {
+	padding-bottom: 0;
+}
+
+.vbh-schedule-blocked {
+	flex: 1 1 auto;
+	align-self: center;
 }
 
 .vbh-schedule-more {

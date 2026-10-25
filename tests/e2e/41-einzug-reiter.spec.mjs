@@ -201,13 +201,14 @@ test.describe('Einzug-Unterreiter: Zeitstrahl, Geisterkarte und Läufe', () => {
 			await expect(marker(page, `${currentYear()}-01-15`)).toHaveCount(0)
 
 			// Die Turnusse erscheinen erst nach dem Laden des Terminplans; „Speichern“
-			// wird bedienbar, sobald die Vorschau den Entwurf geprüft hat.
+			// in der Fußleiste wird bedienbar, sobald die Vorschau den Entwurf geprüft hat.
 			await section.getByRole('button', { name: 'Terminplan', exact: true }).click()
 			const schedule = page.getByRole('dialog', { name: 'Terminplan' })
 			await expect(schedule).toBeVisible()
 			const monthly = schedule.getByTestId('schedule-interval-1')
 			await monthly.getByLabel('Tage ab Periodenbeginn').fill('14')
-			await monthly.getByRole('button', { name: 'Speichern' }).click()
+			await schedule.getByRole('button', { name: 'Speichern', exact: true }).click()
+			await expect(schedule).toHaveCount(0)
 
 			// Ohne neues Laden der Seite: die Termine rücken auf den 15.
 			// (Der erste Januar bleibt als Termin anderer Turnusse im Bestand, deshalb kein Test auf sein Verschwinden.)

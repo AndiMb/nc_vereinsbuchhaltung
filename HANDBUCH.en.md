@@ -1755,8 +1755,9 @@ February lies in between, the day can therefore shift by one in leap years, and
 the view points this out. The app checks two rules before saving and names the
 affected periods with their dates: no date may fall on or before that of the
 previous period, and each stays within the contribution year of its period.
-Each interval is saved with **Save**; **Discard** brings back the saved state.
-Closing the dialog with unsaved changes asks first.
+**Save** in the dialog's footer saves all changed intervals and closes it;
+**Discard** on an interval brings back its saved state. Closing with unsaved
+changes (Cancel, the X, Esc) first asks whether to save or discard them.
 Intervals that no member uses are collapsed. If a member joins in the middle of
 a period, the days for their first claim count from the joining date. At the
 bottom, a deadline strip shows when, for the next collection, the claims are

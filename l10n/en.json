@@ -3102,8 +3102,6 @@
         "Änderungen noch nicht gespeichert.": "Changes not saved yet.",
         "Bitte ein Datum wählen.": "Please choose a date.",
         "Die Termine konnten nicht berechnet werden": "Could not calculate the dates",
-        "Terminplan für {interval} gespeichert.": "Schedule for {interval} saved.",
-        "Terminplan konnte nicht gespeichert werden": "Could not save the schedule",
         "Je Turnus gilt ein Einzugstag, gezählt in Tagen ab Beginn jeder Periode. Einzelne Perioden können einen abweichenden Termin bekommen; er gilt in jedem Beitragsjahr für dieselbe Periode.": "Each interval has one collection day, counted in days from the start of each period. Individual periods can get a custom date; it applies to the same period in every contribution year.",
         "Tritt ein Mitglied mitten in einer Periode ein, zählen die Tage für seine erste Forderung ab dem Eintrittsdatum.": "If a member joins in the middle of a period, the days for their first claim count from the joining date.",
         "Turnusse ohne Mitglieder ausblenden": "Hide intervals without members",
@@ -3134,7 +3132,12 @@
         ],
         "An welchen Tagen die Beiträge fällig sind und eingezogen werden.": "On which days contributions fall due and are collected.",
         "Termine im Beitragsjahr {jahr}": "Dates in contribution year {jahr}",
-        "Im Terminplan sind ungespeicherte Änderungen. Beim Schließen gehen sie verloren.": "The schedule has unsaved changes. They will be lost when you close it."
+        "Speichern geht erst, wenn kein Turnus mehr einen Fehler oder eine offene Eingabe hat.": "Saving is possible once no interval has an error or an open input.",
+        "Ungespeicherte Änderungen": "Unsaved changes",
+        "Im Terminplan sind ungespeicherte Änderungen. Sollen sie gespeichert oder verworfen werden?": "The schedule has unsaved changes. Save or discard them?",
+        "Weiter bearbeiten": "Keep editing",
+        "Terminplan gespeichert.": "Schedule saved.",
+        "Terminplan für {interval} konnte nicht gespeichert werden": "Could not save the schedule for {interval}"
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }
