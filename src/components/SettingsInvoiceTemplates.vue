@@ -8,44 +8,48 @@
 		<p v-else-if="!templates.length && !editing" class="vbh-empty">
 			{{ t('Noch keine Vorlagen.') }}
 		</p>
-		<table v-else-if="templates.length" class="vbh-table">
-			<thead>
-				<tr>
-					<th>{{ t('Bezeichnung') }}</th>
-					<th class="vbh-inv-r">
-						{{ t('Preis') }}
-					</th>
-					<th>{{ t('Einheit') }}</th>
-					<th>{{ t('Erlöskonto') }}</th>
-					<th>{{ t('Steuer') }}</th>
-					<th />
-				</tr>
-			</thead>
-			<tbody>
-				<tr v-for="tpl in templates" :key="tpl.id">
-					<td>
-						<strong>{{ tpl.name }}</strong>
-						<div v-if="tpl.description" class="vbh-hint">
-							{{ tpl.description }}
-						</div>
-					</td>
-					<td class="vbh-inv-r">
-						{{ formatMoney(tpl.unitPriceCents / 100) }}
-					</td>
-					<td>{{ unitLabel(tpl.unitCode) }}</td>
-					<td>{{ accountLabel(tpl.accountId) }}</td>
-					<td>{{ taxText(tpl) }}</td>
-					<td class="vbh-inv-r">
-						<NcButton variant="tertiary" :aria-label="t('Vorlage bearbeiten')" @click="edit(tpl)">
-							{{ t('Bearbeiten') }}
-						</NcButton>
-						<NcButton variant="tertiary" :aria-label="t('Vorlage löschen')" @click="remove(tpl)">
-							{{ t('Löschen') }}
-						</NcButton>
-					</td>
-				</tr>
-			</tbody>
-		</table>
+		<div v-else-if="templates.length" class="vbh-inv-tpltable">
+			<table class="vbh-table">
+				<thead>
+					<tr>
+						<th>{{ t('Bezeichnung') }}</th>
+						<th class="vbh-inv-r">
+							{{ t('Preis') }}
+						</th>
+						<th>{{ t('Einheit') }}</th>
+						<th>{{ t('Erlöskonto') }}</th>
+						<th>{{ t('Steuer') }}</th>
+						<th />
+					</tr>
+				</thead>
+				<tbody>
+					<tr v-for="tpl in templates" :key="tpl.id">
+						<td>
+							<strong>{{ tpl.name }}</strong>
+							<div v-if="tpl.description" class="vbh-hint">
+								{{ tpl.description }}
+							</div>
+						</td>
+						<td class="vbh-inv-r">
+							{{ formatMoney(tpl.unitPriceCents / 100) }}
+						</td>
+						<td>{{ unitLabel(tpl.unitCode) }}</td>
+						<td>{{ accountLabel(tpl.accountId) }}</td>
+						<td>{{ taxText(tpl) }}</td>
+						<td class="vbh-inv-r">
+							<div class="vbh-inv-plan-actions">
+								<NcButton variant="tertiary" :aria-label="t('Vorlage bearbeiten')" @click="edit(tpl)">
+									{{ t('Bearbeiten') }}
+								</NcButton>
+								<NcButton variant="tertiary" :aria-label="t('Vorlage löschen')" @click="remove(tpl)">
+									{{ t('Löschen') }}
+								</NcButton>
+							</div>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
 
 		<div v-if="editing" class="vbh-inv-tplform">
 			<h5>{{ editing.id ? t('Vorlage bearbeiten') : t('Neue Vorlage') }}</h5>
@@ -230,4 +234,8 @@ export default {
 .vbh-inv-r { text-align: end; white-space: nowrap; }
 
 .vbh-inv-tplform { margin-top: 12px; }
+
+.vbh-inv-tpltable { overflow-x: auto; }
+
+.vbh-inv-plan-actions { display: flex; flex-wrap: wrap; gap: 2px; justify-content: flex-end; }
 </style>

@@ -643,6 +643,10 @@ export default {
 
 .vbh-inv-detail-amount small { font-size: 0.6em; opacity: 0.75; }
 
+@media (max-width: 600px) {
+	.vbh-inv-detail-amount { align-items: flex-start; }
+}
+
 .vbh-inv-actionbar { display: flex; gap: 6px; flex-wrap: wrap; }
 
 .vbh-inv-detail-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 28px; }
@@ -651,9 +655,9 @@ export default {
 
 .vbh-inv-dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 0; }
 
-.vbh-inv-dl dt { opacity: 0.7; }
+.vbh-inv-dl dt { opacity: 0.7; margin: 0; text-align: start; }
 
-.vbh-inv-dl dd { margin: 0; }
+.vbh-inv-dl dd { margin: 0; text-align: start; }
 
 .vbh-inv-linestable td, .vbh-inv-linestable th { vertical-align: top; }
 
@@ -673,7 +677,9 @@ export default {
 
 .vbh-inv-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 
-.vbh-inv-list li { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.vbh-inv-list li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px 10px; }
+
+.vbh-inv-list li > a { overflow-wrap: anywhere; min-width: 0; }
 
 .vbh-inv-int { margin-inline-start: 8px; padding: 1px 8px; border-radius: 10px; background: var(--color-background-dark); }
 

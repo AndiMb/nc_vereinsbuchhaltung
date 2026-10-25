@@ -242,7 +242,7 @@
 		<SettingsInvoiceTemplates :accounts="accounts" />
 
 		<div class="vbh-card">
-			<h4>{{ t('Mahnwesen') }}</h4>
+			<h4>{{ t('Mahnwesen für Rechnungen') }}</h4>
 			<p class="vbh-hint">
 				{{ t('Drei Stufen: Zahlungserinnerung, 1. und 2. Mahnung. Das Mahnschreiben (PDF mit GiroCode über den Restbetrag) geht per E-Mail an den Empfänger. Mahnen kann der Verwalter in der Rechnung; wer will, lässt den täglichen Hintergrundjob fällige Stufen selbst verschicken. Bezahlte und stornierte Rechnungen werden nie gemahnt.') }}
 			</p>
@@ -296,6 +296,7 @@
 					<textarea
 						v-model="form['invoice_dunning_body_' + level]"
 						class="vbh-note-textarea"
+						:placeholder="t('Leer = Standardtext')"
 						rows="5"
 						maxlength="5000" />
 				</label>

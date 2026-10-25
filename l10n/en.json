@@ -3625,7 +3625,6 @@
         "Es ist nichts fällig.": "Nothing is due.",
         "Die Pläne konnten nicht ausgeführt werden.": "The plans could not be run.",
         "Wiederkehrend": "Recurring",
-        "Mahnstufe": "dunning stage",
         "Die nächste Mahnstufe ist fällig.": "The next dunning stage is due.",
         "Mahnung fällig": "Dunning due",
         "Positionsvorlagen": "Line item templates",
@@ -3643,7 +3642,6 @@
         "Die Vorlage konnte nicht gespeichert werden.": "The template could not be saved.",
         "Vorlage gelöscht.": "Template deleted.",
         "Die Vorlage konnte nicht gelöscht werden.": "The template could not be deleted.",
-        "Mahnwesen": "Dunning",
         "Drei Stufen: Zahlungserinnerung, 1. und 2. Mahnung. Das Mahnschreiben (PDF mit GiroCode über den Restbetrag) geht per E-Mail an den Empfänger. Mahnen kann der Verwalter in der Rechnung; wer will, lässt den täglichen Hintergrundjob fällige Stufen selbst verschicken. Bezahlte und stornierte Rechnungen werden nie gemahnt.": "Three stages: payment reminder, 1st and 2nd dunning letter. The dunning letter (PDF with a GiroCode for the remaining amount) is sent to the recipient by email. An administrator can dun from the invoice; if you like, the daily background job sends due stages on its own. Paid and cancelled invoices are never dunned.",
         "Fällige Mahnungen automatisch per E-Mail verschicken": "Send due dunning letters automatically by email",
         "Erinnerung nach Fälligkeit (Tage)": "Reminder after the due date (days)",
@@ -3699,7 +3697,10 @@
             "%n invoice created.",
             "%n invoices created."
         ],
-        "Wiederkehrende Rechnungen, Positionsvorlagen und Mahnwesen: ein Plan legt Rechnungen im Takt an, Zahlungserinnerung und Mahnungen gehen als PDF mit GiroCode per E-Mail raus. Die Rechnungen stehen samt Prüfsummen im Beleg-ZIP für die Kassenprüfung.": "Recurring invoices, line item templates and dunning: a plan creates invoices at an interval, payment reminders and dunning letters go out by email as a PDF with a GiroCode. The invoices are in the receipts ZIP for the audit, with checksums."
+        "Wiederkehrende Rechnungen, Positionsvorlagen und Mahnwesen: ein Plan legt Rechnungen im Takt an, Zahlungserinnerung und Mahnungen gehen als PDF mit GiroCode per E-Mail raus. Die Rechnungen stehen samt Prüfsummen im Beleg-ZIP für die Kassenprüfung.": "Recurring invoices, line item templates and dunning: a plan creates invoices at an interval, payment reminders and dunning letters go out by email as a PDF with a GiroCode. The invoices are in the receipts ZIP for the audit, with checksums.",
+        "Mahnwesen für Rechnungen": "Dunning for invoices",
+        "Leer = Standardtext": "Empty = default text",
+        "Mahnstufe": "Dunning stage"
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

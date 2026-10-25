@@ -43,7 +43,7 @@
 			<div class="vbh-filterbar">
 				<input
 					v-model="search"
-					class="vbh-search"
+					class="vbh-search vbh-inv-search"
 					type="search"
 					:placeholder="t('Nummer oder Empfänger suchen …')"
 					:aria-label="t('Rechnungen durchsuchen')">
@@ -131,8 +131,7 @@
 									<span :class="statusClass(inv)">{{ displayStatusLabel(inv) }}</span>
 									<span
 										v-if="inv.dunning && inv.dunning.level > 0"
-										class="vbh-inv-dunlevel"
-										:title="dunningLabel(inv.dunning.level)">{{ inv.dunning.level }}. {{ t('Mahnstufe') }}</span>
+										class="vbh-inv-dunlevel">{{ dunningLabel(inv.dunning.level) }}</span>
 									<span
 										v-if="inv.dunning && inv.dunning.due"
 										class="vbh-inv-dundue"
@@ -408,6 +407,8 @@ export default {
 </script>
 
 <style scoped>
+.vbh-inv-search { min-width: 260px; }
+
 .vbh-inv-yearsel { display: inline-flex; align-items: center; gap: 6px; font-size: 0.9em; font-weight: 600; }
 
 .vbh-inv-table td, .vbh-inv-table th { vertical-align: middle; }

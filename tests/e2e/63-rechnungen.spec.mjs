@@ -38,6 +38,7 @@ test.describe.serial('Rechnungen', () => {
 			club_tax_number: '12/345/67890',
 			invoice_module_active: '1',
 			invoice_account_id: bank.id,
+			invoice_tax_mode: 'kleinunternehmer',
 		})
 		debtor = (await api.raw(request, 'POST', '/debtors', {
 			data: { kind: 'organisation', name: 'Sportstudio E2E GmbH', street: 'Weg 2', postalCode: '54321', city: 'Musterstadt', email: 'info@studio-e2e.example' },
