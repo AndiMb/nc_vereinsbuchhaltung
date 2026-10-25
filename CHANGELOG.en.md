@@ -15,7 +15,7 @@ Markdown headings as "[object Object]" since `marked` v18 (wrong renderer
 callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 **bold lead-in** at the start of a line instead, e.g. `**New:**`.
 
-## [Unreleased]
+## [0.42.0] – 2026-10-25
 
 **New:**
 - **IBANs encrypted in the database.** The bank details of members and payers –

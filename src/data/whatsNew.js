@@ -25,11 +25,19 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.42.0',
+			roles: ['verwalter', 'buchhalter'],
+			items: [
+				t('Der Terminplan öffnet sich als eigener Dialog und blättert durch die Beitragsjahre. Der Einzugstag steht als Satz da – „Einzug 14 Tage nach Beginn jeder Periode“ –, darunter jede Periode mit ihrem Termin samt Wochentag. Ein abweichender Termin wird als Datum gewählt; Termine, die eine andere Periode überholen, meldet der Dialog vor dem Speichern.'),
+				t('Terminplan und Einstellungen zeigen die Fristen vor dem Einzug als Zeitstrahl mit echten Daten: „Forderungen entstehen“, „Vorabinfo an Mitglieder“, „Lauf freigeben bis“.'),
+				t('IBANs liegen jetzt verschlüsselt in der Datenbank; das Update verschlüsselt den Bestand einmalig. Wichtig für Backups: Ohne die zugehörige config.php sind sie nach einer Wiederherstellung nicht mehr lesbar (Handbuch 12.3).'),
+			],
+		},
+		{
 			version: '0.41.1',
 			roles: ['verwalter', 'buchhalter'],
 			items: [
 				t('Kontoauszüge, die statt der IBAN nur Kontonummer und BLZ nennen (MT940, manche CSV), landen auf dem richtigen Geldkonto – vorausgesetzt, die IBAN steht am Geldkonto.'),
-				t('Der Terminplan zeigt neben jedem Versatz den Einzugstag als Datum, z. B. „am 15. jedes Monats“.'),
 				t('„Nextcloud-Konto anlegen“ fragt bei Bedarf das Passwort ab und scheitert nicht mehr mit „Password confirmation is required“.'),
 			],
 		},

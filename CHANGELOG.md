@@ -17,7 +17,7 @@ als „[object Object]" (falsche Renderer-Callback-Signatur, Nextcloud-
 Core-Bug, reproduziert 23.08.2026). Stattdessen **Fettdruck als Zeilenanfang**
 verwenden, z. B. `**Neu:**`.
 
-## [Unreleased]
+## [0.42.0] – 2026-10-25
 
 **Neu:**
 - **IBANs verschlüsselt in der Datenbank.** Die Bankverbindungen von
