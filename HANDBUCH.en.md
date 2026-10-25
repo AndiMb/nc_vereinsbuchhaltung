@@ -427,7 +427,7 @@ amounts appear separately.
 
 ### 4.2 Creating manual postings
 
-**"+ New"** button (top right, or on mobile the large "+" button), then **Entry**. Depending on role and on whether the invoice module is on, the menu also offers **Invoice** and **Recurring invoice**.
+**"+ New"** button (top right, or on mobile the large "+" button), then **Entry**. Depending on role and on whether the invoice module is on, the menu also offers **Member** (contributions on) and **Invoice**. Recurring invoices are created in the invoice list under "Recurring" or in the invoice editor.
 
 **Simple mode** (default): you only choose *income* or *expense*, a
 **category** (what for? e.g. "Insurance") and a **cash account** (bank or

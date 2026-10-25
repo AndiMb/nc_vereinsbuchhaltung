@@ -58,6 +58,12 @@
 								</template>
 								{{ t('Buchung') }}
 							</NcActionButton>
+							<NcActionButton v-if="membershipActive" @click="requestNewMember">
+								<template #icon>
+									<NcIconSvgWrapper :path="mdiAccountPlusOutline" :size="20" />
+								</template>
+								{{ t('Mitglied') }}
+							</NcActionButton>
 							<NcActionButton v-if="invoicesActive" @click="requestNewInvoice('invoice')">
 								<template #icon>
 									<NcIconSvgWrapper :path="mdiFileDocumentOutline" :size="20" />
@@ -275,6 +281,7 @@
 					:contribView="contribView"
 					:isMobile="isMobile"
 					:canWrite="canWrite"
+					:newMemberRequest="memberRequest"
 					@update:contribView="contribView = $event" />
 			</section>
 
@@ -295,8 +302,10 @@
 			:unassignedCount="unassignedCount"
 			:canWrite="canWrite"
 			:invoicesActive="invoicesActive"
+			:membershipActive="membershipActive"
 			@select="id => { activeTab = id }"
 			@newInvoice="requestNewInvoice"
+			@newMember="requestNewMember"
 			@newBooking="openNewBooking" />
 
 		<!-- ============ IMPORT-DIALOG (CSV-CAMT) ============ -->
@@ -430,7 +439,7 @@
 </template>
 
 <script>
-import { mdiAccountCashOutline, mdiCardAccountDetailsOutline, mdiChartBar, mdiFileDocumentOutline, mdiFileTreeOutline, mdiHelpCircleOutline, mdiPlus, mdiPrinter, mdiSwapHorizontal, mdiViewDashboardOutline } from '@mdi/js'
+import { mdiAccountCashOutline, mdiAccountPlusOutline, mdiCardAccountDetailsOutline, mdiChartBar, mdiFileDocumentOutline, mdiFileTreeOutline, mdiHelpCircleOutline, mdiPlus, mdiPrinter, mdiSwapHorizontal, mdiViewDashboardOutline } from '@mdi/js'
 import { showError, showInfo, showSuccess, showUndo } from '@nextcloud/dialogs'
 import { generateUrl } from '@nextcloud/router'
 import { toRefs } from 'vue'
@@ -685,6 +694,7 @@ export default {
 			showImport: false,
 			sectionFade: true,
 			bookingForm: this.emptyBookingForm(),
+			mdiAccountPlusOutline,
 			mdiFileDocumentOutline,
 			mdiPlus,
 			mdiPrinter,
@@ -742,6 +752,7 @@ export default {
 			selectedInvoiceId: null,
 			invoicesReloadKey: 0,
 			invoiceRequest: { kind: null, n: 0 },
+			memberRequest: { n: 0 },
 			// Hilfe-Modal (HelpModal.vue): Kapitel folgt standardmäßig dem aktiven Tab,
 			// kann aber gezielt überschrieben werden (z. B. Links aus Leerzuständen).
 			showHelp: false,
@@ -2270,6 +2281,13 @@ export default {
 			this.folderDialog.open = false
 			const j = await this.statementRowToJournalRow({ journalId })
 			if (j) { this.editBooking(j) }
+		},
+
+		/** „+ → Mitglied“: zu Beiträge → Mitglieder wechseln und dort den Aufnahme-Dialog öffnen. */
+		requestNewMember() {
+			this.activeTab = 'contributions'
+			this.contribView = 'members'
+			this.memberRequest = { n: this.memberRequest.n + 1 }
 		},
 
 		/** „+ → Rechnung“: zum Reiter wechseln und dort den Editor öffnen. */

@@ -43,7 +43,7 @@
 </template>
 
 <script>
-import { mdiClose, mdiFileDocumentOutline, mdiPlus, mdiSwapHorizontal } from '@mdi/js'
+import { mdiAccountPlusOutline, mdiClose, mdiFileDocumentOutline, mdiPlus, mdiSwapHorizontal } from '@mdi/js'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 
 /**
@@ -62,9 +62,10 @@ export default {
 		unassignedCount: { type: Number, default: 0 },
 		canWrite: { type: Boolean, default: false },
 		invoicesActive: { type: Boolean, default: false },
+		membershipActive: { type: Boolean, default: false },
 	},
 
-	emits: ['new-booking', 'new-invoice', 'select'],
+	emits: ['new-booking', 'new-invoice', 'new-member', 'select'],
 
 	data() {
 		return { mdiClose, mdiPlus, menuOpen: false }
@@ -73,6 +74,7 @@ export default {
 	computed: {
 		items() {
 			const items = [{ id: 'booking', label: this.t('Buchung'), icon: mdiSwapHorizontal }]
+			if (this.membershipActive) { items.push({ id: 'member', label: this.t('Mitglied'), icon: mdiAccountPlusOutline }) }
 			if (this.invoicesActive) { items.push({ id: 'invoice', label: this.t('Rechnung'), icon: mdiFileDocumentOutline }) }
 			return items
 		},
@@ -89,7 +91,7 @@ export default {
 
 		choose(id) {
 			this.menuOpen = false
-			if (id === 'booking') { this.$emit('new-booking') } else { this.$emit('new-invoice', id) }
+			if (id === 'booking') { this.$emit('new-booking') } else if (id === 'member') { this.$emit('new-member') } else { this.$emit('new-invoice', id) }
 		},
 	},
 }

@@ -431,7 +431,7 @@ getrennt.
 
 ### 4.2 Manuelle Buchungen anlegen
 
-Button **„+ Neu"** (oben rechts, oder mobil der große „+"-Knopf), dann **Buchung**. Das Menü bietet je nach Rolle und eingeschaltetem Rechnungsmodul auch **Rechnung** und **Wiederkehrende Rechnung** an.
+Button **„+ Neu"** (oben rechts, oder mobil der große „+"-Knopf), dann **Buchung**. Das Menü bietet je nach Rolle und eingeschaltetem Rechnungsmodul auch **Mitglied** (Beiträge eingeschaltet) und **Rechnung** an. Wiederkehrende Rechnungen legen Sie in der Rechnungsliste unter „Wiederkehrend" oder im Rechnungseditor an.
 
 **Einfach-Modus** (Standard): Sie wählen nur *Einnahme* oder *Ausgabe*,
 eine **Kategorie** (Wofür? z. B. „Versicherungen") und ein **Geldkonto**

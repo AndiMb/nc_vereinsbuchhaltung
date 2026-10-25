@@ -221,4 +221,11 @@ test.describe.serial('Rechnungen Stufe 3', () => {
 		await neuAnlegen(page, 'Rechnung')
 		await expect(page.getByText('Neue Rechnung', { exact: true })).toBeVisible()
 	})
+
+	test('Das „+“ im Kopf bietet bei eingeschalteten Beiträgen auch „Mitglied“ und öffnet den Aufnahme-Dialog', async ({ page, request }) => {
+		await api.updateSettings(request, { membership_enabled: '1' })
+		await openApp(page, USERS.verwalter)
+		await neuAnlegen(page, 'Mitglied')
+		await expect(page.getByRole('dialog', { name: 'Mitglied aufnehmen' })).toBeVisible()
+	})
 })

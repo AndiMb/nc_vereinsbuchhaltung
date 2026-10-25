@@ -73,6 +73,8 @@ export default {
 	components: { NcButton, NcIconSvgWrapper, MembersList, EinzugPanel, ContributionGroupsPanel },
 	props: {
 		contribView: { type: String, required: true },
+		/** „+ → Mitglied“ im Kopf der App: `n` zählt hoch, dann öffnet sich der Aufnahme-Dialog. */
+		newMemberRequest: { type: Object, default: () => ({ n: 0 }) },
 		isMobile: { type: Boolean, default: false },
 		canWrite: { type: Boolean, default: false },
 	},
@@ -84,6 +86,11 @@ export default {
 	},
 
 	watch: {
+		newMemberRequest() {
+			if (!this.canWrite) { return }
+			this.$nextTick(() => this.$refs.membersList?.openMemberDialog())
+		},
+
 		// Ohne Schreibrecht gibt es nur den Einzug-Unterreiter: eine Adresse
 		// wie /contributions (Vorgabe „Mitglieder“) oder /contributions/groups
 		// führt dort hin, statt in eine leere Fläche.
