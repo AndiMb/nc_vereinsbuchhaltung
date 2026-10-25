@@ -18,6 +18,16 @@ export default [
 		rules: {
 			'vue/no-unused-vars': 'warn',
 
+			// @nextcloud/vue hat kein sideEffects-Feld; beim Sammelimport landet
+			// die ganze Bibliothek im Bundle (Emoji-Picker, NcRichText, ...). Nur
+			// Unterpfade importieren - siehe docs/adr/0001-nextcloud-vue-einzelimporte.md.
+			'no-restricted-imports': ['error', {
+				paths: [{
+					name: '@nextcloud/vue',
+					message: 'Nur je Komponente importieren: @nextcloud/vue/components/<Name> (ADR-0001).',
+				}],
+			}],
+
 			// Git speichert die Dateien mit LF (verifiziert per `git show`); auf
 			// Windows-Checkouts mit core.autocrlf=true liegen sie im Arbeitsbaum
 			// aber als CRLF vor, ohne dass das je committet wuerde. Die Regel
