@@ -223,6 +223,14 @@ return [
 		['name' => 'openItem#reopen', 'url' => '/api/open-items/{id}/reopen', 'verb' => 'POST'],
 		['name' => 'openItem#destroy', 'url' => '/api/open-items/{id}', 'verb' => 'DELETE'],
 
+		// Rechnungsmodul (Epic #168): Empfänger
+		['name' => 'debtor#index', 'url' => '/api/debtors', 'verb' => 'GET'],
+		['name' => 'debtor#create', 'url' => '/api/debtors', 'verb' => 'POST'],
+		['name' => 'debtor#show', 'url' => '/api/debtors/{id}', 'verb' => 'GET'],
+		['name' => 'debtor#update', 'url' => '/api/debtors/{id}', 'verb' => 'PUT'],
+		['name' => 'debtor#destroy', 'url' => '/api/debtors/{id}', 'verb' => 'DELETE'],
+		['name' => 'debtor#fromMember', 'url' => '/api/debtors/from-member/{memberId}', 'verb' => 'POST'],
+
 		// Beitragsgruppen & Zuweisungen (Issue #68)
 		['name' => 'contributionGroup#index', 'url' => '/api/contribution-groups', 'verb' => 'GET'],
 		['name' => 'contributionGroup#create', 'url' => '/api/contribution-groups', 'verb' => 'POST'],

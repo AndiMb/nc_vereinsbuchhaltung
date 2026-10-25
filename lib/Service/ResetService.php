@@ -11,6 +11,9 @@ use OCA\Vereinsbuchhaltung\Db\BankTxSepaDetailMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\CostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\IncomingPaymentRejectionMapper;
+use OCA\Vereinsbuchhaltung\Db\InvoiceDocumentMapper;
+use OCA\Vereinsbuchhaltung\Db\InvoiceLineMapper;
+use OCA\Vereinsbuchhaltung\Db\InvoiceMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
@@ -41,6 +44,10 @@ class ResetService {
 		private IncomingPaymentRejectionMapper $incomingRejections,
 		private ContributionResetService $contribution,
 		private ReportTemplateService $reportTemplates,
+		private InvoiceMapper $invoiceMapper,
+		private InvoiceLineMapper $invoiceLineMapper,
+		private InvoiceDocumentMapper $invoiceDocumentMapper,
+		private InvoiceSettings $invoiceSettings,
 	) {
 	}
 
@@ -93,6 +100,14 @@ class ResetService {
 			// Forderungen darunter (Issue #123) – sie gehen vor ihnen, und die
 			// Zeiger der Mandate auf sie werden im selben Zug gelöst.
 			$this->contribution->deleteClaimDependents();
+			// Rechnungen verweisen auf Konten, Kostenstellen und offene Posten,
+			// die hier verschwinden. Empfänger und Nummernkreise bleiben wie die
+			// Mitglieder stehen: Adressen sind Stammdaten, und der Zähler läuft
+			// weiter, damit eine bereits verschickte Nummer nicht noch einmal
+			// vergeben wird.
+			$this->invoiceDocumentMapper->deleteAll();
+			$this->invoiceLineMapper->deleteAll();
+			$this->invoiceMapper->deleteAll();
 			// Offene Posten enthalten Namen von Mitgliedern und Forderungsbeträge –
 			// sie müssen beim Zurücksetzen mit verschwinden, sonst bleiben
 			// personenbezogene Daten mit Verweisen auf gelöschte Konten zurück.
@@ -107,6 +122,7 @@ class ResetService {
 
 			$this->transaction->afterCommit(function (): void {
 				$this->sepaDebtorAccount->setAccountId(null);
+				$this->invoiceSettings->setAccountId(null);
 				$this->sepaImportSettings->forgetAccounts();
 				// Wie in einem frischen Verein: der nächste Abruf legt die
 				// Standardvorlagen des Gliederungsberichts wieder an.

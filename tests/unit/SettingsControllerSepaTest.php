@@ -12,6 +12,7 @@ use OCA\Vereinsbuchhaltung\Service\AttachmentWatchFolderService;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCA\Vereinsbuchhaltung\Service\DemoDataService;
 use OCA\Vereinsbuchhaltung\Service\DunningSettings;
+use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
 use OCA\Vereinsbuchhaltung\Service\FolderPathValidator;
 use OCA\Vereinsbuchhaltung\Service\MandateDocumentService;
 use OCA\Vereinsbuchhaltung\Service\MandateExpirySettings;
@@ -77,6 +78,7 @@ class SettingsControllerSepaTest extends TestCase {
 			new FolderPathValidator($l10n),
 			new DunningSettings($config),
 			new MandateExpirySettings($config),
+			new InvoiceSettings($config, new FolderPathValidator($l10n)),
 			$l10n,
 		);
 	}

@@ -156,5 +156,10 @@ class OpenItemService {
 		if ($item->belongsToClaimModule()) {
 			throw new ClaimManagedException($message);
 		}
+		if ($item->belongsToInvoice()) {
+			// Rechnungsposten gehören dem Rechnungsmodul: Zahlungen, Storno und
+			// Statuswechsel laufen über die Rechnung.
+			throw new ClaimManagedException($this->l10n->t('Dieser Posten gehört zu einer Rechnung. Zahlung, Storno und Änderungen laufen im Reiter „Rechnungen“.'));
+		}
 	}
 }

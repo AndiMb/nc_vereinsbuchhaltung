@@ -46,6 +46,7 @@ class ControllerRoleDeclarationTest extends TestCase {
 		'ClaimController',
 		'ContributionGroupController',
 		'DebitBatchController',
+		'DebtorController',
 		'DueDateScheduleController',
 		'MandateController',
 		'MandateLegalTextController',

@@ -14,6 +14,7 @@ use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCA\Vereinsbuchhaltung\Service\DemoDataService;
 use OCA\Vereinsbuchhaltung\Service\DunningSettings;
 use OCA\Vereinsbuchhaltung\Service\FolderPathValidator;
+use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
 use OCA\Vereinsbuchhaltung\Service\MandateDocumentService;
 use OCA\Vereinsbuchhaltung\Service\MandateExpirySettings;
 use OCA\Vereinsbuchhaltung\Service\MandateReferenceGenerator;
@@ -63,6 +64,7 @@ class SettingsController extends Controller {
 		private FolderPathValidator $folderPathValidator,
 		private DunningSettings $dunningSettings,
 		private MandateExpirySettings $mandateExpirySettings,
+		private InvoiceSettings $invoiceSettings,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -187,7 +189,7 @@ class SettingsController extends Controller {
 			'self_service_enabled' => $this->config->getAppValue(Application::APP_ID, SelfServiceService::SETTING_ENABLED, '0') === '1',
 			// Zusatzschalter, siehe SelfServiceService::canSwitchToTransfer(). Standard aus.
 			'self_service_transfer_switch_enabled' => $this->config->getAppValue(Application::APP_ID, SelfServiceService::SETTING_TRANSFER_SWITCH, '0') === '1',
-		];
+		] + $this->invoiceSettings->all();
 	}
 
 	#[NoAdminRequired]
@@ -453,6 +455,28 @@ class SettingsController extends Controller {
 		if (array_key_exists('self_service_transfer_switch_enabled', $params)) {
 			$transferSwitchEnabled = (string)$params['self_service_transfer_switch_enabled'] === '1';
 			$this->config->setAppValue($appId, SelfServiceService::SETTING_TRANSFER_SWITCH, $transferSwitchEnabled ? '1' : '0');
+		}
+
+		// Rechnungsmodul (Epic #168): Ausstellerangaben und Vorgaben. Das
+		// Geldkonto prüfen wir hier, weil nur der Controller die Konten kennt.
+		if (array_key_exists(InvoiceSettings::SETTING_ACCOUNT_ID, $params)) {
+			$invoiceAccountParam = $params[InvoiceSettings::SETTING_ACCOUNT_ID];
+			$invoiceAccountId = $invoiceAccountParam !== null && $invoiceAccountParam !== '' ? (int)$invoiceAccountParam : null;
+			if ($invoiceAccountId !== null && $invoiceAccountId !== $this->invoiceSettings->accountId()) {
+				try {
+					$invoiceAccount = $this->accountMapper->find($invoiceAccountId, $this->userId());
+				} catch (DoesNotExistException) {
+					return new DataResponse(['message' => $this->l10n->t('Das gewählte Konto für Rechnungen wurde nicht gefunden.')], Http::STATUS_BAD_REQUEST);
+				}
+				if (!$invoiceAccount->getIsBank() || $invoiceAccount->getIban() === null) {
+					return new DataResponse(['message' => $this->l10n->t('Das Konto für Rechnungen muss ein Geldkonto mit IBAN sein.')], Http::STATUS_BAD_REQUEST);
+				}
+			}
+			$this->invoiceSettings->setAccountId($invoiceAccountId);
+		}
+		$invoiceError = $this->invoiceSettings->update($params);
+		if ($invoiceError !== null) {
+			return new DataResponse(['message' => $invoiceError], Http::STATUS_BAD_REQUEST);
 		}
 
 		$settings = $this->currentSettings();
