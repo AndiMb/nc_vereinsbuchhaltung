@@ -3715,7 +3715,9 @@
         "Ersten Plan anlegen": "Create first plan",
         "Neuer Plan": "New plan",
         "Neu anlegen": "Create new",
-        "Manuelle Buchung: Button „+ Neu → Buchung\" – im Einfach-Modus reicht Einnahme/Ausgabe, Kategorie und Geldkonto.": "Manual entry: the “+ New → Entry” button – in simple mode, income/expense, category, and cash/bank account are enough."
+        "Manuelle Buchung: Button „+ Neu → Buchung\" – im Einfach-Modus reicht Einnahme/Ausgabe, Kategorie und Geldkonto.": "Manual entry: the “+ New → Entry” button – in simple mode, income/expense, category, and cash/bank account are enough.",
+        "Überweisen per Code": "Pay by code",
+        "Ganz bequem Code mit der Banking-App scannen.": "Simply scan the code with your banking app."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

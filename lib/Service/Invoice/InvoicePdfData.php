@@ -22,6 +22,7 @@ final class InvoicePdfData {
 	 * @param string|null $precedingNumber bei einer Stornorechnung die Nummer der Ursprungsrechnung
 	 * @param string|null $precedingDate bei einer Stornorechnung deren Datum (Y-m-d)
 	 * @param bool $preview Entwurfsansicht: Wasserzeichen, kein PDF/A
+	 * @param string|null $logo Bytes des Vereinslogos (PNG, JPG oder WebP), das oben rechts steht
 	 * @param string|null $paymentReference strukturierte Zahlungsreferenz (ISO 11649), die gedruckt und in den GiroCode eingetragen wird
 	 */
 	public function __construct(
@@ -34,6 +35,7 @@ final class InvoicePdfData {
 		public readonly ?string $precedingDate = null,
 		public readonly bool $preview = false,
 		public readonly ?string $paymentReference = null,
+		public readonly ?string $logo = null,
 	) {
 	}
 }

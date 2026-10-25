@@ -209,6 +209,7 @@ class InvoicePdfRenderer {
 		$pdf->SetFont(self::FONT, 'B', 13, '', true);
 		$pdf->SetXY(self::MARGIN_LEFT, 14);
 		$pdf->Cell(95, 6, (string)($issuer['name'] ?? ''), 0, 1, 'L');
+		$this->logo($pdf, $data->logo);
 
 		// Absenderzeile über dem Anschriftenfeld (DIN 5008: im Fensterbriefumschlag sichtbar)
 		$pdf->SetFont(self::FONT, '', 6.5, '', true);
@@ -234,6 +235,45 @@ class InvoicePdfRenderer {
 		$pdf->SetFont(self::FONT, '', 10, '', true);
 		$pdf->SetXY(self::MARGIN_LEFT, 50);
 		$pdf->MultiCell(85, 4.6, implode("\n", $lines), 0, 'L', false, 1, null, null, true, 0, false, true, 36, 'T');
+	}
+
+	/**
+	 * Das Vereinslogo oben rechts, höchstens 55 mm breit und 24 mm hoch. Es wird über GD
+	 * auf weißen Grund gebracht und als PNG ohne Transparenz eingebettet: so nimmt es auch
+	 * PDF/A an, und WebP, das TCPDF nicht kennt, geht ebenfalls. Gelingt das nicht (kein GD,
+	 * unlesbare Datei), bleibt der Briefkopf ohne Logo; die Rechnung scheitert deshalb nicht.
+	 */
+	private function logo(InvoicePdfDocument $pdf, ?string $bytes): void {
+		if ($bytes === null || $bytes === '' || !function_exists('imagecreatefromstring')) {
+			return;
+		}
+		$source = @imagecreatefromstring($bytes);
+		if ($source === false) {
+			return;
+		}
+		$w = imagesx($source);
+		$h = imagesy($source);
+		if ($w > 900) {
+			$scaled = imagescale($source, 900);
+			if ($scaled !== false) {
+				$source = $scaled;
+				$w = imagesx($source);
+				$h = imagesy($source);
+			}
+		}
+		$canvas = imagecreatetruecolor($w, $h);
+		imagefill($canvas, 0, 0, (int)imagecolorallocate($canvas, 255, 255, 255));
+		imagecopy($canvas, $source, 0, 0, 0, 0, $w, $h);
+		ob_start();
+		imagepng($canvas);
+		$png = (string)ob_get_clean();
+		if ($png === '') {
+			return;
+		}
+		$scale = min(55 / $w, 24 / $h);
+		$dw = $w * $scale;
+		$dh = $h * $scale;
+		$pdf->Image('@' . $png, $pdf->getPageWidth() - self::MARGIN_RIGHT - $dw, 12, $dw, $dh, 'PNG');
 	}
 
 	private function infoBlock(InvoicePdfDocument $pdf, InvoicePdfData $data): void {
@@ -289,7 +329,7 @@ class InvoicePdfRenderer {
 	private function linesTable(InvoicePdfDocument $pdf, InvoicePdfData $data): void {
 		$regular = $data->invoice->getTaxMode() === Invoice::TAX_REGULAR;
 		// Spaltenbreiten in Prozent; bei Regelbesteuerung kommt die Spalte „USt" dazu.
-		$w = $regular ? [5, 29, 13, 15, 11, 9, 18] : [7, 39, 14, 14, 9, 0, 17];
+		$w = $regular ? [8, 26, 13, 15, 11, 9, 18] : [8, 38, 14, 14, 9, 0, 17];
 		$th = 'style="background-color:#eeeeee;font-weight:bold;"';
 		$td = 'style="border-bottom:0.3px solid #cccccc;"';
 		$html = '<table cellpadding="3" cellspacing="0" border="0" width="100%">'
@@ -391,7 +431,7 @@ class InvoicePdfRenderer {
 		$pdf->Cell(110, 5, $this->msg('Zahlung'), 0, 1, 'L');
 		$pdf->SetFont(self::FONT, '', 9, '', true);
 		$due = $invoice->getDueDate() !== null ? $this->date($invoice->getDueDate()) : '';
-		$pdf->MultiCell(110, 4.5, $intro ?? ($due !== ''
+		$pdf->MultiCell(84, 4.5, $intro ?? ($due !== ''
 			? $this->msg('Bitte überweisen Sie den Rechnungsbetrag bis zum %s auf das folgende Konto:', [$due])
 			: $this->msg('Bitte überweisen Sie den Rechnungsbetrag auf das folgende Konto:')), 0, 'L', false, 1);
 		$rows = [
@@ -407,21 +447,30 @@ class InvoicePdfRenderer {
 		}
 		foreach ($rows as [$label, $value]) {
 			$pdf->SetTextColor(100, 100, 100);
-			$pdf->Cell(32, 4.8, $label, 0, 0, 'L');
+			$pdf->Cell(34, 4.8, $label, 0, 0, 'L');
 			$pdf->SetTextColor(0, 0, 0);
-			$pdf->Cell(80, 4.8, $value, 0, 1, 'L');
+			$pdf->Cell(50, 4.8, $value, 0, 1, 'L', false, '', 1);
 		}
 
-		// GiroCode rechts neben dem Zahlungsblock
+		// GiroCode als Kasten rechts neben dem Zahlungsblock: kurzer Text, Code daneben.
 		$payload = $this->giroCodePayload($data, $amountCents);
 		if ($payload !== null) {
-			$size = 28;
-			$x = $pdf->getPageWidth() - self::MARGIN_RIGHT - $size;
-			$pdf->write2DBarcode($payload, 'QRCODE,M', $x, $y, $size, $size, ['border' => false, 'padding' => 0, 'fgcolor' => [0, 0, 0], 'bgcolor' => false], 'N');
-			$pdf->SetFont(self::FONT, '', 6.5, '', true);
-			$pdf->SetXY($x - 4, $y + $size + 0.5);
-			$pdf->Cell($size + 4, 3, $this->msg('GiroCode – in der Banking-App scannen'), 0, 1, 'C');
+			$boxW = 78;
+			$boxH = 31;
+			$qr = 24;
+			$x = $pdf->getPageWidth() - self::MARGIN_RIGHT - $boxW;
+			$pdf->SetDrawColor(205, 205, 205);
+			$pdf->RoundedRect($x, $y, $boxW, $boxH, 2, '1111', 'D');
+			$pdf->write2DBarcode($payload, 'QRCODE,M', $x + $boxW - $qr - 4, $y + ($boxH - $qr) / 2, $qr, $qr, ['border' => false, 'padding' => 0, 'fgcolor' => [0, 0, 0], 'bgcolor' => false], 'N');
+			$textW = $boxW - $qr - 11;
+			$pdf->SetXY($x + 4, $y + 4);
+			$pdf->SetFont(self::FONT, 'B', 9, '', true);
+			$pdf->MultiCell($textW, 4.4, $this->msg('Überweisen per Code'), 0, 'L', false, 1);
+			$pdf->SetX($x + 4);
+			$pdf->SetFont(self::FONT, '', 8.5, '', true);
+			$pdf->MultiCell($textW, 4.2, $this->msg('Ganz bequem Code mit der Banking-App scannen.'), 0, 'L', false, 1);
 			$pdf->SetFont(self::FONT, '', 9, '', true);
+			$pdf->SetY(max($pdf->GetY(), $y + $boxH));
 		}
 	}
 

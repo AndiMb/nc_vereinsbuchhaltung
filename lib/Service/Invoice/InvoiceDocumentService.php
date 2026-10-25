@@ -13,6 +13,7 @@ use OCA\Vereinsbuchhaltung\Db\InvoiceDocumentMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoiceLineMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoiceMapper;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
+use OCA\Vereinsbuchhaltung\Service\BrandingService;
 use OCA\Vereinsbuchhaltung\Service\EInvoice\EInvoiceData;
 use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -39,6 +40,7 @@ class InvoiceDocumentService {
 		private InvoiceDocumentStorage $storage,
 		private AuditService $audit,
 		private ?IL10N $l10n = null,
+		private ?BrandingService $branding = null,
 	) {
 	}
 
@@ -160,6 +162,7 @@ class InvoiceDocumentService {
 			$precedingDate,
 			$preview,
 			$this->settings->rfReference() && !$invoice->isCredit() && $invoice->getNumber() !== null ? CreditorReference::fromInvoiceNumber($invoice->getNumber()) : null,
+			$this->branding?->getLogo()['content'] ?? null,
 		);
 	}
 

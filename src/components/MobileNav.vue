@@ -43,13 +43,13 @@
 </template>
 
 <script>
-import { mdiCalendarSync, mdiClose, mdiFileDocumentOutline, mdiPlus, mdiSwapHorizontal } from '@mdi/js'
+import { mdiClose, mdiFileDocumentOutline, mdiPlus, mdiSwapHorizontal } from '@mdi/js'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 
 /**
  * Untere Navigationsleiste für Mobilgeräte: alle Tabs gleichzeitig sichtbar
  * in Daumenreichweite, plus schwebender „Neu“-Knopf (FAB). Gibt es mehr als
- * eine Möglichkeit (Buchung, Rechnung, wiederkehrende Rechnung), öffnet er ein
+ * eine Möglichkeit (Buchung, Rechnung), öffnet er ein
  * kleines Menü; sonst legt er gleich eine Buchung an.
  * Wird nur bei isMobile gerendert; am Desktop bleibt die Tab-Leiste im Kopf.
  */
@@ -62,7 +62,6 @@ export default {
 		unassignedCount: { type: Number, default: 0 },
 		canWrite: { type: Boolean, default: false },
 		invoicesActive: { type: Boolean, default: false },
-		isAdmin: { type: Boolean, default: false },
 	},
 
 	emits: ['new-booking', 'new-invoice', 'select'],
@@ -75,7 +74,6 @@ export default {
 		items() {
 			const items = [{ id: 'booking', label: this.t('Buchung'), icon: mdiSwapHorizontal }]
 			if (this.invoicesActive) { items.push({ id: 'invoice', label: this.t('Rechnung'), icon: mdiFileDocumentOutline }) }
-			if (this.invoicesActive && this.isAdmin) { items.push({ id: 'plan', label: this.t('Wiederkehrende Rechnung'), icon: mdiCalendarSync }) }
 			return items
 		},
 	},

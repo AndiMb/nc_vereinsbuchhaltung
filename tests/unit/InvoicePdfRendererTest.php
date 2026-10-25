@@ -58,7 +58,7 @@ class InvoicePdfRendererTest extends TestCase {
 	}
 
 	/** @param array<string, string>|null $bank */
-	private function render(Invoice $inv, int $lineCount, bool $preview = false, ?array $bank = ['iban' => 'DE02120300000000202051', 'bic' => 'BYLADEM1001', 'holder' => 'TSV Beispiel e. V.'], ?string $preceding = null): string {
+	private function render(Invoice $inv, int $lineCount, bool $preview = false, ?array $bank = ['iban' => 'DE02120300000000202051', 'bic' => 'BYLADEM1001', 'holder' => 'TSV Beispiel e. V.'], ?string $preceding = null, ?string $logo = null): string {
 		$data = new InvoicePdfData(
 			$inv,
 			$this->lines($lineCount),
@@ -68,6 +68,8 @@ class InvoicePdfRendererTest extends TestCase {
 			$preceding,
 			$preceding !== null ? '2026-02-01' : null,
 			$preview,
+			null,
+			$logo,
 		);
 		return (new InvoicePdfRenderer(new EpcQrCodeGenerator()))->render($data, false);
 	}
@@ -86,6 +88,37 @@ class InvoicePdfRendererTest extends TestCase {
 		$this->assertStringContainsString('/OutputIntent', $pdf);
 		$this->assertStringContainsString('/FontFile2', $pdf, 'Die Schrift ist eingebettet (PDF/A).');
 		$this->assertSame(1, $this->pages($pdf));
+	}
+
+	/** Ein PNG mit Transparenz, wie es ein Vereinslogo oft ist. */
+	private function logoPng(): string {
+		$image = imagecreatetruecolor(300, 120);
+		imagesavealpha($image, true);
+		imagealphablending($image, false);
+		imagefill($image, 0, 0, (int)imagecolorallocatealpha($image, 0, 0, 0, 127));
+		imagealphablending($image, true);
+		imagefilledellipse($image, 150, 60, 200, 100, (int)imagecolorallocate($image, 200, 30, 30));
+		ob_start();
+		imagepng($image);
+		return (string)ob_get_clean();
+	}
+
+	public function testVereinslogoWirdEingebettetUndBleibtPdfA(): void {
+		if (!function_exists('imagecreatetruecolor')) {
+			$this->markTestSkipped('GD fehlt');
+		}
+		$ohne = $this->render($this->invoice(3), 3);
+		$mit = $this->render($this->invoice(3), 3, false, ['iban' => 'DE02120300000000202051', 'bic' => 'BYLADEM1001', 'holder' => 'TSV Beispiel e. V.'], null, $this->logoPng());
+
+		$this->assertGreaterThan(substr_count($ohne, '/Subtype /Image'), substr_count($mit, '/Subtype /Image'), 'Das Logo ist ein zusätzliches Bild.');
+		$this->assertStringContainsString('<pdfaid:part>3</pdfaid:part>', $mit);
+		$this->assertSame(1, $this->pages($mit));
+	}
+
+	public function testKaputtesLogoFaelltLeiseWeg(): void {
+		$pdf = $this->render($this->invoice(3), 3, false, ['iban' => 'DE02120300000000202051', 'bic' => 'BYLADEM1001', 'holder' => 'TSV Beispiel e. V.'], null, 'das ist kein bild');
+
+		$this->assertStringStartsWith('%PDF-1.7', $pdf);
 	}
 
 	public function testEntwurfsvorschauIstKeinPdfA(): void {

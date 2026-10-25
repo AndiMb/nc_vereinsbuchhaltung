@@ -209,26 +209,16 @@ test.describe.serial('Rechnungen Stufe 3', () => {
 		await expect(section.locator('.vbh-inv-plan', { hasText: 'Plan geändert E2E' })).toBeVisible()
 	})
 
-	test('Das „+“ im Kopf bietet Buchung, Rechnung und wiederkehrende Rechnung', async ({ page }) => {
+	test('Das „+“ im Kopf bietet Buchung und Rechnung; „Rechnung“ öffnet den Editor', async ({ page }) => {
 		await openApp(page, USERS.verwalter)
 		await page.getByRole('button', { name: 'Neu', exact: true }).click()
 		await expect(page.getByRole('menuitem', { name: 'Buchung', exact: true })).toBeVisible()
 		await expect(page.getByRole('menuitem', { name: 'Rechnung', exact: true })).toBeVisible()
-		await expect(page.getByRole('menuitem', { name: 'Wiederkehrende Rechnung', exact: true })).toBeVisible()
+		await expect(page.getByRole('menuitem', { name: /Wiederkehrend/ })).toHaveCount(0)
 		await page.keyboard.press('Escape')
 
-		// „Rechnung“ springt zum Reiter und öffnet den Editor; „wiederkehrend“ gleich im Planmodus.
+		// „Rechnung“ springt zum Reiter und öffnet den Editor.
 		await neuAnlegen(page, 'Rechnung')
 		await expect(page.getByText('Neue Rechnung', { exact: true })).toBeVisible()
-		await page.getByRole('button', { name: 'Zur Liste' }).click()
-		await neuAnlegen(page, 'Wiederkehrende Rechnung')
-		await expect(page.getByText('Neuer Plan für wiederkehrende Rechnungen')).toBeVisible()
-	})
-
-	test('Ein Buchhalter sieht im „+“ keine wiederkehrende Rechnung', async ({ page }) => {
-		await openApp(page, USERS.buchhalter)
-		await page.getByRole('button', { name: 'Neu', exact: true }).click()
-		await expect(page.getByRole('menuitem', { name: 'Rechnung', exact: true })).toBeVisible()
-		await expect(page.getByRole('menuitem', { name: 'Wiederkehrende Rechnung', exact: true })).toHaveCount(0)
 	})
 })

@@ -38,8 +38,8 @@
 				     nur per Self-Service verknuepftes Konto (kein canRead) ergeben sie
 				     keinen Sinn, siehe "Mein Beitrag" (SelfServiceTab.vue). -->
 				<div v-if="canRead" class="vbh-navright">
-					<!-- Ein „+“ für alles, was sich von überall anlegen lässt: Buchung,
-					     Rechnung, wiederkehrende Rechnung. Was fehlt (Modul aus, keine
+					<!-- Ein „+“ für alles, was sich von überall anlegen lässt: Buchung
+					     und Rechnung. Was fehlt (Modul aus, keine
 					     Berechtigung), erscheint nicht. -->
 					<div v-if="canWrite && !isMobile" class="vbh-newbooking-btn vbh-newmenu">
 						<NcActions
@@ -63,12 +63,6 @@
 									<NcIconSvgWrapper :path="mdiFileDocumentOutline" :size="20" />
 								</template>
 								{{ t('Rechnung') }}
-							</NcActionButton>
-							<NcActionButton v-if="invoicesActive && isAdmin" @click="requestNewInvoice('plan')">
-								<template #icon>
-									<NcIconSvgWrapper :path="mdiCalendarSync" :size="20" />
-								</template>
-								{{ t('Wiederkehrende Rechnung') }}
 							</NcActionButton>
 						</NcActions>
 					</div>
@@ -301,7 +295,6 @@
 			:unassignedCount="unassignedCount"
 			:canWrite="canWrite"
 			:invoicesActive="invoicesActive"
-			:isAdmin="isAdmin"
 			@select="id => { activeTab = id }"
 			@newInvoice="requestNewInvoice"
 			@newBooking="openNewBooking" />
@@ -437,7 +430,7 @@
 </template>
 
 <script>
-import { mdiAccountCashOutline, mdiCalendarSync, mdiCardAccountDetailsOutline, mdiChartBar, mdiFileDocumentOutline, mdiFileTreeOutline, mdiHelpCircleOutline, mdiPlus, mdiPrinter, mdiSwapHorizontal, mdiViewDashboardOutline } from '@mdi/js'
+import { mdiAccountCashOutline, mdiCardAccountDetailsOutline, mdiChartBar, mdiFileDocumentOutline, mdiFileTreeOutline, mdiHelpCircleOutline, mdiPlus, mdiPrinter, mdiSwapHorizontal, mdiViewDashboardOutline } from '@mdi/js'
 import { showError, showInfo, showSuccess, showUndo } from '@nextcloud/dialogs'
 import { generateUrl } from '@nextcloud/router'
 import { toRefs } from 'vue'
@@ -692,7 +685,6 @@ export default {
 			showImport: false,
 			sectionFade: true,
 			bookingForm: this.emptyBookingForm(),
-			mdiCalendarSync,
 			mdiFileDocumentOutline,
 			mdiPlus,
 			mdiPrinter,
