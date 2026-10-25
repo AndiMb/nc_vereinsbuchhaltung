@@ -4,16 +4,20 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Db;
 
-use OCP\AppFramework\Db\QBMapper;
+use OCA\Vereinsbuchhaltung\Service\FieldCipher;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 
 /**
- * @extends QBMapper<BankTransaction>
+ * @extends EncryptingMapper<BankTransaction>
  */
-class BankTransactionMapper extends QBMapper {
-	public function __construct(IDBConnection $db) {
-		parent::__construct($db, 'vbh_bank_tx', BankTransaction::class);
+class BankTransactionMapper extends EncryptingMapper {
+	public function __construct(IDBConnection $db, FieldCipher $cipher) {
+		parent::__construct($db, 'vbh_bank_tx', BankTransaction::class, $cipher);
+	}
+
+	protected function encryptedProperties(): array {
+		return ['counterpartyIban'];
 	}
 
 	public function find(int $id, string $userId): BankTransaction {

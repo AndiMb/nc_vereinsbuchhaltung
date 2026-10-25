@@ -19,6 +19,16 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+**Neu:**
+- **IBANs verschlüsselt in der Datenbank.** Die Bankverbindungen von
+  Mitgliedern und Zahlern – an Mandaten, Amendments und Einzugsposten und die
+  Gegenkonten der Bankumsätze – sowie die Suchwerte der Zuordnungsregeln liegen
+  jetzt verschlüsselt in der Datenbank (AES-256-GCM, Schlüssel aus dem `secret` der
+  `config.php`). Ein Datenbank-Dump oder -Backup verrät sie damit nicht mehr.
+  Das Update verschlüsselt den Bestand einmalig; in der App ändert sich nichts.
+  **Wichtig für Backups:** Ohne die zugehörige `config.php` sind die IBANs nach
+  einer Wiederherstellung nicht mehr lesbar (Handbuch 12.3 und 13.13).
+
 ## [0.41.2] – 2026-10-24
 
 **Behoben:**

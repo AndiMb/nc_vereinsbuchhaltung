@@ -4,16 +4,20 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Db;
 
-use OCP\AppFramework\Db\QBMapper;
+use OCA\Vereinsbuchhaltung\Service\FieldCipher;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 
 /**
- * @extends QBMapper<DebitItem>
+ * @extends EncryptingMapper<DebitItem>
  */
-class DebitItemMapper extends QBMapper {
-	public function __construct(IDBConnection $db) {
-		parent::__construct($db, 'vbh_debit_items', DebitItem::class);
+class DebitItemMapper extends EncryptingMapper {
+	public function __construct(IDBConnection $db, FieldCipher $cipher) {
+		parent::__construct($db, 'vbh_debit_items', DebitItem::class, $cipher);
+	}
+
+	protected function encryptedProperties(): array {
+		return ['iban'];
 	}
 
 	public function find(int $id): DebitItem {
@@ -78,6 +82,11 @@ class DebitItemMapper extends QBMapper {
 	 * bewusst ohne Eingrenzung auf einen Lauf (eine Rücklastschrift kann
 	 * Wochen nach der Einreichung eintreffen).
 	 *
+	 * Die IBAN liegt verschlüsselt (siehe {@see EncryptingMapper}), SQL
+	 * grenzt deshalb nur nach Betrag ein. Bei einheitlichen Beiträgen sind das
+	 * fast alle Posten der Vereinsgeschichte – verglichen wird deshalb schon
+	 * auf der Zeile, zur Entity wird nur ein Treffer.
+	 *
 	 * @return DebitItem[]
 	 */
 	public function findByAmountAndIban(int $amountCents, string $iban): array {
@@ -85,9 +94,20 @@ class DebitItemMapper extends QBMapper {
 		$qb->select('*')
 			->from($this->getTableName())
 			->where($qb->expr()->eq('amount_cents', $qb->createNamedParameter($amountCents, IQueryBuilder::PARAM_INT)))
-			->andWhere($qb->expr()->eq('iban', $qb->createNamedParameter($iban)))
+			->andWhere($qb->expr()->isNotNull('iban'))
 			->orderBy('id', 'DESC');
-		return $this->findEntities($qb);
+		$result = $qb->executeQuery();
+		try {
+			$items = [];
+			while (($row = $result->fetch()) !== false) {
+				if ($this->cipher->decrypt((string)$row['iban']) === $iban) {
+					$items[] = $this->mapRowToEntity($row);
+				}
+			}
+			return $items;
+		} finally {
+			$result->closeCursor();
+		}
 	}
 
 	/** @return DebitItem[] */
