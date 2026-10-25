@@ -1,8 +1,8 @@
 import { getContainer, runOcc } from '@nextcloud/e2e-test-server'
-import { test, expect } from '@playwright/test'
-import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
 import { decodeGiroCodes, giroCodeRuntimeCheck, pngInfo } from './fixtures/girocode.mjs'
 import { clearCapturedMails, startMailCapture, stopMailCapture, waitForMailsTo } from './fixtures/mail-capture.mjs'
+import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN } from './fixtures/nextcloud.mjs'
 
 // GiroCode-Anhang der Mahnmails in der echten Nextcloud-Laufzeit (Issue #120,
 // Spec §3.6/§3.11): jede Position einer Zahlungsaufforderung bekommt ihren

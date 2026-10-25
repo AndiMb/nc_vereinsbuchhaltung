@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test'
-import { api, openApp, tabButton, visibleSection, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, openApp, tabButton, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Aufgaben-Katalog im Flyout (Issue #117, Spec §7): die Mandat-Aufgaben (Entwurf
 // auf Papier, gesperrt, erloschen bei weiter gewollter Lastschrift, ohne

@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test'
-import { api, openApp, switchTab, visibleSection, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, openApp, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Mitglied-Entity (Issue #65, docs/beitraege-sepa-modul-spec.md §2.2/§3.1):
 // Stammdaten-CRUD unabhängig von einem SEPA-Mandat, dazu die NC-Konto-

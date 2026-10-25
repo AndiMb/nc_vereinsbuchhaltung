@@ -57,7 +57,6 @@
         "Kontoumsätze importieren: Tab Buchungen → CSV-Datei der Bank hochladen (Dubletten werden automatisch erkannt).": "Import bank transactions: Entries tab → upload the bank's CSV file (duplicates are detected automatically).",
         "Tab „Zuzuordnen\": jede offene Bankbuchung bekommt ein Gegenkonto – Vorschläge und Regeln übernehmen das oft automatisch.": "“To assign” tab: every open bank transaction gets a contra account – suggestions and rules often do this automatically.",
         "Enthält ein Umsatz mehreres zugleich (Beitrag und Spende): „Aufteilen…\" verteilt ihn auf mehrere Gegenkonten.": "If a transaction covers more than one thing at once (membership fee and donation): “Split…” distributes it across several contra accounts.",
-        "Manuelle Buchung: Button „+ Buchung\" – im Einfach-Modus reicht Einnahme/Ausgabe, Kategorie und Geldkonto.": "Manual entry: the “+ Entry” button – in simple mode, income/expense, category, and cash/bank account are enough.",
         "Belege lassen sich direkt an jede Buchung anhängen (Foto oder Datei).": "Receipts can be attached directly to any entry (photo or file).",
         "Jedes Konto hat eine Nummer, einen Namen und einen Typ (Einnahmen, Ausgaben, Anlage/Umlauf, Verbindlichkeit, Eigenkapital).": "Every account has a number, a name, and a type (income, expense, asset, liability, equity).",
         "Das Flag „Bankkonto\" markiert Geldkonten (Bank/Kasse) – nur diese führen einen Kontostand über die Jahresgrenze fort.": "The “Bank account” flag marks cash/bank accounts – only these carry a balance forward across the year boundary.",
@@ -3700,7 +3699,23 @@
         "Wiederkehrende Rechnungen, Positionsvorlagen und Mahnwesen: ein Plan legt Rechnungen im Takt an, Zahlungserinnerung und Mahnungen gehen als PDF mit GiroCode per E-Mail raus. Die Rechnungen stehen samt Prüfsummen im Beleg-ZIP für die Kassenprüfung.": "Recurring invoices, line item templates and dunning: a plan creates invoices at an interval, payment reminders and dunning letters go out by email as a PDF with a GiroCode. The invoices are in the receipts ZIP for the audit, with checksums.",
         "Mahnwesen für Rechnungen": "Dunning for invoices",
         "Leer = Standardtext": "Empty = default text",
-        "Mahnstufe": "Dunning stage"
+        "Mahnstufe": "Dunning stage",
+        "Plan speichern": "Save plan",
+        "Einmalige Rechnung": "One-off invoice",
+        "Wiederkehrende Rechnungen legt nur ein Verwalter an.": "Only an administrator creates recurring invoices.",
+        "Wiederkehrende Rechnung": "Recurring invoice",
+        "Ein Plan legt im gewählten Takt neue Rechnungen mit diesen Angaben an. Jetzt entsteht noch keine Rechnung; die erste folgt am gewählten Datum.": "A plan creates new invoices with these details at the chosen interval. No invoice is created now; the first one follows on the chosen date.",
+        "Wiederholung": "Repetition",
+        "Die Umsatzsteuer gilt so, wie sie in den Einstellungen steht, wenn der Plan die Rechnung anlegt.": "VAT applies as set in the settings when the plan creates the invoice.",
+        "Der Plan wurde noch nicht gespeichert. Die Änderungen gehen verloren.": "The plan has not been saved yet. The changes will be lost.",
+        "Neuer Plan für wiederkehrende Rechnungen": "New plan for recurring invoices",
+        "Ein Plan legt im Takt neue Rechnungen an, zum Beispiel jeden Monat die Hallenmiete. Platzhalter in Bezeichnungen und Texten: {monat}, {jahr}, {quartal}, {zeitraum}.": "A plan creates new invoices at an interval, for example the hall rental every month. Placeholders in names and texts: {monat}, {jahr}, {quartal}, {zeitraum}.",
+        "Noch keine wiederkehrenden Rechnungen": "No recurring invoices yet",
+        "Für Leistungen im festen Takt, etwa Hallenmiete, Sponsoring oder eine Jahresgebühr, legt ein Plan die Rechnungen von selbst an.": "For services at a fixed interval, such as hall rental, sponsoring or an annual fee, a plan creates the invoices by itself.",
+        "Ersten Plan anlegen": "Create first plan",
+        "Neuer Plan": "New plan",
+        "Neu anlegen": "Create new",
+        "Manuelle Buchung: Button „+ Neu → Buchung\" – im Einfach-Modus reicht Einnahme/Ausgabe, Kategorie und Geldkonto.": "Manual entry: the “+ New → Entry” button – in simple mode, income/expense, category, and cash/bank account are enough."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

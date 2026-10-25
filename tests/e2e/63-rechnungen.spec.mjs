@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test'
-import { api, openApp, switchTab, visibleSection, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, INCOME_ACCOUNT, openApp, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Rechnungsmodul (Epic #168): Entwurf, Festschreiben mit Nummer und PDF,
 // Zahlungsabgleich beim Import, Teil- und Barzahlung, Storno, Rollen und die

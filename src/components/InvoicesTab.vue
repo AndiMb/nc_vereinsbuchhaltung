@@ -7,9 +7,13 @@
 			:accounts="incomeAccounts"
 			:meta="meta"
 			:isAdmin="isAdmin"
+			:plan="editPlan"
+			:startAsPlan="editAsPlan"
+			:fromInvoice="editFrom"
 			@close="closeEditor"
 			@changed="loadInvoices"
-			@issued="onIssued" />
+			@issued="onIssued"
+			@planSaved="onPlanSaved" />
 
 		<template v-else>
 			<div class="vbh-sectiontop">
@@ -25,13 +29,18 @@
 					</button>
 				</div>
 				<div v-if="canWrite" class="vbh-sectiontop-actions">
-					<NcButton variant="tertiary" @click="plans.open = true">
+					<NcButton
+						v-if="filter === 'plans'"
+						variant="primary"
+						:disabled="!isAdmin"
+						:title="isAdmin ? '' : t('Wiederkehrende Rechnungen legt nur ein Verwalter an.')"
+						@click="newPlan">
 						<template #icon>
-							<NcIconSvgWrapper :path="mdiCalendarSync" :size="20" />
+							<NcIconSvgWrapper :path="mdiPlus" :size="20" />
 						</template>
-						{{ t('Wiederkehrend') }}
+						{{ t('Neuer Plan') }}
 					</NcButton>
-					<NcButton variant="primary" @click="newInvoice">
+					<NcButton v-else variant="primary" @click="newInvoice">
 						<template #icon>
 							<NcIconSvgWrapper :path="mdiPlus" :size="20" />
 						</template>
@@ -40,7 +49,17 @@
 				</div>
 			</div>
 
-			<div class="vbh-filterbar">
+			<InvoicePlanList
+				v-if="filter === 'plans'"
+				:isAdmin="isAdmin"
+				:invoices="invoices"
+				:reloadKey="planReload"
+				@create="newPlan"
+				@edit="editExistingPlan"
+				@open="openById"
+				@changed="loadInvoices" />
+
+			<div v-if="filter !== 'plans'" class="vbh-filterbar">
 				<input
 					v-model="search"
 					class="vbh-search vbh-inv-search"
@@ -55,7 +74,7 @@
 				</label>
 			</div>
 
-			<div class="vbh-sectionbody">
+			<div v-if="filter !== 'plans'" class="vbh-sectionbody">
 				<p v-if="meta && meta.missingIssuerFields.length && canWrite" class="vbh-hint vbh-hint--warning">
 					{{ t('Für Rechnungen fehlen noch Angaben des Vereins (Anschrift, Steuernummer). Tragen Sie sie in den Nextcloud-Einstellungen unter „Vereinsbuchhaltung“ ein.') }}
 				</p>
@@ -147,16 +166,6 @@
 			</div>
 		</template>
 
-		<InvoicePlansDialog
-			v-if="plans.open"
-			:show="plans.open"
-			:isAdmin="isAdmin"
-			:invoices="invoices"
-			@close="plans.open = false"
-			@update:show="plans.open = $event"
-			@changed="loadInvoices"
-			@open="openFromPlans" />
-
 		<InvoiceDetail
 			v-if="detail.open"
 			:show="detail.open"
@@ -168,19 +177,20 @@
 			@update:show="detail.open = $event"
 			@changed="onChanged"
 			@edit="editInvoice"
+			@planFrom="newPlanFrom"
 			@open="openById" />
 	</div>
 </template>
 
 <script>
-import { mdiCalendarSync, mdiPlus } from '@mdi/js'
+import { mdiPlus } from '@mdi/js'
 import { showError } from '@nextcloud/dialogs'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import InvoiceDetail from './InvoiceDetail.vue'
 import InvoiceEditor from './InvoiceEditor.vue'
-import InvoicePlansDialog from './InvoicePlansDialog.vue'
+import InvoicePlanList from './InvoicePlanList.vue'
 import api from '../api.js'
 import { errMsg, formatDate, formatMoney } from '../lib/format.js'
 import { displayStatus, displayStatusLabel, dunningLabel, isDunningDue, statusClass } from '../lib/invoices.js'
@@ -193,7 +203,7 @@ import { displayStatus, displayStatusLabel, dunningLabel, isDunningDue, statusCl
  */
 export default {
 	name: 'InvoicesTab',
-	components: { NcButton, NcIconSvgWrapper, NcLoadingIcon, InvoiceEditor, InvoiceDetail, InvoicePlansDialog },
+	components: { NcButton, NcIconSvgWrapper, NcLoadingIcon, InvoiceEditor, InvoiceDetail, InvoicePlanList },
 	props: {
 		isMobile: { type: Boolean, default: false },
 		canWrite: { type: Boolean, default: false },
@@ -204,12 +214,14 @@ export default {
 		invoiceId: { type: Number, default: null },
 		/** Zählt hoch, wenn der Reiter sichtbar wird oder fremde Änderungen anstehen. */
 		reloadKey: { type: Number, default: 0 },
+		/** „+ → Rechnung“ im Kopf der App: `kind` ist `invoice` oder `plan`, `n` zählt hoch. */
+		newRequest: { type: Object, default: () => ({ kind: null, n: 0 }) },
 	},
 
 	emits: ['update:invoiceId', 'changed'],
 
 	setup() {
-		return { mdiCalendarSync, mdiPlus }
+		return { mdiPlus }
 	},
 
 	data() {
@@ -224,7 +236,10 @@ export default {
 			editId: null,
 			editKey: 0,
 			detail: { open: false, id: null },
-			plans: { open: false },
+			editPlan: null,
+			editAsPlan: false,
+			editFrom: null,
+			planReload: 0,
 		}
 	},
 
@@ -240,6 +255,7 @@ export default {
 				{ id: 'dunning', label: this.t('Mahnung fällig') },
 				{ id: 'paid', label: this.t('Bezahlt') },
 				{ id: 'cancelled', label: this.t('Storniert') },
+				{ id: 'plans', label: this.t('Wiederkehrend') },
 			]
 		},
 
@@ -300,6 +316,10 @@ export default {
 		},
 
 		reloadKey() { this.loadInvoices() },
+
+		newRequest(request) {
+			if (request.kind === 'plan') { this.newPlan() } else if (request.kind === 'invoice') { this.newInvoice() }
+		},
 	},
 
 	async mounted() {
@@ -348,18 +368,39 @@ export default {
 			}
 		},
 
-		newInvoice() {
-			this.editId = null
+		openEditor({ id = null, plan = null, asPlan = false, from = null } = {}) {
+			this.editId = id
+			this.editPlan = plan
+			this.editAsPlan = asPlan
+			this.editFrom = from
 			this.editKey++
 			this.view = 'edit'
+		},
+
+		newInvoice() { this.openEditor() },
+
+		newPlan() { this.openEditor({ asPlan: true }) },
+
+		/** Ein neuer Plan, vorbelegt aus einer festgeschriebenen Rechnung (Abkürzung im Detail). */
+		newPlanFrom(invoice) {
+			this.detail.open = false
+			this.$emit('update:invoiceId', null)
+			this.openEditor({ from: invoice })
+		},
+
+		editExistingPlan(plan) { this.openEditor({ plan }) },
+
+		onPlanSaved() {
+			this.view = 'list'
+			this.filter = 'plans'
+			this.planReload++
+			this.loadInvoices()
 		},
 
 		editInvoice(id) {
 			this.detail.open = false
 			this.$emit('update:invoiceId', null)
-			this.editId = id
-			this.editKey++
-			this.view = 'edit'
+			this.openEditor({ id })
 		},
 
 		closeEditor() {
@@ -380,11 +421,6 @@ export default {
 				return
 			}
 			this.openById(inv.id)
-		},
-
-		openFromPlans(id) {
-			this.plans.open = false
-			this.openById(id)
 		},
 
 		openById(id) {

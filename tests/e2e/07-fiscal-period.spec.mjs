@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test'
-import { api, openApp, BANK_ACCOUNT, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, BANK_ACCOUNT, INCOME_ACCOUNT, openApp, USERS } from './fixtures/nextcloud.mjs'
 
 // Geschäftsjahre (Issue #8): ein Geschäftsjahr muss nicht dem Kalenderjahr
 // entsprechen. Geprüft wird beides – die Festschreibung, die es schon vorher
@@ -26,10 +26,18 @@ test.describe('Geschäftsjahr', () => {
 
 		// Dezember und Januar gehören bei Okt–Sep in dasselbe Geschäftsjahr.
 		await api.createBooking(request, {
-			date: '2030-12-15', description: 'Vor dem Jahreswechsel', debitAccountId: bank.id, creditAccountId: income.id, amount: 100,
+			date: '2030-12-15',
+			description: 'Vor dem Jahreswechsel',
+			debitAccountId: bank.id,
+			creditAccountId: income.id,
+			amount: 100,
 		})
 		await api.createBooking(request, {
-			date: '2031-01-15', description: 'Nach dem Jahreswechsel', debitAccountId: bank.id, creditAccountId: income.id, amount: 50,
+			date: '2031-01-15',
+			description: 'Nach dem Jahreswechsel',
+			debitAccountId: bank.id,
+			creditAccountId: income.id,
+			amount: 50,
 		})
 
 		const dezember = await api.periodIdForDate(request, '2030-12-15')
@@ -69,7 +77,11 @@ test.describe('Geschäftsjahr', () => {
 		// nur über das, was Daten trägt, und der Rest entsteht erst mit der
 		// ersten Buchung darin. Nachschlagen allein legt nichts an.
 		const gebucht = await api.createBooking(request, {
-			date: '2031-04-15', description: 'Im Sommersemester', debitAccountId: bank.id, creditAccountId: income.id, amount: 20,
+			date: '2031-04-15',
+			description: 'Im Sommersemester',
+			debitAccountId: bank.id,
+			creditAccountId: income.id,
+			amount: 20,
 		})
 		const april = await api.periodIdForDate(request, '2031-04-15')
 		expect(april).not.toBe(dezember)
@@ -137,7 +149,11 @@ test.describe('Geschäftsjahr', () => {
 		// 2031 die vom 15. Januar. Eine zweite im Februar, damit 2031 nach dem
 		// Verschieben noch etwas behält – nur dann fiele eine Lücke auf.
 		const februar = await api.createBooking(request, {
-			date: '2031-02-10', description: 'Bleibt in 2031', debitAccountId: bank.id, creditAccountId: income.id, amount: 30,
+			date: '2031-02-10',
+			description: 'Bleibt in 2031',
+			debitAccountId: bank.id,
+			creditAccountId: income.id,
+			amount: 30,
 		})
 		const p2030 = await api.periodIdForDate(request, '2030-12-15')
 		const p2031 = await api.periodIdForDate(request, '2031-02-10')

@@ -1,6 +1,6 @@
-import { test, expect } from '@playwright/test'
-import { api, authHeaders, BASE_URL, openApp, openSettingsPage, switchTab, visibleSection, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
 import { capturedMails, clearCapturedMails, startMailCapture, stopMailCapture } from './fixtures/mail-capture.mjs'
+import { api, authHeaders, BASE_URL, openApp, openSettingsPage, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Nextcloud-Konto und Willkommens-Mail rund um die Mitgliederliste:
 //   - Spalte „Nextcloud-Konto?" (Ja / Vorschlag zum Verknüpfen mit Rückfrage / Nein)

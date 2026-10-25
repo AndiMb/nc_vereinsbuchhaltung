@@ -1,6 +1,6 @@
 import { getContainer, runOcc } from '@nextcloud/e2e-test-server'
-import { test, expect } from '@playwright/test'
-import { api, openApp, switchTab, tabButton, visibleSection, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, openApp, switchTab, tabButton, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Einzug-Unterreiter, Segment „Forderungen“ (Issue #104, Spec §3.6/§6): alle
 // Forderungen mit abgeleitetem Zustand, Störfällen und Mahnstand; Erledigungs-

@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test'
-import { api, openApp, switchTab, visibleSection, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, openApp, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Beitragsgruppen, Zuweisungen & manuelle Einzelforderungen (Issue #68):
 // Gruppen-CRUD, eine Zuweisung samt Inline-Mitgliedsanlage und Prorata-

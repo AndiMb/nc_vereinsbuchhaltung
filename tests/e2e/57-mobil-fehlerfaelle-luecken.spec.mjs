@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test'
-import { api, openApp, switchTab, visibleSection, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, openApp, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Lücken des Testprotokolls (Durchlauf vom 09.10.2026): Schritte, die im
 // Browser der Dev-Instanz nicht prüfbar waren und für die es noch keinen Test

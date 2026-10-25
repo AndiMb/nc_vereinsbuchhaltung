@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test'
-import { api, openApp, switchTab, visibleSection, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, openApp, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Aufnahme-Assistent & voller CSV-Import (Issue #69, Spec §3.1): der
 // dreistufige Weg Stammdaten → Mandat → Beitrag in MemberDialog.vue (Schritt

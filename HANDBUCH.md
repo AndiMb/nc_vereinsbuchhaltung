@@ -431,7 +431,7 @@ getrennt.
 
 ### 4.2 Manuelle Buchungen anlegen
 
-Button **„+ Buchung"** (oben rechts, oder mobil der große „+"-Knopf).
+Button **„+ Neu"** (oben rechts, oder mobil der große „+"-Knopf), dann **Buchung**. Das Menü bietet je nach Rolle und eingeschaltetem Rechnungsmodul auch **Rechnung** und **Wiederkehrende Rechnung** an.
 
 **Einfach-Modus** (Standard): Sie wählen nur *Einnahme* oder *Ausgabe*,
 eine **Kategorie** (Wofür? z. B. „Versicherungen") und ein **Geldkonto**
@@ -2522,7 +2522,9 @@ Seit 2025 müssen Unternehmen E-Rechnungen **empfangen** können; das **Ausstell
 
 ### 15.12 Wiederkehrende Rechnungen
 
-Für Leistungen im festen Takt (Hallenmiete, Sponsoring, Jahresgebühr) legt ein **Plan** die Rechnungen von selbst an. Einen Plan erstellen Sie aus einer vorhandenen Rechnung: im Detail **Wiederkehrend …** (Verwalter). Empfänger, Positionen und Texte kommen aus dieser Rechnung; Sie wählen:
+Für Leistungen im festen Takt (Hallenmiete, Sponsoring, Jahresgebühr) legt ein **Plan** die Rechnungen von selbst an. Ein Plan entsteht dort, wo Sie sonst eine Rechnung schreiben: **Rechnungen → Neue Rechnung**, oben bei **Art** die Option **Wiederkehrende Rechnung** wählen (nur Verwalter). Derselbe Editor zeigt statt der Rechnungsdaten die **Wiederholung**; Empfänger, Positionen (auch aus Vorlagen), Steuer und Texte tragen Sie wie bei einer Rechnung ein. Alternativ übernimmt **Wiederkehrend …** im Detail einer vorhandenen Rechnung Empfänger, Positionen und Texte als Vorlage für den Plan.
+
+Bei der **Wiederholung** wählen Sie:
 
 - **Takt:** monatlich, vierteljährlich, halbjährlich oder jährlich, mit **erster Rechnung am** und optionalem **Ende**. Die Termine rechnen immer vom Beginn aus; der 31. wird im Februar zum 28. oder 29., springt danach aber wieder auf den 31.
 - **Leistungszeitraum:** der Zeitraum des Taktes, der mit der Rechnung beginnt (bei monatlicher Rechnung zum 1. Juni also 1. bis 30. Juni), oder Leistungsdatum gleich Rechnungsdatum.
@@ -2531,7 +2533,7 @@ Für Leistungen im festen Takt (Hallenmiete, Sponsoring, Jahresgebühr) legt ein
 
 In Bezeichnungen und Texten ersetzt der Lauf `{monat}`, `{jahr}`, `{quartal}` und `{zeitraum}`: aus „Hallenmiete {monat} {jahr}" wird „Hallenmiete Juni 2027".
 
-Die Übersicht öffnet **Wiederkehrend** oben in der Rechnungsliste: Takt, nächster Termin, letzter Lauf mit Link zur Rechnung, Fehler. Pläne lassen sich **bearbeiten**, **pausieren** und **löschen** (angelegte Rechnungen bleiben). Ein pausierter oder neu angelegter Plan **holt vergangene Termine nicht nach**; er beginnt mit dem nächsten Termin ab heute. Die Positionen eines Plans ändern Sie, indem Sie aus einer angepassten Rechnung einen neuen Plan anlegen und den alten löschen. Der Nextcloud-Hintergrundjob prüft stündlich; **Fällige jetzt ausführen** stößt ihn von Hand an.
+Alle Pläne stehen im Reiter **Wiederkehrend** der Rechnungsliste: Takt, nächster Termin, letzter Lauf mit Link zur Rechnung, Fehler. Ein Klick auf **Bearbeiten** öffnet den Plan im selben Editor – auch die Positionen lassen sich ändern. Pläne lassen sich außerdem **pausieren** und **löschen** (angelegte Rechnungen bleiben). Ein pausierter oder neu angelegter Plan **holt vergangene Termine nicht nach**; er beginnt mit dem nächsten Termin ab heute. Der Nextcloud-Hintergrundjob prüft stündlich; **Fällige jetzt ausführen** stößt ihn von Hand an.
 
 ### 15.13 Mahnwesen
 

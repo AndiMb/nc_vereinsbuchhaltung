@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test'
-import { api, openApp, tabButton, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, openApp, tabButton, USERS } from './fixtures/nextcloud.mjs'
 
 // Aufgaben-Flyout mit Badge in der Kopfzeile (Issue #99, Spec §6/§7): die
 // abgeleitete Aufgabenliste des Servers (GET /api/tasks) wird für Buchhalter

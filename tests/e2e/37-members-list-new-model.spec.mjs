@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test'
-import { api, openApp, switchTab, visibleSection, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, openApp, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Mitgliederliste auf dem Domänenmodell (Folge-Scope aus Issue #69): jede
 // Zeile zeigt Mandat (Mandate) und Beitrag (Assignment) eines Mitglieds, wie

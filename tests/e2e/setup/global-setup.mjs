@@ -1,6 +1,6 @@
-import { restoreSnapshot, getContainer } from '@nextcloud/e2e-test-server'
+import { getContainer, restoreSnapshot } from '@nextcloud/e2e-test-server'
 import { existsSync, rmSync } from 'fs'
-import { AUTH_DIR, BASE_URL, authHeaders } from '../fixtures/nextcloud.mjs'
+import { AUTH_DIR, authHeaders, BASE_URL } from '../fixtures/nextcloud.mjs'
 
 // Läuft einmal vor jedem `playwright test`: spielt den "init"-Snapshot
 // (Nutzer + Rollen, leerer Buchungsbestand) zurück und verwirft gecachte

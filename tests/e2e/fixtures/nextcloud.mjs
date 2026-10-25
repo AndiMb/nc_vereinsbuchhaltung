@@ -363,6 +363,15 @@ export async function openAccountTreeNode(page, nummer) {
 	await visibleSection(page).locator('.vbh-treenode', { hasText: nummer }).first().click()
 }
 
+/**
+ * „Neu → <Eintrag>“ im Kopf der App: das „+“ öffnet ein Menü (Buchung, Rechnung,
+ * wiederkehrende Rechnung); der Eintrag wird wie von Hand gewählt.
+ */
+export async function neuAnlegen(page, eintrag = 'Buchung') {
+	await page.getByRole('button', { name: 'Neu', exact: true }).click()
+	await page.getByRole('menuitem', { name: eintrag, exact: true }).click()
+}
+
 /** Tab in der App-Navigation wechseln. */
 export async function switchTab(page, label) {
 	await tabButton(page, label).click()

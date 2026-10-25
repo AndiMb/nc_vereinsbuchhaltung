@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 import { api, openApp, tabButton, USERS } from './fixtures/nextcloud.mjs'
 
 // Übersetzungen: test5 nutzt Nextcloud auf Englisch. Bis 0.27.2 scheiterte

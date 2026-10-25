@@ -74,7 +74,7 @@
 						</template>
 						{{ t('Duplizieren') }}
 					</NcButton>
-					<NcButton v-if="canPlan" variant="tertiary" @click="plan.open = true">
+					<NcButton v-if="canPlan" variant="tertiary" @click="$emit('planFrom', invoice)">
 						<template #icon>
 							<NcIconSvgWrapper :path="mdiCalendarSync" :size="20" />
 						</template>
@@ -337,13 +337,6 @@
 				@close="dun.open = false"
 				@update:show="dun.open = $event"
 				@sent="onDunned" />
-			<InvoicePlanDialog
-				v-if="invoice"
-				:show="plan.open"
-				:invoice="invoice"
-				@close="plan.open = false"
-				@update:show="plan.open = $event"
-				@saved="onPlanSaved" />
 			<InvoiceMailDialog
 				v-if="invoice"
 				:show="mail.open"
@@ -373,7 +366,6 @@ import InvoiceCancelDialog from './InvoiceCancelDialog.vue'
 import InvoiceDunningDialog from './InvoiceDunningDialog.vue'
 import InvoiceMailDialog from './InvoiceMailDialog.vue'
 import InvoicePayDialog from './InvoicePayDialog.vue'
-import InvoicePlanDialog from './InvoicePlanDialog.vue'
 import api from '../api.js'
 import { errMsg, formatDate, formatDateTime, formatMoney } from '../lib/format.js'
 import { displayStatusLabel, dunningLabel, formatDiscount, formatQuantity, missingEInvoiceFormats, statusClass, unitShort } from '../lib/invoices.js'
@@ -384,7 +376,7 @@ import { displayStatusLabel, dunningLabel, formatDiscount, formatQuantity, missi
  */
 export default {
 	name: 'InvoiceDetail',
-	components: { NcModal, NcButton, NcIconSvgWrapper, NcLoadingIcon, InvoicePayDialog, InvoiceMailDialog, InvoiceCancelDialog, InvoiceDunningDialog, InvoicePlanDialog },
+	components: { NcModal, NcButton, NcIconSvgWrapper, NcLoadingIcon, InvoicePayDialog, InvoiceMailDialog, InvoiceCancelDialog, InvoiceDunningDialog },
 	props: {
 		show: { type: Boolean, default: false },
 		invoiceId: { type: Number, default: null },
@@ -394,7 +386,7 @@ export default {
 		accounts: { type: Array, default: () => [] },
 	},
 
-	emits: ['close', 'changed', 'edit', 'open', 'update:show'],
+	emits: ['close', 'changed', 'edit', 'open', 'planFrom', 'update:show'],
 
 	setup() {
 		return { mdiBellRing, mdiCalendarSync, mdiCancel, mdiCashPlus, mdiContentCopy, mdiDownload, mdiEmailOutline, mdiFilePdfBox, mdiPencil, mdiUndo }
@@ -409,7 +401,6 @@ export default {
 			mail: { open: false },
 			cancel: { open: false },
 			dun: { open: false },
-			plan: { open: false },
 			eFormat: '',
 			eBusy: false,
 			eError: '',
@@ -599,11 +590,6 @@ export default {
 			this.invoice = data
 			showSuccess(this.t('Mahnung verschickt.'))
 			this.$emit('changed')
-		},
-
-		onPlanSaved() {
-			this.plan.open = false
-			showSuccess(this.t('Plan gespeichert. Die wiederkehrenden Rechnungen finden Sie unter „Wiederkehrend“ in der Rechnungsliste.'))
 		},
 
 		dunningLabel,

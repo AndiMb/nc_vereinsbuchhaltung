@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test'
-import { api, openApp, selectPeriod, switchTab, visibleSection, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, INCOME_ACCOUNT, openApp, selectPeriod, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Finanzplan: Planwert setzen, im Berichts-Tab wiederfinden und einen
 // eingefrorenen Planstand (Snapshot) anlegen und abrufen.

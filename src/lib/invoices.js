@@ -360,3 +360,23 @@ export function lineFromTemplate(template) {
 	line.taxTouched = true
 	return line
 }
+
+/** Editor-Zeile aus einer Position eines Plans (so gespeichert, wie der Editor sie sendet). */
+export function lineFromPlan(line) {
+	const cents = Number(line.unitPriceCents) || 0
+	const row = emptyLine(line.accountId ?? null, taxKeyOf(line.taxCategory || 'S', Number(line.taxRateBp) || 0))
+	row.name = line.name || ''
+	row.description = line.description || ''
+	row.quantity = line.quantity === undefined || line.quantity === null || line.quantity === '' ? '1' : String(line.quantity).replace('.', ',')
+	row.unitCode = line.unitCode || 'C62'
+	row.unitPrice = cents === 0 ? '' : cents / 100
+	row.discountPercent = line.discountPercent ? String(line.discountPercent) : ''
+	row.taxTouched = true
+	return row
+}
+
+/** Name für einen Plan, wenn niemand einen eingibt: Empfänger und erste Position. */
+export function defaultPlanName(debtorName, lines) {
+	const first = (lines || []).find((l) => (l.name || '').trim() !== '')
+	return [debtorName, first ? first.name.trim() : ''].filter(Boolean).join(' – ')
+}

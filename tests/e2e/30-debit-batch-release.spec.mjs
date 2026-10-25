@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, USERS } from './fixtures/nextcloud.mjs'
 
 // Freigabe & Einreichung des Einzugszyklus (Issue #71, Spec §2.2/§3.5): reine
@@ -43,8 +43,11 @@ test.describe('Lastschriftlauf: Freigabe & Einreichung', () => {
 	test('Vorschau, Freigabe, maskierte IBAN und Einreichung setzen last_presented_due_date', async ({ request }) => {
 		const dueDate = '2026-11-01'
 		const { mandate, claim } = await memberWithClaimDue(request, {
-			firstName: 'Katrin', lastName: 'Einzug1', email: 'katrin.einzug1@example.org',
-			iban: 'DE02120300000000202051', dueDate,
+			firstName: 'Katrin',
+			lastName: 'Einzug1',
+			email: 'katrin.einzug1@example.org',
+			iban: 'DE02120300000000202051',
+			dueDate,
 		})
 
 		// Vor der Freigabe existiert kein Lauf-Datensatz - die Vorschau ist eine
@@ -103,8 +106,11 @@ test.describe('Lastschriftlauf: Freigabe & Einreichung', () => {
 	test('Verworfener Lauf behält die Historie und gibt die Forderung wieder frei', async ({ request }) => {
 		const dueDate = '2026-11-08'
 		const { claim } = await memberWithClaimDue(request, {
-			firstName: 'Jonas', lastName: 'Einzug2', email: 'jonas.einzug2@example.org',
-			iban: 'DE44500105175407324931', dueDate,
+			firstName: 'Jonas',
+			lastName: 'Einzug2',
+			email: 'jonas.einzug2@example.org',
+			iban: 'DE44500105175407324931',
+			dueDate,
 		})
 
 		const batch = await (await api.raw(request, 'POST', '/debit-batches', { data: { dueDate } })).json()
@@ -135,8 +141,11 @@ test.describe('Lastschriftlauf: Freigabe & Einreichung', () => {
 	test('Termin nur nach hinten verschiebbar', async ({ request }) => {
 		const dueDate = '2026-11-15'
 		await memberWithClaimDue(request, {
-			firstName: 'Petra', lastName: 'Einzug3', email: 'petra.einzug3@example.org',
-			iban: 'DE68210501700012345678', dueDate,
+			firstName: 'Petra',
+			lastName: 'Einzug3',
+			email: 'petra.einzug3@example.org',
+			iban: 'DE68210501700012345678',
+			dueDate,
 		})
 		const batch = await (await api.raw(request, 'POST', '/debit-batches', { data: { dueDate } })).json()
 
@@ -154,8 +163,11 @@ test.describe('Lastschriftlauf: Freigabe & Einreichung', () => {
 	test('Freigabe/Einreichung ist Buchhalter vorbehalten, Lesen geht auch als Revisor', async ({ request }) => {
 		const dueDate = '2026-11-29'
 		await memberWithClaimDue(request, {
-			firstName: 'Tom', lastName: 'Einzug4', email: 'tom.einzug4@example.org',
-			iban: 'DE87200100200210953411', dueDate,
+			firstName: 'Tom',
+			lastName: 'Einzug4',
+			email: 'tom.einzug4@example.org',
+			iban: 'DE87200100200210953411',
+			dueDate,
 		})
 
 		const releaseAsRevisor = await api.raw(request, 'POST', '/debit-batches', {

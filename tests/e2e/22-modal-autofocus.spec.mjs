@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test'
-import { api, openApp, switchTab, visibleSection, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, openApp, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Der Fokus-Race in NcModal (siehe AttachmentFolderDialog/21-belegordner):
 // focus-trap aktiviert sich erst nach der Öffnen-Animation und kann den Fokus

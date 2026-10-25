@@ -38,17 +38,40 @@
 				     nur per Self-Service verknuepftes Konto (kein canRead) ergeben sie
 				     keinen Sinn, siehe "Mein Beitrag" (SelfServiceTab.vue). -->
 				<div v-if="canRead" class="vbh-navright">
-					<NcButton
-						v-if="canWrite && !isMobile"
-						variant="primary"
-						class="vbh-newbooking-btn"
-						:title="t('Neue Buchung anlegen (von überall)')"
-						@click="openNewBooking">
-						<template #icon>
-							<NcIconSvgWrapper :path="mdiPlus" :size="20" />
-						</template>
-						<span class="vbh-newbooking-label">{{ t('Buchung') }}</span>
-					</NcButton>
+					<!-- Ein „+“ für alles, was sich von überall anlegen lässt: Buchung,
+					     Rechnung, wiederkehrende Rechnung. Was fehlt (Modul aus, keine
+					     Berechtigung), erscheint nicht. -->
+					<div v-if="canWrite && !isMobile" class="vbh-newbooking-btn vbh-newmenu">
+						<NcActions
+							variant="primary"
+							:menuName="t('Neu')"
+							:forceName="true"
+							:forceMenu="true"
+							:ariaLabel="t('Neu anlegen')"
+							:title="t('Neu anlegen')">
+							<template #icon>
+								<NcIconSvgWrapper :path="mdiPlus" :size="20" />
+							</template>
+							<NcActionButton @click="openNewBooking">
+								<template #icon>
+									<NcIconSvgWrapper :path="mdiSwapHorizontal" :size="20" />
+								</template>
+								{{ t('Buchung') }}
+							</NcActionButton>
+							<NcActionButton v-if="invoicesActive" @click="requestNewInvoice('invoice')">
+								<template #icon>
+									<NcIconSvgWrapper :path="mdiFileDocumentOutline" :size="20" />
+								</template>
+								{{ t('Rechnung') }}
+							</NcActionButton>
+							<NcActionButton v-if="invoicesActive && isAdmin" @click="requestNewInvoice('plan')">
+								<template #icon>
+									<NcIconSvgWrapper :path="mdiCalendarSync" :size="20" />
+								</template>
+								{{ t('Wiederkehrende Rechnung') }}
+							</NcActionButton>
+						</NcActions>
+					</div>
 					<label class="vbh-yearsel" :title="periodTitle">
 						<span>{{ t('Zeitraum') }}</span>
 						<!-- @change: eine bewusste Wahl zählt auch dann, wenn sie fällt,
@@ -178,6 +201,7 @@
 					:isAdmin="isAdmin"
 					:accounts="accountsSorted"
 					:reloadKey="invoicesReloadKey"
+					:newRequest="invoiceRequest"
 					@changed="onInvoicesChanged" />
 			</section>
 
@@ -276,7 +300,10 @@
 			:activeTab="activeTab"
 			:unassignedCount="unassignedCount"
 			:canWrite="canWrite"
+			:invoicesActive="invoicesActive"
+			:isAdmin="isAdmin"
 			@select="id => { activeTab = id }"
+			@newInvoice="requestNewInvoice"
 			@newBooking="openNewBooking" />
 
 		<!-- ============ IMPORT-DIALOG (CSV-CAMT) ============ -->
@@ -410,10 +437,12 @@
 </template>
 
 <script>
-import { mdiAccountCashOutline, mdiCardAccountDetailsOutline, mdiChartBar, mdiFileDocumentOutline, mdiFileTreeOutline, mdiHelpCircleOutline, mdiPlus, mdiPrinter, mdiSwapHorizontal, mdiViewDashboardOutline } from '@mdi/js'
+import { mdiAccountCashOutline, mdiCalendarSync, mdiCardAccountDetailsOutline, mdiChartBar, mdiFileDocumentOutline, mdiFileTreeOutline, mdiHelpCircleOutline, mdiPlus, mdiPrinter, mdiSwapHorizontal, mdiViewDashboardOutline } from '@mdi/js'
 import { showError, showInfo, showSuccess, showUndo } from '@nextcloud/dialogs'
 import { generateUrl } from '@nextcloud/router'
 import { toRefs } from 'vue'
+import NcActionButton from '@nextcloud/vue/components/NcActionButton'
+import NcActions from '@nextcloud/vue/components/NcActions'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
@@ -506,6 +535,8 @@ const dateiSchluessel = (f) => `${f.name}|${f.size}|${f.lastModified}`
 export default {
 	name: 'App',
 	components: {
+		NcActionButton,
+		NcActions,
 		NcButton,
 		NcDialog,
 		NcIconSvgWrapper,
@@ -661,8 +692,11 @@ export default {
 			showImport: false,
 			sectionFade: true,
 			bookingForm: this.emptyBookingForm(),
+			mdiCalendarSync,
+			mdiFileDocumentOutline,
 			mdiPlus,
 			mdiPrinter,
+			mdiSwapHorizontal,
 			bookingAttachments: [],
 			attachmentCountMap: {},
 			// Kollaboration: Poll-Timer (Änderungsstand selbst kommt aus useSync)
@@ -715,6 +749,7 @@ export default {
 			invoicesActive: false,
 			selectedInvoiceId: null,
 			invoicesReloadKey: 0,
+			invoiceRequest: { kind: null, n: 0 },
 			// Hilfe-Modal (HelpModal.vue): Kapitel folgt standardmäßig dem aktiven Tab,
 			// kann aber gezielt überschrieben werden (z. B. Links aus Leerzuständen).
 			showHelp: false,
@@ -2243,6 +2278,12 @@ export default {
 			this.folderDialog.open = false
 			const j = await this.statementRowToJournalRow({ journalId })
 			if (j) { this.editBooking(j) }
+		},
+
+		/** „+ → Rechnung“: zum Reiter wechseln und dort den Editor öffnen. */
+		requestNewInvoice(kind) {
+			this.activeTab = 'invoices'
+			this.invoiceRequest = { kind, n: this.invoiceRequest.n + 1 }
 		},
 
 		openNewBooking() {

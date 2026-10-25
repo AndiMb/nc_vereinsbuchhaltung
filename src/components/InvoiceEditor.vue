@@ -8,9 +8,19 @@
 					</template>
 					{{ t('Zur Liste') }}
 				</NcButton>
-				<strong class="vbh-inv-editor-title">{{ currentId ? t('Rechnungsentwurf') : t('Neue Rechnung') }}</strong>
+				<strong class="vbh-inv-editor-title">{{ title }}</strong>
 			</div>
-			<div class="vbh-sectiontop-actions">
+			<div v-if="isPlan" class="vbh-sectiontop-actions">
+				<span class="vbh-inv-saved" role="status">{{ saveStateText }}</span>
+				<NcButton
+					v-if="isAdmin"
+					variant="primary"
+					:disabled="saving || loading || form.debtorId === null"
+					@click="savePlan">
+					{{ t('Plan speichern') }}
+				</NcButton>
+			</div>
+			<div v-else class="vbh-sectiontop-actions">
 				<span class="vbh-inv-saved" role="status">{{ saveStateText }}</span>
 				<NcButton variant="tertiary" :disabled="saving" @click="preview">
 					<template #icon>
@@ -36,7 +46,25 @@
 		</div>
 
 		<div v-else class="vbh-sectionbody vbh-inv-body">
-			<p v-if="!isAdmin" class="vbh-hint vbh-hint--info">
+			<fieldset v-if="canChooseKind" class="vbh-fieldset-reset vbh-inv-kind">
+				<legend class="vbh-legend">
+					{{ t('Art') }}
+				</legend>
+				<label class="vbh-inv-radio">
+					<input v-model="isPlan" type="radio" :value="false"> {{ t('Einmalige Rechnung') }}
+				</label>
+				<label class="vbh-inv-radio" :title="isAdmin ? '' : t('Wiederkehrende Rechnungen legt nur ein Verwalter an.')">
+					<input
+						v-model="isPlan"
+						type="radio"
+						:value="true"
+						:disabled="!isAdmin"> {{ t('Wiederkehrende Rechnung') }}
+				</label>
+			</fieldset>
+			<p v-if="isPlan && !plan" class="vbh-hint vbh-hint--info">
+				{{ t('Ein Plan legt im gewählten Takt neue Rechnungen mit diesen Angaben an. Jetzt entsteht noch keine Rechnung; die erste folgt am gewählten Datum.') }}
+			</p>
+			<p v-else-if="!isPlan && !isAdmin" class="vbh-hint vbh-hint--info">
 				{{ t('Festschreiben und Versenden darf nur ein Verwalter. Sie können den Entwurf anlegen und vorbereiten.') }}
 			</p>
 			<p v-if="meta && meta.missingIssuerFields.length" class="vbh-hint vbh-hint--warning">
@@ -51,7 +79,52 @@
 					<h3>{{ t('Empfänger') }}</h3>
 					<DebtorSelect v-model="form.debtorId" @debtor="debtor = $event" />
 				</div>
-				<div class="vbh-inv-dates">
+				<div v-if="isPlan" class="vbh-inv-dates">
+					<h3>{{ t('Wiederholung') }}</h3>
+					<div class="vbh-inv-grid">
+						<label class="vbh-inv-wide">{{ t('Name des Plans') }}
+							<input v-model="planForm.name" maxlength="255" :placeholder="t('z. B. Hallenmiete Sportstudio')">
+						</label>
+						<label>{{ t('Takt') }}
+							<select v-model.number="planForm.intervalMonths">
+								<option v-for="m in planIntervals" :key="m" :value="m">{{ planIntervalLabel(m) }}</option>
+							</select>
+						</label>
+						<label>{{ t('Zahlungsziel (Tage)') }}
+							<input
+								v-model="planForm.dueDays"
+								type="number"
+								min="0"
+								max="365"
+								:placeholder="t('Standard')">
+						</label>
+						<label>{{ t('Erste Rechnung am') }}
+							<input v-model="planForm.startDate" type="date">
+						</label>
+						<label>{{ t('Ende (optional)') }}
+							<input v-model="planForm.endDate" type="date" :min="planForm.startDate || undefined">
+						</label>
+						<label class="vbh-inv-wide">{{ t('Leistungszeitraum') }}
+							<select v-model="planForm.periodMode">
+								<option value="interval">{{ t('der Zeitraum des Taktes, der mit der Rechnung beginnt') }}</option>
+								<option value="issue_date">{{ t('Leistungsdatum = Rechnungsdatum') }}</option>
+							</select>
+						</label>
+					</div>
+					<label class="vbh-checkrow">
+						<input v-model="planForm.autoIssue" type="checkbox"> {{ t('Rechnung gleich festschreiben') }}
+					</label>
+					<label class="vbh-checkrow">
+						<input v-model="planForm.autoSend" type="checkbox" :disabled="!planForm.autoIssue"> {{ t('und per E-Mail an den Empfänger senden') }}
+					</label>
+					<p class="vbh-hint">
+						{{ t('Ohne Festschreiben bleibt jede Rechnung ein Entwurf, den Sie prüfen und festschreiben. Fehlen beim Festschreiben Angaben, bleibt der Entwurf liegen und der Plan nennt den Grund.') }}
+					</p>
+					<p class="vbh-hint">
+						{{ t('In Bezeichnungen und Texten ersetzt der Lauf {monat}, {jahr}, {quartal} und {zeitraum} durch die Angaben des Termins.') }}
+					</p>
+				</div>
+				<div v-else class="vbh-inv-dates">
 					<h3>{{ t('Rechnungsdaten') }}</h3>
 					<div class="vbh-inv-grid">
 						<label>{{ t('Rechnungsdatum') }}
@@ -265,7 +338,7 @@
 
 			<section class="vbh-card">
 				<h3>{{ t('Steuer und Texte') }}</h3>
-				<div class="vbh-inv-grid vbh-inv-grid--wide">
+				<div v-if="!isPlan" class="vbh-inv-grid vbh-inv-grid--wide">
 					<label>{{ t('Umsatzsteuer') }}
 						<select v-model="form.taxMode">
 							<option v-for="mode in taxModes" :key="mode" :value="mode">
@@ -274,14 +347,17 @@
 						</select>
 					</label>
 				</div>
-				<p v-if="form.taxMode === 'kleinunternehmer'" class="vbh-hint">
+				<p v-if="isPlan" class="vbh-hint">
+					{{ t('Die Umsatzsteuer gilt so, wie sie in den Einstellungen steht, wenn der Plan die Rechnung anlegt.') }}
+				</p>
+				<p v-if="!isPlan && form.taxMode === 'kleinunternehmer'" class="vbh-hint">
 					{{ t('Ausgewiesen wird keine Umsatzsteuer. Auf der Rechnung steht der Hinweis:') }}
 					<em>{{ form.exemptionText || (meta && meta.smallBusinessNotice) }}</em>
 				</p>
 				<p v-if="regular" class="vbh-hint">
 					{{ t('Die Umsatzsteuer wird je Position gewählt (19 %, 7 %, 0 % oder steuerfrei). Beim Festschreiben braucht jeder verwendete Satz ein Umsatzsteuerkonto in den Einstellungen.') }}
 				</p>
-				<label v-if="form.taxMode === 'kleinunternehmer' || form.taxMode === 'exempt' || needsExemptionText" class="vbh-inv-wide">
+				<label v-if="!isPlan && (form.taxMode === 'kleinunternehmer' || form.taxMode === 'exempt' || needsExemptionText)" class="vbh-inv-wide">
 					{{ form.taxMode === 'kleinunternehmer' ? t('Eigener Hinweistext (optional, ersetzt den Standardtext)') : t('Hinweis auf die Steuerbefreiung (Pflicht)') }}
 					<input
 						v-model="form.exemptionText"
@@ -311,7 +387,7 @@
 				</label>
 			</section>
 
-			<section v-if="openChecks.length" class="vbh-card vbh-inv-checks">
+			<section v-if="!isPlan && openChecks.length" class="vbh-card vbh-inv-checks">
 				<h3>{{ t('Zum Festschreiben fehlt noch') }}</h3>
 				<ul class="vbh-blockers">
 					<li v-for="c in openChecks" :key="c.key">
@@ -320,7 +396,7 @@
 				</ul>
 			</section>
 
-			<div v-if="currentId" class="vbh-inv-discard">
+			<div v-if="currentId && !isPlan" class="vbh-inv-discard">
 				<NcButton variant="tertiary" @click="discardOpen = true">
 					<template #icon>
 						<NcIconSvgWrapper :path="mdiDelete" :size="20" />
@@ -339,6 +415,29 @@
 			@close="issue.open = false"
 			@update:show="issue.open = $event"
 			@confirm="confirmIssue" />
+
+		<NcModal
+			v-if="leaveOpen"
+			:show="leaveOpen"
+			labelId="vbh-modal-title-inv-leave"
+			size="small"
+			@close="leaveOpen = false"
+			@update:show="leaveOpen = $event">
+			<div class="vbh-modal-inner">
+				<h2 id="vbh-modal-title-inv-leave" class="vbh-modal-title">
+					{{ t('Änderungen verwerfen?') }}
+				</h2>
+				<p>{{ t('Der Plan wurde noch nicht gespeichert. Die Änderungen gehen verloren.') }}</p>
+				<div class="vbh-modal-actions">
+					<NcButton variant="tertiary" @click="leaveOpen = false">
+						{{ t('Weiter bearbeiten') }}
+					</NcButton>
+					<NcButton variant="error" @click="leaveNow">
+						{{ t('Verwerfen') }}
+					</NcButton>
+				</div>
+			</div>
+		</NcModal>
 
 		<NcModal
 			v-if="discardOpen"
@@ -379,13 +478,18 @@ import api from '../api.js'
 import { errMsg, formatMoney } from '../lib/format.js'
 import {
 	addDays,
+	defaultPlanName,
+	dueDaysOf,
 	editorLineNet,
 	editorTotals,
 	emptyLine,
 	isEmptyLine,
+	lineFromPlan,
 	lineFromServer,
 	lineFromTemplate,
 	linesToPayload,
+	PLAN_INTERVALS,
+	planIntervalLabel,
 	quantityToE4,
 	suggestTaxKey,
 	taxKeyLabel,
@@ -413,9 +517,15 @@ export default {
 		/** Antwort von GET /api/invoices/meta. */
 		meta: { type: Object, default: null },
 		isAdmin: { type: Boolean, default: false },
+		/** Ein vorhandener Plan für wiederkehrende Rechnungen, der bearbeitet wird. */
+		plan: { type: Object, default: null },
+		/** Ein neuer Plan beginnt leer. */
+		startAsPlan: { type: Boolean, default: false },
+		/** Ein neuer Plan, vorbelegt aus dieser (festgeschriebenen) Rechnung. */
+		fromInvoice: { type: Object, default: null },
 	},
 
-	emits: ['close', 'changed', 'issued'],
+	emits: ['close', 'changed', 'issued', 'planSaved'],
 
 	setup() {
 		return { mdiArrowDown, mdiArrowLeft, mdiArrowUp, mdiDelete, mdiFilePdfBox, mdiPlus }
@@ -439,6 +549,9 @@ export default {
 			issue: { open: false, busy: false, error: '' },
 			templates: [],
 			templatePick: '',
+			isPlan: Boolean(this.plan || this.startAsPlan || this.fromInvoice),
+			planForm: this.blankPlanForm(),
+			leaveOpen: false,
 		}
 	},
 
@@ -452,6 +565,15 @@ export default {
 		needsExemptionText() { return this.regular && this.form.lines.some((l) => l.taxKey === 'E' && !isEmptyLine(l)) },
 		sums() { return editorTotals(this.form.lines, this.regular) },
 		openChecks() { return this.checklist.filter((c) => c.required && !c.ok) },
+		planIntervals() { return PLAN_INTERVALS },
+		/** Die Art (einmalig oder wiederkehrend) lässt sich nur beim Anlegen wählen. */
+		canChooseKind() { return !this.plan && !this.fromInvoice },
+		title() {
+			if (this.plan) { return this.t('Plan bearbeiten') }
+			if (this.isPlan) { return this.t('Neuer Plan für wiederkehrende Rechnungen') }
+			return this.currentId ? this.t('Rechnungsentwurf') : this.t('Neue Rechnung')
+		},
+
 		hasContent() { return this.form.debtorId !== null || this.form.lines.some((l) => !isEmptyLine(l)) },
 
 		saveStateText() {
@@ -475,6 +597,18 @@ export default {
 		'form.taxMode': function(mode) {
 			if (this.loading || mode !== 'regular') { return }
 			for (const line of this.form.lines) { this.onAccountChange(line) }
+		},
+
+		planForm: {
+			deep: true,
+			handler() {
+				if (!this.loading) { this.dirty = true }
+			},
+		},
+
+		isPlan(plan) {
+			// Ein Plan speichert sich nicht von selbst; ein schon angelegter Entwurf bleibt, bis der Plan gespeichert ist.
+			if (plan) { clearTimeout(this.autosaveTimer) }
 		},
 
 		leistungMode(mode) {
@@ -508,6 +642,7 @@ export default {
 	methods: {
 		formatMoney,
 		isEmptyLine,
+		planIntervalLabel,
 		unitLabel,
 
 		blankForm() {
@@ -551,10 +686,43 @@ export default {
 			line.taxKey = suggestTaxKey(this.accountsById[line.accountId] || null, this.rates)
 		},
 
+		blankPlanForm() {
+			return { name: '', intervalMonths: 1, startDate: todayIso(), endDate: '', periodMode: 'interval', dueDays: '', autoIssue: false, autoSend: false }
+		},
+
+		/** Formular und Planangaben aus einem gespeicherten Plan. */
+		applyPlan(plan) {
+			this.form = {
+				...this.blankForm(),
+				debtorId: plan.debtorId,
+				buyerReference: plan.buyerReference || '',
+				orderReference: plan.orderReference || '',
+				noteHead: plan.noteHead || '',
+				noteFoot: plan.noteFoot || '',
+				paymentTerms: plan.paymentTerms || '',
+				lines: plan.lines.length ? plan.lines.map(lineFromPlan) : [emptyLine()],
+			}
+			this.planForm = {
+				name: plan.name,
+				intervalMonths: plan.intervalMonths,
+				startDate: plan.startDate,
+				endDate: plan.endDate || '',
+				periodMode: plan.periodMode,
+				dueDays: plan.dueDays ?? '',
+				autoIssue: plan.autoIssue,
+				autoSend: plan.autoSend,
+			}
+		},
+
 		async load() {
 			this.loading = true
 			try {
-				if (this.invoiceId) {
+				if (this.plan) {
+					this.applyPlan(this.plan)
+				} else if (this.fromInvoice) {
+					this.applyDetail(this.fromInvoice, false)
+					this.planForm = { ...this.blankPlanForm(), dueDays: dueDaysOf(this.fromInvoice) ?? '' }
+				} else if (this.invoiceId) {
 					const { data } = await api.invoice(this.invoiceId)
 					if (data.status !== 'draft') {
 						showError(this.t('Festgeschriebene Rechnungen lassen sich nicht mehr bearbeiten.'))
@@ -573,9 +741,11 @@ export default {
 			}
 		},
 
-		applyDetail(data) {
-			this.currentId = data.id
-			this.checklist = data.checklist || []
+		applyDetail(data, adopt = true) {
+			if (adopt) {
+				this.currentId = data.id
+				this.checklist = data.checklist || []
+			}
 			this.leistungMode = data.periodStart ? 'period' : 'date'
 			this.form = {
 				debtorId: data.debtorId,
@@ -617,7 +787,7 @@ export default {
 
 		scheduleAutosave() {
 			clearTimeout(this.autosaveTimer)
-			if (!this.hasContent) { return }
+			if (this.isPlan || !this.hasContent) { return }
 			this.autosaveTimer = setTimeout(() => this.save(true), AUTOSAVE_MS)
 		},
 
@@ -698,9 +868,65 @@ export default {
 		},
 
 		async close() {
+			if (this.isPlan) {
+				// Ein Plan ist kein Entwurf: ungespeicherte Angaben gehen verloren, also nachfragen.
+				if (this.dirty) { this.leaveOpen = true } else { this.$emit('close') }
+				return
+			}
 			// Offene Änderungen vor dem Verlassen sichern, damit nichts verloren geht.
 			if (this.dirty && this.hasContent) { await this.save(true) }
 			this.$emit('close')
+		},
+
+		leaveNow() {
+			this.leaveOpen = false
+			this.dirty = false
+			this.$emit('close')
+		},
+
+		/** Speichert den Plan (neu oder geändert); ein vorher begonnener Entwurf wird dabei überflüssig und gelöscht. */
+		async savePlan() {
+			const f = this.form
+			const p = this.planForm
+			const lines = linesToPayload(f.lines, this.regular)
+			if (lines.length === 0) {
+				this.error = this.t('Mindestens eine Position ist nötig.')
+				return
+			}
+			const debtorName = this.debtor?.name || this.fromInvoice?.debtorName || ''
+			const body = {
+				name: p.name.trim() || defaultPlanName(debtorName, lines),
+				debtorId: f.debtorId,
+				intervalMonths: p.intervalMonths,
+				startDate: p.startDate,
+				endDate: p.endDate || null,
+				periodMode: p.periodMode,
+				dueDays: p.dueDays === '' || p.dueDays === null ? null : Number(p.dueDays),
+				autoIssue: p.autoIssue,
+				autoSend: p.autoIssue && p.autoSend,
+				lines,
+				noteHead: f.noteHead,
+				noteFoot: f.noteFoot,
+				paymentTerms: f.paymentTerms,
+				buyerReference: f.buyerReference,
+				orderReference: f.orderReference,
+			}
+			this.saving = true
+			this.error = ''
+			try {
+				const { data } = this.plan ? await api.updateInvoicePlan(this.plan.id, body) : await api.createInvoicePlan(body)
+				if (this.currentId) {
+					try { await api.deleteInvoice(this.currentId) } catch { /* der Entwurf bleibt dann als Entwurf in der Liste */ }
+					this.currentId = null
+				}
+				this.dirty = false
+				showSuccess(this.t('Plan gespeichert.'))
+				this.$emit('planSaved', data)
+			} catch (e) {
+				this.error = errMsg(e, this.t('Der Plan konnte nicht gespeichert werden.'))
+			} finally {
+				this.saving = false
+			}
 		},
 
 		/** Die Vorlagen sind eine Annehmlichkeit: fehlen sie, schreibt man die Position eben von Hand. */
@@ -779,6 +1005,10 @@ h3 { margin: 0 0 8px; font-size: 1em; }
 .vbh-inv-grid label, .vbh-inv-wide { display: flex; flex-direction: column; gap: 3px; font-size: 0.88em; font-weight: 600; }
 
 .vbh-inv-wide { margin-top: 10px; }
+
+.vbh-inv-grid > .vbh-inv-wide { grid-column: 1 / -1; margin-top: 0; }
+
+.vbh-inv-kind { margin: 0 0 4px; }
 
 .vbh-inv-wide textarea, .vbh-inv-wide input { width: 100%; box-sizing: border-box; font-weight: normal; }
 

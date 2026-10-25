@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, INCOME_ACCOUNT, openApp, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
+import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, INCOME_ACCOUNT, neuAnlegen, openApp, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Rechnungsmodul Stufe 3 (Epic #168): Positionsvorlagen, wiederkehrende Rechnungen,
 // Mahnstand, RF-Referenz im Bankabgleich und die Rechnungen im Prüfungs-ZIP.
@@ -174,5 +174,61 @@ test.describe.serial('Rechnungen Stufe 3', () => {
 		expect(zip).toContain('rechnungen/uebersicht.csv')
 		expect(zip).toContain('rechnungen/pruefsummen.txt')
 		expect(zip).toMatch(/rechnungen\/RE-\d{4}-\d{4}\/RE-\d{4}-\d{4}\.pdf/)
+	})
+
+	test('Oberfläche: Art „wiederkehrend“ im Editor, Plan aus einer Rechnung und Reiter Wiederkehrend', async ({ page }) => {
+		await openApp(page, USERS.verwalter)
+		await switchTab(page, 'Rechnungen')
+		const section = visibleSection(page)
+
+		// Neue Rechnung: die Art lässt sich wählen; ohne Empfänger gibt es keinen Plan.
+		await section.getByRole('button', { name: 'Neue Rechnung' }).first().click()
+		await page.getByLabel('Wiederkehrende Rechnung', { exact: true }).check()
+		await expect(page.getByRole('heading', { name: 'Wiederholung' })).toBeVisible()
+		await expect(page.getByRole('button', { name: 'Plan speichern' })).toBeDisabled()
+		await page.getByRole('button', { name: 'Zur Liste' }).click()
+
+		// Aus einer festgeschriebenen Rechnung: Empfänger und Positionen sind übernommen.
+		await section.locator('tbody tr', { hasText: 'RE-' }).first().click()
+		await page.getByRole('dialog').getByRole('button', { name: /Wiederkehrend/ }).click()
+		await expect(page.getByText('Neuer Plan für wiederkehrende Rechnungen')).toBeVisible()
+		await expect(page.getByLabel('Wiederkehrende Rechnung', { exact: true })).toHaveCount(0)
+		await page.getByLabel('Name des Plans').fill('Plan aus Rechnung E2E')
+		await page.getByRole('button', { name: 'Plan speichern' }).click()
+
+		await expect(section.getByRole('tab', { name: /Wiederkehrend/ })).toHaveAttribute('aria-selected', 'true')
+		const plan = section.locator('.vbh-inv-plan', { hasText: 'Plan aus Rechnung E2E' })
+		await expect(plan).toBeVisible()
+
+		// Der Plan lässt sich im selben Editor ändern, die Positionen eingeschlossen.
+		await plan.getByRole('button', { name: 'Bearbeiten' }).click()
+		await expect(page.getByText('Plan bearbeiten', { exact: true })).toBeVisible()
+		await expect(page.locator('.vbh-inv-name input').first()).not.toHaveValue('')
+		await page.getByLabel('Name des Plans').fill('Plan geändert E2E')
+		await page.getByRole('button', { name: 'Plan speichern' }).click()
+		await expect(section.locator('.vbh-inv-plan', { hasText: 'Plan geändert E2E' })).toBeVisible()
+	})
+
+	test('Das „+“ im Kopf bietet Buchung, Rechnung und wiederkehrende Rechnung', async ({ page }) => {
+		await openApp(page, USERS.verwalter)
+		await page.getByRole('button', { name: 'Neu', exact: true }).click()
+		await expect(page.getByRole('menuitem', { name: 'Buchung', exact: true })).toBeVisible()
+		await expect(page.getByRole('menuitem', { name: 'Rechnung', exact: true })).toBeVisible()
+		await expect(page.getByRole('menuitem', { name: 'Wiederkehrende Rechnung', exact: true })).toBeVisible()
+		await page.keyboard.press('Escape')
+
+		// „Rechnung“ springt zum Reiter und öffnet den Editor; „wiederkehrend“ gleich im Planmodus.
+		await neuAnlegen(page, 'Rechnung')
+		await expect(page.getByText('Neue Rechnung', { exact: true })).toBeVisible()
+		await page.getByRole('button', { name: 'Zur Liste' }).click()
+		await neuAnlegen(page, 'Wiederkehrende Rechnung')
+		await expect(page.getByText('Neuer Plan für wiederkehrende Rechnungen')).toBeVisible()
+	})
+
+	test('Ein Buchhalter sieht im „+“ keine wiederkehrende Rechnung', async ({ page }) => {
+		await openApp(page, USERS.buchhalter)
+		await page.getByRole('button', { name: 'Neu', exact: true }).click()
+		await expect(page.getByRole('menuitem', { name: 'Rechnung', exact: true })).toBeVisible()
+		await expect(page.getByRole('menuitem', { name: 'Wiederkehrende Rechnung', exact: true })).toHaveCount(0)
 	})
 })

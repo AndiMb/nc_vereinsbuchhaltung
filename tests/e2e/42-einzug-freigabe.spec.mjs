@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test'
-import { api, dav, openApp, switchTab, tabButton, visibleSection, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, dav, openApp, switchTab, tabButton, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Einzug: Freigabe, Einreichung und Terminverschiebung (Issue #103, Spec
 // §3.5/§6). Der Kassenwart führt den Lauf im Einzug-Unterreiter durch:

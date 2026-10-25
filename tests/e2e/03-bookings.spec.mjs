@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test'
-import { api, openApp, switchTab, selectPeriod, visibleSection, pickNcSelectOption, BANK_ACCOUNT, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, BANK_ACCOUNT, INCOME_ACCOUNT, neuAnlegen, openApp, pickNcSelectOption, selectPeriod, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Der Kern der App: Buchungen anlegen (Einfach-Modus über den Dialog),
 // im Journal wiederfinden, bearbeiten und löschen.
@@ -13,7 +13,7 @@ test.describe('Buchungen', () => {
 	test('Einnahme im Einfach-Modus über den Dialog buchen', async ({ page }) => {
 		await openApp(page, USERS.verwalter)
 
-		await page.getByRole('button', { name: 'Buchung', exact: true }).click()
+		await neuAnlegen(page)
 		const dialog = page.getByRole('dialog')
 		await dialog.getByRole('button', { name: 'Einnahme' }).click()
 

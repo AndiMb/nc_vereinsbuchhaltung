@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
 	addDays,
+	defaultPlanName,
 	displayStatus,
 	dueDaysOf,
 	editorLineNet,
@@ -11,6 +12,7 @@ import {
 	formatQuantity,
 	isDunningDue,
 	isEmptyLine,
+	lineFromPlan,
 	lineFromTemplate,
 	lineNet,
 	linesToPayload,
@@ -238,5 +240,24 @@ describe('Mahnwesen', () => {
 		expect(isDunningDue({ dunning: { due: true } })).toBe(true)
 		expect(isDunningDue({ dunning: { due: false } })).toBe(false)
 		expect(isDunningDue({})).toBe(false)
+	})
+})
+
+describe('Plan im Editor', () => {
+	it('macht aus einer gespeicherten Plan-Position eine Editor-Zeile', () => {
+		const line = lineFromPlan({ name: 'Miete', description: null, quantity: '1,5', unitCode: 'MON', unitPriceCents: 12000, discountPercent: '10', accountId: 4, taxCategory: 'S', taxRateBp: 700 })
+		expect(line).toMatchObject({ name: 'Miete', description: '', quantity: '1,5', unitCode: 'MON', unitPrice: 120, discountPercent: '10', accountId: 4, taxKey: 'S700' })
+		expect(editorLineNet(line)).toBe(16200)
+	})
+	it('liest Mengen als Zahl und fehlende Angaben mit Standardwerten', () => {
+		expect(lineFromPlan({ name: 'x', quantity: 2, unitPriceCents: 0 })).toMatchObject({ quantity: '2', unitPrice: '', unitCode: 'C62', taxKey: 'S1900' })
+	})
+	it('nennt einen Plan nach Empfänger und erster Position', () => {
+		expect(defaultPlanName('Studio GmbH', [{ name: ' ' }, { name: 'Hallenmiete' }])).toBe('Studio GmbH – Hallenmiete')
+		expect(defaultPlanName('', [])).toBe('')
+	})
+	it('übernimmt eine Plan-Position unverändert in die Server-Form zurück', () => {
+		const stored = { name: 'Miete', description: '', quantity: '1', unitCode: 'LS', unitPriceCents: 12000, discountPercent: '', accountId: 4 }
+		expect(linesToPayload([lineFromPlan(stored)])[0]).toMatchObject({ name: 'Miete', quantity: '1', unitCode: 'LS', unitPriceCents: 12000, accountId: 4 })
 	})
 })

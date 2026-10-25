@@ -427,7 +427,7 @@ amounts appear separately.
 
 ### 4.2 Creating manual postings
 
-**"+ Posting"** button (top right, or on mobile the large "+" button).
+**"+ New"** button (top right, or on mobile the large "+" button), then **Entry**. Depending on role and on whether the invoice module is on, the menu also offers **Invoice** and **Recurring invoice**.
 
 **Simple mode** (default): you only choose *income* or *expense*, a
 **category** (what for? e.g. "Insurance") and a **cash account** (bank or
@@ -2498,7 +2498,9 @@ Since 2025 businesses must be able to **receive** e-invoices; **issuing** them i
 
 ### 15.12 Recurring invoices
 
-For services at a fixed interval (hall rental, sponsoring, annual fee) a **plan** creates the invoices by itself. You create a plan from an existing invoice: in its details click **Recurring …** (administrator). Recipient, line items and texts come from that invoice; you choose:
+For services at a fixed interval (hall rental, sponsoring, annual fee) a **plan** creates the invoices by itself. A plan is created where you otherwise write an invoice: **Invoices → New invoice**, then choose **Recurring invoice** under **Type** at the top (administrator only). The same editor shows the **Repetition** instead of the invoice data; you enter recipient, line items (also from templates), tax and texts as for an invoice. Alternatively **Recurring …** in the details of an existing invoice takes over recipient, line items and texts as a template for the plan.
+
+Under **Repetition** you choose:
 
 - **Interval:** monthly, quarterly, half-yearly or yearly, with **first invoice on** and an optional **end**. Dates are always counted from the start; the 31st becomes the 28th or 29th in February but goes back to the 31st afterwards.
 - **Service period:** the period of the interval that starts with the invoice (for a monthly invoice on 1 June that is 1 to 30 June), or service date equal to invoice date.
@@ -2507,7 +2509,7 @@ For services at a fixed interval (hall rental, sponsoring, annual fee) a **plan*
 
 In names and texts the run replaces `{monat}`, `{jahr}`, `{quartal}` and `{zeitraum}`: "Hall rental {monat} {jahr}" becomes "Hall rental June 2027".
 
-The overview opens with **Recurring** at the top of the invoice list: interval, next date, last run with a link to the invoice, errors. Plans can be **edited**, **paused** and **deleted** (invoices already created remain). A paused or newly created plan **does not catch up on past dates**; it starts with the next date from today. To change the line items of a plan, create a new plan from a corrected invoice and delete the old one. The Nextcloud background job checks hourly; **Run due plans now** triggers it by hand.
+All plans are in the **Recurring** tab of the invoice list: interval, next date, last run with a link to the invoice, errors. **Edit** opens the plan in the same editor – the line items can be changed too. Plans can also be **paused** and **deleted** (invoices already created remain). A paused or newly created plan **does not catch up on past dates**; it starts with the next date from today. The Nextcloud background job checks hourly; **Run due plans now** triggers it by hand.
 
 ### 15.13 Dunning
 

@@ -1,14 +1,30 @@
 <template>
 	<nav class="vbh-bottomnav" :aria-label="t('Hauptnavigation')">
-		<button
-			v-if="canWrite"
-			type="button"
-			class="vbh-fab"
-			:aria-label="t('Neue Buchung anlegen')"
-			:title="t('Neue Buchung anlegen')"
-			@click="$emit('new-booking')">
-			<NcIconSvgWrapper :path="mdiPlus" :size="26" />
-		</button>
+		<template v-if="canWrite">
+			<div v-if="menuOpen" class="vbh-fabscrim" @click="menuOpen = false" />
+			<ul
+				v-if="menuOpen"
+				class="vbh-fabmenu"
+				role="menu"
+				@keydown.esc="menuOpen = false">
+				<li v-for="item in items" :key="item.id" role="none">
+					<button type="button" role="menuitem" @click="choose(item.id)">
+						<NcIconSvgWrapper :path="item.icon" :size="20" />
+						{{ item.label }}
+					</button>
+				</li>
+			</ul>
+			<button
+				type="button"
+				class="vbh-fab"
+				:aria-label="items.length > 1 ? t('Neu anlegen') : t('Neue Buchung anlegen')"
+				:title="items.length > 1 ? t('Neu anlegen') : t('Neue Buchung anlegen')"
+				:aria-haspopup="items.length > 1 ? 'menu' : null"
+				:aria-expanded="items.length > 1 ? String(menuOpen) : null"
+				@click="onFab">
+				<NcIconSvgWrapper :path="menuOpen ? mdiClose : mdiPlus" :size="26" />
+			</button>
+		</template>
 		<button
 			v-for="tab in tabs"
 			:key="tab.id"
@@ -27,12 +43,14 @@
 </template>
 
 <script>
-import { mdiPlus } from '@mdi/js'
+import { mdiCalendarSync, mdiClose, mdiFileDocumentOutline, mdiPlus, mdiSwapHorizontal } from '@mdi/js'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 
 /**
  * Untere Navigationsleiste für Mobilgeräte: alle Tabs gleichzeitig sichtbar
- * in Daumenreichweite, plus schwebender "Neue Buchung"-Button (FAB).
+ * in Daumenreichweite, plus schwebender „Neu“-Knopf (FAB). Gibt es mehr als
+ * eine Möglichkeit (Buchung, Rechnung, wiederkehrende Rechnung), öffnet er ein
+ * kleines Menü; sonst legt er gleich eine Buchung an.
  * Wird nur bei isMobile gerendert; am Desktop bleibt die Tab-Leiste im Kopf.
  */
 export default {
@@ -43,12 +61,38 @@ export default {
 		activeTab: { type: String, required: true },
 		unassignedCount: { type: Number, default: 0 },
 		canWrite: { type: Boolean, default: false },
+		invoicesActive: { type: Boolean, default: false },
+		isAdmin: { type: Boolean, default: false },
 	},
 
-	emits: ['new-booking', 'select'],
+	emits: ['new-booking', 'new-invoice', 'select'],
 
 	data() {
-		return { mdiPlus }
+		return { mdiClose, mdiPlus, menuOpen: false }
+	},
+
+	computed: {
+		items() {
+			const items = [{ id: 'booking', label: this.t('Buchung'), icon: mdiSwapHorizontal }]
+			if (this.invoicesActive) { items.push({ id: 'invoice', label: this.t('Rechnung'), icon: mdiFileDocumentOutline }) }
+			if (this.invoicesActive && this.isAdmin) { items.push({ id: 'plan', label: this.t('Wiederkehrende Rechnung'), icon: mdiCalendarSync }) }
+			return items
+		},
+	},
+
+	methods: {
+		onFab() {
+			if (this.items.length === 1) {
+				this.$emit('new-booking')
+				return
+			}
+			this.menuOpen = !this.menuOpen
+		},
+
+		choose(id) {
+			this.menuOpen = false
+			if (id === 'booking') { this.$emit('new-booking') } else { this.$emit('new-invoice', id) }
+		},
 	},
 }
 </script>

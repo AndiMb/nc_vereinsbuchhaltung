@@ -1,6 +1,6 @@
 import { getContainer, runOcc } from '@nextcloud/e2e-test-server'
-import { test, expect } from '@playwright/test'
-import { api, collectionEntry, openApp, returnEntry, switchTab, visibleSection, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, collectionEntry, INCOME_ACCOUNT, openApp, returnEntry, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Einzug-Unterreiter, Segment „Bankabgleich“ (Issue #105, Spec §3.6/§3.10/§5):
 // „der Bankauszug ist die Wahrheit“ – die Zuordnungsvorschläge zu importierten
