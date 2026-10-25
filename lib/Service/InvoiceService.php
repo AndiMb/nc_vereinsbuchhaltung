@@ -152,7 +152,7 @@ class InvoiceService {
 		$add('lines', $this->msg('Mindestens eine Position mit Bezeichnung, Menge und Erlöskonto'), $linesOk);
 
 		$amountOk = $invoice->isCredit() ? $invoice->getGrossCents() < 0 : $invoice->getGrossCents() > 0;
-		$add('amount', $invoice->isCredit() ? $this->msg('Betrag der Stornorechnung ist negativ') : $this->msg('Rechnungsbetrag ist größer als 0'), $amountOk);
+		$add('amount', $invoice->isCredit() ? $this->msg('Betrag der Stornorechnung ist negativ') : $this->msg('Rechnungsbetrag muss größer als 0 € sein'), $amountOk);
 
 		if ($invoice->getTaxMode() === Invoice::TAX_EXEMPT) {
 			$add('exemption', $this->msg('Hinweis auf die Steuerbefreiung (z. B. § 4 Nr. 22 UStG)'), trim((string)$invoice->getExemptionText()) !== '');

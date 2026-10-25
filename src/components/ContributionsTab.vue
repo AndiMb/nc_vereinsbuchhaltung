@@ -16,12 +16,6 @@
 				<NcButton variant="secondary" @click="$refs.membersList.openImportDialog()">
 					{{ t('Liste einlesen') }}
 				</NcButton>
-				<NcButton variant="primary" @click="$refs.membersList.openMemberDialog()">
-					<template #icon>
-						<NcIconSvgWrapper :path="mdiPlus" :size="20" />
-					</template>
-					{{ t('Mitglied') }}
-				</NcButton>
 			</div>
 		</div>
 
@@ -45,9 +39,7 @@
 </template>
 
 <script>
-import { mdiPlus } from '@mdi/js'
 import NcButton from '@nextcloud/vue/components/NcButton'
-import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import ContributionGroupsPanel from './ContributionGroupsPanel.vue'
 import EinzugPanel from './EinzugPanel.vue'
 import MembersList from './MembersList.vue'
@@ -70,7 +62,7 @@ import MembersList from './MembersList.vue'
  */
 export default {
 	name: 'ContributionsTab',
-	components: { NcButton, NcIconSvgWrapper, MembersList, EinzugPanel, ContributionGroupsPanel },
+	components: { NcButton, MembersList, EinzugPanel, ContributionGroupsPanel },
 	props: {
 		contribView: { type: String, required: true },
 		/** „+ → Mitglied“ im Kopf der App: `n` zählt hoch, dann öffnet sich der Aufnahme-Dialog. */
@@ -80,10 +72,6 @@ export default {
 	},
 
 	emits: ['update:contrib-view'],
-
-	data() {
-		return { mdiPlus }
-	},
 
 	watch: {
 		newMemberRequest() {

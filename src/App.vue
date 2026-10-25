@@ -42,35 +42,7 @@
 					     und Rechnung. Was fehlt (Modul aus, keine
 					     Berechtigung), erscheint nicht. -->
 					<div v-if="canWrite && !isMobile" class="vbh-newbooking-btn vbh-newmenu">
-						<NcActions
-							variant="primary"
-							:menuName="t('Neu')"
-							:forceName="true"
-							:forceMenu="true"
-							:ariaLabel="t('Neu anlegen')"
-							:title="t('Neu anlegen')">
-							<template #icon>
-								<NcIconSvgWrapper :path="mdiPlus" :size="20" />
-							</template>
-							<NcActionButton @click="openNewBooking">
-								<template #icon>
-									<NcIconSvgWrapper :path="mdiSwapHorizontal" :size="20" />
-								</template>
-								{{ t('Buchung') }}
-							</NcActionButton>
-							<NcActionButton v-if="membershipActive" @click="requestNewMember">
-								<template #icon>
-									<NcIconSvgWrapper :path="mdiAccountPlusOutline" :size="20" />
-								</template>
-								{{ t('Mitglied') }}
-							</NcActionButton>
-							<NcActionButton v-if="invoicesActive" @click="requestNewInvoice('invoice')">
-								<template #icon>
-									<NcIconSvgWrapper :path="mdiFileDocumentOutline" :size="20" />
-								</template>
-								{{ t('Rechnung') }}
-							</NcActionButton>
-						</NcActions>
+						<NewMenu :items="newMenuItems" @select="onNewMenu" />
 					</div>
 					<label class="vbh-yearsel" :title="periodTitle">
 						<span>{{ t('Zeitraum') }}</span>
@@ -443,8 +415,6 @@ import { mdiAccountCashOutline, mdiAccountPlusOutline, mdiCardAccountDetailsOutl
 import { showError, showInfo, showSuccess, showUndo } from '@nextcloud/dialogs'
 import { generateUrl } from '@nextcloud/router'
 import { toRefs } from 'vue'
-import NcActionButton from '@nextcloud/vue/components/NcActionButton'
-import NcActions from '@nextcloud/vue/components/NcActions'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
@@ -462,6 +432,7 @@ import HelpModal from './components/HelpModal.vue'
 import ImportDialog from './components/ImportDialog.vue'
 import InvoicesTab from './components/InvoicesTab.vue'
 import MobileNav from './components/MobileNav.vue'
+import NewMenu from './components/NewMenu.vue'
 import ReportsTab from './components/ReportsTab.vue'
 import SelfServiceTab from './components/SelfServiceTab.vue'
 import SetupWizard from './components/SetupWizard.vue'
@@ -537,8 +508,6 @@ const dateiSchluessel = (f) => `${f.name}|${f.size}|${f.lastModified}`
 export default {
 	name: 'App',
 	components: {
-		NcActionButton,
-		NcActions,
 		NcButton,
 		NcDialog,
 		NcIconSvgWrapper,
@@ -557,6 +526,7 @@ export default {
 		InvoicesTab,
 		SelfServiceTab,
 		MobileNav,
+		NewMenu,
 		AccountPickerSheet,
 		HelpModal,
 		SetupWizard,
@@ -776,6 +746,14 @@ export default {
 	},
 
 	computed: {
+		/** Einträge des „+ Neu“-Menüs: was Rolle und eingeschaltete Module hergeben. */
+		newMenuItems() {
+			const items = [{ id: 'booking', label: this.t('Buchung'), icon: mdiSwapHorizontal }]
+			if (this.membershipActive) { items.push({ id: 'member', label: this.t('Mitglied'), icon: mdiAccountPlusOutline }) }
+			if (this.invoicesActive) { items.push({ id: 'invoice', label: this.t('Rechnung'), icon: mdiFileDocumentOutline }) }
+			return items
+		},
+
 		watchMode() { return this.storageMode === 'watch' },
 
 		// Was schon an der offenen Buchung hängt oder wartet, soll der
@@ -2281,6 +2259,11 @@ export default {
 			this.folderDialog.open = false
 			const j = await this.statementRowToJournalRow({ journalId })
 			if (j) { this.editBooking(j) }
+		},
+
+		/** Einträge des „+“-Menüs im Kopf: was sich von überall anlegen lässt und gerade Sinn ergibt. */
+		onNewMenu(id) {
+			if (id === 'booking') { this.openNewBooking() } else if (id === 'member') { this.requestNewMember() } else if (id === 'invoice') { this.requestNewInvoice('invoice') }
 		},
 
 		/** „+ → Mitglied“: zu Beiträge → Mitglieder wechseln und dort den Aufnahme-Dialog öffnen. */

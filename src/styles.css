@@ -95,7 +95,7 @@
 @container (max-width: 1180px) {
 	.vbh-navbar .vbh-tabs.vbh-tabs button .icon-vue { display: none !important; }
 
-	.vbh-navbar .vbh-newmenu .action-item__menutoggle { width: var(--vbh-ctl-h, 48px); min-width: var(--vbh-ctl-h, 48px); padding: 0; }
+	.vbh-navbar .vbh-newmenu .button-vue { width: var(--vbh-ctl-h, 48px); min-width: var(--vbh-ctl-h, 48px); padding: 0; }
 
 	.vbh-navbar .vbh-newmenu .button-vue__wrapper { justify-content: center; }
 
@@ -109,7 +109,7 @@
 .vbh-yearsel select { box-sizing: border-box; height: var(--vbh-ctl-h, 48px); padding: 0 8px; border-radius: 8px; field-sizing: content; }
 
 /* „Neu“ so hoch wie Reiterleiste und Zeitraumfeld. */
-.vbh-navright .vbh-newmenu .action-item__menutoggle { height: var(--vbh-ctl-h, 48px); min-height: var(--vbh-ctl-h, 48px); }
+.vbh-navright .vbh-newmenu .button-vue { height: var(--vbh-ctl-h, 48px); min-height: var(--vbh-ctl-h, 48px); }
 
 .vbh-tabs.vbh-tabs button { white-space: nowrap; border: none; background: transparent; padding: 7px 16px; border-radius: 8px; cursor: pointer; color: var(--color-main-text); font-weight: 600; font-size: 0.9em; display: inline-flex; align-items: center; gap: 6px; }
 

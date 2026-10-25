@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { capturedMails, clearCapturedMails, startMailCapture, stopMailCapture } from './fixtures/mail-capture.mjs'
-import { api, authHeaders, BASE_URL, openApp, openSettingsPage, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
+import { api, authHeaders, BASE_URL, neuAnlegen, openApp, openSettingsPage, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Nextcloud-Konto und Willkommens-Mail rund um die Mitgliederliste:
 //   - Spalte „Nextcloud-Konto?" (Ja / Vorschlag zum Verknüpfen mit Rückfrage / Nein)
@@ -69,7 +69,7 @@ function memberRow(page, name) {
 const accountCell = (page, name) => memberRow(page, name).locator('td').nth(6)
 
 async function openAdmitDialog(page) {
-	await visibleSection(page).getByRole('button', { name: 'Mitglied', exact: true }).click()
+	await neuAnlegen(page, 'Mitglied')
 	const dialog = page.getByRole('dialog', { name: 'Mitglied aufnehmen' })
 	await expect(dialog).toBeVisible()
 	return dialog

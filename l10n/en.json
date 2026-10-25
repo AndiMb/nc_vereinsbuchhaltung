@@ -3467,7 +3467,6 @@
         "Leistungsdatum oder Leistungszeitraum": "Service date or service period",
         "Mindestens eine Position mit Bezeichnung, Menge und Erlöskonto": "At least one line item with description, quantity and revenue account",
         "Betrag der Stornorechnung ist negativ": "Amount of the credit note is negative",
-        "Rechnungsbetrag ist größer als 0": "Invoice amount is greater than 0",
         "Hinweis auf die Steuerbefreiung (z. B. § 4 Nr. 22 UStG)": "Notice about the tax exemption (e.g. section 4 no. 22 UStG)",
         "Bankverbindung für die Überweisung": "Bank details for the transfer",
         "Die Rechnung ist noch nicht vollständig.": "The invoice is not complete yet.",
@@ -3568,7 +3567,6 @@
         "Rechnungen mit Umsatzsteuer: Steuersatz je Position, Summen je Satz, Zahlungen verteilen sich auf Erlös- und Umsatzsteuerkonten.": "Invoices with VAT: tax rate per line item, totals per rate, payments are split over revenue and VAT accounts.",
         "E-Rechnung: Zu festgeschriebenen Rechnungen erzeugt die App ZUGFeRD-PDF oder XRechnung (CII, UBL), schlägt das Format nach Empfänger vor und nennt fehlende Pflichtangaben.": "E-invoice: for finalized invoices the app creates a ZUGFeRD PDF or XRechnung (CII, UBL), suggests the format by recipient and lists missing mandatory details.",
         "Strukturierte Zahlungsreferenz (RF…, ISO 11649) auf die Rechnung drucken und in den GiroCode eintragen": "Print a structured payment reference (RF…, ISO 11649) on the invoice and put it in the GiroCode",
-        "Referenz (SEPA)": "Reference (SEPA)",
         "Die Zahlungsreferenz der Rechnung %1$s steht im Verwendungszweck.": "The payment reference of invoice %1$s is in the payment reference field.",
         "Mahnen …": "Dun …",
         "Wiederkehrend …": "Recurring …",
@@ -3717,7 +3715,10 @@
         "Neu anlegen": "Create new",
         "Manuelle Buchung: Button „+ Neu → Buchung\" – im Einfach-Modus reicht Einnahme/Ausgabe, Kategorie und Geldkonto.": "Manual entry: the “+ New → Entry” button – in simple mode, income/expense, category, and cash/bank account are enough.",
         "Überweisen per Code": "Pay by code",
-        "Ganz bequem Code mit der Banking-App scannen.": "Simply scan the code with your banking app."
+        "Ganz bequem Code mit der Banking-App scannen.": "Simply scan the code with your banking app.",
+        "Rechnungsbetrag muss größer als 0 € sein": "Invoice amount must be greater than €0",
+        "Der Betrag muss größer als 0 € sein.": "The amount must be greater than €0.",
+        "Zahlungsreferenz": "Payment reference"
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

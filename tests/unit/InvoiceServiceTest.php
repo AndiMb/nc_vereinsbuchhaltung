@@ -382,7 +382,7 @@ class InvoiceServiceTest extends TestCase {
 			$s->issue((int)$invoice->getId());
 			$this->fail('Festschreiben muss scheitern.');
 		} catch (InvoiceNotIssuableException $e) {
-			$this->assertContains('Rechnungsbetrag ist größer als 0', $e->getProblems());
+			$this->assertContains('Rechnungsbetrag muss größer als 0 € sein', $e->getProblems());
 		}
 	}
 

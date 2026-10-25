@@ -70,7 +70,7 @@ test.describe.serial('Rechnungen Stufe 3', () => {
 	test('Der Rechnungseditor fügt eine Vorlage als Position ein', async ({ page }) => {
 		await openApp(page, USERS.verwalter)
 		await switchTab(page, 'Rechnungen')
-		await visibleSection(page).getByRole('button', { name: 'Neue Rechnung' }).first().click()
+		await neuAnlegen(page, 'Rechnung')
 		await page.locator('select.vbh-inv-tplpick').selectOption({ label: 'Hallenmiete' })
 		await expect(page.locator('.vbh-inv-name input').first()).toHaveValue('Hallenmiete')
 	})
@@ -182,7 +182,7 @@ test.describe.serial('Rechnungen Stufe 3', () => {
 		const section = visibleSection(page)
 
 		// Neue Rechnung: die Art lässt sich wählen; ohne Empfänger gibt es keinen Plan.
-		await section.getByRole('button', { name: 'Neue Rechnung' }).first().click()
+		await neuAnlegen(page, 'Rechnung')
 		await page.getByLabel('Wiederkehrende Rechnung', { exact: true }).check()
 		await expect(page.getByRole('heading', { name: 'Wiederholung' })).toBeVisible()
 		await expect(page.getByRole('button', { name: 'Plan speichern' })).toBeDisabled()

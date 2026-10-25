@@ -28,9 +28,8 @@
 						{{ f.label }}<span v-if="counts[f.id]" class="vbh-chip-count">{{ counts[f.id] }}</span>
 					</button>
 				</div>
-				<div v-if="canWrite" class="vbh-sectiontop-actions">
+				<div v-if="canWrite && filter === 'plans'" class="vbh-sectiontop-actions">
 					<NcButton
-						v-if="filter === 'plans'"
 						variant="primary"
 						:disabled="!isAdmin"
 						:title="isAdmin ? '' : t('Wiederkehrende Rechnungen legt nur ein Verwalter an.')"
@@ -39,12 +38,6 @@
 							<NcIconSvgWrapper :path="mdiPlus" :size="20" />
 						</template>
 						{{ t('Neuer Plan') }}
-					</NcButton>
-					<NcButton v-else variant="primary" @click="newInvoice">
-						<template #icon>
-							<NcIconSvgWrapper :path="mdiPlus" :size="20" />
-						</template>
-						{{ t('Neue Rechnung') }}
 					</NcButton>
 				</div>
 			</div>

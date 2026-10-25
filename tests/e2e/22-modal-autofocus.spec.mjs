@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, openApp, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
+import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, neuAnlegen, openApp, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Der Fokus-Race in NcModal (siehe AttachmentFolderDialog/21-belegordner):
 // focus-trap aktiviert sich erst nach der Öffnen-Animation und kann den Fokus
@@ -50,7 +50,7 @@ test.describe('Sofort-Fokus beim Öffnen von NcModal-Dialogen', () => {
 
 		await openApp(page, USERS.verwalter)
 		await switchTab(page, 'Beiträge')
-		await visibleSection(page).getByRole('button', { name: 'Mitglied', exact: true }).click()
+		await neuAnlegen(page, 'Mitglied')
 
 		const dialog = page.getByRole('dialog', { name: 'Mitglied aufnehmen' })
 		await expect(dialog).toBeVisible()

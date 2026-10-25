@@ -184,7 +184,7 @@ class InvoicePaymentService {
 			throw new \InvalidArgumentException($this->msg('Die Rechnung ist bereits vollständig bezahlt.'));
 		}
 		if ($amount <= 0) {
-			throw new \InvalidArgumentException($this->msg('Der Betrag muss größer als 0 sein.'));
+			throw new \InvalidArgumentException($this->msg('Der Betrag muss größer als 0 € sein.'));
 		}
 		if ($amount > $remaining) {
 			throw new \InvalidArgumentException($this->msg(

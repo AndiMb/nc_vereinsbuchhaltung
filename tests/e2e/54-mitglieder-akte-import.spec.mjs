@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, openApp, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
+import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, neuAnlegen, openApp, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Oberflächenpolitur rund um Mitglieder (Durchlauf Testprotokoll): was dort
 // zuletzt an Aufnahme-Dialog, Mitgliederliste, Akte und CSV-Import
@@ -117,7 +117,7 @@ test.describe('Mitglieder: Aufnahme-Dialog, Liste, Akte und CSV-Import', () => {
 	test('Aufnahme-Dialog: Abschnitte „SEPA-Mandat (optional)“ und „Beitrag (optional)“, Hinweis auf die Akte, Vorname sofort bedienbar', async ({ page }) => {
 		await openApp(page, USERS.buchhalter)
 		await switchTab(page, 'Beiträge')
-		await visibleSection(page).getByRole('button', { name: 'Mitglied', exact: true }).click()
+		await neuAnlegen(page, 'Mitglied')
 
 		const dialog = page.getByRole('dialog', { name: 'Mitglied aufnehmen' })
 		await expect(dialog).toBeVisible()
@@ -143,7 +143,7 @@ test.describe('Mitglieder: Aufnahme-Dialog, Liste, Akte und CSV-Import', () => {
 		const nachname = `Landtest${Date.now() % 100000}`
 		await openApp(page, USERS.buchhalter)
 		await switchTab(page, 'Beiträge')
-		await visibleSection(page).getByRole('button', { name: 'Mitglied', exact: true }).click()
+		await neuAnlegen(page, 'Mitglied')
 		const dialog = page.getByRole('dialog', { name: 'Mitglied aufnehmen' })
 		await expect(dialog).toBeVisible()
 

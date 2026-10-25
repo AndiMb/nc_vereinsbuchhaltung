@@ -443,7 +443,7 @@ class InvoicePdfRenderer {
 		}
 		$rows[] = [$this->msg('Verwendungszweck'), (string)$invoice->getNumber()];
 		if ($data->paymentReference !== null) {
-			$rows[] = [$this->msg('Referenz (SEPA)'), CreditorReference::format($data->paymentReference)];
+			$rows[] = [$this->msg('Zahlungsreferenz'), CreditorReference::format($data->paymentReference)];
 		}
 		foreach ($rows as [$label, $value]) {
 			$pdf->SetTextColor(100, 100, 100);
