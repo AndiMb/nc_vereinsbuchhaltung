@@ -168,7 +168,6 @@
 				:class="{ 'vbh-fadein': sectionFade }">
 				<InvoicesTab
 					v-model:invoiceId="selectedInvoiceId"
-					:isMobile="isMobile"
 					:canWrite="canWrite"
 					:isAdmin="isAdmin"
 					:accounts="accountsSorted"

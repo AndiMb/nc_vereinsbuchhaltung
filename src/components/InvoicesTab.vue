@@ -97,19 +97,19 @@
 					{{ t('Keine Rechnung passt zu den Filtern.') }}
 				</p>
 				<div v-else class="vbh-tablecard">
-					<table class="vbh-table vbh-inv-table">
+					<table class="vbh-table vbh-stack vbh-inv-table">
 						<thead>
 							<tr>
 								<th>{{ t('Nummer') }}</th>
 								<th>{{ t('Datum') }}</th>
 								<th>{{ t('Empfänger') }}</th>
-								<th v-if="!isMobile">
+								<th>
 									{{ t('Fällig') }}
 								</th>
 								<th class="vbh-inv-r">
 									{{ t('Betrag') }}
 								</th>
-								<th v-if="!isMobile" class="vbh-inv-r">
+								<th class="vbh-inv-r">
 									{{ t('Offen') }}
 								</th>
 								<th>{{ t('Status') }}</th>
@@ -123,20 +123,20 @@
 								tabindex="0"
 								@click="open(inv)"
 								@keydown.enter="open(inv)">
-								<td>
+								<td class="vbh-stack-title">
 									<strong>{{ inv.number || t('Entwurf') }}</strong>
 								</td>
 								<td>{{ formatDate(inv.issueDate || inv.createdAt) }}</td>
 								<td class="vbh-inv-who">
 									{{ inv.debtorName || '–' }}
 								</td>
-								<td v-if="!isMobile" :class="{ 'vbh-inv-late': inv.overdue }">
+								<td :class="{ 'vbh-inv-late': inv.overdue }">
 									{{ inv.kind === 'storno' ? '' : formatDate(inv.dueDate) }}
 								</td>
 								<td class="vbh-inv-r" :class="{ neg: inv.grossCents < 0 }">
 									{{ formatMoney(inv.grossCents / 100) }}
 								</td>
-								<td v-if="!isMobile" class="vbh-inv-r">
+								<td class="vbh-inv-r">
 									{{ inv.remainingCents > 0 ? formatMoney(inv.remainingCents / 100) : '' }}
 								</td>
 								<td>
@@ -198,7 +198,6 @@ export default {
 	name: 'InvoicesTab',
 	components: { NcButton, NcIconSvgWrapper, NcLoadingIcon, InvoiceEditor, InvoiceDetail, InvoicePlanList },
 	props: {
-		isMobile: { type: Boolean, default: false },
 		canWrite: { type: Boolean, default: false },
 		isAdmin: { type: Boolean, default: false },
 		/** Alle Konten; Einnahmenkonten für die Positionen, Geldkonten für die Barzahlung. */
@@ -454,6 +453,11 @@ export default {
 .vbh-inv-who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .vbh-inv-dunlevel, .vbh-inv-dundue { margin-inline-start: 6px; font-size: 0.8em; white-space: nowrap; }
+
+@container vbhtable (max-width: 640px) {
+	.vbh-inv-table td { flex-wrap: wrap; }
+	.vbh-inv-dunlevel, .vbh-inv-dundue { margin-inline-start: auto; }
+}
 
 .vbh-inv-dundue { color: var(--color-error-text, inherit); font-weight: 700; }
 

@@ -524,9 +524,11 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
    eine lesbare Textspalte zu tragen: in einem schmaleren Bereich scrollt sie seitlich, statt dass die
    Namensspalte auf einen Buchstaben pro Zeile schrumpft. Sehr breite Tabellen (Mitglieder, Läufe)
    setzen vbh-table--wide. Auf Handys erscheinen die Tabellen mit vbh-stack stattdessen als Karten. */
-.vbh-tablecard > .vbh-table:not(.vbh-stack) { min-width: 720px; }
+@container vbhtable (min-width: 600px) {
+	.vbh-tablecard > .vbh-table:not(.vbh-stack) { min-width: 720px; }
 
-.vbh-tablecard > .vbh-table.vbh-table--wide { min-width: 1040px; }
+	.vbh-tablecard > .vbh-table.vbh-table--wide { min-width: 1040px; }
+}
 
 /* Gestapelt: unter 640 px Breite wird jede Zeile ein Block „Beschriftung … Wert“. Die Beschriftungen
    setzt src/lib/stackTables.js als data-label; Zellen ohne Kopftext (Aktionen) bleiben unbeschriftet. */

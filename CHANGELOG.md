@@ -76,6 +76,12 @@ verwenden, z. B. `**Neu:**`.
 - Offene Posten, die zu einer Rechnung gehören, lassen sich im Reiter
   *Buchungen → Offene Posten* nicht mehr von Hand bezahlen oder löschen; das
   geschieht über die Rechnung.
+- **Tabellen am Handy:** Listen mit vielen Spalten (Rechnungen, Finanzplan,
+  Beitragsgruppen, Kostenstellen, Regeln, Zeiträume, Berechtigungen, Sphären,
+  Gliederung, Rechnungspositionen, Rechnungsvorlagen) zeigen sich unter
+  640 px als Karten mit Spaltenbeschriftung statt seitlich zu scrollen. Auf
+  größeren Bildschirmen sind Tabellen nie schmaler als lesbar; die
+  Mitgliederliste scrollt seitlich, statt die Namensspalte zusammenzudrücken.
 
 ## [0.42.0] – 2026-10-25
 

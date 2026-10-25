@@ -73,6 +73,12 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   fonts that are needed) and `horstoeko/invoicesuite` (MIT) for the e-invoice.
 - Open items that belong to an invoice can no longer be paid or deleted by
   hand in *Entries → Open items*; that happens through the invoice.
+- **Tables on phones:** lists with many columns (invoices, financial plan,
+  contribution groups, cost centres, rules, periods, permissions, spheres,
+  structure, invoice lines, invoice templates) show as cards with column
+  labels below 640 px instead of scrolling sideways. On larger screens tables
+  are never narrower than readable; the member list scrolls sideways instead
+  of squeezing the name column.
 
 ## [0.42.0] – 2026-10-25
 

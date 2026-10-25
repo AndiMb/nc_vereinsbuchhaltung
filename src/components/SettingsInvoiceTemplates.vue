@@ -9,7 +9,7 @@
 			{{ t('Noch keine Vorlagen.') }}
 		</p>
 		<div v-else-if="templates.length" class="vbh-inv-tpltable">
-			<table class="vbh-table">
+			<table class="vbh-table vbh-stack">
 				<thead>
 					<tr>
 						<th>{{ t('Bezeichnung') }}</th>
@@ -24,7 +24,7 @@
 				</thead>
 				<tbody>
 					<tr v-for="tpl in templates" :key="tpl.id">
-						<td>
+						<td class="vbh-stack-title">
 							<strong>{{ tpl.name }}</strong>
 							<div v-if="tpl.description" class="vbh-hint">
 								{{ tpl.description }}
