@@ -24,6 +24,7 @@ use OCP\IL10N;
 class InvoiceSettings {
 
 	public const SETTING_ACTIVE = 'invoice_module_active';
+	public const SETTING_AUTO_ASSIGN = 'invoice_auto_assign';
 	public const SETTING_TAX_MODE = 'invoice_tax_mode';
 	public const SETTING_EXEMPTION_TEXT = 'invoice_default_exemption_text';
 	public const SETTING_DUE_DAYS = 'invoice_default_due_days';
@@ -78,6 +79,11 @@ class InvoiceSettings {
 
 	public function isActive(): bool {
 		return $this->get(self::SETTING_ACTIVE, '0') === '1';
+	}
+
+	/** Bucht der Import einen eindeutigen Zahlungseingang (Rechnungsnummer und Betrag stimmen) selbst? Ab Werk ja. */
+	public function autoAssign(): bool {
+		return $this->get(self::SETTING_AUTO_ASSIGN, '1') === '1';
 	}
 
 	public function taxMode(): string {
@@ -152,6 +158,7 @@ class InvoiceSettings {
 	public function all(): array {
 		$out = [
 			self::SETTING_ACTIVE => $this->isActive(),
+			self::SETTING_AUTO_ASSIGN => $this->autoAssign(),
 			self::SETTING_TAX_MODE => $this->taxMode(),
 			self::SETTING_EXEMPTION_TEXT => $this->get(self::SETTING_EXEMPTION_TEXT),
 			self::SETTING_DUE_DAYS => $this->defaultDueDays(),
@@ -187,6 +194,10 @@ class InvoiceSettings {
 
 		if (array_key_exists(self::SETTING_ACTIVE, $params)) {
 			$writes[self::SETTING_ACTIVE] = (string)$params[self::SETTING_ACTIVE] === '1' ? '1' : '0';
+		}
+
+		if (array_key_exists(self::SETTING_AUTO_ASSIGN, $params)) {
+			$writes[self::SETTING_AUTO_ASSIGN] = (string)$params[self::SETTING_AUTO_ASSIGN] === '1' ? '1' : '0';
 		}
 
 		if (array_key_exists(self::SETTING_TAX_MODE, $params)) {

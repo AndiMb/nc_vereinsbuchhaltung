@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\BankTransactionMapper;
 use OCA\Vereinsbuchhaltung\Exception\ConflictException;
 use OCA\Vereinsbuchhaltung\Exception\InvoiceNotIssuableException;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
+use OCA\Vereinsbuchhaltung\Service\InvoiceMatchingService;
 use OCA\Vereinsbuchhaltung\Service\InvoicePaymentService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
@@ -45,6 +46,7 @@ class InvoiceController extends Controller {
 		private InvoiceSettings $settings,
 		private NumberRangeService $numberRanges,
 		private InvoicePaymentService $paymentService,
+		private InvoiceMatchingService $matching,
 		private BankTransactionMapper $txMapper,
 		private IL10N $l10n,
 	) {
@@ -70,6 +72,17 @@ class InvoiceController extends Controller {
 			'missingIssuerFields' => array_keys($this->settings->missingIssuerFields()),
 			'active' => $this->settings->isActive(),
 		]);
+	}
+
+	/**
+	 * Zuordnungsvorschläge zu Rechnungen für alle unzugeordneten Zahlungseingänge,
+	 * als Objekt Umsatz-ID => Vorschläge (stärkster zuerst).
+	 */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_READ)]
+	public function suggestions(): DataResponse {
+		$txs = $this->txMapper->findFiltered($this->userId(), 'unassigned', 1000, 0);
+		return new DataResponse((object)$this->matching->suggestForMany($txs));
 	}
 
 	#[NoAdminRequired]

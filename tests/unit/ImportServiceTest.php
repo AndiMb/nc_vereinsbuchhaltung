@@ -8,11 +8,15 @@ use OCA\Vereinsbuchhaltung\Db\Account;
 use OCA\Vereinsbuchhaltung\Db\BankTransaction;
 use OCA\Vereinsbuchhaltung\Db\BankTransactionMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
+use OCA\Vereinsbuchhaltung\Db\Rule;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Service\AccountService;
 use OCA\Vereinsbuchhaltung\Service\BookingService;
 use OCA\Vereinsbuchhaltung\Service\ImportService;
+use OCA\Vereinsbuchhaltung\Service\InvoiceMatchingService;
+use OCA\Vereinsbuchhaltung\Service\InvoicePaymentService;
+use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportExtractionService;
 use OCA\Vereinsbuchhaltung\Service\Statement\RowNormalizer;
 use OCA\Vereinsbuchhaltung\Service\Statement\StatementParserRegistry;
@@ -167,5 +171,86 @@ class ImportServiceTest extends TestCase {
 		$preview = $this->service($parsers, $accounts)->preview('book', 'egal');
 
 		$this->assertSame([['ownAccount' => '0648489890', 'count' => 2, 'message' => 'passt zu keinem Geldkonto']], $preview['unresolvedAccounts']);
+	}
+
+	/**
+	 * Importdienst mit Regel „Verwendungszweck enthält Test → Konto 5“ und den
+	 * Diensten für den Rechnungsabgleich.
+	 */
+	private function serviceWithInvoices(InvoiceMatchingService $matching, InvoicePaymentService $payments, BookingService $booking, bool $autoAssign = true): ImportService {
+		$rule = new Rule();
+		$rule->setMatchField('purpose');
+		$rule->setMatchValue('Test');
+		$rule->setContraAccountId(5);
+		$rules = $this->createMock(RuleMapper::class);
+		$rules->method('findAll')->willReturn([$rule]);
+		$journals = $this->createMock(JournalMapper::class);
+		$journals->method('findManualBookingKeys')->willReturn([]);
+		$transaction = $this->createMock(TransactionRunner::class);
+		$transaction->method('run')->willReturnCallback(static fn (callable $work) => $work());
+		$settings = $this->createMock(InvoiceSettings::class);
+		$settings->method('autoAssign')->willReturn($autoAssign);
+
+		return new ImportService(
+			$this->createMock(StatementParserRegistry::class),
+			$this->normalizer,
+			$this->txMapper,
+			$rules,
+			$booking,
+			$journals,
+			$transaction,
+			$this->sepaDetails,
+			$this->createMock(AccountService::class),
+			$matching,
+			$payments,
+			$settings,
+		);
+	}
+
+	public function testEindeutigerRechnungstreffergehtJederRegelVor(): void {
+		$matching = $this->createMock(InvoiceMatchingService::class);
+		$matching->method('autoMatch')->willReturn(['invoiceId' => 3, 'number' => 'RE-2026-0003']);
+		$payments = $this->createMock(InvoicePaymentService::class);
+		$payments->expects($this->once())->method('payFromBankTransaction')->with($this->isInstanceOf(BankTransaction::class), 3);
+		$booking = $this->createMock(BookingService::class);
+		$booking->expects($this->never())->method('assign');
+
+		$result = $this->serviceWithInvoices($matching, $payments, $booking)->commitRows('book', [$this->row('h1', 6000)], 'camt053');
+
+		$this->assertSame(1, $result['autoAssigned']);
+	}
+
+	public function testOhneRechnungstrefferGreiftDieRegel(): void {
+		$matching = $this->createMock(InvoiceMatchingService::class);
+		$matching->method('autoMatch')->willReturn(null);
+		$payments = $this->createMock(InvoicePaymentService::class);
+		$payments->expects($this->never())->method('payFromBankTransaction');
+		$booking = $this->createMock(BookingService::class);
+		$booking->expects($this->once())->method('assign')->with($this->isInstanceOf(BankTransaction::class), 5);
+
+		$result = $this->serviceWithInvoices($matching, $payments, $booking)->commitRows('book', [$this->row('h1', 6000)], 'camt053');
+
+		$this->assertSame(1, $result['autoAssigned']);
+	}
+
+	public function testScheitertDieRechnungsbuchungFaelltDerImportAufDieRegelZurueck(): void {
+		$matching = $this->createMock(InvoiceMatchingService::class);
+		$matching->method('autoMatch')->willReturn(['invoiceId' => 3, 'number' => 'RE-2026-0003']);
+		$payments = $this->createMock(InvoicePaymentService::class);
+		$payments->method('payFromBankTransaction')->willThrowException(new \InvalidArgumentException('Zeitraum abgeschlossen'));
+		$booking = $this->createMock(BookingService::class);
+		$booking->expects($this->once())->method('assign');
+
+		$this->serviceWithInvoices($matching, $payments, $booking)->commitRows('book', [$this->row('h1', 6000)], 'camt053');
+	}
+
+	public function testAusgeschalteterRechnungsabgleichWirdNichtBefragt(): void {
+		$matching = $this->createMock(InvoiceMatchingService::class);
+		$matching->expects($this->never())->method('autoMatch');
+		$payments = $this->createMock(InvoicePaymentService::class);
+		$payments->expects($this->never())->method('payFromBankTransaction');
+
+		$this->serviceWithInvoices($matching, $payments, $this->createMock(BookingService::class), false)
+			->commitRows('book', [$this->row('h1', 6000)], 'camt053');
 	}
 }

@@ -234,6 +234,7 @@ return [
 		// Rechnungsmodul (Epic #168): Rechnungen und Nummernkreise
 		['name' => 'invoice#index', 'url' => '/api/invoices', 'verb' => 'GET'],
 		['name' => 'invoice#meta', 'url' => '/api/invoices/meta', 'verb' => 'GET'],
+		['name' => 'invoice#suggestions', 'url' => '/api/invoices/suggestions', 'verb' => 'GET'],
 		['name' => 'invoice#numberRanges', 'url' => '/api/invoice-number-ranges', 'verb' => 'GET'],
 		['name' => 'invoice#updateNumberRange', 'url' => '/api/invoice-number-ranges/{kind}', 'verb' => 'PUT'],
 		['name' => 'invoice#create', 'url' => '/api/invoices', 'verb' => 'POST'],

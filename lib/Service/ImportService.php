@@ -27,6 +27,9 @@ class ImportService {
 		private TransactionRunner $transaction,
 		private SepaImportExtractionService $sepaDetails,
 		private AccountService $accounts,
+		private ?InvoiceMatchingService $invoiceMatching = null,
+		private ?InvoicePaymentService $invoicePayments = null,
+		private ?InvoiceSettings $invoiceSettings = null,
 	) {
 	}
 
@@ -145,6 +148,12 @@ class ImportService {
 			$sepaReturnsDetected += $this->sepaDetails->extract($tx, $row['sepaDetails'] ?? []);
 
 			if ($applyRules) {
+				// Eine Rechnung, deren Nummer im Verwendungszweck steht und deren
+				// Betrag genau stimmt, geht jeder Importregel vor.
+				if ($this->assignToInvoice($tx)) {
+					$autoAssigned++;
+					continue;
+				}
 				$accountId = $this->matchRule($tx, $rules);
 				if ($accountId !== null) {
 					try {
@@ -313,6 +322,31 @@ class ImportService {
 		$tx->setHash($row['hash']);
 		$tx->setStatus('unassigned');
 		return $tx;
+	}
+
+	/**
+	 * Bucht einen Zahlungseingang selbst auf die Rechnung, wenn der Treffer
+	 * eindeutig ist (siehe {@see InvoiceMatchingService::autoMatch()}). Scheitert
+	 * die Buchung, etwa in einem abgeschlossenen Geschäftsjahr, bleibt der Umsatz
+	 * unzugeordnet und taucht mit dem Vorschlag in „Zuzuordnen" auf.
+	 */
+	private function assignToInvoice(BankTransaction $tx): bool {
+		if ($this->invoiceMatching === null || $this->invoicePayments === null) {
+			return false;
+		}
+		if ($this->invoiceSettings !== null && !$this->invoiceSettings->autoAssign()) {
+			return false;
+		}
+		try {
+			$match = $this->invoiceMatching->autoMatch($tx);
+			if ($match === null) {
+				return false;
+			}
+			$this->invoicePayments->payFromBankTransaction($tx, $match['invoiceId']);
+			return true;
+		} catch (\Throwable) {
+			return false;
+		}
 	}
 
 	/**
