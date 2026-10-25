@@ -73,7 +73,7 @@
 				</div>
 			</div>
 			<div v-else class="vbh-tablecard">
-				<table class="vbh-table">
+				<table class="vbh-table vbh-table--wide">
 					<thead>
 						<tr>
 							<th>{{ t('Mitglied') }}</th>

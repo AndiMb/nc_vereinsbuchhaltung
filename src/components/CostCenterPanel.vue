@@ -24,7 +24,7 @@
 		</div>
 
 		<div v-if="costCenters.length" class="vbh-tablecard">
-			<table class="vbh-table">
+			<table class="vbh-table vbh-stack">
 				<thead>
 					<tr>
 						<th class="nowrap">
@@ -93,7 +93,7 @@
 			</div>
 
 			<div class="vbh-tablecard">
-				<table class="vbh-table">
+				<table class="vbh-table vbh-stack">
 					<thead>
 						<tr>
 							<th class="vbh-col-check" /><th class="nowrap">

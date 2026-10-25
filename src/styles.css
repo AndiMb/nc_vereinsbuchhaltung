@@ -518,7 +518,49 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
    Zahl-/Datums-Spalten bekommen feste Prozentbreiten, Textspalten (Beschreibung,
    Konto, Empfänger …) teilen sich den Rest. Prozente summieren sich nie über
    100 %, deshalb ist Überlauf strukturell ausgeschlossen. */
-.vbh-tablecard { border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); margin: 8px 0; overflow-x: auto; }
+.vbh-tablecard { border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); margin: 8px 0; overflow-x: auto; container: vbhtable / inline-size; }
+
+/* Eine Tabelle wird nie schmaler als nötig, um ihre festen Spalten (Aktionen, Zahlen) und mindestens
+   eine lesbare Textspalte zu tragen: in einem schmaleren Bereich scrollt sie seitlich, statt dass die
+   Namensspalte auf einen Buchstaben pro Zeile schrumpft. Sehr breite Tabellen (Mitglieder, Läufe)
+   setzen vbh-table--wide. Auf Handys erscheinen die Tabellen mit vbh-stack stattdessen als Karten. */
+.vbh-tablecard > .vbh-table:not(.vbh-stack) { min-width: 720px; }
+
+.vbh-tablecard > .vbh-table.vbh-table--wide { min-width: 1040px; }
+
+/* Gestapelt: unter 640 px Breite wird jede Zeile ein Block „Beschriftung … Wert“. Die Beschriftungen
+   setzt src/lib/stackTables.js als data-label; Zellen ohne Kopftext (Aktionen) bleiben unbeschriftet. */
+@container vbhtable (max-width: 640px) {
+	.vbh-table.vbh-stack { min-width: 0; table-layout: auto; border-spacing: 0; }
+
+	.vbh-table.vbh-stack thead { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); }
+
+	.vbh-table.vbh-stack, .vbh-table.vbh-stack tbody, .vbh-table.vbh-stack tfoot, .vbh-table.vbh-stack tr { display: block; }
+
+	.vbh-table.vbh-stack tbody tr, .vbh-table.vbh-stack tfoot tr { padding: 10px 14px; border-bottom: 1px solid var(--color-border); }
+
+	.vbh-table.vbh-stack tbody tr:last-child { border-bottom: none; }
+
+	.vbh-table.vbh-stack td { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; padding: 3px 0; border: 0; width: auto; text-align: end; overflow: visible; text-overflow: clip; }
+
+	.vbh-table.vbh-stack td::before { content: attr(data-label); flex: 0 0 40%; max-width: 40%; text-align: start; font-size: 0.85em; font-weight: 600; opacity: 0.75; }
+
+	.vbh-table.vbh-stack td:not([data-label])::before, .vbh-table.vbh-stack td.vbh-stack-title::before, .vbh-table.vbh-stack td.vbh-stack-eyebrow::before { display: none; }
+
+	/* Hauptzelle der Karte (Name) und die kleine Nummer darüber, ohne Beschriftung. */
+	.vbh-table.vbh-stack td.vbh-stack-title { display: block; text-align: start; font-weight: 700; padding: 0 0 4px; }
+
+	.vbh-table.vbh-stack td.vbh-stack-eyebrow { display: block; text-align: start; font-size: 0.8em; opacity: 0.7; padding: 0; }
+
+	.vbh-table.vbh-stack td:not([data-label]) { justify-content: flex-end; }
+
+	.vbh-table.vbh-stack td[colspan] { display: block; text-align: start; }
+
+	.vbh-table.vbh-stack .vbh-budgettree-spacer { display: none; }
+
+	/* Eingabefelder und Auswahllisten in einer Zelle dürfen nicht über den Kartenrand wachsen. */
+	.vbh-table.vbh-stack td > input, .vbh-table.vbh-stack td > select { max-width: 55%; min-width: 0; }
+}
 /* WICHTIG: white-space: normal überschreibt Nextclouds Core-Regel
    `table { white-space: nowrap }` (core/css/server.css). Ohne dies erben ALLE
    Zellen nowrap → Text bricht nicht um und ragt bei table-layout: fixed in die
@@ -1233,9 +1275,6 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 .vbh-budget-compare-basis { display: flex; gap: 4px 12px; }
 
 .vbh-budgettree-counts { color: var(--color-text-maxcontrast); font-size: 0.9em; }
-
-/* Schmal lieber waagerecht scrollen (.vbh-tablecard) als das Planfeld über den Kontonamen schieben. */
-.vbh-budgettree .vbh-table { min-width: 600px; }
 
 .vbh-budgettree-name { display: flex; align-items: flex-start; gap: 4px; }
 

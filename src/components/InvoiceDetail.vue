@@ -139,7 +139,7 @@
 				<section>
 					<h3>{{ t('Positionen') }}</h3>
 					<div class="vbh-tablecard">
-						<table class="vbh-table vbh-inv-linestable">
+						<table class="vbh-table vbh-stack vbh-inv-linestable">
 							<colgroup>
 								<col style="width: 6%">
 								<col :style="{ width: regular ? '32%' : '38%' }">
@@ -174,10 +174,10 @@
 							</thead>
 							<tbody>
 								<tr v-for="line in invoice.lines" :key="line.id">
-									<td class="vbh-inv-c-pos">
+									<td class="vbh-inv-c-pos vbh-stack-eyebrow">
 										{{ line.position }}
 									</td>
-									<td>
+									<td class="vbh-stack-title">
 										<strong>{{ line.name }}</strong>
 										<small v-if="line.description" class="vbh-inv-desc">{{ line.description }}</small>
 										<small v-if="accountLabel(line.accountId)" class="vbh-inv-desc">{{ accountLabel(line.accountId) }}</small>

@@ -36,7 +36,7 @@
 		</div>
 
 		<div v-if="permissions.length" class="vbh-tablecard">
-			<table class="vbh-table">
+			<table class="vbh-table vbh-stack">
 				<thead><tr><th>{{ t('Typ') }}</th><th>{{ t('Nutzer / Gruppe') }}</th><th>{{ t('Rolle') }}</th><th /></tr></thead>
 				<tbody>
 					<tr v-for="p in permissions" :key="p.id">

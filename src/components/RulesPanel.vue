@@ -43,7 +43,7 @@
 		</div>
 
 		<div v-if="rules.length" class="vbh-tablecard">
-			<table class="vbh-table">
+			<table class="vbh-table vbh-stack">
 				<thead>
 					<tr>
 						<th>{{ t('Feld') }}</th><th>{{ t('Suchtext') }}</th><th>{{ t('Gegenkonto') }}</th><th class="num">

@@ -87,7 +87,7 @@
 				{{ t('Ein abgeschlossener Zeitraum ist') }} <strong>{{ t('festgeschrieben') }}</strong>{{ t(': Buchungen, Belege und Zuordnungen dieses Zeitraums können nicht mehr geändert oder gelöscht werden – z. B. nach der Kassenprüfung und Entlastung. Nur Verwalter können einen Zeitraum abschließen oder wiedereröffnen; beides wird im Protokoll (Berichte → Protokoll) festgehalten.') }}
 			</p>
 			<div v-if="periods.length" class="vbh-tablecard">
-				<table class="vbh-table">
+				<table class="vbh-table vbh-stack">
 					<thead>
 						<tr>
 							<th>{{ t('Bezeichnung') }}</th>
@@ -98,7 +98,7 @@
 					</thead>
 					<tbody>
 						<tr v-for="(p, i) in periods" :key="p.id">
-							<td class="strong">
+							<td class="strong vbh-stack-title">
 								<input
 									v-if="editingId === p.id"
 									ref="labelInput"
@@ -196,7 +196,7 @@
 						{{ t('So sähe die Kette der Zeiträume nach der Umstellung aus:') }}
 					</p>
 					<div class="vbh-tablecard">
-						<table class="vbh-table">
+						<table class="vbh-table vbh-stack">
 							<thead>
 								<tr>
 									<th>{{ t('Bezeichnung') }}</th>

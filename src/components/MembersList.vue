@@ -36,7 +36,7 @@
 				@openMember="(section) => openMemberAkte(row.member, section)" />
 		</div>
 		<div v-else-if="filteredRows.length" class="vbh-tablecard">
-			<table class="vbh-table">
+			<table class="vbh-table vbh-table--wide vbh-mlist-table">
 				<thead>
 					<tr>
 						<th>{{ t('Mitglied') }}</th>
@@ -608,6 +608,10 @@ export default {
  * Spaltenbreiten (bei table-layout: fixed zählt nur die Kopfzeile): die IBAN-Spalte
  * ist so breit, dass die Nummer ungekürzt passt; der Name bekommt den Rest.
  */
+.vbh-tablecard > .vbh-table.vbh-mlist-table {
+	min-width: 1260px;
+}
+
 .vbh-table thead th.vbh-mlist-col-bank {
 	width: 230px;
 }
