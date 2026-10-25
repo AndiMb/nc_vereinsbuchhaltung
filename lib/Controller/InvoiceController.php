@@ -70,6 +70,7 @@ class InvoiceController extends Controller {
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_READ)]
 	public function meta(): DataResponse {
+		$all = $this->settings->all();
 		return new DataResponse([
 			'unitCodes' => InvoiceService::UNIT_CODES,
 			'taxModes' => InvoiceSettings::AVAILABLE_TAX_MODES,
@@ -78,6 +79,13 @@ class InvoiceController extends Controller {
 			'defaultDueDays' => $this->settings->defaultDueDays(),
 			'missingIssuerFields' => array_keys($this->settings->missingIssuerFields()),
 			'active' => $this->settings->isActive(),
+			// Vorgaben für einen neuen Entwurf; der Server übernimmt dieselben Texte beim Anlegen.
+			'defaults' => [
+				'paymentTerms' => (string)$all[InvoiceSettings::SETTING_PAYMENT_TERMS],
+				'noteHead' => (string)$all[InvoiceSettings::SETTING_NOTE_HEAD],
+				'noteFoot' => (string)$all[InvoiceSettings::SETTING_NOTE_FOOT],
+				'exemptionText' => (string)$all[InvoiceSettings::SETTING_EXEMPTION_TEXT],
+			],
 		]);
 	}
 

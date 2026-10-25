@@ -57,6 +57,12 @@
 			</NcSettingsSection>
 		</div>
 
+		<div id="settings-section_rechnungen">
+			<NcSettingsSection :name="t('Rechnungen')">
+				<SettingsInvoices />
+			</NcSettingsSection>
+		</div>
+
 		<div id="settings-section_mandats-rechtstext">
 			<NcSettingsSection :name="t('Mandats-Rechtstext')">
 				<SettingsMandateLegalText :clubName="clubName" />
@@ -121,6 +127,7 @@ import NcSettingsSection from '@nextcloud/vue/components/NcSettingsSection'
 import SettingsAttachments from './components/SettingsAttachments.vue'
 import SettingsClub from './components/SettingsClub.vue'
 import SettingsDisplay from './components/SettingsDisplay.vue'
+import SettingsInvoices from './components/SettingsInvoices.vue'
 import SettingsMandateLegalText from './components/SettingsMandateLegalText.vue'
 import SettingsPeriods from './components/SettingsPeriods.vue'
 import SettingsPermissions from './components/SettingsPermissions.vue'
@@ -158,6 +165,7 @@ export default {
 		SettingsAttachments,
 		SettingsClub,
 		SettingsDisplay,
+		SettingsInvoices,
 		SettingsMandateLegalText,
 		SettingsPeriods,
 		SettingsPermissions,

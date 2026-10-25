@@ -12,7 +12,10 @@ namespace OCA\Vereinsbuchhaltung\Exception;
 class InvoiceNotIssuableException extends \InvalidArgumentException {
 
 	/** @param list<string> $problems */
-	public function __construct(string $message, private array $problems = []) {
+	public function __construct(
+		string $message,
+		private array $problems = [],
+	) {
 		parent::__construct($message);
 	}
 

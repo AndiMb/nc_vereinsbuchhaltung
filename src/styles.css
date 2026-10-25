@@ -663,6 +663,21 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-badge--alert { background-color: var(--color-error); color: var(--color-error-text); box-shadow: inset 0 0 0 1px var(--color-element-error); font-weight: 700; }
 
+/* Status der Rechnungen (Rechnungsmodul, Epic #168) */
+.vbh-inv-status { display: inline-block; padding: 1px 10px; border-radius: 10px; font-size: 0.82em; background-color: var(--color-background-dark); color: var(--color-main-text); white-space: nowrap; }
+
+.vbh-inv-status--paid { background-color: var(--color-success); color: var(--color-success-text); box-shadow: inset 0 0 0 1px var(--color-element-success); }
+
+.vbh-inv-status--overdue { background-color: var(--color-error); color: var(--color-error-text); box-shadow: inset 0 0 0 1px var(--color-element-error); font-weight: 700; }
+
+.vbh-inv-status--partial { background-color: var(--color-warning); color: var(--color-warning-text); box-shadow: inset 0 0 0 1px var(--color-element-warning); }
+
+.vbh-inv-status--draft { background-color: transparent; box-shadow: inset 0 0 0 1px var(--color-border-dark, var(--color-border)); }
+
+.vbh-inv-status--cancelled, .vbh-inv-status--credit { opacity: 0.8; text-decoration: line-through; text-decoration-thickness: 1px; }
+
+.vbh-inv-status--credit { text-decoration: none; }
+
 /* Tags */
 .vbh-typetag { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 0.82em; background-color: var(--color-background-dark); color: var(--color-main-text); }
 
@@ -1156,6 +1171,8 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 .vbh-assign-row { display: flex; align-items: center; gap: 4px; }
 
 .vbh-suggest-chip.vbh-suggest-chip { display: inline-block; margin-top: 4px; padding: 3px 10px; border: 1px solid var(--color-primary-element); border-radius: 12px; background: transparent; color: var(--color-primary-element); font-size: 0.82em; cursor: pointer; max-width: 100%; text-align: start; overflow-wrap: anywhere; transition: background-color 0.15s, color 0.15s; }
+
+.vbh-suggest-chip.vbh-suggest-chip--invoice { font-weight: 700; background: var(--color-primary-element-light); }
 
 .vbh-suggest-chip.vbh-suggest-chip:hover { background: var(--color-primary-element); color: var(--color-primary-element-text); }
 
