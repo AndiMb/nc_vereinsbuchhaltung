@@ -17,6 +17,26 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+**Changed:**
+- **Schedule without "offset" and "period index".** The collection day now
+  reads as a sentence – "Collection 14 days after the start of each period" –
+  with the periods of the contribution year listed below, each with its
+  collection date and weekday, updating as you type. A custom date for a
+  single period is picked as a date instead of a period index with an offset.
+  Dates that would overtake the previous period or fall outside the
+  contribution year are reported before saving, with both dates. Intervals
+  without members are collapsed.
+- **Deadlines before the collection as a timeline.** The schedule and the
+  settings show on a real date when the claims are created, the
+  pre-notification goes out and the run should be released. The fields in
+  the settings are named after what happens ("Claims are created",
+  "Pre-notification to members", "Release the run by").
+
+**Fixed:**
+- **Schedule also checks years without 29 February.** A date that only
+  overtakes the next period in non-leap years (such as February 28 days
+  after the period start, March on the first) used to be accepted.
+
 ## [0.41.2] – 2026-10-24
 
 **Fixed:**

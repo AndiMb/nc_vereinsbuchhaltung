@@ -9,8 +9,8 @@ import { api, openApp, openSettingsPage, switchTab, visibleSection, USERS } from
 //
 // - Vorlaufzeiten (Vorwarnfenster, Vorabinfo-Vorlauf): nur Verwalter. Der Buchhalter
 //   bekommt an der API eine 403 und sieht die Felder in der Oberfläche gesperrt.
-// - Terminverschiebung (Standard-Einzugstag, Überschreibung einer Periode) bleibt
-//   Buchhalter-Sache.
+// - Terminverschiebung (Standard-Einzugstag, abweichender Termin einer Periode)
+//   bleibt Buchhalter-Sache, die Vorschau des Terminplans ist Lesen.
 // - Zuweisungen sind Personenakte (Begründung der individuellen Untergrenze):
 //   auch Lesen erst ab Buchhalter.
 // - Das Amendment eines Mandats trägt die alte IBAN; der Revisor sieht sie maskiert.
@@ -24,8 +24,9 @@ const OLD_IBAN = 'DE02120300000000202051'
 const NEW_IBAN = 'DE89370400440532013000'
 const OLD_IBAN_MASKED = /^DE02•+2051$/
 
-const WARNING_LABEL = 'Vorwarnfenster (Tage vor Einzug)'
-const PRENOTIFICATION_LABEL = 'Vorabinfo-Vorlauf (Tage vor Einzug)'
+// Die Eingabefelder der Fristen in den Einstellungen (SettingsSepaCycle.vue) nennen den Begriff im Label.
+const WARNING_LABEL = 'Vorwarnfenster'
+const PRENOTIFICATION_LABEL = 'Vorabinfo-Vorlauf'
 
 const today = () => new Date().toISOString().slice(0, 10)
 
@@ -121,18 +122,20 @@ test.describe('Rollen-Härtung: Vorlaufzeiten nur für Verwalter', () => {
 		const before = await readLeadDays(request)
 		const schedule = await openSchedule(page, USERS.buchhalter)
 
-		// Die Fristen werden in den Nextcloud-Einstellungen geändert; hier steht nur die Übersicht, ohne Eingabefelder und ohne Verweis.
-		await expect(schedule.getByTestId('lead-days-summary')).toContainText(`Vorwarnfenster: ${before.warningLeadDays} Tage`)
-		await expect(schedule.getByTestId('lead-days-summary')).toContainText(`Vorabinfo-Vorlauf: ${before.prenotificationLeadDays} Tage`)
+		// Die Fristen werden in den Nextcloud-Einstellungen geändert; hier steht nur die Fristen-Leiste, ohne Eingabefelder und ohne Verweis.
+		const leads = schedule.getByTestId('lead-days-summary')
+		await expect(leads).toContainText('Forderungen entstehen')
+		await expect(leads).toContainText(`${before.warningLeadDays} Tage vorher`)
+		await expect(leads).toContainText('Vorabinfo an Mitglieder')
+		await expect(leads).toContainText(`${before.prenotificationLeadDays} Tage vorher`)
 		await expect(schedule.getByLabel(WARNING_LABEL)).toHaveCount(0)
 		await expect(schedule.getByLabel(PRENOTIFICATION_LABEL)).toHaveCount(0)
 		await expect(schedule.getByRole('link', { name: 'Fristen in den Einstellungen ändern' })).toHaveCount(0)
 
-		// Terminverschiebung: Standard-Einzugstag und Überschreibung bleiben offen.
-		await expect(schedule.locator('tbody tr').first().locator('input[type="number"]')).toBeEnabled()
-		await expect(schedule.locator('tbody tr').first().getByRole('button', { name: 'Speichern' })).toBeEnabled()
-		await expect(schedule.getByLabel('Periodenindex')).toBeEnabled()
-		await expect(schedule.getByRole('button', { name: '+ Überschreibung' })).toBeEnabled()
+		// Terminverschiebung: Einzugstag und abweichende Termine bleiben bedienbar.
+		const interval = schedule.locator('[data-testid^="schedule-interval-"]').first()
+		await expect(interval.getByLabel('Tage ab Periodenbeginn')).toBeEnabled()
+		await expect(interval.getByRole('button', { name: 'Termin ändern' }).first()).toBeEnabled()
 
 		// Nichts wurde nebenbei geschrieben.
 		expect(await readLeadDays(request)).toEqual(before)

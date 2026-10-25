@@ -211,8 +211,10 @@ export default {
 
 	// Terminplan & Einzugszyklus-Einstellungen (Issue #70)
 	loadDueDateSchedule: () => axios.get(url('/due-date-schedule')),
-	setDueDateScheduleDefaultDay: (intervalMonths, offsetDays) => axios.post(url(`/due-date-schedule/${intervalMonths}/default-day`), { offsetDays }),
-	setDueDateScheduleOverride: (intervalMonths, periodIndex, offsetDays) => axios.post(url(`/due-date-schedule/${intervalMonths}/overrides/${periodIndex}`), { offsetDays }),
+	// Entwurf eines Turnus ({ defaultOffsetDays, overrides, year }): Termine je Periode und Verstöße, nichts gespeichert
+	previewDueDateSchedule: (intervalMonths, draft) => axios.post(url(`/due-date-schedule/${intervalMonths}/preview`), draft),
+	// Standard-Einzugstag und Überschreibungen eines Turnus in einem Schritt
+	saveDueDateSchedule: (intervalMonths, draft) => axios.put(url(`/due-date-schedule/${intervalMonths}`), draft),
 	setDueDateScheduleLeadDays: (data) => axios.post(url('/due-date-schedule/lead-days'), data),
 
 	// Einstellungen des Beitrags-/SEPA-Moduls (Issue #101, ab Verwalter):

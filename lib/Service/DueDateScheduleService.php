@@ -42,8 +42,18 @@ class DueDateScheduleService {
 	public const DEFAULT_OFFSET_DAYS = 0;
 
 	/** Plausibilitätsgrenzen gegen Tippfehler – weit genug für „Vorzieh-Einzug" und „Einzug erst Monate später". */
-	private const MIN_OFFSET_DAYS = -90;
-	private const MAX_OFFSET_DAYS = 270;
+	public const MIN_OFFSET_DAYS = -90;
+	public const MAX_OFFSET_DAYS = 270;
+
+	/**
+	 * Die Beitragsjahre, an denen die Guards den Terminplan durchspielen. Ein
+	 * Versatz in Tagen trifft je nach Februar einen anderen Kalendertag, und ein
+	 * simulierter Zyklus berührt bis zu drei Februare (der Wraparound reicht ins
+	 * übernächste Jahr). 2000–2003 decken jede Lage der Schaltjahre dazu ab
+	 * (Schaltjahr am Anfang, in der Mitte, am Ende, keins), damit kein reales
+	 * Jahr einen Termin liefert, den die Prüfung nie gesehen hat.
+	 */
+	private const GUARD_ANCHOR_YEARS = [2000, 2001, 2002, 2003];
 
 	public function __construct(
 		private IConfig $config,
@@ -103,10 +113,7 @@ class DueDateScheduleService {
 	 */
 	public function setOverride(int $intervalMonths, int $periodIndex, ?int $offsetDays): void {
 		$this->assertValidInterval($intervalMonths);
-		$perCycle = intdiv(12, $intervalMonths);
-		if ($periodIndex < 0 || $periodIndex >= $perCycle) {
-			throw new \InvalidArgumentException($this->l10n->t('Der Periodenindex muss zwischen 0 und %d liegen.', [$perCycle - 1]));
-		}
+		$this->assertValidPeriodIndex($intervalMonths, $periodIndex);
 
 		$overrides = $this->getOverrides($intervalMonths);
 		if ($offsetDays === null) {
@@ -120,6 +127,70 @@ class DueDateScheduleService {
 		$schedule = $this->readRaw();
 		$schedule[(string)$intervalMonths]['overrides'] = $overrides;
 		$this->writeRaw($schedule);
+	}
+
+	/**
+	 * Standard-Einzugstag und alle Überschreibungen eines Turnus in einem
+	 * Schritt – so speichert die Terminplan-Ansicht ihren Entwurf. Einzeln
+	 * nacheinander gespeichert könnte ein Zwischenstand an den Guards
+	 * scheitern, obwohl das Ergebnis gültig ist (etwa Standard und eine
+	 * Überschreibung gemeinsam verschieben).
+	 *
+	 * @param array<int|string,int> $overrides Periodenindex => Tage-Versatz; fehlende Perioden folgen dem Standard
+	 * @throws \InvalidArgumentException bei ungültigem Turnus/Periodenindex/Versatz
+	 *                                   oder wenn der Terminplan eine der Guards verletzte
+	 */
+	public function setSchedule(int $intervalMonths, int $defaultOffsetDays, array $overrides): void {
+		$this->assertValidInterval($intervalMonths);
+		$this->assertValidOffset($defaultOffsetDays);
+		$overrides = $this->normalizeOverrides($intervalMonths, $overrides);
+		$this->assertGuards($intervalMonths, $defaultOffsetDays, $overrides);
+
+		$schedule = $this->readRaw();
+		$schedule[(string)$intervalMonths] = ['defaultOffsetDays' => $defaultOffsetDays, 'overrides' => $overrides];
+		$this->writeRaw($schedule);
+	}
+
+	/**
+	 * Was ein (noch nicht gespeicherter) Terminplan eines Turnus ergäbe: die
+	 * Perioden des Beitragsjahrs, das in `$year` beginnt, mit ihrem
+	 * Einzugstermin, und alle Verstöße gegen die Guards – dieselbe Prüfung wie
+	 * beim Speichern, damit die Ansicht schon vorher sagen kann, woran es
+	 * scheitert. Verstöße aus dem gezeigten Jahr stehen vorn, mit dessen Daten;
+	 * einer, der nur in einer anderen Schaltjahr-Lage auftritt, folgt mit den
+	 * Daten des Jahres, in dem er auftritt.
+	 *
+	 * @param array<int|string,int> $overrides Periodenindex => Tage-Versatz
+	 * @param int $year Anker-Kalenderjahr des gezeigten Beitragsjahrs, siehe {@see ContributionYearService::anchorYearFor()}
+	 * @return array{
+	 *     yearLabel:string, yearStart:string, yearEnd:string,
+	 *     periods:list<array{periodIndex:int, start:string, end:string, offsetDays:int, overridden:bool, dueDate:string}>,
+	 *     violations:list<array<string,int|string>>
+	 * }
+	 * @throws \InvalidArgumentException bei ungültigem Turnus/Periodenindex/Versatz
+	 */
+	public function preview(int $intervalMonths, int $defaultOffsetDays, array $overrides, int $year): array {
+		$this->assertValidInterval($intervalMonths);
+		$this->assertValidOffset($defaultOffsetDays);
+		$overrides = $this->normalizeOverrides($intervalMonths, $overrides);
+
+		$shown = $this->simulateCycle($intervalMonths, $defaultOffsetDays, $overrides, $year);
+		$violations = [];
+		foreach ([$shown, ...array_map(fn (int $anchor) => $this->simulateCycle($intervalMonths, $defaultOffsetDays, $overrides, $anchor), self::GUARD_ANCHOR_YEARS)] as $cycle) {
+			foreach ($cycle['violations'] as $violation) {
+				$violations[$violation['kind'] . ':' . $violation['periodIndex']] ??= $violation;
+			}
+		}
+
+		[$yearStart, $yearEnd] = $this->contributionYear->yearBounds($year);
+		return [
+			'yearLabel' => $this->contributionYear->yearLabel($year),
+			'yearStart' => $yearStart,
+			'yearEnd' => $yearEnd,
+			// Ohne den Wraparound-Eintrag: der gehört schon zum nächsten Beitragsjahr.
+			'periods' => array_slice($shown['periods'], 0, intdiv(12, $intervalMonths)),
+			'violations' => array_values($violations),
+		];
 	}
 
 	/**
@@ -173,46 +244,101 @@ class DueDateScheduleService {
 		}
 	}
 
+	/** @throws \InvalidArgumentException */
+	private function assertValidPeriodIndex(int $intervalMonths, int $periodIndex): void {
+		$perCycle = intdiv(12, $intervalMonths);
+		if ($periodIndex < 0 || $periodIndex >= $perCycle) {
+			throw new \InvalidArgumentException($this->l10n->t('Der Periodenindex muss zwischen 0 und %d liegen.', [$perCycle - 1]));
+		}
+	}
+
 	/**
-	 * Simuliert einen vollen Zyklus plus einen Wraparound-Eintrag (letzte
-	 * Periode eines Jahres → erste des nächsten) mit dem geänderten Wert und
-	 * prüft beide Guards je simulierter Periode:
+	 * @param array<int|string,int> $overrides
+	 * @return array<int,int>
+	 * @throws \InvalidArgumentException
+	 */
+	private function normalizeOverrides(int $intervalMonths, array $overrides): array {
+		$normalized = [];
+		foreach ($overrides as $periodIndex => $offsetDays) {
+			$this->assertValidPeriodIndex($intervalMonths, (int)$periodIndex);
+			$this->assertValidOffset((int)$offsetDays);
+			$normalized[(int)$periodIndex] = (int)$offsetDays;
+		}
+		ksort($normalized);
+		return $normalized;
+	}
+
+	/**
+	 * Spielt den Terminplan in jeder Schaltjahr-Lage durch
+	 * ({@see GUARD_ANCHOR_YEARS}) und lehnt beim ersten Verstoß ab:
 	 *
 	 * - **Termin im Beitragsjahr**: der berechnete Termin muss im selben
 	 *   Beitragsjahres-Zyklus liegen wie die Periode selbst (Turnus-unabhängig,
 	 *   deshalb immer gegen den 12-Monats-Jahresraster geprüft).
 	 * - **Kein Überholen**: echt aufsteigende Termine über den ganzen Zyklus.
 	 *
-	 * Ein beliebiger Ankerzeitpunkt (Jahr 2000) genügt – die Reihenfolge
-	 * innerhalb eines Turnus ist jahresunabhängig (Spec §2.2).
-	 *
 	 * @param array<int,int> $overrides
 	 * @throws \InvalidArgumentException bei Verletzung einer der beiden Guards
 	 */
 	private function assertGuards(int $intervalMonths, int $defaultOffsetDays, array $overrides): void {
+		foreach (self::GUARD_ANCHOR_YEARS as $anchorYear) {
+			foreach ($this->simulateCycle($intervalMonths, $defaultOffsetDays, $overrides, $anchorYear)['violations'] as $violation) {
+				throw new \InvalidArgumentException($violation['kind'] === 'outsideYear'
+					? $this->l10n->t('Dieser Einzugstermin läge außerhalb des Beitragsjahres der Periode.')
+					: $this->l10n->t('Dieser Einzugstermin würde den Termin der vorherigen Periode überholen.'));
+			}
+		}
+	}
+
+	/**
+	 * Ein voller Zyklus ab dem Beitragsjahr, das in `$anchorYear` beginnt,
+	 * plus ein Wraparound-Eintrag (letzte Periode eines Jahres → erste des
+	 * nächsten), mit dem Termin jeder Periode und den Verstößen gegen die
+	 * Guards (siehe {@see assertGuards()}). Ein Verstoß nennt die Periode, an
+	 * der er auffällt, und die Daten, die ihn zeigen.
+	 *
+	 * @param array<int,int> $overrides
+	 * @return array{
+	 *     periods:list<array{periodIndex:int, start:string, end:string, offsetDays:int, overridden:bool, dueDate:string}>,
+	 *     violations:list<array<string,int|string>>
+	 * }
+	 */
+	private function simulateCycle(int $intervalMonths, int $defaultOffsetDays, array $overrides, int $anchorYear): array {
 		$rule = $this->contributionYear->periodRuleFor($intervalMonths);
 		$yearRule = $this->contributionYear->periodRuleFor(12);
 		$perCycle = intdiv(12, $intervalMonths);
 
-		$date = sprintf('2000-%02d-01', $rule['startMonth']);
-		$previousDue = null;
+		$periods = [];
+		$violations = [];
+		$date = sprintf('%04d-%02d-01', $anchorYear, $rule['startMonth']);
+		$previous = null;
 		for ($i = 0; $i <= $perCycle; $i++) {
 			[$periodStart, $periodEnd] = PeriodRule::containing($rule, $date);
 			[, $periodIndex] = PeriodRule::gridIndex($rule, $periodStart);
-			$offsetDays = $overrides[$periodIndex] ?? $defaultOffsetDays;
+			$overridden = array_key_exists($periodIndex, $overrides);
+			$offsetDays = $overridden ? $overrides[$periodIndex] : $defaultOffsetDays;
 			$due = $this->computeDueDate($periodStart, $offsetDays);
 
 			[$yearStart, $yearEnd] = PeriodRule::containing($yearRule, $periodStart);
 			if ($due < $yearStart || $due > $yearEnd) {
-				throw new \InvalidArgumentException($this->l10n->t('Dieser Einzugstermin läge außerhalb des Beitragsjahres der Periode.'));
+				$violations[] = ['kind' => 'outsideYear', 'periodIndex' => $periodIndex, 'dueDate' => $due, 'yearStart' => $yearStart, 'yearEnd' => $yearEnd];
+			}
+			if ($previous !== null && $due <= $previous['dueDate']) {
+				$violations[] = ['kind' => 'overtakes', 'periodIndex' => $periodIndex, 'dueDate' => $due, 'previousPeriodIndex' => $previous['periodIndex'], 'previousDueDate' => $previous['dueDate']];
 			}
 
-			if ($previousDue !== null && $due <= $previousDue) {
-				throw new \InvalidArgumentException($this->l10n->t('Dieser Einzugstermin würde den Termin der vorherigen Periode überholen.'));
-			}
-			$previousDue = $due;
+			$previous = [
+				'periodIndex' => $periodIndex,
+				'start' => $periodStart,
+				'end' => $periodEnd,
+				'offsetDays' => $offsetDays,
+				'overridden' => $overridden,
+				'dueDate' => $due,
+			];
+			$periods[] = $previous;
 			$date = PeriodRule::nextDay($periodEnd);
 		}
+		return ['periods' => $periods, 'violations' => $violations];
 	}
 
 	private function computeDueDate(string $periodStart, int $offsetDays): string {

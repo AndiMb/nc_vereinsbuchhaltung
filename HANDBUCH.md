@@ -1411,16 +1411,16 @@ Nachweis-Ordner und XML-Ablage liegen im Home des Nutzers, den Sie unter
 *Belege* für die Ablage im Nextcloud-Dateibaum gewählt haben (2.4); ohne ihn
 lassen sich keine Nachweise hochladen und die XML-Ablage nicht einschalten.
 
-Der **Terminplan** (Einzugstag je Turnus, einzelne Perioden überschreibbar)
-lässt sich auch als Buchhalter anpassen – das ist die Terminverschiebung.
-Perioden beginnen am Monatsersten, der Versatz zählt Tage ab dort: Wer
-jeweils am 15. einziehen will, trägt beim monatlichen Turnus **14** ein.
-Neben jedem Versatz zeigt die Tabelle, welcher Tag sich daraus ergibt.
-Die **Fristen vor dem Einzug** (Vorwarnfenster, Vorabinfo-Vorlauf,
-Freigabe-Vorlauf) ändern dagegen nur Verwalter, und zwar in den
-Nextcloud-Einstellungen: Sie bestimmen, wann Aufgaben und Vorabinfo-Mails
-ausgelöst werden und ab wann eine Periode für Änderungen gesperrt ist. Im
-Terminplan stehen sie nur zur Ansicht.
+Der **Terminplan** (Einzugstag je Turnus, einzelne Perioden mit abweichendem
+Termin) lässt sich auch als Buchhalter anpassen – das ist die
+Terminverschiebung. Sie finden ihn im Reiter „Beiträge" → Einzug am Zeitstrahl
+(13.5). Die **Fristen vor dem Einzug** ändern dagegen nur Verwalter, und zwar
+hier in den Nextcloud-Einstellungen: *Forderungen entstehen* (Vorwarnfenster),
+*Vorabinfo an Mitglieder* (Vorabinfo-Vorlauf) und *Lauf freigeben bis*
+(Freigabe-Vorlauf), jeweils in Tagen vor dem Einzug. Sie bestimmen, wann
+Aufgaben und Vorabinfo-Mails ausgelöst werden und ab wann eine Periode für
+Änderungen gesperrt ist. Eine kleine Fristen-Leiste rechnet die Werte auf einen
+Beispieltermin um; im Terminplan steht dieselbe Leiste nur zur Ansicht.
 
 ### 13.2 Mitglieder, Mandate und Beiträge
 
@@ -1764,14 +1764,33 @@ Lastschrift-Zuweisung kein Mandat hat.
 
 Im Reiter **„Beiträge" → Einzug** zeigt das Segment **„Zeitstrahl & Läufe"** das
 Beitragsjahr mit allen **Einzugsterminen** und einer Marke für HEUTE. Die Termine
-stammen aus dem **Terminplan** (Knopf *Terminplan* am Zeitstrahl: je Turnus ein
-Standard-Einzugstag als Versatz zum Periodenbeginn, einzelne Perioden lassen sich
-überschreiben) und aus
-Einzelforderungen mit eigenem Termin. Ein Klick auf einen
+stammen aus dem **Terminplan** (Knopf *Terminplan* am Zeitstrahl, siehe unten)
+und aus Einzelforderungen mit eigenem Termin. Ein Klick auf einen
 Termin zeigt seine Meilensteine und – solange nichts freigegeben ist – eine
 **Vorschau**: wie viele Forderungen mit welcher Summe eingezogen würden und
 welche Störfälle (13.9) dazu anstehen. Vor der Freigabe gibt es keinen Lauf, die
 Vorschau speichert nichts.
+
+**Terminplan.** Der Knopf *Terminplan* am Zeitstrahl klappt ihn auf. Je Turnus
+steht der Einzugstag als Satz: „Einzug **14** Tage **nach** Beginn jeder
+Periode". Perioden beginnen am Monatsersten; wer jeweils am 15. einziehen will,
+trägt also 14 ein, und die Ansicht nennt den Tag („am 15. des ersten
+Periodenmonats"). „vor" zieht den Einzug vor den Periodenbeginn. Darunter stehen
+die Perioden des Beitragsjahrs, das der Zeitstrahl gerade zeigt („1. Quartal ·
+Jan.–März"), mit ihrem Einzugstermin samt Wochentag; die Termine rechnen beim
+Tippen mit. **Termin ändern** gibt einer einzelnen Periode einen abweichenden
+Termin, gewählt als Datum. Er gilt in jedem Beitragsjahr für dieselbe Periode,
+denn gespeichert wird der Abstand zum Periodenbeginn – liegt ein Februar-Ende
+dazwischen, kann der Tag deshalb in Schaltjahren um einen wandern, die Ansicht
+weist darauf hin. Zwei Regeln prüft die App schon vor dem Speichern und nennt die
+betroffenen Perioden mit Datum: Kein Termin darf auf oder vor dem der vorherigen
+Periode liegen, und jeder bleibt im Beitragsjahr seiner Periode. Gespeichert wird
+je Turnus mit **Speichern**; **Verwerfen** holt den gespeicherten Stand zurück.
+Turnusse, die kein Mitglied nutzt, sind eingeklappt. Tritt ein Mitglied mitten
+in einer Periode ein, zählen die Tage für seine erste Forderung ab dem
+Eintrittsdatum. Unten zeigt eine Fristen-Leiste, wann für den nächsten Einzug
+die Forderungen entstehen, die Vorabinfo rausgeht und der Lauf freigegeben sein
+sollte.
 
 **Ein Lauf gehört zu genau einem Einzugstermin** und bündelt alle einzugsfähigen
 Forderungen dieses Termins. Der Ablauf, mit den Standardwerten der einstellbaren

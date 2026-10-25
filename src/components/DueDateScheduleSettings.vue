@@ -4,118 +4,96 @@
 			<h4>{{ t('Terminplan') }}</h4>
 			<InfoHint :label="t('Wie funktioniert der Terminplan?')">
 				<p>
-					{{ t('Je Turnus ein Standard-Einzugstag (Tage-Versatz zum Periodenbeginn – 0 = am ersten Tag der Periode, negativ = vorgezogen). Einzelne Perioden lassen sich darunter überschreiben, die Überschreibung gilt jahresunabhängig für denselben Periodenindex.') }}
+					{{ t('Je Turnus gilt ein Einzugstag, gezählt in Tagen ab Beginn jeder Periode. Einzelne Perioden können einen abweichenden Termin bekommen; er gilt in jedem Beitragsjahr für dieselbe Periode.') }}
 				</p>
 				<p>
-					{{ t('Beispiel: Versatz 14 beim monatlichen Turnus zieht jeweils am 15. ein.') }}
+					{{ t('Tritt ein Mitglied mitten in einer Periode ein, zählen die Tage für seine erste Forderung ab dem Eintrittsdatum.') }}
 				</p>
 			</InfoHint>
 		</div>
-		<div class="vbh-tablecard">
-			<table class="vbh-table">
-				<thead>
-					<tr>
-						<th>{{ t('Turnus') }}</th>
-						<th class="num">
-							{{ t('Standard-Versatz (Tage)') }}
-						</th>
-						<th>{{ t('Überschreibungen (Periodenindex: Versatz)') }}</th>
-						<th class="vbh-col-memberactions" />
-					</tr>
-				</thead>
-				<tbody>
-					<tr v-for="interval in intervals" :key="interval">
-						<td>{{ intervalLabel(interval) }}</td>
-						<td class="num">
-							<input v-model.number="defaultDrafts[interval]" type="number" class="vbh-short">
-							<div class="vbh-hint vbh-offset-meaning" :data-testid="'offset-meaning-' + interval">
-								{{ offsetMeaning(interval, defaultDrafts[interval]) }}
-							</div>
-						</td>
-						<td>
-							<span v-if="overrideList(interval).length === 0" class="vbh-hint">{{ t('keine') }}</span>
-							<span v-for="ov in overrideList(interval)" :key="ov.periodIndex" class="vbh-override-chip">
-								{{ ov.periodIndex }}: {{ ov.offsetDays }}
-								<button
-									type="button"
-									class="vbh-override-remove"
-									:title="t('Überschreibung entfernen')"
-									@click="removeOverride(interval, ov.periodIndex)">
-									×
-								</button>
-							</span>
-						</td>
-						<td class="nowrap right">
-							<NcButton size="small" @click="saveDefault(interval)">
-								{{ t('Speichern') }}
-							</NcButton>
-						</td>
-					</tr>
-				</tbody>
-			</table>
-		</div>
-
-		<div class="vbh-form">
-			<label>{{ t('Turnus') }}
-				<select v-model.number="overrideDraft.intervalMonths">
-					<option v-for="interval in intervals" :key="interval" :value="interval">
-						{{ intervalLabel(interval) }}
-					</option>
-				</select>
-			</label>
-			<label>{{ t('Periodenindex') }}
-				<input
-					v-model.number="overrideDraft.periodIndex"
-					type="number"
-					class="vbh-short"
-					min="0">
-			</label>
-			<label>{{ t('Versatz (Tage)') }}
-				<input v-model.number="overrideDraft.offsetDays" type="number" class="vbh-short">
-			</label>
-			<NcButton variant="primary" @click="addOverride">
-				{{ t('+ Überschreibung') }}
-			</NcButton>
-		</div>
-
-		<p class="vbh-hint vbh-hint--info" data-testid="lead-days-summary">
-			{{ t('Vorwarnfenster: {warning} Tage · Vorabinfo-Vorlauf: {prenotification} Tage · Freigabe-Vorlauf: {release} Tage vor dem Einzug.', { warning: warningLeadDays, prenotification: prenotificationLeadDays, release: releaseLeadDays }) }}
-			<template v-if="isAdmin">
-				<br>
-				<a class="vbh-settings-link" :href="settingsUrl">{{ t('Fristen in den Einstellungen ändern') }}</a>
-			</template>
+		<p class="vbh-hint vbh-schedule-intro">
+			{{ yearLabel
+				? t('An welchen Tagen die Beiträge fällig sind und eingezogen werden. Die Termine unten gelten für das Beitragsjahr {year}.', { year: yearLabel })
+				: t('An welchen Tagen die Beiträge fällig sind und eingezogen werden.') }}
 		</p>
+
+		<NcLoadingIcon v-if="!loaded" :size="24" />
+		<DueDateIntervalSchedule
+			v-for="interval in (loaded ? shownIntervals : [])"
+			:key="interval"
+			:intervalMonths="interval"
+			:saved="schedule[interval]"
+			:memberCount="memberCount(interval)"
+			:year="year"
+			:offsetRange="offsetRange"
+			@saved="onSaved"
+			@dueDates="dueDatesByInterval[interval] = $event" />
+
+		<NcButton
+			v-if="usedIntervals.length > 0 && unusedIntervals.length > 0"
+			variant="tertiary"
+			class="vbh-schedule-more"
+			:aria-expanded="showUnused ? 'true' : 'false'"
+			@click="showUnused = !showUnused">
+			<template #icon>
+				<NcIconSvgWrapper :path="showUnused ? mdiChevronDown : mdiChevronRight" :size="20" />
+			</template>
+			{{ showUnused
+				? t('Turnusse ohne Mitglieder ausblenden')
+				: t('Turnusse ohne Mitglieder: {list}', { list: unusedIntervals.map(intervalLabel).join(', ') }) }}
+		</NcButton>
+
+		<div v-if="exampleDue" class="vbh-schedule-leads" data-testid="lead-days-summary">
+			<h5>{{ t('Fristen vor dem Einzug') }}</h5>
+			<p class="vbh-hint">
+				{{ t('Am Beispiel des Einzugs am {date}. Die Fristen gelten für alle Turnusse.', { date: dueDateLabel(exampleDue, language) }) }}
+			</p>
+			<LeadDaysStrip :dueDate="exampleDue" :leadDays="leadDays" />
+			<a v-if="isAdmin" class="vbh-settings-link" :href="settingsUrl">{{ t('Fristen in den Einstellungen ändern') }}</a>
+		</div>
 	</section>
 </template>
 
 <script>
-import { showError, showSuccess } from '@nextcloud/dialogs'
+import { mdiChevronDown, mdiChevronRight } from '@mdi/js'
+import { getLanguage } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
-import { NcButton } from '@nextcloud/vue'
+import { NcButton, NcIconSvgWrapper, NcLoadingIcon } from '@nextcloud/vue'
 import { toRefs } from 'vue'
+import DueDateIntervalSchedule from './DueDateIntervalSchedule.vue'
 import InfoHint from './InfoHint.vue'
-import api from '../api.js'
+import LeadDaysStrip from './LeadDaysStrip.vue'
 import { useAuth } from '../composables/useAuth.js'
 import { useDueDateSchedule } from '../composables/useDueDateSchedule.js'
-import { errMsg } from '../lib/format.js'
+import { dueDateLabel, exampleDueDate } from '../lib/dueDateSchedule.js'
 import { intervalLabel } from '../lib/frequency.js'
 
 /**
- * Terminplan-Einstellung (Spec §2.2/§3.5, Issue #70): Standard-Einzugstag je
- * Turnus + Überschreibungen je Periodenindex, plus die beiden
- * Cron-Abstände. Guards (kein Überholen, Termin im Beitragsjahr) prüft der
- * Server (DueDateScheduleService) - diese Ansicht zeigt dessen Fehlermeldung
- * einfach an, statt sie hier zu duplizieren.
+ * Terminplan-Einstellung (Spec §2.2/§3.5, Issue #70): je Turnus ein
+ * Standard-Einzugstag + abweichende Termine einzelner Perioden. Jeder Turnus
+ * ist ein eigener Entwurf mit Live-Vorschau der Termine
+ * (DueDateIntervalSchedule.vue); Turnusse ohne Mitglieder treten zurück,
+ * solange es genutzte gibt. Die Vorschau zeigt das Beitragsjahr, das der
+ * Zeitstrahl darüber gerade zeigt.
  *
  * Rollen (Spec §3.9, Issue #119): Die Terminverschiebung (Standard-Einzugstag,
- * Überschreibungen) ist `buchhalter`. Vorwarnfenster und Vorabinfo-Vorlauf sind
- * Einstellungen (nur `verwalter`) und stehen mit dem Freigabe-Vorlauf in den
- * Nextcloud-Einstellungen (SettingsSepaCycle.vue); hier werden sie nur genannt,
- * mit Verweis für Verwalter.
+ * Überschreibungen) ist `buchhalter`. Vorwarnfenster, Vorabinfo-Vorlauf und
+ * Freigabe-Vorlauf sind Einstellungen (nur `verwalter`) und stehen in den
+ * Nextcloud-Einstellungen (SettingsSepaCycle.vue); hier zeigt sie die
+ * Fristen-Leiste an einem echten Termin, mit Verweis für Verwalter.
  */
 export default {
 	name: 'DueDateScheduleSettings',
-	components: { InfoHint, NcButton },
+	components: { DueDateIntervalSchedule, InfoHint, LeadDaysStrip, NcButton, NcIconSvgWrapper, NcLoadingIcon },
+
+	props: {
+		/** Anker-Kalenderjahr des Beitragsjahrs, das der Zeitstrahl zeigt; null = das laufende */
+		year: { type: Number, default: null },
+		/** dessen Bezeichnung („2026“ oder „2026/27“) */
+		yearLabel: { type: String, default: '' },
+		/** Stichtag „JJJJ-MM-TT“ für das Beispiel der Fristen */
+		today: { type: String, required: true },
+	},
 
 	// Nach jeder gespeicherten Änderung: der Einzug-Unterreiter (EinzugPanel)
 	// rechnet daraufhin den Zeitstrahl neu.
@@ -124,18 +102,46 @@ export default {
 	setup() {
 		const schedule = useDueDateSchedule()
 		const { state: auth, isAdmin } = useAuth()
-		return { ...toRefs(schedule.state), loadDueDateSchedule: schedule.loadDueDateSchedule, isAdmin, auth }
+		return { ...toRefs(schedule.state), loadDueDateSchedule: schedule.loadDueDateSchedule, isAdmin, auth, mdiChevronDown, mdiChevronRight }
 	},
 
 	data() {
 		return {
 			intervals: [1, 2, 3, 4, 6, 12],
-			defaultDrafts: {},
-			overrideDraft: { intervalMonths: 1, periodIndex: 0, offsetDays: 0 },
+			language: getLanguage(),
+			// Erst nach dem Laden zeigen: sonst rechnete jeder Turnus zuerst eine Vorschau mit Versatz 0.
+			loaded: false,
+			showUnused: false,
+			dueDatesByInterval: {},
 		}
 	},
 
 	computed: {
+		usedIntervals() {
+			return this.intervals.filter((interval) => this.memberCount(interval) > 0)
+		},
+
+		unusedIntervals() {
+			return this.intervals.filter((interval) => this.memberCount(interval) === 0)
+		},
+
+		// Ohne ein einziges zugewiesenes Mitglied gibt es nichts zurückzustellen: dann alle.
+		shownIntervals() {
+			if (this.usedIntervals.length === 0 || this.showUnused) {
+				return this.intervals
+			}
+			return this.usedIntervals
+		},
+
+		exampleDue() {
+			const relevant = this.usedIntervals.length > 0 ? this.usedIntervals : this.intervals
+			return exampleDueDate(relevant.flatMap((interval) => this.dueDatesByInterval[interval] ?? []), this.today)
+		},
+
+		leadDays() {
+			return { warning: this.warningLeadDays, prenotification: this.prenotificationLeadDays, release: this.releaseLeadDays }
+		},
+
 		// Verwaltung für Nextcloud-Admins, Persönlich für App-Verwalter ohne Nextcloud-Adminrechte
 		// (dieselbe Unterscheidung wie Settings\PersonalSettings::getSection()).
 		settingsUrl() {
@@ -144,73 +150,22 @@ export default {
 		},
 	},
 
-	watch: {
-		schedule: {
-			deep: true,
-			handler(value) {
-				for (const interval of this.intervals) {
-					this.defaultDrafts[interval] = value?.[interval]?.defaultOffsetDays ?? 0
-				}
-			},
-		},
-	},
-
 	async mounted() {
 		await this.loadDueDateSchedule()
+		this.loaded = true
 	},
 
 	methods: {
+		dueDateLabel,
 		intervalLabel,
 
-		/**
-		 * Was der Versatz als Datum heißt (Issue #149): „am 15. jedes Monats" liest
-		 * sich leichter als „Versatz 14". Perioden beginnen immer am Monatsersten,
-		 * deshalb ergibt Versatz 0–27 in jedem Monat denselben Tag; alles darüber
-		 * hinaus nennt die Ansicht in Tagen.
-		 */
-		offsetMeaning(interval, offset) {
-			if (!Number.isInteger(offset)) {
-				return ''
-			}
-			if (offset >= 0 && offset <= 27) {
-				return interval === 1
-					? this.t('am {day}. jedes Monats', { day: offset + 1 })
-					: this.t('am {day}. des ersten Periodenmonats', { day: offset + 1 })
-			}
-			return offset < 0
-				? this.n('%n Tag vor Periodenbeginn', '%n Tage vor Periodenbeginn', -offset)
-				: this.n('%n Tag nach Periodenbeginn', '%n Tage nach Periodenbeginn', offset)
+		memberCount(interval) {
+			return this.memberCounts?.[interval] ?? 0
 		},
 
-		overrideList(interval) {
-			const overrides = this.schedule?.[interval]?.overrides || {}
-			return Object.keys(overrides).map((periodIndex) => ({ periodIndex: Number(periodIndex), offsetDays: overrides[periodIndex] }))
-		},
-
-		async saveDefault(interval) {
-			try {
-				await api.setDueDateScheduleDefaultDay(interval, this.defaultDrafts[interval])
-				await this.loadDueDateSchedule()
-				this.$emit('changed')
-				showSuccess(this.t('Standard-Einzugstag gespeichert.'))
-			} catch (e) { showError(errMsg(e, this.t('Standard-Einzugstag konnte nicht gespeichert werden'))) }
-		},
-
-		async addOverride() {
-			try {
-				await api.setDueDateScheduleOverride(this.overrideDraft.intervalMonths, this.overrideDraft.periodIndex, this.overrideDraft.offsetDays)
-				await this.loadDueDateSchedule()
-				this.$emit('changed')
-				showSuccess(this.t('Überschreibung gespeichert.'))
-			} catch (e) { showError(errMsg(e, this.t('Überschreibung konnte nicht gespeichert werden'))) }
-		},
-
-		async removeOverride(interval, periodIndex) {
-			try {
-				await api.setDueDateScheduleOverride(interval, periodIndex, null)
-				await this.loadDueDateSchedule()
-				this.$emit('changed')
-			} catch (e) { showError(errMsg(e, this.t('Überschreibung konnte nicht entfernt werden'))) }
+		async onSaved() {
+			await this.loadDueDateSchedule()
+			this.$emit('changed')
 		},
 	},
 }
@@ -232,34 +187,25 @@ export default {
 	margin-bottom: 8px;
 }
 
-/* Die Versatz-Felder in der Tabelle brauchen keine Zellenbreite: drei Ziffern und ein Minus. */
-.vbh-tablecard td input.vbh-short {
-	width: 88px;
-}
-
-.vbh-offset-meaning {
-	margin-top: 2px;
-	white-space: nowrap;
-}
-
 .vbh-cardhead h4 {
 	margin: 0;
 }
 
-.vbh-override-chip {
-	display: inline-flex;
-	align-items: center;
-	gap: 4px;
-	margin-inline-end: 8px;
-	padding: 2px 6px;
-	border-radius: 8px;
-	background: var(--color-background-hover);
+.vbh-schedule-intro {
+	margin: 0 0 4px;
 }
 
-.vbh-override-remove {
-	border: none;
-	background: transparent;
-	cursor: pointer;
-	font-weight: bold;
+.vbh-schedule-more {
+	margin: 4px 0 8px;
+}
+
+.vbh-schedule-leads {
+	padding-top: 12px;
+	border-top: 1px solid var(--color-border);
+}
+
+.vbh-schedule-leads h5 {
+	margin: 0 0 4px;
+	font-weight: 700;
 }
 </style>

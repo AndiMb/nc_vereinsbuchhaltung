@@ -5,14 +5,17 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Db\AssignmentMapper;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\ContributionCycleSettings;
+use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCA\Vereinsbuchhaltung\Service\DueDateScheduleService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
+use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IRequest;
 
 /**
@@ -33,10 +36,18 @@ class DueDateScheduleController extends Controller {
 		IRequest $request,
 		private DueDateScheduleService $schedule,
 		private ContributionCycleSettings $settings,
+		private ContributionYearService $contributionYear,
+		private AssignmentMapper $assignments,
+		private ITimeFactory $time,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
 
+	/**
+	 * Neben Terminplan und Fristen das, was die Ansicht zum Erklären braucht:
+	 * die Mitglieder je Turnus (ungenutzte Turnusse treten zurück) und die
+	 * Grenzen des Versatzes.
+	 */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_READ)]
 	public function index(): DataResponse {
@@ -45,7 +56,50 @@ class DueDateScheduleController extends Controller {
 			'prenotificationLeadDays' => $this->settings->prenotificationLeadDays(),
 			'warningLeadDays' => $this->settings->warningLeadDays(),
 			'releaseLeadDays' => $this->settings->releaseLeadDays(),
+			'memberCounts' => $this->assignments->countMembersByIntervalFrom($this->today()),
+			'offsetRange' => ['min' => DueDateScheduleService::MIN_OFFSET_DAYS, 'max' => DueDateScheduleService::MAX_OFFSET_DAYS],
 		]);
+	}
+
+	/**
+	 * Was ein Entwurf des Terminplans ergäbe – Termine je Periode und Verstöße
+	 * gegen die Guards –, ohne etwas zu speichern. Rechnen statt ändern, deshalb
+	 * ab `revisor`; POST nur, weil der Entwurf eine Zuordnung Periode → Versatz
+	 * mitbringt.
+	 *
+	 * @param array<int|string,int> $overrides Periodenindex => Tage-Versatz
+	 * @param int|null $year Anker-Kalenderjahr des gezeigten Beitragsjahrs, sonst das laufende
+	 */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_READ)]
+	public function preview(int $intervalMonths, int $defaultOffsetDays, array $overrides = [], ?int $year = null): DataResponse {
+		// Die Grenzen schützen nur vor Unsinn in der Anfrage; die Ansicht blättert jahrweise.
+		$year = max(1971, min(2199, $year ?? $this->contributionYear->anchorYearFor($this->today())));
+		try {
+			return new DataResponse($this->schedule->preview($intervalMonths, $defaultOffsetDays, $overrides, $year));
+		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		}
+	}
+
+	/**
+	 * Standard-Einzugstag und Überschreibungen eines Turnus in einem Schritt
+	 * (Terminverschiebung, deshalb ab `buchhalter` wie die Einzelaufrufe).
+	 *
+	 * @param array<int|string,int> $overrides Periodenindex => Tage-Versatz; fehlende Perioden folgen dem Standard
+	 */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	public function setSchedule(int $intervalMonths, int $defaultOffsetDays, array $overrides = []): DataResponse {
+		try {
+			$this->schedule->setSchedule($intervalMonths, $defaultOffsetDays, $overrides);
+			return new DataResponse([
+				'defaultOffsetDays' => $this->schedule->getDefaultOffsetDays($intervalMonths),
+				'overrides' => $this->schedule->getOverrides($intervalMonths),
+			]);
+		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		}
 	}
 
 	#[NoAdminRequired]
@@ -93,5 +147,9 @@ class DueDateScheduleController extends Controller {
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		}
+	}
+
+	private function today(): string {
+		return $this->time->getDateTime()->format('Y-m-d');
 	}
 }

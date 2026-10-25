@@ -65,7 +65,11 @@
 				</DebitTimeline>
 
 				<div v-if="canWrite && showSchedule" id="vbh-einzug-schedule">
-					<DueDateScheduleSettings @changed="reload" />
+					<DueDateScheduleSettings
+						:year="timeline.year.anchorYear"
+						:yearLabel="timeline.year.label"
+						:today="timeline.today"
+						@changed="reload" />
 				</div>
 
 				<DebitGhostCard

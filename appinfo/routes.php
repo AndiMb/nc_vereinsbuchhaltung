@@ -253,6 +253,8 @@ return [
 		['name' => 'dueDateSchedule#index', 'url' => '/api/due-date-schedule', 'verb' => 'GET'],
 		['name' => 'dueDateSchedule#setDefaultDay', 'url' => '/api/due-date-schedule/{intervalMonths}/default-day', 'verb' => 'POST'],
 		['name' => 'dueDateSchedule#setOverride', 'url' => '/api/due-date-schedule/{intervalMonths}/overrides/{periodIndex}', 'verb' => 'POST'],
+		['name' => 'dueDateSchedule#preview', 'url' => '/api/due-date-schedule/{intervalMonths}/preview', 'verb' => 'POST'],
+		['name' => 'dueDateSchedule#setSchedule', 'url' => '/api/due-date-schedule/{intervalMonths}', 'verb' => 'PUT'],
 		['name' => 'dueDateSchedule#setLeadDays', 'url' => '/api/due-date-schedule/lead-days', 'verb' => 'POST'],
 
 		// Lastschriftlauf: Freigabe & Einreichung (Issue #71)

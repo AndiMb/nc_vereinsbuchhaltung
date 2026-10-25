@@ -134,10 +134,13 @@ class PermissionMiddlewareDeclaredRoleTest extends TestCase {
 	public function testTerminverschiebungBleibtBeimBuchhalter(): void {
 		$this->assertMinimumRole(DueDateScheduleController::class, 'setDefaultDay', 'POST', PermissionService::ROLE_WRITE);
 		$this->assertMinimumRole(DueDateScheduleController::class, 'setOverride', 'POST', PermissionService::ROLE_WRITE);
+		$this->assertMinimumRole(DueDateScheduleController::class, 'setSchedule', 'PUT', PermissionService::ROLE_WRITE);
 	}
 
-	public function testTerminplanLesenAbRevisor(): void {
+	/** Die Vorschau rechnet nur: trotz POST ab Revisor, nicht erst ab Buchhalter. */
+	public function testTerminplanLesenUndVorschauAbRevisor(): void {
 		$this->assertMinimumRole(DueDateScheduleController::class, 'index', 'GET', PermissionService::ROLE_READ);
+		$this->assertMinimumRole(DueDateScheduleController::class, 'preview', 'POST', PermissionService::ROLE_READ);
 	}
 
 	/** Bisher ohne Angabe (Verb-Heuristik), jetzt ausdrücklich – gleiche Wirkung, aber festgeschrieben. */
