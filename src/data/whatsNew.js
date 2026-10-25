@@ -30,6 +30,7 @@ export function buildWhatsNewEntries() {
 			items: [
 				t('Der Terminplan öffnet sich als eigener Dialog und blättert durch die Beitragsjahre. Der Einzugstag steht als Satz da – „Einzug 14 Tage nach Beginn jeder Periode“ –, darunter jede Periode mit ihrem Termin samt Wochentag. Ein abweichender Termin wird als Datum gewählt; Termine, die eine andere Periode überholen, meldet der Dialog vor dem Speichern.'),
 				t('Terminplan und Einstellungen zeigen die Fristen vor dem Einzug als Zeitstrahl mit echten Daten: „Forderungen entstehen“, „Vorabinfo an Mitglieder“, „Lauf freigeben bis“.'),
+				t('Unter „Alle Buchungen“ lässt sich ein Beleg aus dem Wächter-Ordner an mehrere markierte Buchungen auf einmal hängen, etwa eine Sammelrechnung: Auswahlspalte vorne, „Beleg zuordnen…“ in der Leiste unter der Liste.'),
 				t('IBANs liegen jetzt verschlüsselt in der Datenbank; das Update verschlüsselt den Bestand einmalig. Wichtig für Backups: Ohne die zugehörige config.php sind sie nach einer Wiederherstellung nicht mehr lesbar (Handbuch 12.3).'),
 			],
 		},
