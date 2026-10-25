@@ -86,6 +86,19 @@ class ContributionYearService {
 		return $year;
 	}
 
+	/**
+	 * Plausibilitätsgrenze für ein Anker-Kalenderjahr aus einer Anfrage – gegen
+	 * Tippfehler in der Adresse und gegen Jahreszahlen, mit denen die
+	 * Datumsarithmetik nichts mehr anfangen kann.
+	 *
+	 * @throws \InvalidArgumentException außerhalb von 2000–2200
+	 */
+	public function assertPlausibleAnchorYear(int $anchorYear): void {
+		if ($anchorYear < 2000 || $anchorYear > 2200) {
+			throw new \InvalidArgumentException($this->msg('Das Beitragsjahr muss zwischen 2000 und 2200 liegen.'));
+		}
+	}
+
 	/** Anker-Kalenderjahr des laufenden Beitragsjahres (Standard: heute). */
 	public function currentAnchorYear(?string $today = null): int {
 		return $this->anchorYearFor($today ?? date('Y-m-d'));

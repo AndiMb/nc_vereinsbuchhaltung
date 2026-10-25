@@ -97,8 +97,12 @@ test.describe('Einstellungen Beiträge & SEPA', () => {
 		await expect(cycle.getByLabel('Vorwarnfenster')).toHaveValue('21')
 		await expect(cycle.getByLabel('Vorabinfo-Vorlauf')).toHaveValue('14')
 		await expect(cycle.getByLabel('Freigabe-Vorlauf')).toHaveValue('5')
-		// Das Beispiel rechnet die drei Werte auf einen Einzugstermin um.
-		await expect(cycle.getByTestId('cycle-example')).toContainText(/Einzug am \d{2}\.\d{2}\.\d{4}: Forderungen ab \d{2}\.\d{2}\.\d{4}, Vorabinfo am \d{2}\.\d{2}\.\d{4}/)
+		// Das Beispiel rechnet die drei Werte auf einen Einzugstermin um – als dieselbe Fristen-Leiste wie im Terminplan.
+		const example = cycle.getByTestId('cycle-example')
+		await expect(example).toContainText(/Beispiel: Einzug am \d{2}\.\d{2}\.\d{4}/)
+		for (const step of ['Forderungen entstehen', '21 Tage vorher', 'Vorabinfo an Mitglieder', '14 Tage vorher', 'Lauf freigeben bis', '5 Tage vorher']) {
+			await expect(example).toContainText(step)
+		}
 	})
 
 	test('Beitragsjahr und die drei Fristen ändern, nach Reload noch da', async ({ page, request }) => {

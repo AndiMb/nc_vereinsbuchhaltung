@@ -1387,16 +1387,17 @@ The proof folder and the XML storage live in the home of the user you chose
 under *Receipts* for storage in the Nextcloud file tree (2.4); without one,
 no proofs can be uploaded and the XML storage can't be switched on.
 
-The **schedule** (collection day per interval, individual periods can be
-overridden) can also be adjusted by bookkeepers – that is the rescheduling.
-Periods start on the first of a month and the offset counts days from there:
-to collect on the 15th of each month, enter **14** for the monthly interval.
-Next to each offset, the table shows which day it results in.
-The **deadlines before the collection** (warning window, pre-notification lead
-time, release lead time), on the other hand, can only be changed by
-administrators, in the Nextcloud settings: they determine when tasks and
-pre-notification emails are triggered and from when a period is locked
-against changes. The schedule only displays them.
+The **schedule** (collection day per interval, individual periods with a
+custom date) can also be adjusted by bookkeepers – that is the rescheduling.
+You find it in the "Contributions" → Collection tab at the timeline (13.5).
+The **deadlines before the collection**, on the other hand, can only be
+changed by administrators, here in the Nextcloud settings: *Claims are
+created* (early-warning window), *Pre-notification to members*
+(pre-notification lead) and *Release the run by* (release lead time), each in
+days before the collection. They determine when tasks and pre-notification
+emails are triggered and from when a period is locked against changes. A small
+deadline strip turns the values into an example date; the schedule shows the
+same strip for information only.
 
 ### 13.2 Members, mandates and contributions
 
@@ -1741,13 +1742,34 @@ assignment has no mandate.
 In the **"Contributions" → Collection** tab, the **"Timeline & runs"**
 (*Zeitstrahl & Läufe*) segment shows the contribution year with all
 **collection dates** and a marker for TODAY (*HEUTE*). The dates come from
-the **schedule** (the "Schedule" (*Terminplan*) button at the timeline: for
-each interval a default collection day as an offset from the period start,
-individual periods can be overridden) and
-from single claims with their own date. A click on a date shows its
+the **schedule** (the "Schedule" (*Terminplan*) button at the timeline, see
+below) and from single claims with their own date. A click on a date shows its
 milestones and – as long as nothing has been released – a **preview**: how
 many claims with what total would be collected and which exceptions (13.9)
 are pending. Before release there is no run, the preview saves nothing.
+
+**Schedule.** The "Schedule" button at the timeline opens it as a dialog. For each
+interval the collection day reads as a sentence: "Collection **14** days
+**after** the start of each period". Periods start on the first of a month; to
+collect on the 15th, enter 14, and the view names the day ("on day 15 of the
+first month of the period"). "before" moves the collection ahead of the period
+start. Below, the periods of a contribution year ("Quarter 1 · Jan–Mar") are listed
+with their collection date and weekday; the dates update as you type. The
+dialog starts with the year the timeline is showing, and the arrows page
+through the years. **Change date** gives a single period a custom date,
+picked as a date. It applies to the same period in every contribution year,
+because what is stored is the distance from the period start – if the end of
+February lies in between, the day can therefore shift by one in leap years, and
+the view points this out. The app checks two rules before saving and names the
+affected periods with their dates: no date may fall on or before that of the
+previous period, and each stays within the contribution year of its period.
+**Save** in the dialog's footer saves all changed intervals and closes it;
+**Discard** on an interval brings back its saved state. Closing with unsaved
+changes (Cancel, the X, Esc) first asks whether to save or discard them.
+Intervals that no member uses are collapsed. If a member joins in the middle of
+a period, the days for their first claim count from the joining date. At the
+bottom, a deadline strip shows when, for the next collection, the claims are
+created, the pre-notification goes out and the run should be released.
 
 **A run belongs to exactly one collection date** and bundles all collectable
 claims of that date. The sequence, with the default values of the adjustable

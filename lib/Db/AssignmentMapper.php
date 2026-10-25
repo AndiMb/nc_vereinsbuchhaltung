@@ -90,6 +90,32 @@ class AssignmentMapper extends QBMapper {
 		return $count;
 	}
 
+	/**
+	 * Mitglieder je Turnus, deren Zuweisung an `$date` noch läuft oder erst
+	 * später beginnt – damit der Terminplan nur die Turnusse in den
+	 * Vordergrund stellt, die tatsächlich Einzüge auslösen.
+	 *
+	 * @return array<int,int> Turnusmonate => Anzahl Mitglieder
+	 */
+	public function countMembersByIntervalFrom(string $date): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('interval_months')
+			->selectAlias($qb->createFunction('COUNT(DISTINCT ' . $qb->getColumnName('member_id') . ')'), 'members')
+			->from($this->getTableName())
+			->where($qb->expr()->orX(
+				$qb->expr()->isNull('valid_to'),
+				$qb->expr()->gte('valid_to', $qb->createNamedParameter($date)),
+			))
+			->groupBy('interval_months');
+		$res = $qb->executeQuery();
+		$counts = [];
+		while ($row = $res->fetch()) {
+			$counts[(int)$row['interval_months']] = (int)$row['members'];
+		}
+		$res->closeCursor();
+		return $counts;
+	}
+
 	/** Zuweisungen einer Gruppe, für die Untergrenzen-Vorschau/-Anhebung. @return Assignment[] */
 	public function findByGroup(int $groupId): array {
 		$qb = $this->db->getQueryBuilder();

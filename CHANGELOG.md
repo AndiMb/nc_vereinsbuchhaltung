@@ -29,6 +29,28 @@ verwenden, z. B. `**Neu:**`.
   **Wichtig für Backups:** Ohne die zugehörige `config.php` sind die IBANs nach
   einer Wiederherstellung nicht mehr lesbar (Handbuch 12.3 und 13.13).
 
+**Geändert:**
+- **Terminplan ohne „Versatz" und „Periodenindex".** Der Einzugstag steht
+  jetzt als Satz da – „Einzug 14 Tage nach Beginn jeder Periode" –, und
+  darunter die Perioden des Beitragsjahrs mit ihrem Einzugstermin samt
+  Wochentag, die beim Tippen mitrechnen. Ein abweichender Termin für eine
+  einzelne Periode wird als Datum gewählt statt als Periodenindex mit Versatz.
+  Termine, die die vorherige Periode überholen oder aus dem Beitragsjahr
+  fallen, meldet die Ansicht schon vor dem Speichern mit beiden Daten.
+  Turnusse ohne Mitglieder sind eingeklappt. Der Terminplan öffnet sich als
+  eigener Dialog statt unter dem Zeitstrahl und blättert durch die
+  Beitragsjahre.
+- **Fristen vor dem Einzug als Zeitstrahl.** Terminplan und Einstellungen
+  zeigen an einem echten Termin, wann die Forderungen entstehen, die
+  Vorabinfo rausgeht und der Lauf freigegeben sein sollte. Die Felder in den
+  Einstellungen heißen nach dem, was passiert („Forderungen entstehen",
+  „Vorabinfo an Mitglieder", „Lauf freigeben bis").
+
+**Behoben:**
+- **Terminplan prüft auch Jahre ohne 29. Februar.** Ein Termin, der nur in
+  Nicht-Schaltjahren die nächste Periode einholt (etwa Februar 28 Tage nach
+  Periodenbeginn, März am Monatsersten), wurde bisher angenommen.
+
 ## [0.41.2] – 2026-10-24
 
 **Behoben:**
