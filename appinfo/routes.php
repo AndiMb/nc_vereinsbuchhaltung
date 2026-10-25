@@ -243,6 +243,8 @@ return [
 		['name' => 'invoice#destroy', 'url' => '/api/invoices/{id}', 'verb' => 'DELETE'],
 		['name' => 'invoice#duplicate', 'url' => '/api/invoices/{id}/duplicate', 'verb' => 'POST'],
 		['name' => 'invoice#issue', 'url' => '/api/invoices/{id}/issue', 'verb' => 'POST'],
+		['name' => 'invoice#pdf', 'url' => '/api/invoices/{id}/pdf', 'verb' => 'GET'],
+		['name' => 'invoice#document', 'url' => '/api/invoices/{id}/documents/{documentId}', 'verb' => 'GET'],
 		['name' => 'invoice#cancel', 'url' => '/api/invoices/{id}/cancel', 'verb' => 'POST'],
 		['name' => 'invoice#pay', 'url' => '/api/invoices/{id}/payments', 'verb' => 'POST'],
 		['name' => 'invoice#payManually', 'url' => '/api/invoices/{id}/payments/manual', 'verb' => 'POST'],

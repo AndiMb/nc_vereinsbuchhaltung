@@ -20,6 +20,7 @@ use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
+use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceDocumentStorage;
 use OCA\Vereinsbuchhaltung\Service\Report\ReportTemplateService;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportSettingsService;
 
@@ -50,6 +51,7 @@ class ResetService {
 		private InvoiceDocumentMapper $invoiceDocumentMapper,
 		private InvoiceSettings $invoiceSettings,
 		private InvoicePaymentMapper $invoicePaymentMapper,
+		private InvoiceDocumentStorage $invoiceStorage,
 	) {
 	}
 
@@ -77,6 +79,7 @@ class ResetService {
 		// Vor dem Löschen der Datensätze merken, welche Dateien dazugehören –
 		// danach ist die Zuordnung weg.
 		$attachments = $this->attachmentMapper->findAllForUser($userId);
+		$invoiceDocuments = $this->invoiceStorage->all();
 
 		$this->transaction->run(function () use ($userId): void {
 			$this->attachmentMapper->deleteAllForUser($userId);
@@ -134,5 +137,6 @@ class ResetService {
 		});
 
 		$this->storageService->deleteAllFiles($attachments);
+		$this->invoiceStorage->deleteFiles($invoiceDocuments);
 	}
 }

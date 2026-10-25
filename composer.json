@@ -5,7 +5,8 @@
 	"license": "AGPL-3.0-or-later",
 	"require": {
 		"php": ">=8.2",
-		"chillerlan/php-qrcode": "^5.0"
+		"chillerlan/php-qrcode": "^5.0",
+		"tecnickcom/tcpdf": "^6.10"
 	},
 	"//": [
 		"Bewusst ohne require-dev: PHPUnit wird als eigenstaendiges PHAR benutzt",

@@ -32,6 +32,7 @@ use OCA\Vereinsbuchhaltung\Service\BudgetSnapshotService;
 use OCA\Vereinsbuchhaltung\Service\ContributionResetService;
 use OCA\Vereinsbuchhaltung\Service\FieldCipher;
 use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
+use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceDocumentStorage;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCA\Vereinsbuchhaltung\Service\Report\ReportTemplateService;
 use OCA\Vereinsbuchhaltung\Service\ResetService;
@@ -289,6 +290,7 @@ class ResetServiceTest extends TestCase {
 			new InvoiceDocumentMapper($this->db),
 			$this->createMock(InvoiceSettings::class),
 			new InvoicePaymentMapper($this->db),
+			$this->createMock(InvoiceDocumentStorage::class),
 		);
 	}
 
