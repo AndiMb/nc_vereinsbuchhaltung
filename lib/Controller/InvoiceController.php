@@ -163,6 +163,23 @@ class InvoiceController extends Controller {
 		}
 	}
 
+	/** Storniert eine festgeschriebene Rechnung mit einer Stornorechnung. */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	public function cancel(int $id, string $reason = ''): DataResponse {
+		try {
+			$credit = $this->service->cancel($id, $reason);
+			return new DataResponse([
+				'invoice' => $this->service->detail($id),
+				'credit' => $this->service->detail((int)$credit->getId()),
+			]);
+		} catch (DoesNotExistException) {
+			return $this->notFound();
+		} catch (\InvalidArgumentException $e) {
+			return $this->bad($e);
+		}
+	}
+
 	/** Ordnet einen Zahlungseingang der Rechnung zu und bucht ihn. */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]

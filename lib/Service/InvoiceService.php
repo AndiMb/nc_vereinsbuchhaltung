@@ -97,6 +97,17 @@ class InvoiceService {
 		$out['payments'] = $this->payments->findByInvoice($id);
 		$credit = $invoice->isCredit() ? null : $this->invoices->findCreditFor($id);
 		$out['creditInvoiceId'] = $credit?->getId();
+		if ($invoice->isCredit() && $invoice->getPrecedingInvoiceId() !== null) {
+			try {
+				$original = $this->invoices->find($invoice->getPrecedingInvoiceId());
+				$originalItem = $original->getOpenItemId() !== null ? ($this->openItems->findByIds([$original->getOpenItemId()])[$original->getOpenItemId()] ?? null) : null;
+				$out['precedingNumber'] = $original->getNumber();
+				$out['precedingIssueDate'] = $original->getIssueDate();
+				// Was der Verein schon erhalten hat und nun zurückzahlen muss.
+				$out['refundDueCents'] = $originalItem?->getSettledCents() ?? 0;
+			} catch (DoesNotExistException) {
+			}
+		}
 		if ($invoice->isDraft()) {
 			$out['checklist'] = $this->checklist($invoice, $lines, $debtor, new \DateTimeImmutable($invoice->getIssueDate() ?? 'today'));
 		}
@@ -273,7 +284,11 @@ class InvoiceService {
 			$lines = $this->lines->findByInvoice($id);
 
 			$date = $this->normalizeDate($issueDate) ?? $invoice->getIssueDate() ?? (new \DateTimeImmutable())->format('Y-m-d');
-			$debtor = $this->liveDebtor($invoice);
+			// Eine Stornorechnung trägt den Schnappschuss der Ursprungsrechnung: sie
+			// storniert genau die Anschrift, an die diese ging, auch wenn der
+			// Empfänger inzwischen geändert oder gelöscht wurde.
+			$snapshot = $invoice->debtorSnapshotData();
+			$debtor = $snapshot !== null ? $this->debtorFromSnapshot($snapshot) : $this->liveDebtor($invoice);
 			$checklist = $this->checklist($invoice, $lines, $debtor, new \DateTimeImmutable($date));
 			$problems = [];
 			foreach ($checklist as $item) {
@@ -298,7 +313,9 @@ class InvoiceService {
 			$issued = $this->numbers->issue($invoice->getKind(), new \DateTimeImmutable($date));
 			$dueDate = $invoice->getDueDate();
 			if ($dueDate === null) {
-				$dueDate = (new \DateTimeImmutable($date))->modify('+' . $this->settings->defaultDueDays() . ' days')->format('Y-m-d');
+				// Eine Stornorechnung wird nicht bezahlt, ihr Ziel ist ihr Datum.
+				$days = $invoice->isCredit() ? 0 : $this->settings->defaultDueDays();
+				$dueDate = (new \DateTimeImmutable($date))->modify('+' . $days . ' days')->format('Y-m-d');
 			}
 			if ($dueDate < $date) {
 				throw new InvoiceNotIssuableException($this->msg('Das Zahlungsziel liegt vor dem Rechnungsdatum.'), [$this->msg('Zahlungsziel')]);
@@ -311,14 +328,20 @@ class InvoiceService {
 			$invoice->setNumberRangeId($issued['rangeId']);
 			$invoice->setIssueDate($date);
 			$invoice->setDueDate($dueDate);
-			$invoice->setDebtorSnapshot(json_encode($debtor->toSnapshot(), JSON_UNESCAPED_UNICODE));
+			if ($snapshot === null) {
+				$invoice->setDebtorSnapshot(json_encode($debtor->toSnapshot(), JSON_UNESCAPED_UNICODE));
+			}
 			$invoice->setStatus(Invoice::STATUS_ISSUED);
 			$invoice->setIssuedAt($now);
 			$invoice->setIssuedBy($this->actor());
 			$invoice->setUpdatedAt($now);
 
-			$item = $this->createOpenItem($invoice, $debtor, $lines);
-			$invoice->setOpenItemId((int)$item->getId());
+			// Die Stornorechnung gleicht die Ursprungsrechnung aus und wird selbst
+			// nicht bezahlt: sie hat keinen offenen Posten.
+			if (!$invoice->isCredit()) {
+				$item = $this->createOpenItem($invoice, $debtor, $lines);
+				$invoice->setOpenItemId((int)$item->getId());
+			}
 			$this->invoices->update($invoice);
 
 			$this->audit->log('Rechnung festgeschrieben', 'invoice', $id, [
@@ -326,6 +349,110 @@ class InvoiceService {
 				'gross' => $invoice->getGrossCents() / 100,
 			]);
 			return $this->invoices->find($id);
+		});
+	}
+
+	/**
+	 * Storniert eine festgeschriebene Rechnung mit einer Stornorechnung.
+	 *
+	 * Die Stornorechnung (eigener Nummernkreis, Verweis auf die Ursprungsrechnung)
+	 * kehrt alle Positionen um, trägt dieselbe Anschrift wie das Original und
+	 * wird sofort festgeschrieben. Das Original gilt danach als storniert, sein
+	 * offener Posten ebenso. Ist die Rechnung schon ganz oder teilweise bezahlt,
+	 * bleibt die Zahlung bestehen: Die Rückzahlung ordnen Sie wie jede andere
+	 * Auszahlung dem Erlöskonto zu, der Betrag steht im Detail der
+	 * Stornorechnung.
+	 *
+	 * @throws DoesNotExistException
+	 * @throws \InvalidArgumentException wenn die Rechnung nicht storniert werden kann oder eine Begründung fehlt
+	 */
+	public function cancel(int $id, string $reason): Invoice {
+		return $this->transaction->run(function () use ($id, $reason): Invoice {
+			$original = $this->invoices->find($id);
+			$reason = trim($reason);
+			if ($original->isCredit() || !$original->isIssued() || $original->getStatus() === Invoice::STATUS_CANCELLED) {
+				throw new \InvalidArgumentException($this->msg('Nur eine festgeschriebene, noch nicht stornierte Rechnung lässt sich stornieren.'));
+			}
+			if (mb_strlen($reason) < 3) {
+				throw new \InvalidArgumentException($this->msg('Bitte geben Sie eine Begründung für die Stornierung an.'));
+			}
+			if ($this->invoices->findCreditFor($id) !== null) {
+				throw new \InvalidArgumentException($this->msg('Zu dieser Rechnung gibt es bereits eine Stornorechnung.'));
+			}
+
+			$now = $this->now();
+			$credit = new Invoice();
+			$credit->setKind(Invoice::KIND_CREDIT);
+			$credit->setStatus(Invoice::STATUS_DRAFT);
+			$credit->setPrecedingInvoiceId($id);
+			$credit->setDebtorId($original->getDebtorId());
+			$credit->setDebtorSnapshot($original->getDebtorSnapshot());
+			$credit->setTaxMode($original->getTaxMode());
+			$credit->setExemptionText($original->getExemptionText());
+			$credit->setBuyerReference($original->getBuyerReference());
+			$credit->setOrderReference($original->getOrderReference());
+			$credit->setDeliveryDate($original->getDeliveryDate());
+			$credit->setPeriodStart($original->getPeriodStart());
+			$credit->setPeriodEnd($original->getPeriodEnd());
+			$credit->setNoteHead($this->msg('Storno zu Rechnung %s vom %s.', [(string)$original->getNumber(), (string)$original->getIssueDate()]));
+			$credit->setNoteFoot($reason);
+			$credit->setCurrency($original->getCurrency());
+			$credit->setNetCents(0);
+			$credit->setTaxCents(0);
+			$credit->setGrossCents(0);
+			$credit->setCreatedBy($this->actor());
+			$credit->setCreatedAt($now);
+			$credit->setUpdatedAt($now);
+			$credit = $this->invoices->insert($credit);
+
+			$reversed = [];
+			foreach ($this->lines->findByInvoice($id) as $line) {
+				$copy = new InvoiceLine();
+				$copy->setInvoiceId((int)$credit->getId());
+				$copy->setPosition($line->getPosition());
+				$copy->setName($line->getName());
+				$copy->setDescription($line->getDescription());
+				$copy->setQuantityE4(-$line->getQuantityE4());
+				$copy->setUnitCode($line->getUnitCode());
+				$copy->setUnitPriceCents($line->getUnitPriceCents());
+				$copy->setDiscountBp($line->getDiscountBp());
+				$copy->setTaxCategory($line->getTaxCategory());
+				$copy->setTaxRateBp($line->getTaxRateBp());
+				$copy->setTaxExemptionText($line->getTaxExemptionText());
+				$copy->setLineNetCents(-$line->getLineNetCents());
+				$copy->setAccountId($line->getAccountId());
+				$copy->setCostCenterId($line->getCostCenterId());
+				$copy->setDeliveryDate($line->getDeliveryDate());
+				$this->lines->insert($copy);
+				$reversed[] = $copy;
+			}
+			$this->recalculate($credit, $reversed);
+			$this->invoices->update($credit);
+
+			$credit = $this->issue((int)$credit->getId());
+
+			$original->setStatus(Invoice::STATUS_CANCELLED);
+			$original->setCancelledAt($now);
+			$original->setCancelReason($reason);
+			$original->setUpdatedAt($now);
+			$this->invoices->update($original);
+			if ($original->getOpenItemId() !== null) {
+				$items = $this->openItems->findByIds([$original->getOpenItemId()]);
+				$item = $items[$original->getOpenItemId()] ?? null;
+				if ($item !== null) {
+					$item->setStatus('cancelled');
+					$item->setCancelledAt($now);
+					$item->setCancelledReason($reason);
+					$this->openItems->update($item);
+				}
+			}
+
+			$this->audit->log('Rechnung storniert', 'invoice', $id, [
+				'number' => $original->getNumber(),
+				'credit' => $credit->getNumber(),
+				'reason' => $reason,
+			]);
+			return $credit;
 		});
 	}
 
@@ -379,6 +506,28 @@ class InvoiceService {
 		if (!$invoice->isDraft() || $invoice->isIssued()) {
 			throw new \InvalidArgumentException($this->msg('Festgeschriebene Rechnungen lassen sich nicht mehr ändern. Bitte stornieren oder duplizieren.'));
 		}
+	}
+
+	/**
+	 * Baut aus dem Schnappschuss einer festgeschriebenen Rechnung einen
+	 * (nicht gespeicherten) Empfänger.
+	 *
+	 * @param array<string, mixed> $snapshot
+	 */
+	private function debtorFromSnapshot(array $snapshot): Debtor {
+		$debtor = new Debtor();
+		$debtor->setKind((string)($snapshot['kind'] ?? Debtor::KIND_ORGANISATION));
+		$debtor->setName((string)($snapshot['name'] ?? ''));
+		$debtor->setName2($snapshot['name2'] ?? null);
+		$debtor->setStreet($snapshot['street'] ?? null);
+		$debtor->setPostalCode($snapshot['postalCode'] ?? null);
+		$debtor->setCity($snapshot['city'] ?? null);
+		$debtor->setCountry((string)($snapshot['country'] ?? 'DE'));
+		$debtor->setEmail($snapshot['email'] ?? null);
+		$debtor->setVatId($snapshot['vatId'] ?? null);
+		$debtor->setLeitwegId($snapshot['leitwegId'] ?? null);
+		$debtor->setCustomerNo($snapshot['customerNo'] ?? null);
+		return $debtor;
 	}
 
 	private function liveDebtor(Invoice $invoice): ?Debtor {

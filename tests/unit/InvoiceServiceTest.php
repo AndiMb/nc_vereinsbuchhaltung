@@ -486,4 +486,84 @@ class InvoiceServiceTest extends TestCase {
 
 		$this->assertSame(Invoice::STATUS_ISSUED, $s->issue((int)$invoice->getId())->getStatus());
 	}
+
+	public function testStornoErzeugtNegativeStornorechnungUndStorniertDasOriginal(): void {
+		$s = $this->service();
+		$original = $s->issue((int)$s->createDraft($this->draftData())->getId());
+		$originalItem = $this->openItemRows[(int)$original->getOpenItemId()];
+
+		$credit = $s->cancel((int)$original->getId(), 'Falscher Empfänger');
+
+		$this->assertTrue($credit->isCredit());
+		$this->assertSame(Invoice::STATUS_ISSUED, $credit->getStatus());
+		$this->assertSame($original->getId(), $credit->getPrecedingInvoiceId());
+		$this->assertSame(-11250, $credit->getGrossCents());
+		$this->assertNull($credit->getOpenItemId(), 'Die Stornorechnung hat keinen offenen Posten.');
+		$this->assertSame($original->getDebtorSnapshot(), $credit->getDebtorSnapshot());
+		$this->assertSame($credit->getIssueDate(), $credit->getDueDate());
+		foreach ($this->lineRows[(int)$credit->getId()] as $line) {
+			$this->assertLessThan(0, $line->getQuantityE4());
+			$this->assertLessThan(0, $line->getLineNetCents());
+		}
+		$this->assertSame(Invoice::STATUS_CANCELLED, $original->getStatus());
+		$this->assertSame('Falscher Empfänger', $original->getCancelReason());
+		$this->assertNotNull($original->getCancelledAt());
+		$this->assertSame('cancelled', $originalItem->getStatus());
+		$this->assertSame('Falscher Empfänger', $originalItem->getCancelledReason());
+	}
+
+	public function testStornoBrauchtEineBegruendung(): void {
+		$s = $this->service();
+		$original = $s->issue((int)$s->createDraft($this->draftData())->getId());
+
+		$this->expectException(\InvalidArgumentException::class);
+		$s->cancel((int)$original->getId(), ' ');
+	}
+
+	public function testEntwurfLaesstSichNichtStornieren(): void {
+		$s = $this->service();
+		$draft = $s->createDraft($this->draftData());
+
+		$this->expectException(\InvalidArgumentException::class);
+		$s->cancel((int)$draft->getId(), 'Grund');
+	}
+
+	public function testStornorechnungLaesstSichNichtStornieren(): void {
+		$s = $this->service();
+		$original = $s->issue((int)$s->createDraft($this->draftData())->getId());
+		$credit = $s->cancel((int)$original->getId(), 'Grund');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$s->cancel((int)$credit->getId(), 'Nochmal');
+	}
+
+	public function testZweitesStornoDerselbenRechnungWirdAbgelehnt(): void {
+		$s = $this->service();
+		$original = $s->issue((int)$s->createDraft($this->draftData())->getId());
+		$s->cancel((int)$original->getId(), 'Grund');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$s->cancel((int)$original->getId(), 'Nochmal');
+	}
+
+	public function testDetailDerStornorechnungZeigtDieNochZurueckzuzahlendeSumme(): void {
+		$s = $this->service();
+		$original = $s->issue((int)$s->createDraft($this->draftData())->getId());
+		$this->openItemRows[(int)$original->getOpenItemId()]->setSettledCents(4000);
+		$credit = $s->cancel((int)$original->getId(), 'Grund');
+
+		$detail = $s->detail((int)$credit->getId());
+
+		$this->assertSame(4000, $detail['refundDueCents']);
+		$this->assertSame($original->getNumber(), $detail['precedingNumber']);
+	}
+
+	public function testStornoVerbrauchtEineNummerAusDemStornokreis(): void {
+		$s = $this->service();
+		$original = $s->issue((int)$s->createDraft($this->draftData())->getId());
+
+		$credit = $s->cancel((int)$original->getId(), 'Grund');
+
+		$this->assertSame('RE-2026-0002', $credit->getNumber(), 'Im Test liefert der Nummernkreis-Dienst eine laufende Nummer.');
+	}
 }
