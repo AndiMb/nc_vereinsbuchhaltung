@@ -3533,7 +3533,8 @@
         "Umsatzsteuerkonto für jeden verwendeten Steuersatz (Einstellungen)": "VAT account for every rate in use (settings)",
         "Position %d: Diese Steuerkategorie ist nicht möglich.": "Line %d: This tax category is not possible.",
         "Position %d: Der Steuersatz muss zwischen 0,01 und 25 Prozent liegen.": "Line %d: The tax rate has to be between 0.01 and 25 percent.",
-        "Der Steuersatz muss 0, 7 oder 19 Prozent sein.": "The tax rate has to be 0, 7 or 19 percent."
+        "Der Steuersatz muss 0, 7 oder 19 Prozent sein.": "The tax rate has to be 0, 7 or 19 percent.",
+        "Die Rechnungen als Kleinunternehmer ergeben in diesem Jahr schon {amount}. Die Kleinunternehmergrenze (§ 19 UStG) liegt bei 25.000 € im Vorjahr und 100.000 € im laufenden Jahr und gilt für den gesamten Umsatz des Vereins, nicht nur für die Rechnungen. Bitte rechtzeitig mit dem Finanzamt oder der Steuerberatung klären.": "Your invoices as a small business already add up to {amount} this year. The small-business limit (section 19 UStG) is 25,000 € in the previous year and 100,000 € in the current year, and it applies to the total turnover of the association, not just the invoices. Please clarify this early with the tax office or your tax adviser."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

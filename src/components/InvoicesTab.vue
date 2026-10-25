@@ -53,6 +53,9 @@
 				<p v-if="meta && meta.missingIssuerFields.length && canWrite" class="vbh-hint vbh-hint--warning">
 					{{ t('Für Rechnungen fehlen noch Angaben des Vereins (Anschrift, Steuernummer). Tragen Sie sie in den Nextcloud-Einstellungen unter „Vereinsbuchhaltung“ ein.') }}
 				</p>
+				<p v-if="smallBusinessHint" class="vbh-hint vbh-hint--warning">
+					{{ t('Die Rechnungen als Kleinunternehmer ergeben in diesem Jahr schon {amount}. Die Kleinunternehmergrenze (§ 19 UStG) liegt bei 25.000 € im Vorjahr und 100.000 € im laufenden Jahr und gilt für den gesamten Umsatz des Vereins, nicht nur für die Rechnungen. Bitte rechtzeitig mit dem Finanzamt oder der Steuerberatung klären.', { amount: formatMoney(smallBusinessTurnoverCents / 100) }) }}
+				</p>
 				<div class="vbh-totals">
 					<div class="vbh-total">
 						<span>{{ t('Offen') }}</span>
@@ -238,6 +241,16 @@ export default {
 				return (inv.number || '').toLowerCase().includes(q) || (inv.debtorName || '').toLowerCase().includes(q)
 			})
 		},
+
+		/** Brutto aller in diesem Jahr als Kleinunternehmer festgeschriebenen, nicht stornierten Rechnungen. */
+		smallBusinessTurnoverCents() {
+			const year = String(new Date().getFullYear())
+			return this.invoices
+				.filter((i) => i.kind !== 'storno' && ['issued', 'sent', 'paid'].includes(i.status) && i.taxMode === 'kleinunternehmer' && String(i.issueDate || '').startsWith(year))
+				.reduce((sum, i) => sum + i.grossCents, 0)
+		},
+
+		smallBusinessHint() { return this.smallBusinessTurnoverCents >= 2000000 },
 
 		openCents() {
 			return this.invoices.filter((i) => i.kind !== 'storno' && ['issued', 'sent'].includes(i.status)).reduce((s, i) => s + i.remainingCents, 0)
