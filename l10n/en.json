@@ -3567,7 +3567,10 @@
         "Vollständige Anschrift des Empfängers": "Complete address of the recipient",
         "Unbekanntes Format der E-Rechnung.": "Unknown e-invoice format.",
         "Rechnungen mit Umsatzsteuer: Steuersatz je Position, Summen je Satz, Zahlungen verteilen sich auf Erlös- und Umsatzsteuerkonten.": "Invoices with VAT: tax rate per line item, totals per rate, payments are split over revenue and VAT accounts.",
-        "E-Rechnung: Zu festgeschriebenen Rechnungen erzeugt die App ZUGFeRD-PDF oder XRechnung (CII, UBL), schlägt das Format nach Empfänger vor und nennt fehlende Pflichtangaben.": "E-invoice: for finalized invoices the app creates a ZUGFeRD PDF or XRechnung (CII, UBL), suggests the format by recipient and lists missing mandatory details."
+        "E-Rechnung: Zu festgeschriebenen Rechnungen erzeugt die App ZUGFeRD-PDF oder XRechnung (CII, UBL), schlägt das Format nach Empfänger vor und nennt fehlende Pflichtangaben.": "E-invoice: for finalized invoices the app creates a ZUGFeRD PDF or XRechnung (CII, UBL), suggests the format by recipient and lists missing mandatory details.",
+        "Strukturierte Zahlungsreferenz (RF…, ISO 11649) auf die Rechnung drucken und in den GiroCode eintragen": "Print a structured payment reference (RF…, ISO 11649) on the invoice and put it in the GiroCode",
+        "Referenz (SEPA)": "Reference (SEPA)",
+        "Die Zahlungsreferenz der Rechnung %1$s steht im Verwendungszweck.": "The payment reference of invoice %1$s is in the payment reference field."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

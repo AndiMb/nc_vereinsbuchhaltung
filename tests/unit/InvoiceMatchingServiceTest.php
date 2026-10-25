@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\Invoice;
 use OCA\Vereinsbuchhaltung\Db\InvoiceMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
+use OCA\Vereinsbuchhaltung\Service\Invoice\CreditorReference;
 use OCA\Vereinsbuchhaltung\Service\InvoiceMatchingService;
 use PHPUnit\Framework\TestCase;
 
@@ -62,6 +63,26 @@ class InvoiceMatchingServiceTest extends TestCase {
 		$tx->setPurpose($purpose);
 		$tx->setCounterparty($counterparty);
 		return $tx;
+	}
+
+	public function testRfReferenzImVerwendungszweckIstDerStaerksteTreffer(): void {
+		$this->addInvoice(1, 'RE-2026-0042', 15000, 'Muster GmbH');
+		$this->addInvoice(2, 'RE-2026-0043', 15000, 'Muster GmbH');
+		$reference = CreditorReference::fromInvoiceNumber('RE-2026-0043');
+
+		$result = $this->service()->suggestForMany([$this->tx(1, 15000, 'Zahlung ' . CreditorReference::format((string)$reference))]);
+
+		$this->assertCount(1, $result[1]);
+		$this->assertSame(2, $result[1][0]['invoiceId']);
+		$this->assertSame(InvoiceMatchingService::REASON_REFERENCE, $result[1][0]['reason']);
+	}
+
+	public function testRfReferenzMitGenauemBetragDarfDerImportSelbstBuchen(): void {
+		$this->addInvoice(1, 'RE-2026-0042', 15000, 'Muster GmbH');
+		$reference = (string)CreditorReference::fromInvoiceNumber('RE-2026-0042');
+
+		$this->assertSame(['invoiceId' => 1, 'number' => 'RE-2026-0042'], $this->service()->autoMatch($this->tx(1, 15000, $reference)));
+		$this->assertNull($this->service()->autoMatch($this->tx(2, 9999, $reference)), 'abweichender Betrag bleibt ein Vorschlag');
 	}
 
 	/** @dataProvider schreibweisen */

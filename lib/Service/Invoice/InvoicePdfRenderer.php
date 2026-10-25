@@ -298,6 +298,9 @@ class InvoicePdfRenderer {
 			$rows[] = [$this->msg('BIC'), $bank['bic']];
 		}
 		$rows[] = [$this->msg('Verwendungszweck'), (string)$invoice->getNumber()];
+		if ($data->paymentReference !== null) {
+			$rows[] = [$this->msg('Referenz (SEPA)'), CreditorReference::format($data->paymentReference)];
+		}
 		foreach ($rows as [$label, $value]) {
 			$pdf->SetTextColor(100, 100, 100);
 			$pdf->Cell(32, 4.8, $label, 0, 0, 'L');
@@ -325,7 +328,7 @@ class InvoicePdfRenderer {
 			return null;
 		}
 		try {
-			return $this->epc->buildPayload($bank['holder'], $bank['iban'], $bank['bic'] !== '' ? $bank['bic'] : null, $invoice->getGrossCents(), (string)$invoice->getNumber());
+			return $this->epc->buildPayload($bank['holder'], $bank['iban'], $bank['bic'] !== '' ? $bank['bic'] : null, $invoice->getGrossCents(), (string)$invoice->getNumber(), $data->paymentReference);
 		} catch (\InvalidArgumentException) {
 			return null;
 		}

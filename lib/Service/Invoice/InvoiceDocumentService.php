@@ -146,6 +146,7 @@ class InvoiceDocumentService {
 			$precedingNumber,
 			$precedingDate,
 			$preview,
+			$this->settings->rfReference() && !$invoice->isCredit() && $invoice->getNumber() !== null ? CreditorReference::fromInvoiceNumber($invoice->getNumber()) : null,
 		);
 	}
 

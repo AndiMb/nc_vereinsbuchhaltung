@@ -42,6 +42,13 @@ class EpcQrCodeGeneratorTest extends TestCase {
 		$this->assertSame('Beitrag 2026-Q1', $lines[10]);
 	}
 
+	public function testStrukturierteReferenzErsetztDenFreienVerwendungszweck(): void {
+		$lines = $this->lines($this->generator()->buildPayload('Musterverein e.V.', 'DE02120300000000202051', null, 4599, 'RE-2026-0042', 'rf18 5390 0754 7034'));
+
+		$this->assertSame('RF18539007547034', $lines[9]);
+		$this->assertCount(10, $lines, 'ohne unstrukturierten Text endet der Code nach der Referenz');
+	}
+
 	public function testBicDarfLeerBleiben(): void {
 		$lines = $this->lines($this->generator()->buildPayload('Musterverein e.V.', 'DE02120300000000202051', null, 100, 'x'));
 		$this->assertSame('', $lines[4]);
