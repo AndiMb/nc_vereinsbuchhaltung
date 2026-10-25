@@ -171,7 +171,8 @@
 <script>
 import { mdiAlertCircleOutline, mdiChevronDown, mdiChevronRight, mdiFileDocumentOutline, mdiFolderOpenOutline, mdiFolderOutline, mdiPlus } from '@mdi/js'
 import { showError } from '@nextcloud/dialogs'
-import { NcButton, NcIconSvgWrapper } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import api from '../api.js'
 import { buildFolderTree, flatFileRows, flattenTree, initialExpanded } from '../lib/folderTree.js'
 import { errMsg, formatDate, formatFileSize } from '../lib/format.js'

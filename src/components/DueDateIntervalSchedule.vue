@@ -130,7 +130,7 @@
 <script>
 import { showError } from '@nextcloud/dialogs'
 import { getLanguage } from '@nextcloud/l10n'
-import { NcButton } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
 import api from '../api.js'
 import { daysBetween } from '../lib/debitRun.js'
 import {

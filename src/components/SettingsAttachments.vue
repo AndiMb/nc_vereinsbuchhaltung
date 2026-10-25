@@ -39,8 +39,8 @@
 </template>
 
 <script>
-import { NcButton } from '@nextcloud/vue'
 import { toRefs } from 'vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
 import FolderPathField from './FolderPathField.vue'
 import { usePermissions } from '../composables/usePermissions.js'
 

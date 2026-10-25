@@ -130,7 +130,7 @@
 </template>
 
 <script>
-import { NcButton } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
 import DebitStatusTag from './DebitStatusTag.vue'
 import { DETAIL_OPEN, returnConsequences, returnReasonLabel, stageIsWeak, stageReason } from '../lib/bankReconciliation.js'
 import { formatDate, formatMoney } from '../lib/format.js'

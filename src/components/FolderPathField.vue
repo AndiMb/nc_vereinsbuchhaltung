@@ -30,7 +30,8 @@
 
 <script>
 import { mdiFolderSearchOutline } from '@mdi/js'
-import { NcButton, NcIconSvgWrapper } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import FolderPickerDialog from './FolderPickerDialog.vue'
 
 /**

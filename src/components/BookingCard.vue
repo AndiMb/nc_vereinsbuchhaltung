@@ -40,7 +40,7 @@
 
 <script>
 import { mdiCommentTextOutline, mdiPaperclip } from '@mdi/js'
-import { NcIconSvgWrapper } from '@nextcloud/vue'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import { flowClass, flowLabel, formatFlowMoney } from '../lib/flow.js'
 import { formatDate } from '../lib/format.js'
 

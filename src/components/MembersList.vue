@@ -170,8 +170,11 @@
 <script>
 import { mdiContentCopy, mdiEmailOffOutline } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper } from '@nextcloud/vue'
 import { toRefs } from 'vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
+import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import AssignmentChangeDialog from './AssignmentChangeDialog.vue'
 import AssignmentDialog from './AssignmentDialog.vue'
 import MemberAccountCell from './MemberAccountCell.vue'

@@ -28,7 +28,7 @@
 
 <script>
 import { mdiPlus } from '@mdi/js'
-import { NcIconSvgWrapper } from '@nextcloud/vue'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 
 /**
  * Untere Navigationsleiste für Mobilgeräte: alle Tabs gleichzeitig sichtbar

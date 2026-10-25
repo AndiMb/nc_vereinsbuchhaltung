@@ -49,7 +49,7 @@
 </template>
 
 <script>
-import { NcModal } from '@nextcloud/vue'
+import NcModal from '@nextcloud/vue/components/NcModal'
 import api from '../api.js'
 import { t } from '../lib/l10n.js'
 

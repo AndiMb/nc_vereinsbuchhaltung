@@ -177,7 +177,10 @@
 
 <script>
 import { mdiChevronDown, mdiChevronRight, mdiCommentPlusOutline, mdiCommentText } from '@mdi/js'
-import { NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper, NcNoteCard } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
+import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import AmountInput from './AmountInput.vue'
 import { allExpandable, attentionCounts, initialExpanded, visibleRows } from '../lib/budgetTree.js'
 import { amountClass, budgetDiffClass, formatMoney, formatPercent, formatSigned, trendClass, typeLabel } from '../lib/format.js'

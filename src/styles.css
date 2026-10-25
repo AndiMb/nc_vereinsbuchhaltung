@@ -606,6 +606,21 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
    Checkbox-Spalte, „Nr." ist dann nicht mehr erstes Kind (th.num:first-child
    oben) und behielte sonst nicht seine schmale Breite. */
 .vbh-table thead th.vbh-col-check + th.num { width: 56px; }
+/* Native Checkboxen in der Checkbox-Spalte: Nextclouds Sammelregel fuer
+   Eingabefelder (core/css/server.css, `input:not([type=range], …):not(:disabled):hover`,
+   Spezifitaet 0,3,1) setzt beim Hover `box-shadow: 0 0 0 2px var(--color-main-background)`
+   und gibt dem Feld eine Mindesthoehe. Das Kaestchen ist dann 13x36 px gross, und
+   der Schatten rahmt diesen ganzen Kasten - auf den grauen Zebra-Zeilen des
+   Journals ein weisses Hochformat-Rechteck (im Dunkelmodus ein dunkles). Die
+   Checkbox in der Filterleiste („nur ohne Beleg") bekommt denselben Schatten,
+   steht aber auf weissem Grund und zeigt ihn deshalb nicht. Hier also: Kasten
+   auf das Kaestchen schrumpfen, mittig setzen und den Hover-Schatten abschalten.
+   Der Fokusring fuer die Tastatur bleibt, er kommt vom Browser per outline. */
+.vbh-table .vbh-col-check input[type="checkbox"] { height: auto; min-height: 0; margin: 0; vertical-align: middle; }
+
+.vbh-table .vbh-col-check input[type="checkbox"]:hover,
+.vbh-table .vbh-col-check input[type="checkbox"]:focus,
+.vbh-table .vbh-col-check input[type="checkbox"]:active { box-shadow: none; }
 /* Zeitpunkt-Spalten mit Datum+Uhrzeit (Protokoll, Plan-Stände): "2026-08-15
    14:23" braucht mehr als die 96px einer reinen Datumsspalte (.nowrap),
    sonst wird die Uhrzeit abgeschnitten. */

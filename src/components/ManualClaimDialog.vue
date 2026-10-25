@@ -67,8 +67,10 @@
 </template>
 
 <script>
-import { NcButton, NcModal, NcSelect } from '@nextcloud/vue'
 import { toRefs } from 'vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcModal from '@nextcloud/vue/components/NcModal'
+import NcSelect from '@nextcloud/vue/components/NcSelect'
 import AmountInput from './AmountInput.vue'
 import { useMembers } from '../composables/useMembers.js'
 import { focusOnOpen } from '../lib/modalFocus.js'

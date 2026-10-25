@@ -63,7 +63,7 @@
 
 <script>
 import { mdiEmailOffOutline } from '@mdi/js'
-import { NcIconSvgWrapper } from '@nextcloud/vue'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import MemberAccountCell from './MemberAccountCell.vue'
 import MemberRowMenu from './MemberRowMenu.vue'
 import { formatDate, formatMoney } from '../lib/format.js'

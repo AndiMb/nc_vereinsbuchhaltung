@@ -47,7 +47,7 @@
 
 <script>
 import { mdiChevronDown, mdiChevronRight, mdiFolderOpenOutline, mdiFolderOutline, mdiHomeOutline } from '@mdi/js'
-import { NcIconSvgWrapper } from '@nextcloud/vue'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 
 /** Ein Knoten des Ordnerbaums (FolderTree.vue), rekursiv für die Unterordner. */
 export default {

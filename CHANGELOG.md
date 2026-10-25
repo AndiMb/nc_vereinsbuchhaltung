@@ -17,7 +17,7 @@ als „[object Object]" (falsche Renderer-Callback-Signatur, Nextcloud-
 Core-Bug, reproduziert 23.08.2026). Stattdessen **Fettdruck als Zeilenanfang**
 verwenden, z. B. `**Neu:**`.
 
-## [Unreleased]
+## [0.42.0] – 2026-10-25
 
 **Neu:**
 - **IBANs verschlüsselt in der Datenbank.** Die Bankverbindungen von
@@ -54,6 +54,10 @@ verwenden, z. B. `**Neu:**`.
   Vorabinfo rausgeht und der Lauf freigegeben sein sollte. Die Felder in den
   Einstellungen heißen nach dem, was passiert („Forderungen entstehen",
   „Vorabinfo an Mitglieder", „Lauf freigeben bis").
+- **App lädt schneller.** Das JavaScript-Paket der App ist etwa halb so groß
+  wie bisher (Hauptseite 5,4 → 2,8 MiB, Einstellungen 4,0 → 1,4 MiB), weil nur
+  noch die tatsächlich genutzten Nextcloud-Bausteine mitgeliefert werden. Spürbar
+  beim ersten Öffnen nach dem Update und auf langsamen Verbindungen.
 
 **Behoben:**
 - **Terminplan prüft auch Jahre ohne 29. Februar.** Ein Termin, der nur in

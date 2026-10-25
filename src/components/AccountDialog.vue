@@ -125,8 +125,11 @@
 </template>
 
 <script>
-import { NcButton, NcCheckboxRadioSwitch, NcModal, NcSelect } from '@nextcloud/vue'
 import { toRefs } from 'vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
+import NcModal from '@nextcloud/vue/components/NcModal'
+import NcSelect from '@nextcloud/vue/components/NcSelect'
 import { useAccounts } from '../composables/useAccounts.js'
 import { useCostCenters } from '../composables/useCostCenters.js'
 import { focusOnOpen } from '../lib/modalFocus.js'

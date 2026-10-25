@@ -81,7 +81,10 @@
 
 <script>
 import { showError, showSuccess, showWarning } from '@nextcloud/dialogs'
-import { NcButton, NcLoadingIcon, NcModal, NcNoteCard } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
+import NcModal from '@nextcloud/vue/components/NcModal'
+import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import AmountInput from './AmountInput.vue'
 import api from '../api.js'
 import { errMsg, formatDate } from '../lib/format.js'

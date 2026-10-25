@@ -140,8 +140,10 @@
 
 <script>
 import { mdiCalendarEdit } from '@mdi/js'
-import { NcButton, NcIconSvgWrapper, NcLoadingIcon } from '@nextcloud/vue'
 import { toRefs } from 'vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
+import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import BankReconciliationSegment from './BankReconciliationSegment.vue'
 import ClaimsSegment from './ClaimsSegment.vue'
 import DebitGhostCard from './DebitGhostCard.vue'

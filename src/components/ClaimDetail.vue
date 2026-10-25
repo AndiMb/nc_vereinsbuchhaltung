@@ -165,7 +165,7 @@
 
 <script>
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { NcButton } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
 import ClaimActionForm from './ClaimActionForm.vue'
 import DebitStatusTag from './DebitStatusTag.vue'
 import api from '../api.js'

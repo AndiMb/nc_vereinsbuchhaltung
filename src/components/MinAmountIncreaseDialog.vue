@@ -66,7 +66,8 @@
 
 <script>
 import { showError } from '@nextcloud/dialogs'
-import { NcButton, NcModal } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcModal from '@nextcloud/vue/components/NcModal'
 import AmountInput from './AmountInput.vue'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'

@@ -73,7 +73,8 @@
 
 <script>
 import { getLanguage } from '@nextcloud/l10n'
-import { NcButton, NcNoteCard } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import LeadDaysStrip from './LeadDaysStrip.vue'
 import { useDueDateSchedule } from '../composables/useDueDateSchedule.js'
 import { useSepaSettings } from '../composables/useSepaSettings.js'

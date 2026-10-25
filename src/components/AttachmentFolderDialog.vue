@@ -31,7 +31,7 @@
 </template>
 
 <script>
-import { NcModal } from '@nextcloud/vue'
+import NcModal from '@nextcloud/vue/components/NcModal'
 import AttachmentFolderPanel from './AttachmentFolderPanel.vue'
 
 /**

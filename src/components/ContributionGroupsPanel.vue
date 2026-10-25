@@ -176,8 +176,11 @@
 <script>
 import { mdiAccountSwitch, mdiArrowUpBold, mdiCalendarRemove, mdiCashEdit, mdiDelete } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { NcActionButton, NcActions, NcButton, NcIconSvgWrapper } from '@nextcloud/vue'
 import { toRefs } from 'vue'
+import NcActionButton from '@nextcloud/vue/components/NcActionButton'
+import NcActions from '@nextcloud/vue/components/NcActions'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import AssignmentChangeDialog from './AssignmentChangeDialog.vue'
 import AssignmentDialog from './AssignmentDialog.vue'
 import ContributionGroupDialog from './ContributionGroupDialog.vue'

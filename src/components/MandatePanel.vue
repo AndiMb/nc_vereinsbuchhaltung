@@ -372,7 +372,9 @@
 <script>
 import { mdiDownload, mdiOpenInNew, mdiUpload } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { NcButton, NcIconSvgWrapper, NcLoadingIcon } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
+import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import MandateAccountDialog from './MandateAccountDialog.vue'
 import MandateDraftCorrectDialog from './MandateDraftCorrectDialog.vue'
 import MandateDraftDiscardDialog from './MandateDraftDiscardDialog.vue'

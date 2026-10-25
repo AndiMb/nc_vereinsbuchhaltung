@@ -25,7 +25,9 @@
 
 <script>
 import { mdiInformationOutline } from '@mdi/js'
-import { NcButton, NcIconSvgWrapper, NcPopover } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
+import NcPopover from '@nextcloud/vue/components/NcPopover'
 
 /**
  * Kleines Info-Symbol, das beim Anklicken (oder per Tastatur) eine Erklärung

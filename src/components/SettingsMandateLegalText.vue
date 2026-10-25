@@ -130,7 +130,9 @@
 <script>
 import { mdiLockOutline } from '@mdi/js'
 import { showSuccess } from '@nextcloud/dialogs'
-import { NcButton, NcIconSvgWrapper, NcLoadingIcon } from '@nextcloud/vue'
+import NcButton from '@nextcloud/vue/components/NcButton'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
+import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import api from '../api.js'
 import { formatDate } from '../lib/format.js'
 import { authorLabel, CREDITOR_PLACEHOLDER, legalTextParagraphs, MAX_RAHMEN_LENGTH, normalizeRahmen, rahmenError } from '../lib/mandateLegalText.js'
