@@ -1,6 +1,12 @@
 import { expect, test } from '@playwright/test'
 import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, neuAnlegen, openApp, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
+// Der Reiter „Beiträge“ folgt dem Schalter in den Einstellungen; ein früherer
+// Lauf oder Nutzer kann ihn ausgeschaltet haben.
+test.beforeAll(async ({ request }) => {
+	await api.updateSettings(request, { membership_enabled: '1' })
+})
+
 // Lücken des Testprotokolls (Durchlauf vom 09.10.2026): Schritte, die im
 // Browser der Dev-Instanz nicht prüfbar waren und für die es noch keinen Test
 // gab. Die Schrittnummern stehen vor den Testnamen.

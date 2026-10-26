@@ -50,7 +50,6 @@
 					v-model:membershipEnabled="membershipEnabled"
 					v-model:selfServiceEnabled="selfServiceEnabled"
 					v-model:selfServiceTransferSwitchEnabled="selfServiceTransferSwitchEnabled"
-					:membershipActive="membershipActive"
 					:storageSaving="storageSaving"
 					:saveSettings="saveSettings" />
 				<SettingsSepaModule :storageUser="storageUser" />
@@ -204,11 +203,10 @@ export default {
 			// SEPA-Lastschrift (optionales Zusatzmodul, siehe SettingsSepaBasics.vue)
 			sepaCreditorId: '',
 			sepaDebtorAccountId: null,
-			// Schalter fuer den Reiter „Beiträge" in der App; membershipActive
-			// kommt vom Backend (Schalter ODER bereits vorhandene Mandate/
-			// Beitraege, siehe SettingsController::index()).
+			// Schalter fuer den Reiter „Beiträge" in der App; ohne gespeicherte
+			// Einstellung liefert das Backend „an", sobald Mitglieder bestehen
+			// (siehe SettingsController::currentSettings()).
 			membershipEnabled: false,
-			membershipActive: false,
 			// Self-Service-Zugang (Spec §3.4): einfacher Bool-Schalter, ab
 			// Verwalter änderbar (siehe SettingsSepaBasics.vue).
 			selfServiceEnabled: false,
@@ -256,7 +254,6 @@ export default {
 				this.sepaCreditorId = data.sepa_creditor_id || ''
 				this.sepaDebtorAccountId = data.sepa_debtor_account_id || null
 				this.membershipEnabled = !!data.membership_enabled
-				this.membershipActive = !!data.membership_active
 				this.selfServiceEnabled = !!data.self_service_enabled
 				this.selfServiceTransferSwitchEnabled = !!data.self_service_transfer_switch_enabled
 			} catch { /* ignorieren */ }
@@ -284,7 +281,6 @@ export default {
 					self_service_enabled: this.selfServiceEnabled ? '1' : '0',
 					self_service_transfer_switch_enabled: this.selfServiceTransferSwitchEnabled ? '1' : '0',
 				})
-				this.membershipActive = !!data.membership_active
 				// Die Auswahl „intern" räumt den Nutzer serverseitig ab – die Felder
 				// sollen danach dasselbe zeigen wie der Server.
 				this.storageUser = data.storage_user || ''

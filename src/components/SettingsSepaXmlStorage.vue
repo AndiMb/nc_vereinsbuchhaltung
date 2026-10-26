@@ -4,9 +4,9 @@
 		<p class="vbh-hint">
 			{{ t('Beim Freigeben eines Einzugs erzeugt die App die SEPA-Datei für die Bank. Auf Wunsch legt sie zusätzlich eine Kopie in einem Nextcloud-Ordner ab, z. B. für das Vereinsarchiv. Die Datei enthält alle IBAN im Klartext – schalten Sie die Ablage nur ein, wenn der Ordner entsprechend geschützt ist.') }}
 		</p>
-		<NcCheckboxRadioSwitch v-model="draft.xmlFolderEnabled" type="switch">
-			{{ t('Einzugsdatei zusätzlich im Nextcloud-Ordner ablegen') }}
-		</NcCheckboxRadioSwitch>
+		<SettingsToggle v-model="draft.xmlFolderEnabled" :label="t('Einzugsdatei zusätzlich im Nextcloud-Ordner ablegen')">
+			{{ t('Die Kopie entsteht beim Freigeben eines Einzugs im Ablageordner unten.') }}
+		</SettingsToggle>
 		<div class="vbh-form">
 			<FolderPathField
 				v-model="draft.xmlFolderPath"
@@ -34,8 +34,8 @@
 
 <script>
 import NcButton from '@nextcloud/vue/components/NcButton'
-import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import FolderPathField from './FolderPathField.vue'
+import SettingsToggle from './SettingsToggle.vue'
 import { useSepaSettings } from '../composables/useSepaSettings.js'
 import { useSettingsCardSave } from '../composables/useSettingsCardSave.js'
 
@@ -48,7 +48,7 @@ import { useSettingsCardSave } from '../composables/useSettingsCardSave.js'
  */
 export default {
 	name: 'SettingsSepaXmlStorage',
-	components: { FolderPathField, NcButton, NcCheckboxRadioSwitch },
+	components: { FolderPathField, NcButton, SettingsToggle },
 	props: {
 		// Nutzer der Belegablage im Nextcloud-Dateibaum (SettingsApp.vue); leer = noch keiner gewählt
 		storageUser: { type: String, default: '' },

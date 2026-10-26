@@ -8,7 +8,7 @@
 		<p v-else-if="!templates.length && !editing" class="vbh-empty">
 			{{ t('Noch keine Vorlagen.') }}
 		</p>
-		<div v-else-if="templates.length" class="vbh-inv-tpltable">
+		<div v-else-if="templates.length" class="vbh-tablecard vbh-inv-tpltable">
 			<table class="vbh-table vbh-stack">
 				<thead>
 					<tr>
@@ -235,7 +235,15 @@ export default {
 
 .vbh-inv-tplform { margin-top: 12px; }
 
-.vbh-inv-tpltable { overflow-x: auto; }
+.vbh-inv-tpltable th:nth-child(1) { width: 28%; }
+
+@container vbhtable (min-width: 641px) {
+	.vbh-inv-tpltable > .vbh-table { min-width: 780px; }
+}
+
+.vbh-inv-tpltable th:nth-child(2), .vbh-inv-tpltable th:nth-child(3), .vbh-inv-tpltable th:nth-child(5) { width: 12%; }
+
+.vbh-inv-tpltable th:nth-child(4) { width: 18%; }
 
 .vbh-inv-plan-actions { display: flex; flex-wrap: wrap; gap: 2px; justify-content: flex-end; }
 </style>

@@ -83,6 +83,24 @@ verwenden, z. B. `**Neu:**`.
   größeren Bildschirmen sind Tabellen nie schmaler als lesbar; die
   Mitgliederliste scrollt seitlich, statt die Namensspalte zusammenzudrücken.
 
+**Behoben:**
+- **Einstellungen vereinheitlicht.** Alle Ein/Aus-Einstellungen (Reiter Beiträge,
+  Self-Service, Rechnungsmodul, automatische Zuordnung, E-Rechnung, Mahnungen,
+  Rücklastschrift-Gebühren, Mandats-Hinweis, Einzugsdatei-Ablage,
+  Kontoauszug-Ordner) sind jetzt gleich aussehende Schalter mit kurzem Namen und
+  einer Erklärung darunter; vorher mischten sich Schalter und Häkchen. Die
+  Beitrags-Schalter stehen in einer eigenen Karte „Beitragsmodul“ und wirken
+  sofort. Der Kontoauszug-Ordner hat einen echten Schalter statt „Nutzer leer
+  lassen“.
+- **Mahn- und Mailtexte:** Neben Betreff und Text steht ein Knopf **Standardtext
+  übernehmen**, der den (bisher nur grauen) Standardtext zum Anpassen ins Feld
+  kopiert.
+- **Der Schalter „Reiter Beiträge in der Hauptnavigation zeigen" wirkt wieder.**
+  Der Reiter blieb sichtbar, sobald Mitglieder existierten, auch bei
+  ausgeschaltetem Schalter. Jetzt gewinnt die ausdrückliche Einstellung; nur
+  solange der Schalter nie gesetzt wurde, erscheint der Reiter mit dem ersten
+  Mitglied. Die Mitgliederdaten bleiben beim Ausblenden erhalten.
+
 ## [0.42.0] – 2026-10-25
 
 **Neu:**

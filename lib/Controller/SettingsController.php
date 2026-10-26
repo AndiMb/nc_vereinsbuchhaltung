@@ -149,7 +149,14 @@ class SettingsController extends Controller {
 	 * @return array<string,mixed>
 	 */
 	private function currentSettings(): array {
-		$membershipEnabled = $this->config->getAppValue(Application::APP_ID, 'membership_enabled', '0') === '1';
+		// Eine ausdrückliche Einstellung gewinnt; nur solange der Schalter nie
+		// gesetzt wurde, entscheidet das Vorhandensein von Mitgliedern.
+		// Mandate und Zuweisungen hängen immer an einem Mitglied (member_id ist
+		// Pflicht), ein Mitglied genügt deshalb als Kriterium; bestehende
+		// Installationen zeigen den Reiter dadurch ohne Migration sofort
+		// (siehe NAVIGATION-KONZEPT.md Abschnitt 4).
+		$stored = $this->config->getAppValue(Application::APP_ID, 'membership_enabled', '');
+		$membershipEnabled = $stored === '' ? $this->memberMapper->count() > 0 : $stored === '1';
 		return [
 			'storage_mode' => $this->attachmentStorage->mode(),
 			'storage_user' => $this->config->getAppValue(Application::APP_ID, AttachmentStorageService::SETTING_USER, ''),
@@ -165,13 +172,7 @@ class SettingsController extends Controller {
 			'sepa_creditor_id' => $this->config->getAppValue(Application::APP_ID, 'sepa_creditor_id', ''),
 			'sepa_debtor_account_id' => $this->sepaDebtorAccount->getAccountId(),
 			'membership_enabled' => $membershipEnabled,
-			// Steuert den Reiter „Beiträge": auch ohne den Schalter sichtbar,
-			// sobald bereits Mitglieder bestehen – siehe NAVIGATION-KONZEPT.md
-			// Abschnitt 4. Mandate und Zuweisungen hängen immer an einem
-			// Mitglied (member_id ist Pflicht), ein Mitglied genügt deshalb als
-			// Kriterium; bestehende Installationen zeigen den Reiter dadurch
-			// ohne Migration sofort.
-			'membership_active' => $membershipEnabled || $this->memberMapper->count() > 0,
+			'membership_active' => $membershipEnabled,
 			// Mandats-Lifecycle (Issue #66, Spec §4 „Neue Einstellungen"):
 			'mandate_reference_prefix' => $this->config->getAppValue(Application::APP_ID, MandateService::SETTING_REFERENCE_PREFIX, MandateReferenceGenerator::DEFAULT_PREFIX),
 			'mandate_document_folder' => $this->mandateDocuments->folderPath(),

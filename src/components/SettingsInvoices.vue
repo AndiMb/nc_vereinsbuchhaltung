@@ -1,22 +1,22 @@
 <template>
 	<div v-if="loaded" class="vbh-inv-settings">
 		<div class="vbh-card">
-			<h4>{{ t('Rechnungen schreiben') }}</h4>
+			<h4>{{ t('Rechnungsmodul') }}</h4>
 			<p class="vbh-hint">
-				{{ t('Schaltet den Reiter „Rechnungen“ ein. Rechnungen im Namen des Vereins werden als offene Posten geführt und beim Kontoauszug-Import ihrer Zahlung zugeordnet.') }}
+				{{ t('Rechnungen im Namen des Vereins schreiben, als offene Posten führen und beim Kontoauszug-Import ihrer Zahlung zuordnen.') }}
 			</p>
-			<label class="vbh-checkrow">
-				<input v-model="form.invoice_module_active" type="checkbox"> {{ t('Rechnungsmodul einschalten') }}
-			</label>
-			<label class="vbh-checkrow">
-				<input v-model="form.invoice_auto_assign" type="checkbox"> {{ t('Der Import bucht Zahlungen mit passender Rechnungsnummer und genauem Betrag selbst') }}
-			</label>
-			<label class="vbh-checkrow">
-				<input v-model="form.invoice_rf_reference" type="checkbox"> {{ t('Strukturierte Zahlungsreferenz (RF…, ISO 11649) auf die Rechnung drucken und in den GiroCode eintragen') }}
-			</label>
-			<label class="vbh-checkrow">
-				<input v-model="form.invoice_einvoice_auto" type="checkbox"> {{ t('Beim Festschreiben zugleich die E-Rechnung erzeugen (ZUGFeRD für Unternehmen, XRechnung für Behörden)') }}
-			</label>
+			<SettingsToggle v-model="form.invoice_module_active" :label="t('Reiter „Rechnungen“ anzeigen')">
+				{{ t('Schaltet das Rechnungsmodul ein. Ist der Schalter aus, bleibt der Reiter ausgeblendet; bestehende Rechnungen bleiben erhalten.') }}
+			</SettingsToggle>
+			<SettingsToggle v-model="form.invoice_auto_assign" :label="t('Zahlungen beim Import automatisch zuordnen')">
+				{{ t('Der Kontoauszug-Import bucht Zahlungen mit passender Rechnungsnummer und genauem Betrag selbst.') }}
+			</SettingsToggle>
+			<SettingsToggle v-model="form.invoice_rf_reference" :label="t('Strukturierte Zahlungsreferenz verwenden')">
+				{{ t('Druckt die Referenz (RF…, ISO 11649) auf die Rechnung und trägt sie in den GiroCode ein.') }}
+			</SettingsToggle>
+			<SettingsToggle v-model="form.invoice_einvoice_auto" :label="t('E-Rechnung beim Festschreiben erzeugen')">
+				{{ t('Erzeugt zugleich ZUGFeRD (für Unternehmen) bzw. XRechnung (für Behörden).') }}
+			</SettingsToggle>
 			<p v-if="stateError" class="vbh-hint vbh-hint--error" role="alert">
 				{{ stateError }}
 			</p>
@@ -213,22 +213,19 @@
 		<div class="vbh-card">
 			<h4>{{ t('E-Mail-Vorlage für den Versand') }}</h4>
 			<p class="vbh-hint">
-				{{ t('Platzhalter: {nummer}, {betrag}, {faellig}, {verein}, {empfaenger}. Beim Versand lässt sich der Text noch anpassen. Bleibt ein Feld leer, gilt der grau angezeigte Standardtext.') }}
+				{{ t('Platzhalter: {nummer}, {betrag}, {faellig}, {verein}, {empfaenger}. Beim Versand lässt sich der Text noch anpassen. Bleibt ein Feld leer, gilt der grau angezeigte Standardtext; „Standardtext übernehmen“ kopiert ihn zum Anpassen ins Feld.') }}
 			</p>
 			<div class="vbh-form">
-				<label class="vbh-grow">{{ t('Betreff') }}
-					<input v-model="form.invoice_mail_subject" maxlength="200" :placeholder="defaults.invoice_mail_subject">
-				</label>
-			</div>
-			<div class="vbh-form">
-				<label class="vbh-grow">{{ t('Text') }}
-					<textarea
-						v-model="form.invoice_mail_body"
-						class="vbh-note-textarea"
-						:placeholder="defaults.invoice_mail_body"
-						rows="9"
-						maxlength="5000" />
-				</label>
+				<SettingsTemplateField
+					v-model="form.invoice_mail_subject"
+					:label="t('Betreff')"
+					:defaultText="defaults.invoice_mail_subject"
+					:maxlength="200" />
+				<SettingsTemplateField
+					v-model="form.invoice_mail_body"
+					:label="t('Text')"
+					:defaultText="defaults.invoice_mail_body"
+					multiline />
 			</div>
 			<p v-if="mailError" class="vbh-hint vbh-hint--error" role="alert">
 				{{ mailError }}
@@ -245,11 +242,11 @@
 		<div class="vbh-card">
 			<h4>{{ t('Mahnwesen für Rechnungen') }}</h4>
 			<p class="vbh-hint">
-				{{ t('Drei Stufen: Zahlungserinnerung, 1. und 2. Mahnung. Das Mahnschreiben (PDF mit GiroCode über den Restbetrag) geht per E-Mail an den Empfänger. Mahnen kann der Verwalter in der Rechnung; wer will, lässt den täglichen Hintergrundjob fällige Stufen selbst verschicken. Bezahlte und stornierte Rechnungen werden nie gemahnt.') }}
+				{{ t('Drei Stufen: Zahlungserinnerung, 1. und 2. Mahnung. Das Mahnschreiben (PDF mit GiroCode über den Restbetrag) geht per E-Mail an den Empfänger. Bezahlte und stornierte Rechnungen werden nie gemahnt.') }}
 			</p>
-			<label class="vbh-checkrow">
-				<input v-model="form.invoice_dunning_auto" type="checkbox"> {{ t('Fällige Mahnungen automatisch per E-Mail verschicken') }}
-			</label>
+			<SettingsToggle v-model="form.invoice_dunning_auto" :label="t('Mahnungen automatisch versenden')">
+				{{ t('Der tägliche Hintergrundjob verschickt fällige Stufen selbst per E-Mail. Aus: Mahnen kann der Verwalter in der Rechnung von Hand.') }}
+			</SettingsToggle>
 			<div class="vbh-form">
 				<label>{{ t('Erinnerung nach Fälligkeit (Tage)') }}
 					<input
@@ -285,22 +282,21 @@
 				</label>
 			</div>
 			<p class="vbh-hint">
-				{{ t('Platzhalter: {stufe}, {nummer}, {rechnungsdatum}, {betrag}, {rest}, {faellig}, {frist}, {verein}, {empfaenger}. Bleibt ein Feld leer, gilt der grau angezeigte Standardtext.') }}
+				{{ t('Platzhalter: {stufe}, {nummer}, {rechnungsdatum}, {betrag}, {rest}, {faellig}, {frist}, {verein}, {empfaenger}. Bleibt ein Feld leer, gilt der grau angezeigte Standardtext; „Standardtext übernehmen“ kopiert ihn zum Anpassen ins Feld.') }}
 			</p>
 			<div class="vbh-form">
-				<label class="vbh-grow">{{ t('Betreff') }}
-					<input v-model="form.invoice_dunning_subject" maxlength="200" :placeholder="defaults.invoice_dunning_subject">
-				</label>
-			</div>
-			<div v-for="level in [1, 2, 3]" :key="level" class="vbh-form">
-				<label class="vbh-grow">{{ dunningLabel(level) }}
-					<textarea
-						v-model="form['invoice_dunning_body_' + level]"
-						class="vbh-note-textarea"
-						:placeholder="defaults['invoice_dunning_body_' + level]"
-						rows="9"
-						maxlength="5000" />
-				</label>
+				<SettingsTemplateField
+					v-model="form.invoice_dunning_subject"
+					:label="t('Betreff')"
+					:defaultText="defaults.invoice_dunning_subject"
+					:maxlength="200" />
+				<SettingsTemplateField
+					v-for="level in [1, 2, 3]"
+					:key="level"
+					v-model="form['invoice_dunning_body_' + level]"
+					:label="dunningLabel(level)"
+					:defaultText="defaults['invoice_dunning_body_' + level]"
+					multiline />
 			</div>
 			<p v-if="dunningError" class="vbh-hint vbh-hint--error" role="alert">
 				{{ dunningError }}
@@ -358,6 +354,8 @@ import NcButton from '@nextcloud/vue/components/NcButton'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import CountrySelect from './CountrySelect.vue'
 import SettingsInvoiceTemplates from './SettingsInvoiceTemplates.vue'
+import SettingsTemplateField from './SettingsTemplateField.vue'
+import SettingsToggle from './SettingsToggle.vue'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
 import { dunningLabel, formatNumberPattern } from '../lib/invoices.js'
@@ -412,7 +410,7 @@ const KEYS = [
  */
 export default {
 	name: 'SettingsInvoices',
-	components: { NcButton, NcLoadingIcon, CountrySelect, SettingsInvoiceTemplates },
+	components: { NcButton, NcLoadingIcon, CountrySelect, SettingsInvoiceTemplates, SettingsTemplateField, SettingsToggle },
 
 	data() {
 		return {
@@ -536,5 +534,5 @@ export default {
 
 .vbh-inv-settings .vbh-form label > input:not([type="checkbox"]), .vbh-inv-settings .vbh-form label > select, .vbh-inv-settings .vbh-form label > textarea { width: 100%; min-width: 0; box-sizing: border-box; }
 
-.vbh-inv-settings .vbh-form label :deep(.v-select) { width: 100%; }
+.vbh-inv-settings .vbh-form label :deep(.v-select) { width: 100%; min-width: 0; }
 </style>

@@ -1,12 +1,12 @@
 <template>
 	<div class="vbh-card">
-		<p class="vbh-hint">
-			{{ t('Legt man den im Onlinebanking heruntergeladenen Kontoauszug in diesen Ordner, liest die App ihn von allein ein – kein Hochladen mehr von Hand. Erkannt werden CSV-CAMT, CAMT.053 (XML) und MT940. Leer lassen schaltet die Funktion ab.') }}
-		</p>
-		<div class="vbh-form">
+		<SettingsToggle :modelValue="enabled" :label="t('Kontoauszüge automatisch einlesen')" @update:modelValue="changeEnabled">
+			{{ t('Legt man den im Onlinebanking heruntergeladenen Kontoauszug in einen Ordner, liest die App ihn von allein ein – kein Hochladen mehr von Hand. Erkannt werden CSV-CAMT, CAMT.053 (XML) und MT940. Beim Ausschalten wird der Ordner nicht mehr geprüft.') }}
+		</SettingsToggle>
+		<div v-if="enabled" class="vbh-form">
 			<label class="vbh-grow">{{ t('Nextcloud-Nutzer') }}
 				<select v-model="watchUserModel">
-					<option value="">{{ t('— aus —') }}</option>
+					<option value="">{{ t('— bitte wählen —') }}</option>
 					<option v-for="u in users" :key="u.id" :value="u.id">{{ u.displayName }} ({{ u.id }})</option>
 				</select>
 			</label>
@@ -31,6 +31,7 @@
 import { toRefs } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import FolderPathField from './FolderPathField.vue'
+import SettingsToggle from './SettingsToggle.vue'
 import { usePermissions } from '../composables/usePermissions.js'
 
 /**
@@ -40,7 +41,7 @@ import { usePermissions } from '../composables/usePermissions.js'
  */
 export default {
 	name: 'SettingsStatementWatch',
-	components: { FolderPathField, NcButton },
+	components: { FolderPathField, NcButton, SettingsToggle },
 	props: {
 		statementWatchUser: { type: String, default: '' },
 		statementWatchPath: { type: String, default: '' },
@@ -53,6 +54,10 @@ export default {
 
 	setup() {
 		return { ...toRefs(usePermissions().state) }
+	},
+
+	data() {
+		return { enabled: !!this.statementWatchUser }
 	},
 
 	computed: {
@@ -70,6 +75,21 @@ export default {
 		// halb ausgefuellte Angabe ebenfalls zurueck).
 		watchActive() {
 			return !!this.statementWatchUser && !!this.statementWatchPath
+		},
+	},
+
+	watch: {
+		// Die Einstellungen kommen erst nach dem Mounten vom Server.
+		statementWatchUser(v) { if (v) { this.enabled = true } },
+	},
+
+	methods: {
+		changeEnabled(on) {
+			this.enabled = on
+			if (!on) {
+				this.$emit('update:statementWatchUser', '')
+				this.$nextTick(() => this.saveStorageSettings())
+			}
 		},
 	},
 }

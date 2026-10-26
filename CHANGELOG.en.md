@@ -80,6 +80,23 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   are never narrower than readable; the member list scrolls sideways instead
   of squeezing the name column.
 
+**Fixed:**
+- **Settings unified.** All on/off settings (Contributions tab, self-service,
+  invoice module, automatic matching, e-invoice, dunning, return-debit fees,
+  mandate notice, collection-file storage, statement folder) are now identical
+  switches with a short name and an explanation below; before, switches and
+  checkboxes were mixed. The contributions switches sit in their own
+  "Contributions module" card and take effect immediately. The statement
+  folder has a real switch instead of "leave the user empty".
+- **Dunning and email texts:** next to subject and text there is a **Use default
+  text** button that copies the (so far only grey) default text into the field
+  so you can edit it.
+- **The "Show the Contributions tab in the main navigation" switch works
+  again.** The tab stayed visible as soon as members existed, even with the
+  switch off. An explicit setting now wins; only while the switch was never
+  set does the tab appear with the first member. Member data is kept when the
+  tab is hidden.
+
 ## [0.42.0] – 2026-10-25
 
 **New:**

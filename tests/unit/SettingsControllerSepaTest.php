@@ -132,6 +132,16 @@ class SettingsControllerSepaTest extends TestCase {
 		$this->assertTrue($this->controller($members)->index()->getData()['membership_active']);
 	}
 
+	public function testAusgeschalteterSchalterVerbirgtDenReiterAuchMitMitgliedern(): void {
+		$this->store['membership_enabled'] = '0';
+		$members = $this->createMock(MemberMapper::class);
+		$members->method('count')->willReturn(3);
+
+		$data = $this->controller($members)->index()->getData();
+		$this->assertFalse($data['membership_active']);
+		$this->assertFalse($data['membership_enabled']);
+	}
+
 	public function testReiterBeitraegeErscheintMitSchalterAuchOhneMitglieder(): void {
 		$this->store['membership_enabled'] = '1';
 		$members = $this->createMock(MemberMapper::class);
