@@ -104,6 +104,12 @@ class InvoiceSuiteEInvoiceWriter implements EInvoiceWriter {
 	 * verschwinden, er wird dann neu aufgebaut.
 	 */
 	private function useWritableCache(): void {
+		// Die Bibliothek sucht ihre Format-Anbieter sonst in allen Klassen aller
+		// Composer-Autoloader – in einer Nextcloud also auch in deren eigenen
+		// Klassen, von denen manche beim Laden abstürzen (fehlende Symfony-
+		// Traits, ein nicht abfangbarer Fatal Error). Die Anbieter liegen alle
+		// im eigenen Namensraum der Bibliothek.
+		InvoiceSuiteSettings::setDiscoveryNamespaces(['horstoeko\\invoicesuite']);
 		$base = $this->tempManager !== null ? $this->tempManager->getTempBaseDir() : sys_get_temp_dir();
 		$dir = rtrim($base, '/') . '/vbh-invoicesuite-' . substr(hash('sha256', __DIR__), 0, 12);
 		if (!is_dir($dir) && !@mkdir($dir, 0700, true) && !is_dir($dir)) {

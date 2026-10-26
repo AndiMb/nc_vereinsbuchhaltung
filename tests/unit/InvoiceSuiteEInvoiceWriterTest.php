@@ -109,6 +109,19 @@ class InvoiceSuiteEInvoiceWriterTest extends TestCase {
 		];
 	}
 
+	/**
+	 * Ohne diese Einschränkung lädt die Bibliothek beim ersten Aufruf jede Klasse aller
+	 * Composer-Autoloader – in einer Nextcloud auch deren eigene, von denen manche mit einem
+	 * nicht abfangbaren Fatal Error abstürzen (CI, frische Installation ohne Zwischenspeicher).
+	 */
+	public function testDieSucheNachFormatAnbieternBleibtImNamensraumDerBibliothek(): void {
+		\horstoeko\invoicesuite\InvoiceSuiteSettings::setDiscoveryNamespaces([]);
+
+		$this->writer()->buildXml($this->data(), EInvoiceFormat::ZUGFERD);
+
+		$this->assertSame(['horstoeko\\invoicesuite'], \horstoeko\invoicesuite\InvoiceSuiteSettings::getDiscoveryNamespaces());
+	}
+
 	public function testZugferdTraegtSummenSteuerzeilenUndKaeuferreferenz(): void {
 		$xml = $this->writer()->buildXml($this->data(), EInvoiceFormat::ZUGFERD);
 
