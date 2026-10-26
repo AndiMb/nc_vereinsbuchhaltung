@@ -139,6 +139,7 @@ class InvoiceServiceTest extends TestCase {
 			$a->setType($id === 77 ? 'expense' : 'income');
 			$a->setIsBank(false);
 			$a->setActive(true);
+			$a->setSphere($id === 78 ? 'ideell' : 'zweckbetrieb');
 			return $a;
 		});
 
@@ -479,6 +480,55 @@ class InvoiceServiceTest extends TestCase {
 
 		$s->issue((int)$invoice->getId());
 		$this->assertArrayNotHasKey('checklist', $s->detail((int)$invoice->getId()));
+	}
+
+	public function testPositionAufEinemSpendenkontoIstNurEinHinweis(): void {
+		$s = $this->service();
+		$invoice = $s->createDraft($this->draftData(['lines' => [
+			['name' => 'Spende', 'quantity' => 1, 'unitPrice' => 50, 'accountId' => 78],
+		]]));
+
+		$sphere = $this->checklistItem($s, (int)$invoice->getId(), 'sphere');
+
+		$this->assertFalse($sphere['ok']);
+		$this->assertFalse($sphere['required']);
+		$this->assertSame(Invoice::STATUS_ISSUED, $s->issue((int)$invoice->getId())->getStatus());
+	}
+
+	public function testPositionenAufErloeskontenAnderenSphaerenSindOhneHinweis(): void {
+		$s = $this->service();
+		$invoice = $s->createDraft($this->draftData());
+
+		$this->assertTrue($this->checklistItem($s, (int)$invoice->getId(), 'sphere')['ok']);
+	}
+
+	public function testEingetragenerVereinOhneZusatzEVBekommtEinenHinweis(): void {
+		$this->config['club_register_no'] = 'VR 1234';
+		$this->config['club_name'] = 'TSV Beispiel';
+		$s = $this->service();
+		$invoice = $s->createDraft($this->draftData());
+
+		$this->assertFalse($this->checklistItem($s, (int)$invoice->getId(), 'clubSuffix')['ok']);
+
+		$this->config['club_name'] = 'TSV Beispiel e.V.';
+		$this->assertTrue($this->checklistItem($this->service(), (int)$invoice->getId(), 'clubSuffix')['ok']);
+	}
+
+	public function testOhneRegisternummerGibtEsKeinenZusatzHinweis(): void {
+		$s = $this->service();
+		$invoice = $s->createDraft($this->draftData());
+
+		$this->assertNull($this->checklistItem($s, (int)$invoice->getId(), 'clubSuffix'));
+	}
+
+	/** @return array{key: string, label: string, ok: bool, required: bool}|null */
+	private function checklistItem(InvoiceService $s, int $id, string $key): ?array {
+		foreach ($s->detail($id)['checklist'] as $item) {
+			if ($item['key'] === $key) {
+				return $item;
+			}
+		}
+		return null;
 	}
 
 	public function testFehlendeBankverbindungIstNurEineEmpfehlung(): void {

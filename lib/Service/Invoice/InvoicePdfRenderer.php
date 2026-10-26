@@ -409,6 +409,11 @@ class InvoicePdfRenderer {
 		if ($invoice->getPaymentTerms() !== null && !$invoice->isCredit()) {
 			$this->paragraph($pdf, (string)$invoice->getPaymentTerms());
 		}
+		// Optionaler Hinweis auf die Gemeinnützigkeit; er ersetzt keinen Steuerhinweis.
+		$nonprofit = trim((string)($data->issuer['nonprofitNote'] ?? ''));
+		if ($nonprofit !== '') {
+			$this->paragraph($pdf, $nonprofit);
+		}
 	}
 
 	/**

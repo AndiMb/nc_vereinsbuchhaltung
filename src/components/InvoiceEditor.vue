@@ -348,6 +348,15 @@
 								<span>{{ c.label }}</span>
 							</li>
 						</ul>
+						<template v-if="hintChecks.length">
+							<h4>{{ t('Zur Beachtung') }}</h4>
+							<ul class="vbh-inv-checklist vbh-inv-hints">
+								<li v-for="c in hintChecks" :key="c.key" class="open">
+									<NcIconSvgWrapper :path="mdiAlertOutline" :size="18" />
+									<span>{{ c.label }}</span>
+								</li>
+							</ul>
+						</template>
 					</div>
 					<div v-if="currentId && !isPlan" class="vbh-inv-discard">
 						<NcButton variant="tertiary" @click="discardOpen = true">
@@ -487,7 +496,7 @@
 </template>
 
 <script>
-import { mdiArrowDown, mdiArrowLeft, mdiArrowUp, mdiCheckCircleOutline, mdiCircleOutline, mdiDelete, mdiFilePdfBox, mdiPlus } from '@mdi/js'
+import { mdiAlertOutline, mdiArrowDown, mdiArrowLeft, mdiArrowUp, mdiCheckCircleOutline, mdiCircleOutline, mdiDelete, mdiFilePdfBox, mdiPlus } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
@@ -550,7 +559,7 @@ export default {
 	emits: ['close', 'changed', 'issued', 'planSaved'],
 
 	setup() {
-		return { mdiArrowDown, mdiArrowLeft, mdiArrowUp, mdiCheckCircleOutline, mdiCircleOutline, mdiDelete, mdiFilePdfBox, mdiPlus }
+		return { mdiArrowDown, mdiArrowLeft, mdiAlertOutline, mdiArrowUp, mdiCheckCircleOutline, mdiCircleOutline, mdiDelete, mdiFilePdfBox, mdiPlus }
 	},
 
 	data() {
@@ -588,6 +597,8 @@ export default {
 		needsExemptionText() { return this.regular && this.form.lines.some((l) => l.taxKey === 'E' && !isEmptyLine(l)) },
 		sums() { return editorTotals(this.form.lines, this.regular) },
 		requiredChecks() { return this.checklist.filter((c) => c.required) },
+		/** Empfehlungen, die das Festschreiben nicht verhindern (z. B. Spendenkonto als Position). */
+		hintChecks() { return this.checklist.filter((c) => !c.required && !c.ok) },
 		/** Kurzer Hinweis neben „Weitere Angaben“, damit man nicht aufklappen muss, um zu sehen, was drinsteht. */
 		moreHint() {
 			const f = this.form
@@ -1140,6 +1151,10 @@ h3 { margin: 0 0 10px; font-size: 1.05em; }
 .vbh-inv-checklist li { display: flex; gap: 8px; align-items: flex-start; font-size: 0.92em; }
 
 .vbh-inv-checklist li.ok { opacity: 0.65; }
+
+.vbh-inv-checks h4 { margin: 14px 0 6px; }
+
+.vbh-inv-hints li { color: var(--color-warning-text, inherit); }
 
 .vbh-inv-checklist li.open { font-weight: 600; }
 

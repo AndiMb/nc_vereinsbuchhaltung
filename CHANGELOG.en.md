@@ -18,6 +18,14 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 ## [0.43.0] – 2026-10-25
 
 **New:**
+- **Hints while writing invoices:** the editor warns under "Please note" when a
+  line is on an account of the non-material sphere (donations and genuine
+  membership fees are not invoiced) or a registered association has no "e. V."
+  in its name. Neither prevents finalizing. Plus an optional **note on
+  non-profit status** in the invoice footer (Settings → Invoices).
+- "Delete all data" now states explicitly that all invoices including their
+  PDF and e-invoice are deleted too, and reminds of the eight-year retention
+  period (back up the receipts ZIP first).
 - **Invoice module (optional).** The association issues invoices in its own
   name: *Invoices* tab, turned on under Nextcloud settings → Vereinsbuchhaltung
   → Invoices. Recipients come from their own master data or from the members;

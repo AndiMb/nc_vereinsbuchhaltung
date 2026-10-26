@@ -1254,7 +1254,7 @@ readable page, so nothing needs to be looked up on GitHub.
 
 Gear icon → *Data* → *Delete all data* (administrators only, with a
 confirmation dialog) removes accounts, postings, imports, receipts, open items
-(including the claims against members), the templates of the
+(including the claims against members), **all invoices including their PDF and e-invoice** (invoices must be kept for eight years: back them up first with the receipts ZIP under Reports → Evaluation), the templates of the
 structured report (afterwards the two standard templates are available
 again) and the year-end closing markers.
 **The change log is kept.** Members, mandates, contribution groups and
@@ -2433,7 +2433,7 @@ Accountants may create drafts; **finalizing, sending and cancelling** are reserv
 
 ### 15.4 Finalizing
 
-**Finalize …** checks the mandatory details (address and tax number of the association, recipient, time of service, line items, amount). After that:
+**Finalize …** checks the mandatory details (address and tax number of the association, recipient, time of service, line items, amount). Under **Please note** the editor lists hints that do not prevent finalizing: a line on an account of the non-material sphere (**donations and genuine membership fees are not invoiced** – use the donation receipt or the contributions module instead), a registered association without "e. V." in its name, and a missing bank account. Optionally the invoice prints a **note on non-profit status** (Settings → Invoices → Club details); it does not replace a VAT notice. After that:
 
 - the invoice receives its **number** and is **immutable** – it can only be corrected by cancelling it;
 - the **PDF** is created (PDF/A-3b, with a GiroCode to scan in the banking app) and stored as a file in the folder of the receipt storage under `Vereinsbuchhaltung/Rechnungen/<year>/`; the checksum (SHA-256) later shows whether the file was changed;

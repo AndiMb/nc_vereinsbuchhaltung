@@ -95,7 +95,7 @@
 				<div class="vbh-card vbh-card--danger">
 					<h4>{{ t('Alle Daten löschen') }}</h4>
 					<p class="vbh-hint">
-						{{ t('Löscht unwiderruflich alle Konten, Buchungen und Importe sowie den Einzug (Lastschrift-Läufe, Einzugsposten, Rücklastschriften, Mahnstufen). Mitglieder, Mandate, Beitragsgruppen und Zuweisungen bleiben bestehen.') }}
+						{{ t('Löscht unwiderruflich alle Konten, Buchungen und Importe, alle Rechnungen samt PDF und E-Rechnung sowie den Einzug (Lastschrift-Läufe, Einzugsposten, Rücklastschriften, Mahnstufen). Mitglieder, Mandate, Beitragsgruppen und Zuweisungen bleiben bestehen. Rechnungen sind acht Jahre aufzubewahren: Sichern Sie sie vorher mit dem Beleg-ZIP (Berichte → Auswertung).') }}
 					</p>
 					<NcButton variant="error" :disabled="busy" @click="resetAll">
 						{{ t('Alle Daten löschen') }}
@@ -300,7 +300,7 @@ export default {
 		},
 
 		async resetAll() {
-			if (!await this.askConfirm(this.t('Alle Daten löschen'), this.t('Wirklich ALLE Konten, Buchungen und Importe sowie den Einzug (Läufe, Rücklastschriften, Mahnstufen) löschen? Mitglieder, Mandate, Beitragsgruppen und Zuweisungen bleiben bestehen.'))) { return }
+			if (!await this.askConfirm(this.t('Alle Daten löschen'), this.t('Wirklich ALLE Konten, Buchungen und Importe, alle Rechnungen samt PDF und E-Rechnung sowie den Einzug (Läufe, Rücklastschriften, Mahnstufen) löschen? Rechnungen sind acht Jahre aufzubewahren – haben Sie sie mit dem Beleg-ZIP gesichert? Mitglieder, Mandate, Beitragsgruppen und Zuweisungen bleiben bestehen.'))) { return }
 			this.busy = true
 			try {
 				await api.reset()

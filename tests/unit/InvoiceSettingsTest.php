@@ -77,6 +77,15 @@ class InvoiceSettingsTest extends TestCase {
 		$this->assertSame('DE123456789', $s->issuer()['vatId']);
 	}
 
+	public function testGemeinnuetzigkeitsHinweisIstOptionalUndWirdGespeichert(): void {
+		$s = $this->settings();
+		$this->assertSame('', $s->issuer()['nonprofitNote']);
+
+		$s->update(['club_nonprofit_note' => '  Als gemeinnützig anerkannt, Finanzamt Beispielstadt.  ']);
+
+		$this->assertSame('Als gemeinnützig anerkannt, Finanzamt Beispielstadt.', $s->issuer()['nonprofitNote']);
+	}
+
 	public function testSteuerModusWirdGespeichertUndUnbekannteWerdenAbgelehnt(): void {
 		$s = $this->settings();
 

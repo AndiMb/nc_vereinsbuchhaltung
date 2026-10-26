@@ -84,6 +84,18 @@
 					<input v-model="form.club_email" type="email" maxlength="255">
 				</label>
 			</div>
+			<div class="vbh-form">
+				<SettingsTemplateField
+					v-model="form.club_nonprofit_note"
+					:label="t('Hinweis auf die Gemeinnützigkeit (optional)')"
+					:defaultText="t('Der Verein ist vom Finanzamt … als gemeinnützig anerkannt (Freistellungsbescheid vom …).')"
+					:maxlength="500"
+					multiline
+					:rows="2" />
+			</div>
+			<p class="vbh-hint">
+				{{ t('Erscheint unter den Hinweisen auf der Rechnung. Er ist freiwillig und ersetzt keinen Hinweis zur Umsatzsteuer.') }}
+			</p>
 			<p v-if="issuerError" class="vbh-hint vbh-hint--error" role="alert">
 				{{ issuerError }}
 			</p>
@@ -400,6 +412,7 @@ const KEYS = [
 	'club_representatives',
 	'club_phone',
 	'club_email',
+	'club_nonprofit_note',
 ]
 
 /**
@@ -490,7 +503,7 @@ export default {
 		saveModule() { return this.store(['invoice_module_active', 'invoice_auto_assign', 'invoice_einvoice_auto', 'invoice_rf_reference'], 'stateError') },
 
 		saveIssuer() {
-			return this.store(['club_street', 'club_postal_code', 'club_city', 'club_country', 'club_tax_number', 'club_vat_id', 'club_register_court', 'club_register_no', 'club_representatives', 'club_phone', 'club_email'], 'issuerError')
+			return this.store(['club_street', 'club_postal_code', 'club_city', 'club_country', 'club_tax_number', 'club_vat_id', 'club_register_court', 'club_register_no', 'club_representatives', 'club_phone', 'club_email', 'club_nonprofit_note'], 'issuerError')
 		},
 
 		saveTax() {

@@ -20,6 +20,15 @@ verwenden, z. B. `**Neu:**`.
 ## [0.43.0] – 2026-10-25
 
 **Neu:**
+- **Hinweise beim Rechnungschreiben:** Der Editor warnt unter „Zur Beachtung“,
+  wenn eine Position auf einem Konto des ideellen Bereichs liegt (Spenden und
+  echte Mitgliedsbeiträge sind keine Rechnung) oder ein eingetragener Verein
+  kein „e. V.“ im Namen trägt. Beides hindert das Festschreiben nicht. Dazu ein
+  freiwilliger **Hinweis auf die Gemeinnützigkeit** im Rechnungsfuß
+  (Einstellungen → Rechnungen).
+- „Alle Daten löschen“ nennt jetzt ausdrücklich, dass auch alle Rechnungen
+  samt PDF und E-Rechnung gelöscht werden, und erinnert an die
+  Aufbewahrungsfrist von acht Jahren (Beleg-ZIP vorher sichern).
 - **Rechnungsmodul (optional).** Der Verein stellt Rechnungen in seinem Namen
   aus: Reiter *Rechnungen*, einzuschalten unter Nextcloud-Einstellungen →
   Vereinsbuchhaltung → Rechnungen. Empfänger kommen aus eigenen Stammdaten

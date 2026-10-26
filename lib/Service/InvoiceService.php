@@ -175,7 +175,38 @@ class InvoiceService {
 			}
 		}
 		$add('bank', $this->msg('Bankverbindung für die Überweisung'), $this->settings->accountId() !== null, false);
+
+		// Hinweise, die nicht am Festschreiben hindern: Spenden und echte
+		// Mitgliedsbeiträge (ideeller Bereich) sind kein Entgelt und keine
+		// Rechnung im Sinne des UStG; eingetragene Vereine nennen das „e. V.“.
+		$add('sphere', $this->msg('Eine Position liegt auf einem Konto des ideellen Bereichs – Spenden und echte Mitgliedsbeiträge sind keine Rechnung'), !$this->hasIdealSphereLine($lines), false);
+		$issuer = $this->settings->issuer();
+		if ($issuer['registerNo'] !== '' && $issuer['name'] !== '') {
+			$add('clubSuffix', $this->msg('Der Vereinsname trägt nicht den Zusatz „e. V.“, obwohl eine Registernummer angegeben ist'), (bool)preg_match('/\be\s*\.?\s*V\s*\.?(?!\w)|eingetragener\s+Verein/iu', $issuer['name']), false);
+		}
 		return $items;
+	}
+
+	/** @param InvoiceLine[] $lines */
+	private function hasIdealSphereLine(array $lines): bool {
+		$checked = [];
+		foreach ($lines as $line) {
+			$id = $line->getAccountId();
+			if ($id === null) {
+				continue;
+			}
+			if (!array_key_exists($id, $checked)) {
+				try {
+					$checked[$id] = $this->accounts->find($id, Application::BOOK)->getSphere() === 'ideell';
+				} catch (DoesNotExistException) {
+					$checked[$id] = false;
+				}
+			}
+			if ($checked[$id]) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	// ------------------------------------------------------------------

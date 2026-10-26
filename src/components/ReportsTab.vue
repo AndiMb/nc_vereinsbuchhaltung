@@ -824,7 +824,9 @@
 							</thead>
 							<tbody>
 								<tr v-for="snap in budgetSnapshots" :key="snap.id">
-									<td class="vbh-stack-title"><strong>{{ snap.label }}</strong></td>
+									<td class="vbh-stack-title">
+										<strong>{{ snap.label }}</strong>
+									</td>
 									<td class="nowrap">
 										{{ formatDateTime(snap.createdAt) }}
 									</td>

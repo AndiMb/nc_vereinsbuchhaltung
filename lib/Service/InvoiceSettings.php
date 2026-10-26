@@ -83,6 +83,7 @@ class InvoiceSettings {
 		'club_representatives' => ['field' => 'representatives', 'max' => 255],
 		'club_phone' => ['field' => 'phone', 'max' => 64],
 		'club_email' => ['field' => 'email', 'max' => 255],
+		'club_nonprofit_note' => ['field' => 'nonprofitNote', 'max' => 500],
 	];
 
 	/** Kleinunternehmer-Hinweis nach § 19 Abs. 1 UStG, wenn nichts anderes hinterlegt ist. */

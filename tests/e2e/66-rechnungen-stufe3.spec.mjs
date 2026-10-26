@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, INCOME_ACCOUNT, neuAnlegen, openApp, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
+import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, INCOME_ACCOUNT, neuAnlegen, openApp, openSettingsPage, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Rechnungsmodul Stufe 3 (Epic #168): Positionsvorlagen, wiederkehrende Rechnungen,
 // Mahnstand, RF-Referenz im Bankabgleich und die Rechnungen im Prüfungs-ZIP.
@@ -227,5 +227,40 @@ test.describe.serial('Rechnungen Stufe 3', () => {
 		await openApp(page, USERS.verwalter)
 		await neuAnlegen(page, 'Mitglied')
 		await expect(page.getByRole('dialog', { name: 'Mitglied aufnehmen' })).toBeVisible()
+	})
+
+	test('Prüfhinweise: ein Spendenkonto als Position ist nur ein Hinweis, „e. V.“ fehlt im Namen', async ({ request }) => {
+		const spende = await api.createAccount(request, { number: '4199', name: 'Spenden E2E', type: 'income' })
+		await api.updateAccount(request, spende.id, { sphere: 'ideell' })
+		try {
+			const draft = await (await api.raw(request, 'POST', '/invoices', {
+				data: { debtorId: debtor.id, issueDate: TODAY, deliveryDate: TODAY, lines: [{ name: 'Spende', quantity: 1, unitPrice: 50, accountId: spende.id }] },
+			})).json()
+			const sphere = draft.checklist.find((c) => c.key === 'sphere')
+			expect(sphere).toMatchObject({ ok: false, required: false })
+			expect(draft.checklist.filter((c) => c.required && !c.ok)).toEqual([])
+
+			// Ein eingetragener Verein ohne „e. V.“ im Namen bekommt einen Hinweis.
+			await api.updateSettings(request, { club_register_no: 'VR 1234', club_name: 'TSV E2E' })
+			const named = await api.getJson(request, `/invoices/${draft.id}`)
+			expect(named.checklist.find((c) => c.key === 'clubSuffix')).toMatchObject({ ok: false, required: false })
+			await api.updateSettings(request, { club_name: 'TSV E2E e. V.' })
+			expect((await api.getJson(request, `/invoices/${draft.id}`)).checklist.find((c) => c.key === 'clubSuffix').ok).toBe(true)
+		} finally {
+			await api.updateSettings(request, { club_register_no: '', club_name: 'TSV E2E e. V.' })
+		}
+	})
+
+	test('Einstellungen: „Standardtext übernehmen“ füllt das Feld, der Gemeinnützigkeits-Hinweis wird gespeichert', async ({ page, request }) => {
+		await openSettingsPage(page, USERS.admin)
+		const card = page.locator('.vbh-card', { has: page.getByRole('heading', { name: 'Angaben des Vereins auf der Rechnung' }) })
+		const field = card.getByLabel('Hinweis auf die Gemeinnützigkeit (optional)')
+		await expect(field).toHaveValue('')
+		await card.getByRole('button', { name: 'Standardtext übernehmen' }).click()
+		await expect(field).toHaveValue(/als gemeinnützig anerkannt/)
+		await field.fill('Als gemeinnützig anerkannt (Finanzamt Beispielstadt).')
+		await card.getByRole('button', { name: 'Speichern' }).click()
+		await expect.poll(async () => (await api.getJson(request, '/settings')).club_nonprofit_note).toBe('Als gemeinnützig anerkannt (Finanzamt Beispielstadt).')
+		await api.updateSettings(request, { club_nonprofit_note: '' })
 	})
 })

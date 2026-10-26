@@ -1286,7 +1286,7 @@ selbst als lesbare Seite aus, es muss also nichts auf GitHub gesucht werden.
 
 Zahnrad → *Daten* → *Alle Daten löschen* (nur Verwalter, mit
 Bestätigungsdialog) entfernt Konten, Buchungen, Importe, Belege, offene Posten
-(auch die Forderungen an Mitglieder), die Vorlagen des
+(auch die Forderungen an Mitglieder), **alle Rechnungen samt PDF und E-Rechnung** (Rechnungen sind acht Jahre aufzubewahren: vorher mit dem Beleg-ZIP unter Berichte → Auswertung sichern), die Vorlagen des
 Gliederungsberichts (danach stehen wieder die beiden Standardvorlagen bereit)
 und die Zeiträume samt ihrer Festschreibung. **Das Änderungsprotokoll bleibt erhalten.** Mitglieder,
 Mandate, Beitragsgruppen und Zuweisungen (Kapitel 13) gehören nicht zum
@@ -2457,7 +2457,7 @@ Buchhalter dürfen Entwürfe anlegen; **Festschreiben, Versenden und Stornieren*
 
 ### 15.4 Festschreiben
 
-**Festschreiben …** prüft die Pflichtangaben (Anschrift und Steuernummer des Vereins, Empfänger, Leistungszeitpunkt, Positionen, Betrag). Danach:
+**Festschreiben …** prüft die Pflichtangaben (Anschrift und Steuernummer des Vereins, Empfänger, Leistungszeitpunkt, Positionen, Betrag). Unter **Zur Beachtung** nennt der Editor Hinweise, die das Festschreiben nicht verhindern: eine Position auf einem Konto des ideellen Bereichs (**Spenden und echte Mitgliedsbeiträge sind keine Rechnung** – dafür gibt es die Zuwendungsbestätigung bzw. das Beitragsmodul), ein eingetragener Verein ohne „e. V.“ im Namen und eine fehlende Bankverbindung. Optional druckt die Rechnung einen **Hinweis auf die Gemeinnützigkeit** (Einstellungen → Rechnungen → Angaben des Vereins); er ersetzt keinen Steuerhinweis. Danach:
 
 - bekommt die Rechnung ihre **Nummer** und ist **unveränderlich** – korrigieren lässt sie sich nur durch Stornieren;
 - entsteht das **PDF** (PDF/A-3b, mit GiroCode zum Scannen in der Banking-App) und liegt als Datei im Ordner der Belegablage unter `Vereinsbuchhaltung/Rechnungen/<Jahr>/`; die Prüfsumme (SHA-256) zeigt später, ob die Datei verändert wurde;
