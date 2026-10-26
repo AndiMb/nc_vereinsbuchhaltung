@@ -330,11 +330,11 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-sectionhead { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
 
-.vbh-addyear { display: flex; align-items: center; gap: 6px; }
+.vbh-addyear { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; max-width: 100%; }
 
 .vbh-addyear-input { width: 80px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--color-border); }
 
-.vbh-snaplabel-input { width: 200px; max-width: 60vw; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--color-border); }
+.vbh-snaplabel-input { width: 200px; max-width: 100%; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--color-border); }
 
 .vbh-snapblock { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--color-border); }
 
