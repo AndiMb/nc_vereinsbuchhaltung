@@ -33,6 +33,7 @@ export function buildWhatsNewEntries() {
 				t('Rechnungen mit Umsatzsteuer: Steuersatz je Position, Summen je Satz, Zahlungen verteilen sich auf Erlös- und Umsatzsteuerkonten.'),
 				t('E-Rechnung: Zu festgeschriebenen Rechnungen erzeugt die App ZUGFeRD-PDF oder XRechnung (CII, UBL), schlägt das Format nach Empfänger vor und nennt fehlende Pflichtangaben.'),
 				t('Wiederkehrende Rechnungen, Positionsvorlagen und Mahnwesen: ein Plan legt Rechnungen im Takt an, Zahlungserinnerung und Mahnungen gehen als PDF mit GiroCode per E-Mail raus. Die Rechnungen stehen samt Prüfsummen im Beleg-ZIP für die Kassenprüfung.'),
+				t('Einstellungen und Tabellen aufgeräumt: Alle Ein/Aus-Einstellungen sind einheitliche Schalter mit Erklärung (der Schalter für den Reiter „Beiträge“ wirkt wieder), die Mahn- und Mailtexte haben einen Knopf „Standardtext übernehmen“, und große Tabellen erscheinen am Handy als Karten.'),
 				t('Neue Mindestversion: Nextcloud 33 und PHP 8.2.'),
 			],
 		},
