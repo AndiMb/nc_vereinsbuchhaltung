@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { api, openApp, switchTab, visibleSection, USERS } from './fixtures/nextcloud.mjs'
+import { api, openApp, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Informelle Beitragsbestätigung (Issue #77, Spec §3.7): eine druckfertige
 // Live-Ansicht je Beitragsjahr - keine amtliche Zuwendungsbestätigung nach

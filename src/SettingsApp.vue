@@ -50,10 +50,15 @@
 					v-model:membershipEnabled="membershipEnabled"
 					v-model:selfServiceEnabled="selfServiceEnabled"
 					v-model:selfServiceTransferSwitchEnabled="selfServiceTransferSwitchEnabled"
-					:membershipActive="membershipActive"
 					:storageSaving="storageSaving"
 					:saveSettings="saveSettings" />
 				<SettingsSepaModule :storageUser="storageUser" />
+			</NcSettingsSection>
+		</div>
+
+		<div id="settings-section_rechnungen">
+			<NcSettingsSection :name="t('Rechnungen')">
+				<SettingsInvoices />
 			</NcSettingsSection>
 		</div>
 
@@ -90,7 +95,7 @@
 				<div class="vbh-card vbh-card--danger">
 					<h4>{{ t('Alle Daten löschen') }}</h4>
 					<p class="vbh-hint">
-						{{ t('Löscht unwiderruflich alle Konten, Buchungen und Importe sowie den Einzug (Lastschrift-Läufe, Einzugsposten, Rücklastschriften, Mahnstufen). Mitglieder, Mandate, Beitragsgruppen und Zuweisungen bleiben bestehen.') }}
+						{{ t('Löscht unwiderruflich alle Konten, Buchungen und Importe, alle Rechnungen samt PDF und E-Rechnung sowie den Einzug (Lastschrift-Läufe, Einzugsposten, Rücklastschriften, Mahnstufen). Mitglieder, Mandate, Beitragsgruppen und Zuweisungen bleiben bestehen. Rechnungen sind acht Jahre aufzubewahren: Sichern Sie sie vorher mit dem Beleg-ZIP (Berichte → Auswertung).') }}
 					</p>
 					<NcButton variant="error" :disabled="busy" @click="resetAll">
 						{{ t('Alle Daten löschen') }}
@@ -121,6 +126,7 @@ import NcSettingsSection from '@nextcloud/vue/components/NcSettingsSection'
 import SettingsAttachments from './components/SettingsAttachments.vue'
 import SettingsClub from './components/SettingsClub.vue'
 import SettingsDisplay from './components/SettingsDisplay.vue'
+import SettingsInvoices from './components/SettingsInvoices.vue'
 import SettingsMandateLegalText from './components/SettingsMandateLegalText.vue'
 import SettingsPeriods from './components/SettingsPeriods.vue'
 import SettingsPermissions from './components/SettingsPermissions.vue'
@@ -158,6 +164,7 @@ export default {
 		SettingsAttachments,
 		SettingsClub,
 		SettingsDisplay,
+		SettingsInvoices,
 		SettingsMandateLegalText,
 		SettingsPeriods,
 		SettingsPermissions,
@@ -196,11 +203,10 @@ export default {
 			// SEPA-Lastschrift (optionales Zusatzmodul, siehe SettingsSepaBasics.vue)
 			sepaCreditorId: '',
 			sepaDebtorAccountId: null,
-			// Schalter fuer den Reiter „Beiträge" in der App; membershipActive
-			// kommt vom Backend (Schalter ODER bereits vorhandene Mandate/
-			// Beitraege, siehe SettingsController::index()).
+			// Schalter fuer den Reiter „Beiträge" in der App; ohne gespeicherte
+			// Einstellung liefert das Backend „an", sobald Mitglieder bestehen
+			// (siehe SettingsController::currentSettings()).
 			membershipEnabled: false,
-			membershipActive: false,
 			// Self-Service-Zugang (Spec §3.4): einfacher Bool-Schalter, ab
 			// Verwalter änderbar (siehe SettingsSepaBasics.vue).
 			selfServiceEnabled: false,
@@ -248,7 +254,6 @@ export default {
 				this.sepaCreditorId = data.sepa_creditor_id || ''
 				this.sepaDebtorAccountId = data.sepa_debtor_account_id || null
 				this.membershipEnabled = !!data.membership_enabled
-				this.membershipActive = !!data.membership_active
 				this.selfServiceEnabled = !!data.self_service_enabled
 				this.selfServiceTransferSwitchEnabled = !!data.self_service_transfer_switch_enabled
 			} catch { /* ignorieren */ }
@@ -276,7 +281,6 @@ export default {
 					self_service_enabled: this.selfServiceEnabled ? '1' : '0',
 					self_service_transfer_switch_enabled: this.selfServiceTransferSwitchEnabled ? '1' : '0',
 				})
-				this.membershipActive = !!data.membership_active
 				// Die Auswahl „intern" räumt den Nutzer serverseitig ab – die Felder
 				// sollen danach dasselbe zeigen wie der Server.
 				this.storageUser = data.storage_user || ''
@@ -296,7 +300,7 @@ export default {
 		},
 
 		async resetAll() {
-			if (!await this.askConfirm(this.t('Alle Daten löschen'), this.t('Wirklich ALLE Konten, Buchungen und Importe sowie den Einzug (Läufe, Rücklastschriften, Mahnstufen) löschen? Mitglieder, Mandate, Beitragsgruppen und Zuweisungen bleiben bestehen.'))) { return }
+			if (!await this.askConfirm(this.t('Alle Daten löschen'), this.t('Wirklich ALLE Konten, Buchungen und Importe, alle Rechnungen samt PDF und E-Rechnung sowie den Einzug (Läufe, Rücklastschriften, Mahnstufen) löschen? Rechnungen sind acht Jahre aufzubewahren – haben Sie sie mit dem Beleg-ZIP gesichert? Mitglieder, Mandate, Beitragsgruppen und Zuweisungen bleiben bestehen.'))) { return }
 			this.busy = true
 			try {
 				await api.reset()

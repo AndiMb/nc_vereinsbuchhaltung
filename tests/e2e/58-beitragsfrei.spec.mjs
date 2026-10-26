@@ -1,6 +1,6 @@
 import { getContainer, runOcc } from '@nextcloud/e2e-test-server'
-import { test, expect } from '@playwright/test'
-import { api, openApp, switchTab, visibleSection, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, openApp, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Beitragsfreie Zuweisung (0 €): so bildet ein Verein Pausen und Passivmitgliedschaften ab, etwa mit einer
 // Beitragsgruppe „Ruhend“. Für eine solche Zuweisung entstehen keine Forderungen, es wird nichts eingezogen,

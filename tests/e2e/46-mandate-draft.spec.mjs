@@ -1,6 +1,6 @@
 import { getContainer, runOcc } from '@nextcloud/e2e-test-server'
 import { expect, test } from '@playwright/test'
-import { api, openApp, switchTab, tabButton, visibleSection, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, USERS } from './fixtures/nextcloud.mjs'
+import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, openApp, switchTab, tabButton, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Entwurf-Mandat verwerfen oder korrigieren (Issue #118, Spec §2.2/§3.4): ein
 // Mandat im Zustand „Entwurf“ hatte keinen Ausweg – Widerruf und Amendment

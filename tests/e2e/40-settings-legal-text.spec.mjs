@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 import { api, openSettingsPage, USERS } from './fixtures/nextcloud.mjs'
 
 // Einstellungen des Beitrags-/SEPA-Moduls und Mandats-Rechtstext-Editor

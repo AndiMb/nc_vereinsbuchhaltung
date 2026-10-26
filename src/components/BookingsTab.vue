@@ -303,6 +303,18 @@
 						<div v-if="tx.purpose" class="vbh-mcard-purpose">
 							{{ tx.purpose }}
 						</div>
+						<template v-if="canWrite && !isSplitAssigned(tx) && !tx.contraAccountId && !isDateClosed(tx.bookingDate)">
+							<button
+								v-for="s in invoiceSuggestionsFor(tx)"
+								:key="'inv' + s.invoiceId"
+								type="button"
+								class="vbh-suggest-chip vbh-suggest-chip--invoice"
+								:disabled="s.overpay || invoiceBusy === tx.id"
+								:title="invoiceChipTitle(s)"
+								@click="assignToInvoice(tx, s)">
+								{{ invoiceChipLabel(s) }}
+							</button>
+						</template>
 						<button
 							v-if="canWrite && !isSplitAssigned(tx) && !tx.contraAccountId && suggestionsById[tx.id] && !isDateClosed(tx.bookingDate)"
 							type="button"
@@ -428,6 +440,18 @@
 												@update:modelValue="v => onAssign(tx, v ? v.id : '')" />
 										</div>
 										<div class="vbh-assign-btns">
+											<template v-if="canWrite && !tx.contraAccountId && !isDateClosed(tx.bookingDate)">
+												<button
+													v-for="s in invoiceSuggestionsFor(tx)"
+													:key="'inv' + s.invoiceId"
+													type="button"
+													class="vbh-suggest-chip vbh-suggest-chip--invoice"
+													:disabled="s.overpay || invoiceBusy === tx.id"
+													:title="invoiceChipTitle(s)"
+													@click="assignToInvoice(tx, s)">
+													{{ invoiceChipLabel(s) }}
+												</button>
+											</template>
 											<button
 												v-if="canWrite && !tx.contraAccountId && suggestionsById[tx.id] && !isDateClosed(tx.bookingDate)"
 												class="vbh-suggest-chip"
@@ -673,6 +697,8 @@ export default {
 		bookingView: { type: String, required: true },
 		// Ob der Reiter „Beiträge“ da ist - nur dann führt der Hinweis an einer Forderung dorthin (Issue #121).
 		membershipActive: { type: Boolean, default: false },
+		// Ob das Rechnungsmodul eingeschaltet ist - dann kommen zu Zahlungseingängen Vorschläge für offene Rechnungen (Epic #168).
+		invoicesActive: { type: Boolean, default: false },
 		attachmentCountMap: { type: Object, required: true },
 		// suggestionsById bleibt in App.vue berechnet (wird auch vom
 		// AccountPickerSheet-Flow dort gebraucht), hier nur als Prop gelesen.
@@ -700,7 +726,7 @@ export default {
 		openFolderPickerForBookings: { type: Function, default: async () => false },
 	},
 
-	emits: ['go-claims', 'help', 'update:booking-view'],
+	emits: ['go-claims', 'help', 'invoice-paid', 'update:booking-view'],
 
 	setup() {
 		const auth = useAuth()
@@ -752,6 +778,9 @@ export default {
 			bulkBusy: false,
 			openItemForm: { debtor: '', description: '', amount: '', dueDate: '', accountId: null },
 			openItemFilter: 'open',
+			// Umsatz-ID => Vorschläge offener Rechnungen (GET /api/invoices/suggestions)
+			invoiceSuggestions: {},
+			invoiceBusy: null,
 		}
 	},
 
@@ -965,9 +994,14 @@ export default {
 		// anderer Zeitraum oder Wächter-Ordner aus, dann von vorn.
 		selectedPeriodId() { this.clearJournalSelection() },
 		bulkSelectable(v) { if (!v) { this.clearJournalSelection() } },
+
+		// Die Vorschläge für Rechnungen hängen an den unzugeordneten Umsätzen: neu holen, wenn sich die Liste ändert.
+		transactions() { this.loadInvoiceSuggestions() },
+		invoicesActive() { this.loadInvoiceSuggestions() },
 	},
 
 	mounted() {
+		this.loadInvoiceSuggestions()
 		if (this.bookingView === 'openitems') { this.loadOpenItems() }
 		this.applyJournalVisibility()
 	},
@@ -985,6 +1019,50 @@ export default {
 	methods: {
 		formatMoney,
 		formatDate,
+
+		// --- Rechnungen (Epic #168) ---------------------------------------
+		async loadInvoiceSuggestions() {
+			if (!this.invoicesActive || !this.canWrite) {
+				this.invoiceSuggestions = {}
+				return
+			}
+			try {
+				const { data } = await api.invoiceSuggestions()
+				this.invoiceSuggestions = data || {}
+			} catch {
+				// Die Vorschläge sind eine Hilfe, kein Muss: ohne sie bleibt das Zuordnen wie gewohnt.
+				this.invoiceSuggestions = {}
+			}
+		},
+
+		invoiceSuggestionsFor(tx) {
+			return tx.status === 'unassigned' ? (this.invoiceSuggestions[tx.id] || []) : []
+		},
+
+		invoiceChipLabel(s) {
+			if (s.overpay) { return this.t('Rechnung {number}: Betrag zu hoch', { number: s.number }) }
+			if (s.exact) { return this.t('✓ Rechnung {number}', { number: s.number }) }
+			return this.t('Teilzahlung auf {number}', { number: s.number })
+		},
+
+		invoiceChipTitle(s) {
+			const rest = this.tRaw('{name}, offen {amount}', { name: s.debtorName, amount: formatMoney(s.remainingCents / 100) })
+			return `${s.text} ${rest}`
+		},
+
+		async assignToInvoice(tx, s) {
+			this.invoiceBusy = tx.id
+			try {
+				await api.payInvoice(s.invoiceId, tx.id)
+				showSuccess(this.t('Der Umsatz wurde der Rechnung {number} zugeordnet.', { number: s.number }))
+				this.$emit('invoice-paid')
+			} catch (e) {
+				showError(errMsg(e, this.t('Die Zuordnung zur Rechnung ist fehlgeschlagen.')))
+			} finally {
+				this.invoiceBusy = null
+			}
+		},
+
 		amountClass,
 		flowClass,
 		flowLabel,

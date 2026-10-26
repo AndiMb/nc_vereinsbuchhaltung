@@ -1,6 +1,6 @@
 import { getContainer, runOcc } from '@nextcloud/e2e-test-server'
-import { test, expect } from '@playwright/test'
-import { api, openApp, returnEntry, switchTab, visibleSection, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, INCOME_ACCOUNT, openApp, returnEntry, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // „Alle Daten löschen“ räumt auch den Einzug (Issue #123): Lastschrift-Läufe,
 // Einzugsposten, Rücklastschriften und Mahnstufen hängen an den Forderungen, die

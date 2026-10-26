@@ -38,17 +38,12 @@
 				     nur per Self-Service verknuepftes Konto (kein canRead) ergeben sie
 				     keinen Sinn, siehe "Mein Beitrag" (SelfServiceTab.vue). -->
 				<div v-if="canRead" class="vbh-navright">
-					<NcButton
-						v-if="canWrite && !isMobile"
-						variant="primary"
-						class="vbh-newbooking-btn"
-						:title="t('Neue Buchung anlegen (von überall)')"
-						@click="openNewBooking">
-						<template #icon>
-							<NcIconSvgWrapper :path="mdiPlus" :size="20" />
-						</template>
-						<span class="vbh-newbooking-label">{{ t('Buchung') }}</span>
-					</NcButton>
+					<!-- Ein „+“ für alles, was sich von überall anlegen lässt: Buchung
+					     und Rechnung. Was fehlt (Modul aus, keine
+					     Berechtigung), erscheint nicht. -->
+					<div v-if="canWrite && !isMobile" class="vbh-newbooking-btn vbh-newmenu">
+						<NewMenu :items="newMenuItems" @select="onNewMenu" />
+					</div>
 					<label class="vbh-yearsel" :title="periodTitle">
 						<span>{{ t('Zeitraum') }}</span>
 						<!-- @change: eine bewusste Wahl zählt auch dann, wenn sie fällt,
@@ -140,6 +135,7 @@
 					:amountDisplay="amountDisplay"
 					:bookingView="bookingView"
 					:membershipActive="membershipActive"
+					:invoicesActive="invoicesActive"
 					:attachmentCountMap="attachmentCountMap"
 					:suggestionsById="suggestionsById"
 					:openImport="openImport"
@@ -160,7 +156,25 @@
 					:openFolderPickerForBookings="openFolderPickerForBookings"
 					@update:bookingView="bookingView = $event"
 					@goClaims="goToClaims"
+					@invoicePaid="onInvoicesChanged"
 					@help="openHelp('bookings')" />
+			</section>
+
+			<!-- ============ RECHNUNGEN ============ -->
+			<section
+				v-if="canRead && invoicesActive"
+				v-show="activeTab === 'invoices'"
+				class="vbh-section vbh-flex-col"
+				:class="{ 'vbh-fadein': sectionFade }">
+				<InvoicesTab
+					v-model:invoiceId="selectedInvoiceId"
+					:canWrite="canWrite"
+					:isAdmin="isAdmin"
+					:accounts="accountsSorted"
+					:reloadKey="invoicesReloadKey"
+					:newRequest="invoiceRequest"
+					@editing="invoiceEditing = $event"
+					@changed="onInvoicesChanged" />
 			</section>
 
 			<!-- ============ KONTEN ============ -->
@@ -239,6 +253,7 @@
 					:contribView="contribView"
 					:isMobile="isMobile"
 					:canWrite="canWrite"
+					:newMemberRequest="memberRequest"
 					@update:contribView="contribView = $event" />
 			</section>
 
@@ -257,8 +272,12 @@
 			:tabs="visibleTabs"
 			:activeTab="activeTab"
 			:unassignedCount="unassignedCount"
-			:canWrite="canWrite"
+			:canWrite="canWrite && !(activeTab === 'invoices' && invoiceEditing)"
+			:invoicesActive="invoicesActive"
+			:membershipActive="membershipActive"
 			@select="id => { activeTab = id }"
+			@newInvoice="requestNewInvoice"
+			@newMember="requestNewMember"
 			@newBooking="openNewBooking" />
 
 		<!-- ============ IMPORT-DIALOG (CSV-CAMT) ============ -->
@@ -392,7 +411,7 @@
 </template>
 
 <script>
-import { mdiAccountCashOutline, mdiCardAccountDetailsOutline, mdiChartBar, mdiFileTreeOutline, mdiHelpCircleOutline, mdiPlus, mdiPrinter, mdiSwapHorizontal, mdiViewDashboardOutline } from '@mdi/js'
+import { mdiAccountCashOutline, mdiAccountPlusOutline, mdiCardAccountDetailsOutline, mdiChartBar, mdiFileDocumentOutline, mdiFileTreeOutline, mdiHelpCircleOutline, mdiPlus, mdiPrinter, mdiSwapHorizontal, mdiViewDashboardOutline } from '@mdi/js'
 import { showError, showInfo, showSuccess, showUndo } from '@nextcloud/dialogs'
 import { generateUrl } from '@nextcloud/router'
 import { toRefs } from 'vue'
@@ -411,7 +430,9 @@ import ContributionsTab from './components/ContributionsTab.vue'
 import DashboardTab from './components/DashboardTab.vue'
 import HelpModal from './components/HelpModal.vue'
 import ImportDialog from './components/ImportDialog.vue'
+import InvoicesTab from './components/InvoicesTab.vue'
 import MobileNav from './components/MobileNav.vue'
+import NewMenu from './components/NewMenu.vue'
 import ReportsTab from './components/ReportsTab.vue'
 import SelfServiceTab from './components/SelfServiceTab.vue'
 import SetupWizard from './components/SetupWizard.vue'
@@ -462,6 +483,8 @@ const ROUTE_META = {
 	'bookings-unassigned': { tab: 'bookings', bookingView: 'unassigned' },
 	'bookings-open-items': { tab: 'bookings', bookingView: 'openitems' },
 	'bookings-rules': { tab: 'bookings', bookingView: 'rules' },
+	invoices: { tab: 'invoices' },
+	'invoices-detail': { tab: 'invoices', hasInvoiceId: true },
 	accounts: { tab: 'accounts' },
 	'accounts-new': { tab: 'accounts', accountNew: true },
 	'accounts-detail': { tab: 'accounts', hasAccountId: true },
@@ -500,8 +523,10 @@ export default {
 		BookingsTab,
 		ReportsTab,
 		ContributionsTab,
+		InvoicesTab,
 		SelfServiceTab,
 		MobileNav,
+		NewMenu,
 		AccountPickerSheet,
 		HelpModal,
 		SetupWizard,
@@ -589,6 +614,9 @@ export default {
 			allTabs: [
 				{ id: 'dashboard', label: this.t('Übersicht'), need: 'read', icon: mdiViewDashboardOutline },
 				{ id: 'bookings', label: this.t('Buchungen'), need: 'read', icon: mdiSwapHorizontal },
+				// Nur sichtbar, wenn das Rechnungsmodul in den Einstellungen eingeschaltet ist
+				// (visibleTabs unten, Epic #168).
+				{ id: 'invoices', label: this.t('Rechnungen'), need: 'read', icon: mdiFileDocumentOutline },
 				{ id: 'accounts', label: this.t('Konten'), need: 'read', icon: mdiFileTreeOutline },
 				{ id: 'reports', label: this.t('Berichte'), need: 'read', icon: mdiChartBar },
 				// Nur sichtbar, wenn das Beitragsmodul genutzt wird (visibleTabs
@@ -636,8 +664,11 @@ export default {
 			showImport: false,
 			sectionFade: true,
 			bookingForm: this.emptyBookingForm(),
+			mdiAccountPlusOutline,
+			mdiFileDocumentOutline,
 			mdiPlus,
 			mdiPrinter,
+			mdiSwapHorizontal,
 			bookingAttachments: [],
 			attachmentCountMap: {},
 			// Kollaboration: Poll-Timer (Änderungsstand selbst kommt aus useSync)
@@ -686,6 +717,13 @@ export default {
 			// SettingsController::index()) und entscheidet, ob der Reiter
 			// „Beiträge" ueberhaupt erscheint.
 			membershipActive: false,
+			// Rechnungsmodul eingeschaltet (Einstellung invoice_module_active), Epic #168.
+			invoicesActive: false,
+			selectedInvoiceId: null,
+			invoicesReloadKey: 0,
+			invoiceRequest: { kind: null, n: 0 },
+			invoiceEditing: false,
+			memberRequest: { n: 0 },
 			// Hilfe-Modal (HelpModal.vue): Kapitel folgt standardmäßig dem aktiven Tab,
 			// kann aber gezielt überschrieben werden (z. B. Links aus Leerzuständen).
 			showHelp: false,
@@ -709,6 +747,14 @@ export default {
 	},
 
 	computed: {
+		/** Einträge des „+ Neu“-Menüs: was Rolle und eingeschaltete Module hergeben. */
+		newMenuItems() {
+			const items = [{ id: 'booking', label: this.t('Buchung'), icon: mdiSwapHorizontal }]
+			if (this.membershipActive) { items.push({ id: 'member', label: this.t('Mitglied'), icon: mdiAccountPlusOutline }) }
+			if (this.invoicesActive) { items.push({ id: 'invoice', label: this.t('Rechnung'), icon: mdiFileDocumentOutline }) }
+			return items
+		},
+
 		watchMode() { return this.storageMode === 'watch' },
 
 		// Was schon an der offenen Buchung hängt oder wartet, soll der
@@ -776,6 +822,7 @@ export default {
 				// Eigenes Zusatzmodul: ohne genutzte Beitragsverwaltung kein fuenfter
 				// Reiter, siehe NAVIGATION-KONZEPT.md Abschnitt 4.
 				if (t.id === 'contributions' && !this.membershipActive) { return false }
+				if (t.id === 'invoices' && !this.invoicesActive) { return false }
 				// "Mein Beitrag" folgt der Kontoverknuepfung, nicht der vbh-Rolle
 				// (Spec §3.4) - unabhaengig von canRead/canWrite/isAdmin.
 				if (t.need === 'self') { return this.selfServiceAvailable }
@@ -1016,6 +1063,11 @@ export default {
 			if (this.activeTab === 'bookings') {
 				const names = { unassigned: 'bookings-unassigned', openitems: 'bookings-open-items', rules: 'bookings-rules' }
 				return { name: names[this.bookingView] || 'bookings', query }
+			}
+			if (this.activeTab === 'invoices') {
+				return this.selectedInvoiceId
+					? { name: 'invoices-detail', params: { invoiceId: this.selectedInvoiceId }, query }
+					: { name: 'invoices', query }
 			}
 			if (this.activeTab === 'accounts') {
 				if (this.showAccount) {
@@ -1270,6 +1322,11 @@ export default {
 			if (tab === 'reports' && this.reportView !== meta.reportView) { this.reportView = meta.reportView }
 			if (tab === 'contributions' && this.contribView !== meta.contribView) { this.contribView = meta.contribView }
 
+			if (tab === 'invoices') {
+				const invoiceId = meta.hasInvoiceId ? Number(route.params.invoiceId) : null
+				if (this.selectedInvoiceId !== invoiceId) { this.selectedInvoiceId = invoiceId }
+			}
+
 			if (tab === 'accounts') {
 				if (meta.accountNew) {
 					if (!this.showAccount || this.accountEditId !== null) { this.openNewAccount() }
@@ -1468,6 +1525,7 @@ export default {
 				this.clubName = data.club_name || ''
 				this.demoActive = !!data.demo_active
 				this.membershipActive = !!data.membership_active
+				this.invoicesActive = !!data.invoice_module_active
 			} catch { /* ignorieren */ }
 		},
 
@@ -1737,6 +1795,11 @@ export default {
 		},
 
 		async onImported() { await this.loadBalances(); await this.loadTransactions() },
+
+		// Zahlungen zu Rechnungen buchen und lösen Bankumsätze, Buchungen und Salden (Epic #168).
+		async onInvoicesChanged() {
+			await Promise.all([this.loadTransactions(), this.loadBalances(), this.loadJournal(), this.loadOpenItems(), this.loadPeriods()])
+		},
 
 		async resetAll() {
 			if (!await this.askConfirm(this.t('Alle Daten löschen'), this.t('Wirklich ALLE Konten, Buchungen und Importe sowie den Einzug (Läufe, Rücklastschriften, Mahnstufen) löschen? Mitglieder, Mandate, Beitragsgruppen und Zuweisungen bleiben bestehen.'))) { return }
@@ -2197,6 +2260,24 @@ export default {
 			this.folderDialog.open = false
 			const j = await this.statementRowToJournalRow({ journalId })
 			if (j) { this.editBooking(j) }
+		},
+
+		/** Einträge des „+“-Menüs im Kopf: was sich von überall anlegen lässt und gerade Sinn ergibt. */
+		onNewMenu(id) {
+			if (id === 'booking') { this.openNewBooking() } else if (id === 'member') { this.requestNewMember() } else if (id === 'invoice') { this.requestNewInvoice('invoice') }
+		},
+
+		/** „+ → Mitglied“: zu Beiträge → Mitglieder wechseln und dort den Aufnahme-Dialog öffnen. */
+		requestNewMember() {
+			this.activeTab = 'contributions'
+			this.contribView = 'members'
+			this.memberRequest = { n: this.memberRequest.n + 1 }
+		},
+
+		/** „+ → Rechnung“: zum Reiter wechseln und dort den Editor öffnen. */
+		requestNewInvoice(kind) {
+			this.activeTab = 'invoices'
+			this.invoiceRequest = { kind, n: this.invoiceRequest.n + 1 }
 		},
 
 		openNewBooking() {

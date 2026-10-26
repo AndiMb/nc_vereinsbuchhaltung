@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test'
-import { api, openApp, switchTab, visibleSection, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, openApp, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Der Terminplan als Entwurf mit Live-Vorschau: „Einzug [14] Tage [nach] Beginn
 // jeder Periode“, darunter die Perioden mit echtem Datum, abweichende Termine als

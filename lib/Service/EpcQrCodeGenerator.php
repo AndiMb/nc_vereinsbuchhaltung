@@ -56,8 +56,8 @@ class EpcQrCodeGenerator {
 	 * @return string rohe PNG-Bilddaten (kein Data-URI, siehe Klassendoc)
 	 * @throws \InvalidArgumentException bei nicht-positivem Betrag oder leerer IBAN
 	 */
-	public function generatePng(string $creditorName, string $creditorIban, ?string $creditorBic, int $amountCents, string $remittanceText): string {
-		$payload = $this->buildPayload($creditorName, $creditorIban, $creditorBic, $amountCents, $remittanceText);
+	public function generatePng(string $creditorName, string $creditorIban, ?string $creditorBic, int $amountCents, string $remittanceText, ?string $creditorReference = null): string {
+		$payload = $this->buildPayload($creditorName, $creditorIban, $creditorBic, $amountCents, $remittanceText, $creditorReference);
 
 		$options = new QROptions([
 			// In php-qrcode 5.x wählt `outputType` die Ausgabeklasse (GDIMAGE_PNG
@@ -78,7 +78,11 @@ class EpcQrCodeGenerator {
 	}
 
 	/** Baut den zeilenweisen EPC069-12-Payload (LF-getrennt, feste Feldreihenfolge). */
-	public function buildPayload(string $creditorName, string $creditorIban, ?string $creditorBic, int $amountCents, string $remittanceText): string {
+	/**
+	 * @param string|null $creditorReference strukturierte Referenz (ISO 11649, `RF…`); ersetzt dann den
+	 *                                       unstrukturierten Verwendungszweck, denn der Code kennt nur eines von beiden
+	 */
+	public function buildPayload(string $creditorName, string $creditorIban, ?string $creditorBic, int $amountCents, string $remittanceText, ?string $creditorReference = null): string {
 		if ($amountCents <= 0) {
 			throw new \InvalidArgumentException('Der Betrag für einen GiroCode muss größer als 0 sein.');
 		}
@@ -88,6 +92,10 @@ class EpcQrCodeGenerator {
 		}
 		$bic = $creditorBic !== null ? strtoupper(str_replace(' ', '', $creditorBic)) : '';
 		$amount = 'EUR' . number_format($amountCents / 100, 2, '.', '');
+		$reference = $creditorReference !== null ? strtoupper(str_replace(' ', '', trim($creditorReference))) : '';
+		if ($reference !== '') {
+			$remittanceText = '';
+		}
 
 		$head = [
 			self::SERVICE_TAG,
@@ -100,11 +108,11 @@ class EpcQrCodeGenerator {
 			$amount,
 			// Zweck (optionaler 4-stelliger externer Purpose-Code) - nicht genutzt.
 			'',
-			// Strukturierte Verwendungszweck-Referenz (Creditor Reference) - nicht
-			// genutzt, wir setzen stattdessen unstrukturiert (nächste Zeile), damit
-			// der freie Grund-Satz je Position (Spec „eigener Grund-Satz je
-			// Position") lesbar in der Banking-App der Zahlerin/des Zahlers landet.
-			'',
+			// Strukturierte Verwendungszweck-Referenz (Creditor Reference). Ohne sie
+			// setzen wir unstrukturiert (nächste Zeile), damit der freie Grund-Satz je
+			// Position (Spec „eigener Grund-Satz je Position") lesbar in der Banking-App
+			// der Zahlerin/des Zahlers landet. Beides zugleich verbietet die Spezifikation.
+			$reference,
 		];
 		$prefix = implode("\n", $head) . "\n";
 		// Die 331 Bytes zählen in UTF-8: ein Umlaut kostet zwei. Der Verwendungszweck

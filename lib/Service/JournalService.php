@@ -50,6 +50,7 @@ class JournalService {
 		private EntryNumberService $entryNumbers,
 		private TransactionRunner $transaction,
 		private IL10N $l10n,
+		private ?InvoicePaymentLedger $invoicePayments = null,
 	) {
 	}
 
@@ -454,6 +455,8 @@ class JournalService {
 			$periodId = (int)$journal->getPeriodId();
 
 			$released = $this->releaseBankTransaction($journal);
+			// Lief eine Rechnungszahlung über diesen Buchungssatz, wird sie zurückgenommen.
+			$this->invoicePayments?->revertForJournal($journal->getId());
 			$this->attachmentStorage->deleteForJournal($journal->getId());
 			$this->lineMapper->deleteByJournal($journal->getId());
 			$this->journalMapper->delete($journal);

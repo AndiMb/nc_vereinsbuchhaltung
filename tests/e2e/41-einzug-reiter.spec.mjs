@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test'
-import { api, openApp, switchTab, tabButton, visibleSection, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, openApp, switchTab, tabButton, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Einzug-Unterreiter: Zeitstrahl, Geisterkarte und Läufe (Issue #102, Spec
 // §3.5/§6 Variante A). Er löste im Beiträge-Reiter das flache Einzug-Panel des

@@ -97,7 +97,7 @@
 
 		<NcLoadingIcon v-if="loading && !report" :size="32" />
 		<div v-else-if="report && selected" class="vbh-tablecard">
-			<table class="vbh-table vbh-structured-table">
+			<table class="vbh-table vbh-stack vbh-structured-table">
 				<thead>
 					<tr>
 						<th class="nowrap vbh-col-hide-sm vbh-structured-nr">

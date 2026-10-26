@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test'
-import { api, openApp, visibleSection, BANK_ACCOUNT, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, BANK_ACCOUNT, INCOME_ACCOUNT, openApp, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Die Ansicht für unterwegs: untere Navigationsleiste, Buchungen als
 // Karten statt Tabelle, schwebender Buchen-Knopf.

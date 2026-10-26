@@ -34,6 +34,12 @@ import { api, openApp, switchTab, tabButton, USERS, visibleSection } from './fix
 
 const MEMBER = { firstName: 'Nora', lastName: 'Neumitglied' }
 
+// Der Reiter „Beiträge“ folgt dem Schalter in den Einstellungen; ein früherer
+// Lauf oder Nutzer kann ihn ausgeschaltet haben.
+test.beforeAll(async ({ request }) => {
+	await api.updateSettings(request, { membership_enabled: '1' })
+})
+
 test.describe('DSGVO: Datenübersicht & Anonymisierung', () => {
 	test('Kassenwart-Kanal: Datenübersicht öffnet, frisches Mitglied ist nicht anonymisierungsreif', async ({ page, request }) => {
 		const member = await api.createMember(request, MEMBER)

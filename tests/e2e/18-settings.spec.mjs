@@ -1,6 +1,6 @@
 import { addUser, getContainer, runOcc, User } from '@nextcloud/e2e-test-server'
-import { test, expect } from '@playwright/test'
-import { api, openSettingsPage, authHeaders, davUrl, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, BELEG_PNG, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, authHeaders, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, BELEG_PNG, davUrl, INCOME_ACCOUNT, openSettingsPage, USERS } from './fixtures/nextcloud.mjs'
 
 // Die Einstellungsseite (Nextcloud-Einstellungen → Vereinsbuchhaltung):
 // Belegablage von der internen Ablage auf den Ordner eines Nextcloud-Nutzers

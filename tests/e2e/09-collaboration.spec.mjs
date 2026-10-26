@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test'
-import { api, openApp, switchTab, selectPeriod, visibleSection, BANK_ACCOUNT, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, BANK_ACCOUNT, INCOME_ACCOUNT, openApp, selectPeriod, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Kollaboration: die App pollt den Änderungsstand (alle 20 Sekunden) –
 // was eine andere Person bucht, taucht ohne Neuladen im Journal auf.

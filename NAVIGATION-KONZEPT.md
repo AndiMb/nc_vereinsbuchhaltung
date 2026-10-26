@@ -308,3 +308,14 @@ solange der Dialog offen ist.
   behobenen Bugs) siehe Projekt-Memory.
 * keine Hilfe-, Handbuch- oder Checklisten-Stelle mehr einen Weg beschreibt,
   den es nicht mehr gibt
+
+## Nachtrag: Reiter „Rechnungen" (Epic #168)
+
+Das Rechnungsmodul ist ein weiteres optionales Modul wie die Beiträge: der Reiter
+**Rechnungen** steht hinter *Buchungen* und erscheint nur, wenn der Schalter
+`invoice_module_active` gesetzt ist (Nextcloud-Einstellungen → Vereinsbuchhaltung →
+Rechnungen). Deep-Links: `/invoices` (Liste) und `/invoices/<id>` (Detail). Den
+Editor für Entwürfe öffnet der Reiter anstelle der Liste, Detail und Dialoge liegen
+als Modal darüber. Zahlungseingänge werden nicht hier, sondern in
+*Buchungen → Zuzuordnen* zugeordnet (Chip „✓ Rechnung …"); der Dialog „Zahlung
+erfassen" in der Rechnung deckt Barzahlungen und die gezielte Zuordnung ab.

@@ -5,7 +5,27 @@
 		</p>
 
 		<div class="vbh-card">
-			<h4>{{ t('Grundeinstellungen') }}</h4>
+			<h4>{{ t('Beitragsmodul') }}</h4>
+			<p class="vbh-hint">
+				{{ t('Diese Schalter wirken sofort, ein Speichern ist nicht nötig.') }}
+			</p>
+			<SettingsToggle :modelValue="membershipEnabled" :label="t('Reiter „Beiträge“ anzeigen')" @update:modelValue="changeMembershipEnabled">
+				{{ t('Mitgliederliste und Sammeleinzug in der Hauptnavigation. Ist der Schalter aus, bleibt der Reiter ausgeblendet – auch wenn bereits Mitglieder angelegt sind; die Daten bleiben erhalten.') }}
+			</SettingsToggle>
+			<SettingsToggle :modelValue="selfServiceEnabled" :label="t('Self-Service „Mein Beitrag“ freischalten')" @update:modelValue="changeSelfServiceEnabled">
+				{{ t('Betrifft nur Mitglieder, deren Nextcloud-Konto in der Mitgliederakte verknüpft ist – sie sehen dann ihre eigenen Stammdaten, unabhängig von einer Buchhaltungsrolle.') }}
+			</SettingsToggle>
+			<SettingsToggle
+				:modelValue="selfServiceTransferSwitchEnabled"
+				:disabled="!selfServiceEnabled"
+				:label="t('Umstellung auf Überweisung durch Mitglieder erlauben')"
+				@update:modelValue="changeSelfServiceTransferSwitchEnabled">
+				{{ t('Mitglieder stellen ihre Zahlungsart unter „Mein Beitrag“ selbst auf Überweisung um. Nur in diese Richtung: zurück zur Lastschrift stellt der Vorstand um („Beitrag ändern“). Das Mandat bleibt bestehen und wird nur nicht mehr genutzt.') }}
+			</SettingsToggle>
+		</div>
+
+		<div class="vbh-card">
+			<h4>{{ t('Lastschrift: Gläubiger-ID und Konto') }}</h4>
 			<p class="vbh-hint">
 				{{ t('Gläubiger-ID und einziehendes Konto werden für den Sammeleinzug gebraucht. Die Gläubiger-ID vergibt die Deutsche Bundesbank auf Antrag; am einziehenden Konto muss eine IBAN hinterlegt sein.') }}
 			</p>
@@ -27,28 +47,6 @@
 					{{ t('Speichern') }}
 				</NcButton>
 			</div>
-			<NcCheckboxRadioSwitch :modelValue="membershipEnabled" type="switch" @update:modelValue="changeMembershipEnabled">
-				{{ t('Reiter „Beiträge" in der Hauptnavigation zeigen (Mitgliederliste und Sammeleinzug)') }}
-			</NcCheckboxRadioSwitch>
-			<p v-if="!membershipEnabled && !membershipActive" class="vbh-hint">
-				{{ t('Ohne diesen Schalter bleibt der Reiter ausgeblendet, bis das erste Mandat oder der erste Beitrag angelegt wird.') }}
-			</p>
-			<NcCheckboxRadioSwitch :modelValue="selfServiceEnabled" type="switch" @update:modelValue="changeSelfServiceEnabled">
-				{{ t('Self-Service „Mein Beitrag" für verknüpfte Nextcloud-Konten freischalten') }}
-			</NcCheckboxRadioSwitch>
-			<p class="vbh-hint">
-				{{ t('Betrifft nur Mitglieder, deren Nextcloud-Konto in der Mitgliederakte verknüpft ist – sie sehen dann ihre eigenen Stammdaten, unabhängig von einer Buchhaltungsrolle.') }}
-			</p>
-			<NcCheckboxRadioSwitch
-				:modelValue="selfServiceTransferSwitchEnabled"
-				:disabled="!selfServiceEnabled"
-				type="switch"
-				@update:modelValue="changeSelfServiceTransferSwitchEnabled">
-				{{ t('Mitglieder dürfen ihre Zahlungsart unter „Mein Beitrag" selbst auf Überweisung umstellen') }}
-			</NcCheckboxRadioSwitch>
-			<p class="vbh-hint">
-				{{ t('Nur in diese Richtung: zurück zur Lastschrift stellt der Vorstand um („Beitrag ändern"). Das Mandat bleibt bei der Umstellung bestehen und wird nur nicht mehr genutzt.') }}
-			</p>
 		</div>
 	</div>
 </template>
@@ -56,7 +54,7 @@
 <script>
 import { toRefs } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
-import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
+import SettingsToggle from './SettingsToggle.vue'
 import { useAccounts } from '../composables/useAccounts.js'
 
 /**
@@ -72,14 +70,13 @@ import { useAccounts } from '../composables/useAccounts.js'
  */
 export default {
 	name: 'SettingsSepaBasics',
-	components: { NcButton, NcCheckboxRadioSwitch },
+	components: { NcButton, SettingsToggle },
 	props: {
 		sepaCreditorId: { type: String, default: '' },
 		sepaDebtorAccountId: { type: Number, default: null },
 		membershipEnabled: { type: Boolean, default: false },
 		// nur lesend - zeigt an, ob der Reiter unabhaengig vom Schalter schon
 		// sichtbar ist (siehe App.vue::loadStorageSettings())
-		membershipActive: { type: Boolean, default: false },
 		// Self-Service-Zugang (Spec §3.4): einfacher Bool-Schalter, siehe
 		// SelfServiceService/SettingsController.
 		selfServiceEnabled: { type: Boolean, default: false },

@@ -803,17 +803,17 @@
 						{{ t('Frieren Sie den aktuellen Finanzplan als benannten, datierten Stand ein (z.B. den in der Mitgliederversammlung beschlossenen Haushalt). Spätere Planänderungen lassen den Stand unberührt.') }}
 					</p>
 					<div v-if="budgetSnapshots.length" class="vbh-tablecard">
-						<table class="vbh-table">
+						<table class="vbh-table vbh-stack">
 							<thead>
 								<tr>
 									<th>{{ t('Stand') }}</th>
-									<th class="nowrap vbh-col-hide-sm vbh-col-datetime">
+									<th class="nowrap vbh-col-datetime">
 										{{ t('Gespeichert') }}
 									</th>
-									<th class="num vbh-col-hide-sm">
+									<th class="num">
 										{{ t('Einnahmen') }}
 									</th>
-									<th class="num vbh-col-hide-sm">
+									<th class="num">
 										{{ t('Ausgaben') }}
 									</th>
 									<th class="num">
@@ -824,14 +824,16 @@
 							</thead>
 							<tbody>
 								<tr v-for="snap in budgetSnapshots" :key="snap.id">
-									<td><strong>{{ snap.label }}</strong></td>
-									<td class="nowrap vbh-col-hide-sm">
+									<td class="vbh-stack-title">
+										<strong>{{ snap.label }}</strong>
+									</td>
+									<td class="nowrap">
 										{{ formatDateTime(snap.createdAt) }}
 									</td>
-									<td class="num vbh-col-hide-sm">
+									<td class="num">
 										{{ formatMoney(snap.planIncome) }}
 									</td>
-									<td class="num vbh-col-hide-sm">
+									<td class="num">
 										{{ formatMoney(snap.planExpense) }}
 									</td>
 									<td class="num strong" :class="snap.planResult >= 0 ? 'good' : 'bad'">

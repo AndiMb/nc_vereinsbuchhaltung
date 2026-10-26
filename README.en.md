@@ -94,6 +94,16 @@ An optional add-on module (the "Contributions" tab, appears automatically once a
 - **Dunning and tasks**: payment request, payment reminder and dunning letter by interval; deferral, waiver and cancellation; a task list for exceptions instead of silent failures
 - **My contribution** (self-service for linked accounts), an informal **contribution confirmation**, a **data overview** under Art. 15 GDPR and anonymization after the retention period
 
+### Invoices
+- **Invoices in the name of the association** (optional *Invoices* tab, turned on in the settings): recipients from master data or members, several line items with quantity, unit, price, discount and revenue account, service date or period, notice under section 19 UStG (small business) or tax exemption – with all mandatory details under section 14 (4) UStG
+- **Finalizing**: consecutive, unique number (`RE-2026-0042`, pattern configurable), immutable afterwards; PDF/A-3b with GiroCode, stored as a file with a checksum; corrections only through a **credit note**
+- **Open item and payment matching**: every invoice is an open item with a reference; the bank statement import books payments with a matching invoice number and the exact amount on its own, otherwise *Entries → To assign* suggests the invoice (number, amount and name, amount). Partial payments are spread to the cent over the revenue accounts, cash payments can be booked directly
+- **Sending by email** with the PDF attached and an adjustable template
+- **Standard taxation**: tax rate per line item (19 %, 7 %, 0 %, exempt), totals per rate, payments to the cent over revenue and VAT accounts
+- **E-invoice**: ZUGFeRD (EN 16931, hybrid PDF) and XRechnung (CII and UBL), format suggested by recipient, schema check before storing, sample invoices checked in CI with the KoSIT validator
+- **Line item templates**, **recurring invoices** (plans with interval, draft or automatic finalizing and sending) and **dunning** (reminder, 1st and 2nd dunning letter as a PDF with GiroCode, manual or by background job)
+- **RF reference (ISO 11649)** on the invoice and in the GiroCode, matching in the bank reconciliation; invoices with overview and checksums in the audit ZIP
+
 ### Organization & security
 - **Permission roles**: administrator – bookkeeper – auditor (read-only); Nextcloud admins are always administrators; roles for users and groups
 - **Shared dataset** (`user_id = '__verein__'`): all authorized users work on the same data
@@ -235,11 +245,11 @@ The app is published in the **Nextcloud App Store** (signed): in Nextcloud, go t
 
 Alternatively, unpack the tarball from a [GitHub release](https://github.com/AndiMb/nc_vereinsbuchhaltung/releases) into `<nextcloud>/apps/` (see also [`deploy/README.md`](deploy/README.md) for server automation).
 
-**Supported:** Nextcloud 31–35, PHP 8.1–8.5, SQLite/MySQL/PostgreSQL.
+**Supported:** Nextcloud 33–35, PHP 8.2–8.5, SQLite/MySQL/PostgreSQL.
 
 ## Development
 
-**Requirements:** PHP ≥ 8.1, Node ≥ 22 / npm ≥ 10, a Nextcloud instance (≥ 31).
+**Requirements:** PHP ≥ 8.2, Node ≥ 22 / npm ≥ 10, a Nextcloud instance (≥ 33).
 
 ```bash
 # 1. Build the frontend

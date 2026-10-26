@@ -20,6 +20,11 @@
 			<directory>tests/unit</directory>
 		</testsuite>
 	</testsuites>
+	<php>
+		<!-- Die Bibliothek für E-Rechnungen lädt sehr große, erzeugte Klassen (E-Rechnungs-Tests); das
+		     Standardlimit von 128 MB der PHP-CLI reicht dafür nicht. Nextcloud selbst läuft mit 512 MB. -->
+		<ini name="memory_limit" value="1G"/>
+	</php>
 	<source>
 		<include>
 			<directory suffix=".php">lib</directory>

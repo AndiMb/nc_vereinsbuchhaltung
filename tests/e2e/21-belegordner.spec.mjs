@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test'
-import { api, dav, findBooking, openApp, openSettingsPage, pickNcSelectOption, skipBookingTour, visibleSection, BANK_ACCOUNT, BELEG_PNG, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, BANK_ACCOUNT, BELEG_PNG, dav, findBooking, INCOME_ACCOUNT, neuAnlegen, openApp, openSettingsPage, pickNcSelectOption, skipBookingTour, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Der Wächter-Ordner für Belege: was in der Dateien-App abgelegt wird, meldet
 // die Übersicht als „noch keiner Buchung zugewiesen" und lässt sich beim
@@ -113,7 +113,7 @@ test.describe('Wächter-Ordner für Belege', () => {
 		await dav.put(request, 'admin', `${FOLDER}/2026/suchtest-zwei.png`, BELEG_PNG, 'image/png')
 
 		await openApp(page, USERS.verwalter)
-		await page.getByRole('button', { name: 'Buchung', exact: true }).click()
+		await neuAnlegen(page)
 		const bookingDialog = page.getByRole('dialog', { name: 'Neue Buchung' })
 		await skipBookingTour(bookingDialog)
 		// Erst wenn der Buchungsdialog den Fokus hält, ist seine Fokusfalle aktiv (nach der Einblend-Animation).

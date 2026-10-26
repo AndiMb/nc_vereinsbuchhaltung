@@ -233,11 +233,11 @@ Full manual in German and English: see documentation.
 	<screenshot>https://raw.githubusercontent.com/AndiMb/nc_vereinsbuchhaltung/main/img/screenshots/konten.png</screenshot>
 	<screenshot>https://raw.githubusercontent.com/AndiMb/nc_vereinsbuchhaltung/main/img/screenshots/mobil.png</screenshot>
 	<dependencies>
-		<php min-version="8.1" max-version="8.5"/>
+		<php min-version="8.2" max-version="8.5"/>
 		<database>sqlite</database>
 		<database>mysql</database>
 		<database>pgsql</database>
-		<nextcloud min-version="31" max-version="35"/>
+		<nextcloud min-version="33" max-version="35"/>
 	</dependencies>
 	<!-- Sieht stuendlich im eingestellten Wachordner nach neuen Kontoauszuegen.
 	     Ist keiner eingestellt, kehrt der Job sofort zurueck. Die Eintragung
@@ -250,6 +250,8 @@ Full manual in German and English: see documentation.
 		<job>OCA\Vereinsbuchhaltung\BackgroundJob\ContributionDueCycleJob</job>
 		<job>OCA\Vereinsbuchhaltung\BackgroundJob\MandateDepartureJob</job>
 		<job>OCA\Vereinsbuchhaltung\BackgroundJob\DunningLadderJob</job>
+		<job>OCA\Vereinsbuchhaltung\BackgroundJob\InvoiceDunningJob</job>
+		<job>OCA\Vereinsbuchhaltung\BackgroundJob\InvoicePlanJob</job>
 	</background-jobs>
 	<!-- Dieselbe Section-Klasse fuer admin-section und personal-section: die
 	     Registrierung ist intern nach Typ getrennt (siehe Settings\Section).

@@ -11,7 +11,7 @@
 				{{ t('Noch keine Beitragsgruppe angelegt.') }}
 			</p>
 			<div v-else class="vbh-tablecard">
-				<table class="vbh-table">
+				<table class="vbh-table vbh-stack">
 					<thead>
 						<tr>
 							<th>{{ t('Name') }}</th>
@@ -28,7 +28,9 @@
 					</thead>
 					<tbody>
 						<tr v-for="g in groups" :key="g.id">
-							<td>{{ g.name }}</td>
+							<td class="vbh-stack-title">
+								{{ g.name }}
+							</td>
 							<td class="num">
 								{{ euro(g.minMonthlyAmountCents) }}
 							</td>
@@ -81,7 +83,7 @@
 				{{ t('Noch keine Zuweisung angelegt.') }}
 			</p>
 			<div v-else class="vbh-tablecard">
-				<table class="vbh-table">
+				<table class="vbh-table vbh-stack">
 					<thead>
 						<tr>
 							<th>{{ t('Mitglied') }}</th>

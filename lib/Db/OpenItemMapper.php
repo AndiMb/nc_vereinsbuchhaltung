@@ -89,6 +89,23 @@ class OpenItemMapper extends QBMapper {
 		return $this->findEntities($qb);
 	}
 
+	/**
+	 * Noch nicht (voll) ausgeglichene Posten von Rechnungen, älteste zuerst.
+	 * Grundlage des Bankabgleichs für Rechnungen.
+	 *
+	 * @return OpenItem[]
+	 */
+	public function findOpenInvoiceItems(): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->isNotNull('invoice_id'))
+			->andWhere($qb->expr()->eq('status', $qb->createNamedParameter('open')))
+			->orderBy('due_date', 'ASC')
+			->addOrderBy('id', 'ASC');
+		return $this->findEntities($qb);
+	}
+
 	/** @return OpenItem[] */
 	public function findByMember(int $memberId): array {
 		$qb = $this->db->getQueryBuilder();

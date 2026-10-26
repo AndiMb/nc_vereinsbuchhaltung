@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test'
-import { api, openApp, switchTab, tabButton, visibleSection, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, openApp, switchTab, tabButton, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Generische Offene-Posten-Wege und die Regeln der Forderungen (Issue #121,
 // Spec §2.2/§3.6/§11): Beitragsforderungen liegen in derselben Tabelle wie die
@@ -64,12 +64,14 @@ async function claimById(request, id) {
 	return (await api.getJson(request, '/claims')).find((c) => c.id === id)
 }
 
-const writePaths = (id) => [
-	['bezahlt', 'POST', `/open-items/${id}/pay`],
-	['storniert', 'POST', `/open-items/${id}/cancel`],
-	['wieder geöffnet', 'POST', `/open-items/${id}/reopen`],
-	['gelöscht', 'DELETE', `/open-items/${id}`],
-]
+function writePaths(id) {
+	return [
+		['bezahlt', 'POST', `/open-items/${id}/pay`],
+		['storniert', 'POST', `/open-items/${id}/cancel`],
+		['wieder geöffnet', 'POST', `/open-items/${id}/reopen`],
+		['gelöscht', 'DELETE', `/open-items/${id}`],
+	]
+}
 
 /** Der Willkommenshinweis für Kassenprüfer erscheint je Browserprofil einmal (siehe 08-roles). */
 async function dismissRevisorIntro(page) {

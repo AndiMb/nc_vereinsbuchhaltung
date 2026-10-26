@@ -29,12 +29,9 @@
 		<p v-if="feeAccountMissing || revenueAccountMissing" class="vbh-hint vbh-hint--warning">
 			{{ t('Ein gespeichertes Konto gibt es nicht mehr. Bitte wählen Sie ein neues Konto und speichern Sie.') }}
 		</p>
-		<NcCheckboxRadioSwitch v-model="draft.returnFeeRechargeEnabled" type="switch">
-			{{ t('Rücklastschriftgebühren an das Mitglied weiterbelasten') }}
-		</NcCheckboxRadioSwitch>
-		<p class="vbh-hint">
+		<SettingsToggle v-model="draft.returnFeeRechargeEnabled" :label="t('Rücklastschriftgebühren an das Mitglied weiterbelasten')">
 			{{ t('Aus (Standard): Die Bankgebühr trägt der Verein. An: Bei Rücklastschriften wegen fehlender Deckung oder unbrauchbarem Konto stellt die App dem Mitglied die Bankgebühr als eigene Forderung in Rechnung, gebucht auf dem Konto für Rücklastschriftgebühren. Dafür muss ein Konto gewählt sein.') }}
-		</p>
+		</SettingsToggle>
 		<div class="vbh-form">
 			<label>{{ t('Mahnabstand (Tage)') }}
 				<input
@@ -59,7 +56,7 @@
 
 <script>
 import NcButton from '@nextcloud/vue/components/NcButton'
-import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
+import SettingsToggle from './SettingsToggle.vue'
 import { useAccounts } from '../composables/useAccounts.js'
 import { useSepaSettings } from '../composables/useSepaSettings.js'
 import { useSettingsCardSave } from '../composables/useSettingsCardSave.js'
@@ -75,7 +72,7 @@ import { accountMissing, accountOptions, DAYS_MAX, DAYS_MIN, daysError } from '.
  */
 export default {
 	name: 'SettingsSepaReturns',
-	components: { NcButton, NcCheckboxRadioSwitch },
+	components: { NcButton, SettingsToggle },
 
 	setup() {
 		const { state, saveReturnSettings } = useSepaSettings()

@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test'
-import { api, openApp, switchTab, visibleSection, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, openApp, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Das Konto-Formular schickt immer alle Felder mit; ein Teil-Update wuerde
 // z. B. die IBAN mitnehmen (siehe AccountService::update()).

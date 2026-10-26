@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test'
-import { api, openApp, switchTab, visibleSection, fixture, CAMT_STATEMENT, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, CAMT_STATEMENT, fixture, INCOME_ACCOUNT, openApp, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Auto-Zuordnungsregeln: eine Regel auf den Verwendungszweck ordnet
 // wiederkehrende Umsätze schon beim Import zu.

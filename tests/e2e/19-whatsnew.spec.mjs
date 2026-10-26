@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 import { api, openApp, USERS } from './fixtures/nextcloud.mjs'
 
 // Der "Was ist neu"-Splash (WhatsNewDialog.vue) ist der einzige Dialog, der

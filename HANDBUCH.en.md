@@ -25,6 +25,7 @@ what should I watch out for?
 12. [When something goes wrong – help and safety](#12-when-something-goes-wrong--help-and-safety)
 13. [Membership fees and SEPA direct debit](#13-membership-fees-and-sepa-direct-debit)
 14. [Appendix: roles, account types, keyboard shortcuts, glossary](#14-appendix-roles-account-types-keyboard-shortcuts-glossary)
+15. [Writing invoices (optional)](#15-writing-invoices-optional)
 
 ---
 
@@ -426,7 +427,7 @@ amounts appear separately.
 
 ### 4.2 Creating manual postings
 
-**"+ Posting"** button (top right, or on mobile the large "+" button).
+**"+ New"** button (top right, or on mobile the large "+" button), then **Entry**. Depending on role and on whether the invoice module is on, the menu also offers **Member** (contributions on) and **Invoice**. Recurring invoices are created in the invoice list under "Recurring" or in the invoice editor.
 
 **Simple mode** (default): you only choose *income* or *expense*, a
 **category** (what for? e.g. "Insurance") and a **cash account** (bank or
@@ -1253,7 +1254,7 @@ readable page, so nothing needs to be looked up on GitHub.
 
 Gear icon → *Data* → *Delete all data* (administrators only, with a
 confirmation dialog) removes accounts, postings, imports, receipts, open items
-(including the claims against members), the templates of the
+(including the claims against members), **all invoices including their PDF and e-invoice** (invoices must be kept for eight years: back them up first with the receipts ZIP under Reports → Evaluation), the templates of the
 structured report (afterwards the two standard templates are available
 again) and the year-end closing markers.
 **The change log is kept.** Members, mandates, contribution groups and
@@ -2395,6 +2396,137 @@ This only applies to cash accounts (bank flag).
   the banking app scans to prefill the transfer (chapter 13.8).
 - **Anonymization** – blacking out a member's personal details after the
   retention period; amounts and dates stay (chapter 13.13).
+
+---
+
+## 15. Writing invoices (optional)
+
+With the invoice module the association issues invoices in its own name – for hall rental, course fees, sponsoring or an anniversary booklet. Every finalized invoice is an **open item** in the app and is assigned to its payment automatically when the bank statement is imported. The module is optional and appears as the **Invoices** tab once it is turned on.
+
+> **What it is not:** Membership fees stay in the membership module (chapter 13). A genuine membership fee is not a supply for consideration in VAT terms; an "invoice" for it is usually not needed.
+
+### 15.1 Turning it on and the association's details
+
+*Nextcloud settings → Vereinsbuchhaltung → Invoices* (administrators only):
+
+1. **Turn on the invoice module.**
+2. Enter the **details of the association**. Section 14 (4) UStG requires the name and address and the **tax number** (from the tax office) or the VAT ID. Register, board, phone and email additionally appear in the footer of the invoice. You maintain the name of the association further up under "Club".
+3. **Tax and payment:** Most small associations are **small businesses** (section 19 UStG) and do not show value added tax; the invoice then carries the required notice. Whether this applies to your association is determined by the tax office or your tax adviser. Also choose the **account for payment details and GiroCode** (a cash account with an IBAN), the payment term and, if you like, default texts.
+4. **Invoice numbers:** The default is `RE-{JJJJ}-{NNNN}` (e.g. `RE-2026-0042`), restarting at 1 every year; credit notes are counted separately (`ST-…`). Numbers are consecutive and unique – change the pattern only before you write the first invoice.
+
+As long as mandatory details are missing, no invoice can be finalized; the app tells you what is missing.
+
+### 15.2 Recipients
+
+When writing an invoice you choose the recipient from the recipients already created or from the **members** (the address comes from the member record); **New** creates a recipient, optionally with an email address for sending and – for authorities – the **Leitweg ID**. The address is copied into the invoice when it is finalized: later changes to the recipient never change a finished invoice.
+
+### 15.3 Writing an invoice
+
+**Invoices → New invoice.** The draft saves itself shortly after every change.
+
+- **Invoice details:** invoice date, payment term and the **time of service** – a date or a period; either is mandatory.
+- **Line items:** description, quantity, unit, unit price, optionally a discount and a description. Every line needs a **revenue account** (an income account); the payment is booked to it later. Use the arrows to reorder. The total updates as you type.
+- **Tax and texts:** For small businesses the notice under section 19 UStG is added to the invoice automatically. If you are tax-exempt, enter the exemption notice (e.g. "Tax-exempt under section 4 no. 22 UStG"). Introduction, closing text and payment terms are free.
+- **Preview** shows the PDF with a "DRAFT" watermark.
+
+Accountants may create drafts; **finalizing, sending and cancelling** are reserved for administrators.
+
+### 15.4 Finalizing
+
+**Finalize …** checks the mandatory details (address and tax number of the association, recipient, time of service, line items, amount). Under **Please note** the editor lists hints that do not prevent finalizing: a line on an account of the non-material sphere (**donations and genuine membership fees are not invoiced** – use the donation receipt or the contributions module instead), a registered association without "e. V." in its name, and a missing bank account. Optionally the invoice prints a **note on non-profit status** (Settings → Invoices → Club details); it does not replace a VAT notice. After that:
+
+- the invoice receives its **number** and is **immutable** – it can only be corrected by cancelling it;
+- the **PDF** is created (PDF/A-3b, with a GiroCode to scan in the banking app) and stored as a file in the folder of the receipt storage under `Vereinsbuchhaltung/Rechnungen/<year>/`; the checksum (SHA-256) later shows whether the file was changed;
+- the **open item** is created with the invoice number as its reference.
+
+**Nothing is booked yet**: the app works on a cash basis, booking happens when the money arrives.
+
+### 15.5 Sending
+
+In the invoice details: **Send by email**. Recipient address, subject and text are prefilled and can be changed before sending; the PDF is attached. You maintain the template and its placeholders (`{nummer}`, `{betrag}`, `{faellig}`, `{verein}`, `{empfaenger}`) in the settings. Alternatively download the PDF and send or print it yourself.
+
+### 15.6 Assigning a payment
+
+- **On import:** If the invoice number appears in the payment reference (also as `RE 2026 0042` or `RE20260042`) and the amount matches exactly, the import books the payment **on its own**: cash account to revenue account, with the invoice number as document reference. You can turn this off in the settings.
+- **In Entries → To assign:** For everything else an incoming payment shows a **"✓ Invoice RE-…"** chip – number in the text, or amount and name match, or only the amount with exactly one open invoice. One click books it. If the amount is lower the chip reads "Partial payment on …" and the invoice stays open; if it is higher, split the transaction ("Split…") and assign the rest to another account.
+- **From the invoice:** **Record payment** assigns a transaction or books a **cash payment** (cash account/cash box to revenue accounts).
+- **Partial payments** are spread proportionally over the revenue accounts of the line items; with the last payment the totals per account match exactly.
+- **Reverting:** If a payment's assignment is removed or its booking is deleted, the invoice opens again. In the details you can also do it with the arrow next to the payment.
+
+### 15.7 Cancelling and duplicating
+
+**Cancel …** (administrator) creates a **credit note** with its own number that reverses all line items and refers to the invoice; the invoice counts as cancelled. A reason is required. If it was already paid, the booking stays: you assign the refund to the revenue account like any other outgoing payment, the amount is shown in the credit note.
+
+**Duplicate** copies an invoice as a new draft – handy for recurring services.
+
+### 15.8 Retention
+
+Invoices have to be kept for **eight years**. The PDFs are files in Nextcloud; include them in your backup. A finalized invoice can no longer be changed in the app; the checksum in the document list shows if the file was changed outside the app.
+
+### 15.9 Standard taxation (showing VAT)
+
+If the association is not a small business (or has waived the small-business rule), switch the settings under **Tax** to **Standard taxation** and define:
+
+- **VAT accounts** for 19 % and 7 % (liability accounts, for instance 1776 and 1771 in SKR 42). Without them an invoice with tax cannot be finalized.
+- **Default rates** by sphere of the revenue account: ideal-purpose operation 7 % or 0 %, commercial operation 19 %. The rate is only a suggestion.
+
+In the editor every line item then has a tax choice: **19 %**, **7 %**, **0 %** or **tax-exempt** (with exemption notice). The invoice shows the totals per tax rate; tax is calculated once per rate from the net total and rounded commercially, as the e-invoice requires. When a payment arrives, the amount is split proportionally over the **revenue accounts and the VAT accounts**; with the last payment all accounts match to the cent. A credit note reverses net, tax and gross.
+
+The change only applies to **new** invoices. Finalized invoices keep their tax mode.
+
+> **Note:** Whether and at which rate a supply is taxable depends on the sphere and the individual case. The tax office or your tax adviser decides that; the app only calculates with what you set.
+
+### 15.10 E-invoice (ZUGFeRD and XRechnung)
+
+Since 2025 businesses must be able to **receive** e-invoices; **issuing** them is becoming mandatory step by step for supplies between businesses (from 2027 above EUR 800,000 prior-year turnover, from 2028 for everyone). Small businesses and invoices to private persons are exempt (section 34a UStDV). If your association invoices businesses or public authorities, the app can create the matching e-invoice right away. A finalized invoice offers three formats in the **Documents** section:
+
+| Format | File | For whom |
+| --- | --- | --- |
+| **ZUGFeRD PDF (EN 16931)** | PDF with embedded XML; an ordinary PDF to a human | Businesses that read invoices automatically |
+| **XRechnung (CII XML)** | plain XML file | Authorities and municipalities |
+| **XRechnung (UBL XML)** | plain XML file | Recipients that require UBL (for example via Peppol) |
+
+- **Suggestion by recipient:** authorities → XRechnung, businesses and associations → ZUGFeRD, private persons → none. With *Create the e-invoice when issuing* ticked in the settings (default), the suggested format is created when you finalize, provided all details are there.
+- **Mandatory details:** ZUGFeRD needs a complete address of the recipient. **XRechnung** additionally needs the **Leitweg ID** (on the recipient) or a buyer reference (on the invoice), phone number and email address of the association, the recipient's email address and the account with IBAN. The *Create e-invoice* choice lists what is missing before you create.
+- **Checked and unchangeable:** every XML is checked against the schema of its format before it is stored; an invalid document is not saved. Like the PDF it is stored with a checksum in the receipt storage, one document per invoice and format (the XML is the original, section 14 UStG). The development team additionally checks the app's sample invoices in CI with the official KoSIT validator against the EN 16931 and XRechnung 3.0 rules.
+- **Sending:** the send dialog can attach existing e-invoices. A ZUGFeRD PDF replaces the plain PDF, XRechnung XML is attached in addition. Authorities usually receive XRechnungen through a portal; download the XML file for that.
+- **Credit note:** it is created as a credit note document (type 381) referring to the original invoice.
+
+### 15.11 Line item templates
+
+*Nextcloud settings → Vereinsbuchhaltung → Invoices → Line item templates* (administrator): create recurring services such as "Hall rental" or "Course fee" once, with description, unit, price, revenue account and tax. In the invoice editor, **Insert from template …** below the line items adds the chosen template as a **copy**; price, quantity and text stay editable afterwards, and later changes to the template do not affect existing invoices. Bookkeepers can use the templates but not change them.
+
+### 15.12 Recurring invoices
+
+For services at a fixed interval (hall rental, sponsoring, annual fee) a **plan** creates the invoices by itself. A plan is created where you otherwise write an invoice: **Invoices → New invoice**, then choose **Recurring invoice** under **Type** at the top (administrator only). The same editor shows the **Repetition** instead of the invoice data; you enter recipient, line items (also from templates), tax and texts as for an invoice. Alternatively **Recurring …** in the details of an existing invoice takes over recipient, line items and texts as a template for the plan.
+
+Under **Repetition** you choose:
+
+- **Interval:** monthly, quarterly, half-yearly or yearly, with **first invoice on** and an optional **end**. Dates are always counted from the start; the 31st becomes the 28th or 29th in February but goes back to the 31st afterwards.
+- **Service period:** the period of the interval that starts with the invoice (for a monthly invoice on 1 June that is 1 to 30 June), or service date equal to invoice date.
+- **Payment term** in days (empty = default from the settings).
+- **Finalizing and sending:** Without the tick the plan creates **drafts** that you check and finalize. With **Finalize the invoice right away** the plan finalizes, creates the PDF and e-invoice and can **send the invoice by email**. If details are missing when finalizing, the draft stays and the plan states the reason in its overview.
+
+In names and texts the run replaces `{monat}`, `{jahr}`, `{quartal}` and `{zeitraum}`: "Hall rental {monat} {jahr}" becomes "Hall rental June 2027".
+
+All plans are in the **Recurring** tab of the invoice list: interval, next date, last run with a link to the invoice, errors. **Edit** opens the plan in the same editor – the line items can be changed too. Plans can also be **paused** and **deleted** (invoices already created remain). A paused or newly created plan **does not catch up on past dates**; it starts with the next date from today. The Nextcloud background job checks hourly; **Run due plans now** triggers it by hand.
+
+### 15.13 Dunning
+
+Invoices that are unpaid after the payment term are dunned in **three stages**: **payment reminder**, **1st dunning letter** and **2nd dunning letter** (final). Every stage is a **dunning letter as a PDF** with the open invoice and a **GiroCode for the remaining amount**, sent by email and stored unchangeably like the invoice.
+
+- **Deadlines:** the reminder is due 7 days after the payment term, the 1st dunning letter 14 days after the reminder, the 2nd 14 days after the 1st. You set all deadlines and the payment deadline in the letter (7 days) under **Dunning** in the settings, and the subject and text per stage. While a field is empty the default text shown in grey applies; **Use default text** copies it into the field so you can edit it (the same goes for the invoice email template). Placeholders: `{stufe}`, `{nummer}`, `{rechnungsdatum}`, `{betrag}`, `{rest}`, `{faellig}`, `{frist}`, `{verein}`, `{empfaenger}`.
+- **In the list** an invoice shows its **dunning stage** and **Dunning due**; the filter **Dunning due** collects them.
+- **Dun** (administrator): in the details click **Dun …**. The dialog suggests the next stage, address, subject and text; everything can be changed before sending. A stage cannot be repeated but can be skipped. The history is in the **Reminders and dunning letters** section, the PDFs are with the documents.
+- **Automatic:** With **Send due dunning letters automatically by email** (off until you turn it on) the daily background job sends due stages by itself. Invoices whose recipient has no email address are skipped; they stay in the list as "Dunning due".
+- **Locks:** paid, cancelled and not yet due invoices, credit notes and drafts are never dunned. Partial payments reduce the amount in the letter. After the 2nd dunning letter the app stops; the association decides how to proceed (court order, waiver).
+
+The app does not calculate dunning fees or default interest and does not give legal advice: texts and deadlines should suit your association.
+
+### 15.14 Payment reference (RF) and audit
+
+- **RF reference (ISO 11649):** On request (setting, on by default) the invoice prints a **structured payment reference** such as `RF18 RE20 2600 42` next to the payment reference. It contains the invoice number and two check digits and is part of the **GiroCode**. The bank matching recognizes it as the most reliable feature: if the reference is in the payment reference field and the amount matches, the import books by itself, even if the payer inserted spaces.
+- **Audit:** with the invoice module on, the receipts ZIP (button "Beleg-ZIP" in *Reports → Evaluation*, chapter 9.2) contains the folder `rechnungen/`: one subfolder per invoice with all documents (PDF, ZUGFeRD PDF, XRechnung XML, dunning letters), plus `uebersicht.csv` (number, date, recipient, net, tax, gross, paid, open, status, dunning stage) and `pruefsummen.txt` with the SHA-256 of every file and the finding `ok`, `changed` or `missing`. The invoices of a period are chosen by invoice date.
 
 ---
 

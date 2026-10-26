@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test'
-import { api, openApp, switchTab, visibleSection, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, openApp, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Offene Posten: unbezahlte Forderungen anlegen, in der Oberfläche sehen
 // und über ihren Lebenszyklus führen (bezahlt, storniert, wiedereröffnet).
@@ -60,12 +60,18 @@ test.describe('Offene Posten', () => {
 
 	test('bezahlt, storniert und wiedereröffnet (API)', async ({ request }) => {
 		const paidItem = await api.createOpenItem(request, {
-			debtor: 'Anna Schmidt', description: 'Beitrag', amount: 30, dueDate: '2026-06-01',
+			debtor: 'Anna Schmidt',
+			description: 'Beitrag',
+			amount: 30,
+			dueDate: '2026-06-01',
 		})
 		expect((await api.raw(request, 'POST', `/open-items/${paidItem.id}/pay`)).status()).toBe(200)
 
 		const cancelItem = await api.createOpenItem(request, {
-			debtor: 'Kurt Krause', description: 'Beitrag', amount: 30, dueDate: '2026-06-01',
+			debtor: 'Kurt Krause',
+			description: 'Beitrag',
+			amount: 30,
+			dueDate: '2026-06-01',
 		})
 		expect((await api.raw(request, 'POST', `/open-items/${cancelItem.id}/cancel`)).status()).toBe(200)
 		expect((await api.raw(request, 'POST', `/open-items/${cancelItem.id}/reopen`)).status()).toBe(200)

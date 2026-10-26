@@ -13,6 +13,7 @@ use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCA\Vereinsbuchhaltung\Service\DemoDataService;
 use OCA\Vereinsbuchhaltung\Service\DunningSettings;
 use OCA\Vereinsbuchhaltung\Service\FolderPathValidator;
+use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
 use OCA\Vereinsbuchhaltung\Service\MandateDocumentService;
 use OCA\Vereinsbuchhaltung\Service\MandateExpirySettings;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
@@ -77,6 +78,7 @@ class SettingsControllerSepaTest extends TestCase {
 			new FolderPathValidator($l10n),
 			new DunningSettings($config),
 			new MandateExpirySettings($config),
+			new InvoiceSettings($config, new FolderPathValidator($l10n)),
 			$l10n,
 		);
 	}
@@ -128,6 +130,16 @@ class SettingsControllerSepaTest extends TestCase {
 		$members->method('count')->willReturn(3);
 
 		$this->assertTrue($this->controller($members)->index()->getData()['membership_active']);
+	}
+
+	public function testAusgeschalteterSchalterVerbirgtDenReiterAuchMitMitgliedern(): void {
+		$this->store['membership_enabled'] = '0';
+		$members = $this->createMock(MemberMapper::class);
+		$members->method('count')->willReturn(3);
+
+		$data = $this->controller($members)->index()->getData();
+		$this->assertFalse($data['membership_active']);
+		$this->assertFalse($data['membership_enabled']);
 	}
 
 	public function testReiterBeitraegeErscheintMitSchalterAuchOhneMitglieder(): void {

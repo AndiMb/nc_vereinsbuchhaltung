@@ -14,6 +14,13 @@ use OCA\Vereinsbuchhaltung\Db\DebitBatchMapper;
 use OCA\Vereinsbuchhaltung\Db\DebitItemMapper;
 use OCA\Vereinsbuchhaltung\Db\DunningNoticeMapper;
 use OCA\Vereinsbuchhaltung\Db\IncomingPaymentRejectionMapper;
+use OCA\Vereinsbuchhaltung\Db\InvoiceDocumentMapper;
+use OCA\Vereinsbuchhaltung\Db\InvoiceDunningMapper;
+use OCA\Vereinsbuchhaltung\Db\InvoiceItemTemplateMapper;
+use OCA\Vereinsbuchhaltung\Db\InvoiceLineMapper;
+use OCA\Vereinsbuchhaltung\Db\InvoiceMapper;
+use OCA\Vereinsbuchhaltung\Db\InvoicePaymentMapper;
+use OCA\Vereinsbuchhaltung\Db\InvoicePlanMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\MandateAmendmentMapper;
@@ -27,6 +34,8 @@ use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\BudgetSnapshotService;
 use OCA\Vereinsbuchhaltung\Service\ContributionResetService;
 use OCA\Vereinsbuchhaltung\Service\FieldCipher;
+use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceDocumentStorage;
+use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCA\Vereinsbuchhaltung\Service\Report\ReportTemplateService;
 use OCA\Vereinsbuchhaltung\Service\ResetService;
@@ -80,13 +89,21 @@ class ResetServiceTest extends TestCase {
 		'vbh_debit_batches',
 		'vbh_open_items',
 		'vbh_periods',
+		'vbh_invoices',
+		'vbh_invoice_lines',
+		'vbh_invoice_documents',
+		'vbh_invoice_payments',
+		'vbh_invoice_plans',
+		'vbh_invoice_templates',
+		'vbh_invoice_dunnings',
 	];
 
 	/**
 	 * Stammdaten und Protokolle, die der Reset bewusst stehen lässt (Handbuch
 	 * 12.1): Mitglieder, Mandate samt Historie, Beitragsgruppen, Zuweisungen
-	 * samt Historie, Rechtstexte, Rollen, Aufgaben (hängen an Mitgliedern) und
-	 * das Änderungsprotokoll.
+	 * samt Historie, Rechtstexte, Rollen, Aufgaben (hängen an Mitgliedern),
+	 * Rechnungsempfänger und Nummernkreise (der Zähler läuft weiter) und das
+	 * Änderungsprotokoll.
 	 */
 	private const KEPT_TABLES = [
 		'vbh_members',
@@ -101,6 +118,8 @@ class ResetServiceTest extends TestCase {
 		'vbh_permissions',
 		'vbh_tasks',
 		'vbh_audit_log',
+		'vbh_debtors',
+		'vbh_number_ranges',
 	];
 
 	/** @var list<string> Reihenfolge aller Wirkungen des Resets, siehe record() */
@@ -272,6 +291,15 @@ class ResetServiceTest extends TestCase {
 				new DebitBatchMapper($this->db),
 			),
 			$reportTemplates,
+			new InvoiceMapper($this->db),
+			new InvoiceLineMapper($this->db),
+			new InvoiceDocumentMapper($this->db),
+			$this->createMock(InvoiceSettings::class),
+			new InvoicePaymentMapper($this->db),
+			$this->createMock(InvoiceDocumentStorage::class),
+			new InvoiceDunningMapper($this->db),
+			new InvoiceItemTemplateMapper($this->db),
+			new InvoicePlanMapper($this->db),
 		);
 	}
 

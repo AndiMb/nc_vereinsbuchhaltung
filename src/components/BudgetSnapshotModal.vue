@@ -16,7 +16,7 @@
 				{{ t('Die Spalte „Aktuell" zeigt den heutigen Planwert, „Δ" die Abweichung des aktuellen Plans zum Stand. Oberkonten zeigen die Summe ihrer Unterkonten.') }}
 			</p>
 			<div v-if="rows.length" class="vbh-tablecard vbh-budgettree">
-				<table class="vbh-table">
+				<table class="vbh-table vbh-stack">
 					<thead>
 						<tr>
 							<th class="nowrap vbh-col-hide-sm">
@@ -36,10 +36,10 @@
 					</thead>
 					<tbody>
 						<tr v-for="row in shown" :key="row.accountId" :class="{ 'vbh-parentrow': row.hasChildren }">
-							<td class="nowrap vbh-col-hide-sm">
+							<td class="nowrap vbh-col-hide-sm vbh-stack-eyebrow">
 								{{ row.number }}
 							</td>
-							<td :style="{ paddingInlineStart: (6 + row.depth * 18) + 'px' }">
+							<td class="vbh-stack-title" :style="{ paddingInlineStart: (6 + row.depth * 18) + 'px' }">
 								<div class="vbh-budgettree-name">
 									<button
 										v-if="row.hasChildren"

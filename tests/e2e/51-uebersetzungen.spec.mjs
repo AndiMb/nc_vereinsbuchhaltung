@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
+import { clearCapturedMails, startMailCapture, stopMailCapture, waitForMailsTo } from './fixtures/mail-capture.mjs'
 import { api, authHeaders, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, BASE_URL, openApp, tabButton, USERS, visibleSection, waitForAppLoaded } from './fixtures/nextcloud.mjs'
-import { startMailCapture, stopMailCapture, waitForMailsTo, clearCapturedMails } from './fixtures/mail-capture.mjs'
 
 // Übersetzungen des Beiträge/SEPA-Moduls (Issue #106, Spec §1.4/§3.11):
 //

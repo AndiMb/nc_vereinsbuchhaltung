@@ -85,7 +85,7 @@ function buildTopics() {
 				t('Tab „Zuzuordnen": jede offene Bankbuchung bekommt ein Gegenkonto – Vorschläge und Regeln übernehmen das oft automatisch.'),
 				t('Unterreiter „Regeln" (nur Verwalter/Buchhalter): wiederkehrende Zuordnungen dauerhaft hinterlegen, statt sie jedes Mal von Hand zu setzen.'),
 				t('Enthält ein Umsatz mehreres zugleich (Beitrag und Spende): „Aufteilen…" verteilt ihn auf mehrere Gegenkonten.'),
-				t('Manuelle Buchung: Button „+ Buchung" – im Einfach-Modus reicht Einnahme/Ausgabe, Kategorie und Geldkonto.'),
+				t('Manuelle Buchung: Button „+ Neu → Buchung" – im Einfach-Modus reicht Einnahme/Ausgabe, Kategorie und Geldkonto.'),
 				t('Belege lassen sich direkt an jede Buchung anhängen (Foto oder Datei).'),
 			],
 		},

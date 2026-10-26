@@ -112,10 +112,8 @@ export async function waitForMailsTo(recipient, { count = 1, timeoutMs = 20000, 
 		}
 		await sleep(500)
 	} while (Date.now() < deadline)
-	throw new Error(
-		`Keine Mail an ${recipient} abgegriffen (erwartet: ${count}, gefunden: ${matching.length}). `
-		+ 'Ist der sendmail-Ersatz aktiv (mail_smtpmode=sendmail, mail_sendmailmode=pipe) und hat der Auslöser versandt?',
-	)
+	throw new Error(`Keine Mail an ${recipient} abgegriffen (erwartet: ${count}, gefunden: ${matching.length}). `
+		+ 'Ist der sendmail-Ersatz aktiv (mail_smtpmode=sendmail, mail_sendmailmode=pipe) und hat der Auslöser versandt?')
 }
 
 // --- MIME ------------------------------------------------------------------

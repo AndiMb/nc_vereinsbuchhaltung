@@ -465,7 +465,7 @@ class DunningLadderServiceTest extends TestCase {
 			) {
 			}
 
-			public function generatePng(string $creditorName, string $creditorIban, ?string $creditorBic, int $amountCents, string $remittanceText): string {
+			public function generatePng(string $creditorName, string $creditorIban, ?string $creditorBic, int $amountCents, string $remittanceText, ?string $creditorReference = null): string {
 				throw $this->failure;
 			}
 		};

@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test'
-import { api, openApp, switchTab, visibleSection, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, openApp, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Betrag und Turnus kommen von der Beitragsgruppe: die vereinsweite Einstellung „Standard-Beitrag“ gibt es nicht
 // mehr. Beim CSV-Import bekommt eine Zeile mit Startdatum, aber ohne Betrag, den üblichen Monatsbeitrag

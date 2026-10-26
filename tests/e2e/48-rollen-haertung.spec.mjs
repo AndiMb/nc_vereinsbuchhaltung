@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test'
-import { api, openApp, openSettingsPage, switchTab, visibleSection, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, openApp, openSettingsPage, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Rollen-Härtung des Beitragsmoduls (Issue #119, Spec §3.9): jede Methode trägt
 // ihre Rolle ausdrücklich, und was zur Einstellung gehört, ist `verwalter`-Sache.

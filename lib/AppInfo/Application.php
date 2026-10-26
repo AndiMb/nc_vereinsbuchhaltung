@@ -49,6 +49,10 @@ class Application extends App implements IBootstrap {
 		// Verschachtelungstiefe und sammelt Nach-Commit-Aufgaben in
 		// Instanzfeldern. Bekäme jeder Service seine eigene Instanz, öffnete
 		// jede Ebene eine eigene Transaktion – genau das soll er verhindern.
+		$context->registerService(\OCA\Vereinsbuchhaltung\Service\EInvoice\EInvoiceWriter::class, static function ($c): \OCA\Vereinsbuchhaltung\Service\EInvoice\EInvoiceWriter {
+			return $c->get(\OCA\Vereinsbuchhaltung\Service\EInvoice\InvoiceSuiteEInvoiceWriter::class);
+		});
+
 		$context->registerService(TransactionRunner::class, static function ($c): TransactionRunner {
 			return new TransactionRunner($c->get(IDBConnection::class));
 		}, true);

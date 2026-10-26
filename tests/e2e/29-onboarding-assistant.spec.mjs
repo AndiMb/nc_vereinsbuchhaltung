@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test'
-import { api, openApp, switchTab, visibleSection, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, neuAnlegen, openApp, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Aufnahme-Assistent & voller CSV-Import (Issue #69, Spec §3.1): der
 // dreistufige Weg Stammdaten → Mandat → Beitrag in MemberDialog.vue (Schritt
@@ -47,7 +47,7 @@ test.describe('Aufnahme-Assistent & voller CSV-Import', () => {
 
 		await openApp(page, USERS.buchhalter)
 		await switchTab(page, 'Beiträge')
-		await visibleSection(page).getByRole('button', { name: 'Mitglied', exact: true }).click()
+		await neuAnlegen(page, 'Mitglied')
 
 		const dialog = page.getByRole('dialog', { name: 'Mitglied aufnehmen' })
 		await expect(dialog).toBeVisible()
@@ -87,7 +87,7 @@ test.describe('Aufnahme-Assistent & voller CSV-Import', () => {
 	test('Papier-Mandat ohne Unterschriftsdatum bleibt Entwurf', async ({ page, request }) => {
 		await openApp(page, USERS.buchhalter)
 		await switchTab(page, 'Beiträge')
-		await visibleSection(page).getByRole('button', { name: 'Mitglied', exact: true }).click()
+		await neuAnlegen(page, 'Mitglied')
 
 		const dialog = page.getByRole('dialog', { name: 'Mitglied aufnehmen' })
 		await dialog.getByRole('textbox', { name: 'Vorname', exact: true }).fill('Uwe')
@@ -110,7 +110,7 @@ test.describe('Aufnahme-Assistent & voller CSV-Import', () => {
 	test('Elektronisches Mandat: Entwurf bleibt bis zur Zustimmung, Einmal-Link geht sofort raus', async ({ page, request }) => {
 		await openApp(page, USERS.buchhalter)
 		await switchTab(page, 'Beiträge')
-		await visibleSection(page).getByRole('button', { name: 'Mitglied', exact: true }).click()
+		await neuAnlegen(page, 'Mitglied')
 
 		const dialog = page.getByRole('dialog', { name: 'Mitglied aufnehmen' })
 		await dialog.getByRole('textbox', { name: 'Vorname', exact: true }).fill('Elke')
@@ -147,7 +147,7 @@ test.describe('Aufnahme-Assistent & voller CSV-Import', () => {
 
 		await openApp(page, USERS.buchhalter)
 		await switchTab(page, 'Beiträge')
-		await visibleSection(page).getByRole('button', { name: 'Mitglied', exact: true }).click()
+		await neuAnlegen(page, 'Mitglied')
 
 		const dialog = page.getByRole('dialog', { name: 'Mitglied aufnehmen' })
 		await dialog.getByRole('textbox', { name: 'Vorname', exact: true }).fill('Otto')

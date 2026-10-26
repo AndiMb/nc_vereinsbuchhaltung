@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test'
-import { api, openApp, pickNcSelectOption, switchTab, visibleSection, BANK_ACCOUNT, BELEG_PNG, INCOME_ACCOUNT, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, BANK_ACCOUNT, BELEG_PNG, INCOME_ACCOUNT, neuAnlegen, openApp, pickNcSelectOption, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Belegablage (app-intern): Beleg an eine Buchung hängen, Büroklammer im
 // Journal, Download und das Prüf-ZIP für die Kassenprüfung.
@@ -49,7 +49,7 @@ test.describe('Belegablage', () => {
 	test('Beleg schon beim Anlegen: falscher Typ fliegt raus, der Rest hängt nach dem Buchen dran', async ({ page, request }) => {
 		await openApp(page, USERS.verwalter)
 
-		await page.getByRole('button', { name: 'Buchung', exact: true }).click()
+		await neuAnlegen(page)
 		const dialog = page.getByRole('dialog')
 		await dialog.getByRole('button', { name: 'Einnahme' }).click()
 		const tourSkip = dialog.getByRole('button', { name: 'Überspringen', exact: true })

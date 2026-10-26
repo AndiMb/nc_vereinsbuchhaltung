@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { api, BANK_ACCOUNT, BASE_URL, INCOME_ACCOUNT, openAccountTreeNode, openApp, selectPeriod, switchTab, USERS, visibleSection, waitForAppLoaded } from './fixtures/nextcloud.mjs'
+import { api, BANK_ACCOUNT, BASE_URL, INCOME_ACCOUNT, neuAnlegen, openAccountTreeNode, openApp, selectPeriod, switchTab, USERS, visibleSection, waitForAppLoaded } from './fixtures/nextcloud.mjs'
 
 // Deep-Linking (vue-router, History-Mode): jede Navigation in der App
 // verändert die URL, und jede so erzeugte URL lädt – auch als frisch
@@ -115,7 +115,7 @@ test.describe('Deep-Linking', () => {
 		await openApp(page, USERS.verwalter)
 
 		await switchTab(page, 'Buchungen')
-		await page.getByRole('button', { name: 'Buchung', exact: true }).click()
+		await neuAnlegen(page)
 		await expect(page.getByRole('dialog')).toBeVisible()
 
 		// Nach dem Erstabgleich: der Dialog ist noch offen, und die URL passt zur Ansicht.
@@ -134,7 +134,7 @@ test.describe('Deep-Linking', () => {
 		await openApp(page, USERS.verwalter, { booted: true })
 		await switchTab(page, 'Buchungen')
 
-		await page.getByRole('button', { name: 'Buchung', exact: true }).click()
+		await neuAnlegen(page)
 		await expect(page.getByRole('dialog')).toBeVisible()
 		await expect(page).toHaveURL(/[?&]booking=new(&|$)/)
 

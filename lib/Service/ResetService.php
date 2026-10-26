@@ -11,11 +11,19 @@ use OCA\Vereinsbuchhaltung\Db\BankTxSepaDetailMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\CostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\IncomingPaymentRejectionMapper;
+use OCA\Vereinsbuchhaltung\Db\InvoiceDocumentMapper;
+use OCA\Vereinsbuchhaltung\Db\InvoiceDunningMapper;
+use OCA\Vereinsbuchhaltung\Db\InvoiceItemTemplateMapper;
+use OCA\Vereinsbuchhaltung\Db\InvoiceLineMapper;
+use OCA\Vereinsbuchhaltung\Db\InvoiceMapper;
+use OCA\Vereinsbuchhaltung\Db\InvoicePaymentMapper;
+use OCA\Vereinsbuchhaltung\Db\InvoicePlanMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
+use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceDocumentStorage;
 use OCA\Vereinsbuchhaltung\Service\Report\ReportTemplateService;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportSettingsService;
 
@@ -41,6 +49,15 @@ class ResetService {
 		private IncomingPaymentRejectionMapper $incomingRejections,
 		private ContributionResetService $contribution,
 		private ReportTemplateService $reportTemplates,
+		private InvoiceMapper $invoiceMapper,
+		private InvoiceLineMapper $invoiceLineMapper,
+		private InvoiceDocumentMapper $invoiceDocumentMapper,
+		private InvoiceSettings $invoiceSettings,
+		private InvoicePaymentMapper $invoicePaymentMapper,
+		private InvoiceDocumentStorage $invoiceStorage,
+		private InvoiceDunningMapper $invoiceDunningMapper,
+		private InvoiceItemTemplateMapper $invoiceTemplateMapper,
+		private InvoicePlanMapper $invoicePlanMapper,
 	) {
 	}
 
@@ -68,6 +85,7 @@ class ResetService {
 		// Vor dem Löschen der Datensätze merken, welche Dateien dazugehören –
 		// danach ist die Zuordnung weg.
 		$attachments = $this->attachmentMapper->findAllForUser($userId);
+		$invoiceDocuments = $this->invoiceStorage->all();
 
 		$this->transaction->run(function () use ($userId): void {
 			$this->attachmentMapper->deleteAllForUser($userId);
@@ -93,6 +111,19 @@ class ResetService {
 			// Forderungen darunter (Issue #123) – sie gehen vor ihnen, und die
 			// Zeiger der Mandate auf sie werden im selben Zug gelöst.
 			$this->contribution->deleteClaimDependents();
+			// Rechnungen verweisen auf Konten, Kostenstellen und offene Posten,
+			// die hier verschwinden. Empfänger und Nummernkreise bleiben wie die
+			// Mitglieder stehen: Adressen sind Stammdaten, und der Zähler läuft
+			// weiter, damit eine bereits verschickte Nummer nicht noch einmal
+			// vergeben wird.
+			// Vorlagen und Pläne tragen Erlöskonten, die hier verschwinden; ihre Empfänger bleiben.
+			$this->invoicePlanMapper->deleteAll();
+			$this->invoiceTemplateMapper->deleteAll();
+			$this->invoiceDunningMapper->deleteAll();
+			$this->invoicePaymentMapper->deleteAll();
+			$this->invoiceDocumentMapper->deleteAll();
+			$this->invoiceLineMapper->deleteAll();
+			$this->invoiceMapper->deleteAll();
 			// Offene Posten enthalten Namen von Mitgliedern und Forderungsbeträge –
 			// sie müssen beim Zurücksetzen mit verschwinden, sonst bleiben
 			// personenbezogene Daten mit Verweisen auf gelöschte Konten zurück.
@@ -107,6 +138,7 @@ class ResetService {
 
 			$this->transaction->afterCommit(function (): void {
 				$this->sepaDebtorAccount->setAccountId(null);
+				$this->invoiceSettings->setAccountId(null);
 				$this->sepaImportSettings->forgetAccounts();
 				// Wie in einem frischen Verein: der nächste Abruf legt die
 				// Standardvorlagen des Gliederungsberichts wieder an.
@@ -115,5 +147,6 @@ class ResetService {
 		});
 
 		$this->storageService->deleteAllFiles($attachments);
+		$this->invoiceStorage->deleteFiles($invoiceDocuments);
 	}
 }

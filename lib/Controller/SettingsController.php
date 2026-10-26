@@ -14,6 +14,7 @@ use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCA\Vereinsbuchhaltung\Service\DemoDataService;
 use OCA\Vereinsbuchhaltung\Service\DunningSettings;
 use OCA\Vereinsbuchhaltung\Service\FolderPathValidator;
+use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
 use OCA\Vereinsbuchhaltung\Service\MandateDocumentService;
 use OCA\Vereinsbuchhaltung\Service\MandateExpirySettings;
 use OCA\Vereinsbuchhaltung\Service\MandateReferenceGenerator;
@@ -63,6 +64,7 @@ class SettingsController extends Controller {
 		private FolderPathValidator $folderPathValidator,
 		private DunningSettings $dunningSettings,
 		private MandateExpirySettings $mandateExpirySettings,
+		private InvoiceSettings $invoiceSettings,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -147,7 +149,14 @@ class SettingsController extends Controller {
 	 * @return array<string,mixed>
 	 */
 	private function currentSettings(): array {
-		$membershipEnabled = $this->config->getAppValue(Application::APP_ID, 'membership_enabled', '0') === '1';
+		// Eine ausdrückliche Einstellung gewinnt; nur solange der Schalter nie
+		// gesetzt wurde, entscheidet das Vorhandensein von Mitgliedern.
+		// Mandate und Zuweisungen hängen immer an einem Mitglied (member_id ist
+		// Pflicht), ein Mitglied genügt deshalb als Kriterium; bestehende
+		// Installationen zeigen den Reiter dadurch ohne Migration sofort
+		// (siehe NAVIGATION-KONZEPT.md Abschnitt 4).
+		$stored = $this->config->getAppValue(Application::APP_ID, 'membership_enabled', '');
+		$membershipEnabled = $stored === '' ? $this->memberMapper->count() > 0 : $stored === '1';
 		return [
 			'storage_mode' => $this->attachmentStorage->mode(),
 			'storage_user' => $this->config->getAppValue(Application::APP_ID, AttachmentStorageService::SETTING_USER, ''),
@@ -163,13 +172,7 @@ class SettingsController extends Controller {
 			'sepa_creditor_id' => $this->config->getAppValue(Application::APP_ID, 'sepa_creditor_id', ''),
 			'sepa_debtor_account_id' => $this->sepaDebtorAccount->getAccountId(),
 			'membership_enabled' => $membershipEnabled,
-			// Steuert den Reiter „Beiträge": auch ohne den Schalter sichtbar,
-			// sobald bereits Mitglieder bestehen – siehe NAVIGATION-KONZEPT.md
-			// Abschnitt 4. Mandate und Zuweisungen hängen immer an einem
-			// Mitglied (member_id ist Pflicht), ein Mitglied genügt deshalb als
-			// Kriterium; bestehende Installationen zeigen den Reiter dadurch
-			// ohne Migration sofort.
-			'membership_active' => $membershipEnabled || $this->memberMapper->count() > 0,
+			'membership_active' => $membershipEnabled,
 			// Mandats-Lifecycle (Issue #66, Spec §4 „Neue Einstellungen"):
 			'mandate_reference_prefix' => $this->config->getAppValue(Application::APP_ID, MandateService::SETTING_REFERENCE_PREFIX, MandateReferenceGenerator::DEFAULT_PREFIX),
 			'mandate_document_folder' => $this->mandateDocuments->folderPath(),
@@ -187,7 +190,7 @@ class SettingsController extends Controller {
 			'self_service_enabled' => $this->config->getAppValue(Application::APP_ID, SelfServiceService::SETTING_ENABLED, '0') === '1',
 			// Zusatzschalter, siehe SelfServiceService::canSwitchToTransfer(). Standard aus.
 			'self_service_transfer_switch_enabled' => $this->config->getAppValue(Application::APP_ID, SelfServiceService::SETTING_TRANSFER_SWITCH, '0') === '1',
-		];
+		] + $this->invoiceSettings->all();
 	}
 
 	#[NoAdminRequired]
@@ -453,6 +456,47 @@ class SettingsController extends Controller {
 		if (array_key_exists('self_service_transfer_switch_enabled', $params)) {
 			$transferSwitchEnabled = (string)$params['self_service_transfer_switch_enabled'] === '1';
 			$this->config->setAppValue($appId, SelfServiceService::SETTING_TRANSFER_SWITCH, $transferSwitchEnabled ? '1' : '0');
+		}
+
+		// Rechnungsmodul (Epic #168): Ausstellerangaben und Vorgaben. Das
+		// Geldkonto prüfen wir hier, weil nur der Controller die Konten kennt.
+		if (array_key_exists(InvoiceSettings::SETTING_ACCOUNT_ID, $params)) {
+			$invoiceAccountParam = $params[InvoiceSettings::SETTING_ACCOUNT_ID];
+			$invoiceAccountId = $invoiceAccountParam !== null && $invoiceAccountParam !== '' ? (int)$invoiceAccountParam : null;
+			if ($invoiceAccountId !== null && $invoiceAccountId !== $this->invoiceSettings->accountId()) {
+				try {
+					$invoiceAccount = $this->accountMapper->find($invoiceAccountId, $this->userId());
+				} catch (DoesNotExistException) {
+					return new DataResponse(['message' => $this->l10n->t('Das gewählte Konto für Rechnungen wurde nicht gefunden.')], Http::STATUS_BAD_REQUEST);
+				}
+				if (!$invoiceAccount->getIsBank() || $invoiceAccount->getIban() === null) {
+					return new DataResponse(['message' => $this->l10n->t('Das Konto für Rechnungen muss ein Geldkonto mit IBAN sein.')], Http::STATUS_BAD_REQUEST);
+				}
+			}
+			$this->invoiceSettings->setAccountId($invoiceAccountId);
+		}
+		// Umsatzsteuerkonten (Regelbesteuerung): ein Konto, das kein Geldkonto ist.
+		foreach ([InvoiceSettings::SETTING_VAT_ACCOUNT_19, InvoiceSettings::SETTING_VAT_ACCOUNT_7] as $vatKey) {
+			if (!array_key_exists($vatKey, $params)) {
+				continue;
+			}
+			$vatParam = $params[$vatKey];
+			$vatAccountId = $vatParam !== null && $vatParam !== '' ? (int)$vatParam : null;
+			if ($vatAccountId !== null) {
+				try {
+					$vatAccount = $this->accountMapper->find($vatAccountId, $this->userId());
+				} catch (DoesNotExistException) {
+					return new DataResponse(['message' => $this->l10n->t('Das gewählte Umsatzsteuerkonto wurde nicht gefunden.')], Http::STATUS_BAD_REQUEST);
+				}
+				if ($vatAccount->getIsBank() || !in_array($vatAccount->getType(), ['liability', 'income'], true)) {
+					return new DataResponse(['message' => $this->l10n->t('Das Umsatzsteuerkonto muss ein Passiv- oder Ertragskonto sein, kein Geldkonto.')], Http::STATUS_BAD_REQUEST);
+				}
+			}
+			$this->invoiceSettings->setVatAccountId($vatKey, $vatAccountId);
+		}
+		$invoiceError = $this->invoiceSettings->update($params);
+		if ($invoiceError !== null) {
+			return new DataResponse(['message' => $invoiceError], Http::STATUS_BAD_REQUEST);
 		}
 
 		$settings = $this->currentSettings();

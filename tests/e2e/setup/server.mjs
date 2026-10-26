@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 
 import {
-	startNextcloud,
 	configureNextcloud,
-	waitOnNextcloud,
 	createSnapshot,
 	getContainer,
-	setupUsers,
-	stopNextcloud,
 	runOcc,
+	setupUsers,
+	startNextcloud,
+	stopNextcloud,
+	waitOnNextcloud,
 } from '@nextcloud/e2e-test-server'
-import { BASE_URL, authHeaders } from '../fixtures/nextcloud.mjs'
+import { authHeaders, BASE_URL } from '../fixtures/nextcloud.mjs'
 
 // Richtet die Docker-Nextcloud für die E2E-Suite ein und beendet sich, sobald
 // der "init"-Snapshot existiert. Bewusst ein eigener Schritt vor `playwright

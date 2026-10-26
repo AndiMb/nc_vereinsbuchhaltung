@@ -33,7 +33,7 @@
 		</p>
 
 		<div class="vbh-tablecard">
-			<table class="vbh-table vbh-schedule-table">
+			<table class="vbh-table vbh-stack vbh-schedule-table">
 				<thead>
 					<tr>
 						<th>{{ t('Periode') }}</th>

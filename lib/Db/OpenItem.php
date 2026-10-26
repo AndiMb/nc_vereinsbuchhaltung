@@ -76,6 +76,12 @@ use OCP\AppFramework\Db\Entity;
  * @method void setCancelledAt(?string $cancelledAt)
  * @method string|null getCancelledReason()
  * @method void setCancelledReason(?string $cancelledReason)
+ * @method int|null getInvoiceId()
+ * @method void setInvoiceId(?int $invoiceId)
+ * @method string|null getReference()
+ * @method void setReference(?string $reference)
+ * @method int getSettledCents()
+ * @method void setSettledCents(int $settledCents)
  */
 class OpenItem extends Entity implements \JsonSerializable {
 	protected $debtor;
@@ -105,6 +111,11 @@ class OpenItem extends Entity implements \JsonSerializable {
 	protected $cancelledAt;
 	protected $cancelledReason;
 
+	// Additiv seit Migration 000164 (Rechnungsmodul, Epic #168).
+	protected $invoiceId;
+	protected $reference;
+	protected $settledCents = 0;
+
 	/**
 	 * Vierter Wert `waived` seit Issue #68 – bewusst weiterhin englisch: die
 	 * drei Bestandswerte stammen aus der Zeit vor der Eindeutschungsregel
@@ -125,6 +136,8 @@ class OpenItem extends Entity implements \JsonSerializable {
 		$this->addType('mandateId', 'integer');
 		$this->addType('memberId', 'integer');
 		$this->addType('assignmentId', 'integer');
+		$this->addType('invoiceId', 'integer');
+		$this->addType('settledCents', 'integer');
 	}
 
 	public function isOverdue(): bool {
@@ -145,6 +158,20 @@ class OpenItem extends Entity implements \JsonSerializable {
 	 */
 	public function belongsToClaimModule(): bool {
 		return $this->memberId !== null || $this->type !== null;
+	}
+
+	/**
+	 * Gehört der Posten zu einer Rechnung des Rechnungsmoduls? Dann verwaltet
+	 * der InvoiceService Status und Zahlungen; die generischen Wege des
+	 * OpenItemService lehnen ihn ab, wie bei Forderungen des Beitragsmoduls.
+	 */
+	public function belongsToInvoice(): bool {
+		return $this->invoiceId !== null;
+	}
+
+	/** Noch nicht ausgeglichener Betrag in Cent (nie negativ). */
+	public function remainingCents(): int {
+		return max(0, $this->amountCents - $this->settledCents);
 	}
 
 	public function jsonSerialize(): array {
@@ -176,6 +203,10 @@ class OpenItem extends Entity implements \JsonSerializable {
 			'settlementNote' => $this->settlementNote,
 			'cancelledAt' => $this->cancelledAt,
 			'cancelledReason' => $this->cancelledReason,
+			'invoiceId' => $this->invoiceId,
+			'reference' => $this->reference,
+			'settledCents' => $this->settledCents,
+			'remainingCents' => $this->remainingCents(),
 		];
 	}
 }

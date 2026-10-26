@@ -83,7 +83,7 @@
 				</p>
 
 				<div class="vbh-tablecard">
-					<table class="vbh-table">
+					<table class="vbh-table vbh-stack">
 						<thead>
 							<tr>
 								<th class="vbh-imp-line">

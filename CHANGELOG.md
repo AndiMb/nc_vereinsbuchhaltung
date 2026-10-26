@@ -17,6 +17,99 @@ als „[object Object]" (falsche Renderer-Callback-Signatur, Nextcloud-
 Core-Bug, reproduziert 23.08.2026). Stattdessen **Fettdruck als Zeilenanfang**
 verwenden, z. B. `**Neu:**`.
 
+## [0.43.0] – 2026-10-25
+
+**Neu:**
+- **Hinweise beim Rechnungschreiben:** Der Editor warnt unter „Zur Beachtung“,
+  wenn eine Position auf einem Konto des ideellen Bereichs liegt (Spenden und
+  echte Mitgliedsbeiträge sind keine Rechnung) oder ein eingetragener Verein
+  kein „e. V.“ im Namen trägt. Beides hindert das Festschreiben nicht. Dazu ein
+  freiwilliger **Hinweis auf die Gemeinnützigkeit** im Rechnungsfuß
+  (Einstellungen → Rechnungen).
+- „Alle Daten löschen“ nennt jetzt ausdrücklich, dass auch alle Rechnungen
+  samt PDF und E-Rechnung gelöscht werden, und erinnert an die
+  Aufbewahrungsfrist von acht Jahren (Beleg-ZIP vorher sichern).
+- **Rechnungsmodul (optional).** Der Verein stellt Rechnungen in seinem Namen
+  aus: Reiter *Rechnungen*, einzuschalten unter Nextcloud-Einstellungen →
+  Vereinsbuchhaltung → Rechnungen. Empfänger kommen aus eigenen Stammdaten
+  oder den Mitgliedern; eine Rechnung hat mehrere Positionen mit Menge,
+  Einheit, Preis, Rabatt und Erlöskonto, dazu Leistungsdatum oder -zeitraum
+  und den Hinweis für Kleinunternehmer (§ 19 UStG) oder Steuerbefreiung.
+  Der Entwurf speichert sich selbst; **Festschreiben** (nur Verwalter) prüft
+  die Pflichtangaben nach § 14 Abs. 4 UStG, vergibt eine fortlaufende Nummer
+  (`RE-2026-0042`, Muster und Zähler einstellbar), legt den offenen Posten an
+  und erzeugt das PDF (PDF/A-3b mit GiroCode, als Datei mit SHA-256 abgelegt).
+  Korrigiert wird durch eine **Stornorechnung** mit eigenem Nummernkreis.
+- **Zahlungsabgleich für Rechnungen.** Der Kontoauszug-Import bucht eine
+  Zahlung, deren Verwendungszweck die Rechnungsnummer enthält (auch `RE 2026
+  0042`) und deren Betrag genau stimmt, selbst (Geldkonto an Erlöskonto, mit
+  der Rechnungsnummer als Belegnummer; abschaltbar). Alles andere schlägt
+  *Buchungen → Zuzuordnen* als Chip „✓ Rechnung …" vor – nach Nummer, nach
+  Betrag und Name oder nach dem Betrag allein. **Teilzahlungen** verteilen
+  sich cent-genau auf die Erlöskonten, **Barzahlungen** lassen sich direkt
+  buchen, jede Zahlung lässt sich zurücknehmen.
+- **Rechnung per E-Mail** mit dem PDF im Anhang, Vorlage mit Platzhaltern.
+  **Duplizieren** kopiert eine Rechnung als neuen Entwurf.
+- **Regelbesteuerung für Rechnungen.** Neben Kleinunternehmern können Vereine
+  Umsatzsteuer ausweisen: Steuersatz je Position (19 %, 7 %, 0 %, steuerfrei),
+  Summen je Satz, Voreinstellung nach Sphäre des Erlöskontos. Zahlungen
+  verteilen sich cent-genau auf Erlös- und Umsatzsteuerkonten.
+- **E-Rechnung.** Zu jeder festgeschriebenen Rechnung entsteht auf Wunsch
+  **ZUGFeRD** (EN 16931, PDF mit eingebettetem XML) oder **XRechnung** (CII
+  oder UBL, Gutschrift für Stornorechnungen). Die App schlägt das Format nach
+  Art des Empfängers vor, nennt fehlende Pflichtangaben (Leitweg-ID, Kontakt,
+  Bankverbindung), prüft jedes XML gegen das Schema, legt es unveränderlich mit
+  Prüfsumme ab und hängt es auf Wunsch an die Mail. Grundlage ist die
+  Bibliothek `horstoeko/invoicesuite`; in der CI prüft der offizielle
+  KoSIT-Validator die Beispielrechnungen gegen XRechnung 3.0.
+- **Positionsvorlagen.** Wiederkehrende Leistungen einmal anlegen (Einheit,
+  Preis, Erlöskonto, Steuer); der Editor fügt sie als Kopie ein.
+- **Wiederkehrende Rechnungen.** Ein Plan legt im Takt (monatlich bis jährlich)
+  Entwürfe an, auf Wunsch schreibt er sie fest und verschickt sie. Platzhalter
+  `{monat}`, `{jahr}`, `{quartal}`, `{zeitraum}`; Pausieren und Übersicht mit
+  letztem Lauf und Fehlern.
+- **Mahnwesen für Rechnungen.** Zahlungserinnerung, 1. und 2. Mahnung als
+  PDF mit GiroCode über den Restbetrag, per E-Mail, mit Fristen und Texten in
+  den Einstellungen. Mahnstufe und „Mahnung fällig" in der Liste; auf Wunsch
+  mahnt der tägliche Hintergrundjob selbst (standardmäßig aus).
+- **RF-Referenz (ISO 11649)** auf der Rechnung und im GiroCode; der
+  Bankabgleich erkennt sie als sicherstes Merkmal.
+- **Kassenprüfung:** Das Beleg-ZIP enthält die Rechnungen samt Dokumenten,
+  Übersicht (CSV) und Prüfsummen.
+
+**Geändert:**
+- **Mindestversion: Nextcloud 33 und PHP 8.2.** Nextcloud 31 und 32 sind am
+  Ende ihrer Wartung; die PDF-Bibliothek des Rechnungsmoduls verlangt PHP 8.2.
+  Das Release-Paket enthält neu TCPDF (LGPL-3.0, auf die benötigten Schriften
+  gekürzt) und `horstoeko/invoicesuite` (MIT) für die E-Rechnung.
+- Offene Posten, die zu einer Rechnung gehören, lassen sich im Reiter
+  *Buchungen → Offene Posten* nicht mehr von Hand bezahlen oder löschen; das
+  geschieht über die Rechnung.
+- **Tabellen am Handy:** Listen mit vielen Spalten (Rechnungen, Finanzplan,
+  Beitragsgruppen, Kostenstellen, Regeln, Zeiträume, Berechtigungen, Sphären,
+  Gliederung, Rechnungspositionen, Rechnungsvorlagen) zeigen sich unter
+  640 px als Karten mit Spaltenbeschriftung statt seitlich zu scrollen. Auf
+  größeren Bildschirmen sind Tabellen nie schmaler als lesbar; die
+  Mitgliederliste scrollt seitlich, statt die Namensspalte zusammenzudrücken.
+
+**Behoben:**
+- **Einstellungen vereinheitlicht.** Alle Ein/Aus-Einstellungen (Reiter Beiträge,
+  Self-Service, Rechnungsmodul, automatische Zuordnung, E-Rechnung, Mahnungen,
+  Rücklastschrift-Gebühren, Mandats-Hinweis, Einzugsdatei-Ablage,
+  Kontoauszug-Ordner) sind jetzt gleich aussehende Schalter mit kurzem Namen und
+  einer Erklärung darunter; vorher mischten sich Schalter und Häkchen. Die
+  Beitrags-Schalter stehen in einer eigenen Karte „Beitragsmodul“ und wirken
+  sofort. Der Kontoauszug-Ordner hat einen echten Schalter statt „Nutzer leer
+  lassen“.
+- **Mahn- und Mailtexte:** Neben Betreff und Text steht ein Knopf **Standardtext
+  übernehmen**, der den (bisher nur grauen) Standardtext zum Anpassen ins Feld
+  kopiert.
+- **Der Schalter „Reiter Beiträge in der Hauptnavigation zeigen" wirkt wieder.**
+  Der Reiter blieb sichtbar, sobald Mitglieder existierten, auch bei
+  ausgeschaltetem Schalter. Jetzt gewinnt die ausdrückliche Einstellung; nur
+  solange der Schalter nie gesetzt wurde, erscheint der Reiter mit dem ersten
+  Mitglied. Die Mitgliederdaten bleiben beim Ausblenden erhalten.
+
 ## [0.42.0] – 2026-10-25
 
 **Neu:**

@@ -25,6 +25,7 @@ Menüstrukturen: Was muss ich wann tun, und worauf ist dabei zu achten?
 12. [Wenn etwas schiefgeht – Hilfe und Sicherheit](#12-wenn-etwas-schiefgeht--hilfe-und-sicherheit)
 13. [Mitgliedsbeiträge und SEPA-Lastschrift](#13-mitgliedsbeitr%C3%A4ge-und-sepa-lastschrift)
 14. [Anhang: Rollen, Kontotypen, Tastenkürzel, Glossar](#14-anhang-rollen-kontotypen-tastenk%C3%BCrzel-glossar)
+15. [Rechnungen schreiben (optional)](#15-rechnungen-schreiben-optional)
 
 ---
 
@@ -430,7 +431,7 @@ getrennt.
 
 ### 4.2 Manuelle Buchungen anlegen
 
-Button **„+ Buchung"** (oben rechts, oder mobil der große „+"-Knopf).
+Button **„+ Neu"** (oben rechts, oder mobil der große „+"-Knopf), dann **Buchung**. Das Menü bietet je nach Rolle und eingeschaltetem Rechnungsmodul auch **Mitglied** (Beiträge eingeschaltet) und **Rechnung** an. Wiederkehrende Rechnungen legen Sie in der Rechnungsliste unter „Wiederkehrend" oder im Rechnungseditor an.
 
 **Einfach-Modus** (Standard): Sie wählen nur *Einnahme* oder *Ausgabe*,
 eine **Kategorie** (Wofür? z. B. „Versicherungen") und ein **Geldkonto**
@@ -1285,7 +1286,7 @@ selbst als lesbare Seite aus, es muss also nichts auf GitHub gesucht werden.
 
 Zahnrad → *Daten* → *Alle Daten löschen* (nur Verwalter, mit
 Bestätigungsdialog) entfernt Konten, Buchungen, Importe, Belege, offene Posten
-(auch die Forderungen an Mitglieder), die Vorlagen des
+(auch die Forderungen an Mitglieder), **alle Rechnungen samt PDF und E-Rechnung** (Rechnungen sind acht Jahre aufzubewahren: vorher mit dem Beleg-ZIP unter Berichte → Auswertung sichern), die Vorlagen des
 Gliederungsberichts (danach stehen wieder die beiden Standardvorlagen bereit)
 und die Zeiträume samt ihrer Festschreibung. **Das Änderungsprotokoll bleibt erhalten.** Mitglieder,
 Mandate, Beitragsgruppen und Zuweisungen (Kapitel 13) gehören nicht zum
@@ -2419,6 +2420,137 @@ Zeitraums. Das betrifft nur Geldkonten (Bank-Flag).
 - **Anonymisierung** – das Schwärzen der personenbezogenen Angaben eines
   Mitglieds nach der Aufbewahrungsfrist; Beträge und Daten bleiben (Kapitel
   13.13).
+
+---
+
+## 15. Rechnungen schreiben (optional)
+
+Mit dem Rechnungsmodul stellt der Verein Rechnungen in seinem eigenen Namen aus – etwa für Hallenmiete, Kursgebühren, Sponsoring oder eine Festschrift. Jede festgeschriebene Rechnung steht als **offener Posten** in der App und wird beim Import des Kontoauszugs automatisch ihrer Zahlung zugeordnet. Das Modul ist optional und erscheint als Reiter **Rechnungen**, sobald es eingeschaltet ist.
+
+> **Was es nicht ist:** Mitgliedsbeiträge laufen weiter über das Beitragsmodul (Kapitel 13). Ein echter Mitgliedsbeitrag ist umsatzsteuerlich keine Leistung gegen Entgelt; eine „Rechnung" dafür ist meist nicht nötig.
+
+### 15.1 Einschalten und Angaben des Vereins
+
+*Nextcloud-Einstellungen → Vereinsbuchhaltung → Rechnungen* (nur Verwalter):
+
+1. **Rechnungsmodul einschalten.**
+2. **Angaben des Vereins** eintragen. Pflicht nach § 14 Abs. 4 UStG sind Name und Anschrift sowie die **Steuernummer** (vom Finanzamt) oder die USt-IdNr. Register, Vorstand, Telefon und E-Mail erscheinen zusätzlich im Fuß der Rechnung. Den Vereinsnamen pflegen Sie weiter oben unter „Verein".
+3. **Steuer und Zahlung:** Die meisten kleinen Vereine sind **Kleinunternehmer** (§ 19 UStG) und weisen keine Umsatzsteuer aus; auf der Rechnung steht dann der vorgeschriebene Hinweis. Ob das für Ihren Verein gilt, klärt das Finanzamt oder Ihre Steuerberatung. Wählen Sie außerdem das **Konto für Zahlungsangaben und GiroCode** (ein Geldkonto mit IBAN), das Zahlungsziel und bei Bedarf Standardtexte.
+4. **Rechnungsnummern:** Voreingestellt ist `RE-{JJJJ}-{NNNN}` (z. B. `RE-2026-0042`), jedes Jahr neu ab 1; Stornorechnungen zählen getrennt (`ST-…`). Die Nummern sind fortlaufend und einmalig – ändern Sie das Muster nur, bevor Sie die erste Rechnung schreiben.
+
+Solange Pflichtangaben fehlen, lässt sich keine Rechnung festschreiben; die App sagt, was fehlt.
+
+### 15.2 Empfänger
+
+Beim Schreiben wählen Sie den Empfänger aus den bereits angelegten Empfängern oder aus den **Mitgliedern** (die Adresse kommt aus der Mitgliederakte); mit **Neu** legen Sie einen Empfänger an, auch mit E-Mail-Adresse für den Versand und – für Behörden – der **Leitweg-ID**. Die Anschrift wird beim Festschreiben in die Rechnung übernommen: Spätere Änderungen am Empfänger ändern eine fertige Rechnung nie.
+
+### 15.3 Eine Rechnung schreiben
+
+**Rechnungen → Neue Rechnung.** Der Entwurf speichert sich kurz nach jeder Änderung selbst.
+
+- **Rechnungsdaten:** Rechnungsdatum, Zahlungsziel und der **Leistungszeitpunkt** – ein Datum oder ein Zeitraum, beides ist Pflichtangabe.
+- **Positionen:** Bezeichnung, Menge, Einheit, Einzelpreis, optional Rabatt und eine Beschreibung. Jede Position braucht ein **Erlöskonto** (ein Einnahmenkonto); darauf wird später die Zahlung gebucht. Mit den Pfeilen sortieren Sie um. Die Summe rechnet mit.
+- **Steuer und Texte:** Bei Kleinunternehmern steht der Hinweis nach § 19 UStG automatisch auf der Rechnung. Wer steuerbefreit ist, trägt den Befreiungshinweis ein (z. B. „Steuerfrei nach § 4 Nr. 22 UStG"). Einleitung, Schlusstext und Zahlungsbedingungen sind frei.
+- **Vorschau** zeigt das PDF mit dem Wasserzeichen „ENTWURF".
+
+Buchhalter dürfen Entwürfe anlegen; **Festschreiben, Versenden und Stornieren** sind Verwaltern vorbehalten.
+
+### 15.4 Festschreiben
+
+**Festschreiben …** prüft die Pflichtangaben (Anschrift und Steuernummer des Vereins, Empfänger, Leistungszeitpunkt, Positionen, Betrag). Unter **Zur Beachtung** nennt der Editor Hinweise, die das Festschreiben nicht verhindern: eine Position auf einem Konto des ideellen Bereichs (**Spenden und echte Mitgliedsbeiträge sind keine Rechnung** – dafür gibt es die Zuwendungsbestätigung bzw. das Beitragsmodul), ein eingetragener Verein ohne „e. V.“ im Namen und eine fehlende Bankverbindung. Optional druckt die Rechnung einen **Hinweis auf die Gemeinnützigkeit** (Einstellungen → Rechnungen → Angaben des Vereins); er ersetzt keinen Steuerhinweis. Danach:
+
+- bekommt die Rechnung ihre **Nummer** und ist **unveränderlich** – korrigieren lässt sie sich nur durch Stornieren;
+- entsteht das **PDF** (PDF/A-3b, mit GiroCode zum Scannen in der Banking-App) und liegt als Datei im Ordner der Belegablage unter `Vereinsbuchhaltung/Rechnungen/<Jahr>/`; die Prüfsumme (SHA-256) zeigt später, ob die Datei verändert wurde;
+- entsteht der **offene Posten** mit der Rechnungsnummer als Referenz.
+
+Es wird noch **nichts gebucht**: Die App arbeitet nach dem Ist-Prinzip, gebucht wird erst, wenn das Geld da ist.
+
+### 15.5 Versenden
+
+Im Detail der Rechnung: **Per E-Mail senden**. Empfänger-Adresse, Betreff und Text sind vorbelegt und vor dem Senden änderbar, das PDF hängt an. Die Vorlage und ihre Platzhalter (`{nummer}`, `{betrag}`, `{faellig}`, `{verein}`, `{empfaenger}`) pflegen Sie in den Einstellungen. Alternativ laden Sie das PDF herunter und verschicken oder drucken es selbst.
+
+### 15.6 Zahlungseingang zuordnen
+
+- **Beim Import:** Steht die Rechnungsnummer im Verwendungszweck (auch als `RE 2026 0042` oder `RE20260042`) und stimmt der Betrag genau, bucht der Import die Zahlung **selbst**: Geldkonto an Erlöskonto, mit der Rechnungsnummer als Belegnummer. Das lässt sich in den Einstellungen abschalten.
+- **In Buchungen → Zuzuordnen:** Für alles andere erscheint beim Zahlungseingang ein Chip **„✓ Rechnung RE-…"** – Nummer im Text, oder Betrag und Name passen, oder nur der Betrag bei genau einer offenen Rechnung. Ein Klick bucht. Ist der Betrag niedriger, heißt der Chip „Teilzahlung auf …" und die Rechnung bleibt offen; ist er höher, teilen Sie den Umsatz auf („Aufteilen…") und ordnen den Rest einem anderen Konto zu.
+- **Von der Rechnung aus:** **Zahlung erfassen** ordnet einen Umsatz zu oder bucht eine **Barzahlung** (Geldkonto/Kasse an Erlöskonten).
+- **Teilzahlungen** verteilen sich im Verhältnis auf die Erlöskonten der Positionen; mit der letzten Zahlung stimmen die Summen je Konto genau.
+- **Zurücknehmen:** Löst eine Zuordnung oder löscht die Buchung die Zahlung, öffnet sich die Rechnung wieder. Im Detail geht das auch mit dem Pfeil neben der Zahlung.
+
+### 15.7 Stornieren und Duplizieren
+
+**Stornieren …** (Verwalter) erzeugt eine **Stornorechnung** mit eigener Nummer, die alle Positionen umkehrt und auf die Rechnung verweist; die Rechnung gilt als storniert. Eine Begründung ist Pflicht. War schon gezahlt, bleibt die Buchung bestehen: Die Rückzahlung ordnen Sie wie jede Auszahlung dem Erlöskonto zu, der Betrag steht in der Stornorechnung.
+
+**Duplizieren** kopiert eine Rechnung als neuen Entwurf – praktisch für wiederkehrende Leistungen.
+
+### 15.8 Aufbewahrung
+
+Rechnungen müssen **acht Jahre** aufbewahrt werden. Die PDFs liegen als Dateien in Nextcloud; sie gehören mit in Ihr Backup. Eine festgeschriebene Rechnung lässt sich in der App nicht mehr ändern; die Prüfsumme in der Dokumentliste zeigt, falls die Datei außerhalb der App verändert wurde.
+
+### 15.9 Regelbesteuerung (Umsatzsteuer ausweisen)
+
+Wer nicht Kleinunternehmer ist (oder auf die Kleinunternehmerregelung verzichtet hat), stellt in den Einstellungen unter **Steuer** auf **Regelbesteuerung** um und legt fest:
+
+- **Umsatzsteuerkonten** für 19 % und 7 % (Verbindlichkeitenkonten, etwa 1776 und 1771 im SKR 42). Ohne sie lässt sich keine Rechnung mit Steuer festschreiben.
+- **Voreingestellte Sätze** nach Sphäre des Erlöskontos: Zweckbetrieb 7 % oder 0 %, wirtschaftlicher Geschäftsbetrieb 19 %. Der Satz ist nur ein Vorschlag.
+
+Im Editor hat dann jede Position eine Steuerauswahl: **19 %**, **7 %**, **0 %** oder **steuerfrei** (mit Befreiungshinweis). Die Rechnung weist die Summen je Steuersatz aus; die Steuer wird je Satz einmal aus der Netto-Summe berechnet und kaufmännisch gerundet, so wie es auch die E-Rechnung verlangt. Bei der Zahlung verteilt sich der Betrag im Verhältnis auf die **Erlöskonten und die Umsatzsteuerkonten**; mit der letzten Zahlung stimmen alle Konten auf den Cent. Eine Stornorechnung kehrt Netto, Steuer und Brutto um.
+
+Die Umstellung gilt nur für **neue** Rechnungen. Festgeschriebene Rechnungen behalten ihre Steuerart.
+
+> **Hinweis:** Ob und mit welchem Satz ein Umsatz steuerpflichtig ist, hängt von der Sphäre und vom Einzelfall ab. Das klären das Finanzamt oder Ihre Steuerberatung; die App rechnet nur mit dem, was Sie festlegen.
+
+### 15.10 E-Rechnung (ZUGFeRD und XRechnung)
+
+Seit 2025 müssen Unternehmen E-Rechnungen **empfangen** können; das **Ausstellen** wird für Umsätze zwischen Unternehmen schrittweise Pflicht (ab 2027 bei mehr als 800.000 € Vorjahresumsatz, ab 2028 für alle). Kleinunternehmer und Rechnungen an Privatpersonen sind ausgenommen (§ 34a UStDV). Wenn Ihr Verein an Unternehmen oder Behörden Rechnungen stellt, kann die App die passende E-Rechnung gleich mit erzeugen. Eine festgeschriebene Rechnung bietet im Abschnitt **Dokumente** drei Formate an:
+
+| Format | Datei | Für wen |
+| --- | --- | --- |
+| **ZUGFeRD-PDF (EN 16931)** | PDF mit eingebettetem XML; für Menschen ein gewöhnliches PDF | Unternehmen, die Rechnungen maschinell einlesen |
+| **XRechnung (CII-XML)** | reine XML-Datei | Behörden und Kommunen |
+| **XRechnung (UBL-XML)** | reine XML-Datei | Empfänger, die UBL verlangen (z. B. über Peppol) |
+
+- **Vorschlag nach Empfänger:** Behörden → XRechnung, Unternehmen und Vereine → ZUGFeRD, Privatpersonen → keine. Ist in den Einstellungen *Beim Festschreiben zugleich die E-Rechnung erzeugen* gewählt (Standard), entsteht das vorgeschlagene Format beim Festschreiben von selbst, sofern alle Angaben da sind.
+- **Pflichtangaben:** ZUGFeRD braucht eine vollständige Anschrift des Empfängers. **XRechnung** verlangt zusätzlich die **Leitweg-ID** (beim Empfänger) oder eine Käuferreferenz (an der Rechnung), Telefonnummer und E-Mail-Adresse des Vereins, die E-Mail-Adresse des Empfängers und das Konto mit IBAN. Was fehlt, zeigt die Auswahl *E-Rechnung erzeugen* als Liste, bevor Sie erzeugen.
+- **Geprüft und unveränderlich:** Jedes XML wird vor dem Speichern gegen das Schema des Formats geprüft; ein ungültiges Dokument wird nicht abgelegt. Wie das PDF liegt es mit Prüfsumme in der Belegablage, je Rechnung und Format gibt es genau ein Dokument (das XML ist das Original, § 14 UStG). Die Beispielrechnungen der App prüft die Entwicklung in der CI zusätzlich mit dem offiziellen KoSIT-Validator gegen die Regeln von EN 16931 und XRechnung 3.0.
+- **Versand:** Im Versanddialog lassen sich vorhandene E-Rechnungen mitsenden. Ein ZUGFeRD-PDF ersetzt dabei das einfache PDF, XRechnung-XML geht als zusätzlicher Anhang mit. Behörden nehmen XRechnungen meist über ein Portal entgegen; dafür laden Sie die XML-Datei herunter.
+- **Stornorechnung:** Sie wird als Gutschrift (Typ 381) mit Verweis auf die Ursprungsrechnung erzeugt.
+
+### 15.11 Positionsvorlagen
+
+*Nextcloud-Einstellungen → Vereinsbuchhaltung → Rechnungen → Positionsvorlagen* (Verwalter): Wiederkehrende Leistungen wie „Hallenmiete" oder „Kursgebühr" legen Sie einmal an – mit Beschreibung, Einheit, Preis, Erlöskonto und Steuer. Im Rechnungseditor fügt **Aus Vorlage einfügen …** unter den Positionen die gewählte Vorlage als **Kopie** ein; Preis, Menge und Text bleiben danach änderbar, und spätere Änderungen an der Vorlage berühren bestehende Rechnungen nicht. Buchhalter dürfen die Vorlagen nutzen, aber nicht ändern.
+
+### 15.12 Wiederkehrende Rechnungen
+
+Für Leistungen im festen Takt (Hallenmiete, Sponsoring, Jahresgebühr) legt ein **Plan** die Rechnungen von selbst an. Ein Plan entsteht dort, wo Sie sonst eine Rechnung schreiben: **Rechnungen → Neue Rechnung**, oben bei **Art** die Option **Wiederkehrende Rechnung** wählen (nur Verwalter). Derselbe Editor zeigt statt der Rechnungsdaten die **Wiederholung**; Empfänger, Positionen (auch aus Vorlagen), Steuer und Texte tragen Sie wie bei einer Rechnung ein. Alternativ übernimmt **Wiederkehrend …** im Detail einer vorhandenen Rechnung Empfänger, Positionen und Texte als Vorlage für den Plan.
+
+Bei der **Wiederholung** wählen Sie:
+
+- **Takt:** monatlich, vierteljährlich, halbjährlich oder jährlich, mit **erster Rechnung am** und optionalem **Ende**. Die Termine rechnen immer vom Beginn aus; der 31. wird im Februar zum 28. oder 29., springt danach aber wieder auf den 31.
+- **Leistungszeitraum:** der Zeitraum des Taktes, der mit der Rechnung beginnt (bei monatlicher Rechnung zum 1. Juni also 1. bis 30. Juni), oder Leistungsdatum gleich Rechnungsdatum.
+- **Zahlungsziel** in Tagen (leer = Standard der Einstellungen).
+- **Festschreiben und Versenden:** Ohne Haken legt der Plan **Entwürfe** an, die Sie prüfen und festschreiben. Mit **Rechnung gleich festschreiben** schreibt der Plan fest, erzeugt PDF und E-Rechnung und kann die Rechnung **per E-Mail** senden. Fehlen beim Festschreiben Angaben, bleibt der Entwurf liegen, und der Plan nennt in seiner Übersicht den Grund.
+
+In Bezeichnungen und Texten ersetzt der Lauf `{monat}`, `{jahr}`, `{quartal}` und `{zeitraum}`: aus „Hallenmiete {monat} {jahr}" wird „Hallenmiete Juni 2027".
+
+Alle Pläne stehen im Reiter **Wiederkehrend** der Rechnungsliste: Takt, nächster Termin, letzter Lauf mit Link zur Rechnung, Fehler. Ein Klick auf **Bearbeiten** öffnet den Plan im selben Editor – auch die Positionen lassen sich ändern. Pläne lassen sich außerdem **pausieren** und **löschen** (angelegte Rechnungen bleiben). Ein pausierter oder neu angelegter Plan **holt vergangene Termine nicht nach**; er beginnt mit dem nächsten Termin ab heute. Der Nextcloud-Hintergrundjob prüft stündlich; **Fällige jetzt ausführen** stößt ihn von Hand an.
+
+### 15.13 Mahnwesen
+
+Rechnungen, die nach dem Zahlungsziel unbezahlt sind, mahnt die App in **drei Stufen**: **Zahlungserinnerung**, **1. Mahnung** und **2. Mahnung** (letzte Mahnung). Jede Stufe ist ein **Mahnschreiben als PDF** mit der offenen Rechnung und einem **GiroCode über den Restbetrag**, das per E-Mail verschickt und wie die Rechnung unveränderlich abgelegt wird.
+
+- **Fristen:** Die Erinnerung ist 7 Tage nach dem Zahlungsziel fällig, die 1. Mahnung 14 Tage nach der Erinnerung, die 2. Mahnung 14 Tage nach der 1. Mahnung. Alle Fristen und die Zahlungsfrist im Schreiben (7 Tage) stellen Sie in den Einstellungen unter **Mahnwesen** ein, ebenso Betreff und Text je Stufe. Solange ein Feld leer ist, gilt der grau angezeigte Standardtext; **Standardtext übernehmen** kopiert ihn ins Feld, damit Sie ihn anpassen können (dasselbe gilt für die E-Mail-Vorlage der Rechnung). Platzhalter: `{stufe}`, `{nummer}`, `{rechnungsdatum}`, `{betrag}`, `{rest}`, `{faellig}`, `{frist}`, `{verein}`, `{empfaenger}`.
+- **In der Liste** zeigt eine Rechnung ihre **Mahnstufe** und **Mahnung fällig**; der Filter **Mahnung fällig** sammelt sie.
+- **Mahnen** (Verwalter): im Detail **Mahnen …**. Der Dialog schlägt die nächste Stufe, Adresse, Betreff und Text vor; alles lässt sich vor dem Senden ändern. Eine Stufe lässt sich nicht wiederholen, aber überspringen. Der Verlauf steht im Abschnitt **Mahnungen**, die PDFs bei den Dokumenten.
+- **Automatisch:** Mit **Fällige Mahnungen automatisch per E-Mail verschicken** (aus, solange Sie es nicht einschalten) versendet der tägliche Hintergrundjob fällige Stufen selbst. Rechnungen, deren Empfänger keine E-Mail-Adresse hat, übergeht er; sie bleiben als „Mahnung fällig" in der Liste.
+- **Sperren:** Bezahlte, stornierte und noch nicht fällige Rechnungen, Stornorechnungen und Entwürfe werden nie gemahnt. Teilzahlungen mindern den Betrag im Schreiben. Nach der 2. Mahnung mahnt die App nicht weiter; wie es weitergeht (Mahnbescheid, Verzicht), entscheidet der Verein.
+
+Die App berechnet keine Mahngebühren oder Verzugszinsen und gibt keine Rechtsberatung: Texte und Fristen sollten zum Verein passen.
+
+### 15.14 Zahlungsreferenz (RF) und Prüfung
+
+- **RF-Referenz (ISO 11649):** Auf Wunsch (Einstellung, standardmäßig an) druckt die Rechnung neben dem Verwendungszweck eine **strukturierte Zahlungsreferenz** wie `RF18 RE20 2600 42`. Sie enthält die Rechnungsnummer und zwei Prüfziffern und steckt im **GiroCode**. Der Bankabgleich erkennt sie als sicherstes Merkmal: Steht die Referenz im Verwendungszweck und stimmt der Betrag, bucht der Import selbst, auch wenn der Zahler Leerzeichen eingefügt hat.
+- **Kassenprüfung:** Das Beleg-ZIP (Button „Beleg-ZIP" in *Berichte → Auswertung*, Kapitel 9.2) enthält bei eingeschaltetem Rechnungsmodul den Ordner `rechnungen/`: je Rechnung ein Unterordner mit allen Dokumenten (PDF, ZUGFeRD-PDF, XRechnung-XML, Mahnschreiben), dazu `uebersicht.csv` (Nummer, Datum, Empfänger, Netto, Steuer, Brutto, bezahlt, offen, Status, Mahnstufe) und `pruefsummen.txt` mit dem SHA-256 jeder Datei und dem Befund `ok`, `changed` (verändert) oder `missing` (fehlt). Die Rechnungen eines Zeitraums werden nach dem Rechnungsdatum gewählt.
 
 ---
 

@@ -1,6 +1,6 @@
+import { expect, test } from '@playwright/test'
 import { join } from 'path'
-import { test, expect } from '@playwright/test'
-import { api, openApp, switchTab, visibleSection, pickNcSelectOption, fixture, FIXTURES_DIR, CAMT_STATEMENT, USERS } from './fixtures/nextcloud.mjs'
+import { api, CAMT_STATEMENT, fixture, FIXTURES_DIR, openApp, pickNcSelectOption, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Kontoauszug-Import: alle drei Formate, Dublettenerkennung (auch
 // formatübergreifend) und die Zuordnung eines Umsatzes über die Oberfläche.

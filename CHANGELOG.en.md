@@ -15,6 +15,96 @@ Markdown headings as "[object Object]" since `marked` v18 (wrong renderer
 callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 **bold lead-in** at the start of a line instead, e.g. `**New:**`.
 
+## [0.43.0] – 2026-10-25
+
+**New:**
+- **Hints while writing invoices:** the editor warns under "Please note" when a
+  line is on an account of the non-material sphere (donations and genuine
+  membership fees are not invoiced) or a registered association has no "e. V."
+  in its name. Neither prevents finalizing. Plus an optional **note on
+  non-profit status** in the invoice footer (Settings → Invoices).
+- "Delete all data" now states explicitly that all invoices including their
+  PDF and e-invoice are deleted too, and reminds of the eight-year retention
+  period (back up the receipts ZIP first).
+- **Invoice module (optional).** The association issues invoices in its own
+  name: *Invoices* tab, turned on under Nextcloud settings → Vereinsbuchhaltung
+  → Invoices. Recipients come from their own master data or from the members;
+  an invoice has several line items with quantity, unit, price, discount and
+  revenue account, plus service date or period and the notice for small
+  businesses (section 19 UStG) or tax exemption. The draft saves itself;
+  **finalizing** (administrators only) checks the mandatory details under
+  section 14 (4) UStG, assigns a consecutive number (`RE-2026-0042`, pattern
+  and counter configurable), creates the open item and generates the PDF
+  (PDF/A-3b with GiroCode, stored as a file with its SHA-256). Corrections are
+  made with a **credit note** from its own number range.
+- **Payment matching for invoices.** The bank statement import books a payment
+  whose reference contains the invoice number (also `RE 2026 0042`) and whose
+  amount matches exactly on its own (cash account to revenue account, with the
+  invoice number as document reference; can be turned off). Everything else is
+  suggested in *Entries → To assign* as a "✓ Invoice …" chip – by number, by
+  amount and name, or by amount alone. **Partial payments** are spread to the
+  cent over the revenue accounts, **cash payments** can be booked directly,
+  and every payment can be reverted.
+- **Invoice by email** with the PDF attached, template with placeholders.
+  **Duplicate** copies an invoice as a new draft.
+- **Standard taxation for invoices.** Besides small businesses, associations
+  can show VAT: tax rate per line item (19 %, 7 %, 0 %, exempt), totals per
+  rate, default by sphere of the revenue account. Payments are spread to the
+  cent over revenue and VAT accounts.
+- **E-invoice.** For every finalized invoice you can create **ZUGFeRD** (EN
+  16931, PDF with embedded XML) or **XRechnung** (CII or UBL, credit note
+  document for cancellation invoices). The app suggests the format by recipient
+  type, lists missing mandatory details (Leitweg ID, contact, bank details),
+  checks every XML against the schema, stores it unchangeably with a checksum
+  and attaches it to the email on request. It is built on the library
+  `horstoeko/invoicesuite`; in CI the official KoSIT validator checks the sample
+  invoices against XRechnung 3.0.
+- **Line item templates.** Create recurring services once (unit, price,
+  revenue account, tax); the editor inserts them as a copy.
+- **Recurring invoices.** A plan creates drafts at an interval (monthly to
+  yearly) and, if you want, finalizes and sends them. Placeholders `{monat}`,
+  `{jahr}`, `{quartal}`, `{zeitraum}`; pausing and an overview with the last
+  run and errors.
+- **Dunning for invoices.** Payment reminder, 1st and 2nd dunning letter as
+  a PDF with a GiroCode for the remaining amount, by email, with deadlines and
+  texts in the settings. Dunning stage and "Dunning due" in the list; on
+  request the daily background job dunns by itself (off by default).
+- **RF reference (ISO 11649)** on the invoice and in the GiroCode; the bank
+  matching recognizes it as the most reliable feature.
+- **Audit:** the receipts ZIP contains the invoices with documents, an
+  overview (CSV) and checksums.
+
+**Changed:**
+- **Minimum version: Nextcloud 33 and PHP 8.2.** Nextcloud 31 and 32 are past
+  their end of maintenance; the PDF library of the invoice module requires
+  PHP 8.2. The release package now contains TCPDF (LGPL-3.0, trimmed to the
+  fonts that are needed) and `horstoeko/invoicesuite` (MIT) for the e-invoice.
+- Open items that belong to an invoice can no longer be paid or deleted by
+  hand in *Entries → Open items*; that happens through the invoice.
+- **Tables on phones:** lists with many columns (invoices, financial plan,
+  contribution groups, cost centres, rules, periods, permissions, spheres,
+  structure, invoice lines, invoice templates) show as cards with column
+  labels below 640 px instead of scrolling sideways. On larger screens tables
+  are never narrower than readable; the member list scrolls sideways instead
+  of squeezing the name column.
+
+**Fixed:**
+- **Settings unified.** All on/off settings (Contributions tab, self-service,
+  invoice module, automatic matching, e-invoice, dunning, return-debit fees,
+  mandate notice, collection-file storage, statement folder) are now identical
+  switches with a short name and an explanation below; before, switches and
+  checkboxes were mixed. The contributions switches sit in their own
+  "Contributions module" card and take effect immediately. The statement
+  folder has a real switch instead of "leave the user empty".
+- **Dunning and email texts:** next to subject and text there is a **Use default
+  text** button that copies the (so far only grey) default text into the field
+  so you can edit it.
+- **The "Show the Contributions tab in the main navigation" switch works
+  again.** The tab stayed visible as soon as members existed, even with the
+  switch off. An explicit setting now wins; only while the switch was never
+  set does the tab appear with the first member. Member data is kept when the
+  tab is hidden.
+
 ## [0.42.0] – 2026-10-25
 
 **New:**

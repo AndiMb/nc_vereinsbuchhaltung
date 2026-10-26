@@ -169,7 +169,7 @@
 				</div>
 
 				<div v-else class="vbh-tablecard">
-					<table class="vbh-table vbh-claims-table">
+					<table class="vbh-table vbh-table--wide vbh-claims-table">
 						<thead>
 							<tr>
 								<th>{{ t('Mitglied') }}</th>
@@ -317,7 +317,7 @@
 				</div>
 
 				<div v-else class="vbh-tablecard">
-					<table class="vbh-table vbh-claims-table">
+					<table class="vbh-table vbh-table--wide vbh-claims-table">
 						<thead>
 							<tr>
 								<th>{{ t('Mitglied') }}</th>

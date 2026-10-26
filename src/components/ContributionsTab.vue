@@ -16,12 +16,6 @@
 				<NcButton variant="secondary" @click="$refs.membersList.openImportDialog()">
 					{{ t('Liste einlesen') }}
 				</NcButton>
-				<NcButton variant="primary" @click="$refs.membersList.openMemberDialog()">
-					<template #icon>
-						<NcIconSvgWrapper :path="mdiPlus" :size="20" />
-					</template>
-					{{ t('Mitglied') }}
-				</NcButton>
 			</div>
 		</div>
 
@@ -45,9 +39,7 @@
 </template>
 
 <script>
-import { mdiPlus } from '@mdi/js'
 import NcButton from '@nextcloud/vue/components/NcButton'
-import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import ContributionGroupsPanel from './ContributionGroupsPanel.vue'
 import EinzugPanel from './EinzugPanel.vue'
 import MembersList from './MembersList.vue'
@@ -70,20 +62,23 @@ import MembersList from './MembersList.vue'
  */
 export default {
 	name: 'ContributionsTab',
-	components: { NcButton, NcIconSvgWrapper, MembersList, EinzugPanel, ContributionGroupsPanel },
+	components: { NcButton, MembersList, EinzugPanel, ContributionGroupsPanel },
 	props: {
 		contribView: { type: String, required: true },
+		/** „+ → Mitglied“ im Kopf der App: `n` zählt hoch, dann öffnet sich der Aufnahme-Dialog. */
+		newMemberRequest: { type: Object, default: () => ({ n: 0 }) },
 		isMobile: { type: Boolean, default: false },
 		canWrite: { type: Boolean, default: false },
 	},
 
 	emits: ['update:contrib-view'],
 
-	data() {
-		return { mdiPlus }
-	},
-
 	watch: {
+		newMemberRequest() {
+			if (!this.canWrite) { return }
+			this.$nextTick(() => this.$refs.membersList?.openMemberDialog())
+		},
+
 		// Ohne Schreibrecht gibt es nur den Einzug-Unterreiter: eine Adresse
 		// wie /contributions (Vorgabe „Mitglieder“) oder /contributions/groups
 		// führt dort hin, statt in eine leere Fläche.

@@ -46,7 +46,7 @@
 			</div>
 
 			<div class="vbh-tablecard">
-				<table class="vbh-table">
+				<table class="vbh-table vbh-stack">
 					<thead>
 						<tr>
 							<th class="vbh-col-check" /><th class="nowrap">
@@ -60,7 +60,9 @@
 							<td class="nowrap">
 								{{ a.number }}
 							</td>
-							<td>{{ a.name }}</td>
+							<td class="vbh-stack-title">
+								{{ a.name }}
+							</td>
 							<td>
 								<select :value="a.sphere || ''" @change="saveOne(a, $event.target.value)">
 									<option value="">

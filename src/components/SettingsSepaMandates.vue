@@ -44,12 +44,9 @@
 			{{ t('Ablage-Nutzer:') }} <strong>{{ storageUser }}</strong>.
 			{{ t('Der Ordner wird in dessen Home bei Bedarf angelegt. Leer lassen für den Standardordner.') }}
 		</p>
-		<NcCheckboxRadioSwitch v-model="draft.showMissingDocumentWarning" type="switch">
-			{{ t('Auf Mandate ohne Nachweis hinweisen') }}
-		</NcCheckboxRadioSwitch>
-		<p class="vbh-hint">
-			{{ t('Dann weist die App bei jedem laufenden Mandat ohne hinterlegten Nachweis darauf hin. Vereine, die Nachweise nicht in der App ablegen, können das abschalten.') }}
-		</p>
+		<SettingsToggle v-model="draft.showMissingDocumentWarning" :label="t('Auf Mandate ohne Nachweis hinweisen')">
+			{{ t('Die App weist bei jedem laufenden Mandat ohne hinterlegten Nachweis darauf hin. Vereine, die Nachweise nicht in der App ablegen, können das abschalten.') }}
+		</SettingsToggle>
 		<div class="vbh-form">
 			<NcButton variant="primary" :disabled="saving" @click="save">
 				{{ t('Speichern') }}
@@ -63,8 +60,8 @@
 
 <script>
 import NcButton from '@nextcloud/vue/components/NcButton'
-import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import FolderPathField from './FolderPathField.vue'
+import SettingsToggle from './SettingsToggle.vue'
 import { useSepaSettings } from '../composables/useSepaSettings.js'
 import { useSettingsCardSave } from '../composables/useSettingsCardSave.js'
 import { DAYS_MAX, DAYS_MIN, daysError, DEFAULT_REFERENCE_PREFIX, REFERENCE_PREFIX_MAX_LENGTH } from '../lib/sepaSettings.js'
@@ -79,7 +76,7 @@ import { DAYS_MAX, DAYS_MIN, daysError, DEFAULT_REFERENCE_PREFIX, REFERENCE_PREF
  */
 export default {
 	name: 'SettingsSepaMandates',
-	components: { FolderPathField, NcButton, NcCheckboxRadioSwitch },
+	components: { FolderPathField, NcButton, SettingsToggle },
 	props: {
 		// Nutzer der Belegablage im Nextcloud-Dateibaum (SettingsApp.vue); leer = noch keiner gewählt
 		storageUser: { type: String, default: '' },

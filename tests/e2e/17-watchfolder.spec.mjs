@@ -1,6 +1,6 @@
 import { getContainer, runOcc } from '@nextcloud/e2e-test-server'
-import { test, expect } from '@playwright/test'
-import { api, fixture, authHeaders, davUrl, CAMT_STATEMENT } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, authHeaders, CAMT_STATEMENT, davUrl, fixture } from './fixtures/nextcloud.mjs'
 
 // Der Wachordner: ein per WebDAV abgelegter Kontoauszug wird vom
 // Hintergrund-Job eingelesen, ganz ohne manuellen Import. Der Job wird

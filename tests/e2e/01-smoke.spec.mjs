@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test'
-import { api, openApp, tabButton, USERS, BASE_URL } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, BASE_URL, openApp, tabButton, USERS } from './fixtures/nextcloud.mjs'
 
 // Grundgerüst: die App lädt, zeigt die Navigation, und die Zugriffskontrolle
 // greift an der Oberfläche. Bestand: leer.

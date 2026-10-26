@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test'
-import { api, openApp, switchTab, visibleSection, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, USERS } from './fixtures/nextcloud.mjs'
+import { expect, test } from '@playwright/test'
+import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, neuAnlegen, openApp, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Mitglied-Entity (Issue #65, docs/beitraege-sepa-modul-spec.md §2.2/§3.1):
 // Stammdaten-CRUD unabhängig von einem SEPA-Mandat, dazu die NC-Konto-
@@ -32,7 +32,7 @@ test.describe('Mitglieder-Stammdaten', () => {
 		// Einzug-Unterreiter.
 		await openApp(page, USERS.buchhalter)
 		await switchTab(page, 'Beiträge')
-		await visibleSection(page).getByRole('button', { name: 'Mitglied', exact: true }).click()
+		await neuAnlegen(page, 'Mitglied')
 
 		const dialog = page.getByRole('dialog', { name: 'Mitglied aufnehmen' })
 		await expect(dialog).toBeVisible()
@@ -48,10 +48,38 @@ test.describe('Mitglieder-Stammdaten', () => {
 		await expect(row.getByText('kein Mandat')).toBeVisible()
 	})
 
+	test('Aufnahme-Dialog: Tab führt der Reihe nach durch alle Felder, ohne den Dialog zu verlassen', async ({ page }) => {
+		await openApp(page, USERS.verwalter)
+		await neuAnlegen(page, 'Mitglied')
+		const dialog = page.getByRole('dialog', { name: 'Mitglied aufnehmen' })
+		await expect(dialog).toBeVisible()
+
+		await page.waitForTimeout(500)
+		// Ab hier nur die Tastatur: Tab vorwärts, jedes Mal muss der Fokus im Dialog liegen und ein neues Element treffen.
+		const visited = []
+		for (let i = 0; i < 40; i++) {
+			await page.keyboard.press('Tab')
+			const info = await page.evaluate(() => {
+				const el = document.activeElement
+				const dlg = document.querySelector('[role="dialog"][aria-labelledby="vbh-modal-title-member"]')
+				const all = dlg ? [...dlg.querySelectorAll('input, select, textarea, button, a[href], [tabindex]')] : []
+				const lab = el.labels && el.labels[0] ? el.labels[0].textContent : ''
+				return { inside: !!dlg && dlg.contains(el), label: ((el.getAttribute('aria-label') || lab || el.textContent || el.tagName).trim().slice(0, 30)) + '#' + all.indexOf(el), tag: el.tagName }
+			})
+			expect(info.inside, `Tab ${i + 1} landet außerhalb des Dialogs auf „${info.label}“`).toBe(true)
+			visited.push(`${info.tag}:${info.label}`)
+		}
+		expect(new Set(visited).size, `besuchte Elemente: ${visited.join(' | ')}`).toBeGreaterThanOrEqual(8)
+
+		// Zurück mit Umschalt+Tab bleibt ebenfalls im Dialog.
+		await page.keyboard.press('Shift+Tab')
+		expect(await page.evaluate(() => document.querySelector('[role="dialog"][aria-labelledby="vbh-modal-title-member"]').contains(document.activeElement))).toBe(true)
+	})
+
 	test('Organisation als Mitglied anlegen', async ({ page }) => {
 		await openApp(page, USERS.buchhalter)
 		await switchTab(page, 'Beiträge')
-		await visibleSection(page).getByRole('button', { name: 'Mitglied', exact: true }).click()
+		await neuAnlegen(page, 'Mitglied')
 
 		const dialog = page.getByRole('dialog', { name: 'Mitglied aufnehmen' })
 		await expect(dialog).toBeVisible()

@@ -93,6 +93,16 @@ Optionales Zusatzmodul (Reiter „Beiträge", erscheint automatisch sobald ein M
 - **Mahnwesen und Aufgaben**: Zahlungsaufforderung, Zahlungserinnerung und Mahnung nach Abstand; Stundung, Erlass und Storno; eine Aufgabenliste für Störfälle statt stiller Fehler
 - **Mein Beitrag** (Self-Service für verknüpfte Konten), informelle **Beitragsbestätigung**, **Datenübersicht** nach Art. 15 DSGVO und Anonymisierung nach Ablauf der Aufbewahrungsfrist
 
+### Rechnungen
+- **Rechnungen im Namen des Vereins** (optionaler Reiter *Rechnungen*, in den Einstellungen einzuschalten): Empfänger aus Stammdaten oder Mitgliedern, mehrere Positionen mit Menge, Einheit, Preis, Rabatt und Erlöskonto, Leistungsdatum oder -zeitraum, Hinweis nach § 19 UStG (Kleinunternehmer) oder Steuerbefreiung – mit allen Pflichtangaben nach § 14 Abs. 4 UStG
+- **Festschreiben**: fortlaufende, einmalige Nummer (`RE-2026-0042`, Muster einstellbar), danach unveränderlich; PDF/A-3b mit GiroCode, abgelegt als Datei mit Prüfsumme; Korrektur nur per **Stornorechnung**
+- **Offener Posten und Zahlungsabgleich**: jede Rechnung ist ein offener Posten mit Referenz; der Kontoauszug-Import bucht Zahlungen mit passender Rechnungsnummer und genauem Betrag selbst, sonst schlägt *Buchungen → Zuzuordnen* die Rechnung vor (Nummer, Betrag und Name, Betrag). Teilzahlungen verteilen sich cent-genau auf die Erlöskonten, Barzahlungen lassen sich direkt buchen
+- **Versand per E-Mail** mit PDF im Anhang und anpassbarer Vorlage
+- **Regelbesteuerung**: Steuersatz je Position (19 %, 7 %, 0 %, steuerfrei), Summen je Satz, Zahlung cent-genau auf Erlös- und Umsatzsteuerkonten
+- **E-Rechnung**: ZUGFeRD (EN 16931, Hybrid-PDF) und XRechnung (CII und UBL), Formatvorschlag nach Empfänger, Schemaprüfung vor dem Speichern, Beispielrechnungen in der CI gegen den KoSIT-Validator
+- **Positionsvorlagen**, **wiederkehrende Rechnungen** (Pläne mit Takt, Entwurf oder automatisches Festschreiben und Versand) und **Mahnwesen** (Erinnerung, 1. und 2. Mahnung als PDF mit GiroCode, manuell oder per Hintergrundjob)
+- **RF-Referenz (ISO 11649)** auf der Rechnung und im GiroCode, Zuordnung im Bankabgleich; Rechnungen mit Übersicht und Prüfsummen im Kassenprüfungs-ZIP
+
 ### Organisation & Sicherheit
 - **Berechtigungsrollen**: Verwalter – Buchhalter – Revisor (nur Lesen); NC-Admins sind immer Verwalter; Rollen für Nutzer und Gruppen
 - **Gemeinsamer Datenbestand** (`user_id = '__verein__'`): alle berechtigten Nutzer arbeiten auf denselben Daten
@@ -234,11 +244,11 @@ Die App ist im **Nextcloud App Store** veröffentlicht (signiert): in Nextcloud 
 
 Alternativ lässt sich das Tarball eines [GitHub-Releases](https://github.com/AndiMb/nc_vereinsbuchhaltung/releases) nach `<nextcloud>/apps/` entpacken (siehe auch [`deploy/README.md`](deploy/README.md) für die Server-Automatisierung).
 
-**Unterstützt:** Nextcloud 31–35, PHP 8.1–8.5, SQLite/MySQL/PostgreSQL.
+**Unterstützt:** Nextcloud 33–35, PHP 8.2–8.5, SQLite/MySQL/PostgreSQL.
 
 ## Entwicklung
 
-**Voraussetzungen:** PHP ≥ 8.1, Node ≥ 22 / npm ≥ 10, eine Nextcloud-Instanz (≥ 31).
+**Voraussetzungen:** PHP ≥ 8.2, Node ≥ 22 / npm ≥ 10, eine Nextcloud-Instanz (≥ 33).
 
 ```bash
 # 1. Frontend bauen
