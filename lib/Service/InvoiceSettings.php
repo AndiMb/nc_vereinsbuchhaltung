@@ -128,7 +128,7 @@ class InvoiceSettings {
 		return $this->get(self::SETTING_DUNNING_AUTO, '0') === '1';
 	}
 
-	/** Adresse des Vorstands für Kopien; null, wenn keine oder eine ungültige hinterlegt ist. */
+	/** Adresse des Vorstands für Kopien; null, wenn keine gültige hinterlegt ist. */
 	public function boardEmail(): ?string {
 		$email = trim($this->get(self::SETTING_BOARD_EMAIL));
 		return $email !== '' && EmailValidator::isValid($email) ? $email : null;

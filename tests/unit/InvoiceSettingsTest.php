@@ -156,6 +156,10 @@ class InvoiceSettingsTest extends TestCase {
 		$this->assertSame('vorstand@verein.example', $all['invoice_board_email']);
 		$this->assertTrue($all['invoice_dunning_copy_board']);
 
+		$this->assertNull($s->update(['invoice_dunning_copy_board' => '0']));
+		$this->assertFalse($s->dunningCopyBoard());
+		$this->assertSame('vorstand@verein.example', $s->boardEmail(), 'Die Adresse gilt auch ohne Kopie der Mahnmails, für den Versand von Rechnungen.');
+
 		$this->assertNull($s->update(['invoice_board_email' => '']));
 		$this->assertNull($s->boardEmail(), 'Eine leere Adresse löscht die Kopie-Adresse.');
 	}

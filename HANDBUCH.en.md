@@ -2445,7 +2445,7 @@ Accountants may create drafts; **finalizing, sending and cancelling** are reserv
 
 In the invoice details: **Send by email**. Recipient address, subject and text are prefilled and can be changed before sending; the PDF is attached. You maintain the template and its placeholders (`{nummer}`, `{betrag}`, `{faellig}`, `{verein}`, `{empfaenger}`) in the settings. Alternatively download the PDF and send or print it yourself.
 
-**Copy to board:** Enter the board's email address in the settings under **Invoices** (next to the email template). The send dialog then shows a **Copy to board** switch; when on, the email also goes as a blind copy to that address, and the recipient does not see it. Without a stored address the switch is greyed out.
+**Copy to board:** Enter the board's email address in the settings under **Invoices → Dunning**. The send dialog then shows a **Copy to board** switch; when on, the email also goes as a blind copy to that address, and the recipient does not see it. Without an address the switch does not appear.
 
 ### 15.6 Assigning a payment
 
@@ -2521,7 +2521,7 @@ Invoices that are unpaid after the payment term are dunned in **three stages**: 
 - **In the list** an invoice shows its **dunning stage** and **Dunning due**; the filter **Dunning due** collects them.
 - **Dun** (administrator): in the details click **Dun …**. The dialog suggests the next stage, address, subject and text; everything can be changed before sending. A stage cannot be repeated but can be skipped. The history is in the **Reminders and dunning letters** section, the PDFs are with the documents.
 - **Automatic:** With **Send due dunning letters automatically by email** (off until you turn it on) the daily background job sends due stages by itself. Invoices whose recipient has no email address are skipped; they stay in the list as "Dunning due".
-- **Copy to the board:** With **Copy dunning emails to the board email** (off until you turn it on; needs the board address under the email template) every dunning email also goes as a blind copy to the board, in the automatic run too. When dunning by hand, the **Copy to board** switch in the dialog can be changed per reminder.
+- **Copy to the board:** With **Mail copy to board** (off until you turn it on; needs the board's address right above it) every dunning email also goes as a blind copy to the board, in the automatic run too. When dunning by hand, the **Copy to board** switch in the dialog can be changed per reminder.
 - **Locks:** paid, cancelled and not yet due invoices, credit notes and drafts are never dunned. Partial payments reduce the amount in the letter. After the 2nd dunning letter the app stops; the association decides how to proceed (court order, waiver).
 
 The app does not calculate dunning fees or default interest and does not give legal advice: texts and deadlines should suit your association.

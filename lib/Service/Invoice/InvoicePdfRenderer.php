@@ -63,7 +63,7 @@ class InvoicePdfRenderer {
 		$pdf->SetTitle($this->title($invoice));
 		$pdf->SetSubject($this->title($invoice));
 		$pdf->SetMargins(self::MARGIN_LEFT, 20, self::MARGIN_RIGHT);
-		$pdf->SetAutoPageBreak(true, 30);
+		$pdf->SetAutoPageBreak(true, 34);
 		$pdf->setPrintHeader(false);
 		$pdf->setPrintFooter(true);
 		$pdf->setFooterMargin(10);
@@ -129,7 +129,7 @@ class InvoicePdfRenderer {
 		$pdf->SetTitle($title . ' ' . $invoice->getNumber());
 		$pdf->SetSubject($title);
 		$pdf->SetMargins(self::MARGIN_LEFT, 20, self::MARGIN_RIGHT);
-		$pdf->SetAutoPageBreak(true, 30);
+		$pdf->SetAutoPageBreak(true, 34);
 		$pdf->setPrintHeader(false);
 		$pdf->setPrintFooter(true);
 		$pdf->setFooterMargin(10);

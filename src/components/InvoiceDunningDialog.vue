@@ -40,12 +40,9 @@
 				<p class="vbh-hint">
 					{{ t('Angehängt wird das Mahnschreiben als PDF mit GiroCode über den offenen Betrag von {amount}. Es wird wie die Rechnung unveränderlich abgelegt.', { amount: formatMoney(remaining / 100) }) }}
 				</p>
-				<NcCheckboxRadioSwitch v-model="form.copyBoard" type="switch" :disabled="!boardEmail">
+				<NcCheckboxRadioSwitch v-if="boardEmail" v-model="form.copyBoard" type="switch">
 					{{ t('Kopie an Vorstand') }}
 				</NcCheckboxRadioSwitch>
-				<p class="vbh-hint">
-					{{ boardEmail ? tRaw('Der Vorstand bekommt die Mahnung als Blindkopie an {email}; der Empfänger sieht die Adresse nicht.', { email: boardEmail }) : t('Dafür fehlt die E-Mail-Adresse des Vorstands in den Einstellungen unter „Rechnungen“.') }}
-				</p>
 			</template>
 			<p v-if="error" class="vbh-hint vbh-hint--error" role="alert">
 				{{ error }}

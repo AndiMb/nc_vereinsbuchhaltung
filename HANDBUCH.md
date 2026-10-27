@@ -2469,7 +2469,7 @@ Es wird noch **nichts gebucht**: Die App arbeitet nach dem Ist-Prinzip, gebucht 
 
 Im Detail der Rechnung: **Per E-Mail senden**. Empfänger-Adresse, Betreff und Text sind vorbelegt und vor dem Senden änderbar, das PDF hängt an. Die Vorlage und ihre Platzhalter (`{nummer}`, `{betrag}`, `{faellig}`, `{verein}`, `{empfaenger}`) pflegen Sie in den Einstellungen. Alternativ laden Sie das PDF herunter und verschicken oder drucken es selbst.
 
-**Kopie an Vorstand:** Hinterlegen Sie in den Einstellungen unter **Rechnungen** die E-Mail-Adresse des Vorstands (bei der E-Mail-Vorlage). Dann zeigt der Versanddialog den Schalter **Kopie an Vorstand**; ist er an, geht die Mail zusätzlich als Blindkopie an diese Adresse, der Empfänger sieht sie nicht. Ohne hinterlegte Adresse ist der Schalter ausgegraut.
+**Kopie an Vorstand:** Tragen Sie in den Einstellungen unter **Rechnungen → Mahnwesen** die E-Mail-Adresse des Vorstands ein. Dann zeigt der Versanddialog den Schalter **Kopie an Vorstand**; ist er an, geht die Mail zusätzlich als Blindkopie an diese Adresse, der Empfänger sieht sie nicht. Ohne Adresse erscheint der Schalter nicht.
 
 ### 15.6 Zahlungseingang zuordnen
 
@@ -2545,7 +2545,7 @@ Rechnungen, die nach dem Zahlungsziel unbezahlt sind, mahnt die App in **drei St
 - **In der Liste** zeigt eine Rechnung ihre **Mahnstufe** und **Mahnung fällig**; der Filter **Mahnung fällig** sammelt sie.
 - **Mahnen** (Verwalter): im Detail **Mahnen …**. Der Dialog schlägt die nächste Stufe, Adresse, Betreff und Text vor; alles lässt sich vor dem Senden ändern. Eine Stufe lässt sich nicht wiederholen, aber überspringen. Der Verlauf steht im Abschnitt **Mahnungen**, die PDFs bei den Dokumenten.
 - **Automatisch:** Mit **Fällige Mahnungen automatisch per E-Mail verschicken** (aus, solange Sie es nicht einschalten) versendet der tägliche Hintergrundjob fällige Stufen selbst. Rechnungen, deren Empfänger keine E-Mail-Adresse hat, übergeht er; sie bleiben als „Mahnung fällig" in der Liste.
-- **Kopie an den Vorstand:** Mit **Kopie der Mahnmails an Vorstandsmail** (aus, solange Sie es nicht einschalten; braucht die Vorstands-Adresse unter der E-Mail-Vorlage) geht jede Mahnmail zusätzlich als Blindkopie an den Vorstand, auch im automatischen Lauf. Beim Mahnen von Hand lässt sich der Schalter **Kopie an Vorstand** im Dialog je Mahnung ändern.
+- **Kopie an den Vorstand:** Mit **Mailkopie an Vorstand** (aus, solange Sie es nicht einschalten; braucht die Adresse des Vorstands direkt darüber) geht jede Mahnmail zusätzlich als Blindkopie an den Vorstand, auch im automatischen Lauf. Beim Mahnen von Hand lässt sich der Schalter **Kopie an Vorstand** im Dialog je Mahnung ändern.
 - **Sperren:** Bezahlte, stornierte und noch nicht fällige Rechnungen, Stornorechnungen und Entwürfe werden nie gemahnt. Teilzahlungen mindern den Betrag im Schreiben. Nach der 2. Mahnung mahnt die App nicht weiter; wie es weitergeht (Mahnbescheid, Verzicht), entscheidet der Verein.
 
 Die App berechnet keine Mahngebühren oder Verzugszinsen und gibt keine Rechtsberatung: Texte und Fristen sollten zum Verein passen.

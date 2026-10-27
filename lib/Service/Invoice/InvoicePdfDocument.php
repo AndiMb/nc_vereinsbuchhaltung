@@ -27,20 +27,34 @@ class InvoicePdfDocument extends \TCPDF {
 	public function Footer(): void {
 		$left = $this->lMargin;
 		$width = $this->getPageWidth() - $this->lMargin - $this->rMargin;
-		$column = $width / 3;
-		$top = $this->getPageHeight() - 24;
+		$top = $this->getPageHeight() - 27;
+		// Die Spalten sind verschieden breit: die mittlere trägt die langen Registerangaben.
+		// Zwischen ihnen bleibt Luft, und der Text steht auf der Linie des Fließtextes (1 mm Zellrand).
+		$gap = 5;
+		$inset = 1;
+		$columns = [0.28, 0.38, 0.34];
 
 		$this->SetDrawColor(180, 180, 180);
-		$this->Line($left, $top - 1, $left + $width, $top - 1);
+		$this->Line($left, $top - 2, $left + $width, $top - 2);
 		$this->SetTextColor(100, 100, 100);
-		$this->SetFont('dejavusans', '', 6.5, '', true);
 
+		$x = $left + $inset;
 		foreach ([$this->footerLeft, $this->footerMiddle, $this->footerRight] as $i => $lines) {
-			$this->SetXY($left + $i * $column, $top);
-			$this->MultiCell($column - 2, 3.2, implode("\n", $lines), 0, 'L', false, 0, null, null, true, 0, false, true, 16, 'T');
+			$columnWidth = $columns[$i] * ($width - $inset);
+			$this->SetXY($x, $top);
+			foreach (array_values($lines) as $n => $line) {
+				// Die erste Zeile jeder Spalte (Vereinsname, „Bankverbindung“) ist die Überschrift.
+				$this->SetFont('dejavusans', $n === 0 && $i !== 1 ? 'B' : '', 7, '', true);
+				$this->SetX($x);
+				$this->MultiCell($i === 2 ? $columnWidth : $columnWidth - $gap, 3.6, $line, 0, 'L', false, 1, null, null, true, 0, false, true, 0, 'T');
+			}
+			$x += $columnWidth;
 		}
-		$this->SetXY($left, $this->getPageHeight() - 9);
-		$this->Cell($width, 3, strtr($this->pageLabel, ['{page}' => $this->getAliasNumPage(), '{pages}' => $this->getAliasNbPages()]), 0, 0, 'R');
+		$this->SetFont('dejavusans', '', 7, '', true);
+		// Die Seitenzahl steht links in der letzten Spalte; rechtsbündig verrutscht sie, weil TCPDF
+		// die Platzhalter erst nach dem Satz ersetzt.
+		$this->SetXY($left + $inset + ($columns[0] + $columns[1]) * ($width - $inset), $this->getPageHeight() - 10);
+		$this->Cell($columns[2] * ($width - $inset), 3, strtr($this->pageLabel, ['{page}' => $this->getAliasNumPage(), '{pages}' => $this->getAliasNbPages()]), 0, 0, 'L');
 		$this->SetTextColor(0, 0, 0);
 	}
 }

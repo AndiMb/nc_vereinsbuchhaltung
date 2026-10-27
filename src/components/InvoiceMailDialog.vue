@@ -45,12 +45,9 @@
 						{{ t('Ein ZUGFeRD-PDF ersetzt das einfache PDF, XML-Dateien gehen zusätzlich als Anhang mit.') }}
 					</p>
 				</fieldset>
-				<NcCheckboxRadioSwitch v-model="form.copyBoard" type="switch" :disabled="!boardEmail">
+				<NcCheckboxRadioSwitch v-if="boardEmail" v-model="form.copyBoard" type="switch">
 					{{ t('Kopie an Vorstand') }}
 				</NcCheckboxRadioSwitch>
-				<p class="vbh-hint">
-					{{ boardEmail ? tRaw('Der Vorstand bekommt die Rechnung als Blindkopie an {email}; der Empfänger sieht die Adresse nicht.', { email: boardEmail }) : t('Dafür fehlt die E-Mail-Adresse des Vorstands in den Einstellungen unter „Rechnungen“.') }}
-				</p>
 			</template>
 			<p v-if="error" class="vbh-hint vbh-hint--error" role="alert">
 				{{ error }}
