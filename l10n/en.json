@@ -3762,7 +3762,17 @@
         "Zum Festschreiben": "To finalize",
         "Der Entwurf wird beim Eingeben gespeichert. Danach steht hier, was zum Festschreiben noch fehlt.": "The draft is saved as you type. After that, what is still missing to finalize appears here.",
         "Platzhalter: {nummer}, {betrag}, {faellig}, {verein}, {empfaenger}. Beim Versand lässt sich der Text noch anpassen. Bleibt ein Feld leer, gilt der grau angezeigte Standardtext.": "Placeholders: {nummer}, {betrag}, {faellig}, {verein}, {empfaenger}. The text can still be adjusted when sending. If a field stays empty, the default text shown in grey applies.",
-        "Platzhalter: {stufe}, {nummer}, {rechnungsdatum}, {betrag}, {rest}, {faellig}, {frist}, {verein}, {empfaenger}. Bleibt ein Feld leer, gilt der grau angezeigte Standardtext.": "Placeholders: {stufe}, {nummer}, {rechnungsdatum}, {betrag}, {rest}, {faellig}, {frist}, {verein}, {empfaenger}. If a field stays empty, the default text shown in grey applies."
+        "Platzhalter: {stufe}, {nummer}, {rechnungsdatum}, {betrag}, {rest}, {faellig}, {frist}, {verein}, {empfaenger}. Bleibt ein Feld leer, gilt der grau angezeigte Standardtext.": "Placeholders: {stufe}, {nummer}, {rechnungsdatum}, {betrag}, {rest}, {faellig}, {frist}, {verein}, {empfaenger}. If a field stays empty, the default text shown in grey applies.",
+        "Kopie an Vorstand": "Copy to board",
+        "Der Vorstand bekommt die Rechnung als Blindkopie an {email}; der Empfänger sieht die Adresse nicht.": "The board receives the invoice as a blind copy at {email}; the recipient does not see the address.",
+        "Der Vorstand bekommt die Mahnung als Blindkopie an {email}; der Empfänger sieht die Adresse nicht.": "The board receives the reminder as a blind copy at {email}; the recipient does not see the address.",
+        "Dafür fehlt die E-Mail-Adresse des Vorstands in den Einstellungen unter „Rechnungen“.": "This needs the board's email address under \"Invoices\" in the settings.",
+        "E-Mail-Adresse des Vorstands (für Kopien)": "Board email address (for copies)",
+        "Beim Versand einer Rechnung oder Mahnung lässt sich der Vorstand per Schalter „Kopie an Vorstand“ in Blindkopie setzen; der Empfänger sieht die Adresse nicht.": "When sending an invoice or reminder, the \"Copy to board\" switch puts the board on blind copy; the recipient does not see the address.",
+        "Kopie der Mahnmails an Vorstandsmail": "Copy dunning emails to the board email",
+        "Jede Mahnmail geht zusätzlich als Blindkopie an die E-Mail-Adresse des Vorstands (oben unter „E-Mail-Vorlage für den Versand“). Beim manuellen Mahnen lässt sich der Schalter je Mahnung ändern.": "Every dunning email also goes as a blind copy to the board's email address (above, under \"Email template for sending\"). When dunning manually, the switch can be changed per reminder.",
+        "Für die Kopie an den Vorstand fehlt die E-Mail-Adresse des Vorstands in den Einstellungen.": "The board's email address is missing in the settings, so the copy to the board cannot be sent.",
+        "Ungültige E-Mail-Adresse des Vorstands.": "Invalid email address of the board."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

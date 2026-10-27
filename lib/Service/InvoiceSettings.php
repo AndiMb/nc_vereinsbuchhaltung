@@ -32,6 +32,10 @@ class InvoiceSettings {
 	public const SETTING_DUNNING_AUTO = 'invoice_dunning_auto';
 	public const SETTING_DUNNING_GRACE_DAYS = 'invoice_dunning_grace_days';
 	public const SETTING_DUNNING_SUBJECT = 'invoice_dunning_subject';
+	/** Adresse des Vorstands für Blindkopien von Rechnungs- und Mahnmails. */
+	public const SETTING_BOARD_EMAIL = 'invoice_board_email';
+	/** Geht jede Mahnmail zusätzlich als Blindkopie an die Vorstands-Adresse? */
+	public const SETTING_DUNNING_COPY_BOARD = 'invoice_dunning_copy_board';
 	/** Tage bis zur Stufe 1/2/3: nach dem Zahlungsziel, nach der Erinnerung, nach der 1. Mahnung. */
 	public const SETTING_DUNNING_DAYS = [1 => 'invoice_dunning_days_1', 2 => 'invoice_dunning_days_2', 3 => 'invoice_dunning_days_3'];
 	public const SETTING_DUNNING_BODY = [1 => 'invoice_dunning_body_1', 2 => 'invoice_dunning_body_2', 3 => 'invoice_dunning_body_3'];
@@ -122,6 +126,17 @@ class InvoiceSettings {
 	/** Mahnt der tägliche Hintergrundjob fällige Rechnungen selbst? Aus, bis der Verein es einschaltet. */
 	public function dunningAuto(): bool {
 		return $this->get(self::SETTING_DUNNING_AUTO, '0') === '1';
+	}
+
+	/** Adresse des Vorstands für Kopien; null, wenn keine oder eine ungültige hinterlegt ist. */
+	public function boardEmail(): ?string {
+		$email = trim($this->get(self::SETTING_BOARD_EMAIL));
+		return $email !== '' && EmailValidator::isValid($email) ? $email : null;
+	}
+
+	/** Bekommt der Vorstand von jeder Mahnmail eine Blindkopie? Aus, bis der Verein es einschaltet. */
+	public function dunningCopyBoard(): bool {
+		return $this->get(self::SETTING_DUNNING_COPY_BOARD, '0') === '1';
 	}
 
 	/**
@@ -287,6 +302,8 @@ class InvoiceSettings {
 			self::SETTING_DUNNING_AUTO => $this->dunningAuto(),
 			self::SETTING_DUNNING_GRACE_DAYS => $this->dunningGraceDays(),
 			self::SETTING_DUNNING_SUBJECT => $this->get(self::SETTING_DUNNING_SUBJECT),
+			self::SETTING_DUNNING_COPY_BOARD => $this->dunningCopyBoard(),
+			self::SETTING_BOARD_EMAIL => trim($this->get(self::SETTING_BOARD_EMAIL)),
 			'invoice_dunning_days_1' => $this->dunningDays()[1],
 			'invoice_dunning_days_2' => $this->dunningDays()[2],
 			'invoice_dunning_days_3' => $this->dunningDays()[3],
@@ -340,6 +357,18 @@ class InvoiceSettings {
 
 		if (array_key_exists(self::SETTING_DUNNING_AUTO, $params)) {
 			$writes[self::SETTING_DUNNING_AUTO] = (string)$params[self::SETTING_DUNNING_AUTO] === '1' ? '1' : '0';
+		}
+
+		if (array_key_exists(self::SETTING_DUNNING_COPY_BOARD, $params)) {
+			$writes[self::SETTING_DUNNING_COPY_BOARD] = (string)$params[self::SETTING_DUNNING_COPY_BOARD] === '1' ? '1' : '0';
+		}
+
+		if (array_key_exists(self::SETTING_BOARD_EMAIL, $params)) {
+			$board = trim((string)$params[self::SETTING_BOARD_EMAIL]);
+			if ($board !== '' && (mb_strlen($board) > 255 || !EmailValidator::isValid($board))) {
+				return $this->msg('Ungültige E-Mail-Adresse des Vorstands.');
+			}
+			$writes[self::SETTING_BOARD_EMAIL] = $board;
 		}
 
 		$dayFields = array_merge(self::SETTING_DUNNING_DAYS, [0 => self::SETTING_DUNNING_GRACE_DAYS]);

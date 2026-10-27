@@ -134,11 +134,30 @@ class InvoiceSettingsTest extends TestCase {
 		return [
 			'Land dreistellig' => [['club_country' => 'DEU']],
 			'E-Mail kaputt' => [['club_email' => 'kein-mail']],
+			'Vorstands-E-Mail kaputt' => [['invoice_board_email' => 'kein-mail']],
 			'USt-IdNr. kaputt' => [['club_vat_id' => '12']],
 			'BIC kaputt' => [['invoice_bic' => 'ABC']],
 			'Zahlungsziel negativ' => [['invoice_default_due_days' => -1]],
 			'Pfad mit ..' => [['invoice_folder' => 'a/../b']],
 		];
+	}
+
+	public function testKopieAnDenVorstandBrauchtEineGueltigeAdresse(): void {
+		$s = $this->settings();
+
+		$this->assertNull($s->boardEmail());
+		$this->assertFalse($s->dunningCopyBoard(), 'Ab Werk bekommt der Vorstand keine Kopie.');
+
+		$this->assertNull($s->update(['invoice_board_email' => ' vorstand@verein.example ', 'invoice_dunning_copy_board' => '1']));
+
+		$this->assertSame('vorstand@verein.example', $s->boardEmail());
+		$this->assertTrue($s->dunningCopyBoard());
+		$all = $s->all();
+		$this->assertSame('vorstand@verein.example', $all['invoice_board_email']);
+		$this->assertTrue($all['invoice_dunning_copy_board']);
+
+		$this->assertNull($s->update(['invoice_board_email' => '']));
+		$this->assertNull($s->boardEmail(), 'Eine leere Adresse löscht die Kopie-Adresse.');
 	}
 
 	public function testBicUndLandWerdenNormalisiert(): void {

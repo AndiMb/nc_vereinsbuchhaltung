@@ -40,6 +40,12 @@
 				<p class="vbh-hint">
 					{{ t('Angehängt wird das Mahnschreiben als PDF mit GiroCode über den offenen Betrag von {amount}. Es wird wie die Rechnung unveränderlich abgelegt.', { amount: formatMoney(remaining / 100) }) }}
 				</p>
+				<NcCheckboxRadioSwitch v-model="form.copyBoard" type="switch" :disabled="!boardEmail">
+					{{ t('Kopie an Vorstand') }}
+				</NcCheckboxRadioSwitch>
+				<p class="vbh-hint">
+					{{ boardEmail ? tRaw('Der Vorstand bekommt die Mahnung als Blindkopie an {email}; der Empfänger sieht die Adresse nicht.', { email: boardEmail }) : t('Dafür fehlt die E-Mail-Adresse des Vorstands in den Einstellungen unter „Rechnungen“.') }}
+				</p>
 			</template>
 			<p v-if="error" class="vbh-hint vbh-hint--error" role="alert">
 				{{ error }}
@@ -58,6 +64,7 @@
 
 <script>
 import NcButton from '@nextcloud/vue/components/NcButton'
+import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcModal from '@nextcloud/vue/components/NcModal'
 import api from '../api.js'
@@ -67,7 +74,7 @@ import { dunningLabel } from '../lib/invoices.js'
 /** Zahlungserinnerung oder Mahnung zu einer Rechnung verschicken (Epic #168, Stufe 3). */
 export default {
 	name: 'InvoiceDunningDialog',
-	components: { NcModal, NcButton, NcLoadingIcon },
+	components: { NcModal, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon },
 	props: {
 		show: { type: Boolean, default: false },
 		invoice: { type: Object, default: null },
@@ -76,7 +83,7 @@ export default {
 	emits: ['close', 'sent', 'update:show'],
 
 	data() {
-		return { loading: false, busy: false, error: '', remaining: 0, form: { level: 1, to: '', subject: '', body: '' } }
+		return { loading: false, busy: false, error: '', remaining: 0, boardEmail: '', form: { level: 1, to: '', subject: '', body: '', copyBoard: false } }
 	},
 
 	computed: {
@@ -104,7 +111,8 @@ export default {
 			this.error = ''
 			try {
 				const { data } = await api.invoiceDunningDefaults(this.invoice.id, level)
-				this.form = { level: data.level, to: data.to, subject: data.subject, body: data.body }
+				this.form = { level: data.level, to: data.to, subject: data.subject, body: data.body, copyBoard: !!data.copyBoard }
+				this.boardEmail = data.boardEmail || ''
 				this.remaining = data.remainingCents
 			} catch (e) {
 				this.error = errMsg(e, this.t('Die Vorgaben konnten nicht geladen werden.'))

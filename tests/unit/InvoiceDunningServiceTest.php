@@ -38,6 +38,8 @@ class InvoiceDunningServiceTest extends TestCase {
 	/** @var list<InvoiceDunning> */
 	private array $history = [];
 	private bool $auto = true;
+	private ?string $boardEmail = null;
+	private bool $copyBoardSetting = false;
 
 	private InvoiceMapper&MockObject $invoices;
 	private InvoiceDunningMapper&MockObject $dunnings;
@@ -48,6 +50,8 @@ class InvoiceDunningServiceTest extends TestCase {
 		$this->history = [];
 		$this->remaining = 15000;
 		$this->auto = true;
+		$this->boardEmail = null;
+		$this->copyBoardSetting = false;
 		$this->invoice = $this->makeInvoice(1, '2026-03-19');
 	}
 
@@ -92,6 +96,8 @@ class InvoiceDunningServiceTest extends TestCase {
 		$settings->method('dunningAuto')->willReturnCallback(fn () => $this->auto);
 		$settings->method('dunningDays')->willReturn([1 => 7, 2 => 14, 3 => 14]);
 		$settings->method('dunningGraceDays')->willReturn(7);
+		$settings->method('boardEmail')->willReturnCallback(fn () => $this->boardEmail);
+		$settings->method('dunningCopyBoard')->willReturnCallback(fn () => $this->copyBoardSetting);
 		$settings->method('all')->willReturn([]);
 		$settings->method('issuer')->willReturn(['name' => 'TSV Beispiel e. V.']);
 		$l10n = $this->createMock(IL10N::class);
@@ -104,7 +110,7 @@ class InvoiceDunningServiceTest extends TestCase {
 		return ['id' => 1, 'kind' => 'rechnung', 'status' => $this->invoice->getStatus(), 'remainingCents' => $this->remaining, 'dueDate' => $this->invoice->getDueDate()];
 	}
 
-	private function expectMail(int $times): void {
+	private function expectMail(int $times): IMessage&MockObject {
 		$template = $this->createMock(IEMailTemplate::class);
 		$template->method('renderSubject')->willReturn('Betreff');
 		$message = $this->createMock(IMessage::class);
@@ -119,6 +125,7 @@ class InvoiceDunningServiceTest extends TestCase {
 		$doc->setId(9);
 		$this->documents->method('createDunningLetter')->willReturn($doc);
 		$this->documents->method('documentContent')->willReturn(['content' => '%PDF', 'fileName' => 'RE-2026-0001-mahnung-1.pdf', 'kind' => 'dunning']);
+		return $message;
 	}
 
 	public function testUeberfaelligeRechnungHatDieErinnerungAlsNaechsteStufe(): void {
@@ -186,6 +193,58 @@ class InvoiceDunningServiceTest extends TestCase {
 		$this->assertSame(15000, $dunning->getRemainingCents());
 		$this->assertSame(9, $dunning->getDocumentId());
 		$this->assertSame(0, $dunning->getAuto());
+	}
+
+	public function testKopieAnDenVorstandGehtAlsBlindkopie(): void {
+		$this->boardEmail = 'vorstand@verein.example';
+		$s = $this->service();
+		$this->expectMail(1)->expects($this->once())->method('setBcc')->with(['vorstand@verein.example']);
+
+		$s->send(1, 'zahler@example.org', null, null, null, false, self::TODAY, true);
+	}
+
+	public function testOhneAngabeGiltDieEinstellung(): void {
+		$this->boardEmail = 'vorstand@verein.example';
+		$this->copyBoardSetting = true;
+		$s = $this->service();
+		$this->expectMail(1)->expects($this->once())->method('setBcc')->with(['vorstand@verein.example']);
+
+		$s->send(1, 'zahler@example.org', null, null, null, false, self::TODAY);
+	}
+
+	public function testSchalterAusUeberstimmtDieEinstellung(): void {
+		$this->boardEmail = 'vorstand@verein.example';
+		$this->copyBoardSetting = true;
+		$s = $this->service();
+		$this->expectMail(1)->expects($this->never())->method('setBcc');
+
+		$s->send(1, 'zahler@example.org', null, null, null, false, self::TODAY, false);
+	}
+
+	public function testKopieOhneVorstandsAdresseVerschicktNichts(): void {
+		$s = $this->service();
+		$this->mailer->expects($this->never())->method('send');
+		$this->documents->expects($this->never())->method('createDunningLetter');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$s->send(1, 'zahler@example.org', null, null, null, false, self::TODAY, true);
+	}
+
+	public function testTaeglicherLaufKopiertDenVorstandNachEinstellung(): void {
+		$this->boardEmail = 'vorstand@verein.example';
+		$this->copyBoardSetting = true;
+		$s = $this->service();
+		$this->expectMail(1)->expects($this->once())->method('setBcc')->with(['vorstand@verein.example']);
+
+		$this->assertSame(['sent' => 1, 'skipped' => 0, 'failed' => 0], $s->runDaily(self::TODAY));
+	}
+
+	public function testTaeglicherLaufOhneVorstandsAdresseMahntTrotzdem(): void {
+		$this->copyBoardSetting = true;
+		$s = $this->service();
+		$this->expectMail(1)->expects($this->never())->method('setBcc');
+
+		$this->assertSame(['sent' => 1, 'skipped' => 0, 'failed' => 0], $s->runDaily(self::TODAY));
 	}
 
 	public function testBezahlteRechnungWirdNichtVerschickt(): void {

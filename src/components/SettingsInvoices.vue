@@ -224,6 +224,18 @@
 
 		<div class="vbh-card">
 			<h4>{{ t('E-Mail-Vorlage für den Versand') }}</h4>
+			<div class="vbh-form">
+				<label class="vbh-grow">{{ t('E-Mail-Adresse des Vorstands (für Kopien)') }}
+					<input
+						v-model="form.invoice_board_email"
+						type="email"
+						maxlength="255"
+						autocomplete="off">
+				</label>
+			</div>
+			<p class="vbh-hint">
+				{{ t('Beim Versand einer Rechnung oder Mahnung lässt sich der Vorstand per Schalter „Kopie an Vorstand“ in Blindkopie setzen; der Empfänger sieht die Adresse nicht.') }}
+			</p>
 			<p class="vbh-hint">
 				{{ t('Platzhalter: {nummer}, {betrag}, {faellig}, {verein}, {empfaenger}. Beim Versand lässt sich der Text noch anpassen. Bleibt ein Feld leer, gilt der grau angezeigte Standardtext; „Standardtext übernehmen“ kopiert ihn zum Anpassen ins Feld.') }}
 			</p>
@@ -258,6 +270,9 @@
 			</p>
 			<SettingsToggle v-model="form.invoice_dunning_auto" :label="t('Mahnungen automatisch versenden')">
 				{{ t('Der tägliche Hintergrundjob verschickt fällige Stufen selbst per E-Mail. Aus: Mahnen kann der Verwalter in der Rechnung von Hand.') }}
+			</SettingsToggle>
+			<SettingsToggle v-model="form.invoice_dunning_copy_board" :label="t('Kopie der Mahnmails an Vorstandsmail')" :disabled="!form.invoice_board_email">
+				{{ t('Jede Mahnmail geht zusätzlich als Blindkopie an die E-Mail-Adresse des Vorstands (oben unter „E-Mail-Vorlage für den Versand“). Beim manuellen Mahnen lässt sich der Schalter je Mahnung ändern.') }}
 			</SettingsToggle>
 			<div class="vbh-form">
 				<label>{{ t('Erinnerung nach Fälligkeit (Tage)') }}
@@ -378,6 +393,8 @@ const KEYS = [
 	'invoice_einvoice_auto',
 	'invoice_rf_reference',
 	'invoice_dunning_auto',
+	'invoice_dunning_copy_board',
+	'invoice_board_email',
 	'invoice_dunning_days_1',
 	'invoice_dunning_days_2',
 	'invoice_dunning_days_3',
@@ -511,12 +528,12 @@ export default {
 		},
 
 		saveDunning() {
-			return this.store(['invoice_dunning_auto', 'invoice_dunning_days_1', 'invoice_dunning_days_2', 'invoice_dunning_days_3', 'invoice_dunning_grace_days', 'invoice_dunning_subject', 'invoice_dunning_body_1', 'invoice_dunning_body_2', 'invoice_dunning_body_3'], 'dunningError')
+			return this.store(['invoice_dunning_auto', 'invoice_dunning_copy_board', 'invoice_dunning_days_1', 'invoice_dunning_days_2', 'invoice_dunning_days_3', 'invoice_dunning_grace_days', 'invoice_dunning_subject', 'invoice_dunning_body_1', 'invoice_dunning_body_2', 'invoice_dunning_body_3'], 'dunningError')
 		},
 
 		dunningLabel,
 
-		saveMail() { return this.store(['invoice_mail_subject', 'invoice_mail_body'], 'mailError') },
+		saveMail() { return this.store(['invoice_board_email', 'invoice_mail_subject', 'invoice_mail_body'], 'mailError') },
 
 		async saveRange(range) {
 			this.saving = true
