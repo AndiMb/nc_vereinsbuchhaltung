@@ -44,7 +44,7 @@ class InvoiceMailService {
 	/**
 	 * Vorgaben für den Versanddialog.
 	 *
-	 * @return array{to: string, subject: string, body: string, fileName: string}
+	 * @return array{to: string, subject: string, body: string, fileName: string, boardEmail: string, copyBoard: bool}
 	 * @throws DoesNotExistException
 	 */
 	public function defaults(int $invoiceId): array {
@@ -60,6 +60,9 @@ class InvoiceMailService {
 			'subject' => $this->fill($subject, $invoice),
 			'body' => $this->fill($bodyTemplate, $invoice),
 			'fileName' => ($invoice->getNumber() ?? 'Rechnung') . '.pdf',
+			'boardEmail' => (string)$this->settings->boardEmail(),
+			// Die Kopie an den Vorstand ist beim Rechnungsversand eine Entscheidung je Mail.
+			'copyBoard' => false,
 		];
 	}
 
@@ -72,8 +75,9 @@ class InvoiceMailService {
 	 * @param list<int> $documentIds E-Rechnungs-Dokumente, die mitgehen. Ein ZUGFeRD-PDF
 	 *                               ersetzt das einfache PDF, XML-Dateien kommen als
 	 *                               weitere Anhänge dazu.
+	 * @param bool $copyBoard Blindkopie an die Vorstands-Adresse aus den Einstellungen
 	 */
-	public function send(int $invoiceId, string $to, ?string $subject = null, ?string $body = null, array $documentIds = []): Invoice {
+	public function send(int $invoiceId, string $to, ?string $subject = null, ?string $body = null, array $documentIds = [], bool $copyBoard = false): Invoice {
 		$invoice = $this->invoices->find($invoiceId);
 		if (!$invoice->isIssued() || $invoice->getStatus() === Invoice::STATUS_CANCELLED) {
 			throw new \InvalidArgumentException($this->l10n->t('Nur festgeschriebene, nicht stornierte Rechnungen lassen sich versenden.'));
@@ -81,6 +85,10 @@ class InvoiceMailService {
 		$to = trim($to);
 		if (!EmailValidator::isValid($to)) {
 			throw new \InvalidArgumentException($this->l10n->t('Bitte eine gültige E-Mail-Adresse angeben.'));
+		}
+		$board = $copyBoard ? $this->settings->boardEmail() : null;
+		if ($copyBoard && $board === null) {
+			throw new \InvalidArgumentException($this->l10n->t('Für die Kopie an den Vorstand fehlt die E-Mail-Adresse des Vorstands in den Einstellungen.'));
 		}
 		$defaults = $this->defaults($invoiceId);
 		$subject = $subject !== null && trim($subject) !== '' ? trim($subject) : $defaults['subject'];
@@ -103,6 +111,9 @@ class InvoiceMailService {
 		$message->setTo($recipientName !== '' ? [$to => $recipientName] : [$to]);
 		$message->setSubject($template->renderSubject());
 		$message->useTemplate($template);
+		if ($board !== null) {
+			$message->setBcc([$board]);
+		}
 		$extra = [];
 		foreach ($documentIds as $documentId) {
 			$doc = $this->documents->documentContent($invoiceId, $documentId);

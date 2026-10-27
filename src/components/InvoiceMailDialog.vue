@@ -45,6 +45,9 @@
 						{{ t('Ein ZUGFeRD-PDF ersetzt das einfache PDF, XML-Dateien gehen zusätzlich als Anhang mit.') }}
 					</p>
 				</fieldset>
+				<NcCheckboxRadioSwitch v-if="boardEmail" v-model="form.copyBoard" type="switch">
+					{{ t('Kopie an Vorstand') }}
+				</NcCheckboxRadioSwitch>
 			</template>
 			<p v-if="error" class="vbh-hint vbh-hint--error" role="alert">
 				{{ error }}
@@ -63,6 +66,7 @@
 
 <script>
 import NcButton from '@nextcloud/vue/components/NcButton'
+import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcModal from '@nextcloud/vue/components/NcModal'
 import api from '../api.js'
@@ -72,7 +76,7 @@ import { eInvoiceDocuments } from '../lib/invoices.js'
 /** Rechnung per Mail senden (Epic #168): Vorgaben vom Server, Text vor dem Senden anpassbar. */
 export default {
 	name: 'InvoiceMailDialog',
-	components: { NcModal, NcButton, NcLoadingIcon },
+	components: { NcModal, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon },
 	props: {
 		show: { type: Boolean, default: false },
 		invoice: { type: Object, default: null },
@@ -81,7 +85,7 @@ export default {
 	emits: ['close', 'sent', 'update:show'],
 
 	data() {
-		return { loading: false, busy: false, error: '', fileName: '', documentIds: [], form: { to: '', subject: '', body: '' } }
+		return { loading: false, busy: false, error: '', fileName: '', boardEmail: '', documentIds: [], form: { to: '', subject: '', body: '', copyBoard: false } }
 	},
 
 	computed: {
@@ -100,7 +104,8 @@ export default {
 			this.error = ''
 			try {
 				const { data } = await api.invoiceMailDefaults(this.invoice.id)
-				this.form = { to: data.to, subject: data.subject, body: data.body }
+				this.form = { to: data.to, subject: data.subject, body: data.body, copyBoard: !!data.copyBoard }
+				this.boardEmail = data.boardEmail || ''
 				this.fileName = data.fileName
 				// Was an E-Rechnung schon da ist, geht standardmäßig mit.
 				this.documentIds = this.eDocuments.map((d) => d.id)

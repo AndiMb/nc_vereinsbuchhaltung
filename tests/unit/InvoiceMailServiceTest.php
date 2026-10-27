@@ -103,6 +103,37 @@ class InvoiceMailServiceTest extends TestCase {
 		$s->send(1, ' buchhaltung@muster.example ');
 	}
 
+	public function testKopieAnDenVorstandGehtAlsBlindkopie(): void {
+		$s = $this->service();
+		$message = $this->mockMessage();
+		$this->settings->method('boardEmail')->willReturn('vorstand@verein.example');
+		$message->expects($this->once())->method('setBcc')->with(['vorstand@verein.example']);
+		$this->mailer->method('send')->willReturn([]);
+		$this->service->method('markSent')->willReturn($this->invoice);
+
+		$s->send(1, 'buchhaltung@muster.example', null, null, [], true);
+	}
+
+	public function testOhneSchalterGibtEsKeineKopie(): void {
+		$s = $this->service();
+		$message = $this->mockMessage();
+		$this->settings->method('boardEmail')->willReturn('vorstand@verein.example');
+		$message->expects($this->never())->method('setBcc');
+		$this->mailer->method('send')->willReturn([]);
+		$this->service->method('markSent')->willReturn($this->invoice);
+
+		$s->send(1, 'buchhaltung@muster.example');
+	}
+
+	public function testKopieOhneVorstandsAdresseVerschicktNichts(): void {
+		$s = $this->service();
+		$this->mockMessage();
+		$this->mailer->expects($this->never())->method('send');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$s->send(1, 'buchhaltung@muster.example', null, null, [], true);
+	}
+
 	public function testZugferdPdfErsetztDasPdfUndXmlKommtAlsAnhangDazu(): void {
 		$s = $this->service();
 		$message = $this->mockMessage();

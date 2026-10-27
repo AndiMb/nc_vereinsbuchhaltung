@@ -334,9 +334,9 @@ class InvoiceController extends Controller {
 	/** Verschickt die Rechnung per E-Mail mit dem PDF im Anhang. */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_ADMIN)]
-	public function send(int $id, string $to, ?string $subject = null, ?string $body = null, array $documentIds = []): DataResponse {
+	public function send(int $id, string $to, ?string $subject = null, ?string $body = null, array $documentIds = [], bool $copyBoard = false): DataResponse {
 		try {
-			$this->mail->send($id, $to, $subject, $body, array_values(array_map('intval', $documentIds)));
+			$this->mail->send($id, $to, $subject, $body, array_values(array_map('intval', $documentIds)), $copyBoard);
 			return new DataResponse($this->detail($id));
 		} catch (DoesNotExistException) {
 			return $this->notFound();
@@ -363,9 +363,9 @@ class InvoiceController extends Controller {
 	/** Mahnt die Rechnung: Mahnschreiben als PDF mit GiroCode, per E-Mail. */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_ADMIN)]
-	public function dun(int $id, string $to, ?string $subject = null, ?string $body = null, ?int $level = null): DataResponse {
+	public function dun(int $id, string $to, ?string $subject = null, ?string $body = null, ?int $level = null, ?bool $copyBoard = null): DataResponse {
 		try {
-			$this->dunning->send($id, $to, $subject, $body, $level);
+			$this->dunning->send($id, $to, $subject, $body, $level, false, null, $copyBoard);
 			return new DataResponse($this->detail($id));
 		} catch (DoesNotExistException) {
 			return $this->notFound();

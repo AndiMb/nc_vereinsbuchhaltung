@@ -269,7 +269,7 @@
 						<p v-if="!invoice.documents.length" class="vbh-empty">
 							{{ t('Das PDF entsteht beim Festschreiben.') }}
 						</p>
-						<ul v-else class="vbh-inv-list">
+						<ul v-else class="vbh-inv-list vbh-inv-list--docs">
 							<li v-for="d in invoice.documents" :key="d.id">
 								<a :href="documentUrl(d)" target="_blank" rel="noopener">{{ d.fileName }}</a>
 								<small v-if="d.profile" class="vbh-inv-profile">{{ d.profile }}</small>
@@ -623,7 +623,7 @@ export default {
 
 .vbh-inv-detail h3 { margin: 0 0 6px; font-size: 0.95em; }
 
-.vbh-inv-detail-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.vbh-inv-detail-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; /* Platz für den Schließen-Knopf des Dialogs, damit der Betrag nicht darunter läuft */ padding-inline-end: 40px; }
 
 .vbh-inv-detail-amount { display: flex; flex-direction: column; align-items: flex-end; font-size: 1.4em; }
 
@@ -666,6 +666,9 @@ export default {
 .vbh-inv-list li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px 10px; }
 
 .vbh-inv-list li > a { overflow-wrap: anywhere; min-width: 0; }
+
+/* Dokumente: Dateiname, Profil und Prüfstand stehen in festen Spalten untereinander. */
+.vbh-inv-list--docs li { display: grid; grid-template-columns: minmax(0, 1fr) 7em auto; align-items: center; gap: 2px 10px; }
 
 .vbh-inv-int { margin-inline-start: 8px; padding: 1px 8px; border-radius: 10px; background: var(--color-background-dark); }
 

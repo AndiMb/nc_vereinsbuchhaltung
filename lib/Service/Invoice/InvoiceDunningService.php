@@ -129,7 +129,7 @@ class InvoiceDunningService {
 	/**
 	 * Vorgaben für den Mahndialog.
 	 *
-	 * @return array{level: int, to: string, subject: string, body: string, remainingCents: int}
+	 * @return array{level: int, to: string, subject: string, body: string, remainingCents: int, boardEmail: string, copyBoard: bool}
 	 * @throws DoesNotExistException
 	 * @throws \InvalidArgumentException wenn die Rechnung nicht gemahnt werden darf
 	 */
@@ -144,7 +144,14 @@ class InvoiceDunningService {
 			'subject' => $this->fill($this->subjectTemplate(), $invoice, $level, $remaining, date('Y-m-d')),
 			'body' => $this->fill($this->bodyTemplate($level), $invoice, $level, $remaining, date('Y-m-d')),
 			'remainingCents' => $remaining,
+			'boardEmail' => (string)$this->settings->boardEmail(),
+			'copyBoard' => $this->defaultCopyBoard(),
 		];
+	}
+
+	/** Die Einstellung „Kopie an Vorstand“ gilt nur, wenn auch eine Vorstands-Adresse hinterlegt ist. */
+	private function defaultCopyBoard(): bool {
+		return $this->settings->dunningCopyBoard() && $this->settings->boardEmail() !== null;
 	}
 
 	// ------------------------------------------------------------------
@@ -155,11 +162,12 @@ class InvoiceDunningService {
 	 * Erzeugt das Mahnschreiben, verschickt es per Mail und merkt die Mahnung vor.
 	 *
 	 * @param int|null $level Stufe; ohne Angabe die nächste
+	 * @param bool|null $copyBoard Blindkopie an die Vorstands-Adresse; ohne Angabe gilt die Einstellung
 	 * @throws DoesNotExistException
 	 * @throws \InvalidArgumentException wenn die Rechnung nicht gemahnt werden darf, die Stufe nicht passt oder die Adresse ungültig ist
 	 * @throws \RuntimeException wenn PDF oder Mailversand scheitern
 	 */
-	public function send(int $invoiceId, string $to, ?string $subject = null, ?string $body = null, ?int $level = null, bool $auto = false, ?string $today = null): InvoiceDunning {
+	public function send(int $invoiceId, string $to, ?string $subject = null, ?string $body = null, ?int $level = null, bool $auto = false, ?string $today = null, ?bool $copyBoard = null): InvoiceDunning {
 		$today ??= date('Y-m-d');
 		[$invoice, $remaining] = $this->mahnable($invoiceId, $today);
 		$level ??= $this->nextLevel($invoiceId);
@@ -167,6 +175,11 @@ class InvoiceDunningService {
 		$to = trim($to);
 		if (!EmailValidator::isValid($to)) {
 			throw new \InvalidArgumentException($this->l10n->t('Bitte eine gültige E-Mail-Adresse angeben.'));
+		}
+		$copyBoard ??= $this->defaultCopyBoard();
+		$board = $copyBoard ? $this->settings->boardEmail() : null;
+		if ($copyBoard && $board === null) {
+			throw new \InvalidArgumentException($this->l10n->t('Für die Kopie an den Vorstand fehlt die E-Mail-Adresse des Vorstands in den Einstellungen.'));
 		}
 		$defaults = [
 			'subject' => $this->fill($this->subjectTemplate(), $invoice, $level, $remaining, $today),
@@ -193,6 +206,9 @@ class InvoiceDunningService {
 		$message->setTo($recipientName !== '' ? [$to => $recipientName] : [$to]);
 		$message->setSubject($template->renderSubject());
 		$message->useTemplate($template);
+		if ($board !== null) {
+			$message->setBcc([$board]);
+		}
 		$message->attach($this->mailer->createAttachment($content['content'], $content['fileName'], 'application/pdf'));
 
 		try {
@@ -215,7 +231,7 @@ class InvoiceDunningService {
 		$dunning->setAuto($auto ? 1 : 0);
 		$dunning->setCreatedBy($auto ? 'system' : $this->actor());
 		$dunning = $this->dunnings->insert($dunning);
-		$this->audit->log($auto ? 'Rechnung automatisch gemahnt' : 'Rechnung gemahnt', 'invoice', $invoiceId, ['number' => $invoice->getNumber(), 'level' => $level, 'to' => $to]);
+		$this->audit->log($auto ? 'Rechnung automatisch gemahnt' : 'Rechnung gemahnt', 'invoice', $invoiceId, ['number' => $invoice->getNumber(), 'level' => $level, 'to' => $to, 'copyBoard' => $board !== null]);
 		return $dunning;
 	}
 

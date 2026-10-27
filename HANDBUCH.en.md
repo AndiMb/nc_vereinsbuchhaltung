@@ -2445,6 +2445,8 @@ Accountants may create drafts; **finalizing, sending and cancelling** are reserv
 
 In the invoice details: **Send by email**. Recipient address, subject and text are prefilled and can be changed before sending; the PDF is attached. You maintain the template and its placeholders (`{nummer}`, `{betrag}`, `{faellig}`, `{verein}`, `{empfaenger}`) in the settings. Alternatively download the PDF and send or print it yourself.
 
+**Copy to board:** Enter the board's email address in the settings under **Invoices → Emails and templates**. The send dialog then shows a **Copy to board** switch; when on, the email also goes as a blind copy to that address, and the recipient does not see it. Without an address the switch does not appear.
+
 ### 15.6 Assigning a payment
 
 - **On import:** If the invoice number appears in the payment reference (also as `RE 2026 0042` or `RE20260042`) and the amount matches exactly, the import books the payment **on its own**: cash account to revenue account, with the invoice number as document reference. You can turn this off in the settings.
@@ -2515,10 +2517,11 @@ All plans are in the **Recurring** tab of the invoice list: interval, next date,
 
 Invoices that are unpaid after the payment term are dunned in **three stages**: **payment reminder**, **1st dunning letter** and **2nd dunning letter** (final). Every stage is a **dunning letter as a PDF** with the open invoice and a **GiroCode for the remaining amount**, sent by email and stored unchangeably like the invoice.
 
-- **Deadlines:** the reminder is due 7 days after the payment term, the 1st dunning letter 14 days after the reminder, the 2nd 14 days after the 1st. You set all deadlines and the payment deadline in the letter (7 days) under **Dunning** in the settings, and the subject and text per stage. While a field is empty the default text shown in grey applies; **Use default text** copies it into the field so you can edit it (the same goes for the invoice email template). Placeholders: `{stufe}`, `{nummer}`, `{rechnungsdatum}`, `{betrag}`, `{rest}`, `{faellig}`, `{frist}`, `{verein}`, `{empfaenger}`.
+- **Deadlines:** the reminder is due 7 days after the payment term, the 1st dunning letter 14 days after the reminder, the 2nd 14 days after the 1st. You set all deadlines and the payment deadline in the letter (7 days) under **Dunning** in the settings (subject and text per stage under **Emails and templates**). While a field is empty the default text shown in grey applies; **Use default text** copies it into the field so you can edit it (the same goes for the invoice email template). Placeholders: `{stufe}`, `{nummer}`, `{rechnungsdatum}`, `{betrag}`, `{rest}`, `{faellig}`, `{frist}`, `{verein}`, `{empfaenger}`.
 - **In the list** an invoice shows its **dunning stage** and **Dunning due**; the filter **Dunning due** collects them.
 - **Dun** (administrator): in the details click **Dun …**. The dialog suggests the next stage, address, subject and text; everything can be changed before sending. A stage cannot be repeated but can be skipped. The history is in the **Reminders and dunning letters** section, the PDFs are with the documents.
 - **Automatic:** With **Send due dunning letters automatically by email** (off until you turn it on) the daily background job sends due stages by itself. Invoices whose recipient has no email address are skipped; they stay in the list as "Dunning due".
+- **Copy to the board:** With **Mail copy to board** (off until you turn it on; needs the board's address right above it, both under **Emails and templates**) every dunning email also goes as a blind copy to the board, in the automatic run too. When dunning by hand, the **Copy to board** switch in the dialog can be changed per reminder.
 - **Locks:** paid, cancelled and not yet due invoices, credit notes and drafts are never dunned. Partial payments reduce the amount in the letter. After the 2nd dunning letter the app stops; the association decides how to proceed (court order, waiver).
 
 The app does not calculate dunning fees or default interest and does not give legal advice: texts and deadlines should suit your association.

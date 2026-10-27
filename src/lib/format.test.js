@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { getLocale } from '@nextcloud/l10n'
+import { describe, expect, it, vi } from 'vitest'
 import {
 	amountClass,
 	amountInputRaw,
@@ -16,6 +17,9 @@ import {
 	trendClass,
 	typeLabel,
 } from './format.js'
+
+// Das Gebietsschema kommt aus Nextcloud; hier ein veränderbarer Wert statt der DOM-Einstellung.
+vi.mock('@nextcloud/l10n', async (importOriginal) => ({ ...(await importOriginal()), getLocale: vi.fn(() => 'de_DE') }))
 
 // Die Anzeigehelfer stehen in jeder Tabelle der App. Sie sind zustandslos und
 // damit billig zu pruefen - anders als der Rest des Frontends, der ohne
@@ -47,6 +51,17 @@ describe('formatDate', () => {
 		expect(formatDate('2026-01-31')).toBe('31.01.2026')
 	})
 
+	it('folgt dem Gebietsschema der Person', () => {
+		getLocale.mockReturnValueOnce('en_GB')
+		expect(formatDate('2026-01-31')).toBe('31/01/2026')
+		getLocale.mockReturnValueOnce('en_US')
+		expect(formatDate('2026-01-31')).toBe('01/31/2026')
+	})
+
+	it('zeigt ein Datum, das es nicht gibt, roh', () => {
+		expect(formatDate('2026-02-31')).toBe('2026-02-31')
+	})
+
 	it('schneidet einen Zeitanteil ab', () => {
 		expect(formatDate('2026-01-31T14:05:00')).toBe('31.01.2026')
 	})
@@ -64,8 +79,28 @@ describe('formatDate', () => {
 })
 
 describe('formatDateTime', () => {
-	it('zeigt Datum und Uhrzeit ohne Sekunden', () => {
-		expect(formatDateTime('2026-01-31T14:05:33')).toBe('2026-01-31 14:05')
+	it('zeigt Datum und Uhrzeit ohne Sekunden im Gebietsschema', () => {
+		const expected = new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date('2026-01-31T14:05:33'))
+		expect(formatDateTime('2026-01-31T14:05:33')).toBe(expected)
+		expect(formatDateTime('2026-01-31T14:05:33')).toMatch(/^31\.01\.2026, 14:05$/)
+	})
+
+	it('rechnet Angaben mit Zeitzone in die Zeitzone des Browsers um', () => {
+		const expected = new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date('2026-10-25T17:40:00+00:00'))
+		expect(formatDateTime('2026-10-25T17:40:00+00:00')).toBe(expected)
+	})
+
+	it('rechnet einen reinen Tag nicht um', () => {
+		expect(formatDateTime('2026-10-25')).toBe('25.10.2026')
+	})
+
+	it('folgt dem Gebietsschema der Person', () => {
+		getLocale.mockReturnValueOnce('en_GB')
+		expect(formatDateTime('2026-01-31T14:05:33')).toBe(new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date('2026-01-31T14:05:33')))
+	})
+
+	it('gibt nicht lesbare Angaben roh aus', () => {
+		expect(formatDateTime('gestern')).toBe('gestern')
 	})
 
 	it('gibt bei leerer Angabe nichts aus', () => {

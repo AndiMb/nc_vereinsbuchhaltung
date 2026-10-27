@@ -2,6 +2,7 @@
 // der Modularisierung). Reine Funktionen ohne Vue-/DOM-Bezug: sie werden in
 // App.vue unveraendert als Komponenten-Methoden eingebunden (das Template ruft
 // formatMoney(...) etc. wie bisher auf) und sind hier unabhaengig testbar.
+import { getLocale } from '@nextcloud/l10n'
 import { t } from './l10n.js'
 
 // Einmal anlegen: ein neues Intl.NumberFormat je Aufruf war bei langen
@@ -12,11 +13,36 @@ export function formatMoney(v) {
 	return EUR.format(v || 0)
 }
 
+const DAY_FORMATS = new Map()
+
+function dayFormat(locale) {
+	if (!DAY_FORMATS.has(locale)) {
+		const options = { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }
+		let format
+		try {
+			format = new Intl.DateTimeFormat(locale, options)
+		} catch {
+			format = new Intl.DateTimeFormat('de-DE', options)
+		}
+		DAY_FORMATS.set(locale, format)
+	}
+	return DAY_FORMATS.get(locale)
+}
+
+/**
+ * Ein Kalendertag (ISO „2026-01-31“) in der Schreibweise des Gebietsschemas der Person:
+ * 31.01.2026 auf Deutsch, 31/01/2026 für en_GB. Ein Tag ist kein Zeitpunkt und wird
+ * nicht in eine Zeitzone umgerechnet. Unlesbares bleibt roh stehen.
+ */
 export function formatDate(s) {
 	if (!s) { return '' }
 	const d = String(s).slice(0, 10)
 	const m = d.match(/^(\d{4})-(\d{2})-(\d{2})$/)
-	return m ? `${m[3]}.${m[2]}.${m[1]}` : d
+	if (!m) { return d }
+	const time = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+	// 31. Februar o. ä. rollt in den Folgemonat: dann lieber roh anzeigen.
+	if (new Date(time).getUTCDate() !== Number(m[3])) { return d }
+	return dayFormat(userLocale()).format(time)
 }
 
 export function formatFileSize(bytes) {
@@ -25,8 +51,39 @@ export function formatFileSize(bytes) {
 	return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
 }
 
+/**
+ * Das Gebietsschema der Person (Nextcloud-Einstellung „Gebietsschema“, z. B. de_AT),
+ * als BCP-47-Tag für Intl; ohne Nextcloud-Umgebung (Tests) Deutsch.
+ */
+function userLocale() {
+	try {
+		return String(getLocale() || 'de-DE').replace('_', '-')
+	} catch {
+		return 'de-DE'
+	}
+}
+
+/**
+ * Zeitstempel für die Anzeige im Gebietsschema der Person, ohne Sekunden. Angaben mit
+ * Zeitzone (der Server schreibt ISO 8601 mit Offset) erscheinen in der Zeitzone des
+ * Browsers; Angaben ohne Zeitzone gelten als dort geschrieben.
+ */
 export function formatDateTime(s) {
-	return s ? String(s).replace('T', ' ').slice(0, 16) : ''
+	if (!s) { return '' }
+	const raw = String(s)
+	if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+		// Nur ein Tag: kein Zeitpunkt, daher nicht in die Zeitzone umrechnen.
+		return new Intl.DateTimeFormat(userLocale(), { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(raw))
+	}
+	const date = new Date(raw)
+	if (Number.isNaN(date.getTime())) {
+		return raw.replace('T', ' ').slice(0, 16)
+	}
+	try {
+		return new Intl.DateTimeFormat(userLocale(), { dateStyle: 'medium', timeStyle: 'short' }).format(date)
+	} catch {
+		return new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium', timeStyle: 'short' }).format(date)
+	}
 }
 
 export function typeLabel(accountType) {
