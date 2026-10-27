@@ -76,9 +76,9 @@ class InvoicePdfRenderer {
 			$this->watermark($pdf);
 		}
 		$this->letterhead($pdf, $data);
-		$this->infoBlock($pdf, $data);
+		$infoEnd = $this->infoBlock($pdf, $data);
 
-		$pdf->SetY(98);
+		$pdf->SetY($this->subjectY($infoEnd));
 		$pdf->SetFont(self::FONT, 'B', 14, '', true);
 		$pdf->Cell(0, 7, $this->title($invoice) . ($invoice->getNumber() !== null ? ' ' . $invoice->getNumber() : ''), 0, 1, 'L');
 		$pdf->Ln(2);
@@ -90,12 +90,13 @@ class InvoicePdfRenderer {
 		if ($invoice->getNoteHead() !== null && $data->precedingNumber === null) {
 			$this->paragraph($pdf, (string)$invoice->getNoteHead());
 		}
+		$pdf->Ln(2);
 		$this->linesTable($pdf, $data);
 		$this->totals($pdf, $data);
 		$this->notices($pdf, $data);
 		$this->payment($pdf, $data);
 		if ($invoice->getNoteFoot() !== null && $data->precedingNumber === null) {
-			$pdf->Ln(3);
+			$pdf->Ln(6);
 			$this->paragraph($pdf, (string)$invoice->getNoteFoot());
 		}
 
@@ -156,7 +157,7 @@ class InvoicePdfRenderer {
 			$y += 4.6;
 		}
 
-		$pdf->SetY(98);
+		$pdf->SetY($this->subjectY($y));
 		$pdf->SetFont(self::FONT, 'B', 14, '', true);
 		$pdf->Cell(0, 7, $title . ' ' . $this->msg('zu Rechnung %s', [(string)$invoice->getNumber()]), 0, 1, 'L');
 		$pdf->Ln(2);
@@ -219,7 +220,7 @@ class InvoicePdfRenderer {
 			$issuer['street'] ?? '',
 			trim(($issuer['postalCode'] ?? '') . ' ' . ($issuer['city'] ?? '')),
 		]));
-		$pdf->Cell(85, 3.5, $sender, 'B', 1, 'L');
+		$pdf->Cell(85, 4.2, $sender, 'B', 1, 'L');
 
 		$debtor = $data->debtor;
 		$lines = array_filter([
@@ -233,7 +234,7 @@ class InvoicePdfRenderer {
 			$lines[] = $this->countryName($country);
 		}
 		$pdf->SetFont(self::FONT, '', 10, '', true);
-		$pdf->SetXY(self::MARGIN_LEFT, 50);
+		$pdf->SetXY(self::MARGIN_LEFT, 51);
 		$pdf->MultiCell(85, 4.6, implode("\n", $lines), 0, 'L', false, 1, null, null, true, 0, false, true, 36, 'T');
 	}
 
@@ -276,7 +277,8 @@ class InvoicePdfRenderer {
 		$pdf->Image('@' . $png, $pdf->getPageWidth() - self::MARGIN_RIGHT - $dw, 12, $dw, $dh, 'PNG');
 	}
 
-	private function infoBlock(InvoicePdfDocument $pdf, InvoicePdfData $data): void {
+	/** @return float untere Kante des Informationsblocks (mm vom Seitenrand oben) */
+	private function infoBlock(InvoicePdfDocument $pdf, InvoicePdfData $data): float {
 		$invoice = $data->invoice;
 		$rows = [];
 		$rows[] = [$invoice->isCredit() ? $this->msg('Storno-Nr.') : $this->msg('Rechnungs-Nr.'), (string)($invoice->getNumber() ?? $this->msg('Entwurf'))];
@@ -324,12 +326,31 @@ class InvoicePdfRenderer {
 			}
 			$pdf->SetTextColor(0, 0, 0);
 		}
+
+		return $y;
+	}
+
+	/**
+	 * Höhe der Betreffzeile: knapp unter dem Anschriftfenster (DIN 5008 lässt bis 90 mm frei),
+	 * bei längerem Informationsblock darunter. Ein fester Wert ließ bei kurzen Briefköpfen
+	 * eine Lücke von drei Zentimetern.
+	 */
+	private function subjectY(float $infoEnd): float {
+		return max(92.0, $infoEnd + 10);
 	}
 
 	private function linesTable(InvoicePdfDocument $pdf, InvoicePdfData $data): void {
 		$regular = $data->invoice->getTaxMode() === Invoice::TAX_REGULAR;
 		// Spaltenbreiten in Prozent; bei Regelbesteuerung kommt die Spalte „USt" dazu.
-		$w = $regular ? [8, 26, 13, 15, 11, 9, 18] : [8, 38, 14, 14, 9, 0, 17];
+		// Die Rabattspalte erscheint nur, wenn eine Position einen Rabatt hat; leer fraß sie Platz,
+		// den die Bezeichnung braucht.
+		$hasDiscount = false;
+		foreach ($data->lines as $line) {
+			$hasDiscount = $hasDiscount || $line->getDiscountBp() > 0;
+		}
+		$w = $regular
+			? ($hasDiscount ? [8, 26, 13, 15, 11, 9, 18] : [8, 37, 13, 15, 0, 9, 18])
+			: ($hasDiscount ? [8, 38, 14, 14, 9, 0, 17] : [8, 47, 14, 16, 0, 0, 15]);
 		$th = 'style="background-color:#eeeeee;font-weight:bold;"';
 		$td = 'style="border-bottom:0.3px solid #cccccc;"';
 		$html = '<table cellpadding="3" cellspacing="0" border="0" width="100%">'
@@ -338,7 +359,7 @@ class InvoicePdfRenderer {
 			. '<td ' . $th . ' width="' . $w[1] . '%">' . $this->e($this->msg('Bezeichnung')) . '</td>'
 			. '<td ' . $th . ' width="' . $w[2] . '%" align="right">' . $this->e($this->msg('Menge')) . '</td>'
 			. '<td ' . $th . ' width="' . $w[3] . '%" align="right">' . $this->e($this->msg('Einzelpreis')) . '</td>'
-			. '<td ' . $th . ' width="' . $w[4] . '%" align="right">' . $this->e($this->msg('Rabatt')) . '</td>'
+			. ($hasDiscount ? '<td ' . $th . ' width="' . $w[4] . '%" align="right">' . $this->e($this->msg('Rabatt')) . '</td>' : '')
 			. ($regular ? '<td ' . $th . ' width="' . $w[5] . '%" align="right">' . $this->e($this->msg('USt')) . '</td>' : '')
 			. '<td ' . $th . ' width="' . $w[6] . '%" align="right">' . $this->e($this->msg('Gesamt')) . '</td>'
 			. '</tr>';
@@ -353,7 +374,7 @@ class InvoicePdfRenderer {
 				. '<td ' . $td . ' width="' . $w[1] . '%">' . $name . '</td>'
 				. '<td ' . $td . ' width="' . $w[2] . '%" align="right">' . $this->e($this->quantity($line)) . '</td>'
 				. '<td ' . $td . ' width="' . $w[3] . '%" align="right">' . $this->e($this->money($line->getUnitPriceCents())) . '</td>'
-				. '<td ' . $td . ' width="' . $w[4] . '%" align="right">' . $this->e($discount) . '</td>'
+				. ($hasDiscount ? '<td ' . $td . ' width="' . $w[4] . '%" align="right">' . $this->e($discount) . '</td>' : '')
 				. ($regular ? '<td ' . $td . ' width="' . $w[5] . '%" align="right">' . $this->e($this->taxLabel($line)) . '</td>' : '')
 				. '<td ' . $td . ' width="' . $w[6] . '%" align="right">' . $this->e($this->money($line->getLineNetCents())) . '</td>'
 				. '</tr>';
@@ -372,7 +393,8 @@ class InvoicePdfRenderer {
 
 	private function totals(InvoicePdfDocument $pdf, InvoicePdfData $data): void {
 		$invoice = $data->invoice;
-		$pdf->Ln(2);
+		// writeHTML() lässt nach der Tabelle schon Luft; ein Zusatzabstand machte die Lücke zur Summe zu groß.
+		$pdf->SetY($pdf->GetY() - 2);
 		$labelWidth = 62;
 		$width = 28;
 		$x = $pdf->getPageWidth() - self::MARGIN_RIGHT - $labelWidth - $width;
@@ -402,8 +424,8 @@ class InvoicePdfRenderer {
 	private function notices(InvoicePdfDocument $pdf, InvoicePdfData $data): void {
 		$invoice = $data->invoice;
 		$text = trim((string)$invoice->getExemptionText());
+		$pdf->Ln(3);
 		if ($text !== '') {
-			$pdf->Ln(2);
 			$this->paragraph($pdf, $text);
 		}
 		if ($invoice->getPaymentTerms() !== null && !$invoice->isCredit()) {
@@ -439,6 +461,7 @@ class InvoicePdfRenderer {
 		$pdf->MultiCell(84, 4.5, $intro ?? ($due !== ''
 			? $this->msg('Bitte überweisen Sie den Rechnungsbetrag bis zum %s auf das folgende Konto:', [$due])
 			: $this->msg('Bitte überweisen Sie den Rechnungsbetrag auf das folgende Konto:')), 0, 'L', false, 1);
+		$pdf->Ln(1.5);
 		$rows = [
 			[$this->msg('Kontoinhaber'), $bank['holder']],
 			[$this->msg('IBAN'), $this->formatIban($bank['iban'])],
