@@ -8,5 +8,6 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
 	test: {
 		include: ['src/**/*.test.js', 'tests/l10n/**/*.test.js'],
+		setupFiles: ['tests/setup/locale.js'],
 	},
 })

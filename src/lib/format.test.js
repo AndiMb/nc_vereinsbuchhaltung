@@ -51,6 +51,17 @@ describe('formatDate', () => {
 		expect(formatDate('2026-01-31')).toBe('31.01.2026')
 	})
 
+	it('folgt dem Gebietsschema der Person', () => {
+		getLocale.mockReturnValueOnce('en_GB')
+		expect(formatDate('2026-01-31')).toBe('31/01/2026')
+		getLocale.mockReturnValueOnce('en_US')
+		expect(formatDate('2026-01-31')).toBe('01/31/2026')
+	})
+
+	it('zeigt ein Datum, das es nicht gibt, roh', () => {
+		expect(formatDate('2026-02-31')).toBe('2026-02-31')
+	})
+
 	it('schneidet einen Zeitanteil ab', () => {
 		expect(formatDate('2026-01-31T14:05:00')).toBe('31.01.2026')
 	})

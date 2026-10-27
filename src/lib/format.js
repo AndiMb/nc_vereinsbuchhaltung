@@ -13,11 +13,36 @@ export function formatMoney(v) {
 	return EUR.format(v || 0)
 }
 
+const DAY_FORMATS = new Map()
+
+function dayFormat(locale) {
+	if (!DAY_FORMATS.has(locale)) {
+		const options = { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }
+		let format
+		try {
+			format = new Intl.DateTimeFormat(locale, options)
+		} catch {
+			format = new Intl.DateTimeFormat('de-DE', options)
+		}
+		DAY_FORMATS.set(locale, format)
+	}
+	return DAY_FORMATS.get(locale)
+}
+
+/**
+ * Ein Kalendertag (ISO „2026-01-31“) in der Schreibweise des Gebietsschemas der Person:
+ * 31.01.2026 auf Deutsch, 31/01/2026 für en_GB. Ein Tag ist kein Zeitpunkt und wird
+ * nicht in eine Zeitzone umgerechnet. Unlesbares bleibt roh stehen.
+ */
 export function formatDate(s) {
 	if (!s) { return '' }
 	const d = String(s).slice(0, 10)
 	const m = d.match(/^(\d{4})-(\d{2})-(\d{2})$/)
-	return m ? `${m[3]}.${m[2]}.${m[1]}` : d
+	if (!m) { return d }
+	const time = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+	// 31. Februar o. ä. rollt in den Folgemonat: dann lieber roh anzeigen.
+	if (new Date(time).getUTCDate() !== Number(m[3])) { return d }
+	return dayFormat(userLocale()).format(time)
 }
 
 export function formatFileSize(bytes) {
