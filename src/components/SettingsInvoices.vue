@@ -222,6 +222,43 @@
 			</div>
 		</div>
 
+		<div class="vbh-card">
+			<h4>{{ t('Rechnungsnummern') }}</h4>
+			<p class="vbh-hint">
+				{{ t('Rechnungsnummern müssen fortlaufend und einmalig sein. Platzhalter: {JJJJ} (Jahr), {JJ} (zweistelliges Jahr) und {NNNN} (Zähler, die Zahl der N bestimmt die Stellen).') }}
+			</p>
+			<div v-for="range in ranges" :key="range.kind" class="vbh-inv-range">
+				<h5>{{ range.kind === 'storno' ? t('Stornorechnungen') : t('Rechnungen') }}</h5>
+				<div class="vbh-form">
+					<label>{{ t('Muster') }}
+						<input v-model="range.prefixPattern" maxlength="40">
+					</label>
+					<label>{{ t('Zähler') }}
+						<select v-model="range.resetMode">
+							<option value="yearly">{{ t('jedes Jahr bei 1 beginnen') }}</option>
+							<option value="never">{{ t('fortlaufend, nie zurücksetzen') }}</option>
+						</select>
+					</label>
+					<label>{{ t('Nächste Nummer') }}
+						<input
+							v-model.number="range.nextNo"
+							class="vbh-short"
+							type="number"
+							min="1">
+					</label>
+					<NcButton variant="primary" :disabled="saving" @click="saveRange(range)">
+						{{ t('Speichern') }}
+					</NcButton>
+				</div>
+				<p class="vbh-hint">
+					{{ t('Vorschau: {number}', { number: preview(range) }) }}
+				</p>
+				<p v-if="rangeErrors[range.kind]" class="vbh-hint vbh-hint--error" role="alert">
+					{{ rangeErrors[range.kind] }}
+				</p>
+			</div>
+		</div>
+
 		<SettingsInvoiceTemplates :accounts="accounts" />
 
 		<div class="vbh-card">
@@ -335,43 +372,6 @@
 				<NcButton variant="primary" :disabled="saving" @click="saveMail">
 					{{ t('Speichern') }}
 				</NcButton>
-			</div>
-		</div>
-
-		<div class="vbh-card">
-			<h4>{{ t('Rechnungsnummern') }}</h4>
-			<p class="vbh-hint">
-				{{ t('Rechnungsnummern müssen fortlaufend und einmalig sein. Platzhalter: {JJJJ} (Jahr), {JJ} (zweistelliges Jahr) und {NNNN} (Zähler, die Zahl der N bestimmt die Stellen).') }}
-			</p>
-			<div v-for="range in ranges" :key="range.kind" class="vbh-inv-range">
-				<h5>{{ range.kind === 'storno' ? t('Stornorechnungen') : t('Rechnungen') }}</h5>
-				<div class="vbh-form">
-					<label>{{ t('Muster') }}
-						<input v-model="range.prefixPattern" maxlength="40">
-					</label>
-					<label>{{ t('Zähler') }}
-						<select v-model="range.resetMode">
-							<option value="yearly">{{ t('jedes Jahr bei 1 beginnen') }}</option>
-							<option value="never">{{ t('fortlaufend, nie zurücksetzen') }}</option>
-						</select>
-					</label>
-					<label>{{ t('Nächste Nummer') }}
-						<input
-							v-model.number="range.nextNo"
-							class="vbh-short"
-							type="number"
-							min="1">
-					</label>
-					<NcButton variant="primary" :disabled="saving" @click="saveRange(range)">
-						{{ t('Speichern') }}
-					</NcButton>
-				</div>
-				<p class="vbh-hint">
-					{{ t('Vorschau: {number}', { number: preview(range) }) }}
-				</p>
-				<p v-if="rangeErrors[range.kind]" class="vbh-hint vbh-hint--error" role="alert">
-					{{ rangeErrors[range.kind] }}
-				</p>
 			</div>
 		</div>
 	</div>
