@@ -2,6 +2,7 @@
 // der Modularisierung). Reine Funktionen ohne Vue-/DOM-Bezug: sie werden in
 // App.vue unveraendert als Komponenten-Methoden eingebunden (das Template ruft
 // formatMoney(...) etc. wie bisher auf) und sind hier unabhaengig testbar.
+import { getLocale } from '@nextcloud/l10n'
 import { t } from './l10n.js'
 
 // Einmal anlegen: ein neues Intl.NumberFormat je Aufruf war bei langen
@@ -25,8 +26,39 @@ export function formatFileSize(bytes) {
 	return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
 }
 
+/**
+ * Das Gebietsschema der Person (Nextcloud-Einstellung „Gebietsschema“, z. B. de_AT),
+ * als BCP-47-Tag für Intl; ohne Nextcloud-Umgebung (Tests) Deutsch.
+ */
+function userLocale() {
+	try {
+		return String(getLocale() || 'de-DE').replace('_', '-')
+	} catch {
+		return 'de-DE'
+	}
+}
+
+/**
+ * Zeitstempel für die Anzeige im Gebietsschema der Person, ohne Sekunden. Angaben mit
+ * Zeitzone (der Server schreibt ISO 8601 mit Offset) erscheinen in der Zeitzone des
+ * Browsers; Angaben ohne Zeitzone gelten als dort geschrieben.
+ */
 export function formatDateTime(s) {
-	return s ? String(s).replace('T', ' ').slice(0, 16) : ''
+	if (!s) { return '' }
+	const raw = String(s)
+	if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+		// Nur ein Tag: kein Zeitpunkt, daher nicht in die Zeitzone umrechnen.
+		return new Intl.DateTimeFormat(userLocale(), { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(raw))
+	}
+	const date = new Date(raw)
+	if (Number.isNaN(date.getTime())) {
+		return raw.replace('T', ' ').slice(0, 16)
+	}
+	try {
+		return new Intl.DateTimeFormat(userLocale(), { dateStyle: 'medium', timeStyle: 'short' }).format(date)
+	} catch {
+		return new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium', timeStyle: 'short' }).format(date)
+	}
 }
 
 export function typeLabel(accountType) {
