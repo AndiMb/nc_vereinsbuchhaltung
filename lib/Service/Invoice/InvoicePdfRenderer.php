@@ -80,7 +80,7 @@ class InvoicePdfRenderer {
 
 		$pdf->SetY($this->subjectY($infoEnd));
 		$pdf->SetFont(self::FONT, 'B', 14, '', true);
-		$pdf->Cell(0, 7, $this->title($invoice) . ($invoice->getNumber() !== null ? ' ' . $invoice->getNumber() : ''), 0, 1, 'L');
+		$pdf->Cell(0, 7, $this->title($invoice) . ' ' . $this->numberOrDraft($invoice), 0, 1, 'L');
 		$pdf->Ln(2);
 		$pdf->SetFont(self::FONT, '', 9, '', true);
 
@@ -281,7 +281,7 @@ class InvoicePdfRenderer {
 	private function infoBlock(InvoicePdfDocument $pdf, InvoicePdfData $data): float {
 		$invoice = $data->invoice;
 		$rows = [];
-		$rows[] = [$invoice->isCredit() ? $this->msg('Storno-Nr.') : $this->msg('Rechnungs-Nr.'), (string)($invoice->getNumber() ?? $this->msg('Entwurf'))];
+		$rows[] = [$invoice->isCredit() ? $this->msg('Storno-Nr.') : $this->msg('Rechnungs-Nr.'), $this->numberOrDraft($invoice)];
 		$rows[] = [$this->msg('Datum'), $this->date($invoice->getIssueDate() ?? date('Y-m-d'))];
 		if ($invoice->getPeriodStart() !== null && $invoice->getPeriodEnd() !== null) {
 			$rows[] = [$this->msg('Leistungszeitraum'), $this->date($invoice->getPeriodStart()) . ' – ' . $this->date($invoice->getPeriodEnd())];
@@ -469,7 +469,7 @@ class InvoicePdfRenderer {
 		if ($bank['bic'] !== '') {
 			$rows[] = [$this->msg('BIC'), $bank['bic']];
 		}
-		$rows[] = [$this->msg('Verwendungszweck'), (string)$invoice->getNumber()];
+		$rows[] = [$this->msg('Verwendungszweck'), $this->numberOrDraft($invoice)];
 		if ($data->paymentReference !== null) {
 			$rows[] = [$this->msg('Zahlungsreferenz'), CreditorReference::format($data->paymentReference)];
 		}
@@ -564,6 +564,11 @@ class InvoicePdfRenderer {
 		$pdf->SetFont(self::FONT, '', 9, '', true);
 		$pdf->MultiCell(0, 4.5, $text, 0, 'L', false, 1);
 		$pdf->Ln(1.5);
+	}
+
+	/** Die Rechnungsnummer; solange keine vergeben ist (Entwurf), steht „ENTWURF“ an ihrer Stelle. */
+	private function numberOrDraft(Invoice $invoice): string {
+		return $invoice->getNumber() ?? mb_strtoupper($this->msg('Entwurf'));
 	}
 
 	private function title(Invoice $invoice): string {
