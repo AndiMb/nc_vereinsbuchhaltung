@@ -51,10 +51,14 @@ class InvoicePdfDocument extends \TCPDF {
 			$x += $columnWidth;
 		}
 		$this->SetFont('dejavusans', '', 7, '', true);
-		// Die Seitenzahl steht links in der letzten Spalte; rechtsbündig verrutscht sie, weil TCPDF
-		// die Platzhalter erst nach dem Satz ersetzt.
-		$this->SetXY($left + $inset + ($columns[0] + $columns[1]) * ($width - $inset), $this->getPageHeight() - 10);
-		$this->Cell($columns[2] * ($width - $inset), 3, strtr($this->pageLabel, ['{page}' => $this->getAliasNumPage(), '{pages}' => $this->getAliasNbPages()]), 0, 0, 'L');
+		// Die Seitenzahl steht mittig unten. TCPDF ersetzt die Platzhalter für „Seite x von y“ erst
+		// nach dem Satz, daher zentriert „C“ nicht genau; wir messen den Text mit gleich vielen
+		// Ziffern (alle Ziffern der Schrift sind gleich breit) und setzen ihn linksbündig an die Stelle.
+		$page = $this->getPage();
+		$measure = strtr($this->pageLabel, ['{page}' => (string)$page, '{pages}' => str_repeat('0', strlen((string)$page))]);
+		$textWidth = $this->GetStringWidth($measure);
+		$this->SetXY($this->getPageWidth() / 2 - $textWidth / 2 - $this->getCellPaddings()['L'], $this->getPageHeight() - 10);
+		$this->Cell($textWidth + 4, 3, strtr($this->pageLabel, ['{page}' => $this->getAliasNumPage(), '{pages}' => $this->getAliasNbPages()]), 0, 0, 'L');
 		$this->SetTextColor(0, 0, 0);
 	}
 }

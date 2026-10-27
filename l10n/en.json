@@ -3769,7 +3769,10 @@
         "E-Mail-Adresse des Vorstands": "Board email address",
         "Für Kopien von Rechnungs- und Mahnmails. Sie gehen als Blindkopie, der Empfänger sieht die Adresse nicht.": "For copies of invoice and dunning emails. They go as a blind copy; the recipient does not see the address.",
         "Jede Mahnmail geht zusätzlich an die Adresse oben, auch im automatischen Lauf. Beim Versand von Hand lässt sich die Kopie je Mail ändern.": "Every dunning email also goes to the address above, in the automatic run too. When sending by hand, the copy can be changed per email.",
-        "Für die Kopie an den Vorstand fehlt die E-Mail-Adresse des Vorstands in den Einstellungen.": "The board's email address is missing in the settings, so the copy to the board cannot be sent."
+        "Für die Kopie an den Vorstand fehlt die E-Mail-Adresse des Vorstands in den Einstellungen.": "The board's email address is missing in the settings, so the copy to the board cannot be sent.",
+        "E-Mails und Vorlagen": "Emails and templates",
+        "Kopie an den Vorstand": "Copy to the board",
+        "Rechnungsversand": "Sending invoices"
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

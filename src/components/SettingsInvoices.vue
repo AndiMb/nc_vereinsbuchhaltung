@@ -222,33 +222,6 @@
 			</div>
 		</div>
 
-		<div class="vbh-card">
-			<h4>{{ t('E-Mail-Vorlage für den Versand') }}</h4>
-			<p class="vbh-hint">
-				{{ t('Platzhalter: {nummer}, {betrag}, {faellig}, {verein}, {empfaenger}. Beim Versand lässt sich der Text noch anpassen. Bleibt ein Feld leer, gilt der grau angezeigte Standardtext; „Standardtext übernehmen“ kopiert ihn zum Anpassen ins Feld.') }}
-			</p>
-			<div class="vbh-form">
-				<SettingsTemplateField
-					v-model="form.invoice_mail_subject"
-					:label="t('Betreff')"
-					:defaultText="defaults.invoice_mail_subject"
-					:maxlength="200" />
-				<SettingsTemplateField
-					v-model="form.invoice_mail_body"
-					:label="t('Text')"
-					:defaultText="defaults.invoice_mail_body"
-					multiline />
-			</div>
-			<p v-if="mailError" class="vbh-hint vbh-hint--error" role="alert">
-				{{ mailError }}
-			</p>
-			<div class="vbh-form">
-				<NcButton variant="primary" :disabled="saving" @click="saveMail">
-					{{ t('Speichern') }}
-				</NcButton>
-			</div>
-		</div>
-
 		<SettingsInvoiceTemplates :accounts="accounts" />
 
 		<div class="vbh-card">
@@ -258,21 +231,6 @@
 			</p>
 			<SettingsToggle v-model="form.invoice_dunning_auto" :label="t('Mahnungen automatisch versenden')">
 				{{ t('Der tägliche Hintergrundjob verschickt fällige Stufen selbst per E-Mail. Aus: Mahnen kann der Verwalter in der Rechnung von Hand.') }}
-			</SettingsToggle>
-			<div class="vbh-form">
-				<label class="vbh-grow">{{ t('E-Mail-Adresse des Vorstands') }}
-					<input
-						v-model="form.invoice_board_email"
-						type="email"
-						maxlength="255"
-						autocomplete="off">
-				</label>
-			</div>
-			<p class="vbh-hint">
-				{{ t('Für Kopien von Rechnungs- und Mahnmails. Sie gehen als Blindkopie, der Empfänger sieht die Adresse nicht.') }}
-			</p>
-			<SettingsToggle v-model="form.invoice_dunning_copy_board" :label="t('Mailkopie an Vorstand')" :disabled="!form.invoice_board_email">
-				{{ t('Jede Mahnmail geht zusätzlich an die Adresse oben, auch im automatischen Lauf. Beim Versand von Hand lässt sich die Kopie je Mail ändern.') }}
 			</SettingsToggle>
 			<div class="vbh-form">
 				<label>{{ t('Erinnerung nach Fälligkeit (Tage)') }}
@@ -308,6 +266,51 @@
 						max="365">
 				</label>
 			</div>
+			<p v-if="dunningError" class="vbh-hint vbh-hint--error" role="alert">
+				{{ dunningError }}
+			</p>
+			<div class="vbh-form">
+				<NcButton variant="primary" :disabled="saving" @click="saveDunning">
+					{{ t('Speichern') }}
+				</NcButton>
+			</div>
+		</div>
+
+		<div class="vbh-card">
+			<h4>{{ t('E-Mails und Vorlagen') }}</h4>
+			<h5>{{ t('Kopie an den Vorstand') }}</h5>
+			<div class="vbh-form">
+				<label class="vbh-grow">{{ t('E-Mail-Adresse des Vorstands') }}
+					<input
+						v-model="form.invoice_board_email"
+						type="email"
+						maxlength="255"
+						autocomplete="off">
+				</label>
+			</div>
+			<p class="vbh-hint">
+				{{ t('Für Kopien von Rechnungs- und Mahnmails. Sie gehen als Blindkopie, der Empfänger sieht die Adresse nicht.') }}
+			</p>
+			<SettingsToggle v-model="form.invoice_dunning_copy_board" :label="t('Mailkopie an Vorstand')" :disabled="!form.invoice_board_email">
+				{{ t('Jede Mahnmail geht zusätzlich an die Adresse oben, auch im automatischen Lauf. Beim Versand von Hand lässt sich die Kopie je Mail ändern.') }}
+			</SettingsToggle>
+			<h5>{{ t('Rechnungsversand') }}</h5>
+			<p class="vbh-hint">
+				{{ t('Platzhalter: {nummer}, {betrag}, {faellig}, {verein}, {empfaenger}. Beim Versand lässt sich der Text noch anpassen. Bleibt ein Feld leer, gilt der grau angezeigte Standardtext; „Standardtext übernehmen“ kopiert ihn zum Anpassen ins Feld.') }}
+			</p>
+			<div class="vbh-form">
+				<SettingsTemplateField
+					v-model="form.invoice_mail_subject"
+					:label="t('Betreff')"
+					:defaultText="defaults.invoice_mail_subject"
+					:maxlength="200" />
+				<SettingsTemplateField
+					v-model="form.invoice_mail_body"
+					:label="t('Text')"
+					:defaultText="defaults.invoice_mail_body"
+					multiline />
+			</div>
+			<h5>{{ t('Mahnungen') }}</h5>
 			<p class="vbh-hint">
 				{{ t('Platzhalter: {stufe}, {nummer}, {rechnungsdatum}, {betrag}, {rest}, {faellig}, {frist}, {verein}, {empfaenger}. Bleibt ein Feld leer, gilt der grau angezeigte Standardtext; „Standardtext übernehmen“ kopiert ihn zum Anpassen ins Feld.') }}
 			</p>
@@ -325,11 +328,11 @@
 					:defaultText="defaults['invoice_dunning_body_' + level]"
 					multiline />
 			</div>
-			<p v-if="dunningError" class="vbh-hint vbh-hint--error" role="alert">
-				{{ dunningError }}
+			<p v-if="mailError" class="vbh-hint vbh-hint--error" role="alert">
+				{{ mailError }}
 			</p>
 			<div class="vbh-form">
-				<NcButton variant="primary" :disabled="saving" @click="saveDunning">
+				<NcButton variant="primary" :disabled="saving" @click="saveMail">
 					{{ t('Speichern') }}
 				</NcButton>
 			</div>
@@ -528,12 +531,14 @@ export default {
 		},
 
 		saveDunning() {
-			return this.store(['invoice_dunning_auto', 'invoice_dunning_copy_board', 'invoice_board_email', 'invoice_dunning_days_1', 'invoice_dunning_days_2', 'invoice_dunning_days_3', 'invoice_dunning_grace_days', 'invoice_dunning_subject', 'invoice_dunning_body_1', 'invoice_dunning_body_2', 'invoice_dunning_body_3'], 'dunningError')
+			return this.store(['invoice_dunning_auto', 'invoice_dunning_days_1', 'invoice_dunning_days_2', 'invoice_dunning_days_3', 'invoice_dunning_grace_days'], 'dunningError')
 		},
 
 		dunningLabel,
 
-		saveMail() { return this.store(['invoice_mail_subject', 'invoice_mail_body'], 'mailError') },
+		saveMail() {
+			return this.store(['invoice_board_email', 'invoice_dunning_copy_board', 'invoice_mail_subject', 'invoice_mail_body', 'invoice_dunning_subject', 'invoice_dunning_body_1', 'invoice_dunning_body_2', 'invoice_dunning_body_3'], 'mailError')
+		},
 
 		async saveRange(range) {
 			this.saving = true
