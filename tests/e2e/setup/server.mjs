@@ -73,10 +73,15 @@ async function main() {
 		// Das CI-Serverimage erzwingt per force_language Englisch – weg damit,
 		// sonst greifen weder default_language noch die Nutzereinstellungen.
 		await runOcc(['config:system:delete', 'force_language'], { container, verbose: true })
+		// Ebenso force_locale (en_US): sonst zeigt die Oberfläche Datumsangaben amerikanisch.
+		await runOcc(['config:system:delete', 'force_locale'], { container, verbose: true })
 		await runOcc(['config:system:set', 'default_language', '--value', 'de'], { container, verbose: true })
 		await runOcc(['config:system:set', 'default_locale', '--value', 'de_DE'], { container, verbose: true })
+		// Ebenso das Gebietsschema: die Oberfläche zeigt Datumsangaben nach dem
+		// Gebietsschema der Person (31.01.2026), die Specs erwarten die deutsche Schreibweise.
 		for (const uid of ['admin', 'test1', 'test2', 'test3', 'test4']) {
 			await runOcc(['user:setting', uid, 'core', 'lang', 'de'], { container })
+			await runOcc(['user:setting', uid, 'core', 'locale', 'de_DE'], { container })
 		}
 
 		// test5 läuft auf Englisch: Regressionstest für den L10n-Endpunkt
