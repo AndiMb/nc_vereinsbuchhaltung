@@ -545,6 +545,9 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 	.vbh-table.vbh-stack td { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; padding: 3px 0; border: 0; width: auto; text-align: end; overflow: visible; text-overflow: clip; }
 
+	/* Leere Werte (z. B. Rabatt ohne Rabatt) zeigen nur eine einsame Bezeichnung: weglassen. */
+	.vbh-table.vbh-stack td:empty { display: none; }
+
 	.vbh-table.vbh-stack td::before { content: attr(data-label); flex: 0 0 40%; max-width: 40%; text-align: start; font-size: 0.85em; font-weight: 600; opacity: 0.75; }
 
 	.vbh-table.vbh-stack td:not([data-label])::before, .vbh-table.vbh-stack td.vbh-stack-title::before, .vbh-table.vbh-stack td.vbh-stack-eyebrow::before { display: none; }
@@ -1800,6 +1803,13 @@ button.vbh-dirtree-label.vbh-dirtree-label.is-selected { background-color: var(-
 .vbh-dl dt { color: var(--color-text-maxcontrast); }
 
 .vbh-dl dd { overflow-wrap: anywhere; }
+
+/* Dieselbe Nextcloud-Grundregel (dt/dd mit 12 px Innenabstand, dl mit 12 px oben und unten)
+   machte die Zeilen der Rechnungs-Daten und -Summen etwa 50 px hoch. Ausrichtung und Raster
+   setzen die Komponenten selbst. */
+.vbh-inv-dl, .vbh-inv-sums, .vbh-inv-totals { padding: 0; }
+
+.vbh-inv-dl dt, .vbh-inv-dl dd, .vbh-inv-sums dt, .vbh-inv-sums dd, .vbh-inv-totals dt, .vbh-inv-totals dd { display: block; width: auto; padding: 0; white-space: normal; }
 
 /* Schmale Anzeige: Bezeichnung über Wert (lange IBANs und Meldungen sprengen sonst die Breite). */
 @media (max-width: 640px) {

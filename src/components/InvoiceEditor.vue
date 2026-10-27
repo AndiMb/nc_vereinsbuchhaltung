@@ -1,7 +1,7 @@
 <template>
 	<div class="vbh-inv-editor">
 		<div class="vbh-sectiontop">
-			<div class="vbh-subtabs">
+			<div class="vbh-inv-editor-head">
 				<NcButton variant="tertiary" @click="close">
 					<template #icon>
 						<NcIconSvgWrapper :path="mdiArrowLeft" :size="20" />
@@ -189,22 +189,31 @@
 									:aria-label="t('Bezeichnung')"
 									maxlength="255"
 									:placeholder="t('Leistung, z. B. Hallenmiete')">
-								<input
-									v-model="line.quantity"
-									class="vbh-inv-r"
-									inputmode="decimal"
-									:aria-label="t('Menge')"
-									:class="{ 'vbh-inv-invalid': quantityInvalid(line) }">
-								<select v-model="line.unitCode" :aria-label="t('Einheit')">
-									<option v-for="code in unitCodes" :key="code" :value="code">
-										{{ unitLabel(code) }}
-									</option>
-								</select>
-								<AmountInput
-									v-model="line.unitPrice"
-									class="vbh-inv-price"
-									:aria-label="t('Einzelpreis')" />
-								<span class="vbh-inv-r vbh-inv-net">{{ netText(line) }}</span>
+								<label class="vbh-inv-f">
+									<span class="vbh-inv-flabel">{{ t('Menge') }}</span>
+									<input
+										v-model="line.quantity"
+										class="vbh-inv-r"
+										inputmode="decimal"
+										:aria-label="t('Menge')"
+										:class="{ 'vbh-inv-invalid': quantityInvalid(line) }">
+								</label>
+								<label class="vbh-inv-f">
+									<span class="vbh-inv-flabel">{{ t('Einheit') }}</span>
+									<select v-model="line.unitCode" :aria-label="t('Einheit')">
+										<option v-for="code in unitCodes" :key="code" :value="code">
+											{{ unitLabel(code) }}
+										</option>
+									</select>
+								</label>
+								<label class="vbh-inv-f">
+									<span class="vbh-inv-flabel">{{ t('Einzelpreis') }}</span>
+									<AmountInput
+										v-model="line.unitPrice"
+										class="vbh-inv-price"
+										:aria-label="t('Einzelpreis')" />
+								</label>
+								<span class="vbh-inv-r vbh-inv-net" :class="{ 'vbh-inv-net--empty': !netText(line) }"><span class="vbh-inv-flabel">{{ t('Netto') }} </span>{{ netText(line) }}</span>
 								<span class="vbh-inv-actions">
 									<NcButton
 										v-if="form.lines.length > 1"
@@ -1039,7 +1048,10 @@ export default {
 <style scoped>
 .vbh-inv-editor { display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto; }
 
-.vbh-inv-editor-title { margin-inline-start: 8px; }
+/* Zurück-Knopf und Titel stehen auf einer Mittellinie (die Reiter-Klasse .vbh-subtabs streckte die Zeile und setzte den Titel nach oben). */
+.vbh-inv-editor-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+
+.vbh-inv-editor-title { min-width: 0; overflow-wrap: anywhere; }
 
 .vbh-inv-saved { font-size: 0.85em; opacity: 0.7; white-space: nowrap; }
 
@@ -1105,6 +1117,12 @@ h3 { margin: 0 0 10px; font-size: 1.05em; }
 .vbh-inv-line { padding: 10px 0; border-top: 1px solid var(--color-border); }
 
 .vbh-inv-l1 input, .vbh-inv-l1 select { width: 100%; min-width: 0; box-sizing: border-box; margin: 0; }
+
+/* Die Beschriftung je Feld braucht nur die schmale Ansicht, in der die Kopfzeile fehlt;
+   breit sitzt das Feld direkt in der Rasterzelle (display: contents). */
+.vbh-inv-f { display: contents; }
+
+.vbh-inv-flabel { display: none; }
 
 .vbh-inv-r { text-align: end; }
 
@@ -1183,13 +1201,20 @@ h3 { margin: 0 0 10px; font-size: 1.05em; }
 
 	.vbh-inv-l1--head { display: none; }
 
-	.vbh-inv-l1 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+	.vbh-inv-l1 { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 
-	.vbh-inv-l1 .vbh-inv-name { grid-column: 1 / -1; }
+	.vbh-inv-l1 .vbh-inv-name { grid-column: 1 / 3; grid-row: 1; }
 
-	.vbh-inv-l1 .vbh-inv-net { grid-column: 1 / 3; text-align: start; }
+	.vbh-inv-f { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: 0.85em; font-weight: 600; }
 
-	.vbh-inv-l1 .vbh-inv-actions { grid-column: 3; }
+	.vbh-inv-f .vbh-inv-flabel, .vbh-inv-net .vbh-inv-flabel { display: inline; font-weight: 500; opacity: 0.8; }
+
+	.vbh-inv-l1 .vbh-inv-net { grid-column: 1 / -1; text-align: start; }
+
+	.vbh-inv-l1 .vbh-inv-net--empty { display: none; }
+
+	/* Die Knöpfe stehen neben der Bezeichnung statt in einer eigenen, fast leeren Zeile. */
+	.vbh-inv-l1 .vbh-inv-actions { grid-column: 3; grid-row: 1; }
 
 	.vbh-inv-l3 { grid-template-columns: minmax(0, 1fr); }
 }
