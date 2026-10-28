@@ -1,6 +1,8 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import {
 	addDays,
+	checklistTarget,
 	defaultPlanName,
 	displayStatus,
 	dueDaysOf,
@@ -259,5 +261,30 @@ describe('Plan im Editor', () => {
 	it('übernimmt eine Plan-Position unverändert in die Server-Form zurück', () => {
 		const stored = { name: 'Miete', description: '', quantity: '1', unitCode: 'LS', unitPriceCents: 12000, discountPercent: '', accountId: 4 }
 		expect(linesToPayload([lineFromPlan(stored)])[0]).toMatchObject({ name: 'Miete', quantity: '1', unitCode: 'LS', unitPriceCents: 12000, accountId: 4 })
+	})
+})
+
+describe('Ziele der Prüfliste (Issue #204)', () => {
+	it('führt Vereins-, Steuer- und Bankangaben in die Einstellungen', () => {
+		expect(checklistTarget('bank')).toEqual({ settings: 'rechnungen' })
+		expect(checklistTarget('issuer')).toEqual({ settings: 'rechnungen' })
+		expect(checklistTarget('clubSuffix')).toEqual({ settings: 'verein' })
+	})
+
+	it('führt Angaben der Rechnung zum Bereich im Editor', () => {
+		expect(checklistTarget('debtor')).toEqual({ field: 'debtor' })
+		expect(checklistTarget('amount')).toEqual({ field: 'lines' })
+		expect(checklistTarget('exemption')).toEqual({ field: 'exemption' })
+	})
+
+	it('hat für jeden Punkt der Prüfliste des Servers ein Ziel', () => {
+		const php = readFileSync(new URL('../../lib/Service/InvoiceService.php', import.meta.url), 'utf8')
+		const keys = [...php.matchAll(/\$add\('([a-zA-Z]+)'/g)].map((m) => m[1])
+		expect(keys.length).toBeGreaterThan(5)
+		expect(keys.filter((k) => checklistTarget(k) === null)).toEqual([])
+	})
+
+	it('kennt keinen unbekannten Schlüssel', () => {
+		expect(checklistTarget('gibtsnicht')).toBeNull()
 	})
 })

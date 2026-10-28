@@ -307,6 +307,33 @@ export function eInvoiceDocuments(documents) {
 	return (documents || []).filter((d) => kinds.has(d.kind))
 }
 
+/**
+ * Wo sich ein offener Punkt der Prüfliste beheben lässt (Issue #204), je
+ * Schlüssel aus InvoiceService::checklist(): ein Abschnitt der Einstellungen
+ * (`settings`, Anker id="settings-section_<id>" in SettingsApp.vue) oder ein
+ * Bereich des Editors (`field`, Wert von data-check-target). Unbekannte
+ * Schlüssel haben kein Ziel.
+ *
+ * @param {string} key
+ * @return {{settings: string}|{field: string}|null}
+ */
+export function checklistTarget(key) {
+	const targets = {
+		issuer: { settings: 'rechnungen' },
+		taxId: { settings: 'rechnungen' },
+		vatAccounts: { settings: 'rechnungen' },
+		bank: { settings: 'rechnungen' },
+		clubSuffix: { settings: 'verein' },
+		debtor: { field: 'debtor' },
+		delivery: { field: 'delivery' },
+		lines: { field: 'lines' },
+		amount: { field: 'lines' },
+		sphere: { field: 'lines' },
+		exemption: { field: 'exemption' },
+	}
+	return targets[key] || null
+}
+
 /** Bezeichnung der Mahnstufe: 1 Zahlungserinnerung, 2 erste, 3 zweite Mahnung. */
 export function dunningLabel(level) {
 	return { 1: t('Zahlungserinnerung'), 2: t('1. Mahnung'), 3: t('2. Mahnung') }[level] || ''
