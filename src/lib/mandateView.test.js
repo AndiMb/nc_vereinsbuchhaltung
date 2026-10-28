@@ -7,6 +7,7 @@ import {
 	canSaveDraftCorrection,
 	daysUntil,
 	documentRowTone,
+	documentRowValue,
 	draftCorrectionChanged,
 	endReasonLabel,
 	formatIban,
@@ -238,6 +239,13 @@ describe('Zeile „Nachweis“ der Mandatsliste', () => {
 		expect(documentRowTone({ hasDocument: false, showMissingDocumentWarning: false })).toBeNull()
 		expect(documentRowTone({ hasDocument: false })).toBeNull()
 		expect(documentRowTone({ hasDocument: true, showMissingDocumentWarning: true })).toBeNull()
+	})
+
+	it('nennt bei einem elektronisch bestätigten Mandat die Zustimmung als Nachweis (Issue #153)', () => {
+		expect(documentRowValue({ hasDocument: false, signatureType: 'elektronisch', consentAt: '2026-10-01 12:00:00' })).toBe('elektronische Zustimmung')
+		expect(documentRowValue({ hasDocument: true, signatureType: 'elektronisch', consentAt: '2026-10-01 12:00:00' })).toBe('vorhanden')
+		expect(documentRowValue({ hasDocument: false, signatureType: 'elektronisch', consentAt: null })).toBe('fehlt')
+		expect(documentRowValue({ hasDocument: false, signatureType: 'papier' })).toBe('fehlt')
 	})
 })
 
