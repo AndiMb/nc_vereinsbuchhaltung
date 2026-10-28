@@ -17,6 +17,30 @@ als „[object Object]" (falsche Renderer-Callback-Signatur, Nextcloud-
 Core-Bug, reproduziert 23.08.2026). Stattdessen **Fettdruck als Zeilenanfang**
 verwenden, z. B. `**Neu:**`.
 
+## [0.45.0] – 2026-10-28
+
+**Neu:**
+- **E-Mails im Namen des Vereins** (#205). Alle E-Mails der App (Rechnungen,
+  Mahnungen, Vorabankündigungen, Mandatsbestätigungen, Quittungen,
+  Willkommens-Mails) tragen den Vereinsnamen als Absender und in der Fußzeile
+  statt des Namens der Nextcloud; im Kopf steht das Vereinslogo (eingebettet,
+  ohne nachgeladene Bilder). Ist eine E-Mail des Vereins hinterlegt, gehen
+  Antworten dorthin. Die Absenderadresse bleibt die aus den Mail-Einstellungen
+  der Nextcloud. Ohne Vereinsangaben bleibt alles wie bisher.
+- **Prüfliste im Rechnungseditor mit Links** (#204). Offene Punkte führen zur
+  Stelle, an der sie sich beheben lassen: Vereinsangaben, Steuernummer,
+  Umsatzsteuerkonten und Bankverbindung in die Einstellungen (nur für
+  Verwalter), Empfänger, Leistungsdatum, Positionen und Steuerhinweis zum Feld
+  im Editor.
+
+**Behoben:**
+- Ein per E-Mail-Link bestätigtes **SEPA-Mandat** zeigte „Nachweis: fehlt“ mit
+  Warnmarke. Die protokollierte Zustimmung ist der Nachweis; die Zeile nennt
+  jetzt „elektronische Zustimmung“ (#153).
+- **Rechnungs-PDF:** „TCPDF ERROR: Could not include font definition file:
+  dejavusans“, wenn eine andere App ihre eigene TCPDF-Kopie zuerst geladen
+  hatte. Die Schriften kommen jetzt immer aus der App selbst (#206).
+
 ## [0.44.0] – 2026-10-28
 
 **Neu:**

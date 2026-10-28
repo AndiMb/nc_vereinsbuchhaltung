@@ -25,6 +25,14 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.45.0',
+			roles: ['verwalter', 'buchhalter'],
+			items: [
+				t('Neu: E-Mails im Namen des Vereins. Rechnungen, Mahnungen und alle anderen Mails der App tragen den Vereinsnamen als Absender und das Vereinslogo im Kopf; mit hinterlegter E-Mail des Vereins gehen Antworten dorthin.'),
+				t('Die Prüfliste im Rechnungseditor verlinkt offene Punkte: Ein Klick führt zum passenden Feld oder in die Einstellungen.'),
+			],
+		},
+		{
 			version: '0.44.0',
 			roles: ['verwalter', 'buchhalter'],
 			items: [

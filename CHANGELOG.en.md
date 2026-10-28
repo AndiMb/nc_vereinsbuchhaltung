@@ -15,6 +15,29 @@ Markdown headings as "[object Object]" since `marked` v18 (wrong renderer
 callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 **bold lead-in** at the start of a line instead, e.g. `**New:**`.
 
+## [0.45.0] – 2026-10-28
+
+**New:**
+- **Emails in the club's name** (#205). All emails the app sends (invoices,
+  dunning letters, pre-notifications, mandate confirmations, receipts, welcome
+  emails) show the club name as the sender and in the footer instead of the
+  Nextcloud's name; the club logo appears at the top (embedded, no remote
+  images). If a club email is set, replies go there. The sender address stays
+  the one from the Nextcloud mail settings. Without club details nothing
+  changes.
+- **Invoice editor checklist with links** (#204). Open items lead to where they
+  can be fixed: club details, tax number, VAT accounts and bank account to the
+  settings (administrators only), recipient, delivery date, line items and tax
+  note to the field in the editor.
+
+**Fixed:**
+- A **SEPA mandate** confirmed via the email link showed "Proof: missing" with
+  a warning marker. The logged consent is the proof; the row now says
+  "electronic consent" (#153).
+- **Invoice PDF:** "TCPDF ERROR: Could not include font definition file:
+  dejavusans" when another app had loaded its own TCPDF copy first. The fonts
+  now always come from the app itself (#206).
+
 ## [0.44.0] – 2026-10-28
 
 **New:**
