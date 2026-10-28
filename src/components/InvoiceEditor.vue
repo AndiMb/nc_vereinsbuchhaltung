@@ -77,7 +77,7 @@
 				</p>
 
 				<!-- 1 · Empfänger -->
-				<section class="vbh-card vbh-inv-card">
+				<section class="vbh-card vbh-inv-card" data-check-target="debtor">
 					<h3>{{ t('Empfänger') }}</h3>
 					<DebtorSelect v-model="form.debtorId" @debtor="debtor = $event" />
 				</section>
@@ -138,7 +138,7 @@
 							<input v-model="form.dueDate" type="date" :min="form.issueDate || undefined">
 						</label>
 					</div>
-					<fieldset class="vbh-fieldset-reset vbh-inv-delivery">
+					<fieldset class="vbh-fieldset-reset vbh-inv-delivery" data-check-target="delivery">
 						<legend class="vbh-inv-legend">
 							{{ t('Leistungszeitpunkt (Pflichtangabe)') }}
 						</legend>
@@ -170,7 +170,7 @@
 				</section>
 
 				<!-- 3 · Positionen -->
-				<section class="vbh-card vbh-inv-card">
+				<section class="vbh-card vbh-inv-card" data-check-target="lines">
 					<h3>{{ t('Positionen') }}</h3>
 					<div class="vbh-inv-lines">
 						<div class="vbh-inv-l1 vbh-inv-l1--head" aria-hidden="true">
@@ -354,7 +354,15 @@
 						<ul v-else class="vbh-inv-checklist">
 							<li v-for="c in requiredChecks" :key="c.key" :class="c.ok ? 'ok' : 'open'">
 								<NcIconSvgWrapper :path="c.ok ? mdiCheckCircleOutline : mdiCircleOutline" :size="18" />
-								<span>{{ c.label }}</span>
+								<a v-if="!c.ok && checkSettingsUrl(c.key)" :href="checkSettingsUrl(c.key)">{{ c.label }}</a>
+								<button
+									v-else-if="!c.ok && checkField(c.key)"
+									type="button"
+									class="vbh-inv-check-link"
+									@click="goToCheck(c.key)">
+									{{ c.label }}
+								</button>
+								<span v-else>{{ c.label }}</span>
 							</li>
 						</ul>
 						<template v-if="hintChecks.length">
@@ -362,7 +370,15 @@
 							<ul class="vbh-inv-checklist vbh-inv-hints">
 								<li v-for="c in hintChecks" :key="c.key" class="open">
 									<NcIconSvgWrapper :path="mdiAlertOutline" :size="18" />
-									<span>{{ c.label }}</span>
+									<a v-if="checkSettingsUrl(c.key)" :href="checkSettingsUrl(c.key)">{{ c.label }}</a>
+									<button
+										v-else-if="checkField(c.key)"
+										type="button"
+										class="vbh-inv-check-link"
+										@click="goToCheck(c.key)">
+										{{ c.label }}
+									</button>
+									<span v-else>{{ c.label }}</span>
 								</li>
 							</ul>
 						</template>
@@ -409,7 +425,7 @@
 							<p v-if="regular" class="vbh-hint">
 								{{ t('Die Umsatzsteuer wird je Position gewählt (19 %, 7 %, 0 % oder steuerfrei). Beim Festschreiben braucht jeder verwendete Satz ein Umsatzsteuerkonto in den Einstellungen.') }}
 							</p>
-							<label v-if="form.taxMode === 'kleinunternehmer' || form.taxMode === 'exempt' || needsExemptionText" class="vbh-inv-wide">
+							<label v-if="form.taxMode === 'kleinunternehmer' || form.taxMode === 'exempt' || needsExemptionText" class="vbh-inv-wide" data-check-target="exemption">
 								{{ form.taxMode === 'kleinunternehmer' ? t('Eigener Hinweistext (optional, ersetzt den Standardtext)') : t('Hinweis auf die Steuerbefreiung (Pflicht)') }}
 								<input
 									v-model="form.exemptionText"
@@ -507,6 +523,7 @@
 <script>
 import { mdiAlertOutline, mdiArrowDown, mdiArrowLeft, mdiArrowUp, mdiCheckCircleOutline, mdiCircleOutline, mdiDelete, mdiFilePdfBox, mdiPlus } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
+import { generateUrl } from '@nextcloud/router'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
@@ -515,9 +532,11 @@ import AmountInput from './AmountInput.vue'
 import DebtorSelect from './DebtorSelect.vue'
 import InvoiceIssueDialog from './InvoiceIssueDialog.vue'
 import api from '../api.js'
+import { useAuth } from '../composables/useAuth.js'
 import { errMsg, formatMoney } from '../lib/format.js'
 import {
 	addDays,
+	checklistTarget,
 	defaultPlanName,
 	dueDaysOf,
 	editorLineNet,
@@ -568,7 +587,8 @@ export default {
 	emits: ['close', 'changed', 'issued', 'planSaved'],
 
 	setup() {
-		return { mdiArrowDown, mdiArrowLeft, mdiAlertOutline, mdiArrowUp, mdiCheckCircleOutline, mdiCircleOutline, mdiDelete, mdiFilePdfBox, mdiPlus }
+		const { state: auth } = useAuth()
+		return { auth, mdiArrowDown, mdiArrowLeft, mdiAlertOutline, mdiArrowUp, mdiCheckCircleOutline, mdiCircleOutline, mdiDelete, mdiFilePdfBox, mdiPlus }
 	},
 
 	data() {
@@ -695,6 +715,41 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * Link in die Einstellungen für einen offenen Punkt der Prüfliste (Issue #204). Nur
+		 * Verwalter erreichen die Einstellungen; Nextcloud-Admins unter Verwaltung, alle anderen
+		 * unter Persönlich (wie Settings\PersonalSettings::getSection()).
+		 */
+		checkSettingsUrl(key) {
+			const section = checklistTarget(key)?.settings
+			if (!section || !this.isAdmin) {
+				return null
+			}
+			const area = this.auth.me?.isServerAdmin ? 'admin' : 'user'
+			return generateUrl('/settings/' + area + '/vereinsbuchhaltung') + '#settings-section_' + section
+		},
+
+		/** Bereich des Editors, in dem sich ein offener Punkt der Prüfliste beheben lässt. */
+		checkField(key) {
+			return checklistTarget(key)?.field || null
+		},
+
+		/** Zum Bereich eines offenen Punkts springen und das erste Eingabefeld darin fokussieren. */
+		async goToCheck(key) {
+			const field = this.checkField(key)
+			if (field === 'exemption') {
+				this.moreOpen = true
+			}
+			await this.$nextTick()
+			const el = this.$el.querySelector(`[data-check-target="${field}"]`)
+			if (!el) {
+				return
+			}
+			el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+			const input = el.matches('input, select, textarea') ? el : el.querySelector('input:not([type="radio"]), select, textarea')
+			input?.focus({ preventScroll: true })
+		},
+
 		formatMoney,
 		isEmptyLine,
 		planIntervalLabel,
@@ -1177,6 +1232,15 @@ h3 { margin: 0 0 10px; font-size: 1.05em; }
 .vbh-inv-checklist li.open { font-weight: 600; }
 
 .vbh-inv-checklist .icon-vue { flex: 0 0 auto; }
+
+/* Offene Punkte führen zur Stelle, an der sie sich beheben lassen (Issue #204). */
+.vbh-inv-checklist .vbh-inv-check-link { all: unset; cursor: pointer; }
+
+.vbh-inv-checklist a,
+.vbh-inv-checklist .vbh-inv-check-link { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+
+.vbh-inv-checklist .vbh-inv-check-link:focus-visible,
+.vbh-inv-checklist a:focus-visible { outline: 2px solid var(--color-primary-element); outline-offset: 2px; border-radius: 2px; }
 
 .vbh-inv-discard { margin: 0 0 12px; }
 
