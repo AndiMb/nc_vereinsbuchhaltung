@@ -20,6 +20,29 @@ class InvoicePdfDocument extends \TCPDF {
 	public array $footerRight = [];
 	public string $pageLabel = 'Seite {page} von {pages}';
 
+	/**
+	 * Schriften immer aus dem eigenen vendor/ laden (Issue #206). TCPDF sucht
+	 * sie sonst über die Konstante K_PATH_FONTS, die pro PHP-Prozess einmal
+	 * gesetzt wird – von der TCPDF-Kopie, die zuerst geladen wurde. Bringt eine
+	 * andere App (z. B. Worktime) ihre eigene, anders gekürzte Kopie mit, zeigt
+	 * die Konstante in deren Schriftordner, und dort fehlt DejaVu Sans.
+	 *
+	 * TCPDF nimmt das Verzeichnis einer übergebenen, aber nicht vorhandenen
+	 * Schriftdatei als ersten Suchort und bildet den Dateinamen (Schnitt,
+	 * „pdfa“-Präfix) selbst; findet es dort nichts, sucht es wie bisher in
+	 * K_PATH_FONTS weiter.
+	 */
+	public function AddFont($family, $style = '', $fontfile = '', $subset = 'default') {
+		if ($fontfile === '' || $fontfile === null) {
+			$fontfile = self::fontDir() . '/vbh-font-lookup';
+		}
+		return parent::AddFont($family, $style, $fontfile, $subset);
+	}
+
+	public static function fontDir(): string {
+		return dirname(__DIR__, 3) . '/vendor/tecnickcom/tcpdf/fonts';
+	}
+
 	public function Header(): void {
 		// Der Briefkopf steht im Inhalt der ersten Seite, nicht in der Kopfzeile.
 	}
