@@ -390,6 +390,7 @@ import {
 	amendmentStatusLabel,
 	daysUntil,
 	documentRowTone,
+	documentRowValue,
 	endReasonLabel,
 	formatIban,
 	formatStamp,
@@ -609,7 +610,7 @@ export default {
 			rows.push({
 				key: 'document',
 				label: this.t('Nachweis'),
-				value: m.hasDocument ? this.t('vorhanden') : this.t('fehlt'),
+				value: documentRowValue(m),
 				tone: documentRowTone(m),
 			})
 			if (m.activatedAt) {

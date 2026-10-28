@@ -1872,6 +1872,7 @@
         "Nachweis": "Proof",
         "vorhanden": "on file",
         "fehlt": "missing",
+        "elektronische Zustimmung": "electronic consent",
         "Aktiviert": "Activated",
         "Sperre": "Block",
         "{art} seit {zeit}{von}": "{art} since {zeit}{von}",

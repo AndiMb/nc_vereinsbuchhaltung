@@ -119,6 +119,26 @@ class MandateControllerTest extends TestCase {
 		$this->assertFalse($data['expiryWarning']);
 	}
 
+	public function testPapiermandatOhneDokumentMeldetFehlendenNachweis(): void {
+		$this->service->method('findByMember')->with(42)->willReturn([$this->mandate(Mandate::STATUS_ACTIVE)]);
+
+		$data = $this->controller()->byMember(42)->getData()[0];
+
+		$this->assertTrue($data['showMissingDocumentWarning']);
+	}
+
+	public function testElektronischBestaetigtesMandatBrauchtKeinDokument(): void {
+		// Issue #153: die Zustimmung per Einmal-Link ist der Nachweis.
+		$mandate = $this->mandate(Mandate::STATUS_ACTIVE, Mandate::SIGNATURE_ELECTRONIC);
+		$mandate->setConsentAt('2026-01-15 10:00:00');
+		$this->service->method('findByMember')->with(42)->willReturn([$mandate]);
+
+		$data = $this->controller()->byMember(42)->getData()[0];
+
+		$this->assertFalse($data['hasDocument']);
+		$this->assertFalse($data['showMissingDocumentWarning']);
+	}
+
 	public function testRevisorSiehtDieIbanNurMaskiert(): void {
 		$permissions = $this->createMock(PermissionService::class);
 		$permissions->method('canWrite')->willReturn(false);
