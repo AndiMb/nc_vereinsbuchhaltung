@@ -210,13 +210,22 @@ Zahnrad → *Verein* → Vereinsname eintragen. Er erscheint im Kopf des
 Kassenberichts (Kapitel 7). Kleine Sache, großer Effekt auf der
 Mitgliederversammlung.
 
+Auch die E-Mails der App (Rechnungen, Mahnungen, Vorabankündigungen,
+Willkommens-Mails, Mandatsbestätigungen) tragen dann den Vereinsnamen als
+Absender und in der Fußzeile statt des Namens der Nextcloud. Die
+Absenderadresse bleibt die aus den Mail-Einstellungen der Nextcloud. Steht
+in den Einstellungen unter *Rechnungen* eine E-Mail des Vereins, gehen
+Antworten an diese Adresse.
+
 ### 2.6 Corporate Design (optional)
 
 Zahnrad → *Verein* (zweite Karte auf derselben Seite): ein **Vereinslogo**
 (PNG, JPG oder WebP) hochladen und eine **Akzentfarbe** wählen. Beides erscheint
 automatisch im **Kurzbericht für Vorstandssitzungen** (Kapitel 7.3) – der
-Kassenbericht selbst bleibt bewusst schlicht/neutral. Ganz optional: ohne
-Logo funktioniert der Kurzbericht genauso gut, nur ohne Wiedererkennung.
+Kassenbericht selbst bleibt bewusst schlicht/neutral. Das Logo steht außerdem
+auf den Rechnungen und im Kopf der E-Mails der App, dort anstelle des Logos
+der Nextcloud. Ganz optional: ohne Logo funktioniert der Kurzbericht genauso
+gut, nur ohne Wiedererkennung.
 
 ### 2.7 Geschäftsjahr festlegen (nur, wenn es kein Kalenderjahr ist)
 

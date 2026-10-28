@@ -73,6 +73,7 @@ class MandateActivationService {
 		private IConfig $config,
 		private IL10N $l10n,
 		private RecipientL10n $recipientL10n,
+		private ClubMailBranding $mailBranding,
 	) {
 	}
 
@@ -197,7 +198,7 @@ class MandateActivationService {
 		// Mandats-Rechtstext, und der gilt nur auf Deutsch (siehe MandateLegalTextService).
 		$template = $this->mailer->createEMailTemplate('vereinsbuchhaltung.mandateActivationLink');
 		$template->setSubject($l->t('Bitte bestätigen Sie Ihr SEPA-Lastschriftmandat'));
-		$template->addHeader();
+		$this->mailBranding->addHeader($template);
 		$template->addHeading($l->t('SEPA-Lastschriftmandat bestätigen'));
 		$template->addBodyText($l->t(
 			'%1$s bittet Sie, das SEPA-Lastschriftmandat mit der Referenz %2$s elektronisch zu bestätigen.',
@@ -207,9 +208,10 @@ class MandateActivationService {
 		$template->addBodyButton($l->t('Jetzt bestätigen'), $url);
 		$template->addBodyText($l->t('Dieser Link ist %d Tage gültig und nur einmal verwendbar.', [MandateActivationToken::VALIDITY_DAYS]));
 		// Auch die Fußzeile von Nextcloud (der Slogan) in der Sprache des Empfängers, nicht der Verwaltung.
-		$template->addFooter('', $l->getLanguageCode());
+		$this->mailBranding->addFooter($template, $l->getLanguageCode());
 
 		$message = $this->mailer->createMessage();
+		$this->mailBranding->apply($message);
 		$message->setTo([$email => $member->displayName()]);
 		$message->setSubject($template->renderSubject());
 		$message->useTemplate($template);

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
 use OCA\Vereinsbuchhaltung\Db\Member;
+use OCA\Vereinsbuchhaltung\Service\ClubMailBranding;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceReceiptMailService;
 use OCP\IConfig;
 use OCP\IL10N;
@@ -45,7 +46,7 @@ class SelfServiceReceiptMailServiceTest extends TestCase {
 		);
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(static fn (string $text, array $parameters = []): string => vsprintf($text, $parameters));
-		return new SelfServiceReceiptMailService($this->mailer, $config, $l10n);
+		return new SelfServiceReceiptMailService($this->mailer, $config, $l10n, $this->createMock(ClubMailBranding::class));
 	}
 
 	private function member(): Member {

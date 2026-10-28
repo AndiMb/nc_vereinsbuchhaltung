@@ -14,6 +14,7 @@ use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
+use OCA\Vereinsbuchhaltung\Service\ClubMailBranding;
 use OCA\Vereinsbuchhaltung\Service\ContributionCycleSettings;
 use OCA\Vereinsbuchhaltung\Service\DirectDebitEligibilityResolver;
 use OCA\Vereinsbuchhaltung\Service\DunningLadderService;
@@ -144,6 +145,7 @@ class DunningLadderServiceTest extends TestCase {
 			$time,
 			$this->createMock(LoggerInterface::class),
 			$this->recipientL10n($l10n),
+			$this->createMock(ClubMailBranding::class),
 		);
 	}
 
@@ -454,6 +456,7 @@ class DunningLadderServiceTest extends TestCase {
 			$time,
 			$logger ?? $this->createMock(LoggerInterface::class),
 			$this->recipientL10n($l10n),
+			$this->createMock(ClubMailBranding::class),
 		);
 	}
 

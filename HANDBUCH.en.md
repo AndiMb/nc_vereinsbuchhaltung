@@ -208,14 +208,21 @@ Gear icon → *Club* → enter the club name. It appears in the header of the
 treasurer's report (chapter 7). A small thing with a big effect at the
 general assembly.
 
+The app's emails (invoices, dunning letters, pre-notifications, welcome
+emails, mandate confirmations) then also show the club name as the sender
+and in the footer instead of the Nextcloud's name. The sender address stays
+the one from the Nextcloud mail settings. If a club email is set in the
+settings under *Invoices*, replies go to that address.
+
 ### 2.6 Corporate design (optional)
 
 Gear icon → *Club* (second card on the same page): upload a **club logo**
 (PNG, JPG or WebP) and choose an **accent color**. Both appear automatically
 in the **short report for board meetings** (chapter 7.3) – the treasurer's
-report itself deliberately stays plain and neutral. Entirely optional: the
-short report works just as well without a logo, just without brand
-recognition.
+report itself deliberately stays plain and neutral. The logo also appears
+on invoices and at the top of the app's emails, replacing the Nextcloud
+logo there. Entirely optional: the short report works just as well without
+a logo, just without brand recognition.
 
 ### 2.7 Defining the fiscal year (only if it isn't the calendar year)
 

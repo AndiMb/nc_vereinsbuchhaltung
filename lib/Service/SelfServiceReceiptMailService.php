@@ -30,6 +30,7 @@ class SelfServiceReceiptMailService {
 		private IMailer $mailer,
 		private IConfig $config,
 		private IL10N $l10n,
+		private ClubMailBranding $mailBranding,
 	) {
 	}
 
@@ -57,7 +58,7 @@ class SelfServiceReceiptMailService {
 		$l = $l10n ?? $this->l10n;
 		$template = $this->mailer->createEMailTemplate('vereinsbuchhaltung.selfServiceReceipt');
 		$template->setSubject($subject);
-		$template->addHeader();
+		$this->mailBranding->addHeader($template);
 		$template->addHeading($subject);
 		$template->addBodyText($l->t('Guten Tag %s,', [$member->displayName()]));
 		$template->addBodyText($what);
@@ -73,9 +74,10 @@ class SelfServiceReceiptMailService {
 			$template->addBodyText($l->t('Diese Änderung wurde vom Vorstand in Ihrem Namen vorgenommen: %s', [$onBehalfNote]));
 		}
 		$template->addBodyText($l->t('Diese Mail ist die Bestätigung dieser Änderung – eine Handlung Ihrerseits ist nicht nötig.'));
-		$template->addFooter();
+		$this->mailBranding->addFooter($template, $l->getLanguageCode());
 
 		$message = $this->mailer->createMessage();
+		$this->mailBranding->apply($message);
 		$message->setTo([$recipientEmail => $member->displayName()]);
 		$message->setSubject($template->renderSubject());
 		$message->useTemplate($template);
@@ -92,7 +94,7 @@ class SelfServiceReceiptMailService {
 		$clubName = $this->clubName();
 		$template = $this->mailer->createEMailTemplate('vereinsbuchhaltung.selfServiceEmailChangeWarning');
 		$template->setSubject($this->l10n->t('Ihre hinterlegte E-Mail-Adresse wurde geändert'));
-		$template->addHeader();
+		$this->mailBranding->addHeader($template);
 		$template->addHeading($this->l10n->t('E-Mail-Adresse geändert'));
 		$template->addBodyText($this->l10n->t('Guten Tag %s,', [$member->displayName()]));
 		$template->addBodyText($this->l10n->t(
@@ -100,9 +102,10 @@ class SelfServiceReceiptMailService {
 			[$clubName, self::maskEmail($newEmail)],
 		));
 		$template->addBodyText($this->l10n->t('Falls Ihnen diese Änderung nicht bekannt vorkommt, wenden Sie sich bitte direkt an den Vorstand Ihres Vereins.'));
-		$template->addFooter();
+		$this->mailBranding->addFooter($template);
 
 		$message = $this->mailer->createMessage();
+		$this->mailBranding->apply($message);
 		$message->setTo([$oldEmail => $member->displayName()]);
 		$message->setSubject($template->renderSubject());
 		$message->useTemplate($template);

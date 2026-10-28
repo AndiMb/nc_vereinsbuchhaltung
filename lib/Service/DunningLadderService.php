@@ -86,6 +86,7 @@ class DunningLadderService {
 		private ITimeFactory $time,
 		private LoggerInterface $logger,
 		private RecipientL10n $recipientL10n,
+		private ClubMailBranding $mailBranding,
 	) {
 	}
 
@@ -295,7 +296,7 @@ class DunningLadderService {
 
 		$template = $this->mailer->createEMailTemplate('vereinsbuchhaltung.dunningStage' . $stage);
 		$template->setSubject($this->stageSubject($stage, $clubName, $l));
-		$template->addHeader();
+		$this->mailBranding->addHeader($template);
 		$template->addHeading($this->stageHeading($stage, $l));
 		$template->addBodyText($l->t('Guten Tag %s,', [$displayName]));
 		$template->addBodyText($this->stageIntro($stage, $l));
@@ -320,9 +321,10 @@ class DunningLadderService {
 			? $l->t('Bitte überweisen Sie jede Position einzeln mit dem jeweils genannten Betrag – für jede Position liegt ein GiroCode zum Scannen mit Ihrer Banking-App als Bild bei (die Datei „GiroCode-Position-1.png“ gehört zu Position 1 und so weiter).')
 			: $l->t('Bitte überweisen Sie jede Position einzeln mit dem jeweils genannten Betrag.'));
 		// Auch die Fußzeile von Nextcloud (der Slogan) in der Sprache des Empfängers.
-		$template->addFooter('', $l->getLanguageCode());
+		$this->mailBranding->addFooter($template, $l->getLanguageCode());
 
 		$message = $this->mailer->createMessage();
+		$this->mailBranding->apply($message);
 		$message->setTo([$email => $displayName]);
 		$message->setSubject($template->renderSubject());
 		$message->useTemplate($template);
