@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
+use OCA\Vereinsbuchhaltung\Service\ClubMailBranding;
 use OCA\Vereinsbuchhaltung\Service\WelcomeMailService;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IConfig;
@@ -61,7 +62,7 @@ class WelcomeMailServiceTest extends TestCase {
 		$l10n->method('t')->willReturnCallback(static fn (string $text, array $parameters = []): string => vsprintf($text, $parameters));
 		$urls = $this->createMock(IURLGenerator::class);
 		$urls->method('getAbsoluteURL')->willReturn('https://cloud.example.org/');
-		return new WelcomeMailService($config, $this->mailer, $urls, $l10n, $this->members, $this->audit);
+		return new WelcomeMailService($config, $this->mailer, $urls, $l10n, $this->members, $this->audit, $this->createMock(ClubMailBranding::class));
 	}
 
 	private function member(?string $email = 'anna@example.org'): Member {

@@ -34,6 +34,7 @@ class SelfServiceReceiptMailer {
 		private IMailer $mailer,
 		private IUserManager $userManager,
 		private IL10N $l10n,
+		private ClubMailBranding $mailBranding,
 	) {
 	}
 
@@ -60,7 +61,7 @@ class SelfServiceReceiptMailer {
 
 		$template = $this->mailer->createEMailTemplate('vereinsbuchhaltung.selfServiceReceipt');
 		$template->setSubject($subject);
-		$template->addHeader();
+		$this->mailBranding->addHeader($template);
 		$template->addHeading($subject);
 		$template->addBodyText($whatText);
 		if ($effectiveText !== null) {
@@ -74,9 +75,10 @@ class SelfServiceReceiptMailer {
 		}
 		$template->addBodyText($this->l10n->t('Diese Mail ist die Bestätigung dieser Änderung – eine Handlung Ihrerseits ist nicht nötig.'));
 		$template->addBodyText($this->l10n->t('Sie haben diese Änderung selbst in „Mein Beitrag" vorgenommen.'));
-		$template->addFooter();
+		$this->mailBranding->addFooter($template);
 
 		$message = $this->mailer->createMessage();
+		$this->mailBranding->apply($message);
 		$message->setTo([$email => $member->displayName()]);
 		$message->setSubject($template->renderSubject());
 		$message->useTemplate($template);

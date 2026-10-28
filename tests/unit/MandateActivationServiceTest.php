@@ -14,6 +14,7 @@ use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Exception\ConsumedActivationTokenException;
 use OCA\Vereinsbuchhaltung\Exception\ExpiredActivationTokenException;
 use OCA\Vereinsbuchhaltung\Exception\InvalidActivationTokenException;
+use OCA\Vereinsbuchhaltung\Service\ClubMailBranding;
 use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
 use OCA\Vereinsbuchhaltung\Service\MandateLegalTextService;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
@@ -81,6 +82,7 @@ class MandateActivationServiceTest extends TestCase {
 			$this->config,
 			$l10n,
 			$recipient,
+			$this->createMock(ClubMailBranding::class),
 		);
 	}
 

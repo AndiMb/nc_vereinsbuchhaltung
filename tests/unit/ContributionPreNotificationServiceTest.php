@@ -11,6 +11,7 @@ use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
+use OCA\Vereinsbuchhaltung\Service\ClubMailBranding;
 use OCA\Vereinsbuchhaltung\Service\ContributionCycleSettings;
 use OCA\Vereinsbuchhaltung\Service\ContributionPreNotificationService;
 use OCA\Vereinsbuchhaltung\Service\DirectDebitEligibilityResolver;
@@ -147,6 +148,7 @@ class ContributionPreNotificationServiceTest extends TestCase {
 			$time,
 			$this->createMock(LoggerInterface::class),
 			$recipientL10n ?? $recipient,
+			$this->createMock(ClubMailBranding::class),
 		);
 	}
 

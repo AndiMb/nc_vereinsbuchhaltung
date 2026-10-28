@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
 use OCA\Vereinsbuchhaltung\Db\Invoice;
 use OCA\Vereinsbuchhaltung\Db\InvoiceMapper;
+use OCA\Vereinsbuchhaltung\Service\ClubMailBranding;
 use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceDocumentService;
 use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceMailService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceService;
@@ -55,7 +56,7 @@ class InvoiceMailServiceTest extends TestCase {
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(static fn (string $text, $params = []) => vsprintf($text, (array)$params));
 		$l10n->method('getLanguageCode')->willReturn('de');
-		return new InvoiceMailService($this->mailer, $invoices, $this->service, $this->documents, $this->settings, $this->createMock(LoggerInterface::class), $l10n);
+		return new InvoiceMailService($this->mailer, $invoices, $this->service, $this->documents, $this->settings, $this->createMock(LoggerInterface::class), $l10n, $this->createMock(ClubMailBranding::class));
 	}
 
 	private function mockMessage(): IMessage&MockObject {
@@ -221,7 +222,7 @@ class InvoiceMailServiceTest extends TestCase {
 		$service = $this->createMock(InvoiceService::class);
 		$service->method('markSent')->willReturn($this->invoice);
 
-		(new InvoiceMailService($this->mailer, $invoices, $service, $documents, $settings, $this->createMock(LoggerInterface::class), $l10n))
+		(new InvoiceMailService($this->mailer, $invoices, $service, $documents, $settings, $this->createMock(LoggerInterface::class), $l10n, $this->createMock(ClubMailBranding::class)))
 			->send(1, 'a@b.example', 'Mein Betreff', 'Mein Text');
 	}
 }

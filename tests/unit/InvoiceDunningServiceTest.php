@@ -12,6 +12,7 @@ use OCA\Vereinsbuchhaltung\Db\InvoiceMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
+use OCA\Vereinsbuchhaltung\Service\ClubMailBranding;
 use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceDocumentService;
 use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceDunningService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
@@ -103,7 +104,7 @@ class InvoiceDunningServiceTest extends TestCase {
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(static fn (string $text, $params = []) => vsprintf($text, (array)$params));
 		$l10n->method('getLanguageCode')->willReturn('de');
-		return new InvoiceDunningService($this->mailer, $this->invoices, $openItems, $this->dunnings, $this->documents, $settings, $this->createMock(AuditService::class), $this->createMock(LoggerInterface::class), $this->createMock(IUserSession::class), $l10n);
+		return new InvoiceDunningService($this->mailer, $this->invoices, $openItems, $this->dunnings, $this->documents, $settings, $this->createMock(AuditService::class), $this->createMock(LoggerInterface::class), $this->createMock(IUserSession::class), $l10n, $this->createMock(ClubMailBranding::class));
 	}
 
 	private function row(): array {

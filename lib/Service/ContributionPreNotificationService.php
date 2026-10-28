@@ -55,6 +55,7 @@ class ContributionPreNotificationService {
 		private ITimeFactory $time,
 		private LoggerInterface $logger,
 		private RecipientL10n $recipientL10n,
+		private ClubMailBranding $mailBranding,
 	) {
 	}
 
@@ -127,7 +128,7 @@ class ContributionPreNotificationService {
 
 		$template = $this->mailer->createEMailTemplate('vereinsbuchhaltung.contributionPreNotification');
 		$template->setSubject($l->t('Bevorstehender Lastschrifteinzug von %s', [$clubName]));
-		$template->addHeader();
+		$this->mailBranding->addHeader($template);
 		$template->addHeading($l->t('Bevorstehender Lastschrifteinzug'));
 		$template->addBodyText($l->t('Guten Tag %s,', [$displayName]));
 		$template->addBodyText($l->t('%s wird die folgenden Beträge per Lastschrift von Ihrem Konto einziehen (Mandatsreferenz %s):', [$clubName, $mandateReference]));
@@ -144,9 +145,10 @@ class ContributionPreNotificationService {
 		$template->addBodyText($l->t('Betrag und Turnus dieser Positionen stehen ab jetzt fest und lassen sich bis zum Einzug nicht mehr ändern.'));
 		$template->addBodyText($l->t('Bitte sorgen Sie für ausreichende Deckung Ihres Kontos. Bei Fragen wenden Sie sich an den Vorstand.'));
 		// Auch die Fußzeile von Nextcloud (der Slogan) in der Sprache des Empfängers, nicht des Cron-Laufs.
-		$template->addFooter('', $l->getLanguageCode());
+		$this->mailBranding->addFooter($template, $l->getLanguageCode());
 
 		$message = $this->mailer->createMessage();
+		$this->mailBranding->apply($message);
 		$message->setTo([$email => $displayName]);
 		$message->setSubject($template->renderSubject());
 		$message->useTemplate($template);

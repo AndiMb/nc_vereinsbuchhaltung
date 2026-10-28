@@ -43,6 +43,7 @@ class WelcomeMailService {
 		private IL10N $l10n,
 		private MemberMapper $memberMapper,
 		private AuditService $audit,
+		private ClubMailBranding $mailBranding,
 	) {
 	}
 
@@ -108,7 +109,7 @@ class WelcomeMailService {
 
 		$mail = $this->mailer->createEMailTemplate('vereinsbuchhaltung.welcomeMail');
 		$mail->setSubject($subject);
-		$mail->addHeader();
+		$this->mailBranding->addHeader($mail);
 		$mail->addHeading($subject);
 		foreach (preg_split('/\R{2,}/', $body) ?: [] as $paragraph) {
 			$paragraph = trim($paragraph);
@@ -117,10 +118,11 @@ class WelcomeMailService {
 			}
 			$mail->addBodyText(nl2br(htmlspecialchars($paragraph, ENT_QUOTES)), $paragraph);
 		}
-		$mail->addFooter();
+		$this->mailBranding->addFooter($mail);
 
 		try {
 			$message = $this->mailer->createMessage();
+			$this->mailBranding->apply($message);
 			$message->setTo([$email => $member->displayName()]);
 			$message->setSubject($mail->renderSubject());
 			$message->useTemplate($mail);

@@ -8,6 +8,7 @@ use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Invoice;
 use OCA\Vereinsbuchhaltung\Db\InvoiceDocument;
 use OCA\Vereinsbuchhaltung\Db\InvoiceMapper;
+use OCA\Vereinsbuchhaltung\Service\ClubMailBranding;
 use OCA\Vereinsbuchhaltung\Service\EmailValidator;
 use OCA\Vereinsbuchhaltung\Service\InvoiceService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
@@ -38,6 +39,7 @@ class InvoiceMailService {
 		private InvoiceSettings $settings,
 		private LoggerInterface $logger,
 		private IL10N $l10n,
+		private ClubMailBranding $mailBranding,
 	) {
 	}
 
@@ -100,14 +102,15 @@ class InvoiceMailService {
 
 		$template = $this->mailer->createEMailTemplate('vereinsbuchhaltung.invoice');
 		$template->setSubject($subject);
-		$template->addHeader();
+		$this->mailBranding->addHeader($template);
 		$template->addHeading($invoice->isCredit() ? $this->l10n->t('Stornorechnung %s', [(string)$invoice->getNumber()]) : $this->l10n->t('Rechnung %s', [(string)$invoice->getNumber()]));
 		foreach (preg_split('/\R{2,}/', $body) ?: [] as $paragraph) {
 			$template->addBodyText(nl2br(htmlspecialchars(trim($paragraph), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')), trim($paragraph));
 		}
-		$template->addFooter('', $this->l10n->getLanguageCode());
+		$this->mailBranding->addFooter($template, $this->l10n->getLanguageCode());
 
 		$message = $this->mailer->createMessage();
+		$this->mailBranding->apply($message);
 		$message->setTo($recipientName !== '' ? [$to => $recipientName] : [$to]);
 		$message->setSubject($template->renderSubject());
 		$message->useTemplate($template);
