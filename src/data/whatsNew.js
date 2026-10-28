@@ -25,6 +25,15 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.44.0',
+			roles: ['verwalter', 'buchhalter'],
+			items: [
+				t('Neu: Mailkopie an den Vorstand. Mit der Adresse des Vorstands und dem Schalter „Mailkopie an Vorstand“ unter Einstellungen → Rechnungen gehen Mahnmails zusätzlich als Blindkopie an den Vorstand; beim Versand von Rechnungen und Mahnungen gibt es den Schalter „Kopie an Vorstand“.'),
+				t('Das Rechnungs-PDF hat gleichmäßigere Abstände und eine aufgeräumte Fußzeile; ein Entwurf ist mit „ENTWURF“ gekennzeichnet.'),
+				t('Datum und Uhrzeit erscheinen nach dem eigenen Gebietsschema und in der eigenen Zeitzone. Die Einstellungen der Rechnungen sind neu geordnet: Mahnwesen und E-Mail-Texte stehen getrennt.'),
+			],
+		},
+		{
 			version: '0.43.0',
 			roles: ['verwalter', 'buchhalter'],
 			items: [

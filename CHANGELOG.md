@@ -17,6 +17,38 @@ als „[object Object]" (falsche Renderer-Callback-Signatur, Nextcloud-
 Core-Bug, reproduziert 23.08.2026). Stattdessen **Fettdruck als Zeilenanfang**
 verwenden, z. B. `**Neu:**`.
 
+## [0.44.0] – 2026-10-28
+
+**Neu:**
+- **Kopie an den Vorstand.** Unter Einstellungen → Rechnungen → *Mahnwesen* trägt
+  der Verwalter die E-Mail-Adresse des Vorstands ein. Der Schalter **Mailkopie an
+  Vorstand** schickt jede Mahnmail zusätzlich als Blindkopie dorthin, auch im
+  automatischen Mahnlauf. Die Dialoge „Rechnung per E-Mail senden“ und „Mahnung
+  senden“ zeigen bei hinterlegter Adresse den Schalter **Kopie an Vorstand**
+  (bei Mahnungen aus der Einstellung vorbelegt). Der Empfänger sieht die Adresse
+  nicht.
+- Ein **Entwurf** trägt im PDF „ENTWURF“ in der Überschrift, bei der Rechnungsnummer
+  und beim Verwendungszweck.
+
+**Geändert:**
+- **Rechnungs-PDF:** gleichmäßigere Abstände (Betreff folgt dem
+  Informationsblock statt fest bei 98 mm, Luft zwischen Einleitung, Tabelle,
+  Summe und Hinweisen), die Rabattspalte erscheint nur bei einem Rabatt, die
+  Fußzeile ist entzerrt (Spalten, fette Überschriften, Seitenzahl mittig) und die
+  Absenderzeile liegt nicht mehr auf ihrer Linie.
+- **Datum und Uhrzeit nach Gebietsschema.** Zeitstempel (Verlauf der Rechnung,
+  Prüfprotokoll, Plan-Stände) erscheinen im Gebietsschema und in der Zeitzone der
+  Person statt als UTC-Rohwert; reine Datumsangaben folgen dem Gebietsschema
+  (31.01.2026, 31/01/2026 für en_GB).
+- **Einstellungen → Rechnungen neu geordnet:** Rechnungsnummern stehen unter
+  „Steuer, Zahlung und Texte“, danach Positionsvorlagen und Mahnwesen (nur
+  Fristen). Alle E-Mail-Texte (Rechnung und Mahnstufen) und die
+  Vorstands-Kopie stehen gebündelt in der neuen Karte „E-Mails und Vorlagen“.
+- **Rechnungs-Editor und -Detail:** Abstände geglättet (Kopfzeile, Summe,
+  Daten, Dokumentenliste), Positionsfelder am Handy beschriftet, leere
+  Rabatt-Zeilen in der Kartenansicht ausgeblendet, der Betrag läuft nicht mehr
+  unter den Schließen-Knopf.
+
 ## [0.43.0] – 2026-10-27
 
 **Neu:**

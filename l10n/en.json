@@ -3772,7 +3772,10 @@
         "Für die Kopie an den Vorstand fehlt die E-Mail-Adresse des Vorstands in den Einstellungen.": "The board's email address is missing in the settings, so the copy to the board cannot be sent.",
         "E-Mails und Vorlagen": "Emails and templates",
         "Kopie an den Vorstand": "Copy to the board",
-        "Rechnungsversand": "Sending invoices"
+        "Rechnungsversand": "Sending invoices",
+        "Neu: Mailkopie an den Vorstand. Mit der Adresse des Vorstands und dem Schalter „Mailkopie an Vorstand“ unter Einstellungen → Rechnungen gehen Mahnmails zusätzlich als Blindkopie an den Vorstand; beim Versand von Rechnungen und Mahnungen gibt es den Schalter „Kopie an Vorstand“.": "New: mail copy to the board. With the board's address and the \"Mail copy to board\" switch under Settings → Invoices, dunning emails also go to the board as a blind copy; when sending invoices and reminders there is a \"Copy to board\" switch.",
+        "Das Rechnungs-PDF hat gleichmäßigere Abstände und eine aufgeräumte Fußzeile; ein Entwurf ist mit „ENTWURF“ gekennzeichnet.": "The invoice PDF has more even spacing and a tidier footer; a draft is marked \"ENTWURF\".",
+        "Datum und Uhrzeit erscheinen nach dem eigenen Gebietsschema und in der eigenen Zeitzone. Die Einstellungen der Rechnungen sind neu geordnet: Mahnwesen und E-Mail-Texte stehen getrennt.": "Date and time appear in your own locale and time zone. The invoice settings are reorganized: dunning and email texts are separate."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

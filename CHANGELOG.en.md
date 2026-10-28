@@ -15,6 +15,35 @@ Markdown headings as "[object Object]" since `marked` v18 (wrong renderer
 callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 **bold lead-in** at the start of a line instead, e.g. `**New:**`.
 
+## [0.44.0] – 2026-10-28
+
+**New:**
+- **Copy to the board.** Under Settings → Invoices → *Dunning* the administrator
+  enters the board's email address. The **Mail copy to board** switch sends every
+  dunning email additionally as a blind copy to it, in the automatic dunning run
+  too. The "Send invoice by email" and "Send reminder" dialogs show a **Copy to
+  board** switch when an address is stored (preset from the setting for
+  reminders). The recipient does not see the address.
+- A **draft** shows "ENTWURF" in the PDF heading, at the invoice number and in
+  the payment reference.
+
+**Changed:**
+- **Invoice PDF:** more even spacing (the subject follows the information block
+  instead of sitting at a fixed 98 mm, room between introduction, table, total
+  and notes), the discount column only appears when a line has a discount, the
+  footer is untangled (columns, bold headings, centered page number) and the
+  sender line no longer sits on its rule.
+- **Date and time follow the locale.** Timestamps (invoice history, audit log,
+  plan snapshots) show in the person's locale and time zone instead of a raw UTC
+  value; plain dates follow the locale (31.01.2026, 31/01/2026 for en_GB).
+- **Settings → Invoices reorganized:** invoice numbers sit under "Tax, payment
+  and texts", followed by item templates and dunning (deadlines only). All email
+  texts (invoice and dunning stages) and the board copy are grouped in the new
+  "Emails and templates" card.
+- **Invoice editor and details:** spacing smoothed (header, total, data,
+  document list), item fields labelled on phones, empty discount rows hidden in
+  the card view, and the amount no longer runs under the close button.
+
 ## [0.43.0] – 2026-10-27
 
 **New:**
