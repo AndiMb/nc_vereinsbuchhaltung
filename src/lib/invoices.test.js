@@ -12,6 +12,7 @@ import {
 	emptyLine,
 	formatNumberPattern,
 	formatQuantity,
+	invoiceSortFields,
 	isDunningDue,
 	isEmptyLine,
 	lineFromPlan,
@@ -293,5 +294,21 @@ describe('Ziele der Prüfliste (Issue #204)', () => {
 
 	it('kennt keinen unbekannten Schlüssel', () => {
 		expect(checklistTarget('gibtsnicht')).toBeNull()
+	})
+})
+
+describe('Sortierwerte der Rechnungsliste (Issue #213)', () => {
+	it('nimmt bei Entwürfen das Anlagedatum und lässt die Nummer leer', () => {
+		expect(invoiceSortFields({ number: null, issueDate: null, createdAt: '2026-10-29 10:00:00', status: 'draft' }))
+			.toMatchObject({ number: '', date: '2026-10-29 10:00:00', status: 'Entwurf' })
+	})
+
+	it('gibt Stornorechnungen keine Fälligkeit und keinen negativen Rest', () => {
+		expect(invoiceSortFields({ kind: 'storno', dueDate: '2026-11-12', grossCents: -5000, remainingCents: -5000, status: 'issued' }))
+			.toMatchObject({ due: '', gross: -5000, remaining: 0, status: 'Stornorechnung' })
+	})
+
+	it('sortiert den Status nach dem angezeigten Text', () => {
+		expect(invoiceSortFields({ status: 'issued', overdue: true }).status).toBe('Überfällig')
 	})
 })

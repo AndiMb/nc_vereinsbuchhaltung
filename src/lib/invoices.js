@@ -149,6 +149,24 @@ export function displayStatusLabel(invoice) {
 	}[s] || statusLabel(s)
 }
 
+/**
+ * Werte, nach denen sich die Rechnungsliste sortieren lässt (Issue #213) – je
+ * Spalte das, was die Liste zeigt: das Datum der Rechnung oder bei Entwürfen
+ * das Anlagedatum, bei Stornorechnungen keine Fälligkeit, den Status als Text.
+ * `date` und `due` sind ISO-Daten und werden lexikografisch verglichen.
+ */
+export function invoiceSortFields(invoice) {
+	return {
+		number: invoice.number || '',
+		date: String(invoice.issueDate || invoice.createdAt || ''),
+		debtor: invoice.debtorName || '',
+		due: invoice.kind === 'storno' ? '' : String(invoice.dueDate || ''),
+		gross: invoice.grossCents || 0,
+		remaining: Math.max(invoice.remainingCents || 0, 0),
+		status: displayStatusLabel(invoice),
+	}
+}
+
 /** CSS-Klasse für die Statusmarke. */
 export function statusClass(invoice) {
 	return 'vbh-inv-status vbh-inv-status--' + displayStatus(invoice)

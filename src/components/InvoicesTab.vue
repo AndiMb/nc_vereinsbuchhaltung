@@ -100,24 +100,32 @@
 					<table class="vbh-table vbh-stack vbh-inv-table">
 						<thead>
 							<tr>
-								<th>{{ t('Nummer') }}</th>
-								<th>{{ t('Datum') }}</th>
-								<th>{{ t('Empfänger') }}</th>
-								<th>
-									{{ t('Fällig') }}
+								<th class="sortable" @click="toggleSort('invoices', 'number')">
+									{{ t('Nummer') }}{{ sortArrow('invoices', 'number') }}
 								</th>
-								<th class="vbh-inv-r">
-									{{ t('Betrag') }}
+								<th class="sortable nowrap" @click="toggleSort('invoices', 'date')">
+									{{ t('Datum') }}{{ sortArrow('invoices', 'date') }}
 								</th>
-								<th class="vbh-inv-r">
-									{{ t('Offen') }}
+								<th class="sortable" @click="toggleSort('invoices', 'debtor')">
+									{{ t('Empfänger') }}{{ sortArrow('invoices', 'debtor') }}
 								</th>
-								<th>{{ t('Status') }}</th>
+								<th class="sortable nowrap" @click="toggleSort('invoices', 'due')">
+									{{ t('Fällig') }}{{ sortArrow('invoices', 'due') }}
+								</th>
+								<th class="sortable vbh-inv-r" @click="toggleSort('invoices', 'gross')">
+									{{ t('Betrag') }}{{ sortArrow('invoices', 'gross') }}
+								</th>
+								<th class="sortable vbh-inv-r" @click="toggleSort('invoices', 'remaining')">
+									{{ t('Offen') }}{{ sortArrow('invoices', 'remaining') }}
+								</th>
+								<th class="sortable" @click="toggleSort('invoices', 'status')">
+									{{ t('Status') }}{{ sortArrow('invoices', 'status') }}
+								</th>
 							</tr>
 						</thead>
 						<tbody>
 							<tr
-								v-for="inv in rows"
+								v-for="inv in sortedRows"
 								:key="inv.id"
 								class="vbh-inv-row"
 								tabindex="0"
@@ -185,8 +193,9 @@ import InvoiceDetail from './InvoiceDetail.vue'
 import InvoiceEditor from './InvoiceEditor.vue'
 import InvoicePlanList from './InvoicePlanList.vue'
 import api from '../api.js'
+import { useSort } from '../composables/useSort.js'
 import { errMsg, formatDate, formatMoney } from '../lib/format.js'
-import { displayStatus, displayStatusLabel, dunningLabel, isDunningDue, statusClass } from '../lib/invoices.js'
+import { displayStatus, displayStatusLabel, dunningLabel, invoiceSortFields, isDunningDue, statusClass } from '../lib/invoices.js'
 
 /**
  * Reiter „Rechnungen" (Epic #168): Liste mit Filtern, Editor für Entwürfe und
@@ -213,7 +222,8 @@ export default {
 	emits: ['update:invoiceId', 'changed', 'editing'],
 
 	setup() {
-		return { mdiPlus }
+		const { sort, toggleSort, sortArrow, applySort } = useSort()
+		return { mdiPlus, sort, toggleSort, sortArrow, applySort }
 	},
 
 	data() {
@@ -274,6 +284,13 @@ export default {
 				if (q === '') { return true }
 				return (inv.number || '').toLowerCase().includes(q) || (inv.debtorName || '').toLowerCase().includes(q)
 			})
+		},
+
+		/** Die gefilterten Zeilen in der per Spaltenkopf gewählten Reihenfolge (Issue #213). */
+		sortedRows() {
+			if (!this.sort.invoices.key) { return this.rows }
+			const decorated = this.rows.map((inv) => ({ ...invoiceSortFields(inv), inv }))
+			return this.applySort(decorated, this.sort.invoices, ['date', 'due']).map((r) => r.inv)
 		},
 
 		/** Brutto aller in diesem Jahr als Kleinunternehmer festgeschriebenen, nicht stornierten Rechnungen. */
