@@ -27,7 +27,7 @@
 			</div>
 		</div>
 
-		<div class="vbh-card">
+		<div id="settings-section_rechnungen-angaben" class="vbh-card">
 			<h4>{{ t('Angaben des Vereins auf der Rechnung') }}</h4>
 			<p class="vbh-hint">
 				{{ t('Pflichtangaben nach § 14 Abs. 4 UStG: Name und Anschrift des Vereins sowie die Steuernummer oder USt-IdNr. Den Vereinsnamen pflegen Sie oben unter „Verein“.') }}
@@ -106,7 +106,7 @@
 			</div>
 		</div>
 
-		<div class="vbh-card">
+		<div id="settings-section_rechnungen-zahlung" class="vbh-card">
 			<h4>{{ t('Steuer, Zahlung und Texte') }}</h4>
 			<p class="vbh-hint">
 				{{ t('Die meisten kleinen Vereine sind Kleinunternehmer nach § 19 UStG und weisen keine Umsatzsteuer aus. Ob das für Ihren Verein gilt, klärt das Finanzamt oder Ihre Steuerberatung.') }}
@@ -171,7 +171,7 @@
 			<div class="vbh-form">
 				<label class="vbh-grow">{{ t('Konto für Zahlungsangaben und GiroCode') }}
 					<select v-model="form.invoice_account_id">
-						<option :value="null">{{ t('– kein Konto –') }}</option>
+						<option :value="null">{{ t('– automatisch –') }}</option>
 						<option v-for="a in bankAccounts" :key="a.id" :value="a.id">{{ a.number }} {{ a.name }} ({{ a.iban }})</option>
 					</select>
 				</label>
@@ -179,6 +179,13 @@
 					<input v-model="form.invoice_bic" class="vbh-short" maxlength="11">
 				</label>
 			</div>
+			<p class="vbh-hint">
+				{{ t('Automatisch: das Konto des SEPA-Einzugs, sonst das einzige Geldkonto mit IBAN. Eine Auswahl ist nur bei mehreren Geldkonten nötig.') }}
+			</p>
+			<p v-if="!bankAccounts.length" class="vbh-hint vbh-hint--warning">
+				{{ t('Zur Auswahl stehen nur Geldkonten mit IBAN. Tragen Sie die IBAN zuerst im Kontenplan am Bankkonto ein.') }}
+				<a :href="ibanAccountUrl">{{ t('Zum Kontenplan') }}</a>
+			</p>
 			<div class="vbh-form">
 				<label class="vbh-grow">{{ t('Zahlungsbedingungen') }}
 					<textarea
@@ -380,6 +387,7 @@
 
 <script>
 import { showError, showSuccess } from '@nextcloud/dialogs'
+import { generateUrl } from '@nextcloud/router'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import CountrySelect from './CountrySelect.vue'
@@ -454,6 +462,7 @@ export default {
 			defaults: {},
 			accounts: [],
 			ranges: [],
+			sepaAccountId: null,
 			stateError: '',
 			issuerError: '',
 			taxError: '',
@@ -466,6 +475,16 @@ export default {
 	computed: {
 		bankAccounts() { return this.accounts.filter((a) => a.isBank && a.iban) },
 		vatAccounts() { return this.accounts.filter((a) => !a.isBank && a.active && ['liability', 'income'].includes(a.type)) },
+		/**
+		 * Wo sich die fehlende IBAN eintragen lässt (Issue #215), wie
+		 * InvoiceBankAccountService::fix(): das Konto des SEPA-Einzugs, sonst das einzige
+		 * aktive Geldkonto, sonst der Kontenplan.
+		 */
+		ibanAccountUrl() {
+			const active = this.accounts.filter((a) => a.isBank && a.active)
+			const target = this.accounts.find((a) => a.isBank && a.id === this.sepaAccountId) || (active.length === 1 ? active[0] : null)
+			return generateUrl('/apps/vereinsbuchhaltung/accounts' + (target ? '/' + target.id + '/edit' : ''))
+		},
 	},
 
 	async mounted() {
@@ -474,7 +493,14 @@ export default {
 			this.accounts = accounts.data
 			this.ranges = ranges.data.map((r) => ({ ...r }))
 			this.apply(settings.data)
+			this.sepaAccountId = settings.data.sepa_debtor_account_id ?? null
 			this.loaded = true
+			// Der Anker einer Karte (z. B. aus der Prüfliste des Rechnungseditors) existiert
+			// erst jetzt; SettingsApp scrollt beim Mounten noch ins Leere.
+			await this.$nextTick()
+			if (location.hash.startsWith('#settings-section_rechnungen-')) {
+				this.$el.querySelector(location.hash)?.scrollIntoView({ block: 'start' })
+			}
 		} catch (e) {
 			showError(errMsg(e, this.t('Die Einstellungen konnten nicht geladen werden.')))
 		}
@@ -566,6 +592,9 @@ export default {
 .vbh-inv-settings .vbh-form label { flex: 1 1 220px; min-width: 0; }
 
 .vbh-inv-settings .vbh-form label:has(> .vbh-short) { flex: 0 1 150px; }
+
+/* Nextcloud unterstreicht Links nicht; im Hinweistext wäre „Zum Kontenplan“ sonst nicht als Link erkennbar. */
+.vbh-inv-settings .vbh-hint a { color: var(--color-primary-element); text-decoration: underline; }
 
 .vbh-inv-settings .vbh-form label > input:not([type="checkbox"]), .vbh-inv-settings .vbh-form label > select, .vbh-inv-settings .vbh-form label > textarea { width: 100%; min-width: 0; box-sizing: border-box; }
 

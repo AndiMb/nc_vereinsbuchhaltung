@@ -310,19 +310,29 @@ export function eInvoiceDocuments(documents) {
 /**
  * Wo sich ein offener Punkt der Prüfliste beheben lässt (Issue #204), je
  * Schlüssel aus InvoiceService::checklist(): ein Abschnitt der Einstellungen
- * (`settings`, Anker id="settings-section_<id>" in SettingsApp.vue) oder ein
+ * (`settings`, Anker id="settings-section_<id>" in SettingsApp.vue, für die
+ * Karten der Rechnungs-Einstellungen in SettingsInvoices.vue) oder ein
  * Bereich des Editors (`field`, Wert von data-check-target). Unbekannte
  * Schlüssel haben kein Ziel.
  *
+ * Die Bankverbindung (Issue #215) entscheidet der Server: fehlt nur eine IBAN
+ * (`fix: 'account'`), geht es in den Kontenplan – zum Konto `accountId` oder,
+ * wenn das offen ist, zur Kontenliste –, nur bei mehreren Konten mit IBAN in die
+ * Einstellungen.
+ *
  * @param {string} key
- * @return {{settings: string}|{field: string}|null}
+ * @param {{fix?: string, accountId?: number|null}} [check] Punkt der Prüfliste
+ * @return {{settings: string}|{field: string}|{account: number|null}|null}
  */
-export function checklistTarget(key) {
+export function checklistTarget(key, check = {}) {
+	if (key === 'bank' && check.fix === 'account') {
+		return { account: check.accountId ?? null }
+	}
 	const targets = {
-		issuer: { settings: 'rechnungen' },
-		taxId: { settings: 'rechnungen' },
-		vatAccounts: { settings: 'rechnungen' },
-		bank: { settings: 'rechnungen' },
+		issuer: { settings: 'rechnungen-angaben' },
+		taxId: { settings: 'rechnungen-angaben' },
+		vatAccounts: { settings: 'rechnungen-zahlung' },
+		bank: { settings: 'rechnungen-zahlung' },
 		clubSuffix: { settings: 'verein' },
 		debtor: { field: 'debtor' },
 		delivery: { field: 'delivery' },

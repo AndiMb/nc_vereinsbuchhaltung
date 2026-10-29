@@ -55,7 +55,7 @@
 				</label>
 			</div>
 			<p v-if="form.isBank" class="vbh-hint">
-				{{ t('Nur nötig, wenn die Buchhaltung mehrere Geldkonten führt: Damit ordnet die App importierte Kontoauszüge dem richtigen Konto zu. Leerzeichen sind egal.') }}
+				{{ t('Damit ordnet die App importierte Kontoauszüge dem richtigen Konto zu (bei mehreren Geldkonten), und Rechnungen nennen die Bankverbindung. Leerzeichen sind egal.') }}
 			</p>
 			<div v-if="form.isBank" class="vbh-form">
 				<NcCheckboxRadioSwitch v-model="form.countInTotal">

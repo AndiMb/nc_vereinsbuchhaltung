@@ -354,7 +354,7 @@
 						<ul v-else class="vbh-inv-checklist">
 							<li v-for="c in requiredChecks" :key="c.key" :class="c.ok ? 'ok' : 'open'">
 								<NcIconSvgWrapper :path="c.ok ? mdiCheckCircleOutline : mdiCircleOutline" :size="18" />
-								<a v-if="!c.ok && checkSettingsUrl(c.key)" :href="checkSettingsUrl(c.key)">{{ c.label }}</a>
+								<a v-if="!c.ok && checkUrl(c)" :href="checkUrl(c)">{{ c.label }}</a>
 								<button
 									v-else-if="!c.ok && checkField(c.key)"
 									type="button"
@@ -370,7 +370,7 @@
 							<ul class="vbh-inv-checklist vbh-inv-hints">
 								<li v-for="c in hintChecks" :key="c.key" class="open">
 									<NcIconSvgWrapper :path="mdiAlertOutline" :size="18" />
-									<a v-if="checkSettingsUrl(c.key)" :href="checkSettingsUrl(c.key)">{{ c.label }}</a>
+									<a v-if="checkUrl(c)" :href="checkUrl(c)">{{ c.label }}</a>
 									<button
 										v-else-if="checkField(c.key)"
 										type="button"
@@ -716,17 +716,24 @@ export default {
 
 	methods: {
 		/**
-		 * Link in die Einstellungen für einen offenen Punkt der Prüfliste (Issue #204). Nur
-		 * Verwalter erreichen die Einstellungen; Nextcloud-Admins unter Verwaltung, alle anderen
-		 * unter Persönlich (wie Settings\PersonalSettings::getSection()).
+		 * Link für einen offenen Punkt der Prüfliste: in die Einstellungen (Issue #204) oder in den
+		 * Kontenplan (Issue #215). Nur Verwalter erreichen die Einstellungen; Nextcloud-Admins unter
+		 * Verwaltung, alle anderen unter Persönlich (wie Settings\PersonalSettings::getSection()).
+		 * Konten bearbeiten darf jeder mit Schreibrecht.
 		 */
-		checkSettingsUrl(key) {
-			const section = checklistTarget(key)?.settings
-			if (!section || !this.isAdmin) {
+		checkUrl(check) {
+			const target = checklistTarget(check.key, check)
+			if (target && 'account' in target) {
+				if (!this.auth.me?.canWrite) {
+					return null
+				}
+				return generateUrl('/apps/vereinsbuchhaltung/accounts' + (target.account ? '/' + target.account + '/edit' : ''))
+			}
+			if (!target?.settings || !this.isAdmin) {
 				return null
 			}
 			const area = this.auth.me?.isServerAdmin ? 'admin' : 'user'
-			return generateUrl('/settings/' + area + '/vereinsbuchhaltung') + '#settings-section_' + section
+			return generateUrl('/settings/' + area + '/vereinsbuchhaltung') + '#settings-section_' + target.settings
 		},
 
 		/** Bereich des Editors, in dem sich ein offener Punkt der Prüfliste beheben lässt. */

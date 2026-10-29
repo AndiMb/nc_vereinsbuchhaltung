@@ -299,7 +299,7 @@
         "Geldkonto (Bank/Kasse) – Bestand geht über Jahresgrenzen": "Cash/bank account – balance carries across year boundaries",
         "IBAN (optional)": "IBAN (optional)",
         "z. B. DE12 5001 0517 0648 4898 90": "e.g. DE12 5001 0517 0648 4898 90",
-        "Nur nötig, wenn die Buchhaltung mehrere Geldkonten führt: Damit ordnet die App importierte Kontoauszüge dem richtigen Konto zu. Leerzeichen sind egal.": "Only needed if the accounting has several cash/bank accounts: it lets the app assign imported bank statements to the right account. Spaces don't matter.",
+        "Damit ordnet die App importierte Kontoauszüge dem richtigen Konto zu (bei mehreren Geldkonten), und Rechnungen nennen die Bankverbindung. Leerzeichen sind egal.": "Lets the app assign imported bank statements to the right account (if there are several cash/bank accounts), and invoices show it as the bank details. Spaces don't matter.",
         "Steuerliche Sphäre": "Tax sphere",
         "– keine Auswertungsgruppe –": "– no reporting group –",
         "Rücklagen-Art": "Reserve type",
@@ -3779,7 +3779,11 @@
         "Die Prüfliste im Rechnungseditor verlinkt offene Punkte: Ein Klick führt zum passenden Feld oder in die Einstellungen.": "The checklist in the invoice editor links its open items: one click leads to the right field or to the settings.",
         "Neu: Mailkopie an den Vorstand. Mit der Adresse des Vorstands und dem Schalter „Mailkopie an Vorstand“ unter Einstellungen → Rechnungen gehen Mahnmails zusätzlich als Blindkopie an den Vorstand; beim Versand von Rechnungen und Mahnungen gibt es den Schalter „Kopie an Vorstand“.": "New: mail copy to the board. With the board's address and the \"Mail copy to board\" switch under Settings → Invoices, dunning emails also go to the board as a blind copy; when sending invoices and reminders there is a \"Copy to board\" switch.",
         "Das Rechnungs-PDF hat gleichmäßigere Abstände und eine aufgeräumte Fußzeile; ein Entwurf ist mit „ENTWURF“ gekennzeichnet.": "The invoice PDF has more even spacing and a tidier footer; a draft is marked \"ENTWURF\".",
-        "Datum und Uhrzeit erscheinen nach dem eigenen Gebietsschema und in der eigenen Zeitzone. Die Einstellungen der Rechnungen sind neu geordnet: Mahnwesen und E-Mail-Texte stehen getrennt.": "Date and time appear in your own locale and time zone. The invoice settings are reorganized: dunning and email texts are separate."
+        "Datum und Uhrzeit erscheinen nach dem eigenen Gebietsschema und in der eigenen Zeitzone. Die Einstellungen der Rechnungen sind neu geordnet: Mahnwesen und E-Mail-Texte stehen getrennt.": "Date and time appear in your own locale and time zone. The invoice settings are reorganized: dunning and email texts are separate.",
+        "– automatisch –": "– automatic –",
+        "Automatisch: das Konto des SEPA-Einzugs, sonst das einzige Geldkonto mit IBAN. Eine Auswahl ist nur bei mehreren Geldkonten nötig.": "Automatic: the SEPA direct debit account, otherwise the only cash/bank account with an IBAN. A choice is only needed with several cash/bank accounts.",
+        "Zur Auswahl stehen nur Geldkonten mit IBAN. Tragen Sie die IBAN zuerst im Kontenplan am Bankkonto ein.": "Only cash/bank accounts with an IBAN can be selected. First enter the IBAN on the bank account in the chart of accounts.",
+        "Zum Kontenplan": "Go to chart of accounts"
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }
