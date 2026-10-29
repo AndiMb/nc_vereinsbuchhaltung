@@ -3805,7 +3805,7 @@
         "{groups} Gruppen gleicher Dateien · {removable} können weg": "{groups} groups of identical files · {removable} can go",
         "Alle „kann weg“ auswählen": "Select all \"can go\"",
         "Keine inhaltsgleichen Dateien gefunden.": "No files with identical content found.",
-        "Gelöscht wird hier nichts. Am einfachsten die Kopien, die weg können, nach „_Dubletten“ verschieben und den Ordner danach in der Dateien-App löschen.": "Nothing is deleted here. The easiest way is to move the copies that can go to \"_Dubletten\" and then delete that folder in the Files app.",
+        "Gelöscht wird hier nichts. Am einfachsten die Kopien, die weg können, nach „_Dubletten“ verschieben und den Ordner danach in der Dateien-App löschen.": "Nothing is deleted here. The easiest way is to move the copies that can go to \"_Duplicates\" and then delete that folder in the Files app.",
         "_%n gleiche Datei_::_%n gleiche Dateien_": [
             "%n identical file",
             "%n identical files"
@@ -3827,7 +3827,7 @@
         "Die Dateien bleiben im Wächter-Ordner und lassen sich weiter zuordnen. Gleichnamige Dateien im Ziel werden nicht überschrieben, sondern durchnummeriert.": "The files stay in the watch folder and can still be assigned. Files with the same name in the target are not overwritten but numbered.",
         "Zielordner": "Target folder",
         "Neuer Unterordner (optional)": "New subfolder (optional)",
-        "z. B. _Klären oder _Dubletten": "e.g. _Klären or _Dubletten",
+        "z. B. _Klären oder _Dubletten": "e.g. _Clarify or _Duplicates",
         "Ziel: {path}": "Target: {path}",
         "{done} von {total} verarbeitet…": "{done} of {total} processed…",
         "Verschieben": "Move",
