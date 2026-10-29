@@ -15,6 +15,27 @@ Markdown headings as "[object Object]" since `marked` v18 (wrong renderer
 callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 **bold lead-in** at the start of a line instead, e.g. `**New:**`.
 
+## [0.45.1] – 2026-10-29
+
+**Changed:**
+- **Bank details on invoices without a detour through the settings** (#215).
+  If no account for payment details and GiroCode is chosen, the app uses the
+  SEPA direct debit account, otherwise the only cash account with an IBAN. A
+  club with one current account only needs the IBAN on the account in the
+  chart of accounts – which a bookkeeper may enter, too. If the IBAN is
+  missing, the "bank details" checklist item leads straight to editing the
+  account; it only goes to the settings ("Steuer, Zahlung und Texte" card) when
+  several accounts have an IBAN. The checklist only counts the bank details as
+  done once the account has an IBAN.
+- **Sortable invoice list** (#213): clicking a column heading sorts the table,
+  a second click reverses the order.
+
+**Fixed:**
+- The **finalize invoice** dialog showed fulfilled recommendations with a green
+  check but with the wording of the problem – e.g. "the club name lacks the
+  suffix "e. V."" although it was entered correctly. Recommendations now only
+  appear while they are open (#214).
+
 ## [0.45.0] – 2026-10-28
 
 **New:**

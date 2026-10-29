@@ -17,6 +17,27 @@ als „[object Object]" (falsche Renderer-Callback-Signatur, Nextcloud-
 Core-Bug, reproduziert 23.08.2026). Stattdessen **Fettdruck als Zeilenanfang**
 verwenden, z. B. `**Neu:**`.
 
+## [0.45.1] – 2026-10-29
+
+**Geändert:**
+- **Bankverbindung auf Rechnungen ohne Umweg über die Einstellungen** (#215).
+  Ist kein Konto für Zahlungsangaben und GiroCode gewählt, nimmt die App das
+  Konto des SEPA-Einzugs, sonst das einzige Geldkonto mit IBAN. Ein Verein mit
+  einem Girokonto braucht nur noch die IBAN am Konto im Kontenplan – das darf
+  auch ein Buchhalter. Fehlt die IBAN, führt der Punkt „Bankverbindung“ der
+  Prüfliste direkt zum Bearbeiten des Kontos; in die Einstellungen (Karte
+  „Steuer, Zahlung und Texte“) nur, wenn mehrere Konten eine IBAN haben. Die
+  Prüfliste meldet die Bankverbindung erst als erfüllt, wenn das Konto eine
+  IBAN hat.
+- **Rechnungsliste sortierbar** (#213): Ein Klick auf eine Spaltenüberschrift
+  sortiert die Tabelle, ein zweiter Klick dreht die Reihenfolge um.
+
+**Behoben:**
+- Der Dialog **Rechnung festschreiben** zeigte erfüllte Empfehlungen mit grünem
+  Haken, aber mit dem Text des Problems – etwa „Der Vereinsname trägt nicht den
+  Zusatz „e. V.““, obwohl er richtig eingetragen war. Empfehlungen erscheinen
+  jetzt nur noch, solange sie offen sind (#214).
+
 ## [0.45.0] – 2026-10-28
 
 **Neu:**

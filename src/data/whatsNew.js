@@ -25,6 +25,14 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.45.1',
+			roles: ['verwalter', 'buchhalter'],
+			items: [
+				t('Rechnungen nennen die Bankverbindung jetzt auch ohne Auswahl in den Einstellungen: das Konto des SEPA-Einzugs oder das einzige Geldkonto mit IBAN. Fehlt die IBAN, führt die Prüfliste direkt zum Konto.'),
+				t('Die Rechnungsliste lässt sich per Klick auf eine Spaltenüberschrift sortieren.'),
+			],
+		},
+		{
 			version: '0.45.0',
 			roles: ['verwalter', 'buchhalter'],
 			items: [

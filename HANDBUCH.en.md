@@ -129,8 +129,9 @@ Every account has:
 - a **type** (income, expenses, fixed/current asset, liability, equity),
 - optionally the **bank account** flag (for cash accounts – only these
   accumulate across the fiscal-year boundary),
-- for cash accounts, optionally the **IBAN**. Anyone running just one bank
-  account doesn't need it. With several accounts, it decides which cash
+- for cash accounts, optionally the **IBAN**. Invoices show it as the bank
+  details (15.1). For importing bank statements it is only needed with
+  several accounts: then it decides which cash
   account an imported transaction is posted on. This also works with
   statements that name only the account number or "bank code/account number"
   instead of the IBAN (MT940, some CSV files) – both are part of the IBAN.
@@ -2418,7 +2419,7 @@ With the invoice module the association issues invoices in its own name – for 
 
 1. **Turn on the invoice module.**
 2. Enter the **details of the association**. Section 14 (4) UStG requires the name and address and the **tax number** (from the tax office) or the VAT ID. Register, board, phone and email additionally appear in the footer of the invoice. You maintain the name of the association further up under "Club".
-3. **Tax and payment:** Most small associations are **small businesses** (section 19 UStG) and do not show value added tax; the invoice then carries the required notice. Whether this applies to your association is determined by the tax office or your tax adviser. Also choose the **account for payment details and GiroCode** (a cash account with an IBAN), the payment term and, if you like, default texts.
+3. **Tax and payment:** Most small associations are **small businesses** (section 19 UStG) and do not show value added tax; the invoice then carries the required notice. Whether this applies to your association is determined by the tax office or your tax adviser. The app picks the **account for payment details and GiroCode** itself: the SEPA direct debit account, otherwise the only cash account with an IBAN. You only need to choose it if several cash accounts have an IBAN; if the IBAN is missing, the checklist hint leads straight to the account. Also set the payment term and, if you like, default texts.
 4. **Invoice numbers:** The default is `RE-{JJJJ}-{NNNN}` (e.g. `RE-2026-0042`), restarting at 1 every year; credit notes are counted separately (`ST-…`). Numbers are consecutive and unique – change the pattern only before you write the first invoice.
 
 As long as mandatory details are missing, no invoice can be finalized; the app tells you what is missing.
@@ -2429,7 +2430,7 @@ When writing an invoice you choose the recipient from the recipients already cre
 
 ### 15.3 Writing an invoice
 
-**Invoices → New invoice.** The draft saves itself shortly after every change.
+**Invoices → New invoice.** The draft saves itself shortly after every change. In the invoice list, clicking a column heading sorts the table; a second click reverses the order.
 
 - **Invoice details:** invoice date, payment term and the **time of service** – a date or a period; either is mandatory.
 - **Line items:** description, quantity, unit, unit price, optionally a discount and a description. Every line needs a **revenue account** (an income account); the payment is booked to it later. Use the arrows to reorder. The total updates as you type.

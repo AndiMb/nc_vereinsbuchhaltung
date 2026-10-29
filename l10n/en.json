@@ -3783,7 +3783,9 @@
         "– automatisch –": "– automatic –",
         "Automatisch: das Konto des SEPA-Einzugs, sonst das einzige Geldkonto mit IBAN. Eine Auswahl ist nur bei mehreren Geldkonten nötig.": "Automatic: the SEPA direct debit account, otherwise the only cash/bank account with an IBAN. A choice is only needed with several cash/bank accounts.",
         "Zur Auswahl stehen nur Geldkonten mit IBAN. Tragen Sie die IBAN zuerst im Kontenplan am Bankkonto ein.": "Only cash/bank accounts with an IBAN can be selected. First enter the IBAN on the bank account in the chart of accounts.",
-        "Zum Kontenplan": "Go to chart of accounts"
+        "Zum Kontenplan": "Go to chart of accounts",
+        "Rechnungen nennen die Bankverbindung jetzt auch ohne Auswahl in den Einstellungen: das Konto des SEPA-Einzugs oder das einzige Geldkonto mit IBAN. Fehlt die IBAN, führt die Prüfliste direkt zum Konto.": "Invoices now show the bank details even without a choice in the settings: the SEPA direct debit account or the only cash account with an IBAN. If the IBAN is missing, the checklist leads straight to the account.",
+        "Die Rechnungsliste lässt sich per Klick auf eine Spaltenüberschrift sortieren.": "The invoice list can be sorted by clicking a column heading."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

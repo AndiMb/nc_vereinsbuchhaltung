@@ -131,8 +131,9 @@ Jedes Konto hat:
   Eigenkapital),
 - ggf. das Flag **Bankkonto** (für Geldkonten – nur diese kumulieren über
   die Geschäftsjahresgrenze),
-- bei Geldkonten optional die **IBAN**. Wer nur ein Bankkonto führt, braucht
-  sie nicht. Bei mehreren Konten entscheidet sie darüber, auf welchem
+- bei Geldkonten optional die **IBAN**. Rechnungen nennen sie als
+  Bankverbindung (15.1). Für den Kontoauszug-Import braucht sie nur, wer
+  mehrere Konten führt: Dann entscheidet sie darüber, auf welchem
   Geldkonto ein importierter Umsatz gebucht wird. Das klappt auch mit
   Auszügen, die statt der IBAN nur die Kontonummer oder „BLZ/Kontonummer"
   nennen (MT940, manche CSV) – beides steckt in der IBAN. Steht an einem
@@ -2444,7 +2445,7 @@ Mit dem Rechnungsmodul stellt der Verein Rechnungen in seinem eigenen Namen aus 
 
 1. **Rechnungsmodul einschalten.**
 2. **Angaben des Vereins** eintragen. Pflicht nach § 14 Abs. 4 UStG sind Name und Anschrift sowie die **Steuernummer** (vom Finanzamt) oder die USt-IdNr. Register, Vorstand, Telefon und E-Mail erscheinen zusätzlich im Fuß der Rechnung. Den Vereinsnamen pflegen Sie weiter oben unter „Verein".
-3. **Steuer und Zahlung:** Die meisten kleinen Vereine sind **Kleinunternehmer** (§ 19 UStG) und weisen keine Umsatzsteuer aus; auf der Rechnung steht dann der vorgeschriebene Hinweis. Ob das für Ihren Verein gilt, klärt das Finanzamt oder Ihre Steuerberatung. Wählen Sie außerdem das **Konto für Zahlungsangaben und GiroCode** (ein Geldkonto mit IBAN), das Zahlungsziel und bei Bedarf Standardtexte.
+3. **Steuer und Zahlung:** Die meisten kleinen Vereine sind **Kleinunternehmer** (§ 19 UStG) und weisen keine Umsatzsteuer aus; auf der Rechnung steht dann der vorgeschriebene Hinweis. Ob das für Ihren Verein gilt, klärt das Finanzamt oder Ihre Steuerberatung. Das **Konto für Zahlungsangaben und GiroCode** wählt die App selbst: das Konto des SEPA-Einzugs, sonst das einzige Geldkonto mit IBAN. Selbst wählen müssen Sie es nur, wenn mehrere Geldkonten eine IBAN haben; fehlt die IBAN, führt der Hinweis in der Prüfliste direkt zum Konto. Legen Sie außerdem das Zahlungsziel und bei Bedarf Standardtexte fest.
 4. **Rechnungsnummern:** Voreingestellt ist `RE-{JJJJ}-{NNNN}` (z. B. `RE-2026-0042`), jedes Jahr neu ab 1; Stornorechnungen zählen getrennt (`ST-…`). Die Nummern sind fortlaufend und einmalig – ändern Sie das Muster nur, bevor Sie die erste Rechnung schreiben.
 
 Solange Pflichtangaben fehlen, lässt sich keine Rechnung festschreiben; die App sagt, was fehlt.
@@ -2455,7 +2456,7 @@ Beim Schreiben wählen Sie den Empfänger aus den bereits angelegten Empfängern
 
 ### 15.3 Eine Rechnung schreiben
 
-**Rechnungen → Neue Rechnung.** Der Entwurf speichert sich kurz nach jeder Änderung selbst.
+**Rechnungen → Neue Rechnung.** Der Entwurf speichert sich kurz nach jeder Änderung selbst. In der Rechnungsliste sortiert ein Klick auf eine Spaltenüberschrift die Tabelle, ein zweiter Klick dreht die Reihenfolge um.
 
 - **Rechnungsdaten:** Rechnungsdatum, Zahlungsziel und der **Leistungszeitpunkt** – ein Datum oder ein Zeitraum, beides ist Pflichtangabe.
 - **Positionen:** Bezeichnung, Menge, Einheit, Einzelpreis, optional Rabatt und eine Beschreibung. Jede Position braucht ein **Erlöskonto** (ein Einnahmenkonto); darauf wird später die Zahlung gebucht. Mit den Pfeilen sortieren Sie um. Die Summe rechnet mit.
