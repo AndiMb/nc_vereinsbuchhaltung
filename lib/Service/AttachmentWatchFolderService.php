@@ -19,8 +19,8 @@ use OCP\IL10N;
  * Gedacht als Eingangskorb, der zugleich das Archiv ist: Rechnungen kommen
  * per Scanner, Mail oder Handy-Upload in den Ordner, die Übersicht meldet,
  * was noch keiner Buchung zugeordnet ist – so geht keine Rechnung unter, die
- * noch zu überweisen wäre. Die App liest hier nur; verschoben oder gelöscht
- * wird nichts.
+ * noch zu überweisen wäre. Gelöscht wird hier nie etwas; verschoben nur auf
+ * ausdrücklichen Wunsch und nur innerhalb des Ordners ({@see move()}).
  */
 class AttachmentWatchFolderService {
 
@@ -39,6 +39,9 @@ class AttachmentWatchFolderService {
 	 * Übersicht nicht minutenlang aufhalten.
 	 */
 	public const MAX_FILES = 5000;
+
+	/** Höchstens so viele Dateien je Verschiebe-Aufruf; die Oberfläche teilt größere Mengen auf. */
+	public const MAX_MOVE = 500;
 
 	public function __construct(
 		private AttachmentStorageService $storage,
@@ -286,6 +289,121 @@ class AttachmentWatchFolderService {
 			throw new \RuntimeException($this->l10n->t('Nur Bilder (JPG/PNG/GIF/WebP) und PDFs erlaubt'));
 		}
 		return $node;
+	}
+
+	/**
+	 * Ein Zielpfad relativ zum Wächter-Ordner, bereinigt: '' für die Wurzel,
+	 * sonst die Segmente mit '/' verbunden. Null, wenn ein Segment leer, '.',
+	 * '..', versteckt, zu lang ist, verbotene Zeichen oder Leerzeichen am
+	 * Rand hat – dann ließe sich aus dem Ordner ausbrechen oder Nextcloud
+	 * lehnte den Namen ab.
+	 */
+	public static function normalizeTarget(string $target): ?string {
+		$target = trim($target, '/');
+		if ($target === '') {
+			return '';
+		}
+		foreach (explode('/', $target) as $segment) {
+			if ($segment === '' || $segment === '..' || self::isHidden($segment)
+				|| trim($segment) !== $segment || mb_strlen($segment) > 255
+				|| preg_match('/[\\\\:*?"<>|[:cntrl:]]/u', $segment) !== 0) {
+				return null;
+			}
+		}
+		return $target;
+	}
+
+	/**
+	 * Verschiebt offene Belege in einen Unterordner des Wächter-Ordners, zum
+	 * Sortieren („_Klären“, „_Dubletten“). Fehlende Ordner werden angelegt;
+	 * belegte Namen bekommen eine Nummer, überschrieben wird nie. Die App
+	 * kennt Belege über die Datei-ID, eine Verknüpfung bleibt also heil –
+	 * verschoben werden trotzdem nur Dateien ohne Buchung.
+	 *
+	 * Einzelne Dateien, die nicht passen, werden übersprungen statt die ganze
+	 * Aktion abzubrechen: `notFound` (nicht im Ordner, kein Beleg-Typ),
+	 * `assigned` (inzwischen gebucht), `alreadyThere`, `failed` (gesperrt,
+	 * keine Rechte).
+	 *
+	 * @param list<int> $fileIds
+	 * @return array{moved: list<int>, skipped: list<array{fileId:int, reason:string}>}
+	 * @throws \InvalidArgumentException bei leerer/zu langer Liste oder ungültigem Ziel
+	 * @throws \RuntimeException wenn der Wächter-Ordner fehlt
+	 */
+	public function move(string $userId, array $fileIds, string $target): array {
+		$folder = $this->storage->watchFolder();
+		if ($folder === null) {
+			throw new \RuntimeException($this->l10n->t('Der Wächter-Ordner für Belege existiert nicht. Bitte in den Einstellungen prüfen.'));
+		}
+		if ($fileIds === [] || count($fileIds) > self::MAX_MOVE) {
+			throw new \InvalidArgumentException($this->l10n->t('Bitte zwischen 1 und %s Dateien auswählen.', [self::MAX_MOVE]));
+		}
+		$path = self::normalizeTarget($target);
+		if ($path === null) {
+			throw new \InvalidArgumentException($this->l10n->t('Ungültiger Zielordner.'));
+		}
+		$targetFolder = $this->targetFolder($folder, $path);
+
+		$linked = [];
+		foreach ($this->attachmentMapper->findLinked($userId) as $attachment) {
+			$linked[(int)$attachment->getFileId()] = true;
+		}
+		$moved = [];
+		$skipped = [];
+		foreach ($fileIds as $fileId) {
+			try {
+				$node = $this->fileInFolder($fileId);
+			} catch (\RuntimeException) {
+				$skipped[] = ['fileId' => $fileId, 'reason' => 'notFound'];
+				continue;
+			}
+			if (isset($linked[$fileId])) {
+				$skipped[] = ['fileId' => $fileId, 'reason' => 'assigned'];
+				continue;
+			}
+			if ($node->getParent()->getId() === $targetFolder->getId()) {
+				$skipped[] = ['fileId' => $fileId, 'reason' => 'alreadyThere'];
+				continue;
+			}
+			try {
+				$node->move($targetFolder->getPath() . '/' . self::freeName($targetFolder, $node->getName()));
+				$moved[] = $fileId;
+			} catch (\Throwable) {
+				$skipped[] = ['fileId' => $fileId, 'reason' => 'failed'];
+			}
+		}
+		return ['moved' => $moved, 'skipped' => $skipped];
+	}
+
+	/** @throws \InvalidArgumentException wenn ein Teil des Pfads eine Datei ist */
+	private function targetFolder(Folder $folder, string $path): Folder {
+		if ($path === '') {
+			return $folder;
+		}
+		foreach (explode('/', $path) as $segment) {
+			if (!$folder->nodeExists($segment)) {
+				$folder = $folder->newFolder($segment);
+				continue;
+			}
+			$node = $folder->get($segment);
+			if (!$node instanceof Folder) {
+				throw new \InvalidArgumentException($this->l10n->t('Ungültiger Zielordner.'));
+			}
+			$folder = $node;
+		}
+		return $folder;
+	}
+
+	/** „Rechnung.pdf“, sonst „Rechnung (2).pdf“, „Rechnung (3).pdf“ … */
+	private static function freeName(Folder $folder, string $name): string {
+		$dot = strrpos($name, '.');
+		$base = $dot > 0 ? substr($name, 0, $dot) : $name;
+		$ext = $dot > 0 ? substr($name, $dot) : '';
+		$candidate = $name;
+		for ($n = 2; $folder->nodeExists($candidate); $n++) {
+			$candidate = $base . ' (' . $n . ')' . $ext;
+		}
+		return $candidate;
 	}
 
 	/** @throws \RuntimeException wenn die Datei nicht im Ordner liegt, kein Beleg-Typ ist oder schon an der Buchung hängt */

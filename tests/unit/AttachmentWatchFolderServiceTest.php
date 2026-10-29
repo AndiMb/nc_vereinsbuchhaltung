@@ -12,6 +12,8 @@ use OCA\Vereinsbuchhaltung\Service\AttachmentWatchFolderService;
 use OCP\Files\File;
 use OCP\Files\Folder;
 use OCP\Files\IRootFolder;
+use OCP\Files\Node;
+use OCP\Lock\LockedException;
 use OCP\IL10N;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -332,6 +334,206 @@ class AttachmentWatchFolderServiceTest extends TestCase {
 		]);
 
 		$this->assertSame([5, 500, 10], array_map(static fn (array $g): int => $g['size'], $groups));
+	}
+
+	/**
+	 * Ein Ordner-Mock mit Pfad und ID; `$names` sind die Einträge, die es
+	 * darin schon gibt, `$children` Unterordner nach Name.
+	 *
+	 * @param list<string> $names
+	 * @param array<array-key, Node> $children nach Name; PHP macht aus "2024" einen int-Schlüssel
+	 */
+	private function dir(int $id, string $path, array $names = [], array $children = []): Folder&MockObject {
+		$f = $this->createMock(Folder::class);
+		$f->method('getId')->willReturn($id);
+		$f->method('getPath')->willReturn($path);
+		$f->method('nodeExists')->willReturnCallback(static fn (string $n): bool => in_array($n, $names, true) || isset($children[$n]));
+		$f->method('get')->willReturnCallback(static fn (string $n): Node => $children[$n]);
+		return $f;
+	}
+
+	/** Eine Datei, die in `$parent` liegt und per ID im Wächter-Ordner gefunden wird. */
+	private function movable(int $id, string $name, Folder $parent): File&MockObject {
+		$f = $this->file($id, $name, 'application/pdf', 1, 1);
+		$f->method('getParent')->willReturn($parent);
+		return $f;
+	}
+
+	/** @param array<int, File> $files */
+	private function watchRoot(Folder&MockObject $root, array $files): void {
+		$root->method('getFirstNodeById')->willReturnCallback(static fn (int $id): ?File => $files[$id] ?? null);
+		$this->storage->method('watchFolder')->willReturn($root);
+	}
+
+	private function linkedFiles(int ...$fileIds): void {
+		$this->mapper->method('findLinked')->with(self::BOOK)->willReturn(array_map(static function (int $id): Attachment {
+			$a = new Attachment();
+			$a->setFileId($id);
+			$a->setJournalId(1);
+			return $a;
+		}, $fileIds));
+	}
+
+	/** Fehlende Unterordner werden angelegt, die Datei landet darin. */
+	public function testMoveVerschiebtInUnterordnerUndLegtIhnAn(): void {
+		$root = $this->dir(1, '/kw/files/Belege');
+		$klaeren = $this->dir(2, '/kw/files/Belege/_Klären');
+		$root->expects($this->once())->method('newFolder')->with('_Klären')->willReturn($klaeren);
+		$datei = $this->movable(11, 'Rechnung.pdf', $root);
+		$datei->expects($this->once())->method('move')->with('/kw/files/Belege/_Klären/Rechnung.pdf');
+		$this->watchRoot($root, [11 => $datei]);
+		$this->linkedFiles();
+
+		$result = $this->service()->move(self::BOOK, [11], '/_Klären/');
+
+		$this->assertSame(['moved' => [11], 'skipped' => []], $result);
+	}
+
+	/** Verschachtelte Ziele: vorhandene Ordner werden benutzt, nur der Rest angelegt. */
+	public function testMoveLegtNurFehlendeUnterordnerAn(): void {
+		$neu = $this->dir(5, '/kw/files/Belege/2024/Klären');
+		$jahr = $this->dir(3, '/kw/files/Belege/2024');
+		$jahr->expects($this->once())->method('newFolder')->with('Klären')->willReturn($neu);
+		$root = $this->dir(1, '/kw/files/Belege', [], ['2024' => $jahr]);
+		$root->expects($this->never())->method('newFolder');
+		$datei = $this->movable(11, 'Bon.jpg', $root);
+		$datei->expects($this->once())->method('move')->with('/kw/files/Belege/2024/Klären/Bon.jpg');
+		$this->watchRoot($root, [11 => $datei]);
+		$this->linkedFiles();
+
+		$this->assertSame([11], $this->service()->move(self::BOOK, [11], '2024/Klären')['moved']);
+	}
+
+	/** Überschrieben wird nie: belegte Namen bekommen „(2)“, „(3)“ … */
+	public function testMoveBenenntBeiKonfliktUm(): void {
+		$ziel = $this->dir(2, '/kw/files/Belege/_Dubletten', ['Rechnung.pdf', 'Rechnung (2).pdf']);
+		$root = $this->dir(1, '/kw/files/Belege', [], ['_Dubletten' => $ziel]);
+		$datei = $this->movable(11, 'Rechnung.pdf', $root);
+		$datei->expects($this->once())->method('move')->with('/kw/files/Belege/_Dubletten/Rechnung (3).pdf');
+		$this->watchRoot($root, [11 => $datei]);
+		$this->linkedFiles();
+
+		$this->service()->move(self::BOOK, [11], '_Dubletten');
+	}
+
+	/** Ohne Endung wird die Nummer einfach angehängt. */
+	public function testMoveBenenntOhneEndungUm(): void {
+		$ziel = $this->dir(2, '/kw/files/Belege/x', ['Scan']);
+		$root = $this->dir(1, '/kw/files/Belege', [], ['x' => $ziel]);
+		$datei = $this->movable(11, 'Scan', $root);
+		$datei->expects($this->once())->method('move')->with('/kw/files/Belege/x/Scan (2)');
+		$this->watchRoot($root, [11 => $datei]);
+		$this->linkedFiles();
+
+		$this->service()->move(self::BOOK, [11], 'x');
+	}
+
+	/** Inzwischen zugeordnete Dateien bleiben liegen – jemand hat parallel gebucht. */
+	public function testMoveUeberspringtZugeordnete(): void {
+		$root = $this->dir(1, '/kw/files/Belege', [], ['_Klären' => $this->dir(2, '/kw/files/Belege/_Klären')]);
+		$datei = $this->movable(11, 'Rechnung.pdf', $root);
+		$datei->expects($this->never())->method('move');
+		$this->watchRoot($root, [11 => $datei]);
+		$this->linkedFiles(11);
+
+		$result = $this->service()->move(self::BOOK, [11], '_Klären');
+
+		$this->assertSame(['moved' => [], 'skipped' => [['fileId' => 11, 'reason' => 'assigned']]], $result);
+	}
+
+	public function testMoveUeberspringtDateiImZiel(): void {
+		$ziel = $this->dir(2, '/kw/files/Belege/_Klären', ['Rechnung.pdf']);
+		$root = $this->dir(1, '/kw/files/Belege', [], ['_Klären' => $ziel]);
+		$datei = $this->movable(11, 'Rechnung.pdf', $ziel);
+		$datei->expects($this->never())->method('move');
+		$this->watchRoot($root, [11 => $datei]);
+		$this->linkedFiles();
+
+		$this->assertSame([['fileId' => 11, 'reason' => 'alreadyThere']], $this->service()->move(self::BOOK, [11], '_Klären')['skipped']);
+	}
+
+	/** Dateien außerhalb des Ordners und gescheiterte Verschiebungen halten den Rest nicht auf. */
+	public function testMoveUeberspringtFremdeUndGescheiterte(): void {
+		$root = $this->dir(1, '/kw/files/Belege', [], ['_Klären' => $this->dir(2, '/kw/files/Belege/_Klären')]);
+		$gesperrt = $this->movable(12, 'Gesperrt.pdf', $root);
+		$gesperrt->method('move')->willThrowException(new LockedException('x'));
+		$gut = $this->movable(13, 'Gut.pdf', $root);
+		$gut->expects($this->once())->method('move');
+		$this->watchRoot($root, [12 => $gesperrt, 13 => $gut]);
+		$this->linkedFiles();
+
+		$result = $this->service()->move(self::BOOK, [99, 12, 13], '_Klären');
+
+		$this->assertSame([13], $result['moved']);
+		$this->assertSame([['fileId' => 99, 'reason' => 'notFound'], ['fileId' => 12, 'reason' => 'failed']], $result['skipped']);
+	}
+
+	/** Wurzel des Wächter-Ordners als Ziel: '' und '/'. */
+	public function testMoveInDieWurzel(): void {
+		$unter = $this->dir(2, '/kw/files/Belege/2024');
+		$root = $this->dir(1, '/kw/files/Belege');
+		$datei = $this->movable(11, 'Rechnung.pdf', $unter);
+		$datei->expects($this->once())->method('move')->with('/kw/files/Belege/Rechnung.pdf');
+		$this->watchRoot($root, [11 => $datei]);
+		$this->linkedFiles();
+
+		$this->service()->move(self::BOOK, [11], '/');
+	}
+
+	/** @return array<string, array{string}> */
+	public static function ungueltigeZiele(): array {
+		return [
+			'Elternordner' => ['../x'],
+			'Elternordner mitten drin' => ['a/../b'],
+			'Punkt' => ['a/./b'],
+			'versteckt' => ['.versteckt'],
+			'Doppelpunkt' => ['a:b'],
+			'Backslash' => ['a\\b'],
+			'leeres Segment' => ['a//b'],
+			'Randleerzeichen' => [' a'],
+			'Steuerzeichen' => ["a\tb"],
+			'zu lang' => [str_repeat('x', 256)],
+		];
+	}
+
+	/**
+	 * @dataProvider ungueltigeZiele
+	 */
+	public function testMoveLehntUngueltigesZielAb(string $target): void {
+		$root = $this->dir(1, '/kw/files/Belege');
+		$root->expects($this->never())->method('newFolder');
+		$this->watchRoot($root, []);
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->move(self::BOOK, [11], $target);
+	}
+
+	public function testMoveLehntLeereUndZuGrosseListeAb(): void {
+		$this->watchRoot($this->dir(1, '/kw/files/Belege'), []);
+		foreach ([[], range(1, AttachmentWatchFolderService::MAX_MOVE + 1)] as $ids) {
+			try {
+				$this->service()->move(self::BOOK, $ids, 'x');
+				$this->fail('Ausnahme erwartet für ' . count($ids) . ' Dateien');
+			} catch (\InvalidArgumentException) {
+				$this->addToAssertionCount(1);
+			}
+		}
+	}
+
+	/** Ein Ziel, das eine Datei ist, ist kein Ordner. */
+	public function testMoveLehntDateiAlsZielAb(): void {
+		$root = $this->dir(1, '/kw/files/Belege', [], ['Rechnung.pdf' => $this->file(5, 'Rechnung.pdf', 'application/pdf', 1, 1)]);
+		$this->watchRoot($root, []);
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->move(self::BOOK, [11], 'Rechnung.pdf');
+	}
+
+	public function testMoveOhneOrdnerScheitert(): void {
+		$this->storage->method('watchFolder')->willReturn(null);
+
+		$this->expectException(\RuntimeException::class);
+		$this->service()->move(self::BOOK, [11], 'x');
 	}
 
 	public function testLinkLehntDoppelteVerknuepfungAb(): void {
