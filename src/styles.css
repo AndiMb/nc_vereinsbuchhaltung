@@ -1753,6 +1753,26 @@ button.vbh-folder-booking { cursor: pointer; text-decoration: underline; }
 
 .vbh-folder-warn { color: var(--color-element-error); }
 
+/* Eingangskorb: Umschaltung Dateien/Dubletten, Auswahlleiste zum Verschieben (AttachmentFolderPanel.vue) */
+.vbh-folder-views { margin-bottom: 8px; }
+
+div.vbh-folder-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
+
+.vbh-folder-selectionbar { position: sticky; bottom: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; padding: 6px 8px; border-radius: var(--border-radius-large, 12px); background-color: var(--color-primary-element-light); }
+
+.vbh-folder-selectionbar > span { margin-inline-end: auto; font-weight: bold; }
+
+/* Dubletten (ReceiptDuplicates.vue): je Gruppe ein Block, darunter die Kopien */
+.vbh-dups-group { list-style: none; margin-bottom: 10px; padding: 6px 0; border-bottom: 1px solid var(--color-border); }
+
+.vbh-dups-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 0 8px; }
+
+.vbh-dups-files { margin: 0; padding: 0; list-style: none; }
+
+.vbh-dups-keep { color: var(--color-element-success, var(--color-success)); font-weight: bold; }
+
+.vbh-dups-removable { color: var(--color-text-maxcontrast); }
+
 /* Ordnerbaum im Popup der Einstellungen (FolderPickerDialog.vue/FolderTree.vue): Ordner anklicken statt Pfad tippen */
 .vbh-dirtree { max-height: 55vh; min-height: 200px; overflow: auto; margin: 0; padding: 6px; list-style: none; border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); background-color: var(--color-main-background); font-size: 1rem; }
 

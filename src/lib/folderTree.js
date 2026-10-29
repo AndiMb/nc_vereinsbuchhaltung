@@ -166,3 +166,37 @@ export function flattenTree(root, { expanded, onlyOpen = false, search = '', exc
 	rows.push(...(walk(root, 0) || []))
 	return rows
 }
+
+/**
+ * Die offenen Dateien für eine Sammelauswahl: alle, die zur Suche passen,
+ * auch in zugeklappten Ordnern – optional nur unterhalb eines Ordners
+ * ('' = alles).
+ *
+ * @param {TreeFile[]} files
+ * @param {object} opts
+ * @param {string} [opts.search] Suche
+ * @param {string} [opts.folder] Ordnerpfad, Unterordner eingeschlossen
+ * @return {number[]} fileIds in der Reihenfolge vom Server
+ */
+export function openFilesIn(files, { search = '', folder = '' }) {
+	const visible = fileFilter({ onlyOpen: true, search: search.trim().toLowerCase(), exclude: new Set() })
+	const inside = (f) => !folder || f.folder === folder || (f.folder || '').startsWith(folder + '/')
+	return files.filter((f) => visible(f) && inside(f)).map((f) => f.fileId)
+}
+
+/**
+ * Alle Ordner, in denen Dateien liegen, samt ihren Elternordnern und der
+ * Wurzel ('') – die Ziele für „Verschieben nach…“. Leere Ordner kennt der
+ * Scan nicht; die legt man im Dialog als neuen Unterordner an.
+ *
+ * @param {TreeFile[]} files
+ * @return {string[]}
+ */
+export function folderPaths(files) {
+	const out = new Set([''])
+	for (const f of files) {
+		const parts = (f.folder || '').split('/').filter(Boolean)
+		for (let i = 1; i <= parts.length; i++) { out.add(parts.slice(0, i).join('/')) }
+	}
+	return [...out].sort((a, b) => collator.compare(a, b))
+}
