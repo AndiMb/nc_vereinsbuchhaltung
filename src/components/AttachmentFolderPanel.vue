@@ -23,13 +23,16 @@
 					class="vbh-segmented-item"
 					:class="{ active: view === 'duplicates' }"
 					:aria-pressed="view === 'duplicates' ? 'true' : 'false'"
-					@click="view = 'duplicates'">
+					@click="view = 'duplicates'; duplicatesOpened = true">
 					{{ t('Dubletten') }}
 				</button>
 			</div>
 
+			<!-- Erst beim ersten Öffnen einhängen, danach nur verstecken: jedes
+			     Einhängen sucht neu, und zwei Suchen zugleich kosten doppelt. -->
 			<ReceiptDuplicates
-				v-if="view === 'duplicates'"
+				v-if="duplicatesOpened"
+				v-show="view === 'duplicates'"
 				ref="duplicates"
 				:canWrite="canWrite"
 				:selected="selected"
@@ -37,7 +40,7 @@
 				@select="selectMany"
 				@openBooking="$emit('open-booking', $event)" />
 
-			<template v-else>
+			<template v-if="view === 'files'">
 				<div class="vbh-folder-toolbar">
 					<input
 						ref="searchInput"
@@ -246,6 +249,7 @@ import api from '../api.js'
 import { buildFolderTree, flatFileRows, flattenTree, folderPaths, initialExpanded, openFilesIn } from '../lib/folderTree.js'
 import { errMsg, formatDate, formatFileSize } from '../lib/format.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
+import { moveOutcome } from '../lib/receiptMove.js'
 
 const SHOW_FOLDERS_KEY = 'vbh_folder_tree'
 
@@ -322,6 +326,7 @@ export default {
 			selected: new Set(),
 			// Eingangskorb: 'files' (Ordnerbaum) oder 'duplicates'.
 			view: 'files',
+			duplicatesOpened: false,
 			moveOpen: false,
 			// Zuletzt angeklickte Datei, Anker für Umschalt-Klick.
 			lastClicked: null,
@@ -445,10 +450,13 @@ export default {
 		onMoved(result) {
 			this.moveOpen = false
 			this.selected = new Set()
-			if (result.skipped.length) {
-				showWarning(this.t('{moved} verschoben, {skipped} übersprungen – inzwischen zugeordnet, nicht mehr im Ordner, schon im Ziel oder gesperrt.', { moved: result.moved.length, skipped: result.skipped.length }))
+			const outcome = moveOutcome(result)
+			if (outcome.kind === 'error') {
+				showError(this.t('{moved} verschoben, dann abgebrochen: {error}', { moved: outcome.moved, error: outcome.error }))
+			} else if (outcome.kind === 'warning') {
+				showWarning(this.t('{moved} verschoben, {skipped} übersprungen – inzwischen zugeordnet, nicht mehr im Ordner, schon im Ziel oder gesperrt.', { moved: outcome.moved, skipped: outcome.skipped }))
 			} else {
-				showSuccess(this.n('%n Datei verschoben', '%n Dateien verschoben', result.moved.length))
+				showSuccess(this.n('%n Datei verschoben', '%n Dateien verschoben', outcome.moved))
 			}
 			this.load()
 			this.$refs.duplicates?.reload()

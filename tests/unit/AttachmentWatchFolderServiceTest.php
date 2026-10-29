@@ -626,6 +626,37 @@ class AttachmentWatchFolderServiceTest extends TestCase {
 		$this->assertSame([], $result['groups']);
 	}
 
+	/** Nextcloud wirft nicht immer: Common::hash() liefert false, wenn fopen scheitert. */
+	public function testDuplicatesZaehltHashFalseAlsUnlesbar(): void {
+		$kaputt = $this->file(12, 'd12.pdf', 'application/pdf', 100, 2000);
+		$kaputt->method('hash')->willReturn(false);
+		$this->dupRoot([$this->hashed(11, 100, 1000, 'h1'), $kaputt]);
+		$this->linkedFiles();
+		$this->hashes->method('findAll')->willReturn([]);
+		$this->hashes->expects($this->once())->method('save')->with(11, 100, 1000, 'h1');
+
+		$result = $this->service()->duplicates(self::BOOK);
+
+		$this->assertSame(1, $result['unreadable']);
+		$this->assertSame([], $result['groups']);
+	}
+
+	/**
+	 * Zwei Suchen gleichzeitig schreiben denselben Eintrag – der Cache ist
+	 * nur ein Hinweis, ein Konflikt darf die Suche nicht abbrechen.
+	 */
+	public function testDuplicatesUeberstehtFehlerBeimSpeichern(): void {
+		$this->dupRoot([$this->hashed(11, 100, 1000, 'h1'), $this->hashed(12, 100, 2000, 'h1')]);
+		$this->linkedFiles();
+		$this->hashes->method('findAll')->willReturn([]);
+		$this->hashes->method('save')->willThrowException(new \OCP\DB\Exception('unique constraint'));
+
+		$result = $this->service()->duplicates(self::BOOK);
+
+		$this->assertCount(1, $result['groups']);
+		$this->assertSame(0, $result['unreadable']);
+	}
+
 	/** Einträge zu Dateien, die nicht mehr im Ordner liegen, fliegen raus. */
 	public function testDuplicatesRaeumtVerwaisteEintraegeAuf(): void {
 		$this->dupRoot([$this->hashed(11, 100, 1000, null)]);

@@ -249,11 +249,21 @@ class AttachmentWatchFolderService {
 			return $cached['hash'];
 		}
 		try {
+			// Nicht jeder Speicher wirft: Common::hash() liefert false, wenn
+			// sich die Datei nicht öffnen lässt.
 			$hash = $this->fileInFolder($file['fileId'])->hash('sha256');
 		} catch (\Throwable) {
 			return null;
 		}
-		$this->hashes->save($file['fileId'], $file['size'], $file['mtime'], $hash);
+		if (!is_string($hash) || $hash === '') {
+			return null;
+		}
+		try {
+			$this->hashes->save($file['fileId'], $file['size'], $file['mtime'], $hash);
+		} catch (\Throwable) {
+			// Zwei Suchen zugleich schreiben denselben Eintrag; der Cache ist
+			// nur ein Hinweis, die Prüfsumme selbst stimmt trotzdem.
+		}
 		return $hash;
 	}
 

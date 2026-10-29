@@ -128,9 +128,10 @@ export default {
 				this.busy = false
 			}
 			// Auch nach einem Fehler im zweiten Paket ist das erste verschoben –
-			// die Liste muss das wissen.
+			// die Liste muss das wissen, und der Fehler darf dabei nicht
+			// verloren gehen (moveOutcome()).
 			if (result.moved.length || result.skipped.length) {
-				this.$emit('moved', result)
+				this.$emit('moved', { ...result, error: this.error })
 			}
 		},
 	},

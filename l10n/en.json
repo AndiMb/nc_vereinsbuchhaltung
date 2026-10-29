@@ -3833,7 +3833,8 @@
         "Verschieben": "Move",
         "Die Dateien konnten nicht verschoben werden.": "The files could not be moved.",
         "Bitte zwischen 1 und %s Dateien auswählen.": "Please select between 1 and %s files.",
-        "Ungültiger Zielordner.": "Invalid target folder."
+        "Ungültiger Zielordner.": "Invalid target folder.",
+        "{moved} verschoben, dann abgebrochen: {error}": "{moved} moved, then aborted: {error}"
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }
