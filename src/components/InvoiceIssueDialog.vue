@@ -16,7 +16,7 @@
 			</p>
 
 			<ul class="vbh-inv-check" :aria-label="t('Prüfung der Pflichtangaben')">
-				<li v-for="c in checklist" :key="c.key" :class="{ ok: c.ok, missing: !c.ok && c.required, advice: !c.ok && !c.required }">
+				<li v-for="c in visibleChecks" :key="c.key" :class="{ ok: c.ok, missing: !c.ok && c.required, advice: !c.ok && !c.required }">
 					<NcIconSvgWrapper :path="c.ok ? mdiCheckCircle : (c.required ? mdiCloseCircle : mdiAlertCircle)" :size="20" />
 					<span>{{ c.label }}<em v-if="!c.ok && !c.required"> {{ t('(empfohlen)') }}</em></span>
 				</li>
@@ -80,6 +80,12 @@ export default {
 
 	computed: {
 		blocked() { return this.checklist.some((c) => c.required && !c.ok) },
+		/**
+		 * Pflichtangaben immer, Empfehlungen nur, solange sie offen sind (Issue #214): Ihre Texte
+		 * beschreiben das Problem („Der Vereinsname trägt nicht den Zusatz …“) und läsen sich mit
+		 * grünem Haken wie ein Widerspruch. So zeigt es auch der Editor unter „Zur Beachtung“.
+		 */
+		visibleChecks() { return this.checklist.filter((c) => c.required || !c.ok) },
 	},
 
 	watch: {
