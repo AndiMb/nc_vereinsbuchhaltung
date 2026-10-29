@@ -503,6 +503,31 @@ Nummer öffnet die Buchung. Wer lieber die einfache Liste aller Dateien sieht,
 nimmt den Haken **„Ordner anzeigen"** heraus; der Ordner steht dann klein
 unter dem Dateinamen. Die Wahl merkt sich der Browser.
 
+**Offene Belege wegsortieren** (Buchhalter und Verwalter): Im Eingangskorb
+hat jede offene Datei ein Kästchen, ebenso jeder Ordner mit offenen
+Belegen. „alle offenen auswählen" nimmt alle, die zur Suche passen – auch
+in zugeklappten Ordnern –, Umschalt-Klick einen Bereich. „Verschieben
+nach…" legt die Auswahl in einen Unterordner des Wächter-Ordners, etwa
+`_Klären` für alles, was mit der Geschäftsstelle zu besprechen ist; ein
+neuer Unterordner lässt sich dabei gleich anlegen. Die Dateien bleiben im
+Wächter-Ordner und lassen sich weiter zuordnen. Gleichnamige Dateien im Ziel
+werden nicht überschrieben, sondern durchnummeriert („Rechnung (2).pdf").
+Zugeordnete Dateien lassen sich nicht verschieben, und aus dem Wächter-Ordner
+hinaus geht es nur in der Dateien-App.
+
+**Dubletten finden:** Die Ansicht **„Dubletten"** oben im Eingangskorb zeigt
+Dateien mit genau gleichem Inhalt – dieselbe Rechnung, zweimal abgelegt,
+unter anderem Namen oder in einem anderen Ordner. Je Kopie steht dabei:
+*zugeordnet* (hängt an einer Buchung), *behalten* (keine Kopie ist
+zugeordnet, die älteste bleibt) oder *kann weg*. Hängen zwei Kopien an
+verschiedenen Buchungen, warnt die Gruppe „evtl. doppelt gebucht".
+„Alle ‚kann weg' auswählen" und danach „Verschieben nach…" `_Dubletten`
+sammelt die überzähligen Kopien in einem Ordner, den ihr anschließend in der
+Dateien-App löscht – die App selbst löscht nichts. Verglichen wird nur der
+exakte Inhalt: ein zweiter Scan derselben Rechnung ist für die App eine
+andere Datei. Die erste Suche liest alle gleich großen Dateien einmal und
+kann bei großen Ordnern einen Moment dauern; danach geht es schneller.
+
 Mit Wächter-Ordner zeigt die **Übersicht** außerdem „x Dokumente noch
 keiner Buchung zugewiesen": alles, was im Ordner liegt, aber noch an keiner
 Buchung hängt – etwa eine Rechnung, die noch zu überweisen ist. „Ansehen"

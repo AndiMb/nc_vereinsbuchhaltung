@@ -496,6 +496,30 @@ If you prefer the plain list of all files, untick **"Show folders"**; the
 folder then appears in small print below the file name. The browser
 remembers the choice.
 
+**Sorting open receipts away** (bookkeepers and administrators): In the
+inbox every open file has a checkbox, as does every folder with open
+receipts. "select all open files" takes all files matching the search –
+including those in collapsed folders –, Shift-click selects a range.
+"Move to…" puts the selection into a subfolder of the watch folder, e.g.
+`_Klären` for everything to be discussed with the club office; a new
+subfolder can be created on the spot. The files stay in the watch folder
+and can still be assigned. Files with the same name in the target are not
+overwritten but numbered ("Invoice (2).pdf"). Assigned files cannot be
+moved, and moving out of the watch folder is only possible in the Files
+app.
+
+**Finding duplicates:** The **"Duplicates"** view at the top of the inbox
+shows files with exactly the same content – the same invoice filed twice,
+under another name or in another folder. Each copy is marked *assigned*
+(attached to a posting), *keep* (no copy is assigned, the oldest stays) or
+*can go*. If two copies are attached to different postings, the group warns
+"possibly booked twice". "Select all "can go"" followed by "Move to…"
+`_Dubletten` collects the surplus copies in one folder, which you then
+delete in the Files app – the app itself deletes nothing. Only the exact
+content is compared: a second scan of the same invoice is a different file
+to the app. The first search reads all files of equal size once and may
+take a moment for large folders; after that it is faster.
+
 With a watch folder the **overview** also shows "x documents not yet
 assigned to a posting": everything that lies in the folder but is not
 attached to any posting yet – an invoice still to be paid, for instance.

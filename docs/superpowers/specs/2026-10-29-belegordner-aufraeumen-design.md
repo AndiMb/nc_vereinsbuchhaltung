@@ -83,8 +83,9 @@ Ablauf:
      `Name (2).pdf`, `Name (3).pdf` … gewählt; überschrieben wird nie.
    - Scheitert das Verschieben (Sperre, Rechte) → übersprungen, Grund
      `failed`; die übrigen Dateien laufen weiter.
-5. Ein Protokolleintrag (`AuditService::log('receipts.moved', …)`) mit Ziel,
-   Anzahl und den verschobenen Datei-IDs.
+5. Ein Protokolleintrag (`AuditService::log('Belege verschoben', …)` im
+   Controller, wie die übrigen Beleg-Aktionen) mit Ziel, Anzahl und den
+   verschobenen Datei-IDs.
 6. Antwort: `{ moved: int[], skipped: [{ fileId, reason }] }`.
 
 Da die App Belege über die Datei-ID kennt, berührt das Verschieben keine

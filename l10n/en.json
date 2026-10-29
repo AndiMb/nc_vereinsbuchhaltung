@@ -3785,7 +3785,55 @@
         "Zur Auswahl stehen nur Geldkonten mit IBAN. Tragen Sie die IBAN zuerst im Kontenplan am Bankkonto ein.": "Only cash/bank accounts with an IBAN can be selected. First enter the IBAN on the bank account in the chart of accounts.",
         "Zum Kontenplan": "Go to chart of accounts",
         "Rechnungen nennen die Bankverbindung jetzt auch ohne Auswahl in den Einstellungen: das Konto des SEPA-Einzugs oder das einzige Geldkonto mit IBAN. Fehlt die IBAN, führt die Prüfliste direkt zum Konto.": "Invoices now show the bank details even without a choice in the settings: the SEPA direct debit account or the only cash account with an IBAN. If the IBAN is missing, the checklist leads straight to the account.",
-        "Die Rechnungsliste lässt sich per Klick auf eine Spaltenüberschrift sortieren.": "The invoice list can be sorted by clicking a column heading."
+        "Die Rechnungsliste lässt sich per Klick auf eine Spaltenüberschrift sortieren.": "The invoice list can be sorted by clicking a column heading.",
+        "Ansicht des Eingangskorbs": "Inbox view",
+        "Dateien": "Files",
+        "alle passenden offenen auswählen": "select all matching open files",
+        "alle offenen auswählen": "select all open files",
+        "Offene Dateien in {folder} auswählen": "Select open files in {folder}",
+        "_%n Datei ausgewählt_::_%n Dateien ausgewählt_": [
+            "%n file selected",
+            "%n files selected"
+        ],
+        "Verschieben nach…": "Move to…",
+        "{moved} verschoben, {skipped} übersprungen – inzwischen zugeordnet, nicht mehr im Ordner, schon im Ziel oder gesperrt.": "{moved} moved, {skipped} skipped – assigned in the meantime, no longer in the folder, already in the target or locked.",
+        "_%n Datei verschoben_::_%n Dateien verschoben_": [
+            "%n file moved",
+            "%n files moved"
+        ],
+        "Dubletten werden gesucht…": "Searching for duplicates…",
+        "{groups} Gruppen gleicher Dateien · {removable} können weg": "{groups} groups of identical files · {removable} can go",
+        "Alle „kann weg“ auswählen": "Select all \"can go\"",
+        "Keine inhaltsgleichen Dateien gefunden.": "No files with identical content found.",
+        "Gelöscht wird hier nichts. Am einfachsten die Kopien, die weg können, nach „_Dubletten“ verschieben und den Ordner danach in der Dateien-App löschen.": "Nothing is deleted here. The easiest way is to move the copies that can go to \"_Dubletten\" and then delete that folder in the Files app.",
+        "_%n gleiche Datei_::_%n gleiche Dateien_": [
+            "%n identical file",
+            "%n identical files"
+        ],
+        "evtl. doppelt gebucht: {bookings}": "possibly booked twice: {bookings}",
+        "(oberste Ebene)": "(top level)",
+        "behalten": "keep",
+        "kann weg": "can go",
+        "_%n Datei konnte nicht geprüft werden._::_%n Dateien konnten nicht geprüft werden._": [
+            "%n file could not be checked.",
+            "%n files could not be checked."
+        ],
+        "Nur unter den ersten {n} Dateien gesucht.": "Only searched among the first {n} files.",
+        "Die Dubletten konnten nicht gesucht werden": "Could not search for duplicates",
+        "_%n Datei verschieben_::_%n Dateien verschieben_": [
+            "Move %n file",
+            "Move %n files"
+        ],
+        "Die Dateien bleiben im Wächter-Ordner und lassen sich weiter zuordnen. Gleichnamige Dateien im Ziel werden nicht überschrieben, sondern durchnummeriert.": "The files stay in the watch folder and can still be assigned. Files with the same name in the target are not overwritten but numbered.",
+        "Zielordner": "Target folder",
+        "Neuer Unterordner (optional)": "New subfolder (optional)",
+        "z. B. _Klären oder _Dubletten": "e.g. _Klären or _Dubletten",
+        "Ziel: {path}": "Target: {path}",
+        "{done} von {total} verarbeitet…": "{done} of {total} processed…",
+        "Verschieben": "Move",
+        "Die Dateien konnten nicht verschoben werden.": "The files could not be moved.",
+        "Bitte zwischen 1 und %s Dateien auswählen.": "Please select between 1 and %s files.",
+        "Ungültiger Zielordner.": "Invalid target folder."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }
