@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Service;
 use OCA\Vereinsbuchhaltung\Db\Attachment;
 use OCA\Vereinsbuchhaltung\Db\AttachmentMapper;
 use OCA\Vereinsbuchhaltung\Db\Journal;
+use OCA\Vereinsbuchhaltung\Db\ReceiptHashMapper;
 use OCP\Files\File;
 use OCP\Files\Folder;
 use OCP\Files\IRootFolder;
@@ -48,6 +49,7 @@ class AttachmentWatchFolderService {
 		private AttachmentMapper $attachmentMapper,
 		private IRootFolder $rootFolder,
 		private IL10N $l10n,
+		private ReceiptHashMapper $hashes,
 	) {
 	}
 
@@ -181,6 +183,78 @@ class AttachmentWatchFolderService {
 			}, $file['journalIds']);
 			return $file;
 		}, $files);
+	}
+
+	/**
+	 * Inhaltsgleiche Dateien im Wächter-Ordner, bewertet nach
+	 * {@see classifyDuplicates()}.
+	 *
+	 * Gehasht wird nur, was überhaupt gleich sein kann: Dateien, deren Größe
+	 * mindestens zweimal vorkommt. Die Prüfsummen merkt sich
+	 * {@see ReceiptHashMapper}, solange Größe und mtime passen – beim
+	 * nächsten Öffnen wird nur Neues gelesen. Leere Dateien zählen nicht.
+	 *
+	 * @return array{folderMissing: bool, capped: bool, limit: int, unreadable: int,
+	 *         groups: list<array{size:int, doubleBooked:bool, files: list<array<string,mixed>>}>}
+	 */
+	public function duplicates(string $userId): array {
+		$inbox = $this->inbox($userId);
+		$result = ['folderMissing' => $inbox['folderMissing'], 'capped' => $inbox['capped'], 'limit' => self::MAX_FILES, 'unreadable' => 0, 'groups' => []];
+		if ($inbox['folderMissing'] || $inbox['files'] === []) {
+			return $result;
+		}
+
+		$bySize = [];
+		foreach ($inbox['files'] as $file) {
+			if ($file['size'] > 0) {
+				$bySize[$file['size']][] = $file;
+			}
+		}
+		$cache = $this->hashes->findAll();
+		$byHash = [];
+		foreach ($bySize as $files) {
+			if (count($files) < 2) {
+				continue;
+			}
+			foreach ($files as $file) {
+				$hash = $this->hashOf($file, $cache[$file['fileId']] ?? null);
+				if ($hash === null) {
+					$result['unreadable']++;
+					continue;
+				}
+				$byHash[$hash][] = $file;
+			}
+		}
+
+		// Nur ein vollständiger Scan sagt, welche Dateien weg sind.
+		if (!$inbox['capped']) {
+			$seen = array_flip(array_map(static fn (array $f): int => $f['fileId'], $inbox['files']));
+			$stale = array_values(array_filter(array_keys($cache), static fn (int $id): bool => !isset($seen[$id])));
+			if ($stale !== []) {
+				$this->hashes->deleteByFileIds($stale);
+			}
+		}
+
+		$result['groups'] = self::classifyDuplicates(array_values($byHash));
+		return $result;
+	}
+
+	/**
+	 * @param array{fileId:int, size:int, mtime:int} $file
+	 * @param array{size:int, mtime:int, hash:string}|null $cached
+	 * @return string|null null, wenn die Datei nicht lesbar ist
+	 */
+	private function hashOf(array $file, ?array $cached): ?string {
+		if ($cached !== null && $cached['size'] === $file['size'] && $cached['mtime'] === $file['mtime']) {
+			return $cached['hash'];
+		}
+		try {
+			$hash = $this->fileInFolder($file['fileId'])->hash('sha256');
+		} catch (\Throwable) {
+			return null;
+		}
+		$this->hashes->save($file['fileId'], $file['size'], $file['mtime'], $hash);
+		return $hash;
 	}
 
 	/**

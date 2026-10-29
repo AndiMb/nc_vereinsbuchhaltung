@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 use OCA\Vereinsbuchhaltung\Db\Attachment;
 use OCA\Vereinsbuchhaltung\Db\AttachmentMapper;
 use OCA\Vereinsbuchhaltung\Db\Journal;
+use OCA\Vereinsbuchhaltung\Db\ReceiptHashMapper;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\AttachmentWatchFolderService;
 use OCP\Files\File;
@@ -31,12 +32,14 @@ class AttachmentWatchFolderServiceTest extends TestCase {
 
 	private AttachmentStorageService&MockObject $storage;
 	private AttachmentMapper&MockObject $mapper;
+	private ReceiptHashMapper&MockObject $hashes;
 
 	protected function setUp(): void {
 		$this->storage = $this->createMock(AttachmentStorageService::class);
 		$this->storage->method('isWatchMode')->willReturn(true);
 		$this->storage->method('storageUser')->willReturn('kassenwart');
 		$this->mapper = $this->createMock(AttachmentMapper::class);
+		$this->hashes = $this->createMock(ReceiptHashMapper::class);
 	}
 
 	/**
@@ -536,6 +539,132 @@ class AttachmentWatchFolderServiceTest extends TestCase {
 		$this->service()->move(self::BOOK, [11], 'x');
 	}
 
+	/** Eine Datei für die Dublettensuche: im Scan und per ID auffindbar, mit Prüfsumme. */
+	private function hashed(int $id, int $size, int $mtime, string|\Throwable|null $hash): File&MockObject {
+		$f = $this->file($id, "d$id.pdf", 'application/pdf', $size, $mtime);
+		if ($hash === null) {
+			$f->expects($this->never())->method('hash');
+		} elseif ($hash instanceof \Throwable) {
+			$f->method('hash')->willThrowException($hash);
+		} else {
+			$f->expects($this->once())->method('hash')->with('sha256')->willReturn($hash);
+		}
+		return $f;
+	}
+
+	/** @param list<File> $files */
+	private function dupRoot(array $files): void {
+		$root = $this->folder($files);
+		$byId = [];
+		foreach ($files as $f) {
+			$byId[$f->getId()] = $f;
+		}
+		$root->method('getFirstNodeById')->willReturnCallback(static fn (int $id): ?File => $byId[$id] ?? null);
+		$this->storage->method('watchFolder')->willReturn($root);
+	}
+
+	/** Nur gleich große Dateien können gleich sein – nur sie werden gehasht. */
+	public function testDuplicatesHashtNurGleichGrosse(): void {
+		$this->dupRoot([
+			$this->hashed(11, 100, 1000, 'h1'),
+			$this->hashed(12, 100, 2000, 'h1'),
+			$this->hashed(13, 50, 3000, null),
+			$this->hashed(14, 0, 4000, null),
+			$this->hashed(15, 0, 5000, null),
+		]);
+		$this->linkedFiles();
+		$this->hashes->method('findAll')->willReturn([]);
+		$this->hashes->expects($this->exactly(2))->method('save');
+
+		$result = $this->service()->duplicates(self::BOOK);
+
+		$this->assertFalse($result['folderMissing']);
+		$this->assertSame(0, $result['unreadable']);
+		$this->assertCount(1, $result['groups']);
+		$this->assertSame([11 => 'keep', 12 => 'removable'], self::verdicts($result['groups'][0]['files']));
+	}
+
+	/** Passt der gespeicherte Eintrag (Größe und mtime), wird nicht gelesen. */
+	public function testDuplicatesNutztCache(): void {
+		$this->dupRoot([$this->hashed(11, 100, 1000, null), $this->hashed(12, 100, 2000, null)]);
+		$this->linkedFiles(12);
+		$this->hashes->method('findAll')->willReturn([
+			11 => ['size' => 100, 'mtime' => 1000, 'hash' => 'h1'],
+			12 => ['size' => 100, 'mtime' => 2000, 'hash' => 'h1'],
+		]);
+		$this->hashes->expects($this->never())->method('save');
+
+		$groups = $this->service()->duplicates(self::BOOK)['groups'];
+
+		$this->assertSame([11 => 'removable', 12 => 'assigned'], self::verdicts($groups[0]['files']));
+	}
+
+	/** Geänderte Datei: neue mtime macht den Eintrag ungültig. */
+	public function testDuplicatesRechnetBeiAenderungNeu(): void {
+		$this->dupRoot([$this->hashed(11, 100, 1000, 'neu'), $this->hashed(12, 100, 2000, null)]);
+		$this->linkedFiles();
+		$this->hashes->method('findAll')->willReturn([
+			11 => ['size' => 100, 'mtime' => 999, 'hash' => 'h1'],
+			12 => ['size' => 100, 'mtime' => 2000, 'hash' => 'h1'],
+		]);
+		$this->hashes->expects($this->once())->method('save')->with(11, 100, 1000, 'neu');
+
+		$this->assertSame([], $this->service()->duplicates(self::BOOK)['groups']);
+	}
+
+	public function testDuplicatesZaehltUnlesbare(): void {
+		$this->dupRoot([
+			$this->hashed(11, 100, 1000, 'h1'),
+			$this->hashed(12, 100, 2000, new \OCP\Files\NotPermittedException('x')),
+		]);
+		$this->linkedFiles();
+		$this->hashes->method('findAll')->willReturn([]);
+
+		$result = $this->service()->duplicates(self::BOOK);
+
+		$this->assertSame(1, $result['unreadable']);
+		$this->assertSame([], $result['groups']);
+	}
+
+	/** Einträge zu Dateien, die nicht mehr im Ordner liegen, fliegen raus. */
+	public function testDuplicatesRaeumtVerwaisteEintraegeAuf(): void {
+		$this->dupRoot([$this->hashed(11, 100, 1000, null)]);
+		$this->linkedFiles();
+		$this->hashes->method('findAll')->willReturn([
+			11 => ['size' => 100, 'mtime' => 1000, 'hash' => 'h1'],
+			77 => ['size' => 100, 'mtime' => 1000, 'hash' => 'h1'],
+		]);
+		$this->hashes->expects($this->once())->method('deleteByFileIds')->with([77]);
+
+		$this->service()->duplicates(self::BOOK);
+	}
+
+	/** Gekappter Scan: was fehlt, ist nicht weg, nur ungelesen. */
+	public function testDuplicatesBereinigtNichtBeiKappung(): void {
+		$files = [];
+		for ($i = 1; $i <= AttachmentWatchFolderService::MAX_FILES + 1; $i++) {
+			$files[] = $this->file($i, "b$i.pdf", 'application/pdf', $i, $i);
+		}
+		$this->dupRoot($files);
+		$this->linkedFiles();
+		$this->hashes->method('findAll')->willReturn([999999 => ['size' => 1, 'mtime' => 1, 'hash' => 'x']]);
+		$this->hashes->expects($this->never())->method('deleteByFileIds');
+
+		$result = $this->service()->duplicates(self::BOOK);
+
+		$this->assertTrue($result['capped']);
+	}
+
+	public function testDuplicatesOhneOrdner(): void {
+		$this->storage->method('watchFolder')->willReturn(null);
+		$this->hashes->expects($this->never())->method('findAll');
+
+		$result = $this->service()->duplicates(self::BOOK);
+
+		$this->assertTrue($result['folderMissing']);
+		$this->assertSame([], $result['groups']);
+	}
+
 	public function testLinkLehntDoppelteVerknuepfungAb(): void {
 		$root = $this->createMock(Folder::class);
 		$root->method('getFirstNodeById')->with(51)->willReturn($this->file(51, 'Rechnung.pdf', 'application/pdf', 1, 1));
@@ -585,6 +714,7 @@ class AttachmentWatchFolderServiceTest extends TestCase {
 			$this->mapper,
 			$rootFolder ?? $this->createMock(IRootFolder::class),
 			$l10n,
+			$this->hashes,
 		);
 	}
 }

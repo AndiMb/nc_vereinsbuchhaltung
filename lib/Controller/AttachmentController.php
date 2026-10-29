@@ -196,6 +196,31 @@ class AttachmentController extends Controller {
 	}
 
 	/**
+	 * Inhaltsgleiche Dateien im Wächter-Ordner, je Kopie mit ihren Buchungen
+	 * (Nummer und Datum) und einer Empfehlung – siehe
+	 * AttachmentWatchFolderService::classifyDuplicates().
+	 */
+	#[NoAdminRequired]
+	public function inboxDuplicates(): DataResponse {
+		if (!$this->storageService->isWatchMode()) {
+			return new DataResponse(['message' => $this->l10n->t('Der Wächter-Ordner für Belege ist nicht eingeschaltet.')], Http::STATUS_BAD_REQUEST);
+		}
+		$result = $this->watchFolder->duplicates($this->userId());
+		$journalIds = [];
+		foreach ($result['groups'] as $group) {
+			foreach ($group['files'] as $file) {
+				array_push($journalIds, ...$file['journalIds']);
+			}
+		}
+		$journals = $this->journalMapper->findByIds($this->userId(), $journalIds);
+		foreach ($result['groups'] as &$group) {
+			$group['files'] = AttachmentWatchFolderService::withBookings($group['files'], $journals);
+		}
+		unset($group);
+		return new DataResponse($result);
+	}
+
+	/**
 	 * Offene Belege in einen Unterordner des Wächter-Ordners verschieben –
 	 * zum Sortieren, etwa „_Klären“ oder „_Dubletten“.
 	 *

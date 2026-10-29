@@ -120,6 +120,9 @@ class ResetServiceTest extends TestCase {
 		'vbh_audit_log',
 		'vbh_debtors',
 		'vbh_number_ranges',
+		// Prüfsummen-Cache der Dublettensuche: keine Vereinsdaten, und
+		// veraltete Einträge räumt die Suche selbst ab.
+		'vbh_receipt_hashes',
 	];
 
 	/** @var list<string> Reihenfolge aller Wirkungen des Resets, siehe record() */
