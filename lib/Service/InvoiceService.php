@@ -52,6 +52,7 @@ class InvoiceService {
 		private AccountMapper $accounts,
 		private NumberRangeService $numbers,
 		private InvoiceSettings $settings,
+		private InvoiceBankAccountService $bankAccount,
 		private TransactionRunner $transaction,
 		private AuditService $audit,
 		private IUserSession $userSession,
@@ -124,7 +125,7 @@ class InvoiceService {
 	 * sein; Hinweise ohne `required` sind Empfehlungen.
 	 *
 	 * @param InvoiceLine[] $lines
-	 * @return list<array{key: string, label: string, ok: bool, required: bool}>
+	 * @return list<array{key: string, label: string, ok: bool, required: bool, fix?: string, accountId?: int|null}>
 	 */
 	public function checklist(Invoice $invoice, array $lines, ?Debtor $debtor, \DateTimeInterface $issueDate): array {
 		$missing = $this->settings->missingIssuerFields();
@@ -174,7 +175,12 @@ class InvoiceService {
 				$add('exemption', $this->msg('Hinweis auf die Steuerbefreiung (z. B. § 4 Nr. 22 UStG)'), trim((string)$invoice->getExemptionText()) !== '');
 			}
 		}
-		$add('bank', $this->msg('Bankverbindung für die Überweisung'), $this->settings->accountId() !== null, false);
+		$bankFix = $this->bankAccount->fix();
+		$add('bank', $this->msg('Bankverbindung für die Überweisung'), $bankFix === null, false);
+		if ($bankFix !== null) {
+			// Wo der Editor hinverlinkt: Kontenplan oder Einstellungen (Issue #215).
+			$items[count($items) - 1] += $bankFix;
+		}
 
 		// Hinweise, die nicht am Festschreiben hindern: Spenden und echte
 		// Mitgliedsbeiträge (ideeller Bereich) sind kein Entgelt und keine

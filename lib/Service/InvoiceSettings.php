@@ -20,7 +20,8 @@ use OCP\IL10N;
  * Der Vereinsname liegt weiter unter `club_name` (Branding, Mandate, Mails).
  * Das Geldkonto für Zahlungsangaben und GiroCode ist eine Konto-ID
  * (`invoice_account_id`); ohne eigene Wahl gilt das einziehende Konto des
- * SEPA-Einzugs. Die Prüfung, dass es ein Geldkonto mit IBAN ist, macht der
+ * SEPA-Einzugs, sonst das einzige Geldkonto mit IBAN ({@see InvoiceBankAccountService}).
+ * Die Prüfung, dass die Wahl ein Geldkonto mit IBAN ist, macht der
  * SettingsController, der die Konten kennt.
  */
 class InvoiceSettings {

@@ -266,8 +266,9 @@ describe('Plan im Editor', () => {
 
 describe('Ziele der Prüfliste (Issue #204)', () => {
 	it('führt Vereins-, Steuer- und Bankangaben in die Einstellungen', () => {
-		expect(checklistTarget('bank')).toEqual({ settings: 'rechnungen' })
-		expect(checklistTarget('issuer')).toEqual({ settings: 'rechnungen' })
+		expect(checklistTarget('bank')).toEqual({ settings: 'rechnungen-zahlung' })
+		expect(checklistTarget('vatAccounts')).toEqual({ settings: 'rechnungen-zahlung' })
+		expect(checklistTarget('issuer')).toEqual({ settings: 'rechnungen-angaben' })
 		expect(checklistTarget('clubSuffix')).toEqual({ settings: 'verein' })
 	})
 
@@ -282,6 +283,12 @@ describe('Ziele der Prüfliste (Issue #204)', () => {
 		const keys = [...php.matchAll(/\$add\('([a-zA-Z]+)'/g)].map((m) => m[1])
 		expect(keys.length).toBeGreaterThan(5)
 		expect(keys.filter((k) => checklistTarget(k) === null)).toEqual([])
+	})
+
+	it('führt eine fehlende IBAN in den Kontenplan (Issue #215)', () => {
+		expect(checklistTarget('bank', { fix: 'account', accountId: 3 })).toEqual({ account: 3 })
+		expect(checklistTarget('bank', { fix: 'account', accountId: null })).toEqual({ account: null })
+		expect(checklistTarget('bank', { fix: 'settings', accountId: null })).toEqual({ settings: 'rechnungen-zahlung' })
 	})
 
 	it('kennt keinen unbekannten Schlüssel', () => {

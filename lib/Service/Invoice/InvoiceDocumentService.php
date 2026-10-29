@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service\Invoice;
 
-use OCA\Vereinsbuchhaltung\AppInfo\Application;
-use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\DebtorMapper;
 use OCA\Vereinsbuchhaltung\Db\Invoice;
 use OCA\Vereinsbuchhaltung\Db\InvoiceDocument;
@@ -15,6 +13,7 @@ use OCA\Vereinsbuchhaltung\Db\InvoiceMapper;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\BrandingService;
 use OCA\Vereinsbuchhaltung\Service\EInvoice\EInvoiceData;
+use OCA\Vereinsbuchhaltung\Service\InvoiceBankAccountService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IL10N;
@@ -34,8 +33,8 @@ class InvoiceDocumentService {
 		private InvoiceLineMapper $lines,
 		private InvoiceDocumentMapper $documents,
 		private DebtorMapper $debtors,
-		private AccountMapper $accounts,
 		private InvoiceSettings $settings,
+		private InvoiceBankAccountService $bankAccount,
 		private InvoicePdfRenderer $renderer,
 		private InvoiceDocumentStorage $storage,
 		private AuditService $audit,
@@ -168,20 +167,11 @@ class InvoiceDocumentService {
 
 	/** @return array{iban: string, bic: string, holder: string}|null */
 	private function bank(): ?array {
-		$accountId = $this->settings->accountId();
-		if ($accountId === null) {
+		$account = $this->bankAccount->resolve();
+		if ($account === null) {
 			return null;
 		}
-		try {
-			$account = $this->accounts->find($accountId, Application::BOOK);
-		} catch (DoesNotExistException) {
-			return null;
-		}
-		$iban = (string)$account->getIban();
-		if ($iban === '') {
-			return null;
-		}
-		return ['iban' => $iban, 'bic' => $this->settings->bic(), 'holder' => $this->settings->issuer()['name']];
+		return ['iban' => (string)$account->getIban(), 'bic' => $this->settings->bic(), 'holder' => $this->settings->issuer()['name']];
 	}
 
 	/** @param list<int|string> $params */

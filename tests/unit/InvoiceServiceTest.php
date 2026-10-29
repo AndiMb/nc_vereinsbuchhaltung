@@ -21,9 +21,11 @@ use OCA\Vereinsbuchhaltung\Exception\ConflictException;
 use OCA\Vereinsbuchhaltung\Exception\InvoiceNotIssuableException;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\FolderPathValidator;
+use OCA\Vereinsbuchhaltung\Service\InvoiceBankAccountService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
 use OCA\Vereinsbuchhaltung\Service\NumberRangeService;
+use OCA\Vereinsbuchhaltung\Service\SepaDebtorAccountService;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IConfig;
 use OCP\IDBConnection;
@@ -167,6 +169,7 @@ class InvoiceServiceTest extends TestCase {
 			$this->accounts,
 			$numbers,
 			$settings,
+			new InvoiceBankAccountService($settings, new SepaDebtorAccountService($config), $this->accounts),
 			new TransactionRunner($this->createMock(IDBConnection::class)),
 			$this->audit,
 			$session,
