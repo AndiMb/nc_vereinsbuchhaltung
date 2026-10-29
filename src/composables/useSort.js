@@ -1,6 +1,7 @@
 import { reactive } from 'vue'
 
-// Die Sortierung der Tabellen (Bankumsaetze, Saldenliste, Journal, Kontoauszug).
+// Die Sortierung der Tabellen (Bankumsaetze, Saldenliste, Journal, Kontoauszug,
+// Rechnungen).
 //
 // Der Zustand lag in App.vue und wurde als sort-Objekt samt toggleSort und
 // sortArrow an BookingsTab und ReportsTab durchgereicht - drei Props fuer
@@ -16,13 +17,15 @@ const state = reactive({
 	// key null = Reihenfolge des Servers (chronologisch); AccountsTab setzt
 	// das bei jedem Kontowechsel zurueck.
 	statement: { key: null, dir: 'asc' },
+	// key null = Reihenfolge des Servers; Felder aus invoiceSortFields().
+	invoices: { key: null, dir: 'asc' },
 })
 
 /**
  * Schaltet die Sortierung einer Tabelle um: dieselbe Spalte dreht die
  * Richtung, eine andere Spalte beginnt aufsteigend.
  *
- * @param {string} table 'transactions' | 'balances' | 'journal' | 'statement'
+ * @param {string} table 'transactions' | 'balances' | 'journal' | 'statement' | 'invoices'
  * @param {string} key Feldname der Spalte
  */
 function toggleSort(table, key) {
