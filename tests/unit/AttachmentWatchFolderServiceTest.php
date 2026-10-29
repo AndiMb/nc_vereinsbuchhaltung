@@ -241,6 +241,99 @@ class AttachmentWatchFolderServiceTest extends TestCase {
 		return $f;
 	}
 
+	/** @param list<int> $journalIds */
+	private static function row(int $fileId, string $name, int $mtime, array $journalIds = [], string $folder = '', int $size = 100): array {
+		return ['fileId' => $fileId, 'name' => $name, 'folder' => $folder, 'size' => $size, 'mtime' => $mtime, 'mime' => 'application/pdf', 'journalIds' => $journalIds];
+	}
+
+	/** @param list<array<string,mixed>> $files */
+	private static function verdicts(array $files): array {
+		$out = [];
+		foreach ($files as $f) {
+			$out[$f['fileId']] = $f['verdict'];
+		}
+		ksort($out);
+		return $out;
+	}
+
+	/** Hängt eine Kopie an einer Buchung, sind die freien entbehrlich. */
+	public function testZugeordneteKopieMachtDieAnderenEntbehrlich(): void {
+		$groups = AttachmentWatchFolderService::classifyDuplicates([[
+			self::row(1, 'a.pdf', 10),
+			self::row(2, 'b.pdf', 20, [7]),
+			self::row(3, 'c.pdf', 5),
+		]]);
+
+		$this->assertCount(1, $groups);
+		$this->assertSame([1 => 'removable', 2 => 'assigned', 3 => 'removable'], self::verdicts($groups[0]['files']));
+		$this->assertFalse($groups[0]['doubleBooked']);
+	}
+
+	/** Ohne Zuordnung bleibt die älteste Kopie, bei Gleichstand nach Name, dann Ordner. */
+	public function testOhneZuordnungBleibtDieAelteste(): void {
+		$groups = AttachmentWatchFolderService::classifyDuplicates([
+			[self::row(1, 'b.pdf', 10), self::row(2, 'a.pdf', 30), self::row(3, 'c.pdf', 20)],
+			[self::row(4, 'x.pdf', 10, [], 'z'), self::row(5, 'x.pdf', 10, [], 'a'), self::row(6, 'w.pdf', 10, [], 'z')],
+		]);
+
+		$all = array_merge(...array_map(static fn (array $g): array => $g['files'], $groups));
+		$this->assertSame(
+			[1 => 'keep', 2 => 'removable', 3 => 'removable', 4 => 'removable', 5 => 'removable', 6 => 'keep'],
+			self::verdicts($all),
+		);
+	}
+
+	/** Gleichstand bei mtime und Name: der Ordner entscheidet. */
+	public function testGleichstandEntscheidetDerOrdner(): void {
+		$groups = AttachmentWatchFolderService::classifyDuplicates([
+			[self::row(4, 'x.pdf', 10, [], 'z'), self::row(5, 'x.pdf', 10, [], 'a')],
+		]);
+
+		$this->assertSame([4 => 'removable', 5 => 'keep'], self::verdicts($groups[0]['files']));
+	}
+
+	/** Zwei Kopien an verschiedenen Buchungen: vermutlich doppelt gebucht. */
+	public function testKopienAnVerschiedenenBuchungenSindDoppeltGebucht(): void {
+		$groups = AttachmentWatchFolderService::classifyDuplicates([[
+			self::row(1, 'a.pdf', 10, [7]),
+			self::row(2, 'b.pdf', 20, [8]),
+		]]);
+
+		$this->assertTrue($groups[0]['doubleBooked']);
+		$this->assertSame([1 => 'assigned', 2 => 'assigned'], self::verdicts($groups[0]['files']));
+	}
+
+	/** Beide Kopien an derselben Buchung: unschön, aber nicht doppelt gebucht. */
+	public function testKopienAnDerselbenBuchungSindNichtDoppeltGebucht(): void {
+		$groups = AttachmentWatchFolderService::classifyDuplicates([[
+			self::row(1, 'a.pdf', 10, [7]),
+			self::row(2, 'b.pdf', 20, [7]),
+		]]);
+
+		$this->assertFalse($groups[0]['doubleBooked']);
+	}
+
+	/** Dieselbe Datei an zwei Buchungen (Sammelrechnung) ist keine Dublette. */
+	public function testGleicheDateiAnZweiBuchungenIstKeineDublette(): void {
+		$groups = AttachmentWatchFolderService::classifyDuplicates([
+			[self::row(1, 'a.pdf', 10, [7, 8])],
+			[self::row(2, 'b.pdf', 10, [7]), self::row(2, 'b.pdf', 10, [7])],
+		]);
+
+		$this->assertSame([], $groups);
+	}
+
+	/** Gruppen mit mehr Entbehrlichem zuerst, dann die größeren. */
+	public function testGruppenNachEntbehrlichemUndGroesse(): void {
+		$groups = AttachmentWatchFolderService::classifyDuplicates([
+			[self::row(1, 'a.pdf', 1, [], '', 10), self::row(2, 'a.pdf', 2, [], '', 10)],
+			[self::row(3, 'b.pdf', 1, [], '', 500), self::row(4, 'b.pdf', 2, [], '', 500)],
+			[self::row(5, 'c.pdf', 1, [], '', 5), self::row(6, 'c.pdf', 2, [], '', 5), self::row(7, 'c.pdf', 3, [], '', 5)],
+		]);
+
+		$this->assertSame([5, 500, 10], array_map(static fn (array $g): int => $g['size'], $groups));
+	}
+
 	public function testLinkLehntDoppelteVerknuepfungAb(): void {
 		$root = $this->createMock(Folder::class);
 		$root->method('getFirstNodeById')->with(51)->willReturn($this->file(51, 'Rechnung.pdf', 'application/pdf', 1, 1));

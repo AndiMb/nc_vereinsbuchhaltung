@@ -181,6 +181,55 @@ class AttachmentWatchFolderService {
 	}
 
 	/**
+	 * Bewertet Gruppen inhaltsgleicher Dateien: welche Kopie hängt an einer
+	 * Buchung, welche bleibt, welche ist entbehrlich. Gelöscht wird nichts –
+	 * das ist ein Hinweis für die Dateien-App.
+	 *
+	 * Hängt eine Kopie an einer Buchung, sind alle freien entbehrlich. Sonst
+	 * bleibt die älteste (mtime, dann Name, dann Ordner – damit das Ergebnis
+	 * bei jedem Aufruf dasselbe ist). Hängen Kopien an verschiedenen
+	 * Buchungen, ist die Rechnung womöglich doppelt gebucht.
+	 *
+	 * Dieselbe Datei-ID zählt nur einmal: eine Datei an mehreren Buchungen
+	 * (aufgeteilte Sammelrechnung) ist keine Dublette.
+	 *
+	 * @param list<list<array{fileId:int, name:string, folder:string, size:int, mtime:int, journalIds: list<int>}&array<string,mixed>>> $groups
+	 * @return list<array{size:int, doubleBooked:bool, files: list<array<string,mixed>>}>
+	 */
+	public static function classifyDuplicates(array $groups): array {
+		$out = [];
+		foreach ($groups as $group) {
+			$files = [];
+			foreach ($group as $file) {
+				$files[$file['fileId']] = $file;
+			}
+			if (count($files) < 2) {
+				continue;
+			}
+			usort($files, static fn (array $a, array $b): int => [$a['mtime'], $a['name'], $a['folder']] <=> [$b['mtime'], $b['name'], $b['folder']]);
+
+			$assigned = array_filter($files, static fn (array $f): bool => $f['journalIds'] !== []);
+			$journals = array_unique(array_merge(...array_map(static fn (array $f): array => $f['journalIds'], array_values($assigned))));
+			$keep = $assigned === [] ? $files[0]['fileId'] : null;
+			foreach ($files as &$file) {
+				$file['verdict'] = $file['journalIds'] !== [] ? 'assigned' : ($file['fileId'] === $keep ? 'keep' : 'removable');
+			}
+			unset($file);
+
+			$out[] = [
+				'size' => (int)$files[0]['size'],
+				// Nur Buchungen verschiedener Kopien zählen – bei einer Kopie
+				// sind mehrere Buchungen die gewollte Sammelrechnung.
+				'doubleBooked' => count($assigned) > 1 && count($journals) > 1,
+				'files' => $files,
+			];
+		}
+		$removable = static fn (array $g): int => count(array_filter($g['files'], static fn (array $f): bool => $f['verdict'] === 'removable'));
+		usort($out, static fn (array $a, array $b): int => [$removable($b), $b['size']] <=> [$removable($a), $a['size']]);
+		return $out;
+	}
+
+	/**
 	 * Die Zahlen für die Übersicht.
 	 *
 	 * @return array{folderMissing: bool, capped: bool, unassigned: int, missing: int}
