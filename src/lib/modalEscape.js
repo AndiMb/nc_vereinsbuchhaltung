@@ -12,8 +12,17 @@
 // Dialogs; er respektiert damit `noClose` und das close-Ereignis der Komponente.
 // Danach stoppt er das Ereignis, damit NcModal nicht zusaetzlich schliesst.
 //
+// Dafuer muss er vor NcModal an der Reihe sein. useHotKey lauscht in der
+// Capture-Phase am window; die Bruecke tut dasselbe und wird beim App-Start
+// registriert, also vor jedem Dialog. Liefe sie spaeter, schloesse NcModal
+// bei einem Escape waehrend der Oeffnen-Animation eines Dialogs den Dialog
+// darunter: dessen Fokusfang ist dann noch der oberste.
+//
 // Ausnahmen, die Escape selbst behandeln: aufgeklappte Auswahllisten und
-// Datumsfelder (erst das Popup, mit dem naechsten Escape der Dialog).
+// Datumsfelder (erst das Popup, mit dem naechsten Escape der Dialog) sowie
+// Felder mit `data-vbh-own-escape`, die damit etwa eine Bearbeitung abbrechen.
+// In der Capture-Phase laeuft die Bruecke vor deren eigenem Handler und kann
+// nicht an `defaultPrevented` ablesen, dass er Escape schon verbraucht hat.
 
 /**
  * Ob dieser Tastendruck den obersten Dialog schliessen soll.
@@ -28,16 +37,17 @@ export function escapeClosesModal(ev) {
 		&& !ev.insidePopup
 }
 
-const POPUP_SELECTOR = '.v-select, .vs__dropdown-menu, .mx-datepicker, .v-popper__popper, [aria-expanded="true"]'
+const POPUP_SELECTOR = '.v-select, .vs__dropdown-menu, .mx-datepicker, .v-popper__popper, [aria-expanded="true"], [data-vbh-own-escape]'
 const CLOSE_SELECTOR = '.modal-container__close, .header-close'
 
 /**
- * Haengt den Bruecken-Listener ans Dokument (einmal beim App-Start).
+ * Haengt den Bruecken-Listener ans Fenster (einmal beim App-Start, vor dem
+ * ersten Dialog).
  *
  * @param {Document} [doc] Dokument, Standard das der Seite
  */
 export function installModalEscape(doc = document) {
-	doc.addEventListener('keydown', (event) => {
+	doc.defaultView.addEventListener('keydown', (event) => {
 		const target = event.target
 		const wanted = escapeClosesModal({
 			key: event.key,
@@ -50,13 +60,12 @@ export function installModalEscape(doc = document) {
 		const masks = [...doc.querySelectorAll('.modal-mask')].filter((mask) => mask.checkVisibility?.() ?? true)
 		const top = masks.at(-1)
 		if (!top) { return }
-		// Liegt der Fokus noch auf der Seite hinter dem Dialog (der Fokusfang lief nicht an), schließt Escape den
-		// Dialog trotzdem; nur ein Ziel in einem anderen Dialog lässt der Brücke den Vortritt.
-		if (!top.contains(target) && target?.closest?.('.modal-mask')) { return }
+		// Liegt der Fokus noch hinter dem Dialog - auf der Seite oder auf dem Knopf im Dialog darunter, der ihn
+		// geoeffnet hat (der Fokusfang lief noch nicht an) -, schliesst Escape trotzdem den obersten.
 		const closeButton = top.querySelector(CLOSE_SELECTOR)
 		if (!closeButton) { return }
 		event.preventDefault()
 		event.stopImmediatePropagation()
 		closeButton.click()
-	})
+	}, true)
 }

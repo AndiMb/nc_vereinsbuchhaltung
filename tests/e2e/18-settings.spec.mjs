@@ -47,6 +47,12 @@ test.describe('Einstellungsseite: Belegablage', () => {
 		await expect(toast).toBeVisible()
 		// Transparenter Hintergrund = Toast-Stylesheet nicht geladen (styles.test.js).
 		await expect(toast).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+		// Oben rechts wie Nextclouds eigene Toasts, nicht in der Paket-Ecke
+		// unten links (toast-position.css).
+		const box = await toast.boundingBox()
+		const viewport = page.viewportSize()
+		expect(box.x + box.width / 2).toBeGreaterThan(viewport.width / 2)
+		expect(box.y + box.height / 2).toBeLessThan(viewport.height / 2)
 
 		const settings = await api.getJson(request, '/settings')
 		expect(settings.storage_user).toBe('admin')
