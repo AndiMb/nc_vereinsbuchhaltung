@@ -14,8 +14,8 @@ use OCP\Files\File;
 use OCP\Files\Folder;
 use OCP\Files\IRootFolder;
 use OCP\Files\Node;
-use OCP\Lock\LockedException;
 use OCP\IL10N;
+use OCP\Lock\LockedException;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
