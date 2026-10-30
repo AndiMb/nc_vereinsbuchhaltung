@@ -43,7 +43,7 @@ class SettingsControllerSepaTest extends TestCase {
 		$this->request = $this->createMock(IRequest::class);
 	}
 
-	private function controller(?MemberMapper $members = null): SettingsController {
+	private function controller(?MemberMapper $members = null, ?AttachmentStorageService $attachmentStorage = null, ?AttachmentWatchFolderService $attachmentWatchFolder = null): SettingsController {
 		$config = $this->createMock(IConfig::class);
 		$config->method('getAppValue')->willReturnCallback(fn (string $app, string $key, string $default = '') => $this->store[$key] ?? $default);
 		$config->method('setAppValue')->willReturnCallback(function (string $app, string $key, string $value): void {
@@ -54,8 +54,10 @@ class SettingsControllerSepaTest extends TestCase {
 		$permissions = $this->createMock(PermissionService::class);
 		$permissions->method('getRole')->willReturn(PermissionService::ROLE_ADMIN);
 
-		$attachmentStorage = $this->createMock(AttachmentStorageService::class);
-		$attachmentStorage->method('mode')->willReturn(AttachmentStorageService::MODE_APPDATA);
+		if ($attachmentStorage === null) {
+			$attachmentStorage = $this->createMock(AttachmentStorageService::class);
+			$attachmentStorage->method('mode')->willReturn(AttachmentStorageService::MODE_APPDATA);
+		}
 		$mandateDocuments = $this->createMock(MandateDocumentService::class);
 		$mandateDocuments->method('folderPath')->willReturnCallback(fn () => $this->store['mandate_document_folder'] ?? 'SEPA-Mandate');
 		$mandateDocuments->method('showMissingDocumentWarning')->willReturn(true);
@@ -72,7 +74,7 @@ class SettingsControllerSepaTest extends TestCase {
 			$this->createMock(IUserManager::class),
 			$this->createMock(SepaDebtorAccountService::class),
 			$attachmentStorage,
-			$this->createMock(AttachmentWatchFolderService::class),
+			$attachmentWatchFolder ?? $this->createMock(AttachmentWatchFolderService::class),
 			$mandateDocuments,
 			$contributionYear,
 			new FolderPathValidator($l10n),
@@ -87,6 +89,31 @@ class SettingsControllerSepaTest extends TestCase {
 	private function update(array $params): DataResponse {
 		$this->request->method('getParams')->willReturn($params);
 		return $this->controller()->update();
+	}
+
+	/**
+	 * Belegordner bei „buchhaltung", derselbe Ordner als Freigabe bei „admin"
+	 * als Kontoauszugsordner (#220): der Import räumte sonst die Belege nach
+	 * „fehler/". Ob sich die Ordner überschneiden, entscheidet der Service
+	 * über die Datei-IDs – der Controller muss ihn mit beiden Nutzern fragen.
+	 */
+	public function testKontoauszugsordnerDarfDenBelegordnerEinesAnderenNutzersNichtTreffen(): void {
+		$this->store['statement_watch_user'] = 'admin';
+		$storage = $this->createMock(AttachmentStorageService::class);
+		$storage->method('isWatchMode')->willReturn(true);
+		$storage->method('storageUser')->willReturn('buchhaltung');
+		$storage->method('storagePath')->willReturn('Belege');
+		$watch = $this->createMock(AttachmentWatchFolderService::class);
+		$watch->expects($this->once())->method('foldersOverlap')
+			->with('buchhaltung', 'Belege', 'admin', 'Freigaben/Belege')
+			->willReturn(true);
+		$this->request->method('getParams')->willReturn(['statement_watch_user' => 'admin', 'statement_watch_path' => 'Freigaben/Belege']);
+
+		$response = $this->controller(null, $storage, $watch)->update();
+
+		$this->assertSame(Http::STATUS_BAD_REQUEST, $response->getStatus());
+		$this->assertStringContainsString('überschneiden', $response->getData()['message']);
+		$this->assertArrayNotHasKey('statement_watch_path', $this->store);
 	}
 
 	public function testEinstellungssatzLiefertStandardwerteFuerAblaufVorwarnungUndMahnabstand(): void {

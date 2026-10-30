@@ -11,6 +11,7 @@ use OCA\Vereinsbuchhaltung\Db\ReceiptHashMapper;
 use OCP\Files\File;
 use OCP\Files\Folder;
 use OCP\Files\IRootFolder;
+use OCP\Files\Node;
 use OCP\IL10N;
 
 /**
@@ -57,19 +58,56 @@ class AttachmentWatchFolderService {
 		return in_array($mime, self::ALLOWED_MIMES, true);
 	}
 
-	/**
-	 * Ist einer der beiden Pfade der andere oder liegt in ihm? Beide relativ
-	 * zum selben Nutzer-Home, ohne führende oder schließende Schrägstriche.
-	 */
 	/** Versteckte Einträge zählen nirgends – weder als Dokument noch in der Ordnerwahl. */
 	public static function isHidden(string $name): bool {
 		return str_starts_with($name, '.');
 	}
 
+	/**
+	 * Ist einer der beiden Pfade der andere oder liegt in ihm? Beide relativ
+	 * zum selben Nutzer-Home, ohne führende oder schließende Schrägstriche.
+	 */
 	public static function nested(string $a, string $b): bool {
 		$a = trim($a, '/');
 		$b = trim($b, '/');
 		return $a === $b || str_starts_with($a, $b . '/') || str_starts_with($b, $a . '/');
+	}
+
+	/**
+	 * Überschneiden sich zwei Ordner in den Homes zweier Nutzer?
+	 *
+	 * Beim selben Nutzer genügt der Pfad. Bei zwei Nutzern kann derselbe Ordner
+	 * über eine Freigabe unter ganz anderem Pfad auftauchen (#220: Belege im
+	 * Home von „buchhaltung", als Kontoauszugsordner bei „admin" eingetragen) –
+	 * dann zählt, ob der eine Ordner im Home des anderen Nutzers sichtbar ist
+	 * und dort im anderen Ordner liegt oder ihn enthält.
+	 */
+	public function foldersOverlap(string $userA, string $pathA, string $userB, string $pathB): bool {
+		if ($userA === '' || $userB === '' || trim($pathA, '/') === '' || trim($pathB, '/') === '') {
+			return false;
+		}
+		if ($userA === $userB) {
+			return self::nested($pathA, $pathB);
+		}
+		try {
+			$homeA = $this->rootFolder->getUserFolder($userA);
+			$homeB = $this->rootFolder->getUserFolder($userB);
+			$folderA = $homeA->get(trim($pathA, '/'));
+			$folderB = $homeB->get(trim($pathB, '/'));
+		} catch (\Throwable) {
+			// Ein Ordner, den es (noch) nicht gibt, kann nichts treffen.
+			return false;
+		}
+		return $folderA->getId() === $folderB->getId()
+			|| self::seenNested($homeA, $pathA, $folderB)
+			|| self::seenNested($homeB, $pathB, $folderA);
+	}
+
+	/** Liegt der fremde Ordner, so wie dieses Home ihn sieht, in $path oder um ihn herum? */
+	private static function seenNested(Folder $home, string $path, Node $other): bool {
+		$seen = $home->getFirstNodeById($other->getId());
+		$relative = $seen === null ? null : $home->getRelativePath($seen->getPath());
+		return $relative !== null && self::nested($path, $relative);
 	}
 
 	/**

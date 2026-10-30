@@ -73,17 +73,16 @@ class SettingsController extends Controller {
 	/**
 	 * Wächter-Ordner für Belege und Wachordner für Kontoauszüge dürfen sich
 	 * nicht überschneiden: die PDF-Kontoauszüge unter „verarbeitet/"
-	 * erschienen sonst als Dokumente ohne Buchung. Beide Speicherpfade in
+	 * erschienen sonst als Dokumente ohne Buchung, und der Import räumte die
+	 * Belege nach „fehler/" (#220). Auch über zwei Nutzer hinweg, wenn einer
+	 * den Ordner des anderen als Freigabe sieht. Beide Speicherpfade in
 	 * update() prüfen dieselbe Regel, jeweils gegen den Stand, den der andere
 	 * nach diesem Request hat.
 	 *
 	 * @return string|null Fehlermeldung oder null, wenn alles in Ordnung ist
 	 */
 	private function foldersOverlap(string $userA, string $pathA, string $userB, string $pathB): ?string {
-		if ($userA === '' || $userA !== $userB || $pathA === '' || $pathB === '') {
-			return null;
-		}
-		return AttachmentWatchFolderService::nested($pathA, $pathB)
+		return $this->attachmentWatchFolder->foldersOverlap($userA, $pathA, $userB, $pathB)
 			? $this->l10n->t('Der Wächter-Ordner für Belege darf sich nicht mit dem überwachten Ordner für Kontoauszüge überschneiden.')
 			: null;
 	}

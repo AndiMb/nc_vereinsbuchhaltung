@@ -254,6 +254,12 @@ class WatchFolderService {
 		if (str_ends_with($node->getName(), '.fehler.txt')) {
 			return false;
 		}
+		// PDFs und Bilder sind Belege, nie Kontoauszüge. Fällt der Wachordner
+		// doch mit dem Belegordner zusammen (#220), bleiben sie liegen, statt
+		// mit einer Fehlerdatei nach „fehler/" zu wandern.
+		if (AttachmentWatchFolderService::isReceipt($node->getMimetype())) {
+			return false;
+		}
 		try {
 			return $node->getSize() > 0 && $node->getSize() <= self::MAX_BYTES;
 		} catch (\Throwable) {

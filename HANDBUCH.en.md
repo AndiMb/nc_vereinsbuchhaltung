@@ -340,7 +340,10 @@ From then on, it's enough to drop the statement downloaded from online
 banking into this folder – also from a phone or directly from the Nextcloud
 app. The app checks hourly and reads in new files. Afterwards the file moves
 to `verarbeitet/`; if it couldn't be read, to `fehler/`, with a text file
-next to it naming the reason. **Nothing is deleted.**
+next to it naming the reason. **Nothing is deleted.** PDFs and images are
+left untouched: they are receipts, not statements. For the same reason the
+watch folder must not overlap the receipt watch folder – the settings reject
+that, even when the same folder is entered for two users via a share.
 
 > **What this is not:** a fetch from the bank. Downloading the statement
 > still has to be done by a human – the app does not fetch it itself.
