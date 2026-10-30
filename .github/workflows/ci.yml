@@ -135,7 +135,7 @@ jobs:
           EINVOICE_DUMP_DIR: ${{ runner.temp }}/einvoice
         run: phpunit --configuration phpunit.xml --filter testBeispieleFuerDieExternePruefungSchreiben
 
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '21'
