@@ -3412,6 +3412,8 @@
         "– kein Konto –": "– no account –",
         "Ablageordner für Rechnungs-Dateien": "Storage folder for invoice files",
         "Die PDFs liegen als Dateien im Ordner des Nutzers der Belegablage, jeweils in einem Unterordner je Jahr. Ist keiner eingerichtet, speichert die App sie intern.": "The PDFs are stored as files in the folder of the user set for receipt storage, each in a subfolder per year. If none is set up, the app stores them internally.",
+        "Die PDFs liegen in dessen Home unter": "The PDFs are stored in that user's home under",
+        "Der Pfad beginnt im Home dieses Nutzers, nicht in Ihrem eigenen; ein fehlender Ordner wird angelegt. Am sichersten wählen Sie den Ordner über den Knopf neben dem Feld.": "The path starts in this user's home, not in your own; a missing folder is created. The safest way is to choose the folder with the button next to the field.",
         "E-Mail-Vorlage für den Versand": "Email template for sending",
         "Rechnungsnummern": "Invoice numbers",
         "Rechnungsnummern müssen fortlaufend und einmalig sein. Platzhalter: {JJJJ} (Jahr), {JJ} (zweistelliges Jahr) und {NNNN} (Zähler, die Zahl der N bestimmt die Stellen).": "Invoice numbers have to be consecutive and unique. Placeholders: {JJJJ} (year), {JJ} (two-digit year) and {NNNN} (counter, the number of Ns sets the digits).",

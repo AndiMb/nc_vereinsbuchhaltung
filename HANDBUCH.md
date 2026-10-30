@@ -2498,7 +2498,7 @@ Buchhalter dürfen Entwürfe anlegen; **Festschreiben, Versenden und Stornieren*
 **Festschreiben …** prüft die Pflichtangaben (Anschrift und Steuernummer des Vereins, Empfänger, Leistungszeitpunkt, Positionen, Betrag). Unter **Zur Beachtung** nennt der Editor Hinweise, die das Festschreiben nicht verhindern: eine Position auf einem Konto des ideellen Bereichs (**Spenden und echte Mitgliedsbeiträge sind keine Rechnung** – dafür gibt es die Zuwendungsbestätigung bzw. das Beitragsmodul), ein eingetragener Verein ohne „e. V.“ im Namen und eine fehlende Bankverbindung. Optional druckt die Rechnung einen **Hinweis auf die Gemeinnützigkeit** (Einstellungen → Rechnungen → Angaben des Vereins); er ersetzt keinen Steuerhinweis. Danach:
 
 - bekommt die Rechnung ihre **Nummer** und ist **unveränderlich** – korrigieren lässt sie sich nur durch Stornieren;
-- entsteht das **PDF** (PDF/A-3b, mit GiroCode zum Scannen in der Banking-App) und liegt als Datei im Ordner der Belegablage unter `Vereinsbuchhaltung/Rechnungen/<Jahr>/`; die Prüfsumme (SHA-256) zeigt später, ob die Datei verändert wurde;
+- entsteht das **PDF** (PDF/A-3b, mit GiroCode zum Scannen in der Banking-App) und liegt als Datei im Home des Belegablage-Nutzers unter `Vereinsbuchhaltung/Rechnungen/<Jahr>/` (der Ordner lässt sich in den Rechnungs-Einstellungen ändern; der Pfad beginnt im Home dieses Nutzers, nicht im eigenen); die Prüfsumme (SHA-256) zeigt später, ob die Datei verändert wurde;
 - entsteht der **offene Posten** mit der Rechnungsnummer als Referenz.
 
 Es wird noch **nichts gebucht**: Die App arbeitet nach dem Ist-Prinzip, gebucht wird erst, wenn das Geld da ist.
