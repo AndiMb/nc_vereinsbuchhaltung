@@ -12,6 +12,12 @@
 // Dialogs; er respektiert damit `noClose` und das close-Ereignis der Komponente.
 // Danach stoppt er das Ereignis, damit NcModal nicht zusaetzlich schliesst.
 //
+// Greift NcModal doch selbst (sein useHotKey lauscht in der Capture-Phase am
+// window, also vor dieser Bruecke), ist der Dialog seit @nextcloud/vue 9.14
+// schon im selben Tastendruck aus dem DOM verschwunden - ohne Ausblend-
+// Uebergang. Die Bruecke merkt sich deshalb zu Beginn jedes Tastendrucks den
+// obersten Dialog und schliesst nur diesen, nie den darunter.
+//
 // Ausnahmen, die Escape selbst behandeln: aufgeklappte Auswahllisten und
 // Datumsfelder (erst das Popup, mit dem naechsten Escape der Dialog).
 
@@ -37,6 +43,11 @@ const CLOSE_SELECTOR = '.modal-container__close, .header-close'
  * @param {Document} [doc] Dokument, Standard das der Seite
  */
 export function installModalEscape(doc = document) {
+	const topMask = () => [...doc.querySelectorAll('.modal-mask')].filter((mask) => mask.checkVisibility?.() ?? true).at(-1)
+	// Beim App-Start registriert und damit vor jedem NcModal an der Reihe.
+	let topAtStart = null
+	doc.defaultView.addEventListener('keydown', () => { topAtStart = topMask() ?? null }, true)
+
 	doc.addEventListener('keydown', (event) => {
 		const target = event.target
 		const wanted = escapeClosesModal({
@@ -47,9 +58,8 @@ export function installModalEscape(doc = document) {
 		})
 		if (!wanted) { return }
 
-		const masks = [...doc.querySelectorAll('.modal-mask')].filter((mask) => mask.checkVisibility?.() ?? true)
-		const top = masks.at(-1)
-		if (!top) { return }
+		const top = topMask()
+		if (!top || top !== topAtStart) { return }
 		// Liegt der Fokus noch auf der Seite hinter dem Dialog (der Fokusfang lief nicht an), schließt Escape den
 		// Dialog trotzdem; nur ein Ziel in einem anderen Dialog lässt der Brücke den Vortritt.
 		if (!top.contains(target) && target?.closest?.('.modal-mask')) { return }
