@@ -212,12 +212,21 @@
 				</label>
 			</div>
 			<div class="vbh-form">
-				<label class="vbh-grow">{{ t('Ablageordner für Rechnungs-Dateien') }}
-					<input v-model="form.invoice_folder" maxlength="200" placeholder="Vereinsbuchhaltung/Rechnungen">
-				</label>
+				<FolderPathField
+					v-model="form.invoice_folder"
+					inputId="vbh-invoice-folder"
+					:user="storageUser"
+					placeholder="Vereinsbuchhaltung/Rechnungen"
+					:label="t('Ablageordner für Rechnungs-Dateien')" />
 			</div>
-			<p class="vbh-hint">
+			<p v-if="!storageUser" class="vbh-hint">
 				{{ t('Die PDFs liegen als Dateien im Ordner des Nutzers der Belegablage, jeweils in einem Unterordner je Jahr. Ist keiner eingerichtet, speichert die App sie intern.') }}
+			</p>
+			<p v-else class="vbh-hint">
+				<!-- Nutzer und Pfad stehen ausserhalb von t(): dessen Variablen werden als HTML maskiert, Vue maskiert ein zweites Mal -->
+				{{ t('Ablage-Nutzer:') }} <strong>{{ storageUser }}</strong>.
+				{{ t('Die PDFs liegen in dessen Home unter') }} <code>{{ invoiceFolderPath }}/&lt;{{ t('Jahr') }}&gt;/</code>.
+				{{ t('Der Pfad beginnt im Home dieses Nutzers, nicht in Ihrem eigenen; ein fehlender Ordner wird angelegt. Am sichersten wählen Sie den Ordner über den Knopf neben dem Feld.') }}
 			</p>
 			<p v-if="taxError" class="vbh-hint vbh-hint--error" role="alert">
 				{{ taxError }}
@@ -391,6 +400,7 @@ import { generateUrl } from '@nextcloud/router'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import CountrySelect from './CountrySelect.vue'
+import FolderPathField from './FolderPathField.vue'
 import SettingsInvoiceTemplates from './SettingsInvoiceTemplates.vue'
 import SettingsTemplateField from './SettingsTemplateField.vue'
 import SettingsToggle from './SettingsToggle.vue'
@@ -451,7 +461,12 @@ const KEYS = [
  */
 export default {
 	name: 'SettingsInvoices',
-	components: { NcButton, NcLoadingIcon, CountrySelect, SettingsInvoiceTemplates, SettingsTemplateField, SettingsToggle },
+	components: { NcButton, NcLoadingIcon, CountrySelect, FolderPathField, SettingsInvoiceTemplates, SettingsTemplateField, SettingsToggle },
+
+	props: {
+		// Nutzer der Belegablage im Nextcloud-Dateibaum (SettingsApp.vue); leer = app-interne Ablage
+		storageUser: { type: String, default: '' },
+	},
 
 	data() {
 		return {
@@ -473,6 +488,11 @@ export default {
 	},
 
 	computed: {
+		/** Wie InvoiceSettings::folder(): ein leeres Feld heißt Standardordner (Issue #212). */
+		invoiceFolderPath() {
+			return String(this.form.invoice_folder || '').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '') || 'Vereinsbuchhaltung/Rechnungen'
+		},
+
 		bankAccounts() { return this.accounts.filter((a) => a.isBank && a.iban) },
 		vatAccounts() { return this.accounts.filter((a) => !a.isBank && a.active && ['liability', 'income'].includes(a.type)) },
 		/**

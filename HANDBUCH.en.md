@@ -2471,7 +2471,7 @@ Accountants may create drafts; **finalizing, sending and cancelling** are reserv
 **Finalize …** checks the mandatory details (address and tax number of the association, recipient, time of service, line items, amount). Under **Please note** the editor lists hints that do not prevent finalizing: a line on an account of the non-material sphere (**donations and genuine membership fees are not invoiced** – use the donation receipt or the contributions module instead), a registered association without "e. V." in its name, and a missing bank account. Optionally the invoice prints a **note on non-profit status** (Settings → Invoices → Club details); it does not replace a VAT notice. After that:
 
 - the invoice receives its **number** and is **immutable** – it can only be corrected by cancelling it;
-- the **PDF** is created (PDF/A-3b, with a GiroCode to scan in the banking app) and stored as a file in the folder of the receipt storage under `Vereinsbuchhaltung/Rechnungen/<year>/`; the checksum (SHA-256) later shows whether the file was changed;
+- the **PDF** is created (PDF/A-3b, with a GiroCode to scan in the banking app) and stored as a file in the home of the receipt storage user under `Vereinsbuchhaltung/Rechnungen/<year>/` (the folder can be changed in the invoice settings; the path starts in that user's home, not in your own); the checksum (SHA-256) later shows whether the file was changed;
 - the **open item** is created with the invoice number as its reference.
 
 **Nothing is booked yet**: the app works on a cash basis, booking happens when the money arrives.

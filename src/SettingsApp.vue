@@ -58,7 +58,7 @@
 
 		<div id="settings-section_rechnungen">
 			<NcSettingsSection :name="t('Rechnungen')">
-				<SettingsInvoices />
+				<SettingsInvoices :storageUser="storageUser" />
 			</NcSettingsSection>
 		</div>
 

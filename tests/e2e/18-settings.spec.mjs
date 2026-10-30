@@ -256,3 +256,31 @@ test.describe('Einstellungsseite: gelöschter Nextcloud-Nutzer blockiert nichts'
 		expect((await rejected.json()).message).toMatch(/existiert nicht/)
 	})
 })
+
+test.describe('Einstellungsseite: Ablageordner der Rechnungen', () => {
+	test.afterAll(async ({ request }) => {
+		await api.updateSettings(request, { storage_user: '', storage_path: 'Vereinsbuchhaltung/Belege', invoice_folder: '' })
+	})
+
+	// Issue #212: der Pfad beginnt im Home des Ablage-Nutzers. Wer das nicht
+	// sieht, legt neben dem gemeinsamen Ordner unbemerkt einen zweiten an.
+	test('zeigt Ablage-Nutzer und vollständigen Pfad und bietet die Ordnerwahl an', async ({ page, request }) => {
+		await api.updateSettings(request, { storage_user: 'admin', storage_path: 'Vereinsbuchhaltung/Belege', invoice_folder: '' })
+		await openSettingsPage(page, USERS.admin)
+		const card = page.locator('#settings-section_rechnungen-zahlung')
+		await expect(card).toContainText('Ablage-Nutzer: admin')
+		await expect(card.locator('code')).toHaveText('Vereinsbuchhaltung/Rechnungen/<Jahr>/')
+		await expect(card.getByRole('button', { name: 'Ordner wählen…' })).toBeVisible()
+
+		await card.getByLabel('Ablageordner für Rechnungs-Dateien').fill('/Verein/Finanzen/Rechnungen/')
+		await expect(card.locator('code')).toHaveText('Verein/Finanzen/Rechnungen/<Jahr>/')
+	})
+
+	test('ohne Ablage-Nutzer bleibt der Hinweis auf die interne Ablage', async ({ page, request }) => {
+		await api.updateSettings(request, { storage_user: '', storage_path: 'Vereinsbuchhaltung/Belege' })
+		await openSettingsPage(page, USERS.admin)
+		const card = page.locator('#settings-section_rechnungen-zahlung')
+		await expect(card).toContainText('speichert die App sie intern')
+		await expect(card.getByRole('button', { name: 'Ordner wählen…' })).toHaveCount(0)
+	})
+})
