@@ -17,6 +17,42 @@ als „[object Object]" (falsche Renderer-Callback-Signatur, Nextcloud-
 Core-Bug, reproduziert 23.08.2026). Stattdessen **Fettdruck als Zeilenanfang**
 verwenden, z. B. `**Neu:**`.
 
+## [0.46.0] – 2026-10-30
+
+**Neu:**
+- **Belegordner aufräumen**: Im Eingangskorb des Wächter-Ordners haben offene
+  Belege und Ordner mit offenen Belegen ein Auswahlkästchen, dazu „Alle offenen
+  wählen“ (beachtet die Suche) und Umschalt-Klick für Bereiche. „Verschieben
+  nach…“ legt die Auswahl in einen Unterordner des Wächter-Ordners, z. B.
+  `_Klären`, auf Wunsch neu angelegt. Gleichnamige Dateien bekommen eine Nummer
+  statt überschrieben zu werden, zugeordnete Belege bleiben liegen, jede
+  Verschiebung steht im Änderungsprotokoll.
+- **Dubletten finden**: Die neue Ansicht „Dubletten“ gruppiert Dateien mit
+  gleichem Inhalt und kennzeichnet jede Kopie als *zugeordnet*, *behalten* oder
+  *kann weg*. Hängen Kopien an verschiedenen Buchungen, warnt die App „evtl.
+  doppelt gebucht“. „Alle ‚kann weg‘ wählen“ und „Verschieben nach… `_Dubletten`“
+  sammeln die überflüssigen Kopien; gelöscht wird in der Dateien-App – die App
+  selbst löscht nichts.
+
+**Geändert:**
+- **Ablageordner der Rechnungen** (#212): Das Feld hat jetzt die Ordnerwahl wie
+  bei Belegen und SEPA-Mandaten. Darunter stehen der Ablage-Nutzer und der
+  vollständige Pfad bis zum Jahresordner – der Pfad beginnt im Home dieses
+  Nutzers, nicht im eigenen. Bisher entstand bei einem Pfad ohne den
+  gemeinsamen Ordner davor unbemerkt ein zweiter, gleichnamiger Ordner.
+- Hinweis-Meldungen (Toasts) nutzen die neue, barrierearme Darstellung von
+  Nextcloud und stehen weiterhin oben rechts.
+
+**Behoben:**
+- Der **Kontoauszugs-Wachordner** verschiebt keine Belege mehr nach `fehler/`
+  (#220). PDFs und Bilder lässt der Auszugsimport liegen; außerdem erkennen die
+  Einstellungen jetzt auch, wenn Auszugs- und Beleg-Wächter-Ordner derselbe
+  oder ineinander verschachtelte Ordner sind, obwohl sie für zwei verschiedene
+  Nutzer (über eine Freigabe) eingetragen sind.
+- **Escape** schließt bei übereinanderliegenden Dialogen nur noch den obersten –
+  auch während der Öffnen-Animation. Bisher konnte etwa Escape im
+  Widerrufsdialog die Mitgliederakte darunter gleich mit schließen.
+
 ## [0.45.1] – 2026-10-29
 
 **Geändert:**

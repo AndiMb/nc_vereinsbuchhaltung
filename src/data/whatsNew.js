@@ -25,6 +25,15 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.46.0',
+			roles: ['verwalter', 'buchhalter'],
+			items: [
+				t('Neu: Belegordner aufräumen. Im Eingangskorb des Wächter-Ordners lassen sich offene Belege auswählen und in einen Unterordner verschieben, z. B. „_Klären“.'),
+				t('Neu: Die Ansicht „Dubletten“ findet Dateien mit gleichem Inhalt und zeigt, welche Kopie zugeordnet ist und welche weg kann. Gelöscht wird in der Dateien-App – die App selbst löscht nichts.'),
+				t('Der Kontoauszugs-Wachordner verschiebt keine Belege mehr nach „fehler/“, auch wenn er mit dem Beleg-Ordner zusammenfällt.'),
+			],
+		},
+		{
 			version: '0.45.1',
 			roles: ['verwalter', 'buchhalter'],
 			items: [

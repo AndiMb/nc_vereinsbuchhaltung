@@ -15,6 +15,41 @@ Markdown headings as "[object Object]" since `marked` v18 (wrong renderer
 callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 **bold lead-in** at the start of a line instead, e.g. `**New:**`.
 
+## [0.46.0] – 2026-10-30
+
+**New:**
+- **Tidy up the receipt folder**: in the watch folder inbox, open receipts and
+  folders containing open receipts get a checkbox, plus "select all open"
+  (respects the search) and shift-click for ranges. "Move to…" puts the
+  selection into a subfolder of the watch folder, e.g. `_Clarify`, optionally
+  creating it. Files with the same name get a number instead of being
+  overwritten, assigned receipts stay put, and every move is recorded in the
+  audit log.
+- **Find duplicates**: the new "Duplicates" view groups files with identical
+  content and marks each copy as *assigned*, *keep* or *can go*. If copies hang
+  on different postings, the app warns "possibly booked twice". "Select all
+  'can go'" and "Move to… `_Duplicates`" collect the redundant copies; deleting
+  happens in the Files app – the app itself never deletes anything.
+
+**Changed:**
+- **Invoice storage folder** (#212): the field now has the folder picker known
+  from receipts and SEPA mandates. Below it, the storage user and the full path
+  down to the year folder are shown – the path starts in that user's home, not
+  in your own. Previously, a path without the shared folder in front silently
+  created a second folder with the same name.
+- Notifications (toasts) use Nextcloud's new, accessible presentation and still
+  appear at the top right.
+
+**Fixed:**
+- The **bank statement watch folder** no longer moves receipts to `fehler/`
+  (#220). The statement import leaves PDFs and images alone; the settings now
+  also detect when the statement and receipt watch folders are the same or
+  nested folders even though they are entered for two different users (via a
+  share).
+- With stacked dialogs, **Escape** now only closes the topmost one – also during
+  the opening animation. Previously, e.g. Escape in the revocation dialog could
+  close the member record underneath as well.
+
 ## [0.45.1] – 2026-10-29
 
 **Changed:**
