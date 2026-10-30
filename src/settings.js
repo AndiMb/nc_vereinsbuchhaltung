@@ -3,7 +3,6 @@ import SettingsApp from './SettingsApp.vue'
 import { loadAppTranslations, n, t, tc, tRaw } from './lib/l10n.js'
 import { installStackTables } from './lib/stackTables.js'
 
-import '@nextcloud/dialogs/style.css'
 import './toast-position.css'
 // Globale .vbh-* Utility-Styles, siehe main.js - dieselbe Begruendung gilt
 // hier: die Einstellungsseite nutzt dieselben Komponenten (SettingsClub.vue

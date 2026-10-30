@@ -194,15 +194,24 @@ describe('styles.css: Schutz gegen Nextclouds .active-Regel', () => {
 })
 
 describe('Toast-Styles aus @nextcloud/dialogs', () => {
-	// Seit 7.5.0 tragen Toasts CSS-Modules-Klassen, die allein das
-	// Paket-Stylesheet kennt - ohne den Import in jedem Webpack-Einstieg
-	// rendern showSuccess/showError als nackter Text.
-	it.each(['main.js', 'settings.js'])('%s importiert @nextcloud/dialogs/style.css', (entry) => {
-		const source = readFileSync(join(SRC, entry), 'utf-8')
-		expect(source).toMatch(/^import '@nextcloud\/dialogs\/style\.css'$/m)
+	// Toasts tragen CSS-Modules-Klassen, die allein das Paket-Stylesheet kennt.
+	// Bis 7.x musste jeder Webpack-Einstieg es selbst importieren; seit 8.0
+	// laedt der Toast-Code es mit, und der Export style.css ist entfallen.
+	// Faellt das Mitladen wieder weg, rendern showSuccess/showError als
+	// nackter Text (E2E 18-settings prueft den Hintergrund).
+	it('@nextcloud/dialogs laedt das Toast-Stylesheet selbst', () => {
+		const chunks = join(SRC, '..', 'node_modules', '@nextcloud', 'dialogs', 'dist', 'chunks')
+		const toast = readdirSync(chunks).filter((f) => /^toast-.*\.js$/.test(f))
+		expect(toast.length).toBeGreaterThan(0)
+		expect(toast.some((f) => readFileSync(join(chunks, f), 'utf-8').includes('../assets/toast.css'))).toBe(true)
 	})
 
-	// 7.5.0 setzt Toasts ausserdem nach unten links, Nextclouds eigene bleiben
+	it.each(['main.js', 'settings.js'])('%s importiert kein @nextcloud/dialogs/style.css mehr', (entry) => {
+		const source = readFileSync(join(SRC, entry), 'utf-8')
+		expect(source).not.toMatch(/@nextcloud\/dialogs\/style\.css/)
+	})
+
+	// Das Paket setzt Toasts ausserdem nach unten links, Nextclouds eigene bleiben
 	// oben rechts - src/toast-position.css raeumt das auf und gehoert damit in
 	// dieselben Einstiege wie das Paket-Stylesheet.
 	it.each(['main.js', 'settings.js'])('%s importiert toast-position.css', (entry) => {
@@ -224,10 +233,11 @@ describe('Toast-Styles aus @nextcloud/dialogs', () => {
 	// ist toast-position.css wirkungslos bzw. ueberfluessig - beides faellt
 	// sonst erst auf, wenn Toasts in der falschen Ecke stehen.
 	it('@nextcloud/dialogs setzt die Toasts weiterhin nach unten links', () => {
-		const paket = readFileSync(join(SRC, '..', 'node_modules', '@nextcloud', 'dialogs', 'dist', 'style.css'), 'utf-8')
+		const paket = readFileSync(join(SRC, '..', 'node_modules', '@nextcloud', 'dialogs', 'dist', 'assets', 'toast.css'), 'utf-8')
 		const regeln = [...paket.matchAll(/\.(_toastContainer_[a-z0-9_]+)\s*\{([^}]*)\}/gi)]
 		expect(regeln.length).toBeGreaterThan(0)
-		// Mindestens eine Regel muss die Ecke setzen, die wir ueberschreiben.
-		expect(regeln.some((r) => /(^|;)\s*left\s*:/.test(r[2]) && /(^|;)\s*bottom\s*:/.test(r[2]))).toBe(true)
+		// Mindestens eine Regel muss die Ecke setzen, die wir ueberschreiben -
+		// seit 8.0 mit logischen Eigenschaften statt left/bottom.
+		expect(regeln.some((r) => /(^|;)\s*(left|inset-inline-start)\s*:/.test(r[2]) && /(^|;)\s*(bottom|inset-block-end)\s*:/.test(r[2]))).toBe(true)
 	})
 })
