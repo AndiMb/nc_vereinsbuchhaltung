@@ -345,7 +345,10 @@ Ordner zu legen – auch vom Handy oder direkt aus der Nextcloud-App heraus.
 Stündlich sieht die App nach und liest neue Dateien ein. Anschließend
 wandert die Datei nach `verarbeitet/`; ließ sie sich nicht lesen, nach
 `fehler/`, mit einer Textdatei daneben, die den Grund nennt. **Gelöscht wird
-nichts.**
+nichts.** PDFs und Bilder bleiben unangetastet liegen: sie sind Belege, keine
+Kontoauszüge. Der Wachordner darf deshalb auch nicht mit dem Wächter-Ordner
+für Belege zusammenfallen – die Einstellungen weisen das ab, auch wenn
+derselbe Ordner bei zwei Nutzern als Freigabe eingetragen ist.
 
 > **Was das nicht ist:** ein Abruf bei der Bank. Den Auszug herunterladen
 > muss weiterhin ein Mensch – die App holt ihn sich nicht selbst.

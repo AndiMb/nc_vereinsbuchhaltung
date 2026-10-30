@@ -220,6 +220,92 @@ class AttachmentWatchFolderServiceTest extends TestCase {
 		];
 	}
 
+	/** Beim selben Nutzer entscheidet der Pfad – auch wenn es den Ordner noch nicht gibt. */
+	public function testUeberschneidungBeimSelbenNutzerNachPfad(): void {
+		$this->assertTrue($this->service()->foldersOverlap('kassenwart', 'Belege', 'kassenwart', 'Belege/Auszuege'));
+		$this->assertFalse($this->service()->foldersOverlap('kassenwart', 'Belege', 'kassenwart', 'Auszuege'));
+	}
+
+	/**
+	 * Zwei Nutzer, ein Ordner: der eine hat ihn angelegt, der andere sieht ihn
+	 * als Freigabe unter anderem Pfad (#220). Die Pfade sagen nichts, die
+	 * Datei-ID schon.
+	 */
+	public function testUeberschneidungUeberFreigabeDerselbeOrdner(): void {
+		$rootFolder = $this->homes([
+			'buchhaltung' => ['Belege' => 100],
+			'admin' => ['Freigaben/Belege' => 100],
+		]);
+		$this->assertTrue($this->service($rootFolder)->foldersOverlap('buchhaltung', 'Belege', 'admin', 'Freigaben/Belege'));
+	}
+
+	/** Der Kontoauszugsordner liegt als Unterordner in der Freigabe des Belegordners – und umgekehrt. */
+	public function testUeberschneidungUeberFreigabeVerschachtelt(): void {
+		$rootFolder = $this->homes([
+			'buchhaltung' => ['Belege' => 100, 'Belege/Auszuege' => 200],
+			'admin' => ['Freigaben/Auszuege' => 200],
+		]);
+		$service = $this->service($rootFolder);
+		$this->assertTrue($service->foldersOverlap('buchhaltung', 'Belege', 'admin', 'Freigaben/Auszuege'));
+		$this->assertTrue($service->foldersOverlap('admin', 'Freigaben/Auszuege', 'buchhaltung', 'Belege'));
+	}
+
+	public function testKeineUeberschneidungZwischenGetrenntenOrdnern(): void {
+		$rootFolder = $this->homes([
+			'buchhaltung' => ['Belege' => 100],
+			'admin' => ['Auszuege' => 200],
+		]);
+		$this->assertFalse($this->service($rootFolder)->foldersOverlap('buchhaltung', 'Belege', 'admin', 'Auszuege'));
+	}
+
+	/** Einen Ordner, den es (noch) nicht gibt, kann nichts treffen. */
+	public function testKeineUeberschneidungMitFehlendemOrdner(): void {
+		$rootFolder = $this->homes([
+			'buchhaltung' => ['Belege' => 100],
+			'admin' => [],
+		]);
+		$this->assertFalse($this->service($rootFolder)->foldersOverlap('buchhaltung', 'Belege', 'admin', 'Auszuege'));
+	}
+
+	/**
+	 * Ein Dateibaum je Nutzer: Pfad => Datei-ID. Dieselbe ID bei zwei Nutzern
+	 * ist derselbe Ordner, gesehen über eine Freigabe.
+	 *
+	 * @param array<string, array<string, int>> $trees
+	 */
+	private function homes(array $trees): IRootFolder {
+		$homes = [];
+		foreach ($trees as $uid => $tree) {
+			$base = '/' . $uid . '/files';
+			$home = $this->createMock(Folder::class);
+			$home->method('get')->willReturnCallback(function (string $path) use ($tree, $base): Folder {
+				if (!isset($tree[$path])) {
+					throw new \OCP\Files\NotFoundException($path);
+				}
+				$folder = $this->createMock(Folder::class);
+				$folder->method('getId')->willReturn($tree[$path]);
+				$folder->method('getPath')->willReturn($base . '/' . $path);
+				return $folder;
+			});
+			$home->method('getFirstNodeById')->willReturnCallback(function (int $id) use ($tree, $base): ?Node {
+				$path = array_search($id, $tree, true);
+				if ($path === false) {
+					return null;
+				}
+				$node = $this->createMock(Folder::class);
+				$node->method('getPath')->willReturn($base . '/' . $path);
+				return $node;
+			});
+			$home->method('getRelativePath')->willReturnCallback(
+				static fn (string $path): ?string => str_starts_with($path, $base . '/') ? substr($path, strlen($base)) : null,
+			);
+			$homes[$uid] = $home;
+		}
+		$rootFolder = $this->createMock(IRootFolder::class);
+		$rootFolder->method('getUserFolder')->willReturnCallback(static fn (string $uid): Folder => $homes[$uid]);
+		return $rootFolder;
+	}
+
 	private function linked(int $fileId, int $journalId = 1): Attachment {
 		$a = new Attachment();
 		$a->setJournalId($journalId);
