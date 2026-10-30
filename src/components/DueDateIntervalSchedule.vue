@@ -60,6 +60,7 @@
 										v-model="editing.date"
 										type="date"
 										:aria-label="t('Einzugstermin für {periodName}', { periodName: row.name })"
+										data-vbh-own-escape
 										@keydown.enter.prevent="applyEdit"
 										@keydown.esc.prevent="editing = null">
 									<p v-if="editError" class="vbh-hint vbh-hint--error" role="alert">
