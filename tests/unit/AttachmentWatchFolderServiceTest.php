@@ -7,12 +7,15 @@ namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 use OCA\Vereinsbuchhaltung\Db\Attachment;
 use OCA\Vereinsbuchhaltung\Db\AttachmentMapper;
 use OCA\Vereinsbuchhaltung\Db\Journal;
+use OCA\Vereinsbuchhaltung\Db\ReceiptHashMapper;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\AttachmentWatchFolderService;
 use OCP\Files\File;
 use OCP\Files\Folder;
 use OCP\Files\IRootFolder;
+use OCP\Files\Node;
 use OCP\IL10N;
+use OCP\Lock\LockedException;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -29,12 +32,14 @@ class AttachmentWatchFolderServiceTest extends TestCase {
 
 	private AttachmentStorageService&MockObject $storage;
 	private AttachmentMapper&MockObject $mapper;
+	private ReceiptHashMapper&MockObject $hashes;
 
 	protected function setUp(): void {
 		$this->storage = $this->createMock(AttachmentStorageService::class);
 		$this->storage->method('isWatchMode')->willReturn(true);
 		$this->storage->method('storageUser')->willReturn('kassenwart');
 		$this->mapper = $this->createMock(AttachmentMapper::class);
+		$this->hashes = $this->createMock(ReceiptHashMapper::class);
 	}
 
 	/**
@@ -241,6 +246,456 @@ class AttachmentWatchFolderServiceTest extends TestCase {
 		return $f;
 	}
 
+	/** @param list<int> $journalIds */
+	private static function row(int $fileId, string $name, int $mtime, array $journalIds = [], string $folder = '', int $size = 100): array {
+		return ['fileId' => $fileId, 'name' => $name, 'folder' => $folder, 'size' => $size, 'mtime' => $mtime, 'mime' => 'application/pdf', 'journalIds' => $journalIds];
+	}
+
+	/** @param list<array<string,mixed>> $files */
+	private static function verdicts(array $files): array {
+		$out = [];
+		foreach ($files as $f) {
+			$out[$f['fileId']] = $f['verdict'];
+		}
+		ksort($out);
+		return $out;
+	}
+
+	/** Hängt eine Kopie an einer Buchung, sind die freien entbehrlich. */
+	public function testZugeordneteKopieMachtDieAnderenEntbehrlich(): void {
+		$groups = AttachmentWatchFolderService::classifyDuplicates([[
+			self::row(1, 'a.pdf', 10),
+			self::row(2, 'b.pdf', 20, [7]),
+			self::row(3, 'c.pdf', 5),
+		]]);
+
+		$this->assertCount(1, $groups);
+		$this->assertSame([1 => 'removable', 2 => 'assigned', 3 => 'removable'], self::verdicts($groups[0]['files']));
+		$this->assertFalse($groups[0]['doubleBooked']);
+	}
+
+	/** Ohne Zuordnung bleibt die älteste Kopie, bei Gleichstand nach Name, dann Ordner. */
+	public function testOhneZuordnungBleibtDieAelteste(): void {
+		$groups = AttachmentWatchFolderService::classifyDuplicates([
+			[self::row(1, 'b.pdf', 10), self::row(2, 'a.pdf', 30), self::row(3, 'c.pdf', 20)],
+			[self::row(4, 'x.pdf', 10, [], 'z'), self::row(5, 'x.pdf', 10, [], 'a'), self::row(6, 'w.pdf', 10, [], 'z')],
+		]);
+
+		$all = array_merge(...array_map(static fn (array $g): array => $g['files'], $groups));
+		$this->assertSame(
+			[1 => 'keep', 2 => 'removable', 3 => 'removable', 4 => 'removable', 5 => 'removable', 6 => 'keep'],
+			self::verdicts($all),
+		);
+	}
+
+	/** Gleichstand bei mtime und Name: der Ordner entscheidet. */
+	public function testGleichstandEntscheidetDerOrdner(): void {
+		$groups = AttachmentWatchFolderService::classifyDuplicates([
+			[self::row(4, 'x.pdf', 10, [], 'z'), self::row(5, 'x.pdf', 10, [], 'a')],
+		]);
+
+		$this->assertSame([4 => 'removable', 5 => 'keep'], self::verdicts($groups[0]['files']));
+	}
+
+	/** Zwei Kopien an verschiedenen Buchungen: vermutlich doppelt gebucht. */
+	public function testKopienAnVerschiedenenBuchungenSindDoppeltGebucht(): void {
+		$groups = AttachmentWatchFolderService::classifyDuplicates([[
+			self::row(1, 'a.pdf', 10, [7]),
+			self::row(2, 'b.pdf', 20, [8]),
+		]]);
+
+		$this->assertTrue($groups[0]['doubleBooked']);
+		$this->assertSame([1 => 'assigned', 2 => 'assigned'], self::verdicts($groups[0]['files']));
+	}
+
+	/** Beide Kopien an derselben Buchung: unschön, aber nicht doppelt gebucht. */
+	public function testKopienAnDerselbenBuchungSindNichtDoppeltGebucht(): void {
+		$groups = AttachmentWatchFolderService::classifyDuplicates([[
+			self::row(1, 'a.pdf', 10, [7]),
+			self::row(2, 'b.pdf', 20, [7]),
+		]]);
+
+		$this->assertFalse($groups[0]['doubleBooked']);
+	}
+
+	/** Dieselbe Datei an zwei Buchungen (Sammelrechnung) ist keine Dublette. */
+	public function testGleicheDateiAnZweiBuchungenIstKeineDublette(): void {
+		$groups = AttachmentWatchFolderService::classifyDuplicates([
+			[self::row(1, 'a.pdf', 10, [7, 8])],
+			[self::row(2, 'b.pdf', 10, [7]), self::row(2, 'b.pdf', 10, [7])],
+		]);
+
+		$this->assertSame([], $groups);
+	}
+
+	/** Gruppen mit mehr Entbehrlichem zuerst, dann die größeren. */
+	public function testGruppenNachEntbehrlichemUndGroesse(): void {
+		$groups = AttachmentWatchFolderService::classifyDuplicates([
+			[self::row(1, 'a.pdf', 1, [], '', 10), self::row(2, 'a.pdf', 2, [], '', 10)],
+			[self::row(3, 'b.pdf', 1, [], '', 500), self::row(4, 'b.pdf', 2, [], '', 500)],
+			[self::row(5, 'c.pdf', 1, [], '', 5), self::row(6, 'c.pdf', 2, [], '', 5), self::row(7, 'c.pdf', 3, [], '', 5)],
+		]);
+
+		$this->assertSame([5, 500, 10], array_map(static fn (array $g): int => $g['size'], $groups));
+	}
+
+	/**
+	 * Ein Ordner-Mock mit Pfad und ID; `$names` sind die Einträge, die es
+	 * darin schon gibt, `$children` Unterordner nach Name.
+	 *
+	 * @param list<string> $names
+	 * @param array<array-key, Node> $children nach Name; PHP macht aus "2024" einen int-Schlüssel
+	 */
+	private function dir(int $id, string $path, array $names = [], array $children = []): Folder&MockObject {
+		$f = $this->createMock(Folder::class);
+		$f->method('getId')->willReturn($id);
+		$f->method('getPath')->willReturn($path);
+		$f->method('nodeExists')->willReturnCallback(static fn (string $n): bool => in_array($n, $names, true) || isset($children[$n]));
+		$f->method('get')->willReturnCallback(static fn (string $n): Node => $children[$n]);
+		return $f;
+	}
+
+	/** Eine Datei, die in `$parent` liegt und per ID im Wächter-Ordner gefunden wird. */
+	private function movable(int $id, string $name, Folder $parent): File&MockObject {
+		$f = $this->file($id, $name, 'application/pdf', 1, 1);
+		$f->method('getParent')->willReturn($parent);
+		return $f;
+	}
+
+	/** @param array<int, File> $files */
+	private function watchRoot(Folder&MockObject $root, array $files): void {
+		$root->method('getFirstNodeById')->willReturnCallback(static fn (int $id): ?File => $files[$id] ?? null);
+		$this->storage->method('watchFolder')->willReturn($root);
+	}
+
+	private function linkedFiles(int ...$fileIds): void {
+		$this->mapper->method('findLinked')->with(self::BOOK)->willReturn(array_map(static function (int $id): Attachment {
+			$a = new Attachment();
+			$a->setFileId($id);
+			$a->setJournalId(1);
+			return $a;
+		}, $fileIds));
+	}
+
+	/** Fehlende Unterordner werden angelegt, die Datei landet darin. */
+	public function testMoveVerschiebtInUnterordnerUndLegtIhnAn(): void {
+		$root = $this->dir(1, '/kw/files/Belege');
+		$klaeren = $this->dir(2, '/kw/files/Belege/_Klären');
+		$root->expects($this->once())->method('newFolder')->with('_Klären')->willReturn($klaeren);
+		$datei = $this->movable(11, 'Rechnung.pdf', $root);
+		$datei->expects($this->once())->method('move')->with('/kw/files/Belege/_Klären/Rechnung.pdf');
+		$this->watchRoot($root, [11 => $datei]);
+		$this->linkedFiles();
+
+		$result = $this->service()->move(self::BOOK, [11], '/_Klären/');
+
+		$this->assertSame(['moved' => [11], 'skipped' => []], $result);
+	}
+
+	/** Verschachtelte Ziele: vorhandene Ordner werden benutzt, nur der Rest angelegt. */
+	public function testMoveLegtNurFehlendeUnterordnerAn(): void {
+		$neu = $this->dir(5, '/kw/files/Belege/2024/Klären');
+		$jahr = $this->dir(3, '/kw/files/Belege/2024');
+		$jahr->expects($this->once())->method('newFolder')->with('Klären')->willReturn($neu);
+		$root = $this->dir(1, '/kw/files/Belege', [], ['2024' => $jahr]);
+		$root->expects($this->never())->method('newFolder');
+		$datei = $this->movable(11, 'Bon.jpg', $root);
+		$datei->expects($this->once())->method('move')->with('/kw/files/Belege/2024/Klären/Bon.jpg');
+		$this->watchRoot($root, [11 => $datei]);
+		$this->linkedFiles();
+
+		$this->assertSame([11], $this->service()->move(self::BOOK, [11], '2024/Klären')['moved']);
+	}
+
+	/** Überschrieben wird nie: belegte Namen bekommen „(2)“, „(3)“ … */
+	public function testMoveBenenntBeiKonfliktUm(): void {
+		$ziel = $this->dir(2, '/kw/files/Belege/_Dubletten', ['Rechnung.pdf', 'Rechnung (2).pdf']);
+		$root = $this->dir(1, '/kw/files/Belege', [], ['_Dubletten' => $ziel]);
+		$datei = $this->movable(11, 'Rechnung.pdf', $root);
+		$datei->expects($this->once())->method('move')->with('/kw/files/Belege/_Dubletten/Rechnung (3).pdf');
+		$this->watchRoot($root, [11 => $datei]);
+		$this->linkedFiles();
+
+		$this->service()->move(self::BOOK, [11], '_Dubletten');
+	}
+
+	/** Ohne Endung wird die Nummer einfach angehängt. */
+	public function testMoveBenenntOhneEndungUm(): void {
+		$ziel = $this->dir(2, '/kw/files/Belege/x', ['Scan']);
+		$root = $this->dir(1, '/kw/files/Belege', [], ['x' => $ziel]);
+		$datei = $this->movable(11, 'Scan', $root);
+		$datei->expects($this->once())->method('move')->with('/kw/files/Belege/x/Scan (2)');
+		$this->watchRoot($root, [11 => $datei]);
+		$this->linkedFiles();
+
+		$this->service()->move(self::BOOK, [11], 'x');
+	}
+
+	/** Inzwischen zugeordnete Dateien bleiben liegen – jemand hat parallel gebucht. */
+	public function testMoveUeberspringtZugeordnete(): void {
+		$root = $this->dir(1, '/kw/files/Belege', [], ['_Klären' => $this->dir(2, '/kw/files/Belege/_Klären')]);
+		$datei = $this->movable(11, 'Rechnung.pdf', $root);
+		$datei->expects($this->never())->method('move');
+		$this->watchRoot($root, [11 => $datei]);
+		$this->linkedFiles(11);
+
+		$result = $this->service()->move(self::BOOK, [11], '_Klären');
+
+		$this->assertSame(['moved' => [], 'skipped' => [['fileId' => 11, 'reason' => 'assigned']]], $result);
+	}
+
+	public function testMoveUeberspringtDateiImZiel(): void {
+		$ziel = $this->dir(2, '/kw/files/Belege/_Klären', ['Rechnung.pdf']);
+		$root = $this->dir(1, '/kw/files/Belege', [], ['_Klären' => $ziel]);
+		$datei = $this->movable(11, 'Rechnung.pdf', $ziel);
+		$datei->expects($this->never())->method('move');
+		$this->watchRoot($root, [11 => $datei]);
+		$this->linkedFiles();
+
+		$this->assertSame([['fileId' => 11, 'reason' => 'alreadyThere']], $this->service()->move(self::BOOK, [11], '_Klären')['skipped']);
+	}
+
+	/** Dateien außerhalb des Ordners und gescheiterte Verschiebungen halten den Rest nicht auf. */
+	public function testMoveUeberspringtFremdeUndGescheiterte(): void {
+		$root = $this->dir(1, '/kw/files/Belege', [], ['_Klären' => $this->dir(2, '/kw/files/Belege/_Klären')]);
+		$gesperrt = $this->movable(12, 'Gesperrt.pdf', $root);
+		$gesperrt->method('move')->willThrowException(new LockedException('x'));
+		$gut = $this->movable(13, 'Gut.pdf', $root);
+		$gut->expects($this->once())->method('move');
+		$this->watchRoot($root, [12 => $gesperrt, 13 => $gut]);
+		$this->linkedFiles();
+
+		$result = $this->service()->move(self::BOOK, [99, 12, 13], '_Klären');
+
+		$this->assertSame([13], $result['moved']);
+		$this->assertSame([['fileId' => 99, 'reason' => 'notFound'], ['fileId' => 12, 'reason' => 'failed']], $result['skipped']);
+	}
+
+	/** Wurzel des Wächter-Ordners als Ziel: '' und '/'. */
+	public function testMoveInDieWurzel(): void {
+		$unter = $this->dir(2, '/kw/files/Belege/2024');
+		$root = $this->dir(1, '/kw/files/Belege');
+		$datei = $this->movable(11, 'Rechnung.pdf', $unter);
+		$datei->expects($this->once())->method('move')->with('/kw/files/Belege/Rechnung.pdf');
+		$this->watchRoot($root, [11 => $datei]);
+		$this->linkedFiles();
+
+		$this->service()->move(self::BOOK, [11], '/');
+	}
+
+	/** @return array<string, array{string}> */
+	public static function ungueltigeZiele(): array {
+		return [
+			'Elternordner' => ['../x'],
+			'Elternordner mitten drin' => ['a/../b'],
+			'Punkt' => ['a/./b'],
+			'versteckt' => ['.versteckt'],
+			'Doppelpunkt' => ['a:b'],
+			'Backslash' => ['a\\b'],
+			'leeres Segment' => ['a//b'],
+			'Randleerzeichen' => [' a'],
+			'Steuerzeichen' => ["a\tb"],
+			'zu lang' => [str_repeat('x', 256)],
+		];
+	}
+
+	/**
+	 * @dataProvider ungueltigeZiele
+	 */
+	public function testMoveLehntUngueltigesZielAb(string $target): void {
+		$root = $this->dir(1, '/kw/files/Belege');
+		$root->expects($this->never())->method('newFolder');
+		$this->watchRoot($root, []);
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->move(self::BOOK, [11], $target);
+	}
+
+	public function testMoveLehntLeereUndZuGrosseListeAb(): void {
+		$this->watchRoot($this->dir(1, '/kw/files/Belege'), []);
+		foreach ([[], range(1, AttachmentWatchFolderService::MAX_MOVE + 1)] as $ids) {
+			try {
+				$this->service()->move(self::BOOK, $ids, 'x');
+				$this->fail('Ausnahme erwartet für ' . count($ids) . ' Dateien');
+			} catch (\InvalidArgumentException) {
+				$this->addToAssertionCount(1);
+			}
+		}
+	}
+
+	/** Ein Ziel, das eine Datei ist, ist kein Ordner. */
+	public function testMoveLehntDateiAlsZielAb(): void {
+		$root = $this->dir(1, '/kw/files/Belege', [], ['Rechnung.pdf' => $this->file(5, 'Rechnung.pdf', 'application/pdf', 1, 1)]);
+		$this->watchRoot($root, []);
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->move(self::BOOK, [11], 'Rechnung.pdf');
+	}
+
+	public function testMoveOhneOrdnerScheitert(): void {
+		$this->storage->method('watchFolder')->willReturn(null);
+
+		$this->expectException(\RuntimeException::class);
+		$this->service()->move(self::BOOK, [11], 'x');
+	}
+
+	/** Eine Datei für die Dublettensuche: im Scan und per ID auffindbar, mit Prüfsumme. */
+	private function hashed(int $id, int $size, int $mtime, string|\Throwable|null $hash): File&MockObject {
+		$f = $this->file($id, "d$id.pdf", 'application/pdf', $size, $mtime);
+		if ($hash === null) {
+			$f->expects($this->never())->method('hash');
+		} elseif ($hash instanceof \Throwable) {
+			$f->method('hash')->willThrowException($hash);
+		} else {
+			$f->expects($this->once())->method('hash')->with('sha256')->willReturn($hash);
+		}
+		return $f;
+	}
+
+	/** @param list<File> $files */
+	private function dupRoot(array $files): void {
+		$root = $this->folder($files);
+		$byId = [];
+		foreach ($files as $f) {
+			$byId[$f->getId()] = $f;
+		}
+		$root->method('getFirstNodeById')->willReturnCallback(static fn (int $id): ?File => $byId[$id] ?? null);
+		$this->storage->method('watchFolder')->willReturn($root);
+	}
+
+	/** Nur gleich große Dateien können gleich sein – nur sie werden gehasht. */
+	public function testDuplicatesHashtNurGleichGrosse(): void {
+		$this->dupRoot([
+			$this->hashed(11, 100, 1000, 'h1'),
+			$this->hashed(12, 100, 2000, 'h1'),
+			$this->hashed(13, 50, 3000, null),
+			$this->hashed(14, 0, 4000, null),
+			$this->hashed(15, 0, 5000, null),
+		]);
+		$this->linkedFiles();
+		$this->hashes->method('findAll')->willReturn([]);
+		$this->hashes->expects($this->exactly(2))->method('save');
+
+		$result = $this->service()->duplicates(self::BOOK);
+
+		$this->assertFalse($result['folderMissing']);
+		$this->assertSame(0, $result['unreadable']);
+		$this->assertCount(1, $result['groups']);
+		$this->assertSame([11 => 'keep', 12 => 'removable'], self::verdicts($result['groups'][0]['files']));
+	}
+
+	/** Passt der gespeicherte Eintrag (Größe und mtime), wird nicht gelesen. */
+	public function testDuplicatesNutztCache(): void {
+		$this->dupRoot([$this->hashed(11, 100, 1000, null), $this->hashed(12, 100, 2000, null)]);
+		$this->linkedFiles(12);
+		$this->hashes->method('findAll')->willReturn([
+			11 => ['size' => 100, 'mtime' => 1000, 'hash' => 'h1'],
+			12 => ['size' => 100, 'mtime' => 2000, 'hash' => 'h1'],
+		]);
+		$this->hashes->expects($this->never())->method('save');
+
+		$groups = $this->service()->duplicates(self::BOOK)['groups'];
+
+		$this->assertSame([11 => 'removable', 12 => 'assigned'], self::verdicts($groups[0]['files']));
+	}
+
+	/** Geänderte Datei: neue mtime macht den Eintrag ungültig. */
+	public function testDuplicatesRechnetBeiAenderungNeu(): void {
+		$this->dupRoot([$this->hashed(11, 100, 1000, 'neu'), $this->hashed(12, 100, 2000, null)]);
+		$this->linkedFiles();
+		$this->hashes->method('findAll')->willReturn([
+			11 => ['size' => 100, 'mtime' => 999, 'hash' => 'h1'],
+			12 => ['size' => 100, 'mtime' => 2000, 'hash' => 'h1'],
+		]);
+		$this->hashes->expects($this->once())->method('save')->with(11, 100, 1000, 'neu');
+
+		$this->assertSame([], $this->service()->duplicates(self::BOOK)['groups']);
+	}
+
+	public function testDuplicatesZaehltUnlesbare(): void {
+		$this->dupRoot([
+			$this->hashed(11, 100, 1000, 'h1'),
+			$this->hashed(12, 100, 2000, new \OCP\Files\NotPermittedException('x')),
+		]);
+		$this->linkedFiles();
+		$this->hashes->method('findAll')->willReturn([]);
+
+		$result = $this->service()->duplicates(self::BOOK);
+
+		$this->assertSame(1, $result['unreadable']);
+		$this->assertSame([], $result['groups']);
+	}
+
+	/** Nextcloud wirft nicht immer: Common::hash() liefert false, wenn fopen scheitert. */
+	public function testDuplicatesZaehltHashFalseAlsUnlesbar(): void {
+		$kaputt = $this->file(12, 'd12.pdf', 'application/pdf', 100, 2000);
+		$kaputt->method('hash')->willReturn(false);
+		$this->dupRoot([$this->hashed(11, 100, 1000, 'h1'), $kaputt]);
+		$this->linkedFiles();
+		$this->hashes->method('findAll')->willReturn([]);
+		$this->hashes->expects($this->once())->method('save')->with(11, 100, 1000, 'h1');
+
+		$result = $this->service()->duplicates(self::BOOK);
+
+		$this->assertSame(1, $result['unreadable']);
+		$this->assertSame([], $result['groups']);
+	}
+
+	/**
+	 * Zwei Suchen gleichzeitig schreiben denselben Eintrag – der Cache ist
+	 * nur ein Hinweis, ein Konflikt darf die Suche nicht abbrechen.
+	 */
+	public function testDuplicatesUeberstehtFehlerBeimSpeichern(): void {
+		$this->dupRoot([$this->hashed(11, 100, 1000, 'h1'), $this->hashed(12, 100, 2000, 'h1')]);
+		$this->linkedFiles();
+		$this->hashes->method('findAll')->willReturn([]);
+		$this->hashes->method('save')->willThrowException(new \OCP\DB\Exception('unique constraint'));
+
+		$result = $this->service()->duplicates(self::BOOK);
+
+		$this->assertCount(1, $result['groups']);
+		$this->assertSame(0, $result['unreadable']);
+	}
+
+	/** Einträge zu Dateien, die nicht mehr im Ordner liegen, fliegen raus. */
+	public function testDuplicatesRaeumtVerwaisteEintraegeAuf(): void {
+		$this->dupRoot([$this->hashed(11, 100, 1000, null)]);
+		$this->linkedFiles();
+		$this->hashes->method('findAll')->willReturn([
+			11 => ['size' => 100, 'mtime' => 1000, 'hash' => 'h1'],
+			77 => ['size' => 100, 'mtime' => 1000, 'hash' => 'h1'],
+		]);
+		$this->hashes->expects($this->once())->method('deleteByFileIds')->with([77]);
+
+		$this->service()->duplicates(self::BOOK);
+	}
+
+	/** Gekappter Scan: was fehlt, ist nicht weg, nur ungelesen. */
+	public function testDuplicatesBereinigtNichtBeiKappung(): void {
+		$files = [];
+		for ($i = 1; $i <= AttachmentWatchFolderService::MAX_FILES + 1; $i++) {
+			$files[] = $this->file($i, "b$i.pdf", 'application/pdf', $i, $i);
+		}
+		$this->dupRoot($files);
+		$this->linkedFiles();
+		$this->hashes->method('findAll')->willReturn([999999 => ['size' => 1, 'mtime' => 1, 'hash' => 'x']]);
+		$this->hashes->expects($this->never())->method('deleteByFileIds');
+
+		$result = $this->service()->duplicates(self::BOOK);
+
+		$this->assertTrue($result['capped']);
+	}
+
+	public function testDuplicatesOhneOrdner(): void {
+		$this->storage->method('watchFolder')->willReturn(null);
+		$this->hashes->expects($this->never())->method('findAll');
+
+		$result = $this->service()->duplicates(self::BOOK);
+
+		$this->assertTrue($result['folderMissing']);
+		$this->assertSame([], $result['groups']);
+	}
+
 	public function testLinkLehntDoppelteVerknuepfungAb(): void {
 		$root = $this->createMock(Folder::class);
 		$root->method('getFirstNodeById')->with(51)->willReturn($this->file(51, 'Rechnung.pdf', 'application/pdf', 1, 1));
@@ -290,6 +745,7 @@ class AttachmentWatchFolderServiceTest extends TestCase {
 			$this->mapper,
 			$rootFolder ?? $this->createMock(IRootFolder::class),
 			$l10n,
+			$this->hashes,
 		);
 	}
 }

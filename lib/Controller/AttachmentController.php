@@ -195,6 +195,58 @@ class AttachmentController extends Controller {
 		return new DataResponse($inbox);
 	}
 
+	/**
+	 * Inhaltsgleiche Dateien im Wächter-Ordner, je Kopie mit ihren Buchungen
+	 * (Nummer und Datum) und einer Empfehlung – siehe
+	 * AttachmentWatchFolderService::classifyDuplicates().
+	 */
+	#[NoAdminRequired]
+	public function inboxDuplicates(): DataResponse {
+		if (!$this->storageService->isWatchMode()) {
+			return new DataResponse(['message' => $this->l10n->t('Der Wächter-Ordner für Belege ist nicht eingeschaltet.')], Http::STATUS_BAD_REQUEST);
+		}
+		$result = $this->watchFolder->duplicates($this->userId());
+		$journalIds = [];
+		foreach ($result['groups'] as $group) {
+			foreach ($group['files'] as $file) {
+				array_push($journalIds, ...$file['journalIds']);
+			}
+		}
+		$journals = $this->journalMapper->findByIds($this->userId(), $journalIds);
+		foreach ($result['groups'] as &$group) {
+			$group['files'] = AttachmentWatchFolderService::withBookings($group['files'], $journals);
+		}
+		unset($group);
+		return new DataResponse($result);
+	}
+
+	/**
+	 * Offene Belege in einen Unterordner des Wächter-Ordners verschieben –
+	 * zum Sortieren, etwa „_Klären“ oder „_Dubletten“.
+	 *
+	 * @param list<int|string> $fileIds
+	 */
+	#[NoAdminRequired]
+	public function inboxMove(array $fileIds = [], string $target = ''): DataResponse {
+		if (!$this->storageService->isWatchMode()) {
+			return new DataResponse(['message' => $this->l10n->t('Der Wächter-Ordner für Belege ist nicht eingeschaltet.')], Http::STATUS_BAD_REQUEST);
+		}
+		$ids = array_values(array_unique(array_map('intval', $fileIds)));
+		try {
+			$result = $this->watchFolder->move($this->userId(), $ids, $target);
+		} catch (\RuntimeException|\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		}
+		if ($result['moved'] !== []) {
+			$this->audit->log('Belege verschoben', null, null, [
+				'target' => AttachmentWatchFolderService::normalizeTarget($target),
+				'count' => count($result['moved']),
+				'fileIds' => $result['moved'],
+			]);
+		}
+		return new DataResponse($result);
+	}
+
 	#[NoAdminRequired]
 	public function inboxSummary(): DataResponse {
 		return new DataResponse($this->watchFolder->summary($this->userId()));

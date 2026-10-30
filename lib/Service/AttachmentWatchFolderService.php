@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Service;
 use OCA\Vereinsbuchhaltung\Db\Attachment;
 use OCA\Vereinsbuchhaltung\Db\AttachmentMapper;
 use OCA\Vereinsbuchhaltung\Db\Journal;
+use OCA\Vereinsbuchhaltung\Db\ReceiptHashMapper;
 use OCP\Files\File;
 use OCP\Files\Folder;
 use OCP\Files\IRootFolder;
@@ -19,8 +20,8 @@ use OCP\IL10N;
  * Gedacht als Eingangskorb, der zugleich das Archiv ist: Rechnungen kommen
  * per Scanner, Mail oder Handy-Upload in den Ordner, die Übersicht meldet,
  * was noch keiner Buchung zugeordnet ist – so geht keine Rechnung unter, die
- * noch zu überweisen wäre. Die App liest hier nur; verschoben oder gelöscht
- * wird nichts.
+ * noch zu überweisen wäre. Gelöscht wird hier nie etwas; verschoben nur auf
+ * ausdrücklichen Wunsch und nur innerhalb des Ordners ({@see move()}).
  */
 class AttachmentWatchFolderService {
 
@@ -40,11 +41,15 @@ class AttachmentWatchFolderService {
 	 */
 	public const MAX_FILES = 5000;
 
+	/** Höchstens so viele Dateien je Verschiebe-Aufruf; die Oberfläche teilt größere Mengen auf. */
+	public const MAX_MOVE = 500;
+
 	public function __construct(
 		private AttachmentStorageService $storage,
 		private AttachmentMapper $attachmentMapper,
 		private IRootFolder $rootFolder,
 		private IL10N $l10n,
+		private ReceiptHashMapper $hashes,
 	) {
 	}
 
@@ -181,6 +186,137 @@ class AttachmentWatchFolderService {
 	}
 
 	/**
+	 * Inhaltsgleiche Dateien im Wächter-Ordner, bewertet nach
+	 * {@see classifyDuplicates()}.
+	 *
+	 * Gehasht wird nur, was überhaupt gleich sein kann: Dateien, deren Größe
+	 * mindestens zweimal vorkommt. Die Prüfsummen merkt sich
+	 * {@see ReceiptHashMapper}, solange Größe und mtime passen – beim
+	 * nächsten Öffnen wird nur Neues gelesen. Leere Dateien zählen nicht.
+	 *
+	 * @return array{folderMissing: bool, capped: bool, limit: int, unreadable: int,
+	 *         groups: list<array{size:int, doubleBooked:bool, files: list<array<string,mixed>>}>}
+	 */
+	public function duplicates(string $userId): array {
+		$inbox = $this->inbox($userId);
+		$result = ['folderMissing' => $inbox['folderMissing'], 'capped' => $inbox['capped'], 'limit' => self::MAX_FILES, 'unreadable' => 0, 'groups' => []];
+		if ($inbox['folderMissing'] || $inbox['files'] === []) {
+			return $result;
+		}
+
+		$bySize = [];
+		foreach ($inbox['files'] as $file) {
+			if ($file['size'] > 0) {
+				$bySize[$file['size']][] = $file;
+			}
+		}
+		$cache = $this->hashes->findAll();
+		$byHash = [];
+		foreach ($bySize as $files) {
+			if (count($files) < 2) {
+				continue;
+			}
+			foreach ($files as $file) {
+				$hash = $this->hashOf($file, $cache[$file['fileId']] ?? null);
+				if ($hash === null) {
+					$result['unreadable']++;
+					continue;
+				}
+				$byHash[$hash][] = $file;
+			}
+		}
+
+		// Nur ein vollständiger Scan sagt, welche Dateien weg sind.
+		if (!$inbox['capped']) {
+			$seen = array_flip(array_map(static fn (array $f): int => $f['fileId'], $inbox['files']));
+			$stale = array_values(array_filter(array_keys($cache), static fn (int $id): bool => !isset($seen[$id])));
+			if ($stale !== []) {
+				$this->hashes->deleteByFileIds($stale);
+			}
+		}
+
+		$result['groups'] = self::classifyDuplicates(array_values($byHash));
+		return $result;
+	}
+
+	/**
+	 * @param array{fileId:int, size:int, mtime:int} $file
+	 * @param array{size:int, mtime:int, hash:string}|null $cached
+	 * @return string|null null, wenn die Datei nicht lesbar ist
+	 */
+	private function hashOf(array $file, ?array $cached): ?string {
+		if ($cached !== null && $cached['size'] === $file['size'] && $cached['mtime'] === $file['mtime']) {
+			return $cached['hash'];
+		}
+		try {
+			// Nicht jeder Speicher wirft: Common::hash() liefert false, wenn
+			// sich die Datei nicht öffnen lässt.
+			$hash = $this->fileInFolder($file['fileId'])->hash('sha256');
+		} catch (\Throwable) {
+			return null;
+		}
+		if (!is_string($hash) || $hash === '') {
+			return null;
+		}
+		try {
+			$this->hashes->save($file['fileId'], $file['size'], $file['mtime'], $hash);
+		} catch (\Throwable) {
+			// Zwei Suchen zugleich schreiben denselben Eintrag; der Cache ist
+			// nur ein Hinweis, die Prüfsumme selbst stimmt trotzdem.
+		}
+		return $hash;
+	}
+
+	/**
+	 * Bewertet Gruppen inhaltsgleicher Dateien: welche Kopie hängt an einer
+	 * Buchung, welche bleibt, welche ist entbehrlich. Gelöscht wird nichts –
+	 * das ist ein Hinweis für die Dateien-App.
+	 *
+	 * Hängt eine Kopie an einer Buchung, sind alle freien entbehrlich. Sonst
+	 * bleibt die älteste (mtime, dann Name, dann Ordner – damit das Ergebnis
+	 * bei jedem Aufruf dasselbe ist). Hängen Kopien an verschiedenen
+	 * Buchungen, ist die Rechnung womöglich doppelt gebucht.
+	 *
+	 * Dieselbe Datei-ID zählt nur einmal: eine Datei an mehreren Buchungen
+	 * (aufgeteilte Sammelrechnung) ist keine Dublette.
+	 *
+	 * @param list<list<array{fileId:int, name:string, folder:string, size:int, mtime:int, journalIds: list<int>}&array<string,mixed>>> $groups
+	 * @return list<array{size:int, doubleBooked:bool, files: list<array<string,mixed>>}>
+	 */
+	public static function classifyDuplicates(array $groups): array {
+		$out = [];
+		foreach ($groups as $group) {
+			$files = [];
+			foreach ($group as $file) {
+				$files[$file['fileId']] = $file;
+			}
+			if (count($files) < 2) {
+				continue;
+			}
+			usort($files, static fn (array $a, array $b): int => [$a['mtime'], $a['name'], $a['folder']] <=> [$b['mtime'], $b['name'], $b['folder']]);
+
+			$assigned = array_filter($files, static fn (array $f): bool => $f['journalIds'] !== []);
+			$journals = array_unique(array_merge(...array_map(static fn (array $f): array => $f['journalIds'], array_values($assigned))));
+			$keep = $assigned === [] ? $files[0]['fileId'] : null;
+			foreach ($files as &$file) {
+				$file['verdict'] = $file['journalIds'] !== [] ? 'assigned' : ($file['fileId'] === $keep ? 'keep' : 'removable');
+			}
+			unset($file);
+
+			$out[] = [
+				'size' => (int)$files[0]['size'],
+				// Nur Buchungen verschiedener Kopien zählen – bei einer Kopie
+				// sind mehrere Buchungen die gewollte Sammelrechnung.
+				'doubleBooked' => count($assigned) > 1 && count($journals) > 1,
+				'files' => $files,
+			];
+		}
+		$removable = static fn (array $g): int => count(array_filter($g['files'], static fn (array $f): bool => $f['verdict'] === 'removable'));
+		usort($out, static fn (array $a, array $b): int => [$removable($b), $b['size']] <=> [$removable($a), $a['size']]);
+		return $out;
+	}
+
+	/**
 	 * Die Zahlen für die Übersicht.
 	 *
 	 * @return array{folderMissing: bool, capped: bool, unassigned: int, missing: int}
@@ -237,6 +373,121 @@ class AttachmentWatchFolderService {
 			throw new \RuntimeException($this->l10n->t('Nur Bilder (JPG/PNG/GIF/WebP) und PDFs erlaubt'));
 		}
 		return $node;
+	}
+
+	/**
+	 * Ein Zielpfad relativ zum Wächter-Ordner, bereinigt: '' für die Wurzel,
+	 * sonst die Segmente mit '/' verbunden. Null, wenn ein Segment leer, '.',
+	 * '..', versteckt, zu lang ist, verbotene Zeichen oder Leerzeichen am
+	 * Rand hat – dann ließe sich aus dem Ordner ausbrechen oder Nextcloud
+	 * lehnte den Namen ab.
+	 */
+	public static function normalizeTarget(string $target): ?string {
+		$target = trim($target, '/');
+		if ($target === '') {
+			return '';
+		}
+		foreach (explode('/', $target) as $segment) {
+			if ($segment === '' || $segment === '..' || self::isHidden($segment)
+				|| trim($segment) !== $segment || mb_strlen($segment) > 255
+				|| preg_match('/[\\\\:*?"<>|[:cntrl:]]/u', $segment) !== 0) {
+				return null;
+			}
+		}
+		return $target;
+	}
+
+	/**
+	 * Verschiebt offene Belege in einen Unterordner des Wächter-Ordners, zum
+	 * Sortieren („_Klären“, „_Dubletten“). Fehlende Ordner werden angelegt;
+	 * belegte Namen bekommen eine Nummer, überschrieben wird nie. Die App
+	 * kennt Belege über die Datei-ID, eine Verknüpfung bleibt also heil –
+	 * verschoben werden trotzdem nur Dateien ohne Buchung.
+	 *
+	 * Einzelne Dateien, die nicht passen, werden übersprungen statt die ganze
+	 * Aktion abzubrechen: `notFound` (nicht im Ordner, kein Beleg-Typ),
+	 * `assigned` (inzwischen gebucht), `alreadyThere`, `failed` (gesperrt,
+	 * keine Rechte).
+	 *
+	 * @param list<int> $fileIds
+	 * @return array{moved: list<int>, skipped: list<array{fileId:int, reason:string}>}
+	 * @throws \InvalidArgumentException bei leerer/zu langer Liste oder ungültigem Ziel
+	 * @throws \RuntimeException wenn der Wächter-Ordner fehlt
+	 */
+	public function move(string $userId, array $fileIds, string $target): array {
+		$folder = $this->storage->watchFolder();
+		if ($folder === null) {
+			throw new \RuntimeException($this->l10n->t('Der Wächter-Ordner für Belege existiert nicht. Bitte in den Einstellungen prüfen.'));
+		}
+		if ($fileIds === [] || count($fileIds) > self::MAX_MOVE) {
+			throw new \InvalidArgumentException($this->l10n->t('Bitte zwischen 1 und %s Dateien auswählen.', [self::MAX_MOVE]));
+		}
+		$path = self::normalizeTarget($target);
+		if ($path === null) {
+			throw new \InvalidArgumentException($this->l10n->t('Ungültiger Zielordner.'));
+		}
+		$targetFolder = $this->targetFolder($folder, $path);
+
+		$linked = [];
+		foreach ($this->attachmentMapper->findLinked($userId) as $attachment) {
+			$linked[(int)$attachment->getFileId()] = true;
+		}
+		$moved = [];
+		$skipped = [];
+		foreach ($fileIds as $fileId) {
+			try {
+				$node = $this->fileInFolder($fileId);
+			} catch (\RuntimeException) {
+				$skipped[] = ['fileId' => $fileId, 'reason' => 'notFound'];
+				continue;
+			}
+			if (isset($linked[$fileId])) {
+				$skipped[] = ['fileId' => $fileId, 'reason' => 'assigned'];
+				continue;
+			}
+			if ($node->getParent()->getId() === $targetFolder->getId()) {
+				$skipped[] = ['fileId' => $fileId, 'reason' => 'alreadyThere'];
+				continue;
+			}
+			try {
+				$node->move($targetFolder->getPath() . '/' . self::freeName($targetFolder, $node->getName()));
+				$moved[] = $fileId;
+			} catch (\Throwable) {
+				$skipped[] = ['fileId' => $fileId, 'reason' => 'failed'];
+			}
+		}
+		return ['moved' => $moved, 'skipped' => $skipped];
+	}
+
+	/** @throws \InvalidArgumentException wenn ein Teil des Pfads eine Datei ist */
+	private function targetFolder(Folder $folder, string $path): Folder {
+		if ($path === '') {
+			return $folder;
+		}
+		foreach (explode('/', $path) as $segment) {
+			if (!$folder->nodeExists($segment)) {
+				$folder = $folder->newFolder($segment);
+				continue;
+			}
+			$node = $folder->get($segment);
+			if (!$node instanceof Folder) {
+				throw new \InvalidArgumentException($this->l10n->t('Ungültiger Zielordner.'));
+			}
+			$folder = $node;
+		}
+		return $folder;
+	}
+
+	/** „Rechnung.pdf“, sonst „Rechnung (2).pdf“, „Rechnung (3).pdf“ … */
+	private static function freeName(Folder $folder, string $name): string {
+		$dot = strrpos($name, '.');
+		$base = $dot > 0 ? substr($name, 0, $dot) : $name;
+		$ext = $dot > 0 ? substr($name, $dot) : '';
+		$candidate = $name;
+		for ($n = 2; $folder->nodeExists($candidate); $n++) {
+			$candidate = $base . ' (' . $n . ')' . $ext;
+		}
+		return $candidate;
 	}
 
 	/** @throws \RuntimeException wenn die Datei nicht im Ordner liegt, kein Beleg-Typ ist oder schon an der Buchung hängt */

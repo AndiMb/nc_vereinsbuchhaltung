@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildFolderTree, flatFileRows, flattenTree, initialExpanded } from './folderTree.js'
+import { buildFolderTree, flatFileRows, flattenTree, folderPaths, initialExpanded, openFilesIn } from './folderTree.js'
 
 function file(fileId, folder, name, journalIds = [], entryNos = []) {
 	return {
@@ -103,5 +103,32 @@ describe('flatFileRows', () => {
 		expect(label(flatFileRows(files, { search: 'quittungen' }))).toEqual(['q1.jpg'])
 		expect(label(flatFileRows(files, { search: '#40' }))).toEqual(['r3.pdf'])
 		expect(label(flatFileRows(files, { onlyOpen: true, exclude: new Set([1]) }))).toEqual(['r2.pdf'])
+	})
+})
+
+describe('openFilesIn', () => {
+	it('alle offenen Dateien, auch in zugeklappten Ordnern', () => {
+		expect(openFilesIn(files, {})).toEqual([1, 3])
+	})
+
+	it('nur die zur Suche passenden', () => {
+		expect(openFilesIn(files, { search: 'R2' })).toEqual([3])
+	})
+
+	it('nur unterhalb eines Ordners, Unterordner eingeschlossen', () => {
+		expect(openFilesIn(files, { folder: 'Rechnungen' })).toEqual([3])
+		expect(openFilesIn(files, { folder: 'Rechnungen/2026' })).toEqual([3])
+		expect(openFilesIn([file(8, 'Rechnungen2', 'x.pdf')], { folder: 'Rechnungen' })).toEqual([])
+	})
+
+	it('Wurzel als Ordner heißt: alles', () => {
+		expect(openFilesIn(files, { folder: '' })).toEqual([1, 3])
+	})
+})
+
+describe('folderPaths', () => {
+	it('alle Ordner samt Elternpfaden und Wurzel, natürlich sortiert', () => {
+		expect(folderPaths([file(1, 'a/b/c', 'x.pdf'), file(2, '', 'y.pdf'), file(3, 'a/10', 'z.pdf'), file(4, 'a/9', 'z.pdf')]))
+			.toEqual(['', 'a', 'a/9', 'a/10', 'a/b', 'a/b/c'])
 	})
 })

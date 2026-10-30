@@ -187,6 +187,52 @@ test.describe('Wächter-Ordner für Belege', () => {
 		expect(inbox.missing.map((m) => [m.journalId, m.description])).toEqual([[booking.id, 'Quittung verknüpft']])
 	})
 
+	test('Dubletten werden erkannt und lassen sich in einen Unterordner verschieben', async ({ page, request }) => {
+		// Eigener Inhalt – BELEG_PNG liegt in diesem Ordner schon mehrfach.
+		const inhalt = Buffer.from('%PDF-1.4\n% Dublettentest ' + Date.now() + '\n%%EOF\n')
+		await dav.mkcol(request, 'admin', `${FOLDER}/dup`)
+		await dav.put(request, 'admin', `${FOLDER}/dup/original.pdf`, inhalt, 'application/pdf')
+		await dav.put(request, 'admin', `${FOLDER}/dup/kopie.pdf`, inhalt, 'application/pdf')
+		await dav.put(request, 'admin', `${FOLDER}/kopie.pdf`, inhalt, 'application/pdf')
+		const files = (await api.attachmentInbox(request)).files
+		const id = (folder, name) => files.find((f) => f.folder === folder && f.name === name).fileId
+		const booking = await createBooking(request, 'Original verbucht', '2026-07-01')
+		await api.linkAttachment(request, booking.id, id('dup', 'original.pdf'))
+
+		const { groups } = await api.attachmentInboxDuplicates(request)
+		const group = groups.find((g) => g.files.some((f) => f.fileId === id('dup', 'original.pdf')))
+		expect(group.files.map((f) => [f.name, f.folder, f.verdict]).sort()).toEqual([
+			['kopie.pdf', '', 'removable'],
+			['kopie.pdf', 'dup', 'removable'],
+			['original.pdf', 'dup', 'assigned'],
+		])
+		expect(group.doubleBooked).toBe(false)
+
+		// Aus dem Ordner hinaus und als Revisor geht es nicht.
+		expect((await api.raw(request, 'POST', '/attachments/inbox/move', { data: { fileIds: [id('', 'kopie.pdf')], target: '../raus' } })).status()).toBe(400)
+		expect((await api.raw(request, 'POST', '/attachments/inbox/move', { user: USERS.revisor, data: { fileIds: [id('', 'kopie.pdf')], target: '_Dubletten' } })).status()).toBe(403)
+
+		await openApp(page, USERS.verwalter)
+		await visibleSection(page).locator('.vbh-total--warn', { hasText: 'Noch keiner Buchung zugewiesen' }).getByRole('button', { name: 'Ansehen' }).click()
+		const inbox = page.getByRole('dialog', { name: 'Belege im Wächter-Ordner' })
+		await inbox.getByRole('button', { name: 'Dubletten' }).click()
+		await expect(inbox.getByText('original.pdf')).toBeVisible()
+		await inbox.getByRole('button', { name: 'Alle „kann weg“ auswählen' }).click()
+		await inbox.getByRole('button', { name: 'Verschieben nach…' }).click()
+
+		const move = page.getByRole('dialog', { name: /Dateien verschieben/ })
+		await move.getByLabel('Neuer Unterordner (optional)').fill('_Dubletten')
+		await move.getByRole('button', { name: 'Verschieben', exact: true }).click()
+		await expect(move).toBeHidden()
+
+		// Keine Kopie überschreibt die andere, das Original bleibt liegen.
+		expect(await dav.exists(request, 'admin', `${FOLDER}/_Dubletten/kopie.pdf`)).toBe(true)
+		expect(await dav.exists(request, 'admin', `${FOLDER}/_Dubletten/kopie (2).pdf`)).toBe(true)
+		expect(await dav.exists(request, 'admin', `${FOLDER}/dup/original.pdf`)).toBe(true)
+		const after = (await api.attachmentInboxDuplicates(request)).groups.find((g) => g.files.some((f) => f.fileId === id('dup', 'original.pdf')))
+		expect(after.files.filter((f) => f.verdict === 'removable').every((f) => f.folder === '_Dubletten')).toBe(true)
+	})
+
 	test('Umschalten vom Nutzerordner trägt die Datei-IDs nach', async ({ request }) => {
 		await api.updateSettings(request, { storage_mode: 'user', storage_user: 'admin', storage_path: FOLDER })
 		const booking = await createBooking(request, 'Alter Beleg', '2026-02-02')

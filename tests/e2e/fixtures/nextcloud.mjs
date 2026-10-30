@@ -525,6 +525,14 @@ export const api = {
 		return (await call(request, 'GET', '/attachments/inbox/summary')).json()
 	},
 
+	async attachmentInboxDuplicates(request) {
+		return (await call(request, 'GET', '/attachments/inbox/duplicates')).json()
+	},
+
+	async attachmentInboxMove(request, fileIds, target) {
+		return (await call(request, 'POST', '/attachments/inbox/move', { data: { fileIds, target } })).json()
+	},
+
 	async listJournal(request, { period = null } = {}) {
 		const query = period ? `?period=${period}` : ''
 		return (await call(request, 'GET', `/journal${query}`)).json()
