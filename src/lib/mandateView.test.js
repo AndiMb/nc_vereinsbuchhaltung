@@ -12,8 +12,10 @@ import {
 	endReasonLabel,
 	formatIban,
 	formatStamp,
+	linkStatusText,
 	mandateAccountHint,
 	mandateNotices,
+	reconfirmationText,
 	revokeStaffWarning,
 	signatureTooOld,
 	signatureTypeLabel,
@@ -265,5 +267,47 @@ describe('Sätze mit Nutzerdaten', () => {
 
 	it('Widerruf aus Sicht der Verwaltung: Mitgliedsname unverändert', () => {
 		expect(revokeStaffWarning(NAME)).toContain(`braucht ${NAME} danach ein neues Mandat`)
+	})
+})
+
+describe('linkStatusText', () => {
+	const stamp = (s) => `[${s}]`
+	const link = { sentAt: '2026-10-01 10:00:00', expiresAt: '2026-10-15 10:00:00', expired: false, email: 'katrin@example.org', firstViewedAt: null }
+
+	it('nennt Empfänger, Versandzeit und Ablauf', () => {
+		const text = linkStatusText(link, stamp)
+
+		expect(text).toContain('katrin@example.org')
+		expect(text).toContain('[2026-10-01 10:00:00]')
+		expect(text).toContain('gültig bis [2026-10-15 10:00:00]')
+		expect(text).not.toContain('geöffnet')
+	})
+
+	it('meldet einen abgelaufenen Link und das erste Öffnen', () => {
+		const text = linkStatusText({ ...link, expired: true, firstViewedAt: '2026-10-02 08:00:00' }, stamp)
+
+		expect(text).toContain('abgelaufen am [2026-10-15 10:00:00]')
+		expect(text).toContain('geöffnet am [2026-10-02 08:00:00]')
+	})
+})
+
+describe('reconfirmationText', () => {
+	const stamp = (s) => s
+	const link = { sentAt: '2026-10-01 10:00:00', expiresAt: '2026-10-15 10:00:00', expired: false, email: 'katrin@example.org', firstViewedAt: null }
+
+	it('ist null, wenn nichts zu bestätigen ist', () => {
+		expect(reconfirmationText(undefined, stamp)).toBeNull()
+		expect(reconfirmationText({ needed: false, link: null }, stamp)).toBeNull()
+	})
+
+	it('sagt ohne Link nur, dass die neue Fassung aussteht', () => {
+		expect(reconfirmationText({ needed: true, link: null }, stamp)).toBe('Neue Fassung noch nicht bestätigt')
+	})
+
+	it('hängt den Stand des Links an, wenn einer verschickt wurde', () => {
+		const text = reconfirmationText({ needed: true, link }, stamp)
+
+		expect(text.startsWith('Neue Fassung noch nicht bestätigt · ')).toBe(true)
+		expect(text).toContain('katrin@example.org')
 	})
 })

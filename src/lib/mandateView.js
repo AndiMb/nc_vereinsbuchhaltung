@@ -175,10 +175,27 @@ export function activationLinkState(link) {
 }
 
 /**
+ * Stand eines versendeten Links in Klartext: an wen und wann er ging, bis wann er gilt
+ * (oder seit wann er abgelaufen ist) und ob das Mitglied ihn schon geöffnet hat.
+ * Für den Einmal-Link eines Entwurfs wie für den Link zur erneuten Bestätigung.
+ *
+ * @param {{sentAt: string, expiresAt: string, expired: boolean, email: string, firstViewedAt: ?string}} link
+ * @param {(stamp: string) => string} formatStamp
+ * @return {string}
+ */
+export function linkStatusText(link, formatStamp) {
+	const sent = tRaw('gesendet am {zeit} an {email}', { zeit: formatStamp(link.sentAt), email: link.email })
+	const state = link.expired
+		? t('abgelaufen am {zeit}', { zeit: formatStamp(link.expiresAt) })
+		: t('gültig bis {zeit}', { zeit: formatStamp(link.expiresAt) })
+	const viewed = link.firstViewedAt ? t('vom Mitglied geöffnet am {zeit}', { zeit: formatStamp(link.firstViewedAt) }) : null
+	return [sent, state, viewed].filter(Boolean).join(' · ')
+}
+
+/**
  * Zeile „Mandatstext“ der Akte, wenn das Mandat die aktuelle Fassung noch nicht
  * bestätigt hat (`mandate.reconfirmation`, MandateActivationService::reconfirmationStatus()):
- * ohne Link „noch nicht bestätigt“, sonst mit Stand des Links (gesendet, bis wann gültig, geöffnet).
- * Null, wenn nichts zu bestätigen ist.
+ * ohne Link „noch nicht bestätigt“, sonst mit dem Stand des Links. Null, wenn nichts zu bestätigen ist.
  *
  * @param {{needed: boolean, link: ?object}|undefined} reconfirmation
  * @param {(stamp: string) => string} formatStamp
@@ -186,14 +203,8 @@ export function activationLinkState(link) {
  */
 export function reconfirmationText(reconfirmation, formatStamp) {
 	if (!reconfirmation?.needed) { return null }
-	const link = reconfirmation.link
-	if (!link) { return t('Neue Fassung noch nicht bestätigt') }
-	const sent = tRaw('Neue Fassung noch nicht bestätigt · Link gesendet am {zeit} an {email}', { zeit: formatStamp(link.sentAt), email: link.email })
-	const state = link.expired
-		? t('abgelaufen am {zeit}', { zeit: formatStamp(link.expiresAt) })
-		: t('gültig bis {zeit}', { zeit: formatStamp(link.expiresAt) })
-	const viewed = link.firstViewedAt ? t('vom Mitglied geöffnet am {zeit}', { zeit: formatStamp(link.firstViewedAt) }) : null
-	return [sent, state, viewed].filter(Boolean).join(' · ')
+	const open = t('Neue Fassung noch nicht bestätigt')
+	return reconfirmation.link ? `${open} · ${linkStatusText(reconfirmation.link, formatStamp)}` : open
 }
 
 /**

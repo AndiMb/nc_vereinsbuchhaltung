@@ -167,7 +167,7 @@
 							v-if="needsReconfirmation"
 							variant="primary"
 							data-testid="self-reconfirm-open"
-							@click="reconfirmOpen = true">
+							@click="openGrantDialog('reconfirm')">
 							{{ t('Neuen Text lesen und bestätigen') }}
 						</NcButton>
 						<template v-if="isUnconfirmedElectronicDraft">
@@ -289,12 +289,6 @@
 			@close="accountDialogOpen = false"
 			@saveIban="saveIban"
 			@saveHolder="saveHolder" />
-		<SelfServiceMandateReconfirmDialog
-			:show="reconfirmOpen"
-			:mandate="mandate"
-			:saving="saving"
-			@close="reconfirmOpen = false"
-			@save="saveReconfirm" />
 		<SelfServiceMandateRevokeDialog
 			:show="revokeOpen"
 			:openClaimsTotalCents="openClaimsTotalCents"
@@ -322,7 +316,6 @@ import CountrySelect from './CountrySelect.vue'
 import MandateDraftDiscardDialog from './MandateDraftDiscardDialog.vue'
 import SelfServiceMandateAccountDialog from './SelfServiceMandateAccountDialog.vue'
 import SelfServiceMandateGrantDialog from './SelfServiceMandateGrantDialog.vue'
-import SelfServiceMandateReconfirmDialog from './SelfServiceMandateReconfirmDialog.vue'
 import SelfServiceMandateRevokeDialog from './SelfServiceMandateRevokeDialog.vue'
 import api from '../api.js'
 import { countryName } from '../lib/countries.js'
@@ -374,7 +367,7 @@ function emptyContactForm() {
  */
 export default {
 	name: 'SelfServiceTab',
-	components: { NcLoadingIcon, NcButton, NcCheckboxRadioSwitch, AmountInput, CountrySelect, MandateDraftDiscardDialog, SelfServiceMandateGrantDialog, SelfServiceMandateReconfirmDialog, SelfServiceMandateAccountDialog, SelfServiceMandateRevokeDialog },
+	components: { NcLoadingIcon, NcButton, NcCheckboxRadioSwitch, AmountInput, CountrySelect, MandateDraftDiscardDialog, SelfServiceMandateGrantDialog, SelfServiceMandateAccountDialog, SelfServiceMandateRevokeDialog },
 
 	data() {
 		return {
@@ -393,7 +386,6 @@ export default {
 			accountInitialMode: 'iban',
 			revokeOpen: false,
 			discardOpen: false,
-			reconfirmOpen: false,
 			saving: false,
 			requestingLink: false,
 			certificateYears: [],
@@ -439,9 +431,7 @@ export default {
 		},
 
 		/** Die Verwaltung hat eine neue Fassung des Mandatstexts gespeichert, die dieses (wirksame) Mandat noch nicht bestätigt hat. */
-		needsReconfirmation() {
-			return !!this.mandate && this.mandate.needsReconfirmation === true
-		},
+		needsReconfirmation() { return this.mandate?.needsReconfirmation === true },
 
 		/** Ein von der Verwaltung angelegter elektronischer Entwurf, der noch auf Zustimmung wartet (Issue #67/#75). */
 		isUnconfirmedElectronicDraft() {
@@ -537,30 +527,18 @@ export default {
 		async saveGrant(payload) {
 			this.saving = true
 			try {
-				if (this.grantMode === 'confirm') {
+				if (this.grantMode === 'reconfirm') {
+					await api.selfReconfirmMandate()
+				} else if (this.grantMode === 'confirm') {
 					await api.selfConfirmMandate()
 				} else {
 					await api.selfGrantMandate(payload)
 				}
 				this.grantDialogOpen = false
 				await this.reload()
-				showSuccess(this.t('Mandat erteilt.'))
+				showSuccess(this.grantMode === 'reconfirm' ? this.t('Mandatstext bestätigt.') : this.t('Mandat erteilt.'))
 			} catch (e) {
-				showError(errMsg(e, this.t('Erteilen fehlgeschlagen')))
-			} finally {
-				this.saving = false
-			}
-		},
-
-		async saveReconfirm() {
-			this.saving = true
-			try {
-				await api.selfReconfirmMandate()
-				this.reconfirmOpen = false
-				await this.reload()
-				showSuccess(this.t('Mandatstext bestätigt.'))
-			} catch (e) {
-				showError(errMsg(e, this.t('Bestätigen fehlgeschlagen')))
+				showError(errMsg(e, this.grantMode === 'reconfirm' ? this.t('Bestätigen fehlgeschlagen') : this.t('Erteilen fehlgeschlagen')))
 			} finally {
 				this.saving = false
 			}

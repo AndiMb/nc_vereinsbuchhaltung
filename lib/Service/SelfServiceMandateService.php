@@ -79,8 +79,10 @@ class SelfServiceMandateService {
 	 * den Hinweis „Mandatstext aktualisiert, bitte bestätigen".
 	 */
 	public function needsReconfirmation(?Mandate $mandate): bool {
-		return $mandate !== null
-			&& $this->stateMachine->needsReconfirmation($mandate, (int)$this->legalTextService->current()->getId());
+		if ($mandate === null || !$this->stateMachine->canReconfirm($mandate)) {
+			return false;
+		}
+		return $this->stateMachine->needsReconfirmation($mandate, (int)$this->legalTextService->current()->getId());
 	}
 
 	public function openClaimsTotalCents(int $memberId): int {

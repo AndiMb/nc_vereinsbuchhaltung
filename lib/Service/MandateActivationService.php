@@ -204,7 +204,9 @@ class MandateActivationService {
 	 * @return array{needed: bool, link: array{sentAt: string, expiresAt: string, expired: bool, email: string, requestedBy: ?string, firstViewedAt: ?string}|null}
 	 */
 	public function reconfirmationStatus(Mandate $mandate): array {
-		$needed = $this->stateMachine->needsReconfirmation($mandate, (int)$this->legalTextService->current()->getId());
+		// Die Fassung wird nur nachgeschlagen, wenn das Mandat überhaupt bestätigen kann (kein Entwurf, nicht erloschen).
+		$needed = $this->stateMachine->canReconfirm($mandate)
+			&& $this->stateMachine->needsReconfirmation($mandate, (int)$this->legalTextService->current()->getId());
 		return ['needed' => $needed, 'link' => $needed ? $this->linkStatus((int)$mandate->getId()) : null];
 	}
 

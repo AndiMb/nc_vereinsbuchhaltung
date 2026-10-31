@@ -82,6 +82,15 @@
 				<!-- Ein Satz Knöpfe: die Hauptaktion des Zustands primär (wo es eine gibt), der Rest sekundär,
 					Unumkehrbares als Textknopf im Fehlerton. -->
 				<div v-if="mayWrite" class="vbh-mcard-actions vbh-mandate-actions">
+					<!-- Eine neue Fassung des Mandatstexts steht noch aus (nur aktive und ausgesetzte Mandate) -->
+					<NcButton
+						v-if="showReconfirm"
+						variant="secondary"
+						:disabled="busy || !hasEmail"
+						data-testid="mandate-reconfirm"
+						@click="doSendReconfirmation">
+						{{ reconfirmLinkState === 'none' ? t('Zur Bestätigung des Mandatstexts anschreiben') : t('Erneut zur Bestätigung anschreiben') }}
+					</NcButton>
 					<template v-if="current.status === 'entwurf'">
 						<NcButton
 							v-if="current.signatureType === 'papier'"
@@ -110,14 +119,6 @@
 						</NcButton>
 					</template>
 					<template v-else-if="current.status === 'aktiv'">
-						<NcButton
-							v-if="current.reconfirmation && current.reconfirmation.needed"
-							variant="secondary"
-							:disabled="busy || !hasEmail"
-							data-testid="mandate-reconfirm"
-							@click="doSendReconfirmation">
-							{{ reconfirmLinkState === 'none' ? t('Zur Bestätigung des Mandatstexts anschreiben') : t('Erneut zur Bestätigung anschreiben') }}
-						</NcButton>
 						<NcButton variant="secondary" :disabled="busy" @click="openAccountDialog('iban')">
 							{{ t('Bankverbindung ändern') }}
 						</NcButton>
@@ -135,14 +136,6 @@
 					<template v-else-if="current.status === 'ausgesetzt'">
 						<NcButton variant="primary" :disabled="busy" @click="openAction('resume')">
 							{{ t('Entsperren') }}
-						</NcButton>
-						<NcButton
-							v-if="current.reconfirmation && current.reconfirmation.needed"
-							variant="secondary"
-							:disabled="busy || !hasEmail"
-							data-testid="mandate-reconfirm"
-							@click="doSendReconfirmation">
-							{{ reconfirmLinkState === 'none' ? t('Zur Bestätigung des Mandatstexts anschreiben') : t('Erneut zur Bestätigung anschreiben') }}
 						</NcButton>
 						<NcButton
 							variant="tertiary"
@@ -410,6 +403,7 @@ import {
 	endReasonLabel,
 	formatIban,
 	formatStamp,
+	linkStatusText,
 	mandateNotices,
 	reconfirmationText,
 	signatureTooOld,
@@ -511,6 +505,9 @@ export default {
 		linkState() { return activationLinkState(this.current?.activationLink) },
 
 		reconfirmLinkState() { return activationLinkState(this.current?.reconfirmation?.link) },
+
+		/** Der Knopf „zur Bestätigung anschreiben“: nur, wo der Server eine ausstehende Bestätigung meldet (bei Entwürfen nie). */
+		showReconfirm() { return this.current?.reconfirmation?.needed === true },
 
 		openClaimsTotalCents() { return this.current?.openClaimsTotalCents ?? 0 },
 
@@ -664,13 +661,7 @@ export default {
 
 		/** Status des Einmal-Links in Klartext (gesendet am, abgelaufen). */
 		linkText(link) {
-			if (!link) { return this.t('noch nicht versendet') }
-			const sent = this.tRaw('gesendet am {zeit} an {email}', { zeit: formatStamp(link.sentAt), email: link.email })
-			const state = link.expired
-				? this.t('abgelaufen am {zeit}', { zeit: formatStamp(link.expiresAt) })
-				: this.t('gültig bis {zeit}', { zeit: formatStamp(link.expiresAt) })
-			const viewed = link.firstViewedAt ? this.t('vom Mitglied geöffnet am {zeit}', { zeit: formatStamp(link.firstViewedAt) }) : null
-			return [sent, state, viewed].filter(Boolean).join(' · ')
+			return link ? linkStatusText(link, formatStamp) : this.t('noch nicht versendet')
 		},
 
 		// --- Inline-Formulare ----------------------------------------------------

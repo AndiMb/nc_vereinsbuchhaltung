@@ -3902,7 +3902,6 @@
         "Mandatstext bestätigt.": "Mandate text confirmed.",
         "Bestätigen fehlgeschlagen": "Confirming failed",
         "Neue Fassung noch nicht bestätigt": "New version not yet confirmed",
-        "Neue Fassung noch nicht bestätigt · Link gesendet am {zeit} an {email}": "New version not yet confirmed · link sent on {zeit} to {email}",
         "Mandatstext des SEPA-Lastschriftmandats bestätigt": "Mandate text of the SEPA direct debit mandate confirmed",
         "Für Ihr Mandat liegt keine neue Fassung des Mandatstexts vor, die eine Bestätigung braucht.": "There is no new version of the mandate text for your mandate that needs confirmation.",
         "Sie haben den aktualisierten Text Ihres SEPA-Lastschriftmandats bestätigt (Referenz %s).": "You have confirmed the updated text of your SEPA direct debit mandate (reference %s).",

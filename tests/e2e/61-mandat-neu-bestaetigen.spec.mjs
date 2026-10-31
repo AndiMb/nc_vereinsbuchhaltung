@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { startMailCapture, stopMailCapture, waitForMailsTo } from './fixtures/mail-capture.mjs'
-import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, BASE_URL, openApp, openSettingsPage, switchTab, tabButton, USERS, visibleSection } from './fixtures/nextcloud.mjs'
+import { api, BASE_URL, openAkte, openApp, openSettingsPage, tabButton, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Neue Fassung des Mandatstexts: Mitglieder mit wirksamem Mandat bestätigen sie erneut.
 //
@@ -82,17 +82,7 @@ test.describe('Mandatstext erneut bestätigen', () => {
 
 	test.beforeAll(async ({ request, browser }) => {
 		await api.resetBook(request)
-		await api.seedDefaultAccounts(request)
-		// Die Mitglieder-Akte und „Mein Beitrag“ gibt es erst mit eingeschalteter Mitgliederverwaltung.
-		const bank = await api.accountByNumber(request, BANK_ACCOUNT)
-		await api.updateAccount(request, bank.id, { iban: BANK_ACCOUNT_IBAN })
-		await api.updateSettings(request, {
-			club_name: CLUB_NAME,
-			show_missing_document_warning: '1',
-			membership_enabled: '1',
-			sepa_creditor_id: 'DE98ZZZ09999999999',
-			sepa_debtor_account_id: bank.id,
-		})
+		await api.enableMembership(request, { show_missing_document_warning: '1' })
 		await startMailCapture()
 
 		// Anna: Papier-Mandat, kein Dokument hinterlegt – bekommt die neue Fassung also erstmals elektronisch.
@@ -352,23 +342,11 @@ test.describe('Mandatstext erneut bestätigen', () => {
 
 	// --- Einzelversand aus der Mitglieder-Akte -----------------------------------
 
-	/** Öffnet die Akte eines Mitglieds über „Mandat verwalten“ im Zeilenmenü; liefert den Dialog. */
-	async function openAkte(page, name) {
-		await openApp(page, USERS.buchhalter)
-		await switchTab(page, 'Beiträge')
-		const row = visibleSection(page).locator('tr', { hasText: name })
-		await row.getByRole('button', { name: 'Aktionen' }).click()
-		await page.getByRole('menuitem', { name: 'Mandat verwalten' }).click()
-		const dialog = page.getByRole('dialog', { name: `Mitglied: ${name}` })
-		await expect(dialog).toBeVisible()
-		return dialog
-	}
-
 	test('Akte: ein einzelnes Mitglied zur Bestätigung anschreiben, der Stand des Links steht dabei', async ({ page, browser, request }) => {
 		test.setTimeout(60000)
 		const fritz = await paperMandate(request, { firstName: 'Fritz', lastName: 'Einzeln', email: 'fritz.einzeln@example.org', iban: 'DE02300209000106531065' })
 
-		const dialog = await openAkte(page, 'Fritz Einzeln')
+		const dialog = await openAkte(page, USERS.buchhalter, 'Fritz Einzeln')
 		const row = dialog.locator('.vbh-mandate-card').first()
 		await expect(row.locator('dt', { hasText: 'Mandatstext' }).locator('xpath=following-sibling::dd[1]')).toContainText('Neue Fassung noch nicht bestätigt')
 		const send = dialog.getByTestId('mandate-reconfirm')
@@ -377,7 +355,7 @@ test.describe('Mandatstext erneut bestätigen', () => {
 
 		await expect(page.getByText('Link zur Bestätigung des Mandatstexts an fritz.einzeln@example.org verschickt.', { exact: true })).toBeVisible()
 		// Der Stand des Links steht in der Zeile, der Knopf bietet jetzt den erneuten Versand an.
-		await expect(row.locator('dt', { hasText: 'Mandatstext' }).locator('xpath=following-sibling::dd[1]')).toContainText('Link gesendet am')
+		await expect(row.locator('dt', { hasText: 'Mandatstext' }).locator('xpath=following-sibling::dd[1]')).toContainText('gesendet am')
 		await expect(send).toHaveText('Erneut zur Bestätigung anschreiben')
 		// Kommt die Mail nicht an, lässt sich der Link direkt weitergeben (wie beim Einmal-Link).
 		const shown = await dialog.locator('.vbh-mandate-link input').inputValue()
@@ -391,7 +369,7 @@ test.describe('Mandatstext erneut bestätigen', () => {
 		await context.close()
 
 		// Die Akte zeigt danach nichts mehr zu bestätigen.
-		const after = await openAkte(page, 'Fritz Einzeln')
+		const after = await openAkte(page, USERS.buchhalter, 'Fritz Einzeln')
 		await expect(after.locator('.vbh-mandate-card').first().locator('dt', { hasText: 'Zustimmung' })).toBeVisible()
 		await expect(after.locator('dt', { hasText: 'Mandatstext' })).toHaveCount(0)
 		await expect(after.getByTestId('mandate-reconfirm')).toHaveCount(0)
@@ -401,7 +379,7 @@ test.describe('Mandatstext erneut bestätigen', () => {
 	test('Akte: ohne Mailadresse ist der Knopf aus, der Revisor darf nicht senden', async ({ page, request }) => {
 		const gerda = await paperMandate(request, { firstName: 'Gerda', lastName: 'Stumm', email: undefined, iban: 'DE02500105170137075030' })
 
-		const dialog = await openAkte(page, 'Gerda Stumm')
+		const dialog = await openAkte(page, USERS.buchhalter, 'Gerda Stumm')
 		await expect(dialog.getByTestId('mandate-reconfirm')).toBeDisabled()
 
 		const asRevisor = await api.raw(request, 'POST', `/mandates/${gerda.mandate.id}/send-reconfirmation-link`, { user: USERS.revisor })
@@ -422,19 +400,22 @@ test.describe('Mandatstext erneut bestätigen', () => {
 			await api.updateSettings(request, { self_service_enabled: '1' })
 		})
 
-		test.afterAll(async ({ request }) => {
+		/** Löst die Verknüpfung des Testkontos ohne App-Rolle mit einem Mitglied, falls es eine gibt. */
+		async function unlinkOhneRolle(request) {
 			const linked = (await api.listMembers(request)).find((m) => m.ncUserId === USERS.ohneRolle)
 			if (linked) {
 				await api.unlinkMember(request, linked.id)
 			}
+			return linked
+		}
+
+		test.afterAll(async ({ request }) => {
+			await unlinkOhneRolle(request)
 			await api.updateSettings(request, { self_service_enabled: '0' })
 		})
 
 		async function linkMember(request, spec) {
-			const existing = (await api.listMembers(request)).find((m) => m.ncUserId === USERS.ohneRolle)
-			if (existing) {
-				await api.unlinkMember(request, existing.id)
-			}
+			await unlinkOhneRolle(request)
 			const { member, mandate } = await paperMandate(request, spec)
 			await api.linkMember(request, member.id, USERS.ohneRolle)
 			return { member, mandate }
@@ -497,8 +478,7 @@ test.describe('Mandatstext erneut bestätigen', () => {
 		})
 
 		test('ohne Verknüpfung mit einem Mitglied gibt es 403, und ein Entwurf wird nicht auf diesem Weg bestätigt', async ({ request }) => {
-			const existing = (await api.listMembers(request)).find((m) => m.ncUserId === USERS.ohneRolle)
-			await api.unlinkMember(request, existing.id)
+			await unlinkOhneRolle(request)
 			const unlinked = await api.raw(request, 'POST', '/self/mandate/reconfirm', { user: USERS.ohneRolle })
 			expect(unlinked.status()).toBe(403)
 
