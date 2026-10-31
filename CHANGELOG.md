@@ -17,6 +17,19 @@ als „[object Object]" (falsche Renderer-Callback-Signatur, Nextcloud-
 Core-Bug, reproduziert 23.08.2026). Stattdessen **Fettdruck als Zeilenanfang**
 verwenden, z. B. `**Neu:**`.
 
+## [Unveröffentlicht]
+
+**Neu:**
+- **Belegvorschau neben der Belegauswahl** ([#231](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/231)):
+  Am Desktop zeigt ein Klick auf eine Datei im Wächter-Ordner sie direkt
+  neben der Liste statt in einem neuen Tab – PDFs im Viewer des Browsers,
+  Bilder als Bild. Im Buchungsdialog stehen Formular, Liste und Vorschau
+  nebeneinander, Rechnung und Buchung lassen sich so vergleichen. Die
+  Belegauswahl zu einem Bankumsatz oder zu mehreren Buchungen zeigt oben,
+  wofür der Beleg gesucht wird. Die angesehene Datei ist in der Liste
+  markiert, ↑/↓ blättern weiter. Bei schmalem Fenster steht die Vorschau
+  anstelle der Liste; mobil bleibt es beim neuen Tab.
+
 ## [0.46.0] – 2026-10-30
 
 **Neu:**

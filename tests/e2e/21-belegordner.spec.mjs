@@ -145,6 +145,43 @@ test.describe('Wächter-Ordner für Belege', () => {
 		await expect(folderDialog.getByPlaceholder(/Dateiname, Ordner/)).toBeFocused()
 	})
 
+	test('Belegvorschau steht neben Formular und Liste, die angesehene Datei ist markiert (#231)', async ({ page, request }) => {
+		await dav.put(request, 'admin', `${FOLDER}/2026/vorschau-a.png`, BELEG_PNG, 'image/png')
+		await dav.put(request, 'admin', `${FOLDER}/2026/vorschau-b.png`, BELEG_PNG, 'image/png')
+
+		// Breites Fenster: drei Spalten. Darunter stünde die Vorschau anstelle der Liste.
+		await page.setViewportSize({ width: 1920, height: 1080 })
+		await openApp(page, USERS.verwalter)
+		await neuAnlegen(page)
+		const bookingDialog = page.getByRole('dialog', { name: 'Neue Buchung' })
+		await skipBookingTour(bookingDialog)
+		await expect(bookingDialog.locator(':focus')).toHaveCount(1)
+		await bookingDialog.getByRole('button', { name: 'Aus Ordner wählen' }).click()
+		const folderDialog = bookingDialog.getByRole('complementary', { name: 'Beleg aus Ordner wählen' })
+		await folderDialog.getByPlaceholder(/Dateiname, Ordner/).fill('vorschau-')
+
+		const names = folderDialog.locator('.vbh-folder-item .vbh-attachment-name')
+		await expect(names).toHaveCount(2)
+		const [first, second] = (await names.allTextContents()).map((n) => n.trim())
+
+		// Ein Klick auf den Namen zeigt die Datei in der dritten Spalte statt in einem neuen Tab.
+		await names.first().click()
+		const preview = bookingDialog.getByRole('complementary', { name: 'Belegvorschau' })
+		await expect(preview.locator('img')).toBeVisible()
+		await expect(preview.locator('.vbh-receipt-preview-name')).toHaveText(first)
+		await expect(bookingDialog.getByText('Buchungstext')).toBeVisible()
+		await expect(folderDialog.locator('.vbh-folder-item--previewed')).toContainText(first)
+
+		// ↑/↓ in der Liste blättern, die Markierung wandert mit.
+		await page.keyboard.press('ArrowDown')
+		await expect(preview.locator('.vbh-receipt-preview-name')).toHaveText(second)
+		await expect(folderDialog.locator('.vbh-folder-item--previewed')).toContainText(second)
+
+		// Übernehmen lässt die Vorschau stehen.
+		await folderDialog.getByRole('button', { name: `Auswählen: ${second}` }).click()
+		await expect(preview.getByText('übernommen')).toBeVisible()
+	})
+
 	test('Upload landet im Jahresordner, Löschen lässt die Datei stehen', async ({ request }) => {
 		const booking = await createBooking(request, 'Foto vom Handy', '2025-03-01')
 		const attachment = await api.addAttachment(request, booking.id, { name: 'foto.png' })

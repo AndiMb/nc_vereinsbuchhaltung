@@ -506,6 +506,19 @@ Nummer öffnet die Buchung. Wer lieber die einfache Liste aller Dateien sieht,
 nimmt den Haken **„Ordner anzeigen"** heraus; der Ordner steht dann klein
 unter dem Dateinamen. Die Wahl merkt sich der Browser.
 
+**Belegvorschau** (am Desktop): Ein Klick auf einen Dateinamen zeigt die
+Datei direkt neben der Liste – PDFs im Viewer des Browsers (mit Zoom und
+Blättern), Bilder als Bild. Im Buchungsdialog bleibt das Formular daneben
+stehen, so lassen sich Datum, Betrag und Rechnungssteller mit der Buchung
+vergleichen. Bei der Belegauswahl zu einem Bankumsatz oder zu mehreren
+Buchungen steht über der Liste, wofür der Beleg gesucht wird. Die gerade
+angesehene Datei ist in der Liste farbig markiert; mit den Pfeiltasten ↑/↓
+blättert ihr zur nächsten oder vorigen. Ist das Browserfenster schmaler als
+etwa 1500 Pixel, steht die Vorschau anstelle der Liste, „Liste" führt
+zurück. Bleibt die Vorschau leer – etwa weil ein Hoster das Einbetten von
+Dateien sperrt –, öffnet das Pfeil-Symbol oben rechts die Datei in einem
+neuen Tab. Auf dem Smartphone öffnet sich die Datei wie bisher im neuen Tab.
+
 **Offene Belege wegsortieren** (Buchhalter und Verwalter): Im Eingangskorb
 hat jede offene Datei ein Kästchen, ebenso jeder Ordner mit offenen
 Belegen. „alle offenen auswählen" nimmt alle, die zur Suche passen – auch
