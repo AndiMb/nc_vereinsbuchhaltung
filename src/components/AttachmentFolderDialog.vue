@@ -48,9 +48,11 @@
 						:noAutofocus="isMobile"
 						:previewEnabled="!isMobile"
 						:previewFileId="previewFile ? previewFile.fileId : null"
+						:externalActions="!isMobile"
 						@close="$emit('close')"
 						@pick="$emit('pick', $event)"
 						@preview="onPreview"
+						@selectionCount="selectedCount = $event"
 						@createBooking="$emit('create-booking', $event)"
 						@openBooking="$emit('open-booking', $event)" />
 				</div>
@@ -58,11 +60,26 @@
 					<ReceiptPreview :file="previewFile" />
 				</div>
 			</div>
+
+			<!-- Rechts unten wie in den übrigen Dialogen, nicht unter der Liste. -->
+			<div v-if="!isMobile" class="vbh-modal-actions">
+				<NcButton variant="tertiary" @click="$emit('close')">
+					{{ pick ? t('Abbrechen') : t('Schließen') }}
+				</NcButton>
+				<NcButton
+					v-if="pick"
+					variant="primary"
+					:disabled="!selectedCount"
+					@click="$refs.panel.confirmPick()">
+					{{ selectedCount ? t('{n} übernehmen', { n: selectedCount }) : t('Übernehmen') }}
+				</NcButton>
+			</div>
 		</div>
 	</NcModal>
 </template>
 
 <script>
+import NcButton from '@nextcloud/vue/components/NcButton'
 import NcModal from '@nextcloud/vue/components/NcModal'
 import AttachmentFolderPanel from './AttachmentFolderPanel.vue'
 import ReceiptPreview from './ReceiptPreview.vue'
@@ -92,7 +109,7 @@ const CONTEXT_BOOKINGS = 3
  */
 export default {
 	name: 'AttachmentFolderDialog',
-	components: { NcModal, AttachmentFolderPanel, ReceiptPreview },
+	components: { NcButton, NcModal, AttachmentFolderPanel, ReceiptPreview },
 	props: {
 		show: { type: Boolean, default: false },
 		pick: { type: Boolean, default: false },
@@ -111,7 +128,8 @@ export default {
 	emits: ['close', 'create-booking', 'open-booking', 'pick', 'update:show'],
 
 	data() {
-		return { previewFile: null, previewOverList: false }
+		// selectedCount: gewählte Dateien im Panel, für „n übernehmen“ in der Fußzeile.
+		return { previewFile: null, previewOverList: false, selectedCount: 0 }
 	},
 
 	computed: {

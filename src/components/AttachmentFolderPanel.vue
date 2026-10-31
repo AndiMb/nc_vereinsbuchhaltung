@@ -233,7 +233,7 @@
 			@close="moveOpen = false"
 			@moved="onMoved" />
 
-		<div v-if="!instantPick" class="vbh-modal-actions vbh-folder-panel-actions">
+		<div v-if="!instantPick && !externalActions" class="vbh-modal-actions vbh-folder-panel-actions">
 			<NcButton variant="tertiary" @click="$emit('close')">
 				{{ pick ? t('Abbrechen') : t('Schließen') }}
 			</NcButton>
@@ -312,9 +312,14 @@ export default {
 		previewEnabled: { type: Boolean, default: false },
 		// Die gerade angezeigte Datei, in der Liste hervorgehoben.
 		previewFileId: { type: Number, default: null },
+		// Abbrechen/Schließen und Übernehmen stellt der Rahmen in seiner
+		// Fußzeile dar (Ordner-Dialog mit Vorschau: sonst stünden sie mitten
+		// im Dialog unter der Liste). Die Anzahl kommt per selection-count,
+		// übernommen wird über confirmPick().
+		externalActions: { type: Boolean, default: false },
 	},
 
-	emits: ['close', 'create-booking', 'open-booking', 'pick', 'preview'],
+	emits: ['close', 'create-booking', 'open-booking', 'pick', 'preview', 'selection-count'],
 
 	data() {
 		return {
@@ -373,6 +378,11 @@ export default {
 	},
 
 	watch: {
+		'selected.size': {
+			handler(count) { this.$emit('selection-count', count) },
+			immediate: true,
+		},
+
 		showFolders(v) {
 			try { localStorage.setItem(SHOW_FOLDERS_KEY, v ? '1' : '0') } catch { /* voll/gesperrt – dann eben ohne */ }
 		},
