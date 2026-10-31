@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { api, BANK_ACCOUNT, BELEG_PNG, dav, findBooking, INCOME_ACCOUNT, neuAnlegen, openApp, openSettingsPage, pickNcSelectOption, skipBookingTour, USERS, visibleSection } from './fixtures/nextcloud.mjs'
+import { api, BANK_ACCOUNT, BELEG_PNG, dav, findBooking, INCOME_ACCOUNT, neuAnlegen, openApp, openSettingsPage, pickNcSelectOption, skipBookingTour, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Der Wächter-Ordner für Belege: was in der Dateien-App abgelegt wird, meldet
 // die Übersicht als „noch keiner Buchung zugewiesen" und lässt sich beim
@@ -231,6 +231,30 @@ test.describe('Wächter-Ordner für Belege', () => {
 		await expect(fallback).toBeVisible()
 		await page.keyboard.press('ArrowUp')
 		await expect(shown).toHaveText(order[1])
+	})
+
+	test('Beleg für markierte Buchungen: Übernehmen steht rechts unten im Dialog, nicht unter der Liste', async ({ page, request }) => {
+		await createBooking(request, 'Fußzeile im Ordner-Dialog', '2026-10-01')
+		const booking = findBooking(await api.listJournal(request), 'Fußzeile im Ordner-Dialog')
+		await dav.put(request, 'admin', `${FOLDER}/2026/fusszeile.png`, BELEG_PNG, 'image/png')
+
+		await page.setViewportSize({ width: 1920, height: 1080 })
+		await openApp(page, USERS.verwalter)
+		await switchTab(page, 'Buchungen')
+		await page.getByRole('checkbox', { name: `Buchung #${booking.entryNo} auswählen` }).check()
+		await page.getByRole('button', { name: 'Beleg zuordnen…' }).click()
+
+		const dialog = page.getByRole('dialog', { name: 'Beleg für 1 Buchung wählen' })
+		await dialog.getByPlaceholder(/Dateiname, Ordner/).fill('fusszeile')
+		await expect(dialog.getByRole('button', { name: 'Übernehmen', exact: true })).toBeDisabled()
+		await dialog.getByRole('checkbox', { name: 'Auswählen: fusszeile.png' }).check()
+
+		const take = dialog.getByRole('button', { name: '1 übernehmen' })
+		await expect(take).toBeEnabled()
+		await expect(dialog.locator('.vbh-folder-dialog-list').getByRole('button', { name: '1 übernehmen' })).toHaveCount(0)
+		await expect(dialog.getByRole('button', { name: 'Abbrechen' })).toBeVisible()
+		await take.click()
+		await expect(dialog).toBeHidden()
 	})
 
 	test('Eingangskorb: beschädigtes PDF bekommt einen Hinweis, Pfeiltasten springen von Kästchen zu Kästchen', async ({ page, request }) => {

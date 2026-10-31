@@ -1548,7 +1548,10 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-mfield input, .vbh-mfield textarea { width: 100%; box-sizing: border-box; min-height: 44px; font-size: 16px; color: var(--color-main-text); }
 
-.vbh-pendingbtns { display: flex; gap: 8px; flex-wrap: wrap; }
+/* Mittig: „Aus Ordner…“ ist ein echtes <button> und bekommt am Handy von
+   Nextcloud 44px Mindesthöhe (Tippfläche); oben ausgerichtet säße sein
+   sichtbarer Knopf tiefer als die <label>-Knöpfe daneben. */
+.vbh-pendingbtns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 
 /* ---- Mobil: Konten-Drilldown (Zurück-Leiste) ---- */
 .vbh-backbar { margin-bottom: 6px; }
