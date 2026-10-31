@@ -3,8 +3,13 @@ import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, neuAnlegen, openApp, switchTab, U
 
 // Der Reiter „Beiträge“ folgt dem Schalter in den Einstellungen; ein früherer
 // Lauf oder Nutzer kann ihn ausgeschaltet haben.
+// Die Spec setzt ihre Voraussetzungen selbst: Konten (ohne sie zeigt die App den Willkommens-Assistenten und
+// die Akte öffnet nicht), Mitgliederverwaltung, Gläubiger-ID und Geldkonto für den Einzug. Früher hat sie sich
+// darauf verlassen, dass eine Spec davor das erledigt hat – je nach Aufteilung der Specs auf die CI-Teile war
+// das nicht der Fall. `seedDefaultAccounts` legt nur an, wenn es noch keine Konten gibt.
 test.beforeAll(async ({ request }) => {
-	await api.updateSettings(request, { membership_enabled: '1' })
+	await api.seedDefaultAccounts(request)
+	await enableMembership(request)
 })
 
 // Lücken des Testprotokolls (Durchlauf vom 09.10.2026): Schritte, die im
