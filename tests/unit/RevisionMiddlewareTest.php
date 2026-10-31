@@ -8,7 +8,6 @@ use OCA\Vereinsbuchhaltung\Middleware\NoRevisionBump;
 use OCA\Vereinsbuchhaltung\Middleware\RevisionMiddleware;
 use OCA\Vereinsbuchhaltung\Service\RevisionService;
 use OCP\AppFramework\Controller;
-use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IRequest;
 use PHPUnit\Framework\MockObject\MockObject;
