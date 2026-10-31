@@ -77,6 +77,15 @@ class MandateStateMachine {
 	}
 
 	/**
+	 * Wirksam, aber nicht mit der aktuellen Fassung des Mandatstexts bestätigt –
+	 * also einer der Empfänger einer erneuten Bestätigung. Ein Papier-Mandat kennt
+	 * keine Fassung und zählt deshalb immer dazu.
+	 */
+	public function needsReconfirmation(Mandate $mandate, int $currentTextVersionId): bool {
+		return $this->canReconfirm($mandate) && (int)$mandate->getMandateTextVersion() !== $currentTextVersionId;
+	}
+
+	/**
 	 * @throws \InvalidArgumentException
 	 */
 	public function assertCanReconfirm(Mandate $mandate): void {

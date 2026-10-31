@@ -3854,7 +3854,7 @@
         "Neu: Belegvorschau. Am Desktop zeigt ein Klick auf eine Datei im Wächter-Ordner sie direkt neben der Liste, im Buchungsdialog neben Formular und Liste – so lassen sich Rechnung und Buchung vergleichen. ↑/↓ blättern zur nächsten Datei.": "New: receipt preview. On the desktop, clicking a file in the watch folder shows it right next to the list, in the posting dialog next to the form and the list – so invoice and posting can be compared. ↑/↓ move to the next file.",
         "Zur erneuten Bestätigung anschreiben": "Send for reconfirmation",
         "{count} Mitglieder bekommen eine Mail mit einem Link. Der Link öffnet den aktuellen Mandatstext mit den bisherigen Angaben, ein Klick genügt.": "{count} members will receive an email with a link. The link opens the current mandate text with their existing details; one click is enough.",
-        "Das Mandat bleibt währenddessen unverändert gültig und wird weiter eingezogen, auch wenn jemand nicht reagiert. Der Link gilt 14 Tage.": "The mandate stays valid and keeps being collected in the meantime, even if someone does not respond. The link is valid for 14 days.",
+        "Das Mandat bleibt währenddessen unverändert gültig und wird weiter eingezogen, auch wenn jemand nicht reagiert. Der Link gilt {days} Tage.": "The mandate stays valid and keeps being collected in the meantime, even if someone does not respond. The link is valid for {days} days.",
         "Auch an die {count} erneut schreiben, deren früherer Link noch gilt": "Also write again to the {count} whose earlier link is still valid",
         "Der frühere Link wird dabei ungültig.": "The earlier link becomes invalid.",
         "Mail {done} von {total} wird verschickt …": "Sending email {done} of {total}…",

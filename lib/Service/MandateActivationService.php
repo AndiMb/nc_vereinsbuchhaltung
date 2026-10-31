@@ -174,7 +174,17 @@ class MandateActivationService {
 			throw new \InvalidArgumentException($this->l10n->t('Für dieses Mitglied ist keine Mailadresse hinterlegt – ohne Mailadresse lässt sich kein Link verschicken.'));
 		}
 
-		$issued = $this->createToken($mandateId, $email, MandateActivationToken::PURPOSE_RECONFIRMATION, $requestedByUid);
+		return $this->sendReconfirmation($mandate, $member, $email, $requestedByUid);
+	}
+
+	/**
+	 * Legt den Link an, verschickt die Mail und protokolliert. Der Aufrufer hat
+	 * Mandat, Mitglied und Adresse schon geladen und geprüft.
+	 *
+	 * @return array{token: MandateActivationToken, url: string, email: string}
+	 */
+	private function sendReconfirmation(Mandate $mandate, Member $member, string $email, ?string $requestedByUid): array {
+		$issued = $this->createToken((int)$mandate->getId(), $email, MandateActivationToken::PURPOSE_RECONFIRMATION, $requestedByUid);
 		try {
 			$this->sendReconfirmationMail($member, $email, $mandate, $issued['url']);
 		} catch (\Throwable $e) {
@@ -182,7 +192,8 @@ class MandateActivationService {
 			throw $e;
 		}
 
-		$this->mandateService->logReconfirmationLinkSent($mandate, $email, $requestedByUid !== null ? MandateEvent::ACTOR_STAFF : MandateEvent::ACTOR_SYSTEM);
+		// Ausgelöst wird der Versand immer von der Verwaltung (Einstellungsseite).
+		$this->mandateService->logReconfirmationLinkSent($mandate, $email, MandateEvent::ACTOR_STAFF);
 		return ['token' => $issued['token'], 'url' => $issued['url'], 'email' => $email];
 	}
 
@@ -212,21 +223,20 @@ class MandateActivationService {
 
 		$overview = ['upToDate' => 0, 'outdated' => 0, 'withoutElectronicConsent' => 0, 'readyIds' => [], 'pendingIds' => [], 'noEmail' => []];
 		foreach ($this->mandateMapper->findAll() as $mandate) {
-			if (!$this->stateMachine->canReconfirm($mandate)) {
-				continue;
-			}
-			if ((int)$mandate->getMandateTextVersion() === $currentId) {
-				$overview['upToDate']++;
+			if (!$this->stateMachine->needsReconfirmation($mandate, $currentId)) {
+				if ($this->stateMachine->canReconfirm($mandate)) {
+					$overview['upToDate']++;
+				}
 				continue;
 			}
 			$overview['outdated']++;
-			if ($mandate->getConsentAt() === null) {
+			if (!$mandate->hasConsent()) {
 				$overview['withoutElectronicConsent']++;
 			}
 			$mandateId = (int)$mandate->getId();
 			$member = $members[$mandate->getMemberId()] ?? null;
 			if ($member === null || $this->resolveEmail($member) === null) {
-				$overview['noEmail'][] = ['mandateId' => $mandateId, 'memberId' => $mandate->getMemberId(), 'name' => $member?->displayName() ?? $this->l10n->t('unbekanntes Mitglied')];
+				$overview['noEmail'][] = ['mandateId' => $mandateId, 'memberId' => $mandate->getMemberId(), 'name' => $this->displayNameOf($member)];
 				continue;
 			}
 			$link = $pending[$mandateId] ?? null;
@@ -258,24 +268,25 @@ class MandateActivationService {
 	public function sendReconfirmationLinks(array $mandateIds, ?string $requestedByUid = null): array {
 		$currentId = (int)$this->legalTextService->current()->getId();
 		$result = ['sent' => 0, 'alreadyCurrent' => 0, 'skipped' => 0, 'noEmail' => [], 'failed' => []];
-		foreach (array_unique(array_map('intval', $mandateIds)) as $mandateId) {
+		foreach (array_unique($mandateIds) as $mandateId) {
 			$mandate = $this->mandateMapper->findOrNull($mandateId);
 			if ($mandate === null || !$this->stateMachine->canReconfirm($mandate)) {
 				$result['skipped']++;
 				continue;
 			}
-			if ((int)$mandate->getMandateTextVersion() === $currentId) {
+			if (!$this->stateMachine->needsReconfirmation($mandate, $currentId)) {
 				$result['alreadyCurrent']++;
 				continue;
 			}
 			$member = $this->memberMapper->findOrNull($mandate->getMemberId());
-			$name = $member?->displayName() ?? $this->l10n->t('unbekanntes Mitglied');
-			if ($member === null || $this->resolveEmail($member) === null) {
+			$name = $this->displayNameOf($member);
+			$email = $member === null ? null : $this->resolveEmail($member);
+			if ($member === null || $email === null) {
 				$result['noEmail'][] = $name;
 				continue;
 			}
 			try {
-				$this->issueReconfirmationLink($mandateId, $requestedByUid);
+				$this->sendReconfirmation($mandate, $member, $email, $requestedByUid);
 				$result['sent']++;
 			} catch (\Throwable $e) {
 				$result['failed'][] = ['name' => $name, 'reason' => $e->getMessage()];
@@ -337,6 +348,10 @@ class MandateActivationService {
 		return ($user !== null && $accountEmail !== null && $accountEmail !== '') ? $accountEmail : null;
 	}
 
+	private function displayNameOf(?Member $member): string {
+		return $member?->displayName() ?? $this->l10n->t('unbekanntes Mitglied');
+	}
+
 	private function sendMail(Member $member, string $email, Mandate $mandate, string $url): void {
 		// Die Mail geht im Namen der Verwaltung raus (oder aus dem Self-Service),
 		// gelesen wird sie vom Mitglied: Sprache und Du/Sie kommen von dessen Konto
@@ -344,17 +359,54 @@ class MandateActivationService {
 		$l = $this->recipientL10n->forMember($member);
 		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '') ?: $l->t('Ihr Verein');
 
-		// Die Mail ist übersetzt, die Seite hinter dem Link bewusst nicht: sie zeigt den
-		// Mandats-Rechtstext, und der gilt nur auf Deutsch (siehe MandateLegalTextService).
-		$template = $this->mailer->createEMailTemplate('vereinsbuchhaltung.mandateActivationLink');
-		$template->setSubject($l->t('Bitte bestätigen Sie Ihr SEPA-Lastschriftmandat'));
+		$this->deliverLinkMail($member, $email, $l, 'vereinsbuchhaltung.mandateActivationLink', [
+			$l->t('Bitte bestätigen Sie Ihr SEPA-Lastschriftmandat'),
+			$l->t('SEPA-Lastschriftmandat bestätigen'),
+			$l->t(
+				'%1$s bittet Sie, das SEPA-Lastschriftmandat mit der Referenz %2$s elektronisch zu bestätigen.',
+				[$clubName, $mandate->getMandateReference()]
+			),
+			$l->t('Mit einem Klick auf die Schaltfläche sehen Sie den vollständigen Mandatstext und können zustimmen.'),
+		], $url);
+	}
+
+	private function sendReconfirmationMail(Member $member, string $email, Mandate $mandate, string $url): void {
+		$l = $this->recipientL10n->forMember($member);
+		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '') ?: $l->t('Ihr Verein');
+
+		$failed = $this->deliverLinkMail($member, $email, $l, 'vereinsbuchhaltung.mandateReconfirmationLink', [
+			$l->t('Bitte bestätigen Sie Ihr SEPA-Lastschriftmandat erneut'),
+			$l->t('SEPA-Lastschriftmandat erneut bestätigen'),
+			$l->t(
+				'%1$s hat den Text Ihres SEPA-Lastschriftmandats mit der Referenz %2$s aktualisiert und bittet Sie, ihn zu bestätigen.',
+				[$clubName, $mandate->getMandateReference()]
+			),
+			$l->t('Ihr Mandat und Ihre Bankverbindung bleiben unverändert, Sie müssen nichts neu eingeben. Mit einem Klick auf die Schaltfläche sehen Sie den aktuellen Mandatstext und können bestätigen.'),
+		], $url);
+		// Anders als bei der Aktivierung (Versand ohne Rückmeldung) zählt hier eine nicht zugestellte Mail als Fehlschlag:
+		// der Link wird wieder gelöscht und die Verwaltung sieht, wer nichts bekommen hat.
+		if ($failed !== []) {
+			throw new \RuntimeException($this->l10n->t('Die Mail konnte nicht zugestellt werden.'));
+		}
+	}
+
+	/**
+	 * Die gemeinsame Mail zu einem Einmal-Link: Kopf, Überschrift, zwei Absätze, Schaltfläche, Gültigkeit, Fußzeile.
+	 *
+	 * Die Mail ist übersetzt, die Seite hinter dem Link bewusst nicht: sie zeigt den
+	 * Mandats-Rechtstext, und der gilt nur auf Deutsch (siehe MandateLegalTextService).
+	 *
+	 * @param list<string> $texts Betreff, Überschrift und zwei Absätze, schon in der Sprache des Empfängers
+	 * @return string[] die Empfänger, an die der Versand scheiterte (leer = zugestellt)
+	 */
+	private function deliverLinkMail(Member $member, string $email, IL10N $l, string $templateId, array $texts, string $url): array {
+		[$subject, $heading, $intro, $detail] = $texts;
+		$template = $this->mailer->createEMailTemplate($templateId);
+		$template->setSubject($subject);
 		$this->mailBranding->addHeader($template);
-		$template->addHeading($l->t('SEPA-Lastschriftmandat bestätigen'));
-		$template->addBodyText($l->t(
-			'%1$s bittet Sie, das SEPA-Lastschriftmandat mit der Referenz %2$s elektronisch zu bestätigen.',
-			[$clubName, $mandate->getMandateReference()]
-		));
-		$template->addBodyText($l->t('Mit einem Klick auf die Schaltfläche sehen Sie den vollständigen Mandatstext und können zustimmen.'));
+		$template->addHeading($heading);
+		$template->addBodyText($intro);
+		$template->addBodyText($detail);
 		$template->addBodyButton($l->t('Jetzt bestätigen'), $url);
 		$template->addBodyText($l->t('Dieser Link ist %d Tage gültig und nur einmal verwendbar.', [MandateActivationToken::VALIDITY_DAYS]));
 		// Auch die Fußzeile von Nextcloud (der Slogan) in der Sprache des Empfängers, nicht der Verwaltung.
@@ -365,36 +417,7 @@ class MandateActivationService {
 		$message->setTo([$email => $member->displayName()]);
 		$message->setSubject($template->renderSubject());
 		$message->useTemplate($template);
-		$this->mailer->send($message);
-	}
-
-	private function sendReconfirmationMail(Member $member, string $email, Mandate $mandate, string $url): void {
-		// Sprache und Du/Sie wie bei sendMail(): die des Empfängers, nicht des auslösenden Requests.
-		$l = $this->recipientL10n->forMember($member);
-		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '') ?: $l->t('Ihr Verein');
-
-		$template = $this->mailer->createEMailTemplate('vereinsbuchhaltung.mandateReconfirmationLink');
-		$template->setSubject($l->t('Bitte bestätigen Sie Ihr SEPA-Lastschriftmandat erneut'));
-		$this->mailBranding->addHeader($template);
-		$template->addHeading($l->t('SEPA-Lastschriftmandat erneut bestätigen'));
-		$template->addBodyText($l->t(
-			'%1$s hat den Text Ihres SEPA-Lastschriftmandats mit der Referenz %2$s aktualisiert und bittet Sie, ihn zu bestätigen.',
-			[$clubName, $mandate->getMandateReference()]
-		));
-		$template->addBodyText($l->t('Ihr Mandat und Ihre Bankverbindung bleiben unverändert, Sie müssen nichts neu eingeben. Mit einem Klick auf die Schaltfläche sehen Sie den aktuellen Mandatstext und können bestätigen.'));
-		$template->addBodyButton($l->t('Jetzt bestätigen'), $url);
-		$template->addBodyText($l->t('Dieser Link ist %d Tage gültig und nur einmal verwendbar.', [MandateActivationToken::VALIDITY_DAYS]));
-		$this->mailBranding->addFooter($template, $l->getLanguageCode());
-
-		$message = $this->mailer->createMessage();
-		$this->mailBranding->apply($message);
-		$message->setTo([$email => $member->displayName()]);
-		$message->setSubject($template->renderSubject());
-		$message->useTemplate($template);
-		$failed = $this->mailer->send($message);
-		if ($failed !== []) {
-			throw new \RuntimeException($this->l10n->t('Die Mail konnte nicht zugestellt werden.'));
-		}
+		return $this->mailer->send($message);
 	}
 
 	// --- Anzeige/Zustimmung --------------------------------------------------

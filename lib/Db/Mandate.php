@@ -190,6 +190,15 @@ class Mandate extends Entity implements \JsonSerializable {
 	}
 
 	/**
+	 * Ob eine elektronische Zustimmung protokolliert ist (Einmal-Link oder Self-Service,
+	 * auch bei einem Papier-Mandat, das den Text später elektronisch bestätigt hat).
+	 * Sie ist dann der Nachweis, ein hochgeladenes Dokument wird nicht verlangt.
+	 */
+	public function hasConsent(): bool {
+		return $this->consentAt !== null;
+	}
+
+	/**
 	 * IBAN mit maskierter Mitte für die Revisor-Ansicht (Spec §3.9: „Einzug-
 	 * Unterreiter lesend … IBAN maskiert"). Ländercode/Prüfziffer und die
 	 * letzten vier Stellen bleiben sichtbar – genug, um ein Mandat wieder-

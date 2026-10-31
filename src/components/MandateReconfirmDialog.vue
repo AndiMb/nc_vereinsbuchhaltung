@@ -17,7 +17,7 @@
 					{{ t('{count} Mitglieder bekommen eine Mail mit einem Link. Der Link öffnet den aktuellen Mandatstext mit den bisherigen Angaben, ein Klick genügt.', { count: recipientCount }) }}
 				</p>
 				<NcNoteCard type="info">
-					{{ t('Das Mandat bleibt währenddessen unverändert gültig und wird weiter eingezogen, auch wenn jemand nicht reagiert. Der Link gilt 14 Tage.') }}
+					{{ t('Das Mandat bleibt währenddessen unverändert gültig und wird weiter eingezogen, auch wenn jemand nicht reagiert. Der Link gilt {days} Tage.', { days: overview.validityDays }) }}
 				</NcNoteCard>
 
 				<div v-if="overview.pendingIds.length > 0" class="vbh-reconfirm-pending">
@@ -98,11 +98,8 @@ import { saveErrorMessage } from '../lib/sepaSettings.js'
  * Bestätigungsdialog „Zur erneuten Bestätigung anschreiben“ (Rechtstext-
  * Einstellungen): schickt jedem Mitglied mit wirksamem Mandat, das die aktuelle
  * Fassung noch nicht bestätigt hat, eine Mail mit Link. Die Liste kommt aus
- * `overview` (MandateLegalTextController::reconfirmation()), der Versand läuft in
- * Stücken, weil der Server je Aufruf nur wenige Mails zulässt; jedes Teilergebnis
- * wird zusammengeführt und am Ende gezeigt. Bricht ein Aufruf ab, bleibt das
- * bis dahin Verschickte in der Anzeige stehen – ein erneutes Anschreiben
- * würde die schon Angeschriebenen überspringen (ihr Link gilt noch).
+ * `overview` (MandateLegalTextController::reconfirmation()); der Versand läuft in
+ * Stücken, bricht ein Aufruf ab, bleibt das bis dahin Verschickte stehen.
  */
 export default {
 	name: 'MandateReconfirmDialog',
@@ -149,7 +146,7 @@ export default {
 			this.done = 0
 			let total = emptyResult()
 			try {
-				for (const part of chunkIds(this.ids)) {
+				for (const part of chunkIds(this.ids, this.overview.batchSize)) {
 					const { data } = await api.sendMandateReconfirmation(part)
 					total = mergeResult(total, data)
 					this.done += part.length

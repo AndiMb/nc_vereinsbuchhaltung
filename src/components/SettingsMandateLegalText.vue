@@ -190,7 +190,7 @@ import MandateReconfirmDialog from './MandateReconfirmDialog.vue'
 import api from '../api.js'
 import { formatDate } from '../lib/format.js'
 import { authorLabel, CREDITOR_PLACEHOLDER, legalTextParagraphs, MAX_RAHMEN_LENGTH, normalizeRahmen, rahmenError } from '../lib/mandateLegalText.js'
-import { reachableCount } from '../lib/mandateReconfirmation.js'
+import { targetIds } from '../lib/mandateReconfirmation.js'
 import { saveErrorMessage } from '../lib/sepaSettings.js'
 
 /**
@@ -255,7 +255,7 @@ export default {
 			return this.current.pflichtblock.split(/\n{2,}/).map((p) => p.trim()).filter((p) => p !== '')
 		},
 
-		canSendReconfirmation() { return this.reconfirm !== null && reachableCount(this.reconfirm) > 0 },
+		canSendReconfirmation() { return this.reconfirm !== null && targetIds(this.reconfirm, true).length > 0 },
 		// Namen der Mitglieder ohne Mailadresse, gekürzt: die Liste wäre sonst so lang wie die Mitgliederliste
 		noEmailNames() {
 			const names = this.reconfirm.noEmail.map((m) => m.name)
@@ -279,6 +279,8 @@ export default {
 		async load() {
 			this.loading = true
 			this.loadFailed = false
+			// Der Stand der Bestätigungen hängt nicht von den beiden anderen Antworten ab und hat eigene Fehleranzeige.
+			this.loadReconfirmation()
 			try {
 				const [current, history] = await Promise.all([api.getMandateLegalText(), api.getMandateLegalTextHistory()])
 				this.applyCurrent(current.data)
@@ -288,7 +290,6 @@ export default {
 			} finally {
 				this.loading = false
 			}
-			if (!this.loadFailed) { this.loadReconfirmation() }
 		},
 
 		async loadReconfirmation() {
@@ -307,8 +308,8 @@ export default {
 			this.reconfirmDialog = false
 			if (sent > 0) {
 				showSuccess(this.t('{count} Mails verschickt.', { count: sent }))
+				this.loadReconfirmation()
 			}
-			this.loadReconfirmation()
 		},
 
 		applyCurrent(data) {
@@ -343,9 +344,9 @@ export default {
 			try {
 				const { data } = await api.saveMandateLegalText(this.draft)
 				this.applyCurrent(data)
+				this.loadReconfirmation()
 				const history = await api.getMandateLegalTextHistory()
 				this.history = history.data
-				this.loadReconfirmation()
 				showSuccess(this.t('Neue Fassung {number} gespeichert.', { number: data.version.number }))
 			} catch (e) {
 				this.error = saveErrorMessage(e)

@@ -167,11 +167,13 @@ class MandateLegalTextControllerTest extends TestCase {
 		$this->assertSame(Http::STATUS_BAD_REQUEST, $response->getStatus());
 	}
 
-	public function testUebersichtKommtUnveraendertVomDienst(): void {
+	public function testUebersichtKommtVomDienstUndNenntBatchGroesseUndGueltigkeit(): void {
 		$overview = ['upToDate' => 3, 'outdated' => 1, 'withoutElectronicConsent' => 0, 'readyIds' => [9], 'pendingIds' => [], 'noEmail' => []];
 		$activation = $this->createMock(MandateActivationService::class);
 		$activation->method('reconfirmationOverview')->willReturn($overview);
 
-		$this->assertSame($overview, $this->controller($activation)->reconfirmation()->getData());
+		$data = $this->controller($activation)->reconfirmation()->getData();
+
+		$this->assertSame($overview + ['batchSize' => MandateLegalTextController::MAX_RECONFIRMATION_BATCH, 'validityDays' => 14], $data);
 	}
 }

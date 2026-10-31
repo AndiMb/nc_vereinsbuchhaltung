@@ -1,18 +1,18 @@
 import { describe, expect, it } from 'vitest'
-import { chunkIds, emptyResult, mergeResult, reachableCount, RECONFIRM_BATCH_SIZE, targetIds } from './mandateReconfirmation.js'
+import { chunkIds, emptyResult, mergeResult, targetIds } from './mandateReconfirmation.js'
 
 describe('chunkIds', () => {
-	it('teilt die Liste in Stücke der Obergrenze des Servers', () => {
-		const ids = Array.from({ length: RECONFIRM_BATCH_SIZE * 2 + 3 }, (_, i) => i + 1)
+	it('teilt die Liste in Stücke der Größe, die der Server zulässt', () => {
+		const ids = Array.from({ length: 53 }, (_, i) => i + 1)
 
-		const chunks = chunkIds(ids)
+		const chunks = chunkIds(ids, 25)
 
-		expect(chunks.map((c) => c.length)).toEqual([RECONFIRM_BATCH_SIZE, RECONFIRM_BATCH_SIZE, 3])
+		expect(chunks.map((c) => c.length)).toEqual([25, 25, 3])
 		expect(chunks.flat()).toEqual(ids)
 	})
 
 	it('liefert bei leerer Liste keine Stücke', () => {
-		expect(chunkIds([])).toEqual([])
+		expect(chunkIds([], 25)).toEqual([])
 	})
 })
 
@@ -49,11 +49,5 @@ describe('mergeResult', () => {
 
 	it('beginnt mit einem leeren Ergebnis', () => {
 		expect(mergeResult(emptyResult(), emptyResult())).toEqual(emptyResult())
-	})
-})
-
-describe('reachableCount', () => {
-	it('zählt Mandate mit und ohne gültigen Link', () => {
-		expect(reachableCount({ readyIds: [1, 2], pendingIds: [3] })).toBe(3)
 	})
 })

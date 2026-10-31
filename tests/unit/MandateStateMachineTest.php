@@ -233,4 +233,19 @@ class MandateStateMachineTest extends TestCase {
 
 		$this->assertFalse($this->machine()->canReconfirm($mandate));
 	}
+
+	public function testNurWirksameMandateOhneAktuelleFassungMuessenErneutBestaetigen(): void {
+		$current = $this->mandate(Mandate::STATUS_ACTIVE);
+		$current->setMandateTextVersion(3);
+		$older = $this->mandate(Mandate::STATUS_ACTIVE);
+		$older->setMandateTextVersion(2);
+		$paper = $this->mandate(Mandate::STATUS_ACTIVE); // keine Fassung: Papier
+		$ended = $this->mandate(Mandate::STATUS_ENDED);
+		$ended->setMandateTextVersion(2);
+
+		$this->assertFalse($this->machine()->needsReconfirmation($current, 3));
+		$this->assertTrue($this->machine()->needsReconfirmation($older, 3));
+		$this->assertTrue($this->machine()->needsReconfirmation($paper, 3));
+		$this->assertFalse($this->machine()->needsReconfirmation($ended, 3));
+	}
 }

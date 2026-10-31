@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Db\MandateActivationToken;
 use OCA\Vereinsbuchhaltung\Db\MandateLegalTextVersion;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
@@ -116,7 +117,10 @@ class MandateLegalTextController extends Controller {
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_ADMIN)]
 	public function reconfirmation(): DataResponse {
-		return new DataResponse($this->activation->reconfirmationOverview());
+		return new DataResponse($this->activation->reconfirmationOverview() + [
+			'batchSize' => self::MAX_RECONFIRMATION_BATCH,
+			'validityDays' => MandateActivationToken::VALIDITY_DAYS,
+		]);
 	}
 
 	/**

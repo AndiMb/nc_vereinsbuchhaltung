@@ -221,8 +221,7 @@ class MandateTaskService {
 			if ($mandate->getStatus() !== Mandate::STATUS_ACTIVE
 				|| $mandate->getSignatureType() !== Mandate::SIGNATURE_PAPER
 				|| $mandate->getDocumentFileId() !== null
-				// Hat ein Papier-Mandat den Text später elektronisch bestätigt, ist diese Zustimmung der Nachweis.
-				|| $mandate->getConsentAt() !== null) {
+				|| $mandate->hasConsent()) {
 				continue;
 			}
 			$member = $members[$mandate->getMemberId()] ?? null;

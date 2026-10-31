@@ -6,7 +6,6 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Mandate;
-use OCA\Vereinsbuchhaltung\Db\MandateActivationToken;
 use OCA\Vereinsbuchhaltung\Exception\ConsumedActivationTokenException;
 use OCA\Vereinsbuchhaltung\Exception\ExpiredActivationTokenException;
 use OCA\Vereinsbuchhaltung\Exception\InvalidActivationTokenException;
@@ -134,7 +133,7 @@ class MandateConsentController extends Controller {
 			'mandateConsent',
 			[
 				'status' => $view['status'],
-				'purpose' => $view['token']->getPurpose(),
+				'reconfirm' => $view['token']->isReconfirmation(),
 				'clubName' => $clubName,
 				'legalTextHtml' => $this->formRenderer->renderLegalText($view['legalText'], $clubName),
 				'dataBlockHtml' => $this->formRenderer->renderDataBlock($mandate, $creditorId, $referenceDate),
@@ -154,7 +153,7 @@ class MandateConsentController extends Controller {
 			'mandateConsent',
 			[
 				'status' => $status,
-				'purpose' => MandateActivationToken::PURPOSE_ACTIVATION,
+				'reconfirm' => false,
 				'clubName' => $this->config->getAppValue(Application::APP_ID, 'club_name', ''),
 				'legalTextHtml' => '',
 				'dataBlockHtml' => '',

@@ -1,21 +1,17 @@
 /**
  * Hilfen für „Mitglieder zur erneuten Bestätigung anschreiben“ auf der
  * Rechtstext-Einstellungsseite (MandateLegalTextController::reconfirmation()).
- *
- * Der Server verschickt je Aufruf höchstens {@link RECONFIRM_BATCH_SIZE} Mails
- * (jede ist ein SMTP-Roundtrip); die Oberfläche teilt die Liste deshalb in
- * Stücke und führt die Teilergebnisse zusammen.
+ * Der Server verschickt je Aufruf nur wenige Mails (`batchSize` der Übersicht,
+ * jede ist ein SMTP-Roundtrip); die Oberfläche teilt die Liste deshalb in Stücke
+ * und führt die Teilergebnisse zusammen.
  */
-
-/** Muss zu MandateLegalTextController::MAX_RECONFIRMATION_BATCH passen. */
-export const RECONFIRM_BATCH_SIZE = 25
 
 /**
  * @param {number[]} ids
- * @param {number} [size]
+ * @param {number} size
  * @return {number[][]}
  */
-export function chunkIds(ids, size = RECONFIRM_BATCH_SIZE) {
+export function chunkIds(ids, size) {
 	const chunks = []
 	for (let i = 0; i < ids.length; i += size) {
 		chunks.push(ids.slice(i, i + size))
@@ -57,15 +53,4 @@ export function mergeResult(total, part) {
 		noEmail: [...total.noEmail, ...part.noEmail],
 		failed: [...total.failed, ...part.failed],
 	}
-}
-
-/**
- * Anzahl Mandate, die noch nicht die aktuelle Fassung bestätigt haben und sich
- * per Mail erreichen lassen (mit und ohne bereits gültigen Link).
- *
- * @param {{readyIds: number[], pendingIds: number[]}} overview
- * @return {number}
- */
-export function reachableCount(overview) {
-	return overview.readyIds.length + overview.pendingIds.length
 }
