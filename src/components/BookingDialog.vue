@@ -622,6 +622,9 @@ export default {
 		// "Zuordnen"-Ansicht geteilt) schreibt waehrend der Dialog offen ist direkt
 		// in bookingForm - eine lokale Kopie wuerde dabei veralten.
 		bookingForm: { type: Object, required: true },
+		// Von einem Belegvorschlag in der Buchungsliste geöffnet: die Seitenleiste
+		// geht auf, egal was zuletzt gemerkt wurde - ohne die Wahl zu überschreiben.
+		forceFolderPanel: { type: Boolean, default: false },
 		bookingMode: { type: String, required: true },
 		bookingLocked: { type: Boolean, required: true },
 		bookingSaving: { type: Boolean, required: true },
@@ -1151,7 +1154,7 @@ export default {
 		restoreFolderPanel() {
 			if (!this.show || this.folderPanelOpen) { return }
 			const open = opensFolderPanel({
-				remembered: readFolderPanelOpen(),
+				remembered: readFolderPanelOpen() || this.forceFolderPanel,
 				watchMode: this.watchMode,
 				canWrite: this.canWrite,
 				bookingLocked: this.bookingLocked,

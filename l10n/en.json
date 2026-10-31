@@ -3862,6 +3862,27 @@
         "_%n Beleg wird noch gelesen_::_%n Belege werden noch gelesen_": [
             "%n receipt is still being read",
             "%n receipts are still being read"
+        ],
+        "_%n Beleg zuordnen_::_%n Belege zuordnen_": [
+            "Assign %n receipt",
+            "Assign %n receipts"
+        ],
+        "Passende Belege zuordnen": "Assign matching receipts",
+        "Diese Belege passen mit Rechnungsnummer und Betrag zur Buchung. Entfernen Sie das Häkchen, wo Sie nicht zuordnen möchten.": "These receipts match the booking by invoice number and amount. Clear the checkmark where you do not want to assign.",
+        "Wird zugeordnet …": "Assigning …",
+        "_%n Beleg zugeordnet_::_%n Belege zugeordnet_": [
+            "%n receipt assigned",
+            "%n receipts assigned"
+        ],
+        "_%n Beleg konnte nicht zugeordnet werden (inzwischen vergeben, gelöscht oder Geschäftsjahr festgeschrieben)._::_%n Belege konnten nicht zugeordnet werden (inzwischen vergeben, gelöscht oder Geschäftsjahr festgeschrieben)._": [
+            "%n receipt could not be assigned (meanwhile assigned, deleted or fiscal year locked).",
+            "%n receipts could not be assigned (meanwhile assigned, deleted or fiscal year locked)."
+        ],
+        "Zuordnen fehlgeschlagen": "Assigning failed",
+        "Passender Beleg gefunden: {name}": "Matching receipt found: {name}",
+        "_%n möglicher Beleg_::_%n mögliche Belege_": [
+            "%n possible receipt",
+            "%n possible receipts"
         ]
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"

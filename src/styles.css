@@ -2040,3 +2040,19 @@ button.vbh-dirtree-label.vbh-dirtree-label.is-selected { background-color: var(-
 .vbh-inv-attach { border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 8px); padding: 8px 12px; margin: 8px 0; display: flex; flex-direction: column; gap: 4px; }
 
 .vbh-inv-attach legend { padding: 0 6px; font-weight: 600; }
+
+/* Sammelbestätigung der Belegvorschläge (#229). Der Dialog wird aus .vbh hinausteleportiert, daher klassenbasiert. */
+.vbh-suggest-confirm-list { list-style: none; margin: 12px 0 0; padding: 0; max-height: 50vh; overflow-y: auto; }
+
+.vbh-suggest-confirm-row { border-bottom: 1px solid var(--color-border); }
+
+.vbh-suggest-confirm-row:last-child { border-bottom: none; }
+
+.vbh-suggest-confirm-pair { display: flex; flex-direction: column; gap: 2px; padding: 4px 0; overflow-wrap: anywhere; }
+
+.vbh-suggest-confirm-file { color: var(--color-text-maxcontrast); }
+
+.vbh-suggest-confirm-file .vbh-suggest-reasons { display: block; }
+
+/* Knopf „n Belege zuordnen“ über der Buchungsliste */
+.vbh-suggest-bar { display: flex; justify-content: flex-end; margin: 0 0 8px; }
