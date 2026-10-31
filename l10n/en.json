@@ -3848,7 +3848,8 @@
         "Im neuen Tab öffnen": "Open in new tab",
         "Datei anklicken für Vorschau": "Click a file to preview it",
         "Die Datei lässt sich hier nicht anzeigen.": "The file cannot be displayed here.",
-        "Für diesen Dateityp ist keine Vorschau möglich.": "No preview is available for this file type."
+        "Für diesen Dateityp ist keine Vorschau möglich.": "No preview is available for this file type.",
+        "+ {n} weitere": "+ {n} more"
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

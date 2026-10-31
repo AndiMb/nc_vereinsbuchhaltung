@@ -336,6 +336,7 @@
 			:isMobile="isMobile"
 			:canWrite="canWrite"
 			:excludeFileIds="folderExcludeIds"
+			:context="folderDialog.context"
 			@update:show="folderDialog.open = $event"
 			@close="folderDialog.open = false"
 			@pick="onFolderPick"
@@ -459,6 +460,7 @@ import { useTasks } from './composables/useTasks.js'
 import { buildWhatsNewEntries, filterWhatsNewEntries } from './data/whatsNew.js'
 import { amountClass, budgetDiffClass, errMsg, formatDate, formatDateTime, formatMoney, typeLabel } from './lib/format.js'
 import { linkFilesToBookings } from './lib/receiptBatch.js'
+import { bookingsContext, txContext } from './lib/receiptPreview.js'
 import { splitBalanced, splitRemainder, splitSideOf } from './lib/split.js'
 
 // Abstand zwischen zwei Abgleichen mit dem Server. Die Frist, in der eine
@@ -692,7 +694,7 @@ export default {
 			// txPendingFiles).
 			// txId: Auswahl für einen Bankumsatz; journalIds: für die im Journal
 			// markierten Buchungen (openFolderPickerForBookings).
-			folderDialog: { open: false, pick: false, txId: null, journalIds: null },
+			folderDialog: { open: false, pick: false, txId: null, journalIds: null, context: null },
 			// In „Zuzuordnen“ vorgemerkte Belege je Bankumsatz:
 			// { [txId]: [{ fileId, name, size }] }. Reiner UI-Zustand – verknüpft
 			// wird erst, wenn der Umsatz zugeordnet ist (linkTxPendingFiles()).
@@ -2116,8 +2118,8 @@ export default {
 		},
 
 		// --- Wächter-Ordner für Belege ---------------------------------------
-		openInbox() { this.folderDialog = { open: true, pick: false, txId: null, journalIds: null } },
-		openFolderPickerForTx(tx) { this.folderDialog = { open: true, pick: true, txId: tx.id, journalIds: null } },
+		openInbox() { this.folderDialog = { open: true, pick: false, txId: null, journalIds: null, context: null } },
+		openFolderPickerForTx(tx) { this.folderDialog = { open: true, pick: true, txId: tx.id, journalIds: null, context: txContext(tx) } },
 
 		/**
 		 * Belegauswahl für die im Journal markierten Buchungen. Das Versprechen
@@ -2129,7 +2131,7 @@ export default {
 		 */
 		openFolderPickerForBookings(journalIds) {
 			this.settleFolderPick(false)
-			this.folderDialog = { open: true, pick: true, txId: null, journalIds }
+			this.folderDialog = { open: true, pick: true, txId: null, journalIds, context: bookingsContext(this.journalRows, journalIds) }
 			return new Promise((resolve) => { this.folderPickDone = resolve })
 		},
 

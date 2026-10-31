@@ -1749,6 +1749,35 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-folder-list { max-height: 50vh; overflow-y: auto; }
 
+/* Ordner-Dialog mit Belegvorschau am Desktop (#231): feste Hoehe, oben der
+   Kontextstreifen, darunter Liste | Vorschau; die Liste scrollt in ihrer
+   Spalte. Bei schmalem Fenster nur eine Spalte (Vorschau anstelle der
+   Liste). (0,4,0) gegen die Groessenregel der Bibliothek, wie beim
+   Buchungsdialog. */
+.modal-wrapper .modal-container:has(.vbh-modal-inner.vbh-folder-dialog--preview) { overflow: hidden; width: min(1500px, 96vw); height: min(90vh, 100vh - 2 * var(--header-height, 50px) - 2 * var(--body-container-margin, 0px)); }
+
+.modal-container .modal-container__content:has(.vbh-modal-inner.vbh-folder-dialog--preview) { overflow: hidden; }
+
+.vbh-modal-inner.vbh-folder-dialog--preview { display: flex; flex-direction: column; box-sizing: border-box; height: 100%; }
+
+.vbh-folder-dialog-grid { display: grid; flex: 1 1 auto; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: 24px; min-height: 0; }
+
+.vbh-folder-dialog-grid.is-wide { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); }
+
+.vbh-folder-dialog-grid .vbh-folder-dialog-list { display: flex; overflow-y: auto; flex-direction: column; min-height: 0; padding-inline-end: 4px; }
+
+.vbh-folder-dialog-list > .vbh-receipt-preview { flex: 1 1 auto; height: auto; }
+
+.vbh-folder-dialog--preview .vbh-folder-list { max-height: none; }
+
+.vbh-folder-dialog-preview { display: flex; flex-direction: column; min-height: 0; padding-inline-start: 24px; border-inline-start: 1px solid var(--color-border); }
+
+.vbh-folder-context { flex: 0 0 auto; margin: 0 0 10px; padding: 6px 10px; border-radius: var(--border-radius-large); background: var(--color-background-dark); }
+
+.vbh-folder-context-line { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+.vbh-folder-context-more { color: var(--color-text-maxcontrast); }
+
 .vbh-folder-item { padding: 6px 8px; }
 
 /* Die Datei, die gerade in der Belegvorschau steht (#231) - auch nach dem
