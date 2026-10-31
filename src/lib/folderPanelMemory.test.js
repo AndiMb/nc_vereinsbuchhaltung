@@ -52,4 +52,16 @@ describe('opensFolderPanel', () => {
 	])('bleibt zu: %s', (_label, patch) => {
 		expect(opensFolderPanel({ ...ok, ...patch })).toBe(false)
 	})
+
+	it('ausdrücklich verlangt: öffnet auch mobil und ohne gemerkte Wahl', () => {
+		expect(opensFolderPanel({ ...ok, remembered: false, isMobile: true, forced: true })).toBe(true)
+	})
+
+	it.each([
+		['kein Wächter-Ordner', { watchMode: false }],
+		['ohne Schreibrecht', { canWrite: false }],
+		['Buchung gesperrt', { bookingLocked: true }],
+	])('ausdrücklich verlangt, aber %s: bleibt zu', (_label, patch) => {
+		expect(opensFolderPanel({ ...ok, forced: true, ...patch })).toBe(false)
+	})
 })

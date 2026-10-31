@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Middleware;
 
 use OCA\Vereinsbuchhaltung\Service\RevisionService;
 use OCP\AppFramework\Controller;
+use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\Response;
 use OCP\AppFramework\Middleware;
 use OCP\IRequest;
@@ -26,9 +27,27 @@ class RevisionMiddleware extends Middleware {
 
 	public function afterController(Controller $controller, string $methodName, Response $response): Response {
 		$verb = strtoupper($this->request->getMethod());
-		if ($verb !== 'GET' && $verb !== 'HEAD' && $response->getStatus() < 400) {
+		if ($verb !== 'GET' && $verb !== 'HEAD' && $response->getStatus() < 400 && !$this->skipsBump($controller, $methodName, $response)) {
 			$this->revision->bump();
 		}
 		return $response;
+	}
+
+	/** Trägt die Methode {@see NoRevisionBump}, und gilt die Ausnahme für diese Antwort? */
+	private function skipsBump(Controller $controller, string $methodName, Response $response): bool {
+		try {
+			$attributes = (new \ReflectionMethod($controller, $methodName))->getAttributes(NoRevisionBump::class);
+		} catch (\ReflectionException) {
+			return false;
+		}
+		if ($attributes === []) {
+			return false;
+		}
+		$key = $attributes[0]->newInstance()->unlessNonEmpty;
+		if ($key === null) {
+			return true;
+		}
+		$data = $response instanceof DataResponse ? $response->getData() : null;
+		return !is_array($data) || empty($data[$key]);
 	}
 }
