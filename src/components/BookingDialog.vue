@@ -604,6 +604,7 @@ import { useJournal } from '../composables/useJournal.js'
 import { usePeriods } from '../composables/usePeriods.js'
 import { useReceiptSuggestions } from '../composables/useReceiptSuggestions.js'
 import { autogrow } from '../lib/autogrow.js'
+import { onlyDefaultMoneyAccountAdded } from '../lib/bookingSnapshot.js'
 import { opensFolderPanel, readFolderPanelOpen, writeFolderPanelOpen } from '../lib/folderPanelMemory.js'
 import { formatFileSize, formatMoney } from '../lib/format.js'
 import { isSelectableOption } from '../lib/selectOptions.js'
@@ -975,6 +976,15 @@ export default {
 			this.$nextTick(() => {
 				if (isWide) { this.$refs.folderPanel?.revealFile(id) } else { this.$refs.fallbackPreview?.focus() }
 			})
+		},
+
+		'bookingForm.moneyAccountId': function() {
+			// App.vue (Watcher defaultMoneyAccountId) traegt das Standard-Geldkonto
+			// nach, wenn die Konten erst nach dem Oeffnen geladen sind – das ist
+			// keine Eingabe und soll keine Verwerfen-Rueckfrage ausloesen.
+			if (this.snapshot !== null && onlyDefaultMoneyAccountAdded(this.snapshot, this.formState())) {
+				this.snapshot = this.formState()
+			}
 		},
 
 		show: {
