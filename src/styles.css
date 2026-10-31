@@ -1089,6 +1089,44 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 .vbh-booking-folder-title { margin: 0 0 4px; padding-inline-end: calc(var(--default-clickable-area, 34px) + 8px); font-size: 1.1em; font-weight: 600; }
 
 .vbh-booking-folder .vbh-folder-panel-actions { margin-top: 10px; }
+
+/* Mit Belegvorschau drei Spalten (#231, nur breites Fenster): Formular,
+   Liste, Vorschau. Der Dialog wird fast fensterbreit; Hoehe und Scrollen
+   wie bei .is-split. (0,4,0) wie oben gegen die Groessenregel der Bibliothek,
+   die max-width auf 90 % deckelt. */
+.modal-wrapper .modal-container:has(.vbh-booking-dialog.is-split3) { width: min(1800px, 96vw); max-width: 96vw; }
+
+.vbh-booking-dialog.is-split3 .vbh-booking-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.6fr); }
+
+.vbh-booking-dialog.is-split3 .vbh-booking-preview { display: flex; flex-direction: column; min-height: 0; padding: 12px 0 0 24px; border-inline-start: 1px solid var(--color-border); }
+
+/* Das Schliessen-X sitzt jetzt ueber der Vorschau: deren Kopfzeile haelt
+   Platz frei, der Ordnertitel braucht ihn nicht mehr. */
+.vbh-booking-dialog.is-split3 .vbh-booking-preview .vbh-receipt-preview-head { padding-inline-end: calc(var(--default-clickable-area, 34px) + 8px); }
+
+.vbh-booking-dialog.is-split3 .vbh-booking-folder-title { padding-inline-end: 0; }
+
+/* Schmales Fenster: die Vorschau steht in der Ordnerspalte anstelle der Liste. */
+.vbh-booking-folder > .vbh-receipt-preview { flex: 1 1 auto; height: auto; }
+
+/* Belegvorschau (ReceiptPreview.vue, #231): Kopfzeile, darunter die Datei
+   auf der ganzen Resthoehe. Die Rahmen geben der Wurzel eine feste Hoehe
+   (Rasterzelle mit min-height: 0). */
+.vbh-receipt-preview { display: flex; flex-direction: column; min-width: 0; min-height: 0; height: 100%; }
+
+.vbh-receipt-preview:focus { outline: none; }
+
+.vbh-receipt-preview-head { display: flex; flex: 0 0 auto; gap: 4px; align-items: center; min-height: var(--default-clickable-area, 34px); margin-bottom: 4px; }
+
+.vbh-receipt-preview-name { overflow: hidden; flex: 1 1 auto; min-width: 0; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; }
+
+.vbh-receipt-preview-frame { flex: 1 1 auto; width: 100%; min-height: 0; border: 1px solid var(--color-border); border-radius: var(--border-radius); background: var(--color-background-dark); }
+
+.vbh-receipt-preview-image { overflow: auto; flex: 1 1 auto; min-height: 0; border: 1px solid var(--color-border); border-radius: var(--border-radius); background: var(--color-background-dark); }
+
+.vbh-receipt-preview-image img { display: block; max-width: 100%; margin: 0 auto; }
+
+.vbh-receipt-preview-empty { display: flex; flex: 1 1 auto; flex-direction: column; gap: 12px; align-items: center; justify-content: center; padding: 24px; border: 1px dashed var(--color-border-dark); border-radius: var(--border-radius-large); color: var(--color-text-maxcontrast); text-align: center; }
 /* NcModals `:name`-Titel schwebt per Bibliotheks-CSS (.modal-header, position:
    absolute relativ zur fixed .modal-mask) am oberen Browserfensterrand statt im
    Popup - er ist NICHT im .modal-container verschachtelt, sondern dessen
@@ -1712,7 +1750,47 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-folder-list { max-height: 50vh; overflow-y: auto; }
 
+/* Ordner-Dialog mit Belegvorschau am Desktop (#231): feste Hoehe, oben der
+   Kontextstreifen, darunter Liste | Vorschau; die Liste scrollt in ihrer
+   Spalte. Bei schmalem Fenster nur eine Spalte (Vorschau anstelle der
+   Liste). (0,4,0) gegen die Groessenregel der Bibliothek, wie beim
+   Buchungsdialog. */
+.modal-wrapper .modal-container:has(.vbh-modal-inner.vbh-folder-dialog--preview) { overflow: hidden; width: min(1500px, 96vw); max-width: 96vw; height: min(90vh, 100vh - 2 * var(--header-height, 50px) - 2 * var(--body-container-margin, 0px)); }
+
+.modal-container .modal-container__content:has(.vbh-modal-inner.vbh-folder-dialog--preview) { overflow: hidden; }
+
+.vbh-modal-inner.vbh-folder-dialog--preview { display: flex; flex-direction: column; box-sizing: border-box; height: 100%; }
+
+.vbh-folder-dialog-grid { display: grid; flex: 1 1 auto; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: 24px; min-height: 0; }
+
+.vbh-folder-dialog-grid.is-wide { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); }
+
+.vbh-folder-dialog-grid .vbh-folder-dialog-list { display: flex; overflow-y: auto; flex-direction: column; min-height: 0; padding-inline-end: 4px; }
+
+.vbh-folder-dialog--preview .vbh-folder-dialog-list > .vbh-receipt-preview { flex: 1 1 auto; height: auto; }
+
+/* Die Dateiliste (und in der Dublettenansicht deren Liste) nimmt die
+   Resthoehe und scrollt selbst - Suchfeld oben und Knopfleiste unten
+   bleiben im Blick. */
+.vbh-folder-dialog--preview .vbh-folder-dialog-list > .vbh-folder-panel { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
+
+.vbh-folder-dialog--preview .vbh-folder-list { flex: 1 1 auto; min-height: 120px; max-height: none; }
+
+.vbh-folder-dialog--preview .vbh-folder-dialog-list > .vbh-folder-panel > .vbh-dups { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
+
+.vbh-folder-dialog-preview { display: flex; flex-direction: column; min-height: 0; padding-inline-start: 24px; border-inline-start: 1px solid var(--color-border); }
+
+.vbh-folder-context { flex: 0 0 auto; margin: 0 0 10px; padding: 6px 10px; border-radius: var(--border-radius-large); background: var(--color-background-dark); }
+
+.vbh-folder-context-line { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+.vbh-folder-context-more { color: var(--color-text-maxcontrast); }
+
 .vbh-folder-item { padding: 6px 8px; }
+
+/* Die Datei, die gerade in der Belegvorschau steht (#231) - auch nach dem
+   Zurueckkehren aus der Vorschau sofort wiederzufinden. */
+.vbh-folder-item.vbh-folder-item--previewed { background: var(--color-primary-element-light); box-shadow: inset 3px 0 0 var(--color-primary-element); }
 
 .vbh-folder-main { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
 

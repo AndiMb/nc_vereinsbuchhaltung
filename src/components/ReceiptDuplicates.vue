@@ -23,7 +23,11 @@
 				{{ t('Gelöscht wird hier nichts. Am einfachsten die Kopien, die weg können, nach „_Dubletten“ verschieben und den Ordner danach in der Dateien-App löschen.') }}
 			</p>
 
-			<ul v-if="groups.length" class="vbh-attachment-list vbh-folder-list vbh-dups-list">
+			<ul
+				v-if="groups.length"
+				class="vbh-attachment-list vbh-folder-list vbh-dups-list"
+				@keydown.up="onArrowKey($event, -1)"
+				@keydown.down="onArrowKey($event, 1)">
 				<li v-for="g in groups" :key="g.files[0].fileId" class="vbh-dups-group">
 					<div class="vbh-dups-head">
 						<strong>{{ n('%n gleiche Datei', '%n gleiche Dateien', g.files.length) }} · {{ formatFileSize(g.size) }}</strong>
@@ -32,7 +36,12 @@
 						</span>
 					</div>
 					<ul class="vbh-dups-files">
-						<li v-for="f in g.files" :key="f.fileId" class="vbh-attachment-item vbh-folder-item">
+						<li
+							v-for="f in g.files"
+							:key="f.fileId"
+							class="vbh-attachment-item vbh-folder-item"
+							:class="{ 'vbh-folder-item--previewed': f.fileId === previewFileId }"
+							:data-file-id="f.fileId">
 							<input
 								v-if="canWrite && !f.journalIds.length"
 								type="checkbox"
@@ -101,9 +110,12 @@ export default {
 	props: {
 		canWrite: { type: Boolean, required: true },
 		selected: { type: Set, required: true },
+		// Belegvorschau wie im Panel (AttachmentFolderPanel.vue).
+		previewEnabled: { type: Boolean, default: false },
+		previewFileId: { type: Number, default: null },
 	},
 
-	emits: ['open-booking', 'select', 'toggle'],
+	emits: ['open-booking', 'preview', 'select', 'step', 'toggle'],
 
 	data() {
 		return { mdiFileDocumentOutline, loading: false, groups: [], unreadable: 0, capped: false, limit: 0 }
@@ -140,7 +152,28 @@ export default {
 		},
 
 		preview(f) {
-			window.open(api.attachmentInboxViewUrl(f.fileId), '_blank')
+			if (this.previewEnabled) {
+				this.$emit('preview', f)
+			} else {
+				window.open(api.attachmentInboxViewUrl(f.fileId), '_blank')
+			}
+		},
+
+		/**
+		 * Alle Kopien in Anzeigereihenfolge als Zeilen für adjacentFile();
+		 * das Panel blättert damit auch in dieser Ansicht.
+		 *
+		 * @return {Array<{kind: 'file', file: object}>}
+		 */
+		previewRows() {
+			return this.groups.flatMap((g) => g.files.map((file) => ({ kind: 'file', file })))
+		},
+
+		/** ↑/↓ meldet step; das Panel blättert, dort liegt die Reihenfolge. */
+		onArrowKey(event, dir) {
+			if (!this.previewEnabled) { return }
+			event.preventDefault()
+			this.$emit('step', dir)
 		},
 
 		formatMtime(mtime) {

@@ -15,6 +15,19 @@ Markdown headings as "[object Object]" since `marked` v18 (wrong renderer
 callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 **bold lead-in** at the start of a line instead, e.g. `**New:**`.
 
+## [Unreleased]
+
+**New:**
+- **Receipt preview next to the receipt picker** ([#231](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/231)):
+  On the desktop, clicking a file in the watch folder shows it right next to
+  the list instead of in a new tab – PDFs in the browser's viewer, images as
+  images. In the posting dialog, form, list and preview sit side by side, so
+  invoice and posting can be compared. Choosing a receipt for a bank
+  transaction or for several postings shows at the top what the receipt is
+  for. The file being viewed is highlighted in the list, ↑/↓ move on. In a
+  narrow window the preview takes the place of the list; on mobile it still
+  opens in a new tab.
+
 ## [0.46.0] – 2026-10-30
 
 **New:**

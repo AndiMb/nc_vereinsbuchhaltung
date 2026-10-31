@@ -34,3 +34,6 @@ composer.phar
 # eines einzelnen Vereins, nicht oeffentlich; die Tests nutzen eine anonymisierte
 # Fassung unter tests/fixtures/
 /example/
+
+# Brainstorming-Mockups (superpowers visual companion)
+/.superpowers/

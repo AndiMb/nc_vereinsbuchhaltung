@@ -499,6 +499,19 @@ If you prefer the plain list of all files, untick **"Show folders"**; the
 folder then appears in small print below the file name. The browser
 remembers the choice.
 
+**Receipt preview** (desktop): Clicking a file name shows the file right
+next to the list – PDFs in the browser's viewer (with zoom and paging),
+images as images. In the posting dialog the form stays alongside, so date,
+amount and issuer can be compared with the posting. When choosing a receipt
+for a bank transaction or for several postings, a strip above the list
+shows what the receipt is for. The file currently shown is highlighted in
+the list; the arrow keys ↑/↓ move to the next or previous one. If the
+browser window is narrower than about 1500 pixels, the preview takes the
+place of the list, and "List" goes back. If the preview stays empty – for
+example because a hosting provider blocks embedding files – the arrow icon
+at the top right opens the file in a new tab. On a smartphone the file
+opens in a new tab as before.
+
 **Sorting open receipts away** (bookkeepers and administrators): In the
 inbox every open file has a checkbox, as does every folder with open
 receipts. "select all open files" takes all files matching the search –

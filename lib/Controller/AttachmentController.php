@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\Attachment;
 use OCA\Vereinsbuchhaltung\Db\AttachmentMapper;
 use OCA\Vereinsbuchhaltung\Db\Journal;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
+use OCA\Vereinsbuchhaltung\Http\ReceiptPreviewPolicy;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\AttachmentWatchFolderService;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
@@ -20,7 +21,6 @@ use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\DataDownloadResponse;
 use OCP\AppFramework\Http\DataResponse;
-use OCP\AppFramework\Http\EmptyContentSecurityPolicy;
 use OCP\IL10N;
 use OCP\IRequest;
 use OCP\IUserSession;
@@ -267,13 +267,14 @@ class AttachmentController extends Controller {
 
 	/**
 	 * Inline ausgelieferte Fremdinhalte (PDFs können Skripte enthalten)
-	 * dürfen im eigenen Ursprung nichts ausführen.
+	 * dürfen im eigenen Ursprung nichts ausführen. Einbetten lässt sich die
+	 * Antwort nur in die eigene App (Belegvorschau, ReceiptPreviewPolicy).
 	 */
 	private function inline(string $content, string $name, string $mime): DataDownloadResponse {
 		$response = new DataDownloadResponse($content, $name, $mime);
 		$response->addHeader('Content-Disposition', 'inline; filename="' . addslashes($name) . '"');
 		$response->addHeader('X-Content-Type-Options', 'nosniff');
-		$response->setContentSecurityPolicy(new EmptyContentSecurityPolicy());
+		$response->setContentSecurityPolicy(ReceiptPreviewPolicy::forInlineFile());
 		return $response;
 	}
 
