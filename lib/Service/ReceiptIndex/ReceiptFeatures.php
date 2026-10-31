@@ -19,7 +19,8 @@ final class ReceiptFeatures {
 	private const MIN_CORE_DIGITS = 4;
 	private const MAX_AMOUNT_CENTS = 999999999;
 
-	private const IBAN = '/(?<![A-Za-z0-9])[A-Z]{2}\d{2}[A-Z0-9]{11,30}(?![A-Za-z0-9])/';
+	// Auch gedruckte IBANs (Viererblöcke mit Leerzeichen) und Kleinschreibung; mindestens 11 Zeichen nach der Prüfziffer.
+	private const IBAN = '/(?<![A-Z0-9])[A-Z]{2}\d{2}(?=(?: ?[A-Z0-9]){11})(?: ?[A-Z0-9]{4}){2,7}(?: ?[A-Z0-9]{1,3})?(?![A-Z0-9])/i';
 	private const AMOUNT = '/(?<![\d.,])(?:\d{1,3}(?:\.\d{3})+,\d{2}|\d{1,3}(?:,\d{3})+\.\d{2}|\d+,\d{2}|\d+\.\d{2})(?!\d|[.,]\d)/';
 	private const DATE = '/(?<![\d.])(?:\d{1,2}\.\d{1,2}\.\d{4}|\d{4}-\d{2}-\d{2}|\d{1,2}\.\d{1,2}\.\d{2})(?!\d)/';
 	private const TIME = '/(?<![\d.:])\d{1,2}[.:]\d{2}(?:[.:]\d{2})?(?!\d|[.,]\d)/';

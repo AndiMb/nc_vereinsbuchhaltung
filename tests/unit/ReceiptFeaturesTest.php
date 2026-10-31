@@ -40,6 +40,13 @@ class ReceiptFeaturesTest extends TestCase {
 		$this->assertSame(['2826'], $refs);
 	}
 
+	public function testIbanMitLeerzeichenUndKleinbuchstabenLiefertKeineKerne(): void {
+		$this->assertSame(['4711'], ReceiptFeatures::refs('IBAN DE02 1203 0000 0000 2020 51 RE 4711'));
+		$this->assertSame([], ReceiptFeatures::refs('de02120300000000202051'));
+		$this->assertSame(['4711'], ReceiptFeatures::refs('RE 4711'));
+		$this->assertSame(['4711'], ReceiptFeatures::refs('Rechnung 2026 4711'));
+	}
+
 	public function testRefsWithSourceKenntDenAusschnitt(): void {
 		$this->assertSame(['2826' => '28/26'], ReceiptFeatures::refsWithSource('ReNr 28/26'));
 	}
