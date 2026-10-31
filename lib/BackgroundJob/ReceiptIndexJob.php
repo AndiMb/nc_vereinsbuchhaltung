@@ -41,7 +41,7 @@ class ReceiptIndexJob extends TimedJob {
 			if ($scan === null) {
 				return;
 			}
-			$this->index->refresh($scan['files'], ReceiptIndexService::JOB_MAX_FILES, ReceiptIndexService::JOB_MAX_SECONDS);
+			$this->index->refresh($scan['files'], ReceiptIndexService::JOB_MAX_FILES, ReceiptIndexService::JOB_MAX_SECONDS, !$scan['capped']);
 		} catch (\Throwable $e) {
 			$this->logger->error('Belegindex-Lauf abgebrochen', [
 				'app' => Application::APP_ID,

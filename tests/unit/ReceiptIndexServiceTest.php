@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Service\AttachmentWatchFolderService;
 use OCA\Vereinsbuchhaltung\Service\ReceiptIndex\ReceiptFacts;
 use OCA\Vereinsbuchhaltung\Service\ReceiptIndex\ReceiptIndexService;
 use OCA\Vereinsbuchhaltung\Service\ReceiptIndex\ReceiptReader;
+use OCP\DB\Exception as DbException;
 use OCP\Files\File;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -130,5 +131,39 @@ class ReceiptIndexServiceTest extends TestCase {
 		$this->mapper->method('findAll')->willReturn([5 => ['size' => 1, 'mtime' => 2, 'version' => 1, 'facts' => $facts]]);
 
 		$this->assertSame([5 => $facts], $this->service()->entries());
+	}
+
+	public function testGekappterScanLoeschtKeineZeilen(): void {
+		$this->mapper->method('findAll')->willReturn([1 => self::row(), 9 => self::row()]);
+		$this->mapper->expects($this->never())->method('deleteByFileIds');
+
+		$this->assertSame(['indexed' => 0, 'pending' => 0], $this->service()->refresh([self::file(1)], 20, 10.0, false));
+	}
+
+	public function testUeberlappenderLaufMitDoppeltemSchluesselBrichtNichtAb(): void {
+		$this->mapper->method('findAll')->willReturn([]);
+		$this->reader->method('read')->willReturn(new ReceiptFacts('name', 'ok'));
+		$this->mapper->expects($this->exactly(2))->method('save')->willReturnCallback(function (int $id): void {
+			if ($id === 1) {
+				throw $this->dbException(DbException::REASON_UNIQUE_CONSTRAINT_VIOLATION);
+			}
+		});
+
+		$this->assertSame(['indexed' => 2, 'pending' => 0], $this->service()->refresh([self::file(1), self::file(2)], 20, 10.0));
+	}
+
+	public function testAndereDatenbankfehlerWerdenWeitergereicht(): void {
+		$this->mapper->method('findAll')->willReturn([]);
+		$this->reader->method('read')->willReturn(new ReceiptFacts('name', 'ok'));
+		$this->mapper->method('save')->willThrowException($this->dbException(DbException::REASON_CONNECTION_LOST));
+
+		$this->expectException(DbException::class);
+		$this->service()->refresh([self::file(1)], 20, 10.0);
+	}
+
+	private function dbException(int $reason): DbException {
+		$e = $this->createMock(DbException::class);
+		$e->method('getReason')->willReturn($reason);
+		return $e;
 	}
 }

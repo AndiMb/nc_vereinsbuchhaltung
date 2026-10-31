@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Service\ReceiptIndex;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\ReceiptIndexMapper;
 use OCA\Vereinsbuchhaltung\Service\AttachmentWatchFolderService;
+use OCP\DB\Exception as DbException;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -36,9 +37,10 @@ class ReceiptIndexService {
 
 	/**
 	 * @param list<array{fileId:int, name:string, size:int, mtime:int, mime:string}> $scanFiles
+	 * @param bool $complete false, wenn der Scan gekappt war: dann fehlende Dateien nicht als verschwunden behandeln
 	 * @return array{indexed:int, pending:int} gelesene Dateien dieses Laufs, noch ungelesene
 	 */
-	public function refresh(array $scanFiles, int $maxFiles, float $maxSeconds): array {
+	public function refresh(array $scanFiles, int $maxFiles, float $maxSeconds, bool $complete = true): array {
 		$start = ($this->clock)();
 		$known = $this->mapper->findAll();
 
@@ -46,7 +48,7 @@ class ReceiptIndexService {
 		foreach ($scanFiles as $file) {
 			$present[$file['fileId']] = true;
 		}
-		$gone = array_values(array_diff(array_keys($known), array_keys($present)));
+		$gone = $complete ? array_values(array_diff(array_keys($known), array_keys($present))) : [];
 		if ($gone !== []) {
 			$this->mapper->deleteByFileIds($gone);
 		}
@@ -66,7 +68,14 @@ class ReceiptIndexService {
 				$pending++;
 				continue;
 			}
-			$this->mapper->save($id, $file['size'], $file['mtime'], ReceiptReader::VERSION, $this->readFile($file));
+			try {
+				$this->mapper->save($id, $file['size'], $file['mtime'], ReceiptReader::VERSION, $this->readFile($file));
+			} catch (DbException $e) {
+				// Ein überlappender Lauf war schneller: die Zeile steht schon.
+				if ($e->getReason() !== DbException::REASON_UNIQUE_CONSTRAINT_VIOLATION) {
+					throw $e;
+				}
+			}
 			$indexed++;
 		}
 

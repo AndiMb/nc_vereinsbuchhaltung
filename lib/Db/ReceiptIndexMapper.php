@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Db;
 
 use OCA\Vereinsbuchhaltung\Service\ReceiptIndex\ReceiptFacts;
+use OCP\DB\Exception as DbException;
 use OCP\DB\QueryBuilder\IQueryBuilder;
+use OCP\DB\QueryBuilder\IParameter;
 use OCP\DB\Types;
 use OCP\IDBConnection;
 
@@ -55,26 +57,70 @@ class ReceiptIndexMapper {
 		return $out;
 	}
 
+	/**
+	 * Aktualisiert die Zeile oder legt sie an. Erst Update, damit es kein
+	 * Zeitfenster ohne Zeile gibt; legt ein zweiter Lauf die Zeile zwischen
+	 * Update und Insert an, fällt der Insert auf ein Update zurück.
+	 */
 	public function save(int $fileId, int $size, int $mtime, int $version, ReceiptFacts $facts): void {
-		$this->deleteByFileIds([$fileId]);
+		if ($this->update($fileId, $size, $mtime, $version, $facts) > 0) {
+			return;
+		}
+		try {
+			$this->insert($fileId, $size, $mtime, $version, $facts);
+		} catch (DbException $e) {
+			if ($e->getReason() !== DbException::REASON_UNIQUE_CONSTRAINT_VIOLATION) {
+				throw $e;
+			}
+			$this->update($fileId, $size, $mtime, $version, $facts);
+		}
+	}
+
+	/** @return array<string, mixed> Spaltenwerte ohne file_id */
+	private static function columns(int $size, int $mtime, int $version, ReceiptFacts $facts): array {
+		return [
+			'size' => $size,
+			'mtime' => $mtime,
+			'parser_version' => $version,
+			'source' => $facts->source,
+			'status' => $facts->status,
+			'refs' => json_encode($facts->refs, JSON_THROW_ON_ERROR),
+			'name_refs' => json_encode($facts->nameRefs, JSON_THROW_ON_ERROR),
+			'amounts' => json_encode($facts->amounts, JSON_THROW_ON_ERROR),
+			'dates' => json_encode($facts->dates, JSON_THROW_ON_ERROR),
+			'invoice_no' => $facts->invoiceNo !== null ? mb_substr($facts->invoiceNo, 0, 64) : null,
+			'total_cents' => $facts->totalCents,
+			'issue_date' => $facts->issueDate,
+			'vendor' => $facts->vendor !== null ? mb_substr($facts->vendor, 0, 120) : null,
+		];
+	}
+
+	private function bind(IQueryBuilder $qb, string $column, mixed $value): IParameter {
+		return match ($column) {
+			'size', 'mtime', 'parser_version', 'total_cents' => $qb->createNamedParameter($value, IQueryBuilder::PARAM_INT),
+			default => $qb->createNamedParameter($value),
+		};
+	}
+
+	private function update(int $fileId, int $size, int $mtime, int $version, ReceiptFacts $facts): int {
 		$qb = $this->db->getQueryBuilder();
-		$qb->insert(self::TABLE)->values([
-			'file_id' => $qb->createNamedParameter($fileId, IQueryBuilder::PARAM_INT),
-			'size' => $qb->createNamedParameter($size, IQueryBuilder::PARAM_INT),
-			'mtime' => $qb->createNamedParameter($mtime, IQueryBuilder::PARAM_INT),
-			'parser_version' => $qb->createNamedParameter($version, IQueryBuilder::PARAM_INT),
-			'source' => $qb->createNamedParameter($facts->source),
-			'status' => $qb->createNamedParameter($facts->status),
-			'refs' => $qb->createNamedParameter(json_encode($facts->refs, JSON_THROW_ON_ERROR)),
-			'name_refs' => $qb->createNamedParameter(json_encode($facts->nameRefs, JSON_THROW_ON_ERROR)),
-			'amounts' => $qb->createNamedParameter(json_encode($facts->amounts, JSON_THROW_ON_ERROR)),
-			'dates' => $qb->createNamedParameter(json_encode($facts->dates, JSON_THROW_ON_ERROR)),
-			'invoice_no' => $qb->createNamedParameter($facts->invoiceNo !== null ? mb_substr($facts->invoiceNo, 0, 64) : null),
-			'total_cents' => $qb->createNamedParameter($facts->totalCents, IQueryBuilder::PARAM_INT),
-			'issue_date' => $qb->createNamedParameter($facts->issueDate),
-			'vendor' => $qb->createNamedParameter($facts->vendor !== null ? mb_substr($facts->vendor, 0, 120) : null),
-			'indexed_at' => $qb->createNamedParameter(new \DateTime(), Types::DATETIME),
-		])->executeStatement();
+		$qb->update(self::TABLE);
+		foreach (self::columns($size, $mtime, $version, $facts) as $column => $value) {
+			$qb->set($column, $this->bind($qb, $column, $value));
+		}
+		$qb->set('indexed_at', $qb->createNamedParameter(new \DateTime(), Types::DATETIME))
+			->where($qb->expr()->eq('file_id', $qb->createNamedParameter($fileId, IQueryBuilder::PARAM_INT)));
+		return $qb->executeStatement();
+	}
+
+	private function insert(int $fileId, int $size, int $mtime, int $version, ReceiptFacts $facts): void {
+		$qb = $this->db->getQueryBuilder();
+		$values = ['file_id' => $qb->createNamedParameter($fileId, IQueryBuilder::PARAM_INT)];
+		foreach (self::columns($size, $mtime, $version, $facts) as $column => $value) {
+			$values[$column] = $this->bind($qb, $column, $value);
+		}
+		$values['indexed_at'] = $qb->createNamedParameter(new \DateTime(), Types::DATETIME);
+		$qb->insert(self::TABLE)->values($values)->executeStatement();
 	}
 
 	/** @param list<int> $fileIds */
