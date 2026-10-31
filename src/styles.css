@@ -1089,6 +1089,25 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 .vbh-booking-folder-title { margin: 0 0 4px; padding-inline-end: calc(var(--default-clickable-area, 34px) + 8px); font-size: 1.1em; font-weight: 600; }
 
 .vbh-booking-folder .vbh-folder-panel-actions { margin-top: 10px; }
+
+/* Belegvorschau (ReceiptPreview.vue, #231): Kopfzeile, darunter die Datei
+   auf der ganzen Resthoehe. Die Rahmen geben der Wurzel eine feste Hoehe
+   (Rasterzelle mit min-height: 0). */
+.vbh-receipt-preview { display: flex; flex-direction: column; min-width: 0; min-height: 0; height: 100%; }
+
+.vbh-receipt-preview:focus { outline: none; }
+
+.vbh-receipt-preview-head { display: flex; flex: 0 0 auto; gap: 4px; align-items: center; min-height: var(--default-clickable-area, 34px); margin-bottom: 4px; }
+
+.vbh-receipt-preview-name { overflow: hidden; flex: 1 1 auto; min-width: 0; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; }
+
+.vbh-receipt-preview-frame { flex: 1 1 auto; width: 100%; min-height: 0; border: 1px solid var(--color-border); border-radius: var(--border-radius); background: var(--color-background-dark); }
+
+.vbh-receipt-preview-image { overflow: auto; flex: 1 1 auto; min-height: 0; border: 1px solid var(--color-border); border-radius: var(--border-radius); background: var(--color-background-dark); }
+
+.vbh-receipt-preview-image img { display: block; max-width: 100%; margin: 0 auto; }
+
+.vbh-receipt-preview-empty { display: flex; flex: 1 1 auto; flex-direction: column; gap: 12px; align-items: center; justify-content: center; padding: 24px; border: 1px dashed var(--color-border-dark); border-radius: var(--border-radius-large); color: var(--color-text-maxcontrast); text-align: center; }
 /* NcModals `:name`-Titel schwebt per Bibliotheks-CSS (.modal-header, position:
    absolute relativ zur fixed .modal-mask) am oberen Browserfensterrand statt im
    Popup - er ist NICHT im .modal-container verschachtelt, sondern dessen
