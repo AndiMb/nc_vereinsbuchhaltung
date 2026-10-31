@@ -25,7 +25,9 @@ class ReceiptPreviewPolicyTest extends TestCase {
 	public function testPageAllowsSameOriginFrames(): void {
 		$policy = ReceiptPreviewPolicy::forPage()->buildPolicy();
 
-		$this->assertStringContainsString("frame-src 'self'", $policy);
+		$this->assertMatchesRegularExpression("/frame-src [^;]*'self'/", $policy);
+		// Geprüfte PDFs zeigt die Vorschau aus den schon geladenen Daten (blob:).
+		$this->assertMatchesRegularExpression('/frame-src [^;]*blob:/', $policy);
 		$this->assertStringContainsString("frame-ancestors 'self'", $policy);
 	}
 }

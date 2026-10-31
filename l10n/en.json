@@ -3849,7 +3849,8 @@
         "Datei anklicken für Vorschau": "Click a file to preview it",
         "Die Datei lässt sich hier nicht anzeigen.": "The file cannot be displayed here.",
         "Für diesen Dateityp ist keine Vorschau möglich.": "No preview is available for this file type.",
-        "+ {n} weitere": "+ {n} more"
+        "+ {n} weitere": "+ {n} more",
+        "Die PDF-Datei scheint unvollständig oder beschädigt zu sein.": "The PDF file appears to be incomplete or damaged."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

@@ -53,14 +53,15 @@
 			{{ t('Datei anklicken für Vorschau') }}
 		</p>
 		<div v-else-if="shownKind === 'none' || failed" class="vbh-receipt-preview-empty">
-			<p>{{ failed ? t('Die Datei lässt sich hier nicht anzeigen.') : t('Für diesen Dateityp ist keine Vorschau möglich.') }}</p>
+			<p>{{ failMessage }}</p>
 			<NcButton variant="secondary" @click="openInTab">
 				{{ t('Im neuen Tab öffnen') }}
 			</NcButton>
 		</div>
 		<!-- Ohne sandbox: Chromes PDF-Viewer läuft in einem sandboxed iframe
-		     nicht. Skripte in der Datei sperrt die Antwort selbst per CSP
-		     (ReceiptPreviewPolicy::forInlineFile). -->
+		     nicht. Das PDF kommt als blob: aus den schon geladenen und
+		     geprüften Daten (loadPdf); ein blob:-Dokument erbt die CSP der
+		     App-Seite, Skripte darin laufen also nicht frei. -->
 		<iframe
 			v-else-if="shownKind === 'pdf' && shownUrl"
 			:key="shownUrl"
@@ -74,7 +75,7 @@
 				:src="shownUrl"
 				:alt="file.name"
 				@load="loading = false"
-				@error="loading = false; failed = true">
+				@error="loading = false; failed = 'error'">
 		</div>
 	</section>
 </template>
@@ -85,7 +86,7 @@ import NcButton from '@nextcloud/vue/components/NcButton'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import api from '../api.js'
-import { previewKind } from '../lib/receiptPreview.js'
+import { looksLikeCompletePdf, previewKind } from '../lib/receiptPreview.js'
 
 // Beim schnellen Blättern mit den Pfeiltasten erst laden, wenn eine Weile
 // keine weitere Taste kam - sonst ein Download je Tastendruck.
@@ -103,6 +104,12 @@ const DEBOUNCE_MS = 250
  *
  * Ein blockiertes iframe (Hoster mit eigener, strengerer CSP) meldet kein
  * Ereignis - deshalb steht „Im neuen Tab öffnen“ immer in der Kopfzeile.
+ *
+ * PDFs lädt die Komponente zuerst selbst und prüft, ob sie vollständig
+ * aussehen (looksLikeCompletePdf). Ein beschädigtes PDF bekäme sonst die
+ * Fehlermeldung des Browser-Viewers, und deren „Schließen“ schließt in Edge
+ * den ganzen App-Tab samt ungespeicherter Buchung. Angezeigt wird dann aus
+ * den geladenen Daten (blob:), ohne zweiten Download.
  */
 export default {
 	name: 'ReceiptPreview',
@@ -121,12 +128,22 @@ export default {
 		// shownUrl/shownKind: was gerade dargestellt wird. Beide wechseln
 		// gemeinsam erst nach der Ruhezeit - sonst läge kurz die alte URL in
 		// der neuen Darstellung (ein PDF im <img>), und der Fehler bliebe stehen.
-		return { mdiArrowLeft, mdiChevronLeft, mdiChevronRight, mdiOpenInNew, shownUrl: '', shownKind: 'none', loading: false, failed: false, timer: null }
+		// failed: false, 'broken' (PDF unvollständig) oder 'error' (Laden
+		// oder Anzeigen schlug fehl). blobUrl: eigene blob:-Adresse des
+		// gezeigten PDFs, beim Wechsel wieder freigegeben. loadSeq verwirft
+		// Antworten, die erst nach einem weiteren Wechsel eintreffen.
+		return { mdiArrowLeft, mdiChevronLeft, mdiChevronRight, mdiOpenInNew, shownUrl: '', shownKind: 'none', loading: false, failed: false, timer: null, blobUrl: '', loadSeq: 0 }
 	},
 
 	computed: {
 		url() { return this.file ? api.attachmentInboxViewUrl(this.file.fileId) : '' },
 		kind() { return this.file ? previewKind(this.file.mime, this.file.name) : 'none' },
+
+		failMessage() {
+			if (this.failed === 'broken') { return this.t('Die PDF-Datei scheint unvollständig oder beschädigt zu sein.') }
+			if (this.failed) { return this.t('Die Datei lässt sich hier nicht anzeigen.') }
+			return this.t('Für diesen Dateityp ist keine Vorschau möglich.')
+		},
 	},
 
 	watch: {
@@ -135,6 +152,8 @@ export default {
 
 	beforeUnmount() {
 		clearTimeout(this.timer)
+		this.loadSeq++
+		this.releaseBlob()
 	},
 
 	methods: {
@@ -142,12 +161,51 @@ export default {
 		schedule(url) {
 			clearTimeout(this.timer)
 			const show = () => {
-				this.shownUrl = url
-				this.shownKind = this.kind
+				const kind = this.kind
+				this.loadSeq++
+				this.releaseBlob()
+				this.shownKind = kind
 				this.failed = false
-				this.loading = !!url && this.kind !== 'none'
+				this.loading = !!url && kind !== 'none'
+				if (url && kind === 'pdf') {
+					this.shownUrl = ''
+					this.loadPdf(url, this.loadSeq)
+				} else {
+					this.shownUrl = url
+				}
 			}
 			if (!this.shownUrl || !url) { show() } else { this.timer = setTimeout(show, DEBOUNCE_MS) }
+		},
+
+		/**
+		 * PDF laden, prüfen und als blob: anzeigen.
+		 *
+		 * @param {string} url Adresse der Datei
+		 * @param {number} seq Stand von loadSeq beim Start
+		 */
+		async loadPdf(url, seq) {
+			let bytes
+			try {
+				const response = await fetch(url, { credentials: 'same-origin' })
+				if (!response.ok) { throw new Error(String(response.status)) }
+				bytes = new Uint8Array(await response.arrayBuffer())
+			} catch {
+				if (seq === this.loadSeq) { this.loading = false; this.failed = 'error' }
+				return
+			}
+			if (seq !== this.loadSeq) { return }
+			if (!looksLikeCompletePdf(bytes)) {
+				this.loading = false
+				this.failed = 'broken'
+				return
+			}
+			this.blobUrl = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }))
+			this.shownUrl = this.blobUrl
+		},
+
+		releaseBlob() {
+			if (this.blobUrl) { URL.revokeObjectURL(this.blobUrl) }
+			this.blobUrl = ''
 		},
 
 		openInTab() {

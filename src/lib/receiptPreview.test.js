@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { adjacentFile, bookingsContext, previewKind, txContext } from './receiptPreview.js'
+import { adjacentFile, bookingsContext, looksLikeCompletePdf, previewKind, txContext } from './receiptPreview.js'
 
 describe('previewKind', () => {
 	it('erkennt PDF und gängige Bildtypen am MIME-Typ', () => {
@@ -72,5 +72,36 @@ describe('bookingsContext', () => {
 				{ entryNo: 11, date: '2026-01-01', amount: 10, description: 'A' },
 			],
 		})
+	})
+})
+
+describe('looksLikeCompletePdf', () => {
+	const bytes = (text) => new TextEncoder().encode(text)
+	const valid = '%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\nxref\n0 1\ntrailer\n<< /Root 1 0 R >>\nstartxref\n42\n%%EOF\n'
+
+	it('erkennt ein vollständiges PDF', () => {
+		expect(looksLikeCompletePdf(bytes(valid))).toBe(true)
+	})
+
+	it('verwirft ein PDF ohne startxref (Platzhalter der Testinstanz)', () => {
+		expect(looksLikeCompletePdf(bytes('%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n'))).toBe(false)
+	})
+
+	it('verwirft ein abgeschnittenes PDF ohne %%EOF', () => {
+		expect(looksLikeCompletePdf(bytes(valid.slice(0, valid.indexOf('%%EOF'))))).toBe(false)
+	})
+
+	it('verwirft Daten ohne PDF-Kopf', () => {
+		expect(looksLikeCompletePdf(bytes('<html>Fehler</html> startxref %%EOF'))).toBe(false)
+		expect(looksLikeCompletePdf(bytes(''))).toBe(false)
+	})
+
+	it('akzeptiert Vorspann vor dem Kopf und Leerzeilen nach %%EOF', () => {
+		expect(looksLikeCompletePdf(bytes('junk' + valid + '\n\n'))).toBe(true)
+	})
+
+	it('findet startxref am Ende auch in großen Dateien', () => {
+		const big = '%PDF-1.7\n' + 'x'.repeat(200000) + '\nstartxref\n123\n%%EOF'
+		expect(looksLikeCompletePdf(bytes(big))).toBe(true)
 	})
 })

@@ -26,10 +26,17 @@ use OCP\AppFramework\Http\EmptyContentSecurityPolicy;
  */
 final class ReceiptPreviewPolicy {
 
-	/** Regel der App-Seite: Standard plus iframes vom eigenen Ursprung. */
+	/**
+	 * Regel der App-Seite: Standard plus iframes vom eigenen Ursprung. blob:
+	 * für PDFs, die die Vorschau selbst geladen und auf Vollständigkeit
+	 * geprüft hat (ReceiptPreview.vue) - sie zeigt sie aus diesen Daten, statt
+	 * die Datei ein zweites Mal zu laden. blob:-Adressen entstehen nur im
+	 * eigenen Ursprung.
+	 */
 	public static function forPage(): ContentSecurityPolicy {
 		$policy = new ContentSecurityPolicy();
 		$policy->addAllowedFrameDomain("'self'");
+		$policy->addAllowedFrameDomain('blob:');
 		return $policy;
 	}
 

@@ -27,6 +27,27 @@ export function previewKind(mime, name = '') {
 	return IMAGE_EXTENSIONS.has(ext) ? 'image' : 'none'
 }
 
+// Wie weit vorn der PDF-Kopf und wie weit hinten startxref/%%EOF stehen dürfen.
+const PDF_HEAD_WINDOW = 1024
+const PDF_TAIL_WINDOW = 2048
+
+/**
+ * Sieht die Datei wie ein vollständiges PDF aus? Kopf „%PDF-“ am Anfang,
+ * „startxref“ und „%%EOF“ am Ende. Grob, aber genug für abgeschnittene und
+ * unvollständige Dateien: die würden sonst im PDF-Viewer des Browsers eine
+ * Fehlermeldung zeigen, deren „Schließen“ in Edge den ganzen App-Tab
+ * schließt. Innen beschädigte, außen intakte PDFs erkennt das nicht.
+ *
+ * @param {Uint8Array} bytes Inhalt der Datei
+ * @return {boolean}
+ */
+export function looksLikeCompletePdf(bytes) {
+	const latin1 = (from, to) => String.fromCharCode(...bytes.subarray(from, to))
+	const head = latin1(0, Math.min(bytes.length, PDF_HEAD_WINDOW))
+	const tail = latin1(Math.max(0, bytes.length - PDF_TAIL_WINDOW), bytes.length)
+	return head.includes('%PDF-') && tail.includes('startxref') && tail.includes('%%EOF')
+}
+
 /**
  * Nächste (dir = 1) bzw. vorige (dir = -1) Datei in der sichtbaren Liste,
  * Ordnerzeilen übersprungen (Zeilenformat aus lib/folderTree.js). An den
