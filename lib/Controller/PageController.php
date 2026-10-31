@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Http\ReceiptPreviewPolicy;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
@@ -22,7 +23,10 @@ class PageController extends Controller {
 	#[NoCSRFRequired]
 	public function index(): TemplateResponse {
 		Util::addScript(Application::APP_ID, Application::APP_ID . '-main');
-		return new TemplateResponse(Application::APP_ID, 'main');
+		$response = new TemplateResponse(Application::APP_ID, 'main');
+		// Belegvorschau: iframes vom eigenen Ursprung (ReceiptPreviewPolicy).
+		$response->setContentSecurityPolicy(ReceiptPreviewPolicy::forPage());
+		return $response;
 	}
 
 	/**
