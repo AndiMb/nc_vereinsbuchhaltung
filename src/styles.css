@@ -1811,6 +1811,20 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-folder-subtitle { font-size: 1em; margin: 18px 0 4px; }
 
+/* Belegvorschläge in der Seitenleiste (#222). Klassenbasiert: der Buchungsdialog
+   liegt per NcModal ausserhalb von .vbh. */
+.vbh-folder-suggestions { margin: 0 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--color-border); }
+
+.vbh-folder-suggestions .vbh-folder-subtitle { margin-top: 8px; }
+
+.vbh-suggest-reasons { font-size: 0.8em; margin: 0; }
+
+.vbh-suggest-icon { flex: 0 0 auto; }
+
+.vbh-suggest--sure { color: var(--color-element-success); }
+
+.vbh-suggest--possible { color: var(--color-element-warning); }
+
 /* Ordnerbaum: Ordnerzeilen mit Zählern, Status je Datei */
 .vbh-folder-summary { margin: 0 0 6px; font-size: 0.9em; color: var(--color-text-maxcontrast); }
 

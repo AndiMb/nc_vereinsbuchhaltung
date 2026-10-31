@@ -63,6 +63,61 @@
 					</label>
 				</div>
 
+				<!-- Vorschläge (#222): offene Dateien, die zur Buchung im Formular
+				     passen. Gleiche Zeilen wie die Liste darunter; Gründe in einer
+				     Zeile. Nur im Auswahlmodus des Buchungsdialogs. -->
+				<section v-if="pick && shownSuggestions.length" class="vbh-folder-suggestions" aria-labelledby="vbh-folder-suggestions-title">
+					<h4 id="vbh-folder-suggestions-title" class="vbh-folder-subtitle">
+						{{ t('Vorschläge') }}
+					</h4>
+					<ul class="vbh-attachment-list vbh-folder-list">
+						<li
+							v-for="s in shownSuggestions"
+							:key="s.fileId"
+							class="vbh-attachment-item vbh-folder-item vbh-suggest-item"
+							:class="{ 'vbh-folder-item--previewed': s.fileId === previewFileId }"
+							:data-file-id="s.fileId"
+							:data-level="s.level">
+							<NcButton
+								v-if="instantPick"
+								variant="tertiary"
+								size="small"
+								:disabled="busy"
+								:aria-label="tRaw('Auswählen: {name}', { name: s.name })"
+								:title="tRaw('Auswählen: {name}', { name: s.name })"
+								@click="pickOne(fileOf(s))">
+								<template #icon>
+									<NcIconSvgWrapper :path="mdiPlus" :size="18" />
+								</template>
+							</NcButton>
+							<input
+								v-else
+								type="checkbox"
+								:checked="selected.has(s.fileId)"
+								:aria-label="tRaw('Auswählen: {name}', { name: s.name })"
+								@click="toggle(s.fileId)">
+							<NcIconSvgWrapper
+								:path="levelIcon(s.level).path"
+								:size="18"
+								:name="levelIcon(s.level).label"
+								class="vbh-suggest-icon"
+								:class="levelIcon(s.level).className" />
+							<div class="vbh-folder-main">
+								<button class="vbh-attachment-name" :title="tRaw('Anzeigen: {name}', { name: s.name })" @click="preview(fileOf(s))">
+									{{ s.name }}
+								</button>
+								<span class="vbh-folder-meta">
+									<span v-if="s.folder">{{ s.folder }}/ · </span>{{ formatMtime(s.mtime) }}
+								</span>
+								<span class="vbh-hint vbh-suggest-reasons">{{ reasonLine(s.reasons) }}</span>
+							</div>
+						</li>
+					</ul>
+					<p v-if="pendingText" class="vbh-hint">
+						{{ pendingText }}
+					</p>
+				</section>
+
 				<div v-if="!loading && files.length" class="vbh-folder-summary">
 					<label v-if="selecting && selectableIds.length" class="vbh-checkinline">
 						<input
@@ -261,6 +316,7 @@ import { errMsg, formatDate, formatFileSize } from '../lib/format.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 import { moveOutcome } from '../lib/receiptMove.js'
 import { adjacentFile, arrowStep, arrowTargetPart } from '../lib/receiptPreview.js'
+import { levelIcon, pendingHint, reasonLine } from '../lib/receiptSuggestions.js'
 
 const SHOW_FOLDERS_KEY = 'vbh_folder_tree'
 
@@ -317,6 +373,10 @@ export default {
 		// im Dialog unter der Liste). Die Anzahl kommt per selection-count,
 		// übernommen wird über confirmPick().
 		externalActions: { type: Boolean, default: false },
+		// Belegvorschläge (#222) vom Buchungsdialog, samt Zahl der noch nicht
+		// gelesenen Dateien (lib/receiptSuggestions.js).
+		suggestions: { type: Array, default: () => [] },
+		suggestionsPending: { type: Number, default: 0 },
 	},
 
 	emits: ['close', 'create-booking', 'open-booking', 'pick', 'preview', 'selection-count'],
@@ -361,6 +421,14 @@ export default {
 		/** Eingangskorb mit Schreibrecht: offene Dateien lassen sich zum Verschieben auswählen. */
 		selecting() { return !this.pick && this.canWrite },
 
+		/** Vorschläge ohne das, was gerade übernommen wurde (excludeFileIds). */
+		shownSuggestions() {
+			const exclude = new Set(this.excludeFileIds)
+			return this.suggestions.filter((s) => !exclude.has(s.fileId))
+		},
+
+		pendingText() { return pendingHint(this.suggestionsPending) },
+
 		selectableIds() { return openFilesIn(this.files, { search: this.search }) },
 
 		folderPaths() { return folderPaths(this.files) },
@@ -396,6 +464,13 @@ export default {
 	methods: {
 		formatDate,
 		formatFileSize,
+		levelIcon,
+		reasonLine,
+
+		/** Die volle Datei aus der Liste (Größe, Buchungen), sonst der Vorschlag selbst. */
+		fileOf(s) {
+			return this.files.find((f) => f.fileId === s.fileId) || s
+		},
 
 		async load() {
 			this.loading = true

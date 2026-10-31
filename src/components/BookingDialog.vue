@@ -541,6 +541,8 @@
 						:noAutofocus="isMobile || folderPanelAutoOpened"
 						:previewEnabled="!isMobile"
 						:previewFileId="previewFile ? previewFile.fileId : null"
+						:suggestions="receiptSuggestions"
+						:suggestionsPending="receiptSuggestionsPending"
 						@close="folderPanelOpen = false"
 						@pick="onFolderPick"
 						@preview="onPreview" />
@@ -586,7 +588,7 @@
 
 <script>
 import { mdiAlertCircleOutline, mdiCamera, mdiDelete, mdiFolderOutline, mdiFolderSearchOutline, mdiLinkVariantOff, mdiPaperclip, mdiUndo } from '@mdi/js'
-import { toRefs } from 'vue'
+import { ref, toRefs } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
@@ -600,6 +602,7 @@ import { buildAccountOptions, useAccounts } from '../composables/useAccounts.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useJournal } from '../composables/useJournal.js'
 import { usePeriods } from '../composables/usePeriods.js'
+import { useReceiptSuggestions } from '../composables/useReceiptSuggestions.js'
 import { autogrow } from '../lib/autogrow.js'
 import { opensFolderPanel, readFolderPanelOpen, writeFolderPanelOpen } from '../lib/folderPanelMemory.js'
 import { formatFileSize, formatMoney } from '../lib/format.js'
@@ -649,7 +652,7 @@ export default {
 
 	emits: ['close', 'delete', 'save', 'update:bookingForm', 'update:pendingFiles', 'update:show'],
 
-	setup() {
+	setup(props) {
 		// accountsSorted/accountsById fuer Konto-Labels/-Auswahl, journalData fuer
 		// die Haeufigkeits-Sortierung, periodForDate fuer den Hinweis auf ein
 		// festgeschriebenes Geschaeftsjahr - direkt aus den Singletons (gleicher
@@ -657,7 +660,22 @@ export default {
 		const accounts = useAccounts()
 		const journal = useJournal()
 		const periods = usePeriods()
+		// Belegvorschlaege (#222) fuer die Seitenleiste. Ob abgerufen wird, haengt
+		// an folderPanelOpen (data) - die Komponente spiegelt es per Watcher in
+		// suggestionsEnabled, weil setup() darauf noch nicht zugreifen kann.
+		const suggestionsEnabled = ref(false)
+		const suggestions = useReceiptSuggestions({
+			form: () => props.bookingForm,
+			excludeFileIds: () => [
+				...props.bookingAttachments.map((a) => a.fileId),
+				...props.pendingFiles.map((f) => f.fileId),
+			].filter(Boolean),
+			enabled: () => suggestionsEnabled.value,
+		})
 		return {
+			suggestionsEnabled,
+			receiptSuggestions: suggestions.suggestions,
+			receiptSuggestionsPending: suggestions.pending,
 			accountsSorted: accounts.accountsSorted,
 			accountsById: accounts.accountsById,
 			...toRefs(journal.state),
@@ -729,6 +747,11 @@ export default {
 				...this.bookingAttachments.map((a) => a.fileId),
 				...this.pendingFiles.map((f) => f.fileId),
 			].filter(Boolean)
+		},
+
+		/** Wächter-Modus, Schreibrecht, offene Leiste, Buchung nicht festgeschrieben. */
+		suggestionsActive() {
+			return this.watchMode && this.canWrite && this.folderPanelOpen && !this.bookingLocked
 		},
 
 		commentChanged() {
@@ -923,6 +946,12 @@ export default {
 	},
 
 	watch: {
+		// Vorschlaege nur, wo sie auch angezeigt und uebernommen werden koennen.
+		suggestionsActive: {
+			handler(on) { this.suggestionsEnabled = on },
+			immediate: true,
+		},
+
 		// Vor dem Neuzeichnen der Belegliste (flush: 'pre'): steht der Fokus
 		// auf einem Knopf in einer Zeile, die gleich verschwindet (Verknüpfung
 		// lösen, Beleg löschen, wartenden Beleg entfernen), wandert er auf den
