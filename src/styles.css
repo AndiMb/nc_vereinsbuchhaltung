@@ -1767,16 +1767,16 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-folder-dialog-grid .vbh-folder-dialog-list { display: flex; overflow-y: auto; flex-direction: column; min-height: 0; padding-inline-end: 4px; }
 
-.vbh-folder-dialog-list > .vbh-receipt-preview { flex: 1 1 auto; height: auto; }
+.vbh-folder-dialog--preview .vbh-folder-dialog-list > .vbh-receipt-preview { flex: 1 1 auto; height: auto; }
 
 /* Die Dateiliste (und in der Dublettenansicht deren Liste) nimmt die
    Resthoehe und scrollt selbst - Suchfeld oben und Knopfleiste unten
    bleiben im Blick. */
-.vbh-folder-dialog-list > .vbh-folder-panel { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
+.vbh-folder-dialog--preview .vbh-folder-dialog-list > .vbh-folder-panel { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
 
 .vbh-folder-dialog--preview .vbh-folder-list { flex: 1 1 auto; min-height: 120px; max-height: none; }
 
-.vbh-folder-dialog-list > .vbh-folder-panel > .vbh-dups { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
+.vbh-folder-dialog--preview .vbh-folder-dialog-list > .vbh-folder-panel > .vbh-dups { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
 
 .vbh-folder-dialog-preview { display: flex; flex-direction: column; min-height: 0; padding-inline-start: 24px; border-inline-start: 1px solid var(--color-border); }
 

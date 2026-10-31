@@ -677,11 +677,9 @@ export default {
 			mdiPaperclip,
 			mdiUndo,
 			folderPanelOpen: false,
-			// Belegvorschau (#231): die angeklickte Datei aus dem Wächter-Ordner,
-			// ob sie inzwischen übernommen ist, und ob sie im schmalen Fenster
-			// gerade anstelle der Liste steht.
+			// Belegvorschau (#231): die angeklickte Datei aus dem Wächter-Ordner
+			// und ob sie im schmalen Fenster gerade anstelle der Liste steht.
 			previewFile: null,
-			previewPicked: false,
 			previewOverList: false,
 			// Formularstand beim Oeffnen, Vergleichsbasis fuer isDirty.
 			snapshot: null,
@@ -700,6 +698,15 @@ export default {
 		/** Formular | Liste | Vorschau nebeneinander (breites Fenster, Spec §3.5). */
 		isSplit3() {
 			return this.folderPanelOpen && !this.isMobile && this.wide && this.previewFile !== null
+		},
+
+		/**
+		 * Die angezeigte Datei hängt schon an der Buchung oder wartet darauf.
+		 * Abgeleitet statt gemerkt: wird sie aus der Warteliste wieder
+		 * entfernt (oder schlägt das Übernehmen fehl), stimmt die Anzeige.
+		 */
+		previewPicked() {
+			return this.previewFile !== null && this.folderExcludeIds.includes(this.previewFile.fileId)
 		},
 
 		/** Schmales Fenster: Vorschau anstelle der Liste. */
@@ -1096,8 +1103,6 @@ export default {
 		 */
 		async onFolderPick(files) {
 			if (this.isMobile) { this.folderPanelOpen = false }
-			// Die Vorschau bleibt auf der übernommenen Datei stehen.
-			if (this.previewFile && files.some((f) => f.fileId === this.previewFile.fileId)) { this.previewPicked = true }
 			await this.pickFolderFiles(files)
 		},
 
@@ -1110,7 +1115,6 @@ export default {
 		onPreview(file) {
 			const wasOverList = this.previewInFolderColumn
 			this.previewFile = file
-			this.previewPicked = false
 			if (this.wide) { return }
 			this.previewOverList = true
 			if (!wasOverList) { this.$nextTick(() => this.$refs.fallbackPreview?.focus()) }
@@ -1125,7 +1129,6 @@ export default {
 
 		resetPreview() {
 			this.previewFile = null
-			this.previewPicked = false
 			this.previewOverList = false
 		},
 

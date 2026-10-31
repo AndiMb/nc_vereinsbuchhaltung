@@ -541,13 +541,16 @@ export default {
 
 		/**
 		 * Zeile einer Datei in den sichtbaren Bereich holen und fokussieren,
-		 * sofern die Liste gerade zu sehen ist.
+		 * sofern die Liste gerade zu sehen ist. Dieselbe Datei kann zweimal im
+		 * DOM stehen – in der Dateiliste und in der (per v-show versteckten)
+		 * Dublettenansicht –, gemeint ist die sichtbare Zeile.
 		 *
 		 * @param {number} fileId die Datei
 		 */
 		revealFile(fileId) {
-			const button = this.$el.querySelector(`[data-file-id="${fileId}"] .vbh-attachment-name`)
-			if (!button || button.offsetParent === null) { return }
+			const button = [...this.$el.querySelectorAll(`[data-file-id="${fileId}"] .vbh-attachment-name`)]
+				.find((b) => b.offsetParent !== null)
+			if (!button) { return }
 			button.focus({ preventScroll: true })
 			button.scrollIntoView({ block: 'nearest' })
 		},
