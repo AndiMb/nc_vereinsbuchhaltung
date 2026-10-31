@@ -14,6 +14,7 @@ use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\AttachmentWatchFolderService;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
+use OCA\Vereinsbuchhaltung\Service\ReceiptIndex\ReceiptSuggestionService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
@@ -39,6 +40,7 @@ class AttachmentController extends Controller {
 		private JournalMapper $journalMapper,
 		private PeriodService $periods,
 		private AuditService $audit,
+		private ReceiptSuggestionService $suggestions,
 		private IUserSession $userSession,
 		private IL10N $l10n,
 	) {
@@ -161,6 +163,42 @@ class AttachmentController extends Controller {
 			'fileName' => $attachment->getFileName(),
 		]);
 		return new DataResponse($this->serialize($attachment), Http::STATUS_CREATED);
+	}
+
+	/**
+	 * Belegvorschläge für ein Buchungsformular (Dialog-Seitenleiste).
+	 *
+	 * @param list<int|string> $excludeFileIds
+	 */
+	#[NoAdminRequired]
+	public function suggest(string $date = '', int $amountCents = 0, string $description = '', string $documentRef = '', array $excludeFileIds = []): DataResponse {
+		return new DataResponse($this->suggestions->forForm(
+			$this->userId(),
+			['date' => $date, 'amountCents' => $amountCents, 'description' => $description, 'documentRef' => $documentRef],
+			array_values(array_map('intval', $excludeFileIds)),
+		));
+	}
+
+	/** Stufe des besten Vorschlags je Buchung ohne Beleg im gewählten Zeitraum. */
+	#[NoAdminRequired]
+	public function suggestions(?int $period = null): DataResponse {
+		return new DataResponse($this->suggestions->forPeriod($this->userId(), $period));
+	}
+
+	/**
+	 * Sammelbestätigung: verknüpft die übergebenen Buchung-Datei-Paare.
+	 *
+	 * @param list<array{journalId?: int|string, fileId?: int|string}> $pairs
+	 */
+	#[NoAdminRequired]
+	public function linkSuggested(array $pairs = []): DataResponse {
+		$clean = [];
+		foreach ($pairs as $pair) {
+			if (is_array($pair) && isset($pair['journalId'], $pair['fileId'])) {
+				$clean[] = ['journalId' => (int)$pair['journalId'], 'fileId' => (int)$pair['fileId']];
+			}
+		}
+		return new DataResponse($this->suggestions->linkPairs($this->userId(), $clean));
 	}
 
 	/**

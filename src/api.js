@@ -387,6 +387,10 @@ export default {
 	attachmentInboxMove: (fileIds, target) => axios.post(url('/attachments/inbox/move'), { fileIds, target }),
 	attachmentInboxDuplicates: () => axios.get(url('/attachments/inbox/duplicates')),
 	linkAttachment: (journalId, fileId) => axios.post(url(`/journal/${journalId}/attachments/link`), { fileId }),
+	// Belegvorschläge (Wächter-Ordner): Formular, Buchungsliste, Sammelbestätigung
+	receiptSuggest: (form) => axios.post(url('/attachments/suggest'), form),
+	receiptSuggestions: (period) => axios.get(url('/attachments/suggestions'), { params: { period: period || undefined } }),
+	linkSuggestedReceipts: (pairs) => axios.post(url('/attachments/link-suggested'), { pairs }),
 
 	// Einstellungen (Belegablage)
 	getSettings: () => axios.get(url('/settings')),

@@ -124,6 +124,15 @@ class ReceiptMatcherTest extends TestCase {
 		$this->assertSame([6, 2], array_slice($ids, 3, 2));
 	}
 
+	public function testLeeresOderUngueltigesBuchungsdatumErgibtKeinDatumssignal(): void {
+		$m = new ReceiptMatcher();
+		$today = (new \DateTimeImmutable('today'))->format('Y-m-d');
+		foreach (['', 'kein Datum', '2026-13-45', '20.10.2026'] as $date) {
+			$r = $m->match([$this->booking('1', 'x', 11900, $date)], [$this->file(10, [], [11900], [$today])]);
+			$this->assertSame([], $r['1'] ?? [], "Datum '$date'");
+		}
+	}
+
 	public function testDatumsfensterMinus90Plus10(): void {
 		$m = new ReceiptMatcher();
 		$b = [$this->booking('1', 'x', 11900, '2026-10-20')];

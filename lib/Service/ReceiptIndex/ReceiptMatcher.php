@@ -170,9 +170,9 @@ final class ReceiptMatcher {
 	 * @return array{string, string}|null ISO-Grenzen (von, bis), null bei ungültigem Datum
 	 */
 	private function window(string $date): ?array {
-		try {
-			$d = new \DateTimeImmutable($date);
-		} catch (\Exception) {
+		// Strikt Y-m-d: new DateTimeImmutable('') wäre "heute".
+		$d = \DateTimeImmutable::createFromFormat('!Y-m-d', $date);
+		if ($d === false || $d->format('Y-m-d') !== $date) {
 			return null;
 		}
 		return [
