@@ -145,6 +145,58 @@ test.describe('Wächter-Ordner für Belege', () => {
 		await expect(folderDialog.getByPlaceholder(/Dateiname, Ordner/)).toBeFocused()
 	})
 
+	test('die Seitenleiste merkt sich, ob sie zuletzt offen war – mobil geht sie nie von selbst auf (#230)', async ({ page }) => {
+		await openApp(page, USERS.verwalter)
+		// Erst öffnen, wenn die Konten da sind: sonst trägt App.vue das
+		// Standard-Geldkonto nach dem Öffnen nach, das leere Formular gilt als
+		// geändert und „Abbrechen“ fragt nach dem Verwerfen.
+		await expect(page.getByText('1000 Kasse').first()).toBeVisible()
+		await neuAnlegen(page)
+		let bookingDialog = page.getByRole('dialog', { name: 'Neue Buchung' })
+		await skipBookingTour(bookingDialog)
+		await expect(bookingDialog.locator(':focus')).toHaveCount(1)
+		const folderPanel = () => page.getByRole('complementary', { name: 'Beleg aus Ordner wählen' })
+		await expect(folderPanel()).toHaveCount(0)
+		await bookingDialog.getByRole('button', { name: 'Aus Ordner wählen' }).click()
+		await expect(folderPanel()).toBeVisible()
+
+		// Schließen, während die Leiste offen ist, ändert die gemerkte Wahl nicht.
+		await page.getByRole('dialog').getByRole('button', { name: 'Abbrechen' }).click()
+		await expect(page.getByRole('dialog')).toHaveCount(0)
+		await neuAnlegen(page)
+		bookingDialog = page.getByRole('dialog', { name: 'Neue Buchung' })
+		await expect(folderPanel()).toBeVisible()
+		// Von selbst aufgegangen: der Fokus bleibt im Formular, nicht im Suchfeld der Leiste.
+		await expect(bookingDialog.locator('.vbh-booking-main :focus')).toHaveCount(1)
+
+		// Mobil ersetzt die Leiste das Formular – dort bleibt es beim Knopf.
+		await page.getByRole('dialog').getByRole('button', { name: 'Abbrechen' }).click()
+		await expect(page.getByRole('dialog')).toHaveCount(0)
+		await page.setViewportSize({ width: 390, height: 844 })
+		// Mobil steht statt „Neu“ der schwebende Plus-Knopf unten rechts.
+		await page.getByRole('button', { name: /^Neu(e Buchung)? anlegen$/ }).click()
+		const buchungItem = page.getByRole('menuitem', { name: 'Buchung', exact: true })
+		if (await buchungItem.isVisible().catch(() => false)) { await buchungItem.click() }
+		await expect(page.getByRole('dialog')).toHaveCount(1)
+		await expect(page.getByText('Buchungstext')).toBeVisible()
+		await expect(folderPanel()).toHaveCount(0)
+		await page.getByRole('dialog').getByRole('button', { name: 'Abbrechen' }).click()
+		await expect(page.getByRole('dialog')).toHaveCount(0)
+
+		// Zugeklappt bleibt sie beim nächsten Öffnen zu.
+		await page.setViewportSize({ width: 1366, height: 900 })
+		await neuAnlegen(page)
+		bookingDialog = page.getByRole('dialog', { name: 'Neue Buchung' })
+		await expect(folderPanel()).toBeVisible()
+		await bookingDialog.getByRole('button', { name: 'Aus Ordner wählen' }).click()
+		await expect(folderPanel()).toHaveCount(0)
+		await page.getByRole('dialog').getByRole('button', { name: 'Abbrechen' }).click()
+		await expect(page.getByRole('dialog')).toHaveCount(0)
+		await neuAnlegen(page)
+		await expect(page.getByRole('dialog', { name: 'Neue Buchung' })).toBeVisible()
+		await expect(folderPanel()).toHaveCount(0)
+	})
+
 	test('Belegvorschau steht neben Formular und Liste, die angesehene Datei ist markiert (#231)', async ({ page, request }) => {
 		await dav.put(request, 'admin', `${FOLDER}/2026/vorschau-a.png`, BELEG_PNG, 'image/png')
 		await dav.put(request, 'admin', `${FOLDER}/2026/vorschau-b.png`, BELEG_PNG, 'image/png')

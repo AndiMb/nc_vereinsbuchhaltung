@@ -538,7 +538,7 @@
 						:busy="bookingSaving"
 						:canWrite="canWrite"
 						:excludeFileIds="folderExcludeIds"
-						:noAutofocus="isMobile"
+						:noAutofocus="isMobile || folderPanelAutoOpened"
 						:previewEnabled="!isMobile"
 						:previewFileId="previewFile ? previewFile.fileId : null"
 						@close="folderPanelOpen = false"
@@ -601,6 +601,7 @@ import { useConfirm } from '../composables/useConfirm.js'
 import { useJournal } from '../composables/useJournal.js'
 import { usePeriods } from '../composables/usePeriods.js'
 import { autogrow } from '../lib/autogrow.js'
+import { opensFolderPanel, readFolderPanelOpen, writeFolderPanelOpen } from '../lib/folderPanelMemory.js'
 import { formatFileSize, formatMoney } from '../lib/format.js'
 import { isSelectableOption } from '../lib/selectOptions.js'
 import { splitBalanced, splitRemainder, splitSideOf } from '../lib/split.js'
@@ -676,6 +677,9 @@ export default {
 			mdiPaperclip,
 			mdiUndo,
 			folderPanelOpen: false,
+			// Von selbst aufgegangen (#230): dann greift das Suchfeld der Leiste
+			// nicht nach dem Fokus, der gehoert beim Oeffnen ins Formular.
+			folderPanelAutoOpened: false,
 			// Belegvorschau (#231): die angeklickte Datei aus dem Wächter-Ordner
 			// und ob sie im schmalen Fenster gerade anstelle der Liste steht.
 			previewFile: null,
@@ -944,12 +948,19 @@ export default {
 		show: {
 			handler(open) {
 				this.folderPanelOpen = false
+				this.folderPanelAutoOpened = false
 				this.resetPreview()
 				this.snapshot = null
 				// Erst nach dem Tick: App.vue fuellt Formular und Warteliste
 				// teils erst nach dem Setzen von show (z. B. "Buchung anlegen"
-				// aus dem Eingangskorb haengt die Datei danach an).
-				if (open) { this.$nextTick(() => { this.snapshot = this.formState() }) }
+				// aus dem Eingangskorb haengt die Datei danach an) - und erst
+				// dann steht fest, ob die Buchung gesperrt ist.
+				if (open) {
+					this.$nextTick(() => {
+						this.snapshot = this.formState()
+						this.restoreFolderPanel()
+					})
+				}
 			},
 
 			immediate: true,
@@ -1063,8 +1074,12 @@ export default {
 			const from = this.folderPanelOpen ? this.$refs.main : this.modalScroller()
 			const top = from ? from.scrollTop : 0
 			this.folderPanelOpen = !this.folderPanelOpen
+			this.folderPanelAutoOpened = false
 			if (!this.folderPanelOpen) { this.resetPreview() }
 			if (this.isMobile) { return }
+			// Nur das bewusste Auf-/Zuklappen am Desktop zaehlt (#230); mobil
+			// ist die Leiste ein Zwischenschritt, kein Arbeitsplatz.
+			writeFolderPanelOpen(this.folderPanelOpen)
 			this.$nextTick(() => {
 				const to = this.folderPanelOpen ? this.$refs.main : this.modalScroller()
 				if (to) { to.scrollTop = top }
@@ -1098,6 +1113,25 @@ export default {
 			if (!anchor) { return }
 			anchor.setAttribute('tabindex', '-1')
 			anchor.focus({ preventScroll: true })
+		},
+
+		/**
+		 * Beim Oeffnen die zuletzt gewaehlte Seitenleiste wiederherstellen
+		 * (#230). Schliessen des Dialogs aendert die gemerkte Wahl nicht.
+		 */
+		restoreFolderPanel() {
+			if (!this.show || this.folderPanelOpen) { return }
+			const open = opensFolderPanel({
+				remembered: readFolderPanelOpen(),
+				watchMode: this.watchMode,
+				canWrite: this.canWrite,
+				bookingLocked: this.bookingLocked,
+				isMobile: this.isMobile,
+			})
+			if (open) {
+				this.folderPanelAutoOpened = true
+				this.folderPanelOpen = true
+			}
 		},
 
 		/** Der scrollende Inhalt von NcModal (ohne Seitenleiste). */
