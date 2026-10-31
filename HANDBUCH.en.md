@@ -1622,6 +1622,25 @@ to them when they were granted. If an app update changes the mandatory block,
 the app creates a new version itself and carries over your framing text. The
 mandate text is available in German only.
 
+**Having the new version confirmed.** A new version doesn't change existing
+mandates – whoever already has a mandate keeps the version they consented to. If
+you want everyone to confirm the new one, the section *Have members confirm the
+new version* (below the framing text; *Mitglieder die neue Fassung bestätigen
+lassen*) shows how many mandates in effect already carry the current version, how
+many don't yet, and whom you can't reach by email (on paper only: print the
+mandate form in the record). **"Send for reconfirmation…"** (*Zur erneuten
+Bestätigung anschreiben …*) sends each of the others an email with a link. The
+link opens, without signing in, the current mandate text with the existing
+details (reference, account holder, IBAN); one click confirms. **No new mandate**
+is created: reference, bank details and status stay, and the mandate keeps being
+collected unchanged in the meantime – also for members who don't respond. As
+proof, the confirmation replaces the mandate's time, IP address, browser and
+version; the history notes that and when consent was given before. Sending is a
+button press by you, nothing runs on its own. Anyone who already has a valid link
+is skipped unless you tick the box to remind them (the earlier link then becomes
+invalid). Paper mandates can be confirmed electronically this way too; the
+confirmation counts as proof there as well.
+
 **Leaving and deleting.** In the record, **"Declare leaving"** (*Austritt
 erklären*) sets the member's leaving as of a date (also in the future); it
 can be withdrawn as long as it doesn't have to take effect yet. A member can

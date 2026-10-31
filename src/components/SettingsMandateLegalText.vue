@@ -96,6 +96,59 @@
 				</div>
 			</div>
 
+			<div class="vbh-card" data-testid="legaltext-reconfirm">
+				<h4>{{ t('Mitglieder die neue Fassung bestätigen lassen') }}</h4>
+				<p class="vbh-hint">
+					{{ t('Eine neue Fassung gilt für neue Mandate sofort. Wer schon ein Mandat hat, behält die Fassung, die er bestätigt hat, bis er die neue bestätigt. Hier schreiben Sie diese Mitglieder an: Der Link in der Mail öffnet den aktuellen Text mit den bisherigen Angaben, ein Klick genügt. Es entsteht kein neues Mandat, die Mandatsreferenz bleibt.') }}
+				</p>
+				<NcLoadingIcon v-if="reconfirmLoading" :size="20" />
+				<template v-else-if="reconfirm">
+					<p v-if="reconfirm.outdated === 0" class="vbh-hint vbh-hint--info" data-testid="reconfirm-all-current">
+						{{ t('Alle wirksamen Mandate ({count}) haben die aktuelle Fassung bestätigt.', { count: reconfirm.upToDate }) }}
+					</p>
+					<ul v-else class="vbh-legaltext-stats">
+						<li>{{ t('Mit der aktuellen Fassung bestätigt: {count}', { count: reconfirm.upToDate }) }}</li>
+						<li>
+							{{ t('Noch nicht bestätigt: {count}', { count: reconfirm.outdated }) }}
+							<span v-if="reconfirm.withoutElectronicConsent > 0" class="vbh-legaltext-meta">
+								{{ t('(davon {count} ohne elektronische Zustimmung, z. B. auf Papier)', { count: reconfirm.withoutElectronicConsent }) }}
+							</span>
+						</li>
+						<li v-if="reconfirm.pendingIds.length > 0">
+							{{ t('Link schon verschickt und noch gültig: {count}', { count: reconfirm.pendingIds.length }) }}
+						</li>
+						<li v-if="reconfirm.noEmail.length > 0">
+							{{ t('Ohne Mailadresse: {count}', { count: reconfirm.noEmail.length }) }}
+							<span class="vbh-legaltext-meta">{{ noEmailNames }}</span>
+						</li>
+					</ul>
+					<p v-if="reconfirm.noEmail.length > 0" class="vbh-hint">
+						{{ t('Diese Mitglieder erreichen Sie nur auf Papier: Das Mandatsformular drucken Sie in der Mitglieder-Akte.') }}
+					</p>
+				</template>
+				<p v-if="reconfirmError" class="vbh-hint vbh-hint--error" role="alert">
+					{{ reconfirmError }}
+				</p>
+				<div class="vbh-form">
+					<NcButton
+						variant="primary"
+						:disabled="!canSendReconfirmation"
+						data-testid="reconfirm-open"
+						@click="reconfirmDialog = true">
+						{{ t('Zur erneuten Bestätigung anschreiben …') }}
+					</NcButton>
+					<NcButton v-if="reconfirmError" variant="tertiary" @click="loadReconfirmation">
+						{{ t('Erneut versuchen') }}
+					</NcButton>
+				</div>
+				<MandateReconfirmDialog
+					v-if="reconfirm"
+					:show="reconfirmDialog"
+					:overview="reconfirm"
+					@close="onReconfirmClosed"
+					@update:show="reconfirmDialog = $event" />
+			</div>
+
 			<div class="vbh-card">
 				<h4>{{ t('Versionsverlauf') }}</h4>
 				<p class="vbh-hint">
@@ -133,9 +186,11 @@ import { showSuccess } from '@nextcloud/dialogs'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
+import MandateReconfirmDialog from './MandateReconfirmDialog.vue'
 import api from '../api.js'
 import { formatDate } from '../lib/format.js'
 import { authorLabel, CREDITOR_PLACEHOLDER, legalTextParagraphs, MAX_RAHMEN_LENGTH, normalizeRahmen, rahmenError } from '../lib/mandateLegalText.js'
+import { reachableCount } from '../lib/mandateReconfirmation.js'
 import { saveErrorMessage } from '../lib/sepaSettings.js'
 
 /**
@@ -156,9 +211,12 @@ import { saveErrorMessage } from '../lib/sepaSettings.js'
  * gehört dieser einen Komponente, der Vereinsname kommt als Prop von der
  * Einstellungsseite (er darf dort noch ungespeichert in Bearbeitung sein).
  */
+/** So viele Namen der Mitglieder ohne Mailadresse stehen in der Zeile, der Rest als „und n weitere“. */
+const NO_EMAIL_NAMES_SHOWN = 8
+
 export default {
 	name: 'SettingsMandateLegalText',
-	components: { NcButton, NcIconSvgWrapper, NcLoadingIcon },
+	components: { NcButton, NcIconSvgWrapper, NcLoadingIcon, MandateReconfirmDialog },
 	props: {
 		clubName: { type: String, default: '' },
 	},
@@ -178,6 +236,11 @@ export default {
 			saving: false,
 			error: '',
 			expanded: {},
+			// Erneute Bestätigung: wer hat die aktuelle Fassung, wen kann man anschreiben
+			reconfirm: null,
+			reconfirmLoading: false,
+			reconfirmError: '',
+			reconfirmDialog: false,
 		}
 	},
 
@@ -190,6 +253,15 @@ export default {
 		// Der Pflichtblock zeigt den Platzhalter wie gespeichert; ersetzt wird erst in der Vorschau
 		protectedParagraphs() {
 			return this.current.pflichtblock.split(/\n{2,}/).map((p) => p.trim()).filter((p) => p !== '')
+		},
+
+		canSendReconfirmation() { return this.reconfirm !== null && reachableCount(this.reconfirm) > 0 },
+		// Namen der Mitglieder ohne Mailadresse, gekürzt: die Liste wäre sonst so lang wie die Mitgliederliste
+		noEmailNames() {
+			const names = this.reconfirm.noEmail.map((m) => m.name)
+			const shown = names.slice(0, NO_EMAIL_NAMES_SHOWN).join(', ')
+			const rest = names.length - NO_EMAIL_NAMES_SHOWN
+			return rest > 0 ? `${shown} ${this.t('und {count} weitere', { count: rest })}` : shown
 		},
 
 		previewParagraphs() {
@@ -216,6 +288,27 @@ export default {
 			} finally {
 				this.loading = false
 			}
+			if (!this.loadFailed) { this.loadReconfirmation() }
+		},
+
+		async loadReconfirmation() {
+			this.reconfirmLoading = true
+			this.reconfirmError = ''
+			try {
+				this.reconfirm = (await api.getMandateReconfirmation()).data
+			} catch (e) {
+				this.reconfirmError = e?.response?.data?.message ?? this.t('Der Stand der Bestätigungen konnte nicht geladen werden.')
+			} finally {
+				this.reconfirmLoading = false
+			}
+		},
+
+		onReconfirmClosed({ sent }) {
+			this.reconfirmDialog = false
+			if (sent > 0) {
+				showSuccess(this.t('{count} Mails verschickt.', { count: sent }))
+			}
+			this.loadReconfirmation()
 		},
 
 		applyCurrent(data) {
@@ -252,6 +345,7 @@ export default {
 				this.applyCurrent(data)
 				const history = await api.getMandateLegalTextHistory()
 				this.history = history.data
+				this.loadReconfirmation()
 				showSuccess(this.t('Neue Fassung {number} gespeichert.', { number: data.version.number }))
 			} catch (e) {
 				this.error = saveErrorMessage(e)
@@ -359,6 +453,11 @@ export default {
 	color: var(--color-primary-element-text);
 	font-size: 0.8em;
 	font-weight: 600;
+}
+
+.vbh-legaltext-stats {
+	margin: 0 0 8px;
+	padding-inline-start: 20px;
 }
 
 .vbh-legaltext-historyhead + .vbh-legaltext-box {

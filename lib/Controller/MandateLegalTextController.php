@@ -7,13 +7,16 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\MandateLegalTextVersion;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
+use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
 use OCA\Vereinsbuchhaltung\Service\MandateLegalTextService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
+use OCP\IL10N;
 use OCP\IRequest;
+use OCP\IUserSession;
 
 /**
  * Verwaltung des Mandats-Rechtstexts (Spec §2.2/§3.11, Issue #67): nur der
@@ -32,9 +35,19 @@ use OCP\IRequest;
  */
 class MandateLegalTextController extends Controller {
 
+	/**
+	 * Obergrenze je Aufruf von {@see sendReconfirmation()}: jede Mail ist ein
+	 * SMTP-Roundtrip, eine ganze Mitgliederliste in einem Request liefe in das
+	 * PHP-Zeitlimit. Die Oberfläche schickt die Liste in Stücken dieser Größe.
+	 */
+	public const MAX_RECONFIRMATION_BATCH = 25;
+
 	public function __construct(
 		IRequest $request,
 		private MandateLegalTextService $service,
+		private MandateActivationService $activation,
+		private IUserSession $userSession,
+		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -93,6 +106,38 @@ class MandateLegalTextController extends Controller {
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		}
+	}
+
+	/**
+	 * Wer hat die aktuelle Fassung bestätigt, wen kann man zur erneuten
+	 * Bestätigung anschreiben (Mandate, die noch eine ältere Fassung oder gar
+	 * keine elektronische Zustimmung tragen), und wer ist nur auf Papier erreichbar.
+	 */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	public function reconfirmation(): DataResponse {
+		return new DataResponse($this->activation->reconfirmationOverview());
+	}
+
+	/**
+	 * Verschickt die Links zur erneuten Bestätigung für die übergebenen Mandate
+	 * (höchstens {@see self::MAX_RECONFIRMATION_BATCH} je Aufruf). Bewusst ein
+	 * Knopfdruck der Verwaltung und kein automatischer Lauf: eine geänderte Fassung
+	 * verpflichtet nicht in jedem Fall zu einer neuen Zustimmung.
+	 *
+	 * @param list<int|string> $mandateIds
+	 */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	public function sendReconfirmation(array $mandateIds = []): DataResponse {
+		$ids = array_values(array_unique(array_map('intval', $mandateIds)));
+		if ($ids === []) {
+			return new DataResponse(['message' => $this->l10n->t('Es wurde kein Mandat ausgewählt.')], Http::STATUS_BAD_REQUEST);
+		}
+		if (count($ids) > self::MAX_RECONFIRMATION_BATCH) {
+			return new DataResponse(['message' => $this->l10n->t('Es lassen sich höchstens %d Mandate auf einmal anschreiben.', [self::MAX_RECONFIRMATION_BATCH])], Http::STATUS_BAD_REQUEST);
+		}
+		return new DataResponse($this->activation->sendReconfirmationLinks($ids, $this->userSession->getUser()?->getUID()));
 	}
 
 	/** @return array<string,mixed> */

@@ -220,7 +220,9 @@ class MandateTaskService {
 		foreach ($mandates as $mandate) {
 			if ($mandate->getStatus() !== Mandate::STATUS_ACTIVE
 				|| $mandate->getSignatureType() !== Mandate::SIGNATURE_PAPER
-				|| $mandate->getDocumentFileId() !== null) {
+				|| $mandate->getDocumentFileId() !== null
+				// Hat ein Papier-Mandat den Text später elektronisch bestätigt, ist diese Zustimmung der Nachweis.
+				|| $mandate->getConsentAt() !== null) {
 				continue;
 			}
 			$member = $members[$mandate->getMemberId()] ?? null;

@@ -18,10 +18,13 @@ declare(strict_types=1);
  * Scroll-Container, siehe .vbh-consent-page).
  *
  * $_['status']: 'pending' | 'consumed' | 'invalid' | 'expired'
+ * $_['purpose']: 'aktivierung' (Mandat erteilen) | 'bestaetigung' (geänderten Text eines
+ * bestehenden Mandats erneut bestätigen, Bankverbindung und Referenz bleiben)
  */
 
 $status = $_['status'];
 $clubName = (string)($_['clubName'] ?? '');
+$reconfirm = ($_['purpose'] ?? '') === 'bestaetigung';
 ?>
 <style>
 	.vbh-consent-page {
@@ -103,7 +106,7 @@ $clubName = (string)($_['clubName'] ?? '');
 		<?php } elseif ($status === 'consumed') { ?>
 			<div class="vbh-status-box vbh-success">
 				<strong>Bereits bestätigt</strong>
-				<p>Sie haben diesem SEPA-Lastschriftmandat bereits zugestimmt<?php if (!empty($_['consentAt'])) {
+				<p><?php echo $reconfirm ? 'Sie haben den aktuellen Text Ihres SEPA-Lastschriftmandats bereits bestätigt' : 'Sie haben diesem SEPA-Lastschriftmandat bereits zugestimmt'; ?><?php if (!empty($_['consentAt'])) {
 					echo ' (am ' . htmlspecialchars(\OCA\Vereinsbuchhaltung\Service\GermanDate::format(substr((string)$_['consentAt'], 0, 10)), ENT_QUOTES) . ')';
 				} ?>. Es ist aktiv, eine erneute Bestätigung ist nicht nötig.</p>
 			</div>
@@ -111,13 +114,22 @@ $clubName = (string)($_['clubName'] ?? '');
 			<?php print_unescaped((string)($_['dataBlockHtml'] ?? '')); ?>
 
 		<?php } else { ?>
-			<p>Bitte lesen Sie den folgenden Mandatstext und bestätigen Sie am Ende der Seite Ihre Zustimmung.</p>
+			<?php if ($reconfirm) { ?>
+				<p>Der Text Ihres SEPA-Lastschriftmandats wurde aktualisiert. Bitte lesen Sie den folgenden Text und bestätigen Sie am Ende der Seite, dass er für Ihr Mandat gilt. Ihre Mandatsreferenz und Ihre Bankverbindung bleiben unverändert, Sie müssen nichts eingeben.</p>
+			<?php } else { ?>
+				<p>Bitte lesen Sie den folgenden Mandatstext und bestätigen Sie am Ende der Seite Ihre Zustimmung.</p>
+			<?php } ?>
 			<div class="vbh-legal-text"><?php print_unescaped((string)($_['legalTextHtml'] ?? '')); ?></div>
 			<?php print_unescaped((string)($_['dataBlockHtml'] ?? '')); ?>
 
 			<form method="post" action="<?php p((string)$_['acceptUrl']); ?>" class="vbh-actions">
-				<button type="submit" class="vbh-consent-submit">Ich stimme zu und erteile das Mandat</button>
-				<p class="vbh-hint">Mit Klick auf „Ich stimme zu“ ermächtigen Sie den oben genannten Zahlungsempfänger, fällige Beträge per SEPA-Lastschrift von Ihrem Konto einzuziehen. Das Mandat wird sofort aktiv.</p>
+				<?php if ($reconfirm) { ?>
+					<button type="submit" class="vbh-consent-submit">Ich bestätige den aktualisierten Mandatstext</button>
+					<p class="vbh-hint">Mit Klick auf „Ich bestätige“ gilt Ihr bestehendes SEPA-Lastschriftmandat mit dem oben stehenden Text weiter. An den Angaben oben ändert sich nichts.</p>
+				<?php } else { ?>
+					<button type="submit" class="vbh-consent-submit">Ich stimme zu und erteile das Mandat</button>
+					<p class="vbh-hint">Mit Klick auf „Ich stimme zu“ ermächtigen Sie den oben genannten Zahlungsempfänger, fällige Beträge per SEPA-Lastschrift von Ihrem Konto einzuziehen. Das Mandat wird sofort aktiv.</p>
+				<?php } ?>
 			</form>
 		<?php } ?>
 	</div>

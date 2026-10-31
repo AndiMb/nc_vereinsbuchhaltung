@@ -249,7 +249,8 @@ export function documentRowTone(mandate) {
 /**
  * Wert der Zeile „Nachweis“: Bei einem elektronischen Mandat ist die
  * protokollierte Zustimmung (Zeile „Zustimmung“) der Nachweis – dort stünde
- * „fehlt“ fälschlich (Issue #153). Ein zusätzlich hochgeladenes Dokument hat
+ * „fehlt“ fälschlich (Issue #153). Das gilt ebenso für ein Papier-Mandat, das den
+ * geänderten Text später per Link bestätigt hat. Ein zusätzlich hochgeladenes Dokument hat
  * trotzdem Vorrang.
  *
  * @param {{hasDocument: boolean, signatureType?: string, consentAt?: ?string}} mandate
@@ -259,7 +260,8 @@ export function documentRowValue(mandate) {
 	if (mandate.hasDocument) {
 		return t('vorhanden')
 	}
-	if (mandate.signatureType === 'elektronisch' && mandate.consentAt) {
+	// Auch ein Papier-Mandat, das den Text später elektronisch bestätigt hat, trägt diese Zustimmung als Nachweis.
+	if (mandate.consentAt) {
 		return t('elektronische Zustimmung')
 	}
 	return t('fehlt')

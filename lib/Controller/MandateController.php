@@ -79,7 +79,7 @@ class MandateController extends Controller {
 		$data['hasDocument'] = $this->documents->hasDocument($mandate);
 		// Bei einem elektronischen Mandat ist die protokollierte Zustimmung der
 		// Nachweis (Issue #153) – wie beim Hinweis in MandateTaskService.
-		$data['showMissingDocumentWarning'] = $this->documents->showMissingDocumentWarning() && !$data['hasDocument'] && $mandate->isLive() && !$mandate->isElectronic();
+		$data['showMissingDocumentWarning'] = $this->documents->showMissingDocumentWarning() && !$data['hasDocument'] && $mandate->isLive() && !$mandate->isElectronic() && $mandate->getConsentAt() === null;
 		// 36-Monats-Verfall (Issue #100, Mitglieder-Akte): nur ein tatsächlich
 		// vorgelegtes Mandat (aktiv/ausgesetzt) hat eine laufende Frist – bei
 		// einem Entwurf stünde sonst ein Ablaufdatum da, das erst mit der

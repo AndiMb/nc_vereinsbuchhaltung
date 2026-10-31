@@ -211,4 +211,26 @@ class MandateStateMachineTest extends TestCase {
 		$this->expectException(\InvalidArgumentException::class);
 		$this->machine()->assertCanReplace($this->mandate(Mandate::STATUS_SUSPENDED));
 	}
+
+	// --- Erneute Bestätigung des Mandatstexts ---------------------------------------
+
+	public function testAktivesUndAusgesetztesMandatLaesstSichErneutBestaetigen(): void {
+		$this->assertTrue($this->machine()->canReconfirm($this->mandate(Mandate::STATUS_ACTIVE)));
+		$this->assertTrue($this->machine()->canReconfirm($this->mandate(Mandate::STATUS_SUSPENDED)));
+		$this->machine()->assertCanReconfirm($this->mandate(Mandate::STATUS_ACTIVE));
+	}
+
+	public function testEntwurfUndErloschenesMandatLassenSichNichtErneutBestaetigen(): void {
+		$this->assertFalse($this->machine()->canReconfirm($this->mandate(Mandate::STATUS_DRAFT)));
+		$this->assertFalse($this->machine()->canReconfirm($this->mandate(Mandate::STATUS_ENDED)));
+		$this->expectException(\InvalidArgumentException::class);
+		$this->machine()->assertCanReconfirm($this->mandate(Mandate::STATUS_ENDED));
+	}
+
+	public function testAnonymisiertesMandatLaesstSichNichtErneutBestaetigen(): void {
+		$mandate = $this->mandate(Mandate::STATUS_ACTIVE);
+		$mandate->setRedactedAt('2026-10-01 00:00:00');
+
+		$this->assertFalse($this->machine()->canReconfirm($mandate));
+	}
 }

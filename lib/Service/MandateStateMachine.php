@@ -66,6 +66,26 @@ class MandateStateMachine {
 	}
 
 	/**
+	 * Den (geänderten) Mandatstext erneut bestätigen lassen: das Mandat muss
+	 * wirksam sein, also aktiv oder ausgesetzt. Ein Entwurf wird erstmals
+	 * bestätigt ({@see assertCanActivateElectronic()}), ein erloschenes Mandat
+	 * ist vorbei. Die Bestätigung ändert weder Status noch Referenz noch
+	 * Bankverbindung, ein ausgesetztes Mandat bleibt also ausgesetzt.
+	 */
+	public function canReconfirm(Mandate $mandate): bool {
+		return in_array($mandate->getStatus(), [Mandate::STATUS_ACTIVE, Mandate::STATUS_SUSPENDED], true) && !$mandate->isRedacted();
+	}
+
+	/**
+	 * @throws \InvalidArgumentException
+	 */
+	public function assertCanReconfirm(Mandate $mandate): void {
+		if (!$this->canReconfirm($mandate)) {
+			throw new \InvalidArgumentException($this->l10n->t('Nur ein aktives oder ausgesetztes Mandat lässt sich erneut bestätigen.'));
+		}
+	}
+
+	/**
 	 * Nur ein aktives Mandat lässt sich aussetzen (Spec §2.2 „Sperre"). Ein
 	 * bereits ausgesetztes Mandat ein zweites Mal zu sperren wäre kein
 	 * Zustandswechsel und hätte auch keine erkennbare Wirkung.

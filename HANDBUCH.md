@@ -1655,6 +1655,24 @@ Erteilen angezeigt wurde. Ändert ein App-Update den Pflichtblock, legt die App
 selbst eine neue Fassung an und übernimmt Ihren Rahmentext. Den Mandatstext gibt
 es nur auf Deutsch.
 
+**Neue Fassung bestätigen lassen.** Eine neue Fassung ändert bestehende Mandate
+nicht – wer schon ein Mandat hat, behält die Fassung, der er zugestimmt hat. Wollen
+Sie, dass alle die neue bestätigen, zeigt der Abschnitt *Mitglieder die neue
+Fassung bestätigen lassen* (unter dem Rahmentext), wie viele wirksame Mandate die
+aktuelle Fassung schon tragen, wie viele noch nicht und wen Sie nicht per Mail
+erreichen (nur auf Papier: das Mandatsformular drucken Sie in der Akte).
+**„Zur erneuten Bestätigung anschreiben …"** schickt den übrigen je eine Mail mit
+einem Link. Der Link öffnet ohne Anmeldung den aktuellen Mandatstext mit den
+bisherigen Angaben (Referenz, Kontoinhaber, IBAN); ein Klick bestätigt. Es entsteht
+**kein neues Mandat**: Referenz, Bankverbindung und Status bleiben, das Mandat wird
+währenddessen unverändert weiter eingezogen – auch bei Mitgliedern, die nicht
+reagieren. Als Nachweis ersetzt die Bestätigung Zeitpunkt, IP-Adresse, Browser und
+Fassung des Mandats; im Verlauf steht, dass und wann zuvor zugestimmt wurde. Der
+Versand ist ein Knopfdruck von Ihnen, nichts läuft von allein. Wer schon einen
+gültigen Link hat, wird übersprungen, außer Sie setzen den Haken, ihn zu erinnern
+(der frühere Link wird dann ungültig). Auch Papier-Mandate lassen sich so
+elektronisch bestätigen; die Bestätigung zählt dort ebenfalls als Nachweis.
+
 **Austritt und Löschen.** In der Akte erklären Sie mit **„Austritt erklären"**
 den Austritt zu einem Datum (auch in der Zukunft); er lässt sich zurücknehmen,
 solange er noch nicht wirksam sein muss. **Löschen** lässt sich ein Mitglied nur,

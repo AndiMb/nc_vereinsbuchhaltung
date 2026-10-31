@@ -206,6 +206,9 @@ return [
 		['name' => 'mandateLegalText#current', 'url' => '/api/mandate-legal-text', 'verb' => 'GET'],
 		['name' => 'mandateLegalText#history', 'url' => '/api/mandate-legal-text/history', 'verb' => 'GET'],
 		['name' => 'mandateLegalText#update', 'url' => '/api/mandate-legal-text', 'verb' => 'POST'],
+		// Erneute Bestätigung nach einer neuen Fassung: Stand und Versand der Links (verwalter).
+		['name' => 'mandateLegalText#reconfirmation', 'url' => '/api/mandate-legal-text/reconfirmation', 'verb' => 'GET'],
+		['name' => 'mandateLegalText#sendReconfirmation', 'url' => '/api/mandate-legal-text/reconfirmation/send', 'verb' => 'POST'],
 
 		// Öffentliche, login-lose Zustimmungsseite des Einmal-Links (Issue #67,
 		// Spec §2.2) - AUSSERHALB von /api/, funktioniert auch für Mitglieder
