@@ -13,6 +13,7 @@ use OCA\Vereinsbuchhaltung\Service\ReceiptIndex\ReceiptFacts;
 use OCA\Vereinsbuchhaltung\Service\ReceiptIndex\ReceiptReader;
 use OCA\Vereinsbuchhaltung\Tests\Unit\Support\EInvoiceFixture;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 
 /**
  * Belegdatei lesen: Dateiname, PDF-Textebene und eingebettete E-Rechnung.
@@ -113,7 +114,10 @@ class ReceiptReaderTest extends TestCase {
 	}
 
 	public function testKaputteBytesSindUnreadable(): void {
-		$facts = $this->reader()->read('RG-2026-4711.pdf', 'application/pdf', 15, static fn () => '%PDF-1.4 kaputt');
+		$logger = $this->createMock(LoggerInterface::class);
+		$logger->expects($this->once())->method('debug');
+		$reader = new ReceiptReader(null, null, $logger);
+		$facts = $reader->read('RG-2026-4711.pdf', 'application/pdf', 15, static fn () => '%PDF-1.4 kaputt');
 
 		$this->assertSame(ReceiptFacts::STATUS_UNREADABLE, $facts->status);
 		$this->assertSame(['20264711'], $facts->refs);

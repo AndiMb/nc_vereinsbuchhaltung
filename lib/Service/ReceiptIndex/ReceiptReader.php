@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service\ReceiptIndex;
 
+use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Service\EInvoice\EInvoiceException;
 use OCA\Vereinsbuchhaltung\Service\EInvoice\InvoiceSuiteEInvoiceWriter;
 use PrinsFrank\PdfParser\PdfParser;
+use Psr\Log\LoggerInterface;
 
 /**
  * Liest eine einzelne Belegdatei und liefert die Merkmale für die
@@ -35,6 +37,7 @@ class ReceiptReader {
 	public function __construct(
 		private ?InvoiceSuiteEInvoiceWriter $eInvoice = null,
 		?\Closure $today = null,
+		private ?LoggerInterface $logger = null,
 	) {
 		$this->today = $today ?? static fn (): \DateTimeImmutable => new \DateTimeImmutable('today');
 	}
@@ -53,7 +56,13 @@ class ReceiptReader {
 		try {
 			$bytes = $content();
 			return $this->readEInvoice($bytes, $nameRefs) ?? $this->readText($bytes, $nameRefs);
-		} catch (\Throwable) {
+		} catch (\Throwable $e) {
+			$this->logger?->debug('Beleg {file} nicht lesbar: {message}', [
+				'app' => Application::APP_ID,
+				'file' => $fileName,
+				'message' => $e->getMessage(),
+				'exception' => $e,
+			]);
 			return new ReceiptFacts(ReceiptFacts::SOURCE_NAME, ReceiptFacts::STATUS_UNREADABLE, $nameRefs, $nameRefs);
 		}
 	}
