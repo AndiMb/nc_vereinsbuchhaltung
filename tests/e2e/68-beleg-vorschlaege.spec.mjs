@@ -114,6 +114,21 @@ test.describe('Belegvorschläge in der Buchungsliste', () => {
 		expect(await page.evaluate(() => localStorage.getItem('vbh_booking_folder_panel'))).toBeNull()
 	})
 
+	test('Mobil: Tippen auf das Symbol öffnet die Buchung mit den Vorschlägen (#229)', async ({ page, request }) => {
+		await resetWithBookings(request, [['ReNr 28/26', 119]])
+		await dav.put(request, 'admin', `${FOLDER}/RG-28-26-test.pdf`, textPdf(['Rechnung', 'Gesamt 119,00 EUR']), 'application/pdf')
+
+		await page.setViewportSize({ width: 390, height: 844 })
+		await openApp(page, USERS.verwalter)
+		await page.locator('.vbh-bottomnav').getByRole('button', { name: 'Buchungen' }).click()
+		await visibleSection(page).locator('.vbh-mcard', { hasText: 'ReNr 28/26' }).getByRole('button', { name: 'Passender Beleg gefunden: RG-28-26-test.pdf' }).click()
+
+		const folderPanel = page.getByRole('dialog').getByRole('complementary', { name: 'Beleg aus Ordner wählen' })
+		await expect(folderPanel).toBeVisible()
+		await expect(folderPanel.getByRole('region', { name: 'Vorschläge' }).locator('.vbh-suggest-item').first()).toContainText('RG-28-26-test.pdf')
+		expect(await page.evaluate(() => localStorage.getItem('vbh_booking_folder_panel'))).toBeNull()
+	})
+
 	test('Sammelbestätigung ordnet alle sicheren Belege zu', async ({ page, request }) => {
 		await resetWithBookings(request, [['ReNr 28/26', 119], ['ReNr 41/26', 30], ['ReNr 77/26', 50]])
 		await dav.put(request, 'admin', `${FOLDER}/RG-28-26-test.pdf`, textPdf(['Rechnung', 'Gesamt 119,00 EUR']), 'application/pdf')

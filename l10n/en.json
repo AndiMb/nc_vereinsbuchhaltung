@@ -3874,10 +3874,15 @@
             "%n receipt assigned",
             "%n receipts assigned"
         ],
-        "_%n Beleg konnte nicht zugeordnet werden (inzwischen vergeben, gelöscht oder Geschäftsjahr festgeschrieben)._::_%n Belege konnten nicht zugeordnet werden (inzwischen vergeben, gelöscht oder Geschäftsjahr festgeschrieben)._": [
-            "%n receipt could not be assigned (meanwhile assigned, deleted or fiscal year locked).",
-            "%n receipts could not be assigned (meanwhile assigned, deleted or fiscal year locked)."
+        "_%n Beleg konnte nicht zugeordnet werden:_::_%n Belege konnten nicht zugeordnet werden:_": [
+            "%n receipt could not be assigned:",
+            "%n receipts could not be assigned:"
         ],
+        "Nr. {no}: {reason}": "No. {no}: {reason}",
+        "schon einer anderen Buchung zugeordnet": "already assigned to another booking",
+        "nicht mehr im Ordner": "no longer in the folder",
+        "Geschäftsjahr abgeschlossen": "fiscal year closed",
+        "nicht zugeordnet": "not assigned",
         "Zuordnen fehlgeschlagen": "Assigning failed",
         "Passender Beleg gefunden: {name}": "Matching receipt found: {name}",
         "_%n möglicher Beleg_::_%n mögliche Belege_": [

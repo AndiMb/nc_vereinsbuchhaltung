@@ -1,6 +1,6 @@
 import { mdiHelpCircleOutline, mdiPaperclipCheck } from '@mdi/js'
 import { describe, expect, it } from 'vitest'
-import { levelIcon, pendingHint, reasonLine, reasonText, suggestionsVisible, suggestionTitle, sureSuggestionPairs } from './receiptSuggestions.js'
+import { levelIcon, pendingHint, reasonLine, reasonText, skippedSummary, suggestionsVisible, suggestionTitle, sureSuggestionPairs } from './receiptSuggestions.js'
 
 const t = (text, vars = {}) => text.replace(/\{(\w+)\}/g, (_, k) => String(vars[k]))
 const money = (v) => `${v.toFixed(2).replace('.', ',')} €`
@@ -131,5 +131,29 @@ describe('sureSuggestionPairs', () => {
 	it('behandelt Schlüssel als Text und sortiert nach Buchungsliste', () => {
 		const pairs = sureSuggestionPairs(items, names, [rows[2], rows[0]])
 		expect(pairs.map((p) => p.journalId)).toEqual([3, 1])
+	})
+})
+
+describe('skippedSummary', () => {
+	const n = (singular, plural, count) => (count === 1 ? singular : plural).replace('%n', String(count))
+	const pairs = [{ journalId: 1, entryNo: 12 }, { journalId: 2, entryNo: 13 }, { journalId: 3, entryNo: 14 }]
+
+	it('nennt je Paar Nummer und Grund', () => {
+		const text = skippedSummary([
+			{ journalId: 1, fileId: 5, reason: 'assigned' },
+			{ journalId: 2, fileId: 6, reason: 'notFound' },
+			{ journalId: 3, fileId: 7, reason: 'locked' },
+		], pairs, t, n)
+		expect(text).toContain('3 Belege')
+		expect(text).toContain('Nr. 12: schon einer anderen Buchung zugeordnet')
+		expect(text).toContain('Nr. 13: nicht mehr im Ordner')
+		expect(text).toContain('Nr. 14: Geschäftsjahr abgeschlossen')
+	})
+
+	it('kürzt lange Listen und kennt unbekannte Gründe', () => {
+		const many = Array.from({ length: 5 }, (_, i) => ({ journalId: i + 1, fileId: i, reason: 'assigned' }))
+		const all = Array.from({ length: 5 }, (_, i) => ({ journalId: i + 1, entryNo: i + 1 }))
+		expect(skippedSummary(many, all, t, n)).toContain('… +2')
+		expect(skippedSummary([{ journalId: 1, fileId: 1, reason: 'x' }], pairs, t, n)).toContain('Nr. 12')
 	})
 })

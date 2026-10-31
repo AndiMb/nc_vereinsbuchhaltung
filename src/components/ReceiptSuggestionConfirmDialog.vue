@@ -56,7 +56,7 @@ import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcModal from '@nextcloud/vue/components/NcModal'
 import api from '../api.js'
 import { errMsg, formatDate, formatMoney } from '../lib/format.js'
-import { reasonLine } from '../lib/receiptSuggestions.js'
+import { reasonLine, skippedSummary } from '../lib/receiptSuggestions.js'
 
 /**
  * Sammelbestätigung der sicheren Belegvorschläge (#229): eine Zeile je Paar
@@ -121,7 +121,7 @@ export default {
 					showSuccess(this.n('%n Beleg zugeordnet', '%n Belege zugeordnet', linked.length))
 				}
 				if (skipped.length) {
-					showWarning(this.n('%n Beleg konnte nicht zugeordnet werden (inzwischen vergeben, gelöscht oder Geschäftsjahr festgeschrieben).', '%n Belege konnten nicht zugeordnet werden (inzwischen vergeben, gelöscht oder Geschäftsjahr festgeschrieben).', skipped.length))
+					showWarning(skippedSummary(skipped, this.pairs, this.t, this.n))
 				}
 				this.$emit('update:show', false)
 				this.$emit('done', { linked, skipped })

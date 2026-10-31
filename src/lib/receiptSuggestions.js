@@ -135,3 +135,37 @@ export function sureSuggestionPairs(items, names, rows) {
 	}
 	return pairs
 }
+
+/**
+ * Grund, warum ein Paar übersprungen wurde.
+ *
+ * @param {'assigned'|'notFound'|'locked'|string} reason Grund vom Server
+ * @param {(text: string, vars?: object) => string} [t] Übersetzung
+ * @return {string} Text
+ */
+export function skippedReasonText(reason, t = defaultT) {
+	if (reason === 'assigned') { return t('schon einer anderen Buchung zugeordnet') }
+	if (reason === 'notFound') { return t('nicht mehr im Ordner') }
+	if (reason === 'locked') { return t('Geschäftsjahr abgeschlossen') }
+	return t('nicht zugeordnet')
+}
+
+/**
+ * Meldung über übersprungene Paare: Anzahl und je Buchung der Grund (höchstens
+ * drei Zeilen, der Rest als „… +n“).
+ *
+ * @param {Array<{journalId: number, reason: string}>} skipped übersprungene Paare
+ * @param {Array<{journalId: number, entryNo: number}>} pairs die bestätigten Paare (für die Nummern)
+ * @param {(text: string, vars?: object) => string} [t] Übersetzung
+ * @param {(singular: string, plural: string, count: number) => string} [n] Mehrzahl-Übersetzung
+ * @return {string} Text
+ */
+export function skippedSummary(skipped, pairs, t = defaultT, n = defaultN) {
+	const head = n('%n Beleg konnte nicht zugeordnet werden:', '%n Belege konnten nicht zugeordnet werden:', skipped.length)
+	const lines = skipped.slice(0, 3).map((s) => {
+		const pair = (pairs || []).find((p) => Number(p.journalId) === Number(s.journalId))
+		return t('Nr. {no}: {reason}', { no: pair ? pair.entryNo : s.journalId, reason: skippedReasonText(s.reason, t) })
+	})
+	const rest = skipped.length > 3 ? ` … +${skipped.length - 3}` : ''
+	return `${head} ${lines.join('; ')}${rest}`
+}

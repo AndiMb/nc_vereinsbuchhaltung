@@ -1154,7 +1154,8 @@ export default {
 		restoreFolderPanel() {
 			if (!this.show || this.folderPanelOpen) { return }
 			const open = opensFolderPanel({
-				remembered: readFolderPanelOpen() || this.forceFolderPanel,
+				remembered: readFolderPanelOpen(),
+				forced: this.forceFolderPanel,
 				watchMode: this.watchMode,
 				canWrite: this.canWrite,
 				bookingLocked: this.bookingLocked,
