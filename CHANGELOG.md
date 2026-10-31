@@ -17,6 +17,32 @@ als „[object Object]" (falsche Renderer-Callback-Signatur, Nextcloud-
 Core-Bug, reproduziert 23.08.2026). Stattdessen **Fettdruck als Zeilenanfang**
 verwenden, z. B. `**Neu:**`.
 
+## [0.48.0] – 2026-10-31
+
+**Neu:**
+- **Belegvorschläge aus dem Wächter-Ordner** ([#222](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/222),
+  [#229](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/229)): Die App
+  liest die Dateien im Wächter-Ordner im Hintergrund – Dateiname, Textebene
+  von PDFs und ZUGFeRD/XRechnung-Daten, Fotos nur über den Dateinamen – und
+  schlägt passende Belege vor. „Sicher“ heißt: Rechnungsnummer und Betrag
+  stimmen, und zwar eindeutig; „möglich“: nur die Rechnungsnummer oder Betrag
+  und Datum. Im Buchungsdialog steht oben in der Seitenleiste „Aus Ordner
+  wählen“ ein Abschnitt „Vorschläge“ mit Begründung, ein Klick übernimmt den
+  Beleg. In der Buchungsliste zeigt ein Symbol bei Buchungen ohne Beleg, dass
+  es einen Vorschlag gibt; „n Belege zuordnen“ verknüpft alle sicheren
+  Vorschläge nach Bestätigung auf einmal. Ohne Bestätigung wird nie etwas
+  verknüpft.
+- Die Seitenleiste „Aus Ordner wählen“ im Buchungsdialog merkt sich am
+  Desktop, ob sie zuletzt offen war ([#230](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/230)).
+
+**Behoben:**
+- Wurde eine neue Buchung geöffnet, bevor die Konten geladen waren, fragte
+  „Abbrechen“ fälschlich „Änderungen verwerfen?“.
+
+**Dokumentation:**
+- Das Handbuch erklärt, dass ein Überordner als Wächter-Ordner genügt –
+  Unterordner werden mit durchsucht ([#223](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/223)).
+
 ## [0.47.0] – 2026-10-31
 
 **Neu:**

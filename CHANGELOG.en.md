@@ -15,6 +15,31 @@ Markdown headings as "[object Object]" since `marked` v18 (wrong renderer
 callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 **bold lead-in** at the start of a line instead, e.g. `**New:**`.
 
+## [0.48.0] – 2026-10-31
+
+**New:**
+- **Receipt suggestions from the watch folder** ([#222](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/222),
+  [#229](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/229)): The app
+  reads the files in the watch folder in the background (file name, PDF text
+  layer and ZUGFeRD/XRechnung data; photos by file name only) and suggests
+  matching receipts. "Certain" means invoice number and amount match, and
+  unambiguously so; "possible" means only the invoice number, or amount and
+  date. In the posting dialog, the "Pick from folder" side panel shows a
+  "Suggestions" section with the reasons, and one click takes the receipt
+  over. In the posting list, an icon marks postings without a receipt that
+  have a suggestion; "Assign n receipts" links all certain suggestions at
+  once after confirmation. Nothing is ever linked without confirmation.
+- On the desktop, the "Pick from folder" side panel in the posting dialog
+  remembers whether it was open last time ([#230](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/230)).
+
+**Fixed:**
+- If a new posting was opened before the accounts had loaded, "Cancel"
+  wrongly asked "Discard changes?".
+
+**Documentation:**
+- The manual explains that one parent folder is enough as the watch folder,
+  because subfolders are scanned too ([#223](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/223)).
+
 ## [0.47.0] – 2026-10-31
 
 **New:**

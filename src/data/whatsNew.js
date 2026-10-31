@@ -25,6 +25,14 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.48.0',
+			roles: ['verwalter', 'buchhalter'],
+			items: [
+				t('Neu: Belegvorschläge. Die App liest die Dateien im Wächter-Ordner und schlägt beim Buchen passende Belege vor („sicher“ oder „möglich“, mit Begründung). In der Buchungsliste zeigt ein Symbol, wo ein Vorschlag wartet; „Belege zuordnen“ verknüpft alle sicheren auf einmal – immer erst nach Bestätigung.'),
+				t('Die Seitenleiste „Aus Ordner wählen“ bleibt am Desktop offen, wenn sie es zuletzt war.'),
+			],
+		},
+		{
 			version: '0.47.0',
 			roles: ['verwalter', 'buchhalter'],
 			items: [
