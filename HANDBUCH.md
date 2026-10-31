@@ -1673,6 +1673,16 @@ gültigen Link hat, wird übersprungen, außer Sie setzen den Haken, ihn zu erin
 (der frühere Link wird dann ungültig). Auch Papier-Mandate lassen sich so
 elektronisch bestätigen; die Bestätigung zählt dort ebenfalls als Nachweis.
 
+**Einzeln aus der Akte und im Self-Service.** Hat ein Mandat die aktuelle Fassung
+noch nicht bestätigt, zeigt die Akte (*Mandat verwalten*) die Zeile *Mandatstext*
+mit dem Stand des Links und den Knopf **„Zur Bestätigung des Mandatstexts
+anschreiben"** (danach **„Erneut …"**); er schickt nur diesem Mitglied den Link und
+zeigt ihn zum Weitergeben, falls die Mail nicht ankommt. Ohne Mailadresse bleibt der
+Knopf aus. Mitglieder mit Konto sehen unter *Mein Beitrag* den Hinweis **„Mandatstext
+aktualisiert"**: **„Neuen Text lesen und bestätigen"** zeigt den Text und bestätigt in
+der angemeldeten Sitzung – ohne Mail-Umweg; wie bei jeder Änderung kommt eine
+Quittungsmail, und im Verlauf steht der Konto-Name statt einer Mailadresse.
+
 **Austritt und Löschen.** In der Akte erklären Sie mit **„Austritt erklären"**
 den Austritt zu einem Datum (auch in der Zukunft); er lässt sich zurücknehmen,
 solange er noch nicht wirksam sein muss. **Löschen** lässt sich ein Mitglied nur,

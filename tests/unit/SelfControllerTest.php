@@ -453,6 +453,54 @@ class SelfControllerTest extends TestCase {
 		$this->assertSame(Http::STATUS_BAD_REQUEST, $response->getStatus());
 	}
 
+	public function testMandatTextBestaetigenLoestUeberDieMemberIdAufUndLiefertDasMandat(): void {
+		$this->actorContext->setMemberChannel(self::MEMBER_ID);
+		$mandate = new \OCA\Vereinsbuchhaltung\Db\Mandate();
+		$mandate->setId(5);
+		$mandate->setMandateReference('M-5');
+		$mandate->setStatus(\OCA\Vereinsbuchhaltung\Db\Mandate::STATUS_ACTIVE);
+		$selfMandate = $this->createMock(SelfServiceMandateService::class);
+		$selfMandate->expects($this->once())->method('reconfirm')->with(self::MEMBER_ID)->willReturn($mandate);
+		$selfMandate->method('needsReconfirmation')->willReturn(false);
+
+		$response = $this->controller($selfMandate)->reconfirmMandate();
+
+		$this->assertSame(Http::STATUS_OK, $response->getStatus());
+		$this->assertSame('M-5', $response->getData()['mandateReference']);
+		$this->assertFalse($response->getData()['needsReconfirmation']);
+	}
+
+	public function testMandatTextBestaetigenOhneAufgeloesteMemberIdWirdVerweigert(): void {
+		$selfMandate = $this->createMock(SelfServiceMandateService::class);
+		$selfMandate->expects($this->never())->method('reconfirm');
+
+		$this->expectException(ForbiddenException::class);
+		$this->controller($selfMandate)->reconfirmMandate();
+	}
+
+	public function testMandatTextBestaetigenMeldetEinenAbgelehntenVorgangAls400(): void {
+		$this->actorContext->setMemberChannel(self::MEMBER_ID);
+		$selfMandate = $this->createMock(SelfServiceMandateService::class);
+		$selfMandate->method('reconfirm')->willThrowException(new \InvalidArgumentException('keine neue Fassung'));
+
+		$this->assertSame(Http::STATUS_BAD_REQUEST, $this->controller($selfMandate)->reconfirmMandate()->getStatus());
+	}
+
+	public function testDasEigeneMandatMeldetEineNeueFassungImHinweisFlag(): void {
+		$this->actorContext->setMemberChannel(self::MEMBER_ID);
+		$mandate = new \OCA\Vereinsbuchhaltung\Db\Mandate();
+		$mandate->setId(5);
+		$mandate->setStatus(\OCA\Vereinsbuchhaltung\Db\Mandate::STATUS_ACTIVE);
+		$selfMandate = $this->createMock(SelfServiceMandateService::class);
+		$selfMandate->method('currentMandate')->willReturn($mandate);
+		$selfMandate->method('needsReconfirmation')->with($mandate)->willReturn(true);
+		$this->contact->method('update')->willReturn($this->fullMember());
+
+		$data = $this->controller($selfMandate)->updateMe(phone: '+49 30 999')->getData();
+
+		$this->assertTrue($data['mandate']['needsReconfirmation']);
+	}
+
 	// --- Eigene Rücklastschriften im Klartext (Issue #122) -------------------------
 
 	/**

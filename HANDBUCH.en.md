@@ -1641,6 +1641,17 @@ is skipped unless you tick the box to remind them (the earlier link then becomes
 invalid). Paper mandates can be confirmed electronically this way too; the
 confirmation counts as proof there as well.
 
+**Singly from the record, and in the self-service.** If a mandate has not yet
+confirmed the current version, the record (*Manage mandate*) shows the row
+*Mandate text* with the state of the link and the button **"Write to them to
+confirm the mandate text"** (afterwards **"Write again …"**); it sends the link to
+this member only and shows it so you can pass it on if the email doesn't arrive.
+Without an email address the button stays off. Members with an account see the
+notice **"Mandate text updated"** under *My contribution*: **"Read and confirm the
+new text"** shows the text and confirms in the signed-in session – no email detour;
+as with every change a receipt email follows, and the history names the account
+instead of an email address.
+
 **Leaving and deleting.** In the record, **"Declare leaving"** (*Austritt
 erklären*) sets the member's leaving as of a date (also in the future); it
 can be withdrawn as long as it doesn't have to take effect yet. A member can

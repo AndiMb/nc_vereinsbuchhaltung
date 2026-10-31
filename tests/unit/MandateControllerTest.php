@@ -47,6 +47,10 @@ class MandateControllerTest extends TestCase {
 	}
 
 	private function controller(): MandateController {
+		return $this->controllerWithSession($this->createMock(IUserSession::class));
+	}
+
+	private function controllerWithSession(IUserSession $session): MandateController {
 		$documents = $this->createMock(MandateDocumentService::class);
 		$documents->method('hasDocument')->willReturn(false);
 		$documents->method('showMissingDocumentWarning')->willReturn(true);
@@ -63,7 +67,7 @@ class MandateControllerTest extends TestCase {
 			new MandateExpiryCalculator(),
 			$this->openItems,
 			$this->permissions,
-			$this->createMock(IUserSession::class),
+			$session,
 			$this->createMock(IConfig::class),
 			$l10n,
 		);
@@ -284,5 +288,47 @@ class MandateControllerTest extends TestCase {
 		$this->assertSame(Http::STATUS_BAD_REQUEST, $discard->getStatus());
 		$this->assertSame('Zum Verwerfen eines Entwurfs ist eine Notiz Pflicht.', $discard->getData()['message']);
 		$this->assertSame(Http::STATUS_NOT_FOUND, $correct->getStatus());
+	}
+
+	// --- Neue Fassung des Mandatstexts: Stand und Einzelversand aus der Akte -----------
+
+	public function testEinzelansichtMeldetDenStandDerErneutenBestaetigung(): void {
+		$mandate = $this->mandate(Mandate::STATUS_ACTIVE);
+		$this->service->method('find')->with(7)->willReturn($mandate);
+		$this->service->method('history')->willReturn([]);
+		$this->service->method('amendments')->willReturn([]);
+		$status = ['needed' => true, 'link' => null];
+		$this->activation->method('reconfirmationStatus')->with($mandate)->willReturn($status);
+
+		$data = $this->controller()->show(7)->getData();
+
+		$this->assertSame($status, $data['reconfirmation']);
+	}
+
+	public function testEinzelversandSchicktDenLinkImNamenDerAngemeldetenPerson(): void {
+		$user = $this->createMock(\OCP\IUser::class);
+		$user->method('getUID')->willReturn('kassenwart');
+		$session = $this->createMock(IUserSession::class);
+		$session->method('getUser')->willReturn($user);
+		$mandate = $this->mandate(Mandate::STATUS_ACTIVE);
+		$this->service->method('find')->willReturn($mandate);
+		$this->activation->expects($this->once())->method('issueReconfirmationLink')->with(7, 'kassenwart')
+			->willReturn(['token' => new \OCA\Vereinsbuchhaltung\Db\MandateActivationToken(), 'url' => 'https://cloud.example.org/x', 'email' => 'katrin@example.org']);
+
+		$response = $this->controllerWithSession($session)->sendReconfirmationLink(7);
+
+		$this->assertSame(Http::STATUS_OK, $response->getStatus());
+		$this->assertSame('https://cloud.example.org/x', $response->getData()['activationUrl']);
+		$this->assertSame('katrin@example.org', $response->getData()['sentTo']);
+	}
+
+	public function testEinzelversandMeldetAbgelehnteVorgaengeAls400UndMailfehlerAls502(): void {
+		$this->activation->method('issueReconfirmationLink')->willReturnOnConsecutiveCalls(
+			$this->throwException(new \InvalidArgumentException('keine Mailadresse')),
+			$this->throwException(new \RuntimeException('nicht zugestellt')),
+		);
+
+		$this->assertSame(Http::STATUS_BAD_REQUEST, $this->controller()->sendReconfirmationLink(7)->getStatus());
+		$this->assertSame(Http::STATUS_BAD_GATEWAY, $this->controller()->sendReconfirmationLink(7)->getStatus());
 	}
 }

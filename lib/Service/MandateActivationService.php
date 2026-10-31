@@ -198,6 +198,17 @@ class MandateActivationService {
 	}
 
 	/**
+	 * Für die Akte eines Mandats: braucht es eine erneute Bestätigung des aktuellen
+	 * Mandatstexts, und wurde dafür schon ein Link verschickt (der noch aussteht)?
+	 *
+	 * @return array{needed: bool, link: array{sentAt: string, expiresAt: string, expired: bool, email: string, requestedBy: ?string, firstViewedAt: ?string}|null}
+	 */
+	public function reconfirmationStatus(Mandate $mandate): array {
+		$needed = $this->stateMachine->needsReconfirmation($mandate, (int)$this->legalTextService->current()->getId());
+		return ['needed' => $needed, 'link' => $needed ? $this->linkStatus((int)$mandate->getId()) : null];
+	}
+
+	/**
 	 * Wer hat den aktuellen Mandatstext schon bestätigt, wer nicht, und wen kann man anschreiben?
 	 *
 	 * „Bestätigt" heißt: das Mandat trägt die ID der aktuellen Fassung. Ein

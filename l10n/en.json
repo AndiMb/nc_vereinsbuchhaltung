@@ -3889,7 +3889,26 @@
         "vorher ohne elektronische Zustimmung": "previously without electronic consent",
         "Mandat erneut bestätigt (Zustimmung per E-Mail-Link an %1$s, %2$s)": "Mandate confirmed again (consent by email link to %1$s, %2$s)",
         "Link zur erneuten Bestätigung des Mandatstexts versendet an %s": "Link for reconfirming the mandate text sent to %s",
-        "Nur ein aktives oder ausgesetztes Mandat lässt sich erneut bestätigen.": "Only an active or suspended mandate can be confirmed again."
+        "Nur ein aktives oder ausgesetztes Mandat lässt sich erneut bestätigen.": "Only an active or suspended mandate can be confirmed again.",
+        "Zur Bestätigung des Mandatstexts anschreiben": "Write to them to confirm the mandate text",
+        "Erneut zur Bestätigung anschreiben": "Write again to confirm",
+        "Link zur Bestätigung des Mandatstexts an {email} verschickt.": "Link for confirming the mandate text sent to {email}.",
+        "Mandatstext bestätigen": "Confirm mandate text",
+        "Der Text Ihres SEPA-Lastschriftmandats wurde aktualisiert. Ihr Mandat und Ihre Bankverbindung bleiben unverändert, Sie müssen nichts eingeben.": "The text of your SEPA direct debit mandate has been updated. Your mandate and your bank details remain unchanged; you do not need to enter anything.",
+        "Ich bestätige den aktualisierten Mandatstext": "I confirm the updated mandate text",
+        "Mandatstext aktualisiert": "Mandate text updated",
+        "Bitte lesen und bestätigen Sie die neue Fassung. Ihr Mandat und Ihre Bankverbindung bleiben unverändert und gelten bis dahin weiter.": "Please read and confirm the new version. Your mandate and your bank details remain unchanged and stay valid until then.",
+        "Neuen Text lesen und bestätigen": "Read and confirm the new text",
+        "Mandatstext bestätigt.": "Mandate text confirmed.",
+        "Bestätigen fehlgeschlagen": "Confirming failed",
+        "Neue Fassung noch nicht bestätigt": "New version not yet confirmed",
+        "Neue Fassung noch nicht bestätigt · Link gesendet am {zeit} an {email}": "New version not yet confirmed · link sent on {zeit} to {email}",
+        "Mandatstext des SEPA-Lastschriftmandats bestätigt": "Mandate text of the SEPA direct debit mandate confirmed",
+        "Für Ihr Mandat liegt keine neue Fassung des Mandatstexts vor, die eine Bestätigung braucht.": "There is no new version of the mandate text for your mandate that needs confirmation.",
+        "Sie haben den aktualisierten Text Ihres SEPA-Lastschriftmandats bestätigt (Referenz %s).": "You have confirmed the updated text of your SEPA direct debit mandate (reference %s).",
+        "Ihr Mandat und Ihre Bankverbindung bleiben unverändert.": "Your mandate and your bank details remain unchanged.",
+        "Mandatstext bestätigt": "Mandate text confirmed",
+        "Neu: Neue Fassung des Mandatstexts bestätigen lassen. In den Einstellungen unter „Mandats-Rechtstext“ schreiben Sie alle Mitglieder an, die die aktuelle Fassung noch nicht bestätigt haben; der Link in der Mail öffnet den neuen Text mit den bisherigen Angaben, ein Klick genügt. Einzeln geht es aus der Mitglieder-Akte, und im Self-Service erscheint unter „Mein Beitrag“ ein Hinweis zum Bestätigen.": "New: have the new version of the mandate text confirmed. In the settings under \"Mandate legal text\" you write to all members who have not yet confirmed the current version; the link in the email opens the new text with their existing details, one click is enough. You can also do it for a single member from the member record, and in the self-service a notice under \"My contribution\" invites them to confirm."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

@@ -199,6 +199,7 @@ export default {
 	activateMandate: (id, signedAt) => axios.post(url(`/mandates/${id}/activate`), signedAt ? { signedAt } : {}),
 	createMandateElectronic: (data) => axios.post(url('/mandates/electronic'), data),
 	sendMandateActivationLink: (id) => axios.post(url(`/mandates/${id}/send-activation-link`)),
+	sendMandateReconfirmationLink: (id) => axios.post(url(`/mandates/${id}/send-reconfirmation-link`)),
 
 	// Mandat-Verwaltung in der Mitglieder-Akte (Issue #100, MandatePanel.vue):
 	// gesamte Historie eines Mitglieds, Einzelansicht mit Ereignishistorie/
@@ -319,6 +320,7 @@ export default {
 	selfMandateLegalText: () => axios.get(url('/self/mandate/legal-text')),
 	selfGrantMandate: (data) => axios.post(url('/self/mandate'), data),
 	selfConfirmMandate: () => axios.post(url('/self/mandate/confirm')),
+	selfReconfirmMandate: () => axios.post(url('/self/mandate/reconfirm')),
 	selfRequestMandateActivationLink: () => axios.post(url('/self/mandate/request-link')),
 	selfChangeMandateIban: (data) => axios.post(url('/self/mandate/iban'), data),
 	selfReplaceMandate: (data) => axios.post(url('/self/mandate/replace'), data),

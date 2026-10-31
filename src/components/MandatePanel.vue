@@ -110,6 +110,14 @@
 						</NcButton>
 					</template>
 					<template v-else-if="current.status === 'aktiv'">
+						<NcButton
+							v-if="current.reconfirmation && current.reconfirmation.needed"
+							variant="secondary"
+							:disabled="busy || !hasEmail"
+							data-testid="mandate-reconfirm"
+							@click="doSendReconfirmation">
+							{{ reconfirmLinkState === 'none' ? t('Zur Bestätigung des Mandatstexts anschreiben') : t('Erneut zur Bestätigung anschreiben') }}
+						</NcButton>
 						<NcButton variant="secondary" :disabled="busy" @click="openAccountDialog('iban')">
 							{{ t('Bankverbindung ändern') }}
 						</NcButton>
@@ -127,6 +135,14 @@
 					<template v-else-if="current.status === 'ausgesetzt'">
 						<NcButton variant="primary" :disabled="busy" @click="openAction('resume')">
 							{{ t('Entsperren') }}
+						</NcButton>
+						<NcButton
+							v-if="current.reconfirmation && current.reconfirmation.needed"
+							variant="secondary"
+							:disabled="busy || !hasEmail"
+							data-testid="mandate-reconfirm"
+							@click="doSendReconfirmation">
+							{{ reconfirmLinkState === 'none' ? t('Zur Bestätigung des Mandatstexts anschreiben') : t('Erneut zur Bestätigung anschreiben') }}
 						</NcButton>
 						<NcButton
 							variant="tertiary"
@@ -395,6 +411,7 @@ import {
 	formatIban,
 	formatStamp,
 	mandateNotices,
+	reconfirmationText,
 	signatureTooOld,
 	signatureTypeLabel,
 	statusLabel,
@@ -492,6 +509,8 @@ export default {
 		amendments() { return this.current?.amendments ?? [] },
 
 		linkState() { return activationLinkState(this.current?.activationLink) },
+
+		reconfirmLinkState() { return activationLinkState(this.current?.reconfirmation?.link) },
 
 		openClaimsTotalCents() { return this.current?.openClaimsTotalCents ?? 0 },
 
@@ -635,6 +654,10 @@ export default {
 			}
 			if (m.status === 'entwurf' && m.signatureType === 'elektronisch') {
 				rows.push({ key: 'link', label: this.t('Einmal-Link'), value: this.linkText(m.activationLink) })
+			}
+			const reconfirmation = reconfirmationText(m.reconfirmation, formatStamp)
+			if (reconfirmation) {
+				rows.push({ key: 'reconfirmation', label: this.t('Mandatstext'), value: reconfirmation, tone: 'warning' })
 			}
 			return rows
 		},
@@ -824,6 +847,16 @@ export default {
 				const { data } = await api.sendMandateActivationLink(this.current.id)
 				this.sentLink = { url: data.activationUrl, email: data.sentTo }
 				showSuccess(this.tRaw('Einmal-Link an {email} verschickt.', { email: data.sentTo }))
+			}, this.t('Versand fehlgeschlagen'))
+			if (ok) { await this.afterChange() }
+		},
+
+		/** Den Link zur Bestätigung der neuen Fassung des Mandatstexts an dieses Mitglied schicken (der Versand an alle steht in den Einstellungen). */
+		async doSendReconfirmation() {
+			const ok = await this.run(async () => {
+				const { data } = await api.sendMandateReconfirmationLink(this.current.id)
+				this.sentLink = { url: data.activationUrl, email: data.sentTo }
+				showSuccess(this.tRaw('Link zur Bestätigung des Mandatstexts an {email} verschickt.', { email: data.sentTo }))
 			}, this.t('Versand fehlgeschlagen'))
 			if (ok) { await this.afterChange() }
 		},

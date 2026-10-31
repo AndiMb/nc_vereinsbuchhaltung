@@ -470,6 +470,22 @@ class MandateActivationServiceTest extends TestCase {
 		$this->assertSame([], $overview['pendingIds']);
 	}
 
+	public function testReconfirmationStatusMeldetBedarfUndStandDesLinks(): void {
+		$this->legalTextService->method('current')->willReturn($this->legalTextVersion(3));
+		$this->tokenMapper->method('findOutstandingByMandate')->with(2)->willReturn([
+			$this->token(['mandateId' => 2, 'purpose' => MandateActivationToken::PURPOSE_RECONFIRMATION]),
+		]);
+
+		$outdated = $this->service()->reconfirmationStatus($this->activeMandate(2, 42, 2));
+		$current = $this->service()->reconfirmationStatus($this->activeMandate(3, 42, 3));
+
+		$this->assertTrue($outdated['needed']);
+		$this->assertSame('katrin@example.org', $outdated['link']['email']);
+		$this->assertFalse($outdated['link']['expired']);
+		$this->assertFalse($current['needed']);
+		$this->assertNull($current['link']);
+	}
+
 	public function testSendReconfirmationLinksSchreibtNurAnUndZaehltDenRest(): void {
 		$this->legalTextService->method('current')->willReturn($this->legalTextVersion(3));
 		$ended = $this->activeMandate(4, 44, 1);

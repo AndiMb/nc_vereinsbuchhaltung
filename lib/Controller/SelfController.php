@@ -169,6 +169,13 @@ class SelfController extends Controller {
 		return $this->guarded(fn () => $this->selfServiceMandate->confirmDraft($memberId));
 	}
 
+	/** Den aktualisierten Mandatstext für das eigene, schon wirksame Mandat bestätigen (siehe requestMandateActivationLink() für den Weg per Mail). */
+	#[NoAdminRequired]
+	public function reconfirmMandate(): DataResponse {
+		$memberId = $this->requireMemberId();
+		return $this->guarded(fn () => $this->selfServiceMandate->reconfirm($memberId));
+	}
+
 	/** IBAN ändern (gleicher Kontoinhaber), kein Sperrfenster (Spec §3.4). */
 	#[NoAdminRequired]
 	public function changeMandateIban(string $iban, ?string $bic = null): DataResponse {
@@ -443,6 +450,8 @@ class SelfController extends Controller {
 			'endReason' => $mandate->getEndReason(),
 			'storyText' => $mandate->storyText($this->l10n),
 			'createdAt' => $mandate->getCreatedAt(),
+			// Die Verwaltung hat eine neue Fassung des Mandatstexts gespeichert, die dieses Mandat noch nicht bestätigt hat.
+			'needsReconfirmation' => $this->selfServiceMandate->needsReconfirmation($mandate),
 		];
 	}
 
