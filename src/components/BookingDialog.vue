@@ -10,7 +10,7 @@
 		@update:show="requestShow">
 		<!-- v-if: frische Fokusfalle bei jedem Oeffnen, sonst kommt sie beim
 		     ersten Mal nicht nach oben (siehe AttachmentFolderDialog.vue). -->
-		<div ref="inner" class="vbh-modal-inner vbh-booking-dialog" :class="{ 'is-split': folderPanelOpen && !isMobile }">
+		<div ref="inner" class="vbh-modal-inner vbh-booking-dialog" :class="{ 'is-split': folderPanelOpen && !isMobile, 'is-split3': isSplit3 }">
 			<!-- Mit geoeffneter Belegauswahl zwei Spalten: links das Formular,
 			     rechts der Wächter-Ordner - so bleibt beim Aussuchen sichtbar,
 			     wofuer der Beleg ist. Mobil reicht der Platz dafuer nicht, dort
@@ -519,15 +519,37 @@
 					     Seitenleiste bleibt fuer weitere offen. Mobil, wo die Auswahl
 					     das Formular ersetzt, bleibt es bei Mehrfachauswahl mit
 					     Abbrechen/Übernehmen als Weg zurueck. -->
+					<!-- Schmales Fenster: die Vorschau steht anstelle der Liste. Die
+					     Liste bleibt eingehaengt (v-show), Suche, Auswahl und
+					     Scrollstand bleiben so erhalten. -->
+					<ReceiptPreview
+						v-if="previewInFolderColumn"
+						ref="fallbackPreview"
+						:file="previewFile"
+						:picked="previewPicked"
+						showNav
+						@back="backToList"
+						@step="$refs.folderPanel.step($event)" />
 					<AttachmentFolderPanel
+						v-show="!previewInFolderColumn"
+						ref="folderPanel"
 						pick
 						:instantPick="!isMobile"
 						:busy="bookingSaving"
 						:canWrite="canWrite"
 						:excludeFileIds="folderExcludeIds"
 						:noAutofocus="isMobile"
+						:previewEnabled="!isMobile"
+						:previewFileId="previewFile ? previewFile.fileId : null"
 						@close="folderPanelOpen = false"
-						@pick="onFolderPick" />
+						@pick="onFolderPick"
+						@preview="onPreview" />
+				</aside>
+
+				<!-- Breites Fenster: dritte Spalte, Formular und Liste bleiben
+				     daneben sichtbar - Rechnung und Buchung lassen sich vergleichen. -->
+				<aside v-if="isSplit3" class="vbh-booking-preview" :aria-label="t('Belegvorschau')">
+					<ReceiptPreview :file="previewFile" :picked="previewPicked" />
 				</aside>
 			</div>
 
@@ -573,10 +595,12 @@ import NcModal from '@nextcloud/vue/components/NcModal'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
 import AmountInput from './AmountInput.vue'
 import AttachmentFolderPanel from './AttachmentFolderPanel.vue'
+import ReceiptPreview from './ReceiptPreview.vue'
 import { buildAccountOptions, useAccounts } from '../composables/useAccounts.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useJournal } from '../composables/useJournal.js'
 import { usePeriods } from '../composables/usePeriods.js'
+import { useWideLayout } from '../composables/useWideLayout.js'
 import { autogrow } from '../lib/autogrow.js'
 import { formatFileSize, formatMoney } from '../lib/format.js'
 import { isSelectableOption } from '../lib/selectOptions.js'
@@ -585,7 +609,7 @@ import { stickyShadow } from '../lib/stickyShadow.js'
 
 export default {
 	name: 'BookingDialog',
-	components: { NcModal, NcButton, NcSelect, NcCheckboxRadioSwitch, NcIconSvgWrapper, NcLoadingIcon, AmountInput, AttachmentFolderPanel },
+	components: { NcModal, NcButton, NcSelect, NcCheckboxRadioSwitch, NcIconSvgWrapper, NcLoadingIcon, AmountInput, AttachmentFolderPanel, ReceiptPreview },
 	directives: { autogrow, stickyShadow },
 	props: {
 		show: { type: Boolean, default: false },
@@ -637,6 +661,8 @@ export default {
 			...toRefs(journal.state),
 			periodForDate: periods.periodForDate,
 			askConfirm: useConfirm().askConfirm,
+			// Belegvorschau: drei Spalten nur bei breitem Fenster.
+			wide: useWideLayout().wide,
 		}
 	},
 
@@ -651,6 +677,12 @@ export default {
 			mdiPaperclip,
 			mdiUndo,
 			folderPanelOpen: false,
+			// Belegvorschau (#231): die angeklickte Datei aus dem Wächter-Ordner,
+			// ob sie inzwischen übernommen ist, und ob sie im schmalen Fenster
+			// gerade anstelle der Liste steht.
+			previewFile: null,
+			previewPicked: false,
+			previewOverList: false,
 			// Formularstand beim Oeffnen, Vergleichsbasis fuer isDirty.
 			snapshot: null,
 			// Laeuft gerade die Rueckfrage "Verwerfen?" - NcModal meldet das
@@ -663,6 +695,16 @@ export default {
 		modalSize() {
 			if (this.isMobile) { return 'full' }
 			return this.folderPanelOpen ? 'large' : 'normal'
+		},
+
+		/** Formular | Liste | Vorschau nebeneinander (breites Fenster, Spec §3.5). */
+		isSplit3() {
+			return this.folderPanelOpen && !this.isMobile && this.wide && this.previewFile !== null
+		},
+
+		/** Schmales Fenster: Vorschau anstelle der Liste. */
+		previewInFolderColumn() {
+			return this.folderPanelOpen && !this.isMobile && !this.wide && this.previewFile !== null && this.previewOverList
 		},
 
 		/** Ungespeicherte Aenderungen seit dem Oeffnen? */
@@ -880,9 +922,15 @@ export default {
 		bookingAttachments: { handler() { this.keepFocusInAttachments() }, flush: 'pre' },
 		pendingFiles: { handler() { this.keepFocusInAttachments() }, flush: 'pre' },
 
+		// Wird das Fenster schmaler, rueckt die Vorschau an die Stelle der Liste.
+		wide(isWide) {
+			if (!isWide && this.previewFile) { this.previewOverList = true }
+		},
+
 		show: {
 			handler(open) {
 				this.folderPanelOpen = false
+				this.resetPreview()
 				this.snapshot = null
 				// Erst nach dem Tick: App.vue fuellt Formular und Warteliste
 				// teils erst nach dem Setzen von show (z. B. "Buchung anlegen"
@@ -1001,6 +1049,7 @@ export default {
 			const from = this.folderPanelOpen ? this.$refs.main : this.modalScroller()
 			const top = from ? from.scrollTop : 0
 			this.folderPanelOpen = !this.folderPanelOpen
+			if (!this.folderPanelOpen) { this.resetPreview() }
 			if (this.isMobile) { return }
 			this.$nextTick(() => {
 				const to = this.folderPanelOpen ? this.$refs.main : this.modalScroller()
@@ -1047,7 +1096,37 @@ export default {
 		 */
 		async onFolderPick(files) {
 			if (this.isMobile) { this.folderPanelOpen = false }
+			// Die Vorschau bleibt auf der übernommenen Datei stehen.
+			if (this.previewFile && files.some((f) => f.fileId === this.previewFile.fileId)) { this.previewPicked = true }
 			await this.pickFolderFiles(files)
+		},
+
+		/**
+		 * Datei in der Belegvorschau zeigen. Im schmalen Fenster rueckt sie an
+		 * die Stelle der Liste und bekommt den Fokus, damit ↑/↓ weiterblaettern.
+		 *
+		 * @param {object} file Datei aus dem Wächter-Ordner
+		 */
+		onPreview(file) {
+			const wasOverList = this.previewInFolderColumn
+			this.previewFile = file
+			this.previewPicked = false
+			if (this.wide) { return }
+			this.previewOverList = true
+			if (!wasOverList) { this.$nextTick(() => this.$refs.fallbackPreview?.focus()) }
+		},
+
+		/** Zurueck zur Liste; die angesehene Datei ist dort markiert und im Blick. */
+		backToList() {
+			const id = this.previewFile?.fileId
+			this.previewOverList = false
+			this.$nextTick(() => { if (id) { this.$refs.folderPanel?.revealFile(id) } })
+		},
+
+		resetPreview() {
+			this.previewFile = null
+			this.previewPicked = false
+			this.previewOverList = false
 		},
 
 		/** Einen noch nicht hochgeladenen Beleg aus der Warteliste nehmen. */

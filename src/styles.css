@@ -1090,6 +1090,24 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-booking-folder .vbh-folder-panel-actions { margin-top: 10px; }
 
+/* Mit Belegvorschau drei Spalten (#231, nur breites Fenster): Formular,
+   Liste, Vorschau. Der Dialog wird fast fensterbreit; Hoehe und Scrollen
+   wie bei .is-split. (0,4,0) wie oben gegen die Groessenregel der Bibliothek. */
+.modal-wrapper .modal-container:has(.vbh-booking-dialog.is-split3) { width: min(1800px, 96vw); }
+
+.vbh-booking-dialog.is-split3 .vbh-booking-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.6fr); }
+
+.vbh-booking-dialog.is-split3 .vbh-booking-preview { display: flex; flex-direction: column; min-height: 0; padding: 12px 0 0 24px; border-inline-start: 1px solid var(--color-border); }
+
+/* Das Schliessen-X sitzt jetzt ueber der Vorschau: deren Kopfzeile haelt
+   Platz frei, der Ordnertitel braucht ihn nicht mehr. */
+.vbh-booking-dialog.is-split3 .vbh-booking-preview .vbh-receipt-preview-head { padding-inline-end: calc(var(--default-clickable-area, 34px) + 8px); }
+
+.vbh-booking-dialog.is-split3 .vbh-booking-folder-title { padding-inline-end: 0; }
+
+/* Schmales Fenster: die Vorschau steht in der Ordnerspalte anstelle der Liste. */
+.vbh-booking-folder > .vbh-receipt-preview { flex: 1 1 auto; height: auto; }
+
 /* Belegvorschau (ReceiptPreview.vue, #231): Kopfzeile, darunter die Datei
    auf der ganzen Resthoehe. Die Rahmen geben der Wurzel eine feste Hoehe
    (Rasterzelle mit min-height: 0). */
