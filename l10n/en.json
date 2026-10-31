@@ -3881,7 +3881,6 @@
         "Nr. {no}: {reason}": "No. {no}: {reason}",
         "schon einer anderen Buchung zugeordnet": "already assigned to another booking",
         "nicht mehr im Ordner": "no longer in the folder",
-        "Geschäftsjahr abgeschlossen": "fiscal year closed",
         "nicht zugeordnet": "not assigned",
         "Zuordnen fehlgeschlagen": "Assigning failed",
         "Passender Beleg gefunden: {name}": "Matching receipt found: {name}",
