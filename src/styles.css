@@ -1092,8 +1092,9 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 /* Mit Belegvorschau drei Spalten (#231, nur breites Fenster): Formular,
    Liste, Vorschau. Der Dialog wird fast fensterbreit; Hoehe und Scrollen
-   wie bei .is-split. (0,4,0) wie oben gegen die Groessenregel der Bibliothek. */
-.modal-wrapper .modal-container:has(.vbh-booking-dialog.is-split3) { width: min(1800px, 96vw); }
+   wie bei .is-split. (0,4,0) wie oben gegen die Groessenregel der Bibliothek,
+   die max-width auf 90 % deckelt. */
+.modal-wrapper .modal-container:has(.vbh-booking-dialog.is-split3) { width: min(1800px, 96vw); max-width: 96vw; }
 
 .vbh-booking-dialog.is-split3 .vbh-booking-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.6fr); }
 
@@ -1754,7 +1755,7 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
    Spalte. Bei schmalem Fenster nur eine Spalte (Vorschau anstelle der
    Liste). (0,4,0) gegen die Groessenregel der Bibliothek, wie beim
    Buchungsdialog. */
-.modal-wrapper .modal-container:has(.vbh-modal-inner.vbh-folder-dialog--preview) { overflow: hidden; width: min(1500px, 96vw); height: min(90vh, 100vh - 2 * var(--header-height, 50px) - 2 * var(--body-container-margin, 0px)); }
+.modal-wrapper .modal-container:has(.vbh-modal-inner.vbh-folder-dialog--preview) { overflow: hidden; width: min(1500px, 96vw); max-width: 96vw; height: min(90vh, 100vh - 2 * var(--header-height, 50px) - 2 * var(--body-container-margin, 0px)); }
 
 .modal-container .modal-container__content:has(.vbh-modal-inner.vbh-folder-dialog--preview) { overflow: hidden; }
 

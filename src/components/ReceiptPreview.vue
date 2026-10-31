@@ -52,7 +52,7 @@
 		<p v-if="!file" class="vbh-receipt-preview-empty">
 			{{ t('Datei anklicken für Vorschau') }}
 		</p>
-		<div v-else-if="kind === 'none' || failed" class="vbh-receipt-preview-empty">
+		<div v-else-if="shownKind === 'none' || failed" class="vbh-receipt-preview-empty">
 			<p>{{ failed ? t('Die Datei lässt sich hier nicht anzeigen.') : t('Für diesen Dateityp ist keine Vorschau möglich.') }}</p>
 			<NcButton variant="secondary" @click="openInTab">
 				{{ t('Im neuen Tab öffnen') }}
@@ -62,13 +62,13 @@
 		     nicht. Skripte in der Datei sperrt die Antwort selbst per CSP
 		     (ReceiptPreviewPolicy::forInlineFile). -->
 		<iframe
-			v-else-if="kind === 'pdf' && shownUrl"
+			v-else-if="shownKind === 'pdf' && shownUrl"
 			:key="shownUrl"
 			class="vbh-receipt-preview-frame"
 			:src="shownUrl"
 			:title="file.name"
 			@load="loading = false" />
-		<div v-else-if="kind === 'image' && shownUrl" class="vbh-receipt-preview-image">
+		<div v-else-if="shownKind === 'image' && shownUrl" class="vbh-receipt-preview-image">
 			<img
 				:key="shownUrl"
 				:src="shownUrl"
@@ -118,7 +118,10 @@ export default {
 	emits: ['back', 'step'],
 
 	data() {
-		return { mdiArrowLeft, mdiChevronLeft, mdiChevronRight, mdiOpenInNew, shownUrl: '', loading: false, failed: false, timer: null }
+		// shownUrl/shownKind: was gerade dargestellt wird. Beide wechseln
+		// gemeinsam erst nach der Ruhezeit - sonst läge kurz die alte URL in
+		// der neuen Darstellung (ein PDF im <img>), und der Fehler bliebe stehen.
+		return { mdiArrowLeft, mdiChevronLeft, mdiChevronRight, mdiOpenInNew, shownUrl: '', shownKind: 'none', loading: false, failed: false, timer: null }
 	},
 
 	computed: {
@@ -138,9 +141,10 @@ export default {
 		/** Die erste Datei sofort, jede weitere nach kurzer Ruhe. */
 		schedule(url) {
 			clearTimeout(this.timer)
-			this.failed = false
 			const show = () => {
 				this.shownUrl = url
+				this.shownKind = this.kind
+				this.failed = false
 				this.loading = !!url && this.kind !== 'none'
 			}
 			if (!this.shownUrl || !url) { show() } else { this.timer = setTimeout(show, DEBOUNCE_MS) }
