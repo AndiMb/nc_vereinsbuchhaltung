@@ -37,7 +37,7 @@
 			</template>
 			<span class="vbh-receipt-preview-name" :title="file.name">{{ file.name }}</span>
 			<span v-if="picked" class="vbh-folder-status vbh-folder-status--linked">{{ t('übernommen') }}</span>
-			<NcLoadingIcon v-if="loading || pending" :size="18" />
+			<NcLoadingIcon v-if="loading || pending" :size="18" :name="t('Wird geladen…')" />
 			<NcButton
 				variant="tertiary"
 				size="small"
@@ -50,11 +50,15 @@
 			</NcButton>
 		</div>
 
-		<p v-if="!file" class="vbh-receipt-preview-empty">
-			{{ t('Datei anklicken für Vorschau') }}
-		</p>
+		<div v-if="!file" class="vbh-receipt-preview-empty">
+			<p class="vbh-empty">
+				{{ t('Datei anklicken für Vorschau') }}
+			</p>
+		</div>
 		<div v-else-if="shownKind === 'none' || failed" class="vbh-receipt-preview-empty">
-			<p>{{ failMessage }}</p>
+			<p class="vbh-empty">
+				{{ failMessage }}
+			</p>
 			<NcButton variant="secondary" @click="openInTab">
 				{{ t('Im neuen Tab öffnen') }}
 			</NcButton>
@@ -173,7 +177,7 @@ export default {
 				this.loading = !!url && kind !== 'none'
 				if (url && kind === 'pdf') {
 					this.shownUrl = ''
-					this.loadPdf(url, this.loadSeq)
+					this.loadPdf(this.file.fileId, this.loadSeq)
 				} else {
 					this.shownUrl = url
 				}
@@ -189,15 +193,14 @@ export default {
 		/**
 		 * PDF laden, prüfen und als blob: anzeigen.
 		 *
-		 * @param {string} url Adresse der Datei
+		 * @param {number} fileId die Datei
 		 * @param {number} seq Stand von loadSeq beim Start
 		 */
-		async loadPdf(url, seq) {
+		async loadPdf(fileId, seq) {
 			let bytes
 			try {
-				const response = await fetch(url, { credentials: 'same-origin' })
-				if (!response.ok) { throw new Error(String(response.status)) }
-				bytes = new Uint8Array(await response.arrayBuffer())
+				const { data } = await api.attachmentInboxContent(fileId)
+				bytes = new Uint8Array(data)
 			} catch {
 				if (seq === this.loadSeq) { this.loading = false; this.failed = 'error' }
 				return

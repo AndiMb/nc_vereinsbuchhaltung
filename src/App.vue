@@ -299,6 +299,7 @@
 			:bookingSaving="bookingSaving"
 			:bookingTour="bookingTour"
 			:isMobile="isMobile"
+			:isWide="isWide"
 			:canWrite="canWrite"
 			:bookingAttachments="bookingAttachments"
 			:setBookingKind="setBookingKind"
@@ -334,6 +335,7 @@
 			:pick="folderDialog.pick"
 			:heading="folderDialog.journalIds ? n('Beleg für %n Buchung wählen', 'Beleg für %n Buchungen wählen', folderDialog.journalIds.length) : ''"
 			:isMobile="isMobile"
+			:isWide="isWide"
 			:canWrite="canWrite"
 			:excludeFileIds="folderExcludeIds"
 			:context="folderDialog.context"
@@ -677,6 +679,9 @@ export default {
 			syncTimer: null,
 			// Mobil-Layout (≤ 640px): schaltet Bottom-Nav, Kartenlisten etc.
 			isMobile: false,
+			// Breites Fenster (≥ 1500px): Belegvorschau neben der Belegliste, darunter
+			// steht sie anstelle der Liste (#231).
+			isWide: true,
 			// Kontoauswahl-Sheet (mobil): target = category|money|debit|credit|assign|splitline:<i>
 			accountPicker: { open: false, target: null, title: '', tx: null },
 			// Umsatz beim Zuordnen auf mehrere Gegenkonten aufteilen
@@ -1185,6 +1190,10 @@ export default {
 		this.isMobile = this.vbhMql.matches
 		this.onMqChange = (e) => { this.isMobile = e.matches }
 		if (this.vbhMql.addEventListener) { this.vbhMql.addEventListener('change', this.onMqChange) } else { this.vbhMql.addListener(this.onMqChange) }
+		this.vbhWideMql = window.matchMedia('(min-width: 1500px)')
+		this.isWide = this.vbhWideMql.matches
+		this.onWideMqChange = (e) => { this.isWide = e.matches }
+		if (this.vbhWideMql.addEventListener) { this.vbhWideMql.addEventListener('change', this.onWideMqChange) } else { this.vbhWideMql.addListener(this.onWideMqChange) }
 		this.loadRecentAccounts()
 		await this.loadMe()
 		if (this.canRead) {
@@ -1235,6 +1244,9 @@ export default {
 		document.removeEventListener('keydown', this.onGlobalKeydown)
 		if (this.vbhMql) {
 			if (this.vbhMql.removeEventListener) { this.vbhMql.removeEventListener('change', this.onMqChange) } else { this.vbhMql.removeListener(this.onMqChange) }
+		}
+		if (this.vbhWideMql) {
+			if (this.vbhWideMql.removeEventListener) { this.vbhWideMql.removeEventListener('change', this.onWideMqChange) } else { this.vbhWideMql.removeListener(this.onWideMqChange) }
 		}
 		if (this.syncTimer) { clearInterval(this.syncTimer) }
 		window.removeEventListener('focus', this.onWindowFocus)

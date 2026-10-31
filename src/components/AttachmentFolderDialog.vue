@@ -28,7 +28,7 @@
 				</div>
 			</div>
 
-			<div :class="{ 'vbh-folder-dialog-grid': !isMobile, 'is-wide': wide }">
+			<div :class="{ 'vbh-folder-dialog-grid': !isMobile, 'is-wide': isWide }">
 				<div class="vbh-folder-dialog-list">
 					<!-- Schmales Fenster: die Vorschau steht anstelle der Liste,
 					     die Liste bleibt eingehaengt (Suche und Auswahl bleiben). -->
@@ -54,7 +54,7 @@
 						@createBooking="$emit('create-booking', $event)"
 						@openBooking="$emit('open-booking', $event)" />
 				</div>
-				<div v-if="!isMobile && wide" class="vbh-folder-dialog-preview">
+				<div v-if="!isMobile && isWide" class="vbh-folder-dialog-preview">
 					<ReceiptPreview :file="previewFile" />
 				</div>
 			</div>
@@ -66,7 +66,6 @@
 import NcModal from '@nextcloud/vue/components/NcModal'
 import AttachmentFolderPanel from './AttachmentFolderPanel.vue'
 import ReceiptPreview from './ReceiptPreview.vue'
-import { useWideLayout } from '../composables/useWideLayout.js'
 import { formatDate, formatMoney } from '../lib/format.js'
 
 // So viele Buchungen stehen im Kontextstreifen, der Rest als „+ n weitere“.
@@ -101,6 +100,8 @@ export default {
 		// Buchungen wählen“ bei der Mehrfachauswahl im Journal.
 		heading: { type: String, default: '' },
 		isMobile: { type: Boolean, required: true },
+		// Breites Fenster (App.vue): Liste und Vorschau nebeneinander.
+		isWide: { type: Boolean, required: true },
 		canWrite: { type: Boolean, required: true },
 		excludeFileIds: { type: Array, default: () => [] },
 		// {kind: 'tx', …} oder {kind: 'bookings', items}, im Eingangskorb null.
@@ -108,10 +109,6 @@ export default {
 	},
 
 	emits: ['close', 'create-booking', 'open-booking', 'pick', 'update:show'],
-
-	setup() {
-		return { wide: useWideLayout().wide }
-	},
 
 	data() {
 		return { previewFile: null, previewOverList: false }
@@ -123,7 +120,7 @@ export default {
 		},
 
 		previewInList() {
-			return !this.isMobile && !this.wide && this.previewFile !== null && this.previewOverList
+			return !this.isMobile && !this.isWide && this.previewFile !== null && this.previewOverList
 		},
 
 		/** Zeilen des Kontextstreifens, leere Angaben weggelassen. */
@@ -152,7 +149,7 @@ export default {
 		// Beim Wechsel der Fensterbreite verschwindet das fokussierte Element
 		// (Liste bzw. Rückfall-Vorschau) - der Fokus wandert mit, sonst landet
 		// er im Nichts und ↑/↓ greifen nicht mehr.
-		wide(isWide) {
+		isWide(isWide) {
 			if (!this.previewFile || this.isMobile) { return }
 			const id = this.previewFile.fileId
 			if (isWide) {
@@ -168,7 +165,7 @@ export default {
 		onPreview(file) {
 			const wasOverList = this.previewInList
 			this.previewFile = file
-			if (this.wide) { return }
+			if (this.isWide) { return }
 			this.previewOverList = true
 			if (!wasOverList) { this.$nextTick(() => this.$refs.fallbackPreview?.focus()) }
 		},
