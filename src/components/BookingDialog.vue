@@ -930,8 +930,16 @@ export default {
 		pendingFiles: { handler() { this.keepFocusInAttachments() }, flush: 'pre' },
 
 		// Wird das Fenster schmaler, rueckt die Vorschau an die Stelle der Liste.
+		// Der Fokus wandert mit (Vorschau bzw. markierte Zeile), sonst laege er
+		// auf einem verschwundenen Element und ↑/↓ griffen nicht mehr.
 		wide(isWide) {
-			if (!isWide && this.previewFile) { this.previewOverList = true }
+			if (!this.previewFile) { return }
+			if (!isWide) { this.previewOverList = true }
+			if (!this.folderPanelOpen || this.isMobile) { return }
+			const id = this.previewFile.fileId
+			this.$nextTick(() => {
+				if (isWide) { this.$refs.folderPanel?.revealFile(id) } else { this.$refs.fallbackPreview?.focus() }
+			})
 		},
 
 		show: {

@@ -26,8 +26,7 @@
 			<ul
 				v-if="groups.length"
 				class="vbh-attachment-list vbh-folder-list vbh-dups-list"
-				@keydown.up="onArrowKey($event, -1)"
-				@keydown.down="onArrowKey($event, 1)">
+				@keydown="onArrowKey">
 				<li v-for="g in groups" :key="g.files[0].fileId" class="vbh-dups-group">
 					<div class="vbh-dups-head">
 						<strong>{{ n('%n gleiche Datei', '%n gleiche Dateien', g.files.length) }} · {{ formatFileSize(g.size) }}</strong>
@@ -95,6 +94,7 @@ import NcButton from '@nextcloud/vue/components/NcButton'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import api from '../api.js'
 import { errMsg, formatDate, formatFileSize } from '../lib/format.js'
+import { arrowStep, arrowTargetPart } from '../lib/receiptPreview.js'
 
 /**
  * Inhaltsgleiche Dateien im Wächter-Ordner (Ansicht „Dubletten“ im
@@ -170,10 +170,11 @@ export default {
 		},
 
 		/** ↑/↓ meldet step; das Panel blättert, dort liegt die Reihenfolge. */
-		onArrowKey(event, dir) {
-			if (!this.previewEnabled) { return }
+		onArrowKey(event) {
+			const dir = arrowStep(event)
+			if (!this.previewEnabled || !dir) { return }
 			event.preventDefault()
-			this.$emit('step', dir)
+			this.$emit('step', dir, arrowTargetPart(event.target))
 		},
 
 		formatMtime(mtime) {

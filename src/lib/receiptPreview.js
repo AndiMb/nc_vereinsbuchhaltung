@@ -68,6 +68,33 @@ export function adjacentFile(rows, currentId, dir) {
 }
 
 /**
+ * Blätterrichtung einer Taste: -1 für ↑, 1 für ↓, sonst 0. Mit Umschalt,
+ * Strg, Alt oder Meta zählt der Pfeil nicht – Umschalt+↓ markiert im
+ * Suchfeld Text, Alt+↓ öffnet Auswahllisten.
+ *
+ * @param {{key: string, shiftKey?: boolean, ctrlKey?: boolean, altKey?: boolean, metaKey?: boolean}} event die Taste
+ * @return {-1|0|1}
+ */
+export function arrowStep(event) {
+	if (event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) { return 0 }
+	if (event.key === 'ArrowUp') { return -1 }
+	return event.key === 'ArrowDown' ? 1 : 0
+}
+
+/**
+ * Wohin der Fokus nach dem Blättern wandert: kam die Taste vom Kästchen
+ * einer Dateizeile, auf das Kästchen der nächsten Zeile, sonst auf deren
+ * Dateinamen. So bleibt man beim Ankreuzen mit Leertaste in der Spalte.
+ *
+ * @param {EventTarget|null} target Element, auf dem die Taste gedrückt wurde
+ * @return {'checkbox'|'name'}
+ */
+export function arrowTargetPart(target) {
+	const isBox = !!target?.matches?.('input[type="checkbox"]')
+	return isBox && target.closest('[data-file-id]') ? 'checkbox' : 'name'
+}
+
+/**
  * Kontextstreifen für die Belegauswahl zu einem Bankumsatz.
  *
  * @param {{bookingDate: string, amount: number, purpose?: string, counterparty?: string}} tx Bankumsatz

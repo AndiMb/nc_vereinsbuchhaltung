@@ -2,6 +2,7 @@
 	<section
 		ref="root"
 		class="vbh-receipt-preview"
+		:class="{ 'is-pending': pending }"
 		tabindex="-1"
 		:aria-label="t('Belegvorschau')"
 		@keydown="onKeydown">
@@ -36,7 +37,7 @@
 			</template>
 			<span class="vbh-receipt-preview-name" :title="file.name">{{ file.name }}</span>
 			<span v-if="picked" class="vbh-folder-status vbh-folder-status--linked">{{ t('übernommen') }}</span>
-			<NcLoadingIcon v-if="loading" :size="18" />
+			<NcLoadingIcon v-if="loading || pending" :size="18" />
 			<NcButton
 				variant="tertiary"
 				size="small"
@@ -86,7 +87,7 @@ import NcButton from '@nextcloud/vue/components/NcButton'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import api from '../api.js'
-import { looksLikeCompletePdf, previewKind } from '../lib/receiptPreview.js'
+import { arrowStep, looksLikeCompletePdf, previewKind } from '../lib/receiptPreview.js'
 
 // Beim schnellen Blättern mit den Pfeiltasten erst laden, wenn eine Weile
 // keine weitere Taste kam - sonst ein Download je Tastendruck.
@@ -131,8 +132,10 @@ export default {
 		// failed: false, 'broken' (PDF unvollständig) oder 'error' (Laden
 		// oder Anzeigen schlug fehl). blobUrl: eigene blob:-Adresse des
 		// gezeigten PDFs, beim Wechsel wieder freigegeben. loadSeq verwirft
-		// Antworten, die erst nach einem weiteren Wechsel eintreffen.
-		return { mdiArrowLeft, mdiChevronLeft, mdiChevronRight, mdiOpenInNew, shownUrl: '', shownKind: 'none', loading: false, failed: false, timer: null, blobUrl: '', loadSeq: 0 }
+		// Antworten, die erst nach einem weiteren Wechsel eintreffen. pending:
+		// die Kopfzeile nennt schon die neue Datei, zu sehen ist noch die alte
+		// (Ruhezeit) - Ladeanzeige und abgeblendeter Inhalt machen das kenntlich.
+		return { mdiArrowLeft, mdiChevronLeft, mdiChevronRight, mdiOpenInNew, shownUrl: '', shownKind: 'none', loading: false, failed: false, pending: false, timer: null, blobUrl: '', loadSeq: 0 }
 	},
 
 	computed: {
@@ -164,6 +167,7 @@ export default {
 				const kind = this.kind
 				this.loadSeq++
 				this.releaseBlob()
+				this.pending = false
 				this.shownKind = kind
 				this.failed = false
 				this.loading = !!url && kind !== 'none'
@@ -174,7 +178,12 @@ export default {
 					this.shownUrl = url
 				}
 			}
-			if (!this.shownUrl || !url) { show() } else { this.timer = setTimeout(show, DEBOUNCE_MS) }
+			if (!this.shownUrl || !url) {
+				show()
+			} else {
+				this.pending = true
+				this.timer = setTimeout(show, DEBOUNCE_MS)
+			}
 		},
 
 		/**
@@ -213,9 +222,10 @@ export default {
 		},
 
 		onKeydown(event) {
-			if (!this.showNav || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) { return }
+			const dir = arrowStep(event)
+			if (!this.showNav || !dir) { return }
 			event.preventDefault()
-			this.$emit('step', event.key === 'ArrowUp' ? -1 : 1)
+			this.$emit('step', dir)
 		},
 
 		/** Fokus auf die Vorschau, damit ↑/↓ greifen (Rahmen ruft das im Rückfall-Layout). */
