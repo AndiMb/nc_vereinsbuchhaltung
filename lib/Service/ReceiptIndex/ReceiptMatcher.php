@@ -160,7 +160,7 @@ final class ReceiptMatcher {
 		if ($facts->invoiceNo !== null && preg_replace('/\D/', '', $facts->invoiceNo) === $core) {
 			return ReceiptFacts::SOURCE_EINVOICE;
 		}
-		if (in_array($core, $facts->nameRefs, false)) {
+		if (in_array($core, $facts->nameRefs, true)) {
 			return ReceiptFacts::SOURCE_NAME;
 		}
 		return ReceiptFacts::SOURCE_TEXT;

@@ -69,6 +69,9 @@ class ReceiptIndexService {
 				continue;
 			}
 			try {
+				// Zuerst ein Platzhalter: ein Absturz beim Lesen (Speicher, Zeitlimit) lässt sich nicht
+				// abfangen und würde sonst in jeder Anfrage dieselbe Datei erneut zu Fall bringen.
+				$this->mapper->save($id, $file['size'], $file['mtime'], ReceiptReader::VERSION, ReceiptReader::nameOnly($file['name']));
 				$this->mapper->save($id, $file['size'], $file['mtime'], ReceiptReader::VERSION, $this->readFile($file));
 			} catch (DbException $e) {
 				// Ein überlappender Lauf war schneller: die Zeile steht schon.

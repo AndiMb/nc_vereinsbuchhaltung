@@ -55,6 +55,10 @@ class ReceiptReader {
 
 		try {
 			$bytes = $content();
+			// Die gemeldete Größe kann veraltet sein: Zu Großes nie parsen (Speicher, Laufzeit).
+			if (strlen($bytes) > self::MAX_PDF_BYTES) {
+				return new ReceiptFacts(ReceiptFacts::SOURCE_NAME, ReceiptFacts::STATUS_SKIPPED, $nameRefs, $nameRefs);
+			}
 			return $this->readEInvoice($bytes, $nameRefs) ?? $this->readText($bytes, $nameRefs);
 		} catch (\Throwable $e) {
 			$this->logger?->debug('Beleg {file} nicht lesbar: {message}', [
@@ -65,6 +69,16 @@ class ReceiptReader {
 			]);
 			return new ReceiptFacts(ReceiptFacts::SOURCE_NAME, ReceiptFacts::STATUS_UNREADABLE, $nameRefs, $nameRefs);
 		}
+	}
+
+	/**
+	 * Merkmale allein aus dem Dateinamen, ohne die Datei zu öffnen. Der Index
+	 * legt sie als Platzhalter ab, bevor er liest: stirbt der Prozess beim
+	 * Lesen (Speicher, Zeitlimit), bleibt so eine nicht erneut versuchte Zeile.
+	 */
+	public static function nameOnly(string $fileName, string $status = ReceiptFacts::STATUS_UNREADABLE): ReceiptFacts {
+		$nameRefs = ReceiptFeatures::refs(self::stripExtension($fileName));
+		return new ReceiptFacts(ReceiptFacts::SOURCE_NAME, $status, $nameRefs, $nameRefs);
 	}
 
 	/**

@@ -101,9 +101,26 @@ class ReceiptSuggestionService {
 		}
 		[$from, $to] = $this->periods->range($userId, $periodId);
 		$withReceipt = $this->attachments->countByUser($userId);
+		// Buchungen in festgeschriebenen Geschäftsjahren lassen sich nicht mehr verknüpfen: weder anzeigen
+		// noch im Abgleich mitzählen, sonst drücken sie eindeutige Paare im offenen Jahr auf "wahrscheinlich".
+		$closed = [];
+		foreach ($this->periods->all($userId) as $period) {
+			if ($period->isClosed()) {
+				$closed[] = [$period->getStartDate(), $period->getEndDate()];
+			}
+		}
+		$isClosed = static function (string $date) use ($closed): bool {
+			$day = substr($date, 0, 10);
+			foreach ($closed as [$start, $end]) {
+				if ($day >= $start && $day <= $end) {
+					return true;
+				}
+			}
+			return false;
+		};
 		$journals = array_filter(
 			$this->journals->findAll($userId, self::MAX_JOURNALS, 0, $from, $to),
-			static fn ($j): bool => !isset($withReceipt[$j->getId()]),
+			static fn ($j): bool => !isset($withReceipt[$j->getId()]) && !$isClosed((string)$j->getDate()),
 		);
 		$prepared = $this->prepare($userId);
 		if ($prepared === null) {

@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\Journal;
 use OCA\Vereinsbuchhaltung\Db\JournalLine;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
+use OCA\Vereinsbuchhaltung\Db\Period;
 use OCA\Vereinsbuchhaltung\Exception\PeriodClosedException;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\AttachmentWatchFolderService;
@@ -182,6 +183,35 @@ class ReceiptSuggestionServiceTest extends TestCase {
 		$this->assertSame([1], array_keys($result['items'][10]['reasons']));
 		$this->assertContains('amount', array_column($result['items'][10]['reasons'][1], 'kind'));
 		$this->assertSame([1 => 'beleg-1.pdf'], $result['names']);
+	}
+
+	public function testForPeriodIgnoriertBuchungenImAbgeschlossenenGeschaeftsjahr(): void {
+		$this->periods->method('range')->willReturn(['2026-01-01', '2026-12-31']);
+		$closed = new Period();
+		$closed->setStartDate('2026-10-16');
+		$closed->setEndDate('2026-10-31');
+		$closed->setClosedAt('2026-11-01 10:00:00');
+		$open = new Period();
+		$open->setStartDate('2026-01-01');
+		$open->setEndDate('2026-10-15');
+		$this->periods->method('all')->willReturn([$closed, $open]);
+		$this->journals->method('findAll')->willReturn([
+			self::journal(10, '2026-10-12', 'Rechnung 28/26'),
+			self::journal(12, '2026-10-20', 'Rechnung 28/26'), // gleiche Buchung im geschlossenen Zeitraum
+		]);
+		$this->attachments->method('countByUser')->willReturn([]);
+		$this->lines->method('findByJournals')->willReturn([
+			10 => [self::line(10, 11900)],
+			12 => [self::line(12, 11900)],
+		]);
+		$this->inbox([self::file(1)]);
+		$this->index->method('refresh')->willReturn(['indexed' => 0, 'pending' => 0]);
+		$this->index->method('entries')->willReturn([1 => self::facts(['2826'], [11900], ['2026-10-15'])]);
+
+		$result = $this->service()->forPeriod('u', null);
+
+		$this->assertSame([10], array_keys($result['items']));
+		$this->assertSame('sure', $result['items'][10]['level']);
 	}
 
 	public function testLinkSuggestedUeberspringtZugeordneteUndFehlendeDateien(): void {

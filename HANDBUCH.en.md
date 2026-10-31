@@ -527,7 +527,8 @@ recommended), and additionally on demand when a dialog is opened.
 - The button **"Assign n receipts"** above the list opens a dialog with all
   certain pairs. Only the ticked ones are assigned; the tick can be removed
   per pair. Pairs that can no longer be assigned (file meanwhile taken
-  elsewhere or no longer in the folder) are reported with the reason.
+  elsewhere, no longer in the folder, or fiscal year closed) are reported
+  with the reason. Postings in closed fiscal years get no suggestion at all.
 - **Nothing is ever linked without confirmation.** Suggestions and dialog
   exist only for users with write permission and only with a watch folder
   set up.

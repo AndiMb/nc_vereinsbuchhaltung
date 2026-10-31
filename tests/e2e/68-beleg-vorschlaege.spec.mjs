@@ -160,11 +160,20 @@ test.describe('Belegvorschläge in der Buchungsliste', () => {
 		await resetWithBookings(request, [['ReNr 28/26', 119]])
 		await dav.put(request, 'admin', `${FOLDER}/RG-28-26-test.pdf`, textPdf(['Rechnung', 'Gesamt 119,00 EUR']), 'application/pdf')
 
+		// Die Oberfläche fragt für Revisoren gar nicht erst nach Vorschlägen. Damit die Abwesenheit
+		// der Symbole nicht nur „noch nicht geladen" heißt: Anfragen mitzählen, Netz zur Ruhe kommen lassen.
+		const suggestionRequests = []
+		page.on('request', (req) => {
+			if (req.url().includes('/attachments/suggestions')) { suggestionRequests.push(req.url()) }
+		})
+
 		await openApp(page, USERS.revisor)
 		const intro = page.getByRole('button', { name: 'Verstanden' })
 		if (await intro.isVisible().catch(() => false)) { await intro.click() }
 		await switchTab(page, 'Buchungen')
 		await expect(bookingRow(page, 'ReNr 28/26')).toBeVisible()
+		await page.waitForLoadState('networkidle')
+		expect(suggestionRequests).toEqual([])
 		await expect(visibleSection(page).getByRole('button', { name: /Passender Beleg|möglicher? Belege?|Belege? zuordnen/ })).toHaveCount(0)
 	})
 })

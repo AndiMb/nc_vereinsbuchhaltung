@@ -535,8 +535,9 @@ eines Dialogs.
 - Der Knopf **„n Belege zuordnen"** über der Liste öffnet einen Dialog mit
   allen sicheren Paaren. Zugeordnet werden nur die angehakten; das Häkchen
   lässt sich je Paar entfernen. Paare, die sich nicht mehr zuordnen lassen
-  (Datei inzwischen anderweitig vergeben oder nicht mehr im Ordner), werden
-  mit Grund gemeldet.
+  (Datei inzwischen anderweitig vergeben, nicht mehr im Ordner oder
+  Geschäftsjahr abgeschlossen), werden mit Grund gemeldet. Buchungen in
+  abgeschlossenen Geschäftsjahren bekommen gar keinen Vorschlag.
 - **Es wird nie ohne Bestätigung verknüpft.** Vorschläge und Dialog gibt es
   nur für Nutzer mit Schreibrecht und nur mit eingerichtetem Wächter-Ordner.
 

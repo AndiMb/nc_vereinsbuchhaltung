@@ -52,7 +52,7 @@ class ReceiptIndexServiceTest extends TestCase {
 			$read[] = $name;
 			return new ReceiptFacts('name', 'ok');
 		});
-		$this->mapper->expects($this->exactly(2))->method('save');
+		$this->mapper->expects($this->exactly(4))->method('save'); // je Datei Platzhalter + Ergebnis
 
 		$result = $this->service()->refresh([self::file(1), self::file(2), self::file(3)], 20, 10.0);
 
@@ -63,7 +63,7 @@ class ReceiptIndexServiceTest extends TestCase {
 	public function testNeueParserVersionLiestNeu(): void {
 		$this->mapper->method('findAll')->willReturn([1 => self::row(100, 0)]);
 		$this->reader->expects($this->once())->method('read')->willReturn(new ReceiptFacts('name', 'ok'));
-		$this->mapper->expects($this->once())->method('save')
+		$this->mapper->expects($this->exactly(2))->method('save')
 			->with(1, 10, 100, ReceiptReader::VERSION, $this->isInstanceOf(ReceiptFacts::class));
 
 		$this->assertSame(['indexed' => 1, 'pending' => 0], $this->service()->refresh([self::file(1)], 20, 10.0));
@@ -102,7 +102,7 @@ class ReceiptIndexServiceTest extends TestCase {
 			static fn (string $n, string $m, int $s, \Closure $content): ReceiptFacts => new ReceiptFacts('name', 'ok', [], [], [], [], $content()),
 		);
 		$saved = null;
-		$this->mapper->expects($this->once())->method('save')
+		$this->mapper->expects($this->exactly(2))->method('save')
 			->willReturnCallback(function (int $id, int $size, int $mtime, int $version, ReceiptFacts $facts) use (&$saved): void {
 				$saved = $facts;
 			});
@@ -126,6 +126,31 @@ class ReceiptIndexServiceTest extends TestCase {
 		$this->assertSame('%PDF-bytes', $got);
 	}
 
+	/**
+	 * Ein Prozess, der beim Lesen stirbt (Speicher, Zeitlimit), schreibt keine
+	 * Zeile mehr: darum steht der Platzhalter VOR dem Lesen in der Tabelle.
+	 */
+	public function testPlatzhalterZeileStehtVorDemLesen(): void {
+		$this->mapper->method('findAll')->willReturn([]);
+		$events = [];
+		$placeholder = null;
+		$this->mapper->method('save')->willReturnCallback(function (int $id, int $size, int $mtime, int $version, ReceiptFacts $facts) use (&$events, &$placeholder): void {
+			$events[] = 'save:' . $facts->status;
+			$placeholder ??= [$id, $size, $mtime, $version, $facts];
+		});
+		$this->reader->method('read')->willReturnCallback(function () use (&$events): ReceiptFacts {
+			$events[] = 'read';
+			return new ReceiptFacts('text', 'ok');
+		});
+
+		$this->service()->refresh([['fileId' => 3, 'name' => 'RE-2026-4711.pdf', 'size' => 10, 'mtime' => 100, 'mime' => 'application/pdf']], 20, 10.0);
+
+		$this->assertSame(['save:unreadable', 'read', 'save:ok'], $events);
+		$this->assertSame([3, 10, 100, ReceiptReader::VERSION], array_slice($placeholder, 0, 4));
+		$this->assertSame(ReceiptFacts::STATUS_UNREADABLE, $placeholder[4]->status);
+		$this->assertSame(['20264711'], $placeholder[4]->nameRefs);
+	}
+
 	public function testEntriesLiefertDieMerkmaleNachDateiId(): void {
 		$facts = new ReceiptFacts('text', 'ok', ['1234']);
 		$this->mapper->method('findAll')->willReturn([5 => ['size' => 1, 'mtime' => 2, 'version' => 1, 'facts' => $facts]]);
@@ -143,7 +168,7 @@ class ReceiptIndexServiceTest extends TestCase {
 	public function testUeberlappenderLaufMitDoppeltemSchluesselBrichtNichtAb(): void {
 		$this->mapper->method('findAll')->willReturn([]);
 		$this->reader->method('read')->willReturn(new ReceiptFacts('name', 'ok'));
-		$this->mapper->expects($this->exactly(2))->method('save')->willReturnCallback(function (int $id): void {
+		$this->mapper->expects($this->exactly(3))->method('save')->willReturnCallback(function (int $id): void {
 			if ($id === 1) {
 				throw $this->dbException(DbException::REASON_UNIQUE_CONSTRAINT_VIOLATION);
 			}

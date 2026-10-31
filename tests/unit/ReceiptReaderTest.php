@@ -66,6 +66,14 @@ class ReceiptReaderTest extends TestCase {
 		$this->assertSame(['20264711'], $facts->refs);
 	}
 
+	/** Die gemeldete Größe kann veraltet sein: was größer geliefert wird, wird nicht geparst. */
+	public function testGroessererInhaltAlsGemeldetWirdNichtGeparst(): void {
+		$facts = $this->reader()->read('RG-2026-4711.pdf', 'application/pdf', 10, static fn (): string => str_repeat('x', ReceiptReader::MAX_PDF_BYTES + 1));
+
+		$this->assertSame(ReceiptFacts::STATUS_SKIPPED, $facts->status);
+		$this->assertSame(['20264711'], $facts->refs);
+	}
+
 	public function testTextPdfLiefertKerneBetraegeDaten(): void {
 		$bytes = $this->textPdf('Rechnung Nr. R-2026-4711', 'Datum 15.10.2026', 'Gesamt 119,00 €');
 

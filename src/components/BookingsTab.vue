@@ -866,7 +866,8 @@ export default {
 		/** Sichere Paare für die Sammelbestätigung: nur Buchungen, die noch ohne Beleg sind. */
 		surePairs() {
 			if (!this.suggestionsActive) { return [] }
-			const rows = this.sortedJournalRows.filter((r) => !this.attachmentCountMap[r.id])
+			// Festgeschriebene Geschäftsjahre lassen sich nicht mehr verknüpfen.
+			const rows = this.sortedJournalRows.filter((r) => !this.attachmentCountMap[r.id] && !this.isDateClosed(r.date))
 			return sureSuggestionPairs(this.suggestionItems, this.suggestionNames, rows)
 		},
 
@@ -1099,7 +1100,7 @@ export default {
 
 		/** Vorschlag für eine Buchung ohne Beleg, sonst null. */
 		suggestionFor(r) {
-			if (!this.suggestionsActive || this.attachmentCountMap[r.id]) { return null }
+			if (!this.suggestionsActive || this.attachmentCountMap[r.id] || this.isDateClosed(r.date)) { return null }
 			const entry = this.suggestionItems[r.id]
 			return entry && entry.fileIds?.length ? entry : null
 		},
@@ -1112,6 +1113,8 @@ export default {
 			// Der Server hat den Änderungsstand nur bei Treffern erhöht; Zähler
 			// und Vorschläge ziehen dann über App.vue nach.
 			if (linked.length) { this.$emit('attachments-changed') }
+			// Auch ohne Treffer neu laden: übersprungene Paare sind veraltet (zugeordnet, gesperrt, weg).
+			this.loadReceiptSuggestions()
 		},
 
 		// --- Rechnungen (Epic #168) ---------------------------------------

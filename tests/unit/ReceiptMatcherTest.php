@@ -163,6 +163,13 @@ class ReceiptMatcherTest extends TestCase {
 		$this->assertSame('sure', $e['1'][0]['level']);
 	}
 
+	/** "02826" im Text ist nicht derselbe Kern wie "2826" im Dateinamen (kein loser Zahlenvergleich). */
+	public function testFuehrendeNullBleibtQuelleTextStattName(): void {
+		$r = (new ReceiptMatcher())->match([$this->booking('1', 'ReNr 02826')], [$this->file(10, ['02826'], [], [], 100, ['2826'])]);
+
+		$this->assertSame('text', $r['1'][0]['reasons'][0]['where']);
+	}
+
 	public function testEinvoiceBetragIstGleichGesamtbetrag(): void {
 		$r = (new ReceiptMatcher())->match(
 			[$this->booking('1', 'ReNr 28/26')],
