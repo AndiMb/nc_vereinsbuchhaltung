@@ -36,6 +36,10 @@
 				ref="duplicates"
 				:canWrite="canWrite"
 				:selected="selected"
+				:previewEnabled="previewEnabled"
+				:previewFileId="previewFileId"
+				@preview="$emit('preview', $event)"
+				@step="step"
 				@toggle="toggle"
 				@select="selectMany"
 				@openBooking="$emit('open-booking', $event)" />
@@ -47,7 +51,9 @@
 						v-model="search"
 						type="search"
 						class="vbh-search vbh-search--full"
-						:placeholder="t('Dateiname, Ordner oder Buchungsnummer suchen')">
+						:placeholder="t('Dateiname, Ordner oder Buchungsnummer suchen')"
+						@keydown.up="onArrowKey($event, -1)"
+						@keydown.down="onArrowKey($event, 1)">
 					<label class="vbh-checkinline">
 						<input v-model="onlyOpen" type="checkbox">
 						{{ t('nur offene') }}
@@ -79,7 +85,11 @@
 				<!-- Der Baum als flache Liste: jede Zeile ist Ordner oder Datei, die
 			     Tiefe gibt den Einzug (lib/folderTree.js). Ohne Ordner nur die
 			     Dateizeilen, der Ordnerpfad steht dann in der Metazeile. -->
-				<ul v-else class="vbh-attachment-list vbh-folder-list">
+				<ul
+					v-else
+					class="vbh-attachment-list vbh-folder-list"
+					@keydown.up="onArrowKey($event, -1)"
+					@keydown.down="onArrowKey($event, 1)">
 					<template v-for="row in rows" :key="row.kind === 'folder' ? 'd:' + row.node.path : 'f:' + row.file.fileId">
 						<li
 							v-if="row.kind === 'folder'"
@@ -112,6 +122,8 @@
 						<li
 							v-else
 							class="vbh-attachment-item vbh-folder-item"
+							:class="{ 'vbh-folder-item--previewed': row.file.fileId === previewFileId }"
+							:data-file-id="row.file.fileId"
 							:style="showFolders ? { paddingInlineStart: (row.depth * 20 + 26) + 'px' } : null">
 							<!-- Direktübernahme: ein Klick übernimmt die Datei sofort, sie
 						     verschwindet dann aus der Liste (excludeFileIds) und steht
@@ -250,6 +262,7 @@ import { buildFolderTree, flatFileRows, flattenTree, folderPaths, initialExpande
 import { errMsg, formatDate, formatFileSize } from '../lib/format.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 import { moveOutcome } from '../lib/receiptMove.js'
+import { adjacentFile } from '../lib/receiptPreview.js'
 
 const SHOW_FOLDERS_KEY = 'vbh_folder_tree'
 
@@ -295,9 +308,15 @@ export default {
 		// Übernehmen gesperrt, solange eine Verknüpfung noch läuft - sonst
 		// ließe sich dieselbe Datei doppelt anklicken, bevor sie verschwindet.
 		busy: { type: Boolean, default: false },
+		// Belegvorschau (#231): Klick auf einen Dateinamen meldet preview,
+		// statt die Datei in einem neuen Tab zu öffnen; ↑/↓ blättern. Ohne
+		// (mobil, oder ein Rahmen ohne Vorschau) bleibt es beim neuen Tab.
+		previewEnabled: { type: Boolean, default: false },
+		// Die gerade angezeigte Datei, in der Liste hervorgehoben.
+		previewFileId: { type: Number, default: null },
 	},
 
-	emits: ['close', 'create-booking', 'open-booking', 'pick'],
+	emits: ['close', 'create-booking', 'open-booking', 'pick', 'preview'],
 
 	data() {
 		return {
@@ -483,7 +502,54 @@ export default {
 		},
 
 		preview(f) {
-			window.open(api.attachmentInboxViewUrl(f.fileId), '_blank')
+			if (this.previewEnabled) {
+				this.$emit('preview', f)
+			} else {
+				window.open(api.attachmentInboxViewUrl(f.fileId), '_blank')
+			}
+		},
+
+		/**
+		 * ↑/↓ in Liste oder Suchfeld: nächste bzw. vorige Datei zeigen.
+		 *
+		 * @param {KeyboardEvent} event die Taste
+		 * @param {1|-1} dir Richtung
+		 */
+		onArrowKey(event, dir) {
+			if (!this.previewEnabled) { return }
+			event.preventDefault()
+			this.step(dir)
+		},
+
+		/**
+		 * Nächste (1) bzw. vorige (-1) sichtbare Datei per preview melden -
+		 * in der Dateiansicht nach dem Ordnerbaum, in den Dubletten nach deren
+		 * Reihenfolge. Auch vom Rahmen aufgerufen, wenn die Vorschau anstelle
+		 * der Liste steht. Ist die Liste sichtbar, wandert der Fokus auf die
+		 * neue Zeile.
+		 *
+		 * @param {1|-1} dir Richtung
+		 */
+		step(dir) {
+			const rows = this.view === 'duplicates' ? (this.$refs.duplicates?.previewRows() ?? []) : this.rows
+			const id = adjacentFile(rows, this.previewFileId, dir)
+			if (id === null) { return }
+			const row = rows.find((r) => r.kind === 'file' && r.file.fileId === id)
+			this.$emit('preview', row.file)
+			this.$nextTick(() => this.revealFile(id))
+		},
+
+		/**
+		 * Zeile einer Datei in den sichtbaren Bereich holen und fokussieren,
+		 * sofern die Liste gerade zu sehen ist.
+		 *
+		 * @param {number} fileId die Datei
+		 */
+		revealFile(fileId) {
+			const button = this.$el.querySelector(`[data-file-id="${fileId}"] .vbh-attachment-name`)
+			if (!button || button.offsetParent === null) { return }
+			button.focus({ preventScroll: true })
+			button.scrollIntoView({ block: 'nearest' })
 		},
 
 		formatMtime(mtime) {

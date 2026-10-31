@@ -1733,6 +1733,10 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-folder-item { padding: 6px 8px; }
 
+/* Die Datei, die gerade in der Belegvorschau steht (#231) - auch nach dem
+   Zurueckkehren aus der Vorschau sofort wiederzufinden. */
+.vbh-folder-item.vbh-folder-item--previewed { background: var(--color-primary-element-light); box-shadow: inset 3px 0 0 var(--color-primary-element); }
+
 .vbh-folder-main { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
 
 .vbh-folder-main .vbh-attachment-name { text-align: start; }
