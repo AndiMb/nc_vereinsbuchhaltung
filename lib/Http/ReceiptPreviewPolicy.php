@@ -8,8 +8,7 @@ use OCP\AppFramework\Http\ContentSecurityPolicy;
 use OCP\AppFramework\Http\EmptyContentSecurityPolicy;
 
 /**
- * Sicherheitsregeln für die eingebettete Belegvorschau (#231,
- * docs/superpowers/specs/2026-10-31-belegvorschau-design.md §3.7).
+ * Sicherheitsregeln für die eingebettete Belegvorschau (#231).
  *
  * Die Vorschau zeigt Dateien aus dem Wächter-Ordner in einem iframe neben
  * der Belegliste. Dafür braucht es zwei Lockerungen, beide nur für den
