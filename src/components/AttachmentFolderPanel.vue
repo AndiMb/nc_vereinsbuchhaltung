@@ -52,8 +52,7 @@
 						type="search"
 						class="vbh-search vbh-search--full"
 						:placeholder="t('Dateiname, Ordner oder Buchungsnummer suchen')"
-						@keydown.up="onArrowKey($event, -1)"
-						@keydown.down="onArrowKey($event, 1)">
+						@keydown="onArrowKey">
 					<label class="vbh-checkinline">
 						<input v-model="onlyOpen" type="checkbox">
 						{{ t('nur offene') }}
@@ -88,8 +87,7 @@
 				<ul
 					v-else
 					class="vbh-attachment-list vbh-folder-list"
-					@keydown.up="onArrowKey($event, -1)"
-					@keydown.down="onArrowKey($event, 1)">
+					@keydown="onArrowKey">
 					<template v-for="row in rows" :key="row.kind === 'folder' ? 'd:' + row.node.path : 'f:' + row.file.fileId">
 						<li
 							v-if="row.kind === 'folder'"
@@ -262,7 +260,7 @@ import { buildFolderTree, flatFileRows, flattenTree, folderPaths, initialExpande
 import { errMsg, formatDate, formatFileSize } from '../lib/format.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 import { moveOutcome } from '../lib/receiptMove.js'
-import { adjacentFile } from '../lib/receiptPreview.js'
+import { adjacentFile, arrowStep, arrowTargetPart } from '../lib/receiptPreview.js'
 
 const SHOW_FOLDERS_KEY = 'vbh_folder_tree'
 
@@ -512,13 +510,15 @@ export default {
 		/**
 		 * ↑/↓ in Liste oder Suchfeld: nächste bzw. vorige Datei zeigen.
 		 *
+		 * Mit Zusatztaste nicht (arrowStep).
+		 *
 		 * @param {KeyboardEvent} event die Taste
-		 * @param {1|-1} dir Richtung
 		 */
-		onArrowKey(event, dir) {
-			if (!this.previewEnabled) { return }
+		onArrowKey(event) {
+			const dir = arrowStep(event)
+			if (!this.previewEnabled || !dir) { return }
 			event.preventDefault()
-			this.step(dir)
+			this.step(dir, arrowTargetPart(event.target))
 		},
 
 		/**
@@ -529,30 +529,37 @@ export default {
 		 * neue Zeile.
 		 *
 		 * @param {1|-1} dir Richtung
+		 * @param {'name'|'checkbox'} [part] was in der neuen Zeile den Fokus bekommt
 		 */
-		step(dir) {
+		step(dir, part = 'name') {
 			const rows = this.view === 'duplicates' ? (this.$refs.duplicates?.previewRows() ?? []) : this.rows
 			const id = adjacentFile(rows, this.previewFileId, dir)
 			if (id === null) { return }
 			const row = rows.find((r) => r.kind === 'file' && r.file.fileId === id)
 			this.$emit('preview', row.file)
-			this.$nextTick(() => this.revealFile(id))
+			this.$nextTick(() => this.revealFile(id, part))
 		},
 
 		/**
 		 * Zeile einer Datei in den sichtbaren Bereich holen und fokussieren,
 		 * sofern die Liste gerade zu sehen ist. Dieselbe Datei kann zweimal im
 		 * DOM stehen – in der Dateiliste und in der (per v-show versteckten)
-		 * Dublettenansicht –, gemeint ist die sichtbare Zeile.
+		 * Dublettenansicht –, gemeint ist die sichtbare Zeile. Hat die Zeile
+		 * kein Kästchen (schon zugeordnet), bekommt der Dateiname den Fokus.
 		 *
 		 * @param {number} fileId die Datei
+		 * @param {'name'|'checkbox'} [part] Kästchen oder Dateiname
+		 * @return {boolean} ob die Zeile sichtbar war
 		 */
-		revealFile(fileId) {
-			const button = [...this.$el.querySelectorAll(`[data-file-id="${fileId}"] .vbh-attachment-name`)]
-				.find((b) => b.offsetParent !== null)
-			if (!button) { return }
-			button.focus({ preventScroll: true })
-			button.scrollIntoView({ block: 'nearest' })
+		revealFile(fileId, part = 'name') {
+			const visible = (selector) => [...this.$el.querySelectorAll(`[data-file-id="${fileId}"] ${selector}`)]
+				.find((el) => el.offsetParent !== null)
+			const name = visible('.vbh-attachment-name')
+			if (!name) { return false }
+			const target = (part === 'checkbox' && visible('input[type="checkbox"]')) || name
+			target.focus({ preventScroll: true })
+			name.scrollIntoView({ block: 'nearest' })
+			return true
 		},
 
 		formatMtime(mtime) {

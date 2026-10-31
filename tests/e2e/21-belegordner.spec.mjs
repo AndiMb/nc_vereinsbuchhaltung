@@ -182,6 +182,87 @@ test.describe('Wächter-Ordner für Belege', () => {
 		await expect(preview.getByText('übernommen')).toBeVisible()
 	})
 
+	test('Belegvorschau im schmalen Fenster und beim Wechsel der Fensterbreite per Tastatur bedienbar', async ({ page, request }) => {
+		for (const name of ['schmal-a.png', 'schmal-b.png', 'schmal-c.png']) {
+			await dav.put(request, 'admin', `${FOLDER}/2026/${name}`, BELEG_PNG, 'image/png')
+		}
+
+		await page.setViewportSize({ width: 1366, height: 900 })
+		await openApp(page, USERS.verwalter)
+		await neuAnlegen(page)
+		const bookingDialog = page.getByRole('dialog', { name: 'Neue Buchung' })
+		await skipBookingTour(bookingDialog)
+		await expect(bookingDialog.locator(':focus')).toHaveCount(1)
+		await bookingDialog.getByRole('button', { name: 'Aus Ordner wählen' }).click()
+		const folderDialog = bookingDialog.getByRole('complementary', { name: 'Beleg aus Ordner wählen' })
+		const search = folderDialog.getByPlaceholder(/Dateiname, Ordner/)
+		await search.fill('schmal-')
+		const names = folderDialog.locator('.vbh-folder-item .vbh-attachment-name')
+		await expect(names).toHaveCount(3)
+		const order = (await names.allTextContents()).map((n) => n.trim())
+
+		// Umschalt+↓ im Suchfeld markiert Text und blättert nicht.
+		await names.first().click()
+		const fallback = folderDialog.locator('.vbh-receipt-preview')
+		const shown = fallback.locator('.vbh-receipt-preview-name')
+		await expect(shown).toHaveText(order[0])
+		await folderDialog.getByRole('button', { name: 'Liste' }).click()
+		await search.focus()
+		await page.keyboard.press('Shift+ArrowDown')
+		await expect(folderDialog.locator('.vbh-folder-item--previewed')).toContainText(order[0])
+
+		// Schmal: die Vorschau steht anstelle der Liste und hat den Fokus, ↓ blättert.
+		await names.first().click()
+		await expect(fallback).toBeVisible()
+		await expect(search).toBeHidden()
+		await page.keyboard.press('ArrowDown')
+		await expect(shown).toHaveText(order[1])
+
+		// Breiter: drei Spalten, der Fokus wandert auf die markierte Zeile, ↓ blättert weiter.
+		await page.setViewportSize({ width: 1920, height: 1080 })
+		const preview = bookingDialog.getByRole('complementary', { name: 'Belegvorschau' })
+		await expect(preview.locator('.vbh-receipt-preview-name')).toHaveText(order[1])
+		await expect(folderDialog.locator('.vbh-folder-item--previewed .vbh-attachment-name')).toBeFocused()
+		await page.keyboard.press('ArrowDown')
+		await expect(preview.locator('.vbh-receipt-preview-name')).toHaveText(order[2])
+
+		// Wieder schmal: die Vorschau rückt anstelle der Liste und bekommt den Fokus.
+		await page.setViewportSize({ width: 1366, height: 900 })
+		await expect(fallback).toBeVisible()
+		await page.keyboard.press('ArrowUp')
+		await expect(shown).toHaveText(order[1])
+	})
+
+	test('Eingangskorb: beschädigtes PDF bekommt einen Hinweis, Pfeiltasten springen von Kästchen zu Kästchen', async ({ page, request }) => {
+		// Ohne startxref – der PDF-Viewer des Browsers zeigte dazu einen Fehlerdialog,
+		// dessen „Schließen" in Edge den ganzen App-Tab schloss.
+		const kaputt = Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n')
+		await dav.put(request, 'admin', `${FOLDER}/korb-kaputt.pdf`, kaputt, 'application/pdf')
+		await dav.put(request, 'admin', `${FOLDER}/korb-bild.png`, BELEG_PNG, 'image/png')
+
+		await page.setViewportSize({ width: 1920, height: 1080 })
+		await openApp(page, USERS.verwalter)
+		const tile = visibleSection(page).locator('.vbh-total--warn', { hasText: 'Noch keiner Buchung zugewiesen' })
+		await tile.getByRole('button', { name: 'Ansehen' }).click()
+		const inbox = page.getByRole('dialog', { name: 'Belege im Wächter-Ordner' })
+		await expect(inbox.getByText('Datei anklicken für Vorschau')).toBeVisible()
+		await inbox.getByPlaceholder(/Dateiname, Ordner/).fill('korb-')
+
+		await inbox.getByRole('button', { name: 'korb-kaputt.pdf', exact: true }).click()
+		await expect(inbox.getByText('Die PDF-Datei scheint unvollständig oder beschädigt zu sein.')).toBeVisible()
+		await expect(inbox.locator('.vbh-receipt-preview iframe')).toHaveCount(0)
+
+		const boxes = inbox.locator('.vbh-folder-item input[type="checkbox"]')
+		await expect(boxes).toHaveCount(2)
+		const rows = inbox.locator('.vbh-folder-item')
+		const firstName = (await rows.first().locator('.vbh-attachment-name').textContent()).trim()
+		await rows.first().locator('.vbh-attachment-name').click()
+		await boxes.first().focus()
+		await page.keyboard.press('ArrowDown')
+		await expect(boxes.nth(1)).toBeFocused()
+		await expect(inbox.locator('.vbh-folder-item--previewed')).not.toContainText(firstName)
+	})
+
 	test('Upload landet im Jahresordner, Löschen lässt die Datei stehen', async ({ request }) => {
 		const booking = await createBooking(request, 'Foto vom Handy', '2025-03-01')
 		const attachment = await api.addAttachment(request, booking.id, { name: 'foto.png' })

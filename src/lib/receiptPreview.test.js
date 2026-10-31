@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { adjacentFile, bookingsContext, looksLikeCompletePdf, previewKind, txContext } from './receiptPreview.js'
+import { adjacentFile, arrowStep, arrowTargetPart, bookingsContext, looksLikeCompletePdf, previewKind, txContext } from './receiptPreview.js'
 
 describe('previewKind', () => {
 	it('erkennt PDF und gängige Bildtypen am MIME-Typ', () => {
@@ -103,5 +103,39 @@ describe('looksLikeCompletePdf', () => {
 	it('findet startxref am Ende auch in großen Dateien', () => {
 		const big = '%PDF-1.7\n' + 'x'.repeat(200000) + '\nstartxref\n123\n%%EOF'
 		expect(looksLikeCompletePdf(bytes(big))).toBe(true)
+	})
+})
+
+describe('arrowStep', () => {
+	it('liefert die Richtung für ↑ und ↓', () => {
+		expect(arrowStep({ key: 'ArrowUp' })).toBe(-1)
+		expect(arrowStep({ key: 'ArrowDown' })).toBe(1)
+	})
+
+	it('ignoriert andere Tasten und Pfeile mit Zusatztaste', () => {
+		expect(arrowStep({ key: 'ArrowLeft' })).toBe(0)
+		expect(arrowStep({ key: 'Enter' })).toBe(0)
+		expect(arrowStep({ key: 'ArrowDown', shiftKey: true })).toBe(0)
+		expect(arrowStep({ key: 'ArrowUp', altKey: true })).toBe(0)
+		expect(arrowStep({ key: 'ArrowDown', ctrlKey: true })).toBe(0)
+		expect(arrowStep({ key: 'ArrowDown', metaKey: true })).toBe(0)
+	})
+})
+
+describe('arrowTargetPart', () => {
+	// Ohne DOM: Attrappen mit matches/closest wie bei echten Elementen.
+	const el = (isBox, inFileRow) => ({
+		matches: (sel) => isBox && sel === 'input[type="checkbox"]',
+		closest: (sel) => (inFileRow && sel === '[data-file-id]' ? {} : null),
+	})
+
+	it('bleibt beim Kästchen einer Dateizeile', () => {
+		expect(arrowTargetPart(el(true, true))).toBe('checkbox')
+	})
+
+	it('nimmt sonst den Dateinamen', () => {
+		expect(arrowTargetPart(el(false, true))).toBe('name')
+		expect(arrowTargetPart(el(true, false))).toBe('name')
+		expect(arrowTargetPart(null)).toBe('name')
 	})
 })

@@ -1114,7 +1114,15 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
    (Rasterzelle mit min-height: 0). */
 .vbh-receipt-preview { display: flex; flex-direction: column; min-width: 0; min-height: 0; height: 100%; }
 
+/* Kein Rahmen nach Mausklick, aber bei Tastaturbedienung sichtbar, wo der
+   Fokus steht (↑/↓ blättern dann hier). Nach innen versetzt, weil die
+   Rasterzelle überstehende Rahmen abschneidet. */
 .vbh-receipt-preview:focus { outline: none; }
+
+.vbh-receipt-preview:focus-visible { border-radius: var(--border-radius); outline: 2px solid var(--color-main-text); outline-offset: -2px; }
+
+/* Wechselpause beim Blättern: der alte Inhalt blendet ab, bis der neue kommt. */
+.vbh-receipt-preview.is-pending .vbh-receipt-preview-frame, .vbh-receipt-preview.is-pending .vbh-receipt-preview-image, .vbh-receipt-preview.is-pending .vbh-receipt-preview-empty { opacity: .5; transition: opacity .1s; }
 
 .vbh-receipt-preview-head { display: flex; flex: 0 0 auto; gap: 4px; align-items: center; min-height: var(--default-clickable-area, 34px); margin-bottom: 4px; }
 

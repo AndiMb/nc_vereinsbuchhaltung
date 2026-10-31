@@ -149,8 +149,18 @@ export default {
 			this.previewOverList = false
 		},
 
+		// Beim Wechsel der Fensterbreite verschwindet das fokussierte Element
+		// (Liste bzw. Rückfall-Vorschau) - der Fokus wandert mit, sonst landet
+		// er im Nichts und ↑/↓ greifen nicht mehr.
 		wide(isWide) {
-			if (!isWide && this.previewFile) { this.previewOverList = true }
+			if (!this.previewFile || this.isMobile) { return }
+			const id = this.previewFile.fileId
+			if (isWide) {
+				this.$nextTick(() => this.$refs.panel?.revealFile(id))
+			} else {
+				this.previewOverList = true
+				this.$nextTick(() => this.$refs.fallbackPreview?.focus())
+			}
 		},
 	},
 
