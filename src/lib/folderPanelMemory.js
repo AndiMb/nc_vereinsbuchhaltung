@@ -22,9 +22,14 @@ export function writeFolderPanelOpen(open) {
  * den Knopf gibt, und nur am Desktop – mobil ersetzt die Leiste das
  * Formular, sie würde die Buchungsmaske verdecken.
  *
- * @param {{remembered: boolean, watchMode: boolean, canWrite: boolean, bookingLocked: boolean, isMobile: boolean}} state Zustand beim Öffnen
+ * @param {{remembered: boolean, watchMode: boolean, canWrite: boolean, bookingLocked: boolean, isMobile: boolean, forced?: boolean}} state Zustand beim Öffnen
  * @return {boolean}
  */
-export function opensFolderPanel({ remembered, watchMode, canWrite, bookingLocked, isMobile }) {
-	return remembered && watchMode && canWrite && !bookingLocked && !isMobile
+export function opensFolderPanel({ remembered, watchMode, canWrite, bookingLocked, isMobile, forced = false }) {
+	if (!watchMode || !canWrite || bookingLocked) { return false }
+	// Ein ausdrücklicher Klick (Belegvorschlag in der Liste) öffnet die Leiste
+	// auch mobil: dort ist sie gewollt, nur das Selbstöffnen aus der gemerkten
+	// Wahl würde das Formular verdecken.
+	if (forced) { return true }
+	return remembered && !isMobile
 }

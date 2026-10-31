@@ -381,6 +381,9 @@ return [
 
 		// Belegablage
 		['name' => 'attachment#counts',   'url' => '/api/attachments/counts',              'verb' => 'GET'],
+		['name' => 'attachment#suggest',      'url' => '/api/attachments/suggest',       'verb' => 'POST'],
+		['name' => 'attachment#suggestions',  'url' => '/api/attachments/suggestions',   'verb' => 'GET'],
+		['name' => 'attachment#linkSuggested', 'url' => '/api/attachments/link-suggested', 'verb' => 'POST'],
 		// Wächter-Ordner: Dateien ohne Buchung, Belege ohne Datei, Verknüpfen
 		['name' => 'attachment#inbox',        'url' => '/api/attachments/inbox',         'verb' => 'GET'],
 		['name' => 'attachment#inboxSummary', 'url' => '/api/attachments/inbox/summary', 'verb' => 'GET'],

@@ -192,6 +192,15 @@ Gear icon → *Receipts* → *Storage type*. Three options:
   photograph in the app are stored under `<folder>/<year>/`. Nothing is
   ever deleted there – "Delete receipt" only removes the link.
 
+**One folder is enough:** A single parent folder is all you need as the
+watch folder. Its subfolders are scanned as well, nested too – for example
+`Belege/Kreditoren`, `Belege/Debitoren`, `Belege/Spenden` or
+`Belege/Rechnung_Gagen`, or one folder per year and month below it.
+Folders and files whose name starts with a dot are skipped. The limit of
+5000 files applies to the whole tree, not per folder. Files may be moved and
+renamed freely within the watch folder; receipts moved out of the watch
+folder count as missing.
+
 The watch folder has to exist beforehand and must not overlap with the
 watched folder for bank statements (chapter 3.3). As soon as a user is
 chosen, "Choose folder…" opens the folder tree of their home; click the
@@ -489,6 +498,40 @@ max. 20 MB per file). Five ways:
   link. Handy together with "no receipt only" and the search, e.g. for
   all debits of an annual contract.
 - **Several files** at once are possible.
+
+**Suggestions:** With a watch folder set up (chapter 2.4), the app suggests
+matching receipts for a posting. To do so it reads the files of the folder:
+always the file name, the content only for PDFs with a text layer and for
+e-invoices (ZUGFeRD/XRechnung). Photos and scanned images are considered by
+their name only; there is no text recognition (OCR). Reading is done by a
+background job that runs every 10 minutes (the Nextcloud system cron is
+recommended), and additionally on demand when a dialog is opened.
+
+- **certain:** The posting's invoice number appears in the file and the
+  amount is the same – and the pair is unambiguous in both directions (the
+  file matches no other posting, the posting no other file).
+- **possible:** the invoice number alone, or amount and date together (the
+  date in the file lies between 90 days before and 10 days after the posting
+  date).
+- In the posting dialog, the "Pick from folder" side panel shows a
+  **Suggestions** section at the top with "certain" or "possible" and the
+  reason per file, such as "Invoice no. … in the file name" or "Amount … in
+  the receipt". One click takes the file over into the waiting list, just
+  like picking it from the list; as usual it is only attached on "Save".
+  While files are still being read, it says "n receipts are still being
+  read".
+- In the posting list, an icon on every posting without a receipt shows that
+  a suggestion exists: paperclip with a check mark for "certain", question
+  mark in a circle for "possible". A click opens the posting with the side
+  panel – on a smartphone too.
+- The button **"Assign n receipts"** above the list opens a dialog with all
+  certain pairs. Only the ticked ones are assigned; the tick can be removed
+  per pair. Pairs that can no longer be assigned (file meanwhile taken
+  elsewhere, no longer in the folder, or fiscal year closed) are reported
+  with the reason. Postings in closed fiscal years get no suggestion at all.
+- **Nothing is ever linked without confirmation.** Suggestions and dialog
+  exist only for users with write permission and only with a watch folder
+  set up.
 
 **Folder tree or list:** The files of the watch folder appear as a **folder
 tree**. Each folder shows how many receipts in it are still open and how
