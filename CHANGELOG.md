@@ -17,7 +17,7 @@ als „[object Object]" (falsche Renderer-Callback-Signatur, Nextcloud-
 Core-Bug, reproduziert 23.08.2026). Stattdessen **Fettdruck als Zeilenanfang**
 verwenden, z. B. `**Neu:**`.
 
-## [Unveröffentlicht]
+## [0.47.0] – 2026-10-31
 
 **Neu:**
 - **Belegvorschau neben der Belegauswahl** ([#231](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/231)):
@@ -29,6 +29,16 @@ verwenden, z. B. `**Neu:**`.
   wofür der Beleg gesucht wird. Die angesehene Datei ist in der Liste
   markiert, ↑/↓ blättern weiter. Bei schmalem Fenster steht die Vorschau
   anstelle der Liste; mobil bleibt es beim neuen Tab.
+
+**Geändert:**
+- Im Dialog „Belege im Wächter-Ordner“ und bei der Belegauswahl zu einem
+  Bankumsatz oder zu markierten Buchungen stehen „Schließen“ bzw.
+  „Abbrechen“ und „Übernehmen“ am Desktop rechts unten im Dialog, wie in
+  den übrigen Dialogen, statt unter der Dateiliste.
+
+**Behoben:**
+- Buchungsdialog am Handy: „Aus Ordner…“ steht auf einer Linie mit
+  „Fotografieren“ und „Datei…“ statt etwas tiefer.
 
 ## [0.46.0] – 2026-10-30
 

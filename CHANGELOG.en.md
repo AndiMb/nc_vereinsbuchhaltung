@@ -15,7 +15,7 @@ Markdown headings as "[object Object]" since `marked` v18 (wrong renderer
 callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 **bold lead-in** at the start of a line instead, e.g. `**New:**`.
 
-## [Unreleased]
+## [0.47.0] – 2026-10-31
 
 **New:**
 - **Receipt preview next to the receipt picker** ([#231](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/231)):
@@ -27,6 +27,16 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   for. The file being viewed is highlighted in the list, ↑/↓ move on. In a
   narrow window the preview takes the place of the list; on mobile it still
   opens in a new tab.
+
+**Changed:**
+- In the "Receipts in the watch folder" dialog and when choosing a receipt
+  for a bank transaction or for marked postings, "Close" or "Cancel" and
+  "Apply" now sit at the bottom right of the dialog on the desktop, like in
+  the other dialogs, instead of below the file list.
+
+**Fixed:**
+- Posting dialog on phones: "From folder…" lines up with "Take photo" and
+  "File…" instead of sitting slightly lower.
 
 ## [0.46.0] – 2026-10-30
 

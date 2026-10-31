@@ -25,6 +25,13 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.47.0',
+			roles: ['verwalter', 'buchhalter'],
+			items: [
+				t('Neu: Belegvorschau. Am Desktop zeigt ein Klick auf eine Datei im Wächter-Ordner sie direkt neben der Liste, im Buchungsdialog neben Formular und Liste – so lassen sich Rechnung und Buchung vergleichen. ↑/↓ blättern zur nächsten Datei.'),
+			],
+		},
+		{
 			version: '0.46.0',
 			roles: ['verwalter', 'buchhalter'],
 			items: [
