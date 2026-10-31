@@ -6,8 +6,8 @@ namespace OCA\Vereinsbuchhaltung\Db;
 
 use OCA\Vereinsbuchhaltung\Service\ReceiptIndex\ReceiptFacts;
 use OCP\DB\Exception as DbException;
-use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\DB\QueryBuilder\IParameter;
+use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\DB\Types;
 use OCP\IDBConnection;
 
