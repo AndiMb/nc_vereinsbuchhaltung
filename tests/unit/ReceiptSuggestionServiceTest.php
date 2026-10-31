@@ -120,7 +120,7 @@ class ReceiptSuggestionServiceTest extends TestCase {
 			->willReturn(['indexed' => 1, 'pending' => 7]);
 		$this->index->method('entries')->willReturn([]);
 
-		$this->assertSame(['pending' => 7, 'suggestions' => []], $this->service()->forForm('u', ['date' => '2026-10-20', 'amountCents' => 100], []));
+		$this->assertSame(['pending' => 1, 'suggestions' => []], $this->service()->forForm('u', ['date' => '2026-10-20', 'amountCents' => 100], []));
 	}
 
 	public function testForFormSchliesstZugeordneteUndWartelisteAus(): void {
@@ -175,7 +175,7 @@ class ReceiptSuggestionServiceTest extends TestCase {
 
 		$result = $this->service()->forPeriod('u', 3);
 
-		$this->assertSame(4, $result['pending']);
+		$this->assertSame(0, $result['pending']); // offene Datei 1 ist gelesen, Datei 2 (zugeordnet) zählt nicht
 		$this->assertSame([10], array_keys($result['items']));
 		$this->assertSame('sure', $result['items'][10]['level']);
 		$this->assertSame([1], $result['items'][10]['fileIds']);
@@ -222,6 +222,35 @@ class ReceiptSuggestionServiceTest extends TestCase {
 		$result = $this->service()->linkPairs('u', [['journalId' => 10, 'fileId' => 1]]);
 
 		$this->assertSame([['journalId' => 10, 'fileId' => 1, 'reason' => 'notFound']], $result['skipped']);
+	}
+
+	public function testLinkSuggestedMeldetVerschwundeneDateiBeiLinkFehlerAlsNotFound(): void {
+		$this->journals->method('find')->willReturn(self::journal(10, '2026-10-20', 'x'));
+		$this->inbox([self::file(1), self::file(2)]);
+		$this->watchFolder->method('link')->willThrowException(new \RuntimeException('weg'));
+		// Datei 1 ist inzwischen aus dem Ordner verschwunden, Datei 2 liegt noch da.
+		$this->watchFolder->method('fileInFolder')->willReturnCallback(function (int $id) {
+			if ($id === 1) {
+				throw new \RuntimeException('nicht im Ordner');
+			}
+			return $this->createMock(\OCP\Files\File::class);
+		});
+
+		$result = $this->service()->linkPairs('u', [['journalId' => 10, 'fileId' => 1], ['journalId' => 10, 'fileId' => 2]]);
+
+		$this->assertSame([
+			['journalId' => 10, 'fileId' => 1, 'reason' => 'notFound'],
+			['journalId' => 10, 'fileId' => 2, 'reason' => 'assigned'],
+		], $result['skipped']);
+	}
+
+	public function testPendingZaehltNurOffeneUngeleseneDateien(): void {
+		// Datei 2 ist zugeordnet und ungelesen, Datei 3 offen und ungelesen, Datei 1 offen und gelesen.
+		$this->inbox([self::file(1), self::file(2, [9]), self::file(3)]);
+		$this->index->method('refresh')->willReturn(['indexed' => 0, 'pending' => 2]);
+		$this->index->method('entries')->willReturn([1 => self::facts()]);
+
+		$this->assertSame(1, $this->service()->forForm('u', ['date' => '2026-10-20', 'amountCents' => 100], [])['pending']);
 	}
 
 	public function testLinkSuggestedUeberspringtGesperrteBuchungen(): void {

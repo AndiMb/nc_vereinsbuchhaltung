@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\AttachmentMapper;
 use OCA\Vereinsbuchhaltung\Db\Journal;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Http\ReceiptPreviewPolicy;
+use OCA\Vereinsbuchhaltung\Middleware\NoRevisionBump;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\AttachmentWatchFolderService;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
@@ -171,6 +172,7 @@ class AttachmentController extends Controller {
 	 * @param list<int|string> $excludeFileIds
 	 */
 	#[NoAdminRequired]
+	#[NoRevisionBump]
 	public function suggest(string $date = '', int $amountCents = 0, string $description = '', string $documentRef = '', array $excludeFileIds = []): DataResponse {
 		return new DataResponse($this->suggestions->forForm(
 			$this->userId(),
@@ -191,6 +193,7 @@ class AttachmentController extends Controller {
 	 * @param list<array{journalId?: int|string, fileId?: int|string}> $pairs
 	 */
 	#[NoAdminRequired]
+	#[NoRevisionBump(unlessNonEmpty: 'linked')]
 	public function linkSuggested(array $pairs = []): DataResponse {
 		$clean = [];
 		foreach ($pairs as $pair) {

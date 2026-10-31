@@ -208,8 +208,13 @@ class ReceiptSuggestionService {
 			try {
 				$attachment = $this->watchFolder->link($userId, $journalId, $fileId);
 			} catch (\RuntimeException) {
-				// Datei im Scan gesehen, aber link() lehnt ab: zwischenzeitlich verknüpft.
-				$skip('assigned');
+				// link() lehnt ab: Datei nicht mehr im Ordner (oder falscher Typ) oder zwischenzeitlich verknüpft.
+				try {
+					$this->watchFolder->fileInFolder($fileId);
+					$skip('assigned');
+				} catch (\RuntimeException) {
+					$skip('notFound');
+				}
 				continue;
 			}
 			$this->audit->log('Beleg verknüpft', 'attachment', $attachment->getId(), [
@@ -245,7 +250,13 @@ class ReceiptSuggestionService {
 			!$inbox['capped'],
 		);
 		$open = array_values(array_filter($inbox['files'], static fn (array $f): bool => $f['journalIds'] === []));
-		return ['files' => $open, 'pending' => $refreshed['pending']];
+		// Nur offene Dateien zählen: zugeordnete, noch ungelesene würden den Hinweis „wird noch gelesen“ ewig stehen lassen.
+		$pending = 0;
+		if ($refreshed['pending'] > 0) {
+			$entries = $this->index->entries();
+			$pending = count(array_filter($open, static fn (array $f): bool => !isset($entries[$f['fileId']])));
+		}
+		return ['files' => $open, 'pending' => $pending];
 	}
 
 	/**
