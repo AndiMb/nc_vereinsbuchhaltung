@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
 use OCA\Vereinsbuchhaltung\Controller\AssignmentController;
+use OCA\Vereinsbuchhaltung\Controller\AttachmentController;
 use OCA\Vereinsbuchhaltung\Controller\ClaimController;
 use OCA\Vereinsbuchhaltung\Controller\ContributionGroupController;
 use OCA\Vereinsbuchhaltung\Controller\DueDateScheduleController;
@@ -173,6 +174,20 @@ class PermissionMiddlewareDeclaredRoleTest extends TestCase {
 	public function testEinstellungenLesenAbRevisorSchreibenNurAlsVerwalter(): void {
 		$this->assertMinimumRole(SettingsController::class, 'index', 'GET', PermissionService::ROLE_READ);
 		$this->assertMinimumRole(SettingsController::class, 'update', 'POST', PermissionService::ROLE_ADMIN);
+	}
+
+	/**
+	 * Belegvorschläge (Spec §8): Vorschläge ansehen ab Revisor, verknüpfen
+	 * (auch der Formular-Abgleich, der Dateien liest und indexiert) ab Buchhalter.
+	 * Die Rolle steht ausdrücklich an der Methode, nicht nur in der Verb-Heuristik.
+	 */
+	public function testBelegvorschlaegeLesenAbRevisorVerknuepfenAbBuchhalter(): void {
+		foreach (['suggest', 'linkSuggested', 'suggestions'] as $method) {
+			$this->assertNotSame([], (new \ReflectionMethod(AttachmentController::class, $method))->getAttributes(RequiresRole::class), $method . ' trägt kein #[RequiresRole]');
+		}
+		$this->assertMinimumRole(AttachmentController::class, 'suggest', 'POST', PermissionService::ROLE_WRITE);
+		$this->assertMinimumRole(AttachmentController::class, 'linkSuggested', 'POST', PermissionService::ROLE_WRITE);
+		$this->assertMinimumRole(AttachmentController::class, 'suggestions', 'GET', PermissionService::ROLE_READ);
 	}
 
 	/**

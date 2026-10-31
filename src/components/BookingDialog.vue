@@ -538,9 +538,11 @@
 						:busy="bookingSaving"
 						:canWrite="canWrite"
 						:excludeFileIds="folderExcludeIds"
-						:noAutofocus="isMobile"
+						:noAutofocus="isMobile || folderPanelAutoOpened"
 						:previewEnabled="!isMobile"
 						:previewFileId="previewFile ? previewFile.fileId : null"
+						:suggestions="receiptSuggestions"
+						:suggestionsPending="receiptSuggestionsPending"
 						@close="folderPanelOpen = false"
 						@pick="onFolderPick"
 						@preview="onPreview" />
@@ -586,7 +588,7 @@
 
 <script>
 import { mdiAlertCircleOutline, mdiCamera, mdiDelete, mdiFolderOutline, mdiFolderSearchOutline, mdiLinkVariantOff, mdiPaperclip, mdiUndo } from '@mdi/js'
-import { toRefs } from 'vue'
+import { ref, toRefs } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
@@ -600,7 +602,10 @@ import { buildAccountOptions, useAccounts } from '../composables/useAccounts.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useJournal } from '../composables/useJournal.js'
 import { usePeriods } from '../composables/usePeriods.js'
+import { useReceiptSuggestions } from '../composables/useReceiptSuggestions.js'
 import { autogrow } from '../lib/autogrow.js'
+import { onlyDefaultMoneyAccountAdded } from '../lib/bookingSnapshot.js'
+import { opensFolderPanel, readFolderPanelOpen, writeFolderPanelOpen } from '../lib/folderPanelMemory.js'
 import { formatFileSize, formatMoney } from '../lib/format.js'
 import { isSelectableOption } from '../lib/selectOptions.js'
 import { splitBalanced, splitRemainder, splitSideOf } from '../lib/split.js'
@@ -618,6 +623,9 @@ export default {
 		// "Zuordnen"-Ansicht geteilt) schreibt waehrend der Dialog offen ist direkt
 		// in bookingForm - eine lokale Kopie wuerde dabei veralten.
 		bookingForm: { type: Object, required: true },
+		// Von einem Belegvorschlag in der Buchungsliste geöffnet: die Seitenleiste
+		// geht auf, egal was zuletzt gemerkt wurde - ohne die Wahl zu überschreiben.
+		forceFolderPanel: { type: Boolean, default: false },
 		bookingMode: { type: String, required: true },
 		bookingLocked: { type: Boolean, required: true },
 		bookingSaving: { type: Boolean, required: true },
@@ -648,7 +656,7 @@ export default {
 
 	emits: ['close', 'delete', 'save', 'update:bookingForm', 'update:pendingFiles', 'update:show'],
 
-	setup() {
+	setup(props) {
 		// accountsSorted/accountsById fuer Konto-Labels/-Auswahl, journalData fuer
 		// die Haeufigkeits-Sortierung, periodForDate fuer den Hinweis auf ein
 		// festgeschriebenes Geschaeftsjahr - direkt aus den Singletons (gleicher
@@ -656,7 +664,22 @@ export default {
 		const accounts = useAccounts()
 		const journal = useJournal()
 		const periods = usePeriods()
+		// Belegvorschlaege (#222) fuer die Seitenleiste. Ob abgerufen wird, haengt
+		// an folderPanelOpen (data) - die Komponente spiegelt es per Watcher in
+		// suggestionsEnabled, weil setup() darauf noch nicht zugreifen kann.
+		const suggestionsEnabled = ref(false)
+		const suggestions = useReceiptSuggestions({
+			form: () => props.bookingForm,
+			excludeFileIds: () => [
+				...props.bookingAttachments.map((a) => a.fileId),
+				...props.pendingFiles.map((f) => f.fileId),
+			].filter(Boolean),
+			enabled: () => suggestionsEnabled.value,
+		})
 		return {
+			suggestionsEnabled,
+			receiptSuggestions: suggestions.suggestions,
+			receiptSuggestionsPending: suggestions.pending,
 			accountsSorted: accounts.accountsSorted,
 			accountsById: accounts.accountsById,
 			...toRefs(journal.state),
@@ -676,6 +699,9 @@ export default {
 			mdiPaperclip,
 			mdiUndo,
 			folderPanelOpen: false,
+			// Von selbst aufgegangen (#230): dann greift das Suchfeld der Leiste
+			// nicht nach dem Fokus, der gehoert beim Oeffnen ins Formular.
+			folderPanelAutoOpened: false,
 			// Belegvorschau (#231): die angeklickte Datei aus dem Wächter-Ordner
 			// und ob sie im schmalen Fenster gerade anstelle der Liste steht.
 			previewFile: null,
@@ -725,6 +751,11 @@ export default {
 				...this.bookingAttachments.map((a) => a.fileId),
 				...this.pendingFiles.map((f) => f.fileId),
 			].filter(Boolean)
+		},
+
+		/** Wächter-Modus, Schreibrecht, offene Leiste, Buchung nicht festgeschrieben. */
+		suggestionsActive() {
+			return this.watchMode && this.canWrite && this.folderPanelOpen && !this.bookingLocked
 		},
 
 		commentChanged() {
@@ -919,6 +950,12 @@ export default {
 	},
 
 	watch: {
+		// Vorschlaege nur, wo sie auch angezeigt und uebernommen werden koennen.
+		suggestionsActive: {
+			handler(on) { this.suggestionsEnabled = on },
+			immediate: true,
+		},
+
 		// Vor dem Neuzeichnen der Belegliste (flush: 'pre'): steht der Fokus
 		// auf einem Knopf in einer Zeile, die gleich verschwindet (Verknüpfung
 		// lösen, Beleg löschen, wartenden Beleg entfernen), wandert er auf den
@@ -941,15 +978,31 @@ export default {
 			})
 		},
 
+		'bookingForm.moneyAccountId': function() {
+			// App.vue (Watcher defaultMoneyAccountId) traegt das Standard-Geldkonto
+			// nach, wenn die Konten erst nach dem Oeffnen geladen sind – das ist
+			// keine Eingabe und soll keine Verwerfen-Rueckfrage ausloesen.
+			if (this.snapshot !== null && onlyDefaultMoneyAccountAdded(this.snapshot, this.formState())) {
+				this.snapshot = this.formState()
+			}
+		},
+
 		show: {
 			handler(open) {
 				this.folderPanelOpen = false
+				this.folderPanelAutoOpened = false
 				this.resetPreview()
 				this.snapshot = null
 				// Erst nach dem Tick: App.vue fuellt Formular und Warteliste
 				// teils erst nach dem Setzen von show (z. B. "Buchung anlegen"
-				// aus dem Eingangskorb haengt die Datei danach an).
-				if (open) { this.$nextTick(() => { this.snapshot = this.formState() }) }
+				// aus dem Eingangskorb haengt die Datei danach an) - und erst
+				// dann steht fest, ob die Buchung gesperrt ist.
+				if (open) {
+					this.$nextTick(() => {
+						this.snapshot = this.formState()
+						this.restoreFolderPanel()
+					})
+				}
 			},
 
 			immediate: true,
@@ -1063,8 +1116,12 @@ export default {
 			const from = this.folderPanelOpen ? this.$refs.main : this.modalScroller()
 			const top = from ? from.scrollTop : 0
 			this.folderPanelOpen = !this.folderPanelOpen
+			this.folderPanelAutoOpened = false
 			if (!this.folderPanelOpen) { this.resetPreview() }
 			if (this.isMobile) { return }
+			// Nur das bewusste Auf-/Zuklappen am Desktop zaehlt (#230); mobil
+			// ist die Leiste ein Zwischenschritt, kein Arbeitsplatz.
+			writeFolderPanelOpen(this.folderPanelOpen)
 			this.$nextTick(() => {
 				const to = this.folderPanelOpen ? this.$refs.main : this.modalScroller()
 				if (to) { to.scrollTop = top }
@@ -1098,6 +1155,26 @@ export default {
 			if (!anchor) { return }
 			anchor.setAttribute('tabindex', '-1')
 			anchor.focus({ preventScroll: true })
+		},
+
+		/**
+		 * Beim Oeffnen die zuletzt gewaehlte Seitenleiste wiederherstellen
+		 * (#230). Schliessen des Dialogs aendert die gemerkte Wahl nicht.
+		 */
+		restoreFolderPanel() {
+			if (!this.show || this.folderPanelOpen) { return }
+			const open = opensFolderPanel({
+				remembered: readFolderPanelOpen(),
+				forced: this.forceFolderPanel,
+				watchMode: this.watchMode,
+				canWrite: this.canWrite,
+				bookingLocked: this.bookingLocked,
+				isMobile: this.isMobile,
+			})
+			if (open) {
+				this.folderPanelAutoOpened = true
+				this.folderPanelOpen = true
+			}
 		},
 
 		/** Der scrollende Inhalt von NcModal (ohne Seitenleiste). */

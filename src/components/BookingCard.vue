@@ -27,6 +27,16 @@
 				<template v-if="row.isSplit">{{ t('Splitt: ') }}</template>{{ row.soll }} ← {{ row.haben }}
 			</span>
 			<button
+				v-if="attachmentCount === 0 && suggestion"
+				type="button"
+				class="vbh-mcard-clip"
+				:class="suggestion.className"
+				:title="suggestionTitle"
+				:aria-label="suggestionTitle"
+				@click.stop="$emit('suggestion')">
+				<NcIconSvgWrapper :path="suggestion.path" :size="16" inline />
+			</button>
+			<button
 				v-if="attachmentCount > 0"
 				type="button"
 				class="vbh-mcard-clip"
@@ -43,6 +53,7 @@ import { mdiCommentTextOutline, mdiPaperclip } from '@mdi/js'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import { flowClass, flowLabel, formatFlowMoney } from '../lib/flow.js'
 import { formatDate } from '../lib/format.js'
+import { levelIcon } from '../lib/receiptSuggestions.js'
 
 /**
  * Mobile Kartendarstellung eines Buchungssatzes (journalRows-Zeile):
@@ -59,15 +70,23 @@ export default {
 		/** 'in' (Geldzufluss), 'out' (Geldabfluss) oder '' (neutral, z. B. Umbuchung) */
 		flow: { type: String, default: '' },
 		tappable: { type: Boolean, default: false },
+		/** 'sure' | 'possible' | '': Belegvorschlag für diese Buchung (nur ohne Beleg) */
+		suggestionLevel: { type: String, default: '' },
+		/** Titel des Vorschlag-Symbols */
+		suggestionTitle: { type: String, default: '' },
 	},
 
-	emits: ['open', 'paperclip'],
+	emits: ['open', 'paperclip', 'suggestion'],
 
 	data() {
 		return { mdiCommentTextOutline, mdiPaperclip }
 	},
 
 	computed: {
+		suggestion() {
+			return this.suggestionLevel ? levelIcon(this.suggestionLevel) : null
+		},
+
 		amountClass() {
 			return flowClass(this.flow)
 		},

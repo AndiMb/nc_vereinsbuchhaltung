@@ -194,6 +194,16 @@ Zahnrad → *Belege* → *Art der Ablage*. Drei Möglichkeiten:
   fotografiert, legt sie unter `<Ordner>/<Jahr>/` ab. Gelöscht wird dort
   nie etwas – „Beleg löschen" löst nur die Verknüpfung.
 
+**Ein Ordner genügt:** Als Wächter-Ordner reicht ein einziger übergeordneter
+Ordner. Seine Unterordner werden mitdurchsucht, auch verschachtelt – etwa
+`Belege/Kreditoren`, `Belege/Debitoren`, `Belege/Spenden` oder
+`Belege/Rechnung_Gagen`, oder je ein Ordner pro Jahr und Monat darunter.
+Ordner und Dateien, deren Name mit einem Punkt beginnt, werden übersprungen.
+Die Grenze von 5000 Dateien gilt für den ganzen Baum, nicht je Ordner.
+Dateien dürfen innerhalb des Wächter-Ordners frei verschoben und umbenannt
+werden; wer sie aus dem Wächter-Ordner hinausschiebt, dessen Belege gelten
+als fehlend.
+
 Der Wächter-Ordner muss vorher existieren und darf sich nicht mit dem
 Wachordner für Kontoauszüge (Abschnitt 3.3) überschneiden. Sobald ein
 Nutzer gewählt ist, öffnet „Ordner wählen…" den Ordnerbaum seines Homes;
@@ -496,6 +506,40 @@ max. 20 MB pro Datei). Fünf Wege:
   bleibt es bei einer Verknüpfung. Praktisch zusammen mit „nur ohne Beleg"
   und der Suche, etwa für alle Abbuchungen eines Jahresvertrags.
 - **Mehrere Dateien** gleichzeitig sind möglich.
+
+**Vorschläge:** Mit eingerichtetem Wächter-Ordner (Abschnitt 2.4) schlägt die
+App zu einer Buchung passende Belege vor. Dazu liest sie die Dateien des
+Ordners: immer den Dateinamen, den Inhalt nur bei PDFs mit Textebene und bei
+E-Rechnungen (ZUGFeRD/XRechnung). Fotos und eingescannte Bilder werden nur
+über ihren Namen berücksichtigt; eine Texterkennung (OCR) gibt es nicht. Das
+Lesen übernimmt ein Hintergrundjob, der alle 10 Minuten läuft (empfohlen
+ist der System-Cron der Nextcloud), und zusätzlich bei Bedarf beim Öffnen
+eines Dialogs.
+
+- **sicher:** Die Rechnungsnummer der Buchung steht in der Datei, und der
+  Betrag ist derselbe – und das Paar ist in beide Richtungen eindeutig
+  (die Datei passt zu keiner anderen Buchung, die Buchung zu keiner anderen
+  Datei).
+- **möglich:** nur die Rechnungsnummer, oder Betrag und Datum zusammen (das
+  Datum der Datei liegt von 90 Tage vor bis 10 Tage nach dem Buchungsdatum).
+- Im Buchungsdialog steht in der Seitenleiste „Aus Ordner wählen" oben der
+  Abschnitt **Vorschläge** mit „sicher" oder „möglich" und dem Grund je
+  Datei, etwa „Rechnungsnr. … im Dateinamen" oder „Betrag … im Beleg". Ein
+  Klick übernimmt die Datei in die Warteliste, genau wie die Auswahl aus der
+  Liste; angehängt wird sie wie sonst erst mit „Speichern". Solange noch
+  Dateien gelesen werden, steht dort „n Belege werden noch gelesen".
+- In der Buchungsliste zeigt ein Symbol an jeder Buchung ohne Beleg, dass ein
+  Vorschlag vorliegt: Büroklammer mit Häkchen für „sicher", Fragezeichen im
+  Kreis für „möglich". Ein Klick öffnet die Buchung mit der Seitenleiste –
+  auch auf dem Smartphone.
+- Der Knopf **„n Belege zuordnen"** über der Liste öffnet einen Dialog mit
+  allen sicheren Paaren. Zugeordnet werden nur die angehakten; das Häkchen
+  lässt sich je Paar entfernen. Paare, die sich nicht mehr zuordnen lassen
+  (Datei inzwischen anderweitig vergeben, nicht mehr im Ordner oder
+  Geschäftsjahr abgeschlossen), werden mit Grund gemeldet. Buchungen in
+  abgeschlossenen Geschäftsjahren bekommen gar keinen Vorschlag.
+- **Es wird nie ohne Bestätigung verknüpft.** Vorschläge und Dialog gibt es
+  nur für Nutzer mit Schreibrecht und nur mit eingerichtetem Wächter-Ordner.
 
 **Ordnerbaum oder Liste:** Die Dateien des Wächter-Ordners erscheinen als
 **Ordnerbaum**. Jeder Ordner nennt, wie viele Belege darin noch offen und

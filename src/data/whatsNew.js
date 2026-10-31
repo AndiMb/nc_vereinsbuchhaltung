@@ -25,10 +25,18 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
-			version: '0.48.0',
+			version: '0.49.0',
 			roles: ['verwalter', 'buchhalter'],
 			items: [
 				t('Neu: Neue Fassung des Mandatstexts bestätigen lassen. In den Einstellungen unter „Mandats-Rechtstext“ schreiben Sie alle Mitglieder an, die die aktuelle Fassung noch nicht bestätigt haben; der Link in der Mail öffnet den neuen Text mit den bisherigen Angaben, ein Klick genügt. Einzeln geht es aus der Mitglieder-Akte, und im Self-Service erscheint unter „Mein Beitrag“ ein Hinweis zum Bestätigen.'),
+			],
+		},
+		{
+			version: '0.48.0',
+			roles: ['verwalter', 'buchhalter'],
+			items: [
+				t('Neu: Belegvorschläge. Die App liest die Dateien im Wächter-Ordner und schlägt beim Buchen passende Belege vor („sicher“ oder „möglich“, mit Begründung). In der Buchungsliste zeigt ein Symbol, wo ein Vorschlag wartet; „Belege zuordnen“ verknüpft alle sicheren auf einmal – immer erst nach Bestätigung.'),
+				t('Die Seitenleiste „Aus Ordner wählen“ bleibt am Desktop offen, wenn sie es zuletzt war.'),
 			],
 		},
 		{

@@ -95,6 +95,14 @@
 						</template>
 					</p>
 				</div>
+				<div v-if="surePairs.length" class="vbh-suggest-bar">
+					<NcButton variant="secondary" @click="showSuggestConfirm = true">
+						<template #icon>
+							<NcIconSvgWrapper :path="mdiPaperclipCheck" :size="18" />
+						</template>
+						{{ n('%n Beleg zuordnen', '%n Belege zuordnen', surePairs.length) }}
+					</NcButton>
+				</div>
 				<div v-if="filteredJournalRows.length && isMobile" class="vbh-cardlist">
 					<div class="vbh-tablecount">
 						{{ filteredJournalRows.length !== sortedJournalRows.length ? t('{n} von {total} Buchungssätze', { n: filteredJournalRows.length, total: sortedJournalRows.length }) : t('{n} Buchungssätze', { n: filteredJournalRows.length }) }}
@@ -110,6 +118,9 @@
 							:attachmentCount="attachmentCountMap[r.id] ? attachmentCountMap[r.id].count : 0"
 							:flow="cardFlow(r)"
 							:tappable="canWrite || !!attachmentCountMap[r.id]"
+							:suggestionLevel="suggestionFor(r)?.level || ''"
+							:suggestionTitle="suggestionTitleFor(r)"
+							@suggestion="editBooking(r, { folderPanel: true })"
 							@open="openBookingCard(r)"
 							@paperclip="clickPaperclip(r)" />
 					</template>
@@ -163,7 +174,7 @@
 							<tr
 								v-for="r in sortedJournalRows"
 								:key="r.id"
-								v-memo="[r, attachmentCountMap[r.id], txByJournalId[r.id], canWrite, amountDisplay, accountsById, isDateClosed(r.date), bulkSelectable, bulkSelectable && selectedJournalIds.has(r.id)]"
+								v-memo="[r, attachmentCountMap[r.id], suggestionTitleFor(r), txByJournalId[r.id], canWrite, amountDisplay, accountsById, isDateClosed(r.date), bulkSelectable, bulkSelectable && selectedJournalIds.has(r.id)]"
 								:data-id="r.id">
 								<td v-if="bulkSelectable" class="vbh-col-check">
 									<input
@@ -195,6 +206,17 @@
 								<td class="nowrap right">
 									<div class="vbh-actions">
 										<CommentMark v-if="r.comment" :text="r.comment" />
+										<NcButton
+											v-if="suggestionFor(r)"
+											variant="tertiary"
+											:class="levelIcon(suggestionFor(r).level).className"
+											:title="suggestionTitleFor(r)"
+											:aria-label="suggestionTitleFor(r)"
+											@click="editBooking(r, { folderPanel: true })">
+											<template #icon>
+												<NcIconSvgWrapper :path="levelIcon(suggestionFor(r).level).path" :size="16" />
+											</template>
+										</NcButton>
 										<NcButton
 											v-if="attachmentCountMap[r.id]"
 											variant="tertiary"
@@ -653,11 +675,15 @@
 				<RulesPanel />
 			</template>
 		</div>
+		<ReceiptSuggestionConfirmDialog
+			v-model:show="showSuggestConfirm"
+			:pairs="surePairs"
+			@done="onSuggestionsLinked" />
 	</div>
 </template>
 
 <script>
-import { mdiDelete, mdiDownload, mdiFlash, mdiPaperclip, mdiPencil, mdiUpload } from '@mdi/js'
+import { mdiDelete, mdiDownload, mdiFlash, mdiPaperclip, mdiPaperclipCheck, mdiPencil, mdiUpload } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { toRefs } from 'vue'
 import NcActionButton from '@nextcloud/vue/components/NcActionButton'
@@ -670,6 +696,7 @@ import NcSelect from '@nextcloud/vue/components/NcSelect'
 import AmountInput from './AmountInput.vue'
 import BookingCard from './BookingCard.vue'
 import CommentMark from './CommentMark.vue'
+import ReceiptSuggestionConfirmDialog from './ReceiptSuggestionConfirmDialog.vue'
 import RulesPanel from './RulesPanel.vue'
 import api from '../api.js'
 import { buildAccountOptions, useAccounts } from '../composables/useAccounts.js'
@@ -684,12 +711,13 @@ import { bookingFlow, flowClass, flowLabel, formatFlowMoney, transactionFlow } f
 import { amountClass, errMsg, formatDate, formatMoney } from '../lib/format.js'
 import { openItemStatusLabel } from '../lib/openItems.js'
 import { rangeIds } from '../lib/receiptBatch.js'
+import { levelIcon, suggestionTitle, sureSuggestionPairs } from '../lib/receiptSuggestions.js'
 import { buildSearchIndex, journalSearch, matchesQuery, prepareQuery, transactionSearch } from '../lib/search.js'
 import { isSelectableOption } from '../lib/selectOptions.js'
 
 export default {
 	name: 'BookingsTab',
-	components: { NcButton, NcActions, NcActionButton, NcSelect, NcEllipsisedOption, NcEmptyContent, NcIconSvgWrapper, AmountInput, BookingCard, CommentMark, RulesPanel },
+	components: { NcButton, NcActions, NcActionButton, NcSelect, NcEllipsisedOption, NcEmptyContent, NcIconSvgWrapper, AmountInput, BookingCard, CommentMark, ReceiptSuggestionConfirmDialog, RulesPanel },
 	props: {
 		isMobile: { type: Boolean, required: true },
 		// 'plain' | 'signed': Vorzeichen und Farbe am Betrag, siehe lib/flow.js
@@ -726,7 +754,7 @@ export default {
 		openFolderPickerForBookings: { type: Function, default: async () => false },
 	},
 
-	emits: ['go-claims', 'help', 'invoice-paid', 'update:booking-view'],
+	emits: ['attachments-changed', 'go-claims', 'help', 'invoice-paid', 'update:booking-view'],
 
 	setup() {
 		const auth = useAuth()
@@ -759,6 +787,7 @@ export default {
 			mdiDownload,
 			mdiUpload,
 			mdiPaperclip,
+			mdiPaperclipCheck,
 			mdiPencil,
 			mdiFlash,
 			mdiDelete,
@@ -769,6 +798,12 @@ export default {
 			bookingFilter: null,
 			bookingFilterSearch: '',
 			journalOnlyNoAttachment: false,
+			// Belegvorschläge (#229): Antwort von GET /attachments/suggestions
+			// für das gewählte Geschäftsjahr. items kann ein leeres Array sein.
+			suggestionItems: {},
+			suggestionNames: {},
+			showSuggestConfirm: false,
+			suggestionRequest: 0,
 			// Mehrfachauswahl im Journal. Markierte Zeilen, die ein Filter
 			// ausblendet, bleiben markiert, zählen aber erst wieder, wenn sie
 			// sichtbar sind (selectedVisibleIds).
@@ -827,6 +862,16 @@ export default {
 				}
 			},
 		},
+
+		/** Sichere Paare für die Sammelbestätigung: nur Buchungen, die noch ohne Beleg sind. */
+		surePairs() {
+			if (!this.suggestionsActive) { return [] }
+			// Festgeschriebene Geschäftsjahre lassen sich nicht mehr verknüpfen.
+			const rows = this.sortedJournalRows.filter((r) => !this.attachmentCountMap[r.id] && !this.isDateClosed(r.date))
+			return sureSuggestionPairs(this.suggestionItems, this.suggestionNames, rows)
+		},
+
+		suggestionsActive() { return this.canWrite && this.watchMode },
 
 		sortedJournalRows() { return this.applySort(this.journalRows, this.sort.journal) },
 		// Einmal je Datenstand statt je Tastendruck, siehe lib/search.js.
@@ -992,7 +1037,15 @@ export default {
 
 		// Eine Auswahl gilt für die Buchungen, die gerade auf dem Schirm sind:
 		// anderer Zeitraum oder Wächter-Ordner aus, dann von vorn.
-		selectedPeriodId() { this.clearJournalSelection() },
+		selectedPeriodId() {
+			this.clearJournalSelection()
+			this.loadReceiptSuggestions()
+		},
+
+		// Nach jeder Änderung an Buchungen oder Belegen (App.vue lädt die Zähler
+		// dann neu) und beim Ein-/Ausschalten des Wächter-Ordners.
+		attachmentCountMap() { this.loadReceiptSuggestions() },
+		suggestionsActive() { this.loadReceiptSuggestions() },
 		bulkSelectable(v) { if (!v) { this.clearJournalSelection() } },
 
 		// Die Vorschläge für Rechnungen hängen an den unzugeordneten Umsätzen: neu holen, wenn sich die Liste ändert.
@@ -1001,6 +1054,7 @@ export default {
 	},
 
 	mounted() {
+		this.loadReceiptSuggestions()
 		this.loadInvoiceSuggestions()
 		if (this.bookingView === 'openitems') { this.loadOpenItems() }
 		this.applyJournalVisibility()
@@ -1019,6 +1073,49 @@ export default {
 	methods: {
 		formatMoney,
 		formatDate,
+		levelIcon,
+
+		// --- Belegvorschläge (#229) ---------------------------------------
+		async loadReceiptSuggestions() {
+			if (!this.suggestionsActive) {
+				this.suggestionItems = {}
+				this.suggestionNames = {}
+				return
+			}
+			// Nur die jüngste Antwort zählt (Zeitraumwechsel, schnelle Änderungen).
+			const request = ++this.suggestionRequest
+			try {
+				const { data } = await api.receiptSuggestions(this.selectedPeriodId)
+				if (request !== this.suggestionRequest) { return }
+				// items/names sind bei „keine Treffer“ leere Arrays statt Objekte.
+				this.suggestionItems = data.items || {}
+				this.suggestionNames = data.names || {}
+			} catch {
+				if (request !== this.suggestionRequest) { return }
+				// Vorschläge sind eine Zugabe: ohne sie bleibt die Liste, wie sie war.
+				this.suggestionItems = {}
+				this.suggestionNames = {}
+			}
+		},
+
+		/** Vorschlag für eine Buchung ohne Beleg, sonst null. */
+		suggestionFor(r) {
+			if (!this.suggestionsActive || this.attachmentCountMap[r.id] || this.isDateClosed(r.date)) { return null }
+			const entry = this.suggestionItems[r.id]
+			return entry && entry.fileIds?.length ? entry : null
+		},
+
+		suggestionTitleFor(r) {
+			return suggestionTitle(this.suggestionFor(r), this.suggestionNames, this.n)
+		},
+
+		onSuggestionsLinked({ linked }) {
+			// Der Server hat den Änderungsstand nur bei Treffern erhöht; Zähler
+			// und Vorschläge ziehen dann über App.vue nach.
+			if (linked.length) { this.$emit('attachments-changed') }
+			// Auch ohne Treffer neu laden: übersprungene Paare sind veraltet (zugeordnet, gesperrt, weg).
+			this.loadReceiptSuggestions()
+		},
 
 		// --- Rechnungen (Epic #168) ---------------------------------------
 		async loadInvoiceSuggestions() {

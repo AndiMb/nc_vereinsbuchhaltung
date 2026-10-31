@@ -37,3 +37,5 @@ composer.phar
 
 # Brainstorming-Mockups (superpowers visual companion)
 /.superpowers/
+# Superpowers-Spezifikationen und -Pläne (nur lokal)
+/docs/superpowers/
