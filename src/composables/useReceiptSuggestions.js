@@ -1,4 +1,4 @@
-import { onBeforeUnmount, ref, watch } from 'vue'
+import { getCurrentInstance, onBeforeUnmount, ref, watch } from 'vue'
 import api from '../api.js'
 
 const DEBOUNCE_MS = 600
@@ -46,6 +46,7 @@ export function useReceiptSuggestions({ form, excludeFileIds, enabled }) {
 	const run = createLatestOnly()
 	let timer = null
 	let followUps = 0
+	let disposed = false
 
 	function clearTimer() {
 		if (timer !== null) { clearTimeout(timer); timer = null }
@@ -66,11 +67,11 @@ export function useReceiptSuggestions({ form, excludeFileIds, enabled }) {
 
 	async function refresh() {
 		clearTimer()
-		if (!enabled()) { return }
+		if (disposed || !enabled()) { return }
 		loading.value = true
 		try {
 			const result = await run(() => api.receiptSuggest(payload()))
-			if (result.stale) { return }
+			if (result.stale || disposed) { return }
 			const before = pending.value
 			suggestions.value = result.data.suggestions || []
 			pending.value = result.data.pending || 0
@@ -114,7 +115,13 @@ export function useReceiptSuggestions({ form, excludeFileIds, enabled }) {
 		() => { if (enabled()) { schedule() } },
 	)
 
-	onBeforeUnmount(clearTimer)
+	/** Aufräumen beim Abbau: keine Antwort wird mehr übernommen, kein Timer neu gesetzt. */
+	function dispose() {
+		disposed = true
+		clearTimer()
+	}
 
-	return { suggestions, pending, loading, refresh }
+	if (getCurrentInstance()) { onBeforeUnmount(dispose) }
+
+	return { suggestions, pending, loading, refresh, dispose }
 }

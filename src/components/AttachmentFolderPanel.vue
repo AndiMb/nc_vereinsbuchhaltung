@@ -66,11 +66,11 @@
 				<!-- Vorschläge (#222): offene Dateien, die zur Buchung im Formular
 				     passen. Gleiche Zeilen wie die Liste darunter; Gründe in einer
 				     Zeile. Nur im Auswahlmodus des Buchungsdialogs. -->
-				<section v-if="pick && shownSuggestions.length" class="vbh-folder-suggestions" aria-labelledby="vbh-folder-suggestions-title">
+				<section v-if="showSuggestions" class="vbh-folder-suggestions" aria-labelledby="vbh-folder-suggestions-title">
 					<h4 id="vbh-folder-suggestions-title" class="vbh-folder-subtitle">
 						{{ t('Vorschläge') }}
 					</h4>
-					<ul class="vbh-attachment-list vbh-folder-list">
+					<ul v-if="shownSuggestions.length" class="vbh-attachment-list vbh-folder-list">
 						<li
 							v-for="s in shownSuggestions"
 							:key="s.fileId"
@@ -316,7 +316,7 @@ import { errMsg, formatDate, formatFileSize } from '../lib/format.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 import { moveOutcome } from '../lib/receiptMove.js'
 import { adjacentFile, arrowStep, arrowTargetPart } from '../lib/receiptPreview.js'
-import { levelIcon, pendingHint, reasonLine } from '../lib/receiptSuggestions.js'
+import { levelIcon, pendingHint, reasonLine, suggestionsVisible } from '../lib/receiptSuggestions.js'
 
 const SHOW_FOLDERS_KEY = 'vbh_folder_tree'
 
@@ -428,6 +428,9 @@ export default {
 		},
 
 		pendingText() { return pendingHint(this.suggestionsPending) },
+
+		/** Abschnitt mit Vorschlägen oder, solange noch gelesen wird, mit dem Hinweis darauf. */
+		showSuggestions() { return this.pick && suggestionsVisible(this.shownSuggestions.length, this.suggestionsPending) },
 
 		selectableIds() { return openFilesIn(this.files, { search: this.search }) },
 

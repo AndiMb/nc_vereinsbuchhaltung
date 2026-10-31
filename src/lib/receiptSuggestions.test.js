@@ -1,6 +1,6 @@
 import { mdiHelpCircleOutline, mdiPaperclipCheck } from '@mdi/js'
 import { describe, expect, it } from 'vitest'
-import { levelIcon, pendingHint, reasonLine, reasonText } from './receiptSuggestions.js'
+import { levelIcon, pendingHint, reasonLine, reasonText, suggestionsVisible } from './receiptSuggestions.js'
 
 const t = (text, vars = {}) => text.replace(/\{(\w+)\}/g, (_, k) => String(vars[k]))
 const money = (v) => `${v.toFixed(2).replace('.', ',')} €`
@@ -72,5 +72,13 @@ describe('pendingHint', () => {
 		expect(pendingHint(0, n)).toBe('')
 		expect(pendingHint(3, n)).toContain('3')
 		expect(pendingHint(1, n)).toBe('1 Beleg wird noch gelesen')
+	})
+})
+
+describe('suggestionsVisible', () => {
+	it('zeigt den Abschnitt auch ohne Vorschläge, solange noch gelesen wird', () => {
+		expect(suggestionsVisible(0, 4)).toBe(true)
+		expect(suggestionsVisible(2, 0)).toBe(true)
+		expect(suggestionsVisible(0, 0)).toBe(false)
 	})
 })

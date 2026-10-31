@@ -74,3 +74,16 @@ export function pendingHint(pending, n = defaultN) {
 	if (!pending || pending < 1) { return '' }
 	return n('%n Beleg wird noch gelesen', '%n Belege werden noch gelesen', pending)
 }
+
+/**
+ * Ob der Abschnitt „Vorschläge“ erscheint: mit Vorschlägen, oder solange noch
+ * Dateien gelesen werden (dann nur Überschrift und Hinweis, damit fehlende
+ * Vorschläge nicht als „nichts gefunden“ gelten).
+ *
+ * @param {number} count Zahl der Vorschläge
+ * @param {number} pending Zahl der noch nicht gelesenen Dateien
+ * @return {boolean} sichtbar
+ */
+export function suggestionsVisible(count, pending) {
+	return count > 0 || pending > 0
+}

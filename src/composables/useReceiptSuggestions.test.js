@@ -120,4 +120,17 @@ describe('useReceiptSuggestions', () => {
 		await vi.advanceTimersByTimeAsync(20000)
 		expect(receiptSuggest).toHaveBeenCalledTimes(2)
 	})
+
+	it('übernimmt nach dem Abbau keine späte Antwort und setzt keinen Timer mehr', async () => {
+		const late = deferred()
+		receiptSuggest.mockReturnValueOnce(late.promise)
+		const { api } = setup()
+		await nextTick()
+		expect(receiptSuggest).toHaveBeenCalledTimes(1)
+		api.dispose()
+		late.resolve({ data: { pending: 9, suggestions: [{ fileId: 1 }] } })
+		await vi.advanceTimersByTimeAsync(20000)
+		expect(receiptSuggest).toHaveBeenCalledTimes(1)
+		expect(api.suggestions.value).toEqual([])
+	})
 })

@@ -3851,8 +3851,7 @@
         "Für diesen Dateityp ist keine Vorschau möglich.": "No preview is available for this file type.",
         "+ {n} weitere": "+ {n} more",
         "Die PDF-Datei scheint unvollständig oder beschädigt zu sein.": "The PDF file appears to be incomplete or damaged.",
-        "Neu: Belegvorschau. Am Desktop zeigt ein Klick auf eine Datei im Wächter-Ordner sie direkt neben der Liste, im Buchungsdialog neben Formular und Liste – so lassen sich Rechnung und Buchung vergleichen. ↑/↓ blättern zur nächsten Datei.": "New: receipt preview. On the desktop, clicking a file in the watch folder shows it right next to the list, in the posting dialog next to the form and the list – so invoice and posting can be compared. ↑/↓ move to the next file."
-,
+        "Neu: Belegvorschau. Am Desktop zeigt ein Klick auf eine Datei im Wächter-Ordner sie direkt neben der Liste, im Buchungsdialog neben Formular und Liste – so lassen sich Rechnung und Buchung vergleichen. ↑/↓ blättern zur nächsten Datei.": "New: receipt preview. On the desktop, clicking a file in the watch folder shows it right next to the list, in the posting dialog next to the form and the list – so invoice and posting can be compared. ↑/↓ move to the next file.",
         "Rechnungsnr. {value} im Dateinamen": "Invoice no. {value} in the file name",
         "Rechnungsnr. {value} in der E-Rechnung": "Invoice no. {value} in the e-invoice",
         "Rechnungsnr. {value} im Beleg": "Invoice no. {value} in the receipt",
