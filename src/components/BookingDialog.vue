@@ -600,7 +600,6 @@ import { buildAccountOptions, useAccounts } from '../composables/useAccounts.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useJournal } from '../composables/useJournal.js'
 import { usePeriods } from '../composables/usePeriods.js'
-import { useWideLayout } from '../composables/useWideLayout.js'
 import { autogrow } from '../lib/autogrow.js'
 import { formatFileSize, formatMoney } from '../lib/format.js'
 import { isSelectableOption } from '../lib/selectOptions.js'
@@ -624,6 +623,8 @@ export default {
 		bookingSaving: { type: Boolean, required: true },
 		bookingTour: { type: Object, required: true },
 		isMobile: { type: Boolean, required: true },
+		// Breites Fenster (App.vue): Formular, Belegliste und Vorschau nebeneinander.
+		isWide: { type: Boolean, required: true },
 		canWrite: { type: Boolean, required: true },
 		pendingFiles: { type: Array, required: true },
 		bookingAttachments: { type: Array, required: true },
@@ -661,8 +662,6 @@ export default {
 			...toRefs(journal.state),
 			periodForDate: periods.periodForDate,
 			askConfirm: useConfirm().askConfirm,
-			// Belegvorschau: drei Spalten nur bei breitem Fenster.
-			wide: useWideLayout().wide,
 		}
 	},
 
@@ -697,7 +696,7 @@ export default {
 
 		/** Formular | Liste | Vorschau nebeneinander (breites Fenster, Spec §3.5). */
 		isSplit3() {
-			return this.folderPanelOpen && !this.isMobile && this.wide && this.previewFile !== null
+			return this.folderPanelOpen && !this.isMobile && this.isWide && this.previewFile !== null
 		},
 
 		/**
@@ -711,7 +710,7 @@ export default {
 
 		/** Schmales Fenster: Vorschau anstelle der Liste. */
 		previewInFolderColumn() {
-			return this.folderPanelOpen && !this.isMobile && !this.wide && this.previewFile !== null && this.previewOverList
+			return this.folderPanelOpen && !this.isMobile && !this.isWide && this.previewFile !== null && this.previewOverList
 		},
 
 		/** Ungespeicherte Aenderungen seit dem Oeffnen? */
@@ -932,7 +931,7 @@ export default {
 		// Wird das Fenster schmaler, rueckt die Vorschau an die Stelle der Liste.
 		// Der Fokus wandert mit (Vorschau bzw. markierte Zeile), sonst laege er
 		// auf einem verschwundenen Element und ↑/↓ griffen nicht mehr.
-		wide(isWide) {
+		isWide(isWide) {
 			if (!this.previewFile) { return }
 			if (!isWide) { this.previewOverList = true }
 			if (!this.folderPanelOpen || this.isMobile) { return }
@@ -1123,7 +1122,7 @@ export default {
 		onPreview(file) {
 			const wasOverList = this.previewInFolderColumn
 			this.previewFile = file
-			if (this.wide) { return }
+			if (this.isWide) { return }
 			this.previewOverList = true
 			if (!wasOverList) { this.$nextTick(() => this.$refs.fallbackPreview?.focus()) }
 		},

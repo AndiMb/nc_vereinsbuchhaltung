@@ -382,6 +382,8 @@ export default {
 	attachmentInbox: () => axios.get(url('/attachments/inbox')),
 	attachmentInboxSummary: () => axios.get(url('/attachments/inbox/summary')),
 	attachmentInboxViewUrl: (fileId) => generateUrl(base + `/attachments/inbox/${fileId}/view`),
+	// Inhalt einer Datei als Bytes (Belegvorschau prüft PDFs vor der Anzeige)
+	attachmentInboxContent: (fileId) => axios.get(url(`/attachments/inbox/${fileId}/view`), { responseType: 'arraybuffer' }),
 	attachmentInboxMove: (fileIds, target) => axios.post(url('/attachments/inbox/move'), { fileIds, target }),
 	attachmentInboxDuplicates: () => axios.get(url('/attachments/inbox/duplicates')),
 	linkAttachment: (journalId, fileId) => axios.post(url(`/journal/${journalId}/attachments/link`), { fileId }),
