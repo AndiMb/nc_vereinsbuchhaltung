@@ -74,6 +74,7 @@ class MandateActivationService {
 		private IL10N $l10n,
 		private RecipientL10n $recipientL10n,
 		private ClubMailBranding $mailBranding,
+		private MandateStateMachine $stateMachine,
 	) {
 	}
 
@@ -110,6 +111,24 @@ class MandateActivationService {
 			throw new \InvalidArgumentException($this->l10n->t('Für dieses Mitglied ist keine Mailadresse hinterlegt – ohne Mailadresse lässt sich kein Einmal-Link verschicken.'));
 		}
 
+		$issued = $this->createToken($mandateId, $email, MandateActivationToken::PURPOSE_ACTIVATION, $requestedByUid);
+		$token = $issued['token'];
+		$url = $issued['url'];
+		$this->sendMail($member, $email, $mandate, $url);
+
+		$actorType = $requestedByUid !== null ? MandateEvent::ACTOR_STAFF : MandateEvent::ACTOR_MEMBER;
+		$this->mandateService->logActivationLinkSent($mandate, $email, $actorType);
+
+		return ['token' => $token, 'url' => $url, 'email' => $email];
+	}
+
+	/**
+	 * Legt einen neuen Link an und löscht dabei die noch offenen des Mandats
+	 * (immer nur EIN gültiger Link je Mandat, gleich welchen Zwecks).
+	 *
+	 * @return array{token: MandateActivationToken, url: string}
+	 */
+	private function createToken(int $mandateId, string $email, string $purpose, ?string $requestedByUid): array {
 		$this->tokenMapper->deleteOutstandingByMandate($mandateId);
 
 		$selector = $this->random->generate(self::SELECTOR_LENGTH, ISecureRandom::CHAR_ALPHANUMERIC);
@@ -117,6 +136,7 @@ class MandateActivationService {
 
 		$token = new MandateActivationToken();
 		$token->setMandateId($mandateId);
+		$token->setPurpose($purpose);
 		$token->setSelector($selector);
 		$token->setValidatorHash($this->hash($validator));
 		$token->setEmail($email);
@@ -126,12 +146,166 @@ class MandateActivationService {
 		$token = $this->tokenMapper->insert($token);
 
 		$url = $this->urlGenerator->linkToRouteAbsolute('vereinsbuchhaltung.mandateConsent.show', ['token' => $this->tokenString($selector, $validator)]);
-		$this->sendMail($member, $email, $mandate, $url);
+		return ['token' => $token, 'url' => $url];
+	}
 
-		$actorType = $requestedByUid !== null ? MandateEvent::ACTOR_STAFF : MandateEvent::ACTOR_MEMBER;
-		$this->mandateService->logActivationLinkSent($mandate, $email, $actorType);
+	// --- Erneute Bestätigung nach einer neuen Fassung des Mandatstexts -------------
 
-		return ['token' => $token, 'url' => $url, 'email' => $email];
+	/**
+	 * Schickt einem Mitglied mit wirksamem Mandat einen Link, mit dem es die
+	 * aktuelle Fassung des Mandatstexts bestätigt. Anders als bei
+	 * {@see issueLink()} entsteht kein neues Mandat: Referenz, Bankverbindung und
+	 * Status bleiben, das Mandat zieht in der Zwischenzeit unverändert weiter ein.
+	 *
+	 * Schlägt der Mailversand fehl, wird der eben angelegte Link wieder gelöscht,
+	 * damit kein Link ohne zugestellte Mail als „gesendet" gilt.
+	 *
+	 * @return array{token: MandateActivationToken, url: string, email: string}
+	 * @throws DoesNotExistException wenn es das Mandat nicht gibt
+	 * @throws \InvalidArgumentException wenn das Mandat nicht wirksam ist oder keine Mailadresse ermittelbar ist
+	 * @throws \RuntimeException wenn der Mailversand scheitert
+	 */
+	public function issueReconfirmationLink(int $mandateId, ?string $requestedByUid = null): array {
+		$mandate = $this->mandateMapper->find($mandateId);
+		$this->stateMachine->assertCanReconfirm($mandate);
+		$member = $this->memberMapper->find($mandate->getMemberId());
+		$email = $this->resolveEmail($member);
+		if ($email === null) {
+			throw new \InvalidArgumentException($this->l10n->t('Für dieses Mitglied ist keine Mailadresse hinterlegt – ohne Mailadresse lässt sich kein Link verschicken.'));
+		}
+
+		return $this->sendReconfirmation($mandate, $member, $email, $requestedByUid);
+	}
+
+	/**
+	 * Legt den Link an, verschickt die Mail und protokolliert. Der Aufrufer hat
+	 * Mandat, Mitglied und Adresse schon geladen und geprüft.
+	 *
+	 * @return array{token: MandateActivationToken, url: string, email: string}
+	 */
+	private function sendReconfirmation(Mandate $mandate, Member $member, string $email, ?string $requestedByUid): array {
+		$issued = $this->createToken((int)$mandate->getId(), $email, MandateActivationToken::PURPOSE_RECONFIRMATION, $requestedByUid);
+		try {
+			$this->sendReconfirmationMail($member, $email, $mandate, $issued['url']);
+		} catch (\Throwable $e) {
+			$this->tokenMapper->delete($issued['token']);
+			throw $e;
+		}
+
+		// Ausgelöst wird der Versand immer von der Verwaltung (Einstellungsseite).
+		$this->mandateService->logReconfirmationLinkSent($mandate, $email, MandateEvent::ACTOR_STAFF);
+		return ['token' => $issued['token'], 'url' => $issued['url'], 'email' => $email];
+	}
+
+	/**
+	 * Für die Akte eines Mandats: braucht es eine erneute Bestätigung des aktuellen
+	 * Mandatstexts, und wurde dafür schon ein Link verschickt (der noch aussteht)?
+	 *
+	 * @return array{needed: bool, link: array{sentAt: string, expiresAt: string, expired: bool, email: string, requestedBy: ?string, firstViewedAt: ?string}|null}
+	 */
+	public function reconfirmationStatus(Mandate $mandate): array {
+		// Die Fassung wird nur nachgeschlagen, wenn das Mandat überhaupt bestätigen kann (kein Entwurf, nicht erloschen).
+		$needed = $this->stateMachine->canReconfirm($mandate)
+			&& $this->stateMachine->needsReconfirmation($mandate, (int)$this->legalTextService->current()->getId());
+		return ['needed' => $needed, 'link' => $needed ? $this->linkStatus((int)$mandate->getId()) : null];
+	}
+
+	/**
+	 * Wer hat den aktuellen Mandatstext schon bestätigt, wer nicht, und wen kann man anschreiben?
+	 *
+	 * „Bestätigt" heißt: das Mandat trägt die ID der aktuellen Fassung. Ein
+	 * Papier-Mandat kennt keine Fassungs-ID, es zählt deshalb immer als nicht
+	 * bestätigt (und ist als `withoutElectronicConsent` gesondert ausgewiesen) –
+	 * ob man diese Mitglieder ebenfalls anschreibt, entscheidet die Verwaltung.
+	 *
+	 * @return array{
+	 *     upToDate: int,
+	 *     outdated: int,
+	 *     withoutElectronicConsent: int,
+	 *     readyIds: list<int>,
+	 *     pendingIds: list<int>,
+	 *     noEmail: list<array{mandateId: int, memberId: int, name: string}>
+	 * } `readyIds`: anschreibbar, noch ohne gültigen Link; `pendingIds`: anschreibbar,
+	 *   ihr Link von früher gilt noch; `noEmail`: ohne Mailadresse, nur auf Papier erreichbar.
+	 */
+	public function reconfirmationOverview(): array {
+		$currentId = (int)$this->legalTextService->current()->getId();
+		$pending = $this->tokenMapper->findOutstandingByPurpose(MandateActivationToken::PURPOSE_RECONFIRMATION);
+		$members = $this->memberMapper->findAllById();
+		$now = new \DateTimeImmutable();
+
+		$overview = ['upToDate' => 0, 'outdated' => 0, 'withoutElectronicConsent' => 0, 'readyIds' => [], 'pendingIds' => [], 'noEmail' => []];
+		foreach ($this->mandateMapper->findAll() as $mandate) {
+			if (!$this->stateMachine->needsReconfirmation($mandate, $currentId)) {
+				if ($this->stateMachine->canReconfirm($mandate)) {
+					$overview['upToDate']++;
+				}
+				continue;
+			}
+			$overview['outdated']++;
+			if (!$mandate->hasConsent()) {
+				$overview['withoutElectronicConsent']++;
+			}
+			$mandateId = (int)$mandate->getId();
+			$member = $members[$mandate->getMemberId()] ?? null;
+			if ($member === null || $this->resolveEmail($member) === null) {
+				$overview['noEmail'][] = ['mandateId' => $mandateId, 'memberId' => $mandate->getMemberId(), 'name' => $this->displayNameOf($member)];
+				continue;
+			}
+			$link = $pending[$mandateId] ?? null;
+			if ($link !== null && !$link->isExpired($now)) {
+				$overview['pendingIds'][] = $mandateId;
+			} else {
+				$overview['readyIds'][] = $mandateId;
+			}
+		}
+		return $overview;
+	}
+
+	/**
+	 * Verschickt die Links für die übergebenen Mandate. Die Liste bestimmt die
+	 * Verwaltung (aus {@see reconfirmationOverview()}), der Dienst prüft sie
+	 * trotzdem noch einmal: ein inzwischen beendetes oder bereits bestätigtes
+	 * Mandat bekommt keine Mail. Ein einzelner Fehlschlag bricht die übrigen
+	 * nicht ab.
+	 *
+	 * @param list<int> $mandateIds
+	 * @return array{
+	 *     sent: int,
+	 *     alreadyCurrent: int,
+	 *     skipped: int,
+	 *     noEmail: list<string>,
+	 *     failed: list<array{name: string, reason: string}>
+	 * }
+	 */
+	public function sendReconfirmationLinks(array $mandateIds, ?string $requestedByUid = null): array {
+		$currentId = (int)$this->legalTextService->current()->getId();
+		$result = ['sent' => 0, 'alreadyCurrent' => 0, 'skipped' => 0, 'noEmail' => [], 'failed' => []];
+		foreach (array_unique($mandateIds) as $mandateId) {
+			$mandate = $this->mandateMapper->findOrNull($mandateId);
+			if ($mandate === null || !$this->stateMachine->canReconfirm($mandate)) {
+				$result['skipped']++;
+				continue;
+			}
+			if (!$this->stateMachine->needsReconfirmation($mandate, $currentId)) {
+				$result['alreadyCurrent']++;
+				continue;
+			}
+			$member = $this->memberMapper->findOrNull($mandate->getMemberId());
+			$name = $this->displayNameOf($member);
+			$email = $member === null ? null : $this->resolveEmail($member);
+			if ($member === null || $email === null) {
+				$result['noEmail'][] = $name;
+				continue;
+			}
+			try {
+				$this->sendReconfirmation($mandate, $member, $email, $requestedByUid);
+				$result['sent']++;
+			} catch (\Throwable $e) {
+				$result['failed'][] = ['name' => $name, 'reason' => $e->getMessage()];
+			}
+		}
+		return $result;
 	}
 
 	/**
@@ -187,6 +361,10 @@ class MandateActivationService {
 		return ($user !== null && $accountEmail !== null && $accountEmail !== '') ? $accountEmail : null;
 	}
 
+	private function displayNameOf(?Member $member): string {
+		return $member?->displayName() ?? $this->l10n->t('unbekanntes Mitglied');
+	}
+
 	private function sendMail(Member $member, string $email, Mandate $mandate, string $url): void {
 		// Die Mail geht im Namen der Verwaltung raus (oder aus dem Self-Service),
 		// gelesen wird sie vom Mitglied: Sprache und Du/Sie kommen von dessen Konto
@@ -194,17 +372,54 @@ class MandateActivationService {
 		$l = $this->recipientL10n->forMember($member);
 		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '') ?: $l->t('Ihr Verein');
 
-		// Die Mail ist übersetzt, die Seite hinter dem Link bewusst nicht: sie zeigt den
-		// Mandats-Rechtstext, und der gilt nur auf Deutsch (siehe MandateLegalTextService).
-		$template = $this->mailer->createEMailTemplate('vereinsbuchhaltung.mandateActivationLink');
-		$template->setSubject($l->t('Bitte bestätigen Sie Ihr SEPA-Lastschriftmandat'));
+		$this->deliverLinkMail($member, $email, $l, 'vereinsbuchhaltung.mandateActivationLink', [
+			$l->t('Bitte bestätigen Sie Ihr SEPA-Lastschriftmandat'),
+			$l->t('SEPA-Lastschriftmandat bestätigen'),
+			$l->t(
+				'%1$s bittet Sie, das SEPA-Lastschriftmandat mit der Referenz %2$s elektronisch zu bestätigen.',
+				[$clubName, $mandate->getMandateReference()]
+			),
+			$l->t('Mit einem Klick auf die Schaltfläche sehen Sie den vollständigen Mandatstext und können zustimmen.'),
+		], $url);
+	}
+
+	private function sendReconfirmationMail(Member $member, string $email, Mandate $mandate, string $url): void {
+		$l = $this->recipientL10n->forMember($member);
+		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '') ?: $l->t('Ihr Verein');
+
+		$failed = $this->deliverLinkMail($member, $email, $l, 'vereinsbuchhaltung.mandateReconfirmationLink', [
+			$l->t('Bitte bestätigen Sie Ihr SEPA-Lastschriftmandat erneut'),
+			$l->t('SEPA-Lastschriftmandat erneut bestätigen'),
+			$l->t(
+				'%1$s hat den Text Ihres SEPA-Lastschriftmandats mit der Referenz %2$s aktualisiert und bittet Sie, ihn zu bestätigen.',
+				[$clubName, $mandate->getMandateReference()]
+			),
+			$l->t('Ihr Mandat und Ihre Bankverbindung bleiben unverändert, Sie müssen nichts neu eingeben. Mit einem Klick auf die Schaltfläche sehen Sie den aktuellen Mandatstext und können bestätigen.'),
+		], $url);
+		// Anders als bei der Aktivierung (Versand ohne Rückmeldung) zählt hier eine nicht zugestellte Mail als Fehlschlag:
+		// der Link wird wieder gelöscht und die Verwaltung sieht, wer nichts bekommen hat.
+		if ($failed !== []) {
+			throw new \RuntimeException($this->l10n->t('Die Mail konnte nicht zugestellt werden.'));
+		}
+	}
+
+	/**
+	 * Die gemeinsame Mail zu einem Einmal-Link: Kopf, Überschrift, zwei Absätze, Schaltfläche, Gültigkeit, Fußzeile.
+	 *
+	 * Die Mail ist übersetzt, die Seite hinter dem Link bewusst nicht: sie zeigt den
+	 * Mandats-Rechtstext, und der gilt nur auf Deutsch (siehe MandateLegalTextService).
+	 *
+	 * @param list<string> $texts Betreff, Überschrift und zwei Absätze, schon in der Sprache des Empfängers
+	 * @return string[] die Empfänger, an die der Versand scheiterte (leer = zugestellt)
+	 */
+	private function deliverLinkMail(Member $member, string $email, IL10N $l, string $templateId, array $texts, string $url): array {
+		[$subject, $heading, $intro, $detail] = $texts;
+		$template = $this->mailer->createEMailTemplate($templateId);
+		$template->setSubject($subject);
 		$this->mailBranding->addHeader($template);
-		$template->addHeading($l->t('SEPA-Lastschriftmandat bestätigen'));
-		$template->addBodyText($l->t(
-			'%1$s bittet Sie, das SEPA-Lastschriftmandat mit der Referenz %2$s elektronisch zu bestätigen.',
-			[$clubName, $mandate->getMandateReference()]
-		));
-		$template->addBodyText($l->t('Mit einem Klick auf die Schaltfläche sehen Sie den vollständigen Mandatstext und können zustimmen.'));
+		$template->addHeading($heading);
+		$template->addBodyText($intro);
+		$template->addBodyText($detail);
 		$template->addBodyButton($l->t('Jetzt bestätigen'), $url);
 		$template->addBodyText($l->t('Dieser Link ist %d Tage gültig und nur einmal verwendbar.', [MandateActivationToken::VALIDITY_DAYS]));
 		// Auch die Fußzeile von Nextcloud (der Slogan) in der Sprache des Empfängers, nicht der Verwaltung.
@@ -215,7 +430,7 @@ class MandateActivationService {
 		$message->setTo([$email => $member->displayName()]);
 		$message->setSubject($template->renderSubject());
 		$message->useTemplate($template);
-		$this->mailer->send($message);
+		return $this->mailer->send($message);
 	}
 
 	// --- Anzeige/Zustimmung --------------------------------------------------
@@ -260,6 +475,10 @@ class MandateActivationService {
 	 * Mitglied, das seine Bestätigungsmail zweimal öffnet, soll keine
 	 * Fehlerseite sehen.
 	 *
+	 * Bei einem Link zur erneuten Bestätigung ist ein Mandat, das inzwischen
+	 * beendet wurde, kein Anzeigezustand mehr, sondern ein ungültiger Link: es gibt
+	 * nichts mehr zu bestätigen.
+	 *
 	 * @return array{status: 'pending'|'consumed', mandate: Mandate, legalText: \OCA\Vereinsbuchhaltung\Db\MandateLegalTextVersion, token: MandateActivationToken}
 	 * @throws InvalidActivationTokenException
 	 * @throws ExpiredActivationTokenException
@@ -272,6 +491,10 @@ class MandateActivationService {
 		if ($token->isConsumed()) {
 			$legalText = $this->legalTextService->find((int)$mandate->getMandateTextVersion()) ?? $this->legalTextService->current();
 			return ['status' => 'consumed', 'mandate' => $mandate, 'legalText' => $legalText, 'token' => $token];
+		}
+
+		if ($token->isReconfirmation() && !$this->stateMachine->canReconfirm($mandate)) {
+			throw new InvalidActivationTokenException(self::MESSAGE_LINK_INVALID);
 		}
 
 		if ($token->getLegalTextVersionId() === null) {
@@ -315,7 +538,9 @@ class MandateActivationService {
 		}
 
 		$now = $this->now();
-		$mandate = $this->mandateService->activateElectronic($token->getMandateId(), $legalTextVersionId, $now, $ip, $userAgent, $token->getEmail());
+		$mandate = $token->isReconfirmation()
+			? $this->mandateService->reconfirmElectronic($token->getMandateId(), $legalTextVersionId, $now, $ip, $userAgent, $token->getEmail())
+			: $this->mandateService->activateElectronic($token->getMandateId(), $legalTextVersionId, $now, $ip, $userAgent, $token->getEmail());
 
 		$token->setConsumedAt($now);
 		if ($token->getLegalTextVersionId() === null) {

@@ -199,6 +199,7 @@ export default {
 	activateMandate: (id, signedAt) => axios.post(url(`/mandates/${id}/activate`), signedAt ? { signedAt } : {}),
 	createMandateElectronic: (data) => axios.post(url('/mandates/electronic'), data),
 	sendMandateActivationLink: (id) => axios.post(url(`/mandates/${id}/send-activation-link`)),
+	sendMandateReconfirmationLink: (id) => axios.post(url(`/mandates/${id}/send-reconfirmation-link`)),
 
 	// Mandat-Verwaltung in der Mitglieder-Akte (Issue #100, MandatePanel.vue):
 	// gesamte Historie eines Mitglieds, Einzelansicht mit Ereignishistorie/
@@ -267,6 +268,9 @@ export default {
 	getMandateLegalText: () => axios.get(url('/mandate-legal-text')),
 	getMandateLegalTextHistory: () => axios.get(url('/mandate-legal-text/history')),
 	saveMandateLegalText: (rahmen) => axios.post(url('/mandate-legal-text'), { rahmen }),
+	// Erneute Bestätigung nach einer neuen Fassung: Stand und Versand der Links (höchstens 25 Mandate je Aufruf)
+	getMandateReconfirmation: () => axios.get(url('/mandate-legal-text/reconfirmation')),
+	sendMandateReconfirmation: (mandateIds) => axios.post(url('/mandate-legal-text/reconfirmation/send'), { mandateIds }),
 
 	// Einzug-Unterreiter, lesend ab Revisor (Issue #102): Zeitstrahl, Vorschau
 	// (Geisterkarte, vor der Freigabe existiert kein Lauf) und Läufe.
@@ -316,6 +320,7 @@ export default {
 	selfMandateLegalText: () => axios.get(url('/self/mandate/legal-text')),
 	selfGrantMandate: (data) => axios.post(url('/self/mandate'), data),
 	selfConfirmMandate: () => axios.post(url('/self/mandate/confirm')),
+	selfReconfirmMandate: () => axios.post(url('/self/mandate/reconfirm')),
 	selfRequestMandateActivationLink: () => axios.post(url('/self/mandate/request-link')),
 	selfChangeMandateIban: (data) => axios.post(url('/self/mandate/iban'), data),
 	selfReplaceMandate: (data) => axios.post(url('/self/mandate/replace'), data),
@@ -387,6 +392,10 @@ export default {
 	attachmentInboxMove: (fileIds, target) => axios.post(url('/attachments/inbox/move'), { fileIds, target }),
 	attachmentInboxDuplicates: () => axios.get(url('/attachments/inbox/duplicates')),
 	linkAttachment: (journalId, fileId) => axios.post(url(`/journal/${journalId}/attachments/link`), { fileId }),
+	// Belegvorschläge (Wächter-Ordner): Formular, Buchungsliste, Sammelbestätigung
+	receiptSuggest: (form) => axios.post(url('/attachments/suggest'), form),
+	receiptSuggestions: (period) => axios.get(url('/attachments/suggestions'), { params: { period: period || undefined } }),
+	linkSuggestedReceipts: (pairs) => axios.post(url('/attachments/link-suggested'), { pairs }),
 
 	// Einstellungen (Belegablage)
 	getSettings: (params) => axios.get(url('/settings'), { params }),

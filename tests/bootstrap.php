@@ -130,3 +130,17 @@ spl_autoload_register(static function (string $class): void {
 		return;
 	}
 });
+
+/**
+ * Sechster Autoloader: gemeinsame Testhilfen (Traits) unter tests/unit/Support/.
+ */
+spl_autoload_register(static function (string $class): void {
+	$prefix = 'OCA\\Vereinsbuchhaltung\\Tests\\Unit\\Support\\';
+	if (!str_starts_with($class, $prefix)) {
+		return;
+	}
+	$file = __DIR__ . '/unit/Support/' . str_replace('\\', '/', substr($class, strlen($prefix))) . '.php';
+	if (is_file($file)) {
+		require_once $file;
+	}
+});

@@ -113,6 +113,7 @@ return [
 		['name' => 'self#mandateLegalText', 'url' => '/api/self/mandate/legal-text', 'verb' => 'GET'],
 		['name' => 'self#grantMandate', 'url' => '/api/self/mandate', 'verb' => 'POST'],
 		['name' => 'self#confirmMandate', 'url' => '/api/self/mandate/confirm', 'verb' => 'POST'],
+		['name' => 'self#reconfirmMandate', 'url' => '/api/self/mandate/reconfirm', 'verb' => 'POST'],
 		['name' => 'self#changeMandateIban', 'url' => '/api/self/mandate/iban', 'verb' => 'POST'],
 		['name' => 'self#replaceMandate', 'url' => '/api/self/mandate/replace', 'verb' => 'POST'],
 		['name' => 'self#revokeMandate', 'url' => '/api/self/mandate/revoke', 'verb' => 'POST'],
@@ -202,10 +203,14 @@ return [
 		// Elektronische Mandatserteilung (Issue #67)
 		['name' => 'mandate#createElectronic', 'url' => '/api/mandates/electronic', 'verb' => 'POST'],
 		['name' => 'mandate#sendActivationLink', 'url' => '/api/mandates/{id}/send-activation-link', 'verb' => 'POST'],
+		['name' => 'mandate#sendReconfirmationLink', 'url' => '/api/mandates/{id}/send-reconfirmation-link', 'verb' => 'POST'],
 		['name' => 'mandate#form', 'url' => '/api/mandates/{id}/form', 'verb' => 'GET'],
 		['name' => 'mandateLegalText#current', 'url' => '/api/mandate-legal-text', 'verb' => 'GET'],
 		['name' => 'mandateLegalText#history', 'url' => '/api/mandate-legal-text/history', 'verb' => 'GET'],
 		['name' => 'mandateLegalText#update', 'url' => '/api/mandate-legal-text', 'verb' => 'POST'],
+		// Erneute Bestätigung nach einer neuen Fassung: Stand und Versand der Links (verwalter).
+		['name' => 'mandateLegalText#reconfirmation', 'url' => '/api/mandate-legal-text/reconfirmation', 'verb' => 'GET'],
+		['name' => 'mandateLegalText#sendReconfirmation', 'url' => '/api/mandate-legal-text/reconfirmation/send', 'verb' => 'POST'],
 
 		// Öffentliche, login-lose Zustimmungsseite des Einmal-Links (Issue #67,
 		// Spec §2.2) - AUSSERHALB von /api/, funktioniert auch für Mitglieder
@@ -398,6 +403,9 @@ return [
 
 		// Belegablage
 		['name' => 'attachment#counts',   'url' => '/api/attachments/counts',              'verb' => 'GET'],
+		['name' => 'attachment#suggest',      'url' => '/api/attachments/suggest',       'verb' => 'POST'],
+		['name' => 'attachment#suggestions',  'url' => '/api/attachments/suggestions',   'verb' => 'GET'],
+		['name' => 'attachment#linkSuggested', 'url' => '/api/attachments/link-suggested', 'verb' => 'POST'],
 		// Wächter-Ordner: Dateien ohne Buchung, Belege ohne Datei, Verknüpfen
 		['name' => 'attachment#inbox',        'url' => '/api/attachments/inbox',         'verb' => 'GET'],
 		['name' => 'attachment#inboxSummary', 'url' => '/api/attachments/inbox/summary', 'verb' => 'GET'],

@@ -18,6 +18,7 @@ use OCA\Vereinsbuchhaltung\Service\ClubMailBranding;
 use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
 use OCA\Vereinsbuchhaltung\Service\MandateLegalTextService;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
+use OCA\Vereinsbuchhaltung\Service\MandateStateMachine;
 use OCA\Vereinsbuchhaltung\Service\RecipientL10n;
 use OCP\IConfig;
 use OCP\IL10N;
@@ -83,6 +84,7 @@ class MandateActivationServiceTest extends TestCase {
 			$l10n,
 			$recipient,
 			$this->createMock(ClubMailBranding::class),
+			new MandateStateMachine($l10n),
 		);
 	}
 
@@ -132,6 +134,7 @@ class MandateActivationServiceTest extends TestCase {
 		$t->setCreatedAt($overrides['createdAt'] ?? (new \DateTime())->format('Y-m-d H:i:s'));
 		$t->setExpiresAt($overrides['expiresAt'] ?? (new \DateTime())->modify('+10 days')->format('Y-m-d H:i:s'));
 		$t->setConsumedAt($overrides['consumedAt'] ?? null);
+		$t->setPurpose($overrides['purpose'] ?? MandateActivationToken::PURPOSE_ACTIVATION);
 		return $t;
 	}
 
@@ -347,6 +350,231 @@ class MandateActivationServiceTest extends TestCase {
 			->willReturn($this->electronicDraft());
 
 		$this->service()->consent('selector123.validator123', '198.51.100.7', 'Mozilla/5.0');
+	}
+
+	// --- Erneute Bestätigung nach einer neuen Fassung des Mandatstexts ---------------
+
+	private function activeMandate(int $id, int $memberId = 42, ?int $textVersion = null, ?string $consentAt = null): Mandate {
+		$m = new Mandate();
+		$m->setId($id);
+		$m->setMemberId($memberId);
+		$m->setMandateReference('M-' . $id);
+		$m->setAccountHolder('Katrin Brunner');
+		$m->setSignatureType(Mandate::SIGNATURE_ELECTRONIC);
+		$m->setStatus(Mandate::STATUS_ACTIVE);
+		$m->setMandateTextVersion($textVersion);
+		$m->setConsentAt($consentAt);
+		return $m;
+	}
+
+	private function mailWillBeSent(array $sendResult = []): void {
+		$this->random->method('generate')->willReturn('x');
+		$this->urlGenerator->method('linkToRouteAbsolute')->willReturn('https://example.org/link');
+		$this->mailer->method('createEMailTemplate')->willReturn($this->createMock(\OCP\Mail\IEMailTemplate::class));
+		$this->mailer->method('createMessage')->willReturn($this->createMock(\OCP\Mail\IMessage::class));
+		$this->mailer->method('send')->willReturn($sendResult);
+	}
+
+	public function testIssueReconfirmationLinkVerschicktEinenLinkMitZweckBestaetigung(): void {
+		$mandate = $this->activeMandate(1);
+		$this->mandateMapper->method('find')->with(1)->willReturn($mandate);
+		$this->memberMapper->method('find')->willReturn($this->member());
+		$this->mailWillBeSent();
+		$captured = null;
+		$this->tokenMapper->expects($this->once())->method('deleteOutstandingByMandate')->with(1);
+		$this->tokenMapper->method('insert')->willReturnCallback(function (MandateActivationToken $t) use (&$captured): MandateActivationToken {
+			$captured = $t;
+			return $t;
+		});
+		$this->mandateService->expects($this->once())->method('logReconfirmationLinkSent')->with($mandate, 'katrin@example.org', 'staff');
+
+		$result = $this->service()->issueReconfirmationLink(1, 'kassenwart');
+
+		$this->assertSame('katrin@example.org', $result['email']);
+		$this->assertSame(MandateActivationToken::PURPOSE_RECONFIRMATION, $captured->getPurpose());
+	}
+
+	public function testIssueReconfirmationLinkAufEntwurfSchlaegtFehl(): void {
+		$this->mandateMapper->method('find')->willReturn($this->electronicDraft());
+		$this->tokenMapper->expects($this->never())->method('insert');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->issueReconfirmationLink(1, 'kassenwart');
+	}
+
+	public function testIssueReconfirmationLinkOhneMailadresseSchlaegtFehl(): void {
+		$this->mandateMapper->method('find')->willReturn($this->activeMandate(1));
+		$this->memberMapper->method('find')->willReturn($this->member(email: null, ncUserId: null));
+		$this->tokenMapper->expects($this->never())->method('insert');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->issueReconfirmationLink(1, 'kassenwart');
+	}
+
+	public function testIssueReconfirmationLinkLoeschtDenLinkWennDieMailNichtZugestelltWurde(): void {
+		$this->mandateMapper->method('find')->willReturn($this->activeMandate(1));
+		$this->memberMapper->method('find')->willReturn($this->member());
+		$this->mailWillBeSent(['katrin@example.org']);
+		$this->tokenMapper->method('insert')->willReturnArgument(0);
+		$this->tokenMapper->expects($this->once())->method('delete');
+		$this->mandateService->expects($this->never())->method('logReconfirmationLinkSent');
+
+		$this->expectException(\RuntimeException::class);
+		$this->service()->issueReconfirmationLink(1, 'kassenwart');
+	}
+
+	public function testReconfirmationOverviewSortiertNachBestaetigtAnschreibbarUndOhneMail(): void {
+		$this->legalTextService->method('current')->willReturn($this->legalTextVersion(3));
+		$ended = $this->activeMandate(6, 46, 1);
+		$ended->setStatus(Mandate::STATUS_ENDED);
+		$suspended = $this->activeMandate(7, 47, 2);
+		$suspended->setStatus(Mandate::STATUS_SUSPENDED);
+		$this->mandateMapper->method('findAll')->willReturn([
+			$this->activeMandate(1, 41, 3, '2026-10-01 10:00:00'),   // aktuelle Fassung bestätigt
+			$this->activeMandate(2, 42, 2, '2026-01-01 10:00:00'),   // ältere Fassung, anschreibbar
+			$this->activeMandate(3, 43, 2, '2026-01-01 10:00:00'),   // ältere Fassung, Link gilt noch
+			$this->activeMandate(4, 44, 2, '2026-01-01 10:00:00'),   // ältere Fassung, keine Mailadresse
+			$this->activeMandate(5, 45),                              // ohne elektronische Zustimmung
+			$ended,                                                   // erloschen: nicht dabei
+			$suspended,                                               // ausgesetzt zählt mit
+		]);
+		$this->memberMapper->method('findAllById')->willReturn([
+			41 => $this->member(41), 42 => $this->member(42), 43 => $this->member(43),
+			44 => $this->member(44, email: null), 45 => $this->member(45), 46 => $this->member(46), 47 => $this->member(47),
+		]);
+		$this->tokenMapper->method('findOutstandingByPurpose')->with(MandateActivationToken::PURPOSE_RECONFIRMATION)->willReturn([
+			3 => $this->token(['mandateId' => 3, 'purpose' => MandateActivationToken::PURPOSE_RECONFIRMATION]),
+		]);
+
+		$overview = $this->service()->reconfirmationOverview();
+
+		$this->assertSame(1, $overview['upToDate']);
+		$this->assertSame(5, $overview['outdated']);
+		$this->assertSame(2, $overview['withoutElectronicConsent'], 'Mandat 5 und das ausgesetzte Mandat 7 tragen keine elektronische Zustimmung');
+		$this->assertSame([2, 5, 7], $overview['readyIds']);
+		$this->assertSame([3], $overview['pendingIds']);
+		$this->assertSame([['mandateId' => 4, 'memberId' => 44, 'name' => 'Katrin Brunner']], $overview['noEmail']);
+	}
+
+	public function testReconfirmationOverviewBehandeltAbgelaufenenLinkWieKeinen(): void {
+		$this->legalTextService->method('current')->willReturn($this->legalTextVersion(3));
+		$this->mandateMapper->method('findAll')->willReturn([$this->activeMandate(3, 43, 2)]);
+		$this->memberMapper->method('findAllById')->willReturn([43 => $this->member(43)]);
+		$this->tokenMapper->method('findOutstandingByPurpose')->willReturn([
+			3 => $this->token(['mandateId' => 3, 'expiresAt' => '2020-01-01 00:00:00']),
+		]);
+
+		$overview = $this->service()->reconfirmationOverview();
+
+		$this->assertSame([3], $overview['readyIds']);
+		$this->assertSame([], $overview['pendingIds']);
+	}
+
+	public function testReconfirmationStatusMeldetBedarfUndStandDesLinks(): void {
+		$this->legalTextService->method('current')->willReturn($this->legalTextVersion(3));
+		$this->tokenMapper->method('findOutstandingByMandate')->with(2)->willReturn([
+			$this->token(['mandateId' => 2, 'purpose' => MandateActivationToken::PURPOSE_RECONFIRMATION]),
+		]);
+
+		$outdated = $this->service()->reconfirmationStatus($this->activeMandate(2, 42, 2));
+		$current = $this->service()->reconfirmationStatus($this->activeMandate(3, 42, 3));
+
+		$this->assertTrue($outdated['needed']);
+		$this->assertSame('katrin@example.org', $outdated['link']['email']);
+		$this->assertFalse($outdated['link']['expired']);
+		$this->assertFalse($current['needed']);
+		$this->assertNull($current['link']);
+	}
+
+	public function testSendReconfirmationLinksSchreibtNurAnUndZaehltDenRest(): void {
+		$this->legalTextService->method('current')->willReturn($this->legalTextVersion(3));
+		$ended = $this->activeMandate(4, 44, 1);
+		$ended->setStatus(Mandate::STATUS_ENDED);
+		$byId = [
+			1 => $this->activeMandate(1, 41, 2),  // wird angeschrieben
+			2 => $this->activeMandate(2, 42, 3),  // inzwischen bestätigt
+			3 => $this->activeMandate(3, 43, 2),  // keine Mailadresse
+			4 => $ended,                           // nicht mehr wirksam
+		];
+		$this->mandateMapper->method('findOrNull')->willReturnCallback(static fn (int $id) => $byId[$id] ?? null);
+		$this->mandateMapper->method('find')->willReturnCallback(static fn (int $id) => $byId[$id]);
+		$members = [41 => $this->member(41), 43 => $this->member(43, email: null)];
+		$this->memberMapper->method('findOrNull')->willReturnCallback(static fn (int $id) => $members[$id] ?? null);
+		$this->memberMapper->method('find')->willReturnCallback(static fn (int $id) => $members[$id]);
+		$this->mailWillBeSent();
+		$this->tokenMapper->method('insert')->willReturnArgument(0);
+
+		$result = $this->service()->sendReconfirmationLinks([1, 2, 3, 4, 99, 1], 'kassenwart');
+
+		$this->assertSame(1, $result['sent']);
+		$this->assertSame(1, $result['alreadyCurrent']);
+		$this->assertSame(2, $result['skipped']);
+		$this->assertSame(['Katrin Brunner'], $result['noEmail']);
+		$this->assertSame([], $result['failed']);
+	}
+
+	public function testSendReconfirmationLinksBrichtBeiEinemFehlerNichtAb(): void {
+		$this->legalTextService->method('current')->willReturn($this->legalTextVersion(3));
+		$byId = [1 => $this->activeMandate(1, 41, 2), 2 => $this->activeMandate(2, 42, 2)];
+		$this->mandateMapper->method('findOrNull')->willReturnCallback(static fn (int $id) => $byId[$id]);
+		$this->mandateMapper->method('find')->willReturnCallback(static fn (int $id) => $byId[$id]);
+		$members = [41 => $this->member(41), 42 => $this->member(42)];
+		$this->memberMapper->method('findOrNull')->willReturnCallback(static fn (int $id) => $members[$id]);
+		$this->memberMapper->method('find')->willReturnCallback(static fn (int $id) => $members[$id]);
+		$this->random->method('generate')->willReturn('x');
+		$this->urlGenerator->method('linkToRouteAbsolute')->willReturn('https://example.org/link');
+		$this->mailer->method('createEMailTemplate')->willReturn($this->createMock(\OCP\Mail\IEMailTemplate::class));
+		$this->mailer->method('createMessage')->willReturn($this->createMock(\OCP\Mail\IMessage::class));
+		$this->mailer->method('send')->willReturnOnConsecutiveCalls($this->throwException(new \RuntimeException('SMTP down')), []);
+		$this->tokenMapper->method('insert')->willReturnArgument(0);
+
+		$result = $this->service()->sendReconfirmationLinks([1, 2], 'kassenwart');
+
+		$this->assertSame(1, $result['sent']);
+		$this->assertSame([['name' => 'Katrin Brunner', 'reason' => 'SMTP down']], $result['failed']);
+	}
+
+	public function testConsentMitBestaetigungslinkBestaetigtDasBestehendeMandat(): void {
+		$token = $this->token(['purpose' => MandateActivationToken::PURPOSE_RECONFIRMATION, 'legalTextVersionId' => 3, 'email' => 'katrin@example.org']);
+		$this->tokenMapper->method('findBySelector')->willReturn($token);
+		$this->mandateService->expects($this->never())->method('activateElectronic');
+		$this->mandateService->expects($this->once())
+			->method('reconfirmElectronic')
+			->with(1, 3, $this->isType('string'), '198.51.100.7', 'Mozilla/5.0', 'katrin@example.org')
+			->willReturn($this->activeMandate(1));
+		$this->tokenMapper->expects($this->once())->method('update')->willReturnCallback(function (MandateActivationToken $t): MandateActivationToken {
+			$this->assertNotNull($t->getConsumedAt());
+			return $t;
+		});
+
+		$result = $this->service()->consent('selector123.validator123', '198.51.100.7', 'Mozilla/5.0');
+
+		$this->assertSame(Mandate::STATUS_ACTIVE, $result->getStatus());
+	}
+
+	public function testViewEinesBestaetigungslinksAufBeendetemMandatIstUngueltig(): void {
+		$token = $this->token(['purpose' => MandateActivationToken::PURPOSE_RECONFIRMATION]);
+		$this->tokenMapper->method('findBySelector')->willReturn($token);
+		$ended = $this->activeMandate(1);
+		$ended->setStatus(Mandate::STATUS_ENDED);
+		$this->mandateMapper->method('find')->willReturn($ended);
+
+		$this->expectException(InvalidActivationTokenException::class);
+		$this->service()->view('selector123.validator123');
+	}
+
+	public function testViewEinesBestaetigungslinksZeigtAktivesMandatMitDerAktuellenFassung(): void {
+		$token = $this->token(['purpose' => MandateActivationToken::PURPOSE_RECONFIRMATION]);
+		$this->tokenMapper->method('findBySelector')->willReturn($token);
+		$this->tokenMapper->method('update')->willReturnArgument(0);
+		$this->mandateMapper->method('find')->willReturn($this->activeMandate(1, 42, 2));
+		$this->legalTextService->method('current')->willReturn($this->legalTextVersion(3));
+
+		$view = $this->service()->view('selector123.validator123');
+
+		$this->assertSame('pending', $view['status']);
+		$this->assertSame(3, $view['token']->getLegalTextVersionId());
+		$this->assertTrue($view['token']->isReconfirmation());
 	}
 
 	// --- Link-Status für die Akte (Issue #100) -----------------------------------------

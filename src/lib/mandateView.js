@@ -175,6 +175,39 @@ export function activationLinkState(link) {
 }
 
 /**
+ * Stand eines versendeten Links in Klartext: an wen und wann er ging, bis wann er gilt
+ * (oder seit wann er abgelaufen ist) und ob das Mitglied ihn schon geöffnet hat.
+ * Für den Einmal-Link eines Entwurfs wie für den Link zur erneuten Bestätigung.
+ *
+ * @param {{sentAt: string, expiresAt: string, expired: boolean, email: string, firstViewedAt: ?string}} link
+ * @param {(stamp: string) => string} formatStamp
+ * @return {string}
+ */
+export function linkStatusText(link, formatStamp) {
+	const sent = tRaw('gesendet am {zeit} an {email}', { zeit: formatStamp(link.sentAt), email: link.email })
+	const state = link.expired
+		? t('abgelaufen am {zeit}', { zeit: formatStamp(link.expiresAt) })
+		: t('gültig bis {zeit}', { zeit: formatStamp(link.expiresAt) })
+	const viewed = link.firstViewedAt ? t('vom Mitglied geöffnet am {zeit}', { zeit: formatStamp(link.firstViewedAt) }) : null
+	return [sent, state, viewed].filter(Boolean).join(' · ')
+}
+
+/**
+ * Zeile „Mandatstext“ der Akte, wenn das Mandat die aktuelle Fassung noch nicht
+ * bestätigt hat (`mandate.reconfirmation`, MandateActivationService::reconfirmationStatus()):
+ * ohne Link „noch nicht bestätigt“, sonst mit dem Stand des Links. Null, wenn nichts zu bestätigen ist.
+ *
+ * @param {{needed: boolean, link: ?object}|undefined} reconfirmation
+ * @param {(stamp: string) => string} formatStamp
+ * @return {string|null}
+ */
+export function reconfirmationText(reconfirmation, formatStamp) {
+	if (!reconfirmation?.needed) { return null }
+	const open = t('Neue Fassung noch nicht bestätigt')
+	return reconfirmation.link ? `${open} · ${linkStatusText(reconfirmation.link, formatStamp)}` : open
+}
+
+/**
  * Störfall-Hinweise je Zustand (Spec §3.2/§7), jeweils mit dem Klartext-Titel
  * aus dem Backend (`storyText`, dieselbe Formulierung wie in der Aufgabenliste)
  * und einer Erläuterung, was zu tun ist. `tone` ist `warning` (Handlungsbedarf)
@@ -249,7 +282,8 @@ export function documentRowTone(mandate) {
 /**
  * Wert der Zeile „Nachweis“: Bei einem elektronischen Mandat ist die
  * protokollierte Zustimmung (Zeile „Zustimmung“) der Nachweis – dort stünde
- * „fehlt“ fälschlich (Issue #153). Ein zusätzlich hochgeladenes Dokument hat
+ * „fehlt“ fälschlich (Issue #153). Das gilt ebenso für ein Papier-Mandat, das den
+ * geänderten Text später per Link bestätigt hat. Ein zusätzlich hochgeladenes Dokument hat
  * trotzdem Vorrang.
  *
  * @param {{hasDocument: boolean, signatureType?: string, consentAt?: ?string}} mandate
@@ -259,7 +293,8 @@ export function documentRowValue(mandate) {
 	if (mandate.hasDocument) {
 		return t('vorhanden')
 	}
-	if (mandate.signatureType === 'elektronisch' && mandate.consentAt) {
+	// Auch ein Papier-Mandat, das den Text später elektronisch bestätigt hat, trägt diese Zustimmung als Nachweis.
+	if (mandate.consentAt) {
 		return t('elektronische Zustimmung')
 	}
 	return t('fehlt')

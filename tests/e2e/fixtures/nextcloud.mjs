@@ -353,6 +353,21 @@ export function visibleSection(page) {
 	return page.locator('.vbh-section:visible')
 }
 
+/**
+ * Öffnet die Akte eines Mitglieds über „Mandat verwalten“ im Zeilenmenü des Tabs Beiträge; liefert den Dialog.
+ * Voraussetzung: eingeschaltete Mitgliederverwaltung (siehe `api.enableMembership`).
+ */
+export async function openAkte(page, user, name) {
+	await openApp(page, user)
+	await switchTab(page, 'Beiträge')
+	const row = visibleSection(page).locator('tr', { hasText: name })
+	await row.getByRole('button', { name: 'Aktionen' }).click()
+	await page.getByRole('menuitem', { name: 'Mandat verwalten' }).click()
+	const dialog = page.getByRole('dialog', { name: `Mitglied: ${name}` })
+	await expect(dialog).toBeVisible()
+	return dialog
+}
+
 /** Ein Tab-Knopf der App-Navigation (für Klicks und Sichtbarkeits-Prüfungen). */
 export function tabButton(page, label) {
 	return page.locator('.vbh-tabs').getByRole('button', { name: label })
@@ -429,6 +444,24 @@ export const api = {
 	/** Ganzen Buchungsbestand löschen – jede Spec-Datei startet damit. */
 	async resetBook(request) {
 		await call(request, 'POST', '/reset')
+	},
+
+	/**
+	 * Voraussetzungen für alles rund um Mitglieder, Mandate und Einzug: Standard-Kontenrahmen (ohne Konten legt
+	 * sich der Willkommens-Assistent über die App), Geldkonto mit IBAN, Mitgliederverwaltung, Gläubiger-ID und
+	 * Einzugskonto. Legt nur an, was fehlt; `extra` ergänzt Einstellungen (z. B. `self_service_enabled`).
+	 */
+	async enableMembership(request, extra = {}) {
+		await api.seedDefaultAccounts(request)
+		const bank = await api.accountByNumber(request, BANK_ACCOUNT)
+		await api.updateAccount(request, bank.id, { iban: BANK_ACCOUNT_IBAN })
+		await api.updateSettings(request, {
+			membership_enabled: '1',
+			club_name: 'Testverein e.V.',
+			sepa_creditor_id: 'DE98ZZZ09999999999',
+			sepa_debtor_account_id: bank.id,
+			...extra,
+		})
 	},
 
 	/** Mitgelieferten Standard-Kontenrahmen anlegen; liefert alle Konten. */

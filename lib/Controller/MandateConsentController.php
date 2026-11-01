@@ -133,6 +133,7 @@ class MandateConsentController extends Controller {
 			'mandateConsent',
 			[
 				'status' => $view['status'],
+				'reconfirm' => $view['token']->isReconfirmation(),
 				'clubName' => $clubName,
 				'legalTextHtml' => $this->formRenderer->renderLegalText($view['legalText'], $clubName),
 				'dataBlockHtml' => $this->formRenderer->renderDataBlock($mandate, $creditorId, $referenceDate),
@@ -152,6 +153,7 @@ class MandateConsentController extends Controller {
 			'mandateConsent',
 			[
 				'status' => $status,
+				'reconfirm' => false,
 				'clubName' => $this->config->getAppValue(Application::APP_ID, 'club_name', ''),
 				'legalTextHtml' => '',
 				'dataBlockHtml' => '',

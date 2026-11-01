@@ -220,7 +220,8 @@ class MandateTaskService {
 		foreach ($mandates as $mandate) {
 			if ($mandate->getStatus() !== Mandate::STATUS_ACTIVE
 				|| $mandate->getSignatureType() !== Mandate::SIGNATURE_PAPER
-				|| $mandate->getDocumentFileId() !== null) {
+				|| $mandate->getDocumentFileId() !== null
+				|| $mandate->hasConsent()) {
 				continue;
 			}
 			$member = $members[$mandate->getMemberId()] ?? null;

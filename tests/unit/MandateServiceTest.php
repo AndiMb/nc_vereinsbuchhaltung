@@ -374,6 +374,68 @@ class MandateServiceTest extends TestCase {
 		$this->assertNotNull($result->getActivatedAt());
 	}
 
+	public function testReconfirmElectronicErsetztNurDasBeweispaketUndLaesstDasMandatUnveraendert(): void {
+		$mandate = $this->activeMandate(1);
+		$mandate->setMandateTextVersion(2);
+		$mandate->setConsentAt('2026-01-05 09:00:00');
+		$mandate->setConsentIp('198.51.100.1');
+		$mandate->setConsentActor('alt@example.org');
+		$this->mandateMapper->method('find')->willReturn($mandate);
+
+		$result = $this->service()->reconfirmElectronic(1, 5, '2026-11-02 18:30:00', '203.0.113.5', 'TestBrowser/1.0', 'katrin@example.org');
+
+		$this->assertSame(Mandate::STATUS_ACTIVE, $result->getStatus());
+		$this->assertSame('M-1', $result->getMandateReference());
+		$this->assertSame('DE12500105170648489890', $result->getIban());
+		$this->assertSame('2024-01-01', $result->getSignedAt(), 'das Unterschriftsdatum bleibt, es läuft kein neues Mandat an');
+		$this->assertSame(5, $result->getMandateTextVersion());
+		$this->assertSame('2026-11-02 18:30:00', $result->getConsentAt());
+		$this->assertSame('203.0.113.5', $result->getConsentIp());
+		$this->assertSame('TestBrowser/1.0', $result->getConsentUserAgent());
+		$this->assertSame('katrin@example.org', $result->getConsentActor());
+	}
+
+	public function testReconfirmElectronicHaeltAltesDatumOhneIpImVerlaufFest(): void {
+		$mandate = $this->activeMandate(1);
+		$mandate->setConsentAt('2026-01-05 09:00:00');
+		$mandate->setConsentIp('198.51.100.1');
+		$this->mandateMapper->method('find')->willReturn($mandate);
+		$events = [];
+		$this->eventMapper->method('insert')->willReturnCallback(static function ($event) use (&$events) {
+			$events[] = $event;
+			return $event;
+		});
+		$this->realisticMessages = true;
+
+		$this->service()->reconfirmElectronic(1, 5, '2026-11-02 18:30:00', '203.0.113.5', 'TestBrowser/1.0', 'katrin@example.org');
+
+		$this->assertCount(1, $events);
+		$this->assertSame('member', $events[0]->getActorType());
+		$this->assertStringContainsString('05.01.2026', $events[0]->getMessage());
+		$this->assertStringNotContainsString('198.51.100.1', $events[0]->getMessage());
+		$this->assertStringNotContainsString('203.0.113.5', $events[0]->getMessage());
+	}
+
+	public function testReconfirmElectronicEinesAusgesetztenMandatsLaesstDieSperreBestehen(): void {
+		$mandate = $this->activeMandate(1);
+		$mandate->setStatus(Mandate::STATUS_SUSPENDED);
+		$this->mandateMapper->method('find')->willReturn($mandate);
+
+		$result = $this->service()->reconfirmElectronic(1, 5, '2026-11-02 18:30:00', '203.0.113.5', 'TestBrowser/1.0', 'katrin@example.org');
+
+		$this->assertSame(Mandate::STATUS_SUSPENDED, $result->getStatus());
+	}
+
+	public function testReconfirmElectronicEinesEntwurfsSchlaegtFehl(): void {
+		$mandate = $this->activeMandate(1);
+		$mandate->setStatus(Mandate::STATUS_DRAFT);
+		$this->mandateMapper->method('find')->willReturn($mandate);
+		$this->mandateMapper->expects($this->never())->method('update');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->reconfirmElectronic(1, 5, '2026-11-02 18:30:00', '203.0.113.5', 'TestBrowser/1.0', 'katrin@example.org');
+	}
+
 	public function testActivateElectronicAufPapierMandatSchlaegtFehl(): void {
 		$mandate = $this->activeMandate(1);
 		$mandate->setStatus(Mandate::STATUS_DRAFT);

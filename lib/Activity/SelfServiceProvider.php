@@ -62,6 +62,7 @@ class SelfServiceProvider implements IProvider {
 			SelfServiceMandateService::SUBJECT_HOLDER_CHANGED => $l->t('Kontoinhaber gewechselt, neues Mandat erteilt'),
 			SelfServiceMandateService::SUBJECT_REVOKED => $l->t('SEPA-Lastschriftmandat widerrufen'),
 			SelfServiceMandateService::SUBJECT_DRAFT_DISCARDED => $l->t('Mandats-Entwurf verworfen'),
+			SelfServiceMandateService::SUBJECT_RECONFIRMED => $l->t('Mandatstext des SEPA-Lastschriftmandats bestätigt'),
 			self::SUBJECT_CONTRIBUTION_AMOUNT_CHANGED => $l->t(
 				'Monatsbeitrag geändert: %1$s € → %2$s € (wirkt ab %3$s)',
 				[$this->euro($params['from'] ?? 0), $this->euro($params['to'] ?? 0), isset($params['effectiveFrom']) ? GermanDate::format((string)$params['effectiveFrom']) : '?'],

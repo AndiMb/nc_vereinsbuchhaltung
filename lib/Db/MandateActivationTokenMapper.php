@@ -91,6 +91,29 @@ class MandateActivationTokenMapper extends QBMapper {
 		return $byMandate;
 	}
 
+	/**
+	 * Die jüngsten noch nicht verwendeten Links eines Zwecks, je Mandat einer.
+	 * Grundlage für „diesem Mitglied wurde schon ein Link geschickt, der noch gilt"
+	 * beim erneuten Anschreiben nach einer Textänderung.
+	 *
+	 * @return array<int, MandateActivationToken> mandate_id => jüngster Token
+	 */
+	public function findOutstandingByPurpose(string $purpose): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->isNull('consumed_at'))
+			->andWhere($qb->expr()->eq('purpose', $qb->createNamedParameter($purpose)))
+			->orderBy('created_at', 'ASC')
+			->addOrderBy('id', 'ASC');
+		$byMandate = [];
+		foreach ($this->findEntities($qb) as $token) {
+			// Aufsteigend sortiert: der spätere überschreibt den früheren.
+			$byMandate[$token->getMandateId()] = $token;
+		}
+		return $byMandate;
+	}
+
 	public function findOrNull(int $id): ?MandateActivationToken {
 		try {
 			return $this->find($id);

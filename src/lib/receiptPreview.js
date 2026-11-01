@@ -1,5 +1,4 @@
-// Belegvorschau neben der Belegauswahl (#231, ReceiptPreview.vue,
-// docs/superpowers/specs/2026-10-31-belegvorschau-design.md): welche
+// Belegvorschau neben der Belegauswahl (#231, ReceiptPreview.vue): welche
 // Darstellung eine Datei bekommt, welche Datei die Pfeiltasten als nächste
 // zeigen, und die Angaben für den Kontextstreifen im Ordner-Dialog.
 

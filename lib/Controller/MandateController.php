@@ -79,7 +79,7 @@ class MandateController extends Controller {
 		$data['hasDocument'] = $this->documents->hasDocument($mandate);
 		// Bei einem elektronischen Mandat ist die protokollierte Zustimmung der
 		// Nachweis (Issue #153) – wie beim Hinweis in MandateTaskService.
-		$data['showMissingDocumentWarning'] = $this->documents->showMissingDocumentWarning() && !$data['hasDocument'] && $mandate->isLive() && !$mandate->isElectronic();
+		$data['showMissingDocumentWarning'] = $this->documents->showMissingDocumentWarning() && !$data['hasDocument'] && $mandate->isLive() && !$mandate->isElectronic() && !$mandate->hasConsent();
 		// 36-Monats-Verfall (Issue #100, Mitglieder-Akte): nur ein tatsächlich
 		// vorgelegtes Mandat (aktiv/ausgesetzt) hat eine laufende Frist – bei
 		// einem Entwurf stünde sonst ein Ablaufdatum da, das erst mit der
@@ -136,6 +136,8 @@ class MandateController extends Controller {
 		$data['activationLink'] = $mandate->isElectronic() && $mandate->getStatus() === Mandate::STATUS_DRAFT
 			? $this->activation->linkStatus($id)
 			: null;
+		// Eine neue Fassung des Mandatstexts, die dieses Mandat noch nicht bestätigt hat, samt Stand des Links dazu.
+		$data['reconfirmation'] = $this->activation->reconfirmationStatus($mandate);
 		// „Offene Summe“ der Reibungsdialoge (Widerruf, Kontoinhaberwechsel;
 		// Spec §3.4) – dieselbe Rechnung wie im Self-Service.
 		$data['openClaimsTotalCents'] = $this->openItems->openClaimsTotalCents($mandate->getMemberId());
@@ -201,6 +203,31 @@ class MandateController extends Controller {
 			]);
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Mandat nicht gefunden')], Http::STATUS_NOT_FOUND);
+		}
+	}
+
+	/**
+	 * Schickt diesem Mitglied einen Link, mit dem es den aktuellen Mandatstext erneut
+	 * bestätigt (Mitglieder-Akte; der Versand an alle steht auf der Rechtstext-Seite
+	 * der Einstellungen). Wie {@see sendActivationLink()} liefert die Antwort den Link
+	 * mit zurück, damit er sich weitergeben lässt, wenn die Mail nicht ankommt.
+	 */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	public function sendReconfirmationLink(int $id): DataResponse {
+		try {
+			$result = $this->activation->issueReconfirmationLink($id, $this->userSession->getUser()?->getUID());
+			return new DataResponse([
+				'mandate' => $this->decorate($this->service->find($id)),
+				'activationUrl' => $result['url'],
+				'sentTo' => $result['email'],
+			]);
+		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		} catch (\RuntimeException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_GATEWAY);
 		} catch (DoesNotExistException) {
 			return new DataResponse(['message' => $this->l10n->t('Mandat nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}

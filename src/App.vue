@@ -157,6 +157,7 @@
 					:reimbursementsReloadKey="reimbursementsReloadKey"
 					@payReimbursement="openBookingForReimbursement"
 					@update:bookingView="bookingView = $event"
+					@attachmentsChanged="afterAttachmentsChanged"
 					@goClaims="goToClaims"
 					@invoicePaid="onInvoicesChanged"
 					@help="openHelp('bookings')" />
@@ -314,6 +315,7 @@
 			:addPendingFiles="addPendingFiles"
 			:pickFolderFiles="attachFolderFiles"
 			:watchMode="watchMode"
+			:forceFolderPanel="bookingForceFolderPanel"
 			:openViewer="openViewer"
 			:attachmentDownloadUrl="attachmentDownloadUrl"
 			:nextTourStep="nextTourStep"
@@ -689,6 +691,8 @@ export default {
 			mdiSwapHorizontal,
 			bookingAttachments: [],
 			attachmentCountMap: {},
+			// Belegvorschlag in der Buchungsliste angeklickt: Seitenleiste des Dialogs geht auf.
+			bookingForceFolderPanel: false,
 			// Kollaboration: Poll-Timer (Änderungsstand selbst kommt aus useSync)
 			syncTimer: null,
 			// Mobil-Layout (≤ 640px): schaltet Bottom-Nav, Kartenlisten etc.
@@ -2513,7 +2517,7 @@ export default {
 			} catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
 		},
 
-		editBooking(r) {
+		editBooking(r, { folderPanel = false } = {}) {
 			if (r.isSplit && !r.splitSide) {
 				// Beide Seiten mehrzeilig: diese Form erzeugt die App nirgends
 				// (siehe useJournal.js). Der Dialog bildet sie nicht ab und
@@ -2534,6 +2538,7 @@ export default {
 				}
 			}
 			this.loadAttachments(r.id)
+			this.bookingForceFolderPanel = folderPanel
 			this.showBooking = true
 		},
 
@@ -2566,7 +2571,7 @@ export default {
 			}
 		},
 
-		closeBooking() { this.reimbursementPayment = null; this.showBooking = false; this.bookingForm = this.emptyBookingForm(); this.bookingAttachments = []; this.pendingFiles = []; this.endTour() },
+		closeBooking() { this.reimbursementPayment = null; this.showBooking = false; this.bookingForceFolderPanel = false; this.bookingForm = this.emptyBookingForm(); this.bookingAttachments = []; this.pendingFiles = []; this.endTour() },
 		/**
 		 * Prueft das Formular und baut die Nutzlast der zweizeiligen Buchung.
 		 *
