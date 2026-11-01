@@ -135,6 +135,8 @@ class NumberRangeServiceTest extends TestCase {
 		return [
 			'Standard' => ['RE-{JJJJ}-{NNNN}', true],
 			'zweistelliges Jahr' => ['{JJ}/{NNN}', true],
+			'mit Monat' => ['RE-{JJJJ}{MM}-{NNNN}', true],
+			'Monat einstellig' => ['RE-{JJJJ}{M}-{NNNN}', false],
 			'nur Zähler' => ['{NNNNNN}', true],
 			'ohne Zähler' => ['RE-{JJJJ}', false],
 			'zwei Zähler' => ['{NN}-{NN}', false],
@@ -148,6 +150,84 @@ class NumberRangeServiceTest extends TestCase {
 	public function testJaehrlicherNeubeginnVerlangtDasJahrImMuster(): void {
 		$this->expectException(\InvalidArgumentException::class);
 		$this->service()->update('rechnung', 'RE-{NNNN}', NumberRange::RESET_YEARLY, null);
+	}
+
+	public function testMonatsplatzhalterSetztDenMonatDesRechnungsdatumsEin(): void {
+		$s = $this->service();
+		$s->update('rechnung', 'RE-{JJJJ}{MM}-{NNNN}', NumberRange::RESET_YEARLY, null);
+
+		$this->assertSame('RE-202603-0001', $s->issue('rechnung', new \DateTimeImmutable('2026-03-05'))['number']);
+		// Jährlicher Neubeginn: der Monat ist nur Angabe, der Zähler läuft weiter.
+		$this->assertSame('RE-202604-0002', $s->issue('rechnung', new \DateTimeImmutable('2026-04-01'))['number']);
+	}
+
+	public function testMonatlicherNeubeginn(): void {
+		$s = $this->service();
+		$s->update('rechnung', 'RE-{JJ}-{MM}-{NNN}', NumberRange::RESET_MONTHLY, null);
+
+		$this->assertSame('RE-26-03-001', $s->issue('rechnung', new \DateTimeImmutable('2026-03-30'))['number']);
+		$this->assertSame('RE-26-03-002', $s->issue('rechnung', new \DateTimeImmutable('2026-03-31'))['number']);
+		$this->assertSame('RE-26-04-001', $s->issue('rechnung', new \DateTimeImmutable('2026-04-01'))['number']);
+		$this->assertSame('RE-27-01-001', $s->issue('rechnung', new \DateTimeImmutable('2027-01-04'))['number']);
+	}
+
+	public function testMonatlicherNeubeginnLehntDatumVorDemMonatDesZaehlersAb(): void {
+		$s = $this->service();
+		$s->update('rechnung', 'RE-{JJJJ}{MM}-{NNNN}', NumberRange::RESET_MONTHLY, null);
+		$s->issue('rechnung', new \DateTimeImmutable('2026-04-01'));
+
+		$this->expectException(\InvalidArgumentException::class);
+		$s->issue('rechnung', new \DateTimeImmutable('2026-03-31'));
+	}
+
+	public function testMonatlicherNeubeginnVerlangtJahrUndMonatImMuster(): void {
+		$s = $this->service();
+		try {
+			$s->update('rechnung', 'RE-{MM}-{NNNN}', NumberRange::RESET_MONTHLY, null);
+			$this->fail('Muster ohne Jahr wurde angenommen.');
+		} catch (\InvalidArgumentException) {
+		}
+		$this->expectException(\InvalidArgumentException::class);
+		$s->update('rechnung', 'RE-{JJJJ}-{NNNN}', NumberRange::RESET_MONTHLY, null);
+	}
+
+	public function testWechselVonMonatlichAufJaehrlichImSelbenJahrVergibtKeineNummerDoppelt(): void {
+		$s = $this->service();
+		$s->update('rechnung', 'RE-{JJJJ}{MM}-{NNNN}', NumberRange::RESET_MONTHLY, null);
+		$s->issue('rechnung', new \DateTimeImmutable('2026-11-02'));
+		$s->update('rechnung', 'RE-{JJJJ}{MM}-{NNNN}', NumberRange::RESET_YEARLY, null);
+
+		// Der Zähler gehört weiter zum laufenden Jahr: kein zweites RE-202611-0001.
+		$this->assertSame('RE-202611-0002', $s->peek('rechnung', new \DateTimeImmutable('2026-11-03')));
+		$this->assertSame('RE-202611-0002', $s->issue('rechnung', new \DateTimeImmutable('2026-11-03'))['number']);
+		$this->assertSame('RE-202701-0001', $s->issue('rechnung', new \DateTimeImmutable('2027-01-04'))['number']);
+	}
+
+	public function testWechselVonJaehrlichAufMonatlichLaeuftImSelbenMonatWeiter(): void {
+		$s = $this->service();
+		$s->update('rechnung', 'RE-{JJJJ}{MM}-{NNNN}', NumberRange::RESET_YEARLY, null);
+		$s->issue('rechnung', new \DateTimeImmutable('2026-11-02'));
+		$s->update('rechnung', 'RE-{JJJJ}{MM}-{NNNN}', NumberRange::RESET_MONTHLY, null);
+
+		$this->assertSame('RE-202611-0002', $s->issue('rechnung', new \DateTimeImmutable('2026-11-03'))['number']);
+		$this->assertSame('RE-202612-0001', $s->issue('rechnung', new \DateTimeImmutable('2026-12-01'))['number']);
+	}
+
+	public function testWechselAufJaehrlichLehntDatumVorDemJahrDesMonatszaehlersAb(): void {
+		$s = $this->service();
+		$s->update('rechnung', 'RE-{JJJJ}{MM}-{NNNN}', NumberRange::RESET_MONTHLY, null);
+		$s->issue('rechnung', new \DateTimeImmutable('2027-01-04'));
+		$s->update('rechnung', 'RE-{JJJJ}{MM}-{NNNN}', NumberRange::RESET_YEARLY, null);
+
+		$this->expectException(\InvalidArgumentException::class);
+		$s->issue('rechnung', new \DateTimeImmutable('2026-12-31'));
+	}
+
+	public function testRegexMitMonat(): void {
+		$regex = '/^' . NumberRangeService::toRegex('RE-{JJJJ}{MM}-{NNNN}') . '$/';
+
+		$this->assertSame(1, preg_match($regex, 'RE-202611-0042'));
+		$this->assertSame(0, preg_match($regex, 'RE-2026-0042'));
 	}
 
 	public function testRegexPasstAufErzeugteNummern(): void {

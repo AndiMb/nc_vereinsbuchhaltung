@@ -297,13 +297,14 @@ export function editorTotals(lines, regular = false) {
 
 /**
  * Rechnungsnummer aus einem Muster (NumberRangeService::format): {JJJJ} Jahr,
- * {JJ} zweistelliges Jahr, {NNNN} Zähler mit führenden Nullen in Breite der N.
+ * {JJ} zweistelliges Jahr, {MM} Monat, {NNNN} Zähler mit führenden Nullen in Breite der N.
  */
 export function formatNumberPattern(pattern, date, no) {
 	const year = String(date.getFullYear())
 	return String(pattern ?? '')
 		.replace('{JJJJ}', year)
 		.replace('{JJ}', year.slice(2))
+		.replace('{MM}', String(date.getMonth() + 1).padStart(2, '0'))
 		.replace(/\{(N+)\}/, (_m, ns) => String(no).padStart(ns.length, '0'))
 }
 

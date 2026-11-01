@@ -198,6 +198,10 @@ describe('formatNumberPattern', () => {
 		expect(formatNumberPattern('{JJ}/{NNN}', date, 7)).toBe('26/007')
 		expect(formatNumberPattern('R{NNNNN}', date, 123456)).toBe('R123456')
 	})
+	it('setzt den Monat zweistellig ein', () => {
+		expect(formatNumberPattern('RE-{JJJJ}{MM}-{NNNN}', date, 1)).toBe('RE-202603-0001')
+		expect(formatNumberPattern('{JJ}/{MM}/{NNN}', new Date(2026, 10, 1), 12)).toBe('26/11/012')
+	})
 })
 
 describe('E-Rechnung', () => {

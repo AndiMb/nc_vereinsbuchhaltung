@@ -241,7 +241,7 @@
 		<div class="vbh-card">
 			<h4>{{ t('Rechnungsnummern') }}</h4>
 			<p class="vbh-hint">
-				{{ t('Rechnungsnummern müssen fortlaufend und einmalig sein. Platzhalter: {JJJJ} (Jahr), {JJ} (zweistelliges Jahr) und {NNNN} (Zähler, die Zahl der N bestimmt die Stellen).') }}
+				{{ t('Rechnungsnummern müssen fortlaufend und einmalig sein. Platzhalter: {JJJJ} (Jahr), {JJ} (zweistelliges Jahr), {MM} (Monat) und {NNNN} (Zähler, die Zahl der N bestimmt die Stellen).') }}
 			</p>
 			<div v-for="range in ranges" :key="range.kind" class="vbh-inv-range">
 				<h5>{{ range.kind === 'storno' ? t('Stornorechnungen') : t('Rechnungen') }}</h5>
@@ -252,6 +252,7 @@
 					<label>{{ t('Zähler') }}
 						<select v-model="range.resetMode">
 							<option value="yearly">{{ t('jedes Jahr bei 1 beginnen') }}</option>
+							<option value="monthly">{{ t('jeden Monat bei 1 beginnen') }}</option>
 							<option value="never">{{ t('fortlaufend, nie zurücksetzen') }}</option>
 						</select>
 					</label>
