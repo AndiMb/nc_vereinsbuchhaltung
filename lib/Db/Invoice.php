@@ -85,6 +85,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setCancelledAt(?string $cancelledAt)
  * @method string|null getCancelReason()
  * @method void setCancelReason(?string $cancelReason)
+ * @method int|null getBatchId()
+ * @method void setBatchId(?int $batchId)
  */
 class Invoice extends Entity implements \JsonSerializable {
 	public const KIND_INVOICE = 'rechnung';
@@ -144,6 +146,8 @@ class Invoice extends Entity implements \JsonSerializable {
 	protected $sentAt;
 	protected $cancelledAt;
 	protected $cancelReason;
+	/** Stapel einer Sammelrechnung (#243), sonst null. */
+	protected $batchId;
 
 	public function __construct() {
 		$this->addType('numberRangeId', 'integer');
@@ -153,6 +157,7 @@ class Invoice extends Entity implements \JsonSerializable {
 		$this->addType('grossCents', 'integer');
 		$this->addType('precedingInvoiceId', 'integer');
 		$this->addType('openItemId', 'integer');
+		$this->addType('batchId', 'integer');
 	}
 
 	public function isDraft(): bool {
@@ -212,6 +217,7 @@ class Invoice extends Entity implements \JsonSerializable {
 			'sentAt' => $this->sentAt,
 			'cancelledAt' => $this->cancelledAt,
 			'cancelReason' => $this->cancelReason,
+			'batchId' => $this->batchId,
 		];
 	}
 }

@@ -4078,7 +4078,143 @@
         "„{name}“ ist weder PDF noch Bild.": "\"{name}\" is neither a PDF nor an image.",
         "„{name}“ ist zu groß (höchstens 20 MB).": "\"{name}\" is too large (at most 20 MB).",
         "„{name}“ ist leer.": "\"{name}\" is empty.",
-        "Mehr als {max} Belege je Antrag sind nicht möglich.": "More than {max} receipts per request are not possible."
+        "Mehr als {max} Belege je Antrag sind nicht möglich.": "More than {max} receipts per request are not possible.",
+        "Rechnungen aus Tabelle einlesen": "Import invoices from a spreadsheet",
+        "Für viele Rechnungen auf einmal, etwa an die Teilnehmenden eines Projekts. Jede Zeile der Tabelle ist eine Position; Zeilen desselben Empfängers werden zu einer Rechnung. Es entstehen Entwürfe, die Sie vor dem Festschreiben durchsehen können.": "For many invoices at once, for example to the participants of a project. Each row of the spreadsheet is one line item; rows of the same recipient become one invoice. Drafts are created that you can review before finalizing.",
+        "Name (Pflicht in der ersten Zeile eines Empfängers), Name 2, Art (Person, Organisation, Behörde), Straße, PLZ, Ort, Land, E-Mail, Kundennummer": "Name (required in the first row of a recipient), Name 2, Kind (person, organisation, authority), Street, Postal code, City, Country, Email, Customer number",
+        "Position": "Line item",
+        "Name einer Positionsvorlage; füllt Bezeichnung, Preis, Steuer und Erlöskonto vor. Werte in der Zeile gehen vor.": "Name of a line item template; pre-fills name, price, tax and revenue account. Values in the row take precedence.",
+        "optionales Kennzeichen: Zeilen mit gleichem Kennzeichen werden eine Rechnung. Ohne diese Spalte gehören Zeilen mit gleichem Namen, gleicher PLZ und gleichem Ort zusammen, und eine Zeile ohne Namen gehört zur Rechnung darüber.": "optional key: rows with the same key become one invoice. Without this column, rows with the same name, postal code and city belong together, and a row without a name belongs to the invoice above it.",
+        "Gelesen wird das erste Tabellenblatt einer Excel-Datei (.xlsx) oder eine CSV-Datei. Reihenfolge und Schreibweise der Überschriften sind egal, weitere Spalten werden übergangen. Vorhandene Empfänger werden erkannt (Kundennummer, Name mit E-Mail oder PLZ) und nicht doppelt angelegt.": "The first sheet of an Excel file (.xlsx) or a CSV file is read. Order and spelling of the headings do not matter (German and English headings work), other columns are skipped. Existing recipients are recognized (customer number, name with email or postal code) and not created twice.",
+        "Name des Projekts": "Project name",
+        "z. B. Probenwochenende 2026": "e.g. Rehearsal weekend 2026",
+        "Vorgaben für alle Rechnungen": "Defaults for all invoices",
+        "oder Zeitraum von": "or period from",
+        "Leer lassen, wenn die Tabelle eine Spalte „Leistungsdatum“ hat.": "Leave empty if the spreadsheet has a delivery date column.",
+        "Erlöskonto für Positionen ohne eigenes": "Revenue account for items without their own",
+        "Kopftext": "Header text",
+        "Fußtext": "Footer text",
+        "_%n Rechnung hat keine E-Mail-Adresse und muss gedruckt werden._::_%n Rechnungen haben keine E-Mail-Adresse und müssen gedruckt werden._": [
+            "%n invoice has no email address and has to be printed.",
+            "%n invoices have no email address and have to be printed."
+        ],
+        "Zeilen": "Rows",
+        "neu": "new",
+        "_%n Rechnungsentwurf anlegen_::_%n Rechnungsentwürfe anlegen_": [
+            "Create %n invoice draft",
+            "Create %n invoice drafts"
+        ],
+        "Bitte noch einen Namen für das Projekt angeben.": "Please enter a name for the project.",
+        "Rechnungsentwürfe anlegen": "Create invoice drafts",
+        "Im Projekt „{name}“ entstehen {rechnungen}. Fehlerhafte Rechnungen ({fehler}) werden übersprungen. Festgeschrieben und versendet wird noch nichts.": "The project \"{name}\" gets {rechnungen}. Invoices with errors ({fehler}) are skipped. Nothing is finalized or sent yet.",
+        "_%n Rechnungsentwurf_::_%n Rechnungsentwürfe_": [
+            "%n invoice draft",
+            "%n invoice drafts"
+        ],
+        "_%n Rechnungsentwurf angelegt._::_%n Rechnungsentwürfe angelegt._": [
+            "%n invoice draft created.",
+            "%n invoice drafts created."
+        ],
+        "Projekt löschen": "Delete project",
+        "Entwürfe: {draft} · festgeschrieben, nicht versendet: {issued} · versendet: {sent} · bezahlt: {paid} · storniert: {cancelled}": "Drafts: {draft} · finalized, not sent: {issued} · sent: {sent} · paid: {paid} · cancelled: {cancelled}",
+        "Festschreiben darf nur ein Verwalter.": "Only an administrator may finalize.",
+        "_%n Entwurf festschreiben_::_Alle %n Entwürfe festschreiben_": [
+            "Finalize %n draft",
+            "Finalize all %n drafts"
+        ],
+        "Versenden darf nur ein Verwalter.": "Only an administrator may send.",
+        "_%n Rechnung per E-Mail senden_::_Alle %n Rechnungen per E-Mail senden_": [
+            "Send %n invoice by email",
+            "Send all %n invoices by email"
+        ],
+        "_%n Rechnung hat nicht geklappt:_::_%n Rechnungen haben nicht geklappt:_": [
+            "%n invoice did not work:",
+            "%n invoices did not work:"
+        ],
+        "_%n festgeschriebene Rechnung hat keine E-Mail-Adresse – bitte das PDF drucken oder auf anderem Weg schicken:_::_%n festgeschriebene Rechnungen haben keine E-Mail-Adresse – bitte die PDFs drucken oder auf anderem Weg schicken:_": [
+            "%n finalized invoice has no email address – please print the PDF or send it another way:",
+            "%n finalized invoices have no email address – please print the PDFs or send them another way:"
+        ],
+        "Unbekannter Fehler": "Unknown error",
+        "Entwürfe festschreiben": "Finalize drafts",
+        "_Die Rechnung wird festgeschrieben: sie bekommt ihre Nummer und lässt sich danach nicht mehr ändern, nur stornieren._::_%n Rechnungen werden festgeschrieben: sie bekommen ihre Nummern und lassen sich danach nicht mehr ändern, nur stornieren._": [
+            "The invoice will be finalized: it gets its number and can no longer be changed afterwards, only cancelled.",
+            "%n invoices will be finalized: they get their numbers and can no longer be changed afterwards, only cancelled."
+        ],
+        "Festschreiben": "Finalize",
+        "_%n Rechnung festgeschrieben._::_%n Rechnungen festgeschrieben._": [
+            "%n invoice finalized.",
+            "%n invoices finalized."
+        ],
+        "Rechnungen versenden": "Send invoices",
+        "_Die Rechnung geht mit dem Text aus den Einstellungen an die hinterlegte E-Mail-Adresse._::_%n Rechnungen gehen mit dem Text aus den Einstellungen an die jeweils hinterlegte E-Mail-Adresse._": [
+            "The invoice goes to the stored email address with the text from the settings.",
+            "%n invoices go to their stored email addresses with the text from the settings."
+        ],
+        "Versenden …": "Sending …",
+        "Keine E-Mail-Adresse": "No email address",
+        "_%n Rechnung versendet._::_%n Rechnungen versendet._": [
+            "%n invoice sent.",
+            "%n invoices sent."
+        ],
+        "Das Projekt „{name}“ wird gelöscht.": "The project \"{name}\" will be deleted.",
+        "_Sein Entwurf wird mitgelöscht._::_Seine %n Entwürfe werden mitgelöscht._": [
+            "Its draft is deleted as well.",
+            "Its %n drafts are deleted as well."
+        ],
+        "Neu angelegte Empfänger bleiben erhalten.": "Newly created recipients are kept.",
+        "Aus Tabelle einlesen": "Import from spreadsheet",
+        "Projekt": "Project",
+        "Die Projekte konnten nicht geladen werden.": "The projects could not be loaded.",
+        "Die Datei ist zu groß (höchstens 10 MB).": "The file is too large (at most 10 MB).",
+        "Projekt nicht gefunden": "Project not found",
+        "Die Tabelle ist leer.": "The spreadsheet is empty.",
+        "Die Tabelle braucht in der ersten Zeile mindestens die Spalten „Name“ und „Position“ (oder „Vorlage“).": "The first row of the spreadsheet needs at least the columns \"Name\" and \"Item\" (or \"Template\").",
+        "Die Tabelle enthält unter der Kopfzeile keine Daten.": "The spreadsheet contains no data below the header row.",
+        "Zeile %d: Kein Empfänger – in der ersten Zeile einer Rechnung muss ein Name stehen.": "Row %d: No recipient – the first row of an invoice needs a name.",
+        "Zeile %1$d: Anderer Name als in der ersten Zeile dieser Rechnung („%2$s“).": "Row %1$d: Different name than in the first row of this invoice (\"%2$s\").",
+        "Zeile %d: Keine Position.": "Row %d: No line item.",
+        "Anschrift unvollständig – zum Festschreiben sind Straße, PLZ und Ort nötig.": "Address incomplete – street, postal code and city are needed to finalize.",
+        "Zeile %1$d: Unbekannte Art „%2$s“ (Person, Organisation oder Behörde).": "Row %1$d: Unknown kind \"%2$s\" (person, organisation or authority).",
+        "Zeile %1$d: Unbekanntes Land „%2$s“ (zweistelliger Ländercode, z. B. DE).": "Row %1$d: Unknown country \"%2$s\" (two-letter country code, e.g. DE).",
+        "Zeile %1$d: Ungültige E-Mail-Adresse „%2$s“.": "Row %1$d: Invalid email address \"%2$s\".",
+        "Zeile %d:": "Row %d:",
+        "Die Vorlage „%s“ gibt es nicht.": "The template \"%s\" does not exist.",
+        "Die Bezeichnung der Position fehlt.": "The name of the line item is missing.",
+        "„%s“ ist kein Preis.": "\"%s\" is not a price.",
+        "Der Einzelpreis fehlt.": "The unit price is missing.",
+        "„%s“ ist keine gültige Menge.": "\"%s\" is not a valid quantity.",
+        "Unbekannte Einheit „%s“.": "Unknown unit \"%s\".",
+        "„%s“ ist kein gültiger Rabatt.": "\"%s\" is not a valid discount.",
+        "„%s“ ist kein gültiger Steuersatz.": "\"%s\" is not a valid tax rate.",
+        "Das Erlöskonto %s gibt es nicht.": "The revenue account %s does not exist.",
+        "Die Kostenstelle „%s“ gibt es nicht.": "The cost center \"%s\" does not exist.",
+        "„%s“ ist kein gültiges Datum.": "\"%s\" is not a valid date.",
+        "Excel-Dateien lassen sich auf diesem Server nicht lesen (PHP-Erweiterung „zip“ fehlt). Bitte als CSV speichern.": "Excel files cannot be read on this server (PHP extension \"zip\" is missing). Please save as CSV.",
+        "Die Excel-Datei ließ sich nicht lesen.": "The Excel file could not be read.",
+        "Die Excel-Datei enthält kein Tabellenblatt.": "The Excel file contains no sheet.",
+        "Die Excel-Datei ist zu groß.": "The Excel file is too large.",
+        "Die Tabelle hat zu viele Zeilen (höchstens 5000).": "The spreadsheet has too many rows (at most 5000).",
+        "Die Datei ließ sich nicht lesen.": "The file could not be read.",
+        "Bitte einen Namen für das Projekt angeben.": "Please enter a name for the project.",
+        "Die Tabelle enthält keine fehlerfreie Rechnung.": "The spreadsheet contains no invoice without errors.",
+        "Das Projekt enthält schon festgeschriebene Rechnungen und lässt sich nicht mehr löschen.": "The project already contains finalized invoices and can no longer be deleted.",
+        "Für den Leistungszeitraum bitte Beginn und Ende angeben.": "Please enter start and end of the service period.",
+        "Mindestens eine Position hat kein Erlöskonto – zum Festschreiben nötig (Spalte „Erlöskonto“, Vorlage oder Vorgabe im Dialog).": "At least one line item has no revenue account – needed to finalize (revenue account column, template or default in the dialog).",
+        "Kein Leistungsdatum – zum Festschreiben nötig (Spalte „Leistungsdatum“ oder Vorgabe im Dialog).": "No delivery date – needed to finalize (delivery date column or default in the dialog).",
+        "Vorhandener Empfänger wird verwendet; abweichende Angaben in der Tabelle (%s) werden nicht übernommen.": "Existing recipient is used; differing details in the spreadsheet (%s) are not taken over.",
+        "Name 2": "Name 2",
+        "Position (Bezeichnung), Beschreibung, Menge (leer = 1), Einheit (Stück, Stunde, Tag, pauschal …), Einzelpreis, Rabatt (%), Steuersatz (%), Erlöskonto (Kontonummer), Kostenstelle, Leistungsdatum": "Item (name), Description, Quantity (empty = 1), Unit (piece, hour, day, lump sum …), Unit price, Discount (%), Tax rate (%), Revenue account (account number), Cost center, Delivery date",
+        "_%n Rechnung über {amount} (netto) würde angelegt._::_%n Rechnungen über zusammen {amount} (netto) würden angelegt._": [
+            "%n invoice of {amount} (net) would be created.",
+            "%n invoices totalling {amount} (net) would be created."
+        ],
+        "Empfänger: {neu} neu, {alt} schon vorhanden.": "Recipients: {neu} new, {alt} already existing.",
+        "_%n Rechnung ist fehlerhaft und wird übersprungen._::_%n Rechnungen sind fehlerhaft und werden übersprungen._": [
+            "%n invoice has errors and will be skipped.",
+            "%n invoices have errors and will be skipped."
+        ],
+        "Es fehlt:": "Missing:"
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

@@ -264,6 +264,12 @@ return [
 		['name' => 'invoicePlan#update', 'url' => '/api/invoice-plans/{id}', 'verb' => 'PUT'],
 		['name' => 'invoicePlan#setActive', 'url' => '/api/invoice-plans/{id}/active', 'verb' => 'POST'],
 		['name' => 'invoicePlan#destroy', 'url' => '/api/invoice-plans/{id}', 'verb' => 'DELETE'],
+		// Sammelrechnungen aus einer Tabelle (#243)
+		['name' => 'invoiceBatch#index', 'url' => '/api/invoice-batches', 'verb' => 'GET'],
+		['name' => 'invoiceBatch#preview', 'url' => '/api/invoice-batches/preview', 'verb' => 'POST'],
+		['name' => 'invoiceBatch#create', 'url' => '/api/invoice-batches', 'verb' => 'POST'],
+		['name' => 'invoiceBatch#update', 'url' => '/api/invoice-batches/{id}', 'verb' => 'PUT'],
+		['name' => 'invoiceBatch#destroy', 'url' => '/api/invoice-batches/{id}', 'verb' => 'DELETE'],
 		['name' => 'invoice#index', 'url' => '/api/invoices', 'verb' => 'GET'],
 		['name' => 'invoice#meta', 'url' => '/api/invoices/meta', 'verb' => 'GET'],
 		['name' => 'invoice#suggestions', 'url' => '/api/invoices/suggestions', 'verb' => 'GET'],

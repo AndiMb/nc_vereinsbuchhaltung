@@ -2729,6 +2729,31 @@ The app does not calculate dunning fees or default interest and does not give le
 - **RF reference (ISO 11649):** On request (setting, on by default) the invoice prints a **structured payment reference** such as `RF18 RE20 2600 42` next to the payment reference. It contains the invoice number and two check digits and is part of the **GiroCode**. The bank matching recognizes it as the most reliable feature: if the reference is in the payment reference field and the amount matches, the import books by itself, even if the payer inserted spaces.
 - **Audit:** with the invoice module on, the receipts ZIP (button "Beleg-ZIP" in *Reports → Evaluation*, chapter 9.2) contains the folder `rechnungen/`: one subfolder per invoice with all documents (PDF, ZUGFeRD PDF, XRechnung XML, dunning letters), plus `uebersicht.csv` (number, date, recipient, net, tax, gross, paid, open, status, dunning stage) and `pruefsummen.txt` with the SHA-256 of every file and the finding `ok`, `changed` or `missing`. The invoices of a period are chosen by invoice date.
 
+### 15.15 Invoices from a spreadsheet (bulk invoices)
+
+When many people get an invoice at once – for example the participants of a rehearsal weekend who are not members – create the invoices from a spreadsheet instead of one by one. **Invoices → Import from spreadsheet** (accountants and up) reads an **Excel file (.xlsx)** or a **CSV file**; **Download template** provides a sample spreadsheet.
+
+**Layout: one row per line item.** Rows of the same recipient become one invoice:
+
+- If the column **Rechnung** (Invoice) holds a key (e.g. 1, 2, 3), all rows with that key form one invoice. This is only needed when the same person gets several invoices.
+- Otherwise rows with the same **name**, **postal code** and **city** belong together, even if they are not next to each other.
+- A row **without a name** belongs to the invoice of the row above – so the address only has to be in the first row of a recipient.
+
+Recognized columns (order and spelling do not matter, English headings work too): **Name**, Name 2, Kind (person, organisation, authority), Street, Postal code, City, Country, Email, Customer number for the recipient; **Item**, Description, Quantity (empty = 1), Unit (piece, hour, day, month, lump sum, km …), **Unit price**, Discount, Tax rate, Revenue account (account number), Cost center (code or name), Delivery date for the line item. Instead of name and price, the column **Template** can name a line item template (15.11); values in the row take precedence over the template.
+
+**Defaults for all invoices:** delivery date or period (otherwise from the delivery date column: one common date or the period from the earliest to the latest), a **revenue account** for items without their own, and header and footer text (pre-filled from the settings).
+
+**Check** shows every invoice before anything is created, with recipient (**new** or **existing**), email address, line items and amount. **Errors** (e.g. an unreadable price or an unknown account) name the row; such invoices are skipped. **Notes** (missing address, no revenue account, no delivery date) do not prevent creating the drafts, but they do prevent finalizing later.
+
+**Existing recipients** are recognized by customer number, otherwise by name with email address or name with postal code. They are never overwritten; only empty fields (such as a previously missing email address) are filled in. All other recipients are created.
+
+**Create** produces drafts in a **project** with the name you entered. In the invoice list, the **Project** filter selects it; above the list you see count, total, paid and open, plus the bulk actions (administrators only):
+
+- **Finalize all drafts** finalizes one after the other and shows the progress. An invoice with missing details stays a draft and is listed below with the reason; the others continue.
+- **Send all invoices by email** sends the finalized, not yet sent invoices with the text from the settings (15.5), including an existing e-invoice. Invoices without an email address are listed below with a link to the PDF so you can print them.
+
+As long as a project contains only drafts, **Delete project** removes it together with its drafts (newly created recipients are kept) – handy if the spreadsheet was not right yet. **Rename** works at any time.
+
 ---
 
 *As of app version 0.35.0. For questions, contact your administrator.*

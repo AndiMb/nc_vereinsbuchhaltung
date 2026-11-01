@@ -11,6 +11,7 @@ use OCA\Vereinsbuchhaltung\Db\BankTxSepaDetailMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\CostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\IncomingPaymentRejectionMapper;
+use OCA\Vereinsbuchhaltung\Db\InvoiceBatchMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoiceDocumentMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoiceDunningMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoiceItemTemplateMapper;
@@ -64,6 +65,7 @@ class ResetService {
 		private ReimbursementMapper $reimbursementMapper,
 		private ReimbursementEventMapper $reimbursementEventMapper,
 		private ReimbursementFileMapper $reimbursementFileMapper,
+		private InvoiceBatchMapper $invoiceBatchMapper,
 	) {
 	}
 
@@ -127,6 +129,7 @@ class ResetService {
 			$this->invoicePlanMapper->deleteAll();
 			$this->invoiceTemplateMapper->deleteAll();
 			$this->invoiceDunningMapper->deleteAll();
+			$this->invoiceBatchMapper->deleteAll();
 			$this->invoicePaymentMapper->deleteAll();
 			$this->invoiceDocumentMapper->deleteAll();
 			$this->invoiceLineMapper->deleteAll();

@@ -138,6 +138,12 @@ export default {
 	invoiceDocumentUrl: (id, documentId) => url(`/invoices/${id}/documents/${documentId}`),
 	invoiceDunningDefaults: (id, level) => axios.get(url(`/invoices/${id}/dunning-defaults`), { params: level ? { level } : {} }),
 	dunInvoice: (id, data) => axios.post(url(`/invoices/${id}/dunning`), data),
+	// Sammelrechnungen aus einer Tabelle (#243): formData mit `file`, `name` und den Vorgaben
+	invoiceBatches: () => axios.get(url('/invoice-batches')),
+	previewInvoiceBatch: (formData) => axios.post(url('/invoice-batches/preview'), formData),
+	createInvoiceBatch: (formData) => axios.post(url('/invoice-batches'), formData),
+	renameInvoiceBatch: (id, name) => axios.put(url(`/invoice-batches/${id}`), { name }),
+	deleteInvoiceBatch: (id) => axios.delete(url(`/invoice-batches/${id}`)),
 	invoiceTemplates: () => axios.get(url('/invoice-templates')),
 	createInvoiceTemplate: (data) => axios.post(url('/invoice-templates'), data),
 	updateInvoiceTemplate: (id, data) => axios.put(url(`/invoice-templates/${id}`), data),

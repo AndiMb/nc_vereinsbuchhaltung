@@ -2757,6 +2757,31 @@ Die App berechnet keine Mahngebühren oder Verzugszinsen und gibt keine Rechtsbe
 - **RF-Referenz (ISO 11649):** Auf Wunsch (Einstellung, standardmäßig an) druckt die Rechnung neben dem Verwendungszweck eine **strukturierte Zahlungsreferenz** wie `RF18 RE20 2600 42`. Sie enthält die Rechnungsnummer und zwei Prüfziffern und steckt im **GiroCode**. Der Bankabgleich erkennt sie als sicherstes Merkmal: Steht die Referenz im Verwendungszweck und stimmt der Betrag, bucht der Import selbst, auch wenn der Zahler Leerzeichen eingefügt hat.
 - **Kassenprüfung:** Das Beleg-ZIP (Button „Beleg-ZIP" in *Berichte → Auswertung*, Kapitel 9.2) enthält bei eingeschaltetem Rechnungsmodul den Ordner `rechnungen/`: je Rechnung ein Unterordner mit allen Dokumenten (PDF, ZUGFeRD-PDF, XRechnung-XML, Mahnschreiben), dazu `uebersicht.csv` (Nummer, Datum, Empfänger, Netto, Steuer, Brutto, bezahlt, offen, Status, Mahnstufe) und `pruefsummen.txt` mit dem SHA-256 jeder Datei und dem Befund `ok`, `changed` (verändert) oder `missing` (fehlt). Die Rechnungen eines Zeitraums werden nach dem Rechnungsdatum gewählt.
 
+### 15.15 Rechnungen aus einer Tabelle (Sammelrechnungen)
+
+Wenn viele Personen auf einmal eine Rechnung bekommen – etwa die Teilnehmenden eines Probenwochenendes, die nicht Mitglied sind –, legen Sie die Rechnungen aus einer Tabelle an statt einzeln. **Rechnungen → Aus Tabelle einlesen** (ab Buchhalter) liest eine **Excel-Datei (.xlsx)** oder eine **CSV-Datei**; **Vorlage herunterladen** liefert eine Beispieltabelle.
+
+**Aufbau: eine Zeile pro Position.** Zeilen desselben Empfängers werden zu einer Rechnung:
+
+- Steht in der Spalte **Rechnung** ein Kennzeichen (z. B. 1, 2, 3), bilden alle Zeilen mit diesem Kennzeichen eine Rechnung. Das ist nur nötig, wenn dieselbe Person mehrere Rechnungen bekommt.
+- Sonst gehören Zeilen mit gleichem **Name**, gleicher **PLZ** und gleichem **Ort** zusammen, auch wenn sie nicht nebeneinander stehen.
+- Eine Zeile **ohne Namen** gehört zur Rechnung der Zeile darüber – die Anschrift muss also nur in der ersten Zeile eines Empfängers stehen.
+
+Erkannte Spalten (Reihenfolge und Schreibweise egal, auch englische Überschriften): **Name**, Name 2, Art (Person, Organisation, Behörde), Straße, PLZ, Ort, Land, E-Mail, Kundennummer für den Empfänger; **Position**, Beschreibung, Menge (leer = 1), Einheit (Stück, Stunde, Tag, Monat, pauschal, km …), **Einzelpreis**, Rabatt, Steuersatz, Erlöskonto (Kontonummer), Kostenstelle (Code oder Name), Leistungsdatum für die Position. Statt Bezeichnung und Preis kann die Spalte **Vorlage** den Namen einer Positionsvorlage (15.11) nennen; Werte in der Zeile gehen der Vorlage vor.
+
+**Vorgaben für alle Rechnungen:** Leistungsdatum oder -zeitraum (sonst aus der Spalte „Leistungsdatum“: ein gemeinsames Datum oder der Zeitraum vom frühesten bis zum spätesten), ein **Erlöskonto** für Positionen ohne eigenes sowie Kopf- und Fußtext (vorbelegt aus den Einstellungen).
+
+**Prüfen** zeigt vor dem Anlegen jede Rechnung mit Empfänger (**neu** oder **vorhanden**), E-Mail-Adresse, Positionen und Betrag. **Fehler** (z. B. ein unlesbarer Preis oder ein unbekanntes Konto) nennen die Zeile; solche Rechnungen werden übersprungen. **Hinweise** (fehlende Anschrift, kein Erlöskonto, kein Leistungsdatum) verhindern das Anlegen nicht, wohl aber später das Festschreiben.
+
+**Vorhandene Empfänger** erkennt die App an der Kundennummer, sonst an Name mit E-Mail-Adresse oder Name mit PLZ. Sie werden nie überschrieben; nur leere Felder (etwa eine bisher fehlende E-Mail-Adresse) werden ergänzt. Alle anderen Empfänger legt die App neu an.
+
+**Anlegen** erzeugt Entwürfe in einem **Projekt** mit dem eingegebenen Namen. In der Rechnungsliste wählt der Filter **Projekt** es aus; darüber stehen Anzahl, Summe, bezahlt und offen sowie die Sammelaktionen (nur Verwalter):
+
+- **Alle Entwürfe festschreiben** schreibt nacheinander fest und zeigt den Fortschritt. Eine Rechnung, der Angaben fehlen, bleibt Entwurf und erscheint mit Grund in der Liste darunter; die übrigen laufen weiter.
+- **Alle Rechnungen per E-Mail senden** verschickt die festgeschriebenen, noch nicht versendeten Rechnungen mit dem Text aus den Einstellungen (15.5), samt vorhandener E-Rechnung. Rechnungen ohne E-Mail-Adresse stehen mit Link zum PDF darunter, damit Sie sie drucken können.
+
+Solange ein Projekt nur Entwürfe enthält, lässt es sich mit **Projekt löschen** samt Entwürfen entfernen (neu angelegte Empfänger bleiben) – praktisch, wenn die Tabelle noch nicht stimmte. **Umbenennen** geht jederzeit.
+
 ---
 
 *Stand: App-Version 0.35.0. Bei Fragen an die verwaltende Person wenden.*
