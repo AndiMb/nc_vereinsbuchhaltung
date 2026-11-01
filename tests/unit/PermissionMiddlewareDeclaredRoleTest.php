@@ -14,6 +14,7 @@ use OCA\Vereinsbuchhaltung\Middleware\PermissionMiddleware;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\ActorContextService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
+use OCA\Vereinsbuchhaltung\Service\ReimbursementAccess;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceService;
 use OCP\AppFramework\Controller;
 use OCP\IL10N;
@@ -56,6 +57,7 @@ class PermissionMiddlewareDeclaredRoleTest extends TestCase {
 		return new PermissionMiddleware(
 			$permissions,
 			$this->createMock(SelfServiceService::class),
+			$this->createMock(ReimbursementAccess::class),
 			new ActorContextService($this->createMock(IUserSession::class)),
 			$request,
 			$l10n,

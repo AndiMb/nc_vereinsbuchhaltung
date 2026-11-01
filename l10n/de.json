@@ -69,7 +69,19 @@
         "Im Self-Service lässt sich die Zahlungsart nur auf Überweisung umstellen. Für die Rückkehr zur Lastschrift wenden Sie sich an Ihren Verein.": "Im Self-Service lässt sich die Zahlungsart nur auf Überweisung umstellen. Für die Rückkehr zur Lastschrift wende dich an deinen Verein.",
         "Die Umstellung auf Überweisung ist im Self-Service nicht freigeschaltet. Wenden Sie sich an Ihren Verein.": "Die Umstellung auf Überweisung ist im Self-Service nicht freigeschaltet. Wende dich an deinen Verein.",
         "Der Vorstand hat Ihre Zahlungsart auf Überweisung umgestellt: Ihr Beitrag wird nicht mehr per Lastschrift eingezogen, bitte überweisen Sie ihn künftig selbst. Ein bestehendes SEPA-Lastschriftmandat bleibt gültig, wird aber nicht mehr genutzt.": "Der Vorstand hat deine Zahlungsart auf Überweisung umgestellt: Dein Beitrag wird nicht mehr per Lastschrift eingezogen, bitte überweise ihn künftig selbst. Ein bestehendes SEPA-Lastschriftmandat bleibt gültig, wird aber nicht mehr genutzt.",
-        "Der Vorstand hat Ihre Zahlungsart auf Lastschrift umgestellt: Ihr Beitrag wird künftig per SEPA-Lastschrift von Ihrem Konto eingezogen.": "Der Vorstand hat deine Zahlungsart auf Lastschrift umgestellt: Dein Beitrag wird künftig per SEPA-Lastschrift von deinem Konto eingezogen."
+        "Der Vorstand hat Ihre Zahlungsart auf Lastschrift umgestellt: Ihr Beitrag wird künftig per SEPA-Lastschrift von Ihrem Konto eingezogen.": "Der Vorstand hat deine Zahlungsart auf Lastschrift umgestellt: Dein Beitrag wird künftig per SEPA-Lastschrift von deinem Konto eingezogen.",
+        "Haben Sie etwas für den Verein verauslagt? Reichen Sie hier den Beleg ein. Sobald genügend Verwalter zugestimmt haben, überweist der Verein den Betrag auf Ihr Konto.": "Hast du etwas für den Verein verauslagt? Reiche hier den Beleg ein. Sobald genügend Verwalter zugestimmt haben, überweist der Verein den Betrag auf dein Konto.",
+        "Neue Auslagen lassen sich derzeit nicht einreichen. Ihre bisherigen Anträge sehen Sie weiterhin.": "Neue Auslagen lassen sich derzeit nicht einreichen. Deine bisherigen Anträge siehst du weiterhin.",
+        "Mit „Auslage einreichen“ legen Sie den ersten Antrag an.": "Mit „Auslage einreichen“ legst du den ersten Antrag an.",
+        "Ihre Auslage wurde freigegeben": "Deine Auslage wurde freigegeben",
+        "Ihrem Antrag auf Erstattung von %1$s € wurde stattgegeben: %2$s": "Deinem Antrag auf Erstattung von %1$s € wurde stattgegeben: %2$s",
+        "Der Betrag wird in Kürze auf Ihr angegebenes Konto überwiesen. Sie bekommen eine weitere Nachricht, sobald die Überweisung vermerkt ist.": "Der Betrag wird in Kürze auf dein angegebenes Konto überwiesen. Du bekommst eine weitere Nachricht, sobald die Überweisung vermerkt ist.",
+        "Ihre Auslage wurde abgelehnt": "Deine Auslage wurde abgelehnt",
+        "Ihr Antrag auf Erstattung von %1$s € wurde abgelehnt: %2$s": "Dein Antrag auf Erstattung von %1$s € wurde abgelehnt: %2$s",
+        "Bei Fragen wenden Sie sich bitte an den Vorstand.": "Bei Fragen wende dich bitte an den Vorstand.",
+        "Ihre Auslage wurde erstattet": "Deine Auslage wurde erstattet",
+        "Der letzte Beleg lässt sich nicht entfernen. Ziehen Sie den Antrag zurück oder laden Sie zuerst einen anderen Beleg hoch.": "Der letzte Beleg lässt sich nicht entfernen. Ziehe den Antrag zurück oder lade zuerst einen anderen Beleg hoch.",
+        "Der Antrag kann derzeit nicht eingereicht werden: Es gibt nicht genug Verwalter, die ihn freigeben könnten. Bitte wenden Sie sich an den Vorstand.": "Der Antrag kann derzeit nicht eingereicht werden: Es gibt nicht genug Verwalter, die ihn freigeben könnten. Bitte wende dich an den Vorstand."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

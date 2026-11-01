@@ -22,7 +22,7 @@
 				</div>
 				<NcLoadingIcon v-if="busy" :size="24" :name="t('Wird geladen…')" />
 			</div>
-			<div v-if="canRead || selfServiceAvailable" class="vbh-navbar" :class="{ 'vbh-navbar--mobile': isMobile }">
+			<div v-if="canRead || myAreaAvailable" class="vbh-navbar" :class="{ 'vbh-navbar--mobile': isMobile }">
 				<nav v-if="!isMobile" class="vbh-tabs">
 					<button
 						v-for="tab in visibleTabs"
@@ -73,7 +73,7 @@
 		     Self-Service-faehiges Konto ohne vbh-Rolle bekommt statt dessen den
 		     Bereich "Mein Beitrag" weiter unten (Spec §3.4 - ersetzt dieses
 		     Panel fuer genau diesen Fall). -->
-		<div v-if="me && !canRead && !selfServiceAvailable" class="vbh-noaccess">
+		<div v-if="me && !canRead && !myAreaAvailable" class="vbh-noaccess">
 			<h3>{{ t('Kein Zugriff') }}</h3>
 			<p>{{ t('Sie haben keine Berechtigung für die Vereinsbuchhaltung. Bitte wenden Sie sich an eine Verwalterin oder einen Verwalter.') }}</p>
 		</div>
@@ -105,7 +105,7 @@
 			</div>
 		</div>
 
-		<main v-show="canRead || selfServiceAvailable" class="vbh-main">
+		<main v-show="canRead || myAreaAvailable" class="vbh-main">
 			<!-- ============ ÜBERSICHT (DASHBOARD) ============ -->
 			<section v-show="activeTab === 'dashboard'" class="vbh-section scroll" :class="{ 'vbh-fadein': sectionFade }">
 				<DashboardTab
@@ -154,6 +154,8 @@
 					:openFolderPickerForTx="openFolderPickerForTx"
 					:removeTxPendingFile="removeTxPendingFile"
 					:openFolderPickerForBookings="openFolderPickerForBookings"
+					:reimbursementsReloadKey="reimbursementsReloadKey"
+					@payReimbursement="openBookingForReimbursement"
 					@update:bookingView="bookingView = $event"
 					@goClaims="goToClaims"
 					@invoicePaid="onInvoicesChanged"
@@ -257,18 +259,22 @@
 					@update:contribView="contribView = $event" />
 			</section>
 
-			<!-- ============ MEIN BEITRAG (SELF-SERVICE) ============ -->
+			<!-- ============ MEIN BEREICH (SELF-SERVICE: BEITRAG + AUSLAGEN) ============ -->
 			<section
-				v-if="selfServiceAvailable"
+				v-if="myAreaAvailable"
 				v-show="activeTab === 'self'"
 				class="vbh-section scroll"
 				:class="{ 'vbh-fadein': sectionFade }">
-				<SelfServiceTab />
+				<MyAreaTab
+					:showBeitrag="selfServiceAvailable"
+					:showAuslagen="reimbursementAvailable"
+					:selfView="selfView"
+					@update:selfView="selfView = $event" />
 			</section>
 		</main>
 
 		<MobileNav
-			v-if="(canRead || selfServiceAvailable) && isMobile"
+			v-if="(canRead || myAreaAvailable) && isMobile"
 			:tabs="visibleTabs"
 			:activeTab="activeTab"
 			:unassignedCount="unassignedCount"
@@ -435,9 +441,9 @@ import HelpModal from './components/HelpModal.vue'
 import ImportDialog from './components/ImportDialog.vue'
 import InvoicesTab from './components/InvoicesTab.vue'
 import MobileNav from './components/MobileNav.vue'
+import MyAreaTab from './components/MyAreaTab.vue'
 import NewMenu from './components/NewMenu.vue'
 import ReportsTab from './components/ReportsTab.vue'
-import SelfServiceTab from './components/SelfServiceTab.vue'
 import SetupWizard from './components/SetupWizard.vue'
 import SplitAssignDialog from './components/SplitAssignDialog.vue'
 import TasksFlyout from './components/TasksFlyout.vue'
@@ -463,6 +469,7 @@ import { buildWhatsNewEntries, filterWhatsNewEntries } from './data/whatsNew.js'
 import { amountClass, budgetDiffClass, errMsg, formatDate, formatDateTime, formatMoney, typeLabel } from './lib/format.js'
 import { linkFilesToBookings } from './lib/receiptBatch.js'
 import { bookingsContext, txContext } from './lib/receiptPreview.js'
+import { reimbursementBookingPrefill } from './lib/reimbursements.js'
 import { splitBalanced, splitRemainder, splitSideOf } from './lib/split.js'
 
 // Abstand zwischen zwei Abgleichen mit dem Server. Die Frist, in der eine
@@ -487,6 +494,7 @@ const ROUTE_META = {
 	'bookings-unassigned': { tab: 'bookings', bookingView: 'unassigned' },
 	'bookings-open-items': { tab: 'bookings', bookingView: 'openitems' },
 	'bookings-rules': { tab: 'bookings', bookingView: 'rules' },
+	'bookings-reimbursements': { tab: 'bookings', bookingView: 'reimbursements' },
 	invoices: { tab: 'invoices' },
 	'invoices-detail': { tab: 'invoices', hasInvoiceId: true },
 	accounts: { tab: 'accounts' },
@@ -503,7 +511,8 @@ const ROUTE_META = {
 	contributions: { tab: 'contributions', contribView: 'members' },
 	'contributions-batch': { tab: 'contributions', contribView: 'batch' },
 	'contributions-groups': { tab: 'contributions', contribView: 'groups' },
-	self: { tab: 'self' },
+	self: { tab: 'self', selfView: 'beitrag' },
+	'self-reimbursements': { tab: 'self', selfView: 'auslagen' },
 }
 
 /** Erkennungsmerkmal einer Datei, um dieselbe Auswahl nicht doppelt zu sammeln. */
@@ -528,7 +537,7 @@ export default {
 		ReportsTab,
 		ContributionsTab,
 		InvoicesTab,
-		SelfServiceTab,
+		MyAreaTab,
 		MobileNav,
 		NewMenu,
 		AccountPickerSheet,
@@ -629,11 +638,16 @@ export default {
 				{ id: 'contributions', label: this.t('Beiträge'), need: 'read', icon: mdiAccountCashOutline },
 				// Self-Service (Spec §3.4): additiv neben dem Buchhaltungs-Tab bei
 				// Personalunion, unabhaengig von der vbh-Rolle - siehe
-				// selfServiceAvailable/visibleTabs unten und SelfServiceTab.vue.
-				{ id: 'self', label: this.t('Mein Beitrag'), need: 'self', icon: mdiCardAccountDetailsOutline },
+				// myAreaAvailable/visibleTabs unten und MyAreaTab.vue.
+				{ id: 'self', label: this.t('Mein Bereich'), need: 'self', icon: mdiCardAccountDetailsOutline },
 			],
 
 			bookingView: 'journal',
+			// "Mein Bereich": Unterreiter beitrag | auslagen (MyAreaTab)
+			selfView: 'beitrag',
+			// Auslage, deren Auszahlung gerade im Buchungsdialog gebucht wird (siehe saveBooking)
+			reimbursementPayment: null,
+			reimbursementsReloadKey: 0,
 			reportView: 'summary',
 			// Gliederungsbericht laedt selbst; hochzaehlen = neu laden (fremde Aenderungen)
 			structuredRefreshKey: 0,
@@ -830,9 +844,9 @@ export default {
 				// Reiter, siehe NAVIGATION-KONZEPT.md Abschnitt 4.
 				if (t.id === 'contributions' && !this.membershipActive) { return false }
 				if (t.id === 'invoices' && !this.invoicesActive) { return false }
-				// "Mein Beitrag" folgt der Kontoverknuepfung, nicht der vbh-Rolle
+				// "Mein Bereich" folgt der Kontoverknuepfung, nicht der vbh-Rolle
 				// (Spec §3.4) - unabhaengig von canRead/canWrite/isAdmin.
-				if (t.need === 'self') { return this.selfServiceAvailable }
+				if (t.need === 'self') { return this.myAreaAvailable }
 				if (t.need === 'admin') { return this.isAdmin }
 				if (t.need === 'write') { return this.canWrite }
 				return this.canRead
@@ -844,6 +858,17 @@ export default {
 		// hier nur die vorgerechnete Auskunft aus permission#me uebernehmen.
 		selfServiceAvailable() {
 			return !!(this.me && this.me.selfService && this.me.selfService.available)
+		},
+
+		// Auslagenerstattung (docs/reimbursement-design.md): verknuepftes Mitglied,
+		// Funktion an (oder eigene Antraege vorhanden) - siehe ReimbursementAccess.
+		reimbursementAvailable() {
+			return !!(this.me && this.me.reimbursement && this.me.reimbursement.available)
+		},
+
+		// "Mein Bereich" gibt es, sobald einer der beiden Inhalte (Beitrag, Auslagen) verfuegbar ist.
+		myAreaAvailable() {
+			return this.selfServiceAvailable || this.reimbursementAvailable
 		},
 
 		// Hilfe-Kapitel, das zum gerade aktiven Tab passt (HelpModal-Default)
@@ -1068,7 +1093,7 @@ export default {
 			if (this.showBooking) { query.booking = this.bookingForm.id || 'new' }
 
 			if (this.activeTab === 'bookings') {
-				const names = { unassigned: 'bookings-unassigned', openitems: 'bookings-open-items', rules: 'bookings-rules' }
+				const names = { unassigned: 'bookings-unassigned', openitems: 'bookings-open-items', rules: 'bookings-rules', reimbursements: 'bookings-reimbursements' }
 				return { name: names[this.bookingView] || 'bookings', query }
 			}
 			if (this.activeTab === 'invoices') {
@@ -1098,7 +1123,7 @@ export default {
 				return { name: contribNames[this.contribView] || 'contributions', query }
 			}
 			if (this.activeTab === 'self') {
-				return { name: 'self', query }
+				return { name: this.selfView === 'auslagen' ? 'self-reimbursements' : 'self', query }
 			}
 			return { name: 'dashboard', query }
 		},
@@ -1335,6 +1360,7 @@ export default {
 			if (tab === 'bookings' && this.bookingView !== meta.bookingView) { this.bookingView = meta.bookingView }
 			if (tab === 'reports' && this.reportView !== meta.reportView) { this.reportView = meta.reportView }
 			if (tab === 'contributions' && this.contribView !== meta.contribView) { this.contribView = meta.contribView }
+			if (tab === 'self' && this.selfView !== meta.selfView) { this.selfView = meta.selfView }
 
 			if (tab === 'invoices') {
 				const invoiceId = meta.hasInvoiceId ? Number(route.params.invoiceId) : null
@@ -2294,7 +2320,42 @@ export default {
 			this.invoiceRequest = { kind, n: this.invoiceRequest.n + 1 }
 		},
 
+		/**
+		 * Auszahlung einer freigegebenen Auslage (docs/reimbursement-design.md §7):
+		 * der normale Buchungsdialog, vorbelegt mit Betrag, Text und Beleg-Referenz.
+		 * Konto, Geldkonto und Kostenstelle waehlt, wer bucht. Nach dem Speichern
+		 * vermerkt saveBooking() die Ueberweisung am Antrag.
+		 *
+		 * @param {object} item die Auslage aus ReimbursementsPanel
+		 */
+		openBookingForReimbursement(item) {
+			this.openNewBooking()
+			const prefill = reimbursementBookingPrefill(item, new Date().toISOString().slice(0, 10))
+			Object.assign(this.bookingForm, prefill)
+			this.reimbursementPayment = item
+		},
+
+		/**
+		 * Vermerkt die Ueberweisung am Antrag, sobald die Buchung steht.
+		 *
+		 * @param {object} f das Buchungsformular (mit id der gespeicherten Buchung)
+		 * @return {Promise<boolean>} true, wenn nichts zu vermerken war oder der Vermerk gelungen ist; false lässt den Dialog offen
+		 */
+		async recordReimbursementPayout(f) {
+			if (!this.reimbursementPayment) { return true }
+			try {
+				await api.payReimbursement(this.reimbursementPayment.id, f.id, f.date)
+				this.reimbursementPayment = null
+				this.reimbursementsReloadKey++
+				return true
+			} catch (e) {
+				showError(this.tRaw('Die Buchung steht, aber die Auszahlung ließ sich am Antrag nicht vermerken: {reason}. Mit „Speichern“ versuchen Sie es erneut.', { reason: this.errMsg(e, this.t('unbekannter Fehler')) }))
+				return false
+			}
+		},
+
 		openNewBooking() {
+			this.reimbursementPayment = null
 			this.bookingAttachments = []
 			this.pendingFiles = []
 			this.bookingForm = this.emptyBookingForm()
@@ -2505,7 +2566,7 @@ export default {
 			}
 		},
 
-		closeBooking() { this.showBooking = false; this.bookingForm = this.emptyBookingForm(); this.bookingAttachments = []; this.pendingFiles = []; this.endTour() },
+		closeBooking() { this.reimbursementPayment = null; this.showBooking = false; this.bookingForm = this.emptyBookingForm(); this.bookingAttachments = []; this.pendingFiles = []; this.endTour() },
 		/**
 		 * Prueft das Formular und baut die Nutzlast der zweizeiligen Buchung.
 		 *
@@ -2588,6 +2649,10 @@ export default {
 						await this.loadJournal(); await this.loadBalances(); await this.loadPeriods(); await this.loadSphereReport(); await this.reloadStatement()
 						return
 					}
+					if (!await this.recordReimbursementPayout(f)) {
+						await this.loadJournal(); await this.loadBalances(); await this.loadPeriods(); await this.loadSphereReport(); await this.reloadStatement()
+						return
+					}
 				} else {
 					const { data } = await api.createBooking(payload)
 					// Ab hier existiert die Buchung: scheitert danach Kommentar oder
@@ -2602,6 +2667,13 @@ export default {
 						// Dateien lassen sich im offenen Dialog erneut hochladen.
 						this.bookingForm = { ...f }
 						await this.loadAttachments(data.id)
+						await this.loadJournal(); await this.loadBalances(); await this.loadPeriods(); await this.loadSphereReport(); await this.reloadStatement()
+						return
+					}
+					// Die Buchung steht: scheitert der Vermerk am Antrag, wird aus dem Anlegen das
+					// Bearbeiten dieser Buchung - ein weiterer Klick legt keine zweite an.
+					if (!await this.recordReimbursementPayout(f)) {
+						this.bookingForm = { ...f }
 						await this.loadJournal(); await this.loadBalances(); await this.loadPeriods(); await this.loadSphereReport(); await this.reloadStatement()
 						return
 					}

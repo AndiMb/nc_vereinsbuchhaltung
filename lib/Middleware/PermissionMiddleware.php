@@ -9,11 +9,13 @@ use OCA\Vereinsbuchhaltung\Controller\MandateConsentController;
 use OCA\Vereinsbuchhaltung\Controller\PageController;
 use OCA\Vereinsbuchhaltung\Controller\PermissionController;
 use OCA\Vereinsbuchhaltung\Controller\SelfController;
+use OCA\Vereinsbuchhaltung\Controller\SelfReimbursementController;
 use OCA\Vereinsbuchhaltung\Exception\ForbiddenException;
 use OCA\Vereinsbuchhaltung\Exception\PeriodClosedException;
 use OCA\Vereinsbuchhaltung\Exception\PeriodNotFoundException;
 use OCA\Vereinsbuchhaltung\Service\ActorContextService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
+use OCA\Vereinsbuchhaltung\Service\ReimbursementAccess;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
@@ -49,6 +51,7 @@ class PermissionMiddleware extends Middleware {
 	public function __construct(
 		private PermissionService $permissions,
 		private SelfServiceService $selfService,
+		private ReimbursementAccess $reimbursementAccess,
 		private ActorContextService $actorContext,
 		private IRequest $request,
 		private IL10N $l10n,
@@ -70,6 +73,10 @@ class PermissionMiddleware extends Middleware {
 		}
 		if ($controller instanceof SelfController) {
 			$this->authorizeSelfService();
+			return;
+		}
+		if ($controller instanceof SelfReimbursementController) {
+			$this->authorizeSelfReimbursement();
 			return;
 		}
 
@@ -118,6 +125,23 @@ class PermissionMiddleware extends Middleware {
 		$member = $this->selfService->isEnabled() ? $this->selfService->currentMember() : null;
 		if ($member === null) {
 			throw new ForbiddenException($this->l10n->t('Kein Self-Service-Zugang.'));
+		}
+		$this->actorContext->setMemberChannel($member->getId());
+	}
+
+	/**
+	 * Zugang zu den Auslagen als Mitglied (Sonderfall wie der SelfController):
+	 * keine vbh-Rolle, sondern Kontoverknüpfung und die Auslagen-Einstellung,
+	 * siehe {@see ReimbursementAccess}. Eigener Schalter - die Auslagen
+	 * hängen nicht an `self_service_enabled`. Die member_id landet im
+	 * {@see ActorContextService}; jede Abfrage des Controllers filtert darauf.
+	 *
+	 * @throws ForbiddenException wenn das Konto nicht verknüpft ist oder die Funktion aus ist
+	 */
+	private function authorizeSelfReimbursement(): void {
+		$member = $this->reimbursementAccess->currentMember();
+		if ($member === null) {
+			throw new ForbiddenException($this->l10n->t('Kein Zugang zur Auslagenerstattung.'));
 		}
 		$this->actorContext->setMemberChannel($member->getId());
 	}

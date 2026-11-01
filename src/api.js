@@ -389,7 +389,7 @@ export default {
 	linkAttachment: (journalId, fileId) => axios.post(url(`/journal/${journalId}/attachments/link`), { fileId }),
 
 	// Einstellungen (Belegablage)
-	getSettings: () => axios.get(url('/settings')),
+	getSettings: (params) => axios.get(url('/settings'), { params }),
 	saveSettings: (data) => axios.post(url('/settings'), data),
 	listFolders: (user, path) => axios.get(url('/settings/folders'), { params: { user, path } }),
 
@@ -397,6 +397,22 @@ export default {
 	logoUrl: () => generateUrl(base + '/settings/logo'),
 	uploadLogo: (formData) => axios.post(url('/settings/logo'), formData),
 	deleteLogo: () => axios.delete(url('/settings/logo')),
+
+	// Auslagenerstattung (docs/reimbursement-design.md). Mitglied: unter /self, ohne Rolle.
+	selfReimbursements: () => axios.get(url('/self/reimbursements')),
+	selfReimbursement: (id) => axios.get(url(`/self/reimbursements/${id}`)),
+	selfSubmitReimbursement: (formData) => axios.post(url('/self/reimbursements'), formData),
+	selfWithdrawReimbursement: (id) => axios.post(url(`/self/reimbursements/${id}/withdraw`)),
+	selfAddReimbursementReceipt: (id, formData) => axios.post(url(`/self/reimbursements/${id}/receipts`), formData),
+	selfRemoveReimbursementReceipt: (id, fileId) => axios.delete(url(`/self/reimbursements/${id}/receipts/${fileId}`)),
+	selfReimbursementReceiptUrl: (id, fileId) => generateUrl(`${base}/self/reimbursements/${id}/receipts/${fileId}/view`),
+	// Verwaltung (Buchungen -> Auslagen)
+	reimbursements: () => axios.get(url('/reimbursements')),
+	reimbursement: (id) => axios.get(url(`/reimbursements/${id}`)),
+	approveReimbursement: (id) => axios.post(url(`/reimbursements/${id}/approve`)),
+	rejectReimbursement: (id, reason) => axios.post(url(`/reimbursements/${id}/reject`), { reason }),
+	payReimbursement: (id, journalId, paidDate) => axios.post(url(`/reimbursements/${id}/pay`), { journalId, paidDate }),
+	reimbursementReceiptUrl: (id, fileId) => generateUrl(`${base}/reimbursements/${id}/receipts/${fileId}/view`),
 
 	// Berechtigungen
 	me: () => axios.get(url('/permissions/me')),

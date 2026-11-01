@@ -62,6 +62,12 @@
 			</NcSettingsSection>
 		</div>
 
+		<div id="settings-section_auslagen">
+			<NcSettingsSection :name="t('Auslagenerstattung')">
+				<SettingsReimbursements />
+			</NcSettingsSection>
+		</div>
+
 		<div id="settings-section_mandats-rechtstext">
 			<NcSettingsSection :name="t('Mandats-Rechtstext')">
 				<SettingsMandateLegalText :clubName="clubName" />
@@ -130,6 +136,7 @@ import SettingsInvoices from './components/SettingsInvoices.vue'
 import SettingsMandateLegalText from './components/SettingsMandateLegalText.vue'
 import SettingsPeriods from './components/SettingsPeriods.vue'
 import SettingsPermissions from './components/SettingsPermissions.vue'
+import SettingsReimbursements from './components/SettingsReimbursements.vue'
 import SettingsSepaBasics from './components/SettingsSepaBasics.vue'
 import SettingsSepaModule from './components/SettingsSepaModule.vue'
 import SettingsStatementWatch from './components/SettingsStatementWatch.vue'
@@ -165,6 +172,7 @@ export default {
 		SettingsClub,
 		SettingsDisplay,
 		SettingsInvoices,
+		SettingsReimbursements,
 		SettingsMandateLegalText,
 		SettingsPeriods,
 		SettingsPermissions,

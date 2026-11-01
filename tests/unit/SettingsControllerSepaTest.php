@@ -17,6 +17,7 @@ use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
 use OCA\Vereinsbuchhaltung\Service\MandateDocumentService;
 use OCA\Vereinsbuchhaltung\Service\MandateExpirySettings;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
+use OCA\Vereinsbuchhaltung\Service\ReimbursementSettings;
 use OCA\Vereinsbuchhaltung\Service\SepaDebtorAccountService;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\DataResponse;
@@ -81,6 +82,7 @@ class SettingsControllerSepaTest extends TestCase {
 			new DunningSettings($config),
 			new MandateExpirySettings($config),
 			new InvoiceSettings($config, new FolderPathValidator($l10n)),
+			$this->createMock(ReimbursementSettings::class),
 			$l10n,
 		);
 	}

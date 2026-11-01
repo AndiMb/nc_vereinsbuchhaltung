@@ -21,6 +21,9 @@ use OCA\Vereinsbuchhaltung\Db\InvoicePlanMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
+use OCA\Vereinsbuchhaltung\Db\ReimbursementEventMapper;
+use OCA\Vereinsbuchhaltung\Db\ReimbursementFileMapper;
+use OCA\Vereinsbuchhaltung\Db\ReimbursementMapper;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceDocumentStorage;
@@ -58,6 +61,9 @@ class ResetService {
 		private InvoiceDunningMapper $invoiceDunningMapper,
 		private InvoiceItemTemplateMapper $invoiceTemplateMapper,
 		private InvoicePlanMapper $invoicePlanMapper,
+		private ReimbursementMapper $reimbursementMapper,
+		private ReimbursementEventMapper $reimbursementEventMapper,
+		private ReimbursementFileMapper $reimbursementFileMapper,
 	) {
 	}
 
@@ -86,6 +92,7 @@ class ResetService {
 		// danach ist die Zuordnung weg.
 		$attachments = $this->attachmentMapper->findAllForUser($userId);
 		$invoiceDocuments = $this->invoiceStorage->all();
+		$reimbursementFiles = $this->reimbursementFileMapper->findAll();
 
 		$this->transaction->run(function () use ($userId): void {
 			$this->attachmentMapper->deleteAllForUser($userId);
@@ -124,6 +131,11 @@ class ResetService {
 			$this->invoiceDocumentMapper->deleteAll();
 			$this->invoiceLineMapper->deleteAll();
 			$this->invoiceMapper->deleteAll();
+			// Auslagenanträge verweisen auf Buchungen und offene Posten, die hier verschwinden, und
+			// tragen IBANs: sie gehen samt Historie und Belegen mit. Mitglieder bleiben.
+			$this->reimbursementEventMapper->deleteAll();
+			$this->reimbursementFileMapper->deleteAll();
+			$this->reimbursementMapper->deleteAll();
 			// Offene Posten enthalten Namen von Mitgliedern und Forderungsbeträge –
 			// sie müssen beim Zurücksetzen mit verschwinden, sonst bleiben
 			// personenbezogene Daten mit Verweisen auf gelöschte Konten zurück.
@@ -147,6 +159,7 @@ class ResetService {
 		});
 
 		$this->storageService->deleteAllFiles($attachments);
+		$this->storageService->deleteAllReimbursementFiles($reimbursementFiles);
 		$this->invoiceStorage->deleteFiles($invoiceDocuments);
 	}
 }

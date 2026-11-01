@@ -11,6 +11,8 @@ const state = reactive({
 const canRead = computed(() => !!(state.me && state.me.canRead))
 const canWrite = computed(() => !!(state.me && state.me.canWrite))
 const isAdmin = computed(() => !!(state.me && state.me.isAdmin))
+// Auslagenerstattung: die Verwaltungssicht unter „Buchungen“ gibt es, solange die Funktion an ist oder Anträge bestehen.
+const reimbursementsStaffVisible = computed(() => !!(state.me && state.me.reimbursement && state.me.reimbursement.staffVisible))
 
 async function loadMe() {
 	try {
@@ -23,5 +25,5 @@ async function loadMe() {
 }
 
 export function useAuth() {
-	return { state, canRead, canWrite, isAdmin, loadMe }
+	return { state, canRead, canWrite, isAdmin, reimbursementsStaffVisible, loadMe }
 }

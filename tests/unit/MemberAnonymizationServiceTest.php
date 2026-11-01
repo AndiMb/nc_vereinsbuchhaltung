@@ -20,6 +20,8 @@ use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
+use OCA\Vereinsbuchhaltung\Db\Reimbursement;
+use OCA\Vereinsbuchhaltung\Db\ReimbursementMapper;
 use OCA\Vereinsbuchhaltung\Db\ReturnedDebit;
 use OCA\Vereinsbuchhaltung\Db\ReturnedDebitMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
@@ -51,6 +53,7 @@ class MemberAnonymizationServiceTest extends TestCase {
 	private OpenItemMapper&MockObject $openItems;
 	private DebitItemMapper&MockObject $debitItems;
 	private ReturnedDebitMapper&MockObject $returnedDebits;
+	private ReimbursementMapper&MockObject $reimbursements;
 	private MandateDocumentService&MockObject $mandateDocuments;
 	private AnonymizationCandidateService&MockObject $eligibility;
 
@@ -64,6 +67,7 @@ class MemberAnonymizationServiceTest extends TestCase {
 		$this->openItems = $this->createMock(OpenItemMapper::class);
 		$this->debitItems = $this->createMock(DebitItemMapper::class);
 		$this->returnedDebits = $this->createMock(ReturnedDebitMapper::class);
+		$this->reimbursements = $this->createMock(ReimbursementMapper::class);
 		$this->mandateDocuments = $this->createMock(MandateDocumentService::class);
 		$this->eligibility = $this->createMock(AnonymizationCandidateService::class);
 
@@ -78,7 +82,7 @@ class MemberAnonymizationServiceTest extends TestCase {
 
 		// update()/insert() geben in der echten QBMapper-Implementierung das
 		// Entity zurueck - hier reicht "gibt weiter, was reinkam".
-		foreach ([$this->members, $this->mandates, $this->amendments, $this->mandateEvents, $this->assignments, $this->assignmentEvents, $this->openItems, $this->debitItems, $this->returnedDebits] as $mapper) {
+		foreach ([$this->members, $this->mandates, $this->amendments, $this->mandateEvents, $this->assignments, $this->assignmentEvents, $this->openItems, $this->debitItems, $this->returnedDebits, $this->reimbursements] as $mapper) {
 			$mapper->method('update')->willReturnArgument(0);
 		}
 
@@ -108,6 +112,7 @@ class MemberAnonymizationServiceTest extends TestCase {
 			$this->openItems,
 			$this->debitItems,
 			$this->returnedDebits,
+			$this->reimbursements,
 			$this->mandateDocuments,
 			$this->eligibility,
 			$transaction,
@@ -390,6 +395,30 @@ class MemberAnonymizationServiceTest extends TestCase {
 		$this->assertSame('2018-01-31', $item->getDueDate());
 		$this->assertSame('paid', $item->getStatus());
 		$this->assertSame('Beitrag 2018', $item->getDescription());
+	}
+
+	public function testSchwaertDieErstattungsIbanUndDenNamenImOffenenPosten(): void {
+		$this->members->method('find')->willReturn($this->member());
+		$reimbursement = new Reimbursement();
+		$reimbursement->setId(7);
+		$reimbursement->setMemberId(42);
+		$reimbursement->setIban('DE89370400440532013000');
+		$reimbursement->setOpenItemId(77);
+		$reimbursement->setAmountCents(1250);
+		$reimbursement->setPurpose('Material');
+		$item = new OpenItem();
+		$item->setId(77);
+		$item->setDebtor('Katrin Brunner');
+		$this->reimbursements->method('findByMember')->with(42)->willReturn([$reimbursement]);
+		$this->openItems->method('find')->with(77)->willReturn($item);
+
+		$this->service()->anonymize(42);
+
+		$this->assertSame('', $reimbursement->getIban());
+		$this->assertSame(Member::REDACTED_DISPLAY_NAME, $item->getDebtor());
+		// Beleg bleibt: Betrag und Zweck sind Buchungsinhalt, keine Personendaten.
+		$this->assertSame(1250, $reimbursement->getAmountCents());
+		$this->assertSame('Material', $reimbursement->getPurpose());
 	}
 
 	public function testUeberspringtForderungOhnePersonenbezogeneFreitexte(): void {

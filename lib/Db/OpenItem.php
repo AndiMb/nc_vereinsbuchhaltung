@@ -82,6 +82,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setReference(?string $reference)
  * @method int getSettledCents()
  * @method void setSettledCents(int $settledCents)
+ * @method int|null getReimbursementId()
+ * @method void setReimbursementId(?int $reimbursementId)
  */
 class OpenItem extends Entity implements \JsonSerializable {
 	protected $debtor;
@@ -116,6 +118,9 @@ class OpenItem extends Entity implements \JsonSerializable {
 	protected $reference;
 	protected $settledCents = 0;
 
+	// Additiv seit Migration 000168 (Auslagenerstattung, docs/reimbursement-design.md).
+	protected $reimbursementId;
+
 	/**
 	 * Vierter Wert `waived` seit Issue #68 – bewusst weiterhin englisch: die
 	 * drei Bestandswerte stammen aus der Zeit vor der Eindeutschungsregel
@@ -138,6 +143,16 @@ class OpenItem extends Entity implements \JsonSerializable {
 		$this->addType('assignmentId', 'integer');
 		$this->addType('invoiceId', 'integer');
 		$this->addType('settledCents', 'integer');
+		$this->addType('reimbursementId', 'integer');
+	}
+
+	/**
+	 * Gehört der Posten zu einem Auslagenantrag? Dann verwaltet der
+	 * ReimbursementService Status und Auszahlung; die generischen Wege des
+	 * OpenItemService lehnen ihn ab.
+	 */
+	public function belongsToReimbursement(): bool {
+		return $this->reimbursementId !== null;
 	}
 
 	public function isOverdue(): bool {
@@ -206,6 +221,7 @@ class OpenItem extends Entity implements \JsonSerializable {
 			'invoiceId' => $this->invoiceId,
 			'reference' => $this->reference,
 			'settledCents' => $this->settledCents,
+			'reimbursementId' => $this->reimbursementId,
 			'remainingCents' => $this->remainingCents(),
 		];
 	}

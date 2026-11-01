@@ -12,7 +12,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 export const AUTH_DIR = join(__dirname, '..', '.auth')
 export const FIXTURES_DIR = join(__dirname, '..', '..', 'fixtures')
 
-export const BASE_URL = process.env.NEXTCLOUD_URL || 'http://localhost:8080'
+export const BASE_URL = process.env.NEXTCLOUD_URL || `http://localhost:${process.env.E2E_PORT || 8080}`
 // App-POSTs brauchen /index.php, sonst antwortet der Server mit Umleitungen.
 const API = `${BASE_URL}/index.php/apps/vereinsbuchhaltung/api`
 
@@ -819,6 +819,52 @@ export const api = {
 	/** Die eigenen Rücklastschriften im Klartext, neueste zuerst (Self-Service-Kanal, Issue #122). */
 	async selfReturnedDebits(request, { user, expectOk = true } = {}) {
 		return (await call(request, 'GET', '/self/returned-debits', { user, expectOk })).json()
+	},
+
+	// --- Auslagenerstattung (docs/reimbursement-design.md) ----------------------
+
+	/**
+	 * Reicht eine Auslage als Mitglied ein (multipart wie die Oberfläche). `user` ist das
+	 * Nextcloud-Konto des verknüpften Mitglieds.
+	 */
+	async submitReimbursement(request, { user, amount = '12.50', expenseDate = '2026-10-15', purpose = 'Material Jugendfreizeit', iban = 'DE89370400440532013000', fileName = 'beleg.png', file = BELEG_PNG, expectOk = true } = {}) {
+		return call(request, 'POST', '/self/reimbursements', {
+			user,
+			expectOk,
+			multipart: { amount, expenseDate, purpose, iban, 'files[]': { name: fileName, mimeType: 'image/png', buffer: file } },
+		})
+	},
+
+	async selfReimbursements(request, { user, expectOk = true } = {}) {
+		return call(request, 'GET', '/self/reimbursements', { user, expectOk })
+	},
+
+	async selfReimbursement(request, id, { user, expectOk = true } = {}) {
+		return call(request, 'GET', `/self/reimbursements/${id}`, { user, expectOk })
+	},
+
+	async selfWithdrawReimbursement(request, id, { user, expectOk = true } = {}) {
+		return call(request, 'POST', `/self/reimbursements/${id}/withdraw`, { user, expectOk })
+	},
+
+	async listReimbursements(request, { user = 'admin', expectOk = true } = {}) {
+		return call(request, 'GET', '/reimbursements', { user, expectOk })
+	},
+
+	async getReimbursement(request, id, { user = 'admin', expectOk = true } = {}) {
+		return call(request, 'GET', `/reimbursements/${id}`, { user, expectOk })
+	},
+
+	async approveReimbursement(request, id, { user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', `/reimbursements/${id}/approve`, { user, expectOk })
+	},
+
+	async rejectReimbursement(request, id, reason, { user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', `/reimbursements/${id}/reject`, { user, expectOk, data: { reason } })
+	},
+
+	async payReimbursement(request, id, journalId, paidDate, { user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', `/reimbursements/${id}/pay`, { user, expectOk, data: { journalId, paidDate } })
 	},
 
 	/** Roher Zugriff für Spezialfälle; expectOk standardmäßig aus. */

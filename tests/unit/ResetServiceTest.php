@@ -26,6 +26,9 @@ use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\MandateAmendmentMapper;
 use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
+use OCA\Vereinsbuchhaltung\Db\ReimbursementEventMapper;
+use OCA\Vereinsbuchhaltung\Db\ReimbursementFileMapper;
+use OCA\Vereinsbuchhaltung\Db\ReimbursementMapper;
 use OCA\Vereinsbuchhaltung\Db\ReturnedDebitMapper;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
@@ -96,6 +99,9 @@ class ResetServiceTest extends TestCase {
 		'vbh_invoice_plans',
 		'vbh_invoice_templates',
 		'vbh_invoice_dunnings',
+		'vbh_reimbursements',
+		'vbh_reimbursement_events',
+		'vbh_reimbursement_files',
 	];
 
 	/**
@@ -267,6 +273,14 @@ class ResetServiceTest extends TestCase {
 			->getMock();
 		$attachments->method('findAllForUser')->willReturn([]);
 
+		// Gelesen wird vor dem Löschen (die Dateien müssen danach noch bekannt sein); der Mock der
+		// Datenbank liefert keine Zeilen, also steht die Antwort hier.
+		$reimbursementFiles = $this->getMockBuilder(ReimbursementFileMapper::class)
+			->setConstructorArgs([$this->db])
+			->onlyMethods(['findAll'])
+			->getMock();
+		$reimbursementFiles->method('findAll')->willReturn([]);
+
 		return new ResetService(
 			$transaction,
 			$this->journalLines(),
@@ -303,6 +317,9 @@ class ResetServiceTest extends TestCase {
 			new InvoiceDunningMapper($this->db),
 			new InvoiceItemTemplateMapper($this->db),
 			new InvoicePlanMapper($this->db),
+			new ReimbursementMapper($this->db, $this->cipher),
+			new ReimbursementEventMapper($this->db),
+			$reimbursementFiles,
 		);
 	}
 

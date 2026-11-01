@@ -72,7 +72,7 @@ test.describe('Self-Service: Mandats-Aktionskatalog (Issue #75)', () => {
 		await linkFreshMember(request, { memberType: 'person', firstName: 'Nora', lastName: 'Fischer', email: 'nora.fischer@example.org' })
 
 		await openApp(page, USERS.ohneRolle)
-		await tabButton(page, 'Mein Beitrag').click()
+		await tabButton(page, 'Mein Bereich').click()
 		const section = visibleSection(page)
 
 		await expect(section.getByText('Kein Mandat hinterlegt.')).toBeVisible()
@@ -107,7 +107,7 @@ test.describe('Self-Service: Mandats-Aktionskatalog (Issue #75)', () => {
 		await activePaperMandate(request, memberId, 'DE12500105170648489890', 'Otto Weber')
 
 		await openApp(page, USERS.ohneRolle)
-		await tabButton(page, 'Mein Beitrag').click()
+		await tabButton(page, 'Mein Bereich').click()
 		const section = visibleSection(page)
 		await expect(section.getByText('Aktiv')).toBeVisible()
 
@@ -138,7 +138,7 @@ test.describe('Self-Service: Mandats-Aktionskatalog (Issue #75)', () => {
 		await activePaperMandate(request, memberId, 'DE44500105175407324931', 'Petra Klein')
 
 		await openApp(page, USERS.ohneRolle)
-		await tabButton(page, 'Mein Beitrag').click()
+		await tabButton(page, 'Mein Bereich').click()
 		const section = visibleSection(page)
 
 		await section.getByRole('button', { name: 'Mandat widerrufen' }).click()

@@ -101,7 +101,7 @@ test.describe('DSGVO: Datenübersicht & Anonymisierung', () => {
 
 		try {
 			await openApp(page, USERS.ohneRolle)
-			const tab = tabButton(page, 'Mein Beitrag')
+			const tab = tabButton(page, 'Mein Bereich')
 			await expect(tab).toBeVisible()
 			await tab.click()
 

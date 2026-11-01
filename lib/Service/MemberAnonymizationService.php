@@ -14,6 +14,7 @@ use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
+use OCA\Vereinsbuchhaltung\Db\ReimbursementMapper;
 use OCA\Vereinsbuchhaltung\Db\ReturnedDebitMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -66,6 +67,13 @@ use OCP\IL10N;
  *   {@see \OCA\Vereinsbuchhaltung\Service\ClaimGenerationService}) auf
  *   {@see Member::REDACTED_DISPLAY_NAME}, sowie `settlementNote`/
  *   `deferredReason`/`cancelledReason`.
+ * - {@see \OCA\Vereinsbuchhaltung\Db\Reimbursement} (Auslagenanträge, docs/
+ *   reimbursement-design.md §11): die Erstattungs-`iban` (Chiffrat) wird
+ *   geleert und der `debtor` des zugehörigen offenen Postens auf
+ *   {@see Member::REDACTED_DISPLAY_NAME} gesetzt. Antrag, Betrag, Zweck,
+ *   Status und Historie bleiben als Buchungsbeleg stehen. Solange ein Antrag
+ *   noch nicht abgeschlossen ist, ist das Mitglied nicht anonymisierungsreif
+ *   ({@see AnonymizationCandidateService::statusFor()}).
  * - {@see \OCA\Vereinsbuchhaltung\Db\Assignment} (Zuweisungen des Mitglieds,
  *   Issue #68): `overrideReason` (schon heute im Self-Service explizit
  *   ausgeblendet, siehe {@see \OCA\Vereinsbuchhaltung\Controller\SelfController::assignmentData()}).
@@ -98,6 +106,7 @@ class MemberAnonymizationService {
 		private OpenItemMapper $openItems,
 		private DebitItemMapper $debitItems,
 		private ReturnedDebitMapper $returnedDebits,
+		private ReimbursementMapper $reimbursements,
 		private MandateDocumentService $mandateDocuments,
 		private AnonymizationCandidateService $eligibility,
 		private TransactionRunner $transaction,
@@ -125,6 +134,7 @@ class MemberAnonymizationService {
 			$now = $this->now();
 			$this->redactMandates($memberId, $now);
 			$this->redactClaims($memberId);
+			$this->redactReimbursements($memberId);
 			$this->redactAssignments($memberId);
 			$this->redactMember($member, $now);
 
@@ -249,6 +259,33 @@ class MemberAnonymizationService {
 				$changed = true;
 			}
 			if ($changed) {
+				$this->openItems->update($item);
+			}
+		}
+	}
+
+	/**
+	 * Die Erstattungs-IBAN ist reine Bankverbindung des Mitglieds und wird
+	 * geleert; den Namen im offenen Posten (er trägt `memberId` nicht, siehe
+	 * {@see \OCA\Vereinsbuchhaltung\Db\OpenItem::belongsToReimbursement()}) holt der
+	 * Verweis des Antrags.
+	 */
+	private function redactReimbursements(int $memberId): void {
+		foreach ($this->reimbursements->findByMember($memberId) as $reimbursement) {
+			if ($reimbursement->getIban() !== '') {
+				$reimbursement->setIban('');
+				$this->reimbursements->update($reimbursement);
+			}
+			if ($reimbursement->getOpenItemId() === null) {
+				continue;
+			}
+			try {
+				$item = $this->openItems->find($reimbursement->getOpenItemId());
+			} catch (DoesNotExistException) {
+				continue;
+			}
+			if ($item->getDebtor() !== Member::REDACTED_DISPLAY_NAME) {
+				$item->setDebtor(Member::REDACTED_DISPLAY_NAME);
 				$this->openItems->update($item);
 			}
 		}

@@ -156,6 +156,10 @@ class OpenItemService {
 		if ($item->belongsToClaimModule()) {
 			throw new ClaimManagedException($message);
 		}
+		if ($item->belongsToReimbursement()) {
+			// Genehmigte Auslage: Auszahlung und Änderungen laufen über den Antrag.
+			throw new ClaimManagedException($this->l10n->t('Dieser Posten gehört zu einer Auslagenerstattung. Auszahlung und Änderungen laufen im Reiter „Auslagen“.'));
+		}
 		if ($item->belongsToInvoice()) {
 			// Rechnungsposten gehören dem Rechnungsmodul: Zahlungen, Storno und
 			// Statuswechsel laufen über die Rechnung.

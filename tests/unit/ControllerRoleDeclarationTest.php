@@ -56,6 +56,7 @@ class ControllerRoleDeclarationTest extends TestCase {
 		'MemberController',
 		'MemberImportController',
 		'NextcloudAccountController',
+		'ReimbursementController',
 		'SepaImportController',
 		'SettingsController',
 		'TaskController',
@@ -87,6 +88,7 @@ class ControllerRoleDeclarationTest extends TestCase {
 	 */
 	private const EXEMPT_CONTROLLERS = [
 		'SelfController' => 'Self-Service unter /api/self/* (Spec §3.4): Zugang über Kontoverknüpfung und `self_service_enabled`, keine Rolle – zentral in PermissionMiddleware::authorizeSelfService().',
+		'SelfReimbursementController' => 'Auslagenerstattung des Mitglieds unter /api/self/reimbursements (docs/reimbursement-design.md): Zugang über Kontoverknüpfung und `reimbursement_enabled`, keine Rolle – zentral in PermissionMiddleware::authorizeSelfReimbursement().',
 		'MandateConsentController' => 'Öffentliche, login-lose Zustimmungsseite des Einmal-Links (Spec §2.2, Issue #67): die Absicherung ist der kryptographisch geprüfte Token; die Middleware überspringt den Controller.',
 	];
 

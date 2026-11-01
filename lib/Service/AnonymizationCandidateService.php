@@ -11,6 +11,7 @@ use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
+use OCA\Vereinsbuchhaltung\Db\ReimbursementMapper;
 use OCA\Vereinsbuchhaltung\Db\ReturnedDebitMapper;
 use OCA\Vereinsbuchhaltung\Db\Task;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -63,6 +64,7 @@ class AnonymizationCandidateService {
 		private MandateMapper $mandates,
 		private DebitItemMapper $debitItems,
 		private ReturnedDebitMapper $returnedDebits,
+		private ReimbursementMapper $reimbursements,
 		private JournalMapper $journals,
 		private ITimeFactory $time,
 		private IL10N $l10n,
@@ -78,6 +80,16 @@ class AnonymizationCandidateService {
 		foreach ($this->openItems->findByMember($memberId) as $item) {
 			if ($item->getPaidJournalId() !== null) {
 				$date = $this->journalDate((int)$item->getPaidJournalId());
+				if ($date !== null) {
+					$dates[] = $date;
+				}
+			}
+		}
+		// Die Auszahlung einer Auslage ist eine Buchung des Mitglieds, auch wenn der offene Posten
+		// (anders als eine Forderung) keine memberId trägt.
+		foreach ($this->reimbursements->findByMember($memberId) as $reimbursement) {
+			if ($reimbursement->getJournalId() !== null) {
+				$date = $this->journalDate($reimbursement->getJournalId());
 				if ($date !== null) {
 					$dates[] = $date;
 				}
@@ -120,7 +132,9 @@ class AnonymizationCandidateService {
 			&& !$member->isActive()
 			&& $lastBooking !== null
 			&& AnonymizationEligibilityCalculator::isEligible($lastBooking, $this->today())
-			&& $this->noLiveMandate($memberId);
+			&& $this->noLiveMandate($memberId)
+			// Ein unerledigter Auslagenantrag braucht noch Name und IBAN (Design §11).
+			&& $this->reimbursements->countPendingByMember($memberId) === 0;
 
 		return [
 			'lastBookingDate' => $lastBooking,

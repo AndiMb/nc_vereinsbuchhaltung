@@ -173,7 +173,7 @@ test.describe('Übersetzungen (Issue #106)', () => {
 		await relink(request, USERS.englisch, member)
 
 		await openApp(page, USERS.englisch)
-		await tabButton(page, 'My contribution').click()
+		await tabButton(page, 'My area').click()
 		const section = visibleSection(page)
 
 		for (const heading of ['My details', 'My contribution', 'My SEPA direct debit mandate', 'Returned direct debits', 'My contribution confirmation', 'My data']) {
@@ -235,7 +235,7 @@ test.describe('Übersetzungen (Issue #106)', () => {
 
 		const openOwnArea = async () => {
 			await openApp(page, USERS.ohneRolle)
-			await tabButton(page, 'Mein Beitrag').click()
+			await tabButton(page, 'Mein Bereich').click()
 			return visibleSection(page)
 		}
 

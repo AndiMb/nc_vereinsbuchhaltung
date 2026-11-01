@@ -97,7 +97,7 @@ function mandateCard(page) {
 
 async function openMeinBeitrag(page) {
 	await openApp(page, USERS.ohneRolle)
-	await switchTab(page, 'Mein Beitrag')
+	await switchTab(page, 'Mein Bereich')
 	const card = mandateCard(page)
 	await expect(card.getByRole('heading', { name: 'Rücklastschriften', exact: true })).toBeVisible()
 	return card

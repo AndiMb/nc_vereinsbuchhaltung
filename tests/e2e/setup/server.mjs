@@ -55,7 +55,8 @@ async function main() {
 		// im CI. Der zweite Parameter mountet das App-Verzeichnis (die App-ID
 		// kommt aus appinfo/info.xml, der Ordnername spielt keine Rolle).
 		const ip = await startNextcloud('stable34', true, {
-			exposePort: 8080,
+			// E2E_PORT: nebenher läuft oft schon ein Testserver einer anderen Arbeitskopie auf 8080.
+			exposePort: Number(process.env.E2E_PORT || 8080),
 			forceRecreate: true,
 		})
 		console.log(`Container läuft mit IP ${ip}`)
