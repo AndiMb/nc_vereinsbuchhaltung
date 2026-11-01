@@ -20,6 +20,7 @@ use OCA\Vereinsbuchhaltung\Service\MandateExpirySettings;
 use OCA\Vereinsbuchhaltung\Service\MandateReferenceGenerator;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
+use OCA\Vereinsbuchhaltung\Service\ReimbursementSettings;
 use OCA\Vereinsbuchhaltung\Service\ReportService;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceService;
 use OCA\Vereinsbuchhaltung\Service\SepaDebtorAccountService;
@@ -65,6 +66,7 @@ class SettingsController extends Controller {
 		private DunningSettings $dunningSettings,
 		private MandateExpirySettings $mandateExpirySettings,
 		private InvoiceSettings $invoiceSettings,
+		private ReimbursementSettings $reimbursementSettings,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -189,13 +191,23 @@ class SettingsController extends Controller {
 			'self_service_enabled' => $this->config->getAppValue(Application::APP_ID, SelfServiceService::SETTING_ENABLED, '0') === '1',
 			// Zusatzschalter, siehe SelfServiceService::canSwitchToTransfer(). Standard aus.
 			'self_service_transfer_switch_enabled' => $this->config->getAppValue(Application::APP_ID, SelfServiceService::SETTING_TRANSFER_SWITCH, '0') === '1',
+			// Auslagenerstattung (docs/reimbursement-design.md §2): Schalter, nötige Freigaben N
+			// und die Zahl der Verwalter, die zur Wahl von N passen muss (N+1).
+			'reimbursement_enabled' => $this->reimbursementSettings->isEnabled(),
+			'reimbursement_required_approvals' => $this->reimbursementSettings->requiredApprovals(),
 		] + $this->invoiceSettings->all();
 	}
 
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_READ)]
 	public function index(): DataResponse {
-		return new DataResponse($this->currentSettings());
+		$settings = $this->currentSettings();
+		// Die Zahl der Verwalter zählt Gruppenmitglieder durch: nur die Einstellungsseite der
+		// Auslagen fragt danach, nicht jeder Seitenaufruf der App.
+		if ($this->request->getParam('withApprovers') === '1') {
+			$settings['reimbursement_approver_count'] = count($this->reimbursementSettings->approverUids());
+		}
+		return new DataResponse($settings);
 	}
 
 	/**
@@ -455,6 +467,22 @@ class SettingsController extends Controller {
 		if (array_key_exists('self_service_transfer_switch_enabled', $params)) {
 			$transferSwitchEnabled = (string)$params['self_service_transfer_switch_enabled'] === '1';
 			$this->config->setAppValue($appId, SelfServiceService::SETTING_TRANSFER_SWITCH, $transferSwitchEnabled ? '1' : '0');
+		}
+
+		// Auslagenerstattung: Schalter und N hängen zusammen (beim Einschalten muss der Kreis der
+		// Verwalter für N+1 reichen), deshalb werden sie gemeinsam gespeichert.
+		if (array_key_exists('reimbursement_enabled', $params) || array_key_exists('reimbursement_required_approvals', $params)) {
+			$reimbursementEnabled = array_key_exists('reimbursement_enabled', $params)
+				? (string)$params['reimbursement_enabled'] === '1'
+				: $this->reimbursementSettings->isEnabled();
+			$reimbursementRequired = array_key_exists('reimbursement_required_approvals', $params)
+				? (int)$params['reimbursement_required_approvals']
+				: $this->reimbursementSettings->requiredApprovals();
+			try {
+				$this->reimbursementSettings->save($reimbursementEnabled, $reimbursementRequired);
+			} catch (\InvalidArgumentException $e) {
+				return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+			}
 		}
 
 		// Rechnungsmodul (Epic #168): Ausstellerangaben und Vorgaben. Das

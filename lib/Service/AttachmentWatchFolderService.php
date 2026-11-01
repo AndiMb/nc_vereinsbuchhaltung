@@ -8,6 +8,7 @@ use OCA\Vereinsbuchhaltung\Db\Attachment;
 use OCA\Vereinsbuchhaltung\Db\AttachmentMapper;
 use OCA\Vereinsbuchhaltung\Db\Journal;
 use OCA\Vereinsbuchhaltung\Db\ReceiptHashMapper;
+use OCA\Vereinsbuchhaltung\Db\ReimbursementFileMapper;
 use OCP\Files\File;
 use OCP\Files\Folder;
 use OCP\Files\IRootFolder;
@@ -51,6 +52,7 @@ class AttachmentWatchFolderService {
 		private IRootFolder $rootFolder,
 		private IL10N $l10n,
 		private ReceiptHashMapper $hashes,
+		private ReimbursementFileMapper $reimbursementFiles,
 	) {
 	}
 
@@ -186,8 +188,16 @@ class AttachmentWatchFolderService {
 		foreach ($linked as $attachment) {
 			$journalsByFile[(int)$attachment->getFileId()][] = $attachment->getJournalId();
 		}
+		// Dateien von Auslagenanträgen gehören nicht in den Eingangskorb: sie hängen an
+		// einem Antrag, nicht an einer Buchung, und niemand soll sie versehentlich einer
+		// fremden Buchung zuordnen oder verschieben. Bei der Auszahlung werden sie
+		// automatisch mit der Buchung verknüpft.
+		$reimbursementFileIds = $this->reimbursementFiles->reimbursementIdsByFileIds(array_column($scan['files'], 'fileId'));
 		$files = [];
 		foreach ($scan['files'] as $file) {
+			if (isset($reimbursementFileIds[$file['fileId']])) {
+				continue;
+			}
 			$file['journalIds'] = $journalsByFile[$file['fileId']] ?? [];
 			$files[] = $file;
 		}
@@ -470,6 +480,10 @@ class AttachmentWatchFolderService {
 		foreach ($this->attachmentMapper->findLinked($userId) as $attachment) {
 			$linked[(int)$attachment->getFileId()] = true;
 		}
+		// Dateien von Auslagenanträgen bleiben, wo sie sind: „zugeordnet“, nur eben zu einem Antrag.
+		foreach (array_keys($this->reimbursementFiles->reimbursementIdsByFileIds($fileIds)) as $reimbursementFileId) {
+			$linked[$reimbursementFileId] = true;
+		}
 		$moved = [];
 		$skipped = [];
 		foreach ($fileIds as $fileId) {
@@ -531,6 +545,9 @@ class AttachmentWatchFolderService {
 	/** @throws \RuntimeException wenn die Datei nicht im Ordner liegt, kein Beleg-Typ ist oder schon an der Buchung hängt */
 	public function link(string $userId, int $journalId, int $fileId): Attachment {
 		$node = $this->fileInFolder($fileId);
+		if ($this->reimbursementFiles->reimbursementIdsByFileIds([$fileId]) !== []) {
+			throw new \RuntimeException($this->l10n->t('Diese Datei gehört zu einem Auslagenantrag und wird bei der Auszahlung automatisch mit der Buchung verknüpft.'));
+		}
 		foreach ($this->attachmentMapper->findByJournal($journalId, $userId) as $existing) {
 			if ((int)$existing->getFileId() === $fileId) {
 				throw new \RuntimeException($this->l10n->t('Diese Datei hängt bereits an der Buchung.'));

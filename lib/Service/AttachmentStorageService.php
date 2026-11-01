@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Service;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Attachment;
 use OCA\Vereinsbuchhaltung\Db\AttachmentMapper;
+use OCA\Vereinsbuchhaltung\Db\ReimbursementFile;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCP\Files\AppData\IAppDataFactory;
 use OCP\Files\File;
@@ -424,6 +425,158 @@ class AttachmentStorageService {
 			throw new \RuntimeException($this->l10n->t('Beleg-Datei konnte nicht geöffnet werden.'));
 		}
 		return $stream;
+	}
+
+	// --- Belege von Auslagenanträgen -----------------------------------------
+
+	/**
+	 * Legt die Datei eines Auslagenantrags ab, solange noch keine Buchung
+	 * existiert. Im Wächter-Ordner wie jeder Upload unter <Ordner>/<Jahr>/
+	 * (und die Zeile verweist danach auf die Datei), sonst unter
+	 * <Ablage>/reimbursements/<Antrag>/ bzw. in der app-internen Ablage.
+	 *
+	 * @param int $year Ausgabejahr, bestimmt den Jahresordner im Wächter-Ordner
+	 */
+	public function storeReimbursementFile(ReimbursementFile $file, int $year, string $content): void {
+		if ($this->isWatchMode()) {
+			$node = $this->putWatchFile($year, $file->getFileName(), $content);
+			$file->setFileName($node->getName());
+			$file->setFileId($node->getId());
+			$file->setFileOwner($this->storageUser());
+			return;
+		}
+		if ($this->isNcMode()) {
+			$folder = $this->ensureFolder($this->userFolder($this->storageUser()), $this->reimbursementFolderPath($file->getReimbursementId()));
+			$folder->newFile($this->ncFileName($file->getId(), $file->getFileName()))->putContent($content);
+			return;
+		}
+		$this->reimbursementAppDataFolder()->newFile((string)$file->getId())->putContent($content);
+	}
+
+	/** @throws \RuntimeException wenn die Datei nicht (mehr) auffindbar ist */
+	public function reimbursementContent(ReimbursementFile $file): string {
+		if ($file->getFileId() !== null) {
+			$node = $this->reimbursementNode($file);
+			if ($node === null) {
+				throw new \RuntimeException($this->l10n->t('Die Datei zu diesem Beleg wurde nicht gefunden.'));
+			}
+			return $node->getContent();
+		}
+		try {
+			if ($this->isNcMode()) {
+				$path = $this->reimbursementFolderPath($file->getReimbursementId()) . '/' . $this->ncFileName($file->getId(), $file->getFileName());
+				$userFolder = $this->userFolder($this->storageUser());
+				if ($userFolder->nodeExists($path)) {
+					$node = $userFolder->get($path);
+					if ($node instanceof File) {
+						return $node->getContent();
+					}
+				}
+			}
+			// Nicht im Nutzerordner: ein Beleg aus der Zeit vor einem Wechsel der Ablage.
+			return $this->reimbursementAppDataFolder()->getFile((string)$file->getId())->getContent();
+		} catch (\Throwable) {
+			throw new \RuntimeException($this->l10n->t('Die Datei zu diesem Beleg wurde nicht gefunden.'));
+		}
+	}
+
+	/**
+	 * Die Datei eines Antrags im Dateibaum – null, wenn sie fehlt. Im
+	 * Wächter-Modus zählt nur, was im Wächter-Ordner liegt, wie bei
+	 * {@see nodeOrNull()}.
+	 */
+	public function reimbursementNode(ReimbursementFile $file): ?File {
+		if ($file->getFileId() === null) {
+			return null;
+		}
+		try {
+			$root = $this->isWatchMode() ? $this->watchFolder() : $this->userFolder((string)$file->getFileOwner());
+			$node = $root?->getFirstNodeById($file->getFileId());
+		} catch (\Throwable) {
+			return null;
+		}
+		return $node instanceof File ? $node : null;
+	}
+
+	/**
+	 * Entfernt die Datei eines Antrags, erst nach dem Commit (siehe
+	 * {@see deleteOne()}). Anders als bei Buchungsbelegen wird auch im
+	 * Wächter-Ordner gelöscht: die Datei ist von einem Mitglied eben erst
+	 * hochgeladen worden und gehört noch zu keiner Buchung.
+	 */
+	public function deleteReimbursementFile(ReimbursementFile $file): void {
+		$node = $file->getFileId() !== null ? $this->reimbursementNode($file) : null;
+		$this->transaction->afterCommit(fn () => $this->purgeReimbursementFile($file, $node));
+	}
+
+	/**
+	 * Entfernt die Datei sofort. Für den Fall, dass ein Vorgang zurückgerollt
+	 * wurde und die eben abgelegte Datei übrig ist ({@see
+	 * TransactionRunner::afterRollback()}).
+	 */
+	public function purgeReimbursementFile(ReimbursementFile $file, ?File $node = null): void {
+		try {
+			$node ??= $file->getFileId() !== null ? $this->reimbursementNode($file) : null;
+			if ($node !== null) {
+				$node->delete();
+				return;
+			}
+			if ($this->isNcMode()) {
+				$userFolder = $this->userFolder($this->storageUser());
+				$path = $this->reimbursementFolderPath($file->getReimbursementId()) . '/' . $this->ncFileName($file->getId(), $file->getFileName());
+				if ($userFolder->nodeExists($path)) {
+					$userFolder->get($path)->delete();
+					return;
+				}
+			}
+			$this->reimbursementAppDataFolder()->getFile((string)$file->getId())->delete();
+		} catch (\Throwable) {
+			// Datei schon weg – ignorieren.
+		}
+	}
+
+	/**
+	 * Hängt die Datei eines Antrags an die Buchung der Auszahlung. Im
+	 * Wächter-Ordner bleibt die Datei liegen und wird nur verknüpft; in den
+	 * anderen Ablagen wandert der Inhalt in die Struktur der Buchung.
+	 *
+	 * @param Attachment $attachment der schon angelegte Beleg-Eintrag (mit ID)
+	 */
+	public function moveReimbursementFileToJournal(ReimbursementFile $file, Attachment $attachment): void {
+		if ($file->getFileId() !== null) {
+			$attachment->setFileId($file->getFileId());
+			$attachment->setFileOwner($file->getFileOwner());
+			return;
+		}
+		$this->putFile($attachment->getId(), $attachment->getJournalId(), $attachment->getFileName(), $this->reimbursementContent($file));
+		$this->deleteReimbursementFile($file);
+	}
+
+	/**
+	 * Entfernt beim Zurücksetzen die Dateien der Auslagenanträge, die die App
+	 * selbst abgelegt hat. Im Wächter-Ordner (Dateien mit Verweis) wird nichts
+	 * gelöscht: der ist das Archiv, wie bei {@see deleteAllFiles()}.
+	 *
+	 * @param list<ReimbursementFile> $files
+	 */
+	public function deleteAllReimbursementFiles(array $files): void {
+		foreach ($files as $file) {
+			if ($file->getFileId() === null) {
+				$this->purgeReimbursementFile($file);
+			}
+		}
+	}
+
+	private function reimbursementFolderPath(int $reimbursementId): string {
+		return $this->storagePath() . '/reimbursements/' . $reimbursementId;
+	}
+
+	private function reimbursementAppDataFolder() {
+		try {
+			return $this->appData->getFolder('reimbursements');
+		} catch (\OCP\Files\NotFoundException) {
+			return $this->appData->newFolder('reimbursements');
+		}
 	}
 
 	// --- Löschen --------------------------------------------------------------

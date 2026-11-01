@@ -317,11 +317,7 @@ class AttachmentController extends Controller {
 	 * Antwort nur in die eigene App (Belegvorschau, ReceiptPreviewPolicy).
 	 */
 	private function inline(string $content, string $name, string $mime): DataDownloadResponse {
-		$response = new DataDownloadResponse($content, $name, $mime);
-		$response->addHeader('Content-Disposition', 'inline; filename="' . addslashes($name) . '"');
-		$response->addHeader('X-Content-Type-Options', 'nosniff');
-		$response->setContentSecurityPolicy(ReceiptPreviewPolicy::forInlineFile());
-		return $response;
+		return ReceiptPreviewPolicy::inlineResponse($content, $name, $mime);
 	}
 
 	/** Beleg inline ausliefern (für In-App-Viewer-Modal). */

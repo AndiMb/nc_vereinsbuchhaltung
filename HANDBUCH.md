@@ -680,6 +680,81 @@ beschrieben.
 
 ---
 
+### 4.6 Auslagenerstattung
+
+Hat ein Mitglied etwas für den Verein aus eigener Tasche bezahlt (Porto,
+Material, Fahrtkosten), reicht es den Beleg in der App ein. Mindestens **N
+verschiedene Verwalter** geben die Auslage frei; **erst danach** entsteht ein
+offener Posten zur Überweisung. Jeder Schritt steht unveränderbar in der
+Historie des Antrags.
+
+**Einschalten (Verwalter).** *Nextcloud-Einstellungen → Vereinsbuchhaltung →
+Auslagenerstattung*: der Schalter **„Auslagenerstattung aktivieren"** und die
+Zahl der **nötigen Freigaben** (ab Werk 2). Niemand kann den eigenen Antrag
+freigeben; deshalb braucht es mindestens **N + 1 Verwalter**, sonst lässt sich
+der Schalter nicht speichern. Als Verwalter zählen alle Personen mit der Rolle
+Verwalter (einzeln oder über eine Gruppe) und die Nextcloud-Administratoren.
+Die Funktion hängt nicht am Self-Service „Beitrag": ein Mitglied braucht nur das
+verknüpfte Nextcloud-Konto (13.2).
+
+**Einreichen (Mitglied).** Unter *Mein Bereich → Auslagen* (der Reiter „Mein
+Bereich" heißt in älteren Versionen „Mein Beitrag", siehe 13.11) wählt das
+Mitglied **Auslage einreichen** und gibt Betrag, Ausgabedatum (nicht in der
+Zukunft), Verwendungszweck, die **IBAN für die Erstattung** (vorbelegt aus dem
+SEPA-Mandat, falls es eines gibt) und mindestens einen **Beleg** (PDF oder
+Foto, bis 20 MB) an. Die Belege landen in der Belegablage: im Wächter-Ordner
+unter `<Ordner>/<Ausgabejahr>/`, sonst in der App-Ablage. Das Mitglied sieht den
+Wächter-Ordner nie. Solange noch keine Freigabe vorliegt, kann es Belege
+nachreichen, entfernen (einer bleibt) oder den Antrag **zurückziehen**.
+
+**Freigeben (Verwalter).** *Buchungen → Auslagen* zeigt alle Anträge, vorn der
+Filter **Zu prüfen** mit den Anträgen, die noch Ihre Freigabe brauchen. Jeder
+Antrag hat die Einzelansicht mit Beleg, Verlauf und diesen Knöpfen:
+
+- **Freigeben:** zählt Ihre Stimme (jede Person höchstens einmal). Mit der letzten
+  nötigen Freigabe wechselt der Antrag auf *Freigegeben*, der offene Posten
+  entsteht, und das Mitglied bekommt eine Mail.
+- **Ablehnen:** mit Pflichtbegründung. Eine Ablehnung gilt **sofort und
+  endgültig** und braucht keine zweite Stimme; das Mitglied erfährt den Grund
+  per Mail. Es reicht bei Bedarf einen neuen Antrag ein.
+- **Den eigenen Antrag** (wenn Sie als Verwalter selbst Auslagen einreichen)
+  können Sie nicht freigeben oder ablehnen.
+
+Die Zahl der nötigen Freigaben hält der Antrag **bei der Einreichung** fest.
+Ändern Sie die Einstellung später, gilt für laufende Anträge weiter der alte
+Wert. Stößt die App auf denselben Beleg in einem anderen Antrag, zeigt der
+Antrag einen **Dubletten-Hinweis**; blockiert wird nichts.
+
+**Auszahlen (Buchhalter und Verwalter).** Der freigegebene Antrag steht auch
+unter *Buchungen → Offene Posten*, gekennzeichnet als „Auslage – zu
+überweisen". Überweisen Sie den Betrag wie gewohnt von Hand und wählen Sie im
+Antrag **Auszahlung buchen**: Es öffnet sich der normale Buchungsdialog, vorbelegt
+mit Betrag, Text und der Referenz *AUSL-Nummer*. Sie wählen Aufwandskonto,
+Geldkonto und ggf. Kostenstelle; die üblichen Regeln des Geschäftsjahres gelten.
+Mit dem Speichern wird der Antrag *Ausgezahlt*, der offene Posten erledigt, die
+Belege hängen an der Buchung, und das Mitglied bekommt eine Mail. Der Posten
+zählt nicht als Forderung (keine „überfälligen" Posten, keine Mahnung); eine
+Auslage lässt sich nur über den Antrag erledigen, nicht über *Bezahlt* oder
+*Stornieren* in der Liste.
+
+**Historie.** Jeder Antrag führt eine Historie, die sich nur ergänzen lässt:
+Einreichung, jede Freigabe (mit „1 von 2"), Ablehnung, Rückzug, Belege und die
+Auszahlung, jeweils mit Person und Zeitpunkt. Die Einträge sind verkettet; wer
+einen Eintrag nachträglich ändern würde, bricht die Kette. Das Mitglied sieht
+Status, Zeitpunkte und Begründung, aber **nicht**, welche Verwalter
+freigegeben haben. Verwalter, Buchhalter und Revisoren sehen die Namen.
+
+**Mails.** Ein neuer Antrag geht per Mail an alle Verwalter (außer dem
+Einreicher). Das Mitglied bekommt eine Mail bei der endgültigen Freigabe, bei
+einer Ablehnung und bei der Auszahlung; Teilfreigaben lösen keine Mail aus.
+
+**Ausschalten und Datenschutz.** Ausgeschaltet nimmt die App keine neuen Anträge
+mehr an; bestehende bleiben sichtbar und lassen sich weiter bearbeiten. Ein
+Mitglied mit unerledigten Anträgen lässt sich nicht anonymisieren (13.13);
+nach der Anonymisierung ist die Erstattungs-IBAN gelöscht, der Beleg bleibt.
+
+---
+
 ## 5. Auswertungen verstehen
 
 Alle Auswertungen beziehen sich auf den **im Header gewählten Zeitraum** –
@@ -1381,7 +1456,7 @@ selbst als lesbare Seite aus, es muss also nichts auf GitHub gesucht werden.
 
 Zahnrad → *Daten* → *Alle Daten löschen* (nur Verwalter, mit
 Bestätigungsdialog) entfernt Konten, Buchungen, Importe, Belege, offene Posten
-(auch die Forderungen an Mitglieder), **alle Rechnungen samt PDF und E-Rechnung** (Rechnungen sind acht Jahre aufzubewahren: vorher mit dem Beleg-ZIP unter Berichte → Auswertung sichern), die Vorlagen des
+(auch die Forderungen an Mitglieder), **alle Auslagenanträge samt Historie und Belegen** (Kapitel 4.6), **alle Rechnungen samt PDF und E-Rechnung** (Rechnungen sind acht Jahre aufzubewahren: vorher mit dem Beleg-ZIP unter Berichte → Auswertung sichern), die Vorlagen des
 Gliederungsberichts (danach stehen wieder die beiden Standardvorlagen bereit)
 und die Zeiträume samt ihrer Festschreibung. **Das Änderungsprotokoll bleibt erhalten.** Mitglieder,
 Mandate, Beitragsgruppen und Zuweisungen (Kapitel 13) gehören nicht zum
@@ -2244,8 +2319,8 @@ ein Verwalter eines einstellt.
 ### 13.11 „Mein Beitrag": der Bereich für Mitglieder
 
 Mitglieder müssen für ihre eigenen Angaben nicht den Vorstand bemühen:
-Unter **„Mein Beitrag"** – ein eigener Reiter in der App – pflegen sie ihre
-Kontaktdaten, ändern ihren Beitrag und führen ihr Lastschriftmandat selbst.
+Unter **„Mein Bereich"** (in älteren Versionen „Mein Beitrag") – ein eigener Reiter
+in der App – pflegen sie ihre Kontaktdaten, ändern ihren Beitrag und führen ihr Lastschriftmandat selbst.
 Dafür ist **keine Buchhaltungsrolle** nötig, es gibt keinen Antrag, und jede
 Änderung gilt sofort; die einzige Bremse ist eine Vorschau vor dem Speichern.
 
@@ -2264,11 +2339,15 @@ diesem Zusatzschalter sehen Mitglieder unter *Mein Beitrag* den Schalter
 *Künftig selbst überweisen statt Lastschrift*; ohne ihn bleibt die Zahlungsart
 Sache des Vorstands (13.4).
 
-Wer beides erfüllt, sieht „Mein Beitrag", auch ohne jede Rolle in der App. Hat
+Wer beides erfüllt, sieht „Mein Bereich" mit dem Unterreiter **Beitrag**, auch ohne jede Rolle in der App. Hat
 dieselbe Person zusätzlich eine Rolle (etwa die Schatzmeisterin, die selbst
 Mitglied ist), steht der Reiter neben den übrigen. Ein Mitglied sieht dort immer
 nur **seine eigenen** Angaben, nie die anderer Mitglieder; die interne Notiz der
 Akte bleibt für das Mitglied unsichtbar.
+
+Sind auch die **Auslagen** (4.6) eingeschaltet, hat „Mein Bereich" einen zweiten
+Unterreiter **Auslagen**. Ist nur eine der beiden Funktionen an, zeigt der Reiter
+ihren Inhalt ohne Unterreiter-Leiste.
 
 | Bereich | Das Mitglied kann | Das Mitglied kann nicht |
 |---|---|---|

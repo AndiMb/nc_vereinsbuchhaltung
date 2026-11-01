@@ -170,7 +170,7 @@ async function createClaim(request, memberId, { type = 'beitrag', amount, label,
 }
 
 /** Öffnet die App als Mitglied und den Reiter „Mein Beitrag“ (oder „My contribution“); wartet, bis die Karten stehen. */
-async function openMeinBeitrag(page, user, { tab = 'Mein Beitrag', firstHeading = 'Meine Stammdaten' } = {}) {
+async function openMeinBeitrag(page, user, { tab = 'Mein Bereich', firstHeading = 'Meine Stammdaten' } = {}) {
 	await openApp(page, user)
 	await tabButton(page, tab).click()
 	const section = visibleSection(page)
@@ -480,7 +480,7 @@ test.describe('Kontoverknüpfung in der Akte (Protokoll 3.6, 3.7)', () => {
 			const bob = await revisorContext.newPage()
 			await openApp(bob, USERS.revisor)
 			await expect(tabButton(bob, 'Beiträge')).toBeVisible()
-			await expect(tabButton(bob, 'Mein Beitrag')).toHaveCount(0)
+			await expect(tabButton(bob, 'Mein Bereich')).toHaveCount(0)
 
 			// Die Verwaltung öffnet die Akte. Vor dem Klick steht dort noch nichts „Verknüpft mit …“.
 			await openApp(page, USERS.buchhalter)
@@ -502,9 +502,9 @@ test.describe('Kontoverknüpfung in der Akte (Protokoll 3.6, 3.7)', () => {
 			// bob lädt neu: „Mein Beitrag“ steht neben „Beiträge“ und zeigt die Daten des Mitglieds; „Beiträge“ bleibt beim Einzug.
 			await bob.reload()
 			await waitForAppLoaded(bob)
-			await expect(tabButton(bob, 'Mein Beitrag')).toBeVisible()
+			await expect(tabButton(bob, 'Mein Bereich')).toBeVisible()
 			await expect(tabButton(bob, 'Beiträge')).toBeVisible()
-			await tabButton(bob, 'Mein Beitrag').click()
+			await tabButton(bob, 'Mein Bereich').click()
 			const own = visibleSection(bob)
 			await expect(own.getByRole('heading', { name: 'Meine Stammdaten', exact: true })).toBeVisible()
 			await expect(own.getByText(member.displayName)).toBeVisible()
@@ -526,7 +526,7 @@ test.describe('Kontoverknüpfung in der Akte (Protokoll 3.6, 3.7)', () => {
 			await bob.reload()
 			await waitForAppLoaded(bob)
 			await expect(tabButton(bob, 'Beiträge')).toBeVisible()
-			await expect(tabButton(bob, 'Mein Beitrag')).toHaveCount(0)
+			await expect(tabButton(bob, 'Mein Bereich')).toHaveCount(0)
 			expect((await api.raw(request, 'GET', '/self/me', { user: USERS.revisor })).status()).toBe(403)
 		} finally {
 			await revisorContext.close()
@@ -620,7 +620,7 @@ test.describe('„Mein Beitrag“ im Überblick (Protokoll 11.1, 11.2, 11.9, 11.
 
 		// Nur dieser eine Reiter; Zeitraum, Knopf „Buchung“, Hilfe, Klemmbrett und Geldbestand gehören zur Buchhaltung.
 		await expect(page.locator('.vbh-tabs button')).toHaveCount(1)
-		await expect(tabButton(page, 'Mein Beitrag')).toBeVisible()
+		await expect(tabButton(page, 'Mein Bereich')).toBeVisible()
 		await expect(page.locator('.vbh-navright')).toHaveCount(0)
 		await expect(page.locator('.vbh-yearsel')).toHaveCount(0)
 		await expect(page.locator('.vbh-newbooking-btn')).toHaveCount(0)
@@ -629,7 +629,7 @@ test.describe('„Mein Beitrag“ im Überblick (Protokoll 11.1, 11.2, 11.9, 11.
 		await expect(page.getByRole('button', { name: /^Aufgaben/ })).toHaveCount(0)
 		await expect(page.getByText('Kein Zugriff')).toHaveCount(0)
 
-		await tabButton(page, 'Mein Beitrag').click()
+		await tabButton(page, 'Mein Bereich').click()
 		const section = visibleSection(page)
 		for (const heading of ['Meine Stammdaten', 'Mein Beitrag', 'Mein SEPA-Lastschriftmandat', 'Rücklastschriften', 'Meine Beitragsbestätigung', 'Meine Daten']) {
 			await expect(section.getByRole('heading', { name: heading, exact: true })).toBeVisible()
@@ -984,7 +984,7 @@ test.describe('Zugang zu „Mein Beitrag“ (Protokoll 13.6, 13.7)', () => {
 
 		// Verknüpft, Schalter an: kein „Kein Zugriff“, dafür der Reiter – ohne jede Rolle.
 		await openApp(page, USERS.ohneRolle)
-		await expect(tabButton(page, 'Mein Beitrag')).toBeVisible()
+		await expect(tabButton(page, 'Mein Bereich')).toBeVisible()
 		await expect(page.getByRole('heading', { name: 'Kein Zugriff' })).toHaveCount(0)
 		expect((await api.raw(request, 'GET', '/self/me', { user: USERS.ohneRolle })).status()).toBe(200)
 		expect((await api.raw(request, 'GET', '/accounts', { user: USERS.ohneRolle })).status()).toBe(403)
@@ -995,14 +995,14 @@ test.describe('Zugang zu „Mein Beitrag“ (Protokoll 13.6, 13.7)', () => {
 		await waitForAppLoaded(page)
 		await expect(page.getByRole('heading', { name: 'Kein Zugriff' })).toBeVisible()
 		await expect(page.getByText(noAccess)).toBeVisible()
-		await expect(tabButton(page, 'Mein Beitrag')).toHaveCount(0)
+		await expect(tabButton(page, 'Mein Bereich')).toHaveCount(0)
 		expect((await api.raw(request, 'GET', '/self/me', { user: USERS.ohneRolle })).status()).toBe(403)
 
 		// Schalter wieder an: der Reiter ist wieder da.
 		await api.updateSettings(request, { self_service_enabled: '1' })
 		await page.reload()
 		await waitForAppLoaded(page)
-		await expect(tabButton(page, 'Mein Beitrag')).toBeVisible()
+		await expect(tabButton(page, 'Mein Bereich')).toBeVisible()
 		await expect(page.getByRole('heading', { name: 'Kein Zugriff' })).toHaveCount(0)
 
 		// Schalter an, aber keine Verknüpfung (13.6): wieder „Kein Zugriff“, ohne Reiter und ohne Daten.
@@ -1132,7 +1132,7 @@ test.describe('Englisch (Protokoll 14.4, 14.6)', () => {
 		await createAssignment(request, { memberId: member.id, groupId: group.id, intervalMonths: 3, monthlyAmount: 7.5 })
 		await linkOnly(request, member.id, USERS.englisch)
 
-		const section = await openMeinBeitrag(page, USERS.englisch, { tab: 'My contribution', firstHeading: 'My details' })
+		const section = await openMeinBeitrag(page, USERS.englisch, { tab: 'My area', firstHeading: 'My details' })
 		for (const heading of ['My details', 'My contribution', 'My SEPA direct debit mandate', 'Returned direct debits', 'My contribution confirmation', 'My data']) {
 			await expect(section.getByRole('heading', { name: heading, exact: true })).toBeVisible()
 		}

@@ -18,6 +18,21 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 ## [0.49.0] – 2026-10-31
 
 **New:**
+- **Expense reimbursement:** Under *My area → Expenses* members submit an expense
+  they paid privately, with a receipt (amount, expense date, purpose, IBAN for
+  the reimbursement, PDF or photo). At least N different administrators approve
+  the request under *Bookings → Expenses*; N and the switch are in the settings
+  under "Expense reimbursement" (2 by default; at least N + 1 administrators are
+  needed, nobody can approve their own request). Only the last required approval
+  creates an open item "Expense – to be paid"; a rejection (with a reason) takes
+  effect immediately and is final, and the member can withdraw before the first
+  approval. "Book payout" opens the posting dialog with amount and text, records
+  the transfer on the request and attaches the receipts to the posting. Every
+  step is recorded in an append-only history with a hash chain; the member sees
+  the progress ("1 of 2 approvals"), not the names of the approvers. Emails: new
+  request to all administrators, approval, rejection and payout to the member.
+  The receipts go to the configured receipt storage, in the watch folder under
+  `<folder>/<expense year>/`, and stay out of the inbox there. See manual 4.6.
 - **Have everyone confirm the mandate text again:** A new version of the
   mandate text does not change existing mandates – whoever already has a
   mandate keeps the version they consented to. On the *Mandate legal text*
@@ -43,6 +58,9 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   gets a receipt email, as with every change.
 
 **Changed:**
+- The tab "My contribution" is now called **"My area"** and has the sub-tabs
+  "Contribution" (the previous content) and "Expenses"; if only one of the two
+  features is on, the bar is omitted.
 - A paper mandate that later confirmed the text electronically counts as
   having proof through that consent: the "Mandate without proof" notice
   goes away.

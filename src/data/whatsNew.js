@@ -28,6 +28,7 @@ export function buildWhatsNewEntries() {
 			version: '0.49.0',
 			roles: ['verwalter', 'buchhalter'],
 			items: [
+				t('Neu: Auslagenerstattung. Mitglieder reichen unter „Mein Bereich → Auslagen“ eine privat verauslagte Ausgabe mit Beleg ein; mindestens N Verwalter geben sie unter „Buchungen → Auslagen“ frei (Einstellung unter „Auslagenerstattung“), erst dann entsteht der offene Posten zur Überweisung. „Auszahlung buchen“ öffnet den Buchungsdialog und hängt die Belege an die Buchung. Der Reiter „Mein Beitrag“ heißt jetzt „Mein Bereich“.'),
 				t('Neu: Neue Fassung des Mandatstexts bestätigen lassen. In den Einstellungen unter „Mandats-Rechtstext“ schreiben Sie alle Mitglieder an, die die aktuelle Fassung noch nicht bestätigt haben; der Link in der Mail öffnet den neuen Text mit den bisherigen Angaben, ein Klick genügt. Einzeln geht es aus der Mitglieder-Akte, und im Self-Service erscheint unter „Mein Beitrag“ ein Hinweis zum Bestätigen.'),
 			],
 		},

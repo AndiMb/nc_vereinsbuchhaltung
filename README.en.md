@@ -92,7 +92,7 @@ An optional add-on module (the "Contributions" tab, appears automatically once a
 - **Collection cycle**: a timeline of collection dates, pre-notification by email (default 14 days ahead), **release** (amounts and bank details are frozen, the **pain.008** file is generated) and submission as two separate steps; a run can be discarded or postponed as long as nothing has been submitted
 - **Bank reconciliation**: batch credits, returned debits (with the reason in plain language) and incoming payments from the bank-statement import appear as suggestions with a justification and are only posted after your decision
 - **Dunning and tasks**: payment request, payment reminder and dunning letter by interval; deferral, waiver and cancellation; a task list for exceptions instead of silent failures
-- **My contribution** (self-service for linked accounts), an informal **contribution confirmation**, a **data overview** under Art. 15 GDPR and anonymization after the retention period
+- **My area** with "Contribution" (self-service for linked accounts) and **Expenses** (members submit receipts, at least N administrators approve, then an open item for the transfer, history with a hash chain), an informal **contribution confirmation**, a **data overview** under Art. 15 GDPR and anonymization after the retention period
 
 ### Invoices
 - **Invoices in the name of the association** (optional *Invoices* tab, turned on in the settings): recipients from master data or members, several line items with quantity, unit, price, discount and revenue account, service date or period, notice under section 19 UStG (small business) or tax exemption – with all mandatory details under section 14 (4) UStG

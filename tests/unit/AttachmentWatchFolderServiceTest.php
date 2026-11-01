@@ -8,6 +8,7 @@ use OCA\Vereinsbuchhaltung\Db\Attachment;
 use OCA\Vereinsbuchhaltung\Db\AttachmentMapper;
 use OCA\Vereinsbuchhaltung\Db\Journal;
 use OCA\Vereinsbuchhaltung\Db\ReceiptHashMapper;
+use OCA\Vereinsbuchhaltung\Db\ReimbursementFileMapper;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\AttachmentWatchFolderService;
 use OCP\Files\File;
@@ -832,6 +833,7 @@ class AttachmentWatchFolderServiceTest extends TestCase {
 			$rootFolder ?? $this->createMock(IRootFolder::class),
 			$l10n,
 			$this->hashes,
+			$this->createMock(ReimbursementFileMapper::class),
 		);
 	}
 }

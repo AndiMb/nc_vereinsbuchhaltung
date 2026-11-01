@@ -427,7 +427,7 @@ test.describe('Mandatstext erneut bestätigen', () => {
 			const before = await api.getJson(request, `/mandates/${mandate.id}`)
 
 			await openApp(page, USERS.ohneRolle)
-			await tabButton(page, 'Mein Beitrag').click()
+			await tabButton(page, 'Mein Bereich').click()
 			const section = visibleSection(page)
 			await expect(section.getByTestId('self-reconfirm-hint')).toContainText('Mandatstext aktualisiert')
 
@@ -468,7 +468,7 @@ test.describe('Mandatstext erneut bestätigen', () => {
 			expect(linked?.displayName).toBe('Ida Selbst')
 
 			await openApp(page, USERS.ohneRolle)
-			await tabButton(page, 'Mein Beitrag').click()
+			await tabButton(page, 'Mein Bereich').click()
 			await expect(visibleSection(page).getByText('Mein SEPA-Lastschriftmandat')).toBeVisible()
 			await expect(visibleSection(page).getByTestId('self-reconfirm-hint')).toHaveCount(0)
 			await expect(visibleSection(page).getByTestId('self-reconfirm-open')).toHaveCount(0)

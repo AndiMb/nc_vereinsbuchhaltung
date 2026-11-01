@@ -128,7 +128,7 @@ describe('Sie-Form im Quelltext, Du-Fassung in l10n/de.json', () => {
 			/^lib\/Service\/(ContributionPreNotificationService|DunningLadderService|MandateActivationService|SelfContactService|SelfContributionService|SelfServiceMandateService|SelfServiceReceiptMailService|SelfServiceReceiptMailer)\.php$/,
 			/^lib\/Activity\//,
 			/^lib\/Service\/Sepa\/ReturnReasonClassifier\.php$/,
-			/^src\/components\/SelfService[A-Za-z]*\.vue$/,
+			/^src\/components\/(SelfService|SelfReimbursement)[A-Za-z]*\.vue$/,
 		]
 		const formal = /\b(Sie|Ihr|Ihre|Ihren|Ihrem|Ihrer|Ihres|Ihnen|Ihrerseits)\b|^Guten Tag/
 		// Der Dialog MandateDraftDiscardDialog.vue dient Verwaltung und Mitglied; seine zwei Mitgliedertexte

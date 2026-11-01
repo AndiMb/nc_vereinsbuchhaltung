@@ -15,6 +15,8 @@ use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
+use OCA\Vereinsbuchhaltung\Db\Reimbursement;
+use OCA\Vereinsbuchhaltung\Db\ReimbursementMapper;
 use OCA\Vereinsbuchhaltung\Db\ReturnedDebit;
 use OCA\Vereinsbuchhaltung\Db\ReturnedDebitMapper;
 use OCA\Vereinsbuchhaltung\Service\AnonymizationCandidateService;
@@ -37,6 +39,7 @@ class AnonymizationCandidateServiceTest extends TestCase {
 	private MandateMapper&MockObject $mandates;
 	private DebitItemMapper&MockObject $debitItems;
 	private ReturnedDebitMapper&MockObject $returnedDebits;
+	private ReimbursementMapper&MockObject $reimbursements;
 	private JournalMapper&MockObject $journals;
 
 	protected function setUp(): void {
@@ -45,6 +48,7 @@ class AnonymizationCandidateServiceTest extends TestCase {
 		$this->mandates = $this->createMock(MandateMapper::class);
 		$this->debitItems = $this->createMock(DebitItemMapper::class);
 		$this->returnedDebits = $this->createMock(ReturnedDebitMapper::class);
+		$this->reimbursements = $this->createMock(ReimbursementMapper::class);
 		$this->journals = $this->createMock(JournalMapper::class);
 
 		// Bewusst KEIN blanket-Default per method()->willReturn() hier: ein
@@ -69,6 +73,7 @@ class AnonymizationCandidateServiceTest extends TestCase {
 			$this->mandates,
 			$this->debitItems,
 			$this->returnedDebits,
+			$this->reimbursements,
 			$this->journals,
 			$time,
 			$l10n,
@@ -194,6 +199,29 @@ class AnonymizationCandidateServiceTest extends TestCase {
 		$this->journals->method('find')->willReturn($this->journal(100, '2026-05-15'));
 
 		$this->assertTrue($this->service('2037-01-01')->isEligible(42));
+	}
+
+	public function testLastBookingDateZaehltDieAuszahlungEinerAuslageMit(): void {
+		$reimbursement = new Reimbursement();
+		$reimbursement->setId(7);
+		$reimbursement->setMemberId(42);
+		$reimbursement->setJournalId(200);
+		$this->reimbursements->method('findByMember')->with(42)->willReturn([$reimbursement]);
+		$this->journals->method('find')->with(200, $this->anything())->willReturn($this->journal(200, '2030-03-01'));
+
+		$this->assertSame('2030-03-01', $this->service()->lastBookingDate(42));
+	}
+
+	public function testNichtReifSolangeAuslagenantraegeOffenSind(): void {
+		$this->members->method('find')->willReturn($this->inactiveMember());
+		$item = new OpenItem();
+		$item->setMemberId(42);
+		$item->setPaidJournalId(100);
+		$this->openItems->method('findByMember')->willReturn([$item]);
+		$this->journals->method('find')->willReturn($this->journal(100, '2026-05-15'));
+		$this->reimbursements->method('countPendingByMember')->with(42)->willReturn(1);
+
+		$this->assertFalse($this->service('2037-06-01')->isEligible(42));
 	}
 
 	public function testNichtReifWennBereitsAnonymisiert(): void {

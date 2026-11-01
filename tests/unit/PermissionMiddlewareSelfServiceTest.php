@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Exception\ForbiddenException;
 use OCA\Vereinsbuchhaltung\Middleware\PermissionMiddleware;
 use OCA\Vereinsbuchhaltung\Service\ActorContextService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
+use OCA\Vereinsbuchhaltung\Service\ReimbursementAccess;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceService;
 use OCP\IL10N;
 use OCP\IRequest;
@@ -62,7 +63,7 @@ class PermissionMiddlewareSelfServiceTest extends TestCase {
 	private function middleware(string $httpMethod = 'GET'): PermissionMiddleware {
 		$request = $this->createMock(IRequest::class);
 		$request->method('getMethod')->willReturn($httpMethod);
-		return new PermissionMiddleware($this->permissions, $this->selfService, $this->actorContext, $request, $this->l10n);
+		return new PermissionMiddleware($this->permissions, $this->selfService, $this->createMock(ReimbursementAccess::class), $this->actorContext, $request, $this->l10n);
 	}
 
 	/**

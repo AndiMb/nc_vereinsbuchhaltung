@@ -228,6 +228,23 @@ return [
 		['name' => 'openItem#reopen', 'url' => '/api/open-items/{id}/reopen', 'verb' => 'POST'],
 		['name' => 'openItem#destroy', 'url' => '/api/open-items/{id}', 'verb' => 'DELETE'],
 
+		// Auslagenerstattung (docs/reimbursement-design.md). Mitglieder: ohne vbh-Rolle, Zugang über
+		// Kontoverknüpfung und Schalter (PermissionMiddleware::authorizeSelfReimbursement); die
+		// member_id kommt nie aus dem Request. Verwaltung: Rechte je Methode per #[RequiresRole].
+		['name' => 'selfReimbursement#index', 'url' => '/api/self/reimbursements', 'verb' => 'GET'],
+		['name' => 'selfReimbursement#create', 'url' => '/api/self/reimbursements', 'verb' => 'POST'],
+		['name' => 'selfReimbursement#show', 'url' => '/api/self/reimbursements/{id}', 'verb' => 'GET'],
+		['name' => 'selfReimbursement#withdraw', 'url' => '/api/self/reimbursements/{id}/withdraw', 'verb' => 'POST'],
+		['name' => 'selfReimbursement#addReceipt', 'url' => '/api/self/reimbursements/{id}/receipts', 'verb' => 'POST'],
+		['name' => 'selfReimbursement#removeReceipt', 'url' => '/api/self/reimbursements/{id}/receipts/{fileId}', 'verb' => 'DELETE'],
+		['name' => 'selfReimbursement#receipt', 'url' => '/api/self/reimbursements/{id}/receipts/{fileId}/view', 'verb' => 'GET'],
+		['name' => 'reimbursement#index', 'url' => '/api/reimbursements', 'verb' => 'GET'],
+		['name' => 'reimbursement#show', 'url' => '/api/reimbursements/{id}', 'verb' => 'GET'],
+		['name' => 'reimbursement#approve', 'url' => '/api/reimbursements/{id}/approve', 'verb' => 'POST'],
+		['name' => 'reimbursement#reject', 'url' => '/api/reimbursements/{id}/reject', 'verb' => 'POST'],
+		['name' => 'reimbursement#pay', 'url' => '/api/reimbursements/{id}/pay', 'verb' => 'POST'],
+		['name' => 'reimbursement#receipt', 'url' => '/api/reimbursements/{id}/receipts/{fileId}/view', 'verb' => 'GET'],
+
 		// Rechnungsmodul (Epic #168): Empfänger
 		['name' => 'debtor#index', 'url' => '/api/debtors', 'verb' => 'GET'],
 		['name' => 'debtor#create', 'url' => '/api/debtors', 'verb' => 'POST'],

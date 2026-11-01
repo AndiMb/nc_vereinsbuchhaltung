@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Http;
 
 use OCP\AppFramework\Http\ContentSecurityPolicy;
+use OCP\AppFramework\Http\DataDownloadResponse;
 use OCP\AppFramework\Http\EmptyContentSecurityPolicy;
 
 /**
@@ -44,5 +45,17 @@ final class ReceiptPreviewPolicy {
 		$policy = new EmptyContentSecurityPolicy();
 		$policy->addAllowedFrameAncestorDomain("'self'");
 		return $policy;
+	}
+
+	/**
+	 * Eine Belegdatei als Antwort, die der Browser inline zeigt (Vorschau): ohne
+	 * Raten des Dateityps und mit der Regel von {@see forInlineFile()}.
+	 */
+	public static function inlineResponse(string $content, string $name, string $mime): DataDownloadResponse {
+		$response = new DataDownloadResponse($content, $name, $mime);
+		$response->addHeader('Content-Disposition', 'inline; filename="' . addslashes($name) . '"');
+		$response->addHeader('X-Content-Type-Options', 'nosniff');
+		$response->setContentSecurityPolicy(self::forInlineFile());
+		return $response;
 	}
 }

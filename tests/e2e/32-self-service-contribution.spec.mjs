@@ -77,7 +77,7 @@ test.describe('Self-Service Beitrag-Aktionen', () => {
 
 	test('Betragsänderung oberhalb der Untergrenze: Speichern erst nach passender Vorschau möglich', async ({ page, request }) => {
 		await openApp(page, USERS.ohneRolle)
-		await switchTab(page, 'Mein Beitrag')
+		await switchTab(page, 'Mein Bereich')
 
 		const card = visibleSection(page).locator('.vbh-selfservice-assignment', { hasText: GROUP_NAME })
 		await expect(card).toBeVisible()
@@ -100,7 +100,7 @@ test.describe('Self-Service Beitrag-Aktionen', () => {
 
 	test('Betragsänderung unterhalb der Untergrenze: Vorschau lehnt ab, nichts wird gespeichert', async ({ page, request }) => {
 		await openApp(page, USERS.ohneRolle)
-		await switchTab(page, 'Mein Beitrag')
+		await switchTab(page, 'Mein Bereich')
 
 		const card = visibleSection(page).locator('.vbh-selfservice-assignment', { hasText: GROUP_NAME })
 		const saveButton = card.getByRole('button', { name: 'Speichern' })
@@ -118,7 +118,7 @@ test.describe('Self-Service Beitrag-Aktionen', () => {
 
 	test('Turnuswechsel: aus allowed_intervals wählbar, wirkt sofort', async ({ page, request }) => {
 		await openApp(page, USERS.ohneRolle)
-		await switchTab(page, 'Mein Beitrag')
+		await switchTab(page, 'Mein Bereich')
 
 		const card = visibleSection(page).locator('.vbh-selfservice-assignment', { hasText: GROUP_NAME })
 		await card.getByLabel('Turnus').selectOption('3')
@@ -140,7 +140,7 @@ test.describe('Self-Service Beitrag-Aktionen', () => {
 		})
 
 		await openApp(page, USERS.ohneRolle)
-		await switchTab(page, 'Mein Beitrag')
+		await switchTab(page, 'Mein Bereich')
 
 		const card = visibleSection(page).locator('.vbh-selfservice-assignment', { hasText: GROUP_NAME })
 		const saveButton = card.getByRole('button', { name: 'Speichern' })

@@ -16,6 +16,9 @@
 						class="vbh-badge vbh-badge--alert"
 						:title="n('%n überfälliger offener Posten', '%n überfällige offene Posten', overdueOpenItemsCount)">{{ overdueOpenItemsCount }}</span>
 				</button>
+				<button v-if="reimbursementsVisible" :class="{ active: bookingView === 'reimbursements' }" @click="$emit('update:booking-view', 'reimbursements')">
+					{{ t('Auslagen') }}
+				</button>
 				<button v-if="canWrite" :class="{ active: bookingView === 'rules' }" @click="$emit('update:booking-view', 'rules')">
 					{{ t('Regeln') }}
 				</button>
@@ -36,7 +39,8 @@
 			</div>
 		</div>
 
-		<div class="vbh-filterbar">
+		<!-- Die Auslagen haben ihre eigene Suche und ihre eigenen Filter (ReimbursementsPanel). -->
+		<div v-if="bookingView !== 'reimbursements'" class="vbh-filterbar">
 			<!-- Bewusst ohne v-model: ein reaktiver Wert würde bei jedem Tastendruck
 			     die ganze Komponente samt Journal-Tabelle neu rendern. Gefiltert wird
 			     erst über den entprellten bookingSearch (onSearchInput). -->
@@ -624,6 +628,7 @@
 								<td>
 									{{ o.debtor }}
 									<span v-if="isClaim(o)" class="vbh-typetag">{{ claimTypeLabel(o.type) }}</span>
+									<span v-else-if="o.reimbursementId" class="vbh-typetag">{{ t('Auslage – zu überweisen') }}</span>
 								</td>
 								<td class="vbh-col-hide-sm vbh-purpose">
 									<span class="vbh-clamp">{{ o.description }}</span>
@@ -641,7 +646,16 @@
 								<td><span class="vbh-typetag" :class="o.status">{{ openItemStatusLabel(o.status) }}</span></td>
 								<td class="right nowrap">
 									<div class="vbh-actions">
-										<template v-if="isClaim(o)">
+										<!-- Auslagen gehören dem Reiter „Auslagen“: Freigabe, Auszahlung und Historie laufen dort. -->
+										<template v-if="o.reimbursementId">
+											<NcButton
+												v-if="reimbursementsVisible"
+												variant="tertiary"
+												@click="$emit('update:booking-view', 'reimbursements')">
+												{{ t('Im Reiter Auslagen') }}
+											</NcButton>
+										</template>
+										<template v-else-if="isClaim(o)">
 											<NcButton
 												v-if="membershipActive"
 												variant="tertiary"
@@ -668,6 +682,14 @@
 					</table>
 				</div>
 				<NcEmptyContent v-else :name="t('Keine offenen Posten')" :description="t('Legen Sie oben einen neuen offenen Posten an, z. B. einen unbezahlten Mitgliedsbeitrag.')" />
+			</template>
+
+			<!-- AUSLAGEN (Erstattung privat verauslagter Ausgaben, docs/reimbursement-design.md) -->
+			<template v-else-if="bookingView === 'reimbursements' && reimbursementsVisible">
+				<ReimbursementsPanel
+					:canWrite="canWrite"
+					:reloadKey="reimbursementsReloadKey"
+					@pay="$emit('pay-reimbursement', $event)" />
 			</template>
 
 			<!-- REGELN -->
@@ -697,6 +719,7 @@ import AmountInput from './AmountInput.vue'
 import BookingCard from './BookingCard.vue'
 import CommentMark from './CommentMark.vue'
 import ReceiptSuggestionConfirmDialog from './ReceiptSuggestionConfirmDialog.vue'
+import ReimbursementsPanel from './ReimbursementsPanel.vue'
 import RulesPanel from './RulesPanel.vue'
 import api from '../api.js'
 import { buildAccountOptions, useAccounts } from '../composables/useAccounts.js'
@@ -717,7 +740,7 @@ import { isSelectableOption } from '../lib/selectOptions.js'
 
 export default {
 	name: 'BookingsTab',
-	components: { NcButton, NcActions, NcActionButton, NcSelect, NcEllipsisedOption, NcEmptyContent, NcIconSvgWrapper, AmountInput, BookingCard, CommentMark, ReceiptSuggestionConfirmDialog, RulesPanel },
+	components: { NcButton, NcActions, NcActionButton, NcSelect, NcEllipsisedOption, NcEmptyContent, NcIconSvgWrapper, AmountInput, BookingCard, CommentMark, ReceiptSuggestionConfirmDialog, ReimbursementsPanel, RulesPanel },
 	props: {
 		isMobile: { type: Boolean, required: true },
 		// 'plain' | 'signed': Vorzeichen und Farbe am Betrag, siehe lib/flow.js
@@ -752,9 +775,11 @@ export default {
 		// mit Wächter-Ordner); löst mit true auf, wenn alles verknüpft ist,
 		// siehe openFolderPickerForBookings() in App.vue.
 		openFolderPickerForBookings: { type: Function, default: async () => false },
+		// Hochzählen = die Auslagen neu laden (nach der Auszahlungsbuchung in App.vue).
+		reimbursementsReloadKey: { type: Number, default: 0 },
 	},
 
-	emits: ['attachments-changed', 'go-claims', 'help', 'invoice-paid', 'update:booking-view'],
+	emits: ['attachments-changed', 'go-claims', 'help', 'invoice-paid', 'pay-reimbursement', 'update:booking-view'],
 
 	setup() {
 		const auth = useAuth()
@@ -764,6 +789,8 @@ export default {
 		const openItemsC = useOpenItems()
 		return {
 			canWrite: auth.canWrite,
+			// Auslagenerstattung: der Reiter steht da, solange die Funktion an ist oder es Anträge gibt.
+			reimbursementsVisible: auth.reimbursementsStaffVisible,
 			...toRefs(periods.state),
 			selectedPeriod: periods.selectedPeriod,
 			isDateClosed: periods.isDateClosed,

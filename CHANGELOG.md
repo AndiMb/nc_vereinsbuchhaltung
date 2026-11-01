@@ -20,6 +20,22 @@ verwenden, z. B. `**Neu:**`.
 ## [0.49.0] – 2026-10-31
 
 **Neu:**
+- **Auslagenerstattung:** Mitglieder reichen unter *Mein Bereich → Auslagen* eine
+  privat verauslagte Ausgabe mit Beleg ein (Betrag, Ausgabedatum, Zweck, IBAN
+  für die Erstattung, PDF oder Foto). Mindestens N verschiedene Verwalter
+  geben den Antrag unter *Buchungen → Auslagen* frei, N und der Schalter stehen
+  in den Einstellungen unter „Auslagenerstattung“ (ab Werk 2; es braucht
+  mindestens N + 1 Verwalter, den eigenen Antrag kann niemand freigeben).
+  Erst die letzte nötige Freigabe legt einen offenen Posten „Auslage – zu
+  überweisen“ an; eine Ablehnung (mit Begründung) gilt sofort und endgültig,
+  das Mitglied kann vor der ersten Freigabe zurückziehen. „Auszahlung buchen“
+  öffnet den Buchungsdialog mit Betrag und Text, vermerkt die Überweisung am
+  Antrag und hängt die Belege an die Buchung. Jeder Schritt steht in einer
+  nur anfügbaren Historie mit Hash-Kette; das Mitglied sieht den Fortschritt
+  („1 von 2 Freigaben“), nicht die Namen der Freigeber. Mails: neuer Antrag an
+  alle Verwalter, Freigabe, Ablehnung und Auszahlung ans Mitglied. Die Belege
+  liegen in der eingestellten Belegablage, im Wächter-Ordner unter
+  `<Ordner>/<Ausgabejahr>/` und dort nicht im Eingangskorb. Siehe Handbuch 4.6.
 - **Mandatstext von allen erneut bestätigen lassen:** Eine neue Fassung des
   Mandatstexts ändert bestehende Mandate nicht – wer schon ein Mandat hat,
   behält die Fassung, der er zugestimmt hat. Auf der Seite *Mandats-
@@ -46,6 +62,9 @@ verwenden, z. B. `**Neu:**`.
   Mitglied bekommt wie bei jeder Änderung eine Quittungsmail.
 
 **Geändert:**
+- Der Reiter „Mein Beitrag“ heißt jetzt **„Mein Bereich“** und hat die
+  Unterreiter „Beitrag“ (bisheriger Inhalt) und „Auslagen“; ist nur eine der
+  beiden Funktionen eingeschaltet, entfällt die Leiste.
 - Ein Papier-Mandat, das den Text später elektronisch bestätigt hat, gilt
   mit dieser Zustimmung als mit Nachweis: der Hinweis „Mandat ohne Nachweis“
   entfällt.

@@ -665,6 +665,79 @@ described above.
 
 ---
 
+### 4.6 Expense reimbursement
+
+When a member has paid something for the club out of their own pocket (postage,
+supplies, travel), they submit the receipt in the app. At least **N different
+administrators** approve the expense claim; **only then** an open item for the
+transfer is created. Every step is recorded unalterably in the request's
+history.
+
+**Switching it on (administrator).** *Nextcloud settings → Vereinsbuchhaltung →
+Expense reimbursement*: the switch **"Enable expense reimbursement"** and the
+number of **required approvals** (2 by default). Nobody can approve their own
+request, so at least **N + 1 administrators** are needed, otherwise the switch
+cannot be saved. Administrators are everybody with the administrator role (as a
+person or through a group) plus the Nextcloud administrators. The feature does
+not depend on the "Contribution" self-service: a member only needs the linked
+Nextcloud account (13.2).
+
+**Submitting (member).** Under *My area → Expenses* the member chooses **Submit
+expense claim** and enters the amount, the expense date (not in the future), the
+purpose, the **IBAN for the reimbursement** (prefilled from the SEPA mandate if
+there is one) and at least one **receipt** (PDF or photo, up to 20 MB). The
+receipts go to the receipt storage: into `<folder>/<expense year>/` of the watch
+folder, otherwise into the app storage. The member never sees the watch folder.
+As long as no approval exists, they can add receipts, remove them (one stays) or
+**withdraw** the request.
+
+**Approving (administrator).** *Bookings → Expenses* lists all requests; the
+**To review** filter comes first, with the requests that still need your approval.
+Each request has a detail view with the receipt, the history and these buttons:
+
+- **Approve:** counts your vote (each person at most once). With the last
+  required approval the request becomes *Approved*, the open item is created and
+  the member receives an email.
+- **Reject:** with a mandatory reason. A rejection takes effect **immediately and
+  is final** and needs no second vote; the member receives the reason by email and
+  can submit a new request.
+- **Your own request** (when you submit expense claims as an administrator) you
+  can neither approve nor reject.
+
+The request records the number of required approvals **at submission**. If you
+change the setting later, running requests keep the old value. If the app finds the
+same receipt in another request, the request shows a **duplicate hint**; nothing is
+blocked.
+
+**Paying out (bookkeeper and administrator).** The approved request also appears
+under *Bookings → Open items*, marked as "Expense – to be paid". Transfer the amount
+by hand as usual and choose **Book payout** in the request: the normal posting
+dialog opens, prefilled with amount, text and the reference *AUSL-number*. You pick
+the expense account, the money account and possibly a cost center; the usual rules
+of the fiscal year apply. On saving, the request becomes *Paid out*, the open item
+is settled, the receipts are attached to the posting and the member receives an
+email. The item does not count as a receivable (no "overdue" items, no dunning); an
+expense claim can only be settled through the request, not through *Paid* or
+*Cancel* in the list.
+
+**History.** Every request keeps a history that can only be appended to:
+submission, every approval (with "1 of 2"), rejection, withdrawal, receipts and
+the payout, each with person and time. The entries are chained; whoever altered an
+entry afterwards would break the chain. The member sees status, times and reason,
+but **not** which administrators approved. Administrators, bookkeepers and auditors
+see the names.
+
+**Emails.** A new request is emailed to all administrators (except the submitter).
+The member receives an email at final approval, at a rejection and at the payout;
+partial approvals send no email.
+
+**Switching off and data protection.** When off, the app accepts no new requests;
+existing ones stay visible and can still be processed. A member with unfinished
+requests cannot be anonymized (13.13); after anonymization the reimbursement IBAN
+is deleted, the receipt stays.
+
+---
+
 ## 5. Understanding the reports
 
 All reports relate to the **period chosen in the header** – that is your
@@ -1345,7 +1418,7 @@ readable page, so nothing needs to be looked up on GitHub.
 
 Gear icon → *Data* → *Delete all data* (administrators only, with a
 confirmation dialog) removes accounts, postings, imports, receipts, open items
-(including the claims against members), **all invoices including their PDF and e-invoice** (invoices must be kept for eight years: back them up first with the receipts ZIP under Reports → Evaluation), the templates of the
+(including the claims against members), **all expense requests with history and receipts** (chapter 4.6), **all invoices including their PDF and e-invoice** (invoices must be kept for eight years: back them up first with the receipts ZIP under Reports → Evaluation), the templates of the
 structured report (afterwards the two standard templates are available
 again) and the year-end closing markers.
 **The change log is kept.** Members, mandates, contribution groups and
@@ -2227,7 +2300,7 @@ administrator sets one.
 ### 13.11 "My contribution": the area for members
 
 Members don't have to bother the board for their own details: under **"My
-contribution"** (*Mein Beitrag*) – a tab of its own in the app – they maintain
+area"** (*Mein Bereich*; "My contribution" in older versions) – a tab of its own in the app – they maintain
 their contact details, change their fee and manage their direct-debit mandate
 themselves. **No bookkeeping role** is needed for that, there is no application,
 and every change takes effect at once; the only brake is a preview before
@@ -2247,11 +2320,15 @@ additional toggle do members see the switch *Transfer it myself from now on
 instead of direct debit* under *My contribution*; without it the payment method
 stays with the board (13.4).
 
-Whoever meets both sees "My contribution", even without any role in the app. If
+Whoever meets both sees "My area" with the **Contribution** sub-tab, even without any role in the app. If
 the same person also has a role (say, the treasurer who is a member too), the
 tab sits next to the others. A member only ever sees **their own** details there,
 never those of other members; the record's internal note stays invisible to the
 member.
+
+If **expense reimbursement** (4.6) is switched on too, "My area" has a second
+sub-tab **Expenses**. If only one of the two features is on, the tab shows its
+content without a sub-tab bar.
 
 | Area | The member can | The member cannot |
 |---|---|---|

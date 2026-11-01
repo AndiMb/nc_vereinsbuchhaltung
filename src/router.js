@@ -20,6 +20,7 @@ export default createRouter({
 		{ path: '/bookings/unassigned', name: 'bookings-unassigned', component: RouteHost },
 		{ path: '/bookings/open-items', name: 'bookings-open-items', component: RouteHost },
 		{ path: '/bookings/rules', name: 'bookings-rules', component: RouteHost },
+		{ path: '/bookings/reimbursements', name: 'bookings-reimbursements', component: RouteHost },
 
 		{ path: '/invoices', name: 'invoices', component: RouteHost },
 		{ path: '/invoices/:invoiceId(\\d+)', name: 'invoices-detail', component: RouteHost },
@@ -46,6 +47,7 @@ export default createRouter({
 		// wiederfinden; für rein self-service-verknüpfte Konten ohne Rolle läuft
 		// applyRoute() gar nicht erst (siehe App.vue::mounted()).
 		{ path: '/self', name: 'self', component: RouteHost },
+		{ path: '/self/reimbursements', name: 'self-reimbursements', component: RouteHost },
 
 		{ path: '/:pathMatch(.*)*', name: 'not-found', component: RouteHost },
 	],

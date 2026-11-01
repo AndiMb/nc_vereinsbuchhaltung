@@ -94,7 +94,7 @@ test.describe('Self-Service ("Mein Beitrag")', () => {
 		await expect(page.getByText('Kein Zugriff')).toHaveCount(0)
 		await expect(tabButton(page, 'Buchungen')).toHaveCount(0)
 
-		const tab = tabButton(page, 'Mein Beitrag')
+		const tab = tabButton(page, 'Mein Bereich')
 		await expect(tab).toBeVisible()
 		await tab.click()
 
@@ -112,6 +112,6 @@ test.describe('Self-Service ("Mein Beitrag")', () => {
 		await openApp(page, UNLINKED_USER)
 
 		await expect(page.getByText('Kein Zugriff')).toBeVisible()
-		await expect(tabButton(page, 'Mein Beitrag')).toHaveCount(0)
+		await expect(tabButton(page, 'Mein Bereich')).toHaveCount(0)
 	})
 })

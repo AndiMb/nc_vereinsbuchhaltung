@@ -428,7 +428,7 @@ test.describe('Entwurf-Mandat im Self-Service (Mein Beitrag)', () => {
 		const { mandate } = await createElectronicDraft(request, member, { iban: IBAN_TYPO })
 
 		await openApp(page, USERS.ohneRolle)
-		await tabButton(page, 'Mein Beitrag').click()
+		await tabButton(page, 'Mein Bereich').click()
 		const section = visibleSection(page)
 		await expect(section.getByRole('button', { name: 'Jetzt bestätigen' })).toBeVisible()
 		await expect(section.getByRole('button', { name: 'Entwurf verwerfen' })).toBeVisible()
@@ -464,7 +464,7 @@ test.describe('Entwurf-Mandat im Self-Service (Mein Beitrag)', () => {
 		await createPaperDraft(request, member)
 
 		await openApp(page, USERS.ohneRolle)
-		await tabButton(page, 'Mein Beitrag').click()
+		await tabButton(page, 'Mein Bereich').click()
 		const section = visibleSection(page)
 		await expect(section.getByRole('button', { name: 'Jetzt bestätigen' })).toHaveCount(0) // kein elektronischer Entwurf
 		await section.getByRole('button', { name: 'Entwurf verwerfen' }).click()
@@ -522,7 +522,7 @@ test.describe('Entwurf-Mandat im Self-Service (Mein Beitrag)', () => {
 		await api.suspendMandate(request, mandate.id, { note: 'Rückfrage beim Mitglied' })
 
 		await openApp(page, USERS.ohneRolle)
-		await tabButton(page, 'Mein Beitrag').click()
+		await tabButton(page, 'Mein Bereich').click()
 		let section = visibleSection(page)
 		// Es gibt für ein ausgesetztes Mandat keine IBAN-Änderung, nur den Widerruf.
 		await expect(section.getByRole('button', { name: 'Bankverbindung ändern' })).toHaveCount(0)
@@ -538,7 +538,7 @@ test.describe('Entwurf-Mandat im Self-Service (Mein Beitrag)', () => {
 		// Nach dem Entsperren ist das Mandat aktiv, der Ausweg steht wieder im Dialog.
 		await api.resumeMandate(request, mandate.id)
 		await openApp(page, USERS.ohneRolle)
-		await tabButton(page, 'Mein Beitrag').click()
+		await tabButton(page, 'Mein Bereich').click()
 		section = visibleSection(page)
 		await section.getByRole('button', { name: 'Mandat widerrufen' }).click()
 		dialog = page.getByRole('dialog', { name: 'Mandat widerrufen' })
