@@ -284,7 +284,7 @@ test.describe('Auslagenerstattung', () => {
 		// Ein freigegebener Antrag lässt sich nicht mehr zurückziehen oder ändern.
 		await expect(dialog.getByRole('button', { name: 'Antrag zurückziehen' })).toHaveCount(0)
 
-		const id = (await (await api.selfReimbursements(request, { user: USERS.ohneRolle })).json()).items[0].id
+		const id = (await (await api.selfReimbursements(request, { user: USERS.ohneRolle })).json()).items.find((i) => i.purpose === 'Material Jugendfreizeit').id
 		const detail = await (await api.selfReimbursement(request, id, { user: USERS.ohneRolle })).json()
 		for (const entry of detail.history) {
 			expect(entry).not.toHaveProperty('actorUid')
@@ -308,7 +308,9 @@ test.describe('Auslagenerstattung', () => {
 		await dialog.getByRole('button', { name: 'Buchen', exact: true }).click()
 		await expect(page.getByRole('dialog')).toBeHidden()
 
-		const reimbursement = (await (await api.listReimbursements(request)).json()).items[0]
+		// Nicht items[0]: die Liste läuft neueste zuerst, und der zurückgezogene Antrag „Für das Kind“ aus dem
+		// Kontoinhaber-Test ist der neueste.
+		const reimbursement = (await (await api.listReimbursements(request)).json()).items.find((i) => i.purpose === 'Material Jugendfreizeit')
 		expect(reimbursement.status).toBe('paid')
 		expect(reimbursement.journalId).toBeTruthy()
 		const openItem = (await api.getJson(request, '/open-items')).find((i) => i.reimbursementId === reimbursement.id)
