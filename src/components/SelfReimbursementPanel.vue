@@ -136,7 +136,7 @@
 						{{ t('Abbrechen') }}
 					</NcButton>
 					<NcButton variant="primary" :disabled="busy || missing.length > 0" @click="submit">
-						{{ busy ? t('Wird eingereicht …') : t('Einreichen') }}
+						{{ busy ? t('Wird eingereicht …') : t('Einreichen') }}
 					</NcButton>
 				</div>
 			</div>
