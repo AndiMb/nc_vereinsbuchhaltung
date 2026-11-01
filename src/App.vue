@@ -119,6 +119,8 @@
 					:recentJournal="recentJournal"
 					:clickPaperclip="clickPaperclip"
 					:openBookingCard="openBookingCard"
+					:editBooking="editBooking"
+					:watchMode="watchMode"
 					@navigate="onSetupNavigate"
 					@openWizard="showSetupWizard = true"
 					@help="openHelp"

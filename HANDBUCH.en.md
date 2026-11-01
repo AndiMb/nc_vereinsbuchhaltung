@@ -520,8 +520,8 @@ recommended), and additionally on demand when a dialog is opened.
   like picking it from the list; as usual it is only attached on "Save".
   While files are still being read, it says "n receipts are still being
   read".
-- In the posting list, an icon on every posting without a receipt shows that
-  a suggestion exists: paperclip with a check mark for "certain", question
+- In the posting list and under **Recent entries** on the overview, an icon on
+  every posting without a receipt shows that a suggestion exists: paperclip with a check mark for "certain", question
   mark in a circle for "possible". A click opens the posting with the side
   panel – on a smartphone too.
 - The button **"Assign n receipts"** above the list opens a dialog with all
