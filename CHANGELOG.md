@@ -17,17 +17,30 @@ als „[object Object]" (falsche Renderer-Callback-Signatur, Nextcloud-
 Core-Bug, reproduziert 23.08.2026). Stattdessen **Fettdruck als Zeilenanfang**
 verwenden, z. B. `**Neu:**`.
 
+## [0.50.0] – 2026-11-01
+
+**Neu:**
+- **Sammelrechnungen:** *Rechnungen → Aus Tabelle einlesen* legt aus einer
+  XLSX- oder CSV-Datei je Empfänger einen Rechnungsentwurf an. Die Vorschau
+  zeigt Fehler je Zeile. Danach alle festschreiben, per E-Mail senden oder
+  als Druckliste ausgeben. Siehe Handbuch 15.15.
+- **Rechnungsnummern mit Monat:** Neuer Platzhalter `{MM}`; der Zähler kann
+  jeden Monat bei 1 beginnen.
+- **Auslagen wie auf dem Papierformular:** Rechnungsnummer, Lieferant,
+  Kontoinhaber und eine Pflicht-Erklärung. Mehrere Rechnungen mit
+  „Einreichen und weitere erfassen“.
+
+**Geändert:**
+- Belegvorschau: E-Rechnungen öffnen ohne Anhänge-Leiste.
+- „Letzte Buchungen“ zeigt Belegvorschläge und Büroklammer wie die Buchungsliste.
+
 ## [0.49.0] – 2026-11-01
 
 **Neu:**
 - **Auslagenerstattung:** Mitglieder reichen unter *Mein Bereich → Auslagen*
   eine privat verauslagte Ausgabe mit Beleg ein. Mindestens N verschiedene
   Verwalter geben sie unter *Buchungen → Auslagen* frei (N und Schalter in den
-  Einstellungen, ab Werk 2; den eigenen Antrag kann niemand freigeben). Der
-  Antrag folgt dem Papierformular: Rechnungsnummer, Lieferant, Kontoinhaber,
-  IBAN sowie eine Pflicht-Erklärung, die in der Historie
-  steht. Mehrere Rechnungen sind mehrere Anträge („Einreichen und weitere
-  erfassen“). Die
+  Einstellungen, ab Werk 2; den eigenen Antrag kann niemand freigeben). Die
   letzte Freigabe legt den offenen Posten „Auslage – zu überweisen“ an;
   „Auszahlung buchen“ öffnet den Buchungsdialog und hängt die Belege an.
   Ablehnung gilt sofort und endgültig, Historie mit Hash-Kette, Mails an

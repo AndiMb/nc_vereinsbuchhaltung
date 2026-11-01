@@ -15,6 +15,21 @@ Markdown headings as "[object Object]" since `marked` v18 (wrong renderer
 callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 **bold lead-in** at the start of a line instead, e.g. `**New:**`.
 
+## [0.50.0] – 2026-11-01
+
+**New:**
+- **Bulk invoices:** *Invoices → Import from spreadsheet* creates one draft
+  invoice per recipient from an XLSX or CSV file. The preview shows errors per
+  row. Then finalize all, email them, or print a list. See manual 15.15.
+- **Invoice numbers with month:** new placeholder `{MM}`; the counter can
+  restart at 1 every month.
+- **Expenses like the paper form:** invoice number, supplier, account holder
+  and a mandatory declaration. Several invoices via "Submit and add another".
+
+**Changed:**
+- Receipt preview: e-invoices open without the attachments sidebar.
+- "Latest bookings" shows receipt suggestions and paperclip like the booking list.
+
 ## [0.49.0] – 2026-11-01
 
 **New:**
@@ -22,9 +37,6 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   with a receipt, under *My area → Expenses*. At least N different
   administrators approve it under *Bookings → Expenses* (N and the switch are
   in the settings, 2 by default; nobody can approve their own request). The
-  request follows the paper form: invoice number, supplier, account holder,
-  IBAN, and a mandatory declaration that is stored in the
-  history. Several invoices are several requests ("Submit and add another"). The
   last approval creates the open item "Expense – to be paid"; "Book payout"
   opens the posting dialog and attaches the receipts. A rejection is
   immediate and final; hash-chained history; emails to administrators and
