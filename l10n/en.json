@@ -4070,7 +4070,7 @@
         "Die IBAN sieht gut aus.": "The IBAN looks fine.",
         "Auf dieses Konto wird die Auslage überwiesen.": "The expense claim is transferred to this account.",
         "Noch nötig: {fields}": "Still needed: {fields}",
-        "Wird eingereicht …": "Submitting …",
+        "Wird eingereicht": "Submitting",
         "Beleg hinzufügen": "Add receipt",
         "„{name}“ ist weder PDF noch Bild.": "\"{name}\" is neither a PDF nor an image.",
         "„{name}“ ist zu groß (höchstens 20 MB).": "\"{name}\" is too large (at most 20 MB).",
