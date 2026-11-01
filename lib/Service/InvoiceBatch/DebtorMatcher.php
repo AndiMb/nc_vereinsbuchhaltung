@@ -23,7 +23,9 @@ class DebtorMatcher {
 	private const COMPARED = ['name2', 'street', 'postalCode', 'city', 'email'];
 
 	/** @param list<Debtor> $debtors nur nicht anonymisierte */
-	public function __construct(private array $debtors) {
+	public function __construct(
+		private array $debtors,
+	) {
 	}
 
 	/**
