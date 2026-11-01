@@ -182,7 +182,10 @@ test.describe('Auslagenerstattung', () => {
 		// Ohne die Erklärung bleibt „Einreichen" gesperrt.
 		await expect(dialog).toContainText('Noch nötig: Erklärung')
 		await expect(dialog.getByRole('button', { name: 'Einreichen', exact: true })).toBeDisabled()
-		await dialog.getByLabel('Ich versichere, dass die Auslagen im Auftrag des Vereins entstanden sind').check()
+		// Der Haken sitzt unter dem langen Beschriftungstext (NcCheckboxRadioSwitch): dort klicken, wo ein Mensch klickt.
+		const erklaerung = dialog.getByLabel('Ich versichere, dass die Auslagen im Auftrag des Vereins entstanden sind')
+		await dialog.getByText('Ich versichere, dass die Auslagen im Auftrag des Vereins entstanden sind').click()
+		await expect(erklaerung).toBeChecked()
 		await dialog.getByRole('button', { name: 'Einreichen', exact: true }).click()
 		await expect(dialog).toBeHidden()
 
