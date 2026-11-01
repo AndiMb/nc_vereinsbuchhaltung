@@ -29,8 +29,18 @@ class RevisionService {
 		return $this->config->getAppValue(Application::APP_ID, self::KEY, '');
 	}
 
-	public function bump(): void {
+	/**
+	 * Setzt ein neues Token und liefert den Stand davor und danach. Der
+	 * schreibende Browser übernimmt damit den neuen Stand selbst, wenn davor
+	 * sein eigener bekannter Stand lag – sonst hielte sein nächster Abgleich die
+	 * eigene Änderung für eine fremde und lüde die ganze Ansicht ein zweites Mal.
+	 *
+	 * @return array{previous: string, current: string}
+	 */
+	public function bump(): array {
+		$previous = $this->get();
 		$token = microtime(true) . '.' . bin2hex(random_bytes(4));
 		$this->config->setAppValue(Application::APP_ID, self::KEY, $token);
+		return ['previous' => $previous, 'current' => $token];
 	}
 }

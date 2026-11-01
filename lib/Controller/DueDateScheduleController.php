@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\AssignmentMapper;
+use OCA\Vereinsbuchhaltung\Middleware\NoRevisionBump;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\ContributionCycleSettings;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
@@ -72,6 +73,7 @@ class DueDateScheduleController extends Controller {
 	 */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_READ)]
+	#[NoRevisionBump]
 	public function preview(int $intervalMonths, int $defaultOffsetDays, array $overrides = [], ?int $year = null): DataResponse {
 		try {
 			return new DataResponse($this->schedule->preview($intervalMonths, $defaultOffsetDays, $overrides, $year ?? $this->contributionYear->anchorYearFor($this->today())));

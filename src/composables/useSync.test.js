@@ -9,7 +9,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 // laenger zurueckliegen kann als jede plausible Frist.
 
 const revision = vi.fn()
-vi.mock('../api.js', () => ({ default: { revision: () => revision() } }))
+let bumpListener = null
+vi.mock('../api.js', () => ({ default: { revision: () => revision(), onRevisionBump: (fn) => { bumpListener = fn } } }))
 
 const { useSync } = await import('./useSync.js')
 const { state, checkRemoteRevision } = useSync()
@@ -72,5 +73,43 @@ describe('checkRemoteRevision', () => {
 	it('meldet einen Fehler des Servers als solchen', async () => {
 		revision.mockRejectedValue(new Error('offline'))
 		expect(await checkRemoteRevision(true, false)).toBe('error')
+	})
+})
+
+// Nach einem eigenen Schreibzugriff schickt der Server Stand davor und danach
+// (RevisionMiddleware). Lag davor der bekannte Stand, darf der naechste Abgleich
+// die eigene Aenderung nicht noch einmal als neu melden - sonst laedt App.vue
+// die ganze Ansicht ein zweites Mal nach.
+describe('eigener Schreibzugriff', () => {
+	beforeEach(() => {
+		state.syncRevision = null
+		state.syncSeenAt = 0
+		state.syncChangedSince = 0
+	})
+
+	it('registriert sich beim api-Modul', () => {
+		expect(typeof bumpListener).toBe('function')
+	})
+
+	it('uebernimmt den neuen Stand, wenn davor der bekannte lag', async () => {
+		serverStand('a')
+		await checkRemoteRevision(true, false)
+		bumpListener('a', 'b')
+		serverStand('b')
+		expect(await checkRemoteRevision(false, false)).toBe('unchanged')
+	})
+
+	it('laesst eine Fremdaenderung davor nicht untergehen', async () => {
+		serverStand('a')
+		await checkRemoteRevision(true, false)
+		// Jemand anderes schrieb 'x', danach wir 'b'.
+		bumpListener('x', 'b')
+		serverStand('b')
+		expect(await checkRemoteRevision(false, false)).toBe('changed')
+	})
+
+	it('tut vor dem ersten Abgleich nichts', () => {
+		bumpListener('', 'b')
+		expect(state.syncRevision).toBe(null)
 	})
 })
