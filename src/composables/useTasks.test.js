@@ -127,8 +127,13 @@ describe('startAutoRefresh', () => {
 		expect(listTasks).toHaveBeenCalledTimes(2)
 	})
 
-	it('laedt beim Fokussieren des Fensters neu', () => {
+	it('laedt beim Fokussieren des Fensters neu, aber hoechstens einmal je Minute', async () => {
 		stop = startAutoRefresh()
+		listeners.focus()
+		expect(listTasks).toHaveBeenCalledTimes(1)
+		await vi.advanceTimersByTimeAsync(60000)
+		listeners.focus()
+		expect(listTasks).toHaveBeenCalledTimes(2)
 		listeners.focus()
 		expect(listTasks).toHaveBeenCalledTimes(2)
 	})

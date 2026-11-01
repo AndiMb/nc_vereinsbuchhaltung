@@ -91,7 +91,7 @@ class ClaimFollowUpTaskServiceTest extends TestCase {
 	public function testOhneRuecklastschriftUndWiderrufKeineAufgabeUndKeineTeurenAbfragen(): void {
 		$this->returnedDebits->method('findAllByDebitItem')->willReturn([]);
 		$this->mandates->method('findAll')->willReturn([]);
-		$this->openItems->expects($this->never())->method('findClaims');
+		$this->openItems->expects($this->never())->method('findOpenClaims');
 		$this->debitItems->expects($this->never())->method('findAllInLiveBatches');
 
 		$this->assertSame([], $this->service()->findTasks());
@@ -103,7 +103,7 @@ class ClaimFollowUpTaskServiceTest extends TestCase {
 			6 => $this->returned(2, 6, 'AM04'),
 		]);
 		$this->debitItems->method('findAllInLiveBatches')->willReturn([$this->debitItem(5, 10), $this->debitItem(6, 11), $this->debitItem(7, 12)]);
-		$this->openItems->method('findClaims')->willReturn([
+		$this->openItems->method('findOpenClaims')->willReturn([
 			$this->claim(10, 1, 1500),
 			$this->claim(11, 2, 2500),
 			$this->claim(12, 3, 9900), // eingezogen, nicht zurückgegeben
@@ -122,7 +122,7 @@ class ClaimFollowUpTaskServiceTest extends TestCase {
 	public function testEineRuecklastschriftSagtEinzahl(): void {
 		$this->returnedDebits->method('findAllByDebitItem')->willReturn([5 => $this->returned(1, 5, 'AM04')]);
 		$this->debitItems->method('findAllInLiveBatches')->willReturn([$this->debitItem(5, 10)]);
-		$this->openItems->method('findClaims')->willReturn([$this->claim(10, 1, 1500)]);
+		$this->openItems->method('findOpenClaims')->willReturn([$this->claim(10, 1, 1500)]);
 
 		$tasks = $this->service()->findTasks();
 
@@ -149,7 +149,7 @@ class ClaimFollowUpTaskServiceTest extends TestCase {
 	public function testSchweregradFolgtDerRueckgabeKlasse(?string $reasonCode, string $expected): void {
 		$this->returnedDebits->method('findAllByDebitItem')->willReturn([5 => $this->returned(1, 5, $reasonCode)]);
 		$this->debitItems->method('findAllInLiveBatches')->willReturn([$this->debitItem(5, 10)]);
-		$this->openItems->method('findClaims')->willReturn([$this->claim(10, 1)]);
+		$this->openItems->method('findOpenClaims')->willReturn([$this->claim(10, 1)]);
 
 		$tasks = $this->service()->findTasks();
 
@@ -162,7 +162,7 @@ class ClaimFollowUpTaskServiceTest extends TestCase {
 			6 => $this->returned(2, 6, 'MD06'), // dringend
 		]);
 		$this->debitItems->method('findAllInLiveBatches')->willReturn([$this->debitItem(5, 10), $this->debitItem(6, 11)]);
-		$this->openItems->method('findClaims')->willReturn([$this->claim(10, 1), $this->claim(11, 2)]);
+		$this->openItems->method('findOpenClaims')->willReturn([$this->claim(10, 1), $this->claim(11, 2)]);
 
 		$tasks = $this->service()->findTasks();
 
@@ -174,7 +174,7 @@ class ClaimFollowUpTaskServiceTest extends TestCase {
 		$this->returnedDebits->method('findAllByDebitItem')->willReturn([5 => $this->returned(1, 5, 'AM04')]);
 		$this->debitItems->method('findAllInLiveBatches')->willReturn([$this->debitItem(5, 10)]);
 		// Die Forderung wurde inzwischen bezahlt.
-		$this->openItems->method('findClaims')->willReturn([$this->claim(10, 1, 1500, 'paid')]);
+		$this->openItems->method('findOpenClaims')->willReturn([$this->claim(10, 1, 1500, 'paid')]);
 
 		$this->assertSame([], $this->service()->findTasks());
 	}
@@ -182,7 +182,7 @@ class ClaimFollowUpTaskServiceTest extends TestCase {
 	public function testStornierteForderungNachRuecklastschriftZaehltNicht(): void {
 		$this->returnedDebits->method('findAllByDebitItem')->willReturn([5 => $this->returned(1, 5, 'AM04')]);
 		$this->debitItems->method('findAllInLiveBatches')->willReturn([$this->debitItem(5, 10)]);
-		$this->openItems->method('findClaims')->willReturn([$this->claim(10, 1, 1500, 'cancelled')]);
+		$this->openItems->method('findOpenClaims')->willReturn([$this->claim(10, 1, 1500, 'cancelled')]);
 
 		$this->assertSame([], $this->service()->findTasks());
 	}
@@ -192,7 +192,7 @@ class ClaimFollowUpTaskServiceTest extends TestCase {
 	public function testOffeneForderungenNachWiderrufWerdenAggregiertAlsHinweis(): void {
 		$this->returnedDebits->method('findAllByDebitItem')->willReturn([]);
 		$this->mandates->method('findAll')->willReturn([$this->revokedMandate(1, 7)]);
-		$this->openItems->method('findClaims')->willReturn([
+		$this->openItems->method('findOpenClaims')->willReturn([
 			$this->claim(10, 7, 1500),
 			$this->claim(11, 7, 2500, 'open', 3),   // aus einer Lastschrift-Zuweisung
 			$this->claim(12, 7, 9900, 'paid'),      // erledigt
@@ -215,7 +215,7 @@ class ClaimFollowUpTaskServiceTest extends TestCase {
 		$transfer->setPaymentMethod(Assignment::PAYMENT_METHOD_TRANSFER);
 		$this->returnedDebits->method('findAllByDebitItem')->willReturn([]);
 		$this->mandates->method('findAll')->willReturn([$this->revokedMandate(1, 7)]);
-		$this->openItems->method('findClaims')->willReturn([$this->claim(11, 7, 2500, 'open', 3)]);
+		$this->openItems->method('findOpenClaims')->willReturn([$this->claim(11, 7, 2500, 'open', 3)]);
 		$this->assignments->method('findAll')->willReturn([$transfer]);
 
 		$this->assertSame([], $this->service()->findTasks());
@@ -228,7 +228,7 @@ class ClaimFollowUpTaskServiceTest extends TestCase {
 		$active->setStatus(Mandate::STATUS_ACTIVE);
 		$this->returnedDebits->method('findAllByDebitItem')->willReturn([]);
 		$this->mandates->method('findAll')->willReturn([$this->revokedMandate(1, 7), $active]);
-		$this->openItems->expects($this->never())->method('findClaims');
+		$this->openItems->expects($this->never())->method('findOpenClaims');
 
 		$this->assertSame([], $this->service()->findTasks());
 	}
@@ -238,7 +238,7 @@ class ClaimFollowUpTaskServiceTest extends TestCase {
 		$expired->setEndReason(Mandate::END_REASON_EXPIRED);
 		$this->returnedDebits->method('findAllByDebitItem')->willReturn([]);
 		$this->mandates->method('findAll')->willReturn([$expired]);
-		$this->openItems->expects($this->never())->method('findClaims');
+		$this->openItems->expects($this->never())->method('findOpenClaims');
 
 		$this->assertSame([], $this->service()->findTasks());
 	}
@@ -247,7 +247,7 @@ class ClaimFollowUpTaskServiceTest extends TestCase {
 		$this->returnedDebits->method('findAllByDebitItem')->willReturn([5 => $this->returned(1, 5, 'AM04')]);
 		$this->debitItems->method('findAllInLiveBatches')->willReturn([$this->debitItem(5, 10)]);
 		$this->mandates->method('findAll')->willReturn([$this->revokedMandate(1, 7)]);
-		$this->openItems->method('findClaims')->willReturn([$this->claim(10, 1, 1500), $this->claim(11, 7, 2500)]);
+		$this->openItems->method('findOpenClaims')->willReturn([$this->claim(10, 1, 1500), $this->claim(11, 7, 2500)]);
 		$this->assignments->method('findAll')->willReturn([]);
 
 		$tasks = $this->service()->findTasks();

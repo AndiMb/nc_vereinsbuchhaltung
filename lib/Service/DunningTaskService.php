@@ -46,7 +46,7 @@ final class DunningTaskService {
 		$intervalDays = $this->settings->intervalDays();
 
 		$tasks = [];
-		foreach ($this->openItems->findClaims() as $item) {
+		foreach ($this->openItems->findOpenClaims() as $item) {
 			if (ClaimStateResolver::resolveForItem($item) !== ClaimStateResolver::STATE_OPEN) {
 				continue;
 			}

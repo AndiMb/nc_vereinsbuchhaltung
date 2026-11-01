@@ -13,25 +13,38 @@ use OCP\IDBConnection;
  * @extends EncryptingMapper<Mandate>
  */
 class MandateMapper extends EncryptingMapper {
-	public function __construct(IDBConnection $db, FieldCipher $cipher) {
+	private ReadCache $readCache;
+
+	public function __construct(IDBConnection $db, FieldCipher $cipher, ?ReadCache $readCache = null) {
 		parent::__construct($db, 'vbh_mandates', Mandate::class, $cipher);
+		$this->readCache = $readCache ?? new ReadCache();
 	}
 
 	protected function encryptedProperties(): array {
 		return ['iban'];
 	}
 
-	/** @return Mandate[] */
+	/**
+	 * Innerhalb eines {@see ReadCache::during()} nur einmal geladen.
+	 *
+	 * @return list<Mandate>
+	 */
 	public function findAll(): array {
-		$qb = $this->db->getQueryBuilder();
-		$qb->select('*')
-			->from($this->getTableName())
-			->orderBy('status', 'ASC')
-			->addOrderBy('id', 'DESC');
-		return $this->findEntities($qb);
+		return $this->readCache->entities('mandates.all', function (): array {
+			$qb = $this->db->getQueryBuilder();
+			$qb->select('*')
+				->from($this->getTableName())
+				->orderBy('status', 'ASC')
+				->addOrderBy('id', 'DESC');
+			return array_values($this->findEntities($qb));
+		});
 	}
 
 	public function find(int $id): Mandate {
+		$cached = $this->readCache->byId('mandates.all', fn () => $this->findAll(), $id);
+		if ($cached instanceof Mandate) {
+			return $cached;
+		}
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')
 			->from($this->getTableName())
@@ -52,6 +65,20 @@ class MandateMapper extends EncryptingMapper {
 
 	/** @return Mandate[] gesamte Historie eines Mitglieds, neueste zuerst */
 	public function findByMember(int $memberId): array {
+		if ($this->readCache->isActive()) {
+			$byMember = $this->readCache->remember('mandates.byMember', function (): array {
+				$index = [];
+				foreach ($this->findAll() as $mandate) {
+					$index[$mandate->getMemberId()][] = $mandate;
+				}
+				// Neueste zuerst, wie die Abfrage unten.
+				return array_map(static function (array $list): array {
+					usort($list, static fn (Mandate $a, Mandate $b) => (int)$b->getId() <=> (int)$a->getId());
+					return $list;
+				}, $index);
+			});
+			return array_map(static fn (Mandate $m) => clone $m, $byMember[$memberId] ?? []);
+		}
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')
 			->from($this->getTableName())
@@ -73,6 +100,19 @@ class MandateMapper extends EncryptingMapper {
 	 * @return Mandate[]
 	 */
 	public function findLiveByMember(int $memberId): array {
+		// Im Lese-Puffer aus dem einmal geladenen Bestand statt je Mitglied eine Abfrage.
+		if ($this->readCache->isActive()) {
+			$byMember = $this->readCache->remember('mandates.liveByMember', function (): array {
+				$index = [];
+				foreach ($this->findAll() as $mandate) {
+					if ($mandate->getStatus() !== Mandate::STATUS_ENDED) {
+						$index[$mandate->getMemberId()][] = $mandate;
+					}
+				}
+				return $index;
+			});
+			return array_map(static fn (Mandate $m) => clone $m, $byMember[$memberId] ?? []);
+		}
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')
 			->from($this->getTableName())

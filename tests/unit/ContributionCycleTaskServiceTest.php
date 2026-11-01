@@ -169,7 +169,7 @@ class ContributionCycleTaskServiceTest extends TestCase {
 		$this->assignments->method('findAll')->willReturn([$assignment]);
 		$overdue1 = $this->claim(10, 7, '2025-12-01', 1, 1500);
 		$overdue2 = $this->claim(11, 7, '2025-12-15', 1, 2500);
-		$this->openItems->method('findClaims')->willReturn([$overdue1, $overdue2]);
+		$this->openItems->method('findOpenClaims')->willReturn([$overdue1, $overdue2]);
 
 		$tasks = $this->service('2026-01-01')->findTasks();
 
@@ -186,7 +186,7 @@ class ContributionCycleTaskServiceTest extends TestCase {
 		for ($i = 0; $i < 30; $i++) {
 			$claims[] = $this->claim(100 + $i, 7, '2025-12-01', 1, 1000);
 		}
-		$this->openItems->method('findClaims')->willReturn($claims);
+		$this->openItems->method('findOpenClaims')->willReturn($claims);
 		$this->assignments->expects($this->once())->method('findAll')->willReturn([$transfer]);
 		$this->assignments->expects($this->never())->method('find');
 
@@ -198,7 +198,7 @@ class ContributionCycleTaskServiceTest extends TestCase {
 
 	public function testLastschriftForderungenZaehlenNichtAlsUeberweiserForderung(): void {
 		$this->assignments->method('findAll')->willReturn([$this->assignment(1, 7, Assignment::PAYMENT_METHOD_DIRECT_DEBIT)]);
-		$this->openItems->method('findClaims')->willReturn([$this->claim(10, 7, '2025-12-01', 1, 1500)]);
+		$this->openItems->method('findOpenClaims')->willReturn([$this->claim(10, 7, '2025-12-01', 1, 1500)]);
 
 		$this->assertSame([], $this->service('2026-01-01')->findTasks());
 	}
@@ -271,7 +271,7 @@ class ContributionCycleTaskServiceTest extends TestCase {
 		$dueSoon1 = $this->claim(20, 7, '2026-01-15', null, 1000);
 		$dueSoon2 = $this->claim(21, 8, '2026-01-15', null, 2000);
 		$dueLater = $this->claim(22, 9, '2026-02-15', null, 3000); // ausserhalb des 21-Tage-Vorwarnfensters
-		$this->openItems->method('findClaims')->willReturn([$dueSoon1, $dueSoon2, $dueLater]);
+		$this->openItems->method('findOpenClaims')->willReturn([$dueSoon1, $dueSoon2, $dueLater]);
 
 		$tasks = $this->service('2026-01-01')->findTasks();
 

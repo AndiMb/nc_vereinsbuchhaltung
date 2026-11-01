@@ -180,7 +180,7 @@ class MandateTaskServiceTest extends TestCase {
 		$this->mandates->expects($this->never())->method('find');
 		$this->members->expects($this->never())->method('find');
 		$this->assignments->expects($this->never())->method('findActiveAsOf');
-		$this->openItems->expects($this->never())->method('findClaims');
+		$this->openItems->expects($this->never())->method('findOpenClaims');
 		$this->returnedDebits->expects($this->never())->method('findAllByDebitItem');
 
 		$this->assertCount(40, $this->service()->findTasks(self::TODAY));
@@ -530,7 +530,7 @@ class MandateTaskServiceTest extends TestCase {
 	public function testAusgetretenMitOffenenForderungenUndAktivemMandatIstHinweis(): void {
 		$this->documents->method('showMissingDocumentWarning')->willReturn(false);
 		$this->givenBestand([$this->mandate(3, 7, Mandate::STATUS_ACTIVE, ['signedAt' => '2026-01-01'])], [$this->departedMember()]);
-		$this->openItems->method('findClaims')->willReturn([
+		$this->openItems->method('findOpenClaims')->willReturn([
 			$this->claim(1, 7, 1500),
 			$this->claim(2, 7, 2500),
 			$this->claim(3, 7, 9900, 'paid'), // erledigt: zählt nicht
@@ -549,7 +549,7 @@ class MandateTaskServiceTest extends TestCase {
 	public function testAusgetretenMitEinerForderungSagtEinzahl(): void {
 		$this->documents->method('showMissingDocumentWarning')->willReturn(false);
 		$this->givenBestand([$this->mandate(3, 7, Mandate::STATUS_ACTIVE, ['signedAt' => '2026-01-01'])], [$this->departedMember()]);
-		$this->openItems->method('findClaims')->willReturn([$this->claim(1, 7, 1500)]);
+		$this->openItems->method('findOpenClaims')->willReturn([$this->claim(1, 7, 1500)]);
 
 		$task = $this->only($this->service()->findTasks(self::TODAY));
 
@@ -560,7 +560,7 @@ class MandateTaskServiceTest extends TestCase {
 		// Verschwindet von selbst: alles beglichen (und der Cron beendet das Mandat).
 		$this->documents->method('showMissingDocumentWarning')->willReturn(false);
 		$this->givenBestand([$this->mandate(3, 7, Mandate::STATUS_ACTIVE, ['signedAt' => '2026-01-01'])], [$this->departedMember()]);
-		$this->openItems->method('findClaims')->willReturn([$this->claim(1, 7, 1500, 'paid'), $this->claim(2, 7, 1500, 'cancelled')]);
+		$this->openItems->method('findOpenClaims')->willReturn([$this->claim(1, 7, 1500, 'paid'), $this->claim(2, 7, 1500, 'cancelled')]);
 
 		$this->assertSame([], $this->service()->findTasks(self::TODAY));
 	}
@@ -569,7 +569,7 @@ class MandateTaskServiceTest extends TestCase {
 		// Austritt in der Zukunft: das Mitglied ist noch aktiv, die Forderungen werden normal eingezogen.
 		$this->documents->method('showMissingDocumentWarning')->willReturn(false);
 		$this->givenBestand([$this->mandate(3, 7, Mandate::STATUS_ACTIVE, ['signedAt' => '2026-01-01'])], [$this->departedMember(7, '2026-12-31')]);
-		$this->openItems->expects($this->never())->method('findClaims');
+		$this->openItems->expects($this->never())->method('findOpenClaims');
 
 		$this->assertSame([], $this->service()->findTasks(self::TODAY));
 	}
@@ -577,7 +577,7 @@ class MandateTaskServiceTest extends TestCase {
 	public function testAusgetretenMitBeendetemMandatIstKeineAufgabe(): void {
 		$this->givenBestand([$this->mandate(3, 7, Mandate::STATUS_ENDED, ['endReason' => Mandate::END_REASON_TERMINATED])], [$this->departedMember()]);
 		$this->assignments->method('findActiveAsOf')->willReturn([]);
-		$this->openItems->expects($this->never())->method('findClaims');
+		$this->openItems->expects($this->never())->method('findOpenClaims');
 
 		$this->assertSame([], $this->service()->findTasks(self::TODAY));
 	}

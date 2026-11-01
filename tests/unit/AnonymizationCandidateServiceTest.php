@@ -5,22 +5,13 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
-use OCA\Vereinsbuchhaltung\Db\DebitItem;
-use OCA\Vereinsbuchhaltung\Db\DebitItemMapper;
-use OCA\Vereinsbuchhaltung\Db\Journal;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\Mandate;
 use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
-use OCA\Vereinsbuchhaltung\Db\OpenItem;
-use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
-use OCA\Vereinsbuchhaltung\Db\Reimbursement;
 use OCA\Vereinsbuchhaltung\Db\ReimbursementMapper;
-use OCA\Vereinsbuchhaltung\Db\ReturnedDebit;
-use OCA\Vereinsbuchhaltung\Db\ReturnedDebitMapper;
 use OCA\Vereinsbuchhaltung\Service\AnonymizationCandidateService;
-use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IL10N;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -31,23 +22,23 @@ use PHPUnit\Framework\TestCase;
  * Issue #78, T30) – siehe {@see AnonymizationCandidateService}-Klassendoc für
  * die Abgrenzung von „letzter zugehöriger Buchung" und die beiden
  * zusätzlichen Schranken (nicht mehr aktiv, kein lebendes Mandat).
+ *
+ * Welche Buchungen zu einem Mitglied gehören (Zahlung einer Forderung,
+ * Auszahlung einer Auslage, Rücklastschrift auf einem seiner Mandate), legt
+ * seit Issue #252 eine Sammelabfrage fest
+ * ({@see JournalMapper::lastMemberBookingDates()}) – hier gemockt; geprüft
+ * wird die Regel, die auf dem Datum aufsetzt.
  */
 class AnonymizationCandidateServiceTest extends TestCase {
 
 	private MemberMapper&MockObject $members;
-	private OpenItemMapper&MockObject $openItems;
 	private MandateMapper&MockObject $mandates;
-	private DebitItemMapper&MockObject $debitItems;
-	private ReturnedDebitMapper&MockObject $returnedDebits;
 	private ReimbursementMapper&MockObject $reimbursements;
 	private JournalMapper&MockObject $journals;
 
 	protected function setUp(): void {
 		$this->members = $this->createMock(MemberMapper::class);
-		$this->openItems = $this->createMock(OpenItemMapper::class);
 		$this->mandates = $this->createMock(MandateMapper::class);
-		$this->debitItems = $this->createMock(DebitItemMapper::class);
-		$this->returnedDebits = $this->createMock(ReturnedDebitMapper::class);
 		$this->reimbursements = $this->createMock(ReimbursementMapper::class);
 		$this->journals = $this->createMock(JournalMapper::class);
 
@@ -69,10 +60,7 @@ class AnonymizationCandidateServiceTest extends TestCase {
 
 		return new AnonymizationCandidateService(
 			$this->members,
-			$this->openItems,
 			$this->mandates,
-			$this->debitItems,
-			$this->returnedDebits,
 			$this->reimbursements,
 			$this->journals,
 			$time,
@@ -91,11 +79,16 @@ class AnonymizationCandidateServiceTest extends TestCase {
 		return $m;
 	}
 
-	private function journal(int $id, string $date): Journal {
-		$j = new Journal();
-		$j->setId($id);
-		$j->setDate($date);
-		return $j;
+	/**
+	 * Letzte Buchung je Mitglied, wie sie die Sammelabfrage liefern würde.
+	 *
+	 * @param array<int,string> $dates Mitglieds-ID => Datum
+	 */
+	private function lastBookings(array $dates): void {
+		$this->journals->method('lastMemberBookingDates')
+			->willReturnCallback(static fn (array $ids, string $userId): array => $userId === Application::BOOK
+				? array_intersect_key($dates, array_flip($ids))
+				: []);
 	}
 
 	// --- lastBookingDate() ----------------------------------------------------
@@ -104,72 +97,10 @@ class AnonymizationCandidateServiceTest extends TestCase {
 		$this->assertNull($this->service()->lastBookingDate(42));
 	}
 
-	public function testLastBookingDateAusBezahlterForderung(): void {
-		$item = new OpenItem();
-		$item->setId(1);
-		$item->setMemberId(42);
-		$item->setPaidJournalId(100);
-		$this->openItems->method('findByMember')->willReturn([$item]);
-		$this->journals->method('find')->with(100, $this->anything())->willReturn($this->journal(100, '2026-05-15'));
-
-		$this->assertSame('2026-05-15', $this->service()->lastBookingDate(42));
-	}
-
-	public function testLastBookingDateAusRuecklastschriftgebuehr(): void {
-		$mandate = new Mandate();
-		$mandate->setId(1);
-		$mandate->setMemberId(42);
-		$this->mandates->method('findByMember')->willReturn([$mandate]);
-
-		$debitItem = new DebitItem();
-		$debitItem->setId(5);
-		$this->debitItems->method('findByMandate')->willReturn([$debitItem]);
-
-		$returnedDebit = new ReturnedDebit();
-		$returnedDebit->setId(9);
-		$returnedDebit->setDebitItemId(5);
-		$returnedDebit->setJournalId(200);
-		$this->returnedDebits->method('findByDebitItem')->willReturn($returnedDebit);
-		$this->journals->method('find')->with(200, $this->anything())->willReturn($this->journal(200, '2027-02-10'));
+	public function testLastBookingDateAusDerSammelabfrageImVereinsbuch(): void {
+		$this->lastBookings([42 => '2027-02-10', 7 => '2030-01-01']);
 
 		$this->assertSame('2027-02-10', $this->service()->lastBookingDate(42));
-	}
-
-	public function testLastBookingDateIstDasSpaetesteDatum(): void {
-		$item = new OpenItem();
-		$item->setId(1);
-		$item->setMemberId(42);
-		$item->setPaidJournalId(100);
-		$this->openItems->method('findByMember')->willReturn([$item]);
-
-		$mandate = new Mandate();
-		$mandate->setId(1);
-		$this->mandates->method('findByMember')->willReturn([$mandate]);
-		$debitItem = new DebitItem();
-		$debitItem->setId(5);
-		$this->debitItems->method('findByMandate')->willReturn([$debitItem]);
-		$returnedDebit = new ReturnedDebit();
-		$returnedDebit->setDebitItemId(5);
-		$returnedDebit->setJournalId(200);
-		$this->returnedDebits->method('findByDebitItem')->willReturn($returnedDebit);
-
-		$this->journals->method('find')->willReturnMap([
-			[100, Application::BOOK, $this->journal(100, '2020-01-01')],
-			[200, Application::BOOK, $this->journal(200, '2027-02-10')],
-		]);
-
-		$this->assertSame('2027-02-10', $this->service()->lastBookingDate(42));
-	}
-
-	public function testIgnoriertGeloeschteBuchung(): void {
-		$item = new OpenItem();
-		$item->setId(1);
-		$item->setMemberId(42);
-		$item->setPaidJournalId(100);
-		$this->openItems->method('findByMember')->willReturn([$item]);
-		$this->journals->method('find')->willThrowException(new DoesNotExistException('weg'));
-
-		$this->assertNull($this->service()->lastBookingDate(42));
 	}
 
 	// --- isEligible()/statusFor() -----------------------------------------------
@@ -181,44 +112,32 @@ class AnonymizationCandidateServiceTest extends TestCase {
 
 	public function testNichtReifVorDemZehnJahresStichtag(): void {
 		$this->members->method('find')->willReturn($this->inactiveMember());
-		$item = new OpenItem();
-		$item->setMemberId(42);
-		$item->setPaidJournalId(100);
-		$this->openItems->method('findByMember')->willReturn([$item]);
-		$this->journals->method('find')->willReturn($this->journal(100, '2026-05-15'));
+		$this->lastBookings([42 => '2026-05-15']);
 
 		$this->assertFalse($this->service('2036-12-31')->isEligible(42));
 	}
 
 	public function testReifNachDemZehnJahresStichtag(): void {
 		$this->members->method('find')->willReturn($this->inactiveMember());
-		$item = new OpenItem();
-		$item->setMemberId(42);
-		$item->setPaidJournalId(100);
-		$this->openItems->method('findByMember')->willReturn([$item]);
-		$this->journals->method('find')->willReturn($this->journal(100, '2026-05-15'));
+		$this->lastBookings([42 => '2026-05-15']);
 
 		$this->assertTrue($this->service('2037-01-01')->isEligible(42));
 	}
 
-	public function testLastBookingDateZaehltDieAuszahlungEinerAuslageMit(): void {
-		$reimbursement = new Reimbursement();
-		$reimbursement->setId(7);
-		$reimbursement->setMemberId(42);
-		$reimbursement->setJournalId(200);
-		$this->reimbursements->method('findByMember')->with(42)->willReturn([$reimbursement]);
-		$this->journals->method('find')->with(200, $this->anything())->willReturn($this->journal(200, '2030-03-01'));
+	public function testStatusNenntDatumUndStichtag(): void {
+		$this->members->method('find')->willReturn($this->inactiveMember());
+		$this->lastBookings([42 => '2026-05-15']);
 
-		$this->assertSame('2030-03-01', $this->service()->lastBookingDate(42));
+		$status = $this->service('2037-06-01')->statusFor(42);
+
+		$this->assertSame('2026-05-15', $status['lastBookingDate']);
+		$this->assertSame('2037-01-01', $status['cutoffDate']);
+		$this->assertTrue($status['eligible']);
 	}
 
 	public function testNichtReifSolangeAuslagenantraegeOffenSind(): void {
 		$this->members->method('find')->willReturn($this->inactiveMember());
-		$item = new OpenItem();
-		$item->setMemberId(42);
-		$item->setPaidJournalId(100);
-		$this->openItems->method('findByMember')->willReturn([$item]);
-		$this->journals->method('find')->willReturn($this->journal(100, '2026-05-15'));
+		$this->lastBookings([42 => '2026-05-15']);
 		$this->reimbursements->method('countPendingByMember')->with(42)->willReturn(1);
 
 		$this->assertFalse($this->service('2037-06-01')->isEligible(42));
@@ -228,11 +147,7 @@ class AnonymizationCandidateServiceTest extends TestCase {
 		$member = $this->inactiveMember();
 		$member->setRedactedAt('2037-01-01 00:00:00');
 		$this->members->method('find')->willReturn($member);
-		$item = new OpenItem();
-		$item->setMemberId(42);
-		$item->setPaidJournalId(100);
-		$this->openItems->method('findByMember')->willReturn([$item]);
-		$this->journals->method('find')->willReturn($this->journal(100, '2026-05-15'));
+		$this->lastBookings([42 => '2026-05-15']);
 
 		$this->assertFalse($this->service('2037-06-01')->isEligible(42));
 	}
@@ -243,22 +158,14 @@ class AnonymizationCandidateServiceTest extends TestCase {
 		$member->setJoinedAt('2010-01-01');
 		// Kein Austritt - Member::isActive() ist true.
 		$this->members->method('find')->willReturn($member);
-		$item = new OpenItem();
-		$item->setMemberId(42);
-		$item->setPaidJournalId(100);
-		$this->openItems->method('findByMember')->willReturn([$item]);
-		$this->journals->method('find')->willReturn($this->journal(100, '2026-05-15'));
+		$this->lastBookings([42 => '2026-05-15']);
 
 		$this->assertFalse($this->service('2037-06-01')->isEligible(42));
 	}
 
 	public function testNichtReifSolangeEinMandatNochLebt(): void {
 		$this->members->method('find')->willReturn($this->inactiveMember());
-		$item = new OpenItem();
-		$item->setMemberId(42);
-		$item->setPaidJournalId(100);
-		$this->openItems->method('findByMember')->willReturn([$item]);
-		$this->journals->method('find')->willReturn($this->journal(100, '2026-05-15'));
+		$this->lastBookings([42 => '2026-05-15']);
 
 		$liveMandate = new Mandate();
 		$liveMandate->setId(1);
@@ -271,11 +178,7 @@ class AnonymizationCandidateServiceTest extends TestCase {
 
 	public function testReifTrotzBeendetenMandats(): void {
 		$this->members->method('find')->willReturn($this->inactiveMember());
-		$item = new OpenItem();
-		$item->setMemberId(42);
-		$item->setPaidJournalId(100);
-		$this->openItems->method('findByMember')->willReturn([$item]);
-		$this->journals->method('find')->willReturn($this->journal(100, '2026-05-15'));
+		$this->lastBookings([42 => '2026-05-15']);
 
 		$endedMandate = new Mandate();
 		$endedMandate->setId(1);
@@ -292,24 +195,9 @@ class AnonymizationCandidateServiceTest extends TestCase {
 		$reif = $this->inactiveMember(1);
 		$nichtReif = $this->inactiveMember(2);
 		$this->members->method('findAll')->willReturn([$reif, $nichtReif]);
-		$this->members->method('find')->willReturnMap([
-			[1, $reif],
-			[2, $nichtReif],
-		]);
-
-		$item1 = new OpenItem();
-		$item1->setMemberId(1);
-		$item1->setPaidJournalId(100);
-		$item2 = new OpenItem();
-		$item2->setMemberId(2);
-		$item2->setPaidJournalId(200);
-		$this->openItems->method('findByMember')->willReturnMap([
-			[1, [$item1]],
-			[2, [$item2]],
-		]);
-		$this->journals->method('find')->willReturnMap([
-			[100, Application::BOOK, $this->journal(100, '2026-05-15')], // laengst reif
-			[200, Application::BOOK, $this->journal(200, '2036-01-01')], // noch nicht
+		$this->lastBookings([
+			1 => '2026-05-15', // laengst reif
+			2 => '2036-01-01', // noch nicht
 		]);
 
 		$tasks = $this->service('2037-06-01')->findTasks();
@@ -317,6 +205,17 @@ class AnonymizationCandidateServiceTest extends TestCase {
 		$this->assertCount(1, $tasks);
 		$this->assertSame('member', $tasks[0]['objectType']);
 		$this->assertSame(1, $tasks[0]['objectId']);
+	}
+
+	public function testFindTasksFragtDieLetztenBuchungenGesammeltAb(): void {
+		// Eine Sammelabfrage für alle Ausgetretenen, nicht eine je Mitglied (Issue #252).
+		$this->members->method('findAll')->willReturn([$this->inactiveMember(1), $this->inactiveMember(2), $this->inactiveMember(3)]);
+		$this->journals->expects($this->once())->method('lastMemberBookingDates')
+			->with([1, 2, 3], Application::BOOK)
+			->willReturn([1 => '2026-05-15']);
+		$this->members->expects($this->never())->method('find');
+
+		$this->assertCount(1, $this->service('2037-06-01')->findTasks());
 	}
 
 	public function testAufgabentextNenntKeinenSpecAbschnittUndStehtNameUnmaskiertDavor(): void {
@@ -327,12 +226,7 @@ class AnonymizationCandidateServiceTest extends TestCase {
 		$member->setOrganizationName('Müller & Söhne');
 		$member->setLastName(null);
 		$this->members->method('findAll')->willReturn([$member]);
-		$this->members->method('find')->willReturn($member);
-		$item = new OpenItem();
-		$item->setMemberId(1);
-		$item->setPaidJournalId(100);
-		$this->openItems->method('findByMember')->willReturn([$item]);
-		$this->journals->method('find')->willReturn($this->journal(100, '2026-05-15'));
+		$this->lastBookings([1 => '2026-05-15']);
 
 		$tasks = $this->service('2037-06-01')->findTasks();
 
@@ -344,13 +238,12 @@ class AnonymizationCandidateServiceTest extends TestCase {
 	}
 
 	public function testFindTasksPrueftAktiveMitgliederGarNichtErst(): void {
-		// Ein aktives Mitglied kann nie reif sein: die Prüfung kostet mehrere Abfragen je
-		// Mitglied und läuft bei jedem Öffnen der Aufgabenliste - nur für Ausgetretene.
+		// Ein aktives Mitglied kann nie reif sein: die Prüfung läuft bei jedem Öffnen der
+		// Aufgabenliste - nur für Ausgetretene.
 		$active = $this->inactiveMember(1);
 		$active->setLeftAt(null);
 		$this->members->method('findAll')->willReturn([$active]);
-		$this->members->expects($this->never())->method('find');
-		$this->openItems->expects($this->never())->method('findByMember');
+		$this->journals->expects($this->never())->method('lastMemberBookingDates');
 		$this->mandates->expects($this->never())->method('findByMember');
 
 		$this->assertSame([], $this->service('2037-06-01')->findTasks());
