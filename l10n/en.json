@@ -4056,7 +4056,8 @@
         "_%n möglicher Beleg_::_%n mögliche Belege_": [
             "%n possible receipt",
             "%n possible receipts"
-        ]
+        ],
+        "Neu: Auslagenerstattung. Mitglieder reichen unter „Mein Bereich → Auslagen“ eine privat verauslagte Ausgabe mit Beleg ein; mindestens N Verwalter geben sie unter „Buchungen → Auslagen“ frei (Einstellung unter „Auslagenerstattung“), erst dann entsteht der offene Posten zur Überweisung. „Auszahlung buchen“ öffnet den Buchungsdialog und hängt die Belege an die Buchung. Der Reiter „Mein Beitrag“ heißt jetzt „Mein Bereich“.": "New: expense reimbursement. Members submit an expense they paid privately, with a receipt, under \"My area → Expenses\"; at least N administrators approve it under \"Bookings → Expenses\" (setting under \"Expense reimbursement\"), and only then the open item for the transfer is created. \"Book payout\" opens the posting dialog and attaches the receipts to the posting. The tab \"My contribution\" is now called \"My area\"."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

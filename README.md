@@ -91,7 +91,7 @@ Optionales Zusatzmodul (Reiter „Beiträge", erscheint automatisch sobald ein M
 - **Einzugszyklus**: Zeitstrahl der Einzugstermine, Vorabinfo per E-Mail (Standard 14 Tage vorher), **Freigabe** (Beträge und Bankdaten werden eingefroren, die **pain.008**-Datei entsteht) und Einreichung als zwei getrennte Schritte; Lauf verwerfen oder nach hinten verschieben, solange nichts eingereicht ist
 - **Bankabgleich**: Sammelgutschriften, Rücklastschriften (mit Grund in Klartext) und Zahlungseingänge aus dem Kontoauszugs-Import erscheinen als Vorschläge mit Begründung und werden erst nach Ihrem Urteil verbucht
 - **Mahnwesen und Aufgaben**: Zahlungsaufforderung, Zahlungserinnerung und Mahnung nach Abstand; Stundung, Erlass und Storno; eine Aufgabenliste für Störfälle statt stiller Fehler
-- **Mein Beitrag** (Self-Service für verknüpfte Konten), informelle **Beitragsbestätigung**, **Datenübersicht** nach Art. 15 DSGVO und Anonymisierung nach Ablauf der Aufbewahrungsfrist
+- **Mein Bereich** mit „Beitrag“ (Self-Service für verknüpfte Konten) und **Auslagen** (Mitglieder reichen Belege ein, mindestens N Verwalter geben frei, danach offener Posten zur Überweisung, Historie mit Hash-Kette), informelle **Beitragsbestätigung**, **Datenübersicht** nach Art. 15 DSGVO und Anonymisierung nach Ablauf der Aufbewahrungsfrist
 
 ### Rechnungen
 - **Rechnungen im Namen des Vereins** (optionaler Reiter *Rechnungen*, in den Einstellungen einzuschalten): Empfänger aus Stammdaten oder Mitgliedern, mehrere Positionen mit Menge, Einheit, Preis, Rabatt und Erlöskonto, Leistungsdatum oder -zeitraum, Hinweis nach § 19 UStG (Kleinunternehmer) oder Steuerbefreiung – mit allen Pflichtangaben nach § 14 Abs. 4 UStG
