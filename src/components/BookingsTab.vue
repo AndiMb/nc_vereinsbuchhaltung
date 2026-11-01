@@ -39,7 +39,8 @@
 			</div>
 		</div>
 
-		<div class="vbh-filterbar">
+		<!-- Die Auslagen haben ihre eigene Suche und ihre eigenen Filter (ReimbursementsPanel). -->
+		<div v-if="bookingView !== 'reimbursements'" class="vbh-filterbar">
 			<!-- Bewusst ohne v-model: ein reaktiver Wert würde bei jedem Tastendruck
 			     die ganze Komponente samt Journal-Tabelle neu rendern. Gefiltert wird
 			     erst über den entprellten bookingSearch (onSearchInput). -->

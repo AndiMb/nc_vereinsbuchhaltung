@@ -202,7 +202,7 @@ test.describe('Auslagenerstattung', () => {
 	test('die erste Freigabe macht den Antrag „teilweise freigegeben" – ohne Posten und ohne Mail ans Mitglied', async ({ page, request }) => {
 		await openAuslagenSicht(page, USERS.verwalter)
 		const dialog = await openAntrag(page, 'Material Jugendfreizeit')
-		await expect(dialog).toContainText('DE89370400440532013000')
+		await expect(dialog).toContainText('DE89 3704 0044 0532 0130 00')
 		await expect(dialog.getByRole('link', { name: 'beleg.png' })).toBeVisible()
 
 		await dialog.getByRole('button', { name: 'Freigeben' }).click()

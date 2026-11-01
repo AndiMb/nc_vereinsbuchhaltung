@@ -56,7 +56,7 @@ class ReimbursementMailService {
 				$l->t('Neue Auslage zur Freigabe'),
 				[
 					$l->t('Guten Tag %s,', [$user->getDisplayName()]),
-					$l->t('%1$s hat eine Auslage über %2$s € eingereicht: %3$s', [$memberName, $this->euro($reimbursement->getAmountCents()), $reimbursement->getPurpose()]),
+					$l->t('%1$s hat eine Auslage über %2$s € eingereicht: %3$s', [$memberName, $this->euro($reimbursement->getAmountCents(), $l), $reimbursement->getPurpose()]),
 					$l->t('Sie finden den Antrag unter „Buchungen → Auslagen“. Freigegeben wird er, sobald %d Verwalter zugestimmt haben.', [$reimbursement->getRequiredApprovals()]),
 				],
 			);
@@ -112,7 +112,7 @@ class ReimbursementMailService {
 			return;
 		}
 		$l = $this->recipientL10n->forMember($member);
-		[$subject, $paragraphs] = $compose($l, $reimbursement, $member, $this->euro($reimbursement->getAmountCents()));
+		[$subject, $paragraphs] = $compose($l, $reimbursement, $member, $this->euro($reimbursement->getAmountCents(), $l));
 		$this->send($templateId, $email, $member->displayName(), $l, $subject, $paragraphs);
 	}
 
@@ -164,7 +164,10 @@ class ReimbursementMailService {
 		}
 	}
 
-	private function euro(int $cents): string {
-		return number_format($cents / 100, 2, ',', '.');
+	/** Betrag in der Schreibweise der Mailsprache: 12,50 auf Deutsch, 12.50 auf Englisch. */
+	private function euro(int $cents, IL10N $l): string {
+		return str_starts_with($l->getLanguageCode(), 'en')
+			? number_format($cents / 100, 2, '.', ',')
+			: number_format($cents / 100, 2, ',', '.');
 	}
 }

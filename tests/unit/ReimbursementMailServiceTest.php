@@ -74,10 +74,10 @@ class ReimbursementMailServiceTest extends TestCase {
 		$this->logger = $this->createMock(LoggerInterface::class);
 	}
 
-	private function service(): ReimbursementMailService {
+	private function service(string $language = 'de_DE'): ReimbursementMailService {
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(static fn (string $text, array $parameters = []): string => vsprintf($text, $parameters));
-		$l10n->method('getLanguageCode')->willReturn('de_DE');
+		$l10n->method('getLanguageCode')->willReturn($language);
 		$recipientL10n = $this->createMock(RecipientL10n::class);
 		$recipientL10n->method('forNcUser')->willReturn($l10n);
 		$recipientL10n->method('forMember')->willReturn($l10n);
@@ -189,6 +189,19 @@ class ReimbursementMailServiceTest extends TestCase {
 		$text = implode(' ', $this->bodies);
 		$this->assertStringContainsString('Beleg unleserlich', $text, 'Die Ablehnung nennt die Begründung');
 		$this->assertStringContainsString('02.11.2026', $text, 'Die Auszahlung nennt das Datum');
+	}
+
+	public function testBetraegeStehenInDerSchreibweiseDerMailsprache(): void {
+		$this->members->method('find')->willReturn($this->member());
+		$r = $this->reimbursement();
+		$r->setAmountCents(123456);
+
+		$this->service('en')->approved($r);
+		$this->assertStringContainsString('1,234.56', implode(' ', $this->bodies));
+
+		$this->bodies = [];
+		$this->service('de')->approved($r);
+		$this->assertStringContainsString('1.234,56', implode(' ', $this->bodies));
 	}
 
 	public function testOhneAdresseImMitgliedNimmtDieMailDieDesKontos(): void {

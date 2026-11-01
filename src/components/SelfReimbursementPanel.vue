@@ -17,7 +17,7 @@
 				</p>
 
 				<div v-if="items.length" class="vbh-tablecard">
-					<table class="vbh-table vbh-reimb-table">
+					<table class="vbh-table vbh-stack vbh-reimb-table">
 						<thead>
 							<tr>
 								<th class="nowrap">
@@ -38,18 +38,20 @@
 								tabindex="0"
 								@click="openDetail(item.id)"
 								@keydown.enter="openDetail(item.id)">
-								<td class="nowrap">
+								<td class="nowrap vbh-stack-eyebrow">
 									{{ formatDate(item.expenseDate) }}
 								</td>
-								<td class="vbh-purpose">
+								<td class="vbh-purpose vbh-stack-title">
 									<span class="vbh-clamp">{{ item.purpose }}</span>
 								</td>
 								<td class="num strong">
 									{{ formatMoney(item.amountCents / 100) }}
 								</td>
 								<td>
-									<ReimbursementStatusTag :status="item.status" />
-									<span v-if="progressText(item)" class="vbh-reimb-progress">{{ progressText(item) }}</span>
+									<span class="vbh-reimb-status">
+										<ReimbursementStatusTag :status="item.status" />
+										<span v-if="progressText(item)" class="vbh-reimb-progress">{{ progressText(item) }}</span>
+									</span>
 								</td>
 							</tr>
 						</tbody>
@@ -160,7 +162,9 @@
 					<dt>{{ t('Verwendungszweck') }}</dt>
 					<dd>{{ detail.purpose }}</dd>
 					<dt>{{ t('IBAN') }}</dt>
-					<dd>{{ detail.iban }}</dd>
+					<dd class="vbh-reimb-iban-text">
+						{{ formatIban(detail.iban) }}
+					</dd>
 					<dt>{{ t('Status') }}</dt>
 					<dd>
 						<ReimbursementStatusTag :status="detail.status" />
@@ -184,7 +188,7 @@
 						<a :href="receiptUrl(file)" target="_blank" rel="noopener">{{ file.fileName }}</a>
 						<span class="vbh-reimb-progress">{{ formatFileSize(file.fileSize) }}</span>
 						<NcButton
-							v-if="detail.canEditReceipts && detail.files.length > 1"
+							v-if="detail.canWithdraw && detail.files.length > 1"
 							variant="tertiary"
 							:aria-label="t('Beleg entfernen')"
 							:disabled="busy"
@@ -193,7 +197,7 @@
 						</NcButton>
 					</li>
 				</ul>
-				<div v-if="detail.canEditReceipts" class="vbh-reimb-addreceipt">
+				<div v-if="detail.canWithdraw" class="vbh-reimb-addreceipt">
 					<NcButton variant="secondary" :disabled="busy" @click="$refs.addReceiptInput.click()">
 						<template #icon>
 							<NcIconSvgWrapper :path="mdiPlus" :size="18" />
@@ -430,8 +434,16 @@ export default {
 	cursor: pointer;
 }
 
+.vbh-reimb-status {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 4px 8px;
+	align-items: center;
+	justify-content: flex-end;
+}
+
 .vbh-reimb-progress {
-	margin-inline-start: 8px;
+	margin-inline-start: 0;
 	color: var(--color-text-maxcontrast);
 	font-size: 0.9em;
 }
@@ -507,6 +519,10 @@ export default {
 
 .vbh-reimb-iban.is-invalid {
 	border-color: var(--color-error);
+}
+
+.vbh-reimb-iban-text {
+	font-family: var(--font-face-monospace, monospace);
 }
 
 .vbh-reimb-help {

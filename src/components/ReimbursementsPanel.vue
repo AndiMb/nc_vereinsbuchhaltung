@@ -2,14 +2,12 @@
 	<div class="vbh-reimb-staff">
 		<NcLoadingIcon v-if="loading" :size="32" />
 		<template v-else>
-			<div class="vbh-filterbar">
-				<input
-					v-model="search"
-					type="search"
-					class="vbh-search"
-					:placeholder="t('Suche (Zweck, Name, Betrag)…')">
-			</div>
-			<div class="vbh-filterbar">
+			<input
+				v-model="search"
+				type="search"
+				class="vbh-search vbh-reimb-search"
+				:placeholder="t('Suche (Zweck, Name, Betrag)…')">
+			<div class="vbh-reimb-chips" role="group" :aria-label="t('Status')">
 				<button
 					v-for="f in filterOptions"
 					:key="f.key"
@@ -22,14 +20,14 @@
 			</div>
 
 			<div v-if="filteredItems.length" class="vbh-tablecard">
-				<table class="vbh-table">
+				<table class="vbh-table vbh-stack">
 					<thead>
 						<tr>
 							<th class="nowrap">
 								{{ t('Eingereicht') }}
 							</th>
 							<th>{{ t('Mitglied') }}</th>
-							<th class="vbh-col-hide-sm">
+							<th>
 								{{ t('Verwendungszweck') }}
 							</th>
 							<th class="num">
@@ -46,20 +44,24 @@
 							tabindex="0"
 							@click="openDetail(item.id)"
 							@keydown.enter="openDetail(item.id)">
-							<td class="nowrap">
+							<td class="nowrap vbh-stack-eyebrow">
 								{{ formatDate(item.submittedAt) }}
 							</td>
-							<td>{{ item.memberName }}</td>
-							<td class="vbh-col-hide-sm vbh-purpose">
+							<td class="vbh-stack-title">
+								{{ item.memberName }}
+							</td>
+							<td class="vbh-purpose vbh-stack-title">
 								<span class="vbh-clamp">{{ item.purpose }}</span>
 							</td>
 							<td class="num strong">
 								{{ formatMoney(item.amountCents / 100) }}
 							</td>
 							<td>
-								<ReimbursementStatusTag :status="item.status" />
-								<span v-if="progressText(item)" class="vbh-reimb-progress">{{ progressText(item) }}</span>
-								<span v-if="item.canApprove" class="vbh-badge vbh-badge--alert vbh-reimb-todo">{{ t('Ihre Freigabe') }}</span>
+								<span class="vbh-reimb-status">
+									<ReimbursementStatusTag :status="item.status" />
+									<span v-if="progressText(item)" class="vbh-reimb-progress">{{ progressText(item) }}</span>
+									<span v-if="item.canApprove" class="vbh-reimb-todo">{{ t('Ihre Freigabe') }}</span>
+								</span>
 							</td>
 						</tr>
 					</tbody>
@@ -91,7 +93,9 @@
 					<dt>{{ t('Verwendungszweck') }}</dt>
 					<dd>{{ detail.purpose }}</dd>
 					<dt>{{ t('IBAN') }}</dt>
-					<dd>{{ detail.iban || detail.ibanMasked }}</dd>
+					<dd class="vbh-reimb-iban">
+						{{ formatIban(detail.iban || detail.ibanMasked) }}
+					</dd>
 					<dt>{{ t('Status') }}</dt>
 					<dd>
 						<ReimbursementStatusTag :status="detail.status" />
@@ -211,6 +215,7 @@ import ReimbursementHistory from './ReimbursementHistory.vue'
 import ReimbursementStatusTag from './ReimbursementStatusTag.vue'
 import api from '../api.js'
 import { errMsg, formatDate, formatFileSize, formatMoney } from '../lib/format.js'
+import { formatIban } from '../lib/iban.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 import {
 	countByStatus,
@@ -286,6 +291,7 @@ export default {
 	methods: {
 		formatDate,
 		formatFileSize,
+		formatIban,
 		formatMoney,
 		progressText: reimbursementProgressText,
 
@@ -362,11 +368,63 @@ export default {
 </script>
 
 <style scoped>
-.vbh-reimb-row { cursor: pointer; }
+.vbh-reimb-search {
+	margin: 12px 0 0;
+}
 
-.vbh-reimb-progress { margin-inline-start: 8px; color: var(--color-text-maxcontrast); font-size: 0.9em; }
+/* Die Filter bleiben eine Zeile, am Handy wischt man seitlich – statt dass jede Gruppe eine eigene Zeile füllt. */
+.vbh-reimb-chips {
+	display: flex;
+	gap: 8px;
+	margin: 12px 0;
+	padding-bottom: 4px;
+	overflow-x: auto;
+	scrollbar-width: thin;
+}
 
-.vbh-reimb-todo { margin-inline-start: 8px; }
+.vbh-reimb-chips .vbh-chip {
+	flex: none;
+}
 
-.vbh-reimb-files { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 4px; }
+.vbh-reimb-row {
+	cursor: pointer;
+}
+
+.vbh-reimb-status {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 4px 8px;
+	align-items: center;
+	justify-content: flex-end;
+}
+
+.vbh-reimb-progress {
+	margin-inline-start: 0;
+	color: var(--color-text-maxcontrast);
+	font-size: 0.9em;
+}
+
+/* „Wartet auf Sie": auffällig genug zum Finden, aber kein Alarm. */
+.vbh-reimb-todo {
+	display: inline-block;
+	padding: 1px 8px;
+	border-radius: 10px;
+	background-color: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+	font-size: 0.82em;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+.vbh-reimb-iban {
+	font-family: var(--font-face-monospace, monospace);
+}
+
+.vbh-reimb-files {
+	display: grid;
+	gap: 4px;
+	margin: 8px 0;
+	padding: 0;
+	list-style: none;
+}
 </style>
