@@ -7,10 +7,13 @@ namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 use OCA\Vereinsbuchhaltung\Controller\MandateLegalTextController;
 use OCA\Vereinsbuchhaltung\Db\MandateLegalTextVersion;
 use OCA\Vereinsbuchhaltung\Db\MandateLegalTextVersionMapper;
+use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
 use OCA\Vereinsbuchhaltung\Service\MandateLegalTextService;
 use OCP\AppFramework\Http;
 use OCP\IL10N;
 use OCP\IRequest;
+use OCP\IUser;
+use OCP\IUserSession;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -27,7 +30,7 @@ class MandateLegalTextControllerTest extends TestCase {
 		$this->stored = [];
 	}
 
-	private function controller(): MandateLegalTextController {
+	private function controller(?MandateActivationService $activation = null, ?IUserSession $session = null): MandateLegalTextController {
 		$mapper = $this->createMock(MandateLegalTextVersionMapper::class);
 		$mapper->method('insert')->willReturnCallback(function (MandateLegalTextVersion $v): MandateLegalTextVersion {
 			$v->setId(count($this->stored) + 1);
@@ -39,7 +42,13 @@ class MandateLegalTextControllerTest extends TestCase {
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(static fn (string $text, array $params = []) => vsprintf($text, $params));
 
-		return new MandateLegalTextController($this->createMock(IRequest::class), new MandateLegalTextService($mapper, $l10n));
+		return new MandateLegalTextController(
+			$this->createMock(IRequest::class),
+			new MandateLegalTextService($mapper, $l10n),
+			$activation ?? $this->createMock(MandateActivationService::class),
+			$session ?? $this->createMock(IUserSession::class),
+			$l10n,
+		);
 	}
 
 	public function testAktuelleFassungLiefertPflichtblockUndRahmenGetrennt(): void {
@@ -121,5 +130,50 @@ class MandateLegalTextControllerTest extends TestCase {
 		$this->assertSame(Http::STATUS_BAD_REQUEST, $marker->getStatus());
 		$this->assertStringContainsString('reserviert', $marker->getData()['message']);
 		$this->assertSame([], $this->stored);
+	}
+
+	// --- Erneute Bestätigung nach einer neuen Fassung -------------------------------
+
+	public function testVersandReichtDieIdsMitDerUidDerAusloesendenPersonWeiter(): void {
+		$user = $this->createMock(IUser::class);
+		$user->method('getUID')->willReturn('kassenwart');
+		$session = $this->createMock(IUserSession::class);
+		$session->method('getUser')->willReturn($user);
+		$result = ['sent' => 2, 'alreadyCurrent' => 0, 'skipped' => 0, 'noEmail' => [], 'failed' => []];
+		$activation = $this->createMock(MandateActivationService::class);
+		$activation->expects($this->once())->method('sendReconfirmationLinks')->with([4, 7], 'kassenwart')->willReturn($result);
+
+		$response = $this->controller($activation, $session)->sendReconfirmation(['4', 7, 4]);
+
+		$this->assertSame(Http::STATUS_OK, $response->getStatus());
+		$this->assertSame($result, $response->getData());
+	}
+
+	public function testVersandOhneMandateWirdMit400AbgelehntUndSchicktNichts(): void {
+		$activation = $this->createMock(MandateActivationService::class);
+		$activation->expects($this->never())->method('sendReconfirmationLinks');
+
+		$response = $this->controller($activation)->sendReconfirmation([]);
+
+		$this->assertSame(Http::STATUS_BAD_REQUEST, $response->getStatus());
+	}
+
+	public function testVersandUeberDieObergrenzeHinausWirdMit400AbgelehntUndSchicktNichts(): void {
+		$activation = $this->createMock(MandateActivationService::class);
+		$activation->expects($this->never())->method('sendReconfirmationLinks');
+
+		$response = $this->controller($activation)->sendReconfirmation(range(1, MandateLegalTextController::MAX_RECONFIRMATION_BATCH + 1));
+
+		$this->assertSame(Http::STATUS_BAD_REQUEST, $response->getStatus());
+	}
+
+	public function testUebersichtKommtVomDienstUndNenntBatchGroesseUndGueltigkeit(): void {
+		$overview = ['upToDate' => 3, 'outdated' => 1, 'withoutElectronicConsent' => 0, 'readyIds' => [9], 'pendingIds' => [], 'noEmail' => []];
+		$activation = $this->createMock(MandateActivationService::class);
+		$activation->method('reconfirmationOverview')->willReturn($overview);
+
+		$data = $this->controller($activation)->reconfirmation()->getData();
+
+		$this->assertSame($overview + ['batchSize' => MandateLegalTextController::MAX_RECONFIRMATION_BATCH, 'validityDays' => 14], $data);
 	}
 }

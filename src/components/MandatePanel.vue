@@ -82,6 +82,15 @@
 				<!-- Ein Satz Knöpfe: die Hauptaktion des Zustands primär (wo es eine gibt), der Rest sekundär,
 					Unumkehrbares als Textknopf im Fehlerton. -->
 				<div v-if="mayWrite" class="vbh-mcard-actions vbh-mandate-actions">
+					<!-- Eine neue Fassung des Mandatstexts steht noch aus (nur aktive und ausgesetzte Mandate) -->
+					<NcButton
+						v-if="showReconfirm"
+						variant="secondary"
+						:disabled="busy || !hasEmail"
+						data-testid="mandate-reconfirm"
+						@click="doSendReconfirmation">
+						{{ reconfirmLinkState === 'none' ? t('Zur Bestätigung des Mandatstexts anschreiben') : t('Erneut zur Bestätigung anschreiben') }}
+					</NcButton>
 					<template v-if="current.status === 'entwurf'">
 						<NcButton
 							v-if="current.signatureType === 'papier'"
@@ -394,7 +403,9 @@ import {
 	endReasonLabel,
 	formatIban,
 	formatStamp,
+	linkStatusText,
 	mandateNotices,
+	reconfirmationText,
 	signatureTooOld,
 	signatureTypeLabel,
 	statusLabel,
@@ -492,6 +503,11 @@ export default {
 		amendments() { return this.current?.amendments ?? [] },
 
 		linkState() { return activationLinkState(this.current?.activationLink) },
+
+		reconfirmLinkState() { return activationLinkState(this.current?.reconfirmation?.link) },
+
+		/** Der Knopf „zur Bestätigung anschreiben“: nur, wo der Server eine ausstehende Bestätigung meldet (bei Entwürfen nie). */
+		showReconfirm() { return this.current?.reconfirmation?.needed === true },
 
 		openClaimsTotalCents() { return this.current?.openClaimsTotalCents ?? 0 },
 
@@ -636,18 +652,16 @@ export default {
 			if (m.status === 'entwurf' && m.signatureType === 'elektronisch') {
 				rows.push({ key: 'link', label: this.t('Einmal-Link'), value: this.linkText(m.activationLink) })
 			}
+			const reconfirmation = reconfirmationText(m.reconfirmation, formatStamp)
+			if (reconfirmation) {
+				rows.push({ key: 'reconfirmation', label: this.t('Mandatstext'), value: reconfirmation, tone: 'warning' })
+			}
 			return rows
 		},
 
 		/** Status des Einmal-Links in Klartext (gesendet am, abgelaufen). */
 		linkText(link) {
-			if (!link) { return this.t('noch nicht versendet') }
-			const sent = this.tRaw('gesendet am {zeit} an {email}', { zeit: formatStamp(link.sentAt), email: link.email })
-			const state = link.expired
-				? this.t('abgelaufen am {zeit}', { zeit: formatStamp(link.expiresAt) })
-				: this.t('gültig bis {zeit}', { zeit: formatStamp(link.expiresAt) })
-			const viewed = link.firstViewedAt ? this.t('vom Mitglied geöffnet am {zeit}', { zeit: formatStamp(link.firstViewedAt) }) : null
-			return [sent, state, viewed].filter(Boolean).join(' · ')
+			return link ? linkStatusText(link, formatStamp) : this.t('noch nicht versendet')
 		},
 
 		// --- Inline-Formulare ----------------------------------------------------
@@ -824,6 +838,16 @@ export default {
 				const { data } = await api.sendMandateActivationLink(this.current.id)
 				this.sentLink = { url: data.activationUrl, email: data.sentTo }
 				showSuccess(this.tRaw('Einmal-Link an {email} verschickt.', { email: data.sentTo }))
+			}, this.t('Versand fehlgeschlagen'))
+			if (ok) { await this.afterChange() }
+		},
+
+		/** Den Link zur Bestätigung der neuen Fassung des Mandatstexts an dieses Mitglied schicken (der Versand an alle steht in den Einstellungen). */
+		async doSendReconfirmation() {
+			const ok = await this.run(async () => {
+				const { data } = await api.sendMandateReconfirmationLink(this.current.id)
+				this.sentLink = { url: data.activationUrl, email: data.sentTo }
+				showSuccess(this.tRaw('Link zur Bestätigung des Mandatstexts an {email} verschickt.', { email: data.sentTo }))
 			}, this.t('Versand fehlgeschlagen'))
 			if (ok) { await this.afterChange() }
 		},

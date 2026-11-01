@@ -157,7 +157,19 @@
 						</dd>
 					</dl>
 
+					<!-- Die Verwaltung hat den Mandatstext aktualisiert; das Mandat gilt unverändert weiter, bis das Mitglied bestätigt hat. -->
+					<p v-if="needsReconfirmation" class="vbh-hint vbh-hint--info" data-testid="self-reconfirm-hint">
+						<strong>{{ t('Mandatstext aktualisiert') }}</strong> – {{ t('Bitte lesen und bestätigen Sie die neue Fassung. Ihr Mandat und Ihre Bankverbindung bleiben unverändert und gelten bis dahin weiter.') }}
+					</p>
+
 					<div class="vbh-mcard-actions">
+						<NcButton
+							v-if="needsReconfirmation"
+							variant="primary"
+							data-testid="self-reconfirm-open"
+							@click="openGrantDialog('reconfirm')">
+							{{ t('Neuen Text lesen und bestätigen') }}
+						</NcButton>
 						<template v-if="isUnconfirmedElectronicDraft">
 							<NcButton variant="primary" @click="openGrantDialog('confirm')">
 								{{ t('Jetzt bestätigen') }}
@@ -418,6 +430,9 @@ export default {
 			return !this.mandate || this.mandate.status !== 'aktiv'
 		},
 
+		/** Die Verwaltung hat eine neue Fassung des Mandatstexts gespeichert, die dieses (wirksame) Mandat noch nicht bestätigt hat. */
+		needsReconfirmation() { return this.mandate?.needsReconfirmation === true },
+
 		/** Ein von der Verwaltung angelegter elektronischer Entwurf, der noch auf Zustimmung wartet (Issue #67/#75). */
 		isUnconfirmedElectronicDraft() {
 			return !!this.mandate && this.mandate.status === 'entwurf' && this.mandate.signatureType === 'elektronisch'
@@ -512,16 +527,18 @@ export default {
 		async saveGrant(payload) {
 			this.saving = true
 			try {
-				if (this.grantMode === 'confirm') {
+				if (this.grantMode === 'reconfirm') {
+					await api.selfReconfirmMandate()
+				} else if (this.grantMode === 'confirm') {
 					await api.selfConfirmMandate()
 				} else {
 					await api.selfGrantMandate(payload)
 				}
 				this.grantDialogOpen = false
 				await this.reload()
-				showSuccess(this.t('Mandat erteilt.'))
+				showSuccess(this.grantMode === 'reconfirm' ? this.t('Mandatstext bestätigt.') : this.t('Mandat erteilt.'))
 			} catch (e) {
-				showError(errMsg(e, this.t('Erteilen fehlgeschlagen')))
+				showError(errMsg(e, this.grantMode === 'reconfirm' ? this.t('Bestätigen fehlgeschlagen') : this.t('Erteilen fehlgeschlagen')))
 			} finally {
 				this.saving = false
 			}

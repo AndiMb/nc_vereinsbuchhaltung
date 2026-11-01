@@ -15,6 +15,38 @@ Markdown headings as "[object Object]" since `marked` v18 (wrong renderer
 callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 **bold lead-in** at the start of a line instead, e.g. `**New:**`.
 
+## [0.49.0] – 2026-10-31
+
+**New:**
+- **Have everyone confirm the mandate text again:** A new version of the
+  mandate text does not change existing mandates – whoever already has a
+  mandate keeps the version they consented to. On the *Mandate legal text*
+  page in the settings, the card "Have members confirm the new version"
+  shows who has confirmed the current version, who hasn't, and whom you can
+  only reach on paper. "Send for reconfirmation …" sends everyone else an
+  email with a link; it opens the current text with the existing details
+  without signing in, one click confirms. No new mandate is created:
+  reference, bank details and status stay, collection carries on. Sending is
+  a button press by the administration; anyone who already has a valid link
+  is skipped unless you choose to write to them again (the earlier link then
+  expires). As proof, the confirmation replaces time, IP address, browser
+  and version; the history notes when consent was given before. Paper
+  mandates can be confirmed electronically this way too.
+- **Sending to a single member from the member record:** If a mandate has
+  not confirmed the current version, the record shows a "Mandate text" row
+  with the state of the link and the button "Write to them to confirm the
+  mandate text" (or "Write again …"). If the email doesn't arrive, the link
+  can be passed on directly.
+- **Notice in the self-service:** Under "My contribution", a mandate with an
+  older version shows "Mandate text updated". "Read and confirm the new
+  text" shows the text and confirms in the signed-in session; the member
+  gets a receipt email, as with every change.
+
+**Changed:**
+- A paper mandate that later confirmed the text electronically counts as
+  having proof through that consent: the "Mandate without proof" notice
+  goes away.
+
 ## [0.48.0] – 2026-10-31
 
 **New:**

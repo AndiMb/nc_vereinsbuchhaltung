@@ -63,6 +63,11 @@ jedem Testlauf zurück, die Tests selbst starten also immer vom selben Stand.
   Rücklastschriften, Mahnstufen; Issue #123), **nicht** aber Mitglieder,
   Mandate, Zuweisungen, Beitragsgruppen und die App-Config – die legt jede
   Spec mit eigenen Namen an (find-or-create) bzw. stellt sie selbst wieder her.
+- **Eine Spec legt ihre Voraussetzungen selbst an.** Rund um Mitglieder, Mandate und Einzug
+  ist das `api.enableMembership(request)` (Konten, Geldkonto, Gläubiger-ID,
+  Mitgliederverwaltung). Die CI teilt die Specs nach Anzahl der Tests auf vier Teile auf;
+  jede neue Spec verschiebt diese Grenzen, und eine Spec, die sich auf eine Vorgängerin
+  verlassen hat, scheitert dann in einem anderen Teil (so geschehen bei 57).
 - **Kein Test verlässt sich stillschweigend auf seine Vorgänger**: schlägt
   ein Test fehl, startet Playwright den Worker neu und `beforeAll` läuft
   erneut (setzt also zurück!). Wer Daten aus einem früheren Test braucht,

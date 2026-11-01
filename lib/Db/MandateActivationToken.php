@@ -45,6 +45,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setFirstViewedAt(?string $firstViewedAt)
  * @method string|null getConsumedAt()
  * @method void setConsumedAt(?string $consumedAt)
+ * @method string getPurpose()
+ * @method void setPurpose(string $purpose)
  */
 class MandateActivationToken extends Entity implements \JsonSerializable {
 	protected $mandateId;
@@ -57,6 +59,15 @@ class MandateActivationToken extends Entity implements \JsonSerializable {
 	protected $expiresAt;
 	protected $firstViewedAt;
 	protected $consumedAt;
+	protected $purpose = self::PURPOSE_ACTIVATION;
+
+	/**
+	 * Wofür der Link gilt: einen Entwurf aktivieren (die Zustimmung erteilt das
+	 * Mandat) oder ein bereits aktives Mandat nach einer neuen Fassung des
+	 * Mandatstexts erneut bestätigen (Referenz und Bankverbindung bleiben).
+	 */
+	public const PURPOSE_ACTIVATION = 'aktivierung';
+	public const PURPOSE_RECONFIRMATION = 'bestaetigung';
 
 	/**
 	 * Gültigkeitsdauer des Links (Tage). Bewusst deckungsgleich mit dem
@@ -69,6 +80,10 @@ class MandateActivationToken extends Entity implements \JsonSerializable {
 
 	public function isExpired(\DateTimeImmutable $now): bool {
 		return $this->expiresAt < $now->format('Y-m-d H:i:s');
+	}
+
+	public function isReconfirmation(): bool {
+		return $this->purpose === self::PURPOSE_RECONFIRMATION;
 	}
 
 	public function isConsumed(): bool {

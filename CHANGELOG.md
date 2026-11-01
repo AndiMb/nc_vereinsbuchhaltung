@@ -17,6 +17,39 @@ als „[object Object]" (falsche Renderer-Callback-Signatur, Nextcloud-
 Core-Bug, reproduziert 23.08.2026). Stattdessen **Fettdruck als Zeilenanfang**
 verwenden, z. B. `**Neu:**`.
 
+## [0.49.0] – 2026-10-31
+
+**Neu:**
+- **Mandatstext von allen erneut bestätigen lassen:** Eine neue Fassung des
+  Mandatstexts ändert bestehende Mandate nicht – wer schon ein Mandat hat,
+  behält die Fassung, der er zugestimmt hat. Auf der Seite *Mandats-
+  Rechtstext* in den Einstellungen zeigt die Karte „Mitglieder die neue
+  Fassung bestätigen lassen“, wer die aktuelle Fassung schon bestätigt hat,
+  wer nicht und wen sich nur auf Papier erreichen lässt. „Zur erneuten
+  Bestätigung anschreiben …“ schickt allen anderen eine Mail mit einem Link;
+  er öffnet ohne Anmeldung den aktuellen Text mit den bisherigen Angaben,
+  ein Klick bestätigt. Es entsteht kein neues Mandat: Referenz,
+  Bankverbindung und Status bleiben, der Einzug läuft weiter. Der Versand ist
+  ein Knopfdruck der Verwaltung; wer schon einen gültigen Link hat, wird
+  übersprungen, außer man schreibt ihn auf Wunsch erneut an (der frühere Link
+  verfällt). Als Nachweis ersetzt die Bestätigung Zeitpunkt, IP-Adresse,
+  Browser und Fassung; der Verlauf hält fest, wann zuvor zugestimmt wurde.
+  Auch Papier-Mandate lassen sich so elektronisch bestätigen.
+- **Einzelversand aus der Mitglieder-Akte:** Hat ein Mandat die aktuelle
+  Fassung nicht bestätigt, zeigt die Akte die Zeile „Mandatstext“ samt Stand
+  des Links und den Knopf „Zur Bestätigung des Mandatstexts anschreiben“
+  (bzw. „Erneut …“). Kommt die Mail nicht an, lässt sich der Link direkt
+  weitergeben.
+- **Hinweis im Self-Service:** Unter „Mein Beitrag“ steht bei einem Mandat mit
+  älterer Fassung „Mandatstext aktualisiert“. „Neuen Text lesen und
+  bestätigen“ zeigt den Text und bestätigt in der angemeldeten Sitzung; das
+  Mitglied bekommt wie bei jeder Änderung eine Quittungsmail.
+
+**Geändert:**
+- Ein Papier-Mandat, das den Text später elektronisch bestätigt hat, gilt
+  mit dieser Zustimmung als mit Nachweis: der Hinweis „Mandat ohne Nachweis“
+  entfällt.
+
 ## [0.48.0] – 2026-10-31
 
 **Neu:**

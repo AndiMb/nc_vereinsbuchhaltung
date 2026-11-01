@@ -49,10 +49,12 @@ class SelfServiceMandateService {
 	public const SUBJECT_HOLDER_CHANGED = 'mandate_holder_changed';
 	public const SUBJECT_REVOKED = 'mandate_revoked';
 	public const SUBJECT_DRAFT_DISCARDED = 'mandate_draft_discarded';
+	public const SUBJECT_RECONFIRMED = 'mandate_reconfirmed';
 
 	public function __construct(
 		private MandateService $mandateService,
 		private MandateLegalTextService $legalTextService,
+		private MandateStateMachine $stateMachine,
 		private MandateFormRenderer $formRenderer,
 		private MemberMapper $memberMapper,
 		private OpenItemService $openItemService,
@@ -69,6 +71,18 @@ class SelfServiceMandateService {
 
 	public function currentMandate(int $memberId): ?Mandate {
 		return $this->mandateService->findLiveByMember($memberId);
+	}
+
+	/**
+	 * Ob das eigene Mandat den aktuellen Mandatstext noch nicht bestätigt hat
+	 * (die Verwaltung hat eine neue Fassung gespeichert) – die Oberfläche zeigt dann
+	 * den Hinweis „Mandatstext aktualisiert, bitte bestätigen".
+	 */
+	public function needsReconfirmation(?Mandate $mandate): bool {
+		if ($mandate === null || !$this->stateMachine->canReconfirm($mandate)) {
+			return false;
+		}
+		return $this->stateMachine->needsReconfirmation($mandate, (int)$this->legalTextService->current()->getId());
 	}
 
 	public function openClaimsTotalCents(int $memberId): int {
@@ -151,6 +165,41 @@ class SelfServiceMandateService {
 			self::SUBJECT_GRANTED,
 			$this->l10n->t('Sie haben Ihr SEPA-Lastschriftmandat elektronisch bestätigt (Referenz %s).', [$mandate->getMandateReference()]),
 			$this->l10n->t('Wirksam ab sofort.'),
+		);
+		return $mandate;
+	}
+
+	/**
+	 * Den aktuellen Mandatstext für das eigene, schon wirksame Mandat bestätigen –
+	 * die schnellere Alternative zum Link per Mail, den die Verwaltung verschickt
+	 * (wie {@see confirmDraft()} für den Entwurf). Das Mandat bleibt, wie es ist:
+	 * Referenz, Bankverbindung und Status ändern sich nicht, es ersetzt sich nur
+	 * das Zustimmungs-Protokoll (siehe {@see MandateService::reconfirmElectronic()}).
+	 *
+	 * @throws \InvalidArgumentException wenn kein Mandat vorliegt, es nicht wirksam ist,
+	 *                                   oder es den aktuellen Text schon bestätigt hat
+	 */
+	public function reconfirm(int $memberId): Mandate {
+		$member = $this->memberMapper->find($memberId);
+		$mandate = $this->requireLiveMandate($memberId);
+		$currentVersionId = (int)$this->legalTextService->current()->getId();
+		if (!$this->stateMachine->needsReconfirmation($mandate, $currentVersionId)) {
+			throw new \InvalidArgumentException($this->l10n->t('Für Ihr Mandat liegt keine neue Fassung des Mandatstexts vor, die eine Bestätigung braucht.'));
+		}
+		$mandate = $this->mandateService->reconfirmElectronic(
+			(int)$mandate->getId(),
+			$currentVersionId,
+			(new \DateTime())->format('Y-m-d H:i:s'),
+			$this->request->getRemoteAddress(),
+			(string)$this->request->getHeader('User-Agent'),
+			$this->consentActor(),
+		);
+		$this->afterChange(
+			$member,
+			$mandate,
+			self::SUBJECT_RECONFIRMED,
+			$this->l10n->t('Sie haben den aktualisierten Text Ihres SEPA-Lastschriftmandats bestätigt (Referenz %s).', [$mandate->getMandateReference()]),
+			$this->l10n->t('Ihr Mandat und Ihre Bankverbindung bleiben unverändert.'),
 		);
 		return $mandate;
 	}
@@ -322,6 +371,7 @@ class SelfServiceMandateService {
 			self::SUBJECT_HOLDER_CHANGED => $this->l10n->t('Kontoinhaber gewechselt'),
 			self::SUBJECT_REVOKED => $this->l10n->t('SEPA-Lastschriftmandat widerrufen'),
 			self::SUBJECT_DRAFT_DISCARDED => $this->l10n->t('Mandats-Entwurf verworfen'),
+			self::SUBJECT_RECONFIRMED => $this->l10n->t('Mandatstext bestätigt'),
 			default => $this->l10n->t('Änderung an Ihrem SEPA-Lastschriftmandat'),
 		};
 	}

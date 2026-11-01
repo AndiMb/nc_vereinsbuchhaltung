@@ -239,6 +239,58 @@ class MandateService {
 	}
 
 	/**
+	 * Erneute Bestätigung eines wirksamen Mandats nach einer neuen Fassung des
+	 * Mandatstexts (Einmal-Link mit Zweck „bestätigung"). Das Mandat selbst
+	 * bleibt, wie es ist: Status, Referenz, Bankverbindung und Unterschriftsdatum
+	 * ändern sich nicht, ein Einzug läuft also ohne Unterbrechung weiter. Es
+	 * ersetzt nur das Beweispaket der Zustimmung (Fassung, Zeitpunkt, IP,
+	 * Browser, Adresse) durch das der neuen Bestätigung.
+	 *
+	 * Die Spalten des Beweispakets kennen nur EINE Zustimmung, die vorherige geht
+	 * also aus dem Mandat selbst verloren. Der Verlauf hält deshalb fest, dass
+	 * und wann zuvor zugestimmt wurde und unter welcher Fassung – ohne IP und
+	 * Adresse, die der DSGVO-Anonymisierung unterliegen und nicht in Ereignistexte
+	 * gehören.
+	 *
+	 * Aufrufer ist ausschließlich {@see MandateActivationService::consent()}.
+	 *
+	 * @throws DoesNotExistException
+	 * @throws \InvalidArgumentException wenn das Mandat nicht aktiv oder ausgesetzt ist
+	 */
+	public function reconfirmElectronic(
+		int $id,
+		int $mandateTextVersionId,
+		string $consentAt,
+		string $consentIp,
+		string $consentUserAgent,
+		string $consentActor,
+	): Mandate {
+		$mandate = $this->mapper->find($id);
+		$this->stateMachine->assertCanReconfirm($mandate);
+
+		$previousVersion = $mandate->getMandateTextVersion();
+		$previousConsentAt = $mandate->getConsentAt();
+
+		$mandate->setMandateTextVersion($mandateTextVersionId);
+		$mandate->setConsentAt($consentAt);
+		$mandate->setConsentIp($consentIp);
+		$mandate->setConsentUserAgent($consentUserAgent);
+		$mandate->setConsentActor($consentActor);
+		$mandate = $this->mapper->update($mandate);
+
+		$this->audit->log('SEPA-Mandat erneut bestätigt (Einmal-Link)', 'mandate', $mandate->getId(), [
+			'referenz' => $mandate->getMandateReference(),
+			'alteFassung' => $previousVersion,
+			'neueFassung' => $mandateTextVersionId,
+		]);
+		$previous = $previousConsentAt !== null && $previousConsentAt !== ''
+			? $this->l10n->t('vorher zugestimmt am %s', [GermanDate::format(substr($previousConsentAt, 0, 10))])
+			: $this->l10n->t('vorher ohne elektronische Zustimmung');
+		$this->logEvent($mandate, $this->l10n->t('Mandat erneut bestätigt (Zustimmung per E-Mail-Link an %1$s, %2$s)', [$consentActor, $previous]), MandateEvent::ACTOR_MEMBER);
+		return $mandate;
+	}
+
+	/**
 	 * Manuelles Aktivierungs-Gate durch `buchhalter` (Spec §2.2): verlangt
 	 * `signed_at` – wird es hier mitgegeben, ergänzt es einen Entwurf, der
 	 * beim Anlegen noch kein Unterschriftsdatum hatte.
@@ -783,6 +835,10 @@ class MandateService {
 	 */
 	public function logActivationLinkSent(Mandate $mandate, string $email, string $actorType): void {
 		$this->logEvent($mandate, $this->l10n->t('Elektronischer Aktivierungslink versendet an %s', [$email]), $actorType);
+	}
+
+	public function logReconfirmationLinkSent(Mandate $mandate, string $email, string $actorType): void {
+		$this->logEvent($mandate, $this->l10n->t('Link zur erneuten Bestätigung des Mandatstexts versendet an %s', [$email]), $actorType);
 	}
 
 	/** Nachweis-Upload; setzt `document_file_id` (Spec §3.2). */

@@ -13,6 +13,7 @@ use OCA\Vereinsbuchhaltung\Service\ActorContextService;
 use OCA\Vereinsbuchhaltung\Service\MandateFormRenderer;
 use OCA\Vereinsbuchhaltung\Service\MandateLegalTextService;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
+use OCA\Vereinsbuchhaltung\Service\MandateStateMachine;
 use OCA\Vereinsbuchhaltung\Service\OpenItemService;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceMandateService;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceReceiptMailer;
@@ -99,6 +100,7 @@ class SelfServiceMandateServiceTest extends TestCase {
 		return new SelfServiceMandateService(
 			$this->mandateService,
 			$legalText,
+			new MandateStateMachine($this->createMock(IL10N::class)),
 			$this->createMock(MandateFormRenderer::class),
 			$this->memberMapper,
 			$this->openItemService,
@@ -256,5 +258,55 @@ class SelfServiceMandateServiceTest extends TestCase {
 		$result = $this->service()->revoke(42);
 
 		$this->assertSame(Mandate::STATUS_ENDED, $result->getStatus());
+	}
+
+	// --- Neue Fassung des Mandatstexts bestätigen -------------------------------
+
+	public function testReconfirmLoestDasMandatUeberDieMemberIdAufUndErsetztNurDasBeweispaket(): void {
+		$this->memberMapper->method('find')->with(42)->willReturn($this->member());
+		$old = $this->mandate(7); // trägt keine Fassung: die aktuelle (3) ist neuer
+		$this->mandateService->expects($this->once())->method('findLiveByMember')->with(42)->willReturn($old);
+		$this->mandateService->expects($this->once())->method('reconfirmElectronic')
+			->with(7, 3, $this->isType('string'), '203.0.113.5', 'TestBrowser/1.0', 'katrin.b')
+			->willReturn($old);
+		$this->receiptMailer->expects($this->once())->method('send');
+
+		$this->service()->reconfirm(42);
+	}
+
+	public function testReconfirmOhneNeueFassungWirftOhneZuSchreiben(): void {
+		$this->memberMapper->method('find')->willReturn($this->member());
+		$current = $this->mandate(7);
+		$current->setMandateTextVersion(3);
+		$this->mandateService->method('findLiveByMember')->willReturn($current);
+		$this->mandateService->expects($this->never())->method('reconfirmElectronic');
+		$this->receiptMailer->expects($this->never())->method('send');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->reconfirm(42);
+	}
+
+	public function testReconfirmOhneLebendesMandatWirft(): void {
+		$this->memberMapper->method('find')->willReturn($this->member());
+		$this->mandateService->method('findLiveByMember')->willReturn(null);
+		$this->mandateService->expects($this->never())->method('reconfirmElectronic');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->reconfirm(42);
+	}
+
+	public function testNeedsReconfirmationUnterscheidetAelterePapierUndAktuelleFassung(): void {
+		$service = $this->service();
+		$older = $this->mandate(1);
+		$older->setMandateTextVersion(2);
+		$paper = $this->mandate(2);
+		$current = $this->mandate(3);
+		$current->setMandateTextVersion(3);
+
+		$this->assertTrue($service->needsReconfirmation($older));
+		$this->assertTrue($service->needsReconfirmation($paper));
+		$this->assertFalse($service->needsReconfirmation($current));
+		$this->assertFalse($service->needsReconfirmation($this->mandate(4, Mandate::STATUS_DRAFT)), 'ein Entwurf wird erstmals bestätigt');
+		$this->assertFalse($service->needsReconfirmation(null));
 	}
 }

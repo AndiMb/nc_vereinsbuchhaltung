@@ -1,10 +1,12 @@
 import { expect, test } from '@playwright/test'
-import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, neuAnlegen, openApp, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
+import { api, neuAnlegen, openAkte, openApp, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Der Reiter „Beiträge“ folgt dem Schalter in den Einstellungen; ein früherer
 // Lauf oder Nutzer kann ihn ausgeschaltet haben.
+// Die Spec legt ihre Voraussetzungen selbst an (Konten, Mitgliederverwaltung, Einzug): sie darf sich nicht darauf
+// verlassen, dass eine Spec davor das erledigt hat – die Aufteilung auf die CI-Teile ändert sich mit jeder neuen Spec.
 test.beforeAll(async ({ request }) => {
-	await api.updateSettings(request, { membership_enabled: '1' })
+	await api.enableMembership(request)
 })
 
 // Lücken des Testprotokolls (Durchlauf vom 09.10.2026): Schritte, die im
@@ -59,17 +61,6 @@ function midMonthAgo(months) {
 	return iso(d)
 }
 
-async function enableMembership(request) {
-	const bank = await api.accountByNumber(request, BANK_ACCOUNT)
-	await api.updateAccount(request, bank.id, { iban: BANK_ACCOUNT_IBAN })
-	await api.updateSettings(request, {
-		membership_enabled: '1',
-		club_name: 'Testverein e.V.',
-		sepa_creditor_id: 'DE98ZZZ09999999999',
-		sepa_debtor_account_id: bank.id,
-	})
-}
-
 /** Mitglied mit eindeutigem Nachnamen: /reset räumt Mitglieder nicht ab, ein Wiederholungslauf fände sonst zwei gleichnamige Zeilen. */
 async function createMember(request, firstName, lastName) {
 	const surname = `${lastName}-${suffix()}`
@@ -99,18 +90,6 @@ async function openEinzug(page, { user = USERS.buchhalter, mobil = false } = {})
 	}
 	await visibleSection(page).locator('.vbh-subtabs').getByRole('button', { name: 'Einzug', exact: true }).click()
 	await expect(visibleSection(page).getByRole('tab', { name: 'Zeitstrahl & Läufe' })).toBeVisible()
-}
-
-/** Öffnet die Akte eines Mitglieds über „Mandat verwalten“ im Zeilenmenü (Desktop). */
-async function openAkte(page, user, name) {
-	await openApp(page, user)
-	await switchTab(page, 'Beiträge')
-	const row = visibleSection(page).locator('tr', { hasText: name })
-	await row.getByRole('button', { name: 'Aktionen' }).click()
-	await page.getByRole('menuitem', { name: 'Mandat verwalten' }).click()
-	const dialog = page.getByRole('dialog', { name: `Mitglied: ${name}` })
-	await expect(dialog).toBeVisible()
-	return dialog
 }
 
 const panel = (akte) => akte.locator('section.vbh-mandate-panel')

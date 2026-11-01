@@ -8,12 +8,17 @@
 		@update:show="$emit('update:show', $event)">
 		<div class="vbh-modal-inner">
 			<h2 id="vbh-modal-title-mandate-grant" class="vbh-modal-title">
-				{{ mode === 'confirm' ? t('Mandat bestätigen') : t('Mandat erfassen und erteilen') }}
+				{{ title }}
 			</h2>
 
-			<template v-if="mode === 'confirm'">
+			<template v-if="existingMandate">
 				<NcNoteCard type="info">
-					{{ t('Für Sie liegt ein elektronischer Mandats-Entwurf vor. Mit der Bestätigung erteilen Sie das SEPA-Lastschriftmandat – wirksam ab sofort.') }}
+					<template v-if="mode === 'reconfirm'">
+						{{ t('Der Text Ihres SEPA-Lastschriftmandats wurde aktualisiert. Ihr Mandat und Ihre Bankverbindung bleiben unverändert, Sie müssen nichts eingeben.') }}
+					</template>
+					<template v-else>
+						{{ t('Für Sie liegt ein elektronischer Mandats-Entwurf vor. Mit der Bestätigung erteilen Sie das SEPA-Lastschriftmandat – wirksam ab sofort.') }}
+					</template>
 				</NcNoteCard>
 				<dl class="vbh-mandate-preview">
 					<dt>{{ t('IBAN') }}</dt>
@@ -51,7 +56,7 @@
 					{{ t('Abbrechen') }}
 				</NcButton>
 				<NcButton variant="primary" :disabled="!canSave || saving" @click="save">
-					{{ mode === 'confirm' ? t('Ich stimme zu und erteile das Mandat') : t('Jetzt erteilen') }}
+					{{ saveLabel }}
 				</NcButton>
 			</div>
 		</div>
@@ -88,10 +93,10 @@ export default {
 	components: { NcModal, NcButton, NcLoadingIcon, NcNoteCard, NcTextField, MandateBankFields },
 	props: {
 		show: { type: Boolean, default: false },
-		/** 'grant' (kein Mandat vorhanden) oder 'confirm' (Entwurf bestätigen). */
+		/** 'grant' (kein Mandat vorhanden), 'confirm' (Entwurf bestätigen) oder 'reconfirm' (neue Fassung des Mandatstexts für ein wirksames Mandat bestätigen). */
 		mode: { type: String, default: 'grant' },
 		member: { type: Object, default: null },
-		/** Bei mode==='confirm': der bestehende, unbestätigte Entwurf. */
+		/** Bei mode 'confirm' und 'reconfirm': das bestehende Mandat (Entwurf bzw. wirksam). */
 		mandate: { type: Object, default: null },
 		saving: { type: Boolean, default: false },
 	},
@@ -103,13 +108,26 @@ export default {
 	},
 
 	computed: {
+		/** Ein bestehendes Mandat wird bestätigt (statt eines neuen erfasst): keine Bankdaten-Eingabe. */
+		existingMandate() { return this.mode === 'confirm' || this.mode === 'reconfirm' },
+
+		title() {
+			if (this.mode === 'reconfirm') { return this.t('Mandatstext bestätigen') }
+			return this.mode === 'confirm' ? this.t('Mandat bestätigen') : this.t('Mandat erfassen und erteilen')
+		},
+
+		saveLabel() {
+			if (this.mode === 'reconfirm') { return this.t('Ich bestätige den aktualisierten Mandatstext') }
+			return this.mode === 'confirm' ? this.t('Ich stimme zu und erteile das Mandat') : this.t('Jetzt erteilen')
+		},
+
 		defaultAccountHolder() {
 			return (this.member && this.member.displayName) || ''
 		},
 
 		canSave() {
 			if (this.legalTextLoading) { return false }
-			return this.mode === 'confirm' || !!this.form.iban.trim()
+			return this.existingMandate || !!this.form.iban.trim()
 		},
 	},
 
@@ -138,7 +156,7 @@ export default {
 		},
 
 		save() {
-			if (this.mode === 'confirm') {
+			if (this.existingMandate) {
 				this.$emit('save', {})
 				return
 			}

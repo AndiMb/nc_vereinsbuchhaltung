@@ -211,4 +211,41 @@ class MandateStateMachineTest extends TestCase {
 		$this->expectException(\InvalidArgumentException::class);
 		$this->machine()->assertCanReplace($this->mandate(Mandate::STATUS_SUSPENDED));
 	}
+
+	// --- Erneute Bestätigung des Mandatstexts ---------------------------------------
+
+	public function testAktivesUndAusgesetztesMandatLaesstSichErneutBestaetigen(): void {
+		$this->assertTrue($this->machine()->canReconfirm($this->mandate(Mandate::STATUS_ACTIVE)));
+		$this->assertTrue($this->machine()->canReconfirm($this->mandate(Mandate::STATUS_SUSPENDED)));
+		$this->machine()->assertCanReconfirm($this->mandate(Mandate::STATUS_ACTIVE));
+	}
+
+	public function testEntwurfUndErloschenesMandatLassenSichNichtErneutBestaetigen(): void {
+		$this->assertFalse($this->machine()->canReconfirm($this->mandate(Mandate::STATUS_DRAFT)));
+		$this->assertFalse($this->machine()->canReconfirm($this->mandate(Mandate::STATUS_ENDED)));
+		$this->expectException(\InvalidArgumentException::class);
+		$this->machine()->assertCanReconfirm($this->mandate(Mandate::STATUS_ENDED));
+	}
+
+	public function testAnonymisiertesMandatLaesstSichNichtErneutBestaetigen(): void {
+		$mandate = $this->mandate(Mandate::STATUS_ACTIVE);
+		$mandate->setRedactedAt('2026-10-01 00:00:00');
+
+		$this->assertFalse($this->machine()->canReconfirm($mandate));
+	}
+
+	public function testNurWirksameMandateOhneAktuelleFassungMuessenErneutBestaetigen(): void {
+		$current = $this->mandate(Mandate::STATUS_ACTIVE);
+		$current->setMandateTextVersion(3);
+		$older = $this->mandate(Mandate::STATUS_ACTIVE);
+		$older->setMandateTextVersion(2);
+		$paper = $this->mandate(Mandate::STATUS_ACTIVE); // keine Fassung: Papier
+		$ended = $this->mandate(Mandate::STATUS_ENDED);
+		$ended->setMandateTextVersion(2);
+
+		$this->assertFalse($this->machine()->needsReconfirmation($current, 3));
+		$this->assertTrue($this->machine()->needsReconfirmation($older, 3));
+		$this->assertTrue($this->machine()->needsReconfirmation($paper, 3));
+		$this->assertFalse($this->machine()->needsReconfirmation($ended, 3));
+	}
 }
