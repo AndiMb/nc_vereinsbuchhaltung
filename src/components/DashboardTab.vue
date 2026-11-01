@@ -189,6 +189,7 @@
 							<th class="num">
 								{{ t('Betrag') }}
 							</th>
+							<th class="vbh-col-actions" />
 						</tr>
 					</thead>
 					<tbody>
@@ -211,6 +212,31 @@
 							<td class="num strong" :class="flowClass(rowFlow(r))" :title="flowLabel(rowFlow(r))">
 								{{ formatFlowMoney(r.amount, rowFlow(r)) }}
 							</td>
+							<td class="nowrap right">
+								<div class="vbh-actions">
+									<NcButton
+										v-if="suggestionFor(r)"
+										variant="tertiary"
+										:class="levelIcon(suggestionFor(r).level).className"
+										:title="suggestionTitleFor(r)"
+										:aria-label="suggestionTitleFor(r)"
+										@click="editBooking(r, { folderPanel: true })">
+										<template #icon>
+											<NcIconSvgWrapper :path="levelIcon(suggestionFor(r).level).path" :size="16" />
+										</template>
+									</NcButton>
+									<NcButton
+										v-if="attachmentCountMap[r.id]"
+										variant="tertiary"
+										:title="n('%n Beleg anzeigen', '%n Belege anzeigen', attachmentCountMap[r.id].count)"
+										:aria-label="n('%n Beleg anzeigen', '%n Belege anzeigen', attachmentCountMap[r.id].count)"
+										@click="clickPaperclip(r)">
+										<template #icon>
+											<NcIconSvgWrapper :path="mdiPaperclip" :size="16" />
+										</template>
+									</NcButton>
+								</div>
+							</td>
 						</tr>
 					</tbody>
 				</table>
@@ -223,6 +249,9 @@
 					:attachmentCount="attachmentCountMap[r.id] ? attachmentCountMap[r.id].count : 0"
 					:flow="cardFlow(r)"
 					:tappable="canWrite || !!attachmentCountMap[r.id]"
+					:suggestionLevel="suggestionFor(r)?.level || ''"
+					:suggestionTitle="suggestionTitleFor(r)"
+					@suggestion="editBooking(r, { folderPanel: true })"
 					@open="openBookingCard(r)"
 					@paperclip="clickPaperclip(r)" />
 			</div>
@@ -247,6 +276,7 @@
 </template>
 
 <script>
+import { mdiPaperclip } from '@mdi/js'
 import {
 	BarController,
 	BarElement,
@@ -259,8 +289,10 @@ import {
 import { toRefs } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import BookingCard from './BookingCard.vue'
 import SetupChecklist from './SetupChecklist.vue'
+import api from '../api.js'
 import { useAccounts } from '../composables/useAccounts.js'
 import { useAttachmentInbox } from '../composables/useAttachmentInbox.js'
 import { useAuth } from '../composables/useAuth.js'
@@ -272,6 +304,7 @@ import { usePermissions } from '../composables/usePermissions.js'
 import { chartTheme, onThemeChange, withAlpha } from '../lib/chartTheme.js'
 import { bookingFlow, flowClass, flowLabel, formatFlowMoney } from '../lib/flow.js'
 import { formatDate, formatMoney } from '../lib/format.js'
+import { levelIcon, suggestionTitle } from '../lib/receiptSuggestions.js'
 
 Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend)
 
@@ -286,7 +319,7 @@ function monthOf(key) {
 
 export default {
 	name: 'DashboardTab',
-	components: { NcButton, NcEmptyContent, SetupChecklist, BookingCard },
+	components: { NcButton, NcEmptyContent, NcIconSvgWrapper, SetupChecklist, BookingCard },
 	props: {
 		// true, solange der Dashboard-Tab aktiv ist - steuert den Chart-Redraw
 		// (Chart.js braucht bei v-show="display:none" beim ersten Rendern einen
@@ -305,6 +338,9 @@ export default {
 		recentJournal: { type: Array, required: true },
 		clickPaperclip: { type: Function, required: true },
 		openBookingCard: { type: Function, required: true },
+		// Belegvorschläge: nur im Wächter-Modus, Klick öffnet die Buchung mit „Aus Ordner wählen“.
+		editBooking: { type: Function, default: null },
+		watchMode: { type: Boolean, default: false },
 	},
 
 	emits: ['go-open-items', 'go-unassigned', 'help', 'navigate', 'open-inbox', 'open-wizard', 'show-all-bookings'],
@@ -323,6 +359,7 @@ export default {
 			...toRefs(periods.state),
 			selectedPeriod: periods.selectedPeriod,
 			previousOf: periods.previousOf,
+			isDateClosed: periods.isDateClosed,
 			accountsById: accounts.accountsById,
 			...toRefs(accounts.state),
 			...toRefs(balances.state),
@@ -331,10 +368,22 @@ export default {
 			...toRefs(permissions.state),
 			overdueOpenItemsCount: openItems.overdueCount,
 			...toRefs(useAttachmentInbox().state),
+			mdiPaperclip,
+		}
+	},
+
+	data() {
+		return {
+			// Belegvorschläge je Buchung wie in der Buchungsliste (#229)
+			suggestionItems: {},
+			suggestionNames: {},
+			suggestionRequest: 0,
 		}
 	},
 
 	computed: {
+		suggestionsActive() { return this.canWrite && this.watchMode && !!this.editBooking },
+
 		/**
 		 * Gibt es ueberhaupt eine Buchung - in irgendeinem Zeitraum?
 		 *
@@ -407,11 +456,25 @@ export default {
 	},
 
 	watch: {
-		isActive(v) { if (v) { this.$nextTick(() => this.renderMonthlyChart()) } },
+		// Beim Zurückkehren auf die Übersicht auch die Belegvorschläge neu holen.
+		isActive: {
+			handler(v) {
+				if (!v) { return }
+				this.$nextTick(() => this.renderMonthlyChart())
+				this.loadReceiptSuggestions()
+			},
+		},
+
 		journalData() { if (this.isActive) { this.$nextTick(() => this.renderMonthlyChart()) } },
 		// Mit dem Zeitraum wechseln auch Anzahl und Reihenfolge der Balken - das
 		// haengt jetzt nicht mehr allein an den nachgeladenen Buchungen.
-		selectedPeriodId() { if (this.isActive) { this.$nextTick(() => this.renderMonthlyChart()) } },
+		selectedPeriodId() {
+			if (this.isActive) { this.$nextTick(() => this.renderMonthlyChart()) }
+			this.loadReceiptSuggestions()
+		},
+
+		attachmentCountMap() { if (this.isActive) { this.loadReceiptSuggestions() } },
+		suggestionsActive() { this.loadReceiptSuggestions() },
 	},
 
 	// chartInstances liegt bewusst NICHT in data(): Chart.js-Instanzen vertragen
@@ -423,6 +486,7 @@ export default {
 
 	mounted() {
 		this.$nextTick(() => setTimeout(() => this.renderMonthlyChart(), 50))
+		if (this.isActive) { this.loadReceiptSuggestions() }
 		// Chart.js malt die Farben einmal ins Canvas; ohne Neuzeichnen bliebe
 		// nach einem Designwechsel das alte Bild stehen.
 		this.stopThemeWatch = onThemeChange(() => {
@@ -438,6 +502,39 @@ export default {
 	methods: {
 		formatMoney,
 		formatDate,
+		levelIcon,
+
+		async loadReceiptSuggestions() {
+			if (!this.suggestionsActive) {
+				this.suggestionItems = {}
+				this.suggestionNames = {}
+				return
+			}
+			const request = ++this.suggestionRequest
+			try {
+				const { data } = await api.receiptSuggestions(this.selectedPeriodId)
+				if (request !== this.suggestionRequest) { return }
+				this.suggestionItems = data.items || {}
+				this.suggestionNames = data.names || {}
+			} catch {
+				if (request !== this.suggestionRequest) { return }
+				// Vorschläge sind eine Zugabe: ohne sie bleibt die Übersicht, wie sie war.
+				this.suggestionItems = {}
+				this.suggestionNames = {}
+			}
+		},
+
+		/** Vorschlag für eine Buchung ohne Beleg, sonst null. */
+		suggestionFor(r) {
+			if (!this.suggestionsActive || this.attachmentCountMap[r.id] || this.isDateClosed(r.date)) { return null }
+			const entry = this.suggestionItems[r.id]
+			return entry && entry.fileIds?.length ? entry : null
+		},
+
+		suggestionTitleFor(r) {
+			return suggestionTitle(this.suggestionFor(r), this.suggestionNames, this.n)
+		},
+
 		flowClass,
 		flowLabel,
 		formatFlowMoney,

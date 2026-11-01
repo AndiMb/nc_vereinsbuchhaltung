@@ -212,7 +212,11 @@ export default {
 				return
 			}
 			this.blobUrl = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }))
-			this.shownUrl = this.blobUrl
+			// E-Rechnungen (ZUGFeRD/Factur-X) verlangen im PDF oft die
+			// Anhänge-Leiste; Firefox öffnet sie dann über Anschrift und
+			// Positionen. pagemode=none hält die Seitenleiste zu, Chromes
+			// Viewer übergeht den Zusatz.
+			this.shownUrl = this.blobUrl + '#pagemode=none'
 		},
 
 		releaseBlob() {

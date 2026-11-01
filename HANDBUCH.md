@@ -528,8 +528,8 @@ eines Dialogs.
   Klick übernimmt die Datei in die Warteliste, genau wie die Auswahl aus der
   Liste; angehängt wird sie wie sonst erst mit „Speichern". Solange noch
   Dateien gelesen werden, steht dort „n Belege werden noch gelesen".
-- In der Buchungsliste zeigt ein Symbol an jeder Buchung ohne Beleg, dass ein
-  Vorschlag vorliegt: Büroklammer mit Häkchen für „sicher", Fragezeichen im
+- In der Buchungsliste und unter **Letzte Buchungen** in der Übersicht zeigt
+  ein Symbol an jeder Buchung ohne Beleg, dass ein Vorschlag vorliegt: Büroklammer mit Häkchen für „sicher", Fragezeichen im
   Kreis für „möglich". Ein Klick öffnet die Buchung mit der Seitenleiste –
   auch auf dem Smartphone.
 - Der Knopf **„n Belege zuordnen"** über der Liste öffnet einen Dialog mit
