@@ -240,6 +240,10 @@ class InvoiceService {
 			$invoice->setNoteFoot($this->blankToNull((string)$all[InvoiceSettings::SETTING_NOTE_FOOT]));
 			$invoice->setExemptionText($this->blankToNull((string)$all[InvoiceSettings::SETTING_EXEMPTION_TEXT]));
 			$this->applyHeader($invoice, $data);
+			// Nur der Sammelimport (#243) setzt den Stapel; die Controller reichen das Feld nicht durch.
+			if (isset($data['batchId'])) {
+				$invoice->setBatchId((int)$data['batchId']);
+			}
 			$invoice->setNetCents(0);
 			$invoice->setTaxCents(0);
 			$invoice->setGrossCents(0);

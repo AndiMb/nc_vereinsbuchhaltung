@@ -16,6 +16,7 @@ use OCA\Vereinsbuchhaltung\Db\DunningNoticeMapper;
 use OCA\Vereinsbuchhaltung\Db\IncomingPaymentRejectionMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoiceDocumentMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoiceDunningMapper;
+use OCA\Vereinsbuchhaltung\Db\InvoiceBatchMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoiceItemTemplateMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoiceLineMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoiceMapper;
@@ -99,6 +100,7 @@ class ResetServiceTest extends TestCase {
 		'vbh_invoice_plans',
 		'vbh_invoice_templates',
 		'vbh_invoice_dunnings',
+		'vbh_invoice_batches',
 		'vbh_reimbursements',
 		'vbh_reimbursement_events',
 		'vbh_reimbursement_files',
@@ -322,6 +324,7 @@ class ResetServiceTest extends TestCase {
 			new ReimbursementMapper($this->db, $this->cipher),
 			new ReimbursementEventMapper($this->db),
 			$reimbursementFiles,
+			new InvoiceBatchMapper($this->db),
 		);
 	}
 

@@ -133,6 +133,15 @@ class InvoiceMapper extends QBMapper {
 	}
 
 	/** Löscht alle Zeilen. Gedacht für den Reset des Buchungsbestands. */
+	/** @return Invoice[] die Rechnungen eines Sammelrechnungs-Stapels (#243) */
+	public function findByBatch(int $batchId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')->from($this->getTableName())
+			->where($qb->expr()->eq('batch_id', $qb->createNamedParameter($batchId, IQueryBuilder::PARAM_INT)))
+			->orderBy('id', 'ASC');
+		return $this->findEntities($qb);
+	}
+
 	public function deleteAll(): void {
 		$qb = $this->db->getQueryBuilder();
 		$qb->delete($this->getTableName());

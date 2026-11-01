@@ -40,6 +40,14 @@
 						{{ t('Neuer Plan') }}
 					</NcButton>
 				</div>
+				<div v-else-if="canWrite" class="vbh-sectiontop-actions">
+					<NcButton variant="secondary" @click="showBatchImport = true">
+						<template #icon>
+							<NcIconSvgWrapper :path="mdiTableArrowUp" :size="20" />
+						</template>
+						{{ t('Aus Tabelle einlesen') }}
+					</NcButton>
+				</div>
 			</div>
 
 			<InvoicePlanList
@@ -65,6 +73,12 @@
 						<option v-for="y in years" :key="y" :value="y">{{ y }}</option>
 					</select>
 				</label>
+				<label v-if="batches.length" class="vbh-inv-yearsel">{{ t('Projekt') }}
+					<select v-model="batchId">
+						<option :value="null">{{ t('Alle') }}</option>
+						<option v-for="b in batches" :key="b.id" :value="b.id">{{ b.name }}</option>
+					</select>
+				</label>
 			</div>
 
 			<div v-if="filter !== 'plans'" class="vbh-sectionbody">
@@ -74,7 +88,17 @@
 				<p v-if="smallBusinessHint" class="vbh-hint vbh-hint--warning">
 					{{ t('Die Rechnungen als Kleinunternehmer ergeben in diesem Jahr schon {amount}. Die Kleinunternehmergrenze (§ 19 UStG) liegt bei 25.000 € im Vorjahr und 100.000 € im laufenden Jahr und gilt für den gesamten Umsatz des Vereins, nicht nur für die Rechnungen. Bitte rechtzeitig mit dem Finanzamt oder der Steuerberatung klären.', { amount: formatMoney(smallBusinessTurnoverCents / 100) }) }}
 				</p>
-				<div class="vbh-totals">
+				<InvoiceBatchPanel
+					v-if="selectedBatch"
+					:batch="selectedBatch"
+					:invoices="invoices"
+					:canWrite="canWrite"
+					:isAdmin="isAdmin"
+					@changed="onBatchChanged"
+					@renamed="loadBatches"
+					@deleted="onBatchDeleted"
+					@open="openById" />
+				<div v-else class="vbh-totals">
 					<div class="vbh-total">
 						<span>{{ t('Offen') }}</span>
 						<strong>{{ formatMoney(openCents / 100) }}</strong>
@@ -167,6 +191,15 @@
 			</div>
 		</template>
 
+		<InvoiceBatchImportDialog
+			v-if="canWrite"
+			:show="showBatchImport"
+			:accounts="incomeAccounts"
+			:meta="meta"
+			@update:show="showBatchImport = $event"
+			@close="showBatchImport = false"
+			@imported="onBatchImported" />
+
 		<InvoiceDetail
 			v-if="detail.open"
 			:show="detail.open"
@@ -184,11 +217,13 @@
 </template>
 
 <script>
-import { mdiPlus } from '@mdi/js'
+import { mdiPlus, mdiTableArrowUp } from '@mdi/js'
 import { showError } from '@nextcloud/dialogs'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
+import InvoiceBatchImportDialog from './InvoiceBatchImportDialog.vue'
+import InvoiceBatchPanel from './InvoiceBatchPanel.vue'
 import InvoiceDetail from './InvoiceDetail.vue'
 import InvoiceEditor from './InvoiceEditor.vue'
 import InvoicePlanList from './InvoicePlanList.vue'
@@ -205,7 +240,7 @@ import { displayStatus, displayStatusLabel, dunningLabel, invoiceSortFields, isD
  */
 export default {
 	name: 'InvoicesTab',
-	components: { NcButton, NcIconSvgWrapper, NcLoadingIcon, InvoiceEditor, InvoiceDetail, InvoicePlanList },
+	components: { NcButton, NcIconSvgWrapper, NcLoadingIcon, InvoiceBatchImportDialog, InvoiceBatchPanel, InvoiceEditor, InvoiceDetail, InvoicePlanList },
 	props: {
 		canWrite: { type: Boolean, default: false },
 		isAdmin: { type: Boolean, default: false },
@@ -223,7 +258,7 @@ export default {
 
 	setup() {
 		const { sort, toggleSort, sortArrow, applySort } = useSort()
-		return { mdiPlus, sort, toggleSort, sortArrow, applySort }
+		return { mdiPlus, mdiTableArrowUp, sort, toggleSort, sortArrow, applySort }
 	},
 
 	data() {
@@ -242,11 +277,17 @@ export default {
 			editAsPlan: false,
 			editFrom: null,
 			planReload: 0,
+			// Sammelrechnungen (#243): Stapel und der gewählte Filter
+			batches: [],
+			batchId: null,
+			showBatchImport: false,
 		}
 	},
 
 	computed: {
 		incomeAccounts() { return this.accounts.filter((a) => a.type === 'income' && a.active && !a.isBank) },
+
+		selectedBatch() { return this.batches.find((b) => b.id === this.batchId) || null },
 
 		filters() {
 			return [
@@ -281,6 +322,7 @@ export default {
 			return this.invoices.filter((inv) => {
 				if (!this.matchesFilter(inv, this.filter)) { return false }
 				if (this.year !== null && Number(String(inv.issueDate || inv.createdAt).slice(0, 4)) !== this.year) { return false }
+				if (this.batchId !== null && inv.batchId !== this.batchId) { return false }
 				if (q === '') { return true }
 				return (inv.number || '').toLowerCase().includes(q) || (inv.debtorName || '').toLowerCase().includes(q)
 			})
@@ -324,7 +366,10 @@ export default {
 			},
 		},
 
-		reloadKey() { this.loadInvoices() },
+		reloadKey() {
+			this.loadInvoices()
+			this.loadBatches()
+		},
 
 		/** Der App-Kopf blendet den schwebenden „+“-Knopf aus, solange der Editor offen ist (er läge über der Summe). */
 		view(view) { this.$emit('editing', view === 'edit') },
@@ -335,7 +380,7 @@ export default {
 	},
 
 	async mounted() {
-		await Promise.all([this.loadMeta(), this.loadInvoices()])
+		await Promise.all([this.loadMeta(), this.loadInvoices(), this.loadBatches()])
 	},
 
 	methods: {
@@ -378,6 +423,36 @@ export default {
 			} finally {
 				this.loading = false
 			}
+		},
+
+		async loadBatches() {
+			try {
+				const { data } = await api.invoiceBatches()
+				this.batches = data
+				if (this.batchId !== null && !data.some((b) => b.id === this.batchId)) { this.batchId = null }
+			} catch (e) {
+				showError(errMsg(e, this.t('Die Projekte konnten nicht geladen werden.')))
+			}
+		},
+
+		async onBatchImported(batch) {
+			this.filter = 'all'
+			this.year = null
+			await Promise.all([this.loadInvoices(), this.loadBatches()])
+			this.batchId = batch.id
+		},
+
+		onBatchChanged() {
+			this.loadInvoices()
+			this.loadBatches()
+			// Festgeschriebene Rechnungen sind offene Posten und berühren andere Reiter.
+			this.$emit('changed')
+		},
+
+		onBatchDeleted() {
+			this.batchId = null
+			this.loadInvoices()
+			this.loadBatches()
 		},
 
 		openEditor({ id = null, plan = null, asPlan = false, from = null } = {}) {

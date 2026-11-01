@@ -49,6 +49,15 @@ class DebtorMapper extends QBMapper {
 		return $this->findEntities($qb);
 	}
 
+	/** @return Debtor[] alle nicht anonymisierten Debitoren, für den Abgleich der Sammelrechnungen (#243) */
+	public function findActive(): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')->from($this->getTableName())
+			->where($qb->expr()->isNull('redacted_at'))
+			->orderBy('id', 'ASC');
+		return $this->findEntities($qb);
+	}
+
 	public function findByMember(int $memberId): ?Debtor {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')->from($this->getTableName())
