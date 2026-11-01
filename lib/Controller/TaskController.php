@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Db\ReadCache;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\AnonymizationCandidateService;
 use OCA\Vereinsbuchhaltung\Service\ClaimFollowUpTaskService;
@@ -62,6 +63,7 @@ class TaskController extends Controller {
 		private MandateTaskService $mandateTasks,
 		private ClaimFollowUpTaskService $claimFollowUps,
 		private TaskTargetResolver $targets,
+		private ReadCache $readCache,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -69,6 +71,13 @@ class TaskController extends Controller {
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function index(): DataResponse {
+		// Die sieben Quellen lesen dieselben Bestände (offene Forderungen, Mandate, Zuweisungen,
+		// Mitglieder) - im Lese-Puffer je einmal statt mehrfach und je Forderung einzeln.
+		return new DataResponse($this->readCache->during(fn (): array => $this->collect()));
+	}
+
+	/** @return list<array<string, mixed>> */
+	private function collect(): array {
 		$tasks = array_map(static fn ($t) => $t->jsonSerialize(), $this->service->findCurrent());
 		foreach ($this->mandateActivation->findStaleElectronicDraftTasks() as $i => $task) {
 			// Synthetische, stabile id fuer Frontend-Listenschluessel - diese
@@ -95,6 +104,6 @@ class TaskController extends Controller {
 		foreach ($this->anonymizationCandidates->findTasks() as $i => $task) {
 			$tasks[] = $task + ['id' => 'anonymization-' . ($task['objectId'] ?? 'run') . '-' . $i, 'createdAt' => null];
 		}
-		return new DataResponse($this->targets->withMemberIds($tasks));
+		return $this->targets->withMemberIds($tasks);
 	}
 }

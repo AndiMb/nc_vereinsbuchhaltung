@@ -210,7 +210,7 @@ class ContributionCycleTaskService {
 		$count = 0;
 		$sumCents = 0;
 		$transferAssignments = null;
-		foreach ($this->openItems->findClaims() as $item) {
+		foreach ($this->openItems->findOpenClaims() as $item) {
 			if ($item->getAssignmentId() === null || $item->getDueDate() === null || $item->getDueDate() >= $today) {
 				continue;
 			}
@@ -243,7 +243,7 @@ class ContributionCycleTaskService {
 
 		/** @var OpenItem[] $candidates */
 		$candidates = [];
-		foreach ($this->openItems->findClaims() as $item) {
+		foreach ($this->openItems->findOpenClaims() as $item) {
 			if ($item->getDueDate() === null || $item->getDueDate() < $today || $item->getDueDate() > $horizon) {
 				continue;
 			}
