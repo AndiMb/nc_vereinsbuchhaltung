@@ -16,7 +16,7 @@ use OCP\IL10N;
  * (`RE-{JJJJ}-{NNNN}`) und `storno` (`ST-{JJJJ}-{NNNN}`).
  *
  * Muster: `{JJJJ}` ist das Jahr des Rechnungsdatums, `{JJ}` die letzten zwei
- * Stellen, `{NNNN}` der Zähler. Die Anzahl der N bestimmt die Mindestbreite
+ * Stellen, `{MM}` der Monat (zweistellig), `{NNNN}` der Zähler. Die Anzahl der N bestimmt die Mindestbreite
  * (mit führenden Nullen). Dazwischen nur Buchstaben, Ziffern und `-_/.`; so
  * bleibt die Nummer im Verwendungszweck der Überweisung wiederzufinden.
  *
@@ -26,11 +26,11 @@ use OCP\IL10N;
  * Lücken. Zusätzlich verhindert der eindeutige Index auf der Rechnungsnummer
  * jede doppelte Vergabe.
  *
- * Jahreswechsel: Steht der Zähler auf `yearly`, beginnt er mit dem ersten
- * Rechnungsdatum eines neuen Jahres wieder bei 1. Der Zähler gehört zum Jahr
- * der zuletzt vergebenen Nummer; eine nachträglich ausgestellte Rechnung mit
- * Datum im Vorjahr würde den Kreis zurückdrehen. Deshalb lehnt
- * {@see issue()} ein Datum ab, das vor dem Jahr des Zählers liegt.
+ * Neubeginn: Steht der Zähler auf `yearly` (`monthly`), beginnt er mit dem
+ * ersten Rechnungsdatum eines neuen Jahres (Monats) wieder bei 1. Der Zähler
+ * gehört zum Zeitraum der zuletzt vergebenen Nummer; eine nachträglich
+ * ausgestellte Rechnung mit Datum davor würde den Kreis zurückdrehen. Deshalb
+ * lehnt {@see issue()} ein Datum ab, das vor dem Zeitraum des Zählers liegt.
  */
 class NumberRangeService {
 
@@ -40,6 +40,7 @@ class NumberRangeService {
 	];
 
 	private const MAX_ATTEMPTS = 5;
+	private const KEY_ALL = 'all';
 	private const MAX_PATTERN_LENGTH = 40;
 
 	public function __construct(
@@ -102,6 +103,10 @@ class NumberRangeService {
 			// Nummern doppelt vergeben.
 			throw new \InvalidArgumentException($this->msg('Bei jährlichem Neubeginn muss das Muster das Jahr enthalten ({JJJJ} oder {JJ}).'));
 		}
+		if ($resetMode === NumberRange::RESET_MONTHLY && (!str_contains($pattern, '{MM}') || (!str_contains($pattern, '{JJJJ}') && !str_contains($pattern, '{JJ}')))) {
+			// Ohne Jahr und Monat im Muster gäbe es dieselbe Nummer in jedem Monat.
+			throw new \InvalidArgumentException($this->msg('Bei monatlichem Neubeginn muss das Muster Jahr und Monat enthalten ({JJJJ} oder {JJ} und {MM}).'));
+		}
 		if ($nextNo !== null && ($nextNo < 1 || $nextNo > 99999999)) {
 			throw new \InvalidArgumentException($this->msg('Der nächste Zählerstand muss mindestens 1 sein.'));
 		}
@@ -126,14 +131,18 @@ class NumberRangeService {
 	public function issue(string $kind, \DateTimeInterface $date): array {
 		for ($attempt = 1; $attempt <= self::MAX_ATTEMPTS; $attempt++) {
 			$range = $this->ensure($kind);
-			$key = $range->getResetMode() === NumberRange::RESET_YEARLY ? $date->format('Y') : 'all';
+			$key = self::periodKey($range->getResetMode(), $date);
 			$counterKey = $range->getCounterKey();
-			if ($counterKey !== null && $key !== 'all' && $key < $counterKey) {
-				throw new \InvalidArgumentException($this->msg('Das Rechnungsdatum liegt vor dem Jahr der zuletzt vergebenen Rechnungsnummer (%s). Bitte ein Datum ab diesem Jahr wählen.', [$counterKey]));
+			if ($counterKey !== null && $key !== self::KEY_ALL && $counterKey !== self::KEY_ALL) {
+				// Bei gewechselter Regel (Jahr ↔ Monat) zählt der gemeinsame Teil, also das Jahr.
+				$len = min(strlen($key), strlen($counterKey));
+				if (substr($key, 0, $len) < substr($counterKey, 0, $len)) {
+					throw new \InvalidArgumentException($len > 4
+						? $this->msg('Das Rechnungsdatum liegt vor dem Monat der zuletzt vergebenen Rechnungsnummer (%s). Bitte ein Datum ab diesem Monat wählen.', [substr($counterKey, 5, 2) . '/' . substr($counterKey, 0, 4)])
+						: $this->msg('Das Rechnungsdatum liegt vor dem Jahr der zuletzt vergebenen Rechnungsnummer (%s). Bitte ein Datum ab diesem Jahr wählen.', [substr($counterKey, 0, 4)]));
+				}
 			}
-			// Beginnt ein neues Jahr, startet der Zähler bei 1. Ist der Zähler
-			// noch unbenutzt (kein Schlüssel), gilt ein vom Verwalter gesetzter Startwert.
-			$no = ($counterKey === null || $counterKey === $key) ? $range->getNextNo() : 1;
+			$no = self::startNo($range, $key);
 			$issuedAt = (new \DateTimeImmutable())->format(\DateTimeInterface::ATOM);
 			if ($this->mapper->advance((int)$range->getId(), $range->getNextNo(), $no + 1, $key, $issuedAt)) {
 				return [
@@ -148,15 +157,42 @@ class NumberRangeService {
 	/** Die Nummer, die {@see issue()} jetzt vergäbe, ohne den Zähler zu verändern. */
 	public function peek(string $kind, \DateTimeInterface $date): string {
 		$range = $this->ensure($kind);
-		$key = $range->getResetMode() === NumberRange::RESET_YEARLY ? $date->format('Y') : 'all';
-		$counterKey = $range->getCounterKey();
-		$no = ($counterKey === null || $counterKey === $key) ? $range->getNextNo() : 1;
+		$no = self::startNo($range, self::periodKey($range->getResetMode(), $date));
 		return self::format($range->getPrefixPattern(), $date, $no);
+	}
+
+	/** Zeitraum, zu dem der Zähler gehört: `2026`, `2026-11` oder `all`. */
+	private static function periodKey(string $resetMode, \DateTimeInterface $date): string {
+		return match ($resetMode) {
+			NumberRange::RESET_YEARLY => $date->format('Y'),
+			NumberRange::RESET_MONTHLY => $date->format('Y-m'),
+			default => self::KEY_ALL,
+		};
+	}
+
+	/**
+	 * Zählerstand für eine Nummer im Zeitraum `$key`. Beginnt ein neuer Zeitraum,
+	 * startet der Zähler bei 1. Ist der Zähler noch unbenutzt (kein Schlüssel),
+	 * gilt ein vom Verwalter gesetzter Startwert.
+	 *
+	 * Wurde die Regel zwischen jährlich und monatlich gewechselt, überlappen sich
+	 * altes und neues Format (`2026` und `2026-11`): dann läuft der Zähler weiter,
+	 * statt bei 1 zu beginnen. Sonst vergäbe ein Muster wie `RE-{JJJJ}{MM}-{NNNN}`
+	 * nach dem Wechsel eine schon ausgestellte Nummer ein zweites Mal.
+	 */
+	private static function startNo(NumberRange $range, string $key): int {
+		$counterKey = $range->getCounterKey();
+		if ($counterKey === null || $counterKey === $key) {
+			return $range->getNextNo();
+		}
+		$overlaps = $key !== self::KEY_ALL && $counterKey !== self::KEY_ALL
+			&& (str_starts_with($key, $counterKey) || str_starts_with($counterKey, $key));
+		return $overlaps ? $range->getNextNo() : 1;
 	}
 
 	public static function format(string $pattern, \DateTimeInterface $date, int $no): string {
 		$width = self::counterWidth($pattern);
-		$out = str_replace(['{JJJJ}', '{JJ}'], [$date->format('Y'), $date->format('y')], $pattern);
+		$out = str_replace(['{JJJJ}', '{JJ}', '{MM}'], [$date->format('Y'), $date->format('y'), $date->format('m')], $pattern);
 		return (string)preg_replace_callback('/\{N+\}/', static fn () => str_pad((string)$no, $width, '0', STR_PAD_LEFT), $out);
 	}
 
@@ -169,12 +205,12 @@ class NumberRangeService {
 	 * Bankabgleich, der die Nummer im Verwendungszweck sucht.
 	 */
 	public static function toRegex(string $pattern): string {
-		$parts = preg_split('/(\{JJJJ\}|\{JJ\}|\{N+\})/', $pattern, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY) ?: [];
+		$parts = preg_split('/(\{JJJJ\}|\{JJ\}|\{MM\}|\{N+\})/', $pattern, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY) ?: [];
 		$regex = '';
 		foreach ($parts as $part) {
 			$regex .= match (true) {
 				$part === '{JJJJ}' => '\d{4}',
-				$part === '{JJ}' => '\d{2}',
+				$part === '{JJ}', $part === '{MM}' => '\d{2}',
 				str_starts_with($part, '{N') => '\d{' . (strlen($part) - 2) . ',}',
 				default => preg_quote($part, '/'),
 			};
@@ -195,9 +231,9 @@ class NumberRangeService {
 		if (preg_match('/\{(N+)\}/', $pattern, $m) === 1 && strlen($m[1]) > 8) {
 			return 'Der Zähler darf höchstens acht Stellen haben.';
 		}
-		$rest = (string)preg_replace('/\{(JJJJ|JJ|N+)\}/', '', $pattern);
+		$rest = (string)preg_replace('/\{(JJJJ|JJ|MM|N+)\}/', '', $pattern);
 		if (preg_match('/^[A-Za-z0-9_\-\/.]*$/', $rest) !== 1) {
-			return 'Erlaubt sind Buchstaben, Ziffern und - _ / . neben den Platzhaltern {JJJJ}, {JJ} und {NNNN}.';
+			return 'Erlaubt sind Buchstaben, Ziffern und - _ / . neben den Platzhaltern {JJJJ}, {JJ}, {MM} und {NNNN}.';
 		}
 		return null;
 	}
