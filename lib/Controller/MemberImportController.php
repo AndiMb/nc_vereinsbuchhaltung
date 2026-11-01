@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Middleware\NoRevisionBump;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\MemberImportService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
@@ -40,6 +41,7 @@ class MemberImportController extends Controller {
 	/** Prüflauf: ändert nichts, zeigt je Zeile, was entstehen würde. */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	#[NoRevisionBump]
 	public function preview(string $csv): DataResponse {
 		$fehler = $this->check($csv);
 		if ($fehler !== null) {
