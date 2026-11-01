@@ -28,7 +28,9 @@ class RevisionMiddleware extends Middleware {
 	public function afterController(Controller $controller, string $methodName, Response $response): Response {
 		$verb = strtoupper($this->request->getMethod());
 		if ($verb !== 'GET' && $verb !== 'HEAD' && $response->getStatus() < 400 && !$this->skipsBump($controller, $methodName, $response)) {
-			$this->revision->bump();
+			$bumped = $this->revision->bump();
+			$response->addHeader('X-Vbh-Revision-Previous', $bumped['previous']);
+			$response->addHeader('X-Vbh-Revision', $bumped['current']);
 		}
 		return $response;
 	}

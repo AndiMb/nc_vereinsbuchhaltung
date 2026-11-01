@@ -1840,7 +1840,7 @@ export default {
 			this.bookingView = 'unassigned'
 		},
 
-		async onImported() { await this.loadBalances(); await this.loadTransactions() },
+		async onImported() { await Promise.all([this.loadBalances(), this.loadTransactions()]) },
 
 		// Zahlungen zu Rechnungen buchen und lösen Bankumsätze, Buchungen und Salden (Epic #168).
 		async onInvoicesChanged() {
@@ -1859,7 +1859,7 @@ export default {
 				this.selectedPeriodId = null
 				this.initialised = false
 				this.demoActive = false
-				await this.loadPeriods(); await this.loadAccounts(); await this.loadBalances(); await this.loadCostCenters()
+				await this.loadPeriods(); await Promise.all([this.loadAccounts(), this.loadBalances(), this.loadCostCenters()])
 			} catch (e) { showError(this.errMsg(e, this.t('Zurücksetzen fehlgeschlagen'))) } finally { this.busy = false }
 		},
 
@@ -1934,7 +1934,7 @@ export default {
 		// loadTransactions kommt aus setup() (useJournal).
 		// loadRules kommt aus setup() (useRules); die Pflege der Regeln selbst
 		// steht in RulesPanel.vue (Unterreiter „Regeln" von BookingsTab.vue).
-		async onSpheresChanged() { await this.loadAccounts(); await this.loadSphereReport() },
+		async onSpheresChanged() { await Promise.all([this.loadAccounts(), this.loadSphereReport()]) },
 		// Kostenstellen: die Zuordnung haengt am Konto, deshalb muessen die
 		// Konten mit nachgeladen werden; der Bericht nur, wenn er offen ist.
 		async onCostCentersChanged() {
@@ -1951,7 +1951,7 @@ export default {
 						showUndo(this.t('Zuordnung entfernt'), async () => {
 							try {
 								await api.assignTransaction(tx.id, prevContra)
-								await this.loadTransactions(); await this.loadBalances(); await this.loadJournal(); await this.loadSphereReport(); await this.loadPeriods()
+								await Promise.all([this.loadTransactions(), this.loadBalances(), this.loadJournal(), this.loadSphereReport(), this.loadPeriods()])
 							} catch (e) { showError(this.errMsg(e, this.t('Wiederherstellen fehlgeschlagen'))) }
 						})
 					}
@@ -1962,7 +1962,7 @@ export default {
 				// loadPeriods() muss mit: eine Zuordnung legt eine Buchung an (bzw.
 				// loest sie wieder auf), und periods[].bookings speist die
 				// "Erste Schritte"-Karte auf der Uebersicht (Issue #60).
-				await this.loadTransactions(); await this.loadBalances(); await this.loadJournal(); await this.loadSphereReport(); await this.loadPeriods()
+				await Promise.all([this.loadTransactions(), this.loadBalances(), this.loadJournal(), this.loadSphereReport(), this.loadPeriods()])
 			} catch (e) { showError(this.errMsg(e, this.t('Zuordnung fehlgeschlagen'))) }
 		},
 
@@ -1970,7 +1970,7 @@ export default {
 			if (!await this.askConfirm(this.t('Umsatz löschen'), this.tRaw('Umsatz über {amount} von/an „{counterparty}" endgültig löschen?', { amount: formatMoney(tx.amount), counterparty: tx.counterparty || '' }))) { return }
 			try {
 				await api.deleteTransaction(tx.id)
-				await this.loadTransactions(); await this.loadBalances()
+				await Promise.all([this.loadTransactions(), this.loadBalances()])
 			} catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
 		},
 
@@ -2016,7 +2016,7 @@ export default {
 				await this.linkTxPendingFiles(tx.id, data && data.journalId)
 				// loadPeriods() muss mit: die Aufteilung legt Buchungen an, und
 				// periods[].bookings speist die "Erste Schritte"-Karte (Issue #60).
-				await this.loadTransactions(); await this.loadBalances(); await this.loadJournal(); await this.loadSphereReport(); await this.loadPeriods()
+				await Promise.all([this.loadTransactions(), this.loadBalances(), this.loadJournal(), this.loadSphereReport(), this.loadPeriods()])
 			} catch (e) { showError(this.errMsg(e, this.t('Zuordnung fehlgeschlagen'))) }
 		},
 
@@ -2061,8 +2061,10 @@ export default {
 		// Eigener Wrapper um useJournal.loadJournal (journalLoad), da hier
 		// zusätzlich die Beleg-Zähler nachgeladen werden.
 		async loadJournal() {
-			await this.journalLoad()
+			// Die Belegzähler hängen nicht am Journal: gleichzeitig anfragen
+			// statt erst nach dessen Antwort (wie bisher nicht abgewartet).
 			this.loadAttachmentCounts()
+			await this.journalLoad()
 		},
 
 		async loadAttachmentCounts() {
@@ -2515,7 +2517,7 @@ export default {
 				// Umsätze mitladen – siehe removeBooking().
 				// loadPeriods() wie beim Speichern: periods[].bookings speist die
 				// "Erste Schritte"-Karte (Issue #60).
-				await this.loadJournal(); await this.loadTransactions(); await this.loadBalances(); await this.loadPeriods(); await this.reloadStatement()
+				await Promise.all([this.loadJournal(), this.loadTransactions(), this.loadBalances(), this.loadPeriods(), this.reloadStatement()])
 			} catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
 		},
 
@@ -2653,11 +2655,11 @@ export default {
 					const uploadFailed = this.pendingFiles.length ? await this.uploadPendingFiles(f.id) : 0
 					if (removeFailed || uploadFailed) {
 						await this.loadAttachments(f.id)
-						await this.loadJournal(); await this.loadBalances(); await this.loadPeriods(); await this.loadSphereReport(); await this.reloadStatement()
+						await Promise.all([this.loadJournal(), this.loadBalances(), this.loadPeriods(), this.loadSphereReport(), this.reloadStatement()])
 						return
 					}
 					if (!await this.recordReimbursementPayout(f)) {
-						await this.loadJournal(); await this.loadBalances(); await this.loadPeriods(); await this.loadSphereReport(); await this.reloadStatement()
+						await Promise.all([this.loadJournal(), this.loadBalances(), this.loadPeriods(), this.loadSphereReport(), this.reloadStatement()])
 						return
 					}
 				} else {
@@ -2674,14 +2676,14 @@ export default {
 						// Dateien lassen sich im offenen Dialog erneut hochladen.
 						this.bookingForm = { ...f }
 						await this.loadAttachments(data.id)
-						await this.loadJournal(); await this.loadBalances(); await this.loadPeriods(); await this.loadSphereReport(); await this.reloadStatement()
+						await Promise.all([this.loadJournal(), this.loadBalances(), this.loadPeriods(), this.loadSphereReport(), this.reloadStatement()])
 						return
 					}
 					// Die Buchung steht: scheitert der Vermerk am Antrag, wird aus dem Anlegen das
 					// Bearbeiten dieser Buchung - ein weiterer Klick legt keine zweite an.
 					if (!await this.recordReimbursementPayout(f)) {
 						this.bookingForm = { ...f }
-						await this.loadJournal(); await this.loadBalances(); await this.loadPeriods(); await this.loadSphereReport(); await this.reloadStatement()
+						await Promise.all([this.loadJournal(), this.loadBalances(), this.loadPeriods(), this.loadSphereReport(), this.reloadStatement()])
 						return
 					}
 				}
@@ -2691,12 +2693,12 @@ export default {
 				// bearbeitet, stuenden Beschreibung, Gegenkonto und laufender
 				// Saldo dort sonst bis zum naechsten Kontowechsel veraltet da.
 				// Ohne offenen Auszug tut der Aufruf nichts.
-				await this.loadJournal(); await this.loadBalances(); await this.loadPeriods(); await this.loadSphereReport(); await this.reloadStatement()
+				await Promise.all([this.loadJournal(), this.loadBalances(), this.loadPeriods(), this.loadSphereReport(), this.reloadStatement()])
 			} catch (e) {
 				if (e?.response?.status === 409) {
 					showError(this.t('Diese Buchung wurde zwischenzeitlich von einer anderen Person geändert. Die Ansicht wurde aktualisiert – bitte erneut bearbeiten.'))
 					this.closeBooking()
-					await this.loadJournal(); await this.loadBalances(); await this.reloadStatement()
+					await Promise.all([this.loadJournal(), this.loadBalances(), this.reloadStatement()])
 					return
 				}
 				showError(this.errMsg(e, this.t('Buchung konnte nicht gespeichert werden')))
@@ -2729,7 +2731,7 @@ export default {
 			// loadPeriods() muss ebenfalls mit: periods[].bookings speist die
 			// "Erste Schritte"-Karte, die sonst die geloeschte Buchung
 			// weiterzaehlt (Issue #60).
-			try { await api.deleteBooking(r.id); this.refreshInbox(); await this.loadJournal(); await this.loadTransactions(); await this.loadBalances(); await this.loadSphereReport(); await this.loadPeriods(); await this.reloadStatement() } catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
+			try { await api.deleteBooking(r.id); this.refreshInbox(); await Promise.all([this.loadJournal(), this.loadTransactions(), this.loadBalances(), this.loadSphereReport(), this.loadPeriods(), this.reloadStatement()]) } catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
 		},
 
 		// --- Konten ---
@@ -2835,7 +2837,7 @@ export default {
 				this.showAccount = false
 				this.accountEditId = null
 				this.newAccount = { number: '', name: '', type: 'income', category: '', isBank: false, countInTotal: true, parentId: null, sphere: '', reserveKind: '', iban: '', costCenterId: null }
-				await this.loadAccounts(); await this.loadBalances(); await this.loadSphereReport()
+				await Promise.all([this.loadAccounts(), this.loadBalances(), this.loadSphereReport()])
 				showSuccess(this.t('Konto gespeichert.'))
 			} catch (e) { showError(this.errMsg(e, this.t('Konto konnte nicht gespeichert werden'))) }
 		},
@@ -2845,7 +2847,7 @@ export default {
 			try {
 				await api.deleteAccount(acc.id)
 				if (this.selectedAccountId === acc.id) { this.selectedAccountId = null; this.statement = null }
-				await this.loadAccounts(); await this.loadBalances(); await this.loadSphereReport()
+				await Promise.all([this.loadAccounts(), this.loadBalances(), this.loadSphereReport()])
 			} catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
 		},
 
@@ -2853,7 +2855,7 @@ export default {
 			const form = this.openingForm[acc.id] || { amount: 0, date: '' }
 			try {
 				await api.setOpening(acc.id, Number(form.amount) || 0, form.date || null)
-				await this.loadAccounts(); await this.loadBalances(); await this.loadSphereReport()
+				await Promise.all([this.loadAccounts(), this.loadBalances(), this.loadSphereReport()])
 				if (this.selectedAccountId === acc.id) { await this.loadStatement(acc.id) }
 				showSuccess(this.tRaw('Eröffnungssaldo für {name} gespeichert.', { name: acc.name }))
 			} catch (e) { showError(this.errMsg(e, this.t('Eröffnungssaldo konnte nicht gespeichert werden'))) }

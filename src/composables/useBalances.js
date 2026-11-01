@@ -23,29 +23,34 @@ let sphereSeq = 0
 
 async function loadBalances() {
 	const seq = ++balancesSeq
-	try {
-		const { data } = await api.balances(periods.state.selectedPeriodId)
-		if (seq !== balancesSeq) { return }
-		state.balances = data
-	} catch (e) {
-		if (seq !== balancesSeq) { return }
-		showError(errMsg(e, t('Auswertung konnte nicht geladen werden')))
-	}
-
 	// Der Zeitraum davor für den Kennzahlen-Vergleich (still im Hintergrund,
 	// Fehler ignorieren). Bis 0.32.0 stand hier schlicht `jahr - 1`; welcher
 	// Zeitraum der vorherige ist, weiß seit Issue #8 nur die Liste der
-	// Geschäftsjahre – beim ersten gibt es gar keinen.
+	// Geschäftsjahre – beim ersten gibt es gar keinen. Beide Abfragen laufen
+	// gleichzeitig, sie hängen nicht voneinander ab.
 	const previous = periods.previousOf(periods.selectedPeriod.value)
-	if (previous) {
+	const current = (async () => {
+		try {
+			const { data } = await api.balances(periods.state.selectedPeriodId)
+			if (seq !== balancesSeq) { return }
+			state.balances = data
+		} catch (e) {
+			if (seq !== balancesSeq) { return }
+			showError(errMsg(e, t('Auswertung konnte nicht geladen werden')))
+		}
+	})()
+	const prior = (async () => {
+		if (!previous) {
+			state.prevBalances = null
+			return
+		}
 		try {
 			const { data } = await api.balances(previous.id)
 			if (seq !== balancesSeq) { return }
 			state.prevBalances = data
 		} catch { if (seq === balancesSeq) { state.prevBalances = null } }
-	} else {
-		state.prevBalances = null
-	}
+	})()
+	await Promise.all([current, prior])
 }
 
 /** @return {Promise<object|null>} der Sphären-Bericht, oder null bei Fehler (bereits als Toast gemeldet) */

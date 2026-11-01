@@ -9,11 +9,20 @@ const url = (path) => generateUrl(base + path)
 // Revision-Polling eigene Änderungen (die Handler laden selbst nach) von
 // fremden unterscheiden kann.
 let lastWriteTs = 0
+// Empfänger für den Änderungsstand, den der Server nach einem eigenen
+// Schreibzugriff mitschickt (RevisionMiddleware). useSync() registriert sich
+// hier; ein Import in die Gegenrichtung wäre zirkulär.
+let revisionBumpListener = null
 axios.interceptors.response.use((response) => {
 	const method = ((response.config && response.config.method) || 'get').toLowerCase()
 	const requestUrl = (response.config && response.config.url) || ''
 	if (method !== 'get' && method !== 'head' && requestUrl.includes('/apps/vereinsbuchhaltung/')) {
 		lastWriteTs = Date.now()
+		const headers = response.headers || {}
+		const current = headers['x-vbh-revision']
+		if (current !== undefined && revisionBumpListener) {
+			revisionBumpListener(headers['x-vbh-revision-previous'] ?? '', current)
+		}
 	}
 	return response
 })
@@ -22,6 +31,8 @@ export default {
 	// Kollaboration (Änderungsstand)
 	revision: () => axios.get(url('/revision')),
 	lastWriteAt: () => lastWriteTs,
+	/** @param {(previous: string, current: string) => void} fn Empfänger für den Stand nach eigenen Schreibzugriffen */
+	onRevisionBump: (fn) => { revisionBumpListener = fn },
 
 	// Geschäftsjahre: Liste, Regel, Grenzen, Festschreibung.
 	// `period` ist überall die Perioden-ID; fehlt sie oder ist sie 0, meint der
