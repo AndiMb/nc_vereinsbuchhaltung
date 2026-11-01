@@ -15,55 +15,28 @@ Markdown headings as "[object Object]" since `marked` v18 (wrong renderer
 callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 **bold lead-in** at the start of a line instead, e.g. `**New:**`.
 
-## [0.49.0] – 2026-10-31
+## [0.49.0] – 2026-11-01
 
 **New:**
-- **Expense reimbursement:** Under *My area → Expenses* members submit an expense
-  they paid privately, with a receipt (amount, expense date, purpose, IBAN for
-  the reimbursement, PDF or photo). At least N different administrators approve
-  the request under *Bookings → Expenses*; N and the switch are in the settings
-  under "Expense reimbursement" (2 by default; at least N + 1 administrators are
-  needed, nobody can approve their own request). Only the last required approval
-  creates an open item "Expense – to be paid"; a rejection (with a reason) takes
-  effect immediately and is final, and the member can withdraw before the first
-  approval. "Book payout" opens the posting dialog with amount and text, records
-  the transfer on the request and attaches the receipts to the posting. Every
-  step is recorded in an append-only history with a hash chain; the member sees
-  the progress ("1 of 2 approvals"), not the names of the approvers. Emails: new
-  request to all administrators, approval, rejection and payout to the member.
-  The receipts go to the configured receipt storage, in the watch folder under
-  `<folder>/<expense year>/`, and stay out of the inbox there. See manual 4.6.
-- **Have everyone confirm the mandate text again:** A new version of the
-  mandate text does not change existing mandates – whoever already has a
-  mandate keeps the version they consented to. On the *Mandate legal text*
-  page in the settings, the card "Have members confirm the new version"
-  shows who has confirmed the current version, who hasn't, and whom you can
-  only reach on paper. "Send for reconfirmation …" sends everyone else an
-  email with a link; it opens the current text with the existing details
-  without signing in, one click confirms. No new mandate is created:
-  reference, bank details and status stay, collection carries on. Sending is
-  a button press by the administration; anyone who already has a valid link
-  is skipped unless you choose to write to them again (the earlier link then
-  expires). As proof, the confirmation replaces time, IP address, browser
-  and version; the history notes when consent was given before. Paper
-  mandates can be confirmed electronically this way too.
-- **Sending to a single member from the member record:** If a mandate has
-  not confirmed the current version, the record shows a "Mandate text" row
-  with the state of the link and the button "Write to them to confirm the
-  mandate text" (or "Write again …"). If the email doesn't arrive, the link
-  can be passed on directly.
-- **Notice in the self-service:** Under "My contribution", a mandate with an
-  older version shows "Mandate text updated". "Read and confirm the new
-  text" shows the text and confirms in the signed-in session; the member
-  gets a receipt email, as with every change.
+- **Expense reimbursement:** Members submit an expense they paid privately,
+  with a receipt, under *My area → Expenses*. At least N different
+  administrators approve it under *Bookings → Expenses* (N and the switch are
+  in the settings, 2 by default; nobody can approve their own request). The
+  last approval creates the open item "Expense – to be paid"; "Book payout"
+  opens the posting dialog and attaches the receipts. A rejection is
+  immediate and final; hash-chained history; emails to administrators and
+  member. See manual 4.6.
+- **Have the mandate text confirmed again:** Under *Settings → Mandate legal
+  text* a card shows who has confirmed the current version. "Send for
+  reconfirmation …" sends everyone else a link; one click confirms, the
+  mandate stays unchanged. Also for a single member from the member record;
+  the self-service shows "Mandate text updated". Paper mandates can be
+  confirmed electronically this way too.
 
 **Changed:**
-- The tab "My contribution" is now called **"My area"** and has the sub-tabs
-  "Contribution" (the previous content) and "Expenses"; if only one of the two
-  features is on, the bar is omitted.
-- A paper mandate that later confirmed the text electronically counts as
-  having proof through that consent: the "Mandate without proof" notice
-  goes away.
+- "My contribution" is now called **"My area"** (sub-tabs "Contribution" and
+  "Expenses").
+- A paper mandate confirmed electronically counts as having proof.
 
 ## [0.48.0] – 2026-10-31
 

@@ -17,57 +17,28 @@ als „[object Object]" (falsche Renderer-Callback-Signatur, Nextcloud-
 Core-Bug, reproduziert 23.08.2026). Stattdessen **Fettdruck als Zeilenanfang**
 verwenden, z. B. `**Neu:**`.
 
-## [0.49.0] – 2026-10-31
+## [0.49.0] – 2026-11-01
 
 **Neu:**
-- **Auslagenerstattung:** Mitglieder reichen unter *Mein Bereich → Auslagen* eine
-  privat verauslagte Ausgabe mit Beleg ein (Betrag, Ausgabedatum, Zweck, IBAN
-  für die Erstattung, PDF oder Foto). Mindestens N verschiedene Verwalter
-  geben den Antrag unter *Buchungen → Auslagen* frei, N und der Schalter stehen
-  in den Einstellungen unter „Auslagenerstattung“ (ab Werk 2; es braucht
-  mindestens N + 1 Verwalter, den eigenen Antrag kann niemand freigeben).
-  Erst die letzte nötige Freigabe legt einen offenen Posten „Auslage – zu
-  überweisen“ an; eine Ablehnung (mit Begründung) gilt sofort und endgültig,
-  das Mitglied kann vor der ersten Freigabe zurückziehen. „Auszahlung buchen“
-  öffnet den Buchungsdialog mit Betrag und Text, vermerkt die Überweisung am
-  Antrag und hängt die Belege an die Buchung. Jeder Schritt steht in einer
-  nur anfügbaren Historie mit Hash-Kette; das Mitglied sieht den Fortschritt
-  („1 von 2 Freigaben“), nicht die Namen der Freigeber. Mails: neuer Antrag an
-  alle Verwalter, Freigabe, Ablehnung und Auszahlung ans Mitglied. Die Belege
-  liegen in der eingestellten Belegablage, im Wächter-Ordner unter
-  `<Ordner>/<Ausgabejahr>/` und dort nicht im Eingangskorb. Siehe Handbuch 4.6.
-- **Mandatstext von allen erneut bestätigen lassen:** Eine neue Fassung des
-  Mandatstexts ändert bestehende Mandate nicht – wer schon ein Mandat hat,
-  behält die Fassung, der er zugestimmt hat. Auf der Seite *Mandats-
-  Rechtstext* in den Einstellungen zeigt die Karte „Mitglieder die neue
-  Fassung bestätigen lassen“, wer die aktuelle Fassung schon bestätigt hat,
-  wer nicht und wen sich nur auf Papier erreichen lässt. „Zur erneuten
-  Bestätigung anschreiben …“ schickt allen anderen eine Mail mit einem Link;
-  er öffnet ohne Anmeldung den aktuellen Text mit den bisherigen Angaben,
-  ein Klick bestätigt. Es entsteht kein neues Mandat: Referenz,
-  Bankverbindung und Status bleiben, der Einzug läuft weiter. Der Versand ist
-  ein Knopfdruck der Verwaltung; wer schon einen gültigen Link hat, wird
-  übersprungen, außer man schreibt ihn auf Wunsch erneut an (der frühere Link
-  verfällt). Als Nachweis ersetzt die Bestätigung Zeitpunkt, IP-Adresse,
-  Browser und Fassung; der Verlauf hält fest, wann zuvor zugestimmt wurde.
+- **Auslagenerstattung:** Mitglieder reichen unter *Mein Bereich → Auslagen*
+  eine privat verauslagte Ausgabe mit Beleg ein. Mindestens N verschiedene
+  Verwalter geben sie unter *Buchungen → Auslagen* frei (N und Schalter in den
+  Einstellungen, ab Werk 2; den eigenen Antrag kann niemand freigeben). Die
+  letzte Freigabe legt den offenen Posten „Auslage – zu überweisen“ an;
+  „Auszahlung buchen“ öffnet den Buchungsdialog und hängt die Belege an.
+  Ablehnung gilt sofort und endgültig, Historie mit Hash-Kette, Mails an
+  Verwalter und Mitglied. Siehe Handbuch 4.6.
+- **Mandatstext erneut bestätigen lassen:** Unter *Einstellungen →
+  Mandats-Rechtstext* zeigt eine Karte, wer die aktuelle Fassung bestätigt
+  hat. „Zur erneuten Bestätigung anschreiben …“ schickt allen anderen einen
+  Link; ein Klick bestätigt, das Mandat bleibt unverändert. Einzeln aus der
+  Mitglieder-Akte; im Self-Service erscheint „Mandatstext aktualisiert“.
   Auch Papier-Mandate lassen sich so elektronisch bestätigen.
-- **Einzelversand aus der Mitglieder-Akte:** Hat ein Mandat die aktuelle
-  Fassung nicht bestätigt, zeigt die Akte die Zeile „Mandatstext“ samt Stand
-  des Links und den Knopf „Zur Bestätigung des Mandatstexts anschreiben“
-  (bzw. „Erneut …“). Kommt die Mail nicht an, lässt sich der Link direkt
-  weitergeben.
-- **Hinweis im Self-Service:** Unter „Mein Beitrag“ steht bei einem Mandat mit
-  älterer Fassung „Mandatstext aktualisiert“. „Neuen Text lesen und
-  bestätigen“ zeigt den Text und bestätigt in der angemeldeten Sitzung; das
-  Mitglied bekommt wie bei jeder Änderung eine Quittungsmail.
 
 **Geändert:**
-- Der Reiter „Mein Beitrag“ heißt jetzt **„Mein Bereich“** und hat die
-  Unterreiter „Beitrag“ (bisheriger Inhalt) und „Auslagen“; ist nur eine der
-  beiden Funktionen eingeschaltet, entfällt die Leiste.
-- Ein Papier-Mandat, das den Text später elektronisch bestätigt hat, gilt
-  mit dieser Zustimmung als mit Nachweis: der Hinweis „Mandat ohne Nachweis“
-  entfällt.
+- „Mein Beitrag“ heißt jetzt **„Mein Bereich“** (Unterreiter „Beitrag“ und
+  „Auslagen“).
+- Ein Papier-Mandat mit elektronischer Bestätigung gilt als mit Nachweis.
 
 ## [0.48.0] – 2026-10-31
 
