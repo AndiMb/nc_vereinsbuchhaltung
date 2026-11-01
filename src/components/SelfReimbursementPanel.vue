@@ -71,58 +71,72 @@
 			:closeOnClickOutside="false"
 			@close="closeSubmit"
 			@update:show="submitOpen = $event">
-			<div class="vbh-modal-inner">
+			<div class="vbh-modal-inner vbh-reimb-dialog">
 				<h2 id="vbh-modal-title-reimb-submit" class="vbh-modal-title">
 					{{ t('Auslage einreichen') }}
 				</h2>
-				<div class="vbh-form-stack">
-					<div class="vbh-form">
-						<label>{{ t('Betrag (€)') }}
-							<AmountInput v-model="form.amount" class="vbh-num" />
+				<p class="vbh-reimb-intro">
+					{{ t('Laden Sie den Beleg hoch und nennen Sie den Betrag. Die Verwalter prüfen den Antrag, danach überweist der Verein.') }}
+				</p>
+
+				<form class="vbh-reimb-form" novalidate @submit.prevent="submit">
+					<div class="vbh-reimb-row2">
+						<label class="vbh-reimb-field">
+							<span class="vbh-reimb-label">{{ t('Betrag (€)') }}</span>
+							<AmountInput v-model="form.amount" class="vbh-reimb-amount" />
 						</label>
-						<label>{{ t('Ausgabedatum') }}
+						<label class="vbh-reimb-field">
+							<span class="vbh-reimb-label">{{ t('Ausgabedatum') }}</span>
 							<input v-model="form.expenseDate" type="date" :max="today">
 						</label>
 					</div>
-					<label>{{ t('Verwendungszweck') }}
+
+					<label class="vbh-reimb-field">
+						<span class="vbh-reimb-label">{{ t('Verwendungszweck') }}</span>
 						<input
 							ref="purpose"
 							v-model="form.purpose"
 							maxlength="500"
 							:placeholder="t('z. B. Material für die Jugendfreizeit')">
+						<span class="vbh-reimb-help">{{ t('Was wurde gekauft, und wofür?') }}</span>
 					</label>
-					<label>{{ t('IBAN für die Erstattung') }}
+
+					<label class="vbh-reimb-field">
+						<span class="vbh-reimb-label">{{ t('IBAN für die Erstattung') }}</span>
 						<input
 							v-model="form.iban"
+							class="vbh-reimb-iban"
+							:class="{ 'is-invalid': ibanStatus === 'invalid' }"
 							autocomplete="off"
 							spellcheck="false"
-							placeholder="DE00 0000 0000 0000 0000 00">
+							inputmode="text"
+							placeholder="DE00 0000 0000 0000 0000 00"
+							@blur="form.iban = formatIban(form.iban)">
+						<span v-if="ibanStatus === 'invalid'" class="vbh-reimb-help vbh-reimb-help--warn" role="alert">
+							{{ t('Die Prüfziffer dieser IBAN stimmt nicht – bitte noch einmal prüfen.') }}
+						</span>
+						<span v-else-if="ibanStatus === 'valid'" class="vbh-reimb-help vbh-reimb-help--ok">
+							{{ ibanFromMandate ? t('Aus Ihrem SEPA-Mandat übernommen – bei Bedarf ändern Sie sie hier.') : t('Die IBAN sieht gut aus.') }}
+						</span>
+						<span v-else class="vbh-reimb-help">{{ t('Auf dieses Konto wird die Auslage überwiesen.') }}</span>
 					</label>
-					<label>{{ t('Beleg (PDF oder Foto)') }}
-						<input
-							type="file"
-							multiple
-							accept="application/pdf,image/jpeg,image/png,image/gif,image/webp"
-							@change="onFiles">
-					</label>
-					<ul v-if="form.files.length" class="vbh-reimb-files">
-						<li v-for="(file, i) in form.files" :key="file.name + i">
-							{{ file.name }} <span class="vbh-reimb-progress">{{ formatFileSize(file.size) }}</span>
-							<NcButton variant="tertiary" :aria-label="t('Datei entfernen')" @click="form.files.splice(i, 1)">
-								×
-							</NcButton>
-						</li>
-					</ul>
-				</div>
+
+					<div class="vbh-reimb-field">
+						<span class="vbh-reimb-label">{{ t('Belege') }}</span>
+						<ReimbursementReceiptPicker v-model="form.files" />
+					</div>
+				</form>
+
 				<p v-if="error" class="vbh-hint vbh-hint--error" role="alert">
 					{{ error }}
 				</p>
-				<div class="vbh-modal-actions">
+				<div class="vbh-modal-actions vbh-reimb-actions">
+					<span v-if="missing.length" class="vbh-reimb-missing">{{ t('Noch nötig: {fields}', { fields: missing.join(', ') }) }}</span>
 					<NcButton variant="tertiary" @click="closeSubmit">
 						{{ t('Abbrechen') }}
 					</NcButton>
-					<NcButton variant="primary" :disabled="busy || !submitReady" @click="submit">
-						{{ t('Einreichen') }}
+					<NcButton variant="primary" :disabled="busy || missing.length > 0" @click="submit">
+						{{ busy ? t('Wird eingereicht …') : t('Einreichen') }}
 					</NcButton>
 				</div>
 			</div>
@@ -179,13 +193,20 @@
 						</NcButton>
 					</li>
 				</ul>
-				<label v-if="detail.canEditReceipts" class="vbh-reimb-addreceipt">{{ t('Weiteren Beleg hochladen') }}
+				<div v-if="detail.canEditReceipts" class="vbh-reimb-addreceipt">
+					<NcButton variant="secondary" :disabled="busy" @click="$refs.addReceiptInput.click()">
+						<template #icon>
+							<NcIconSvgWrapper :path="mdiPlus" :size="18" />
+						</template>
+						{{ t('Beleg hinzufügen') }}
+					</NcButton>
 					<input
+						ref="addReceiptInput"
 						type="file"
-						accept="application/pdf,image/jpeg,image/png,image/gif,image/webp"
-						:disabled="busy"
+						hidden
+						:accept="receiptAccept"
 						@change="addReceipt">
-				</label>
+				</div>
 
 				<h4 class="vbh-selfservice-subhead">
 					{{ t('Verlauf') }}
@@ -213,17 +234,22 @@
 </template>
 
 <script>
+import { mdiPlus } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcModal from '@nextcloud/vue/components/NcModal'
 import AmountInput from './AmountInput.vue'
 import ReimbursementHistory from './ReimbursementHistory.vue'
+import ReimbursementReceiptPicker from './ReimbursementReceiptPicker.vue'
 import ReimbursementStatusTag from './ReimbursementStatusTag.vue'
 import api from '../api.js'
 import { errMsg, formatDate, formatFileSize, formatMoney, roundCents } from '../lib/format.js'
+import { formatIban, ibanState, normalizeIban } from '../lib/iban.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
+import { RECEIPT_ACCEPT } from '../lib/reimbursementFiles.js'
 import { reimbursementProgressText } from '../lib/reimbursements.js'
 
 /**
@@ -233,7 +259,7 @@ import { reimbursementProgressText } from '../lib/reimbursements.js'
  */
 export default {
 	name: 'SelfReimbursementPanel',
-	components: { NcButton, NcEmptyContent, NcLoadingIcon, NcModal, AmountInput, ReimbursementHistory, ReimbursementStatusTag },
+	components: { NcButton, NcEmptyContent, NcIconSvgWrapper, NcLoadingIcon, NcModal, AmountInput, ReimbursementHistory, ReimbursementReceiptPicker, ReimbursementStatusTag },
 
 	data() {
 		return {
@@ -241,6 +267,8 @@ export default {
 			canSubmit: false,
 			suggestedIban: null,
 			items: [],
+			mdiPlus,
+			receiptAccept: RECEIPT_ACCEPT,
 			submitOpen: false,
 			form: this.emptyForm(),
 			detail: null,
@@ -252,9 +280,20 @@ export default {
 	computed: {
 		today() { return new Date().toISOString().slice(0, 10) },
 
-		submitReady() {
+		ibanStatus() { return ibanState(this.form.iban) },
+
+		ibanFromMandate() { return !!this.suggestedIban && normalizeIban(this.form.iban) === normalizeIban(this.suggestedIban) },
+
+		/** Was zum Einreichen noch fehlt, als Liste von Feldnamen – steht neben dem Knopf. */
+		missing() {
 			const f = this.form
-			return Number(f.amount) > 0 && !!f.expenseDate && f.purpose.trim() !== '' && f.iban.trim() !== '' && f.files.length > 0
+			const missing = []
+			if (!(Number(f.amount) > 0)) { missing.push(this.t('Betrag')) }
+			if (!f.expenseDate) { missing.push(this.t('Ausgabedatum')) }
+			if (f.purpose.trim() === '') { missing.push(this.t('Verwendungszweck')) }
+			if (normalizeIban(f.iban).length < 15) { missing.push(this.t('IBAN')) }
+			if (f.files.length === 0) { missing.push(this.t('Beleg')) }
+			return missing
 		},
 	},
 
@@ -265,6 +304,7 @@ export default {
 	methods: {
 		formatDate,
 		formatFileSize,
+		formatIban,
 		formatMoney,
 
 		progressText: reimbursementProgressText,
@@ -295,12 +335,6 @@ export default {
 		},
 
 		closeSubmit() { this.submitOpen = false },
-
-		onFiles(event) {
-			this.form.files.push(...Array.from(event.target.files || []))
-			// Dieselbe Datei soll sich nach dem Entfernen erneut wählen lassen.
-			event.target.value = ''
-		},
 
 		async submit() {
 			this.busy = true
@@ -385,15 +419,125 @@ export default {
 </script>
 
 <style scoped>
-.vbh-selfservice-card-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.vbh-selfservice-card-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
 
-.vbh-reimb-row { cursor: pointer; }
+.vbh-reimb-row {
+	cursor: pointer;
+}
 
-.vbh-reimb-progress { margin-inline-start: 8px; color: var(--color-text-maxcontrast); font-size: 0.9em; }
+.vbh-reimb-progress {
+	margin-inline-start: 8px;
+	color: var(--color-text-maxcontrast);
+	font-size: 0.9em;
+}
 
-.vbh-reimb-files { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 4px; }
+.vbh-reimb-files {
+	display: grid;
+	gap: 4px;
+	margin: 8px 0;
+	padding: 0;
+	list-style: none;
+}
 
-.vbh-reimb-files li { display: flex; align-items: center; gap: 4px; }
+.vbh-reimb-files li {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
 
-.vbh-reimb-addreceipt { display: block; margin-top: 8px; }
+.vbh-reimb-addreceipt {
+	margin-top: 8px;
+}
+
+/* Einreichen-Dialog: Beschriftung über dem Feld, jedes Feld volle Breite, am Handy eine Spalte. */
+.vbh-reimb-dialog {
+	min-width: min(560px, 100%);
+}
+
+.vbh-reimb-intro {
+	margin: 0 0 18px;
+	color: var(--color-text-maxcontrast);
+}
+
+.vbh-reimb-form {
+	display: grid;
+	gap: 18px;
+}
+
+.vbh-reimb-row2 {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	gap: 16px;
+}
+
+.vbh-reimb-field {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	min-width: 0;
+}
+
+.vbh-reimb-label {
+	font-weight: 600;
+}
+
+.vbh-reimb-field input:not([type="file"]) {
+	box-sizing: border-box;
+	width: 100%;
+	min-height: 44px;
+	margin: 0;
+}
+
+.vbh-reimb-amount :deep(input),
+.vbh-reimb-field :deep(.vbh-num) {
+	font-size: 1.15em;
+	font-weight: 600;
+	text-align: end;
+}
+
+.vbh-reimb-iban {
+	font-family: var(--font-face-monospace, monospace);
+	letter-spacing: 0.04em;
+}
+
+.vbh-reimb-iban.is-invalid {
+	border-color: var(--color-error);
+}
+
+.vbh-reimb-help {
+	color: var(--color-text-maxcontrast);
+	font-size: 0.85em;
+}
+
+.vbh-reimb-help--ok {
+	color: var(--color-success-text);
+}
+
+.vbh-reimb-help--warn {
+	color: var(--color-error-text);
+}
+
+.vbh-reimb-actions {
+	flex-wrap: wrap;
+	align-items: center;
+}
+
+/* Was noch fehlt, steht in einer eigenen Zeile über den Knöpfen, damit diese nie gekürzt werden. */
+.vbh-reimb-missing {
+	flex: 1 0 100%;
+	margin-bottom: 2px;
+	color: var(--color-text-maxcontrast);
+	font-size: 0.9em;
+}
+
+@media (max-width: 520px) {
+	.vbh-reimb-row2 {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
 </style>

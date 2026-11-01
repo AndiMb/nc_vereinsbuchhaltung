@@ -52,7 +52,9 @@ class Reimbursement extends Entity implements \JsonSerializable {
 	protected $expenseDate;
 	protected $purpose;
 	protected $iban;
-	protected $status = self::STATUS_SUBMITTED;
+	// Bewusst ohne Vorgabewert: eine Entity schreibt nur Felder, die sich geändert haben. Mit
+	// Vorgabe `submitted` bliebe der Status beim Anlegen unmarkiert und fehlte im INSERT.
+	protected $status;
 	protected $requiredApprovals;
 	protected $submittedBy;
 	protected $submittedAt;

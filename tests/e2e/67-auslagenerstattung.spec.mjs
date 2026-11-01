@@ -20,6 +20,8 @@ const EMAILS = {
 	[USERS.buchhalter]: 'test2.auslage@example.org',
 }
 const WATCH_FOLDER = 'AuslagenBelege'
+// Das Auszahlungsdatum darf nicht in der Zukunft liegen.
+const TODAY = new Date().toISOString().slice(0, 10)
 
 test.describe.configure({ mode: 'serial' })
 
@@ -53,14 +55,18 @@ async function mailsTo(recipient) {
 
 /** Reiter „Buchungen → Auslagen" in der Verwaltungssicht. */
 async function openAuslagenSicht(page, user) {
-	await openApp(page, user)
+	// booted: ein Klick vor dem Erstabgleich der URL ginge verloren (siehe openApp).
+	await openApp(page, user, { booted: true })
 	await switchTab(page, 'Buchungen')
-	await visibleSection(page).locator('.vbh-subtabs').getByRole('button', { name: 'Auslagen' }).click()
+	const subtab = visibleSection(page).locator('.vbh-subtabs').getByRole('button', { name: 'Auslagen' })
+	await subtab.click()
+	await expect(subtab).toHaveClass(/active/)
 }
 
 /** Die Zeile eines Antrags in der Verwaltungssicht, geöffnet. */
 async function openAntrag(page, purpose) {
-	await visibleSection(page).getByRole('button', { name: 'Alle', exact: false }).first().click()
+	// Filter „Alle" (nicht der Unterreiter „Alle Buchungen"): gleich nach dem Öffnen steht „Zu prüfen".
+	await visibleSection(page).locator('.vbh-reimb-staff .vbh-chip', { hasText: /^Alle\s*\d/ }).click()
 	await visibleSection(page).locator('tr.vbh-reimb-row', { hasText: purpose }).click()
 	const dialog = page.getByRole('dialog', { name: /Auslage #\d+ von Erika Musterfrau/ })
 	await expect(dialog).toBeVisible()
@@ -155,10 +161,20 @@ test.describe('Auslagenerstattung', () => {
 		const dialog = page.getByRole('dialog', { name: 'Auslage einreichen' })
 		await dialog.getByLabel('Betrag (€)', { exact: true }).fill('12,50')
 		await dialog.getByLabel('Verwendungszweck').fill('Material Jugendfreizeit')
+		// Falsche Prüfziffer: Warnung am Feld, noch während der Eingabe.
+		await dialog.getByLabel('IBAN für die Erstattung').fill('DE89 3704 0044 0532 0130 01')
+		await expect(dialog.getByRole('alert')).toContainText('Prüfziffer')
 		await dialog.getByLabel('IBAN für die Erstattung').fill('DE89 3704 0044 0532 0130 00')
-		// Ohne Beleg lässt sich nicht einreichen.
+		await expect(dialog).toContainText('IBAN sieht gut aus')
+		// Ohne Beleg lässt sich nicht einreichen, und der Dialog sagt, was fehlt.
 		await expect(dialog.getByRole('button', { name: 'Einreichen', exact: true })).toBeDisabled()
-		await dialog.locator('input[type="file"]').setInputFiles({ name: 'beleg.png', mimeType: 'image/png', buffer: BELEG_PNG })
+		await expect(dialog).toContainText('Noch nötig: Beleg')
+		// Falscher Dateityp wird gleich beim Auswählen abgewiesen.
+		await dialog.locator('input[type="file"]:not([capture])').setInputFiles({ name: 'notizen.txt', mimeType: 'text/plain', buffer: Buffer.from('x') })
+		await expect(dialog.getByRole('alert')).toContainText('notizen.txt')
+		await expect(dialog).toContainText('Noch nötig: Beleg')
+		// Zwei versteckte Felder: Datei wählen und (nur am Handy sichtbar) Foto aufnehmen.
+		await dialog.locator('input[type="file"]:not([capture])').setInputFiles({ name: 'beleg.png', mimeType: 'image/png', buffer: BELEG_PNG })
 		await dialog.getByRole('button', { name: 'Einreichen', exact: true }).click()
 		await expect(dialog).toBeHidden()
 
@@ -208,7 +224,7 @@ test.describe('Auslagenerstattung', () => {
 		await dialog.getByRole('button', { name: 'Freigeben' }).click()
 		await expect(dialog).toContainText('2 von 2 Freigaben')
 		await expect(dialog.locator('.vbh-typetag').first()).toHaveText('Freigegeben')
-		await dialog.getByRole('button', { name: 'Schließen' }).click()
+		await dialog.getByRole('button', { name: 'Schließen', exact: true }).filter({ hasText: 'Schließen' }).click()
 
 		// Der Posten steht bei den offenen Posten, gekennzeichnet – und ist keine Forderung.
 		const items = (await api.getJson(request, '/open-items')).filter((i) => i.reimbursementId)
@@ -287,7 +303,7 @@ test.describe('Auslagenerstattung', () => {
 		})
 
 		// Ein zweites Mal auszahlen geht nicht.
-		const again = await api.payReimbursement(request, reimbursement.id, reimbursement.journalId, '2026-11-02', { expectOk: false })
+		const again = await api.payReimbursement(request, reimbursement.id, reimbursement.journalId, TODAY, { expectOk: false })
 		expect(again.status()).toBe(400)
 	})
 
@@ -366,7 +382,7 @@ test.describe('Auslagenerstattung', () => {
 		expect(row.canApprove).toBe(false)
 		expect((await api.approveReimbursement(request, pending.id, { user: USERS.revisor, expectOk: false })).status()).toBe(403)
 		expect((await api.rejectReimbursement(request, pending.id, 'nein', { user: USERS.revisor, expectOk: false })).status()).toBe(403)
-		expect((await api.payReimbursement(request, pending.id, 1, '2026-11-01', { user: USERS.revisor, expectOk: false })).status()).toBe(403)
+		expect((await api.payReimbursement(request, pending.id, 1, TODAY, { user: USERS.revisor, expectOk: false })).status()).toBe(403)
 
 		// Dieselbe Person zählt nur einmal.
 		await api.approveReimbursement(request, pending.id, { user: USERS.verwalter })
@@ -440,8 +456,8 @@ test.describe('Auslagenerstattung', () => {
 		await api.approveReimbursement(request, created.id, { user: USERS.buchhalter })
 
 		const [bank, expense] = await api.accountsByNumber(request, BANK_ACCOUNT, '5300')
-		const booking = await (await api.createBooking(request, { date: '2026-11-02', description: 'Erstattung im Wächter-Ordner', debitAccountId: expense.id, creditAccountId: bank.id, amount: 12.5 })).json()
-		await api.payReimbursement(request, created.id, booking.id, '2026-11-02')
+		const booking = await (await api.createBooking(request, { date: TODAY, description: 'Erstattung im Wächter-Ordner', debitAccountId: expense.id, creditAccountId: bank.id, amount: 12.5 })).json()
+		await api.payReimbursement(request, created.id, booking.id, TODAY)
 
 		// Die Datei bleibt, wo sie ist, und ist jetzt mit der Buchung verknüpft.
 		expect(await dav.exists(request, 'admin', `${WATCH_FOLDER}/2026/watch-beleg.png`)).toBe(true)

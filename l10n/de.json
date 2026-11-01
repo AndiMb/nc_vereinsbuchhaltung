@@ -89,7 +89,9 @@
         "Bitte lesen und bestätigen Sie die neue Fassung. Ihr Mandat und Ihre Bankverbindung bleiben unverändert und gelten bis dahin weiter.": "Bitte lies und bestätige die neue Fassung. Dein Mandat und deine Bankverbindung bleiben unverändert und gelten bis dahin weiter.",
         "Für Ihr Mandat liegt keine neue Fassung des Mandatstexts vor, die eine Bestätigung braucht.": "Für dein Mandat liegt keine neue Fassung des Mandatstexts vor, die eine Bestätigung braucht.",
         "Sie haben den aktualisierten Text Ihres SEPA-Lastschriftmandats bestätigt (Referenz %s).": "Du hast den aktualisierten Text deines SEPA-Lastschriftmandats bestätigt (Referenz %s).",
-        "Ihr Mandat und Ihre Bankverbindung bleiben unverändert.": "Dein Mandat und deine Bankverbindung bleiben unverändert."
+        "Ihr Mandat und Ihre Bankverbindung bleiben unverändert.": "Dein Mandat und deine Bankverbindung bleiben unverändert.",
+        "Laden Sie den Beleg hoch und nennen Sie den Betrag. Die Verwalter prüfen den Antrag, danach überweist der Verein.": "Lade den Beleg hoch und nenne den Betrag. Die Verwalter prüfen den Antrag, danach überweist der Verein.",
+        "Aus Ihrem SEPA-Mandat übernommen – bei Bedarf ändern Sie sie hier.": "Aus deinem SEPA-Mandat übernommen – bei Bedarf änderst du sie hier."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

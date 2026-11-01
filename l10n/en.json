@@ -4057,7 +4057,25 @@
             "%n possible receipt",
             "%n possible receipts"
         ],
-        "Neu: Auslagenerstattung. Mitglieder reichen unter „Mein Bereich → Auslagen“ eine privat verauslagte Ausgabe mit Beleg ein; mindestens N Verwalter geben sie unter „Buchungen → Auslagen“ frei (Einstellung unter „Auslagenerstattung“), erst dann entsteht der offene Posten zur Überweisung. „Auszahlung buchen“ öffnet den Buchungsdialog und hängt die Belege an die Buchung. Der Reiter „Mein Beitrag“ heißt jetzt „Mein Bereich“.": "New: expense reimbursement. Members submit an expense they paid privately, with a receipt, under \"My area → Expenses\"; at least N administrators approve it under \"Bookings → Expenses\" (setting under \"Expense reimbursement\"), and only then the open item for the transfer is created. \"Book payout\" opens the posting dialog and attaches the receipts to the posting. The tab \"My contribution\" is now called \"My area\"."
+        "Neu: Auslagenerstattung. Mitglieder reichen unter „Mein Bereich → Auslagen“ eine privat verauslagte Ausgabe mit Beleg ein; mindestens N Verwalter geben sie unter „Buchungen → Auslagen“ frei (Einstellung unter „Auslagenerstattung“), erst dann entsteht der offene Posten zur Überweisung. „Auszahlung buchen“ öffnet den Buchungsdialog und hängt die Belege an die Buchung. Der Reiter „Mein Beitrag“ heißt jetzt „Mein Bereich“.": "New: expense reimbursement. Members submit an expense they paid privately, with a receipt, under \"My area → Expenses\"; at least N administrators approve it under \"Bookings → Expenses\" (setting under \"Expense reimbursement\"), and only then the open item for the transfer is created. \"Book payout\" opens the posting dialog and attaches the receipts to the posting. The tab \"My contribution\" is now called \"My area\".",
+        "Weiteren Beleg hinzufügen": "Add another receipt",
+        "Beleg hierher ziehen oder auswählen": "Drop the receipt here or choose it",
+        "PDF, JPG, PNG, GIF oder WebP, höchstens 20 MB je Datei": "PDF, JPG, PNG, GIF or WebP, up to 20 MB per file",
+        "Foto aufnehmen": "Take a photo",
+        "Beleg „{name}“ entfernen": "Remove receipt \"{name}\"",
+        "Laden Sie den Beleg hoch und nennen Sie den Betrag. Die Verwalter prüfen den Antrag, danach überweist der Verein.": "Upload the receipt and enter the amount. The administrators review the request, then the club transfers the money.",
+        "Was wurde gekauft, und wofür?": "What was bought, and what for?",
+        "Die Prüfziffer dieser IBAN stimmt nicht – bitte noch einmal prüfen.": "The check digits of this IBAN are wrong – please check it again.",
+        "Aus Ihrem SEPA-Mandat übernommen – bei Bedarf ändern Sie sie hier.": "Taken from your SEPA mandate – change it here if needed.",
+        "Die IBAN sieht gut aus.": "The IBAN looks fine.",
+        "Auf dieses Konto wird die Auslage überwiesen.": "The expense claim is transferred to this account.",
+        "Noch nötig: {fields}": "Still needed: {fields}",
+        "Wird eingereicht …": "Submitting …",
+        "Beleg hinzufügen": "Add receipt",
+        "„{name}“ ist weder PDF noch Bild.": "\"{name}\" is neither a PDF nor an image.",
+        "„{name}“ ist zu groß (höchstens 20 MB).": "\"{name}\" is too large (at most 20 MB).",
+        "„{name}“ ist leer.": "\"{name}\" is empty.",
+        "Mehr als {max} Belege je Antrag sind nicht möglich.": "More than {max} receipts per request are not possible."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }
