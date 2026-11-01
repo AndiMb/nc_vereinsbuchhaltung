@@ -25,6 +25,15 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.50.0',
+			roles: ['verwalter', 'buchhalter'],
+			items: [
+				t('Neu: Sammelrechnungen. Unter „Rechnungen → Aus Tabelle einlesen“ legt eine Excel- oder CSV-Datei für jeden Empfänger einen Rechnungsentwurf an.'),
+				t('Neu: Rechnungsnummern können den Monat enthalten ({MM}) und jeden Monat neu bei 1 beginnen.'),
+				t('Auslagen: Rechnungsnummer, Lieferant und Kontoinhaber, dazu eine Erklärung. Mehrere Rechnungen gehen nacheinander.'),
+			],
+		},
+		{
 			version: '0.49.0',
 			roles: ['verwalter', 'buchhalter'],
 			items: [

@@ -4226,7 +4226,10 @@
         "Ich versichere, dass die Auslagen im Auftrag des Vereins entstanden sind, von mir bezahlt wurden und nicht anderweitig erstattet wurden.": "I declare that the expenses were incurred on behalf of the club, were paid by me and have not been reimbursed elsewhere.",
         "Bitte bestätigen Sie die Erklärung.": "Please confirm the declaration.",
         "Mehrere Rechnungen? Reichen Sie jede als eigenen Antrag ein. Mit „Einreichen und weitere erfassen“ bleiben Kontoverbindung und Erklärung ausgefüllt.": "Several invoices? Submit each as its own request. With \"Submit and add another\" the bank details and the declaration stay filled in.",
-        "Einreichen und weitere erfassen": "Submit and add another"
+        "Einreichen und weitere erfassen": "Submit and add another",
+        "Neu: Sammelrechnungen. Unter „Rechnungen → Aus Tabelle einlesen“ legt eine Excel- oder CSV-Datei für jeden Empfänger einen Rechnungsentwurf an.": "New: bulk invoices. Under \"Invoices → Import from spreadsheet\", an Excel or CSV file creates a draft invoice for each recipient.",
+        "Neu: Rechnungsnummern können den Monat enthalten ({MM}) und jeden Monat neu bei 1 beginnen.": "New: invoice numbers can contain the month ({MM}) and restart at 1 every month.",
+        "Auslagen: Rechnungsnummer, Lieferant und Kontoinhaber, dazu eine Erklärung. Mehrere Rechnungen gehen nacheinander.": "Expenses: invoice number, supplier and account holder, plus a declaration. Several invoices can be entered one after another."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }
