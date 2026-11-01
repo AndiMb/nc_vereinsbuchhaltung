@@ -55,11 +55,29 @@ Muster `SelfServiceMandateService`). Staff-Endpunkte tragen `#[RequiresRole]`.
 
 ## 4. Antrag und Ablauf
 
-Felder: Betrag, Ausgabedatum (nicht in der Zukunft), Verwendungszweck,
-mindestens eine Belegdatei (PDF/Bild, Grenzen der bestehenden Anhänge),
-Erstattungs-IBAN (Pflicht, IBAN-Prüfung, verschlüsselt gespeichert, vorbelegt
-aus den Mitgliedsdaten, je Antrag änderbar). Ein Antrag = ein Betrag. Keine
-Kontierung durch das Mitglied. Beliebig viele offene Anträge pro Mitglied.
+Felder (nach dem Papierformular des Vereins, Nachtrag Migration 171):
+
+- Betrag, Rechnungsdatum (`expense_date`, nicht in der Zukunft), Zweck /
+  Vereinsbezug, optional Rechnungsnummer und Lieferant / Shop. **Ein Antrag =
+  eine Rechnung**; mehrere Rechnungen sind mehrere Anträge, jeder mit eigener
+  Entscheidung, eigenem offenen Posten und eigener Auszahlung. Der Dialog bietet
+  „Einreichen und weitere erfassen“ (Kontoverbindung und Erklärung bleiben
+  stehen).
+- mindestens eine Belegdatei (PDF/Bild, Grenzen der bestehenden Anhänge).
+- **Kontoverbindung:** Erstattungs-IBAN (Pflicht, IBAN-Prüfung, verschlüsselt
+  gespeichert, vorbelegt aus dem SEPA-Mandat, je Antrag änderbar), Kontoinhaber
+  (Pflicht im Formular, ohne Angabe der Name des Mitglieds; für Einreichungen
+  für Kind oder Partner). Die Anonymisierung leert beide. Eine BIC erfassen wir
+  nicht (SEPA braucht sie im Inland und EU-Raum nicht).
+- **Erklärung** (Pflicht-Häkchen): „im Auftrag des Vereins entstanden, von mir
+  bezahlt, nicht anderweitig erstattet“. Der bestätigte Wortlaut steht im
+  `data` des Ereignisses `submitted` und liegt damit in der Hash-Kette.
+
+Nicht übernommen aus dem Papierformular: „Funktion im Verein“ und die
+Unterschriftenfelder („sachlich richtig“ / „rechnerisch richtig“) – die
+Freigaben mit Person und Zeitpunkt in der Historie ersetzen sie; ein
+druckbares Dokument gibt es nicht. Keine Kontierung durch das Mitglied.
+Beliebig viele offene Anträge pro Mitglied.
 
 Status (englisch in DB und Code):
 

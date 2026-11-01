@@ -91,6 +91,8 @@
         "Sie haben den aktualisierten Text Ihres SEPA-Lastschriftmandats bestätigt (Referenz %s).": "Du hast den aktualisierten Text deines SEPA-Lastschriftmandats bestätigt (Referenz %s).",
         "Ihr Mandat und Ihre Bankverbindung bleiben unverändert.": "Dein Mandat und deine Bankverbindung bleiben unverändert.",
         "Laden Sie den Beleg hoch und nennen Sie den Betrag. Die Verwalter prüfen den Antrag, danach überweist der Verein.": "Lade den Beleg hoch und nenne den Betrag. Die Verwalter prüfen den Antrag, danach überweist der Verein.",
+        "Der Verein überweist an diesen Kontoinhaber. Soll das Geld auf das Konto einer anderen Person gehen, tragen Sie deren Namen ein.": "Der Verein überweist an diesen Kontoinhaber. Soll das Geld auf das Konto einer anderen Person gehen, trage deren Namen ein.",
+        "Mehrere Rechnungen? Reichen Sie jede als eigenen Antrag ein. Mit „Einreichen und weitere erfassen“ bleiben Kontoverbindung und Erklärung ausgefüllt.": "Mehrere Rechnungen? Reiche jede als eigenen Antrag ein. Mit „Einreichen und weitere erfassen“ bleiben Kontoverbindung und Erklärung ausgefüllt.",
         "Aus Ihrem SEPA-Mandat übernommen – bei Bedarf ändern Sie sie hier.": "Aus deinem SEPA-Mandat übernommen – bei Bedarf änderst du sie hier."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"

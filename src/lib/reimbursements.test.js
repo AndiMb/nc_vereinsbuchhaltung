@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
 	countByStatus,
+	emptyReimbursementForm,
+	emptyReimbursementInvoice,
 	matchesReimbursementSearch,
+	missingReimbursementFields,
 	reimbursementBookingPrefill,
 	reimbursementEventText,
 	reimbursementProgressText,
@@ -71,6 +74,43 @@ describe('reimbursements', () => {
 			kind: 'expense',
 			description: 'Erstattung Auslage: Material (Anna Musterfrau)',
 			documentRef: 'AUSL-7',
+		})
+	})
+
+	describe('Antragsformular', () => {
+		const filled = () => ({
+			amount: 12.5,
+			expenseDate: '2026-10-15',
+			invoiceNumber: '',
+			supplier: '',
+			purpose: 'Noten',
+			accountHolder: 'Anna Musterfrau',
+			iban: 'DE89 3704 0044 0532 0130 00',
+			files: [{ name: 'beleg.pdf' }],
+			declaration: true,
+		})
+
+		it('beginnt mit leeren Feldern am angegebenen Tag', () => {
+			expect(emptyReimbursementInvoice('2026-11-01')).toEqual({ amount: '', expenseDate: '2026-11-01', invoiceNumber: '', supplier: '', purpose: '', files: [] })
+		})
+
+		it('belegt die Kontoverbindung vor und lässt die Erklärung unbestätigt', () => {
+			const form = emptyReimbursementForm('2026-11-01', { accountHolder: 'Anna', iban: 'DE89' })
+			expect(form).toMatchObject({ expenseDate: '2026-11-01', accountHolder: 'Anna', iban: 'DE89', declaration: false })
+			expect(emptyReimbursementForm('2026-11-01')).toMatchObject({ accountHolder: '', iban: '' })
+		})
+
+		it('meldet nichts als fehlend, wenn alles ausgefüllt ist', () => {
+			expect(missingReimbursementFields(filled())).toEqual([])
+		})
+
+		it('nennt alle fehlenden Angaben in der Reihenfolge des Formulars', () => {
+			const form = { ...filled(), amount: '', expenseDate: '', purpose: '  ', accountHolder: ' ', iban: '', files: [], declaration: false }
+			expect(missingReimbursementFields(form)).toEqual(['Betrag', 'Rechnungsdatum', 'Zweck', 'Kontoinhaber', 'IBAN', 'Beleg', 'Erklärung'])
+		})
+
+		it('verlangt Rechnungsnummer und Lieferant nicht', () => {
+			expect(missingReimbursementFields({ ...filled(), invoiceNumber: '', supplier: '' })).toEqual([])
 		})
 	})
 })

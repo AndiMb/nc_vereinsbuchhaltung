@@ -17,6 +17,13 @@ use OCP\AppFramework\Db\Entity;
  * `iban` liegt verschlüsselt (siehe {@see ReimbursementMapper}); die Entity
  * hält den Klartext.
  *
+ * `expenseDate` ist das Rechnungsdatum. Rechnungsnummer, Lieferant, Kontoinhaber
+ * entsprechen den Feldern des Papierformulars; bei Anträgen aus der Zeit
+ * davor sind sie leer. Mehrere Rechnungen sind mehrere Anträge.
+ *
+ * Die Kontoverbindung des Mitglieds sind IBAN und Kontoinhaber
+ * ({@see hasBankDetails()}, {@see clearBankDetails()}).
+ *
  * @method int getMemberId()
  * @method void setMemberId(int $memberId)
  * @method int getAmountCents()
@@ -45,6 +52,12 @@ use OCP\AppFramework\Db\Entity;
  * @method void setOpenItemId(?int $openItemId)
  * @method int|null getJournalId()
  * @method void setJournalId(?int $journalId)
+ * @method string|null getInvoiceNumber()
+ * @method void setInvoiceNumber(?string $invoiceNumber)
+ * @method string|null getSupplier()
+ * @method void setSupplier(?string $supplier)
+ * @method string|null getAccountHolder()
+ * @method void setAccountHolder(?string $accountHolder)
  */
 class Reimbursement extends Entity implements \JsonSerializable {
 	protected $memberId;
@@ -63,6 +76,9 @@ class Reimbursement extends Entity implements \JsonSerializable {
 	protected $rejectionReason;
 	protected $openItemId;
 	protected $journalId;
+	protected $invoiceNumber;
+	protected $supplier;
+	protected $accountHolder;
 
 	public const STATUS_SUBMITTED = 'submitted';
 	public const STATUS_PARTIALLY_APPROVED = 'partially_approved';
@@ -91,12 +107,22 @@ class Reimbursement extends Entity implements \JsonSerializable {
 		$this->addType('journalId', 'integer');
 	}
 
+	public function hasBankDetails(): bool {
+		return $this->iban !== '' || $this->accountHolder !== null;
+	}
+
+	/** Leert die Kontoverbindung (Anonymisierung); Betrag, Zweck und Historie bleiben als Beleg. */
+	public function clearBankDetails(): void {
+		$this->setIban('');
+		$this->setAccountHolder(null);
+	}
+
 	public function isOpenForDecision(): bool {
 		return in_array($this->status, self::STATUSES_OPEN_FOR_DECISION, true);
 	}
 
 	/**
-	 * Ohne IBAN: die Mitgliedersicht trägt sie nicht ungefragt in jede Liste, die
+	 * Ohne IBAN und Kontoinhaber: die Mitgliedersicht trägt sie nicht ungefragt in jede Liste, die
 	 * Verwaltungssicht ergänzt sie (maskiert oder voll) je nach Rolle.
 	 */
 	public function jsonSerialize(): array {
@@ -106,6 +132,8 @@ class Reimbursement extends Entity implements \JsonSerializable {
 			'amountCents' => $this->amountCents,
 			'expenseDate' => $this->expenseDate,
 			'purpose' => $this->purpose,
+			'invoiceNumber' => $this->invoiceNumber,
+			'supplier' => $this->supplier,
 			'status' => $this->status,
 			'requiredApprovals' => $this->requiredApprovals,
 			'submittedBy' => $this->submittedBy,

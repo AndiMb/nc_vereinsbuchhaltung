@@ -699,17 +699,36 @@ verknüpfte Nextcloud-Konto (13.2).
 
 **Einreichen (Mitglied).** Unter *Mein Bereich → Auslagen* (der Reiter „Mein
 Bereich" heißt in älteren Versionen „Mein Beitrag", siehe 13.11) wählt das
-Mitglied **Auslage einreichen** und gibt Betrag, Ausgabedatum (nicht in der
-Zukunft), Verwendungszweck, die **IBAN für die Erstattung** (vorbelegt aus dem
-SEPA-Mandat, falls es eines gibt) und mindestens einen **Beleg** (PDF oder
-Foto, bis 20 MB) an. Die Belege landen in der Belegablage: im Wächter-Ordner
+Mitglied **Auslage einreichen**. Der Dialog folgt dem früheren Papierformular:
+
+- **Rechnung:** Betrag, Rechnungsdatum (nicht in der Zukunft), Zweck /
+  Vereinsbezug und optional Rechnungsnummer und Lieferant / Shop.
+- mindestens ein **Beleg** (PDF oder Foto, bis 20 MB).
+- **Kontoverbindung:** **Kontoinhaber** (vorbelegt mit dem Kontoinhaber des
+  SEPA-Mandats oder dem Namen des Mitglieds; wer für ein Kind oder den Partner
+  einreicht, trägt hier den tatsächlichen Inhaber ein) und **IBAN**. Beides ist
+  aus dem SEPA-Mandat vorbelegt, falls es eines gibt.
+- **Erklärung:** Das Mitglied bestätigt per Häkchen, dass die Auslagen im
+  Auftrag des Vereins entstanden sind, von ihm bezahlt wurden und nicht
+  anderweitig erstattet wurden. Ohne Häkchen lässt sich nicht einreichen; der
+  bestätigte Wortlaut steht in der Historie des Antrags.
+
+**Mehrere Rechnungen** reicht das Mitglied als **getrennte Anträge** ein. Mit
+**Einreichen und weitere erfassen** bleiben Kontoverbindung und Erklärung
+ausgefüllt, nur die Rechnung ist wieder leer. Jeder Antrag wird einzeln
+freigegeben oder abgelehnt und einzeln ausgezahlt.
+
+Die Belege landen in der Belegablage: im Wächter-Ordner
 unter `<Ordner>/<Ausgabejahr>/`, sonst in der App-Ablage. Das Mitglied sieht den
 Wächter-Ordner nie. Solange noch keine Freigabe vorliegt, kann es Belege
 nachreichen, entfernen (einer bleibt) oder den Antrag **zurückziehen**.
 
 **Freigeben (Verwalter).** *Buchungen → Auslagen* zeigt alle Anträge, vorn der
 Filter **Zu prüfen** mit den Anträgen, die noch Ihre Freigabe brauchen. Jeder
-Antrag hat die Einzelansicht mit Beleg, Verlauf und diesen Knöpfen:
+Antrag hat die Einzelansicht mit Rechnungsangaben, Kontoverbindung, Belegen,
+Verlauf und diesen Knöpfen (die Freigaben ersetzen die
+Vermerke „sachlich richtig“ und „rechnerisch richtig“ des Papierformulars:
+Wer wann freigegeben hat, steht im Verlauf):
 
 - **Freigeben:** zählt Ihre Stimme (jede Person höchstens einmal). Mit der letzten
   nötigen Freigabe wechselt der Antrag auf *Freigegeben*, der offene Posten

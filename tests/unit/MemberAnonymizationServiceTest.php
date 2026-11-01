@@ -397,12 +397,13 @@ class MemberAnonymizationServiceTest extends TestCase {
 		$this->assertSame('Beitrag 2018', $item->getDescription());
 	}
 
-	public function testSchwaertDieErstattungsIbanUndDenNamenImOffenenPosten(): void {
+	public function testSchwaertDieKontoverbindungDerErstattungUndDenNamenImOffenenPosten(): void {
 		$this->members->method('find')->willReturn($this->member());
 		$reimbursement = new Reimbursement();
 		$reimbursement->setId(7);
 		$reimbursement->setMemberId(42);
 		$reimbursement->setIban('DE89370400440532013000');
+		$reimbursement->setAccountHolder('Katrin Brunner');
 		$reimbursement->setOpenItemId(77);
 		$reimbursement->setAmountCents(1250);
 		$reimbursement->setPurpose('Material');
@@ -415,6 +416,7 @@ class MemberAnonymizationServiceTest extends TestCase {
 		$this->service()->anonymize(42);
 
 		$this->assertSame('', $reimbursement->getIban());
+		$this->assertNull($reimbursement->getAccountHolder());
 		$this->assertSame(Member::REDACTED_DISPLAY_NAME, $item->getDebtor());
 		// Beleg bleibt: Betrag und Zweck sind Buchungsinhalt, keine Personendaten.
 		$this->assertSame(1250, $reimbursement->getAmountCents());

@@ -68,8 +68,8 @@ use OCP\IL10N;
  *   {@see Member::REDACTED_DISPLAY_NAME}, sowie `settlementNote`/
  *   `deferredReason`/`cancelledReason`.
  * - {@see \OCA\Vereinsbuchhaltung\Db\Reimbursement} (Auslagenanträge, docs/
- *   reimbursement-design.md §11): die Erstattungs-`iban` (Chiffrat) wird
- *   geleert und der `debtor` des zugehörigen offenen Postens auf
+ *   reimbursement-design.md §11): die Erstattungs-`iban` (Chiffrat) sowie
+ *   Kontoinhaber werden geleert und der `debtor` des zugehörigen offenen Postens auf
  *   {@see Member::REDACTED_DISPLAY_NAME} gesetzt. Antrag, Betrag, Zweck,
  *   Status und Historie bleiben als Buchungsbeleg stehen. Solange ein Antrag
  *   noch nicht abgeschlossen ist, ist das Mitglied nicht anonymisierungsreif
@@ -265,15 +265,15 @@ class MemberAnonymizationService {
 	}
 
 	/**
-	 * Die Erstattungs-IBAN ist reine Bankverbindung des Mitglieds und wird
-	 * geleert; den Namen im offenen Posten (er trägt `memberId` nicht, siehe
+	 * Die Erstattungs-IBAN samt Kontoinhaber ist reine Bankverbindung des
+	 * Mitglieds und wird geleert; den Namen im offenen Posten (er trägt `memberId` nicht, siehe
 	 * {@see \OCA\Vereinsbuchhaltung\Db\OpenItem::belongsToReimbursement()}) holt der
 	 * Verweis des Antrags.
 	 */
 	private function redactReimbursements(int $memberId): void {
 		foreach ($this->reimbursements->findByMember($memberId) as $reimbursement) {
-			if ($reimbursement->getIban() !== '') {
-				$reimbursement->setIban('');
+			if ($reimbursement->hasBankDetails()) {
+				$reimbursement->clearBankDetails();
 				$this->reimbursements->update($reimbursement);
 			}
 			if ($reimbursement->getOpenItemId() === null) {

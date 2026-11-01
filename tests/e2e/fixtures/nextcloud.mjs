@@ -860,11 +860,20 @@ export const api = {
 	 * Reicht eine Auslage als Mitglied ein (multipart wie die Oberfläche). `user` ist das
 	 * Nextcloud-Konto des verknüpften Mitglieds.
 	 */
-	async submitReimbursement(request, { user, amount = '12.50', expenseDate = '2026-10-15', purpose = 'Material Jugendfreizeit', iban = 'DE89370400440532013000', fileName = 'beleg.png', file = BELEG_PNG, expectOk = true } = {}) {
+	async submitReimbursement(request, { user, amount = '12.50', expenseDate = '2026-10-15', purpose = 'Material Jugendfreizeit', invoiceNumber, supplier, iban = 'DE89370400440532013000', accountHolder, declaration = true, fileName = 'beleg.png', file = BELEG_PNG, expectOk = true } = {}) {
+		const optional = { invoiceNumber, supplier, accountHolder }
 		return call(request, 'POST', '/self/reimbursements', {
 			user,
 			expectOk,
-			multipart: { amount, expenseDate, purpose, iban, 'files[]': { name: fileName, mimeType: 'image/png', buffer: file } },
+			multipart: {
+				amount,
+				expenseDate,
+				purpose,
+				iban,
+				...Object.fromEntries(Object.entries(optional).filter(([, value]) => value !== undefined)),
+				declaration: declaration ? '1' : '0',
+				'files[]': { name: fileName, mimeType: 'image/png', buffer: file },
+			},
 		})
 	},
 

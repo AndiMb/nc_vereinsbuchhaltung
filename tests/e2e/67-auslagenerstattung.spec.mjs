@@ -160,7 +160,11 @@ test.describe('Auslagenerstattung', () => {
 		await section.getByRole('button', { name: 'Auslage einreichen' }).click()
 		const dialog = page.getByRole('dialog', { name: 'Auslage einreichen' })
 		await dialog.getByLabel('Betrag (€)', { exact: true }).fill('12,50')
-		await dialog.getByLabel('Verwendungszweck').fill('Material Jugendfreizeit')
+		await dialog.getByLabel('Rechnungsnummer').fill('R-2026-17')
+		await dialog.getByLabel('Lieferant / Shop').fill('Bastelshop')
+		await dialog.getByLabel('Zweck / Vereinsbezug').fill('Material Jugendfreizeit')
+		// Der Kontoinhaber ist mit dem Namen des Mitglieds vorbelegt.
+		await expect(dialog.getByLabel('Kontoinhaber')).toHaveValue('Erika Musterfrau')
 		// Falsche Prüfziffer: Warnung am Feld, noch während der Eingabe.
 		await dialog.getByLabel('IBAN für die Erstattung').fill('DE89 3704 0044 0532 0130 01')
 		await expect(dialog.getByRole('alert')).toContainText('Prüfziffer')
@@ -175,6 +179,10 @@ test.describe('Auslagenerstattung', () => {
 		await expect(dialog).toContainText('Noch nötig: Beleg')
 		// Zwei versteckte Felder: Datei wählen und (nur am Handy sichtbar) Foto aufnehmen.
 		await dialog.locator('input[type="file"]:not([capture])').setInputFiles({ name: 'beleg.png', mimeType: 'image/png', buffer: BELEG_PNG })
+		// Ohne die Erklärung bleibt „Einreichen" gesperrt.
+		await expect(dialog).toContainText('Noch nötig: Erklärung')
+		await expect(dialog.getByRole('button', { name: 'Einreichen', exact: true })).toBeDisabled()
+		await dialog.getByLabel('Ich versichere, dass die Auslagen im Auftrag des Vereins entstanden sind').check()
 		await dialog.getByRole('button', { name: 'Einreichen', exact: true }).click()
 		await expect(dialog).toBeHidden()
 
@@ -186,6 +194,22 @@ test.describe('Auslagenerstattung', () => {
 		const own = (await (await api.selfReimbursements(request, { user: USERS.ohneRolle })).json()).items
 		expect(own).toHaveLength(1)
 		expect(own[0]).toMatchObject({ status: 'submitted', amountCents: 1250, requiredApprovals: 2 })
+		const detail = await (await api.selfReimbursement(request, own[0].id, { user: USERS.ohneRolle })).json()
+		expect(detail).toMatchObject({ invoiceNumber: 'R-2026-17', supplier: 'Bastelshop', accountHolder: 'Erika Musterfrau' })
+		// Die bestätigte Erklärung steht in der Historie.
+		expect(detail.history[0].data.declaration).toContain('im Auftrag des Vereins entstanden')
+	})
+
+	test('der Kontoinhaber lässt sich ändern; ohne Erklärung geht es nicht', async ({ request }) => {
+		const refused = await api.submitReimbursement(request, { user: USERS.ohneRolle, purpose: 'Ohne Erklärung', declaration: false, expectOk: false })
+		expect(refused.status()).toBe(400)
+		expect((await refused.json()).message).toContain('Erklärung')
+
+		const ok = await (await api.submitReimbursement(request, { user: USERS.ohneRolle, purpose: 'Für das Kind', accountHolder: 'Familie Musterfrau' })).json()
+		expect(ok).toMatchObject({ accountHolder: 'Familie Musterfrau' })
+
+		// Mehrere Rechnungen sind mehrere Anträge: dieser hier wird zurückgezogen, ohne die übrigen zu berühren.
+		await api.selfWithdrawReimbursement(request, ok.id, { user: USERS.ohneRolle })
 	})
 
 	test('alle Verwalter bekommen eine Mail über den neuen Antrag, das Mitglied nicht', async () => {

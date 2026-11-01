@@ -13,7 +13,8 @@ use OCP\IUserManager;
 
 /**
  * Die JSON-Gestalt eines Auslagenantrags - eine für das Mitglied, eine für die
- * Verwaltung (docs/reimbursement-design.md §3 und §5).
+ * Verwaltung (docs/reimbursement-design.md §3 und §5). Die Einzelansicht trägt
+ * zusätzlich die Kontoverbindung (Kontoinhaber) des Antrags.
  *
  * Das Mitglied sieht Status mit Fortschritt, Zeitstempel, Ablehnungsgrund und
  * Auszahlungstermin, aber nie die Namen der Freigeber und keine Dubletten-
@@ -67,6 +68,7 @@ class ReimbursementPresenter {
 
 		if ($detail) {
 			$data['iban'] = $reimbursement->getIban();
+			$data += $this->account($reimbursement);
 			$data['files'] = $this->files($reimbursement);
 			$data['history'] = [];
 			foreach ($this->service->history($reimbursement->getId()) as $event) {
@@ -105,6 +107,7 @@ class ReimbursementPresenter {
 		}
 
 		if ($detail) {
+			$data += $this->account($reimbursement);
 			$data['files'] = $this->files($reimbursement);
 			$data['history'] = [];
 			$data['duplicateHint'] = false;
@@ -126,6 +129,16 @@ class ReimbursementPresenter {
 			'progress' => $this->service->progress($reimbursement, $this->approversOf($reimbursement)),
 			'ibanMasked' => Mandate::maskIban($reimbursement->getIban()),
 		];
+	}
+
+	/**
+	 * Kontoinhaber der Kontoverbindung; bei Anträgen aus der Zeit vor dem
+	 * Formular fehlen sie (null).
+	 *
+	 * @return array{accountHolder: ?string}
+	 */
+	private function account(Reimbursement $reimbursement): array {
+		return ['accountHolder' => $reimbursement->getAccountHolder()];
 	}
 
 	/** @return list<array<string,mixed>> */

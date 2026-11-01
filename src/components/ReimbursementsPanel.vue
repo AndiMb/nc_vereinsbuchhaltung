@@ -88,10 +88,22 @@
 				<dl class="vbh-selfservice-fields">
 					<dt>{{ t('Betrag') }}</dt>
 					<dd>{{ formatMoney(detail.amountCents / 100) }}</dd>
-					<dt>{{ t('Ausgabedatum') }}</dt>
+					<dt>{{ t('Rechnungsdatum') }}</dt>
 					<dd>{{ formatDate(detail.expenseDate) }}</dd>
+					<template v-if="detail.invoiceNumber">
+						<dt>{{ t('Rechnungsnummer') }}</dt>
+						<dd>{{ detail.invoiceNumber }}</dd>
+					</template>
+					<template v-if="detail.supplier">
+						<dt>{{ t('Lieferant / Shop') }}</dt>
+						<dd>{{ detail.supplier }}</dd>
+					</template>
 					<dt>{{ t('Verwendungszweck') }}</dt>
 					<dd>{{ detail.purpose }}</dd>
+					<template v-if="detail.accountHolder">
+						<dt>{{ t('Kontoinhaber') }}</dt>
+						<dd>{{ detail.accountHolder }}</dd>
+					</template>
 					<dt>{{ t('IBAN') }}</dt>
 					<dd class="vbh-reimb-iban">
 						{{ formatIban(detail.iban || detail.ibanMasked) }}

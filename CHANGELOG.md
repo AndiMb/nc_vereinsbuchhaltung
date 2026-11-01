@@ -23,7 +23,11 @@ verwenden, z. B. `**Neu:**`.
 - **Auslagenerstattung:** Mitglieder reichen unter *Mein Bereich → Auslagen*
   eine privat verauslagte Ausgabe mit Beleg ein. Mindestens N verschiedene
   Verwalter geben sie unter *Buchungen → Auslagen* frei (N und Schalter in den
-  Einstellungen, ab Werk 2; den eigenen Antrag kann niemand freigeben). Die
+  Einstellungen, ab Werk 2; den eigenen Antrag kann niemand freigeben). Der
+  Antrag folgt dem Papierformular: Rechnungsnummer, Lieferant, Kontoinhaber,
+  IBAN sowie eine Pflicht-Erklärung, die in der Historie
+  steht. Mehrere Rechnungen sind mehrere Anträge („Einreichen und weitere
+  erfassen“). Die
   letzte Freigabe legt den offenen Posten „Auslage – zu überweisen“ an;
   „Auszahlung buchen“ öffnet den Buchungsdialog und hängt die Belege an.
   Ablehnung gilt sofort und endgültig, Historie mit Hash-Kette, Mails an

@@ -175,7 +175,29 @@ class ReimbursementServiceTest extends TestCase {
 	}
 
 	private function submit(ReimbursementService $service, string $actor = 'anna'): Reimbursement {
-		return $service->submit($this->member(), 1250, '2026-10-15', 'Material Jugendfreizeit', self::IBAN, [['name' => 'beleg.pdf', 'content' => '%PDF']], $actor);
+		return $this->submitWith($service, [], $actor);
+	}
+
+	/**
+	 * Reicht mit gültigen Standardangaben ein; `$override` ersetzt einzelne davon (Schlüssel wie die
+	 * Parameter von `ReimbursementService::submit()`).
+	 *
+	 * @param array<string,mixed> $override
+	 */
+	private function submitWith(ReimbursementService $service, array $override, string $actor = 'anna'): Reimbursement {
+		return $service->submit(...array_replace([
+			'member' => $this->member(),
+			'amountCents' => 1250,
+			'expenseDate' => '2026-10-15',
+			'purpose' => 'Material Jugendfreizeit',
+			'invoiceNumber' => 'R-2026-17',
+			'supplier' => 'Bastelshop',
+			'iban' => self::IBAN,
+			'accountHolder' => 'Anna Musterfrau',
+			'declarationAccepted' => true,
+			'uploads' => [['name' => 'beleg.pdf', 'content' => '%PDF']],
+			'actorUid' => $actor,
+		], $override));
 	}
 
 	private function assertChainIsValid(ReimbursementService $service, int $id): void {
@@ -203,7 +225,7 @@ class ReimbursementServiceTest extends TestCase {
 
 	public function testEinreichenNormalisiertDieIban(): void {
 		$service = $this->service();
-		$r = $service->submit($this->member(), 500, '2026-10-15', 'Porto', 'de89 3704 0044 0532 0130 00', [['name' => 'b.pdf', 'content' => 'x']], 'anna');
+		$r = $this->submitWith($service, ['iban' => 'de89 3704 0044 0532 0130 00']);
 
 		$this->assertSame(self::IBAN, $r->getIban());
 	}
@@ -217,25 +239,73 @@ class ReimbursementServiceTest extends TestCase {
 		$this->submit($this->service());
 	}
 
+	/** @param array<string,mixed> $override Abweichungen vom gültigen Antrag (siehe submitWith) */
 	#[DataProvider('ungueltigeAntraege')]
-	public function testEinreichenPrueftDieAngaben(int $amount, string $date, string $purpose, string $iban, array $uploads): void {
+	public function testEinreichenPrueftDieAngaben(array $override): void {
 		$this->expectException(\InvalidArgumentException::class);
-		$this->service()->submit($this->member(), $amount, $date, $purpose, $iban, $uploads, 'anna');
+		$this->submitWith($this->service(), $override);
 	}
 
 	public static function ungueltigeAntraege(): array {
-		$upload = [['name' => 'b.pdf', 'content' => 'x']];
 		return [
-			'Betrag null' => [0, '2026-10-15', 'Porto', self::IBAN, $upload],
-			'Betrag negativ' => [-5, '2026-10-15', 'Porto', self::IBAN, $upload],
-			'Datum in der Zukunft' => [500, '2026-12-24', 'Porto', self::IBAN, $upload],
-			'Datum kein Datum' => [500, 'gestern', 'Porto', self::IBAN, $upload],
-			'Zweck leer' => [500, '2026-10-15', '   ', self::IBAN, $upload],
-			'Zweck zu lang' => [500, '2026-10-15', str_repeat('x', 501), self::IBAN, $upload],
-			'IBAN leer' => [500, '2026-10-15', 'Porto', '  ', $upload],
-			'IBAN kaputt' => [500, '2026-10-15', 'Porto', 'kein iban', $upload],
-			'Ohne Beleg' => [500, '2026-10-15', 'Porto', self::IBAN, []],
+			'Betrag null' => [['amountCents' => 0]],
+			'Betrag negativ' => [['amountCents' => -5]],
+			'Datum in der Zukunft' => [['expenseDate' => '2026-12-24']],
+			'Datum kein Datum' => [['expenseDate' => 'gestern']],
+			'Zweck leer' => [['purpose' => '   ']],
+			'Zweck zu lang' => [['purpose' => str_repeat('x', 501)]],
+			'Rechnungsnummer zu lang' => [['invoiceNumber' => str_repeat('1', 101)]],
+			'Lieferant zu lang' => [['supplier' => str_repeat('x', 256)]],
+			'Kontoinhaber zu lang' => [['accountHolder' => str_repeat('x', 256)]],
+			'IBAN leer' => [['iban' => '  ']],
+			'IBAN kaputt' => [['iban' => 'kein iban']],
+			'Ohne Erklärung' => [['declarationAccepted' => false]],
+			'Ohne Beleg' => [['uploads' => []]],
 		];
+	}
+
+	public function testRechnungsnummerUndLieferantWerdenGespeichertLeereAlsNull(): void {
+		$r = $this->submit($this->service());
+		$this->assertSame('R-2026-17', $r->getInvoiceNumber());
+		$this->assertSame('Bastelshop', $r->getSupplier());
+
+		$r = $this->submitWith($this->service(), ['invoiceNumber' => '  ', 'supplier' => null]);
+		$this->assertNull($r->getInvoiceNumber(), 'leere Angaben werden nicht als leerer Text gespeichert');
+		$this->assertNull($r->getSupplier());
+	}
+
+	public function testKontoinhaberFehltDannGiltDerNameDesMitglieds(): void {
+		$r = $this->submitWith($this->service(), ['accountHolder' => '  ']);
+
+		$this->assertSame('Anna Musterfrau', $r->getAccountHolder());
+	}
+
+	public function testKontoinhaberWirdGetrimmtGespeichert(): void {
+		$r = $this->submitWith($this->service(), ['accountHolder' => ' Familie Musterfrau ']);
+
+		$this->assertSame('Familie Musterfrau', $r->getAccountHolder());
+	}
+
+	public function testDieBestaetigteErklaerungStehtInDerHistorie(): void {
+		$service = $this->service();
+		$r = $this->submit($service);
+
+		$this->assertSame($service->declarationText(), $service->history($r->getId())[0]->decodedData()['declaration']);
+		$this->assertStringContainsString('im Auftrag des Vereins', $service->declarationText());
+		$this->assertChainIsValid($service, $r->getId());
+	}
+
+	public function testMehrereRechnungenSindMehrereUnabhaengigeAntraege(): void {
+		$service = $this->service();
+		$first = $this->submitWith($service, ['purpose' => 'Noten', 'amountCents' => 1000]);
+		$second = $this->submitWith($service, ['purpose' => 'Porto', 'amountCents' => 550]);
+
+		$service->approve($first->getId(), 'vera');
+		$service->reject($second->getId(), 'viktor', 'Privat');
+
+		$this->assertSame(Reimbursement::STATUS_PARTIALLY_APPROVED, $first->getStatus());
+		$this->assertSame(Reimbursement::STATUS_REJECTED, $second->getStatus());
+		$this->assertNotSame($first->getId(), $second->getId());
 	}
 
 	public function testEinreichenScheitertWennNichtGenugFreigeberUebrigSind(): void {
@@ -626,7 +696,7 @@ class ReimbursementServiceTest extends TestCase {
 		$this->mail->expects($this->never())->method('submitted');
 
 		try {
-			$this->service()->submit($this->member(), 0, '2026-10-15', 'Porto', self::IBAN, [['name' => 'b.pdf', 'content' => 'x']], 'anna');
+			$this->submitWith($this->service(), ['amountCents' => 0]);
 		} catch (\InvalidArgumentException) {
 		}
 	}

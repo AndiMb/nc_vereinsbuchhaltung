@@ -80,6 +80,9 @@
 				<p class="vbh-reimb-intro">
 					{{ t('Laden Sie den Beleg hoch und nennen Sie den Betrag. Die Verwalter prüfen den Antrag, danach überweist der Verein.') }}
 				</p>
+				<p class="vbh-reimb-help vbh-reimb-intro-more">
+					{{ t('Mehrere Rechnungen? Reichen Sie jede als eigenen Antrag ein. Mit „Einreichen und weitere erfassen“ bleiben Kontoverbindung und Erklärung ausgefüllt.') }}
+				</p>
 
 				<form class="vbh-reimb-form" novalidate @submit.prevent="submit">
 					<div class="vbh-reimb-row2">
@@ -88,13 +91,24 @@
 							<AmountInput v-model="form.amount" class="vbh-reimb-amount" />
 						</label>
 						<label class="vbh-reimb-field">
-							<span class="vbh-reimb-label">{{ t('Ausgabedatum') }}</span>
+							<span class="vbh-reimb-label">{{ t('Rechnungsdatum') }}</span>
 							<input v-model="form.expenseDate" type="date" :max="today">
 						</label>
 					</div>
 
+					<div class="vbh-reimb-row2">
+						<label class="vbh-reimb-field">
+							<span class="vbh-reimb-label">{{ t('Rechnungsnummer') }}</span>
+							<input v-model="form.invoiceNumber" maxlength="100" :placeholder="t('optional')">
+						</label>
+						<label class="vbh-reimb-field">
+							<span class="vbh-reimb-label">{{ t('Lieferant / Shop') }}</span>
+							<input v-model="form.supplier" maxlength="255" :placeholder="t('optional')">
+						</label>
+					</div>
+
 					<label class="vbh-reimb-field">
-						<span class="vbh-reimb-label">{{ t('Verwendungszweck') }}</span>
+						<span class="vbh-reimb-label">{{ t('Zweck / Vereinsbezug') }}</span>
 						<input
 							ref="purpose"
 							v-model="form.purpose"
@@ -103,30 +117,50 @@
 						<span class="vbh-reimb-help">{{ t('Was wurde gekauft, und wofür?') }}</span>
 					</label>
 
-					<label class="vbh-reimb-field">
-						<span class="vbh-reimb-label">{{ t('IBAN für die Erstattung') }}</span>
-						<input
-							v-model="form.iban"
-							class="vbh-reimb-iban"
-							:class="{ 'is-invalid': ibanStatus === 'invalid' }"
-							autocomplete="off"
-							spellcheck="false"
-							inputmode="text"
-							placeholder="DE00 0000 0000 0000 0000 00"
-							@blur="form.iban = formatIban(form.iban)">
-						<span v-if="ibanStatus === 'invalid'" class="vbh-reimb-help vbh-reimb-help--warn" role="alert">
-							{{ t('Die Prüfziffer dieser IBAN stimmt nicht – bitte noch einmal prüfen.') }}
-						</span>
-						<span v-else-if="ibanStatus === 'valid'" class="vbh-reimb-help vbh-reimb-help--ok">
-							{{ ibanFromMandate ? t('Aus Ihrem SEPA-Mandat übernommen – bei Bedarf ändern Sie sie hier.') : t('Die IBAN sieht gut aus.') }}
-						</span>
-						<span v-else class="vbh-reimb-help">{{ t('Auf dieses Konto wird die Auslage überwiesen.') }}</span>
-					</label>
-
 					<div class="vbh-reimb-field">
 						<span class="vbh-reimb-label">{{ t('Belege') }}</span>
 						<ReimbursementReceiptPicker v-model="form.files" />
 					</div>
+
+					<fieldset class="vbh-fieldset-reset vbh-reimb-section">
+						<legend class="vbh-reimb-legend">
+							{{ t('Kontoverbindung') }}
+						</legend>
+						<label class="vbh-reimb-field">
+							<span class="vbh-reimb-label">{{ t('Kontoinhaber') }}</span>
+							<input v-model="form.accountHolder" maxlength="255" autocomplete="off">
+							<span class="vbh-reimb-help">{{ t('Der Verein überweist an diesen Kontoinhaber. Soll das Geld auf das Konto einer anderen Person gehen, tragen Sie deren Namen ein.') }}</span>
+						</label>
+
+						<label class="vbh-reimb-field">
+							<span class="vbh-reimb-label">{{ t('IBAN für die Erstattung') }}</span>
+							<input
+								v-model="form.iban"
+								class="vbh-reimb-iban"
+								:class="{ 'is-invalid': ibanStatus === 'invalid' }"
+								autocomplete="off"
+								spellcheck="false"
+								inputmode="text"
+								placeholder="DE00 0000 0000 0000 0000 00"
+								@blur="form.iban = formatIban(form.iban)">
+							<span v-if="ibanStatus === 'invalid'" class="vbh-reimb-help vbh-reimb-help--warn" role="alert">
+								{{ t('Die Prüfziffer dieser IBAN stimmt nicht – bitte noch einmal prüfen.') }}
+							</span>
+							<span v-else-if="ibanStatus === 'valid'" class="vbh-reimb-help vbh-reimb-help--ok">
+								{{ ibanFromMandate ? t('Aus Ihrem SEPA-Mandat übernommen – bei Bedarf ändern Sie sie hier.') : t('Die IBAN sieht gut aus.') }}
+							</span>
+							<span v-else class="vbh-reimb-help">{{ t('Auf dieses Konto wird die Auslage überwiesen.') }}</span>
+						</label>
+					</fieldset>
+
+					<fieldset class="vbh-fieldset-reset vbh-reimb-section">
+						<legend class="vbh-reimb-legend">
+							{{ t('Erklärung') }}
+						</legend>
+						<NcCheckboxRadioSwitch v-model="form.declaration" type="checkbox">
+							{{ declarationText }}
+						</NcCheckboxRadioSwitch>
+					</fieldset>
 				</form>
 
 				<p v-if="error" class="vbh-hint vbh-hint--error" role="alert">
@@ -136,6 +170,9 @@
 					<span v-if="missing.length" class="vbh-reimb-missing">{{ t('Noch nötig: {fields}', { fields: missing.join(', ') }) }}</span>
 					<NcButton variant="tertiary" @click="closeSubmit">
 						{{ t('Abbrechen') }}
+					</NcButton>
+					<NcButton variant="secondary" :disabled="busy || missing.length > 0" @click="submitAndAddAnother">
+						{{ t('Einreichen und weitere erfassen') }}
 					</NcButton>
 					<NcButton variant="primary" :disabled="busy || missing.length > 0" @click="submit">
 						{{ busy ? t('Wird eingereicht') : t('Einreichen') }}
@@ -159,8 +196,20 @@
 				<dl class="vbh-selfservice-fields">
 					<dt>{{ t('Betrag') }}</dt>
 					<dd>{{ formatMoney(detail.amountCents / 100) }}</dd>
+					<template v-if="detail.invoiceNumber">
+						<dt>{{ t('Rechnungsnummer') }}</dt>
+						<dd>{{ detail.invoiceNumber }}</dd>
+					</template>
+					<template v-if="detail.supplier">
+						<dt>{{ t('Lieferant / Shop') }}</dt>
+						<dd>{{ detail.supplier }}</dd>
+					</template>
 					<dt>{{ t('Verwendungszweck') }}</dt>
 					<dd>{{ detail.purpose }}</dd>
+					<template v-if="detail.accountHolder">
+						<dt>{{ t('Kontoinhaber') }}</dt>
+						<dd>{{ detail.accountHolder }}</dd>
+					</template>
 					<dt>{{ t('IBAN') }}</dt>
 					<dd class="vbh-reimb-iban-text">
 						{{ formatIban(detail.iban) }}
@@ -241,6 +290,7 @@
 import { mdiPlus } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import NcButton from '@nextcloud/vue/components/NcButton'
+import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
@@ -252,9 +302,10 @@ import ReimbursementStatusTag from './ReimbursementStatusTag.vue'
 import api from '../api.js'
 import { errMsg, formatDate, formatFileSize, formatMoney, roundCents } from '../lib/format.js'
 import { formatIban, ibanState, normalizeIban } from '../lib/iban.js'
+import { todayIso } from '../lib/invoices.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 import { RECEIPT_ACCEPT } from '../lib/reimbursementFiles.js'
-import { reimbursementProgressText } from '../lib/reimbursements.js'
+import { emptyReimbursementForm, emptyReimbursementInvoice, missingReimbursementFields, reimbursementProgressText } from '../lib/reimbursements.js'
 
 /**
  * „Mein Bereich → Auslagen“ (docs/reimbursement-design.md): die eigenen
@@ -263,18 +314,20 @@ import { reimbursementProgressText } from '../lib/reimbursements.js'
  */
 export default {
 	name: 'SelfReimbursementPanel',
-	components: { NcButton, NcEmptyContent, NcIconSvgWrapper, NcLoadingIcon, NcModal, AmountInput, ReimbursementHistory, ReimbursementReceiptPicker, ReimbursementStatusTag },
+	components: { NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, NcLoadingIcon, NcModal, AmountInput, ReimbursementHistory, ReimbursementReceiptPicker, ReimbursementStatusTag },
 
 	data() {
 		return {
 			loading: true,
 			canSubmit: false,
 			suggestedIban: null,
+			suggestedAccountHolder: '',
+			declarationText: '',
 			items: [],
 			mdiPlus,
 			receiptAccept: RECEIPT_ACCEPT,
 			submitOpen: false,
-			form: this.emptyForm(),
+			form: emptyReimbursementForm(todayIso()),
 			detail: null,
 			busy: false,
 			error: '',
@@ -282,23 +335,14 @@ export default {
 	},
 
 	computed: {
-		today() { return new Date().toISOString().slice(0, 10) },
+		today() { return todayIso() },
 
 		ibanStatus() { return ibanState(this.form.iban) },
 
 		ibanFromMandate() { return !!this.suggestedIban && normalizeIban(this.form.iban) === normalizeIban(this.suggestedIban) },
 
 		/** Was zum Einreichen noch fehlt, als Liste von Feldnamen – steht neben dem Knopf. */
-		missing() {
-			const f = this.form
-			const missing = []
-			if (!(Number(f.amount) > 0)) { missing.push(this.t('Betrag')) }
-			if (!f.expenseDate) { missing.push(this.t('Ausgabedatum')) }
-			if (f.purpose.trim() === '') { missing.push(this.t('Verwendungszweck')) }
-			if (normalizeIban(f.iban).length < 15) { missing.push(this.t('IBAN')) }
-			if (f.files.length === 0) { missing.push(this.t('Beleg')) }
-			return missing
-		},
+		missing() { return missingReimbursementFields(this.form) },
 	},
 
 	async mounted() {
@@ -313,8 +357,9 @@ export default {
 
 		progressText: reimbursementProgressText,
 
+		/** Ein leerer Antrag; die Kontoverbindung ist aus dem Mandat bzw. dem Mitgliedsnamen vorbelegt. */
 		emptyForm() {
-			return { amount: '', expenseDate: new Date().toISOString().slice(0, 10), purpose: '', iban: '', files: [] }
+			return emptyReimbursementForm(this.today, { accountHolder: this.suggestedAccountHolder, iban: this.suggestedIban })
 		},
 
 		async load() {
@@ -322,6 +367,8 @@ export default {
 				const { data } = await api.selfReimbursements()
 				this.canSubmit = !!data.canSubmit
 				this.suggestedIban = data.suggestedIban || null
+				this.suggestedAccountHolder = data.suggestedAccountHolder || ''
+				this.declarationText = data.declarationText || ''
 				this.items = data.items
 			} catch (e) {
 				showError(errMsg(e, this.t('Die Auslagen konnten nicht geladen werden.')))
@@ -332,7 +379,6 @@ export default {
 
 		openSubmit() {
 			this.form = this.emptyForm()
-			if (this.suggestedIban) { this.form.iban = this.suggestedIban }
 			this.error = ''
 			this.submitOpen = true
 			focusOnOpen(this, () => this.$refs.purpose)
@@ -340,7 +386,9 @@ export default {
 
 		closeSubmit() { this.submitOpen = false },
 
-		async submit() {
+		/** Sendet den Antrag; `true`, wenn er eingereicht wurde. */
+		async send() {
+			if (this.busy || this.missing.length > 0) { return false }
 			this.busy = true
 			this.error = ''
 			try {
@@ -348,16 +396,39 @@ export default {
 				data.append('amount', String(roundCents(this.form.amount)))
 				data.append('expenseDate', this.form.expenseDate)
 				data.append('purpose', this.form.purpose.trim())
+				data.append('invoiceNumber', this.form.invoiceNumber.trim())
+				data.append('supplier', this.form.supplier.trim())
 				data.append('iban', this.form.iban.trim())
+				data.append('accountHolder', this.form.accountHolder.trim())
+				data.append('declaration', this.form.declaration ? '1' : '0')
 				for (const file of this.form.files) { data.append('files[]', file) }
 				await api.selfSubmitReimbursement(data)
 				showSuccess(this.t('Die Auslage wurde eingereicht.'))
-				this.submitOpen = false
-				await this.load()
+				return true
 			} catch (e) {
 				this.error = errMsg(e, this.t('Die Auslage konnte nicht eingereicht werden.'))
+				return false
 			} finally {
 				this.busy = false
+			}
+		},
+
+		async submit() {
+			if (await this.send()) {
+				this.submitOpen = false
+				await this.load()
+			}
+		},
+
+		/**
+		 * Jede Rechnung ist ein eigener Antrag: Kontoverbindung und Erklärung bleiben stehen, nur die
+		 * Rechnung ist wieder leer. Die Liste lädt im Hintergrund nach, der Dialog bleibt bedienbar.
+		 */
+		async submitAndAddAnother() {
+			if (await this.send()) {
+				Object.assign(this.form, emptyReimbursementInvoice(this.today))
+				focusOnOpen(this, () => this.$refs.purpose)
+				this.load()
 			}
 		},
 
@@ -479,6 +550,21 @@ export default {
 .vbh-reimb-form {
 	display: grid;
 	gap: 18px;
+}
+
+.vbh-reimb-section {
+	display: grid;
+	gap: 18px;
+}
+
+.vbh-reimb-legend {
+	margin-bottom: 10px;
+	font-size: 1.05em;
+	font-weight: 700;
+}
+
+.vbh-reimb-intro-more {
+	margin: -12px 0 18px;
 }
 
 .vbh-reimb-row2 {

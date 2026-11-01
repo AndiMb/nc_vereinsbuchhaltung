@@ -1,6 +1,7 @@
 // Auslagenerstattung (docs/reimbursement-design.md): zustandslose Helfer für
 // Status, Fortschritt und Historie - von der Mitglieder- und der
 // Verwaltungssicht gemeinsam genutzt.
+import { normalizeIban } from './iban.js'
 import { t, tRaw } from './l10n.js'
 import { parseAmountQuery } from './search.js'
 
@@ -97,4 +98,34 @@ export function reimbursementBookingPrefill(item, today) {
 		description: tRaw('Erstattung Auslage: {purpose} ({member})', { purpose: item.purpose, member: item.memberName }),
 		documentRef: `AUSL-${item.id}`,
 	}
+}
+
+// --- Antragsformular (Rechnung, Kontoverbindung, Erklärung) --------------------
+
+/** Die Felder, die jeder Antrag neu braucht - Kontoverbindung und Erklärung bleiben beim nächsten stehen. */
+export function emptyReimbursementInvoice(date) {
+	return { amount: '', expenseDate: date, invoiceNumber: '', supplier: '', purpose: '', files: [] }
+}
+
+/** Ein leeres Formular; `account` (accountHolder, iban) belegt die Kontoverbindung vor. */
+export function emptyReimbursementForm(date, account = {}) {
+	return {
+		...emptyReimbursementInvoice(date),
+		accountHolder: account.accountHolder || '',
+		iban: account.iban || '',
+		declaration: false,
+	}
+}
+
+/** Was zum Einreichen noch fehlt, als Liste von Feldnamen - sie steht neben dem Knopf. */
+export function missingReimbursementFields(form) {
+	const missing = []
+	if (!(Number(form.amount) > 0)) { missing.push(t('Betrag')) }
+	if (!form.expenseDate) { missing.push(t('Rechnungsdatum')) }
+	if (form.purpose.trim() === '') { missing.push(t('Zweck')) }
+	if (form.accountHolder.trim() === '') { missing.push(t('Kontoinhaber')) }
+	if (normalizeIban(form.iban).length < 15) { missing.push(t('IBAN')) }
+	if (form.files.length === 0) { missing.push(t('Beleg')) }
+	if (!form.declaration) { missing.push(t('Erklärung')) }
+	return missing
 }

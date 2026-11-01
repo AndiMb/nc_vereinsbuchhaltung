@@ -683,17 +683,35 @@ not depend on the "Contribution" self-service: a member only needs the linked
 Nextcloud account (13.2).
 
 **Submitting (member).** Under *My area → Expenses* the member chooses **Submit
-expense claim** and enters the amount, the expense date (not in the future), the
-purpose, the **IBAN for the reimbursement** (prefilled from the SEPA mandate if
-there is one) and at least one **receipt** (PDF or photo, up to 20 MB). The
-receipts go to the receipt storage: into `<folder>/<expense year>/` of the watch
+expense claim**. The dialog follows the former paper form:
+
+- **Invoice:** amount, invoice date (not in the future), purpose / relation to
+  the club and optionally the invoice number and supplier / shop.
+- at least one **receipt** (PDF or photo, up to 20 MB).
+- **Bank details:** **account holder** (prefilled with the account holder of the
+  SEPA mandate or the member's name; someone claiming for a child or partner
+  enters the actual holder here) and **IBAN**. Both are prefilled from the SEPA
+  mandate if there is one.
+- **Declaration:** the member ticks a box to confirm that the expenses were
+  incurred on behalf of the club, were paid by them and have not been reimbursed
+  elsewhere. Without the tick the request cannot be submitted; the confirmed
+  wording is stored in the request's history.
+
+**Several invoices** are submitted as **separate requests**. With **Submit and
+add another** the bank details and the declaration stay filled in, only the
+invoice is empty again. Each request is approved or rejected and paid out on its
+own.
+
+The receipts go to the receipt storage: into `<folder>/<expense year>/` of the watch
 folder, otherwise into the app storage. The member never sees the watch folder.
 As long as no approval exists, they can add receipts, remove them (one stays) or
 **withdraw** the request.
 
 **Approving (administrator).** *Bookings → Expenses* lists all requests; the
 **To review** filter comes first, with the requests that still need your approval.
-Each request has a detail view with the receipt, the history and these buttons:
+Each request has a detail view with the invoice details, bank details, receipts, the
+history and these buttons (the approvals replace the "factually correct" and
+"arithmetically correct" marks of the paper form: who approved when is in the history):
 
 - **Approve:** counts your vote (each person at most once). With the last
   required approval the request becomes *Approved*, the open item is created and

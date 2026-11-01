@@ -22,6 +22,9 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   with a receipt, under *My area → Expenses*. At least N different
   administrators approve it under *Bookings → Expenses* (N and the switch are
   in the settings, 2 by default; nobody can approve their own request). The
+  request follows the paper form: invoice number, supplier, account holder,
+  IBAN, and a mandatory declaration that is stored in the
+  history. Several invoices are several requests ("Submit and add another"). The
   last approval creates the open item "Expense – to be paid"; "Book payout"
   opens the posting dialog and attaches the receipts. A rejection is
   immediate and final; hash-chained history; emails to administrators and

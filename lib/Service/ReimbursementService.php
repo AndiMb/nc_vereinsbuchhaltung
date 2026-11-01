@@ -43,6 +43,10 @@ use OCP\IL10N;
 class ReimbursementService {
 
 	public const MAX_PURPOSE_LENGTH = 500;
+	// Längen wie die Spalten der Migration 171.
+	private const MAX_INVOICE_NUMBER_LENGTH = 100;
+	private const MAX_SUPPLIER_LENGTH = 255;
+	private const MAX_ACCOUNT_HOLDER_LENGTH = 255;
 
 	public function __construct(
 		private ReimbursementMapper $mapper,
@@ -100,6 +104,15 @@ class ReimbursementService {
 		return $this->log->history($id);
 	}
 
+	/**
+	 * Der Wortlaut der Erklärung, die das Mitglied beim Einreichen bestätigt (wie im
+	 * Papierformular). Er wird dem Mitglied so angezeigt und mit dem Antrag in der
+	 * manipulationssicheren Historie festgehalten.
+	 */
+	public function declarationText(): string {
+		return $this->l10n->t('Ich versichere, dass die Auslagen im Auftrag des Vereins entstanden sind, von mir bezahlt wurden und nicht anderweitig erstattet wurden.');
+	}
+
 	/** @return ReimbursementFile[] */
 	public function files(int $id): array {
 		return $this->fileMapper->findActive($id);
@@ -122,6 +135,15 @@ class ReimbursementService {
 	// --- Einreichen -------------------------------------------------------
 
 	/**
+	 * Reicht einen Antrag nach dem Vorbild des Papierformulars ein: Rechnung,
+	 * Kontoverbindung, Erklärung und mindestens ein Beleg. Mehrere Rechnungen
+	 * sind mehrere Anträge.
+	 *
+	 * @param string $expenseDate Rechnungsdatum (JJJJ-MM-TT), nicht in der Zukunft
+	 * @param string|null $invoiceNumber optional
+	 * @param string|null $supplier Lieferant / Shop, optional
+	 * @param string|null $accountHolder Kontoinhaber; ohne Angabe der Name des Mitglieds
+	 * @param bool $declarationAccepted das Mitglied hat die Erklärung bestätigt ({@see declarationText()})
 	 * @param list<array{name: string, content: string}> $uploads die Belegdateien, mindestens eine
 	 * @throws \InvalidArgumentException bei ungültigen Angaben oder wenn die Funktion aus ist
 	 */
@@ -130,7 +152,11 @@ class ReimbursementService {
 		int $amountCents,
 		string $expenseDate,
 		string $purpose,
+		?string $invoiceNumber,
+		?string $supplier,
 		string $iban,
+		?string $accountHolder,
+		bool $declarationAccepted,
 		array $uploads,
 		string $actorUid,
 	): Reimbursement {
@@ -148,9 +174,16 @@ class ReimbursementService {
 		if (mb_strlen($purpose) > self::MAX_PURPOSE_LENGTH) {
 			throw new \InvalidArgumentException($this->l10n->t('Der Verwendungszweck ist zu lang (höchstens %d Zeichen).', [self::MAX_PURPOSE_LENGTH]));
 		}
+		$invoiceNumber = $this->bounded($invoiceNumber, self::MAX_INVOICE_NUMBER_LENGTH, 'Rechnungsnummer');
+		$supplier = $this->bounded($supplier, self::MAX_SUPPLIER_LENGTH, 'Lieferant / Shop');
 		$normalizedIban = $this->ibanValidator->validate($iban);
 		if ($normalizedIban === null) {
 			throw new \InvalidArgumentException($this->l10n->t('Bitte eine IBAN für die Erstattung angeben.'));
+		}
+		// Ohne Angabe überweist der Verein an das Mitglied selbst.
+		$accountHolder = $this->bounded($accountHolder, self::MAX_ACCOUNT_HOLDER_LENGTH, 'Kontoinhaber') ?? $member->displayName();
+		if (!$declarationAccepted) {
+			throw new \InvalidArgumentException($this->l10n->t('Bitte bestätigen Sie die Erklärung.'));
 		}
 		if ($uploads === []) {
 			throw new \InvalidArgumentException($this->l10n->t('Bitte mindestens einen Beleg hochladen.'));
@@ -163,14 +196,19 @@ class ReimbursementService {
 			throw new \InvalidArgumentException($this->l10n->t('Der Antrag kann derzeit nicht eingereicht werden: Es gibt nicht genug Verwalter, die ihn freigeben könnten. Bitte wenden Sie sich an den Vorstand.'));
 		}
 
-		return $this->transaction->run(function () use ($member, $amountCents, $expenseDate, $purpose, $normalizedIban, $uploads, $actorUid, $required): Reimbursement {
+		$declaration = $this->declarationText();
+
+		return $this->transaction->run(function () use ($member, $amountCents, $expenseDate, $purpose, $invoiceNumber, $supplier, $normalizedIban, $accountHolder, $declaration, $uploads, $actorUid, $required): Reimbursement {
 			$now = $this->now();
 			$reimbursement = new Reimbursement();
 			$reimbursement->setMemberId($member->getId());
 			$reimbursement->setAmountCents($amountCents);
 			$reimbursement->setExpenseDate($expenseDate);
 			$reimbursement->setPurpose($purpose);
+			$reimbursement->setInvoiceNumber($invoiceNumber);
+			$reimbursement->setSupplier($supplier);
 			$reimbursement->setIban($normalizedIban);
+			$reimbursement->setAccountHolder($accountHolder);
 			$reimbursement->setStatus(Reimbursement::STATUS_SUBMITTED);
 			$reimbursement->setRequiredApprovals($required);
 			$reimbursement->setSubmittedBy($actorUid);
@@ -191,6 +229,8 @@ class ReimbursementService {
 				'amountCents' => $amountCents,
 				'requiredApprovals' => $required,
 				'receipts' => $names,
+				// Der bestätigte Wortlaut steht in der Historie: wer ihn später ändert, bricht die Hash-Kette.
+				'declaration' => $declaration,
 			]);
 			if ($duplicates !== []) {
 				$this->log->append($reimbursement->getId(), ReimbursementEvent::ACTION_DUPLICATE_HINT, $actorUid, ReimbursementEvent::ROLE_MEMBER, null, ['matches' => $duplicates]);
@@ -456,6 +496,20 @@ class ReimbursementService {
 		$item->setReimbursementId($reimbursement->getId());
 		$item->setCreatedAt($this->now());
 		return $this->openItemMapper->insert($item);
+	}
+
+	/**
+	 * Der getrimmte Text; null, wenn nichts angegeben wurde.
+	 *
+	 * @param string $label Name des Feldes für die Fehlermeldung (wird übersetzt)
+	 * @throws \InvalidArgumentException wenn der Text über `$max` Zeichen hat
+	 */
+	private function bounded(?string $text, int $max, string $label): ?string {
+		$text = trim((string)$text);
+		if (mb_strlen($text) > $max) {
+			throw new \InvalidArgumentException($this->l10n->t('%1$s ist zu lang (höchstens %2$d Zeichen).', [$this->l10n->t($label), $max]));
+		}
+		return $text !== '' ? $text : null;
 	}
 
 	private function validDate(string $date): string {

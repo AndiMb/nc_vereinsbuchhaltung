@@ -73,7 +73,8 @@ class SelfReimbursementController extends Controller {
 		$this->presenter->preload($own);
 		return new DataResponse([
 			'canSubmit' => $this->settings->isEnabled(),
-			'suggestedIban' => $this->suggestedIban(),
+			...$this->suggestedAccount(),
+			'declarationText' => $this->service->declarationText(),
 			'items' => array_map(fn ($r) => $this->presenter->forMember($r), $own),
 		]);
 	}
@@ -90,20 +91,26 @@ class SelfReimbursementController extends Controller {
 
 	/**
 	 * Reicht einen Antrag samt Belegen ein (multipart/form-data: amount,
-	 * expenseDate, purpose, iban und die Dateien unter `files`).
+	 * expenseDate (Rechnungsdatum), purpose, optional invoiceNumber und supplier,
+	 * iban, optional accountHolder, `declaration` und die Dateien unter
+	 * `files`). Mehrere Rechnungen sind mehrere Anträge.
 	 */
 	#[NoAdminRequired]
 	public function create(): DataResponse {
 		return $this->handle(function (): DataResponse {
 			$uploads = $this->readUploads('files');
 			$reimbursement = $this->service->submit(
-				$this->members->find($this->memberId()),
-				$this->amountCents((string)$this->request->getParam('amount', '')),
-				(string)$this->request->getParam('expenseDate', ''),
-				(string)$this->request->getParam('purpose', ''),
-				(string)$this->request->getParam('iban', ''),
-				$uploads,
-				$this->uid(),
+				member: $this->members->find($this->memberId()),
+				amountCents: $this->amountCents((string)$this->request->getParam('amount', '')),
+				expenseDate: (string)$this->request->getParam('expenseDate', ''),
+				purpose: (string)$this->request->getParam('purpose', ''),
+				invoiceNumber: (string)$this->request->getParam('invoiceNumber', ''),
+				supplier: (string)$this->request->getParam('supplier', ''),
+				iban: (string)$this->request->getParam('iban', ''),
+				accountHolder: (string)$this->request->getParam('accountHolder', ''),
+				declarationAccepted: filter_var($this->request->getParam('declaration', false), FILTER_VALIDATE_BOOLEAN),
+				uploads: $uploads,
+				actorUid: $this->uid(),
 			);
 			return new DataResponse($this->presenter->forMember($reimbursement, true), Http::STATUS_CREATED);
 		});
@@ -175,15 +182,25 @@ class SelfReimbursementController extends Controller {
 		return new DataResponse(['message' => $this->l10n->t('Nicht gefunden')], Http::STATUS_NOT_FOUND);
 	}
 
-	/** Vorschlag fürs Formular: die IBAN des lebenden SEPA-Mandats, falls es eines gibt. */
-	private function suggestedIban(): ?string {
-		foreach ($this->mandates->findLiveByMember($this->memberId()) as $mandate) {
+	/**
+	 * Vorschläge fürs Formular aus dem lebenden SEPA-Mandat (IBAN und Kontoinhaber, beide vom selben
+	 * Mandat), ohne Mandat der Name des Mitglieds als Kontoinhaber.
+	 *
+	 * @return array{suggestedIban: ?string, suggestedAccountHolder: string}
+	 */
+	private function suggestedAccount(): array {
+		$memberId = $this->memberId();
+		foreach ($this->mandates->findLiveByMember($memberId) as $mandate) {
 			$iban = $mandate->getIban();
 			if ($iban !== null && $iban !== '') {
-				return $iban;
+				$holder = trim((string)$mandate->getAccountHolder());
+				return [
+					'suggestedIban' => $iban,
+					'suggestedAccountHolder' => $holder !== '' ? $holder : $this->members->find($memberId)->displayName(),
+				];
 			}
 		}
-		return null;
+		return ['suggestedIban' => null, 'suggestedAccountHolder' => $this->members->find($memberId)->displayName()];
 	}
 
 	/**
