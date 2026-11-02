@@ -44,6 +44,12 @@ class NextcloudAccountOptionsServiceTest extends TestCase {
 	private function service(): NextcloudAccountOptionsService {
 		$config = $this->createMock(IAppConfig::class);
 		$config->method('getValueString')->willReturnCallback(fn (string $app, string $key, string $default = ''): string => $this->config[$app . '.' . $key] ?? $default);
+		// Wie IAppConfig::getValueBool: gespeichert wird ein String, '1', 'true', 'yes' und 'on' gelten als wahr
+		// (so bleibt auch der alte Wert 'yes' lesbar, den Nextcloud früher dort ablegte).
+		$config->method('getValueBool')->willReturnCallback(function (string $app, string $key, bool $default = false): bool {
+			$stored = $this->config[$app . '.' . $key] ?? null;
+			return $stored === null ? $default : in_array(strtolower($stored), ['1', 'true', 'yes', 'on'], true);
+		});
 		return new NextcloudAccountOptionsService($this->session, $this->groups, $this->subAdmin, $config, $this->l10n);
 	}
 
@@ -112,9 +118,9 @@ class NextcloudAccountOptionsServiceTest extends TestCase {
 		$this->config = [
 			'files.quota_preset' => '2 GB, 20 GB',
 			'files.default_quota' => '5 GB',
-			'core.newUser.requireEmail' => 'yes',
-			'core.newUser.generateUserID' => 'yes',
-			'core.newUser.sendEmail' => 'no',
+			'core.newUser.requireEmail' => '1',
+			'core.newUser.generateUserID' => '1',
+			'core.newUser.sendEmail' => '0',
 		];
 
 		$options = $this->service()->forCurrentUser();
@@ -124,6 +130,35 @@ class NextcloudAccountOptionsServiceTest extends TestCase {
 		$this->assertSame('5 GB', $options['defaultQuota']);
 		$this->assertTrue($options['requireEmail']);
 		$this->assertTrue($options['generateUserId']);
+		$this->assertFalse($options['sendInvitation']);
+	}
+
+	/** Ohne gesetzte Werte gelten die Vorgaben der Nextcloud-Benutzerverwaltung: keine Pflicht-E-Mail, keine erzeugte ID, Einladung an. */
+	public function testNewUserVorgabenOhneGespeicherteWerte(): void {
+		$this->actor('root', true, false, false);
+		$this->groups->method('search')->willReturn([]);
+
+		$options = $this->service()->forCurrentUser();
+
+		$this->assertFalse($options['requireEmail']);
+		$this->assertFalse($options['generateUserId']);
+		$this->assertTrue($options['sendInvitation']);
+	}
+
+	/** Ältere Nextcloud-Stände legten 'yes'/'no' ab; getValueBool liest beides. */
+	public function testAlteJaNeinWerteBleibenLesbar(): void {
+		$this->actor('root', true, false, false);
+		$this->groups->method('search')->willReturn([]);
+		$this->config = [
+			'core.newUser.requireEmail' => 'yes',
+			'core.newUser.generateUserID' => 'no',
+			'core.newUser.sendEmail' => 'no',
+		];
+
+		$options = $this->service()->forCurrentUser();
+
+		$this->assertTrue($options['requireEmail']);
+		$this->assertFalse($options['generateUserId']);
 		$this->assertFalse($options['sendInvitation']);
 	}
 }

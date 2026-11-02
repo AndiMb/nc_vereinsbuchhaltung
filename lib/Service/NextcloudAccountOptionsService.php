@@ -82,9 +82,9 @@ class NextcloudAccountOptionsService {
 			'languages' => $this->languages(),
 			'quotaPresets' => $presets,
 			'defaultQuota' => $this->config->getValueString('files', 'default_quota', 'none'),
-			'requireEmail' => $this->config->getValueString('core', 'newUser.requireEmail', 'no') === 'yes',
-			'generateUserId' => $this->config->getValueString('core', 'newUser.generateUserID', 'no') === 'yes',
-			'sendInvitation' => $this->config->getValueString('core', 'newUser.sendEmail', 'yes') === 'yes',
+			'requireEmail' => $this->config->getValueBool('core', 'newUser.requireEmail', false),
+			'generateUserId' => $this->config->getValueBool('core', 'newUser.generateUserID', false),
+			'sendInvitation' => $this->config->getValueBool('core', 'newUser.sendEmail', true),
 		];
 	}
 
