@@ -397,7 +397,8 @@ export default {
 	dismissWhatsNew: (version) => axios.post(url('/whatsnew/seen'), { version }),
 
 	// Belegablage
-	attachmentCounts: () => axios.get(url('/attachments/counts')),
+	// Zähler nur für Buchungen der gewählten Periode (ohne `period`: alle).
+	attachmentCounts: (period) => axios.get(url('/attachments/counts'), { params: { period } }),
 	listAttachments: (journalId) => axios.get(url(`/journal/${journalId}/attachments`)),
 	uploadAttachment: (journalId, formData) => axios.post(url(`/journal/${journalId}/attachments`), formData),
 	deleteAttachment: (id) => axios.delete(url(`/attachments/${id}`)),

@@ -2062,14 +2062,12 @@ export default {
 		// Eigener Wrapper um useJournal.loadJournal (journalLoad), da hier
 		// zusätzlich die Beleg-Zähler nachgeladen werden.
 		async loadJournal() {
-			// Die Belegzähler hängen nicht am Journal: gleichzeitig anfragen
-			// statt erst nach dessen Antwort (wie bisher nicht abgewartet).
-			this.loadAttachmentCounts()
-			await this.journalLoad()
+			// Die Belegzähler hängen nicht am Journal: gleichzeitig anfragen.
+			await Promise.all([this.journalLoad(), this.loadAttachmentCounts()])
 		},
 
 		async loadAttachmentCounts() {
-			try { const { data } = await api.attachmentCounts(); this.attachmentCountMap = data } catch { /* ignorieren */ }
+			try { const { data } = await api.attachmentCounts(this.selectedPeriodId); this.attachmentCountMap = data } catch { /* ignorieren */ }
 		},
 
 		/** Nach jedem Anhängen, Verknüpfen oder Lösen: Zähler und Übersichts-Kacheln nachziehen. */

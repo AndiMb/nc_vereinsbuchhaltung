@@ -100,7 +100,7 @@ class ReceiptSuggestionService {
 			return $empty;
 		}
 		[$from, $to] = $this->periods->range($userId, $periodId);
-		$withReceipt = $this->attachments->countByUser($userId);
+		$withReceipt = $this->attachments->countByUser($userId, $from, $to);
 		// Buchungen in festgeschriebenen Geschäftsjahren lassen sich nicht mehr verknüpfen: weder anzeigen
 		// noch im Abgleich mitzählen, sonst drücken sie eindeutige Paare im offenen Jahr auf "wahrscheinlich".
 		$closed = [];

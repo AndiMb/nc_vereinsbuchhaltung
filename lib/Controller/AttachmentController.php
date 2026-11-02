@@ -82,8 +82,9 @@ class AttachmentController extends Controller {
 	}
 
 	#[NoAdminRequired]
-	public function counts(): DataResponse {
-		return new DataResponse($this->attachmentMapper->countByUser($this->userId()));
+	public function counts(?int $period = null): DataResponse {
+		[$from, $to] = $this->periods->range($this->userId(), $period);
+		return new DataResponse($this->attachmentMapper->countByUser($this->userId(), $from, $to));
 	}
 
 	private function openJournal(int $journalId): Journal|DataResponse {

@@ -19,10 +19,13 @@ class JournalLineMapper extends QBMapper {
 	/**
 	 * Distinct Journal-IDs, die mindestens eine Zeile auf einem der Konten haben.
 	 *
+	 * Optional auf einen Datumsbereich eingegrenzt (ISO-Datum, beide Grenzen
+	 * inklusive).
+	 *
 	 * @param int[] $accountIds
 	 * @return int[]
 	 */
-	public function findJournalIdsForAccounts(string $userId, array $accountIds): array {
+	public function findJournalIdsForAccounts(string $userId, array $accountIds, ?string $from = null, ?string $to = null): array {
 		if (count($accountIds) === 0) {
 			return [];
 		}
@@ -34,6 +37,12 @@ class JournalLineMapper extends QBMapper {
 				->innerJoin('l', 'vbh_journal', 'j', $qb->expr()->eq('l.journal_id', 'j.id'))
 				->where($qb->expr()->eq('j.user_id', $qb->createNamedParameter($userId)))
 				->andWhere($qb->expr()->in('l.account_id', $qb->createNamedParameter($chunk, IQueryBuilder::PARAM_INT_ARRAY)));
+			if ($from !== null) {
+				$qb->andWhere($qb->expr()->gte('j.date', $qb->createNamedParameter($from)));
+			}
+			if ($to !== null) {
+				$qb->andWhere($qb->expr()->lte('j.date', $qb->createNamedParameter($to)));
+			}
 			$res = $qb->executeQuery();
 			while (($row = $res->fetch()) !== false) {
 				$ids[] = (int)$row['journal_id'];
@@ -44,7 +53,38 @@ class JournalLineMapper extends QBMapper {
 	}
 
 	/**
-	 * Anzahl Buchungszeilen auf einem Konto – die Prüfung, ob ein Konto noch
+	 * Summe Soll/Haben auf den Konten für alle Buchungen vor einem Stichtag –
+	 * der Saldovortrag des Kontoauszugs, ohne die Vorjahre zu laden.
+	 *
+	 * @param int[] $accountIds
+	 * @param string $before exklusive obere Datumsgrenze (ISO-Datum)
+	 * @return array{debit:int, credit:int}
+	 */
+	public function sumForAccountsBefore(string $userId, array $accountIds, string $before): array {
+		$debit = 0;
+		$credit = 0;
+		foreach (array_chunk($accountIds, 500) as $chunk) {
+			$qb = $this->db->getQueryBuilder();
+			$qb->selectAlias($qb->func()->sum('l.debit_cents'), 'debit')
+				->selectAlias($qb->func()->sum('l.credit_cents'), 'credit')
+				->from($this->getTableName(), 'l')
+				->innerJoin('l', 'vbh_journal', 'j', $qb->expr()->eq('l.journal_id', 'j.id'))
+				->where($qb->expr()->eq('j.user_id', $qb->createNamedParameter($userId)))
+				->andWhere($qb->expr()->in('l.account_id', $qb->createNamedParameter($chunk, IQueryBuilder::PARAM_INT_ARRAY)))
+				->andWhere($qb->expr()->lt('j.date', $qb->createNamedParameter($before)));
+			$res = $qb->executeQuery();
+			$row = $res->fetch();
+			$res->closeCursor();
+			if ($row !== false) {
+				$debit += (int)$row['debit'];
+				$credit += (int)$row['credit'];
+			}
+		}
+		return ['debit' => $debit, 'credit' => $credit];
+	}
+
+	/**
+	 * Anzahl Buchungszeilen auf einem Konto– die Prüfung, ob ein Konto noch
 	 * bebucht ist. Ohne sie hinterließe das Löschen eines Kontos verwaiste
 	 * Zeilen, deren Beträge aus allen Auswertungen verschwinden (die iterieren
 	 * über die vorhandenen Konten), während sie in der Datenbank stehen bleiben.
