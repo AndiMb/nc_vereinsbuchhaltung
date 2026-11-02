@@ -86,7 +86,7 @@ final class DunningStatusResolver {
 			return $status;
 		}
 
-		$deadline = (new \DateTimeImmutable($byStage[$reached]->getSentAt()))->modify('+' . $intervalDays . ' days')->format('Y-m-d');
+		$deadline = (new \DateTimeImmutable(ClubClock::localDate($byStage[$reached]->getSentAt())))->modify('+' . $intervalDays . ' days')->format('Y-m-d');
 		$dueOn = $deadline;
 		$deferredUntil = $claim->getDeferredUntil();
 		if ($deferredUntil !== null && $deferredUntil >= $today) {

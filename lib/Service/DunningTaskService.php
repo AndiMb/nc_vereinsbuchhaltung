@@ -63,7 +63,7 @@ final class DunningTaskService {
 			if ($dunningNotice === null) {
 				continue;
 			}
-			$deadline = (new \DateTimeImmutable($dunningNotice->getSentAt()))->modify('+' . $intervalDays . ' days')->format('Y-m-d');
+			$deadline = (new \DateTimeImmutable(ClubClock::localDate($dunningNotice->getSentAt())))->modify('+' . $intervalDays . ' days')->format('Y-m-d');
 			if ($today < $deadline) {
 				continue;
 			}

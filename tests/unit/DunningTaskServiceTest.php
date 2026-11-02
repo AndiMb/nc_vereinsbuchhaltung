@@ -91,6 +91,16 @@ class DunningTaskServiceTest extends TestCase {
 		$this->assertSame(1, $tasks[0]['objectId']);
 	}
 
+	/** Issue #263: 22:30 UTC am 30.06. ist in Berlin der 01.07. – die Frist läuft ab dem Vereinstag. */
+	public function testMahnabstandZaehltAbDemVereinstagDesVersands(): void {
+		$item = $this->claim(1, 7);
+		$this->openItems->method('findOpenClaims')->willReturn([$item]);
+		$this->notices->method('findByOpenItemAndStage')->willReturn($this->stage2Notice(1, '2026-06-30T22:30:00+00:00'));
+
+		$this->assertSame([], $this->service('2026-07-14')->findBoardEscalationTasks());
+		$this->assertCount(1, $this->service('2026-07-15')->findBoardEscalationTasks());
+	}
+
 	public function testMeldetNichtsVorAblaufDesMahnabstandsSeitStufe2(): void {
 		$item = $this->claim(1, 7);
 		$this->openItems->method('findOpenClaims')->willReturn([$item]);

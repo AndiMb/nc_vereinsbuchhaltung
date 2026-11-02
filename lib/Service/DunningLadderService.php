@@ -216,7 +216,7 @@ class DunningLadderService {
 			if ($fromNotice === null) {
 				continue; // hat die Vorstufe (noch) nie erreicht
 			}
-			$deadline = (new \DateTimeImmutable($fromNotice->getSentAt()))->modify('+' . $intervalDays . ' days')->format('Y-m-d');
+			$deadline = (new \DateTimeImmutable(ClubClock::localDate($fromNotice->getSentAt())))->modify('+' . $intervalDays . ' days')->format('Y-m-d');
 			if ($today < $deadline) {
 				continue;
 			}

@@ -145,7 +145,7 @@ class BeitragsbescheinigungRenderer {
 	 * Periode) `due_date`, sonst als letzter Rückfall das Anlagedatum.
 	 */
 	private function referenceDate(OpenItem $item): string {
-		return $item->getPeriodStart() ?? $item->getDueDate() ?? substr($item->getCreatedAt(), 0, 10);
+		return $item->getPeriodStart() ?? $item->getDueDate() ?? ClubClock::localDate($item->getCreatedAt());
 	}
 
 	private function disclaimerSection(): string {

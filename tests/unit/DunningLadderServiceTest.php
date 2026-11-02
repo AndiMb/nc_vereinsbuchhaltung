@@ -308,6 +308,22 @@ class DunningLadderServiceTest extends TestCase {
 		$this->assertSame(0, $result['sent']);
 	}
 
+	/** Issue #263: der Mahnabstand zählt ab dem Vereinstag des Versands, nicht ab dem UTC-Tag. */
+	public function testRunDailyEskaliertAbDemVereinstagDesVersands(): void {
+		$item = $this->claim(1, 7);
+		$this->openItems->method('findClaims')->willReturn([$item]);
+		$this->setEligible(true);
+		$this->notices->method('findByOpenItemAndStage')->willReturnCallback(
+			fn (int $itemId, int $stage) => $stage === DunningNotice::STAGE_PAYMENT_REQUEST
+				? $this->notice(1, DunningNotice::STAGE_PAYMENT_REQUEST, '2026-06-30T22:30:00+00:00') // in Berlin der 01.07.
+				: null,
+		);
+		$this->mailer->method('send')->willReturn([]);
+
+		$this->assertSame(0, $this->service('2026-07-14')->runDaily()['sent']);
+		$this->assertSame(1, $this->service('2026-07-15')->runDaily()['sent']);
+	}
+
 	public function testGestundeteForderungFaelltWaehrendDerStundungKomplettAusDerPositionsliste(): void {
 		// Stufe 0 liegt laengst ueber dem Mahnabstand zurueck - ohne Stundung
 		// waere das laengst eskaliert.

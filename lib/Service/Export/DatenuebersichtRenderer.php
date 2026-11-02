@@ -88,7 +88,7 @@ class DatenuebersichtRenderer {
 		if ($member->isRedacted()) {
 			$h .= '<p>' . PrintableReportPage::escape($this->l10n->t(
 				'Diese Mitgliedsakte wurde am %s im Rahmen der gesetzlich vorgesehenen DSGVO-Anonymisierung geschwärzt. Name, Kontaktdaten, Bankverbindungen und personenbezogene Freitexte sind unwiderruflich entfernt; nur strukturierte Angaben (Beträge, Daten, Status) bleiben aus buchhalterischen Gründen erhalten.',
-				[ReportFormat::date(substr((string)$member->getRedactedAt(), 0, 10))],
+				[ReportFormat::date(ClubClock::localDate((string)$member->getRedactedAt()))],
 			)) . '</p>';
 		}
 		$h .= '<table>';
@@ -134,8 +134,8 @@ class DatenuebersichtRenderer {
 				. '<td>' . PrintableReportPage::escape((string)($mandate->maskedIban() ?? '–')) . '</td>'
 				. '<td>' . PrintableReportPage::escape($mandate->getAccountHolder()) . '</td>'
 				. '<td>' . PrintableReportPage::escape($mandate->getStatus()) . '</td>'
-				. '<td>' . ReportFormat::date($mandate->getActivatedAt()) . '</td>'
-				. '<td>' . ReportFormat::date($mandate->getEndedAt()) . '</td>'
+				. '<td>' . ReportFormat::date(ClubClock::localDate((string)$mandate->getActivatedAt())) . '</td>'
+				. '<td>' . ReportFormat::date(ClubClock::localDate((string)$mandate->getEndedAt())) . '</td>'
 				. '</tr>';
 		}
 		$h .= '</table>';

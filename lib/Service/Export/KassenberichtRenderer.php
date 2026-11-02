@@ -304,7 +304,7 @@ class KassenberichtRenderer {
 			'Das Geschäftsjahr %s wurde am %s von %s abgeschlossen (festgeschrieben).',
 			[
 				$period->getLabel(),
-				ReportFormat::date(substr((string)$period->getClosedAt(), 0, 10)),
+				ReportFormat::date(ClubClock::localDate((string)$period->getClosedAt())),
 				$period->getClosedBy(),
 			],
 		);

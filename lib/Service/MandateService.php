@@ -231,7 +231,7 @@ class MandateService {
 		// und damit im 36-Monats-Verfall-Cron ankommen wie jedes andere Mandat.
 		// Der Zeitpunkt ist UTC, das Unterschriftsdatum der Kalendertag des
 		// Vereins (#263): eine Zustimmung um 00:30 Uhr gehört zum neuen Tag.
-		$mandate->setSignedAt((new \DateTimeImmutable($consentAt, new \DateTimeZone('UTC')))->setTimezone(ClubClock::zone())->format('Y-m-d'));
+		$mandate->setSignedAt(ClubClock::localDate($consentAt));
 		$mandate->setStatus(Mandate::STATUS_ACTIVE);
 		$mandate->setActivatedAt($this->now());
 		$mandate = $this->mapper->update($mandate);
@@ -287,7 +287,7 @@ class MandateService {
 			'neueFassung' => $mandateTextVersionId,
 		]);
 		$previous = $previousConsentAt !== null && $previousConsentAt !== ''
-			? $this->l10n->t('vorher zugestimmt am %s', [GermanDate::format(substr($previousConsentAt, 0, 10))])
+			? $this->l10n->t('vorher zugestimmt am %s', [GermanDate::format(ClubClock::localDate($previousConsentAt))])
 			: $this->l10n->t('vorher ohne elektronische Zustimmung');
 		$this->logEvent($mandate, $this->l10n->t('Mandat erneut bestätigt (Zustimmung per E-Mail-Link an %1$s, %2$s)', [$consentActor, $previous]), MandateEvent::ACTOR_MEMBER);
 		return $mandate;

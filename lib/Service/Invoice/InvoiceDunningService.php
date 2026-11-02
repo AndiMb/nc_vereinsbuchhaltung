@@ -107,7 +107,7 @@ class InvoiceDunningService {
 			$state['blocked'] = $blocked;
 			return $state;
 		}
-		$next = InvoiceDunningSchedule::next((string)$row['dueDate'], $level, $last !== null ? substr($last['sentAt'], 0, 10) : null, $this->settings->dunningDays());
+		$next = InvoiceDunningSchedule::next((string)$row['dueDate'], $level, $last !== null ? ClubClock::localDate($last['sentAt']) : null, $this->settings->dunningDays());
 		if ($next !== null) {
 			$state['next'] = $next['level'];
 			$state['dueOn'] = $next['dueOn'];

@@ -64,6 +64,22 @@ class ClubClockTest extends TestCase {
 		$this->assertSame('Europe/Berlin', ClubClock::zone()->getName());
 	}
 
+	/** Gespeicherte UTC-Zeitstempel (ATOM oder 'Y-m-d H:i:s') werden zum Kalendertag des Vereins. */
+	public function testLocalDateRechnetUtcZeitstempelInDenVereinstagUm(): void {
+		ClubClock::configureZone('Europe/Berlin');
+		$this->assertSame('2026-07-01', ClubClock::localDate('2026-06-30T22:30:00+00:00'));
+		$this->assertSame('2026-07-01', ClubClock::localDate('2026-06-30 22:30:00'));
+		$this->assertSame('2026-06-30', ClubClock::localDate('2026-06-30 21:30:00'));
+		$this->assertSame('2027-01-01', ClubClock::localDate('2026-12-31 23:30:00'));
+	}
+
+	public function testLocalDateLaesstReineTagesdatenUnveraendert(): void {
+		ClubClock::configureZone('America/New_York');
+		$this->assertSame('2026-07-01', ClubClock::localDate('2026-07-01'));
+		$this->assertSame('', ClubClock::localDate(''));
+		$this->assertSame('kein Datum', ClubClock::localDate('kein Datum'));
+	}
+
 	public function testTodayFromSystemClockNutztDieVereinszone(): void {
 		ClubClock::configureZone('Europe/Berlin');
 		$expected = (new \DateTimeImmutable('now', new \DateTimeZone('Europe/Berlin')))->format('Y-m-d');

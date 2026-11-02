@@ -59,6 +59,28 @@ final class ClubClock {
 		return $this->now()->format('Y-m-d');
 	}
 
+	/**
+	 * Kalendertag des Vereins zu einem gespeicherten UTC-Zeitstempel
+	 * (`Y-m-d H:i:s` ohne Zone gilt als UTC, ATOM trägt seine Zone selbst).
+	 * Fristen, die ab einem Versand- oder Abschlusszeitpunkt laufen, und
+	 * gedruckte Tagesangaben dazu rechnen mit diesem Tag statt mit dem
+	 * UTC-Datumsteil – sonst läge ein Versand um 00:30 Uhr auf gestern.
+	 *
+	 * Reine Tagesdaten (JJJJ-MM-TT) kommen unverändert zurück, ebenso ''.
+	 * Unlesbare Werte liefern wie bisher ihre ersten zehn Zeichen.
+	 */
+	public static function localDate(string $utcTimestamp): string {
+		$value = trim($utcTimestamp);
+		if ($value === '' || preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1) {
+			return $value;
+		}
+		try {
+			return (new \DateTimeImmutable($value, new \DateTimeZone('UTC')))->setTimezone(self::zone())->format('Y-m-d');
+		} catch (\Exception) {
+			return substr($value, 0, 10);
+		}
+	}
+
 	/** Für Entitäten und statische Helfer ohne Dependency Injection. */
 	public static function todayFromSystemClock(): string {
 		return (new \DateTimeImmutable('now', self::zone()))->format('Y-m-d');

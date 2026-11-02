@@ -171,6 +171,21 @@ class InvoiceDunningServiceTest extends TestCase {
 		];
 	}
 
+	/** Issue #263: die Frist der nächsten Stufe läuft ab dem Vereinstag der letzten Mahnung. */
+	public function testFristDerNaechstenStufeLaeuftAbDemVereinstagDesVersands(): void {
+		$sent = new InvoiceDunning();
+		$sent->setInvoiceId(1);
+		$sent->setLevel(1);
+		$sent->setSentAt('2026-06-30T22:30:00+00:00'); // in Berlin der 01.07.
+		$this->history = [$sent];
+
+		$notYet = $this->service()->annotate([$this->row()], '2026-07-14')[0]['dunning'];
+		$this->assertSame(2, $notYet['next']);
+		$this->assertSame('2026-07-15', $notYet['dueOn']);
+		$this->assertFalse($notYet['due']);
+		$this->assertTrue($this->service()->annotate([$this->row()], '2026-07-15')[0]['dunning']['due']);
+	}
+
 	public function testNachDerLetztenStufeGibtEsKeineWeitere(): void {
 		$sent = new InvoiceDunning();
 		$sent->setInvoiceId(1);

@@ -41,7 +41,12 @@ final class ClubClockStub {
 			}
 
 			public function getDateTime(string $time = 'now', ?\DateTimeZone $timezone = null): \DateTime {
-				return \DateTime::createFromImmutable($this->now());
+				if ($time !== 'now') {
+					// Eine relative Angabe müsste gegen die feste Zeit rechnen; das braucht bisher niemand.
+					throw new \LogicException('ClubClockStub kennt nur getDateTime(\'now\').');
+				}
+				$dateTime = \DateTime::createFromImmutable($this->now());
+				return $timezone !== null ? $dateTime->setTimezone($timezone) : $dateTime;
 			}
 
 			public function withTimeZone(\DateTimeZone $timezone): static {
