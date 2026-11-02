@@ -254,7 +254,7 @@ export default {
 		newRequest: { type: Object, default: () => ({ kind: null, n: 0 }) },
 	},
 
-	emits: ['update:invoiceId', 'changed', 'editing'],
+	emits: ['update:invoiceId', 'changed', 'editing', 'request-handled'],
 
 	setup() {
 		const { sort, toggleSort, sortArrow, applySort } = useSort()
@@ -381,11 +381,14 @@ export default {
 		await Promise.all([this.loadMeta(), this.loadInvoices(), this.loadBatches()])
 		// Der Reiter wird erst beim ersten Besuch aufgebaut: eine Anfrage, die ihn
 		// erst oeffnet (+ Rechnung), kommt vor dem Watcher an.
-		if (this.newRequest.n > 0) { this.handleNewRequest(this.newRequest) }
+		this.handleNewRequest(this.newRequest)
 	},
 
 	methods: {
+		/** Einmalig: danach meldet der Reiter die Anfrage als erledigt (App setzt sie zurueck). */
 		handleNewRequest(request) {
+			if (!request || request.n <= 0) { return }
+			this.$emit('request-handled')
 			if (request.kind === 'plan') { this.newPlan() } else if (request.kind === 'invoice') { this.newInvoice() }
 		},
 

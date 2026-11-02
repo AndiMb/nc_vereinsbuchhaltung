@@ -427,7 +427,7 @@ export default {
 			if (!memberId) { return }
 			let member = this.members.find((m) => m.id === memberId)
 			if (!member) {
-				await this.loadMembers()
+				await this.loadMembers({ force: true })
 				member = this.members.find((m) => m.id === memberId)
 			}
 			if (member) { this.openMemberAkte(member) } else { showError(this.t('Das Mitglied wurde nicht gefunden – vielleicht wurde es inzwischen gelöscht.')) }
@@ -451,9 +451,9 @@ export default {
 
 		async reload() {
 			await Promise.all([
-				this.loadMembers(),
-				this.loadMandates(),
-				this.loadAssignments(),
+				this.loadMembers({ force: true }),
+				this.loadMandates({ force: true }),
+				this.loadAssignments({ force: true }),
 				this.loadClaimOverview(),
 				this.loadLinkSuggestions(),
 			])

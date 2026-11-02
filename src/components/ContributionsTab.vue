@@ -71,7 +71,7 @@ export default {
 		canWrite: { type: Boolean, default: false },
 	},
 
-	emits: ['update:contrib-view'],
+	emits: ['update:contrib-view', 'request-handled'],
 
 	watch: {
 		newMemberRequest() {
@@ -92,11 +92,14 @@ export default {
 	mounted() {
 		// Der Reiter wird erst beim ersten Besuch aufgebaut: eine Anfrage, die ihn
 		// erst oeffnet („+ → Mitglied“), kommt vor dem Watcher an.
-		if (this.newMemberRequest.n > 0) { this.openPendingMemberDialog() }
+		this.openPendingMemberDialog()
 	},
 
 	methods: {
+		/** Einmalig: nach dem Abarbeiten meldet der Reiter die Anfrage als erledigt, ein neu aufgebauter Reiter oeffnet nichts mehr. */
 		openPendingMemberDialog() {
+			if (this.newMemberRequest.n <= 0) { return }
+			this.$emit('request-handled')
 			if (!this.canWrite) { return }
 			this.$nextTick(() => this.$refs.membersList?.openMemberDialog())
 		},

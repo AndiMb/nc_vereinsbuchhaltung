@@ -3,28 +3,26 @@ import { reactive } from 'vue'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
 import { t } from '../lib/l10n.js'
+import { createSharedLoader } from '../lib/sharedLoader.js'
 
 const state = reactive({
 	assignments: [],
 })
 
-// Parallele Aufrufe teilen sich eine Abfrage (Muster useAttachmentInbox.js).
-let inflight = null
-
-function loadAssignments() {
-	if (!inflight) {
-		inflight = (async () => {
-			try {
-				const { data } = await api.listAssignments()
-				state.assignments = data
-			} catch (e) {
-				showError(errMsg(e, t('Zuweisungen konnten nicht geladen werden')))
-			} finally {
-				inflight = null
-			}
-		})()
+const load = createSharedLoader(async (isCurrent) => {
+	try {
+		const { data } = await api.listAssignments()
+		if (isCurrent()) { state.assignments = data }
+		return undefined
+	} catch (e) {
+		showError(errMsg(e, t('Zuweisungen konnten nicht geladen werden')))
+		return undefined
 	}
-	return inflight
+})
+
+/** Ohne `force` teilen parallele Aufrufe eine Abfrage; nach Schreibzugriffen `{ force: true }`. */
+function loadAssignments(opts) {
+	return load(opts)
 }
 
 export function useAssignments() {

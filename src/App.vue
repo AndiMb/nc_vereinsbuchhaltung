@@ -188,6 +188,7 @@
 					:accounts="accountsSorted"
 					:reloadKey="invoicesReloadKey"
 					:newRequest="invoiceRequest"
+					@requestHandled="invoiceRequest = { kind: null, n: 0 }"
 					@editing="invoiceEditing = $event"
 					@changed="onInvoicesChanged" />
 			</section>
@@ -277,6 +278,7 @@
 					:isMobile="isMobile"
 					:canWrite="canWrite"
 					:newMemberRequest="memberRequest"
+					@requestHandled="memberRequest = { n: 0 }"
 					@update:contribView="contribView = $event" />
 			</section>
 
