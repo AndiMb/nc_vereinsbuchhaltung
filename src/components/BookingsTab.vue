@@ -111,13 +111,19 @@
 					<div class="vbh-tablecount">
 						{{ filteredJournalRows.length !== sortedJournalRows.length ? t('{n} von {total} Buchungssätze', { n: filteredJournalRows.length, total: sortedJournalRows.length }) : t('{n} Buchungssätze', { n: filteredJournalRows.length }) }}
 					</div>
-					<template v-for="g in journalCardGroups" :key="g.key">
-						<div class="vbh-monthdivider">
-							{{ g.label }}
+					<!-- Eine flache Liste statt Monatsgruppen: v-memo wirkt nur auf
+					     dem v-for selbst, nicht innerhalb eines weiteren v-for. Auf
+					     <template v-for> wertet der Vue-Compiler v-memo aus (withMemo je
+					     Eintrag), die ESLint-Regel kennt das nicht. -->
+					<!-- eslint-disable vue/no-useless-template-attributes -->
+					<template
+						v-for="{ r, divider } in journalCardItems"
+						:key="r.id"
+						v-memo="[r, divider, attachmentCountMap[r.id]?.count, suggestionFor(r)?.level, suggestionTitleFor(r), canWrite, amountDisplay]">
+						<div v-if="divider" class="vbh-monthdivider">
+							{{ divider }}
 						</div>
 						<BookingCard
-							v-for="r in g.rows"
-							:key="g.key + '-' + r.id"
 							:row="r"
 							:attachmentCount="attachmentCountMap[r.id] ? attachmentCountMap[r.id].count : 0"
 							:flow="cardFlow(r)"
@@ -128,13 +134,18 @@
 							@open="openBookingCard(r)"
 							@paperclip="clickPaperclip(r)" />
 					</template>
+					<!-- eslint-enable vue/no-useless-template-attributes -->
+					<div v-if="remainingJournalRows" class="vbh-loadmore">
+						<NcButton variant="secondary" @click="showMoreJournalRows">
+							{{ t('Weitere Buchungen anzeigen ({n} verbleibend)', { n: remainingJournalRows }) }}
+						</NcButton>
+					</div>
 				</div>
-				<!-- Desktop: die Tabelle bleibt gemountet, solange es überhaupt Buchungen
-				     gibt, und der Filter blendet Zeilen nur aus (hidden-Attribut, gesetzt
-				     in applyJournalVisibility()). So muss beim Tippen und Löschen keine
-				     Zeile samt Aktionsmenü neu aufgebaut oder gepatcht werden; v-memo
-				     überspringt alle Zeilen, deren Daten gleich bleiben. Strg+F findet
-				     weiter alle sichtbaren. -->
+				<!-- Desktop: Gefiltert wird vor dem Begrenzen, gezeigt werden höchstens
+				     journalLimit Zeilen (Issue #254), der Rest über „Weitere Buchungen
+				     anzeigen“. v-memo überspringt jede Zeile, deren Daten gleich bleiben:
+				     useJournal liefert unveränderte Buchungen als dasselbe Zeilenobjekt,
+				     alle übrigen Abhängigkeiten sind Primitive. -->
 				<div v-else-if="!isMobile && sortedJournalRows.length" class="vbh-tablecard">
 					<div v-show="filteredJournalRows.length" class="vbh-tablecount">
 						{{ filteredJournalRows.length !== sortedJournalRows.length ? t('{n} von {total} Buchungssätze', { n: filteredJournalRows.length, total: sortedJournalRows.length }) : t('{n} Buchungssätze', { n: filteredJournalRows.length }) }}
@@ -174,11 +185,11 @@
 								<th class="vbh-col-actions--wide" />
 							</tr>
 						</thead>
-						<tbody ref="journalBody">
+						<tbody>
 							<tr
-								v-for="r in sortedJournalRows"
+								v-for="r in pagedJournalRows"
 								:key="r.id"
-								v-memo="[r, attachmentCountMap[r.id], suggestionTitleFor(r), txByJournalId[r.id], canWrite, amountDisplay, accountsById, isDateClosed(r.date), bulkSelectable, bulkSelectable && selectedJournalIds.has(r.id)]"
+								v-memo="[r, attachmentCountMap[r.id]?.count, attachmentCountMap[r.id]?.firstId, suggestionTitleFor(r), txByJournalId[r.id]?.id, canWrite, amountDisplay, isDateClosed(r.date), bulkSelectable, bulkSelectable && selectedJournalIds.has(r.id)]"
 								:data-id="r.id">
 								<td v-if="bulkSelectable" class="vbh-col-check">
 									<input
@@ -265,6 +276,11 @@
 							</tr>
 						</tbody>
 					</table>
+					<div v-if="remainingJournalRows" class="vbh-loadmore">
+						<NcButton variant="secondary" @click="showMoreJournalRows">
+							{{ t('Weitere Buchungen anzeigen ({n} verbleibend)', { n: remainingJournalRows }) }}
+						</NcButton>
+					</div>
 				</div>
 				<NcEmptyContent v-else-if="sortedJournalRows.length" :name="t('Keine Treffer')" :description="t('Suchfilter anpassen oder löschen.')" />
 				<NcEmptyContent v-else :name="t('Noch keine Buchungssätze')" :description="t('Legen Sie mit ‛Neue Buchung\' einen ersten Buchungssatz an.')">
@@ -738,6 +754,10 @@ import { levelIcon, suggestionTitle, sureSuggestionPairs } from '../lib/receiptS
 import { buildSearchIndex, journalSearch, matchesQuery, prepareQuery, transactionSearch } from '../lib/search.js'
 import { isSelectableOption } from '../lib/selectOptions.js'
 
+// So viele Buchungen zeigt das Journal auf einmal, jeder Klick auf „Weitere
+// Buchungen anzeigen“ so viele mehr (Issue #254).
+const JOURNAL_PAGE = 200
+
 export default {
 	name: 'BookingsTab',
 	components: { NcButton, NcActions, NcActionButton, NcSelect, NcEllipsisedOption, NcEmptyContent, NcIconSvgWrapper, AmountInput, BookingCard, CommentMark, ReceiptSuggestionConfirmDialog, ReimbursementsPanel, RulesPanel },
@@ -827,6 +847,8 @@ export default {
 			bookingFilter: null,
 			bookingFilterSearch: '',
 			journalOnlyNoAttachment: false,
+			// Wie viele der gefilterten Buchungen gerade dargestellt werden.
+			journalLimit: JOURNAL_PAGE,
 			// Belegvorschläge (#229): Antwort von GET /attachments/suggestions
 			// für das gewählte Geschäftsjahr. items kann ein leeres Array sein.
 			suggestionItems: {},
@@ -922,18 +944,28 @@ export default {
 			return rows
 		},
 
-		visibleJournalIds() { return new Set(this.filteredJournalRows.map((r) => r.id)) },
+		// Die tatsächlich dargestellten Buchungen: erst gefiltert, dann begrenzt.
+		// Am Desktop in der Sortierung der Tabelle, mobil fest nach Datum
+		// absteigend wie die Karten.
+		pagedJournalRows() {
+			const rows = this.isMobile ? this.filteredCardRows : this.filteredJournalRows
+			return rows.slice(0, this.journalLimit)
+		},
+
+		remainingJournalRows() { return Math.max(0, this.filteredJournalRows.length - this.journalLimit) },
 
 		// Mehrfachauswahl nur am Desktop und nur, solange es eine Aktion dafür
 		// gibt: „Beleg zuordnen“ braucht den Wächter-Ordner.
 		bulkSelectable() { return !this.isMobile && this.watchMode && this.canWrite },
 		// Buchungen abgeschlossener Geschäftsjahre bekommen keinen Beleg mehr.
-		selectableVisibleRows() { return this.filteredJournalRows.filter((r) => !this.isDateClosed(r.date)) },
+		// „Sichtbar“ heißt dargestellt: Alle-auswählen und Umschalt-Klick
+		// erfassen keine Buchungen jenseits von „Weitere Buchungen anzeigen“.
+		selectableVisibleRows() { return this.pagedJournalRows.filter((r) => !this.isDateClosed(r.date)) },
 		selectedVisibleIds() { return this.selectableVisibleRows.filter((r) => this.selectedJournalIds.has(r.id)).map((r) => r.id) },
 		allVisibleSelected() { return this.selectableVisibleRows.length > 0 && this.selectedVisibleIds.length === this.selectableVisibleRows.length },
 
 		// Mobil: fest nach Datum absteigend – einmal je Datenstand sortiert,
-		// journalCardGroups filtert dann nur noch.
+		// filteredCardRows filtert dann nur noch.
 		journalRowsByDateDesc() {
 			return [...this.journalRows].sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || (b.entryNo || 0) - (a.entryNo || 0))
 		},
@@ -946,22 +978,26 @@ export default {
 		// dienen dem Blättern durch eine lange Liste, nicht der Abgrenzung des
 		// Zeitraums. Das ist kein Rest der alten Jahres-Logik – bitte nicht auf
 		// die Geschäftsjahr-Grenzen umstellen.
-		journalCardGroups() {
-			const visible = this.visibleJournalIds
-			const rows = this.journalRowsByDateDesc.filter((r) => visible.has(r.id))
+		filteredCardRows() {
+			const visible = new Set(this.filteredJournalRows.map((r) => r.id))
+			return this.journalRowsByDateDesc.filter((r) => visible.has(r.id))
+		},
+
+		// Die dargestellten Karten; die erste Karte eines Monats trägt die
+		// Überschrift der Trennlinie davor.
+		journalCardItems() {
 			const names = [this.t('Januar'), this.t('Februar'), this.t('März'), this.t('April'), this.t('Mai'), this.t('Juni'), this.t('Juli'), this.t('August'), this.t('September'), this.t('Oktober'), this.t('November'), this.t('Dezember')]
-			const groups = []
-			let cur = null
-			for (const r of rows) {
+			let prev = null
+			return this.pagedJournalRows.map((r) => {
 				const key = String(r.date || '').slice(0, 7)
-				if (!cur || cur.key !== key) {
+				let divider = ''
+				if (key !== prev) {
 					const m = parseInt(key.slice(5, 7), 10)
-					cur = { key, label: (names[m - 1] || '?') + ' ' + key.slice(0, 4), rows: [] }
-					groups.push(cur)
+					divider = (names[m - 1] || '?') + ' ' + key.slice(0, 4)
+					prev = key
 				}
-				cur.rows.push(r)
-			}
-			return groups
+				return { r, divider }
+			})
 		},
 
 		// Kassenprüfung: fehlende/doppelte Buchungsnummern im gewählten Zeitraum
@@ -1068,7 +1104,13 @@ export default {
 		selectedPeriodId() {
 			this.clearJournalSelection()
 			this.loadReceiptSuggestions()
+			this.journalLimit = JOURNAL_PAGE
 		},
+
+		// Neue Auswahl, neue Liste: wieder mit den ersten JOURNAL_PAGE Buchungen.
+		bookingSearch() { this.journalLimit = JOURNAL_PAGE },
+		bookingFilter() { this.journalLimit = JOURNAL_PAGE },
+		journalOnlyNoAttachment() { this.journalLimit = JOURNAL_PAGE },
 
 		// Nach jeder Änderung an Belegen und beim Ein-/Ausschalten des
 		// Wächter-Ordners. Nicht an attachmentCountMap: die legt jedes Nachladen
@@ -1087,13 +1129,6 @@ export default {
 		this.loadReceiptSuggestions()
 		this.loadInvoiceSuggestions()
 		if (this.bookingView === 'openitems') { this.loadOpenItems(this.activeOpenItemFilter) }
-		this.applyJournalVisibility()
-	},
-
-	// Nach jedem Rendern: neue oder umsortierte Zeilen bekommen ihre
-	// Sichtbarkeit. Jede Filteränderung rendert (Zähler), läuft also hier durch.
-	updated() {
-		this.applyJournalVisibility()
 	},
 
 	beforeUnmount() {
@@ -1216,21 +1251,7 @@ export default {
 			this.searchTimer = setTimeout(() => { this.bookingSearch = v }, 150)
 		},
 
-		/**
-		 * Blendet die Zeilen der Journal-Tabelle direkt am DOM ein und aus.
-		 * Über die Vorlage (v-show) müsste Vue jede Zeile, deren Sichtbarkeit
-		 * wechselt, samt Knöpfen und Aktionsmenü patchen – bei einigen hundert
-		 * Zeilen spürbar. Das hidden-Attribut kennt Vue nicht und lässt es stehen.
-		 */
-		applyJournalVisibility() {
-			const body = this.$refs.journalBody
-			if (!body) { return }
-			const visible = this.visibleJournalIds
-			for (const tr of body.children) {
-				const hide = !visible.has(Number(tr.dataset.id))
-				if (tr.hidden !== hide) { tr.hidden = hide }
-			}
-		},
+		showMoreJournalRows() { this.journalLimit += JOURNAL_PAGE },
 
 		canAttachToTx(tx) {
 			return this.watchMode && this.canWrite && !this.isDateClosed(tx.bookingDate)

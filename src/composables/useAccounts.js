@@ -1,12 +1,13 @@
 import { showError } from '@nextcloud/dialogs'
-import { computed, reactive } from 'vue'
+import { computed, reactive, shallowRef } from 'vue'
 import api from '../api.js'
 import { accountCategoryLabel } from '../lib/accountFilter.js'
 import { errMsg } from '../lib/format.js'
 import { t } from '../lib/l10n.js'
 
+// shallowRef: die Kontenliste wird nur als Ganzes ersetzt (Issue #254).
 const state = reactive({
-	accounts: [],
+	accounts: shallowRef([]),
 })
 
 const accountsById = computed(() => {
