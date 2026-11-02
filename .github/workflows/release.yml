@@ -106,7 +106,16 @@ jobs:
           set -e
           STAGE="$RUNNER_TEMP/stage/$APP_ID"
           mkdir -p "$STAGE"
-          # Alles kopieren ausser Entwicklungs-/Build-Ballast
+          # Alles kopieren ausser Entwicklungs-/Build-Ballast.
+          #
+          # Muster MIT fuehrendem '/' gelten nur im App-Wurzelverzeichnis,
+          # Muster OHNE gelten in jeder Tiefe - also auch in vendor/. Das ist
+          # nur dort gewollt, wo es Ballast trifft (vendor/*/tests, */docs,
+          # .github, *.map, phpunit.xml ...), nie dort, wo Paketcode liegt:
+          # Ein unverankertes 'src' hatte jedes vendor/*/src/ entfernt und
+          # damit GiroCode, E-Rechnung und das Lesen von Beleg-PDFs im
+          # ausgelieferten Paket lahmgelegt (Issue #269). Ob der Autoloader
+          # alles findet, prueft der naechste Schritt.
           rsync -a --delete \
             --exclude='.git' \
             --exclude='.github' \
@@ -122,9 +131,9 @@ jobs:
             --exclude='playwright-report' \
             --exclude='test-results' \
             --exclude='vitest.config.mjs' \
-            --exclude='deploy' \
+            --exclude='/deploy' \
             --exclude='node_modules' \
-            --exclude='src' \
+            --exclude='/src' \
             --exclude='docs' \
             --exclude='tests' \
             --exclude='/scripts' \
@@ -141,6 +150,12 @@ jobs:
             --exclude='*.mp3' \
             --exclude='SEPA-STAND.md' \
             ./ "$STAGE/"
+
+      - name: Autoloader-Verweise im Paket pruefen
+        # Jede Datei und jedes Verzeichnis, auf das vendor/composer/autoload_*.php
+        # verweist, muss im zusammengestellten Paket liegen. Sonst scheitert
+        # das Release hier statt erst beim Nutzer (Issue #269).
+        run: php .github/scripts/check-vendor-autoload.php "$RUNNER_TEMP/stage/$APP_ID"
 
       - name: Signaturschluessel bereitstellen
         id: certs

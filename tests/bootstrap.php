@@ -110,20 +110,26 @@ if (is_file(dirname(__DIR__) . '/vendor/autoload.php')) {
  * ausschließlich diese Bootstrap-Datei; ohne diesen Autoloader schlugen dort
  * alle Tests mit "Interface Psr\Clock\ClockInterface not found" fehl. Lokal
  * greift er nie doppelt: er springt nur an, wenn die Klasse noch fehlt.
+ *
+ * Dazu doctrine/lexer: Im Betrieb bringt es der Server in 3rdparty/ mit, die App
+ * liefert es deshalb nicht mehr selbst aus (replace in composer.json, Issue #268).
+ * jms/serializer braucht es zum Lesen von E-Rechnungen; die Unit-Tests holen es
+ * in der Serverversion aus .phpstan/vendor (siehe .phpstan/composer.json).
  */
 spl_autoload_register(static function (string $class): void {
 	$packages = [
-		'Psr\\Clock\\' => 'clock',
-		'Psr\\Container\\' => 'container',
-		'Psr\\EventDispatcher\\' => 'event-dispatcher',
-		'Psr\\Log\\' => 'log',
+		'Psr\\Clock\\' => 'psr/clock',
+		'Psr\\Container\\' => 'psr/container',
+		'Psr\\EventDispatcher\\' => 'psr/event-dispatcher',
+		'Psr\\Log\\' => 'psr/log',
+		'Doctrine\\Common\\Lexer\\' => 'doctrine/lexer',
 	];
 	foreach ($packages as $prefix => $package) {
 		if (!str_starts_with($class, $prefix)) {
 			continue;
 		}
 		$relative = substr($class, strlen($prefix));
-		$file = dirname(__DIR__) . '/.phpstan/vendor/psr/' . $package . '/src/' . str_replace('\\', '/', $relative) . '.php';
+		$file = dirname(__DIR__) . '/.phpstan/vendor/' . $package . '/src/' . str_replace('\\', '/', $relative) . '.php';
 		if (is_file($file)) {
 			require_once $file;
 		}
