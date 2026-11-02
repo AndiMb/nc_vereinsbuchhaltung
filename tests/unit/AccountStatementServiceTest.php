@@ -71,9 +71,13 @@ class AccountStatementServiceTest extends TestCase {
 		$accountMapper->method('find')->willReturnCallback(static fn (int $id) => $accounts[$id]);
 
 		$lineMapper = $this->createMock(JournalLineMapper::class);
-		$lineMapper->method('findJournalIdsForAccounts')->willReturnCallback(function (string $u, array $ids): array {
+		$lineMapper->method('findJournalIdsForAccounts')->willReturnCallback(function (string $u, array $ids, ?string $from = null, ?string $to = null): array {
 			$out = [];
 			foreach ($this->lines as $jid => $lines) {
+				$date = (string)$this->journals[$jid]->getDate();
+				if (($from !== null && $date < $from) || ($to !== null && $date > $to)) {
+					continue;
+				}
 				foreach ($lines as $l) {
 					if (in_array($l->getAccountId(), $ids, true)) {
 						$out[] = $jid;
@@ -82,6 +86,22 @@ class AccountStatementServiceTest extends TestCase {
 				}
 			}
 			return $out;
+		});
+		$lineMapper->method('sumForAccountsBefore')->willReturnCallback(function (string $u, array $ids, string $before): array {
+			$debit = 0;
+			$credit = 0;
+			foreach ($this->lines as $jid => $lines) {
+				if ((string)$this->journals[$jid]->getDate() >= $before) {
+					continue;
+				}
+				foreach ($lines as $l) {
+					if (in_array($l->getAccountId(), $ids, true)) {
+						$debit += $l->getDebitCents();
+						$credit += $l->getCreditCents();
+					}
+				}
+			}
+			return ['debit' => $debit, 'credit' => $credit];
 		});
 		$lineMapper->method('findByJournals')->willReturnCallback(fn (): array => $this->lines);
 
@@ -120,5 +140,40 @@ class AccountStatementServiceTest extends TestCase {
 		$this->assertNull($s['carryDate']);
 		$this->assertSame([50.0, 62.5], array_map('floatval', array_column($s['rows'], 'saldo')));
 		$this->assertSame(62.5, (float)$s['totals']['balance']);
+	}
+
+	/** Der Vortrag kommt als Summe aus der Datenbank; geladen werden nur Buchungen im Bereich. */
+	public function testVortragKommtAusDerSummeVorPeriodenbeginn(): void {
+		$this->book(1, 1, '2026-02-10', self::BANK, self::INCOME, 4000);
+
+		$accounts = [
+			self::BANK => $this->account(self::BANK, '1200', 'asset', true),
+			self::INCOME => $this->account(self::INCOME, '4000', 'income'),
+		];
+		$accountMapper = $this->createMock(AccountMapper::class);
+		$accountMapper->method('findAll')->willReturn(array_values($accounts));
+		$accountMapper->method('find')->willReturn($accounts[self::BANK]);
+
+		$lineMapper = $this->createMock(JournalLineMapper::class);
+		$lineMapper->expects($this->once())->method('findJournalIdsForAccounts')
+			->with('u', [self::BANK], '2026-01-01', '2026-12-31')
+			->willReturn([1]);
+		$lineMapper->expects($this->once())->method('sumForAccountsBefore')
+			->with('u', [self::BANK], '2026-01-01')
+			->willReturn(['debit' => 50000, 'credit' => 20000]);
+		$lineMapper->method('findByJournals')->willReturn($this->lines);
+
+		$journalMapper = $this->createMock(JournalMapper::class);
+		$journalMapper->method('findByIds')->willReturn($this->journals);
+
+		$periods = $this->createMock(PeriodService::class);
+		$periods->method('range')->willReturn(['2026-01-01', '2026-12-31']);
+
+		$s = (new AccountStatementService($journalMapper, $lineMapper, $accountMapper, $periods))
+			->build('u', self::BANK, false, 7);
+
+		$this->assertSame(300.0, (float)$s['carry']);
+		$this->assertSame([340.0], array_map('floatval', array_column($s['rows'], 'saldo')));
+		$this->assertSame(340.0, (float)$s['totals']['balance']);
 	}
 }

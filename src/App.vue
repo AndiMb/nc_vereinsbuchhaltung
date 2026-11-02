@@ -116,6 +116,7 @@
 					:clubName="clubName"
 					:setupReady="setupReady"
 					:attachmentCountMap="attachmentCountMap"
+					:attachmentsRevision="attachmentsRevision"
 					:recentJournal="recentJournal"
 					:clickPaperclip="clickPaperclip"
 					:openBookingCard="openBookingCard"
@@ -139,6 +140,7 @@
 					:membershipActive="membershipActive"
 					:invoicesActive="invoicesActive"
 					:attachmentCountMap="attachmentCountMap"
+					:attachmentsRevision="attachmentsRevision"
 					:suggestionsById="suggestionsById"
 					:openImport="openImport"
 					:clickPaperclip="clickPaperclip"
@@ -482,6 +484,9 @@ import { splitBalanced, splitRemainder, splitSideOf } from './lib/split.js'
 // war sie kuerzer als dieser Abstand, meldete die App die eigene Buchung als
 // "von einer anderen Person geaendert" - je nachdem, wann der Abgleich fiel.
 const SYNC_INTERVALL = 20000
+// Beim Fensterfokus die Wächter-Ordner-Kacheln nur nachfragen, wenn der letzte
+// Abruf so lange zurückliegt – jeder Abruf kostet einen Ordnerscan.
+const INBOX_FOCUS_MIN_AGE = 60000
 
 // Belege: Grenzen aus AttachmentController (MAX_SIZE, ALLOWED_MIMES). Die
 // Oberflaeche prueft sie schon bei der Auswahl - beim Anlegen einer Buchung
@@ -694,6 +699,12 @@ export default {
 			mdiSwapHorizontal,
 			bookingAttachments: [],
 			attachmentCountMap: {},
+			// Zählt jede Änderung an Belegen (Anhängen, Verknüpfen, Lösen). Die
+			// Belegvorschläge laden daran nach – nicht an attachmentCountMap, die
+			// jedes Nachladen des Journals neu anlegt.
+			attachmentsRevision: 0,
+			// Start des letzten inbox-summary-Abrufs, für die Mindestpause beim Fensterfokus.
+			lastInboxAt: 0,
 			// Belegvorschlag in der Buchungsliste angeklickt: Seitenleiste des Dialogs geht auf.
 			bookingForceFolderPanel: false,
 			// Kollaboration: Poll-Timer (Änderungsstand selbst kommt aus useSync)
@@ -992,12 +1003,11 @@ export default {
 		// Frühere Zuordnungen je Zahlungspartner (für Vorschläge)
 		assignmentHistory() {
 			const map = {}
-			for (const tx of this.transactions) {
-				if (tx.status === 'assigned' && tx.contraAccountId && tx.counterparty) {
-					const key = tx.counterparty.trim().toLowerCase()
-					if (!map[key]) { map[key] = {} }
-					map[key][tx.contraAccountId] = (map[key][tx.contraAccountId] || 0) + 1
-				}
+			for (const h of this.txContext.history) {
+				const key = (h.counterparty || '').trim().toLowerCase()
+				if (!key) { continue }
+				if (!map[key]) { map[key] = {} }
+				map[key][h.contraAccountId] = (map[key][h.contraAccountId] || 0) + h.count
 			}
 			return map
 		},
@@ -1202,7 +1212,7 @@ export default {
 			this.budgetCompareBasis = 'actual'
 			this.busy = true
 			try {
-				const jobs = [this.loadBalances(), this.loadJournal(), this.loadSphereReport()]
+				const jobs = [this.loadBalances(), this.loadJournal(), this.loadSphereReport(), this.loadTransactions(this.selectedPeriodId)]
 				const tab = this.activeTab
 				if (tab === 'accounts') {
 					jobs.push(this.loadAccounts())
@@ -1235,7 +1245,7 @@ export default {
 				this.loadAccounts(),
 				this.loadBalances(),
 				this.loadJournal(),
-				this.loadTransactions(),
+				this.loadTransactions(this.selectedPeriodId),
 				this.loadRules(),
 				this.loadSphereReport(),
 				this.loadOpenItems(),
@@ -1500,8 +1510,10 @@ export default {
 		onWindowFocus() {
 			this.checkRevision()
 			// Eine neu abgelegte Datei im Wächter-Ordner ändert den Änderungsstand
-			// nicht – die Kachel soll trotzdem stimmen, wenn man zurückkommt.
-			this.refreshInbox()
+			// nicht – die Kachel soll trotzdem stimmen, wenn man zurückkommt. Der
+			// Fokus wechselt aber oft (Dateidialog, Viewer, anderer Tab): höchstens
+			// einmal je INBOX_FOCUS_MIN_AGE nachfragen, wie die Aufgaben in useTasks.
+			if (Date.now() - this.lastInboxAt >= INBOX_FOCUS_MIN_AGE) { this.refreshInbox() }
 		},
 
 		async checkRevision(init = false) {
@@ -1533,7 +1545,7 @@ export default {
 			// trügen sie noch die tote ID und meldeten reihenweise 404 – so wie
 			// es mounted() aus demselben Grund schon macht.
 			await this.loadPeriods()
-			const jobs = [this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions(), this.loadSphereReport(), this.loadOpenItems(), this.loadCostCenters()]
+			const jobs = [this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions(this.selectedPeriodId), this.loadSphereReport(), this.loadOpenItems(), this.loadCostCenters()]
 			this.refreshInbox()
 			// Aufgaben-Flyout: eine Aenderung anderer Personen kann Aufgaben loesen/schaffen.
 			if (this.canWrite && this.membershipActive) { jobs.push(this.loadTasks()) }
@@ -1841,11 +1853,11 @@ export default {
 			this.bookingView = 'unassigned'
 		},
 
-		async onImported() { await Promise.all([this.loadBalances(), this.loadTransactions()]) },
+		async onImported() { await Promise.all([this.loadBalances(), this.loadTransactions(this.selectedPeriodId)]) },
 
 		// Zahlungen zu Rechnungen buchen und lösen Bankumsätze, Buchungen und Salden (Epic #168).
 		async onInvoicesChanged() {
-			await Promise.all([this.loadTransactions(), this.loadBalances(), this.loadJournal(), this.loadOpenItems(), this.loadPeriods()])
+			await Promise.all([this.loadTransactions(this.selectedPeriodId), this.loadBalances(), this.loadJournal(), this.loadOpenItems(), this.loadPeriods()])
 		},
 
 		async resetAll() {
@@ -1854,7 +1866,7 @@ export default {
 			this.busy = true
 			try {
 				await api.reset(); showSuccess(this.t('Alle Daten gelöscht.'))
-				this.selectedAccountId = null; this.statement = null; this.journalData = []; this.transactions = []
+				this.selectedAccountId = null; this.statement = null; this.journalData = []; this.transactions = []; this.txContext = { history: [], progress: { total: 0, assigned: 0 }, byJournal: {} }
 				// Auswahl auf Anfang: loadPeriods() setzt die Vorgabe nur beim
 				// ersten Mal, deshalb auch das Flag zurück – sonst bliebe nach
 				// dem Löschen „alle Zeiträume" stehen.
@@ -1871,7 +1883,7 @@ export default {
 			try {
 				await api.seedDemo()
 				this.demoActive = true
-				await Promise.all([this.loadPeriods(), this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions()])
+				await Promise.all([this.loadPeriods(), this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions(this.selectedPeriodId)])
 				showSuccess(this.t('Beispielverein angelegt – schauen Sie sich gern um. Zum Starten mit echten Daten: Zurücksetzen.'))
 			} catch (e) { showError(this.errMsg(e, this.t('Beispieldaten konnten nicht angelegt werden'))) } finally { this.busy = false }
 		},
@@ -1946,6 +1958,7 @@ export default {
 
 		async onAssign(tx, value) {
 			const prevContra = tx.contraAccountId
+			const revision = this.attachmentsRevision
 			try {
 				if (value === '') {
 					await api.unassignTransaction(tx.id)
@@ -1953,7 +1966,8 @@ export default {
 						showUndo(this.t('Zuordnung entfernt'), async () => {
 							try {
 								await api.assignTransaction(tx.id, prevContra)
-								await Promise.all([this.loadTransactions(), this.loadBalances(), this.loadJournal(), this.loadSphereReport(), this.loadPeriods()])
+								this.afterOwnJournalWrite(this.attachmentsRevision)
+								await Promise.all([this.loadTransactions(this.selectedPeriodId), this.loadBalances(), this.loadJournal(), this.loadSphereReport(), this.loadPeriods()])
 							} catch (e) { showError(this.errMsg(e, this.t('Wiederherstellen fehlgeschlagen'))) }
 						})
 					}
@@ -1961,10 +1975,11 @@ export default {
 					const { data } = await api.assignTransaction(tx.id, Number(value))
 					await this.linkTxPendingFiles(tx.id, data && data.journalId)
 				}
+				this.afterOwnJournalWrite(revision)
 				// loadPeriods() muss mit: eine Zuordnung legt eine Buchung an (bzw.
 				// loest sie wieder auf), und periods[].bookings speist die
 				// "Erste Schritte"-Karte auf der Uebersicht (Issue #60).
-				await Promise.all([this.loadTransactions(), this.loadBalances(), this.loadJournal(), this.loadSphereReport(), this.loadPeriods()])
+				await Promise.all([this.loadTransactions(this.selectedPeriodId), this.loadBalances(), this.loadJournal(), this.loadSphereReport(), this.loadPeriods()])
 			} catch (e) { showError(this.errMsg(e, this.t('Zuordnung fehlgeschlagen'))) }
 		},
 
@@ -1972,7 +1987,7 @@ export default {
 			if (!await this.askConfirm(this.t('Umsatz löschen'), this.tRaw('Umsatz über {amount} von/an „{counterparty}" endgültig löschen?', { amount: formatMoney(tx.amount), counterparty: tx.counterparty || '' }))) { return }
 			try {
 				await api.deleteTransaction(tx.id)
-				await Promise.all([this.loadTransactions(), this.loadBalances()])
+				await Promise.all([this.loadTransactions(this.selectedPeriodId), this.loadBalances()])
 			} catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
 		},
 
@@ -2012,13 +2027,15 @@ export default {
 				return
 			}
 			try {
+				const revision = this.attachmentsRevision
 				const { data } = await api.assignTransactionParts(tx.id, rows.map((p) => ({ accountId: p.accountId, amount: Number(p.amount) })))
 				showSuccess(this.t('Umsatz aufgeteilt zugeordnet.'))
 				this.closeSplitAssign()
 				await this.linkTxPendingFiles(tx.id, data && data.journalId)
+				this.afterOwnJournalWrite(revision)
 				// loadPeriods() muss mit: die Aufteilung legt Buchungen an, und
 				// periods[].bookings speist die "Erste Schritte"-Karte (Issue #60).
-				await Promise.all([this.loadTransactions(), this.loadBalances(), this.loadJournal(), this.loadSphereReport(), this.loadPeriods()])
+				await Promise.all([this.loadTransactions(this.selectedPeriodId), this.loadBalances(), this.loadJournal(), this.loadSphereReport(), this.loadPeriods()])
 			} catch (e) { showError(this.errMsg(e, this.t('Zuordnung fehlgeschlagen'))) }
 		},
 
@@ -2063,25 +2080,39 @@ export default {
 		// Eigener Wrapper um useJournal.loadJournal (journalLoad), da hier
 		// zusätzlich die Beleg-Zähler nachgeladen werden.
 		async loadJournal() {
-			// Die Belegzähler hängen nicht am Journal: gleichzeitig anfragen
-			// statt erst nach dessen Antwort (wie bisher nicht abgewartet).
-			this.loadAttachmentCounts()
-			await this.journalLoad()
+			// Die Belegzähler hängen nicht am Journal: gleichzeitig anfragen.
+			await Promise.all([this.journalLoad(), this.loadAttachmentCounts()])
 		},
 
 		async loadAttachmentCounts() {
-			try { const { data } = await api.attachmentCounts(); this.attachmentCountMap = data } catch { /* ignorieren */ }
+			try { const { data } = await api.attachmentCounts(this.selectedPeriodId); this.attachmentCountMap = data } catch { /* ignorieren */ }
 		},
 
 		/** Nach jedem Anhängen, Verknüpfen oder Lösen: Zähler und Übersichts-Kacheln nachziehen. */
 		afterAttachmentsChanged() {
+			this.attachmentsRevision++
 			this.loadAttachmentCounts()
 			this.refreshInbox()
 		},
 
+		/**
+		 * Nach einer eigenen Buchungsänderung (Anlegen, Bearbeiten, Löschen,
+		 * Umsatz zuordnen): Belegvorschläge einmal nachladen – eine neue Buchung
+		 * ohne Beleg braucht ihren Vorschlag. Hat afterAttachmentsChanged() im
+		 * selben Ablauf schon gezählt, nicht noch einmal. Abgleich mit fremden
+		 * Änderungen und Zeitraumwechsel laufen nicht hierüber.
+		 *
+		 * @param {number} revisionBefore attachmentsRevision zu Beginn des Ablaufs
+		 */
+		afterOwnJournalWrite(revisionBefore) {
+			if (this.attachmentsRevision === revisionBefore) { this.attachmentsRevision++ }
+		},
+
 		/** Die Kacheln des Wächter-Ordners – nur dort kostet der Aufruf einen Ordnerscan. */
 		refreshInbox() {
-			if (this.watchMode) { this.loadInboxSummary() }
+			if (!this.watchMode) { return }
+			this.lastInboxAt = Date.now()
+			this.loadInboxSummary()
 		},
 
 		async loadAttachments(journalId) {
@@ -2516,10 +2547,11 @@ export default {
 				await api.deleteBooking(id)
 				this.closeBooking()
 				this.refreshInbox()
+				this.afterOwnJournalWrite(this.attachmentsRevision)
 				// Umsätze mitladen – siehe removeBooking().
 				// loadPeriods() wie beim Speichern: periods[].bookings speist die
 				// "Erste Schritte"-Karte (Issue #60).
-				await Promise.all([this.loadJournal(), this.loadTransactions(), this.loadBalances(), this.loadPeriods(), this.reloadStatement()])
+				await Promise.all([this.loadJournal(), this.loadTransactions(this.selectedPeriodId), this.loadBalances(), this.loadPeriods(), this.reloadStatement()])
 			} catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
 		},
 
@@ -2639,11 +2671,14 @@ export default {
 			const payload = commentOnly ? null : (f.splitMode ? this.buildSplitPayload() : this.buildSimplePayload())
 			if (!commentOnly && !payload) { return }
 			this.bookingSaving = true
+			const revision = this.attachmentsRevision
+			let wrote = false
 			try {
 				if (commentOnly) {
 					await this.saveBookingComment(f.id, f.updatedAt)
 				} else if (f.id) {
 					const { data } = await api.updateBooking(f.id, { ...payload, updatedAt: f.updatedAt || null })
+					wrote = true
 					// Neuer Stand sofort ins Formular: scheitert der Kommentar, soll
 					// ein erneuter Klick nicht an der eigenen Aenderung (409) haengen.
 					f.updatedAt = data.updatedAt || null
@@ -2666,6 +2701,7 @@ export default {
 					}
 				} else {
 					const { data } = await api.createBooking(payload)
+					wrote = true
 					// Ab hier existiert die Buchung: scheitert danach Kommentar oder
 					// Beleg-Upload, macht ein erneuter Klick daraus ein Bearbeiten
 					// statt einer zweiten Buchung.
@@ -2704,7 +2740,10 @@ export default {
 					return
 				}
 				showError(this.errMsg(e, this.t('Buchung konnte nicht gespeichert werden')))
-			} finally { this.bookingSaving = false }
+			} finally {
+				this.bookingSaving = false
+				if (wrote) { this.afterOwnJournalWrite(revision) }
+			}
 		},
 
 		/**
@@ -2733,7 +2772,7 @@ export default {
 			// loadPeriods() muss ebenfalls mit: periods[].bookings speist die
 			// "Erste Schritte"-Karte, die sonst die geloeschte Buchung
 			// weiterzaehlt (Issue #60).
-			try { await api.deleteBooking(r.id); this.refreshInbox(); await Promise.all([this.loadJournal(), this.loadTransactions(), this.loadBalances(), this.loadSphereReport(), this.loadPeriods(), this.reloadStatement()]) } catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
+			try { await api.deleteBooking(r.id); this.refreshInbox(); this.afterOwnJournalWrite(this.attachmentsRevision); await Promise.all([this.loadJournal(), this.loadTransactions(this.selectedPeriodId), this.loadBalances(), this.loadSphereReport(), this.loadPeriods(), this.reloadStatement()]) } catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
 		},
 
 		// --- Konten ---

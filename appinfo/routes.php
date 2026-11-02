@@ -20,6 +20,7 @@ return [
 
 		// Bank transactions
 		['name' => 'transaction#index', 'url' => '/api/transactions', 'verb' => 'GET'],
+		['name' => 'transaction#context', 'url' => '/api/transactions/context', 'verb' => 'GET'],
 		['name' => 'transaction#assign', 'url' => '/api/transactions/{id}/assign', 'verb' => 'POST'],
 		['name' => 'transaction#unassign', 'url' => '/api/transactions/{id}/assign', 'verb' => 'DELETE'],
 		['name' => 'transaction#destroy', 'url' => '/api/transactions/{id}', 'verb' => 'DELETE'],
@@ -222,6 +223,7 @@ return [
 
 		// Offene Posten
 		['name' => 'openItem#index', 'url' => '/api/open-items', 'verb' => 'GET'],
+		['name' => 'openItem#counts', 'url' => '/api/open-items/counts', 'verb' => 'GET'],
 		['name' => 'openItem#create', 'url' => '/api/open-items', 'verb' => 'POST'],
 		['name' => 'openItem#markPaid', 'url' => '/api/open-items/{id}/pay', 'verb' => 'POST'],
 		['name' => 'openItem#cancel', 'url' => '/api/open-items/{id}/cancel', 'verb' => 'POST'],

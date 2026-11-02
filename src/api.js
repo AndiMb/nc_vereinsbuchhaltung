@@ -60,6 +60,8 @@ export default {
 
 	// Buchungen (Bankumsätze)
 	listTransactions: (status) => axios.get(url('/transactions'), { params: { status } }),
+	// Historie, Fortschritt und Umsätze der Journal-Zeilen zu den bereits zugeordneten Umsätzen (Issue #255).
+	transactionContext: (period) => axios.get(url('/transactions/context'), { params: { period } }),
 	assignTransaction: (id, contraAccountId) => axios.post(url(`/transactions/${id}/assign`), { contraAccountId }),
 	// Aufteilung auf mehrere Gegenkonten: parts = [{accountId, amount}, …] in Euro
 	assignTransactionParts: (id, parts) => axios.post(url(`/transactions/${id}/assign`), { parts }),
@@ -174,7 +176,8 @@ export default {
 	debtorFromMember: (memberId) => axios.post(url(`/debtors/from-member/${memberId}`)),
 
 	// Offene Posten
-	listOpenItems: () => axios.get(url('/open-items')),
+	listOpenItems: (status) => axios.get(url('/open-items'), { params: status ? { status } : {} }),
+	getOpenItemCounts: () => axios.get(url('/open-items/counts')),
 	createOpenItem: (data) => axios.post(url('/open-items'), data),
 	markOpenItemPaid: (id, journalId) => axios.post(url(`/open-items/${id}/pay`), { journalId: journalId || undefined }),
 	cancelOpenItem: (id) => axios.post(url(`/open-items/${id}/cancel`)),
@@ -394,7 +397,8 @@ export default {
 	dismissWhatsNew: (version) => axios.post(url('/whatsnew/seen'), { version }),
 
 	// Belegablage
-	attachmentCounts: () => axios.get(url('/attachments/counts')),
+	// Zähler nur für Buchungen der gewählten Periode (ohne `period`: alle).
+	attachmentCounts: (period) => axios.get(url('/attachments/counts'), { params: { period } }),
 	listAttachments: (journalId) => axios.get(url(`/journal/${journalId}/attachments`)),
 	uploadAttachment: (journalId, formData) => axios.post(url(`/journal/${journalId}/attachments`), formData),
 	deleteAttachment: (id) => axios.delete(url(`/attachments/${id}`)),

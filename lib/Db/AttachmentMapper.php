@@ -41,16 +41,28 @@ class AttachmentMapper extends QBMapper {
 	/**
 	 * Anzahl der Anhänge je Journal-ID sowie die ID des ersten Anhangs (für Direktlinks).
 	 *
+	 * Mit Datumsgrenzen (ISO-Datum, inklusive) nur für Buchungen in diesem
+	 * Bereich; ohne Grenzen für alle.
+	 *
 	 * @return array<int, array{count: int, firstId: int}> journalId => {count, firstId}
 	 */
-	public function countByUser(string $userId): array {
+	public function countByUser(string $userId, ?string $from = null, ?string $to = null): array {
 		$qb = $this->db->getQueryBuilder();
-		$qb->select('journal_id')
-			->selectAlias($qb->func()->count('id'), 'cnt')
-			->selectAlias($qb->func()->min('id'), 'first_id')
-			->from($this->getTableName())
-			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
-			->groupBy('journal_id');
+		$qb->select('a.journal_id')
+			->selectAlias($qb->func()->count('a.id'), 'cnt')
+			->selectAlias($qb->func()->min('a.id'), 'first_id')
+			->from($this->getTableName(), 'a')
+			->where($qb->expr()->eq('a.user_id', $qb->createNamedParameter($userId)))
+			->groupBy('a.journal_id');
+		if ($from !== null || $to !== null) {
+			$qb->innerJoin('a', 'vbh_journal', 'j', $qb->expr()->eq('a.journal_id', 'j.id'));
+			if ($from !== null) {
+				$qb->andWhere($qb->expr()->gte('j.date', $qb->createNamedParameter($from)));
+			}
+			if ($to !== null) {
+				$qb->andWhere($qb->expr()->lte('j.date', $qb->createNamedParameter($to)));
+			}
+		}
 		$res = $qb->executeQuery();
 		$out = [];
 		while (($row = $res->fetch()) !== false) {

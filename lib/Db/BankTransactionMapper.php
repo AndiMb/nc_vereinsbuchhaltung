@@ -131,6 +131,89 @@ class BankTransactionMapper extends EncryptingMapper {
 	}
 
 	/**
+	 * Wie oft wurde je Zahlungspartner welches Gegenkonto gewählt? Grundlage der
+	 * Zuordnungsvorschläge (Issue #255): statt aller zugeordneten Umsätze samt
+	 * Entschlüsselung der IBAN reichen der Name und der Zähler. Bewusst ohne
+	 * Entity-Mapping.
+	 *
+	 * @return list<array{counterparty:string, contraAccountId:int, count:int}>
+	 */
+	public function counterpartyHistory(string $userId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('counterparty', 'contra_account_id')
+			->selectAlias($qb->func()->count('*'), 'cnt')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+			->andWhere($qb->expr()->eq('status', $qb->createNamedParameter('assigned')))
+			->andWhere($qb->expr()->isNotNull('contra_account_id'))
+			->andWhere($qb->expr()->neq('counterparty', $qb->createNamedParameter('')))
+			->groupBy('counterparty', 'contra_account_id');
+
+		$out = [];
+		$result = $qb->executeQuery();
+		while (($row = $result->fetch()) !== false) {
+			if ($row['counterparty'] === null) {
+				continue;
+			}
+			$out[] = [
+				'counterparty' => (string)$row['counterparty'],
+				'contraAccountId' => (int)$row['contra_account_id'],
+				'count' => (int)$row['cnt'],
+			];
+		}
+		$result->closeCursor();
+		return $out;
+	}
+
+	/**
+	 * Anzahl aller Umsätze und der zugeordneten davon (Fortschrittsbalken).
+	 *
+	 * @return array{total:int, assigned:int}
+	 */
+	public function statusCounts(string $userId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('status')
+			->selectAlias($qb->func()->count('*'), 'cnt')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+			->groupBy('status');
+
+		$total = 0;
+		$assigned = 0;
+		$result = $qb->executeQuery();
+		while (($row = $result->fetch()) !== false) {
+			$total += (int)$row['cnt'];
+			if ($row['status'] === 'assigned') {
+				$assigned += (int)$row['cnt'];
+			}
+		}
+		$result->closeCursor();
+		return ['total' => $total, 'assigned' => $assigned];
+	}
+
+	/**
+	 * Zugeordnete Umsätze, deren Buchung im Zeitraum liegt (Filter auf das
+	 * Buchungsdatum des Journals, nicht auf das Bankdatum). Ohne Grenzen alle.
+	 *
+	 * @return list<BankTransaction>
+	 */
+	public function findAssignedInRange(string $userId, ?string $from, ?string $to): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('t.*')
+			->from($this->getTableName(), 't')
+			->innerJoin('t', 'vbh_journal', 'j', $qb->expr()->eq('j.id', 't.journal_id'))
+			->where($qb->expr()->eq('t.user_id', $qb->createNamedParameter($userId)))
+			->andWhere($qb->expr()->eq('t.status', $qb->createNamedParameter('assigned')));
+		if ($from !== null) {
+			$qb->andWhere($qb->expr()->gte('j.date', $qb->createNamedParameter($from)));
+		}
+		if ($to !== null) {
+			$qb->andWhere($qb->expr()->lte('j.date', $qb->createNamedParameter($to)));
+		}
+		return $this->findEntities($qb);
+	}
+
+	/**
 	 * @return BankTransaction[]
 	 */
 	public function findFiltered(string $userId, ?string $status = null, int $limit = 500, int $offset = 0): array {

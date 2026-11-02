@@ -751,6 +751,8 @@ export default {
 		// Ob das Rechnungsmodul eingeschaltet ist - dann kommen zu Zahlungseingängen Vorschläge für offene Rechnungen (Epic #168).
 		invoicesActive: { type: Boolean, default: false },
 		attachmentCountMap: { type: Object, required: true },
+		// Zählt Änderungen an Belegen (App.vue: afterAttachmentsChanged); Anlass, die Vorschläge nachzuladen.
+		attachmentsRevision: { type: Number, default: 0 },
 		// suggestionsById bleibt in App.vue berechnet (wird auch vom
 		// AccountPickerSheet-Flow dort gebraucht), hier nur als Prop gelesen.
 		suggestionsById: { type: Object, required: true },
@@ -839,7 +841,7 @@ export default {
 			lastSelectedId: null,
 			bulkBusy: false,
 			openItemForm: { debtor: '', description: '', amount: '', dueDate: '', accountId: null },
-			openItemFilter: 'open',
+			openItemFilter: this.openItemFilterKey,
 			// Umsatz-ID => Vorschläge offener Rechnungen (GET /api/invoices/suggestions)
 			invoiceSuggestions: {},
 			invoiceBusy: null,
@@ -985,15 +987,8 @@ export default {
 
 		// Verknüpft Journal-Zeilen mit ihrer bankstämmigen Buchung, damit in
 		// "Alle Buchungen" direkt eine Zuordnungsregel angelegt werden kann.
-		txByJournalId() {
-			const map = {}
-			for (const t of this.transactions) {
-				if (t.journalId && t.status === 'assigned' && t.counterparty && t.contraAccountId) {
-					map[t.journalId] = t
-				}
-			}
-			return map
-		},
+		// Kommt fertig gefiltert vom Server (Zeitraum, Zahlungspartner, Gegenkonto).
+		txByJournalId() { return this.txContext.byJournal },
 
 		unassignedTransactions() { return this.transactions.filter((t) => t.status === 'unassigned') },
 		transactionSearchIndex() { return buildSearchIndex(this.unassignedTransactions, transactionSearch.fields, transactionSearch.cents) },
@@ -1009,8 +1004,7 @@ export default {
 		},
 
 		assignProgress() {
-			const total = this.transactions.length
-			const done = this.transactions.filter((t) => t.status === 'assigned').length
+			const { total, assigned: done } = this.txContext.progress
 			return { total, done, pct: total ? Math.round((done / total) * 100) : 0 }
 		},
 
@@ -1023,15 +1017,16 @@ export default {
 		// (nur Forderungen) erscheinen erst, wenn es sie gibt. Der Reiter-Badge zählt
 		// genau die überfälligen; so lässt sich seine Zahl in der Liste nachvollziehen.
 		openItemFilterOptions() {
-			const count = (status) => this.openItems.filter((o) => o.status === status).length
-			const overdue = this.openItems.filter((o) => o.status === 'open' && o.overdue).length
+			// Die Zähler kommen aus der Datenbank (openItemCounts), nicht aus der geladenen Liste:
+			// diese enthält nur den gewählten Status.
+			const c = this.openItemCounts
 			return [
-				{ key: 'open', label: this.t('Offen'), count: count('open') },
-				...(overdue > 0 ? [{ key: 'overdue', label: this.t('Überfällig'), count: overdue }] : []),
-				{ key: 'paid', label: this.t('Bezahlt'), count: count('paid') },
-				...(count('waived') > 0 ? [{ key: 'waived', label: this.t('Erlassen'), count: count('waived') }] : []),
-				{ key: 'cancelled', label: this.t('Storniert'), count: count('cancelled') },
-				{ key: 'all', label: this.t('Alle'), count: this.openItems.length },
+				{ key: 'open', label: this.t('Offen'), count: c.open },
+				...(c.overdue > 0 ? [{ key: 'overdue', label: this.t('Überfällig'), count: c.overdue }] : []),
+				{ key: 'paid', label: this.t('Bezahlt'), count: c.paid },
+				...(c.waived > 0 ? [{ key: 'waived', label: this.t('Erlassen'), count: c.waived }] : []),
+				{ key: 'cancelled', label: this.t('Storniert'), count: c.cancelled },
+				{ key: 'all', label: this.t('Alle'), count: c.all },
 			]
 		},
 
@@ -1059,7 +1054,13 @@ export default {
 			if (this.$refs.searchField) { this.$refs.searchField.value = '' }
 			this.bookingSearch = ''
 			this.clearJournalSelection()
-			if (v === 'openitems') { this.loadOpenItems() }
+			if (v === 'openitems') { this.loadOpenItems(this.activeOpenItemFilter) }
+		},
+
+		// Ein Filterwechsel lädt den gewählten Status nach (auch der Rückfall auf „Offen“,
+		// wenn der gewählte Chip verschwindet). Nachladen nach Aktionen behält den Filter.
+		activeOpenItemFilter(key) {
+			if (this.bookingView === 'openitems') { this.loadOpenItems(key) }
 		},
 
 		// Eine Auswahl gilt für die Buchungen, die gerade auf dem Schirm sind:
@@ -1069,9 +1070,10 @@ export default {
 			this.loadReceiptSuggestions()
 		},
 
-		// Nach jeder Änderung an Buchungen oder Belegen (App.vue lädt die Zähler
-		// dann neu) und beim Ein-/Ausschalten des Wächter-Ordners.
-		attachmentCountMap() { this.loadReceiptSuggestions() },
+		// Nach jeder Änderung an Belegen und beim Ein-/Ausschalten des
+		// Wächter-Ordners. Nicht an attachmentCountMap: die legt jedes Nachladen
+		// des Journals neu an, und jeder Abruf kostet einen Ordnerscan.
+		attachmentsRevision() { this.loadReceiptSuggestions() },
 		suggestionsActive() { this.loadReceiptSuggestions() },
 		bulkSelectable(v) { if (!v) { this.clearJournalSelection() } },
 
@@ -1083,7 +1085,7 @@ export default {
 	mounted() {
 		this.loadReceiptSuggestions()
 		this.loadInvoiceSuggestions()
-		if (this.bookingView === 'openitems') { this.loadOpenItems() }
+		if (this.bookingView === 'openitems') { this.loadOpenItems(this.activeOpenItemFilter) }
 		this.applyJournalVisibility()
 	},
 
