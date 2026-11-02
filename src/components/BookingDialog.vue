@@ -178,7 +178,7 @@
 									</button>
 								</div>
 								<ul v-if="pendingFiles.length" class="vbh-attachment-list">
-									<li v-for="(pf, i) in pendingFiles" :key="i" class="vbh-attachment-item">
+									<li v-for="(pf, i) in pendingFiles" :key="pendingKey(pf)" class="vbh-attachment-item">
 										<NcIconSvgWrapper :path="pf.kind === 'link' ? mdiFolderOutline : mdiPaperclip" :size="14" class="vbh-attachment-icon" />
 										<span class="vbh-attachment-name">{{ pf.name }}</span>
 										<span class="vbh-attachment-size">{{ formatFileSize(pf.size) }}</span>
@@ -301,7 +301,7 @@
 							</span>
 						</div>
 						<ul class="vbh-split-list">
-							<li v-for="(line, i) in splitLines" :key="i" class="vbh-split-row">
+							<li v-for="(line, i) in splitLines" :key="line.uid ?? i" class="vbh-split-row">
 								<button
 									v-if="isMobile"
 									type="button"
@@ -490,7 +490,7 @@
 								<span class="vbh-pending-title">{{ t('Wird beim Speichern angehängt') }}</span>
 							</div>
 							<ul class="vbh-attachment-list">
-								<li v-for="(pf, i) in pendingFiles" :key="i" class="vbh-attachment-item">
+								<li v-for="(pf, i) in pendingFiles" :key="pendingKey(pf)" class="vbh-attachment-item">
 									<NcIconSvgWrapper :path="pf.kind === 'link' ? mdiFolderOutline : mdiPaperclip" :size="14" class="vbh-attachment-icon" />
 									<span class="vbh-attachment-name">{{ pf.name }}</span>
 									<span class="vbh-attachment-size">{{ formatFileSize(pf.size) }}</span>
@@ -607,6 +607,7 @@ import { autogrow } from '../lib/autogrow.js'
 import { onlyDefaultMoneyAccountAdded } from '../lib/bookingSnapshot.js'
 import { opensFolderPanel, readFolderPanelOpen, writeFolderPanelOpen } from '../lib/folderPanelMemory.js'
 import { formatFileSize, formatMoney } from '../lib/format.js'
+import { newUid } from '../lib/rowKeys.js'
 import { isSelectableOption } from '../lib/selectOptions.js'
 import { splitBalanced, splitRemainder, splitSideOf } from '../lib/split.js'
 import { stickyShadow } from '../lib/stickyShadow.js'
@@ -904,8 +905,8 @@ export default {
 				const lines = this.splitLines.length
 					? this.splitLines
 					: [
-							{ accountId: first || null, amount: first ? (f.amount || null) : null },
-							{ accountId: null, amount: null },
+							{ uid: newUid(), accountId: first || null, amount: first ? (f.amount || null) : null },
+							{ uid: newUid(), accountId: null, amount: null },
 						]
 				this.updateForm({ splitMode: true, splitLines: lines })
 			},
@@ -1028,6 +1029,11 @@ export default {
 			this.patchSplitLine(index, { amount: (value === '' || value === null) ? null : Number(value) })
 		},
 
+		/** Schluessel einer Wartelisten-Zeile: Ordnerdatei nach ID, hochzuladende Datei nach Name, Groesse und Stand. */
+		pendingKey(pf) {
+			return pf.kind === 'link' ? 'l' + pf.fileId : pf.name + '|' + pf.size + '|' + pf.lastModified
+		},
+
 		patchSplitLine(index, patch) {
 			this.updateForm({
 				splitLines: this.splitLines.map((l, i) => (i === index ? { ...l, ...patch } : l)),
@@ -1035,7 +1041,7 @@ export default {
 		},
 
 		addSplitLine() {
-			this.updateForm({ splitLines: [...this.splitLines, { accountId: null, amount: null }] })
+			this.updateForm({ splitLines: [...this.splitLines, { uid: newUid(), accountId: null, amount: null }] })
 		},
 
 		removeSplitLine(index) {

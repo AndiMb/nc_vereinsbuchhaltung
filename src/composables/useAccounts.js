@@ -2,6 +2,7 @@ import { showError } from '@nextcloud/dialogs'
 import { computed, reactive, shallowRef } from 'vue'
 import api from '../api.js'
 import { accountCategoryLabel } from '../lib/accountFilter.js'
+import { deCollator } from '../lib/collator.js'
 import { errMsg } from '../lib/format.js'
 import { t } from '../lib/l10n.js'
 
@@ -16,7 +17,7 @@ const accountsById = computed(() => {
 	return map
 })
 
-const accountsSorted = computed(() => state.accounts.slice().sort((a, b) => String(a.number).localeCompare(String(b.number), 'de', { numeric: true })))
+const accountsSorted = computed(() => state.accounts.slice().sort((a, b) => deCollator.compare(String(a.number), String(b.number))))
 
 const childrenOf = computed(() => {
 	const map = {}

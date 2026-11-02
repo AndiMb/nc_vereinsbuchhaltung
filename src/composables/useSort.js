@@ -1,4 +1,5 @@
 import { reactive } from 'vue'
+import { deCollator } from '../lib/collator.js'
 
 // Die Sortierung der Tabellen (Bankumsaetze, Saldenliste, Journal, Kontoauszug,
 // Rechnungen).
@@ -69,7 +70,7 @@ export function applySort(rows, state, lexKeys = []) {
 			return (sx < sy ? -1 : sx > sy ? 1 : 0) * f
 		}
 		if (typeof x === 'number' && typeof y === 'number') { return (x - y) * f }
-		return String(x).localeCompare(String(y), 'de', { numeric: true, sensitivity: 'base' }) * f
+		return deCollator.compare(String(x), String(y)) * f
 	})
 }
 

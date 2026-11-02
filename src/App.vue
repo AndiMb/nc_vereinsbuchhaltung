@@ -491,6 +491,7 @@ import { withPasswordConfirmation } from './lib/passwordGate.js'
 import { linkFilesToBookings } from './lib/receiptBatch.js'
 import { bookingsContext, txContext } from './lib/receiptPreview.js'
 import { reimbursementBookingPrefill } from './lib/reimbursements.js'
+import { newUid } from './lib/rowKeys.js'
 import { splitBalanced, splitRemainder, splitSideOf } from './lib/split.js'
 
 // Selten gebrauchte Reiter und Dialoge sind eigene Webpack-Chunks und werden erst
@@ -1576,13 +1577,14 @@ export default {
 			await this.loadPeriods()
 			const jobs = [this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions(this.selectedPeriodId), this.loadSphereReport(), this.loadOpenItems(), this.loadCostCenters()]
 			this.refreshInbox()
-			// Aufgaben-Flyout: eine Aenderung anderer Personen kann Aufgaben loesen/schaffen.
-			if (this.canWrite && this.membershipActive) { jobs.push(this.loadTasks()) }
 			if (this.activeTab === 'accounts' && this.selectedAccountId) { jobs.push(this.loadStatement(this.selectedAccountId)) }
 			if (this.activeTab === 'reports') {
 				if (this.reportView === 'costcenters') { jobs.push(this.loadReport()) } else if (this.reportView === 'budget') { jobs.push(this.loadBudget()) } else if (this.reportView === 'structure') { this.structuredRefreshKey++ }
 			}
 			try { await Promise.all(jobs) } catch { /* nächster Poll versucht es erneut */ }
+			// Aufgaben-Flyout (useTasks): eine Änderung anderer Personen kann Aufgaben lösen oder
+			// schaffen. Das Ereignis ersetzt den früheren Fokus-Listener; useTasks hört darauf.
+			window.dispatchEvent(new CustomEvent('vbh:remote-change'))
 		},
 
 		/**
@@ -2030,8 +2032,8 @@ export default {
 				open: true,
 				tx,
 				parts: [
-					{ accountId: suggestion ? suggestion.accountId : null, amount: null },
-					{ accountId: null, amount: null },
+					{ uid: newUid(), accountId: suggestion ? suggestion.accountId : null, amount: null },
+					{ uid: newUid(), accountId: null, amount: null },
 				],
 			}
 		},
@@ -2621,6 +2623,7 @@ export default {
 			f.splitMode = true
 			f.splitSide = side
 			f.splitLines = parts.map((l) => ({
+				uid: newUid(),
 				accountId: l.accountId,
 				amount: (side === 'credit' ? l.creditCents : l.debitCents) / 100,
 			}))

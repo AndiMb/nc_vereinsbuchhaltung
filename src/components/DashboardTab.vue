@@ -483,7 +483,7 @@ export default {
 		// Chart.js malt die Farben einmal ins Canvas; ohne Neuzeichnen bliebe
 		// nach einem Designwechsel das alte Bild stehen.
 		this.stopThemeWatch = onThemeChange(() => {
-			if (this.isActive) { this.renderMonthlyChart() }
+			if (this.isActive) { this.renderMonthlyChart(true) }
 		})
 	},
 
@@ -580,17 +580,19 @@ export default {
 			}
 		},
 
-		async renderMonthlyChart() {
+		/**
+		 * @param {boolean} [rebuild] Instanz neu bauen statt aktualisieren (Designwechsel: die Farben stecken in den Optionen und Zeichnungen)
+		 */
+		async renderMonthlyChart(rebuild = false) {
 			if (!this.$refs.monthlyChart) { return }
 			const Chart = await loadChart()
 			// Waehrend des Nachladens kann der Tab verlassen oder ein zweiter
 			// Zeichenauftrag gestartet worden sein: Zustand neu pruefen.
 			const canvas = this.$refs.monthlyChart
 			if (!canvas) { return }
-			this.destroyChart('monthly')
 			const { labels, income, expense } = this.monthlyChartData
 			const theme = chartTheme()
-			this.chartInstances.monthly = new Chart(canvas, {
+			const config = {
 				type: 'bar',
 				data: {
 					labels,
@@ -642,7 +644,19 @@ export default {
 						},
 					},
 				},
-			})
+			}
+
+			// Vorhandene Instanz nur mit neuen Daten aktualisieren (ohne Animation); neu gebaut
+			// wird ohne Instanz, bei einem Designwechsel oder wenn die Zeichenfläche eine andere ist.
+			const chart = this.chartInstances.monthly
+			if (chart && !rebuild && chart.canvas === canvas) {
+				chart.data = config.data
+				chart.options = config.options
+				chart.update('none')
+				return
+			}
+			this.destroyChart('monthly')
+			this.chartInstances.monthly = new Chart(canvas, config)
 		},
 	},
 }

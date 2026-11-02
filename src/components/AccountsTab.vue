@@ -146,7 +146,7 @@
 							<span class="vbh-mcard-amount" :class="amountClass(statement.carry)">{{ formatMoney(statement.carry) }}</span>
 						</div>
 					</div>
-					<div v-for="(row, i) in statementRows" :key="'m' + i" class="vbh-mcard">
+					<div v-for="(row, i) in statementRows" :key="'m' + statementKeys[i]" class="vbh-mcard">
 						<div class="vbh-mcard-top">
 							<span class="vbh-mcard-meta">#{{ row.entryNo }} · {{ formatDate(row.date) }}</span>
 							<span class="vbh-mcard-amount" :class="statementRowNet(row) < 0 ? 'neg' : 'pos'">{{ formatMoney(statementRowNet(row)) }}</span>
@@ -384,6 +384,7 @@ import { useBalances } from '../composables/useBalances.js'
 import { usePeriods } from '../composables/usePeriods.js'
 import { useSort } from '../composables/useSort.js'
 import { amountClass, formatDate, formatMoney, typeLabel } from '../lib/format.js'
+import { statementRowKeys } from '../lib/rowKeys.js'
 
 export default {
 	name: 'AccountsTab',
@@ -572,6 +573,8 @@ export default {
 		// Den laufenden Saldo je Zeile rechnet der Server (AccountStatementService),
 		// damit Bildschirm und Kontenblatt-Export dieselben Zahlen zeigen.
 		statementRows() { return this.statement ? this.statement.rows : [] },
+		/** Ein Schluessel je Zeile von statementRows (journalId + accountId, siehe lib/rowKeys.js). */
+		statementKeys() { return statementRowKeys(this.statementRows) },
 
 		accountStatementCsvUrl() {
 			return api.accountStatementCsvUrl(this.statement.account.id, this.statement.periodId, this.statement.includeChildren)

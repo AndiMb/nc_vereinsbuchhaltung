@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { footerKind, moved, narrow, newGroup, newLevel, newSection, outline, starterDefinition, validate, withLevelBy } from './reportDefinition.js'
+import { footerKind, moved, narrow, newGroup, newLevel, newSection, outline, starterDefinition, stripUids, validate, withLevelBy, withUids } from './reportDefinition.js'
 
 // Dieselben Fälle wie tests/unit/ReportDefinitionTest.php: Client und Server
 // sollen eine Vorlage gleich beurteilen.
@@ -117,5 +117,24 @@ describe('reportDefinition', () => {
 			{ depth: 0, text: 'Gesamteinnahmen', kind: 'sum' },
 			{ depth: 0, text: 'Saldo', kind: 'result' },
 		])
+	})
+})
+
+describe('withUids / stripUids', () => {
+	it('gibt Spalten und verschachtelten Abschnitten ein uid und nimmt es wieder weg', () => {
+		const def = minimal({
+			columns: [{ source: 'plan', periodOffset: 0 }],
+			sections: [{ ...newSection('A'), uid: undefined, levels: null, sections: [{ ...newSection('B'), uid: undefined }] }],
+		})
+		const withIds = withUids(def)
+		expect(withIds.columns[0].uid).toBeTruthy()
+		expect(withIds.sections[0].uid).toBeTruthy()
+		expect(withIds.sections[0].sections[0].uid).toBeTruthy()
+		expect(withIds.sections[0].uid).not.toBe(withIds.sections[0].sections[0].uid)
+		const stripped = stripUids(withIds)
+		expect(stripped.columns[0]).toEqual({ source: 'plan', periodOffset: 0 })
+		expect('uid' in stripped.sections[0]).toBe(false)
+		expect('uid' in stripped.sections[0].sections[0]).toBe(false)
+		expect(stripped.sections[0].title).toBe('A')
 	})
 })

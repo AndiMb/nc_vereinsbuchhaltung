@@ -2,7 +2,8 @@
 	<div>
 		<div class="vbh-memberfilter">
 			<label class="vbh-memberfilter-search">{{ t('Suchen') }}
-				<input v-model="search" type="search" :placeholder="t('Name, IBAN, Mitgliedsnummer oder E-Mail')">
+				<!-- Bewusst ohne v-model: gefiltert wird erst über das entprellte search (onSearchInput). -->
+				<input type="search" :placeholder="t('Name, IBAN, Mitgliedsnummer oder E-Mail')" @input="onSearchInput">
 			</label>
 			<NcCheckboxRadioSwitch v-model="onlyProblems">
 				{{ t('nur Auffälligkeiten') }}
@@ -191,6 +192,7 @@ import { useMemberAkteRequest } from '../composables/useMemberAkteRequest.js'
 import { useMembers } from '../composables/useMembers.js'
 import { usePeriods } from '../composables/usePeriods.js'
 import { copyText } from '../lib/clipboard.js'
+import { deCollator } from '../lib/collator.js'
 import { errMsg, formatDate, formatMoney } from '../lib/format.js'
 import { createMandateForMember } from '../lib/mandateCreate.js'
 import { collectEmails, EMAIL_SEPARATOR } from '../lib/memberEmails.js'
@@ -299,7 +301,7 @@ export default {
 			}
 			return this.members
 				.map((member) => buildMemberRow(member, sources))
-				.sort((a, b) => a.displayName.localeCompare(b.displayName, 'de'))
+				.sort((a, b) => deCollator.compare(a.displayName, b.displayName))
 		},
 
 		filteredRows() {
@@ -348,6 +350,10 @@ export default {
 		},
 	},
 
+	beforeUnmount() {
+		clearTimeout(this.searchTimer)
+	},
+
 	mounted() {
 		this.loadMembers()
 		this.loadMandates()
@@ -360,6 +366,18 @@ export default {
 	methods: {
 		errMsg,
 		formatDate,
+
+		// Entprellt: gefiltert wird erst, wenn die Eingabe kurz ruht. Leeren wirkt sofort.
+		onSearchInput(event) {
+			const v = event.target.value
+			clearTimeout(this.searchTimer)
+			if (!v.trim()) {
+				this.search = ''
+				return
+			}
+			this.searchTimer = setTimeout(() => { this.search = v }, 150)
+		},
+
 		formatMoney,
 		/** Von der Kopfzeile in ContributionsTab.vue per $refs aufgerufen. */
 		openMemberDialog() { this.editingMember = null; this.akteSection = ''; this.memberDialogOpen = true },

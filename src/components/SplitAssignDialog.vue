@@ -37,7 +37,7 @@
 					</span>
 				</div>
 				<ul class="vbh-split-list">
-					<li v-for="(part, i) in parts" :key="i" class="vbh-split-row">
+					<li v-for="(part, i) in parts" :key="part.uid ?? i" class="vbh-split-row">
 						<button
 							v-if="isMobile"
 							type="button"
@@ -109,6 +109,7 @@ import NcSelect from '@nextcloud/vue/components/NcSelect'
 import AmountInput from './AmountInput.vue'
 import { useAccounts } from '../composables/useAccounts.js'
 import { formatDate, formatMoney } from '../lib/format.js'
+import { newUid } from '../lib/rowKeys.js'
 import { isSelectableOption } from '../lib/selectOptions.js'
 import { splitBalanced, splitRemainder } from '../lib/split.js'
 
@@ -221,7 +222,7 @@ export default {
 		},
 
 		addPart() {
-			this.$emit('update:parts', [...this.parts, { accountId: null, amount: null }])
+			this.$emit('update:parts', [...this.parts, { uid: newUid(), accountId: null, amount: null }])
 		},
 
 		removePart(index) {
