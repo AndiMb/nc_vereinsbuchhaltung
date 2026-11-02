@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Middleware;
 
-use OCA\Vereinsbuchhaltung\Controller\L10nController;
 use OCA\Vereinsbuchhaltung\Controller\MandateConsentController;
 use OCA\Vereinsbuchhaltung\Controller\PageController;
 use OCA\Vereinsbuchhaltung\Controller\PermissionController;
@@ -44,7 +43,7 @@ use OCP\IRequest;
  * anonyme, login-lose Zustimmungsseite des elektronischen Einmal-Links
  * (funktioniert bewusst auch ohne NC-Konto). Seine eigene Absicherung ist der
  * kryptographisch geprüfte Token selbst, siehe dortige Klassendoku - hier
- * genügt derselbe komplette Überspringen wie bei Page-/L10nController.
+ * genügt derselbe komplette Überspringen wie beim PageController.
  */
 class PermissionMiddleware extends Middleware {
 
@@ -60,12 +59,6 @@ class PermissionMiddleware extends Middleware {
 
 	public function beforeController(Controller $controller, string $methodName): void {
 		if ($controller instanceof PageController) {
-			return;
-		}
-		// Übersetzungen sind keine Vereinsdaten: ohne sie stünde selbst der
-		// Hinweis "Kein Lesezugriff" in der falschen Sprache vor jemandem, der
-		// noch keine Rolle hat.
-		if ($controller instanceof L10nController) {
 			return;
 		}
 		if ($controller instanceof MandateConsentController) {

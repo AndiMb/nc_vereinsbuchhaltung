@@ -486,6 +486,7 @@ import { useSort } from './composables/useSort.js'
 import { useSync } from './composables/useSync.js'
 import { useTasks } from './composables/useTasks.js'
 import { buildWhatsNewEntries, filterWhatsNewEntries } from './data/whatsNew.js'
+import { takeBootState } from './lib/bootState.js'
 import { amountClass, budgetDiffClass, errMsg, formatDate, formatDateTime, formatMoney, typeLabel } from './lib/format.js'
 import { withPasswordConfirmation } from './lib/passwordGate.js'
 import { linkFilesToBookings } from './lib/receiptBatch.js'
@@ -1608,7 +1609,8 @@ export default {
 		// demoActive/membershipActive.
 		async loadStorageSettings() {
 			try {
-				const { data } = await api.getSettings()
+				// Beim Start bringt die Seite die Einstellungen mit (Initial State, Issue #264).
+				const data = takeBootState('settings') ?? (await api.getSettings()).data
 				this.costCenterMode = data.cost_center_mode || 'group'
 				this.amountDisplay = data.amount_display === 'signed' ? 'signed' : 'plain'
 				this.storageMode = data.storage_mode || 'appdata'

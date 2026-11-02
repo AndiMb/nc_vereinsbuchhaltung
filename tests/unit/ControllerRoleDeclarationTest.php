@@ -107,8 +107,8 @@ class ControllerRoleDeclarationTest extends TestCase {
 
 	/**
 	 * Kern der Buchhaltung: bleibt unverändert bei der Verb-Heuristik (gleiche
-	 * Grenze wie im Issue #119). PageController, L10nController, HelpController
-	 * und BrandingController::view liefern Seiten/Assets des Gefäßes.
+	 * Grenze wie im Issue #119). PageController, HelpController und
+	 * BrandingController::view liefern Seiten/Assets des Gefäßes.
 	 *
 	 * OpenItemController gehört trotz der Forderungen des Moduls (liegen in
 	 * derselben Tabelle `vbh_open_items`) zum Kern: er stammt aus der
@@ -127,7 +127,6 @@ class ControllerRoleDeclarationTest extends TestCase {
 		'HelpController',
 		'ImportController',
 		'JournalController',
-		'L10nController',
 		'OpenItemController',
 		'PageController',
 		'PeriodController',

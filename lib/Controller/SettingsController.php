@@ -6,14 +6,13 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
-use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\AttachmentWatchFolderService;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
-use OCA\Vereinsbuchhaltung\Service\DemoDataService;
 use OCA\Vereinsbuchhaltung\Service\DunningSettings;
 use OCA\Vereinsbuchhaltung\Service\FolderPathValidator;
+use OCA\Vereinsbuchhaltung\Service\FrontendStateService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
 use OCA\Vereinsbuchhaltung\Service\MandateDocumentService;
 use OCA\Vereinsbuchhaltung\Service\MandateExpirySettings;
@@ -39,28 +38,18 @@ class SettingsController extends Controller {
 
 	use BookContext;
 
-	/**
-	 * Darstellung der Beträge in Übersicht, „Alle Buchungen" und „Zuzuordnen":
-	 * 'plain' zeigt Buchungsbeträge neutral, wie der Buchungssatz sie kennt
-	 * (ohne Vorzeichen und Farbe), Bankumsätze wie bisher mit dem Vorzeichen
-	 * der Bank und rotem Abgang. 'signed' macht Einnahmen und Ausgaben überall
-	 * mit Vorzeichen und Farbe kenntlich. Ab Werk 'plain' – Buchungssätze haben
-	 * kein Vorzeichen, die Richtung ergibt sich aus Soll und Haben.
-	 */
-	public const AMOUNT_DISPLAYS = ['plain', 'signed'];
+	/** Siehe FrontendStateService::AMOUNT_DISPLAYS. */
+	public const AMOUNT_DISPLAYS = FrontendStateService::AMOUNT_DISPLAYS;
 
 	public function __construct(
 		IRequest $request,
 		private IConfig $config,
 		private PermissionService $permissionService,
-		private DemoDataService $demoService,
 		private AccountMapper $accountMapper,
-		private MemberMapper $memberMapper,
 		private IUserManager $userManager,
 		private SepaDebtorAccountService $sepaDebtorAccount,
 		private AttachmentStorageService $attachmentStorage,
 		private AttachmentWatchFolderService $attachmentWatchFolder,
-		private MandateDocumentService $mandateDocuments,
 		private ContributionYearService $contributionYear,
 		private FolderPathValidator $folderPathValidator,
 		private DunningSettings $dunningSettings,
@@ -68,6 +57,7 @@ class SettingsController extends Controller {
 		private InvoiceSettings $invoiceSettings,
 		private ReimbursementSettings $reimbursementSettings,
 		private IL10N $l10n,
+		private FrontendStateService $frontendState,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -133,75 +123,10 @@ class SettingsController extends Controller {
 		return $this->folderPathValidator->validate($path, $pathLabel);
 	}
 
-	/** Gespeicherte Betragsdarstellung; ein unbekannter Wert gilt als Standard. */
-	private function amountDisplay(): string {
-		$display = $this->config->getAppValue(Application::APP_ID, 'amount_display', 'plain');
-		return in_array($display, self::AMOUNT_DISPLAYS, true) ? $display : 'plain';
-	}
-
-	/**
-	 * Der vollständige, aktuell gespeicherte Einstellungssatz. Gemeinsame
-	 * Grundlage für index() und die Antwort von update(): zwei getrennte
-	 * Formulare (Einstellungsseite, Kostenstellen-Modus in ReportsTab)
-	 * schreiben seit der Aufteilung in Nextcloud-Einstellungen jeweils nur
-	 * ihre eigenen Felder (siehe update()), sollen aber beide denselben
-	 * vollständigen Satz zurückbekommen.
-	 *
-	 * @return array<string,mixed>
-	 */
-	private function currentSettings(): array {
-		// Eine ausdrückliche Einstellung gewinnt; nur solange der Schalter nie
-		// gesetzt wurde, entscheidet das Vorhandensein von Mitgliedern.
-		// Mandate und Zuweisungen hängen immer an einem Mitglied (member_id ist
-		// Pflicht), ein Mitglied genügt deshalb als Kriterium; bestehende
-		// Installationen zeigen den Reiter dadurch ohne Migration sofort
-		// (siehe NAVIGATION-KONZEPT.md Abschnitt 4).
-		$stored = $this->config->getAppValue(Application::APP_ID, 'membership_enabled', '');
-		$membershipEnabled = $stored === '' ? $this->memberMapper->count() > 0 : $stored === '1';
-		return [
-			'storage_mode' => $this->attachmentStorage->mode(),
-			'storage_user' => $this->config->getAppValue(Application::APP_ID, AttachmentStorageService::SETTING_USER, ''),
-			'storage_path' => $this->config->getAppValue(Application::APP_ID, AttachmentStorageService::SETTING_PATH, AttachmentStorageService::DEFAULT_PATH),
-			'cost_center_mode' => $this->config->getAppValue(Application::APP_ID, 'cost_center_mode', 'group'),
-			'amount_display' => $this->amountDisplay(),
-			'club_name' => $this->config->getAppValue(Application::APP_ID, 'club_name', ''),
-			'brand_color' => $this->config->getAppValue(Application::APP_ID, 'brand_color', ''),
-			'has_logo' => $this->config->getAppValue(Application::APP_ID, 'brand_logo_mime', '') !== '',
-			'demo_active' => $this->demoService->isActive(),
-			'statement_watch_user' => $this->config->getAppValue(Application::APP_ID, WatchFolderService::SETTING_USER, ''),
-			'statement_watch_path' => $this->config->getAppValue(Application::APP_ID, WatchFolderService::SETTING_PATH, ''),
-			'sepa_creditor_id' => $this->config->getAppValue(Application::APP_ID, 'sepa_creditor_id', ''),
-			'sepa_debtor_account_id' => $this->sepaDebtorAccount->getAccountId(),
-			'membership_enabled' => $membershipEnabled,
-			'membership_active' => $membershipEnabled,
-			// Mandats-Lifecycle (Issue #66, Spec §4 „Neue Einstellungen"):
-			'mandate_reference_prefix' => $this->config->getAppValue(Application::APP_ID, MandateService::SETTING_REFERENCE_PREFIX, MandateReferenceGenerator::DEFAULT_PREFIX),
-			'mandate_document_folder' => $this->mandateDocuments->folderPath(),
-			'show_missing_document_warning' => $this->mandateDocuments->showMissingDocumentWarning(),
-			// Ablauf-Vorwarnung (Spec §4 expiry_warning_days) und Mahnabstand
-			// (Spec §3.6, Issue #73): bis dahin nur Konstante bzw. ohne
-			// Schreibweg, jetzt in der Einstellungsseite pflegbar (Issue #101).
-			'expiry_warning_days' => $this->mandateExpirySettings->warningDays(),
-			'dunning_interval_days' => $this->dunningSettings->intervalDays(),
-			// Beitragsjahr (Issue #68, Spec §3.3/§4): eigenständig vom
-			// Geschäftsjahr der Kern-Buchhaltung, siehe ContributionYearService.
-			'fiscal_year_start_month' => $this->contributionYear->getStartMonth(),
-			// Self-Service-Zugang (Spec §3.4): einfacher Bool-Schalter, nur ab
-			// Verwalter änderbar (siehe update(), RequiresRole ROLE_ADMIN).
-			'self_service_enabled' => $this->config->getAppValue(Application::APP_ID, SelfServiceService::SETTING_ENABLED, '0') === '1',
-			// Zusatzschalter, siehe SelfServiceService::canSwitchToTransfer(). Standard aus.
-			'self_service_transfer_switch_enabled' => $this->config->getAppValue(Application::APP_ID, SelfServiceService::SETTING_TRANSFER_SWITCH, '0') === '1',
-			// Auslagenerstattung (docs/reimbursement-design.md §2): Schalter, nötige Freigaben N
-			// und die Zahl der Verwalter, die zur Wahl von N passen muss (N+1).
-			'reimbursement_enabled' => $this->reimbursementSettings->isEnabled(),
-			'reimbursement_required_approvals' => $this->reimbursementSettings->requiredApprovals(),
-		] + $this->invoiceSettings->all();
-	}
-
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_READ)]
 	public function index(): DataResponse {
-		$settings = $this->currentSettings();
+		$settings = $this->frontendState->settings();
 		// Die Zahl der Verwalter zählt Gruppenmitglieder durch: nur die Einstellungsseite der
 		// Auslagen fragt danach, nicht jeder Seitenaufruf der App.
 		if ($this->request->getParam('withApprovers') === '1') {
@@ -526,7 +451,7 @@ class SettingsController extends Controller {
 			return new DataResponse(['message' => $invoiceError], Http::STATUS_BAD_REQUEST);
 		}
 
-		$settings = $this->currentSettings();
+		$settings = $this->frontendState->settings();
 		if ($backfilled !== null) {
 			$settings['storage_backfilled'] = $backfilled;
 		}

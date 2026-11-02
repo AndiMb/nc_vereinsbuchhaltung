@@ -24,6 +24,8 @@ class PersonalSettings implements ISettings {
 
 	public function getForm(): TemplateResponse {
 		Util::addScript(Application::APP_ID, Application::APP_ID . '-settings');
+		// l10n/<sprache>.js der App (Issue #264); addScript() meldet es auch selbst an.
+		Util::addTranslations(Application::APP_ID);
 		return new TemplateResponse(Application::APP_ID, 'settings/vereinsbuchhaltung');
 	}
 
