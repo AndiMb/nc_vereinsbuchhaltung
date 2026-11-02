@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service\Statement;
 
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Service\CamtCsvParser;
 use OCP\IL10N;
 
@@ -48,14 +49,14 @@ class StatementParserRegistry {
 	 */
 	public function detect(string $content): StatementParser {
 		if (trim($content) === '') {
-			throw new \RuntimeException($this->msg('Die Datei ist leer.'));
+			throw new UserFacingException($this->msg('Die Datei ist leer.'));
 		}
 		foreach ($this->parsers as $parser) {
 			if ($parser->supports($content)) {
 				return $parser;
 			}
 		}
-		throw new \RuntimeException($this->msg(
+		throw new UserFacingException($this->msg(
 			'Das Dateiformat wurde nicht erkannt. Unterstützt werden CSV-CAMT, '
 			. 'CAMT.053 (XML) und MT940 – im Onlinebanking meist als '
 			. '„Umsätze exportieren" auswählbar.'

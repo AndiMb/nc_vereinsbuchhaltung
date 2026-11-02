@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\Attachment;
 use OCA\Vereinsbuchhaltung\Db\AttachmentMapper;
 use OCA\Vereinsbuchhaltung\Db\ReimbursementFile;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCP\Files\AppData\IAppDataFactory;
 use OCP\Files\File;
 use OCP\Files\Folder;
@@ -170,7 +171,7 @@ class AttachmentStorageService {
 			if ($current->nodeExists($part)) {
 				$node = $current->get($part);
 				if (!($node instanceof Folder)) {
-					throw new \RuntimeException($this->l10n->t("Pfadkomponente '%s' ist kein Ordner", [$part]));
+					throw new UserFacingException($this->l10n->t("Pfadkomponente '%s' ist kein Ordner", [$part]));
 				}
 				$current = $node;
 			} else {
@@ -221,7 +222,7 @@ class AttachmentStorageService {
 	/** @throws \RuntimeException wenn die Datei nicht (mehr) auffindbar ist */
 	private function nodeFor(Attachment $attachment): File {
 		return $this->nodeOrNull($attachment)
-			?? throw new \RuntimeException($this->l10n->t('Die Datei zu diesem Beleg wurde nicht gefunden.'));
+			?? throw new UserFacingException($this->l10n->t('Die Datei zu diesem Beleg wurde nicht gefunden.'));
 	}
 
 	/** Ist die verwiesene Datei noch da? Für Belege ohne Verweis immer true. */
@@ -294,7 +295,7 @@ class AttachmentStorageService {
 	private function ncFile(Folder $folder, string $name): File {
 		$node = $folder->get($name);
 		if (!$node instanceof File) {
-			throw new \RuntimeException($this->l10n->t('In der Belegablage liegt unter "%s" keine Datei.', [$name]));
+			throw new UserFacingException($this->l10n->t('In der Belegablage liegt unter "%s" keine Datei.', [$name]));
 		}
 		return $node;
 	}
@@ -350,7 +351,7 @@ class AttachmentStorageService {
 	private function putWatchFile(int $year, string $fileName, string $content): File {
 		$folder = $this->watchFolder();
 		if ($folder === null) {
-			throw new \RuntimeException($this->l10n->t('Der Wächter-Ordner für Belege existiert nicht. Bitte in den Einstellungen prüfen.'));
+			throw new UserFacingException($this->l10n->t('Der Wächter-Ordner für Belege existiert nicht. Bitte in den Einstellungen prüfen.'));
 		}
 		$target = $this->ensureFolder($folder, (string)$year);
 		$file = $target->newFile($target->getNonExistingName(SafeFileName::of($fileName, 200)));
@@ -422,7 +423,7 @@ class AttachmentStorageService {
 			$stream = $file instanceof File ? $file->fopen('r') : $file->read();
 		}
 		if (!is_resource($stream)) {
-			throw new \RuntimeException($this->l10n->t('Beleg-Datei konnte nicht geöffnet werden.'));
+			throw new UserFacingException($this->l10n->t('Beleg-Datei konnte nicht geöffnet werden.'));
 		}
 		return $stream;
 	}
@@ -458,7 +459,7 @@ class AttachmentStorageService {
 		if ($file->getFileId() !== null) {
 			$node = $this->reimbursementNode($file);
 			if ($node === null) {
-				throw new \RuntimeException($this->l10n->t('Die Datei zu diesem Beleg wurde nicht gefunden.'));
+				throw new UserFacingException($this->l10n->t('Die Datei zu diesem Beleg wurde nicht gefunden.'));
 			}
 			return $node->getContent();
 		}
@@ -476,7 +477,7 @@ class AttachmentStorageService {
 			// Nicht im Nutzerordner: ein Beleg aus der Zeit vor einem Wechsel der Ablage.
 			return $this->reimbursementAppDataFolder()->getFile((string)$file->getId())->getContent();
 		} catch (\Throwable) {
-			throw new \RuntimeException($this->l10n->t('Die Datei zu diesem Beleg wurde nicht gefunden.'));
+			throw new UserFacingException($this->l10n->t('Die Datei zu diesem Beleg wurde nicht gefunden.'));
 		}
 	}
 

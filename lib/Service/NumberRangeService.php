@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\Db\NumberRange;
 use OCA\Vereinsbuchhaltung\Db\NumberRangeMapper;
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\DB\Exception as DbException;
 use OCP\IL10N;
@@ -151,7 +152,7 @@ class NumberRangeService {
 				];
 			}
 		}
-		throw new \RuntimeException($this->msg('Die Rechnungsnummer konnte nicht vergeben werden. Bitte noch einmal versuchen.'));
+		throw new UserFacingException($this->msg('Die Rechnungsnummer konnte nicht vergeben werden. Bitte noch einmal versuchen.'));
 	}
 
 	/** Die Nummer, die {@see issue()} jetzt vergäbe, ohne den Zähler zu verändern. */

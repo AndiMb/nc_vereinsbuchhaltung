@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Service\Invoice;
 
 use OCA\Vereinsbuchhaltung\Db\Invoice;
 use OCA\Vereinsbuchhaltung\Db\InvoiceLine;
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Service\EpcQrCodeGenerator;
 use OCA\Vereinsbuchhaltung\Service\InvoiceCalculator;
 use OCP\IL10N;
@@ -51,7 +52,7 @@ class InvoicePdfRenderer {
 	 */
 	public function render(InvoicePdfData $data, bool $compress = true): string {
 		if (!class_exists(\TCPDF::class)) {
-			throw new \RuntimeException($this->msg('Die PDF-Bibliothek (TCPDF) ist nicht installiert.'));
+			throw new UserFacingException($this->msg('Die PDF-Bibliothek (TCPDF) ist nicht installiert.'));
 		}
 		$invoice = $data->invoice;
 		$issuer = $data->issuer;
@@ -116,7 +117,7 @@ class InvoicePdfRenderer {
 	 */
 	public function renderDunning(InvoicePdfData $data, int $level, string $body, int $remainingCents, string $letterDate, bool $compress = true): string {
 		if (!class_exists(\TCPDF::class)) {
-			throw new \RuntimeException($this->msg('Die PDF-Bibliothek (TCPDF) ist nicht installiert.'));
+			throw new UserFacingException($this->msg('Die PDF-Bibliothek (TCPDF) ist nicht installiert.'));
 		}
 		$invoice = $data->invoice;
 		$issuer = $data->issuer;

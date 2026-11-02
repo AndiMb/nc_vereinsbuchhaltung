@@ -8,6 +8,7 @@ use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Invoice;
 use OCA\Vereinsbuchhaltung\Db\InvoiceDocument;
 use OCA\Vereinsbuchhaltung\Db\InvoiceDocumentMapper;
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
 use OCA\Vereinsbuchhaltung\Service\SafeFileName;
@@ -86,7 +87,7 @@ class InvoiceDocumentStorage {
 			$this->appDataFolder(true)->newFile((string)$doc->getId())->putContent($content);
 		} catch (\Throwable $e) {
 			$this->documents->delete($doc);
-			throw new \RuntimeException($this->l10n->t('Das Dokument konnte nicht gespeichert werden.'), 0, $e);
+			throw new UserFacingException($this->l10n->t('Das Dokument konnte nicht gespeichert werden.'), 0, $e);
 		}
 		return $doc;
 	}
@@ -97,7 +98,7 @@ class InvoiceDocumentStorage {
 	public function read(InvoiceDocument $doc): string {
 		$content = $this->readOrNull($doc);
 		if ($content === null) {
-			throw new \RuntimeException($this->l10n->t('Die Datei zum Dokument wurde nicht gefunden.'));
+			throw new UserFacingException($this->l10n->t('Die Datei zum Dokument wurde nicht gefunden.'));
 		}
 		return $content;
 	}
@@ -169,7 +170,7 @@ class InvoiceDocumentStorage {
 			if ($current->nodeExists($part)) {
 				$node = $current->get($part);
 				if (!($node instanceof Folder)) {
-					throw new \RuntimeException($this->l10n->t("Pfadkomponente '%s' ist kein Ordner", [$part]));
+					throw new UserFacingException($this->l10n->t("Pfadkomponente '%s' ist kein Ordner", [$part]));
 				}
 				$current = $node;
 			} else {

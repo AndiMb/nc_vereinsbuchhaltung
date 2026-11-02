@@ -19,6 +19,7 @@ use OCP\AppFramework\Http\Attribute\BruteForceProtection;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\PublicPage;
+use OCP\AppFramework\Http\Attribute\UserRateLimit;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\IConfig;
 use OCP\IRequest;
@@ -44,8 +45,8 @@ use OCP\IURLGenerator;
  * kryptographisch zufällige, zeitlich begrenzte, einmal verwendbare Token
  * selbst (siehe {@see MandateActivationService}). Der Validator IST in
  * diesem Sinn das Anti-CSRF-Token: eine fremde Seite kann ihn nicht kennen
- * oder erraten. Zusätzlich `#[AnonRateLimit]`/`#[BruteForceProtection]`
- * gegen Enumerations-/Brute-Force-Versuche.
+ * oder erraten. Zusätzlich `#[AnonRateLimit]`/`#[UserRateLimit]`/`#[BruteForceProtection]`
+ * gegen Enumerations-/Brute-Force-Versuche (Fehlerseiten melden `throttle()`).
  *
  * Bewusst KEIN Bypass in der {@see \OCA\Vereinsbuchhaltung\Middleware\PermissionMiddleware}
  * über eine vbh-Rolle – dieser Controller braucht gar keine, er wird dort
@@ -68,6 +69,7 @@ class MandateConsentController extends Controller {
 	#[NoAdminRequired]
 	#[NoCSRFRequired]
 	#[AnonRateLimit(limit: 30, period: 3600)]
+	#[UserRateLimit(limit: 30, period: 3600)]
 	#[BruteForceProtection(action: 'vbh_mandate_consent')]
 	public function show(string $token): TemplateResponse {
 		try {
@@ -88,6 +90,7 @@ class MandateConsentController extends Controller {
 	#[NoAdminRequired]
 	#[NoCSRFRequired]
 	#[AnonRateLimit(limit: 10, period: 3600)]
+	#[UserRateLimit(limit: 10, period: 3600)]
 	#[BruteForceProtection(action: 'vbh_mandate_consent')]
 	public function accept(string $token): TemplateResponse {
 		try {
@@ -146,9 +149,15 @@ class MandateConsentController extends Controller {
 		);
 	}
 
-	/** @param 404|410 $httpStatus */
-	private function errorPage(string $status, string $message, int $httpStatus): TemplateResponse {
-		return new TemplateResponse(
+	/**
+	 * Fehlerseite eines ungültigen/abgelaufenen Links. Standardmäßig als
+	 * Fehlversuch gedrosselt: `#[BruteForceProtection]` zählt nur, wenn die
+	 * Antwort `throttle()` meldet (#259).
+	 *
+	 * @param 404|410 $httpStatus
+	 */
+	private function errorPage(string $status, string $message, int $httpStatus, bool $throttle = true): TemplateResponse {
+		$response = new TemplateResponse(
 			Application::APP_ID,
 			'mandateConsent',
 			[
@@ -165,5 +174,9 @@ class MandateConsentController extends Controller {
 			TemplateResponse::RENDER_AS_PUBLIC,
 			$httpStatus,
 		);
+		if ($throttle) {
+			$response->throttle(['action' => 'vbh_mandate_consent']);
+		}
+		return $response;
 	}
 }

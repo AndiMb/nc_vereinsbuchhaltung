@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Service;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IConfig;
 use OCP\IL10N;
@@ -131,7 +132,7 @@ class WelcomeMailService {
 			throw new \RuntimeException($this->l10n->t('Die Willkommens-Mail konnte nicht gesendet werden: %s', [$e->getMessage()]), 0, $e);
 		}
 		if ($failed !== []) {
-			throw new \RuntimeException($this->l10n->t('Die Willkommens-Mail konnte nicht gesendet werden.'));
+			throw new UserFacingException($this->l10n->t('Die Willkommens-Mail konnte nicht gesendet werden.'));
 		}
 
 		$this->audit->log('Willkommens-Mail versendet', 'member', (int)$member->getId(), ['subject' => $subject]);

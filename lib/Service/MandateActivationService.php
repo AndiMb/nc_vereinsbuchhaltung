@@ -16,6 +16,7 @@ use OCA\Vereinsbuchhaltung\Db\Task;
 use OCA\Vereinsbuchhaltung\Exception\ConsumedActivationTokenException;
 use OCA\Vereinsbuchhaltung\Exception\ExpiredActivationTokenException;
 use OCA\Vereinsbuchhaltung\Exception\InvalidActivationTokenException;
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IConfig;
 use OCP\IL10N;
@@ -399,7 +400,7 @@ class MandateActivationService {
 		// Anders als bei der Aktivierung (Versand ohne Rückmeldung) zählt hier eine nicht zugestellte Mail als Fehlschlag:
 		// der Link wird wieder gelöscht und die Verwaltung sieht, wer nichts bekommen hat.
 		if ($failed !== []) {
-			throw new \RuntimeException($this->l10n->t('Die Mail konnte nicht zugestellt werden.'));
+			throw new UserFacingException($this->l10n->t('Die Mail konnte nicht zugestellt werden.'));
 		}
 	}
 

@@ -24,6 +24,7 @@ use OCP\IRequest;
 use OCP\IUserSession;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 
 /**
  * Die Zusatzfelder der Mitglieder-Akte (Issue #100): 36-Monats-Ablauf samt
@@ -70,6 +71,7 @@ class MandateControllerTest extends TestCase {
 			$session,
 			$this->createMock(IConfig::class),
 			$l10n,
+			$this->createMock(LoggerInterface::class),
 		);
 	}
 

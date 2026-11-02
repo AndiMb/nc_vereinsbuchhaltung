@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Exception\PeriodClosedException;
+use OCA\Vereinsbuchhaltung\Exception\PeriodNotFoundException;
 use OCA\Vereinsbuchhaltung\Middleware\NoRevisionBump;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
@@ -16,13 +18,16 @@ use OCA\Vereinsbuchhaltung\Service\XbucImportService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
+use OCP\AppFramework\Http\Attribute\PasswordConfirmationRequired;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IL10N;
 use OCP\IRequest;
+use Psr\Log\LoggerInterface;
 
 class ImportController extends Controller {
 
 	use BookContext;
+	use InternalErrorResponder;
 
 	public function __construct(
 		IRequest $request,
@@ -33,6 +38,7 @@ class ImportController extends Controller {
 		private AuditService $audit,
 		private DemoDataService $demoService,
 		private IL10N $l10n,
+		private LoggerInterface $logger,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -67,7 +73,7 @@ class ImportController extends Controller {
 		try {
 			return new DataResponse($this->importService->preview($this->userId(), $upload['content']));
 		} catch (\Throwable $e) {
-			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+			return $this->importFailed($e);
 		}
 	}
 
@@ -87,8 +93,24 @@ class ImportController extends Controller {
 			]);
 			return new DataResponse($result, Http::STATUS_CREATED);
 		} catch (\Throwable $e) {
+			return $this->importFailed($e);
+		}
+	}
+
+	/**
+	 * Fehlerantwort eines Imports (Status 400 wie bisher).
+	 *
+	 * Fachliche Meldungen aus eigenem Code kommen durch: Validierung
+	 * (InvalidArgumentException), ein abgeschlossenes oder unbekanntes
+	 * Geschäftsjahr und alles, was als UserFacingException geworfen wird
+	 * (etwa „Das Dateiformat wurde nicht erkannt“). Alles andere – SQL-Fehler,
+	 * Pfade, PHP-Fehler – geht nur ins Log (Issue #261).
+	 */
+	private function importFailed(\Throwable $e): DataResponse {
+		if ($e instanceof \InvalidArgumentException || $e instanceof PeriodClosedException || $e instanceof PeriodNotFoundException) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		}
+		return $this->internalError($e, Http::STATUS_BAD_REQUEST, $this->l10n->t('Import fehlgeschlagen.'));
 	}
 
 	/**
@@ -119,7 +141,7 @@ class ImportController extends Controller {
 		try {
 			return new DataResponse($this->xbucService->preview($this->userId(), $upload['content'], $this->periodOverride()));
 		} catch (\Throwable $e) {
-			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+			return $this->importFailed($e);
 		}
 	}
 
@@ -143,12 +165,13 @@ class ImportController extends Controller {
 			]);
 			return new DataResponse($result, Http::STATUS_CREATED);
 		} catch (\Throwable $e) {
-			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+			return $this->importFailed($e);
 		}
 	}
 
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	#[PasswordConfirmationRequired]
 	public function reset(): DataResponse {
 		// Zweite Schicht neben der Middleware – hier hängt der gesamte
 		// Datenbestand dran.

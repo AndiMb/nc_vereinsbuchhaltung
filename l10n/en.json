@@ -4229,7 +4229,16 @@
         "Einreichen und weitere erfassen": "Submit and add another",
         "Neu: Sammelrechnungen. Unter „Rechnungen → Aus Tabelle einlesen“ legt eine Excel- oder CSV-Datei für jeden Empfänger einen Rechnungsentwurf an.": "New: bulk invoices. Under \"Invoices → Import from spreadsheet\", an Excel or CSV file creates a draft invoice for each recipient.",
         "Neu: Rechnungsnummern können den Monat enthalten ({MM}) und jeden Monat neu bei 1 beginnen.": "New: invoice numbers can contain the month ({MM}) and restart at 1 every month.",
-        "Auslagen: Rechnungsnummer, Lieferant und Kontoinhaber, dazu eine Erklärung. Mehrere Rechnungen gehen nacheinander.": "Expenses: invoice number, supplier and account holder, plus a declaration. Several invoices can be entered one after another."
+        "Auslagen: Rechnungsnummer, Lieferant und Kontoinhaber, dazu eine Erklärung. Mehrere Rechnungen gehen nacheinander.": "Expenses: invoice number, supplier and account holder, plus a declaration. Several invoices can be entered one after another.",
+        "Import fehlgeschlagen.": "Import failed.",
+        "PDF konnte nicht erzeugt werden.": "The PDF could not be created.",
+        "E-Mail konnte nicht versendet werden.": "The email could not be sent.",
+        "Das Dokument konnte nicht geladen werden.": "The document could not be loaded.",
+        "Beispieldaten konnten nicht angelegt werden.": "The sample data could not be created.",
+        "Datei konnte nicht gespeichert werden.": "The file could not be saved.",
+        "Der Beleg konnte nicht verknüpft werden.": "The receipt could not be linked.",
+        "Die Belege konnten nicht verschoben werden.": "The receipts could not be moved.",
+        "Die Aktion ist fehlgeschlagen.": "The action failed."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

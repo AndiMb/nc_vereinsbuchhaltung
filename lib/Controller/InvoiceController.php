@@ -32,6 +32,7 @@ use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\EmptyContentSecurityPolicy;
 use OCP\IL10N;
 use OCP\IRequest;
+use Psr\Log\LoggerInterface;
 
 /**
  * Rechnungen (Epic #168). Lesen alle Rollen, Entwürfe anlegen und ändern ab
@@ -42,6 +43,7 @@ use OCP\IRequest;
 class InvoiceController extends Controller {
 
 	use BookContext;
+	use InternalErrorResponder;
 
 	/** Kopffelder, die der Client senden darf. */
 	private const FIELDS = [
@@ -63,6 +65,7 @@ class InvoiceController extends Controller {
 		private InvoiceDunningService $dunning,
 		private BankTransactionMapper $txMapper,
 		private IL10N $l10n,
+		private LoggerInterface $logger,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -182,7 +185,7 @@ class InvoiceController extends Controller {
 			} catch (\Throwable $e) {
 				// Das Festschreiben ist gelungen und bleibt es; das PDF lässt sich
 				// über den Download jederzeit nachholen.
-				$pdfError = $e->getMessage();
+				$pdfError = $this->internalError($e, Http::STATUS_OK, $this->pdfFailed(), 'pdfError')->getData()['pdfError'];
 			}
 			// Die E-Rechnung ist wie das PDF ein Zusatz: scheitert sie, bleibt die Rechnung
 			// festgeschrieben, und sie lässt sich nachholen.
@@ -275,7 +278,7 @@ class InvoiceController extends Controller {
 		} catch (DoesNotExistException) {
 			return $this->notFound();
 		} catch (\RuntimeException $e) {
-			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_INTERNAL_SERVER_ERROR);
+			return $this->internalError($e, Http::STATUS_INTERNAL_SERVER_ERROR, $this->pdfFailed());
 		}
 		return $this->file($pdf['content'], $pdf['fileName'], 'application/pdf', $download);
 	}
@@ -298,7 +301,7 @@ class InvoiceController extends Controller {
 		} catch (\InvalidArgumentException $e) {
 			return $this->bad($e);
 		} catch (\RuntimeException $e) {
-			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_INTERNAL_SERVER_ERROR);
+			return $this->internalError($e, Http::STATUS_INTERNAL_SERVER_ERROR, $this->l10n->t('Die E-Rechnung konnte nicht erzeugt werden.'));
 		}
 	}
 
@@ -314,7 +317,7 @@ class InvoiceController extends Controller {
 		} catch (DoesNotExistException) {
 			return $this->notFound();
 		} catch (\RuntimeException $e) {
-			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_NOT_FOUND);
+			return $this->internalError($e, Http::STATUS_NOT_FOUND, $this->l10n->t('Das Dokument konnte nicht geladen werden.'));
 		}
 		$type = str_starts_with($doc['kind'], 'xrechnung') ? 'application/xml' : 'application/pdf';
 		return $this->file($doc['content'], $doc['fileName'], $type, true);
@@ -343,7 +346,7 @@ class InvoiceController extends Controller {
 		} catch (\InvalidArgumentException $e) {
 			return $this->bad($e);
 		} catch (\RuntimeException $e) {
-			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_GATEWAY);
+			return $this->internalError($e, Http::STATUS_BAD_GATEWAY, $this->mailFailed());
 		}
 	}
 
@@ -372,7 +375,7 @@ class InvoiceController extends Controller {
 		} catch (\InvalidArgumentException $e) {
 			return $this->bad($e);
 		} catch (\RuntimeException $e) {
-			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_GATEWAY);
+			return $this->internalError($e, Http::STATUS_BAD_GATEWAY, $this->mailFailed());
 		}
 	}
 
@@ -432,6 +435,14 @@ class InvoiceController extends Controller {
 
 	private function bad(\InvalidArgumentException $e): DataResponse {
 		return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+	}
+
+	private function pdfFailed(): string {
+		return $this->l10n->t('PDF konnte nicht erzeugt werden.');
+	}
+
+	private function mailFailed(): string {
+		return $this->l10n->t('E-Mail konnte nicht versendet werden.');
 	}
 
 	private function notFound(): DataResponse {

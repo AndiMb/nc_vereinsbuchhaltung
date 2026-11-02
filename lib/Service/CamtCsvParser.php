@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service;
 
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Service\Statement\RowNormalizer;
 use OCA\Vereinsbuchhaltung\Service\Statement\StatementParser;
 use OCP\IL10N;
@@ -108,12 +109,12 @@ class CamtCsvParser implements StatementParser {
 
 		$records = $this->readRecords($content);
 		if (count($records) < 2) {
-			throw new \RuntimeException($this->msg('Die Datei enthält keine Buchungszeilen.'));
+			throw new UserFacingException($this->msg('Die Datei enthält keine Buchungszeilen.'));
 		}
 
 		$map = $this->mapHeader($records[0]);
 		if (!isset($map['bookingDate']) || !isset($map['amount'])) {
-			throw new \RuntimeException($this->msg('Pflichtspalten (Buchungstag, Betrag) konnten in der Kopfzeile nicht gefunden werden.'));
+			throw new UserFacingException($this->msg('Pflichtspalten (Buchungstag, Betrag) konnten in der Kopfzeile nicht gefunden werden.'));
 		}
 
 		$rows = [];
@@ -149,7 +150,7 @@ class CamtCsvParser implements StatementParser {
 
 		$handle = fopen('php://temp', 'r+');
 		if ($handle === false) {
-			throw new \RuntimeException($this->msg('Die Datei konnte nicht gelesen werden.'));
+			throw new UserFacingException($this->msg('Die Datei konnte nicht gelesen werden.'));
 		}
 		fwrite($handle, $content);
 		rewind($handle);

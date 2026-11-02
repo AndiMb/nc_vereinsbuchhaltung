@@ -30,6 +30,7 @@ use OCP\IConfig;
 use OCP\IL10N;
 use OCP\IRequest;
 use OCP\IUserSession;
+use Psr\Log\LoggerInterface;
 
 /**
  * Pflege der SEPA-Mandate im neuen Lifecycle-Modell (Spec §2.2/§3.2, Issue
@@ -44,6 +45,8 @@ use OCP\IUserSession;
  * Entwurf über den {@see SelfController}.
  */
 class MandateController extends Controller {
+
+	use InternalErrorResponder;
 
 	private const MAX_DOCUMENT_SIZE = 20 * 1024 * 1024; // 20 MB
 
@@ -60,6 +63,7 @@ class MandateController extends Controller {
 		private IUserSession $userSession,
 		private IConfig $config,
 		private IL10N $l10n,
+		private LoggerInterface $logger,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -227,7 +231,7 @@ class MandateController extends Controller {
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		} catch (\RuntimeException $e) {
-			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_GATEWAY);
+			return $this->internalError($e, Http::STATUS_BAD_GATEWAY, $this->l10n->t('E-Mail konnte nicht versendet werden.'));
 		} catch (DoesNotExistException) {
 			return new DataResponse(['message' => $this->l10n->t('Mandat nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
@@ -406,7 +410,7 @@ class MandateController extends Controller {
 		} catch (DoesNotExistException) {
 			return new DataResponse(['message' => $this->l10n->t('Mandat nicht gefunden')], Http::STATUS_NOT_FOUND);
 		} catch (\RuntimeException $e) {
-			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+			return $this->internalError($e, Http::STATUS_BAD_REQUEST, $this->l10n->t('Datei konnte nicht gespeichert werden.'));
 		}
 	}
 

@@ -471,6 +471,7 @@ import { useSync } from './composables/useSync.js'
 import { useTasks } from './composables/useTasks.js'
 import { buildWhatsNewEntries, filterWhatsNewEntries } from './data/whatsNew.js'
 import { amountClass, budgetDiffClass, errMsg, formatDate, formatDateTime, formatMoney, typeLabel } from './lib/format.js'
+import { withPasswordConfirmation } from './lib/passwordGate.js'
 import { linkFilesToBookings } from './lib/receiptBatch.js'
 import { bookingsContext, txContext } from './lib/receiptPreview.js'
 import { reimbursementBookingPrefill } from './lib/reimbursements.js'
@@ -1849,6 +1850,7 @@ export default {
 
 		async resetAll() {
 			if (!await this.askConfirm(this.t('Alle Daten löschen'), this.t('Wirklich ALLE Konten, Buchungen und Importe sowie den Einzug (Läufe, Rücklastschriften, Mahnstufen) löschen? Mitglieder, Mandate, Beitragsgruppen und Zuweisungen bleiben bestehen.'))) { return }
+			if (!await withPasswordConfirmation()) { return }
 			this.busy = true
 			try {
 				await api.reset(); showSuccess(this.t('Alle Daten gelöscht.'))

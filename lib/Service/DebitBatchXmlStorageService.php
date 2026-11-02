@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\DebitBatch;
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCP\Files\Folder;
 use OCP\Files\IRootFolder;
 use OCP\IConfig;
@@ -66,7 +67,7 @@ class DebitBatchXmlStorageService {
 			if ($current->nodeExists($part)) {
 				$node = $current->get($part);
 				if (!($node instanceof Folder)) {
-					throw new \RuntimeException($this->l10n->t("Pfadkomponente '%s' ist kein Ordner", [$part]));
+					throw new UserFacingException($this->l10n->t("Pfadkomponente '%s' ist kein Ordner", [$part]));
 				}
 				$current = $node;
 			} else {
@@ -92,7 +93,7 @@ class DebitBatchXmlStorageService {
 			return;
 		}
 		if (!$this->isConfigured()) {
-			throw new \RuntimeException($this->l10n->t('Für die XML-Ablage ist noch kein Nextcloud-Nutzer eingerichtet (Einstellungen → Belegablage).'));
+			throw new UserFacingException($this->l10n->t('Für die XML-Ablage ist noch kein Nextcloud-Nutzer eingerichtet (Einstellungen → Belegablage).'));
 		}
 		$folder = $this->ensureFolder($this->rootFolder->getUserFolder($this->attachmentStorage->storageUser()), $this->folderPath());
 		$name = $folder->getNonExistingName($batch->getMsgId() . '.xml');

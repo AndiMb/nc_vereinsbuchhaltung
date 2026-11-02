@@ -1,7 +1,8 @@
 import axios from '@nextcloud/axios'
-import { confirmPassword, PasswordConfirmationCancelledError } from '@nextcloud/password-confirmation'
+import { confirmPassword } from '@nextcloud/password-confirmation'
 import { generateOcsUrl } from '@nextcloud/router'
 import api from '../api.js'
+import { withPasswordConfirmation } from './passwordGate.js'
 
 import '@nextcloud/password-confirmation/style.css'
 
@@ -26,16 +27,8 @@ import '@nextcloud/password-confirmation/style.css'
  *
  * @return {Promise<boolean>} false, wenn die Person den Dialog abgebrochen hat
  */
-export async function confirmAccountCreation() {
-	try {
-		await confirmPassword()
-		return true
-	} catch (e) {
-		if (e instanceof PasswordConfirmationCancelledError) {
-			return false
-		}
-		throw e
-	}
+export function confirmAccountCreation() {
+	return withPasswordConfirmation()
 }
 
 /**
