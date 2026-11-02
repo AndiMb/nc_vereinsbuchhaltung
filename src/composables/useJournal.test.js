@@ -70,6 +70,37 @@ describe('loadTransactions', () => {
 		expect(showError).toHaveBeenCalledWith('Keine Leseberechtigung.')
 		expect(state.transactions.map((t) => t.id)).toEqual([1])
 	})
+
+	// Schneller Zeitraumwechsel P1 → P2: Die Antwort für P1 kommt zuletzt und
+	// darf den Kontext von P2 (byJournal) nicht überschreiben.
+	it('verwirft eine verspätete Antwort einer älteren Abfrage', async () => {
+		const resolvers = {}
+		listTransactions.mockImplementation(() => Promise.resolve({ data: [] }))
+		transactionContext.mockImplementation((periodId) => new Promise((resolve) => { resolvers[periodId] = resolve }))
+
+		const p1 = loadTransactions(1)
+		const p2 = loadTransactions(2)
+		resolvers[2]({ data: { ...emptyContext(), byJournal: { 202: { id: 2 } } } })
+		await p2
+		resolvers[1]({ data: { ...emptyContext(), byJournal: { 101: { id: 1 } } } })
+		await p1
+
+		expect(state.txContext.byJournal).toEqual({ 202: { id: 2 } })
+	})
+
+	it('meldet keinen Fehler einer überholten Abfrage', async () => {
+		let rejectOld
+		listTransactions.mockResolvedValue({ data: [] })
+		transactionContext.mockReturnValueOnce(new Promise((resolve, reject) => { rejectOld = reject }))
+		transactionContext.mockResolvedValueOnce({ data: emptyContext() })
+
+		const old = loadTransactions(1)
+		await loadTransactions(2)
+		rejectOld(new Error('abgebrochen'))
+		await old
+
+		expect(showError).not.toHaveBeenCalled()
+	})
 })
 
 // Stand einer Buchung für den Zeilen-Zwischenspeicher (Issue #254). Bankzuordnung

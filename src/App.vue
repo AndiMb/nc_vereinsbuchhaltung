@@ -489,6 +489,7 @@ import { buildWhatsNewEntries, filterWhatsNewEntries } from './data/whatsNew.js'
 import { takeBootState } from './lib/bootState.js'
 import { clubToday, setClubTimeZone } from './lib/clubTime.js'
 import { amountClass, budgetDiffClass, errMsg, formatDate, formatDateTime, formatMoney, typeLabel } from './lib/format.js'
+import { createLatestRequest } from './lib/latestRequest.js'
 import { withPasswordConfirmation } from './lib/passwordGate.js'
 import { linkFilesToBookings } from './lib/receiptBatch.js'
 import { bookingsContext, txContext } from './lib/receiptPreview.js'
@@ -515,6 +516,8 @@ const SYNC_INTERVALL = 20000
 // Beim Fensterfokus die Wächter-Ordner-Kacheln nur nachfragen, wenn der letzte
 // Abruf so lange zurückliegt – jeder Abruf kostet einen Ordnerscan.
 const INBOX_FOCUS_MIN_AGE = 60000
+// Nur die zuletzt gestartete Abfrage der Belegzähler schreibt (siehe loadAttachmentCounts).
+const startAttachmentCountsLoad = createLatestRequest()
 
 // Belege: Grenzen aus AttachmentController (MAX_SIZE, ALLOWED_MIMES). Die
 // Oberflaeche prueft sie schon bei der Auswahl - beim Anlegen einer Buchung
@@ -2120,7 +2123,13 @@ export default {
 		},
 
 		async loadAttachmentCounts() {
-			try { const { data } = await api.attachmentCounts(this.selectedPeriodId); this.attachmentCountMap = data } catch { /* ignorieren */ }
+			// Zähler hängen am Zeitraum: eine verspätete Antwort des vorigen
+			// darf die des gerade gewählten nicht überschreiben.
+			const isCurrent = startAttachmentCountsLoad()
+			try {
+				const { data } = await api.attachmentCounts(this.selectedPeriodId)
+				if (isCurrent()) { this.attachmentCountMap = data }
+			} catch { /* ignorieren */ }
 		},
 
 		/** Nach jedem Anhängen, Verknüpfen oder Lösen: Zähler und Übersichts-Kacheln nachziehen. */
