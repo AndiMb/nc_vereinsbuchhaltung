@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Assignment;
+use OCA\Vereinsbuchhaltung\Middleware\NoRevisionBump;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\AssignmentService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
@@ -95,6 +96,7 @@ class AssignmentController extends Controller {
 	/** Vorschau der ersten (Prorata-)Periode, bevor überhaupt gespeichert wird (Spec §3.4 „Vorschau vor jedem Speichern"). */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	#[NoRevisionBump]
 	public function previewNew(int $intervalMonths, float $monthlyAmount, string $validFrom): DataResponse {
 		$transient = new Assignment();
 		$transient->setIntervalMonths($intervalMonths);
@@ -113,6 +115,7 @@ class AssignmentController extends Controller {
 	 */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	#[NoRevisionBump]
 	public function previewChange(int $id, ?float $monthlyAmount = null, ?int $intervalMonths = null, ?int $groupId = null, ?string $paymentMethod = null): DataResponse {
 		try {
 			return new DataResponse($this->service->previewChange(

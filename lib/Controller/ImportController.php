@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Middleware\NoRevisionBump;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\DemoDataService;
@@ -57,6 +58,7 @@ class ImportController extends Controller {
 	}
 
 	#[NoAdminRequired]
+	#[NoRevisionBump]
 	public function preview(): DataResponse {
 		$upload = $this->readUpload();
 		if ($upload === null) {
@@ -108,6 +110,7 @@ class ImportController extends Controller {
 	}
 
 	#[NoAdminRequired]
+	#[NoRevisionBump]
 	public function xbucPreview(): DataResponse {
 		$upload = $this->readUpload();
 		if ($upload === null) {

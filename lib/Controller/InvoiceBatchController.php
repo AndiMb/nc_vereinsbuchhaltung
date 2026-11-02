@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Middleware\NoRevisionBump;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\InvoiceBatch\InvoiceBatchService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
@@ -44,6 +45,7 @@ class InvoiceBatchController extends Controller {
 	/** Prüflauf; legt nichts an. Datei als `file` (multipart). */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	#[NoRevisionBump]
 	public function preview(): DataResponse {
 		$upload = $this->readUpload();
 		if ($upload instanceof DataResponse) {
