@@ -985,15 +985,8 @@ export default {
 
 		// Verknüpft Journal-Zeilen mit ihrer bankstämmigen Buchung, damit in
 		// "Alle Buchungen" direkt eine Zuordnungsregel angelegt werden kann.
-		txByJournalId() {
-			const map = {}
-			for (const t of this.transactions) {
-				if (t.journalId && t.status === 'assigned' && t.counterparty && t.contraAccountId) {
-					map[t.journalId] = t
-				}
-			}
-			return map
-		},
+		// Kommt fertig gefiltert vom Server (Zeitraum, Zahlungspartner, Gegenkonto).
+		txByJournalId() { return this.txContext.byJournal },
 
 		unassignedTransactions() { return this.transactions.filter((t) => t.status === 'unassigned') },
 		transactionSearchIndex() { return buildSearchIndex(this.unassignedTransactions, transactionSearch.fields, transactionSearch.cents) },
@@ -1009,8 +1002,7 @@ export default {
 		},
 
 		assignProgress() {
-			const total = this.transactions.length
-			const done = this.transactions.filter((t) => t.status === 'assigned').length
+			const { total, assigned: done } = this.txContext.progress
 			return { total, done, pct: total ? Math.round((done / total) * 100) : 0 }
 		},
 

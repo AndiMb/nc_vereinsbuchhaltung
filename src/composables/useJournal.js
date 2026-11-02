@@ -8,7 +8,11 @@ import { usePeriods } from './usePeriods.js'
 
 const state = reactive({
 	journalData: [],
+	// Nur noch die unzugeordneten Umsätze (Issue #255).
 	transactions: [],
+	// Was die Oberfläche von den zugeordneten braucht, verdichtet: Historie je
+	// Zahlungspartner, Fortschritt und die Umsätze der Journal-Zeilen.
+	txContext: { history: [], progress: { total: 0, assigned: 0 }, byJournal: {} },
 })
 
 const periods = usePeriods()
@@ -75,10 +79,13 @@ async function loadJournal() {
 	}
 }
 
-async function loadTransactions() {
+async function loadTransactions(periodId = null) {
 	try {
-		const { data } = await api.listTransactions('')
-		state.transactions = data
+		// Beide Abfragen laufen gleichzeitig; erst wenn beide da sind, wird
+		// übernommen, damit Liste und Fortschritt nie auseinanderlaufen.
+		const [list, context] = await Promise.all([api.listTransactions('unassigned'), api.transactionContext(periodId)])
+		state.transactions = list.data
+		state.txContext = context.data
 	} catch (e) { showError(errMsg(e, t('Buchungen konnten nicht geladen werden'))) }
 }
 

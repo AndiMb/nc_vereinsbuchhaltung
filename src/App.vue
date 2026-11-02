@@ -992,12 +992,11 @@ export default {
 		// Frühere Zuordnungen je Zahlungspartner (für Vorschläge)
 		assignmentHistory() {
 			const map = {}
-			for (const tx of this.transactions) {
-				if (tx.status === 'assigned' && tx.contraAccountId && tx.counterparty) {
-					const key = tx.counterparty.trim().toLowerCase()
-					if (!map[key]) { map[key] = {} }
-					map[key][tx.contraAccountId] = (map[key][tx.contraAccountId] || 0) + 1
-				}
+			for (const h of this.txContext.history) {
+				const key = (h.counterparty || '').trim().toLowerCase()
+				if (!key) { continue }
+				if (!map[key]) { map[key] = {} }
+				map[key][h.contraAccountId] = (map[key][h.contraAccountId] || 0) + h.count
 			}
 			return map
 		},
@@ -1202,7 +1201,7 @@ export default {
 			this.budgetCompareBasis = 'actual'
 			this.busy = true
 			try {
-				const jobs = [this.loadBalances(), this.loadJournal(), this.loadSphereReport()]
+				const jobs = [this.loadBalances(), this.loadJournal(), this.loadSphereReport(), this.loadTransactions(this.selectedPeriodId)]
 				const tab = this.activeTab
 				if (tab === 'accounts') {
 					jobs.push(this.loadAccounts())
@@ -1235,7 +1234,7 @@ export default {
 				this.loadAccounts(),
 				this.loadBalances(),
 				this.loadJournal(),
-				this.loadTransactions(),
+				this.loadTransactions(this.selectedPeriodId),
 				this.loadRules(),
 				this.loadSphereReport(),
 				this.loadOpenItems(),
@@ -1533,7 +1532,7 @@ export default {
 			// trügen sie noch die tote ID und meldeten reihenweise 404 – so wie
 			// es mounted() aus demselben Grund schon macht.
 			await this.loadPeriods()
-			const jobs = [this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions(), this.loadSphereReport(), this.loadOpenItems(), this.loadCostCenters()]
+			const jobs = [this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions(this.selectedPeriodId), this.loadSphereReport(), this.loadOpenItems(), this.loadCostCenters()]
 			this.refreshInbox()
 			// Aufgaben-Flyout: eine Aenderung anderer Personen kann Aufgaben loesen/schaffen.
 			if (this.canWrite && this.membershipActive) { jobs.push(this.loadTasks()) }
@@ -1841,11 +1840,11 @@ export default {
 			this.bookingView = 'unassigned'
 		},
 
-		async onImported() { await Promise.all([this.loadBalances(), this.loadTransactions()]) },
+		async onImported() { await Promise.all([this.loadBalances(), this.loadTransactions(this.selectedPeriodId)]) },
 
 		// Zahlungen zu Rechnungen buchen und lösen Bankumsätze, Buchungen und Salden (Epic #168).
 		async onInvoicesChanged() {
-			await Promise.all([this.loadTransactions(), this.loadBalances(), this.loadJournal(), this.loadOpenItems(), this.loadPeriods()])
+			await Promise.all([this.loadTransactions(this.selectedPeriodId), this.loadBalances(), this.loadJournal(), this.loadOpenItems(), this.loadPeriods()])
 		},
 
 		async resetAll() {
@@ -1854,7 +1853,7 @@ export default {
 			this.busy = true
 			try {
 				await api.reset(); showSuccess(this.t('Alle Daten gelöscht.'))
-				this.selectedAccountId = null; this.statement = null; this.journalData = []; this.transactions = []
+				this.selectedAccountId = null; this.statement = null; this.journalData = []; this.transactions = []; this.txContext = { history: [], progress: { total: 0, assigned: 0 }, byJournal: {} }
 				// Auswahl auf Anfang: loadPeriods() setzt die Vorgabe nur beim
 				// ersten Mal, deshalb auch das Flag zurück – sonst bliebe nach
 				// dem Löschen „alle Zeiträume" stehen.
@@ -1871,7 +1870,7 @@ export default {
 			try {
 				await api.seedDemo()
 				this.demoActive = true
-				await Promise.all([this.loadPeriods(), this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions()])
+				await Promise.all([this.loadPeriods(), this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions(this.selectedPeriodId)])
 				showSuccess(this.t('Beispielverein angelegt – schauen Sie sich gern um. Zum Starten mit echten Daten: Zurücksetzen.'))
 			} catch (e) { showError(this.errMsg(e, this.t('Beispieldaten konnten nicht angelegt werden'))) } finally { this.busy = false }
 		},
@@ -1953,7 +1952,7 @@ export default {
 						showUndo(this.t('Zuordnung entfernt'), async () => {
 							try {
 								await api.assignTransaction(tx.id, prevContra)
-								await Promise.all([this.loadTransactions(), this.loadBalances(), this.loadJournal(), this.loadSphereReport(), this.loadPeriods()])
+								await Promise.all([this.loadTransactions(this.selectedPeriodId), this.loadBalances(), this.loadJournal(), this.loadSphereReport(), this.loadPeriods()])
 							} catch (e) { showError(this.errMsg(e, this.t('Wiederherstellen fehlgeschlagen'))) }
 						})
 					}
@@ -1964,7 +1963,7 @@ export default {
 				// loadPeriods() muss mit: eine Zuordnung legt eine Buchung an (bzw.
 				// loest sie wieder auf), und periods[].bookings speist die
 				// "Erste Schritte"-Karte auf der Uebersicht (Issue #60).
-				await Promise.all([this.loadTransactions(), this.loadBalances(), this.loadJournal(), this.loadSphereReport(), this.loadPeriods()])
+				await Promise.all([this.loadTransactions(this.selectedPeriodId), this.loadBalances(), this.loadJournal(), this.loadSphereReport(), this.loadPeriods()])
 			} catch (e) { showError(this.errMsg(e, this.t('Zuordnung fehlgeschlagen'))) }
 		},
 
@@ -1972,7 +1971,7 @@ export default {
 			if (!await this.askConfirm(this.t('Umsatz löschen'), this.tRaw('Umsatz über {amount} von/an „{counterparty}" endgültig löschen?', { amount: formatMoney(tx.amount), counterparty: tx.counterparty || '' }))) { return }
 			try {
 				await api.deleteTransaction(tx.id)
-				await Promise.all([this.loadTransactions(), this.loadBalances()])
+				await Promise.all([this.loadTransactions(this.selectedPeriodId), this.loadBalances()])
 			} catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
 		},
 
@@ -2018,7 +2017,7 @@ export default {
 				await this.linkTxPendingFiles(tx.id, data && data.journalId)
 				// loadPeriods() muss mit: die Aufteilung legt Buchungen an, und
 				// periods[].bookings speist die "Erste Schritte"-Karte (Issue #60).
-				await Promise.all([this.loadTransactions(), this.loadBalances(), this.loadJournal(), this.loadSphereReport(), this.loadPeriods()])
+				await Promise.all([this.loadTransactions(this.selectedPeriodId), this.loadBalances(), this.loadJournal(), this.loadSphereReport(), this.loadPeriods()])
 			} catch (e) { showError(this.errMsg(e, this.t('Zuordnung fehlgeschlagen'))) }
 		},
 
@@ -2519,7 +2518,7 @@ export default {
 				// Umsätze mitladen – siehe removeBooking().
 				// loadPeriods() wie beim Speichern: periods[].bookings speist die
 				// "Erste Schritte"-Karte (Issue #60).
-				await Promise.all([this.loadJournal(), this.loadTransactions(), this.loadBalances(), this.loadPeriods(), this.reloadStatement()])
+				await Promise.all([this.loadJournal(), this.loadTransactions(this.selectedPeriodId), this.loadBalances(), this.loadPeriods(), this.reloadStatement()])
 			} catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
 		},
 
@@ -2733,7 +2732,7 @@ export default {
 			// loadPeriods() muss ebenfalls mit: periods[].bookings speist die
 			// "Erste Schritte"-Karte, die sonst die geloeschte Buchung
 			// weiterzaehlt (Issue #60).
-			try { await api.deleteBooking(r.id); this.refreshInbox(); await Promise.all([this.loadJournal(), this.loadTransactions(), this.loadBalances(), this.loadSphereReport(), this.loadPeriods(), this.reloadStatement()]) } catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
+			try { await api.deleteBooking(r.id); this.refreshInbox(); await Promise.all([this.loadJournal(), this.loadTransactions(this.selectedPeriodId), this.loadBalances(), this.loadSphereReport(), this.loadPeriods(), this.reloadStatement()]) } catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
 		},
 
 		// --- Konten ---
