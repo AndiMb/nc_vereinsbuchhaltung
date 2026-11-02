@@ -8,6 +8,7 @@ use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCA\Vereinsbuchhaltung\Service\Export\BeitragsbescheinigungRenderer;
 use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
@@ -41,6 +42,11 @@ class BeitragsbescheinigungRendererTest extends TestCase {
 				default => $default,
 			},
 		);
+	}
+
+	/** Laufendes Kalenderjahr des Vereins (#263) – nicht das UTC-Jahr aus date('Y'). */
+	private static function clubYear(): int {
+		return (int)(new \DateTimeImmutable('now', ClubClock::zone()))->format('Y');
 	}
 
 	private function renderer(): BeitragsbescheinigungRenderer {
@@ -213,7 +219,7 @@ class BeitragsbescheinigungRendererTest extends TestCase {
 	public function testOhneAngegebenesJahrGiltDasLaufendeBeitragsjahr(): void {
 		$this->memberMapper->method('find')->willReturn($this->member());
 		$this->openItems->method('findByMember')->willReturn([
-			$this->claim(OpenItem::TYPE_CONTRIBUTION, 'paid', 1200, date('Y') . '-01-01', date('Y') . '-12-31', description: 'Jahresbeitrag'),
+			$this->claim(OpenItem::TYPE_CONTRIBUTION, 'paid', 1200, self::clubYear() . '-01-01', self::clubYear() . '-12-31', description: 'Jahresbeitrag'),
 		]);
 
 		$html = $this->renderer()->render(1);
@@ -227,7 +233,7 @@ class BeitragsbescheinigungRendererTest extends TestCase {
 
 		$years = $this->renderer()->selectableYears(1);
 
-		$this->assertSame([(int)date('Y')], $years);
+		$this->assertSame([self::clubYear()], $years);
 	}
 
 	public function testSelectableYearsListetJahreMitBezahltenForderungenAbsteigend(): void {
@@ -242,7 +248,7 @@ class BeitragsbescheinigungRendererTest extends TestCase {
 
 		// Absteigend sortiert, ohne Dopplung mit dem stets enthaltenen
 		// laufenden Jahr, und ohne das Gebühren-only-Jahr 2024.
-		$expected = array_values(array_unique([(int)date('Y'), 2025, 2023]));
+		$expected = array_values(array_unique([self::clubYear(), 2025, 2023]));
 		rsort($expected);
 		$this->assertSame($expected, $years);
 	}
