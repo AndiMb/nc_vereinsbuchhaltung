@@ -7,12 +7,14 @@
 // und „Frequenz". Die Fälligkeit steht nicht an der Zuweisung, sondern erst an
 // der Forderung, die der Einzugszyklus daraus erzeugt – deshalb kommt die
 // „nächste Fälligkeit" aus den Forderungen (siehe nextDueDates()).
+import { clubToday } from './clubTime.js'
 import { formatDate } from './format.js'
 import { intervalLabel } from './frequency.js'
 import { t } from './l10n.js'
 
+// Tag des Vereins, nicht UTC (#263).
 function isoToday() {
-	return new Date().toISOString().slice(0, 10)
+	return clubToday()
 }
 
 /**

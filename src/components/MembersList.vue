@@ -192,6 +192,7 @@ import { useMemberAkteRequest } from '../composables/useMemberAkteRequest.js'
 import { useMembers } from '../composables/useMembers.js'
 import { usePeriods } from '../composables/usePeriods.js'
 import { copyText } from '../lib/clipboard.js'
+import { clubToday } from '../lib/clubTime.js'
 import { deCollator } from '../lib/collator.js'
 import { errMsg, formatDate, formatMoney } from '../lib/format.js'
 import { createMandateForMember } from '../lib/mandateCreate.js'
@@ -326,7 +327,7 @@ export default {
 		 * Zeilen beschreiben den Stand von heute, nur diese Summe folgt dem Zeitraum.
 		 */
 		beitragsSumme() {
-			const zeitraum = this.selectedPeriod ?? nextTwelveMonths(new Date().toISOString().slice(0, 10))
+			const zeitraum = this.selectedPeriod ?? nextTwelveMonths(clubToday())
 			return this.assignments.reduce((summe, a) => summe + periodAmount(a, zeitraum), 0)
 		},
 
@@ -390,7 +391,7 @@ export default {
 		 * Zuweisungen nebeneinander stehen.
 		 */
 		manageFee(member, mode = 'fee') {
-			const today = new Date().toISOString().slice(0, 10)
+			const today = clubToday()
 			const live = this.assignments.filter((a) => a.memberId === member.id && isLiveAssignment(a, today))
 			if (live.length === 1) {
 				this.changeAssignment = live[0]

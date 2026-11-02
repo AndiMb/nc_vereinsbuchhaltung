@@ -267,6 +267,7 @@ import NcModal from '@nextcloud/vue/components/NcModal'
 import api from '../api.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { usePeriods } from '../composables/usePeriods.js'
+import { clubToday } from '../lib/clubTime.js'
 import { errMsg, formatDate } from '../lib/format.js'
 
 /**
@@ -361,7 +362,7 @@ export default {
 		exampleRange() {
 			const rows = this.rulePreview?.periods || []
 			if (!rows.length) { return null }
-			const today = new Date().toISOString().slice(0, 10)
+			const today = clubToday()
 			const row = rows.find((p) => today >= p.startDate && today <= p.endDate) || rows[rows.length - 1]
 			return { from: formatDate(row.startDate), to: formatDate(row.endDate) }
 		},

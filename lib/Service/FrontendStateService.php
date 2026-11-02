@@ -73,6 +73,10 @@ class FrontendStateService {
 		// Auslagenerstattung: steuert den Unterreiter „Auslagen“ unter „Mein Bereich“ und den Reiter
 		// in der Verwaltungssicht, siehe ReimbursementAccess.
 		$data['reimbursement'] = $this->reimbursementAccess->describeCurrent();
+		// Zeitzone des Vereins (#263): die Oberfläche rechnet „heute“ darin.
+		// Hier statt nur in settings(), weil Konten ohne Leserolle („Mein
+		// Bereich“) keinen Einstellungssatz bekommen.
+		$data['clubTimeZone'] = ClubClock::zone()->getName();
 		return $data;
 	}
 
@@ -141,6 +145,8 @@ class FrontendStateService {
 			'cost_center_mode' => $this->config->getValueString(Application::APP_ID, 'cost_center_mode', 'group'),
 			'amount_display' => $this->amountDisplay(),
 			'club_name' => $this->config->getValueString(Application::APP_ID, 'club_name', ''),
+			// Nur lesbar: Zeitzone des Vereins (Server-Zeitzone, sonst Europe/Berlin, #263).
+			'club_time_zone' => ClubClock::zone()->getName(),
 			'brand_color' => $this->config->getValueString(Application::APP_ID, 'brand_color', ''),
 			'has_logo' => $this->config->getValueString(Application::APP_ID, 'brand_logo_mime', '') !== '',
 			'demo_active' => $this->demoService->isActive(),

@@ -2,6 +2,7 @@ import { showError } from '@nextcloud/dialogs'
 import { computed, reactive } from 'vue'
 import api from '../api.js'
 import { takeBootState } from '../lib/bootState.js'
+import { clubToday } from '../lib/clubTime.js'
 import { errMsg } from '../lib/format.js'
 import { t } from '../lib/l10n.js'
 
@@ -77,7 +78,7 @@ function previousOf(period) {
  */
 function defaultPeriodId(list) {
 	if (!list.length) { return null }
-	const today = new Date().toISOString().slice(0, 10)
+	const today = clubToday()
 	const current = list.find((p) => today >= p.startDate && today <= p.endDate)
 	return (current ?? list[0]).id
 }

@@ -119,6 +119,7 @@ import AmountInput from './AmountInput.vue'
 import api from '../api.js'
 import { useContributionGroups } from '../composables/useContributionGroups.js'
 import { useMembers } from '../composables/useMembers.js'
+import { clubToday } from '../lib/clubTime.js'
 import { errMsg, formatDate, formatEuro } from '../lib/format.js'
 import { intervalLabel } from '../lib/frequency.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
@@ -130,7 +131,7 @@ function emptyForm() {
 		intervalMonths: 12,
 		monthlyAmount: '',
 		paymentMethod: 'direct_debit',
-		validFrom: new Date().toISOString().slice(0, 10),
+		validFrom: clubToday(),
 		validTo: '',
 	}
 }

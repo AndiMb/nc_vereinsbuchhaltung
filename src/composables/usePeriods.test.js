@@ -63,3 +63,30 @@ describe('loadPeriods', () => {
 		expect(periods).toHaveBeenCalledWith(expect.objectContaining({ timeout: expect.any(Number) }))
 	})
 })
+
+describe('Vorgabe-Zeitraum – Issue #263', () => {
+	beforeEach(() => {
+		state.periods = []
+		state.selectedPeriodId = null
+		state.initialised = false
+		periods.mockReset()
+	})
+
+	it('nimmt den Tag des Vereins: Silvester 23:30 Uhr UTC ist in Berlin schon das neue Jahr', async () => {
+		vi.useFakeTimers({ toFake: ['Date'] })
+		vi.setSystemTime(new Date('2026-12-31T23:30:00Z'))
+		try {
+			periods.mockResolvedValue({
+				data: [
+					{ id: 27, label: '2027', startDate: '2027-01-01', endDate: '2027-12-31', closedAt: null },
+					{ id: 26, label: '2026', startDate: '2026-01-01', endDate: '2026-12-31', closedAt: null },
+				],
+			})
+			// Mit dem UTC-Tag (31.12.) wäre 2026 der laufende Zeitraum.
+			await loadPeriods()
+			expect(state.selectedPeriodId).toBe(27)
+		} finally {
+			vi.useRealTimers()
+		}
+	})
+})

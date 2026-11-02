@@ -192,6 +192,7 @@ import { useAssignments } from '../composables/useAssignments.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useContributionGroups } from '../composables/useContributionGroups.js'
 import { useMembers } from '../composables/useMembers.js'
+import { clubToday } from '../lib/clubTime.js'
 import { errMsg, formatDate, formatEuro } from '../lib/format.js'
 import { intervalLabel } from '../lib/frequency.js'
 import { assignmentStatusLabel, assignmentStatusTone, isLiveAssignment } from '../lib/memberRow.js'
@@ -262,7 +263,7 @@ export default {
 		isLive: (a) => isLiveAssignment(a),
 		statusLabel: (a) => assignmentStatusLabel(a),
 		statusTone: (a) => assignmentStatusTone(a),
-		today: () => new Date().toISOString().slice(0, 10),
+		today: () => clubToday(),
 
 		openChange(assignment, mode = 'fee') {
 			this.changeMode = mode
@@ -376,7 +377,7 @@ export default {
 					)
 			if (!ok) { return }
 			try {
-				await api.endAssignment(a.id, new Date().toISOString().slice(0, 10))
+				await api.endAssignment(a.id, clubToday())
 				await this.loadAssignments({ force: true })
 			} catch (e) { showError(errMsg(e, this.t('Zuweisung konnte nicht beendet werden'))) }
 		},

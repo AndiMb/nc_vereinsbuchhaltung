@@ -487,6 +487,7 @@ import { useSync } from './composables/useSync.js'
 import { useTasks } from './composables/useTasks.js'
 import { buildWhatsNewEntries, filterWhatsNewEntries } from './data/whatsNew.js'
 import { takeBootState } from './lib/bootState.js'
+import { clubToday, setClubTimeZone } from './lib/clubTime.js'
 import { amountClass, budgetDiffClass, errMsg, formatDate, formatDateTime, formatMoney, typeLabel } from './lib/format.js'
 import { withPasswordConfirmation } from './lib/passwordGate.js'
 import { linkFilesToBookings } from './lib/receiptBatch.js'
@@ -1615,6 +1616,7 @@ export default {
 				this.amountDisplay = data.amount_display === 'signed' ? 'signed' : 'plain'
 				this.storageMode = data.storage_mode || 'appdata'
 				this.clubName = data.club_name || ''
+				setClubTimeZone(data.club_time_zone)
 				this.demoActive = !!data.demo_active
 				this.membershipActive = !!data.membership_active
 				this.invoicesActive = !!data.invoice_module_active
@@ -1657,7 +1659,7 @@ export default {
 			return {
 				id: null,
 				entryNo: null,
-				date: new Date().toISOString().slice(0, 10),
+				date: clubToday(),
 				documentRef: '',
 				amount: null,
 				debitAccountId: null,
@@ -2404,7 +2406,7 @@ export default {
 		 */
 		openBookingForReimbursement(item) {
 			this.openNewBooking()
-			const prefill = reimbursementBookingPrefill(item, new Date().toISOString().slice(0, 10))
+			const prefill = reimbursementBookingPrefill(item, clubToday())
 			Object.assign(this.bookingForm, prefill)
 			this.reimbursementPayment = item
 		},

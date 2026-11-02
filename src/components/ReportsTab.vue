@@ -981,7 +981,9 @@ import { usePeriods } from '../composables/usePeriods.js'
 import { useSort } from '../composables/useSort.js'
 import { loadChart } from '../lib/chartLoader.js'
 import { chartTheme, onThemeChange, withAlpha } from '../lib/chartTheme.js'
+import { clubToday } from '../lib/clubTime.js'
 import { amountClass, budgetDiffClass, formatDate, formatDateTime, formatMoney, formatPercent, roleLabel, trendClass, typeLabel } from '../lib/format.js'
+import { addDays } from '../lib/invoices.js'
 import { statementRowKeys } from '../lib/rowKeys.js'
 
 export default {
@@ -1328,9 +1330,7 @@ export default {
 				const saved = localStorage.getItem('vbh_kurzbericht_since')
 				if (saved) { return saved }
 			} catch { /* voll/gesperrt - dann eben Default */ }
-			const d = new Date()
-			d.setDate(d.getDate() - 30)
-			return d.toISOString().slice(0, 10)
+			return addDays(clubToday(), -30)
 		},
 
 		async loadReserveReport() {

@@ -229,6 +229,7 @@ import InvoiceDetail from './InvoiceDetail.vue'
 import InvoicePlanList from './InvoicePlanList.vue'
 import api from '../api.js'
 import { useSort } from '../composables/useSort.js'
+import { clubToday } from '../lib/clubTime.js'
 import { errMsg, formatDate, formatMoney } from '../lib/format.js'
 import { displayStatus, displayStatusLabel, dunningLabel, invoiceSortFields, isDunningDue, statusClass } from '../lib/invoices.js'
 
@@ -340,7 +341,7 @@ export default {
 
 		/** Brutto aller in diesem Jahr als Kleinunternehmer festgeschriebenen, nicht stornierten Rechnungen. */
 		smallBusinessTurnoverCents() {
-			const year = String(new Date().getFullYear())
+			const year = clubToday().slice(0, 4)
 			return this.invoices
 				.filter((i) => i.kind !== 'storno' && ['issued', 'sent', 'paid'].includes(i.status) && i.taxMode === 'kleinunternehmer' && String(i.issueDate || '').startsWith(year))
 				.reduce((sum, i) => sum + i.grossCents, 0)
