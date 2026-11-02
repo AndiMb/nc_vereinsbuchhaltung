@@ -21,7 +21,7 @@ use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\PublicPage;
 use OCP\AppFramework\Http\Attribute\UserRateLimit;
 use OCP\AppFramework\Http\TemplateResponse;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IRequest;
 use OCP\IURLGenerator;
 
@@ -60,7 +60,7 @@ class MandateConsentController extends Controller {
 		private MandateActivationService $activation,
 		private MandateFormRenderer $formRenderer,
 		private IURLGenerator $urlGenerator,
-		private IConfig $config,
+		private IAppConfig $config,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -121,8 +121,8 @@ class MandateConsentController extends Controller {
 	 */
 	private function renderView(array $view, string $token): TemplateResponse {
 		$mandate = $view['mandate'];
-		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '');
-		$creditorId = $this->config->getAppValue(Application::APP_ID, 'sepa_creditor_id', '');
+		$clubName = $this->config->getValueString(Application::APP_ID, 'club_name', '');
+		$creditorId = $this->config->getValueString(Application::APP_ID, 'sepa_creditor_id', '');
 		// "Datum" der Pflichtangaben: bei einer noch offenen Zustimmung das
 		// heutige Datum (das prospektive Unterschriftsdatum), bei einer bereits
 		// erteilten das tatsächliche - sonst zeigte ein Wochen später erneut
@@ -163,7 +163,7 @@ class MandateConsentController extends Controller {
 			[
 				'status' => $status,
 				'reconfirm' => false,
-				'clubName' => $this->config->getAppValue(Application::APP_ID, 'club_name', ''),
+				'clubName' => $this->config->getValueString(Application::APP_ID, 'club_name', ''),
 				'legalTextHtml' => '',
 				'dataBlockHtml' => '',
 				'consentAt' => null,

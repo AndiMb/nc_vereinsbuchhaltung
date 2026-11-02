@@ -23,7 +23,7 @@ use OCA\Vereinsbuchhaltung\Service\Sepa\PainXmlBuilder;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaCreditor;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaReference;
 use OCP\AppFramework\Db\DoesNotExistException;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IUserSession;
 
@@ -58,7 +58,7 @@ class DebitBatchService {
 		private TransactionRunner $transaction,
 		private AuditService $audit,
 		private IUserSession $userSession,
-		private IConfig $config,
+		private IAppConfig $config,
 		private IL10N $l10n,
 		private ReturnedDebitMapper $returnedDebits,
 	) {
@@ -227,11 +227,11 @@ class DebitBatchService {
 	public function release(string $dueDate): DebitBatch {
 		$this->assertDate($dueDate);
 
-		$creditorId = trim($this->config->getAppValue(Application::APP_ID, 'sepa_creditor_id', ''));
+		$creditorId = trim($this->config->getValueString(Application::APP_ID, 'sepa_creditor_id', ''));
 		if ($creditorId === '') {
 			throw new \InvalidArgumentException($this->l10n->t('Bitte zuerst die SEPA-Gläubiger-ID in den Einstellungen hinterlegen.'));
 		}
-		$creditorName = trim($this->config->getAppValue(Application::APP_ID, 'club_name', ''));
+		$creditorName = trim($this->config->getValueString(Application::APP_ID, 'club_name', ''));
 		if ($creditorName === '') {
 			throw new \InvalidArgumentException($this->l10n->t('Bitte zuerst den Vereinsnamen in den Einstellungen hinterlegen.'));
 		}

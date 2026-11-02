@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCP\Group\ISubAdmin;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IGroup;
 use OCP\IGroupManager;
 use OCP\IUserSession;
@@ -30,7 +30,7 @@ class NextcloudAccountOptionsService {
 		private IUserSession $userSession,
 		private IGroupManager $groupManager,
 		private ISubAdmin $subAdmin,
-		private IConfig $config,
+		private IAppConfig $config,
 		private IFactory $l10nFactory,
 	) {
 	}
@@ -72,7 +72,7 @@ class NextcloudAccountOptionsService {
 
 		$presets = array_values(array_filter(array_map(
 			'trim',
-			explode(',', $this->config->getAppValue('files', 'quota_preset', '1 GB, 5 GB, 10 GB')),
+			explode(',', $this->config->getValueString('files', 'quota_preset', '1 GB, 5 GB, 10 GB')),
 		), static fn (string $preset): bool => $preset !== ''));
 
 		return [
@@ -81,10 +81,10 @@ class NextcloudAccountOptionsService {
 			'groups' => $groups,
 			'languages' => $this->languages(),
 			'quotaPresets' => $presets,
-			'defaultQuota' => $this->config->getAppValue('files', 'default_quota', 'none'),
-			'requireEmail' => $this->config->getAppValue('core', 'newUser.requireEmail', 'no') === 'yes',
-			'generateUserId' => $this->config->getAppValue('core', 'newUser.generateUserID', 'no') === 'yes',
-			'sendInvitation' => $this->config->getAppValue('core', 'newUser.sendEmail', 'yes') === 'yes',
+			'defaultQuota' => $this->config->getValueString('files', 'default_quota', 'none'),
+			'requireEmail' => $this->config->getValueString('core', 'newUser.requireEmail', 'no') === 'yes',
+			'generateUserId' => $this->config->getValueString('core', 'newUser.generateUserID', 'no') === 'yes',
+			'sendInvitation' => $this->config->getValueString('core', 'newUser.sendEmail', 'yes') === 'yes',
 		];
 	}
 

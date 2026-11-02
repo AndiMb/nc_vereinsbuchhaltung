@@ -10,7 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 
 /**
@@ -48,7 +48,7 @@ class BeitragsbescheinigungRenderer {
 		private MemberMapper $members,
 		private OpenItemMapper $openItems,
 		private ContributionYearService $contributionYear,
-		private IConfig $config,
+		private IAppConfig $config,
 		private IL10N $l10n,
 	) {
 	}
@@ -95,7 +95,7 @@ class BeitragsbescheinigungRenderer {
 		));
 		$sumCents = array_sum(array_map(static fn (OpenItem $i): int => $i->getAmountCents(), $rows));
 
-		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '');
+		$clubName = $this->config->getValueString(Application::APP_ID, 'club_name', '');
 		$heading = $this->l10n->t('Beitragsbestätigung %s', [$label]);
 		$title = ($clubName !== '' ? $clubName . ' – ' : '') . $heading;
 		$meta = $this->l10n->t('Beitragsjahr %s (%s–%s) · erstellt am %s', [

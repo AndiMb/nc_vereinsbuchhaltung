@@ -11,7 +11,7 @@ use OCA\Vereinsbuchhaltung\Service\InvoiceBankAccountService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
 use OCA\Vereinsbuchhaltung\Service\SepaDebtorAccountService;
 use OCP\AppFramework\Db\DoesNotExistException;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use PHPUnit\Framework\TestCase;
 
@@ -36,8 +36,8 @@ class InvoiceBankAccountServiceTest extends TestCase {
 	}
 
 	private function service(): InvoiceBankAccountService {
-		$config = $this->createMock(IConfig::class);
-		$config->method('getAppValue')->willReturnCallback(fn (string $app, string $key, string $default = '') => $this->config[$key] ?? $default);
+		$config = $this->createMock(IAppConfig::class);
+		$config->method('getValueString')->willReturnCallback(fn (string $app, string $key, string $default = '') => $this->config[$key] ?? $default);
 		$l10n = $this->createMock(IL10N::class);
 		$accounts = $this->createMock(AccountMapper::class);
 		$accounts->method('find')->willReturnCallback(fn (int $id) => $this->rows[$id] ?? throw new DoesNotExistException(''));

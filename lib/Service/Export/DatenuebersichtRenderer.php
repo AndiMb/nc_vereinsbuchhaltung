@@ -18,7 +18,7 @@ use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\ReturnedDebitMapper;
 use OCA\Vereinsbuchhaltung\Service\ClaimStateResolver;
 use OCP\AppFramework\Db\DoesNotExistException;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 
 /**
@@ -54,7 +54,7 @@ class DatenuebersichtRenderer {
 		private OpenItemMapper $openItems,
 		private AssignmentMapper $assignments,
 		private ContributionGroupMapper $groups,
-		private IConfig $config,
+		private IAppConfig $config,
 		private IL10N $l10n,
 	) {
 	}
@@ -63,7 +63,7 @@ class DatenuebersichtRenderer {
 	public function render(int $memberId): string {
 		$member = $this->members->find($memberId);
 
-		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '');
+		$clubName = $this->config->getValueString(Application::APP_ID, 'club_name', '');
 		$heading = $this->l10n->t('Datenübersicht');
 		$title = ($clubName !== '' ? $clubName . ' – ' : '') . $heading;
 		$meta = $this->l10n->t('Auskunft nach Art. 15 DSGVO (kein strukturierter Export nach Art. 20) · erstellt am %s', [ReportFormat::date(date('Y-m-d'))]);

@@ -11,7 +11,7 @@ use OCP\App\IAppManager;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
-use OCP\IConfig;
+use OCP\Config\IUserConfig;
 use OCP\IRequest;
 use OCP\IUserSession;
 
@@ -19,7 +19,7 @@ use OCP\IUserSession;
  * Liefert der Frontend-Splash-Anzeige (WhatsNewDialog.vue) die aktuelle
  * App-Version und merkt sich pro Nutzer, welche Version zuletzt gesehen
  * wurde. Bewusst der erste Pro-Nutzer-Konfigurationswert dieser App
- * (IConfig::setUserValue statt setAppValue) - bei einem gemeinsamen
+ * (IUserConfig statt App-Konfiguration) - bei einem gemeinsamen
  * Vereinskonto mit mehreren Rollen soll der Hinweis pro Person erscheinen,
  * nicht pro Browser/Gerät.
  *
@@ -34,7 +34,7 @@ class WhatsNewController extends Controller {
 
 	public function __construct(
 		IRequest $request,
-		private IConfig $config,
+		private IUserConfig $config,
 		private IAppManager $appManager,
 		private IUserSession $userSession,
 	) {
@@ -48,7 +48,7 @@ class WhatsNewController extends Controller {
 		return new DataResponse([
 			'currentVersion' => $this->appManager->getAppVersion(Application::APP_ID),
 			'lastSeenVersion' => $uid !== null
-				? $this->config->getUserValue($uid, Application::APP_ID, self::CONFIG_KEY, '')
+				? $this->config->getValueString($uid, Application::APP_ID, self::CONFIG_KEY, '')
 				: '',
 		]);
 	}
@@ -59,7 +59,7 @@ class WhatsNewController extends Controller {
 		$uid = $this->userSession->getUser()?->getUID();
 		$version = trim((string)$this->request->getParam('version', ''));
 		if ($uid !== null && preg_match('/^\d+\.\d+\.\d+$/', $version) === 1) {
-			$this->config->setUserValue($uid, Application::APP_ID, self::CONFIG_KEY, $version);
+			$this->config->setValueString($uid, Application::APP_ID, self::CONFIG_KEY, $version);
 		}
 		return new DataResponse([]);
 	}

@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportSettingsService;
-use OCP\IConfig;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\AppConfigStub;
+use OCP\IAppConfig;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -16,23 +17,14 @@ use PHPUnit\Framework\TestCase;
  */
 class SepaImportSettingsServiceTest extends TestCase {
 
-	/** @var array<string, string> */
-	private array $store = [];
+	private IAppConfig $config;
 
 	private function service(): SepaImportSettingsService {
-		$config = $this->createMock(IConfig::class);
-		$config->method('getAppValue')->willReturnCallback(fn (string $app, string $key, string $default = '') => $this->store[$key] ?? $default);
-		$config->method('setAppValue')->willReturnCallback(function (string $app, string $key, string $value): void {
-			$this->store[$key] = $value;
-		});
-		$config->method('deleteAppValue')->willReturnCallback(function (string $app, string $key): void {
-			unset($this->store[$key]);
-		});
-		return new SepaImportSettingsService($config);
+		return new SepaImportSettingsService($this->config);
 	}
 
 	protected function setUp(): void {
-		$this->store = [];
+		$this->config = AppConfigStub::create($this);
 	}
 
 	public function testForgetIfSetToRaeumtNurDasPassendeKontoAb(): void {
@@ -75,6 +67,6 @@ class SepaImportSettingsServiceTest extends TestCase {
 
 		$this->assertNull($service->returnFeeAccountId());
 		$this->assertNull($service->contributionDefaultAccountId());
-		$this->assertArrayNotHasKey('sepa_return_fee_account_id', $this->store);
+		$this->assertArrayNotHasKey('sepa_return_fee_account_id', AppConfigStub::values($this->config));
 	}
 }

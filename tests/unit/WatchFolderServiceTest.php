@@ -11,7 +11,7 @@ use OCA\Vereinsbuchhaltung\Service\WatchFolderService;
 use OCP\Files\File;
 use OCP\Files\Folder;
 use OCP\Files\IRootFolder;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 
@@ -82,8 +82,8 @@ class WatchFolderServiceTest extends TestCase {
 		$rootFolder = $this->createMock(IRootFolder::class);
 		$rootFolder->method('getUserFolder')->with('buchhaltung')->willReturn($home);
 
-		$config = $this->createMock(IConfig::class);
-		$config->method('getAppValue')->willReturnMap([
+		$config = $this->createMock(IAppConfig::class);
+		$config->method('getValueString')->willReturnMap([
 			['vereinsbuchhaltung', WatchFolderService::SETTING_USER, '', 'buchhaltung'],
 			['vereinsbuchhaltung', WatchFolderService::SETTING_PATH, '', 'Kontoauszuege'],
 		]);

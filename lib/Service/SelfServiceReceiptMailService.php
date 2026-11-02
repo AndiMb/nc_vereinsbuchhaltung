@@ -6,7 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Member;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\Mail\IMailer;
 
@@ -28,7 +28,7 @@ class SelfServiceReceiptMailService {
 
 	public function __construct(
 		private IMailer $mailer,
-		private IConfig $config,
+		private IAppConfig $config,
 		private IL10N $l10n,
 		private ClubMailBranding $mailBranding,
 	) {
@@ -134,7 +134,7 @@ class SelfServiceReceiptMailService {
 	}
 
 	private function clubName(): string {
-		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '');
+		$clubName = $this->config->getValueString(Application::APP_ID, 'club_name', '');
 		return $clubName !== '' ? $clubName : $this->l10n->t('Ihr Verein');
 	}
 }

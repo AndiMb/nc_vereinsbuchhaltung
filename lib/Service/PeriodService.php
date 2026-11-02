@@ -13,7 +13,7 @@ use OCA\Vereinsbuchhaltung\Db\PeriodMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Exception\PeriodClosedException;
 use OCA\Vereinsbuchhaltung\Exception\PeriodNotFoundException;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 
 /**
@@ -67,7 +67,7 @@ class PeriodService {
 		private EntryNumberService $entryNumbers,
 		private TransactionRunner $transaction,
 		private AuditService $audit,
-		private IConfig $config,
+		private IAppConfig $config,
 		private IL10N $l10n,
 	) {
 	}
@@ -86,7 +86,7 @@ class PeriodService {
 	 * @return array{preset:string, startDay:int, startMonth:int, lengthMonths:int}
 	 */
 	public function rule(): array {
-		$raw = $this->config->getAppValue(Application::APP_ID, self::SETTING_RULE, '');
+		$raw = $this->config->getValueString(Application::APP_ID, self::SETTING_RULE, '');
 		if ($raw === '') {
 			return PeriodRule::DEFAULT_RULE;
 		}
@@ -512,7 +512,7 @@ class PeriodService {
 			$plan = $this->planRuleChange($userId, $rule);
 			$old = $this->all($userId);
 
-			$this->config->setAppValue(Application::APP_ID, self::SETTING_RULE, json_encode($rule, JSON_THROW_ON_ERROR));
+			$this->config->setValueString(Application::APP_ID, self::SETTING_RULE, json_encode($rule, JSON_THROW_ON_ERROR));
 
 			// Ein Zeitraum, dessen Grenzen die neue Regel unverändert lässt,
 			// bleibt bestehen – samt ID, Bezeichnung, Buchungen und Planwerten.

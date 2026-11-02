@@ -71,7 +71,7 @@ class Application extends App implements IBootstrap {
 				$c->get(\OCA\Vereinsbuchhaltung\Service\EntryNumberService::class),
 				$c->get(TransactionRunner::class),
 				$c->get(\OCA\Vereinsbuchhaltung\Service\AuditService::class),
-				$c->get(\OCP\IConfig::class),
+				$c->get(\OCP\IAppConfig::class),
 				$c->get(\OCP\IL10N::class),
 			);
 		}, true);

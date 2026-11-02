@@ -26,7 +26,7 @@ use OCP\AppFramework\Http\DataDisplayResponse;
 use OCP\AppFramework\Http\DataDownloadResponse;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\EmptyContentSecurityPolicy;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IRequest;
 use OCP\IUserSession;
@@ -61,7 +61,7 @@ class MandateController extends Controller {
 		private OpenItemService $openItems,
 		private PermissionService $permissions,
 		private IUserSession $userSession,
-		private IConfig $config,
+		private IAppConfig $config,
 		private IL10N $l10n,
 		private LoggerInterface $logger,
 	) {
@@ -262,8 +262,8 @@ class MandateController extends Controller {
 			? ($this->legalText->find((int)$mandate->getMandateTextVersion()) ?? $this->legalText->current())
 			: $this->legalText->current();
 
-		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '');
-		$creditorId = $this->config->getAppValue(Application::APP_ID, 'sepa_creditor_id', '');
+		$clubName = $this->config->getValueString(Application::APP_ID, 'club_name', '');
+		$creditorId = $this->config->getValueString(Application::APP_ID, 'sepa_creditor_id', '');
 
 		// Das Formular selbst ist ein deutsches Dokument ohne t() (siehe MandateFormRenderer);
 		// übersetzt ist nur der Druckhinweis oben, der beim Drucken wegfällt.

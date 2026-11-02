@@ -7,7 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Service\Export;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Service\Report\StructuredReportBuilder;
 use OCA\Vereinsbuchhaltung\Service\Report\StructuredReportService;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 
 /**
@@ -22,7 +22,7 @@ use OCP\IL10N;
 class GliederungsberichtRenderer {
 
 	public function __construct(
-		private IConfig $config,
+		private IAppConfig $config,
 		private IL10N $l10n,
 	) {
 	}
@@ -33,7 +33,7 @@ class GliederungsberichtRenderer {
 	public function render(array $report): string {
 		$period = $report['period'];
 		$columns = $report['columns'];
-		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '');
+		$clubName = $this->config->getValueString(Application::APP_ID, 'club_name', '');
 		$heading = $report['template']['name'];
 		$meta = [
 			PrintableReportPage::escape($period->getLabel()),

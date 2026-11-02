@@ -6,7 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\ContributionGroup;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 
 /**
@@ -15,7 +15,7 @@ use OCP\IL10N;
  * Standard-Einzugstag + eine überschreibbare Zeile je Periode (Zeilenidentität
  * = Periodenindex, nicht Datum — gilt jahresunabhängig)."
  *
- * Gespeichert als ein JSON-Blob in {@see IConfig} (dasselbe Muster wie
+ * Gespeichert als ein JSON-Blob in {@see IAppConfig} (dasselbe Muster wie
  * {@see PeriodService} für die Geschäftsjahr-Regel) statt einer eigenen
  * Tabelle: der Terminplan ist Konfiguration, keine Fachdatenhistorie.
  *
@@ -56,7 +56,7 @@ class DueDateScheduleService {
 	private const GUARD_ANCHOR_YEARS = [2000, 2001, 2002, 2003];
 
 	public function __construct(
-		private IConfig $config,
+		private IAppConfig $config,
 		private ContributionYearService $contributionYear,
 		private IL10N $l10n,
 	) {
@@ -354,7 +354,7 @@ class DueDateScheduleService {
 
 	/** @return array<string, array{defaultOffsetDays?:int, overrides?:array<int|string,int>}> */
 	private function readRaw(): array {
-		$raw = $this->config->getAppValue(Application::APP_ID, self::SETTING_KEY, '');
+		$raw = $this->config->getValueString(Application::APP_ID, self::SETTING_KEY, '');
 		if ($raw === '') {
 			return [];
 		}
@@ -372,6 +372,6 @@ class DueDateScheduleService {
 
 	/** @param array<string, array{defaultOffsetDays?:int, overrides?:array<int|string,int>}> $schedule */
 	private function writeRaw(array $schedule): void {
-		$this->config->setAppValue(Application::APP_ID, self::SETTING_KEY, json_encode($schedule, JSON_THROW_ON_ERROR));
+		$this->config->setValueString(Application::APP_ID, self::SETTING_KEY, json_encode($schedule, JSON_THROW_ON_ERROR));
 	}
 }

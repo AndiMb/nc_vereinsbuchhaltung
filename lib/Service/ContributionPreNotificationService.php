@@ -12,7 +12,7 @@ use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCP\AppFramework\Utility\ITimeFactory;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IUserManager;
 use OCP\Mail\IMailer;
@@ -50,7 +50,7 @@ class ContributionPreNotificationService {
 		private DirectDebitEligibilityResolver $eligibility,
 		private IUserManager $userManager,
 		private IMailer $mailer,
-		private IConfig $config,
+		private IAppConfig $config,
 		private ContributionCycleSettings $settings,
 		private ITimeFactory $time,
 		private LoggerInterface $logger,
@@ -122,9 +122,9 @@ class ContributionPreNotificationService {
 		$mandate = $this->mandates->findLiveByMember($memberId)[0] ?? null;
 		$mandateReference = $mandate?->getMandateReference() ?? '';
 
-		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '');
+		$clubName = $this->config->getValueString(Application::APP_ID, 'club_name', '');
 		$clubName = $clubName !== '' ? $clubName : $l->t('Ihr Verein');
-		$creditorId = $this->config->getAppValue(Application::APP_ID, 'sepa_creditor_id', '');
+		$creditorId = $this->config->getValueString(Application::APP_ID, 'sepa_creditor_id', '');
 
 		$template = $this->mailer->createEMailTemplate('vereinsbuchhaltung.contributionPreNotification');
 		$template->setSubject($l->t('Bevorstehender Lastschrifteinzug von %s', [$clubName]));

@@ -14,7 +14,7 @@ use OCA\Vereinsbuchhaltung\Service\Export\CsvExportService;
 use OCA\Vereinsbuchhaltung\Service\Export\GliederungsberichtRenderer;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCA\Vereinsbuchhaltung\Service\ReportService;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use PHPUnit\Framework\TestCase;
 
@@ -78,8 +78,8 @@ class GliederungsberichtExportTest extends TestCase {
 	}
 
 	public function testDruckseiteZeigtWarnungMaskiertTexteUndMarkiertInaktive(): void {
-		$config = $this->createMock(IConfig::class);
-		$config->method('getAppValue')->willReturn('Musterverein');
+		$config = $this->createMock(IAppConfig::class);
+		$config->method('getValueString')->willReturn('Musterverein');
 		$html = (new GliederungsberichtRenderer($config, $this->l10n()))->render($this->report());
 
 		$this->assertStringContainsString('<h1>Ergebnis je Bereich</h1>', $html);

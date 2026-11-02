@@ -11,6 +11,7 @@ use OCA\Vereinsbuchhaltung\Service\SelfServiceMandateService;
 use OCP\Activity\Exceptions\UnknownActivityException;
 use OCP\Activity\IEvent;
 use OCP\Activity\IProvider;
+use OCP\IURLGenerator;
 use OCP\L10N\IFactory;
 
 /**
@@ -45,6 +46,7 @@ class SelfServiceProvider implements IProvider {
 
 	public function __construct(
 		private IFactory $l10nFactory,
+		private IURLGenerator $urlGenerator,
 	) {
 	}
 
@@ -80,6 +82,8 @@ class SelfServiceProvider implements IProvider {
 		};
 
 		$event->setParsedSubject($text);
+		$event->setRichSubject($text);
+		$event->setIcon($this->urlGenerator->getAbsoluteURL($this->urlGenerator->imagePath(Application::APP_ID, 'app-dark.svg')));
 		return $event;
 	}
 

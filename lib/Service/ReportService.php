@@ -11,7 +11,7 @@ use OCA\Vereinsbuchhaltung\Db\CostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\Period;
 use OCA\Vereinsbuchhaltung\Service\Report\CostCenterResolver;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 
 /**
@@ -40,7 +40,7 @@ class ReportService {
 		private JournalLineMapper $lineMapper,
 		private CostCenterMapper $costCenterMapper,
 		private PeriodService $periods,
-		private IConfig $config,
+		private IAppConfig $config,
 		private IL10N $l10n,
 	) {
 	}
@@ -60,7 +60,7 @@ class ReportService {
 	 * keine solche Annahme.
 	 */
 	public function costCenterMode(): string {
-		$mode = $this->config->getAppValue(Application::APP_ID, 'cost_center_mode', 'group');
+		$mode = $this->config->getValueString(Application::APP_ID, 'cost_center_mode', 'group');
 		return in_array($mode, self::MODES, true) ? $mode : 'group';
 	}
 

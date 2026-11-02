@@ -6,7 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
 use OCA\Vereinsbuchhaltung\Service\BrandingService;
 use OCA\Vereinsbuchhaltung\Service\ClubMailBranding;
-use OCP\IConfig;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\AppConfigStub;
 use OCP\IL10N;
 use OCP\L10N\IFactory;
 use OCP\Mail\IEMailTemplate;
@@ -25,10 +25,7 @@ class ClubMailBrandingTest extends TestCase {
 	 * @param array{content:string,mimeType:string}|null $logo
 	 */
 	private function branding(array $settings = [], ?array $logo = null): ClubMailBranding {
-		$config = $this->createMock(IConfig::class);
-		$config->method('getAppValue')->willReturnCallback(
-			fn (string $app, string $key, string $default = ''): string => $settings[$key] ?? $default,
-		);
+		$config = AppConfigStub::create($this, $settings);
 		$logos = $this->createMock(BrandingService::class);
 		$logos->expects($this->atMost(1))->method('getLogo')->willReturn($logo);
 		$mailer = $this->createMock(IMailer::class);

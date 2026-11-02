@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 
 /**
@@ -20,7 +20,7 @@ use OCP\IL10N;
  * (Issue #73 statt #70) und braucht diesen Wert nicht zwingend gemeinsam mit
  * den Einzugszyklus-Abständen – folgt aber demselben Muster (siehe dortige
  * Klassendoc zur Begründung „eigene Klasse statt verstreuter
- * getAppValue()-Aufrufe").
+ * getValueString()-Aufrufe").
  *
  * Der Vorlauf für die Stufe-0-Zahlungsaufforderung bei `ueberweisung`-Fälligkeit
  * (Spec „mit Vorabinfo-Vorlauf bei ueberweisung-Fälligkeit") nutzt dagegen
@@ -42,13 +42,13 @@ final class DunningSettings {
 	private const MAX_DAYS = 365;
 
 	public function __construct(
-		private IConfig $config,
+		private IAppConfig $config,
 		private ?IL10N $l10n = null,
 	) {
 	}
 
 	public function intervalDays(): int {
-		$stored = (int)$this->config->getAppValue(Application::APP_ID, self::SETTING_INTERVAL_DAYS, (string)self::DEFAULT_INTERVAL_DAYS);
+		$stored = (int)$this->config->getValueString(Application::APP_ID, self::SETTING_INTERVAL_DAYS, (string)self::DEFAULT_INTERVAL_DAYS);
 		return $stored >= self::MIN_DAYS && $stored <= self::MAX_DAYS ? $stored : self::DEFAULT_INTERVAL_DAYS;
 	}
 
@@ -57,6 +57,6 @@ final class DunningSettings {
 		if ($days < self::MIN_DAYS || $days > self::MAX_DAYS) {
 			throw new \InvalidArgumentException($this->msg('Der Mahnabstand muss zwischen %1$d und %2$d Tagen liegen.', [self::MIN_DAYS, self::MAX_DAYS]));
 		}
-		$this->config->setAppValue(Application::APP_ID, self::SETTING_INTERVAL_DAYS, (string)$days);
+		$this->config->setValueString(Application::APP_ID, self::SETTING_INTERVAL_DAYS, (string)$days);
 	}
 }

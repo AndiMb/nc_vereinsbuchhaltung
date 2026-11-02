@@ -40,8 +40,9 @@ use OCA\Vereinsbuchhaltung\Service\MemberService;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCA\Vereinsbuchhaltung\Service\ProrataCalculator;
 use OCA\Vereinsbuchhaltung\Service\Statement\Camt053Parser;
+use OCP\Config\IUserConfig;
 use OCP\DB\QueryBuilder\IQueryBuilder;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IDBConnection;
 use OCP\IUserManager;
 use OCP\IUserSession;
@@ -96,7 +97,8 @@ final class BeitraegeSeeder {
 		'vbh_members',
 	];
 
-	private IConfig $config;
+	private IAppConfig $config;
+	private IUserConfig $userConfig;
 	private IDBConnection $db;
 	/** @var list<string> */
 	private array $notes = [];
@@ -105,7 +107,8 @@ final class BeitraegeSeeder {
 	public function __construct(
 		private \Closure $out,
 	) {
-		$this->config = Server::get(IConfig::class);
+		$this->config = Server::get(IAppConfig::class);
+		$this->userConfig = Server::get(IUserConfig::class);
 		$this->db = Server::get(IDBConnection::class);
 	}
 
@@ -180,7 +183,7 @@ final class BeitraegeSeeder {
 	 */
 	private function loadState(): array {
 		$empty = ['originals' => [], 'userLangs' => [], 'roles' => [], 'legalTextVersionId' => null, 'accountIbanSetOn' => null, 'anonymizationBooking' => null];
-		$raw = $this->config->getAppValue(Application::APP_ID, self::STATE_KEY, '');
+		$raw = $this->config->getValueString(Application::APP_ID, self::STATE_KEY, '');
 		if ($raw === '') {
 			return $empty;
 		}
@@ -190,7 +193,7 @@ final class BeitraegeSeeder {
 
 	/** @param array<string, mixed> $state */
 	private function saveState(array $state): void {
-		$this->config->setAppValue(Application::APP_ID, self::STATE_KEY, json_encode($state, JSON_THROW_ON_ERROR));
+		$this->config->setValueString(Application::APP_ID, self::STATE_KEY, json_encode($state, JSON_THROW_ON_ERROR));
 	}
 
 	/**
@@ -201,10 +204,10 @@ final class BeitraegeSeeder {
 	 */
 	private function setSetting(array &$state, string $key, string $value): void {
 		if (!array_key_exists($key, $state['originals'])) {
-			$exists = in_array($key, $this->config->getAppKeys(Application::APP_ID), true);
-			$state['originals'][$key] = $exists ? $this->config->getAppValue(Application::APP_ID, $key, '') : null;
+			$exists = in_array($key, $this->config->getKeys(Application::APP_ID), true);
+			$state['originals'][$key] = $exists ? $this->config->getValueString(Application::APP_ID, $key, '') : null;
 		}
-		$this->config->setAppValue(Application::APP_ID, $key, $value);
+		$this->config->setValueString(Application::APP_ID, $key, $value);
 	}
 
 	// =====================================================================
@@ -366,9 +369,9 @@ final class BeitraegeSeeder {
 
 		foreach ($state['originals'] as $key => $value) {
 			if ($value === null) {
-				$this->config->deleteAppValue(Application::APP_ID, $key);
+				$this->config->deleteKey(Application::APP_ID, $key);
 			} else {
-				$this->config->setAppValue(Application::APP_ID, $key, $value);
+				$this->config->setValueString(Application::APP_ID, $key, $value);
 			}
 		}
 		$this->say('  Einstellungen zurückgesetzt: ' . implode(', ', array_keys($state['originals'])));
@@ -387,9 +390,9 @@ final class BeitraegeSeeder {
 		}
 		foreach ($state['userLangs'] as $uid => $previous) {
 			if ($previous === null) {
-				$this->config->deleteUserValue($uid, 'core', 'lang');
+				$this->userConfig->deleteUserConfig($uid, 'core', 'lang');
 			} else {
-				$this->config->setUserValue($uid, 'core', 'lang', $previous);
+				$this->userConfig->setValueString($uid, 'core', 'lang', $previous);
 			}
 		}
 		if ($state['accountIbanSetOn'] !== null) {
@@ -398,7 +401,7 @@ final class BeitraegeSeeder {
 			$account->setIban(null);
 			$accounts->update($account);
 		}
-		$this->config->deleteAppValue(Application::APP_ID, self::STATE_KEY);
+		$this->config->deleteKey(Application::APP_ID, self::STATE_KEY);
 		$this->say('Fertig. Rollen und Sprachen sind wieder wie vorher.');
 	}
 
@@ -465,7 +468,7 @@ final class BeitraegeSeeder {
 		$this->setSetting($state, 'sepa_contribution_default_account_id', (string)$income->getId());
 		$this->setSetting($state, 'self_service_enabled', '1');
 		$this->setSetting($state, 'membership_enabled', '1');
-		if (trim($this->config->getAppValue(Application::APP_ID, 'club_name', '')) === '') {
+		if (trim($this->config->getValueString(Application::APP_ID, 'club_name', '')) === '') {
 			$this->setSetting($state, 'club_name', 'Testverein e.V.');
 		}
 		// Heute muss die Vorabinfo zum 01.11. fällig sein (27 Tage vorher): Vorlauf 30 Tage, Vorwarnfenster 35.
@@ -501,10 +504,10 @@ final class BeitraegeSeeder {
 				continue;
 			}
 			if (!array_key_exists($uid, $state['userLangs'])) {
-				$has = in_array('lang', $this->config->getUserKeys($uid, 'core'), true);
-				$state['userLangs'][$uid] = $has ? $this->config->getUserValue($uid, 'core', 'lang', '') : null;
+				$has = in_array('lang', $this->userConfig->getKeys($uid, 'core'), true);
+				$state['userLangs'][$uid] = $has ? $this->userConfig->getValueString($uid, 'core', 'lang', '') : null;
 			}
-			$this->config->setUserValue($uid, 'core', 'lang', $lang);
+			$this->userConfig->setValueString($uid, 'core', 'lang', $lang);
 		}
 		$this->say('  Rollen: alice = buchhalter, bob = revisor; Sprachen: jane = de (Du), john = de_DE (Sie), user1 = en');
 	}

@@ -14,7 +14,7 @@ use OCA\Vereinsbuchhaltung\Service\LedgerAggregator;
 use OCA\Vereinsbuchhaltung\Service\PeriodRule;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCA\Vereinsbuchhaltung\Service\ReportService;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 
 /**
@@ -37,7 +37,7 @@ class KassenberichtRenderer {
 		private BudgetOverviewService $budgetOverview,
 		private PeriodService $periods,
 		private ReportService $reportService,
-		private IConfig $config,
+		private IAppConfig $config,
 		private IL10N $l10n,
 	) {
 	}
@@ -61,7 +61,7 @@ class KassenberichtRenderer {
 		$budget = $this->budgetOverview->build($userId, (int)$period->getId());
 		$hasPlan = array_filter($budget['nodes'], static fn (array $n): bool => $n['isPlanItem']) !== [];
 
-		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '');
+		$clubName = $this->config->getValueString(Application::APP_ID, 'club_name', '');
 		$title = ($clubName !== '' ? $clubName . ' – ' : '') . $this->l10n->t('Kassenbericht %s', [$period->getLabel()]);
 
 		$h = PrintableReportPage::printHint($this->l10n->t('Zum Drucken oder Als-PDF-Speichern: <strong>Strg+P</strong> (Mac: ⌘P) im Browser.'));

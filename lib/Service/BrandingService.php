@@ -7,7 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Service;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCP\Files\AppData\IAppDataFactory;
 use OCP\Files\NotFoundException;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 
 /**
@@ -32,7 +32,7 @@ class BrandingService {
 
 	public function __construct(
 		IAppDataFactory $appDataFactory,
-		private IConfig $config,
+		private IAppConfig $config,
 		private IL10N $l10n,
 	) {
 		$this->appData = $appDataFactory->get(Application::APP_ID);
@@ -47,12 +47,12 @@ class BrandingService {
 	}
 
 	public function hasLogo(): bool {
-		return $this->config->getAppValue(Application::APP_ID, 'brand_logo_mime', '') !== '';
+		return $this->config->getValueString(Application::APP_ID, 'brand_logo_mime', '') !== '';
 	}
 
 	/** @return array{content:string,mimeType:string}|null */
 	public function getLogo(): ?array {
-		$mime = $this->config->getAppValue(Application::APP_ID, 'brand_logo_mime', '');
+		$mime = $this->config->getValueString(Application::APP_ID, 'brand_logo_mime', '');
 		if ($mime === '') {
 			return null;
 		}
@@ -77,7 +77,7 @@ class BrandingService {
 		} else {
 			$folder->newFile(self::FILE)->putContent($content);
 		}
-		$this->config->setAppValue(Application::APP_ID, 'brand_logo_mime', $mimeType);
+		$this->config->setValueString(Application::APP_ID, 'brand_logo_mime', $mimeType);
 	}
 
 	public function deleteLogo(): void {
@@ -86,6 +86,6 @@ class BrandingService {
 		} catch (\Throwable) {
 			// schon weg – ignorieren
 		}
-		$this->config->deleteAppValue(Application::APP_ID, 'brand_logo_mime');
+		$this->config->deleteKey(Application::APP_ID, 'brand_logo_mime');
 	}
 }

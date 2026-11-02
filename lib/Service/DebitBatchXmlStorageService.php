@@ -9,7 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\DebitBatch;
 use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCP\Files\Folder;
 use OCP\Files\IRootFolder;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 
 /**
@@ -32,28 +32,28 @@ class DebitBatchXmlStorageService {
 
 	public function __construct(
 		private IRootFolder $rootFolder,
-		private IConfig $config,
+		private IAppConfig $config,
 		private AttachmentStorageService $attachmentStorage,
 		private IL10N $l10n,
 	) {
 	}
 
 	public function isEnabled(): bool {
-		return $this->config->getAppValue(Application::APP_ID, self::SETTING_ENABLED, '0') === '1';
+		return $this->config->getValueString(Application::APP_ID, self::SETTING_ENABLED, '0') === '1';
 	}
 
 	public function setEnabled(bool $enabled): void {
-		$this->config->setAppValue(Application::APP_ID, self::SETTING_ENABLED, $enabled ? '1' : '0');
+		$this->config->setValueString(Application::APP_ID, self::SETTING_ENABLED, $enabled ? '1' : '0');
 	}
 
 	public function folderPath(): string {
-		$path = trim(str_replace('\\', '/', $this->config->getAppValue(Application::APP_ID, self::SETTING_PATH, self::DEFAULT_PATH)), '/');
+		$path = trim(str_replace('\\', '/', $this->config->getValueString(Application::APP_ID, self::SETTING_PATH, self::DEFAULT_PATH)), '/');
 		return $path !== '' ? $path : self::DEFAULT_PATH;
 	}
 
 	public function setFolderPath(string $path): void {
 		$path = trim(str_replace('\\', '/', $path), '/');
-		$this->config->setAppValue(Application::APP_ID, self::SETTING_PATH, $path !== '' ? $path : self::DEFAULT_PATH);
+		$this->config->setValueString(Application::APP_ID, self::SETTING_PATH, $path !== '' ? $path : self::DEFAULT_PATH);
 	}
 
 	/** Ob überhaupt ein Nutzer-Home als Ablageort eingerichtet ist. */

@@ -6,7 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
 use OCA\Vereinsbuchhaltung\Service\NextcloudAccountOptionsService;
 use OCP\Group\ISubAdmin;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IGroup;
 use OCP\IGroupManager;
 use OCP\IUser;
@@ -42,8 +42,8 @@ class NextcloudAccountOptionsServiceTest extends TestCase {
 	}
 
 	private function service(): NextcloudAccountOptionsService {
-		$config = $this->createMock(IConfig::class);
-		$config->method('getAppValue')->willReturnCallback(fn (string $app, string $key, string $default = ''): string => $this->config[$app . '.' . $key] ?? $default);
+		$config = $this->createMock(IAppConfig::class);
+		$config->method('getValueString')->willReturnCallback(fn (string $app, string $key, string $default = ''): string => $this->config[$app . '.' . $key] ?? $default);
 		return new NextcloudAccountOptionsService($this->session, $this->groups, $this->subAdmin, $config, $this->l10n);
 	}
 

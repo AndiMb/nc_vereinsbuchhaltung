@@ -12,7 +12,7 @@ use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\DataDisplayResponse;
 use OCP\AppFramework\Http\EmptyContentSecurityPolicy;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IRequest;
 
@@ -27,7 +27,7 @@ class HelpController extends Controller {
 
 	public function __construct(
 		IRequest $request,
-		private IConfig $config,
+		private IAppConfig $config,
 		private IL10N $l10n,
 		private HandbookMarkdownRenderer $renderer,
 	) {
@@ -84,7 +84,7 @@ class HelpController extends Controller {
 	#[NoCSRFRequired]
 	public function pruefleitfaden(): DataDisplayResponse {
 		$english = $this->isEnglish();
-		$clubName = (string)$this->config->getAppValue(Application::APP_ID, 'club_name', '');
+		$clubName = (string)$this->config->getValueString(Application::APP_ID, 'club_name', '');
 		$heading = $english ? 'Quick Guide for Auditors' : 'Kurzanleitung für Kassenprüfer/innen';
 		$title = ($clubName !== '' ? htmlspecialchars($clubName, ENT_QUOTES, 'UTF-8') . ' – ' : '') . $heading;
 

@@ -7,7 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Service\Export;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Service\AccountStatementService;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 
 /**
@@ -23,7 +23,7 @@ class AccountStatementRenderer {
 	public function __construct(
 		private AccountStatementService $statements,
 		private PeriodService $periods,
-		private IConfig $config,
+		private IAppConfig $config,
 		private IL10N $l10n,
 	) {
 	}
@@ -39,7 +39,7 @@ class AccountStatementRenderer {
 			? $this->periods->find($userId, (int)$periodId)->getLabel()
 			: $this->l10n->t('alle Zeiträume');
 
-		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '');
+		$clubName = $this->config->getValueString(Application::APP_ID, 'club_name', '');
 		$heading = $this->l10n->t('Kontenblatt %s', [$accountLabel]);
 
 		$meta = [

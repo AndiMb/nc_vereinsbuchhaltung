@@ -61,12 +61,6 @@ parameters:
 	# das Loeschen der Zeile. Neue Deprecations ausserhalb dieser Liste lassen
 	# die Analyse scheitern.
 	ignoreErrors:
-		# IConfig::get/set/deleteAppValue, getAppKeys (seit NC 29: IAppConfig) und
-		# get/set/deleteUserValue, getUserKeys (seit NC 33: IUserConfig).
-		# Abbau: Task D2 (#262).
-		-
-			identifier: method.deprecated
-			message: '#of interface OCP\\IConfig#'
 		# IUserManager::search() (seit NC 27: searchDisplayName) und
 		# IMailer::validateMailAddress() (seit NC 26: IEmailValidator::isValid).
 		# Abbau: Task D4 (#262).

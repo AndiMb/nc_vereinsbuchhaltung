@@ -24,7 +24,7 @@ use OCA\Vereinsbuchhaltung\Service\MandateExpirySettings;
 use OCA\Vereinsbuchhaltung\Service\MandateReferenceGenerator;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
 use OCA\Vereinsbuchhaltung\Service\MandateStateMachine;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IUser;
 use OCP\IUserSession;
@@ -86,8 +86,8 @@ class MandateServiceTest extends TestCase {
 		$transaction = $this->createMock(TransactionRunner::class);
 		$transaction->method('run')->willReturnCallback(static fn (callable $fn) => $fn());
 
-		$config = $this->createMock(IConfig::class);
-		$config->method('getAppValue')->willReturnCallback(static fn (string $app, string $key, string $default = '') => $appValues[$key] ?? $default);
+		$config = $this->createMock(IAppConfig::class);
+		$config->method('getValueString')->willReturnCallback(static fn (string $app, string $key, string $default = '') => $appValues[$key] ?? $default);
 
 		// insert()/update() geben in der echten QBMapper-Implementierung das
 		// (ggf. mit ID versehene) Entity zurück - hier reicht "gibt weiter,

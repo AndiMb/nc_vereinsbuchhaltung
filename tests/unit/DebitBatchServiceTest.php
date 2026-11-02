@@ -27,7 +27,7 @@ use OCA\Vereinsbuchhaltung\Service\DebitRunQueryService;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
 use OCA\Vereinsbuchhaltung\Service\Sepa\PainXmlBuilder;
 use OCA\Vereinsbuchhaltung\Service\SepaDebtorAccountService;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IUser;
 use OCP\IUserSession;
@@ -63,7 +63,7 @@ class DebitBatchServiceTest extends TestCase {
 	private DebitBatchXmlStorageService&MockObject $xmlStorage;
 	private TransactionRunner&MockObject $transaction;
 	private AuditService&MockObject $audit;
-	private IConfig&MockObject $config;
+	private IAppConfig&MockObject $config;
 	private ReturnedDebitMapper&MockObject $returnedDebits;
 
 	/** @var array<int, MandateAmendment[]> siehe amendmentMapper-Stub in setUp() */
@@ -85,7 +85,7 @@ class DebitBatchServiceTest extends TestCase {
 		$this->transaction = $this->createMock(TransactionRunner::class);
 		$this->transaction->method('run')->willReturnCallback(static fn (callable $fn) => $fn());
 		$this->audit = $this->createMock(AuditService::class);
-		$this->config = $this->createMock(IConfig::class);
+		$this->config = $this->createMock(IAppConfig::class);
 		$this->returnedDebits = $this->createMock(ReturnedDebitMapper::class);
 
 		// Callback statt zweier method()->with()-Stubs: mehrere with()-Varianten
@@ -149,7 +149,7 @@ class DebitBatchServiceTest extends TestCase {
 
 	/** Grundeinstellungen, die release() vor jeder Freigabe prüft. */
 	private function configureBaseSettings(string $iban = 'DE12500105170648489890'): void {
-		$this->config->method('getAppValue')->willReturnCallback(static function (string $app, string $key, string $default = ''): string {
+		$this->config->method('getValueString')->willReturnCallback(static function (string $app, string $key, string $default = ''): string {
 			return match ($key) {
 				'sepa_creditor_id' => 'DE98ZZZ09999999999',
 				'club_name' => 'Testverein e. V.',
@@ -274,7 +274,7 @@ class DebitBatchServiceTest extends TestCase {
 	}
 
 	public function testReleaseWirftWennGlaeubigerIdFehlt(): void {
-		$this->config->method('getAppValue')->willReturnCallback(static fn (string $app, string $key, string $default = ''): string => $default);
+		$this->config->method('getValueString')->willReturnCallback(static fn (string $app, string $key, string $default = ''): string => $default);
 
 		$this->expectException(\InvalidArgumentException::class);
 		$this->service()->release('2026-10-01');

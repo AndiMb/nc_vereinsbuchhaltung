@@ -17,7 +17,7 @@ use OCA\Vereinsbuchhaltung\Service\Sepa\SepaMatchingService;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaSettingsAccountValidator;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IRequest;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -64,12 +64,13 @@ class SepaImportControllerSettingsTest extends TestCase {
 	}
 
 	private function settings(): SepaImportSettingsService {
-		$config = $this->createMock(IConfig::class);
-		$config->method('getAppValue')->willReturnCallback(fn (string $app, string $key, string $default = '') => $this->store[$key] ?? $default);
-		$config->method('setAppValue')->willReturnCallback(function (string $app, string $key, string $value): void {
+		$config = $this->createMock(IAppConfig::class);
+		$config->method('getValueString')->willReturnCallback(fn (string $app, string $key, string $default = '') => $this->store[$key] ?? $default);
+		$config->method('setValueString')->willReturnCallback(function (string $app, string $key, string $value): bool {
 			$this->store[$key] = $value;
+			return true;
 		});
-		$config->method('deleteAppValue')->willReturnCallback(function (string $app, string $key): void {
+		$config->method('deleteKey')->willReturnCallback(function (string $app, string $key): void {
 			unset($this->store[$key]);
 		});
 		return new SepaImportSettingsService($config);

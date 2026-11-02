@@ -10,7 +10,7 @@ use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCP\Files\File;
 use OCP\Files\Folder;
 use OCP\Files\IRootFolder;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 
 /**
@@ -37,21 +37,21 @@ class MandateDocumentService {
 
 	public function __construct(
 		private IRootFolder $rootFolder,
-		private IConfig $config,
+		private IAppConfig $config,
 		private AttachmentStorageService $attachmentStorage,
 		private IL10N $l10n,
 	) {
 	}
 
 	public function folderPath(): string {
-		$path = trim($this->config->getAppValue(Application::APP_ID, self::SETTING_FOLDER, self::DEFAULT_FOLDER));
+		$path = trim($this->config->getValueString(Application::APP_ID, self::SETTING_FOLDER, self::DEFAULT_FOLDER));
 		$path = trim(str_replace('\\', '/', $path), '/');
 		return $path !== '' ? $path : self::DEFAULT_FOLDER;
 	}
 
 	/** Ob der abschaltbare Dauer-Hinweis „Mandat ohne Nachweis" grundsätzlich aktiv ist (Default an, Spec §3.2). */
 	public function showMissingDocumentWarning(): bool {
-		return $this->config->getAppValue(Application::APP_ID, self::SETTING_SHOW_MISSING_WARNING, '1') === '1';
+		return $this->config->getValueString(Application::APP_ID, self::SETTING_SHOW_MISSING_WARNING, '1') === '1';
 	}
 
 	/** Ob überhaupt ein Nutzer-Home als Ablageort eingerichtet ist. */

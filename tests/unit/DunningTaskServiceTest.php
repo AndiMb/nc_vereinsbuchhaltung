@@ -13,7 +13,7 @@ use OCA\Vereinsbuchhaltung\Db\Task;
 use OCA\Vereinsbuchhaltung\Service\DunningSettings;
 use OCA\Vereinsbuchhaltung\Service\DunningTaskService;
 use OCP\AppFramework\Utility\ITimeFactory;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -28,7 +28,7 @@ class DunningTaskServiceTest extends TestCase {
 	private DunningNoticeMapper&MockObject $notices;
 	private MemberMapper&MockObject $members;
 	private array $configStore = [];
-	private IConfig&MockObject $config;
+	private IAppConfig&MockObject $config;
 
 	protected function setUp(): void {
 		$this->openItems = $this->createMock(OpenItemMapper::class);
@@ -37,8 +37,8 @@ class DunningTaskServiceTest extends TestCase {
 		$this->members->method('displayNameOr')->willReturn('Katrin Brunner');
 
 		$this->configStore = [];
-		$this->config = $this->createMock(IConfig::class);
-		$this->config->method('getAppValue')->willReturnCallback(fn (string $app, string $key, string $default = '') => array_key_exists($key, $this->configStore) ? $this->configStore[$key] : $default);
+		$this->config = $this->createMock(IAppConfig::class);
+		$this->config->method('getValueString')->willReturnCallback(fn (string $app, string $key, string $default = '') => array_key_exists($key, $this->configStore) ? $this->configStore[$key] : $default);
 	}
 
 	private function service(string $today = '2026-10-10'): DunningTaskService {

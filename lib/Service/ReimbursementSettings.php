@@ -6,7 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\PermissionMapper;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IGroupManager;
 use OCP\IL10N;
 use OCP\IUserManager;
@@ -27,7 +27,7 @@ class ReimbursementSettings {
 	public const DEFAULT_REQUIRED_APPROVALS = 2;
 
 	public function __construct(
-		private IConfig $config,
+		private IAppConfig $config,
 		private PermissionMapper $permissions,
 		private IGroupManager $groupManager,
 		private IUserManager $userManager,
@@ -36,11 +36,11 @@ class ReimbursementSettings {
 	}
 
 	public function isEnabled(): bool {
-		return $this->config->getAppValue(Application::APP_ID, self::SETTING_ENABLED, '0') === '1';
+		return $this->config->getValueString(Application::APP_ID, self::SETTING_ENABLED, '0') === '1';
 	}
 
 	public function requiredApprovals(): int {
-		$value = (int)$this->config->getAppValue(Application::APP_ID, self::SETTING_REQUIRED_APPROVALS, (string)self::DEFAULT_REQUIRED_APPROVALS);
+		$value = (int)$this->config->getValueString(Application::APP_ID, self::SETTING_REQUIRED_APPROVALS, (string)self::DEFAULT_REQUIRED_APPROVALS);
 		return max(1, $value);
 	}
 
@@ -107,7 +107,7 @@ class ReimbursementSettings {
 				));
 			}
 		}
-		$this->config->setAppValue(Application::APP_ID, self::SETTING_ENABLED, $enabled ? '1' : '0');
-		$this->config->setAppValue(Application::APP_ID, self::SETTING_REQUIRED_APPROVALS, (string)$requiredApprovals);
+		$this->config->setValueString(Application::APP_ID, self::SETTING_ENABLED, $enabled ? '1' : '0');
+		$this->config->setValueString(Application::APP_ID, self::SETTING_REQUIRED_APPROVALS, (string)$requiredApprovals);
 	}
 }

@@ -11,7 +11,7 @@ use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Service\BrandingService;
 use OCA\Vereinsbuchhaltung\Service\LedgerAggregator;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IURLGenerator;
 
@@ -34,7 +34,7 @@ class KurzberichtRenderer {
 		private BudgetMapper $budgetMapper,
 		private PeriodService $periods,
 		private BrandingService $branding,
-		private IConfig $config,
+		private IAppConfig $config,
 		private IURLGenerator $urlGenerator,
 		private IL10N $l10n,
 	) {
@@ -79,8 +79,8 @@ class KurzberichtRenderer {
 			$soll = LedgerAggregator::planActual($accounts, $periodMoveSums, $plan);
 		}
 
-		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '');
-		$accent = PrintableReportPage::accentColor($this->config->getAppValue(Application::APP_ID, 'brand_color', ''));
+		$clubName = $this->config->getValueString(Application::APP_ID, 'club_name', '');
+		$accent = PrintableReportPage::accentColor($this->config->getValueString(Application::APP_ID, 'brand_color', ''));
 		$logoUrl = $this->branding->hasLogo()
 			? $this->urlGenerator->linkToRoute('vereinsbuchhaltung.branding.view')
 			: null;

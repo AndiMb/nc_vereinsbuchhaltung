@@ -18,7 +18,7 @@ use OCA\Vereinsbuchhaltung\Service\OpenItemService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IRequest;
 use OCP\IUserSession;
@@ -69,7 +69,7 @@ class MandateControllerTest extends TestCase {
 			$this->openItems,
 			$this->permissions,
 			$session,
-			$this->createMock(IConfig::class),
+			$this->createMock(IAppConfig::class),
 			$l10n,
 			$this->createMock(LoggerInterface::class),
 		);

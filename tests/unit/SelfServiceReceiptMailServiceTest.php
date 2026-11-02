@@ -7,7 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Service\ClubMailBranding;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceReceiptMailService;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\Mail\IEMailTemplate;
 use OCP\Mail\IMailer;
@@ -40,8 +40,8 @@ class SelfServiceReceiptMailServiceTest extends TestCase {
 	}
 
 	private function service(): SelfServiceReceiptMailService {
-		$config = $this->createMock(IConfig::class);
-		$config->method('getAppValue')->willReturnCallback(
+		$config = $this->createMock(IAppConfig::class);
+		$config->method('getValueString')->willReturnCallback(
 			static fn (string $app, string $key, string $default = '') => $default,
 		);
 		$l10n = $this->createMock(IL10N::class);

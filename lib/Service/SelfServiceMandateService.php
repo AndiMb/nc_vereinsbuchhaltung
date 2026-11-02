@@ -11,7 +11,7 @@ use OCA\Vereinsbuchhaltung\Db\Mandate;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCP\Activity\IManager as IActivityManager;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IRequest;
 
@@ -62,7 +62,7 @@ class SelfServiceMandateService {
 		private ActorContextService $actorContext,
 		private IActivityManager $activityManager,
 		private IRequest $request,
-		private IConfig $config,
+		private IAppConfig $config,
 		private IL10N $l10n,
 	) {
 	}
@@ -99,7 +99,7 @@ class SelfServiceMandateService {
 	 */
 	public function legalTextPreview(): array {
 		$legalText = $this->legalTextService->current();
-		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '');
+		$clubName = $this->config->getValueString(Application::APP_ID, 'club_name', '');
 		return [
 			'versionId' => (int)$legalText->getId(),
 			'html' => $this->formRenderer->renderLegalText($legalText, $clubName),

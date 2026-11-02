@@ -7,7 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Service;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IUserSession;
 
 /**
@@ -34,14 +34,14 @@ class SelfServiceService {
 	public const SETTING_TRANSFER_SWITCH = 'self_service_transfer_switch_enabled';
 
 	public function __construct(
-		private IConfig $config,
+		private IAppConfig $config,
 		private MemberMapper $memberMapper,
 		private IUserSession $userSession,
 	) {
 	}
 
 	public function isEnabled(): bool {
-		return $this->config->getAppValue(Application::APP_ID, self::SETTING_ENABLED, '0') === '1';
+		return $this->config->getValueString(Application::APP_ID, self::SETTING_ENABLED, '0') === '1';
 	}
 
 	/**
@@ -53,7 +53,7 @@ class SelfServiceService {
 	 */
 	public function canSwitchToTransfer(): bool {
 		return $this->isEnabled()
-			&& $this->config->getAppValue(Application::APP_ID, self::SETTING_TRANSFER_SWITCH, '0') === '1';
+			&& $this->config->getValueString(Application::APP_ID, self::SETTING_TRANSFER_SWITCH, '0') === '1';
 	}
 
 	/**

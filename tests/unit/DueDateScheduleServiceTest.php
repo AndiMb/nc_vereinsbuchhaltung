@@ -6,7 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCA\Vereinsbuchhaltung\Service\DueDateScheduleService;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -20,18 +20,19 @@ use PHPUnit\Framework\TestCase;
  */
 class DueDateScheduleServiceTest extends TestCase {
 
-	private IConfig&MockObject $config;
+	private IAppConfig&MockObject $config;
 	/** @var array<string,string> simulierter appconfig-Speicher */
 	private array $store = [];
 
 	protected function setUp(): void {
 		$this->store = [];
-		$this->config = $this->createMock(IConfig::class);
-		$this->config->method('getAppValue')->willReturnCallback(
+		$this->config = $this->createMock(IAppConfig::class);
+		$this->config->method('getValueString')->willReturnCallback(
 			fn (string $app, string $key, string $default = '') => array_key_exists($key, $this->store) ? $this->store[$key] : $default,
 		);
-		$this->config->method('setAppValue')->willReturnCallback(function (string $app, string $key, string $value): void {
+		$this->config->method('setValueString')->willReturnCallback(function (string $app, string $key, string $value): bool {
 			$this->store[$key] = $value;
+			return true;
 		});
 	}
 

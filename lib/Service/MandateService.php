@@ -15,7 +15,7 @@ use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCP\AppFramework\Db\DoesNotExistException;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IUserSession;
 
@@ -67,7 +67,7 @@ class MandateService {
 		private AuditService $audit,
 		private ActorContextService $actorContext,
 		private IUserSession $userSession,
-		private IConfig $config,
+		private IAppConfig $config,
 		private DunningLadderService $dunningLadder,
 		private IL10N $l10n,
 		private MandateExpirySettings $expirySettings,
@@ -931,7 +931,7 @@ class MandateService {
 	// --- Referenz --------------------------------------------------------------
 
 	public function generateReference(): string {
-		$prefix = trim($this->config->getAppValue(Application::APP_ID, self::SETTING_REFERENCE_PREFIX, MandateReferenceGenerator::DEFAULT_PREFIX));
+		$prefix = trim($this->config->getValueString(Application::APP_ID, self::SETTING_REFERENCE_PREFIX, MandateReferenceGenerator::DEFAULT_PREFIX));
 		$prefix = $prefix !== '' ? $prefix : MandateReferenceGenerator::DEFAULT_PREFIX;
 		$existing = $this->mapper->findReferencesWithPrefix($prefix);
 		for ($attempt = 0; $attempt < 5; $attempt++) {

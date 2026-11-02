@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Activity;
 
-use OCP\Activity\ISetting;
+use OCP\Activity\ActivitySettings;
 use OCP\IL10N;
 
 /**
@@ -16,7 +16,7 @@ use OCP\IL10N;
  * keinen Einstellungs-Anker in der Aktivitäten-Verwaltung, an den sie ihre
  * künftigen Events hängen könnten.
  */
-class SelfServiceSetting implements ISetting {
+class SelfServiceSetting extends ActivitySettings {
 
 	/** @see \OCP\Activity\IEvent::setType() – von künftigen Self-Service-Events verwendet. */
 	public const TYPE = 'vereinsbuchhaltung_self_service';
@@ -28,6 +28,14 @@ class SelfServiceSetting implements ISetting {
 
 	public function getIdentifier(): string {
 		return self::TYPE;
+	}
+
+	public function getGroupIdentifier(): string {
+		return 'vereinsbuchhaltung';
+	}
+
+	public function getGroupName(): string {
+		return $this->l10n->t('Vereinsbuchhaltung');
 	}
 
 	public function getName(): string {

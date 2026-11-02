@@ -11,7 +11,7 @@ use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCA\Vereinsbuchhaltung\Service\Export\BeitragsbescheinigungRenderer;
 use OCP\AppFramework\Db\DoesNotExistException;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -26,14 +26,14 @@ class BeitragsbescheinigungRendererTest extends TestCase {
 
 	private MemberMapper&MockObject $memberMapper;
 	private OpenItemMapper&MockObject $openItems;
-	private IConfig&MockObject $config;
+	private IAppConfig&MockObject $config;
 	private int $startMonth = 1;
 
 	protected function setUp(): void {
 		$this->memberMapper = $this->createMock(MemberMapper::class);
 		$this->openItems = $this->createMock(OpenItemMapper::class);
-		$this->config = $this->createMock(IConfig::class);
-		$this->config->method('getAppValue')->willReturnCallback(
+		$this->config = $this->createMock(IAppConfig::class);
+		$this->config->method('getValueString')->willReturnCallback(
 			fn (string $appId, string $key, string $default): string => match ($key) {
 				'fiscal_year_start_month' => (string)$this->startMonth,
 				'club_name' => 'Testverein e.V.',
