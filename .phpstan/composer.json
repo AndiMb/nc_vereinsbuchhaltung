@@ -5,11 +5,17 @@
 		"werden, damit CI und lokale Analyse garantiert dieselbe, ueber composer.lock fixierte",
 		"Version benutzen. Untergrenze 2.2.5 bewusst: 2.1.x bis 2.2.1 melden 205-206 falsche",
 		"argument.type-Fehler gegen generische DataResponse<T> (Issue #2) - ein PHPStan-Bug,",
-		"kein echtes Typproblem im Code, siehe phpstan.neon."
+		"kein echtes Typproblem im Code, siehe phpstan.neon.",
+		"doctrine/lexer: liefert die App seit Issue #268 nicht mehr selbst aus (replace in",
+		"der composer.json der App), im Betrieb kommt es aus 3rdparty/ des Servers. Die",
+		"Unit-Tests laufen ohne Server und holen es von hier (tests/bootstrap.php) - in",
+		"genau der Version, die NC 33 und NC 34 mitbringen. jms/serializer braucht es",
+		"zum Lesen von E-Rechnungen."
 	],
 	"require": {
 		"nextcloud/ocp": "^33.0",
-		"phpunit/phpunit": "^10.5"
+		"phpunit/phpunit": "^10.5",
+		"doctrine/lexer": "3.0.1"
 	},
 	"require-dev": {
 		"phpstan/phpstan": "^2.2.5",
