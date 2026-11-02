@@ -81,6 +81,23 @@ final class ClubClock {
 		}
 	}
 
+	/**
+	 * Gespeicherter UTC-Zeitstempel als Zeitpunkt in der Vereinszone – für
+	 * gedruckte Uhrzeiten, die zum Vereinstag aus {@see localDate()} passen
+	 * müssen. Leere oder unlesbare Werte liefern null.
+	 */
+	public static function localDateTime(string $utcTimestamp): ?\DateTimeImmutable {
+		$value = trim($utcTimestamp);
+		if ($value === '') {
+			return null;
+		}
+		try {
+			return (new \DateTimeImmutable($value, new \DateTimeZone('UTC')))->setTimezone(self::zone());
+		} catch (\Exception) {
+			return null;
+		}
+	}
+
 	/** Für Entitäten und statische Helfer ohne Dependency Injection. */
 	public static function todayFromSystemClock(): string {
 		return (new \DateTimeImmutable('now', self::zone()))->format('Y-m-d');

@@ -289,7 +289,13 @@ class MandateController extends Controller {
 	 */
 	private function signatureSection(Mandate $mandate): string {
 		if ($mandate->getConsentAt() !== null) {
-			return '<div>Elektronisch bestätigt am ' . PrintableReportPage::escape($mandate->getConsentAt())
+			// Gespeichert ist UTC; gedruckt wird die Vereinszeit samt Zone, damit
+			// Vermerk und Unterschriftsdatum (Vereinstag, #263) denselben Tag zeigen.
+			$local = ClubClock::localDateTime($mandate->getConsentAt());
+			$when = $local !== null
+				? $local->format('d.m.Y, H:i') . ' Uhr (' . $local->getTimezone()->getName() . ')'
+				: $mandate->getConsentAt();
+			return '<div>Elektronisch bestätigt am ' . PrintableReportPage::escape($when)
 				. ' (IP ' . PrintableReportPage::escape((string)$mandate->getConsentIp()) . ')</div>';
 		}
 		if ($mandate->isElectronic()) {

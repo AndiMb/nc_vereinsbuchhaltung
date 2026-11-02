@@ -63,7 +63,7 @@ $copy = !empty($_['reconfirm'])
 			<div class="vbh-status-box vbh-success">
 				<strong>Bereits bestätigt</strong>
 				<p><?php p($copy['consumed']); ?><?php if (!empty($_['consentAt'])) {
-					echo ' (am ' . htmlspecialchars(\OCA\Vereinsbuchhaltung\Service\GermanDate::format(substr((string)$_['consentAt'], 0, 10)), ENT_QUOTES) . ')';
+					echo ' (am ' . htmlspecialchars(\OCA\Vereinsbuchhaltung\Service\GermanDate::format(\OCA\Vereinsbuchhaltung\Service\ClubClock::localDate((string)$_['consentAt'])), ENT_QUOTES) . ')';
 				} ?>. Es ist aktiv, eine erneute Bestätigung ist nicht nötig.</p>
 			</div>
 			<div class="vbh-legal-text"><?php print_unescaped((string)($_['legalTextHtml'] ?? '')); ?></div>
