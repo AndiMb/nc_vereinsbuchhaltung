@@ -5,14 +5,11 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
-use OCA\Vereinsbuchhaltung\Db\DebitItemMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
-use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\ReimbursementMapper;
-use OCA\Vereinsbuchhaltung\Db\ReturnedDebitMapper;
 use OCA\Vereinsbuchhaltung\Db\Task;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Utility\ITimeFactory;
@@ -60,10 +57,7 @@ class AnonymizationCandidateService {
 
 	public function __construct(
 		private MemberMapper $members,
-		private OpenItemMapper $openItems,
 		private MandateMapper $mandates,
-		private DebitItemMapper $debitItems,
-		private ReturnedDebitMapper $returnedDebits,
 		private ReimbursementMapper $reimbursements,
 		private JournalMapper $journals,
 		private ITimeFactory $time,
@@ -76,37 +70,7 @@ class AnonymizationCandidateService {
 	 * gab (siehe Klassendoc).
 	 */
 	public function lastBookingDate(int $memberId): ?string {
-		$dates = [];
-		foreach ($this->openItems->findByMember($memberId) as $item) {
-			if ($item->getPaidJournalId() !== null) {
-				$date = $this->journalDate((int)$item->getPaidJournalId());
-				if ($date !== null) {
-					$dates[] = $date;
-				}
-			}
-		}
-		// Die Auszahlung einer Auslage ist eine Buchung des Mitglieds, auch wenn der offene Posten
-		// (anders als eine Forderung) keine memberId trägt.
-		foreach ($this->reimbursements->findByMember($memberId) as $reimbursement) {
-			if ($reimbursement->getJournalId() !== null) {
-				$date = $this->journalDate($reimbursement->getJournalId());
-				if ($date !== null) {
-					$dates[] = $date;
-				}
-			}
-		}
-		foreach ($this->mandates->findByMember($memberId) as $mandate) {
-			foreach ($this->debitItems->findByMandate((int)$mandate->getId()) as $debitItem) {
-				$returnedDebit = $this->returnedDebits->findByDebitItem((int)$debitItem->getId());
-				if ($returnedDebit !== null && $returnedDebit->getJournalId() !== null) {
-					$date = $this->journalDate((int)$returnedDebit->getJournalId());
-					if ($date !== null) {
-						$dates[] = $date;
-					}
-				}
-			}
-		}
-		return $dates === [] ? null : max($dates);
+		return $this->journals->lastMemberBookingDates([$memberId], Application::BOOK)[$memberId] ?? null;
 	}
 
 	/**
@@ -128,20 +92,29 @@ class AnonymizationCandidateService {
 		$member = $this->members->find($memberId);
 		$lastBooking = $this->lastBookingDate($memberId);
 
-		$eligible = !$member->isRedacted()
+		return [
+			'lastBookingDate' => $lastBooking,
+			'cutoffDate' => $lastBooking !== null ? AnonymizationEligibilityCalculator::tenYearCutoffDate($lastBooking) : null,
+			'eligible' => $this->eligibleWith($member, $lastBooking),
+			'redactedAt' => $member->getRedactedAt(),
+		];
+	}
+
+	/**
+	 * Die Reife-Bedingung selbst, mit bereits ermitteltem Datum der letzten
+	 * Buchung – damit {@see findTasks()} die Daten aller Ausgetretenen gesammelt
+	 * holen kann und trotzdem dieselbe Regel gilt wie bei {@see statusFor()}.
+	 * Die billigen Bedingungen zuerst, die Abfragen zuletzt.
+	 */
+	private function eligibleWith(Member $member, ?string $lastBooking): bool {
+		$memberId = (int)$member->getId();
+		return !$member->isRedacted()
 			&& !$member->isActive()
 			&& $lastBooking !== null
 			&& AnonymizationEligibilityCalculator::isEligible($lastBooking, $this->today())
 			&& $this->noLiveMandate($memberId)
 			// Ein unerledigter Auslagenantrag braucht noch Name und IBAN (Design §11).
 			&& $this->reimbursements->countPendingByMember($memberId) === 0;
-
-		return [
-			'lastBookingDate' => $lastBooking,
-			'cutoffDate' => $lastBooking !== null ? AnonymizationEligibilityCalculator::tenYearCutoffDate($lastBooking) : null,
-			'eligible' => $eligible,
-			'redactedAt' => $member->getRedactedAt(),
-		];
 	}
 
 	private function noLiveMandate(int $memberId): bool {
@@ -161,15 +134,25 @@ class AnonymizationCandidateService {
 	 * @return list<array{severity:string,message:string,objectType:string,objectId:int}>
 	 */
 	public function findTasks(): array {
+		// Ein aktives Mitglied kann nie reif sein (siehe statusFor()) - geprüft werden nur
+		// die Ausgetretenen, statt bei jedem Öffnen der Aufgabenliste der ganze Bestand.
+		$departed = array_values(array_filter(
+			$this->members->findAll(),
+			static fn (Member $m) => !$m->isRedacted() && !$m->isActive(),
+		));
+		if ($departed === []) {
+			return [];
+		}
+		// Die letzten Buchungen aller Ausgetretenen in drei Sammelabfragen statt mehrerer
+		// Abfragen je Mitglied, Forderung und Lastschriftposten (siehe lastBookingDate()).
+		$lastBookings = $this->journals->lastMemberBookingDates(
+			array_map(static fn (Member $m) => (int)$m->getId(), $departed),
+			Application::BOOK,
+		);
+
 		$tasks = [];
-		foreach ($this->members->findAll() as $member) {
-			// Ein aktives Mitglied kann nie reif sein (siehe statusFor()) - die teure
-			// Prüfung (mehrere Abfragen je Mitglied) bleibt den Ausgetretenen vorbehalten,
-			// statt bei jedem Öffnen der Aufgabenliste für den ganzen Bestand zu laufen.
-			if ($member->isRedacted() || $member->isActive()) {
-				continue;
-			}
-			if (!$this->isEligible((int)$member->getId())) {
+		foreach ($departed as $member) {
+			if (!$this->eligibleWith($member, $lastBookings[(int)$member->getId()] ?? null)) {
 				continue;
 			}
 			$tasks[] = [
@@ -181,14 +164,6 @@ class AnonymizationCandidateService {
 			];
 		}
 		return $tasks;
-	}
-
-	private function journalDate(int $journalId): ?string {
-		try {
-			return $this->journals->find($journalId, Application::BOOK)->getDate();
-		} catch (DoesNotExistException) {
-			return null;
-		}
 	}
 
 	private function today(): string {

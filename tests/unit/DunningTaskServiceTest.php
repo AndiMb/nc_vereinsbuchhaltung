@@ -80,7 +80,7 @@ class DunningTaskServiceTest extends TestCase {
 
 	public function testMeldetEskalationNachMahnabstandSeitStufe2(): void {
 		$item = $this->claim(1, 7);
-		$this->openItems->method('findClaims')->willReturn([$item]);
+		$this->openItems->method('findOpenClaims')->willReturn([$item]);
 		$this->notices->method('findByOpenItemAndStage')->willReturn($this->stage2Notice(1, '2026-09-26T00:00:00+00:00')); // genau 14 Tage her
 
 		$tasks = $this->service('2026-10-10')->findBoardEscalationTasks();
@@ -93,7 +93,7 @@ class DunningTaskServiceTest extends TestCase {
 
 	public function testMeldetNichtsVorAblaufDesMahnabstandsSeitStufe2(): void {
 		$item = $this->claim(1, 7);
-		$this->openItems->method('findClaims')->willReturn([$item]);
+		$this->openItems->method('findOpenClaims')->willReturn([$item]);
 		$this->notices->method('findByOpenItemAndStage')->willReturn($this->stage2Notice(1, '2026-09-27T00:00:00+00:00')); // erst 13 Tage her
 
 		$tasks = $this->service('2026-10-10')->findBoardEscalationTasks();
@@ -103,7 +103,7 @@ class DunningTaskServiceTest extends TestCase {
 
 	public function testMeldetNichtsOhneStufe2(): void {
 		$item = $this->claim(1, 7);
-		$this->openItems->method('findClaims')->willReturn([$item]);
+		$this->openItems->method('findOpenClaims')->willReturn([$item]);
 		$this->notices->method('findByOpenItemAndStage')->willReturn(null);
 
 		$tasks = $this->service('2026-10-10')->findBoardEscalationTasks();
@@ -113,7 +113,7 @@ class DunningTaskServiceTest extends TestCase {
 
 	public function testIgnoriertAktuellGestundeteForderung(): void {
 		$item = $this->claim(1, 7, deferredUntil: '2026-10-20');
-		$this->openItems->method('findClaims')->willReturn([$item]);
+		$this->openItems->method('findOpenClaims')->willReturn([$item]);
 		$this->notices->method('findByOpenItemAndStage')->willReturn($this->stage2Notice(1, '2026-08-01T00:00:00+00:00'));
 
 		$tasks = $this->service('2026-10-10')->findBoardEscalationTasks();
@@ -125,7 +125,7 @@ class DunningTaskServiceTest extends TestCase {
 		$item = $this->claim(1, 7);
 		$item->setSettledAt('2026-10-05T00:00:00+00:00');
 		$item->setStatus('paid');
-		$this->openItems->method('findClaims')->willReturn([$item]);
+		$this->openItems->method('findOpenClaims')->willReturn([$item]);
 		$this->notices->method('findByOpenItemAndStage')->willReturn($this->stage2Notice(1, '2026-08-01T00:00:00+00:00'));
 
 		$tasks = $this->service('2026-10-10')->findBoardEscalationTasks();

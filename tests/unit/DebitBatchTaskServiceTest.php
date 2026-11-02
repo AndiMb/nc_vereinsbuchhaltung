@@ -111,7 +111,7 @@ class DebitBatchTaskServiceTest extends TestCase {
 
 	public function testFreigabeFaelligBeiNichtGebuendelterEinzugsfaehigerForderungImPuffer(): void {
 		// Default-Puffer 5 Tage (ContributionCycleSettings::DEFAULT_RELEASE_LEAD_DAYS).
-		$this->openItems->method('findClaims')->willReturn([$this->claim(1, '2026-10-03')]);
+		$this->openItems->method('findOpenClaims')->willReturn([$this->claim(1, '2026-10-03')]);
 
 		$tasks = $this->service('2026-10-01')->findTasks();
 
@@ -121,14 +121,14 @@ class DebitBatchTaskServiceTest extends TestCase {
 	}
 
 	public function testFreigabeFaelligIgnoriertBereitsGebuendelteForderung(): void {
-		$this->openItems->method('findClaims')->willReturn([$this->claim(1, '2026-10-03')]);
+		$this->openItems->method('findOpenClaims')->willReturn([$this->claim(1, '2026-10-03')]);
 		$this->alreadyBatchedIds = [1];
 
 		$this->assertSame([], $this->service('2026-10-01')->findTasks());
 	}
 
 	public function testFreigabeFaelligIgnoriertForderungAusserhalbDesPuffers(): void {
-		$this->openItems->method('findClaims')->willReturn([$this->claim(1, '2026-12-01')]);
+		$this->openItems->method('findOpenClaims')->willReturn([$this->claim(1, '2026-12-01')]);
 
 		$this->assertSame([], $this->service('2026-10-01')->findTasks());
 	}
@@ -136,7 +136,7 @@ class DebitBatchTaskServiceTest extends TestCase {
 	public function testFreigabeFaelligIgnoriertForderungOhneEinzugsfaehigesMandat(): void {
 		$this->mandates = $this->createMock(MandateMapper::class);
 		$this->mandates->method('findLiveByMember')->willReturn([]);
-		$this->openItems->method('findClaims')->willReturn([$this->claim(1, '2026-10-03')]);
+		$this->openItems->method('findOpenClaims')->willReturn([$this->claim(1, '2026-10-03')]);
 
 		$this->assertSame([], $this->service('2026-10-01')->findTasks());
 	}

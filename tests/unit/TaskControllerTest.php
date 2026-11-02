@@ -11,6 +11,7 @@ use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
+use OCA\Vereinsbuchhaltung\Db\ReadCache;
 use OCA\Vereinsbuchhaltung\Db\Task;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\AnonymizationCandidateService;
@@ -47,6 +48,7 @@ class TaskControllerTest extends TestCase {
 	private MandateTaskService&MockObject $mandateTasks;
 	private ClaimFollowUpTaskService&MockObject $claimFollowUps;
 	private MemberMapper&MockObject $members;
+	private ReadCache $readCache;
 
 	protected function setUp(): void {
 		$this->persisted = $this->createMock(TaskService::class);
@@ -57,6 +59,7 @@ class TaskControllerTest extends TestCase {
 		$this->mandateTasks = $this->createMock(MandateTaskService::class);
 		$this->claimFollowUps = $this->createMock(ClaimFollowUpTaskService::class);
 		$this->members = $this->createMock(MemberMapper::class);
+		$this->readCache = new ReadCache();
 	}
 
 	private function controller(): TaskController {
@@ -79,6 +82,7 @@ class TaskControllerTest extends TestCase {
 			$this->mandateTasks,
 			$this->claimFollowUps,
 			$targets,
+			$this->readCache,
 		);
 	}
 
@@ -159,5 +163,20 @@ class TaskControllerTest extends TestCase {
 		$this->contributionCycle->expects($this->once())->method('findTasks')->with(null, true)->willReturn([]);
 
 		$this->controller()->index();
+	}
+
+	public function testQuellenLaufenImLesePufferUndDanachNichtMehr(): void {
+		// Die sieben Quellen teilen sich die Bestände nur während der Abfrage (Issue #252);
+		// danach gehen Zugriffe wieder direkt an die Datenbank.
+		$activeDuring = null;
+		$this->persisted->method('findCurrent')->willReturnCallback(function () use (&$activeDuring): array {
+			$activeDuring = $this->readCache->isActive();
+			return [];
+		});
+
+		$this->controller()->index();
+
+		$this->assertTrue($activeDuring);
+		$this->assertFalse($this->readCache->isActive());
 	}
 }

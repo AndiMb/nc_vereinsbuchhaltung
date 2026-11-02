@@ -12,21 +12,34 @@ use OCP\IDBConnection;
  * @extends QBMapper<Assignment>
  */
 class AssignmentMapper extends QBMapper {
-	public function __construct(IDBConnection $db) {
+	private ReadCache $readCache;
+
+	public function __construct(IDBConnection $db, ?ReadCache $readCache = null) {
 		parent::__construct($db, 'vbh_assignments', Assignment::class);
+		$this->readCache = $readCache ?? new ReadCache();
 	}
 
-	/** @return Assignment[] */
+	/**
+	 * Innerhalb eines {@see ReadCache::during()} nur einmal geladen.
+	 *
+	 * @return list<Assignment>
+	 */
 	public function findAll(): array {
-		$qb = $this->db->getQueryBuilder();
-		$qb->select('*')
-			->from($this->getTableName())
-			->orderBy('valid_from', 'DESC')
-			->addOrderBy('id', 'DESC');
-		return $this->findEntities($qb);
+		return $this->readCache->entities('assignments.all', function (): array {
+			$qb = $this->db->getQueryBuilder();
+			$qb->select('*')
+				->from($this->getTableName())
+				->orderBy('valid_from', 'DESC')
+				->addOrderBy('id', 'DESC');
+			return array_values($this->findEntities($qb));
+		});
 	}
 
 	public function find(int $id): Assignment {
+		$cached = $this->readCache->byId('assignments.all', fn () => $this->findAll(), $id);
+		if ($cached instanceof Assignment) {
+			return $cached;
+		}
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')
 			->from($this->getTableName())
@@ -135,15 +148,17 @@ class AssignmentMapper extends QBMapper {
 	 * @return Assignment[]
 	 */
 	public function findActiveAsOf(string $date): array {
-		$qb = $this->db->getQueryBuilder();
-		$qb->select('*')
-			->from($this->getTableName())
-			->where($qb->expr()->lte('valid_from', $qb->createNamedParameter($date)))
-			->andWhere($qb->expr()->orX(
-				$qb->expr()->isNull('valid_to'),
-				$qb->expr()->gte('valid_to', $qb->createNamedParameter($date)),
-			))
-			->orderBy('id', 'ASC');
-		return $this->findEntities($qb);
+		return $this->readCache->entities('assignments.activeAsOf.' . $date, function () use ($date): array {
+			$qb = $this->db->getQueryBuilder();
+			$qb->select('*')
+				->from($this->getTableName())
+				->where($qb->expr()->lte('valid_from', $qb->createNamedParameter($date)))
+				->andWhere($qb->expr()->orX(
+					$qb->expr()->isNull('valid_to'),
+					$qb->expr()->gte('valid_to', $qb->createNamedParameter($date)),
+				))
+				->orderBy('id', 'ASC');
+			return array_values($this->findEntities($qb));
+		});
 	}
 }

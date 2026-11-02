@@ -288,7 +288,7 @@ class MandateTaskService {
 
 		/** @var array<int,array{count:int,sumCents:int}> $open */
 		$open = [];
-		foreach ($this->openItems->findClaims() as $item) {
+		foreach ($this->openItems->findOpenClaims() as $item) {
 			$memberId = $item->getMemberId();
 			if ($memberId === null || !isset($candidates[$memberId]) || ClaimStateResolver::resolveForItem($item) !== ClaimStateResolver::STATE_OPEN) {
 				continue;

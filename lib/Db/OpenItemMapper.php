@@ -12,8 +12,11 @@ use OCP\IDBConnection;
  * @extends QBMapper<OpenItem>
  */
 class OpenItemMapper extends QBMapper {
-	public function __construct(IDBConnection $db) {
+	private ReadCache $readCache;
+
+	public function __construct(IDBConnection $db, ?ReadCache $readCache = null) {
 		parent::__construct($db, 'vbh_open_items', OpenItem::class);
+		$this->readCache = $readCache ?? new ReadCache();
 	}
 
 	/** @return OpenItem[] */
@@ -30,6 +33,11 @@ class OpenItemMapper extends QBMapper {
 	}
 
 	public function find(int $id): OpenItem {
+		// Im Lese-Puffer zuerst unter den offenen Forderungen nachsehen (Sprungziele der Aufgabenliste).
+		$cached = $this->readCache->byId('openItems.openClaims', fn () => $this->findOpenClaims(), $id);
+		if ($cached instanceof OpenItem) {
+			return $cached;
+		}
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')
 			->from($this->getTableName())
@@ -87,6 +95,37 @@ class OpenItemMapper extends QBMapper {
 			->orderBy('due_date', 'ASC')
 			->addOrderBy('id', 'DESC');
 		return $this->findEntities($qb);
+	}
+
+	/**
+	 * Wie {@see findClaims()}, aber nur Forderungen im Zustand „offen“ nach
+	 * {@see \OCA\Vereinsbuchhaltung\Service\ClaimStateResolver::resolve()}: weder
+	 * storniert noch erledigt. Der Filter läuft in SQL – die Aufgabenliste
+	 * braucht nur diese, und die erledigten sammeln sich über die Jahre an.
+	 *
+	 * Innerhalb eines {@see ReadCache::during()} nur einmal geladen.
+	 *
+	 * @return list<OpenItem>
+	 */
+	public function findOpenClaims(): array {
+		return $this->readCache->entities('openItems.openClaims', function (): array {
+			$qb = $this->db->getQueryBuilder();
+			$qb->select('*')
+				->from($this->getTableName())
+				->where($qb->expr()->isNotNull('member_id'))
+				->andWhere($qb->expr()->isNotNull('type'))
+				->andWhere($qb->expr()->gt('amount_cents', $qb->createNamedParameter(0, IQueryBuilder::PARAM_INT)))
+				// Dieselben Bedingungen wie ClaimStateResolver::resolve() für STATE_OPEN.
+				->andWhere($qb->expr()->isNull('cancelled_at'))
+				->andWhere($qb->expr()->isNull('settled_at'))
+				->andWhere($qb->expr()->orX(
+					$qb->expr()->isNull('status'),
+					$qb->expr()->notIn('status', $qb->createNamedParameter(['cancelled', 'paid', 'waived'], IQueryBuilder::PARAM_STR_ARRAY)),
+				))
+				->orderBy('due_date', 'ASC')
+				->addOrderBy('id', 'DESC');
+			return array_values($this->findEntities($qb));
+		});
 	}
 
 	/**
