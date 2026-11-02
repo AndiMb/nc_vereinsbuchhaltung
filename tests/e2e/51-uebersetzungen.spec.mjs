@@ -9,8 +9,9 @@ import { api, authHeaders, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, BASE_URL, openApp, t
 // - Nutzerdaten (hier „Echo & Söhne <b>GmbH</b>") stehen unverändert auf dem
 //   Bildschirm: @nextcloud/l10n würde sie als Variable in t() als HTML escapen
 //   („Echo &amp; Söhne"); die betroffenen Sätze laufen deshalb über tRaw().
-// - Du oder Sie: die Quelltexte sind Sie, l10n/de.json liefert die Du-Fassung für
-//   informelles Deutsch (`de`), förmliches Deutsch (`de_DE`) bleibt beim Quelltext.
+// - Du oder Sie: die Quelltexte sind Sie, l10n/de.js liefert die Du-Fassung für
+//   informelles Deutsch (`de`), förmliches Deutsch (`de_DE`) bleibt beim Quelltext
+//   (l10n/de_DE.js meldet ein leeres Paket an).
 //   Mails an Mitglieder folgen der Sprache des verknüpften NC-Kontos – nicht der
 //   des auslösenden Verwalters –, ohne Konto gilt Sie (RecipientL10n).
 //
@@ -45,6 +46,30 @@ async function setUserLanguage(request, uid, language) {
 	if (!resp.ok()) {
 		throw new Error(`Sprache ${language} für ${uid} setzen fehlgeschlagen: HTTP ${resp.status()} – ${(await resp.text()).slice(0, 300)}`)
 	}
+}
+
+/**
+ * Das Sprachpaket der App, wie Nextcloud es dem Nutzer ausliefert (Issue #264):
+ * die App-Seite bindet l10n/<sprache>.js ein (Util::addTranslations), das Skript
+ * meldet die Übersetzungen über OC.L10N.register an. Die URL stammt aus der
+ * Seite (je nach Server /apps/ oder /custom_apps/); ausgewertet wird das Skript
+ * gegen ein nachgebildetes OC.L10N.register.
+ */
+async function servedTranslations(request, uid, language) {
+	const page = await request.fetch(`${BASE_URL}/index.php/apps/vereinsbuchhaltung/`, { headers: authHeaders(uid) })
+	expect(page.ok(), `App-Seite für ${uid}: HTTP ${page.status()}`).toBeTruthy()
+	const html = await page.text()
+	const src = [...html.matchAll(/(?:src|href)="([^"]+)"/g)]
+		.map((m) => m[1].replace(/&amp;/g, '&'))
+		.find((url) => url.split('?')[0].endsWith(`/vereinsbuchhaltung/l10n/${language}.js`))
+	expect(src, `die App-Seite für ${uid} bindet l10n/${language}.js ein`).toBeTruthy()
+	const script = await request.fetch(new URL(src, BASE_URL).href)
+	expect(script.ok(), `${src}: HTTP ${script.status()}`).toBeTruthy()
+	const registered = {}
+	const OC = { L10N: { register: (app, translations) => { registered[app] = translations } } }
+	new Function('OC', await script.text())(OC)
+	expect(registered.vereinsbuchhaltung, `${src} meldet ein Paket der App an`).toBeDefined()
+	return registered.vereinsbuchhaltung
 }
 
 async function enableModule(request) {
@@ -109,17 +134,19 @@ test.describe('Übersetzungen (Issue #106)', () => {
 		}
 	})
 
-	test('der Übersetzungs-Endpunkt liefert für „de" die Du-Fassung und für „de_DE" nichts', async ({ request }) => {
-		const informal = await api.raw(request, 'GET', '/l10n/de', { user: USERS.ohneRolle })
-		expect(informal.status()).toBe(200)
-		const du = (await informal.json()).translations
+	test('das Sprachpaket für „de" trägt die Du-Fassung, das für „de_DE" ist leer', async ({ request }) => {
+		const du = await servedTranslations(request, USERS.ohneRolle, 'de')
 		expect(du['Ihre Stammdaten konnten nicht geladen werden.']).toBe('Deine Stammdaten konnten nicht geladen werden.')
 
-		const formal = await api.raw(request, 'GET', '/l10n/de_DE', { user: USERS.ohneRolle })
-		expect(formal.status()).toBe(200)
-		expect(Object.keys((await formal.json()).translations)).toHaveLength(0)
+		await setUserLanguage(request, USERS.ohneRolle, 'de_DE')
+		try {
+			const formal = await servedTranslations(request, USERS.ohneRolle, 'de_DE')
+			expect(Object.keys(formal), 'förmliches Deutsch überschreibt nichts, es gilt der Quelltext').toHaveLength(0)
+		} finally {
+			await setUserLanguage(request, USERS.ohneRolle, 'de')
+		}
 
-		const english = (await (await api.raw(request, 'GET', '/l10n/en', { user: USERS.englisch })).json()).translations
+		const english = await servedTranslations(request, USERS.englisch, 'en')
 		expect(english['Ihre Stammdaten konnten nicht geladen werden.']).toBe('Your details could not be loaded.')
 		expect(english['Zustand\u0004Aktiv']).toBe('Active')
 		expect(english.Aktiv).toBe('Asset') // die Kontoart bleibt davon unberührt
