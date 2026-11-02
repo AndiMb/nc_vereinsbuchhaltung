@@ -192,7 +192,7 @@ import { useAssignments } from '../composables/useAssignments.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useContributionGroups } from '../composables/useContributionGroups.js'
 import { useMembers } from '../composables/useMembers.js'
-import { errMsg, formatDate } from '../lib/format.js'
+import { errMsg, formatDate, formatEuro } from '../lib/format.js'
 import { intervalLabel } from '../lib/frequency.js'
 import { assignmentStatusLabel, assignmentStatusTone, isLiveAssignment } from '../lib/memberRow.js'
 
@@ -254,7 +254,7 @@ export default {
 	methods: {
 		/** Eine angehobene Untergrenze zieht Zuweisungen mit (Betrag je Zuweisung): auch die Tabelle „Zuweisungen“ neu laden. */
 		async onMinAmountApplied() {
-			await Promise.all([this.loadContributionGroups(), this.loadAssignments()])
+			await Promise.all([this.loadContributionGroups({ force: true }), this.loadAssignments({ force: true })])
 		},
 
 		formatDate,
@@ -272,10 +272,10 @@ export default {
 
 		async onChanged() {
 			this.changeDialogOpen = false
-			await this.loadAssignments()
+			await this.loadAssignments({ force: true })
 		},
 
-		euro(cents) { return (cents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }) },
+		euro(cents) { return formatEuro(cents / 100) },
 
 		memberName(memberId) {
 			const m = this.members.find((x) => x.id === memberId)
@@ -322,7 +322,7 @@ export default {
 					await api.createContributionGroup(form)
 				}
 				this.groupDialogOpen = false
-				await this.loadContributionGroups()
+				await this.loadContributionGroups({ force: true })
 				showSuccess(this.t('Beitragsgruppe gespeichert.'))
 			} catch (e) {
 				showError(errMsg(e, this.t('Beitragsgruppe konnte nicht gespeichert werden')))
@@ -339,7 +339,7 @@ export default {
 			if (!ok) { return }
 			try {
 				await api.deleteContributionGroup(g.id)
-				await this.loadContributionGroups()
+				await this.loadContributionGroups({ force: true })
 			} catch (e) { showError(errMsg(e, this.t('Beitragsgruppe konnte nicht gelöscht werden'))) }
 		},
 
@@ -349,7 +349,7 @@ export default {
 			try {
 				await api.createAssignment(form)
 				this.assignmentDialogOpen = false
-				await this.loadAssignments()
+				await this.loadAssignments({ force: true })
 				showSuccess(this.t('Zuweisung angelegt.'))
 			} catch (e) {
 				showError(errMsg(e, this.t('Zuweisung konnte nicht angelegt werden')))
@@ -377,7 +377,7 @@ export default {
 			if (!ok) { return }
 			try {
 				await api.endAssignment(a.id, new Date().toISOString().slice(0, 10))
-				await this.loadAssignments()
+				await this.loadAssignments({ force: true })
 			} catch (e) { showError(errMsg(e, this.t('Zuweisung konnte nicht beendet werden'))) }
 		},
 	},

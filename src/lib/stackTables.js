@@ -46,10 +46,19 @@ export function labelsForRow(columns, cells) {
 	return out
 }
 
-function labelTable(table) {
+/**
+ * Beschriftet die Zellen einer Tabelle nach ihrer Kopfzeile. Verborgene Tabellen
+ * (offsetParent === null, z. B. in einem inaktiven Reiter) bleiben unberührt; installStackTables
+ * holt sie beim Einblenden nach.
+ *
+ * @param {HTMLTableElement} table Tabelle
+ * @return {boolean} false, wenn die Tabelle verborgen war und übersprungen wurde
+ */
+export function labelTable(table) {
+	if (table.offsetParent === null) { return false }
 	const headRows = table.querySelectorAll('thead tr')
 	const headerRow = headRows[headRows.length - 1]
-	if (!headerRow) { return }
+	if (!headerRow) { return true }
 	const columns = columnLabels([...headerRow.children].map((th) => ({ text: th.textContent, colspan: th.colSpan || 1 })))
 	for (const row of table.querySelectorAll('tbody tr, tfoot tr')) {
 		const cells = [...row.children]
@@ -62,24 +71,64 @@ function labelTable(table) {
 			}
 		})
 	}
+	return true
 }
 
 /**
  * Beschriftet alle Tabellen mit `vbh-stack` und hält sie aktuell, wenn sich die Seite ändert.
+ * Neu beschriftet wird nur, wenn sich innerhalb einer Karte (`.vbh-tablecard`) etwas ändert
+ * (ein Beobachter je Karte). Ein schlanker Beobachter am Body prüft lediglich die eingefügten
+ * Knoten auf neue Karten und löst selbst keine Beschriftung aus.
  *
  * @param {Document} [doc] Dokument, Standard das der Seite
  */
 export function installStackTables(doc = document) {
 	let queued = false
+	// Verborgene Tabellen werden erst beschriftet, wenn sie sichtbar werden: das Einblenden
+	// eines Reiters ändert nichts innerhalb der Karte, würde also keinen Beobachter auslösen.
+	const pending = typeof IntersectionObserver === 'function'
+		? new IntersectionObserver((entries) => {
+				for (const entry of entries) {
+					if (entry.isIntersecting && labelTable(entry.target)) { pending.unobserve(entry.target) }
+				}
+			})
+		: null
 	const run = () => {
 		queued = false
-		doc.querySelectorAll('table.vbh-stack').forEach(labelTable)
+		doc.querySelectorAll('table.vbh-stack').forEach((table) => {
+			if (!labelTable(table)) { pending?.observe(table) }
+		})
 	}
 	const schedule = () => {
 		if (queued) { return }
 		queued = true
 		requestAnimationFrame(run)
 	}
-	new MutationObserver(schedule).observe(doc.body, { childList: true, subtree: true })
+	const watched = new WeakSet()
+	const cardObserver = new MutationObserver(schedule)
+	const watchCards = (root) => {
+		const cards = []
+		if (root.matches?.('.vbh-tablecard')) { cards.push(root) }
+		if (root.querySelectorAll) { cards.push(...root.querySelectorAll('.vbh-tablecard')) }
+		for (const card of cards) {
+			if (watched.has(card)) { continue }
+			watched.add(card)
+			cardObserver.observe(card, { childList: true, subtree: true })
+		}
+	}
+	new MutationObserver((records) => {
+		let found = false
+		for (const record of records) {
+			for (const node of record.addedNodes) {
+				if (node.nodeType !== 1) { continue }
+				if (node.matches?.('.vbh-tablecard') || node.querySelector?.('.vbh-tablecard')) {
+					watchCards(node)
+					found = true
+				}
+			}
+		}
+		if (found) { schedule() }
+	}).observe(doc.body, { childList: true, subtree: true })
+	watchCards(doc.body)
 	schedule()
 }

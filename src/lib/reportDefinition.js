@@ -8,6 +8,7 @@
 //
 // Aufbau siehe docs/gliederungsbericht-design.md, Abschnitt 3.2.
 import { t, tRaw } from './l10n.js'
+import { newUid } from './rowKeys.js'
 
 export const TYPES = ['income', 'expense']
 export const SPHERES = ['ideell', 'vermoegensverwaltung', 'zweckbetrieb', 'wirtschaftlich', 'none']
@@ -71,6 +72,7 @@ export function newLevel(by = 'account') {
 
 export function newSection(title = '') {
 	return {
+		uid: newUid(),
 		title,
 		filter: { types: null, spheres: null, groups: null },
 		summary: false,
@@ -99,6 +101,36 @@ export function starterDefinition() {
 		groups: [],
 		sections: [newSection(t('Konten'))],
 		grandTotal: { label: t('Saldo') },
+	}
+}
+
+/** Eine neue Spalte; das uid dient nur der Anzeige (v-for-Schluessel) und geht nie zum Server. */
+export function newColumn(source = 'actual', periodOffset = 0) {
+	return { uid: newUid(), source, periodOffset }
+}
+
+/** Kopie der Definition, in der jede Spalte und jeder (Unter-)Abschnitt ein uid hat. */
+export function withUids(def) {
+	const section = (s) => ({ ...s, uid: s.uid ?? newUid(), sections: Array.isArray(s.sections) ? s.sections.map(section) : s.sections })
+	return {
+		...def,
+		columns: (def.columns || []).map((c) => ({ ...c, uid: c.uid ?? newUid() })),
+		sections: (def.sections || []).map(section),
+	}
+}
+
+/** Kopie der Definition ohne die uid-Felder von withUids(), zum Speichern. */
+export function stripUids(def) {
+	const without = (item) => {
+		const copy = { ...item }
+		delete copy.uid
+		return copy
+	}
+	const section = (s) => ({ ...without(s), sections: Array.isArray(s.sections) ? s.sections.map(section) : s.sections })
+	return {
+		...def,
+		columns: (def.columns || []).map(without),
+		sections: (def.sections || []).map(section),
 	}
 }
 

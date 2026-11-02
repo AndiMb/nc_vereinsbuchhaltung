@@ -5,6 +5,7 @@
 	"license": "AGPL-3.0-or-later",
 	"private": true,
 	"scripts": {
+		"prebuild": "node scripts/l10n-js.mjs",
 		"build": "webpack --node-env production --progress",
 		"dev": "webpack --node-env development --progress",
 		"watch": "webpack --node-env development --progress --watch",
@@ -12,6 +13,7 @@
 		"stylelint": "stylelint \"src/**/*.{vue,css}\"",
 		"test": "vitest run",
 		"l10n:check": "node tests/l10n/check.mjs",
+		"l10n:js": "node scripts/l10n-js.mjs",
 		"phpstan": "php .phpstan/vendor/phpstan/phpstan/phpstan.phar analyse --no-progress --memory-limit=1G",
 		"phpunit": "php .phpstan/vendor/phpunit/phpunit/phpunit --configuration phpunit.xml",
 		"test:e2e:server": "node tests/e2e/setup/server.mjs",
@@ -27,6 +29,7 @@
 		"@mdi/js": "^7.4.47",
 		"@nextcloud/axios": "^2.5.0",
 		"@nextcloud/dialogs": "^8.0.0",
+		"@nextcloud/initial-state": "^3.0.0",
 		"@nextcloud/l10n": "^3.4.1",
 		"@nextcloud/password-confirmation": "^6.2.1",
 		"@nextcloud/router": "^3.2.0",

@@ -506,6 +506,7 @@
         "doppelt {list}": "duplicate {list}",
         "{n} von {total} Buchungssätze": "{n} of {total} entries",
         "{n} Buchungssätze": "{n} entries",
+        "Weitere Buchungen anzeigen ({n} verbleibend)": "Show more entries ({n} remaining)",
         "Beleg anzeigen": "Show receipt",
         "{n} Belege": "{n} receipts",
         "{n} Beleg(e)": "{n} receipt(s)",

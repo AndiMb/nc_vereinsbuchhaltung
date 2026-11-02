@@ -119,7 +119,7 @@ import AmountInput from './AmountInput.vue'
 import api from '../api.js'
 import { useContributionGroups } from '../composables/useContributionGroups.js'
 import { useMembers } from '../composables/useMembers.js'
-import { errMsg, formatDate } from '../lib/format.js'
+import { errMsg, formatDate, formatEuro } from '../lib/format.js'
 import { intervalLabel } from '../lib/frequency.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 
@@ -214,7 +214,7 @@ export default {
 	methods: {
 		intervalLabel,
 		formatDate,
-		euro(cents) { return (cents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }) },
+		euro(cents) { return formatEuro(cents / 100) },
 
 		async createQuickMember() {
 			try {

@@ -1,6 +1,7 @@
 import { showError } from '@nextcloud/dialogs'
 import { computed, reactive } from 'vue'
 import api from '../api.js'
+import { takeBootState } from '../lib/bootState.js'
 import { errMsg } from '../lib/format.js'
 import { t } from '../lib/l10n.js'
 
@@ -92,9 +93,10 @@ function defaultPeriodId(list) {
  * ohne jede Fehlermeldung.
  */
 async function loadPeriods() {
-	let data
+	// Beim Start bringt die Seite die Liste mit (Initial State, Issue #264).
+	let data = takeBootState('periods')
 	let lastError = null
-	for (let attempt = 0; attempt < 3; attempt++) {
+	for (let attempt = 0; !data && attempt < 3; attempt++) {
 		if (attempt > 0) { await new Promise((resolve) => setTimeout(resolve, 300 * attempt)) }
 		try {
 			({ data } = await api.periods({ timeout: 5000 }))

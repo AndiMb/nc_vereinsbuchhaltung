@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
-use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
-use OCA\Vereinsbuchhaltung\Db\BudgetSnapshotMapper;
-use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
+use OCA\Vereinsbuchhaltung\Service\FrontendStateService;
 use OCA\Vereinsbuchhaltung\Service\PeriodRule;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
@@ -36,50 +34,23 @@ class PeriodController extends Controller {
 	public function __construct(
 		IRequest $request,
 		private PeriodService $periods,
-		private JournalMapper $journalMapper,
-		private BudgetMapper $budgetMapper,
-		private BudgetSnapshotMapper $snapshotMapper,
 		private PermissionService $permissionService,
 		private IUserSession $userSession,
 		private IL10N $l10n,
+		private FrontendStateService $frontendState,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
 
 	/**
-	 * Alle Geschäftsjahre, neueste zuerst.
-	 *
-	 * Der laufende Zeitraum wird dabei angelegt, falls er noch fehlt: sonst
-	 * stünde er nicht im Auswahlfeld der Kopfzeile, und eine frisch
-	 * eingerichtete App hätte gar keinen. Bis 0.32.0 erledigte das der
-	 * unbedingt angehängte `date('Y')` in der Jahresliste.
-	 *
-	 * Ja, das schreibt in einer GET-Anfrage, und auch ein Nutzer mit reinem
-	 * Leserecht löst es aus. Bewusst so: die Zeile trägt keine Daten, sie ist
-	 * genau die, die die eingestellte Regel für heute vorsieht, und sie
-	 * entsteht höchstens einmal je Geschäftsjahr. Die Alternative wäre ein
-	 * Auswahleintrag ohne ID, den kein Endpunkt annehmen könnte – oder ein
-	 * Auswahlfeld, in dem am 1. Oktober das neue Geschäftsjahr fehlt, bis
-	 * jemand die erste Buchung anlegt.
+	 * Alle Geschäftsjahre, neueste zuerst. Inhalt (und warum dabei der
+	 * laufende Zeitraum angelegt wird) siehe FrontendStateService::periods();
+	 * beim Seitenaufruf liegt dieselbe Liste schon als Initial State in der
+	 * Seite (PageController).
 	 */
 	#[NoAdminRequired]
 	public function index(): DataResponse {
-		$userId = $this->userId();
-		$this->periods->current($userId);
-
-		$bookings = $this->journalMapper->countsByPeriod($userId);
-		$budgets = $this->budgetMapper->countsByPeriod($userId);
-		$snapshots = $this->snapshotMapper->countsByPeriod($userId);
-
-		$rows = [];
-		foreach ($this->periods->all($userId) as $period) {
-			$id = (int)$period->getId();
-			$rows[] = $period->jsonSerialize() + [
-				'bookings' => $bookings[$id] ?? 0,
-				'planValues' => ($budgets[$id] ?? 0) + ($snapshots[$id] ?? 0),
-			];
-		}
-		return new DataResponse($rows);
+		return new DataResponse($this->frontendState->periods());
 	}
 
 	/** Die geltende Geschäftsjahr-Regel samt der wählbaren Vorlagen. */

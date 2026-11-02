@@ -70,7 +70,7 @@ import NcButton from '@nextcloud/vue/components/NcButton'
 import NcModal from '@nextcloud/vue/components/NcModal'
 import AmountInput from './AmountInput.vue'
 import api from '../api.js'
-import { errMsg } from '../lib/format.js'
+import { errMsg, formatEuro } from '../lib/format.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 
 /**
@@ -103,7 +103,7 @@ export default {
 	},
 
 	methods: {
-		euro(cents) { return (cents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }) },
+		euro(cents) { return formatEuro(cents / 100) },
 
 		async loadPreview() {
 			try {

@@ -70,15 +70,18 @@ export function quantityToE4(text) {
 	return n === null ? null : Math.round(n * 10000)
 }
 
+const QUANTITY = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 4 })
+const DISCOUNT = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 })
+
 /** Menge als Text in deutscher Schreibweise ohne überflüssige Nullen: 35000 → "3,5". */
 export function formatQuantity(quantityE4) {
 	const v = quantityE4 / 10000
-	return new Intl.NumberFormat('de-DE', { maximumFractionDigits: 4 }).format(v)
+	return QUANTITY.format(v)
 }
 
 /** Rabatt in Basispunkten als Prozentzahl: 1000 → "10". */
 export function formatDiscount(discountBp) {
-	return new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 }).format(discountBp / 100)
+	return DISCOUNT.format(discountBp / 100)
 }
 
 /** Einheitencode (UN/ECE Rec. 20) → Beschriftung für die Auswahl und die Tabelle. */

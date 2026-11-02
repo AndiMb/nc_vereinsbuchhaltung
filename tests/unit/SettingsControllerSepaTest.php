@@ -6,6 +6,9 @@ namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
 use OCA\Vereinsbuchhaltung\Controller\SettingsController;
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
+use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
+use OCA\Vereinsbuchhaltung\Db\BudgetSnapshotMapper;
+use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\AttachmentWatchFolderService;
@@ -13,11 +16,15 @@ use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCA\Vereinsbuchhaltung\Service\DemoDataService;
 use OCA\Vereinsbuchhaltung\Service\DunningSettings;
 use OCA\Vereinsbuchhaltung\Service\FolderPathValidator;
+use OCA\Vereinsbuchhaltung\Service\FrontendStateService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
 use OCA\Vereinsbuchhaltung\Service\MandateDocumentService;
 use OCA\Vereinsbuchhaltung\Service\MandateExpirySettings;
+use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
+use OCA\Vereinsbuchhaltung\Service\ReimbursementAccess;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementSettings;
+use OCA\Vereinsbuchhaltung\Service\SelfServiceService;
 use OCA\Vereinsbuchhaltung\Service\SepaDebtorAccountService;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\DataResponse;
@@ -65,25 +72,51 @@ class SettingsControllerSepaTest extends TestCase {
 		$contributionYear = $this->createMock(ContributionYearService::class);
 		$contributionYear->method('getStartMonth')->willReturn(1);
 
+		$sepaDebtorAccount = $this->createMock(SepaDebtorAccountService::class);
+		$dunningSettings = new DunningSettings($config);
+		$mandateExpirySettings = new MandateExpirySettings($config);
+		$invoiceSettings = new InvoiceSettings($config, new FolderPathValidator($l10n));
+		$reimbursementSettings = $this->createMock(ReimbursementSettings::class);
+		// Den Einstellungssatz der Antworten stellt seit Issue #264 der
+		// FrontendStateService zusammen – echt, mit denselben Abhängigkeiten.
+		$frontendState = new FrontendStateService(
+			$permissions,
+			$this->createMock(SelfServiceService::class),
+			$this->createMock(ReimbursementAccess::class),
+			$this->createMock(PeriodService::class),
+			$this->createMock(JournalMapper::class),
+			$this->createMock(BudgetMapper::class),
+			$this->createMock(BudgetSnapshotMapper::class),
+			$config,
+			$this->createMock(DemoDataService::class),
+			$members ?? $this->createMock(MemberMapper::class),
+			$sepaDebtorAccount,
+			$attachmentStorage,
+			$mandateDocuments,
+			$contributionYear,
+			$dunningSettings,
+			$mandateExpirySettings,
+			$invoiceSettings,
+			$reimbursementSettings,
+		);
+
 		return new SettingsController(
 			$this->request,
 			$config,
 			$permissions,
-			$this->createMock(DemoDataService::class),
 			$this->createMock(AccountMapper::class),
-			$members ?? $this->createMock(MemberMapper::class),
 			$this->createMock(IUserManager::class),
-			$this->createMock(SepaDebtorAccountService::class),
+			$sepaDebtorAccount,
 			$attachmentStorage,
 			$attachmentWatchFolder ?? $this->createMock(AttachmentWatchFolderService::class),
-			$mandateDocuments,
 			$contributionYear,
 			new FolderPathValidator($l10n),
-			new DunningSettings($config),
-			new MandateExpirySettings($config),
-			new InvoiceSettings($config, new FolderPathValidator($l10n)),
-			$this->createMock(ReimbursementSettings::class),
+			$dunningSettings,
+			$mandateExpirySettings,
+			$invoiceSettings,
+			$reimbursementSettings,
 			$l10n,
+			$frontendState,
 		);
 	}
 

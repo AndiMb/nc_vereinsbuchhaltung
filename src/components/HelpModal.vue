@@ -59,10 +59,10 @@ import { t } from '../lib/l10n.js'
 // HelpController::sectionAnchor()) statt der aus der Überschrift abgeleiteten
 // Slugs – die wären in der englischen Fassung anders.
 //
-// Als Funktion statt Modul-Konstante, weil t() sonst beim Import ausgewertet
-// würde - noch bevor main.js die Übersetzungen geladen hat (siehe
-// loadAppTranslations() in main.js). Aufgerufen wird sie erst in data(),
-// wenn die Komponente instanziiert wird und die Übersetzungen schon da sind.
+// Als Funktion statt Modul-Konstante: t() wird so erst in data() ausgewertet,
+// wenn die Komponente instanziiert wird. Die Übersetzungen (l10n/<sprache>.js)
+// sind dann sicher registriert; beim Import des Moduls hinge das an der
+// Reihenfolge der Skripte auf der Seite.
 function buildTopics() {
 	return [
 		{

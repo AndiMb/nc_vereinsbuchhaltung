@@ -8,6 +8,7 @@ import {
 	formatAmountInput,
 	formatDate,
 	formatDateTime,
+	formatEuro,
 	formatMoney,
 	formatPercent,
 	formatSigned,
@@ -105,6 +106,22 @@ describe('formatDateTime', () => {
 
 	it('gibt bei leerer Angabe nichts aus', () => {
 		expect(formatDateTime(null)).toBe('')
+	})
+
+	it('nutzt einen gecachten Formatter', () => {
+		formatDateTime('2026-01-31T14:05:33') // Cache fuer das Gebietsschema anwaermen
+		const spy = vi.spyOn(Intl, 'DateTimeFormat')
+		for (let i = 0; i < 100; i++) { formatDateTime('2026-01-31T14:05:33') }
+		const calls = spy.mock.calls.length
+		spy.mockRestore()
+		expect(calls).toBeLessThanOrEqual(2)
+	})
+})
+
+describe('formatEuro', () => {
+	it('formatiert wie bisher euro()', () => {
+		expect(formatEuro(1234.5).replace(/\s/g, ' ')).toBe('1.234,50 €')
+		expect(formatEuro(1234.5)).toBe((1234.5).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }))
 	})
 })
 

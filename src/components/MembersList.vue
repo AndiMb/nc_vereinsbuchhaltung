@@ -2,7 +2,8 @@
 	<div>
 		<div class="vbh-memberfilter">
 			<label class="vbh-memberfilter-search">{{ t('Suchen') }}
-				<input v-model="search" type="search" :placeholder="t('Name, IBAN, Mitgliedsnummer oder E-Mail')">
+				<!-- Bewusst ohne v-model: gefiltert wird erst über das entprellte search (onSearchInput). -->
+				<input type="search" :placeholder="t('Name, IBAN, Mitgliedsnummer oder E-Mail')" @input="onSearchInput">
 			</label>
 			<NcCheckboxRadioSwitch v-model="onlyProblems">
 				{{ t('nur Auffälligkeiten') }}
@@ -150,6 +151,7 @@
 			@save="saveNewAssignment" />
 
 		<MemberDialog
+			v-if="memberDialogOpen"
 			:show="memberDialogOpen"
 			:saving="saving"
 			:member="editingMember"
@@ -170,7 +172,7 @@
 <script>
 import { mdiContentCopy, mdiEmailOffOutline } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { toRefs } from 'vue'
+import { defineAsyncComponent, toRefs } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
@@ -179,8 +181,6 @@ import AssignmentChangeDialog from './AssignmentChangeDialog.vue'
 import AssignmentDialog from './AssignmentDialog.vue'
 import MemberAccountCell from './MemberAccountCell.vue'
 import MemberCard from './MemberCard.vue'
-import MemberDialog from './MemberDialog.vue'
-import MemberImportDialog from './MemberImportDialog.vue'
 import MemberRowMenu from './MemberRowMenu.vue'
 import api from '../api.js'
 import { useAssignments } from '../composables/useAssignments.js'
@@ -192,12 +192,19 @@ import { useMemberAkteRequest } from '../composables/useMemberAkteRequest.js'
 import { useMembers } from '../composables/useMembers.js'
 import { usePeriods } from '../composables/usePeriods.js'
 import { copyText } from '../lib/clipboard.js'
+import { deCollator } from '../lib/collator.js'
 import { errMsg, formatDate, formatMoney } from '../lib/format.js'
 import { createMandateForMember } from '../lib/mandateCreate.js'
 import { collectEmails, EMAIL_SEPARATOR } from '../lib/memberEmails.js'
 import { buildMemberRow, isLiveAssignment, nextDueDates } from '../lib/memberRow.js'
 import { confirmAccountCreation, createAndLinkAccount } from '../lib/nextcloudAccount.js'
 import { nextTwelveMonths, periodAmount } from '../lib/prorata.js'
+
+// Die beiden grossen Dialoge sind eigene Chunks. MemberDialog haengt per v-if erst beim
+// Oeffnen ein; MemberImportDialog bewusst nicht (v-if dort liess beim Aushaengen eine
+// NcModal-Fokusfalle zurueck: der naechste Dialog meldete "fallbackFocus ... not a node").
+const MemberDialog = defineAsyncComponent(() => import(/* webpackChunkName: "vbh-memberdialog" */ './MemberDialog.vue'))
+const MemberImportDialog = defineAsyncComponent(() => import(/* webpackChunkName: "vbh-memberimportdialog" */ './MemberImportDialog.vue'))
 
 /**
  * Mitgliederliste (Spec §2.2/§3.1, docs/beitraege-sepa-modul-spec.md): jede
@@ -294,7 +301,7 @@ export default {
 			}
 			return this.members
 				.map((member) => buildMemberRow(member, sources))
-				.sort((a, b) => a.displayName.localeCompare(b.displayName, 'de'))
+				.sort((a, b) => deCollator.compare(a.displayName, b.displayName))
 		},
 
 		filteredRows() {
@@ -343,6 +350,10 @@ export default {
 		},
 	},
 
+	beforeUnmount() {
+		clearTimeout(this.searchTimer)
+	},
+
 	mounted() {
 		this.loadMembers()
 		this.loadMandates()
@@ -355,6 +366,18 @@ export default {
 	methods: {
 		errMsg,
 		formatDate,
+
+		// Entprellt: gefiltert wird erst, wenn die Eingabe kurz ruht. Leeren wirkt sofort.
+		onSearchInput(event) {
+			const v = event.target.value
+			clearTimeout(this.searchTimer)
+			if (!v.trim()) {
+				this.search = ''
+				return
+			}
+			this.searchTimer = setTimeout(() => { this.search = v }, 150)
+		},
+
 		formatMoney,
 		/** Von der Kopfzeile in ContributionsTab.vue per $refs aufgerufen. */
 		openMemberDialog() { this.editingMember = null; this.akteSection = ''; this.memberDialogOpen = true },
@@ -427,7 +450,7 @@ export default {
 			if (!memberId) { return }
 			let member = this.members.find((m) => m.id === memberId)
 			if (!member) {
-				await this.loadMembers()
+				await this.loadMembers({ force: true })
 				member = this.members.find((m) => m.id === memberId)
 			}
 			if (member) { this.openMemberAkte(member) } else { showError(this.t('Das Mitglied wurde nicht gefunden – vielleicht wurde es inzwischen gelöscht.')) }
@@ -451,9 +474,9 @@ export default {
 
 		async reload() {
 			await Promise.all([
-				this.loadMembers(),
-				this.loadMandates(),
-				this.loadAssignments(),
+				this.loadMembers({ force: true }),
+				this.loadMandates({ force: true }),
+				this.loadAssignments({ force: true }),
 				this.loadClaimOverview(),
 				this.loadLinkSuggestions(),
 			])

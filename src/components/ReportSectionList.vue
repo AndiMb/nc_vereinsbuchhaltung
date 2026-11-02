@@ -2,7 +2,7 @@
 	<div class="vbh-seclist">
 		<fieldset
 			v-for="(section, i) in sections"
-			:key="i"
+			:key="section.uid ?? i"
 			class="vbh-sec"
 			:class="{ 'vbh-sec--open': open.has(i) }">
 			<legend class="vbh-sec-legend">

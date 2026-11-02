@@ -472,7 +472,7 @@ import { useConfirm } from '../composables/useConfirm.js'
 import { useContributionGroups } from '../composables/useContributionGroups.js'
 import { accountPayload, emptyAccount, missingAccountFields } from '../lib/accountForm.js'
 import { defaultCountry } from '../lib/countryDefault.js'
-import { errMsg, formatDate } from '../lib/format.js'
+import { errMsg, formatDate, formatEuro } from '../lib/format.js'
 import { intervalLabel } from '../lib/frequency.js'
 import { linkedAccountText } from '../lib/memberAccount.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
@@ -643,7 +643,9 @@ export default {
 	},
 
 	watch: {
-		show(open) {
+		// immediate: der Dialog wird per v-if erst beim Oeffnen eingehaengt
+		// (und als eigener Chunk nachgeladen) - show ist dann schon true.
+		show: { immediate: true, handler(open) {
 			if (!open) { return }
 			this.form = emptyForm(this.member)
 			this.suggestions = []
@@ -666,7 +668,7 @@ export default {
 			} else {
 				focusOnOpen(this, () => this.$refs.nameInput || this.$refs.orgInput)
 			}
-		},
+		} },
 
 		// Kontoname, Anzeigename und E-Mail folgen den Stammdaten, solange niemand sie von Hand geändert hat
 		// (der Wert entspricht noch dem Vorschlag zu den vorherigen Stammdaten).
@@ -725,7 +727,7 @@ export default {
 			panel.scrollIntoView({ block: 'start' })
 		},
 
-		euro(cents) { return (cents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }) },
+		euro(cents) { return formatEuro(cents / 100) },
 
 		stammdaten() {
 			return {

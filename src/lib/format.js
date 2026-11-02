@@ -13,7 +13,29 @@ export function formatMoney(v) {
 	return EUR.format(v || 0)
 }
 
+/** Betrag in Euro (nicht Cent) als Waehrungstext; ohne Rueckfall auf null wie formatMoney. */
+export function formatEuro(value) {
+	return EUR.format(value)
+}
+
 const DAY_FORMATS = new Map()
+// Formatter fuer Datum+Uhrzeit bzw. reinen Tag je Gebietsschema; ein Intl.DateTimeFormat
+// je Aufruf kostete in Listen mit Zeitstempeln viel.
+const DATETIME_FORMATS = new Map()
+const PLAIN_DAY_FORMATS = new Map()
+
+function cachedFormat(cache, locale, options) {
+	if (!cache.has(locale)) {
+		let format
+		try {
+			format = new Intl.DateTimeFormat(locale, options)
+		} catch {
+			format = new Intl.DateTimeFormat('de-DE', options)
+		}
+		cache.set(locale, format)
+	}
+	return cache.get(locale)
+}
 
 function dayFormat(locale) {
 	if (!DAY_FORMATS.has(locale)) {
@@ -73,17 +95,13 @@ export function formatDateTime(s) {
 	const raw = String(s)
 	if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
 		// Nur ein Tag: kein Zeitpunkt, daher nicht in die Zeitzone umrechnen.
-		return new Intl.DateTimeFormat(userLocale(), { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(raw))
+		return cachedFormat(PLAIN_DAY_FORMATS, userLocale(), { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(raw))
 	}
 	const date = new Date(raw)
 	if (Number.isNaN(date.getTime())) {
 		return raw.replace('T', ' ').slice(0, 16)
 	}
-	try {
-		return new Intl.DateTimeFormat(userLocale(), { dateStyle: 'medium', timeStyle: 'short' }).format(date)
-	} catch {
-		return new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium', timeStyle: 'short' }).format(date)
-	}
+	return cachedFormat(DATETIME_FORMATS, userLocale(), { dateStyle: 'medium', timeStyle: 'short' }).format(date)
 }
 
 export function typeLabel(accountType) {
@@ -126,6 +144,7 @@ export function formatSigned(v) {
 	return (v > 0 ? '+' : '') + formatMoney(v)
 }
 
+const AMOUNT_PLAIN = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const PERCENT = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1, signDisplay: 'exceptZero' })
 
 // Prozentwert mit Vorzeichen; null (kein Bezugswert) → „—“.
@@ -168,7 +187,7 @@ export function formatAmountInput(v, withCurrency = true) {
 	if (!Number.isFinite(n)) { return '' }
 	return withCurrency
 		? formatMoney(n)
-		: new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)
+		: AMOUNT_PLAIN.format(n)
 }
 
 /**

@@ -107,7 +107,11 @@
 
 		<main v-show="canRead || myAreaAvailable" class="vbh-main">
 			<!-- ============ ÜBERSICHT (DASHBOARD) ============ -->
-			<section v-show="activeTab === 'dashboard'" class="vbh-section scroll" :class="{ 'vbh-fadein': sectionFade }">
+			<section
+				v-if="visitedTabs.dashboard"
+				v-show="activeTab === 'dashboard'"
+				class="vbh-section scroll"
+				:class="{ 'vbh-fadein': sectionFade }">
 				<DashboardTab
 					:isActive="activeTab === 'dashboard'"
 					:isMobile="isMobile"
@@ -132,7 +136,11 @@
 			</section>
 
 			<!-- ============ BUCHUNGEN (JOURNAL + TRANSAKTIONEN) ============ -->
-			<section v-show="activeTab === 'bookings'" class="vbh-section vbh-flex-col" :class="{ 'vbh-fadein': sectionFade }">
+			<section
+				v-if="visitedTabs.bookings"
+				v-show="activeTab === 'bookings'"
+				class="vbh-section vbh-flex-col"
+				:class="{ 'vbh-fadein': sectionFade }">
 				<BookingsTab
 					:isMobile="isMobile"
 					:amountDisplay="amountDisplay"
@@ -169,7 +177,7 @@
 
 			<!-- ============ RECHNUNGEN ============ -->
 			<section
-				v-if="canRead && invoicesActive"
+				v-if="visitedTabs.invoices && canRead && invoicesActive"
 				v-show="activeTab === 'invoices'"
 				class="vbh-section vbh-flex-col"
 				:class="{ 'vbh-fadein': sectionFade }">
@@ -180,12 +188,17 @@
 					:accounts="accountsSorted"
 					:reloadKey="invoicesReloadKey"
 					:newRequest="invoiceRequest"
+					@requestHandled="invoiceRequest = { kind: null, n: 0 }"
 					@editing="invoiceEditing = $event"
 					@changed="onInvoicesChanged" />
 			</section>
 
 			<!-- ============ KONTEN ============ -->
-			<section v-show="activeTab === 'accounts'" class="vbh-section split" :class="{ 'vbh-fadein': sectionFade, 'vbh-drill': isMobile }">
+			<section
+				v-if="visitedTabs.accounts"
+				v-show="activeTab === 'accounts'"
+				class="vbh-section split"
+				:class="{ 'vbh-fadein': sectionFade, 'vbh-drill': isMobile }">
 				<AccountsTab
 					v-model:statementIncludeChildren="statementIncludeChildren"
 					v-model:openingForm="openingForm"
@@ -209,7 +222,11 @@
 			</section>
 
 			<!-- ============ BERICHTE (AUSWERTUNG + KOSTENSTELLEN + FINANZPLAN) ============ -->
-			<section v-show="activeTab === 'reports'" class="vbh-section vbh-flex-col" :class="{ 'vbh-fadein': sectionFade }">
+			<section
+				v-if="visitedTabs.reports"
+				v-show="activeTab === 'reports'"
+				class="vbh-section vbh-flex-col"
+				:class="{ 'vbh-fadein': sectionFade }">
 				<ReportsTab
 					:isActive="activeTab === 'reports'"
 					:isMobile="isMobile"
@@ -252,7 +269,7 @@
 
 			<!-- ============ BEITRÄGE (MITGLIEDER + SEPA-SAMMELEINZUG) ============ -->
 			<section
-				v-if="canRead && membershipActive"
+				v-if="visitedTabs.contributions && canRead && membershipActive"
 				v-show="activeTab === 'contributions'"
 				class="vbh-section vbh-flex-col"
 				:class="{ 'vbh-fadein': sectionFade }">
@@ -261,12 +278,13 @@
 					:isMobile="isMobile"
 					:canWrite="canWrite"
 					:newMemberRequest="memberRequest"
+					@requestHandled="memberRequest = { n: 0 }"
 					@update:contribView="contribView = $event" />
 			</section>
 
 			<!-- ============ MEIN BEREICH (SELF-SERVICE: BEITRAG + AUSLAGEN) ============ -->
 			<section
-				v-if="myAreaAvailable"
+				v-if="visitedTabs.self && myAreaAvailable"
 				v-show="activeTab === 'self'"
 				class="vbh-section scroll"
 				:class="{ 'vbh-fadein': sectionFade }">
@@ -293,6 +311,7 @@
 
 		<!-- ============ IMPORT-DIALOG (CSV-CAMT) ============ -->
 		<ImportDialog
+			v-if="showImport"
 			v-model:busy="busy"
 			:show="showImport"
 			@update:show="showImport = $event"
@@ -390,6 +409,7 @@
 
 		<!-- ============ HILFE ============ -->
 		<HelpModal
+			v-if="showHelp"
 			:show="showHelp"
 			:topic="helpTopic"
 			:currentVersion="whatsNewCurrentVersion"
@@ -399,6 +419,7 @@
 
 		<!-- ============ SETUP-ASSISTENT (erster Verwalter-Login) ============ -->
 		<SetupWizard
+			v-if="showSetupWizard"
 			:show="showSetupWizard"
 			@close="closeSetupWizard"
 			@update:show="showSetupWizard = $event"
@@ -406,6 +427,7 @@
 
 		<!-- ============ WAS IST NEU (Splash-Screen nach Updates) ============ -->
 		<WhatsNewDialog
+			v-if="whatsNewShow"
 			:show="whatsNewShow"
 			:entries="whatsNewEntries"
 			@close="whatsNewShow = false"
@@ -429,7 +451,7 @@
 import { mdiAccountCashOutline, mdiAccountPlusOutline, mdiCardAccountDetailsOutline, mdiChartBar, mdiFileDocumentOutline, mdiFileTreeOutline, mdiHelpCircleOutline, mdiPlus, mdiPrinter, mdiSwapHorizontal, mdiViewDashboardOutline } from '@mdi/js'
 import { showError, showInfo, showSuccess, showUndo } from '@nextcloud/dialogs'
 import { generateUrl } from '@nextcloud/router'
-import { toRefs } from 'vue'
+import { defineAsyncComponent, toRefs } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
@@ -441,19 +463,11 @@ import AttachmentFolderDialog from './components/AttachmentFolderDialog.vue'
 import BookingDialog from './components/BookingDialog.vue'
 import BookingsTab from './components/BookingsTab.vue'
 import BudgetSnapshotModal from './components/BudgetSnapshotModal.vue'
-import ContributionsTab from './components/ContributionsTab.vue'
 import DashboardTab from './components/DashboardTab.vue'
-import HelpModal from './components/HelpModal.vue'
-import ImportDialog from './components/ImportDialog.vue'
-import InvoicesTab from './components/InvoicesTab.vue'
 import MobileNav from './components/MobileNav.vue'
-import MyAreaTab from './components/MyAreaTab.vue'
 import NewMenu from './components/NewMenu.vue'
-import ReportsTab from './components/ReportsTab.vue'
-import SetupWizard from './components/SetupWizard.vue'
 import SplitAssignDialog from './components/SplitAssignDialog.vue'
 import TasksFlyout from './components/TasksFlyout.vue'
-import WhatsNewDialog from './components/WhatsNewDialog.vue'
 import api from './api.js'
 import { buildAccountOptions, useAccounts } from './composables/useAccounts.js'
 import { useAttachmentInbox } from './composables/useAttachmentInbox.js'
@@ -472,12 +486,25 @@ import { useSort } from './composables/useSort.js'
 import { useSync } from './composables/useSync.js'
 import { useTasks } from './composables/useTasks.js'
 import { buildWhatsNewEntries, filterWhatsNewEntries } from './data/whatsNew.js'
+import { takeBootState } from './lib/bootState.js'
 import { amountClass, budgetDiffClass, errMsg, formatDate, formatDateTime, formatMoney, typeLabel } from './lib/format.js'
 import { withPasswordConfirmation } from './lib/passwordGate.js'
 import { linkFilesToBookings } from './lib/receiptBatch.js'
 import { bookingsContext, txContext } from './lib/receiptPreview.js'
 import { reimbursementBookingPrefill } from './lib/reimbursements.js'
+import { newUid } from './lib/rowKeys.js'
 import { splitBalanced, splitRemainder, splitSideOf } from './lib/split.js'
+
+// Selten gebrauchte Reiter und Dialoge sind eigene Webpack-Chunks und werden erst
+// beim ersten Anzeigen geladen (Sichtbarkeit steuern v-if / visitedTabs).
+const ReportsTab = defineAsyncComponent(() => import(/* webpackChunkName: "vbh-reportstab" */ './components/ReportsTab.vue'))
+const InvoicesTab = defineAsyncComponent(() => import(/* webpackChunkName: "vbh-invoicestab" */ './components/InvoicesTab.vue'))
+const ContributionsTab = defineAsyncComponent(() => import(/* webpackChunkName: "vbh-contributionstab" */ './components/ContributionsTab.vue'))
+const MyAreaTab = defineAsyncComponent(() => import(/* webpackChunkName: "vbh-myareatab" */ './components/MyAreaTab.vue'))
+const SetupWizard = defineAsyncComponent(() => import(/* webpackChunkName: "vbh-setupwizard" */ './components/SetupWizard.vue'))
+const HelpModal = defineAsyncComponent(() => import(/* webpackChunkName: "vbh-helpmodal" */ './components/HelpModal.vue'))
+const WhatsNewDialog = defineAsyncComponent(() => import(/* webpackChunkName: "vbh-whatsnewdialog" */ './components/WhatsNewDialog.vue'))
+const ImportDialog = defineAsyncComponent(() => import(/* webpackChunkName: "vbh-importdialog" */ './components/ImportDialog.vue'))
 
 // Abstand zwischen zwei Abgleichen mit dem Server. Die Frist, in der eine
 // erkannte Änderung noch als *eigene* gilt, haengt daran (siehe checkRevision):
@@ -634,6 +661,9 @@ export default {
 	data() {
 		return {
 			activeTab: 'dashboard',
+			// Reiter, die schon einmal offen waren: ihre Sektion wird erst beim ersten
+			// Besuch aufgebaut (und samt Ladern angestossen), danach nur noch ein-/ausgeblendet.
+			visitedTabs: { dashboard: true },
 			allTabs: [
 				{ id: 'dashboard', label: this.t('Übersicht'), need: 'read', icon: mdiViewDashboardOutline },
 				{ id: 'bookings', label: this.t('Buchungen'), need: 'read', icon: mdiSwapHorizontal },
@@ -1148,6 +1178,7 @@ export default {
 
 	watch: {
 		activeTab(tab) {
+			if (!this.visitedTabs[tab]) { this.visitedTabs[tab] = true }
 			this.loadTab(tab)
 			// Einblend-Animation der Sektion neu starten
 			this.sectionFade = false
@@ -1547,13 +1578,14 @@ export default {
 			await this.loadPeriods()
 			const jobs = [this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions(this.selectedPeriodId), this.loadSphereReport(), this.loadOpenItems(), this.loadCostCenters()]
 			this.refreshInbox()
-			// Aufgaben-Flyout: eine Aenderung anderer Personen kann Aufgaben loesen/schaffen.
-			if (this.canWrite && this.membershipActive) { jobs.push(this.loadTasks()) }
 			if (this.activeTab === 'accounts' && this.selectedAccountId) { jobs.push(this.loadStatement(this.selectedAccountId)) }
 			if (this.activeTab === 'reports') {
 				if (this.reportView === 'costcenters') { jobs.push(this.loadReport()) } else if (this.reportView === 'budget') { jobs.push(this.loadBudget()) } else if (this.reportView === 'structure') { this.structuredRefreshKey++ }
 			}
 			try { await Promise.all(jobs) } catch { /* nächster Poll versucht es erneut */ }
+			// Aufgaben-Flyout (useTasks): eine Änderung anderer Personen kann Aufgaben lösen oder
+			// schaffen. Das Ereignis ersetzt den früheren Fokus-Listener; useTasks hört darauf.
+			window.dispatchEvent(new CustomEvent('vbh:remote-change'))
 		},
 
 		/**
@@ -1577,7 +1609,8 @@ export default {
 		// demoActive/membershipActive.
 		async loadStorageSettings() {
 			try {
-				const { data } = await api.getSettings()
+				// Beim Start bringt die Seite die Einstellungen mit (Initial State, Issue #264).
+				const data = takeBootState('settings') ?? (await api.getSettings()).data
 				this.costCenterMode = data.cost_center_mode || 'group'
 				this.amountDisplay = data.amount_display === 'signed' ? 'signed' : 'plain'
 				this.storageMode = data.storage_mode || 'appdata'
@@ -2001,8 +2034,8 @@ export default {
 				open: true,
 				tx,
 				parts: [
-					{ accountId: suggestion ? suggestion.accountId : null, amount: null },
-					{ accountId: null, amount: null },
+					{ uid: newUid(), accountId: suggestion ? suggestion.accountId : null, amount: null },
+					{ uid: newUid(), accountId: null, amount: null },
 				],
 			}
 		},
@@ -2592,6 +2625,7 @@ export default {
 			f.splitMode = true
 			f.splitSide = side
 			f.splitLines = parts.map((l) => ({
+				uid: newUid(),
 				accountId: l.accountId,
 				amount: (side === 'credit' ? l.creditCents : l.debitCents) / 100,
 			}))

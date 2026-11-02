@@ -32,12 +32,9 @@ const hintTotal = computed(() => hintCount(state.tasks))
 // zurück (Öffnen des Flyouts + Poll), gilt die zuletzt gestartete - wie
 // journalSeq in useJournal.js.
 let loadSeq = 0
-// Start der letzten Abfrage, für die Mindestpause beim Fensterfokus.
-let lastLoadAt = 0
 
 async function loadTasks() {
 	const seq = ++loadSeq
-	lastLoadAt = Date.now()
 	state.loading = true
 	try {
 		const { data } = await api.listTasks()
@@ -62,10 +59,10 @@ async function loadTasks() {
 // ab, was von der Uhr abhängt (eine Frist läuft ab, ein neuer Tag beginnt).
 const POLL_INTERVAL = 300000
 const WRITE_DEBOUNCE = 1500
-// Beim Fensterfokus nur nachfragen, wenn die letzte Abfrage so lange zurückliegt:
-// der Fokus wechselt oft (Dateidialog, Viewer, anderer Tab), und was sich in der
-// Zwischenzeit geändert hat, holt der Änderungsstand-Abgleich ohnehin.
-const FOCUS_MIN_AGE = 60000
+// Das Fenster-Ereignis, mit dem App.vue (refreshAfterRemoteChange) meldet, dass der
+// Änderungsstand-Abgleich fremde Änderungen geholt hat. Ein Fensterfokus allein löst
+// nichts mehr aus: der Fokus wechselt oft (Dateidialog, Viewer, anderer Tab).
+const REMOTE_CHANGE_EVENT = 'vbh:remote-change'
 
 // Schreibzugriffe, die eine Aufgabe auslösen oder beheben können. Buchungen,
 // Konten, Belege u. ä. gehören nicht dazu und sollen die Abfrage nicht bei jeder
@@ -76,8 +73,8 @@ const TASK_RELEVANT_WRITE = /\/apps\/vereinsbuchhaltung\/api\/(members|mandates|
 let stopRefresh = null
 
 /**
- * Hält die Liste aktuell: beim Fokussieren des Fensters (höchstens einmal je
- * Minute), nach einer eigenen
+ * Hält die Liste aktuell: nach einer Änderung durch andere Personen
+ * (Ereignis `vbh:remote-change`), nach einer eigenen
  * Schreibaktion mit Bezug zu Mitgliedern/Mandaten/Forderungen/Läufen (eine
  * behobene Störung soll sofort aus dem Badge verschwinden, nicht erst beim
  * nächsten Abgleich) und sonst alle fünf Minuten, solange der Tab sichtbar ist.
@@ -106,10 +103,8 @@ function startAutoRefresh() {
 		return response
 	})
 
-	const onFocus = () => {
-		if (Date.now() - lastLoadAt >= FOCUS_MIN_AGE) { loadTasks() }
-	}
-	window.addEventListener('focus', onFocus)
+	const onRemoteChange = () => { loadTasks() }
+	window.addEventListener(REMOTE_CHANGE_EVENT, onRemoteChange)
 
 	const pollTimer = setInterval(() => {
 		if (!document.hidden) { loadTasks() }
@@ -119,7 +114,7 @@ function startAutoRefresh() {
 
 	stopRefresh = () => {
 		axios.interceptors.response.eject(interceptorId)
-		window.removeEventListener('focus', onFocus)
+		window.removeEventListener(REMOTE_CHANGE_EVENT, onRemoteChange)
 		clearInterval(pollTimer)
 		clearTimeout(writeTimer)
 		stopRefresh = null
