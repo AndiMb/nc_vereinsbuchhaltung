@@ -12,15 +12,25 @@ const state = reactive({
 	mandates: [],
 })
 
-async function loadMandates() {
-	try {
-		const { data } = await api.listMandates()
-		state.mandates = data
-		return data
-	} catch (e) {
-		showError(errMsg(e, t('Mandate konnten nicht geladen werden')))
-		return null
+// Parallele Aufrufe teilen sich eine Abfrage (Muster useAttachmentInbox.js).
+let inflight = null
+
+function loadMandates() {
+	if (!inflight) {
+		inflight = (async () => {
+			try {
+				const { data } = await api.listMandates()
+				state.mandates = data
+				return data
+			} catch (e) {
+				showError(errMsg(e, t('Mandate konnten nicht geladen werden')))
+				return null
+			} finally {
+				inflight = null
+			}
+		})()
 	}
+	return inflight
 }
 
 export function useMandates() {

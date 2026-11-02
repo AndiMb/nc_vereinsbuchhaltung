@@ -107,7 +107,11 @@
 
 		<main v-show="canRead || myAreaAvailable" class="vbh-main">
 			<!-- ============ ÜBERSICHT (DASHBOARD) ============ -->
-			<section v-show="activeTab === 'dashboard'" class="vbh-section scroll" :class="{ 'vbh-fadein': sectionFade }">
+			<section
+				v-if="visitedTabs.dashboard"
+				v-show="activeTab === 'dashboard'"
+				class="vbh-section scroll"
+				:class="{ 'vbh-fadein': sectionFade }">
 				<DashboardTab
 					:isActive="activeTab === 'dashboard'"
 					:isMobile="isMobile"
@@ -132,7 +136,11 @@
 			</section>
 
 			<!-- ============ BUCHUNGEN (JOURNAL + TRANSAKTIONEN) ============ -->
-			<section v-show="activeTab === 'bookings'" class="vbh-section vbh-flex-col" :class="{ 'vbh-fadein': sectionFade }">
+			<section
+				v-if="visitedTabs.bookings"
+				v-show="activeTab === 'bookings'"
+				class="vbh-section vbh-flex-col"
+				:class="{ 'vbh-fadein': sectionFade }">
 				<BookingsTab
 					:isMobile="isMobile"
 					:amountDisplay="amountDisplay"
@@ -169,7 +177,7 @@
 
 			<!-- ============ RECHNUNGEN ============ -->
 			<section
-				v-if="canRead && invoicesActive"
+				v-if="visitedTabs.invoices && canRead && invoicesActive"
 				v-show="activeTab === 'invoices'"
 				class="vbh-section vbh-flex-col"
 				:class="{ 'vbh-fadein': sectionFade }">
@@ -185,7 +193,11 @@
 			</section>
 
 			<!-- ============ KONTEN ============ -->
-			<section v-show="activeTab === 'accounts'" class="vbh-section split" :class="{ 'vbh-fadein': sectionFade, 'vbh-drill': isMobile }">
+			<section
+				v-if="visitedTabs.accounts"
+				v-show="activeTab === 'accounts'"
+				class="vbh-section split"
+				:class="{ 'vbh-fadein': sectionFade, 'vbh-drill': isMobile }">
 				<AccountsTab
 					v-model:statementIncludeChildren="statementIncludeChildren"
 					v-model:openingForm="openingForm"
@@ -209,7 +221,11 @@
 			</section>
 
 			<!-- ============ BERICHTE (AUSWERTUNG + KOSTENSTELLEN + FINANZPLAN) ============ -->
-			<section v-show="activeTab === 'reports'" class="vbh-section vbh-flex-col" :class="{ 'vbh-fadein': sectionFade }">
+			<section
+				v-if="visitedTabs.reports"
+				v-show="activeTab === 'reports'"
+				class="vbh-section vbh-flex-col"
+				:class="{ 'vbh-fadein': sectionFade }">
 				<ReportsTab
 					:isActive="activeTab === 'reports'"
 					:isMobile="isMobile"
@@ -252,7 +268,7 @@
 
 			<!-- ============ BEITRÄGE (MITGLIEDER + SEPA-SAMMELEINZUG) ============ -->
 			<section
-				v-if="canRead && membershipActive"
+				v-if="visitedTabs.contributions && canRead && membershipActive"
 				v-show="activeTab === 'contributions'"
 				class="vbh-section vbh-flex-col"
 				:class="{ 'vbh-fadein': sectionFade }">
@@ -266,7 +282,7 @@
 
 			<!-- ============ MEIN BEREICH (SELF-SERVICE: BEITRAG + AUSLAGEN) ============ -->
 			<section
-				v-if="myAreaAvailable"
+				v-if="visitedTabs.self && myAreaAvailable"
 				v-show="activeTab === 'self'"
 				class="vbh-section scroll"
 				:class="{ 'vbh-fadein': sectionFade }">
@@ -634,6 +650,9 @@ export default {
 	data() {
 		return {
 			activeTab: 'dashboard',
+			// Reiter, die schon einmal offen waren: ihre Sektion wird erst beim ersten
+			// Besuch aufgebaut (und samt Ladern angestossen), danach nur noch ein-/ausgeblendet.
+			visitedTabs: { dashboard: true },
 			allTabs: [
 				{ id: 'dashboard', label: this.t('Übersicht'), need: 'read', icon: mdiViewDashboardOutline },
 				{ id: 'bookings', label: this.t('Buchungen'), need: 'read', icon: mdiSwapHorizontal },
@@ -1148,6 +1167,7 @@ export default {
 
 	watch: {
 		activeTab(tab) {
+			if (!this.visitedTabs[tab]) { this.visitedTabs[tab] = true }
 			this.loadTab(tab)
 			// Einblend-Animation der Sektion neu starten
 			this.sectionFade = false

@@ -1078,7 +1078,8 @@ export default {
 		bulkSelectable(v) { if (!v) { this.clearJournalSelection() } },
 
 		// Die Vorschläge für Rechnungen hängen an den unzugeordneten Umsätzen: neu holen, wenn sich die Liste ändert.
-		transactions() { this.loadInvoiceSuggestions() },
+		// Nur bei geaenderter Anzahl unzugeordneter Umsaetze, nicht bei jedem Nachladen.
+		unassignedCount() { this.loadInvoiceSuggestions() },
 		invoicesActive() { this.loadInvoiceSuggestions() },
 	},
 

@@ -374,16 +374,21 @@ export default {
 		/** Der App-Kopf blendet den schwebenden „+“-Knopf aus, solange der Editor offen ist (er läge über der Summe). */
 		view(view) { this.$emit('editing', view === 'edit') },
 
-		newRequest(request) {
-			if (request.kind === 'plan') { this.newPlan() } else if (request.kind === 'invoice') { this.newInvoice() }
-		},
+		newRequest(request) { this.handleNewRequest(request) },
 	},
 
 	async mounted() {
 		await Promise.all([this.loadMeta(), this.loadInvoices(), this.loadBatches()])
+		// Der Reiter wird erst beim ersten Besuch aufgebaut: eine Anfrage, die ihn
+		// erst oeffnet (+ Rechnung), kommt vor dem Watcher an.
+		if (this.newRequest.n > 0) { this.handleNewRequest(this.newRequest) }
 	},
 
 	methods: {
+		handleNewRequest(request) {
+			if (request.kind === 'plan') { this.newPlan() } else if (request.kind === 'invoice') { this.newInvoice() }
+		},
+
 		formatDate,
 		formatMoney,
 		displayStatusLabel,

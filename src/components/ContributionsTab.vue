@@ -75,8 +75,7 @@ export default {
 
 	watch: {
 		newMemberRequest() {
-			if (!this.canWrite) { return }
-			this.$nextTick(() => this.$refs.membersList?.openMemberDialog())
+			this.openPendingMemberDialog()
 		},
 
 		// Ohne Schreibrecht gibt es nur den Einzug-Unterreiter: eine Adresse
@@ -87,6 +86,19 @@ export default {
 			handler(view) {
 				if (!this.canWrite && view !== 'batch') { this.$emit('update:contrib-view', 'batch') }
 			},
+		},
+	},
+
+	mounted() {
+		// Der Reiter wird erst beim ersten Besuch aufgebaut: eine Anfrage, die ihn
+		// erst oeffnet („+ → Mitglied“), kommt vor dem Watcher an.
+		if (this.newMemberRequest.n > 0) { this.openPendingMemberDialog() }
+	},
+
+	methods: {
+		openPendingMemberDialog() {
+			if (!this.canWrite) { return }
+			this.$nextTick(() => this.$refs.membersList?.openMemberDialog())
 		},
 	},
 }

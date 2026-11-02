@@ -488,7 +488,7 @@ export default {
 	},
 
 	mounted() {
-		this.$nextTick(() => setTimeout(() => this.renderMonthlyChart(), 50))
+		if (this.isActive) { this.$nextTick(() => setTimeout(() => this.renderMonthlyChart(), 50)) }
 		if (this.isActive) { this.loadReceiptSuggestions() }
 		// Chart.js malt die Farben einmal ins Canvas; ohne Neuzeichnen bliebe
 		// nach einem Designwechsel das alte Bild stehen.

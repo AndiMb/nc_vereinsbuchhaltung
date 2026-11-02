@@ -8,11 +8,23 @@ const state = reactive({
 	groups: [],
 })
 
-async function loadContributionGroups() {
-	try {
-		const { data } = await api.listContributionGroups()
-		state.groups = data
-	} catch (e) { showError(errMsg(e, t('Beitragsgruppen konnten nicht geladen werden'))) }
+// Parallele Aufrufe teilen sich eine Abfrage (Muster useAttachmentInbox.js).
+let inflight = null
+
+function loadContributionGroups() {
+	if (!inflight) {
+		inflight = (async () => {
+			try {
+				const { data } = await api.listContributionGroups()
+				state.groups = data
+			} catch (e) {
+				showError(errMsg(e, t('Beitragsgruppen konnten nicht geladen werden')))
+			} finally {
+				inflight = null
+			}
+		})()
+	}
+	return inflight
 }
 
 export function useContributionGroups() {
