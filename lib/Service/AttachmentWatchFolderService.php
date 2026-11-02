@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\AttachmentMapper;
 use OCA\Vereinsbuchhaltung\Db\Journal;
 use OCA\Vereinsbuchhaltung\Db\ReceiptHashMapper;
 use OCA\Vereinsbuchhaltung\Db\ReimbursementFileMapper;
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCP\Files\File;
 use OCP\Files\Folder;
 use OCP\Files\IRootFolder;
@@ -411,14 +412,14 @@ class AttachmentWatchFolderService {
 	public function fileInFolder(int $fileId): File {
 		$folder = $this->storage->watchFolder();
 		if ($folder === null) {
-			throw new \RuntimeException($this->l10n->t('Der Wächter-Ordner für Belege existiert nicht. Bitte in den Einstellungen prüfen.'));
+			throw new UserFacingException($this->l10n->t('Der Wächter-Ordner für Belege existiert nicht. Bitte in den Einstellungen prüfen.'));
 		}
 		$node = $folder->getFirstNodeById($fileId);
 		if (!$node instanceof File) {
-			throw new \RuntimeException($this->l10n->t('Die Datei liegt nicht im Wächter-Ordner.'));
+			throw new UserFacingException($this->l10n->t('Die Datei liegt nicht im Wächter-Ordner.'));
 		}
 		if (!self::isReceipt($node->getMimetype())) {
-			throw new \RuntimeException($this->l10n->t('Nur Bilder (JPG/PNG/GIF/WebP) und PDFs erlaubt'));
+			throw new UserFacingException($this->l10n->t('Nur Bilder (JPG/PNG/GIF/WebP) und PDFs erlaubt'));
 		}
 		return $node;
 	}
@@ -465,7 +466,7 @@ class AttachmentWatchFolderService {
 	public function move(string $userId, array $fileIds, string $target): array {
 		$folder = $this->storage->watchFolder();
 		if ($folder === null) {
-			throw new \RuntimeException($this->l10n->t('Der Wächter-Ordner für Belege existiert nicht. Bitte in den Einstellungen prüfen.'));
+			throw new UserFacingException($this->l10n->t('Der Wächter-Ordner für Belege existiert nicht. Bitte in den Einstellungen prüfen.'));
 		}
 		if ($fileIds === [] || count($fileIds) > self::MAX_MOVE) {
 			throw new \InvalidArgumentException($this->l10n->t('Bitte zwischen 1 und %s Dateien auswählen.', [self::MAX_MOVE]));
@@ -546,11 +547,11 @@ class AttachmentWatchFolderService {
 	public function link(string $userId, int $journalId, int $fileId): Attachment {
 		$node = $this->fileInFolder($fileId);
 		if ($this->reimbursementFiles->reimbursementIdsByFileIds([$fileId]) !== []) {
-			throw new \RuntimeException($this->l10n->t('Diese Datei gehört zu einem Auslagenantrag und wird bei der Auszahlung automatisch mit der Buchung verknüpft.'));
+			throw new UserFacingException($this->l10n->t('Diese Datei gehört zu einem Auslagenantrag und wird bei der Auszahlung automatisch mit der Buchung verknüpft.'));
 		}
 		foreach ($this->attachmentMapper->findByJournal($journalId, $userId) as $existing) {
 			if ((int)$existing->getFileId() === $fileId) {
-				throw new \RuntimeException($this->l10n->t('Diese Datei hängt bereits an der Buchung.'));
+				throw new UserFacingException($this->l10n->t('Diese Datei hängt bereits an der Buchung.'));
 			}
 		}
 		$attachment = new Attachment();

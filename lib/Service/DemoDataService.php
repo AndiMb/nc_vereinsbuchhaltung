@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\BankTransaction;
 use OCA\Vereinsbuchhaltung\Db\BankTransactionMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCP\IConfig;
 use OCP\IL10N;
 
@@ -52,7 +53,7 @@ class DemoDataService {
 	 */
 	private function doSeed(string $userId): array {
 		if (!$this->isEmpty($userId)) {
-			throw new \RuntimeException($this->l10n->t('Es sind bereits Konten vorhanden – Beispieldaten lassen sich nur in einem leeren Verein anlegen.'));
+			throw new UserFacingException($this->l10n->t('Es sind bereits Konten vorhanden – Beispieldaten lassen sich nur in einem leeren Verein anlegen.'));
 		}
 
 		$accounts = $this->accountService->seedDefaults($userId);
@@ -72,7 +73,7 @@ class DemoDataService {
 		 */
 		$konto = function (string $number) use ($byNumber): Account {
 			if (!isset($byNumber[$number])) {
-				throw new \RuntimeException($this->l10n->t(
+				throw new UserFacingException($this->l10n->t(
 					'Beispieldaten: Konto %s fehlt im Standard-Kontenrahmen.',
 					[$number],
 				));

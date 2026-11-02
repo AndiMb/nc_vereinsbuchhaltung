@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Mandate;
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCP\Files\File;
 use OCP\Files\Folder;
 use OCP\Files\IRootFolder;
@@ -68,7 +69,7 @@ class MandateDocumentService {
 			if ($current->nodeExists($part)) {
 				$node = $current->get($part);
 				if (!($node instanceof Folder)) {
-					throw new \RuntimeException($this->l10n->t("Pfadkomponente '%s' ist kein Ordner", [$part]));
+					throw new UserFacingException($this->l10n->t("Pfadkomponente '%s' ist kein Ordner", [$part]));
 				}
 				$current = $node;
 			} else {
@@ -86,7 +87,7 @@ class MandateDocumentService {
 	 */
 	public function store(Mandate $mandate, string $fileName, string $content): int {
 		if (!$this->isConfigured()) {
-			throw new \RuntimeException($this->l10n->t('Für die Mandats-Nachweisablage ist noch kein Nextcloud-Nutzer eingerichtet (Einstellungen → Belegablage).'));
+			throw new UserFacingException($this->l10n->t('Für die Mandats-Nachweisablage ist noch kein Nextcloud-Nutzer eingerichtet (Einstellungen → Belegablage).'));
 		}
 		$folder = $this->ensureFolder($this->rootFolder->getUserFolder($this->owner()), $this->folderPath());
 		$name = $folder->getNonExistingName($mandate->getMandateReference() . '_' . SafeFileName::of($fileName, 150));

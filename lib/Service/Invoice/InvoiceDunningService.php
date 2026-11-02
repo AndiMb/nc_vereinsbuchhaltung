@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\InvoiceDunning;
 use OCA\Vereinsbuchhaltung\Db\InvoiceDunningMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoiceMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\ClubMailBranding;
 use OCA\Vereinsbuchhaltung\Service\EmailValidator;
@@ -218,10 +219,10 @@ class InvoiceDunningService {
 			$failed = $this->mailer->send($message);
 		} catch (\Throwable $e) {
 			$this->logger->warning('Mahnversand fehlgeschlagen: {message}', ['app' => Application::APP_ID, 'message' => $e->getMessage(), 'exception' => $e]);
-			throw new \RuntimeException($this->l10n->t('Die E-Mail konnte nicht versendet werden. Bitte prüfen Sie den Mailserver in den Nextcloud-Einstellungen.'), 0, $e);
+			throw new UserFacingException($this->l10n->t('Die E-Mail konnte nicht versendet werden. Bitte prüfen Sie den Mailserver in den Nextcloud-Einstellungen.'), 0, $e);
 		}
 		if ($failed !== []) {
-			throw new \RuntimeException($this->l10n->t('Die E-Mail wurde vom Mailserver nicht angenommen.'));
+			throw new UserFacingException($this->l10n->t('Die E-Mail wurde vom Mailserver nicht angenommen.'));
 		}
 
 		$dunning = new InvoiceDunning();

@@ -23,6 +23,7 @@ use OCP\AppFramework\Http\DataDownloadResponse;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IL10N;
 use OCP\IRequest;
+use Psr\Log\LoggerInterface;
 
 /**
  * Auslagenerstattung aus Sicht des Mitglieds (docs/reimbursement-design.md):
@@ -38,6 +39,8 @@ use OCP\IRequest;
  */
 class SelfReimbursementController extends Controller {
 
+	use InternalErrorResponder;
+
 	/** Mehr Belege je Antrag sind kein Anwendungsfall und würden nur den Speicher belasten. */
 	private const MAX_FILES = 10;
 
@@ -52,6 +55,7 @@ class SelfReimbursementController extends Controller {
 		private MemberMapper $members,
 		private MandateMapper $mandates,
 		private IL10N $l10n,
+		private LoggerInterface $logger,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -174,7 +178,7 @@ class SelfReimbursementController extends Controller {
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		} catch (\RuntimeException $e) {
-			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_INTERNAL_SERVER_ERROR);
+			return $this->internalError($e, Http::STATUS_INTERNAL_SERVER_ERROR, $this->l10n->t('Die Aktion ist fehlgeschlagen.'));
 		}
 	}
 

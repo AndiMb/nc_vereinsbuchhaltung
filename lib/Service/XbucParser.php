@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service;
 
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Service\Text\EntityDecoder;
 use OCP\IL10N;
 
@@ -35,12 +36,12 @@ class XbucParser {
 		$xml = simplexml_load_string($content);
 		libxml_use_internal_errors($prev);
 		if ($xml === false) {
-			throw new \RuntimeException($this->msg('Die Datei konnte nicht als XML gelesen werden.'));
+			throw new UserFacingException($this->msg('Die Datei konnte nicht als XML gelesen werden.'));
 		}
 
 		$projekt = $xml->Projekt;
 		if (!$projekt) {
-			throw new \RuntimeException($this->msg('Kein <Projekt>-Element gefunden – ist das eine zero-Buchhaltung-Datei?'));
+			throw new UserFacingException($this->msg('Kein <Projekt>-Element gefunden – ist das eine zero-Buchhaltung-Datei?'));
 		}
 
 		$accounts = [];

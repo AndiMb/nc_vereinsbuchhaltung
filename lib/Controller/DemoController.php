@@ -15,10 +15,12 @@ use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IL10N;
 use OCP\IRequest;
+use Psr\Log\LoggerInterface;
 
 class DemoController extends Controller {
 
 	use BookContext;
+	use InternalErrorResponder;
 
 	public function __construct(
 		IRequest $request,
@@ -26,6 +28,7 @@ class DemoController extends Controller {
 		private PermissionService $permissionService,
 		private AuditService $audit,
 		private IL10N $l10n,
+		private LoggerInterface $logger,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -41,8 +44,10 @@ class DemoController extends Controller {
 			$result = $this->demoService->seed($this->userId());
 			$this->audit->log('Beispieldaten angelegt', 'import', null, $result);
 			return new DataResponse($result, Http::STATUS_CREATED);
-		} catch (\Throwable $e) {
+		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		} catch (\Throwable $e) {
+			return $this->internalError($e, Http::STATUS_BAD_REQUEST, $this->l10n->t('Beispieldaten konnten nicht angelegt werden.'));
 		}
 	}
 }
