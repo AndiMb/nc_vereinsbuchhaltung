@@ -11,7 +11,9 @@ import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN } from './fixtures/nextcloud.mjs'
 // beides prüft kein PHPUnit-Test in der Laufzeit des Servers. Bis zu diesem
 // Ticket hing zudem nie ein GiroCode an einer Mail: Nextcloud lädt das
 // vendor/autoload.php einer App nicht, die Bibliothek war nicht ladbar, und
-// der Mahnversand fing den Fehler lautlos ab.
+// der Mahnversand fing den Fehler lautlos ab. Seit #265 lädt die App ihn erst
+// bei Bedarf (Application::loadComposerAutoloader() vor der ersten Klasse einer
+// Bibliothek), nicht mehr bei der Registrierung.
 //
 // Die Mails greift ein sendmail-Ersatz im Container ab (fixtures/mail-capture.mjs,
 // Begründung dort). Geprüft wird die ECHTE Mail: Empfänger, Text, Anhänge,
@@ -158,8 +160,10 @@ test.describe('GiroCode-Anhang der Zahlungsaufforderung', () => {
 		expect(result.gd, `PHP ${result.php} im Container hat keine gd-Erweiterung`).toBe(true)
 		expect(result.gdPng, 'gd ohne PNG-Unterstützung').toBe(true)
 		expect(result.generator, 'EpcQrCodeGenerator ist über den Autoloader der App ladbar').toBe(true)
-		expect(result.library, 'chillerlan/php-qrcode ist nach der App-Registrierung ladbar (Application::register lädt vendor/autoload.php; fehlt vendor/, hat die CI-Stufe „composer install“ gefehlt)').toBe(true)
 		expect(result.error, 'generatePng() wirft').toBeUndefined()
+		// Vor der Erzeugung darf die Bibliothek fehlen (result.libraryBefore): seit #265 lädt erst
+		// generatePng() über Application::loadComposerAutoloader() das vendor/autoload.php der App.
+		expect(result.library, 'chillerlan/php-qrcode ist nach generatePng() ladbar (Application::loadComposerAutoloader lädt vendor/autoload.php; fehlt vendor/, hat die CI-Stufe „composer install“ gefehlt)').toBe(true)
 
 		const png = Buffer.from(result.png, 'base64')
 		const info = pngInfo(png)
