@@ -13,6 +13,7 @@ use OCA\Vereinsbuchhaltung\Service\ClaimStateResolver;
 use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
 use OCP\AppFramework\Utility\ITimeFactory;
+use OCP\BackgroundJob\IJob;
 use OCP\BackgroundJob\TimedJob;
 use Psr\Log\LoggerInterface;
 
@@ -45,6 +46,8 @@ class MandateDepartureJob extends TimedJob {
 	) {
 		parent::__construct($time);
 		$this->setInterval(86400);
+		// Tagesjob: darf in das Wartungsfenster der Instanz rutschen (#265).
+		$this->setTimeSensitivity(IJob::TIME_INSENSITIVE);
 		$this->setAllowParallelRuns(false);
 	}
 

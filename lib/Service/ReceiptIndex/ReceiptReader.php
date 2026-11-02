@@ -138,6 +138,8 @@ class ReceiptReader {
 	 * @param list<string> $nameRefs
 	 */
 	private function readText(string $bytes, array $nameRefs): ReceiptFacts {
+		// pdfparser liegt in vendor/, das Nextcloud nicht selbst lädt (#265).
+		Application::loadComposerAutoloader();
 		$text = (new PdfParser())->parseString($bytes)->getText();
 		$text = mb_substr($text, 0, self::MAX_TEXT_CHARS);
 

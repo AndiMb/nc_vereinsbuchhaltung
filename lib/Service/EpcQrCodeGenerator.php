@@ -8,6 +8,7 @@ use chillerlan\QRCode\Common\EccLevel;
 use chillerlan\QRCode\Output\QROutputInterface;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
+use OCA\Vereinsbuchhaltung\AppInfo\Application;
 
 /**
  * GiroCode (EPC069-12 „SEPA Credit Transfer", auch „EPC-QR-Code" genannt) als
@@ -59,6 +60,8 @@ class EpcQrCodeGenerator {
 	public function generatePng(string $creditorName, string $creditorIban, ?string $creditorBic, int $amountCents, string $remittanceText, ?string $creditorReference = null): string {
 		$payload = $this->buildPayload($creditorName, $creditorIban, $creditorBic, $amountCents, $remittanceText, $creditorReference);
 
+		// php-qrcode liegt in vendor/, das Nextcloud nicht selbst lädt (#120, #265).
+		Application::loadComposerAutoloader();
 		$options = new QROptions([
 			// In php-qrcode 5.x wählt `outputType` die Ausgabeklasse (GDIMAGE_PNG
 			// -> QRGdImagePNG); `outputInterface` gilt dort nur für den Typ CUSTOM

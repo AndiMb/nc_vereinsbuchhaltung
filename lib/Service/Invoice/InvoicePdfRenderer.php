@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service\Invoice;
 
+use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Invoice;
 use OCA\Vereinsbuchhaltung\Db\InvoiceLine;
 use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
@@ -53,6 +54,8 @@ class InvoicePdfRenderer {
 	 * @throws \RuntimeException wenn die PDF-Bibliothek nicht verfügbar ist
 	 */
 	public function render(InvoicePdfData $data, bool $compress = true): string {
+		// InvoicePdfDocument erweitert TCPDF aus vendor/: erst den Autoloader, dann die Klasse (#265).
+		Application::loadComposerAutoloader();
 		if (!class_exists(\TCPDF::class)) {
 			throw new UserFacingException($this->msg('Die PDF-Bibliothek (TCPDF) ist nicht installiert.'));
 		}
@@ -118,6 +121,8 @@ class InvoicePdfRenderer {
 	 * @throws \RuntimeException wenn die PDF-Bibliothek nicht verfügbar ist
 	 */
 	public function renderDunning(InvoicePdfData $data, int $level, string $body, int $remainingCents, string $letterDate, bool $compress = true): string {
+		// InvoicePdfDocument erweitert TCPDF aus vendor/: erst den Autoloader, dann die Klasse (#265).
+		Application::loadComposerAutoloader();
 		if (!class_exists(\TCPDF::class)) {
 			throw new UserFacingException($this->msg('Die PDF-Bibliothek (TCPDF) ist nicht installiert.'));
 		}

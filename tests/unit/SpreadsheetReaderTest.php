@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
 use OCA\Vereinsbuchhaltung\Service\InvoiceBatch\SpreadsheetReader;
+use OCP\ITempManager;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -12,6 +13,51 @@ use PHPUnit\Framework\TestCase;
  * Formen, in denen Excel und LibreOffice sie speichern.
  */
 class SpreadsheetReaderTest extends TestCase {
+
+	/** @var list<string> */
+	private array $tempFiles = [];
+
+	protected function tearDown(): void {
+		foreach ($this->tempFiles as $file) {
+			@unlink($file);
+		}
+	}
+
+	/** Temporäre Dateien wie Nextclouds ITempManager: eine echte Datei, die der Test am Ende löscht. */
+	private function temp(): ITempManager {
+		$temp = $this->createMock(ITempManager::class);
+		$temp->method('getTemporaryFile')->willReturnCallback(function (string $postFix = ''): string {
+			$file = tempnam(sys_get_temp_dir(), 'vbh-test') . $postFix;
+			touch($file);
+			$this->tempFiles[] = $file;
+			return $file;
+		});
+		return $temp;
+	}
+
+	/** @return array<int, list<string>> */
+	private function read(string $content): array {
+		return SpreadsheetReader::read($content, $this->temp());
+	}
+
+	/** XLSX wird über die temporären Dateien von Nextcloud entpackt, nicht über tempnam() (#265). */
+	public function testXlsxNutztDieTemporaereDateiVonNextcloud(): void {
+		$temp = $this->createMock(ITempManager::class);
+		$file = tempnam(sys_get_temp_dir(), 'vbh-test');
+		$this->tempFiles[] = $file;
+		$temp->expects($this->once())->method('getTemporaryFile')->with('.xlsx')->willReturn($file);
+
+		$rows = SpreadsheetReader::read($this->xlsx('<row r="1"><c r="A1" t="inlineStr"><is><t>ok</t></is></c></row>'), $temp);
+
+		$this->assertSame([1 => ['ok']], $rows);
+	}
+
+	public function testCsvBrauchtKeineTemporaereDatei(): void {
+		$temp = $this->createMock(ITempManager::class);
+		$temp->expects($this->never())->method('getTemporaryFile');
+
+		$this->assertSame([1 => ['Name'], 2 => ['Anna']], SpreadsheetReader::read("Name\nAnna\n", $temp));
+	}
 
 	/**
 	 * Baut eine minimale XLSX-Datei so, wie Excel sie ablegt: Arbeitsmappe mit
@@ -44,7 +90,7 @@ class SpreadsheetReaderTest extends TestCase {
 	public function testXlsxLiestGeteilteUndInlineZeichenkettenZahlenUndLuecken(): void {
 		$sheet = '<row r="1"><c r="A1" t="s"><v>0</v></c><c r="B1" t="s"><v>1</v></c><c r="D1" t="inlineStr"><is><t>Preis</t></is></c></row>'
 			. '<row r="3"><c r="A3" t="s"><v>2</v></c><c r="B3" t="str"><v>Teilnahme</v></c><c r="D3"><f>A1*2</f><v>120.5</v></c><c r="E3" t="b"><v>1</v></c><c r="F3" t="e"><v>#DIV/0!</v></c></row>';
-		$rows = SpreadsheetReader::read($this->xlsx($sheet, ['Name', 'Position', 'Anna Müller']));
+		$rows = $this->read($this->xlsx($sheet, ['Name', 'Position', 'Anna Müller']));
 
 		// Schlüssel ist die Zeilennummer im Blatt, leere Zeilen fehlen.
 		$this->assertSame([
@@ -62,24 +108,24 @@ class SpreadsheetReaderTest extends TestCase {
 		$zip->open($tmp);
 		$zip->addFromString('xl/sharedStrings.xml', '<?xml version="1.0"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><si><r><t>Hallen</t></r><r><rPr><b/></rPr><t>miete</t></r></si></sst>');
 		$zip->close();
-		$rows = SpreadsheetReader::read((string)file_get_contents($tmp));
+		$rows = $this->read((string)file_get_contents($tmp));
 		unlink($tmp);
 
 		$this->assertSame([1 => ['Hallenmiete']], $rows);
 	}
 
 	public function testXlsxMitAbsolutemPfadInDenRelationen(): void {
-		$rows = SpreadsheetReader::read($this->xlsx('<row r="1"><c r="A1" t="inlineStr"><is><t>ok</t></is></c></row>', [], '/xl/worksheets/sheet1.xml'));
+		$rows = $this->read($this->xlsx('<row r="1"><c r="A1" t="inlineStr"><is><t>ok</t></is></c></row>', [], '/xl/worksheets/sheet1.xml'));
 		$this->assertSame([1 => ['ok']], $rows);
 	}
 
 	public function testKaputtesZipWirdAbgelehnt(): void {
 		$this->expectException(\InvalidArgumentException::class);
-		SpreadsheetReader::read("PK\x03\x04kaputt");
+		$this->read("PK\x03\x04kaputt");
 	}
 
 	public function testCsvMitSemikolonUndBom(): void {
-		$rows = SpreadsheetReader::read("\xEF\xBB\xBFName;Position;Einzelpreis\r\nAnna;\"Teilnahme; inkl. Essen\";120,00\r\n\r\n");
+		$rows = $this->read("\xEF\xBB\xBFName;Position;Einzelpreis\r\nAnna;\"Teilnahme; inkl. Essen\";120,00\r\n\r\n");
 		$this->assertSame([
 			1 => ['Name', 'Position', 'Einzelpreis'],
 			2 => ['Anna', 'Teilnahme; inkl. Essen', '120,00'],
@@ -87,17 +133,17 @@ class SpreadsheetReaderTest extends TestCase {
 	}
 
 	public function testCsvMitKommaUndTab(): void {
-		$this->assertSame([1 => ['Name', 'Position'], 2 => ['Anna', 'X']], SpreadsheetReader::read("Name,Position\nAnna,X\n"));
-		$this->assertSame([1 => ['Name', 'Position'], 2 => ['Anna', 'X']], SpreadsheetReader::read("Name\tPosition\nAnna\tX\n"));
+		$this->assertSame([1 => ['Name', 'Position'], 2 => ['Anna', 'X']], $this->read("Name,Position\nAnna,X\n"));
+		$this->assertSame([1 => ['Name', 'Position'], 2 => ['Anna', 'X']], $this->read("Name\tPosition\nAnna\tX\n"));
 	}
 
 	public function testCsvInWindows1252WirdUmgewandelt(): void {
-		$rows = SpreadsheetReader::read("Name;Ort\nJ\xFCrgen;M\xFCnchen\n");
+		$rows = $this->read("Name;Ort\nJ\xFCrgen;M\xFCnchen\n");
 		$this->assertSame([1 => ['Name', 'Ort'], 2 => ['Jürgen', 'München']], $rows);
 	}
 
 	public function testLeereDateiWirdAbgelehnt(): void {
 		$this->expectException(\InvalidArgumentException::class);
-		SpreadsheetReader::read('   ');
+		$this->read('   ');
 	}
 }

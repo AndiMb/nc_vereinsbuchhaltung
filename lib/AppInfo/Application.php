@@ -32,8 +32,6 @@ class Application extends App implements IBootstrap {
 	}
 
 	public function register(IRegistrationContext $context): void {
-		self::loadComposerAutoloader();
-
 		$context->registerMiddleware(PermissionMiddleware::class);
 		$context->registerMiddleware(RevisionMiddleware::class);
 
@@ -104,16 +102,25 @@ class Application extends App implements IBootstrap {
 	}
 
 	/**
-	 * Lädt den Composer-Autoloader der App-Abhängigkeiten (`chillerlan/php-qrcode`
-	 * für den GiroCode-Anhang der Mahnmails, Issue #73).
+	 * Lädt den Composer-Autoloader der App-Abhängigkeiten (`chillerlan/php-qrcode`,
+	 * `tecnickcom/tcpdf`, `horstoeko/invoicesuite`, `prinsfrank/pdfparser`).
 	 *
 	 * Nextcloud lädt je App nur `composer/autoload.php` oder, wenn es das nicht
 	 * gibt, registriert es `lib/` als PSR-4-Wurzel (`OC_App::registerAutoloading()`,
 	 * NC 31–34) – ein `vendor/autoload.php` fasst der Server NIE an. Ohne dieses
-	 * `require_once` (so empfiehlt es auch das Entwicklerhandbuch, Abschnitt
-	 * „Dependency management“) war die Bibliothek in der laufenden Instanz nicht
-	 * ladbar: `generatePng()` warf „Class … not found“, der Mahnversand fing den
-	 * Fehler lautlos ab, und kein Mahnmail trug je einen GiroCode (Issue #120).
+	 * `require_once` war die Bibliothek in der laufenden Instanz nicht ladbar:
+	 * `generatePng()` warf „Class … not found“, der Mahnversand fing den Fehler
+	 * lautlos ab, und kein Mahnmail trug je einen GiroCode (Issue #120).
+	 *
+	 * Erst bei Bedarf (#265), nicht mehr in `register()`: So läuft der Autoloader
+	 * nicht in jedem Request jeder Nextcloud-Seite mit (auch WebDAV und
+	 * Sync-Clients), und die Kopien anderer Apps derselben Bibliotheken bleiben
+	 * dort unberührt, wo diese App sie gar nicht braucht. Aufgerufen wird sie in
+	 * der Methode, die eine Bibliothek nutzt, direkt vor deren erster Klasse –
+	 * bewusst nicht im Konstruktor: Nextcloud 34 liefert Dienste unter PHP 8.4 als
+	 * Lazy Objects aus, deren Konstruktor erst beim ersten Zugriff auf eine
+	 * Eigenschaft läuft, bei einer Klasse ohne Eigenschaften (EpcQrCodeGenerator)
+	 * gar nicht. Ein mehrfacher Aufruf ist harmlos (`require_once`).
 	 *
 	 * Bewusst nicht als `composer/autoload.php`: dann ließe Nextcloud die
 	 * PSR-4-Registrierung von `lib/` aus, und ein Checkout ohne `vendor/` (lokale
@@ -121,7 +128,7 @@ class Application extends App implements IBootstrap {
 	 * eigenen Klassen. So bleibt eine fehlende `vendor/` folgenlos – es fehlen
 	 * dann nur die GiroCodes, und das steht im Log.
 	 */
-	private static function loadComposerAutoloader(): void {
+	public static function loadComposerAutoloader(): void {
 		$autoloader = __DIR__ . '/../../vendor/autoload.php';
 		if (is_file($autoloader)) {
 			require_once $autoloader;

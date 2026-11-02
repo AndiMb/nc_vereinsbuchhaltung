@@ -239,7 +239,7 @@ Full manual in German and English: see documentation.
 		<database>sqlite</database>
 		<database>mysql</database>
 		<database>pgsql</database>
-		<nextcloud min-version="33" max-version="35"/>
+		<nextcloud min-version="33" max-version="34"/>
 	</dependencies>
 	<!-- Sieht stuendlich im eingestellten Wachordner nach neuen Kontoauszuegen.
 	     Ist keiner eingestellt, kehrt der Job sofort zurueck. Die Eintragung
