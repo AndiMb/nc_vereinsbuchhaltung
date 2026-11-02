@@ -171,7 +171,7 @@
 					@update:bookingView="bookingView = $event"
 					@attachmentsChanged="afterAttachmentsChanged"
 					@goClaims="goToClaims"
-					@invoicePaid="onInvoicesChanged"
+					@invoicePaid="onInvoicesChanged({ bookings: true })"
 					@help="openHelp('bookings')" />
 			</section>
 
@@ -1821,6 +1821,8 @@ export default {
 			try {
 				await api.reassignBooking(row.journalId, fromAccountId, toAccountId, row.updatedAt)
 				showSuccess(this.tRaw('Buchung #{n} auf {account} umgebucht.', { n: row.entryNo, account: this.accountLabel(toAccountId) }))
+				// Eigene Buchungsänderung: Belegvorschläge mitziehen.
+				this.afterOwnJournalWrite(this.attachmentsRevision)
 				await Promise.all([this.reloadStatement(), this.loadBalances(), this.loadJournal(), this.loadSphereReport()])
 				return true
 			} catch (e) {
@@ -1894,7 +1896,10 @@ export default {
 		async onImported() { await Promise.all([this.loadBalances(), this.loadTransactions(this.selectedPeriodId)]) },
 
 		// Zahlungen zu Rechnungen buchen und lösen Bankumsätze, Buchungen und Salden (Epic #168).
-		async onInvoicesChanged() {
+		// `info.bookings`: der Server hat dabei eine Buchung angelegt oder zurückgenommen
+		// (Zahlung gebucht/zurückgenommen) – dann brauchen auch die Belegvorschläge den neuen Stand.
+		async onInvoicesChanged(info) {
+			if (info?.bookings) { this.afterOwnJournalWrite(this.attachmentsRevision) }
 			await Promise.all([this.loadTransactions(this.selectedPeriodId), this.loadBalances(), this.loadJournal(), this.loadOpenItems(), this.loadPeriods()])
 		},
 
