@@ -10,11 +10,12 @@ use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\Period;
 use OCA\Vereinsbuchhaltung\Service\BudgetOverviewService;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\LedgerAggregator;
 use OCA\Vereinsbuchhaltung\Service\PeriodRule;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCA\Vereinsbuchhaltung\Service\ReportService;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 
 /**
@@ -37,8 +38,9 @@ class KassenberichtRenderer {
 		private BudgetOverviewService $budgetOverview,
 		private PeriodService $periods,
 		private ReportService $reportService,
-		private IConfig $config,
+		private IAppConfig $config,
 		private IL10N $l10n,
+		private ClubClock $clock,
 	) {
 	}
 
@@ -61,7 +63,7 @@ class KassenberichtRenderer {
 		$budget = $this->budgetOverview->build($userId, (int)$period->getId());
 		$hasPlan = array_filter($budget['nodes'], static fn (array $n): bool => $n['isPlanItem']) !== [];
 
-		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '');
+		$clubName = $this->config->getValueString(Application::APP_ID, 'club_name', '');
 		$title = ($clubName !== '' ? $clubName . ' – ' : '') . $this->l10n->t('Kassenbericht %s', [$period->getLabel()]);
 
 		$h = PrintableReportPage::printHint($this->l10n->t('Zum Drucken oder Als-PDF-Speichern: <strong>Strg+P</strong> (Mac: ⌘P) im Browser.'));
@@ -69,7 +71,7 @@ class KassenberichtRenderer {
 			null,
 			$clubName,
 			$this->l10n->t('Kassenbericht für das Geschäftsjahr %s', [$period->getLabel()]),
-			$this->l10n->t('Erstellt am %s', [ReportFormat::date(date('Y-m-d'))]) . ' · ' . PrintableReportPage::escape($this->closeNote($period)),
+			$this->l10n->t('Erstellt am %s', [ReportFormat::date($this->clock->today())]) . ' · ' . PrintableReportPage::escape($this->closeNote($period)),
 		);
 		$h .= $this->wealthSection($vermoegen, $from, $to);
 		$h .= $this->resultSection($erfolg);
@@ -302,7 +304,7 @@ class KassenberichtRenderer {
 			'Das Geschäftsjahr %s wurde am %s von %s abgeschlossen (festgeschrieben).',
 			[
 				$period->getLabel(),
-				ReportFormat::date(substr((string)$period->getClosedAt(), 0, 10)),
+				ReportFormat::date(ClubClock::localDate((string)$period->getClosedAt())),
 				$period->getClosedBy(),
 			],
 		);

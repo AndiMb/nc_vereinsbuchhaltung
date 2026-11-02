@@ -8,10 +8,11 @@ use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\ImportService;
 use OCA\Vereinsbuchhaltung\Service\RevisionService;
 use OCA\Vereinsbuchhaltung\Service\WatchFolderService;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
 use OCP\Files\File;
 use OCP\Files\Folder;
 use OCP\Files\IRootFolder;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 
@@ -82,8 +83,8 @@ class WatchFolderServiceTest extends TestCase {
 		$rootFolder = $this->createMock(IRootFolder::class);
 		$rootFolder->method('getUserFolder')->with('buchhaltung')->willReturn($home);
 
-		$config = $this->createMock(IConfig::class);
-		$config->method('getAppValue')->willReturnMap([
+		$config = $this->createMock(IAppConfig::class);
+		$config->method('getValueString')->willReturnMap([
 			['vereinsbuchhaltung', WatchFolderService::SETTING_USER, '', 'buchhaltung'],
 			['vereinsbuchhaltung', WatchFolderService::SETTING_PATH, '', 'Kontoauszuege'],
 		]);
@@ -97,6 +98,7 @@ class WatchFolderServiceTest extends TestCase {
 			$this->createMock(AuditService::class),
 			$this->createMock(RevisionService::class),
 			$this->createMock(LoggerInterface::class),
+			ClubClockStub::system(),
 		);
 
 		$this->assertSame(['auszug.csv'], array_column($service->run(), 'file'));

@@ -1,3 +1,6 @@
+includes:
+	- .phpstan/vendor/phpstan/phpstan-deprecation-rules/rules.neon
+
 # Statische Analyse des PHP-Anteils.
 #
 # Die Nextcloud-Server-Schnittstellen (OCP\*) liegen nicht im Repository. Sie
@@ -17,23 +20,20 @@
 # Hinweis 'Result is incomplete because of severe errors' - kein Befund am
 # Code. In CI faellt das nicht auf, weil setup-php memory_limit=-1 setzt.
 #
-# .phpstan/composer.json bleibt bewusst auf nextcloud/ocp ^30.0, obwohl
-# appinfo/info.xml seit der Vue-3-Migration (0.23.0) NC >=31 verlangt: die
-# Stub-Version hier ist unabhaengig von der deklarierten NC-Mindestversion
-# der App und beeinflusst nicht, welche Server die App tatsaechlich laden.
+# Die Stubs (nextcloud/ocp) stehen auf ^33.0, der neuesten unterstuetzten
+# Server-Version; appinfo/info.xml verlangt NC >=31. Die Stubs bestimmen nicht,
+# welche Server die App laedt, aber sie zeigen, was in NC 33 als veraltet gilt.
+# Dazu bindet diese Datei phpstan-deprecation-rules ein: Aufrufe veralteter
+# Methoden/Klassen werden als `*.deprecated*`-Befund gemeldet.
 #
-# Ein Versuch, hier auf ^31.0 zu heben, fuehrte auf eine davon unabhaengige
-# Spur (Issue #2): gegen dieselben v30-Stubs meldeten PHPStan 2.1.14 bis
-# 2.2.1 rund 205-206 argument.type-Fehler bei generischen DataResponse<T>
-# (der bestehende Controller-Code liefert ueberall unspezifische
-# Arrays/Entities). Per `git stash` gegen den unveraenderten main-Branch und
-# Bisektion ueber mehrere PHPStan-Versionen verifiziert (Stand 22.08.2026):
-# ein PHPStan-eigener Regressionsbug in der Generics-Aufloesung, nicht ein
-# echtes Typproblem im Code - ab 2.2.5 liefert derselbe Code 0 Fehler. Behoben
-# durch Pinnen von phpstan/phpstan auf ^2.2.5 in .phpstan/composer.json,
-# per composer.lock reproduzierbar sowohl lokal als auch in CI (die vorher
-# genutzte setup-php-'tools:'-Installation zog dagegen bei jedem CI-Lauf
-# unversioniert die jeweils neueste PHPStan-Version).
+# Der Befund aus Issue #2 (rund 205-206 argument.type-Fehler bei generischen
+# DataResponse<T>) war ein PHPStan-eigener Regressionsbug in der
+# Generics-Aufloesung (PHPStan 2.1.14 bis 2.2.1), kein Typproblem im Code.
+# Behoben durch Pinnen von phpstan/phpstan auf ^2.2.5 in
+# .phpstan/composer.json, per composer.lock reproduzierbar lokal wie in CI.
+# Gegen die NC-33-Stubs tritt er mit PHPStan 2.3.4 nicht auf (0 argument.type).
+# Fehlt dieser Pin oder faellt die Version darunter, kehrt er zurueck: dann
+# nicht den Code aendern, sondern PHPStan aktualisieren.
 parameters:
 	level: 5
 	paths:
@@ -55,3 +55,25 @@ parameters:
 	# annotiert, in den Stubs aber nur als Entity gefuehrt. Ein Cast an jeder
 	# Aufrufstelle waere Laerm ohne Erkenntnis.
 	treatPhpDocTypesAsCertain: false
+
+	# Bekannte Deprecations. Jeder Eintrag nennt die Aufgabe, die ihn abbaut;
+	# wird er dort entfernt, meldet PHPStan unmatched ignores und erzwingt so
+	# das Loeschen der Zeile. Neue Deprecations ausserhalb dieser Liste lassen
+	# die Analyse scheitern.
+	ignoreErrors:
+		# IUserManager::search() (seit NC 27: searchDisplayName) und
+		# IMailer::validateMailAddress() (seit NC 26: IEmailValidator::isValid).
+		# Abbau: Task D4 (#262).
+		-
+			identifier: method.deprecated
+			message: '#of interface OCP\\(IUserManager|Mail\\IMailer)#'
+		# TCPDF ist als veraltet markiert (Nachfolger tecnickcom/tc-lib-pdf).
+		# Eigenes Migrationsthema, nicht Teil von #262.
+		-
+			message: '#deprecated class TCPDF#'
+		# chillerlan/php-qrcode 5: QROutputInterface::GDIMAGE_PNG ohne Ersatz.
+		# EpcQrCodeGenerator; eigenes Thema, nicht Teil von #262.
+		-
+			identifier: classConstant.deprecated
+			message: '#GDIMAGE_PNG#'
+			path: lib/Service/EpcQrCodeGenerator.php

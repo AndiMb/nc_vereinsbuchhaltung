@@ -7,7 +7,8 @@ namespace OCA\Vereinsbuchhaltung\Service\Export;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Service\BudgetComparison;
 use OCA\Vereinsbuchhaltung\Service\BudgetOverviewService;
-use OCP\IConfig;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
+use OCP\IAppConfig;
 use OCP\IL10N;
 
 /**
@@ -28,8 +29,9 @@ class FinanzplanRenderer {
 
 	public function __construct(
 		private BudgetOverviewService $overview,
-		private IConfig $config,
+		private IAppConfig $config,
 		private IL10N $l10n,
+		private ClubClock $clock,
 	) {
 	}
 
@@ -45,12 +47,12 @@ class FinanzplanRenderer {
 		$cmpHead = $cmp === null ? null : $this->compareHead($cmp['period']->getLabel(), $cmp['basis']);
 		$cmpDeltaHead = $cmp === null ? null : $this->l10n->t('Δ zu %s', [$cmp['period']->getLabel()]);
 
-		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '');
+		$clubName = $this->config->getValueString(Application::APP_ID, 'club_name', '');
 		$heading = $this->l10n->t('Soll-Ist-Vergleich %s', [$period->getLabel()]);
 		$meta = [
 			PrintableReportPage::escape($this->depthLabel($depth)),
 			...($cmpHead === null ? [] : [PrintableReportPage::escape($this->l10n->t('Vergleich: %s', [$cmpHead]))]),
-			PrintableReportPage::escape($this->l10n->t('Erstellt am %s', [ReportFormat::date(date('Y-m-d'))])),
+			PrintableReportPage::escape($this->l10n->t('Erstellt am %s', [ReportFormat::date($this->clock->today())])),
 		];
 
 		$h = $cmp === null ? '' : '<style>@page { size: A4 landscape; } body { max-width: 297mm; }</style>';

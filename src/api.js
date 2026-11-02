@@ -75,6 +75,8 @@ export default {
 	// Import zero Buchhaltung (.xbuc)
 	previewXbuc: (formData) => axios.post(url('/import/xbuc/preview'), formData),
 	commitXbuc: (formData) => axios.post(url('/import/xbuc'), formData),
+	// Löscht vorher alle Daten – nur nach withPasswordConfirmation() aufrufen (#260).
+	commitXbucWithReset: (formData) => axios.post(url('/import/xbuc/reset'), formData),
 	reset: () => axios.post(url('/reset')),
 	seedDemo: () => axios.post(url('/demo/seed')),
 

@@ -48,6 +48,8 @@ class ReimbursementService {
 	private const MAX_SUPPLIER_LENGTH = 255;
 	private const MAX_ACCOUNT_HOLDER_LENGTH = 255;
 
+	private ClubClock $clock;
+
 	public function __construct(
 		private ReimbursementMapper $mapper,
 		private ReimbursementFileMapper $fileMapper,
@@ -63,7 +65,9 @@ class ReimbursementService {
 		private AuditService $audit,
 		private ITimeFactory $time,
 		private IL10N $l10n,
+		?ClubClock $clock = null,
 	) {
+		$this->clock = $clock ?? new ClubClock($this->time);
 	}
 
 	// --- Lesen ------------------------------------------------------------
@@ -518,7 +522,7 @@ class ReimbursementService {
 		if ($parsed === false || $parsed->format('Y-m-d') !== $date) {
 			throw new \InvalidArgumentException($this->l10n->t('Bitte ein gültiges Datum angeben (JJJJ-MM-TT).'));
 		}
-		$today = $this->time->getDateTime()->format('Y-m-d');
+		$today = $this->clock->today();
 		if ($date > $today) {
 			throw new \InvalidArgumentException($this->l10n->t('Das Datum darf nicht in der Zukunft liegen.'));
 		}

@@ -12,7 +12,7 @@ use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCA\Vereinsbuchhaltung\Service\Report\CostCenterResolver;
 use OCA\Vereinsbuchhaltung\Service\ReportService;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use PHPUnit\Framework\TestCase;
 
@@ -89,8 +89,8 @@ class CostCenterResolverTest extends TestCase {
 		$ccMapper->method('findAll')->willReturn($costCenters);
 		$periods = $this->createMock(PeriodService::class);
 		$periods->method('range')->willReturn(['2026-01-01', '2026-12-31']);
-		$config = $this->createMock(IConfig::class);
-		$config->method('getAppValue')->willReturn($mode);
+		$config = $this->createMock(IAppConfig::class);
+		$config->method('getValueString')->willReturn($mode);
 
 		$service = new ReportService($accountMapper, $lineMapper, $ccMapper, $periods, $config, $this->l10n());
 		return $service->costCenterReport('u');

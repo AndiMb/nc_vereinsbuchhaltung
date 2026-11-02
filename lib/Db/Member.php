@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Db;
 
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCP\AppFramework\Db\Entity;
 
 /**
@@ -121,7 +122,7 @@ class Member extends Entity implements \JsonSerializable {
 		if ($this->leftAt === null) {
 			return true;
 		}
-		$today ??= (new \DateTime())->format('Y-m-d');
+		$today ??= ClubClock::todayFromSystemClock();
 		return $this->leftAt >= $today;
 	}
 

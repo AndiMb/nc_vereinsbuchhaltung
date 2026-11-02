@@ -171,7 +171,7 @@
 					@update:bookingView="bookingView = $event"
 					@attachmentsChanged="afterAttachmentsChanged"
 					@goClaims="goToClaims"
-					@invoicePaid="onInvoicesChanged"
+					@invoicePaid="onInvoicesChanged({ bookings: true })"
 					@help="openHelp('bookings')" />
 			</section>
 
@@ -487,7 +487,9 @@ import { useSync } from './composables/useSync.js'
 import { useTasks } from './composables/useTasks.js'
 import { buildWhatsNewEntries, filterWhatsNewEntries } from './data/whatsNew.js'
 import { takeBootState } from './lib/bootState.js'
+import { clubToday, setClubTimeZone } from './lib/clubTime.js'
 import { amountClass, budgetDiffClass, errMsg, formatDate, formatDateTime, formatMoney, typeLabel } from './lib/format.js'
+import { createLatestRequest } from './lib/latestRequest.js'
 import { withPasswordConfirmation } from './lib/passwordGate.js'
 import { linkFilesToBookings } from './lib/receiptBatch.js'
 import { bookingsContext, txContext } from './lib/receiptPreview.js'
@@ -514,6 +516,8 @@ const SYNC_INTERVALL = 20000
 // Beim Fensterfokus die Wächter-Ordner-Kacheln nur nachfragen, wenn der letzte
 // Abruf so lange zurückliegt – jeder Abruf kostet einen Ordnerscan.
 const INBOX_FOCUS_MIN_AGE = 60000
+// Nur die zuletzt gestartete Abfrage der Belegzähler schreibt (siehe loadAttachmentCounts).
+const startAttachmentCountsLoad = createLatestRequest()
 
 // Belege: Grenzen aus AttachmentController (MAX_SIZE, ALLOWED_MIMES). Die
 // Oberflaeche prueft sie schon bei der Auswahl - beim Anlegen einer Buchung
@@ -1615,6 +1619,7 @@ export default {
 				this.amountDisplay = data.amount_display === 'signed' ? 'signed' : 'plain'
 				this.storageMode = data.storage_mode || 'appdata'
 				this.clubName = data.club_name || ''
+				setClubTimeZone(data.club_time_zone)
 				this.demoActive = !!data.demo_active
 				this.membershipActive = !!data.membership_active
 				this.invoicesActive = !!data.invoice_module_active
@@ -1657,7 +1662,7 @@ export default {
 			return {
 				id: null,
 				entryNo: null,
-				date: new Date().toISOString().slice(0, 10),
+				date: clubToday(),
 				documentRef: '',
 				amount: null,
 				debitAccountId: null,
@@ -1816,6 +1821,8 @@ export default {
 			try {
 				await api.reassignBooking(row.journalId, fromAccountId, toAccountId, row.updatedAt)
 				showSuccess(this.tRaw('Buchung #{n} auf {account} umgebucht.', { n: row.entryNo, account: this.accountLabel(toAccountId) }))
+				// Eigene Buchungsänderung: Belegvorschläge mitziehen.
+				this.afterOwnJournalWrite(this.attachmentsRevision)
 				await Promise.all([this.reloadStatement(), this.loadBalances(), this.loadJournal(), this.loadSphereReport()])
 				return true
 			} catch (e) {
@@ -1889,7 +1896,10 @@ export default {
 		async onImported() { await Promise.all([this.loadBalances(), this.loadTransactions(this.selectedPeriodId)]) },
 
 		// Zahlungen zu Rechnungen buchen und lösen Bankumsätze, Buchungen und Salden (Epic #168).
-		async onInvoicesChanged() {
+		// `info.bookings`: der Server hat dabei eine Buchung angelegt oder zurückgenommen
+		// (Zahlung gebucht/zurückgenommen) – dann brauchen auch die Belegvorschläge den neuen Stand.
+		async onInvoicesChanged(info) {
+			if (info?.bookings) { this.afterOwnJournalWrite(this.attachmentsRevision) }
 			await Promise.all([this.loadTransactions(this.selectedPeriodId), this.loadBalances(), this.loadJournal(), this.loadOpenItems(), this.loadPeriods()])
 		},
 
@@ -2118,7 +2128,13 @@ export default {
 		},
 
 		async loadAttachmentCounts() {
-			try { const { data } = await api.attachmentCounts(this.selectedPeriodId); this.attachmentCountMap = data } catch { /* ignorieren */ }
+			// Zähler hängen am Zeitraum: eine verspätete Antwort des vorigen
+			// darf die des gerade gewählten nicht überschreiben.
+			const isCurrent = startAttachmentCountsLoad()
+			try {
+				const { data } = await api.attachmentCounts(this.selectedPeriodId)
+				if (isCurrent()) { this.attachmentCountMap = data }
+			} catch { /* ignorieren */ }
 		},
 
 		/** Nach jedem Anhängen, Verknüpfen oder Lösen: Zähler und Übersichts-Kacheln nachziehen. */
@@ -2404,7 +2420,7 @@ export default {
 		 */
 		openBookingForReimbursement(item) {
 			this.openNewBooking()
-			const prefill = reimbursementBookingPrefill(item, new Date().toISOString().slice(0, 10))
+			const prefill = reimbursementBookingPrefill(item, clubToday())
 			Object.assign(this.bookingForm, prefill)
 			this.reimbursementPayment = item
 		},

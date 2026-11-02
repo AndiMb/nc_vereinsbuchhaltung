@@ -50,7 +50,7 @@ final class AnonymizationEligibilityCalculator {
 	 * wäre. Fließt NICHT in {@see isEligible()} ein.
 	 */
 	public static function sepaFloorDate(string $mandateEndedAt): string {
-		return (new \DateTimeImmutable(substr($mandateEndedAt, 0, 10)))
+		return (new \DateTimeImmutable(ClubClock::localDate($mandateEndedAt)))
 			->modify('+' . self::SEPA_MANDATE_FLOOR_MONTHS . ' months')
 			->format('Y-m-d');
 	}

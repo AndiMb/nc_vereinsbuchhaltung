@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\InvoiceLine;
 use OCA\Vereinsbuchhaltung\Service\EpcQrCodeGenerator;
 use OCA\Vereinsbuchhaltung\Service\Invoice\InvoicePdfData;
 use OCA\Vereinsbuchhaltung\Service\Invoice\InvoicePdfRenderer;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -71,7 +72,7 @@ class InvoicePdfRendererTest extends TestCase {
 			null,
 			$logo,
 		);
-		return (new InvoicePdfRenderer(new EpcQrCodeGenerator()))->render($data, false);
+		return (new InvoicePdfRenderer(new EpcQrCodeGenerator(), ClubClockStub::system()))->render($data, false);
 	}
 
 	private function pages(string $pdf): int {

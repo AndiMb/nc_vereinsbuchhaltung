@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\Sepa\PainXmlBuilder;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaCreditor;
 use PHPUnit\Framework\TestCase;
@@ -253,7 +254,8 @@ class PainXmlBuilderTest extends TestCase {
 	public function testOhneEingefrorenenZeitpunktWirdDerAktuelleGenommen(): void {
 		$xml = (new PainXmlBuilder())->build($this->creditor(), [$this->row()]);
 		$creDtTm = $this->xpath($xml)->query('//p:GrpHdr/p:CreDtTm')->item(0)->textContent;
-		$this->assertStringStartsWith(date('Y-m-d'), $creDtTm);
+		// CreDtTm ist Vereinszeit (#263) – „heute“ also in der Vereinszone, nicht UTC.
+		$this->assertStringStartsWith((new \DateTimeImmutable('now', ClubClock::zone()))->format('Y-m-d'), $creDtTm);
 	}
 
 	/**

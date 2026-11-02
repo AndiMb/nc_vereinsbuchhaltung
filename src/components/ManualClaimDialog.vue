@@ -73,10 +73,11 @@ import NcModal from '@nextcloud/vue/components/NcModal'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
 import AmountInput from './AmountInput.vue'
 import { useMembers } from '../composables/useMembers.js'
+import { clubToday } from '../lib/clubTime.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 
 function emptyForm() {
-	return { memberIds: [], type: 'beitrag', amount: '', label: '', dueDate: new Date().toISOString().slice(0, 10) }
+	return { memberIds: [], type: 'beitrag', amount: '', label: '', dueDate: clubToday() }
 }
 
 /** Manuelle Einzelforderung (Spec §3.3 „schmale Tür", Issue #68). */

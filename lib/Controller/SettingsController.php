@@ -29,7 +29,7 @@ use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IRequest;
 use OCP\IUserManager;
@@ -43,7 +43,7 @@ class SettingsController extends Controller {
 
 	public function __construct(
 		IRequest $request,
-		private IConfig $config,
+		private IAppConfig $config,
 		private PermissionService $permissionService,
 		private AccountMapper $accountMapper,
 		private IUserManager $userManager,
@@ -181,8 +181,8 @@ class SettingsController extends Controller {
 		// dem aktuellen Stand ergänzt, damit die Prüfung vollständig bleibt.
 		$backfilled = null;
 		if (array_key_exists('storage_user', $params) || array_key_exists('storage_path', $params) || array_key_exists('storage_mode', $params)) {
-			$storedStorageUser = $this->config->getAppValue($appId, AttachmentStorageService::SETTING_USER, '');
-			$storedStoragePath = $this->config->getAppValue($appId, AttachmentStorageService::SETTING_PATH, AttachmentStorageService::DEFAULT_PATH);
+			$storedStorageUser = $this->config->getValueString($appId, AttachmentStorageService::SETTING_USER, '');
+			$storedStoragePath = $this->config->getValueString($appId, AttachmentStorageService::SETTING_PATH, AttachmentStorageService::DEFAULT_PATH);
 			$storedMode = $this->attachmentStorage->mode();
 			$storageUser = trim((string)($params['storage_user'] ?? $storedStorageUser));
 			$storagePath = trim((string)($params['storage_path'] ?? $storedStoragePath));
@@ -224,8 +224,8 @@ class SettingsController extends Controller {
 				$overlap = $this->foldersOverlap(
 					$storageUser,
 					$storagePath,
-					trim((string)($params['statement_watch_user'] ?? $this->config->getAppValue($appId, WatchFolderService::SETTING_USER, ''))),
-					trim(str_replace('\\', '/', (string)($params['statement_watch_path'] ?? $this->config->getAppValue($appId, WatchFolderService::SETTING_PATH, ''))), '/'),
+					trim((string)($params['statement_watch_user'] ?? $this->config->getValueString($appId, WatchFolderService::SETTING_USER, ''))),
+					trim(str_replace('\\', '/', (string)($params['statement_watch_path'] ?? $this->config->getValueString($appId, WatchFolderService::SETTING_PATH, ''))), '/'),
 				);
 				if ($overlap !== null) {
 					return new DataResponse(['message' => $overlap], Http::STATUS_BAD_REQUEST);
@@ -238,9 +238,9 @@ class SettingsController extends Controller {
 			if ($storageMode === AttachmentStorageService::MODE_WATCH && $storedMode === AttachmentStorageService::MODE_USER) {
 				$backfilled = $this->attachmentWatchFolder->backfillFileIds($this->userId(), $storedStorageUser, $storedStoragePath);
 			}
-			$this->config->setAppValue($appId, AttachmentStorageService::SETTING_USER, $storageUser);
-			$this->config->setAppValue($appId, AttachmentStorageService::SETTING_PATH, $storagePath);
-			$this->config->setAppValue($appId, AttachmentStorageService::SETTING_MODE, $storageMode);
+			$this->config->setValueString($appId, AttachmentStorageService::SETTING_USER, $storageUser);
+			$this->config->setValueString($appId, AttachmentStorageService::SETTING_PATH, $storagePath);
+			$this->config->setValueString($appId, AttachmentStorageService::SETTING_MODE, $storageMode);
 		}
 
 		if (array_key_exists('cost_center_mode', $params)) {
@@ -248,7 +248,7 @@ class SettingsController extends Controller {
 			if (!in_array($ccMode, ReportService::MODES, true)) {
 				$ccMode = 'group';
 			}
-			$this->config->setAppValue($appId, 'cost_center_mode', $ccMode);
+			$this->config->setValueString($appId, 'cost_center_mode', $ccMode);
 		}
 
 		if (array_key_exists('amount_display', $params)) {
@@ -256,12 +256,12 @@ class SettingsController extends Controller {
 			if (!in_array($amountDisplay, self::AMOUNT_DISPLAYS, true)) {
 				$amountDisplay = 'plain';
 			}
-			$this->config->setAppValue($appId, 'amount_display', $amountDisplay);
+			$this->config->setValueString($appId, 'amount_display', $amountDisplay);
 		}
 
 		if (array_key_exists('club_name', $params)) {
 			$clubName = mb_substr(trim((string)$params['club_name']), 0, 128);
-			$this->config->setAppValue($appId, 'club_name', $clubName);
+			$this->config->setValueString($appId, 'club_name', $clubName);
 		}
 
 		if (array_key_exists('brand_color', $params)) {
@@ -269,14 +269,14 @@ class SettingsController extends Controller {
 			if ($brandColor !== '' && !preg_match('/^#[0-9a-fA-F]{6}$/', $brandColor)) {
 				return new DataResponse(['message' => $this->l10n->t('Ungültige Akzentfarbe (Format #RRGGBB erwartet)')], Http::STATUS_BAD_REQUEST);
 			}
-			$this->config->setAppValue($appId, 'brand_color', $brandColor);
+			$this->config->setValueString($appId, 'brand_color', $brandColor);
 		}
 
 		// Wachordner (Paar): dieselbe Ergänzungslogik wie bei der Belegablage.
 		if (array_key_exists('statement_watch_user', $params) || array_key_exists('statement_watch_path', $params)) {
-			$storedWatchUser = $this->config->getAppValue($appId, WatchFolderService::SETTING_USER, '');
+			$storedWatchUser = $this->config->getValueString($appId, WatchFolderService::SETTING_USER, '');
 			$watchUser = trim((string)($params['statement_watch_user'] ?? $storedWatchUser));
-			$watchPath = trim(str_replace('\\', '/', (string)($params['statement_watch_path'] ?? $this->config->getAppValue($appId, WatchFolderService::SETTING_PATH, ''))), '/');
+			$watchPath = trim(str_replace('\\', '/', (string)($params['statement_watch_path'] ?? $this->config->getValueString($appId, WatchFolderService::SETTING_PATH, ''))), '/');
 			// Nur beides zusammen ergibt einen Wachordner; halb ausgefüllt wäre er
 			// eingeschaltet, fände aber nie etwas. Dann gibt es auch nichts zu prüfen.
 			if ($watchUser === '' || $watchPath === '') {
@@ -292,8 +292,8 @@ class SettingsController extends Controller {
 					return new DataResponse(['message' => $watchError], Http::STATUS_BAD_REQUEST);
 				}
 			}
-			$this->config->setAppValue($appId, WatchFolderService::SETTING_USER, $watchUser);
-			$this->config->setAppValue($appId, WatchFolderService::SETTING_PATH, $watchPath);
+			$this->config->setValueString($appId, WatchFolderService::SETTING_USER, $watchUser);
+			$this->config->setValueString($appId, WatchFolderService::SETTING_PATH, $watchPath);
 		}
 
 		if (array_key_exists('sepa_creditor_id', $params)) {
@@ -301,7 +301,7 @@ class SettingsController extends Controller {
 			if ($creditorId !== '' && !preg_match('/^[A-Z]{2}\d{2}[A-Z0-9]{1,28}$/', $creditorId)) {
 				return new DataResponse(['message' => $this->l10n->t('Das sieht nicht nach einer SEPA-Gläubiger-ID aus (erwartet wird z. B. DE98ZZZ09999999999).')], Http::STATUS_BAD_REQUEST);
 			}
-			$this->config->setAppValue($appId, 'sepa_creditor_id', $creditorId);
+			$this->config->setValueString($appId, 'sepa_creditor_id', $creditorId);
 		}
 
 		if (array_key_exists('sepa_debtor_account_id', $params)) {
@@ -332,7 +332,7 @@ class SettingsController extends Controller {
 
 		if (array_key_exists('membership_enabled', $params)) {
 			$membershipEnabled = (string)$params['membership_enabled'] === '1';
-			$this->config->setAppValue($appId, 'membership_enabled', $membershipEnabled ? '1' : '0');
+			$this->config->setValueString($appId, 'membership_enabled', $membershipEnabled ? '1' : '0');
 		}
 
 		// Mandats-Lifecycle (Issue #66): Präfix "verwalter"-Einstellung (Spec §4/§3.9).
@@ -343,7 +343,7 @@ class SettingsController extends Controller {
 			if (preg_match('/[\/\\\\]/', $prefix) === 1) {
 				return new DataResponse(['message' => $this->l10n->t('Ungültiges Mandatsreferenz-Präfix.')], Http::STATUS_BAD_REQUEST);
 			}
-			$this->config->setAppValue($appId, MandateService::SETTING_REFERENCE_PREFIX, $prefix);
+			$this->config->setValueString($appId, MandateService::SETTING_REFERENCE_PREFIX, $prefix);
 		}
 
 		if (array_key_exists('mandate_document_folder', $params)) {
@@ -353,11 +353,11 @@ class SettingsController extends Controller {
 				return new DataResponse(['message' => $mandateFolderError], Http::STATUS_BAD_REQUEST);
 			}
 			$mandateFolder = trim(str_replace('\\', '/', $mandateFolder), '/');
-			$this->config->setAppValue($appId, MandateDocumentService::SETTING_FOLDER, $mandateFolder !== '' ? $mandateFolder : MandateDocumentService::DEFAULT_FOLDER);
+			$this->config->setValueString($appId, MandateDocumentService::SETTING_FOLDER, $mandateFolder !== '' ? $mandateFolder : MandateDocumentService::DEFAULT_FOLDER);
 		}
 
 		if (array_key_exists('show_missing_document_warning', $params)) {
-			$this->config->setAppValue($appId, MandateDocumentService::SETTING_SHOW_MISSING_WARNING, (string)$params['show_missing_document_warning'] === '1' ? '1' : '0');
+			$this->config->setValueString($appId, MandateDocumentService::SETTING_SHOW_MISSING_WARNING, (string)$params['show_missing_document_warning'] === '1' ? '1' : '0');
 		}
 
 		if (array_key_exists('fiscal_year_start_month', $params)) {
@@ -386,12 +386,12 @@ class SettingsController extends Controller {
 
 		if (array_key_exists('self_service_enabled', $params)) {
 			$selfServiceEnabled = (string)$params['self_service_enabled'] === '1';
-			$this->config->setAppValue($appId, SelfServiceService::SETTING_ENABLED, $selfServiceEnabled ? '1' : '0');
+			$this->config->setValueString($appId, SelfServiceService::SETTING_ENABLED, $selfServiceEnabled ? '1' : '0');
 		}
 
 		if (array_key_exists('self_service_transfer_switch_enabled', $params)) {
 			$transferSwitchEnabled = (string)$params['self_service_transfer_switch_enabled'] === '1';
-			$this->config->setAppValue($appId, SelfServiceService::SETTING_TRANSFER_SWITCH, $transferSwitchEnabled ? '1' : '0');
+			$this->config->setValueString($appId, SelfServiceService::SETTING_TRANSFER_SWITCH, $transferSwitchEnabled ? '1' : '0');
 		}
 
 		// Auslagenerstattung: Schalter und N hängen zusammen (beim Einschalten muss der Kreis der

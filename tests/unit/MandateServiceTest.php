@@ -24,7 +24,8 @@ use OCA\Vereinsbuchhaltung\Service\MandateExpirySettings;
 use OCA\Vereinsbuchhaltung\Service\MandateReferenceGenerator;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
 use OCA\Vereinsbuchhaltung\Service\MandateStateMachine;
-use OCP\IConfig;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IUser;
 use OCP\IUserSession;
@@ -86,8 +87,8 @@ class MandateServiceTest extends TestCase {
 		$transaction = $this->createMock(TransactionRunner::class);
 		$transaction->method('run')->willReturnCallback(static fn (callable $fn) => $fn());
 
-		$config = $this->createMock(IConfig::class);
-		$config->method('getAppValue')->willReturnCallback(static fn (string $app, string $key, string $default = '') => $appValues[$key] ?? $default);
+		$config = $this->createMock(IAppConfig::class);
+		$config->method('getValueString')->willReturnCallback(static fn (string $app, string $key, string $default = '') => $appValues[$key] ?? $default);
 
 		// insert()/update() geben in der echten QBMapper-Implementierung das
 		// (ggf. mit ID versehene) Entity zurück - hier reicht "gibt weiter,
@@ -128,6 +129,7 @@ class MandateServiceTest extends TestCase {
 			$serviceL10n,
 			new MandateExpirySettings($config),
 			$this->activationTokens,
+			ClubClockStub::system(),
 		);
 	}
 
@@ -372,6 +374,20 @@ class MandateServiceTest extends TestCase {
 		$this->assertSame('katrin@example.org', $result->getConsentActor());
 		$this->assertSame('2026-03-10', $result->getSignedAt(), 'die Zustimmung selbst wird zur Unterschrift (Datumsteil von consent_at)');
 		$this->assertNotNull($result->getActivatedAt());
+	}
+
+	/** Issue #263: 22:30 UTC ist in Berlin schon 00:30 Uhr am nächsten Tag. */
+	public function testZustimmungKurzNachMitternachtUnterschreibtAmNeuenTag(): void {
+		$mandate = $this->activeMandate(1);
+		$mandate->setStatus(Mandate::STATUS_DRAFT);
+		$mandate->setSignatureType(Mandate::SIGNATURE_ELECTRONIC);
+		$mandate->setSignedAt(null);
+		$this->mandateMapper->method('find')->willReturn($mandate);
+
+		$result = $this->service()->activateElectronic(1, 7, '2026-06-30 22:30:00', '203.0.113.5', 'TestBrowser/1.0', 'katrin@example.org');
+
+		$this->assertSame('2026-07-01', $result->getSignedAt());
+		$this->assertSame('2026-06-30 22:30:00', $result->getConsentAt(), 'der Zeitstempel selbst bleibt UTC');
 	}
 
 	public function testReconfirmElectronicErsetztNurDasBeweispaketUndLaesstDasMandatUnveraendert(): void {

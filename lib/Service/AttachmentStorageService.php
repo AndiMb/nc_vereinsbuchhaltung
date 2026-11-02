@@ -16,7 +16,7 @@ use OCP\Files\Folder;
 use OCP\Files\IRootFolder;
 use OCP\Files\NotFoundException;
 use OCP\Files\SimpleFS\ISimpleFile;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 
 /**
@@ -53,7 +53,7 @@ class AttachmentStorageService {
 	public function __construct(
 		IAppDataFactory $appDataFactory,
 		private IRootFolder $rootFolder,
-		private IConfig $config,
+		private IAppConfig $config,
 		private AttachmentMapper $attachmentMapper,
 		private TransactionRunner $transaction,
 		private IL10N $l10n,
@@ -64,11 +64,11 @@ class AttachmentStorageService {
 	// --- Einstellung -------------------------------------------------------
 
 	public function storageUser(): string {
-		return $this->config->getAppValue(Application::APP_ID, self::SETTING_USER, '');
+		return $this->config->getValueString(Application::APP_ID, self::SETTING_USER, '');
 	}
 
 	public function storagePath(): string {
-		return trim($this->config->getAppValue(Application::APP_ID, self::SETTING_PATH, self::DEFAULT_PATH), '/');
+		return trim($this->config->getValueString(Application::APP_ID, self::SETTING_PATH, self::DEFAULT_PATH), '/');
 	}
 
 	/**
@@ -80,7 +80,7 @@ class AttachmentStorageService {
 		if ($this->storageUser() === '') {
 			return self::MODE_APPDATA;
 		}
-		$mode = $this->config->getAppValue(Application::APP_ID, self::SETTING_MODE, '');
+		$mode = $this->config->getValueString(Application::APP_ID, self::SETTING_MODE, '');
 		return $mode === self::MODE_WATCH ? self::MODE_WATCH : self::MODE_USER;
 	}
 
@@ -105,8 +105,8 @@ class AttachmentStorageService {
 		if ($this->storageUser() !== $uid) {
 			return false;
 		}
-		$this->config->setAppValue(Application::APP_ID, self::SETTING_USER, '');
-		$this->config->setAppValue(Application::APP_ID, self::SETTING_MODE, '');
+		$this->config->setValueString(Application::APP_ID, self::SETTING_USER, '');
+		$this->config->setValueString(Application::APP_ID, self::SETTING_MODE, '');
 		return true;
 	}
 

@@ -46,6 +46,7 @@ class InvoicePlanService {
 		private IUserSession $userSession,
 		private LoggerInterface $logger,
 		private IL10N $l10n,
+		private ClubClock $clock,
 	) {
 	}
 
@@ -65,10 +66,10 @@ class InvoicePlanService {
 	 */
 	public function create(array $data, ?string $today = null): InvoicePlan {
 		$plan = new InvoicePlan();
-		$plan->setCreatedAt((new \DateTimeImmutable())->format(\DateTimeInterface::ATOM));
+		$plan->setCreatedAt((new \DateTimeImmutable())->format(\DateTimeInterface::ATOM)); // UTC-Zeitstempel (#263)
 		$plan->setCreatedBy($this->userSession->getUser()?->getUID() ?? 'system');
 		$this->apply($plan, $data);
-		$plan->setNextRun($this->firstRun($plan, $today ?? date('Y-m-d')));
+		$plan->setNextRun($this->firstRun($plan, $today ?? $this->clock->today()));
 		return $this->plans->insert($plan);
 	}
 
@@ -82,7 +83,7 @@ class InvoicePlanService {
 		$schedule = $plan->getStartDate() . '|' . $plan->getIntervalMonths() . '|' . $plan->getEndDate();
 		$this->apply($plan, $data);
 		if ($schedule !== $plan->getStartDate() . '|' . $plan->getIntervalMonths() . '|' . $plan->getEndDate()) {
-			$plan->setNextRun($this->firstRun($plan, $today ?? date('Y-m-d')));
+			$plan->setNextRun($this->firstRun($plan, $today ?? $this->clock->today()));
 		}
 		return $this->plans->update($plan);
 	}
@@ -102,7 +103,7 @@ class InvoicePlanService {
 		$plan = $this->plans->find($id);
 		$plan->setActive($active ? 1 : 0);
 		if ($active) {
-			$plan->setNextRun($this->firstRun($plan, $today ?? date('Y-m-d')));
+			$plan->setNextRun($this->firstRun($plan, $today ?? $this->clock->today()));
 		}
 		return $this->plans->update($plan);
 	}
@@ -117,7 +118,7 @@ class InvoicePlanService {
 	 * @return array{created: int, issued: int, sent: int, failed: int}
 	 */
 	public function runDue(?string $today = null): array {
-		$today ??= date('Y-m-d');
+		$today ??= $this->clock->today();
 		$total = ['created' => 0, 'issued' => 0, 'sent' => 0, 'failed' => 0];
 		foreach ($this->plans->findDue($today) as $plan) {
 			$result = $this->runPlan($plan, $today);
@@ -135,7 +136,7 @@ class InvoicePlanService {
 	 * @return array{created: int, issued: int, sent: int, failed: int}
 	 */
 	public function runPlan(InvoicePlan $plan, ?string $today = null): array {
-		$today ??= date('Y-m-d');
+		$today ??= $this->clock->today();
 		$result = ['created' => 0, 'issued' => 0, 'sent' => 0, 'failed' => 0];
 		for ($i = 0; $i < self::MAX_CATCH_UP; $i++) {
 			$runDate = $plan->getNextRun();
@@ -160,7 +161,7 @@ class InvoicePlanService {
 				$this->logger->warning('Wiederkehrende Rechnung {name} fehlgeschlagen: {message}', ['app' => Application::APP_ID, 'name' => $plan->getName(), 'message' => $e->getMessage(), 'exception' => $e]);
 			}
 			$plan->setRunCount($plan->getRunCount() + 1);
-			$plan->setLastRunAt((new \DateTimeImmutable())->format(\DateTimeInterface::ATOM));
+			$plan->setLastRunAt((new \DateTimeImmutable())->format(\DateTimeInterface::ATOM)); // UTC-Zeitstempel (#263)
 			$plan->setNextRun($this->nextAfter($plan, $runDate));
 			$this->plans->update($plan);
 		}

@@ -92,6 +92,13 @@ class DunningStatusResolverTest extends TestCase {
 		$this->assertNull($status['nextDueOn']);
 	}
 
+	/** Issue #263: Versand 22:30 UTC am 30.06. ist in Berlin der 01.07.; 14 Tage später ist der 15.07. */
+	public function testFristLaeuftAbDemVereinstagDesVersands(): void {
+		$status = DunningStatusResolver::resolve($this->claim(), [$this->notice(0, '2026-06-30T22:30:00+00:00')], 14, '2026-07-14');
+
+		$this->assertSame('2026-07-15', $status['nextDueOn']);
+	}
+
 	public function testEineAktiveStundungVerschiebtDieNaechsteStufeAufDenTagNachIhremEnde(): void {
 		// Frist wäre der 15.10.; die Stundung läuft bis einschließlich 31.10. - der Lauf versendet frühestens am 1.11.
 		$status = DunningStatusResolver::resolve($this->claim('2026-10-31'), [$this->notice(0, '2026-10-01T08:00:00+00:00')], 14, '2026-10-20');

@@ -3,6 +3,7 @@ import { computed, reactive, shallowRef } from 'vue'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
 import { t } from '../lib/l10n.js'
+import { createLatestRequest } from '../lib/latestRequest.js'
 import { createRowCache } from '../lib/rowCache.js'
 import { useAccounts } from './useAccounts.js'
 import { usePeriods } from './usePeriods.js'
@@ -25,6 +26,8 @@ const accounts = useAccounts()
 
 // Kein Teil des reaktiven Zustands: nur loadJournal() liest die Nummer.
 let journalSeq = 0
+// Dasselbe für loadTransactions(): der Kontext (byJournal) hängt am Zeitraum.
+const startTransactionsLoad = createLatestRequest()
 
 function accountLabel(id) {
 	const acc = accounts.accountsById.value[id]
@@ -112,13 +115,20 @@ async function loadJournal() {
 }
 
 async function loadTransactions(periodId = null) {
+	// Bei schnellem Zeitraumwechsel P1 → P2 darf die verspätete Antwort für P1
+	// den Kontext von P2 nicht überschreiben: nur die zuletzt gestartete gilt.
+	const isCurrent = startTransactionsLoad()
 	try {
 		// Beide Abfragen laufen gleichzeitig; erst wenn beide da sind, wird
 		// übernommen, damit Liste und Fortschritt nie auseinanderlaufen.
 		const [list, context] = await Promise.all([api.listTransactions('unassigned'), api.transactionContext(periodId)])
+		if (!isCurrent()) { return }
 		state.transactions = list.data
 		state.txContext = context.data
-	} catch (e) { showError(errMsg(e, t('Buchungen konnten nicht geladen werden'))) }
+	} catch (e) {
+		if (!isCurrent()) { return }
+		showError(errMsg(e, t('Buchungen konnten nicht geladen werden')))
+	}
 }
 
 export function useJournal() {

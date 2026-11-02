@@ -11,7 +11,7 @@ use OCA\Vereinsbuchhaltung\Db\Mandate;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCP\Activity\IManager as IActivityManager;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IRequest;
 
@@ -62,7 +62,7 @@ class SelfServiceMandateService {
 		private ActorContextService $actorContext,
 		private IActivityManager $activityManager,
 		private IRequest $request,
-		private IConfig $config,
+		private IAppConfig $config,
 		private IL10N $l10n,
 	) {
 	}
@@ -99,7 +99,7 @@ class SelfServiceMandateService {
 	 */
 	public function legalTextPreview(): array {
 		$legalText = $this->legalTextService->current();
-		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '');
+		$clubName = $this->config->getValueString(Application::APP_ID, 'club_name', '');
 		return [
 			'versionId' => (int)$legalText->getId(),
 			'html' => $this->formRenderer->renderLegalText($legalText, $clubName),
@@ -154,7 +154,7 @@ class SelfServiceMandateService {
 		$mandate = $this->mandateService->activateElectronic(
 			(int)$mandate->getId(),
 			(int)$this->legalTextService->current()->getId(),
-			(new \DateTime())->format('Y-m-d H:i:s'),
+			(new \DateTime())->format('Y-m-d H:i:s'), // UTC-Zeitstempel (#263)
 			$this->request->getRemoteAddress(),
 			(string)$this->request->getHeader('User-Agent'),
 			$this->consentActor(),
@@ -189,7 +189,7 @@ class SelfServiceMandateService {
 		$mandate = $this->mandateService->reconfirmElectronic(
 			(int)$mandate->getId(),
 			$currentVersionId,
-			(new \DateTime())->format('Y-m-d H:i:s'),
+			(new \DateTime())->format('Y-m-d H:i:s'), // UTC-Zeitstempel (#263)
 			$this->request->getRemoteAddress(),
 			(string)$this->request->getHeader('User-Agent'),
 			$this->consentActor(),

@@ -16,6 +16,7 @@ use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceDocumentService;
 use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceMailService;
 use OCA\Vereinsbuchhaltung\Service\InvoicePlanService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceService;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IL10N;
 use OCP\IUserSession;
@@ -61,6 +62,7 @@ class InvoicePlanServiceTest extends TestCase {
 			$this->createMock(IUserSession::class),
 			$this->createMock(LoggerInterface::class),
 			$l10n,
+			ClubClockStub::system(),
 		);
 	}
 

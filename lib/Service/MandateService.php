@@ -15,7 +15,7 @@ use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCP\AppFramework\Db\DoesNotExistException;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IUserSession;
 
@@ -67,11 +67,12 @@ class MandateService {
 		private AuditService $audit,
 		private ActorContextService $actorContext,
 		private IUserSession $userSession,
-		private IConfig $config,
+		private IAppConfig $config,
 		private DunningLadderService $dunningLadder,
 		private IL10N $l10n,
 		private MandateExpirySettings $expirySettings,
 		private MandateActivationTokenMapper $activationTokens,
+		private ClubClock $clock,
 	) {
 	}
 
@@ -228,7 +229,9 @@ class MandateService {
 		// hier, mit dem Zustimmungsdatum, gesetzt. Das lässt das Mandat auch in
 		// {@see MandateMapper::findCandidatesForExpiry()} (verlangt signed_at)
 		// und damit im 36-Monats-Verfall-Cron ankommen wie jedes andere Mandat.
-		$mandate->setSignedAt(substr($consentAt, 0, 10));
+		// Der Zeitpunkt ist UTC, das Unterschriftsdatum der Kalendertag des
+		// Vereins (#263): eine Zustimmung um 00:30 Uhr gehört zum neuen Tag.
+		$mandate->setSignedAt(ClubClock::localDate($consentAt));
 		$mandate->setStatus(Mandate::STATUS_ACTIVE);
 		$mandate->setActivatedAt($this->now());
 		$mandate = $this->mapper->update($mandate);
@@ -284,7 +287,7 @@ class MandateService {
 			'neueFassung' => $mandateTextVersionId,
 		]);
 		$previous = $previousConsentAt !== null && $previousConsentAt !== ''
-			? $this->l10n->t('vorher zugestimmt am %s', [GermanDate::format(substr($previousConsentAt, 0, 10))])
+			? $this->l10n->t('vorher zugestimmt am %s', [GermanDate::format(ClubClock::localDate($previousConsentAt))])
 			: $this->l10n->t('vorher ohne elektronische Zustimmung');
 		$this->logEvent($mandate, $this->l10n->t('Mandat erneut bestätigt (Zustimmung per E-Mail-Link an %1$s, %2$s)', [$consentActor, $previous]), MandateEvent::ACTOR_MEMBER);
 		return $mandate;
@@ -863,7 +866,7 @@ class MandateService {
 	 * @return array{expired:int} Anzahl der in diesem Lauf beendeten Mandate
 	 */
 	public function expireDueMandates(?string $today = null): array {
-		$todayDate = new \DateTimeImmutable($today ?? 'today');
+		$todayDate = new \DateTimeImmutable($today ?? $this->clock->today());
 		$expired = 0;
 		foreach ($this->mapper->findCandidatesForExpiry() as $mandate) {
 			if (!$this->expiryCalculator->isDueForExpiry($mandate, $todayDate)) {
@@ -888,7 +891,7 @@ class MandateService {
 	 * @return Mandate[]
 	 */
 	public function findDueForExpiryWarning(?string $today = null): array {
-		$todayDate = new \DateTimeImmutable($today ?? 'today');
+		$todayDate = new \DateTimeImmutable($today ?? $this->clock->today());
 		$warningDays = $this->expirySettings->warningDays();
 		return array_values(array_filter(
 			$this->mapper->findCandidatesForExpiry(),
@@ -931,7 +934,7 @@ class MandateService {
 	// --- Referenz --------------------------------------------------------------
 
 	public function generateReference(): string {
-		$prefix = trim($this->config->getAppValue(Application::APP_ID, self::SETTING_REFERENCE_PREFIX, MandateReferenceGenerator::DEFAULT_PREFIX));
+		$prefix = trim($this->config->getValueString(Application::APP_ID, self::SETTING_REFERENCE_PREFIX, MandateReferenceGenerator::DEFAULT_PREFIX));
 		$prefix = $prefix !== '' ? $prefix : MandateReferenceGenerator::DEFAULT_PREFIX;
 		$existing = $this->mapper->findReferencesWithPrefix($prefix);
 		for ($attempt = 0; $attempt < 5; $attempt++) {
@@ -1022,6 +1025,6 @@ class MandateService {
 	}
 
 	private function now(): string {
-		return (new \DateTime())->format('Y-m-d H:i:s');
+		return (new \DateTime())->format('Y-m-d H:i:s'); // UTC-Zeitstempel (#263)
 	}
 }

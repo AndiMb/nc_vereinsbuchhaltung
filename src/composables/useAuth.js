@@ -1,6 +1,7 @@
 import { computed, reactive } from 'vue'
 import api from '../api.js'
 import { takeBootState } from '../lib/bootState.js'
+import { setClubTimeZone } from '../lib/clubTime.js'
 
 // Singleton-Zustand: EIN gemeinsamer Datenbestand je Installation
 // (Application::BOOK), alle Komponenten teilen sich denselben reaktiven
@@ -20,11 +21,14 @@ async function loadMe() {
 	const boot = takeBootState('me')
 	if (boot) {
 		state.me = boot
+		setClubTimeZone(boot.clubTimeZone)
 		return state.me
 	}
 	try {
 		const { data } = await api.me()
 		state.me = data
+		// „Heute“ der Oberfläche in der Vereinszone (#263).
+		setClubTimeZone(data.clubTimeZone)
 	} catch {
 		state.me = { role: 'none', canRead: false, canWrite: false, isAdmin: false }
 	}

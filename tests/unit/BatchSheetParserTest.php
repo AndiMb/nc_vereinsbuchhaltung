@@ -179,7 +179,7 @@ class BatchSheetParserTest extends TestCase {
 			. "1;Anna Beispiel;Musterweg 12;12345;Musterstadt;anna@example.org;Teilnahme Probenwochenende;;1;pauschal;120,00;;14.03.2026\r\n"
 			. "1;;;;;;Übernachtung;Doppelzimmer;2;Tag;35,00;;15.03.2026\r\n"
 			. '2;Ben Muster;Lindenallee 5;12345;Musterstadt;;Teilnahme Probenwochenende (ermäßigt);;1;pauschal;80,00;;14.03.2026';
-		$result = $this->parser()->parse(\OCA\Vereinsbuchhaltung\Service\InvoiceBatch\SpreadsheetReader::read($csv));
+		$result = $this->parser()->parse(\OCA\Vereinsbuchhaltung\Service\InvoiceBatch\SpreadsheetReader::read($csv, $this->createMock(\OCP\ITempManager::class)));
 
 		$this->assertSame([], $result['errors']);
 		$this->assertCount(2, $result['groups']);

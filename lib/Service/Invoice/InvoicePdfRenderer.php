@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service\Invoice;
 
+use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Invoice;
 use OCA\Vereinsbuchhaltung\Db\InvoiceLine;
 use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\EpcQrCodeGenerator;
 use OCA\Vereinsbuchhaltung\Service\InvoiceCalculator;
 use OCP\IL10N;
@@ -41,6 +43,7 @@ class InvoicePdfRenderer {
 
 	public function __construct(
 		private EpcQrCodeGenerator $epc,
+		private ClubClock $clock,
 		private ?IL10N $l10n = null,
 	) {
 	}
@@ -51,6 +54,8 @@ class InvoicePdfRenderer {
 	 * @throws \RuntimeException wenn die PDF-Bibliothek nicht verfügbar ist
 	 */
 	public function render(InvoicePdfData $data, bool $compress = true): string {
+		// InvoicePdfDocument erweitert TCPDF aus vendor/: erst den Autoloader, dann die Klasse (#265).
+		Application::loadComposerAutoloader();
 		if (!class_exists(\TCPDF::class)) {
 			throw new UserFacingException($this->msg('Die PDF-Bibliothek (TCPDF) ist nicht installiert.'));
 		}
@@ -116,6 +121,8 @@ class InvoicePdfRenderer {
 	 * @throws \RuntimeException wenn die PDF-Bibliothek nicht verfügbar ist
 	 */
 	public function renderDunning(InvoicePdfData $data, int $level, string $body, int $remainingCents, string $letterDate, bool $compress = true): string {
+		// InvoicePdfDocument erweitert TCPDF aus vendor/: erst den Autoloader, dann die Klasse (#265).
+		Application::loadComposerAutoloader();
 		if (!class_exists(\TCPDF::class)) {
 			throw new UserFacingException($this->msg('Die PDF-Bibliothek (TCPDF) ist nicht installiert.'));
 		}
@@ -283,7 +290,7 @@ class InvoicePdfRenderer {
 		$invoice = $data->invoice;
 		$rows = [];
 		$rows[] = [$invoice->isCredit() ? $this->msg('Storno-Nr.') : $this->msg('Rechnungs-Nr.'), $this->numberOrDraft($invoice)];
-		$rows[] = [$this->msg('Datum'), $this->date($invoice->getIssueDate() ?? date('Y-m-d'))];
+		$rows[] = [$this->msg('Datum'), $this->date($invoice->getIssueDate() ?? $this->clock->today())];
 		if ($invoice->getPeriodStart() !== null && $invoice->getPeriodEnd() !== null) {
 			$rows[] = [$this->msg('Leistungszeitraum'), $this->date($invoice->getPeriodStart()) . ' – ' . $this->date($invoice->getPeriodEnd())];
 		} elseif ($invoice->getDeliveryDate() !== null) {

@@ -26,7 +26,7 @@ use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCA\Vereinsbuchhaltung\Service\TaskService;
 use OCA\Vereinsbuchhaltung\Service\TaskTargetResolver;
 use OCP\AppFramework\Utility\ITimeFactory;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IRequest;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -68,7 +68,7 @@ class TaskControllerTest extends TestCase {
 		$time = $this->createMock(ITimeFactory::class);
 		$time->method('getDateTime')->willReturn(new \DateTime('2026-10-04 12:00:00'));
 		// Beide Klassen sind final und werden deshalb mit gemockten Zuträgern gebaut.
-		$dunning = new DunningTaskService($this->createMock(OpenItemMapper::class), $this->createMock(DunningNoticeMapper::class), $this->members, new DunningSettings($this->createMock(IConfig::class)), $time, $l10n);
+		$dunning = new DunningTaskService($this->createMock(OpenItemMapper::class), $this->createMock(DunningNoticeMapper::class), $this->members, new DunningSettings($this->createMock(IAppConfig::class)), $time, $l10n);
 		$targets = new TaskTargetResolver($this->members, $this->createMock(MandateMapper::class), $this->createMock(AssignmentMapper::class), $this->createMock(OpenItemMapper::class));
 
 		return new TaskController(

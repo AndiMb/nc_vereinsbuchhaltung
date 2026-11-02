@@ -11,6 +11,7 @@ use OCA\Vereinsbuchhaltung\Service\EInvoice\InvoiceSuiteEInvoiceWriter;
 use OCA\Vereinsbuchhaltung\Service\EpcQrCodeGenerator;
 use OCA\Vereinsbuchhaltung\Service\Invoice\InvoicePdfData;
 use OCA\Vereinsbuchhaltung\Service\Invoice\InvoicePdfRenderer;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
 use OCA\Vereinsbuchhaltung\Tests\Unit\Support\EInvoiceFixture;
 use PHPUnit\Framework\TestCase;
 
@@ -124,7 +125,7 @@ class InvoiceSuiteEInvoiceWriterTest extends TestCase {
 		$data = $this->data();
 		$xml = $this->writer()->buildXml($data, EInvoiceFormat::ZUGFERD);
 		$pdfData = new InvoicePdfData($data->invoice, $data->lines, $data->debtor, $data->issuer, $data->bank);
-		$pdf = (new InvoicePdfRenderer(new EpcQrCodeGenerator()))->render($pdfData);
+		$pdf = (new InvoicePdfRenderer(new EpcQrCodeGenerator(), ClubClockStub::system()))->render($pdfData);
 
 		$hybrid = $this->writer()->embedIntoPdf($xml, $pdf, EInvoiceFormat::ZUGFERD);
 

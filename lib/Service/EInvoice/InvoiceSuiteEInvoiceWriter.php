@@ -31,6 +31,7 @@ use horstoeko\invoicesuite\InvoiceSuitePdfDocumentBuilder;
 use horstoeko\invoicesuite\InvoiceSuitePdfDocumentReader;
 use horstoeko\invoicesuite\InvoiceSuiteSettings;
 use horstoeko\invoicesuite\validators\InvoiceSuiteXsdDocumentValidator;
+use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\InvoiceLine;
 use OCA\Vereinsbuchhaltung\Service\InvoiceCalculator;
 use OCP\IL10N;
@@ -102,8 +103,12 @@ class InvoiceSuiteEInvoiceWriter implements EInvoiceWriter {
 	 * beschreibbar (Apps gehören dem Installationsnutzer); deshalb liegt er im
 	 * temporären Verzeichnis von Nextcloud. Der Zwischenspeicher darf jederzeit
 	 * verschwinden, er wird dann neu aufgebaut.
+	 *
+	 * Jede öffentliche Methode, die die Bibliothek nutzt, ruft das zuerst auf;
+	 * deshalb lädt es auch den Autoloader von vendor/ (#265).
 	 */
 	private function useWritableCache(): void {
+		Application::loadComposerAutoloader();
 		// Die Bibliothek sucht ihre Format-Anbieter sonst in allen Klassen aller
 		// Composer-Autoloader – in einer Nextcloud also auch in deren eigenen
 		// Klassen, von denen manche beim Laden abstürzen (fehlende Symfony-

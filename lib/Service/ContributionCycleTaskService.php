@@ -51,6 +51,8 @@ class ContributionCycleTaskService {
 	/** Typkennung der „Vorabinfo nicht rechtzeitig“-Meldungen; die Oberfläche fasst sie zusammen. */
 	public const KIND_PRENOTIFICATION_LATE = 'prenotification_late';
 
+	private ClubClock $clock;
+
 	public function __construct(
 		private OpenItemMapper $openItems,
 		private AssignmentMapper $assignments,
@@ -59,7 +61,9 @@ class ContributionCycleTaskService {
 		private ContributionCycleSettings $settings,
 		private ITimeFactory $time,
 		private IL10N $l10n,
+		?ClubClock $clock = null,
 	) {
+		$this->clock = $clock ?? new ClubClock($this->time);
 	}
 
 	/**
@@ -278,6 +282,6 @@ class ContributionCycleTaskService {
 	}
 
 	private function today(): string {
-		return $this->time->getDateTime()->format('Y-m-d');
+		return $this->clock->today();
 	}
 }

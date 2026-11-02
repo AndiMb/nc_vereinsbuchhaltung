@@ -9,8 +9,9 @@ use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 
 /**
@@ -48,8 +49,9 @@ class BeitragsbescheinigungRenderer {
 		private MemberMapper $members,
 		private OpenItemMapper $openItems,
 		private ContributionYearService $contributionYear,
-		private IConfig $config,
+		private IAppConfig $config,
 		private IL10N $l10n,
+		private ClubClock $clock,
 	) {
 	}
 
@@ -95,14 +97,14 @@ class BeitragsbescheinigungRenderer {
 		));
 		$sumCents = array_sum(array_map(static fn (OpenItem $i): int => $i->getAmountCents(), $rows));
 
-		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '');
+		$clubName = $this->config->getValueString(Application::APP_ID, 'club_name', '');
 		$heading = $this->l10n->t('Beitragsbestätigung %s', [$label]);
 		$title = ($clubName !== '' ? $clubName . ' – ' : '') . $heading;
 		$meta = $this->l10n->t('Beitragsjahr %s (%s–%s) · erstellt am %s', [
 			$label,
 			ReportFormat::date($from),
 			ReportFormat::date($to),
-			ReportFormat::date(date('Y-m-d')),
+			ReportFormat::date($this->clock->today()),
 		]);
 
 		$h = PrintableReportPage::printHint($this->l10n->t('Zum Drucken oder Als-PDF-Speichern: <strong>Strg+P</strong> (Mac: ⌘P) im Browser.'));
@@ -143,7 +145,7 @@ class BeitragsbescheinigungRenderer {
 	 * Periode) `due_date`, sonst als letzter Rückfall das Anlagedatum.
 	 */
 	private function referenceDate(OpenItem $item): string {
-		return $item->getPeriodStart() ?? $item->getDueDate() ?? substr($item->getCreatedAt(), 0, 10);
+		return $item->getPeriodStart() ?? $item->getDueDate() ?? ClubClock::localDate($item->getCreatedAt());
 	}
 
 	private function disclaimerSection(): string {

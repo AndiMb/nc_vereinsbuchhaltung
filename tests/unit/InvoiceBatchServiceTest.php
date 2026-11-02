@@ -19,6 +19,7 @@ use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\DebtorService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceBatch\InvoiceBatchService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceService;
+use OCP\ITempManager;
 use OCP\IUserSession;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -93,7 +94,15 @@ class InvoiceBatchServiceTest extends TestCase {
 			$transaction,
 			$this->createMock(AuditService::class),
 			$this->createMock(IUserSession::class),
+			$this->temp(),
 		);
+	}
+
+	/** Temporäre Dateien wie Nextclouds ITempManager (XLSX-Upload, #265). */
+	private function temp(): ITempManager {
+		$temp = $this->createMock(ITempManager::class);
+		$temp->method('getTemporaryFile')->willReturnCallback(static fn (string $postFix = ''): string => (string)tempnam(sys_get_temp_dir(), 'vbh-test'));
+		return $temp;
 	}
 
 	private const CSV = "Rechnung;Name;Straße;PLZ;Ort;E-Mail;Position;Einzelpreis;Erlöskonto;Leistungsdatum\n"

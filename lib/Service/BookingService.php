@@ -200,7 +200,7 @@ class BookingService {
 		$journal->setEntryNo($this->entryNumbers->next($userId, (int)$period->getId()));
 		$journal->setDescription($this->buildDescription($tx));
 		$journal->setBankTxId($tx->getId());
-		$journal->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s'));
+		$journal->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s')); // UTC-Zeitstempel (#263)
 		$journal = $this->journalMapper->insert($journal);
 
 		// Geldeingang: Bank im Soll, die Gegenkonten im Haben – bei Ausgang

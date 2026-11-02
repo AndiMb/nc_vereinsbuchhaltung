@@ -8,6 +8,7 @@ use OCA\Vereinsbuchhaltung\Db\Invoice;
 use OCA\Vereinsbuchhaltung\Service\EpcQrCodeGenerator;
 use OCA\Vereinsbuchhaltung\Service\Invoice\InvoicePdfData;
 use OCA\Vereinsbuchhaltung\Service\Invoice\InvoicePdfRenderer;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 
@@ -48,7 +49,7 @@ class InvoicePdfFontPathTest extends TestCase {
 				$preview,
 			);
 
-			$pdf = (new InvoicePdfRenderer(new EpcQrCodeGenerator()))->render($data, false);
+			$pdf = (new InvoicePdfRenderer(new EpcQrCodeGenerator(), ClubClockStub::system()))->render($data, false);
 
 			$this->assertStringStartsWith('%PDF-', $pdf);
 			$this->assertStringContainsString('DejaVuSans', $pdf);

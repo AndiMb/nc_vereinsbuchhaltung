@@ -18,8 +18,9 @@ use OCA\Vereinsbuchhaltung\Service\ContributionCycleSettings;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCA\Vereinsbuchhaltung\Service\DirectDebitEligibilityResolver;
 use OCA\Vereinsbuchhaltung\Service\DueDateScheduleService;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
 use OCP\AppFramework\Utility\ITimeFactory;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -80,13 +81,14 @@ class ClaimGenerationServiceTest extends TestCase {
 		$this->mandates->method('findLiveByMember')->willReturn([$mandate]);
 	}
 
-	private function config(): IConfig&MockObject {
-		$config = $this->createMock(IConfig::class);
-		$config->method('getAppValue')->willReturnCallback(
+	private function config(): IAppConfig&MockObject {
+		$config = $this->createMock(IAppConfig::class);
+		$config->method('getValueString')->willReturnCallback(
 			fn (string $app, string $key, string $default = '') => array_key_exists($key, $this->configStore) ? $this->configStore[$key] : $default,
 		);
-		$config->method('setAppValue')->willReturnCallback(function (string $app, string $key, string $value): void {
+		$config->method('setValueString')->willReturnCallback(function (string $app, string $key, string $value): bool {
 			$this->configStore[$key] = $value;
+			return true;
 		});
 		return $config;
 	}
@@ -104,8 +106,8 @@ class ClaimGenerationServiceTest extends TestCase {
 			$this->groups,
 			$this->members,
 			new DirectDebitEligibilityResolver($this->assignments, $this->mandates),
-			new ContributionYearService($config),
-			new DueDateScheduleService($config, new ContributionYearService($config), $l10n),
+			new ContributionYearService($config, ClubClockStub::system()),
+			new DueDateScheduleService($config, new ContributionYearService($config, ClubClockStub::system()), $l10n),
 			new ContributionCycleSettings($config),
 			$time,
 		);

@@ -15,7 +15,7 @@ use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Utility\ITimeFactory;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IUserManager;
 use OCP\Mail\IEMailTemplate;
@@ -70,6 +70,8 @@ use Psr\Log\LoggerInterface;
  */
 class DunningLadderService {
 
+	private ClubClock $clock;
+
 	public function __construct(
 		private OpenItemMapper $openItems,
 		private MemberMapper $members,
@@ -82,12 +84,14 @@ class DunningLadderService {
 		private EpcQrCodeGenerator $qrCode,
 		private IUserManager $userManager,
 		private IMailer $mailer,
-		private IConfig $config,
+		private IAppConfig $config,
 		private ITimeFactory $time,
 		private LoggerInterface $logger,
 		private RecipientL10n $recipientL10n,
 		private ClubMailBranding $mailBranding,
+		?ClubClock $clock = null,
 	) {
+		$this->clock = $clock ?? new ClubClock($this->time);
 	}
 
 	// --- Ereignisgetrieben (sofort, Spec §7 "Zahlungsaufforderung ... ereignisgetrieben") ---
@@ -212,7 +216,7 @@ class DunningLadderService {
 			if ($fromNotice === null) {
 				continue; // hat die Vorstufe (noch) nie erreicht
 			}
-			$deadline = (new \DateTimeImmutable($fromNotice->getSentAt()))->modify('+' . $intervalDays . ' days')->format('Y-m-d');
+			$deadline = (new \DateTimeImmutable(ClubClock::localDate($fromNotice->getSentAt())))->modify('+' . $intervalDays . ' days')->format('Y-m-d');
 			if ($today < $deadline) {
 				continue;
 			}
@@ -287,7 +291,7 @@ class DunningLadderService {
 		// abweichend vom sonst in dieser App üblichen Fallback "Ihr Verein"
 		// (siehe z. B. ContributionPreNotificationService): die Mahntexte
 		// gelten laut Ticket ausdrücklich dem neutraleren Organisationsbegriff.
-		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '');
+		$clubName = $this->config->getValueString(Application::APP_ID, 'club_name', '');
 		$clubName = $clubName !== '' ? $clubName : $l->t('Ihre Organisation');
 
 		// Vor dem Mailtext: ob der Text einen GiroCode verspricht, hängt davon ab,
@@ -498,7 +502,7 @@ class DunningLadderService {
 	}
 
 	private function today(): string {
-		return $this->time->getDateTime()->format('Y-m-d');
+		return $this->clock->today();
 	}
 
 	private function now(): string {

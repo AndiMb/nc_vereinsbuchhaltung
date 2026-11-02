@@ -18,7 +18,7 @@ use OCA\Vereinsbuchhaltung\Exception\ExpiredActivationTokenException;
 use OCA\Vereinsbuchhaltung\Exception\InvalidActivationTokenException;
 use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCP\AppFramework\Db\DoesNotExistException;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IURLGenerator;
 use OCP\IUserManager;
@@ -71,7 +71,7 @@ class MandateActivationService {
 		private IUserManager $userManager,
 		private IMailer $mailer,
 		private IURLGenerator $urlGenerator,
-		private IConfig $config,
+		private IAppConfig $config,
 		private IL10N $l10n,
 		private RecipientL10n $recipientL10n,
 		private ClubMailBranding $mailBranding,
@@ -233,7 +233,7 @@ class MandateActivationService {
 		$currentId = (int)$this->legalTextService->current()->getId();
 		$pending = $this->tokenMapper->findOutstandingByPurpose(MandateActivationToken::PURPOSE_RECONFIRMATION);
 		$members = $this->memberMapper->findAllById();
-		$now = new \DateTimeImmutable();
+		$now = new \DateTimeImmutable(); // UTC-Zeitstempel (#263)
 
 		$overview = ['upToDate' => 0, 'outdated' => 0, 'withoutElectronicConsent' => 0, 'readyIds' => [], 'pendingIds' => [], 'noEmail' => []];
 		foreach ($this->mandateMapper->findAll() as $mandate) {
@@ -334,7 +334,7 @@ class MandateActivationService {
 		return [
 			'sentAt' => $token->getCreatedAt(),
 			'expiresAt' => $token->getExpiresAt(),
-			'expired' => $token->isExpired(new \DateTimeImmutable()),
+			'expired' => $token->isExpired(new \DateTimeImmutable()), // UTC-Zeitstempel (#263)
 			'email' => $token->getEmail(),
 			'requestedBy' => $token->getRequestedBy(),
 			'firstViewedAt' => $token->getFirstViewedAt(),
@@ -371,7 +371,7 @@ class MandateActivationService {
 		// gelesen wird sie vom Mitglied: Sprache und Du/Sie kommen von dessen Konto
 		// (siehe RecipientL10n), nicht vom auslösenden Request.
 		$l = $this->recipientL10n->forMember($member);
-		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '') ?: $l->t('Ihr Verein');
+		$clubName = $this->config->getValueString(Application::APP_ID, 'club_name', '') ?: $l->t('Ihr Verein');
 
 		$this->deliverLinkMail($member, $email, $l, 'vereinsbuchhaltung.mandateActivationLink', [
 			$l->t('Bitte bestätigen Sie Ihr SEPA-Lastschriftmandat'),
@@ -386,7 +386,7 @@ class MandateActivationService {
 
 	private function sendReconfirmationMail(Member $member, string $email, Mandate $mandate, string $url): void {
 		$l = $this->recipientL10n->forMember($member);
-		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '') ?: $l->t('Ihr Verein');
+		$clubName = $this->config->getValueString(Application::APP_ID, 'club_name', '') ?: $l->t('Ihr Verein');
 
 		$failed = $this->deliverLinkMail($member, $email, $l, 'vereinsbuchhaltung.mandateReconfirmationLink', [
 			$l->t('Bitte bestätigen Sie Ihr SEPA-Lastschriftmandat erneut'),
@@ -458,7 +458,7 @@ class MandateActivationService {
 			// nicht unterscheidbar sein (Timing/Informationsleck).
 			throw new InvalidActivationTokenException(self::MESSAGE_LINK_INVALID);
 		}
-		if ($token->isExpired(new \DateTimeImmutable())) {
+		if ($token->isExpired(new \DateTimeImmutable())) { // UTC-Zeitstempel (#263)
 			throw new ExpiredActivationTokenException(self::MESSAGE_LINK_EXPIRED);
 		}
 		return $token;
@@ -613,7 +613,7 @@ class MandateActivationService {
 	}
 
 	private function now(?\DateInterval $add = null): string {
-		$date = new \DateTime();
+		$date = new \DateTime(); // UTC-Zeitstempel (#263)
 		if ($add !== null) {
 			$date->add($add);
 		}

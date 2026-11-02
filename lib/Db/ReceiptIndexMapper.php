@@ -108,7 +108,7 @@ class ReceiptIndexMapper {
 		foreach (self::columns($size, $mtime, $version, $facts) as $column => $value) {
 			$qb->set($column, $this->bind($qb, $column, $value));
 		}
-		$qb->set('indexed_at', $qb->createNamedParameter(new \DateTime(), Types::DATETIME))
+		$qb->set('indexed_at', $qb->createNamedParameter(new \DateTime(), Types::DATETIME)) // UTC-Zeitstempel (#263)
 			->where($qb->expr()->eq('file_id', $qb->createNamedParameter($fileId, IQueryBuilder::PARAM_INT)));
 		return $qb->executeStatement();
 	}
@@ -119,7 +119,7 @@ class ReceiptIndexMapper {
 		foreach (self::columns($size, $mtime, $version, $facts) as $column => $value) {
 			$values[$column] = $this->bind($qb, $column, $value);
 		}
-		$values['indexed_at'] = $qb->createNamedParameter(new \DateTime(), Types::DATETIME);
+		$values['indexed_at'] = $qb->createNamedParameter(new \DateTime(), Types::DATETIME); // UTC-Zeitstempel (#263)
 		$qb->insert(self::TABLE)->values($values)->executeStatement();
 	}
 

@@ -19,7 +19,7 @@ use OCA\Vereinsbuchhaltung\Service\SelfServiceMandateService;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceReceiptMailer;
 use OCP\Activity\IEvent;
 use OCP\Activity\IManager as IActivityManager;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IRequest;
 use OCP\IUserSession;
@@ -108,7 +108,7 @@ class SelfServiceMandateServiceTest extends TestCase {
 			$actorContext,
 			$this->activityManager,
 			$request,
-			$this->createMock(IConfig::class),
+			$this->createMock(IAppConfig::class),
 			$this->l10n(),
 		);
 	}

@@ -20,6 +20,7 @@ use OCA\Vereinsbuchhaltung\Service\InvoiceService;
 use OCA\Vereinsbuchhaltung\Service\OptionalL10n;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IL10N;
+use OCP\ITempManager;
 use OCP\IUserSession;
 
 /**
@@ -50,6 +51,7 @@ class InvoiceBatchService {
 		private TransactionRunner $transaction,
 		private AuditService $audit,
 		private IUserSession $userSession,
+		private ITempManager $tempManager,
 		private ?IL10N $l10n = null,
 	) {
 	}
@@ -101,7 +103,7 @@ class InvoiceBatchService {
 			$batch->setName($name);
 			$batch->setSourceFilename($filename !== null && $filename !== '' ? mb_substr(basename($filename), 0, 255) : null);
 			$batch->setCreatedBy($this->userSession->getUser()?->getUID() ?? 'system');
-			$batch->setCreatedAt((new \DateTimeImmutable())->format(\DateTimeInterface::ATOM));
+			$batch->setCreatedAt((new \DateTimeImmutable())->format(\DateTimeInterface::ATOM)); // UTC-Zeitstempel (#263)
 			$batch = $this->batches->insert($batch);
 
 			/** @var array<string, int> $created Empfänger-Schlüssel => neu angelegter Debitor */
@@ -225,7 +227,7 @@ class InvoiceBatchService {
 	 */
 	private function analyse(string $content, array $opts): array {
 		try {
-			$rows = SpreadsheetReader::read($content);
+			$rows = SpreadsheetReader::read($content, $this->tempManager);
 		} catch (\InvalidArgumentException $e) {
 			throw new \InvalidArgumentException($this->msg($e->getMessage()));
 		}

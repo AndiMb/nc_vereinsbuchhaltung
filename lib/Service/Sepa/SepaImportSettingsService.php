@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service\Sepa;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
-use OCP\IConfig;
+use OCP\IAppConfig;
 
 /**
  * Verwalter-Einstellungen der Rücklastschrift-Verbuchung (Spec §3.9/§3.10,
@@ -38,41 +38,41 @@ class SepaImportSettingsService {
 	private const SETTING_CONTRIBUTION_DEFAULT_ACCOUNT = 'sepa_contribution_default_account_id';
 
 	public function __construct(
-		private IConfig $config,
+		private IAppConfig $config,
 	) {
 	}
 
 	public function returnFeeAccountId(): ?int {
-		return (int)$this->config->getAppValue(Application::APP_ID, self::SETTING_RETURN_FEE_ACCOUNT, '0') ?: null;
+		return (int)$this->config->getValueString(Application::APP_ID, self::SETTING_RETURN_FEE_ACCOUNT, '0') ?: null;
 	}
 
 	public function setReturnFeeAccountId(?int $accountId): void {
 		if ($accountId === null) {
-			$this->config->deleteAppValue(Application::APP_ID, self::SETTING_RETURN_FEE_ACCOUNT);
+			$this->config->deleteKey(Application::APP_ID, self::SETTING_RETURN_FEE_ACCOUNT);
 			return;
 		}
-		$this->config->setAppValue(Application::APP_ID, self::SETTING_RETURN_FEE_ACCOUNT, (string)$accountId);
+		$this->config->setValueString(Application::APP_ID, self::SETTING_RETURN_FEE_ACCOUNT, (string)$accountId);
 	}
 
 	/** Opt-in, Default aus (Spec §3.6/§5). */
 	public function isReturnFeeRechargeEnabled(): bool {
-		return $this->config->getAppValue(Application::APP_ID, self::SETTING_RETURN_FEE_RECHARGE_ENABLED, '0') === '1';
+		return $this->config->getValueString(Application::APP_ID, self::SETTING_RETURN_FEE_RECHARGE_ENABLED, '0') === '1';
 	}
 
 	public function setReturnFeeRechargeEnabled(bool $enabled): void {
-		$this->config->setAppValue(Application::APP_ID, self::SETTING_RETURN_FEE_RECHARGE_ENABLED, $enabled ? '1' : '0');
+		$this->config->setValueString(Application::APP_ID, self::SETTING_RETURN_FEE_RECHARGE_ENABLED, $enabled ? '1' : '0');
 	}
 
 	public function contributionDefaultAccountId(): ?int {
-		return (int)$this->config->getAppValue(Application::APP_ID, self::SETTING_CONTRIBUTION_DEFAULT_ACCOUNT, '0') ?: null;
+		return (int)$this->config->getValueString(Application::APP_ID, self::SETTING_CONTRIBUTION_DEFAULT_ACCOUNT, '0') ?: null;
 	}
 
 	public function setContributionDefaultAccountId(?int $accountId): void {
 		if ($accountId === null) {
-			$this->config->deleteAppValue(Application::APP_ID, self::SETTING_CONTRIBUTION_DEFAULT_ACCOUNT);
+			$this->config->deleteKey(Application::APP_ID, self::SETTING_CONTRIBUTION_DEFAULT_ACCOUNT);
 			return;
 		}
-		$this->config->setAppValue(Application::APP_ID, self::SETTING_CONTRIBUTION_DEFAULT_ACCOUNT, (string)$accountId);
+		$this->config->setValueString(Application::APP_ID, self::SETTING_CONTRIBUTION_DEFAULT_ACCOUNT, (string)$accountId);
 	}
 
 	/**

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\HandbookMarkdownRenderer;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
@@ -12,7 +13,7 @@ use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\DataDisplayResponse;
 use OCP\AppFramework\Http\EmptyContentSecurityPolicy;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IRequest;
 
@@ -27,9 +28,10 @@ class HelpController extends Controller {
 
 	public function __construct(
 		IRequest $request,
-		private IConfig $config,
+		private IAppConfig $config,
 		private IL10N $l10n,
 		private HandbookMarkdownRenderer $renderer,
+		private ClubClock $clock,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -84,7 +86,7 @@ class HelpController extends Controller {
 	#[NoCSRFRequired]
 	public function pruefleitfaden(): DataDisplayResponse {
 		$english = $this->isEnglish();
-		$clubName = (string)$this->config->getAppValue(Application::APP_ID, 'club_name', '');
+		$clubName = (string)$this->config->getValueString(Application::APP_ID, 'club_name', '');
 		$heading = $english ? 'Quick Guide for Auditors' : 'Kurzanleitung für Kassenprüfer/innen';
 		$title = ($clubName !== '' ? htmlspecialchars($clubName, ENT_QUOTES, 'UTF-8') . ' – ' : '') . $heading;
 
@@ -96,7 +98,7 @@ class HelpController extends Controller {
 			$h .= '<div class="club">' . htmlspecialchars($clubName, ENT_QUOTES, 'UTF-8') . '</div>';
 		}
 		$h .= '<h1>' . $heading . '</h1>';
-		$h .= '<div class="meta">' . ($english ? 'Created on ' : 'Erstellt am ') . (new \DateTime())->format('d.m.Y') . '</div>';
+		$h .= '<div class="meta">' . ($english ? 'Created on ' : 'Erstellt am ') . $this->clock->now()->format('d.m.Y') . '</div>';
 		$h .= '</header>';
 
 		if ($english) {

@@ -41,7 +41,7 @@ class InvoiceItemTemplateService {
 	 */
 	public function create(array $data): InvoiceItemTemplate {
 		$template = new InvoiceItemTemplate();
-		$template->setCreatedAt((new \DateTimeImmutable())->format(\DateTimeInterface::ATOM));
+		$template->setCreatedAt((new \DateTimeImmutable())->format(\DateTimeInterface::ATOM)); // UTC-Zeitstempel (#263)
 		$template->setCreatedBy($this->userSession->getUser()?->getUID() ?? 'system');
 		$this->apply($template, $data);
 		return $this->mapper->insert($template);

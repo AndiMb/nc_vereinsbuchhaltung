@@ -8,11 +8,12 @@
 		"kein echtes Typproblem im Code, siehe phpstan.neon."
 	],
 	"require": {
-		"nextcloud/ocp": "^30.0",
+		"nextcloud/ocp": "^33.0",
 		"phpunit/phpunit": "^10.5"
 	},
 	"require-dev": {
-		"phpstan/phpstan": "^2.2.5"
+		"phpstan/phpstan": "^2.2.5",
+		"phpstan/phpstan-deprecation-rules": "^2.0"
 	},
 	"config": {
 		"platform": {

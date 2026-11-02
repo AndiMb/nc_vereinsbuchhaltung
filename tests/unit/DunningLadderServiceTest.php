@@ -23,7 +23,7 @@ use OCA\Vereinsbuchhaltung\Service\EpcQrCodeGenerator;
 use OCA\Vereinsbuchhaltung\Service\RecipientL10n;
 use OCA\Vereinsbuchhaltung\Service\SepaDebtorAccountService;
 use OCP\AppFramework\Utility\ITimeFactory;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IUserManager;
 use OCP\Mail\IMailer;
@@ -68,7 +68,7 @@ class DunningLadderServiceTest extends TestCase {
 	 * Rücklastschriftgebühren-/Debitor-Konto eingestellt).
 	 */
 	private array $configStore = [];
-	private IConfig&MockObject $config;
+	private IAppConfig&MockObject $config;
 	private DunningSettings $settings;
 	private ContributionCycleSettings $cycleSettings;
 	private SepaDebtorAccountService $debtorAccount;
@@ -94,10 +94,11 @@ class DunningLadderServiceTest extends TestCase {
 		$this->notices = $this->createMock(DunningNoticeMapper::class);
 
 		$this->configStore = [];
-		$this->config = $this->createMock(IConfig::class);
-		$this->config->method('getAppValue')->willReturnCallback(fn (string $app, string $key, string $default = '') => array_key_exists($key, $this->configStore) ? $this->configStore[$key] : $default);
-		$this->config->method('setAppValue')->willReturnCallback(function (string $app, string $key, string $value): void {
+		$this->config = $this->createMock(IAppConfig::class);
+		$this->config->method('getValueString')->willReturnCallback(fn (string $app, string $key, string $default = '') => array_key_exists($key, $this->configStore) ? $this->configStore[$key] : $default);
+		$this->config->method('setValueString')->willReturnCallback(function (string $app, string $key, string $value): bool {
 			$this->configStore[$key] = $value;
+			return true;
 		});
 		$this->settings = new DunningSettings($this->config);
 		$this->cycleSettings = new ContributionCycleSettings($this->config);
@@ -305,6 +306,22 @@ class DunningLadderServiceTest extends TestCase {
 		$result = $this->service('2026-10-10')->runDaily();
 
 		$this->assertSame(0, $result['sent']);
+	}
+
+	/** Issue #263: der Mahnabstand zählt ab dem Vereinstag des Versands, nicht ab dem UTC-Tag. */
+	public function testRunDailyEskaliertAbDemVereinstagDesVersands(): void {
+		$item = $this->claim(1, 7);
+		$this->openItems->method('findClaims')->willReturn([$item]);
+		$this->setEligible(true);
+		$this->notices->method('findByOpenItemAndStage')->willReturnCallback(
+			fn (int $itemId, int $stage) => $stage === DunningNotice::STAGE_PAYMENT_REQUEST
+				? $this->notice(1, DunningNotice::STAGE_PAYMENT_REQUEST, '2026-06-30T22:30:00+00:00') // in Berlin der 01.07.
+				: null,
+		);
+		$this->mailer->method('send')->willReturn([]);
+
+		$this->assertSame(0, $this->service('2026-07-14')->runDaily()['sent']);
+		$this->assertSame(1, $this->service('2026-07-15')->runDaily()['sent']);
 	}
 
 	public function testGestundeteForderungFaelltWaehrendDerStundungKomplettAusDerPositionsliste(): void {

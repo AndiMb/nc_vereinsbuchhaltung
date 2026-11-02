@@ -700,6 +700,7 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Auswertungsgruppe nicht gefunden": "Reporting group not found",
 	"Nur Verwalter dürfen Beispieldaten anlegen.": "Only administrators may create sample data.",
 	"Nur Verwalter dürfen beim Import alle Daten löschen.": "Only administrators may delete all data during import.",
+	"Import mit Löschen aller Daten nur über die eigene Route mit Passwortbestätigung.": "An import that deletes all data is only possible through its own route with password confirmation.",
 	"Nur Verwalter dürfen alle Daten zurücksetzen.": "Only administrators may reset all data.",
 	"Offener Posten nicht gefunden": "Open item not found",
 	"Ungültiger Status.": "Invalid status.",

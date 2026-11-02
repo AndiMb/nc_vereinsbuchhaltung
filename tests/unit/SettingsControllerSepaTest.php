@@ -12,6 +12,7 @@ use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\AttachmentWatchFolderService;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCA\Vereinsbuchhaltung\Service\DemoDataService;
 use OCA\Vereinsbuchhaltung\Service\DunningSettings;
@@ -28,7 +29,7 @@ use OCA\Vereinsbuchhaltung\Service\SelfServiceService;
 use OCA\Vereinsbuchhaltung\Service\SepaDebtorAccountService;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\DataResponse;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IRequest;
 use OCP\IUserManager;
@@ -45,6 +46,7 @@ class SettingsControllerSepaTest extends TestCase {
 	private IRequest&MockObject $request;
 	/** @var array<string, string> */
 	private array $store = [];
+	private ?FrontendStateService $frontendState = null;
 
 	protected function setUp(): void {
 		$this->store = [];
@@ -52,10 +54,11 @@ class SettingsControllerSepaTest extends TestCase {
 	}
 
 	private function controller(?MemberMapper $members = null, ?AttachmentStorageService $attachmentStorage = null, ?AttachmentWatchFolderService $attachmentWatchFolder = null): SettingsController {
-		$config = $this->createMock(IConfig::class);
-		$config->method('getAppValue')->willReturnCallback(fn (string $app, string $key, string $default = '') => $this->store[$key] ?? $default);
-		$config->method('setAppValue')->willReturnCallback(function (string $app, string $key, string $value): void {
+		$config = $this->createMock(IAppConfig::class);
+		$config->method('getValueString')->willReturnCallback(fn (string $app, string $key, string $default = '') => $this->store[$key] ?? $default);
+		$config->method('setValueString')->willReturnCallback(function (string $app, string $key, string $value): bool {
 			$this->store[$key] = $value;
+			return true;
 		});
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(static fn (string $text, array $params = []) => vsprintf($text, $params));
@@ -79,7 +82,7 @@ class SettingsControllerSepaTest extends TestCase {
 		$reimbursementSettings = $this->createMock(ReimbursementSettings::class);
 		// Den Einstellungssatz der Antworten stellt seit Issue #264 der
 		// FrontendStateService zusammen – echt, mit denselben Abhängigkeiten.
-		$frontendState = new FrontendStateService(
+		$frontendState = $this->frontendState = new FrontendStateService(
 			$permissions,
 			$this->createMock(SelfServiceService::class),
 			$this->createMock(ReimbursementAccess::class),
@@ -271,5 +274,21 @@ class SettingsControllerSepaTest extends TestCase {
 		$this->update(['dunning_interval_days' => 30]);
 
 		$this->assertSame('45', $this->store['expiry_warning_days']);
+	}
+
+	/**
+	 * Issue #263: Die Oberfläche rechnet „heute“ in der Vereinszone. Den
+	 * Zonennamen liefern Einstellungssatz und – für Konten ohne Leserolle,
+	 * die keinen Einstellungssatz bekommen – auch `me`.
+	 */
+	public function testEinstellungssatzUndMeNennenDieVereinszone(): void {
+		ClubClock::configureZone('America/New_York');
+		try {
+			$data = $this->controller()->index()->getData();
+			$this->assertSame('America/New_York', $data['club_time_zone']);
+			$this->assertSame('America/New_York', $this->frontendState?->me()['clubTimeZone']);
+		} finally {
+			ClubClock::configureZone('');
+		}
 	}
 }

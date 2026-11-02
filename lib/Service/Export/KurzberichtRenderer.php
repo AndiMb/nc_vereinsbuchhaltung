@@ -9,9 +9,10 @@ use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Service\BrandingService;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\LedgerAggregator;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IURLGenerator;
 
@@ -34,9 +35,10 @@ class KurzberichtRenderer {
 		private BudgetMapper $budgetMapper,
 		private PeriodService $periods,
 		private BrandingService $branding,
-		private IConfig $config,
+		private IAppConfig $config,
 		private IURLGenerator $urlGenerator,
 		private IL10N $l10n,
+		private ClubClock $clock,
 	) {
 	}
 
@@ -56,10 +58,10 @@ class KurzberichtRenderer {
 	}
 
 	public function render(string $userId, ?string $since = null): string {
-		$today = date('Y-m-d');
+		$today = $this->clock->today();
 		$period = $this->periods->current($userId);
 		$since = $this->normalizeSince($since, $today, $period->getStartDate());
-		$beforeSince = date('Y-m-d', strtotime($since . ' -1 day'));
+		$beforeSince = (new \DateTimeImmutable($since))->modify('-1 day')->format('Y-m-d');
 
 		$accounts = $this->accountMapper->findAll($userId);
 		$moveSums = $this->lineMapper->sumByAccount($userId, $since, $today);
@@ -79,8 +81,8 @@ class KurzberichtRenderer {
 			$soll = LedgerAggregator::planActual($accounts, $periodMoveSums, $plan);
 		}
 
-		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '');
-		$accent = PrintableReportPage::accentColor($this->config->getAppValue(Application::APP_ID, 'brand_color', ''));
+		$clubName = $this->config->getValueString(Application::APP_ID, 'club_name', '');
+		$accent = PrintableReportPage::accentColor($this->config->getValueString(Application::APP_ID, 'brand_color', ''));
 		$logoUrl = $this->branding->hasLogo()
 			? $this->urlGenerator->linkToRoute('vereinsbuchhaltung.branding.view')
 			: null;

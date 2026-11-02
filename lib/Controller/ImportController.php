@@ -145,13 +145,35 @@ class ImportController extends Controller {
 		}
 	}
 
+	/**
+	 * xbuc-Import in den vorhandenen Bestand. Das Löschen aller Daten vorab
+	 * läuft nur über {@see xbucCommitWithReset()} mit Passwortbestätigung
+	 * (#260/#261); `reset=1` lehnt diese Route ab.
+	 */
 	#[NoAdminRequired]
 	public function xbucCommit(): DataResponse {
+		if (filter_var($this->request->getParam('reset', false), FILTER_VALIDATE_BOOLEAN)) {
+			return new DataResponse(['message' => $this->l10n->t('Import mit Löschen aller Daten nur über die eigene Route mit Passwortbestätigung.')], Http::STATUS_BAD_REQUEST);
+		}
+		return $this->runXbucImport(false);
+	}
+
+	/**
+	 * xbuc-Import, der vorher alle Daten löscht – dieselbe Absicherung wie
+	 * {@see reset()}: nur Verwalter, nur mit frisch bestätigtem Passwort.
+	 */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	#[PasswordConfirmationRequired]
+	public function xbucCommitWithReset(): DataResponse {
+		return $this->runXbucImport(true);
+	}
+
+	private function runXbucImport(bool $reset): DataResponse {
 		$upload = $this->readUpload();
 		if ($upload === null) {
 			return new DataResponse(['message' => $this->l10n->t('Keine Datei empfangen')], Http::STATUS_BAD_REQUEST);
 		}
-		$reset = filter_var($this->request->getParam('reset', false), FILTER_VALIDATE_BOOLEAN);
 		$clampDates = filter_var($this->request->getParam('clampDates', false), FILTER_VALIDATE_BOOLEAN);
 		if ($reset && !$this->permissionService->isAdmin()) {
 			return new DataResponse(['message' => $this->l10n->t('Nur Verwalter dürfen beim Import alle Daten löschen.')], Http::STATUS_FORBIDDEN);

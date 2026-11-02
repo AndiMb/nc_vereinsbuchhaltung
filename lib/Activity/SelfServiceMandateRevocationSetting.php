@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Activity;
 
-use OCP\Activity\ISetting;
+use OCP\Activity\ActivitySettings;
 use OCP\IL10N;
 
 /**
@@ -20,7 +20,7 @@ use OCP\IL10N;
  * die per `IEvent::setType()` entscheidet, welcher der beiden Typen ein
  * konkretes Ereignis bekommt).
  */
-class SelfServiceMandateRevocationSetting implements ISetting {
+class SelfServiceMandateRevocationSetting extends ActivitySettings {
 
 	public const TYPE = 'vereinsbuchhaltung_self_service_widerruf';
 
@@ -31,6 +31,14 @@ class SelfServiceMandateRevocationSetting implements ISetting {
 
 	public function getIdentifier(): string {
 		return self::TYPE;
+	}
+
+	public function getGroupIdentifier(): string {
+		return 'vereinsbuchhaltung';
+	}
+
+	public function getGroupName(): string {
+		return $this->l10n->t('Vereinsbuchhaltung');
 	}
 
 	public function getName(): string {

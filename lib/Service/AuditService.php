@@ -33,7 +33,7 @@ class AuditService {
 	public function log(string $action, ?string $objectType = null, ?int $objectId = null, array $details = [], ?string $actor = null): void {
 		// Zeitpunkt und Nutzer JETZT festhalten – geschrieben wird ggf. später,
 		// dann ist der Aufrufkontext ein anderer.
-		$ts = (new \DateTime())->format('Y-m-d H:i:s');
+		$ts = (new \DateTime())->format('Y-m-d H:i:s'); // UTC-Zeitstempel (#263)
 		$uid = $actor ?? $this->userSession->getUser()?->getUID() ?? '?';
 
 		// Erst nach dem Commit schreiben. Zwei Gründe:

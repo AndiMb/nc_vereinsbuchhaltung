@@ -9,7 +9,7 @@ use OCP\Files\File;
 use OCP\Files\Folder;
 use OCP\Files\IRootFolder;
 use OCP\Files\Node;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -39,12 +39,13 @@ class WatchFolderService {
 	private const MAX_BYTES = 20 * 1024 * 1024;
 
 	public function __construct(
-		private IConfig $config,
+		private IAppConfig $config,
 		private IRootFolder $rootFolder,
 		private ImportService $importService,
 		private AuditService $audit,
 		private RevisionService $revision,
 		private LoggerInterface $logger,
+		private ClubClock $clock,
 	) {
 	}
 
@@ -53,11 +54,11 @@ class WatchFolderService {
 	}
 
 	private function watchUser(): string {
-		return trim($this->config->getAppValue(Application::APP_ID, self::SETTING_USER, ''));
+		return trim($this->config->getValueString(Application::APP_ID, self::SETTING_USER, ''));
 	}
 
 	private function watchPath(): string {
-		return trim($this->config->getAppValue(Application::APP_ID, self::SETTING_PATH, ''), '/');
+		return trim($this->config->getValueString(Application::APP_ID, self::SETTING_PATH, ''), '/');
 	}
 
 	/**
@@ -74,8 +75,8 @@ class WatchFolderService {
 		if ($this->watchUser() !== $uid) {
 			return false;
 		}
-		$this->config->setAppValue(Application::APP_ID, self::SETTING_USER, '');
-		$this->config->setAppValue(Application::APP_ID, self::SETTING_PATH, '');
+		$this->config->setValueString(Application::APP_ID, self::SETTING_USER, '');
+		$this->config->setValueString(Application::APP_ID, self::SETTING_PATH, '');
 		return true;
 	}
 
@@ -206,7 +207,7 @@ class WatchFolderService {
 			if ($error !== null) {
 				$target->newFile(
 					$name . '.fehler.txt',
-					'Diese Datei konnte am ' . (new \DateTime())->format('d.m.Y H:i')
+					'Diese Datei konnte am ' . $this->clock->now()->format('d.m.Y H:i')
 					. ' nicht eingelesen werden:' . "\n\n" . $error . "\n\n"
 					. 'Die Datei wurde nicht verändert. Nach dem Beheben der Ursache kann sie '
 					. 'wieder in den Wachordner zurückgelegt werden.' . "\n"
@@ -226,7 +227,7 @@ class WatchFolderService {
 		if (!$target->nodeExists($name)) {
 			return $name;
 		}
-		return self::stampedName($name, (new \DateTime())->format('Ymd-His'));
+		return self::stampedName($name, $this->clock->now()->format('Ymd-His'));
 	}
 
 	/**

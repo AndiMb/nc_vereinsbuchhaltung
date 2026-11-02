@@ -3,6 +3,7 @@ import { computed, reactive } from 'vue'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
 import { t } from '../lib/l10n.js'
+import { createLatestRequest } from '../lib/latestRequest.js'
 import { isClaimItem } from '../lib/openItems.js'
 
 // Dieselbe Liste enthält freie Posten und die Forderungen des Beitragsmoduls
@@ -19,6 +20,11 @@ const state = reactive({
 
 const overdueCount = computed(() => state.openItemCounts.overdue || 0)
 
+// Auch bei gleichem Filter können zwei Aufrufe überholen (Abgleich mit fremden
+// Änderungen und Nachladen nach einer eigenen Aktion): nur der zuletzt
+// gestartete schreibt Liste und Zähler.
+const startOpenItemsLoad = createLatestRequest()
+
 // Status je Filter-Chip: „Überfällig“ ist eine Teilmenge von „Offen“ und wird in der
 // Ansicht weiter gefiltert; „Alle“ lädt ohne Statusfilter.
 function statusForFilter(filterKey) {
@@ -29,16 +35,20 @@ function statusForFilter(filterKey) {
 
 async function loadOpenItems(filterKey = state.openItemFilterKey) {
 	state.openItemFilterKey = filterKey
+	const isCurrent = startOpenItemsLoad()
 	try {
 		const [list, counts] = await Promise.all([
 			api.listOpenItems(statusForFilter(filterKey)),
 			api.getOpenItemCounts(),
 		])
-		// Ein später abgeschlossener, älterer Aufruf darf den neueren Filter nicht überschreiben.
-		if (state.openItemFilterKey !== filterKey) { return }
+		// Ein später abgeschlossener, älterer Aufruf darf den neueren Stand nicht überschreiben.
+		if (!isCurrent()) { return }
 		state.openItems = list.data
 		state.openItemCounts = counts.data
-	} catch (e) { showError(errMsg(e, t('Offene Posten konnten nicht geladen werden'))) }
+	} catch (e) {
+		if (!isCurrent()) { return }
+		showError(errMsg(e, t('Offene Posten konnten nicht geladen werden')))
+	}
 }
 
 export function useOpenItems() {

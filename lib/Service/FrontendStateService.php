@@ -9,7 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetSnapshotMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
-use OCP\IConfig;
+use OCP\IAppConfig;
 
 /**
  * Die drei Antworten, mit denen die Oberfläche startet: eigene Rolle (`me`),
@@ -45,7 +45,7 @@ class FrontendStateService {
 		private JournalMapper $journalMapper,
 		private BudgetMapper $budgetMapper,
 		private BudgetSnapshotMapper $snapshotMapper,
-		private IConfig $config,
+		private IAppConfig $config,
 		private DemoDataService $demoService,
 		private MemberMapper $memberMapper,
 		private SepaDebtorAccountService $sepaDebtorAccount,
@@ -73,6 +73,10 @@ class FrontendStateService {
 		// Auslagenerstattung: steuert den Unterreiter „Auslagen“ unter „Mein Bereich“ und den Reiter
 		// in der Verwaltungssicht, siehe ReimbursementAccess.
 		$data['reimbursement'] = $this->reimbursementAccess->describeCurrent();
+		// Zeitzone des Vereins (#263): die Oberfläche rechnet „heute“ darin.
+		// Hier statt nur in settings(), weil Konten ohne Leserolle („Mein
+		// Bereich“) keinen Einstellungssatz bekommen.
+		$data['clubTimeZone'] = ClubClock::zone()->getName();
 		return $data;
 	}
 
@@ -132,26 +136,28 @@ class FrontendStateService {
 		// Pflicht), ein Mitglied genügt deshalb als Kriterium; bestehende
 		// Installationen zeigen den Reiter dadurch ohne Migration sofort
 		// (siehe NAVIGATION-KONZEPT.md Abschnitt 4).
-		$stored = $this->config->getAppValue(Application::APP_ID, 'membership_enabled', '');
+		$stored = $this->config->getValueString(Application::APP_ID, 'membership_enabled', '');
 		$membershipEnabled = $stored === '' ? $this->memberMapper->count() > 0 : $stored === '1';
 		return [
 			'storage_mode' => $this->attachmentStorage->mode(),
-			'storage_user' => $this->config->getAppValue(Application::APP_ID, AttachmentStorageService::SETTING_USER, ''),
-			'storage_path' => $this->config->getAppValue(Application::APP_ID, AttachmentStorageService::SETTING_PATH, AttachmentStorageService::DEFAULT_PATH),
-			'cost_center_mode' => $this->config->getAppValue(Application::APP_ID, 'cost_center_mode', 'group'),
+			'storage_user' => $this->config->getValueString(Application::APP_ID, AttachmentStorageService::SETTING_USER, ''),
+			'storage_path' => $this->config->getValueString(Application::APP_ID, AttachmentStorageService::SETTING_PATH, AttachmentStorageService::DEFAULT_PATH),
+			'cost_center_mode' => $this->config->getValueString(Application::APP_ID, 'cost_center_mode', 'group'),
 			'amount_display' => $this->amountDisplay(),
-			'club_name' => $this->config->getAppValue(Application::APP_ID, 'club_name', ''),
-			'brand_color' => $this->config->getAppValue(Application::APP_ID, 'brand_color', ''),
-			'has_logo' => $this->config->getAppValue(Application::APP_ID, 'brand_logo_mime', '') !== '',
+			'club_name' => $this->config->getValueString(Application::APP_ID, 'club_name', ''),
+			// Nur lesbar: Zeitzone des Vereins (Server-Zeitzone, sonst Europe/Berlin, #263).
+			'club_time_zone' => ClubClock::zone()->getName(),
+			'brand_color' => $this->config->getValueString(Application::APP_ID, 'brand_color', ''),
+			'has_logo' => $this->config->getValueString(Application::APP_ID, 'brand_logo_mime', '') !== '',
 			'demo_active' => $this->demoService->isActive(),
-			'statement_watch_user' => $this->config->getAppValue(Application::APP_ID, WatchFolderService::SETTING_USER, ''),
-			'statement_watch_path' => $this->config->getAppValue(Application::APP_ID, WatchFolderService::SETTING_PATH, ''),
-			'sepa_creditor_id' => $this->config->getAppValue(Application::APP_ID, 'sepa_creditor_id', ''),
+			'statement_watch_user' => $this->config->getValueString(Application::APP_ID, WatchFolderService::SETTING_USER, ''),
+			'statement_watch_path' => $this->config->getValueString(Application::APP_ID, WatchFolderService::SETTING_PATH, ''),
+			'sepa_creditor_id' => $this->config->getValueString(Application::APP_ID, 'sepa_creditor_id', ''),
 			'sepa_debtor_account_id' => $this->sepaDebtorAccount->getAccountId(),
 			'membership_enabled' => $membershipEnabled,
 			'membership_active' => $membershipEnabled,
 			// Mandats-Lifecycle (Issue #66, Spec §4 „Neue Einstellungen"):
-			'mandate_reference_prefix' => $this->config->getAppValue(Application::APP_ID, MandateService::SETTING_REFERENCE_PREFIX, MandateReferenceGenerator::DEFAULT_PREFIX),
+			'mandate_reference_prefix' => $this->config->getValueString(Application::APP_ID, MandateService::SETTING_REFERENCE_PREFIX, MandateReferenceGenerator::DEFAULT_PREFIX),
 			'mandate_document_folder' => $this->mandateDocuments->folderPath(),
 			'show_missing_document_warning' => $this->mandateDocuments->showMissingDocumentWarning(),
 			// Ablauf-Vorwarnung (Spec §4 expiry_warning_days) und Mahnabstand
@@ -164,9 +170,9 @@ class FrontendStateService {
 			'fiscal_year_start_month' => $this->contributionYear->getStartMonth(),
 			// Self-Service-Zugang (Spec §3.4): einfacher Bool-Schalter, nur ab
 			// Verwalter änderbar (siehe update(), RequiresRole ROLE_ADMIN).
-			'self_service_enabled' => $this->config->getAppValue(Application::APP_ID, SelfServiceService::SETTING_ENABLED, '0') === '1',
+			'self_service_enabled' => $this->config->getValueString(Application::APP_ID, SelfServiceService::SETTING_ENABLED, '0') === '1',
 			// Zusatzschalter, siehe SelfServiceService::canSwitchToTransfer(). Standard aus.
-			'self_service_transfer_switch_enabled' => $this->config->getAppValue(Application::APP_ID, SelfServiceService::SETTING_TRANSFER_SWITCH, '0') === '1',
+			'self_service_transfer_switch_enabled' => $this->config->getValueString(Application::APP_ID, SelfServiceService::SETTING_TRANSFER_SWITCH, '0') === '1',
 			// Auslagenerstattung (docs/reimbursement-design.md §2): Schalter, nötige Freigaben N
 			// und die Zahl der Verwalter, die zur Wahl von N passen muss (N+1).
 			'reimbursement_enabled' => $this->reimbursementSettings->isEnabled(),
@@ -176,7 +182,7 @@ class FrontendStateService {
 
 	/** Gespeicherte Betragsdarstellung; ein unbekannter Wert gilt als Standard. */
 	private function amountDisplay(): string {
-		$display = $this->config->getAppValue(Application::APP_ID, 'amount_display', 'plain');
+		$display = $this->config->getValueString(Application::APP_ID, 'amount_display', 'plain');
 		return in_array($display, self::AMOUNT_DISPLAYS, true) ? $display : 'plain';
 	}
 }

@@ -8,7 +8,7 @@ use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceService;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IUser;
 use OCP\IUserSession;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -25,12 +25,12 @@ class SelfServiceServiceTest extends TestCase {
 
 	private const UID = 'kassenwart';
 
-	private IConfig&MockObject $config;
+	private IAppConfig&MockObject $config;
 	private MemberMapper&MockObject $memberMapper;
 	private IUserSession&MockObject $userSession;
 
 	protected function setUp(): void {
-		$this->config = $this->createMock(IConfig::class);
+		$this->config = $this->createMock(IAppConfig::class);
 		$this->memberMapper = $this->createMock(MemberMapper::class);
 		$this->userSession = $this->createMock(IUserSession::class);
 	}
@@ -46,7 +46,7 @@ class SelfServiceServiceTest extends TestCase {
 	}
 
 	public function testIsEnabledLiestAppEinstellung(): void {
-		$this->config->method('getAppValue')
+		$this->config->method('getValueString')
 			->with(Application::APP_ID, 'self_service_enabled', '0')
 			->willReturn('1');
 
@@ -54,13 +54,13 @@ class SelfServiceServiceTest extends TestCase {
 	}
 
 	public function testIsEnabledDefaultAusOhneEinstellung(): void {
-		$this->config->method('getAppValue')->willReturn('0');
+		$this->config->method('getValueString')->willReturn('0');
 
 		$this->assertFalse($this->service()->isEnabled());
 	}
 
 	public function testCanSwitchToTransferBrauchtBeideSchalter(): void {
-		$this->config->method('getAppValue')->willReturnCallback(
+		$this->config->method('getValueString')->willReturnCallback(
 			static fn (string $app, string $key, string $default = '') => $key === 'self_service_enabled' || $key === 'self_service_transfer_switch_enabled' ? '1' : $default,
 		);
 
@@ -68,7 +68,7 @@ class SelfServiceServiceTest extends TestCase {
 	}
 
 	public function testCanSwitchToTransferIstOhneSelfServiceAusAuchWennDerZusatzschalterAnIst(): void {
-		$this->config->method('getAppValue')->willReturnCallback(
+		$this->config->method('getValueString')->willReturnCallback(
 			static fn (string $app, string $key, string $default = '') => $key === 'self_service_transfer_switch_enabled' ? '1' : $default,
 		);
 
@@ -76,7 +76,7 @@ class SelfServiceServiceTest extends TestCase {
 	}
 
 	public function testCanSwitchToTransferIstStandardmaessigAus(): void {
-		$this->config->method('getAppValue')->willReturnCallback(
+		$this->config->method('getValueString')->willReturnCallback(
 			static fn (string $app, string $key, string $default = '') => $key === 'self_service_enabled' ? '1' : $default,
 		);
 
@@ -104,14 +104,14 @@ class SelfServiceServiceTest extends TestCase {
 		$member = new Member();
 		$member->setId(3);
 		$this->memberMapper->method('findByNcUserId')->willReturn($member);
-		$this->config->method('getAppValue')->willReturn('1');
+		$this->config->method('getValueString')->willReturn('1');
 
 		$this->assertTrue($this->service()->hasAccess());
 	}
 
 	/**
 	 * Eigener Mock statt Umkonfigurieren des bestehenden: ein zweites
-	 * ->method('getAppValue')->willReturn() auf demselben Mock würde die
+	 * ->method('getValueString')->willReturn() auf demselben Mock würde die
 	 * erste Konfiguration nicht ersetzen, sondern PHPUnit matcht weiter die
 	 * zuerst registrierte Rückgabe - der Fehler fiele hier nicht auf, weil
 	 * beide Werte zufällig zum falschen Ergebnis "Zugriff" führen könnten.
@@ -121,20 +121,20 @@ class SelfServiceServiceTest extends TestCase {
 		$member = new Member();
 		$member->setId(3);
 		$this->memberMapper->method('findByNcUserId')->willReturn($member);
-		$this->config->method('getAppValue')->willReturn('0');
+		$this->config->method('getValueString')->willReturn('0');
 
 		$this->assertFalse($this->service()->hasAccess());
 	}
 
 	public function testHasAccessOhneVerknuepfungImmerFalse(): void {
 		$this->userSession->method('getUser')->willReturn(null);
-		$this->config->method('getAppValue')->willReturn('1');
+		$this->config->method('getValueString')->willReturn('1');
 
 		$this->assertFalse($this->service()->hasAccess());
 	}
 
 	public function testDescribeCurrentOhneEinstellungFragtMitgliedNichtAb(): void {
-		$this->config->method('getAppValue')->willReturn('0');
+		$this->config->method('getValueString')->willReturn('0');
 		$this->memberMapper->expects($this->never())->method('findByNcUserId');
 
 		$this->assertSame(['available' => false, 'memberId' => null], $this->service()->describeCurrent());
@@ -145,7 +145,7 @@ class SelfServiceServiceTest extends TestCase {
 		$member = new Member();
 		$member->setId(42);
 		$this->memberMapper->method('findByNcUserId')->willReturn($member);
-		$this->config->method('getAppValue')->willReturn('1');
+		$this->config->method('getValueString')->willReturn('1');
 
 		$this->assertSame(['available' => true, 'memberId' => 42], $this->service()->describeCurrent());
 	}

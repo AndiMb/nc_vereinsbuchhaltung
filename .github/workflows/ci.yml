@@ -277,7 +277,7 @@ jobs:
 
       - name: App-Abhaengigkeiten installieren
         # Der Testserver mountet das Checkout als App-Verzeichnis;
-        # Application::register() laedt dessen vendor/autoload.php (Nextcloud
+        # Application::loadComposerAutoloader() laedt bei Bedarf dessen vendor/autoload.php (Nextcloud
         # selbst tut das nicht). Ohne vendor/ fehlt chillerlan/php-qrcode
         # (Issue #73, GiroCode-Anhang der Mahnwesen-Mails): Spec 47 prueft
         # dann rot, dass die Mails ohne GiroCode rausgehen (Issue #120).

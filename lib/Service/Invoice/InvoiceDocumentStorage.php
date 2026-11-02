@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\InvoiceDocument;
 use OCA\Vereinsbuchhaltung\Db\InvoiceDocumentMapper;
 use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
 use OCA\Vereinsbuchhaltung\Service\SafeFileName;
 use OCP\Files\AppData\IAppDataFactory;
@@ -44,6 +45,7 @@ class InvoiceDocumentStorage {
 		private InvoiceSettings $settings,
 		private InvoiceDocumentMapper $documents,
 		private IL10N $l10n,
+		private ClubClock $clock,
 	) {
 		$this->appData = $appDataFactory->get(Application::APP_ID);
 	}
@@ -68,12 +70,12 @@ class InvoiceDocumentStorage {
 		$doc->setFileName($fileName);
 		$doc->setSha256(hash('sha256', $content));
 		$doc->setProfile($profile);
-		$doc->setGeneratedAt((new \DateTimeImmutable())->format(\DateTimeInterface::ATOM));
+		$doc->setGeneratedAt((new \DateTimeImmutable())->format(\DateTimeInterface::ATOM)); // UTC-Zeitstempel (#263)
 		$doc->setFileId(0);
 
 		$user = $this->attachmentStorage->storageUser();
 		if ($user !== '') {
-			$year = substr((string)($invoice->getIssueDate() ?? date('Y-m-d')), 0, 4);
+			$year = substr((string)($invoice->getIssueDate() ?? $this->clock->today()), 0, 4);
 			$folder = $this->ensureFolder($this->rootFolder->getUserFolder($user), $this->settings->folder() . '/' . $year);
 			$file = $folder->newFile($folder->getNonExistingName($fileName));
 			$file->putContent($content);

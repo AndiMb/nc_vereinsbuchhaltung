@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 
 /**
@@ -13,7 +13,7 @@ use OCP\IL10N;
  * „Vorwarnfenster", D−14 „Vorabinfo-Vorlauf" (Issue #70) und D−5
  * „Vorlauf-Puffer" (Issue #71, Spec §8 Compliance-Anhang: „Vorlagefrist D-1
  * bis D-14 … Vorlauf-Puffer konfigurierbar (Default 5 Tage)"). Bewusst eine
- * eigene, winzige Klasse statt verstreuter `getAppValue()`-Aufrufe je
+ * eigene, winzige Klasse statt verstreuter `getValueString()`-Aufrufe je
  * Nutzstelle – {@see ClaimGenerationService} (Generierungs-Horizont),
  * {@see ContributionPreNotificationService} (Versandfenster),
  * {@see ContributionCycleTaskService} (Vorwarn-Aufgabe) und
@@ -44,7 +44,7 @@ final class ContributionCycleSettings {
 	private const MAX_DAYS = 365;
 
 	public function __construct(
-		private IConfig $config,
+		private IAppConfig $config,
 		private ?IL10N $l10n = null,
 	) {
 	}
@@ -78,7 +78,7 @@ final class ContributionCycleSettings {
 	}
 
 	private function readDays(string $key, int $default): int {
-		$stored = (int)$this->config->getAppValue(Application::APP_ID, $key, (string)$default);
+		$stored = (int)$this->config->getValueString(Application::APP_ID, $key, (string)$default);
 		return $stored >= self::MIN_DAYS && $stored <= self::MAX_DAYS ? $stored : $default;
 	}
 
@@ -86,6 +86,6 @@ final class ContributionCycleSettings {
 		if ($days < self::MIN_DAYS || $days > self::MAX_DAYS) {
 			throw new \InvalidArgumentException($this->msg('Der Wert muss zwischen %1$d und %2$d Tagen liegen.', [self::MIN_DAYS, self::MAX_DAYS]));
 		}
-		$this->config->setAppValue(Application::APP_ID, $key, (string)$days);
+		$this->config->setValueString(Application::APP_ID, $key, (string)$days);
 	}
 }

@@ -134,7 +134,7 @@ class AttachmentController extends Controller {
 		$attachment->setFileName(basename($upload['name']));
 		$attachment->setMimeType($detectedMime);
 		$attachment->setFileSize((int)$upload['size']);
-		$attachment->setUploadedAt(new \DateTime());
+		$attachment->setUploadedAt(new \DateTime()); // UTC-Zeitstempel (#263)
 		$attachment = $this->attachmentMapper->insert($attachment);
 
 		try {

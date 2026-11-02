@@ -9,7 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCP\AppFramework\Db\DoesNotExistException;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IURLGenerator;
 use OCP\Mail\IMailer;
@@ -38,7 +38,7 @@ class WelcomeMailService {
 	private const MAX_BODY = 8000;
 
 	public function __construct(
-		private IConfig $config,
+		private IAppConfig $config,
 		private IMailer $mailer,
 		private IURLGenerator $urlGenerator,
 		private IL10N $l10n,
@@ -54,8 +54,8 @@ class WelcomeMailService {
 	 * @return array{subject:string, body:string, isDefault:bool, placeholders:list<string>}
 	 */
 	public function template(): array {
-		$subject = trim($this->config->getAppValue(Application::APP_ID, self::KEY_SUBJECT, ''));
-		$body = trim($this->config->getAppValue(Application::APP_ID, self::KEY_BODY, ''));
+		$subject = trim($this->config->getValueString(Application::APP_ID, self::KEY_SUBJECT, ''));
+		$body = trim($this->config->getValueString(Application::APP_ID, self::KEY_BODY, ''));
 		$default = $this->defaultTemplate();
 		return [
 			'subject' => $subject !== '' ? $subject : $default['subject'],
@@ -74,13 +74,13 @@ class WelcomeMailService {
 		$subject = trim($subject);
 		$body = trim($body);
 		if ($subject === '' && $body === '') {
-			$this->config->deleteAppValue(Application::APP_ID, self::KEY_SUBJECT);
-			$this->config->deleteAppValue(Application::APP_ID, self::KEY_BODY);
+			$this->config->deleteKey(Application::APP_ID, self::KEY_SUBJECT);
+			$this->config->deleteKey(Application::APP_ID, self::KEY_BODY);
 			return;
 		}
 		$this->validate($subject, $body);
-		$this->config->setAppValue(Application::APP_ID, self::KEY_SUBJECT, $subject);
-		$this->config->setAppValue(Application::APP_ID, self::KEY_BODY, $body);
+		$this->config->setValueString(Application::APP_ID, self::KEY_SUBJECT, $subject);
+		$this->config->setValueString(Application::APP_ID, self::KEY_BODY, $body);
 	}
 
 	/**
@@ -164,7 +164,7 @@ class WelcomeMailService {
 
 	/** @return array<string,string> */
 	private function values(Member $member): array {
-		$club = trim($this->config->getAppValue(Application::APP_ID, 'club_name', ''));
+		$club = trim($this->config->getValueString(Application::APP_ID, 'club_name', ''));
 		$name = $member->displayName();
 		return [
 			'name' => $name,

@@ -85,4 +85,27 @@ describe('loadOpenItems', () => {
 		expect(showError).toHaveBeenCalledWith('Keine Leseberechtigung.')
 		expect(state.openItems.map((o) => o.id)).toEqual([1])
 	})
+
+	// Zwei Ladevorgänge mit DEMSELBEN Filter (Abgleich mit fremden Änderungen
+	// und Nachladen nach „bezahlt“): Der zuerst gestellte, aber zuletzt
+	// beantwortete darf Liste und Zähler nicht auf den alten Stand setzen.
+	it('verwirft bei gleichem Filter die verspätete Antwort des älteren Aufrufs', async () => {
+		const lists = []
+		const counts = []
+		listOpenItems.mockImplementation(() => new Promise((resolve) => { lists.push(resolve) }))
+		getOpenItemCounts.mockImplementation(() => new Promise((resolve) => { counts.push(resolve) }))
+
+		const older = loadOpenItems('open')
+		const newer = loadOpenItems('open')
+		lists[1]({ data: [] })
+		counts[1]({ data: { open: 0, overdue: 0, paid: 1, waived: 0, cancelled: 0, all: 1 } })
+		await newer
+		lists[0]({ data: [free(1)] })
+		counts[0]({ data: { open: 1, overdue: 0, paid: 0, waived: 0, cancelled: 0, all: 1 } })
+		await older
+
+		expect(state.openItems).toEqual([])
+		expect(state.openItemCounts.paid).toBe(1)
+		expect(state.openItemCounts.open).toBe(0)
+	})
 })

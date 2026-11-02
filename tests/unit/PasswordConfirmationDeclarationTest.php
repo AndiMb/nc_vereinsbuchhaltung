@@ -22,6 +22,7 @@ class PasswordConfirmationDeclarationTest extends TestCase {
 	public static function destructiveActions(): array {
 		return [
 			'Alle Daten zurücksetzen' => [ImportController::class, 'reset'],
+			'xbuc-Import mit Löschen aller Daten' => [ImportController::class, 'xbucCommitWithReset'],
 			'Rolle vergeben' => [PermissionController::class, 'setRole'],
 			'Rolle entziehen' => [PermissionController::class, 'destroy'],
 		];

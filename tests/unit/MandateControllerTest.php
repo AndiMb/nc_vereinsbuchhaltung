@@ -16,9 +16,10 @@ use OCA\Vereinsbuchhaltung\Service\MandateLegalTextService;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
 use OCA\Vereinsbuchhaltung\Service\OpenItemService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IRequest;
 use OCP\IUserSession;
@@ -69,9 +70,10 @@ class MandateControllerTest extends TestCase {
 			$this->openItems,
 			$this->permissions,
 			$session,
-			$this->createMock(IConfig::class),
+			$this->createMock(IAppConfig::class),
 			$l10n,
 			$this->createMock(LoggerInterface::class),
+			ClubClockStub::system(),
 		);
 	}
 
@@ -332,5 +334,24 @@ class MandateControllerTest extends TestCase {
 
 		$this->assertSame(Http::STATUS_BAD_REQUEST, $this->controller()->sendReconfirmationLink(7)->getStatus());
 		$this->assertSame(Http::STATUS_BAD_GATEWAY, $this->controller()->sendReconfirmationLink(7)->getStatus());
+	}
+
+	public function testZustimmungsvermerkNenntDieUhrzeitInDerVereinszone(): void {
+		// Issue #263: Unterschriftsdatum ist der Vereinstag (02.11., MEZ =
+		// UTC+1); der Vermerk darf nicht den UTC-Zeitpunkt vom 01.11. drucken.
+		\OCA\Vereinsbuchhaltung\Service\ClubClock::configureZone('Europe/Berlin');
+		$mandate = $this->mandate(Mandate::STATUS_ACTIVE, Mandate::SIGNATURE_ELECTRONIC, '2026-11-02');
+		$mandate->setConsentAt('2026-11-01 23:30:00');
+		$mandate->setConsentIp('203.0.113.7');
+		$this->service->method('find')->with(7)->willReturn($mandate);
+
+		$html = $this->controller()->form(7)->render();
+
+		$this->assertStringContainsString('Elektronisch bestätigt am 02.11.2026, 00:30 Uhr (Europe/Berlin) (IP 203.0.113.7)', $html);
+		$this->assertStringNotContainsString('2026-11-01 23:30:00', $html);
+	}
+
+	protected function tearDown(): void {
+		\OCA\Vereinsbuchhaltung\Service\ClubClock::configureZone('');
 	}
 }

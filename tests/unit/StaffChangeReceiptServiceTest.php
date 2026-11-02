@@ -11,6 +11,7 @@ use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceReceiptMailService;
 use OCA\Vereinsbuchhaltung\Service\StaffChangeReceiptService;
+use OCP\Config\IUserConfig;
 use OCP\IConfig;
 use OCP\IL10N;
 use OCP\IUser;
@@ -31,6 +32,7 @@ class StaffChangeReceiptServiceTest extends TestCase {
 	private ContributionGroupMapper&MockObject $groups;
 	private IUserManager&MockObject $userManager;
 	private IConfig&MockObject $config;
+	private IUserConfig&MockObject $userConfig;
 	private IFactory&MockObject $l10nFactory;
 	private LoggerInterface&MockObject $logger;
 
@@ -40,6 +42,7 @@ class StaffChangeReceiptServiceTest extends TestCase {
 		$this->groups = $this->createMock(ContributionGroupMapper::class);
 		$this->userManager = $this->createMock(IUserManager::class);
 		$this->config = $this->createMock(IConfig::class);
+		$this->userConfig = $this->createMock(IUserConfig::class);
 		$this->l10nFactory = $this->createMock(IFactory::class);
 		$this->logger = $this->createMock(LoggerInterface::class);
 	}
@@ -52,7 +55,7 @@ class StaffChangeReceiptServiceTest extends TestCase {
 	}
 
 	private function service(): StaffChangeReceiptService {
-		return new StaffChangeReceiptService($this->receiptMail, $this->members, $this->groups, $this->userManager, $this->config, $this->l10nFactory, $this->l10n(), $this->logger);
+		return new StaffChangeReceiptService($this->receiptMail, $this->members, $this->groups, $this->userManager, $this->config, $this->l10nFactory, $this->l10n(), $this->logger, $this->userConfig);
 	}
 
 	private function member(?string $email = 'katrin@example.org', ?string $ncUserId = null): Member {
@@ -180,7 +183,7 @@ class StaffChangeReceiptServiceTest extends TestCase {
 		$user = $this->createMock(IUser::class);
 		$user->method('getEMailAddress')->willReturn('konto@example.org');
 		$this->userManager->method('get')->willReturn($user);
-		$this->config->method('getUserValue')->with('katrin.b', 'core', 'lang', '')->willReturn('en');
+		$this->userConfig->method('getValueString')->with('katrin.b', 'core', 'lang', '')->willReturn('en');
 		$memberL10n = $this->l10n('EN: ');
 		$this->l10nFactory->expects($this->once())->method('get')->with('vereinsbuchhaltung', 'en')->willReturn($memberL10n);
 		$this->receiptMail->expects($this->once())->method('sendReceipt')->with(

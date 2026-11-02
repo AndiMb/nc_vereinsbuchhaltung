@@ -33,6 +33,11 @@
    Ausnahme .vbh-subtabs: die Klasse sitzt am Umschliesser, nicht am Knopf, der
    Test findet sie deshalb nicht - diese Stelle ist von Hand zu pflegen. */
 
+/* Mount-Div aus templates/main.php (#265: dort ohne style-Attribut). #content ist
+   in Nextcloud ein Flex-Container: ohne width/flex/min-width wäre das Div
+   inhaltsbestimmt breit (Tabellen wachsen über den Viewport hinaus). */
+#vereinsbuchhaltung-app { height: 100%; width: 100%; min-width: 0; max-width: 100%; flex: 1 1 0; }
+
 /* Wurzel: direktes Flex-Item von Nextclouds #content (Vue ersetzt das Mount-Div).
    width/flex/min-width/max-width verhindern, dass die App inhaltsbestimmt breiter
    als der Viewport wird — Tabellenbreite hängt sonst an dieser Kette. */
@@ -115,7 +120,7 @@
 
 .vbh-tabs.vbh-tabs button:hover { background-color: var(--color-background-hover); }
 
-.vbh-tabs.vbh-tabs button.active { background-color: var(--color-primary-element); color: var(--color-primary-element-text); box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+.vbh-tabs.vbh-tabs button.active { background-color: var(--color-primary-element); color: var(--color-primary-element-text); box-shadow: 0 1px 3px var(--color-box-shadow); }
 
 .vbh-main { flex: 1 1 auto; min-height: 0; min-width: 0; display: flex; }
 
@@ -728,7 +733,7 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
    bleibt sie beim Markieren weit unten in der Liste sichtbar. Nur so breit wie
    ihr Inhalt und mittig: über die volle Breite verdeckte sie die Kästchen der
    untersten sichtbaren Zeile, genau dort, wo man weiter markiert. */
-.vbh-bulkbar { position: sticky; bottom: 0; z-index: 3; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; width: fit-content; max-width: 100%; box-sizing: border-box; margin: 8px auto; padding: 8px 12px;border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); background-color: var(--color-main-background); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2); }
+.vbh-bulkbar { position: sticky; bottom: 0; z-index: 3; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; width: fit-content; max-width: 100%; box-sizing: border-box; margin: 8px auto; padding: 8px 12px;border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); background-color: var(--color-main-background); box-shadow: 0 4px 16px var(--color-box-shadow); }
 
 .vbh-bulkbar-count { font-weight: 600; }
 
@@ -759,13 +764,13 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 /* Tags */
 .vbh-typetag { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 0.82em; background-color: var(--color-background-dark); color: var(--color-main-text); }
 
-.vbh-typetag.income { background-color: rgba(45, 125, 70, 0.25); }
+.vbh-typetag.income { background-color: color-mix(in srgb, var(--color-success) 25%, transparent); }
 
-.vbh-typetag.expense { background-color: rgba(199, 60, 60, 0.25); }
+.vbh-typetag.expense { background-color: color-mix(in srgb, var(--color-error) 25%, transparent); }
 
-.vbh-typetag.paid { background-color: rgba(45, 125, 70, 0.25); }
+.vbh-typetag.paid { background-color: color-mix(in srgb, var(--color-success) 25%, transparent); }
 
-.vbh-typetag.cancelled { background-color: rgba(150, 150, 150, 0.25); }
+.vbh-typetag.cancelled { background-color: color-mix(in srgb, var(--color-text-maxcontrast) 25%, transparent); }
 
 .vbh-chip.vbh-chip { display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: 15px; background: var(--color-main-background); color: var(--color-main-text); font-size: 0.85em; cursor: pointer; }
 
@@ -1048,7 +1053,7 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-modal-actions--sticky { position: sticky; bottom: 0; z-index: 2; margin: 16px -24px 0; padding: 12px 24px 20px; border-top: 1px solid transparent; background-color: var(--color-main-background); transition: box-shadow 0.15s ease, border-color 0.15s ease; }
 
-.vbh-modal-actions--sticky.is-stuck { border-top-color: var(--color-border); box-shadow: 0 -8px 12px -8px rgba(0, 0, 0, 0.25); }
+.vbh-modal-actions--sticky.is-stuck { border-top-color: var(--color-border); box-shadow: 0 -8px 12px -8px var(--color-box-shadow); }
 
 /* Belegauswahl als Seitenleiste neben dem Formular statt als zweiter Dialog
    darueber (BookingDialog.vue, .is-split nur am Desktop).
@@ -1415,7 +1420,7 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-bottomnav-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.vbh-fab.vbh-fab { position: absolute; inset-inline-end: 14px; bottom: calc(100% + 14px); width: 52px; height: 52px; border-radius: 50%; border: none; margin: 0; padding: 0; background-color: var(--color-primary-element); color: var(--color-primary-element-text); display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3); cursor: pointer; z-index: 21; }
+.vbh-fab.vbh-fab { position: absolute; inset-inline-end: 14px; bottom: calc(100% + 14px); width: 52px; height: 52px; border-radius: 50%; border: none; margin: 0; padding: 0; background-color: var(--color-primary-element); color: var(--color-primary-element-text); display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 10px var(--color-box-shadow); cursor: pointer; z-index: 21; }
 
 .vbh-fab.vbh-fab:hover, .vbh-fab.vbh-fab:focus { background-color: var(--color-primary-element-hover); }
 
@@ -1428,7 +1433,7 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-fabscrim { position: fixed; inset: 0; z-index: 20; }
 
-.vbh-fabmenu { position: absolute; inset-inline-end: 14px; bottom: calc(100% + 78px); z-index: 22; margin: 0; padding: 6px; list-style: none; min-width: 220px; background: var(--color-main-background); border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3); }
+.vbh-fabmenu { position: absolute; inset-inline-end: 14px; bottom: calc(100% + 78px); z-index: 22; margin: 0; padding: 6px; list-style: none; min-width: 220px; background: var(--color-main-background); border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); box-shadow: 0 4px 14px var(--color-box-shadow); }
 
 .vbh-fabmenu button { width: 100%; display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: none; border-radius: var(--border-radius, 8px); background: transparent; color: var(--color-main-text); font-size: 1em; text-align: start; cursor: pointer; min-height: 44px; }
 
@@ -1501,9 +1506,9 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 /* ---- Mobil: Kontoauswahl als Bottom-Sheet ---- */
 .vbh-sheetwrap { position: fixed; inset: 0; z-index: 12000; }
 
-.vbh-sheet-scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.45); }
+.vbh-sheet-scrim { position: absolute; inset: 0; background: rgba(var(--color-box-shadow-rgb), 0.45); }
 
-.vbh-sheet { position: absolute; inset-inline: 0; bottom: 0; max-height: 78vh; display: flex; flex-direction: column; background-color: var(--color-main-background); border-radius: 16px 16px 0 0; padding: 4px 14px calc(10px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -6px 30px rgba(0, 0, 0, 0.3); }
+.vbh-sheet { position: absolute; inset-inline: 0; bottom: 0; max-height: 78vh; display: flex; flex-direction: column; background-color: var(--color-main-background); border-radius: 16px 16px 0 0; padding: 4px 14px calc(10px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -6px 30px var(--color-box-shadow); }
 
 .vbh-sheet-grabber { flex: 0 0 auto; width: 36px; height: 4px; border-radius: 2px; background-color: var(--color-border-dark, var(--color-border)); margin: 6px auto 8px; }
 

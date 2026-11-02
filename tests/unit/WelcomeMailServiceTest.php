@@ -10,7 +10,7 @@ use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\ClubMailBranding;
 use OCA\Vereinsbuchhaltung\Service\WelcomeMailService;
 use OCP\AppFramework\Db\DoesNotExistException;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IURLGenerator;
 use OCP\Mail\IEMailTemplate;
@@ -50,12 +50,13 @@ class WelcomeMailServiceTest extends TestCase {
 	}
 
 	private function service(): WelcomeMailService {
-		$config = $this->createMock(IConfig::class);
-		$config->method('getAppValue')->willReturnCallback(fn (string $app, string $key, string $default = ''): string => $this->stored[$key] ?? $default);
-		$config->method('setAppValue')->willReturnCallback(function (string $app, string $key, string $value): void {
+		$config = $this->createMock(IAppConfig::class);
+		$config->method('getValueString')->willReturnCallback(fn (string $app, string $key, string $default = ''): string => $this->stored[$key] ?? $default);
+		$config->method('setValueString')->willReturnCallback(function (string $app, string $key, string $value): bool {
 			$this->stored[$key] = $value;
+			return true;
 		});
-		$config->method('deleteAppValue')->willReturnCallback(function (string $app, string $key): void {
+		$config->method('deleteKey')->willReturnCallback(function (string $app, string $key): void {
 			unset($this->stored[$key]);
 		});
 		$l10n = $this->createMock(IL10N::class);
