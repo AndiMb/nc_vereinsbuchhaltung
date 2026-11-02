@@ -172,6 +172,35 @@ class MandateMapper extends EncryptingMapper {
 		return $this->findEntities($qb);
 	}
 
+	/**
+	 * Welche der Mitglieder haben ein Mandat? Nur die Mitglieds-IDs, keine
+	 * Mandate (und damit nichts zu entschlüsseln) – für die Löschsperre der
+	 * Mitgliederliste. Bewusst ohne {@see ReadCache}: eine DISTINCT-Abfrage ist
+	 * billiger als das Laden aller Mandate.
+	 *
+	 * @param int[] $memberIds
+	 * @param bool $activeOnly nur Mandate im Zustand „aktiv“ (sonst jedes, auch Entwurf, ausgesetzt, beendet)
+	 * @return list<int>
+	 */
+	public function memberIdsWithMandate(array $memberIds, bool $activeOnly): array {
+		$found = [];
+		foreach (array_chunk(array_values(array_unique($memberIds)), 1000) as $chunk) {
+			$qb = $this->db->getQueryBuilder();
+			$qb->selectDistinct('member_id')
+				->from($this->getTableName())
+				->where($qb->expr()->in('member_id', $qb->createNamedParameter($chunk, IQueryBuilder::PARAM_INT_ARRAY)));
+			if ($activeOnly) {
+				$qb->andWhere($qb->expr()->eq('status', $qb->createNamedParameter(Mandate::STATUS_ACTIVE)));
+			}
+			$result = $qb->executeQuery();
+			while (($memberId = $result->fetchOne()) !== false) {
+				$found[] = (int)$memberId;
+			}
+			$result->closeCursor();
+		}
+		return $found;
+	}
+
 	public function count(): int {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select($qb->func()->count('*', 'cnt'))

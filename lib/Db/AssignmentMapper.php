@@ -93,6 +93,29 @@ class AssignmentMapper extends QBMapper {
 		return $this->findEntities($qb);
 	}
 
+	/**
+	 * Welche der Mitglieder haben mindestens eine Zuweisung? Nur die
+	 * Mitglieds-IDs per DISTINCT, ohne {@see ReadCache} – für die Löschsperre.
+	 *
+	 * @param int[] $memberIds
+	 * @return list<int>
+	 */
+	public function memberIdsWithAssignment(array $memberIds): array {
+		$found = [];
+		foreach (array_chunk(array_values(array_unique($memberIds)), 1000) as $chunk) {
+			$qb = $this->db->getQueryBuilder();
+			$qb->selectDistinct('member_id')
+				->from($this->getTableName())
+				->where($qb->expr()->in('member_id', $qb->createNamedParameter($chunk, IQueryBuilder::PARAM_INT_ARRAY)));
+			$result = $qb->executeQuery();
+			while (($memberId = $result->fetchOne()) !== false) {
+				$found[] = (int)$memberId;
+			}
+			$result->closeCursor();
+		}
+		return $found;
+	}
+
 	public function count(): int {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select($qb->func()->count('*', 'cnt'))

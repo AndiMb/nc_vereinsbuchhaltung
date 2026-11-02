@@ -144,6 +144,32 @@ class OpenItemMapper extends QBMapper {
 	}
 
 	/**
+	 * Welche der Mitglieder haben mindestens eine Forderung im Sinn von
+	 * {@see findClaims()} (member_id und type gesetzt, Betrag über 0)? Nur die
+	 * Mitglieds-IDs per DISTINCT, ohne {@see ReadCache} – für die Löschsperre.
+	 *
+	 * @param int[] $memberIds
+	 * @return list<int>
+	 */
+	public function memberIdsWithClaims(array $memberIds): array {
+		$found = [];
+		foreach (array_chunk(array_values(array_unique($memberIds)), 1000) as $chunk) {
+			$qb = $this->db->getQueryBuilder();
+			$qb->selectDistinct('member_id')
+				->from($this->getTableName())
+				->where($qb->expr()->in('member_id', $qb->createNamedParameter($chunk, IQueryBuilder::PARAM_INT_ARRAY)))
+				->andWhere($qb->expr()->isNotNull('type'))
+				->andWhere($qb->expr()->gt('amount_cents', $qb->createNamedParameter(0, IQueryBuilder::PARAM_INT)));
+			$result = $qb->executeQuery();
+			while (($memberId = $result->fetchOne()) !== false) {
+				$found[] = (int)$memberId;
+			}
+			$result->closeCursor();
+		}
+		return $found;
+	}
+
+	/**
 	 * Wie {@see findClaims()}, aber nur Forderungen im Zustand „offen“ nach
 	 * {@see \OCA\Vereinsbuchhaltung\Service\ClaimStateResolver::resolve()}: weder
 	 * storniert noch erledigt. Der Filter läuft in SQL – die Aufgabenliste

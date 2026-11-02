@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\Db\AssignmentMapper;
-use OCA\Vereinsbuchhaltung\Db\Mandate;
 use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
@@ -169,24 +168,14 @@ class MemberService {
 	 * @return array<int, string[]> member_id => Sperrgründe (leer = löschbar)
 	 */
 	public function blockingReasonsForIds(array $memberIds): array {
-		$activeMandateIds = [];
-		$anyMandateIds = [];
-		foreach ($this->mandateMapper->findAll() as $mandate) {
-			$anyMandateIds[$mandate->getMemberId()] = true;
-			if ($mandate->getStatus() === Mandate::STATUS_ACTIVE) {
-				$activeMandateIds[$mandate->getMemberId()] = true;
-			}
+		if ($memberIds === []) {
+			return [];
 		}
-		$anyAssignmentIds = [];
-		foreach ($this->assignmentMapper->findAll() as $assignment) {
-			$anyAssignmentIds[$assignment->getMemberId()] = true;
-		}
-		$anyClaimIds = [];
-		foreach ($this->openItemMapper->findClaims() as $claim) {
-			if ($claim->getMemberId() !== null) {
-				$anyClaimIds[$claim->getMemberId()] = true;
-			}
-		}
+		// Nur die IDs per DISTINCT, nicht alle Mandate/Zuweisungen/Forderungen.
+		$activeMandateIds = array_fill_keys($this->mandateMapper->memberIdsWithMandate($memberIds, true), true);
+		$anyMandateIds = array_fill_keys($this->mandateMapper->memberIdsWithMandate($memberIds, false), true);
+		$anyAssignmentIds = array_fill_keys($this->assignmentMapper->memberIdsWithAssignment($memberIds), true);
+		$anyClaimIds = array_fill_keys($this->openItemMapper->memberIdsWithClaims($memberIds), true);
 
 		$result = [];
 		foreach ($memberIds as $id) {
