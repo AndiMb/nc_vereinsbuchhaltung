@@ -42,8 +42,14 @@ class OpenItemService {
 	}
 
 	/** @return OpenItem[] */
-	public function findAll(): array {
-		return $this->mapper->findAll();
+	public function findAll(?string $status = null): array {
+		return $this->mapper->findAll($status);
+	}
+
+	/** @return array{open:int, overdue:int, paid:int, waived:int, cancelled:int, all:int} */
+	public function counts(): array {
+		// „Heute“ kommt vorläufig aus der Serverzeit (UTC); die Vereinszeitzone folgt in #263.
+		return $this->mapper->countsByStatus(gmdate('Y-m-d'));
 	}
 
 	public function find(int $id): OpenItem {

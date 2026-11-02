@@ -839,7 +839,7 @@ export default {
 			lastSelectedId: null,
 			bulkBusy: false,
 			openItemForm: { debtor: '', description: '', amount: '', dueDate: '', accountId: null },
-			openItemFilter: 'open',
+			openItemFilter: this.openItemFilterKey,
 			// Umsatz-ID => Vorschläge offener Rechnungen (GET /api/invoices/suggestions)
 			invoiceSuggestions: {},
 			invoiceBusy: null,
@@ -1015,15 +1015,16 @@ export default {
 		// (nur Forderungen) erscheinen erst, wenn es sie gibt. Der Reiter-Badge zählt
 		// genau die überfälligen; so lässt sich seine Zahl in der Liste nachvollziehen.
 		openItemFilterOptions() {
-			const count = (status) => this.openItems.filter((o) => o.status === status).length
-			const overdue = this.openItems.filter((o) => o.status === 'open' && o.overdue).length
+			// Die Zähler kommen aus der Datenbank (openItemCounts), nicht aus der geladenen Liste:
+			// diese enthält nur den gewählten Status.
+			const c = this.openItemCounts
 			return [
-				{ key: 'open', label: this.t('Offen'), count: count('open') },
-				...(overdue > 0 ? [{ key: 'overdue', label: this.t('Überfällig'), count: overdue }] : []),
-				{ key: 'paid', label: this.t('Bezahlt'), count: count('paid') },
-				...(count('waived') > 0 ? [{ key: 'waived', label: this.t('Erlassen'), count: count('waived') }] : []),
-				{ key: 'cancelled', label: this.t('Storniert'), count: count('cancelled') },
-				{ key: 'all', label: this.t('Alle'), count: this.openItems.length },
+				{ key: 'open', label: this.t('Offen'), count: c.open },
+				...(c.overdue > 0 ? [{ key: 'overdue', label: this.t('Überfällig'), count: c.overdue }] : []),
+				{ key: 'paid', label: this.t('Bezahlt'), count: c.paid },
+				...(c.waived > 0 ? [{ key: 'waived', label: this.t('Erlassen'), count: c.waived }] : []),
+				{ key: 'cancelled', label: this.t('Storniert'), count: c.cancelled },
+				{ key: 'all', label: this.t('Alle'), count: c.all },
 			]
 		},
 
@@ -1051,7 +1052,13 @@ export default {
 			if (this.$refs.searchField) { this.$refs.searchField.value = '' }
 			this.bookingSearch = ''
 			this.clearJournalSelection()
-			if (v === 'openitems') { this.loadOpenItems() }
+			if (v === 'openitems') { this.loadOpenItems(this.activeOpenItemFilter) }
+		},
+
+		// Ein Filterwechsel lädt den gewählten Status nach (auch der Rückfall auf „Offen“,
+		// wenn der gewählte Chip verschwindet). Nachladen nach Aktionen behält den Filter.
+		activeOpenItemFilter(key) {
+			if (this.bookingView === 'openitems') { this.loadOpenItems(key) }
 		},
 
 		// Eine Auswahl gilt für die Buchungen, die gerade auf dem Schirm sind:
@@ -1075,7 +1082,7 @@ export default {
 	mounted() {
 		this.loadReceiptSuggestions()
 		this.loadInvoiceSuggestions()
-		if (this.bookingView === 'openitems') { this.loadOpenItems() }
+		if (this.bookingView === 'openitems') { this.loadOpenItems(this.activeOpenItemFilter) }
 		this.applyJournalVisibility()
 	},
 

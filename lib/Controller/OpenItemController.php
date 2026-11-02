@@ -44,8 +44,17 @@ class OpenItemController extends Controller {
 	}
 
 	#[NoAdminRequired]
-	public function index(): DataResponse {
-		return new DataResponse($this->service->findAll());
+	public function index(?string $status = null): DataResponse {
+		if ($status !== null && !in_array($status, ['open', 'paid', 'waived', 'cancelled'], true)) {
+			return new DataResponse(['message' => $this->l10n->t('Ungültiger Status.')], Http::STATUS_BAD_REQUEST);
+		}
+		return new DataResponse($this->service->findAll($status));
+	}
+
+	/** Zähler je Filter-Chip (Offen, Überfällig, Bezahlt, Erlassen, Storniert, Alle). */
+	#[NoAdminRequired]
+	public function counts(): DataResponse {
+		return new DataResponse($this->service->counts());
 	}
 
 	#[NoAdminRequired]

@@ -223,6 +223,7 @@ return [
 
 		// Offene Posten
 		['name' => 'openItem#index', 'url' => '/api/open-items', 'verb' => 'GET'],
+		['name' => 'openItem#counts', 'url' => '/api/open-items/counts', 'verb' => 'GET'],
 		['name' => 'openItem#create', 'url' => '/api/open-items', 'verb' => 'POST'],
 		['name' => 'openItem#markPaid', 'url' => '/api/open-items/{id}/pay', 'verb' => 'POST'],
 		['name' => 'openItem#cancel', 'url' => '/api/open-items/{id}/cancel', 'verb' => 'POST'],

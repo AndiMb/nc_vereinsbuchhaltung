@@ -176,7 +176,8 @@ export default {
 	debtorFromMember: (memberId) => axios.post(url(`/debtors/from-member/${memberId}`)),
 
 	// Offene Posten
-	listOpenItems: () => axios.get(url('/open-items')),
+	listOpenItems: (status) => axios.get(url('/open-items'), { params: status ? { status } : {} }),
+	getOpenItemCounts: () => axios.get(url('/open-items/counts')),
 	createOpenItem: (data) => axios.post(url('/open-items'), data),
 	markOpenItemPaid: (id, journalId) => axios.post(url(`/open-items/${id}/pay`), { journalId: journalId || undefined }),
 	cancelOpenItem: (id) => axios.post(url(`/open-items/${id}/cancel`)),

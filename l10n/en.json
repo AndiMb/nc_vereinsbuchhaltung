@@ -702,6 +702,7 @@
         "Nur Verwalter dürfen beim Import alle Daten löschen.": "Only administrators may delete all data during import.",
         "Nur Verwalter dürfen alle Daten zurücksetzen.": "Only administrators may reset all data.",
         "Offener Posten nicht gefunden": "Open item not found",
+        "Ungültiger Status.": "Invalid status.",
         "Ungültiger Typ": "Invalid type",
         "Ungültige Rolle": "Invalid role",
         "Nutzer/Gruppe fehlt": "User/group is missing",
