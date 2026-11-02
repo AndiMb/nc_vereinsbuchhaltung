@@ -130,6 +130,7 @@ import api from '../api.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { usePeriods } from '../composables/usePeriods.js'
 import { errMsg, formatDate, formatMoney } from '../lib/format.js'
+import { withPasswordConfirmation } from '../lib/passwordGate.js'
 
 export default {
 	name: 'SettingsXbucImport',
@@ -211,13 +212,16 @@ export default {
 
 		async xbucImport() {
 			if (!this.xbucFile) { return }
-			if (this.xbucReset && !await this.askConfirm(this.t('xbuc Import'), this.t('Alle vorhandenen Daten werden gelöscht und ersetzt. Fortfahren?'), this.t('Importieren'), 'primary')) { return }
+			const reset = this.xbucReset
+			if (reset && !await this.askConfirm(this.t('xbuc Import'), this.t('Alle vorhandenen Daten werden gelöscht und ersetzt. Fortfahren?'), this.t('Importieren'), 'primary')) { return }
+			// Löschen aller Daten nur mit bestätigtem Passwort – wie „Alle Daten löschen“ (#260).
+			if (reset && !await withPasswordConfirmation()) { return }
 			this.$emit('update:busy', true)
 			try {
-				const fd = new FormData(); fd.append('file', this.xbucFile); fd.append('reset', this.xbucReset ? '1' : '0'); fd.append('clampDates', this.xbucClampDates ? '1' : '0')
+				const fd = new FormData(); fd.append('file', this.xbucFile); fd.append('clampDates', this.xbucClampDates ? '1' : '0')
 				const importPeriod = this.xbucPeriodParam()
 				if (importPeriod) { fd.append('period', String(importPeriod)) }
-				const { data } = await api.commitXbuc(fd)
+				const { data } = reset ? await api.commitXbucWithReset(fd) : await api.commitXbuc(fd)
 				const skippedMsg = data.skipped > 0 ? this.t(', {n} übersprungen (bereits vorhanden)', { n: data.skipped }) : ''
 				const newAccMsg = data.accountsNew > 0 ? this.t(', {n} neue Konten', { n: data.accountsNew }) : ''
 				const clampMsg = data.clamped > 0 ? this.tRaw(', {n} auf den Zeitraum {label} datiert', { n: data.clamped, label: data.period?.label ?? '' }) : ''

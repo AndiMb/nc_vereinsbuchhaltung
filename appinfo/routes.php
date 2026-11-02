@@ -30,6 +30,7 @@ return [
 		['name' => 'import#commit', 'url' => '/api/import/commit', 'verb' => 'POST'],
 		['name' => 'import#xbucPreview', 'url' => '/api/import/xbuc/preview', 'verb' => 'POST'],
 		['name' => 'import#xbucCommit', 'url' => '/api/import/xbuc', 'verb' => 'POST'],
+		['name' => 'import#xbucCommitWithReset', 'url' => '/api/import/xbuc/reset', 'verb' => 'POST'],
 		['name' => 'import#reset', 'url' => '/api/reset', 'verb' => 'POST'],
 
 		// Journal / reports
