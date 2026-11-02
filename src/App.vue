@@ -1958,6 +1958,7 @@ export default {
 
 		async onAssign(tx, value) {
 			const prevContra = tx.contraAccountId
+			const revision = this.attachmentsRevision
 			try {
 				if (value === '') {
 					await api.unassignTransaction(tx.id)
@@ -1965,6 +1966,7 @@ export default {
 						showUndo(this.t('Zuordnung entfernt'), async () => {
 							try {
 								await api.assignTransaction(tx.id, prevContra)
+								this.afterOwnJournalWrite(this.attachmentsRevision)
 								await Promise.all([this.loadTransactions(this.selectedPeriodId), this.loadBalances(), this.loadJournal(), this.loadSphereReport(), this.loadPeriods()])
 							} catch (e) { showError(this.errMsg(e, this.t('Wiederherstellen fehlgeschlagen'))) }
 						})
@@ -1973,6 +1975,7 @@ export default {
 					const { data } = await api.assignTransaction(tx.id, Number(value))
 					await this.linkTxPendingFiles(tx.id, data && data.journalId)
 				}
+				this.afterOwnJournalWrite(revision)
 				// loadPeriods() muss mit: eine Zuordnung legt eine Buchung an (bzw.
 				// loest sie wieder auf), und periods[].bookings speist die
 				// "Erste Schritte"-Karte auf der Uebersicht (Issue #60).
@@ -2024,10 +2027,12 @@ export default {
 				return
 			}
 			try {
+				const revision = this.attachmentsRevision
 				const { data } = await api.assignTransactionParts(tx.id, rows.map((p) => ({ accountId: p.accountId, amount: Number(p.amount) })))
 				showSuccess(this.t('Umsatz aufgeteilt zugeordnet.'))
 				this.closeSplitAssign()
 				await this.linkTxPendingFiles(tx.id, data && data.journalId)
+				this.afterOwnJournalWrite(revision)
 				// loadPeriods() muss mit: die Aufteilung legt Buchungen an, und
 				// periods[].bookings speist die "Erste Schritte"-Karte (Issue #60).
 				await Promise.all([this.loadTransactions(this.selectedPeriodId), this.loadBalances(), this.loadJournal(), this.loadSphereReport(), this.loadPeriods()])
@@ -2088,6 +2093,19 @@ export default {
 			this.attachmentsRevision++
 			this.loadAttachmentCounts()
 			this.refreshInbox()
+		},
+
+		/**
+		 * Nach einer eigenen Buchungsänderung (Anlegen, Bearbeiten, Löschen,
+		 * Umsatz zuordnen): Belegvorschläge einmal nachladen – eine neue Buchung
+		 * ohne Beleg braucht ihren Vorschlag. Hat afterAttachmentsChanged() im
+		 * selben Ablauf schon gezählt, nicht noch einmal. Abgleich mit fremden
+		 * Änderungen und Zeitraumwechsel laufen nicht hierüber.
+		 *
+		 * @param {number} revisionBefore attachmentsRevision zu Beginn des Ablaufs
+		 */
+		afterOwnJournalWrite(revisionBefore) {
+			if (this.attachmentsRevision === revisionBefore) { this.attachmentsRevision++ }
 		},
 
 		/** Die Kacheln des Wächter-Ordners – nur dort kostet der Aufruf einen Ordnerscan. */
@@ -2529,6 +2547,7 @@ export default {
 				await api.deleteBooking(id)
 				this.closeBooking()
 				this.refreshInbox()
+				this.afterOwnJournalWrite(this.attachmentsRevision)
 				// Umsätze mitladen – siehe removeBooking().
 				// loadPeriods() wie beim Speichern: periods[].bookings speist die
 				// "Erste Schritte"-Karte (Issue #60).
@@ -2652,11 +2671,14 @@ export default {
 			const payload = commentOnly ? null : (f.splitMode ? this.buildSplitPayload() : this.buildSimplePayload())
 			if (!commentOnly && !payload) { return }
 			this.bookingSaving = true
+			const revision = this.attachmentsRevision
+			let wrote = false
 			try {
 				if (commentOnly) {
 					await this.saveBookingComment(f.id, f.updatedAt)
 				} else if (f.id) {
 					const { data } = await api.updateBooking(f.id, { ...payload, updatedAt: f.updatedAt || null })
+					wrote = true
 					// Neuer Stand sofort ins Formular: scheitert der Kommentar, soll
 					// ein erneuter Klick nicht an der eigenen Aenderung (409) haengen.
 					f.updatedAt = data.updatedAt || null
@@ -2679,6 +2701,7 @@ export default {
 					}
 				} else {
 					const { data } = await api.createBooking(payload)
+					wrote = true
 					// Ab hier existiert die Buchung: scheitert danach Kommentar oder
 					// Beleg-Upload, macht ein erneuter Klick daraus ein Bearbeiten
 					// statt einer zweiten Buchung.
@@ -2717,7 +2740,10 @@ export default {
 					return
 				}
 				showError(this.errMsg(e, this.t('Buchung konnte nicht gespeichert werden')))
-			} finally { this.bookingSaving = false }
+			} finally {
+				this.bookingSaving = false
+				if (wrote) { this.afterOwnJournalWrite(revision) }
+			}
 		},
 
 		/**
@@ -2746,7 +2772,7 @@ export default {
 			// loadPeriods() muss ebenfalls mit: periods[].bookings speist die
 			// "Erste Schritte"-Karte, die sonst die geloeschte Buchung
 			// weiterzaehlt (Issue #60).
-			try { await api.deleteBooking(r.id); this.refreshInbox(); await Promise.all([this.loadJournal(), this.loadTransactions(this.selectedPeriodId), this.loadBalances(), this.loadSphereReport(), this.loadPeriods(), this.reloadStatement()]) } catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
+			try { await api.deleteBooking(r.id); this.refreshInbox(); this.afterOwnJournalWrite(this.attachmentsRevision); await Promise.all([this.loadJournal(), this.loadTransactions(this.selectedPeriodId), this.loadBalances(), this.loadSphereReport(), this.loadPeriods(), this.reloadStatement()]) } catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
 		},
 
 		// --- Konten ---
