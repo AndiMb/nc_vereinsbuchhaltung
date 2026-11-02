@@ -11,6 +11,7 @@ use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Service\MemberService;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
 use OCP\IL10N;
 use OCP\IUser;
 use OCP\IUserManager;
@@ -48,7 +49,7 @@ class MemberServiceTest extends TestCase {
 		$l10n->method('t')->willReturnCallback(
 			static fn (string $text, array $parameters = []): string => vsprintf(str_replace('%s', '%1$s', $text), $parameters),
 		);
-		return new MemberService($this->mapper, $this->mandateMapper, $this->assignmentMapper, $this->openItemMapper, $this->userManager, $l10n);
+		return new MemberService($this->mapper, $this->mandateMapper, $this->assignmentMapper, $this->openItemMapper, $this->userManager, $l10n, ClubClockStub::system());
 	}
 
 	// --- splitLabel(): reine Split-Heuristik (Spec §3.1 "Umbaupfad") ---

@@ -591,7 +591,7 @@ class AttachmentWatchFolderService {
 		$attachment->setFileName($node->getName());
 		$attachment->setMimeType($node->getMimetype());
 		$attachment->setFileSize((int)$node->getSize());
-		$attachment->setUploadedAt(new \DateTime());
+		$attachment->setUploadedAt(new \DateTime()); // UTC-Zeitstempel (#263)
 		$this->storage->attach($attachment, $node);
 		return $this->attachmentMapper->insert($attachment);
 	}

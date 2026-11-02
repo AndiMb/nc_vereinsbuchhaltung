@@ -10,11 +10,13 @@ use OCA\Vereinsbuchhaltung\Listener\UserDeletedListener;
 use OCA\Vereinsbuchhaltung\Middleware\PermissionMiddleware;
 use OCA\Vereinsbuchhaltung\Middleware\RevisionMiddleware;
 use OCA\Vereinsbuchhaltung\Service\ActorContextService;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
+use OCP\IConfig;
 use OCP\IDBConnection;
 use OCP\User\Events\BeforeUserDeletedEvent;
 use OCP\User\Events\UserDeletedEvent;
@@ -73,6 +75,7 @@ class Application extends App implements IBootstrap {
 				$c->get(\OCA\Vereinsbuchhaltung\Service\AuditService::class),
 				$c->get(\OCP\IAppConfig::class),
 				$c->get(\OCP\IL10N::class),
+				$c->get(ClubClock::class),
 			);
 		}, true);
 
@@ -93,6 +96,11 @@ class Application extends App implements IBootstrap {
 	}
 
 	public function boot(IBootContext $context): void {
+		// Fachliche Tagesdaten (heute, Fälligkeit, Stand) zählen in der
+		// Zeitzone des Servers, nicht in UTC (#263). PHP selbst bleibt auf UTC,
+		// gespeicherte Zeitstempel ebenso.
+		$config = $context->getServerContainer()->get(IConfig::class);
+		ClubClock::configureZone($config->getSystemValueString('default_timezone', ''));
 	}
 
 	/**

@@ -18,6 +18,7 @@ use OCA\Vereinsbuchhaltung\Service\ContributionCycleSettings;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCA\Vereinsbuchhaltung\Service\DirectDebitEligibilityResolver;
 use OCA\Vereinsbuchhaltung\Service\DueDateScheduleService;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IAppConfig;
 use OCP\IL10N;
@@ -105,8 +106,8 @@ class ClaimGenerationServiceTest extends TestCase {
 			$this->groups,
 			$this->members,
 			new DirectDebitEligibilityResolver($this->assignments, $this->mandates),
-			new ContributionYearService($config),
-			new DueDateScheduleService($config, new ContributionYearService($config), $l10n),
+			new ContributionYearService($config, ClubClockStub::system()),
+			new DueDateScheduleService($config, new ContributionYearService($config, ClubClockStub::system()), $l10n),
 			new ContributionCycleSettings($config),
 			$time,
 		);

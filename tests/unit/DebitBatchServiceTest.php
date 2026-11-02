@@ -27,6 +27,7 @@ use OCA\Vereinsbuchhaltung\Service\DebitRunQueryService;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
 use OCA\Vereinsbuchhaltung\Service\Sepa\PainXmlBuilder;
 use OCA\Vereinsbuchhaltung\Service\SepaDebtorAccountService;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
 use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IUser;
@@ -144,6 +145,7 @@ class DebitBatchServiceTest extends TestCase {
 			$this->config,
 			$l10n,
 			$this->returnedDebits,
+			ClubClockStub::system(),
 		);
 	}
 

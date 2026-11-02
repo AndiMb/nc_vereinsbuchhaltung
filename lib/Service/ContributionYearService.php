@@ -29,6 +29,7 @@ class ContributionYearService {
 
 	public function __construct(
 		private IAppConfig $config,
+		private ClubClock $clock,
 		private ?IL10N $l10n = null,
 	) {
 	}
@@ -101,7 +102,7 @@ class ContributionYearService {
 
 	/** Anker-Kalenderjahr des laufenden Beitragsjahres (Standard: heute). */
 	public function currentAnchorYear(?string $today = null): int {
-		return $this->anchorYearFor($today ?? date('Y-m-d'));
+		return $this->anchorYearFor($today ?? $this->clock->today());
 	}
 
 	/**

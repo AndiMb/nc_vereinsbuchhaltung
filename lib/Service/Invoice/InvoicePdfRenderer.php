@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Service\Invoice;
 use OCA\Vereinsbuchhaltung\Db\Invoice;
 use OCA\Vereinsbuchhaltung\Db\InvoiceLine;
 use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\EpcQrCodeGenerator;
 use OCA\Vereinsbuchhaltung\Service\InvoiceCalculator;
 use OCP\IL10N;
@@ -41,6 +42,7 @@ class InvoicePdfRenderer {
 
 	public function __construct(
 		private EpcQrCodeGenerator $epc,
+		private ClubClock $clock,
 		private ?IL10N $l10n = null,
 	) {
 	}
@@ -283,7 +285,7 @@ class InvoicePdfRenderer {
 		$invoice = $data->invoice;
 		$rows = [];
 		$rows[] = [$invoice->isCredit() ? $this->msg('Storno-Nr.') : $this->msg('Rechnungs-Nr.'), $this->numberOrDraft($invoice)];
-		$rows[] = [$this->msg('Datum'), $this->date($invoice->getIssueDate() ?? date('Y-m-d'))];
+		$rows[] = [$this->msg('Datum'), $this->date($invoice->getIssueDate() ?? $this->clock->today())];
 		if ($invoice->getPeriodStart() !== null && $invoice->getPeriodEnd() !== null) {
 			$rows[] = [$this->msg('Leistungszeitraum'), $this->date($invoice->getPeriodStart()) . ' – ' . $this->date($invoice->getPeriodEnd())];
 		} elseif ($invoice->getDeliveryDate() !== null) {

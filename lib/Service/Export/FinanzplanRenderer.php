@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Service\Export;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Service\BudgetComparison;
 use OCA\Vereinsbuchhaltung\Service\BudgetOverviewService;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCP\IAppConfig;
 use OCP\IL10N;
 
@@ -30,6 +31,7 @@ class FinanzplanRenderer {
 		private BudgetOverviewService $overview,
 		private IAppConfig $config,
 		private IL10N $l10n,
+		private ClubClock $clock,
 	) {
 	}
 
@@ -50,7 +52,7 @@ class FinanzplanRenderer {
 		$meta = [
 			PrintableReportPage::escape($this->depthLabel($depth)),
 			...($cmpHead === null ? [] : [PrintableReportPage::escape($this->l10n->t('Vergleich: %s', [$cmpHead]))]),
-			PrintableReportPage::escape($this->l10n->t('Erstellt am %s', [ReportFormat::date(date('Y-m-d'))])),
+			PrintableReportPage::escape($this->l10n->t('Erstellt am %s', [ReportFormat::date($this->clock->today())])),
 		];
 
 		$h = $cmp === null ? '' : '<style>@page { size: A4 landscape; } body { max-width: 297mm; }</style>';

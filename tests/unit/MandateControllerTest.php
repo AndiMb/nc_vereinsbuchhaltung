@@ -16,6 +16,7 @@ use OCA\Vereinsbuchhaltung\Service\MandateLegalTextService;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
 use OCA\Vereinsbuchhaltung\Service\OpenItemService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\IAppConfig;
@@ -72,6 +73,7 @@ class MandateControllerTest extends TestCase {
 			$this->createMock(IAppConfig::class),
 			$l10n,
 			$this->createMock(LoggerInterface::class),
+			ClubClockStub::system(),
 		);
 	}
 

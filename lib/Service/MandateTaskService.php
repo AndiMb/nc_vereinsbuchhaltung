@@ -71,6 +71,8 @@ class MandateTaskService {
 	/** Längere Sperr-Notizen werden in der Aufgabe gekürzt; die volle Notiz steht in der Akte. */
 	private const NOTE_MAX_LENGTH = 120;
 
+	private ClubClock $clock;
+
 	public function __construct(
 		private MandateMapper $mandates,
 		private MandateService $mandateService,
@@ -82,14 +84,16 @@ class MandateTaskService {
 		private ReturnedDebitMapper $returnedDebits,
 		private ITimeFactory $time,
 		private IL10N $l10n,
+		?ClubClock $clock = null,
 	) {
+		$this->clock = $clock ?? new ClubClock($this->time);
 	}
 
 	/**
 	 * @return list<array{severity:string,message:string,objectType:string,objectId:int,memberId:?int}>
 	 */
 	public function findTasks(?string $today = null): array {
-		$today ??= $this->time->getDateTime()->format('Y-m-d');
+		$today ??= $this->clock->today();
 		$mandates = $this->mandates->findAll();
 		if ($mandates === []) {
 			return [];

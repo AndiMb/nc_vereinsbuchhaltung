@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\Mandate;
 use OCA\Vereinsbuchhaltung\Exception\ConsumedActivationTokenException;
 use OCA\Vereinsbuchhaltung\Exception\ExpiredActivationTokenException;
 use OCA\Vereinsbuchhaltung\Exception\InvalidActivationTokenException;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
 use OCA\Vereinsbuchhaltung\Service\MandateFormRenderer;
 use OCP\AppFramework\Controller;
@@ -61,6 +62,7 @@ class MandateConsentController extends Controller {
 		private MandateFormRenderer $formRenderer,
 		private IURLGenerator $urlGenerator,
 		private IAppConfig $config,
+		private ClubClock $clock,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -129,7 +131,7 @@ class MandateConsentController extends Controller {
 		// geöffneter Link ein falsches, viel zu spätes Datum an.
 		$referenceDate = $view['status'] === 'consumed' && $mandate->getSignedAt() !== null
 			? $mandate->getSignedAt()
-			: date('Y-m-d');
+			: $this->clock->today();
 
 		return new TemplateResponse(
 			Application::APP_ID,

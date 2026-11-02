@@ -69,6 +69,7 @@ class PeriodService {
 		private AuditService $audit,
 		private IAppConfig $config,
 		private IL10N $l10n,
+		private ClubClock $clock,
 	) {
 	}
 
@@ -160,7 +161,7 @@ class PeriodService {
 
 	/** Die Periode, die den heutigen Tag enthält; wird bei Bedarf angelegt. */
 	public function current(string $userId): Period {
-		return $this->forDateOrCreate($userId, date('Y-m-d'));
+		return $this->forDateOrCreate($userId, $this->clock->today());
 	}
 
 	/** Die Periode davor, oder null wenn $period die erste ist. */
@@ -282,7 +283,7 @@ class PeriodService {
 
 			$renumbered = $this->entryNumbers->renumberPeriod($userId, $id);
 
-			$period->setClosedAt((new \DateTime())->format('Y-m-d H:i:s'));
+			$period->setClosedAt((new \DateTime())->format('Y-m-d H:i:s')); // UTC-Zeitstempel (#263)
 			$period->setClosedBy($uid);
 			$period = $this->mapper->update($period);
 			$this->touched($userId);
@@ -747,7 +748,7 @@ class PeriodService {
 	 */
 	private function planRuleChange(string $userId, array $rule): array {
 		$old = $this->all($userId);
-		$today = date('Y-m-d');
+		$today = $this->clock->today();
 
 		// Die neue Kette muss alles abdecken, was Daten trägt: den Zeitraum der
 		// Buchungen und die Zeiträume mit Planwerten oder Plan-Ständen. Der

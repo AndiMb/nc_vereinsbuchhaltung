@@ -17,6 +17,7 @@ use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\ReturnedDebitMapper;
 use OCA\Vereinsbuchhaltung\Service\ClaimStateResolver;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IAppConfig;
 use OCP\IL10N;
@@ -56,6 +57,7 @@ class DatenuebersichtRenderer {
 		private ContributionGroupMapper $groups,
 		private IAppConfig $config,
 		private IL10N $l10n,
+		private ClubClock $clock,
 	) {
 	}
 
@@ -66,7 +68,7 @@ class DatenuebersichtRenderer {
 		$clubName = $this->config->getValueString(Application::APP_ID, 'club_name', '');
 		$heading = $this->l10n->t('Datenübersicht');
 		$title = ($clubName !== '' ? $clubName . ' – ' : '') . $heading;
-		$meta = $this->l10n->t('Auskunft nach Art. 15 DSGVO (kein strukturierter Export nach Art. 20) · erstellt am %s', [ReportFormat::date(date('Y-m-d'))]);
+		$meta = $this->l10n->t('Auskunft nach Art. 15 DSGVO (kein strukturierter Export nach Art. 20) · erstellt am %s', [ReportFormat::date($this->clock->today())]);
 
 		$h = PrintableReportPage::printHint($this->l10n->t('Zum Drucken oder Als-PDF-Speichern: <strong>Strg+P</strong> (Mac: ⌘P) im Browser.'));
 		$h .= PrintableReportPage::header(null, $clubName, $heading, PrintableReportPage::escape($meta));

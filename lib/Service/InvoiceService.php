@@ -56,6 +56,7 @@ class InvoiceService {
 		private TransactionRunner $transaction,
 		private AuditService $audit,
 		private IUserSession $userSession,
+		private ClubClock $clock,
 		private ?IL10N $l10n = null,
 	) {
 	}
@@ -115,7 +116,7 @@ class InvoiceService {
 			}
 		}
 		if ($invoice->isDraft()) {
-			$out['checklist'] = $this->checklist($invoice, $lines, $debtor, new \DateTimeImmutable($invoice->getIssueDate() ?? 'today'));
+			$out['checklist'] = $this->checklist($invoice, $lines, $debtor, new \DateTimeImmutable($invoice->getIssueDate() ?? $this->clock->today()));
 		}
 		return $out;
 	}
@@ -349,7 +350,7 @@ class InvoiceService {
 			$this->assertDraft($invoice);
 			$lines = $this->lines->findByInvoice($id);
 
-			$date = $this->normalizeDate($issueDate) ?? $invoice->getIssueDate() ?? (new \DateTimeImmutable())->format('Y-m-d');
+			$date = $this->normalizeDate($issueDate) ?? $invoice->getIssueDate() ?? $this->clock->today();
 			// Eine Stornorechnung trägt den Schnappschuss der Ursprungsrechnung: sie
 			// storniert genau die Anschrift, an die diese ging, auch wenn der
 			// Empfänger inzwischen geändert oder gelöscht wurde.
@@ -623,7 +624,7 @@ class InvoiceService {
 			&& in_array($invoice->getStatus(), [Invoice::STATUS_ISSUED, Invoice::STATUS_SENT], true)
 			&& $remaining > 0
 			&& $invoice->getDueDate() !== null
-			&& $invoice->getDueDate() < date('Y-m-d');
+			&& $invoice->getDueDate() < $this->clock->today();
 		return $data;
 	}
 
@@ -895,7 +896,7 @@ class InvoiceService {
 	}
 
 	private function now(): string {
-		return (new \DateTimeImmutable())->format(\DateTimeInterface::ATOM);
+		return (new \DateTimeImmutable())->format(\DateTimeInterface::ATOM); // UTC-Zeitstempel (#263)
 	}
 
 	private function actor(): string {

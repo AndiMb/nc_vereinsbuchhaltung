@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service\Export;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\Report\StructuredReportBuilder;
 use OCA\Vereinsbuchhaltung\Service\Report\StructuredReportService;
 use OCP\IAppConfig;
@@ -24,6 +25,7 @@ class GliederungsberichtRenderer {
 	public function __construct(
 		private IAppConfig $config,
 		private IL10N $l10n,
+		private ClubClock $clock,
 	) {
 	}
 
@@ -37,7 +39,7 @@ class GliederungsberichtRenderer {
 		$heading = $report['template']['name'];
 		$meta = [
 			PrintableReportPage::escape($period->getLabel()),
-			PrintableReportPage::escape($this->l10n->t('Stand: %s', [ReportFormat::date(date('Y-m-d'))])),
+			PrintableReportPage::escape($this->l10n->t('Stand: %s', [ReportFormat::date($this->clock->today())])),
 		];
 
 		$h = count($columns) > 4 ? '<style>@page { size: A4 landscape; } body { max-width: 297mm; }</style>' : '';

@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCA\Vereinsbuchhaltung\Service\Export\BeitragsbescheinigungRenderer;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IAppConfig;
 use OCP\IL10N;
@@ -48,9 +49,10 @@ class BeitragsbescheinigungRendererTest extends TestCase {
 		return new BeitragsbescheinigungRenderer(
 			$this->memberMapper,
 			$this->openItems,
-			new ContributionYearService($this->config),
+			new ContributionYearService($this->config, ClubClockStub::system()),
 			$this->config,
 			$l10n,
+			ClubClockStub::system(),
 		);
 	}
 

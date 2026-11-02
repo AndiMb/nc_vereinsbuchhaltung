@@ -31,6 +31,7 @@ class DemoDataService {
 		private IAppConfig $config,
 		private TransactionRunner $transaction,
 		private IL10N $l10n,
+		private ClubClock $clock,
 	) {
 	}
 
@@ -85,11 +86,11 @@ class DemoDataService {
 		$kasse = $konto('1000');
 
 		// Anfangsbestand vor drei Monaten, damit die laufenden Buchungen danach liegen.
-		$openingDate = (new \DateTime('first day of -3 months'))->format('Y-m-d');
+		$openingDate = $this->clock->now()->modify('first day of -3 months')->format('Y-m-d');
 		$this->accountService->setOpeningFields($bank->getId(), $userId, 250000, $openingDate);
 		$this->openingService->sync($this->accountMapper->find($bank->getId(), $userId));
 
-		$rel = fn (string $offset): string => (new \DateTime($offset))->format('Y-m-d');
+		$rel = fn (string $offset): string => $this->clock->now()->modify($offset)->format('Y-m-d');
 
 		// [Beschreibung, Soll-Konto, Haben-Konto, Betrag in Cent, Datum]
 		$bookings = [

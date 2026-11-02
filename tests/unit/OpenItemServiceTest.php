@@ -8,7 +8,9 @@ use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Exception\ClaimManagedException;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\OpenItemService;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IL10N;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -32,10 +34,23 @@ class OpenItemServiceTest extends TestCase {
 		$this->journalMapper = $this->createMock(JournalMapper::class);
 	}
 
+	/** 22:30 UTC am 30.06. ist in Berlin schon der 01.07. (#263). */
+	private function clock(): ClubClock {
+		return ClubClockStub::at('2026-06-30 22:30:00');
+	}
+
+	public function testZaehlerUndUeberfaelligkeitRechnenMitDemVereinstag(): void {
+		$this->mapper->expects($this->once())->method('countsByStatus')->with('2026-07-01')
+			->willReturn(['open' => 0, 'overdue' => 0, 'paid' => 0, 'waived' => 0, 'cancelled' => 0, 'all' => 0]);
+		$this->mapper->expects($this->once())->method('countOverdue')->with('2026-07-01')->willReturn(0);
+		$this->service()->counts();
+		$this->service()->countOverdue();
+	}
+
 	private function service(): OpenItemService {
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(static fn (string $text, array $parameters = []): string => vsprintf($text, $parameters));
-		return new OpenItemService($this->mapper, $this->journalMapper, $l10n);
+		return new OpenItemService($this->mapper, $this->journalMapper, $l10n, $this->clock());
 	}
 
 	private function freeItem(string $status = 'open'): OpenItem {
@@ -106,7 +121,7 @@ class OpenItemServiceTest extends TestCase {
 			$mapper->expects($this->never())->method('delete');
 			$l10n = $this->createMock(IL10N::class);
 			$l10n->method('t')->willReturnArgument(0);
-			$service = new OpenItemService($mapper, $this->journalMapper, $l10n);
+			$service = new OpenItemService($mapper, $this->journalMapper, $l10n, $this->clock());
 
 			try {
 				$method === 'markPaid' ? $service->markPaid(9, null) : $service->$method(9);
@@ -137,7 +152,7 @@ class OpenItemServiceTest extends TestCase {
 			$mapper->expects($this->never())->method('delete');
 			$l10n = $this->createMock(IL10N::class);
 			$l10n->method('t')->willReturnArgument(0);
-			$service = new OpenItemService($mapper, $this->journalMapper, $l10n);
+			$service = new OpenItemService($mapper, $this->journalMapper, $l10n, $this->clock());
 
 			try {
 				$method === 'markPaid' ? $service->markPaid(4, null) : $service->$method(4);

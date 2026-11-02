@@ -8,6 +8,7 @@ use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCA\Vereinsbuchhaltung\Service\DunningSettings;
 use OCA\Vereinsbuchhaltung\Service\MandateExpirySettings;
 use OCA\Vereinsbuchhaltung\Service\Sepa\MemberCsvParser;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
 use OCP\IAppConfig;
 use OCP\IL10N;
 use PHPUnit\Framework\TestCase;
@@ -49,7 +50,7 @@ class OptionalL10nTest extends TestCase {
 	}
 
 	public function testStartmonat(): void {
-		$service = new ContributionYearService($this->createMock(IAppConfig::class), $this->l10n());
+		$service = new ContributionYearService($this->createMock(IAppConfig::class), ClubClockStub::system(), $this->l10n());
 
 		$this->expectExceptionMessage('EN: Startmonat muss zwischen 1 und 12 liegen.');
 		$service->setStartMonth(13);

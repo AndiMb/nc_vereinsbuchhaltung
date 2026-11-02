@@ -53,6 +53,8 @@ use OCP\IUserManager;
  */
 class ClaimOverviewService {
 
+	private ClubClock $clock;
+
 	public function __construct(
 		private OpenItemMapper $openItems,
 		private MemberMapper $members,
@@ -69,7 +71,9 @@ class ClaimOverviewService {
 		private IUserManager $userManager,
 		private ITimeFactory $time,
 		private IL10N $l10n,
+		?ClubClock $clock = null,
 	) {
+		$this->clock = $clock ?? new ClubClock($this->time);
 	}
 
 	/**
@@ -78,7 +82,7 @@ class ClaimOverviewService {
 	 * @return array{today:string, dunningIntervalDays:int, claims:list<array<string,mixed>>} Forderungen nach Fälligkeit aufsteigend (wie {@see OpenItemMapper::findClaims()})
 	 */
 	public function build(bool $withReturnCodes, ?string $today = null): array {
-		$today ??= $this->time->getDateTime()->format('Y-m-d');
+		$today ??= $this->clock->today();
 		$intervalDays = $this->dunningSettings->intervalDays();
 		$leadDays = $this->cycleSettings->prenotificationLeadDays();
 

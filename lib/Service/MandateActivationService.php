@@ -233,7 +233,7 @@ class MandateActivationService {
 		$currentId = (int)$this->legalTextService->current()->getId();
 		$pending = $this->tokenMapper->findOutstandingByPurpose(MandateActivationToken::PURPOSE_RECONFIRMATION);
 		$members = $this->memberMapper->findAllById();
-		$now = new \DateTimeImmutable();
+		$now = new \DateTimeImmutable(); // UTC-Zeitstempel (#263)
 
 		$overview = ['upToDate' => 0, 'outdated' => 0, 'withoutElectronicConsent' => 0, 'readyIds' => [], 'pendingIds' => [], 'noEmail' => []];
 		foreach ($this->mandateMapper->findAll() as $mandate) {
@@ -334,7 +334,7 @@ class MandateActivationService {
 		return [
 			'sentAt' => $token->getCreatedAt(),
 			'expiresAt' => $token->getExpiresAt(),
-			'expired' => $token->isExpired(new \DateTimeImmutable()),
+			'expired' => $token->isExpired(new \DateTimeImmutable()), // UTC-Zeitstempel (#263)
 			'email' => $token->getEmail(),
 			'requestedBy' => $token->getRequestedBy(),
 			'firstViewedAt' => $token->getFirstViewedAt(),
@@ -458,7 +458,7 @@ class MandateActivationService {
 			// nicht unterscheidbar sein (Timing/Informationsleck).
 			throw new InvalidActivationTokenException(self::MESSAGE_LINK_INVALID);
 		}
-		if ($token->isExpired(new \DateTimeImmutable())) {
+		if ($token->isExpired(new \DateTimeImmutable())) { // UTC-Zeitstempel (#263)
 			throw new ExpiredActivationTokenException(self::MESSAGE_LINK_EXPIRED);
 		}
 		return $token;
@@ -613,7 +613,7 @@ class MandateActivationService {
 	}
 
 	private function now(?\DateInterval $add = null): string {
-		$date = new \DateTime();
+		$date = new \DateTime(); // UTC-Zeitstempel (#263)
 		if ($add !== null) {
 			$date->add($add);
 		}

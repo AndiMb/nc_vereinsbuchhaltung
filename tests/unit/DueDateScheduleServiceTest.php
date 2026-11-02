@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCA\Vereinsbuchhaltung\Service\DueDateScheduleService;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
 use OCP\IAppConfig;
 use OCP\IL10N;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -40,7 +41,7 @@ class DueDateScheduleServiceTest extends TestCase {
 		$this->store['fiscal_year_start_month'] = (string)$fiscalYearStartMonth;
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(static fn (string $text, array $parameters = []): string => vsprintf($text, $parameters));
-		return new DueDateScheduleService($this->config, new ContributionYearService($this->config), $l10n);
+		return new DueDateScheduleService($this->config, new ContributionYearService($this->config, ClubClockStub::system()), $l10n);
 	}
 
 	public function testDefaultOffsetOhneEinstellungIstNull(): void {

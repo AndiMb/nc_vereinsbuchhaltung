@@ -61,6 +61,7 @@ class DebitBatchService {
 		private IAppConfig $config,
 		private IL10N $l10n,
 		private ReturnedDebitMapper $returnedDebits,
+		private ClubClock $clock,
 	) {
 	}
 
@@ -110,7 +111,7 @@ class DebitBatchService {
 	 */
 	public function findItems(int $batchId, ?string $today = null): array {
 		$batch = $this->batchMapper->find($batchId);
-		$today ??= date('Y-m-d');
+		$today ??= $this->clock->today();
 		$returnedAt = $this->returnedDebits->findReceivedAtByBatch($batchId);
 		$rows = [];
 		foreach ($this->itemMapper->findByBatch($batchId) as $item) {
@@ -262,7 +263,8 @@ class DebitBatchService {
 			// Eingefroren, nie mehr neu erzeugt (Spec §3.5 "byte-identisch
 			// nachrenderbar") - siehe renderXml()/creditorOf().
 			$batch->setMsgId(SepaReference::message());
-			$batch->setCreationDateTime((new \DateTime())->format('Y-m-d\TH:i:s'));
+			// CreDtTm ohne Zonenangabe: Ortszeit des Vereins (#263).
+			$batch->setCreationDateTime($this->clock->now()->format('Y-m-d\TH:i:s'));
 			$batch->setCreditorId($creditorId);
 			$batch->setCreditorName($creditorName);
 			$batch->setCreditorIban((string)$collectingAccount->getIban());
@@ -491,6 +493,6 @@ class DebitBatchService {
 	}
 
 	private function now(): string {
-		return (new \DateTime())->format('Y-m-d H:i:s');
+		return (new \DateTime())->format('Y-m-d H:i:s'); // UTC-Zeitstempel (#263)
 	}
 }

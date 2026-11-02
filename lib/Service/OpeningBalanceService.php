@@ -32,6 +32,7 @@ class OpeningBalanceService {
 		private PeriodService $periods,
 		private EntryNumberService $entryNumbers,
 		private TransactionRunner $transaction,
+		private ClubClock $clock,
 	) {
 	}
 
@@ -58,7 +59,7 @@ class OpeningBalanceService {
 		if ($existing !== null) {
 			$this->periods->assertOpen($userId, (string)$existing->getDate());
 		}
-		$newDate = $account->getOpeningDate() ?? (new \DateTime())->format('Y-m-d');
+		$newDate = $account->getOpeningDate() ?? $this->clock->today();
 		if ($account->getOpeningBalanceCents() !== 0) {
 			$this->periods->assertOpen($userId, $newDate);
 		}
@@ -86,7 +87,7 @@ class OpeningBalanceService {
 
 		$journal = new Journal();
 		$journal->setUserId($userId);
-		$date = $account->getOpeningDate() ?? (new \DateTime())->format('Y-m-d');
+		$date = $account->getOpeningDate() ?? $this->clock->today();
 		// Materialisiert den Zeitraum, falls es ihn noch nicht gibt – eine
 		// Buchung ohne Geschäftsjahr darf es nicht geben.
 		$period = $this->periods->forDateOrCreate($userId, $date);
@@ -95,7 +96,7 @@ class OpeningBalanceService {
 		$journal->setDescription('Eröffnungsbuchung ' . $account->getNumber() . ' ' . $account->getName());
 		$journal->setDocumentRef(JournalMapper::OPENING_REF);
 		$journal->setBankTxId(null);
-		$journal->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s'));
+		$journal->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s')); // UTC-Zeitstempel (#263)
 		$journal = $this->journalMapper->insert($journal);
 
 		$abs = abs($amount);

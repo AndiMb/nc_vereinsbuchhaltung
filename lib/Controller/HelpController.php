@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\HandbookMarkdownRenderer;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
@@ -30,6 +31,7 @@ class HelpController extends Controller {
 		private IAppConfig $config,
 		private IL10N $l10n,
 		private HandbookMarkdownRenderer $renderer,
+		private ClubClock $clock,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -96,7 +98,7 @@ class HelpController extends Controller {
 			$h .= '<div class="club">' . htmlspecialchars($clubName, ENT_QUOTES, 'UTF-8') . '</div>';
 		}
 		$h .= '<h1>' . $heading . '</h1>';
-		$h .= '<div class="meta">' . ($english ? 'Created on ' : 'Erstellt am ') . (new \DateTime())->format('d.m.Y') . '</div>';
+		$h .= '<div class="meta">' . ($english ? 'Created on ' : 'Erstellt am ') . $this->clock->now()->format('d.m.Y') . '</div>';
 		$h .= '</header>';
 
 		if ($english) {

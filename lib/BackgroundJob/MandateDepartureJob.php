@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Service\ClaimStateResolver;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\BackgroundJob\TimedJob;
@@ -48,7 +49,8 @@ class MandateDepartureJob extends TimedJob {
 	}
 
 	protected function run($argument): void {
-		$today = $this->time->getDateTime()->format('Y-m-d');
+		// Kalendertag des Vereins, nicht der UTC-Tag (#263).
+		$today = (new ClubClock($this->time))->today();
 		try {
 			$ended = 0;
 			foreach ($this->memberMapper->findLeftOnOrBefore($today) as $member) {

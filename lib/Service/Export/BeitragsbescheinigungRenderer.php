@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCP\IAppConfig;
 use OCP\IL10N;
@@ -50,6 +51,7 @@ class BeitragsbescheinigungRenderer {
 		private ContributionYearService $contributionYear,
 		private IAppConfig $config,
 		private IL10N $l10n,
+		private ClubClock $clock,
 	) {
 	}
 
@@ -102,7 +104,7 @@ class BeitragsbescheinigungRenderer {
 			$label,
 			ReportFormat::date($from),
 			ReportFormat::date($to),
-			ReportFormat::date(date('Y-m-d')),
+			ReportFormat::date($this->clock->today()),
 		]);
 
 		$h = PrintableReportPage::printHint($this->l10n->t('Zum Drucken oder Als-PDF-Speichern: <strong>Strg+P</strong> (Mac: ⌘P) im Browser.'));

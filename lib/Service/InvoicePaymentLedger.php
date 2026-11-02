@@ -114,7 +114,7 @@ class InvoicePaymentLedger {
 	 * @param array<int, int> $parts Konto-ID => Cent
 	 */
 	public function record(Invoice $invoice, OpenItem $item, int $amountCents, ?int $bankTxId, ?int $journalId, array $parts, string $actor): InvoicePayment {
-		$now = (new \DateTimeImmutable())->format(\DateTimeInterface::ATOM);
+		$now = (new \DateTimeImmutable())->format(\DateTimeInterface::ATOM); // UTC-Zeitstempel (#263)
 		$payment = new InvoicePayment();
 		$payment->setInvoiceId((int)$invoice->getId());
 		$payment->setOpenItemId((int)$item->getId());
@@ -155,7 +155,7 @@ class InvoicePaymentLedger {
 	}
 
 	public function revert(InvoicePayment $payment): void {
-		$now = (new \DateTimeImmutable())->format(\DateTimeInterface::ATOM);
+		$now = (new \DateTimeImmutable())->format(\DateTimeInterface::ATOM); // UTC-Zeitstempel (#263)
 		try {
 			$item = $this->openItems->find($payment->getOpenItemId());
 			$item->setSettledCents(max(0, $item->getSettledCents() - $payment->getAmountCents()));

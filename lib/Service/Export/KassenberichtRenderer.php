@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\Period;
 use OCA\Vereinsbuchhaltung\Service\BudgetOverviewService;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\LedgerAggregator;
 use OCA\Vereinsbuchhaltung\Service\PeriodRule;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
@@ -39,6 +40,7 @@ class KassenberichtRenderer {
 		private ReportService $reportService,
 		private IAppConfig $config,
 		private IL10N $l10n,
+		private ClubClock $clock,
 	) {
 	}
 
@@ -69,7 +71,7 @@ class KassenberichtRenderer {
 			null,
 			$clubName,
 			$this->l10n->t('Kassenbericht für das Geschäftsjahr %s', [$period->getLabel()]),
-			$this->l10n->t('Erstellt am %s', [ReportFormat::date(date('Y-m-d'))]) . ' · ' . PrintableReportPage::escape($this->closeNote($period)),
+			$this->l10n->t('Erstellt am %s', [ReportFormat::date($this->clock->today())]) . ' · ' . PrintableReportPage::escape($this->closeNote($period)),
 		);
 		$h .= $this->wealthSection($vermoegen, $from, $to);
 		$h .= $this->resultSection($erfolg);

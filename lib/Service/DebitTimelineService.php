@@ -54,6 +54,8 @@ class DebitTimelineService {
 	public const MILESTONE_RELEASE = 'release';
 	public const MILESTONE_COLLECTION = 'collection';
 
+	private ClubClock $clock;
+
 	public function __construct(
 		private AssignmentMapper $assignments,
 		private OpenItemMapper $openItems,
@@ -64,7 +66,9 @@ class DebitTimelineService {
 		private ContributionCycleSettings $settings,
 		private DebitRunQueryService $runQuery,
 		private ITimeFactory $time,
+		?ClubClock $clock = null,
 	) {
+		$this->clock = $clock ?? new ClubClock($this->time);
 	}
 
 	/**
@@ -281,6 +285,6 @@ class DebitTimelineService {
 	}
 
 	private function today(): string {
-		return $this->time->getDateTime()->format('Y-m-d');
+		return $this->clock->today();
 	}
 }

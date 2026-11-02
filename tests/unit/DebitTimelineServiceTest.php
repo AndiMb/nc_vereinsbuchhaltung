@@ -17,6 +17,7 @@ use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCA\Vereinsbuchhaltung\Service\DebitRunQueryService;
 use OCA\Vereinsbuchhaltung\Service\DebitTimelineService;
 use OCA\Vereinsbuchhaltung\Service\DueDateScheduleService;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IAppConfig;
 use OCP\IL10N;
@@ -65,7 +66,7 @@ class DebitTimelineServiceTest extends TestCase {
 		$time = $this->createMock(ITimeFactory::class);
 		$time->method('getDateTime')->willReturn(new \DateTime($today));
 
-		$year = new ContributionYearService($config);
+		$year = new ContributionYearService($config, ClubClockStub::system());
 		return new DebitTimelineService(
 			$this->assignments,
 			$this->openItems,

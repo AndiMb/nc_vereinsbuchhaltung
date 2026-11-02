@@ -8,6 +8,7 @@ use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\ImportService;
 use OCA\Vereinsbuchhaltung\Service\RevisionService;
 use OCA\Vereinsbuchhaltung\Service\WatchFolderService;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
 use OCP\Files\File;
 use OCP\Files\Folder;
 use OCP\Files\IRootFolder;
@@ -97,6 +98,7 @@ class WatchFolderServiceTest extends TestCase {
 			$this->createMock(AuditService::class),
 			$this->createMock(RevisionService::class),
 			$this->createMock(LoggerInterface::class),
+			ClubClockStub::system(),
 		);
 
 		$this->assertSame(['auszug.csv'], array_column($service->run(), 'file'));

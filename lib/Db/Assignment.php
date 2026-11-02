@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Db;
 
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCP\AppFramework\Db\Entity;
 use OCP\IL10N;
 
@@ -91,7 +92,7 @@ class Assignment extends Entity implements \JsonSerializable {
 
 	/** „der Zeitraum ist der Status" – analog zu Member::isActive(). */
 	public function isActive(?string $today = null): bool {
-		$today ??= (new \DateTime())->format('Y-m-d');
+		$today ??= ClubClock::todayFromSystemClock();
 		if ($this->validFrom > $today) {
 			return false;
 		}

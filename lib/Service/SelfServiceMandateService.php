@@ -154,7 +154,7 @@ class SelfServiceMandateService {
 		$mandate = $this->mandateService->activateElectronic(
 			(int)$mandate->getId(),
 			(int)$this->legalTextService->current()->getId(),
-			(new \DateTime())->format('Y-m-d H:i:s'),
+			(new \DateTime())->format('Y-m-d H:i:s'), // UTC-Zeitstempel (#263)
 			$this->request->getRemoteAddress(),
 			(string)$this->request->getHeader('User-Agent'),
 			$this->consentActor(),
@@ -189,7 +189,7 @@ class SelfServiceMandateService {
 		$mandate = $this->mandateService->reconfirmElectronic(
 			(int)$mandate->getId(),
 			$currentVersionId,
-			(new \DateTime())->format('Y-m-d H:i:s'),
+			(new \DateTime())->format('Y-m-d H:i:s'), // UTC-Zeitstempel (#263)
 			$this->request->getRemoteAddress(),
 			(string)$this->request->getHeader('User-Agent'),
 			$this->consentActor(),

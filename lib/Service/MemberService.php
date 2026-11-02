@@ -28,6 +28,7 @@ class MemberService {
 		private OpenItemMapper $openItemMapper,
 		private IUserManager $userManager,
 		private IL10N $l10n,
+		private ClubClock $clock,
 	) {
 	}
 
@@ -48,7 +49,7 @@ class MemberService {
 	public function create(array $data): Member {
 		$member = new Member();
 		$this->applyStammdaten($member, $data);
-		$member->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s'));
+		$member->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s')); // UTC-Zeitstempel (#263)
 		return $this->mapper->insert($member);
 	}
 
@@ -363,8 +364,8 @@ class MemberService {
 		$member->setFirstName($split['firstName']);
 		$member->setLastName($split['lastName']);
 		$member->setOrganizationName($split['organizationName']);
-		$member->setJoinedAt((new \DateTime())->format('Y-m-d'));
-		$member->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s'));
+		$member->setJoinedAt($this->clock->today());
+		$member->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s')); // UTC-Zeitstempel (#263)
 		return $member;
 	}
 
@@ -452,7 +453,7 @@ class MemberService {
 		$member->setCountry($this->normalizeCountry($data['country'] ?? null));
 		$member->setMemberNumber($this->normalizeMemberNumber($data['memberNumber'] ?? null, $member));
 		$member->setJoinedAt($this->requireDate(
-			(string)($data['joinedAt'] ?? (new \DateTime())->format('Y-m-d')),
+			(string)($data['joinedAt'] ?? $this->clock->today()),
 			$this->l10n->t('Ungültiges Beitrittsdatum (erwartet JJJJ-MM-TT).'),
 		));
 		$member->setInternalNote($this->nullIfEmpty($data['internalNote'] ?? null));

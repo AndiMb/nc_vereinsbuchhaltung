@@ -82,7 +82,7 @@ class TaskService {
 		$task->setMessage($message);
 		$task->setObjectType($objectType);
 		$task->setObjectId($objectId);
-		$task->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s'));
+		$task->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s')); // UTC-Zeitstempel (#263)
 		return $this->mapper->insert($task);
 	}
 }

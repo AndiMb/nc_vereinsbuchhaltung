@@ -101,7 +101,7 @@ class InvoiceBatchService {
 			$batch->setName($name);
 			$batch->setSourceFilename($filename !== null && $filename !== '' ? mb_substr(basename($filename), 0, 255) : null);
 			$batch->setCreatedBy($this->userSession->getUser()?->getUID() ?? 'system');
-			$batch->setCreatedAt((new \DateTimeImmutable())->format(\DateTimeInterface::ATOM));
+			$batch->setCreatedAt((new \DateTimeImmutable())->format(\DateTimeInterface::ATOM)); // UTC-Zeitstempel (#263)
 			$batch = $this->batches->insert($batch);
 
 			/** @var array<string, int> $created Empfänger-Schlüssel => neu angelegter Debitor */

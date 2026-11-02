@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service\ReceiptIndex;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\EInvoice\EInvoiceException;
 use OCA\Vereinsbuchhaltung\Service\EInvoice\InvoiceSuiteEInvoiceWriter;
 use PrinsFrank\PdfParser\PdfParser;
@@ -39,7 +40,7 @@ class ReceiptReader {
 		?\Closure $today = null,
 		private ?LoggerInterface $logger = null,
 	) {
-		$this->today = $today ?? static fn (): \DateTimeImmutable => new \DateTimeImmutable('today');
+		$this->today = $today ?? static fn (): \DateTimeImmutable => new \DateTimeImmutable(ClubClock::todayFromSystemClock());
 	}
 
 	/**

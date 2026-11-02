@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Db;
 
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCP\AppFramework\Db\QBMapper;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
@@ -288,14 +289,18 @@ class OpenItemMapper extends QBMapper {
 		return $this->findEntities($qb);
 	}
 
-	/** Anzahl überfälliger offener Posten (für die Dashboard-KPI). */
-	public function countOverdue(): int {
+	/**
+	 * Anzahl überfälliger offener Posten (für die Dashboard-KPI).
+	 *
+	 * @param string|null $today Stichtag JJJJ-MM-TT, sonst der Kalendertag des Vereins (#263)
+	 */
+	public function countOverdue(?string $today = null): int {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select($qb->func()->count('*', 'c'))
 			->from($this->getTableName())
 			->where($qb->expr()->eq('status', $qb->createNamedParameter('open')))
 			->andWhere($qb->expr()->isNotNull('due_date'))
-			->andWhere($qb->expr()->lt('due_date', $qb->createNamedParameter(date('Y-m-d'))));
+			->andWhere($qb->expr()->lt('due_date', $qb->createNamedParameter($today ?? ClubClock::todayFromSystemClock())));
 		$result = $qb->executeQuery();
 		$count = (int)$result->fetchOne();
 		$result->closeCursor();

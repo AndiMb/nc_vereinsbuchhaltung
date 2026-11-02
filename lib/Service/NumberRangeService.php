@@ -144,7 +144,7 @@ class NumberRangeService {
 				}
 			}
 			$no = self::startNo($range, $key);
-			$issuedAt = (new \DateTimeImmutable())->format(\DateTimeInterface::ATOM);
+			$issuedAt = (new \DateTimeImmutable())->format(\DateTimeInterface::ATOM); // UTC-Zeitstempel (#263)
 			if ($this->mapper->advance((int)$range->getId(), $range->getNextNo(), $no + 1, $key, $issuedAt)) {
 				return [
 					'number' => self::format($range->getPrefixPattern(), $date, $no),

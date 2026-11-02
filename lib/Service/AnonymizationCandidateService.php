@@ -55,6 +55,8 @@ use OCP\IL10N;
  */
 class AnonymizationCandidateService {
 
+	private ClubClock $clock;
+
 	public function __construct(
 		private MemberMapper $members,
 		private MandateMapper $mandates,
@@ -62,7 +64,9 @@ class AnonymizationCandidateService {
 		private JournalMapper $journals,
 		private ITimeFactory $time,
 		private IL10N $l10n,
+		?ClubClock $clock = null,
 	) {
+		$this->clock = $clock ?? new ClubClock($this->time);
 	}
 
 	/**
@@ -167,6 +171,6 @@ class AnonymizationCandidateService {
 	}
 
 	private function today(): string {
-		return $this->time->getDateTime()->format('Y-m-d');
+		return $this->clock->today();
 	}
 }

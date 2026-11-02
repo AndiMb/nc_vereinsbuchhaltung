@@ -72,6 +72,7 @@ class MandateService {
 		private IL10N $l10n,
 		private MandateExpirySettings $expirySettings,
 		private MandateActivationTokenMapper $activationTokens,
+		private ClubClock $clock,
 	) {
 	}
 
@@ -228,7 +229,9 @@ class MandateService {
 		// hier, mit dem Zustimmungsdatum, gesetzt. Das lässt das Mandat auch in
 		// {@see MandateMapper::findCandidatesForExpiry()} (verlangt signed_at)
 		// und damit im 36-Monats-Verfall-Cron ankommen wie jedes andere Mandat.
-		$mandate->setSignedAt(substr($consentAt, 0, 10));
+		// Der Zeitpunkt ist UTC, das Unterschriftsdatum der Kalendertag des
+		// Vereins (#263): eine Zustimmung um 00:30 Uhr gehört zum neuen Tag.
+		$mandate->setSignedAt((new \DateTimeImmutable($consentAt, new \DateTimeZone('UTC')))->setTimezone(ClubClock::zone())->format('Y-m-d'));
 		$mandate->setStatus(Mandate::STATUS_ACTIVE);
 		$mandate->setActivatedAt($this->now());
 		$mandate = $this->mapper->update($mandate);
@@ -863,7 +866,7 @@ class MandateService {
 	 * @return array{expired:int} Anzahl der in diesem Lauf beendeten Mandate
 	 */
 	public function expireDueMandates(?string $today = null): array {
-		$todayDate = new \DateTimeImmutable($today ?? 'today');
+		$todayDate = new \DateTimeImmutable($today ?? $this->clock->today());
 		$expired = 0;
 		foreach ($this->mapper->findCandidatesForExpiry() as $mandate) {
 			if (!$this->expiryCalculator->isDueForExpiry($mandate, $todayDate)) {
@@ -888,7 +891,7 @@ class MandateService {
 	 * @return Mandate[]
 	 */
 	public function findDueForExpiryWarning(?string $today = null): array {
-		$todayDate = new \DateTimeImmutable($today ?? 'today');
+		$todayDate = new \DateTimeImmutable($today ?? $this->clock->today());
 		$warningDays = $this->expirySettings->warningDays();
 		return array_values(array_filter(
 			$this->mapper->findCandidatesForExpiry(),
@@ -1022,6 +1025,6 @@ class MandateService {
 	}
 
 	private function now(): string {
-		return (new \DateTime())->format('Y-m-d H:i:s');
+		return (new \DateTime())->format('Y-m-d H:i:s'); // UTC-Zeitstempel (#263)
 	}
 }

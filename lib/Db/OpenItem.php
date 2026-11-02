@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Db;
 
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCP\AppFramework\Db\Entity;
 
 /**
@@ -155,8 +156,9 @@ class OpenItem extends Entity implements \JsonSerializable {
 		return $this->reimbursementId !== null;
 	}
 
-	public function isOverdue(): bool {
-		return $this->status === 'open' && $this->dueDate !== null && $this->dueDate < date('Y-m-d');
+	/** @param string|null $today Stichtag JJJJ-MM-TT, sonst der Kalendertag des Vereins (#263) */
+	public function isOverdue(?string $today = null): bool {
+		return $this->status === 'open' && $this->dueDate !== null && $this->dueDate < ($today ?? ClubClock::todayFromSystemClock());
 	}
 
 	/** Ob diese Zeile eine Forderung im Sinne von Issue #68 ist (statt eines freien Alt-Postens). */

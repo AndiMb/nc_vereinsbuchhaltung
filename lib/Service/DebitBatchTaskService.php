@@ -39,6 +39,8 @@ use OCP\IL10N;
  */
 class DebitBatchTaskService {
 
+	private ClubClock $clock;
+
 	public function __construct(
 		private OpenItemMapper $openItems,
 		private DebitItemMapper $debitItems,
@@ -47,7 +49,9 @@ class DebitBatchTaskService {
 		private ContributionCycleSettings $settings,
 		private ITimeFactory $time,
 		private IL10N $l10n,
+		?ClubClock $clock = null,
 	) {
+		$this->clock = $clock ?? new ClubClock($this->time);
 	}
 
 	/** @return list<array{severity:string,message:string,objectType:?string,objectId:?int}> */
@@ -124,6 +128,6 @@ class DebitBatchTaskService {
 	}
 
 	private function today(): string {
-		return $this->time->getDateTime()->format('Y-m-d');
+		return $this->clock->today();
 	}
 }

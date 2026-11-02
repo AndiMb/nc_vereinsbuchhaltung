@@ -45,6 +45,7 @@ class WatchFolderService {
 		private AuditService $audit,
 		private RevisionService $revision,
 		private LoggerInterface $logger,
+		private ClubClock $clock,
 	) {
 	}
 
@@ -206,7 +207,7 @@ class WatchFolderService {
 			if ($error !== null) {
 				$target->newFile(
 					$name . '.fehler.txt',
-					'Diese Datei konnte am ' . (new \DateTime())->format('d.m.Y H:i')
+					'Diese Datei konnte am ' . $this->clock->now()->format('d.m.Y H:i')
 					. ' nicht eingelesen werden:' . "\n\n" . $error . "\n\n"
 					. 'Die Datei wurde nicht verändert. Nach dem Beheben der Ursache kann sie '
 					. 'wieder in den Wachordner zurückgelegt werden.' . "\n"
@@ -226,7 +227,7 @@ class WatchFolderService {
 		if (!$target->nodeExists($name)) {
 			return $name;
 		}
-		return self::stampedName($name, (new \DateTime())->format('Ymd-His'));
+		return self::stampedName($name, $this->clock->now()->format('Ymd-His'));
 	}
 
 	/**

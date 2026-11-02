@@ -127,7 +127,7 @@ class ReimbursementFileService {
 			$attachment->setFileName($file->getFileName());
 			$attachment->setMimeType($file->getMimeType());
 			$attachment->setFileSize($file->getFileSize());
-			$attachment->setUploadedAt(new \DateTime());
+			$attachment->setUploadedAt(new \DateTime()); // UTC-Zeitstempel (#263)
 			$attachment = $this->attachmentMapper->insert($attachment);
 			$this->storage->moveReimbursementFileToJournal($file, $attachment);
 			$this->attachmentMapper->update($attachment);

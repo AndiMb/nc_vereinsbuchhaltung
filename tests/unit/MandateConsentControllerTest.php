@@ -13,6 +13,7 @@ use OCA\Vereinsbuchhaltung\Exception\ExpiredActivationTokenException;
 use OCA\Vereinsbuchhaltung\Exception\InvalidActivationTokenException;
 use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
 use OCA\Vereinsbuchhaltung\Service\MandateFormRenderer;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http\Attribute\UserRateLimit;
 use OCP\IAppConfig;
@@ -48,7 +49,7 @@ class MandateConsentControllerTest extends TestCase {
 		$urlGenerator->method('linkToRoute')->willReturn('/accept');
 		$config = $this->createMock(IAppConfig::class);
 		$config->method('getValueString')->willReturnArgument(2);
-		return new MandateConsentController($this->request, $this->activation, $this->formRenderer, $urlGenerator, $config);
+		return new MandateConsentController($this->request, $this->activation, $this->formRenderer, $urlGenerator, $config, ClubClockStub::system());
 	}
 
 	/** @return array<string, array{\Throwable, int}> */

@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Service\BrandingService;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\LedgerAggregator;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCP\IAppConfig;
@@ -37,6 +38,7 @@ class KurzberichtRenderer {
 		private IAppConfig $config,
 		private IURLGenerator $urlGenerator,
 		private IL10N $l10n,
+		private ClubClock $clock,
 	) {
 	}
 
@@ -56,10 +58,10 @@ class KurzberichtRenderer {
 	}
 
 	public function render(string $userId, ?string $since = null): string {
-		$today = date('Y-m-d');
+		$today = $this->clock->today();
 		$period = $this->periods->current($userId);
 		$since = $this->normalizeSince($since, $today, $period->getStartDate());
-		$beforeSince = date('Y-m-d', strtotime($since . ' -1 day'));
+		$beforeSince = (new \DateTimeImmutable($since))->modify('-1 day')->format('Y-m-d');
 
 		$accounts = $this->accountMapper->findAll($userId);
 		$moveSums = $this->lineMapper->sumByAccount($userId, $since, $today);

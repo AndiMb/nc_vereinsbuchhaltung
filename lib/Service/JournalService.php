@@ -141,7 +141,7 @@ class JournalService {
 		$journal->setDescription(mb_substr($description, 0, 255));
 		$journal->setDocumentRef($docRef !== null ? mb_substr($docRef, 0, 64) : null);
 		$journal->setBankTxId(null);
-		$journal->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s'));
+		$journal->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s')); // UTC-Zeitstempel (#263)
 		$journal->setUpdatedAt(self::now());
 		$journal = $this->journalMapper->insert($journal);
 
@@ -699,7 +699,7 @@ class JournalService {
 
 	/** Änderungszeitstempel mit Mikrosekunden (Sekundenauflösung reicht dem Konfliktvergleich nicht). */
 	private static function now(): string {
-		return (new \DateTime())->format('Y-m-d H:i:s.u');
+		return (new \DateTime())->format('Y-m-d H:i:s.u'); // UTC-Zeitstempel (#263)
 	}
 
 	private function addLine(int $journalId, int $accountId, int $debit, int $credit): void {

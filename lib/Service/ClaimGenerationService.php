@@ -62,6 +62,8 @@ class ClaimGenerationService {
 	/** Schutz gegen eine Endlosschleife beim Turnuswechsel-Guard, siehe nextPendingPeriod(). */
 	private const MAX_INTERVAL_CHANGE_HOPS = 60;
 
+	private ClubClock $clock;
+
 	public function __construct(
 		private AssignmentMapper $assignments,
 		private OpenItemMapper $openItems,
@@ -72,7 +74,9 @@ class ClaimGenerationService {
 		private DueDateScheduleService $schedule,
 		private ContributionCycleSettings $settings,
 		private ITimeFactory $time,
+		?ClubClock $clock = null,
 	) {
+		$this->clock = $clock ?? new ClubClock($this->time);
 	}
 
 	/**
@@ -286,7 +290,7 @@ class ClaimGenerationService {
 	}
 
 	private function today(): string {
-		return $this->time->getDateTime()->format('Y-m-d');
+		return $this->clock->today();
 	}
 
 	private function now(): string {

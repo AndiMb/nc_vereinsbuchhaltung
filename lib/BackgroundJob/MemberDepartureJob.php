@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\BackgroundJob;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Service\AssignmentService;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\BackgroundJob\TimedJob;
 use Psr\Log\LoggerInterface;
@@ -37,7 +38,8 @@ class MemberDepartureJob extends TimedJob {
 	}
 
 	protected function run($argument): void {
-		$today = $this->time->getDateTime()->format('Y-m-d');
+		// Kalendertag des Vereins, nicht der UTC-Tag (#263).
+		$today = (new ClubClock($this->time))->today();
 		try {
 			$closed = 0;
 			foreach ($this->memberMapper->findLeftOnOrBefore($today) as $member) {

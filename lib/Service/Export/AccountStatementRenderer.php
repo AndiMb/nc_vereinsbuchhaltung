@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Service\Export;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Service\AccountStatementService;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCP\IAppConfig;
 use OCP\IL10N;
@@ -25,6 +26,7 @@ class AccountStatementRenderer {
 		private PeriodService $periods,
 		private IAppConfig $config,
 		private IL10N $l10n,
+		private ClubClock $clock,
 	) {
 	}
 
@@ -48,7 +50,7 @@ class AccountStatementRenderer {
 		if ($includeChildren) {
 			$meta[] = PrintableReportPage::escape($this->l10n->t('inkl. Unterkonten'));
 		}
-		$meta[] = PrintableReportPage::escape($this->l10n->t('Erstellt am %s', [ReportFormat::date(date('Y-m-d'))]));
+		$meta[] = PrintableReportPage::escape($this->l10n->t('Erstellt am %s', [ReportFormat::date($this->clock->today())]));
 
 		$h = PrintableReportPage::printHint($this->l10n->t('Zum Drucken oder Als-PDF-Speichern: <strong>Strg+P</strong> (Mac: ⌘P) im Browser.'));
 		$h .= PrintableReportPage::header(null, $clubName, $heading, implode(' · ', $meta));

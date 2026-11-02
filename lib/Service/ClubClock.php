@@ -1,0 +1,66 @@
+<?php
+
+declare(strict_types=1);
+
+namespace OCA\Vereinsbuchhaltung\Service;
+
+use OCP\AppFramework\Utility\ITimeFactory;
+
+/**
+ * Die Uhr des Vereins (Issue #263): fachliche Tagesdaten – „heute“,
+ * Fälligkeit, Überfälligkeit, Unterschriftsdatum, gedruckte „Stand:“-Angaben –
+ * zählen in der Zeitzone des Servers (`default_timezone` in config.php), sonst
+ * in Europe/Berlin. Nextcloud stellt PHP selbst auf UTC; ohne diese Uhr wäre
+ * zwischen 00:00 und 02:00 Uhr deutscher Zeit noch „gestern“.
+ *
+ * Gespeicherte Zeitstempel (`created_at`, `updated_at`, `…_at` mit Uhrzeit)
+ * bleiben UTC und laufen nicht über diese Klasse.
+ *
+ * Die Zone setzt {@see \OCA\Vereinsbuchhaltung\AppInfo\Application::boot()}
+ * einmal je Request; sie ist statisch, damit auch Entitäten ohne
+ * Dependency Injection denselben Tag sehen.
+ */
+final class ClubClock {
+	private const FALLBACK_ZONE = 'Europe/Berlin';
+
+	private static ?\DateTimeZone $zone = null;
+
+	public function __construct(
+		private ITimeFactory $time,
+	) {
+	}
+
+	/** Die gesetzte Vereinszone, sonst Europe/Berlin. */
+	public static function zone(): \DateTimeZone {
+		return self::$zone ?? new \DateTimeZone(self::FALLBACK_ZONE);
+	}
+
+	/** Ein leerer oder unbekannter Name bedeutet Europe/Berlin. */
+	public static function configureZone(string $name): void {
+		$name = trim($name);
+		if ($name === '') {
+			self::$zone = null;
+			return;
+		}
+		try {
+			self::$zone = new \DateTimeZone($name);
+		} catch (\Exception) {
+			self::$zone = null;
+		}
+	}
+
+	/** Jetzt, in der Vereinszone. */
+	public function now(): \DateTimeImmutable {
+		return \DateTimeImmutable::createFromMutable($this->time->getDateTime())->setTimezone(self::zone());
+	}
+
+	/** Der Kalendertag des Vereins, JJJJ-MM-TT. */
+	public function today(): string {
+		return $this->now()->format('Y-m-d');
+	}
+
+	/** Für Entitäten und statische Helfer ohne Dependency Injection. */
+	public static function todayFromSystemClock(): string {
+		return (new \DateTimeImmutable('now', self::zone()))->format('Y-m-d');
+	}
+}

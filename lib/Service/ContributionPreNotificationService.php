@@ -43,6 +43,8 @@ use Psr\Log\LoggerInterface;
  */
 class ContributionPreNotificationService {
 
+	private ClubClock $clock;
+
 	public function __construct(
 		private OpenItemMapper $openItems,
 		private MandateMapper $mandates,
@@ -56,7 +58,9 @@ class ContributionPreNotificationService {
 		private LoggerInterface $logger,
 		private RecipientL10n $recipientL10n,
 		private ClubMailBranding $mailBranding,
+		?ClubClock $clock = null,
 	) {
+		$this->clock = $clock ?? new ClubClock($this->time);
 	}
 
 	/**
@@ -200,7 +204,7 @@ class ContributionPreNotificationService {
 	}
 
 	private function today(): string {
-		return $this->time->getDateTime()->format('Y-m-d');
+		return $this->clock->today();
 	}
 
 	private function now(): string {

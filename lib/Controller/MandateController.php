@@ -8,6 +8,7 @@ use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Mandate;
 use OCA\Vereinsbuchhaltung\Db\MandateAmendment;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\Export\PrintableReportPage;
 use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
 use OCA\Vereinsbuchhaltung\Service\MandateDocumentService;
@@ -64,6 +65,7 @@ class MandateController extends Controller {
 		private IAppConfig $config,
 		private IL10N $l10n,
 		private LoggerInterface $logger,
+		private ClubClock $clock,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -92,7 +94,7 @@ class MandateController extends Controller {
 		// steht.
 		$running = in_array($mandate->getStatus(), [Mandate::STATUS_ACTIVE, Mandate::STATUS_SUSPENDED], true);
 		$data['expiresAt'] = $running ? $this->expiryCalculator->expiresAt($mandate)?->format('Y-m-d') : null;
-		$data['expiryWarning'] = $this->expiryCalculator->needsExpiryWarning($mandate, new \DateTimeImmutable('today'));
+		$data['expiryWarning'] = $this->expiryCalculator->needsExpiryWarning($mandate, new \DateTimeImmutable($this->clock->today()));
 		return $data;
 	}
 
@@ -269,7 +271,7 @@ class MandateController extends Controller {
 		// übersetzt ist nur der Druckhinweis oben, der beim Drucken wegfällt.
 		$body = PrintableReportPage::header(null, $clubName, 'SEPA-Lastschriftmandat', PrintableReportPage::escape($mandate->getMandateReference()));
 		$body .= '<section>' . $this->formRenderer->renderLegalText($legalText, $clubName) . '</section>';
-		$body .= '<section>' . $this->formRenderer->renderDataBlock($mandate, $creditorId, $mandate->getSignedAt() ?? date('Y-m-d')) . '</section>';
+		$body .= '<section>' . $this->formRenderer->renderDataBlock($mandate, $creditorId, $mandate->getSignedAt() ?? $this->clock->today()) . '</section>';
 		$body .= '<section class="signatures">' . $this->signatureSection($mandate) . '</section>';
 
 		$html = PrintableReportPage::document('SEPA-Lastschriftmandat ' . $mandate->getMandateReference(), PrintableReportPage::printHint($this->l10n->t('Zum Drucken oder Als-PDF-Speichern: <strong>Strg+P</strong> (Mac: ⌘P) im Browser.')) . $body);
