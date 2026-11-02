@@ -16,8 +16,8 @@ use Psr\Log\LoggerInterface;
  * Häppchen mit Datei- und Zeitlimit, und räumt verschwundene Dateien ab.
  */
 class ReceiptIndexService {
-	public const REQUEST_MAX_FILES = 20;
-	public const REQUEST_MAX_SECONDS = 2.0;
+	public const REQUEST_MAX_FILES = 5;
+	public const REQUEST_MAX_SECONDS = 0.5;
 	public const JOB_MAX_FILES = 300;
 	public const JOB_MAX_SECONDS = 60.0;
 

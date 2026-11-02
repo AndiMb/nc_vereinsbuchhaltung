@@ -751,6 +751,8 @@ export default {
 		// Ob das Rechnungsmodul eingeschaltet ist - dann kommen zu Zahlungseingängen Vorschläge für offene Rechnungen (Epic #168).
 		invoicesActive: { type: Boolean, default: false },
 		attachmentCountMap: { type: Object, required: true },
+		// Zählt Änderungen an Belegen (App.vue: afterAttachmentsChanged); Anlass, die Vorschläge nachzuladen.
+		attachmentsRevision: { type: Number, default: 0 },
 		// suggestionsById bleibt in App.vue berechnet (wird auch vom
 		// AccountPickerSheet-Flow dort gebraucht), hier nur als Prop gelesen.
 		suggestionsById: { type: Object, required: true },
@@ -1068,9 +1070,10 @@ export default {
 			this.loadReceiptSuggestions()
 		},
 
-		// Nach jeder Änderung an Buchungen oder Belegen (App.vue lädt die Zähler
-		// dann neu) und beim Ein-/Ausschalten des Wächter-Ordners.
-		attachmentCountMap() { this.loadReceiptSuggestions() },
+		// Nach jeder Änderung an Belegen und beim Ein-/Ausschalten des
+		// Wächter-Ordners. Nicht an attachmentCountMap: die legt jedes Nachladen
+		// des Journals neu an, und jeder Abruf kostet einen Ordnerscan.
+		attachmentsRevision() { this.loadReceiptSuggestions() },
 		suggestionsActive() { this.loadReceiptSuggestions() },
 		bulkSelectable(v) { if (!v) { this.clearJournalSelection() } },
 

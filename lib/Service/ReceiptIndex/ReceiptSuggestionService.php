@@ -257,16 +257,16 @@ class ReceiptSuggestionService {
 		if ($inbox['folderMissing'] || $inbox['files'] === []) {
 			return null;
 		}
-		// Offene Dateien zuerst: sie stehen beim begrenzten Lesen vorn an.
-		$all = $inbox['files'];
-		usort($all, static fn (array $a, array $b): int => ($a['journalIds'] !== []) <=> ($b['journalIds'] !== []));
+		// Im Request nur die offenen Dateien lesen, und nie als vollständige
+		// Liste: zugeordnete Dateien und das Aufräumen verschwundener Einträge
+		// erledigt der ReceiptIndexJob im Hintergrund.
+		$open = array_values(array_filter($inbox['files'], static fn (array $f): bool => $f['journalIds'] === []));
 		$refreshed = $this->index->refresh(
-			$all,
+			$open,
 			ReceiptIndexService::REQUEST_MAX_FILES,
 			ReceiptIndexService::REQUEST_MAX_SECONDS,
-			!$inbox['capped'],
+			false,
 		);
-		$open = array_values(array_filter($inbox['files'], static fn (array $f): bool => $f['journalIds'] === []));
 		// Nur offene Dateien zählen: zugeordnete, noch ungelesene würden den Hinweis „wird noch gelesen“ ewig stehen lassen.
 		$pending = 0;
 		if ($refreshed['pending'] > 0) {

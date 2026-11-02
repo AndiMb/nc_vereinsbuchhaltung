@@ -333,6 +333,8 @@ export default {
 		// steuert, ob die SetupChecklist schon urteilsfaehig ist (siehe SetupChecklist.vue)
 		setupReady: { type: Boolean, required: true },
 		attachmentCountMap: { type: Object, required: true },
+		// Zählt Änderungen an Belegen (App.vue: afterAttachmentsChanged); Anlass, die Vorschläge nachzuladen.
+		attachmentsRevision: { type: Number, default: 0 },
 		// haengt vom Sortierzustand der Journal-Tabelle im Buchungen-Tab ab
 		// (sortedJournalRows), daher weiterhin von App.vue berechnet/uebergeben.
 		recentJournal: { type: Array, required: true },
@@ -473,7 +475,8 @@ export default {
 			this.loadReceiptSuggestions()
 		},
 
-		attachmentCountMap() { if (this.isActive) { this.loadReceiptSuggestions() } },
+		// Nur nach Änderungen an Belegen, nicht bei jedem Nachladen des Journals.
+		attachmentsRevision() { if (this.isActive) { this.loadReceiptSuggestions() } },
 		suggestionsActive() { this.loadReceiptSuggestions() },
 	},
 

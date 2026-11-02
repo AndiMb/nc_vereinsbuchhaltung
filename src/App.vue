@@ -116,6 +116,7 @@
 					:clubName="clubName"
 					:setupReady="setupReady"
 					:attachmentCountMap="attachmentCountMap"
+					:attachmentsRevision="attachmentsRevision"
 					:recentJournal="recentJournal"
 					:clickPaperclip="clickPaperclip"
 					:openBookingCard="openBookingCard"
@@ -139,6 +140,7 @@
 					:membershipActive="membershipActive"
 					:invoicesActive="invoicesActive"
 					:attachmentCountMap="attachmentCountMap"
+					:attachmentsRevision="attachmentsRevision"
 					:suggestionsById="suggestionsById"
 					:openImport="openImport"
 					:clickPaperclip="clickPaperclip"
@@ -482,6 +484,9 @@ import { splitBalanced, splitRemainder, splitSideOf } from './lib/split.js'
 // war sie kuerzer als dieser Abstand, meldete die App die eigene Buchung als
 // "von einer anderen Person geaendert" - je nachdem, wann der Abgleich fiel.
 const SYNC_INTERVALL = 20000
+// Beim Fensterfokus die Wächter-Ordner-Kacheln nur nachfragen, wenn der letzte
+// Abruf so lange zurückliegt – jeder Abruf kostet einen Ordnerscan.
+const INBOX_FOCUS_MIN_AGE = 60000
 
 // Belege: Grenzen aus AttachmentController (MAX_SIZE, ALLOWED_MIMES). Die
 // Oberflaeche prueft sie schon bei der Auswahl - beim Anlegen einer Buchung
@@ -694,6 +699,12 @@ export default {
 			mdiSwapHorizontal,
 			bookingAttachments: [],
 			attachmentCountMap: {},
+			// Zählt jede Änderung an Belegen (Anhängen, Verknüpfen, Lösen). Die
+			// Belegvorschläge laden daran nach – nicht an attachmentCountMap, die
+			// jedes Nachladen des Journals neu anlegt.
+			attachmentsRevision: 0,
+			// Start des letzten inbox-summary-Abrufs, für die Mindestpause beim Fensterfokus.
+			lastInboxAt: 0,
 			// Belegvorschlag in der Buchungsliste angeklickt: Seitenleiste des Dialogs geht auf.
 			bookingForceFolderPanel: false,
 			// Kollaboration: Poll-Timer (Änderungsstand selbst kommt aus useSync)
@@ -1499,8 +1510,10 @@ export default {
 		onWindowFocus() {
 			this.checkRevision()
 			// Eine neu abgelegte Datei im Wächter-Ordner ändert den Änderungsstand
-			// nicht – die Kachel soll trotzdem stimmen, wenn man zurückkommt.
-			this.refreshInbox()
+			// nicht – die Kachel soll trotzdem stimmen, wenn man zurückkommt. Der
+			// Fokus wechselt aber oft (Dateidialog, Viewer, anderer Tab): höchstens
+			// einmal je INBOX_FOCUS_MIN_AGE nachfragen, wie die Aufgaben in useTasks.
+			if (Date.now() - this.lastInboxAt >= INBOX_FOCUS_MIN_AGE) { this.refreshInbox() }
 		},
 
 		async checkRevision(init = false) {
@@ -2072,13 +2085,16 @@ export default {
 
 		/** Nach jedem Anhängen, Verknüpfen oder Lösen: Zähler und Übersichts-Kacheln nachziehen. */
 		afterAttachmentsChanged() {
+			this.attachmentsRevision++
 			this.loadAttachmentCounts()
 			this.refreshInbox()
 		},
 
 		/** Die Kacheln des Wächter-Ordners – nur dort kostet der Aufruf einen Ordnerscan. */
 		refreshInbox() {
-			if (this.watchMode) { this.loadInboxSummary() }
+			if (!this.watchMode) { return }
+			this.lastInboxAt = Date.now()
+			this.loadInboxSummary()
 		},
 
 		async loadAttachments(journalId) {
