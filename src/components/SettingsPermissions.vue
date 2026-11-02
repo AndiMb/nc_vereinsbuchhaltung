@@ -76,6 +76,7 @@ import api from '../api.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { usePermissions } from '../composables/usePermissions.js'
 import { errMsg, roleLabel } from '../lib/format.js'
+import { withPasswordConfirmation } from '../lib/passwordGate.js'
 
 export default {
 	name: 'SettingsPermissions',
@@ -123,6 +124,7 @@ export default {
 		async savePermission() {
 			if (!this.permForm.principalId) { showError(this.t('Bitte Nutzer oder Gruppe angeben.')); return }
 			try {
+				if (!await withPasswordConfirmation()) { return }
 				await api.setPermission(this.permForm)
 				this.permForm = { principalType: 'group', principalId: '', role: 'revisor' }
 				await this.loadPermissions()
@@ -132,7 +134,10 @@ export default {
 
 		async removePermission(p) {
 			if (!await this.askConfirm(this.t('Berechtigung entfernen'), this.tRaw('Berechtigung für "{id}" entfernen?', { id: p.principalId }))) { return }
-			try { await api.deletePermission(p.id); await this.loadPermissions() } catch (e) { showError(this.errMsg(e, this.t('Entfernen fehlgeschlagen'))) }
+			try {
+				if (!await withPasswordConfirmation()) { return }
+				await api.deletePermission(p.id); await this.loadPermissions()
+			} catch (e) { showError(this.errMsg(e, this.t('Entfernen fehlgeschlagen'))) }
 		},
 	},
 }

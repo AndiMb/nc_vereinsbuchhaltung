@@ -14,6 +14,7 @@ use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
+use OCP\AppFramework\Http\Attribute\PasswordConfirmationRequired;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IGroupManager;
 use OCP\IL10N;
@@ -78,6 +79,7 @@ class PermissionController extends Controller {
 	}
 
 	#[NoAdminRequired]
+	#[PasswordConfirmationRequired]
 	public function setRole(string $principalType, string $principalId, string $role): DataResponse {
 		if (!in_array($principalType, ['user', 'group'], true)) {
 			return new DataResponse(['message' => $this->l10n->t('Ungültiger Typ')], Http::STATUS_BAD_REQUEST);
@@ -108,6 +110,7 @@ class PermissionController extends Controller {
 	}
 
 	#[NoAdminRequired]
+	#[PasswordConfirmationRequired]
 	public function destroy(int $id): DataResponse {
 		try {
 			$perm = $this->mapper->find($id);

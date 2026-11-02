@@ -16,6 +16,7 @@ use OCA\Vereinsbuchhaltung\Service\XbucImportService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
+use OCP\AppFramework\Http\Attribute\PasswordConfirmationRequired;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IL10N;
 use OCP\IRequest;
@@ -149,6 +150,7 @@ class ImportController extends Controller {
 
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	#[PasswordConfirmationRequired]
 	public function reset(): DataResponse {
 		// Zweite Schicht neben der Middleware – hier hängt der gesamte
 		// Datenbestand dran.
