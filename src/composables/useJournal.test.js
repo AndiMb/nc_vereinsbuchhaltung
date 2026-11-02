@@ -16,7 +16,7 @@ vi.mock('../api.js', () => ({
 const showError = vi.fn()
 vi.mock('@nextcloud/dialogs', () => ({ showError: (message) => showError(message), showSuccess: vi.fn(), showWarning: vi.fn() }))
 
-const { useJournal } = await import('./useJournal.js')
+const { accountLabelKey, journalVersion, useJournal } = await import('./useJournal.js')
 const { state, unassignedCount, loadTransactions } = useJournal()
 
 const emptyContext = () => ({ history: [], progress: { total: 0, assigned: 0 }, byJournal: {} })
@@ -69,5 +69,46 @@ describe('loadTransactions', () => {
 
 		expect(showError).toHaveBeenCalledWith('Keine Leseberechtigung.')
 		expect(state.transactions.map((t) => t.id)).toEqual([1])
+	})
+})
+
+// Stand einer Buchung für den Zeilen-Zwischenspeicher (Issue #254). Bankzuordnung
+// und Eröffnungsbilanz legen Buchungen nur mit createdAt an.
+describe('journalVersion', () => {
+	const item = (journal) => ({ journal: { id: 1, entryNo: 5, ...journal }, lines: [] })
+
+	it('nimmt updatedAt, wenn vorhanden', () => {
+		expect(journalVersion(item({ createdAt: '2026-01-01 08:00:00', updatedAt: '2026-02-01 09:00:00' }))).toBe('2026-02-01 09:00:00#5')
+	})
+
+	it('faellt auf createdAt zurueck', () => {
+		expect(journalVersion(item({ createdAt: '2026-01-01 08:00:00', updatedAt: null }))).toBe('2026-01-01 08:00:00#5')
+	})
+
+	it('eine neue Buchungsnummer ergibt einen neuen Stand', () => {
+		const a = journalVersion(item({ createdAt: '2026-01-01 08:00:00' }))
+		const b = journalVersion(item({ createdAt: '2026-01-01 08:00:00', entryNo: 6 }))
+		expect(b).not.toBe(a)
+	})
+
+	it('ohne Zeitstempel kein Stand', () => {
+		expect(journalVersion(item({ createdAt: null, updatedAt: null }))).toBeNull()
+	})
+})
+
+describe('accountLabelKey', () => {
+	const acc = (over) => ({ id: 1, number: '1200', name: 'Bank', isBank: true, ...over })
+
+	it('gleiche Konten, gleicher Schluessel', () => {
+		expect(accountLabelKey([acc()])).toBe(accountLabelKey([acc()]))
+	})
+
+	it('aendert sich mit isBank', () => {
+		expect(accountLabelKey([acc({ isBank: false })])).not.toBe(accountLabelKey([acc()]))
+	})
+
+	it('aendert sich mit Nummer und Name', () => {
+		expect(accountLabelKey([acc({ number: '1210' })])).not.toBe(accountLabelKey([acc()]))
+		expect(accountLabelKey([acc({ name: 'Sparkasse' })])).not.toBe(accountLabelKey([acc()]))
 	})
 })

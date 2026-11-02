@@ -35,15 +35,21 @@ function accountLabel(id) {
 // einer Zeile steht (Nummer, Name) oder ihre Richtung bestimmt (isBank), werden
 // alle Zeilen neu gebaut. Konten haben keinen eigenen Änderungsstempel, darum
 // zählen die Felder selbst; das sind wenige hundert Konten, nicht Buchungen.
-const accountLabelKey = computed(() => accounts.state.accounts.length + '|'
-	+ accounts.state.accounts.map((a) => `${a.id}:${a.number}:${a.name}:${a.isBank ? 1 : 0}`).join('|'))
+export function accountLabelKey(list) {
+	return list.length + '|' + list.map((a) => `${a.id}:${a.number}:${a.name}:${a.isBank ? 1 : 0}`).join('|')
+}
+const accountsKey = computed(() => accountLabelKey(accounts.state.accounts))
 
-// Stand einer Buchung: updatedAt, dazu die Nummer, weil das Neu-Nummerieren
-// (EntryNumberService) den Stempel nicht anfasst. Ohne updatedAt kein Stand:
-// dann baut der Zwischenspeicher die Zeile jedes Mal neu.
-function journalVersion(item) {
+// Stand einer Buchung: updatedAt, sonst createdAt – Bankzuordnung
+// (BookingService) und Eröffnungsbilanz (OpeningBalanceService) legen
+// Buchungen ohne updatedAt an, und jede spätere Änderung über JournalService
+// setzt es. Dazu die Nummer, weil das Neu-Nummerieren (EntryNumberService)
+// keinen Stempel anfasst. Ohne beide Stempel kein Stand: dann baut der
+// Zwischenspeicher die Zeile jedes Mal neu.
+export function journalVersion(item) {
 	const j = item.journal
-	return j.updatedAt ? `${j.updatedAt}#${j.entryNo}` : null
+	const stamp = j.updatedAt || j.createdAt
+	return stamp ? `${stamp}#${j.entryNo}` : null
 }
 
 function buildJournalRow(item) {
@@ -83,7 +89,7 @@ const journalRowCache = createRowCache(buildJournalRow, { id: (item) => item.jou
 
 // Unveränderte Buchungen behalten nach jedem Nachladen ihr Zeilenobjekt, damit
 // v-memo in der Buchungstabelle sie überspringt (Issue #254).
-const journalRows = computed(() => journalRowCache(state.journalData, accountLabelKey.value))
+const journalRows = computed(() => journalRowCache(state.journalData, accountsKey.value))
 
 const unassignedCount = computed(() => state.transactions.filter((t) => t.status === 'unassigned').length)
 
