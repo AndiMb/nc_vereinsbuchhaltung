@@ -958,16 +958,6 @@
 <script>
 import { mdiCalendarRange, mdiDelete, mdiDownload, mdiPaperclip, mdiPrinter } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import {
-	CategoryScale,
-	Chart,
-	Legend,
-	LinearScale,
-	LineController,
-	LineElement,
-	PointElement,
-	Tooltip,
-} from 'chart.js'
 import { toRefs } from 'vue'
 import NcActionInput from '@nextcloud/vue/components/NcActionInput'
 import NcActionLink from '@nextcloud/vue/components/NcActionLink'
@@ -989,10 +979,9 @@ import { useBalances } from '../composables/useBalances.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { usePeriods } from '../composables/usePeriods.js'
 import { useSort } from '../composables/useSort.js'
+import { loadChart } from '../lib/chartLoader.js'
 import { chartTheme, onThemeChange, withAlpha } from '../lib/chartTheme.js'
 import { amountClass, budgetDiffClass, formatDate, formatDateTime, formatMoney, formatPercent, roleLabel, trendClass, typeLabel } from '../lib/format.js'
-
-Chart.register(LineController, LineElement, PointElement, CategoryScale, LinearScale, Tooltip, Legend)
 
 export default {
 	name: 'ReportsTab',
@@ -1362,7 +1351,10 @@ export default {
 			}
 		},
 
-		renderTrendChart() {
+		async renderTrendChart() {
+			if (!this.$refs.trendChart) { return }
+			const Chart = await loadChart()
+			// Waehrend des Nachladens kann die Ansicht gewechselt worden sein.
 			const canvas = this.$refs.trendChart
 			if (!canvas) { return }
 			this.destroyChart('trend')

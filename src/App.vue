@@ -311,6 +311,7 @@
 
 		<!-- ============ IMPORT-DIALOG (CSV-CAMT) ============ -->
 		<ImportDialog
+			v-if="showImport"
 			v-model:busy="busy"
 			:show="showImport"
 			@update:show="showImport = $event"
@@ -408,6 +409,7 @@
 
 		<!-- ============ HILFE ============ -->
 		<HelpModal
+			v-if="showHelp"
 			:show="showHelp"
 			:topic="helpTopic"
 			:currentVersion="whatsNewCurrentVersion"
@@ -417,6 +419,7 @@
 
 		<!-- ============ SETUP-ASSISTENT (erster Verwalter-Login) ============ -->
 		<SetupWizard
+			v-if="showSetupWizard"
 			:show="showSetupWizard"
 			@close="closeSetupWizard"
 			@update:show="showSetupWizard = $event"
@@ -424,6 +427,7 @@
 
 		<!-- ============ WAS IST NEU (Splash-Screen nach Updates) ============ -->
 		<WhatsNewDialog
+			v-if="whatsNewShow"
 			:show="whatsNewShow"
 			:entries="whatsNewEntries"
 			@close="whatsNewShow = false"
@@ -447,7 +451,7 @@
 import { mdiAccountCashOutline, mdiAccountPlusOutline, mdiCardAccountDetailsOutline, mdiChartBar, mdiFileDocumentOutline, mdiFileTreeOutline, mdiHelpCircleOutline, mdiPlus, mdiPrinter, mdiSwapHorizontal, mdiViewDashboardOutline } from '@mdi/js'
 import { showError, showInfo, showSuccess, showUndo } from '@nextcloud/dialogs'
 import { generateUrl } from '@nextcloud/router'
-import { toRefs } from 'vue'
+import { defineAsyncComponent, toRefs } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
@@ -459,19 +463,11 @@ import AttachmentFolderDialog from './components/AttachmentFolderDialog.vue'
 import BookingDialog from './components/BookingDialog.vue'
 import BookingsTab from './components/BookingsTab.vue'
 import BudgetSnapshotModal from './components/BudgetSnapshotModal.vue'
-import ContributionsTab from './components/ContributionsTab.vue'
 import DashboardTab from './components/DashboardTab.vue'
-import HelpModal from './components/HelpModal.vue'
-import ImportDialog from './components/ImportDialog.vue'
-import InvoicesTab from './components/InvoicesTab.vue'
 import MobileNav from './components/MobileNav.vue'
-import MyAreaTab from './components/MyAreaTab.vue'
 import NewMenu from './components/NewMenu.vue'
-import ReportsTab from './components/ReportsTab.vue'
-import SetupWizard from './components/SetupWizard.vue'
 import SplitAssignDialog from './components/SplitAssignDialog.vue'
 import TasksFlyout from './components/TasksFlyout.vue'
-import WhatsNewDialog from './components/WhatsNewDialog.vue'
 import api from './api.js'
 import { buildAccountOptions, useAccounts } from './composables/useAccounts.js'
 import { useAttachmentInbox } from './composables/useAttachmentInbox.js'
@@ -496,6 +492,17 @@ import { linkFilesToBookings } from './lib/receiptBatch.js'
 import { bookingsContext, txContext } from './lib/receiptPreview.js'
 import { reimbursementBookingPrefill } from './lib/reimbursements.js'
 import { splitBalanced, splitRemainder, splitSideOf } from './lib/split.js'
+
+// Selten gebrauchte Reiter und Dialoge sind eigene Webpack-Chunks und werden erst
+// beim ersten Anzeigen geladen (Sichtbarkeit steuern v-if / visitedTabs).
+const ReportsTab = defineAsyncComponent(() => import(/* webpackChunkName: "vbh-reportstab" */ './components/ReportsTab.vue'))
+const InvoicesTab = defineAsyncComponent(() => import(/* webpackChunkName: "vbh-invoicestab" */ './components/InvoicesTab.vue'))
+const ContributionsTab = defineAsyncComponent(() => import(/* webpackChunkName: "vbh-contributionstab" */ './components/ContributionsTab.vue'))
+const MyAreaTab = defineAsyncComponent(() => import(/* webpackChunkName: "vbh-myareatab" */ './components/MyAreaTab.vue'))
+const SetupWizard = defineAsyncComponent(() => import(/* webpackChunkName: "vbh-setupwizard" */ './components/SetupWizard.vue'))
+const HelpModal = defineAsyncComponent(() => import(/* webpackChunkName: "vbh-helpmodal" */ './components/HelpModal.vue'))
+const WhatsNewDialog = defineAsyncComponent(() => import(/* webpackChunkName: "vbh-whatsnewdialog" */ './components/WhatsNewDialog.vue'))
+const ImportDialog = defineAsyncComponent(() => import(/* webpackChunkName: "vbh-importdialog" */ './components/ImportDialog.vue'))
 
 // Abstand zwischen zwei Abgleichen mit dem Server. Die Frist, in der eine
 // erkannte Änderung noch als *eigene* gilt, haengt daran (siehe checkRevision):

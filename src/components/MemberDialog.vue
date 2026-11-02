@@ -643,7 +643,9 @@ export default {
 	},
 
 	watch: {
-		show(open) {
+		// immediate: der Dialog wird per v-if erst beim Oeffnen eingehaengt
+		// (und als eigener Chunk nachgeladen) - show ist dann schon true.
+		show: { immediate: true, handler(open) {
 			if (!open) { return }
 			this.form = emptyForm(this.member)
 			this.suggestions = []
@@ -666,7 +668,7 @@ export default {
 			} else {
 				focusOnOpen(this, () => this.$refs.nameInput || this.$refs.orgInput)
 			}
-		},
+		} },
 
 		// Kontoname, Anzeigename und E-Mail folgen den Stammdaten, solange niemand sie von Hand geändert hat
 		// (der Wert entspricht noch dem Vorschlag zu den vorherigen Stammdaten).

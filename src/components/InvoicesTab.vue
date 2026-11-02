@@ -219,18 +219,21 @@
 <script>
 import { mdiPlus, mdiTableArrowUp } from '@mdi/js'
 import { showError } from '@nextcloud/dialogs'
+import { defineAsyncComponent } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import InvoiceBatchImportDialog from './InvoiceBatchImportDialog.vue'
 import InvoiceBatchPanel from './InvoiceBatchPanel.vue'
 import InvoiceDetail from './InvoiceDetail.vue'
-import InvoiceEditor from './InvoiceEditor.vue'
 import InvoicePlanList from './InvoicePlanList.vue'
 import api from '../api.js'
 import { useSort } from '../composables/useSort.js'
 import { errMsg, formatDate, formatMoney } from '../lib/format.js'
 import { displayStatus, displayStatusLabel, dunningLabel, invoiceSortFields, isDunningDue, statusClass } from '../lib/invoices.js'
+
+// Der Rechnungseditor wird erst beim ersten Bearbeiten geladen.
+const InvoiceEditor = defineAsyncComponent(() => import(/* webpackChunkName: "vbh-invoiceeditor" */ './InvoiceEditor.vue'))
 
 /**
  * Reiter „Rechnungen" (Epic #168): Liste mit Filtern, Editor für Entwürfe und

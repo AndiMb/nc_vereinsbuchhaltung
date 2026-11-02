@@ -6,6 +6,7 @@ import { installModalEscape } from './lib/modalEscape.js'
 import { installStackTables } from './lib/stackTables.js'
 import router from './router.js'
 
+import './publicPath.js'
 import './toast-position.css'
 // Globale .vbh-* Utility-Styles (frueher scoped in App.vue). Global, damit auch
 // ausgelagerte Kindkomponenten sie nutzen koennen; alle Selektoren sind

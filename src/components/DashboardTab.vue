@@ -277,15 +277,6 @@
 
 <script>
 import { mdiPaperclip } from '@mdi/js'
-import {
-	BarController,
-	BarElement,
-	CategoryScale,
-	Chart,
-	Legend,
-	LinearScale,
-	Tooltip,
-} from 'chart.js'
 import { toRefs } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
@@ -301,12 +292,11 @@ import { useJournal } from '../composables/useJournal.js'
 import { useOpenItems } from '../composables/useOpenItems.js'
 import { usePeriods } from '../composables/usePeriods.js'
 import { usePermissions } from '../composables/usePermissions.js'
+import { loadChart } from '../lib/chartLoader.js'
 import { chartTheme, onThemeChange, withAlpha } from '../lib/chartTheme.js'
 import { bookingFlow, flowClass, flowLabel, formatFlowMoney } from '../lib/flow.js'
 import { formatDate, formatMoney } from '../lib/format.js'
 import { levelIcon, suggestionTitle } from '../lib/receiptSuggestions.js'
-
-Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend)
 
 /**
  * Monatszahl 1..12 aus einem Schlüssel „JJJJ-MM" (NaN, wenn er nicht passt).
@@ -590,7 +580,11 @@ export default {
 			}
 		},
 
-		renderMonthlyChart() {
+		async renderMonthlyChart() {
+			if (!this.$refs.monthlyChart) { return }
+			const Chart = await loadChart()
+			// Waehrend des Nachladens kann der Tab verlassen oder ein zweiter
+			// Zeichenauftrag gestartet worden sein: Zustand neu pruefen.
 			const canvas = this.$refs.monthlyChart
 			if (!canvas) { return }
 			this.destroyChart('monthly')

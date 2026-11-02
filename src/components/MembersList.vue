@@ -150,6 +150,7 @@
 			@save="saveNewAssignment" />
 
 		<MemberDialog
+			v-if="memberDialogOpen"
 			:show="memberDialogOpen"
 			:saving="saving"
 			:member="editingMember"
@@ -170,7 +171,7 @@
 <script>
 import { mdiContentCopy, mdiEmailOffOutline } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { toRefs } from 'vue'
+import { defineAsyncComponent, toRefs } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
@@ -179,8 +180,6 @@ import AssignmentChangeDialog from './AssignmentChangeDialog.vue'
 import AssignmentDialog from './AssignmentDialog.vue'
 import MemberAccountCell from './MemberAccountCell.vue'
 import MemberCard from './MemberCard.vue'
-import MemberDialog from './MemberDialog.vue'
-import MemberImportDialog from './MemberImportDialog.vue'
 import MemberRowMenu from './MemberRowMenu.vue'
 import api from '../api.js'
 import { useAssignments } from '../composables/useAssignments.js'
@@ -198,6 +197,12 @@ import { collectEmails, EMAIL_SEPARATOR } from '../lib/memberEmails.js'
 import { buildMemberRow, isLiveAssignment, nextDueDates } from '../lib/memberRow.js'
 import { confirmAccountCreation, createAndLinkAccount } from '../lib/nextcloudAccount.js'
 import { nextTwelveMonths, periodAmount } from '../lib/prorata.js'
+
+// Die beiden grossen Dialoge sind eigene Chunks. MemberDialog haengt per v-if erst beim
+// Oeffnen ein; MemberImportDialog bewusst nicht (v-if dort liess beim Aushaengen eine
+// NcModal-Fokusfalle zurueck: der naechste Dialog meldete "fallbackFocus ... not a node").
+const MemberDialog = defineAsyncComponent(() => import(/* webpackChunkName: "vbh-memberdialog" */ './MemberDialog.vue'))
+const MemberImportDialog = defineAsyncComponent(() => import(/* webpackChunkName: "vbh-memberimportdialog" */ './MemberImportDialog.vue'))
 
 /**
  * Mitgliederliste (Spec §2.2/§3.1, docs/beitraege-sepa-modul-spec.md): jede
