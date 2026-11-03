@@ -131,6 +131,7 @@
 					@help="openHelp"
 					@goUnassigned="goToUnassigned"
 					@goOpenItems="goToOpenItems"
+					@goReimbursements="goToReimbursements"
 					@openInbox="openInbox"
 					@showAllBookings="activeTab = 'bookings'" />
 			</section>
@@ -1525,6 +1526,11 @@ export default {
 		goToOpenItems() {
 			this.activeTab = 'bookings'
 			this.bookingView = 'openitems'
+		},
+
+		goToReimbursements() {
+			this.activeTab = 'bookings'
+			this.bookingView = 'reimbursements'
 		},
 
 		/**

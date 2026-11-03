@@ -294,11 +294,17 @@ test.describe('Auslagenerstattung', () => {
 
 	// --- Auszahlen -------------------------------------------------------------------
 
-	test('„Auszahlung buchen" öffnet den Buchungsdialog, vermerkt die Überweisung und hängt den Beleg an die Buchung', async ({ page, request }) => {
+	test('„Überweisung vorbereiten" zeigt den Girocode, danach öffnet sich der Buchungsdialog und vermerkt die Überweisung und hängt den Beleg an die Buchung', async ({ page, request }) => {
 		const expense = accounts.find((a) => a.type === 'expense')
 		await openAuslagenSicht(page, USERS.admin)
 		const detail = await openAntrag(page, 'Material Jugendfreizeit')
-		await detail.getByRole('button', { name: 'Auszahlung buchen' }).click()
+		await detail.getByRole('button', { name: 'Überweisung vorbereiten' }).click()
+
+		// Erst die Überweisung: Girocode und die Angaben zum Kopieren, Verwendungszweck „Auslage Nr. <Nummer> - <Zweck>“.
+		const transfer = page.getByRole('dialog', { name: /Überweisung für Auslage #\d+ vorbereiten/ })
+		await expect(transfer.getByRole('img', { name: 'Girocode der Überweisung' })).toBeVisible()
+		await expect(transfer).toContainText(/Auslage Nr\. \d+ - Material Jugendfreizeit/)
+		await transfer.getByRole('button', { name: 'Überweisung abgeschlossen' }).click()
 
 		// Der normale Buchungsdialog, vorbelegt mit Text und Betrag; Konto und Geldkonto wählt, wer bucht.
 		const dialog = page.getByRole('dialog')

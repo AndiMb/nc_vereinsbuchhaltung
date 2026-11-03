@@ -14,6 +14,7 @@ use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementFileService;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementPresenter;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementService;
+use OCA\Vereinsbuchhaltung\Service\ReimbursementTransferService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
@@ -43,6 +44,7 @@ class ReimbursementController extends Controller {
 		private ReimbursementPresenter $presenter,
 		private ReimbursementMapper $mapper,
 		private ReimbursementFileService $fileService,
+		private ReimbursementTransferService $transfer,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -69,6 +71,13 @@ class ReimbursementController extends Controller {
 		]);
 	}
 
+	/** Zahlen für die Übersichtskachel „Offene Auslagen“. */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_READ)]
+	public function summary(): DataResponse {
+		return new DataResponse($this->service->openSummary());
+	}
+
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_READ)]
 	public function show(int $id): DataResponse {
@@ -90,6 +99,23 @@ class ReimbursementController extends Controller {
 	#[RequiresRole(PermissionService::ROLE_ADMIN)]
 	public function reject(int $id, string $reason = ''): DataResponse {
 		return $this->decide(fn () => $this->service->reject($id, $this->uid(), $reason));
+	}
+
+	/**
+	 * Überweisungsdaten mit GiroCode für eine freigegebene Auslage. Nur für
+	 * Buchhalter und Verwalter wie die Auszahlung selbst: die Antwort trägt die
+	 * volle IBAN.
+	 */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	public function transfer(int $id): DataResponse {
+		try {
+			return new DataResponse($this->transfer->prepare($id));
+		} catch (DoesNotExistException) {
+			return $this->notFound();
+		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		}
 	}
 
 	/**

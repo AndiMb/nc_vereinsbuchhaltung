@@ -746,8 +746,12 @@ Antrag einen **Dubletten-Hinweis**; blockiert wird nichts.
 
 **Auszahlen (Buchhalter und Verwalter).** Der freigegebene Antrag steht auch
 unter *Buchungen → Offene Posten*, gekennzeichnet als „Auslage – zu
-überweisen". Überweisen Sie den Betrag wie gewohnt von Hand und wählen Sie im
-Antrag **Auszahlung buchen**: Es öffnet sich der normale Buchungsdialog, vorbelegt
+überweisen". Wählen Sie im Antrag **Überweisung vorbereiten**: Ein Fenster zeigt
+den **Girocode** (mit der Banking-App scannen) und daneben Empfänger, IBAN,
+Betrag und Verwendungszweck zum Kopieren. Der Verwendungszweck lautet
+*Auslage Nr. <Nummer> - <Zweck>* und ist bei Bedarf auf 140 Zeichen gekürzt.
+Haben Sie die Überweisung ausgelöst, wählen Sie **Überweisung abgeschlossen**:
+Es öffnet sich der normale Buchungsdialog, vorbelegt
 mit Betrag, Text und der Referenz *AUSL-Nummer*. Sie wählen Aufwandskonto,
 Geldkonto und ggf. Kostenstelle; die üblichen Regeln des Geschäftsjahres gelten.
 Mit dem Speichern wird der Antrag *Ausgezahlt*, der offene Posten erledigt, die
@@ -755,6 +759,11 @@ Belege hängen an der Buchung, und das Mitglied bekommt eine Mail. Der Posten
 zählt nicht als Forderung (keine „überfälligen" Posten, keine Mahnung); eine
 Auslage lässt sich nur über den Antrag erledigen, nicht über *Bezahlt* oder
 *Stornieren* in der Liste.
+
+**Kachel auf der Übersicht.** Solange Anträge weder ausgezahlt noch abgelehnt
+oder zurückgezogen sind, zeigt die Übersicht die Kachel **Offene Auslagen** mit
+Anzahl, Summe und der Aufteilung in „warten auf Freigabe" und „zu überweisen".
+*Ansehen* führt zu *Buchungen → Auslagen*.
 
 **Historie.** Jeder Antrag führt eine Historie, die sich nur ergänzen lässt:
 Einreichung, jede Freigabe (mit „1 von 2"), Ablehnung, Rückzug, Belege und die

@@ -728,8 +728,12 @@ same receipt in another request, the request shows a **duplicate hint**; nothing
 blocked.
 
 **Paying out (bookkeeper and administrator).** The approved request also appears
-under *Bookings → Open items*, marked as "Expense – to be paid". Transfer the amount
-by hand as usual and choose **Book payout** in the request: the normal posting
+under *Bookings → Open items*, marked as "Expense – to be paid". Choose
+**Prepare transfer** in the request: a window shows the **Girocode** (scan it with
+your banking app) and, next to it, recipient, IBAN, amount and payment reference
+to copy. The reference reads *Auslage Nr. <number> - <purpose>* and is shortened to
+140 characters if necessary. Once you have triggered the transfer, choose
+**Transfer completed**: the normal posting
 dialog opens, prefilled with amount, text and the reference *AUSL-number*. You pick
 the expense account, the money account and possibly a cost center; the usual rules
 of the fiscal year apply. On saving, the request becomes *Paid out*, the open item
@@ -737,6 +741,11 @@ is settled, the receipts are attached to the posting and the member receives an
 email. The item does not count as a receivable (no "overdue" items, no dunning); an
 expense claim can only be settled through the request, not through *Paid* or
 *Cancel* in the list.
+
+**Tile on the overview.** As long as requests are neither paid out nor rejected
+or withdrawn, the overview shows an **Open expense claims** tile with count, total
+and the split into "awaiting approval" and "to be transferred". *Ansehen* (View)
+leads to *Bookings → Expense claims*.
 
 **History.** Every request keeps a history that can only be appended to:
 submission, every approval (with "1 of 2"), rejection, withdrawal, receipts and

@@ -106,6 +106,16 @@ class ReimbursementServiceTest extends TestCase {
 			return $this->reimbursements[$id] ?? throw new DoesNotExistException('nope');
 		});
 		$mapper->method('update')->willReturnArgument(0);
+		$mapper->method('pendingTotals')->willReturnCallback(function (): array {
+			$totals = [];
+			foreach ($this->reimbursements as $r) {
+				if (in_array($r->getStatus(), Reimbursement::STATUSES_PENDING, true)) {
+					$totals[$r->getStatus()]['count'] = ($totals[$r->getStatus()]['count'] ?? 0) + 1;
+					$totals[$r->getStatus()]['cents'] = ($totals[$r->getStatus()]['cents'] ?? 0) + $r->getAmountCents();
+				}
+			}
+			return $totals;
+		});
 
 		$eventMapper = $this->createMock(ReimbursementEventMapper::class);
 		$eventMapper->method('findLast')->willReturnCallback(function (int $id): ?ReimbursementEvent {
@@ -709,5 +719,28 @@ class ReimbursementServiceTest extends TestCase {
 		$actions = array_map(static fn (ReimbursementEvent $e): string => $e->getAction(), $service->history($r->getId()));
 		$this->assertSame(['submitted', 'approved', 'approved', 'paid'], $actions);
 		$this->assertChainIsValid($service, $r->getId());
+	}
+
+	public function testOpenSummaryZaehltNurNichtAbgeschlossene(): void {
+		$service = $this->service();
+		foreach ([
+			[Reimbursement::STATUS_SUBMITTED, 1000],
+			[Reimbursement::STATUS_PARTIALLY_APPROVED, 2500],
+			[Reimbursement::STATUS_APPROVED, 500],
+			[Reimbursement::STATUS_PAID, 9900],
+			[Reimbursement::STATUS_REJECTED, 9900],
+			[Reimbursement::STATUS_WITHDRAWN, 9900],
+		] as $i => [$status, $cents]) {
+			$r = new Reimbursement();
+			$r->setId($i + 1);
+			$r->setStatus($status);
+			$r->setAmountCents($cents);
+			$this->reimbursements[$i + 1] = $r;
+		}
+
+		$this->assertSame(
+			['count' => 3, 'totalCents' => 4000, 'awaitingApproval' => 2, 'toTransfer' => 1],
+			$service->openSummary(),
+		);
 	}
 }

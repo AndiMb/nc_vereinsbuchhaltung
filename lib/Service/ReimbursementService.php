@@ -136,6 +136,23 @@ class ReimbursementService {
 		];
 	}
 
+	/**
+	 * Die noch nicht abgeschlossenen Anträge für die Übersichtskachel.
+	 *
+	 * @return array{count: int, totalCents: int, awaitingApproval: int, toTransfer: int}
+	 */
+	public function openSummary(): array {
+		$totals = $this->mapper->pendingTotals();
+		$toTransfer = $totals[Reimbursement::STATUS_APPROVED]['count'] ?? 0;
+		$count = array_sum(array_column($totals, 'count'));
+		return [
+			'count' => $count,
+			'totalCents' => array_sum(array_column($totals, 'cents')),
+			'awaitingApproval' => $count - $toTransfer,
+			'toTransfer' => $toTransfer,
+		];
+	}
+
 	// --- Einreichen -------------------------------------------------------
 
 	/**

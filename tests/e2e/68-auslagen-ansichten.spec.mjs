@@ -223,7 +223,7 @@ test.describe('Auslagenerstattung: Ansichten und Sprachen', () => {
 		await expect(dialog).toContainText('Freigegeben')
 		await expect(dialog).toContainText(/DE89[\s•]+30 00/)
 		await expect(dialog).not.toContainText(/DE89 3704/)
-		for (const name of ['Freigeben', 'Ablehnen', 'Auszahlung buchen']) {
+		for (const name of ['Freigeben', 'Ablehnen', 'Überweisung vorbereiten']) {
 			await expect(dialog.getByRole('button', { name }), `„${name}“ darf der Revisor nicht sehen`).toHaveCount(0)
 		}
 		// Die Historie nennt dem Revisor die Namen.

@@ -173,12 +173,19 @@
 						v-if="detail.canPay && canWrite"
 						variant="primary"
 						:disabled="busy"
-						@click="requestPay">
-						{{ t('Auszahlung buchen') }}
+						@click="transferOpen = true">
+						{{ t('Überweisung vorbereiten') }}
 					</NcButton>
 				</div>
 			</div>
 		</NcModal>
+
+		<!-- Überweisung vorbereiten: Girocode, dann Auszahlung buchen -->
+		<ReimbursementTransferDialog
+			v-if="transferOpen"
+			:itemId="detail.id"
+			@close="transferOpen = false"
+			@done="requestPay" />
 
 		<!-- Ablehnen -->
 		<NcModal
@@ -225,6 +232,7 @@ import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcModal from '@nextcloud/vue/components/NcModal'
 import ReimbursementHistory from './ReimbursementHistory.vue'
 import ReimbursementStatusTag from './ReimbursementStatusTag.vue'
+import ReimbursementTransferDialog from './ReimbursementTransferDialog.vue'
 import api from '../api.js'
 import { errMsg, formatDate, formatFileSize, formatMoney } from '../lib/format.js'
 import { formatIban } from '../lib/iban.js'
@@ -242,11 +250,11 @@ import {
  * Freigabe-Warteschlange, Auszahlung und Historie. Freigeben und Ablehnen
  * zeigt die Ansicht nur Verwaltern; ob jemand ausgerechnet diesen Antrag
  * freigeben darf (nicht den eigenen, nicht doppelt), sagt der Server mit
- * `canApprove`/`canReject`. Die Auszahlung öffnet den Buchungsdialog (App.vue).
+ * `canApprove`/`canReject`. Die Auszahlung beginnt mit „Überweisung vorbereiten“ (Girocode), danach öffnet der Buchungsdialog (App.vue).
  */
 export default {
 	name: 'ReimbursementsPanel',
-	components: { NcButton, NcEmptyContent, NcLoadingIcon, NcModal, ReimbursementHistory, ReimbursementStatusTag },
+	components: { NcButton, NcEmptyContent, NcLoadingIcon, NcModal, ReimbursementHistory, ReimbursementStatusTag, ReimbursementTransferDialog },
 
 	props: {
 		canWrite: { type: Boolean, default: false },
@@ -263,6 +271,7 @@ export default {
 			search: '',
 			statusFilter: 'todo',
 			detail: null,
+			transferOpen: false,
 			busy: false,
 			error: '',
 			rejectOpen: false,
@@ -370,8 +379,10 @@ export default {
 			if (done) { this.rejectOpen = false }
 		},
 
+		/** Die Überweisung ist raus: weiter zum Buchungsdialog der Auszahlung. */
 		requestPay() {
 			const item = this.detail
+			this.transferOpen = false
 			this.detail = null
 			this.$emit('pay', item)
 		},

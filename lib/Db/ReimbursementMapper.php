@@ -58,6 +58,29 @@ class ReimbursementMapper extends EncryptingMapper {
 		return $this->count($memberId, Reimbursement::STATUSES_PENDING);
 	}
 
+	/**
+	 * Anzahl und Summe der noch nicht abgeschlossenen Anträge je Status
+	 * (Übersichtskachel), ohne die Anträge selbst zu laden.
+	 *
+	 * @return array<string, array{count: int, cents: int}>
+	 */
+	public function pendingTotals(): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('status')
+			->selectAlias($qb->func()->count('*'), 'cnt')
+			->selectAlias($qb->func()->sum('amount_cents'), 'cents')
+			->from($this->getTableName())
+			->where($qb->expr()->in('status', $qb->createNamedParameter(Reimbursement::STATUSES_PENDING, IQueryBuilder::PARAM_STR_ARRAY)))
+			->groupBy('status');
+		$result = $qb->executeQuery();
+		$totals = [];
+		while ($row = $result->fetch()) {
+			$totals[(string)$row['status']] = ['count' => (int)$row['cnt'], 'cents' => (int)$row['cents']];
+		}
+		$result->closeCursor();
+		return $totals;
+	}
+
 	public function countByMember(int $memberId): int {
 		return $this->count($memberId);
 	}

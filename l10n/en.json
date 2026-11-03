@@ -4241,7 +4241,26 @@
         "Datei konnte nicht gespeichert werden.": "The file could not be saved.",
         "Der Beleg konnte nicht verknüpft werden.": "The receipt could not be linked.",
         "Die Belege konnten nicht verschoben werden.": "The receipts could not be moved.",
-        "Die Aktion ist fehlgeschlagen.": "The action failed."
+        "Die Aktion ist fehlgeschlagen.": "The action failed.",
+        "Offene Auslagen": "Open expense claims",
+        "_%n Antrag_::_%n Anträge_": [
+            "%n request",
+            "%n requests"
+        ],
+        "{n} warten auf Freigabe": "{n} awaiting approval",
+        "{n} zu überweisen": "{n} to be transferred",
+        "Überweisung für Auslage #{id} vorbereiten": "Prepare transfer for expense claim #{id}",
+        "Mit der Banking-App den Girocode scannen oder die Angaben kopieren. Danach hier bestätigen und die Auszahlung buchen.": "Scan the Girocode with your banking app or copy the details. Then confirm here and book the payout.",
+        "Girocode der Überweisung": "Girocode of the transfer",
+        "Der Girocode ließ sich nicht erzeugen. Bitte die Angaben von Hand übernehmen.": "The Girocode could not be generated. Please enter the details by hand.",
+        "{field} kopieren": "Copy {field}",
+        "Überweisung abgeschlossen": "Transfer completed",
+        "Die Überweisungsdaten konnten nicht geladen werden.": "The transfer details could not be loaded.",
+        "{field} kopiert.": "{field} copied.",
+        "Kopieren war nicht möglich. Bitte den Text von Hand markieren.": "Copying was not possible. Please select the text by hand.",
+        "Überweisung vorbereiten": "Prepare transfer",
+        "Nur eine freigegebene Auslage lässt sich überweisen.": "Only an approved expense claim can be transferred.",
+        "Zu diesem Antrag ist keine IBAN gespeichert.": "No IBAN is stored for this request."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

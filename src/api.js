@@ -440,9 +440,11 @@ export default {
 	selfReimbursementReceiptUrl: (id, fileId) => generateUrl(`${base}/self/reimbursements/${id}/receipts/${fileId}/view`),
 	// Verwaltung (Buchungen -> Auslagen)
 	reimbursements: () => axios.get(url('/reimbursements')),
+	reimbursementsSummary: () => axios.get(url('/reimbursements/summary')),
 	reimbursement: (id) => axios.get(url(`/reimbursements/${id}`)),
 	approveReimbursement: (id) => axios.post(url(`/reimbursements/${id}/approve`)),
 	rejectReimbursement: (id, reason) => axios.post(url(`/reimbursements/${id}/reject`), { reason }),
+	reimbursementTransfer: (id) => axios.get(url(`/reimbursements/${id}/transfer`)),
 	payReimbursement: (id, journalId, paidDate) => axios.post(url(`/reimbursements/${id}/pay`), { journalId, paidDate }),
 	reimbursementReceiptUrl: (id, fileId) => generateUrl(`${base}/reimbursements/${id}/receipts/${fileId}/view`),
 
