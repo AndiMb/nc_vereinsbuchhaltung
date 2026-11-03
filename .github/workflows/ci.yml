@@ -285,7 +285,7 @@ jobs:
         # vendor/-Auswahl.
         run: composer install --no-dev --no-interaction --no-progress
 
-      - name: Testserver starten (Docker-Nextcloud stable34)
+      - name: Testserver starten (Docker-Nextcloud stable35)
         # Kehrt erst zurueck, wenn die Instanz eingerichtet und der
         # "init"-Snapshot angelegt ist - ein eigener Warteschritt entfaellt.
         run: npm run test:e2e:server

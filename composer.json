@@ -30,9 +30,10 @@
 		"verdraengt also die des Servers, sobald vendor/autoload.php geladen ist. Mit",
 		"symfony/console 7.4 (ueber horstoeko/invoicesuite) brachen so die occ-Befehle",
 		"anderer Apps, die gegen die Console 6.4 des Servers geschrieben sind. Ersetzt",
-		"wird nur, was NC 33 UND NC 34 (min/max-version in info.xml) in einer Version",
+		"wird nur, was NC 33 BIS NC 35 (min/max-version in info.xml) in einer Version",
 		"liefern, die die abhaengigen Pakete akzeptieren - Stand 3rdparty v33.0.0 bis",
-		"v34.0.5: symfony/console 6.4 (invoicesuite: ^6.4.14), symfony/process 6.4",
+		"v35.0.2: symfony/console 6.4, ab NC 35 7.4 (invoicesuite: ^6.4.14 || ^7.1.7),",
+		"symfony/process 6.4",
 		"(invoicesuite: ^6.4.14), doctrine/lexer 3.0.1 (jms/serializer: ^2 || ^3),",
 		"psr/container 2.0.2, symfony/deprecation-contracts 3.6+ (symfony/yaml: ^2.5|^3)",
 		"sowie die nur von der Console gebrauchten symfony/string, service-contracts und",
@@ -42,7 +43,7 @@
 		"die App nutzt den mpdf-Pfad von invoicesuite nicht, TCPDF erzeugt die PDFs.",
 		"symfony/finder, symfony/yaml und polyfill-ctype hat der Server nicht - sie",
 		"bleiben in vendor/. Wer die Liste aendert, prueft vorher 3rdparty/composer.lock",
-		"beider Serverversionen."
+		"aller unterstuetzten Serverversionen."
 	],
 	"autoload": {
 		"psr-4": {
@@ -60,7 +61,7 @@
 		"mpdf/mpdf": "*",
 		"doctrine/lexer": "^3.0",
 		"psr/container": "^2.0",
-		"symfony/console": "^6.4",
+		"symfony/console": "^6.4 || ^7.4",
 		"symfony/deprecation-contracts": "^3.6",
 		"symfony/polyfill-intl-grapheme": "^1.32",
 		"symfony/polyfill-intl-normalizer": "^1.33",
