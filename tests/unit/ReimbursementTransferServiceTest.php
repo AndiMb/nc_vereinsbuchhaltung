@@ -44,6 +44,7 @@ class ReimbursementTransferServiceTest extends TestCase {
 	private function reimbursement(string $status = Reimbursement::STATUS_APPROVED, string $holder = 'Erika Muster', string $iban = 'DE02120300000000202051'): Reimbursement {
 		$r = new Reimbursement();
 		$r->setId(12);
+		$r->setNumber('AUSL-2026-0012');
 		$r->setMemberId(3);
 		$r->setAmountCents(4599);
 		$r->setPurpose('Material Sommerfest');
@@ -54,27 +55,31 @@ class ReimbursementTransferServiceTest extends TestCase {
 	}
 
 	public function testVerwendungszweckHatNummerUndZweck(): void {
-		$this->assertSame('Auslage Nr. 12 - Material Sommerfest', ReimbursementTransferService::remittance(12, 'Material Sommerfest'));
+		$this->assertSame('AUSL-2026-0012 - Material Sommerfest', ReimbursementTransferService::remittance(12, 'AUSL-2026-0012', 'Material Sommerfest'));
 	}
 
 	public function testVerwendungszweckOhneZweckHatNurDieNummer(): void {
-		$this->assertSame('Auslage Nr. 7', ReimbursementTransferService::remittance(7, "  \n "));
+		$this->assertSame('AUSL-2026-0007', ReimbursementTransferService::remittance(7, 'AUSL-2026-0007', "  \n "));
 	}
 
 	public function testZeilenumbruecheImZweckWerdenZuLeerzeichen(): void {
-		$this->assertSame('Auslage Nr. 1 - Zeile eins Zeile zwei', ReimbursementTransferService::remittance(1, "Zeile eins\r\n\n  Zeile zwei"));
+		$this->assertSame('AUSL-2026-0001 - Zeile eins Zeile zwei', ReimbursementTransferService::remittance(1, 'AUSL-2026-0001', "Zeile eins\r\n\n  Zeile zwei"));
 	}
 
 	public function testLangerZweckWirdAuf140ZeichenGekuerzt(): void {
-		$text = ReimbursementTransferService::remittance(12, str_repeat('ä', 300));
+		$text = ReimbursementTransferService::remittance(12, 'AUSL-2026-0012', str_repeat('ä', 300));
 		$this->assertSame(140, mb_strlen($text));
-		$this->assertStringStartsWith('Auslage Nr. 12 - ää', $text);
+		$this->assertStringStartsWith('AUSL-2026-0012 - ää', $text);
+	}
+
+	public function testOhneNummerFaelltDerVerwendungszweckAufDieAntragsnummerZurueck(): void {
+		$this->assertSame('Auslage Nr. 12 - Material', ReimbursementTransferService::remittance(12, null, 'Material'));
 	}
 
 	public function testPrepareLiefertDatenUndGiroCode(): void {
 		$this->service->method('find')->with(12)->willReturn($this->reimbursement());
 		$this->qr->expects($this->once())->method('generatePng')
-			->with('Erika Muster', 'DE02120300000000202051', null, 4599, 'Auslage Nr. 12 - Material Sommerfest')
+			->with('Erika Muster', 'DE02120300000000202051', null, 4599, 'AUSL-2026-0012 - Material Sommerfest')
 			->willReturn('PNGDATA');
 
 		$data = $this->transfer()->prepare(12);
@@ -82,7 +87,7 @@ class ReimbursementTransferServiceTest extends TestCase {
 		$this->assertSame('Erika Muster', $data['recipient']);
 		$this->assertSame('DE02120300000000202051', $data['iban']);
 		$this->assertSame(4599, $data['amountCents']);
-		$this->assertSame('Auslage Nr. 12 - Material Sommerfest', $data['remittance']);
+		$this->assertSame('AUSL-2026-0012 - Material Sommerfest', $data['remittance']);
 		$this->assertSame(base64_encode('PNGDATA'), $data['qrPng']);
 	}
 

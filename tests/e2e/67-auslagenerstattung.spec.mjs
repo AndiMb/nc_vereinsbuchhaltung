@@ -68,7 +68,7 @@ async function openAntrag(page, purpose) {
 	// Filter „Alle" (nicht der Unterreiter „Alle Buchungen"): gleich nach dem Öffnen steht „Zu prüfen".
 	await visibleSection(page).locator('.vbh-reimb-staff .vbh-chip', { hasText: /^Alle\s*\d/ }).click()
 	await visibleSection(page).locator('tr.vbh-reimb-row', { hasText: purpose }).click()
-	const dialog = page.getByRole('dialog', { name: /Auslage #\d+ von Erika Musterfrau/ })
+	const dialog = page.getByRole('dialog', { name: /Auslage AUSL-\d{4}-\d{4} von Erika Musterfrau/ })
 	await expect(dialog).toBeVisible()
 	return dialog
 }
@@ -294,17 +294,21 @@ test.describe('Auslagenerstattung', () => {
 
 	// --- Auszahlen -------------------------------------------------------------------
 
-	test('„Überweisung vorbereiten" zeigt den Girocode, danach öffnet sich der Buchungsdialog und vermerkt die Überweisung und hängt den Beleg an die Buchung', async ({ page, request }) => {
+	test('„Überweisung vorbereiten" zeigt den Girocode und merkt vor; „Ohne Kontoumsatz buchen" öffnet den Buchungsdialog und vermerkt die Überweisung und hängt den Beleg an die Buchung', async ({ page, request }) => {
 		const expense = accounts.find((a) => a.type === 'expense')
 		await openAuslagenSicht(page, USERS.admin)
 		const detail = await openAntrag(page, 'Material Jugendfreizeit')
 		await detail.getByRole('button', { name: 'Überweisung vorbereiten' }).click()
 
-		// Erst die Überweisung: Girocode und die Angaben zum Kopieren, Verwendungszweck „Auslage Nr. <Nummer> - <Zweck>“.
-		const transfer = page.getByRole('dialog', { name: /Überweisung für Auslage #\d+ vorbereiten/ })
+		// Erst die Überweisung: Girocode und die Angaben zum Kopieren, Verwendungszweck „AUSL-JJJJ-NNNN - <Zweck>“.
+		const transfer = page.getByRole('dialog', { name: 'Überweisung vorbereiten' })
 		await expect(transfer.getByRole('img', { name: 'Girocode der Überweisung' })).toBeVisible()
-		await expect(transfer).toContainText(/Auslage Nr\. \d+ - Material Jugendfreizeit/)
+		await expect(transfer).toContainText(/AUSL-\d{4}-\d{4} - Material Jugendfreizeit/)
 		await transfer.getByRole('button', { name: 'Überweisung abgeschlossen' }).click()
+
+		// Vorgemerkt: gebucht wird mit dem Kontoumsatz. Hier ohne Kontoumsatz (Barzahlung).
+		await expect(detail).toContainText('Die Überweisung ist angewiesen')
+		await detail.getByRole('button', { name: 'Ohne Kontoumsatz buchen' }).click()
 
 		// Der normale Buchungsdialog, vorbelegt mit Text und Betrag; Konto und Geldkonto wählt, wer bucht.
 		const dialog = page.getByRole('dialog')

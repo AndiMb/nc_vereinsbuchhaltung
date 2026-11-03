@@ -243,10 +243,13 @@ return [
 		['name' => 'selfReimbursement#receipt', 'url' => '/api/self/reimbursements/{id}/receipts/{fileId}/view', 'verb' => 'GET'],
 		['name' => 'reimbursement#index', 'url' => '/api/reimbursements', 'verb' => 'GET'],
 		['name' => 'reimbursement#summary', 'url' => '/api/reimbursements/summary', 'verb' => 'GET'],
+		['name' => 'reimbursement#suggestions', 'url' => '/api/reimbursements/suggestions', 'verb' => 'GET'],
 		['name' => 'reimbursement#show', 'url' => '/api/reimbursements/{id}', 'verb' => 'GET'],
 		['name' => 'reimbursement#approve', 'url' => '/api/reimbursements/{id}/approve', 'verb' => 'POST'],
 		['name' => 'reimbursement#reject', 'url' => '/api/reimbursements/{id}/reject', 'verb' => 'POST'],
 		['name' => 'reimbursement#transfer', 'url' => '/api/reimbursements/{id}/transfer', 'verb' => 'GET'],
+		['name' => 'reimbursement#transferred', 'url' => '/api/reimbursements/{id}/transferred', 'verb' => 'POST'],
+		['name' => 'reimbursement#assignTransaction', 'url' => '/api/reimbursements/{id}/assign', 'verb' => 'POST'],
 		['name' => 'reimbursement#pay', 'url' => '/api/reimbursements/{id}/pay', 'verb' => 'POST'],
 		['name' => 'reimbursement#receipt', 'url' => '/api/reimbursements/{id}/receipts/{fileId}/view', 'verb' => 'GET'],
 

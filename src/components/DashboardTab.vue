@@ -382,17 +382,18 @@ export default {
 			suggestionNames: {},
 			suggestionRequest: 0,
 			// Zahlen für die Kachel „Offene Auslagen“ (nur Verwaltungssicht)
-			reimbursementSummary: { count: 0, totalCents: 0, awaitingApproval: 0, toTransfer: 0 },
+			reimbursementSummary: { count: 0, totalCents: 0, awaitingApproval: 0, toTransfer: 0, awaitingBooking: 0 },
 		}
 	},
 
 	computed: {
-		/** „2 warten auf Freigabe, 1 zu überweisen“ - nur die Teile, die es gibt. */
+		/** „2 warten auf Freigabe, 1 zu überweisen, 1 wartet auf den Kontoumsatz“ - nur die Teile, die es gibt. */
 		reimbursementDetail() {
-			const { awaitingApproval, toTransfer } = this.reimbursementSummary
+			const { awaitingApproval, toTransfer, awaitingBooking } = this.reimbursementSummary
 			return [
 				awaitingApproval > 0 && this.tRaw('{n} warten auf Freigabe', { n: awaitingApproval }),
 				toTransfer > 0 && this.tRaw('{n} zu überweisen', { n: toTransfer }),
+				awaitingBooking > 0 && this.tRaw('{n} warten auf den Kontoumsatz', { n: awaitingBooking }),
 			].filter(Boolean).join(', ')
 		},
 

@@ -357,6 +357,25 @@
 								{{ invoiceChipLabel(s) }}
 							</button>
 						</template>
+						<template v-if="canWrite && reimbursementsVisible && !isSplitAssigned(tx) && !tx.contraAccountId && !isDateClosed(tx.bookingDate)">
+							<button
+								v-for="s in reimbursementSuggestionsFor(tx)"
+								:key="'reimb' + s.reimbursementId"
+								type="button"
+								class="vbh-suggest-chip vbh-suggest-chip--invoice"
+								:disabled="!s.exact"
+								:title="reimbursementChipTitle(s)"
+								@click="assignToReimbursement(tx, s.reimbursementId)">
+								{{ reimbursementChipLabel(s) }}
+							</button>
+							<button
+								v-if="reimbursementsPayable && tx.amountCents < 0"
+								type="button"
+								class="vbh-suggest-chip"
+								@click="assignToReimbursement(tx, null)">
+								{{ t('Einer Auslage zuordnen…') }}
+							</button>
+						</template>
 						<button
 							v-if="canWrite && !isSplitAssigned(tx) && !tx.contraAccountId && suggestionsById[tx.id] && !isDateClosed(tx.bookingDate)"
 							type="button"
@@ -492,6 +511,25 @@
 													:title="invoiceChipTitle(s)"
 													@click="assignToInvoice(tx, s)">
 													{{ invoiceChipLabel(s) }}
+												</button>
+											</template>
+											<template v-if="canWrite && reimbursementsVisible && !tx.contraAccountId && !isDateClosed(tx.bookingDate)">
+												<button
+													v-for="s in reimbursementSuggestionsFor(tx)"
+													:key="'reimb' + s.reimbursementId"
+													type="button"
+													class="vbh-suggest-chip vbh-suggest-chip--invoice"
+													:disabled="!s.exact"
+													:title="reimbursementChipTitle(s)"
+													@click="assignToReimbursement(tx, s.reimbursementId)">
+													{{ reimbursementChipLabel(s) }}
+												</button>
+												<button
+													v-if="reimbursementsPayable && tx.amountCents < 0"
+													type="button"
+													class="vbh-suggest-chip"
+													@click="assignToReimbursement(tx, null)">
+													{{ t('Einer Auslage zuordnen…') }}
 												</button>
 											</template>
 											<button
@@ -717,6 +755,12 @@
 			v-model:show="showSuggestConfirm"
 			:pairs="surePairs"
 			@done="onSuggestionsLinked" />
+		<ReimbursementAssignDialog
+			v-if="reimbursementAssign"
+			:tx="reimbursementAssign.tx"
+			:suggestedId="reimbursementAssign.reimbursementId"
+			@close="reimbursementAssign = null"
+			@assigned="onReimbursementAssigned" />
 	</div>
 </template>
 
@@ -735,6 +779,7 @@ import AmountInput from './AmountInput.vue'
 import BookingCard from './BookingCard.vue'
 import CommentMark from './CommentMark.vue'
 import ReceiptSuggestionConfirmDialog from './ReceiptSuggestionConfirmDialog.vue'
+import ReimbursementAssignDialog from './ReimbursementAssignDialog.vue'
 import ReimbursementsPanel from './ReimbursementsPanel.vue'
 import RulesPanel from './RulesPanel.vue'
 import api from '../api.js'
@@ -760,7 +805,7 @@ const JOURNAL_PAGE = 200
 
 export default {
 	name: 'BookingsTab',
-	components: { NcButton, NcActions, NcActionButton, NcSelect, NcEllipsisedOption, NcEmptyContent, NcIconSvgWrapper, AmountInput, BookingCard, CommentMark, ReceiptSuggestionConfirmDialog, ReimbursementsPanel, RulesPanel },
+	components: { NcButton, NcActions, NcActionButton, NcSelect, NcEllipsisedOption, NcEmptyContent, NcIconSvgWrapper, AmountInput, BookingCard, CommentMark, ReceiptSuggestionConfirmDialog, ReimbursementAssignDialog, ReimbursementsPanel, RulesPanel },
 	props: {
 		isMobile: { type: Boolean, required: true },
 		// 'plain' | 'signed': Vorzeichen und Farbe am Betrag, siehe lib/flow.js
@@ -801,7 +846,7 @@ export default {
 		reimbursementsReloadKey: { type: Number, default: 0 },
 	},
 
-	emits: ['attachments-changed', 'go-claims', 'help', 'invoice-paid', 'pay-reimbursement', 'update:booking-view'],
+	emits: ['attachments-changed', 'go-claims', 'help', 'invoice-paid', 'pay-reimbursement', 'reimbursement-assigned', 'update:booking-view'],
 
 	setup() {
 		const auth = useAuth()
@@ -867,6 +912,10 @@ export default {
 			// Umsatz-ID => Vorschläge offener Rechnungen (GET /api/invoices/suggestions)
 			invoiceSuggestions: {},
 			invoiceBusy: null,
+			// Auslagen: Vorschläge je Umsatz, ob eine zu bezahlen ist, und der offene Zuordnungsdialog
+			reimbursementSuggestions: {},
+			reimbursementsPayable: false,
+			reimbursementAssign: null,
 		}
 	},
 
@@ -1121,13 +1170,14 @@ export default {
 
 		// Die Vorschläge für Rechnungen hängen an den unzugeordneten Umsätzen: neu holen, wenn sich die Liste ändert.
 		// Nur bei geaenderter Anzahl unzugeordneter Umsaetze, nicht bei jedem Nachladen.
-		unassignedCount() { this.loadInvoiceSuggestions() },
+		unassignedCount() { this.loadInvoiceSuggestions(); this.loadReimbursementSuggestions() },
 		invoicesActive() { this.loadInvoiceSuggestions() },
 	},
 
 	mounted() {
 		this.loadReceiptSuggestions()
 		this.loadInvoiceSuggestions()
+		this.loadReimbursementSuggestions()
 		if (this.bookingView === 'openitems') { this.loadOpenItems(this.activeOpenItemFilter) }
 	},
 
@@ -1195,6 +1245,49 @@ export default {
 				// Die Vorschläge sind eine Hilfe, kein Muss: ohne sie bleibt das Zuordnen wie gewohnt.
 				this.invoiceSuggestions = {}
 			}
+		},
+
+		// --- Auslagen: Kontoumsatz einer freigegebenen Auslage zuordnen ---------
+		async loadReimbursementSuggestions() {
+			if (!this.reimbursementsVisible || !this.canWrite) {
+				this.reimbursementSuggestions = {}
+				this.reimbursementsPayable = false
+				return
+			}
+			try {
+				const [suggestions, summary] = await Promise.all([api.reimbursementSuggestions(), api.reimbursementsSummary()])
+				this.reimbursementSuggestions = suggestions.data || {}
+				this.reimbursementsPayable = summary.data.toTransfer + summary.data.awaitingBooking > 0
+			} catch {
+				// Eine Hilfe, kein Muss: ohne sie bleibt das Zuordnen wie gewohnt.
+				this.reimbursementSuggestions = {}
+				this.reimbursementsPayable = false
+			}
+		},
+
+		reimbursementSuggestionsFor(tx) {
+			return tx.status === 'unassigned' ? (this.reimbursementSuggestions[tx.id] || []) : []
+		},
+
+		reimbursementChipLabel(s) {
+			const name = s.number || `#${s.reimbursementId}`
+			return s.exact ? this.t('✓ Auslage {number}', { number: name }) : this.t('Auslage {number}: Betrag weicht ab', { number: name })
+		},
+
+		reimbursementChipTitle(s) {
+			return this.tRaw('{name}, {amount}', { name: s.memberName, amount: formatMoney(s.amountCents / 100) })
+		},
+
+		/** Öffnet den Zuordnungsdialog; `reimbursementId` ist die erkannte Auslage, oder null zum Selberwählen. */
+		assignToReimbursement(tx, reimbursementId) {
+			this.reimbursementAssign = { tx, reimbursementId }
+		},
+
+		onReimbursementAssigned() {
+			this.reimbursementAssign = null
+			showSuccess(this.t('Der Umsatz wurde der Auslage zugeordnet.'))
+			this.$emit('reimbursement-assigned')
+			this.loadReimbursementSuggestions()
 		},
 
 		invoiceSuggestionsFor(tx) {

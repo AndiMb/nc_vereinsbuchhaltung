@@ -77,6 +77,15 @@ describe('reimbursements', () => {
 		})
 	})
 
+	it('nimmt die Auslagennummer als Belegreferenz, wenn der Antrag eine hat', () => {
+		const item = { id: 7, number: 'AUSL-2026-0007', purpose: 'Material', memberName: 'Anna', amountCents: 1250 }
+		expect(reimbursementBookingPrefill(item, '2026-11-02').documentRef).toBe('AUSL-2026-0007')
+	})
+
+	it('benennt die vorgemerkte Überweisung in der Historie', () => {
+		expect(reimbursementEventText({ action: 'transferred' }, true)).toBe('Überweisung angewiesen')
+	})
+
 	describe('Antragsformular', () => {
 		const filled = () => ({
 			amount: 12.5,

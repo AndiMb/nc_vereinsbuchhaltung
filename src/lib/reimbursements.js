@@ -55,6 +55,8 @@ export function reimbursementEventText(event, staff) {
 			return staff ? tRaw('{name} hat abgelehnt', { name: who }) : t('Antrag abgelehnt')
 		case 'withdrawn':
 			return t('Antrag zurückgezogen')
+		case 'transferred':
+			return t('Überweisung angewiesen')
 		case 'paid':
 			return t('Erstattung überwiesen')
 		case 'receipt_added':
@@ -96,7 +98,7 @@ export function reimbursementBookingPrefill(item, today) {
 		amount: item.amountCents / 100,
 		kind: 'expense',
 		description: tRaw('Erstattung Auslage: {purpose} ({member})', { purpose: item.purpose, member: item.memberName }),
-		documentRef: `AUSL-${item.id}`,
+		documentRef: item.number || `AUSL-${item.id}`,
 	}
 }
 

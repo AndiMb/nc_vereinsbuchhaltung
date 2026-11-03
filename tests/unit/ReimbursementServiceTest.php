@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
+use OCA\Vereinsbuchhaltung\Db\BankTransaction;
 use OCA\Vereinsbuchhaltung\Db\Journal;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\Member;
@@ -19,7 +20,9 @@ use OCA\Vereinsbuchhaltung\Db\ReimbursementMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Exception\ForbiddenException;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
+use OCA\Vereinsbuchhaltung\Service\BookingService;
 use OCA\Vereinsbuchhaltung\Service\IbanValidator;
+use OCA\Vereinsbuchhaltung\Service\NumberRangeService;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementEventLog;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementFileService;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementMailService;
@@ -58,6 +61,8 @@ class ReimbursementServiceTest extends TestCase {
 	private ReimbursementMailService&MockObject $mail;
 	private JournalMapper&MockObject $journals;
 	private AuditService&MockObject $audit;
+	private BookingService&MockObject $booking;
+	private int $numberCounter = 0;
 
 	/** @var list<string> Verwalter, die nach Einstellung freigeben dürfen */
 	private array $approvers = ['vera', 'viktor', 'valentin'];
@@ -93,6 +98,8 @@ class ReimbursementServiceTest extends TestCase {
 		$this->journals = $this->createMock(JournalMapper::class);
 		$this->journals->method('find')->willReturn(new Journal());
 		$this->audit = $this->createMock(AuditService::class);
+		$this->booking = $this->createMock(BookingService::class);
+		$this->numberCounter = 0;
 	}
 
 	private function service(): ReimbursementService {
@@ -106,6 +113,10 @@ class ReimbursementServiceTest extends TestCase {
 			return $this->reimbursements[$id] ?? throw new DoesNotExistException('nope');
 		});
 		$mapper->method('update')->willReturnArgument(0);
+		$mapper->method('countTransferredApproved')->willReturnCallback(fn (): int => count(array_filter(
+			$this->reimbursements,
+			static fn (Reimbursement $r): bool => $r->getStatus() === Reimbursement::STATUS_APPROVED && $r->getTransferredAt() !== null,
+		)));
 		$mapper->method('pendingTotals')->willReturnCallback(function (): array {
 			$totals = [];
 			foreach ($this->reimbursements as $r) {
@@ -158,6 +169,9 @@ class ReimbursementServiceTest extends TestCase {
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(static fn (string $text, array $parameters = []): string => vsprintf($text, $parameters));
 
+		$numbers = $this->createMock(NumberRangeService::class);
+		$numbers->method('issue')->willReturnCallback(fn (): array => ['number' => sprintf('AUSL-2026-%04d', ++$this->numberCounter), 'rangeId' => 1]);
+
 		return new ReimbursementService(
 			$mapper,
 			$this->fileMapper,
@@ -173,6 +187,8 @@ class ReimbursementServiceTest extends TestCase {
 			$this->audit,
 			$time,
 			$l10n,
+			$numbers,
+			$this->booking,
 		);
 	}
 
@@ -721,12 +737,94 @@ class ReimbursementServiceTest extends TestCase {
 		$this->assertChainIsValid($service, $r->getId());
 	}
 
+	public function testEinreichenVergibtFortlaufendeAuslagennummern(): void {
+		$service = $this->service();
+		$first = $this->submit($service);
+		$second = $this->submit($service);
+
+		$this->assertSame('AUSL-2026-0001', $first->getNumber());
+		$this->assertSame('AUSL-2026-0002', $second->getNumber());
+	}
+
+	// --- Überweisung vormerken und Kontoumsatz zuordnen -------------------------------
+
+	public function testUeberweisungVormerkenBleibtFreigegebenUndStehtInDerHistorie(): void {
+		$service = $this->service();
+		$r = $this->approved($service);
+
+		$r = $service->markTransferred($r->getId(), 'berta');
+
+		$this->assertSame(Reimbursement::STATUS_APPROVED, $r->getStatus());
+		$this->assertNotNull($r->getTransferredAt());
+		$this->assertSame(ReimbursementEvent::ACTION_TRANSFERRED, $service->history($r->getId())[3]->getAction());
+		$this->assertChainIsValid($service, $r->getId());
+		// ein zweiter Klick ändert nichts und schreibt nichts in die Historie
+		$service->markTransferred($r->getId(), 'berta');
+		$this->assertCount(4, $service->history($r->getId()));
+	}
+
+	public function testNurEinFreigegebenerAntragLaesstSichAlsUeberwiesenVormerken(): void {
+		$service = $this->service();
+		$r = $this->submit($service);
+
+		$this->expectException(\InvalidArgumentException::class);
+		$service->markTransferred($r->getId(), 'berta');
+	}
+
+	private function outflow(int $cents = -1250, string $status = 'unassigned'): BankTransaction {
+		$tx = new BankTransaction();
+		$tx->setId(7);
+		$tx->setUserId('book');
+		$tx->setAmountCents($cents);
+		$tx->setStatus($status);
+		$tx->setBookingDate('2026-11-01');
+		return $tx;
+	}
+
+	public function testKontoumsatzOrdnenBuchtGegenAufwandskontoUndZahltAus(): void {
+		$service = $this->service();
+		$r = $this->approved($service);
+		$tx = $this->outflow();
+		$this->booking->expects($this->once())->method('assign')->with($tx, 31)->willReturnCallback(function (BankTransaction $t): BankTransaction {
+			$t->setJournalId(55);
+			return $t;
+		});
+
+		$r = $service->payFromBankTransaction($r->getId(), $tx, 31, 'berta');
+
+		$this->assertSame(Reimbursement::STATUS_PAID, $r->getStatus());
+		$this->assertSame(55, $r->getJournalId());
+		$this->assertSame('2026-11-01', $r->getPaidAt());
+		$this->assertSame('paid', $this->openItems[$r->getOpenItemId()]->getStatus());
+		$this->assertChainIsValid($service, $r->getId());
+	}
+
+	#[DataProvider('unpassendeUmsaetze')]
+	public function testKontoumsatzMussZurAuslagePassen(int $cents, string $status): void {
+		$service = $this->service();
+		$r = $this->approved($service);
+		$this->booking->expects($this->never())->method('assign');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$service->payFromBankTransaction($r->getId(), $this->outflow($cents, $status), 31, 'berta');
+	}
+
+	/** @return array<string, array{int, string}> */
+	public static function unpassendeUmsaetze(): array {
+		return [
+			'falscher Betrag' => [-1000, 'unassigned'],
+			'Eingang statt Abgang' => [1250, 'unassigned'],
+			'schon zugeordnet' => [-1250, 'assigned'],
+		];
+	}
+
 	public function testOpenSummaryZaehltNurNichtAbgeschlossene(): void {
 		$service = $this->service();
 		foreach ([
 			[Reimbursement::STATUS_SUBMITTED, 1000],
 			[Reimbursement::STATUS_PARTIALLY_APPROVED, 2500],
 			[Reimbursement::STATUS_APPROVED, 500],
+			[Reimbursement::STATUS_APPROVED, 700],
 			[Reimbursement::STATUS_PAID, 9900],
 			[Reimbursement::STATUS_REJECTED, 9900],
 			[Reimbursement::STATUS_WITHDRAWN, 9900],
@@ -737,9 +835,10 @@ class ReimbursementServiceTest extends TestCase {
 			$r->setAmountCents($cents);
 			$this->reimbursements[$i + 1] = $r;
 		}
+		$this->reimbursements[4]->setTransferredAt('2026-11-02 10:00:00');
 
 		$this->assertSame(
-			['count' => 3, 'totalCents' => 4000, 'awaitingApproval' => 2, 'toTransfer' => 1],
+			['count' => 4, 'totalCents' => 4700, 'awaitingApproval' => 2, 'toTransfer' => 1, 'awaitingBooking' => 1],
 			$service->openSummary(),
 		);
 	}

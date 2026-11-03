@@ -8,7 +8,7 @@
 		@update:show="!$event && $emit('close')">
 		<div class="vbh-modal-inner">
 			<h2 id="vbh-modal-title-reimb-transfer" class="vbh-modal-title">
-				{{ tRaw('Überweisung für Auslage #{id} vorbereiten', { id: itemId }) }}
+				{{ t('Überweisung vorbereiten') }}
 			</h2>
 
 			<NcLoadingIcon v-if="loading" :size="32" />
@@ -17,7 +17,7 @@
 			</p>
 			<template v-else>
 				<p class="vbh-hint vbh-hint--info" role="note">
-					{{ t('Mit der Banking-App den Girocode scannen oder die Angaben kopieren. Danach hier bestätigen und die Auszahlung buchen.') }}
+					{{ t('Mit der Banking-App den Girocode scannen oder die Angaben kopieren. Die Nummer im Verwendungszweck ordnet den Kontoumsatz später der Auslage zu. Danach hier bestätigen.') }}
 				</p>
 
 				<div class="vbh-transfer">
@@ -85,8 +85,8 @@ import { formatIban } from '../lib/iban.js'
  * „Überweisung vorbereiten“ (docs/reimbursement-design.md §7): Girocode und
  * kopierbare Überweisungsdaten einer freigegebenen Auslage. Der Server baut
  * Empfänger, IBAN, Betrag und Verwendungszweck einmal, damit Code und Anzeige
- * dasselbe sagen. „Überweisung abgeschlossen“ meldet `done`; die Buchung der
- * Auszahlung öffnet der Aufrufer.
+ * dasselbe sagen. „Überweisung abgeschlossen“ meldet `done`; der Aufrufer vermerkt
+ * die Überweisung am Antrag, gebucht wird mit dem Kontoumsatz.
  */
 export default {
 	name: 'ReimbursementTransferDialog',

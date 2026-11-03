@@ -81,6 +81,28 @@ class ReimbursementMapper extends EncryptingMapper {
 		return $totals;
 	}
 
+	/** Freigegeben und schon als überwiesen vorgemerkt: wartet nur noch auf den Kontoumsatz. */
+	public function countTransferredApproved(): int {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select($qb->func()->count('*', 'cnt'))->from($this->getTableName())
+			->where($qb->expr()->eq('status', $qb->createNamedParameter(Reimbursement::STATUS_APPROVED)))
+			->andWhere($qb->expr()->isNotNull('transferred_at'));
+		$result = $qb->executeQuery();
+		$count = (int)$result->fetchOne();
+		$result->closeCursor();
+		return $count;
+	}
+
+	/** @return Reimbursement[] freigegeben, also zur Auszahlung bereit; neueste zuerst */
+	public function findApproved(): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('status', $qb->createNamedParameter(Reimbursement::STATUS_APPROVED)))
+			->orderBy('id', 'DESC');
+		return $this->findEntities($qb);
+	}
+
 	public function countByMember(int $memberId): int {
 		return $this->count($memberId);
 	}

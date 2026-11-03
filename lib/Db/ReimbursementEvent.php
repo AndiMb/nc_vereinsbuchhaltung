@@ -52,6 +52,7 @@ class ReimbursementEvent extends Entity implements \JsonSerializable {
 	public const ACTION_APPROVED = 'approved';
 	public const ACTION_REJECTED = 'rejected';
 	public const ACTION_WITHDRAWN = 'withdrawn';
+	public const ACTION_TRANSFERRED = 'transferred';
 	public const ACTION_PAID = 'paid';
 	public const ACTION_RECEIPT_ADDED = 'receipt_added';
 	public const ACTION_RECEIPT_REMOVED = 'receipt_removed';

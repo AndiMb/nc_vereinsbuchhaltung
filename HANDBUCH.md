@@ -744,25 +744,44 @@ Die Zahl der nötigen Freigaben hält der Antrag **bei der Einreichung** fest.
 Wert. Stößt die App auf denselben Beleg in einem anderen Antrag, zeigt der
 Antrag einen **Dubletten-Hinweis**; blockiert wird nichts.
 
+**Auslagennummer.** Jeder Antrag bekommt beim Einreichen eine fortlaufende Nummer
+wie *AUSL-2026-0012* (je Jahr von 1 an; bestehende Anträge bekamen sie
+nachträglich). Sie steht im Antrag, in der Liste und im Verwendungszweck der
+Überweisung.
+
 **Auszahlen (Buchhalter und Verwalter).** Der freigegebene Antrag steht auch
 unter *Buchungen → Offene Posten*, gekennzeichnet als „Auslage – zu
 überweisen". Wählen Sie im Antrag **Überweisung vorbereiten**: Ein Fenster zeigt
 den **Girocode** (mit der Banking-App scannen) und daneben Empfänger, IBAN,
 Betrag und Verwendungszweck zum Kopieren. Der Verwendungszweck lautet
-*Auslage Nr. <Nummer> - <Zweck>* und ist bei Bedarf auf 140 Zeichen gekürzt.
-Haben Sie die Überweisung ausgelöst, wählen Sie **Überweisung abgeschlossen**:
-Es öffnet sich der normale Buchungsdialog, vorbelegt
-mit Betrag, Text und der Referenz *AUSL-Nummer*. Sie wählen Aufwandskonto,
+*AUSL-2026-0012 - <Zweck>* und ist bei Bedarf auf 140 Zeichen gekürzt. Haben Sie
+die Überweisung ausgelöst, wählen Sie **Überweisung abgeschlossen**: Der Antrag
+merkt sich das („Überweisung angewiesen"), bleibt aber freigegeben. Gebucht wird
+erst, wenn der Kontoumsatz da ist.
+
+**Kontoumsatz zuordnen.** Der Umsatz erscheint nach dem Import unter *Buchungen →
+Zuzuordnen*. Steht die Auslagennummer im Verwendungszweck (oder stimmen IBAN und
+Betrag überein), zeigt die Zeile den Chip **„✓ Auslage AUSL-…"**. Für jede andere
+Überweisung, etwa ohne Nummer im Text, wählen Sie **Einer Auslage zuordnen…** und
+suchen die Auslage selbst aus; der Betrag muss übereinstimmen. In beiden Fällen
+wählen Sie das **Aufwandskonto**. Mit **Zuordnen und buchen** wird der Umsatz
+gebucht, der Antrag *Ausgezahlt*, der offene Posten erledigt, die Belege hängen
+an der Buchung, und das Mitglied bekommt eine Mail. So steht dieselbe Zahlung
+nie zweimal in den Büchern. Der Posten zählt nicht als Forderung (keine
+„überfälligen" Posten, keine Mahnung); eine Auslage lässt sich nur über den
+Antrag erledigen, nicht über *Bezahlt* oder *Stornieren* in der Liste.
+
+**Ohne Kontoumsatz (Barzahlung).** Gibt es keinen Kontoumsatz, wählen Sie im Antrag
+**Ohne Kontoumsatz buchen**: Es öffnet sich der normale Buchungsdialog, vorbelegt
+mit Betrag, Text und der Auslagennummer als Referenz. Sie wählen Aufwandskonto,
 Geldkonto und ggf. Kostenstelle; die üblichen Regeln des Geschäftsjahres gelten.
-Mit dem Speichern wird der Antrag *Ausgezahlt*, der offene Posten erledigt, die
-Belege hängen an der Buchung, und das Mitglied bekommt eine Mail. Der Posten
-zählt nicht als Forderung (keine „überfälligen" Posten, keine Mahnung); eine
-Auslage lässt sich nur über den Antrag erledigen, nicht über *Bezahlt* oder
-*Stornieren* in der Liste.
+Mit dem Speichern wird der Antrag *Ausgezahlt*. Benutzen Sie diesen Weg nicht für
+eine Überweisung, die später im Kontoauszug auftaucht, sonst entsteht eine
+Doppelbuchung.
 
 **Kachel auf der Übersicht.** Solange Anträge weder ausgezahlt noch abgelehnt
 oder zurückgezogen sind, zeigt die Übersicht die Kachel **Offene Auslagen** mit
-Anzahl, Summe und der Aufteilung in „warten auf Freigabe" und „zu überweisen".
+Anzahl, Summe und der Aufteilung in „warten auf Freigabe", „zu überweisen" und „warten auf den Kontoumsatz".
 *Ansehen* führt zu *Buchungen → Auslagen*.
 
 **Historie.** Jeder Antrag führt eine Historie, die sich nur ergänzen lässt:

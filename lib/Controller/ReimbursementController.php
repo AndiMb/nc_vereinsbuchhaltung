@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Db\BankTransactionMapper;
 use OCA\Vereinsbuchhaltung\Db\ReimbursementMapper;
 use OCA\Vereinsbuchhaltung\Exception\ForbiddenException;
 use OCA\Vereinsbuchhaltung\Http\ReceiptPreviewPolicy;
@@ -12,6 +13,7 @@ use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\ActorContextService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementFileService;
+use OCA\Vereinsbuchhaltung\Service\ReimbursementMatchingService;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementPresenter;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementService;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementTransferService;
@@ -35,6 +37,7 @@ use OCP\IRequest;
  * seinen eigenen Antrag - die Rolle allein reicht dafür nicht.
  */
 class ReimbursementController extends Controller {
+	use BookContext;
 
 	public function __construct(
 		IRequest $request,
@@ -45,6 +48,8 @@ class ReimbursementController extends Controller {
 		private ReimbursementMapper $mapper,
 		private ReimbursementFileService $fileService,
 		private ReimbursementTransferService $transfer,
+		private ReimbursementMatchingService $matching,
+		private BankTransactionMapper $txMapper,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -76,6 +81,17 @@ class ReimbursementController extends Controller {
 	#[RequiresRole(PermissionService::ROLE_READ)]
 	public function summary(): DataResponse {
 		return new DataResponse($this->service->openSummary());
+	}
+
+	/**
+	 * Zuordnungsvorschläge zu Auslagen für alle unzugeordneten Abgänge, als
+	 * Objekt Umsatz-ID => Vorschläge.
+	 */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_READ)]
+	public function suggestions(): DataResponse {
+		$txs = $this->txMapper->findFiltered($this->userId(), 'unassigned', 1000, 0);
+		return new DataResponse((object)$this->matching->suggestForMany($txs));
 	}
 
 	#[NoAdminRequired]
@@ -116,6 +132,28 @@ class ReimbursementController extends Controller {
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		}
+	}
+
+	/** Die Überweisung ist angewiesen; gebucht wird mit dem Kontoumsatz. */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	public function transferred(int $id): DataResponse {
+		return $this->decide(fn () => $this->service->markTransferred($id, $this->uid()));
+	}
+
+	/**
+	 * Ordnet einen Kontoumsatz der Auslage zu und bucht ihn gegen das gewählte
+	 * Aufwandskonto.
+	 */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	public function assignTransaction(int $id, int $bankTxId, int $contraAccountId): DataResponse {
+		return $this->decide(fn () => $this->service->payFromBankTransaction(
+			$id,
+			$this->txMapper->find($bankTxId, $this->userId()),
+			$contraAccountId,
+			$this->uid(),
+		));
 	}
 
 	/**

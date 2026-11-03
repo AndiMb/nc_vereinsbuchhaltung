@@ -14,11 +14,11 @@ use Psr\Log\LoggerInterface;
 /**
  * Überweisungsdaten einer freigegebenen Auslage samt GiroCode: wer die
  * Erstattung in der Banking-App anweist, scannt den Code oder kopiert die
- * Felder. Die Buchung der Auszahlung folgt danach im normalen Buchungsdialog
- * (docs/reimbursement-design.md §7).
+ * Felder. Gebucht wird erst mit dem Kontoumsatz ({@see ReimbursementMatchingService},
+ * docs/reimbursement-design.md §7).
  *
  * Der Verwendungszweck entsteht hier einmal und steht identisch im GiroCode und
- * in der Anzeige: „Auslage Nr. <Nummer> - <Zweck>“, auf die 140 Zeichen gekürzt,
+ * in der Anzeige: „<Auslagennummer> - <Zweck>“, auf die 140 Zeichen gekürzt,
  * die eine SEPA-Überweisung zulässt.
  */
 class ReimbursementTransferService {
@@ -38,6 +38,7 @@ class ReimbursementTransferService {
 	/**
 	 * @return array{
 	 *     id: int,
+	 *     number: ?string,
 	 *     recipient: string,
 	 *     iban: string,
 	 *     amountCents: int,
@@ -59,10 +60,11 @@ class ReimbursementTransferService {
 		}
 
 		$recipient = $this->recipientName($reimbursement);
-		$remittance = self::remittance($reimbursement->getId(), $reimbursement->getPurpose());
+		$remittance = self::remittance($reimbursement->getId(), $reimbursement->getNumber(), $reimbursement->getPurpose());
 
 		return [
 			'id' => $reimbursement->getId(),
+			'number' => $reimbursement->getNumber(),
 			'recipient' => $recipient,
 			'iban' => $iban,
 			'amountCents' => $reimbursement->getAmountCents(),
@@ -72,13 +74,14 @@ class ReimbursementTransferService {
 	}
 
 	/**
-	 * „Auslage Nr. 12 - Material Sommerfest“; Zeilenumbrüche und Mehrfach-
+	 * „AUSL-2026-0012 - Material Sommerfest“; Zeilenumbrüche und Mehrfach-
 	 * Leerzeichen im Zweck werden zu einem Leerzeichen (ein Umbruch im
-	 * GiroCode-Text würde dessen Zeilenformat zerstören).
+	 * GiroCode-Text würde dessen Zeilenformat zerstören). Anträge ohne Nummer
+	 * (sollte es nach der Migration nicht geben) fallen auf die Antragsnummer zurück.
 	 */
-	public static function remittance(int $id, string $purpose): string {
+	public static function remittance(int $id, ?string $number, string $purpose): string {
 		$purpose = trim((string)preg_replace('/\s+/u', ' ', $purpose));
-		$text = 'Auslage Nr. ' . $id . ($purpose !== '' ? ' - ' . $purpose : '');
+		$text = ($number ?? 'Auslage Nr. ' . $id) . ($purpose !== '' ? ' - ' . $purpose : '');
 		return rtrim(mb_substr($text, 0, self::MAX_REMITTANCE_LENGTH));
 	}
 
