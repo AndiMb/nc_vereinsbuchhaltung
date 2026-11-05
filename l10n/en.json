@@ -1,5 +1,10 @@
 {
     "translations": {
+        "Beleg übernehmen": "Add receipt",
+        "Der angezeigte Beleg „{name}“ ist noch nicht übernommen. Mit der Buchung speichern?": "The receipt shown, “{name}”, has not been added yet. Save it with the booking?",
+        "Zurück": "Back",
+        "Ohne Beleg speichern": "Save without receipt",
+        "Übernehmen und speichern": "Add and save",
         "Einstellungen und Tabellen aufgeräumt: Alle Ein/Aus-Einstellungen sind einheitliche Schalter mit Erklärung (der Schalter für den Reiter „Beiträge“ wirkt wieder), die Mahn- und Mailtexte haben einen Knopf „Standardtext übernehmen“, und große Tabellen erscheinen am Handy als Karten.": "Settings and tables tidied up: all on/off settings are uniform switches with an explanation (the switch for the \"Contributions\" tab works again), the dunning and email texts have a \"Use default text\" button, and large tables show as cards on phones.",
         "Zur Beachtung": "Please note",
         "Hinweis auf die Gemeinnützigkeit (optional)": "Note on non-profit status (optional)",
