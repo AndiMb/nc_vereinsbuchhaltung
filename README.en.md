@@ -18,7 +18,8 @@ A lightweight accounting app for nonprofit clubs, integrated directly into Nextc
 - **Setup wizard** on first start (no accounts yet): three options to choose from – take over an xbuc file, create the standard chart of accounts, or try it out with sample data first
 - **Sample club** (administrator): a complete dataset to try everything out risk-free, with a banner and a reset button; "delete all data" turns it back into an empty set of books
 - **Setup checklist** on the dashboard: open steps (name the club, chart of accounts, opening balance, permissions, first posting, spheres) with direct links, can be hidden
-- **In-app help**: the help button in the header opens the matching chapter for the active tab; from there a link leads to the included manual, which the app itself serves as a readable page (`/api/help/handbuch`) – in English once the user's Nextcloud language is set to English, otherwise in German
+- **In-app help**: the help button in the header opens the matching chapter for the active tab; from there a link leads to the included manual, which the app itself serves as a readable page (`/api/help/handbuch`) – in German when the user's Nextcloud language is German, otherwise in English
+- **User interface languages**: German (formal and informal), English and Dutch
 - **First-posting tour**: a one-time three-step highlight of the fields in the posting dialog (desktop, simple mode)
 - **Welcome notice for auditors** on first login with that role, including a printable audit guide
 
