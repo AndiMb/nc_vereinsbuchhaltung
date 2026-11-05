@@ -36,8 +36,13 @@ class HelpController extends Controller {
 		parent::__construct(Application::APP_ID, $request);
 	}
 
+	/**
+	 * Das Handbuch gibt es auf Deutsch und Englisch. Alle übrigen Sprachen der
+	 * Oberfläche (z. B. Niederländisch, Issue #279) bekommen die englische
+	 * Fassung - die lesen dort mehr Menschen als die deutsche.
+	 */
 	private function isEnglish(): bool {
-		return str_starts_with($this->l10n->getLanguageCode(), 'en');
+		return !str_starts_with($this->l10n->getLanguageCode(), 'de');
 	}
 
 	/**

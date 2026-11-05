@@ -18,7 +18,8 @@ Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kon
 - **Setup-Assistent** beim ersten Start (noch keine Konten vorhanden): drei Wege zur Auswahl – xbuc-Datei übernehmen, Standard-Kontenrahmen anlegen oder erst mit Beispieldaten ausprobieren
 - **Beispielverein** (Verwalter): vollständiger Datenbestand zum gefahrlosen Ausprobieren, mit Hinweisbanner und Zurücksetzen-Knopf; „Alle Daten löschen" macht daraus wieder eine leere Buchhaltung
 - **Einrichtungs-Checkliste** auf dem Dashboard: offene Schritte (Verein benennen, Kontenrahmen, Anfangsbestand, Berechtigungen, erste Buchung, Sphären) mit Direktsprung, ausblendbar
-- **Hilfe im Programm**: Hilfe-Knopf im Header öffnet das passende Kapitel zum aktiven Tab; von dort führt ein Link ins beiliegende Handbuch, das die App selbst als lesbare Seite ausliefert (`/api/help/handbuch`) – auf Englisch, sobald die Nextcloud-Sprache der Nutzerin oder des Nutzers auf Englisch steht, sonst auf Deutsch
+- **Hilfe im Programm**: Hilfe-Knopf im Header öffnet das passende Kapitel zum aktiven Tab; von dort führt ein Link ins beiliegende Handbuch, das die App selbst als lesbare Seite ausliefert (`/api/help/handbuch`) – auf Deutsch, wenn die Nextcloud-Sprache der Nutzerin oder des Nutzers Deutsch ist, sonst auf Englisch
+- **Sprachen der Oberfläche**: Deutsch (Sie und Du), Englisch und Niederländisch
 - **Erste-Buchung-Tour**: einmalige Drei-Schritte-Hervorhebung der Felder im Buchungsdialog (Desktop, Einfach-Modus)
 - **Willkommenshinweis für Revisoren** beim ersten Login mit der Rolle, inkl. Prüfleitfaden zum Ausdrucken
 
