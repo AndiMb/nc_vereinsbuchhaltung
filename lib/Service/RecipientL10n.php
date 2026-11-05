@@ -31,9 +31,10 @@ use OCP\L10N\IFactory;
  *
  * - Mitglied mit verknüpftem NC-Konto → die Sprache des Kontos
  *   ({@see IFactory::getUserLanguage()}): `de` bekommt Du, `de_DE` Sie, `en`
- *   Englisch. Eine Sprache, für die die App kein Bündel hat (z. B. `fr`),
- *   fällt auf Deutsch in Sie-Form zurück – wie die Oberfläche, die dort
- *   ebenfalls die deutschen Quelltexte zeigt.
+ *   Englisch, `nl` Niederländisch. Eine Sprache, für die die App kein
+ *   Bündel hat (z. B. `fr`), bekommt Englisch (Issue #279) – das liest dort
+ *   eher jemand als Deutsch. Deutsche Varianten ohne Bündel (`de_AT`,
+ *   `de_CH`) bekommen Deutsch in Sie-Form.
  * - Mitglied ohne Konto → immer Deutsch in Sie-Form. Es gibt keine Angabe, die
  *   ein Du rechtfertigt, und die Standardsprache der Instanz zählt dafür
  *   ausdrücklich nicht (die ist die der Verwaltung, nicht des Mitglieds).
@@ -57,6 +58,9 @@ class RecipientL10n {
 
 	/** Informelles Deutsch (Du): `l10n/de.json`. */
 	public const SOURCE_INFORMAL = 'de';
+
+	/** Für Konten in einer anderen Sprache ohne eigenes Bündel (Issue #279). */
+	public const FALLBACK_FOREIGN = 'en';
 
 	public function __construct(
 		private IFactory $factory,
@@ -95,11 +99,12 @@ class RecipientL10n {
 	}
 
 	/**
-	 * Eine Sprache, für die die App ein Bündel hat – sonst Deutsch (Sie).
+	 * Eine Sprache, für die die App ein Bündel hat – sonst Englisch, bei
+	 * Deutsch Sie.
 	 *
-	 * Regionale Varianten (`en_GB`) fallen auf die Hauptsprache zurück. Bei
-	 * Deutsch bewusst NICHT: `de_AT`/`de_CH` auf `de` zu schieben hieße, ein
-	 * unbekanntes Konto zu duzen.
+	 * Regionale Varianten (`en_GB`, `nl_BE`) fallen auf die Hauptsprache
+	 * zurück. Bei Deutsch bewusst NICHT: `de_AT`/`de_CH` auf `de` zu schieben
+	 * hieße, ein unbekanntes Konto zu duzen – sie bekommen Sie.
 	 */
 	private function supportedLanguage(string $language): string {
 		if ($this->factory->languageExists(Application::APP_ID, $language)) {
@@ -109,6 +114,6 @@ class RecipientL10n {
 		if ($primary !== 'de' && $primary !== $language && $this->factory->languageExists(Application::APP_ID, $primary)) {
 			return $primary;
 		}
-		return self::SOURCE_FORMAL;
+		return $primary === 'de' ? self::SOURCE_FORMAL : self::FALLBACK_FOREIGN;
 	}
 }

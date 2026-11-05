@@ -36,9 +36,9 @@ class RecipientL10nTest extends TestCase {
 		$this->requested = [];
 		$this->factory = $this->createMock(IFactory::class);
 		$this->userManager = $this->createMock(IUserManager::class);
-		// Die Sprachen mit Bündel in l10n/: en immer, de (Du) und de_DE (Sie, leer).
+		// Die Sprachen mit Bündel in l10n/: en, nl, de (Du) und de_DE (Sie, leer).
 		$this->factory->method('languageExists')->willReturnCallback(
-			static fn (?string $app, string $lang): bool => in_array($lang, ['en', 'de', 'de_DE'], true),
+			static fn (?string $app, string $lang): bool => in_array($lang, ['en', 'nl', 'de', 'de_DE'], true),
 		);
 		$this->factory->method('get')->willReturnCallback(function (string $app, ?string $lang = null): IL10N {
 			$this->assertSame(Application::APP_ID, $app);
@@ -115,18 +115,43 @@ class RecipientL10nTest extends TestCase {
 		$this->assertSame(['en'], $this->requested);
 	}
 
-	/** @return array<string, array{string}> */
-	public static function sprachenOhneBuendel(): array {
+	/** @return array<string, array{string, string}> */
+	public static function niederlaendisch(): array {
 		return [
-			'Französisch' => ['fr'],
+			'Niederländisch' => ['nl', 'nl'],
+			'Belgisches Niederländisch' => ['nl_BE', 'nl'],
+		];
+	}
+
+	/** @dataProvider niederlaendisch */
+	public function testNiederlaendischesKontoBekommtNiederlaendisch(string $language, string $expected): void {
+		$this->accountWithLanguage('anna', $language);
+
+		$this->service()->forMember($this->member('anna'));
+
+		$this->assertSame([$expected], $this->requested);
+	}
+
+	public function testFremdspracheOhneBuendelBekommtEnglisch(): void {
+		// Issue #279: Französisch liest eher jemand auf Englisch als auf Deutsch.
+		$this->accountWithLanguage('anna', 'fr');
+
+		$this->service()->forMember($this->member('anna'));
+
+		$this->assertSame(['en'], $this->requested);
+	}
+
+	/** @return array<string, array{string}> */
+	public static function deutscheVariantenOhneBuendel(): array {
+		return [
 			// de_AT/de_CH dürfen NICHT auf de (Du) fallen: ein unbekanntes Konto wird gesiezt.
 			'Österreichisches Deutsch' => ['de_AT'],
 			'Schweizer Deutsch' => ['de_CH'],
 		];
 	}
 
-	/** @dataProvider sprachenOhneBuendel */
-	public function testSpracheOhneBuendelFaelltAufDeutschInSieFormZurueck(string $language): void {
+	/** @dataProvider deutscheVariantenOhneBuendel */
+	public function testDeutscheVarianteOhneBuendelFaelltAufDeutschInSieFormZurueck(string $language): void {
 		$this->accountWithLanguage('anna', $language);
 
 		$this->service()->forMember($this->member('anna'));
