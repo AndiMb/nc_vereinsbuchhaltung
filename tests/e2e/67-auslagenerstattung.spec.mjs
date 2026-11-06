@@ -334,8 +334,8 @@ test.describe('Auslagenerstattung', () => {
 
 		// Die Historie nennt jeden Schritt und stimmt in sich.
 		const full = await (await api.getReimbursement(request, reimbursement.id)).json()
-		expect(full.history.map((e) => e.action)).toEqual(['submitted', 'approved', 'approved', 'paid'])
-		expect(full.history.map((e) => e.actorUid)).toEqual([USERS.ohneRolle, USERS.verwalter, USERS.buchhalter, USERS.admin])
+		expect(full.history.map((e) => e.action)).toEqual(['submitted', 'approved', 'approved', 'transferred', 'paid'])
+		expect(full.history.map((e) => e.actorUid)).toEqual([USERS.ohneRolle, USERS.verwalter, USERS.buchhalter, USERS.admin, USERS.admin])
 		full.history.forEach((entry, i) => {
 			expect(entry.seq).toBe(i + 1)
 			expect(entry.prevHash).toBe(i === 0 ? null : full.history[i - 1].hash)
