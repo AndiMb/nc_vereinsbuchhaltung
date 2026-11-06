@@ -17,10 +17,14 @@ use PHPUnit\Framework\TestCase;
  */
 class SafeXmlTest extends TestCase {
 
-	/** Eine Entität, oft verwiesen: unterhalb von libxmls Schleifen-Heuristik, wächst beim Lesen trotzdem. */
+	/**
+	 * Eine Entität, mehrfach verwiesen. Klein genug, dass libxmls eigene
+	 * Bremsen (Schleifen-Heuristik, ab 2.11 der Verstärkungsfaktor) nicht
+	 * greifen – abgelehnt werden muss der DOCTYPE selbst.
+	 */
 	private static function bomb(string $root, string $body): string {
-		return '<!DOCTYPE ' . $root . ' [<!ENTITY a "' . str_repeat('a', 10000) . '">]>'
-			. str_replace('&c;', str_repeat('&a;', 100), $body);
+		return '<!DOCTYPE ' . $root . ' [<!ENTITY a "' . str_repeat('a', 1000) . '">]>'
+			. str_replace('&c;', str_repeat('&a;', 10), $body);
 	}
 
 	public function testLiestGewoehnlichesXml(): void {
