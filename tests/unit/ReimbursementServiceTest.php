@@ -296,6 +296,12 @@ class ReimbursementServiceTest extends TestCase {
 			'IBAN kaputt' => [['iban' => 'kein iban']],
 			'Ohne Erklärung' => [['declarationAccepted' => false]],
 			'Ohne Beleg' => [['uploads' => []]],
+			'Zu viele Belege' => [['uploads' => array_fill(0, ReimbursementService::MAX_FILES + 1, ['name' => 'b.pdf', 'content' => '%PDF'])]],
+			// Ungültiges UTF-8 ließe sich gespeichert nicht mehr als JSON ausliefern.
+			'Zweck kein UTF-8' => [['purpose' => "Material \xC3\x28"]],
+			'Rechnungsnummer kein UTF-8' => [['invoiceNumber' => "R-\xC3\x28"]],
+			'Lieferant kein UTF-8' => [['supplier' => "Shop \xC3\x28"]],
+			'Kontoinhaber kein UTF-8' => [['accountHolder' => "Anna \xC3\x28"]],
 		];
 	}
 
@@ -560,6 +566,35 @@ class ReimbursementServiceTest extends TestCase {
 	}
 
 	// --- Belege -----------------------------------------------------------------
+
+	public function testUmlauteBleibenGueltig(): void {
+		$r = $this->submitWith($this->service(), ['purpose' => 'Grüße für Jürgen', 'supplier' => 'Bäckerei Öz']);
+
+		$this->assertSame('Grüße für Jürgen', $r->getPurpose());
+	}
+
+	/** Die Obergrenze je Antrag gilt auch über mehrere Aufrufe zum Nachreichen hinweg. */
+	public function testBelegNachreichenEndetAnDerObergrenze(): void {
+		$service = $this->service();
+		$r = $this->submit($service);
+		$this->fileMapper->method('countActive')->willReturn(ReimbursementService::MAX_FILES);
+		$this->files->expects($this->never())->method('add');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$service->addReceipt($r->getId(), 1, 'anna', 'elfter.pdf', 'x');
+	}
+
+	/** Ist die Auslagenerstattung aus, sehen Mitglieder ihre Anträge nur noch. */
+	public function testBelegNachreichenOhneAktiveFunktionScheitert(): void {
+		$r = $this->submit($this->service());
+		$settings = $this->createMock(ReimbursementSettings::class);
+		$settings->method('isEnabled')->willReturn(false);
+		$this->settings = $settings;
+		$this->files->expects($this->never())->method('add');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->addReceipt($r->getId(), 1, 'anna', 'zweiter.pdf', 'x');
+	}
 
 	public function testBelegNachreichenIstNurVorDerErstenFreigabeMoeglich(): void {
 		$service = $this->service();

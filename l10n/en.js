@@ -4310,5 +4310,6 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Vormerkung zurücknehmen": "Revert note",
 	"Neu: Auslagennummer (AUSL-2026-0012) im Verwendungszweck der Überweisung. Der Kontoumsatz lässt sich unter „Zuzuordnen“ per Klick oder von Hand der Auslage zuordnen.": "New: expense claim number (AUSL-2026-0012) in the transfer's payment reference. Under “To assign”, the bank transaction can be assigned to the claim with a click or by hand.",
 	"Neu: Zahlung und Vormerkung einer Auslage lassen sich zurücknehmen.": "New: the payout and the transfer note of an expense claim can be reverted.",
-	"Neu: Kachel „Offene Auslagen“ auf der Übersicht.": "New: “Open expense claims” tile on the overview."
+	"Neu: Kachel „Offene Auslagen“ auf der Übersicht.": "New: “Open expense claims” tile on the overview.",
+	"Der Text enthält ungültige Zeichen.": "The text contains invalid characters."
 }, "nplurals=2; plural=(n != 1);");

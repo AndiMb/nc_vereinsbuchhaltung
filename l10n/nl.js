@@ -4310,5 +4310,6 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Vormerkung zurücknehmen": "Notitie terugdraaien",
 	"Neu: Auslagennummer (AUSL-2026-0012) im Verwendungszweck der Überweisung. Der Kontoumsatz lässt sich unter „Zuzuordnen“ per Klick oder von Hand der Auslage zuordnen.": "Nieuw: declaratienummer (AUSL-2026-0012) in de omschrijving van de overschrijving. Onder „Toe te wijzen” kan de banktransactie met een klik of handmatig aan de declaratie worden toegewezen.",
 	"Neu: Zahlung und Vormerkung einer Auslage lassen sich zurücknehmen.": "Nieuw: de uitbetaling en de notitie van een declaratie kunnen worden teruggedraaid.",
-	"Neu: Kachel „Offene Auslagen“ auf der Übersicht.": "Nieuw: tegel „Openstaande declaraties” op het overzicht."
+	"Neu: Kachel „Offene Auslagen“ auf der Übersicht.": "Nieuw: tegel „Openstaande declaraties” op het overzicht.",
+	"Der Text enthält ungültige Zeichen.": "De tekst bevat ongeldige tekens."
 }, "nplurals=2; plural=(n != 1);");

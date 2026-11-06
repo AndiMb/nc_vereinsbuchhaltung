@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Service\Text\EntityDecoder;
+use OCA\Vereinsbuchhaltung\Service\Text\SafeXml;
 use OCP\IL10N;
 
 /**
@@ -32,10 +33,9 @@ class XbucParser {
 	 * @throws \RuntimeException
 	 */
 	public function parse(string $content): array {
-		$prev = libxml_use_internal_errors(true);
-		$xml = simplexml_load_string($content);
-		libxml_use_internal_errors($prev);
-		if ($xml === false) {
+		// Ohne DOCTYPE: interne Entitäten würden sonst beim Lesen expandieren (SafeXml).
+		$xml = SafeXml::load($content);
+		if ($xml === null) {
 			throw new UserFacingException($this->msg('Die Datei konnte nicht als XML gelesen werden.'));
 		}
 

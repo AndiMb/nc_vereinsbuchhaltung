@@ -77,6 +77,27 @@ class ReimbursementFileMapper extends QBMapper {
 	}
 
 	/**
+	 * Die Nextcloud-Dateien aller Anträge (nicht entfernt), für den Scan des
+	 * Wächter-Ordners.
+	 *
+	 * @return array<int,true> Dateikennung => true
+	 */
+	public function activeFileIds(): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->selectDistinct('file_id')
+			->from($this->getTableName())
+			->where($qb->expr()->isNull('removed_at'))
+			->andWhere($qb->expr()->isNotNull('file_id'));
+		$result = $qb->executeQuery();
+		$ids = [];
+		while (($row = $result->fetch()) !== false) {
+			$ids[(int)$row['file_id']] = true;
+		}
+		$result->closeCursor();
+		return $ids;
+	}
+
+	/**
 	 * Welche dieser Nextcloud-Dateien gehören zu einem Antrag? Der Posteingang
 	 * „Zuzuordnen“ blendet sie aus.
 	 *
