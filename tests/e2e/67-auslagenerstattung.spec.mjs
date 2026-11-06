@@ -131,7 +131,7 @@ test.describe('Auslagenerstattung', () => {
 		await openSettingsPage(page, USERS.admin)
 		const section = page.locator('#settings-section_auslagen')
 		await expect(section.getByText('Auslagenerstattung aktivieren')).toBeVisible()
-		const approvals = section.locator('input[type="number"]')
+		const approvals = section.getByLabel('Nötige Freigaben')
 		await expect(approvals).toHaveValue('2')
 
 		await approvals.fill('5')

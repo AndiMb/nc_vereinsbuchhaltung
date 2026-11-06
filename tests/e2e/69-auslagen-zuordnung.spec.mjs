@@ -64,6 +64,8 @@ test.describe('Auslagen: Nummer, Vormerken, Kontoumsatz zuordnen', () => {
 		memberId = (await api.createMember(request, MEMBER)).id
 		await api.linkMember(request, memberId, USERS.ohneRolle)
 		await api.updateSettings(request, { reimbursement_enabled: '1', reimbursement_required_approvals: '2' })
+		// Das Zurücksetzen des Bestands lässt den Nummernkreis stehen (wie bei den Rechnungen): hier von vorn zählen.
+		await api.saveReimbursementNumberRange(request, { prefixPattern: 'AUSL-{JJJJ}-{NNNN}', resetMode: 'yearly', nextNo: 1 })
 
 		// Drei freigegebene Auslagen mit verschiedenen Beträgen.
 		for (const [purpose, amount] of [['Material Sommerfest', '12.50'], ['Porto Mitgliederbrief', '30.00'], ['Fahrtkosten Turnier', '7.77']]) {
