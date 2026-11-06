@@ -18,6 +18,7 @@ use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\DebtorService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceService;
 use OCA\Vereinsbuchhaltung\Service\OptionalL10n;
+use OCA\Vereinsbuchhaltung\Service\Text\Utf8;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IL10N;
 use OCP\ITempManager;
@@ -88,7 +89,7 @@ class InvoiceBatchService {
 	 * @throws \InvalidArgumentException wenn nichts anzulegen ist oder Angaben fehlen
 	 */
 	public function import(string $content, ?string $filename, string $name, array $options): array {
-		$name = mb_substr(trim($name), 0, 255);
+		$name = mb_substr(Utf8::wellFormed(trim($name), $this->l10n), 0, 255);
 		if ($name === '') {
 			throw new \InvalidArgumentException($this->msg('Bitte einen Namen für das Projekt angeben.'));
 		}
@@ -101,7 +102,8 @@ class InvoiceBatchService {
 		return $this->transaction->run(function () use ($result, $filename, $name, $opts): array {
 			$batch = new InvoiceBatch();
 			$batch->setName($name);
-			$batch->setSourceFilename($filename !== null && $filename !== '' ? mb_substr(basename($filename), 0, 255) : null);
+			// Der Dateiname kommt vom Browser: ungültige Bytes ersetzen statt ablehnen.
+			$batch->setSourceFilename($filename !== null && $filename !== '' ? mb_substr(mb_scrub(basename($filename), 'UTF-8'), 0, 255) : null);
 			$batch->setCreatedBy($this->userSession->getUser()?->getUID() ?? 'system');
 			$batch->setCreatedAt((new \DateTimeImmutable())->format(\DateTimeInterface::ATOM)); // UTC-Zeitstempel (#263)
 			$batch = $this->batches->insert($batch);
@@ -147,11 +149,11 @@ class InvoiceBatchService {
 
 	/**
 	 * @throws DoesNotExistException
-	 * @throws \InvalidArgumentException bei leerem Namen
+	 * @throws \InvalidArgumentException bei leerem Namen oder ungültigen Zeichen
 	 */
 	public function rename(int $id, string $name): InvoiceBatch {
 		$batch = $this->batches->find($id);
-		$name = mb_substr(trim($name), 0, 255);
+		$name = mb_substr(Utf8::wellFormed(trim($name), $this->l10n), 0, 255);
 		if ($name === '') {
 			throw new \InvalidArgumentException($this->msg('Bitte einen Namen für das Projekt angeben.'));
 		}

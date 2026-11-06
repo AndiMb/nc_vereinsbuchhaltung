@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service\Statement;
 
 use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
+use OCA\Vereinsbuchhaltung\Service\Text\SafeXml;
 use OCP\IL10N;
 
 /**
@@ -76,20 +77,13 @@ class Camt053Parser implements StatementParser {
 	 * @return array<int, array{0: \SimpleXMLElement, 1: ?string}>
 	 */
 	private function entries(string $content): array {
-		$previous = libxml_use_internal_errors(true);
-		try {
-			// LIBXML_NONET: die Datei kommt von außen; ohne diese Sperre könnte
-			// eine präparierte Doctype-Deklaration den Server dazu bringen,
-			// Netzwerkverbindungen aufzubauen.
-			$xml = simplexml_load_string($content, \SimpleXMLElement::class, LIBXML_NONET | LIBXML_NOCDATA);
-			if ($xml === false) {
-				$first = libxml_get_errors()[0] ?? null;
-				throw new UserFacingException($this->msg('Die Datei ist kein gültiges XML')
-					. ($first !== null ? ': ' . trim($first->message) : '.'));
-			}
-		} finally {
-			libxml_clear_errors();
-			libxml_use_internal_errors($previous);
+		// Die Datei kommt von außen: SafeXml sperrt Netzzugriffe und lehnt
+		// Doctype-Deklarationen ab, deren Entitäten sonst beim Lesen eines
+		// Knotens den Speicher sprengen.
+		$xml = SafeXml::load($content, LIBXML_NOCDATA, $error);
+		if ($xml === null) {
+			throw new UserFacingException($this->msg('Die Datei ist kein gültiges XML')
+				. ($error !== null ? ': ' . $error : '.'));
 		}
 
 		// CAMT-Dateien tragen einen Standard-Namensraum. Ohne registrierten

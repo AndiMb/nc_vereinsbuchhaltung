@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service\InvoiceBatch;
 
+use OCA\Vereinsbuchhaltung\Service\Text\SafeXml;
 use OCP\ITempManager;
 
 /**
@@ -95,15 +96,9 @@ class SpreadsheetReader {
 		if ($xml === false) {
 			return null;
 		}
-		$previous = libxml_use_internal_errors(true);
-		try {
-			// Ohne LIBXML_NOENT: Entitäten werden nicht ersetzt; LIBXML_NONET verbietet Netzzugriffe.
-			$doc = simplexml_load_string($xml, \SimpleXMLElement::class, LIBXML_NONET | LIBXML_COMPACT);
-		} finally {
-			libxml_clear_errors();
-			libxml_use_internal_errors($previous);
-		}
-		if ($doc === false) {
+		// SafeXml lehnt präparierte Teile ab (DOCTYPE, Attributflut, fremde Kodierung).
+		$doc = SafeXml::load($xml, LIBXML_COMPACT);
+		if ($doc === null) {
 			throw new \InvalidArgumentException('Die Excel-Datei ließ sich nicht lesen.');
 		}
 		return $doc;

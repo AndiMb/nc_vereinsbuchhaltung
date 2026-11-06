@@ -8,6 +8,7 @@ use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\EInvoice\EInvoiceException;
 use OCA\Vereinsbuchhaltung\Service\EInvoice\InvoiceSuiteEInvoiceWriter;
+use OCA\Vereinsbuchhaltung\Service\Text\SafeXml;
 use PrinsFrank\PdfParser\PdfParser;
 use Psr\Log\LoggerInterface;
 
@@ -26,6 +27,15 @@ class ReceiptReader {
 	public const MAX_TEXT_CHARS = 200000;
 	public const MIN_VISIBLE_CHARS = 20;
 	public const MAX_VENDOR_CHARS = 120;
+	/**
+	 * Höchste Laufzeit für das Lesen eines PDFs. Der PDF-Parser durchläuft einen
+	 * Seitenbaum mit mehrfach verwiesenen Teilbäumen exponentiell; ein 10 KB
+	 * großes PDF reicht, um ihn ohne Ende rechnen zu lassen. Im Cron gilt sonst
+	 * gar keine Grenze (set_time_limit(0)). Das Überschreiten beendet den
+	 * Prozess; der vorher abgelegte Platzhalter ({@see nameOnly()}) verhindert,
+	 * dass dieselbe Datei erneut versucht wird.
+	 */
+	public const MAX_READ_SECONDS = 20;
 
 	private const NS_RSM = 'urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100';
 	private const NS_RAM = 'urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100';
@@ -54,6 +64,11 @@ class ReceiptReader {
 			return new ReceiptFacts(ReceiptFacts::SOURCE_NAME, ReceiptFacts::STATUS_SKIPPED, $nameRefs, $nameRefs);
 		}
 
+		$canLimit = \function_exists('set_time_limit');
+		$previousLimit = (int)ini_get('max_execution_time');
+		if ($canLimit) {
+			set_time_limit(self::MAX_READ_SECONDS);
+		}
 		try {
 			$bytes = $content();
 			// Die gemeldete Größe kann veraltet sein: Zu Großes nie parsen (Speicher, Laufzeit).
@@ -69,6 +84,11 @@ class ReceiptReader {
 				'exception' => $e,
 			]);
 			return new ReceiptFacts(ReceiptFacts::SOURCE_NAME, ReceiptFacts::STATUS_UNREADABLE, $nameRefs, $nameRefs);
+		} finally {
+			// Startet den Zeitgeber neu; zwischen den Dateien hat der Index sein eigenes Zeitbudget.
+			if ($canLimit) {
+				set_time_limit($previousLimit);
+			}
 		}
 	}
 
@@ -92,8 +112,8 @@ class ReceiptReader {
 			return null; // kein eingebettetes XML: weiter mit der Textebene
 		}
 
-		$doc = @simplexml_load_string($xml);
-		if ($doc === false) {
+		$doc = SafeXml::load($xml);
+		if ($doc === null) {
 			return null;
 		}
 		$doc->registerXPathNamespace('rsm', self::NS_RSM);

@@ -19,6 +19,7 @@ use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
+use OCP\AppFramework\Http\Attribute\UserRateLimit;
 use OCP\AppFramework\Http\DataDownloadResponse;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IL10N;
@@ -40,9 +41,6 @@ use Psr\Log\LoggerInterface;
 class SelfReimbursementController extends Controller {
 
 	use InternalErrorResponder;
-
-	/** Mehr Belege je Antrag sind kein Anwendungsfall und würden nur den Speicher belasten. */
-	private const MAX_FILES = 10;
 
 	public function __construct(
 		IRequest $request,
@@ -100,6 +98,7 @@ class SelfReimbursementController extends Controller {
 	 * `files`). Mehrere Rechnungen sind mehrere Anträge.
 	 */
 	#[NoAdminRequired]
+	#[UserRateLimit(limit: 60, period: 3600)]
 	public function create(): DataResponse {
 		return $this->handle(function (): DataResponse {
 			$uploads = $this->readUploads('files');
@@ -129,6 +128,7 @@ class SelfReimbursementController extends Controller {
 	}
 
 	#[NoAdminRequired]
+	#[UserRateLimit(limit: 120, period: 3600)]
 	public function addReceipt(int $id): DataResponse {
 		return $this->handle(function () use ($id): DataResponse {
 			$uploads = $this->readUploads('file');
@@ -248,8 +248,8 @@ class SelfReimbursementController extends Controller {
 			];
 		}
 
-		if (count($entries) > self::MAX_FILES) {
-			throw new \InvalidArgumentException($this->l10n->t('Zu viele Dateien (höchstens %d je Antrag).', [self::MAX_FILES]));
+		if (count($entries) > ReimbursementService::MAX_FILES) {
+			throw new \InvalidArgumentException($this->l10n->t('Zu viele Dateien (höchstens %d je Antrag).', [ReimbursementService::MAX_FILES]));
 		}
 
 		$uploads = [];
